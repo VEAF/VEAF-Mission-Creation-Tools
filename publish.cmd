@@ -1,4 +1,4 @@
-rem @echo off
+@echo off
 echo -
 echo ------------------------------
 echo publishing scripts package

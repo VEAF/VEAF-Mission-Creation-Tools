@@ -1,0 +1,28 @@
+{
+  "name": "veaf-mission-creation-tools",
+  "version": "1.0.1",
+  "description": "A set of scripts that help set up a dynamic mission",
+  "main": "readme.md",
+  "directories": {
+    "doc": "doc"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/VEAF/VEAF-Mission-Creation-Tools.git"
+  },
+  "keywords": [
+    "dcs",
+    "mission-editor",
+    "script",
+    "lua"
+  ],
+  "author": "Mitch, Couby, Zip",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues"
+  },
+  "homepage": "https://github.com/VEAF/VEAF-Mission-Creation-Tools#readme"
+}

@@ -37,7 +37,7 @@ veafNamedPoints = {}
 veafNamedPoints.Id = "NAMED POINTS - "
 
 --- Version.
-veafNamedPoints.Version = "1.2.2"
+veafNamedPoints.Version = "1.2.3"
 
 --- Key phrase to look for in the mark text which triggers the command.
 veafNamedPoints.Keyphrase = "_name point"
@@ -184,8 +184,7 @@ function veafNamedPoints.getWeatherAtPoint(parameters)
     veafNamedPoints.logTrace(string.format("getWeatherAtPoint(name = %s)",name))
     local point = veafNamedPoints.getPoint(name)
     if point then
-        local altitude = veaf.getLandHeight(point)
-        local weatherReport = weathermark._WeatherReport(point, altitude, "imperial")
+        local weatherReport = veaf.weatherReport(point)
         veaf.outTextForUnit(unitName, weatherReport, 30)
     end
 end
@@ -197,22 +196,6 @@ function veafNamedPoints.getAtcAtPoint(parameters)
     if point then
         -- exanple : point={x=-315414,y=480,z=897262, atc=true, tower="138.00", runways={{name="12R", hdg=121, ils="110.30"},{name="30L", hdg=301, ils="108.90"}}}
         local atcReport = "ATC            : " .. name .. "\n"
-        
-        -- altitude and QFE
-        local altitude = veaf.getLandHeight(point)
-        --local qfeHp = mist.utils.getQFE(point, false)
-        --local qfeinHg = mist.utils.getQFE(point, true)
-        atcReport = atcReport .. "ALTITUDE       : " .. altitude .. " meters.\n"
-        --atcReport = atcReport .. "QFE            : " .. qfeHp .. " hPa / " .. qfeinHg .. " inHg.\n"
-
-        -- wind
-        local windDirection, windStrength = veaf.getWind(veaf.placePointOnLand(point))
-        local windText =     'no wind.\n'
-        if windStrength > 0 then
-            windText = string.format(
-                'from %s at %s m/s.\n', windDirection, windStrength)
-            end
-        atcReport = atcReport .. "WIND           : " .. windText
         
         -- runway and other information
         if point.tower then
@@ -252,7 +235,7 @@ function veafNamedPoints.getAtcAtPoint(parameters)
 
         -- weather
         atcReport = atcReport .. "\n\n"
-        local weatherReport = weathermark._WeatherReport(point, altitude, "imperial")
+        local weatherReport = veaf.weatherReport(point)
         atcReport = atcReport ..weatherReport
         veaf.outTextForUnit(unitName, atcReport, 30)
     end

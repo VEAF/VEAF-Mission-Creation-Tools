@@ -24,7 +24,7 @@ veafAssets = {}
 veafAssets.Id = "ASSETS - "
 
 --- Version.
-veafAssets.Version = "1.2.2"
+veafAssets.Version = "1.2.3"
 
 veafAssets.Assets = {
     -- list the assets common to all missions below
@@ -111,6 +111,18 @@ function veafAssets.buildRadioMenu()
         table.insert(sortedAssets, {name=asset.name, sort=asset.sort})
     end
     function compare(a,b)
+		if not(a) then 
+			a = {}
+		end
+		if not(a["sort"]) then 
+			a["sort"] = 0
+		end
+		if not(b) then 
+			b = {}
+		end
+		if not(b["sort"]) then 
+			b["sort"] = 0
+		end	
         return a["sort"] < b["sort"]
     end     
     table.sort(sortedAssets, compare)

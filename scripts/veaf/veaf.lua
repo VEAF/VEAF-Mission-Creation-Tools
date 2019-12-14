@@ -33,7 +33,7 @@ veaf = {}
 veaf.Id = "VEAF - "
 
 --- Version.
-veaf.Version = "1.2.1"
+veaf.Version = "1.2.2"
 
 --- Development version ?
 veaf.Development = false
@@ -776,7 +776,68 @@ function veaf.outTextForUnit(unitName, message, duration)
     end
 end
 
--------------------------------------------------------------------------------------------------------------------------------------------------------------
+--- Weather Report. Report pressure QFE/QNH, temperature, wind at certain location.
+--- stolent from the weatherReport script and modified to fit our usage
+function veaf.weatherReport(vec3, alt)
+     
+    -- Get Temperature [K] and Pressure [Pa] at vec3.
+    local T
+    local Pqfe
+    if not alt then
+        alt = veaf.getLandHeight(vec3)
+    end
+
+    -- At user specified altitude.
+    T,Pqfe=atmosphere.getTemperatureAndPressure({x=vec3.x, y=alt, z=vec3.z})
+    veaf.logTrace(string.format("T = %.1f, Pqfe = %.1f", T,Pqfe))
+    
+    -- Get pressure at sea level.
+    local _,Pqnh=atmosphere.getTemperatureAndPressure({x=vec3.x, y=0, z=vec3.z})
+    veaf.logTrace(string.format("Pqnh = %.1f", Pqnh))
+    
+    -- Convert pressure from Pascal to hecto Pascal.
+    Pqfe=Pqfe/100
+    Pqnh=Pqnh/100 
+     
+    -- Pressure unit conversion hPa --> mmHg or inHg
+    local _Pqnh=string.format("%.1f mmHg (%.1f inHg)", Pqnh * weathermark.hPa2mmHg, Pqnh * weathermark.hPa2inHg)
+    local _Pqfe=string.format("%.1f mmHg (%.1f inHg)", Pqfe * weathermark.hPa2mmHg, Pqfe * weathermark.hPa2inHg)
+   
+    -- Temperature unit conversion: Kelvin to Celsius or Fahrenheit.
+    T=T-273.15
+    local _T=string.format('%d°C (%d°F)', T, weathermark._CelsiusToFahrenheit(T))
+  
+    -- Get wind direction and speed.
+    local Dir,Vel=weathermark._GetWind(vec3, alt)
+    veaf.logTrace(string.format("Dir = %.1f, Vel = %.1f", Dir,Vel))
+
+    -- Get Beaufort wind scale.
+    local Bn,Bd=weathermark._BeaufortScale(Vel)
+    
+    -- Formatted wind direction.
+    local Ds = string.format('%03d°', Dir)
+      
+    -- Velocity in player units.
+    local Vs=string.format('%.1f m/s (%.1f kn)', Vel, Vel * weathermark.mps2knots) 
+    
+    -- Altitude.
+    local _Alt=string.format("%d m (%d ft)", alt, alt * weathermark.meter2feet)
+      
+    local text="" 
+    text=text..string.format("Altitude %s ASL\n",_Alt)
+    text=text..string.format("QFE %.1f hPa = %s\n", Pqfe,_Pqfe)
+    text=text..string.format("QNH %.1f hPa = %s\n", Pqnh,_Pqnh)
+    text=text..string.format("Temperature %s\n",_T)
+    if Vel > 0 then
+        text=text..string.format("Wind from %s at %s (%s)", Ds, Vs, Bd)
+    else
+        text=text.."No wind"
+    end
+
+    return text
+  end
+  
+  -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- initialisation
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 

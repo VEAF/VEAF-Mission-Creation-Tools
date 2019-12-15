@@ -220,12 +220,17 @@ function veafGrass.buildFarpUnits(farp)
 	veafGrass.logInfo("Building FARP for unit " .. farp.unitName)
 
 	local angle = mist.utils.toDegree(farp.heading);
-	local tentSpacing = 20
 	local tentDistance = 100
+	local tentSpacing = 30
+	local otherDistance = 85
+	local otherSpacing = 15
+	local unitsDistance = 80
 
-	-- fix tents distance on FARP
+	-- fix distances on FARP
 	if farp.type == "FARP" then
-		tentDistance = 150
+		tentDistance = 200
+	    unitsDistance = 150
+	    otherDistance = 130
 	end
 
 	local tentOrigin = {
@@ -259,8 +264,6 @@ function veafGrass.buildFarpUnits(farp)
 		'FARP Ammo Dump Coating',
 		'GeneratorF',
 	}
-	local otherSpacing=15
-	local otherDistance=tentDistance-otherSpacing
 	local otherOrigin = {
 		["x"] = farp.x + otherDistance * math.cos(mist.utils.toRadian(angle)),
 		["y"] = farp.y + otherDistance * math.sin(mist.utils.toRadian(angle)),
@@ -287,7 +290,7 @@ function veafGrass.buildFarpUnits(farp)
 
 	-- fix Windsock position on FARP
 	if farp.type == "FARP" then
-		windstockDistance = 110
+		windstockDistance = 120
 		windstockAngle = 0
 	end
 
@@ -304,7 +307,7 @@ function veafGrass.buildFarpUnits(farp)
 	}
 	mist.dynAddStatic(windstockUnit)
 
-	-- on FARP unit, place a second windsock, on the other side
+	-- on FARP unit, place a second windsock, at 90°
 	if farp.type == 'FARP' then
 		local windstockUnit = {
 			["category"] = 'static',
@@ -314,8 +317,8 @@ function veafGrass.buildFarpUnits(farp)
 			["countryId"] = farp.countryId,
 			["heading"] = mist.utils.toRadian(angle-90),
 			["type"] = 'H-Windsock_RW',
-			["x"] = farp.x + windstockDistance * math.cos(mist.utils.toRadian(angle + windstockAngle + 180)),
-			["y"] = farp.y + windstockDistance * math.sin(mist.utils.toRadian(angle + windstockAngle + 180)),
+			["x"] = farp.x + windstockDistance * math.cos(mist.utils.toRadian(angle + windstockAngle - 90)),
+			["y"] = farp.y + windstockDistance * math.sin(mist.utils.toRadian(angle + windstockAngle - 90)),
 		}
 		mist.dynAddStatic(windstockUnit)
 	end
@@ -340,7 +343,6 @@ function veafGrass.buildFarpUnits(farp)
 	}
 
 	local unitsSpacing=6
-	local unitsDistance=otherDistance-20;
 	local unitsOrigin = {
 		x = farp.x + unitsDistance * math.cos(mist.utils.toRadian(angle)),
 		y = farp.y + unitsDistance * math.sin(mist.utils.toRadian(angle)),

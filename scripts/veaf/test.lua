@@ -139,69 +139,6 @@ end
 
 dofile("veafGrass.lua")
 dofile("veafNamedPoints.lua")
-function veafNamedPoints.getAtcAtPoint(parameters)
-    local name, unitName = unpack(parameters)
-    veafNamedPoints.logTrace(string.format("getAtcAtPoint(name = %s)",name))
-    local point = veafNamedPoints.getPoint(name)
-    if point then
-        -- exanple : point={x=-315414,y=480,z=897262, atc=true, tower="138.00", runways={{name="12R", hdg=121, ils="110.30"},{name="30L", hdg=301, ils="108.90"}}}
-        local atcReport = "ATC            : " .. name .. "\n"
-        
-        -- altitude and QFE
-        local altitude = 0
-        local qfeHp = "2992"
-        local qfeinHg = "16.62"
-        atcReport = atcReport .. "ALTITUDE       : " .. altitude .. " meters.\n"
-        atcReport = atcReport .. "QFE            : " .. qfeHp .. " hPa / " .. qfeinHg .. " inHg.\n"
-
-        -- wind
-        local windDirection = 291
-        local windStrength = 10
-        local windText =     'no wind.\n'
-        if windStrength > 0 then
-            windText = string.format(
-                'from %s at %s m/s.\n', windDirection, windStrength)
-            end
-        atcReport = atcReport .. "WIND           : " .. windText
-        
-        -- runway and other information
-        if point.tower then
-            atcReport = atcReport .. "TOWER          : " .. point.tower .. "\n"
-        end
-        if point.runways then
-            for _, runway in pairs(point.runways) do
-                if not runway.name then
-                    runway.name = math.floor((runway.hdg/10)+0.5)
-                end
-                -- ils when available
-                local ils = ""
-                if runway.ils then
-                    ils = " ILS " .. runway.ils
-                end
-                -- pop flare if needed
-                local flare = ""
-                if runway.flare then
-                    -- TODO
-                    flare = " marked with ".. runway.flare .. " flare"
-                    --veafSpawn.spawnSignalFlare(point, runway.flare, runway.hdg)
-                end
-                atcReport = atcReport .. "RUNWAY         : " .. runway.name .. " heading " .. runway.hdg .. ils .. flare .. "\n"
-            end
-        end
-
-        -- weather
-        --atcReport = atcReport .. "\n\n"
-        --local weatherReport = weathermark._WeatherReport(point, altitude, "imperial")
-        --atcReport = atcReport ..weatherReport
-        print(atcReport)
-    end
-end
-
-dofile("mission-specific\\caucasus\\veafNamedPointsConfig.lua")
-veafNamedPoints.initialize()
-
---veafNamedPoints.getAtcAtPoint({"AIRBASE Tbilisi", 0})
-veafNamedPoints.getAtcAtPoint({"AIRBASE Sukhumi", 0})
 
 function veaf.discover(o)
     return veaf._discover(o, 0)
@@ -223,11 +160,11 @@ function veaf._discover(o, level)
     return text
 end
 
-local callsign={}
-callsign["1"]=7
-callsign["2"]={}
-callsign["2"]["toto"]="toto"
-callsign["2"]["titi"]="toto"
-callsign["name"]="Chevy41"
+dofile("veafCombatZone.lua")
+veafCombatZone.logInfo("Loading configuration")
 
-print(veaf.discover(callsign))
+veafCombatZone.addZone(
+	Zone:new()
+		:setFriendlyName("Cross Kobuleti")
+		:setMissionEditorZoneName("combatZoneCrossKobuleti")
+)

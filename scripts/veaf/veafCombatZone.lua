@@ -48,7 +48,7 @@ veafCombatZone = {}
 veafCombatZone.Id = "COMBAT ZONE - "
 
 --- Version.
-veafCombatZone.Version = "0.0.1"
+veafCombatZone.Version = "0.0.3"
 
 --- Number of seconds between each check of the zone watchdog function
 veafCombatZone.SecondsBetweenWatchdogChecks = 15
@@ -69,11 +69,18 @@ veafCombatZone.RadioMenuName = "COMBAT ZONES (" .. veafCombatZone.Version .. ")"
 veafCombatZone.rootPath = nil
 
 -- Zones list (table of Zone objects)
-veafCombatZone.zones = {}
+veafCombatZone.zonesList = {}
+
+-- Zones dictionary (map of Zone objects by zone name)
+veafCombatZone.zonesDict = {}
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Utility methods
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+function veafCombatZone.logError(message)
+    veaf.logError(veafCombatZone.Id .. message)
+end
 
 function veafCombatZone.logInfo(message)
     veaf.logInfo(veafCombatZone.Id .. message)
@@ -103,6 +110,14 @@ Zone =
     units = {},
     -- the zone center
     zoneCenter = nil,
+    -- zone is active
+    active = false,
+
+    --- Radio menus paths
+    radioMarkersPath = nil,
+    radioTargetInfoPath = nil,
+    radioRootPath = nil,
+
     -- the watchdog function checks for zone objectives completion
     watchdogFunctionId = nil,
     -- "pop smoke" command reset function id
@@ -118,15 +133,42 @@ function Zone:new (o)
     return o
 end
 
+---
+--- setters and getters
+---
+function Zone:getRadioMenuName()
+    return self:getFriendlyName()
+end
+
 function Zone:setFriendlyName(value)
     self.friendlyName = value
     return self
+end
+
+function Zone:getFriendlyName()
+    return self.friendlyName
 end
 
 function Zone:setMissionEditorZoneName(value)
     self.missionEditorZoneName = value
     return self
 end
+
+function Zone:getMissionEditorZoneName()
+    return self.missionEditorZoneName
+end
+
+function Zone:isActive()
+    return self.active
+end
+
+function Zone:setActive(value)
+    self.active = value
+    return self
+end
+---
+--- other methods
+---
 
 function Zone:addObjective(value)
     table.insert(self.objectives, value)
@@ -154,8 +196,8 @@ function Zone:initialize()
     -- find the trigger zone center
     self.zoneCenter = mist.utils.zoneToVec3(self.missionEditorZoneName)
     if not self.zoneCenter then 
-        local message = "Trigger zone ["..self.missionEditorZoneName.."] does not exist !"
-        veafCombatZone.logInfo(message)
+        local message = string.format("Trigger zone [%s] does not exist in the mission !",self.missionEditorZoneName)
+        veafCombatZone.logError(message)
         trigger.action.outText(message,5)
         return self
     end
@@ -165,23 +207,148 @@ function Zone:initialize()
     self.units = mist.getUnitsInZones(mist.makeUnitTable({'[all]'}), {self.missionEditorZoneName})
     veafCombatZone.logTrace(string.format("found %d units in zone", #self.units))
 
+    -- create the radio menu
+    self:updateRadioMenu()
+
+    return self
+end
+
+function Zone:getInformation()
+    -- TODO
+    return "info on " .. self.friendlyName
+end
+
+-- activate the zone
+function Zone:activate()
+    self:_doSetActive(true)
+    return self
+end
+
+-- desactivate the zone
+function Zone:desactivate()
+    self:_doSetActive(false)
+    return self
+end
+
+function Zone:_doSetActive(value)
+    -- mark the zone 
+    self:setActive(value)
+
+    -- manage the zone units
+    -- TODO
+
+    -- refresh the radio menu
+    self:updateRadioMenu()
+
+    return self
+end
+
+-- updates the radio menu according to the zone state
+function Zone:updateRadioMenu(inBatch)
+    veafCombatZone.logDebug(string.format("updateRadioMenu(%s)",self.missionEditorZoneName or ""))
+    
+    -- do not update the radio menu if not yet initialized
+    if not veafCombatZone.rootPath then
+        return self
+    end
+
+    -- reset the radio menu
+    veafCombatZone.logTrace("reset the radio menu")
+    veafRadio.delSubmenu(self.radioRootPath, veafCombatZone.rootPath)
+    self.radioRootPath = veafRadio.addSubMenu(self:getRadioMenuName(), veafCombatZone.rootPath)
+
+    -- populate the radio menu
+    veafCombatZone.logTrace("populate the radio menu")
+    -- global commands
+    veafRadio.addCommandToSubmenu("Get info", self.radioRootPath, veafCombatZone.GetInformationOnZone, self.missionEditorZoneName, veafRadio.USAGE_ForGroup)
+    if self:isActive() then
+        -- zone is active, set up accordingly (desactivate zone, get information, pop smoke, etc.)
+        veafCombatZone.logTrace("zone is active")
+        veafRadio.addSecuredCommandToSubmenu('Desactivate zone', self.radioRootPath, veafCombatZone.DesactivateZone, self.missionEditorZoneName, veafRadio.USAGE_ForAll)
+        -- TODO
+    else
+        -- zone is not active, set up accordingly (activate zone)
+        veafCombatZone.logTrace("zone is not active")
+        veafRadio.addSecuredCommandToSubmenu('Activate zone', self.radioRootPath, veafCombatZone.ActivateZone, self.missionEditorZoneName, veafRadio.USAGE_ForAll)
+    end
+
+    if not inBatch then veafRadio.refreshRadioMenu() end
     return self
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
--- add a zone
+-- global functions
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
-function veafCombatZone.addZone(zone)
+
+function veafCombatZone.GetZone(zoneName)
+    veafCombatZone.logInfo(string.format("Searching for zone with name [%s]", zoneName))
+    local zone = veafCombatZone.zonesDict[zoneName]
+    if not zone then 
+        local message = string.format("Zone [%s] was not found !",self.missionEditorZoneName)
+        veafCombatZone.logError(message)
+        trigger.action.outText(message,5)
+    end
+    return zone
+end
+
+-- add a zone
+function veafCombatZone.AddZone(zone)
     veafCombatZone.logInfo(string.format("Adding zone [%s]", zone.missionEditorZoneName))
     zone:initialize()
-    table.insert(veafCombatZone.zones, zone)
+    table.insert(veafCombatZone.zonesList, zone)
+    veafCombatZone.zonesDict[zone.missionEditorZoneName] = zone
+end
+
+-- activate a zone
+function veafCombatZone.ActivateZone(zoneName)
+    local zone = veafCombatZone.GetZone(zoneName)
+    zone:activate()
+end
+
+-- desactivate a zone
+function veafCombatZone.DesactivateZone(zoneName)
+    local zone = veafCombatZone.GetZone(zoneName)
+    zone:desactivate()
+end
+
+-- print information about a zone
+function veafCombatZone.GetInformationOnZone(parameters)
+    local zoneName, unitName = unpack(parameters)
+    local zone = veafCombatZone.GetZone(zoneName)
+    local text = zone:getInformation()
+    veaf.outTextForUnit(unitName, text, 30)
+end
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- Radio menu and help
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+--- Build the initial radio menu
+function veafCombatZone.buildRadioMenu()
+    veafCombatZone.logDebug("buildRadioMenu()")
+    veafCombatZone.rootPath = veafRadio.addSubMenu(veafCombatZone.RadioMenuName)
+    veafRadio.addCommandToSubmenu("HELP", veafCombatZone.rootPath, veafCombatZone.help, nil, veafRadio.USAGE_ForGroup)
+    for _, zone in pairs(veafCombatZone.zonesList) do
+        zone:updateRadioMenu(true)
+    end
+    veafRadio.refreshRadioMenu()
+end
+
+function veafCombatZone.help(unitName)
+    local text =
+        'Combat zones are defined by the mission maker, and listed here\n' ..
+        'You can activate and desactivate them at will,\n' ..
+        'as well as ask for information, JTAC laser and smoke.'
+
+    veaf.outTextForUnit(unitName, text, 30)
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- initialisation
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 function veafCombatZone.initialize()
-    --veafCombatZone.buildRadioMenu()
+    veafCombatZone.logInfo("Initializing module")
+    veafCombatZone.buildRadioMenu()
 end
 
 veafCombatZone.logInfo(string.format("Loading version %s", veafCombatZone.Version))

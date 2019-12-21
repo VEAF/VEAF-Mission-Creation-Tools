@@ -1,6 +1,6 @@
 @echo off
 set MISSION_NAME=Test
-set MISSION_PATH=..\VEAF-Mission
+set MISSION_PATH=..\VEAF-Demo-Mission
 set SECURITY_DISABLED_FLAG=true
 set VERBOSE_LOG_FLAG=true
 

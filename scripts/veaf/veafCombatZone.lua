@@ -104,10 +104,14 @@ Zone =
     friendlyName = nil,
     -- technical zone name (in the mission editor)
     missionEditorZoneName = nil,
+    -- technical zone object
+    missionEditorZoneObject = nil,
     -- list of defined objectives
     objectives = {},
     -- list of the units defined in the zone
     units = {},
+    -- list of the groups defined in the zone
+    groupNames = {},
     -- the zone center
     zoneCenter = nil,
     -- zone is active
@@ -202,10 +206,14 @@ function Zone:initialize()
         return self
     end
     veafCombatZone.logTrace(string.format("zone center = [%s]",veaf.vecToString(self.zoneCenter)))
+    self.missionEditorZoneObject = trigger.misc.getZone(self.missionEditorZoneName)
 
     -- find units in the trigger zone
-    self.units = mist.getUnitsInZones(mist.makeUnitTable({'[all]'}), {self.missionEditorZoneName})
-    veafCombatZone.logTrace(string.format("found %d units in zone", #self.units))
+    self.units, self.groupNames = unpack(veaf.findUnitsInTriggerZone(self.missionEditorZoneObject))
+
+    -- deactivate the zone for starters
+    veafCombatZone.logTrace("desactivate the zone")
+    self:desactivate()
 
     -- create the radio menu
     self:updateRadioMenu()
@@ -220,23 +228,40 @@ end
 
 -- activate the zone
 function Zone:activate()
-    self:_doSetActive(true)
+    self:setActive(true)
+    
+    -- respawn all logged units
+    for _, groupName in pairs(self.groupNames) do
+        veafCombatZone.logTrace(string.format("respawning group [%s]",groupName))
+        mist.respawnGroup(groupName)
+    end
+
+    -- refresh the radio menu
+    self:updateRadioMenu()
+
     return self
 end
 
 -- desactivate the zone
 function Zone:desactivate()
-    self:_doSetActive(false)
-    return self
-end
+    self:setActive(false)
 
-function Zone:_doSetActive(value)
-    -- mark the zone 
-    self:setActive(value)
+    -- find units in the trigger zone (including units not listed in the zone object, as new units may have been spawned in the zone and we want it CLEAN !)
+    local units, groupNames = unpack(veaf.findUnitsInTriggerZone(self.missionEditorZoneObject))
+    for _, groupName in pairs(groupNames) do
 
-    -- manage the zone units
-    -- TODO
-
+        veafCombatZone.logTrace(string.format("destroying group [%s]",groupName))
+        local group = Group.getByName(groupName)
+        if not group then 
+            veafCombatZone.logTrace(string.format("StaticObject.getByName([%s])",groupName))
+            group = StaticObject.getByName(groupName)
+        end
+        if group then
+            veafCombatZone.logTrace(string.format("group[%s]:destroy()",groupName))
+            group:destroy()
+        end
+    end 
+       
     -- refresh the radio menu
     self:updateRadioMenu()
 

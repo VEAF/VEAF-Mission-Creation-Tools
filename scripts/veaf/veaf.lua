@@ -147,10 +147,6 @@ function veaf.discoverMetadata(o)
 	return text
 end
 
-function veaf.discover(o)
-    return veaf._discover(o, 0)
-end
-
 function veaf.p(o, level)
     if level == nil then level = 0 end
       local text = ""
@@ -837,6 +833,71 @@ function veaf.weatherReport(vec3, alt)
     return text
   end
   
+  ---
+  --- lists all units and statics (and their groups names) in a trigger zone
+  ---
+  function veaf.findUnitsInTriggerZone(triggerZone)
+    if (type(triggerZone) == "string") then
+        triggerZone = trigger.misc.getZone(triggerZone)
+    end
+    
+    local units_by_name = {}
+    local l_units = mist.DBs.units	--local reference for faster execution
+    local units = {}
+    local groupNames = {}
+    local alreadyAddedGroups = {}
+    local zoneCoordinates = {}
+    zoneCoordinates = {radius = triggerZone.radius, x = triggerZone.point.x, y = triggerZone.point.y, z = triggerZone.point.z}
+    
+    -- the following code is liberally adapted from MiST (thanks Grimes !)
+    for coa, coa_tbl in pairs(l_units) do
+        for country, country_table in pairs(coa_tbl) do
+            for unit_type, unit_type_tbl in pairs(country_table) do
+                if type(unit_type_tbl) == 'table' then
+                    for group_ind, group_tbl in pairs(unit_type_tbl) do
+                        if type(group_tbl) == 'table' then
+                            for unit_ind, mist_unit in pairs(group_tbl.units) do
+                                local unitName = mist_unit.unitName
+                                local unit = Unit.getByName(unitName)
+                                if not unit then 
+                                    unit = StaticObject.getByName(unitName)
+                                end
+                                if not unit then
+                                    -- could not find an unit nor a static, this is a bug
+                                    veaf.logInfo(string.format("Cannot find object for unitName = [%s]", unitName))
+                                else
+                                    local unit_pos = unit:getPosition().p
+                                    if unit_pos then
+                                        if (((unit_pos.x - zoneCoordinates.x)^2 + (unit_pos.z - zoneCoordinates.z)^2)^0.5 <= zoneCoordinates.radius) then
+                                            veaf.logTrace(string.format("adding unit [%s]", unitName))
+                                            units[#units + 1] = unit
+                                            veaf.logTrace(string.format("unit:getCategory() = [%d]", unit:getCategory()))
+                                            local groupName = nil
+                                            if unit:getCategory() == 3 then
+                                                groupName = unitName -- default for static objects = groups themselves
+                                            else
+                                                groupName = unit:getGroup():getName()
+                                            end
+                                            veaf.logTrace(string.format("groupName = [%s]", groupName))
+                                            if not alreadyAddedGroups[groupName] then 
+                                                veaf.logTrace(string.format("adding group [%s]", groupName))
+                                                alreadyAddedGroups[groupName] = groupName
+                                                groupNames[#groupNames + 1] = groupName
+                                            end
+                                        end
+                                    end
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    veaf.logTrace(string.format("found %d units (%d groups) in zone", #units, #groupNames))   
+    return {units, groupNames}
+end
   -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- initialisation
 -------------------------------------------------------------------------------------------------------------------------------------------------------------

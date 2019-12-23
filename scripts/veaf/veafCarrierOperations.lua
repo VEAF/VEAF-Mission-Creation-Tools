@@ -751,17 +751,6 @@ function veafCarrierOperations.help(unitName)
     veaf.outTextForUnit(unitName, text, 30)
 end
 
-function veaf.findInTable(data, key)
-    local result = nil
-    if data then
-        result = data[key]
-    end
-    if result then 
-        veaf.logTrace(".findInTable found ".. key)
-    end
-    return result
-end
-
 function veafCarrierOperations.initializeCarrierGroups()
     -- find the carriers and add them to the veafCarrierOperations.carriers table, store its initial location and create the menus
     for name, group in pairs(mist.DBs.groupsByName) do

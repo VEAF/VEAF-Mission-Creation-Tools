@@ -48,7 +48,7 @@ veafCombatZone = {}
 veafCombatZone.Id = "COMBAT ZONE - "
 
 --- Version.
-veafCombatZone.Version = "0.0.4"
+veafCombatZone.Version = "0.0.5"
 
 --- Number of seconds between each check of the zone watchdog function
 veafCombatZone.SecondsBetweenWatchdogChecks = 15
@@ -95,6 +95,98 @@ function veafCombatZone.logTrace(message)
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- ZoneElement object
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+ZoneElement =
+{
+    -- name
+    name = nil,
+    -- if true, this is a simple dcs static
+    dcsStatic = false,
+    -- if true, this is a simple dcs group
+    dcsGroup = false,
+    -- if true, this is a VEAF command
+    veafCommand = nil,
+    -- spawn radius in meters (randomness introduced in the respawn mechanism)
+    spawnRadius = 0
+}
+
+function ZoneElement:new (o)
+    o = o or {}   -- create object if user does not provide one
+    setmetatable(o, self)
+    self.__index = self
+    return o
+end
+
+---
+--- setters and getters
+---
+
+function ZoneElement:setName(value)
+    self.Name = value
+    return self
+end
+
+function ZoneElement:getName()
+    return self.Name
+end
+
+function ZoneElement:setDcsStatic(value)
+    self.dcsStatic = value
+    return self
+end
+
+function ZoneElement:isDcsStatic()
+    return self.dcsStatic
+end
+
+function ZoneElement:setDcsGroup(value)
+    self.dcsGroup = value
+    return self
+end
+
+function ZoneElement:isDcsGroup()
+    return self.dcsGroup
+end
+
+function ZoneElement:setVeafCommand(value)
+    self.veafCommand = value
+    return self
+end
+
+function ZoneElement:isVeafCommand()
+    return not (self.veafCommand == nil)
+end
+
+function ZoneElement:getVeafCommand()
+    return self.veafCommand
+end
+
+function ZoneElement:setSpawnRadius(value)
+    self.spawnRadius = value
+    return self
+end
+
+function ZoneElement:getSpawnRadius()
+    return self.spawnRadius
+end
+
+---
+--- other methods
+---
+
+function ZoneElement:initializeWith(dcsObject)
+    -- check parameters
+    if not self.name then 
+        return self 
+    end
+
+    -- first, check if DCS object contains a hint
+
+
+    return self
+end
+    -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Zone object
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -110,10 +202,8 @@ Zone =
     briefing = nil,
     -- list of defined objectives
     objectives = {},
-    -- list of the units defined in the zone
-    units = {},
-    -- list of the groups defined in the zone
-    groupNames = {},
+    -- list of the elements defined in the zone
+    elements = {},
     -- the zone center
     zoneCenter = nil,
     -- zone is active
@@ -225,7 +315,14 @@ function Zone:initialize()
     self.missionEditorZoneObject = trigger.misc.getZone(self.missionEditorZoneName)
 
     -- find units in the trigger zone
-    self.units, self.groupNames = unpack(veaf.findUnitsInTriggerZone(self.missionEditorZoneObject))
+    local units
+    local groupNames
+    units, groupNames = unpack(veaf.findUnitsInTriggerZone(self.missionEditorZoneObject))
+
+    -- process special commands in the units 
+    -- TODO
+    self.units = units
+    self.groupNames = groupNames
 
     -- deactivate the zone for starters
     veafCombatZone.logTrace("desactivate the zone")

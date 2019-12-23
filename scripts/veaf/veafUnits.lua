@@ -771,7 +771,7 @@ veafUnits.GroupsDatabase = {
     {
         aliases = {"US supply convoy","blueconvoy"},
         group = {
-            disposition = { h = 1, w = 50},
+            disposition = { h = 20, w = 20},
             units = {
                 {"IFV Hummer", number = {min=2, max=4}, random},
                 {"Truck M 818", number = {min=3, max=6}, random},
@@ -786,7 +786,7 @@ veafUnits.GroupsDatabase = {
     {
         aliases = {"RU supply convoy with defense","redconvoy-def"},
         group = {
-            disposition = { h = 1, w = 50},
+            disposition = { h = 20, w = 20},
             units = {
                 {"2S6 Tunguska", number = {min=0, max=1}, random},
                 {"Strela-10M3", number = {min=0, max=1}, random},
@@ -810,7 +810,7 @@ veafUnits.GroupsDatabase = {
     {
         aliases = {"RU supply convoy with light defense","redconvoy-lightdef"},
         group = {
-            disposition = { h = 1, w = 50},
+            disposition = { h = 20, w = 20},
             units = {
                 {"ZSU-23-4 Shilka", number = {min=0, max=2}, random},
                 {"Ural-375 ZU-23", number = {min=0, max=2}, random},
@@ -831,7 +831,7 @@ veafUnits.GroupsDatabase = {
     {
         aliases = {"RU supply convoy with no defense","redconvoy-nodef"},
         group = {
-            disposition = { h = 1, w = 50},
+            disposition = { h = 20, w = 20},
             units = {
                 {"UAZ-469", number = {min=2, max=4}, random},
                 {"Truck SKP-11", number = {min=1, max=3}, random},
@@ -851,7 +851,7 @@ veafUnits.GroupsDatabase = {
     {
         aliases = {"RU small supply convoy with defense","redsmallconvoy-def"},
         group = {
-            disposition = { h = 1, w = 50},
+            disposition = { h = 20, w = 20},
             units = {
                 {"2S6 Tunguska", number = {min=0, max=1}, random},
                 {"Strela-10M3", number = {min=0, max=1}, random},
@@ -875,7 +875,7 @@ veafUnits.GroupsDatabase = {
     {
         aliases = {"RU small supply convoy with light defense","redsmallconvoy-lightdef"},
         group = {
-            disposition = { h = 1, w = 50},
+            disposition = { h = 20, w = 20},
             units = {
                 {"ZSU-23-4 Shilka", number = {min=0, max=2}, random},
                 {"Ural-375 ZU-23", number = {min=0, max=2}, random},
@@ -896,7 +896,7 @@ veafUnits.GroupsDatabase = {
     {
         aliases = {"RU small supply convoy with no defense","redsmallconvoy-nodef","redconvoy","convoy"},
         group = {
-            disposition = { h = 1, w = 50},
+            disposition = { h = 20, w = 20},
             units = {
                 {"UAZ-469", number = {min=1, max=2}, random},
                 {"Truck SKP-11", number = {min=1, max=2}, random},

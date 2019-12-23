@@ -677,18 +677,29 @@ function veaf.getGroupData(groupIdent)
                                 for group_num, group_data in pairs(obj_type_data.group) do
                                     if group_data and group_data.groupId == gpId	then -- this is the group we are looking for
                                         return group_data
-                                    end	--if group_data and group_data.name and group_data.name == 'groupname'
-                                end --for group_num, group_data in pairs(obj_type_data.group) do
-                            end --if ((type(obj_type_data) == 'table') and obj_type_data.group and (type(obj_type_data.group) == 'table') and (#obj_type_data.group > 0)) then
-                        end --if obj_type_name == "helicopter" or obj_type_name == "ship" or obj_type_name == "plane" or obj_type_name == "vehicle" or obj_type_name == "static" then
-                    end --for obj_type_name, obj_type_data in pairs(cntry_data) do
-                end --for cntry_id, cntry_data in pairs(coa_data.country) do
-            end --if coa_data.country then --there is a country table
-        end --if coa_name == 'red' or coa_name == 'blue' and type(coa_data) == 'table' then
-    end --for coa_name, coa_data in pairs(mission.coalition) do
+                                    end
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
     
     veaf.logError(' no group data found for '..groupIdent)
     return nil
+end
+
+function veaf.findInTable(data, key)
+    local result = nil
+    if data then
+        result = data[key]
+    end
+    if result then 
+        veaf.logTrace(".findInTable found ".. key)
+    end
+    return result
 end
 
 function veaf.getTankerData(tankerGroupName)
@@ -898,7 +909,8 @@ function veaf.weatherReport(vec3, alt)
     veaf.logTrace(string.format("found %d units (%d groups) in zone", #units, #groupNames))   
     return {units, groupNames}
 end
-  -------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- initialisation
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 

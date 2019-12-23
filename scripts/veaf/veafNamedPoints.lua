@@ -84,6 +84,16 @@ end
 
 --- Function executed when a mark has changed. This happens when text is entered or changed.
 function veafNamedPoints.onEventMarkChange(eventPos, event)
+    if veafNamedPoints.executeCommand(eventPos, event) then 
+
+        -- Delete old mark.
+        veafNamedPoints.logTrace(string.format("Removing mark # %d.", event.idx))
+        trigger.action.removeMark(event.idx)
+    end
+end
+
+function veafNamedPoints.executeCommand(eventPos, event)
+
     -- Check if marker has a text and the veafNamedPoints.keyphrase keyphrase.
     if event.text ~= nil and event.text:lower():find(veafNamedPoints.Keyphrase) then
 
@@ -96,17 +106,14 @@ function veafNamedPoints.onEventMarkChange(eventPos, event)
                 -- create the mission
                 veafNamedPoints.namePoint(eventPos, options.name, event.coalition)
             end
+            return true
         else
             -- None of the keywords matched.
-            return
+            return false
         end
-
-        -- Delete old mark.
-        veafNamedPoints.logTrace(string.format("Removing mark # %d.", event.idx))
-        trigger.action.removeMark(event.idx)
     end
-end
-
+    return false
+end    
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Analyse the mark text and extract keywords.
 -------------------------------------------------------------------------------------------------------------------------------------------------------------

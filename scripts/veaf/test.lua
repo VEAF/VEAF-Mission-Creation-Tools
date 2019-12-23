@@ -160,11 +160,22 @@ function veaf._discover(o, level)
     return text
 end
 
-dofile("veafCombatZone.lua")
-veafCombatZone.logInfo("Loading configuration")
+veafInterpreter = {}
+--- Key phrase to look for in the unit name which triggers the interpreter.
+veafInterpreter.Starter = "#veafInterpreter%[\""
+veafInterpreter.Trailer = "\"%]"
 
-veafCombatZone.addZone(
-	Zone:new()
-		:setFriendlyName("Cross Kobuleti")
-		:setMissionEditorZoneName("combatZoneCrossKobuleti")
-)
+local text = "#veafInterpreter[\"_spawn group, name RU supply convoy with light defense\"]"
+local p1, p2 = text:find(veafInterpreter.Starter)
+local p_start = 0
+local p_end = 0
+local command = nil
+if p2 then 
+  -- starter has been found
+  text = text:sub(p2 + 1)
+  p1, p2 = text:find(veafInterpreter.Trailer)
+  if p1 then
+    command = text:sub(1, p1 - 1)
+  end
+end
+print("["..command.."]")

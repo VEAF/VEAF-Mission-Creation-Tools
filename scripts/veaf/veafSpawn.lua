@@ -128,11 +128,22 @@ end
 
 --- Function executed when a mark has changed. This happens when text is entered or changed.
 function veafSpawn.onEventMarkChange(eventPos, event)
+
+    if veafSpawn.executeCommand(eventPos, event.text) then 
+        
+        -- Delete old mark.
+        veafSpawn.logTrace(string.format("Removing mark # %d.", event.idx))
+        trigger.action.removeMark(event.idx)
+
+    end
+end
+
+function veafSpawn.executeCommand(eventPos, eventText)
     -- Check if marker has a text and the veafSpawn.keyphrase keyphrase.
-    if event.text ~= nil and (event.text:lower():find(veafSpawn.SpawnKeyphrase) or event.text:lower():find(veafSpawn.DestroyKeyphrase) or event.text:lower():find(veafSpawn.TeleportKeyphrase)) then
+    if eventText ~= nil and (eventText:lower():find(veafSpawn.SpawnKeyphrase) or eventText:lower():find(veafSpawn.DestroyKeyphrase) or eventText:lower():find(veafSpawn.TeleportKeyphrase)) then
 
         -- Analyse the mark point text and extract the keywords.
-        local options = veafSpawn.markTextAnalysis(event.text)
+        local options = veafSpawn.markTextAnalysis(eventText)
 
         if options then
 
@@ -174,14 +185,11 @@ function veafSpawn.onEventMarkChange(eventPos, event)
             elseif options.flare then
                 veafSpawn.spawnIlluminationFlare(eventPos, options.alt)
             end
+            return true
         else
             -- None of the keywords matched.
-            return
+            return false
         end
-
-        -- Delete old mark.
-        veafSpawn.logTrace(string.format("Removing mark # %d.", event.idx))
-        trigger.action.removeMark(event.idx)
     end
 end
 

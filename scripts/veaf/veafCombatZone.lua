@@ -48,7 +48,7 @@ veafCombatZone = {}
 veafCombatZone.Id = "COMBAT ZONE - "
 
 --- Version.
-veafCombatZone.Version = "0.0.3"
+veafCombatZone.Version = "0.0.4"
 
 --- Number of seconds between each check of the zone watchdog function
 veafCombatZone.SecondsBetweenWatchdogChecks = 15
@@ -106,6 +106,8 @@ Zone =
     missionEditorZoneName = nil,
     -- technical zone object
     missionEditorZoneObject = nil,
+    -- mission briefing
+    briefing = nil,
     -- list of defined objectives
     objectives = {},
     -- list of the units defined in the zone
@@ -153,6 +155,15 @@ function Zone:getFriendlyName()
     return self.friendlyName
 end
 
+function Zone:setBriefing(value)
+    self.briefing = value
+    return self
+end
+
+function Zone:getBriefing()
+    return self.briefing
+end
+
 function Zone:setMissionEditorZoneName(value)
     self.missionEditorZoneName = value
     return self
@@ -170,6 +181,11 @@ function Zone:setActive(value)
     self.active = value
     return self
 end
+
+function Zone:getCenter()
+    return self.zoneCenter
+end
+
 ---
 --- other methods
 ---
@@ -222,8 +238,65 @@ function Zone:initialize()
 end
 
 function Zone:getInformation()
-    -- TODO
-    return "info on " .. self.friendlyName
+    local message =      "COMBAT ZONE "..self:getFriendlyName().." \n\n"
+    if self:isActive() then
+
+        -- generate information dispatch
+        local nbVehicles = 0
+        local nbInfantry = 0
+        local nbStatics = 0
+        local units, _ = unpack(veaf.findUnitsInTriggerZone(self.missionEditorZoneObject))
+        for _, u in pairs(units) do
+            if u:getCategory() == 3 then
+                nbStatics = nbStatics + 1
+            else
+                local typeName = u:getTypeName()
+                if typeName then 
+                    local unit = veafUnits.findUnit(typeName, true)
+                    if unit then 
+                        if unit.vehicle then
+                            nbVehicles = nbVehicles + 1
+                        elseif unit.infantry then
+                            nbInfantry = nbInfantry + 1
+                        end
+                    end
+                end
+            end
+        end
+
+        if (self:getBriefing()) then
+            message = message .. "BRIEFING: \n"
+            message = message .. self:getBriefing()
+            message = message .. "\n"
+        end
+        message = message .. "ENEMIES: ".. nbStatics .. " structure(s), " .. nbVehicles .. " vehicle(s) and " .. nbInfantry .. " soldier(s) remain.\n"
+        message = message .. "\n"
+
+        -- add coordinates and position from bullseye
+        local zoneCenter = self:getCenter()
+        local lat, lon = coord.LOtoLL(zoneCenter)
+        local mgrsString = mist.tostringMGRS(coord.LLtoMGRS(lat, lon), 3)
+        local bullseye = mist.utils.makeVec3(mist.DBs.missionData.bullseye.blue, 0)
+        local vec = {x = zoneCenter.x - bullseye.x, y = zoneCenter.y - bullseye.y, z = zoneCenter.z - bullseye.z}
+        local dir = mist.utils.round(mist.utils.toDegree(mist.utils.getDir(vec, bullseye)), 0)
+        local dist = mist.utils.get2DDist(zoneCenter, bullseye)
+        local distMetric = mist.utils.round(dist/1000, 0)
+        local distImperial = mist.utils.round(mist.utils.metersToNM(dist), 0)
+        local fromBullseye = string.format('%03d', dir) .. ' for ' .. distMetric .. 'km /' .. distImperial .. 'nm'
+
+        message = message .. "LAT LON (decimal): " .. mist.tostringLL(lat, lon, 2) .. ".\n"
+        message = message .. "LAT LON (DMS)    : " .. mist.tostringLL(lat, lon, 0, true) .. ".\n"
+        message = message .. "MGRS/UTM         : " .. mgrsString .. ".\n"
+        message = message .. "FROM BULLSEYE    : " .. fromBullseye .. ".\n"
+        message = message .. "\n"
+
+        -- get altitude, qfe and wind information
+        message = message .. veaf.weatherReport(zoneCenter)
+    else
+        message = message .. "zone is not yet active."
+    end
+
+    return message
 end
 
 -- activate the zone
@@ -289,12 +362,12 @@ function Zone:updateRadioMenu(inBatch)
     if self:isActive() then
         -- zone is active, set up accordingly (desactivate zone, get information, pop smoke, etc.)
         veafCombatZone.logTrace("zone is active")
-        veafRadio.addSecuredCommandToSubmenu('Desactivate zone', self.radioRootPath, veafCombatZone.DesactivateZone, self.missionEditorZoneName, veafRadio.USAGE_ForAll)
+        veafRadio.addCommandToSubmenu('Desactivate zone', self.radioRootPath, veafCombatZone.DesactivateZone, self.missionEditorZoneName, veafRadio.USAGE_ForAll)
         -- TODO
     else
         -- zone is not active, set up accordingly (activate zone)
         veafCombatZone.logTrace("zone is not active")
-        veafRadio.addSecuredCommandToSubmenu('Activate zone', self.radioRootPath, veafCombatZone.ActivateZone, self.missionEditorZoneName, veafRadio.USAGE_ForAll)
+        veafRadio.addCommandToSubmenu('Activate zone', self.radioRootPath, veafCombatZone.ActivateZone, self.missionEditorZoneName, veafRadio.USAGE_ForGroup)
     end
 
     if not inBatch then veafRadio.refreshRadioMenu() end
@@ -325,15 +398,19 @@ function veafCombatZone.AddZone(zone)
 end
 
 -- activate a zone
-function veafCombatZone.ActivateZone(zoneName)
+function veafCombatZone.ActivateZone(parameters)
+    local zoneName, unitName = unpack(parameters)
     local zone = veafCombatZone.GetZone(zoneName)
     zone:activate()
+    trigger.action.outText("Zone "..zone:getFriendlyName().." has been activated.", 10)
+	mist.scheduleFunction(veafCombatZone.GetInformationOnZone,{parameters},timer.getTime()+1)
 end
 
 -- desactivate a zone
 function veafCombatZone.DesactivateZone(zoneName)
     local zone = veafCombatZone.GetZone(zoneName)
     zone:desactivate()
+    trigger.action.outText("Zone "..zone:getFriendlyName().." has been desactivated.", 10)
 end
 
 -- print information about a zone

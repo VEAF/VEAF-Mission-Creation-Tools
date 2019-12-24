@@ -306,7 +306,7 @@ end
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 function veafNamedPoints._buildWeatherReportsRadioMenuPage(menu, names, pageSize, startIndex)
-    veafNamedPoints.logDebug(string.format("veafNamedPoints._buildWeatherReportsRadioMenuPage(pageSize=%d, startIndex=%d)",pageSize, startIndex))
+    veafNamedPoints.logTrace(string.format("veafNamedPoints._buildWeatherReportsRadioMenuPage(pageSize=%d, startIndex=%d)",pageSize, startIndex))
     
     local namesCount = #names
     veafNamedPoints.logTrace(string.format("namesCount = %d",namesCount))
@@ -348,7 +348,7 @@ function veafNamedPoints._refreshWeatherReportsRadioMenu()
 end
 
 function veafNamedPoints._buildAtcRadioMenuPage(menu, names, pageSize, startIndex)
-    veafNamedPoints.logDebug(string.format("veafNamedPoints._buildAtcRadioMenuPage(pageSize=%d, startIndex=%d)",pageSize, startIndex))
+    veafNamedPoints.logTrace(string.format("veafNamedPoints._buildAtcRadioMenuPage(pageSize=%d, startIndex=%d)",pageSize, startIndex))
 
     local namesCount = #names
     veafNamedPoints.logTrace(string.format("namesCount = %d",namesCount))

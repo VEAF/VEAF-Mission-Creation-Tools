@@ -119,7 +119,9 @@ ZoneElement =
     -- if true, this is a VEAF command
     veafCommand = false,
     -- spawn radius in meters (randomness introduced in the respawn mechanism)
-    spawnRadius = 0
+    spawnRadius = 0,
+    -- spawn chance in percent (xx chances in 100 that the unit is spawned - or the command run)
+    spawnChance = 100
 }
 
 function ZoneElement:new (o)
@@ -185,6 +187,15 @@ end
 
 function ZoneElement:getSpawnRadius()
     return self.spawnRadius
+end
+
+function ZoneElement:setSpawnChance(value)
+    self.spawnChance = tonumber(value)
+    return self
+end
+
+function ZoneElement:getSpawnChance()
+    return self.spawnChance
 end
 
 ---
@@ -330,12 +341,17 @@ function Zone:initialize()
         local unitName = unit:getName()
         zoneElement:setPosition(unit:getPosition().p)
         veafCombatZone.logTrace(string.format("processing unit [%s]", unitName))
-        local spawnRadius, command 
+        local spawnRadius, command, chance 
         _, _, spawnRadius = unitName:find("#spawnRadius%s*=%s*(%d+)")
         _, _, command = unitName:find("#command%s*=%s*\"(.+)\"")
+        _, _, spawnChance = unitName:find("#spawnChance%s*=%s*(%d+)")
         if spawnRadius then 
             veafCombatZone.logTrace(string.format("spawnRadius = [%d]", spawnRadius))
             zoneElement:setSpawnRadius(spawnRadius)
+        end
+        if spawnChance then 
+            veafCombatZone.logTrace(string.format("spawnChance = [%d]", spawnChance))
+            zoneElement:setSpawnChance(spawnChance)
         end
         if command then 
             -- it's a fake unit transporting a VEAF command
@@ -452,19 +468,24 @@ function Zone:activate()
     
     for _, zoneElement in pairs(self.elements) do
         veafCombatZone.logTrace(string.format("processing element [%s]",zoneElement:getName()))
-        if zoneElement:isDcsStatic() or zoneElement:isDcsGroup() then
-            veafCombatZone.logTrace(string.format("respawning group [%s]",zoneElement:getName()))
-            local vars = {}
-            vars.gpName = zoneElement:getName()
-            vars.action = 'respawn'
-            vars.disperse = zoneElement:getSpawnRadius() > 0
-            vars.maxDisp = zoneElement:getSpawnRadius()
-            vars.point = zoneElement:getPosition()
-            mist.teleportToPoint(vars)
-        elseif zoneElement:isVeafCommand() then
-            local position = zoneElement:getPosition()
-            veafCombatZone.logTrace(string.format("executing command [%s] at position [%s]",zoneElement:getName(), veaf.vecToString(zoneElement:getPosition())))
-            veafInterpreter.execute(zoneElement:getName(), position)
+        local chance = math.random(0, 100)
+        if chance <= zoneElement:getSpawnChance() then
+            if zoneElement:isDcsStatic() or zoneElement:isDcsGroup() then
+                veafCombatZone.logTrace(string.format("respawning group [%s]",zoneElement:getName()))
+                local vars = {}
+                vars.gpName = zoneElement:getName()
+                vars.action = 'respawn'
+                vars.disperse = zoneElement:getSpawnRadius() > 0
+                vars.maxDisp = zoneElement:getSpawnRadius()
+                vars.point = zoneElement:getPosition()
+                mist.teleportToPoint(vars)
+            elseif zoneElement:isVeafCommand() then
+                local position = zoneElement:getPosition()
+                veafCombatZone.logTrace(string.format("executing command [%s] at position [%s]",zoneElement:getName(), veaf.vecToString(zoneElement:getPosition())))
+                veafInterpreter.execute(zoneElement:getName(), position)
+            end
+        else 
+            veafCombatZone.logTrace(string.format("chance missed (%d > %d)",chance, zoneElement:getSpawnChance()))
         end
     end
 
@@ -635,7 +656,7 @@ end
         end
     end
 
-    veaf.logTrace(string.format("found %d units (%d groups) in zone", #units, #groupNames))   
+    veafCombatZone.logTrace(string.format("found %d units (%d groups) in zone", #units, #groupNames))   
     return {units, groupNames}
 end
 

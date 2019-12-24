@@ -74,6 +74,9 @@ veafCasMission.Id = "CAS MISSION - "
 --- Version.
 veafCasMission.Version = "1.5.0"
 
+-- trace level, specific to this module
+veafCasMission.Trace = false
+
 --- Key phrase to look for in the mark text which triggers the command.
 veafCasMission.Keyphrase = "_cas"
 
@@ -122,7 +125,9 @@ function veafCasMission.logDebug(message)
 end
 
 function veafCasMission.logTrace(message)
-    veaf.logTrace(veafCasMission.Id .. message)
+    if message and veafCasMission.Trace then
+        veaf.logTrace(veafCasMission.Id .. message)
+    end
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -315,7 +320,7 @@ function veafCasMission.generateTransportCompany(groupName, defense, groupSize)
         groupSize = 6
     end
     local group = {
-            disposition = { h = groupSize+10, w = 1},
+            disposition = { h = math.ceil(math.sqrt(groupSize*3)), w = math.ceil(math.sqrt(groupSize*3))},
             units = {},
             description = groupName,
             groupName = groupName,
@@ -445,6 +450,7 @@ end
 
 --- Generates an infantry group along with its manpad units and tranport vehicles
 function veafCasMission.generateInfantryGroup(groupName, defense, armor)
+    veafCasMission.logTrace(string.format("veafCasMission.generateInfantryGroup(groupName=%s, defense=%d, armor=%d)",groupName, defense, armor))
     local group = {
             disposition = { h = 4, w = 3},
             units = {},
@@ -493,8 +499,10 @@ function veafCasMission.generateInfantryGroup(groupName, defense, armor)
 end
 
 function veafCasMission.placeGroup(groupDefinition, spawnPosition, spacing, resultTable)
+    veafCasMission.logTrace(string.format("veafCasMission.placeGroup(#groupDefinition=%d)",#groupDefinition))
     if spawnPosition ~= nil and groupDefinition ~= nil then
         -- process the group 
+        veafCasMission.logTrace("process the group")
         local group = veafUnits.processGroup(groupDefinition)
         
         -- place its units
@@ -513,13 +521,12 @@ function veafCasMission.placeGroup(groupDefinition, spawnPosition, spacing, resu
             table.insert(resultTable, u)
         end
     end
-
+    veafCasMission.logTrace(string.format("#resultTable=%d",#resultTable))
     return resultTable
 end
 
 --- Generates a complete CAS target group
-function veafCasMission.generateCasGroup(casGroupName, spawnSpot, size, defense, armor, spacing, disperseOnAttack)
-    local country = "RUSSIA"
+function veafCasMission.generateCasGroup(country, casGroupName, spawnSpot, size, defense, armor, spacing, disperseOnAttack)
     local units = {}
     local groupId = 1234 + math.random(1000)
     local zoneRadius = (size+spacing)*350
@@ -573,12 +580,25 @@ function veafCasMission.generateCasGroup(casGroupName, spawnSpot, size, defense,
         veafCasMission.placeGroup(group, groupPosition, spacing, units)
     end
 
+    return units
+end
+
+--- Generates a CAS mission
+function veafCasMission.generateCasMission(spawnSpot, size, defense, armor, spacing, disperseOnAttack)
+    if veafCasMission.groupAliveCheckTaskID ~= 'none' then
+        trigger.action.outText("A CAS target group already exists !", 5)
+        return
+    end
+        
+    local country = "RUSSIA"
+    local units = veafCasMission.generateCasGroup(country, veafCasMission.RedCasGroupName, spawnSpot, size, defense, armor, spacing, disperseOnAttack)
+
     -- prepare the actual DCS units
     local dcsUnits = {}
     for i=1, #units do
         local unit = units[i]
         local unitType = unit.typeName
-        local unitName = casGroupName .. " / " .. unit.displayName .. " #" .. i
+        local unitName = veafCasMission.RedCasGroupName .. " / " .. unit.displayName .. " #" .. i
         
         local spawnPosition = unit.spawnPoint
         
@@ -599,22 +619,12 @@ function veafCasMission.generateCasGroup(casGroupName, spawnSpot, size, defense,
     end
 
     -- actually spawn groups
-    mist.dynAdd({country = country, category = "GROUND_UNIT", name = casGroupName, hidden = false, units = dcsUnits})
+    mist.dynAdd({country = country, category = "GROUND_UNIT", name = veafCasMission.RedCasGroupName, hidden = false, units = dcsUnits})
 
     -- set AI options
-    local controller = Group.getByName(casGroupName):getController()
+    local controller = Group.getByName(veafCasMission.RedCasGroupName):getController()
     controller:setOption(9, 2) -- set alarm state to red
     controller:setOption(AI.Option.Ground.id.DISPERSE_ON_ATTACK, disperseOnAttack) -- set disperse on attack according to the option
-end
-
---- Generates a CAS mission
-function veafCasMission.generateCasMission(spawnSpot, size, defense, armor, spacing, disperseOnAttack)
-    if veafCasMission.groupAliveCheckTaskID ~= 'none' then
-        trigger.action.outText("A CAS target group already exists !", 5)
-        return
-    end
-        
-    veafCasMission.generateCasGroup(veafCasMission.RedCasGroupName, spawnSpot, size, defense, armor, spacing, disperseOnAttack)
 
     -- Move reaper
     -- TODO

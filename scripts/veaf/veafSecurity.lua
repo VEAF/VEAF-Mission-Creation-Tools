@@ -35,6 +35,9 @@ veafSecurity.Id = "SECURITY - "
 --- Version.
 veafSecurity.Version = "1.1.0"
 
+-- trace level, specific to this module
+veafSecurity.Trace = false
+
 --- Key phrase to look for in the mark text which triggers the command.
 veafSecurity.Keyphrase = "_auth"
 
@@ -53,7 +56,9 @@ function veafSecurity.logDebug(message)
 end
 
 function veafSecurity.logTrace(message)
-  veaf.logTrace(veafSecurity.Id .. message)
+  if message and veafSecurity.Trace then
+    veaf.logTrace(veafSecurity.Id .. message)
+  end
 end
 
 function veafSecurity.logError(message)

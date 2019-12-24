@@ -50,6 +50,9 @@ veafCarrierOperations.Id = "CARRIER - "
 --- Version.
 veafCarrierOperations.Version = "1.4.1"
 
+-- trace level, specific to this module
+veafCarrierOperations.Trace = false
+
 --- All the carrier groups must comply with this name
 veafCarrierOperations.CarrierGroupNamePattern = "^CSG-.*$"
 
@@ -93,11 +96,15 @@ function veafCarrierOperations.logDebug(message)
 end
 
 function veafCarrierOperations.logTrace(message)
-    veaf.logTrace(veafCarrierOperations.Id .. message)
+    if message and veafCarrierOperations.Trace then 
+        veaf.logTrace(veafCarrierOperations.Id .. message)
+    end
 end
 
 function veafCarrierOperations.logMarker(id, message, position, markersTable)
-    return veaf.logMarker(id, veafCarrierOperations.Id, message, position, markersTable)
+    if veafCarrierOperations.Trace then 
+        return veaf.logMarker(id, veafCarrierOperations.Id, message, position, markersTable)
+    end
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------

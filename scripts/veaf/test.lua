@@ -185,3 +185,11 @@ local p1, p2, spawnRadius, command
 p1, p2, spawnRadius = text:find("#spawnRadius%s*=%s*(%d+)")
 p1, p2, command = text:find("#command%s*=%s*\"(.+)\"")
 print(spawnRadius)
+
+text = "_spawn infantryGroup, size 5"
+print(text:lower():find("_spawn" .. " infantryGroup"))
+print(text:lower():find("_spawn"))
+print(text:lower():find(" infantryGroup"))
+if text:lower():find("_spawn" .. " infantryGroup") then
+  print("bam")
+  end

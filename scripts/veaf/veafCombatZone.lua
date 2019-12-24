@@ -48,7 +48,10 @@ veafCombatZone = {}
 veafCombatZone.Id = "COMBAT ZONE - "
 
 --- Version.
-veafCombatZone.Version = "0.0.5"
+veafCombatZone.Version = "0.0.6"
+
+-- trace level, specific to this module
+veafCombatZone.Trace = true
 
 --- Number of seconds between each check of the zone watchdog function
 veafCombatZone.SecondsBetweenWatchdogChecks = 15
@@ -58,6 +61,10 @@ veafCombatZone.SecondsBetweenSmokeRequests = 180
 
 --- Number of seconds between each flare request on the zones
 veafCombatZone.SecondsBetweenFlareRequests = 120
+
+veafCombatZone.DefaultSpawnRadiusForUnits = 20
+
+veafCombatZone.DefaultSpawnRadiusForStatics = 0
 
 veafCombatZone.RadioMenuName = "COMBAT ZONES (" .. veafCombatZone.Version .. ")"
 
@@ -91,7 +98,9 @@ function veafCombatZone.logDebug(message)
 end
 
 function veafCombatZone.logTrace(message)
-    veaf.logTrace(veafCombatZone.Id .. message)
+    if message and veafCombatZone.Trace then 
+        veaf.logTrace(veafCombatZone.Id .. message)
+    end
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -101,12 +110,14 @@ ZoneElement =
 {
     -- name
     name = nil,
+    -- position on the map
+    position = nil,
     -- if true, this is a simple dcs static
     dcsStatic = false,
     -- if true, this is a simple dcs group
     dcsGroup = false,
     -- if true, this is a VEAF command
-    veafCommand = nil,
+    veafCommand = false,
     -- spawn radius in meters (randomness introduced in the respawn mechanism)
     spawnRadius = 0
 }
@@ -129,6 +140,15 @@ end
 
 function ZoneElement:getName()
     return self.Name
+end
+
+function ZoneElement:setPosition(value)
+    self.position = value
+    return self
+end
+
+function ZoneElement:getPosition()
+    return self.position
 end
 
 function ZoneElement:setDcsStatic(value)
@@ -155,15 +175,11 @@ function ZoneElement:setVeafCommand(value)
 end
 
 function ZoneElement:isVeafCommand()
-    return not (self.veafCommand == nil)
-end
-
-function ZoneElement:getVeafCommand()
     return self.veafCommand
 end
 
 function ZoneElement:setSpawnRadius(value)
-    self.spawnRadius = value
+    self.spawnRadius = tonumber(value)
     return self
 end
 
@@ -175,18 +191,7 @@ end
 --- other methods
 ---
 
-function ZoneElement:initializeWith(dcsObject)
-    -- check parameters
-    if not self.name then 
-        return self 
-    end
-
-    -- first, check if DCS object contains a hint
-
-
-    return self
-end
-    -------------------------------------------------------------------------------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Zone object
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -316,13 +321,57 @@ function Zone:initialize()
 
     -- find units in the trigger zone
     local units
-    local groupNames
-    units, groupNames = unpack(veaf.findUnitsInTriggerZone(self.missionEditorZoneObject))
+    units, _ = unpack(veafCombatZone.findUnitsInTriggerZone(self.missionEditorZoneObject))
 
     -- process special commands in the units 
-    -- TODO
-    self.units = units
-    self.groupNames = groupNames
+    local alreadyAddedGroups = {}
+    for _,unit in pairs(units) do
+        local zoneElement = ZoneElement:new()
+        local unitName = unit:getName()
+        zoneElement:setPosition(unit:getPosition().p)
+        veafCombatZone.logTrace(string.format("processing unit [%s]", unitName))
+        local spawnRadius, command 
+        _, _, spawnRadius = unitName:find("#spawnRadius%s*=%s*(%d+)")
+        _, _, command = unitName:find("#command%s*=%s*\"(.+)\"")
+        if spawnRadius then 
+            veafCombatZone.logTrace(string.format("spawnRadius = [%d]", spawnRadius))
+            zoneElement:setSpawnRadius(spawnRadius)
+        end
+        if command then 
+            -- it's a fake unit transporting a VEAF command
+            veafCombatZone.logTrace(string.format("command = [%s]", command))
+            zoneElement:setVeafCommand(true)
+            zoneElement:setName(command)
+        else
+            -- it's a group or a static unit
+            local groupName = nil
+            if unit:getCategory() == 3 then
+                groupName = unitName -- default for static objects = groups themselves
+                zoneElement:setDcsStatic(true)
+                if not zoneElement:getSpawnRadius() then 
+                    zoneElement:setSpawnRadius(veafCombatZone.DefaultSpawnRadiusForStatics)
+                end
+            else
+                groupName = unit:getGroup():getName()
+                zoneElement:setDcsGroup(true)
+                if not zoneElement:getSpawnRadius() then 
+                    zoneElement:setSpawnRadius(veafCombatZone.DefaultSpawnRadiusForUnits)
+                end
+            end
+            if not alreadyAddedGroups[groupName] then 
+                -- add a group element
+                veafCombatZone.logTrace(string.format("adding group [%s]", groupName))
+                alreadyAddedGroups[groupName] = groupName
+                zoneElement:setName(groupName)
+            else
+                veafCombatZone.logTrace(string.format("skipping group [%s]", groupName))
+                zoneElement = nil -- don't add this element, it's a group that has already been added
+            end
+        end
+
+        unit:destroy()
+        self.elements[#self.elements+1] = zoneElement
+    end
 
     -- deactivate the zone for starters
     veafCombatZone.logTrace("desactivate the zone")
@@ -342,7 +391,7 @@ function Zone:getInformation()
         local nbVehicles = 0
         local nbInfantry = 0
         local nbStatics = 0
-        local units, _ = unpack(veaf.findUnitsInTriggerZone(self.missionEditorZoneObject))
+        local units, _ = unpack(veafCombatZone.findUnitsInTriggerZone(self.missionEditorZoneObject))
         for _, u in pairs(units) do
             if u:getCategory() == 3 then
                 nbStatics = nbStatics + 1
@@ -398,12 +447,25 @@ end
 
 -- activate the zone
 function Zone:activate()
+    veafCombatZone.logTrace(string.format("Zone[%s]:activate()",self:getMissionEditorZoneName()))
     self:setActive(true)
     
-    -- respawn all logged units
-    for _, groupName in pairs(self.groupNames) do
-        veafCombatZone.logTrace(string.format("respawning group [%s]",groupName))
-        mist.respawnGroup(groupName)
+    for _, zoneElement in pairs(self.elements) do
+        veafCombatZone.logTrace(string.format("processing element [%s]",zoneElement:getName()))
+        if zoneElement:isDcsStatic() or zoneElement:isDcsGroup() then
+            veafCombatZone.logTrace(string.format("respawning group [%s]",zoneElement:getName()))
+            local vars = {}
+            vars.gpName = zoneElement:getName()
+            vars.action = 'respawn'
+            vars.disperse = zoneElement:getSpawnRadius() > 0
+            vars.maxDisp = zoneElement:getSpawnRadius()
+            vars.point = zoneElement:getPosition()
+            mist.teleportToPoint(vars)
+        elseif zoneElement:isVeafCommand() then
+            local position = zoneElement:getPosition()
+            veafCombatZone.logTrace(string.format("executing command [%s] at position [%s]",zoneElement:getName(), veaf.vecToString(zoneElement:getPosition())))
+            veafInterpreter.execute(zoneElement:getName(), position)
+        end
     end
 
     -- refresh the radio menu
@@ -417,17 +479,15 @@ function Zone:desactivate()
     self:setActive(false)
 
     -- find units in the trigger zone (including units not listed in the zone object, as new units may have been spawned in the zone and we want it CLEAN !)
-    local units, groupNames = unpack(veaf.findUnitsInTriggerZone(self.missionEditorZoneObject))
+    local units, groupNames = unpack(veafCombatZone.findUnitsInTriggerZone(self.missionEditorZoneObject))
     for _, groupName in pairs(groupNames) do
 
         veafCombatZone.logTrace(string.format("destroying group [%s]",groupName))
         local group = Group.getByName(groupName)
         if not group then 
-            veafCombatZone.logTrace(string.format("StaticObject.getByName([%s])",groupName))
             group = StaticObject.getByName(groupName)
         end
         if group then
-            veafCombatZone.logTrace(string.format("group[%s]:destroy()",groupName))
             group:destroy()
         end
     end 
@@ -516,6 +576,67 @@ function veafCombatZone.GetInformationOnZone(parameters)
     local zone = veafCombatZone.GetZone(zoneName)
     local text = zone:getInformation()
     veaf.outTextForUnit(unitName, text, 30)
+end
+
+---
+  --- lists all units and statics (and their groups names) in a trigger zone
+  ---
+  function veafCombatZone.findUnitsInTriggerZone(triggerZone)
+    if (type(triggerZone) == "string") then
+        triggerZone = trigger.misc.getZone(triggerZone)
+    end
+    
+    local units_by_name = {}
+    local l_units = mist.DBs.units	--local reference for faster execution
+    local units = {}
+    local groupNames = {}
+    local alreadyAddedGroups = {}
+    local zoneCoordinates = {}
+    zoneCoordinates = {radius = triggerZone.radius, x = triggerZone.point.x, y = triggerZone.point.y, z = triggerZone.point.z}
+    
+    -- the following code is liberally adapted from MiST (thanks Grimes !)
+    for coa, coa_tbl in pairs(l_units) do
+        for country, country_table in pairs(coa_tbl) do
+            for unit_type, unit_type_tbl in pairs(country_table) do
+                if type(unit_type_tbl) == 'table' then
+                    for group_ind, group_tbl in pairs(unit_type_tbl) do
+                        if type(group_tbl) == 'table' then
+                            for unit_ind, mist_unit in pairs(group_tbl.units) do
+                                local unitName = mist_unit.unitName
+                                local unit = Unit.getByName(unitName)
+                                if not unit then 
+                                    unit = StaticObject.getByName(unitName)
+                                end
+                                if unit then
+                                    local unit_pos = unit:getPosition().p
+                                    if unit_pos then
+                                        if (((unit_pos.x - zoneCoordinates.x)^2 + (unit_pos.z - zoneCoordinates.z)^2)^0.5 <= zoneCoordinates.radius) then
+                                            --veafCombatZone.logTrace(string.format("adding unit [%s]", unitName))
+                                            units[#units + 1] = unit
+                                            --veafCombatZone.logTrace(string.format("unit:getCategory() = [%d]", unit:getCategory()))
+                                            local groupName = nil
+                                            if unit:getCategory() == 3 then
+                                                groupName = unitName -- default for static objects = groups themselves
+                                            else
+                                                groupName = unit:getGroup():getName()
+                                            end
+                                            if not alreadyAddedGroups[groupName] then 
+                                                alreadyAddedGroups[groupName] = groupName
+                                                groupNames[#groupNames + 1] = groupName
+                                            end
+                                        end
+                                    end
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    veaf.logTrace(string.format("found %d units (%d groups) in zone", #units, #groupNames))   
+    return {units, groupNames}
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------

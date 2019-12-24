@@ -37,7 +37,10 @@ veafNamedPoints = {}
 veafNamedPoints.Id = "NAMED POINTS - "
 
 --- Version.
-veafNamedPoints.Version = "1.2.3"
+veafNamedPoints.Version = "1.2.4"
+
+-- trace level, specific to this module
+veafNamedPoints.Trace = false
 
 --- Key phrase to look for in the mark text which triggers the command.
 veafNamedPoints.Keyphrase = "_name point"
@@ -75,7 +78,9 @@ function veafNamedPoints.logDebug(message)
 end
 
 function veafNamedPoints.logTrace(message)
-    veaf.logTrace(veafNamedPoints.Id .. message)
+    if message and veafNamedPoints.Trace then
+        veaf.logTrace(veafNamedPoints.Id .. message)
+    end
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -311,7 +316,7 @@ function veafNamedPoints._buildWeatherReportsRadioMenuPage(menu, names, pageSize
         endIndex = startIndex + pageSize - 2
     end
     veafNamedPoints.logTrace(string.format("endIndex = %d",endIndex))
-    veafNamedPoints.logDebug(string.format("adding commands from %d to %d",startIndex, endIndex))
+    veafNamedPoints.logTrace(string.format("adding commands from %d to %d",startIndex, endIndex))
     for index = startIndex, endIndex do
         local name = names[index]
         veafNamedPoints.logTrace(string.format("names[%d] = %s",index, name))
@@ -319,7 +324,7 @@ function veafNamedPoints._buildWeatherReportsRadioMenuPage(menu, names, pageSize
         veafRadio.addCommandToSubmenu( name , menu, veafNamedPoints.getWeatherAtPoint, name, veafRadio.USAGE_ForGroup)    
     end
     if endIndex < namesCount then
-        veafNamedPoints.logDebug("adding next page menu")
+        veafNamedPoints.logTrace("adding next page menu")
         local nextPageMenu = veafRadio.addSubMenu("Next page", menu)
         veafNamedPoints._buildWeatherReportsRadioMenuPage(nextPageMenu, names, 10, endIndex+1)
     end
@@ -353,7 +358,7 @@ function veafNamedPoints._buildAtcRadioMenuPage(menu, names, pageSize, startInde
         endIndex = startIndex + pageSize - 2
     end
     veafNamedPoints.logTrace(string.format("endIndex = %d",endIndex))
-    veafNamedPoints.logDebug(string.format("adding commands from %d to %d",startIndex, endIndex))
+    veafNamedPoints.logTrace(string.format("adding commands from %d to %d",startIndex, endIndex))
     for index = startIndex, endIndex do
         local name = names[index]
         veafNamedPoints.logTrace(string.format("names[%d] = %s",index, name))
@@ -361,7 +366,7 @@ function veafNamedPoints._buildAtcRadioMenuPage(menu, names, pageSize, startInde
         veafRadio.addCommandToSubmenu( name , menu, veafNamedPoints.getAtcAtPoint, name, veafRadio.USAGE_ForGroup)    
     end
     if endIndex < namesCount then
-        veafNamedPoints.logDebug("adding next page menu")
+        veafNamedPoints.logTrace("adding next page menu")
         local nextPageMenu = veafRadio.addSubMenu("Next page", menu)
         veafNamedPoints._buildAtcRadioMenuPage(nextPageMenu, names, 10, endIndex+1)
     end

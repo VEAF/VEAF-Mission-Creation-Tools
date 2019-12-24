@@ -54,7 +54,10 @@ veafInterpreter = {}
 veafInterpreter.Id = "INTERPRETER - "
 
 --- Version.
-veafInterpreter.Version = "0.0.1"
+veafInterpreter.Version = "0.0.2"
+
+-- trace level, specific to this module
+veafInterpreter.Trace = false
 
 --- Key phrase to look for in the unit name which triggers the interpreter.
 veafInterpreter.Starter = "#veafInterpreter%[\""
@@ -81,13 +84,10 @@ function veafInterpreter.logDebug(message)
 end
 
 function veafInterpreter.logTrace(message)
-    veaf.logTrace(veafInterpreter.Id .. message)
+    if message and veafInterpreter.Trace then 
+        veaf.logTrace(veafInterpreter.Id .. message)
+    end
 end
-
-function veafInterpreter.logMarker(id, message, position, markersTable)
-    return veaf.logMarker(id, veafInterpreter.Id, message, position, markersTable)
-end
-
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Analyse the text
@@ -129,7 +129,7 @@ function veafInterpreter.processObject(unitName)
     local command = veafInterpreter.interpret(unitName)
     if command then 
         -- found an interpretable command
-        veafInterpreter.logTrace(string.format("found an interpretable command : [%s]", command))
+        veafInterpreter.logDebug(string.format("found an interpretable command : [%s]", command))
         local unit = Unit.getByName(unitName)
         if unit then
             local position = unit:getPosition().p

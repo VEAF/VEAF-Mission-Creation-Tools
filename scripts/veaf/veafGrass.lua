@@ -45,7 +45,10 @@ veafGrass = {}
 veafGrass.Id = "GRASS - "
 
 --- Version.
-veafGrass.Version = "1.1.1"
+veafGrass.Version = "1.1.2"
+
+-- trace level, specific to this module
+veafGrass.Trace = false
 
 veafGrass.DelayForStartup = 3
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -61,7 +64,9 @@ function veafGrass.logDebug(message)
 end
 
 function veafGrass.logTrace(message)
-    veaf.logTrace(veafGrass.Id .. message)
+	if message and veafGrass.Trace then
+		veaf.logTrace(veafGrass.Id .. message)
+	end
 end
 
 ------------------------------------------------------------------------------

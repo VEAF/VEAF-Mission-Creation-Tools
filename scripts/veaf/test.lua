@@ -179,3 +179,9 @@ if p2 then
   end
 end
 print("["..command.."]")
+
+local text = "#command=\"_spawn group, name sa6\" #spawnRadius=250"
+local p1, p2, spawnRadius, command 
+p1, p2, spawnRadius = text:find("#spawnRadius%s*=%s*(%d+)")
+p1, p2, command = text:find("#command%s*=%s*\"(.+)\"")
+print(spawnRadius)

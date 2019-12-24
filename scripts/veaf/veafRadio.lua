@@ -45,7 +45,10 @@ veafRadio = {}
 veafRadio.Id = "RADIO - "
 
 --- Version.
-veafRadio.Version = "1.1.2"
+veafRadio.Version = "1.1.3"
+
+-- trace level, specific to this module
+veafRadio.Trace = false
 
 veafRadio.RadioMenuName = "VEAF (" .. veaf.Version .. " - radio " .. veafRadio.Version .. ")"
 
@@ -88,7 +91,9 @@ function veafRadio.logDebug(message)
 end
 
 function veafRadio.logTrace(message)
+  if message and veafRadio.Trace then 
     veaf.logTrace(veafRadio.Id .. message)
+  end
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------

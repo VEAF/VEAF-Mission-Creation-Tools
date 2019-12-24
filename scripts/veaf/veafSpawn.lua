@@ -444,14 +444,14 @@ function veafSpawn.markTextAnalysis(text)
         
         if key:lower() == "transports" then
             -- Set transports.
-            veafCasMission.logDebug(string.format("Keyword transports = %d", val))
+            veafSpawn.logDebug(string.format("Keyword transports = %d", val))
             local nVal = tonumber(val)
             switch.transports = nVal
         end
 
         if key:lower() == "defense" then
             -- Set defense.
-            veafCasMission.logDebug(string.format("Keyword defense = %d", val))
+            veafSpawn.logDebug(string.format("Keyword defense = %d", val))
             local nVal = tonumber(val)
             if nVal <= 5 and nVal >= 0 then
                 switch.defense = nVal
@@ -460,7 +460,7 @@ function veafSpawn.markTextAnalysis(text)
 
         if key:lower() == "armor" then
             -- Set armor.
-            veafCasMission.logDebug(string.format("Keyword armor = %d", val))
+            veafSpawn.logDebug(string.format("Keyword armor = %d", val))
             local nVal = tonumber(val)
             if nVal <= 5 and nVal >= 0 then
                 switch.armor = nVal
@@ -507,7 +507,7 @@ function veafSpawn.doSpawnGroup(spawnSpot, groupDefinition, country, speed, alt,
 
     -- place group units on the map
     local group, cells = veafUnits.placeGroup(groupDefinition, spawnSpot, spacing, hdg)
-    veafUnits.debugGroup(group, cells)
+    veafUnits.traceGroup(group, cells)
     
     if not(groupName) then 
         groupName = group.groupName .. " #" .. veafSpawn.spawnedUnitsCounter
@@ -610,7 +610,7 @@ function veafSpawn.spawnConvoy(spawnSpot, country, patrol, offroad, destination,
         
         -- place its units
         local group, cells = veafUnits.placeGroup(group, veaf.placePointOnLand(spawnSpot), 4, math.random(359))
-        veafUnits.debugGroup(group, cells)
+        veafUnits.traceGroup(group, cells)
         
         -- add the units to the global units list
         for _,u in pairs(group.units) do
@@ -618,7 +618,7 @@ function veafSpawn.spawnConvoy(spawnSpot, country, patrol, offroad, destination,
         end
     end
 
-    -- generate the qrmored vehicles
+    -- generate the armored vehicles
     if armor and armor > 0 then
         -- generate the group
         local group = veafCasMission.generateArmorPlatoon(groupId, defense, armor)

@@ -54,7 +54,7 @@ veafInterpreter = {}
 veafInterpreter.Id = "INTERPRETER - "
 
 --- Version.
-veafInterpreter.Version = "0.0.2"
+veafInterpreter.Version = "0.0.3"
 
 -- trace level, specific to this module
 veafInterpreter.Trace = true
@@ -114,7 +114,7 @@ function veafInterpreter.execute(command, position)
     veafInterpreter.logTrace(string.format("veafInterpreter.execute([%s],[%s])",command, veaf.vecToString(position)))
 
     -- check for SPAWN module commands
-    if veafSpawn.executeCommand(position, command) then
+    if veafSpawn.executeCommand(position, command, true) then
         return true
     -- check for NAMED POINT module commands
     elseif veafNamedPoints.executeCommand(position, {text=command, coalition=-1}) then

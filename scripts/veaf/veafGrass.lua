@@ -302,11 +302,12 @@ function veafGrass.buildFarpUnits(farp)
 	local windstockUnit = {
 		["category"] = 'static',
 		["categoryStatic"] = 'Fortifications',
+		["shape_name"] = "H-Windsock_RW",
+		["type"] = "Windsock",	
 		["coalition"] = farp.coalition,
 		["country"] = farp.country,
 		["countryId"] = farp.countryId,
 		["heading"] = mist.utils.toRadian(angle-90),
-		["type"] = 'H-Windsock_RW',
 		["x"] = farp.x + windstockDistance * math.cos(mist.utils.toRadian(angle + windstockAngle)),
 		["y"] = farp.y + windstockDistance * math.sin(mist.utils.toRadian(angle + windstockAngle)),
 	}
@@ -317,11 +318,12 @@ function veafGrass.buildFarpUnits(farp)
 		local windstockUnit = {
 			["category"] = 'static',
 			["categoryStatic"] = 'Fortifications',
+			["shape_name"] = "H-Windsock_RW",
+			["type"] = "Windsock",	
 			["coalition"] = farp.coalition,
 			["country"] = farp.country,
 			["countryId"] = farp.countryId,
 			["heading"] = mist.utils.toRadian(angle-90),
-			["type"] = 'H-Windsock_RW',
 			["x"] = farp.x + windstockDistance * math.cos(mist.utils.toRadian(angle + windstockAngle - 90)),
 			["y"] = farp.y + windstockDistance * math.sin(mist.utils.toRadian(angle + windstockAngle - 90)),
 		}

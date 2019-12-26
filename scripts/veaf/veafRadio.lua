@@ -45,7 +45,7 @@ veafRadio = {}
 veafRadio.Id = "RADIO - "
 
 --- Version.
-veafRadio.Version = "1.1.3"
+veafRadio.Version = "1.1.4"
 
 -- trace level, specific to this module
 veafRadio.Trace = false
@@ -323,6 +323,16 @@ function veafRadio.addSubMenu(title, radioMenu)
     table.insert(menu.subMenus, subMenu)
     
     return subMenu
+end
+
+function veafRadio.clearSubmenu(subMenu)
+  if not subMenu then 
+    veafRadio.logError("veafRadio.clearSubmenu() subMenu parameter is nil !")
+    return
+  end
+  veafRadio.logDebug(string.format("veafRadio.clearSubmenu(%s)",subMenu.title))
+  subMenu.subMenus = {}
+  subMenu.commands = {}
 end
 
 function veafRadio.delSubmenu(subMenu, radioMenu)

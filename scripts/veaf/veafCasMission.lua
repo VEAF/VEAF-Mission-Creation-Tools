@@ -72,10 +72,10 @@ veafCasMission = {}
 veafCasMission.Id = "CAS MISSION - "
 
 --- Version.
-veafCasMission.Version = "1.5.0"
+veafCasMission.Version = "1.5.1"
 
 -- trace level, specific to this module
-veafCasMission.Trace = false
+veafCasMission.Trace = true
 
 --- Key phrase to look for in the mark text which triggers the command.
 veafCasMission.Keyphrase = "_cas"
@@ -111,6 +111,9 @@ veafCasMission.smokeResetTaskID = 'none'
 
 -- Flare reset function id
 veafCasMission.flareResetTaskID = 'none'
+
+veafCasMission.SIDE_RED = 1
+veafCasMission.SIDE_BLUE = 2
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Utility methods
@@ -264,14 +267,15 @@ end
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 --- Generates an air defense group
-function veafCasMission.generateAirDefenseGroup(groupName, defense)
+function veafCasMission.generateAirDefenseGroup(groupName, defense, side)
+    side = side or veafCasMission.SIDE_RED
     local group = {
             disposition = { h = 3, w = 3},
             units = {},
             description = groupName,
             groupName = groupName,
         }
-
+    
     -- generate a primary air defense platoon
     local groupCount = math.random(2, 4)
     local samType
@@ -279,15 +283,35 @@ function veafCasMission.generateAirDefenseGroup(groupName, defense)
     samTypeRand = math.random(100)
             
     if samTypeRand > (90-(3*(defense-1))) then
-        samType = 'Tor 9A331'
+        if side == veafCasMission.SIDE_BLUE then
+            samType = 'Hawk ln'
+        else
+            samType = 'Tor 9A331'
+        end
     elseif samTypeRand > (75-(4*(defense-1))) then
-        samType = 'Osa 9A33 ln'
+        if side == veafCasMission.SIDE_BLUE then
+            samType = 'Hawk ln'
+        else
+            samType = 'Osa 9A33 ln'
+        end
     elseif samTypeRand > (60-(4*(defense-1))) then
-        samType = '2S6 Tunguska'
+        if side == veafCasMission.SIDE_BLUE then
+            samType = 'M6 Linebacker'
+        else
+            samType = '2S6 Tunguska'
+        end
     elseif samTypeRand > (40-(5*(defense-1))) then
-        samType = 'Strela-10M3'
+        if side == veafCasMission.SIDE_BLUE then
+            samType = 'Roland ADS'
+        else
+            samType = 'Strela-10M3'
+        end
     else
-        samType = 'Strela-1 9P31'
+        if side == veafCasMission.SIDE_BLUE then
+            samType = 'M1097 Avenger'
+        else
+            samType = 'Strela-1 9P31'
+        end
     end
     veafCasMission.logDebug("samType = " .. samType)
     table.insert(group.units, { samType, ["cell"] = 5, random })
@@ -297,15 +321,35 @@ function veafCasMission.generateAirDefenseGroup(groupName, defense)
         samTypeRand = math.random(100)
 				
         if samTypeRand > (75-(4*(defense-1))) then
-            samType = '2S6 Tunguska'
+            if side == veafCasMission.SIDE_BLUE then
+                samType = 'M6 Linebacker'
+            else
+                samType = '2S6 Tunguska'
+            end
         elseif samTypeRand > (65-(5*(defense-1))) then
-            samType = 'Strela-10M3'
+            if side == veafCasMission.SIDE_BLUE then
+                samType = 'Roland ADS'
+            else
+                samType = 'Strela-10M3'
+            end
         elseif samTypeRand > (50-(5*(defense-1))) then
-            samType = 'Strela-1 9P31'
+            if side == veafCasMission.SIDE_BLUE then
+                samType = 'M48 Chaparral'
+            else
+                samType = 'Strela-1 9P31'
+            end
         elseif samTypeRand > (30-(5*(defense-1))) then
-            samType = 'ZSU-23-4 Shilka'
+            if side == veafCasMission.SIDE_BLUE then
+                samType = 'Gepard'
+            else
+                samType = 'ZSU-23-4 Shilka'
+            end
         else
-            samType = 'Ural-375 ZU-23'
+            if side == veafCasMission.SIDE_BLUE then
+                samType = 'Vulcan'
+            else
+                samType = 'Ural-375 ZU-23'
+            end
         end
         veafCasMission.logDebug("secondary samType = " .. samType)
         table.insert(group.units, { samType, random })
@@ -315,7 +359,8 @@ function veafCasMission.generateAirDefenseGroup(groupName, defense)
 end
 
 --- Generates a transport company and its air defenses
-function veafCasMission.generateTransportCompany(groupName, defense, groupSize)
+function veafCasMission.generateTransportCompany(groupName, defense, groupSize, side)
+    side = side or veafCasMission.SIDE_RED
     if not groupSize then
         groupSize = 6
     end
@@ -361,17 +406,34 @@ function veafCasMission.generateTransportCompany(groupName, defense, groupSize)
     for _ = 1, nbDefense do
         if defense > 3 then
             -- defense = 4-5 : add a Tunguska and a Shilka
-            table.insert(group.units, { "ZSU-23-4 Shilka", random })
-            table.insert(group.units, { "2S6 Tunguska", random })
+            if side == veafCasMission.SIDE_BLUE then
+                table.insert(group.units, { "Gepard", random })
+                table.insert(group.units, { "M6 Linebacker", random })
+            else
+                table.insert(group.units, { "ZSU-23-4 Shilka", random })
+                table.insert(group.units, { "2S6 Tunguska", random })
+            end
         elseif defense > 2 then
             -- defense = 3 : add a Tunguska
-            table.insert(group.units, { "2S6 Tunguska", random })
+            if side == veafCasMission.SIDE_BLUE then
+                table.insert(group.units, { "M6 Linebacker", random })
+            else
+                table.insert(group.units, { "2S6 Tunguska", random })
+            end
         elseif defense > 1 then
             -- defense = 2 : add a Shilka
-            table.insert(group.units, { "ZSU-23-4 Shilka", random })
+            if side == veafCasMission.SIDE_BLUE then
+                table.insert(group.units, { "Gepard", random })
+            else
+                table.insert(group.units, { "ZSU-23-4 Shilka", random })
+            end
         elseif defense > 0 then
             -- defense = 1 : add a ZU23 on a truck
-            table.insert(group.units, { "Ural-375 ZU-23", random })
+            if side == veafCasMission.SIDE_BLUE then
+                table.insert(group.units, { "Gepard", random })
+            else
+                table.insert(group.units, { "Ural-375 ZU-23", random })
+            end
         end
     end
 
@@ -379,7 +441,8 @@ function veafCasMission.generateTransportCompany(groupName, defense, groupSize)
 end
 
 --- Generates an armor platoon and its air defenses
-function veafCasMission.generateArmorPlatoon(groupName, defense, armor)
+function veafCasMission.generateArmorPlatoon(groupName, defense, armor, side)
+    side = side or veafCasMission.SIDE_RED
     local group = {
             disposition = { h = 3, w = 3},
             units = {},
@@ -395,42 +458,98 @@ function veafCasMission.generateArmorPlatoon(groupName, defense, armor)
         if armor <= 2 then
             armorRand = math.random(3)
             if armorRand == 1 then
-                armorType = 'BRDM-2'
+                if side == veafCasMission.SIDE_BLUE then
+                    armorType = 'IFV Boman'
+                else
+                    armorType = 'BRDM-2'
+                end
             elseif armorRand == 2 then
-                armorType = 'BMD-1'
+                if side == veafCasMission.SIDE_BLUE then
+                    armorType = 'IFV MCV-80'
+                else
+                    armorType = 'BMD-1'
+                end
             elseif armorRand == 3 then
-                armorType = 'BMP-1'
+                if side == veafCasMission.SIDE_BLUE then
+                    armorType = 'M-2 Bradley'
+                else
+                    armorType = 'BMP-1'
+                end
             end
         elseif armor == 3 then
             armorRand = math.random(3)
             if armorRand == 1 then
-                armorType = 'BMP-1'
+                if side == veafCasMission.SIDE_BLUE then
+                    armorType = 'M-2 Bradley'
+                else
+                    armorType = 'BMP-1'
+                end
             elseif armorRand == 2 then
-                armorType = 'BMP-2'
+                if side == veafCasMission.SIDE_BLUE then
+                    armorType = 'M-2 Bradley'
+                else
+                    armorType = 'BMP-2'
+                end
             elseif armorRand == 3 then
-                armorType = 'T-55'
+                if side == veafCasMission.SIDE_BLUE then
+                    armorType = 'M-60'
+                else
+                    armorType = 'T-55'
+                end
             end
         elseif armor == 4 then
             armorRand = math.random(4)
             if armorRand == 1 then
-                armorType = 'BMP-1'
+                if side == veafCasMission.SIDE_BLUE then
+                    armorType = 'M-2 Bradley'
+                else
+                    armorType = 'BMP-1'
+                end
             elseif armorRand == 2 then
-                armorType = 'BMP-2'
+                if side == veafCasMission.SIDE_BLUE then
+                    armorType = 'M-2 Bradley'
+                else
+                    armorType = 'BMP-2'
+                end
             elseif armorRand == 3 then
-                armorType = 'T-55'
+                if side == veafCasMission.SIDE_BLUE then
+                    armorType = 'M-60'
+                else
+                    armorType = 'T-55'
+                end
             elseif armorRand == 4 then
-                armorType = 'T-72B'
+                if side == veafCasMission.SIDE_BLUE then
+                    armorType = 'Leopard-2'
+                else
+                    armorType = 'T-72B'
+                end
             end
         elseif armor >= 5 then
             armorRand = math.random(4)
             if armorRand == 1 then
-                armorType = 'BMP-2'
+                if side == veafCasMission.SIDE_BLUE then
+                    armorType = 'M-2 Bradley'
+                else
+                    armorType = 'BMP-2'
+                end
             elseif armorRand == 2 then
-                armorType = 'BMP-3'
+                if side == veafCasMission.SIDE_BLUE then
+                    armorType = 'M-2 Bradley'
+                else
+                    armorType = 'BMP-3'
+                end
             elseif armorRand == 3 then
-                armorType = 'T-80UD'
+                if side == veafCasMission.SIDE_BLUE then
+                    armorType = 'MBT Leopard1A3'
+                else
+                    armorType = 'T-80UD'
+                end
             elseif armorRand == 4 then
-                armorType = 'T-90'
+                if side == veafCasMission.SIDE_BLUE then
+                    armorType = 'M-1 Abrams'
+                else
+                    armorType = 'T-90'
+                end
             end
         end
         table.insert(group.units, { armorType, random })
@@ -439,17 +558,26 @@ function veafCasMission.generateArmorPlatoon(groupName, defense, armor)
    -- add an air defense vehicle
     if defense > 3 then 
         -- defense = 4-5 : add a Tunguska
-        table.insert(group.units, { "2S6 Tunguska", cell = 5, random })
+        if side == veafCasMission.SIDE_BLUE then
+            table.insert(group.units, { "M6 Linebacker", random })
+        else
+            table.insert(group.units, { "2S6 Tunguska", cell = 5, random })
+        end
     elseif defense > 0 then
         -- defense = 1-3 : add a Shilka
-        table.insert(group.units, { "ZSU-23-4 Shilka", cell = 5, random })
+        if side == veafCasMission.SIDE_BLUE then
+            table.insert(group.units, { "Gepard", random })
+        else
+            table.insert(group.units, { "ZSU-23-4 Shilka", cell = 5, random })
+        end
     end
 
     return group
 end
 
 --- Generates an infantry group along with its manpad units and tranport vehicles
-function veafCasMission.generateInfantryGroup(groupName, defense, armor)
+function veafCasMission.generateInfantryGroup(groupName, defense, armor, side)
+    side = side or veafCasMission.SIDE_RED
     veafCasMission.logTrace(string.format("veafCasMission.generateInfantryGroup(groupName=%s, defense=%d, armor=%d)",groupName, defense, armor))
     local group = {
             disposition = { h = 4, w = 3},
@@ -464,36 +592,70 @@ function veafCasMission.generateInfantryGroup(groupName, defense, armor)
         local rand = math.random(3)
         local unitType = nil
         if rand == 1 then
-            unitType = 'Soldier RPG'
+            if side == veafCasMission.SIDE_BLUE then
+                unitType = 'Infantry M249'
+            else
+                unitType = 'Soldier RPG'
+            end
         elseif rand == 2 then
-            unitType = 'Soldier AK'
+            if side == veafCasMission.SIDE_BLUE then
+                unitType = 'Infantry M4'
+            else
+                unitType = 'Soldier AK'
+            end
         else
-            unitType = 'Infantry AK'
+            if side == veafCasMission.SIDE_BLUE then
+                unitType = 'Infantry M4'
+            else
+                unitType = 'Infantry AK'
+            end
         end
         table.insert(group.units, { unitType })
     end
 
     -- add a transport vehicle or an APC/IFV
     if armor > 3 then
-        table.insert(group.units, { "BMP-1", cell=11, random })
+        if side == veafCasMission.SIDE_BLUE then
+            table.insert(group.units, { "M-2 Bradley", cell=11, random })
+        else
+            table.insert(group.units, { "BMP-1", cell=11, random })
+        end
     elseif armor > 0 then
-        table.insert(group.units, { "BTR-80", cell=11, random })
+        if side == veafCasMission.SIDE_BLUE then
+            table.insert(group.units, { "IFV Boman", cell=11, random })
+        else
+            table.insert(group.units, { "BTR-80", cell=11, random })
+        end
     else
-        table.insert(group.units, { "GAZ-3308", cell=11, random })
+        if side == veafCasMission.SIDE_BLUE then
+            table.insert(group.units, { "M 818", cell=11, random })
+        else
+            table.insert(group.units, { "GAZ-3308", cell=11, random })
+        end
     end
 
     -- add manpads if needed
     if defense > 3 then
         for _ = 1, math.random(1,defense-2) do
             -- for defense = 4-5, spawn a modern Igla-S team
-            table.insert(group.units, { "SA-18 Igla-S comm", random })
-            table.insert(group.units, { "SA-18 Igla-S manpad", random })
+            if side == veafCasMission.SIDE_BLUE then
+                table.insert(group.units, { "Stinger comm", random })
+                table.insert(group.units, { "Soldier stinger", random })
+            else
+                table.insert(group.units, { "SA-18 Igla-S comm", random })
+                table.insert(group.units, { "SA-18 Igla-S manpad", random })
+            end
         end
     elseif defense > 0 then
         for _ = 1, math.random(1,defense) do
             -- for defense = 1-3, spawn an older Igla team
-            table.insert(group.units, { "SA-18 Igla comm", random })
-            table.insert(group.units, { "SA-18 Igla manpad", random })
+            if side == veafCasMission.SIDE_BLUE then
+                table.insert(group.units, { "Stinger comm", random })
+                table.insert(group.units, { "Soldier stinger", random })
+            else
+                table.insert(group.units, { "SA-18 Igla comm", random })
+                table.insert(group.units, { "SA-18 Igla manpad", random })
+            end
         end
     else
         -- for defense = 0, don't spawn any manpad
@@ -530,18 +692,20 @@ function veafCasMission.placeGroup(groupDefinition, spawnPosition, spacing, resu
 end
 
 --- Generates a complete CAS target group
-function veafCasMission.generateCasGroup(country, casGroupName, spawnSpot, size, defense, armor, spacing, disperseOnAttack)
+function veafCasMission.generateCasGroup(country, casGroupName, spawnSpot, size, defense, armor, spacing, disperseOnAttack, side)
+    veafCasMission.logTrace("side = " .. tostring(side))
+    side = side or veafCasMission.SIDE_RED
     local units = {}
     local groupId = 1234 + math.random(1000)
     local zoneRadius = (size+spacing)*350
-    veafCasMission.logDebug("zoneRadius = " .. zoneRadius)
+    veafCasMission.logTrace("zoneRadius = " .. zoneRadius)
     
     -- generate between size-2 and size+1 infantry groups
     local infantryGroupsCount = math.random(math.max(1, size-2), size + 1)
-    veafCasMission.logDebug("infantryGroupsCount = " .. infantryGroupsCount)
+    veafCasMission.logTrace("infantryGroupsCount = " .. infantryGroupsCount)
     for infantryGroupNumber = 1, infantryGroupsCount do
         local groupName = casGroupName .. " - Infantry Section " .. infantryGroupNumber
-        local group = veafCasMission.generateInfantryGroup(groupName, defense, armor)
+        local group = veafCasMission.generateInfantryGroup(groupName, defense, armor, side)
         local groupPosition = veaf.findPointInZone(spawnSpot, zoneRadius, false)
         veafCasMission.placeGroup(group, groupPosition, spacing, units)
     end
@@ -549,11 +713,11 @@ function veafCasMission.generateCasGroup(country, casGroupName, spawnSpot, size,
     if armor > 0 then
         -- generate between size-2 and size+1 armor platoons
         local armorPlatoonsCount = math.random(math.max(1, size-2), size + 1)
-        veafCasMission.logDebug("armorPlatoonsCount = " .. armorPlatoonsCount)
+        veafCasMission.logTrace("armorPlatoonsCount = " .. armorPlatoonsCount)
         for armorGroupNumber = 1, armorPlatoonsCount do
             local groupName = casGroupName .. " - Armor Platoon " .. armorGroupNumber
             local groupPosition = veaf.findPointInZone(spawnSpot, zoneRadius, false)
-            local group = veafCasMission.generateArmorPlatoon(groupName, defense, armor)
+            local group = veafCasMission.generateArmorPlatoon(groupName, defense, armor, side)
             veafCasMission.placeGroup(group, groupPosition, spacing, units)
         end
     end
@@ -564,23 +728,23 @@ function veafCasMission.generateCasGroup(country, casGroupName, spawnSpot, size,
         if defense > 3 then
             airDefenseGroupsCount = 2
         end
-        veafCasMission.logDebug("airDefenseGroupsCount = " .. airDefenseGroupsCount)
+        veafCasMission.logTrace("airDefenseGroupsCount = " .. airDefenseGroupsCount)
         for airDefenseGroupNumber = 1, airDefenseGroupsCount do
             local groupName = casGroupName .. " - Air Defense Group ".. airDefenseGroupNumber
             local groupPosition = veaf.findPointInZone(spawnSpot, zoneRadius, false)
-            local group = veafCasMission.generateAirDefenseGroup(groupName, defense)
+            local group = veafCasMission.generateAirDefenseGroup(groupName, defense, side)
             veafCasMission.placeGroup(group, groupPosition, spacing, units)
         end
     end
 
     -- generate between 1 and size transport companies
     local transportCompaniesCount = math.random(1, size)
-    veafCasMission.logDebug("transportCompaniesCount = " .. transportCompaniesCount)
+    veafCasMission.logTrace("transportCompaniesCount = " .. transportCompaniesCount)
     for transportCompanyGroupNumber = 1, transportCompaniesCount do
         local groupName = casGroupName .. " - Transport Company " .. transportCompanyGroupNumber
         local groupPosition = veaf.findPointInZone(spawnSpot, zoneRadius, false)
         local groupCount = math.random(2, 5)
-        local group = veafCasMission.generateTransportCompany(groupName, defense, groupCount)
+        local group = veafCasMission.generateTransportCompany(groupName, defense, groupCount, side)
         veafCasMission.placeGroup(group, groupPosition, spacing, units)
     end
 
@@ -594,7 +758,6 @@ function veafCasMission.generateCasMission(spawnSpot, size, defense, armor, spac
         return
     end
         
-    local country = "RUSSIA"
     local units = veafCasMission.generateCasGroup(country, veafCasMission.RedCasGroupName, spawnSpot, size, defense, armor, spacing, disperseOnAttack)
 
     -- prepare the actual DCS units

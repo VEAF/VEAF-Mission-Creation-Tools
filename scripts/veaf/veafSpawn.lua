@@ -164,23 +164,23 @@ function veafSpawn.executeCommand(eventPos, eventText, bypassSecurity)
             elseif options.infantryGroup then
                 -- check security
                 if not (bypassSecurity or veafSecurity.checkSecurity_L9(options.password)) then return end
-                veafSpawn.spawnInfantryGroup(eventPos, options.country, options.heading, options.spacing, options.defense, options.armor)
+                veafSpawn.spawnInfantryGroup(eventPos, options.country, options.side, options.heading, options.spacing, options.defense, options.armor)
             elseif options.armoredPlatoon then
                 -- check security
                 if not (bypassSecurity or veafSecurity.checkSecurity_L9(options.password)) then return end
-                veafSpawn.spawnArmoredPlatoon(eventPos, options.country, options.heading, options.spacing, options.defense, options.armor)
+                veafSpawn.spawnArmoredPlatoon(eventPos, options.country, options.side, options.heading, options.spacing, options.defense, options.armor)
             elseif options.airDefenseBattery then
                 -- check security
                 if not (bypassSecurity or veafSecurity.checkSecurity_L9(options.password)) then return end
-                veafSpawn.spawnAirDefenseBattery(eventPos, options.country, options.heading, options.spacing, options.defense)
+                veafSpawn.spawnAirDefenseBattery(eventPos, options.country, options.side, options.heading, options.spacing, options.defense)
             elseif options.transportCompany then
                 -- check security
                 if not (bypassSecurity or veafSecurity.checkSecurity_L9(options.password)) then return end
-                veafSpawn.spawnTransportCompany(eventPos, options.country, options.heading, options.spacing, options.defense, options.size)
+                veafSpawn.spawnTransportCompany(eventPos, options.country, options.side, options.heading, options.spacing, options.defense, options.size)
             elseif options.fullCombatGroup then
                 -- check security
                 if not (bypassSecurity or veafSecurity.checkSecurity_L9(options.password)) then return end
-                veafSpawn.spawnFullCombatGroup(eventPos, options.country, options.heading, options.spacing, options.defense, options.armor, options.size)
+                veafSpawn.spawnFullCombatGroup(eventPos, options.country, options.side, options.heading, options.spacing, options.defense, options.armor, options.size)
             elseif options.convoy then
                 -- check security
                 if not (bypassSecurity or veafSecurity.checkSecurity_L9(options.password)) then return end
@@ -256,6 +256,7 @@ function veafSpawn.markTextAnalysis(text)
     switch.spacing = 5
     
     switch.country = "RUSSIA"
+    switch.side = veafCasMission.SIDE_RED
     switch.speed = 0
     switch.altitude = 0
     switch.heading = 0
@@ -438,6 +439,16 @@ function veafSpawn.markTextAnalysis(text)
             switch.country = val:upper()
         end
         
+        if key:lower() == "side" then
+            -- Set side
+            veafSpawn.logTrace(string.format("Keyword side = %s", val))
+            if val:upper() == "BLUE" then
+                switch.side = veafCasMission.SIDE_BLUE
+            else
+                switch.side = veafCasMission.SIDE_RED
+            end
+        end
+
         if key:lower() == "password" then
             -- Unlock the command
             veafSpawn.logTrace(string.format("Keyword password", val))
@@ -678,12 +689,12 @@ function veafSpawn._createDcsUnits(country, units, groupName)
 end
 
 --- Spawns a dynamic infantry group 
-function veafSpawn.spawnInfantryGroup(eventPos, country, heading, spacing, defense, armor)
-    veafSpawn.logDebug(string.format("spawnInfantryGroup(country=%s, heading=%d, spacing=%d, defense=%d, armor=%d)",country, heading, spacing, defense, armor))
+function veafSpawn.spawnInfantryGroup(eventPos, country, side, heading, spacing, defense, armor)
+    veafSpawn.logDebug(string.format("spawnInfantryGroup(country=%s, side=%d, heading=%d, spacing=%d, defense=%d, armor=%d)",country, side, heading, spacing, defense, armor))
     veafSpawn.logTrace("eventPos=" .. veaf.vecToString(eventPos))
 
     local groupName = "spawn-" .. math.random(99999) .. " - Infantry Section "
-    local group = veafCasMission.generateInfantryGroup(groupName, defense, armor)
+    local group = veafCasMission.generateInfantryGroup(groupName, defense, armor, side)
     local group = veafUnits.processGroup(group)
     local groupPosition = veaf.placePointOnLand(eventPos)
     veafSpawn.logTrace(string.format("groupPosition = %s",veaf.vecToString(groupPosition)))
@@ -698,12 +709,12 @@ function veafSpawn.spawnInfantryGroup(eventPos, country, heading, spacing, defen
 end
 
 --- Spawns a dynamic armored platoon
-function veafSpawn.spawnArmoredPlatoon(eventPos, country, heading, spacing, defense, armor)
-    veafSpawn.logDebug(string.format("spawnArmoredPlatoon(country=%s, heading=%d, spacing=%d, defense=%d, armor=%d)",country, heading, spacing, defense, armor))
+function veafSpawn.spawnArmoredPlatoon(eventPos, country, side, heading, spacing, defense, armor)
+    veafSpawn.logDebug(string.format("spawnArmoredPlatoon(country=%s, side=%d, heading=%d, spacing=%d, defense=%d, armor=%d)",country, side, heading, spacing, defense, armor))
     veafSpawn.logTrace("eventPos=" .. veaf.vecToString(eventPos))
 
     local groupName = "spawn-" .. math.random(99999) .. " - Infantry Section "
-    local group = veafCasMission.generateArmorPlatoon(groupName, defense, armor)
+    local group = veafCasMission.generateArmorPlatoon(groupName, defense, armor, side)
     local group = veafUnits.processGroup(group)
     local groupPosition = veaf.placePointOnLand(eventPos)
     veafSpawn.logTrace(string.format("groupPosition = %s",veaf.vecToString(groupPosition)))
@@ -718,12 +729,12 @@ function veafSpawn.spawnArmoredPlatoon(eventPos, country, heading, spacing, defe
 end
 
 --- Spawns a dynamic air defense battery
-function veafSpawn.spawnAirDefenseBattery(eventPos, country, heading, spacing, defense)
-    veafSpawn.logDebug(string.format("spawnAirDefenseBattery(country=%s, heading=%d, spacing=%d, defense=%d)",country, heading, spacing, defense))
+function veafSpawn.spawnAirDefenseBattery(eventPos, country, side, heading, spacing, defense)
+    veafSpawn.logDebug(string.format("spawnAirDefenseBattery(country=%s, side=%d, heading=%d, spacing=%d, defense=%d)",country, side, heading, spacing, defense))
     veafSpawn.logTrace("eventPos=" .. veaf.vecToString(eventPos))
 
     local groupName = "spawn-" .. math.random(99999) .. " - Infantry Section "
-    local group = veafCasMission.generateAirDefenseGroup(groupName, defense)
+    local group = veafCasMission.generateAirDefenseGroup(groupName, defense, side)
     local group = veafUnits.processGroup(group)
     local groupPosition = veaf.placePointOnLand(eventPos)
     veafSpawn.logTrace(string.format("groupPosition = %s",veaf.vecToString(groupPosition)))
@@ -738,12 +749,12 @@ function veafSpawn.spawnAirDefenseBattery(eventPos, country, heading, spacing, d
 end
 
 --- Spawns a dynamic transport company
-function veafSpawn.spawnTransportCompany(eventPos, country, heading, spacing, defense, size)
-    veafSpawn.logDebug(string.format("spawnTransportCompany(country=%s, heading=%d, spacing=%d, defense=%d, size=%d)",country, heading, spacing, defense, size))
+function veafSpawn.spawnTransportCompany(eventPos, country, side, heading, spacing, defense, size)
+    veafSpawn.logDebug(string.format("spawnTransportCompany(country=%s, side=%d, heading=%d, spacing=%d, defense=%d, size=%d)",country, side, heading, spacing, defense, size))
     veafSpawn.logTrace("eventPos=" .. veaf.vecToString(eventPos))
 
     local groupName = "spawn-" .. math.random(99999) .. " - Infantry Section "
-    local group = veafCasMission.generateTransportCompany(groupName, defense, size)
+    local group = veafCasMission.generateTransportCompany(groupName, defense, size, side)
     local group = veafUnits.processGroup(group)
     local groupPosition = veaf.placePointOnLand(eventPos)
     veafSpawn.logTrace(string.format("groupPosition = %s",veaf.vecToString(groupPosition)))
@@ -758,13 +769,13 @@ function veafSpawn.spawnTransportCompany(eventPos, country, heading, spacing, de
 end
 
 --- Spawns a dynamic full combat group composed of multiple platoons
-function veafSpawn.spawnFullCombatGroup(eventPos, country, heading, spacing, defense, armor, size)
-    veafSpawn.logDebug(string.format("spawnFullCombatGroup(country=%s, heading=%d, spacing=%d, defense=%d, armor=%d, size=%d)",country, heading, spacing, defense, armor, size))
+function veafSpawn.spawnFullCombatGroup(eventPos, country, side, heading, spacing, defense, armor, size)
+    veafSpawn.logDebug(string.format("spawnFullCombatGroup(country=%s, side=%d, heading=%d, spacing=%d, defense=%d, armor=%d, size=%d)",country, side, heading, spacing, defense, armor, size))
     veafSpawn.logTrace("eventPos=" .. veaf.vecToString(eventPos))
 
     local groupName = "spawn-" .. math.random(99999) .. " - Full Combat Group "
     local groupPosition = veaf.placePointOnLand(eventPos)
-    local units = veafCasMission.generateCasGroup(country, groupName, groupPosition, size, defense, armor, spacing, true)
+    local units = veafCasMission.generateCasGroup(country, groupName, groupPosition, size, defense, armor, spacing, true, side)
 
     veafSpawn._createDcsUnits(country, units, groupName)
  

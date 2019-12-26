@@ -42,7 +42,7 @@ veafUnits.Id = "UNITS - "
 veafUnits.Version = "1.3.2"
 
 -- trace level, specific to this module
-veafUnits.Trace = true
+veafUnits.Trace = false
 
 --- If no unit is spawned in a cell, it will default to this width
 veafUnits.DefaultCellWidth = 10

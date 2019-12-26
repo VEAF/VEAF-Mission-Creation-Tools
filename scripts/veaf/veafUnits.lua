@@ -39,10 +39,10 @@ veafUnits = {}
 veafUnits.Id = "UNITS - "
 
 --- Version.
-veafUnits.Version = "1.3.1"
+veafUnits.Version = "1.3.2"
 
 -- trace level, specific to this module
-veafUnits.Trace = false
+veafUnits.Trace = true
 
 --- If no unit is spawned in a cell, it will default to this width
 veafUnits.DefaultCellWidth = 10
@@ -517,16 +517,29 @@ function veafUnits.placeGroup(group, spawnPoint, spacing, hdg)
     local totalWidth = 0
     local totalHeight = 0
     for nCol = 1, #cols do
-        cols[nCol].left = totalWidth + spawnPoint.z
         totalWidth = totalWidth + cols[nCol].width
-        cols[nCol].right= totalWidth + spawnPoint.z
     end
     for nRow = 1, #rows do -- bottom -> up
-        rows[#rows-nRow+1].bottom = totalHeight + spawnPoint.x
         totalHeight = totalHeight + rows[#rows-nRow+1].height
-        rows[#rows-nRow+1].top = totalHeight + spawnPoint.x
     end
-    
+    veafUnits.logTrace(string.format("totalWidth = %d",totalWidth))
+    veafUnits.logTrace(string.format("totalHeight = %d",totalHeight))
+    -- place the grid
+    local currentColLeft = spawnPoint.z - totalWidth/2
+    local currentColTop = spawnPoint.x - totalHeight/2
+    for nCol = 1, #cols do
+        veafUnits.logTrace(string.format("currentColLeft = %d",currentColLeft))
+        cols[nCol].left = currentColLeft
+        cols[nCol].right= currentColLeft + cols[nCol].width
+        currentColLeft = cols[nCol].right
+    end
+    for nRow = 1, #rows do -- bottom -> up
+        veafUnits.logTrace(string.format("currentColTop = %d",currentColTop))
+        rows[#rows-nRow+1].bottom = currentColTop
+        rows[#rows-nRow+1].top = currentColTop + rows[#rows-nRow+1].height
+        currentColTop = rows[#rows-nRow+1].top
+    end
+
     -- compute the centers and extents of the cells
     for nRow = 1, nRows do 
         for nCol = 1, nCols do

@@ -31,9 +31,13 @@ veaf = {}
 
 --- Identifier. All output in DCS.log will start with this.
 veaf.Id = "VEAF - "
+veaf.MainId = "MAIN - "
 
 --- Version.
 veaf.Version = "1.2.2"
+
+-- trace level, specific to this module
+veaf.MainTrace = false
 
 --- Development version ?
 veaf.Development = false
@@ -102,6 +106,30 @@ function veaf.cleanupLogMarkers(markersTable)
     end
 end
 
+function veaf.mainLogError(message)
+    veaf.logError(veaf.MainId .. message)
+end
+
+function veaf.mainLogInfo(message)
+    veaf.logInfo(veaf.MainId .. message)
+end
+
+function veaf.mainLogDebug(message)
+    veaf.logDebug(veaf.MainId .. message)
+end
+
+function veaf.mainLogTrace(message)
+    if message and veaf.MainTrace then
+        veaf.logTrace(veaf.MainId .. message)
+    end
+end
+
+function veaf.mainLogMarker(id, message, position, markersTable)
+    if veaf.MainTrace then 
+        return veaf.logMarker(id, veafMain.Id, message, position, markersTable)
+    end
+end
+
 --- efficiently remove elements from a table
 --- credit : Mitch McMabers (https://stackoverflow.com/questions/12394841/safely-remove-items-from-an-array-table-while-iterating)
 function veaf.arrayRemoveWhen(t, fnKeep)
@@ -145,10 +173,6 @@ function veaf.discoverMetadata(o)
        text = text .. " - ".. key.."\n";
     end
 	return text
-end
-
-function veaf.discover(o)
-    return veaf._discover(o, 0)
 end
 
 function veaf.p(o, level)
@@ -197,12 +221,12 @@ end
 
 --- Return the height of the land at the coordinate.
 function veaf.getLandHeight(vec3)
-    veaf.logTrace(string.format("getLandHeight: vec3  x=%.1f y=%.1f, z=%.1f", vec3.x, vec3.y, vec3.z))
+    veaf.mainLogTrace(string.format("getLandHeight: vec3  x=%.1f y=%.1f, z=%.1f", vec3.x, vec3.y, vec3.z))
     local vec2 = {x = vec3.x, y = vec3.z}
-    veaf.logTrace(string.format("getLandHeight: vec2  x=%.1f z=%.1f", vec3.x, vec3.z))
+    veaf.mainLogTrace(string.format("getLandHeight: vec2  x=%.1f z=%.1f", vec3.x, vec3.z))
     -- We add 1 m "safety margin" because data from getlandheight gives the surface and wind at or below the surface is zero!
     local height = math.floor(land.getHeight(vec2) + 1)
-    veaf.logTrace(string.format("getLandHeight: result  height=%.1f",height))
+    veaf.mainLogTrace(string.format("getLandHeight: result  height=%.1f",height))
     return height
 end
 
@@ -212,11 +236,11 @@ function veaf.placePointOnLand(vec3)
         vec3.y = 0
     end
     
-    veaf.logTrace(string.format("getLandHeight: vec3  x=%.1f y=%.1f, z=%.1f", vec3.x, vec3.y, vec3.z))
+    veaf.mainLogTrace(string.format("getLandHeight: vec3  x=%.1f y=%.1f, z=%.1f", vec3.x, vec3.y, vec3.z))
     local height = veaf.getLandHeight(vec3)
-    veaf.logTrace(string.format("getLandHeight: result  height=%.1f",height))
+    veaf.mainLogTrace(string.format("getLandHeight: result  height=%.1f",height))
     local result={x=vec3.x, y=height, z=vec3.z}
-    veaf.logTrace(string.format("placePointOnLand: result  x=%.1f y=%.1f, z=%.1f", result.x, result.y, result.z))
+    veaf.mainLogTrace(string.format("placePointOnLand: result  x=%.1f y=%.1f, z=%.1f", result.x, result.y, result.z))
     return result
 end
 
@@ -297,10 +321,10 @@ function veaf.getWind(point)
     local strength=math.floor(math.sqrt((windvec3.x)^2+(windvec3.z)^2))
     
     -- Debug output.
-    veaf.logTrace(string.format("Wind data: point x=%.1f y=%.1f, z=%.1f", point.x, point.y,point.z))
-    veaf.logTrace(string.format("Wind data: wind  x=%.1f y=%.1f, z=%.1f", windvec3.x, windvec3.y,windvec3.z))
-    veaf.logTrace(string.format("Wind data: |v| = %.1f", strength))
-    veaf.logTrace(string.format("Wind data: ang = %.1f", direction))
+    veaf.mainLogTrace(string.format("Wind data: point x=%.1f y=%.1f, z=%.1f", point.x, point.y,point.z))
+    veaf.mainLogTrace(string.format("Wind data: wind  x=%.1f y=%.1f, z=%.1f", windvec3.x, windvec3.y,windvec3.z))
+    veaf.mainLogTrace(string.format("Wind data: |v| = %.1f", strength))
+    veaf.mainLogTrace(string.format("Wind data: ang = %.1f", direction))
     
     -- Return wind direction and strength km/h.
     return direction, strength, windvec3
@@ -325,7 +349,7 @@ end
 
 --- TODO doc
 function veaf.generateVehiclesRoute(startPoint, destination, onRoad)
-    veaf.logTrace(string.format("startPoint = {x = %d, y = %d, z = %d}", startPoint.x, startPoint.y, startPoint.z))
+    veaf.mainLogTrace(string.format("startPoint = {x = %d, y = %d, z = %d}", startPoint.x, startPoint.y, startPoint.z))
     local routeChoice = "Off Road"
     if onRoad then
         routeChoice = "On Road"
@@ -336,15 +360,15 @@ function veaf.generateVehiclesRoute(startPoint, destination, onRoad)
         trigger.action.outText("A point named "..destination.." cannot be found !", 5)
         return
     end
-    veaf.logTrace(string.format("endPoint = {x = %d, y = %d, z = %d}", endPoint.x, endPoint.y, endPoint.z))
+    veaf.mainLogTrace(string.format("endPoint = {x = %d, y = %d, z = %d}", endPoint.x, endPoint.y, endPoint.z))
 
     local road_x, road_z = land.getClosestPointOnRoads('roads',startPoint.x, startPoint.z)
     startPoint = veaf.placePointOnLand({x = road_x, y = 0, z = road_z})
-    veaf.logTrace(string.format("startPoint = {x = %d, y = %d, z = %d}", startPoint.x, startPoint.y, startPoint.z))
+    veaf.mainLogTrace(string.format("startPoint = {x = %d, y = %d, z = %d}", startPoint.x, startPoint.y, startPoint.z))
 
     road_x, road_z =land.getClosestPointOnRoads('roads',endPoint.x, endPoint.z)
     endPoint = veaf.placePointOnLand({x = road_x, y = 0, z = road_z})
-    veaf.logTrace(string.format("endPoint = {x = %d, y = %d, z = %d}", endPoint.x, endPoint.y, endPoint.z))
+    veaf.mainLogTrace(string.format("endPoint = {x = %d, y = %d, z = %d}", endPoint.x, endPoint.y, endPoint.z))
     
     local vehiclesRoute = {
         [1] = 
@@ -418,17 +442,17 @@ function veaf.addUnit(group, spawnSpot, dispersion, unitType, unitName, skill)
             }
         )
     else
-        veaf.logInfo("cannot find a suitable position for unit "..unitType)
+        veaf.mainLogInfo("cannot find a suitable position for unit "..unitType)
     end
 end
 
 --- Makes a group move to a waypoint set at a specific heading and at a distance covered at a specific speed in an hour
 function veaf.moveGroupAt(groupName, leadUnitName, heading, speed, timeInSeconds, endPosition, pMiddlePointDistance)
-    veaf.logDebug("veaf.moveGroupAt(groupName=" .. groupName .. ", heading="..heading.. ", speed=".. speed..", timeInSeconds="..(timeInSeconds or 0))
+    veaf.mainLogDebug("veaf.moveGroupAt(groupName=" .. groupName .. ", heading="..heading.. ", speed=".. speed..", timeInSeconds="..(timeInSeconds or 0))
 
     local unitGroup = Group.getByName(groupName)
     if unitGroup == nil then
-        veaf.logError("veaf.moveGroupAt: " .. groupName .. ' not found')
+        veaf.mainLogError("veaf.moveGroupAt: " .. groupName .. ' not found')
 		return false
     end
     
@@ -437,15 +461,15 @@ function veaf.moveGroupAt(groupName, leadUnitName, heading, speed, timeInSeconds
         leadUnit = Unit.getByName(leadUnitName)
     end
     if leadUnit == nil then
-        veaf.logError("veaf.moveGroupAt: " .. leadUnitName .. ' not found')
+        veaf.mainLogError("veaf.moveGroupAt: " .. leadUnitName .. ' not found')
 		return false
     end
     
     local headingRad = mist.utils.toRadian(heading)
-    veaf.logTrace("headingRad="..headingRad)
+    veaf.mainLogTrace("headingRad="..headingRad)
     local fromPosition = leadUnit:getPosition().p
     fromPosition = { x = fromPosition.x, y = fromPosition.z }
-    veaf.logTrace("fromPosition="..veaf.vecToString(fromPosition))
+    veaf.mainLogTrace("fromPosition="..veaf.vecToString(fromPosition))
 
     local mission = { 
 		id = 'Mission', 
@@ -486,7 +510,7 @@ function veaf.moveGroupAt(groupName, leadUnitName, heading, speed, timeInSeconds
         }
         fromPosition.x = newWaypoint1.x
         fromPosition.y = newWaypoint1.y
-        veaf.logTrace("newWaypoint1="..veaf.vecToString(newWaypoint1))
+        veaf.mainLogTrace("newWaypoint1="..veaf.vecToString(newWaypoint1))
 
         table.insert(mission.params.route.points, 
             {
@@ -510,14 +534,14 @@ function veaf.moveGroupAt(groupName, leadUnitName, heading, speed, timeInSeconds
     else
         length = speed * 3600 -- m travelled in 1 hour
     end
-    veaf.logTrace("length="..length .. " m")
+    veaf.mainLogTrace("length="..length .. " m")
 
     -- new route point
 	local newWaypoint2 = {
 		x = fromPosition.x + length * math.cos(headingRad),
 		y = fromPosition.y + length * math.sin(headingRad),
 	}
-    veaf.logTrace("newWaypoint2="..veaf.vecToString(newWaypoint2))
+    veaf.mainLogTrace("newWaypoint2="..veaf.vecToString(newWaypoint2))
 
     table.insert(mission.params.route.points, 
         {
@@ -563,12 +587,12 @@ function veaf.moveGroupTo(groupName, pos, speed, altitude)
     if not(altitude) then
         altitude = 0
     end
-    veaf.logDebug("veaf.moveGroupTo(groupName=" .. groupName .. ", speed=".. speed .. ", altitude=".. altitude)
-    veaf.logDebug("pos="..veaf.vecToString(pos))
+    veaf.mainLogDebug("veaf.moveGroupTo(groupName=" .. groupName .. ", speed=".. speed .. ", altitude=".. altitude)
+    veaf.mainLogDebug("pos="..veaf.vecToString(pos))
 
 	local unitGroup = Group.getByName(groupName)
     if unitGroup == nil then
-        veaf.logError("veaf.moveGroupTo: " .. groupName .. ' not found')
+        veaf.mainLogError("veaf.moveGroupTo: " .. groupName .. ' not found')
 		return false
     end
     
@@ -619,23 +643,23 @@ end
 --- Computes the coordinates of a point offset from a route of a certain distance, at a certain distance from route start
 --- e.g. we go from [startingPoint] to [destinationPoint], and at [distanceFromStartingPoint] we look at [offset] meters (left if <0, right else)
 function veaf.computeCoordinatesOffsetFromRoute(startingPoint, destinationPoint, distanceFromStartingPoint, offset)
-    veaf.logTrace("startingPoint="..veaf.vecToString(startingPoint))
-    veaf.logTrace("destinationPoint="..veaf.vecToString(destinationPoint))
+    veaf.mainLogTrace("startingPoint="..veaf.vecToString(startingPoint))
+    veaf.mainLogTrace("destinationPoint="..veaf.vecToString(destinationPoint))
     
     local vecAB = {x = destinationPoint.x +- startingPoint.x, y = destinationPoint.y - startingPoint.y, z = destinationPoint.z - startingPoint.z}
-    veaf.logTrace("vecAB="..veaf.vecToString(vecAB))
+    veaf.mainLogTrace("vecAB="..veaf.vecToString(vecAB))
     local alpha = math.atan2(vecAB.x, vecAB.z) -- atan2(y, x) 
-    veaf.logTrace("alpha="..alpha)
+    veaf.mainLogTrace("alpha="..alpha)
     local r = math.sqrt(distanceFromStartingPoint * distanceFromStartingPoint + offset * offset)
-    veaf.logTrace("r="..r)
+    veaf.mainLogTrace("r="..r)
     local beta = math.atan(offset / distanceFromStartingPoint)
-    veaf.logTrace("beta="..beta)
+    veaf.mainLogTrace("beta="..beta)
     local tho = alpha + beta
-    veaf.logTrace("tho="..tho)
+    veaf.mainLogTrace("tho="..tho)
     local offsetPoint = { z = r * math.cos(tho) + startingPoint.z, y = 0, x = r * math.sin(tho) + startingPoint.x}
-    veaf.logTrace("offsetPoint="..veaf.vecToString(offsetPoint))
+    veaf.mainLogTrace("offsetPoint="..veaf.vecToString(offsetPoint))
     local offsetPointOnLand = veaf.placePointOnLand(offsetPoint)
-    veaf.logTrace("offsetPointOnLand="..veaf.vecToString(offsetPointOnLand))
+    veaf.mainLogTrace("offsetPointOnLand="..veaf.vecToString(offsetPointOnLand))
 
     return offsetPointOnLand, offsetPoint
 end
@@ -668,7 +692,7 @@ function veaf.getGroupData(groupIdent)
         if mist.DBs.MEgroupsByName[groupIdent] then
             gpId = mist.DBs.MEgroupsByName[groupIdent].groupId
         else
-            veaf.logError(groupIdent..' not found in mist.DBs.MEgroupsByName')
+            veaf.mainLogInfo(groupIdent..' not found in mist.DBs.MEgroupsByName')
         end
 
     for coa_name, coa_data in pairs(env.mission.coalition) do
@@ -681,22 +705,33 @@ function veaf.getGroupData(groupIdent)
                                 for group_num, group_data in pairs(obj_type_data.group) do
                                     if group_data and group_data.groupId == gpId	then -- this is the group we are looking for
                                         return group_data
-                                    end	--if group_data and group_data.name and group_data.name == 'groupname'
-                                end --for group_num, group_data in pairs(obj_type_data.group) do
-                            end --if ((type(obj_type_data) == 'table') and obj_type_data.group and (type(obj_type_data.group) == 'table') and (#obj_type_data.group > 0)) then
-                        end --if obj_type_name == "helicopter" or obj_type_name == "ship" or obj_type_name == "plane" or obj_type_name == "vehicle" or obj_type_name == "static" then
-                    end --for obj_type_name, obj_type_data in pairs(cntry_data) do
-                end --for cntry_id, cntry_data in pairs(coa_data.country) do
-            end --if coa_data.country then --there is a country table
-        end --if coa_name == 'red' or coa_name == 'blue' and type(coa_data) == 'table' then
-    end --for coa_name, coa_data in pairs(mission.coalition) do
+                                    end
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
     
-    veaf.logError(' no group data found for '..groupIdent)
+    veaf.mainLogInfo(' no group data found for '..groupIdent)
     return nil
 end
 
+function veaf.findInTable(data, key)
+    local result = nil
+    if data then
+        result = data[key]
+    end
+    if result then 
+        veaf.mainLogTrace(".findInTable found ".. key)
+    end
+    return result
+end
+
 function veaf.getTankerData(tankerGroupName)
-    veaf.logTrace("getTankerData " .. tankerGroupName)
+    veaf.mainLogTrace("getTankerData " .. tankerGroupName)
     local result = nil
     local tankerData = veaf.getGroupData(tankerGroupName)
     if tankerData then
@@ -724,25 +759,25 @@ function veaf.getTankerData(tankerGroupName)
         local route = veaf.findInTable(tankerData, "route")
         local points = veaf.findInTable(route, "points")
         if points then
-            veaf.logTrace("found a " .. #points .. "-points route for tanker " .. tankerGroupName)
+            veaf.mainLogTrace("found a " .. #points .. "-points route for tanker " .. tankerGroupName)
             for i, point in pairs(points) do
-                veaf.logTrace("found point #" .. i)
+                veaf.mainLogTrace("found point #" .. i)
                 local task = veaf.findInTable(point, "task")
                 if task then
                     local tasks = task.params.tasks
                     if (tasks) then
-                        veaf.logTrace("found " .. #tasks .. " tasks")
+                        veaf.mainLogTrace("found " .. #tasks .. " tasks")
                         for j, task in pairs(tasks) do
-                            veaf.logTrace("found task #" .. j)
+                            veaf.mainLogTrace("found task #" .. j)
                             if task.params then
-                                veaf.logTrace("has .params")
+                                veaf.mainLogTrace("has .params")
                                 if task.params.action then
-                                    veaf.logTrace("has .action")
+                                    veaf.mainLogTrace("has .action")
                                     if task.params.action.params then
-                                        veaf.logTrace("has .params")
+                                        veaf.mainLogTrace("has .params")
                                         if task.params.action.params.channel then
-                                            veaf.logTrace("has .channel")
-                                            veaf.logInfo("Found a TACAN task for tanker " .. tankerGroupName)
+                                            veaf.mainLogTrace("has .channel")
+                                            veaf.mainLogInfo("Found a TACAN task for tanker " .. tankerGroupName)
                                             result.tankerTacanTask = task
                                             result.tankerTacanChannel = task.params.action.params.channel
                                             result.tankerTacanMode = task.params.action.params.modeChannel
@@ -789,11 +824,11 @@ function veaf.weatherReport(vec3, alt)
 
     -- At user specified altitude.
     T,Pqfe=atmosphere.getTemperatureAndPressure({x=vec3.x, y=alt, z=vec3.z})
-    veaf.logTrace(string.format("T = %.1f, Pqfe = %.1f", T,Pqfe))
+    veaf.mainLogTrace(string.format("T = %.1f, Pqfe = %.1f", T,Pqfe))
     
     -- Get pressure at sea level.
     local _,Pqnh=atmosphere.getTemperatureAndPressure({x=vec3.x, y=0, z=vec3.z})
-    veaf.logTrace(string.format("Pqnh = %.1f", Pqnh))
+    veaf.mainLogTrace(string.format("Pqnh = %.1f", Pqnh))
     
     -- Convert pressure from Pascal to hecto Pascal.
     Pqfe=Pqfe/100
@@ -809,7 +844,7 @@ function veaf.weatherReport(vec3, alt)
   
     -- Get wind direction and speed.
     local Dir,Vel=weathermark._GetWind(vec3, alt)
-    veaf.logTrace(string.format("Dir = %.1f, Vel = %.1f", Dir,Vel))
+    veaf.mainLogTrace(string.format("Dir = %.1f, Vel = %.1f", Dir,Vel))
 
     -- Get Beaufort wind scale.
     local Bn,Bd=weathermark._BeaufortScale(Vel)
@@ -837,7 +872,7 @@ function veaf.weatherReport(vec3, alt)
     return text
   end
   
-  -------------------------------------------------------------------------------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- initialisation
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -847,4 +882,4 @@ math.random(); math.random(); math.random()
 --- Enable/Disable error boxes displayed on screen.
 env.setErrorMessageBoxEnabled(false)
 
-veaf.logInfo(string.format("Loading version %s", veaf.Version))
+veaf.mainLogInfo(string.format("Loading version %s", veaf.Version))

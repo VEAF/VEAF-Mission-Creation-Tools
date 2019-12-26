@@ -5,12 +5,12 @@ mist.utils = {}
 -- @param angle angle in degrees
 -- @return angle in degrees
 function mist.utils.toRadian(angle)
-    return angle*math.pi/180
+  return angle*math.pi/180
 end
 
-	function mist.utils.toDegree(angle)
-		return angle*180/math.pi
-	end
+function mist.utils.toDegree(angle)
+  return angle*180/math.pi
+end
 
 veaf = {}
 math.randomseed(os.time())
@@ -56,29 +56,29 @@ function veaf.round(num, numDecimalPlaces)
 end
 
 function veaf.vecToString(vec)
-    local result = ""
-    if vec.x then
-        result = result .. string.format(" x=%.1f", vec.x)
-    end
-    if vec.y then
-        result = result .. string.format(" y=%.1f", vec.y)
-    end
-    if vec.z then
-        result = result .. string.format(" z=%.1f", vec.z)
-    end
-    return result
+  local result = ""
+  if vec.x then
+    result = result .. string.format(" x=%.1f", vec.x)
+  end
+  if vec.y then
+    result = result .. string.format(" y=%.1f", vec.y)
+  end
+  if vec.z then
+    result = result .. string.format(" z=%.1f", vec.z)
+  end
+  return result
 end
 
 function veaf.discoverTable(o)
-    local text = ""
-    for key,value in pairs(o) do
-        if value then
-            text = text .. " - ".. key.."="..value.."\n";
-        else
-            text = text .. " - ".. key.."\n";
-        end
+  local text = ""
+  for key,value in pairs(o) do
+    if value then
+      text = text .. " - ".. key.."="..value.."\n";
+    else
+      text = text .. " - ".. key.."\n";
     end
-	return text
+  end
+  return text
 end
 
 veafMarkers = {}
@@ -105,12 +105,12 @@ function missionCommands.removeItem(item)
 end
 
 function veafRadio.initialize()
-    -- Build the initial radio menu
-    veafRadio.buildHumanGroups()
-    veafRadio.refreshRadioMenu()
-    --veafRadio.radioRefreshWatchdog()
-  end
-  
+  -- Build the initial radio menu
+  veafRadio.buildHumanGroups()
+  veafRadio.refreshRadioMenu()
+  --veafRadio.radioRefreshWatchdog()
+end
+
 veafRadio.initialize()
 
 dofile("veafSecurity.lua")
@@ -139,95 +139,79 @@ end
 
 dofile("veafGrass.lua")
 dofile("veafNamedPoints.lua")
-function veafNamedPoints.getAtcAtPoint(parameters)
-    local name, unitName = unpack(parameters)
-    veafNamedPoints.logTrace(string.format("getAtcAtPoint(name = %s)",name))
-    local point = veafNamedPoints.getPoint(name)
-    if point then
-        -- exanple : point={x=-315414,y=480,z=897262, atc=true, tower="138.00", runways={{name="12R", hdg=121, ils="110.30"},{name="30L", hdg=301, ils="108.90"}}}
-        local atcReport = "ATC            : " .. name .. "\n"
-        
-        -- altitude and QFE
-        local altitude = 0
-        local qfeHp = "2992"
-        local qfeinHg = "16.62"
-        atcReport = atcReport .. "ALTITUDE       : " .. altitude .. " meters.\n"
-        atcReport = atcReport .. "QFE            : " .. qfeHp .. " hPa / " .. qfeinHg .. " inHg.\n"
-
-        -- wind
-        local windDirection = 291
-        local windStrength = 10
-        local windText =     'no wind.\n'
-        if windStrength > 0 then
-            windText = string.format(
-                'from %s at %s m/s.\n', windDirection, windStrength)
-            end
-        atcReport = atcReport .. "WIND           : " .. windText
-        
-        -- runway and other information
-        if point.tower then
-            atcReport = atcReport .. "TOWER          : " .. point.tower .. "\n"
-        end
-        if point.runways then
-            for _, runway in pairs(point.runways) do
-                if not runway.name then
-                    runway.name = math.floor((runway.hdg/10)+0.5)
-                end
-                -- ils when available
-                local ils = ""
-                if runway.ils then
-                    ils = " ILS " .. runway.ils
-                end
-                -- pop flare if needed
-                local flare = ""
-                if runway.flare then
-                    -- TODO
-                    flare = " marked with ".. runway.flare .. " flare"
-                    --veafSpawn.spawnSignalFlare(point, runway.flare, runway.hdg)
-                end
-                atcReport = atcReport .. "RUNWAY         : " .. runway.name .. " heading " .. runway.hdg .. ils .. flare .. "\n"
-            end
-        end
-
-        -- weather
-        --atcReport = atcReport .. "\n\n"
-        --local weatherReport = weathermark._WeatherReport(point, altitude, "imperial")
-        --atcReport = atcReport ..weatherReport
-        print(atcReport)
-    end
-end
-
-dofile("mission-specific\\caucasus\\veafNamedPointsConfig.lua")
-veafNamedPoints.initialize()
-
---veafNamedPoints.getAtcAtPoint({"AIRBASE Tbilisi", 0})
-veafNamedPoints.getAtcAtPoint({"AIRBASE Sukhumi", 0})
 
 function veaf.discover(o)
-    return veaf._discover(o, 0)
+  return veaf._discover(o, 0)
 end
 
 function veaf._discover(o, level)
-    local text = ""
-    if (type(o) == "table") then
-        text = "\n"
-        for key,value in pairs(o) do
-            for i=0, level do
-                text = text .. " "
-            end
-            text = text .. ".".. key.."="..veaf._discover(value, level+1);
-        end
-    else
-        text = text .. o .."\n";
+  local text = ""
+  if (type(o) == "table") then
+    text = "\n"
+    for key,value in pairs(o) do
+      for i=0, level do
+        text = text .. " "
+      end
+      text = text .. ".".. key.."="..veaf._discover(value, level+1);
     end
-    return text
+  else
+    text = text .. o .."\n";
+  end
+  return text
 end
 
-local callsign={}
-callsign["1"]=7
-callsign["2"]={}
-callsign["2"]["toto"]="toto"
-callsign["2"]["titi"]="toto"
-callsign["name"]="Chevy41"
+veafInterpreter = {}
+--- Key phrase to look for in the unit name which triggers the interpreter.
+veafInterpreter.Starter = "#veafInterpreter%[\""
+veafInterpreter.Trailer = "\"%]"
 
-print(veaf.discover(callsign))
+local text = "#veafInterpreter[\"_spawn group, name RU supply convoy with light defense\"]"
+local p1, p2 = text:find(veafInterpreter.Starter)
+local p_start = 0
+local p_end = 0
+local command = nil
+if p2 then 
+  -- starter has been found
+  text = text:sub(p2 + 1)
+  p1, p2 = text:find(veafInterpreter.Trailer)
+  if p1 then
+    command = text:sub(1, p1 - 1)
+  end
+end
+print("["..command.."]")
+
+local text = "#command=\"_spawn group, name sa6\" #spawnRadius=250"
+local p1, p2, spawnRadius, command 
+p1, p2, spawnRadius = text:find("#spawnRadius%s*=%s*(%d+)")
+p1, p2, command = text:find("#command%s*=%s*\"(.+)\"")
+print(spawnRadius)
+
+text = "_spawn infantryGroup, size 5"
+print(text:lower():find("_spawn" .. " infantryGroup"))
+print(text:lower():find("_spawn"))
+print(text:lower():find(" infantryGroup"))
+if text:lower():find("_spawn" .. " infantryGroup") then
+  print("bam")
+end
+
+dofile("veafCombatZone.lua")
+
+Account = {balance = 0}
+function Account.withdraw (self, v)
+  self.balance = self.balance - v
+end
+function Account:deposit (v)
+  self.balance = self.balance + v
+end
+function Account:new (o)
+  o = o or {}   -- create object if user does not provide one
+  setmetatable(o, self)
+  self.__index = self
+  return o
+end
+
+local a = Account:new{balance = 0}
+a:deposit(100.00)
+
+local b = Account:new()
+print(b.balance)

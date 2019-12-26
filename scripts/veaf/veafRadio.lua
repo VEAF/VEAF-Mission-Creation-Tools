@@ -1,5 +1,5 @@
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
--- VEAF radio menu script library for DCS Workd
+-- VEAF radio menu script library for DCS World
 -- By zip (2018)
 --
 -- Features:
@@ -45,7 +45,10 @@ veafRadio = {}
 veafRadio.Id = "RADIO - "
 
 --- Version.
-veafRadio.Version = "1.1.2"
+veafRadio.Version = "1.1.4"
+
+-- trace level, specific to this module
+veafRadio.Trace = false
 
 veafRadio.RadioMenuName = "VEAF (" .. veaf.Version .. " - radio " .. veafRadio.Version .. ")"
 
@@ -88,7 +91,9 @@ function veafRadio.logDebug(message)
 end
 
 function veafRadio.logTrace(message)
+  if message and veafRadio.Trace then 
     veaf.logTrace(veafRadio.Id .. message)
+  end
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -320,7 +325,21 @@ function veafRadio.addSubMenu(title, radioMenu)
     return subMenu
 end
 
+function veafRadio.clearSubmenu(subMenu)
+  if not subMenu then 
+    veafRadio.logError("veafRadio.clearSubmenu() subMenu parameter is nil !")
+    return
+  end
+  veafRadio.logDebug(string.format("veafRadio.clearSubmenu(%s)",subMenu.title))
+  subMenu.subMenus = {}
+  subMenu.commands = {}
+end
+
 function veafRadio.delSubmenu(subMenu, radioMenu)
+  if not subMenu then 
+    veafRadio.logError("veafRadio.delSubmenu() subMenu parameter is nil !")
+    return
+  end
   local menu = veafRadio.radioMenu
   if radioMenu then
      menu = radioMenu 

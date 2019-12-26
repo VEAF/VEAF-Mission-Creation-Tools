@@ -50,6 +50,9 @@ veafCarrierOperations.Id = "CARRIER - "
 --- Version.
 veafCarrierOperations.Version = "1.4.1"
 
+-- trace level, specific to this module
+veafCarrierOperations.Trace = false
+
 --- All the carrier groups must comply with this name
 veafCarrierOperations.CarrierGroupNamePattern = "^CSG-.*$"
 
@@ -93,11 +96,15 @@ function veafCarrierOperations.logDebug(message)
 end
 
 function veafCarrierOperations.logTrace(message)
-    veaf.logTrace(veafCarrierOperations.Id .. message)
+    if message and veafCarrierOperations.Trace then 
+        veaf.logTrace(veafCarrierOperations.Id .. message)
+    end
 end
 
 function veafCarrierOperations.logMarker(id, message, position, markersTable)
-    return veaf.logMarker(id, veafCarrierOperations.Id, message, position, markersTable)
+    if veafCarrierOperations.Trace then 
+        return veaf.logMarker(id, veafCarrierOperations.Id, message, position, markersTable)
+    end
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -749,17 +756,6 @@ function veafCarrierOperations.help(unitName)
         'RESET: carrier will go back to where it was when the mission started'
 
     veaf.outTextForUnit(unitName, text, 30)
-end
-
-function veaf.findInTable(data, key)
-    local result = nil
-    if data then
-        result = data[key]
-    end
-    if result then 
-        veaf.logTrace(".findInTable found ".. key)
-    end
-    return result
 end
 
 function veafCarrierOperations.initializeCarrierGroups()

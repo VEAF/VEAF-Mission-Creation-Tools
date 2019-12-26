@@ -72,6 +72,9 @@ veafMove.Id = "MOVE - "
 --- Version.
 veafMove.Version = "1.2.1"
 
+-- trace level, specific to this module
+veafMove.Trace = false
+
 --- Key phrase to look for in the mark text which triggers the command.
 veafMove.Keyphrase = "_move"
 
@@ -101,11 +104,15 @@ function veafMove.logDebug(message)
 end
 
 function veafMove.logTrace(message)
-    veaf.logTrace(veafMove.Id .. message)
+    if message and veafMove.Trace then
+        veaf.logTrace(veafMove.Id .. message)
+    end
 end
 
 function veafMove.logMarker(id, message, position, markersTable)
-    return veaf.logMarker(id, veafMove.Id, message, position, markersTable)
+    if veafMove.Trace then 
+        return veaf.logMarker(id, veafMove.Id, message, position, markersTable)
+    end
 end
 
 

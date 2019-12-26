@@ -51,6 +51,9 @@ veafTransportMission.Id = "TRANSPORT MISSION - "
 --- Version.
 veafTransportMission.Version = "1.3.1"
 
+-- trace level, specific to this module
+veafTransportMission.Trace = false
+
 --- Key phrase to look for in the mark text which triggers the command.
 veafTransportMission.Keyphrase = "_transport"
 
@@ -145,7 +148,9 @@ function veafTransportMission.logDebug(message)
 end
 
 function veafTransportMission.logTrace(message)
-    veaf.logTrace(veafTransportMission.Id .. message)
+    if message and veafTransportMission.Trace then
+        veaf.logTrace(veafTransportMission.Id .. message)
+    end
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------

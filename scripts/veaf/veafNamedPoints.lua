@@ -37,7 +37,10 @@ veafNamedPoints = {}
 veafNamedPoints.Id = "NAMED POINTS - "
 
 --- Version.
-veafNamedPoints.Version = "1.2.3"
+veafNamedPoints.Version = "1.2.4"
+
+-- trace level, specific to this module
+veafNamedPoints.Trace = false
 
 --- Key phrase to look for in the mark text which triggers the command.
 veafNamedPoints.Keyphrase = "_name point"
@@ -75,7 +78,9 @@ function veafNamedPoints.logDebug(message)
 end
 
 function veafNamedPoints.logTrace(message)
-    veaf.logTrace(veafNamedPoints.Id .. message)
+    if message and veafNamedPoints.Trace then
+        veaf.logTrace(veafNamedPoints.Id .. message)
+    end
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -84,6 +89,16 @@ end
 
 --- Function executed when a mark has changed. This happens when text is entered or changed.
 function veafNamedPoints.onEventMarkChange(eventPos, event)
+    if veafNamedPoints.executeCommand(eventPos, event) then 
+
+        -- Delete old mark.
+        veafNamedPoints.logTrace(string.format("Removing mark # %d.", event.idx))
+        trigger.action.removeMark(event.idx)
+    end
+end
+
+function veafNamedPoints.executeCommand(eventPos, event)
+
     -- Check if marker has a text and the veafNamedPoints.keyphrase keyphrase.
     if event.text ~= nil and event.text:lower():find(veafNamedPoints.Keyphrase) then
 
@@ -96,17 +111,14 @@ function veafNamedPoints.onEventMarkChange(eventPos, event)
                 -- create the mission
                 veafNamedPoints.namePoint(eventPos, options.name, event.coalition)
             end
+            return true
         else
             -- None of the keywords matched.
-            return
+            return false
         end
-
-        -- Delete old mark.
-        veafNamedPoints.logTrace(string.format("Removing mark # %d.", event.idx))
-        trigger.action.removeMark(event.idx)
     end
-end
-
+    return false
+end    
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Analyse the mark text and extract keywords.
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -294,7 +306,7 @@ end
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 function veafNamedPoints._buildWeatherReportsRadioMenuPage(menu, names, pageSize, startIndex)
-    veafNamedPoints.logDebug(string.format("veafNamedPoints._buildWeatherReportsRadioMenuPage(pageSize=%d, startIndex=%d)",pageSize, startIndex))
+    veafNamedPoints.logTrace(string.format("veafNamedPoints._buildWeatherReportsRadioMenuPage(pageSize=%d, startIndex=%d)",pageSize, startIndex))
     
     local namesCount = #names
     veafNamedPoints.logTrace(string.format("namesCount = %d",namesCount))
@@ -304,7 +316,7 @@ function veafNamedPoints._buildWeatherReportsRadioMenuPage(menu, names, pageSize
         endIndex = startIndex + pageSize - 2
     end
     veafNamedPoints.logTrace(string.format("endIndex = %d",endIndex))
-    veafNamedPoints.logDebug(string.format("adding commands from %d to %d",startIndex, endIndex))
+    veafNamedPoints.logTrace(string.format("adding commands from %d to %d",startIndex, endIndex))
     for index = startIndex, endIndex do
         local name = names[index]
         veafNamedPoints.logTrace(string.format("names[%d] = %s",index, name))
@@ -312,7 +324,7 @@ function veafNamedPoints._buildWeatherReportsRadioMenuPage(menu, names, pageSize
         veafRadio.addCommandToSubmenu( name , menu, veafNamedPoints.getWeatherAtPoint, name, veafRadio.USAGE_ForGroup)    
     end
     if endIndex < namesCount then
-        veafNamedPoints.logDebug("adding next page menu")
+        veafNamedPoints.logTrace("adding next page menu")
         local nextPageMenu = veafRadio.addSubMenu("Next page", menu)
         veafNamedPoints._buildWeatherReportsRadioMenuPage(nextPageMenu, names, 10, endIndex+1)
     end
@@ -336,7 +348,7 @@ function veafNamedPoints._refreshWeatherReportsRadioMenu()
 end
 
 function veafNamedPoints._buildAtcRadioMenuPage(menu, names, pageSize, startIndex)
-    veafNamedPoints.logDebug(string.format("veafNamedPoints._buildAtcRadioMenuPage(pageSize=%d, startIndex=%d)",pageSize, startIndex))
+    veafNamedPoints.logTrace(string.format("veafNamedPoints._buildAtcRadioMenuPage(pageSize=%d, startIndex=%d)",pageSize, startIndex))
 
     local namesCount = #names
     veafNamedPoints.logTrace(string.format("namesCount = %d",namesCount))
@@ -346,7 +358,7 @@ function veafNamedPoints._buildAtcRadioMenuPage(menu, names, pageSize, startInde
         endIndex = startIndex + pageSize - 2
     end
     veafNamedPoints.logTrace(string.format("endIndex = %d",endIndex))
-    veafNamedPoints.logDebug(string.format("adding commands from %d to %d",startIndex, endIndex))
+    veafNamedPoints.logTrace(string.format("adding commands from %d to %d",startIndex, endIndex))
     for index = startIndex, endIndex do
         local name = names[index]
         veafNamedPoints.logTrace(string.format("names[%d] = %s",index, name))
@@ -354,7 +366,7 @@ function veafNamedPoints._buildAtcRadioMenuPage(menu, names, pageSize, startInde
         veafRadio.addCommandToSubmenu( name , menu, veafNamedPoints.getAtcAtPoint, name, veafRadio.USAGE_ForGroup)    
     end
     if endIndex < namesCount then
-        veafNamedPoints.logDebug("adding next page menu")
+        veafNamedPoints.logTrace("adding next page menu")
         local nextPageMenu = veafRadio.addSubMenu("Next page", menu)
         veafNamedPoints._buildAtcRadioMenuPage(nextPageMenu, names, 10, endIndex+1)
     end

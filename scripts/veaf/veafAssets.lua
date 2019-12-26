@@ -26,6 +26,9 @@ veafAssets.Id = "ASSETS - "
 --- Version.
 veafAssets.Version = "1.2.3"
 
+-- trace level, specific to this module
+veafAssets.Trace = false
+
 veafAssets.Assets = {
     -- list the assets common to all missions below
 }
@@ -53,7 +56,9 @@ function veafAssets.logDebug(message)
 end
 
 function veafAssets.logTrace(message)
-    veaf.logTrace(veafAssets.Id .. message)
+    if message and veafAssets.Trace then
+        veaf.logTrace(veafAssets.Id .. message)
+    end
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -76,7 +81,7 @@ function veafAssets._buildAssetRadioMenu(menu, asset)
 end
 
 function veafAssets._buildAssetsRadioMenuPage(menu, names, pageSize, startIndex)
-    veafAssets.logDebug(string.format("veafAssets._buildAssetsRadioMenuPage(pageSize=%d, startIndex=%d)",pageSize, startIndex))
+    veafAssets.logTrace(string.format("veafAssets._buildAssetsRadioMenuPage(pageSize=%d, startIndex=%d)",pageSize, startIndex))
     
     local namesCount = #names
     veafAssets.logTrace(string.format("namesCount = %d",namesCount))
@@ -86,7 +91,7 @@ function veafAssets._buildAssetsRadioMenuPage(menu, names, pageSize, startIndex)
         endIndex = startIndex + pageSize - 2
     end
     veafAssets.logTrace(string.format("endIndex = %d",endIndex))
-    veafAssets.logDebug(string.format("adding commands from %d to %d",startIndex, endIndex))
+    veafAssets.logTrace(string.format("adding commands from %d to %d",startIndex, endIndex))
     for index = startIndex, endIndex do
         local name = names[index]
         veafAssets.logTrace(string.format("names[%d] = %s",index, name))
@@ -94,7 +99,7 @@ function veafAssets._buildAssetsRadioMenuPage(menu, names, pageSize, startIndex)
         veafAssets._buildAssetRadioMenu(menu, asset)
     end
     if endIndex < namesCount then
-        veafAssets.logDebug("adding next page menu")
+        veafAssets.logTrace("adding next page menu")
         local nextPageMenu = veafRadio.addSubMenu("Next page", menu)
         veafAssets._buildAssetsRadioMenuPage(nextPageMenu, names, 10, endIndex+1)
     end
@@ -130,9 +135,9 @@ function veafAssets.buildRadioMenu()
         table.insert(names, sortedAssets[i].name)
     end
 
-    veaf.logTrace("veafAssets.buildRadioMenu() - dumping names")
+    veafAssets.logTrace("veafAssets.buildRadioMenu() - dumping names")
     for i = 1, #names do
-        veaf.logTrace("veafAssets.buildRadioMenu().names -> " .. names[i])
+        veafAssets.logTrace("veafAssets.buildRadioMenu().names -> " .. names[i])
     end
 
     veafAssets._buildAssetsRadioMenuPage(veafAssets.rootPath, names, 9, 1)

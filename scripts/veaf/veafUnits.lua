@@ -39,14 +39,17 @@ veafUnits = {}
 veafUnits.Id = "UNITS - "
 
 --- Version.
-veafUnits.Version = "1.3.0"
+veafUnits.Version = "1.3.1"
+
+-- trace level, specific to this module
+veafUnits.Trace = false
 
 --- If no unit is spawned in a cell, it will default to this width
 veafUnits.DefaultCellWidth = 10
 
 --- If no unit is spawned in a cell, it will default to this height
 veafUnits.DefaultCellHeight = 10
-    
+
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Do not change anything below unless you know what you are doing!
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -68,88 +71,90 @@ function veafUnits.logDebug(message)
 end
 
 function veafUnits.logTrace(message)
-    if message then
+    if message and veafUnits.Trace then
         veaf.logTrace(veafUnits.Id .. message)
     end
 end
 
-function veafUnits.debugGroup(group, cells)
-    veafUnits.logTrace("")
-    veafUnits.logTrace(" Group : " .. group.description)
-    veafUnits.logTrace("")
-    local nCols = group.disposition.w
-    local nRows = group.disposition.h
-    
-    local line1 = "|    |" 
-    local line2 = "|----|" 
-    
-    for nCol = 1, nCols do
-        line1 = line1 .. "                ".. string.format("%02d", nCol) .."              |" 
-        line2 = line2 .. "--------------------------------|"
-    end
-    veafUnits.logTrace(line1)
-    veafUnits.logTrace(line2)
-
-    local unitCounter = 1
-    for nRow = 1, nRows do 
-        local line1 = "|    |"
-        local line2 = "| " .. string.format("%02d", nRow) .. " |"
-        local line3 = "|    |"
-        local line4 = "|----|"
+function veafUnits.traceGroup(group, cells)
+    if group and veafUnits.Trace then
+        veafUnits.logTrace("")
+        veafUnits.logTrace(" Group : " .. group.description)
+        veafUnits.logTrace("")
+        local nCols = group.disposition.w
+        local nRows = group.disposition.h
+        
+        local line1 = "|    |" 
+        local line2 = "|----|" 
+        
         for nCol = 1, nCols do
-            local cellNum = (nRow - 1) * nCols + nCol
-            local cell = cells[cellNum]
-            local left = "        "
-            local top = "        "
-            local right = "        "
-            local bottom = "        "
-            local bottomleft = "                      "
-            local center = "                "
-            
-            if cell then 
-            
-                local unit = cell.unit
-                if unit then
-                    local unitName = unit.typeName
-                    if unitName:len() > 11 then
-                        unitName = unitName:sub(1,11)
-                    end
-                    unitName = string.format("%02d", unitCounter) .. "-" .. unitName
-                    local spaces = 14 - unitName:len()
-                    for i=1, math.floor(spaces/2) do
-                        unitName = " " .. unitName
-                    end
-                    for i=1, math.ceil(spaces/2) do
-                        unitName = unitName .. " "
-                    end
-                    center = " " .. unitName .. " "
-
-                    bottomleft = string.format("               %03d    ", mist.utils.toDegree(unit.spawnPoint.hdg))
-
-                    unitCounter = unitCounter + 1
-                end
-
-                left = string.format("%08d",math.floor(cell.left))
-                top = string.format("%08d",math.floor(cell.top))
-                right = string.format("%08d",math.floor(cell.right))
-                bottom = string.format("%08d",math.floor(cell.bottom))
-            end
-            
-            line1 = line1 .. "  " .. top .. "                      " .. "|"
-            line2 = line2 .. "" .. left .. center .. right.. "|"
-            line3 = line3 .. bottomleft  .. bottom.. "  |"
-            line4 = line4 .. "--------------------------------|"
-
+            line1 = line1 .. "                ".. string.format("%02d", nCol) .."              |" 
+            line2 = line2 .. "--------------------------------|"
         end
         veafUnits.logTrace(line1)
         veafUnits.logTrace(line2)
-        veafUnits.logTrace(line3)
-        veafUnits.logTrace(line4)
+
+        local unitCounter = 1
+        for nRow = 1, nRows do 
+            local line1 = "|    |"
+            local line2 = "| " .. string.format("%02d", nRow) .. " |"
+            local line3 = "|    |"
+            local line4 = "|----|"
+            for nCol = 1, nCols do
+                local cellNum = (nRow - 1) * nCols + nCol
+                local cell = cells[cellNum]
+                local left = "        "
+                local top = "        "
+                local right = "        "
+                local bottom = "        "
+                local bottomleft = "                      "
+                local center = "                "
+                
+                if cell then 
+                
+                    local unit = cell.unit
+                    if unit then
+                        local unitName = unit.typeName
+                        if unitName:len() > 11 then
+                            unitName = unitName:sub(1,11)
+                        end
+                        unitName = string.format("%02d", unitCounter) .. "-" .. unitName
+                        local spaces = 14 - unitName:len()
+                        for i=1, math.floor(spaces/2) do
+                            unitName = " " .. unitName
+                        end
+                        for i=1, math.ceil(spaces/2) do
+                            unitName = unitName .. " "
+                        end
+                        center = " " .. unitName .. " "
+
+                        bottomleft = string.format("               %03d    ", mist.utils.toDegree(unit.spawnPoint.hdg))
+
+                        unitCounter = unitCounter + 1
+                    end
+
+                    left = string.format("%08d",math.floor(cell.left))
+                    top = string.format("%08d",math.floor(cell.top))
+                    right = string.format("%08d",math.floor(cell.right))
+                    bottom = string.format("%08d",math.floor(cell.bottom))
+                end
+                
+                line1 = line1 .. "  " .. top .. "                      " .. "|"
+                line2 = line2 .. "" .. left .. center .. right.. "|"
+                line3 = line3 .. bottomleft  .. bottom.. "  |"
+                line4 = line4 .. "--------------------------------|"
+
+            end
+            veafUnits.logTrace(line1)
+            veafUnits.logTrace(line2)
+            veafUnits.logTrace(line3)
+            veafUnits.logTrace(line4)
+        end
     end
 end
 
 function veafUnits.debugUnit(unit)
-    if unit then 
+    if unit and veafUnits.Trace then 
         local airnaval = ""
         if unit.naval then
             airnaval = ", naval"
@@ -681,8 +686,13 @@ veafUnits.GroupsDatabase = {
     {
         aliases = {"sa6", "sa-6", "06"},
         group = {
-            disposition = { h= 7, w= 5},
-            units = {{"Kub 1S91 str", cell = 18}, {"Kub 2P25 ln", cell = 4}, {"Kub 2P25 ln", cell = 15}, {"Kub 2P25 ln", cell = 21}, {"Kub 2P25 ln", cell = 32}},
+            disposition = { h= 7, w= 7},
+            units = {{"Kub 1S91 str", cell = 25}, {"Kub 2P25 ln", cell = 4, hdg = 180}, {"Kub 2P25 ln", cell = 22, hdg = 90}, {"Kub 2P25 ln", cell = 28, hdg = 270}, {"Kub 2P25 ln", cell = 46, hdg = 0},
+            {"Fuel Truck ATZ-10", number = 2, random},
+            {"GPU APA-80 on ZiL-131", number = 1, random},
+            {"Transport Ural-4320-31 Armored", number = 2, random},
+            {"CP Ural-375 PBU", number = 1, random},
+            },
             description = "SA-6 SAM site",
             groupName = "SA6"
         },
@@ -771,7 +781,7 @@ veafUnits.GroupsDatabase = {
     {
         aliases = {"US supply convoy","blueconvoy"},
         group = {
-            disposition = { h = 1, w = 50},
+            disposition = { h = 20, w = 20},
             units = {
                 {"IFV Hummer", number = {min=2, max=4}, random},
                 {"Truck M 818", number = {min=3, max=6}, random},
@@ -786,7 +796,7 @@ veafUnits.GroupsDatabase = {
     {
         aliases = {"RU supply convoy with defense","redconvoy-def"},
         group = {
-            disposition = { h = 1, w = 50},
+            disposition = { h = 20, w = 20},
             units = {
                 {"2S6 Tunguska", number = {min=0, max=1}, random},
                 {"Strela-10M3", number = {min=0, max=1}, random},
@@ -810,7 +820,7 @@ veafUnits.GroupsDatabase = {
     {
         aliases = {"RU supply convoy with light defense","redconvoy-lightdef"},
         group = {
-            disposition = { h = 1, w = 50},
+            disposition = { h = 20, w = 20},
             units = {
                 {"ZSU-23-4 Shilka", number = {min=0, max=2}, random},
                 {"Ural-375 ZU-23", number = {min=0, max=2}, random},
@@ -831,7 +841,7 @@ veafUnits.GroupsDatabase = {
     {
         aliases = {"RU supply convoy with no defense","redconvoy-nodef"},
         group = {
-            disposition = { h = 1, w = 50},
+            disposition = { h = 20, w = 20},
             units = {
                 {"UAZ-469", number = {min=2, max=4}, random},
                 {"Truck SKP-11", number = {min=1, max=3}, random},
@@ -851,7 +861,7 @@ veafUnits.GroupsDatabase = {
     {
         aliases = {"RU small supply convoy with defense","redsmallconvoy-def"},
         group = {
-            disposition = { h = 1, w = 50},
+            disposition = { h = 20, w = 20},
             units = {
                 {"2S6 Tunguska", number = {min=0, max=1}, random},
                 {"Strela-10M3", number = {min=0, max=1}, random},
@@ -875,7 +885,7 @@ veafUnits.GroupsDatabase = {
     {
         aliases = {"RU small supply convoy with light defense","redsmallconvoy-lightdef"},
         group = {
-            disposition = { h = 1, w = 50},
+            disposition = { h = 20, w = 20},
             units = {
                 {"ZSU-23-4 Shilka", number = {min=0, max=2}, random},
                 {"Ural-375 ZU-23", number = {min=0, max=2}, random},
@@ -896,7 +906,7 @@ veafUnits.GroupsDatabase = {
     {
         aliases = {"RU small supply convoy with no defense","redsmallconvoy-nodef","redconvoy","convoy"},
         group = {
-            disposition = { h = 1, w = 50},
+            disposition = { h = 20, w = 20},
             units = {
                 {"UAZ-469", number = {min=1, max=2}, random},
                 {"Truck SKP-11", number = {min=1, max=2}, random},

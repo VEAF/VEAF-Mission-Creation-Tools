@@ -109,25 +109,32 @@ end
 ZoneElement =
 {
     -- name
-    name = nil,
+    name,
     -- position on the map
-    position = nil,
+    position,
     -- if true, this is a simple dcs static
-    dcsStatic = false,
+    dcsStatic,
     -- if true, this is a simple dcs group
-    dcsGroup = false,
+    dcsGroup,
     -- if true, this is a VEAF command
-    veafCommand = false,
+    veafCommand,
     -- spawn radius in meters (randomness introduced in the respawn mechanism)
-    spawnRadius = 0,
+    spawnRadius,
     -- spawn chance in percent (xx chances in 100 that the unit is spawned - or the command run)
-    spawnChance = 100
+    spawnChance
 }
 
 function ZoneElement:new (o)
     o = o or {}   -- create object if user does not provide one
     setmetatable(o, self)
     self.__index = self
+    self.name = nil
+    self.position = nil
+    self.dcsStatic = false
+    self.dcsGroup = false
+    self.veafCommand = false
+    self.spawnRadius = 0
+    self.spawnChance = 100
     return o
 end
 
@@ -209,39 +216,53 @@ end
 Zone = 
 {
     -- zone name (human-friendly)
-    friendlyName = nil,
+    friendlyName,
     -- technical zone name (in the mission editor)
-    missionEditorZoneName = nil,
+    missionEditorZoneName,
     -- technical zone object
-    missionEditorZoneObject = nil,
+    missionEditorZoneObject,
     -- mission briefing
-    briefing = nil,
+    briefing,
     -- list of defined objectives
-    objectives = {},
+    objectives,
     -- list of the elements defined in the zone
-    elements = {},
+    elements,
     -- the zone center
-    zoneCenter = nil,
+    zoneCenter,
     -- zone is active
-    active = false,
+    active,
 
     --- Radio menus paths
-    radioMarkersPath = nil,
-    radioTargetInfoPath = nil,
-    radioRootPath = nil,
+    radioMarkersPath,
+    radioTargetInfoPath,
+    radioRootPath,
 
     -- the watchdog function checks for zone objectives completion
-    watchdogFunctionId = nil,
+    watchdogFunctionId,
     -- "pop smoke" command reset function id
-    smokeResetFunctionId = nil,
+    smokeResetFunctionId,
     -- "pop flare" command reset function id
-    flareResetFunctionId = nil
+    flareResetFunctionId
 }
 
 function Zone:new (o)
     o = o or {}   -- create object if user does not provide one
     setmetatable(o, self)
     self.__index = self
+    self.friendlyName = nil
+    self.missionEditorZoneName = nil
+    self.missionEditorZoneObject = nil
+    self.briefing = nil
+    self.objectives = {}
+    self.elements = {}
+    self.zoneCenter = nil
+    self.active = false
+    self.radioMarkersPath = nil
+    self.radioTargetInfoPath = nil
+    self.radioRootPath = nil
+    self.watchdogFunctionId = nil
+    self.smokeResetFunctionId = nil
+    self.flareResetFunctionId = nil
     return o
 end
 
@@ -307,11 +328,13 @@ function Zone:addDefaultObjectives()
 end
 
 function Zone:initialize()
+    veafCombatZone.logDebug(string.format("Zone[%s]:initialize()",self.missionEditorZoneName or ""))
+    veafCombatZone.logTrace(string.format("#self.elements=%d", #self.elements))
+
     -- check parameters
     if not self.missionEditorZoneName then 
         return self 
     end
-    veafCombatZone.logTrace(string.format("initializing zone [%s]",self.missionEditorZoneName))
     if not self.friendlyName then 
         self:setFriendlyName(self.missionEditorZoneName)
     end
@@ -388,19 +411,23 @@ function Zone:initialize()
         unit:destroy()
         self.elements[#self.elements+1] = zoneElement
     end
+    veafCombatZone.logTrace(string.format("#self.elements=%d", #self.elements))
 
-    -- deactivate the zone for starters
+    -- deactivate the zone
     veafCombatZone.logTrace("desactivate the zone")
     self:desactivate()
-
-    -- create the radio menu
-    self:updateRadioMenu()
 
     return self
 end
 
 function Zone:getInformation()
+    veafCombatZone.logDebug(string.format("Zone[%s]:getInformation()",self.missionEditorZoneName or ""))
     local message =      "COMBAT ZONE "..self:getFriendlyName().." \n\n"
+    if (self:getBriefing()) then
+        message = message .. "BRIEFING: \n"
+        message = message .. self:getBriefing()
+        message = message .. "\n"
+    end
     if self:isActive() then
 
         -- generate information dispatch
@@ -426,11 +453,6 @@ function Zone:getInformation()
             end
         end
 
-        if (self:getBriefing()) then
-            message = message .. "BRIEFING: \n"
-            message = message .. self:getBriefing()
-            message = message .. "\n"
-        end
         message = message .. "ENEMIES: ".. nbStatics .. " structure(s), " .. nbVehicles .. " vehicle(s) and " .. nbInfantry .. " soldier(s) remain.\n"
         message = message .. "\n"
 
@@ -464,6 +486,7 @@ end
 -- activate the zone
 function Zone:activate()
     veafCombatZone.logTrace(string.format("Zone[%s]:activate()",self:getMissionEditorZoneName()))
+    veafCombatZone.logTrace(string.format("#self.elements=%d", #self.elements))
     self:setActive(true)
     
     for _, zoneElement in pairs(self.elements) do
@@ -497,6 +520,8 @@ end
 
 -- desactivate the zone
 function Zone:desactivate()
+    veafCombatZone.logDebug(string.format("Zone[%s]:desactivate()",self.missionEditorZoneName or ""))
+    veafCombatZone.logTrace(string.format("#self.elements=%d", #self.elements))
     self:setActive(false)
 
     -- find units in the trigger zone (including units not listed in the zone object, as new units may have been spawned in the zone and we want it CLEAN !)
@@ -521,7 +546,7 @@ end
 
 -- updates the radio menu according to the zone state
 function Zone:updateRadioMenu(inBatch)
-    veafCombatZone.logDebug(string.format("updateRadioMenu(%s)",self.missionEditorZoneName or ""))
+    veafCombatZone.logDebug(string.format("Zone[%s]:updateRadioMenu(%s)",self.missionEditorZoneName or "", tostring(inBatch)))
     
     -- do not update the radio menu if not yet initialized
     if not veafCombatZone.rootPath then
@@ -529,8 +554,11 @@ function Zone:updateRadioMenu(inBatch)
     end
 
     -- reset the radio menu
-    veafCombatZone.logTrace("reset the radio menu")
-    veafRadio.delSubmenu(self.radioRootPath, veafCombatZone.rootPath)
+    if self.radioRootPath then
+        veafCombatZone.logTrace("reset the radio submenu")
+        veafRadio.delSubmenu(self.radioRootPath, veafCombatZone.rootPath)
+    end
+    veafCombatZone.logTrace("add the radio submenu")
     self.radioRootPath = veafRadio.addSubMenu(self:getRadioMenuName(), veafCombatZone.rootPath)
 
     -- populate the radio menu
@@ -557,7 +585,8 @@ end
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 function veafCombatZone.GetZone(zoneName)
-    veafCombatZone.logInfo(string.format("Searching for zone with name [%s]", zoneName))
+    veafCombatZone.logDebug(string.format("veafCombatZone.GetZone([%s])",zoneName or ""))
+    veafCombatZone.logDebug(string.format("Searching for zone with name [%s]", zoneName))
     local zone = veafCombatZone.zonesDict[zoneName]
     if not zone then 
         local message = string.format("Zone [%s] was not found !",self.missionEditorZoneName)
@@ -569,6 +598,7 @@ end
 
 -- add a zone
 function veafCombatZone.AddZone(zone)
+    veafCombatZone.logDebug(string.format("veafCombatZone.AddZone([%s])",zone.missionEditorZoneName or ""))
     veafCombatZone.logInfo(string.format("Adding zone [%s]", zone.missionEditorZoneName))
     zone:initialize()
     table.insert(veafCombatZone.zonesList, zone)
@@ -578,6 +608,7 @@ end
 -- activate a zone
 function veafCombatZone.ActivateZone(parameters)
     local zoneName, unitName = unpack(parameters)
+    veafCombatZone.logDebug(string.format("veafCombatZone.ActivateZone([%s])",zoneName or ""))
     local zone = veafCombatZone.GetZone(zoneName)
     zone:activate()
     trigger.action.outText("Zone "..zone:getFriendlyName().." has been activated.", 10)
@@ -586,6 +617,7 @@ end
 
 -- desactivate a zone
 function veafCombatZone.DesactivateZone(zoneName)
+    veafCombatZone.logDebug(string.format("veafCombatZone.DesactivateZone([%s])",zoneName or ""))
     local zone = veafCombatZone.GetZone(zoneName)
     zone:desactivate()
     trigger.action.outText("Zone "..zone:getFriendlyName().." has been desactivated.", 10)
@@ -594,6 +626,7 @@ end
 -- print information about a zone
 function veafCombatZone.GetInformationOnZone(parameters)
     local zoneName, unitName = unpack(parameters)
+    veafCombatZone.logDebug(string.format("veafCombatZone.GetInformationOnZone([%s])",zoneName or ""))
     local zone = veafCombatZone.GetZone(zoneName)
     local text = zone:getInformation()
     veaf.outTextForUnit(unitName, text, 30)
@@ -667,7 +700,7 @@ end
 --- Build the initial radio menu
 function veafCombatZone.buildRadioMenu()
     veafCombatZone.logDebug("buildRadioMenu()")
-    veafCombatZone.rootPath = veafRadio.addSubMenu(veafCombatZone.RadioMenuName)
+    veafCombatZone.rootPath = veafRadio.addMenu(veafCombatZone.RadioMenuName)
     veafRadio.addCommandToSubmenu("HELP", veafCombatZone.rootPath, veafCombatZone.help, nil, veafRadio.USAGE_ForGroup)
     for _, zone in pairs(veafCombatZone.zonesList) do
         zone:updateRadioMenu(true)

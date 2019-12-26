@@ -484,13 +484,17 @@ function veafCasMission.generateInfantryGroup(groupName, defense, armor)
 
     -- add manpads if needed
     if defense > 3 then
-        -- for defense = 4-5, spawn a modern Igla-S team
-        table.insert(group.units, { "SA-18 Igla-S comm", random })
-        table.insert(group.units, { "SA-18 Igla-S manpad", random })
+        for _ = 1, math.random(1,defense-2) do
+            -- for defense = 4-5, spawn a modern Igla-S team
+            table.insert(group.units, { "SA-18 Igla-S comm", random })
+            table.insert(group.units, { "SA-18 Igla-S manpad", random })
+        end
     elseif defense > 0 then
-        -- for defense = 1-3, spawn an older Igla team
-        table.insert(group.units, { "SA-18 Igla comm", random })
-        table.insert(group.units, { "SA-18 Igla manpad", random })
+        for _ = 1, math.random(1,defense) do
+            -- for defense = 1-3, spawn an older Igla team
+            table.insert(group.units, { "SA-18 Igla comm", random })
+            table.insert(group.units, { "SA-18 Igla manpad", random })
+        end
     else
         -- for defense = 0, don't spawn any manpad
     end

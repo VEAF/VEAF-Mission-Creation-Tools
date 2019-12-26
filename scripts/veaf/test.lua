@@ -5,12 +5,12 @@ mist.utils = {}
 -- @param angle angle in degrees
 -- @return angle in degrees
 function mist.utils.toRadian(angle)
-    return angle*math.pi/180
+  return angle*math.pi/180
 end
 
-	function mist.utils.toDegree(angle)
-		return angle*180/math.pi
-	end
+function mist.utils.toDegree(angle)
+  return angle*180/math.pi
+end
 
 veaf = {}
 math.randomseed(os.time())
@@ -56,29 +56,29 @@ function veaf.round(num, numDecimalPlaces)
 end
 
 function veaf.vecToString(vec)
-    local result = ""
-    if vec.x then
-        result = result .. string.format(" x=%.1f", vec.x)
-    end
-    if vec.y then
-        result = result .. string.format(" y=%.1f", vec.y)
-    end
-    if vec.z then
-        result = result .. string.format(" z=%.1f", vec.z)
-    end
-    return result
+  local result = ""
+  if vec.x then
+    result = result .. string.format(" x=%.1f", vec.x)
+  end
+  if vec.y then
+    result = result .. string.format(" y=%.1f", vec.y)
+  end
+  if vec.z then
+    result = result .. string.format(" z=%.1f", vec.z)
+  end
+  return result
 end
 
 function veaf.discoverTable(o)
-    local text = ""
-    for key,value in pairs(o) do
-        if value then
-            text = text .. " - ".. key.."="..value.."\n";
-        else
-            text = text .. " - ".. key.."\n";
-        end
+  local text = ""
+  for key,value in pairs(o) do
+    if value then
+      text = text .. " - ".. key.."="..value.."\n";
+    else
+      text = text .. " - ".. key.."\n";
     end
-	return text
+  end
+  return text
 end
 
 veafMarkers = {}
@@ -105,12 +105,12 @@ function missionCommands.removeItem(item)
 end
 
 function veafRadio.initialize()
-    -- Build the initial radio menu
-    veafRadio.buildHumanGroups()
-    veafRadio.refreshRadioMenu()
-    --veafRadio.radioRefreshWatchdog()
-  end
-  
+  -- Build the initial radio menu
+  veafRadio.buildHumanGroups()
+  veafRadio.refreshRadioMenu()
+  --veafRadio.radioRefreshWatchdog()
+end
+
 veafRadio.initialize()
 
 dofile("veafSecurity.lua")
@@ -141,23 +141,23 @@ dofile("veafGrass.lua")
 dofile("veafNamedPoints.lua")
 
 function veaf.discover(o)
-    return veaf._discover(o, 0)
+  return veaf._discover(o, 0)
 end
 
 function veaf._discover(o, level)
-    local text = ""
-    if (type(o) == "table") then
-        text = "\n"
-        for key,value in pairs(o) do
-            for i=0, level do
-                text = text .. " "
-            end
-            text = text .. ".".. key.."="..veaf._discover(value, level+1);
-        end
-    else
-        text = text .. o .."\n";
+  local text = ""
+  if (type(o) == "table") then
+    text = "\n"
+    for key,value in pairs(o) do
+      for i=0, level do
+        text = text .. " "
+      end
+      text = text .. ".".. key.."="..veaf._discover(value, level+1);
     end
-    return text
+  else
+    text = text .. o .."\n";
+  end
+  return text
 end
 
 veafInterpreter = {}
@@ -192,4 +192,26 @@ print(text:lower():find("_spawn"))
 print(text:lower():find(" infantryGroup"))
 if text:lower():find("_spawn" .. " infantryGroup") then
   print("bam")
-  end
+end
+
+dofile("veafCombatZone.lua")
+
+Account = {balance = 0}
+function Account.withdraw (self, v)
+  self.balance = self.balance - v
+end
+function Account:deposit (v)
+  self.balance = self.balance + v
+end
+function Account:new (o)
+  o = o or {}   -- create object if user does not provide one
+  setmetatable(o, self)
+  self.__index = self
+  return o
+end
+
+local a = Account:new{balance = 0}
+a:deposit(100.00)
+
+local b = Account:new()
+print(b.balance)

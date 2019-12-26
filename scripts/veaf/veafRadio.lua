@@ -1,5 +1,5 @@
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
--- VEAF radio menu script library for DCS Workd
+-- VEAF radio menu script library for DCS World
 -- By zip (2018)
 --
 -- Features:
@@ -326,6 +326,10 @@ function veafRadio.addSubMenu(title, radioMenu)
 end
 
 function veafRadio.delSubmenu(subMenu, radioMenu)
+  if not subMenu then 
+    veafRadio.logError("veafRadio.delSubmenu() subMenu parameter is nil !")
+    return
+  end
   local menu = veafRadio.radioMenu
   if radioMenu then
      menu = radioMenu 

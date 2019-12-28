@@ -108,7 +108,7 @@ end
 --- Build the initial radio menu
 function veafAssets.buildRadioMenu()
     veafAssets.rootPath = veafRadio.addSubMenu(veafAssets.RadioMenuName)
-    veafRadio.addCommandToSubmenu("HELP", veafAssets.rootPath, veafAssets.help, nil, veafRadio.USAGE_ForGroup)
+    --veafRadio.addCommandToSubmenu("HELP", veafAssets.rootPath, veafAssets.help, nil, veafRadio.USAGE_ForGroup)
 
     names = {}
     sortedAssets = {}

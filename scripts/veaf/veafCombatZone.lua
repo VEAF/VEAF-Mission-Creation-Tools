@@ -48,7 +48,7 @@ veafCombatZone = {}
 veafCombatZone.Id = "COMBAT ZONE - "
 
 --- Version.
-veafCombatZone.Version = "1.0.1"
+veafCombatZone.Version = "1.0.2"
 
 -- trace level, specific to this module
 veafCombatZone.Trace = true
@@ -429,29 +429,48 @@ function VeafCombatZone:getInformation()
     if self:isActive() then
 
         -- generate information dispatch
-        local nbVehicles = 0
-        local nbInfantry = 0
-        local nbStatics = 0
+        local nbVehiclesR = 0
+        local nbInfantryR = 0
+        local nbStaticsR = 0
+        local nbVehiclesB = 0
+        local nbInfantryB = 0
+        local nbStaticsB = 0
         local units, _ = unpack(veafCombatZone.findUnitsInTriggerZone(self.missionEditorZoneObject))
         for _, u in pairs(units) do
+            local coa = u:getCoalition()
             if u:getCategory() == 3 then
-                nbStatics = nbStatics + 1
+                if coa == 1 then 
+                    nbStaticsR = nbStaticsR + 1
+                elseif coa == 2 then
+                    nbStaticsB = nbStaticsB + 1
+                end
             else
                 local typeName = u:getTypeName()
                 if typeName then 
                     local unit = veafUnits.findUnit(typeName, true)
                     if unit then 
                         if unit.vehicle then
-                            nbVehicles = nbVehicles + 1
+                            if coa == 1 then 
+                                nbVehiclesR = nbVehiclesR + 1
+                            elseif coa == 2 then
+                                nbVehiclesB = nbVehiclesB + 1
+                            end
                         elseif unit.infantry then
-                            nbInfantry = nbInfantry + 1
+                            if coa == 1 then 
+                                nbInfantryR = nbInfantryR + 1
+                            elseif coa == 2 then
+                                nbInfantryB = nbInfantryB + 1
+                            end
                         end
                     end
                 end
             end
         end
 
-        message = message .. "ENEMIES: ".. nbStatics .. " structure(s), " .. nbVehicles .. " vehicle(s) and " .. nbInfantry .. " soldier(s) remain.\n"
+        if nbStaticsB+nbVehiclesB+nbInfantryB > 0 then
+            message = message .. "FRIENDS: ".. nbStaticsB .. " structure(s), " .. nbVehiclesB .. " vehicle(s) and " .. nbInfantryB .. " soldier(s) remain.\n"
+        end       
+        message = message .. "ENEMIES: ".. nbStaticsR .. " structure(s), " .. nbVehiclesR .. " vehicle(s) and " .. nbInfantryR .. " soldier(s) remain.\n"
         message = message .. "\n"
 
         -- add coordinates and position from bullseye
@@ -763,7 +782,7 @@ end
 function veafCombatZone.buildRadioMenu()
     veafCombatZone.logDebug("buildRadioMenu()")
     veafCombatZone.rootPath = veafRadio.addMenu(veafCombatZone.RadioMenuName)
-    veafRadio.addCommandToSubmenu("HELP", veafCombatZone.rootPath, veafCombatZone.help, nil, veafRadio.USAGE_ForGroup)
+    --veafRadio.addCommandToSubmenu("HELP", veafCombatZone.rootPath, veafCombatZone.help, nil, veafRadio.USAGE_ForGroup)
     -- sort the zones alphabetically
     names = {}
     sortedZones = {}

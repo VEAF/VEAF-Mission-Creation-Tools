@@ -72,7 +72,7 @@ veafCasMission = {}
 veafCasMission.Id = "CAS MISSION - "
 
 --- Version.
-veafCasMission.Version = "1.5.1"
+veafCasMission.Version = "1.5.2"
 
 -- trace level, specific to this module
 veafCasMission.Trace = true
@@ -93,6 +93,8 @@ veafCasMission.SecondsBetweenFlareRequests = 120
 veafCasMission.RedCasGroupName = "Red CAS Group"
 
 veafCasMission.RadioMenuName = "CAS MISSION (" .. veafCasMission.Version .. ")"
+
+veafCasMission.DefaultCountry = "RUSSIA"
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Do not change anything below unless you know what you are doing!
@@ -269,40 +271,37 @@ end
 --- Generates an air defense group
 function veafCasMission.generateAirDefenseGroup(groupName, defense, side)
     side = side or veafCasMission.SIDE_RED
-    local group = {
-            disposition = { h = 3, w = 3},
-            units = {},
-            description = groupName,
-            groupName = groupName,
-        }
+    
+    local group = veafUnits.findGroup("generateAirDefenseGroup-EMPTY")
     
     -- generate a primary air defense platoon
     local groupCount = math.random(2, 4)
-    local samType
+    local samType = nil
     local samTypeRand 
     samTypeRand = math.random(100)
-            
+    veafCasMission.logTrace("samTypeRand = " .. samTypeRand)
+
     if samTypeRand > (90-(3*(defense-1))) then
         if side == veafCasMission.SIDE_BLUE then
-            samType = 'Hawk ln'
+            group = veafUnits.findGroup("generateAirDefenseGroup-BLUE-HARD")
         else
             samType = 'Tor 9A331'
         end
     elseif samTypeRand > (75-(4*(defense-1))) then
         if side == veafCasMission.SIDE_BLUE then
-            samType = 'Hawk ln'
+            group = veafUnits.findGroup("generateAirDefenseGroup-BLUE-HARD")
         else
             samType = 'Osa 9A33 ln'
         end
     elseif samTypeRand > (60-(4*(defense-1))) then
         if side == veafCasMission.SIDE_BLUE then
-            samType = 'M6 Linebacker'
+            group = veafUnits.findGroup("generateAirDefenseGroup-BLUE-MEDIUM")
         else
             samType = '2S6 Tunguska'
         end
     elseif samTypeRand > (40-(5*(defense-1))) then
         if side == veafCasMission.SIDE_BLUE then
-            samType = 'Roland ADS'
+            group = veafUnits.findGroup("generateAirDefenseGroup-BLUE-MEDIUM")
         else
             samType = 'Strela-10M3'
         end
@@ -313,13 +312,19 @@ function veafCasMission.generateAirDefenseGroup(groupName, defense, side)
             samType = 'Strela-1 9P31'
         end
     end
-    veafCasMission.logDebug("samType = " .. samType)
-    table.insert(group.units, { samType, ["cell"] = 5, random })
+    if samType then 
+        veafCasMission.logTrace("samType = " .. samType)
+        table.insert(group.units, { samType, ["cell"] = 5, random })
+    end
 
+    group.description = groupName
+    group.groupName = groupName
+    
     -- generate a secondary air defense platoon
     for _ = 2, groupCount do
         samTypeRand = math.random(100)
-				
+        veafCasMission.logTrace("samTypeRand = " .. samTypeRand)
+
         if samTypeRand > (75-(4*(defense-1))) then
             if side == veafCasMission.SIDE_BLUE then
                 samType = 'M6 Linebacker'
@@ -351,10 +356,11 @@ function veafCasMission.generateAirDefenseGroup(groupName, defense, side)
                 samType = 'Ural-375 ZU-23'
             end
         end
-        veafCasMission.logDebug("secondary samType = " .. samType)
+        veafCasMission.logTrace("secondary samType = " .. samType)
         table.insert(group.units, { samType, random })
     end
 
+    veafCasMission.logTrace("#group.units = " .. #group.units)
     return group
 end
 
@@ -665,8 +671,9 @@ function veafCasMission.generateInfantryGroup(groupName, defense, armor, side)
 end
 
 function veafCasMission.placeGroup(groupDefinition, spawnPosition, spacing, resultTable)
-    veafCasMission.logTrace(string.format("veafCasMission.placeGroup(#groupDefinition=%d)",#groupDefinition))
     if spawnPosition ~= nil and groupDefinition ~= nil then
+        veafCasMission.logTrace(string.format("veafCasMission.placeGroup(#groupDefinition.units=%d)",#groupDefinition.units))
+
         -- process the group 
         veafCasMission.logTrace("process the group")
         local group = veafUnits.processGroup(groupDefinition)
@@ -757,7 +764,7 @@ function veafCasMission.generateCasMission(spawnSpot, size, defense, armor, spac
         trigger.action.outText("A CAS target group already exists !", 5)
         return
     end
-        
+    local country = veafCasMission.DefaultCountry
     local units = veafCasMission.generateCasGroup(country, veafCasMission.RedCasGroupName, spawnSpot, size, defense, armor, spacing, disperseOnAttack)
 
     -- prepare the actual DCS units

@@ -509,18 +509,22 @@ function VeafCombatZone:activate()
         veafCombatZone.logTrace(string.format("processing element [%s]",zoneElement:getName()))
         local chance = math.random(0, 100)
         if chance <= zoneElement:getSpawnChance() then
+            local position = zoneElement:getPosition()
+            if zoneElement:getSpawnRadius() > 0 then
+                veafCombatZone.logTrace(string.format("position=[%s]",veaf.vecToString(position)))
+                local mistP = mist.getRandPointInCircle(position, zoneElement:getSpawnRadius())
+                veafCombatZone.logTrace(string.format("mistP=[%s]",veaf.vecToString(mistP)))
+                position = {x = mistP.x, y = position.y, z = mistP.y}
+            end
             if zoneElement:isDcsStatic() or zoneElement:isDcsGroup() then
-                veafCombatZone.logTrace(string.format("respawning group [%s]",zoneElement:getName()))
+                veafCombatZone.logTrace(string.format("respawning group [%s] at position [%s]",zoneElement:getName(), veaf.vecToString(position)))
                 local vars = {}
                 vars.gpName = zoneElement:getName()
                 vars.action = 'respawn'
-                vars.disperse = zoneElement:getSpawnRadius() > 0
-                vars.maxDisp = zoneElement:getSpawnRadius()
-                vars.point = zoneElement:getPosition()
+                vars.point = position
                 mist.teleportToPoint(vars)
             elseif zoneElement:isVeafCommand() then
-                local position = zoneElement:getPosition()
-                veafCombatZone.logTrace(string.format("executing command [%s] at position [%s]",zoneElement:getName(), veaf.vecToString(zoneElement:getPosition())))
+                veafCombatZone.logTrace(string.format("executing command [%s] at position [%s]",zoneElement:getName(), veaf.vecToString(position)))
                 veafInterpreter.execute(zoneElement:getName(), position)
             end
         else 

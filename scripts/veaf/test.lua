@@ -164,20 +164,33 @@ veafInterpreter = {}
 --- Key phrase to look for in the unit name which triggers the interpreter.
 veafInterpreter.Starter = "#veafInterpreter%[\""
 veafInterpreter.Trailer = "\"%]"
+function veafInterpreter.logError() end
+function veafInterpreter.logInfo() end
+function veafInterpreter.logDebug() end
+function veafInterpreter.logTrace() end
+  
+function veafInterpreter.interpret(text)
+    veafInterpreter.logTrace(string.format("veafInterpreter.interpret([%s])",text))
+    local result = nil
+    local p1, p2 = text:find(veafInterpreter.Starter)
+    if p2 then 
+      -- starter has been found
+      text = text:sub(p2 + 1)
+      p1, p2 = text:find(veafInterpreter.Trailer)
+      if p1 then
+        -- trailer has been found
+        result = text:sub(1, p1 - 1)
+      end
+    end
+    return result
+end
 
 local text = "#veafInterpreter[\"_spawn group, name RU supply convoy with light defense\"]"
-local p1, p2 = text:find(veafInterpreter.Starter)
-local p_start = 0
-local p_end = 0
-local command = nil
-if p2 then 
-  -- starter has been found
-  text = text:sub(p2 + 1)
-  p1, p2 = text:find(veafInterpreter.Trailer)
-  if p1 then
-    command = text:sub(1, p1 - 1)
-  end
-end
+local command = veafInterpreter.interpret(text)
+print("["..command.."]")
+
+local text = "#veafInterpreter[\"_spawn group, name hawk, country USA\"] #010"
+local command = veafInterpreter.interpret(text)
 print("["..command.."]")
 
 local text = "#command=\"_spawn group, name sa6\" #spawnRadius=250"
@@ -194,24 +207,3 @@ if text:lower():find("_spawn" .. " infantryGroup") then
   print("bam")
 end
 
-dofile("veafCombatZone.lua")
-
-Account = {balance = 0}
-function Account.withdraw (self, v)
-  self.balance = self.balance - v
-end
-function Account:deposit (v)
-  self.balance = self.balance + v
-end
-function Account:new (o)
-  o = o or {}   -- create object if user does not provide one
-  setmetatable(o, self)
-  self.__index = self
-  return o
-end
-
-local a = Account:new{balance = 0}
-a:deposit(100.00)
-
-local b = Account:new()
-print(b.balance)

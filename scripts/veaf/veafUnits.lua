@@ -39,7 +39,7 @@ veafUnits = {}
 veafUnits.Id = "UNITS - "
 
 --- Version.
-veafUnits.Version = "1.3.2"
+veafUnits.Version = "1.3.3"
 
 -- trace level, specific to this module
 veafUnits.Trace = false
@@ -224,6 +224,7 @@ function veafUnits.processGroup(group)
     result.description = group.description
     result.groupName = group.groupName
     result.units = {}
+    veafUnits.logTrace("group="..veaf.p(group))
     local unitNumber = 1
     -- replace all units with a simplified structure made from the DCS unit metadata structure
     for i = 1, #group.units do
@@ -234,11 +235,16 @@ function veafUnits.processGroup(group)
         local hdg = nil
         local random = false
         local u = group.units[i]
+        veafUnits.logTrace("u="..veaf.p(u))
         if type(u) == "string" then 
             -- information was skipped using simplified syntax
             unitType = u
         else
-            unitType = u[1]
+            unitType = u.typeName
+            if not unitType then 
+                unitType = u[1]
+            end
+            veafUnits.logTrace("unitType="..veaf.p(unitType))
             cell = u.cell
             number = u.number
             size = u.size
@@ -267,6 +273,7 @@ function veafUnits.processGroup(group)
             hdg = 0 -- north is the default heading
           end
         for numUnit = 1, number do
+            veafUnits.logTrace("searching for unit [" .. unitType .. "] listed in group [" .. group.groupName .. "]")
             local unit = veafUnits.findUnit(unitType)
             if not(unit) then 
                 veafUnits.logInfo("cannot find unit [" .. unitType .. "] listed in group [" .. group.groupName .. "]")
@@ -293,6 +300,8 @@ function veafUnits.processGroup(group)
         end
     end
     
+    veafUnits.logTrace("result="..veaf.p(result))
+
     return result
 end
 
@@ -741,7 +750,7 @@ veafUnits.GroupsDatabase = {
         aliases = {"roland", "rd", "mim-115"},
         group = {
             disposition = { h= 3, w= 3},
-            units = {{"Roland Radar", cell = 8}, {"Roland ADS", cell = 1}, {"Roland ADS", cell = 3}},
+            units = {{"Roland Radar", random}, {"Roland ADS", random, hdg = 0}, {"Roland ADS", random, hdg = 225}, {"Roland ADS", random, hdg = 135}},
             description = "Roland SAM site",
             groupName = "Roland"
         },
@@ -750,7 +759,7 @@ veafUnits.GroupsDatabase = {
         aliases = {"hawk", "ha", "mim-23"},
         group = {
             disposition = { h= 7, w= 3},
-            units = {{"Hawk pcp", cell = 8}, {"Hawk sr", cell = 13}, {"Hawk tr", cell = 15}, {"Hawk ln", cell = 1}, {"Hawk ln", cell = 3}, {"Hawk ln", cell = 21}},
+            units = {{"Hawk pcp", cell = 8}, {"Hawk sr", cell = 13}, {"Hawk tr", cell = 15}, {"Hawk ln", cell = 1, hdg = 225}, {"Hawk ln", cell = 3, hdg = 0 }, {"Hawk ln", cell = 21, hdg = 135}},
             description = "Hawk SAM site",
             groupName = "Hawk"
         },
@@ -762,24 +771,6 @@ veafUnits.GroupsDatabase = {
             units = {{"Patriot ln", cell = 1}, {"Patriot cp", cell = 8}, {"Patriot str", cell = 10}, {"Patriot AMG", cell = 19}, {"Patriot ECS", cell = 25}, {"Patriot EPP", cell = 28}},
             description = "Patriot SAM site",
             groupName = "Patriot"
-        },
-    },
-    {
-        aliases = {"Tarawa"},
-        group = {
-            disposition = { h = 3, w = 3},
-            units = {{"Tarawa", cell=2}, {"Perry", cell=4}, {"Perry", cell=6}, {"TICONDEROG", cell=8}},
-            description = "Tarawa battle group",
-            groupName = "Tarawa",
-        },
-    },  
-    {
-        aliases = {"Test"},
-        group = {
-            disposition = { h = 3, w = 3},
-            units = {{"S_75M_Volhov", cell=2, size={height=15, width=15}, hdg=0},{"S_75M_Volhov", cell=4, size=15, hdg=270},{"S_75M_Volhov", cell=6, size=15, hdg=90},{"S_75M_Volhov", cell=8, size=15, hdg=180}},
-            description = "Test group",
-            groupName = "Test",
         },
     },
     {
@@ -935,6 +926,40 @@ veafUnits.GroupsDatabase = {
             groupName = "RU small supply convoy with no defense",
         },
     },
+    ---
+    --- BASE groups for dynamic group spawning
+    ---
+    {
+        aliases = {"generateAirDefenseGroup-BLUE-MEDIUM"},
+        hidden,
+        group = {
+            disposition = { h=4, w= 4},
+            units = {{"Roland Radar", random}, {"Roland ADS", random, hdg = 0}, {"Roland ADS", random, hdg = 225}, {"Roland ADS", random, hdg = 135}},
+            description = "generateAirDefenseGroup-BLUE-MEDIUM",
+            groupName = "generateAirDefenseGroup-BLUE-MEDIUM",
+        },
+    },
+    {
+        aliases = {"generateAirDefenseGroup-BLUE-HARD"},
+        hidden,
+        group = {
+            disposition = { h= 7, w= 7},
+            units = {{"Hawk pcp", cell = 8}, {"Hawk sr", cell = 13}, {"Hawk tr", cell = 15}, {"Hawk ln", cell = 1, hdg = 225}, {"Hawk ln", cell = 3, hdg = 0 }, {"Hawk ln", cell = 21, hdg = 135}},
+            description = "generateAirDefenseGroup-BLUE-HARD",
+            groupName = "generateAirDefenseGroup-BLUE-HARD",
+        },
+    },
+    {
+        aliases = {"generateAirDefenseGroup-EMPTY"},
+        hidden,
+        group = {
+            units = {},
+            disposition = { h = 4, w = 4},
+            description = "generateAirDefenseGroup-EMPTY",
+            groupName = "generateAirDefenseGroup-EMPTY",
+        }
+    },
+
 }
 
 veafUnits.logInfo(string.format("Loading version %s", veafUnits.Version))

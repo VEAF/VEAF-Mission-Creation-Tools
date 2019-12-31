@@ -408,7 +408,7 @@ end
 --- Build the initial radio menu
 function veafNamedPoints.buildRadioMenu()
     veafNamedPoints.rootPath = veafRadio.addSubMenu(veafNamedPoints.RadioMenuName)
-    --veafRadio.addCommandToSubmenu("HELP", veafNamedPoints.rootPath, veafNamedPoints.help, nil, veafRadio.USAGE_ForGroup)
+    veafRadio.addCommandToSubmenu("HELP", veafNamedPoints.rootPath, veafNamedPoints.help, nil, veafRadio.USAGE_ForGroup)
     veafRadio.addCommandToSubmenu("List all points", veafNamedPoints.rootPath, veafNamedPoints.listAllPoints, nil, veafRadio.USAGE_ForGroup)
     veafNamedPoints._refreshAtcRadioMenu()
     veafNamedPoints._refreshWeatherReportsRadioMenu()

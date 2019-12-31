@@ -668,7 +668,7 @@ end
 function veafTransportMission.buildRadioMenu()
 
     veafTransportMission.rootPath = veafRadio.addSubMenu(veafTransportMission.RadioMenuName)
-    --veafRadio.addCommandToSubmenu("HELP", veafTransportMission.rootPath, veafTransportMission.help, nil, veafRadio.USAGE_ForGroup)
+    veafRadio.addCommandToSubmenu("HELP", veafTransportMission.rootPath, veafTransportMission.help, nil, veafRadio.USAGE_ForGroup)
     -- TODO add this command when the respawn will work (see veafTransportMission.resetAllCargoes)
     -- missionCommands.addCommand('Respawn all cargoes', veafTransportMission.rootPath, veafTransportMission.resetAllCargoes)
 end

@@ -742,7 +742,7 @@ function veafCarrierOperations.buildRadioMenu()
     veafCarrierOperations.rootPath = veafRadio.addSubMenu(veafCarrierOperations.RadioMenuName)
 
     -- build HELP menu for each group
-    --veafRadio.addCommandToSubmenu("HELP", veafCarrierOperations.rootPath, veafCarrierOperations.help, nil, veafRadio.USAGE_ForGroup)
+    veafRadio.addCommandToSubmenu("HELP", veafCarrierOperations.rootPath, veafCarrierOperations.help, nil, veafRadio.USAGE_ForGroup)
 
     veafCarrierOperations.rebuildRadioMenu()
 end

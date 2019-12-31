@@ -782,7 +782,8 @@ end
 function veafCombatZone.buildRadioMenu()
     veafCombatZone.logDebug("buildRadioMenu()")
     veafCombatZone.rootPath = veafRadio.addMenu(veafCombatZone.RadioMenuName)
-    --veafRadio.addCommandToSubmenu("HELP", veafCombatZone.rootPath, veafCombatZone.help, nil, veafRadio.USAGE_ForGroup)
+    veafRadio.addCommandToSubmenu("HELP", veafCombatZone.rootPath, veafCombatZone.help, nil, veafRadio.USAGE_ForGroup)
+    
     -- sort the zones alphabetically
     names = {}
     sortedZones = {}

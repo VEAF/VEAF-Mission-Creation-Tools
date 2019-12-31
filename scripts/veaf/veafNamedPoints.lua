@@ -51,6 +51,7 @@ veafNamedPoints.Points = {
 
 veafNamedPoints.RadioMenuName = "NAMED POINTS (" .. veafNamedPoints.Version .. ")"
 
+veafNamedPoints.LowerRadioMenuSize = true
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Do not change anything below unless you know what you are doing!
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -332,19 +333,21 @@ end
 
 --- refresh the Weather Reports radio menu
 function veafNamedPoints._refreshWeatherReportsRadioMenu()
-    if veafNamedPoints.weatherPath then
-        veafNamedPoints.logTrace("deleting weather report submenu")
-        veafRadio.delSubmenu(veafNamedPoints.weatherPath, veafNamedPoints.rootPath)
+    if not veafNamedPoints.LowerRadioMenuSize then
+        if veafNamedPoints.weatherPath then
+            veafNamedPoints.logTrace("deleting weather report submenu")
+            veafRadio.delSubmenu(veafNamedPoints.weatherPath, veafNamedPoints.rootPath)
+        end
+        veafNamedPoints.logTrace("adding weather report submenu")
+        veafNamedPoints.weatherPath = veafRadio.addSubMenu("Get weather report over a point", veafNamedPoints.rootPath)
+        names = {}
+        for name, point in pairs(veafNamedPoints.namedPoints) do
+            table.insert(names, name)
+        end
+        table.sort(names)
+        veafNamedPoints._buildWeatherReportsRadioMenuPage(veafNamedPoints.weatherPath, names, 10, 1)
+        veafRadio.refreshRadioMenu()
     end
-    veafNamedPoints.logTrace("adding weather report submenu")
-    veafNamedPoints.weatherPath = veafRadio.addSubMenu("Get weather report over a point", veafNamedPoints.rootPath)
-    names = {}
-    for name, point in pairs(veafNamedPoints.namedPoints) do
-        table.insert(names, name)
-    end
-    table.sort(names)
-    veafNamedPoints._buildWeatherReportsRadioMenuPage(veafNamedPoints.weatherPath, names, 10, 1)
-    veafRadio.refreshRadioMenu()
 end
 
 function veafNamedPoints._buildAtcRadioMenuPage(menu, names, pageSize, startIndex)
@@ -382,21 +385,23 @@ function veafNamedPoints._refreshAtcRadioMenu()
     veafNamedPoints.atcClosestPath = veafRadio.addSubMenu("ATC on closest point", veafNamedPoints.rootPath)
     veafRadio.addCommandToSubmenu("ATC on closest point" , veafNamedPoints.atcClosestPath, veafNamedPoints.getAtcAtClosestPoint, nil, veafRadio.USAGE_ForUnit)    
 
-    if veafNamedPoints.atcPath then
-        veafNamedPoints.logTrace("deleting ATC submenu")
-        veafRadio.delSubmenu(veafNamedPoints.atcPath, veafNamedPoints.rootPath)
-    end
-    veafNamedPoints.logTrace("adding ATC submenu")
-    veafNamedPoints.atcPath = veafRadio.addSubMenu("ATC", veafNamedPoints.rootPath)
-    names = {}
-    for name, point in pairs(veafNamedPoints.namedPoints) do
-        if point.atc then
-            table.insert(names, name)
+    if not veafNamedPoints.LowerRadioMenuSize then
+        if veafNamedPoints.atcPath then
+            veafNamedPoints.logTrace("deleting ATC submenu")
+            veafRadio.delSubmenu(veafNamedPoints.atcPath, veafNamedPoints.rootPath)
         end
+        veafNamedPoints.logTrace("adding ATC submenu")
+        veafNamedPoints.atcPath = veafRadio.addSubMenu("ATC", veafNamedPoints.rootPath)
+        names = {}
+        for name, point in pairs(veafNamedPoints.namedPoints) do
+            if point.atc then
+                table.insert(names, name)
+            end
+        end
+        table.sort(names)
+        veafNamedPoints._buildAtcRadioMenuPage(veafNamedPoints.atcPath, names, 10, 1)
     end
-    table.sort(names)
-    veafNamedPoints._buildAtcRadioMenuPage(veafNamedPoints.atcPath, names, 10, 1)
-    
+
     veafRadio.refreshRadioMenu()
 end
 

@@ -75,7 +75,7 @@ veafCasMission.Id = "CAS MISSION - "
 veafCasMission.Version = "1.5.2"
 
 -- trace level, specific to this module
-veafCasMission.Trace = true
+veafCasMission.Trace = false
 
 --- Key phrase to look for in the mark text which triggers the command.
 veafCasMission.Keyphrase = "_cas"
@@ -272,94 +272,46 @@ end
 function veafCasMission.generateAirDefenseGroup(groupName, defense, side)
     side = side or veafCasMission.SIDE_RED
     
-    local group = veafUnits.findGroup("generateAirDefenseGroup-EMPTY")
-    
     -- generate a primary air defense platoon
-    local groupCount = math.random(2, 4)
-    local samType = nil
     local samTypeRand 
     samTypeRand = math.random(100)
     veafCasMission.logTrace("samTypeRand = " .. samTypeRand)
 
     if samTypeRand > (90-(3*(defense-1))) then
         if side == veafCasMission.SIDE_BLUE then
-            group = veafUnits.findGroup("generateAirDefenseGroup-BLUE-HARD")
+            group = veafUnits.findGroup("generateAirDefenseGroup-BLUE-5")
         else
-            samType = 'Tor 9A331'
+            group = veafUnits.findGroup("generateAirDefenseGroup-RED-5")
         end
     elseif samTypeRand > (75-(4*(defense-1))) then
         if side == veafCasMission.SIDE_BLUE then
-            group = veafUnits.findGroup("generateAirDefenseGroup-BLUE-HARD")
+            group = veafUnits.findGroup("generateAirDefenseGroup-BLUE-4")
         else
-            samType = 'Osa 9A33 ln'
+            group = veafUnits.findGroup("generateAirDefenseGroup-RED-4")
         end
     elseif samTypeRand > (60-(4*(defense-1))) then
         if side == veafCasMission.SIDE_BLUE then
-            group = veafUnits.findGroup("generateAirDefenseGroup-BLUE-MEDIUM")
+            group = veafUnits.findGroup("generateAirDefenseGroup-BLUE-3")
         else
-            samType = '2S6 Tunguska'
+            group = veafUnits.findGroup("generateAirDefenseGroup-RED-3")
         end
     elseif samTypeRand > (40-(5*(defense-1))) then
         if side == veafCasMission.SIDE_BLUE then
-            group = veafUnits.findGroup("generateAirDefenseGroup-BLUE-MEDIUM")
+            group = veafUnits.findGroup("generateAirDefenseGroup-BLUE-2")
         else
-            samType = 'Strela-10M3'
+            group = veafUnits.findGroup("generateAirDefenseGroup-RED-2")
         end
     else
         if side == veafCasMission.SIDE_BLUE then
-            samType = 'M1097 Avenger'
+            group = veafUnits.findGroup("generateAirDefenseGroup-BLUE-1")
         else
-            samType = 'Strela-1 9P31'
+            group = veafUnits.findGroup("generateAirDefenseGroup-RED-1")
         end
-    end
-    if samType then 
-        veafCasMission.logTrace("samType = " .. samType)
-        table.insert(group.units, { samType, ["cell"] = 5, random })
     end
 
     group.description = groupName
     group.groupName = groupName
     
-    -- generate a secondary air defense platoon
-    for _ = 2, groupCount do
-        samTypeRand = math.random(100)
-        veafCasMission.logTrace("samTypeRand = " .. samTypeRand)
-
-        if samTypeRand > (75-(4*(defense-1))) then
-            if side == veafCasMission.SIDE_BLUE then
-                samType = 'M6 Linebacker'
-            else
-                samType = '2S6 Tunguska'
-            end
-        elseif samTypeRand > (65-(5*(defense-1))) then
-            if side == veafCasMission.SIDE_BLUE then
-                samType = 'Roland ADS'
-            else
-                samType = 'Strela-10M3'
-            end
-        elseif samTypeRand > (50-(5*(defense-1))) then
-            if side == veafCasMission.SIDE_BLUE then
-                samType = 'M48 Chaparral'
-            else
-                samType = 'Strela-1 9P31'
-            end
-        elseif samTypeRand > (30-(5*(defense-1))) then
-            if side == veafCasMission.SIDE_BLUE then
-                samType = 'Gepard'
-            else
-                samType = 'ZSU-23-4 Shilka'
-            end
-        else
-            if side == veafCasMission.SIDE_BLUE then
-                samType = 'Vulcan'
-            else
-                samType = 'Ural-375 ZU-23'
-            end
-        end
-        veafCasMission.logTrace("secondary samType = " .. samType)
-        table.insert(group.units, { samType, random })
-    end
-
     veafCasMission.logTrace("#group.units = " .. #group.units)
     return group
 end

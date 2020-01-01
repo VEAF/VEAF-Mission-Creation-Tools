@@ -257,6 +257,9 @@ function veafUnits.processGroup(group)
             if u.random then
                 random = true
             end
+            if u.fitToUnit then
+                fitToUnit = true
+            end
         end
         if not(number) then 
           number = 1
@@ -270,7 +273,7 @@ function veafUnits.processGroup(group)
             number = math.random(min, max)
         end
         if not(hdg) then 
-            hdg = 0 -- north is the default heading
+            hdg = math.random(0, 359) -- default heading is random
           end
         for numUnit = 1, number do
             veafUnits.logTrace("searching for unit [" .. unitType .. "] listed in group [" .. group.groupName .. "]")
@@ -281,6 +284,7 @@ function veafUnits.processGroup(group)
                 unit.cell = cell
                 unit.hdg = hdg
                 unit.random = random
+                unit.fitToUnit = fitToUnit
                 unit.size = size
                 result.units[unitNumber] = unit
                 unitNumber = unitNumber + 1
@@ -503,10 +507,18 @@ function veafUnits.placeGroup(group, spawnPoint, spacing, hdg)
                     if unit.length and unit.length > 0 then 
                         cell.height = unit.length + (spacing * unit.length)
                     end
+                    if unit.size then
+                        cell.width = unit.size.width + (spacing * unit.size.width)
+                        cell.height = unit.size.height + (spacing * unit.size.height)
+                    end
                 end
-                if unit.size then
-                    cell.width = unit.size.width + (spacing * unit.size.width)
-                    cell.height = unit.size.height + (spacing * unit.size.height)
+                if not unit.fitToUnit then
+                    -- make the cell square
+                    if cell.width > cell.height then
+                        cell.height = cell.width
+                    elseif cell.width < cell.height then
+                        cell.width = cell.height
+                    end
                 end
                 if cell.width > colWidth then
                     colWidth = cell.width
@@ -927,37 +939,248 @@ veafUnits.GroupsDatabase = {
         },
     },
     ---
-    --- BASE groups for dynamic group spawning
+    --- groups made for dynamic group spawning (veafCasMission.generateAirDefenseGroup)
     ---
     {
-        aliases = {"generateAirDefenseGroup-BLUE-MEDIUM"},
-        hidden,
-        group = {
-            disposition = { h=4, w= 4},
-            units = {{"Roland Radar", random}, {"Roland ADS", random, hdg = 0}, {"Roland ADS", random, hdg = 225}, {"Roland ADS", random, hdg = 135}},
-            description = "generateAirDefenseGroup-BLUE-MEDIUM",
-            groupName = "generateAirDefenseGroup-BLUE-MEDIUM",
-        },
-    },
-    {
-        aliases = {"generateAirDefenseGroup-BLUE-HARD"},
+        aliases = {"generateAirDefenseGroup-BLUE-5"},
         hidden,
         group = {
             disposition = { h= 7, w= 7},
-            units = {{"Hawk pcp", cell = 8}, {"Hawk sr", cell = 13}, {"Hawk tr", cell = 15}, {"Hawk ln", cell = 1, hdg = 225}, {"Hawk ln", cell = 3, hdg = 0 }, {"Hawk ln", cell = 21, hdg = 135}},
-            description = "generateAirDefenseGroup-BLUE-HARD",
-            groupName = "generateAirDefenseGroup-BLUE-HARD",
+            units = {
+                -- hawk battery
+                {"Hawk pcp", cell = 8}, {"Hawk sr", cell = 13}, {"Hawk tr", cell = 15}, {"Hawk ln", cell = 1, hdg = 225}, {"Hawk ln", cell = 3, hdg = 0 }, {"Hawk ln", cell = 21, hdg = 135},
+                -- Some M48 Chaparral
+                {"M48 Chaparral", number = {min=2, max=4}, random},
+                -- Some Gepards
+                {"Gepard", number = {min=2, max=4}, random},
+                -- a supply truck or three
+                {"Transport M818", number = {min=1, max=3}, random}, 
+            },
+            description = "generateAirDefenseGroup-BLUE-5",
+            groupName = "generateAirDefenseGroup-BLUE-5",
         },
     },
     {
-        aliases = {"generateAirDefenseGroup-EMPTY"},
+        aliases = {"generateAirDefenseGroup-BLUE-4"},
         hidden,
         group = {
-            units = {},
-            disposition = { h = 4, w = 4},
-            description = "generateAirDefenseGroup-EMPTY",
-            groupName = "generateAirDefenseGroup-EMPTY",
-        }
+            disposition = { h= 7, w= 7},
+            units = {
+                -- Roland battery
+                {"Roland Radar", random}, {"Roland ADS", random, hdg = 0}, {"Roland ADS", random, hdg = 225}, {"Roland ADS", random, hdg = 135},
+                -- Some M48 Chaparral
+                {"M48 Chaparral", number = {min=2, max=4}, random},
+                -- Some Gepards
+                {"Gepard", number = {min=2, max=4}, random},
+                -- a supply truck or three
+                {"Transport M818", number = {min=1, max=3}, random}, 
+            },
+            description = "generateAirDefenseGroup-BLUE-4",
+            groupName = "generateAirDefenseGroup-BLUE-4",
+        },
+    },
+    {
+        aliases = {"generateAirDefenseGroup-BLUE-3"},
+        hidden,
+        group = {
+            disposition = { h= 7, w= 7},
+            units = {
+                -- M6 Linebacker battery
+                {"M6 Linebacker", hdg = 0, random}, {"M6 Linebacker", hdg = 90, random}, {"M6 Linebacker", hdg = 180, random}, {"M6 Linebacker", hdg = 270, random}, 
+                -- Some M1097 Avenger
+                {"M1097 Avenger", number = {min=2, max=4}, random},
+                -- Some Gepards
+                {"Gepard", number = {min=2, max=4}, random},
+                -- a supply truck or three
+                {"Transport M818", number = {min=1, max=3}, random}, 
+            },
+            description = "generateAirDefenseGroup-BLUE-3",
+            groupName = "generateAirDefenseGroup-BLUE-3",
+        },
+    },
+    {
+        aliases = {"generateAirDefenseGroup-BLUE-2"},
+        hidden,
+        group = {
+            disposition = { h= 7, w= 7},
+            units = {
+                -- Some M1097 Avenger
+                {"M1097 Avenger", number = {min=2, max=4}, random},
+                -- Some Vulcans
+                {"Vulcan", number = {min=2, max=4}, random},
+                -- a supply truck or three
+                {"Transport M818", number = {min=1, max=3}, random}, 
+            },
+            description = "generateAirDefenseGroup-BLUE-2",
+            groupName = "generateAirDefenseGroup-BLUE-2",
+        },
+    },
+    {
+        aliases = {"generateAirDefenseGroup-BLUE-1"},
+        hidden,
+        group = {
+            disposition = { h= 7, w= 7},
+            units = {
+                -- Some M1097 Avenger
+                {"M1097 Avenger", number = {min=0, max=1}, random},
+                -- Some Vulcans
+                {"Vulcan", number = {min=1, max=3}, random},
+                -- a supply truck or three
+                {"Transport M818", number = {min=1, max=3}, random}, 
+            },
+            description = "generateAirDefenseGroup-BLUE-1",
+            groupName = "generateAirDefenseGroup-BLUE-1",
+        },
+    },
+    {
+        aliases = {"generateAirDefenseGroup-RED-5"},
+        hidden,
+        group = {
+            disposition = { h= 7, w= 7},
+            units = {
+                -- the search radar
+                {"Dog Ear radar", random},  
+                -- Tor battery
+                {"Tor 9A331", hdg = 0, random}, {"Tor 9A331", hdg = 90, random}, {"Tor 9A331", hdg = 180, random}, {"Tor 9A331", hdg = 270, random}, 
+                -- Some SA13
+                {"Strela-10M3", number = {min=2, max=4}, random},
+                -- Some Shilkas
+                {"ZSU-23-4 Shilka", number = {min=2, max=4}, random},
+                -- a supply truck or three
+                {"Transport Ural-4320-31 Armored", number = {min=1, max=3}, random}, 
+            },
+            description = "generateAirDefenseGroup-RED-5",
+            groupName = "generateAirDefenseGroup-RED-5",
+        },
+    },
+    {
+        aliases = {"generateAirDefenseGroup-RED-4"},
+        hidden,
+        group = {
+            disposition = { h= 7, w= 7},
+            units = {
+                -- the search radar
+                {"Dog Ear radar", random},  
+                -- SA-8 battery
+                {"Osa 9A33 ln", hdg = 0, random}, {"Osa 9A33 ln", hdg = 90, random}, {"Osa 9A33 ln", hdg = 180, random}, {"Osa 9A33 ln", hdg = 270, random}, 
+                -- Some SA13
+                {"Strela-10M3", number = {min=2, max=4}, random},
+                -- Some Tunguskas
+                {"2S6 Tunguska", number = {min=2, max=4}, random},
+                -- a supply truck or three
+                {"Transport Ural-4320-31 Armored", number = {min=1, max=3}, random}, 
+            },
+            description = "generateAirDefenseGroup-RED-4",
+            groupName = "generateAirDefenseGroup-RED-4",
+        },
+    },
+    {
+        aliases = {"generateAirDefenseGroup-RED-3"},
+        hidden,
+        group = {
+            disposition = { h= 7, w= 7},
+            units = {
+                -- the search radar
+                {"Dog Ear radar", random},  
+                -- SA13 battery
+                {"Strela-10M3", hdg = 0, random}, {"Strela-10M3", hdg = 90, random}, {"Strela-10M3", hdg = 180, random}, {"Strela-10M3", hdg = 270, random}, 
+                -- Some SA9
+                {"Strela-1 9P31", number = {min=2, max=4}, random},
+                -- Some Shilkas
+                {"ZSU-23-4 Shilka", number = {min=2, max=4}, random},
+                -- a supply truck or three
+                {"Transport Ural-4320-31 Armored", number = {min=1, max=3}, random}, 
+            },
+            description = "generateAirDefenseGroup-RED-3",
+            groupName = "generateAirDefenseGroup-RED-3",
+        },
+    },
+    {
+        aliases = {"generateAirDefenseGroup-RED-2"},
+        hidden,
+        group = {
+            disposition = { h= 7, w= 7},
+            units = {
+                -- the search radar
+                {"Dog Ear radar", random},  
+                -- SA9 battery
+                {"Strela-1 9P31", hdg = 0, random}, {"Strela-1 9P31", hdg = 90, random}, {"Strela-1 9P31", hdg = 180, random}, {"Strela-1 9P31", hdg = 270, random}, 
+                -- Some Shilkas
+                {"ZSU-23-4 Shilka", number = {min=1, max=4}, random},
+                -- a supply truck or three
+                {"Transport Ural-4320-31 Armored", number = {min=1, max=3}, random}, 
+            },
+            description = "generateAirDefenseGroup-RED-2",
+            groupName = "generateAirDefenseGroup-RED-2",
+        },
+    },
+    {
+        aliases = {"generateAirDefenseGroup-RED-1"},
+        hidden,
+        group = {
+            disposition = { h= 7, w= 7},
+            units = {
+                -- the search radar
+                {"Dog Ear radar", random},  
+                -- Some Shilkas
+                {"ZSU-23-4 Shilka", number = {min=2, max=4}, random},
+                -- a supply truck or three
+                {"Transport Ural-4320-31 Armored", number = {min=1, max=3}, random}, 
+            },
+            description = "generateAirDefenseGroup-RED-1",
+            groupName = "generateAirDefenseGroup-RED-1",
+        },
+    },
+    ---
+    --- Seemingly realistic russian air defense batteries
+    ---
+    {
+        aliases = {"RU-SAM-Shilka-Battery"},
+        group = {
+            disposition = { h= 5, w= 5},
+            units = {
+                -- the search radar
+                {"Dog Ear radar", cell = 13},  
+                -- the actual air defense units
+                {"ZSU-23-4 Shilka", hdg = 0, random}, {"ZSU-23-4 Shilka", hdg = 90, random}, {"ZSU-23-4 Shilka", hdg = 180, random}, {"ZSU-23-4 Shilka", hdg = 270, random}, 
+                -- a supply truck or three
+                {"Transport Ural-4320-31 Armored", number = {min=1, max=3}, random}, 
+            },
+            description = "ZSU-23-4 battery",
+            groupName = "ZSU-23-4 battery"
+        },
+    },
+    {
+        aliases = {"RU-SAM-SA9-Battery"},
+        group = {
+            disposition = { h= 5, w= 5},
+            units = {
+                -- the search radar
+                {"Dog Ear radar", cell = 13},  
+                -- the actual air defense units
+                {"Strela-1 9P31", hdg = 0, random}, {"Strela-1 9P31", hdg = 90, random}, {"Strela-1 9P31", hdg = 180, random}, {"Strela-1 9P31", hdg = 270, random}, 
+                -- a supply truck or three
+                {"Transport Ural-4320-31 Armored", number = {min=1, max=3}, random}, 
+            },
+            description = "SA-9 battery",
+            groupName = "SA-9 battery"
+        },
+    },
+    {
+        aliases = {"RU-SAM-SA13-Battery"},
+        group = {
+            disposition = { h= 5, w= 5},
+            units = {
+                -- the search radar
+                {"Dog Ear radar", cell = 13},  
+                -- the actual air defense units
+                {"Strela-10M3", hdg = 0, random}, {"Strela-10M3", hdg = 90, random}, {"Strela-10M3", hdg = 180, random}, {"Strela-10M3", hdg = 270, random}, 
+                -- a supply truck or three
+                {"Transport Ural-4320-31 Armored", number = {min=1, max=3}, random}, 
+            },
+            description = "SA-13 battery",
+            groupName = "SA-13 battery"
+        },
     },
 
 }

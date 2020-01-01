@@ -57,7 +57,7 @@ veafInterpreter.Id = "INTERPRETER - "
 veafInterpreter.Version = "0.0.3"
 
 -- trace level, specific to this module
-veafInterpreter.Trace = true
+veafInterpreter.Trace = false
 
 --- Key phrase to look for in the unit name which triggers the interpreter.
 veafInterpreter.Starter = "#veafInterpreter%[\""

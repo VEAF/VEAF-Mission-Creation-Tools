@@ -1,6 +1,6 @@
 {
   "name": "veaf-mission-creation-tools",
-  "version": "1.1.6",
+  "version": "1.1.7",
   "description": "A set of scripts that help set up a dynamic mission",
   "main": "readme.md",
   "directories": {

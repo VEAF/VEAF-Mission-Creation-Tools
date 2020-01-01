@@ -187,18 +187,18 @@ function veaf.p(o, level)
               text = text .. ".".. key.."="..veaf.p(value, level+1);
           end
       elseif (type(o) == "function") then
-          text = text .. "[function]".."\n";
+          text = "[function]";
       elseif (type(o) == "boolean") then
           if o == true then 
-              text = text .. "[true]".."\n";
+              text = "[true]";
           else
-              text = text .. "[false]".."\n";
+              text = "[false]";
           end
       else
           if o == nil then
-              text = text .. "[nil]" .."\n";    
+              text = "[nil]";    
           else
-              text = text .. o .."\n";
+              text = tostring(o);
           end
       end
       return text
@@ -871,7 +871,55 @@ function veaf.weatherReport(vec3, alt)
 
     return text
   end
-  
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- mission restart at a certain hour of the day
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+function veaf._endMission(delay1, message1, delay2, message2, delay3, message3)
+    veaf.mainLogTrace(string.format("veaf._endMission(delay1=%s, message1=%s, delay2=%s, message2=%s, delay3=%s, message3=%s)", veaf.p(delay1), veaf.p(message1), veaf.p(delay2), veaf.p(message2), veaf.p(delay3), veaf.p(message3)))
+
+    if not delay1 then
+        -- no more delay, let's end this !
+        veaf.mainLogTrace("ending mission")
+        trigger.action.setUserFlag("666", 1)
+    else 
+        -- show the message
+        trigger.action.outText(message1,30)
+        -- schedule this function after "delay1" seconds
+        veaf.mainLogTrace(string.format("schedule veaf._endMission after %d seconds", delay1))
+        mist.scheduleFunction(veaf._endMission, {delay2, message2, delay3, message3}, timer.getTime()+delay1)
+    end
+end
+
+function veaf._checkForEndMission(endTimeInSeconds, checkIntervalInSeconds, checkMessage, delay1, message1, delay2, message2, delay3, message3)
+    veaf.mainLogTrace(string.format("veaf._checkForEndMission(endTimeInSeconds=%s, checkIntervalInSeconds=%s, checkMessage=%s, delay1=%s, message1=%s, delay2=%s, message2=%s, delay3=%s, message3=%s)", veaf.p(endTimeInSeconds), veaf.p(checkIntervalInSeconds), veaf.p(checkMessage), veaf.p(delay1), veaf.p(message1), veaf.p(delay2), veaf.p(message2), veaf.p(delay3), veaf.p(message3)))
+    
+    veaf.mainLogTrace(string.format("timer.getAbsTime()=%d", timer.getAbsTime()))
+
+    if timer.getAbsTime() >= endTimeInSeconds then
+        trigger.action.outText("Ending mission",30)
+        veaf.mainLogTrace("calling veaf._endMission")
+        veaf._endMission(delay1, message1, delay2, message2, delay3, message3)
+    else
+        -- output the message if specified
+        if checkMessage then
+            trigger.action.outText(checkMessage,30)
+        end
+        -- schedule this function after a delay
+        veaf.mainLogTrace(string.format("schedule veaf._checkForEndMission after %d seconds", checkIntervalInSeconds))
+        mist.scheduleFunction(veaf._checkForEndMission, {endTimeInSeconds, checkIntervalInSeconds, checkMessage, delay1, message1, delay2, message2, delay3, message3}, timer.getTime()+checkIntervalInSeconds)
+    end
+end
+
+function veaf.endMissionAt(endTimeHour, endTimeMinute, checkIntervalInSeconds, checkMessage, delay1, message1, delay2, message2, delay3, message3)
+    veaf.mainLogTrace(string.format("veaf.endMissionAt(endTimeHour=%s, endTimeMinute=%s, checkIntervalInSeconds=%s, checkMessage=%s, delay1=%s, message1=%s, delay2=%s, message2=%s, delay3=%s, message3=%s)", veaf.p(endTimeHour), veaf.p(endTimeMinute), veaf.p(checkIntervalInSeconds), veaf.p(checkMessage), veaf.p(delay1), veaf.p(message1), veaf.p(delay2), veaf.p(message2), veaf.p(delay3), veaf.p(message3)))
+
+    local endTimeInSeconds = endTimeHour * 3600 + endTimeMinute * 60
+    veaf.mainLogTrace(string.format("endTimeInSeconds=%d", endTimeInSeconds))
+    veaf._checkForEndMission(endTimeInSeconds, checkIntervalInSeconds, checkMessage, delay1, message1, delay2, message2, delay3, message3)    
+end
+
+
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- initialisation
 -------------------------------------------------------------------------------------------------------------------------------------------------------------

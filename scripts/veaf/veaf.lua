@@ -880,13 +880,14 @@ function veaf._endMission(delay1, message1, delay2, message2, delay3, message3)
 
     if not delay1 then
         -- no more delay, let's end this !
-        veaf.mainLogTrace("ending mission")
+        trigger.action.outText("Ending mission !",30)
+        veaf.mainLogInfo("ending mission")
         trigger.action.setUserFlag("666", 1)
     else 
         -- show the message
         trigger.action.outText(message1,30)
         -- schedule this function after "delay1" seconds
-        veaf.mainLogTrace(string.format("schedule veaf._endMission after %d seconds", delay1))
+        veaf.mainLogInfo(string.format("schedule veaf._endMission after %d seconds", delay1))
         mist.scheduleFunction(veaf._endMission, {delay2, message2, delay3, message3}, timer.getTime()+delay1)
     end
 end
@@ -897,7 +898,6 @@ function veaf._checkForEndMission(endTimeInSeconds, checkIntervalInSeconds, chec
     veaf.mainLogTrace(string.format("timer.getAbsTime()=%d", timer.getAbsTime()))
 
     if timer.getAbsTime() >= endTimeInSeconds then
-        trigger.action.outText("Ending mission",30)
         veaf.mainLogTrace("calling veaf._endMission")
         veaf._endMission(delay1, message1, delay2, message2, delay3, message3)
     else

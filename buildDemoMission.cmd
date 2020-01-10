@@ -94,7 +94,6 @@ rem -- copy the documentation images to the kneeboard
 xcopy /y /e %MISSION_PATH%\doc\*.png .\build\tempsrc\KNEEBOARD\IMAGES >nul 2>&1
 
 rem -- copy all the community scripts
-copy %MISSION_PATH%\src\scripts\community\*.lua .\build\tempsrc\l10n\Default  >nul 2>&1
 copy .\scripts\community\*.lua .\build\tempsrc\l10n\Default  >nul 2>&1
 
 rem -- copy all the common scripts

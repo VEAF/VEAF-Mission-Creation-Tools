@@ -72,7 +72,7 @@ veafCasMission = {}
 veafCasMission.Id = "CAS MISSION - "
 
 --- Version.
-veafCasMission.Version = "1.5.2"
+veafCasMission.Version = "1.5.4"
 
 -- trace level, specific to this module
 veafCasMission.Trace = false
@@ -273,42 +273,26 @@ function veafCasMission.generateAirDefenseGroup(groupName, defense, side)
     side = side or veafCasMission.SIDE_RED
     
     -- generate a primary air defense platoon
-    local samTypeRand 
-    samTypeRand = math.random(100)
-    veafCasMission.logTrace("samTypeRand = " .. samTypeRand)
-
-    if samTypeRand > (90-(3*(defense-1))) then
-        if side == veafCasMission.SIDE_BLUE then
-            group = veafUnits.findGroup("generateAirDefenseGroup-BLUE-5")
-        else
-            group = veafUnits.findGroup("generateAirDefenseGroup-RED-5")
-        end
-    elseif samTypeRand > (75-(4*(defense-1))) then
-        if side == veafCasMission.SIDE_BLUE then
-            group = veafUnits.findGroup("generateAirDefenseGroup-BLUE-4")
-        else
-            group = veafUnits.findGroup("generateAirDefenseGroup-RED-4")
-        end
-    elseif samTypeRand > (60-(4*(defense-1))) then
-        if side == veafCasMission.SIDE_BLUE then
-            group = veafUnits.findGroup("generateAirDefenseGroup-BLUE-3")
-        else
-            group = veafUnits.findGroup("generateAirDefenseGroup-RED-3")
-        end
-    elseif samTypeRand > (40-(5*(defense-1))) then
-        if side == veafCasMission.SIDE_BLUE then
-            group = veafUnits.findGroup("generateAirDefenseGroup-BLUE-2")
-        else
-            group = veafUnits.findGroup("generateAirDefenseGroup-RED-2")
-        end
-    else
-        if side == veafCasMission.SIDE_BLUE then
-            group = veafUnits.findGroup("generateAirDefenseGroup-BLUE-1")
-        else
-            group = veafUnits.findGroup("generateAirDefenseGroup-RED-1")
+    local _actualDefense = defense
+    if defense > 0 then
+        -- roll a dice : 20% chance to get a -1 (lower) difficulty, 30% chance to get a +1 (higher) difficulty, and 50% to get what was asked for
+        local _dice = math.random(100)
+        veafCasMission.logTrace("_dice = " .. _dice)
+        if _dice <= 20 then
+            _actualDefense = defense - 1
+        elseif _dice > 50 then
+            _actualDefense = defense + 1
         end
     end
+    veafCasMission.logTrace("_actualDefense = " .. _actualDefense)
+    local _groupDefinition = "generateAirDefenseGroup-BLUE-"
+    if side == veafCasMission.SIDE_RED then
+        _groupDefinition = "generateAirDefenseGroup-RED-"
+    end
+    _groupDefinition = _groupDefinition .. tostring(_actualDefense)
+    veafCasMission.logTrace("_groupDefinition = " .. _groupDefinition)
 
+    group = veafUnits.findGroup(_groupDefinition)
     group.description = groupName
     group.groupName = groupName
     

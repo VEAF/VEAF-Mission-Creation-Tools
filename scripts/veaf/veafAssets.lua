@@ -24,10 +24,10 @@ veafAssets = {}
 veafAssets.Id = "ASSETS - "
 
 --- Version.
-veafAssets.Version = "1.3.0"
+veafAssets.Version = "1.3.1"
 
 -- trace level, specific to this module
-veafAssets.Trace = true
+veafAssets.Trace = false
 
 veafAssets.Assets = {
     -- list the assets common to all missions below

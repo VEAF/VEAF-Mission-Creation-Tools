@@ -39,7 +39,7 @@ veafUnits = {}
 veafUnits.Id = "UNITS - "
 
 --- Version.
-veafUnits.Version = "1.3.3"
+veafUnits.Version = "1.3.4"
 
 -- trace level, specific to this module
 veafUnits.Trace = false
@@ -274,7 +274,8 @@ function veafUnits.processGroup(group)
         end
         if not(hdg) then 
             hdg = math.random(0, 359) -- default heading is random
-          end
+        end
+        veafUnits.logTrace(string.format("hdg=%d",hdg))
         for numUnit = 1, number do
             veafUnits.logTrace("searching for unit [" .. unitType .. "] listed in group [" .. group.groupName .. "]")
             local unit = veafUnits.findUnit(unitType)
@@ -1033,6 +1034,21 @@ veafUnits.GroupsDatabase = {
         },
     },
     {
+        aliases = {"generateAirDefenseGroup-BLUE-0"},
+        hidden,
+        group = {
+            disposition = { h= 7, w= 7},
+            units = {
+                -- Some AAV7
+                {"AAV7", number = {min=1, max=3}, random},
+                -- a supply truck or three
+                {"Transport M818", number = {min=1, max=3}, random}, 
+            },
+            description = "generateAirDefenseGroup-BLUE-0",
+            groupName = "generateAirDefenseGroup-BLUE-0",
+        },
+    },
+    {
         aliases = {"generateAirDefenseGroup-RED-5"},
         hidden,
         group = {
@@ -1129,6 +1145,21 @@ veafUnits.GroupsDatabase = {
             },
             description = "generateAirDefenseGroup-RED-1",
             groupName = "generateAirDefenseGroup-RED-1",
+        },
+    },
+    {
+        aliases = {"generateAirDefenseGroup-RED-0"},
+        hidden,
+        group = {
+            disposition = { h= 7, w= 7},
+            units = {
+                -- Some Ural-375 ZU-23
+                {"Ural-375 ZU-23", number = {min=2, max=4}, random},
+                -- a supply truck or three
+                {"Transport Ural-4320-31 Armored", number = {min=1, max=3}, random}, 
+            },
+            description = "generateAirDefenseGroup-RED-0",
+            groupName = "generateAirDefenseGroup-RED-0",
         },
     },
     ---

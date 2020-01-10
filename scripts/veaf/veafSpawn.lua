@@ -66,7 +66,7 @@ veafSpawn = {}
 veafSpawn.Id = "SPAWN - "
 
 --- Version.
-veafSpawn.Version = "1.8.3"
+veafSpawn.Version = "1.8.4"
 
 -- trace level, specific to this module
 veafSpawn.Trace = false
@@ -662,7 +662,7 @@ function veafSpawn._createDcsUnits(country, units, groupName)
         local unit = units[i]
         local unitType = unit.typeName
         local unitName = groupName .. " / " .. unit.displayName .. " #" .. i
-        
+        local hdg = unit.heading or math.random(0, 359)
         local spawnPosition = unit.spawnPoint
         
         -- check if position is correct for the unit type
@@ -674,8 +674,8 @@ function veafSpawn._createDcsUnits(country, units, groupName)
                     ["type"] = unitType,
                     ["name"] = unitName,
                     ["speed"] = 0,
-                    ["skill"] = "Random",
-                    ["heading"] = 0
+                    ["skill"] = "Excellent",
+                    ["heading"] = hdg
             }
 
             veafSpawn.logTrace(string.format("toInsert x=%.1f y=%.1f, alt=%.1f, type=%s, name=%s, speed=%d, heading=%d, skill=%s, country=%s", toInsert.x, toInsert.y, toInsert.alt, toInsert.type, toInsert.name, toInsert.speed, toInsert.heading, toInsert.skill, country ))
@@ -688,8 +688,12 @@ function veafSpawn._createDcsUnits(country, units, groupName)
 
     -- set AI options
     local controller = Group.getByName(groupName):getController()
-    controller:setOption(9, 2) -- set alarm state to red
-    controller:setOption(AI.Option.Ground.id.DISPERSE_ON_ATTACK, true) -- set disperse on attack according to the option
+    controller:setOption(AI.Option.Ground.id.ENGAGE_AIR_WEAPONS, true) -- engage air-to-ground weapons with SAMs
+    controller:setOption(AI.Option.Air.id.ROE, 2) -- set fire at will
+    controller:setOption(AI.Option.Ground.id.ROE, 2) -- set fire at will
+    controller:setOption(AI.Option.Naval.id.ROE, 2) -- set fire at will
+    controller:setOption(AI.Option.Ground.id.ALARM_STATE, 2) -- set alarm state to red
+    controller:setOption(AI.Option.Ground.id.DISPERSE_ON_ATTACK, 1) -- set disperse on attack according to the option
 end
 
 --- Spawns a dynamic infantry group 

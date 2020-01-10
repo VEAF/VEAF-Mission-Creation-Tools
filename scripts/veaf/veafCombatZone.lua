@@ -48,13 +48,13 @@ veafCombatZone = {}
 veafCombatZone.Id = "COMBAT ZONE - "
 
 --- Version.
-veafCombatZone.Version = "1.0.2"
+veafCombatZone.Version = "1.0.3"
 
 -- trace level, specific to this module
 veafCombatZone.Trace = false
 
 --- Number of seconds between each check of the zone watchdog function
-veafCombatZone.SecondsBetweenWatchdogChecks = 15
+veafCombatZone.SecondsBetweenWatchdogChecks = 30
 
 --- Number of seconds between each smoke request on the zones
 veafCombatZone.SecondsBetweenSmokeRequests = 180
@@ -62,7 +62,7 @@ veafCombatZone.SecondsBetweenSmokeRequests = 180
 --- Number of seconds between each flare request on the zones
 veafCombatZone.SecondsBetweenFlareRequests = 120
 
-veafCombatZone.DefaultSpawnRadiusForUnits = 20
+veafCombatZone.DefaultSpawnRadiusForUnits = 50
 
 veafCombatZone.DefaultSpawnRadiusForStatics = 0
 
@@ -231,6 +231,8 @@ VeafCombatZone =
     zoneCenter,
     -- zone is active
     active,
+    -- zone is a training zone
+    training,
 
     --- Radio menus paths
     radioMarkersPath,
@@ -257,6 +259,7 @@ function VeafCombatZone.new ()
     self.elements = {}
     self.zoneCenter = nil
     self.active = false
+    self.training = false
     self.radioMarkersPath = nil
     self.radioTargetInfoPath = nil
     self.radioRootPath = nil
@@ -309,6 +312,15 @@ function VeafCombatZone:setActive(value)
     return self
 end
 
+function VeafCombatZone:isTraining()
+    return self.training
+end
+
+function VeafCombatZone:setTraining(value)
+    self.training = value
+    return self
+end
+
 function VeafCombatZone:getCenter()
     return self.zoneCenter
 end
@@ -316,6 +328,20 @@ end
 ---
 --- other methods
 ---
+function VeafCombatZone:scheduleWatchdogFunction()
+    veafCombatZone.logDebug(string.format("VeafCombatZone[%s]:scheduleWatchdogFunction()",self.missionEditorZoneName or ""))
+    self.watchdogFunctionId = mist.scheduleFunction(veafCombatZone.CompletionCheck,{self.missionEditorZoneName},timer.getTime()+veafCombatZone.SecondsBetweenWatchdogChecks)
+    return self
+end
+
+function VeafCombatZone:unscheduleWatchdogFunction()
+    veafCombatZone.logDebug(string.format("VeafCombatZone[%s]:unscheduleWatchdogFunction()",self.missionEditorZoneName or ""))
+    if self.watchdogFunctionId then
+        mist.removeFunction(self.watchdogFunctionId)
+    end
+    self.watchdogFunctionId = nil
+    return self
+end
 
 function VeafCombatZone:addObjective(value)
     table.insert(self.objectives, value)
@@ -436,6 +462,8 @@ function VeafCombatZone:getInformation()
         local nbInfantryB = 0
         local nbStaticsB = 0
         local units, _ = unpack(veafCombatZone.findUnitsInTriggerZone(self.missionEditorZoneObject))
+        local unitsByTypeR = {}
+        local unitsByTypeB = {}
         for _, u in pairs(units) do
             local coa = u:getCoalition()
             if u:getCategory() == 3 then
@@ -449,16 +477,24 @@ function VeafCombatZone:getInformation()
                 if typeName then 
                     local unit = veafUnits.findUnit(typeName, true)
                     if unit then 
-                        if unit.vehicle then
-                            if coa == 1 then 
-                                nbVehiclesR = nbVehiclesR + 1
-                            elseif coa == 2 then
-                                nbVehiclesB = nbVehiclesB + 1
+                        if coa == 1 then
+                            if not(unitsByTypeR[typeName]) then 
+                                unitsByTypeR[typeName] = 0
                             end
-                        elseif unit.infantry then
-                            if coa == 1 then 
+                            unitsByTypeR[typeName] = unitsByTypeR[typeName] + 1
+                            if unit.vehicle then
+                                nbVehiclesR = nbVehiclesR + 1
+                            else
                                 nbInfantryR = nbInfantryR + 1
-                            elseif coa == 2 then
+                            end
+                        elseif coa == 2 then
+                            if not(unitsByTypeB[typeName]) then 
+                                unitsByTypeB[typeName] = 0
+                            end
+                            unitsByTypeB[typeName] = unitsByTypeB[typeName] + 1
+                            if unit.vehicle then
+                                nbVehiclesB = nbVehiclesB + 1
+                            else
                                 nbInfantryB = nbInfantryB + 1
                             end
                         end
@@ -469,9 +505,33 @@ function VeafCombatZone:getInformation()
 
         if nbStaticsB+nbVehiclesB+nbInfantryB > 0 then
             message = message .. "FRIENDS: ".. nbStaticsB .. " structure(s), " .. nbVehiclesB .. " vehicle(s) and " .. nbInfantryB .. " soldier(s) remain.\n"
+            if self:isTraining() then 
+                local firstUnit = true
+                for name, count in pairs(unitsByTypeB) do
+                    local separator = ", "
+                    if firstUnit then 
+                        separator = ""
+                        firstUnit = false
+                    end
+                    message = message .. string.format("%s%d %s",separator, count, name)
+                end
+                message = message .. "\n"
+            end
         end       
         message = message .. "ENEMIES: ".. nbStaticsR .. " structure(s), " .. nbVehiclesR .. " vehicle(s) and " .. nbInfantryR .. " soldier(s) remain.\n"
-        message = message .. "\n"
+        if self:isTraining() then 
+            local firstUnit = true
+            for name, count in pairs(unitsByTypeR) do
+                local separator = ", "
+                if firstUnit then 
+                    separator = ""
+                    firstUnit = false
+                end
+                message = message .. string.format("%s%d %s",separator, count, name)
+            end
+            message = message .. "\n"
+        end
+    message = message .. "\n"
 
         -- add coordinates and position from bullseye
         local zoneCenter = self:getCenter()
@@ -532,6 +592,9 @@ function VeafCombatZone:activate()
         end
     end
 
+    -- start the completion watchdog
+    self:scheduleWatchdogFunction()
+
     -- refresh the radio menu
     self:updateRadioMenu()
 
@@ -542,6 +605,7 @@ end
 function VeafCombatZone:desactivate()
     veafCombatZone.logDebug(string.format("VeafCombatZone[%s]:desactivate()",self.missionEditorZoneName or ""))
     self:setActive(false)
+    self:unscheduleWatchdogFunction()
 
     -- find units in the trigger zone (including units not listed in the zone object, as new units may have been spawned in the zone and we want it CLEAN !)
     local units, groupNames = unpack(veafCombatZone.findUnitsInTriggerZone(self.missionEditorZoneObject))
@@ -563,12 +627,58 @@ function VeafCombatZone:desactivate()
     return self
 end
 
+-- check if there are still units in zone
+function VeafCombatZone:completionCheck()
+    veafCombatZone.logDebug(string.format("VeafCombatZone[%s]:completionCheck()",self.missionEditorZoneName or ""))
+    local nbUnitsR = 0
+    local nbUnitsB = 0
+    local units, _ = unpack(veafCombatZone.findUnitsInTriggerZone(self.missionEditorZoneObject))
+    for _, u in pairs(units) do
+        local coa = u:getCoalition()
+        if coa == 1 then
+            nbUnitsR = nbUnitsR + 1
+        elseif coa == 2 then
+            nbUnitsB = nbUnitsB + 1
+        end
+    end
+    veafCombatZone.logTrace(string.format("nbUnitsB=%d",nbUnitsB))
+    veafCombatZone.logTrace(string.format("nbUnitsR=%d",nbUnitsR))
+
+    if nbUnitsR == 0 then 
+        -- everyone is dead, let's end this mess
+        local message = string.format([[
+Well done ! All enemies in zone %s have been destroyed or routed.
+The zone will now be desactivated.
+You can replay by activating it again, in the radio menu.]], self:getFriendlyName())
+        trigger.action.outText(message, 15)
+        self:desactivate()
+    else
+        -- reschedule
+        self:scheduleWatchdogFunction()
+    end
+end
+
+
 -- pop a smoke marker over the zone
 function VeafCombatZone:popSmoke()
     veafCombatZone.logDebug(string.format("VeafCombatZone[%s]:popSmoke()",self.missionEditorZoneName or ""))
     veafCombatZone.logTrace(string.format("self:getCenter()=%s",veaf.vecToString(self:getCenter())))
-
-    veafSpawn.spawnSmoke(self:getCenter(), trigger.smokeColor.Red)
+    local smokePoint = self:getCenter()
+    if self:isTraining() then 
+        -- compute the barycenter of all remaining units
+        local totalPosition = {x = 0,y = 0,z = 0}
+        local units, _ = unpack(veafCombatZone.findUnitsInTriggerZone(self.missionEditorZoneObject))
+        for count = 1,#units do
+            if units[count] then 
+                totalPosition = mist.vec.add(totalPosition,Unit.getPosition(units[count]).p)
+            end
+        end
+        if #units > 0 then
+            smokePoint = mist.vec.scalar_mult(totalPosition,1/#units)
+        end
+    end
+    veafCombatZone.logTrace(string.format("smokePoint=%s",veaf.vecToString(smokePoint)))
+    veafSpawn.spawnSmoke(smokePoint, trigger.smokeColor.Red)
     self.smokeResetFunctionId = mist.scheduleFunction(veafCombatZone.SmokeReset,{self.missionEditorZoneName},timer.getTime()+veafCombatZone.SecondsBetweenSmokeRequests)
     trigger.action.outText(string.format("Copy RED smoke requested on %s !", self:getFriendlyName()),5)
     self:updateRadioMenu()
@@ -658,6 +768,7 @@ function veafCombatZone.AddZone(zone)
     zone:initialize()
     table.insert(veafCombatZone.zonesList, zone)
     veafCombatZone.zonesDict[zone.missionEditorZoneName] = zone
+    return zone
 end
 
 -- activate a zone
@@ -715,6 +826,13 @@ function veafCombatZone.FlareReset(zoneName)
     local zone = veafCombatZone.GetZone(zoneName)
     zone.flareResetFunctionId = nil
     zone:updateRadioMenu()
+end
+
+-- call the completion watchdog methods
+function veafCombatZone.CompletionCheck(zoneName)
+    veafCombatZone.logDebug(string.format("veafCombatZone.CompletionCheck([%s])",zoneName or ""))
+    local zone = veafCombatZone.GetZone(zoneName)
+    zone:completionCheck()
 end
 
 ---

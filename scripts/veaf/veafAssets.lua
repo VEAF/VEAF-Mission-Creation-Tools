@@ -24,10 +24,10 @@ veafAssets = {}
 veafAssets.Id = "ASSETS - "
 
 --- Version.
-veafAssets.Version = "1.2.3"
+veafAssets.Version = "1.3.0"
 
 -- trace level, specific to this module
-veafAssets.Trace = false
+veafAssets.Trace = true
 
 veafAssets.Assets = {
     -- list the assets common to all missions below
@@ -212,6 +212,17 @@ function veafAssets.respawn(name)
     end
     if theAsset then
         mist.respawnGroup(name, true)
+        if theAsset.linked then
+            veafAssets.logTrace(string.format("veafAssets[%s].linked=%s",name, veaf.p(theAsset.linked)))
+            -- there are linked groups to respawn
+            if type(theAsset.linked) == "string" then
+                theAsset.linked = {theAsset.linked}
+            end
+            for _, linkedGroup in pairs(theAsset.linked) do
+                veafAssets.logTrace(string.format("respawning linked group [%s]",linkedGroup))
+                mist.respawnGroup(linkedGroup, true)
+            end
+        end
         local text = "I've respawned " .. theAsset.description
         if theAsset.jtac then
             ctld.JTACAutoLase(name, theAsset.jtac, false, "vehicle")

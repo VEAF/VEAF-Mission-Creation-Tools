@@ -94,10 +94,7 @@ function veafMissionNormalizer.normalizeMission(filePath)
 
   -- normalize "options" file
   _filePath = filePath .. "\\options"
-  local _processFunction = function(table) 
-    return {} -- delete all the content
-  end
-  veafMissionEditor.editMission(_filePath, _filePath, "options", nil, _processFunction)
+  veafMissionEditor.editMission(_filePath, _filePath, "options")
 
   -- normalize "dictionary" file
   _filePath = filePath .. "\\l10n\\DEFAULT\\dictionary"

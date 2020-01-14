@@ -39,3 +39,4 @@ Then you should read the *readme.md* file in this repository. It will explain ho
 There is detailed documentation for all the modules:
 
 - [veafAssets](veafAssets.md)
+- [veafCarrierOperations](veafCarrierOperations.md)

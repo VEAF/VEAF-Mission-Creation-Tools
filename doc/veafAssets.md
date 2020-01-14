@@ -17,6 +17,7 @@ In DCS mission editor, set up a "mission start" trigger that will :
 * load the following scripts (in order) :
   * mist.lua (from the *community* folder)
   * veaf.lua
+  * veafRadio.lua
   * veafAssets.lua
 * run the following lua code : `veafRadio.initialize();veafAssets.initialize();`
 * load a new file that you'll write, and that will initialize the veafAsset script specifically for your mission ; usually it's called *veafAssetsConfig.lua*, and if you follow our model (*VEAF-Demo-Mission*) it's stored in the *scripts* folder of your mission.

@@ -1,3 +1,3 @@
-[Markers](marker.md)
+# VEAF Mission Creation Tools - documentation
 
-[Groups and units](groupsAndUnits/groupsAndUnits.md)
+See [the mission maker documentation](mission-maker.md)

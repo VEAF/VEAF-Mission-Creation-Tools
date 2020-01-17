@@ -34,7 +34,7 @@ veafMissionRadioPresetsEditor = {}
 veafMissionRadioPresetsEditor.Id = "RADIOPRESETS_EDITOR - "
 
 --- Version.
-veafMissionRadioPresetsEditor.Version = "1.0.0"
+veafMissionRadioPresetsEditor.Version = "1.1.0"
 
 -- trace level, specific to this module
 veafMissionRadioPresetsEditor.Trace = false
@@ -96,23 +96,23 @@ local function _deepcopy(orig, copies)
 end
 
 function veafMissionRadioPresetsEditor.editUnit(coa_name, country_name, unit_t)
-  --veafMissionRadioPresetsEditor.logTrace(string.format("editUnit(%s)",serpent.line(unit_t)))
+  --veafMissionRadioPresetsEditor.logTrace(string.format("editUnit(%s)",tostring(unit_t)))
   local hasBeenEdited = false
   local unitName = unit_t["name"]
   local unitId = unit_t["unitId"]
   local unitType = unit_t["type"]
-  veafMissionRadioPresetsEditor.logTrace(string.format("Testing [%s/%s] %s %s (%s) ",serpent.line(coa_name), serpent.line(country_name), serpent.line(unitType), serpent.line(unitName), serpent.line(unitId)))
+  veafMissionRadioPresetsEditor.logTrace(string.format("Testing [%s/%s] %s %s (%s) ",tostring(coa_name), tostring(country_name), tostring(unitType), tostring(unitName), tostring(unitId)))
 
   if unit_t["skill"] and unit_t["skill"] == "Client" then -- only human players
     veafMissionRadioPresetsEditor.logTrace("Client found")
     if unitType then
       for setting, setting_t in pairs(radioSettings) do
         local type = setting_t["type"]
-        veafMissionRadioPresetsEditor.logTrace(string.format("type=[%s]",serpent.line(type)))
+        veafMissionRadioPresetsEditor.logTrace(string.format("type=[%s]",tostring(type)))
         local coalition = setting_t["coalition"]
-        veafMissionRadioPresetsEditor.logTrace(string.format("coalition=[%s]",serpent.line(coalition)))
+        veafMissionRadioPresetsEditor.logTrace(string.format("coalition=[%s]",tostring(coalition)))
         local country = setting_t["country"]
-        veafMissionRadioPresetsEditor.logTrace(string.format("country=[%s]",serpent.line(country)))
+        veafMissionRadioPresetsEditor.logTrace(string.format("country=[%s]",tostring(country)))
         if not(coalition) or coalition == coa_name then
           veafMissionRadioPresetsEditor.logTrace("Coalition checked")
           if not(country) or country == country_name then
@@ -162,19 +162,19 @@ function veafMissionRadioPresetsEditor.editRadioPresets(missionTable)
     for country, country_t in pairs(countries_t) do
       local country_name = country_t["name"]
       veafMissionRadioPresetsEditor.logTrace(string.format("Browsing country [%s]",country_name))
-      --veafMissionRadioPresetsEditor.logTrace(string.format("country_t=%s",serpent.line(country_t)))
+      --veafMissionRadioPresetsEditor.logTrace(string.format("country_t=%s",tostring(country_t)))
       -- process helicopters
       veafMissionRadioPresetsEditor.logTrace("Processing helicopters")
       local helicopters_t = country_t["helicopter"]
       if helicopters_t then
-        --veafMissionRadioPresetsEditor.logTrace(string.format("helicopters_t=%s",serpent.line(helicopters_t)))
+        --veafMissionRadioPresetsEditor.logTrace(string.format("helicopters_t=%s",tostring(helicopters_t)))
         _editGroups(coa_name, country_name, helicopters_t)
       end
       -- process airplanes
       veafMissionRadioPresetsEditor.logTrace("Processing airplanes")
       local planes_t = country_t["plane"]
       if planes_t then
-        --veafMissionRadioPresetsEditor.logTrace(string.format("planes_t=%s",serpent.line(planes_t)))
+        --veafMissionRadioPresetsEditor.logTrace(string.format("planes_t=%s",tostring(planes_t)))
         _editGroups(coa_name, country_name, planes_t)
       end
     end

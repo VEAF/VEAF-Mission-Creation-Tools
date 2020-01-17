@@ -1,211 +1,169 @@
-mist = {}
-mist.utils = {}
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- Serpent serialization library by Paul Kulchenko (paul@kulchenko.com) ; https://github.com/pkulchenko/serpent
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+local n, v = "serpent", "0.302" -- (C) 2012-18 Paul Kulchenko; MIT License
+local c, d = "Paul Kulchenko", "Lua serializer and pretty printer"
+local snum = {[tostring(1/0)]='1/0 --[[math.huge]]',[tostring(-1/0)]='-1/0 --[[-math.huge]]',[tostring(0/0)]='0/0'}
+local badtype = {thread = true, userdata = true, cdata = true}
+local getmetatable = debug and debug.getmetatable or getmetatable
+local pairs = function(t) return next, t end -- avoid using __pairs in Lua 5.2+
+local keyword, globals, G = {}, {}, (_G or _ENV)
+for _,k in ipairs({'and', 'break', 'do', 'else', 'elseif', 'end', 'false',
+  'for', 'function', 'goto', 'if', 'in', 'local', 'nil', 'not', 'or', 'repeat',
+  'return', 'then', 'true', 'until', 'while'}) do keyword[k] = true end
+for k,v in pairs(G) do globals[v] = k end -- build func to name mapping
+for _,g in ipairs({'coroutine', 'debug', 'io', 'math', 'string', 'table', 'os'}) do
+  for k,v in pairs(type(G[g]) == 'table' and G[g] or {}) do globals[v] = g..'.'..k end end
 
---- Converts angle in degrees to radians.
--- @param angle angle in degrees
--- @return angle in degrees
-function mist.utils.toRadian(angle)
-  return angle*math.pi/180
-end
-
-function mist.utils.toDegree(angle)
-  return angle*180/math.pi
-end
-
-veaf = {}
-math.randomseed(os.time())
---- Identifier. All output in DCS.log will start with this.
-veaf.Id = "VEAF - "
-
---- Version.
-veaf.Version = "1.1.1"
-
---- Development version ?
-veaf.Development = true
-
---- Enable logDebug ==> give more output to DCS log file.
-veaf.Debug = veaf.Development
---- Enable logTrace ==> give even more output to DCS log file.
-veaf.Trace = veaf.Development
-
-veaf.RadioMenuName = "VEAF"
-
-function veaf.logError(text)
-  print("ERROR VEAF - " .. text)
-end
-
-function veaf.logInfo(text)
-  print("INFO VEAF - " .. text)
-end
-
-function veaf.logDebug(text)
-  print("DEBUG VEAF - " .. text)
-end
-
-function veaf.logTrace(text)
-  print("TRACE VEAF - " .. text)
-end
-
-function veaf.dummyFunction()
-  veaf.logDebug("dummyFunction()")
-end
-
-function veaf.round(num, numDecimalPlaces)
-  local mult = 10^(numDecimalPlaces or 0)
-  return math.floor(num * mult + 0.5) / mult
-end
-
-function veaf.vecToString(vec)
-  local result = ""
-  if vec.x then
-    result = result .. string.format(" x=%.1f", vec.x)
-  end
-  if vec.y then
-    result = result .. string.format(" y=%.1f", vec.y)
-  end
-  if vec.z then
-    result = result .. string.format(" z=%.1f", vec.z)
-  end
-  return result
-end
-
-function veaf.discoverTable(o)
-  local text = ""
-  for key,value in pairs(o) do
-    if value then
-      text = text .. " - ".. key.."="..value.."\n";
-    else
-      text = text .. " - ".. key.."\n";
+local function s(t, opts)
+  local name, indent, fatal, maxnum = opts.name, opts.indent, opts.fatal, opts.maxnum
+  local sparse, custom, huge = opts.sparse, opts.custom, not opts.nohuge
+  local space, maxl = (opts.compact and '' or ' '), (opts.maxlevel or math.huge)
+  local maxlen, metatostring = tonumber(opts.maxlength), opts.metatostring
+  local iname, comm = '_'..(name or ''), opts.comment and (tonumber(opts.comment) or math.huge)
+  local numformat = opts.numformat or "%.17g"
+  local seen, sref, syms, symn = {}, {'local '..iname..'={}'}, {}, 0
+  local function gensym(val) return '_'..(tostring(tostring(val)):gsub("[^%w]",""):gsub("(%d%w+)",
+    -- tostring(val) is needed because __tostring may return a non-string value
+    function(s) if not syms[s] then symn = symn+1; syms[s] = symn end return tostring(syms[s]) end)) end
+  local function safestr(s) return type(s) == "number" and tostring(huge and snum[tostring(s)] or numformat:format(s))
+    or type(s) ~= "string" and tostring(s) -- escape NEWLINE/010 and EOF/026
+    or ("%q"):format(s):gsub("\010","n"):gsub("\026","\\026") end
+  local function comment(s,l) return comm and (l or 0) < comm and ' --[['..select(2, pcall(tostring, s))..']]' or '' end
+  local function globerr(s,l) return globals[s] and globals[s]..comment(s,l) or not fatal
+    and safestr(select(2, pcall(tostring, s))) or error("Can't serialize "..tostring(s)) end
+  local function safename(path, name) -- generates foo.bar, foo[3], or foo['b a r']
+    local n = name == nil and '' or name
+    local plain = type(n) == "string" and n:match("^[%l%u_][%w_]*$") and not keyword[n]
+    local safe = plain and n or '['..safestr(n)..']'
+    return (path or '')..(plain and path and '.' or '')..safe, safe end
+  local alphanumsort = type(opts.sortkeys) == 'function' and opts.sortkeys or function(k, o, n) -- k=keys, o=originaltable, n=padding
+    local maxn, to = tonumber(n) or 12, {number = 'a', string = 'b'}
+    local function padnum(d) return ("%0"..tostring(maxn).."d"):format(tonumber(d)) end
+    table.sort(k, function(a,b)
+      -- sort numeric keys first: k[key] is not nil for numerical keys
+      return (k[a] ~= nil and 0 or to[type(a)] or 'z')..(tostring(a):gsub("%d+",padnum))
+           < (k[b] ~= nil and 0 or to[type(b)] or 'z')..(tostring(b):gsub("%d+",padnum)) end) end
+  local function val2str(t, name, indent, insref, path, plainindex, level)
+    local ttype, level, mt = type(t), (level or 0), getmetatable(t)
+    local spath, sname = safename(path, name)
+    local tag = plainindex and
+      ((type(name) == "number") and '' or name..space..'='..space) or
+      (name ~= nil and sname..space..'='..space or '')
+    if seen[t] then -- already seen this element
+      sref[#sref+1] = spath..space..'='..space..seen[t]
+      return tag..'nil'..comment('ref', level) end
+    -- protect from those cases where __tostring may fail
+    if type(mt) == 'table' and metatostring ~= false then
+      local to, tr = pcall(function() return mt.__tostring(t) end)
+      local so, sr = pcall(function() return mt.__serialize(t) end)
+      if (to or so) then -- knows how to serialize itself
+        seen[t] = insref or spath
+        t = so and sr or tr
+        ttype = type(t)
+      end -- new value falls through to be serialized
     end
-  end
-  return text
-end
-
-veafMarkers = {}
-function veafMarkers.registerEventHandler(a, b)
-end
-
-dofile("veafRadio.lua")
-
-function veafRadio.buildHumanGroups()
-  veafRadio.logInfo("buildHumanGroups()")
-end
-
-missionCommands = {}
-function missionCommands.addSubMenu(title, path)
-  veafRadio.logInfo("addSubMenu() " .. title)
-end
-
-function missionCommands.addCommand(title, dcsRadioMenu, method)
-  veafRadio.logInfo("addCommand() " .. title)
-end
-
-function missionCommands.removeItem(item)
-  veafRadio.logInfo("removeItem()")
-end
-
-function veafRadio.initialize()
-  -- Build the initial radio menu
-  veafRadio.buildHumanGroups()
-  veafRadio.refreshRadioMenu()
-  --veafRadio.radioRefreshWatchdog()
-end
-
-veafRadio.initialize()
-
-dofile("veafSecurity.lua")
-
-veafSecurity.initialize()
-
-function test1()
-  veaf.logInfo(test1)
-end
-
-function test2()
-  veaf.logInfo(test2)
-end
-
-local casRadioMenu = veafRadio.addSubMenu("VEAF CAS MISSION")
-veafRadio.addCommandToSubmenu("HELP",casRadioMenu, veaf.dummyFunction)
-local cas_Markers_RadioMenu = veafRadio.addSubMenu("Markers",casRadioMenu)
-veafRadio.addCommandToSubmenu('Request smoke on target area', cas_Markers_RadioMenu, veaf.dummyFunction)
-veafRadio.refreshRadioMenu()
-
-if veafSecurity.checkPassword_L1("testpassword") then
-  veaf.logError("password matches")
-else
-  veaf.logError("password do not match")
-end
-
-dofile("veafGrass.lua")
-dofile("veafNamedPoints.lua")
-
-function veaf.discover(o)
-  return veaf._discover(o, 0)
-end
-
-function veaf._discover(o, level)
-  local text = ""
-  if (type(o) == "table") then
-    text = "\n"
-    for key,value in pairs(o) do
-      for i=0, level do
-        text = text .. " "
+    if ttype == "table" then
+      if level >= maxl then return tag..'{}'..comment('maxlvl', level) end
+      seen[t] = insref or spath
+      if next(t) == nil then return tag..'{}'..comment(t, level) end -- table empty
+      if maxlen and maxlen < 0 then return tag..'{}'..comment('maxlen', level) end
+      local maxn, o, out = math.min(#t, maxnum or #t), {}, {}
+      for key = 1, maxn do o[key] = key end
+      if not maxnum or #o < maxnum then
+        local n = #o -- n = n + 1; o[n] is much faster than o[#o+1] on large tables
+        for key in pairs(t) do if o[key] ~= key then n = n + 1; o[n] = key end end end
+      if maxnum and #o > maxnum then o[maxnum+1] = nil end
+      if opts.sortkeys and #o > maxn then alphanumsort(o, t, opts.sortkeys) end
+      local sparse = sparse and #o > maxn -- disable sparsness if only numeric keys (shorter output)
+      for n, key in ipairs(o) do
+        local value, ktype, plainindex = t[key], type(key), n <= maxn and not sparse
+        if opts.valignore and opts.valignore[value] -- skip ignored values; do nothing
+        or opts.keyallow and not opts.keyallow[key]
+        or opts.keyignore and opts.keyignore[key]
+        or opts.valtypeignore and opts.valtypeignore[type(value)] -- skipping ignored value types
+        or sparse and value == nil then -- skipping nils; do nothing
+        elseif ktype == 'table' or ktype == 'function' or badtype[ktype] then
+          if not seen[key] and not globals[key] then
+            sref[#sref+1] = 'placeholder'
+            local sname = safename(iname, gensym(key)) -- iname is table for local variables
+            sref[#sref] = val2str(key,sname,indent,sname,iname,true) end
+          sref[#sref+1] = 'placeholder'
+          local path = seen[t]..'['..tostring(seen[key] or globals[key] or gensym(key))..']'
+          sref[#sref] = path..space..'='..space..tostring(seen[value] or val2str(value,nil,indent,path))
+        else
+          out[#out+1] = val2str(value,key,indent,nil,seen[t],plainindex,level+1)
+          if maxlen then
+            maxlen = maxlen - #out[#out]
+            if maxlen < 0 then break end
+          end
+        end
       end
-      text = text .. ".".. key.."="..veaf._discover(value, level+1);
-    end
-  else
-    text = text .. o .."\n";
+      local prefix = string.rep(indent or '', level)
+      local head = indent and '{\n'..prefix..indent or '{'
+      local body = table.concat(out, ','..(indent and '\n'..prefix..indent or space))
+      local tail = indent and "\n"..prefix..'}' or '}'
+      return (custom and custom(tag,head,body,tail,level) or tag..head..body..tail)..comment(t, level)
+    elseif badtype[ttype] then
+      seen[t] = insref or spath
+      return tag..globerr(t, level)
+    elseif ttype == 'function' then
+      seen[t] = insref or spath
+      if opts.nocode then return tag.."function() --[[..skipped..]] end"..comment(t, level) end
+      local ok, res = pcall(string.dump, t)
+      local func = ok and "((loadstring or load)("..safestr(res)..",'@serialized'))"..comment(t, level)
+      return tag..(func or globerr(t, level))
+    else return tag..safestr(t) end -- handle all other types
   end
-  return text
+  local sepr = indent and "\n" or ";"..space
+  local body = val2str(t, name, indent) -- this call also populates sref
+  local tail = #sref>1 and table.concat(sref, sepr)..sepr or ''
+  local warn = opts.comment and #sref>1 and space.."--[[incomplete output with shared/self-references skipped]]" or ''
+  return not name and body..warn or "do local "..body..sepr..tail.."return "..name..sepr.."end"
 end
 
-veafInterpreter = {}
---- Key phrase to look for in the unit name which triggers the interpreter.
-veafInterpreter.Starter = "#veafInterpreter%[\""
-veafInterpreter.Trailer = "\"%]"
-function veafInterpreter.logError() end
-function veafInterpreter.logInfo() end
-function veafInterpreter.logDebug() end
-function veafInterpreter.logTrace() end
+local function deserialize(data, opts)
+  local env = (opts and opts.safe == false) and G
+    or setmetatable({}, {
+        __index = function(t,k) return t end,
+        __call = function(t,...) error("cannot call functions") end
+      })
+  local f, res = (loadstring or load)('return '..data, nil, nil, env)
+  if not f then f, res = (loadstring or load)(data, nil, nil, env) end
+  if not f then return f, res end
+  if setfenv then setfenv(f, env) end
+  return pcall(f)
+end
+
+local function merge(a, b) if b then for k,v in pairs(b) do a[k] = v end end; return a; end
+serpent =  { _NAME = n, _COPYRIGHT = c, _DESCRIPTION = d, _VERSION = v, serialize = s,
+  load = deserialize,
+  dump = function(a, opts) return s(a, merge({name = '_', compact = true, sparse = true}, opts)) end,
+  line = function(a, opts) return s(a, merge({sortkeys = true, comment = true}, opts)) end,
+  block = function(a, opts) return s(a, merge({indent = '  ', sortkeys = true, comment = true}, opts)) end }
+
+
+
+require'lfs'
+local DIR = "a:\\tmp\\Mission Stats"
+local result = {}
+for filePath in lfs.dir(DIR) do
+  if lfs.attributes(filePath,"mode") ~= "directory" then 
+    local file = assert(loadfile(DIR.."\\"..filePath))
+    if not file then
+        return
+    end
+    
+    file()
+    for id, stats in pairs(misStats) do
+      local callsign = stats.names
+      if not result[callsign] then 
+        result[callsign] = {}
+      end
+      table.insert(result[callsign],stats)
+    end
+  end
   
-function veafInterpreter.interpret(text)
-    veafInterpreter.logTrace(string.format("veafInterpreter.interpret([%s])",text))
-    local result = nil
-    local p1, p2 = text:find(veafInterpreter.Starter)
-    if p2 then 
-      -- starter has been found
-      text = text:sub(p2 + 1)
-      p1, p2 = text:find(veafInterpreter.Trailer)
-      if p1 then
-        -- trailer has been found
-        result = text:sub(1, p1 - 1)
-      end
-    end
-    return result
+local maxn, to = 12, {number = 'a', string = 'b'}
+print(serpent.block(result))
 end
-
-local text = "#veafInterpreter[\"_spawn group, name RU supply convoy with light defense\"]"
-local command = veafInterpreter.interpret(text)
-print("["..command.."]")
-
-local text = "#veafInterpreter[\"_spawn group, name hawk, country USA\"] #010"
-local command = veafInterpreter.interpret(text)
-print("["..command.."]")
-
-local text = "#command=\"_spawn group, name sa6\" #spawnRadius=250"
-local p1, p2, spawnRadius, command 
-p1, p2, spawnRadius = text:find("#spawnRadius%s*=%s*(%d+)")
-p1, p2, command = text:find("#command%s*=%s*\"(.+)\"")
-print(spawnRadius)
-
-text = "_spawn infantryGroup, size 5"
-print(text:lower():find("_spawn" .. " infantryGroup"))
-print(text:lower():find("_spawn"))
-print(text:lower():find(" infantryGroup"))
-if text:lower():find("_spawn" .. " infantryGroup") then
-  print("bam")
-end
-
-require "veafMissionEditor"
-require "veafMissionRadioPresetsEditor"

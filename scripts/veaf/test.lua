@@ -207,3 +207,5 @@ if text:lower():find("_spawn" .. " infantryGroup") then
   print("bam")
 end
 
+require "veafMissionEditor"
+require "veafMissionRadioPresetsEditor"

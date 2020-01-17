@@ -73,6 +73,28 @@ end
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 require("veafMissionEditor")
 
+-- Save copied tables in `copies`, indexed by original table.
+local function _deepcopy(orig, copies)
+    copies = copies or {}
+    local orig_type = type(orig)
+    local copy
+    if orig_type == 'table' then
+        if copies[orig] then
+            copy = copies[orig]
+        else
+            copy = {}
+            copies[orig] = copy
+            for orig_key, orig_value in next, orig, nil do
+                copy[_deepcopy(orig_key, copies)] = _deepcopy(orig_value, copies)
+            end
+            setmetatable(copy, _deepcopy(getmetatable(orig), copies))
+        end
+    else -- number, string, boolean, etc
+        copy = orig
+    end
+    return copy
+end
+
 function veafMissionRadioPresetsEditor.editUnit(coa_name, country_name, unit_t)
   --veafMissionRadioPresetsEditor.logTrace(string.format("editUnit(%s)",serpent.line(unit_t)))
   local hasBeenEdited = false
@@ -99,8 +121,8 @@ function veafMissionRadioPresetsEditor.editUnit(coa_name, country_name, unit_t)
               veafMissionRadioPresetsEditor.logTrace("Unit type checked")
               -- edit the unit
               veafMissionRadioPresetsEditor.logDebug(string.format("Edited [%s/%s] %s %s (%s) ",coa_name, country_name, unitType, unitName, unitId))
-              unit_t["Radio"] = nil
-              unit_t["Radio"] = setting_t["Radio"]
+              --unit_t["Radio"] = nil
+              unit_t["Radio"] = _deepcopy(setting_t["Radio"])
               hasBeenEdited = true
               break
             end

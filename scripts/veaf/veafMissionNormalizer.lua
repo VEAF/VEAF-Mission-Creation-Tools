@@ -50,9 +50,13 @@ veafMissionNormalizer.Version = "1.0.0"
 -- trace level, specific to this module
 veafMissionNormalizer.Trace = false
 veafMissionNormalizer.Debug = false
+
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Do not change anything below unless you know what you are doing!
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+veafMissionNormalizer.KeysToSortById={}
+veafMissionNormalizer.KeysToSortById["country"]=true
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Utility methods
@@ -83,10 +87,50 @@ end
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 require("veafMissionEditor")
 
+local function _sortTable(t, level)
+  if level == nil then level = 0 end
+
+  -- this function sorts by the value of the "id" key
+  local _sortById = function(a,b)
+    if a and a["id"] then
+      veafMissionNormalizer.logTrace(string.format("_sortById: a[id]=%s",tostring(a["id"])))
+     if b and b["id"] then
+        veafMissionNormalizer.logTrace(string.format("_sortById: b[id]=%s",tostring(b["id"])))
+        return a["id"] < b["id"]
+      else 
+        return false
+      end
+    else 
+      return false
+    end
+  end
+
+  if (type(t) == "table") then
+    -- recurse
+    for key,value in pairs(t) do
+      if veafMissionNormalizer.KeysToSortById[key] then
+        local text = ""
+        for i=0, level do
+            text = text .. "  "
+        end
+        veafMissionNormalizer.logDebug(string.format(text.."sorting by id table [%s]",key))
+        -- sort by id
+        table.sort(value, _sortById)
+      end
+      _sortTable(value, level+1)
+    end
+  end
+
+end
+
 function veafMissionNormalizer.normalizeMission(filePath)
   -- normalize "mission" file
   local _filePath = filePath .. "\\mission"
-  veafMissionEditor.editMission(_filePath, _filePath, "mission")
+  local _processFunction = function(t) 
+    _sortTable(t)
+    return t
+  end
+  veafMissionEditor.editMission(_filePath, _filePath, "mission", nil, _processFunction)
 
   -- normalize "warehouses" file
   _filePath = filePath .. "\\warehouses"

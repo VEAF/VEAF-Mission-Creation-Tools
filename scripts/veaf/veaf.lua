@@ -175,6 +175,82 @@ function veaf.discoverMetadata(o)
 	return text
 end
 
+function veaf.serialize(name, value, level)
+    -- mostly based on slMod serializer 
+  
+    local function _basicSerialize(s)
+      if s == nil then
+        return "\"\""
+      else
+        if ((type(s) == 'number') or (type(s) == 'boolean') or (type(s) == 'function') or (type(s) == 'table') or (type(s) == 'userdata') ) then
+          return tostring(s)
+        elseif type(s) == 'string' then
+          return string.format('%q', s)
+        end
+      end	
+    end
+  
+    -----Based on ED's serialize_simple2
+    local basicSerialize = function(o)
+        if type(o) == "number" then
+            return tostring(o)
+        elseif type(o) == "boolean" then
+            return tostring(o)
+        else -- assume it is a string
+            return _basicSerialize(o)
+        end
+    end
+  
+    local serialize_to_t = function(name, value, level)
+        ----Based on ED's serialize_simple2
+  
+        local var_str_tbl = {}
+        if level == nil then
+            level = ""
+        end
+        if level ~= "" then
+            level = level .. "  "
+        end
+  
+        table.insert(var_str_tbl, level .. name .. " = ")
+  
+        if type(value) == "number" or type(value) == "string" or type(value) == "boolean" then
+            table.insert(var_str_tbl, basicSerialize(value) .. ",\n")
+        elseif type(value) == "table" then
+            table.insert(var_str_tbl, "{\n")
+            local tkeys = {}
+            -- populate the table that holds the keys
+            for k in pairs(value) do table.insert(tkeys, k) end
+            -- sort the keys
+            table.sort(tkeys, _sortNumberOrCaseInsensitive)
+            -- use the keys to retrieve the values in the sorted order
+            for _, k in ipairs(tkeys) do  -- serialize its fields
+              local v = value[k]
+                local key
+                if type(k) == "number" then
+                    key = string.format("[%s]", k)
+                else
+                    key = string.format("[%q]", k)
+                end
+  
+                table.insert(var_str_tbl, veaf.serialize(key, v, level .. "  "))
+            end
+            if level == "" then
+                table.insert(var_str_tbl, level .. "} -- end of " .. name .. "\n")
+            else
+                table.insert(var_str_tbl, level .. "}, -- end of " .. name .. "\n")
+            end
+        else
+            veaf.mainLogError("Cannot serialize a " .. type(value))
+        end
+        return var_str_tbl
+    end
+  
+    local t_str = serialize_to_t(name, value, level)
+  
+    return table.concat(t_str)
+  end
+  
 function veaf.p(o, level)
     if level == nil then level = 0 end
       local text = ""

@@ -108,13 +108,13 @@ function veafInterpreter.interpret(text)
     return result
 end
 
-function veafInterpreter.execute(command, position)
+function veafInterpreter.execute(command, position, spawnedGroups)
     if command == nil then return end
     if position == nil then return end
     veafInterpreter.logTrace(string.format("veafInterpreter.execute([%s],[%s])",command, veaf.vecToString(position)))
 
     -- check for SPAWN module commands
-    if veafSpawn.executeCommand(position, command, true) then
+    if veafSpawn.executeCommand(position, command, true, spawnedGroups) then
         return true
     -- check for NAMED POINT module commands
     elseif veafNamedPoints.executeCommand(position, {text=command, coalition=-1}) then

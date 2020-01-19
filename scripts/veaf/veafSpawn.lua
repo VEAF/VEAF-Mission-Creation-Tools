@@ -143,7 +143,7 @@ function veafSpawn.onEventMarkChange(eventPos, event)
     end
 end
 
-function veafSpawn.executeCommand(eventPos, eventText, fromInterpreter)
+function veafSpawn.executeCommand(eventPos, eventText, fromInterpreter, spawnedGroups)
     -- Check if marker has a text and the veafSpawn.keyphrase keyphrase.
     if eventText ~= nil and (eventText:lower():find(veafSpawn.SpawnKeyphrase) or eventText:lower():find(veafSpawn.DestroyKeyphrase) or eventText:lower():find(veafSpawn.TeleportKeyphrase)) then
         
@@ -151,48 +151,49 @@ function veafSpawn.executeCommand(eventPos, eventText, fromInterpreter)
         local options = veafSpawn.markTextAnalysis(eventText)
 
         if options then
+            local spawnedGroup = nil
 
             -- Check options commands
             if options.unit then
                 -- check security
                 if not (fromInterpreter or veafSecurity.checkSecurity_L9(options.password)) then return end
-                veafSpawn.spawnUnit(eventPos, options.name, options.country, options.speed, options.altitude, options.heading, options.unitName, options.role, options.laserCode, fromInterpreter)
+                spawnedGroup = veafSpawn.spawnUnit(eventPos, options.name, options.country, options.speed, options.altitude, options.heading, options.unitName, options.role, options.laserCode, fromInterpreter)
             elseif options.group then
                 -- check security
                 if not (fromInterpreter or veafSecurity.checkSecurity_L9(options.password)) then return end
-                veafSpawn.spawnGroup(eventPos, options.name, options.country, options.speed, options.altitude, options.heading, options.spacing, options.isConvoy, options.patrol, options.offroad, options.destination, fromInterpreter)
+                spawnedGroup = veafSpawn.spawnGroup(eventPos, options.name, options.country, options.speed, options.altitude, options.heading, options.spacing, options.isConvoy, options.patrol, options.offroad, options.destination, fromInterpreter)
             elseif options.infantryGroup then
                 -- check security
                 if not (fromInterpreter or veafSecurity.checkSecurity_L9(options.password)) then return end
-                veafSpawn.spawnInfantryGroup(eventPos, options.country, options.side, options.heading, options.spacing, options.defense, options.armor, fromInterpreter)
+                spawnedGroup = veafSpawn.spawnInfantryGroup(eventPos, options.country, options.side, options.heading, options.spacing, options.defense, options.armor, fromInterpreter)
             elseif options.armoredPlatoon then
                 -- check security
                 if not (fromInterpreter or veafSecurity.checkSecurity_L9(options.password)) then return end
-                veafSpawn.spawnArmoredPlatoon(eventPos, options.country, options.side, options.heading, options.spacing, options.defense, options.armor, fromInterpreter)
+                spawnedGroup = veafSpawn.spawnArmoredPlatoon(eventPos, options.country, options.side, options.heading, options.spacing, options.defense, options.armor, fromInterpreter)
             elseif options.airDefenseBattery then
                 -- check security
                 if not (fromInterpreter or veafSecurity.checkSecurity_L9(options.password)) then return end
-                veafSpawn.spawnAirDefenseBattery(eventPos, options.country, options.side, options.heading, options.spacing, options.defense, fromInterpreter)
+                spawnedGroup = veafSpawn.spawnAirDefenseBattery(eventPos, options.country, options.side, options.heading, options.spacing, options.defense, fromInterpreter)
             elseif options.transportCompany then
                 -- check security
                 if not (fromInterpreter or veafSecurity.checkSecurity_L9(options.password)) then return end
-                veafSpawn.spawnTransportCompany(eventPos, options.country, options.side, options.heading, options.spacing, options.defense, options.size, fromInterpreter)
+                spawnedGroup = veafSpawn.spawnTransportCompany(eventPos, options.country, options.side, options.heading, options.spacing, options.defense, options.size, fromInterpreter)
             elseif options.fullCombatGroup then
                 -- check security
                 if not (fromInterpreter or veafSecurity.checkSecurity_L9(options.password)) then return end
-                veafSpawn.spawnFullCombatGroup(eventPos, options.country, options.side, options.heading, options.spacing, options.defense, options.armor, options.size, fromInterpreter)
+                spawnedGroup = veafSpawn.spawnFullCombatGroup(eventPos, options.country, options.side, options.heading, options.spacing, options.defense, options.armor, options.size, fromInterpreter)
             elseif options.convoy then
                 -- check security
                 if not (fromInterpreter or veafSecurity.checkSecurity_L9(options.password)) then return end
-                veafSpawn.spawnConvoy(eventPos, options.country, options.patrol, options.offroad, options.destination, options.defense, options.size, options.armor, fromInterpreter)
+                spawnedGroup = veafSpawn.spawnConvoy(eventPos, options.country, options.patrol, options.offroad, options.destination, options.defense, options.size, options.armor, fromInterpreter)
             elseif options.cargo then
                 -- check security
                 if not (fromInterpreter or veafSecurity.checkSecurity_L9(options.password)) then return end
-                veafSpawn.spawnCargo(eventPos, options.cargoType, options.cargoSmoke, options.unitName, fromInterpreter)
+                spawnedGroup = veafSpawn.spawnCargo(eventPos, options.cargoType, options.cargoSmoke, options.unitName, fromInterpreter)
             elseif options.logistic then
                 -- check security
                 if not (fromInterpreter or veafSecurity.checkSecurity_L9(options.password)) then return end
-                veafSpawn.spawnLogistic(eventPos, fromInterpreter)
+                spawnedGroup = veafSpawn.spawnLogistic(eventPos, fromInterpreter)
             elseif options.destroy then
                 -- check security
                 if not (fromInterpreter or veafSecurity.checkSecurity_L1(options.password)) then return end
@@ -209,6 +210,10 @@ function veafSpawn.executeCommand(eventPos, eventText, fromInterpreter)
                 veafSpawn.spawnSmoke(eventPos, options.smokeColor)
             elseif options.flare then
                 veafSpawn.spawnIlluminationFlare(eventPos, options.alt)
+            end
+
+            if spawnedGroups and spawnedGroup then
+                table.insert(spawnedGroups, spawnedGroup)
             end
             return true
         else
@@ -654,6 +659,8 @@ function veafSpawn.spawnGroup(spawnSpot, name, country, speed, alt, hdg, spacing
         -- make it patrol
         mist.ground.patrol(spawnedGroupName, 'doubleBack')
     end
+
+    return spawnedGroupName
 end
 
 function veafSpawn._createDcsUnits(country, units, groupName)
@@ -716,6 +723,8 @@ function veafSpawn.spawnInfantryGroup(eventPos, country, side, heading, spacing,
     if not silent then 
         trigger.action.outText("Spawned dynamic infantry group "..groupName, 5)
     end
+
+    return groupName
 end
 
 --- Spawns a dynamic armored platoon
@@ -738,6 +747,8 @@ function veafSpawn.spawnArmoredPlatoon(eventPos, country, side, heading, spacing
     if not silent then 
         trigger.action.outText("Spawned dynamic armored platoon "..groupName, 5)
     end
+
+    return groupName
 end
 
 --- Spawns a dynamic air defense battery
@@ -760,6 +771,8 @@ function veafSpawn.spawnAirDefenseBattery(eventPos, country, side, heading, spac
     if not silent then 
         trigger.action.outText("Spawned dynamic air defense battery "..groupName, 5)
     end
+
+    return groupName
 end
 
 --- Spawns a dynamic transport company
@@ -782,6 +795,8 @@ function veafSpawn.spawnTransportCompany(eventPos, country, side, heading, spaci
     if not silent then 
         trigger.action.outText("Spawned dynamic transport company "..groupName, 5)
     end
+
+    return groupName
 end
 
 --- Spawns a dynamic full combat group composed of multiple platoons
@@ -798,6 +813,8 @@ function veafSpawn.spawnFullCombatGroup(eventPos, country, side, heading, spacin
     if not silent then 
         trigger.action.outText("Spawned full combat group "..groupName, 5)
     end
+
+    return groupName
 end
 
 --- Spawn a specific group at a specific spot
@@ -871,6 +888,8 @@ function veafSpawn.spawnConvoy(spawnSpot, country, patrol, offroad, destination,
     if not silent then 
         trigger.action.outText("Spawned convoy "..groupName, 5)
     end
+
+    return groupName
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -1000,6 +1019,8 @@ function veafSpawn.spawnUnit(spawnPosition, name, country, speed, alt, hdg, unit
     if not silent then 
         trigger.action.outText("A " .. unit.displayName .. "("..country..") has been spawned", 5)
     end
+
+    return groupName
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -1011,7 +1032,7 @@ function veafSpawn.spawnCargo(spawnSpot, cargoType, cargoSmoke, unitName, silent
     veafSpawn.logDebug("spawnCargo(cargoType = " .. cargoType ..")")
     veafSpawn.logTrace(string.format("spawnCargo: spawnSpot  x=%.1f y=%.1f, z=%.1f", spawnSpot.x, spawnSpot.y, spawnSpot.z))
 
-    veafSpawn.doSpawnCargo(spawnSpot, cargoType, unitName, cargoSmoke, silent)
+    return veafSpawn.doSpawnCargo(spawnSpot, cargoType, unitName, cargoSmoke, silent)
 end
 
 --- Spawn a logistic unit for CTLD at a specific spot

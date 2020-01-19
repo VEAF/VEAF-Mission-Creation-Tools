@@ -72,7 +72,7 @@ veafCasMission = {}
 veafCasMission.Id = "CAS MISSION - "
 
 --- Version.
-veafCasMission.Version = "1.5.4"
+veafCasMission.Version = "1.5.5"
 
 -- trace level, specific to this module
 veafCasMission.Trace = false
@@ -150,8 +150,6 @@ function veafCasMission.onEventMarkChange(eventPos, event)
         if options then
             -- Check options commands
             if options.casmission then
-                -- check security
-                if not veafSecurity.checkSecurity_L1(options.password) then return end
                 -- create the group
                 veafCasMission.generateCasMission(eventPos, options.size, options.defense, options.armor, options.spacing, options.disperseOnAttack)
             end
@@ -785,20 +783,7 @@ function veafCasMission.reportTargetInformation(unitName)
     message = message .. "FROM BULLSEYE    : " .. fromBullseye .. ".\n"
     message = message .. "\n"
 
-    -- get altitude, qfe and wind information
-    local altitude = veaf.getLandHeight(averageGroupPosition)
-    --local qfeHp = mist.utils.getQFE(averageGroupPosition, false)
-    --local qfeinHg = mist.utils.getQFE(averageGroupPosition, true)
-    local windDirection, windStrength = veaf.getWind(veaf.placePointOnLand(averageGroupPosition))
-
-    message = message .. 'TARGET ALT       : ' .. altitude .. " meters.\n"
-    --message = message .. 'TARGET QFW       : ' .. qfeHp .. " hPa / " .. qfeinHg .. " inHg.\n"
-    local windText =     'no wind.\n'
-    if windStrength > 0 then
-        windText = string.format(
-                         'from %s at %s m/s.\n', windDirection, windStrength)
-    end
-    message = message .. 'WIND OVER TARGET : ' .. windText
+    message = message .. veaf.weatherReport(averageGroupPosition)
 
     -- send message only for the unit
     veaf.outTextForUnit(unitName, message, 30)

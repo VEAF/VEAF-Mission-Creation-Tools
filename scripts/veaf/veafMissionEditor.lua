@@ -169,7 +169,7 @@ function veafMissionEditor.processMission(mission)
     return mission -- do nothing
 end
 
-function veafMissionEditor.writeMissionFile(filePath, tableAsLua, tableName)
+function veafMissionEditor.writeMissionFile(filePath, tableAsLua)
     local file, e = io.open(filePath, "w+");
     if not file then
         veafMissionEditor.logError(string.format("Error while writing mission to file [%s]",filePath))

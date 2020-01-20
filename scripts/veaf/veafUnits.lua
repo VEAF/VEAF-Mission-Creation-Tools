@@ -676,6 +676,7 @@ veafUnits.UnitsDatabase = {
 --      number : either a number, which will be the quantity of this unit type spawned ; or a table, with *min* and *max* values that will be used to spawn a random quantity of this unit typ
 --      hdg : the unit heading will mean that, if the group is spawned facing north, this unit will be facing this heading (in degrees). If not set, units will face the group heading
 --      random : if set, the unit will be placed randomly in the cell, leaving a one unit size margin around.
+--      fitToUnit : if set, the cell around the unit will not be a square but a rectangle of the unit's exact size (plus the spacing, if set)
 -- description = human-friendly name for the group
 -- groupName   = name used when spawning this group (will be flavored with a numerical suffix)
 --

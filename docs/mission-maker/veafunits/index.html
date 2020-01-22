@@ -12,20 +12,20 @@
     <title>veafUnits :: VEAF Mission Creation Tools - Documentation</title>
 
     
-    <link href="/VEAF-Mission-Creation-Tools/css/nucleus.css?1579698073" rel="stylesheet">
-    <link href="/VEAF-Mission-Creation-Tools/css/fontawesome-all.min.css?1579698073" rel="stylesheet">
-    <link href="/VEAF-Mission-Creation-Tools/css/hybrid.css?1579698073" rel="stylesheet">
-    <link href="/VEAF-Mission-Creation-Tools/css/featherlight.min.css?1579698073" rel="stylesheet">
-    <link href="/VEAF-Mission-Creation-Tools/css/perfect-scrollbar.min.css?1579698073" rel="stylesheet">
-    <link href="/VEAF-Mission-Creation-Tools/css/auto-complete.css?1579698073" rel="stylesheet">
-    <link href="/VEAF-Mission-Creation-Tools/css/atom-one-dark-reasonable.css?1579698073" rel="stylesheet">
-    <link href="/VEAF-Mission-Creation-Tools/css/theme.css?1579698073" rel="stylesheet">
-    <link href="/VEAF-Mission-Creation-Tools/css/hugo-theme.css?1579698073" rel="stylesheet">
+    <link href="/VEAF-Mission-Creation-Tools/css/nucleus.css?1579698459" rel="stylesheet">
+    <link href="/VEAF-Mission-Creation-Tools/css/fontawesome-all.min.css?1579698459" rel="stylesheet">
+    <link href="/VEAF-Mission-Creation-Tools/css/hybrid.css?1579698459" rel="stylesheet">
+    <link href="/VEAF-Mission-Creation-Tools/css/featherlight.min.css?1579698459" rel="stylesheet">
+    <link href="/VEAF-Mission-Creation-Tools/css/perfect-scrollbar.min.css?1579698459" rel="stylesheet">
+    <link href="/VEAF-Mission-Creation-Tools/css/auto-complete.css?1579698459" rel="stylesheet">
+    <link href="/VEAF-Mission-Creation-Tools/css/atom-one-dark-reasonable.css?1579698459" rel="stylesheet">
+    <link href="/VEAF-Mission-Creation-Tools/css/theme.css?1579698459" rel="stylesheet">
+    <link href="/VEAF-Mission-Creation-Tools/css/hugo-theme.css?1579698459" rel="stylesheet">
     
-      <link href="/VEAF-Mission-Creation-Tools/css/theme-blue.css?1579698073" rel="stylesheet">
+      <link href="/VEAF-Mission-Creation-Tools/css/theme-blue.css?1579698459" rel="stylesheet">
     
 
-    <script src="/VEAF-Mission-Creation-Tools/js/jquery-3.3.1.min.js?1579698073"></script>
+    <script src="/VEAF-Mission-Creation-Tools/js/jquery-3.3.1.min.js?1579698459"></script>
 
     <style>
       :root #header + #content > #left > #rlblock_left{
@@ -42,7 +42,7 @@
 
   <div id="header-wrapper">
     <div id="header">
-      <a href="/"><img src="/images/logo.png" /></a>
+      <a href="/"><img src="/VEAF-Mission-Creation-Tools/images/logo.png" /></a>
 
     </div>
     
@@ -52,14 +52,14 @@
     <span data-search-clear=""><i class="fas fa-times"></i></span>
 </div>
 
-<script type="text/javascript" src="/VEAF-Mission-Creation-Tools/js/lunr.min.js?1579698073"></script>
-<script type="text/javascript" src="/VEAF-Mission-Creation-Tools/js/auto-complete.js?1579698073"></script>
+<script type="text/javascript" src="/VEAF-Mission-Creation-Tools/js/lunr.min.js?1579698459"></script>
+<script type="text/javascript" src="/VEAF-Mission-Creation-Tools/js/auto-complete.js?1579698459"></script>
 <script type="text/javascript">
     
         var baseurl = "https:\/\/veaf.github.io\/VEAF-Mission-Creation-Tools\/";
     
 </script>
-<script type="text/javascript" src="/VEAF-Mission-Creation-Tools/js/search.js?1579698073"></script>
+<script type="text/javascript" src="/VEAF-Mission-Creation-Tools/js/search.js?1579698459"></script>
 
     
   </div>
@@ -549,7 +549,7 @@ Example :</p>
 <p>the <strong>groupName</strong> keyword defines the DCS group name used when spawning this group (will be completed with a numerical suffix)</p>
 <h3 id="group-layout-grid-and-placement-algorithm">Group layout grid and placement algorithm</h3>
 <p>A group template is defined relative to a grid, composed of cells, numbered from left to right and top to bottom :</p>
-<p><img src="/images/group-units-disposition.png?raw=true" alt="group-units-disposition-00" title="group-units-disposition"></p>
+<p><img src="/VEAF-Mission-Creation-Tools/images/group-units-disposition.png?raw=true" alt="group-units-disposition-00" title="group-units-disposition"></p>
 <p>The units in the group will be spawned in their respective cell, or sequentially from the top-left cell if no preferred cell is set.<br>
 Let's describe the algorithm so everything is clear.</p>
 <h4 id="step-1">Step 1</h4>
@@ -557,22 +557,22 @@ Let's describe the algorithm so everything is clear.</p>
 The <strong>disposition</strong> keyword defines this layout.
 Here's an example with the Tarawa group defined above :</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-lua" data-lang="lua">    disposition <span style="color:#f92672">=</span> { h <span style="color:#f92672">=</span> <span style="color:#ae81ff">3</span>, w <span style="color:#f92672">=</span> <span style="color:#ae81ff">3</span>},
-</code></pre></div><p><img src="/images/unitSpawnGridExplanation-01.png?raw=true" alt="unitSpawnGridExplanation-01" title="unitSpawnGridExplanation-01"></p>
+</code></pre></div><p><img src="/VEAF-Mission-Creation-Tools/images/unitSpawnGridExplanation-01.png?raw=true" alt="unitSpawnGridExplanation-01" title="unitSpawnGridExplanation-01"></p>
 <h4 id="step-2">Step 2</h4>
 <p>Then, when a unit is placed in a cell, this cell size grows to accomodate the unit's size.<br>
 We can add a <strong>spacing</strong> parameter (in the spawn method call) if needed, to allow for some freedom inside the cells. When set, the size of the cell will be expanded by the size of the unit <em>times</em> the spacing parameter.</p>
 <p>Let's continue with our example ; here the Tarawa itself is placed in cell #2 :</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-lua" data-lang="lua">    units <span style="color:#f92672">=</span> { {<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">tarawa</span><span style="color:#e6db74">&#34;</span>, <span style="color:#ae81ff">2</span>} ... },
-</code></pre></div><p><img src="/images/unitSpawnGridExplanation-02.png?raw=true" alt="unitSpawnGridExplanation-02" title="unitSpawnGridExplanation-02"></p>
+</code></pre></div><p><img src="/VEAF-Mission-Creation-Tools/images/unitSpawnGridExplanation-02.png?raw=true" alt="unitSpawnGridExplanation-02" title="unitSpawnGridExplanation-02"></p>
 <h4 id="step-3">Step 3</h4>
 <p>This process continues until all the units are placed.<br>
 In our example, we still have to place 2 Perry frigates in cells #7 and #9 :</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-lua" data-lang="lua">    units <span style="color:#f92672">=</span> { ... {<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">PERRY</span><span style="color:#e6db74">&#34;</span>, <span style="color:#ae81ff">7</span>}, {<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">PERRY</span><span style="color:#e6db74">&#34;</span>, <span style="color:#ae81ff">9</span>} },
-</code></pre></div><p><img src="/images/unitSpawnGridExplanation-03.png?raw=true" alt="unitSpawnGridExplanation-03" title="unitSpawnGridExplanation-03"></p>
+</code></pre></div><p><img src="/VEAF-Mission-Creation-Tools/images/unitSpawnGridExplanation-03.png?raw=true" alt="unitSpawnGridExplanation-03" title="unitSpawnGridExplanation-03"></p>
 <h4 id="step-4">Step 4</h4>
 <p>At the end of the process, we need to compute the size of the rectangle that contains all the group units.</p>
 <p>Continuing with our example :</p>
-<p><img src="/images/unitSpawnGridExplanation-04.png?raw=true" alt="unitSpawnGridExplanation-04" title="unitSpawnGridExplanation-04"></p>
+<p><img src="/VEAF-Mission-Creation-Tools/images/unitSpawnGridExplanation-04.png?raw=true" alt="unitSpawnGridExplanation-04" title="unitSpawnGridExplanation-04"></p>
 <p>And we can actually spawn all the units at the center of each cell, with a random variation if the <strong>random</strong> parameter was set</p>
 <h3 id="actual-examples">Actual examples</h3>
 <h4 id="a-seemingly-realistic-russian-air-defense-batteries">A seemingly realistic russian air defense batteries</h4>
@@ -853,19 +853,19 @@ See their specific documentation to find out how.</p>
     <div style="left: -1000px; overflow: scroll; position: absolute; top: -1000px; border: none; box-sizing: content-box; height: 200px; margin: 0px; padding: 0px; width: 200px;">
       <div style="border: none; box-sizing: content-box; height: 200px; margin: 0px; padding: 0px; width: 200px;"></div>
     </div>
-    <script src="/VEAF-Mission-Creation-Tools/js/clipboard.min.js?1579698073"></script>
-    <script src="/VEAF-Mission-Creation-Tools/js/perfect-scrollbar.min.js?1579698073"></script>
-    <script src="/VEAF-Mission-Creation-Tools/js/perfect-scrollbar.jquery.min.js?1579698073"></script>
-    <script src="/VEAF-Mission-Creation-Tools/js/jquery.sticky.js?1579698073"></script>
-    <script src="/VEAF-Mission-Creation-Tools/js/featherlight.min.js?1579698073"></script>
-    <script src="/VEAF-Mission-Creation-Tools/js/highlight.pack.js?1579698073"></script>
+    <script src="/VEAF-Mission-Creation-Tools/js/clipboard.min.js?1579698459"></script>
+    <script src="/VEAF-Mission-Creation-Tools/js/perfect-scrollbar.min.js?1579698459"></script>
+    <script src="/VEAF-Mission-Creation-Tools/js/perfect-scrollbar.jquery.min.js?1579698459"></script>
+    <script src="/VEAF-Mission-Creation-Tools/js/jquery.sticky.js?1579698459"></script>
+    <script src="/VEAF-Mission-Creation-Tools/js/featherlight.min.js?1579698459"></script>
+    <script src="/VEAF-Mission-Creation-Tools/js/highlight.pack.js?1579698459"></script>
     <script>hljs.initHighlightingOnLoad();</script>
-    <script src="/VEAF-Mission-Creation-Tools/js/modernizr.custom-3.6.0.js?1579698073"></script>
-    <script src="/VEAF-Mission-Creation-Tools/js/learn.js?1579698073"></script>
-    <script src="/VEAF-Mission-Creation-Tools/js/hugo-learn.js?1579698073"></script>
+    <script src="/VEAF-Mission-Creation-Tools/js/modernizr.custom-3.6.0.js?1579698459"></script>
+    <script src="/VEAF-Mission-Creation-Tools/js/learn.js?1579698459"></script>
+    <script src="/VEAF-Mission-Creation-Tools/js/hugo-learn.js?1579698459"></script>
 
-    <link href="/VEAF-Mission-Creation-Tools/mermaid/mermaid.css?1579698073" rel="stylesheet" />
-    <script src="/VEAF-Mission-Creation-Tools/mermaid/mermaid.js?1579698073"></script>
+    <link href="/VEAF-Mission-Creation-Tools/mermaid/mermaid.css?1579698459" rel="stylesheet" />
+    <script src="/VEAF-Mission-Creation-Tools/mermaid/mermaid.js?1579698459"></script>
     <script>
         mermaid.initialize({ startOnLoad: true });
     </script>

@@ -148,7 +148,7 @@ the **groupName** keyword defines the DCS group name used when spawning this gro
 
 A group template is defined relative to a grid, composed of cells, numbered from left to right and top to bottom :
 
-![group-units-disposition-00](/images/group-units-disposition.png?raw=true "group-units-disposition")
+![group-units-disposition-00](/VEAF-Mission-Creation-Tools/images/group-units-disposition.png?raw=true "group-units-disposition")
 
 The units in the group will be spawned in their respective cell, or sequentially from the top-left cell if no preferred cell is set.  
 Let's describe the algorithm so everything is clear.
@@ -163,7 +163,7 @@ Here's an example with the Tarawa group defined above :
     disposition = { h = 3, w = 3},
 ```
 
-![unitSpawnGridExplanation-01](/images/unitSpawnGridExplanation-01.png?raw=true "unitSpawnGridExplanation-01")
+![unitSpawnGridExplanation-01](/VEAF-Mission-Creation-Tools/images/unitSpawnGridExplanation-01.png?raw=true "unitSpawnGridExplanation-01")
 
 #### Step 2
 
@@ -176,7 +176,7 @@ Let's continue with our example ; here the Tarawa itself is placed in cell #2 :
     units = { {"tarawa", 2} ... },
 ```
 
-![unitSpawnGridExplanation-02](/images/unitSpawnGridExplanation-02.png?raw=true "unitSpawnGridExplanation-02")
+![unitSpawnGridExplanation-02](/VEAF-Mission-Creation-Tools/images/unitSpawnGridExplanation-02.png?raw=true "unitSpawnGridExplanation-02")
 
 #### Step 3
 
@@ -187,7 +187,7 @@ In our example, we still have to place 2 Perry frigates in cells #7 and #9 :
     units = { ... {"PERRY", 7}, {"PERRY", 9} },
 ```
 
-![unitSpawnGridExplanation-03](/images/unitSpawnGridExplanation-03.png?raw=true "unitSpawnGridExplanation-03")
+![unitSpawnGridExplanation-03](/VEAF-Mission-Creation-Tools/images/unitSpawnGridExplanation-03.png?raw=true "unitSpawnGridExplanation-03")
 
 #### Step 4
 
@@ -195,7 +195,7 @@ At the end of the process, we need to compute the size of the rectangle that con
 
 Continuing with our example :  
 
-![unitSpawnGridExplanation-04](/images/unitSpawnGridExplanation-04.png?raw=true "unitSpawnGridExplanation-04")
+![unitSpawnGridExplanation-04](/VEAF-Mission-Creation-Tools/images/unitSpawnGridExplanation-04.png?raw=true "unitSpawnGridExplanation-04")
 
 And we can actually spawn all the units at the center of each cell, with a random variation if the **random** parameter was set
 

@@ -13,7 +13,7 @@ home = [ "HTML", "RSS", "JSON"]
   # L'URL préfixe pour éditer la page courante. Ce paramètre affichera un bouton "Modifier cette page" on haut de de chacune des pages.
   # Pratique pour donner les possibilité à vos utilisateurs de créer une merge request pour votre doc.
   # Allez voir le fichier config.toml de cette documentation pour avoir un exemple.
-  editURL = "https://github.com/VEAF/VEAF-Mission-Creation-Tools/edit/master/docs/content/"
+  editURL = "https://github.com/VEAF/VEAF-Mission-Creation-Tools/edit/master/documentation/content/"
   # Autheur du site, est utilisé dans les informations meta
   author = ""
   # Description du site, est utilisé dans les informations meta
@@ -47,27 +47,7 @@ home = [ "HTML", "RSS", "JSON"]
   weight = 1
   languageName = "English"
 
-  [Languages.fr]
-  title = "VEAF Mission Creation Tools - Documentation"
-  weight = 2
-  languageName = "Français"
-
-  [[Languages.fr.menu.shortcuts]]
-  name = "<i class='fas fa-fighter-jet'></i> Site de la VEAF"
-  url = "http://www.veaf.org"
-  weight = 20
-
-  [[Languages.fr.menu.shortcuts]]
-  name = "<i class='fas fa-bullhorn'></i> Crédits"
-  url = "/credits"
-  weight = 30
-
   [[Languages.en.menu.shortcuts]]
   name = "<i class='fas fa-fighter-jet'></i> VEAF home"
   url = "http://www.veaf.org"
   weight = 20
-
-  [[Languages.en.menu.shortcuts]]
-  name = "<i class='fas fa-bullhorn'></i> Credits"
-  url = "/credits"
-  weight = 30

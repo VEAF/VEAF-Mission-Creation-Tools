@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+  xmlns:xhtml="http://www.w3.org/1999/xhtml">
+  
+  <url>
+    <loc>https://veaf.github.io/VEAF-Mission-Creation-Tools/credits/</loc>
+  </url>
+  
+  <url>
+    <loc>https://veaf.github.io/VEAF-Mission-Creation-Tools/mission-maker/</loc>
+  </url>
+  
+  <url>
+    <loc>https://veaf.github.io/VEAF-Mission-Creation-Tools/mission-programmer/</loc>
+  </url>
+  
+  <url>
+    <loc>https://veaf.github.io/VEAF-Mission-Creation-Tools/mission-maker/veafassets/</loc>
+  </url>
+  
+  <url>
+    <loc>https://veaf.github.io/VEAF-Mission-Creation-Tools/mission-maker/veafcarrieroperations/</loc>
+  </url>
+  
+  <url>
+    <loc>https://veaf.github.io/VEAF-Mission-Creation-Tools/mission-maker/veafgrass/</loc>
+  </url>
+  
+  <url>
+    <loc>https://veaf.github.io/VEAF-Mission-Creation-Tools/mission-maker/veafspawn/</loc>
+  </url>
+  
+  <url>
+    <loc>https://veaf.github.io/VEAF-Mission-Creation-Tools/mission-maker/veafunits/</loc>
+  </url>
+  
+  <url>
+    <loc>https://veaf.github.io/VEAF-Mission-Creation-Tools/</loc>
+    <priority>0</priority>
+    <xhtml:link
+                rel="alternate"
+                hreflang="fr"
+                href="https://veaf.github.io/VEAF-Mission-Creation-Tools/fr/"
+                />
+    <xhtml:link
+                rel="alternate"
+                hreflang="en"
+                href="https://veaf.github.io/VEAF-Mission-Creation-Tools/"
+                />
+  </url>
+  
+  <url>
+    <loc>https://veaf.github.io/VEAF-Mission-Creation-Tools/mission-maker/group-list/</loc>
+    <priority>0</priority>
+  </url>
+  
+  <url>
+    <loc>https://veaf.github.io/VEAF-Mission-Creation-Tools/mission-maker/unit-list/</loc>
+    <priority>0</priority>
+  </url>
+  
+  <url>
+    <loc>https://veaf.github.io/VEAF-Mission-Creation-Tools/categories/</loc>
+    <xhtml:link
+                rel="alternate"
+                hreflang="fr"
+                href="https://veaf.github.io/VEAF-Mission-Creation-Tools/fr/categories/"
+                />
+    <xhtml:link
+                rel="alternate"
+                hreflang="en"
+                href="https://veaf.github.io/VEAF-Mission-Creation-Tools/categories/"
+                />
+  </url>
+  
+  <url>
+    <loc>https://veaf.github.io/VEAF-Mission-Creation-Tools/tags/</loc>
+    <xhtml:link
+                rel="alternate"
+                hreflang="fr"
+                href="https://veaf.github.io/VEAF-Mission-Creation-Tools/fr/tags/"
+                />
+    <xhtml:link
+                rel="alternate"
+                hreflang="en"
+                href="https://veaf.github.io/VEAF-Mission-Creation-Tools/tags/"
+                />
+  </url>
+  
+</urlset>

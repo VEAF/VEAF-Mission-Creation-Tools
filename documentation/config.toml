@@ -1,0 +1,73 @@
+baseURL = "https://veaf.github.io/VEAF-Mission-Creation-Tools/"
+languageCode = "en-en"
+title = "VEAF Mission Creation Tools - Documentation"
+
+# Modifiez le thème pour qu'il soit utilisé par défaut à chaque génération de site.
+theme = "hugo-theme-learn"
+
+# Pour la fonctionnalité de recherche
+[outputs]
+home = [ "HTML", "RSS", "JSON"]
+
+[params]
+  # L'URL préfixe pour éditer la page courante. Ce paramètre affichera un bouton "Modifier cette page" on haut de de chacune des pages.
+  # Pratique pour donner les possibilité à vos utilisateurs de créer une merge request pour votre doc.
+  # Allez voir le fichier config.toml de cette documentation pour avoir un exemple.
+  editURL = "https://github.com/VEAF/VEAF-Mission-Creation-Tools/edit/master/docs/content/"
+  # Autheur du site, est utilisé dans les informations meta
+  author = ""
+  # Description du site, est utilisé dans les informations meta
+  description = ""
+  # Affiche une icône lorsque la page a été visitée
+  showVisitedLinks = false
+  # Désactive la fonction de recherche. Une valeur à true cache la barre de recherche.
+  disableSearch = false
+  # Par défaut, le cache Javascript et CSS est automatiquement vidé lorsqu'une nouvelle version du site est générée.
+  # Utilisez ce paramètre lorsque vous voulez désactiver ce comportement (c'est parfois incompatible avec certains proxys)
+  disableAssetsBusting = false
+  # Utilisez ce paramètre pour désactiver le bouton copy-to-clipboard pour le code formatté sur une ligne.
+  disableInlineCopyToClipBoard = false
+  # Un titre est défini par défaut lorsque vous utilisez un raccourci dans le menu. Utilisez ce paramètre pour le cacher.
+  disableShortcutsTitle = false
+  # Quand vous utilisez un site multi-langue, utilisez ce paramètre pour désactiver le bouton de changement de langue.
+  disableLanguageSwitchingButton = false
+  # Ordonne les sections dans menu par poids ("weight") ou titre ("title"). Défaut à "weight"
+  ordersectionsby = "weight"
+  # Utilisez ce paramètre pour modifier le schéma de couleur du site. Les valeurs par défaut sont "red", "blue", "green".
+  themeVariant = "blue"
+  relativeURLs="true" 
+  # Anglais est la langue par défaut
+  defaultContentLanguage = "en"
+  # Force d'avoir /en/ma-page et /fr/ma-page routes, même avec la langue par défaut.
+  defaultContentLanguageInSubdir= true
+
+  [Languages]
+  [Languages.en]
+  title = "VEAF Mission Creation Tools - Documentation"
+  weight = 1
+  languageName = "English"
+
+  [Languages.fr]
+  title = "VEAF Mission Creation Tools - Documentation"
+  weight = 2
+  languageName = "Français"
+
+  [[Languages.fr.menu.shortcuts]]
+  name = "<i class='fas fa-fighter-jet'></i> Site de la VEAF"
+  url = "http://www.veaf.org"
+  weight = 20
+
+  [[Languages.fr.menu.shortcuts]]
+  name = "<i class='fas fa-bullhorn'></i> Crédits"
+  url = "/credits"
+  weight = 30
+
+  [[Languages.en.menu.shortcuts]]
+  name = "<i class='fas fa-fighter-jet'></i> VEAF home"
+  url = "http://www.veaf.org"
+  weight = 20
+
+  [[Languages.en.menu.shortcuts]]
+  name = "<i class='fas fa-bullhorn'></i> Credits"
+  url = "/credits"
+  weight = 30

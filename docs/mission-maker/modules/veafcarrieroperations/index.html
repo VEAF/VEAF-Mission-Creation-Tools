@@ -9,7 +9,7 @@
 
     <link rel="icon" href="/VEAF-Mission-Creation-Tools/images/favicon.png" type="image/png">
 
-    <title>Mission programmer :: VEAF Mission Creation Tools - Documentation</title>
+    <title>veafCarrierOperations :: VEAF Mission Creation Tools - Documentation</title>
 
     
     <link href="/VEAF-Mission-Creation-Tools/css/nucleus.css?1580073791" rel="stylesheet">
@@ -35,7 +35,7 @@
     </style>
     
   </head>
-  <body class="" data-url="/VEAF-Mission-Creation-Tools/mission-programmer/">
+  <body class="" data-url="/VEAF-Mission-Creation-Tools/mission-maker/modules/veafcarrieroperations/">
     <nav id="sidebar" class="">
 
 
@@ -76,7 +76,7 @@
   
     
     <li data-nav-id="/VEAF-Mission-Creation-Tools/mission-maker/" title="Mission maker" class="dd-item 
-        
+        parent
         
         
         ">
@@ -122,7 +122,7 @@
   
     
     <li data-nav-id="/VEAF-Mission-Creation-Tools/mission-maker/modules/" title="Modules" class="dd-item 
-        
+        parent
         
         
         ">
@@ -184,7 +184,7 @@
  
   
     
-      <li data-nav-id="/VEAF-Mission-Creation-Tools/mission-maker/modules/veafcarrieroperations/" title="veafCarrierOperations" class="dd-item ">
+      <li data-nav-id="/VEAF-Mission-Creation-Tools/mission-maker/modules/veafcarrieroperations/" title="veafCarrierOperations" class="dd-item active">
         <a href="/VEAF-Mission-Creation-Tools/mission-maker/modules/veafcarrieroperations/">
         veafCarrierOperations
         
@@ -383,8 +383,8 @@
   
     
     <li data-nav-id="/VEAF-Mission-Creation-Tools/mission-programmer/" title="Mission programmer" class="dd-item 
-        parent
-        active
+        
+        
         
         ">
       <a href="/VEAF-Mission-Creation-Tools/mission-programmer/">
@@ -438,7 +438,7 @@
                   
                   
                   <div id="top-github-link">
-                    <a class="github-link" title='Edit this page' href="https://github.com/VEAF/VEAF-Mission-Creation-Tools/edit/master/documentation/content/Mission%20programmer/_index.md" target="blank">
+                    <a class="github-link" title='Edit this page' href="https://github.com/VEAF/VEAF-Mission-Creation-Tools/edit/master/documentation/content/Mission%20maker/modules/veafCarrierOperations.md" target="blank">
                       <i class="fas fa-code-branch"></i>
                       <span id="top-github-link-text">Edit this page</span>
                     </a>
@@ -465,7 +465,19 @@
             
           
           
-            <a href='/VEAF-Mission-Creation-Tools/'></a> > Mission programmer
+            
+            
+          
+          
+            
+            
+          
+          
+            <a href='/VEAF-Mission-Creation-Tools/'></a> > <a href='/VEAF-Mission-Creation-Tools/mission-maker/'>Mission maker</a> > <a href='/VEAF-Mission-Creation-Tools/mission-maker/modules/'>Modules</a> > veafCarrierOperations
+          
+         
+          
+         
           
          
           
@@ -479,6 +491,13 @@
 <nav id="TableOfContents">
   <ul>
     <li><a href="#introduction">Introduction</a></li>
+    <li><a href="#how-to-set-up-a-mission">How to set up a mission</a>
+      <ul>
+        <li><a href="#load-the-script-and-its-prerequisites">Load the script and its prerequisites</a></li>
+        <li><a href="#how-to-configure-the-script-in-a-mission">How to configure the script in a mission</a></li>
+      </ul>
+    </li>
+    <li><a href="#how-to-use-in-a-mission">How to use in a mission</a></li>
   </ul>
 </nav>
     </div>
@@ -496,7 +515,7 @@
           
             <h1>
               
-              Mission programmer
+              veafCarrierOperations
             </h1>
           
 
@@ -504,17 +523,50 @@
 
 
 
-
-	<h2 id="introduction">Introduction</h2>
-<p>TODO</p>
-
-
-
+<h2 id="introduction">Introduction</h2>
+<p>This module creates a radio menu (VEAF / CARRIER OPERATIONS) that allows the players to manage the aircraft carriers (CV) in the mission, at runtime.</p>
+<p>For each CV, they can get information (including ATC) and start/end carrier air operations (CAO).
+During CAO, the CV will sail into the wind at a speed and heading computed to get a specific wind speed right in front of the runway. A rescue helicopter (Pedro) and an emergency tanker can be placed in the mission and will be launched and recovered at appropriate times.
+After some time (45 or 90 minutes), it will automatically sail at flank speed to its initial position.</p>
+<h2 id="how-to-set-up-a-mission">How to set up a mission</h2>
+<p>Let's start by saying that you can clone the <em><a href="https://github.com/VEAF/VEAF-Demo-Mission">VEAF-Demo-Mission</a></em> repository and use it as an example (or fork it and create a new mission from your fork).</p>
+<h3 id="load-the-script-and-its-prerequisites">Load the script and its prerequisites</h3>
+<p>In DCS mission editor, set up a &ldquo;mission start&rdquo; trigger that will :</p>
+<ul>
+<li>load the following scripts (in order) :
+<ul>
+<li>mist.lua (from the <em>community</em> folder)</li>
+<li>veaf.lua</li>
+<li>veafRadio.lua</li>
+<li>veafCarrierOperations.lua</li>
+</ul>
+</li>
+<li>run the following lua code : <code>veafRadio.initialize();veafCarrierOperations.initialize();</code></li>
+</ul>
+<h3 id="how-to-configure-the-script-in-a-mission">How to configure the script in a mission</h3>
+<p>The name that is given to the CV is central to all the configuration of this module.
+For example, let's consider a John C. Stennis aircraft carrier steaming along its escort group.</p>
+<ul>
+<li>the DCS group is named &ldquo;<em>CSG-74 Stennis</em>&rdquo; (Carrier Strike Group)</li>
+<li>the aircraft carrier (DCS unit) is named &ldquo;<em>CVN-74 Stennis</em>&rdquo; (Cruiser Voler Nuclear, the acronym used by americans for their nuclear aircraft carriers)</li>
+<li>the Pedro helicopter (DCS unit) is aptly named &ldquo;<em>CVN-74 Stennis Pedro</em>&rdquo;</li>
+<li>the S3-B tanker (DCS unit) is named &ldquo;<em>CVN-74 Stennis S3B-Tanker</em>&rdquo;</li>
+</ul>
+<p>The script first searches for aircraft carriers in the mission.
+For each aircraft carriers, it searches for units with the same name concatenated with &quot; Pedro&rdquo; (these are the rescue helos) and with &quot; S3B-Tanker&rdquo; (these are the emergency tankers)</p>
+<h2 id="how-to-use-in-a-mission">How to use in a mission</h2>
+<p>Use the radio menus to :</p>
+<ul>
+<li>start the carrier air operations (CAO) for a specific carrier, either for 45 or 90 minutes (available only when they are not yet started)</li>
+<li>stop the CAO (available only when they are started)</li>
+<li>request information (ATC, recovery bearing, etc.)</li>
+</ul>
 
 
 <footer class=" footline" >
 	
 </footer>
+
 
         
         </div> 
@@ -547,8 +599,6 @@
             
                 
                     
-                        
-                        
                     
                 
                 
@@ -564,6 +614,9 @@
             
             
                 
+                    
+                        
+                        
                     
                 
                 
@@ -581,6 +634,7 @@
             
                 
                     
+                    
                 
                 
 
@@ -594,37 +648,8 @@
             
                 
                     
-                
-                
-
-                    
-                    
-                    
-
-                    
-            
-        
-                    
                         
-            
-            
-                
-                    
-                
-                
-
-                    
-                    
-                    
-
-                    
-            
-        
-                    
                         
-            
-            
-                
                     
                 
                 
@@ -658,6 +683,7 @@
             
                 
                     
+                    
                 
                 
 
@@ -665,9 +691,6 @@
                     
                     
 
-                    
-            
-        
                     
             
         
@@ -677,6 +700,9 @@
             
                 
                     
+                        
+                        
+                    
                 
                 
 
@@ -684,6 +710,9 @@
                     
                     
 
+                    
+            
+        
                     
                         
             
@@ -733,6 +762,38 @@
             
         
                     
+            
+        
+                    
+                        
+            
+            
+                
+                    
+                
+                
+
+                    
+                    
+                    
+
+                    
+                        
+            
+            
+                
+                    
+                
+                
+
+                    
+                    
+                    
+
+                    
+            
+        
+                    
                         
             
             
@@ -759,7 +820,6 @@
             
             
                 
-                    
                     
                 
                 
@@ -781,10 +841,10 @@
 	 
 	 
 		
-			<a class="nav nav-prev" href="/VEAF-Mission-Creation-Tools/mission-maker/references/unit-list/" title="Units list"> <i class="fa fa-chevron-left"></i></a>
+			<a class="nav nav-prev" href="/VEAF-Mission-Creation-Tools/mission-maker/modules/veafgrass/" title="veafGrass"> <i class="fa fa-chevron-left"></i></a>
 		
 		
-			<a class="nav nav-next" href="/VEAF-Mission-Creation-Tools/mission-maker/" title="Mission maker" style="margin-right: 0px;"><i class="fa fa-chevron-right"></i></a>
+			<a class="nav nav-next" href="/VEAF-Mission-Creation-Tools/mission-maker/modules/veafunits/" title="veafUnits" style="margin-right: 0px;"><i class="fa fa-chevron-right"></i></a>
 		
 	
     </div>
@@ -814,3 +874,4 @@
 
   </body>
 </html>
+

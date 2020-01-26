@@ -9,7 +9,7 @@
 
     <link rel="icon" href="/VEAF-Mission-Creation-Tools/images/favicon.png" type="image/png">
 
-    <title>Mission programmer :: VEAF Mission Creation Tools - Documentation</title>
+    <title>veafGrass :: VEAF Mission Creation Tools - Documentation</title>
 
     
     <link href="/VEAF-Mission-Creation-Tools/css/nucleus.css?1580073791" rel="stylesheet">
@@ -35,7 +35,7 @@
     </style>
     
   </head>
-  <body class="" data-url="/VEAF-Mission-Creation-Tools/mission-programmer/">
+  <body class="" data-url="/VEAF-Mission-Creation-Tools/mission-maker/modules/veafgrass/">
     <nav id="sidebar" class="">
 
 
@@ -76,7 +76,7 @@
   
     
     <li data-nav-id="/VEAF-Mission-Creation-Tools/mission-maker/" title="Mission maker" class="dd-item 
-        
+        parent
         
         
         ">
@@ -122,7 +122,7 @@
   
     
     <li data-nav-id="/VEAF-Mission-Creation-Tools/mission-maker/modules/" title="Modules" class="dd-item 
-        
+        parent
         
         
         ">
@@ -165,7 +165,7 @@
  
   
     
-      <li data-nav-id="/VEAF-Mission-Creation-Tools/mission-maker/modules/veafgrass/" title="veafGrass" class="dd-item ">
+      <li data-nav-id="/VEAF-Mission-Creation-Tools/mission-maker/modules/veafgrass/" title="veafGrass" class="dd-item active">
         <a href="/VEAF-Mission-Creation-Tools/mission-maker/modules/veafgrass/">
         veafGrass
         
@@ -383,8 +383,8 @@
   
     
     <li data-nav-id="/VEAF-Mission-Creation-Tools/mission-programmer/" title="Mission programmer" class="dd-item 
-        parent
-        active
+        
+        
         
         ">
       <a href="/VEAF-Mission-Creation-Tools/mission-programmer/">
@@ -438,7 +438,7 @@
                   
                   
                   <div id="top-github-link">
-                    <a class="github-link" title='Edit this page' href="https://github.com/VEAF/VEAF-Mission-Creation-Tools/edit/master/documentation/content/Mission%20programmer/_index.md" target="blank">
+                    <a class="github-link" title='Edit this page' href="https://github.com/VEAF/VEAF-Mission-Creation-Tools/edit/master/documentation/content/Mission%20maker/modules/veafGrass.md" target="blank">
                       <i class="fas fa-code-branch"></i>
                       <span id="top-github-link-text">Edit this page</span>
                     </a>
@@ -465,7 +465,19 @@
             
           
           
-            <a href='/VEAF-Mission-Creation-Tools/'></a> > Mission programmer
+            
+            
+          
+          
+            
+            
+          
+          
+            <a href='/VEAF-Mission-Creation-Tools/'></a> > <a href='/VEAF-Mission-Creation-Tools/mission-maker/'>Mission maker</a> > <a href='/VEAF-Mission-Creation-Tools/mission-maker/modules/'>Modules</a> > veafGrass
+          
+         
+          
+         
           
          
           
@@ -479,6 +491,13 @@
 <nav id="TableOfContents">
   <ul>
     <li><a href="#introduction">Introduction</a></li>
+    <li><a href="#how-to-set-up-a-mission">How to set up a mission</a>
+      <ul>
+        <li><a href="#load-the-script-and-its-prerequisites">Load the script and its prerequisites</a></li>
+        <li><a href="#place-the-units-in-the-mission">Place the units in the mission</a></li>
+      </ul>
+    </li>
+    <li><a href="#how-to-use-in-a-mission">How to use in a mission</a></li>
   </ul>
 </nav>
     </div>
@@ -496,7 +515,7 @@
           
             <h1>
               
-              Mission programmer
+              veafGrass
             </h1>
           
 
@@ -504,17 +523,38 @@
 
 
 
-
-	<h2 id="introduction">Introduction</h2>
-<p>TODO</p>
-
-
-
+<h2 id="introduction">Introduction</h2>
+<p>This module helps place a Forward Armament and Refuel Point (FARP) in a mission.
+It also helps with grass runways (hence its name).
+The mission creator simply has to place one or few units in the DCS mission editor, and name them following a specific convention; the script will then automatically find and dress these units up at mission start.</p>
+<h2 id="how-to-set-up-a-mission">How to set up a mission</h2>
+<p>Let's start by saying that you can clone the <em><a href="https://github.com/VEAF/VEAF-Demo-Mission">VEAF-Demo-Mission</a></em> repository and use it as an example (or fork it and create a new mission from your fork).</p>
+<h3 id="load-the-script-and-its-prerequisites">Load the script and its prerequisites</h3>
+<p>In DCS mission editor, set up a &ldquo;mission start&rdquo; trigger that will :</p>
+<ul>
+<li>load the following scripts (in order) :
+<ul>
+<li>mist.lua (from the <em>community</em> folder)</li>
+<li>veaf.lua</li>
+<li>veafGrass.lua</li>
+</ul>
+</li>
+<li>run the following lua code : <code>veafGrass.initialize();</code></li>
+</ul>
+<h3 id="place-the-units-in-the-mission">Place the units in the mission</h3>
+<p>There are two naming conventions that you can use with this script:</p>
+<ul>
+<li>units with &ldquo;FARP &quot; in their name will trigger the creation of a FARP; tents and other static objects like generators, ammo dumps, a windsock will be placed around the unit; supply vehicles (mandatory for rearming, refueling and getting external power) will be spawned; the FARP will also be added to the named points database (see <a href="namedPoints.md">namedPoints</a>)</li>
+<li>units with &ldquo;GRASS_RUNWAY&rdquo; in their name will trigger the creation of a grass runway by replicating the unit to form two parallel lines, add a guard tower, a windsock and also add the grass runway to the named points database (see <a href="namedPoints.md">namedPoints</a>)</li>
+</ul>
+<h2 id="how-to-use-in-a-mission">How to use in a mission</h2>
+<p>Nothing to do ; at mission start the script will automatically run, and then the FARPs and grass runways will be available for the players.</p>
 
 
 <footer class=" footline" >
 	
 </footer>
+
 
         
         </div> 
@@ -547,8 +587,6 @@
             
                 
                     
-                        
-                        
                     
                 
                 
@@ -564,6 +602,9 @@
             
             
                 
+                    
+                        
+                        
                     
                 
                 
@@ -581,6 +622,7 @@
             
                 
                     
+                    
                 
                 
 
@@ -593,6 +635,9 @@
             
             
                 
+                    
+                        
+                        
                     
                 
                 
@@ -610,21 +655,6 @@
             
                 
                     
-                
-                
-
-                    
-                    
-                    
-
-                    
-            
-        
-                    
-                        
-            
-            
-                
                     
                 
                 
@@ -641,6 +671,9 @@
             
             
                 
+                    
+                        
+                        
                     
                 
                 
@@ -668,22 +701,6 @@
                     
             
         
-                    
-            
-        
-                    
-                        
-            
-            
-                
-                    
-                
-                
-
-                    
-                    
-                    
-
                     
                         
             
@@ -733,6 +750,38 @@
             
         
                     
+            
+        
+                    
+                        
+            
+            
+                
+                    
+                
+                
+
+                    
+                    
+                    
+
+                    
+                        
+            
+            
+                
+                    
+                
+                
+
+                    
+                    
+                    
+
+                    
+            
+        
+                    
                         
             
             
@@ -759,7 +808,6 @@
             
             
                 
-                    
                     
                 
                 
@@ -781,10 +829,10 @@
 	 
 	 
 		
-			<a class="nav nav-prev" href="/VEAF-Mission-Creation-Tools/mission-maker/references/unit-list/" title="Units list"> <i class="fa fa-chevron-left"></i></a>
+			<a class="nav nav-prev" href="/VEAF-Mission-Creation-Tools/mission-maker/modules/veafassets/" title="veafAssets"> <i class="fa fa-chevron-left"></i></a>
 		
 		
-			<a class="nav nav-next" href="/VEAF-Mission-Creation-Tools/mission-maker/" title="Mission maker" style="margin-right: 0px;"><i class="fa fa-chevron-right"></i></a>
+			<a class="nav nav-next" href="/VEAF-Mission-Creation-Tools/mission-maker/modules/veafcarrieroperations/" title="veafCarrierOperations" style="margin-right: 0px;"><i class="fa fa-chevron-right"></i></a>
 		
 	
     </div>
@@ -814,3 +862,4 @@
 
   </body>
 </html>
+

@@ -3,7 +3,7 @@
   xmlns:xhtml="http://www.w3.org/1999/xhtml">
   
   <url>
-    <loc>https://veaf.github.io/VEAF-Mission-Creation-Tools/mission-maker/ctld/</loc>
+    <loc>https://veaf.github.io/VEAF-Mission-Creation-Tools/mission-maker/demo-mission/</loc>
   </url>
   
   <url>
@@ -15,37 +15,51 @@
   </url>
   
   <url>
-    <loc>https://veaf.github.io/VEAF-Mission-Creation-Tools/mission-maker/veafassets/</loc>
+    <loc>https://veaf.github.io/VEAF-Mission-Creation-Tools/mission-maker/modules/</loc>
   </url>
   
   <url>
-    <loc>https://veaf.github.io/VEAF-Mission-Creation-Tools/mission-maker/veafcarrieroperations/</loc>
+    <loc>https://veaf.github.io/VEAF-Mission-Creation-Tools/mission-maker/modules/veafassets/</loc>
   </url>
   
   <url>
-    <loc>https://veaf.github.io/VEAF-Mission-Creation-Tools/mission-maker/veafgrass/</loc>
+    <loc>https://veaf.github.io/VEAF-Mission-Creation-Tools/mission-maker/modules/veafgrass/</loc>
   </url>
   
   <url>
-    <loc>https://veaf.github.io/VEAF-Mission-Creation-Tools/mission-maker/veafspawn/</loc>
+    <loc>https://veaf.github.io/VEAF-Mission-Creation-Tools/mission-maker/modules/veafcarrieroperations/</loc>
   </url>
   
   <url>
-    <loc>https://veaf.github.io/VEAF-Mission-Creation-Tools/mission-maker/veafunits/</loc>
+    <loc>https://veaf.github.io/VEAF-Mission-Creation-Tools/mission-maker/modules/veafunits/</loc>
+  </url>
+  
+  <url>
+    <loc>https://veaf.github.io/VEAF-Mission-Creation-Tools/mission-maker/modules/veafspawn/</loc>
+  </url>
+  
+  <url>
+    <loc>https://veaf.github.io/VEAF-Mission-Creation-Tools/mission-maker/third-party/</loc>
+  </url>
+  
+  <url>
+    <loc>https://veaf.github.io/VEAF-Mission-Creation-Tools/mission-maker/third-party/ctld/</loc>
+  </url>
+  
+  <url>
+    <loc>https://veaf.github.io/VEAF-Mission-Creation-Tools/mission-maker/references/</loc>
+  </url>
+  
+  <url>
+    <loc>https://veaf.github.io/VEAF-Mission-Creation-Tools/mission-maker/references/group-list/</loc>
+  </url>
+  
+  <url>
+    <loc>https://veaf.github.io/VEAF-Mission-Creation-Tools/mission-maker/references/unit-list/</loc>
   </url>
   
   <url>
     <loc>https://veaf.github.io/VEAF-Mission-Creation-Tools/</loc>
-    <priority>0</priority>
-  </url>
-  
-  <url>
-    <loc>https://veaf.github.io/VEAF-Mission-Creation-Tools/mission-maker/group-list/</loc>
-    <priority>0</priority>
-  </url>
-  
-  <url>
-    <loc>https://veaf.github.io/VEAF-Mission-Creation-Tools/mission-maker/unit-list/</loc>
     <priority>0</priority>
   </url>
   

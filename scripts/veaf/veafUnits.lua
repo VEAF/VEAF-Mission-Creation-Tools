@@ -50,6 +50,9 @@ veafUnits.DefaultCellWidth = 10
 --- If no unit is spawned in a cell, it will default to this height
 veafUnits.DefaultCellHeight = 10
 
+--- if true, the groups and units lists will be printed to the logs, so they can be saved to the documentation files
+veafUnits.OutputListsForDocumentation = false
+
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Do not change anything below unless you know what you are doing!
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -621,6 +624,87 @@ function veafUnits.placeGroup(group, spawnPoint, spacing, hdg)
     return group, cells
 end
 
+function veafUnits.logGroupsListInMarkdown()
+    local function _sortGroupNameCaseInsensitive(g1,g2)
+        if g1 and g1.group and g1.group.groupName and g2 and g2.group and g2.group.groupName then
+            return string.lower(g1.group.groupName) < string.lower(g2.group.groupName)
+        else
+            return string.lower(g1) < string.lower(g2)
+        end
+    end
+        
+    local text = [[
+This goes in [documentation\content\Mission maker\references\group-list.md]:
+
+|Name|Description|Aliases|
+|--|--|--|
+]]
+    veafUnits.logInfo(text)
+
+    -- make a copy of the table
+    local groupsCopy = {}
+    for _, g in pairs(veafUnits.GroupsDatabase) do 
+        if not g.hidden then 
+            table.insert(groupsCopy, g) 
+        end 
+    end
+    -- sort the copy
+    table.sort(groupsCopy, _sortGroupNameCaseInsensitive)
+    -- use the keys to retrieve the values in the sorted order
+    for _, g in pairs(groupsCopy) do  
+        text = "|" .. g.group.groupName .. "|" .. g.group.description .. "|" .. table.concat(g.aliases, ", ") .. "|\n" 
+        veafUnits.logInfo(text)
+    end
+end
+
+function veafUnits.logUnitsListInMarkdown()
+    local function _sortUnitNameCaseInsensitive(u1,u2)
+        if u1 and u1.name and u2 and u2.name then
+            return string.lower(u1.name) < string.lower(u2.name)
+        else
+            return string.lower(u1) < string.lower(u2)
+        end
+    end
+        
+    local text = [[
+This goes in [documentation\content\Mission maker\references\units-list.md]:
+
+|Name|Description|Aliases|
+|--|--|--|
+]]
+    veafUnits.logInfo(text)
+    -- make a copy of the table
+    local units = {}
+    for k, data in pairs(dcsUnits.DcsUnitsDatabase) do 
+        local u = { name = k }
+        for _, aliasData in pairs(veafUnits.UnitsDatabase) do 
+            if aliasData and aliasData.unitType and string.lower(aliasData.unitType) == string.lower(k) then 
+                u.aliases = aliasData.aliases
+            end
+        end
+        if data then
+            u.description = data.description
+            u.typeName = data.type
+        end
+        table.insert(units, u) 
+    end
+    -- sort the copy
+    table.sort(units, _sortUnitNameCaseInsensitive)
+    -- use the keys to retrieve the values in the sorted order
+    for _, u in pairs(units) do  -- serialize its fields
+        text = "|" .. u.name .. "|" 
+        if u.description then 
+            text = text .. u.description 
+        end
+        text = text .. "|" 
+        if u.aliases then 
+            text = text .. table.concat(u.aliases, ", ")
+        end
+        text = text .. "|"
+        veafUnits.logInfo(text)
+    end
+end
+
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Units databases
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -945,7 +1029,7 @@ veafUnits.GroupsDatabase = {
     ---
     {
         aliases = {"generateAirDefenseGroup-BLUE-5"},
-        hidden,
+        hidden = true,
         group = {
             disposition = { h= 7, w= 7},
             units = {
@@ -964,7 +1048,7 @@ veafUnits.GroupsDatabase = {
     },
     {
         aliases = {"generateAirDefenseGroup-BLUE-4"},
-        hidden,
+        hidden = true,
         group = {
             disposition = { h= 7, w= 7},
             units = {
@@ -983,7 +1067,7 @@ veafUnits.GroupsDatabase = {
     },
     {
         aliases = {"generateAirDefenseGroup-BLUE-3"},
-        hidden,
+        hidden = true,
         group = {
             disposition = { h= 7, w= 7},
             units = {
@@ -1002,7 +1086,7 @@ veafUnits.GroupsDatabase = {
     },
     {
         aliases = {"generateAirDefenseGroup-BLUE-2"},
-        hidden,
+        hidden = true,
         group = {
             disposition = { h= 7, w= 7},
             units = {
@@ -1019,7 +1103,7 @@ veafUnits.GroupsDatabase = {
     },
     {
         aliases = {"generateAirDefenseGroup-BLUE-1"},
-        hidden,
+        hidden = true,
         group = {
             disposition = { h= 7, w= 7},
             units = {
@@ -1036,7 +1120,7 @@ veafUnits.GroupsDatabase = {
     },
     {
         aliases = {"generateAirDefenseGroup-BLUE-0"},
-        hidden,
+        hidden = true,
         group = {
             disposition = { h= 7, w= 7},
             units = {
@@ -1051,7 +1135,7 @@ veafUnits.GroupsDatabase = {
     },
     {
         aliases = {"generateAirDefenseGroup-RED-5"},
-        hidden,
+        hidden = true,
         group = {
             disposition = { h= 7, w= 7},
             units = {
@@ -1072,7 +1156,7 @@ veafUnits.GroupsDatabase = {
     },
     {
         aliases = {"generateAirDefenseGroup-RED-4"},
-        hidden,
+        hidden = true,
         group = {
             disposition = { h= 7, w= 7},
             units = {
@@ -1093,7 +1177,7 @@ veafUnits.GroupsDatabase = {
     },
     {
         aliases = {"generateAirDefenseGroup-RED-3"},
-        hidden,
+        hidden = true,
         group = {
             disposition = { h= 7, w= 7},
             units = {
@@ -1114,7 +1198,7 @@ veafUnits.GroupsDatabase = {
     },
     {
         aliases = {"generateAirDefenseGroup-RED-2"},
-        hidden,
+        hidden = true,
         group = {
             disposition = { h= 7, w= 7},
             units = {
@@ -1133,7 +1217,7 @@ veafUnits.GroupsDatabase = {
     },
     {
         aliases = {"generateAirDefenseGroup-RED-1"},
-        hidden,
+        hidden = true,
         group = {
             disposition = { h= 7, w= 7},
             units = {
@@ -1150,7 +1234,7 @@ veafUnits.GroupsDatabase = {
     },
     {
         aliases = {"generateAirDefenseGroup-RED-0"},
-        hidden,
+        hidden = true,
         group = {
             disposition = { h= 7, w= 7},
             units = {
@@ -1214,7 +1298,11 @@ veafUnits.GroupsDatabase = {
             groupName = "SA-13 battery"
         },
     },
-
 }
 
 veafUnits.logInfo(string.format("Loading version %s", veafUnits.Version))
+
+if veafUnits.OutputListsForDocumentation then
+    veafUnits.logGroupsListInMarkdown()
+    veafUnits.logUnitsListInMarkdown()
+end

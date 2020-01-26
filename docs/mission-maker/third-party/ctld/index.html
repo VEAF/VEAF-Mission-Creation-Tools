@@ -1,0 +1,883 @@
+<!DOCTYPE html>
+<html lang="en" class="js csstransforms3d">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="Hugo 0.62.2" />
+    <meta name="description" content="">
+
+
+    <link rel="icon" href="/VEAF-Mission-Creation-Tools/images/favicon.png" type="image/png">
+
+    <title>CTLD :: VEAF Mission Creation Tools - Documentation</title>
+
+    
+    <link href="/VEAF-Mission-Creation-Tools/css/nucleus.css?1580073791" rel="stylesheet">
+    <link href="/VEAF-Mission-Creation-Tools/css/fontawesome-all.min.css?1580073791" rel="stylesheet">
+    <link href="/VEAF-Mission-Creation-Tools/css/hybrid.css?1580073791" rel="stylesheet">
+    <link href="/VEAF-Mission-Creation-Tools/css/featherlight.min.css?1580073791" rel="stylesheet">
+    <link href="/VEAF-Mission-Creation-Tools/css/perfect-scrollbar.min.css?1580073791" rel="stylesheet">
+    <link href="/VEAF-Mission-Creation-Tools/css/auto-complete.css?1580073791" rel="stylesheet">
+    <link href="/VEAF-Mission-Creation-Tools/css/atom-one-dark-reasonable.css?1580073791" rel="stylesheet">
+    <link href="/VEAF-Mission-Creation-Tools/css/theme.css?1580073791" rel="stylesheet">
+    <link href="/VEAF-Mission-Creation-Tools/css/hugo-theme.css?1580073791" rel="stylesheet">
+    
+      <link href="/VEAF-Mission-Creation-Tools/css/theme-blue.css?1580073791" rel="stylesheet">
+    
+
+    <script src="/VEAF-Mission-Creation-Tools/js/jquery-3.3.1.min.js?1580073791"></script>
+
+    <style>
+      :root #header + #content > #left > #rlblock_left{
+          display:none !important;
+      }
+      
+    </style>
+    
+  </head>
+  <body class="" data-url="/VEAF-Mission-Creation-Tools/mission-maker/third-party/ctld/">
+    <nav id="sidebar" class="">
+
+
+
+  <div id="header-wrapper">
+    <div id="header">
+      <a href="/VEAF-Mission-Creation-Tools/"><img src="/VEAF-Mission-Creation-Tools/images/logo.png" /></a>
+
+    </div>
+    
+        <div class="searchbox">
+    <label for="search-by"><i class="fas fa-search"></i></label>
+    <input data-search-input id="search-by" type="search" placeholder="Search...">
+    <span data-search-clear=""><i class="fas fa-times"></i></span>
+</div>
+
+<script type="text/javascript" src="/VEAF-Mission-Creation-Tools/js/lunr.min.js?1580073791"></script>
+<script type="text/javascript" src="/VEAF-Mission-Creation-Tools/js/auto-complete.js?1580073791"></script>
+<script type="text/javascript">
+    
+        var baseurl = "https:\/\/veaf.github.io\/VEAF-Mission-Creation-Tools\/";
+    
+</script>
+<script type="text/javascript" src="/VEAF-Mission-Creation-Tools/js/search.js?1580073791"></script>
+
+    
+  </div>
+
+    <div class="highlightable">
+    <ul class="topics">
+
+        
+          
+          
+
+
+ 
+  
+    
+    <li data-nav-id="/VEAF-Mission-Creation-Tools/mission-maker/" title="Mission maker" class="dd-item 
+        parent
+        
+        
+        ">
+      <a href="/VEAF-Mission-Creation-Tools/mission-maker/">
+          Mission maker
+          
+      </a>
+      
+      
+        <ul>
+          
+          
+            
+          
+          
+          
+        
+          
+            
+            
+
+
+ 
+  
+    
+      <li data-nav-id="/VEAF-Mission-Creation-Tools/mission-maker/demo-mission/" title="Demo mission" class="dd-item ">
+        <a href="/VEAF-Mission-Creation-Tools/mission-maker/demo-mission/">
+        Demo mission
+        
+        </a>
+    </li>
+     
+  
+ 
+
+            
+          
+            
+            
+
+
+ 
+  
+    
+    <li data-nav-id="/VEAF-Mission-Creation-Tools/mission-maker/modules/" title="Modules" class="dd-item 
+        
+        
+        
+        ">
+      <a href="/VEAF-Mission-Creation-Tools/mission-maker/modules/">
+          Modules
+          
+      </a>
+      
+      
+        <ul>
+          
+          
+          
+          
+        
+          
+            
+            
+
+
+ 
+  
+    
+      <li data-nav-id="/VEAF-Mission-Creation-Tools/mission-maker/modules/veafassets/" title="veafAssets" class="dd-item ">
+        <a href="/VEAF-Mission-Creation-Tools/mission-maker/modules/veafassets/">
+        veafAssets
+        
+        </a>
+    </li>
+     
+  
+ 
+
+            
+          
+            
+            
+
+
+ 
+  
+    
+      <li data-nav-id="/VEAF-Mission-Creation-Tools/mission-maker/modules/veafgrass/" title="veafGrass" class="dd-item ">
+        <a href="/VEAF-Mission-Creation-Tools/mission-maker/modules/veafgrass/">
+        veafGrass
+        
+        </a>
+    </li>
+     
+  
+ 
+
+            
+          
+            
+            
+
+
+ 
+  
+    
+      <li data-nav-id="/VEAF-Mission-Creation-Tools/mission-maker/modules/veafcarrieroperations/" title="veafCarrierOperations" class="dd-item ">
+        <a href="/VEAF-Mission-Creation-Tools/mission-maker/modules/veafcarrieroperations/">
+        veafCarrierOperations
+        
+        </a>
+    </li>
+     
+  
+ 
+
+            
+          
+            
+            
+
+
+ 
+  
+    
+      <li data-nav-id="/VEAF-Mission-Creation-Tools/mission-maker/modules/veafunits/" title="veafUnits" class="dd-item ">
+        <a href="/VEAF-Mission-Creation-Tools/mission-maker/modules/veafunits/">
+        veafUnits
+        
+        </a>
+    </li>
+     
+  
+ 
+
+            
+          
+            
+            
+
+
+ 
+  
+    
+      <li data-nav-id="/VEAF-Mission-Creation-Tools/mission-maker/modules/veafspawn/" title="veafSpawn" class="dd-item ">
+        <a href="/VEAF-Mission-Creation-Tools/mission-maker/modules/veafspawn/">
+        veafSpawn
+        
+        </a>
+    </li>
+     
+  
+ 
+
+            
+          
+        
+        </ul>
+              
+    </li>
+  
+ 
+
+            
+          
+            
+            
+
+
+ 
+  
+    
+    <li data-nav-id="/VEAF-Mission-Creation-Tools/mission-maker/third-party/" title="Third party" class="dd-item 
+        parent
+        
+        
+        ">
+      <a href="/VEAF-Mission-Creation-Tools/mission-maker/third-party/">
+          Third party
+          
+      </a>
+      
+      
+        <ul>
+          
+          
+          
+          
+        
+          
+            
+            
+
+
+ 
+  
+    
+      <li data-nav-id="/VEAF-Mission-Creation-Tools/mission-maker/third-party/ctld/" title="CTLD" class="dd-item active">
+        <a href="/VEAF-Mission-Creation-Tools/mission-maker/third-party/ctld/">
+        CTLD
+        
+        </a>
+    </li>
+     
+  
+ 
+
+            
+          
+        
+        </ul>
+              
+    </li>
+  
+ 
+
+            
+          
+            
+            
+
+
+ 
+  
+    
+    <li data-nav-id="/VEAF-Mission-Creation-Tools/mission-maker/references/" title="References" class="dd-item 
+        
+        
+        
+        ">
+      <a href="/VEAF-Mission-Creation-Tools/mission-maker/references/">
+          References
+          
+      </a>
+      
+      
+        <ul>
+          
+          
+          
+          
+        
+          
+            
+            
+
+
+ 
+  
+    
+      <li data-nav-id="/VEAF-Mission-Creation-Tools/mission-maker/references/group-list/" title="Groups list" class="dd-item ">
+        <a href="/VEAF-Mission-Creation-Tools/mission-maker/references/group-list/">
+        Groups list
+        
+        </a>
+    </li>
+     
+  
+ 
+
+            
+          
+            
+            
+
+
+ 
+  
+    
+      <li data-nav-id="/VEAF-Mission-Creation-Tools/mission-maker/references/unit-list/" title="Units list" class="dd-item ">
+        <a href="/VEAF-Mission-Creation-Tools/mission-maker/references/unit-list/">
+        Units list
+        
+        </a>
+    </li>
+     
+  
+ 
+
+            
+          
+        
+        </ul>
+              
+    </li>
+  
+ 
+
+            
+          
+        
+        </ul>
+              
+    </li>
+  
+ 
+
+          
+          
+
+
+ 
+  
+    
+    <li data-nav-id="/VEAF-Mission-Creation-Tools/mission-programmer/" title="Mission programmer" class="dd-item 
+        
+        
+        
+        ">
+      <a href="/VEAF-Mission-Creation-Tools/mission-programmer/">
+          Mission programmer
+          
+      </a>
+      
+              
+    </li>
+  
+ 
+
+          
+         
+    </ul>
+
+    
+    
+      <section id="shortcuts">
+        <h3>More</h3>
+        <ul>
+          
+              <li> 
+                  <a class="padding" href="http://www.veaf.org"><i class='fas fa-fighter-jet'></i> VEAF home</a>
+              </li>
+          
+        </ul>
+      </section>
+    
+
+    
+    <section id="footer">
+      <p>Built with <a href="https://github.com/matcornic/hugo-theme-learn"><i class="fas fa-heart"></i></a> from <a href="https://getgrav.org">Grav</a> and <a href="https://gohugo.io/">Hugo</a></p>
+
+    </section>
+  </div>
+</nav>
+
+
+
+
+
+        <section id="body">
+        <div id="overlay"></div>
+        <div class="padding highlightable">
+              
+              <div>
+                <div id="top-bar">
+                
+                  
+                  
+                  
+                  <div id="top-github-link">
+                    <a class="github-link" title='Edit this page' href="https://github.com/VEAF/VEAF-Mission-Creation-Tools/edit/master/documentation/content/Mission%20maker/third-party/ctld.md" target="blank">
+                      <i class="fas fa-code-branch"></i>
+                      <span id="top-github-link-text">Edit this page</span>
+                    </a>
+                  </div>
+                  
+                
+                
+                <div id="breadcrumbs" itemscope="" itemtype="http://data-vocabulary.org/Breadcrumb">
+                    <span id="sidebar-toggle-span">
+                        <a href="#" id="sidebar-toggle" data-sidebar-toggle="">
+                          <i class="fas fa-bars"></i>
+                        </a>
+                    </span>
+                  
+                  <span id="toc-menu"><i class="fas fa-list-alt"></i></span>
+                  
+                  <span class="links">
+                 
+                 
+                    
+          
+          
+            
+            
+          
+          
+            
+            
+          
+          
+            
+            
+          
+          
+            <a href='/VEAF-Mission-Creation-Tools/'></a> > <a href='/VEAF-Mission-Creation-Tools/mission-maker/'>Mission maker</a> > <a href='/VEAF-Mission-Creation-Tools/mission-maker/third-party/'>Third party</a> > CTLD
+          
+         
+          
+         
+          
+         
+          
+        
+                 
+                  </span>
+                </div>
+                
+                    <div class="progress">
+    <div class="wrapper">
+<nav id="TableOfContents">
+  <ul>
+    <li><a href="#introduction">Introduction</a></li>
+    <li><a href="#how-to-set-up-a-mission">How to set up a mission</a>
+      <ul>
+        <li><a href="#load-the-script-and-its-prerequisites">Load the script and its prerequisites</a></li>
+        <li><a href="#how-to-configure-the-script-in-a-mission">How to configure the script in a mission</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav>
+    </div>
+</div>
+
+                
+              </div>
+            </div>
+            
+        <div id="head-tags">
+        
+        </div>
+        
+        <div id="body-inner">
+          
+            <h1>
+              
+              CTLD
+            </h1>
+          
+
+        
+
+
+
+<h2 id="introduction">Introduction</h2>
+<p><a href="https://github.com/ciribob/DCS-CTLD">CTLD</a> is a third-party script that allow the players of a well-configured mission to transport troops and deployable crates with helicopters and transport airplanes.</p>
+<h2 id="how-to-set-up-a-mission">How to set up a mission</h2>
+<p>Let's start by saying that you can clone the <em><a href="https://github.com/VEAF/VEAF-Demo-Mission">VEAF-Demo-Mission</a></em> repository and use it as an example (or fork it and create a new mission from your fork).</p>
+<h3 id="load-the-script-and-its-prerequisites">Load the script and its prerequisites</h3>
+<p>In DCS mission editor, set up a &ldquo;mission start&rdquo; trigger that will :</p>
+<ul>
+<li>load the following scripts (in order) :
+<ul>
+<li>mist.lua (from the <em>community</em> folder)</li>
+<li>CTLD.lua</li>
+</ul>
+</li>
+<li>run the following lua code : <code>ctld.initialize();</code></li>
+<li>load a new file that you'll write, and that will initialize the veafAsset script specifically for your mission ; usually it's called <em>veafCTLDConfig.lua</em>, and if you follow our model (<em>VEAF-Demo-Mission</em>) it's stored in the <em>scripts</em> folder of your mission.</li>
+</ul>
+<h3 id="how-to-configure-the-script-in-a-mission">How to configure the script in a mission</h3>
+<p>The <em>veafCTLDConfig.lua</em> file should contain CTLD-specific configuration.</p>
+<p>As CTLD is not part of the VEAF Mission Creation Tools, we'll simply explain the most often used sections of this configuration. For more information, see the <a href="https://github.com/ciribob/DCS-CTLD">CTLD</a> project page.</p>
+<h4 id="pickup-zones">Pickup zones</h4>
+<p>The <code>ctld.pickupZones</code> table defines a list of Trigger Zone (or ship) names that will be configured as CTLD pickup zones.</p>
+<p>In the active radius of a pickup zone, one can load troops and spawn deployable crates.</p>
+<p>Example:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-lua" data-lang="lua">ctld.pickupZones <span style="color:#f92672">=</span> {
+    { <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">pickzone1</span><span style="color:#e6db74">&#34;</span>, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">none</span><span style="color:#e6db74">&#34;</span>, <span style="color:#f92672">-</span><span style="color:#ae81ff">1</span>, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">yes</span><span style="color:#e6db74">&#34;</span>, <span style="color:#ae81ff">0</span> },
+    { <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">pickzone2</span><span style="color:#e6db74">&#34;</span>, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">none</span><span style="color:#e6db74">&#34;</span>, <span style="color:#f92672">-</span><span style="color:#ae81ff">1</span>, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">yes</span><span style="color:#e6db74">&#34;</span>, <span style="color:#ae81ff">0</span> },
+    { <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">pickzone3</span><span style="color:#e6db74">&#34;</span>, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">none</span><span style="color:#e6db74">&#34;</span>, <span style="color:#f92672">-</span><span style="color:#ae81ff">1</span>, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">yes</span><span style="color:#e6db74">&#34;</span>, <span style="color:#ae81ff">0</span> },
+    { <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">pickzone4</span><span style="color:#e6db74">&#34;</span>, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">none</span><span style="color:#e6db74">&#34;</span>, <span style="color:#f92672">-</span><span style="color:#ae81ff">1</span>, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">yes</span><span style="color:#e6db74">&#34;</span>, <span style="color:#ae81ff">0</span> },
+    { <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">pickzone5</span><span style="color:#e6db74">&#34;</span>, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">none</span><span style="color:#e6db74">&#34;</span>, <span style="color:#f92672">-</span><span style="color:#ae81ff">1</span>, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">yes</span><span style="color:#e6db74">&#34;</span>, <span style="color:#ae81ff">0</span> },
+    { <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">CVN-74 Stennis</span><span style="color:#e6db74">&#34;</span>, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">none</span><span style="color:#e6db74">&#34;</span>, <span style="color:#ae81ff">10</span>, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">yes</span><span style="color:#e6db74">&#34;</span>, <span style="color:#ae81ff">0</span>, <span style="color:#ae81ff">1001</span> }, <span style="color:#75715e">-- instead of a Zone Name you can also use the UNIT NAME of a ship</span>
+    { <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">LHA-1 Tarawa</span><span style="color:#e6db74">&#34;</span>, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">none</span><span style="color:#e6db74">&#34;</span>, <span style="color:#ae81ff">10</span>, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">yes</span><span style="color:#e6db74">&#34;</span>, <span style="color:#ae81ff">0</span>, <span style="color:#ae81ff">1002</span> }, <span style="color:#75715e">-- instead of a Zone Name you can also use the UNIT NAME of a ship</span>
+}
+</code></pre></div><h4 id="transport-pilots">Transport pilots</h4>
+<p>The <code>ctld.transportPilotNames</code> table lists the names of all the pilots that will be allowed to use CTLD. If a client unit in the mission has a pilot name that is in this list, then the player piloting this unit will be allowed to use CTLD.</p>
+<p>Example:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-lua" data-lang="lua">ctld.transportPilotNames <span style="color:#f92672">=</span> {
+    <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">helicargo1</span><span style="color:#e6db74">&#34;</span>,
+    <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">helicargo1</span><span style="color:#e6db74">&#34;</span>,
+    <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">helicargo2</span><span style="color:#e6db74">&#34;</span>,
+    <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">helicargo3</span><span style="color:#e6db74">&#34;</span>,
+    <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">helicargo4</span><span style="color:#e6db74">&#34;</span>,
+    <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">helicargo5</span><span style="color:#e6db74">&#34;</span>
+}
+</code></pre></div><h4 id="load-limits">Load limits</h4>
+<p>The <code>ctld.unitLoadLimits</code> table overloads the default load limits for specific unit types. In the following example, we allow the Mi-8 to transport 24 units of load:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-lua" data-lang="lua">ctld.unitLoadLimits <span style="color:#f92672">=</span> {
+    [<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">Mi-8MT</span><span style="color:#e6db74">&#34;</span>] <span style="color:#f92672">=</span> <span style="color:#ae81ff">24</span>
+}
+</code></pre></div>
+
+<footer class=" footline" >
+	
+</footer>
+
+
+        
+        </div> 
+        
+
+      </div>
+
+    <div id="navigation">
+        
+        
+        
+        
+            
+            
+                
+                    
+                    
+                
+                
+
+                    
+                    
+                        
+                    
+                    
+
+                    
+                        
+            
+            
+                
+                    
+                    
+                
+                
+
+                    
+                    
+                        
+                    
+                    
+
+                    
+                        
+            
+            
+                
+                    
+                        
+                        
+                    
+                
+                
+
+                    
+                    
+                    
+
+                    
+            
+        
+                    
+                        
+            
+            
+                
+                    
+                
+                
+
+                    
+                    
+                    
+
+                    
+                        
+            
+            
+                
+                    
+                
+                
+
+                    
+                    
+                    
+
+                    
+            
+        
+                    
+                        
+            
+            
+                
+                    
+                
+                
+
+                    
+                    
+                    
+
+                    
+            
+        
+                    
+                        
+            
+            
+                
+                    
+                
+                
+
+                    
+                    
+                    
+
+                    
+            
+        
+                    
+                        
+            
+            
+                
+                    
+                
+                
+
+                    
+                    
+                    
+
+                    
+            
+        
+                    
+                        
+            
+            
+                
+                    
+                
+                
+
+                    
+                    
+                    
+
+                    
+            
+        
+                    
+            
+        
+                    
+                        
+            
+            
+                
+                    
+                    
+                
+                
+
+                    
+                    
+                    
+
+                    
+                        
+            
+            
+                
+                    
+                    
+                
+                
+
+                    
+                    
+                    
+
+                    
+            
+        
+                    
+            
+        
+                    
+                        
+            
+            
+                
+                    
+                        
+                        
+                    
+                
+                
+
+                    
+                    
+                    
+
+                    
+                        
+            
+            
+                
+                    
+                
+                
+
+                    
+                    
+                    
+
+                    
+            
+        
+                    
+                        
+            
+            
+                
+                    
+                
+                
+
+                    
+                    
+                    
+
+                    
+            
+        
+                    
+            
+        
+                    
+            
+        
+                    
+                        
+            
+            
+                
+                    
+                
+                
+
+                    
+                    
+                    
+
+                    
+            
+        
+                    
+            
+        
+        
+        
+
+
+	 
+	 
+		
+			<a class="nav nav-prev" href="/VEAF-Mission-Creation-Tools/mission-maker/third-party/" title="Third party"> <i class="fa fa-chevron-left"></i></a>
+		
+		
+			<a class="nav nav-next" href="/VEAF-Mission-Creation-Tools/mission-maker/references/" title="References" style="margin-right: 0px;"><i class="fa fa-chevron-right"></i></a>
+		
+	
+    </div>
+
+    </section>
+    
+    <div style="left: -1000px; overflow: scroll; position: absolute; top: -1000px; border: none; box-sizing: content-box; height: 200px; margin: 0px; padding: 0px; width: 200px;">
+      <div style="border: none; box-sizing: content-box; height: 200px; margin: 0px; padding: 0px; width: 200px;"></div>
+    </div>
+    <script src="/VEAF-Mission-Creation-Tools/js/clipboard.min.js?1580073791"></script>
+    <script src="/VEAF-Mission-Creation-Tools/js/perfect-scrollbar.min.js?1580073791"></script>
+    <script src="/VEAF-Mission-Creation-Tools/js/perfect-scrollbar.jquery.min.js?1580073791"></script>
+    <script src="/VEAF-Mission-Creation-Tools/js/jquery.sticky.js?1580073791"></script>
+    <script src="/VEAF-Mission-Creation-Tools/js/featherlight.min.js?1580073791"></script>
+    <script src="/VEAF-Mission-Creation-Tools/js/highlight.pack.js?1580073791"></script>
+    <script>hljs.initHighlightingOnLoad();</script>
+    <script src="/VEAF-Mission-Creation-Tools/js/modernizr.custom-3.6.0.js?1580073791"></script>
+    <script src="/VEAF-Mission-Creation-Tools/js/learn.js?1580073791"></script>
+    <script src="/VEAF-Mission-Creation-Tools/js/hugo-learn.js?1580073791"></script>
+
+    <link href="/VEAF-Mission-Creation-Tools/mermaid/mermaid.css?1580073791" rel="stylesheet" />
+    <script src="/VEAF-Mission-Creation-Tools/mermaid/mermaid.js?1580073791"></script>
+    <script>
+        mermaid.initialize({ startOnLoad: true });
+    </script>
+    
+
+  </body>
+</html>
+

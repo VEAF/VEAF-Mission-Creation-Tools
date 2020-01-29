@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>References on VEAF Mission Creation Tools - Documentation</title>
+    <link>https://veaf.github.io/VEAF-Mission-Creation-Tools/mission-maker/references/</link>
+    <description>Recent content in References on VEAF Mission Creation Tools - Documentation</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en-en</language>
+    
+	<atom:link href="https://veaf.github.io/VEAF-Mission-Creation-Tools/mission-maker/references/index.xml" rel="self" type="application/rss+xml" />
+    
+    
+    <item>
+      <title>Groups list</title>
+      <link>https://veaf.github.io/VEAF-Mission-Creation-Tools/mission-maker/references/group-list/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>https://veaf.github.io/VEAF-Mission-Creation-Tools/mission-maker/references/group-list/</guid>
+      <description>List of the groups defined by the veafUnits module    Name Description Aliases     Hawk Hawk SAM site hawk, ha, mim-23   Mechanized infantry section Mechanized infantry section with APCs infantry section, infsec   Patriot Patriot SAM site patriot, pa, mim-104   Rapier Rapier SAM site rapier_optical, rpo   Rapier-radar Rapier SAM site with radar rapier_radar, rpr   Roland Roland SAM site roland, rd, mim-115   RU small supply convoy with defense RU small supply convoy with defense RU small supply convoy with defense, redsmallconvoy-def   RU small supply convoy with light defense RU small supply convoy with light defense RU small supply convoy with light defense, redsmallconvoy-lightdef   RU small supply convoy with no defense RU small supply convoy with no defense RU small supply convoy with no defense, redsmallconvoy-nodef, redconvoy, convoy   RU supply convoy with defense RU supply convoy with defense RU supply convoy with defense, redconvoy-def   RU supply convoy with light defense RU supply convoy with light defense RU supply convoy with light defense, redconvoy-lightdef   RU supply convoy with no defense RU supply convoy with no defense RU supply convoy with no defense, redconvoy-nodef   S300 S300 SAM site sa10, s300, bb   SA-13 battery SA-13 battery RU-SAM-SA13-Battery   SA-9 battery SA-9 battery RU-SAM-SA9-Battery   SA11 SA-11 SAM site sa11, sa-11, sd   SA2 SA-2 SAM site sa2, sa-2, fs   SA3 SA-3 SAM site sa3, sa-3, lb   SA6 SA-6 SAM site sa6, sa-6, 06   US infantry group US infantry group US infgroup   US infantry group US infantry group US supply convoy, blueconvoy   ZSU-23-4 battery ZSU-23-4 battery RU-SAM-Shilka-Battery    </description>
+    </item>
+    
+    <item>
+      <title>Units list</title>
+      <link>https://veaf.github.io/VEAF-Mission-Creation-Tools/mission-maker/references/unit-list/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>https://veaf.github.io/VEAF-Mission-Creation-Tools/mission-maker/references/unit-list/</guid>
+      <description>List of the units defined by the dcsUnits module    Name Description Aliases     .Ammunition depot     .Command Center     052B DDG-168 Guangzhou    054A FFG-538 Yantai    1L13 EWR EWR 1L13    2S6 Tunguska SAM SA-19 Tunguska 2S6    55G6 EWR EWR 55G6    5p73 s-125 ln SAM SA-3 S-125 LN 5P73    A-10A a-10a    A-10C A-10C    A-50 a-50    AH-1W ah-1w super cobra    AH-64A ah-64a apache    AH-64D ah-64d apache longbow    Airshow_Cone Airshow cone    Airshow_Crowd Airshow Crowd    AJS37 AJS37    ALBATROS FFL 1124.</description>
+    </item>
+    
+  </channel>
+</rss>

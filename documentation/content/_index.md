@@ -26,13 +26,13 @@ Mission programmers help us maintain and enhance the tools by adding features, c
 
 ### How to use the tools as a mission maker
 
-Please have a look at the [Misson Maker documentation](/Mission maker/).
+Please have a look at the [Misson Maker documentation](./mission-maker/).
 
-For those looking for a quick start, read the [demo mission](demo mission.md) page to learn how you can fork the demo repository and create your own mission.
+For those looking for a quick start, read the [demo mission](./mission-maker/demo-mission/) page to learn how you can fork the demo repository and create your own mission.
 
 ### How to participate to the development of the tools
 
-The [Misson Programmer documentation](/Mission programmer/) details all you need to know about that.
+The [Misson Programmer documentation](./mission-programmer/) details all you need to know about that.
 
 You can contact us, we'll guide you into our community.
 
@@ -54,7 +54,9 @@ This is easier if the mission folder is organized like that:
 * *extract.cmd* - this script will extract the lua definition files from a *.miz* file freshly edited with the DCS mission editor
 * *package.json* - this allows the build and extract scripts to download the latest version of the VEAF Mission Creation Tools
 
-The easiest way to create such a folder is to fork the demo mission provided by us (please read the [demo mission](demo mission.md) page).
+![demo-mission-structure](/VEAF-Mission-Creation-Tools/images/demo-mission-structure.png?raw=true "demo-mission-structure.png")
+
+The easiest way to create such a folder is to fork the demo mission provided by us (please read the [demo mission](./mission-maker/demo-mission/) page).
 
 When working on the mission, always follow this workflow:
 
@@ -74,7 +76,7 @@ There are several ways of getting in touch with the VEAF:
 
 * we have a [very nice forum](https://community.veaf.org)
 * you can create issues and pull requests on the [GitHub repository](https://github.com/VEAF/VEAF-Mission-Creation-Tools)
-* our Discord server can be used to chat (both text and voice) with the VEAF members and developpers; we're nice people and some of us even speak english ^^
+* our [Discord server](https://discord.gg/YezPzzQ) can be used to chat (both text and voice) with the VEAF members and developpers; we're nice people and some of us even speak english ^^
 * you can send [emails](mailto:veaf@gmail.com) to the VEAF; they won't be read everyday, so please try and use one of the other communication mediums.
 
 ## Hall of fame

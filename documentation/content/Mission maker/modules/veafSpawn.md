@@ -52,11 +52,11 @@ In DCS mission editor, set up a "mission start" trigger that will :
 
 The veafSpawn module is managed by creating markers, which names should follow a specific syntax (see next headings).
 
-This syntax is composed of a mandatory instruction (at the beginning) and mandator or optional (depending on the instruction) parameters separated by commas.
+This syntax is composed of a mandatory instruction (at the beginning) and mandatory or optional (depending on the instruction) parameters separated by commas.
 
 Example : ``_spawn group, name US infgroup, country USA``
 
-For more informations about markers, see [veafMarkers](veafMarkers.md)
+For more informations about markers, see [Markers](markers.md)
 
 ### Spawn units and groups
 

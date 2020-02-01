@@ -87,6 +87,10 @@ veafCarrierOperations.debugMarkersErasedAtEachStep = {}
 veafCarrierOperations.debugMarkersForTanker = {}
 veafCarrierOperations.traceMarkerId = 2727
 
+function veafCarrierOperations.logError(message)
+    veaf.logError(veafCarrierOperations.Id .. message)
+end
+
 function veafCarrierOperations.logInfo(message)
     veaf.logInfo(veafCarrierOperations.Id .. message)
 end

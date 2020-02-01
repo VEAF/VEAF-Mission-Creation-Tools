@@ -888,7 +888,7 @@ function veaf.outTextForUnit(unitName, message, duration)
 end
 
 --- Weather Report. Report pressure QFE/QNH, temperature, wind at certain location.
---- stolent from the weatherReport script and modified to fit our usage
+--- stolen from the weatherReport script and modified to fit our usage
 function veaf.weatherReport(vec3, alt)
      
     -- Get Temperature [K] and Pressure [Pa] at vec3.

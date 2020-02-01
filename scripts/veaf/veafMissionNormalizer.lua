@@ -146,8 +146,8 @@ function veafMissionNormalizer.normalizeMission(filePath)
   veafMissionEditor.editMission(_filePath, _filePath, "warehouses")
 
   -- normalize "options" file
-  _filePath = filePath .. "\\options"
-  veafMissionEditor.editMission(_filePath, _filePath, "options")
+  -- _filePath = filePath .. "\\options"
+  -- veafMissionEditor.editMission(_filePath, _filePath, "options")
 
   -- normalize "dictionary" file
   _filePath = filePath .. "\\l10n\\DEFAULT\\dictionary"

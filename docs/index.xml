@@ -16,8 +16,8 @@
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
       
       <guid>https://veaf.github.io/VEAF-Mission-Creation-Tools/mission-maker/demo-mission/</guid>
-      <description>Introduction TODO
-How to set up a mission Let&#39;s start by saying that you can clone the VEAF-Demo-Mission repository and use it as an example (or fork it and create a new mission from your fork).</description>
+      <description>Introduction The demo mission is a project in the VEAF GitHub repository that can be forked to serve as the basis of a new mission using the VEAF Mission Creation Tools. It does not include all the features of the tools; for a more in-depth example, you can check the VEAF-Open-Training-Mission repository.
+How to set up a mission Start by forking or cloning the VEAF-Demo-Mission repository. You can then use the files you cloned as an example, or use your fork to create a new mission.</description>
     </item>
     
     <item>
@@ -40,7 +40,6 @@ So, in order for the player to interact with the VEAF scripts using the radio me
       <guid>https://veaf.github.io/VEAF-Mission-Creation-Tools/mission-maker/concepts/usermarks/</guid>
       <description>A lot of the VEAF Mission Creation Tools functionalities are controlled through commands entered in the text of user marks on the F10 map.
 This means that, during runtime, a player can go to the F10 map and create a user mark
-)
 In this mark, the player enters a text that the VEAF Tools scripts will understand. Of course, it has to follow a specific syntax (see the documentation of the modules) for more detail.</description>
     </item>
     

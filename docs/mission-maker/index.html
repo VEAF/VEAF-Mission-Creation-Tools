@@ -12,20 +12,20 @@
     <title>Mission maker :: VEAF Mission Creation Tools - Documentation</title>
 
     
-    <link href="/VEAF-Mission-Creation-Tools/css/nucleus.css?1580931193" rel="stylesheet">
-    <link href="/VEAF-Mission-Creation-Tools/css/fontawesome-all.min.css?1580931193" rel="stylesheet">
-    <link href="/VEAF-Mission-Creation-Tools/css/hybrid.css?1580931193" rel="stylesheet">
-    <link href="/VEAF-Mission-Creation-Tools/css/featherlight.min.css?1580931193" rel="stylesheet">
-    <link href="/VEAF-Mission-Creation-Tools/css/perfect-scrollbar.min.css?1580931193" rel="stylesheet">
-    <link href="/VEAF-Mission-Creation-Tools/css/auto-complete.css?1580931193" rel="stylesheet">
-    <link href="/VEAF-Mission-Creation-Tools/css/atom-one-dark-reasonable.css?1580931193" rel="stylesheet">
-    <link href="/VEAF-Mission-Creation-Tools/css/theme.css?1580931193" rel="stylesheet">
-    <link href="/VEAF-Mission-Creation-Tools/css/hugo-theme.css?1580931193" rel="stylesheet">
+    <link href="/VEAF-Mission-Creation-Tools/css/nucleus.css?1580935203" rel="stylesheet">
+    <link href="/VEAF-Mission-Creation-Tools/css/fontawesome-all.min.css?1580935203" rel="stylesheet">
+    <link href="/VEAF-Mission-Creation-Tools/css/hybrid.css?1580935203" rel="stylesheet">
+    <link href="/VEAF-Mission-Creation-Tools/css/featherlight.min.css?1580935203" rel="stylesheet">
+    <link href="/VEAF-Mission-Creation-Tools/css/perfect-scrollbar.min.css?1580935203" rel="stylesheet">
+    <link href="/VEAF-Mission-Creation-Tools/css/auto-complete.css?1580935203" rel="stylesheet">
+    <link href="/VEAF-Mission-Creation-Tools/css/atom-one-dark-reasonable.css?1580935203" rel="stylesheet">
+    <link href="/VEAF-Mission-Creation-Tools/css/theme.css?1580935203" rel="stylesheet">
+    <link href="/VEAF-Mission-Creation-Tools/css/hugo-theme.css?1580935203" rel="stylesheet">
     
-      <link href="/VEAF-Mission-Creation-Tools/css/theme-blue.css?1580931193" rel="stylesheet">
+      <link href="/VEAF-Mission-Creation-Tools/css/theme-blue.css?1580935203" rel="stylesheet">
     
 
-    <script src="/VEAF-Mission-Creation-Tools/js/jquery-3.3.1.min.js?1580931193"></script>
+    <script src="/VEAF-Mission-Creation-Tools/js/jquery-3.3.1.min.js?1580935203"></script>
 
     <style>
       :root #header + #content > #left > #rlblock_left{
@@ -52,14 +52,14 @@
     <span data-search-clear=""><i class="fas fa-times"></i></span>
 </div>
 
-<script type="text/javascript" src="/VEAF-Mission-Creation-Tools/js/lunr.min.js?1580931193"></script>
-<script type="text/javascript" src="/VEAF-Mission-Creation-Tools/js/auto-complete.js?1580931193"></script>
+<script type="text/javascript" src="/VEAF-Mission-Creation-Tools/js/lunr.min.js?1580935203"></script>
+<script type="text/javascript" src="/VEAF-Mission-Creation-Tools/js/auto-complete.js?1580935203"></script>
 <script type="text/javascript">
     
         var baseurl = "https:\/\/veaf.github.io\/VEAF-Mission-Creation-Tools\/";
     
 </script>
-<script type="text/javascript" src="/VEAF-Mission-Creation-Tools/js/search.js?1580931193"></script>
+<script type="text/javascript" src="/VEAF-Mission-Creation-Tools/js/search.js?1580935203"></script>
 
     
   </div>
@@ -650,14 +650,59 @@ First, if you simply want to use them in your missions, then you'll need :</p>
 <h2 id="how-to-set-up-a-mission">How to set up a mission</h2>
 <p>You can clone the <em><a href="https://github.com/VEAF/VEAF-Demo-Mission">VEAF-Demo-Mission</a></em> repository and use it as an example (or fork it and create a new mission from your fork).
 Then you should read the <em>readme.md</em> file in this repository. It will explain how you should setup your development environment.
-There is detailed documentation for all the modules:</p>
+There is detailed documentation for all the modules (see menu on the left).</p>
+<p>If you choose to start with a new mission (and not clone our demo mission), the important point is to load and initialize the scripts.</p>
+<p>Start by adding a new &ldquo;mission start&rdquo; trigger; it should be the first trigger</p>
+<p><img src="/VEAF-Mission-Creation-Tools/images/create-mission-01.png?raw=true" alt="create-mission-01" title="create-mission-01"></p>
+<p>This trigger (1) must be of type &ldquo;mission start&rdquo; (2), and it should load all the scripts (3).</p>
+<p><img src="/VEAF-Mission-Creation-Tools/images/create-mission-02.png?raw=true" alt="create-mission-02" title="create-mission-02"></p>
+<p>Here is the list of scripts to load, in the correct order:</p>
 <ul>
-<li><a href="veafAssets.md">veafAssets</a></li>
-<li><a href="veafCarrierOperations.md">veafCarrierOperations</a></li>
-<li><a href="veafGrass.md">veafGrass</a></li>
-<li><a href="veafUnits.md">veafUnits</a></li>
-<li><a href="veafSpawn.md">veafSpawn</a></li>
+<li><strong>&hellip; (MiST is mandatory, and must be the very first to load)</strong></li>
+<li>mist.lua</li>
+<li><strong>&hellip; (all the non-mandatory, external scripts)</strong></li>
+<li>CTLD.lua <em>(CTLD is not mandatory)</em></li>
+<li>WeatherMark.lua <em>(WeatherMark is not mandatory)</em></li>
+<li><strong>&hellip; (now the VEAF scripts, in the order of their dependencies)</strong></li>
+<li>veaf.lua <em>(the main library, must be the first of the VEAF scripts)</em></li>
+<li>dcsUnits.lua <em>(mandatory)</em></li>
+<li>veafUnits.lua <em>(mandatory)</em></li>
+<li>veafMarkers.lua <em>(mandatory)</em></li>
+<li>veafRadio.lua <em>(mandatory)</em></li>
+<li>veafSecurity.lua <em>(mandatory)</em></li>
+<li>veafSpawn.lua <em>(mandatory)</em></li>
+<li>veafAssets.lua <em>(used in other scripts)</em></li>
+<li>veafCasMission.lua <em>(used in other scripts)</em></li>
+<li>veafNamedPoints.lua <em>(used in other scripts)</em></li>
+<li>veafCarrierOperations.lua <em>(not mandatory)</em></li>
+<li>veafCombatZone.lua <em>(not mandatory)</em></li>
+<li>veafGrass.lua <em>(not mandatory)</em></li>
+<li>veafMove.lua <em>(not mandatory)</em></li>
+<li>veafTransportMission.lua <em>(not mandatory)</em></li>
+<li>veafInterpreter.lua <em>(not mandatory)</em></li>
+<li><strong>&hellip;(now the configuration scripts)</strong></li>
+<li>veafAssetsConfig.lua</li>
+<li>veafAutogftConfig.lua</li>
+<li>veafCTLDConfig.lua</li>
+<li>veafCombatZoneConfig.lua</li>
+<li>veafNamedPointsConfig.lua</li>
+<li>veafSecurityConfig.lua</li>
 </ul>
+<p>Then, it should run the following initialization code:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-lua" data-lang="lua">veafRadio.initialize()
+veafAssets.initialize()
+veafCasMission.initialize()
+veafGrass.initialize()
+veafMove.initialize()
+veafSpawn.initialize()
+veafCarrierOperations.initialize()
+veafTransportMission.initialize()
+veafNamedPoints.initialize()
+veafSecurity.initialize()
+veafCombatZone.initialize()
+veafInterpreter.initialize()
+ctld.initialize() <span style="color:#75715e">-- only needed if you use CTLD</span>
+</code></pre></div><p>Then, for each script that you use (and its dependencies), you should read the specific documentation and find out how to use and configure it.</p>
 
 
 
@@ -1025,19 +1070,19 @@ There is detailed documentation for all the modules:</p>
     <div style="left: -1000px; overflow: scroll; position: absolute; top: -1000px; border: none; box-sizing: content-box; height: 200px; margin: 0px; padding: 0px; width: 200px;">
       <div style="border: none; box-sizing: content-box; height: 200px; margin: 0px; padding: 0px; width: 200px;"></div>
     </div>
-    <script src="/VEAF-Mission-Creation-Tools/js/clipboard.min.js?1580931193"></script>
-    <script src="/VEAF-Mission-Creation-Tools/js/perfect-scrollbar.min.js?1580931193"></script>
-    <script src="/VEAF-Mission-Creation-Tools/js/perfect-scrollbar.jquery.min.js?1580931193"></script>
-    <script src="/VEAF-Mission-Creation-Tools/js/jquery.sticky.js?1580931193"></script>
-    <script src="/VEAF-Mission-Creation-Tools/js/featherlight.min.js?1580931193"></script>
-    <script src="/VEAF-Mission-Creation-Tools/js/highlight.pack.js?1580931193"></script>
+    <script src="/VEAF-Mission-Creation-Tools/js/clipboard.min.js?1580935203"></script>
+    <script src="/VEAF-Mission-Creation-Tools/js/perfect-scrollbar.min.js?1580935203"></script>
+    <script src="/VEAF-Mission-Creation-Tools/js/perfect-scrollbar.jquery.min.js?1580935203"></script>
+    <script src="/VEAF-Mission-Creation-Tools/js/jquery.sticky.js?1580935203"></script>
+    <script src="/VEAF-Mission-Creation-Tools/js/featherlight.min.js?1580935203"></script>
+    <script src="/VEAF-Mission-Creation-Tools/js/highlight.pack.js?1580935203"></script>
     <script>hljs.initHighlightingOnLoad();</script>
-    <script src="/VEAF-Mission-Creation-Tools/js/modernizr.custom-3.6.0.js?1580931193"></script>
-    <script src="/VEAF-Mission-Creation-Tools/js/learn.js?1580931193"></script>
-    <script src="/VEAF-Mission-Creation-Tools/js/hugo-learn.js?1580931193"></script>
+    <script src="/VEAF-Mission-Creation-Tools/js/modernizr.custom-3.6.0.js?1580935203"></script>
+    <script src="/VEAF-Mission-Creation-Tools/js/learn.js?1580935203"></script>
+    <script src="/VEAF-Mission-Creation-Tools/js/hugo-learn.js?1580935203"></script>
 
-    <link href="/VEAF-Mission-Creation-Tools/mermaid/mermaid.css?1580931193" rel="stylesheet" />
-    <script src="/VEAF-Mission-Creation-Tools/mermaid/mermaid.js?1580931193"></script>
+    <link href="/VEAF-Mission-Creation-Tools/mermaid/mermaid.css?1580935203" rel="stylesheet" />
+    <script src="/VEAF-Mission-Creation-Tools/mermaid/mermaid.js?1580935203"></script>
     <script>
         mermaid.initialize({ startOnLoad: true });
     </script>

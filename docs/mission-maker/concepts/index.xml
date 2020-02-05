@@ -30,7 +30,6 @@ So, in order for the player to interact with the VEAF scripts using the radio me
       <guid>https://veaf.github.io/VEAF-Mission-Creation-Tools/mission-maker/concepts/usermarks/</guid>
       <description>A lot of the VEAF Mission Creation Tools functionalities are controlled through commands entered in the text of user marks on the F10 map.
 This means that, during runtime, a player can go to the F10 map and create a user mark
-)
 In this mark, the player enters a text that the VEAF Tools scripts will understand. Of course, it has to follow a specific syntax (see the documentation of the modules) for more detail.</description>
     </item>
     

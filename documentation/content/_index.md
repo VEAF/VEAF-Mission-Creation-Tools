@@ -74,8 +74,8 @@ First, create a mission in the DCS mission editor, and save it in the main folde
 
 There are several ways of getting in touch with the VEAF:
 
-* we have a [very nice forum](https://community.veaf.org)
-* you can create issues and pull requests on the [GitHub repository](https://github.com/VEAF/VEAF-Mission-Creation-Tools)
+* we have a [very nice forum](https://community.veaf.org); you can post in the open [International Room](https://community.veaf.org/category/29/international-room)
+* you can [create issues](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues) and [pull requests](https://github.com/VEAF/VEAF-Mission-Creation-Tools/pulls) on the [GitHub repository](https://github.com/VEAF/VEAF-Mission-Creation-Tools)
 * our [Discord server](https://discord.gg/YezPzzQ) can be used to chat (both text and voice) with the VEAF members and developpers; we're nice people and some of us even speak english ^^
 * you can send [emails](mailto:veaf@gmail.com) to the VEAF; they won't be read everyday, so please try and use one of the other communication mediums.
 

@@ -41,10 +41,66 @@ But if you want to use the full development environment, and take advantage of t
 
 You can clone the *[VEAF-Demo-Mission](https://github.com/VEAF/VEAF-Demo-Mission)* repository and use it as an example (or fork it and create a new mission from your fork).
 Then you should read the *readme.md* file in this repository. It will explain how you should setup your development environment.
-There is detailed documentation for all the modules:
+There is detailed documentation for all the modules (see menu on the left).
 
-- [veafAssets](veafAssets.md)
-- [veafCarrierOperations](veafCarrierOperations.md)
-- [veafGrass](veafGrass.md)
-- [veafUnits](veafUnits.md)
-- [veafSpawn](veafSpawn.md)
+If you choose to start with a new mission (and not clone our demo mission), the important point is to load and initialize the scripts.
+
+Start by adding a new "mission start" trigger; it should be the first trigger
+
+![create-mission-01](/VEAF-Mission-Creation-Tools/images/create-mission-01.png?raw=true "create-mission-01")
+
+This trigger (1) must be of type "mission start" (2), and it should load all the scripts (3).
+
+![create-mission-02](/VEAF-Mission-Creation-Tools/images/create-mission-02.png?raw=true "create-mission-02")
+
+Here is the list of scripts to load, in the correct order:
+
+- **... (MiST is mandatory, and must be the very first to load)**
+- mist.lua
+- **... (all the non-mandatory, external scripts)**
+- CTLD.lua *(CTLD is not mandatory)*
+- WeatherMark.lua *(WeatherMark is not mandatory)*
+- **... (now the VEAF scripts, in the order of their dependencies)**
+- veaf.lua *(the main library, must be the first of the VEAF scripts)*
+- dcsUnits.lua *(mandatory)*
+- veafUnits.lua *(mandatory)*
+- veafMarkers.lua *(mandatory)*
+- veafRadio.lua *(mandatory)*
+- veafSecurity.lua *(mandatory)*
+- veafSpawn.lua *(mandatory)*
+- veafAssets.lua *(used in other scripts)*
+- veafCasMission.lua *(used in other scripts)*
+- veafNamedPoints.lua *(used in other scripts)*
+- veafCarrierOperations.lua *(not mandatory)*
+- veafCombatZone.lua *(not mandatory)*
+- veafGrass.lua *(not mandatory)*
+- veafMove.lua *(not mandatory)*
+- veafTransportMission.lua *(not mandatory)*
+- veafInterpreter.lua *(not mandatory)*
+- **...(now the configuration scripts)**
+- veafAssetsConfig.lua
+- veafAutogftConfig.lua
+- veafCTLDConfig.lua
+- veafCombatZoneConfig.lua
+- veafNamedPointsConfig.lua
+- veafSecurityConfig.lua
+
+Then, it should run the following initialization code:
+
+```lua
+veafRadio.initialize()
+veafAssets.initialize()
+veafCasMission.initialize()
+veafGrass.initialize()
+veafMove.initialize()
+veafSpawn.initialize()
+veafCarrierOperations.initialize()
+veafTransportMission.initialize()
+veafNamedPoints.initialize()
+veafSecurity.initialize()
+veafCombatZone.initialize()
+veafInterpreter.initialize()
+ctld.initialize() -- only needed if you use CTLD
+```
+
+Then, for each script that you use (and its dependencies), you should read the specific documentation and find out how to use and configure it.

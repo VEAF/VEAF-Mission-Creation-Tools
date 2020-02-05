@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Concepts on VEAF Mission Creation Tools - Documentation</title>
+    <link>https://veaf.github.io/VEAF-Mission-Creation-Tools/mission-maker/concepts/</link>
+    <description>Recent content in Concepts on VEAF Mission Creation Tools - Documentation</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en-en</language>
+    
+	<atom:link href="https://veaf.github.io/VEAF-Mission-Creation-Tools/mission-maker/concepts/index.xml" rel="self" type="application/rss+xml" />
+    
+    
+    <item>
+      <title>Radio menus</title>
+      <link>https://veaf.github.io/VEAF-Mission-Creation-Tools/mission-maker/concepts/radiomenus/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>https://veaf.github.io/VEAF-Mission-Creation-Tools/mission-maker/concepts/radiomenus/</guid>
+      <description>Some of the VEAF Tools scripts add entries to the DCS communication menu (a.k.a the radio menu).
+This is the tree-like menu that the player can use to communicate with ATC, the AWACS, the ground crew and other actors in the DCS mission.
+The last option in the main menu is always &amp;ldquo;F10. Other&amp;rdquo;. All the custom radio menus will be grouped here.
+So, in order for the player to interact with the VEAF scripts using the radio menu, s·he will have to:</description>
+    </item>
+    
+    <item>
+      <title>User marks</title>
+      <link>https://veaf.github.io/VEAF-Mission-Creation-Tools/mission-maker/concepts/usermarks/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>https://veaf.github.io/VEAF-Mission-Creation-Tools/mission-maker/concepts/usermarks/</guid>
+      <description>A lot of the VEAF Mission Creation Tools functionalities are controlled through commands entered in the text of user marks on the F10 map.
+This means that, during runtime, a player can go to the F10 map and create a user mark
+)
+In this mark, the player enters a text that the VEAF Tools scripts will understand. Of course, it has to follow a specific syntax (see the documentation of the modules) for more detail.</description>
+    </item>
+    
+    <item>
+      <title>External scripts</title>
+      <link>https://veaf.github.io/VEAF-Mission-Creation-Tools/mission-maker/concepts/externalscripts/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>https://veaf.github.io/VEAF-Mission-Creation-Tools/mission-maker/concepts/externalscripts/</guid>
+      <description>The VEAF Mission Creation Tools contains .lua scripts that are meant to be ran inside a DCS mission, and also other scripts that are meant to run outside a mission.
+These scripts are mainly used in the mission building and extraction pipelines (see workflow).
+Normalizer DCS mission editor saves the mission data as a set of .lua files compressed in the .miz mission file.
+ mission - contains the details of the mission, including all the groups and units.</description>
+    </item>
+    
+  </channel>
+</rss>

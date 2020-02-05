@@ -9,7 +9,7 @@
 
     <link rel="icon" href="/VEAF-Mission-Creation-Tools/images/favicon.png" type="image/png">
 
-    <title>CTLD :: VEAF Mission Creation Tools - Documentation</title>
+    <title>External scripts :: VEAF Mission Creation Tools - Documentation</title>
 
     
     <link href="/VEAF-Mission-Creation-Tools/css/nucleus.css?1580931193" rel="stylesheet">
@@ -35,7 +35,7 @@
     </style>
     
   </head>
-  <body class="" data-url="/VEAF-Mission-Creation-Tools/mission-maker/third-party/ctld/">
+  <body class="" data-url="/VEAF-Mission-Creation-Tools/mission-maker/concepts/externalscripts/">
     <nav id="sidebar" class="">
 
 
@@ -103,7 +103,7 @@
   
     
     <li data-nav-id="/VEAF-Mission-Creation-Tools/mission-maker/concepts/" title="Concepts" class="dd-item 
-        
+        parent
         
         
         ">
@@ -165,7 +165,7 @@
  
   
     
-      <li data-nav-id="/VEAF-Mission-Creation-Tools/mission-maker/concepts/externalscripts/" title="External scripts" class="dd-item ">
+      <li data-nav-id="/VEAF-Mission-Creation-Tools/mission-maker/concepts/externalscripts/" title="External scripts" class="dd-item active">
         <a href="/VEAF-Mission-Creation-Tools/mission-maker/concepts/externalscripts/">
         External scripts
         
@@ -361,7 +361,7 @@
   
     
     <li data-nav-id="/VEAF-Mission-Creation-Tools/mission-maker/third-party/" title="Third party" class="dd-item 
-        parent
+        
         
         
         ">
@@ -385,7 +385,7 @@
  
   
     
-      <li data-nav-id="/VEAF-Mission-Creation-Tools/mission-maker/third-party/ctld/" title="CTLD" class="dd-item active">
+      <li data-nav-id="/VEAF-Mission-Creation-Tools/mission-maker/third-party/ctld/" title="CTLD" class="dd-item ">
         <a href="/VEAF-Mission-Creation-Tools/mission-maker/third-party/ctld/">
         CTLD
         
@@ -548,7 +548,7 @@
                   
                   
                   <div id="top-github-link">
-                    <a class="github-link" title='Edit this page' href="https://github.com/VEAF/VEAF-Mission-Creation-Tools/edit/master/documentation/content/Mission%20maker/third-party/ctld.md" target="blank">
+                    <a class="github-link" title='Edit this page' href="https://github.com/VEAF/VEAF-Mission-Creation-Tools/edit/master/documentation/content/Mission%20maker/concepts/externalscripts.md" target="blank">
                       <i class="fas fa-code-branch"></i>
                       <span id="top-github-link-text">Edit this page</span>
                     </a>
@@ -583,7 +583,7 @@
             
           
           
-            <a href='/VEAF-Mission-Creation-Tools/'>VEAF Mission Creation Tools</a> > <a href='/VEAF-Mission-Creation-Tools/mission-maker/'>Mission maker</a> > <a href='/VEAF-Mission-Creation-Tools/mission-maker/third-party/'>Third party</a> > CTLD
+            <a href='/VEAF-Mission-Creation-Tools/'>VEAF Mission Creation Tools</a> > <a href='/VEAF-Mission-Creation-Tools/mission-maker/'>Mission maker</a> > <a href='/VEAF-Mission-Creation-Tools/mission-maker/concepts/'>Concepts</a> > External scripts
           
          
           
@@ -600,11 +600,11 @@
     <div class="wrapper">
 <nav id="TableOfContents">
   <ul>
-    <li><a href="#introduction">Introduction</a></li>
-    <li><a href="#how-to-set-up-a-mission">How to set up a mission</a>
+    <li>
       <ul>
-        <li><a href="#load-the-script-and-its-prerequisites">Load the script and its prerequisites</a></li>
-        <li><a href="#how-to-configure-the-script-in-a-mission">How to configure the script in a mission</a></li>
+        <li><a href="#normalizer">Normalizer</a></li>
+        <li><a href="#radio-preset-frequencies-injector">Radio preset frequencies injector</a></li>
+        <li><a href="#dcs-data-exporter">DCS data exporter</a></li>
       </ul>
     </li>
   </ul>
@@ -624,7 +624,7 @@
           
             <h1>
               
-              CTLD
+              External scripts
             </h1>
           
 
@@ -632,55 +632,68 @@
 
 
 
-<h2 id="introduction">Introduction</h2>
-<p><a href="https://github.com/ciribob/DCS-CTLD">CTLD</a> is a third-party script that allow the players of a well-configured mission to transport troops and deployable crates with helicopters and transport airplanes.</p>
-<h2 id="how-to-set-up-a-mission">How to set up a mission</h2>
-<p>Let's start by saying that you can clone the <em><a href="https://github.com/VEAF/VEAF-Demo-Mission">VEAF-Demo-Mission</a></em> repository and use it as an example (or fork it and create a new mission from your fork).</p>
-<h3 id="load-the-script-and-its-prerequisites">Load the script and its prerequisites</h3>
-<p>In DCS mission editor, set up a &ldquo;mission start&rdquo; trigger that will :</p>
+<p>The VEAF Mission Creation Tools contains .lua scripts that are meant to be ran inside a DCS mission, and also other scripts that are meant to run outside a mission.</p>
+<p>These scripts are mainly used in the mission building and extraction pipelines (see <a href="../../#workflow">workflow</a>).</p>
+<h3 id="normalizer">Normalizer</h3>
+<p>DCS mission editor saves the mission data as a set of .lua files compressed in the .miz mission file.</p>
 <ul>
-<li>load the following scripts (in order) :
+<li><em>mission</em> - contains the details of the mission, including all the groups and units. This is the most important file.</li>
+<li><em>theatre</em> - the name of the map where the mission takes place</li>
+<li><em>options</em> - a set of options enforced in the mission</li>
+<li><em>warehouses</em> - data about the fuel and munitions providers in the mission</li>
+<li><em>l10n/DEFAULT/dictionary</em> - all the names of all the mission objects, mapped to arbitrary keys used in the other files</li>
+<li><em>l10n/DEFAULT/mapResource</em> - all the other files of the mission are listed here</li>
+</ul>
+<p>Unfortunately, due to the way lua handles tables and to the way the mission editor is programmed, there is a good chance the content of these lua files is completely shuffled everytime a mission is saved, even if the change is small.</p>
+<p>This makes comparing two versions of a mission difficult, and merging concurrent editions in a source control system (e.g. GIT) all but impossible.</p>
+<p>The <em>veafMissionNormalizer</em> script can be used in the extraction pipeline (<em>extract.cmd</em>) to normalize the output of the DCS mission editor; this means that the data inside the lua files is sorted and written in a predefined way (always the same).</p>
+<p>It is way easier to pinpoint modifications in the resulting lua files than in the raw DCS mission editor files.</p>
+<p>Example of use:</p>
 <ul>
-<li>mist.lua (from the <em>community</em> folder)</li>
-<li>CTLD.lua</li>
+<li>a user edits the mission and saves it</li>
+<li>the normalizer is ran (e.g. via the <em>extract.cmd</em> command) and the files are cleaned up</li>
+<li>the files are stored in the source control system (e.g. GIT)</li>
+<li>another user edits the mission and saves it</li>
+<li>the normalizer is ran (e.g. via the <em>extract.cmd</em> command) and the files are cleaned up</li>
+<li>the user compares the resulting files with the last version in the source control repository and (hopefully) finds his edit</li>
 </ul>
-</li>
-<li>run the following lua code : <code>ctld.initialize();</code></li>
-<li>load a new file that you'll write, and that will initialize the veafAsset script specifically for your mission ; usually it's called <em>veafCTLDConfig.lua</em>, and if you follow our model (<em>VEAF-Demo-Mission</em>) it's stored in the <em>scripts</em> folder of your mission.</li>
-</ul>
-<h3 id="how-to-configure-the-script-in-a-mission">How to configure the script in a mission</h3>
-<p>The <em>veafCTLDConfig.lua</em> file should contain CTLD-specific configuration.</p>
-<p>As CTLD is not part of the VEAF Mission Creation Tools, we'll simply explain the most often used sections of this configuration. For more information, see the <a href="https://github.com/ciribob/DCS-CTLD">CTLD</a> project page.</p>
-<h4 id="pickup-zones">Pickup zones</h4>
-<p>The <code>ctld.pickupZones</code> table defines a list of Trigger Zone (or ship) names that will be configured as CTLD pickup zones.</p>
-<p>In the active radius of a pickup zone, one can load troops and spawn deployable crates.</p>
+<h3 id="radio-preset-frequencies-injector">Radio preset frequencies injector</h3>
+<p>A lot of planes in DCS can use presets in their onboard radios. This makes it easy to share a pre-briefed frequency plan (a.k.a. crystallization) among players.</p>
+<p>Unfortunately, editing these presets in the DCS mission editor, and maintaining the crystallization, is hard.</p>
+<p>The VEAF radio preset frequencies injector is a lua script that can be run in the build and/or the extract pipelines.</p>
+<p>It parses the mission files, and uses an internal database to find out how to configure the planes in the mission.</p>
+<p>The configuration is stored in a mission-specific lua file and its syntax is simple.</p>
+<p>It's a single table called <em>radioSettings</em>, that contains entries (freely named) which can specify a unit type, a coalition and/or a country.</p>
+<p>When the script runs, each unit in the mission is tested against the data in this table, and if it matches one of the entries then it's processed. When processing a unit, its radio configuration is replaced with the one in the <em>radioSettings</em> entry</p>
 <p>Example:</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-lua" data-lang="lua">ctld.pickupZones <span style="color:#f92672">=</span> {
-    { <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">pickzone1</span><span style="color:#e6db74">&#34;</span>, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">none</span><span style="color:#e6db74">&#34;</span>, <span style="color:#f92672">-</span><span style="color:#ae81ff">1</span>, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">yes</span><span style="color:#e6db74">&#34;</span>, <span style="color:#ae81ff">0</span> },
-    { <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">pickzone2</span><span style="color:#e6db74">&#34;</span>, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">none</span><span style="color:#e6db74">&#34;</span>, <span style="color:#f92672">-</span><span style="color:#ae81ff">1</span>, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">yes</span><span style="color:#e6db74">&#34;</span>, <span style="color:#ae81ff">0</span> },
-    { <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">pickzone3</span><span style="color:#e6db74">&#34;</span>, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">none</span><span style="color:#e6db74">&#34;</span>, <span style="color:#f92672">-</span><span style="color:#ae81ff">1</span>, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">yes</span><span style="color:#e6db74">&#34;</span>, <span style="color:#ae81ff">0</span> },
-    { <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">pickzone4</span><span style="color:#e6db74">&#34;</span>, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">none</span><span style="color:#e6db74">&#34;</span>, <span style="color:#f92672">-</span><span style="color:#ae81ff">1</span>, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">yes</span><span style="color:#e6db74">&#34;</span>, <span style="color:#ae81ff">0</span> },
-    { <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">pickzone5</span><span style="color:#e6db74">&#34;</span>, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">none</span><span style="color:#e6db74">&#34;</span>, <span style="color:#f92672">-</span><span style="color:#ae81ff">1</span>, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">yes</span><span style="color:#e6db74">&#34;</span>, <span style="color:#ae81ff">0</span> },
-    { <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">CVN-74 Stennis</span><span style="color:#e6db74">&#34;</span>, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">none</span><span style="color:#e6db74">&#34;</span>, <span style="color:#ae81ff">10</span>, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">yes</span><span style="color:#e6db74">&#34;</span>, <span style="color:#ae81ff">0</span>, <span style="color:#ae81ff">1001</span> }, <span style="color:#75715e">-- instead of a Zone Name you can also use the UNIT NAME of a ship</span>
-    { <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">LHA-1 Tarawa</span><span style="color:#e6db74">&#34;</span>, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">none</span><span style="color:#e6db74">&#34;</span>, <span style="color:#ae81ff">10</span>, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">yes</span><span style="color:#e6db74">&#34;</span>, <span style="color:#ae81ff">0</span>, <span style="color:#ae81ff">1002</span> }, <span style="color:#75715e">-- instead of a Zone Name you can also use the UNIT NAME of a ship</span>
-}
-</code></pre></div><h4 id="transport-pilots">Transport pilots</h4>
-<p>The <code>ctld.transportPilotNames</code> table lists the names of all the pilots that will be allowed to use CTLD. If a client unit in the mission has a pilot name that is in this list, then the player piloting this unit will be allowed to use CTLD.</p>
-<p>Example:</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-lua" data-lang="lua">ctld.transportPilotNames <span style="color:#f92672">=</span> {
-    <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">helicargo1</span><span style="color:#e6db74">&#34;</span>,
-    <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">helicargo1</span><span style="color:#e6db74">&#34;</span>,
-    <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">helicargo2</span><span style="color:#e6db74">&#34;</span>,
-    <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">helicargo3</span><span style="color:#e6db74">&#34;</span>,
-    <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">helicargo4</span><span style="color:#e6db74">&#34;</span>,
-    <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">helicargo5</span><span style="color:#e6db74">&#34;</span>
-}
-</code></pre></div><h4 id="load-limits">Load limits</h4>
-<p>The <code>ctld.unitLoadLimits</code> table overloads the default load limits for specific unit types. In the following example, we allow the Mi-8 to transport 24 units of load:</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-lua" data-lang="lua">ctld.unitLoadLimits <span style="color:#f92672">=</span> {
-    [<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">Mi-8MT</span><span style="color:#e6db74">&#34;</span>] <span style="color:#f92672">=</span> <span style="color:#ae81ff">24</span>
-}
-</code></pre></div>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-lua" data-lang="lua">radioSettings <span style="color:#f92672">=</span> {
+    [<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">blue F-14B</span><span style="color:#e6db74">&#34;</span>] <span style="color:#f92672">=</span> {
+        [<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">type</span><span style="color:#e6db74">&#34;</span>] <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">F-14B</span><span style="color:#e6db74">&#34;</span>,
+        [<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">coalition</span><span style="color:#e6db74">&#34;</span>] <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">blue</span><span style="color:#e6db74">&#34;</span>,
+        [<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">Radio</span><span style="color:#e6db74">&#34;</span>] <span style="color:#f92672">=</span> {
+            [<span style="color:#ae81ff">1</span>] <span style="color:#f92672">=</span> {
+                [<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">channels</span><span style="color:#e6db74">&#34;</span>] <span style="color:#f92672">=</span> {
+                    [<span style="color:#ae81ff">1</span>] <span style="color:#f92672">=</span> <span style="color:#ae81ff">243</span>,
+                    ...
+                    [<span style="color:#ae81ff">20</span>] <span style="color:#f92672">=</span> <span style="color:#ae81ff">271.7</span>,
+                }, <span style="color:#75715e">-- end of [&#34;channels&#34;]</span>
+                [<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">modulations</span><span style="color:#e6db74">&#34;</span>] <span style="color:#f92672">=</span> {
+                    [<span style="color:#ae81ff">1</span>] <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>,
+                    ...
+                    [<span style="color:#ae81ff">20</span>] <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>,
+                }, <span style="color:#75715e">-- end of [&#34;modulations&#34;]</span>
+            }, <span style="color:#75715e">-- end of [1]</span>
+        }, <span style="color:#75715e">-- end of [&#34;Radio&#34;]</span>
+</code></pre></div><p>In this example, all the <em>blue</em> units of type <em>F-14B</em> will be configured with these radio settings. F-14 in other coalitions and other unit types will not be processed.</p>
+<p>Other example:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-lua" data-lang="lua">radioSettings <span style="color:#f92672">=</span> {
+    [<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">Ka-50</span><span style="color:#e6db74">&#34;</span>] <span style="color:#f92672">=</span> {
+        [<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">type</span><span style="color:#e6db74">&#34;</span>] <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">Ka-50</span><span style="color:#e6db74">&#34;</span>,
+        [<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">Radio</span><span style="color:#e6db74">&#34;</span>] <span style="color:#f92672">=</span> {...}
+</code></pre></div><p>All the Ka-50 in the mission will be processed, regardless of their coalition.</p>
+<h3 id="dcs-data-exporter">DCS data exporter</h3>
+<p>TODO</p>
+
 
 <footer class=" footline" >
 	
@@ -734,6 +747,20 @@
             
                 
                     
+                    
+                
+                
+
+                    
+                    
+                    
+
+                    
+                        
+            
+            
+                
+                    
                         
                         
                     
@@ -744,6 +771,125 @@
                     
                     
 
+                    
+            
+        
+                    
+                        
+            
+            
+                
+                    
+                
+                
+
+                    
+                    
+                    
+
+                    
+            
+        
+                    
+                        
+            
+            
+                
+                    
+                    
+                
+                
+
+                    
+                    
+                    
+
+                    
+            
+        
+                    
+            
+        
+                    
+                        
+            
+            
+                
+                    
+                        
+                        
+                    
+                
+                
+
+                    
+                    
+                    
+
+                    
+            
+        
+                    
+                        
+            
+            
+                
+                    
+                
+                
+
+                    
+                    
+                    
+
+                    
+                        
+            
+            
+                
+                    
+                
+                
+
+                    
+                    
+                    
+
+                    
+            
+        
+                    
+                        
+            
+            
+                
+                    
+                
+                
+
+                    
+                    
+                    
+
+                    
+            
+        
+                    
+                        
+            
+            
+                
+                    
+                
+                
+
+                    
+                    
+                    
+
+                    
+            
+        
                     
                         
             
@@ -809,102 +955,6 @@
                     
 
                     
-            
-        
-                    
-                        
-            
-            
-                
-                    
-                
-                
-
-                    
-                    
-                    
-
-                    
-                        
-            
-            
-                
-                    
-                
-                
-
-                    
-                    
-                    
-
-                    
-            
-        
-                    
-                        
-            
-            
-                
-                    
-                
-                
-
-                    
-                    
-                    
-
-                    
-            
-        
-                    
-                        
-            
-            
-                
-                    
-                
-                
-
-                    
-                    
-                    
-
-                    
-            
-        
-                    
-                        
-            
-            
-                
-                    
-                
-                
-
-                    
-                    
-                    
-
-                    
-            
-        
-                    
-                        
-            
-            
-                
-                    
-                
-                
-
-                    
-                    
-                    
-
-                    
-            
-        
-                    
                         
             
             
@@ -928,43 +978,6 @@
             
             
                 
-                    
-                    
-                
-                
-
-                    
-                    
-                    
-
-                    
-                        
-            
-            
-                
-                    
-                    
-                
-                
-
-                    
-                    
-                    
-
-                    
-            
-        
-                    
-            
-        
-                    
-                        
-            
-            
-                
-                    
-                        
-                        
                     
                 
                 
@@ -1037,10 +1050,10 @@
 	 
 	 
 		
-			<a class="nav nav-prev" href="/VEAF-Mission-Creation-Tools/mission-maker/third-party/" title="Third party"> <i class="fa fa-chevron-left"></i></a>
+			<a class="nav nav-prev" href="/VEAF-Mission-Creation-Tools/mission-maker/concepts/usermarks/" title="User marks"> <i class="fa fa-chevron-left"></i></a>
 		
 		
-			<a class="nav nav-next" href="/VEAF-Mission-Creation-Tools/mission-maker/references/" title="References" style="margin-right: 0px;"><i class="fa fa-chevron-right"></i></a>
+			<a class="nav nav-next" href="/VEAF-Mission-Creation-Tools/mission-maker/demo-mission/" title="Demo mission" style="margin-right: 0px;"><i class="fa fa-chevron-right"></i></a>
 		
 	
     </div>

@@ -17,7 +17,7 @@
       
       <guid>https://veaf.github.io/VEAF-Mission-Creation-Tools/mission-maker/third-party/ctld/</guid>
       <description>Introduction CTLD is a third-party script that allow the players of a well-configured mission to transport troops and deployable crates with helicopters and transport airplanes.
-How to set up a mission Let&amp;rsquo;s start by saying that you can clone the VEAF-Demo-Mission repository and use it as an example (or fork it and create a new mission from your fork).
+How to set up a mission Let&#39;s start by saying that you can clone the VEAF-Demo-Mission repository and use it as an example (or fork it and create a new mission from your fork).
 Load the script and its prerequisites In DCS mission editor, set up a &amp;ldquo;mission start&amp;rdquo; trigger that will :</description>
     </item>
     

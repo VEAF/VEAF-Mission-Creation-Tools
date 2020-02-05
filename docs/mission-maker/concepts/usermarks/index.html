@@ -9,7 +9,7 @@
 
     <link rel="icon" href="/VEAF-Mission-Creation-Tools/images/favicon.png" type="image/png">
 
-    <title>Tags :: VEAF Mission Creation Tools - Documentation</title>
+    <title>User marks :: VEAF Mission Creation Tools - Documentation</title>
 
     
     <link href="/VEAF-Mission-Creation-Tools/css/nucleus.css?1580931193" rel="stylesheet">
@@ -35,7 +35,7 @@
     </style>
     
   </head>
-  <body class="" data-url="/VEAF-Mission-Creation-Tools/tags/">
+  <body class="" data-url="/VEAF-Mission-Creation-Tools/mission-maker/concepts/usermarks/">
     <nav id="sidebar" class="">
 
 
@@ -76,7 +76,7 @@
   
     
     <li data-nav-id="/VEAF-Mission-Creation-Tools/mission-maker/" title="Mission maker" class="dd-item 
-        
+        parent
         
         
         ">
@@ -103,7 +103,7 @@
   
     
     <li data-nav-id="/VEAF-Mission-Creation-Tools/mission-maker/concepts/" title="Concepts" class="dd-item 
-        
+        parent
         
         
         ">
@@ -146,7 +146,7 @@
  
   
     
-      <li data-nav-id="/VEAF-Mission-Creation-Tools/mission-maker/concepts/usermarks/" title="User marks" class="dd-item ">
+      <li data-nav-id="/VEAF-Mission-Creation-Tools/mission-maker/concepts/usermarks/" title="User marks" class="dd-item active">
         <a href="/VEAF-Mission-Creation-Tools/mission-maker/concepts/usermarks/">
         User marks
         
@@ -544,6 +544,17 @@
               <div>
                 <div id="top-bar">
                 
+                  
+                  
+                  
+                  <div id="top-github-link">
+                    <a class="github-link" title='Edit this page' href="https://github.com/VEAF/VEAF-Mission-Creation-Tools/edit/master/documentation/content/Mission%20maker/concepts/usermarks.md" target="blank">
+                      <i class="fas fa-code-branch"></i>
+                      <span id="top-github-link-text">Edit this page</span>
+                    </a>
+                  </div>
+                  
+                
                 
                 <div id="breadcrumbs" itemscope="" itemtype="http://data-vocabulary.org/Breadcrumb">
                     <span id="sidebar-toggle-span">
@@ -564,7 +575,19 @@
             
           
           
-            <a href='/VEAF-Mission-Creation-Tools/'>VEAF Mission Creation Tools</a> > Tags
+            
+            
+          
+          
+            
+            
+          
+          
+            <a href='/VEAF-Mission-Creation-Tools/'>VEAF Mission Creation Tools</a> > <a href='/VEAF-Mission-Creation-Tools/mission-maker/'>Mission maker</a> > <a href='/VEAF-Mission-Creation-Tools/mission-maker/concepts/'>Concepts</a> > User marks
+          
+         
+          
+         
           
          
           
@@ -575,7 +598,7 @@
                 
                     <div class="progress">
     <div class="wrapper">
-
+<nav id="TableOfContents"></nav>
     </div>
 </div>
 
@@ -591,7 +614,7 @@
           
             <h1>
               
-              Tags
+              User marks
             </h1>
           
 
@@ -599,17 +622,23 @@
 
 
 
-
-
-
+<p>A lot of the VEAF Mission Creation Tools functionalities are controlled through commands entered in the text of user marks on the F10 map.</p>
+<p>This means that, during runtime, a player can go to the F10 map and create a user mark</p>
+<p><img src="/VEAF-Mission-Creation-Tools/images/f10-map-usermark-01.png?raw=true" alt="f10-map-usermark-01" title="f10-map-usermark-01">)</p>
+<p>In this mark, the player enters a text that the VEAF Tools scripts will understand. Of course, it has to follow a specific syntax (see the documentation of the <a href="../modules/">modules</a>) for more detail.</p>
+<p>Example : <code>_spawn group, name US infgroup, country USA</code></p>
+<p>The command is sent to the scripts everytime the content of the marker changes:</p>
 <ul>
-	
+<li>at first, when the player entered some content and then clicked outside of the maker windows</li>
+<li>each time the text in the marker is modified and the player clicks outside of the maker windows</li>
 </ul>
+<p>A lot of modules are programmed to delete the marker as soon as its command is recognized and interpreted, so the second point is often moot.</p>
 
 
 <footer class=" footline" >
 	
 </footer>
+
 
         
         </div> 
@@ -642,8 +671,6 @@
             
                 
                     
-                        
-                        
                     
                 
                 
@@ -660,6 +687,7 @@
             
                 
                     
+                    
                 
                 
 
@@ -672,6 +700,9 @@
             
             
                 
+                    
+                        
+                        
                     
                 
                 
@@ -689,6 +720,7 @@
             
                 
                     
+                    
                 
                 
 
@@ -704,6 +736,9 @@
             
             
                 
+                    
+                        
+                        
                     
                 
                 
@@ -955,8 +990,10 @@
 	 
 	 
 		
+			<a class="nav nav-prev" href="/VEAF-Mission-Creation-Tools/mission-maker/concepts/radiomenus/" title="Radio menus"> <i class="fa fa-chevron-left"></i></a>
 		
-			<a class="nav nav-next" href="/VEAF-Mission-Creation-Tools/mission-maker/" title="Mission maker" style="margin-right: 0px;"><i class="fa fa-chevron-right"></i></a>
+		
+			<a class="nav nav-next" href="/VEAF-Mission-Creation-Tools/mission-maker/concepts/externalscripts/" title="External scripts" style="margin-right: 0px;"><i class="fa fa-chevron-right"></i></a>
 		
 	
     </div>
@@ -986,3 +1023,4 @@
 
   </body>
 </html>
+

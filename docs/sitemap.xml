@@ -3,6 +3,10 @@
   xmlns:xhtml="http://www.w3.org/1999/xhtml">
   
   <url>
+    <loc>https://veaf.github.io/VEAF-Mission-Creation-Tools/mission-maker/concepts/</loc>
+  </url>
+  
+  <url>
     <loc>https://veaf.github.io/VEAF-Mission-Creation-Tools/mission-maker/demo-mission/</loc>
   </url>
   
@@ -11,11 +15,23 @@
   </url>
   
   <url>
+    <loc>https://veaf.github.io/VEAF-Mission-Creation-Tools/mission-maker/concepts/radiomenus/</loc>
+  </url>
+  
+  <url>
     <loc>https://veaf.github.io/VEAF-Mission-Creation-Tools/mission-programmer/</loc>
   </url>
   
   <url>
+    <loc>https://veaf.github.io/VEAF-Mission-Creation-Tools/mission-maker/concepts/usermarks/</loc>
+  </url>
+  
+  <url>
     <loc>https://veaf.github.io/VEAF-Mission-Creation-Tools/</loc>
+  </url>
+  
+  <url>
+    <loc>https://veaf.github.io/VEAF-Mission-Creation-Tools/mission-maker/concepts/externalscripts/</loc>
   </url>
   
   <url>
@@ -35,15 +51,15 @@
   </url>
   
   <url>
-    <loc>https://veaf.github.io/VEAF-Mission-Creation-Tools/mission-maker/modules/veafcasmission/</loc>
-  </url>
-  
-  <url>
     <loc>https://veaf.github.io/VEAF-Mission-Creation-Tools/mission-maker/modules/veafunits/</loc>
   </url>
   
   <url>
     <loc>https://veaf.github.io/VEAF-Mission-Creation-Tools/mission-maker/modules/veafspawn/</loc>
+  </url>
+  
+  <url>
+    <loc>https://veaf.github.io/VEAF-Mission-Creation-Tools/mission-maker/modules/veafcasmission/</loc>
   </url>
   
   <url>

@@ -38,6 +38,10 @@ veafAssets.Assets = {
     {sort=2, name="Petrolsky", description="900 (IL-78M, RED)", information="VHF 267 Mhz", linked="Petrolsky-escort"},  
     {sort=3, name="Mig-28", description="Mig-29x2 (dogfight zone, RED)", disposable=true, information="They spawn near N41° 09' 31\" E043° 05' 08\""},
 }
+
+veafAssets.logInfo("Setting move tanker radio menus")
+table.insert(veafMove.Tankers, "Arco")
+table.insert(veafMove.Tankers, "Petrolsky")
 ```
 
 In this code, we define 3 assets.
@@ -51,6 +55,9 @@ When the players choose to respawn *Arco*, these linked groups will also automat
 
 *Mig-28* is an aggressor F5 ([of course](https://topgun.fandom.com/wiki/MiG-28)) which is **disposable**. It means that the player can choose not only to respawn it when they want to, but also to dispose of it when they don't want to play with it anymore.
 In this particular case (an AI aggressor plane), the mission maker should put it in the mission with the "Late activation" setting checked, so it is only spawned when players respawn it with this script.
+
+Then, we add the two tanker assets to the *veafMove.Tankers* table.
+When the *veafMove.initialze()* function is called later, it will use this table to create specific "Move tanker to me" commands in the radio menu.
 
 ## How to use in a mission
 

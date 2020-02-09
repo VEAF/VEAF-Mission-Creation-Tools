@@ -49,8 +49,6 @@
 --      add ", speed [speed]" to make the group move and at the specified speed (in knots)
 -- Type "_move tanker, name [groupname]" to create a new tanker flight plan and move the specified tanker.
 --      add ", speed [speed]" to make the tanker move and execute its refuel mission at the specified speed (in knots)
---      add ", hdg [heading]" to specify the refuel leg heading (from the marker point, in degrees)
---      add ", dist [distance]" to specify the refuel leg length (from the marker point, in nautical miles)
 --      add ", alt [altitude]" to specify the refuel leg altitude (in feet)
 --
 -- *** NOTE ***
@@ -70,7 +68,7 @@ veafMove = {}
 veafMove.Id = "MOVE - "
 
 --- Version.
-veafMove.Version = "1.2.1"
+veafMove.Version = "1.2.2"
 
 -- trace level, specific to this module
 veafMove.Trace = false
@@ -134,7 +132,7 @@ function veafMove.onEventMarkChange(eventPos, event)
             if options.moveGroup then
                 result = veafMove.moveGroup(eventPos, options.groupName, options.speed, options.altitude)
             elseif options.moveTanker then
-                result = veafMove.moveTanker(eventPos, options.groupName, options.speed, options.heading, options.distance, options.altitude)
+                result = veafMove.moveTanker(eventPos, options.groupName, options.speed, options.altitude)
             elseif options.moveAfac then
                 result = veafMove.moveAfac(eventPos, options.groupName, options.speed, options.altitude)
             end
@@ -144,20 +142,6 @@ function veafMove.onEventMarkChange(eventPos, event)
         end
 
         if result then 
-            -- Add a new mark
-            local lat, lon = coord.LOtoLL(eventPos)
-            local llString = mist.tostringLL(lat, lon, 0, true)
-        
-            local markText = "Group " .. options.groupName .. " moving here at " .. options.speed .. " kn"
-            local message = veafMove.Id .. "Group " .. options.groupName .. " moving to ".. llString .. " at " .. options.speed .. " kn"
-            if options.moveTanker then
-                markText = "Tanker " .. options.groupName .. " refuel leg at " .. options.speed .. " kn, " .. options.altitude .. " ft, heading " .. options.heading .. " for " .. options.distance .. " nm"
-                message = veafMove.Id .. "Tanker " .. options.groupName .. " initiating new refuel leg from ".. llString .. ", at " .. options.speed .. " kn, " .. options.altitude .. " ft, heading " .. options.heading .. " for " .. options.distance .. " nm"
-            end
-            --veafMove.logDebug("Adding a new mark")
-            --trigger.action.markToCoalition(veafMove.markid, markText, eventPos, event.coalition , false, message)
-            --veafMove.markid = veafMove.markid + 1
-
             -- Delete old mark.
             veafMove.logTrace(string.format("Removing mark # %d.", event.idx))
             trigger.action.removeMark(event.idx)
@@ -183,16 +167,10 @@ function veafMove.markTextAnalysis(text)
     switch.groupName = ""
 
     -- speed in knots
-    switch.speed = 250
+    switch.speed = -1 -- defaults to original speed
 
     -- tanker refuel leg altitude in feet
-    switch.altitude = 20000
-
-    -- tanker refuel leg distance in nautical miles
-    switch.distance = 30
-
-    -- tanker refuel leg heading in degrees
-    switch.heading = 0
+    switch.altitude = -1 -- defaults to tanker original altitude
 
     -- Check for correct keywords.
     if text:lower():find(veafMove.Keyphrase .. " group") then
@@ -200,8 +178,8 @@ function veafMove.markTextAnalysis(text)
         switch.speed = 20
     elseif text:lower():find(veafMove.Keyphrase .. " tanker") then
         switch.moveTanker = true
-        switch.speed = 400
-        switch.altitude = 20000
+        switch.speed = -1
+        switch.altitude = -1
     elseif text:lower():find(veafMove.Keyphrase .. " afac") then
         switch.moveAfac = true
         switch.speed = 300
@@ -239,20 +217,6 @@ function veafMove.markTextAnalysis(text)
             switch.altitude = nVal
         end
 
-        if switch.moveTanker and key:lower() == "dist" then
-            -- Set size.
-            veafMove.logDebug(string.format("Keyword dist = %d", val))
-            local nVal = tonumber(val)
-            switch.distance = nVal
-        end
-
-        if switch.moveTanker and key:lower() == "hdg" then
-            -- Set size.
-            veafMove.logDebug(string.format("Keyword hdg = %d", val))
-            local nVal = tonumber(val)
-            switch.heading = nVal
-        end
-
     end
 
     -- check mandatory parameter "group"
@@ -285,17 +249,8 @@ end
 -- Tanker move command
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-------------------------------------------------------------------------------
--- veafMove.moveTanker
--- @param point eventPos
--- @param string groupName 
--- @param float speed in knots
--- @param float hdg heading (0-359)
--- @param float distance in Nm
--- @param float alt in feet
-------------------------------------------------------------------------------
-function veafMove.moveTanker(eventPos, groupName, speed, hdg ,distance,alt)
-    veafMove.logDebug("veafMove.moveTanker(groupName = " .. groupName .. ", speed = " .. speed .. ", hdg = " .. hdg .. ", distance = " .. distance .. ", alt = " .. alt)
+function veafMove.moveTanker(eventPos, groupName, speed, alt)
+    veafMove.logDebug("veafMove.moveTanker(groupName = " .. groupName .. ", speed = " .. speed .. ", alt = " .. alt)
     veafMove.logDebug(string.format("veafMove.moveTanker: eventPos  x=%.1f z=%.1f", eventPos.x, eventPos.z))
 
 	local unitGroup = Group.getByName(groupName)
@@ -305,153 +260,116 @@ function veafMove.moveTanker(eventPos, groupName, speed, hdg ,distance,alt)
 		return false
 	end
 
-    local tankerData = veaf.getTankerData(groupName)
-
+    local tankerData = veaf.getGroupData(groupName)
     if not(tankerData) then
-        local text = "Cannot move tanker " .. groupName .. " because it has no TACAN task defined"
+        local text = "Cannot move tanker " .. groupName .. " ; cannot find group"
         veafMove.logInfo(text)
         trigger.action.outText(text)
         return
     end
 
-	-- teleport position
-	local teleportPosition = {
-		["x"] = eventPos.x + 5 * 1852 * math.cos(mist.utils.toRadian(180)),
-		["y"] = eventPos.z + 5 * 1852 * math.sin(mist.utils.toRadian(180))
-    }
-    veafMove.logTrace("teleportPosition="..veaf.vecToString(teleportPosition))
-    traceMarkerId = veafMove.logMarker(traceMarkerId, "teleportPosition", teleportPosition, debugMarkers)
+    local route = veaf.findInTable(tankerData, "route")
+    local points = veaf.findInTable(route, "points")
+    if points then
+        veafMove.logTrace("found a " .. #points .. "-points route for tanker " .. groupName)
+        -- modify the last 3 points
+        local idxPoint1 = #points-2
+        local idxPoint2 = #points-1
+        local idxPoint3 = #points
 
-    -- starting position
-	local fromPosition = {
-		["x"] = eventPos.x,
-		["y"] = eventPos.z
-	}
-    veafMove.logTrace("fromPosition="..veaf.vecToString(fromPosition))
-    traceMarkerId = veafMove.logMarker(traceMarkerId, "fromPosition", fromPosition, debugMarkers)
-	
-	-- ending position
-	local toPosition = {
-		["x"] = fromPosition.x + distance * 1852 * math.cos(mist.utils.toRadian(hdg)),
-		["y"] = fromPosition.y + distance * 1852 * math.sin(mist.utils.toRadian(hdg))
-	}
-    veafMove.logTrace("toPosition="..veaf.vecToString(toPosition))
-    traceMarkerId = veafMove.logMarker(traceMarkerId, "toPosition", toPosition, debugMarkers)
-
-    local vars = { groupName = groupName, point = teleportPosition, action = "teleport" }
-    local grp = mist.teleportToPoint(vars)
-    local tankerUnit = unitGroup:getUnits()[1]
-
-    -- replace the mission
-    local mission = { 
-        id = 'Mission', 
-        params = { 
-            ["communication"] = true,
-            ["start_time"] = 0,
-            ["task"] = "Refueling",
-            ["taskSelected"] = true,
-            ["route"] = 
-            {
-                ["points"] = 
-                {
-                    [1] = 
-                    {
-                        ["alt"] = alt * 0.3048, -- in meters
-                        ["action"] = "Turning Point",
-                        ["alt_type"] = "BARO",
-                        ["speed"] = speed/1.94384,  -- speed in m/s
-                        ["type"] = "Turning Point",
-                        ["x"] = teleportPosition.x,
-                        ["y"] = teleportPosition.y,
-                        ["speed_locked"] = true,
-                    },
-                    [2] = 
-                    {
-                        ["alt"] = alt * 0.3048, -- in meters
-                        ["action"] = "Turning Point",
-                        ["alt_type"] = "BARO",
-                        ["speed"] = speed/1.94384,  -- speed in m/s
-                        ["task"] = 
-                        {
-                            ["id"] = "ComboTask",
-                            ["params"] = 
-                            {
-                                ["tasks"] = 
-                                {
-                                    [1] = 
-                                    {
-                                        ["enabled"] = true,
-                                        ["auto"] = true,
-                                        ["id"] = "Tanker",
-                                        ["number"] = 1,
-                                    }, -- end of [1]
-                                    [2] = tankerData.tankerTacanTask
-                                }, -- end of ["tasks"]
-                            }, -- end of ["params"]
-                        }, -- end of ["task"]
-                        ["type"] = "Turning Point",
-                        ["ETA"] = 0,
-                        ["ETA_locked"] = true,
-                        ["x"] = teleportPosition.x,
-                        ["y"] = teleportPosition.y,
-                        ["speed_locked"] = true,
-                    },
-                    [3] = 
-                    {
-                        ["alt"] = alt * 0.3048, -- in meters
-                        ["action"] = "Turning Point",
-                        ["alt_type"] = "BARO",
-                        ["speed"] = speed/1.94384,  -- speed in m/s
-                        ["task"] = 
-                        {
-                            ["id"] = "ComboTask",
-                            ["params"] = 
-                            {
-                                ["tasks"] = 
-                                {
-                                    [1] = 
-                                    {
-                                        ["enabled"] = true,
-                                        ["auto"] = false,
-                                        ["id"] = "Orbit",
-                                        ["number"] = 1,
-                                        ["params"] = 
-                                        {
-                                            ["altitude"] = alt * 0.3048, -- in meters
-                                            ["pattern"] = "Race-Track",
-                                            ["speed"] = speed/1.94384,  -- speed in m/s
-                                        }, -- end of ["params"]
-                                    }, -- end of [1]
-                                }, -- end of ["tasks"]
-                            }, -- end of ["params"]
-                        }, -- end of ["task"]
-                        ["type"] = "Turning Point",
-                        ["x"] = fromPosition.x,
-                        ["y"] = fromPosition.y,
-                        ["speed_locked"] = true,
-                    },
-                    [4] = 
-                    {
-                        ["alt"] = alt * 0.3048, -- in meters
-                        ["action"] = "Turning Point",
-                        ["alt_type"] = "BARO",
-                        ["speed"] = speed/1.94384,  -- speed in m/s
-                        ["type"] = "Turning Point",
-                        ["x"] = toPosition.x,
-                        ["y"] = toPosition.y,
-                        ["speed_locked"] = true,
-                    }, -- end of [3]
-                }, -- end of ["points"]
-            }, -- end of ["route"]
+        -- point1 is the point where the tanker should move
+        local point1 = points[idxPoint1]
+        veafMove.logTrace("found point1")
+        traceMarkerId = veafMove.logMarker(traceMarkerId, "point1", point1, debugMarkers)
+        local moveVector = {
+            x = point1.x - eventPos.x,
+            y = point1.y - eventPos.z,
         }
-    }                
+        veafMove.logTrace("moveVector="..veaf.vecToString(moveVector))
+        -- move to event position
+        point1.x = eventPos.x
+        point1.y = eventPos.z
+        if speed > -1 then 
+            point1.speed = speed/1.94384  -- speed in m/s
+        end
+        if alt > -1 then 
+            point1.alt = alt * 0.3048 -- in meters
+        end
+        veafMove.logTrace("newPoint1="..veaf.vecToString(point1))
+        traceMarkerId = veafMove.logMarker(traceMarkerId, "newPoint1", point1, debugMarkers)
 
-    -- replace whole mission
-    veafMove.logDebug("Resetting moved tanker mission")
-    local controller = unitGroup:getController()
-    controller:setTask(mission)
+        -- point 2 is the start of the tanking Orbit
+        local point2 = points[idxPoint2]
+        local foundOrbit = false
+        local task1 = veaf.findInTable(point2, "task")
+        if task1 then
+            local tasks = task1.params.tasks
+            if (tasks) then
+                veaf.mainLogTrace("found " .. #tasks .. " tasks")
+                for j, task in pairs(tasks) do
+                    veaf.mainLogTrace("found task #" .. j)
+                    if task.params then
+                        veaf.mainLogTrace("has .params")
+                        if task.id and task.id == "Orbit" then
+                            veaf.mainLogInfo("Found a ORBIT task for tanker " .. groupName)
+                            foundOrbit = true
+                            if speed > -1 then 
+                                task.params.speed = speed/1.94384  -- speed in m/s
+                                point2.speed = speed/1.94384  -- speed in m/s
+                            end
+                            if alt > -1 then 
+                                task.params.altitude = alt * 0.3048 -- in meters
+                                point2.alt = alt * 0.3048 -- in meters
+                            end
+                        end
+                    end
+                end
+            end
+        end
+        if not foundOrbit then 
+            local text = "Cannot move tanker " .. groupName .. " because it has no ORBIT task defined"
+            veafMove.logInfo(text)
+            trigger.action.outText(text)
+            return
+        end
+        veafMove.logTrace("found point2")
+        traceMarkerId = veafMove.logMarker(traceMarkerId, "point2", point2, debugMarkers)
+        -- apply vector to position
+        point2.x = point2.x - moveVector.x
+        point2.y = point2.y - moveVector.y
+        veafMove.logTrace("newPoint2="..veaf.vecToString(point2))
+        traceMarkerId = veafMove.logMarker(traceMarkerId, "newPoint2", point2, debugMarkers)
+
+        -- point 3 is the end of the tanking Orbit
+        local point3 = points[idxPoint3]
+        veafMove.logTrace("found point3")
+        traceMarkerId = veafMove.logMarker(traceMarkerId, "point3", point3, debugMarkers)
+        -- apply vector to position
+        point3.x = point3.x - moveVector.x
+        point3.y = point3.y - moveVector.y
+        if speed > -1 then 
+            point3.speed = speed/1.94384  -- speed in m/s
+        end
+        if alt > -1 then 
+            point3.alt = alt * 0.3048 -- in meters
+        end
+        veafMove.logTrace("newpoint3="..veaf.vecToString(point3))
+        traceMarkerId = veafMove.logMarker(traceMarkerId, "newpoint3", point3, debugMarkers)
+
+        -- replace whole mission
+        veafMove.logDebug("Resetting moved tanker mission")
+        -- replace the mission
+        local mission = { 
+            id = 'Mission', 
+            params = tankerData
+        }
+        local controller = unitGroup:getController()
+        controller:setTask(mission)
         
-    return true
+        return true
+    else
+        return false
+    end
 end
 
 ------------------------------------------------------------------------------

@@ -83,7 +83,7 @@ veafTransportMission.RedDefenseGroupName = "Cargo - Enemy Air Defense Group"
 --- Name of the enemy group that blocades the friendlies
 veafTransportMission.RedBlocadeGroupName = "Cargo - Enemy Blocade Group"
 
-veafTransportMission.RadioMenuName = "TRANSPORT MISSION (" .. veafTransportMission.Version .. ")"
+veafTransportMission.RadioMenuName = "TRANSPORT MISSION)"
 
 veafTransportMission.AdfRadioSound = "l10n/DEFAULT/beacon.ogg"
 

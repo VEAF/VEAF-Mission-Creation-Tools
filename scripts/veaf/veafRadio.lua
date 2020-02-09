@@ -50,7 +50,7 @@ veafRadio.Version = "1.1.4"
 -- trace level, specific to this module
 veafRadio.Trace = false
 
-veafRadio.RadioMenuName = "VEAF (" .. veaf.Version .. " - radio " .. veafRadio.Version .. ")"
+veafRadio.RadioMenuName = "VEAF"
 
 --- Number of seconds between each automatic rebuild of the radio menu
 veafRadio.SecondsBetweenRadioMenuAutomaticRebuild = 600 -- 10 minutes ; should not be necessary as the menu is refreshed when a human enters a unit

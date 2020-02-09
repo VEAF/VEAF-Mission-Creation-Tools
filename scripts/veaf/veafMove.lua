@@ -68,7 +68,7 @@ veafMove = {}
 veafMove.Id = "MOVE - "
 
 --- Version.
-veafMove.Version = "1.2.2"
+veafMove.Version = "1.3"
 
 -- trace level, specific to this module
 veafMove.Trace = false
@@ -76,7 +76,7 @@ veafMove.Trace = false
 --- Key phrase to look for in the mark text which triggers the command.
 veafMove.Keyphrase = "_move"
 
-veafMove.RadioMenuName = "MOVE (" .. veafMove.Version .. ")"
+veafMove.RadioMenuName = "MOVE"
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Do not change anything below unless you know what you are doing!
@@ -89,6 +89,8 @@ veafMove.markid = 20000
 
 traceMarkerId = 6548
 debugMarkers = {}
+
+veafMove.Tankers = {}
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Utility methods
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -491,11 +493,27 @@ end
 -- Radio menu and help
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
+--- Build a radio menu to move the Arco tanker
+function veafMove.moveTankerToMe(parameters)
+    local tankerName, unitName = unpack(parameters)
+    veafMove.logDebug(string.format("veafMove.moveTankerToMe(tankerName=%s, unitName=%s)",tankerName,unitName))
+    local unit = Unit.getByName(unitName)
+    if unit then
+        veafMove.moveTanker(unit:getPosition().p, tankerName, -1, -1) -- -1 means to use the currently defined speed and altitude
+        veaf.outTextForUnit(unitName, string.format("%s - Moving to your position right away !", tankerName), 10)
+    end
+end
+
 --- Build the initial radio menu
 function veafMove.buildRadioMenu()
-    --veafMove.rootPath = veafRadio.addSubMenu(veafMove.RadioMenuName)
-    --veafRadio.addCommandToSubmenu("HELP", veafMove.rootPath, veafMove.help, nil, veafRadio.USAGE_ForGroup)
-    --veafRadio.refreshRadioMenu()
+    veafMove.logDebug(string.format("veafMove.buildRadioMenu()"))
+    veafMove.rootPath = veafRadio.addSubMenu(veafMove.RadioMenuName)
+    veafRadio.addCommandToSubmenu("HELP", veafMove.rootPath, veafMove.help, nil, veafRadio.USAGE_ForGroup)
+    for _, tankerName in pairs(veafMove.Tankers) do
+        local menuName = string.format("Move %s to me", tankerName)
+        local moveTankerPath = veafRadio.addSubMenu(menuName, veafMove.rootPath)
+        veafRadio.addCommandToSubmenu(menuName , moveTankerPath, veafMove.moveTankerToMe, tankerName, veafRadio.USAGE_ForUnit)    
+    end
 end
 
 function veafMove.help(unitName)
@@ -506,8 +524,6 @@ function veafMove.help(unitName)
         '     add ", speed [speed]" to make the group move and at the specified speed (in knots)\n' ..
         'Type "_move tanker, name [groupname]" to create a new tanker flight plan and move the specified tanker.\n' ..
         '     add ", speed [speed]" to make the tanker move and execute its refuel mission at the specified speed (in knots)\n' ..
-        '     add ", hdg [heading]" to specify the refuel leg heading (from the marker point, in degrees)\n' ..
-        '     add ", dist [distance]" to specify the refuel leg length (from the marker point, in nautical miles)\n' ..
         '     add ", alt [altitude]" to specify the refuel leg altitude (in feet)\n' ..
         'Type "_move afac, name [groupname]" to create a new JTAC flight plan and move the specified afac drone.\n' ..
         '     add ", speed [speed]" to make the tanker move and execute its mission at the specified speed (in knots)\n' ..

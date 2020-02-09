@@ -56,7 +56,7 @@ veafCarrierOperations.Trace = false
 --- All the carrier groups must comply with this name
 veafCarrierOperations.CarrierGroupNamePattern = "^CSG-.*$"
 
-veafCarrierOperations.RadioMenuName = "CARRIER OPS (" .. veafCarrierOperations.Version .. ")"
+veafCarrierOperations.RadioMenuName = "CARRIER OPS"
 
 veafCarrierOperations.AllCarriers = 
 {

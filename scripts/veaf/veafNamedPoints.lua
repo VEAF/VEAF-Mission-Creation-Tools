@@ -49,7 +49,7 @@ veafNamedPoints.Points = {
     --- these points will be processed at initialisation time
 }
 
-veafNamedPoints.RadioMenuName = "NAMED POINTS (" .. veafNamedPoints.Version .. ")"
+veafNamedPoints.RadioMenuName = "NAMED POINTS"
 
 veafNamedPoints.LowerRadioMenuSize = true
 -------------------------------------------------------------------------------------------------------------------------------------------------------------

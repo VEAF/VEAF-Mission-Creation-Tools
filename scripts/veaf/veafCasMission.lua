@@ -92,7 +92,7 @@ veafCasMission.SecondsBetweenFlareRequests = 120
 --- Name of the CAS targets vehicles group 
 veafCasMission.RedCasGroupName = "Red CAS Group"
 
-veafCasMission.RadioMenuName = "CAS MISSION (" .. veafCasMission.Version .. ")"
+veafCasMission.RadioMenuName = "CAS MISSION"
 
 veafCasMission.DefaultCountry = "RUSSIA"
 

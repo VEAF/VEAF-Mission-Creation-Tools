@@ -66,7 +66,7 @@ veafCombatZone.DefaultSpawnRadiusForUnits = 50
 
 veafCombatZone.DefaultSpawnRadiusForStatics = 0
 
-veafCombatZone.RadioMenuName = "COMBAT ZONES (" .. veafCombatZone.Version .. ")"
+veafCombatZone.RadioMenuName = "COMBAT ZONES"
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Do not change anything below unless you know what you are doing!

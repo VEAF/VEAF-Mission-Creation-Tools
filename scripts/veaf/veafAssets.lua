@@ -33,7 +33,7 @@ veafAssets.Assets = {
     -- list the assets common to all missions below
 }
 
-veafAssets.RadioMenuName = "ASSETS (" .. veafAssets.Version .. ")"
+veafAssets.RadioMenuName = "ASSETS"
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Do not change anything below unless you know what you are doing!

@@ -86,7 +86,7 @@ veafSpawn.RedSpawnedUnitsGroupName = "VEAF Spawned Units"
 --- Illumination flare default initial altitude (in meters AGL)
 veafSpawn.IlluminationFlareAglAltitude = 1000
 
-veafSpawn.RadioMenuName = "SPAWN (" .. veafSpawn.Version .. ")"
+veafSpawn.RadioMenuName = "SPAWN"
 
 --- static object type spawned when using the "logistic" keyword
 veafSpawn.LogisticUnitType = "FARP Ammo Dump Coating"

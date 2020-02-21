@@ -132,11 +132,25 @@ local function _sortTable(t, level)
   end
 end
 
-function veafMissionNormalizer.normalizeMission(filePath)
+function veafMissionNormalizer.normalizeMission(filePath, weather)
   -- normalize "mission" file
   local _filePath = filePath .. "\\mission"
   local _processFunction = function(t)
     _sortTable(t)
+    if weather then
+      if weather["date"] then 
+        t["date"] = weather["date"]
+        veafMissionNormalizer.logDebug("replaced [date]")
+      end
+      if weather["start_time"] then 
+        t["start_time"] = weather["start_time"]
+        veafMissionNormalizer.logDebug("replaced [start_time]")
+      end
+      if weather["weather"] then 
+        t["weather"] = weather["weather"]
+        veafMissionNormalizer.logDebug("replaced [weather]")
+      end
+    end
     return t
   end
   veafMissionEditor.editMission(_filePath, _filePath, "mission", nil, _processFunction)
@@ -159,15 +173,21 @@ function veafMissionNormalizer.normalizeMission(filePath)
 end
 
 veafMissionNormalizer.logDebug(string.format("#arg=%d", #arg))
+local debug = false
+local trace = false
 for i = 0, #arg do
   veafMissionNormalizer.logDebug(string.format("arg[%d]=%s", i, arg[i]))
+  if arg[i] and arg[i]:upper() == "-DEBUG" then
+    debug = true
+  end
+  if arg[i] and arg[i]:upper() == "-TRACE" then
+    trace = true
+  end
 end
 if #arg < 1 then
-  veafMissionNormalizer.logError("USAGE : veafMissionNormalizer.lua <mission folder path>")
+  veafMissionNormalizer.logError("USAGE : veafMissionNormalizer.lua <mission folder path> [weather and time configuration]")
   return
 end
-local debug = arg[2] and arg[2]:upper() == "-DEBUG"
-local trace = arg[2] and arg[2]:upper() == "-TRACE"
 if debug or trace then
   veafMissionNormalizer.Debug = true
   veafMissionEditor.Debug = true
@@ -183,4 +203,11 @@ else
 end
 
 local filePath = arg[1]
-veafMissionNormalizer.normalizeMission(filePath)
+local weather = nil
+if #arg >= 2 then
+  if arg[2] and arg[2]:sub(1,1) ~= "-" then
+    veafMissionNormalizer.logDebug(string.format("reading weather file [%s]", arg[2]))
+    weather = veafMissionEditor.readMissionFile(arg[2], "weatherAndTime")
+  end
+end
+veafMissionNormalizer.normalizeMission(filePath, weather)

@@ -313,7 +313,7 @@ function veafMove.moveTanker(eventPos, groupName, speed, alt)
                     if task.params then
                         veaf.mainLogTrace("has .params")
                         if task.id and task.id == "Orbit" then
-                            veaf.mainLogInfo("Found a ORBIT task for tanker " .. groupName)
+                            veaf.mainLogDebug("Found a ORBIT task for tanker " .. groupName)
                             foundOrbit = true
                             if speed > -1 then 
                                 task.params.speed = speed/1.94384  -- speed in m/s

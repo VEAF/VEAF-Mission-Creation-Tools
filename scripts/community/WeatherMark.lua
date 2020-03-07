@@ -401,14 +401,6 @@ function weathermark._GetWind(vec3, height)
   -- Calc 2D strength.
   local strength=math.sqrt((windvec3.x)^2+(windvec3.z)^2)
   
-  -- Debug output.
-  weathermark.info(string.format("Wind data: height = %s", tostring(height)))
-  weathermark.info(string.format("Wind data: vec3  x=%.1f y=%.1f, z=%.1f", vec3.x, vec3.y, vec3.z))
-  weathermark.info(string.format("Wind data: point x=%.1f y=%.1f, z=%.1f", point.x, point.y,point.z))
-  weathermark.info(string.format("Wind data: wind  x=%.1f y=%.1f, z=%.1f", windvec3.x, windvec3.y,windvec3.z))
-  weathermark.info(string.format("Wind data: |v| = %.1f", strength))
-  weathermark.info(string.format("Wind data: ang = %.1f", direction))
-  
   -- Return wind direction and strength km/h.
   return direction, strength, windvec3
 end

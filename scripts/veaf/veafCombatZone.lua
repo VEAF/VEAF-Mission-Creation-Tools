@@ -48,7 +48,7 @@ veafCombatZone = {}
 veafCombatZone.Id = "COMBAT ZONE - "
 
 --- Version.
-veafCombatZone.Version = "1.0.4"
+veafCombatZone.Version = "1.0.5"
 
 -- trace level, specific to this module
 veafCombatZone.Trace = false
@@ -591,7 +591,7 @@ function VeafCombatZone:getInformation()
         message = message .. "\n"
 
         -- get altitude, qfe and wind information
-        message = message .. veaf.weatherReport(zoneCenter)
+        message = message .. veaf.weatherReport(zoneCenter, nil, true)
     else
         message = message .. "zone is not yet active."
     end

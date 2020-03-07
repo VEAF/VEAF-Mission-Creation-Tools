@@ -34,7 +34,7 @@ veaf.Id = "VEAF - "
 veaf.MainId = "MAIN - "
 
 --- Version.
-veaf.Version = "1.2.2"
+veaf.Version = "1.2.3"
 
 -- trace level, specific to this module
 veaf.MainTrace = false
@@ -889,7 +889,7 @@ end
 
 --- Weather Report. Report pressure QFE/QNH, temperature, wind at certain location.
 --- stolen from the weatherReport script and modified to fit our usage
-function veaf.weatherReport(vec3, alt)
+function veaf.weatherReport(vec3, alt, withLASTE)
      
     -- Get Temperature [K] and Pressure [Pa] at vec3.
     local T
@@ -943,6 +943,21 @@ function veaf.weatherReport(vec3, alt)
         text=text..string.format("Wind from %s at %s (%s)", Ds, Vs, Bd)
     else
         text=text.."No wind"
+    end
+
+    local function getLASTEat(vec3, alt)
+        local T,_=atmosphere.getTemperatureAndPressure({x=vec3.x, y=alt, z=vec3.z})
+        local Dir,Vel=weathermark._GetWind(vec3, alt)
+        local laste = string.format("\nFL%02d W%03d/%02d T%d", alt * weathermark.meter2feet / 1000, Dir, Vel * weathermark.mps2knots, T-273.15)
+        return laste
+    end
+
+    if withLASTE then
+        text=text.."\n\nLASTE:"
+        text=text..getLASTEat(vec3, 610)
+        text=text..getLASTEat(vec3, 2500)
+        text=text..getLASTEat(vec3, 4900)
+        text=text..getLASTEat(vec3, 7500)
     end
 
     return text

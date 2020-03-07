@@ -37,7 +37,7 @@ veafNamedPoints = {}
 veafNamedPoints.Id = "NAMED POINTS - "
 
 --- Version.
-veafNamedPoints.Version = "1.2.4"
+veafNamedPoints.Version = "1.2.5"
 
 -- trace level, specific to this module
 veafNamedPoints.Trace = false
@@ -197,7 +197,7 @@ function veafNamedPoints.getWeatherAtPoint(parameters)
     veafNamedPoints.logTrace(string.format("getWeatherAtPoint(name = %s)",name))
     local point = veafNamedPoints.getPoint(name)
     if point then
-        local weatherReport = veaf.weatherReport(point)
+        local weatherReport = veaf.weatherReport(point, nil, true)
         veaf.outTextForUnit(unitName, weatherReport, 30)
     end
 end

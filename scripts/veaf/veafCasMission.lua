@@ -72,7 +72,7 @@ veafCasMission = {}
 veafCasMission.Id = "CAS MISSION - "
 
 --- Version.
-veafCasMission.Version = "1.5.5"
+veafCasMission.Version = "1.5.6"
 
 -- trace level, specific to this module
 veafCasMission.Trace = false
@@ -783,7 +783,7 @@ function veafCasMission.reportTargetInformation(unitName)
     message = message .. "FROM BULLSEYE    : " .. fromBullseye .. ".\n"
     message = message .. "\n"
 
-    message = message .. veaf.weatherReport(averageGroupPosition)
+    message = message .. veaf.weatherReport(averageGroupPosition, nil, true)
 
     -- send message only for the unit
     veaf.outTextForUnit(unitName, message, 30)

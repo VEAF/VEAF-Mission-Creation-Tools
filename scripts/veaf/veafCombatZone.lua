@@ -806,7 +806,7 @@ function veafCombatZone.GetZone(zoneName)
     veafCombatZone.logDebug(string.format("Searching for zone with name [%s]", zoneName))
     local zone = veafCombatZone.zonesDict[zoneName]
     if not zone then 
-        local message = string.format("VeafCombatZone [%s] was not found !",self.missionEditorZoneName)
+        local message = string.format("VeafCombatZone [%s] was not found !",zoneName)
         veafCombatZone.logError(message)
         trigger.action.outText(message,5)
     end

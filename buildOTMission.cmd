@@ -81,13 +81,13 @@ mkdir .\build
 mkdir .\build\tempsrc
 echo building the mission
 rem -- copy all the source mission files and mission-specific scripts
-xcopy /y /e %MISSION_PATH%\src\caucasus\mission .\build\tempsrc\ >nul 2>&1
-xcopy /y /e %MISSION_PATH%\src\caucasus\scripts\*.lua .\build\tempsrc\l10n\Default\  >nul 2>&1
+xcopy /y /e %MISSION_PATH%\src\mission .\build\tempsrc\ >nul 2>&1
+xcopy /y /e %MISSION_PATH%\src\scripts\*.lua .\build\tempsrc\l10n\Default\  >nul 2>&1
 
 rem -- set the radio presets according to the settings file
 echo set the radio presets according to the settings file
 pushd scripts\veaf
-%LUA% veafMissionRadioPresetsEditor.lua  ..\..\build\tempsrc ..\..\%MISSION_PATH%\src\caucasus\radioSettings.lua %LUA_SCRIPTS_DEBUG_PARAMETER%
+%LUA% veafMissionRadioPresetsEditor.lua  ..\..\build\tempsrc ..\..\%MISSION_PATH%\src\radioSettings.lua %LUA_SCRIPTS_DEBUG_PARAMETER%
 popd
 
 rem -- copy the documentation images to the kneeboard

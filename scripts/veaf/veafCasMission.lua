@@ -94,8 +94,6 @@ veafCasMission.RedCasGroupName = "Red CAS Group"
 
 veafCasMission.RadioMenuName = "CAS MISSION"
 
-veafCasMission.DefaultCountry = "RUSSIA"
-
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Do not change anything below unless you know what you are doing!
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -121,6 +119,10 @@ veafCasMission.SIDE_BLUE = 2
 -- Utility methods
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
+function veafCasMission.logError(message)
+    veaf.logError(veafCasMission.Id .. message)
+end
+
 function veafCasMission.logInfo(message)
     veaf.logInfo(veafCasMission.Id .. message)
 end
@@ -141,27 +143,41 @@ end
 
 --- Function executed when a mark has changed. This happens when text is entered or changed.
 function veafCasMission.onEventMarkChange(eventPos, event)
-    -- Check if marker has a text and the veafCasMission.keyphrase keyphrase.
-    if event.text ~= nil and event.text:lower():find(veafCasMission.Keyphrase) then
-
-        -- Analyse the mark point text and extract the keywords.
-        local options = veafCasMission.markTextAnalysis(event.text)
-
-        if options then
-            -- Check options commands
-            if options.casmission then
-                -- create the group
-                veafCasMission.generateCasMission(eventPos, options.size, options.defense, options.armor, options.spacing, options.disperseOnAttack)
-            end
-        else
-            -- None of the keywords matched.
-            return
-        end
-
+    -- choose by default the coalition of the player who triggered the event
+    local coalition = event.coalition
+    if veafCasMission.executeCommand(eventPos, event.text, coalition) then        
         -- Delete old mark.
         veafCasMission.logTrace(string.format("Removing mark # %d.", event.idx))
         trigger.action.removeMark(event.idx)
     end
+end
+
+function veafCasMission.executeCommand(eventPos, eventText, eventCoalition, bypassSecurity)
+    -- Check if marker has a text and the veafCasMission.keyphrase keyphrase.
+    if eventText ~= nil and eventText:lower():find(veafCasMission.Keyphrase) then
+
+        -- Analyse the mark point text and extract the keywords.
+        local options = veafCasMission.markTextAnalysis(eventText, eventCoalition)
+
+        if options then
+            -- Check options commands
+            if options.casmission then
+
+                if not options.side then
+                    if eventCoalition == 1 then
+                        options.side = "blue"
+                    else
+                        options.side = "red"
+                    end
+                end
+
+                -- create the group
+                veafCasMission.generateCasMission(eventPos, options.size, options.defense, options.armor, options.spacing, options.disperseOnAttack, options.side)
+                return true
+            end
+        end
+    end
+    return false
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -192,6 +208,9 @@ function veafCasMission.markTextAnalysis(text)
 
     -- password
     switch.password = nil
+
+    -- coalition
+    switch.side = nil
 
     -- Check for correct keywords.
     if text:lower():find(veafCasMission.Keyphrase) then
@@ -251,6 +270,16 @@ function veafCasMission.markTextAnalysis(text)
             end
         end
 
+        if key:lower() == "side" then
+            -- Set side
+            veafCasMission.logTrace(string.format("Keyword side = %s", val))
+            if val:upper() == "BLUE" then
+                switch.side = veafCasMission.SIDE_BLUE
+            else
+                switch.side = veafCasMission.SIDE_RED
+            end
+        end
+
         if switch.casmission and key:lower() == "disperse" then
             -- Set disperse on attack.
             veafCasMission.logDebug("Keyword disperse is set")
@@ -282,6 +311,8 @@ function veafCasMission.generateAirDefenseGroup(groupName, defense, side)
             _actualDefense = defense + 1
         end
     end
+    if _actualDefense > 5 then _actualDefense = 5 end
+    if _actualDefense < 0 then _actualDefense = 0 end
     veafCasMission.logTrace("_actualDefense = " .. _actualDefense)
     local _groupDefinition = "generateAirDefenseGroup-BLUE-"
     if side == veafCasMission.SIDE_RED then
@@ -291,6 +322,9 @@ function veafCasMission.generateAirDefenseGroup(groupName, defense, side)
     veafCasMission.logTrace("_groupDefinition = " .. _groupDefinition)
 
     group = veafUnits.findGroup(_groupDefinition)
+    if not group then
+        veafCasMission.logError(string.format("veafCasMission.generateAirDefenseGroup cannot find group [%s]", _groupDefinition or ""))
+    end
     group.description = groupName
     group.groupName = groupName
     
@@ -317,7 +351,13 @@ function veafCasMission.generateTransportCompany(groupName, defense, groupSize, 
   
     for _ = 1, groupSize do
         transportRand = math.random(8)
-        if transportRand == 1 then
+        if side == veafCasMission.SIDE_BLUE then
+            -- force Transport M818
+            transportRand = 0
+        end
+        if transportRand == 0 then
+            transportType = 'Transport M818'
+        elseif transportRand == 1 then
             transportType = 'ATMZ-5'
         elseif transportRand == 2 then
             transportType = 'Ural-4320 APA-5D'
@@ -693,13 +733,13 @@ function veafCasMission.generateCasGroup(country, casGroupName, spawnSpot, size,
 end
 
 --- Generates a CAS mission
-function veafCasMission.generateCasMission(spawnSpot, size, defense, armor, spacing, disperseOnAttack)
+function veafCasMission.generateCasMission(spawnSpot, size, defense, armor, spacing, disperseOnAttack, side)
     if veafCasMission.groupAliveCheckTaskID ~= 'none' then
         trigger.action.outText("A CAS target group already exists !", 5)
         return
     end
-    local country = veafCasMission.DefaultCountry
-    local units = veafCasMission.generateCasGroup(country, veafCasMission.RedCasGroupName, spawnSpot, size, defense, armor, spacing, disperseOnAttack)
+    local country = veaf.getFirstCountryInCoalition(side)
+    local units = veafCasMission.generateCasGroup(country, veafCasMission.RedCasGroupName, spawnSpot, size, defense, armor, spacing, disperseOnAttack, side)
 
     -- prepare the actual DCS units
     local dcsUnits = {}

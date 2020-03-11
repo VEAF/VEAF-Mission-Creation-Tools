@@ -954,15 +954,34 @@ function veaf.weatherReport(vec3, alt, withLASTE)
 
     if withLASTE then
         text=text.."\n\nLASTE:"
-        text=text..getLASTEat(vec3, 610)
-        text=text..getLASTEat(vec3, 2500)
-        text=text..getLASTEat(vec3, 4900)
-        text=text..getLASTEat(vec3, 7500)
+        text=text..getLASTEat(vec3, math.floor(((alt * weathermark.meter2feet + 2000)/1000)*1000+500)/weathermark.meter2feet)
+        text=text..getLASTEat(vec3, math.floor(((alt * weathermark.meter2feet + 8000)/1000)*1000+500)/weathermark.meter2feet)
+        text=text..getLASTEat(vec3, math.floor(((alt * weathermark.meter2feet + 16000)/1000)*1000+500)/weathermark.meter2feet)
+        --text=text..getLASTEat(vec3, _Alt + 7500)
     end
 
     return text
-  end
+end
 
+function veaf.getFirstCountryInCoalition(coalition)
+    veaf.mainLogTrace(string.format("veaf.getFirstCountryInCoalition(%s)", tostring(coalition or "")))
+    local coalitionName = nil
+    if type(coalition) == "number" then
+        if coalition == 1 then 
+            coalitionName = "red" 
+        elseif coalition == 2 then 
+            coalitionName = "blue" 
+        else
+            coalitionName = "neutral" 
+        end
+    else
+        coalitionName = tostring(coalition)
+    end
+    veaf.mainLogTrace(string.format("coalitionName=[%s]", tostring(coalitionName or "")))
+    for countryName, _ in pairs(mist.DBs.units[coalitionName]) do
+        return countryName
+    end
+end
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- mission restart at a certain hour of the day
 -------------------------------------------------------------------------------------------------------------------------------------------------------------

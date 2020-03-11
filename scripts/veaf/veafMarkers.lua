@@ -49,9 +49,6 @@ veafMarkers.DCSbugfixed = true
 veafMarkers.Trace = false
 veafMarkers.Debug = false
 
---- Key phrase to look for in the mark text which triggers the command.
-veafMarkers.Keyphrase = "_"
-
 veafMarkers.MarkerAdd = 1
 veafMarkers.MarkerChange = 2
 veafMarkers.MarkerRemove = 3
@@ -144,7 +141,7 @@ function veafMarkers.onEvent(event, eventHandlersTable)
     local vec3 = nil
 
     -- Check if marker has a text and the veafMarkers.keyphrase keyphrase.
-    if event.text ~= nil and event.text:lower():find(veafMarkers.Keyphrase) then
+    if event.text ~= nil then
         -- browse all the event handlers registered for this type of event
         for i = 1, #eventHandlersTable do 
 

@@ -418,33 +418,37 @@ end
 
 --- Function executed when a mark has changed. This happens when text is entered or changed.
 function veafSecurity.onEventMarkChange(eventPos, event)
-  -- Check if marker has a text and the veafSecurity.keyphrase keyphrase.
-  if event.text ~= nil and event.text:lower():find(veafSecurity.Keyphrase) then
+  if veafSecurity.executeCommand(eventPos, event.text) then        
+      -- Delete old mark.
+      veafSecurity.logTrace(string.format("Removing mark # %d.", event.idx))
+      trigger.action.removeMark(event.idx)
+  end
+end
+
+function veafSecurity.executeCommand(eventPos, eventText, bypassSecurity)
+    -- Check if marker has a text and the veafCasMission.keyphrase keyphrase.
+    if eventText ~= nil and eventText:lower():find(veafSecurity.Keyphrase) then
 
       -- Analyse the mark point text and extract the keywords.
-      local options = veafSecurity.markTextAnalysis(event.text)
+      local options = veafSecurity.markTextAnalysis(eventText)
 
       if options then
           -- Check options commands
           if options.login then
               -- check password
-              if not veafSecurity.checkPassword_L1(options.password) then 
-                trigger.action.outText("password was not correct", 5)
-                return 
+              if not (bypassSecurity or veafSecurity.checkPassword_L1(options.password)) then 
+                trigger.action.outText("password was not set or was not correct", 5)
+                return false
               end
               veafSecurity.authenticate()
+              return true
           elseif options.logout then
               veafSecurity.logout()
+              return true
           end
-      else
-          -- None of the keywords matched.
-          return
       end
-
-      -- Delete old mark.
-      veafSecurity.logTrace(string.format("Removing mark # %d.", event.idx))
-      trigger.action.removeMark(event.idx)
   end
+  return false
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------

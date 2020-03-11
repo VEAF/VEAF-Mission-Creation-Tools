@@ -1,7 +1,7 @@
 @echo off
 set MISSION_NAME=VEAF-Demo-Mission
 set MISSION_PATH=..\VEAF-Demo-Mission
-set SECURITY_DISABLED_FLAG=true
+set SECURITY_DISABLED_FLAG=false
 set VERBOSE_LOG_FLAG=true
 set LUA_SCRIPTS_DEBUG_PARAMETER=-debug
 echo.

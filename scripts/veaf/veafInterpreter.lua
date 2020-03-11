@@ -108,16 +108,20 @@ function veafInterpreter.interpret(text)
     return result
 end
 
-function veafInterpreter.execute(command, position, spawnedGroups)
+function veafInterpreter.execute(command, position, coalition, spawnedGroups, doNotBypassSecurity)
     if command == nil then return end
     if position == nil then return end
     veafInterpreter.logTrace(string.format("veafInterpreter.execute([%s],[%s])",command, veaf.vecToString(position)))
 
     -- check for SPAWN module commands
-    if veafSpawn.executeCommand(position, command, true, spawnedGroups) then
+    if veafSpawn.executeCommand(position, command, coalition, doNotBypassSecurity or true, spawnedGroups) then
         return true
     -- check for NAMED POINT module commands
-    elseif veafNamedPoints.executeCommand(position, {text=command, coalition=-1}) then
+    elseif veafNamedPoints.executeCommand(position, {text=command, coalition=-1}, doNotBypassSecurity or true) then
+        return true
+    elseif veafCasMission.executeCommand(position, command, coalition, doNotBypassSecurity or true) then
+        return true
+    elseif veafSecurity.executeCommand(position, command, doNotBypassSecurity or true) then
         return true
     else
         return false
@@ -134,7 +138,7 @@ function veafInterpreter.processObject(unitName)
         if unit then
             local position = unit:getPosition().p
             veafInterpreter.logTrace(string.format("found the unit at : [%s]", veaf.vecToString(position)))
-            if veafInterpreter.execute(command, position) then 
+            if veafInterpreter.execute(command, position, unit:getCoalition()) then 
                 unit:destroy()
             end
         end

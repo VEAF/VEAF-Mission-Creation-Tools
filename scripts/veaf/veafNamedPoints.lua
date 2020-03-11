@@ -98,7 +98,7 @@ function veafNamedPoints.onEventMarkChange(eventPos, event)
     end
 end
 
-function veafNamedPoints.executeCommand(eventPos, event)
+function veafNamedPoints.executeCommand(eventPos, event, bypassSecurity)
 
     -- Check if marker has a text and the veafNamedPoints.keyphrase keyphrase.
     if event.text ~= nil and event.text:lower():find(veafNamedPoints.Keyphrase) then

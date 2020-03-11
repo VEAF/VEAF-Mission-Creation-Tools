@@ -118,6 +118,8 @@ VeafCombatZoneElement =
     dcsGroup,
     -- if true, this is a VEAF command
     veafCommand,
+    --  coalition (0 = neutral, 1 = red, 2 = blue)
+    coalition,
     -- spawn radius in meters (randomness introduced in the respawn mechanism)
     spawnRadius,
     -- spawn chance in percent (xx chances in 100 that the unit is spawned - or the command run)
@@ -133,6 +135,7 @@ function VeafCombatZoneElement.new ()
     self.dcsStatic = false
     self.dcsGroup = false
     self.veafCommand = false
+    self.coalition = nil
     self.spawnRadius = 0
     self.spawnChance = 100
     return self
@@ -187,6 +190,15 @@ function VeafCombatZoneElement:isVeafCommand()
     return self.veafCommand
 end
 
+function VeafCombatZoneElement:setCoalition(value)
+    self.coalition = value
+    return self
+end
+
+function VeafCombatZoneElement:getCoalition()
+    return self.coalition
+end
+
 function VeafCombatZoneElement:setSpawnRadius(value)
     self.spawnRadius = tonumber(value)
     return self
@@ -239,7 +251,6 @@ VeafCombatZone =
     radioMarkersPath,
     radioTargetInfoPath,
     radioRootPath,
-
     -- the watchdog function checks for zone objectives completion
     watchdogFunctionId,
     -- "pop smoke" command reset function id
@@ -412,6 +423,7 @@ function VeafCombatZone:initialize()
     local alreadyAddedGroups = {}
     for _,unit in pairs(units) do
         local zoneElement = VeafCombatZoneElement.new()
+        zoneElement:setCoalition(unit:getCoalition())
         local unitName = unit:getName()
         veafCombatZone.logTrace(string.format("processing unit [%s]", unitName))
         zoneElement:setPosition(unit:getPosition().p)
@@ -629,7 +641,7 @@ function VeafCombatZone:activate()
         elseif zoneElement:isVeafCommand() then
                 veafCombatZone.logTrace(string.format("executing command [%s] at position [%s]",zoneElement:getName(), veaf.vecToString(position)))
                 local spawnedGroups = {}
-                veafInterpreter.execute(zoneElement:getName(), position, spawnedGroups)
+                veafInterpreter.execute(zoneElement:getName(), zoneElement:getCoalition(), position, spawnedGroups)
                 for _, newGroup in pairs(spawnedGroups) do
                     veafCombatZone.logTrace(string.format("[%s].addSpawnedGroup", zoneElement:getName()))
                     self:addSpawnedGroup(newGroup)

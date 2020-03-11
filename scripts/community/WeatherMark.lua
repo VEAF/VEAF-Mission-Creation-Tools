@@ -67,7 +67,7 @@ weathermark.unitsystem="metric"
 weathermark.keyphrase="weather"
 
 --- DCS bug regarding wrong marker vector components was fixed. If so, set to true! 
-weathermark.DCSbugfixed=false
+weathermark.DCSbugfixed=true
 
 --- Enable debug mode ==> give more output to DCS log file.
 weathermark.Debug=false
@@ -198,7 +198,12 @@ function weathermark._OnEventMarkChange(Event)
     end 
         
     -- Get weather report text.
-    local _report = weathermark._WeatherReport(vec3, _options.alt, _options.unitsystem or weathermark.unitsystem)
+	local _report=nil;
+	if _options.laste then
+      _report = weathermark._Laste(vec3, _options.alt)
+	else
+      _report = weathermark._WeatherReport(vec3, _options.alt, _options.unitsystem or weathermark.unitsystem)
+    end
       
     -- Add a new mark with weather report info.
     weathermark.markid=weathermark.markid+1
@@ -231,14 +236,17 @@ function weathermark._MarkTextAnalysis(text)
   local switch={}
   switch.report=false
   switch.set=false
+  switch.laste=false
   
   -- Check for correct keywords.
   if text:lower():find(weathermark.keyphrase.." report") or text:lower():find(weathermark.keyphrase.." request") or text:lower():find(weathermark.keyphrase.." mark") then
     switch.report=true
   elseif text:lower():find(weathermark.keyphrase.." set") then
     switch.set=true
+  elseif text:lower():find(weathermark.keyphrase.." laste") then
+    switch.laste=true
   else
-    weathermark.info(weathermark.id..'WARNING: NEITHER "REPORT"/"REQUEST" nor "SET" keywords specified!')
+    weathermark.info(weathermark.id..'WARNING: NEITHER "REPORT"/"REQUEST"/"LASTE" nor "SET" keywords specified!')
     return nil
   end
     
@@ -278,6 +286,28 @@ end
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Main weather report.
 ------------------------------------------------------------------------------------------------------------------------------------------------------------- 
+
+--- Just print LASTE (used in A-10C)
+function weathermark._Laste(vec3)
+
+	-- LASTE is in Flight Level (x100ft) and T°C
+	alt=weathermark._GetLandHeight(vec3)
+
+    local function getLASTEat(vec3, alt)
+        local T,_=atmosphere.getTemperatureAndPressure({x=vec3.x, y=alt, z=vec3.z})
+        local Dir,Vel=weathermark._GetWind(vec3, alt)
+        local laste = string.format("\nFL%02d W%03d/%02d T%d", alt * weathermark.meter2feet / 1000, Dir, Vel * weathermark.mps2knots, T-273.15)
+        return laste
+    end
+
+    local text=""
+	text=text.."LASTE:"
+	text=text..getLASTEat(vec3, alt+610) -- alt +2000ft
+	text=text..getLASTEat(vec3, alt+1830) -- alt +6000ft
+	text=text..getLASTEat(vec3, alt+3050) -- alt +10000ft
+	
+	return text
+end
 
 --- Weather Report. Report pressure QFE/QNH, temperature, wind at certain location.
 function weathermark._WeatherReport(vec3, alt, unitsystem)

@@ -69,7 +69,7 @@ veafSpawn.Id = "SPAWN - "
 veafSpawn.Version = "1.8.4"
 
 -- trace level, specific to this module
-veafSpawn.Trace = false
+veafSpawn.Trace = true
 
 --- Key phrase to look for in the mark text which triggers the spawn command.
 veafSpawn.SpawnKeyphrase = "_spawn"
@@ -133,12 +133,7 @@ end
 
 --- Function executed when a mark has changed. This happens when text is entered or changed.
 function veafSpawn.onEventMarkChange(eventPos, event)
-    -- choose by default the coalition opposing the player who triggered the event
-    local coalition = 1
-    if event.coalition == 1 then
-        coalition = 2
-    end
-    if veafSpawn.executeCommand(eventPos, event.text, coalition) then 
+    if veafSpawn.executeCommand(eventPos, event.text, event.coalition) then 
         
         -- Delete old mark.
         veafSpawn.logTrace(string.format("Removing mark # %d.", event.idx))
@@ -147,7 +142,7 @@ function veafSpawn.onEventMarkChange(eventPos, event)
     end
 end
 
-function veafSpawn.executeCommand(eventPos, eventText, eventCoalition, bypassSecurity, spawnedGroups)
+function veafSpawn.executeCommand(eventPos, eventText, coalition, bypassSecurity, spawnedGroups)
     -- Check if marker has a text and the veafSpawn.keyphrase keyphrase.
     if eventText ~= nil and (eventText:lower():find(veafSpawn.SpawnKeyphrase) or eventText:lower():find(veafSpawn.DestroyKeyphrase) or eventText:lower():find(veafSpawn.TeleportKeyphrase)) then
         
@@ -157,12 +152,19 @@ function veafSpawn.executeCommand(eventPos, eventText, eventCoalition, bypassSec
         if options then
             local spawnedGroup = nil
             if not options.side then
-                if eventCoalition == 1 then
-                    options.side = "red"
-                else
-                    options.side = "blue"
+                veafSpawn.logTrace(string.format("coalition=%d",coalition or -1))
+                -- choose by default the coalition opposing the player who triggered the event
+                options.side = 1
+                if coalition == 1 then
+                    options.side = 2
                 end
             end
+
+            if not options.country then
+                veafSpawn.logTrace(string.format("options.side=%d",options.side or -1))
+                options.country = veaf.getFirstCountryInCoalition(options.side)
+            end
+
             -- Check options commands
             if options.unit then
                 -- check security
@@ -389,6 +391,11 @@ function veafSpawn.markTextAnalysis(text)
             switch.destination = val
         end
 
+        if key:lower() == "isconvoy" then
+            veafSpawn.logTrace(string.format("Keyword isconvoy found", val))
+            switch.convoy = true
+        end
+
         if key:lower() == "patrol" then
             veafSpawn.logTrace(string.format("Keyword patrol found", val))
             switch.patrol = true
@@ -452,10 +459,8 @@ function veafSpawn.markTextAnalysis(text)
             veafSpawn.logTrace(string.format("Keyword side = %s", val))
             if val:upper() == "BLUE" then
                 switch.side = veafCasMission.SIDE_BLUE
-                if switch.country == nil then switch.country = "USA" end
             else
                 switch.side = veafCasMission.SIDE_RED
-                if switch.country == nil then switch.country = "RUSSIA" end
             end
         end
 
@@ -539,8 +544,6 @@ function veafSpawn.markTextAnalysis(text)
             end
         end
     end
-
-    if switch.country == nil then switch.country = "RUSSIA" end
 
     -- check mandatory parameter "name" for command "group"
     if switch.group and not(switch.name) then return nil end
@@ -667,6 +670,7 @@ function veafSpawn.spawnGroup(spawnSpot, name, country, speed, alt, hdg, spacing
 end
 
 function veafSpawn._createDcsUnits(country, units, groupName)
+    veafSpawn.logDebug(string.format("veafSpawn._createDcsUnits([%s])",country or ""))
     local dcsUnits = {}
     for i=1, #units do
         local unit = units[i]
@@ -769,7 +773,7 @@ function veafSpawn.spawnAirDefenseBattery(eventPos, country, side, heading, spac
     -- shuffle the units in the group
     units = veaf.shuffle(group.units)
 
-    veafSpawn._createDcsUnits(country, group.units, groupName)
+    veafSpawn._createDcsUnits(country or veaf.getFirstCountryInCoalition(side), group.units, groupName)
  
     if not silent then 
         trigger.action.outText("Spawned dynamic air defense battery "..groupName, 5)

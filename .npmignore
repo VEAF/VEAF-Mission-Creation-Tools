@@ -1,0 +1,11 @@
+build/
+.vscode/
+docs/
+documentation/
+mission-editor-tools/
+setup/
+*.cmd
+*.md
+*.json
+.gitignore
+.npmignore

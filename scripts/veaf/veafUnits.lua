@@ -316,7 +316,7 @@ end
 
 --- searches the database for a group having this alias (case insensitive)
 function veafUnits.findGroup(groupAlias)
-    veafUnits.logTrace("veafUnits.findGroup(groupAlias=" .. groupAlias .. ")")
+    veafUnits.logDebug("veafUnits.findGroup(groupAlias=" .. groupAlias .. ")")
 
     -- find the desired group in the groups database
     local result = nil

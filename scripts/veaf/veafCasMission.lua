@@ -119,6 +119,10 @@ veafCasMission.SIDE_BLUE = 2
 -- Utility methods
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
+function veafCasMission.logError(message)
+    veaf.logError(veafCasMission.Id .. message)
+end
+
 function veafCasMission.logInfo(message)
     veaf.logInfo(veafCasMission.Id .. message)
 end
@@ -307,6 +311,8 @@ function veafCasMission.generateAirDefenseGroup(groupName, defense, side)
             _actualDefense = defense + 1
         end
     end
+    if _actualDefense > 5 then _actualDefense = 5 end
+    if _actualDefense < 0 then _actualDefense = 0 end
     veafCasMission.logTrace("_actualDefense = " .. _actualDefense)
     local _groupDefinition = "generateAirDefenseGroup-BLUE-"
     if side == veafCasMission.SIDE_RED then
@@ -316,6 +322,9 @@ function veafCasMission.generateAirDefenseGroup(groupName, defense, side)
     veafCasMission.logTrace("_groupDefinition = " .. _groupDefinition)
 
     group = veafUnits.findGroup(_groupDefinition)
+    if not group then
+        veafCasMission.logError(string.format("veafCasMission.generateAirDefenseGroup cannot find group [%s]", _groupDefinition or ""))
+    end
     group.description = groupName
     group.groupName = groupName
     
@@ -342,7 +351,13 @@ function veafCasMission.generateTransportCompany(groupName, defense, groupSize, 
   
     for _ = 1, groupSize do
         transportRand = math.random(8)
-        if transportRand == 1 then
+        if side == veafCasMission.SIDE_BLUE then
+            -- force Transport M818
+            transportRand = 0
+        end
+        if transportRand == 0 then
+            transportType = 'Transport M818'
+        elseif transportRand == 1 then
             transportType = 'ATMZ-5'
         elseif transportRand == 2 then
             transportType = 'Ural-4320 APA-5D'

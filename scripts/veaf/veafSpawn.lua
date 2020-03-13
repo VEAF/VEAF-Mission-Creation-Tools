@@ -133,7 +133,12 @@ end
 
 --- Function executed when a mark has changed. This happens when text is entered or changed.
 function veafSpawn.onEventMarkChange(eventPos, event)
-    if veafSpawn.executeCommand(eventPos, event.text, event.coalition) then 
+    -- choose by default the coalition opposing the player who triggered the event
+    local coalition = 1
+    if event.coalition == 1 then
+        coalition = 2
+    end
+    if veafSpawn.executeCommand(eventPos, event.text, coalition) then 
         
         -- Delete old mark.
         veafSpawn.logTrace(string.format("Removing mark # %d.", event.idx))
@@ -153,11 +158,7 @@ function veafSpawn.executeCommand(eventPos, eventText, coalition, bypassSecurity
             local spawnedGroup = nil
             if not options.side then
                 veafSpawn.logTrace(string.format("coalition=%d",coalition or -1))
-                -- choose by default the coalition opposing the player who triggered the event
-                options.side = 1
-                if coalition == 1 then
-                    options.side = 2
-                end
+                options.side = coalition
             end
 
             if not options.country then

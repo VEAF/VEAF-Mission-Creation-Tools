@@ -405,7 +405,6 @@ function veafShortcuts.buildDefaultList()
             :setVeafCommand("_auth")
             :setBypassSecurity(true)
     )
-    -- shortcuts to commands
     veafShortcuts.AddAlias(
         VeafAlias.new()
             :setName("-logout")
@@ -414,11 +413,55 @@ function veafShortcuts.buildDefaultList()
             :setVeafCommand("_auth logout")
             :setBypassSecurity(true)
     )
+    -- shortcuts to dynamic groups
+    veafShortcuts.AddAlias(
+        VeafAlias.new()
+            :setName("-armor")
+            :setDescription("Dynamic armor group")
+            :setVeafCommand("_spawn armorgroup")
+            :setBypassSecurity(true)
+    )
+    veafShortcuts.AddAlias(
+        VeafAlias.new()
+            :setName("-infantry")
+            :setDescription("Dynamic infantry section")
+            :setVeafCommand("_spawn infantrygroup")
+            :setBypassSecurity(true)
+    )
+    veafShortcuts.AddAlias(
+        VeafAlias.new()
+            :setName("-transport")
+            :setDescription("Dynamic transport company")
+            :setVeafCommand("_spawn transportgroup")
+            :setBypassSecurity(true)
+    )
+    veafShortcuts.AddAlias(
+        VeafAlias.new()
+            :setName("-combat")
+            :setDescription("Dynamic combat group")
+            :setVeafCommand("_spawn combatgroup")
+            :setBypassSecurity(true)
+    )
     veafShortcuts.AddAlias(
         VeafAlias.new()
             :setName("-cas")
             :setDescription("Generate a random CAS group for training")
             :setVeafCommand("_cas, disperse")
+            :setBypassSecurity(true)
+    )
+    -- other shortcuts
+    veafShortcuts.AddAlias(
+        VeafAlias.new()
+            :setName("-convoy")
+            :setDescription("Convoy - needs \", dest POINTNAME\"")
+            :setVeafCommand("_spawn convoy")
+            :setBypassSecurity(true)
+    )
+    veafShortcuts.AddAlias(
+        VeafAlias.new()
+            :setName("-jtac")
+            :setDescription("JTAC humvee")
+            :setVeafCommand("_spawn jtac")
             :setBypassSecurity(true)
     )
 end

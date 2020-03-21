@@ -69,7 +69,7 @@ veafSpawn.Id = "SPAWN - "
 veafSpawn.Version = "1.8.4"
 
 -- trace level, specific to this module
-veafSpawn.Trace = true
+veafSpawn.Trace = false
 
 --- Key phrase to look for in the mark text which triggers the spawn command.
 veafSpawn.SpawnKeyphrase = "_spawn"
@@ -133,12 +133,7 @@ end
 
 --- Function executed when a mark has changed. This happens when text is entered or changed.
 function veafSpawn.onEventMarkChange(eventPos, event)
-    -- choose by default the coalition opposing the player who triggered the event
-    local coalition = 1
-    if event.coalition == 1 then
-        coalition = 2
-    end
-    if veafSpawn.executeCommand(eventPos, event.text, coalition) then 
+    if veafSpawn.executeCommand(eventPos, event.text, event.coalition) then 
         
         -- Delete old mark.
         veafSpawn.logTrace(string.format("Removing mark # %d.", event.idx))
@@ -147,7 +142,13 @@ function veafSpawn.onEventMarkChange(eventPos, event)
     end
 end
 
-function veafSpawn.executeCommand(eventPos, eventText, coalition, bypassSecurity, spawnedGroups)
+function veafSpawn.executeCommand(eventPos, eventText, eventCoalition, bypassSecurity, spawnedGroups)
+    -- choose by default the coalition opposing the player who triggered the event
+    local coalition = 1
+    if eventCoalition == 1 then
+        coalition = 2
+    end
+
     -- Check if marker has a text and the veafSpawn.keyphrase keyphrase.
     if eventText ~= nil and (eventText:lower():find(veafSpawn.SpawnKeyphrase) or eventText:lower():find(veafSpawn.DestroyKeyphrase) or eventText:lower():find(veafSpawn.TeleportKeyphrase)) then
         

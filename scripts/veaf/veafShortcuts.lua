@@ -30,7 +30,7 @@ veafShortcuts.Id = "SHORTCUTS - "
 veafShortcuts.Version = "1.0.0"
 
 -- trace level, specific to this module
-veafShortcuts.Trace = true
+veafShortcuts.Trace = false
 
 veafShortcuts.RadioMenuName = "SHORTCUTS"
 
@@ -215,7 +215,22 @@ function veafShortcuts.ExecuteAlias(aliasName, remainingCommand, position, coali
         veafShortcuts.logTrace(string.format("found VeafAlias[%s]",alias:getName() or ""))
         local command = alias:getVeafCommand() .. (remainingCommand or "")
         veafShortcuts.logTrace(string.format("command = [%s]",command or ""))
-        return veafInterpreter.execute(command, position, coalition)
+        -- check for shortcuts
+        if veafShortcuts.executeCommand(position, command, coalition) then
+            return true
+        -- check for SPAWN module commands
+        elseif veafSpawn.executeCommand(position, command, coalitionForSpawn, doNotBypassSecurity or true, spawnedGroups) then
+            return true
+        -- check for NAMED POINT module commands
+        elseif veafNamedPoints.executeCommand(position, {text=command, coalition=-1}, doNotBypassSecurity or true) then
+            return true
+        elseif veafCasMission.executeCommand(position, command, coalition, doNotBypassSecurity or true) then
+            return true
+        elseif veafSecurity.executeCommand(position, command, doNotBypassSecurity or true) then
+            return true
+        else
+            return false
+        end
     else
         veafShortcuts.logError(string.format("veafShortcuts.ExecuteAlias : cannot find alias [%s]",aliasName or ""))
     end

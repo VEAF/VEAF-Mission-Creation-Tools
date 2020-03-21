@@ -113,11 +113,17 @@ function veafInterpreter.execute(command, position, coalition, spawnedGroups, do
     if position == nil then return end
     veafInterpreter.logTrace(string.format("veafInterpreter.execute([%s],[%s])",command, veaf.vecToString(position)))
 
+    -- for spawn choose by default the coalition opposing the unit in which the intepreter command is stored ; the SPAWN module will also invert, and voilà !
+    local coalitionForSpawn = 1
+    if coalition == 1 then
+        coalitionForSpawn = 2
+    end
+
     -- check for shortcuts
     if veafShortcuts.executeCommand(position, command, coalition) then
         return true
     -- check for SPAWN module commands
-    elseif veafSpawn.executeCommand(position, command, coalition, doNotBypassSecurity or true, spawnedGroups) then
+    elseif veafSpawn.executeCommand(position, command, coalitionForSpawn, doNotBypassSecurity or true, spawnedGroups) then
         return true
     -- check for NAMED POINT module commands
     elseif veafNamedPoints.executeCommand(position, {text=command, coalition=-1}, doNotBypassSecurity or true) then

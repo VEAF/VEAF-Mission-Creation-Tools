@@ -61,7 +61,7 @@ veafCarrierOperations.RadioMenuName = "CARRIER OPS"
 veafCarrierOperations.AllCarriers = 
 {
     ["LHA_Tarawa"] = 0,
-    ["Stennis"] = 8, 
+    ["Stennis"] = 9.05, 
     ["KUZNECOW"] = 0
 }
 

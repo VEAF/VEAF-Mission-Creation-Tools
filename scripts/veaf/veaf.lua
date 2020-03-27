@@ -900,19 +900,19 @@ function veaf.weatherReport(vec3, alt, withLASTE)
 
     -- At user specified altitude.
     T,Pqfe=atmosphere.getTemperatureAndPressure({x=vec3.x, y=alt, z=vec3.z})
-    veaf.mainLogTrace(string.format("T = %.1f, Pqfe = %.1f", T,Pqfe))
+    veaf.mainLogTrace(string.format("T = %.1f, Pqfe = %.2f", T,Pqfe))
     
     -- Get pressure at sea level.
     local _,Pqnh=atmosphere.getTemperatureAndPressure({x=vec3.x, y=0, z=vec3.z})
-    veaf.mainLogTrace(string.format("Pqnh = %.1f", Pqnh))
+    veaf.mainLogTrace(string.format("Pqnh = %.2f", Pqnh))
     
     -- Convert pressure from Pascal to hecto Pascal.
     Pqfe=Pqfe/100
     Pqnh=Pqnh/100 
      
     -- Pressure unit conversion hPa --> mmHg or inHg
-    local _Pqnh=string.format("%.1f mmHg (%.1f inHg)", Pqnh * weathermark.hPa2mmHg, Pqnh * weathermark.hPa2inHg)
-    local _Pqfe=string.format("%.1f mmHg (%.1f inHg)", Pqfe * weathermark.hPa2mmHg, Pqfe * weathermark.hPa2inHg)
+    local _Pqnh=string.format("%.2f mmHg (%.2f inHg)", Pqnh * weathermark.hPa2mmHg, Pqnh * weathermark.hPa2inHg)
+    local _Pqfe=string.format("%.2f mmHg (%.2f inHg)", Pqfe * weathermark.hPa2mmHg, Pqfe * weathermark.hPa2inHg)
    
     -- Temperature unit conversion: Kelvin to Celsius or Fahrenheit.
     T=T-273.15
@@ -936,8 +936,8 @@ function veaf.weatherReport(vec3, alt, withLASTE)
       
     local text="" 
     text=text..string.format("Altitude %s ASL\n",_Alt)
-    text=text..string.format("QFE %.1f hPa = %s\n", Pqfe,_Pqfe)
-    text=text..string.format("QNH %.1f hPa = %s\n", Pqnh,_Pqnh)
+    text=text..string.format("QFE %.2f hPa = %s\n", Pqfe,_Pqfe)
+    text=text..string.format("QNH %.2f hPa = %s\n", Pqnh,_Pqnh)
     text=text..string.format("Temperature %s\n",_T)
     if Vel > 0 then
         text=text..string.format("Wind from %s at %s (%s)", Ds, Vs, Bd)

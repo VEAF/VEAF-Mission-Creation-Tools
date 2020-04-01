@@ -597,28 +597,7 @@ function veafCarrierOperations.getAtcForCarrierOperations(groupName, skipNavigat
         end
     end
 
-    --get wind info
-    local wind = atmosphere.getWind(startPosition)
-    local windspeed = mist.vec.mag(wind)
-    veafCarrierOperations.logTrace("windspeed="..windspeed.." m/s")
-
-    --get wind direction sorted
-    local winddir = veaf.round(math.atan2(wind.z, wind.x) * 180 / math.pi,0)
-    if winddir < 0 then
-        winddir = winddir + 360 --converts to positive numbers		
-    end    
-    if winddir <= 180 then
-        winddir = winddir + 180
-    else
-        winddir = winddir - 180
-    end    
-
--- add wind information
-    local windText =     'no wind.\n'
-    if windspeed > 0 then
-        windText = string.format('Wind from %s at %s kn (%s m/s).\n', winddir, veaf.round(windspeed * 1.94384, 0), veaf.round(windspeed, 1))
-    end
-    result = result .. "\n"..windText
+    result = result .. "\n"..veaf.weatherReport(startPosition)
 
     return result
 end

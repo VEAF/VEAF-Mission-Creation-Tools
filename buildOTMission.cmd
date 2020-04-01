@@ -1,5 +1,5 @@
 @echo off
-set MISSION_NAME=VEAF-Open-Training-Mission
+set MISSION_NAME=VEAF_OpenTraining_Caucasus
 set MISSION_PATH=..\VEAF-Open-Training-Mission
 set SECURITY_DISABLED_FLAG=true
 set VERBOSE_LOG_FLAG=true
@@ -114,5 +114,3 @@ echo ----------------------------------------
 rem -- done !
 echo Built %MISSION_FILE%.miz
 echo ----------------------------------------
-
-pause

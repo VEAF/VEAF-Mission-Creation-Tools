@@ -102,17 +102,17 @@ end
 VeafCombatMissionObjective =
 {
     -- technical name
-    name,
+    name = nil,
     -- description for the briefing
-    description,
+    description = nil,
     -- message when the objective is completed
-    message,
+    message = nil,
     -- parameters
-    parameters,
+    parameters = {},
     -- function that is call when the mission starts
-    onStartupFunction,
+    onStartupFunction = nil,
     -- function that is called when the completion check watchdog runs (should check for objective completion and return one of the FAILED, SUCCESS or NOTHING constants)
-    onCheckFunction
+    onCheckFunction = nil
 }
 VeafCombatMissionObjective.__index = VeafCombatMissionObjective
 

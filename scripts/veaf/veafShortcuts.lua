@@ -157,23 +157,6 @@ end
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- global functions
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
-function veafUnits.findGroup(groupAlias)
-    veafUnits.logTrace("veafUnits.findGroup(groupAlias=" .. groupAlias .. ")")
-
-    -- find the desired group in the groups database
-    local result = nil
-
-    for _, g in pairs(veafUnits.GroupsDatabase) do
-        for _, alias in pairs(g.aliases) do
-            if alias:lower() == groupAlias:lower() then
-                result = veafUnits.processGroup(g.group)
-                break
-            end
-        end
-    end
-    
-    return result
-end
 
 -- search for an alias
 function veafShortcuts.GetAlias(aliasName)

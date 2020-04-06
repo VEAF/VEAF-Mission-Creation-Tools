@@ -45,7 +45,7 @@ veafRadio = {}
 veafRadio.Id = "RADIO - "
 
 --- Version.
-veafRadio.Version = "1.1.4"
+veafRadio.Version = "1.1.5"
 
 -- trace level, specific to this module
 veafRadio.Trace = false
@@ -164,19 +164,18 @@ function veafRadio.refreshRadioMenu()
   veafRadio.refreshRadioSubmenu(nil, veafRadio.radioMenu)        
 end
 
-function veafRadio._addCommand(groupId, title, menu, command, parameters, trace)
+function veafRadio._addCommand(groupId, title, menu, command, parameters, trace) 
   if not command.method then
     veafRadio.logError("ERROR - missing method for command " .. title)
   end
   local _title = title
   local _method = command.method
   local _parameters = parameters
-
   if command.isSecured then
     if trace then veafRadio.logTrace("adding secured command") end
     
     _method = veafRadio._proxyMethod
-    _parameters = {command.method, command.parameters}
+    _parameters = {command.method, _parameters}
 
     if veafSecurity.isAuthenticated() then
       _title = "-" .. title
@@ -185,6 +184,10 @@ function veafRadio._addCommand(groupId, title, menu, command, parameters, trace)
     end
   end
 
+  --veafRadio.logTrace(routines.utils.oneLineSerialize({_title = _title}))
+  --veafRadio.logTrace(routines.utils.oneLineSerialize({_method = _method}))
+  --veafRadio.logTrace(routines.utils.oneLineSerialize({_parameters = _parameters}))
+  
   if groupId then
     if trace then veafRadio.logTrace("adding for group") end
     missionCommands.addCommandForGroup(groupId, _title, menu, _method, _parameters)
@@ -198,7 +201,7 @@ end
 function veafRadio.refreshRadioSubmenu(parentRadioMenu, radioMenu)
   veafRadio.logTrace("veafRadio.refreshRadioSubmenu "..radioMenu.title)
   
-  local trace1 = false
+  local trace = false
 
   -- create the radio menu in DCS
   if parentRadioMenu then

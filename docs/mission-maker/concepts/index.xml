@@ -11,6 +11,17 @@
     
     
     <item>
+      <title>Load scripts in the mission</title>
+      <link>https://veaf.github.io/VEAF-Mission-Creation-Tools/mission-maker/concepts/load-with-triggers/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>https://veaf.github.io/VEAF-Mission-Creation-Tools/mission-maker/concepts/load-with-triggers/</guid>
+      <description>Introduction In a mission using the VEAF Mission Creation Tools, the script have to be loaded through triggers. This chapter will explain how to setup such triggers, and also how to use a dynamic loading method for development.
+To load a script in a DCS mission, the easiest way is to create a MISSION START trigger, and make it execute a DO SCRIPT FILE action, loading the script.
+If you do this for all the community and veaf scripts, they will be stored in the mission file (in the &amp;ldquo;I10N\default&amp;rdquo; folder) and referenced for loading.</description>
+    </item>
+    
+    <item>
       <title>Radio menus</title>
       <link>https://veaf.github.io/VEAF-Mission-Creation-Tools/mission-maker/concepts/radiomenus/</link>
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>

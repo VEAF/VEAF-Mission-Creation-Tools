@@ -9,7 +9,7 @@
 
     <link rel="icon" href="/VEAF-Mission-Creation-Tools/images/favicon.png" type="image/png">
 
-    <title>Groups list :: VEAF Mission Creation Tools - Documentation</title>
+    <title>Load scripts in the mission :: VEAF Mission Creation Tools - Documentation</title>
 
     
     <link href="/VEAF-Mission-Creation-Tools/css/nucleus.css?1586198056" rel="stylesheet">
@@ -35,7 +35,7 @@
     </style>
     
   </head>
-  <body class="" data-url="/VEAF-Mission-Creation-Tools/mission-maker/references/group-list/">
+  <body class="" data-url="/VEAF-Mission-Creation-Tools/mission-maker/concepts/load-with-triggers/">
     <nav id="sidebar" class="">
 
 
@@ -103,7 +103,7 @@
   
     
     <li data-nav-id="/VEAF-Mission-Creation-Tools/mission-maker/concepts/" title="Concepts" class="dd-item 
-        
+        parent
         
         
         ">
@@ -127,7 +127,7 @@
  
   
     
-      <li data-nav-id="/VEAF-Mission-Creation-Tools/mission-maker/concepts/load-with-triggers/" title="Load scripts in the mission" class="dd-item ">
+      <li data-nav-id="/VEAF-Mission-Creation-Tools/mission-maker/concepts/load-with-triggers/" title="Load scripts in the mission" class="dd-item active">
         <a href="/VEAF-Mission-Creation-Tools/mission-maker/concepts/load-with-triggers/">
         Load scripts in the mission
         
@@ -433,7 +433,7 @@
   
     
     <li data-nav-id="/VEAF-Mission-Creation-Tools/mission-maker/references/" title="References" class="dd-item 
-        parent
+        
         
         
         ">
@@ -457,7 +457,7 @@
  
   
     
-      <li data-nav-id="/VEAF-Mission-Creation-Tools/mission-maker/references/group-list/" title="Groups list" class="dd-item active">
+      <li data-nav-id="/VEAF-Mission-Creation-Tools/mission-maker/references/group-list/" title="Groups list" class="dd-item ">
         <a href="/VEAF-Mission-Creation-Tools/mission-maker/references/group-list/">
         Groups list
         
@@ -567,7 +567,7 @@
                   
                   
                   <div id="top-github-link">
-                    <a class="github-link" title='Edit this page' href="https://github.com/VEAF/VEAF-Mission-Creation-Tools/edit/master/documentation/content/Mission%20maker/references/group-list.md" target="blank">
+                    <a class="github-link" title='Edit this page' href="https://github.com/VEAF/VEAF-Mission-Creation-Tools/edit/master/documentation/content/Mission%20maker/concepts/load-with-triggers.md" target="blank">
                       <i class="fas fa-code-branch"></i>
                       <span id="top-github-link-text">Edit this page</span>
                     </a>
@@ -602,7 +602,7 @@
             
           
           
-            <a href='/VEAF-Mission-Creation-Tools/'>VEAF Mission Creation Tools</a> > <a href='/VEAF-Mission-Creation-Tools/mission-maker/'>Mission maker</a> > <a href='/VEAF-Mission-Creation-Tools/mission-maker/references/'>References</a> > Groups list
+            <a href='/VEAF-Mission-Creation-Tools/'>VEAF Mission Creation Tools</a> > <a href='/VEAF-Mission-Creation-Tools/mission-maker/'>Mission maker</a> > <a href='/VEAF-Mission-Creation-Tools/mission-maker/concepts/'>Concepts</a> > Load scripts in the mission
           
          
           
@@ -619,7 +619,23 @@
     <div class="wrapper">
 <nav id="TableOfContents">
   <ul>
-    <li><a href="#list-of-the-groups-defined-by-the-veafunits-module">List of the groups defined by the veafUnits module</a></li>
+    <li><a href="#introduction">Introduction</a></li>
+    <li><a href="#the-basics">The basics</a>
+      <ul>
+        <li><a href="#choose---static-or-dynamic">choose - static or dynamic</a></li>
+        <li><a href="#mission-start---common">mission start - common</a></li>
+        <li><a href="#mission-start---dynamic">mission start - dynamic</a></li>
+        <li><a href="#mission-start---static">mission start - static</a></li>
+        <li><a href="#mission-config---dynamic">mission config - dynamic</a></li>
+        <li><a href="#mission-config---static">mission config - static</a></li>
+      </ul>
+    </li>
+    <li><a href="#usage">Usage</a>
+      <ul>
+        <li><a href="#choose-between-static-and-dynamic-loading">Choose between static and dynamic loading</a></li>
+        <li><a href="#use-dynamic-loading">Use dynamic loading</a></li>
+      </ul>
+    </li>
   </ul>
 </nav>
     </div>
@@ -637,7 +653,7 @@
           
             <h1>
               
-              Groups list
+              Load scripts in the mission
             </h1>
           
 
@@ -645,128 +661,73 @@
 
 
 
-<h2 id="list-of-the-groups-defined-by-the-veafunits-module">List of the groups defined by the veafUnits module</h2>
-<table>
-<thead>
-<tr>
-<th>Name</th>
-<th>Description</th>
-<th>Aliases</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>Hawk</td>
-<td>Hawk SAM site</td>
-<td>hawk, ha, mim-23</td>
-</tr>
-<tr>
-<td>Mechanized infantry section</td>
-<td>Mechanized infantry section with APCs</td>
-<td>infantry section, infsec</td>
-</tr>
-<tr>
-<td>Patriot</td>
-<td>Patriot SAM site</td>
-<td>patriot, pa, mim-104</td>
-</tr>
-<tr>
-<td>Rapier</td>
-<td>Rapier SAM site</td>
-<td>rapier_optical, rpo</td>
-</tr>
-<tr>
-<td>Rapier-radar</td>
-<td>Rapier SAM site with radar</td>
-<td>rapier_radar, rpr</td>
-</tr>
-<tr>
-<td>Roland</td>
-<td>Roland SAM site</td>
-<td>roland, rd, mim-115</td>
-</tr>
-<tr>
-<td>RU small supply convoy with defense</td>
-<td>RU small supply convoy with defense</td>
-<td>RU small supply convoy with defense, redsmallconvoy-def</td>
-</tr>
-<tr>
-<td>RU small supply convoy with light defense</td>
-<td>RU small supply convoy with light defense</td>
-<td>RU small supply convoy with light defense, redsmallconvoy-lightdef</td>
-</tr>
-<tr>
-<td>RU small supply convoy with no defense</td>
-<td>RU small supply convoy with no defense</td>
-<td>RU small supply convoy with no defense, redsmallconvoy-nodef, redconvoy, convoy</td>
-</tr>
-<tr>
-<td>RU supply convoy with defense</td>
-<td>RU supply convoy with defense</td>
-<td>RU supply convoy with defense, redconvoy-def</td>
-</tr>
-<tr>
-<td>RU supply convoy with light defense</td>
-<td>RU supply convoy with light defense</td>
-<td>RU supply convoy with light defense, redconvoy-lightdef</td>
-</tr>
-<tr>
-<td>RU supply convoy with no defense</td>
-<td>RU supply convoy with no defense</td>
-<td>RU supply convoy with no defense, redconvoy-nodef</td>
-</tr>
-<tr>
-<td>S300</td>
-<td>S300 SAM site</td>
-<td>sa10, s300, bb</td>
-</tr>
-<tr>
-<td>SA-13 battery</td>
-<td>SA-13 battery</td>
-<td>RU-SAM-SA13-Battery</td>
-</tr>
-<tr>
-<td>SA-9 battery</td>
-<td>SA-9 battery</td>
-<td>RU-SAM-SA9-Battery</td>
-</tr>
-<tr>
-<td>SA11</td>
-<td>SA-11 SAM site</td>
-<td>sa11, sa-11, sd</td>
-</tr>
-<tr>
-<td>SA2</td>
-<td>SA-2 SAM site</td>
-<td>sa2, sa-2, fs</td>
-</tr>
-<tr>
-<td>SA3</td>
-<td>SA-3 SAM site</td>
-<td>sa3, sa-3, lb</td>
-</tr>
-<tr>
-<td>SA6</td>
-<td>SA-6 SAM site</td>
-<td>sa6, sa-6, 06</td>
-</tr>
-<tr>
-<td>US infantry group</td>
-<td>US infantry group</td>
-<td>US infgroup</td>
-</tr>
-<tr>
-<td>US infantry group</td>
-<td>US infantry group</td>
-<td>US supply convoy, blueconvoy</td>
-</tr>
-<tr>
-<td>ZSU-23-4 battery</td>
-<td>ZSU-23-4 battery</td>
-<td>RU-SAM-Shilka-Battery</td>
-</tr>
-</tbody>
-</table>
+<h2 id="introduction">Introduction</h2>
+<p>In a mission using the VEAF Mission Creation Tools, the script have to be loaded through triggers.
+This chapter will explain how to setup such triggers, and also how to use a dynamic loading method for development.</p>
+<p>To load a script in a DCS mission, the easiest way is to create a MISSION START trigger, and make it execute a DO SCRIPT FILE action, loading the script.</p>
+<p>If you do this for all the community and veaf scripts, they will be stored in the mission file (in the &ldquo;I10N\default&rdquo; folder) and referenced for loading.
+This way, the mission is completely autonomous (all the need scripts are stored inside).</p>
+<p>Then, the <em>build.cmd</em> command will construct the mission file from the sources and copy all the community and veaf scripts (the version that is in the VEAF-Mission-Creation-Tools npm repository) inside.</p>
+<p>The compiled mission will work and still be autonomous.</p>
+<p>But there is a catch : everytime you make a change to a script (either because you&rsquo;re developping a new functionnality in a veaf module, or because you are editing a configuration script for your mission), it&rsquo;s a pain to import it in the mission for testing. You need to modify your trigger, open the script file again (if running from the mission editor), or copy your files to the VEAF Mission Creation Tools repository (which is not always possible).</p>
+<p>There is a way of loading the scripts dynamically, meaning that they will be loaded from where they are stored on your disk.</p>
+<p>This was first demonstrated by <em>thebgpikester</em> in <a href="https://www.youtube.com/watch?v=BMKBXjjKiDI">his YouTube video</a>.</p>
+<h2 id="the-basics">The basics</h2>
+<p>Here are the triggers we&rsquo;re gonna create in the mission; we&rsquo;ll see each one of them in details below.</p>
+<h3 id="choose---static-or-dynamic">choose - static or dynamic</h3>
+<p><img src="/VEAF-Mission-Creation-Tools/images/load-with-triggers-01.png?raw=true" alt="load-with-triggers-01" title="load-with-triggers-01"></p>
+<p>The first trigger will allow us to choose between static and dynamic loading easily, as well as define the location of the scripts on our disk. Of course, the latter differs from one person to another, and therefore it must be adapted if you want to use dynamic loading.</p>
+<p>The name of the trigger is not important, as is its color.</p>
+<p>It has a condition <code>return true</code>: if the condition returns true, the trigger will be executed and the scripts will be loaded dynamically. If false, the trigger will not be executed and the scripts will be loaded statically.
+At the moment, the condition returns true and therefore we&rsquo;ll be loading dynamically.</p>
+<p>The trigger does execute a script (DO SCRIPT) that defines two constants, used later in the other triggers :</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-lua" data-lang="lua">VEAF_DYNAMIC_PATH <span style="color:#f92672">=</span> <span style="color:#e6db74">&#39;</span><span style="color:#e6db74">D:/DEV/VEAF-Mission-Creation-Tools</span><span style="color:#e6db74">&#39;</span>
+VEAF_DYNAMIC_MISSIONPATH <span style="color:#f92672">=</span> <span style="color:#e6db74">&#39;</span><span style="color:#e6db74">D:/DEV/VEAF-Demo-Mission</span><span style="color:#e6db74">&#39;</span>
+</code></pre></div><p>Bear in mind that these paths are probably not correct for your environment. If needed, change them.</p>
+<h3 id="mission-start---common">mission start - common</h3>
+<p><img src="/VEAF-Mission-Creation-Tools/images/load-with-triggers-02.png?raw=true" alt="load-with-triggers-02" title="load-with-triggers-02"></p>
+<p>This trigger is always executed, and it loads the base community scripts (MiST, Moose, CTLD and WeatherMark).</p>
+<h3 id="mission-start---dynamic">mission start - dynamic</h3>
+<p><img src="/VEAF-Mission-Creation-Tools/images/load-with-triggers-03.png?raw=true" alt="load-with-triggers-03" title="load-with-triggers-03"></p>
+<p>This one has a condition:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-lua" data-lang="lua"><span style="color:#66d9ef">return</span> VEAF_DYNAMIC_PATH<span style="color:#f92672">~=</span><span style="color:#66d9ef">nil</span>
+</code></pre></div><p>This means that it will be executed if the <em>VEAF_DYNAMIC_PATH</em> constant has been defined, hence only if the first trigger is activated.</p>
+<p>It will load the community and veaf scripts dynamically with this code :</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-lua" data-lang="lua">env.info(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">DYNAMIC LOADING</span><span style="color:#e6db74">&#34;</span>)
+<span style="color:#66d9ef">local</span> script <span style="color:#f92672">=</span> VEAF_DYNAMIC_PATH <span style="color:#f92672">..</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">/scripts/VeafDynamicLoader.lua</span><span style="color:#e6db74">&#34;</span>
+assert(loadfile(script))()
+</code></pre></div><h3 id="mission-start---static">mission start - static</h3>
+<p><img src="/VEAF-Mission-Creation-Tools/images/load-with-triggers-04.png?raw=true" alt="load-with-triggers-04" title="load-with-triggers-04"></p>
+<p>This is the opposite of the previous trigger : it will be executed only if the <em>VEAF_DYNAMIC_PATH</em> constant has <strong>not</strong> been defined.</p>
+<p>Here&rsquo;s the condition:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-lua" data-lang="lua"><span style="color:#66d9ef">return</span> VEAF_DYNAMIC_PATH<span style="color:#f92672">==</span><span style="color:#66d9ef">nil</span>
+</code></pre></div><p>When executed, it simply loads all the veaf scripts using DO SCRIPT FILE statements.</p>
+<h3 id="mission-config---dynamic">mission config - dynamic</h3>
+<p>This is the same trigger that <em>mission start - dynamic</em>, except that is it made for loading the mission scripts (in this case, only <em>missionConfig.lua</em>)</p>
+<p><img src="/VEAF-Mission-Creation-Tools/images/load-with-triggers-05.png?raw=true" alt="load-with-triggers-05" title="load-with-triggers-05"></p>
+<p>It has the same condition:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-lua" data-lang="lua"><span style="color:#66d9ef">return</span> VEAF_DYNAMIC_PATH<span style="color:#f92672">~=</span><span style="color:#66d9ef">nil</span>
+</code></pre></div><p>And its code does this:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-lua" data-lang="lua">env.info(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">DYNAMIC CONFIGURATION</span><span style="color:#e6db74">&#34;</span>)
+<span style="color:#66d9ef">local</span> script <span style="color:#f92672">=</span> VEAF_DYNAMIC_MISSIONPATH <span style="color:#f92672">..</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">/src/scripts/missionConfig.lua</span><span style="color:#e6db74">&#34;</span>
+assert(loadfile(script))()
+</code></pre></div><h3 id="mission-config---static">mission config - static</h3>
+<p>Again, the same trigger than <em>mission start - static</em>, except that is it made for loading the mission scripts (in this case, only <em>missionConfig.lua</em>)</p>
+<p><img src="/VEAF-Mission-Creation-Tools/images/load-with-triggers-06.png?raw=true" alt="load-with-triggers-06" title="load-with-triggers-06"></p>
+<p>Same condition:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-lua" data-lang="lua"><span style="color:#66d9ef">return</span> VEAF_DYNAMIC_PATH<span style="color:#f92672">==</span><span style="color:#66d9ef">nil</span>
+</code></pre></div><p>When executed, it simply loads the mission scripts using DO SCRIPT FILE statements.</p>
+<h2 id="usage">Usage</h2>
+<h3 id="choose-between-static-and-dynamic-loading">Choose between static and dynamic loading</h3>
+<p>During the development of your mission, it&rsquo;s easier to select dynamic loading.
+To do this, modify the condition of the first trigger (<em>choose - static or dynamic</em>) so it returns <strong>true</strong>:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-lua" data-lang="lua"><span style="color:#66d9ef">return</span> <span style="color:#66d9ef">true</span>
+</code></pre></div><p>When publishing your mission, ensure that you selected static loading by modifying the condition of the first trigger (<em>choose - static or dynamic</em>) so it returns <strong>false</strong>:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-lua" data-lang="lua"><span style="color:#66d9ef">return</span> <span style="color:#66d9ef">false</span>
+</code></pre></div><h3 id="use-dynamic-loading">Use dynamic loading</h3>
+<p>When your mission is setup to dynamically load its scripts, it loads them each time it starts, from their original location on your disk.
+This means that every change you make to the scripts will be immediately available in your mission the next time you start it.
+The easiest way to restart a running mission is to press the &ldquo;Left-Shift + R&rdquo; key combination.</p>
 
 
 <footer class=" footline" >
@@ -821,6 +782,37 @@
             
                 
                     
+                    
+                
+                
+
+                    
+                    
+                    
+
+                    
+                        
+            
+            
+                
+                    
+                    
+                
+                
+
+                    
+                    
+                    
+
+                    
+            
+        
+                    
+                        
+            
+            
+                
+                    
                         
                         
                     
@@ -831,6 +823,89 @@
                     
                     
 
+                    
+            
+        
+                    
+                        
+            
+            
+                
+                    
+                
+                
+
+                    
+                    
+                    
+
+                    
+            
+        
+                    
+                        
+            
+            
+                
+                    
+                
+                
+
+                    
+                    
+                    
+
+                    
+            
+        
+                    
+            
+        
+                    
+                        
+            
+            
+                
+                    
+                
+                
+
+                    
+                    
+                    
+
+                    
+            
+        
+                    
+                        
+            
+            
+                
+                    
+                
+                
+
+                    
+                    
+                    
+
+                    
+                        
+            
+            
+                
+                    
+                
+                
+
+                    
+                    
+                    
+
+                    
+            
+        
                     
                         
             
@@ -896,118 +971,6 @@
             
         
                     
-            
-        
-                    
-                        
-            
-            
-                
-                    
-                
-                
-
-                    
-                    
-                    
-
-                    
-            
-        
-                    
-                        
-            
-            
-                
-                    
-                
-                
-
-                    
-                    
-                    
-
-                    
-                        
-            
-            
-                
-                    
-                
-                
-
-                    
-                    
-                    
-
-                    
-            
-        
-                    
-                        
-            
-            
-                
-                    
-                
-                
-
-                    
-                    
-                    
-
-                    
-            
-        
-                    
-                        
-            
-            
-                
-                    
-                
-                
-
-                    
-                    
-                    
-
-                    
-            
-        
-                    
-                        
-            
-            
-                
-                    
-                
-                
-
-                    
-                    
-                    
-
-                    
-            
-        
-                    
-                        
-            
-            
-                
-                    
-                
-                
-
-                    
-                    
-                    
-
-                    
-            
-        
-                    
                         
             
             
@@ -1064,7 +1027,6 @@
             
                 
                     
-                    
                 
                 
 
@@ -1077,7 +1039,6 @@
             
             
                 
-                    
                     
                 
                 
@@ -1094,9 +1055,6 @@
             
             
                 
-                    
-                        
-                        
                     
                 
                 
@@ -1140,10 +1098,10 @@
 	 
 	 
 		
-			<a class="nav nav-prev" href="/VEAF-Mission-Creation-Tools/mission-maker/references/" title="References"> <i class="fa fa-chevron-left"></i></a>
+			<a class="nav nav-prev" href="/VEAF-Mission-Creation-Tools/mission-maker/concepts/" title="Concepts"> <i class="fa fa-chevron-left"></i></a>
 		
 		
-			<a class="nav nav-next" href="/VEAF-Mission-Creation-Tools/mission-maker/references/unit-list/" title="Units list" style="margin-right: 0px;"><i class="fa fa-chevron-right"></i></a>
+			<a class="nav nav-next" href="/VEAF-Mission-Creation-Tools/mission-maker/concepts/radiomenus/" title="Radio menus" style="margin-right: 0px;"><i class="fa fa-chevron-right"></i></a>
 		
 	
     </div>

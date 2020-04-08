@@ -93,8 +93,16 @@ end
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Start recovery function.
 function veafCarrierOperations.startRecovery(parameters)
-    local case, unitName = unpack(parameters)
-    veafCarrierOperations.logDebug(string.format("veafCarrierOperations.startRecovery(%s, %d)", unitName, case))
+    veafCarrierOperations.logDebug(string.format("veafCarrierOperations.startRecovery - parameters", veaf.p(parameters)))
+    local params, unitName = unpack(parameters)
+    veafCarrierOperations.logDebug(string.format("veafCarrierOperations.startRecovery - params", veaf.p(params)))
+    local case = params.case
+    local time = params.time
+    veafCarrierOperations.logDebug(string.format("veafCarrierOperations.startRecovery(%s, %d, %d)", unitName, case, time))
+    veafCarrierOperations.AirbossStennis.skipperTime=time
+    veafCarrierOperations.AirbossStennis.skipperSpeed=25
+    veafCarrierOperations.AirbossStennis.skipperOffset=math.random(0, 11)*30
+    veafCarrierOperations.AirbossStennis.skipperUturn=false
     veafCarrierOperations.AirbossStennis:_SkipperStartRecovery(unitName, case)
 end
 
@@ -109,14 +117,32 @@ function veafCarrierOperations.rebuildRadioMenu()
     veafCarrierOperations.logDebug("veafCarrierOperations.rebuildRadioMenu()")
 
     -- add specific protected recovery radio commands
-    local case1Path = veafRadio.addSubMenu("Start CASE I", veafCarrierOperations.rootPath)
-    veafRadio.addSecuredCommandToSubmenu( "Start CASE I",   case1Path, veafCarrierOperations.startRecovery, 1, veafRadio.USAGE_ForUnit)
+    local case1Path = veafRadio.addSubMenu("Start CASE I - 25'", veafCarrierOperations.rootPath)
+    veafRadio.addSecuredCommandToSubmenu( "Start CASE I - 25'",   case1Path, veafCarrierOperations.startRecovery, {case=1, time=25}, veafRadio.USAGE_ForUnit)
 
-    local case2Path = veafRadio.addSubMenu("Start CASE II", veafCarrierOperations.rootPath)
-    veafRadio.addSecuredCommandToSubmenu( "Start CASE II",   case2Path, veafCarrierOperations.startRecovery, 2, veafRadio.USAGE_ForUnit)
+    local case1Path = veafRadio.addSubMenu("Start CASE I - 45'", veafCarrierOperations.rootPath)
+    veafRadio.addSecuredCommandToSubmenu( "Start CASE I - 45'",   case1Path, veafCarrierOperations.startRecovery, {case=1, time=45}, veafRadio.USAGE_ForUnit)
 
-    local case3Path = veafRadio.addSubMenu("Start CASE III", veafCarrierOperations.rootPath)
-    veafRadio.addSecuredCommandToSubmenu( "Start CASE III",   case3Path, veafCarrierOperations.startRecovery, 3, veafRadio.USAGE_ForUnit)
+    local case1Path = veafRadio.addSubMenu("Start CASE I - 90'", veafCarrierOperations.rootPath)
+    veafRadio.addSecuredCommandToSubmenu( "Start CASE I - 90'",   case1Path, veafCarrierOperations.startRecovery, {case=1, time=90}, veafRadio.USAGE_ForUnit)
+
+    local case2Path = veafRadio.addSubMenu("Start CASE II - 25'", veafCarrierOperations.rootPath)
+    veafRadio.addSecuredCommandToSubmenu( "Start CASE II - 25'",   case2Path, veafCarrierOperations.startRecovery, {case=2, time=25}, veafRadio.USAGE_ForUnit)
+
+    local case2Path = veafRadio.addSubMenu("Start CASE II - 45'", veafCarrierOperations.rootPath)
+    veafRadio.addSecuredCommandToSubmenu( "Start CASE II - 45'",   case2Path, veafCarrierOperations.startRecovery, {case=2, time=45}, veafRadio.USAGE_ForUnit)
+
+    local case2Path = veafRadio.addSubMenu("Start CASE II - 90'", veafCarrierOperations.rootPath)
+    veafRadio.addSecuredCommandToSubmenu( "Start CASE II - 90'",   case2Path, veafCarrierOperations.startRecovery, {case=2, time=90}, veafRadio.USAGE_ForUnit)
+
+    local case3Path = veafRadio.addSubMenu("Start CASE III - 25'", veafCarrierOperations.rootPath)
+    veafRadio.addSecuredCommandToSubmenu( "Start CASE III - 25'",   case3Path, veafCarrierOperations.startRecovery, {case=3, time=25}, veafRadio.USAGE_ForUnit)
+
+    local case3Path = veafRadio.addSubMenu("Start CASE III - 45'", veafCarrierOperations.rootPath)
+    veafRadio.addSecuredCommandToSubmenu( "Start CASE III - 45'",   case3Path, veafCarrierOperations.startRecovery, {case=3, time=45}, veafRadio.USAGE_ForUnit)
+
+    local case3Path = veafRadio.addSubMenu("Start CASE III - 90'", veafCarrierOperations.rootPath)
+    veafRadio.addSecuredCommandToSubmenu( "Start CASE III - 90'",   case3Path, veafCarrierOperations.startRecovery, {case=3, time=90}, veafRadio.USAGE_ForUnit)
 
     local stopPath = veafRadio.addSubMenu("Stop Recovery", veafCarrierOperations.rootPath)
     veafRadio.addSecuredCommandToSubmenu( "Stop Recovery",   stopPath, veafCarrierOperations.stopRecovery, nil, veafRadio.USAGE_ForUnit)
@@ -178,16 +204,16 @@ function veafCarrierOperations.initializeCarrierGroup()
     -- Start shift scheduler to change shift every L minutes.
     SCHEDULER:New(nil, ChangeShift, {veafCarrierOperations.AirbossStennis}, L*60, L*60)
 
-    -- Add recovery windows 
+--[[     -- Add recovery windows 
     local duration = 30 * 60 -- every 30 minutes
-    for seconds = env.mission.start_time+300 --[[5 minutes after mission start]],env.mission.start_time + 86400,3600 do 
+    for seconds = env.mission.start_time+300, env.mission.start_time + 86400,3600 do 
         local startClock = UTILS.SecondsToClock(seconds)
         local endClock = UTILS.SecondsToClock(seconds+duration)
         local secondsToday = math.fmod(seconds,86400)  -- time mod a full day
-        if secondsToday  < 5 * 3600 and secondsToday > 22 * 3600 then            
+        if secondsToday  < 6 * 3600 and secondsToday > 22 * 3600 then            
             -- night = CASE 3
             veafCarrierOperations.AirbossStennis:AddRecoveryWindow( startClock, endClock, 3, 30, true, 21)
-        elseif secondsToday < 8 * 3600 and secondsToday > 5 * 3600 then 
+        elseif secondsToday < 8 * 3600 and secondsToday > 6 * 3600 then 
             -- dawn = CASE 2
             veafCarrierOperations.AirbossStennis:AddRecoveryWindow( startClock, endClock, 2, 15, true, 23)
         elseif secondsToday < 20 * 3600 and secondsToday > 8 * 3600 then 
@@ -198,7 +224,7 @@ function veafCarrierOperations.initializeCarrierGroup()
             veafCarrierOperations.AirbossStennis:AddRecoveryWindow( startClock, endClock, 2, 15, true, 23)
         end
     end
-
+ ]]
     -- Set folder of airboss sound files within miz file.
     veafCarrierOperations.AirbossStennis:SetSoundfilesFolder("Airboss Soundfiles/")
 
@@ -257,10 +283,6 @@ function veafCarrierOperations.initializeCarrierGroup()
 
     -- No Skipper menu.
     --veafCarrierOperations.AirbossStennis:SetMenuRecovery()
-    veafCarrierOperations.AirbossStennis.skipperTime=30
-    veafCarrierOperations.AirbossStennis.skipperSpeed=25
-    veafCarrierOperations.AirbossStennis.skipperOffset=30
-    veafCarrierOperations.AirbossStennis.skipperUturn=true
   
     -- Start airboss class.
     veafCarrierOperations.AirbossStennis:Start()

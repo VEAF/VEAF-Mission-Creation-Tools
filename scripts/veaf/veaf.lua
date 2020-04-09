@@ -297,12 +297,12 @@ end
 
 --- Return the height of the land at the coordinate.
 function veaf.getLandHeight(vec3)
-    veaf.mainLogTrace(string.format("getLandHeight: vec3  x=%.1f y=%.1f, z=%.1f", vec3.x, vec3.y, vec3.z))
+    --veaf.mainLogTrace(string.format("getLandHeight: vec3  x=%.1f y=%.1f, z=%.1f", vec3.x, vec3.y, vec3.z))
     local vec2 = {x = vec3.x, y = vec3.z}
-    veaf.mainLogTrace(string.format("getLandHeight: vec2  x=%.1f z=%.1f", vec3.x, vec3.z))
+    --veaf.mainLogTrace(string.format("getLandHeight: vec2  x=%.1f z=%.1f", vec3.x, vec3.z))
     -- We add 1 m "safety margin" because data from getlandheight gives the surface and wind at or below the surface is zero!
     local height = math.floor(land.getHeight(vec2) + 1)
-    veaf.mainLogTrace(string.format("getLandHeight: result  height=%.1f",height))
+    --veaf.mainLogTrace(string.format("getLandHeight: result  height=%.1f",height))
     return height
 end
 
@@ -312,11 +312,11 @@ function veaf.placePointOnLand(vec3)
         vec3.y = 0
     end
     
-    veaf.mainLogTrace(string.format("getLandHeight: vec3  x=%.1f y=%.1f, z=%.1f", vec3.x, vec3.y, vec3.z))
+    --veaf.mainLogTrace(string.format("getLandHeight: vec3  x=%.1f y=%.1f, z=%.1f", vec3.x, vec3.y, vec3.z))
     local height = veaf.getLandHeight(vec3)
-    veaf.mainLogTrace(string.format("getLandHeight: result  height=%.1f",height))
+    --veaf.mainLogTrace(string.format("getLandHeight: result  height=%.1f",height))
     local result={x=vec3.x, y=height, z=vec3.z}
-    veaf.mainLogTrace(string.format("placePointOnLand: result  x=%.1f y=%.1f, z=%.1f", result.x, result.y, result.z))
+    --veaf.mainLogTrace(string.format("placePointOnLand: result  x=%.1f y=%.1f, z=%.1f", result.x, result.y, result.z))
     return result
 end
 
@@ -397,10 +397,10 @@ function veaf.getWind(point)
     local strength=math.floor(math.sqrt((windvec3.x)^2+(windvec3.z)^2))
     
     -- Debug output.
-    veaf.mainLogTrace(string.format("Wind data: point x=%.1f y=%.1f, z=%.1f", point.x, point.y,point.z))
-    veaf.mainLogTrace(string.format("Wind data: wind  x=%.1f y=%.1f, z=%.1f", windvec3.x, windvec3.y,windvec3.z))
-    veaf.mainLogTrace(string.format("Wind data: |v| = %.1f", strength))
-    veaf.mainLogTrace(string.format("Wind data: ang = %.1f", direction))
+    --veaf.mainLogTrace(string.format("Wind data: point x=%.1f y=%.1f, z=%.1f", point.x, point.y,point.z))
+    --veaf.mainLogTrace(string.format("Wind data: wind  x=%.1f y=%.1f, z=%.1f", windvec3.x, windvec3.y,windvec3.z))
+    --veaf.mainLogTrace(string.format("Wind data: |v| = %.1f", strength))
+    --veaf.mainLogTrace(string.format("Wind data: ang = %.1f", direction))
     
     -- Return wind direction and strength km/h.
     return direction, strength, windvec3
@@ -425,7 +425,7 @@ end
 
 --- TODO doc
 function veaf.generateVehiclesRoute(startPoint, destination, onRoad)
-    veaf.mainLogTrace(string.format("startPoint = {x = %d, y = %d, z = %d}", startPoint.x, startPoint.y, startPoint.z))
+    --veaf.mainLogTrace(string.format("startPoint = {x = %d, y = %d, z = %d}", startPoint.x, startPoint.y, startPoint.z))
     local routeChoice = "Off Road"
     if onRoad then
         routeChoice = "On Road"
@@ -436,15 +436,15 @@ function veaf.generateVehiclesRoute(startPoint, destination, onRoad)
         trigger.action.outText("A point named "..destination.." cannot be found !", 5)
         return
     end
-    veaf.mainLogTrace(string.format("endPoint = {x = %d, y = %d, z = %d}", endPoint.x, endPoint.y, endPoint.z))
+    --veaf.mainLogTrace(string.format("endPoint = {x = %d, y = %d, z = %d}", endPoint.x, endPoint.y, endPoint.z))
 
     local road_x, road_z = land.getClosestPointOnRoads('roads',startPoint.x, startPoint.z)
     startPoint = veaf.placePointOnLand({x = road_x, y = 0, z = road_z})
-    veaf.mainLogTrace(string.format("startPoint = {x = %d, y = %d, z = %d}", startPoint.x, startPoint.y, startPoint.z))
+    --veaf.mainLogTrace(string.format("startPoint = {x = %d, y = %d, z = %d}", startPoint.x, startPoint.y, startPoint.z))
 
     road_x, road_z =land.getClosestPointOnRoads('roads',endPoint.x, endPoint.z)
     endPoint = veaf.placePointOnLand({x = road_x, y = 0, z = road_z})
-    veaf.mainLogTrace(string.format("endPoint = {x = %d, y = %d, z = %d}", endPoint.x, endPoint.y, endPoint.z))
+    --veaf.mainLogTrace(string.format("endPoint = {x = %d, y = %d, z = %d}", endPoint.x, endPoint.y, endPoint.z))
     
     local vehiclesRoute = {
         [1] = 
@@ -524,7 +524,7 @@ end
 
 --- Makes a group move to a waypoint set at a specific heading and at a distance covered at a specific speed in an hour
 function veaf.moveGroupAt(groupName, leadUnitName, heading, speed, timeInSeconds, endPosition, pMiddlePointDistance)
-    veaf.mainLogDebug("veaf.moveGroupAt(groupName=" .. groupName .. ", heading="..heading.. ", speed=".. speed..", timeInSeconds="..(timeInSeconds or 0))
+    --veaf.mainLogDebug("veaf.moveGroupAt(groupName=" .. groupName .. ", heading="..heading.. ", speed=".. speed..", timeInSeconds="..(timeInSeconds or 0))
 
     local unitGroup = Group.getByName(groupName)
     if unitGroup == nil then
@@ -542,10 +542,10 @@ function veaf.moveGroupAt(groupName, leadUnitName, heading, speed, timeInSeconds
     end
     
     local headingRad = mist.utils.toRadian(heading)
-    veaf.mainLogTrace("headingRad="..headingRad)
+    --veaf.mainLogTrace("headingRad="..headingRad)
     local fromPosition = leadUnit:getPosition().p
     fromPosition = { x = fromPosition.x, y = fromPosition.z }
-    veaf.mainLogTrace("fromPosition="..veaf.vecToString(fromPosition))
+    --veaf.mainLogTrace("fromPosition="..veaf.vecToString(fromPosition))
 
     local mission = { 
 		id = 'Mission', 
@@ -586,7 +586,7 @@ function veaf.moveGroupAt(groupName, leadUnitName, heading, speed, timeInSeconds
         }
         fromPosition.x = newWaypoint1.x
         fromPosition.y = newWaypoint1.y
-        veaf.mainLogTrace("newWaypoint1="..veaf.vecToString(newWaypoint1))
+        --veaf.mainLogTrace("newWaypoint1="..veaf.vecToString(newWaypoint1))
 
         table.insert(mission.params.route.points, 
             {
@@ -610,14 +610,14 @@ function veaf.moveGroupAt(groupName, leadUnitName, heading, speed, timeInSeconds
     else
         length = speed * 3600 -- m travelled in 1 hour
     end
-    veaf.mainLogTrace("length="..length .. " m")
+    --veaf.mainLogTrace("length="..length .. " m")
 
     -- new route point
 	local newWaypoint2 = {
 		x = fromPosition.x + length * math.cos(headingRad),
 		y = fromPosition.y + length * math.sin(headingRad),
 	}
-    veaf.mainLogTrace("newWaypoint2="..veaf.vecToString(newWaypoint2))
+    --veaf.mainLogTrace("newWaypoint2="..veaf.vecToString(newWaypoint2))
 
     table.insert(mission.params.route.points, 
         {
@@ -663,8 +663,8 @@ function veaf.moveGroupTo(groupName, pos, speed, altitude)
     if not(altitude) then
         altitude = 0
     end
-    veaf.mainLogDebug("veaf.moveGroupTo(groupName=" .. groupName .. ", speed=".. speed .. ", altitude=".. altitude)
-    veaf.mainLogDebug("pos="..veaf.vecToString(pos))
+    --veaf.mainLogDebug("veaf.moveGroupTo(groupName=" .. groupName .. ", speed=".. speed .. ", altitude=".. altitude)
+    --veaf.mainLogDebug("pos="..veaf.vecToString(pos))
 
 	local unitGroup = Group.getByName(groupName)
     if unitGroup == nil then
@@ -719,23 +719,23 @@ end
 --- Computes the coordinates of a point offset from a route of a certain distance, at a certain distance from route start
 --- e.g. we go from [startingPoint] to [destinationPoint], and at [distanceFromStartingPoint] we look at [offset] meters (left if <0, right else)
 function veaf.computeCoordinatesOffsetFromRoute(startingPoint, destinationPoint, distanceFromStartingPoint, offset)
-    veaf.mainLogTrace("startingPoint="..veaf.vecToString(startingPoint))
-    veaf.mainLogTrace("destinationPoint="..veaf.vecToString(destinationPoint))
+    --veaf.mainLogTrace("startingPoint="..veaf.vecToString(startingPoint))
+    --veaf.mainLogTrace("destinationPoint="..veaf.vecToString(destinationPoint))
     
     local vecAB = {x = destinationPoint.x +- startingPoint.x, y = destinationPoint.y - startingPoint.y, z = destinationPoint.z - startingPoint.z}
-    veaf.mainLogTrace("vecAB="..veaf.vecToString(vecAB))
+    --veaf.mainLogTrace("vecAB="..veaf.vecToString(vecAB))
     local alpha = math.atan2(vecAB.x, vecAB.z) -- atan2(y, x) 
-    veaf.mainLogTrace("alpha="..alpha)
+    --veaf.mainLogTrace("alpha="..alpha)
     local r = math.sqrt(distanceFromStartingPoint * distanceFromStartingPoint + offset * offset)
-    veaf.mainLogTrace("r="..r)
+    --veaf.mainLogTrace("r="..r)
     local beta = math.atan(offset / distanceFromStartingPoint)
-    veaf.mainLogTrace("beta="..beta)
+    --veaf.mainLogTrace("beta="..beta)
     local tho = alpha + beta
-    veaf.mainLogTrace("tho="..tho)
+    --veaf.mainLogTrace("tho="..tho)
     local offsetPoint = { z = r * math.cos(tho) + startingPoint.z, y = 0, x = r * math.sin(tho) + startingPoint.x}
-    veaf.mainLogTrace("offsetPoint="..veaf.vecToString(offsetPoint))
+    --veaf.mainLogTrace("offsetPoint="..veaf.vecToString(offsetPoint))
     local offsetPointOnLand = veaf.placePointOnLand(offsetPoint)
-    veaf.mainLogTrace("offsetPointOnLand="..veaf.vecToString(offsetPointOnLand))
+    --veaf.mainLogTrace("offsetPointOnLand="..veaf.vecToString(offsetPointOnLand))
 
     return offsetPointOnLand, offsetPoint
 end
@@ -801,13 +801,13 @@ function veaf.findInTable(data, key)
         result = data[key]
     end
     if result then 
-        veaf.mainLogTrace(".findInTable found ".. key)
+        --veaf.mainLogTrace(".findInTable found ".. key)
     end
     return result
 end
 
 function veaf.getTankerData(tankerGroupName)
-    veaf.mainLogTrace("getTankerData " .. tankerGroupName)
+    --veaf.mainLogTrace("getTankerData " .. tankerGroupName)
     local result = nil
     local tankerData = veaf.getGroupData(tankerGroupName)
     if tankerData then
@@ -835,24 +835,24 @@ function veaf.getTankerData(tankerGroupName)
         local route = veaf.findInTable(tankerData, "route")
         local points = veaf.findInTable(route, "points")
         if points then
-            veaf.mainLogTrace("found a " .. #points .. "-points route for tanker " .. tankerGroupName)
+            --veaf.mainLogTrace("found a " .. #points .. "-points route for tanker " .. tankerGroupName)
             for i, point in pairs(points) do
-                veaf.mainLogTrace("found point #" .. i)
+                --veaf.mainLogTrace("found point #" .. i)
                 local task = veaf.findInTable(point, "task")
                 if task then
                     local tasks = task.params.tasks
                     if (tasks) then
-                        veaf.mainLogTrace("found " .. #tasks .. " tasks")
+                        --veaf.mainLogTrace("found " .. #tasks .. " tasks")
                         for j, task in pairs(tasks) do
-                            veaf.mainLogTrace("found task #" .. j)
+                            --veaf.mainLogTrace("found task #" .. j)
                             if task.params then
-                                veaf.mainLogTrace("has .params")
+                                --veaf.mainLogTrace("has .params")
                                 if task.params.action then
-                                    veaf.mainLogTrace("has .action")
+                                    --veaf.mainLogTrace("has .action")
                                     if task.params.action.params then
-                                        veaf.mainLogTrace("has .params")
+                                        --veaf.mainLogTrace("has .params")
                                         if task.params.action.params.channel then
-                                            veaf.mainLogTrace("has .channel")
+                                            --veaf.mainLogTrace("has .channel")
                                             veaf.mainLogInfo("Found a TACAN task for tanker " .. tankerGroupName)
                                             result.tankerTacanTask = task
                                             result.tankerTacanChannel = task.params.action.params.channel
@@ -900,11 +900,11 @@ function veaf.weatherReport(vec3, alt, withLASTE)
 
     -- At user specified altitude.
     T,Pqfe=atmosphere.getTemperatureAndPressure({x=vec3.x, y=alt, z=vec3.z})
-    veaf.mainLogTrace(string.format("T = %.1f, Pqfe = %.2f", T,Pqfe))
+    --veaf.mainLogTrace(string.format("T = %.1f, Pqfe = %.2f", T,Pqfe))
     
     -- Get pressure at sea level.
     local _,Pqnh=atmosphere.getTemperatureAndPressure({x=vec3.x, y=0, z=vec3.z})
-    veaf.mainLogTrace(string.format("Pqnh = %.2f", Pqnh))
+    --veaf.mainLogTrace(string.format("Pqnh = %.2f", Pqnh))
     
     -- Convert pressure from Pascal to hecto Pascal.
     Pqfe=Pqfe/100
@@ -920,7 +920,7 @@ function veaf.weatherReport(vec3, alt, withLASTE)
   
     -- Get wind direction and speed.
     local Dir,Vel=weathermark._GetWind(vec3, alt)
-    veaf.mainLogTrace(string.format("Dir = %.1f, Vel = %.1f", Dir,Vel))
+    --veaf.mainLogTrace(string.format("Dir = %.1f, Vel = %.1f", Dir,Vel))
 
     -- Get Beaufort wind scale.
     local Bn,Bd=weathermark._BeaufortScale(Vel)
@@ -964,7 +964,7 @@ function veaf.weatherReport(vec3, alt, withLASTE)
 end
 
 function veaf.getFirstCountryInCoalition(coalition)
-    veaf.mainLogTrace(string.format("veaf.getFirstCountryInCoalition(%s)", tostring(coalition or "")))
+    --veaf.mainLogTrace(string.format("veaf.getFirstCountryInCoalition(%s)", tostring(coalition or "")))
     local coalitionName = nil
     if type(coalition) == "number" then
         if coalition == 1 then 
@@ -977,7 +977,7 @@ function veaf.getFirstCountryInCoalition(coalition)
     else
         coalitionName = tostring(coalition)
     end
-    veaf.mainLogTrace(string.format("coalitionName=[%s]", tostring(coalitionName or "")))
+    --veaf.mainLogTrace(string.format("coalitionName=[%s]", tostring(coalitionName or "")))
     for countryName, _ in pairs(mist.DBs.units[coalitionName]) do
         return countryName
     end
@@ -986,7 +986,7 @@ end
 -- mission restart at a certain hour of the day
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 function veaf._endMission(delay1, message1, delay2, message2, delay3, message3)
-    veaf.mainLogTrace(string.format("veaf._endMission(delay1=%s, message1=%s, delay2=%s, message2=%s, delay3=%s, message3=%s)", veaf.p(delay1), veaf.p(message1), veaf.p(delay2), veaf.p(message2), veaf.p(delay3), veaf.p(message3)))
+    --veaf.mainLogTrace(string.format("veaf._endMission(delay1=%s, message1=%s, delay2=%s, message2=%s, delay3=%s, message3=%s)", veaf.p(delay1), veaf.p(message1), veaf.p(delay2), veaf.p(message2), veaf.p(delay3), veaf.p(message3)))
 
     if not delay1 then
         -- no more delay, let's end this !
@@ -1003,12 +1003,12 @@ function veaf._endMission(delay1, message1, delay2, message2, delay3, message3)
 end
 
 function veaf._checkForEndMission(endTimeInSeconds, checkIntervalInSeconds, checkMessage, delay1, message1, delay2, message2, delay3, message3)
-    veaf.mainLogTrace(string.format("veaf._checkForEndMission(endTimeInSeconds=%s, checkIntervalInSeconds=%s, checkMessage=%s, delay1=%s, message1=%s, delay2=%s, message2=%s, delay3=%s, message3=%s)", veaf.p(endTimeInSeconds), veaf.p(checkIntervalInSeconds), veaf.p(checkMessage), veaf.p(delay1), veaf.p(message1), veaf.p(delay2), veaf.p(message2), veaf.p(delay3), veaf.p(message3)))
+    --veaf.mainLogTrace(string.format("veaf._checkForEndMission(endTimeInSeconds=%s, checkIntervalInSeconds=%s, checkMessage=%s, delay1=%s, message1=%s, delay2=%s, message2=%s, delay3=%s, message3=%s)", veaf.p(endTimeInSeconds), veaf.p(checkIntervalInSeconds), veaf.p(checkMessage), veaf.p(delay1), veaf.p(message1), veaf.p(delay2), veaf.p(message2), veaf.p(delay3), veaf.p(message3)))
     
-    veaf.mainLogTrace(string.format("timer.getAbsTime()=%d", timer.getAbsTime()))
+    --veaf.mainLogTrace(string.format("timer.getAbsTime()=%d", timer.getAbsTime()))
 
     if timer.getAbsTime() >= endTimeInSeconds then
-        veaf.mainLogTrace("calling veaf._endMission")
+        --veaf.mainLogTrace("calling veaf._endMission")
         veaf._endMission(delay1, message1, delay2, message2, delay3, message3)
     else
         -- output the message if specified
@@ -1016,16 +1016,16 @@ function veaf._checkForEndMission(endTimeInSeconds, checkIntervalInSeconds, chec
             trigger.action.outText(checkMessage,30)
         end
         -- schedule this function after a delay
-        veaf.mainLogTrace(string.format("schedule veaf._checkForEndMission after %d seconds", checkIntervalInSeconds))
+        --veaf.mainLogTrace(string.format("schedule veaf._checkForEndMission after %d seconds", checkIntervalInSeconds))
         mist.scheduleFunction(veaf._checkForEndMission, {endTimeInSeconds, checkIntervalInSeconds, checkMessage, delay1, message1, delay2, message2, delay3, message3}, timer.getTime()+checkIntervalInSeconds)
     end
 end
 
 function veaf.endMissionAt(endTimeHour, endTimeMinute, checkIntervalInSeconds, checkMessage, delay1, message1, delay2, message2, delay3, message3)
-    veaf.mainLogTrace(string.format("veaf.endMissionAt(endTimeHour=%s, endTimeMinute=%s, checkIntervalInSeconds=%s, checkMessage=%s, delay1=%s, message1=%s, delay2=%s, message2=%s, delay3=%s, message3=%s)", veaf.p(endTimeHour), veaf.p(endTimeMinute), veaf.p(checkIntervalInSeconds), veaf.p(checkMessage), veaf.p(delay1), veaf.p(message1), veaf.p(delay2), veaf.p(message2), veaf.p(delay3), veaf.p(message3)))
+    --veaf.mainLogTrace(string.format("veaf.endMissionAt(endTimeHour=%s, endTimeMinute=%s, checkIntervalInSeconds=%s, checkMessage=%s, delay1=%s, message1=%s, delay2=%s, message2=%s, delay3=%s, message3=%s)", veaf.p(endTimeHour), veaf.p(endTimeMinute), veaf.p(checkIntervalInSeconds), veaf.p(checkMessage), veaf.p(delay1), veaf.p(message1), veaf.p(delay2), veaf.p(message2), veaf.p(delay3), veaf.p(message3)))
 
     local endTimeInSeconds = endTimeHour * 3600 + endTimeMinute * 60
-    veaf.mainLogTrace(string.format("endTimeInSeconds=%d", endTimeInSeconds))
+    --veaf.mainLogTrace(string.format("endTimeInSeconds=%d", endTimeInSeconds))
     veaf._checkForEndMission(endTimeInSeconds, checkIntervalInSeconds, checkMessage, delay1, message1, delay2, message2, delay3, message3)    
 end
 

@@ -165,6 +165,7 @@ function veafCarrierOperations.initializeCarrierGroup()
     veafCarrierOperations.AirbossStennis=AIRBOSS:New(veafCarrierOperations.carrier.carrierName)
     veafCarrierOperations.AirbossStennis:SetLSORadio(veafCarrierOperations.carrier.lsoFreq)
     veafCarrierOperations.AirbossStennis:SetPatrolAdInfinitum()
+    veafCarrierOperations.AirbossStennis:SetDefaultMessageDuration(30) -- messages are displayed for 30 seconds
 
     local shift=1 -- Current shift.
     local function ChangeShift(airboss)

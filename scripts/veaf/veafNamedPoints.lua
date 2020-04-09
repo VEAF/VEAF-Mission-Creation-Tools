@@ -93,7 +93,7 @@ function veafNamedPoints.onEventMarkChange(eventPos, event)
     if veafNamedPoints.executeCommand(eventPos, event) then 
 
         -- Delete old mark.
-        veafNamedPoints.logTrace(string.format("Removing mark # %d.", event.idx))
+        --veafNamedPoints.logTrace(string.format("Removing mark # %d.", event.idx))
         trigger.action.removeMark(event.idx)
     end
 end
@@ -143,7 +143,7 @@ function veafNamedPoints.markTextAnalysis(text)
 
     -- the point name should follow a space
     switch.name = text:sub(pos+string.len(veafNamedPoints.Keyphrase)+1)
-    veafNamedPoints.logDebug(string.format("Keyword name = %s", switch.name))
+    --veafNamedPoints.logDebug(string.format("Keyword name = %s", switch.name))
 
     return switch
 end
@@ -154,8 +154,8 @@ end
 
 --- Create the point in the named points database
 function veafNamedPoints.namePoint(targetSpot, name, coalition)
-    veafNamedPoints.logDebug(string.format("namePoint(name = %s, coalition=%s)",name, coalition))
-    veafNamedPoints.logDebug("targetSpot=" .. veaf.vecToString(targetSpot))
+    --veafNamedPoints.logDebug(string.format("namePoint(name = %s, coalition=%s)",name, coalition))
+    --veafNamedPoints.logDebug("targetSpot=" .. veaf.vecToString(targetSpot))
 
     veafNamedPoints.addPoint(name, targetSpot)
 
@@ -168,33 +168,33 @@ function veafNamedPoints.namePoint(targetSpot, name, coalition)
 end
 
 function veafNamedPoints._addPoint(name, point)
-    veafNamedPoints.logTrace(string.format("addPoint(name = %s)",name))
-    veafNamedPoints.logTrace("point=" .. veaf.vecToString(point))
+    --veafNamedPoints.logTrace(string.format("addPoint(name = %s)",name))
+    --veafNamedPoints.logTrace("point=" .. veaf.vecToString(point))
     veafNamedPoints.namedPoints[name:upper()] = point
 end
 
 function veafNamedPoints.addPoint(name, point)
-    veafNamedPoints.logTrace(string.format("addPoint: {name=\"%s\",point={x=%d,y=0,z=%d}}", name, point.x, point.z))
+    --veafNamedPoints.logTrace(string.format("addPoint: {name=\"%s\",point={x=%d,y=0,z=%d}}", name, point.x, point.z))
     veafNamedPoints._addPoint(name, point)
     veafNamedPoints._refreshAtcRadioMenu()
     veafNamedPoints._refreshWeatherReportsRadioMenu()
 end
 
 function veafNamedPoints.delPoint(name)
-    veafNamedPoints.logTrace(string.format("delPoint(name = %s)",name))
+    --veafNamedPoints.logTrace(string.format("delPoint(name = %s)",name))
 
     table.remove(veafNamedPoints.namedPoints, name:upper())
 end
 
 function veafNamedPoints.getPoint(name)
-    veafNamedPoints.logTrace(string.format("getPoint(name = %s)",name))
+    --veafNamedPoints.logTrace(string.format("getPoint(name = %s)",name))
 
     return veafNamedPoints.namedPoints[name:upper()]
 end
 
 function veafNamedPoints.getWeatherAtPoint(parameters)
     local name, unitName = unpack(parameters)
-    veafNamedPoints.logTrace(string.format("getWeatherAtPoint(name = %s)",name))
+    --veafNamedPoints.logTrace(string.format("getWeatherAtPoint(name = %s)",name))
     local point = veafNamedPoints.getPoint(name)
     if point then
         local weatherReport = veaf.weatherReport(point, nil, true)
@@ -204,7 +204,7 @@ end
 
 function veafNamedPoints.getAtcAtPoint(parameters)
     local name, unitName = unpack(parameters)
-    veafNamedPoints.logTrace(string.format("getAtcAtPoint(name = %s)",name))
+    --veafNamedPoints.logTrace(string.format("getAtcAtPoint(name = %s)",name))
     local point = veafNamedPoints.getPoint(name)
     if point then
         -- exanple : point={x=-315414,y=480,z=897262, atc=true, tower="138.00", runways={{name="12R", hdg=121, ils="110.30"},{name="30L", hdg=301, ils="108.90"}}}
@@ -262,7 +262,7 @@ function veafNamedPoints.buildPointsDatabase()
 end
 
 function veafNamedPoints.listAllPoints(unitName)
-    veafNamedPoints.logDebug(string.format("listAllPoints(unitName = %s)",unitName))
+    --veafNamedPoints.logDebug(string.format("listAllPoints(unitName = %s)",unitName))
     local message = ""
     names = {}
     for name, point in pairs(veafNamedPoints.namedPoints) do
@@ -280,7 +280,7 @@ function veafNamedPoints.listAllPoints(unitName)
 end
 
 function veafNamedPoints.getAtcAtClosestPoint(unitName)
-    veafNamedPoints.logDebug(string.format("veafNamedPoints.getAtcAtClosestPoint(unitName=%s)",unitName))
+    --veafNamedPoints.logDebug(string.format("veafNamedPoints.getAtcAtClosestPoint(unitName=%s)",unitName))
     local closestPointName = nil
     local minDistance = 99999999
     local unit = Unit.getByName(unitName)
@@ -288,11 +288,11 @@ function veafNamedPoints.getAtcAtClosestPoint(unitName)
         for name, point in pairs(veafNamedPoints.namedPoints) do
             if point.atc then
                 distanceFromPlayer = ((point.x - unit:getPosition().p.x)^2 + (point.z - unit:getPosition().p.z)^2)^0.5
-                veafNamedPoints.logTrace(string.format("distanceFromPlayer = %d",distanceFromPlayer))
+                --veafNamedPoints.logTrace(string.format("distanceFromPlayer = %d",distanceFromPlayer))
                 if distanceFromPlayer < minDistance then
                     minDistance = distanceFromPlayer
                     closestPointName = name
-                    veafNamedPoints.logTrace(string.format("point %s is closest",name))
+                    --veafNamedPoints.logTrace(string.format("point %s is closest",name))
                 end
             end
         end
@@ -307,25 +307,25 @@ end
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 function veafNamedPoints._buildWeatherReportsRadioMenuPage(menu, names, pageSize, startIndex)
-    veafNamedPoints.logTrace(string.format("veafNamedPoints._buildWeatherReportsRadioMenuPage(pageSize=%d, startIndex=%d)",pageSize, startIndex))
+    --veafNamedPoints.logTrace(string.format("veafNamedPoints._buildWeatherReportsRadioMenuPage(pageSize=%d, startIndex=%d)",pageSize, startIndex))
     
     local namesCount = #names
-    veafNamedPoints.logTrace(string.format("namesCount = %d",namesCount))
+    --veafNamedPoints.logTrace(string.format("namesCount = %d",namesCount))
 
     local endIndex = namesCount
     if endIndex - startIndex >= pageSize then
         endIndex = startIndex + pageSize - 2
     end
-    veafNamedPoints.logTrace(string.format("endIndex = %d",endIndex))
-    veafNamedPoints.logTrace(string.format("adding commands from %d to %d",startIndex, endIndex))
+    --veafNamedPoints.logTrace(string.format("endIndex = %d",endIndex))
+    --veafNamedPoints.logTrace(string.format("adding commands from %d to %d",startIndex, endIndex))
     for index = startIndex, endIndex do
         local name = names[index]
-        veafNamedPoints.logTrace(string.format("names[%d] = %s",index, name))
+        --veafNamedPoints.logTrace(string.format("names[%d] = %s",index, name))
         local namedPoint = veafNamedPoints.namedPoints[name]
         veafRadio.addCommandToSubmenu( name , menu, veafNamedPoints.getWeatherAtPoint, name, veafRadio.USAGE_ForGroup)    
     end
     if endIndex < namesCount then
-        veafNamedPoints.logTrace("adding next page menu")
+        --veafNamedPoints.logTrace("adding next page menu")
         local nextPageMenu = veafRadio.addSubMenu("Next page", menu)
         veafNamedPoints._buildWeatherReportsRadioMenuPage(nextPageMenu, names, 10, endIndex+1)
     end
@@ -335,10 +335,10 @@ end
 function veafNamedPoints._refreshWeatherReportsRadioMenu()
     if not veafNamedPoints.LowerRadioMenuSize then
         if veafNamedPoints.weatherPath then
-            veafNamedPoints.logTrace("deleting weather report submenu")
+            --veafNamedPoints.logTrace("deleting weather report submenu")
             veafRadio.delSubmenu(veafNamedPoints.weatherPath, veafNamedPoints.rootPath)
         end
-        veafNamedPoints.logTrace("adding weather report submenu")
+        --veafNamedPoints.logTrace("adding weather report submenu")
         veafNamedPoints.weatherPath = veafRadio.addSubMenu("Get weather report over a point", veafNamedPoints.rootPath)
         names = {}
         for name, point in pairs(veafNamedPoints.namedPoints) do
@@ -351,25 +351,25 @@ function veafNamedPoints._refreshWeatherReportsRadioMenu()
 end
 
 function veafNamedPoints._buildAtcRadioMenuPage(menu, names, pageSize, startIndex)
-    veafNamedPoints.logTrace(string.format("veafNamedPoints._buildAtcRadioMenuPage(pageSize=%d, startIndex=%d)",pageSize, startIndex))
+    --veafNamedPoints.logTrace(string.format("veafNamedPoints._buildAtcRadioMenuPage(pageSize=%d, startIndex=%d)",pageSize, startIndex))
 
     local namesCount = #names
-    veafNamedPoints.logTrace(string.format("namesCount = %d",namesCount))
+    --veafNamedPoints.logTrace(string.format("namesCount = %d",namesCount))
 
     local endIndex = namesCount
     if endIndex - startIndex >= pageSize then
         endIndex = startIndex + pageSize - 2
     end
-    veafNamedPoints.logTrace(string.format("endIndex = %d",endIndex))
-    veafNamedPoints.logTrace(string.format("adding commands from %d to %d",startIndex, endIndex))
+    --veafNamedPoints.logTrace(string.format("endIndex = %d",endIndex))
+    --veafNamedPoints.logTrace(string.format("adding commands from %d to %d",startIndex, endIndex))
     for index = startIndex, endIndex do
         local name = names[index]
-        veafNamedPoints.logTrace(string.format("names[%d] = %s",index, name))
+        --veafNamedPoints.logTrace(string.format("names[%d] = %s",index, name))
         local namedPoint = veafNamedPoints.namedPoints[name]
         veafRadio.addCommandToSubmenu( name , menu, veafNamedPoints.getAtcAtPoint, name, veafRadio.USAGE_ForGroup)    
     end
     if endIndex < namesCount then
-        veafNamedPoints.logTrace("adding next page menu")
+        --veafNamedPoints.logTrace("adding next page menu")
         local nextPageMenu = veafRadio.addSubMenu("Next page", menu)
         veafNamedPoints._buildAtcRadioMenuPage(nextPageMenu, names, 10, endIndex+1)
     end
@@ -377,9 +377,9 @@ end
 
 --- refresh the ATC radio menu
 function veafNamedPoints._refreshAtcRadioMenu()
-    veafNamedPoints.logTrace("adding ATC On Closest Point submenu")
+    --veafNamedPoints.logTrace("adding ATC On Closest Point submenu")
     if veafNamedPoints.atcClosestPath then
-        veafNamedPoints.logTrace("deleting ATC On Closest Point submenu")
+        --veafNamedPoints.logTrace("deleting ATC On Closest Point submenu")
         veafRadio.delSubmenu(veafNamedPoints.atcClosestPath, veafNamedPoints.rootPath)
     end
     veafNamedPoints.atcClosestPath = veafRadio.addSubMenu("ATC on closest point", veafNamedPoints.rootPath)
@@ -387,10 +387,10 @@ function veafNamedPoints._refreshAtcRadioMenu()
 
     if not veafNamedPoints.LowerRadioMenuSize then
         if veafNamedPoints.atcPath then
-            veafNamedPoints.logTrace("deleting ATC submenu")
+            --veafNamedPoints.logTrace("deleting ATC submenu")
             veafRadio.delSubmenu(veafNamedPoints.atcPath, veafNamedPoints.rootPath)
         end
-        veafNamedPoints.logTrace("adding ATC submenu")
+        --veafNamedPoints.logTrace("adding ATC submenu")
         veafNamedPoints.atcPath = veafRadio.addSubMenu("ATC", veafNamedPoints.rootPath)
         names = {}
         for name, point in pairs(veafNamedPoints.namedPoints) do

@@ -113,17 +113,17 @@ function veafRadio.eventHandler:onEvent(Event)
 
   -- Debug output.
   if Event.id == world.event.S_EVENT_PLAYER_ENTER_UNIT then
-    veafRadio.logDebug("S_EVENT_PLAYER_ENTER_UNIT")
-    veafRadio.logTrace(string.format("Event id        = %s", tostring(Event.id)))
-    veafRadio.logTrace(string.format("Event time      = %s", tostring(Event.time)))
-    veafRadio.logTrace(string.format("Event idx       = %s", tostring(Event.idx)))
-    veafRadio.logTrace(string.format("Event coalition = %s", tostring(Event.coalition)))
-    veafRadio.logTrace(string.format("Event group id  = %s", tostring(Event.groupID)))
+    --veafRadio.logDebug("S_EVENT_PLAYER_ENTER_UNIT")
+    --veafRadio.logTrace(string.format("Event id        = %s", tostring(Event.id)))
+    --veafRadio.logTrace(string.format("Event time      = %s", tostring(Event.time)))
+    --veafRadio.logTrace(string.format("Event idx       = %s", tostring(Event.idx)))
+    --veafRadio.logTrace(string.format("Event coalition = %s", tostring(Event.coalition)))
+    --veafRadio.logTrace(string.format("Event group id  = %s", tostring(Event.groupID)))
     if Event.initiator ~= nil then
         local _unitname = Event.initiator:getName()
-        veafRadio.logTrace(string.format("Event ini unit  = %s", tostring(_unitname)))
+        --veafRadio.logTrace(string.format("Event ini unit  = %s", tostring(_unitname)))
     end
-    veafRadio.logTrace(string.format("Event text      = \n%s", tostring(Event.text)))
+    --veafRadio.logTrace(string.format("Event text      = \n%s", tostring(Event.text)))
 
     -- refresh the radio menu
     -- TODO refresh it only for this player ? Is this even possible ?
@@ -136,10 +136,10 @@ end
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 function veafRadio._proxyMethod(parameters)
-  veafRadio.logTrace("parameters="..veaf.p(parameters))  
+  --veafRadio.logTrace("parameters="..veaf.p(parameters))  
   local realMethod, realParameters = unpack(parameters)
-  veafRadio.logTrace("realMethod="..veaf.p(realMethod))  
-  veafRadio.logTrace("realParameters="..veaf.p(realParameters))  
+  --veafRadio.logTrace("realMethod="..veaf.p(realMethod))  
+  --veafRadio.logTrace("realParameters="..veaf.p(realParameters))  
   if veafSecurity.isAuthenticated() then
     realMethod(realParameters)
   else
@@ -152,7 +152,7 @@ end
 --- This is called from another method that has first changed the radio menu information by adding or removing elements
 function veafRadio.refreshRadioMenu()
   -- completely delete the dcs radio menu
-  veafRadio.logTrace("completely delete the dcs radio menu")
+  --veafRadio.logTrace("completely delete the dcs radio menu")
   if veafRadio.radioMenu.dcsRadioMenu then
     missionCommands.removeItem(veafRadio.radioMenu.dcsRadioMenu)
   else
@@ -160,11 +160,11 @@ function veafRadio.refreshRadioMenu()
   end
   
   -- create all the commands and submenus in the dcs radio menu
-  veafRadio.logTrace("create all the commands and submenus in the dcs radio menu")
+  --veafRadio.logTrace("create all the commands and submenus in the dcs radio menu")
   veafRadio.refreshRadioSubmenu(nil, veafRadio.radioMenu)        
 end
 
-function veafRadio._addCommand(groupId, title, menu, command, parameters, trace) 
+function veafRadio._addCommand(groupId, title, menu, command, parameters) 
   if not command.method then
     veafRadio.logError("ERROR - missing method for command " .. title)
   end
@@ -172,7 +172,7 @@ function veafRadio._addCommand(groupId, title, menu, command, parameters, trace)
   local _method = command.method
   local _parameters = parameters
   if command.isSecured then
-    if trace then veafRadio.logTrace("adding secured command") end
+    --veafRadio.logTrace("adding secured command") end
     
     _method = veafRadio._proxyMethod
     _parameters = {command.method, _parameters}
@@ -184,22 +184,22 @@ function veafRadio._addCommand(groupId, title, menu, command, parameters, trace)
     end
   end
 
-  --veafRadio.logTrace(routines.utils.oneLineSerialize({_title = _title}))
-  --veafRadio.logTrace(routines.utils.oneLineSerialize({_method = _method}))
-  --veafRadio.logTrace(routines.utils.oneLineSerialize({_parameters = _parameters}))
+  ----veafRadio.logTrace(routines.utils.oneLineSerialize({_title = _title}))
+  ----veafRadio.logTrace(routines.utils.oneLineSerialize({_method = _method}))
+  ----veafRadio.logTrace(routines.utils.oneLineSerialize({_parameters = _parameters}))
   
   if groupId then
-    if trace then veafRadio.logTrace("adding for group") end
+    --veafRadio.logTrace("adding for group") end
     missionCommands.addCommandForGroup(groupId, _title, menu, _method, _parameters)
   else
-    if trace then veafRadio.logTrace("adding for all") end
+    --veafRadio.logTrace("adding for all") end
     missionCommands.addCommand(_title, menu, _method, _parameters)
   end
 
 end
 
 function veafRadio.refreshRadioSubmenu(parentRadioMenu, radioMenu)
-  veafRadio.logTrace("veafRadio.refreshRadioSubmenu "..radioMenu.title)
+  --veafRadio.logTrace("veafRadio.refreshRadioSubmenu "..radioMenu.title)
   
   local trace = false
 
@@ -333,7 +333,7 @@ function veafRadio.clearSubmenu(subMenu)
     veafRadio.logError("veafRadio.clearSubmenu() subMenu parameter is nil !")
     return
   end
-  veafRadio.logDebug(string.format("veafRadio.clearSubmenu(%s)",subMenu.title))
+  --veafRadio.logDebug(string.format("veafRadio.clearSubmenu(%s)",subMenu.title))
   subMenu.subMenus = {}
   subMenu.commands = {}
 end
@@ -349,14 +349,14 @@ function veafRadio.delSubmenu(subMenu, radioMenu)
   end
   veaf.arrayRemoveWhen(menu.subMenus, function(t, i, j)
     -- Return true to keep the value, or false to discard it.
-    veafRadio.logTrace("searching for " .. subMenu.title)
+    --veafRadio.logTrace("searching for " .. subMenu.title)
     local v = menu.subMenus[i]
-    veafRadio.logTrace("checking " .. v.title)
+    --veafRadio.logTrace("checking " .. v.title)
     if v == subMenu then
-      veafRadio.logTrace("found ! removing " .. v.title)
+      --veafRadio.logTrace("found ! removing " .. v.title)
       return false
     else
-      veafRadio.logTrace("keeping " .. v.title)
+      --veafRadio.logTrace("keeping " .. v.title)
       return true
     end
   end);
@@ -371,7 +371,7 @@ function veafRadio.buildHumanUnits()
     for name, unit in pairs(mist.DBs.humansByName) do
         -- not already in units list ?
         if veafRadio.humanUnits[unit.unitName] == nil then
-            veafRadio.logTrace(string.format("human player found name=%s, unitName=%s, groupId=%s", name, unit.unitName,unit.groupId))
+            --veafRadio.logTrace(string.format("human player found name=%s, unitName=%s, groupId=%s", name, unit.unitName,unit.groupId))
             local callsign = unit.callsign
             if type(callsign) == "table" then callsign = callsign["name"] end
             if type(callsign) == "number" then callsign = "" .. callsign end
@@ -394,11 +394,11 @@ function veafRadio.buildHumanUnits()
 end
 
 function veafRadio.radioRefreshWatchdog()
-  veafRadio.logDebug("veafRadio.radioRefreshWatchdog()")
+  --veafRadio.logDebug("veafRadio.radioRefreshWatchdog()")
   -- refresh the menu
   veafRadio.refreshRadioMenu()
 
-  veafRadio.logDebug("veafRadio.radioRefreshWatchdog() - rescheduling in "..veafRadio.SecondsBetweenRadioMenuAutomaticRebuild)
+  --veafRadio.logDebug("veafRadio.radioRefreshWatchdog() - rescheduling in "..veafRadio.SecondsBetweenRadioMenuAutomaticRebuild)
   -- reschedule
   mist.scheduleFunction(veafRadio.radioRefreshWatchdog,{},timer.getTime()+veafRadio.SecondsBetweenRadioMenuAutomaticRebuild)
 end

@@ -48,7 +48,7 @@ veafCombatZone = {}
 veafCombatZone.Id = "COMBAT ZONE - "
 
 --- Version.
-veafCombatZone.Version = "1.0.5"
+veafCombatZone.Version = "1.0.6"
 
 -- trace level, specific to this module
 veafCombatZone.Trace = false
@@ -155,11 +155,13 @@ function VeafCombatZoneElement:getName()
 end
 
 function VeafCombatZoneElement:setPosition(value)
+    --veafCombatZone.logTrace(string.format("VeafCombatZoneElement:setPosition(value=[%s])",veaf.p(value)))
     self.position = value
     return self
 end
 
 function VeafCombatZoneElement:getPosition()
+    --veafCombatZone.logTrace(string.format("VeafCombatZoneElement:getPosition()=[%s]",veaf.p(self.position or "")))
     return self.position
 end
 
@@ -343,7 +345,7 @@ function VeafCombatZone:addSpawnedGroup(groupOrName)
     if type(groupName) ~= "string" then 
         groupName = tostring(groupName)    
     end
-    veafCombatZone.logDebug(string.format("VeafCombatZone[%s]:addSpawnedGroup(%s)",self.missionEditorZoneName or "", groupName or ""))
+    --veafCombatZone.logDebug(string.format("VeafCombatZone[%s]:addSpawnedGroup(%s)",self.missionEditorZoneName or "", groupName or ""))
     if not self.spawnedGroups then 
         self.spawnedGroups = {}
     end
@@ -352,8 +354,8 @@ function VeafCombatZone:addSpawnedGroup(groupOrName)
 end
 
 function VeafCombatZone:getSpawnedGroups()
-    veafCombatZone.logDebug(string.format("VeafCombatZone[%s]:getSpawnedGroup()",self.missionEditorZoneName or ""))
-    veafCombatZone.logDebug(veaf.serialize("self.spawnedGroups", self.spawnedGroups))
+    --veafCombatZone.logDebug(string.format("VeafCombatZone[%s]:getSpawnedGroup()",self.missionEditorZoneName or ""))
+    --veafCombatZone.logDebug(veaf.serialize("self.spawnedGroups", self.spawnedGroups))
     return self.spawnedGroups
 end
 
@@ -366,13 +368,13 @@ end
 --- other methods
 ---
 function VeafCombatZone:scheduleWatchdogFunction()
-    veafCombatZone.logDebug(string.format("VeafCombatZone[%s]:scheduleWatchdogFunction()",self.missionEditorZoneName or ""))
+    --veafCombatZone.logDebug(string.format("VeafCombatZone[%s]:scheduleWatchdogFunction()",self.missionEditorZoneName or ""))
     self.watchdogFunctionId = mist.scheduleFunction(veafCombatZone.CompletionCheck,{self.missionEditorZoneName},timer.getTime()+veafCombatZone.SecondsBetweenWatchdogChecks)
     return self
 end
 
 function VeafCombatZone:unscheduleWatchdogFunction()
-    veafCombatZone.logDebug(string.format("VeafCombatZone[%s]:unscheduleWatchdogFunction()",self.missionEditorZoneName or ""))
+    --veafCombatZone.logDebug(string.format("VeafCombatZone[%s]:unscheduleWatchdogFunction()",self.missionEditorZoneName or ""))
     if self.watchdogFunctionId then
         mist.removeFunction(self.watchdogFunctionId)
     end
@@ -391,7 +393,7 @@ function VeafCombatZone:addDefaultObjectives()
 end
 
 function VeafCombatZone:initialize()
-    veafCombatZone.logDebug(string.format("VeafCombatZone[%s]:initialize()",self.missionEditorZoneName or ""))
+    --veafCombatZone.logDebug(string.format("VeafCombatZone[%s]:initialize()",self.missionEditorZoneName or ""))
 
     -- check parameters
     if not self.missionEditorZoneName then 
@@ -412,7 +414,7 @@ function VeafCombatZone:initialize()
         trigger.action.outText(message,5)
         return self
     end
-    veafCombatZone.logTrace(string.format("zone center = [%s]",veaf.vecToString(self.zoneCenter)))
+    --veafCombatZone.logTrace(string.format("zone center = [%s]",veaf.vecToString(self.zoneCenter)))
     self.missionEditorZoneObject = trigger.misc.getZone(self.missionEditorZoneName)
 
     -- find units in the trigger zone
@@ -425,23 +427,23 @@ function VeafCombatZone:initialize()
         local zoneElement = VeafCombatZoneElement.new()
         zoneElement:setCoalition(unit:getCoalition())
         local unitName = unit:getName()
-        veafCombatZone.logTrace(string.format("processing unit [%s]", unitName))
+        --veafCombatZone.logTrace(string.format("processing unit [%s]", unitName))
         zoneElement:setPosition(unit:getPosition().p)
         local spawnRadius, command, chance 
         _, _, spawnRadius = unitName:find("#spawnRadius%s*=%s*(%d+)")
         _, _, command = unitName:find("#command%s*=%s*\"(.+)\"")
         _, _, spawnChance = unitName:find("#spawnChance%s*=%s*(%d+)")
         if spawnRadius then 
-            veafCombatZone.logTrace(string.format("spawnRadius = [%d]", spawnRadius))
+            --veafCombatZone.logTrace(string.format("spawnRadius = [%d]", spawnRadius))
             zoneElement:setSpawnRadius(spawnRadius)
         end
         if spawnChance then 
-            veafCombatZone.logTrace(string.format("spawnChance = [%d]", spawnChance))
+            --veafCombatZone.logTrace(string.format("spawnChance = [%d]", spawnChance))
             zoneElement:setSpawnChance(spawnChance)
         end
         if command then 
             -- it's a fake unit transporting a VEAF command
-            veafCombatZone.logTrace(string.format("command = [%s]", command))
+            --veafCombatZone.logTrace(string.format("command = [%s]", command))
             zoneElement:setVeafCommand(true)
             zoneElement:setName(command)
         else
@@ -462,11 +464,11 @@ function VeafCombatZone:initialize()
             end
             if not alreadyAddedGroups[groupName] then 
                 -- add a group element
-                veafCombatZone.logTrace(string.format("adding group [%s]", groupName))
+                --veafCombatZone.logTrace(string.format("adding group [%s]", groupName))
                 alreadyAddedGroups[groupName] = groupName
                 zoneElement:setName(groupName)
             else
-                veafCombatZone.logTrace(string.format("skipping group [%s]", groupName))
+                --veafCombatZone.logTrace(string.format("skipping group [%s]", groupName))
                 zoneElement = nil -- don't add this element, it's a group that has already been added
             end
         end
@@ -475,14 +477,14 @@ function VeafCombatZone:initialize()
     end
 
     -- deactivate the zone
-    veafCombatZone.logTrace("desactivate the zone")
+    --veafCombatZone.logTrace("desactivate the zone")
     self:desactivate()
 
     -- remove all units in the trigger zone (we want it CLEAN !)
     local units, groupNames = unpack(veafCombatZone.findUnitsInTriggerZone(self.missionEditorZoneObject))
     for _, groupName in pairs(groupNames) do
 
-        veafCombatZone.logTrace(string.format("destroying group [%s]",groupName))
+        --veafCombatZone.logTrace(string.format("destroying group [%s]",groupName))
         local group = Group.getByName(groupName)
         if not group then 
             group = StaticObject.getByName(groupName)
@@ -496,7 +498,7 @@ function VeafCombatZone:initialize()
 end
 
 function VeafCombatZone:getInformation()
-    veafCombatZone.logDebug(string.format("VeafCombatZone[%s]:getInformation()",self.missionEditorZoneName or ""))
+    --veafCombatZone.logDebug(string.format("VeafCombatZone[%s]:getInformation()",self.missionEditorZoneName or ""))
     local message =      "COMBAT ZONE "..self:getFriendlyName().." \n\n"
     if (self:getBriefing()) then
         message = message .. "BRIEFING: \n"
@@ -526,7 +528,7 @@ function VeafCombatZone:getInformation()
             else
                 local typeName = u:getTypeName()
                 if typeName then 
-                    local unit = veafUnits.findUnit(typeName, true)
+                    local unit = veafUnits.findUnit(typeName)
                     if unit then 
                         if coa == 1 then
                             if not(unitsByTypeR[typeName]) then 
@@ -613,22 +615,22 @@ end
 
 -- activate the zone
 function VeafCombatZone:activate()
-    veafCombatZone.logTrace(string.format("VeafCombatZone[%s]:activate()",self:getMissionEditorZoneName()))
+    --veafCombatZone.logTrace(string.format("VeafCombatZone[%s]:activate()",self:getMissionEditorZoneName()))
     self:setActive(true)
     
     for _, zoneElement in pairs(self.elements) do
-        veafCombatZone.logTrace(string.format("processing element [%s]",zoneElement:getName()))
+        --veafCombatZone.logTrace(string.format("processing element [%s]",zoneElement:getName()))
         local chance = math.random(0, 100)
         if chance <= zoneElement:getSpawnChance() then
             local position = zoneElement:getPosition()
             if zoneElement:getSpawnRadius() > 0 then
-                veafCombatZone.logTrace(string.format("position=[%s]",veaf.vecToString(position)))
+                --veafCombatZone.logTrace(string.format("position=[%s]",veaf.vecToString(position)))
                 local mistP = mist.getRandPointInCircle(position, zoneElement:getSpawnRadius())
-                veafCombatZone.logTrace(string.format("mistP=[%s]",veaf.vecToString(mistP)))
+                --veafCombatZone.logTrace(string.format("mistP=[%s]",veaf.vecToString(mistP)))
                 position = {x = mistP.x, y = position.y, z = mistP.y}
             end
             if zoneElement:isDcsStatic() or zoneElement:isDcsGroup() then
-                veafCombatZone.logTrace(string.format("respawning group [%s] at position [%s]",zoneElement:getName(), veaf.vecToString(position)))
+                --veafCombatZone.logTrace(string.format("respawning group [%s] at position [%s]",zoneElement:getName(), veaf.vecToString(position)))
                 local vars = {}
                 vars.gpName = zoneElement:getName()
                 vars.name = zoneElement:getName()
@@ -636,19 +638,23 @@ function VeafCombatZone:activate()
                 vars.action = 'respawn'
                 vars.point = position
                 local newGroup = mist.teleportToPoint(vars)
-                veafCombatZone.logTrace(string.format("[%s].addSpawnedGroup", zoneElement:getName()))
-                self:addSpawnedGroup(newGroup.name)
-        elseif zoneElement:isVeafCommand() then
-                veafCombatZone.logTrace(string.format("executing command [%s] at position [%s]",zoneElement:getName(), veaf.vecToString(position)))
+                if type(newGroup) == 'table' then
+                    --veafCombatZone.logTrace(string.format("[%s]:activate() - mist.teleportToPoint([%s])", self:getMissionEditorZoneName(), zoneElement:getName()))
+                    self:addSpawnedGroup(newGroup.name)
+                else
+                    --veafCombatZone.logTrace(string.format("[%s]:activate() - mist.teleportToPoint([%s]) failed", self:getMissionEditorZoneName(), zoneElement:getName()))
+                end
+            elseif zoneElement:isVeafCommand() then
+                --veafCombatZone.logTrace(string.format("executing command [%s] at position [%s]",zoneElement:getName(), veaf.vecToString(position)))
                 local spawnedGroups = {}
-                veafInterpreter.execute(zoneElement:getName(), zoneElement:getCoalition(), position, spawnedGroups)
+                veafInterpreter.execute(zoneElement:getName(), position, zoneElement:getCoalition(), spawnedGroups)
                 for _, newGroup in pairs(spawnedGroups) do
-                    veafCombatZone.logTrace(string.format("[%s].addSpawnedGroup", zoneElement:getName()))
+                    --veafCombatZone.logTrace(string.format("[%s].addSpawnedGroup", zoneElement:getName()))
                     self:addSpawnedGroup(newGroup)
                 end
             end
         else 
-            veafCombatZone.logTrace(string.format("chance missed (%d > %d)",chance, zoneElement:getSpawnChance()))
+            --veafCombatZone.logTrace(string.format("chance missed (%d > %d)",chance, zoneElement:getSpawnChance()))
         end
     end
 
@@ -663,23 +669,23 @@ end
 
 -- desactivate the zone
 function VeafCombatZone:desactivate()
-    veafCombatZone.logDebug(string.format("VeafCombatZone[%s]:desactivate()",self.missionEditorZoneName or ""))
+    --veafCombatZone.logDebug(string.format("VeafCombatZone[%s]:desactivate()",self.missionEditorZoneName or ""))
     self:setActive(false)
     self:unscheduleWatchdogFunction()
 
     for _, groupName in pairs(self:getSpawnedGroups()) do
-        veafCombatZone.logTrace(string.format("trying to destroy group [%s]",groupName))
+        --veafCombatZone.logTrace(string.format("trying to destroy group [%s]",groupName))
         local group = Group.getByName(groupName)
         if not group then 
             group = StaticObject.getByName(groupName)
             if group then
-                veafCombatZone.logTrace(string.format("found static [%s]",group:getName()))
+                --veafCombatZone.logTrace(string.format("found static [%s]",group:getName()))
             else
                 veafCombatZone.logInfo(string.format("cannot find static [%s]",groupName))
             end
         end
         if group then
-            veafCombatZone.logTrace(string.format("destroying group [%s]",group:getName()))
+            --veafCombatZone.logTrace(string.format("destroying group [%s]",group:getName()))
             group:destroy()
         end
     end
@@ -693,7 +699,7 @@ end
 
 -- check if there are still units in zone
 function VeafCombatZone:completionCheck()
-    veafCombatZone.logDebug(string.format("VeafCombatZone[%s]:completionCheck()",self.missionEditorZoneName or ""))
+    --veafCombatZone.logDebug(string.format("VeafCombatZone[%s]:completionCheck()",self.missionEditorZoneName or ""))
     local nbUnitsR = 0
     local nbUnitsB = 0
     local units, _ = unpack(veafCombatZone.findUnitsInTriggerZone(self.missionEditorZoneObject))
@@ -705,8 +711,8 @@ function VeafCombatZone:completionCheck()
             nbUnitsB = nbUnitsB + 1
         end
     end
-    veafCombatZone.logTrace(string.format("nbUnitsB=%d",nbUnitsB))
-    veafCombatZone.logTrace(string.format("nbUnitsR=%d",nbUnitsR))
+    --veafCombatZone.logTrace(string.format("nbUnitsB=%d",nbUnitsB))
+    --veafCombatZone.logTrace(string.format("nbUnitsR=%d",nbUnitsR))
 
     if nbUnitsR == 0 then 
         -- everyone is dead, let's end this mess
@@ -725,8 +731,8 @@ end
 
 -- pop a smoke marker over the zone
 function VeafCombatZone:popSmoke()
-    veafCombatZone.logDebug(string.format("VeafCombatZone[%s]:popSmoke()",self.missionEditorZoneName or ""))
-    veafCombatZone.logTrace(string.format("self:getCenter()=%s",veaf.vecToString(self:getCenter())))
+    --veafCombatZone.logDebug(string.format("VeafCombatZone[%s]:popSmoke()",self.missionEditorZoneName or ""))
+    --veafCombatZone.logTrace(string.format("self:getCenter()=%s",veaf.vecToString(self:getCenter())))
     local smokePoint = self:getCenter()
     if self:isTraining() then 
         -- compute the barycenter of all remaining units
@@ -741,7 +747,7 @@ function VeafCombatZone:popSmoke()
             smokePoint = mist.vec.scalar_mult(totalPosition,1/#units)
         end
     end
-    veafCombatZone.logTrace(string.format("smokePoint=%s",veaf.vecToString(smokePoint)))
+    --veafCombatZone.logTrace(string.format("smokePoint=%s",veaf.vecToString(smokePoint)))
     veafSpawn.spawnSmoke(smokePoint, trigger.smokeColor.Red)
     self.smokeResetFunctionId = mist.scheduleFunction(veafCombatZone.SmokeReset,{self.missionEditorZoneName},timer.getTime()+veafCombatZone.SecondsBetweenSmokeRequests)
     trigger.action.outText(string.format("Copy RED smoke requested on %s !", self:getFriendlyName()),5)
@@ -752,8 +758,8 @@ end
 
 -- pop an illumination  flare over a zone
 function VeafCombatZone:popFlare()
-    veafCombatZone.logDebug(string.format("VeafCombatZone[%s]:popFlare()",self.missionEditorZoneName or ""))
-    veafCombatZone.logTrace(string.format("self:getCenter()=%s",veaf.vecToString(self:getCenter())))
+    --veafCombatZone.logDebug(string.format("VeafCombatZone[%s]:popFlare()",self.missionEditorZoneName or ""))
+    --veafCombatZone.logTrace(string.format("self:getCenter()=%s",veaf.vecToString(self:getCenter())))
 
     veafSpawn.spawnIlluminationFlare(self:getCenter())
     self.flareResetFunctionId = mist.scheduleFunction(veafCombatZone.FlareReset,{self.missionEditorZoneName},timer.getTime()+veafCombatZone.SecondsBetweenFlareRequests)
@@ -765,7 +771,7 @@ end
 
 -- updates the radio menu according to the zone state
 function VeafCombatZone:updateRadioMenu(inBatch)
-    veafCombatZone.logDebug(string.format("VeafCombatZone[%s]:updateRadioMenu(%s)",self.missionEditorZoneName or "", tostring(inBatch)))
+    --veafCombatZone.logDebug(string.format("VeafCombatZone[%s]:updateRadioMenu(%s)",self.missionEditorZoneName or "", tostring(inBatch)))
     
     -- do not update the radio menu if not yet initialized
     if not veafCombatZone.rootPath then
@@ -774,20 +780,20 @@ function VeafCombatZone:updateRadioMenu(inBatch)
 
     -- reset the radio menu
     if self.radioRootPath then
-        veafCombatZone.logTrace("reset the radio submenu")
+        --veafCombatZone.logTrace("reset the radio submenu")
         veafRadio.clearSubmenu(self.radioRootPath)
     else
-        veafCombatZone.logTrace("add the radio submenu")
+        --veafCombatZone.logTrace("add the radio submenu")
         self.radioRootPath = veafRadio.addSubMenu(self:getRadioMenuName(), veafCombatZone.rootPath)
     end
 
     -- populate the radio menu
-    veafCombatZone.logTrace("populate the radio menu")
+    --veafCombatZone.logTrace("populate the radio menu")
     -- global commands
     veafRadio.addCommandToSubmenu("Get info", self.radioRootPath, veafCombatZone.GetInformationOnZone, self.missionEditorZoneName, veafRadio.USAGE_ForGroup)
     if self:isActive() then
         -- zone is active, set up accordingly (desactivate zone, get information, pop smoke, etc.)
-        veafCombatZone.logTrace("zone is active")
+        --veafCombatZone.logTrace("zone is active")
         veafRadio.addCommandToSubmenu('Desactivate zone', self.radioRootPath, veafCombatZone.DesactivateZone, self.missionEditorZoneName, veafRadio.USAGE_ForAll)
         if self.smokeResetFunctionId then 
             veafRadio.addCommandToSubmenu('Smoke not available', self.radioRootPath, veaf.emptyFunction, nil, veafRadio.USAGE_ForAll)
@@ -801,7 +807,7 @@ function VeafCombatZone:updateRadioMenu(inBatch)
         end
     else
         -- zone is not active, set up accordingly (activate zone)
-        veafCombatZone.logTrace("zone is not active")
+        --veafCombatZone.logTrace("zone is not active")
         veafRadio.addCommandToSubmenu('Activate zone', self.radioRootPath, veafCombatZone.ActivateZone, self.missionEditorZoneName, veafRadio.USAGE_ForAll)
     end
 
@@ -814,8 +820,8 @@ end
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 function veafCombatZone.GetZone(zoneName)
-    veafCombatZone.logDebug(string.format("veafCombatZone.GetZone([%s])",zoneName or ""))
-    veafCombatZone.logDebug(string.format("Searching for zone with name [%s]", zoneName))
+    --veafCombatZone.logDebug(string.format("veafCombatZone.GetZone([%s])",zoneName or ""))
+    --veafCombatZone.logDebug(string.format("Searching for zone with name [%s]", zoneName))
     local zone = veafCombatZone.zonesDict[zoneName]
     if not zone then 
         local message = string.format("VeafCombatZone [%s] was not found !",zoneName)
@@ -827,7 +833,7 @@ end
 
 -- add a zone
 function veafCombatZone.AddZone(zone)
-    veafCombatZone.logDebug(string.format("veafCombatZone.AddZone([%s])",zone.missionEditorZoneName or ""))
+    --veafCombatZone.logDebug(string.format("veafCombatZone.AddZone([%s])",zone.missionEditorZoneName or ""))
     veafCombatZone.logInfo(string.format("Adding zone [%s]", zone.missionEditorZoneName))
     zone:initialize()
     table.insert(veafCombatZone.zonesList, zone)
@@ -837,7 +843,7 @@ end
 
 -- activate a zone
 function veafCombatZone.ActivateZone(zoneName)
-    veafCombatZone.logDebug(string.format("veafCombatZone.ActivateZone([%s])",zoneName or ""))
+    --veafCombatZone.logDebug(string.format("veafCombatZone.ActivateZone([%s])",zoneName or ""))
     local zone = veafCombatZone.GetZone(zoneName)
     zone:activate()
     trigger.action.outText("VeafCombatZone "..zone:getFriendlyName().." has been activated.", 10)
@@ -846,7 +852,7 @@ end
 
 -- desactivate a zone
 function veafCombatZone.DesactivateZone(zoneName)
-    veafCombatZone.logDebug(string.format("veafCombatZone.DesactivateZone([%s])",zoneName or ""))
+    --veafCombatZone.logDebug(string.format("veafCombatZone.DesactivateZone([%s])",zoneName or ""))
     local zone = veafCombatZone.GetZone(zoneName)
     zone:desactivate()
     trigger.action.outText("VeafCombatZone "..zone:getFriendlyName().." has been desactivated.", 10)
@@ -855,7 +861,7 @@ end
 -- print information about a zone
 function veafCombatZone.GetInformationOnZone(parameters)
     local zoneName, unitName = unpack(parameters)
-    veafCombatZone.logDebug(string.format("veafCombatZone.GetInformationOnZone([%s])",zoneName or ""))
+    --veafCombatZone.logDebug(string.format("veafCombatZone.GetInformationOnZone([%s])",zoneName or ""))
     local zone = veafCombatZone.GetZone(zoneName)
     local text = zone:getInformation()
     if unitName then
@@ -867,21 +873,21 @@ end
 
 -- pop a smoke over a zone
 function veafCombatZone.SmokeZone(zoneName)
-    veafCombatZone.logDebug(string.format("veafCombatZone.SmokeZone([%s])",zoneName or ""))
+    --veafCombatZone.logDebug(string.format("veafCombatZone.SmokeZone([%s])",zoneName or ""))
     local zone = veafCombatZone.GetZone(zoneName)
     zone:popSmoke()
 end
 
 -- pop an illumination  flare over a zone
 function veafCombatZone.LightUpZone(zoneName)
-    veafCombatZone.logDebug(string.format("veafCombatZone.LightUpZone([%s])",zoneName or ""))
+    --veafCombatZone.logDebug(string.format("veafCombatZone.LightUpZone([%s])",zoneName or ""))
     local zone = veafCombatZone.GetZone(zoneName)
     zone:popFlare()
 end
 
 -- reset the "pop smoke" menus
 function veafCombatZone.SmokeReset(zoneName)
-    veafCombatZone.logDebug(string.format("veafCombatZone.SmokeReset([%s])",zoneName or ""))
+    --veafCombatZone.logDebug(string.format("veafCombatZone.SmokeReset([%s])",zoneName or ""))
     local zone = veafCombatZone.GetZone(zoneName)
     zone.smokeResetFunctionId = nil
     zone:updateRadioMenu()
@@ -889,7 +895,7 @@ end
 
 -- reset the "pop flare" menus
 function veafCombatZone.FlareReset(zoneName)
-    veafCombatZone.logDebug(string.format("veafCombatZone.FlareReset([%s])",zoneName or ""))
+    --veafCombatZone.logDebug(string.format("veafCombatZone.FlareReset([%s])",zoneName or ""))
     local zone = veafCombatZone.GetZone(zoneName)
     zone.flareResetFunctionId = nil
     zone:updateRadioMenu()
@@ -897,7 +903,7 @@ end
 
 -- call the completion watchdog methods
 function veafCombatZone.CompletionCheck(zoneName)
-    veafCombatZone.logDebug(string.format("veafCombatZone.CompletionCheck([%s])",zoneName or ""))
+    --veafCombatZone.logDebug(string.format("veafCombatZone.CompletionCheck([%s])",zoneName or ""))
     local zone = veafCombatZone.GetZone(zoneName)
     zone:completionCheck()
 end
@@ -959,7 +965,7 @@ function veafCombatZone.findUnitsInTriggerZone(triggerZone)
         end
     end
 
-    veafCombatZone.logTrace(string.format("found %d units (%d groups) in zone", #units, #groupNames))   
+    --veafCombatZone.logTrace(string.format("found %d units (%d groups) in zone", #units, #groupNames))   
     return {units, groupNames}
 end
 
@@ -969,7 +975,7 @@ end
 
 --- Build the initial radio menu
 function veafCombatZone.buildRadioMenu()
-    veafCombatZone.logDebug("buildRadioMenu()")
+    --veafCombatZone.logDebug("buildRadioMenu()")
     veafCombatZone.rootPath = veafRadio.addMenu(veafCombatZone.RadioMenuName)
     veafRadio.addCommandToSubmenu("HELP", veafCombatZone.rootPath, veafCombatZone.help, nil, veafRadio.USAGE_ForGroup)
     
@@ -1001,7 +1007,7 @@ function veafCombatZone.buildRadioMenu()
 
     veafAssets.logTrace("veafCombatZone.buildRadioMenu() - dumping names")
     for i = 1, #names do
-        veafCombatZone.logTrace("veafCombatZone.buildRadioMenu().names -> " .. names[i])
+        --veafCombatZone.logTrace("veafCombatZone.buildRadioMenu().names -> " .. names[i])
     end
     
     for _, zoneName in pairs(names) do

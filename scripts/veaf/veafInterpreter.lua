@@ -93,7 +93,7 @@ end
 -- Analyse the text
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 function veafInterpreter.interpret(text)
-    veafInterpreter.logTrace(string.format("veafInterpreter.interpret([%s])",text))
+    --veafInterpreter.logTrace(string.format("veafInterpreter.interpret([%s])",text))
     local result = nil
     local p1, p2 = text:find(veafInterpreter.Starter)
     if p2 then 
@@ -111,7 +111,7 @@ end
 function veafInterpreter.execute(command, position, coalition, spawnedGroups, doNotBypassSecurity)
     if command == nil then return end
     if position == nil then return end
-    veafInterpreter.logTrace(string.format("veafInterpreter.execute([%s],[%s])",command, veaf.vecToString(position)))
+    --veafInterpreter.logTrace(string.format("veafInterpreter.execute([%s],[%s])",command, veaf.vecToString(position)))
 
     -- for spawn choose by default the coalition opposing the unit in which the intepreter command is stored ; the SPAWN module will also invert, and voilà !
     local coalitionForSpawn = 1
@@ -138,15 +138,15 @@ function veafInterpreter.execute(command, position, coalition, spawnedGroups, do
 end
 
 function veafInterpreter.processObject(unitName)
-    veafInterpreter.logTrace(string.format("veafInterpreter.processObject([%s])", unitName))
+    --veafInterpreter.logTrace(string.format("veafInterpreter.processObject([%s])", unitName))
     local command = veafInterpreter.interpret(unitName)
     if command then 
         -- found an interpretable command
-        veafInterpreter.logDebug(string.format("found an interpretable command : [%s]", command))
+        --veafInterpreter.logDebug(string.format("found an interpretable command : [%s]", command))
         local unit = Unit.getByName(unitName)
         if unit then
             local position = unit:getPosition().p
-            veafInterpreter.logTrace(string.format("found the unit at : [%s]", veaf.vecToString(position)))
+            --veafInterpreter.logTrace(string.format("found the unit at : [%s]", veaf.vecToString(position)))
             if veafInterpreter.execute(command, position, unit:getCoalition()) then 
                 unit:destroy()
             end
@@ -168,7 +168,7 @@ function veafInterpreter.initialize()
                         if type(group_tbl) == 'table' then
                             for unit_ind, mist_unit in pairs(group_tbl.units) do
                                 local unitName = mist_unit.unitName
-                                veafInterpreter.logTrace(string.format("initialize - checking unit [%s]", unitName))
+                                --veafInterpreter.logTrace(string.format("initialize - checking unit [%s]", unitName))
                                 veafInterpreter.processObject(unitName)
                             end
                         end

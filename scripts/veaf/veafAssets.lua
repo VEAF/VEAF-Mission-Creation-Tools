@@ -81,25 +81,25 @@ function veafAssets._buildAssetRadioMenu(menu, asset)
 end
 
 function veafAssets._buildAssetsRadioMenuPage(menu, names, pageSize, startIndex)
-    veafAssets.logTrace(string.format("veafAssets._buildAssetsRadioMenuPage(pageSize=%d, startIndex=%d)",pageSize, startIndex))
+    --veafAssets.logTrace(string.format("veafAssets._buildAssetsRadioMenuPage(pageSize=%d, startIndex=%d)",pageSize, startIndex))
     
     local namesCount = #names
-    veafAssets.logTrace(string.format("namesCount = %d",namesCount))
+    --veafAssets.logTrace(string.format("namesCount = %d",namesCount))
 
     local endIndex = namesCount
     if endIndex - startIndex >= pageSize then
         endIndex = startIndex + pageSize - 2
     end
-    veafAssets.logTrace(string.format("endIndex = %d",endIndex))
-    veafAssets.logTrace(string.format("adding commands from %d to %d",startIndex, endIndex))
+    --veafAssets.logTrace(string.format("endIndex = %d",endIndex))
+    --veafAssets.logTrace(string.format("adding commands from %d to %d",startIndex, endIndex))
     for index = startIndex, endIndex do
         local name = names[index]
-        veafAssets.logTrace(string.format("names[%d] = %s",index, name))
+        --veafAssets.logTrace(string.format("names[%d] = %s",index, name))
         local asset = veafAssets.assets[name]
         veafAssets._buildAssetRadioMenu(menu, asset)
     end
     if endIndex < namesCount then
-        veafAssets.logTrace("adding next page menu")
+        --veafAssets.logTrace("adding next page menu")
         local nextPageMenu = veafRadio.addSubMenu("Next page", menu)
         veafAssets._buildAssetsRadioMenuPage(nextPageMenu, names, 10, endIndex+1)
     end
@@ -135,9 +135,9 @@ function veafAssets.buildRadioMenu()
         table.insert(names, sortedAssets[i].name)
     end
 
-    veafAssets.logTrace("veafAssets.buildRadioMenu() - dumping names")
+    --veafAssets.logTrace("veafAssets.buildRadioMenu() - dumping names")
     for i = 1, #names do
-        veafAssets.logTrace("veafAssets.buildRadioMenu().names -> " .. names[i])
+        --veafAssets.logTrace("veafAssets.buildRadioMenu().names -> " .. names[i])
     end
 
     veafAssets._buildAssetsRadioMenuPage(veafAssets.rootPath, names, 9, 1)
@@ -146,7 +146,7 @@ end
 
 function veafAssets.info(parameters)
     local name, unitName = unpack(parameters)
-    veafAssets.logDebug("veafAssets.info "..name)
+    --veafAssets.logDebug("veafAssets.info "..name)
     local theAsset = nil
     for _, asset in pairs(veafAssets.assets) do
         if asset.name == name then
@@ -155,13 +155,13 @@ function veafAssets.info(parameters)
     end
     if theAsset then
         local group = Group.getByName(theAsset.name)
-        veafAssets.logTrace(string.format("assets[%s] = '%s'",theAsset.name, theAsset.description))
+        --veafAssets.logTrace(string.format("assets[%s] = '%s'",theAsset.name, theAsset.description))
         local text = theAsset.description .. " is not active nor alive"
         if group then
-            veafAssets.logDebug("found asset group")
+            --veafAssets.logDebug("found asset group")
             local nAlive = 0
             for _, unit in pairs(group:getUnits()) do
-                veafAssets.logTrace("unit life = "..unit:getLife())
+                --veafAssets.logTrace("unit life = "..unit:getLife())
                 if unit:getLife() >= 1 then
                     nAlive = nAlive + 1
                 end
@@ -182,7 +182,7 @@ function veafAssets.info(parameters)
 end
 
 function veafAssets.dispose(name)
-    veafAssets.logDebug("veafAssets.dispose "..name)
+    --veafAssets.logDebug("veafAssets.dispose "..name)
     local theAsset = nil
     for _, asset in pairs(veafAssets.assets) do
         if asset.name == name then
@@ -190,7 +190,7 @@ function veafAssets.dispose(name)
         end
     end
     if theAsset then
-        veafAssets.logDebug("veafSpawn.destroy "..theAsset.name)
+        --veafAssets.logDebug("veafSpawn.destroy "..theAsset.name)
         local group = Group.getByName(theAsset.name)
         if group then
             for _, unit in pairs(group:getUnits()) do
@@ -203,7 +203,7 @@ function veafAssets.dispose(name)
 end
 
 function veafAssets.respawn(name)
-    veafAssets.logDebug("veafAssets.respawn "..name)
+    --veafAssets.logDebug("veafAssets.respawn "..name)
     local theAsset = nil
     for _, asset in pairs(veafAssets.assets) do
         if asset.name == name then
@@ -213,13 +213,13 @@ function veafAssets.respawn(name)
     if theAsset then
         mist.respawnGroup(name, true)
         if theAsset.linked then
-            veafAssets.logTrace(string.format("veafAssets[%s].linked=%s",name, veaf.p(theAsset.linked)))
+            --veafAssets.logTrace(string.format("veafAssets[%s].linked=%s",name, veaf.p(theAsset.linked)))
             -- there are linked groups to respawn
             if type(theAsset.linked) == "string" then
                 theAsset.linked = {theAsset.linked}
             end
             for _, linkedGroup in pairs(theAsset.linked) do
-                veafAssets.logTrace(string.format("respawning linked group [%s]",linkedGroup))
+                --veafAssets.logTrace(string.format("respawning linked group [%s]",linkedGroup))
                 mist.respawnGroup(linkedGroup, true)
             end
         end

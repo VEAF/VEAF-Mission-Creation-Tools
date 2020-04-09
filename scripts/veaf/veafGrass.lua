@@ -208,7 +208,7 @@ end
 function veafGrass.buildFarpsUnits()
 
 	for name, unit in pairs(mist.DBs.unitsByName) do
-		veafGrass.logTrace("buildFarpsUnits: testing " .. unit.type .. " " .. name)
+		--veafGrass.logTrace("buildFarpsUnits: testing " .. unit.type .. " " .. name)
 
 		if (unit.type == "SINGLE_HELIPAD" or unit.type == "FARP") and string.find(name:upper(), 'FARP ') then
 			veafGrass.buildFarpUnits(unit)

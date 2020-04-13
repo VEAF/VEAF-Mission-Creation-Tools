@@ -81,9 +81,9 @@ end
 
 function veafUnits.traceGroup(group, cells)
     if group and veafUnits.Trace then
-        --veafUnits.logTrace("")
-        --veafUnits.logTrace(" Group : " .. group.description)
-        --veafUnits.logTrace("")
+        veafUnits.logTrace("")
+        veafUnits.logTrace(" Group : " .. group.description)
+        veafUnits.logTrace("")
         local nCols = group.disposition.w
         local nRows = group.disposition.h
         
@@ -94,8 +94,8 @@ function veafUnits.traceGroup(group, cells)
             line1 = line1 .. "                ".. string.format("%02d", nCol) .."              |" 
             line2 = line2 .. "--------------------------------|"
         end
-        --veafUnits.logTrace(line1)
-        --veafUnits.logTrace(line2)
+        veafUnits.logTrace(line1)
+        veafUnits.logTrace(line2)
 
         local unitCounter = 1
         for nRow = 1, nRows do 
@@ -148,10 +148,10 @@ function veafUnits.traceGroup(group, cells)
                 line4 = line4 .. "--------------------------------|"
 
             end
-            --veafUnits.logTrace(line1)
-            --veafUnits.logTrace(line2)
-            --veafUnits.logTrace(line3)
-            --veafUnits.logTrace(line4)
+            veafUnits.logTrace(line1)
+            veafUnits.logTrace(line2)
+            veafUnits.logTrace(line3)
+            veafUnits.logTrace(line4)
         end
     end
 end
@@ -165,7 +165,7 @@ function veafUnits.debugUnit(unit)
             airnaval = ", air"
         end
         
-        --veafUnits.logDebug("unit " .. unit.displayName .. ", dcsType=" .. unit.typeName .. airnaval .. ", size = { width =" .. unit.width .. ", length="..unit.length.."}")
+        veafUnits.logDebug("unit " .. unit.displayName .. ", dcsType=" .. unit.typeName .. airnaval .. ", size = { width =" .. unit.width .. ", length="..unit.length.."}")
     end
 end
 
@@ -198,7 +198,7 @@ end
 
 --- searches the DCS database for a unit having this type (case insensitive)
 function veafUnits.findDcsUnit(unitType)
-    --veafUnits.logTrace("veafUnits.findDcsUnit(unitType=" .. unitType .. ")")
+    veafUnits.logTrace("veafUnits.findDcsUnit(unitType=" .. unitType .. ")")
 
     -- find the desired unit in the DCS units database
     local unit = nil
@@ -227,7 +227,7 @@ function veafUnits.processGroup(group)
     result.description = group.description
     result.groupName = group.groupName
     result.units = {}
-    --veafUnits.logTrace("group="..veaf.p(group))
+    veafUnits.logTrace("group="..veaf.p(group))
     local unitNumber = 1
     -- replace all units with a simplified structure made from the DCS unit metadata structure
     for i = 1, #group.units do
@@ -238,7 +238,7 @@ function veafUnits.processGroup(group)
         local hdg = nil
         local random = false
         local u = group.units[i]
-        --veafUnits.logTrace("u="..veaf.p(u))
+        veafUnits.logTrace("u="..veaf.p(u))
         if type(u) == "string" then 
             -- information was skipped using simplified syntax
             unitType = u
@@ -247,7 +247,7 @@ function veafUnits.processGroup(group)
             if not unitType then 
                 unitType = u[1]
             end
-            --veafUnits.logTrace("unitType="..veaf.p(unitType))
+            veafUnits.logTrace("unitType="..veaf.p(unitType))
             cell = u.cell
             number = u.number
             size = u.size
@@ -278,9 +278,9 @@ function veafUnits.processGroup(group)
         if not(hdg) then 
             hdg = math.random(0, 359) -- default heading is random
         end
-        --veafUnits.logTrace(string.format("hdg=%d",hdg))
+        veafUnits.logTrace(string.format("hdg=%d",hdg))
         for numUnit = 1, number do
-            --veafUnits.logTrace("searching for unit [" .. unitType .. "] listed in group [" .. group.groupName .. "]")
+            veafUnits.logTrace("searching for unit [" .. unitType .. "] listed in group [" .. group.groupName .. "]")
             local unit = veafUnits.findUnit(unitType)
             if not(unit) then 
                 veafUnits.logInfo("cannot find unit [" .. unitType .. "] listed in group [" .. group.groupName .. "]")
@@ -308,7 +308,7 @@ function veafUnits.processGroup(group)
         end
     end
     
-    --veafUnits.logTrace("result="..veaf.p(result))
+    veafUnits.logTrace("result="..veaf.p(result))
 
     return result
 end
@@ -316,7 +316,7 @@ end
 
 --- searches the database for a group having this alias (case insensitive)
 function veafUnits.findGroup(groupAlias)
-    --veafUnits.logDebug("veafUnits.findGroup(groupAlias=" .. groupAlias .. ")")
+    veafUnits.logDebug("veafUnits.findGroup(groupAlias=" .. groupAlias .. ")")
 
     -- find the desired group in the groups database
     local result = nil
@@ -335,7 +335,7 @@ end
 
 --- searches the database for a unit having this alias (case insensitive)
 function veafUnits.findUnit(unitAlias)
-    --veafUnits.logTrace("veafUnits.findUnit(unitAlias=" .. unitAlias .. ")") end
+    veafUnits.logTrace("veafUnits.findUnit(unitAlias=" .. unitAlias .. ")") end
     
     -- find the desired unit in the units database
     local unit = nil
@@ -392,15 +392,15 @@ end
 
 --- checks if position is correct for the unit type
 function veafUnits.checkPositionForUnit(spawnPosition, unit)
-    --veafUnits.logTrace("checkPositionForUnit()")
-    --veafUnits.logTrace(string.format("checkPositionForUnit: spawnPosition=", veaf.vecToString(spawnPosition)))
+    veafUnits.logTrace("checkPositionForUnit()")
+    veafUnits.logTrace(string.format("checkPositionForUnit: spawnPosition=", veaf.vecToString(spawnPosition)))
     local vec2 = { x = spawnPosition.x, y = spawnPosition.z }
-    --veafUnits.logTrace(string.format("checkPositionForUnit: vec2=", veaf.vecToString(vec2)))
+    veafUnits.logTrace(string.format("checkPositionForUnit: vec2=", veaf.vecToString(vec2)))
     local landType = land.getSurfaceType(vec2)
     if landType == land.SurfaceType.WATER then
-        --veafUnits.logTrace("landType = WATER")
+        veafUnits.logTrace("landType = WATER")
     else
-        --veafUnits.logTrace("landType = GROUND")
+        veafUnits.logTrace("landType = GROUND")
     end
     veafUnits.debugUnit(unit)
     if spawnPosition then
@@ -547,19 +547,19 @@ function veafUnits.placeGroup(group, spawnPoint, spacing, hdg)
     for nRow = 1, #rows do -- bottom -> up
         totalHeight = totalHeight + rows[#rows-nRow+1].height
     end
-    --veafUnits.logTrace(string.format("totalWidth = %d",totalWidth))
-    --veafUnits.logTrace(string.format("totalHeight = %d",totalHeight))
+    veafUnits.logTrace(string.format("totalWidth = %d",totalWidth))
+    veafUnits.logTrace(string.format("totalHeight = %d",totalHeight))
     -- place the grid
     local currentColLeft = spawnPoint.z - totalWidth/2
     local currentColTop = spawnPoint.x - totalHeight/2
     for nCol = 1, #cols do
-        --veafUnits.logTrace(string.format("currentColLeft = %d",currentColLeft))
+        veafUnits.logTrace(string.format("currentColLeft = %d",currentColLeft))
         cols[nCol].left = currentColLeft
         cols[nCol].right= currentColLeft + cols[nCol].width
         currentColLeft = cols[nCol].right
     end
     for nRow = 1, #rows do -- bottom -> up
-        --veafUnits.logTrace(string.format("currentColTop = %d",currentColTop))
+        veafUnits.logTrace(string.format("currentColTop = %d",currentColTop))
         rows[#rows-nRow+1].bottom = currentColTop
         rows[#rows-nRow+1].top = currentColTop + rows[#rows-nRow+1].height
         currentColTop = rows[#rows-nRow+1].top
@@ -878,6 +878,24 @@ veafUnits.GroupsDatabase = {
             units = {{"IFV Hummer", number = {min=1, max=2}, random},{"INF Soldier M249", number = {min=1, max=2}, random},{"INF Soldier M4 GRG", number = {min=2, max=4}, random},{"INF Soldier M4", number = {min=6, max=15}, random}},
             description = "US infantry group",
             groupName = "US infantry group",
+        },
+    },
+    {
+        aliases = {"mortar"},
+        group = {
+            disposition = { h = 6, w = 4},
+            units = { {"ARTY 2B11 mortar", number = 24} }
+            description = "2B11 Mortar team",
+            groupName = "2B11 Mortar team",
+        },
+    },
+    {
+        aliases = {"M-109"},
+        group = {
+            disposition = { h = 3, w = 2},
+            units = { {"ARTY M-109", number = 6} }
+            description = "M-109 artillery battery",
+            groupName = "M-109 artillery battery",
         },
     },
     {

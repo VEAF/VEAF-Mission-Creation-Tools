@@ -96,7 +96,7 @@ local function _deepcopy(orig, copies)
 end
 
 function veafMissionRadioPresetsEditor.editUnit(coa_name, country_name, unit_t)
-  --veafMissionRadioPresetsEditor.logTrace(string.format("editUnit(%s)",tostring(unit_t)))
+  veafMissionRadioPresetsEditor.logTrace(string.format("editUnit(%s)",tostring(unit_t)))
   local hasBeenEdited = false
   local unitName = unit_t["name"]
   local unitId = unit_t["unitId"]
@@ -162,19 +162,19 @@ function veafMissionRadioPresetsEditor.editRadioPresets(missionTable)
     for country, country_t in pairs(countries_t) do
       local country_name = country_t["name"]
       veafMissionRadioPresetsEditor.logTrace(string.format("Browsing country [%s]",country_name))
-      --veafMissionRadioPresetsEditor.logTrace(string.format("country_t=%s",tostring(country_t)))
+      veafMissionRadioPresetsEditor.logTrace(string.format("country_t=%s",tostring(country_t)))
       -- process helicopters
       veafMissionRadioPresetsEditor.logTrace("Processing helicopters")
       local helicopters_t = country_t["helicopter"]
       if helicopters_t then
-        --veafMissionRadioPresetsEditor.logTrace(string.format("helicopters_t=%s",tostring(helicopters_t)))
+        veafMissionRadioPresetsEditor.logTrace(string.format("helicopters_t=%s",tostring(helicopters_t)))
         _editGroups(coa_name, country_name, helicopters_t)
       end
       -- process airplanes
       veafMissionRadioPresetsEditor.logTrace("Processing airplanes")
       local planes_t = country_t["plane"]
       if planes_t then
-        --veafMissionRadioPresetsEditor.logTrace(string.format("planes_t=%s",tostring(planes_t)))
+        veafMissionRadioPresetsEditor.logTrace(string.format("planes_t=%s",tostring(planes_t)))
         _editGroups(coa_name, country_name, planes_t)
       end
     end

@@ -419,7 +419,7 @@ end
 function veafSecurity.onEventMarkChange(eventPos, event)
   if veafSecurity.executeCommand(eventPos, event.text) then        
       -- Delete old mark.
-      --veafSecurity.logTrace(string.format("Removing mark # %d.", event.idx))
+      veafSecurity.logTrace(string.format("Removing mark # %d.", event.idx))
       trigger.action.removeMark(event.idx)
   end
 end
@@ -512,14 +512,14 @@ function veafSecurity._checkPassword(password, level)
   if password == nil then 
     return false
   end
-  --veafSecurity.logDebug(string.format("checkUser(password = %s)",password))
+  veafSecurity.logDebug(string.format("checkUser(password = %s)",password))
   local hash = sha1.hex(password)
-  --veafSecurity.logTrace(string.format("hash = [%s]",hash))
+  veafSecurity.logTrace(string.format("hash = [%s]",hash))
   if level[hash] ~= nil then
-      --veafSecurity.logDebug("user authenticated")
+      veafSecurity.logDebug("user authenticated")
       return true
   else
-      --veafSecurity.logDebug("user not found")
+      veafSecurity.logDebug("user not found")
       return false
   end 
 end

@@ -145,7 +145,7 @@ function veafMove.onEventMarkChange(eventPos, event)
 
         if result then 
             -- Delete old mark.
-            --veafMove.logTrace(string.format("Removing mark # %d.", event.idx))
+            veafMove.logTrace(string.format("Removing mark # %d.", event.idx))
             trigger.action.removeMark(event.idx)
 
         end
@@ -201,20 +201,20 @@ function veafMove.markTextAnalysis(text)
 
         if key:lower() == "name" then
             -- Set group name
-            --veafMove.logDebug(string.format("Keyword name = %s", val))
+            veafMove.logDebug(string.format("Keyword name = %s", val))
             switch.groupName = val
         end
 
         if key:lower() == "speed" then
             -- Set speed.
-            --veafMove.logDebug(string.format("Keyword speed = %d", val))
+            veafMove.logDebug(string.format("Keyword speed = %d", val))
             local nVal = tonumber(val)
             switch.speed = nVal
         end
 
         if key:lower() == "alt" then
             -- Set altitude.
-            --veafMove.logDebug(string.format("Keyword alt = %d", val))
+            veafMove.logDebug(string.format("Keyword alt = %d", val))
             local nVal = tonumber(val)
             switch.altitude = nVal
         end
@@ -237,8 +237,8 @@ end
 -- @param float speed in knots
 ------------------------------------------------------------------------------
 function veafMove.moveGroup(eventPos, groupName, speed, altitude)
-    --veafMove.logDebug("veafMove.moveGroup(groupName = " .. groupName .. ", speed = " .. speed .. ", altitude=".. altitude)
-    --veafMove.logDebug(string.format("veafMove.moveGroup: eventPos  x=%.1f z=%.1f", eventPos.x, eventPos.z))
+    veafMove.logDebug("veafMove.moveGroup(groupName = " .. groupName .. ", speed = " .. speed .. ", altitude=".. altitude)
+    veafMove.logDebug(string.format("veafMove.moveGroup: eventPos  x=%.1f z=%.1f", eventPos.x, eventPos.z))
 
     local result = veaf.moveGroupTo(groupName, eventPos, speed, altitude)
     if not(result) then
@@ -252,8 +252,8 @@ end
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 function veafMove.moveTanker(eventPos, groupName, speed, alt)
-    --veafMove.logDebug("veafMove.moveTanker(groupName = " .. groupName .. ", speed = " .. speed .. ", alt = " .. alt)
-    --veafMove.logDebug(string.format("veafMove.moveTanker: eventPos  x=%.1f z=%.1f", eventPos.x, eventPos.z))
+    veafMove.logDebug("veafMove.moveTanker(groupName = " .. groupName .. ", speed = " .. speed .. ", alt = " .. alt)
+    veafMove.logDebug(string.format("veafMove.moveTanker: eventPos  x=%.1f z=%.1f", eventPos.x, eventPos.z))
 
 	local unitGroup = Group.getByName(groupName)
 	if unitGroup == nil then
@@ -273,7 +273,7 @@ function veafMove.moveTanker(eventPos, groupName, speed, alt)
     local route = veaf.findInTable(tankerData, "route")
     local points = veaf.findInTable(route, "points")
     if points then
-        --veafMove.logTrace("found a " .. #points .. "-points route for tanker " .. groupName)
+        veafMove.logTrace("found a " .. #points .. "-points route for tanker " .. groupName)
         -- modify the last 3 points
         local idxPoint1 = #points-2
         local idxPoint2 = #points-1
@@ -281,13 +281,13 @@ function veafMove.moveTanker(eventPos, groupName, speed, alt)
 
         -- point1 is the point where the tanker should move
         local point1 = points[idxPoint1]
-        --veafMove.logTrace("found point1")
+        veafMove.logTrace("found point1")
         --traceMarkerId = veafMove.logMarker(traceMarkerId, "point1", point1, debugMarkers)
         local moveVector = {
             x = point1.x - eventPos.x,
             y = point1.y - eventPos.z,
         }
-        --veafMove.logTrace("moveVector="..veaf.vecToString(moveVector))
+        veafMove.logTrace("moveVector="..veaf.vecToString(moveVector))
         -- move to event position
         point1.x = eventPos.x
         point1.y = eventPos.z
@@ -297,7 +297,7 @@ function veafMove.moveTanker(eventPos, groupName, speed, alt)
         if alt > -1 then 
             point1.alt = alt * 0.3048 -- in meters
         end
-        --veafMove.logTrace("newPoint1="..veaf.vecToString(point1))
+        veafMove.logTrace("newPoint1="..veaf.vecToString(point1))
         --traceMarkerId = veafMove.logMarker(traceMarkerId, "newPoint1", point1, debugMarkers)
 
         -- point 2 is the start of the tanking Orbit
@@ -334,17 +334,17 @@ function veafMove.moveTanker(eventPos, groupName, speed, alt)
             trigger.action.outText(text)
             return
         end
-        --veafMove.logTrace("found point2")
+        veafMove.logTrace("found point2")
         --traceMarkerId = veafMove.logMarker(traceMarkerId, "point2", point2, debugMarkers)
         -- apply vector to position
         point2.x = point2.x - moveVector.x
         point2.y = point2.y - moveVector.y
-        --veafMove.logTrace("newPoint2="..veaf.vecToString(point2))
+        veafMove.logTrace("newPoint2="..veaf.vecToString(point2))
         --traceMarkerId = veafMove.logMarker(traceMarkerId, "newPoint2", point2, debugMarkers)
 
         -- point 3 is the end of the tanking Orbit
         local point3 = points[idxPoint3]
-        --veafMove.logTrace("found point3")
+        veafMove.logTrace("found point3")
         --traceMarkerId = veafMove.logMarker(traceMarkerId, "point3", point3, debugMarkers)
         -- apply vector to position
         point3.x = point3.x - moveVector.x
@@ -355,11 +355,11 @@ function veafMove.moveTanker(eventPos, groupName, speed, alt)
         if alt > -1 then 
             point3.alt = alt * 0.3048 -- in meters
         end
-        --veafMove.logTrace("newpoint3="..veaf.vecToString(point3))
+        veafMove.logTrace("newpoint3="..veaf.vecToString(point3))
         --traceMarkerId = veafMove.logMarker(traceMarkerId, "newpoint3", point3, debugMarkers)
 
         -- replace whole mission
-        --veafMove.logDebug("Resetting moved tanker mission")
+        veafMove.logDebug("Resetting moved tanker mission")
         -- replace the mission
         local mission = { 
             id = 'Mission', 
@@ -390,8 +390,8 @@ function veafMove.moveAfac(eventPos, groupName, speed, alt)
     if not alt then
         alt = 20000
     end
-    --veafMove.logDebug("veafMove.moveAfac(groupName = " .. groupName .. ", speed = " .. speed .. ", alt = " .. alt)
-    --veafMove.logDebug(string.format("veafMove.moveAfac: eventPos  x=%.1f z=%.1f", eventPos.x, eventPos.z))
+    veafMove.logDebug("veafMove.moveAfac(groupName = " .. groupName .. ", speed = " .. speed .. ", alt = " .. alt)
+    veafMove.logDebug(string.format("veafMove.moveAfac: eventPos  x=%.1f z=%.1f", eventPos.x, eventPos.z))
 
 	local unitGroup = Group.getByName(groupName)
 	if unitGroup == nil then
@@ -496,7 +496,7 @@ end
 --- Build a radio menu to move the Arco tanker
 function veafMove.moveTankerToMe(parameters)
     local tankerName, unitName = unpack(parameters)
-    --veafMove.logDebug(string.format("veafMove.moveTankerToMe(tankerName=%s, unitName=%s)",tankerName,unitName))
+    veafMove.logDebug(string.format("veafMove.moveTankerToMe(tankerName=%s, unitName=%s)",tankerName,unitName))
     local unit = Unit.getByName(unitName)
     if unit then
         veafMove.moveTanker(unit:getPosition().p, tankerName, -1, -1) -- -1 means to use the currently defined speed and altitude
@@ -506,7 +506,7 @@ end
 
 --- Build the initial radio menu
 function veafMove.buildRadioMenu()
-    --veafMove.logDebug(string.format("veafMove.buildRadioMenu()"))
+    veafMove.logDebug(string.format("veafMove.buildRadioMenu()"))
     veafMove.rootPath = veafRadio.addSubMenu(veafMove.RadioMenuName)
     veafRadio.addCommandToSubmenu("HELP", veafMove.rootPath, veafMove.help, nil, veafRadio.USAGE_ForGroup)
     for _, tankerName in pairs(veafMove.Tankers) do

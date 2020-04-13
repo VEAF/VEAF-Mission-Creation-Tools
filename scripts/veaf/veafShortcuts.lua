@@ -100,7 +100,7 @@ end
 ---
 
 function VeafAlias:setName(value)
-    --veafShortcuts.logTrace(string.format("VeafAlias[%s]:setName([%s])", self.name or "", value or ""))
+    veafShortcuts.logTrace(string.format("VeafAlias[%s]:setName([%s])", self.name or "", value or ""))
     self.name = value
     return self
 end
@@ -111,7 +111,7 @@ end
 
 
 function VeafAlias:setVeafCommand(value)
-    --veafShortcuts.logTrace(string.format("VeafAlias[%s]:setVeafCommand([%s])", self.name, value or ""))
+    veafShortcuts.logTrace(string.format("VeafAlias[%s]:setVeafCommand([%s])", self.name, value or ""))
     self.veafCommand = value
     return self
 end
@@ -121,7 +121,7 @@ function VeafAlias:getVeafCommand()
 end
 
 function VeafAlias:setDescription(value)
-    --veafShortcuts.logTrace(string.format("VeafAlias[%s]:setDescription([%s])", self.name, value or ""))
+    veafShortcuts.logTrace(string.format("VeafAlias[%s]:setDescription([%s])", self.name, value or ""))
     self.description = value
     return self
 end
@@ -131,7 +131,7 @@ function VeafAlias:getDescription()
 end
 
 function VeafAlias:setBypassSecurity(value)
-    --veafShortcuts.logTrace(string.format("VeafAlias[%s]:setBypassSecurity([%s])", self.name, tostring(value) or ""))
+    veafShortcuts.logTrace(string.format("VeafAlias[%s]:setBypassSecurity([%s])", self.name, tostring(value) or ""))
     self.bypassSecurity = value
     return self
 end
@@ -141,7 +141,7 @@ function VeafAlias:isBypassSecurity()
 end
 
 function VeafAlias:setHidden(value)
-    --veafShortcuts.logTrace(string.format("VeafAlias[%s]:setHidden([%s])", self.name, tostring(value) or ""))
+    veafShortcuts.logTrace(string.format("VeafAlias[%s]:setHidden([%s])", self.name, tostring(value) or ""))
     self.hidden = value
     return self
 end
@@ -160,8 +160,8 @@ end
 
 -- search for an alias
 function veafShortcuts.GetAlias(aliasName)
-    --veafShortcuts.logDebug(string.format("veafShortcuts.GetAlias([%s])",aliasName or ""))
-    --veafShortcuts.logDebug(string.format("Searching for alias with name [%s]", aliasName))
+    veafShortcuts.logDebug(string.format("veafShortcuts.GetAlias([%s])",aliasName or ""))
+    veafShortcuts.logDebug(string.format("Searching for alias with name [%s]", aliasName))
 
     -- find the desired alias in the aliases list
     local alias = nil
@@ -184,7 +184,7 @@ end
 
 -- add an alias
 function veafShortcuts.AddAlias(alias)
-    --veafShortcuts.logDebug(string.format("veafShortcuts.AddAlias([%s])",alias:getName() or ""))
+    veafShortcuts.logDebug(string.format("veafShortcuts.AddAlias([%s])",alias:getName() or ""))
     veafShortcuts.logInfo(string.format("Adding alias [%s]", alias:getName()))
     table.insert(veafShortcuts.aliases, alias)
     return alias
@@ -192,12 +192,12 @@ end
 
 -- execute an alias command
 function veafShortcuts.ExecuteAlias(aliasName, remainingCommand, position, coalition)
-    --veafShortcuts.logDebug(string.format("veafShortcuts.ExecuteAlias([%s],[%s],[%d])",aliasName or "",remainingCommand or "",coalition or 99))
+    veafShortcuts.logDebug(string.format("veafShortcuts.ExecuteAlias([%s],[%s],[%d])",aliasName or "",remainingCommand or "",coalition or 99))
     local alias = veafShortcuts.GetAlias(aliasName)
     if alias then 
-        --veafShortcuts.logTrace(string.format("found VeafAlias[%s]",alias:getName() or ""))
+        veafShortcuts.logTrace(string.format("found VeafAlias[%s]",alias:getName() or ""))
         local command = alias:getVeafCommand() .. (remainingCommand or "")
-        --veafShortcuts.logTrace(string.format("command = [%s]",command or ""))
+        veafShortcuts.logTrace(string.format("command = [%s]",command or ""))
         -- check for shortcuts
         if veafShortcuts.executeCommand(position, command, coalition) then
             return true
@@ -238,7 +238,7 @@ function veafShortcuts.onEventMarkChange(eventPos, event)
     if veafShortcuts.executeCommand(eventPos, event.text, event.coalition) then 
         
         -- Delete old mark.
-        --veafShortcuts.logTrace(string.format("Removing mark # %d.", event.idx))
+        veafShortcuts.logTrace(string.format("Removing mark # %d.", event.idx))
         trigger.action.removeMark(event.idx)
 
     end
@@ -268,19 +268,19 @@ end
 function veafShortcuts.markTextAnalysis(text)
     if text then 
   
-        --veafShortcuts.logTrace(string.format("veafShortcuts.markTextAnalysis(text=[%s])", text))
+        veafShortcuts.logTrace(string.format("veafShortcuts.markTextAnalysis(text=[%s])", text))
     
         -- check for the alias starter
         if text:sub(1,1) == veafShortcuts.AliasStarter then
-            --veafShortcuts.logTrace("found veafShortcuts.AliasStarter")
+            veafShortcuts.logTrace("found veafShortcuts.AliasStarter")
 
             -- extract alias and remainder
             local alias = text:match("(-[%a%d]+)")
             if alias then
-                --veafShortcuts.logTrace(string.format("alias = [%s]", alias))
+                veafShortcuts.logTrace(string.format("alias = [%s]", alias))
                 local _, remainder = text:match("(-[%a%d]+)([, ].*)")
                 if remainder then 
-                    --veafShortcuts.logTrace(string.format("remainder = [%s]", remainder))
+                    veafShortcuts.logTrace(string.format("remainder = [%s]", remainder))
                 end
                 return alias, remainder
             end
@@ -310,7 +310,7 @@ end
 
 --- Build the initial radio menu
 function veafShortcuts.buildRadioMenu()
-    --veafShortcuts.logDebug("buildRadioMenu()")
+    veafShortcuts.logDebug("buildRadioMenu()")
     veafShortcuts.rootPath = veafRadio.addMenu(veafShortcuts.RadioMenuName)
     
     veafRadio.addCommandToSubmenu("HELP - all aliases", veafShortcuts.rootPath, veafShortcuts.helpAllAliases, nil, veafRadio.USAGE_ForGroup)
@@ -409,6 +409,21 @@ function veafShortcuts.buildDefaultList()
             :setDescription("Lock the system")
             :setHidden(true)
             :setVeafCommand("_auth logout")
+            :setBypassSecurity(true)
+    )
+    -- shortcuts to specific groups
+    veafShortcuts.AddAlias(
+        VeafAlias.new()
+            :setName("-mortar")
+            :setDescription("Mortar team")
+            :setVeafCommand("_spawn group, name mortar, country USA")
+            :setBypassSecurity(true)
+    )
+    veafShortcuts.AddAlias(
+        VeafAlias.new()
+            :setName("-arty")
+            :setDescription("M-109 artillery battery")
+            :setVeafCommand("_spawn group, name M-109, country USA")
             :setBypassSecurity(true)
     )
     -- shortcuts to dynamic groups

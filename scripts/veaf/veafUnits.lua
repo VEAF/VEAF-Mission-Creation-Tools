@@ -335,7 +335,7 @@ end
 
 --- searches the database for a unit having this alias (case insensitive)
 function veafUnits.findUnit(unitAlias)
-    veafUnits.logTrace("veafUnits.findUnit(unitAlias=" .. unitAlias .. ")") end
+    veafUnits.logTrace("veafUnits.findUnit(unitAlias=" .. unitAlias .. ")")
     
     -- find the desired unit in the units database
     local unit = nil
@@ -884,7 +884,7 @@ veafUnits.GroupsDatabase = {
         aliases = {"mortar"},
         group = {
             disposition = { h = 6, w = 4},
-            units = { {"ARTY 2B11 mortar", number = 24} }
+            units = { {"ARTY 2B11 mortar", number = 24} },
             description = "2B11 Mortar team",
             groupName = "2B11 Mortar team",
         },
@@ -893,7 +893,7 @@ veafUnits.GroupsDatabase = {
         aliases = {"M-109"},
         group = {
             disposition = { h = 3, w = 2},
-            units = { {"ARTY M-109", number = 6} }
+            units = { {"ARTY M-109", number = 6} },
             description = "M-109 artillery battery",
             groupName = "M-109 artillery battery",
         },

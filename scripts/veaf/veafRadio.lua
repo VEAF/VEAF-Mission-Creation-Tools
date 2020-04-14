@@ -172,7 +172,7 @@ function veafRadio._addCommand(groupId, title, menu, command, parameters)
   local _method = command.method
   local _parameters = parameters
   if command.isSecured then
-    veafRadio.logTrace("adding secured command") end
+    veafRadio.logTrace("adding secured command")
     
     _method = veafRadio._proxyMethod
     _parameters = {command.method, _parameters}
@@ -189,10 +189,10 @@ function veafRadio._addCommand(groupId, title, menu, command, parameters)
   ----veafRadio.logTrace(routines.utils.oneLineSerialize({_parameters = _parameters}))
   
   if groupId then
-    veafRadio.logTrace("adding for group") end
+    veafRadio.logTrace("adding for group")
     missionCommands.addCommandForGroup(groupId, _title, menu, _method, _parameters)
   else
-    veafRadio.logTrace("adding for all") end
+    veafRadio.logTrace("adding for all")
     missionCommands.addCommand(_title, menu, _method, _parameters)
   end
 

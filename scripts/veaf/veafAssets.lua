@@ -234,6 +234,7 @@ end
 
 
 function veafAssets.help(unitName)
+    veafAssets.logTrace(string.format("help(%s)",unitName or ""))
     local text =
         'The radio menu lists all the assets, friendly or enemy\n' ..
         'Use these menus to respawn the assets when needed\n'

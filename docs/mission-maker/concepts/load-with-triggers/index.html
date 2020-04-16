@@ -12,20 +12,20 @@
     <title>Load scripts in the mission :: VEAF Mission Creation Tools - Documentation</title>
 
     
-    <link href="/VEAF-Mission-Creation-Tools/css/nucleus.css?1586198056" rel="stylesheet">
-    <link href="/VEAF-Mission-Creation-Tools/css/fontawesome-all.min.css?1586198056" rel="stylesheet">
-    <link href="/VEAF-Mission-Creation-Tools/css/hybrid.css?1586198056" rel="stylesheet">
-    <link href="/VEAF-Mission-Creation-Tools/css/featherlight.min.css?1586198056" rel="stylesheet">
-    <link href="/VEAF-Mission-Creation-Tools/css/perfect-scrollbar.min.css?1586198056" rel="stylesheet">
-    <link href="/VEAF-Mission-Creation-Tools/css/auto-complete.css?1586198056" rel="stylesheet">
-    <link href="/VEAF-Mission-Creation-Tools/css/atom-one-dark-reasonable.css?1586198056" rel="stylesheet">
-    <link href="/VEAF-Mission-Creation-Tools/css/theme.css?1586198056" rel="stylesheet">
-    <link href="/VEAF-Mission-Creation-Tools/css/hugo-theme.css?1586198056" rel="stylesheet">
+    <link href="/VEAF-Mission-Creation-Tools/css/nucleus.css?1587068370" rel="stylesheet">
+    <link href="/VEAF-Mission-Creation-Tools/css/fontawesome-all.min.css?1587068370" rel="stylesheet">
+    <link href="/VEAF-Mission-Creation-Tools/css/hybrid.css?1587068370" rel="stylesheet">
+    <link href="/VEAF-Mission-Creation-Tools/css/featherlight.min.css?1587068370" rel="stylesheet">
+    <link href="/VEAF-Mission-Creation-Tools/css/perfect-scrollbar.min.css?1587068370" rel="stylesheet">
+    <link href="/VEAF-Mission-Creation-Tools/css/auto-complete.css?1587068370" rel="stylesheet">
+    <link href="/VEAF-Mission-Creation-Tools/css/atom-one-dark-reasonable.css?1587068370" rel="stylesheet">
+    <link href="/VEAF-Mission-Creation-Tools/css/theme.css?1587068370" rel="stylesheet">
+    <link href="/VEAF-Mission-Creation-Tools/css/hugo-theme.css?1587068370" rel="stylesheet">
     
-      <link href="/VEAF-Mission-Creation-Tools/css/theme-blue.css?1586198056" rel="stylesheet">
+      <link href="/VEAF-Mission-Creation-Tools/css/theme-blue.css?1587068370" rel="stylesheet">
     
 
-    <script src="/VEAF-Mission-Creation-Tools/js/jquery-3.3.1.min.js?1586198056"></script>
+    <script src="/VEAF-Mission-Creation-Tools/js/jquery-3.3.1.min.js?1587068370"></script>
 
     <style>
       :root #header + #content > #left > #rlblock_left{
@@ -52,14 +52,14 @@
     <span data-search-clear=""><i class="fas fa-times"></i></span>
 </div>
 
-<script type="text/javascript" src="/VEAF-Mission-Creation-Tools/js/lunr.min.js?1586198056"></script>
-<script type="text/javascript" src="/VEAF-Mission-Creation-Tools/js/auto-complete.js?1586198056"></script>
+<script type="text/javascript" src="/VEAF-Mission-Creation-Tools/js/lunr.min.js?1587068370"></script>
+<script type="text/javascript" src="/VEAF-Mission-Creation-Tools/js/auto-complete.js?1587068370"></script>
 <script type="text/javascript">
     
         var baseurl = "https:\/\/veaf.github.io\/VEAF-Mission-Creation-Tools\/";
     
 </script>
-<script type="text/javascript" src="/VEAF-Mission-Creation-Tools/js/search.js?1586198056"></script>
+<script type="text/javascript" src="/VEAF-Mission-Creation-Tools/js/search.js?1587068370"></script>
 
     
   </div>
@@ -623,7 +623,6 @@
     <li><a href="#the-basics">The basics</a>
       <ul>
         <li><a href="#choose---static-or-dynamic">choose - static or dynamic</a></li>
-        <li><a href="#mission-start---common">mission start - common</a></li>
         <li><a href="#mission-start---dynamic">mission start - dynamic</a></li>
         <li><a href="#mission-start---static">mission start - static</a></li>
         <li><a href="#mission-config---dynamic">mission config - dynamic</a></li>
@@ -634,6 +633,12 @@
       <ul>
         <li><a href="#choose-between-static-and-dynamic-loading">Choose between static and dynamic loading</a></li>
         <li><a href="#use-dynamic-loading">Use dynamic loading</a></li>
+      </ul>
+    </li>
+    <li><a href="#miscelleanous">Miscelleanous</a>
+      <ul>
+        <li><a href="#building-the-mission-and-dynamic-loading">Building the mission and dynamic loading</a></li>
+        <li><a href="#debugging-and-tracing">Debugging and tracing</a></li>
       </ul>
     </li>
   </ul>
@@ -678,21 +683,21 @@ This way, the mission is completely autonomous (all the need scripts are stored 
 <p><img src="/VEAF-Mission-Creation-Tools/images/load-with-triggers-01.png?raw=true" alt="load-with-triggers-01" title="load-with-triggers-01"></p>
 <p>The first trigger will allow us to choose between static and dynamic loading easily, as well as define the location of the scripts on our disk. Of course, the latter differs from one person to another, and therefore it must be adapted if you want to use dynamic loading.</p>
 <p>The name of the trigger is not important, as is its color.</p>
-<p>It has a condition <code>return true</code>: if the condition returns true, the trigger will be executed and the scripts will be loaded dynamically. If false, the trigger will not be executed and the scripts will be loaded statically.
+<p>It has a condition (a <em>lua predicate</em>) <code>return true --true=dynamic, false=static</code>: if the condition returns true, the trigger will be executed and the scripts will be loaded dynamically. If false, the trigger will not be executed and the scripts will be loaded statically.
 At the moment, the condition returns true and therefore we&rsquo;ll be loading dynamically.</p>
 <p>The trigger does execute a script (DO SCRIPT) that defines two constants, used later in the other triggers :</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-lua" data-lang="lua">VEAF_DYNAMIC_PATH <span style="color:#f92672">=</span> <span style="color:#e6db74">&#39;</span><span style="color:#e6db74">D:/DEV/VEAF-Mission-Creation-Tools</span><span style="color:#e6db74">&#39;</span>
 VEAF_DYNAMIC_MISSIONPATH <span style="color:#f92672">=</span> <span style="color:#e6db74">&#39;</span><span style="color:#e6db74">D:/DEV/VEAF-Demo-Mission</span><span style="color:#e6db74">&#39;</span>
 </code></pre></div><p>Bear in mind that these paths are probably not correct for your environment. If needed, change them.</p>
-<h3 id="mission-start---common">mission start - common</h3>
-<p><img src="/VEAF-Mission-Creation-Tools/images/load-with-triggers-02.png?raw=true" alt="load-with-triggers-02" title="load-with-triggers-02"></p>
-<p>This trigger is always executed, and it loads the base community scripts (MiST, Moose, CTLD and WeatherMark).</p>
 <h3 id="mission-start---dynamic">mission start - dynamic</h3>
 <p><img src="/VEAF-Mission-Creation-Tools/images/load-with-triggers-03.png?raw=true" alt="load-with-triggers-03" title="load-with-triggers-03"></p>
 <p>This one has a condition:</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-lua" data-lang="lua"><span style="color:#66d9ef">return</span> VEAF_DYNAMIC_PATH<span style="color:#f92672">~=</span><span style="color:#66d9ef">nil</span>
 </code></pre></div><p>This means that it will be executed if the <em>VEAF_DYNAMIC_PATH</em> constant has been defined, hence only if the first trigger is activated.</p>
-<p>It will load the community and veaf scripts dynamically with this code :</p>
+<p>It will load the community scripts (one by one), with code like this:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-lua" data-lang="lua"><span style="color:#66d9ef">local</span> script <span style="color:#f92672">=</span> VEAF_DYNAMIC_PATH <span style="color:#f92672">..</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">/scripts/community/mist.lua</span><span style="color:#e6db74">&#34;</span>
+assert(loadfile(script))()
+</code></pre></div><p>It will also load all the veaf scripts dynamically with this code:</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-lua" data-lang="lua">env.info(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">DYNAMIC LOADING</span><span style="color:#e6db74">&#34;</span>)
 <span style="color:#66d9ef">local</span> script <span style="color:#f92672">=</span> VEAF_DYNAMIC_PATH <span style="color:#f92672">..</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">/scripts/VeafDynamicLoader.lua</span><span style="color:#e6db74">&#34;</span>
 assert(loadfile(script))()
@@ -728,6 +733,14 @@ To do this, modify the condition of the first trigger (<em>choose - static or dy
 <p>When your mission is setup to dynamically load its scripts, it loads them each time it starts, from their original location on your disk.
 This means that every change you make to the scripts will be immediately available in your mission the next time you start it.
 The easiest way to restart a running mission is to press the &ldquo;Left-Shift + R&rdquo; key combination.</p>
+<h2 id="miscelleanous">Miscelleanous</h2>
+<h3 id="building-the-mission-and-dynamic-loading">Building the mission and dynamic loading</h3>
+<p>The <em>extract.cmd</em> script will automatically change from a dynamic loading to a static loading, to ensure that the mission is never published with dynamic loading (it wouldn&rsquo;t work).
+To do this, the script replaces the <code>return true --true=dynamic, false=static</code> with <code>return false --true=dynamic, false=static</code> in the mission before storing it.</p>
+<h3 id="debugging-and-tracing">Debugging and tracing</h3>
+<p>When using dynamic loading, the error messages will refer to the scripts by their actual filename, making it easier to debug.</p>
+<p>Also, the <em>VeafDynamicLoader.lua</em> script will set debugging and tracing to ON, so when trying out your mission you&rsquo;ll see all your trace messages (and mine).</p>
+<p>When building, the scripts will automaticall be edited to remove any debugging or tracing call, saving some CPU time for the game itself.</p>
 
 
 <footer class=" footline" >
@@ -1111,19 +1124,19 @@ The easiest way to restart a running mission is to press the &ldquo;Left-Shift +
     <div style="left: -1000px; overflow: scroll; position: absolute; top: -1000px; border: none; box-sizing: content-box; height: 200px; margin: 0px; padding: 0px; width: 200px;">
       <div style="border: none; box-sizing: content-box; height: 200px; margin: 0px; padding: 0px; width: 200px;"></div>
     </div>
-    <script src="/VEAF-Mission-Creation-Tools/js/clipboard.min.js?1586198056"></script>
-    <script src="/VEAF-Mission-Creation-Tools/js/perfect-scrollbar.min.js?1586198056"></script>
-    <script src="/VEAF-Mission-Creation-Tools/js/perfect-scrollbar.jquery.min.js?1586198056"></script>
-    <script src="/VEAF-Mission-Creation-Tools/js/jquery.sticky.js?1586198056"></script>
-    <script src="/VEAF-Mission-Creation-Tools/js/featherlight.min.js?1586198056"></script>
-    <script src="/VEAF-Mission-Creation-Tools/js/highlight.pack.js?1586198056"></script>
+    <script src="/VEAF-Mission-Creation-Tools/js/clipboard.min.js?1587068370"></script>
+    <script src="/VEAF-Mission-Creation-Tools/js/perfect-scrollbar.min.js?1587068370"></script>
+    <script src="/VEAF-Mission-Creation-Tools/js/perfect-scrollbar.jquery.min.js?1587068370"></script>
+    <script src="/VEAF-Mission-Creation-Tools/js/jquery.sticky.js?1587068370"></script>
+    <script src="/VEAF-Mission-Creation-Tools/js/featherlight.min.js?1587068370"></script>
+    <script src="/VEAF-Mission-Creation-Tools/js/highlight.pack.js?1587068370"></script>
     <script>hljs.initHighlightingOnLoad();</script>
-    <script src="/VEAF-Mission-Creation-Tools/js/modernizr.custom-3.6.0.js?1586198056"></script>
-    <script src="/VEAF-Mission-Creation-Tools/js/learn.js?1586198056"></script>
-    <script src="/VEAF-Mission-Creation-Tools/js/hugo-learn.js?1586198056"></script>
+    <script src="/VEAF-Mission-Creation-Tools/js/modernizr.custom-3.6.0.js?1587068370"></script>
+    <script src="/VEAF-Mission-Creation-Tools/js/learn.js?1587068370"></script>
+    <script src="/VEAF-Mission-Creation-Tools/js/hugo-learn.js?1587068370"></script>
 
-    <link href="/VEAF-Mission-Creation-Tools/mermaid/mermaid.css?1586198056" rel="stylesheet" />
-    <script src="/VEAF-Mission-Creation-Tools/mermaid/mermaid.js?1586198056"></script>
+    <link href="/VEAF-Mission-Creation-Tools/mermaid/mermaid.css?1587068370" rel="stylesheet" />
+    <script src="/VEAF-Mission-Creation-Tools/mermaid/mermaid.js?1587068370"></script>
     <script>
         mermaid.initialize({ startOnLoad: true });
     </script>

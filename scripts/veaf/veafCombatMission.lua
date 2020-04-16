@@ -54,7 +54,7 @@ veafCombatMission.Id = "COMBAT MISSION - "
 veafCombatMission.Version = "0.0.1"
 
 -- trace level, specific to this module
-veafCombatMission.Trace = true
+veafCombatMission.Trace = false
 
 --- Number of seconds between each check of the watchdog function
 veafCombatMission.SecondsBetweenWatchdogChecks = 30

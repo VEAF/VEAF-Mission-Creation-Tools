@@ -167,44 +167,6 @@ function veafCarrierOperations.initializeCarrierGroup()
     veafCarrierOperations.AirbossStennis:SetPatrolAdInfinitum()
     veafCarrierOperations.AirbossStennis:SetDefaultMessageDuration(30) -- messages are displayed for 30 seconds
 
-    local shift=1 -- Current shift.
-    local function ChangeShift(airboss)
-        local airboss=airboss --Ops.Airboss#AIRBOSS
-        
-        -- Next shift.
-        shift=shift+1
-        
-        -- One cycle done. Next will be first shift.
-        if shift==5 then
-            shift=1
-        end
-        
-        -- Set sound folder and voice over timings. 
-        if shift==1 then
-            env.info("Starting LSO/Marshal Shift 1: LSO Raynor, Marshal Raynor")
-            airboss:SetVoiceOversLSOByRaynor()
-            airboss:SetVoiceOversMarshalByRaynor()
-        elseif shift==2 then
-            env.info("Starting LSO/Marshal Shift 2: LSO FF, Marshal Raynor")
-            airboss:SetVoiceOversLSOByFF("Airboss Soundpack LSO FF/")
-            airboss:SetVoiceOversMarshalByRaynor()  
-        elseif shift==3 then
-            env.info("Starting LSO/Marshal Shift 3: LSO Raynor, Marshal FF")
-            airboss:SetVoiceOversLSOByRaynor()
-            airboss:SetVoiceOversMarshalByFF("Airboss Soundpack Marshal FF/")
-        elseif shift==4 then
-            env.info("Starting LSO/Marshal Shift 4: LSO FF, Marshal FF")
-            airboss:SetVoiceOversLSOByFF("Airboss Soundpack LSO FF/")
-            airboss:SetVoiceOversMarshalByFF("Airboss Soundpack Marshal FF/")
-        end  
-    end
-
-    -- Length of shift in minutes.
-    local L=30
-
-    -- Start shift scheduler to change shift every L minutes.
-    SCHEDULER:New(nil, ChangeShift, {veafCarrierOperations.AirbossStennis}, L*60, L*60)
-
 --[[     -- Add recovery windows 
     local duration = 30 * 60 -- every 30 minutes
     for seconds = env.mission.start_time+300, env.mission.start_time + 86400,3600 do 
@@ -235,14 +197,21 @@ function veafCarrierOperations.initializeCarrierGroup()
     -- Remove landed AI planes from flight deck.
     veafCarrierOperations.AirbossStennis:SetDespawnOnEngineShutdown()
 
-    -- Load all saved player grades from your "Saved Games\DCS" folder (if lfs was desanitized).
-    veafCarrierOperations.AirbossStennis:Load()
+    -- Set path or default.
+    local path=""
+    if lfs then
+        path= lfs.writedir() .. "\\airboss"
+    end
+
+
+    -- Load all saved player grades from your "Saved Games\DCS\Airboss" folder (if lfs was desanitized).
+    veafCarrierOperations.AirbossStennis:Load(path)
 
     -- Automatically save player results to your "Saved Games\DCS" folder each time a player get a final grade from the LSO.
-    veafCarrierOperations.AirbossStennis:SetAutoSave()
+    veafCarrierOperations.AirbossStennis:SetAutoSave(path)
 
     -- Enable trap sheet.
-    veafCarrierOperations.AirbossStennis:SetTrapSheet()
+    veafCarrierOperations.AirbossStennis:SetTrapSheet(path)
 
     -- Repeater for radio transmissions
     veafCarrierOperations.AirbossStennis:SetRadioRelayLSO(veafCarrierOperations.carrier.repeaterLso)

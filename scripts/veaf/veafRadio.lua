@@ -189,10 +189,10 @@ function veafRadio._addCommand(groupId, title, menu, command, parameters)
   ----veafRadio.logTrace(routines.utils.oneLineSerialize({_parameters = _parameters}))
   
   if groupId then
-    veafRadio.logTrace("adding for group")
+    veafRadio.logTrace(string.format("adding for group %s command %s",groupId or "", _title or ""))
     missionCommands.addCommandForGroup(groupId, _title, menu, _method, _parameters)
   else
-    veafRadio.logTrace("adding for all")
+    veafRadio.logTrace(string.format("adding for all command %s",_title or ""))
     missionCommands.addCommand(_title, menu, _method, _parameters)
   end
 

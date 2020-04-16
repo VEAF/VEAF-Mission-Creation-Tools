@@ -36,7 +36,7 @@ The first trigger will allow us to choose between static and dynamic loading eas
 
 The name of the trigger is not important, as is its color.
 
-It has a condition ```return true```: if the condition returns true, the trigger will be executed and the scripts will be loaded dynamically. If false, the trigger will not be executed and the scripts will be loaded statically.
+It has a condition (a *lua predicate*) `return true --true=dynamic, false=static`: if the condition returns true, the trigger will be executed and the scripts will be loaded dynamically. If false, the trigger will not be executed and the scripts will be loaded statically.
 At the moment, the condition returns true and therefore we'll be loading dynamically.
 
 The trigger does execute a script (DO SCRIPT) that defines two constants, used later in the other triggers :
@@ -47,12 +47,6 @@ VEAF_DYNAMIC_MISSIONPATH = 'D:/DEV/VEAF-Demo-Mission'
 ```
 
 Bear in mind that these paths are probably not correct for your environment. If needed, change them.
-
-### mission start - common
-
-![load-with-triggers-02](/VEAF-Mission-Creation-Tools/images/load-with-triggers-02.png?raw=true "load-with-triggers-02")
-
-This trigger is always executed, and it loads the base community scripts (MiST, Moose, CTLD and WeatherMark).
 
 ### mission start - dynamic
 
@@ -66,7 +60,14 @@ return VEAF_DYNAMIC_PATH~=nil
 
 This means that it will be executed if the *VEAF_DYNAMIC_PATH* constant has been defined, hence only if the first trigger is activated.
 
-It will load the community and veaf scripts dynamically with this code :
+It will load the community scripts (one by one), with code like this:
+
+```lua
+local script = VEAF_DYNAMIC_PATH .. "/scripts/community/mist.lua"
+assert(loadfile(script))()
+```
+
+It will also load all the veaf scripts dynamically with this code:
 
 ```lua
 env.info("DYNAMIC LOADING")
@@ -122,7 +123,6 @@ return VEAF_DYNAMIC_PATH==nil
 
 When executed, it simply loads the mission scripts using DO SCRIPT FILE statements.
 
-
 ## Usage
 
 ### Choose between static and dynamic loading
@@ -145,3 +145,18 @@ return false
 When your mission is setup to dynamically load its scripts, it loads them each time it starts, from their original location on your disk.
 This means that every change you make to the scripts will be immediately available in your mission the next time you start it.
 The easiest way to restart a running mission is to press the "Left-Shift + R" key combination.
+
+## Miscelleanous
+
+### Building the mission and dynamic loading
+
+The *extract.cmd* script will automatically change from a dynamic loading to a static loading, to ensure that the mission is never published with dynamic loading (it wouldn't work).
+To do this, the script replaces the `return true --true=dynamic, false=static` with `return false --true=dynamic, false=static` in the mission before storing it.
+
+### Debugging and tracing
+
+When using dynamic loading, the error messages will refer to the scripts by their actual filename, making it easier to debug.
+
+Also, the *VeafDynamicLoader.lua* script will set debugging and tracing to ON, so when trying out your mission you'll see all your trace messages (and mine).
+
+When building, the scripts will automaticall be edited to remove any debugging or tracing call, saving some CPU time for the game itself.

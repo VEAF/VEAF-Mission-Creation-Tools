@@ -438,9 +438,9 @@ function VeafCombatZone:initialize()
         veafCombatZone.logTrace(string.format("processing unit [%s] of coalition [%d]", unitName, unit:getCoalition()))
         zoneElement:setPosition(unit:getPosition().p)
         local spawnRadius, command, chance 
-        _, _, spawnRadius = unitName:find("#spawnRadius%s*=%s*(%d+)")
-        _, _, command = unitName:find("#command%s*=%s*\"(.+)\"")
-        _, _, spawnChance = unitName:find("#spawnChance%s*=%s*(%d+)")
+        _, _, spawnRadius = unitName:lower():find("#spawnradius%s*=%s*(%d+)")
+        _, _, command = unitName:lower():find("#command%s*=%s*\"(.+)\"")
+        _, _, spawnChance = unitName:lower():find("#spawnchance%s*=%s*(%d+)")
         if spawnRadius then 
             veafCombatZone.logTrace(string.format("spawnRadius = [%d]", spawnRadius))
             zoneElement:setSpawnRadius(spawnRadius)
@@ -527,41 +527,46 @@ function VeafCombatZone:getInformation()
         local nbVehiclesB = 0
         local nbInfantryB = 0
         local nbStaticsB = 0
-        local units, _ = unpack(veafCombatZone.findUnitsInTriggerZone(self.missionEditorZoneName))
         local unitsByTypeR = {}
         local unitsByTypeB = {}
-        for _, u in pairs(units) do
-            local coa = u:getCoalition()
-            if u:getCategory() == 3 then
-                if coa == 1 then 
-                    nbStaticsR = nbStaticsR + 1
-                elseif coa == 2 then
-                    nbStaticsB = nbStaticsB + 1
-                end
-            else
-                local typeName = u:getTypeName()
-                if typeName then 
-                    local unit = veafUnits.findUnit(typeName)
-                    if unit then 
-                        if coa == 1 then
-                            if not(unitsByTypeR[typeName]) then 
-                                unitsByTypeR[typeName] = 0
-                            end
-                            unitsByTypeR[typeName] = unitsByTypeR[typeName] + 1
-                            if unit.vehicle then
-                                nbVehiclesR = nbVehiclesR + 1
-                            else
-                                nbInfantryR = nbInfantryR + 1
-                            end
+
+        for _, groupName in pairs(self:getSpawnedGroups()) do
+            local group = Group.getByName(groupName)
+            if group then
+                for _, u in pairs(group:getUnits()) do
+                    local coa = u:getCoalition()
+                    if u:getCategory() == 3 then
+                        if coa == 1 then 
+                            nbStaticsR = nbStaticsR + 1
                         elseif coa == 2 then
-                            if not(unitsByTypeB[typeName]) then 
-                                unitsByTypeB[typeName] = 0
-                            end
-                            unitsByTypeB[typeName] = unitsByTypeB[typeName] + 1
-                            if unit.vehicle then
-                                nbVehiclesB = nbVehiclesB + 1
-                            else
-                                nbInfantryB = nbInfantryB + 1
+                            nbStaticsB = nbStaticsB + 1
+                        end
+                    else
+                        local typeName = u:getTypeName()
+                        if typeName then 
+                            local unit = veafUnits.findUnit(typeName)
+                            if unit then 
+                                if coa == 1 then
+                                    if not(unitsByTypeR[typeName]) then 
+                                        unitsByTypeR[typeName] = 0
+                                    end
+                                    unitsByTypeR[typeName] = unitsByTypeR[typeName] + 1
+                                    if unit.vehicle then
+                                        nbVehiclesR = nbVehiclesR + 1
+                                    else
+                                        nbInfantryR = nbInfantryR + 1
+                                    end
+                                elseif coa == 2 then
+                                    if not(unitsByTypeB[typeName]) then 
+                                        unitsByTypeB[typeName] = 0
+                                    end
+                                    unitsByTypeB[typeName] = unitsByTypeB[typeName] + 1
+                                    if unit.vehicle then
+                                        nbVehiclesB = nbVehiclesB + 1
+                                    else
+                                        nbInfantryB = nbInfantryB + 1
+                                    end
+                                end
                             end
                         end
                     end
@@ -597,7 +602,7 @@ function VeafCombatZone:getInformation()
             end
             message = message .. "\n"
         end
-    message = message .. "\n"
+        message = message .. "\n"
 
         -- add coordinates and position from bullseye
         local zoneCenter = self:getCenter()
@@ -640,6 +645,7 @@ function VeafCombatZone:activate()
             local position = zoneElement:getPosition()
             if zoneElement:getSpawnRadius() > 0 then
                 veafCombatZone.logTrace(string.format("position=[%s]",veaf.vecToString(position)))
+                veafCombatZone.logTrace(string.format("spawnRadius=[%s]",zoneElement:getSpawnRadius()))
                 local mistP = mist.getRandPointInCircle(position, zoneElement:getSpawnRadius())
                 veafCombatZone.logTrace(string.format("mistP=[%s]",veaf.vecToString(mistP)))
                 position = {x = mistP.x, y = position.y, z = mistP.y}
@@ -722,15 +728,31 @@ function VeafCombatZone:completionCheck()
     veafCombatZone.logDebug(string.format("VeafCombatZone[%s]:completionCheck()",self.missionEditorZoneName or ""))
     local nbUnitsR = 0
     local nbUnitsB = 0
-    local units, _ = unpack(veafCombatZone.findUnitsInTriggerZone(self.missionEditorZoneName))
-    for _, u in pairs(units) do
-        local coa = u:getCoalition()
-        if coa == 1 then
-            nbUnitsR = nbUnitsR + 1
-        elseif coa == 2 then
-            nbUnitsB = nbUnitsB + 1
+
+    for _, groupName in pairs(self:getSpawnedGroups()) do
+        local group = Group.getByName(groupName)
+        if group then
+            for _, unit in pairs(group:getUnits()) do
+                local coa = unit:getCoalition()
+                if coa == 1 then
+                    nbUnitsR = nbUnitsR + 1
+                elseif coa == 2 then
+                    nbUnitsB = nbUnitsB + 1
+                end
+            end
+        else
+            local static = StaticObject.getByName(groupName)
+            if static then
+                local coa = static:getCoalition()
+                if coa == 1 then
+                    nbUnitsR = nbUnitsR + 1
+                elseif coa == 2 then
+                    nbUnitsB = nbUnitsB + 1
+                end
+            end
         end
     end
+
     veafCombatZone.logTrace(string.format("nbUnitsB=%d",nbUnitsB))
     veafCombatZone.logTrace(string.format("nbUnitsR=%d",nbUnitsR))
 
@@ -967,6 +989,7 @@ function veafCombatZone.findUnitsInTriggerZone(triggerZoneName)
                                             else
                                                 groupName = unit:getGroup():getName()
                                             end
+                                            veafCombatZone.logTrace(string.format("groupName = %s", groupName))
                                             if string.sub(groupName:upper(),1,string.len(triggerZoneName))==triggerZoneName:upper() then
                                                 units[#units + 1] = unit
                                                 if not alreadyAddedGroups[groupName] then 

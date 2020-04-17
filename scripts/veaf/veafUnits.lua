@@ -61,6 +61,12 @@ veafUnits.OutputListsForDocumentation = false
 -- Utility methods
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
+function veafUnits.logError(message)
+    if message then
+        veaf.logError(veafUnits.Id .. message)
+    end
+end
+
 function veafUnits.logInfo(message)
     if message then
         veaf.logInfo(veafUnits.Id .. message)
@@ -423,6 +429,7 @@ end
 
 --- Adds a placement point to every unit of the group, centering the whole group around the spawnPoint, and adding an optional spacing
 function veafUnits.placeGroup(group, spawnPoint, spacing, hdg)
+    veafUnits.logTrace(string.format("group = %s",veaf.p(group)))
     if not(hdg) then
         hdg = 0 -- default north
     end
@@ -584,9 +591,15 @@ function veafUnits.placeGroup(group, spawnPoint, spacing, hdg)
     
     -- randomly place the units
     for _, cell in pairs(cells) do
+        veafUnits.logTrace(string.format("cell = %s",veaf.p(cell)))
         local unit = cell.unit
         if unit then
             unit.spawnPoint = {}
+            if not cell.center then
+                veafUnits.logError(string.format("Cannot find cell.center !"))
+                veafUnits.logError(string.format("cell = %s",veaf.p(cell)))
+                veafUnits.logError(string.format("group = %s",veaf.p(group)))
+            end
             unit.spawnPoint.z = cell.center.x
             if unit.random and spacing > 0 then
                 unit.spawnPoint.z = unit.spawnPoint.z + math.random(-((spacing-1) * unit.width)/2, ((spacing-1) * unit.width)/2)

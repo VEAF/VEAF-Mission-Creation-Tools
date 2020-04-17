@@ -335,7 +335,7 @@ end
 --- Generates a transport company and its air defenses
 function veafCasMission.generateTransportCompany(groupName, defense, side, size)
     side = side or veafCasMission.SIDE_RED
-    local groupCount = math.floor((size or math.random(10, 15)) * (math.random(7, 13)/10))
+    local groupCount = math.floor((size or math.random(10, 15)) * (math.random(8, 12)/10))
     veafCasMission.logTrace(string.format("groupCount=%s", tostring(groupCount)))
     local group = {
             disposition = { h = groupCount, w = groupCount},
@@ -423,7 +423,7 @@ function veafCasMission.generateArmorPlatoon(groupName, defense, armor, side, si
     side = side or veafCasMission.SIDE_RED
     
     -- generate an armor platoon
-    local groupCount = math.floor((size or math.random(3, 6)) * (math.random(7, 13)/10))
+    local groupCount = math.floor((size or math.random(3, 6)) * (math.random(8, 12)/10))
     veafCasMission.logTrace(string.format("groupCount=%s", tostring(groupCount)))
     local group = {
             disposition = { h = groupCount, w = groupCount},
@@ -431,6 +431,10 @@ function veafCasMission.generateArmorPlatoon(groupName, defense, armor, side, si
             description = groupName,
             groupName = groupName,
         }
+    if group.disposition.h < 4 then 
+        group.disposition.h = 4
+        group.disposition.w = 4
+    end
     local armorType
     local armorRand
     for _ = 1, groupCount do
@@ -559,7 +563,7 @@ function veafCasMission.generateInfantryGroup(groupName, defense, armor, side, s
     side = side or veafCasMission.SIDE_RED
     veafCasMission.logTrace(string.format("veafCasMission.generateInfantryGroup(groupName=%s, defense=%d, armor=%d)",groupName, defense, armor))
     -- generate an infantry group
-    local groupCount = math.floor((size or math.random(3, 6)) * (math.random(7, 13)/10))
+    local groupCount = math.floor((size or math.random(3, 6)) * (math.random(8, 12)/10))
     veafCasMission.logTrace(string.format("groupCount=%s", tostring(groupCount)))
     local group = {
             disposition = { h = groupCount, w = groupCount},
@@ -567,26 +571,30 @@ function veafCasMission.generateInfantryGroup(groupName, defense, armor, side, s
             description = groupName,
             groupName = groupName,
         }
+    if group.disposition.h < 4 then 
+        group.disposition.h = 4
+        group.disposition.w = 4
+    end
     for _ = 1, groupCount do
         local rand = math.random(3)
         local unitType = nil
         if rand == 1 then
             if side == veafCasMission.SIDE_BLUE then
-                unitType = 'Infantry M249'
+                unitType = 'Soldier M249'
             else
                 unitType = 'Soldier RPG'
             end
         elseif rand == 2 then
             if side == veafCasMission.SIDE_BLUE then
-                unitType = 'Infantry M4'
+                unitType = 'Soldier M4'
             else
-                unitType = 'Soldier AK'
+                unitType = 'Paratrooper AKS-74'
             end
         else
             if side == veafCasMission.SIDE_BLUE then
-                unitType = 'Infantry M4'
+                unitType = 'Soldier M4'
             else
-                unitType = 'Infantry AK'
+                unitType = 'Soldier AK'
             end
         end
         table.insert(group.units, { unitType })

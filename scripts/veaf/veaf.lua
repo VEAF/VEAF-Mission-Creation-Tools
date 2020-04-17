@@ -260,7 +260,7 @@ function veaf.p(o, level)
               for i=0, level do
                   text = text .. " "
               end
-              text = text .. ".".. key.."="..veaf.p(value, level+1);
+              text = text .. ".".. key.."="..veaf.p(value, level+1) .. "\n";
           end
       elseif (type(o) == "function") then
           text = "[function]";

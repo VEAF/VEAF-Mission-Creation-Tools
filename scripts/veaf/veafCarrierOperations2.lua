@@ -53,7 +53,7 @@ veafCarrierOperations2.Id = "CARRIER2 - "
 veafCarrierOperations2.Version = "2.0.2"
 
 -- trace level, specific to this module
-veafCarrierOperations2.Trace = false
+veafCarrierOperations2.Trace = true
 
 veafCarrierOperations2.RadioMenuName = "CARRIER OPS 2"
 
@@ -117,20 +117,11 @@ function veafCarrierOperations2.rebuildRadioMenu()
     veafCarrierOperations2.logDebug("veafCarrierOperations2.rebuildRadioMenu()")
 
     -- add specific protected recovery radio commands
-    local case1Path = veafRadio.addSubMenu("Start CASE I - 45'", veafCarrierOperations2.rootPath)
-    veafRadio.addSecuredCommandToSubmenu( "Start CASE I - 45'",   case1Path, veafCarrierOperations2.startRecovery, {case=1, time=45}, veafRadio.USAGE_ForGroup)
-
-    local case1Path = veafRadio.addSubMenu("Start CASE I - 90'", veafCarrierOperations2.rootPath)
-    veafRadio.addSecuredCommandToSubmenu( "Start CASE I - 90'",   case1Path, veafCarrierOperations2.startRecovery, {case=1, time=90}, veafRadio.USAGE_ForGroup)
-
-    local case2Path = veafRadio.addSubMenu("Start CASE II - 90'", veafCarrierOperations2.rootPath)
-    veafRadio.addSecuredCommandToSubmenu( "Start CASE II - 90'",   case2Path, veafCarrierOperations2.startRecovery, {case=2, time=90}, veafRadio.USAGE_ForGroup)
-
-    local case3Path = veafRadio.addSubMenu("Start CASE III - 90'", veafCarrierOperations2.rootPath)
-    veafRadio.addSecuredCommandToSubmenu( "Start CASE III - 90'",   case3Path, veafCarrierOperations2.startRecovery, {case=3, time=90}, veafRadio.USAGE_ForGroup)
-
-    local stopPath = veafRadio.addSubMenu("Stop Recovery", veafCarrierOperations2.rootPath)
-    veafRadio.addSecuredCommandToSubmenu( "Stop Recovery",   stopPath, veafCarrierOperations2.stopRecovery, nil, veafRadio.USAGE_ForGroup)
+    veafRadio.addSecuredCommandToSubmenu( "Start CASE I - 45'",   veafCarrierOperations2.rootPath, veafCarrierOperations2.startRecovery, {case=1, time=45}, veafRadio.USAGE_ForGroup)
+    veafRadio.addSecuredCommandToSubmenu( "Start CASE I - 90'",   veafCarrierOperations2.rootPath, veafCarrierOperations2.startRecovery, {case=1, time=90}, veafRadio.USAGE_ForGroup)
+    veafRadio.addSecuredCommandToSubmenu( "Start CASE II - 90'",   veafCarrierOperations2.rootPath, veafCarrierOperations2.startRecovery, {case=2, time=90}, veafRadio.USAGE_ForGroup)
+    veafRadio.addSecuredCommandToSubmenu( "Start CASE III - 90'",   veafCarrierOperations2.rootPath, veafCarrierOperations2.startRecovery, {case=3, time=90}, veafRadio.USAGE_ForGroup)
+    veafRadio.addSecuredCommandToSubmenu( "Stop Recovery",   veafCarrierOperations2.rootPath, veafCarrierOperations2.stopRecovery, nil, veafRadio.USAGE_ForGroup)
 
     veafRadio.refreshRadioMenu()
 end
@@ -284,7 +275,7 @@ function veafCarrierOperations2.addRecoveryWindows()
    
 function veafCarrierOperations2.initialize(noRadioMenu)
     veafCarrierOperations2.initializeCarrierGroup()
-    if not noRadioMenu then veafCarrierOperations2.buildRadioMenu() end
+    if not (noRadioMenu or false) then veafCarrierOperations2.buildRadioMenu() end
 end
 
 veafCarrierOperations2.logInfo(string.format("Loading version %s", veafCarrierOperations2.Version))

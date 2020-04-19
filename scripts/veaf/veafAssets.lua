@@ -225,8 +225,10 @@ function veafAssets.respawn(name)
         end
         local text = "I've respawned " .. theAsset.description
         if theAsset.jtac then
-            ctld.JTACAutoLase(name, theAsset.jtac, false, "vehicle")
-            text = text .. " lasing with code " .. theAsset.jtac
+            if ctld then 
+                ctld.JTACAutoLase(name, theAsset.jtac, false, "vehicle")
+                text = text .. " lasing with code " .. theAsset.jtac
+            end
         end
         trigger.action.outText(text, 30)
     end
@@ -260,7 +262,9 @@ function veafAssets.initialize()
     -- start any action-bound asset (e.g. jtacs)
     for name, asset in pairs(veafAssets.assets) do
         if asset.jtac then
-            ctld.JTACAutoLase(name, asset.jtac, false, "vehicle")
+            if ctld then 
+                ctld.JTACAutoLase(name, asset.jtac, false, "vehicle")
+            end
         end
     end
 end

@@ -1015,7 +1015,9 @@ function veafSpawn.spawnUnit(spawnPosition, name, country, speed, alt, hdg, unit
         Controller.setCommand(controller, _setInvisible)
 
         -- start lasing 
-        ctld.JTACAutoLase(groupName, laserCode, false, "vehicle")
+        if ctld then 
+            ctld.JTACAutoLase(groupName, laserCode, false, "vehicle")
+        end
       end
   
 
@@ -1052,7 +1054,9 @@ function veafSpawn.spawnLogistic(spawnSpot, silent)
     local unitName = veafSpawn.doSpawnStatic(spawnSpot, veafSpawn.LogisticUnitCategory, veafSpawn.LogisticUnitType, nil, false, true)
     
     veafSpawn.logDebug(string.format("spawnLogistic: inserting %s into CTLD logistics list", unitName))
-    table.insert(ctld.logisticUnits, unitName)
+    if ctld then 
+        table.insert(ctld.logisticUnits, unitName)
+    end
 
     -- message the unit spawning
     if not silent then 

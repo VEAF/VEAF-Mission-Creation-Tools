@@ -30,7 +30,7 @@
 --     * ACTION "DO SCRIPT FILE"
 --     * OPEN --> Browse to the location of this script and click OK.
 --     * ACTION "DO SCRIPT"
---     * set the script command to "veafRadio.initialize();veafCarrierOperations.initialize()" and click OK.
+--     * set the script command to "veafRadio.initialize();veafCarrierOperations2.initialize()" and click OK.
 -- 4.) Save the mission and start it.
 -- 5.) Have fun :)
 --
@@ -40,51 +40,51 @@
 --
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-veafCarrierOperations = {}
+veafCarrierOperations2 = {}
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Global settings. Stores the script constants
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 --- Identifier. All output in DCS.log will start with this.
-veafCarrierOperations.Id = "CARRIER - "
+veafCarrierOperations2.Id = "CARRIER2 - "
 
 --- Version.
-veafCarrierOperations.Version = "2.0.1"
+veafCarrierOperations2.Version = "2.0.2"
 
 -- trace level, specific to this module
-veafCarrierOperations.Trace = false
+veafCarrierOperations2.Trace = false
 
-veafCarrierOperations.RadioMenuName = "CARRIER OPS"
+veafCarrierOperations2.RadioMenuName = "CARRIER OPS 2"
 
 ---------------------------------------------------------------------------------------------------------------------------
 -- Do not change anything below unless you know what you are doing!
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 --- Radio menus paths
-veafCarrierOperations.rootPath = nil
+veafCarrierOperations2.rootPath = nil
 
 --- Carrier info to store the status
-veafCarrierOperations.carrier = {}
+veafCarrierOperations2.carrier = {}
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Utility methods
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
-function veafCarrierOperations.logError(message)
-    veaf.logError(veafCarrierOperations.Id .. message)
+function veafCarrierOperations2.logError(message)
+    veaf.logError(veafCarrierOperations2.Id .. message)
 end
 
-function veafCarrierOperations.logInfo(message)
-    veaf.logInfo(veafCarrierOperations.Id .. message)
+function veafCarrierOperations2.logInfo(message)
+    veaf.logInfo(veafCarrierOperations2.Id .. message)
 end
 
-function veafCarrierOperations.logDebug(message)
-    veaf.logDebug(veafCarrierOperations.Id .. message)
+function veafCarrierOperations2.logDebug(message)
+    veaf.logDebug(veafCarrierOperations2.Id .. message)
 end
 
-function veafCarrierOperations.logTrace(message)
-    if message and veafCarrierOperations.Trace then 
-        veaf.logTrace(veafCarrierOperations.Id .. message)
+function veafCarrierOperations2.logTrace(message)
+    if message and veafCarrierOperations2.Trace then 
+        veaf.logTrace(veafCarrierOperations2.Id .. message)
     end
 end
 
@@ -92,110 +92,81 @@ end
 -- Radio menu 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Start recovery function.
-function veafCarrierOperations.startRecovery(parameters)
-    veafCarrierOperations.logDebug(string.format("veafCarrierOperations.startRecovery - parameters", veaf.p(parameters)))
+function veafCarrierOperations2.startRecovery(parameters)
+    veafCarrierOperations2.logDebug(string.format("veafCarrierOperations2.startRecovery - parameters", veaf.p(parameters)))
     local params, unitName = unpack(parameters)
-    veafCarrierOperations.logDebug(string.format("veafCarrierOperations.startRecovery - params", veaf.p(params)))
+    veafCarrierOperations2.logDebug(string.format("veafCarrierOperations2.startRecovery - params", veaf.p(params)))
     local case = params.case
     local time = params.time
-    veafCarrierOperations.logDebug(string.format("veafCarrierOperations.startRecovery(%s, %d, %d)", unitName, case, time))
-    veafCarrierOperations.AirbossStennis.skipperTime=time
-    veafCarrierOperations.AirbossStennis.skipperSpeed=25
-    veafCarrierOperations.AirbossStennis.skipperOffset=math.random(0, 11)*30
-    veafCarrierOperations.AirbossStennis.skipperUturn=false
-    veafCarrierOperations.AirbossStennis:_SkipperStartRecovery(unitName, case)
+    veafCarrierOperations2.logDebug(string.format("veafCarrierOperations2.startRecovery(%s, %d, %d)", unitName, case, time))
+    veafCarrierOperations2.airbossCarrierObject.skipperTime=time
+    veafCarrierOperations2.airbossCarrierObject.skipperSpeed=25
+    veafCarrierOperations2.airbossCarrierObject.skipperOffset=math.random(0, 11)*30
+    veafCarrierOperations2.airbossCarrierObject.skipperUturn=false
+    veafCarrierOperations2.airbossCarrierObject:_SkipperStartRecovery(unitName, case)
 end
 
 -- Stop recovery function.
-function veafCarrierOperations.stopRecovery(unitName)
-    veafCarrierOperations.logDebug(string.format("veafCarrierOperations.stopRecovery(%s)", unitName))
-    veafCarrierOperations.AirbossStennis:_SkipperStopRecovery(unitName)
+function veafCarrierOperations2.stopRecovery(unitName)
+    veafCarrierOperations2.logDebug(string.format("veafCarrierOperations2.stopRecovery(%s)", unitName))
+    veafCarrierOperations2.airbossCarrierObject:_SkipperStopRecovery(unitName)
 end
 
 --- Rebuild the radio menu
-function veafCarrierOperations.rebuildRadioMenu()
-    veafCarrierOperations.logDebug("veafCarrierOperations.rebuildRadioMenu()")
+function veafCarrierOperations2.rebuildRadioMenu()
+    veafCarrierOperations2.logDebug("veafCarrierOperations2.rebuildRadioMenu()")
 
     -- add specific protected recovery radio commands
-    local case1Path = veafRadio.addSubMenu("Start CASE I - 25'", veafCarrierOperations.rootPath)
-    veafRadio.addSecuredCommandToSubmenu( "Start CASE I - 25'",   case1Path, veafCarrierOperations.startRecovery, {case=1, time=25}, veafRadio.USAGE_ForUnit)
+    local case1Path = veafRadio.addSubMenu("Start CASE I - 45'", veafCarrierOperations2.rootPath)
+    veafRadio.addSecuredCommandToSubmenu( "Start CASE I - 45'",   case1Path, veafCarrierOperations2.startRecovery, {case=1, time=45}, veafRadio.USAGE_ForGroup)
 
-    local case1Path = veafRadio.addSubMenu("Start CASE I - 45'", veafCarrierOperations.rootPath)
-    veafRadio.addSecuredCommandToSubmenu( "Start CASE I - 45'",   case1Path, veafCarrierOperations.startRecovery, {case=1, time=45}, veafRadio.USAGE_ForUnit)
+    local case1Path = veafRadio.addSubMenu("Start CASE I - 90'", veafCarrierOperations2.rootPath)
+    veafRadio.addSecuredCommandToSubmenu( "Start CASE I - 90'",   case1Path, veafCarrierOperations2.startRecovery, {case=1, time=90}, veafRadio.USAGE_ForGroup)
 
-    local case1Path = veafRadio.addSubMenu("Start CASE I - 90'", veafCarrierOperations.rootPath)
-    veafRadio.addSecuredCommandToSubmenu( "Start CASE I - 90'",   case1Path, veafCarrierOperations.startRecovery, {case=1, time=90}, veafRadio.USAGE_ForUnit)
+    local case2Path = veafRadio.addSubMenu("Start CASE II - 90'", veafCarrierOperations2.rootPath)
+    veafRadio.addSecuredCommandToSubmenu( "Start CASE II - 90'",   case2Path, veafCarrierOperations2.startRecovery, {case=2, time=90}, veafRadio.USAGE_ForGroup)
 
-    local case2Path = veafRadio.addSubMenu("Start CASE II - 25'", veafCarrierOperations.rootPath)
-    veafRadio.addSecuredCommandToSubmenu( "Start CASE II - 25'",   case2Path, veafCarrierOperations.startRecovery, {case=2, time=25}, veafRadio.USAGE_ForUnit)
+    local case3Path = veafRadio.addSubMenu("Start CASE III - 90'", veafCarrierOperations2.rootPath)
+    veafRadio.addSecuredCommandToSubmenu( "Start CASE III - 90'",   case3Path, veafCarrierOperations2.startRecovery, {case=3, time=90}, veafRadio.USAGE_ForGroup)
 
-    local case2Path = veafRadio.addSubMenu("Start CASE II - 45'", veafCarrierOperations.rootPath)
-    veafRadio.addSecuredCommandToSubmenu( "Start CASE II - 45'",   case2Path, veafCarrierOperations.startRecovery, {case=2, time=45}, veafRadio.USAGE_ForUnit)
-
-    local case2Path = veafRadio.addSubMenu("Start CASE II - 90'", veafCarrierOperations.rootPath)
-    veafRadio.addSecuredCommandToSubmenu( "Start CASE II - 90'",   case2Path, veafCarrierOperations.startRecovery, {case=2, time=90}, veafRadio.USAGE_ForUnit)
-
-    local case3Path = veafRadio.addSubMenu("Start CASE III - 25'", veafCarrierOperations.rootPath)
-    veafRadio.addSecuredCommandToSubmenu( "Start CASE III - 25'",   case3Path, veafCarrierOperations.startRecovery, {case=3, time=25}, veafRadio.USAGE_ForUnit)
-
-    local case3Path = veafRadio.addSubMenu("Start CASE III - 45'", veafCarrierOperations.rootPath)
-    veafRadio.addSecuredCommandToSubmenu( "Start CASE III - 45'",   case3Path, veafCarrierOperations.startRecovery, {case=3, time=45}, veafRadio.USAGE_ForUnit)
-
-    local case3Path = veafRadio.addSubMenu("Start CASE III - 90'", veafCarrierOperations.rootPath)
-    veafRadio.addSecuredCommandToSubmenu( "Start CASE III - 90'",   case3Path, veafCarrierOperations.startRecovery, {case=3, time=90}, veafRadio.USAGE_ForUnit)
-
-    local stopPath = veafRadio.addSubMenu("Stop Recovery", veafCarrierOperations.rootPath)
-    veafRadio.addSecuredCommandToSubmenu( "Stop Recovery",   stopPath, veafCarrierOperations.stopRecovery, nil, veafRadio.USAGE_ForUnit)
+    local stopPath = veafRadio.addSubMenu("Stop Recovery", veafCarrierOperations2.rootPath)
+    veafRadio.addSecuredCommandToSubmenu( "Stop Recovery",   stopPath, veafCarrierOperations2.stopRecovery, nil, veafRadio.USAGE_ForGroup)
 
     veafRadio.refreshRadioMenu()
 end
 
 --- Build the initial radio menu
-function veafCarrierOperations.buildRadioMenu()
-    veafCarrierOperations.logDebug("veafCarrierOperations.buildRadioMenu")
+function veafCarrierOperations2.buildRadioMenu()
+    veafCarrierOperations2.logDebug("veafCarrierOperations2.buildRadioMenu")
 
-    veafCarrierOperations.rootPath = veafRadio.addSubMenu(veafCarrierOperations.RadioMenuName)
+    veafCarrierOperations2.rootPath = veafRadio.addSubMenu(veafCarrierOperations2.RadioMenuName)
 
-    veafCarrierOperations.rebuildRadioMenu()
+    veafCarrierOperations2.rebuildRadioMenu()
 end
 
-function veafCarrierOperations.initializeCarrierGroup()
+function veafCarrierOperations2.initializeCarrierGroup()
 
     -- Create AIRBOSS object.
-    veafCarrierOperations.AirbossStennis=AIRBOSS:New(veafCarrierOperations.carrier.carrierName)
-    veafCarrierOperations.AirbossStennis:SetLSORadio(veafCarrierOperations.carrier.lsoFreq)
-    veafCarrierOperations.AirbossStennis:SetPatrolAdInfinitum()
-    veafCarrierOperations.AirbossStennis:SetDefaultMessageDuration(30) -- messages are displayed for 30 seconds
+    veafCarrierOperations2.airbossCarrierObject=AIRBOSS:New(veafCarrierOperations2.carrier.carrierName)
+    veafCarrierOperations2.airbossCarrierObject:SetLSORadio(veafCarrierOperations2.carrier.lsoFreq)
+    veafCarrierOperations2.airbossCarrierObject:SetPatrolAdInfinitum()
+    veafCarrierOperations2.airbossCarrierObject:SetDefaultMessageDuration(30) -- messages are displayed for 30 seconds
 
---[[     -- Add recovery windows 
-    local duration = 30 * 60 -- every 30 minutes
-    for seconds = env.mission.start_time+300, env.mission.start_time + 86400,3600 do 
-        local startClock = UTILS.SecondsToClock(seconds)
-        local endClock = UTILS.SecondsToClock(seconds+duration)
-        local secondsToday = math.fmod(seconds,86400)  -- time mod a full day
-        if secondsToday  < 6 * 3600 and secondsToday > 22 * 3600 then            
-            -- night = CASE 3
-            veafCarrierOperations.AirbossStennis:AddRecoveryWindow( startClock, endClock, 3, 30, true, 21)
-        elseif secondsToday < 8 * 3600 and secondsToday > 6 * 3600 then 
-            -- dawn = CASE 2
-            veafCarrierOperations.AirbossStennis:AddRecoveryWindow( startClock, endClock, 2, 15, true, 23)
-        elseif secondsToday < 20 * 3600 and secondsToday > 8 * 3600 then 
-            -- day
-            veafCarrierOperations.AirbossStennis:AddRecoveryWindow( startClock, endClock, 1, nil, true, 25)
-        elseif secondsToday < 22 * 3600 and secondsToday > 20 * 3600 then 
-            -- sunset = CASE 2
-            veafCarrierOperations.AirbossStennis:AddRecoveryWindow( startClock, endClock, 2, 15, true, 23)
-        end
-    end
- ]]
     -- Set folder of airboss sound files within miz file.
-    veafCarrierOperations.AirbossStennis:SetSoundfilesFolder("Airboss Soundfiles/")
+    veafCarrierOperations2.airbossCarrierObject:SetSoundfilesFolder("Airboss Soundfiles/")
 
     -- Single carrier menu optimization.
-    veafCarrierOperations.AirbossStennis:SetMenuSingleCarrier()
+    veafCarrierOperations2.airbossCarrierObject:SetMenuSingleCarrier()
 
+    -- Skipper menu.
+    if veafCarrierOperations2.carrier.training then
+        veafCarrierOperations2.airbossCarrierObject:SetMenuRecovery()
+    end    
+    veafCarrierOperations2.airbossCarrierObject:SetMenuSmokeZones(veafCarrierOperations2.carrier.training or false)
+    veafCarrierOperations2.airbossCarrierObject:SetMenuMarkZones(veafCarrierOperations2.carrier.training or false)
+  
     -- Remove landed AI planes from flight deck.
-    veafCarrierOperations.AirbossStennis:SetDespawnOnEngineShutdown()
+    veafCarrierOperations2.airbossCarrierObject:SetDespawnOnEngineShutdown()
 
     -- Set path or default.
     local path=""
@@ -205,41 +176,41 @@ function veafCarrierOperations.initializeCarrierGroup()
 
 
     -- Load all saved player grades from your "Saved Games\DCS\Airboss" folder (if lfs was desanitized).
-    veafCarrierOperations.AirbossStennis:Load(path)
+    veafCarrierOperations2.airbossCarrierObject:Load(path)
 
     -- Automatically save player results to your "Saved Games\DCS" folder each time a player get a final grade from the LSO.
-    veafCarrierOperations.AirbossStennis:SetAutoSave(path)
+    veafCarrierOperations2.airbossCarrierObject:SetAutoSave(path)
 
     -- Enable trap sheet.
-    veafCarrierOperations.AirbossStennis:SetTrapSheet(path)
+    veafCarrierOperations2.airbossCarrierObject:SetTrapSheet(path)
 
     -- Repeater for radio transmissions
-    veafCarrierOperations.AirbossStennis:SetRadioRelayLSO(veafCarrierOperations.carrier.repeaterLso)
-    veafCarrierOperations.AirbossStennis:SetRadioRelayMarshal(veafCarrierOperations.carrier.repeaterMarshal)
+    veafCarrierOperations2.airbossCarrierObject:SetRadioRelayLSO(veafCarrierOperations2.carrier.repeaterLso)
+    veafCarrierOperations2.airbossCarrierObject:SetRadioRelayMarshal(veafCarrierOperations2.carrier.repeaterMarshal)
 
     -- S-3B Recovery Tanker spawning in air.
-    local tanker=RECOVERYTANKER:New(veafCarrierOperations.carrier.carrierName, veafCarrierOperations.carrier.tankerName)
+    local tanker=RECOVERYTANKER:New(veafCarrierOperations2.carrier.carrierName, veafCarrierOperations2.carrier.tankerName)
     tanker:SetTakeoffAir()
-    tanker:SetRadio(veafCarrierOperations.carrier.tankerFreq)
-    tanker:SetModex(veafCarrierOperations.carrier.tankerModex)
-    tanker:SetTACAN(veafCarrierOperations.carrier.tankerTacanChannel, veafCarrierOperations.carrier.tankerTacanMorse)
+    tanker:SetRadio(veafCarrierOperations2.carrier.tankerFreq)
+    tanker:SetModex(veafCarrierOperations2.carrier.tankerModex)
+    tanker:SetTACAN(veafCarrierOperations2.carrier.tankerTacanChannel, veafCarrierOperations2.carrier.tankerTacanMorse)
     tanker:__Start(1)
 
     --- Function called when recovery tanker is started.
     function tanker:OnAfterStart(From,Event,To)
         
         -- Set recovery tanker.
-        veafCarrierOperations.AirbossStennis:SetRecoveryTanker(tanker)  
+        veafCarrierOperations2.airbossCarrierObject:SetRecoveryTanker(tanker)  
     end
 
     -- Rescue Helo with home base Lake Erie. Has to be a global object!
-    rescuehelo=RESCUEHELO:New(veafCarrierOperations.carrier.carrierName, veafCarrierOperations.carrier.pedroName)
-    rescuehelo:SetHomeBase(AIRBASE:FindByName(veafCarrierOperations.carrier.pedroBase))
-    rescuehelo:SetModex(veafCarrierOperations.carrier.pedroModex)
+    rescuehelo=RESCUEHELO:New(veafCarrierOperations2.carrier.carrierName, veafCarrierOperations2.carrier.pedroName)
+    rescuehelo:SetHomeBase(AIRBASE:FindByName(veafCarrierOperations2.carrier.pedroBase))
+    rescuehelo:SetModex(veafCarrierOperations2.carrier.pedroModex)
     rescuehelo:__Start(1)
 
     --- Function called when a player gets graded by the LSO.
-    function veafCarrierOperations.AirbossStennis:OnAfterLSOGrade(From, Event, To, playerData, grade)
+    function veafCarrierOperations2.airbossCarrierObject:OnAfterLSOGrade(From, Event, To, playerData, grade)
         local PlayerData=playerData --Ops.Airboss#AIRBOSS.PlayerData
         local Grade=grade --Ops.Airboss#AIRBOSS.LSOgrade
         
@@ -251,48 +222,72 @@ function veafCarrierOperations.initializeCarrierGroup()
         env.info(string.format("Player %s scored %.1f", name, score))
     end
 
-    -- No Skipper menu.
-    --veafCarrierOperations.AirbossStennis:SetMenuRecovery()
-  
     -- Start airboss class.
-    veafCarrierOperations.AirbossStennis:Start()
+    veafCarrierOperations2.airbossCarrierObject:Start()
 
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- initialisation
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
-function veafCarrierOperations.setCarrierInfo(name, lsoFreq, marshallFreq)
-    veafCarrierOperations.carrier.carrierName = name
-    veafCarrierOperations.carrier.lsoFreq = lsoFreq
-    veafCarrierOperations.carrier.marshallFreq = marshallFreq
+function veafCarrierOperations2.setCarrierInfo(name, lsoFreq, marshallFreq)
+    veafCarrierOperations2.carrier.carrierName = name
+    veafCarrierOperations2.carrier.lsoFreq = lsoFreq
+    veafCarrierOperations2.carrier.marshallFreq = marshallFreq
 end
 
-function veafCarrierOperations.setTankerInfo(name, freq, tacanChannel, tacanMorse, modex)
-    veafCarrierOperations.carrier.tankerName = name
-    veafCarrierOperations.carrier.tankerFreq = freq
-    veafCarrierOperations.carrier.tankerTacanChannel = tacanChannel
-    veafCarrierOperations.carrier.tankerTacanMorse = tacanMorse
-    veafCarrierOperations.carrier.tankerModex = modex
+function veafCarrierOperations2.setTankerInfo(name, freq, tacanChannel, tacanMorse, modex)
+    veafCarrierOperations2.carrier.tankerName = name
+    veafCarrierOperations2.carrier.tankerFreq = freq
+    veafCarrierOperations2.carrier.tankerTacanChannel = tacanChannel
+    veafCarrierOperations2.carrier.tankerTacanMorse = tacanMorse
+    veafCarrierOperations2.carrier.tankerModex = modex
 end
 
-function veafCarrierOperations.setPedroInfo(name, base, modex)
-    veafCarrierOperations.carrier.pedroName = name
-    veafCarrierOperations.carrier.pedroBase = base
-    veafCarrierOperations.carrier.pedroModex = modex
+function veafCarrierOperations2.setPedroInfo(name, base, modex)
+    veafCarrierOperations2.carrier.pedroName = name
+    veafCarrierOperations2.carrier.pedroBase = base
+    veafCarrierOperations2.carrier.pedroModex = modex
 end
 
-function veafCarrierOperations.setRepeaterInfo(lso, marshal)
-    veafCarrierOperations.carrier.repeaterLso = lso
-    veafCarrierOperations.carrier.repeaterMarshal = marshal
+function veafCarrierOperations2.setRepeaterInfo(lso, marshal)
+    veafCarrierOperations2.carrier.repeaterLso = lso
+    veafCarrierOperations2.carrier.repeaterMarshal = marshal
 end
+
+function veafCarrierOperations2.setTraining()
+    veafCarrierOperations2.carrier.training = true
+end
+
+function veafCarrierOperations2.addRecoveryWindows()
+    -- Add recovery windows 
+    local duration = 30 * 60 -- every 30 minutes
+    for seconds = env.mission.start_time+600, env.mission.start_time + 86400,3600 do 
+        local startClock = UTILS.SecondsToClock(seconds)
+        local endClock = UTILS.SecondsToClock(seconds+duration)
+        local secondsToday = math.fmod(seconds,86400)  -- time mod a full day
+        if secondsToday  < 6 * 3600 and secondsToday > 22 * 3600 then            
+            -- night = CASE 3
+            veafCarrierOperations2.airbossCarrierObject:AddRecoveryWindow( startClock, endClock, 3, 30, true, 21)
+        elseif secondsToday < 8 * 3600 and secondsToday > 6 * 3600 then 
+            -- dawn = CASE 2
+            veafCarrierOperations2.airbossCarrierObject:AddRecoveryWindow( startClock, endClock, 2, 15, true, 23)
+        elseif secondsToday < 20 * 3600 and secondsToday > 8 * 3600 then 
+            -- day
+            veafCarrierOperations2.airbossCarrierObject:AddRecoveryWindow( startClock, endClock, 1, nil, true, 25)
+        elseif secondsToday < 22 * 3600 and secondsToday > 20 * 3600 then 
+            -- sunset = CASE 2
+            veafCarrierOperations2.airbossCarrierObject:AddRecoveryWindow( startClock, endClock, 2, 15, true, 23)
+        end
+    end
+ end
    
-function veafCarrierOperations.initialize()
-    veafCarrierOperations.initializeCarrierGroup()
-    veafCarrierOperations.buildRadioMenu()
+function veafCarrierOperations2.initialize(noRadioMenu)
+    veafCarrierOperations2.initializeCarrierGroup()
+    if not noRadioMenu then veafCarrierOperations2.buildRadioMenu() end
 end
 
-veafCarrierOperations.logInfo(string.format("Loading version %s", veafCarrierOperations.Version))
+veafCarrierOperations2.logInfo(string.format("Loading version %s", veafCarrierOperations2.Version))
 
 --- Enable/Disable error boxes displayed on screen.
 env.setErrorMessageBoxEnabled(false)

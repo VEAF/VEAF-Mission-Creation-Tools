@@ -276,7 +276,13 @@ function veafCarrierOperations.continueCarrierOperations(groupName)
             -- spawn if needed
             if not(pedroUnit and carrier.pedroIsSpawned) then
                 veafCarrierOperations.logDebug("respawning Pedro unit")
-                mist.respawnGroup(carrier.pedroUnitName, true)
+                local vars = {}
+                vars.gpName = carrier.pedroUnitName
+                vars.action = 'respawn'
+                vars.point = startPosition
+                vars.point.y = 100
+                vars.radius = 500
+                mist.teleportToPoint(vars)
                 carrier.pedroIsSpawned = true
             end
 
@@ -404,7 +410,13 @@ function veafCarrierOperations.continueCarrierOperations(groupName)
                 -- spawn if needed
                 if not(tankerUnit and carrier.tankerIsSpawned) then
                     veafCarrierOperations.logDebug("respawning Tanker unit")
-                    mist.respawnGroup(carrier.tankerUnitName, true)
+                    local vars = {}
+                    vars.gpName = carrier.tankerUnitName
+                    vars.action = 'respawn'
+                    vars.point = startPosition
+                    vars.point.y = 2500
+                    vars.radius = 500
+                    mist.teleportToPoint(vars)
                     carrier.tankerIsSpawned = true
                 end
 

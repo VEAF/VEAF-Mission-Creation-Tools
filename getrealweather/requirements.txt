@@ -1,0 +1,4 @@
+ply
+six
+requests-cache
+ConfigParser

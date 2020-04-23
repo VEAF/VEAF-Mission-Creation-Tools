@@ -53,7 +53,7 @@ if __name__ == '__main__':
         windASL = weatherdata.getWindASL()
         wind2000 = weatherdata.getWind2000()
         wind8000 = weatherdata.getWind8000()
-        weather['wind']['atGround']['speed'] = windASL['speed']
+        weather['wind']['atGround']['speed'] = windASL['speed']/2 #dcs is weird : the wind speed at 1600ft will be double this value
         weather['wind']['atGround']['dir'] = windASL['direction']
         weather['wind']['at2000']['speed'] = wind2000['speed']
         weather['wind']['at2000']['dir'] = wind2000['direction']

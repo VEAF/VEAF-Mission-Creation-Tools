@@ -27,8 +27,8 @@ In DCS mission editor, set up a "mission start" trigger that will :
 
 There are two naming conventions that you can use with this script:
 
-* units with "FARP " in their name will trigger the creation of a FARP; tents and other static objects like generators, ammo dumps, a windsock will be placed around the unit; supply vehicles (mandatory for rearming, refueling and getting external power) will be spawned; the FARP will also be added to the named points database (see [namedPoints](namedPoints.md))
-* units with "GRASS_RUNWAY" in their name will trigger the creation of a grass runway by replicating the unit to form two parallel lines, add a guard tower, a windsock and also add the grass runway to the named points database (see [namedPoints](namedPoints.md))
+* units with "FARP " in their name will trigger the creation of a FARP; tents and other static objects like generators, ammo dumps, a windsock will be placed around the unit; supply vehicles (mandatory for rearming, refueling and getting external power) will be spawned; the FARP will also be added to the named points database (see [namedPoints](../veafnamedpoints))
+* units with "GRASS_RUNWAY" in their name will trigger the creation of a grass runway by replicating the unit to form two parallel lines, add a guard tower, a windsock and also add the grass runway to the named points database (see [namedPoints](../veafnamedpoints))
 
 ## How to use in a mission
 

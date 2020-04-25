@@ -36,7 +36,7 @@ This syntax is composed of a mandatory instruction (at the beginning) and mandat
 
 Example : ``_cas, defense 3, size 5``
 
-For more informations about markers, see [Concepts / F10 map user marks](../../concepts/#f10-map-user-marks)
+For more informations about markers, see [Concepts / F10 map user marks](../../concepts/usermarks)
 
 ### Radio menus
 

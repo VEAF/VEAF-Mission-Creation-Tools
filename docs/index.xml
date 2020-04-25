@@ -129,6 +129,16 @@ How to set up a mission Let&amp;rsquo;s start by saying that you can clone the V
     </item>
     
     <item>
+      <title>veafCombatZone</title>
+      <link>https://veaf.github.io/VEAF-Mission-Creation-Tools/mission-maker/modules/veafcombatzone/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>https://veaf.github.io/VEAF-Mission-Creation-Tools/mission-maker/modules/veafcombatzone/</guid>
+      <description>Introduction With this module, the mission maker can define combat missions that will be referenced in the COMBAT ZONES radio menu. In this menu, each of the missions can be checked (briefing), activated (if inactive) or deactivated (if active), smoke markers or lighting flares can be requested.
+How to set up a mission Let&amp;rsquo;s start by saying that you can clone the VEAF-Demo-Mission repository and use it as an example (or fork it and create a new mission from your fork).</description>
+    </item>
+    
+    <item>
       <title>CTLD</title>
       <link>https://veaf.github.io/VEAF-Mission-Creation-Tools/mission-maker/third-party/ctld/</link>
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>

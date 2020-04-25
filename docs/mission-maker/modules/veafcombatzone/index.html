@@ -9,7 +9,7 @@
 
     <link rel="icon" href="/VEAF-Mission-Creation-Tools/images/favicon.png" type="image/png">
 
-    <title>Mission maker :: VEAF Mission Creation Tools - Documentation</title>
+    <title>veafCombatZone :: VEAF Mission Creation Tools - Documentation</title>
 
     
     <link href="/VEAF-Mission-Creation-Tools/css/nucleus.css?1587817629" rel="stylesheet">
@@ -35,7 +35,7 @@
     </style>
     
   </head>
-  <body class="" data-url="/VEAF-Mission-Creation-Tools/mission-maker/">
+  <body class="" data-url="/VEAF-Mission-Creation-Tools/mission-maker/modules/veafcombatzone/">
     <nav id="sidebar" class="">
 
 
@@ -77,7 +77,7 @@
     
     <li data-nav-id="/VEAF-Mission-Creation-Tools/mission-maker/" title="Mission maker" class="dd-item 
         parent
-        active
+        
         
         ">
       <a href="/VEAF-Mission-Creation-Tools/mission-maker/">
@@ -232,7 +232,7 @@
   
     
     <li data-nav-id="/VEAF-Mission-Creation-Tools/mission-maker/modules/" title="Modules" class="dd-item 
-        
+        parent
         
         
         ">
@@ -370,7 +370,7 @@
  
   
     
-      <li data-nav-id="/VEAF-Mission-Creation-Tools/mission-maker/modules/veafcombatzone/" title="veafCombatZone" class="dd-item ">
+      <li data-nav-id="/VEAF-Mission-Creation-Tools/mission-maker/modules/veafcombatzone/" title="veafCombatZone" class="dd-item active">
         <a href="/VEAF-Mission-Creation-Tools/mission-maker/modules/veafcombatzone/">
         veafCombatZone
         
@@ -586,7 +586,7 @@
                   
                   
                   <div id="top-github-link">
-                    <a class="github-link" title='Edit this page' href="https://github.com/VEAF/VEAF-Mission-Creation-Tools/edit/master/documentation/content/Mission%20maker/_index.md" target="blank">
+                    <a class="github-link" title='Edit this page' href="https://github.com/VEAF/VEAF-Mission-Creation-Tools/edit/master/documentation/content/Mission%20maker/modules/veafCombatZone.md" target="blank">
                       <i class="fas fa-code-branch"></i>
                       <span id="top-github-link-text">Edit this page</span>
                     </a>
@@ -613,7 +613,19 @@
             
           
           
-            <a href='/VEAF-Mission-Creation-Tools/'>VEAF Mission Creation Tools</a> > Mission maker
+            
+            
+          
+          
+            
+            
+          
+          
+            <a href='/VEAF-Mission-Creation-Tools/'>VEAF Mission Creation Tools</a> > <a href='/VEAF-Mission-Creation-Tools/mission-maker/'>Mission maker</a> > <a href='/VEAF-Mission-Creation-Tools/mission-maker/modules/'>Modules</a> > veafCombatZone
+          
+         
+          
+         
           
          
           
@@ -627,8 +639,14 @@
 <nav id="TableOfContents">
   <ul>
     <li><a href="#introduction">Introduction</a></li>
-    <li><a href="#prerequisites">Prerequisites</a></li>
-    <li><a href="#how-to-set-up-a-mission">How to set up a mission</a></li>
+    <li><a href="#how-to-set-up-a-mission">How to set up a mission</a>
+      <ul>
+        <li><a href="#load-the-script-and-its-prerequisites">Load the script and its prerequisites</a></li>
+        <li><a href="#how-to-configure-the-script-in-a-mission">How to configure the script in a mission</a></li>
+        <li><a href="#how-to-setup-a-combat-zone-in-the-mission-editor">How to setup a Combat Zone in the mission editor</a></li>
+      </ul>
+    </li>
+    <li><a href="#how-to-use-in-a-mission">How to use in a mission</a></li>
   </ul>
 </nav>
     </div>
@@ -646,7 +664,7 @@
           
             <h1>
               
-              Mission maker
+              veafCombatZone
             </h1>
           
 
@@ -654,101 +672,113 @@
 
 
 
-
-	<h2 id="introduction">Introduction</h2>
-<p>With these tools offered free of charge by the <a href="https://www.veaf.org">Virtual European Air Force</a>, any mission maker can easily create a complex, dynamic mission in the DCS mission editor.
-In as little as 1 or 2 hours, you will have a mission with :</p>
-<ul>
-<li>a complex setup of dozens of units, easily added by using special templating commands.</li>
-<li>a system that dresses up FARP units to make them complete forwards bases of operations, with the required logistic vehicles, tents, guards and even windsocks</li>
-<li>a build system that will normalize your mission files so they aren&rsquo;t completely randomized and shuffled each time you edit them with the DCS editor.</li>
-<li>a radio presets frequencies injector; it&rsquo;ll use a template to set all the radio presets in the players planes.</li>
-<li>a player-controlled radio menu to control this mission at runtime.</li>
-<li>a robust, easy-to-setup security system that can restrict certain features to specific user groups.</li>
-<li>a <em><a href="https://arma3.com/dlc/zeus">Zeus</a></em>-like system that can be used to spawn AI groups, convoys and units at runtime.</li>
-<li>a carrier vehicle that can automatically navigate upwind when requested by the players, and automatically return to its initial location afterwards; it can also manage a rescue helicopter on station (port side of the ship), and a S3-B emergency tanker.</li>
-<li>a ground attack mission system; this will generate a ground attack mission when requested, and create the radio menus needed to control it.</li>
-<li>a helo transport mission system; this will generate a helicopter transport mission when requested, and create the radio menus needed to control it.</li>
-</ul>
-<h2 id="prerequisites">Prerequisites</h2>
-<p>There are two sets of prerequisites to use the VEAF Mission Creation Tools.
-First, if you simply want to use them in your missions, then you&rsquo;ll need :</p>
-<ul>
-<li>DCS World (of course)</li>
-<li>mist.lua (provided in the <em>community</em> folder)</li>
-</ul>
-<p>But if you want to use the full development environment, and take advantage of the advanced features (normalization, injection), and easily publish your mission to a source control system (e.g. GitHub), you&rsquo;ll also need :</p>
-<ul>
-<li>git</li>
-<li>an IDE (notepad++, visual studio code&hellip;)</li>
-<li>npm - for that install <a href="https://nodejs.org/en/download/">node.js</a></li>
-<li>7za from the <a href="https://www.7-zip.org/a/7z1900-extra.7z">7-Zip Extra: standalone console version</a></li>
-<li>lua from <a href="https://github.com/rjpcomputing/luaforwindows">Lua for Windows</a></li>
-</ul>
+<h2 id="introduction">Introduction</h2>
+<p>With this module, the mission maker can define combat missions that will be referenced in the COMBAT ZONES radio menu.
+In this menu, each of the missions can be checked (briefing), activated (if inactive) or deactivated (if active), smoke markers or lighting flares can be requested.</p>
 <h2 id="how-to-set-up-a-mission">How to set up a mission</h2>
-<p>You can clone the <em><a href="https://github.com/VEAF/VEAF-Demo-Mission">VEAF-Demo-Mission</a></em> repository and use it as an example (or fork it and create a new mission from your fork).
-Then you should read the <em>readme.md</em> file in this repository. It will explain how you should setup your development environment.
-There is detailed documentation for all the modules (see menu on the left).</p>
-<p>If you choose to start with a new mission (and not clone our demo mission), the important point is to load and initialize the scripts.</p>
-<p>Start by adding a new &ldquo;mission start&rdquo; trigger; it should be the first trigger</p>
-<p><img src="/VEAF-Mission-Creation-Tools/images/create-mission-01.png?raw=true" alt="create-mission-01" title="create-mission-01"></p>
-<p>This trigger (1) must be of type &ldquo;mission start&rdquo; (2), and it should load all the scripts (3).</p>
-<p><img src="/VEAF-Mission-Creation-Tools/images/create-mission-02.png?raw=true" alt="create-mission-02" title="create-mission-02"></p>
-<p>Here is the list of scripts to load, in the correct order:</p>
+<p>Let&rsquo;s start by saying that you can clone the <em><a href="https://github.com/VEAF/VEAF-Demo-Mission">VEAF-Demo-Mission</a></em> repository and use it as an example (or fork it and create a new mission from your fork).</p>
+<h3 id="load-the-script-and-its-prerequisites">Load the script and its prerequisites</h3>
+<p>Please refer to the <a href="../concepts/load-with-triggers">Load scripts in the mission</a> for loading the scripts.</p>
+<h3 id="how-to-configure-the-script-in-a-mission">How to configure the script in a mission</h3>
+<p>In the previous paragraph, you were told to create a <em>missionConfig.lua</em> script containing all the mission-specific code.
+Now we&rsquo;re going to use it to define combat missions.</p>
+<p>Here is the kind of code that you must add in the mission initialisation script:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-lua" data-lang="lua"><span style="color:#75715e">-- configure COMBAT ZONE</span>
+<span style="color:#66d9ef">if</span> veafCombatZone <span style="color:#66d9ef">then</span>
+ veafCombatZone.logInfo(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">Loading configuration</span><span style="color:#e6db74">&#34;</span>)
+ veafCombatZone.AddZone(
+    VeafCombatZone.new()
+      :setMissionEditorZoneName(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">combatZone_CrossKobuleti</span><span style="color:#e6db74">&#34;</span>)
+      :setFriendlyName(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">Cross Kobuleti</span><span style="color:#e6db74">&#34;</span>)
+      :setBriefing(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">This is a simple mission</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span> <span style="color:#f92672">..</span>
+             <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">You must destroy the comm antenna</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span> <span style="color:#f92672">..</span>
+             <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">The other ennemy units are secondary targets</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>)
+      :initialize()
+  )
+  veafCombatZone.AddZone(
+    VeafCombatZone.new()
+      :setMissionEditorZoneName(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">combatZone_Batumi</span><span style="color:#e6db74">&#34;</span>)
+      :setFriendlyName(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">Batumi airbase</span><span style="color:#e6db74">&#34;</span>)
+      :setBriefing(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">A BTR patrol and a few manpads are dispersed around the Batumi airbase</span><span style="color:#e6db74">&#34;</span>)
+      :setTraining(<span style="color:#66d9ef">true</span>)
+      :initialize()
+  )
+
+  veafCombatZone.initialize()
+<span style="color:#66d9ef">end</span>
+</code></pre></div><p>Let&rsquo;s detail this code.</p>
+<p>First, we define two combat zones: the <em>Cross Kobuleti</em> and the <em>Batumi airbase</em>.
+For each of these zones, we specify a mission editor zone name (more about this later), a friendly name (that will be displayed in the radio menu) and a briefing (also displayed when getting info about a combat zone).
+One of the zone is considered a <em>training zone</em> (with the <code>:setTraining(true)</code> code). This means that:</p>
 <ul>
-<li><strong>&hellip; (MiST is mandatory, and must be the very first to load)</strong></li>
-<li>mist.lua</li>
-<li><strong>&hellip; (all the non-mandatory, external scripts)</strong></li>
-<li>CTLD.lua <em>(CTLD is not mandatory)</em></li>
-<li>WeatherMark.lua <em>(WeatherMark is not mandatory)</em></li>
-<li><strong>&hellip; (now the VEAF scripts, in the order of their dependencies)</strong></li>
-<li>veaf.lua <em>(the main library, must be the first of the VEAF scripts)</em></li>
-<li>dcsUnits.lua <em>(mandatory)</em></li>
-<li>veafUnits.lua <em>(mandatory)</em></li>
-<li>veafMarkers.lua <em>(mandatory)</em></li>
-<li>veafRadio.lua <em>(mandatory)</em></li>
-<li>veafSecurity.lua <em>(mandatory)</em></li>
-<li>veafSpawn.lua <em>(mandatory)</em></li>
-<li>veafAssets.lua <em>(used in other scripts)</em></li>
-<li>veafCasMission.lua <em>(used in other scripts)</em></li>
-<li>veafNamedPoints.lua <em>(used in other scripts)</em></li>
-<li>veafCarrierOperations.lua <em>(not mandatory)</em></li>
-<li>veafCombatZone.lua <em>(not mandatory)</em></li>
-<li>veafGrass.lua <em>(not mandatory)</em></li>
-<li>veafMove.lua <em>(not mandatory)</em></li>
-<li>veafTransportMission.lua <em>(not mandatory)</em></li>
-<li>veafInterpreter.lua <em>(not mandatory)</em></li>
-<li><strong>&hellip;(now the configuration scripts)</strong></li>
-<li>veafAssetsConfig.lua</li>
-<li>veafAutogftConfig.lua</li>
-<li>veafCTLDConfig.lua</li>
-<li>veafCombatZoneConfig.lua</li>
-<li>veafNamedPointsConfig.lua</li>
-<li>veafSecurityConfig.lua</li>
+<li>the count of remaining units in the briefing will be split into unit type (e.g. <em>2 Shilka, 4 SA-18</em>)</li>
+<li>the location of the marker smoke will be the exact barycenter of all the remaining units, instead of being the center of the zone</li>
 </ul>
-<p>Then, it should run the following initialization code:</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-lua" data-lang="lua">veafRadio.initialize()
-veafAssets.initialize()
-veafCasMission.initialize()
-veafGrass.initialize()
-veafMove.initialize()
-veafSpawn.initialize()
-veafCarrierOperations.initialize()
-veafTransportMission.initialize()
-veafNamedPoints.initialize()
-veafSecurity.initialize()
-veafCombatZone.initialize()
-veafInterpreter.initialize()
-ctld.initialize() <span style="color:#75715e">-- only needed if you use CTLD</span>
-</code></pre></div><p>Then, for each script that you use (and its dependencies), you should read the specific documentation and find out how to use and configure it.</p>
-
-
-
+<p>Then we call the <code>:initialize()</code> method to finish preparing the combat zone.</p>
+<p>Eventually, when all our zones are defined, we call <code>veafCombatZone.initialize()</code> to initialise the script (build the combat zones and prepare the radio menu).</p>
+<h3 id="how-to-setup-a-combat-zone-in-the-mission-editor">How to setup a Combat Zone in the mission editor</h3>
+<p>A combat zone starts with a mission editor zone object.
+So, first thing first, you must place such an object on the map and name it with a memorable name.</p>
+<p><img src="/VEAF-Mission-Creation-Tools/images/create-combatzone-01.png?raw=true" alt="create-combatzone-01" title="create-combatzone-01"></p>
+<p>Then, you must add units inside the mission editor zone object (this is very important, as only the units inside the zone will be part of the combat zone), and name the groups with a name that starts with the mission editor zone name (this is equally important, as groups named otherwise will not be part of the combat zone).</p>
+<p><img src="/VEAF-Mission-Creation-Tools/images/create-combatzone-02.png?raw=true" alt="create-combatzone-02" title="create-combatzone-02"></p>
+<p>Groups can either be actual DCS groups or statics (as the one in the screenshot above) or special groups containing a VEAF command.
+Whatever type a group is, <strong>the first unit</strong> of the group can have specific options inserted in its name, conditionning the spawn of the group (or the execution of the command) when the mission is later activated.
+The groups can have a route, which will be set on the actual group(s) that will be spawned when the mission is activated.</p>
+<p>All these groups define <em>combat zone elements</em>, which are stored in memory until the zone is activated.
+<strong>They&rsquo;ll be destroyed at mission start !</strong></p>
+<h4 id="spawn-options">Spawn options</h4>
+<p>The options all start with a pound symbol, followed by a keyword, an equal sign and a value (surrounded with french quotes if it&rsquo;s a text value).
+E.g. <code>#spawnGroup=&quot;patrol-group1&quot;</code>, or <code>#spawnCount=1</code>
+All these options are, as their name implies, optional.</p>
+<ul>
+<li><em>spawnRadius</em> (in meters) the spawn point of the <em>combat zone element</em> will be chosen randomly in this radius around the actual group position in the mission editor. E.g. <code>#spawnRadius=500</code></li>
+<li><em>spawnChance</em> (in percent) the <em>combat zone element</em> will have <em>spawnChance</em> out of 100 chances of being actually spawned or executed. E.g. <code>#spawnChance=25</code></li>
+<li><em>spawnGroup</em> (text) (used with <em>spawnCount</em>) groups together <em>combat zone elements</em>, in such a way that only a certain number of them will actually get spawned or executed. This is useful to randomise the position of an enemy group in the mission, by specifying all the possible spawn points with a different group. E.g. <code>#spawnGroup=&quot;manpad-group1&quot;,#spawnCount=2</code>, repeated over a few mission editor groups in the zone, will make only 2 of them spawn (based on the <em>spawnChance</em> of each one).</li>
+<li><em>spawnCount</em> (number) (used with <em>spawnGroup</em>) defines the number of <em>combat zone elements</em> grouped together with <em>spawnGroup</em> that will always spawn or be executed.</li>
+</ul>
+<p><strong>Important note</strong>: DCS has a way of making unit and group names unique by adding a pound symbol followed by a 3 digits number. This is all well and good, but if you separate the different options in a unit name with spaces, only the first option will be kept (DCS mission editor will automatically erase the rest and replace it with its numbering system).
+The solution is to use other characters to separate the options in the unit name, such as a comma. E.g. <code>#spawnGroup=&quot;patrol-group1&quot;,#spawnCount=1,#spawnChance=25</code></p>
+<p><strong>Example of randomisation by using <em>spawnGroup</em> and <em>spawnCount</em></strong></p>
+<p><img src="/VEAF-Mission-Creation-Tools/images/create-combatzone-03.png?raw=true" alt="create-combatzone-03" title="create-combatzone-03"></p>
+<p>In this example, we created a zone named <em>combatZone_Batumi</em>, with 6 mission editor groups named <em>combatZone_Batumi - manpad-group1</em>, each one a manpad group with its first unit named <em>#spawnGroup=&quot;manpad-group1&rdquo;,#spawnCount=2,#spawnChance=25</em> (DCS adds its numbering system to make the names unique).</p>
+<p>The result is a randomisation of these manpad groups: each time the combat zone is activated, two random manpad groups out of the six possible groups are spawned.</p>
+<p><img src="/VEAF-Mission-Creation-Tools/images/create-combatzone-04.gif?raw=true" alt="create-combatzone-04" title="create-combatzone-04">
+(this animation also shows a random BTR patrol)</p>
+<h4 id="veaf-commands">VEAF commands</h4>
+<p>Instead of &ldquo;simply&rdquo; adding a DCS group to the mission editor, it&rsquo;s possible to define a <em>VEAF command</em> that will be executed when the <em>combat zone element</em> will be activated.
+This is done by using the <em>#command</em> spawn option; e.g. <code>#command=&quot;_spawn group, name sa6&quot;</code>.
+The command itself can be any VEAF command that will be recognized inside a marker at runtime (see <a href="../../concepts/usermarks">Markers</a>), such as:</p>
+<ul>
+<li>a <em>_spawn</em> command (see the <a href="../veafunits">veafSpawn</a> documentation); e.g. <code>#command=&quot;_spawn group, name sa6&quot;</code></li>
+<li>an <em>alias</em> (see the <a href="../veafshortcuts">veafShortcuts</a> documentation); e.g. <code>#command=&quot;-samlr&quot;</code></li>
+<li>the definition of a <em>named point</em> (see the <a href="../veafnamedpoints">veafNamedPoints</a> documentation); e.g. <code>#command=&quot;_name point Kobuleti City&quot;</code></li>
+<li>the start of a <em>CAS mission</em> (see the <a href="../veafcasmission">veafCasMission</a> documentation); e.g. <code>#command=&quot;_cas, defense 3, size 5&quot;</code></li>
+<li>a command for the <em>security</em> module (see the <a href="../veafsecurity">veafSecurity</a> documentation); e.g. <code>#command=&quot;_auth mysecretp@ssw0rd&quot;</code></li>
+</ul>
+<p>The <em>#command</em> spawn option can, of course, be combined with other spawn options.</p>
+<h4 id="conclusion">Conclusion</h4>
+<p>Using this powerful script, it&rsquo;s very easy to define a complex, dynamic, randomized yet hand-crafted mission that can be triggered as will by the players when they want to use it.
+For example, I designed a combat zone that starts a vivid ground battle with (for each side):</p>
+<ul>
+<li>a static air defense group: <code>#command=&quot;_spawn samgroup, size 1, defense 4&quot;</code></li>
+<li>3 armor platoons, moving toward their enemy counterpart: <code>#command=&quot;_spawn armorgroup, size 5, armor 5, defense 0&quot; #spawnradius=500</code></li>
+<li>4 manpad groups, of which only 2 will actually spawn: <code>#spawnGroup=&quot;RU-manpad&quot;,#spawnCount=2,#spawnChance=25</code></li>
+</ul>
+<h2 id="how-to-use-in-a-mission">How to use in a mission</h2>
+<p>Use the radio menus to :</p>
+<ul>
+<li>get information (briefing) about a combat zone</li>
+<li>activate or deactivate a combat zone</li>
+<li>request a smoke marker on the combat zone</li>
+<li>request a lighting flare dropped over the combat zone</li>
+</ul>
 
 
 <footer class=" footline" >
 	
 </footer>
+
 
         
         </div> 
@@ -896,6 +926,7 @@ ctld.initialize() <span style="color:#75715e">-- only needed if you use CTLD</s
             
                 
                     
+                    
                 
                 
 
@@ -908,6 +939,9 @@ ctld.initialize() <span style="color:#75715e">-- only needed if you use CTLD</s
             
             
                 
+                    
+                        
+                        
                     
                 
                 
@@ -1005,6 +1039,7 @@ ctld.initialize() <span style="color:#75715e">-- only needed if you use CTLD</s
             
                 
                     
+                    
                 
                 
 
@@ -1023,6 +1058,9 @@ ctld.initialize() <span style="color:#75715e">-- only needed if you use CTLD</s
             
             
                 
+                    
+                        
+                        
                     
                 
                 
@@ -1127,10 +1165,10 @@ ctld.initialize() <span style="color:#75715e">-- only needed if you use CTLD</s
 	 
 	 
 		
-			<a class="nav nav-prev" href="/VEAF-Mission-Creation-Tools/" title="VEAF Mission Creation Tools"> <i class="fa fa-chevron-left"></i></a>
+			<a class="nav nav-prev" href="/VEAF-Mission-Creation-Tools/mission-maker/modules/veafcasmission/" title="veafCasMission"> <i class="fa fa-chevron-left"></i></a>
 		
 		
-			<a class="nav nav-next" href="/VEAF-Mission-Creation-Tools/mission-maker/concepts/" title="Concepts" style="margin-right: 0px;"><i class="fa fa-chevron-right"></i></a>
+			<a class="nav nav-next" href="/VEAF-Mission-Creation-Tools/mission-maker/third-party/" title="Third party" style="margin-right: 0px;"><i class="fa fa-chevron-right"></i></a>
 		
 	
     </div>
@@ -1160,3 +1198,4 @@ ctld.initialize() <span style="color:#75715e">-- only needed if you use CTLD</s
 
   </body>
 </html>
+

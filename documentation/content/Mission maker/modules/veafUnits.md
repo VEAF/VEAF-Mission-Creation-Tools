@@ -116,7 +116,7 @@ Example :
 
 #### units
 
-The **units** keyword defines a list of all the units composing the group. 
+The **units** keyword defines a list of all the units composing the group.
 
 Example :
 
@@ -234,13 +234,13 @@ And we can actually spawn all the units at the center of each cell, with a rando
             -- the search radar
             {"Dog Ear radar", random},  
             -- Tor battery
-            {"Tor 9A331", hdg = 0, random}, {"Tor 9A331", hdg = 90, random}, {"Tor 9A331", hdg = 180, random}, {"Tor 9A331", hdg = 270, random}, 
+            {"Tor 9A331", hdg = 0, random}, {"Tor 9A331", hdg = 90, random}, {"Tor 9A331", hdg = 180, random}, {"Tor 9A331", hdg = 270, random},
             -- Some SA13
             {"Strela-10M3", number = {min=2, max=4}, random},
             -- Some Shilkas
             {"ZSU-23-4 Shilka", number = {min=2, max=4}, random},
             -- a supply truck or three
-            {"Transport Ural-4320-31 Armored", number = {min=1, max=3}, random}, 
+            {"Transport Ural-4320-31 Armored", number = {min=1, max=3}, random},
         },
         description = "generateAirDefenseGroup-RED-5",
         groupName = "generateAirDefenseGroup-RED-5",

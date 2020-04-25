@@ -48,10 +48,10 @@ veafCombatZone = {}
 veafCombatZone.Id = "COMBAT ZONE - "
 
 --- Version.
-veafCombatZone.Version = "1.1.0"
+veafCombatZone.Version = "1.2.0"
 
 -- trace level, specific to this module
-veafCombatZone.Trace = false
+veafCombatZone.Trace = true
 
 --- Number of seconds between each check of the zone watchdog function
 veafCombatZone.SecondsBetweenWatchdogChecks = 30
@@ -125,7 +125,11 @@ VeafCombatZoneElement =
     -- spawn radius in meters (randomness introduced in the respawn mechanism)
     spawnRadius,
     -- spawn chance in percent (xx chances in 100 that the unit is spawned - or the command run)
-    spawnChance
+    spawnChance,
+    -- grouping elements (spawnGroup) so that a certain number (spawnCount) is guaranteed to spawn, by running the spawn random chance computation as often as necessary
+    spawnGroup,
+    -- grouping elements (spawnGroup) so that a certain number (spawnCount) is guaranteed to spawn, by running the spawn random chance computation as often as necessary
+    spawnCount
 }
 VeafCombatZoneElement.__index = VeafCombatZoneElement
 
@@ -141,6 +145,8 @@ function VeafCombatZoneElement.new ()
     self.coalition = nil
     self.spawnRadius = 0
     self.spawnChance = 100
+    self.spawnGroup = nil
+    self.spawnCount = 1
     return self
 end
 
@@ -231,6 +237,24 @@ function VeafCombatZoneElement:getSpawnChance()
     return self.spawnChance
 end
 
+function VeafCombatZoneElement:setSpawnGroup(value)
+    self.spawnGroup = value
+    return self
+end
+
+function VeafCombatZoneElement:getSpawnGroup()
+    return self.spawnGroup
+end
+
+function VeafCombatZoneElement:setSpawnCount(value)
+    self.spawnCount = tonumber(value)
+    return self
+end
+
+function VeafCombatZoneElement:getSpawnCount()
+    return self.spawnCount
+end
+
 ---
 --- other methods
 ---
@@ -280,6 +304,7 @@ function VeafCombatZone.new ()
     self.briefing = nil
     self.objectives = {}
     self.elements = {}
+    self.elementGroups = {}
     self.zoneCenter = nil
     self.active = false
     self.training = false
@@ -373,6 +398,39 @@ function VeafCombatZone:clearSpawnedGroups()
     return self
 end
 
+
+function VeafCombatZone:addZoneElement(element)
+    veafCombatZone.logDebug(string.format("VeafCombatZone[%s]:addZoneElement(%s)",self.missionEditorZoneName or "", element:getName()))
+    if not self.elements then 
+        self.elements = {}
+    end
+    if not self.elementGroups then 
+        self.elementGroups = {}
+    end
+    table.insert(self.elements, element)
+    if not self.elementGroups[element:getSpawnGroup()] then
+        local elementGroup = {}
+        elementGroup.spawnGroup = element:getSpawnGroup()
+        elementGroup.spawnCount = element:getSpawnCount()
+        elementGroup.elements = {}
+        self.elementGroups[element:getSpawnGroup()] = elementGroup
+    end
+    local elementGroup = self.elementGroups[element:getSpawnGroup()]
+    table.insert(elementGroup.elements, element)
+    return self
+end
+
+function VeafCombatZone:getZoneElements()
+    veafCombatZone.logDebug(string.format("VeafCombatZone[%s]:getZoneElement()",self.missionEditorZoneName or ""))
+    veafCombatZone.logTrace(veaf.serialize("self.elements", self.elements))
+    return self.elements
+end
+
+function VeafCombatZone:getZoneElementsGroups()
+    veafCombatZone.logDebug(string.format("VeafCombatZone[%s]:getZoneElementsGroups()",self.missionEditorZoneName or ""))
+    return self.elementGroups
+end
+
 ---
 --- other methods
 ---
@@ -438,9 +496,11 @@ function VeafCombatZone:initialize()
         veafCombatZone.logTrace(string.format("processing unit [%s] of coalition [%d]", unitName, unit:getCoalition()))
         zoneElement:setPosition(unit:getPosition().p)
         local spawnRadius, command, chance 
-        _, _, spawnRadius = unitName:lower():find("#spawnradius%s*=%s*(%d+)")
-        _, _, command = unitName:lower():find("#command%s*=%s*\"(.+)\"")
-        _, _, spawnChance = unitName:lower():find("#spawnchance%s*=%s*(%d+)")
+        local _, _, spawnRadius = unitName:lower():find("#spawnradius%s*=%s*(%d+)")
+        local _, _, command = unitName:lower():find("#command%s*=%s*\"(.+)\"")
+        local _, _, spawnChance = unitName:lower():find("#spawnchance%s*=%s*(%d+)")
+        local _, _, spawnGroup = unitName:lower():find("#spawngroup%s*=%s*\"(.+)\"")
+        local _, _, spawnCount = unitName:lower():find("#spawncount%s*=%s*(%d+)")
         if spawnRadius then 
             veafCombatZone.logTrace(string.format("spawnRadius = [%d]", spawnRadius))
             zoneElement:setSpawnRadius(spawnRadius)
@@ -448,6 +508,14 @@ function VeafCombatZone:initialize()
         if spawnChance then 
             veafCombatZone.logTrace(string.format("spawnChance = [%d]", spawnChance))
             zoneElement:setSpawnChance(spawnChance)
+        end
+        if spawnCount then 
+            veafCombatZone.logTrace(string.format("spawnCount = [%d]", spawnCount))
+            zoneElement:setSpawnCount(spawnCount)
+        end
+        if spawnGroup then 
+            veafCombatZone.logTrace(string.format("spawnGroup = [%s]", spawnGroup))
+            zoneElement:setSpawnGroup(spawnGroup)
         end
         if command then 
             -- it's a fake unit transporting a VEAF command
@@ -457,9 +525,9 @@ function VeafCombatZone:initialize()
             local groupName = unit:getGroup():getName()
             veafCombatZone.logTrace(string.format("groupName = [%s]", groupName))
             local route = mist.getGroupRoute(groupName, 'task')
-            veafCombatZone.logTrace(string.format("route = [%s]", veaf.p(route)))
             zoneElement:setRoute(route)
-    else
+            if not zoneElement:getSpawnGroup() then zoneElement:setSpawnGroup(groupName) end -- default the spawn group to the group name in case there is no spawn group  defined
+        else
             -- it's a group or a static unit
             local groupName = nil
             if unit:getCategory() == 3 then
@@ -475,6 +543,7 @@ function VeafCombatZone:initialize()
                     zoneElement:setSpawnRadius(veafCombatZone.DefaultSpawnRadiusForUnits)
                 end
             end
+            if not zoneElement:getSpawnGroup() then zoneElement:setSpawnGroup(groupName) end -- default the spawn group to the group name in case there is no spawn group  defined
             if not alreadyAddedGroups[groupName] then 
                 -- add a group element
                 veafCombatZone.logTrace(string.format("adding group [%s]", groupName))
@@ -486,7 +555,7 @@ function VeafCombatZone:initialize()
             end
         end
 
-        self.elements[#self.elements+1] = zoneElement
+        if zoneElement then self:addZoneElement(zoneElement) end
     end
 
     -- deactivate the zone
@@ -636,51 +705,72 @@ function VeafCombatZone:activate()
     veafCombatZone.logTrace(string.format("VeafCombatZone[%s]:activate()",self:getMissionEditorZoneName()))
     self:setActive(true)
     
-    for _, zoneElement in pairs(self.elements) do
-        veafCombatZone.logTrace(string.format("processing element [%s]",zoneElement:getName()))
-        local chance = math.random(0, 100)
-        veafCombatZone.logTrace(string.format("chance = [%d]",chance))
-        veafCombatZone.logTrace(string.format("spawnChance = [%d]",zoneElement:getSpawnChance()))
-        if chance <= zoneElement:getSpawnChance() then
-            local position = zoneElement:getPosition()
-            if zoneElement:getSpawnRadius() > 0 then
-                veafCombatZone.logTrace(string.format("position=[%s]",veaf.vecToString(position)))
-                veafCombatZone.logTrace(string.format("spawnRadius=[%s]",zoneElement:getSpawnRadius()))
-                local mistP = mist.getRandPointInCircle(position, zoneElement:getSpawnRadius())
-                veafCombatZone.logTrace(string.format("mistP=[%s]",veaf.vecToString(mistP)))
-                position = {x = mistP.x, y = position.y, z = mistP.y}
-            end
-            if zoneElement:isDcsStatic() or zoneElement:isDcsGroup() then
-                veafCombatZone.logTrace(string.format("respawning group [%s] at position [%s]",zoneElement:getName(), veaf.vecToString(position)))
-                local vars = {}
-                vars.gpName = zoneElement:getName()
-                vars.name = zoneElement:getName()
-                vars.route = mist.getGroupRoute(vars.gpName, 'task')
-                vars.action = 'respawn'
-                vars.point = position
-                local newGroup = mist.teleportToPoint(vars)
-                if type(newGroup) == 'table' then
-                    veafCombatZone.logTrace(string.format("[%s]:activate() - mist.teleportToPoint([%s])", self:getMissionEditorZoneName(), zoneElement:getName()))
-                    self:addSpawnedGroup(newGroup.name)
-                else
-                    veafCombatZone.logTrace(string.format("[%s]:activate() - mist.teleportToPoint([%s]) failed", self:getMissionEditorZoneName(), zoneElement:getName()))
+    for _, zoneElementGroup in pairs(self:getZoneElementsGroups()) do
+        veafCombatZone.logTrace(string.format("processing spawnGroup [%s]",zoneElementGroup.spawnGroup))
+        local spawnCount = zoneElementGroup.spawnCount
+        veafCombatZone.logTrace(string.format("spawnCount = [%d]",spawnCount))
+        local tries = 10
+        alreadySpawnedElements = {}
+        for _, zoneElement in pairs(zoneElementGroup.elements) do alreadySpawnedElements[zoneElement:getName()]=false end
+        while spawnCount > 0 and tries > 0 do
+            veafCombatZone.logTrace(string.format("tries = [%d]",tries))
+            tries = tries - 1
+
+            for _, zoneElement in pairs(zoneElementGroup.elements) do
+                if spawnCount > 0 then
+                    if not alreadySpawnedElements[zoneElement:getName()] then
+                        veafCombatZone.logTrace(string.format("processing element [%s]",zoneElement:getName()))
+                        local chance = math.random(0, 100)
+                        if tries == 1 then chance = 0 end -- force chance if in the last try
+                        veafCombatZone.logTrace(string.format("chance = [%d]",chance))
+                        veafCombatZone.logTrace(string.format("spawnChance = [%d]",zoneElement:getSpawnChance()))
+                        if chance <= zoneElement:getSpawnChance() then
+                            veafCombatZone.logTrace(string.format("chance hit (%d <= %d)",chance, zoneElement:getSpawnChance()))
+                            spawnCount = spawnCount - 1
+                            alreadySpawnedElements[zoneElement:getName()]=true
+                            local position = zoneElement:getPosition()
+                            if zoneElement:getSpawnRadius() > 0 then
+                                veafCombatZone.logTrace(string.format("position=[%s]",veaf.vecToString(position)))
+                                veafCombatZone.logTrace(string.format("spawnRadius=[%s]",zoneElement:getSpawnRadius()))
+                                local mistP = mist.getRandPointInCircle(position, zoneElement:getSpawnRadius())
+                                veafCombatZone.logTrace(string.format("mistP=[%s]",veaf.vecToString(mistP)))
+                                position = {x = mistP.x, y = position.y, z = mistP.y}
+                            end
+                            if zoneElement:isDcsStatic() or zoneElement:isDcsGroup() then
+                                veafCombatZone.logTrace(string.format("respawning group [%s] at position [%s]",zoneElement:getName(), veaf.vecToString(position)))
+                                local vars = {}
+                                vars.gpName = zoneElement:getName()
+                                vars.name = zoneElement:getName()
+                                vars.route = mist.getGroupRoute(vars.gpName, 'task')
+                                vars.action = 'respawn'
+                                vars.point = position
+                                local newGroup = mist.teleportToPoint(vars)
+                                if type(newGroup) == 'table' then
+                                    veafCombatZone.logTrace(string.format("[%s]:activate() - mist.teleportToPoint([%s])", self:getMissionEditorZoneName(), zoneElement:getName()))
+                                    self:addSpawnedGroup(newGroup.name)
+                                else
+                                    veafCombatZone.logTrace(string.format("[%s]:activate() - mist.teleportToPoint([%s]) failed", self:getMissionEditorZoneName(), zoneElement:getName()))
+                                end
+                            elseif zoneElement:isVeafCommand() then
+                                veafCombatZone.logTrace(string.format("executing command [%s] at position [%s]",zoneElement:getName(), veaf.vecToString(position)))
+                                local spawnedGroups = {}
+                                veafInterpreter.execute(zoneElement:getName(), position, zoneElement:getCoalition(), spawnedGroups)
+                                for _, newGroup in pairs(spawnedGroups) do
+                                    veafCombatZone.logTrace(string.format("[%s].addSpawnedGroup", zoneElement:getName()))
+                                    self:addSpawnedGroup(newGroup)
+                                    veafCombatZone.logTrace(string.format("newGroup = [%s]", newGroup))
+                                    local route = zoneElement:getRoute()
+                                    local result = mist.goRoute(newGroup, route)
+                                end
+                            end
+                        else 
+                            veafCombatZone.logTrace(string.format("chance missed (%d > %d)",chance, zoneElement:getSpawnChance()))
+                        end
+                    else
+                        veafCombatZone.logTrace(string.format("already spawned [%s]",zoneElement:getName()))
+                    end
                 end
-            elseif zoneElement:isVeafCommand() then
-                veafCombatZone.logTrace(string.format("executing command [%s] at position [%s]",zoneElement:getName(), veaf.vecToString(position)))
-                local spawnedGroups = {}
-                veafInterpreter.execute(zoneElement:getName(), position, zoneElement:getCoalition(), spawnedGroups)
-                for _, newGroup in pairs(spawnedGroups) do
-                    veafCombatZone.logTrace(string.format("[%s].addSpawnedGroup", zoneElement:getName()))
-                    self:addSpawnedGroup(newGroup)
-                    veafCombatZone.logTrace(string.format("newGroup = [%s]", newGroup))
-                    local route = zoneElement:getRoute()
-                    veafCombatZone.logTrace(string.format("route = [%s]", veaf.p(route)))
-                    local result = mist.goRoute(newGroup, route)
-                    veafCombatZone.logTrace(string.format("result = [%s]", veaf.p(result)))
-                end
             end
-        else 
-            veafCombatZone.logTrace(string.format("chance missed (%d > %d)",chance, zoneElement:getSpawnChance()))
         end
     end
 

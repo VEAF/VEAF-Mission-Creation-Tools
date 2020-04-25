@@ -14,7 +14,7 @@ Let's start by saying that you can clone the *[VEAF-Demo-Mission](https://github
 
 ### Load the script and its prerequisites
 
-Please refer to the [Load scripts in the mission](../concepts/load-with-triggers) for loading the scripts.
+Please refer to the [Load scripts in the mission](../../concepts/load-with-triggers) for loading the scripts.
 
 ### How to configure the script in a mission
 
@@ -111,7 +111,7 @@ Instead of "simply" adding a DCS group to the mission editor, it's possible to d
 This is done by using the *#command* spawn option; e.g. `#command="_spawn group, name sa6"`.
 The command itself can be any VEAF command that will be recognized inside a marker at runtime (see [Markers](../../concepts/usermarks)), such as:
 
-- a *_spawn* command (see the [veafSpawn](../veafunits) documentation); e.g. `#command="_spawn group, name sa6"`
+- a *_spawn* command (see the [veafSpawn](../veafspawn) documentation); e.g. `#command="_spawn group, name sa6"`
 - an *alias* (see the [veafShortcuts](../veafshortcuts) documentation); e.g. `#command="-samlr"`
 - the definition of a *named point* (see the [veafNamedPoints](../veafnamedpoints) documentation); e.g. `#command="_name point Kobuleti City"`
 - the start of a *CAS mission* (see the [veafCasMission](../veafcasmission) documentation); e.g. `#command="_cas, defense 3, size 5"`

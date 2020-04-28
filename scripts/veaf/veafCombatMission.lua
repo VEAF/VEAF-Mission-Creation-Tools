@@ -51,10 +51,10 @@ veafCombatMission = {}
 veafCombatMission.Id = "COMBAT MISSION - "
 
 --- Version.
-veafCombatMission.Version = "0.0.1"
+veafCombatMission.Version = "1.1.0"
 
 -- trace level, specific to this module
-veafCombatMission.Trace = false
+veafCombatMission.Trace = true
 
 --- Number of seconds between each check of the watchdog function
 veafCombatMission.SecondsBetweenWatchdogChecks = 30
@@ -241,14 +241,16 @@ function VeafCombatMissionObjective:configureAsTimedObjective(timeInSeconds)
             :setOnCheck(onCheck)
 end
 
-function VeafCombatMissionObjective:configureAsKillEnemiesObjective(nbKillsToWin)
+function VeafCombatMissionObjective:configureAsKillEnemiesObjective(nbKillsToWin, whatsInAKill)
     veafCombatMission.logTrace(string.format("VeafCombatMissionObjective[%s].configureAsKillEnemiesObjective()",self:getName()))
 
     local function onCheck(mission, parameters)
         veafCombatMission.logTrace(string.format("VeafCombatMissionObjective.configureAsKillEnemiesObjective.onCheck()"))
         if mission:isActive() then
             local nbKillsToWin = parameters.nbKillsToWin
+            local whatsInAKill = parameters.whatsInAKill
             veafCombatMission.logTrace(string.format("nbKillsToWin = %d",nbKillsToWin))
+            veafCombatMission.logTrace(string.format("whatsInAKill = %d",whatsInAKill))
 
             local nbDeadUnits = 0
             local nbLiveUnits = 0
@@ -257,9 +259,12 @@ function VeafCombatMissionObjective:configureAsKillEnemiesObjective(nbKillsToWin
                 veafCombatMission.logTrace(string.format("processing group [%s]",group:GetName()))
                 if group:GetUnits() then
                     for _, unit in pairs(group:GetUnits()) do
-                        veafCombatMission.logTrace(string.format("processing unit [%s]",unit:GetName()))
-                        if unit:IsAlive() then
+                        veafCombatMission.logTrace(string.format("unit:GetLifeRelative() = %f",unit:GetLifeRelative()))
+                        if unit:GetLifeRelative() == 1.0 then
                             veafCombatMission.logTrace(string.format("unit[%s] is alive",unit:GetName()))
+                            nbLiveUnits = nbLiveUnits + 1
+                        elseif unit:GetLifeRelative()*100 > whatsInAKill then
+                            veafCombatMission.logTrace(string.format("unit[%s] is damaged (%d %%)",unit:GetName(), unit:GetLifeRelative()*100 ))
                             nbLiveUnits = nbLiveUnits + 1
                         else
                             veafCombatMission.logTrace(string.format("unit[%s] is dead",unit:GetName()))
@@ -289,7 +294,7 @@ function VeafCombatMissionObjective:configureAsKillEnemiesObjective(nbKillsToWin
     end
 
     return self
-            :setParameters({nbKillsToWin=nbKillsToWin or -1})
+            :setParameters({nbKillsToWin=nbKillsToWin or -1, whatsInAKill=whatsInAKill or 0})
             :setOnCheck(onCheck)
 end
 
@@ -664,8 +669,12 @@ function VeafCombatMission:getInformation()
             if group:GetUnits() then
                 for _, unit in pairs(group:GetUnits()) do
                     veafCombatMission.logTrace(string.format("processing unit [%s]",unit:GetName()))
-                    if unit:IsAlive() then
+                    veafCombatMission.logTrace(string.format("unit:GetLifeRelative() = %f",unit:GetLifeRelative()))
+                    if unit:GetLifeRelative() == 1.0 then
                         veafCombatMission.logTrace(string.format("unit[%s] is alive",unit:GetName()))
+                        nbLiveUnits = nbLiveUnits + 1
+                    elseif unit:GetLifeRelative() > 0 then
+                        veafCombatMission.logTrace(string.format("unit[%s] is damaged (%d %%)",unit:GetName(), unit:GetLifeRelative()*100 ))
                         nbLiveUnits = nbLiveUnits + 1
                     else
                         veafCombatMission.logTrace(string.format("unit[%s] is dead",unit:GetName()))

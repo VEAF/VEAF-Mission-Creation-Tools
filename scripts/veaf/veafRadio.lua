@@ -45,7 +45,7 @@ veafRadio = {}
 veafRadio.Id = "RADIO - "
 
 --- Version.
-veafRadio.Version = "1.1.5"
+veafRadio.Version = "1.2.0"
 
 -- trace level, specific to this module
 veafRadio.Trace = false
@@ -59,9 +59,17 @@ veafRadio.SecondsBetweenRadioMenuAutomaticRebuild = 600 -- 10 minutes ; should n
 veafRadio.USAGE_ForAll   = 0
 veafRadio.USAGE_ForGroup = 1
 veafRadio.USAGE_ForUnit  = 2
+
+-- maximum size for radio menu
+veafRadio.MAXIMUM_SIZE = 3500
+
+-- delay for the actual refresh
+veafRadio.refreshRadioMenu_DELAY = 2
+
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Do not change anything below unless you know what you are doing!
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
+veafRadio.skipHelpMenus = false
 
 --- Humans Units (associative array unitName => unit)
 veafRadio.humanUnits = {}
@@ -73,6 +81,9 @@ veafRadio.radioMenu.title = veafRadio.RadioMenuName
 veafRadio.radioMenu.dcsRadioMenu = nil
 veafRadio.radioMenu.subMenus = {}
 veafRadio.radioMenu.commands = {}
+
+--- Counts the size of the radio menu
+veafRadio.radioMenuSize = {}
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Utility methods
@@ -150,18 +161,49 @@ end
 
 --- Refresh the radio menu, based on stored information
 --- This is called from another method that has first changed the radio menu information by adding or removing elements
-function veafRadio.refreshRadioMenu()
+function veafRadio.refreshRadioMenu(dontDelay)
+  veafRadio.logDebug(string.format("veafRadio.refreshRadioMenu()"))
+
+  -- delay the refresh if possible
+  if not dontDelay then
+    if not veafRadio.refreshRadioMenuDelayedScheduling then
+      veafRadio.refreshRadioMenuDelayedScheduling = mist.scheduleFunction(veafRadio._refreshRadioMenu,{},timer.getTime()+veafRadio.refreshRadioMenu_DELAY)
+    end
+  else
+    veafRadio._refreshRadioMenu()
+  end
+end
+
+--- actually refresh the radio menu, based on stored information
+function veafRadio._refreshRadioMenu()
+  veafRadio.logDebug(string.format("veafRadio._refreshRadioMenu()"))
+  veafRadio.refreshRadioMenuDelayedScheduling = nil
+
   -- completely delete the dcs radio menu
   veafRadio.logTrace("completely delete the dcs radio menu")
   if veafRadio.radioMenu.dcsRadioMenu then
     missionCommands.removeItem(veafRadio.radioMenu.dcsRadioMenu)
   else
-    veafRadio.logInfo("refreshRadioMenu() first time : no DCS radio menu yet")
+    veafRadio.logInfo("_refreshRadioMenu() first time : no DCS radio menu yet")
   end
+  
+  veafRadio.radioMenuSize = {}
+  veafRadio.addSizeForAll(string.len(veafRadio.RadioMenuName))
   
   -- create all the commands and submenus in the dcs radio menu
   veafRadio.logTrace("create all the commands and submenus in the dcs radio menu")
   veafRadio.refreshRadioSubmenu(nil, veafRadio.radioMenu)        
+
+  -- warn if the size starts to get too big
+  local maxSize = 0
+  for group, size in pairs(veafRadio.radioMenuSize) do
+    if maxSize < size then maxSize = size end
+    if size >= veafRadio.MAXIMUM_SIZE then
+      veafRadio.reportRadioMenuSizeBreached("veafRadio._refreshRadioMenu()", group, size)
+    end
+  end
+  veafRadio.logDebug(string.format("veafRadio._refreshRadioMenu() max(veafRadio.radioMenuSize)=%d",maxSize))
+
 end
 
 function veafRadio._addCommand(groupId, title, menu, command, parameters) 
@@ -200,10 +242,23 @@ end
 
 function veafRadio.refreshRadioSubmenu(parentRadioMenu, radioMenu)
   veafRadio.logTrace("veafRadio.refreshRadioSubmenu "..radioMenu.title)
-  
+
+  if veafRadio.skipHelpMenus and radioMenu.title:upper():find("HELP") then
+    veafRadio.logDebug("veafRadio.refreshRadioSubmenu - skipping "..radioMenu.title)
+    return
+  end
+
   local trace = false
 
+  -- warn if the size starts to get too big
+  for group, size in pairs(veafRadio.radioMenuSize) do
+    if size >= veafRadio.MAXIMUM_SIZE then
+      veafRadio.reportRadioMenuSizeBreached(string.format("veafRadio.refreshRadioSubmenu()",radioMenu.title), group, size)
+    end
+  end
+
   -- create the radio menu in DCS
+  veafRadio.addSizeForAll(string.len(radioMenu.title))
   if parentRadioMenu then
     radioMenu.dcsRadioMenu = missionCommands.addSubMenu(radioMenu.title, parentRadioMenu.dcsRadioMenu)
   else
@@ -213,38 +268,46 @@ function veafRadio.refreshRadioSubmenu(parentRadioMenu, radioMenu)
   -- create the commands in the radio menu
   for count = 1,#radioMenu.commands do
     local command = radioMenu.commands[count]
-    if not command.usage then
-      command.usage = veafRadio.USAGE_ForAll
-    end
-    if command.usage ~= veafRadio.USAGE_ForAll then
-      
-      -- build menu for each player group
-      local alreadyDoneGroups = {}
-      for groupId, groupData in pairs(veafRadio.humanGroups) do
-        for _, callsign in pairs(groupData.callsigns) do
-          local unitData = groupData.units[callsign]
-          local unitName = unitData.name
 
-          -- add radio command by player unit or group
-          local parameters = command.parameters
-          if parameters == nil then
-            parameters = unitName
-          else
-            parameters = { command.parameters }
-            table.insert(parameters, unitName)
-          end 
-          local _title = command.title
-          if command.usage == veafRadio.USAGE_ForUnit then
-            _title = callsign .. " - " .. command.title
-          end
-          if alreadyDoneGroups[groupId] == nil or command.usage == veafRadio.USAGE_ForUnit then
-            veafRadio._addCommand(groupId, _title, radioMenu.dcsRadioMenu, command, parameters, trace)
-          end
-          alreadyDoneGroups[groupId] = true
-        end
-      end
+    if veafRadio.skipHelpMenus then veafRadio.logTrace(string.format("command.title=[%s]",command.title)) end
+    if veafRadio.skipHelpMenus and command.title:upper():find("HELP") then
+      veafRadio.logDebug("veafRadio.refreshRadioSubmenu - skipping "..command.title)
     else
-      veafRadio._addCommand(nil, command.title, radioMenu.dcsRadioMenu, command, command.parameters, trace)
+      if not command.usage then
+        command.usage = veafRadio.USAGE_ForAll
+      end
+      if command.usage ~= veafRadio.USAGE_ForAll then
+        
+        -- build menu for each player group
+        local alreadyDoneGroups = {}
+        for groupId, groupData in pairs(veafRadio.humanGroups) do
+          for _, callsign in pairs(groupData.callsigns) do
+            local unitData = groupData.units[callsign]
+            local unitName = unitData.name
+  
+            -- add radio command by player unit or group
+            local parameters = command.parameters
+            if parameters == nil then
+              parameters = unitName
+            else
+              parameters = { command.parameters }
+              table.insert(parameters, unitName)
+            end 
+            local _title = command.title
+            if command.usage == veafRadio.USAGE_ForUnit then
+              _title = callsign .. " - " .. command.title
+            end
+            if alreadyDoneGroups[groupId] == nil or command.usage == veafRadio.USAGE_ForUnit then
+              veafRadio.addSizeForGroup(groupId, string.len(_title))
+              veafRadio._addCommand(groupId, _title, radioMenu.dcsRadioMenu, command, parameters, trace)
+            end
+            alreadyDoneGroups[groupId] = true
+          end
+        end
+      else
+        veafRadio.addSizeForAll(string.len(command.title))
+        veafRadio._addCommand(nil, command.title, radioMenu.dcsRadioMenu, command, command.parameters, trace)
+      end
     end
   end  
   
@@ -403,11 +466,43 @@ function veafRadio.radioRefreshWatchdog()
   mist.scheduleFunction(veafRadio.radioRefreshWatchdog,{},timer.getTime()+veafRadio.SecondsBetweenRadioMenuAutomaticRebuild)
 end
 
+function veafRadio.addSizeForGroup(groupId, sizeToAdd)
+  if not veafRadio.radioMenuSize then
+    veafRadio.radioMenuSize = {}
+  end
+  if not veafRadio.radioMenuSize[groupId] then
+    veafRadio.radioMenuSize[groupId] = 0
+  end
+  veafRadio.radioMenuSize[groupId] = veafRadio.radioMenuSize[groupId] + sizeToAdd
+end
+
+function veafRadio.addSizeForAll(sizeToAdd)
+  for groupId, _ in pairs(veafRadio.humanGroups) do
+    veafRadio.addSizeForGroup(groupId, sizeToAdd)
+  end
+end
+
+function veafRadio.reportRadioMenuSizeBreached_reset()
+  veafRadio.reportRadioMenuSizeBreached_ALREADYDONE = false
+end
+
+function veafRadio.reportRadioMenuSizeBreached(text, group, size)
+  if not veafRadio.reportRadioMenuSizeBreached_ALREADYDONE then
+    local message = string.format("%s - Maximum radio menu size reached : [%s]%d / %d",text or "", tostring(group), size, veafRadio.MAXIMUM_SIZE)
+    veafRadio.logError(string.format("%s - Maximum radio menu size reached : [%s]%d / %d",text or "", tostring(group), size, veafRadio.MAXIMUM_SIZE))
+    trigger.action.outText(string.format("Maximum radio menu size reached : [%s]%d / %d",tostring(group), size, veafRadio.MAXIMUM_SIZE),5)
+    veafRadio.reportRadioMenuSizeBreached_ALREADYDONE = true
+    mist.scheduleFunction(veafRadio.reportRadioMenuSizeBreached_reset,{},timer.getTime()+60)
+  end
+end
+
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- initialisation
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-function veafRadio.initialize()
+function veafRadio.initialize(skipHelpMenus)
+    veafRadio.skipHelpMenus = skipHelpMenus or false
+
     -- Build the initial radio menu
     veafRadio.buildHumanUnits()
     veafRadio.refreshRadioMenu()

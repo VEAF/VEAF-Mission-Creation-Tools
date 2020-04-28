@@ -75,7 +75,7 @@ veafCasMission.Id = "CAS MISSION - "
 veafCasMission.Version = "1.5.6"
 
 -- trace level, specific to this module
-veafCasMission.Trace = false
+veafCasMission.Trace = true
 
 --- Key phrase to look for in the mark text which triggers the command.
 veafCasMission.Keyphrase = "_cas"
@@ -307,7 +307,7 @@ function veafCasMission.generateAirDefenseGroup(groupName, defense, side)
         veafCasMission.logTrace("_dice = " .. _dice)
         if _dice <= 20 then
             _actualDefense = defense - 1
-        elseif _dice > 50 then
+        elseif _dice > 80 then
             _actualDefense = defense + 1
         end
     end
@@ -502,7 +502,7 @@ function veafCasMission.generateArmorPlatoon(groupName, defense, armor, side, si
                 end
             elseif armorRand == 4 then
                 if side == veafCasMission.SIDE_BLUE then
-                    armorType = 'Leopard-2'
+                    armorType = 'MBT Leopard1A3'
                 else
                     armorType = 'T-72B'
                 end

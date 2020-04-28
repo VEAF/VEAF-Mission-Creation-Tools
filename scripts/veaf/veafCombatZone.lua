@@ -51,7 +51,7 @@ veafCombatZone.Id = "COMBAT ZONE - "
 veafCombatZone.Version = "1.2.0"
 
 -- trace level, specific to this module
-veafCombatZone.Trace = true
+veafCombatZone.Trace = false
 
 --- Number of seconds between each check of the zone watchdog function
 veafCombatZone.SecondsBetweenWatchdogChecks = 30
@@ -497,9 +497,9 @@ function VeafCombatZone:initialize()
         zoneElement:setPosition(unit:getPosition().p)
         local spawnRadius, command, chance 
         local _, _, spawnRadius = unitName:lower():find("#spawnradius%s*=%s*(%d+)")
-        local _, _, command = unitName:lower():find("#command%s*=%s*\"(.+)\"")
+        local _, _, command = unitName:lower():find("#command%s*=%s*\"([^\"]+)\"")
         local _, _, spawnChance = unitName:lower():find("#spawnchance%s*=%s*(%d+)")
-        local _, _, spawnGroup = unitName:lower():find("#spawngroup%s*=%s*\"(.+)\"")
+        local _, _, spawnGroup = unitName:lower():find("#spawngroup%s*=%s*\"([^\"]+)\"")
         local _, _, spawnCount = unitName:lower():find("#spawncount%s*=%s*(%d+)")
         if spawnRadius then 
             veafCombatZone.logTrace(string.format("spawnRadius = [%d]", spawnRadius))

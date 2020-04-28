@@ -583,8 +583,8 @@ function veafUnits.placeGroup(group, spawnPoint, spacing, hdg)
                 cell.left = cols[nCol].left
                 cell.right = cols[nCol].right
                 cell.center = {}
-                cell.center.x = cell.left + (cell.right - cell.left) / 2
-                cell.center.y = cell.top + (cell.bottom - cell.top) / 2
+                cell.center.x = cell.left + math.random((cell.right - cell.left) / 10, (cell.right - cell.left) - ((cell.right - cell.left) / 10))
+                cell.center.y = cell.top + math.random((cell.bottom - cell.top) / 10, (cell.bottom - cell.top) - ((cell.bottom - cell.top) / 10))
             end            
         end
     end
@@ -1173,11 +1173,13 @@ veafUnits.GroupsDatabase = {
                 -- the search radar
                 {"Dog Ear radar", random},  
                 -- Tor battery
-                {"Tor 9A331", hdg = 0, random}, {"Tor 9A331", hdg = 90, random}, {"Tor 9A331", hdg = 180, random}, {"Tor 9A331", hdg = 270, random}, 
+                {"Tor 9A331", hdg = 180, number = {min=1, max=2}, random}, 
+                -- SA-8 battery                
+                {"Osa 9A33 ln", number = {min=1, max=2}, random}, 
                 -- Some SA13
-                {"Strela-10M3", number = {min=2, max=4}, random},
-                -- Some Shilkas
-                {"ZSU-23-4 Shilka", number = {min=2, max=4}, random},
+                {"Strela-10M3", number = {min=1, max=2}, random},
+                -- Some Tunguskas
+                {"2S6 Tunguska", number = {min=1, max=2}, random},
                 -- a supply truck or three
                 {"Transport Ural-4320-31 Armored", number = {min=1, max=3}, random}, 
             },
@@ -1193,12 +1195,12 @@ veafUnits.GroupsDatabase = {
             units = {
                 -- the search radar
                 {"Dog Ear radar", random},  
-                -- SA-8 battery
-                {"Osa 9A33 ln", hdg = 0, random}, {"Osa 9A33 ln", hdg = 90, random}, {"Osa 9A33 ln", hdg = 180, random}, {"Osa 9A33 ln", hdg = 270, random}, 
+                -- SA-8 battery                
+                {"Osa 9A33 ln", number = {min=1, max=2}, random}, 
                 -- Some SA13
-                {"Strela-10M3", number = {min=2, max=4}, random},
-                -- Some Tunguskas
-                {"2S6 Tunguska", number = {min=2, max=4}, random},
+                {"Strela-10M3", number = {min=1, max=2}, random},
+                -- Some Shilkas
+                {"ZSU-23-4 Shilka", number = {min=2, max=4}, random},
                 -- a supply truck or three
                 {"Transport Ural-4320-31 Armored", number = {min=1, max=3}, random}, 
             },
@@ -1215,9 +1217,9 @@ veafUnits.GroupsDatabase = {
                 -- the search radar
                 {"Dog Ear radar", random},  
                 -- SA13 battery
-                {"Strela-10M3", hdg = 0, random}, {"Strela-10M3", hdg = 90, random}, {"Strela-10M3", hdg = 180, random}, {"Strela-10M3", hdg = 270, random}, 
+                {"Strela-10M3", number = {min=1, max=3}, random},
                 -- Some SA9
-                {"Strela-1 9P31", number = {min=2, max=4}, random},
+                {"Strela-1 9P31", number = {min=1, max=3}, random},
                 -- Some Shilkas
                 {"ZSU-23-4 Shilka", number = {min=2, max=4}, random},
                 -- a supply truck or three
@@ -1236,7 +1238,7 @@ veafUnits.GroupsDatabase = {
                 -- the search radar
                 {"Dog Ear radar", random},  
                 -- SA9 battery
-                {"Strela-1 9P31", hdg = 0, random}, {"Strela-1 9P31", hdg = 90, random}, {"Strela-1 9P31", hdg = 180, random}, {"Strela-1 9P31", hdg = 270, random}, 
+                {"Strela-1 9P31", number = {min=2, max=4}, random}, 
                 -- Some Shilkas
                 {"ZSU-23-4 Shilka", number = {min=1, max=4}, random},
                 -- a supply truck or three

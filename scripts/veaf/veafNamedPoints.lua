@@ -40,7 +40,7 @@ veafNamedPoints.Id = "NAMED POINTS - "
 veafNamedPoints.Version = "1.2.5"
 
 -- trace level, specific to this module
-veafNamedPoints.Trace = false
+veafNamedPoints.Trace = true
 
 --- Key phrase to look for in the mark text which triggers the command.
 veafNamedPoints.Keyphrase = "_name point"
@@ -380,11 +380,11 @@ end
 
 --- refresh the ATC radio menu
 function veafNamedPoints._refreshAtcRadioMenu()
-    veafNamedPoints.logTrace("adding ATC On Closest Point submenu")
     if veafNamedPoints.atcClosestPath then
         veafNamedPoints.logTrace("deleting ATC On Closest Point submenu")
         veafRadio.delSubmenu(veafNamedPoints.atcClosestPath, veafNamedPoints.rootPath)
     end
+    veafNamedPoints.logTrace("adding ATC On Closest Point submenu")
     veafNamedPoints.atcClosestPath = veafRadio.addSubMenu("ATC on closest point", veafNamedPoints.rootPath)
     veafRadio.addCommandToSubmenu("ATC on closest point" , veafNamedPoints.atcClosestPath, veafNamedPoints.getAtcAtClosestPoint, nil, veafRadio.USAGE_ForUnit)    
 

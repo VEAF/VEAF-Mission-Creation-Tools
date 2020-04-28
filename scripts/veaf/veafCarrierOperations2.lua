@@ -117,7 +117,7 @@ function veafCarrierOperations2.rebuildRadioMenu()
     veafCarrierOperations2.logDebug("veafCarrierOperations2.rebuildRadioMenu()")
 
     -- add specific protected recovery radio commands
-    veafRadio.addSecuredCommandToSubmenu( "Start CASE I - 45'",   veafCarrierOperations2.rootPath, veafCarrierOperations2.startRecovery, {case=1, time=45}, veafRadio.USAGE_ForGroup)
+    --veafRadio.addSecuredCommandToSubmenu( "Start CASE I - 45'",   veafCarrierOperations2.rootPath, veafCarrierOperations2.startRecovery, {case=1, time=45}, veafRadio.USAGE_ForGroup)
     veafRadio.addSecuredCommandToSubmenu( "Start CASE I - 90'",   veafCarrierOperations2.rootPath, veafCarrierOperations2.startRecovery, {case=1, time=90}, veafRadio.USAGE_ForGroup)
     veafRadio.addSecuredCommandToSubmenu( "Start CASE II - 90'",   veafCarrierOperations2.rootPath, veafCarrierOperations2.startRecovery, {case=2, time=90}, veafRadio.USAGE_ForGroup)
     veafRadio.addSecuredCommandToSubmenu( "Start CASE III - 90'",   veafCarrierOperations2.rootPath, veafCarrierOperations2.startRecovery, {case=3, time=90}, veafRadio.USAGE_ForGroup)

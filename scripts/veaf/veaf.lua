@@ -1,5 +1,4 @@
--------------------------------------------------------------------------------------------------------------------------------------------------------------
--- VEAF root script library for DCS Workd
+--------------------------------------------------------------------------------------------------------------------------------------------------------------- VEAF root script library for DCS Workd
 -- By zip (2018)
 --
 -- Features:
@@ -34,7 +33,7 @@ veaf.Id = "VEAF - "
 veaf.MainId = "MAIN - "
 
 --- Version.
-veaf.Version = "1.2.3"
+veaf.Version = "1.3.0"
 
 -- trace level, specific to this module
 veaf.MainTrace = false
@@ -48,31 +47,38 @@ veaf.Debug = veaf.Development
 --- Enable logTrace ==> give even more output to DCS log file.
 veaf.Trace = veaf.Development
 
+veaf.SecondsBetweenFlagMonitorChecks = 5
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Do not change anything below unless you know what you are doing!
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+veaf.monitoredFlags = {}
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Utility methods
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 function veaf.logError(message)
-    env.error(veaf.Id .. message)
+    log.error(veaf.Id .."E - " .. message)
+end
+
+function veaf.logWarning(message)
+    log.warning(veaf.Id .."W - " ..  message)
 end
 
 function veaf.logInfo(message)
-    env.info(veaf.Id .. "I - " .. message)
+    log.info(veaf.Id .."I - " ..  message)
 end
 
 function veaf.logDebug(message)
     if veaf.Debug then
-        env.info(veaf.Id .. "D - " .. message)
+        log.debug(veaf.Id .."D - " ..  message)
     end
 end
 
 function veaf.logTrace(message)
     if veaf.Trace then
-        env.info(veaf.Id .."T - " ..  message)
+        log.debug(veaf.Id .."T - " ..  message)
     end
 end
 
@@ -1029,6 +1035,40 @@ function veaf.endMissionAt(endTimeHour, endTimeMinute, checkIntervalInSeconds, c
     veaf._checkForEndMission(endTimeInSeconds, checkIntervalInSeconds, checkMessage, delay1, message1, delay2, message2, delay3, message3)    
 end
 
+function veaf.startMonitoringFlag(flag, scriptToExecute)
+    veaf.monitoredFlags[flag] = scriptToExecute
+    veaf._monitorFlags()
+end
+
+function veaf.stopMonitoringFlag(flag, scriptToExecute)
+    veaf.monitoredFlags[flag] = scriptToExecute
+end
+
+function veaf._monitorFlags()
+    veaf.mainLogDebug("veaf._monitorFlags()")
+    for flag, scriptToExecute in pairs(veaf.monitoredFlags) do
+        veaf.mainLogTrace(string.format("veaf._monitorFlags() - checking flag %s", flag))
+        local flagValue = trigger.misc.getUserFlag(flag)
+        veaf.mainLogTrace(string.format("veaf._monitorFlags() - flagValue = [%d]", flagValue))
+        if flagValue > 0 then
+            -- call the script
+            veaf.mainLogTrace(string.format("veaf._monitorFlags() - flag %s was TRUE", flag))
+            veaf.mainLogTrace(string.format("veaf._monitorFlags() - calling lua code [%s]", scriptToExecute))
+            local result, err = mist.utils.dostring(scriptToExecute)
+            if result then
+                veaf.mainLogDebug(string.format("veaf._monitorFlags() - lua code was successfully called for flag [%s]", flag))
+            else
+                veaf.mainLogError(string.format("veaf._monitorFlags() - error [%s] calling lua code for flag [%s]", err, flag))
+            end
+            -- reset the flag
+            trigger.action.setUserFlag(flag, false)
+            veaf.mainLogDebug(string.format("veaf._monitorFlags() - flag [%s] was reset", flag))
+        else
+            veaf.mainLogTrace(string.format("veaf._monitorFlags() - flag %s was FALSE or not set", flag))
+        end
+    end
+    mist.scheduleFunction(veaf._monitorFlags, nil, timer.getTime()+veaf.SecondsBetweenFlagMonitorChecks)    
+end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- initialisation

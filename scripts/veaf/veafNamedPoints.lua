@@ -40,7 +40,7 @@ veafNamedPoints.Id = "NAMED POINTS - "
 veafNamedPoints.Version = "1.3.0"
 
 -- trace level, specific to this module
-veafNamedPoints.Trace = true
+veafNamedPoints.Trace = false
 
 --- Key phrase to look for in the mark text which triggers the command.
 veafNamedPoints.Keyphrase = "_name point"
@@ -156,7 +156,7 @@ end
 function veafNamedPoints.namePoint(targetSpot, name, coalition)
     veafNamedPoints.logDebug(string.format("namePoint(name = %s, coalition=%s)",name, coalition))
     veafNamedPoints.logDebug("targetSpot=" .. veaf.vecToString(targetSpot))
-
+    targetSpot.hidden = false
     veafNamedPoints.addPoint(name, targetSpot)
 
     local message = "The point named " .. name .. " has been created. See F10 radio menu for details."
@@ -268,7 +268,7 @@ function veafNamedPoints.listAllPoints(unitName)
     local message = ""
     names = {}
     for name, point in pairs(veafNamedPoints.namedPoints) do
-        table.insert(names, name)
+        if not point.hidden then table.insert(names, name) end
     end
     table.sort(names)
     for _, name in pairs(names) do
@@ -288,7 +288,7 @@ function veafNamedPoints.getAtcAtClosestPoint(unitName)
     local unit = Unit.getByName(unitName)
     if unit then
         for name, point in pairs(veafNamedPoints.namedPoints) do
-            if point.atc then
+            if point.atc and not point.hidden then
                 distanceFromPlayer = ((point.x - unit:getPosition().p.x)^2 + (point.z - unit:getPosition().p.z)^2)^0.5
                 veafNamedPoints.logTrace(string.format("distanceFromPlayer = %d",distanceFromPlayer))
                 if distanceFromPlayer < minDistance then
@@ -344,7 +344,7 @@ function veafNamedPoints._refreshWeatherReportsRadioMenu()
         veafNamedPoints.weatherPath = veafRadio.addSubMenu("Get weather report over a point", veafNamedPoints.rootPath)
         names = {}
         for name, point in pairs(veafNamedPoints.namedPoints) do
-            table.insert(names, name)
+            if not point.hidden then table.insert(names, name) end
         end
         table.sort(names)
         veafNamedPoints._buildWeatherReportsRadioMenuPage(veafNamedPoints.weatherPath, names, 10, 1)
@@ -396,7 +396,7 @@ function veafNamedPoints._refreshAtcRadioMenu()
         veafNamedPoints.atcPath = veafRadio.addSubMenu("ATC", veafNamedPoints.rootPath)
         names = {}
         for name, point in pairs(veafNamedPoints.namedPoints) do
-            if point.atc then
+            if point.atc and not point.hidden then
                 table.insert(names, name)
             end
         end

@@ -36,7 +36,7 @@ veaf.MainId = "MAIN - "
 veaf.Version = "1.3.0"
 
 -- trace level, specific to this module
-veaf.MainTrace = false
+veaf.MainTrace = true
 
 --- Development version ?
 veaf.Development = false
@@ -59,26 +59,26 @@ veaf.monitoredFlags = {}
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 function veaf.logError(message)
-    log.error(veaf.Id .."E - " .. message)
+    log.error(veaf.Id .. message)
 end
 
 function veaf.logWarning(message)
-    log.warning(veaf.Id .."W - " ..  message)
+    log.warning(veaf.Id ..  message)
 end
 
 function veaf.logInfo(message)
-    log.info(veaf.Id .."I - " ..  message)
+    env.info(veaf.Id .."I - " ..  message)
 end
 
 function veaf.logDebug(message)
     if veaf.Debug then
-        log.debug(veaf.Id .."D - " ..  message)
+        env.info(veaf.Id .."D - " ..  message)
     end
 end
 
 function veaf.logTrace(message)
     if veaf.Trace then
-        log.debug(veaf.Id .."T - " ..  message)
+        env.info(veaf.Id .."T - " ..  message)
     end
 end
 
@@ -132,7 +132,7 @@ end
 
 function veaf.mainLogMarker(id, message, position, markersTable)
     if veaf.MainTrace then 
-        return veaf.logMarker(id, veafMain.Id, message, position, markersTable)
+        return veaf.logMarker(id, veaf.Id, message, position, markersTable)
     end
 end
 
@@ -430,11 +430,11 @@ function veaf.findPointInZone(spawnSpot, dispersion, isShip)
 end
 
 --- TODO doc
-function veaf.generateVehiclesRoute(startPoint, destination, onRoad)
+function veaf.generateVehiclesRoute(startPoint, destination, onRoad, speed, patrol)
     veaf.mainLogTrace(string.format("startPoint = {x = %d, y = %d, z = %d}", startPoint.x, startPoint.y, startPoint.z))
-    local routeChoice = "Off Road"
+    local action = "Diamond"
     if onRoad then
-        routeChoice = "On Road"
+        action = "On Road"
     end
 
     local endPoint = veafNamedPoints.getPoint(destination)
@@ -444,14 +444,60 @@ function veaf.generateVehiclesRoute(startPoint, destination, onRoad)
     end
     veaf.mainLogTrace(string.format("endPoint = {x = %d, y = %d, z = %d}", endPoint.x, endPoint.y, endPoint.z))
 
-    local road_x, road_z = land.getClosestPointOnRoads('roads',startPoint.x, startPoint.z)
-    startPoint = veaf.placePointOnLand({x = road_x, y = 0, z = road_z})
+    if onRoad then
+        veaf.mainLogTrace("setting startPoint on a road")
+        local road_x, road_z = land.getClosestPointOnRoads('roads',startPoint.x, startPoint.z)
+        startPoint = veaf.placePointOnLand({x = road_x, y = 0, z = road_z})
+    else
+        startPoint = veaf.placePointOnLand({x = startPoint.x, y = 0, z = startPoint.z})
+    end
+
+    
     veaf.mainLogTrace(string.format("startPoint = {x = %d, y = %d, z = %d}", startPoint.x, startPoint.y, startPoint.z))
 
-    road_x, road_z =land.getClosestPointOnRoads('roads',endPoint.x, endPoint.z)
-    endPoint = veaf.placePointOnLand({x = road_x, y = 0, z = road_z})
-    veaf.mainLogTrace(string.format("endPoint = {x = %d, y = %d, z = %d}", endPoint.x, endPoint.y, endPoint.z))
+    if onRoad then
+        veaf.mainLogTrace("setting endPoint on a road")
+        road_x, road_z =land.getClosestPointOnRoads('roads',endPoint.x, endPoint.z)
+        endPoint = veaf.placePointOnLand({x = road_x, y = 0, z = road_z})
+    else
+        endPoint = veaf.placePointOnLand({x = endPoint.x, y = 0, z = endPoint.z})
+    end
     
+    local task = 
+        {
+            ["id"] = "ComboTask",
+            ["params"] = 
+            {
+                ["tasks"] = 
+                {
+                }, -- end of ["tasks"]
+            }, -- end of ["params"]
+        } -- end of ["task"]
+    if patrol then
+        task = 
+        {
+            ["id"] = "ComboTask",
+            ["params"] = 
+            {
+                ["tasks"] = 
+                {
+                    [1] = 
+                    {
+                        ["enabled"] = true,
+                        ["auto"] = false,
+                        ["id"] = "GoToWaypoint",
+                        ["number"] = 1,
+                        ["params"] = 
+                        {
+                            ["fromWaypointIndex"] = 2,
+                            ["nWaypointIndx"] = 1,
+                        }, -- end of ["params"]
+                    }, -- end of [1]
+                }, -- end of ["tasks"]
+            }, -- end of ["params"]
+        } -- end of ["task"]
+    end
+
     local vehiclesRoute = {
         [1] = 
         {
@@ -464,8 +510,8 @@ function veaf.generateVehiclesRoute(startPoint, destination, onRoad)
             ["formation_template"] = "",
             ["name"] = "STA",
             ["ETA_locked"] = true,
-            ["speed"] = 10,
-            ["action"] = routeChoice,
+            ["speed"] = speed / 3.6,
+            ["action"] = action,
             ["task"] = 
             {
                 ["id"] = "ComboTask",
@@ -484,23 +530,14 @@ function veaf.generateVehiclesRoute(startPoint, destination, onRoad)
             ["y"] = endPoint.z,
             ["alt"] = endPoint.y,
             ["type"] = "Turning Point",
-            ["ETA"] = 164.7057218182,
+            ["ETA"] = 0,
             ["alt_type"] = "BARO",
             ["formation_template"] = "",
             ["name"] = "END",
             ["ETA_locked"] = false,
-            ["speed"] = 10,
-            ["action"] = routeChoice,
-            ["task"] = 
-            {
-                ["id"] = "ComboTask",
-                ["params"] = 
-                {
-                    ["tasks"] = 
-                    {
-                    }, -- end of ["tasks"]
-                }, -- end of ["params"]
-            }, -- end of ["task"]
+            ["speed"] = speed / 3.6,
+            ["action"] = action,
+            ["task"] = task,
             ["speed_locked"] = true,
         }, -- end of [2]
     }
@@ -1035,13 +1072,25 @@ function veaf.endMissionAt(endTimeHour, endTimeMinute, checkIntervalInSeconds, c
     veaf._checkForEndMission(endTimeInSeconds, checkIntervalInSeconds, checkMessage, delay1, message1, delay2, message2, delay3, message3)    
 end
 
-function veaf.startMonitoringFlag(flag, scriptToExecute)
-    veaf.monitoredFlags[flag] = scriptToExecute
-    veaf._monitorFlags()
+function veaf.monitorWithSlMod(command, script, flag, coalition, requireAdmin)
+    mist.scheduleFunction(veaf._monitorWithSlMod, {command, script, flag, coalition, requireAdmin}, timer.getTime()+5)    
 end
 
-function veaf.stopMonitoringFlag(flag, scriptToExecute)
+function veaf._monitorWithSlMod(command, script, flag, coalition, requireAdmin)
+    if slmod then
+        veaf.logDebug(string.format("setting SLMOD configuration for command=[%s], script=[%s], flag=[%d], requireAdmin=[%s]",tostring(command), tostring(script), flag, tostring(requireAdmin)))
+        slmod.chat_cmd(command, flag, -1, coalition or "all", requireAdmin or false)
+        veaf.startMonitoringFlag(flag, script)
+    else
+        veaf.logInfo("SLMOD not found")
+    end
+end
+
+function veaf.startMonitoringFlag(flag, scriptToExecute)
+    -- reset the flag
+    trigger.action.setUserFlag(flag, false)
     veaf.monitoredFlags[flag] = scriptToExecute
+    veaf._monitorFlags()
 end
 
 function veaf._monitorFlags()

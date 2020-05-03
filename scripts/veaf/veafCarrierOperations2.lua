@@ -53,7 +53,7 @@ veafCarrierOperations2.Id = "CARRIER2 - "
 veafCarrierOperations2.Version = "2.0.2"
 
 -- trace level, specific to this module
-veafCarrierOperations2.Trace = true
+veafCarrierOperations2.Trace = false
 
 veafCarrierOperations2.RadioMenuName = "CARRIER OPS 2"
 

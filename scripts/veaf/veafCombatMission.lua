@@ -54,7 +54,7 @@ veafCombatMission.Id = "COMBAT MISSION - "
 veafCombatMission.Version = "1.1.0"
 
 -- trace level, specific to this module
-veafCombatMission.Trace = true
+veafCombatMission.Trace = false
 
 --- Number of seconds between each check of the watchdog function
 veafCombatMission.SecondsBetweenWatchdogChecks = 30
@@ -870,21 +870,41 @@ function veafCombatMission.AddMission(mission)
     return mission
 end
 
+-- activate a mission by number
+function veafCombatMission.ActivateMissionNumber(number, silent)
+    local mission = veafCombatMission.missionsList[number]
+    if mission then 
+        veafCombatMission.ActivateMission(mission:getName(), silent)
+    end
+end
+
 -- activate a mission
-function veafCombatMission.ActivateMission(name)
+function veafCombatMission.ActivateMission(name, silent)
     veafCombatMission.logDebug(string.format("veafCombatMission.ActivateMission([%s])",name or ""))
     local mission = veafCombatMission.GetMission(name)
     mission:activate()
-    trigger.action.outText("VeafCombatMission "..mission:getFriendlyName().." has been activated.", 10)
-	mist.scheduleFunction(veafCombatMission.GetInformationOnMission,{{name}},timer.getTime()+1)
+    if not silent then
+        trigger.action.outText("VeafCombatMission "..mission:getFriendlyName().." has been activated.", 10)
+        mist.scheduleFunction(veafCombatMission.GetInformationOnMission,{{name}},timer.getTime()+1)
+    end
+end
+
+-- desactivate a mission by number
+function veafCombatMission.DesactivateMissionNumber(number, silent)
+    local mission = veafCombatMission.missionsList[number]
+    if mission then 
+        veafCombatMission.DesactivateMission(mission:getName(), silent)
+    end
 end
 
 -- desactivate a mission
-function veafCombatMission.DesactivateMission(name)
+function veafCombatMission.DesactivateMission(name, silent)
     veafCombatMission.logDebug(string.format("veafCombatMission.DesactivateMission([%s])",name or ""))
     local mission = veafCombatMission.GetMission(name)
     mission:desactivate()
-    trigger.action.outText("VeafCombatMission "..mission:getFriendlyName().." has been desactivated.", 10)
+    if not silent then
+        trigger.action.outText("VeafCombatMission "..mission:getFriendlyName().." has been desactivated.", 10)
+    end
 end
 
 -- print information about a mission

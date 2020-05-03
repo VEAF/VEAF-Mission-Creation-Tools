@@ -66,10 +66,10 @@ veafSpawn = {}
 veafSpawn.Id = "SPAWN - "
 
 --- Version.
-veafSpawn.Version = "1.8.4"
+veafSpawn.Version = "1.9.0"
 
 -- trace level, specific to this module
-veafSpawn.Trace = true
+veafSpawn.Trace = false
 
 --- Key phrase to look for in the mark text which triggers the spawn command.
 veafSpawn.SpawnKeyphrase = "_spawn"
@@ -167,6 +167,8 @@ function veafSpawn.executeCommand(eventPos, eventText, eventCoalition, bypassSec
                 options.country = veaf.getFirstCountryInCoalition(options.side)
             end
 
+            local routeDone = false
+
             -- Check options commands
             if options.unit then
                 -- check security
@@ -175,7 +177,7 @@ function veafSpawn.executeCommand(eventPos, eventText, eventCoalition, bypassSec
             elseif options.group then
                 -- check security
                 if not (bypassSecurity or veafSecurity.checkSecurity_L9(options.password)) then return end
-                spawnedGroup = veafSpawn.spawnGroup(eventPos, options.name, options.country, options.speed, options.altitude, options.heading, options.spacing, options.isConvoy, options.patrol, options.offroad, options.destination, bypassSecurity)
+                spawnedGroup = veafSpawn.spawnGroup(eventPos, options.name, options.country, options.speed, options.altitude, options.heading, options.spacing, bypassSecurity)
             elseif options.infantryGroup then
                 -- check security
                 if not (bypassSecurity or veafSecurity.checkSecurity_L9(options.password)) then return end
@@ -200,6 +202,7 @@ function veafSpawn.executeCommand(eventPos, eventText, eventCoalition, bypassSec
                 -- check security
                 if not (bypassSecurity or veafSecurity.checkSecurity_L9(options.password)) then return end
                 spawnedGroup = veafSpawn.spawnConvoy(eventPos, options.country, options.side, options.patrol, options.offroad, options.destination, options.defense, options.size, options.armor, bypassSecurity)
+                routeDone = true
             elseif options.cargo then
                 -- check security
                 if not (bypassSecurity or veafSecurity.checkSecurity_L9(options.password)) then return end
@@ -225,9 +228,15 @@ function veafSpawn.executeCommand(eventPos, eventText, eventCoalition, bypassSec
             elseif options.flare then
                 veafSpawn.spawnIlluminationFlare(eventPos, options.alt)
             end
-
-            if spawnedGroups and spawnedGroup then
-                table.insert(spawnedGroups, spawnedGroup)
+            if spawnedGroup then
+                if not routeDone and options.destination then
+                    --  make the group go to destination
+                    local route = veaf.generateVehiclesRoute(eventPos, options.destination, not options.offroad, options.speed or 12, options.patrol)
+                    mist.goRoute(spawnedGroup, route)
+                end
+                if spawnedGroups then
+                    table.insert(spawnedGroups, spawnedGroup)
+                end
             end
             return true
         end
@@ -262,6 +271,7 @@ function veafSpawn.markTextAnalysis(text)
     switch.airDefenseBattery = false
     switch.transportCompany = false
     switch.fullCombatGroup = false
+    switch.speed = 12
 
     -- spawned group/unit type/alias
     switch.name = ""
@@ -274,7 +284,6 @@ function veafSpawn.markTextAnalysis(text)
     
     switch.country = nil
     switch.side = nil
-    switch.speed = 0
     switch.altitude = 0
     switch.heading = 0
     
@@ -639,10 +648,6 @@ function veafSpawn.doSpawnGroup(spawnSpot, groupDefinition, country, speed, alt,
         mist.dynAdd({country = country, category = "GROUND_UNIT", name = groupName, hidden = false, units = units})
     end
 
-    if speed > 0 then
-        veaf.moveGroupAt(groupName, hdg, speed) -- TODO check if this still works (no leadUnitName parameter)
-    end
-
     if not(silent) then
         -- message the group spawning
         trigger.action.outText("A " .. group.description .. "("..country..") has been spawned", 5)
@@ -652,21 +657,10 @@ function veafSpawn.doSpawnGroup(spawnSpot, groupDefinition, country, speed, alt,
 end
 
 --- Spawn a specific group at a specific spot
-function veafSpawn.spawnGroup(spawnSpot, name, country, speed, alt, hdg, spacing, convoy, patrol, offroad, destination, silent)
+function veafSpawn.spawnGroup(spawnSpot, name, country, speed, alt, hdg, spacing, silent)
     veafSpawn.logDebug(string.format("spawnGroup(name = %s, country=%s, speed=%d, alt=%d, hdg=%d, spacing=%d)",name, country, speed, alt, hdg, spacing))
     veafSpawn.logTrace("spawnGroup: spawnSpot " .. veaf.vecToString(spawnSpot))
-    local spawnedGroupName = veafSpawn.doSpawnGroup(spawnSpot, name, country, speed, alt, hdg, spacing, nil, silent, convoy or patrol)
-
-    if convoy then
-        --  make the group go to destination
-        local route = veaf.generateVehiclesRoute(spawnSpot, destination, not offroad)
-        mist.goRoute(spawnedGroupName, route)
-    end
-
-    if patrol then
-        -- make it patrol
-        mist.ground.patrol(spawnedGroupName, 'doubleBack')
-    end
+    local spawnedGroupName = veafSpawn.doSpawnGroup(spawnSpot, name, country, speed, alt, hdg, spacing, nil, silent)
 
     return spawnedGroupName
 end
@@ -1019,12 +1013,6 @@ function veafSpawn.spawnUnit(spawnPosition, name, country, speed, alt, hdg, unit
             ctld.JTACAutoLase(groupName, laserCode, false, "vehicle")
         end
       end
-  
-
-
-    if speed > 0 then
-        veaf.moveGroupAt(groupName, hdg, speed) -- TODO check if this still works (no leadUnitName parameter)
-    end
 
     -- message the unit spawning
     if not silent then 

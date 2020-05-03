@@ -75,7 +75,7 @@ veafCasMission.Id = "CAS MISSION - "
 veafCasMission.Version = "1.5.6"
 
 -- trace level, specific to this module
-veafCasMission.Trace = true
+veafCasMission.Trace = false
 
 --- Key phrase to look for in the mark text which triggers the command.
 veafCasMission.Keyphrase = "_cas"

@@ -973,21 +973,41 @@ function veafCombatZone.AddZone(zone)
     return zone
 end
 
+-- activate a zone by number
+function veafCombatZone.ActivateZoneNumber(number, silent)
+    local zone = veafCombatZone.zonesList[number]
+    if zone then 
+        veafCombatZone.ActivateZone(zone:getMissionEditorZoneName(), silent)
+    end
+end
+
 -- activate a zone
-function veafCombatZone.ActivateZone(zoneName)
+function veafCombatZone.ActivateZone(zoneName, silent)
     veafCombatZone.logDebug(string.format("veafCombatZone.ActivateZone([%s])",zoneName or ""))
     local zone = veafCombatZone.GetZone(zoneName)
     zone:activate()
-    trigger.action.outText("VeafCombatZone "..zone:getFriendlyName().." has been activated.", 10)
-	mist.scheduleFunction(veafCombatZone.GetInformationOnZone,{{zoneName}},timer.getTime()+1)
+    if not silent then
+        trigger.action.outText("VeafCombatZone "..zone:getFriendlyName().." has been activated.", 10)
+        mist.scheduleFunction(veafCombatZone.GetInformationOnZone,{{zoneName}},timer.getTime()+1)
+    end
 end
 
--- desactivate a zone
-function veafCombatZone.DesactivateZone(zoneName)
+-- desactivate a zone by number
+function veafCombatZone.DesactivateZoneNumber(number, silent)
+    local zone = veafCombatZone.zonesList[number]
+    if zone then 
+        veafCombatZone.DesactivateZone(zone:getMissionEditorZoneName(), silent)
+    end
+end
+
+-- desactivate a zone by name
+function veafCombatZone.DesactivateZone(zoneName, silent)
     veafCombatZone.logDebug(string.format("veafCombatZone.DesactivateZone([%s])",zoneName or ""))
     local zone = veafCombatZone.GetZone(zoneName)
     zone:desactivate()
-    trigger.action.outText("VeafCombatZone "..zone:getFriendlyName().." has been desactivated.", 10)
+    if not silent then
+        trigger.action.outText("VeafCombatZone "..zone:getFriendlyName().." has been desactivated.", 10)
+    end
 end
 
 -- print information about a zone

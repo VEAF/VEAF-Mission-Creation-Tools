@@ -231,7 +231,7 @@ function veafSpawn.executeCommand(eventPos, eventText, eventCoalition, bypassSec
             if spawnedGroup then
                 if not routeDone and options.destination then
                     --  make the group go to destination
-                    local route = veaf.generateVehiclesRoute(eventPos, options.destination, not options.offroad, options.speed or 12, options.patrol)
+                    local route = veaf.generateVehiclesRoute(eventPos, options.destination, not options.offroad, options.speed, options.patrol)
                     mist.goRoute(spawnedGroup, route)
                 end
                 if spawnedGroups then
@@ -271,7 +271,7 @@ function veafSpawn.markTextAnalysis(text)
     switch.airDefenseBattery = false
     switch.transportCompany = false
     switch.fullCombatGroup = false
-    switch.speed = 12
+    switch.speed = nil
 
     -- spawned group/unit type/alias
     switch.name = ""

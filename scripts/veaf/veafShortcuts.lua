@@ -395,14 +395,14 @@ function veafShortcuts.buildDefaultList()
             :setBypassSecurity(true)
     )
     -- shortcuts to commands
-    veafShortcuts.AddAlias(
-        VeafAlias.new()
-            :setName("-login")
-            :setDescription("Unlock the system")
-            :setHidden(true)
-            :setVeafCommand("_auth")
-            :setBypassSecurity(true)
-    )
+    -- veafShortcuts.AddAlias(
+    --     VeafAlias.new()
+    --         :setName("-login")
+    --         :setDescription("Unlock the system")
+    --         :setHidden(true)
+    --         :setVeafCommand("_auth")
+    --         :setBypassSecurity(true)
+    -- )
     veafShortcuts.AddAlias(
         VeafAlias.new()
             :setName("-logout")

@@ -48,6 +48,8 @@ veaf.Debug = veaf.Development
 veaf.Trace = veaf.Development
 
 veaf.SecondsBetweenFlagMonitorChecks = 5
+
+veaf.DEFAULT_GROUND_SPEED_KPH = 30
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Do not change anything below unless you know what you are doing!
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -431,6 +433,9 @@ end
 
 --- TODO doc
 function veaf.generateVehiclesRoute(startPoint, destination, onRoad, speed, patrol)
+    speed = speed or veaf.DEFAULT_GROUND_SPEED_KPH
+    onRoad = onRoad or false
+    patrol = patrol or false
     veaf.mainLogTrace(string.format("startPoint = {x = %d, y = %d, z = %d}", startPoint.x, startPoint.y, startPoint.z))
     local action = "Diamond"
     if onRoad then

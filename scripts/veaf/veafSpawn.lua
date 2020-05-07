@@ -66,7 +66,7 @@ veafSpawn = {}
 veafSpawn.Id = "SPAWN - "
 
 --- Version.
-veafSpawn.Version = "1.9.0"
+veafSpawn.Version = "1.9.1"
 
 -- trace level, specific to this module
 veafSpawn.Trace = false
@@ -624,7 +624,7 @@ function veafSpawn.doSpawnGroup(spawnSpot, groupDefinition, country, speed, alt,
                     ["alt"] = spawnPoint.y,
                     ["type"] = unitType,
                     ["name"] = unitName,
-                    ["speed"] = speed/1.94384,  -- speed in m/s
+                    ["speed"] = 0,  -- speed in m/s
                     ["skill"] = "Random",
                     ["heading"] = spawnPoint.hdg
             }
@@ -966,7 +966,7 @@ function veafSpawn.spawnUnit(spawnPosition, name, country, speed, alt, hdg, unit
                 ["alt"] = spawnPosition.y,
                 ["type"] = unit.typeName,
                 ["name"] = unitName,
-                ["speed"] = speed/1.94384,  -- speed in m/s
+                ["speed"] = 0,
                 ["skill"] = "Random",
                 ["heading"] = mist.utils.toRadian(hdg),
         }
@@ -1402,7 +1402,6 @@ function veafSpawn.help(unitName)
         'You can add options (comma separated) :\n' ..
         '"_spawn unit, name [unit name]" spawns a target vehicle/ship  ; name can be any DCS type\n' ..
         '   "country [country name]" spawns a unit of a specific country ; name can be any DCS country\n' ..
-        '   "speed [speed]" spawns the unit already moving\n' ..
         '   "alt [altitude]" spawns the unit at the specified altitude\n' ..
         '   "hdg [heading]" spawns the unit facing a heading\n' ..
         '_spawn group, name [group name]" spawns a specific group ; name must be a group name from the VEAF Groups Database\n' ..

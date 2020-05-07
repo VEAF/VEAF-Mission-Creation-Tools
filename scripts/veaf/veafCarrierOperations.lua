@@ -60,9 +60,9 @@ veafCarrierOperations.RadioMenuName = "CARRIER OPS"
 
 veafCarrierOperations.AllCarriers = 
 {
-    ["LHA_Tarawa"] = 0,
-    ["Stennis"] = 9.05, 
-    ["KUZNECOW"] = 0
+    ["LHA_Tarawa"] = { runwayAngleWithBRC = 0, desiredWindSpeedOnDeck = 20},
+    ["Stennis"] = { runwayAngleWithBRC = 9.05, desiredWindSpeedOnDeck = 25},
+    ["KUZNECOW"] ={ runwayAngleWithBRC = 0, desiredWindSpeedOnDeck = 25}
 }
 
 veafCarrierOperations.ALT_FOR_MEASURING_WIND = 30 -- wind is measured at 30 meters, 10 meters above deck
@@ -133,13 +133,14 @@ function veafCarrierOperations.startCarrierOperations(parameters)
     local group = Group.getByName(groupName)
     for _, unit in pairs(group:getUnits()) do
         local unitType = unit:getDesc()["typeName"]
-        for knownCarrierType, knownCarrierDeckAngle in pairs(veafCarrierOperations.AllCarriers) do
+        for knownCarrierType, data in pairs(veafCarrierOperations.AllCarriers) do
             if unitType == knownCarrierType then
                 carrier.carrierUnitName = unit:getName()
                 carrier.pedroUnitName = carrier.carrierUnitName .. " Pedro" -- rescue helo unit name
                 carrier.tankerUnitName = carrier.carrierUnitName .. " S3B-Tanker" -- emergency tanker unit name
                 carrier.tankerRouteSet = 0
-                carrier.deckAngle = knownCarrierDeckAngle
+                carrier.runwayAngleWithBRC = data.runwayAngleWithBRC
+                carrier.desiredWindSpeedOnDeck = data.desiredWindSpeedOnDeck
                 carrier.initialPosition = unit:getPosition().p
                 veafCarrierOperations.logTrace("initialPosition="..veaf.vecToString(carrier.initialPosition))
                 break
@@ -221,7 +222,7 @@ function veafCarrierOperations.continueCarrierOperations(groupName)
             dir = dir - 180
         end
 
-        dir = dir + carrier.deckAngle --to account for angle of landing deck and movement of the ship
+        dir = dir + carrier.runwayAngleWithBRC --to account for angle of landing deck and movement of the ship
         
         if dir > 360 then
             dir = dir - 360
@@ -766,12 +767,13 @@ function veafCarrierOperations.initializeCarrierGroups()
             local group = Group.getByName(name)
             for _, unit in pairs(group:getUnits()) do
                 local unitType = unit:getDesc()["typeName"]
-                for knownCarrierType, knownCarrierDeckAngle in pairs(veafCarrierOperations.AllCarriers) do
+                for knownCarrierType, data in pairs(veafCarrierOperations.AllCarriers) do
                     if unitType == knownCarrierType then
                         carrier.carrierUnit = unit
                         carrier.carrierUnitName = carrier.carrierUnit:getName()
-                        carrier.deckAngle = knownCarrierDeckAngle
-                        carrier.pedroUnitName = carrier.carrierUnitName .. " Pedro" -- rescue helo unit name
+                        carrier.runwayAngleWithBRC = data.runwayAngleWithBRC
+                        carrier.desiredWindSpeedOnDeck = data.desiredWindSpeedOnDeck
+                                carrier.pedroUnitName = carrier.carrierUnitName .. " Pedro" -- rescue helo unit name
                         local pedroUnit = Unit.getByName(carrier.pedroUnitName)
                         if pedroUnit then
                             pedroUnit:destroy()

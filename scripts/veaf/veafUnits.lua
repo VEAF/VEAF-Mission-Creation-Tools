@@ -39,7 +39,7 @@ veafUnits = {}
 veafUnits.Id = "UNITS - "
 
 --- Version.
-veafUnits.Version = "1.3.4"
+veafUnits.Version = "1.3.5"
 
 -- trace level, specific to this module
 veafUnits.Trace = false
@@ -792,8 +792,15 @@ veafUnits.GroupsDatabase = {
     {
         aliases = {"rapier_optical", "rpo"},
         group = {
-            disposition = { h= 3, w= 5},
-            units = {{"rapier_fsa_optical_tracker_unit", cell = 13}, {"rapier_fsa_launcher", cell = 1}, {"rapier_fsa_launcher", cell = 5}},
+            disposition = { h= 5, w= 5},
+            units = {
+                {"rapier_fsa_launcher", cell = 1, hdg = 315},
+                {"rapier_fsa_launcher", cell = 5, hdg = 45},
+                {"rapier_fsa_launcher", cell = 21, hdg = 225},
+                {"rapier_fsa_launcher", cell = 25, hdg = 135},
+                {"rapier_fsa_optical_tracker_unit", cell = 9},
+                {"rapier_fsa_optical_tracker_unit", cell = 17}
+            },
             description = "Rapier SAM site",
             groupName = "Rapier"
         },
@@ -802,7 +809,15 @@ veafUnits.GroupsDatabase = {
         aliases = {"rapier_radar", "rpr"},
         group = {
             disposition = { h= 5, w= 5},
-            units = {{"rapier_fsa_optical_tracker_unit", cell = 13}, {"rapier_fsa_launcher", cell = 1}, {"rapier_fsa_launcher", cell = 5}, {"rapier_fsa_blindfire_radar", cell = 23}},
+            units = {
+                {"rapier_fsa_launcher", cell = 1, hdg = 315},
+                {"rapier_fsa_launcher", cell = 5, hdg = 45},
+                {"rapier_fsa_launcher", cell = 21, hdg = 225},
+                {"rapier_fsa_launcher", cell = 25, hdg = 135},
+                {"rapier_fsa_optical_tracker_unit", cell = 9},
+                {"rapier_fsa_optical_tracker_unit", cell = 17},
+                {"rapier_fsa_blindfire_radar", cell = 13}
+            },
             description = "Rapier SAM site with radar",
             groupName = "Rapier-radar"
         },

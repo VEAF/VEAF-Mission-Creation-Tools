@@ -30,7 +30,7 @@ veafShortcuts.Id = "SHORTCUTS - "
 veafShortcuts.Version = "1.0.0"
 
 -- trace level, specific to this module
-veafShortcuts.Trace = false
+veafShortcuts.Trace = true
 
 veafShortcuts.RadioMenuName = "SHORTCUTS"
 
@@ -80,6 +80,8 @@ VeafAlias =
     hidden,
     -- the command that must be substituted to the alias
     veafCommand,
+    -- list of parameters that will be randomized if not present
+    randomParameters,
     -- if TRUE, security is bypassed
     bypassSecurity,
 }
@@ -91,6 +93,7 @@ function VeafAlias.new ()
     self.veafCommand = nil
     self.bypassSecurity = false
     self.hidden = false
+    self.randomParameters = {}
     self.description = nil
     return self
 end
@@ -118,6 +121,16 @@ end
 
 function VeafAlias:getVeafCommand()
     return self.veafCommand
+end
+
+function VeafAlias:addRandomParameter(name, low, high)
+    veafShortcuts.logTrace(string.format("VeafAlias[%s]:addRandomParameter([%s], %s, %s)", self.name, name or "", low or "", high or ""))
+    table.insert(self.randomParameters, { name = name, low = low or 1, high = high or 6})
+    return self
+end
+
+function VeafAlias:getRandomParameters()
+    return self.randomParameters
 end
 
 function VeafAlias:setDescription(value)
@@ -196,7 +209,14 @@ function veafShortcuts.ExecuteAlias(aliasName, remainingCommand, position, coali
     local alias = veafShortcuts.GetAlias(aliasName)
     if alias then 
         veafShortcuts.logTrace(string.format("found VeafAlias[%s]",alias:getName() or ""))
-        local command = alias:getVeafCommand() .. (remainingCommand or "")
+        local command = alias:getVeafCommand()
+        for _, parameter in pairs(alias:getRandomParameters()) do
+            veafShortcuts.logTrace(string.format("randomizing [%s]",parameter.name or ""))
+            local value = math.random(parameter.low, parameter.high)
+            veafShortcuts.logTrace(string.format("got [%d]",value))
+            command = string.format("%s, %s %d",command, parameter.name, value)
+        end
+        local command = command .. (remainingCommand or "")
         veafShortcuts.logTrace(string.format("command = [%s]",command or ""))
         -- check for shortcuts
         if veafShortcuts.executeCommand(position, command, coalition) then
@@ -349,20 +369,23 @@ function veafShortcuts.buildDefaultList()
             :setName("-sam")
             :setDescription("Random SAM battery")
             :setVeafCommand("_spawn samgroup")
+            :addRandomParameter("defense", 1, 5)
             :setBypassSecurity(true)
     )
     veafShortcuts.AddAlias(
         VeafAlias.new()
             :setName("-samLR")
             :setDescription("Random long range SAM battery")
-            :setVeafCommand("_spawn samgroup, defense 5")
+            :setVeafCommand("_spawn samgroup")
+            :addRandomParameter("defense", 4, 5)
             :setBypassSecurity(true)
     )
     veafShortcuts.AddAlias(
         VeafAlias.new()
             :setName("-samSR")
             :setDescription("Random short range SAM battery")
-            :setVeafCommand("_spawn samgroup, defense 2")
+            :setVeafCommand("_spawn samgroup")
+            :addRandomParameter("defense", 2, 3)
             :setBypassSecurity(true)
     )
     -- specific SAM groups
@@ -432,6 +455,9 @@ function veafShortcuts.buildDefaultList()
             :setName("-armor")
             :setDescription("Dynamic armor group")
             :setVeafCommand("_spawn armorgroup")
+            :addRandomParameter("defense", 1, 3)
+            :addRandomParameter("armor", 2, 4)
+            :addRandomParameter("size", 4, 8)
             :setBypassSecurity(true)
     )
     veafShortcuts.AddAlias(
@@ -439,6 +465,9 @@ function veafShortcuts.buildDefaultList()
             :setName("-infantry")
             :setDescription("Dynamic infantry section")
             :setVeafCommand("_spawn infantrygroup")
+            :addRandomParameter("defense", 0, 5)
+            :addRandomParameter("armor", 0, 5)
+            :addRandomParameter("size", 4, 8)
             :setBypassSecurity(true)
     )
     veafShortcuts.AddAlias(
@@ -446,6 +475,8 @@ function veafShortcuts.buildDefaultList()
             :setName("-transport")
             :setDescription("Dynamic transport company")
             :setVeafCommand("_spawn transportgroup")
+            :addRandomParameter("defense", 0, 3)
+            :addRandomParameter("size", 10, 25)
             :setBypassSecurity(true)
     )
     veafShortcuts.AddAlias(
@@ -453,6 +484,9 @@ function veafShortcuts.buildDefaultList()
             :setName("-combat")
             :setDescription("Dynamic combat group")
             :setVeafCommand("_spawn combatgroup")
+            :addRandomParameter("defense", 1, 3)
+            :addRandomParameter("armor", 2, 4)
+            :addRandomParameter("size", 1, 4)
             :setBypassSecurity(true)
     )
     veafShortcuts.AddAlias(
@@ -468,6 +502,9 @@ function veafShortcuts.buildDefaultList()
             :setName("-convoy")
             :setDescription("Convoy - needs \", dest POINTNAME\"")
             :setVeafCommand("_spawn convoy")
+            :addRandomParameter("defense", 0, 3)
+            :addRandomParameter("armor", 0, 4)
+            :addRandomParameter("size", 6, 15)
             :setBypassSecurity(true)
     )
     veafShortcuts.AddAlias(

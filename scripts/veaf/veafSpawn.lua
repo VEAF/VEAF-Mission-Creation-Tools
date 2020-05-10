@@ -177,7 +177,7 @@ function veafSpawn.executeCommand(eventPos, eventText, eventCoalition, bypassSec
             elseif options.group then
                 -- check security
                 if not (bypassSecurity or veafSecurity.checkSecurity_L9(options.password)) then return end
-                spawnedGroup = veafSpawn.spawnGroup(eventPos, options.name, options.country, options.speed, options.altitude, options.heading, options.spacing, bypassSecurity)
+                spawnedGroup = veafSpawn.spawnGroup(eventPos, options.name, options.country, options.altitude, options.heading, options.spacing, bypassSecurity)
             elseif options.infantryGroup then
                 -- check security
                 if not (bypassSecurity or veafSecurity.checkSecurity_L9(options.password)) then return end
@@ -570,8 +570,8 @@ end
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 --- Spawn a specific group at a specific spot
-function veafSpawn.doSpawnGroup(spawnSpot, groupDefinition, country, speed, alt, hdg, spacing, groupName, silent, shuffle)
-    veafSpawn.logDebug(string.format("doSpawnGroup(country=%s, speed=%d, alt=%d, hdg=%d, spacing=%d, groupName=%s)", country, speed, alt, hdg, spacing, groupName or ""))
+function veafSpawn.doSpawnGroup(spawnSpot, groupDefinition, country, alt, hdg, spacing, groupName, silent, shuffle)
+    veafSpawn.logDebug(string.format("doSpawnGroup(country=%s, alt=%d, hdg=%d, spacing=%d, groupName=%s)", country, alt, hdg, spacing, groupName or ""))
     veafSpawn.logTrace("spawnSpot=" .. veaf.vecToString(spawnSpot))
     
     veafSpawn.spawnedUnitsCounter = veafSpawn.spawnedUnitsCounter + 1
@@ -657,10 +657,10 @@ function veafSpawn.doSpawnGroup(spawnSpot, groupDefinition, country, speed, alt,
 end
 
 --- Spawn a specific group at a specific spot
-function veafSpawn.spawnGroup(spawnSpot, name, country, speed, alt, hdg, spacing, silent)
-    veafSpawn.logDebug(string.format("spawnGroup(name = %s, country=%s, speed=%d, alt=%d, hdg=%d, spacing=%d)",name, country, speed, alt, hdg, spacing))
+function veafSpawn.spawnGroup(spawnSpot, name, country, alt, hdg, spacing, silent)
+    veafSpawn.logDebug(string.format("spawnGroup(name = %s, country=%s, alt=%d, hdg=%d, spacing=%d)",name, country, alt, hdg, spacing))
     veafSpawn.logTrace("spawnGroup: spawnSpot " .. veaf.vecToString(spawnSpot))
-    local spawnedGroupName = veafSpawn.doSpawnGroup(spawnSpot, name, country, speed, alt, hdg, spacing, nil, silent)
+    local spawnedGroupName = veafSpawn.doSpawnGroup(spawnSpot, name, country, alt, hdg, spacing, nil, silent)
 
     return spawnedGroupName
 end

@@ -331,8 +331,8 @@ local function _addDefenseForGroups(group, defense, multiple)
             end
         elseif defense == 1 then
             -- defense = 1 : add a ZU23 on a truck (resp. a Vulcan)
-            table.insert(group.units, { "Vulcan", random })
             if side == veafCasMission.SIDE_BLUE then
+                table.insert(group.units, { "Vulcan", random })
             else
                 table.insert(group.units, { "Ural-375 ZU-23", random })
             end

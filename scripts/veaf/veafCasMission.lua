@@ -72,10 +72,10 @@ veafCasMission = {}
 veafCasMission.Id = "CAS MISSION - "
 
 --- Version.
-veafCasMission.Version = "1.5.6"
+veafCasMission.Version = "1.5.7"
 
 -- trace level, specific to this module
-veafCasMission.Trace = false
+veafCasMission.Trace = true
 
 --- Key phrase to look for in the mark text which triggers the command.
 veafCasMission.Keyphrase = "_cas"
@@ -295,6 +295,51 @@ end
 -- CAS target group generation and management
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
+local function _addDefenseForGroups(group, defense, multiple)
+    for _ = 1, multiple do
+        if defense == 5 then
+            -- defense = 5 : add a SA9 and a Tunguska (resp. M1097 Avenger and a M6 Linebacker)
+            if side == veafCasMission.SIDE_BLUE then
+                table.insert(group.units, { "M1097 Avenger", random })
+                table.insert(group.units, { "M6 Linebacker", random })
+            else
+                table.insert(group.units, { "Strela-1 9P31", random })
+                table.insert(group.units, { "2S6 Tunguska", random })
+            end
+        elseif defense == 4 then
+            -- defense = 4 : add a Shilka and a Tunguska (resp. Gepard and a M6 Linebacker)
+            if side == veafCasMission.SIDE_BLUE then
+                table.insert(group.units, { "Gepard", random })
+                table.insert(group.units, { "M6 Linebacker", random })
+            else
+                table.insert(group.units, { "ZSU-23-4 Shilka", random })
+                table.insert(group.units, { "2S6 Tunguska", random })
+            end
+        elseif defense == 3 then
+            -- defense = 3 : add a Tunguska (resp. a M6 Linebacker)
+            if side == veafCasMission.SIDE_BLUE then
+                table.insert(group.units, { "M6 Linebacker", random })
+            else
+                table.insert(group.units, { "2S6 Tunguska", random })
+            end
+        elseif defense == 2 then
+            -- defense = 2 : add a Shilka (resp. a Gepard)
+            if side == veafCasMission.SIDE_BLUE then
+                table.insert(group.units, { "Gepard", random })
+            else
+                table.insert(group.units, { "ZSU-23-4 Shilka", random })
+            end
+        elseif defense == 1 then
+            -- defense = 1 : add a ZU23 on a truck (resp. a Vulcan)
+            if side == veafCasMission.SIDE_BLUE then
+                table.insert(group.units, { "Vulcan", random })
+            else
+                table.insert(group.units, { "Ural-375 ZU-23", random })
+            end
+        end
+    end
+end
+
 --- Generates an air defense group
 function veafCasMission.generateAirDefenseGroup(groupName, defense, side)
     side = side or veafCasMission.SIDE_RED
@@ -381,39 +426,7 @@ function veafCasMission.generateTransportCompany(groupName, defense, side, size)
         nbDefense = 1
     end
     veafCasMission.logDebug("nbDefense = " .. nbDefense)
-    for _ = 1, nbDefense do
-        if defense > 3 then
-            -- defense = 4-5 : add a Tunguska and a Shilka
-            if side == veafCasMission.SIDE_BLUE then
-                table.insert(group.units, { "Gepard", random })
-                table.insert(group.units, { "M6 Linebacker", random })
-            else
-                table.insert(group.units, { "ZSU-23-4 Shilka", random })
-                table.insert(group.units, { "2S6 Tunguska", random })
-            end
-        elseif defense > 2 then
-            -- defense = 3 : add a Tunguska
-            if side == veafCasMission.SIDE_BLUE then
-                table.insert(group.units, { "M6 Linebacker", random })
-            else
-                table.insert(group.units, { "2S6 Tunguska", random })
-            end
-        elseif defense > 1 then
-            -- defense = 2 : add a Shilka
-            if side == veafCasMission.SIDE_BLUE then
-                table.insert(group.units, { "Gepard", random })
-            else
-                table.insert(group.units, { "ZSU-23-4 Shilka", random })
-            end
-        elseif defense > 0 then
-            -- defense = 1 : add a ZU23 on a truck
-            if side == veafCasMission.SIDE_BLUE then
-                table.insert(group.units, { "Gepard", random })
-            else
-                table.insert(group.units, { "Ural-375 ZU-23", random })
-            end
-        end
-    end
+    _addDefenseForGroups(group, defense, nbDefense)
 
     return group
 end
@@ -538,22 +551,8 @@ function veafCasMission.generateArmorPlatoon(groupName, defense, armor, side, si
         table.insert(group.units, { armorType, random })
     end
 
-   -- add an air defense vehicle
-    if defense > 3 then 
-        -- defense = 4-5 : add a Tunguska
-        if side == veafCasMission.SIDE_BLUE then
-            table.insert(group.units, { "M6 Linebacker", random })
-        else
-            table.insert(group.units, { "2S6 Tunguska", cell = 5, random })
-        end
-    elseif defense > 0 then
-        -- defense = 1-3 : add a Shilka
-        if side == veafCasMission.SIDE_BLUE then
-            table.insert(group.units, { "Gepard", random })
-        else
-            table.insert(group.units, { "ZSU-23-4 Shilka", cell = 5, random })
-        end
-    end
+   -- add air defense vehicles
+   _addDefenseForGroups(group, defense, 1)
 
     return group
 end

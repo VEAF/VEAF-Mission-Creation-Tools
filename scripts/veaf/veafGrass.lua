@@ -45,7 +45,7 @@ veafGrass = {}
 veafGrass.Id = "GRASS - "
 
 --- Version.
-veafGrass.Version = "1.1.2"
+veafGrass.Version = "1.1.3"
 
 -- trace level, specific to this module
 veafGrass.Trace = false
@@ -169,8 +169,8 @@ function veafGrass.buildGrassRunway(name, runwayOrigin)
 		
 		-- tower
 		local tower = mist.utils.deepCopy(template)
-		tower.x = leftOrigin.x-20 + (nbPlots+1.2) * space * math.cos(mist.utils.toRadian(angle))
-		tower.y = leftOrigin.y-20 + (nbPlots+1.2) * space * math.sin(mist.utils.toRadian(angle))
+		tower.x = leftOrigin.x-60 + (nbPlots+1.2) * space * math.cos(mist.utils.toRadian(angle))
+		tower.y = leftOrigin.y-60 + (nbPlots+1.2) * space * math.sin(mist.utils.toRadian(angle))
 		mist.dynAddStatic(tower)
 	end
 

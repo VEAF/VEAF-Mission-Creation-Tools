@@ -4,3 +4,5 @@ build/
 getrealweather/libraries/__pycache__/
 
 getrealweather/config.properties
+
+node_modules/

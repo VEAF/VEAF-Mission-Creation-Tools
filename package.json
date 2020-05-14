@@ -24,5 +24,13 @@
   "bugs": {
     "url": "https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues"
   },
-  "homepage": "https://github.com/VEAF/VEAF-Mission-Creation-Tools#readme"
+  "homepage": "https://github.com/VEAF/VEAF-Mission-Creation-Tools#readme",
+  "dependencies": {
+    "cached-request": "^2.0.1",
+    "fengari": "^0.1.4",
+    "got": "^11.1.3",
+    "jszip": "^3.4.0",
+    "metar": "^1.0.0",
+    "request": "^2.88.2"
+  }
 }

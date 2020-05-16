@@ -1,14 +1,69 @@
 "use strict";
 
-const TRACE = true;
+var parseMETAR = require("metar");
+
+const trace = true;
 
 class DCSCheckWXConvertEnricher {
 
-  weatherdata = null;
-  closestResult = null;
+  _weatherdata = null;
+  _closestResult = null;
+  _metar = null;
+  _trace = false;
 
-  constructor(weatherdata) {
-    this.weatherdata = weatherdata;
+  get trace() {
+    return this._trace;
+  }
+
+  constructor(weatherdata, trace) {
+    this._trace = trace;
+    if (typeof(weatherdata) == "string") {
+      // we've got a text metar to parse
+      this._metar = weatherdata;
+      let decodedMetar = parseMETAR(weatherdata);
+      if (decodedMetar) {
+        if (decodedMetar.wind.direction == "VRB") 
+          decodedMetar.wind.direction = 0;
+        if (decodedMetar.wind.unit == "KT") {
+          decodedMetar.wind.speed = decodedMetar.wind.speed * 0.515;
+          decodedMetar.wind.gust = decodedMetar.wind.gust * 0.515;
+        } else if (decodedMetar.wind.unit != "MPS") {
+          console.warn("unknown unit "+decodedMetar.wind.unit);
+          process.exit(-1);
+        }
+        this._closestResult = {
+          "temperature": {
+            "celsius": decodedMetar.temperature || 20
+          },
+          "barometer": {
+            "hg" : decodedMetar.altimeterInHg || 760
+          },
+          "wind": {
+            "degrees": decodedMetar.wind.direction || 0,
+            "speed_mps" : decodedMetar.wind.speed || 0,
+            "gust_mps" : decodedMetar.wind.gust || 0,
+          },
+          "clouds": decodedMetar.clouds.map(cloud => {
+            return {
+              "base_meters_agl": cloud.altitude*0.3048 || 5000,
+              "code": cloud.abbreviation
+            };
+          }),
+          "conditions": decodedMetar.weather || [],
+          "visibility":{
+            "meters_float": decodedMetar.visibility || 99999
+          }
+
+        };
+      }
+    } else {
+      if (weatherdata.error && weatherdata.error == 'Unauthorized' ) {
+        console.error("CheckWX API Key not valid ; go get one on https://www.checkwx.com/api/newkey");
+        process.exit(-1); 
+      }
+      this._weatherdata = weatherdata;
+      this._metar = this.getClosestResult().raw_text || "";
+    }
   }
 
   getDeterministicRandomFloat(min, max) {
@@ -29,53 +84,60 @@ class DCSCheckWXConvertEnricher {
     return retangle;
   }
 
-  getLastWeather() {
-    return this.weatherdata
+  get weatherData() {
+    return this._weatherdata
+  }
+
+  get metar() {
+    return this._metar;
   }
 
   _checkResult(data, level) {
     level = level || 0;
-    if (!data) { if (TRACE) console.log("!data"); return null; }
-    if (level >= 2 && !data['elevation']) { if (TRACE) console.log("!data['elevation']"); return null; }
-    if (level >= 2 && !data['elevation']['meters']) { if (TRACE) console.log("!data['elevation']['meters']"); return null; }
-    if (!data['barometer']) { if (TRACE) console.log("!data['barometer']"); return null; }
-    if (!data['barometer']['hg']) { if (TRACE) console.log("!data['barometer']['hg']"); return null; }
-    if (!data['temperature']) { if (TRACE) console.log("!data['temperature']"); return null; }
-    if (!data['temperature']['celsius']) { if (TRACE) console.log("!data['temperature']['celsius']"); return null; }
-    if (level >= 1 && !data['wind']) { if (TRACE) console.log("!data['wind']"); return null; }
-    if (level >= 1 && !data['wind']['degrees']) { if (TRACE) console.log("!data['wind']['degrees']"); return null; }
-    if (level >= 1 && !data['wind']['speed_mps']) { if (TRACE) console.log("!data['wind']['speed_mps']"); return null; }
-    if (level >= 3 && !data['wind']['gust_kts']) { if (TRACE) console.log("!data['wind']['gust_kts']"); return null; }
-    if (level >= 2 && !data['clouds']) { if (TRACE) console.log("!data['clouds']"); return null; }
-    if (level >= 2 && !data['clouds']['base_meters_agl']) { if (TRACE) console.log("!data['clouds']['base_meters_agl']"); return null; }
-    if (!data['conditions']) { if (TRACE) console.log("!data['conditions']"); return null; }
-    if (level >= 1 && !data['visibility']) { if (TRACE) console.log("!data['visibility']"); return null; }
-    if (level >= 1 && !data['visibility']['meters_float']) { if (TRACE) console.log("!data['visibility']['meters_float']"); return null; }
-    if (TRACE) console.log("ALL GOOD !");
-    if (TRACE) console.log(data);
+    if (!data) { if (this.trace) console.log("!data"); return null; }
+    if (level >= 2 && !data['elevation']) { if (this.trace) console.log("!data['elevation']"); return null; }
+    if (level >= 2 && !data['elevation']['meters']) { if (this.trace) console.log("!data['elevation']['meters']"); return null; }
+    if (!data['barometer']) { if (this.trace) console.log("!data['barometer']"); return null; }
+    if (!data['barometer']['hg']) { if (this.trace) console.log("!data['barometer']['hg']"); return null; }
+    if (!data['temperature']) { if (this.trace) console.log("!data['temperature']"); return null; }
+    if (!data['temperature']['celsius']) { if (this.trace) console.log("!data['temperature']['celsius']"); return null; }
+    if (level >= 1 && !data['wind']) { if (this.trace) console.log("!data['wind']"); return null; }
+    if (level >= 1 && !data['wind']['degrees']) { if (this.trace) console.log("!data['wind']['degrees']"); return null; }
+    if (level >= 1 && !data['wind']['speed_mps']) { if (this.trace) console.log("!data['wind']['speed_mps']"); return null; }
+    if (level >= 3 && !data['wind']['gust_kts']) { if (this.trace) console.log("!data['wind']['gust_kts']"); return null; }
+    if (level >= 2 && !data['clouds']) { if (this.trace) console.log("!data['clouds']"); return null; }
+    if (level >= 2 && !data['clouds']['base_meters_agl']) { if (this.trace) console.log("!data['clouds']['base_meters_agl']"); return null; }
+    if (!data['conditions']) { if (this.trace) console.log("!data['conditions']"); return null; }
+    if (level >= 1 && !data['visibility']) { if (this.trace) console.log("!data['visibility']"); return null; }
+    if (level >= 1 && !data['visibility']['meters_float']) { if (this.trace) console.log("!data['visibility']['meters_float']"); return null; }
+    if (this.trace) console.log("ALL GOOD !");
+    if (this.trace) console.log(data);
     return data;
   }
 
   getClosestResult() {
-    if (!this.closestResult) {
+    if (!this._closestResult) {
       new Array(3, 2, 1, 0).forEach((level) => {
-        this.weatherdata['data'].forEach((data) => {
-          if (TRACE) console.log(`checking level=${level}, data#=${this.weatherdata['data'].indexOf(data)}`);
-          if (!this.closestResult) {
-            this.closestResult = this._checkResult(data, level);
+        this._weatherdata['data'].forEach((data) => {
+          if (this.trace) console.log(`checking level=${level}, data#=${this._weatherdata['data'].indexOf(data)}`);
+          if (!this._closestResult) {
+            this._closestResult = this._checkResult(data, level);
           }
         });
       });
-      if (!this.closestResult) {
-        if (TRACE) console.log("Still, no perfect result has been found - using [0]")
-        this.closestResult = this.weatherdata['data'][0];
+      if (!this._closestResult) {
+        if (this.trace) console.log("Still, no perfect result has been found - using [0]")
+        this._closestResult = this._weatherdata['data'][0];
       }
     }
-    return this.closestResult;
+    return this._closestResult;
   }
 
   getStationElevation() {
-    return this.getClosestResult()['elevation']['meters']
+    if (this.getClosestResult() && this.getClosestResult()['elevation'] && this.getClosestResult()['elevation']['meters'])
+      return this.getClosestResult()['elevation']['meters'];
+    else
+      return 0;
   }
 
   getBarometerMMHg() {
@@ -115,14 +177,14 @@ class DCSCheckWXConvertEnricher {
   getGroundTurbulence() {
     let result = null;
     try {
-      if (TRACE) console.log(this.getClosestResult()['wind']);
-      if (TRACE) console.log(this.getClosestResult()['wind']['gust_kts']);
-      result = this.getClosestResult()['wind']['gust_kts'] / 0.32808398950131233595800524934383;
+      if (this.trace) console.log(this.getClosestResult()['wind']);
+      if (this.trace) console.log(this.getClosestResult()['wind']['gust_mps']);
+      result = this.getClosestResult()['wind']['gust_mps'] / 0.637745;
     } catch {
       console.log(err);
     }
     if (!result)
-      result = this.getDeterministicRandomFloat(0, 3) / 0.32808398950131233595800524934383;
+      result = this.getDeterministicRandomFloat(0, 3) / 0.637745;
     return result;
   }
 
@@ -130,14 +192,14 @@ class DCSCheckWXConvertEnricher {
     try {
       let clouds = this.getClosestResult()['clouds'];
       if (clouds.length == 0) {
-        if (TRACE) console.log("no ['clouds']");
+        if (this.trace) console.log("no ['clouds']");
         return { 'min': 5000, 'max': 5000 };
       }
 
       let minClouds = null;
       let maxClouds = null;
       clouds.forEach((cloud) => {
-        //if (TRACE) console.log(cloud);
+        if (this.trace) console.log(cloud);
         if (!minClouds || cloud['base_meters_agl'] < minClouds)
           minClouds = cloud['base_meters_agl'];
         if (!maxClouds || cloud['base_meters_agl'] > maxClouds)
@@ -160,7 +222,7 @@ class DCSCheckWXConvertEnricher {
     try {
       let clouds = this.getClosestResult()['clouds'];
       if (clouds.length == 0) {
-        if (TRACE) console.log("no ['clouds']");
+        if (this.trace) console.log("no ['clouds']");
         return this.getDeterministicRandomInt(200, 300);
       }
       let minmaxclouds = this.getCloudMinMax();
@@ -178,7 +240,7 @@ class DCSCheckWXConvertEnricher {
   containsAnyCondition(conditioncodes) {
     let conditions = this.getClosestResult()['conditions'];
     conditions.forEach((cond) => {
-      //if (TRACE) console.log(cloud);
+      //if (this.trace) console.log(cloud);
       if (conditioncodes.indexOf(cond) != -1)
         return true;
     });
@@ -188,16 +250,16 @@ class DCSCheckWXConvertEnricher {
   getCloudDensity() {
     try {
       let clouds = this.getClosestResult()['clouds'];
-      if (TRACE) console.log('clouds :>> ', clouds);
+      if (this.trace) console.log('clouds :>> ', clouds);
       if (clouds.length == 0)
         return 0;
       if (this.containsAnyCondition(['TS']))
         return 9;
 
       let highestclouds = clouds[clouds.length - 1];
-      if (TRACE) console.log('highestclouds :>> ', highestclouds);
+      if (this.trace) console.log('highestclouds :>> ', highestclouds);
       if (new Array('CAVOK', 'CLR', 'SKC', 'NCD', 'NSC').indexOf(highestclouds['code']) != -1) {
-        if (TRACE) console.log(highestclouds['code']);
+        if (this.trace) console.log(highestclouds['code']);
         return 0;
       } else {
         switch (highestclouds['code']) {

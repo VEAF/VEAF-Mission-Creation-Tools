@@ -1,14 +1,22 @@
 {
   "name": "veaf-mission-creation-tools",
-  "version": "1.11.1",
-  "description": "A set of scripts that help set up a dynamic mission",
-  "main": "readme.md",
+  "version": "2.0.2",
+  "description": "A set of tools that help set up a and run dynamic missions",
+  "main": "src/nodejs/app.js",
+  "bin": {
+    "veaf-tools": "src/nodejs/app.js"
+  },
   "directories": {
     "doc": "doc"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node ./src/nodejs/app.js"
   },
+  "files": [
+    "src/nodejs",
+    "src/scripts",
+    "docs"
+  ],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/VEAF/VEAF-Mission-Creation-Tools.git"
@@ -26,11 +34,9 @@
   },
   "homepage": "https://github.com/VEAF/VEAF-Mission-Creation-Tools#readme",
   "dependencies": {
-    "cached-request": "^2.0.1",
-    "fengari": "^0.1.4",
-    "got": "^11.1.3",
     "jszip": "^3.4.0",
     "metar": "^1.0.0",
-    "request": "^2.88.2"
+    "request": "^2.88.2",
+    "yargs": "^15.3.1"
   }
 }

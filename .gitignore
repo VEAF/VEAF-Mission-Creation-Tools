@@ -1,8 +1,6 @@
 build/
 .vscode/
-
-getrealweather/libraries/__pycache__/
-
-getrealweather/config.properties
-
 node_modules/
+cache/
+
+configuration.json

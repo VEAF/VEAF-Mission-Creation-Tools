@@ -1,2 +1,0 @@
-(x) -armor ne prend pas en compte "size"
-(x) corriger CTLD

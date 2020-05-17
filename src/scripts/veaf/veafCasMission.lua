@@ -72,7 +72,7 @@ veafCasMission = {}
 veafCasMission.Id = "CAS MISSION - "
 
 --- Version.
-veafCasMission.Version = "1.5.7"
+veafCasMission.Version = "1.5.8"
 
 -- trace level, specific to this module
 veafCasMission.Trace = true
@@ -295,7 +295,7 @@ end
 -- CAS target group generation and management
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-local function _addDefenseForGroups(group, defense, multiple)
+local function _addDefenseForGroups(group, side, defense, multiple)
     for _ = 1, multiple do
         if defense == 5 then
             -- defense = 5 : add a SA9 and a Tunguska (resp. M1097 Avenger and a M6 Linebacker)
@@ -426,7 +426,7 @@ function veafCasMission.generateTransportCompany(groupName, defense, side, size)
         nbDefense = 1
     end
     veafCasMission.logDebug("nbDefense = " .. nbDefense)
-    _addDefenseForGroups(group, defense, nbDefense)
+    _addDefenseForGroups(group, side, defense, nbDefense)
 
     return group
 end
@@ -552,7 +552,7 @@ function veafCasMission.generateArmorPlatoon(groupName, defense, armor, side, si
     end
 
    -- add air defense vehicles
-   _addDefenseForGroups(group, defense, 1)
+   _addDefenseForGroups(group, side, defense, 1)
 
     return group
 end

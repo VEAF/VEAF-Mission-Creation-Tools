@@ -173,7 +173,7 @@ function veafSpawn.executeCommand(eventPos, eventText, eventCoalition, bypassSec
             if options.unit then
                 -- check security
                 if not (bypassSecurity or veafSecurity.checkSecurity_L9(options.password)) then return end
-                spawnedGroup = veafSpawn.spawnUnit(eventPos, options.name, options.country, options.speed, options.altitude, options.heading, options.unitName, options.role, options.laserCode, bypassSecurity)
+                spawnedGroup = veafSpawn.spawnUnit(eventPos, options.name, options.country, options.altitude, options.heading, options.unitName, options.role, options.laserCode, bypassSecurity)
             elseif options.group then
                 -- check security
                 if not (bypassSecurity or veafSecurity.checkSecurity_L9(options.password)) then return end
@@ -910,8 +910,8 @@ end
 -- @param string unitName (callsign)
 -- @param string role (ex: jtac)
 -- @param int laserCode (ex: 1688)
-function veafSpawn.spawnUnit(spawnPosition, name, country, speed, alt, hdg, unitName, role, laserCode, silent)
-    veafSpawn.logDebug(string.format("spawnUnit(name = %s, country=%s, speed=%d, alt=%d, hdg= %d)",name, country, speed, alt, hdg))
+function veafSpawn.spawnUnit(spawnPosition, name, country, alt, hdg, unitName, role, laserCode, silent)
+    veafSpawn.logDebug(string.format("spawnUnit(name = %s, country=%s, alt=%d, hdg= %d)",name, country, alt, hdg))
     veafSpawn.logTrace(string.format("spawnUnit: spawnPosition  x=%.1f y=%.1f, z=%.1f", spawnPosition.x, spawnPosition.y, spawnPosition.z))
     
     veafSpawn.spawnedUnitsCounter = veafSpawn.spawnedUnitsCounter + 1

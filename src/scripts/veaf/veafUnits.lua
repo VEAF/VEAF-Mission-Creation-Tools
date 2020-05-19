@@ -724,20 +724,20 @@ end
 
 veafUnits.UnitsDatabase = {
     {
-        aliases = {"sa9", "sa-9"},
-        unitType = "Strela-1 9P31"
-    },
-    {
-        aliases = {"sa13", "sa-13"},
-        unitType = "Strela-10M3",
-    },
-    {
         aliases = {"sa6", "sa-6"},
         unitType = "Kub 2P25 ln",
     },
     {
         aliases = {"sa8", "sa-8"},
         unitType = "Osa 9A33 ln",
+    },
+    {
+        aliases = {"sa9", "sa-9"},
+        unitType = "Strela-1 9P31"
+    },
+    {
+        aliases = {"sa13", "sa-13"},
+        unitType = "Strela-10M3",
     },
     {
         aliases = {"sa15", "sa-15"},

@@ -388,7 +388,21 @@ function veafShortcuts.buildDefaultList()
             :addRandomParameter("defense", 2, 3)
             :setBypassSecurity(true)
     )
-    -- specific SAM groups
+    -- specific air defenses groups and units  
+    veafShortcuts.AddAlias(
+        VeafAlias.new()
+        :setName("-sa2")
+        :setDescription("SA-2 Guideline (S-75 Dvina) battery")
+        :setVeafCommand("_spawn group, name sa2")
+        :setBypassSecurity(true)
+    )
+    veafShortcuts.AddAlias(
+        VeafAlias.new()
+        :setName("-sa3")
+        :setDescription("SA-3 Goa (S-125 Neva/Pechora) battery")
+        :setVeafCommand("_spawn group, name sa3")
+        :setBypassSecurity(true)
+    )
     veafShortcuts.AddAlias(
         VeafAlias.new()
             :setName("-sa6")
@@ -398,9 +412,16 @@ function veafShortcuts.buildDefaultList()
     )
     veafShortcuts.AddAlias(
         VeafAlias.new()
-            :setName("-sa2")
-            :setDescription("SA-2 Guideline (S-75 Dvina) battery")
-            :setVeafCommand("_spawn group, name sa2")
+            :setName("-sa8")
+            :setDescription("SA-8 Osa (9K33 Osa) sam vehicle")
+            :setVeafCommand("_spawn unit, name Osa 9A33 ln")
+            :setBypassSecurity(true)
+    )
+    veafShortcuts.AddAlias(
+        VeafAlias.new()
+            :setName("-sa9")
+            :setDescription("SA-9 Strela-1 (9K31 Strela-1) sam vehicle")
+            :setVeafCommand("_spawn unit, name Strela-1 9P31")
             :setBypassSecurity(true)
     )
     veafShortcuts.AddAlias(
@@ -417,6 +438,50 @@ function veafShortcuts.buildDefaultList()
             :setVeafCommand("_spawn group, name sa11")
             :setBypassSecurity(true)
     )
+    veafShortcuts.AddAlias(
+        VeafAlias.new()
+            :setName("-sa13")
+            :setDescription("SA-13 Strela (9A35M3) sam vehicle")
+            :setVeafCommand("_spawn unit, name Strela-10M3")
+            :setBypassSecurity(true)
+    )
+    veafShortcuts.AddAlias(
+        VeafAlias.new()
+            :setName("-sa15")
+            :setDescription("SA-15 Gauntlet (9K330 Tor) sam vehicle")
+            :setVeafCommand("_spawn unit, name sa15")
+            :setBypassSecurity(true)
+    )
+    veafShortcuts.AddAlias(
+        VeafAlias.new()
+            :setName("-sa18")
+            :setDescription("SA-18 manpad soldier")
+            :setVeafCommand("_spawn unit, name SA-18 Igla-S manpad")
+            :setBypassSecurity(true)
+    )
+    veafShortcuts.AddAlias(
+        VeafAlias.new()
+            :setName("-sa19")
+            :setDescription("SA-19 Tunguska (2K22 Tunguska) sam vehicle")
+            :setVeafCommand("_spawn unit, name 2S6 Tunguska")
+            :setBypassSecurity(true)
+    )
+    veafShortcuts.AddAlias(
+        VeafAlias.new()
+            :setName("-shilka")
+            :setDescription("ZSU-23-4 Shilka AAA vehicle")
+            :setVeafCommand("_spawn unit, name ZSU-23-4 Shilka")
+            :setBypassSecurity(true)
+    )
+    veafShortcuts.AddAlias(
+        VeafAlias.new()
+            :setName("-zu23")
+            :setDescription("ZU-23 AAA vehicle")
+            :setVeafCommand("_spawn unit, name Ural-375 ZU-23")
+            :setBypassSecurity(true)
+    )
+    
+
     -- shortcuts to commands
     -- veafShortcuts.AddAlias(
     --     VeafAlias.new()

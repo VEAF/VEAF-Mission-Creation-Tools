@@ -34,9 +34,10 @@
   },
   "homepage": "https://github.com/VEAF/VEAF-Mission-Creation-Tools#readme",
   "dependencies": {
-    "jszip": "^3.4.0",
-    "metar": "^1.0.0",
-    "request": "^2.88.2",
-    "yargs": "^15.3.1"
+    "jszip": "~3.4.0",
+    "metar": "~1.0.0",
+	"niod": "~2.0.1" 
+	"request": "~2.88.2",
+    "yargs": "~15.3.1"
   }
-}
+ }

@@ -36,7 +36,7 @@
   "dependencies": {
     "jszip": "~3.4.0",
     "metar": "~1.0.0",
-	"niod": "~2.0.1" 
+	"niod": "~2.0.1",
 	"request": "~2.88.2",
     "yargs": "~15.3.1"
   }

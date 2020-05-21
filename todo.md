@@ -10,6 +10,9 @@
 - add an AWACS module ; see notes about that lower
 - find a way to get the data about coordinates in the Scratchpad mod; it works solo, maybe we can make it work multi with the help of SlMod ?
 - add a function to help find a town location
+- find a way to generate a documentation of all available commands
+- clean up a mission from all the old dictionary keys (prune)
+- change move tanker to me to make it adapt its speed and altitude to the calling aircraft type
 
 ### RFC - needs to be done
 

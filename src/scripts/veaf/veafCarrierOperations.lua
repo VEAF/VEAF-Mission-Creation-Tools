@@ -48,7 +48,7 @@ veafCarrierOperations = {}
 veafCarrierOperations.Id = "CARRIER - "
 
 --- Version.
-veafCarrierOperations.Version = "1.4.1"
+veafCarrierOperations.Version = "1.4.2"
 
 -- trace level, specific to this module
 veafCarrierOperations.Trace = false
@@ -62,6 +62,7 @@ veafCarrierOperations.AllCarriers =
 {
     ["LHA_Tarawa"] = { runwayAngleWithBRC = 0, desiredWindSpeedOnDeck = 20},
     ["Stennis"] = { runwayAngleWithBRC = 9.05, desiredWindSpeedOnDeck = 25},
+    ["CVN_71"] = { runwayAngleWithBRC = 9.05, desiredWindSpeedOnDeck = 25},
     ["KUZNECOW"] ={ runwayAngleWithBRC = 0, desiredWindSpeedOnDeck = 25}
 }
 

@@ -27,7 +27,7 @@ veafShortcuts = {}
 veafShortcuts.Id = "SHORTCUTS - "
 
 --- Version.
-veafShortcuts.Version = "1.0.0"
+veafShortcuts.Version = "1.0.1"
 
 -- trace level, specific to this module
 veafShortcuts.Trace = true
@@ -204,7 +204,7 @@ function veafShortcuts.AddAlias(alias)
 end
 
 -- execute an alias command
-function veafShortcuts.ExecuteAlias(aliasName, remainingCommand, position, coalition)
+function veafShortcuts.ExecuteAlias(aliasName, remainingCommand, position, coalition, spawnedGroups)
     veafShortcuts.logDebug(string.format("veafShortcuts.ExecuteAlias([%s],[%s],[%d])",aliasName or "",remainingCommand or "",coalition or 99))
     local alias = veafShortcuts.GetAlias(aliasName)
     if alias then 
@@ -264,7 +264,7 @@ function veafShortcuts.onEventMarkChange(eventPos, event)
     end
 end
 
-function veafShortcuts.executeCommand(eventPos, eventText, eventCoalition)
+function veafShortcuts.executeCommand(eventPos, eventText, eventCoalition, spawnedGroups)
     -- Check if marker has a text and contains an alias
     if eventText ~= nil then
         
@@ -274,7 +274,7 @@ function veafShortcuts.executeCommand(eventPos, eventText, eventCoalition)
         if alias then
 
             -- do the magic
-            if veafShortcuts.ExecuteAlias(alias, remainder, eventPos, eventCoalition) then 
+            if veafShortcuts.ExecuteAlias(alias, remainder, eventPos, eventCoalition, spawnedGroups) then 
                 return true
             end
         end

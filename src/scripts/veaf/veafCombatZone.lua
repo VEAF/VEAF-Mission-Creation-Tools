@@ -48,7 +48,7 @@ veafCombatZone = {}
 veafCombatZone.Id = "COMBAT ZONE - "
 
 --- Version.
-veafCombatZone.Version = "1.2.0"
+veafCombatZone.Version = "1.2.1"
 
 -- trace level, specific to this module
 veafCombatZone.Trace = false
@@ -754,7 +754,7 @@ function VeafCombatZone:activate()
                             elseif zoneElement:isVeafCommand() then
                                 veafCombatZone.logTrace(string.format("executing command [%s] at position [%s]",zoneElement:getName(), veaf.vecToString(position)))
                                 local spawnedGroups = {}
-                                veafInterpreter.execute(zoneElement:getName(), position, zoneElement:getCoalition(), spawnedGroups)
+                                veafInterpreter.execute(zoneElement:getName(), position, zoneElement:getCoalition(), nil, spawnedGroups)
                                 for _, newGroup in pairs(spawnedGroups) do
                                     veafCombatZone.logTrace(string.format("[%s].addSpawnedGroup", zoneElement:getName()))
                                     self:addSpawnedGroup(newGroup)

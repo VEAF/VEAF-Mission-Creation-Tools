@@ -66,10 +66,10 @@ veafSpawn = {}
 veafSpawn.Id = "SPAWN - "
 
 --- Version.
-veafSpawn.Version = "1.9.1"
+veafSpawn.Version = "1.9.2"
 
 -- trace level, specific to this module
-veafSpawn.Trace = false
+veafSpawn.Trace = true
 
 --- Key phrase to look for in the mark text which triggers the spawn command.
 veafSpawn.SpawnKeyphrase = "_spawn"

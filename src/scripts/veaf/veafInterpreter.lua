@@ -54,10 +54,10 @@ veafInterpreter = {}
 veafInterpreter.Id = "INTERPRETER - "
 
 --- Version.
-veafInterpreter.Version = "0.0.3"
+veafInterpreter.Version = "1.0.1"
 
 -- trace level, specific to this module
-veafInterpreter.Trace = false
+veafInterpreter.Trace = true
 
 --- Key phrase to look for in the unit name which triggers the interpreter.
 veafInterpreter.Starter = "#veafInterpreter%[\""
@@ -108,7 +108,7 @@ function veafInterpreter.interpret(text)
     return result
 end
 
-function veafInterpreter.execute(command, position, coalition, spawnedGroups, doNotBypassSecurity)
+function veafInterpreter.execute(command, position, coalition, route, spawnedGroups, doNotBypassSecurity)
     if command == nil then return end
     if position == nil then return end
     veafInterpreter.logTrace(string.format("veafInterpreter.execute([%s],[%s])",command, veaf.vecToString(position)))
@@ -119,22 +119,38 @@ function veafInterpreter.execute(command, position, coalition, spawnedGroups, do
         coalitionForSpawn = 2
     end
 
+    local commandExecuted = false
+    spawnedGroups = spawnedGroups or {}
+
     -- check for shortcuts
-    if veafShortcuts.executeCommand(position, command, coalition) then
-        return true
+    if veafShortcuts.executeCommand(position, command, coalition, spawnedGroups) then
+        commandExecuted = true
     -- check for SPAWN module commands
     elseif veafSpawn.executeCommand(position, command, coalitionForSpawn, doNotBypassSecurity or true, spawnedGroups) then
-        return true
+        commandExecuted = true
     -- check for NAMED POINT module commands
     elseif veafNamedPoints.executeCommand(position, {text=command, coalition=-1}, doNotBypassSecurity or true) then
-        return true
+        commandExecuted = true
     elseif veafCasMission.executeCommand(position, command, coalition, doNotBypassSecurity or true) then
-        return true
+        commandExecuted = true
     elseif veafSecurity.executeCommand(position, command, doNotBypassSecurity or true) then
-        return true
+        commandExecuted = true
     else
-        return false
+        commandExecuted = false
     end
+
+    if commandExecuted then
+        veafInterpreter.logTrace(string.format("spawnedGroups = [%s]", veaf.p(spawnedGroups)))
+        if route and spawnedGroups then
+            for _, newGroup in pairs(spawnedGroups) do
+                veafInterpreter.logTrace(string.format("newGroup = [%s]", veaf.p(newGroup)))
+                mist.goRoute(newGroup, route)
+            end
+        end
+    end
+
+    return commandExecuted
+
 end
 
 function veafInterpreter.processObject(unitName)
@@ -147,7 +163,11 @@ function veafInterpreter.processObject(unitName)
         if unit then
             local position = unit:getPosition().p
             veafInterpreter.logTrace(string.format("found the unit at : [%s]", veaf.vecToString(position)))
-            if veafInterpreter.execute(command, position, unit:getCoalition()) then 
+            local groupName = unit:getGroup():getName()
+            veafInterpreter.logTrace(string.format("groupName = [%s]", groupName))
+            local route = mist.getGroupRoute(groupName, 'task')
+            veafInterpreter.logTrace(string.format("route = [%s]", veaf.p(route)))
+            if veafInterpreter.execute(command, position, unit:getCoalition(), route) then 
                 unit:destroy()
             end
         end

@@ -198,7 +198,7 @@ function veafMissionRadioPresetsEditor.processMission(filePath, radioSettingsPat
   veafMissionRadioPresetsEditor.logDebug(string.format("Processing mission at [%s]",filePath))
   local _filePath = filePath .. "\\mission"
   local _processFunction = veafMissionRadioPresetsEditor.editRadioPresets
-  veafMissionEditor.editMission(_filePath, _filePath, "mission", nil, _processFunction)
+  veafMissionEditor.editMission(_filePath, _filePath, "mission", _processFunction)
   veafMissionRadioPresetsEditor.logDebug("Mission edited")
 end
 

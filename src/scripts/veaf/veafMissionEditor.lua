@@ -181,12 +181,7 @@ function veafMissionEditor.writeMissionFile(filePath, tableAsLua)
     file:close();
 end
 
-function veafMissionEditor.editMission(inFilePath, outFilePath, tableName, exportOptions, processFunction)
-    local _exportOptions = _exportOptions
-    if not _exportOptions then 
-        _exportOptions = {indent="    ", metatostring=false, comment=false, nocode=true, sortkeys=veafMissionEditor.sortCaseInsensitive}
-    end
-
+function veafMissionEditor.editMission(inFilePath, outFilePath, tableName, processFunction)
     local _processFunction = processFunction
     if not _processFunction then 
         _processFunction = veafMissionEditor.processMission
@@ -197,10 +192,8 @@ function veafMissionEditor.editMission(inFilePath, outFilePath, tableName, expor
     veafMissionEditor.logDebug("Processing lua table")
     table = _processFunction(table)
     veafMissionEditor.logDebug("Exporting table as lua")
-    --local tableAsLua = serpent.block(table, _exportOptions)
     local tableAsLua = veafMissionEditor.serialize(tableName, table)
     veafMissionEditor.logDebug(string.format("Writing lua table to [%s]",outFilePath))
-    --veafMissionEditor.writeMissionFile(outFilePath, tableAsLua, tableName)
     veafMissionEditor.writeMissionFile(outFilePath, tableAsLua)
 end
 

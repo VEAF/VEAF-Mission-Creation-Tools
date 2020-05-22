@@ -132,28 +132,56 @@ local function _sortTable(t, level)
   end
 end
 
-function veafMissionNormalizer.normalizeMission(filePath, weather)
-  -- normalize "mission" file
-  local _filePath = filePath .. "\\mission"
-  local _processFunction = function(t)
-    _sortTable(t)
-    if weather then
-      if weather["date"] then 
-        t["date"] = weather["date"]
-        veafMissionNormalizer.logDebug("replaced [date]")
-      end
-      if weather["start_time"] then 
-        t["start_time"] = weather["start_time"]
-        veafMissionNormalizer.logDebug("replaced [start_time]")
-      end
-      if weather["weather"] then 
-        t["weather"] = weather["weather"]
-        veafMissionNormalizer.logDebug("replaced [weather]")
+function veafMissionNormalizer.normalizeMission(filePath)
+  local dictionaryKeysThatAreActuallyUsed = {}
+  local WHATS_IN_A_DICTIONARY_KEY = "DictKey_"
+  local function _recursivelySearchForDictionaryKeysInTable(t, dictionaryKeys)
+    for key, value in pairs(t) do
+      if type(value) == "table" then
+        _recursivelySearchForDictionaryKeysInTable(value, dictionaryKeys)
+      elseif type(value) == "string" then
+        if value:lower():sub(1, #WHATS_IN_A_DICTIONARY_KEY) == WHATS_IN_A_DICTIONARY_KEY:lower()  then
+            dictionaryKeys[value:lower()] = value
+        end
       end
     end
+  end
+
+  local function _processFunctionForMission(t)
+    -- search for dictionary keys in the mission file
+    _recursivelySearchForDictionaryKeysInTable(t, dictionaryKeysThatAreActuallyUsed)
+    _sortTable(t)
     return t
   end
-  veafMissionEditor.editMission(_filePath, _filePath, "mission", nil, _processFunction)
+
+  local function _processFunctionForDictionary(t)
+    -- only keep keys that have been referenced in dictionaryKeysThatAreActuallyUsed 
+    local result = {}
+    local nSkippedKeys = 0
+    for key, value in pairs(t) do
+      if dictionaryKeysThatAreActuallyUsed[key:lower()] then
+        result[key] = value
+      else
+        veafMissionNormalizer.logDebug(string.format("removing unused dictionary key [%s]=%s" , key, tostring(value)))
+        nSkippedKeys = nSkippedKeys + 1
+      end
+    end
+    if nSkippedKeys > 0 then 
+      veafMissionNormalizer.logInfo(string.format("removed %d unused keys from dictionary" , nSkippedKeys))
+    end
+
+    _sortTable(result)
+    return result
+  end
+
+
+  -- normalize "mission" file
+  local _filePath = filePath .. "\\mission"
+  veafMissionEditor.editMission(_filePath, _filePath, "mission", _processFunctionForMission)
+
+  -- normalize "dictionary" file
+  _filePath = filePath .. "\\l10n\\DEFAULT\\dictionary"
+  veafMissionEditor.editMission(_filePath, _filePath, "dictionary", _processFunctionForDictionary)
 
   -- normalize "warehouses" file
   _filePath = filePath .. "\\warehouses"
@@ -162,10 +190,6 @@ function veafMissionNormalizer.normalizeMission(filePath, weather)
   -- normalize "options" file
   -- _filePath = filePath .. "\\options"
   -- veafMissionEditor.editMission(_filePath, _filePath, "options")
-
-  -- normalize "dictionary" file
-  _filePath = filePath .. "\\l10n\\DEFAULT\\dictionary"
-  veafMissionEditor.editMission(_filePath, _filePath, "dictionary")
 
   -- normalize "mapResource" file
   _filePath = filePath .. "\\l10n\\DEFAULT\\mapResource"
@@ -185,7 +209,7 @@ for i = 0, #arg do
   end
 end
 if #arg < 1 then
-  veafMissionNormalizer.logError("USAGE : veafMissionNormalizer.lua <mission folder path> [weather and time configuration]")
+  veafMissionNormalizer.logError("USAGE : veafMissionNormalizer.lua <mission folder path>")
   return
 end
 if debug or trace then
@@ -203,11 +227,4 @@ else
 end
 
 local filePath = arg[1]
-local weather = nil
-if #arg >= 2 then
-  if arg[2] and arg[2]:sub(1,1) ~= "-" then
-    veafMissionNormalizer.logDebug(string.format("reading weather file [%s]", arg[2]))
-    weather = veafMissionEditor.readMissionFile(arg[2], "weatherAndTime")
-  end
-end
-veafMissionNormalizer.normalizeMission(filePath, weather)
+veafMissionNormalizer.normalizeMission(filePath)

@@ -48,7 +48,7 @@ veafCarrierOperations = {}
 veafCarrierOperations.Id = "CARRIER - "
 
 --- Version.
-veafCarrierOperations.Version = "1.4.2"
+veafCarrierOperations.Version = "1.4.3"
 
 -- trace level, specific to this module
 veafCarrierOperations.Trace = false
@@ -232,8 +232,10 @@ function veafCarrierOperations.continueCarrierOperations(groupName)
         veafCarrierOperations.logTrace("dir="..dir .. " (true)")
 
         local speed = 1
-        if windspeed < 11.8611 then
-            speed = 11.8611 - windspeed -- minimum 1 m/s
+        local desiredWindSpeedOnDeck = carrier.desiredWindSpeedOnDeck * 0.51444444444444444444
+        if desiredWindSpeedOnDeck < 1 then desiredWindSpeedOnDeck = 1 end -- minimum 1 m/s 
+        if windspeed < desiredWindSpeedOnDeck then
+            speed = desiredWindSpeedOnDeck - windspeed 
         end
         veafCarrierOperations.logTrace("BRC speed="..speed.." m/s")
 
@@ -606,7 +608,7 @@ function veafCarrierOperations.getAtcForCarrierOperations(groupName, skipNavigat
             "\n"..
             "Current navigation parameters\n" ..
             "  - Current heading (true) " .. veaf.round(currentHeading - magdev, 0) .. "\n" ..
-            "  - Current heading (mag)  " .. currentHeading .. "\n" ..
+            "  - Current heading (mag)  " .. veaf.round(currentHeading, 0) .. "\n" ..
             "  - Current speed " .. currentSpeed .. " kn\n"
         end
     end
@@ -644,6 +646,7 @@ function veafCarrierOperations.stopCarrierOperations(groupName)
     veafCarrierOperations.logInfo(text)
     trigger.action.outText(text, 5)
     carrier.conductingAirOperations = false
+    carrier.stoppedAirOperations = true
 
     -- change the menu
     veafCarrierOperations.logTrace("change the menu")
@@ -790,13 +793,13 @@ function veafCarrierOperations.initializeCarrierGroups()
                 end
             end
 
-            -- take note of the starting position, heading and speed
-            carrier.missionStartPosition = veaf.getAvgGroupPos(name)
-            if carrier.carrierUnit then
-                carrier.missionStartPosition = carrier.carrierUnit:getPosition().p
+            -- take note of the carrier route
+            carrier.missionRoute = mist.getGroupRoute(name, 'task')
+            if veafCarrierOperations.Trace then
+                for num, point in pairs(carrier.missionRoute) do
+                    veafCarrierOperations.traceMarkerId = veafCarrierOperations.logMarker(veafCarrierOperations.traceMarkerId, string.format("[%s] point %d", name, tostring(num)), point, nil)
+                end
             end
-            veafCarrierOperations.logTrace("carrier.missionStartPosition="..veaf.vecToString(carrier.missionStartPosition))
-            veafCarrierOperations.traceMarkerId = veafCarrierOperations.logMarker(veafCarrierOperations.traceMarkerId, "missionStartPosition", carrier.missionStartPosition)
         end
     end
 end
@@ -819,22 +822,17 @@ function veafCarrierOperations.doOperations()
                 -- check and reset course
                 veafCarrierOperations.continueCarrierOperations(name)
             end
+        elseif carrier.stoppedAirOperations then
+            veafCarrierOperations.logDebug(name .. " stopped conducting operations")
+            carrier.stoppedAirOperations = false
+            -- reset the carrier group route to its original route (set in the mission)
+            if carrier.missionRoute then
+                veafCarrierOperations.logDebug(string.format("resetting carrier %s route", name))
+                veafCarrierOperations.logTrace("carrier.missionRoute="..veaf.p(carrier.missionRoute))
+                local result = mist.goRoute(name, carrier.missionRoute)
+            end
         else
             veafCarrierOperations.logDebug(name .. " is not conducting operations")
-
-            -- check the distance to the carrier initial position, and make it move there if needed
-            if carrier.missionStartPosition ~= nil then
-                veafCarrierOperations.logTrace("carrier.missionStartPosition="..veaf.vecToString(carrier.missionStartPosition))
-                local carrierPosition = carrier.carrierUnit:getPosition().p
-                local carrierDistanceFromMissionStartPosition = ((carrierPosition.x - carrier.missionStartPosition.x)^2 + (carrierPosition.z - carrier.missionStartPosition.z)^2)^0.5
-                veafCarrierOperations.logTrace("carrierDistanceFromMissionStartPosition="..carrierDistanceFromMissionStartPosition)
-                local speed = 9999
-                if carrierDistanceFromMissionStartPosition < 2000 then
-                    speed = 0
-                end
-                veaf.moveGroupTo(name, carrier.missionStartPosition, speed)
-            end
-    
         end
     end
 end

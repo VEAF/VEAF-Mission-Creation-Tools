@@ -55,13 +55,13 @@ In this mark, the player enters a text that the VEAF Tools scripts will understa
     </item>
     
     <item>
-      <title>External scripts</title>
-      <link>https://veaf.github.io/VEAF-Mission-Creation-Tools/mission-maker/concepts/externalscripts/</link>
+      <title>External tools</title>
+      <link>https://veaf.github.io/VEAF-Mission-Creation-Tools/mission-maker/concepts/externaltools/</link>
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
       
-      <guid>https://veaf.github.io/VEAF-Mission-Creation-Tools/mission-maker/concepts/externalscripts/</guid>
-      <description>The VEAF Mission Creation Tools contains .lua scripts that are meant to be ran inside a DCS mission, and also other scripts that are meant to run outside a mission.
-These scripts are mainly used in the mission building and extraction pipelines (see workflow).
+      <guid>https://veaf.github.io/VEAF-Mission-Creation-Tools/mission-maker/concepts/externaltools/</guid>
+      <description>The VEAF Mission Creation Tools contains .lua scripts that are meant to be ran inside a DCS mission, and also other tools that are meant to act on a mission file from the outside.
+These tools are mainly used in the mission building and extraction pipelines (see workflow).
 Normalizer DCS mission editor saves the mission data as a set of .lua files compressed in the .miz mission file.
  mission - contains the details of the mission, including all the groups and units.</description>
     </item>

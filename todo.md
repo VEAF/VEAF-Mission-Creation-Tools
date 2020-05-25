@@ -13,6 +13,7 @@
 - find a way to generate a documentation of all available commands
 - clean up a mission from all the old dictionary keys (prune)
 - change move tanker to me to make it adapt its speed and altitude to the calling aircraft type
+- make a module that decorate a ship (statics spawn, SSW escort by subs, helos and S3s, speed and drift DDs)
 
 ### RFC - needs to be done
 
@@ -32,3 +33,4 @@
   > Ce qui serait bien dans ce nouveau GCI/AIC automate, c'est qu'il donne une picture dans une zone d'intérêt par rapport au demandeur, et qu'il ajuste la taille de cette zone considérée en fonction de la densité de la picture résultante.
   > Ce qui serait bien aussi c'est de pouvoir paramétrer la notion de threat calls : quand il va donner des informations en BRAA.
   > Et le top, qu'il sache ajuster le contenu en fonction de critères de dangerosité...
+

@@ -1,6 +1,6 @@
 "use strict";
 
-const request = require('request');
+const got = require('got');
 
 class CheckWX {
 
@@ -29,20 +29,17 @@ class CheckWX {
           "X-API-Key": this._apiKey
         }
       };
-      request.get(requesturl, {
-        headers: {
-          "Accept": "application/json",
-          "X-API-Key": this._apiKey
-        }
-      }, function (error, response, body) {
-        if (error) {
-          console.log("Error: " + error);
-          reject(error);
-        } else {
+
+      (async () => {
+        try {
+          const response = await got(requesturl, options);
           let responseBodyJson = JSON.parse(response.body);
           resolve(responseBodyJson);
+        } catch (error) {
+          reject(error);
         }
-      });
+      })();
+
     });
   }
 }

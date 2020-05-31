@@ -33,7 +33,7 @@ veafSecurity = {}
 veafSecurity.Id = "SECURITY - "
 
 --- Version.
-veafSecurity.Version = "1.1.0"
+veafSecurity.Version = "1.1.1"
 
 -- trace level, specific to this module
 veafSecurity.Trace = false
@@ -496,6 +496,9 @@ function veafSecurity.logout(nocheck)
   veafSecurity.authenticated = false
   trigger.action.outText("The system has been locked down", 10)
   veafRadio.refreshRadioMenu()
+  if veafSecurity.logoutWatchdog then
+    mist.removeFunction(veafSecurity.logoutWatchdog)
+  end
 end
 
 --- authenticate all radios for a few seconds
@@ -504,7 +507,10 @@ function veafSecurity.authenticate()
     trigger.action.outText("The system is authenticated for "..veafSecurity.authDuration.." minutes", 10)
     veafSecurity.authenticated = true
     veafRadio.refreshRadioMenu()
-    mist.scheduleFunction(veafSecurity.logout,{true},timer.getTime()+veafSecurity.authDuration*60)
+    if veafSecurity.logoutWatchdog then
+      mist.removeFunction(veafSecurity.logoutWatchdog)
+    end
+    veafSecurity.logoutWatchdog = mist.scheduleFunction(veafSecurity.logout,{true},timer.getTime()+veafSecurity.authDuration*60)
   end
 end
 

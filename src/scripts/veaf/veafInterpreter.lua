@@ -54,7 +54,7 @@ veafInterpreter = {}
 veafInterpreter.Id = "INTERPRETER - "
 
 --- Version.
-veafInterpreter.Version = "1.0.1"
+veafInterpreter.Version = "1.0.2"
 
 -- trace level, specific to this module
 veafInterpreter.Trace = true
@@ -113,10 +113,10 @@ function veafInterpreter.execute(command, position, coalition, route, spawnedGro
     if position == nil then return end
     veafInterpreter.logTrace(string.format("veafInterpreter.execute([%s],[%s])",command, veaf.vecToString(position)))
 
-    -- for spawn choose by default the coalition opposing the unit in which the intepreter command is stored ; the SPAWN module will also invert, and voilà !
-    local coalitionForSpawn = 1
+    -- for spawn choose by default the coalition opposing the unit in which the intepreter command is stored ; the SPAWN and CAS module will also invert, and voilà !
+    local invertedCoalition = 1
     if coalition == 1 then
-        coalitionForSpawn = 2
+        invertedCoalition = 2
     end
 
     local commandExecuted = false
@@ -126,12 +126,12 @@ function veafInterpreter.execute(command, position, coalition, route, spawnedGro
     if veafShortcuts.executeCommand(position, command, coalition, spawnedGroups) then
         commandExecuted = true
     -- check for SPAWN module commands
-    elseif veafSpawn.executeCommand(position, command, coalitionForSpawn, doNotBypassSecurity or true, spawnedGroups) then
+    elseif veafSpawn.executeCommand(position, command, invertedCoalition, doNotBypassSecurity or true, spawnedGroups) then
         commandExecuted = true
     -- check for NAMED POINT module commands
     elseif veafNamedPoints.executeCommand(position, {text=command, coalition=-1}, doNotBypassSecurity or true) then
         commandExecuted = true
-    elseif veafCasMission.executeCommand(position, command, coalition, doNotBypassSecurity or true) then
+    elseif veafCasMission.executeCommand(position, command, invertedCoalition, doNotBypassSecurity or true) then
         commandExecuted = true
     elseif veafSecurity.executeCommand(position, command, doNotBypassSecurity or true) then
         commandExecuted = true

@@ -37,7 +37,7 @@ veafNamedPoints = {}
 veafNamedPoints.Id = "NAMED POINTS - "
 
 --- Version.
-veafNamedPoints.Version = "1.3.0"
+veafNamedPoints.Version = "1.3.1"
 
 -- trace level, specific to this module
 veafNamedPoints.Trace = false
@@ -214,7 +214,11 @@ function veafNamedPoints.getAtcAtPoint(parameters)
         
         -- runway and other information
         if point.tower then
-            atcReport = atcReport .. "TOWER          : " .. point.tower .. "\n"
+            atcReport = atcReport .. "TOWER          : " .. point.tower
+            if point.tacan then
+                atcReport = atcReport .. " " .. point.tacan
+            end
+            atcReport = atcReport .. "\n"
         end
         if point.runways then
             for _, runway in pairs(point.runways) do
@@ -379,15 +383,16 @@ end
 
 --- refresh the ATC radio menu
 function veafNamedPoints._refreshAtcRadioMenu()
-    if veafNamedPoints.atcClosestPath then
-        veafNamedPoints.logTrace("deleting ATC On Closest Point submenu")
-        veafRadio.delSubmenu(veafNamedPoints.atcClosestPath, veafNamedPoints.rootPath)
-    end
-    veafNamedPoints.logTrace("adding ATC On Closest Point submenu")
-    veafNamedPoints.atcClosestPath = veafRadio.addSubMenu("ATC on closest point", veafNamedPoints.rootPath)
-    veafRadio.addCommandToSubmenu("ATC on closest point" , veafNamedPoints.atcClosestPath, veafNamedPoints.getAtcAtClosestPoint, nil, veafRadio.USAGE_ForUnit)    
-
     if not veafNamedPoints.LowerRadioMenuSize then
+
+        if veafNamedPoints.atcClosestPath then
+            veafNamedPoints.logTrace("deleting ATC On Closest Point submenu")
+            veafRadio.delSubmenu(veafNamedPoints.atcClosestPath, veafNamedPoints.rootPath)
+        end
+        veafNamedPoints.logTrace("adding ATC On Closest Point submenu")
+        veafNamedPoints.atcClosestPath = veafRadio.addSubMenu("ATC on closest point", veafNamedPoints.rootPath)
+        veafRadio.addCommandToSubmenu("ATC on closest point" , veafNamedPoints.atcClosestPath, veafNamedPoints.getAtcAtClosestPoint, nil, veafRadio.USAGE_ForUnit)    
+
         if veafNamedPoints.atcPath then
             veafNamedPoints.logTrace("deleting ATC submenu")
             veafRadio.delSubmenu(veafNamedPoints.atcPath, veafNamedPoints.rootPath)

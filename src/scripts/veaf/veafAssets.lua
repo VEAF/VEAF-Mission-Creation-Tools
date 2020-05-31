@@ -24,7 +24,7 @@ veafAssets = {}
 veafAssets.Id = "ASSETS - "
 
 --- Version.
-veafAssets.Version = "1.3.1"
+veafAssets.Version = "1.3.2"
 
 -- trace level, specific to this module
 veafAssets.Trace = false
@@ -68,7 +68,7 @@ end
 function veafAssets._buildAssetRadioMenu(menu, asset)
     if asset.disposable or asset.information then -- in this case we need a submenu
         local radioMenu = veafRadio.addSubMenu(asset.description, menu)
-        veafRadio.addSecuredCommandToSubmenu("Respawn "..asset.description, radioMenu, veafAssets.respawn, asset.name, veafRadio.USAGE_ForAll)
+        veafRadio.addCommandToSubmenu("Respawn "..asset.description, radioMenu, veafAssets.respawn, asset.name, veafRadio.USAGE_ForAll)
         if asset.information then
             veafRadio.addCommandToSubmenu("Get info on "..asset.description, radioMenu, veafAssets.info, asset.name, veafRadio.USAGE_ForGroup)
         end
@@ -76,7 +76,7 @@ function veafAssets._buildAssetRadioMenu(menu, asset)
             veafRadio.addSecuredCommandToSubmenu("Dispose of "..asset.description, radioMenu, veafAssets.dispose, asset.name, veafRadio.USAGE_ForAll)
         end
     else
-        veafRadio.addSecuredCommandToSubmenu("Respawn "..asset.description, menu, veafAssets.respawn, asset.name, veafRadio.USAGE_ForAll)
+        veafRadio.addCommandToSubmenu("Respawn "..asset.description, menu, veafAssets.respawn, asset.name, veafRadio.USAGE_ForAll)
     end
 end
 

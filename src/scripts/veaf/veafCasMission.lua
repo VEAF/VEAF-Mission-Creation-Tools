@@ -72,7 +72,7 @@ veafCasMission = {}
 veafCasMission.Id = "CAS MISSION - "
 
 --- Version.
-veafCasMission.Version = "1.5.8"
+veafCasMission.Version = "1.5.9"
 
 -- trace level, specific to this module
 veafCasMission.Trace = true
@@ -145,6 +145,8 @@ end
 function veafCasMission.onEventMarkChange(eventPos, event)
     -- choose by default the coalition of the player who triggered the event
     local coalition = event.coalition
+    veafCasMission.logTrace(string.format("coalition=%d", coalition))
+
     if veafCasMission.executeCommand(eventPos, event.text, coalition) then        
         -- Delete old mark.
         veafCasMission.logTrace(string.format("Removing mark # %d.", event.idx))
@@ -165,9 +167,9 @@ function veafCasMission.executeCommand(eventPos, eventText, eventCoalition, bypa
 
                 if not options.side then
                     if eventCoalition == 1 then
-                        options.side = "blue"
+                        options.side = 2
                     else
-                        options.side = "red"
+                        options.side = 1
                     end
                 end
 

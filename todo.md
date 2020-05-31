@@ -11,15 +11,12 @@
 - find a way to get the data about coordinates in the Scratchpad mod; it works solo, maybe we can make it work multi with the help of SlMod ?
 - add a function to help find a town location
 - find a way to generate a documentation of all available commands
-- clean up a mission from all the old dictionary keys (prune)
 - change move tanker to me to make it adapt its speed and altitude to the calling aircraft type
 - make a module that decorate a ship (statics spawn, SSW escort by subs, helos and S3s, speed and drift DDs)
 
 ### RFC - needs to be done
 
 ### Bug - needs to be corrected
-
-- when using the chat command to logout (see OpenTraining configuration) the actual timer for automatic logout is not reset
 
 ## Notes
 

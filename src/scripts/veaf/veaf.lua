@@ -36,10 +36,10 @@ veaf.MainId = "MAIN - "
 veaf.Version = "1.3.0"
 
 -- trace level, specific to this module
-veaf.MainTrace = true
+veaf.MainTrace = false
 
 --- Development version ?
-veaf.Development = false
+veaf.Development = true
 veaf.SecurityDisabled = false
 
 --- Enable logDebug ==> give more output to DCS log file.
@@ -55,6 +55,7 @@ veaf.DEFAULT_GROUND_SPEED_KPH = 30
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 veaf.monitoredFlags = {}
+veaf.maxMonitoredFlag = 27000
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Utility methods
@@ -1077,15 +1078,29 @@ function veaf.endMissionAt(endTimeHour, endTimeMinute, checkIntervalInSeconds, c
     veaf._checkForEndMission(endTimeInSeconds, checkIntervalInSeconds, checkMessage, delay1, message1, delay2, message2, delay3, message3)    
 end
 
-function veaf.monitorWithSlMod(command, script, flag, coalition, requireAdmin)
+function veaf.monitorWithSlMod(command, script, requireAdmin, flag, coalition)
     mist.scheduleFunction(veaf._monitorWithSlMod, {command, script, flag, coalition, requireAdmin}, timer.getTime()+5)    
 end
 
 function veaf._monitorWithSlMod(command, script, flag, coalition, requireAdmin)
+    
+    local actualFlag = flag
+    if not actualFlag then
+        actualFlag = veaf.maxMonitoredFlag + 1
+        veaf.maxMonitoredFlag = actualFlag
+    end
+    
+    local actualCoalition = coalition or "all"
+    
+    local actualRequireAdmin = requireAdmin
+    if actualRequireAdmin == nil then
+        actualRequireAdmin = true
+    end
+    
     if slmod then
-        veaf.logDebug(string.format("setting SLMOD configuration for command=[%s], script=[%s], flag=[%d], requireAdmin=[%s]",tostring(command), tostring(script), flag, tostring(requireAdmin)))
-        slmod.chat_cmd(command, flag, -1, coalition or "all", requireAdmin or false)
-        veaf.startMonitoringFlag(flag, script)
+        veaf.logDebug(string.format("setting SLMOD configuration for command=[%s], script=[%s], flag=[%d], requireAdmin=[%s], coalition=[%s]",tostring(command), tostring(script), actualFlag, tostring(actualRequireAdmin), tostring(actualCoalition)))
+        slmod.chat_cmd(command, actualFlag, -1, actualCoalition, actualRequireAdmin)
+        veaf.startMonitoringFlag(actualFlag, script)
     else
         veaf.logInfo("SLMOD not found")
     end

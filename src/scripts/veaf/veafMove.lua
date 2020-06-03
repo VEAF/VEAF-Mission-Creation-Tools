@@ -68,7 +68,7 @@ veafMove = {}
 veafMove.Id = "MOVE - "
 
 --- Version.
-veafMove.Version = "1.3"
+veafMove.Version = "1.4"
 
 -- trace level, specific to this module
 veafMove.Trace = false
@@ -509,10 +509,19 @@ function veafMove.buildRadioMenu()
     veafMove.logDebug(string.format("veafMove.buildRadioMenu()"))
     veafMove.rootPath = veafRadio.addSubMenu(veafMove.RadioMenuName)
     veafRadio.addCommandToSubmenu("HELP", veafMove.rootPath, veafMove.help, nil, veafRadio.USAGE_ForGroup)
-    for _, tankerName in pairs(veafMove.Tankers) do
+    for _, tankerUnitName in pairs(veafMove.Tankers) do
+        local tankerName = tankerUnitName
+        if veafAssets then
+            veafMove.logTrace(string.format("searching for asset name %s", tankerUnitName))
+            local asset = veafAssets.get(tankerUnitName)
+            if asset then 
+                tankerName = asset.description
+                veafMove.logTrace(string.format("found asset name : %s", tankerName))
+            end
+        end
         local menuName = string.format("Move %s to me", tankerName)
         local moveTankerPath = veafRadio.addSubMenu(menuName, veafMove.rootPath)
-        veafRadio.addCommandToSubmenu(menuName , moveTankerPath, veafMove.moveTankerToMe, tankerName, veafRadio.USAGE_ForUnit)    
+        veafRadio.addCommandToSubmenu(menuName , moveTankerPath, veafMove.moveTankerToMe, tankerUnitName, veafRadio.USAGE_ForUnit)    
     end
 end
 

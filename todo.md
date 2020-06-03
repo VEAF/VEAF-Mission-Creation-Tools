@@ -30,4 +30,4 @@
   > Ce qui serait bien dans ce nouveau GCI/AIC automate, c'est qu'il donne une picture dans une zone d'intérêt par rapport au demandeur, et qu'il ajuste la taille de cette zone considérée en fonction de la densité de la picture résultante.
   > Ce qui serait bien aussi c'est de pouvoir paramétrer la notion de threat calls : quand il va donner des informations en BRAA.
   > Et le top, qu'il sache ajuster le contenu en fonction de critères de dangerosité...
-
+  

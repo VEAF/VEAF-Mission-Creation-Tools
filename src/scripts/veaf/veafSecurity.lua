@@ -442,7 +442,7 @@ function veafSecurity.executeCommand(eventPos, eventText, bypassSecurity)
               veafSecurity.authenticate()
               return true
           elseif options.logout then
-              veafSecurity.logout()
+              veafSecurity.logout(true)
               return true
           end
       end
@@ -488,13 +488,15 @@ function veafSecurity.markTextAnalysis(text)
 
 end
 
-function veafSecurity.logout(nocheck)
-  if not veafSecurity.authenticated and not nocheck then 
+function veafSecurity.logout(withMessage)
+  if not veafSecurity.authenticated and withMessage then 
     trigger.action.outText("The system was already locked down", 5)
     return
   end
   veafSecurity.authenticated = false
-  trigger.action.outText("The system has been locked down", 10)
+  if withMessage then
+    trigger.action.outText("The system has been locked down", 5)
+  end
   veafRadio.refreshRadioMenu()
   if veafSecurity.logoutWatchdog then
     mist.removeFunction(veafSecurity.logoutWatchdog)
@@ -502,15 +504,16 @@ function veafSecurity.logout(nocheck)
 end
 
 --- authenticate all radios for a few seconds
-function veafSecurity.authenticate()
+function veafSecurity.authenticate(minutes)
+  local actualMinutes = minutes or veafSecurity.authDuration
   if not veafSecurity.authenticated then
-    trigger.action.outText("The system is authenticated for "..veafSecurity.authDuration.." minutes", 10)
+    trigger.action.outText("The system is authenticated for "..veafSecurity.authDuration.." minutes", actualMinutes)
     veafSecurity.authenticated = true
     veafRadio.refreshRadioMenu()
     if veafSecurity.logoutWatchdog then
       mist.removeFunction(veafSecurity.logoutWatchdog)
     end
-    veafSecurity.logoutWatchdog = mist.scheduleFunction(veafSecurity.logout,{true},timer.getTime()+veafSecurity.authDuration*60)
+    veafSecurity.logoutWatchdog = mist.scheduleFunction(veafSecurity.logout,{true},timer.getTime()+actualMinutes*60)
   end
 end
 

@@ -51,10 +51,10 @@ veafCombatMission = {}
 veafCombatMission.Id = "COMBAT MISSION - "
 
 --- Version.
-veafCombatMission.Version = "1.1.0"
+veafCombatMission.Version = "1.3.0"
 
 -- trace level, specific to this module
-veafCombatMission.Trace = false
+veafCombatMission.Trace = true
 
 --- Number of seconds between each check of the watchdog function
 veafCombatMission.SecondsBetweenWatchdogChecks = 30
@@ -283,7 +283,9 @@ function VeafCombatMissionObjective:configureAsKillEnemiesObjective(nbKillsToWin
                 -- objective is achieved
                 veafCombatMission.logTrace(string.format("objective is achieved"))
                 local msg = string.format(self:getMessage(), nbDeadUnits)
-                trigger.action.outText(msg, 15)
+                if not mission:isSilent() then
+                    trigger.action.outText(msg, 15)
+                end
                 return VeafCombatMissionObjective.SUCCESS
             else
                 veafCombatMission.logTrace(string.format("objective is NOT achieved"))
@@ -330,7 +332,9 @@ function VeafCombatMissionObjective:configureAsPreventDestructionOfSceneryObject
                 -- objective is failed
                 veafCombatMission.logTrace(string.format("objective is failed"))
                 local msg = string.format(self:getMessage(), killedObjectsNames)
-                trigger.action.outText(msg, 15)
+                if not mission:isSilent() then
+                    trigger.action.outText(msg, 15)
+                end
                 return VeafCombatMissionObjective.FAILED
             else
                 veafCombatMission.logTrace(string.format("objective is NOT failed"))
@@ -468,6 +472,12 @@ VeafCombatMission =
     radioRootPath,
     -- the watchdog function checks for mission objectives completion
     watchdogFunctionId,
+    -- if false, the mission will not appear in the radio menu
+    radioMenuEnabled,
+    -- if true, no message will be displayed when activating/deactivating the mission
+    hidden,
+    -- same as hidden but only valid for one activation of the mission (will be reset to *hidden* at next start)
+    silent,
 }
 VeafCombatMission.__index = VeafCombatMission
 
@@ -487,6 +497,9 @@ function VeafCombatMission.new ()
     self.radioTargetInfoPath = nil
     self.radioRootPath = nil
     self.watchdogFunctionId = nil
+    self.hidden = false
+    self.radioMenuEnabled = true
+    self.silent = false
     return self
 end
 
@@ -587,6 +600,35 @@ function VeafCombatMission:addObjective(objective)
     table.insert(self.objectives, objective)
     return self
 end
+
+function VeafCombatMission:isHidden()
+    return self.hidden
+end
+
+function VeafCombatMission:setHidden(value)
+    self.hidden = value
+    return self
+end
+
+function VeafCombatMission:isSilent()
+    return self.silent
+end
+
+function VeafCombatMission:setSilent(value)
+    self.silent = value
+    return self
+end
+
+function VeafCombatMission:isRadioMenuEnabled()
+    return self.radioMenuEnabled
+end
+
+function VeafCombatMission:setRadioMenuEnabled(value)
+    self.radioMenuEnabled = value
+    return self
+end
+
+
 ---
 --- other methods
 ---
@@ -685,7 +727,7 @@ function VeafCombatMission:getInformation()
                 nbDeadUnits = nbDeadUnits + 1
             end
         end
-       
+
         veafCombatMission.logTrace(string.format("nbLiveUnits = %d",nbLiveUnits))
         veafCombatMission.logTrace(string.format("nbDeadUnits = %d",nbDeadUnits))
 
@@ -703,10 +745,11 @@ function VeafCombatMission:getInformation()
 end
 
 -- activate the mission
-function VeafCombatMission:activate()
-    veafCombatMission.logTrace(string.format("VeafCombatMission[%s]:activate()",self:getName()))
+function VeafCombatMission:activate(silent)
+    veafCombatMission.logTrace(string.format("VeafCombatMission[%s]:activate(%s)",self:getName(), tostring(silent)))
     self:setActive(true)
-    
+    self:setSilent(self:isHidden() or silent)
+
     for _, missionElement in pairs(self.elements) do
         veafCombatMission.logTrace(string.format("processing element [%s]",missionElement:getName()))
         local chance = math.random(0, 100)
@@ -715,8 +758,8 @@ function VeafCombatMission:activate()
             veafCombatMission.logTrace(string.format("chance hit (%d <= %d)",chance, missionElement:getSpawnChance()))
             for _, groupName in pairs(missionElement:getGroups()) do
                 local spawn = SPAWN:New(groupName)
-                                   :InitSkill(missionElement:getSkill())
-                                   :InitCoalition(missionElement:getCoalition())
+                                    :InitSkill(missionElement:getSkill())
+                                    :InitCoalition(missionElement:getCoalition())
                 if missionElement:getSpawnRadius() > 0 then
                     spawn = spawn:InitRandomizePosition(true, missionElement:getSpawnRadius(), nil)
                 end
@@ -779,7 +822,9 @@ function VeafCombatMission:completionCheck()
 Objective not met : %s
 The mission %s will now end.
 You can replay by starting it again, in the radio menu.]], objective:getDescription(), self:getFriendlyName())
-            trigger.action.outText(message, 15)
+            if not self:isSilent() then 
+                trigger.action.outText(message, 15)
+            end
             self:desactivate()
             reschedule = false
         elseif result == VeafCombatMissionObjective.SUCCESS then
@@ -788,7 +833,9 @@ You can replay by starting it again, in the radio menu.]], objective:getDescript
 All objectives were met !
 The mission %s is a success ! It will now end.
 You can replay by starting it again, in the radio menu.]], self:getFriendlyName())
-            trigger.action.outText(message, 15)
+            if not self:isSilent() then 
+                trigger.action.outText(message, 15) 
+            end
             self:desactivate()
             reschedule = false
         end
@@ -803,6 +850,11 @@ end
 -- updates the radio menu according to the mission state
 function VeafCombatMission:updateRadioMenu(inBatch)
     veafCombatMission.logDebug(string.format("VeafCombatMission[%s]:updateRadioMenu(%s)",self.name or "", tostring(inBatch)))
+
+    -- do not update the radio menu for a mission that has no menu
+    if not self:isRadioMenuEnabled() then
+        return self
+    end
     
     -- do not update the radio menu if not yet initialized
     if not veafCombatMission.rootPath then
@@ -848,6 +900,12 @@ end
 -- global functions
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
+function veafCombatMission.GetMissionNumber(number)
+    veafCombatMission.logDebug(string.format("veafCombatMission.GetMissionNumber([%s])",tostring(number)))
+    local mission = veafCombatMission.missionsList[number]
+    return mission
+end
+
 function veafCombatMission.GetMission(name)
     veafCombatMission.logDebug(string.format("veafCombatMission.GetMission([%s])",name or ""))
     veafCombatMission.logDebug(string.format("Searching for mission with name [%s]", name))
@@ -872,7 +930,7 @@ end
 
 -- activate a mission by number
 function veafCombatMission.ActivateMissionNumber(number, silent)
-    local mission = veafCombatMission.missionsList[number]
+    local mission = veafCombatMission.GetMissionNumber(number)
     if mission then 
         veafCombatMission.ActivateMission(mission:getName(), silent)
     end
@@ -882,8 +940,8 @@ end
 function veafCombatMission.ActivateMission(name, silent)
     veafCombatMission.logDebug(string.format("veafCombatMission.ActivateMission([%s])",name or ""))
     local mission = veafCombatMission.GetMission(name)
-    mission:activate()
-    if not silent then
+    mission:activate(silent)
+    if not silent and not mission:isSilent() then
         trigger.action.outText("VeafCombatMission "..mission:getFriendlyName().." has been activated.", 10)
         mist.scheduleFunction(veafCombatMission.GetInformationOnMission,{{name}},timer.getTime()+1)
     end
@@ -891,7 +949,7 @@ end
 
 -- desactivate a mission by number
 function veafCombatMission.DesactivateMissionNumber(number, silent)
-    local mission = veafCombatMission.missionsList[number]
+    local mission = veafCombatMission.GetMission(number)
     if mission then 
         veafCombatMission.DesactivateMission(mission:getName(), silent)
     end
@@ -902,7 +960,7 @@ function veafCombatMission.DesactivateMission(name, silent)
     veafCombatMission.logDebug(string.format("veafCombatMission.DesactivateMission([%s])",name or ""))
     local mission = veafCombatMission.GetMission(name)
     mission:desactivate()
-    if not silent then
+    if not silent and not mission:isSilent() then
         trigger.action.outText("VeafCombatMission "..mission:getFriendlyName().." has been desactivated.", 10)
     end
 end

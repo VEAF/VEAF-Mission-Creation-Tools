@@ -483,6 +483,13 @@ function veafShortcuts.buildDefaultList()
     
 
     -- shortcuts to commands
+    veafShortcuts.AddAlias(
+        VeafAlias.new()
+            :setName("-point")
+            :setDescription("Name a point on the map")
+            :setVeafCommand("_name point")
+            :setBypassSecurity(true)
+    )
     -- veafShortcuts.AddAlias(
     --     VeafAlias.new()
     --         :setName("-login")

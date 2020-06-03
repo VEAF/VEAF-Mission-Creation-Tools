@@ -24,10 +24,10 @@ veafAssets = {}
 veafAssets.Id = "ASSETS - "
 
 --- Version.
-veafAssets.Version = "1.3.2"
+veafAssets.Version = "1.4.0"
 
 -- trace level, specific to this module
-veafAssets.Trace = false
+veafAssets.Trace = true
 
 veafAssets.Assets = {
     -- list the assets common to all missions below
@@ -243,6 +243,9 @@ function veafAssets.help(unitName)
     veaf.outTextForUnit(unitName, text, 30)
 end
 
+function veafAssets.get(assetName)
+    return veafAssets.assets[assetName]
+end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- initialisation

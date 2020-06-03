@@ -216,7 +216,7 @@ function veafNamedPoints.getAtcAtPoint(parameters)
         if point.tower then
             atcReport = atcReport .. "TOWER          : " .. point.tower
             if point.tacan then
-                atcReport = atcReport .. " " .. point.tacan
+                atcReport = atcReport .. ", " .. point.tacan
             end
             atcReport = atcReport .. "\n"
         end

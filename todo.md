@@ -18,6 +18,8 @@
 
 ### Bug - needs to be corrected
 
+- when the user forgets a comma the convoy is created but without trucks ("-convoy armor 0, defense 0, dest TGT")
+
 ## Notes
 
 ### add an AWACS module

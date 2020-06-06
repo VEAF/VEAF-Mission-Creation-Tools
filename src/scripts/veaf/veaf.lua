@@ -33,7 +33,7 @@ veaf.Id = "VEAF - "
 veaf.MainId = "MAIN - "
 
 --- Version.
-veaf.Version = "1.3.0"
+veaf.Version = "1.3.1"
 
 -- trace level, specific to this module
 veaf.MainTrace = false
@@ -56,6 +56,7 @@ veaf.DEFAULT_GROUND_SPEED_KPH = 30
 
 veaf.monitoredFlags = {}
 veaf.maxMonitoredFlag = 27000
+veaf.config = {}
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Utility methods
@@ -1137,6 +1138,13 @@ function veaf._monitorFlags()
         end
     end
     mist.scheduleFunction(veaf._monitorFlags, nil, timer.getTime()+veaf.SecondsBetweenFlagMonitorChecks)    
+end
+
+function veaf.randomlyChooseFrom(aTable, shift)
+    local index = math.floor(math.random(1, #aTable)) + (shift or 0)
+    if index < 1 then index = 1 end
+    if index > #aTable then index = #aTable end
+    return aTable[index]
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------

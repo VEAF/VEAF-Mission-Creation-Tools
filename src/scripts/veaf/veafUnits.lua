@@ -39,7 +39,7 @@ veafUnits = {}
 veafUnits.Id = "UNITS - "
 
 --- Version.
-veafUnits.Version = "1.3.5"
+veafUnits.Version = "1.4.0"
 
 -- trace level, specific to this module
 veafUnits.Trace = false
@@ -208,11 +208,9 @@ function veafUnits.findDcsUnit(unitType)
 
     -- find the desired unit in the DCS units database
     local unit = nil
-    for dcsType, u in pairs(dcsUnits.DcsUnitsDatabase) do
-        local hasDesc = u.desc
-        if      (dcsType and unitType:lower() == dcsType:lower())
-            or  (u and u.desc and u.desc.displayName and unitType:lower() == u.desc.displayName:lower())
-            or  (u and u.desc and u.desc.typeName and unitType:lower() == u.desc.typeName:lower()) 
+    for _, u in pairs(dcsUnits.DcsUnitsDatabase) do
+        if      (u and u.type and unitType:lower() == u.type:lower())
+            or  (u and u.name and unitType:lower() == u.name:lower())
         then
             unit = u
             break
@@ -375,13 +373,27 @@ function veafUnits.makeUnitFromDcsStructure(dcsUnit, cell)
     if not(dcsUnit) then 
         return nil 
     end
-
-    result.typeName = dcsUnit.desc.typeName
-    result.displayName = dcsUnit.desc.displayName
-    result.naval = (dcsUnit.desc.attributes.Ships == true)
-    result.air = (dcsUnit.desc.attributes.Air == true)
-    result.infantry = (dcsUnit.desc.attributes.Infantry == true)
-    result.vehicle = (dcsUnit.desc.attributes.Vehicles == true)
+--[[
+        [9] = 
+    {
+        ["type"] = "Vulcan",
+        ["name"] = "AAA Vulcan M163",
+        ["category"] = "Air Defence",
+        ["vehicle"] = true,
+        ["description"] = "AAA Vulcan M163",
+        ["aliases"] = 
+        {
+            [1] = "M163 Vulcan",
+        }, -- end of ["aliases"]
+    }, -- end of [9]
+]]
+    result.typeName = dcsUnit.type
+    result.displayName = dcsUnit.description
+    result.naval = (dcsUnit.naval)
+    result.air = (dcsUnit.air)
+    result.infantry = (dcsUnit.infantry)
+    result.vehicle = (dcsUnit.vehicle)
+    --[[
     result.size = { x = veaf.round(dcsUnit.desc.box.max.x - dcsUnit.desc.box.min.x, 1), y = veaf.round(dcsUnit.desc.box.max.y - dcsUnit.desc.box.min.y, 1), z = veaf.round(dcsUnit.desc.box.max.z - dcsUnit.desc.box.min.z, 1)}
     result.width = result.size.z
     result.length= result.size.x
@@ -391,6 +403,7 @@ function veafUnits.makeUnitFromDcsStructure(dcsUnit, cell)
         result.width = result.length
         result.length = width
     end
+    ]]
     result.cell = cell
 
     return result

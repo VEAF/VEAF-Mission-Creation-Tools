@@ -6,7 +6,8 @@
 -- settings
 -------------------------------------------------------------------------------
 
-local export_path = [[c:\Users\dpier\Saved Games\DCS.openbeta\Logs\ObjectDB\]]
+--local export_path = [[c:\Users\dpier\Saved Games\DCS.openbeta\Logs\ObjectDB\]]
+local export_path = [[.\]]
 
 -------------------------------------------------------------------------------
 -- helper functions
@@ -137,42 +138,59 @@ local function _sortUnits(u1,u2)
     end
 end
 
-local function browseUnits(out, database, defaultCategory)
+local function browseUnits(out, database, defaultCategory, fullDcsUnit)
     for _, unit in pairs(database) do
-        out[unit["type"]] = {}
-        local u = out[unit["type"]]
-        u.category = unit["category"]
-        if not u.category then 
-            u.category = defaultCategory
-        end
-        u.type = unit["type"]
-        u.name = unit["Name"]
-        u.description = unit["DisplayName"]
-        u.aliases = {}
-        if unit["Aliases"] then 
-            for _, alias in pairs(unit["Aliases"]) do
-                table.insert(u.aliases, alias)
+        if fullDcsUnit then
+            out[unit["type"]] = unit
+        else
+            out[unit["type"]] = {}
+            local u = out[unit["type"]]
+            u.category = unit["category"]
+            if not u.category then 
+                u.category = defaultCategory
+            end
+            u.type = unit["type"]
+            u.name = unit["Name"]
+            u.description = unit["DisplayName"]
+            u.aliases = {}
+            if unit["Aliases"] then 
+                for _, alias in pairs(unit["Aliases"]) do
+                    table.insert(u.aliases, alias)
+                end
+            end
+            if unit["attribute"] then
+                for _, attr in pairs(unit["attribute"]) do
+                    if type(attr) == "string" then
+                        if attr:lower() == "ships" then u.naval = true end
+                        if attr:lower() == "air" then u.air = true end
+                        if attr:lower() == "infantry" then u.infantry = true end
+                        if attr:lower() == "vehicles" then u.vehicle = true end
+                    end
+                end
             end
         end
     end
 end
 
 local units = {}
-browseUnits(units, db.Units.Planes.Plane, "Plane")
-browseUnits(units, db.Units.Helicopters.Helicopter, "Helicopter")
-browseUnits(units, db.Units.Cars.Car, "Vehicle")
-browseUnits(units, db.Units.Ships.Ship, "Ship")
-browseUnits(units, db.Units.Fortifications.Fortification, "Fortification")
-browseUnits(units, db.Units.GroundObjects.GroundObject, "GroundObject")
-browseUnits(units, db.Units.Warehouses.Warehouse, "Warehouse")
-browseUnits(units, db.Units.Cargos.Cargo, "Cargo")
-
-values = {}
-for _,v in pairs(units) do
-    table.insert(values,v)
+local fullDcsUnit = false
+browseUnits(units, db.Units.Planes.Plane, "Plane", fullDcsUnit)
+browseUnits(units, db.Units.Helicopters.Helicopter, "Helicopter", fullDcsUnit)
+browseUnits(units, db.Units.Cars.Car, "Vehicle", fullDcsUnit)
+browseUnits(units, db.Units.Ships.Ship, "Ship", fullDcsUnit)
+browseUnits(units, db.Units.Fortifications.Fortification, "Fortification", fullDcsUnit)
+browseUnits(units, db.Units.GroundObjects.GroundObject, "GroundObject", fullDcsUnit)
+browseUnits(units, db.Units.Warehouses.Warehouse, "Warehouse", fullDcsUnit)
+browseUnits(units, db.Units.Cargos.Cargo, "Cargo", fullDcsUnit)
+local values = {}
+if fullDcsUnit then
+    values = units    
+else
+    for _,v in pairs(units) do
+        table.insert(values,v)
+    end
+    table.sort(values, _sortUnits)
 end
-table.sort(values, _sortUnits)
-
 local file = io.open(export_path.."units.lua", "w")
 writeln(file, mist.utils.serialize("units", values))
 file:close()

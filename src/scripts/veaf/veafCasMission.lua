@@ -72,7 +72,7 @@ veafCasMission = {}
 veafCasMission.Id = "CAS MISSION - "
 
 --- Version.
-veafCasMission.Version = "1.5.9"
+veafCasMission.Version = "1.6.0"
 
 -- trace level, specific to this module
 veafCasMission.Trace = true
@@ -392,32 +392,21 @@ function veafCasMission.generateTransportCompany(groupName, defense, side, size)
         }
     -- generate a transport company
     local transportType
-    local transportRand
   
     for _ = 1, groupCount do
-        transportRand = math.random(8)
-        if side == veafCasMission.SIDE_BLUE then
-            -- force Transport M818
-            transportRand = 0
-        end
-        if transportRand == 0 then
-            transportType = 'Transport M818'
-        elseif transportRand == 1 then
-            transportType = 'ATMZ-5'
-        elseif transportRand == 2 then
-            transportType = 'Ural-4320 APA-5D'
-        elseif transportRand == 3 then
-            transportType = 'SKP-11'
-        elseif transportRand == 4 then
-            transportType = 'GAZ-66'
-        elseif transportRand == 5 then
-            transportType = 'KAMAZ Truck'
-        elseif transportRand == 6 then
-            transportType = 'Ural-375'
-        elseif transportRand == 7 then
-            transportType = 'Ural-4320T'
-        elseif transportRand == 8 then
-            transportType = 'ZIL-131 KUNG'
+        if veaf.config.ww2 then
+            if side == veafCasMission.SIDE_BLUE then
+                transportType = veaf.randomlyChooseFrom({"Bedford_MWD", "CCKW_353", "Willys_MB"})
+            else
+                transportType = veaf.randomlyChooseFrom({"Blitz_36-6700A", "Horch_901_typ_40_kfz_21", "Kubelwagen_82", "Sd_Kfz_7", "Sd_Kfz_2" })
+            end
+        else
+            if side == veafCasMission.SIDE_BLUE then
+                transportType = 'Transport M818'
+                transportType = veaf.randomlyChooseFrom({"Bedford_MWD", "CCKW_353", "Willys_MB"})
+            else
+                transportType = veaf.randomlyChooseFrom({'ATMZ-5', 'Ural-4320 APA-5D', 'SKP-11', 'GAZ-66', 'KAMAZ Truck', 'Ural-375', 'Ural-4320T', 'ZIL-131 KUNG' })
+            end
         end
         table.insert(group.units, { transportType, random})
     end
@@ -428,7 +417,11 @@ function veafCasMission.generateTransportCompany(groupName, defense, side, size)
         nbDefense = 1
     end
     veafCasMission.logDebug("nbDefense = " .. nbDefense)
-    _addDefenseForGroups(group, side, defense, nbDefense)
+    if not veaf.config.ww2 then
+        _addDefenseForGroups(group, side, defense, nbDefense)
+    else
+        -- nothing, there are no mobile defense units in WW2
+    end
 
     return group
 end
@@ -454,107 +447,71 @@ function veafCasMission.generateArmorPlatoon(groupName, defense, armor, side, si
     local armorRand
     for _ = 1, groupCount do
         if armor <= 2 then
-            armorRand = math.random(3)
-            if armorRand == 1 then
+            if veaf.config.ww2 then
                 if side == veafCasMission.SIDE_BLUE then
-                    armorType = 'IFV Boman'
+                    armorType = veaf.randomlyChooseFrom({"M30_CC", "M10_GMC"})
                 else
-                    armorType = 'BRDM-2'
+                    armorType = veaf.randomlyChooseFrom({"Sd_Kfz_251", "Sd_Kfz_234_2_Puma"})
                 end
-            elseif armorRand == 2 then
+            else
                 if side == veafCasMission.SIDE_BLUE then
-                    armorType = 'IFV MCV-80'
+                    armorType = veaf.randomlyChooseFrom({'IFV Boman', 'IFV MCV-80', 'M-2 Bradley'})
                 else
-                    armorType = 'BMD-1'
-                end
-            elseif armorRand == 3 then
-                if side == veafCasMission.SIDE_BLUE then
-                    armorType = 'M-2 Bradley'
-                else
-                    armorType = 'BMP-1'
+                    armorType = veaf.randomlyChooseFrom({'BRDM-2', 'BMD-1', 'BMP-1'})
                 end
             end
         elseif armor == 3 then
-            armorRand = math.random(3)
-            if armorRand == 1 then
+            if veaf.config.ww2 then
                 if side == veafCasMission.SIDE_BLUE then
-                    armorType = 'M-2 Bradley'
+                    armorType = veaf.randomlyChooseFrom({"M30_CC", "M10_GMC", "Centaur_IV",})
                 else
-                    armorType = 'BMP-1'
+                    armorType = veaf.randomlyChooseFrom({"Sd_Kfz_251", "Sd_Kfz_234_2_Puma", "Elefant_SdKfz_184"})
                 end
-            elseif armorRand == 2 then
+            else
                 if side == veafCasMission.SIDE_BLUE then
-                    armorType = 'M-2 Bradley'
+                    armorType = veaf.randomlyChooseFrom({'M-2 Bradley', 'M-2 Bradley', 'M-60'})
                 else
-                    armorType = 'BMP-2'
-                end
-            elseif armorRand == 3 then
-                if side == veafCasMission.SIDE_BLUE then
-                    armorType = 'M-60'
-                else
-                    armorType = 'T-55'
+                    armorType = veaf.randomlyChooseFrom({'BMP-1', 'BMP-2', 'T-55'})
                 end
             end
         elseif armor == 4 then
-            armorRand = math.random(4)
-            if armorRand == 1 then
+            if veaf.config.ww2 then
                 if side == veafCasMission.SIDE_BLUE then
-                    armorType = 'M-2 Bradley'
+                    armorType = veaf.randomlyChooseFrom({"Centaur_IV", "Churchill_VII", "Cromwell_IV"})
                 else
-                    armorType = 'BMP-1'
+                    armorType = veaf.randomlyChooseFrom({"Pz_IV_H", "Tiger_I", "Tiger_II_H","Stug_III","Stug_IV"})
                 end
-            elseif armorRand == 2 then
+            else
                 if side == veafCasMission.SIDE_BLUE then
-                    armorType = 'M-2 Bradley'
+                    armorType = veaf.randomlyChooseFrom({'M-2 Bradley', 'M-2 Bradley', 'M-60', 'MBT Leopard1A3'})
                 else
-                    armorType = 'BMP-2'
-                end
-            elseif armorRand == 3 then
-                if side == veafCasMission.SIDE_BLUE then
-                    armorType = 'M-60'
-                else
-                    armorType = 'T-55'
-                end
-            elseif armorRand == 4 then
-                if side == veafCasMission.SIDE_BLUE then
-                    armorType = 'MBT Leopard1A3'
-                else
-                    armorType = 'T-72B'
+                    armorType = veaf.randomlyChooseFrom({'BMP-1', 'BMP-2', 'T-55', 'T-72B'})
                 end
             end
         elseif armor >= 5 then
-            armorRand = math.random(armor - 3, 4)
-            if armorRand == 1 then
+            if veaf.config.ww2 then
                 if side == veafCasMission.SIDE_BLUE then
-                    armorType = 'M-2 Bradley'
+                    armorType = veaf.randomlyChooseFrom({"Centaur_IV", "Churchill_VII", "Cromwell_IV", "M4_Sherman", "M4A4_Sherman_FF"}, armor-5)
                 else
-                    armorType = 'BMP-2'
+                    armorType = veaf.randomlyChooseFrom({"Pz_IV_H", "Tiger_I", "Tiger_II_H","Stug_III","Stug_IV", "JagdPz_IV", "Jagdpanther_G1", "Pz_V_Panther_G"}, armor - 5)
                 end
-            elseif armorRand == 2 then
+            else
                 if side == veafCasMission.SIDE_BLUE then
-                    armorType = 'M-2 Bradley'
+                    armorType = veaf.randomlyChooseFrom({'M-2 Bradley', 'M-2 Bradley', 'MBT Leopard1A3', 'M-1 Abrams'}, armor-5)
                 else
-                    armorType = 'BMP-3'
-                end
-            elseif armorRand == 3 then
-                if side == veafCasMission.SIDE_BLUE then
-                    armorType = 'MBT Leopard1A3'
-                else
-                    armorType = 'T-80UD'
-                end
-            elseif armorRand == 4 then
-                if side == veafCasMission.SIDE_BLUE then
-                    armorType = 'M-1 Abrams'
-                else
-                    armorType = 'T-90'
+                    armorType = veaf.randomlyChooseFrom({'BMP-2', 'BMP-3', 'T-72B', 'T-80UD', 'T-90'}, armor-5)
                 end
             end
         end
         table.insert(group.units, { armorType, random })
     end
 
-   -- add air defense vehicles
-   _addDefenseForGroups(group, side, defense, 1)
+    -- add air defense vehicles
+    if not veaf.config.ww2 then
+        _addDefenseForGroups(group, side, defense, 1)
+    else
+        -- nothing, there are no mobile defense units in WW2
+    end
 
     return group
 end

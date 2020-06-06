@@ -63,7 +63,7 @@ This means that it will be executed if the *VEAF_DYNAMIC_PATH* constant has been
 It will load the community scripts (one by one), with code like this:
 
 ```lua
-local script = VEAF_DYNAMIC_PATH .. "/scripts/community/mist.lua"
+local script = VEAF_DYNAMIC_PATH .. "/src/scripts/community/mist.lua"
 assert(loadfile(script))()
 ```
 
@@ -71,7 +71,7 @@ It will also load all the veaf scripts dynamically with this code:
 
 ```lua
 env.info("DYNAMIC LOADING")
-local script = VEAF_DYNAMIC_PATH .. "/scripts/VeafDynamicLoader.lua"
+local script = VEAF_DYNAMIC_PATH .. "/src/scripts/VeafDynamicLoader.lua"
 assert(loadfile(script))()
 ```
 

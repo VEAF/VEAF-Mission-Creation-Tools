@@ -1140,8 +1140,9 @@ function veaf._monitorFlags()
     mist.scheduleFunction(veaf._monitorFlags, nil, timer.getTime()+veaf.SecondsBetweenFlagMonitorChecks)    
 end
 
-function veaf.randomlyChooseFrom(aTable, shift)
-    local index = math.floor(math.random(1, #aTable)) + (shift or 0)
+function veaf.randomlyChooseFrom(aTable, bias)
+    veaf.mainLogTrace(string.format("randomlyChooseFrom(%d):%s",bias or 0, veaf.p(aTable)))
+    local index = math.floor(math.random(1, #aTable)) + (bias or 0)
     if index < 1 then index = 1 end
     if index > #aTable then index = #aTable end
     return aTable[index]

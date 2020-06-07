@@ -66,7 +66,7 @@ veafSpawn = {}
 veafSpawn.Id = "SPAWN - "
 
 --- Version.
-veafSpawn.Version = "1.9.2"
+veafSpawn.Version = "1.9.3"
 
 -- trace level, specific to this module
 veafSpawn.Trace = true
@@ -541,7 +541,7 @@ function veafSpawn.markTextAnalysis(text)
             -- Set defense.
             veafSpawn.logTrace(string.format("Keyword defense = %d", val))
             local nVal = tonumber(val)
-            if nVal <= 5 and nVal >= 0 then
+            if nVal >= 0 then
                 switch.defense = nVal
             end
         end
@@ -550,7 +550,7 @@ function veafSpawn.markTextAnalysis(text)
             -- Set armor.
             veafSpawn.logTrace(string.format("Keyword armor = %d", val))
             local nVal = tonumber(val)
-            if nVal <= 5 and nVal >= 0 then
+            if nVal >= 0 then
                 switch.armor = nVal
             end
         end

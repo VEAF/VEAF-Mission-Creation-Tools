@@ -33,7 +33,7 @@ veaf.Id = "VEAF - "
 veaf.MainId = "MAIN - "
 
 --- Version.
-veaf.Version = "1.3.1"
+veaf.Version = "1.4.0"
 
 -- trace level, specific to this module
 veaf.MainTrace = false
@@ -435,6 +435,8 @@ end
 
 --- TODO doc
 function veaf.generateVehiclesRoute(startPoint, destination, onRoad, speed, patrol)
+    veaf.mainLogTrace(string.format("veaf.generateVehiclesRoute(onRoad=[%s], speed=[%s], patrol=[%s])", tostring(onRoad or ""), tostring(speed or ""), tostring(patrol or "")))
+
     speed = speed or veaf.DEFAULT_GROUND_SPEED_KPH
     onRoad = onRoad or false
     patrol = patrol or false
@@ -458,7 +460,6 @@ function veaf.generateVehiclesRoute(startPoint, destination, onRoad, speed, patr
     else
         startPoint = veaf.placePointOnLand({x = startPoint.x, y = 0, z = startPoint.z})
     end
-
     
     veaf.mainLogTrace(string.format("startPoint = {x = %d, y = %d, z = %d}", startPoint.x, startPoint.y, startPoint.z))
 
@@ -469,42 +470,8 @@ function veaf.generateVehiclesRoute(startPoint, destination, onRoad, speed, patr
     else
         endPoint = veaf.placePointOnLand({x = endPoint.x, y = 0, z = endPoint.z})
     end
+    veaf.mainLogTrace(string.format("endPoint = {x = %d, y = %d, z = %d}", endPoint.x, endPoint.y, endPoint.z))
     
-    local task = 
-        {
-            ["id"] = "ComboTask",
-            ["params"] = 
-            {
-                ["tasks"] = 
-                {
-                }, -- end of ["tasks"]
-            }, -- end of ["params"]
-        } -- end of ["task"]
-    if patrol then
-        task = 
-        {
-            ["id"] = "ComboTask",
-            ["params"] = 
-            {
-                ["tasks"] = 
-                {
-                    [1] = 
-                    {
-                        ["enabled"] = true,
-                        ["auto"] = false,
-                        ["id"] = "GoToWaypoint",
-                        ["number"] = 1,
-                        ["params"] = 
-                        {
-                            ["fromWaypointIndex"] = 2,
-                            ["nWaypointIndx"] = 1,
-                        }, -- end of ["params"]
-                    }, -- end of [1]
-                }, -- end of ["tasks"]
-            }, -- end of ["params"]
-        } -- end of ["task"]
-    end
-
     local vehiclesRoute = {
         [1] = 
         {
@@ -544,10 +511,51 @@ function veaf.generateVehiclesRoute(startPoint, destination, onRoad, speed, patr
             ["ETA_locked"] = false,
             ["speed"] = speed / 3.6,
             ["action"] = action,
-            ["task"] = task,
             ["speed_locked"] = true,
         }, -- end of [2]
     }
+
+    if patrol then
+        vehiclesRoute[3] = 
+        {
+            ["x"] = startPoint.x,
+            ["y"] = startPoint.z,
+            ["alt"] = startPoint.y,
+            ["type"] = "Turning Point",
+            ["ETA"] = 0,
+            ["alt_type"] = "BARO",
+            ["formation_template"] = "",
+            ["name"] = "STA",
+            ["ETA_locked"] = true,
+            ["speed"] = speed / 3.6,
+            ["action"] = action,
+            ["task"] = 
+            {
+                ["id"] = "ComboTask",
+                ["params"] = 
+                {
+                    ["tasks"] = 
+                    {
+                        [1] = 
+                        {
+                            ["enabled"] = true,
+                            ["auto"] = false,
+                            ["id"] = "GoToWaypoint",
+                            ["number"] = 1,
+                            ["params"] = 
+                            {
+                                ["fromWaypointIndex"] = 3,
+                                ["nWaypointIndx"] = 1,
+                            }, -- end of ["params"]
+                        }, -- end of [1]
+                    }, -- end of ["tasks"]
+                }, -- end of ["params"]
+            }, -- end of ["task"]
+            ["speed_locked"] = true,
+        }
+    end
+    veaf.mainLogTrace(string.format("vehiclesRoute = %s", veaf.p(vehiclesRoute)))
+
     return vehiclesRoute
 end
 

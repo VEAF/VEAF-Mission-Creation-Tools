@@ -13,6 +13,7 @@
 - find a way to generate a documentation of all available commands
 - change move tanker to me to make it adapt its speed and altitude to the calling aircraft type
 - make a module that decorate a ship (statics spawn, SSW escort by subs, helos and S3s, speed and drift DDs)
+- create an option that spawns a thing in a radius
 
 ### RFC - needs to be done
 

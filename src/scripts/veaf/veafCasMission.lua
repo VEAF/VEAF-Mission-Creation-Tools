@@ -72,10 +72,10 @@ veafCasMission = {}
 veafCasMission.Id = "CAS MISSION - "
 
 --- Version.
-veafCasMission.Version = "1.6.0"
+veafCasMission.Version = "1.7.0"
 
 -- trace level, specific to this module
-veafCasMission.Trace = true
+veafCasMission.Trace = false
 
 --- Key phrase to look for in the mark text which triggers the command.
 veafCasMission.Keyphrase = "_cas"
@@ -298,6 +298,7 @@ end
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 local function _addDefenseForGroups(group, side, defense, multiple)
+    veafCasMission.logTrace(string.format("_addDefenseForGroups(defense=[%s], side=[%s], multiple=[%s])", defense  or "", side or "", multiple or ""))
     for _ = 1, multiple do
         if defense == 5 then
             -- defense = 5 : add a SA9 and a Tunguska (resp. M1097 Avenger and a M6 Linebacker)
@@ -340,6 +341,7 @@ local function _addDefenseForGroups(group, side, defense, multiple)
             end
         end
     end
+    --veafCasMission.logTrace(string.format("group.units=%s", veaf.p(group.units)))
 end
 
 --- Generates an air defense group
@@ -381,8 +383,9 @@ end
 
 --- Generates a transport company and its air defenses
 function veafCasMission.generateTransportCompany(groupName, defense, side, size)
+    veafCasMission.logTrace(string.format("veafCasMission.generateTransportCompany(groupName=[%s], defense=[%s], side=[%s], size=[%s])", groupName or "", defense  or "", side or "", size or ""))
     side = side or veafCasMission.SIDE_RED
-    local groupCount = math.floor((size or math.random(10, 15)) * (math.random(8, 12)/10))
+    local groupCount = math.floor((size or math.random(10, 15)))
     veafCasMission.logTrace(string.format("groupCount=%s", tostring(groupCount)))
     local group = {
             disposition = { h = groupCount, w = groupCount},
@@ -402,8 +405,7 @@ function veafCasMission.generateTransportCompany(groupName, defense, side, size)
             end
         else
             if side == veafCasMission.SIDE_BLUE then
-                transportType = 'Transport M818'
-                transportType = veaf.randomlyChooseFrom({"Bedford_MWD", "CCKW_353", "Willys_MB"})
+                transportType = veaf.randomlyChooseFrom({"APC M1025 HMMWV", "Transport M818", "HEMTT TFFT", "M978 HEMTT Tanker"})
             else
                 transportType = veaf.randomlyChooseFrom({'ATMZ-5', 'Ural-4320 APA-5D', 'SKP-11', 'GAZ-66', 'KAMAZ Truck', 'Ural-375', 'Ural-4320T', 'ZIL-131 KUNG' })
             end
@@ -428,6 +430,7 @@ end
 
 --- Generates an armor platoon and its air defenses
 function veafCasMission.generateArmorPlatoon(groupName, defense, armor, side, size)
+    veafCasMission.logTrace(string.format("veafCasMission.generateArmorPlatoon(groupName=[%s], defense=[%s], armor=[%s], side=[%s], size=[%s])", groupName or "", defense  or "", armor or "", side or "", size or ""))
     side = side or veafCasMission.SIDE_RED
     
     -- generate an armor platoon

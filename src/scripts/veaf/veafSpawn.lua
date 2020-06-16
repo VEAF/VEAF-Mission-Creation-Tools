@@ -66,10 +66,10 @@ veafSpawn = {}
 veafSpawn.Id = "SPAWN - "
 
 --- Version.
-veafSpawn.Version = "1.9.3"
+veafSpawn.Version = "1.10.0"
 
 -- trace level, specific to this module
-veafSpawn.Trace = true
+veafSpawn.Trace = false
 
 --- Key phrase to look for in the mark text which triggers the spawn command.
 veafSpawn.SpawnKeyphrase = "_spawn"
@@ -201,7 +201,7 @@ function veafSpawn.executeCommand(eventPos, eventText, eventCoalition, bypassSec
             elseif options.convoy then
                 -- check security
                 if not (bypassSecurity or veafSecurity.checkSecurity_L9(options.password)) then return end
-                spawnedGroup = veafSpawn.spawnConvoy(eventPos, options.country, options.side, options.patrol, options.offroad, options.destination, options.defense, options.size, options.armor, bypassSecurity)
+                spawnedGroup = veafSpawn.spawnConvoy(eventPos, options.country, options.side, options.speed, options.patrol, options.offroad, options.destination, options.defense, options.size, options.armor, bypassSecurity)
                 routeDone = true
             elseif options.cargo then
                 -- check security
@@ -821,8 +821,8 @@ function veafSpawn.spawnFullCombatGroup(eventPos, country, side, heading, spacin
 end
 
 --- Spawn a specific group at a specific spot
-function veafSpawn.spawnConvoy(spawnSpot, country, side, patrol, offroad, destination, defense, size, armor, silent)
-    veafSpawn.logDebug(string.format("spawnConvoy(country=%s, destination=%s, defense=%d, size=%d, armor=%d)",country, destination, defense, size, armor))
+function veafSpawn.spawnConvoy(spawnSpot, country, side, speed, patrol, offroad, destination, defense, size, armor, silent)
+    veafSpawn.logDebug(string.format("spawnConvoy(country=%s, destination=%s, defense=%d, size=%d, armor=%d, speed=%s, patrol=%s)",country, destination, defense, size, armor, tostring(speed or ""), tostring(patrol or "")))
     veafSpawn.logTrace("spawnSpot=" .. veaf.vecToString(spawnSpot))
     if not destination then return end
 
@@ -852,7 +852,7 @@ function veafSpawn.spawnConvoy(spawnSpot, country, side, patrol, offroad, destin
     -- generate the armored vehicles
     if armor and armor > 0 then
         -- generate the group
-        local group = veafCasMission.generateArmorPlatoon(groupId, defense, armor)
+        local group = veafCasMission.generateArmorPlatoon(groupId, defense, armor, side, size / 2)
         
         -- process the group 
         local group = veafUnits.processGroup(group)
@@ -871,22 +871,12 @@ function veafSpawn.spawnConvoy(spawnSpot, country, side, patrol, offroad, destin
 
     veafSpawn._createDcsUnits(country, units, groupName)
  
-    local route = veaf.generateVehiclesRoute(spawnSpot, destination, not offroad)
+    local route = veaf.generateVehiclesRoute(spawnSpot, destination, not offroad, speed, patrol)
     veafSpawn.spawnedConvoys[groupName] = route
 
     --  make the group go to destination
     veafSpawn.logTrace("make the group go to destination : ".. groupName)
     mist.goRoute(groupName, route)
-
-    -- make it patrol
-    if patrol then
-        veafSpawn.logTrace("make the group patrol : ".. groupName)
-        -- TODO later 
-        -- for now it crashes with an error like "MIST|getGroupRoute|5982: convoy-68254 not found in mist.DBs.MEgroupsByName"
-        -- I tried making it scheduled but it still doesn't work
-        
-        -- mist.ground.patrol(groupName, 'doubleBack')
-    end
 
     if not silent then 
         trigger.action.outText("Spawned convoy "..groupName, 5)

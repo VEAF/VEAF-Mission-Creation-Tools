@@ -43,7 +43,7 @@ class DCSCheckWXConvertEnricher {
             "speed_mps" : decodedMetar.wind.speed || 0,
             "gust_mps" : decodedMetar.wind.gust || 0,
           },
-          "clouds": decodedMetar.clouds.map(cloud => {
+          "clouds": !decodedMetar.clouds ? "" : decodedMetar.clouds.map(cloud => {
             return {
               "base_meters_agl": cloud.altitude*0.3048 || 5000,
               "code": cloud.abbreviation

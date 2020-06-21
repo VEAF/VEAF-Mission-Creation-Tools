@@ -51,7 +51,7 @@ veafCombatMission = {}
 veafCombatMission.Id = "COMBAT MISSION - "
 
 --- Version.
-veafCombatMission.Version = "1.3.0"
+veafCombatMission.Version = "1.3.1"
 
 -- trace level, specific to this module
 veafCombatMission.Trace = true
@@ -747,6 +747,12 @@ end
 -- activate the mission
 function VeafCombatMission:activate(silent)
     veafCombatMission.logTrace(string.format("VeafCombatMission[%s]:activate(%s)",self:getName(), tostring(silent)))
+    
+    -- don't start twice
+    if self:isActive() then 
+        return nil
+    end
+
     self:setActive(true)
     self:setSilent(self:isHidden() or silent)
 
@@ -940,10 +946,14 @@ end
 function veafCombatMission.ActivateMission(name, silent)
     veafCombatMission.logDebug(string.format("veafCombatMission.ActivateMission([%s])",name or ""))
     local mission = veafCombatMission.GetMission(name)
-    mission:activate(silent)
+    local result = mission:activate(silent)
     if not silent and not mission:isSilent() then
-        trigger.action.outText("VeafCombatMission "..mission:getFriendlyName().." has been activated.", 10)
-        mist.scheduleFunction(veafCombatMission.GetInformationOnMission,{{name}},timer.getTime()+1)
+        if result then
+            trigger.action.outText("VeafCombatMission "..mission:getFriendlyName().." has been activated.", 10)
+            mist.scheduleFunction(veafCombatMission.GetInformationOnMission,{{name}},timer.getTime()+1)
+        else
+            trigger.action.outText("VeafCombatMission "..mission:getFriendlyName().." was already active.", 10)
+        end
     end
 end
 

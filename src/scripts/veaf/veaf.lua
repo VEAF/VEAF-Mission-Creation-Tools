@@ -1123,11 +1123,11 @@ function veaf.startMonitoringFlag(flag, scriptToExecute)
 end
 
 function veaf._monitorFlags()
-    veaf.mainLogDebug("veaf._monitorFlags()")
+    --veaf.mainLogDebug("veaf._monitorFlags()")
     for flag, scriptToExecute in pairs(veaf.monitoredFlags) do
-        veaf.mainLogTrace(string.format("veaf._monitorFlags() - checking flag %s", flag))
+        --veaf.mainLogTrace(string.format("veaf._monitorFlags() - checking flag %s", flag))
         local flagValue = trigger.misc.getUserFlag(flag)
-        veaf.mainLogTrace(string.format("veaf._monitorFlags() - flagValue = [%d]", flagValue))
+        --veaf.mainLogTrace(string.format("veaf._monitorFlags() - flagValue = [%d]", flagValue))
         if flagValue > 0 then
             -- call the script
             veaf.mainLogTrace(string.format("veaf._monitorFlags() - flag %s was TRUE", flag))
@@ -1142,7 +1142,7 @@ function veaf._monitorFlags()
             trigger.action.setUserFlag(flag, false)
             veaf.mainLogDebug(string.format("veaf._monitorFlags() - flag [%s] was reset", flag))
         else
-            veaf.mainLogTrace(string.format("veaf._monitorFlags() - flag %s was FALSE or not set", flag))
+            --veaf.mainLogTrace(string.format("veaf._monitorFlags() - flag %s was FALSE or not set", flag))
         end
     end
     mist.scheduleFunction(veaf._monitorFlags, nil, timer.getTime()+veaf.SecondsBetweenFlagMonitorChecks)    

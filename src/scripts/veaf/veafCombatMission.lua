@@ -51,7 +51,7 @@ veafCombatMission = {}
 veafCombatMission.Id = "COMBAT MISSION - "
 
 --- Version.
-veafCombatMission.Version = "1.3.1"
+veafCombatMission.Version = "1.4.0"
 
 -- trace level, specific to this module
 veafCombatMission.Trace = true
@@ -131,6 +131,24 @@ function VeafCombatMissionObjective.new()
     self.onStartupFunction = nil
     self.onCheckFunction = nil
     return self
+end
+
+function VeafCombatMissionObjective:copy()
+    local copy = VeafCombatMissionObjective.new()
+
+    -- copy the attributes
+    copy.name = self.name
+    copy.description = self.description
+    copy.onStartupFunction = self.onStartupFunction
+    copy.onCheckFunction = self.onCheckFunction
+        
+    -- deep copy the collections
+    copy.parameters = {}
+    for _, parameter in pairs(self.parameters) do
+        table.insert(copy.parameters, parameter)
+    end
+
+    return copy
 end
 
 ---
@@ -364,7 +382,11 @@ VeafCombatMissionElement =
     -- spawn radius in meters (randomness introduced in the respawn mechanism)
     spawnRadius, -- SPAWN:InitRandomizePosition
     -- spawn chance in percent (xx chances in 100 that the unit is spawned - or the command run)
-    spawnChance
+    spawnChance,
+    -- the element can be multiplied to scale the mission
+    scale,
+    -- if true, the element is scalable
+    scalable,
 }
 VeafCombatMissionElement.__index = VeafCombatMissionElement
 
@@ -377,7 +399,30 @@ function VeafCombatMissionElement.new ()
     self.skill = "Random"
     self.spawnRadius = 0
     self.spawnChance = 100
+    self.scale = 1
+    self.scalable = false
     return self
+end
+
+function VeafCombatMissionElement:copy()
+    local copy = VeafCombatMissionElement.new()
+
+    -- copy the attributes
+    copy.name = self.name
+    copy.coalition = self.coalition
+    copy.skill = self.skill
+    copy.spawnRadius = self.spawnRadius
+    copy.spawnChance = self.spawnChance
+    copy.scale = self.scale
+    copy.scalable = self.scalable
+    
+    -- deep copy the collections
+    copy.groups = {}
+    for _, group in pairs(self.groups) do
+        table.insert(copy.groups, group)
+    end
+
+    return copy
 end
 
 ---
@@ -436,6 +481,24 @@ end
 
 function VeafCombatMissionElement:getSpawnChance()
     return self.spawnChance
+end
+
+function VeafCombatMissionElement:setScale(value)
+    self.scale = tonumber(value)
+    return self
+end
+
+function VeafCombatMissionElement:getScale()
+    return self.scale
+end
+
+function VeafCombatMissionElement:setScalable(value)
+    self.scalable = value
+    return self
+end
+
+function VeafCombatMissionElement:isScalable()
+    return self.scalable
 end
 
 ---
@@ -501,6 +564,38 @@ function VeafCombatMission.new ()
     self.radioMenuEnabled = true
     self.silent = false
     return self
+end
+
+function VeafCombatMission:copy(newSkill, newScale)
+    local copy = VeafCombatMission.new()
+
+    -- copy the attributes
+    copy.name = self.name
+    copy.friendlyName = self.friendlyName
+    copy.secured = self.secured
+    copy.briefing = self.briefing
+    copy.active = self.active
+    copy.training = self.training
+    copy.hidden = self.hidden
+    copy.radioMenuEnabled = self.radioMenuEnabled
+    copy.silent = self.silent
+
+    -- deep copy the collections
+    for _, objective in pairs(self.objectives) do
+        copy:addObjective(objective:copy())
+    end
+    for _, element in pairs(self.elements) do
+        local elementCopy = element:copy()
+        if element:isScalable() and newScale then
+            elementCopy:setScale(newScale)
+        end
+        if newSkill then
+            elementCopy:setSkill(newSkill)
+        end
+        copy:addElement(elementCopy)
+    end
+
+    return copy
 end
 
 ---
@@ -628,7 +723,12 @@ function VeafCombatMission:setRadioMenuEnabled(value)
     return self
 end
 
-
+function VeafCombatMission:setAllElementsSkill(skill)
+    for _, element in self.elements do
+        element:setSkill(skill)
+    end
+    return self
+end
 ---
 --- other methods
 ---
@@ -766,11 +866,15 @@ function VeafCombatMission:activate(silent)
                 local spawn = SPAWN:New(groupName)
                                     :InitSkill(missionElement:getSkill())
                                     :InitCoalition(missionElement:getCoalition())
-                if missionElement:getSpawnRadius() > 0 then
-                    spawn = spawn:InitRandomizePosition(true, missionElement:getSpawnRadius(), nil)
+                local spawnRadius = missionElement:getSpawnRadius()
+                if (missionElement:getScale() > 1 and spawnRadius < 150) then
+                    spawnRadius = 150 
                 end
-                local group = spawn:Spawn()
-                self:addSpawnedGroup(group)
+                spawn = spawn:InitRandomizePosition(true, spawnRadius, nil)
+                for i=1,missionElement:getScale() do
+                    local group = spawn:Spawn()
+                    self:addSpawnedGroup(group)
+                end
             end
         else 
             veafCombatMission.logTrace(string.format("chance missed (%d > %d)",chance, missionElement:getSpawnChance()))
@@ -934,6 +1038,29 @@ function veafCombatMission.AddMission(mission)
     return mission
 end
 
+-- add a mission and create copies with different skills
+function veafCombatMission.AddMissionsWithSkillAndScale(mission, skills, scales)
+    veafCombatMission.logDebug(string.format("veafCombatMission.AddMissionsWithSkill([%s])",mission:getName() or ""))
+    
+    if (mission:isRadioMenuEnabled()) then
+        veafCombatMission.AddMission(mission)
+    end
+
+    local skills = skills or  {"Average", "Good", "High", "Excellent", "Random"}
+    local scales = scales or {1, 2, 3, 4}
+    
+    for _, scale in pairs(scales) do
+        for _, skill in pairs(skills) do 
+            local copy = mission:copy(skill, scale):setRadioMenuEnabled(false)
+            copy:setName(mission:getName().."/"..skill.."/"..scale)
+            copy:setFriendlyName(mission:getFriendlyName().."/"..skill.."/"..scale)
+            veafCombatMission.AddMission(copy)
+        end
+    end
+
+    return mission
+end
+
 -- activate a mission by number
 function veafCombatMission.ActivateMissionNumber(number, silent)
     local mission = veafCombatMission.GetMissionNumber(number)
@@ -1005,6 +1132,8 @@ function veafCombatMission.buildRadioMenu()
     veafCombatMission.logDebug("buildRadioMenu()")
     veafCombatMission.rootPath = veafRadio.addMenu(veafCombatMission.RadioMenuName)
     veafRadio.addCommandToSubmenu("HELP", veafCombatMission.rootPath, veafCombatMission.help, nil, veafRadio.USAGE_ForGroup)
+    veafRadio.addCommandToSubmenu("List available", veafCombatMission.rootPath, veafCombatMission.listAvailableMissions, nil, veafRadio.USAGE_ForAll)
+    veafRadio.addCommandToSubmenu("List active", veafCombatMission.rootPath, veafCombatMission.listActiveMissions, nil, veafRadio.USAGE_ForAll)
     
     -- sort the missions alphabetically
     names = {}
@@ -1052,6 +1181,61 @@ function veafCombatMission.help(unitName)
         'as well as ask for information about their status.'
 
     veaf.outTextForUnit(unitName, text, 30)
+end
+
+function veafCombatMission.listAvailableMissions() 
+    -- sort the missions alphabetically
+    sortedMissions = {}
+    missions = {}
+    for _, mission in pairs(veafCombatMission.missionsDict) do
+        local missionName = mission:getName()
+        veafCombatMission.logTrace(string.format("missionName=%s", missionName))
+        missionName = missionName:gsub("/Random/%d", "/<Skill>/<Scale>")
+        missionName = missionName:gsub("/Average/%d", "/<Skill>/<Scale>")
+        missionName = missionName:gsub("/Good/%d", "/<Skill>/<Scale>")
+        missionName = missionName:gsub("/High/%d", "/<Skill>/<Scale>")
+        missionName = missionName:gsub("/Excellent/%d", "/<Skill>/<Scale>")
+        veafCombatMission.logTrace(string.format("missionName=%s", missionName))
+        if not(missions[missionName]) then
+            missions[missionName] = true
+            table.insert(sortedMissions, missionName)
+        end
+    end
+    table.sort(sortedMissions)
+    
+    local text =
+    'List of all available combat missions:\n'
+
+    for _, missionName in pairs(sortedMissions) do
+        text = text .. " - " .. missionName .. "\n"
+    end
+    
+    trigger.action.outText(text, 20)
+end
+
+function veafCombatMission.listActiveMissions() 
+    -- sort the missions alphabetically
+    sortedMissions = {}
+    for _, mission in pairs(veafCombatMission.missionsDict) do
+        if mission:isActive() then
+            table.insert(sortedMissions, mission:getName())
+        end
+    end
+    table.sort(sortedMissions)
+    
+    local text =
+    'No active combat mission !'
+
+    if #sortedMissions > 0 then
+        text =
+        'List of active combat missions:\n'
+
+        for _, missionName in pairs(sortedMissions) do
+            text = text .. " - " .. missionName .. "\n"
+        end
+    end    
+
+    trigger.action.outText(text, 20)
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------

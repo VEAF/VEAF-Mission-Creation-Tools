@@ -318,6 +318,12 @@ end
 
 --- Return a point at the same coordinates, but on the surface
 function veaf.placePointOnLand(vec3)
+    -- convert a vec2 to a vec3
+    if not vec3.z then
+        vec3.z = vec3.y 
+        vec3.y = 0
+    end
+    
     if not vec3.y then
         vec3.y = 0
     end

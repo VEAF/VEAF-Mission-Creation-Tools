@@ -480,7 +480,15 @@ function veafShortcuts.buildDefaultList()
             :setVeafCommand("_spawn unit, name Ural-375 ZU-23")
             :setBypassSecurity(true)
     )
-    
+    veafShortcuts.AddAlias(
+        VeafAlias.new()
+            :setName("-manpads")
+            :setDescription("mutiple SA-18 manpad soldier peppered in a wide radius")
+            :setVeafCommand("_spawn unit, name SA-18 Igla-S manpad, radius 5000")
+            :addRandomParameter("multiplier", 3, 6)
+            :setBypassSecurity(true)
+    )
+
 
     -- shortcuts to commands
     veafShortcuts.AddAlias(
@@ -584,6 +592,33 @@ function veafShortcuts.buildDefaultList()
             :setName("-jtac")
             :setDescription("JTAC humvee")
             :setVeafCommand("_spawn jtac")
+            :setBypassSecurity(true)
+    )
+    veafShortcuts.AddAlias(
+        VeafAlias.new()
+            :setName("-shell")
+            :setDescription("Artillery shelling of a zone with HE")
+            :setVeafCommand("_spawn bomb")
+            :addRandomParameter("shells", 25, 40)
+            :addRandomParameter("radius", 350, 500)
+            :addRandomParameter("power", 100, 300)
+            :setBypassSecurity(true)
+    )
+    veafShortcuts.AddAlias(
+        VeafAlias.new()
+            :setName("-light")
+            :setDescription("Illumination by artillery shelling of a zone")
+            :setVeafCommand("_spawn flare, radius 1000")
+            :addRandomParameter("shells", 20, 30)
+            :setBypassSecurity(true)
+    )
+    veafShortcuts.AddAlias(
+        VeafAlias.new()
+            :setName("-smoke")
+            :setDescription("Artillery shelling of a zone with smoke")
+            :setVeafCommand("_spawn smoke, color white")
+            :addRandomParameter("shells", 25, 40)
+            :addRandomParameter("radius", 350, 500)
             :setBypassSecurity(true)
     )
 end

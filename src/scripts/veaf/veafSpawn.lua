@@ -66,10 +66,10 @@ veafSpawn = {}
 veafSpawn.Id = "SPAWN - "
 
 --- Version.
-veafSpawn.Version = "1.10.0"
+veafSpawn.Version = "1.11.0"
 
 -- trace level, specific to this module
-veafSpawn.Trace = false
+veafSpawn.Trace = true
 
 --- Key phrase to look for in the mark text which triggers the spawn command.
 veafSpawn.SpawnKeyphrase = "_spawn"
@@ -91,6 +91,9 @@ veafSpawn.RadioMenuName = "SPAWN"
 --- static object type spawned when using the "logistic" keyword
 veafSpawn.LogisticUnitType = "FARP Ammo Dump Coating"
 veafSpawn.LogisticUnitCategory = "Fortifications"
+
+veafSpawn.ShellingInterval = 5 -- seconds between shells, randomized by 30%
+veafSpawn.IlluminationShellingInterval = 30 -- seconds between illumination shells, randomized by 30%
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Do not change anything below unless you know what you are doing!
@@ -156,86 +159,91 @@ function veafSpawn.executeCommand(eventPos, eventText, eventCoalition, bypassSec
         local options = veafSpawn.markTextAnalysis(eventText)
 
         if options then
-            local spawnedGroup = nil
-            if not options.side then
-                veafSpawn.logTrace(string.format("coalition=%d",coalition or -1))
-                options.side = coalition
-            end
-
-            if not options.country then
-                veafSpawn.logTrace(string.format("options.side=%d",options.side or -1))
-                options.country = veaf.getFirstCountryInCoalition(options.side)
-            end
-
-            local routeDone = false
-
-            -- Check options commands
-            if options.unit then
-                -- check security
-                if not (bypassSecurity or veafSecurity.checkSecurity_L9(options.password)) then return end
-                spawnedGroup = veafSpawn.spawnUnit(eventPos, options.name, options.country, options.altitude, options.heading, options.unitName, options.role, options.laserCode, bypassSecurity)
-            elseif options.group then
-                -- check security
-                if not (bypassSecurity or veafSecurity.checkSecurity_L9(options.password)) then return end
-                spawnedGroup = veafSpawn.spawnGroup(eventPos, options.name, options.country, options.altitude, options.heading, options.spacing, bypassSecurity)
-            elseif options.infantryGroup then
-                -- check security
-                if not (bypassSecurity or veafSecurity.checkSecurity_L9(options.password)) then return end
-                spawnedGroup = veafSpawn.spawnInfantryGroup(eventPos, options.country, options.side, options.heading, options.spacing, options.defense, options.armor, options.size, bypassSecurity)
-            elseif options.armoredPlatoon then
-                -- check security
-                if not (bypassSecurity or veafSecurity.checkSecurity_L9(options.password)) then return end
-                spawnedGroup = veafSpawn.spawnArmoredPlatoon(eventPos, options.country, options.side, options.heading, options.spacing, options.defense, options.armor, options.size, bypassSecurity)
-            elseif options.airDefenseBattery then
-                -- check security
-                if not (bypassSecurity or veafSecurity.checkSecurity_L9(options.password)) then return end
-                spawnedGroup = veafSpawn.spawnAirDefenseBattery(eventPos, options.country, options.side, options.heading, options.spacing, options.defense, bypassSecurity)
-            elseif options.transportCompany then
-                -- check security
-                if not (bypassSecurity or veafSecurity.checkSecurity_L9(options.password)) then return end
-                spawnedGroup = veafSpawn.spawnTransportCompany(eventPos, options.country, options.side, options.heading, options.spacing, options.defense, options.size, bypassSecurity)
-            elseif options.fullCombatGroup then
-                -- check security
-                if not (bypassSecurity or veafSecurity.checkSecurity_L9(options.password)) then return end
-                spawnedGroup = veafSpawn.spawnFullCombatGroup(eventPos, options.country, options.side, options.heading, options.spacing, options.defense, options.armor, options.size, bypassSecurity)
-            elseif options.convoy then
-                -- check security
-                if not (bypassSecurity or veafSecurity.checkSecurity_L9(options.password)) then return end
-                spawnedGroup = veafSpawn.spawnConvoy(eventPos, options.country, options.side, options.speed, options.patrol, options.offroad, options.destination, options.defense, options.size, options.armor, bypassSecurity)
-                routeDone = true
-            elseif options.cargo then
-                -- check security
-                if not (bypassSecurity or veafSecurity.checkSecurity_L9(options.password)) then return end
-                spawnedGroup = veafSpawn.spawnCargo(eventPos, options.cargoType, options.cargoSmoke, options.unitName, bypassSecurity)
-            elseif options.logistic then
-                -- check security
-                if not (bypassSecurity or veafSecurity.checkSecurity_L9(options.password)) then return end
-                spawnedGroup = veafSpawn.spawnLogistic(eventPos, bypassSecurity)
-            elseif options.destroy then
-                -- check security
-                if not (bypassSecurity or veafSecurity.checkSecurity_L1(options.password)) then return end
-                veafSpawn.destroy(eventPos, options.radius, options.unitName)
-            elseif options.teleport then
-                -- check security
-                if not (bypassSecurity or veafSecurity.checkSecurity_L1(options.password)) then return end
-                veafSpawn.teleport(eventPos, options.name, bypassSecurity)
-            elseif options.bomb then
-                -- check security
-                if not (bypassSecurity or veafSecurity.checkSecurity_L1(options.password)) then return end
-                veafSpawn.spawnBomb(eventPos, options.bombPower, options.password)
-            elseif options.smoke then
-                veafSpawn.spawnSmoke(eventPos, options.smokeColor)
-            elseif options.flare then
-                veafSpawn.spawnIlluminationFlare(eventPos, options.alt)
-            end
-            if spawnedGroup then
-                if not routeDone and options.destination then
-                    --  make the group go to destination
-                    local route = veaf.generateVehiclesRoute(eventPos, options.destination, not options.offroad, options.speed, options.patrol)
-                    mist.goRoute(spawnedGroup, route)
+            for i=1,options.multiplier do
+                local spawnedGroup = nil
+                if not options.side then
+                    veafSpawn.logTrace(string.format("coalition=%d",coalition or -1))
+                    options.side = coalition
                 end
-                if spawnedGroups then
-                    table.insert(spawnedGroups, spawnedGroup)
+
+                if not options.country then
+                    veafSpawn.logTrace(string.format("options.side=%d",options.side or -1))
+                    options.country = veaf.getFirstCountryInCoalition(options.side)
+                end
+
+                local routeDone = false
+
+                -- Check options commands
+                if options.unit then
+                    -- check security
+                    if not (bypassSecurity or veafSecurity.checkSecurity_L9(options.password)) then return end
+                    spawnedGroup = veafSpawn.spawnUnit(eventPos, options.radius, options.name, options.country, options.altitude, options.heading, options.unitName, options.role, options.laserCode, bypassSecurity)
+                elseif options.group then
+                    -- check security
+                    if not (bypassSecurity or veafSecurity.checkSecurity_L9(options.password)) then return end
+                    spawnedGroup = veafSpawn.spawnGroup(eventPos, options.radius, options.name, options.country, options.altitude, options.heading, options.spacing, bypassSecurity)
+                elseif options.infantryGroup then
+                    -- check security
+                    if not (bypassSecurity or veafSecurity.checkSecurity_L9(options.password)) then return end
+                    spawnedGroup = veafSpawn.spawnInfantryGroup(eventPos, options.radius, options.country, options.side, options.heading, options.spacing, options.defense, options.armor, options.size, bypassSecurity)
+                elseif options.armoredPlatoon then
+                    -- check security
+                    if not (bypassSecurity or veafSecurity.checkSecurity_L9(options.password)) then return end
+                    spawnedGroup = veafSpawn.spawnArmoredPlatoon(eventPos, options.radius, options.country, options.side, options.heading, options.spacing, options.defense, options.armor, options.size, bypassSecurity)
+                elseif options.airDefenseBattery then
+                    -- check security
+                    if not (bypassSecurity or veafSecurity.checkSecurity_L9(options.password)) then return end
+                    spawnedGroup = veafSpawn.spawnAirDefenseBattery(eventPos, options.radius, options.country, options.side, options.heading, options.spacing, options.defense, bypassSecurity)
+                elseif options.transportCompany then
+                    -- check security
+                    if not (bypassSecurity or veafSecurity.checkSecurity_L9(options.password)) then return end
+                    spawnedGroup = veafSpawn.spawnTransportCompany(eventPos, options.radius, options.country, options.side, options.heading, options.spacing, options.defense, options.size, bypassSecurity)
+                elseif options.fullCombatGroup then
+                    -- check security
+                    if not (bypassSecurity or veafSecurity.checkSecurity_L9(options.password)) then return end
+                    spawnedGroup = veafSpawn.spawnFullCombatGroup(eventPos, options.radius, options.country, options.side, options.heading, options.spacing, options.defense, options.armor, options.size, bypassSecurity)
+                elseif options.convoy then
+                    -- check security
+                    if not (bypassSecurity or veafSecurity.checkSecurity_L9(options.password)) then return end
+                    spawnedGroup = veafSpawn.spawnConvoy(eventPos, options.radius, options.country, options.side, options.speed, options.patrol, options.offroad, options.destination, options.defense, options.size, options.armor, bypassSecurity)
+                    routeDone = true
+                elseif options.cargo then
+                    -- check security
+                    if not (bypassSecurity or veafSecurity.checkSecurity_L9(options.password)) then return end
+                    spawnedGroup = veafSpawn.spawnCargo(eventPos, options.radius, options.cargoType, options.cargoSmoke, options.unitName, bypassSecurity)
+                elseif options.logistic then
+                    -- check security
+                    if not (bypassSecurity or veafSecurity.checkSecurity_L9(options.password)) then return end
+                    spawnedGroup = veafSpawn.spawnLogistic(eventPos, options.radius, bypassSecurity)
+                elseif options.destroy then
+                    -- check security
+                    if not (bypassSecurity or veafSecurity.checkSecurity_L1(options.password)) then return end
+                    veafSpawn.destroy(eventPos, options.radius, options.unitName)
+                elseif options.teleport then
+                    -- check security
+                    if not (bypassSecurity or veafSecurity.checkSecurity_L1(options.password)) then return end
+                    veafSpawn.teleport(eventPos, options.radius, options.name, bypassSecurity)
+                elseif options.bomb then
+                    -- check security
+                    if not (bypassSecurity or veafSecurity.checkSecurity_L1(options.password)) then return end
+                    veafSpawn.spawnBomb(eventPos, options.radius, options.shells, options.bombPower, options.password)
+                elseif options.smoke then
+                    veafSpawn.spawnSmoke(eventPos, options.radius, options.shells, options.smokeColor)
+                elseif options.flare then
+                    veafSpawn.spawnIlluminationFlare(eventPos, options.radius, options.shells, options.alt)
+                elseif options.signal then
+                    veafSpawn.spawnSignalFlare(eventPos, options.radius, options.shells, options.smokeColor)
+                end
+                if spawnedGroup then
+                    if not routeDone and options.destination then
+                        --  make the group go to destination
+                        local actualPosition = Group.getByName(spawnedGroup):getUnit(1):getPosition().p
+                        local route = veaf.generateVehiclesRoute(actualPosition, options.destination, not options.offroad, options.speed, options.patrol)
+                        mist.goRoute(spawnedGroup, route)
+                    end
+                    if spawnedGroups then
+                        table.insert(spawnedGroups, spawnedGroup)
+                    end
                 end
             end
             return true
@@ -260,6 +268,7 @@ function veafSpawn.markTextAnalysis(text)
     switch.logistic = false
     switch.smoke = false
     switch.flare = false
+    switch.signal = false
     switch.bomb = false
     switch.destroy = false
     switch.teleport = false
@@ -272,6 +281,8 @@ function veafSpawn.markTextAnalysis(text)
     switch.transportCompany = false
     switch.fullCombatGroup = false
     switch.speed = nil
+    switch.shells = 1
+    switch.multiplier = 1
 
     -- spawned group/unit type/alias
     switch.name = ""
@@ -317,7 +328,7 @@ function veafSpawn.markTextAnalysis(text)
     -- optional cargo smoke
     switch.cargoSmoke = false
 
-    -- destruction radius
+    -- spawn or destruction radius
     switch.radius = 150
 
     -- cargo type
@@ -352,6 +363,8 @@ function veafSpawn.markTextAnalysis(text)
         switch.smoke = true
     elseif text:lower():find(veafSpawn.SpawnKeyphrase .. " flare") then
         switch.flare = true
+    elseif text:lower():find(veafSpawn.SpawnKeyphrase .. " signal") then
+        switch.signal = true
     elseif text:lower():find(veafSpawn.SpawnKeyphrase .. " cargo") then
         switch.cargo = true
     elseif text:lower():find(veafSpawn.SpawnKeyphrase .. " logistic") then
@@ -417,7 +430,7 @@ function veafSpawn.markTextAnalysis(text)
             switch.offroad = true
         end
 
-        if switch.destroy and key:lower() == "radius" then
+        if key:lower() == "radius" then
             -- Set name.
             veafSpawn.logTrace(string.format("Keyword radius = %d", val))
             local nVal = tonumber(val)
@@ -431,6 +444,13 @@ function veafSpawn.markTextAnalysis(text)
             switch.spacing = nVal
         end
         
+        if key:lower() == "multiplier" then
+            -- Set multiplier.
+            veafSpawn.logTrace(string.format("Keyword multiplier = %d", val))
+            local nVal = tonumber(val)
+            switch.multiplier = nVal
+        end
+
         if key:lower() == "alt" then
             -- Set altitude.
             veafSpawn.logTrace(string.format("Keyword alt = %d", val))
@@ -445,6 +465,13 @@ function veafSpawn.markTextAnalysis(text)
             switch.speed = nVal
         end
         
+        if key:lower() == "shells" then
+            -- Set altitude.
+            veafSpawn.logTrace(string.format("Keyword shells = %d", val))
+            local nVal = tonumber(val)
+            switch.shells = nVal
+        end
+
         if key:lower() == "hdg" then
             -- Set heading.
             veafSpawn.logTrace(string.format("Keyword hdg = %d", val))
@@ -570,10 +597,12 @@ end
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 --- Spawn a specific group at a specific spot
-function veafSpawn.doSpawnGroup(spawnSpot, groupDefinition, country, alt, hdg, spacing, groupName, silent, shuffle)
-    veafSpawn.logDebug(string.format("doSpawnGroup(country=%s, alt=%d, hdg=%d, spacing=%d, groupName=%s)", country, alt, hdg, spacing, groupName or ""))
-    veafSpawn.logTrace("spawnSpot=" .. veaf.vecToString(spawnSpot))
+function veafSpawn.doSpawnGroup(spawnSpot, radius, groupDefinition, country, alt, hdg, spacing, groupName, silent, shuffle)
+    veafSpawn.logDebug(string.format("doSpawnGroup(country=%s, alt=%s, hdg=%s, spacing=%s, groupName=%s)", tostring(country), tostring(alt), tostring(hdg), tostring(spacing), tostring(groupName)))
     
+    local spawnSpot = veaf.placePointOnLand(mist.getRandPointInCircle(spawnSpot, radius))
+    veafSpawn.logTrace("spawnSpot=" .. veaf.vecToString(spawnSpot))
+
     veafSpawn.spawnedUnitsCounter = veafSpawn.spawnedUnitsCounter + 1
 
     if type(groupDefinition) == "string" then
@@ -657,10 +686,13 @@ function veafSpawn.doSpawnGroup(spawnSpot, groupDefinition, country, alt, hdg, s
 end
 
 --- Spawn a specific group at a specific spot
-function veafSpawn.spawnGroup(spawnSpot, name, country, alt, hdg, spacing, silent)
+function veafSpawn.spawnGroup(spawnSpot, radius, name, country, alt, hdg, spacing, silent)
     veafSpawn.logDebug(string.format("spawnGroup(name = %s, country=%s, alt=%d, hdg=%d, spacing=%d)",name, country, alt, hdg, spacing))
+    
+    local spawnSpot = veaf.placePointOnLand(mist.getRandPointInCircle(spawnSpot, radius))
+    
     veafSpawn.logTrace("spawnGroup: spawnSpot " .. veaf.vecToString(spawnSpot))
-    local spawnedGroupName = veafSpawn.doSpawnGroup(spawnSpot, name, country, alt, hdg, spacing, nil, silent)
+    local spawnedGroupName = veafSpawn.doSpawnGroup(spawnSpot, radius, name, country, alt, hdg, spacing, nil, silent)
 
     return spawnedGroupName
 end
@@ -707,14 +739,16 @@ function veafSpawn._createDcsUnits(country, units, groupName)
 end
 
 --- Spawns a dynamic infantry group 
-function veafSpawn.spawnInfantryGroup(eventPos, country, side, heading, spacing, defense, armor, size, silent)
+function veafSpawn.spawnInfantryGroup(spawnSpot, radius, country, side, heading, spacing, defense, armor, size, silent)
     veafSpawn.logDebug(string.format("spawnInfantryGroup(country=%s, side=%d, heading=%d, spacing=%d, defense=%d, armor=%d)",country, side, heading, spacing, defense, armor))
-    veafSpawn.logTrace("eventPos=" .. veaf.vecToString(eventPos))
+    
+    local spawnSpot = veaf.placePointOnLand(mist.getRandPointInCircle(spawnSpot, radius))
+    veafSpawn.logTrace("spawnSpot=" .. veaf.vecToString(spawnSpot))
 
     local groupName = "spawn-" .. math.random(99999) .. " - Infantry Section "
     local group = veafCasMission.generateInfantryGroup(groupName, defense, armor, side, size)
     local group = veafUnits.processGroup(group)
-    local groupPosition = veaf.placePointOnLand(eventPos)
+    local groupPosition = veaf.placePointOnLand(spawnSpot)
     veafSpawn.logTrace(string.format("groupPosition = %s",veaf.vecToString(groupPosition)))
     local group, cells = veafUnits.placeGroup(group, groupPosition, spacing, heading)
 
@@ -731,14 +765,16 @@ function veafSpawn.spawnInfantryGroup(eventPos, country, side, heading, spacing,
 end
 
 --- Spawns a dynamic armored platoon
-function veafSpawn.spawnArmoredPlatoon(eventPos, country, side, heading, spacing, defense, armor, size, silent)
+function veafSpawn.spawnArmoredPlatoon(spawnSpot, radius, country, side, heading, spacing, defense, armor, size, silent)
     veafSpawn.logDebug(string.format("spawnArmoredPlatoon(country=%s, side=%d, heading=%d, spacing=%d, defense=%d, armor=%d, size=%d)",country, side, heading, spacing, defense, armor, size))
-    veafSpawn.logTrace("eventPos=" .. veaf.vecToString(eventPos))
+    
+    local spawnSpot = veaf.placePointOnLand(mist.getRandPointInCircle(spawnSpot, radius))
+    veafSpawn.logTrace("spawnSpot=" .. veaf.vecToString(spawnSpot))
 
     local groupName = "spawn-" .. math.random(99999) .. " - Armored Platoon "
     local group = veafCasMission.generateArmorPlatoon(groupName, defense, armor, side, size)
     local group = veafUnits.processGroup(group)
-    local groupPosition = veaf.placePointOnLand(eventPos)
+    local groupPosition = veaf.placePointOnLand(spawnSpot)
     veafSpawn.logTrace(string.format("groupPosition = %s",veaf.vecToString(groupPosition)))
     local group, cells = veafUnits.placeGroup(group, groupPosition, spacing, heading)
 
@@ -755,14 +791,16 @@ function veafSpawn.spawnArmoredPlatoon(eventPos, country, side, heading, spacing
 end
 
 --- Spawns a dynamic air defense battery
-function veafSpawn.spawnAirDefenseBattery(eventPos, country, side, heading, spacing, defense, silent)
+function veafSpawn.spawnAirDefenseBattery(spawnSpot, radius, country, side, heading, spacing, defense, silent)
     veafSpawn.logDebug(string.format("spawnAirDefenseBattery(country=%s, side=%d, heading=%d, spacing=%d, defense=%d)",country, side, heading, spacing, defense))
-    veafSpawn.logTrace("eventPos=" .. veaf.vecToString(eventPos))
+
+    local spawnSpot = veaf.placePointOnLand(mist.getRandPointInCircle(spawnSpot, radius))
+    veafSpawn.logTrace("spawnSpot=" .. veaf.vecToString(spawnSpot))
 
     local groupName = "spawn-" .. math.random(99999) .. " - Air Defense Battery "
     local group = veafCasMission.generateAirDefenseGroup(groupName, defense, side)
     local group = veafUnits.processGroup(group)
-    local groupPosition = veaf.placePointOnLand(eventPos)
+    local groupPosition = veaf.placePointOnLand(spawnSpot)
     veafSpawn.logTrace(string.format("groupPosition = %s",veaf.vecToString(groupPosition)))
     local group, cells = veafUnits.placeGroup(group, groupPosition, spacing, heading)
 
@@ -779,14 +817,16 @@ function veafSpawn.spawnAirDefenseBattery(eventPos, country, side, heading, spac
 end
 
 --- Spawns a dynamic transport company
-function veafSpawn.spawnTransportCompany(eventPos, country, side, heading, spacing, defense, size, silent)
+function veafSpawn.spawnTransportCompany(spawnSpot, radius, country, side, heading, spacing, defense, size, silent)
     veafSpawn.logDebug(string.format("spawnTransportCompany(country=%s, side=%d, heading=%d, spacing=%d, defense=%d, size=%d)",country, side, heading, spacing, defense, size))
-    veafSpawn.logTrace("eventPos=" .. veaf.vecToString(eventPos))
+    
+    local spawnSpot = veaf.placePointOnLand(mist.getRandPointInCircle(spawnSpot, radius))
+    veafSpawn.logTrace("spawnSpot=" .. veaf.vecToString(spawnSpot))
 
     local groupName = "spawn-" .. math.random(99999) .. " - Transport Company "
     local group = veafCasMission.generateTransportCompany(groupName, defense, side, size)
     local group = veafUnits.processGroup(group)
-    local groupPosition = veaf.placePointOnLand(eventPos)
+    local groupPosition = veaf.placePointOnLand(spawnSpot)
     veafSpawn.logTrace(string.format("groupPosition = %s",veaf.vecToString(groupPosition)))
     local group, cells = veafUnits.placeGroup(group, groupPosition, spacing, heading)
 
@@ -803,12 +843,14 @@ function veafSpawn.spawnTransportCompany(eventPos, country, side, heading, spaci
 end
 
 --- Spawns a dynamic full combat group composed of multiple platoons
-function veafSpawn.spawnFullCombatGroup(eventPos, country, side, heading, spacing, defense, armor, size, silent)
+function veafSpawn.spawnFullCombatGroup(spawnSpot, radius, country, side, heading, spacing, defense, armor, size, silent)
     veafSpawn.logDebug(string.format("spawnFullCombatGroup(country=%s, side=%d, heading=%d, spacing=%d, defense=%d, armor=%d, size=%d)",country, side, heading, spacing, defense, armor, size))
-    veafSpawn.logTrace("eventPos=" .. veaf.vecToString(eventPos))
+    
+    local spawnSpot = veaf.placePointOnLand(mist.getRandPointInCircle(spawnSpot, radius))
+    veafSpawn.logTrace("spawnSpot=" .. veaf.vecToString(spawnSpot))
 
     local groupName = "spawn-" .. math.random(99999) .. " - Full Combat Group "
-    local groupPosition = veaf.placePointOnLand(eventPos)
+    local groupPosition = veaf.placePointOnLand(spawnSpot)
     local units = veafCasMission.generateCasGroup(country, groupName, groupPosition, size, defense, armor, spacing, true, side)
 
     veafSpawn._createDcsUnits(country, units, groupName)
@@ -821,8 +863,10 @@ function veafSpawn.spawnFullCombatGroup(eventPos, country, side, heading, spacin
 end
 
 --- Spawn a specific group at a specific spot
-function veafSpawn.spawnConvoy(spawnSpot, country, side, speed, patrol, offroad, destination, defense, size, armor, silent)
+function veafSpawn.spawnConvoy(spawnSpot, radius, country, side, speed, patrol, offroad, destination, defense, size, armor, silent)
     veafSpawn.logDebug(string.format("spawnConvoy(country=%s, destination=%s, defense=%d, size=%d, armor=%d, speed=%s, patrol=%s)",country, destination, defense, size, armor, tostring(speed or ""), tostring(patrol or "")))
+    
+    local spawnSpot = veaf.placePointOnLand(mist.getRandPointInCircle(spawnSpot, radius))
     veafSpawn.logTrace("spawnSpot=" .. veaf.vecToString(spawnSpot))
     if not destination then return end
 
@@ -890,7 +934,7 @@ end
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 --- Spawn a specific unit at a specific spot
--- @param position spawnPosition
+-- @param position spawnSpot
 -- @param string name
 -- @param string country
 -- @param int speed
@@ -900,9 +944,11 @@ end
 -- @param string unitName (callsign)
 -- @param string role (ex: jtac)
 -- @param int laserCode (ex: 1688)
-function veafSpawn.spawnUnit(spawnPosition, name, country, alt, hdg, unitName, role, laserCode, silent)
+function veafSpawn.spawnUnit(spawnSpot, radius, name, country, alt, hdg, unitName, role, laserCode, silent)
     veafSpawn.logDebug(string.format("spawnUnit(name = %s, country=%s, alt=%d, hdg= %d)",name, country, alt, hdg))
-    veafSpawn.logTrace(string.format("spawnUnit: spawnPosition  x=%.1f y=%.1f, z=%.1f", spawnPosition.x, spawnPosition.y, spawnPosition.z))
+    
+    local spawnSpot = veaf.placePointOnLand(mist.getRandPointInCircle(spawnSpot, radius))
+    veafSpawn.logTrace(string.format("spawnUnit: spawnSpot  x=%.1f y=%.1f, z=%.1f", spawnSpot.x, spawnSpot.y, spawnSpot.z))
     
     veafSpawn.spawnedUnitsCounter = veafSpawn.spawnedUnitsCounter + 1
 
@@ -941,19 +987,19 @@ function veafSpawn.spawnUnit(spawnPosition, name, country, alt, hdg, unitName, r
     veafSpawn.logTrace("unitName="..unitName)
 
     if alt > 0 then
-        spawnPosition.y = alt
+        spawnSpot.y = alt
     end
 
     -- check if position is correct for the unit type
-    if not  veafUnits.checkPositionForUnit(spawnPosition, unit) then
+    if not veafUnits.checkPositionForUnit(spawnSpot, unit) then
         veafSpawn.logInfo("cannot find a suitable position for spawning unit "..unit.displayName)
         trigger.action.outText("cannot find a suitable position for spawning unit "..unit.displayName, 5)
         return
     else 
         local toInsert = {
-                ["x"] = spawnPosition.x,
-                ["y"] = spawnPosition.z,
-                ["alt"] = spawnPosition.y,
+                ["x"] = spawnSpot.x,
+                ["y"] = spawnSpot.z,
+                ["alt"] = spawnSpot.y,
                 ["type"] = unit.typeName,
                 ["name"] = unitName,
                 ["speed"] = 0,
@@ -1017,19 +1063,23 @@ end
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 --- Spawn a specific cargo at a specific spot
-function veafSpawn.spawnCargo(spawnSpot, cargoType, cargoSmoke, unitName, silent)
+function veafSpawn.spawnCargo(spawnSpot, radius, cargoType, cargoSmoke, unitName, silent)
     veafSpawn.logDebug("spawnCargo(cargoType = " .. cargoType ..")")
+    
+    local spawnSpot = veaf.placePointOnLand(mist.getRandPointInCircle(spawnSpot, radius))
     veafSpawn.logTrace(string.format("spawnCargo: spawnSpot  x=%.1f y=%.1f, z=%.1f", spawnSpot.x, spawnSpot.y, spawnSpot.z))
 
-    return veafSpawn.doSpawnCargo(spawnSpot, cargoType, unitName, cargoSmoke, silent)
+    return veafSpawn.doSpawnCargo(spawnSpot, radius, cargoType, unitName, cargoSmoke, silent)
 end
 
 --- Spawn a logistic unit for CTLD at a specific spot
-function veafSpawn.spawnLogistic(spawnSpot, silent)
+function veafSpawn.spawnLogistic(spawnSpot, radius, silent)
     veafSpawn.logDebug("spawnLogistic()")
+    
+    local spawnSpot = veaf.placePointOnLand(mist.getRandPointInCircle(spawnSpot, radius))
     veafSpawn.logTrace(string.format("spawnLogistic: spawnSpot  x=%.1f y=%.1f, z=%.1f", spawnSpot.x, spawnSpot.y, spawnSpot.z))
 
-    local unitName = veafSpawn.doSpawnStatic(spawnSpot, veafSpawn.LogisticUnitCategory, veafSpawn.LogisticUnitType, nil, false, true)
+    local unitName = veafSpawn.doSpawnStatic(spawnSpot, radius, veafSpawn.LogisticUnitCategory, veafSpawn.LogisticUnitType, nil, false, true)
     
     veafSpawn.logDebug(string.format("spawnLogistic: inserting %s into CTLD logistics list", unitName))
     if ctld then 
@@ -1045,8 +1095,10 @@ function veafSpawn.spawnLogistic(spawnSpot, silent)
 end
 
 --- Spawn a specific cargo at a specific spot
-function veafSpawn.doSpawnCargo(spawnSpot, cargoType, unitName, cargoSmoke, silent)
+function veafSpawn.doSpawnCargo(spawnSpot, radius, cargoType, unitName, cargoSmoke, silent)
     veafSpawn.logDebug("spawnCargo(cargoType = " .. cargoType ..")")
+    
+    local spawnSpot = veaf.placePointOnLand(mist.getRandPointInCircle(spawnSpot, radius))
     veafSpawn.logTrace(string.format("spawnCargo: spawnSpot  x=%.1f y=%.1f, z=%.1f", spawnSpot.x, spawnSpot.y, spawnSpot.z))
 
     local units = {}
@@ -1106,7 +1158,7 @@ function veafSpawn.doSpawnCargo(spawnSpot, cargoType, unitName, cargoSmoke, sile
                 veafSpawn.spawnSmoke(smokePosition, trigger.smokeColor.Green)
                 for i = 1, 10 do
                     veafSpawn.logTrace("Signal flare 1 at " .. timer.getTime() + i*7)
-                    mist.scheduleFunction(veafSpawn.spawnSignalFlare, {smokePosition,trigger.flareColor.Red, mist.random(359)}, timer.getTime() + i*3)
+                    mist.scheduleFunction(veafSpawn.spawnSignalFlare, {smokePosition,trigger.flareColor.Red}, timer.getTime() + i*3)
                 end
             end
 
@@ -1123,9 +1175,11 @@ end
 
 
 --- Spawn a specific static at a specific spot
-function veafSpawn.doSpawnStatic(spawnSpot, staticCategory, staticType, unitName, smoke, silent)
+function veafSpawn.doSpawnStatic(spawnSpot, radius, staticCategory, staticType, unitName, smoke, silent)
     veafSpawn.logDebug("doSpawnStatic(staticCategory = " .. staticCategory ..")")
     veafSpawn.logDebug("doSpawnStatic(staticType = " .. staticType ..")")
+    
+    local spawnSpot = veaf.placePointOnLand(mist.getRandPointInCircle(spawnSpot, radius))
     veafSpawn.logTrace(string.format("doSpawnStatic: spawnSpot  x=%.1f y=%.1f, z=%.1f", spawnSpot.x, spawnSpot.y, spawnSpot.z))
 
     local units = {}
@@ -1169,7 +1223,7 @@ function veafSpawn.doSpawnStatic(spawnSpot, staticCategory, staticType, unitName
             veafSpawn.spawnSmoke(smokePosition, trigger.smokeColor.Green)
             for i = 1, 10 do
                 veafSpawn.logTrace("Signal flare 1 at " .. timer.getTime() + i*7)
-                mist.scheduleFunction(veafSpawn.spawnSignalFlare, {smokePosition,trigger.flareColor.Red, mist.random(359)}, timer.getTime() + i*3)
+                mist.scheduleFunction(veafSpawn.spawnSignalFlare, {smokePosition,trigger.flareColor.Red}, timer.getTime() + i*3)
             end
         end
 
@@ -1188,40 +1242,80 @@ end
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 --- trigger an explosion at the marker area
-function veafSpawn.spawnBomb(spawnSpot, power, password)
+function veafSpawn.spawnBomb(spawnSpot, radius, shells, power, password)
     veafSpawn.logDebug("spawnBomb(power=" .. power ..")")
-    veafSpawn.logTrace(string.format("spawnBomb: spawnSpot  x=%.1f y=%.1f, z=%.1f", spawnSpot.x, spawnSpot.y, spawnSpot.z))
-    -- check security
-    if not veafSecurity.checkPassword_L0(password) then
-        if power > 1000 then power = 1000 end
-    end
 
-    trigger.action.explosion(spawnSpot, power);
+    local shellTime = 0
+    for shell=1,shells do
+        local spawnSpot = veaf.placePointOnLand(mist.getRandPointInCircle(spawnSpot, radius))
+        veafSpawn.logTrace(string.format("spawnSpot=%s", veaf.vecToString(spawnSpot)))
+        
+        local shellDelay = veafSpawn.ShellingInterval * (math.random(100) + 30)/100
+        local shellPower = power * (math.random(100) + 30)/100
+        -- check security
+        if not veafSecurity.checkPassword_L0(password) then
+            if shellPower > 1000 then shellPower = 1000 end
+        end
+        shellTime = shellTime + shellDelay
+        veafSpawn.logTrace(string.format("shell #%d : shellTime=%d, shellDelay=%d, power=%d", shell, shellTime, shellDelay, shellPower))
+        mist.scheduleFunction(trigger.action.explosion, {spawnSpot, power}, timer.getTime() + shellTime)
+    end
 end
 
 --- add a smoke marker over the marker area
-function veafSpawn.spawnSmoke(spawnSpot, color)
+function veafSpawn.spawnSmoke(spawnSpot, radius, shells, color)
     veafSpawn.logDebug("spawnSmoke(color = " .. color ..")")
-    veafSpawn.logTrace(string.format("spawnSmoke: spawnSpot  x=%.1f y=%.1f, z=%.1f", spawnSpot.x, spawnSpot.y, spawnSpot.z))
-    local spawnSmoke_yCorrected  = veaf.placePointOnLand(spawnSpot)
-    veafSpawn.logTrace(string.format("spawnSmoke_yCorrected: spawnSpot  x=%.1f y=%.1f, z=%.1f", spawnSmoke_yCorrected.x, spawnSmoke_yCorrected.y, spawnSmoke_yCorrected.z))
-	trigger.action.smoke(spawnSmoke_yCorrected, color)
+    
+    local shellTime = 0
+    for shell=1,shells do
+        local spawnSpot = veaf.placePointOnLand(mist.getRandPointInCircle(spawnSpot, radius))
+        veafSpawn.logTrace(string.format("spawnSpot=%s", veaf.vecToString(spawnSpot)))
+        
+        local shellDelay = veafSpawn.ShellingInterval * (math.random(100) + 30)/100
+        shellTime = shellTime + shellDelay
+        veafSpawn.logTrace(string.format("shell #%d : shellTime=%d, shellDelay=%d", shell, shellTime, shellDelay))
+        if shells > 1 then
+            -- add a small explosion under the smoke to simulate smoke shells
+            mist.scheduleFunction(trigger.action.explosion, {spawnSpot, 1}, timer.getTime() + shellTime-1)
+        end
+        mist.scheduleFunction(trigger.action.smoke, {spawnSpot, color}, timer.getTime() + shellTime)
+    end
 end
 
 --- add a signal flare over the marker area
-function veafSpawn.spawnSignalFlare(spawnSpot, color, azimuth)
+function veafSpawn.spawnSignalFlare(spawnSpot, radius, shells, color)
     veafSpawn.logDebug("spawnSignalFlare(color = " .. color ..")")
-    veafSpawn.logTrace(string.format("spawnSignalFlare: spawnSpot  x=%.1f y=%.1f, z=%.1f", spawnSpot.x, spawnSpot.y, spawnSpot.z))
-	trigger.action.signalFlare(spawnSpot, color, azimuth)
+    
+    local shellTime = 0
+    for shell=1,shells do
+        local spawnSpot = veaf.placePointOnLand(mist.getRandPointInCircle(spawnSpot, radius))
+        veafSpawn.logTrace(string.format("spawnSpot=%s", veaf.vecToString(spawnSpot)))
+        
+        local shellDelay = veafSpawn.ShellingInterval * (math.random(100) + 30)/100
+        shellTime = shellTime + shellDelay
+        local azimuth = math.random(359)
+        veafSpawn.logTrace(string.format("shell #%d : shellTime=%d, shellDelay=%d", shell, shellTime, shellDelay))
+        mist.scheduleFunction(trigger.action.signalFlare, {spawnSpot, color, azimuth}, timer.getTime() + shellTime)
+    end
 end
 
 --- add an illumination flare over the target area
-function veafSpawn.spawnIlluminationFlare(spawnSpot, height)
+function veafSpawn.spawnIlluminationFlare(spawnSpot, radius, shells, height)
     if height == nil then height = veafSpawn.IlluminationFlareAglAltitude end
     veafSpawn.logDebug("spawnIlluminationFlare(height = " .. height ..")")
-    veafSpawn.logTrace(string.format("spawnIlluminationFlare: spawnSpot  x=%.1f y=%.1f, z=%.1f", spawnSpot.x, spawnSpot.y, spawnSpot.z))
-    local vec3 = {x = spawnSpot.x, y = veaf.getLandHeight(spawnSpot) + height, z = spawnSpot.z}
-	trigger.action.illuminationBomb(vec3)
+    
+    local shellTime = 0
+    for shell=1,shells do
+        local spawnSpot = veaf.placePointOnLand(mist.getRandPointInCircle(spawnSpot, radius))
+        veafSpawn.logTrace(string.format("spawnSpot=%s", veaf.vecToString(spawnSpot)))
+        
+        local shellDelay = veafSpawn.IlluminationShellingInterval * (math.random(100) + 30)/100
+        shellTime = shellTime + shellDelay
+        shellHeight = height * (math.random(100) + 30)/100
+        spawnSpot.y = veaf.getLandHeight(spawnSpot) + height
+        veafSpawn.logTrace(string.format("shell #%d : shellTime=%d, shellHeight=%d, power=%d", shell, shellTime, shellDelay, shellHeight))
+        mist.scheduleFunction(trigger.action.illuminationBomb, {spawnSpot}, timer.getTime() + shellTime)
+    end
 end
 
 --- destroy unit(s)
@@ -1245,8 +1339,8 @@ function veafSpawn.destroy(spawnSpot, radius, unitName)
             Group.destroy(c)
         end
     else
-        -- TODO radius based destruction
-        local units = veaf.findUnitsInCircle(spawnSpot, radius)
+        -- radius based destruction
+        local units = veaf.findUnitsInCircle(spawnSpot, radius or 150)
         if units then
             for name, _ in pairs(units) do
                 -- try and find a  unit

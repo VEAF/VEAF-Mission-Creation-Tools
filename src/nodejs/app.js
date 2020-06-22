@@ -70,7 +70,7 @@ require('yargs')
         metarString: argv.metar,  // a raw metar string to parse for weather injection
         weatherFileName: argv.weather, // a lua file with the DCS weather ready to inject
         variableForMetar: argv.variable, // the name of a variable that will be replaced with the METAR string in the mission dictionary
-        trace: argv.trace,
+        trace: argv.verbose,
         quiet: argv.quiet
       });
     })

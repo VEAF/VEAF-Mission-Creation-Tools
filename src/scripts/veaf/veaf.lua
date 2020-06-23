@@ -33,7 +33,7 @@ veaf.Id = "VEAF - "
 veaf.MainId = "MAIN - "
 
 --- Version.
-veaf.Version = "1.4.0"
+veaf.Version = "1.5.0"
 
 -- trace level, specific to this module
 veaf.MainTrace = false
@@ -1091,67 +1091,6 @@ function veaf.endMissionAt(endTimeHour, endTimeMinute, checkIntervalInSeconds, c
     local endTimeInSeconds = endTimeHour * 3600 + endTimeMinute * 60
     veaf.mainLogTrace(string.format("endTimeInSeconds=%d", endTimeInSeconds))
     veaf._checkForEndMission(endTimeInSeconds, checkIntervalInSeconds, checkMessage, delay1, message1, delay2, message2, delay3, message3)    
-end
-
-function veaf.monitorWithSlMod(command, script, requireAdmin, flag, coalition)
-    mist.scheduleFunction(veaf._monitorWithSlMod, {command, script, flag, coalition, requireAdmin}, timer.getTime()+5)    
-end
-
-function veaf._monitorWithSlMod(command, script, flag, coalition, requireAdmin)
-    
-    local actualFlag = flag
-    if not actualFlag then
-        actualFlag = veaf.maxMonitoredFlag + 1
-        veaf.maxMonitoredFlag = actualFlag
-    end
-    
-    local actualCoalition = coalition or "all"
-    
-    local actualRequireAdmin = requireAdmin
-    if actualRequireAdmin == nil then
-        actualRequireAdmin = true
-    end
-    
-    if slmod then
-        veaf.logDebug(string.format("setting SLMOD configuration for command=[%s], script=[%s], flag=[%d], requireAdmin=[%s], coalition=[%s]",tostring(command), tostring(script), actualFlag, tostring(actualRequireAdmin), tostring(actualCoalition)))
-        slmod.chat_cmd(command, actualFlag, -1, actualCoalition, actualRequireAdmin)
-        veaf.startMonitoringFlag(actualFlag, script)
-    else
-        veaf.logInfo("SLMOD not found")
-    end
-end
-
-function veaf.startMonitoringFlag(flag, scriptToExecute)
-    -- reset the flag
-    trigger.action.setUserFlag(flag, false)
-    veaf.monitoredFlags[flag] = scriptToExecute
-    veaf._monitorFlags()
-end
-
-function veaf._monitorFlags()
-    --veaf.mainLogDebug("veaf._monitorFlags()")
-    for flag, scriptToExecute in pairs(veaf.monitoredFlags) do
-        --veaf.mainLogTrace(string.format("veaf._monitorFlags() - checking flag %s", flag))
-        local flagValue = trigger.misc.getUserFlag(flag)
-        --veaf.mainLogTrace(string.format("veaf._monitorFlags() - flagValue = [%d]", flagValue))
-        if flagValue > 0 then
-            -- call the script
-            veaf.mainLogTrace(string.format("veaf._monitorFlags() - flag %s was TRUE", flag))
-            veaf.mainLogTrace(string.format("veaf._monitorFlags() - calling lua code [%s]", scriptToExecute))
-            local result, err = mist.utils.dostring(scriptToExecute)
-            if result then
-                veaf.mainLogDebug(string.format("veaf._monitorFlags() - lua code was successfully called for flag [%s]", flag))
-            else
-                veaf.mainLogError(string.format("veaf._monitorFlags() - error [%s] calling lua code for flag [%s]", err, flag))
-            end
-            -- reset the flag
-            trigger.action.setUserFlag(flag, false)
-            veaf.mainLogDebug(string.format("veaf._monitorFlags() - flag [%s] was reset", flag))
-        else
-            --veaf.mainLogTrace(string.format("veaf._monitorFlags() - flag %s was FALSE or not set", flag))
-        end
-    end
-    mist.scheduleFunction(veaf._monitorFlags, nil, timer.getTime()+veaf.SecondsBetweenFlagMonitorChecks)    
 end
 
 function veaf.randomlyChooseFrom(aTable, bias)

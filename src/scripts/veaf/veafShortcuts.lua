@@ -30,7 +30,7 @@ veafShortcuts.Id = "SHORTCUTS - "
 veafShortcuts.Version = "1.0.1"
 
 -- trace level, specific to this module
-veafShortcuts.Trace = true
+veafShortcuts.Trace = false
 
 veafShortcuts.RadioMenuName = "SHORTCUTS"
 

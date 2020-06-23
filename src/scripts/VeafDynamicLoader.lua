@@ -48,6 +48,7 @@ __Veaf.Include( VEAF_DYNAMIC_PATH .. '/src/scripts/veaf/veafSpawn.lua' )
 __Veaf.Include( VEAF_DYNAMIC_PATH .. '/src/scripts/veaf/veafTransportMission.lua' )
 __Veaf.Include( VEAF_DYNAMIC_PATH .. '/src/scripts/veaf/dcsUnits.lua' )
 __Veaf.Include( VEAF_DYNAMIC_PATH .. '/src/scripts/veaf/veafUnits.lua' )
+__Veaf.Include( VEAF_DYNAMIC_PATH .. '/src/scripts/veaf/veafRemote.lua' )
 
 -- set the environment in debug mode
 env.info( '*** VEAF-Mission-Creation-Tools set the environment in debug mode *** ' )

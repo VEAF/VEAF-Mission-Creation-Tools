@@ -51,7 +51,7 @@ veafCombatMission = {}
 veafCombatMission.Id = "COMBAT MISSION - "
 
 --- Version.
-veafCombatMission.Version = "1.4.0"
+veafCombatMission.Version = "1.4.1"
 
 -- trace level, specific to this module
 veafCombatMission.Trace = true
@@ -144,8 +144,9 @@ function VeafCombatMissionObjective:copy()
         
     -- deep copy the collections
     copy.parameters = {}
-    for _, parameter in pairs(self.parameters) do
-        table.insert(copy.parameters, parameter)
+    for name, value in pairs(self.parameters) do
+        veafCombatMission.logTrace(string.format("copying parameter %s : ",tostring(name)))
+        copy.parameters[name]=value
     end
 
     return copy
@@ -249,14 +250,14 @@ function VeafCombatMissionObjective:configureAsTimedObjective(timeInSeconds)
         end
     end
 
-        return self
-            :setParameters({timeout=timeInSeconds})
-            :setOnStartup(
-                function(parameters) 
-                    parameters["startTime"] = timer.getTime()
-                end
-            )
-            :setOnCheck(onCheck)
+    return self
+        :setParameters({timeout=timeInSeconds})
+        :setOnStartup(
+            function(parameters) 
+                parameters["startTime"] = timer.getTime()
+            end
+        )
+        :setOnCheck(onCheck)
 end
 
 function VeafCombatMissionObjective:configureAsKillEnemiesObjective(nbKillsToWin, whatsInAKill)

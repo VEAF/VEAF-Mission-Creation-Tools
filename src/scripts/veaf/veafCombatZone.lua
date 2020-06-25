@@ -51,7 +51,7 @@ veafCombatZone.Id = "COMBAT ZONE - "
 veafCombatZone.Version = "1.2.1"
 
 -- trace level, specific to this module
-veafCombatZone.Trace = false
+veafCombatZone.Trace = true
 
 --- Number of seconds between each check of the zone watchdog function
 veafCombatZone.SecondsBetweenWatchdogChecks = 30
@@ -140,7 +140,7 @@ function VeafCombatZoneElement.new ()
     self.position = nil
     self.dcsStatic = false
     self.dcsGroup = false
-    self.veafCommand = false
+    self.veafCommand = nil
     self.route = nil
     self.coalition = nil
     self.spawnRadius = 0
@@ -197,7 +197,7 @@ function VeafCombatZoneElement:setVeafCommand(value)
     return self
 end
 
-function VeafCombatZoneElement:isVeafCommand()
+function VeafCombatZoneElement:getVeafCommand()
     return self.veafCommand
 end
 
@@ -520,9 +520,9 @@ function VeafCombatZone:initialize()
         if command then 
             -- it's a fake unit transporting a VEAF command
             veafCombatZone.logTrace(string.format("command = [%s]", command))
-            zoneElement:setVeafCommand(true)
-            zoneElement:setName(command)
+            zoneElement:setVeafCommand(command)
             local groupName = unit:getGroup():getName()
+            zoneElement:setName(groupName)
             veafCombatZone.logTrace(string.format("groupName = [%s]", groupName))
             local route = mist.getGroupRoute(groupName, 'task')
             zoneElement:setRoute(route)
@@ -711,12 +711,19 @@ function VeafCombatZone:activate()
         veafCombatZone.logTrace(string.format("spawnCount = [%d]",spawnCount))
         local tries = 10
         alreadySpawnedElements = {}
-        for _, zoneElement in pairs(zoneElementGroup.elements) do alreadySpawnedElements[zoneElement:getName()]=false end
+        local shuffledIndexes = {}
+        for i=1,#zoneElementGroup.elements do
+            local zoneElement = zoneElementGroup.elements[i]
+            alreadySpawnedElements[zoneElement:getName()]=false 
+            table.insert(shuffledIndexes, i)
+        end
+        veaf.shuffle(shuffledIndexes)
         while spawnCount > 0 and tries > 0 do
             veafCombatZone.logTrace(string.format("tries = [%d]",tries))
             tries = tries - 1
-
-            for _, zoneElement in pairs(zoneElementGroup.elements) do
+            
+            for i=1,#shuffledIndexes do
+                local zoneElement = zoneElementGroup.elements[shuffledIndexes[i]]
                 if spawnCount > 0 then
                     if not alreadySpawnedElements[zoneElement:getName()] then
                         veafCombatZone.logTrace(string.format("processing element [%s]",zoneElement:getName()))
@@ -751,10 +758,10 @@ function VeafCombatZone:activate()
                                 else
                                     veafCombatZone.logTrace(string.format("[%s]:activate() - mist.teleportToPoint([%s]) failed", self:getMissionEditorZoneName(), zoneElement:getName()))
                                 end
-                            elseif zoneElement:isVeafCommand() then
+                            elseif zoneElement:getVeafCommand() then
                                 veafCombatZone.logTrace(string.format("executing command [%s] at position [%s]",zoneElement:getName(), veaf.vecToString(position)))
                                 local spawnedGroups = {}
-                                veafInterpreter.execute(zoneElement:getName(), position, zoneElement:getCoalition(), nil, spawnedGroups)
+                                veafInterpreter.execute(zoneElement:getVeafCommand(), position, zoneElement:getCoalition(), nil, spawnedGroups)
                                 for _, newGroup in pairs(spawnedGroups) do
                                     veafCombatZone.logTrace(string.format("[%s].addSpawnedGroup", zoneElement:getName()))
                                     self:addSpawnedGroup(newGroup)

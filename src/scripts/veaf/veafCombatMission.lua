@@ -54,12 +54,14 @@ veafCombatMission.Id = "COMBAT MISSION - "
 veafCombatMission.Version = "1.4.1"
 
 -- trace level, specific to this module
-veafCombatMission.Trace = true
+veafCombatMission.Trace = false
 
 --- Number of seconds between each check of the watchdog function
 veafCombatMission.SecondsBetweenWatchdogChecks = 30
 
 veafCombatMission.RadioMenuName = "MISSIONS"
+
+veafCombatMission.MinimumSpacingBetweenClones = 300 -- minimum spawn distance between clones of a group
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Do not change anything below unless you know what you are doing!
@@ -868,8 +870,8 @@ function VeafCombatMission:activate(silent)
                                     :InitSkill(missionElement:getSkill())
                                     :InitCoalition(missionElement:getCoalition())
                 local spawnRadius = missionElement:getSpawnRadius()
-                if (missionElement:getScale() > 1 and spawnRadius < 150) then
-                    spawnRadius = 150 
+                if (missionElement:getScale() > 1 and spawnRadius < veafCombatMission.MinimumSpacingBetweenClones) then
+                    spawnRadius = veafCombatMission.MinimumSpacingBetweenClones 
                 end
                 spawn = spawn:InitRandomizePosition(true, spawnRadius, nil)
                 for i=1,missionElement:getScale() do

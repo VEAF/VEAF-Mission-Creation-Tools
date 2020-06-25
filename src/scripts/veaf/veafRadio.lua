@@ -64,7 +64,7 @@ veafRadio.USAGE_ForUnit  = 2
 veafRadio.MAXIMUM_SIZE = 3500
 
 -- delay for the actual refresh
-veafRadio.refreshRadioMenu_DELAY = 2
+veafRadio.refreshRadioMenu_DELAY = 1
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Do not change anything below unless you know what you are doing!

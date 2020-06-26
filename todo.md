@@ -17,6 +17,8 @@
 
 ### RFC - needs to be done
 
+- modify the "move tanker" command so the tanker new plan is, in the direction from the current tanker position (point 1) to the marker, a point at 20nm of the marker (point 2) and the marker itself (point 3)
+
 ### Bug - needs to be corrected
 
 - when the user forgets a comma the convoy is created but without trucks ("-convoy armor 0, defense 0, dest TGT")

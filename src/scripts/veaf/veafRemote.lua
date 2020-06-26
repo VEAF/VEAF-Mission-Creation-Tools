@@ -31,7 +31,7 @@ veafRemote.Id = "REMOTE - "
 veafRemote.Version = "0.0.1"
 
 -- trace level, specific to this module
-veafRemote.Trace = true
+veafRemote.Trace = false
 
 veafRemote.SecondsBetweenFlagMonitorChecks = 5
 

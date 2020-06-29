@@ -51,7 +51,7 @@ veafCombatMission = {}
 veafCombatMission.Id = "COMBAT MISSION - "
 
 --- Version.
-veafCombatMission.Version = "1.4.2"
+veafCombatMission.Version = "1.5.0"
 
 -- trace level, specific to this module
 veafCombatMission.Trace = false
@@ -1250,6 +1250,43 @@ end
 function veafCombatMission.initialize()
     veafCombatMission.logInfo("Initializing module")
     veafCombatMission.buildRadioMenu()
+end
+
+function veafCombatMission.dumpMissionsList(export_path)
+    local function writeln(file, text)
+        file:write(text.."\r\n")
+    end
+    
+    local export_path = export_path or "./"
+    veafCombatMission.logInfo("Dumping missions list as json to "..export_path)
+
+    -- sort the missions alphabetically
+    sortedMissions = {}
+    for _, mission in pairs(veafCombatMission.missionsDict) do
+        table.insert(sortedMissions, mission:getName())
+    end
+    table.sort(sortedMissions)
+
+    local header = 
+[[
+{
+  "combatMissions": [
+]]      
+    local footer = 
+[[
+  ]
+}
+]]      
+    local file = io.open(export_path.."CombatMissionsList.json", "w")
+    writeln(file, header)
+    for _, missionName in pairs(sortedMissions) do
+        writeln(file, '  {')
+        writeln(file, '    "name" : "' .. missionName .. '",')
+        writeln(file, '    "briefing" : "' .. veafCombatMission.missionsDict[missionName]:getBriefing():gsub("\n","\\n") .. '"')
+        writeln(file, '  },')
+    end
+    writeln(file, footer)
+    file:close()
 end
 
 veafCombatMission.logInfo(string.format("Loading version %s", veafCombatMission.Version))

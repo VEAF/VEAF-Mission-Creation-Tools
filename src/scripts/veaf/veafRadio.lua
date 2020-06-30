@@ -45,7 +45,7 @@ veafRadio = {}
 veafRadio.Id = "RADIO - "
 
 --- Version.
-veafRadio.Version = "1.2.0"
+veafRadio.Version = "1.2.1"
 
 -- trace level, specific to this module
 veafRadio.Trace = false
@@ -61,7 +61,7 @@ veafRadio.USAGE_ForGroup = 1
 veafRadio.USAGE_ForUnit  = 2
 
 -- maximum size for radio menu
-veafRadio.MAXIMUM_SIZE = 3500
+veafRadio.MAXIMUM_SIZE = 4500
 
 -- delay for the actual refresh
 veafRadio.refreshRadioMenu_DELAY = 1

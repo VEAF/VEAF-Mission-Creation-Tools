@@ -51,7 +51,7 @@ veafCombatMission = {}
 veafCombatMission.Id = "COMBAT MISSION - "
 
 --- Version.
-veafCombatMission.Version = "1.5.0"
+veafCombatMission.Version = "1.5.1"
 
 -- trace level, specific to this module
 veafCombatMission.Trace = false
@@ -1253,11 +1253,32 @@ function veafCombatMission.initialize()
 end
 
 function veafCombatMission.dumpMissionsList(export_path)
+    local veafSanitized_lfs = veafSanitized_lfs
+    if not veafSanitized_lfs then veafSanitized_lfs = lfs end
+
+    local veafSanitized_io = veafSanitized_io
+    if not veafSanitized_io then veafSanitized_io = io end
+
+    local veafSanitized_os = veafSanitized_os
+    if not veafSanitized_os then veafSanitized_os = os end
+
     local function writeln(file, text)
         file:write(text.."\r\n")
     end
     
-    local export_path = export_path or "./"
+    local export_path = export_path
+    if not export_path then
+        export_path = veafSanitized_os.getenv("VEAF_EXPORT_DIR")
+        if export_path then export_path = export_path .. "\\" end
+    end
+    if not export_path then
+        export_path = veafSanitized_os.getenv("TEMP")
+        if export_path then export_path = export_path .. "\\" end
+    end
+    if not export_path then
+        export_path = veafSanitized_lfs.writedir()
+    end
+
     veafCombatMission.logInfo("Dumping missions list as json to "..export_path)
 
     -- sort the missions alphabetically
@@ -1277,7 +1298,7 @@ function veafCombatMission.dumpMissionsList(export_path)
   ]
 }
 ]]      
-    local file = io.open(export_path.."CombatMissionsList.json", "w")
+    local file = veafSanitized_io.open(export_path.."CombatMissionsList.json", "w")
     writeln(file, header)
     for _, missionName in pairs(sortedMissions) do
         writeln(file, '  {')

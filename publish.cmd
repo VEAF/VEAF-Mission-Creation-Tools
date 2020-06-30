@@ -6,3 +6,4 @@ echo ------------------------------
 
 call npm publish
 popd
+pause

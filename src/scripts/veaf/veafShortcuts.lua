@@ -333,7 +333,9 @@ function veafShortcuts.buildRadioMenu()
     veafShortcuts.logDebug("buildRadioMenu()")
     veafShortcuts.rootPath = veafRadio.addMenu(veafShortcuts.RadioMenuName)
     
-    veafRadio.addCommandToSubmenu("HELP - all aliases", veafShortcuts.rootPath, veafShortcuts.helpAllAliases, nil, veafRadio.USAGE_ForGroup)
+    if not(veafRadio.skipHelpMenus) then
+        veafRadio.addCommandToSubmenu("HELP - all aliases", veafShortcuts.rootPath, veafShortcuts.helpAllAliases, nil, veafRadio.USAGE_ForGroup)
+    end
 
     local localWeather = veafRadio.addSubMenu("Local weather", veafShortcuts.rootPath)
     veafRadio.addCommandToSubmenu("Local weather" , localWeather, veafShortcuts.GetWeatherAtCurrentPosition, nil, veafRadio.USAGE_ForUnit)    

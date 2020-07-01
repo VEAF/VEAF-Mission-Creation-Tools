@@ -262,7 +262,12 @@ function veaf.serialize(name, value, level)
   end
   
 function veaf.p(o, level)
+    local MAX_LEVEL = 20
     if level == nil then level = 0 end
+    if level > MAX_LEVEL then 
+        veaf.mainLogError("max depth reached in veaf.p : "..tostring(MAX_LEVEL))
+        return ""
+    end
       local text = ""
       if (type(o) == "table") then
           text = "\n"

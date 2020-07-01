@@ -240,7 +240,7 @@ function veafRemote.buildDefaultList()
     if veafCombatMission then
         for _, mission in pairs(veafCombatMission.missionsDict) do
             local missionName = mission:getName()
-            veafRemote.logInfo(string.format("Adding %s", missionName))
+            veafRemote.logTrace(string.format("Adding %s", missionName))
             veafRemote.monitorWithSlMod("-veaf start-silent-" .. missionName, [[ veafCombatMission.ActivateMission("]] .. missionName .. [[", true) ]])
             veafRemote.monitorWithSlMod("-veaf stop-silent-" .. missionName, [[ veafCombatMission.DesactivateMission("]] .. missionName .. [[", true) ]])
             veafRemote.monitorWithSlMod("-veaf start-" .. missionName, [[ veafCombatMission.ActivateMission("]] .. missionName .. [[", false) ]])

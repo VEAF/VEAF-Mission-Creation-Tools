@@ -897,7 +897,9 @@ end
 --- Build the initial radio menu
 function veafCasMission.buildRadioMenu()
     veafCasMission.rootPath = veafRadio.addSubMenu(veafCasMission.RadioMenuName)
-    veafRadio.addCommandToSubmenu("HELP", veafCasMission.rootPath, veafCasMission.help, nil, veafRadio.USAGE_ForGroup)
+    if not(veafRadio.skipHelpMenus) then
+        veafRadio.addCommandToSubmenu("HELP", veafCasMission.rootPath, veafCasMission.help, nil, veafRadio.USAGE_ForGroup)
+    end
 end
 
 function veafCasMission.help(unitName)

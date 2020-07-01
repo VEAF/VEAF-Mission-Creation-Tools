@@ -24,7 +24,7 @@ veafAssets = {}
 veafAssets.Id = "ASSETS - "
 
 --- Version.
-veafAssets.Version = "1.4.0"
+veafAssets.Version = "1.5.0"
 
 -- trace level, specific to this module
 veafAssets.Trace = false
@@ -65,82 +65,29 @@ end
 -- Radio menu and help
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-function veafAssets._buildAssetRadioMenu(menu, asset)
-    if asset.disposable or asset.information then -- in this case we need a submenu
-        local radioMenu = veafRadio.addSubMenu(asset.description, menu)
-        veafRadio.addCommandToSubmenu("Respawn "..asset.description, radioMenu, veafAssets.respawn, asset.name, veafRadio.USAGE_ForAll)
-        if asset.information then
-            veafRadio.addCommandToSubmenu("Get info on "..asset.description, radioMenu, veafAssets.info, asset.name, veafRadio.USAGE_ForGroup)
+function veafAssets._buildAssetRadioMenu(menu, title, element)
+    if element.disposable or element.information then -- in this case we need a submenu
+        local radioMenu = veafRadio.addSubMenu(element.description, menu)
+        veafRadio.addCommandToSubmenu("Respawn "..element.description, radioMenu, veafAssets.respawn, element.name, veafRadio.USAGE_ForAll)
+        if element.information then
+            veafRadio.addCommandToSubmenu("Get info on "..element.description, radioMenu, veafAssets.info, element.name, veafRadio.USAGE_ForGroup)
         end
-        if asset.disposable then
-            veafRadio.addSecuredCommandToSubmenu("Dispose of "..asset.description, radioMenu, veafAssets.dispose, asset.name, veafRadio.USAGE_ForAll)
+        if element.disposable then
+            veafRadio.addSecuredCommandToSubmenu("Dispose of "..element.description, radioMenu, veafAssets.dispose, element.name, veafRadio.USAGE_ForAll)
         end
     else
-        veafRadio.addCommandToSubmenu("Respawn "..asset.description, menu, veafAssets.respawn, asset.name, veafRadio.USAGE_ForAll)
-    end
-end
-
-function veafAssets._buildAssetsRadioMenuPage(menu, names, pageSize, startIndex)
-    veafAssets.logTrace(string.format("veafAssets._buildAssetsRadioMenuPage(pageSize=%d, startIndex=%d)",pageSize, startIndex))
-    
-    local namesCount = #names
-    veafAssets.logTrace(string.format("namesCount = %d",namesCount))
-
-    local endIndex = namesCount
-    if endIndex - startIndex >= pageSize then
-        endIndex = startIndex + pageSize - 2
-    end
-    veafAssets.logTrace(string.format("endIndex = %d",endIndex))
-    veafAssets.logTrace(string.format("adding commands from %d to %d",startIndex, endIndex))
-    for index = startIndex, endIndex do
-        local name = names[index]
-        veafAssets.logTrace(string.format("names[%d] = %s",index, name))
-        local asset = veafAssets.assets[name]
-        veafAssets._buildAssetRadioMenu(menu, asset)
-    end
-    if endIndex < namesCount then
-        veafAssets.logTrace("adding next page menu")
-        local nextPageMenu = veafRadio.addSubMenu("Next page", menu)
-        veafAssets._buildAssetsRadioMenuPage(nextPageMenu, names, 10, endIndex+1)
+        veafRadio.addCommandToSubmenu("Respawn "..element.description, menu, veafAssets.respawn, element.name, veafRadio.USAGE_ForAll)
     end
 end
 
 --- Build the initial radio menu
 function veafAssets.buildRadioMenu()
     veafAssets.rootPath = veafRadio.addSubMenu(veafAssets.RadioMenuName)
-    veafRadio.addCommandToSubmenu("HELP", veafAssets.rootPath, veafAssets.help, nil, veafRadio.USAGE_ForGroup)
-
-    names = {}
-    sortedAssets = {}
-    for _, asset in pairs(veafAssets.assets) do
-        table.insert(sortedAssets, {name=asset.name, sort=asset.sort})
+    if not(veafRadio.skipHelpMenus) then
+        veafRadio.addCommandToSubmenu("HELP", veafAssets.rootPath, veafAssets.help, nil, veafRadio.USAGE_ForGroup)
     end
-    function compare(a,b)
-		if not(a) then 
-			a = {}
-		end
-		if not(a["sort"]) then 
-			a["sort"] = 0
-		end
-		if not(b) then 
-			b = {}
-		end
-		if not(b["sort"]) then 
-			b["sort"] = 0
-		end	
-        return a["sort"] < b["sort"]
-    end     
-    table.sort(sortedAssets, compare)
-    for i = 1, #sortedAssets do
-        table.insert(names, sortedAssets[i].name)
-    end
-
-    veafAssets.logTrace("veafAssets.buildRadioMenu() - dumping names")
-    for i = 1, #names do
-        veafAssets.logTrace("veafAssets.buildRadioMenu().names -> " .. names[i])
-    end
-
-    veafAssets._buildAssetsRadioMenuPage(veafAssets.rootPath, names, 9, 1)
+  
+    veafRadio.addPaginatedRadioElements(veafAssets.rootPath, veafAssets._buildAssetRadioMenu, veafAssets.assets, "description", "sort")
     veafRadio.refreshRadioMenu()
 end
 

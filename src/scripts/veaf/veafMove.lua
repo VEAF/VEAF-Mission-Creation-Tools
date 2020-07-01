@@ -508,7 +508,9 @@ end
 function veafMove.buildRadioMenu()
     veafMove.logDebug(string.format("veafMove.buildRadioMenu()"))
     veafMove.rootPath = veafRadio.addSubMenu(veafMove.RadioMenuName)
-    veafRadio.addCommandToSubmenu("HELP", veafMove.rootPath, veafMove.help, nil, veafRadio.USAGE_ForGroup)
+    if not(veafRadio.skipHelpMenus) then
+        veafRadio.addCommandToSubmenu("HELP", veafMove.rootPath, veafMove.help, nil, veafRadio.USAGE_ForGroup)
+    end
     for _, tankerUnitName in pairs(veafMove.Tankers) do
         local tankerName = tankerUnitName
         if veafAssets then

@@ -176,6 +176,7 @@ end
 function veafNamedPoints._addPoint(name, point)
     veafNamedPoints.logTrace(string.format("addPoint(name = %s)",name))
     veafNamedPoints.logTrace("point=" .. veaf.vecToString(point))
+    point.name = name:upper()
     veafNamedPoints.namedPoints[name:upper()] = point
 end
 
@@ -312,29 +313,9 @@ end
 -- Radio menu and help
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-function veafNamedPoints._buildWeatherReportsRadioMenuPage(menu, names, pageSize, startIndex)
-    veafNamedPoints.logTrace(string.format("veafNamedPoints._buildWeatherReportsRadioMenuPage(pageSize=%d, startIndex=%d)",pageSize, startIndex))
-    
-    local namesCount = #names
-    veafNamedPoints.logTrace(string.format("namesCount = %d",namesCount))
-
-    local endIndex = namesCount
-    if endIndex - startIndex >= pageSize then
-        endIndex = startIndex + pageSize - 2
-    end
-    veafNamedPoints.logTrace(string.format("endIndex = %d",endIndex))
-    veafNamedPoints.logTrace(string.format("adding commands from %d to %d",startIndex, endIndex))
-    for index = startIndex, endIndex do
-        local name = names[index]
-        veafNamedPoints.logTrace(string.format("names[%d] = %s",index, name))
-        local namedPoint = veafNamedPoints.namedPoints[name]
-        veafRadio.addCommandToSubmenu( name , menu, veafNamedPoints.getWeatherAtPoint, name, veafRadio.USAGE_ForGroup)    
-    end
-    if endIndex < namesCount then
-        veafNamedPoints.logTrace("adding next page menu")
-        local nextPageMenu = veafRadio.addSubMenu("Next page", menu)
-        veafNamedPoints._buildWeatherReportsRadioMenuPage(nextPageMenu, names, 10, endIndex+1)
-    end
+function veafAssets._buildWeatherReportRadioMenu(menu, title, element)
+    local namedPoint = element
+    veafRadio.addCommandToSubmenu(title , menu, veafNamedPoints.getWeatherAtPoint, element.name, veafRadio.USAGE_ForGroup)    
 end
 
 --- refresh the Weather Reports radio menu
@@ -345,46 +326,23 @@ function veafNamedPoints._refreshWeatherReportsRadioMenu()
             veafRadio.delSubmenu(veafNamedPoints.weatherPath, veafNamedPoints.rootPath)
         end
         veafNamedPoints.logTrace("adding weather report submenu")
-        veafNamedPoints.weatherPath = veafRadio.addSubMenu("Get weather report over a point", veafNamedPoints.rootPath)
-        names = {}
+        local points = {}
         for name, point in pairs(veafNamedPoints.namedPoints) do
-            if not point.hidden then table.insert(names, name) end
+            if not point.hidden then points[name] = point end
         end
-        table.sort(names)
-        veafNamedPoints._buildWeatherReportsRadioMenuPage(veafNamedPoints.weatherPath, names, 10, 1)
+        veafNamedPoints.weatherPath = veafRadio.addPaginatedRadioMenu("Get weather report over a point", veafNamedPoints.rootPath, veafAssets._buildWeatherReportRadioMenu, points)
         veafRadio.refreshRadioMenu()
     end
 end
 
-function veafNamedPoints._buildAtcRadioMenuPage(menu, names, pageSize, startIndex)
-    veafNamedPoints.logTrace(string.format("veafNamedPoints._buildAtcRadioMenuPage(pageSize=%d, startIndex=%d)",pageSize, startIndex))
-
-    local namesCount = #names
-    veafNamedPoints.logTrace(string.format("namesCount = %d",namesCount))
-
-    local endIndex = namesCount
-    if endIndex - startIndex >= pageSize then
-        endIndex = startIndex + pageSize - 2
-    end
-    veafNamedPoints.logTrace(string.format("endIndex = %d",endIndex))
-    veafNamedPoints.logTrace(string.format("adding commands from %d to %d",startIndex, endIndex))
-    for index = startIndex, endIndex do
-        local name = names[index]
-        veafNamedPoints.logTrace(string.format("names[%d] = %s",index, name))
-        local namedPoint = veafNamedPoints.namedPoints[name]
-        veafRadio.addCommandToSubmenu( name , menu, veafNamedPoints.getAtcAtPoint, name, veafRadio.USAGE_ForGroup)    
-    end
-    if endIndex < namesCount then
-        veafNamedPoints.logTrace("adding next page menu")
-        local nextPageMenu = veafRadio.addSubMenu("Next page", menu)
-        veafNamedPoints._buildAtcRadioMenuPage(nextPageMenu, names, 10, endIndex+1)
-    end
+function veafAssets._buildAtcRadioMenu(menu, title, element)
+    local namedPoint = element
+    veafRadio.addCommandToSubmenu(title , menu, veafNamedPoints.getAtcAtPoint, element.name, veafRadio.USAGE_ForGroup)    
 end
 
 --- refresh the ATC radio menu
 function veafNamedPoints._refreshAtcRadioMenu()
     if not veafNamedPoints.LowerRadioMenuSize then
-
         if veafNamedPoints.atcClosestPath then
             veafNamedPoints.logTrace("deleting ATC On Closest Point submenu")
             veafRadio.delSubmenu(veafNamedPoints.atcClosestPath, veafNamedPoints.rootPath)
@@ -397,25 +355,22 @@ function veafNamedPoints._refreshAtcRadioMenu()
             veafNamedPoints.logTrace("deleting ATC submenu")
             veafRadio.delSubmenu(veafNamedPoints.atcPath, veafNamedPoints.rootPath)
         end
-        veafNamedPoints.logTrace("adding ATC submenu")
-        veafNamedPoints.atcPath = veafRadio.addSubMenu("ATC", veafNamedPoints.rootPath)
-        names = {}
+        local points = {}
         for name, point in pairs(veafNamedPoints.namedPoints) do
-            if point.atc and not point.hidden then
-                table.insert(names, name)
-            end
+            if point.atc and not point.hidden then points[name] = point end
         end
-        table.sort(names)
-        veafNamedPoints._buildAtcRadioMenuPage(veafNamedPoints.atcPath, names, 10, 1)
+        veafNamedPoints.atcPath = veafRadio.addPaginatedRadioMenu("Get ATC information", veafNamedPoints.rootPath, veafAssets._buildAtcRadioMenu, points)
     end
-
     veafRadio.refreshRadioMenu()
 end
 
 --- Build the initial radio menu
 function veafNamedPoints.buildRadioMenu()
     veafNamedPoints.rootPath = veafRadio.addSubMenu(veafNamedPoints.RadioMenuName)
-    veafRadio.addCommandToSubmenu("HELP", veafNamedPoints.rootPath, veafNamedPoints.help, nil, veafRadio.USAGE_ForGroup)
+    if not(veafRadio.skipHelpMenus) then
+        veafRadio.addCommandToSubmenu("HELP", veafNamedPoints.rootPath, veafNamedPoints.help, nil, veafRadio.USAGE_ForGroup)
+    end
+    
     veafRadio.addCommandToSubmenu("List all points", veafNamedPoints.rootPath, veafNamedPoints.listAllPoints, nil, veafRadio.USAGE_ForGroup)
     veafNamedPoints._refreshAtcRadioMenu()
     veafNamedPoints._refreshWeatherReportsRadioMenu()

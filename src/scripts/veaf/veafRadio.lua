@@ -45,10 +45,10 @@ veafRadio = {}
 veafRadio.Id = "RADIO - "
 
 --- Version.
-veafRadio.Version = "1.2.1"
+veafRadio.Version = "1.3.0"
 
 -- trace level, specific to this module
-veafRadio.Trace = false
+veafRadio.Trace = true
 
 veafRadio.RadioMenuName = "VEAF"
 
@@ -243,11 +243,6 @@ end
 function veafRadio.refreshRadioSubmenu(parentRadioMenu, radioMenu)
   veafRadio.logTrace("veafRadio.refreshRadioSubmenu "..radioMenu.title)
 
-  if veafRadio.skipHelpMenus and radioMenu.title:upper():find("HELP") then
-    veafRadio.logDebug("veafRadio.refreshRadioSubmenu - skipping "..radioMenu.title)
-    return
-  end
-
   local trace = false
 
   -- warn if the size starts to get too big
@@ -269,45 +264,40 @@ function veafRadio.refreshRadioSubmenu(parentRadioMenu, radioMenu)
   for count = 1,#radioMenu.commands do
     local command = radioMenu.commands[count]
 
-    if veafRadio.skipHelpMenus then veafRadio.logTrace(string.format("command.title=[%s]",command.title)) end
-    if veafRadio.skipHelpMenus and command.title:upper():find("HELP") then
-      veafRadio.logDebug("veafRadio.refreshRadioSubmenu - skipping "..command.title)
-    else
-      if not command.usage then
-        command.usage = veafRadio.USAGE_ForAll
-      end
-      if command.usage ~= veafRadio.USAGE_ForAll then
-        
-        -- build menu for each player group
-        local alreadyDoneGroups = {}
-        for groupId, groupData in pairs(veafRadio.humanGroups) do
-          for _, callsign in pairs(groupData.callsigns) do
-            local unitData = groupData.units[callsign]
-            local unitName = unitData.name
-  
-            -- add radio command by player unit or group
-            local parameters = command.parameters
-            if parameters == nil then
-              parameters = unitName
-            else
-              parameters = { command.parameters }
-              table.insert(parameters, unitName)
-            end 
-            local _title = command.title
-            if command.usage == veafRadio.USAGE_ForUnit then
-              _title = callsign .. " - " .. command.title
-            end
-            if alreadyDoneGroups[groupId] == nil or command.usage == veafRadio.USAGE_ForUnit then
-              veafRadio.addSizeForGroup(groupId, string.len(_title))
-              veafRadio._addCommand(groupId, _title, radioMenu.dcsRadioMenu, command, parameters, trace)
-            end
-            alreadyDoneGroups[groupId] = true
-          end
+    if not command.usage then
+    command.usage = veafRadio.USAGE_ForAll
+    end
+    if command.usage ~= veafRadio.USAGE_ForAll then
+    
+    -- build menu for each player group
+    local alreadyDoneGroups = {}
+    for groupId, groupData in pairs(veafRadio.humanGroups) do
+        for _, callsign in pairs(groupData.callsigns) do
+        local unitData = groupData.units[callsign]
+        local unitName = unitData.name
+
+        -- add radio command by player unit or group
+        local parameters = command.parameters
+        if parameters == nil then
+            parameters = unitName
+        else
+            parameters = { command.parameters }
+            table.insert(parameters, unitName)
+        end 
+        local _title = command.title
+        if command.usage == veafRadio.USAGE_ForUnit then
+            _title = callsign .. " - " .. command.title
         end
-      else
-        veafRadio.addSizeForAll(string.len(command.title))
-        veafRadio._addCommand(nil, command.title, radioMenu.dcsRadioMenu, command, command.parameters, trace)
-      end
+        if alreadyDoneGroups[groupId] == nil or command.usage == veafRadio.USAGE_ForUnit then
+            veafRadio.addSizeForGroup(groupId, string.len(_title))
+            veafRadio._addCommand(groupId, _title, radioMenu.dcsRadioMenu, command, parameters, trace)
+        end
+        alreadyDoneGroups[groupId] = true
+        end
+    end
+    else
+    veafRadio.addSizeForAll(string.len(command.title))
+    veafRadio._addCommand(nil, command.title, radioMenu.dcsRadioMenu, command, command.parameters, trace)
     end
   end  
   
@@ -374,6 +364,7 @@ function veafRadio.addMenu(title)
 end
 
 function veafRadio.addSubMenu(title, radioMenu)
+   
     local subMenu = {}
     subMenu.title = title
     subMenu.dcsRadioMenu = nil
@@ -412,17 +403,107 @@ function veafRadio.delSubmenu(subMenu, radioMenu)
   end
   veaf.arrayRemoveWhen(menu.subMenus, function(t, i, j)
     -- Return true to keep the value, or false to discard it.
-    veafRadio.logTrace("searching for " .. subMenu.title)
+    --veafRadio.logTrace("searching for " .. subMenu.title)
     local v = menu.subMenus[i]
-    veafRadio.logTrace("checking " .. v.title)
+    --veafRadio.logTrace("checking " .. v.title)
     if v == subMenu then
-      veafRadio.logTrace("found ! removing " .. v.title)
+      --veafRadio.logTrace("found ! removing " .. v.title)
       return false
     else
-      veafRadio.logTrace("keeping " .. v.title)
+      --veafRadio.logTrace("keeping " .. v.title)
       return true
     end
   end);
+end
+
+-- build a paginated submenu (internal paginating method)
+local function _buildRadioMenuPage(menu, titles, elementsByTitle, addCommandToSubmenuMethod, pageSize, startIndex)
+  veafRadio.logTrace(string.format("_buildRadioMenuPage(pageSize=%s, startIndex=%s)",tostring(pageSize), tostring(startIndex)))
+  
+  local titlesCount = #titles
+  veafRadio.logTrace(string.format("titlesCount = %d",titlesCount))
+
+  local pageSize = pageSize
+  if not pageSize then
+    pageSize = 10
+  end
+
+  local endIndex = titlesCount
+  if endIndex - startIndex >= pageSize then
+      endIndex = startIndex + pageSize - 2
+  end
+  veafRadio.logTrace(string.format("endIndex = %d",endIndex))
+  veafRadio.logTrace(string.format("adding commands from %d to %d",startIndex, endIndex))
+  for index = startIndex, endIndex do
+      local title = titles[index]
+      veafRadio.logTrace(string.format("titles[%d] = %s",index, title))
+      local element = elementsByTitle[title]
+      addCommandToSubmenuMethod(menu, title, element)
+  end
+  if endIndex < titlesCount then
+      veafRadio.logTrace("adding next page menu")
+      local nextPageMenu = veafRadio.addSubMenu("Next page", menu)
+      _buildRadioMenuPage(nextPageMenu, titles, elementsByTitle, addCommandToSubmenuMethod, 10, endIndex+1)
+  end
+end
+
+-- build a paginated submenu (main method)
+function veafRadio.addPaginatedRadioElements(radioMenu, addCommandToSubmenuMethod, elements, titleAttribute, sortAttribute)
+    veafRadio.logTrace(string.format("veafRadio.addPaginatedRadioElements() : elements=%s",veaf.p(elements)))
+    
+    if not addCommandToSubmenuMethod then 
+        veafRadio.logError("veafRadio.addPaginatedRadioMenu : addCommandToSubmenuMethod is mandatory !")
+        return
+    end
+
+    local pageSize = 10 - #radioMenu.commands
+  
+      local sortedElements = {}
+    local sortAttribute = sortAttribute or "sort"
+    local titleAttribute = titleAttribute or "title"
+    for name, element in pairs(elements) do
+        local sortValue = element[sortAttribute]
+        if not sortValue then sortValue = name end
+        table.insert(sortedElements, {element=element, sort=sortValue, title=name})
+    end
+    function compare(a,b)
+		if not(a) then 
+			a = {}
+		end
+		if not(a["sort"]) then 
+			a["sort"] = 0
+		end
+		if not(b) then 
+			b = {}
+		end
+		if not(b["sort"]) then 
+			b["sort"] = 0
+		end	
+        return a["sort"] < b["sort"]
+    end     
+    table.sort(sortedElements, compare)
+    local sortedTitles = {}
+    local elementsByTitle = {}
+    for i = 1, #sortedElements do
+        local title = sortedElements[i].element[titleAttribute]
+        if not title then title = sortedElements[i].title end
+        table.insert(sortedTitles, title)
+        elementsByTitle[title] = sortedElements[i].element
+    end
+    table.sort(sortedTitles)
+    veafRadio.logTrace("sortedTitles="..veaf.p(sortedTitles))
+
+    _buildRadioMenuPage(radioMenu, sortedTitles, elementsByTitle, addCommandToSubmenuMethod, pageSize, 1)
+    veafRadio.refreshRadioMenu()
+end
+
+-- build a paginated submenu (main method)
+function veafRadio.addPaginatedRadioMenu(title, radioMenu, addCommandToSubmenuMethod, elements, titleAttribute, sortAttribute)
+    veafRadio.logTrace(string.format("veafRadio.addPaginatedRadioMenu(title=%s)",title))
+    
+    local firstPagePath = veafRadio.addSubMenu(title, radioMenu)
+    veafRadio.addPaginatedRadioElements(firstPagePath, addCommandToSubmenuMethod, elements, titleAttribute, sortAttribute)
+    return firstPagePath
 end
 
 -- prepare humans units

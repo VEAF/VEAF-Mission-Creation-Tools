@@ -48,7 +48,7 @@ veafCombatZone = {}
 veafCombatZone.Id = "COMBAT ZONE - "
 
 --- Version.
-veafCombatZone.Version = "1.2.2"
+veafCombatZone.Version = "1.2.3"
 
 -- trace level, specific to this module
 veafCombatZone.Trace = false
@@ -483,7 +483,7 @@ function VeafCombatZone:initialize()
 
     -- find units in the trigger zone
     local units
-    units, _ = unpack(veafCombatZone.findUnitsInTriggerZone(self.missionEditorZoneName))
+    units, _ = veaf.safeUnpack(veafCombatZone.findUnitsInTriggerZone(self.missionEditorZoneName))
 
     -- process special commands in the units 
     local alreadyAddedGroups = {}
@@ -561,7 +561,7 @@ function VeafCombatZone:initialize()
     self:desactivate()
 
     -- remove all units in the trigger zone (we want it CLEAN !)
-    local units, groupNames = unpack(veafCombatZone.findUnitsInTriggerZone(self.missionEditorZoneName))
+    local units, groupNames = veaf.safeUnpack(veafCombatZone.findUnitsInTriggerZone(self.missionEditorZoneName))
     for _, groupName in pairs(groupNames) do
 
         veafCombatZone.logTrace(string.format("destroying group [%s]",groupName))
@@ -874,7 +874,7 @@ function VeafCombatZone:popSmoke()
     if self:isTraining() then 
         -- compute the barycenter of all remaining units
         local totalPosition = {x = 0,y = 0,z = 0}
-        local units, _ = unpack(veafCombatZone.findUnitsInTriggerZone(self.missionEditorZoneName))
+        local units, _ = veaf.safeUnpack(veafCombatZone.findUnitsInTriggerZone(self.missionEditorZoneName))
         for count = 1,#units do
             if units[count] then 
                 totalPosition = mist.vec.add(totalPosition,Unit.getPosition(units[count]).p)
@@ -1017,7 +1017,7 @@ end
 
 -- print information about a zone
 function veafCombatZone.GetInformationOnZone(parameters)
-    local zoneName, unitName = unpack(parameters)
+    local zoneName, unitName = veaf.safeUnpack(parameters)
     veafCombatZone.logDebug(string.format("veafCombatZone.GetInformationOnZone([%s])",zoneName or ""))
     local zone = veafCombatZone.GetZone(zoneName)
     local text = zone:getInformation()

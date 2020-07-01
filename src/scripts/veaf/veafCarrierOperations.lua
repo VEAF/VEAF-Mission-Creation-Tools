@@ -48,7 +48,7 @@ veafCarrierOperations = {}
 veafCarrierOperations.Id = "CARRIER - "
 
 --- Version.
-veafCarrierOperations.Version = "1.4.4"
+veafCarrierOperations.Version = "1.4.5"
 
 -- trace level, specific to this module
 veafCarrierOperations.Trace = false
@@ -118,7 +118,7 @@ end
 
 --- Start carrier operations ; changes the radio menu item to END and make the carrier move
 function veafCarrierOperations.startCarrierOperations(parameters)
-    local groupName, duration = unpack(parameters)
+    local groupName, duration = veaf.safeUnpack(parameters)
     veafCarrierOperations.logDebug("startCarrierOperations(".. groupName .. ")")
 
     local carrier = veafCarrierOperations.carriers[groupName]
@@ -620,7 +620,7 @@ end
 
 --- Gets informations about current carrier operations
 function veafCarrierOperations.atcForCarrierOperations(parameters)
-    local groupName, unitName = unpack(parameters)
+    local groupName, unitName = veaf.safeUnpack(parameters)
     veafCarrierOperations.logDebug("atcForCarrierOperations(".. groupName .. ")")
     local text = veafCarrierOperations.getAtcForCarrierOperations(groupName)
     veaf.outTextForUnit(unitName, text, 15)

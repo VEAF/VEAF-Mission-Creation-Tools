@@ -50,7 +50,7 @@ veafCarrierOperations2 = {}
 veafCarrierOperations2.Id = "CARRIER2 - "
 
 --- Version.
-veafCarrierOperations2.Version = "2.0.2"
+veafCarrierOperations2.Version = "2.0.3"
 
 -- trace level, specific to this module
 veafCarrierOperations2.Trace = false
@@ -94,7 +94,7 @@ end
 -- Start recovery function.
 function veafCarrierOperations2.startRecovery(parameters)
     veafCarrierOperations2.logDebug(string.format("veafCarrierOperations2.startRecovery - parameters", veaf.p(parameters)))
-    local params, unitName = unpack(parameters)
+    local params, unitName = veaf.safeUnpack(parameters)
     veafCarrierOperations2.logDebug(string.format("veafCarrierOperations2.startRecovery - params", veaf.p(params)))
     local case = params.case
     local time = params.time

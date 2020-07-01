@@ -51,7 +51,7 @@ veafCombatMission = {}
 veafCombatMission.Id = "COMBAT MISSION - "
 
 --- Version.
-veafCombatMission.Version = "1.6.0"
+veafCombatMission.Version = "1.6.1"
 
 -- trace level, specific to this module
 veafCombatMission.Trace = true
@@ -1112,7 +1112,7 @@ end
 
 -- print information about a mission
 function veafCombatMission.GetInformationOnMission(parameters)
-    local name, unitName = unpack(parameters)
+    local name, unitName = veaf.safeUnpack(parameters)
     veafCombatMission.logDebug(string.format("veafCombatMission.GetInformationOnMission([%s])",name or ""))
     local mission = veafCombatMission.GetMission(name)
     local text = mission:getInformation()

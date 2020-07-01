@@ -24,7 +24,7 @@ veafAssets = {}
 veafAssets.Id = "ASSETS - "
 
 --- Version.
-veafAssets.Version = "1.6.0"
+veafAssets.Version = "1.6.1"
 
 -- trace level, specific to this module
 veafAssets.Trace = false
@@ -92,7 +92,7 @@ function veafAssets.buildRadioMenu()
 end
 
 function veafAssets.info(parameters)
-    local name, unitName = unpack(parameters)
+    local name, unitName = veaf.safeUnpack(parameters)
     veafAssets.logDebug("veafAssets.info "..name)
     local theAsset = nil
     for _, asset in pairs(veafAssets.assets) do

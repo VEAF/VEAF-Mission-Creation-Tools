@@ -28,7 +28,7 @@ veafRemote = {}
 veafRemote.Id = "REMOTE - "
 
 --- Version.
-veafRemote.Version = "1.0.1"
+veafRemote.Version = "1.0.2"
 
 -- trace level, specific to this module
 veafRemote.Trace = false
@@ -181,8 +181,8 @@ function veafRemote.addNiodCallback(name, parameters, code)
                 return errorMessage
             else
                 veafRemote.logTrace(string.format("payload = %s", veaf.p(payload)))
-                veafRemote.logTrace(string.format("unpacked payload = %s", veaf.p(unpack(payload))))
-                local status, retval = pcall(code,unpack(payload))
+                veafRemote.logTrace(string.format("unpacked payload = %s", veaf.p(veaf.safeUnpack(payload))))
+                local status, retval = pcall(code,veaf.safeUnpack(payload))
                 if status then
                     return retval
                 else

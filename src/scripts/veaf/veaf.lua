@@ -33,7 +33,7 @@ veaf.Id = "VEAF - "
 veaf.MainId = "MAIN - "
 
 --- Version.
-veaf.Version = "1.6.0"
+veaf.Version = "1.6.1"
 
 -- trace level, specific to this module
 veaf.MainTrace = false
@@ -1104,6 +1104,14 @@ function veaf.randomlyChooseFrom(aTable, bias)
     if index < 1 then index = 1 end
     if index > #aTable then index = #aTable end
     return aTable[index]
+end
+
+function veaf.safeUnpack(package)
+    if type(package) == 'table' then
+        return unpack(package)
+    else
+        return package
+    end
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------

@@ -68,7 +68,7 @@ veafMove = {}
 veafMove.Id = "MOVE - "
 
 --- Version.
-veafMove.Version = "1.4.1"
+veafMove.Version = "1.4.2"
 
 -- trace level, specific to this module
 veafMove.Trace = false
@@ -495,7 +495,7 @@ end
 
 --- Build a radio menu to move the Arco tanker
 function veafMove.moveTankerToMe(parameters)
-    local tankerName, unitName = unpack(parameters)
+    local tankerName, unitName = veaf.safeUnpack(parameters)
     veafMove.logDebug(string.format("veafMove.moveTankerToMe(tankerName=%s, unitName=%s)",tankerName,unitName))
     local unit = Unit.getByName(unitName)
     if unit then

@@ -45,7 +45,7 @@ veafRadio = {}
 veafRadio.Id = "RADIO - "
 
 --- Version.
-veafRadio.Version = "1.4.0"
+veafRadio.Version = "1.4.1"
 
 -- trace level, specific to this module
 veafRadio.Trace = false
@@ -148,7 +148,7 @@ end
 
 function veafRadio._proxyMethod(parameters)
   veafRadio.logTrace("parameters="..veaf.p(parameters))  
-  local realMethod, realParameters = unpack(parameters)
+  local realMethod, realParameters = veaf.safeUnpack(parameters)
   veafRadio.logTrace("realMethod="..veaf.p(realMethod))  
   veafRadio.logTrace("realParameters="..veaf.p(realParameters))  
   if veafSecurity.isAuthenticated() then

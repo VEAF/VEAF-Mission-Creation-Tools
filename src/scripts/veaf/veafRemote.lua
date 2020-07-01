@@ -28,7 +28,7 @@ veafRemote = {}
 veafRemote.Id = "REMOTE - "
 
 --- Version.
-veafRemote.Version = "0.0.1"
+veafRemote.Version = "1.0.1"
 
 -- trace level, specific to this module
 veafRemote.Trace = false
@@ -90,7 +90,7 @@ function veafRemote._monitorWithSlMod(command, script, flag, coalition, requireA
         actualRequireAdmin = true
     end
     
-    veafRemote.logDebug(string.format("setting remote configuration for command=[%s], script=[%s], flag=[%d], requireAdmin=[%s], coalition=[%s]",tostring(command), tostring(script), actualFlag, tostring(actualRequireAdmin), tostring(actualCoalition)))
+    veafRemote.logTrace(string.format("setting remote configuration for command=[%s], script=[%s], flag=[%d], requireAdmin=[%s], coalition=[%s]",tostring(command), tostring(script), actualFlag, tostring(actualRequireAdmin), tostring(actualCoalition)))
     if slmod then
         slmod.chat_cmd(command, actualFlag, -1, actualCoalition, actualRequireAdmin)
     end

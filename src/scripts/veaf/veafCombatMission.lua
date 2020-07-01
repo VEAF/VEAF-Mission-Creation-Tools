@@ -51,7 +51,7 @@ veafCombatMission = {}
 veafCombatMission.Id = "COMBAT MISSION - "
 
 --- Version.
-veafCombatMission.Version = "1.5.1"
+veafCombatMission.Version = "1.6.0"
 
 -- trace level, specific to this module
 veafCombatMission.Trace = true
@@ -75,6 +75,9 @@ veafCombatMission.missionsList = {}
 
 -- Missions dictionary (map of VeafCombatMission objects by mission name)
 veafCombatMission.missionsDict = {}
+
+-- Keep MOOSE SPAWN objects here
+veafCombatMission.MOOSE_SPAWN_OBJECTS = {}
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Utility methods
@@ -122,11 +125,9 @@ VeafCombatMissionObjective.FAILED = -1
 VeafCombatMissionObjective.SUCCESS = 1
 VeafCombatMissionObjective.NOTHING = 0
 
-function VeafCombatMissionObjective.new()
-    veafCombatMission.logTrace(string.format("VeafCombatMissionObjective.new()"))
-
+function VeafCombatMissionObjective:new()
+    veafCombatMission.logTrace(string.format("VeafCombatMissionObjective:new()"))
     local self = setmetatable({}, VeafCombatMissionObjective)
-    self.__index = self
     self.name = nil
     self.description = nil
     self.parameters = {}
@@ -136,7 +137,7 @@ function VeafCombatMissionObjective.new()
 end
 
 function VeafCombatMissionObjective:copy()
-    local copy = VeafCombatMissionObjective.new()
+    local copy = VeafCombatMissionObjective:new()
 
     -- copy the attributes
     copy.name = self.name
@@ -393,9 +394,8 @@ VeafCombatMissionElement =
 }
 VeafCombatMissionElement.__index = VeafCombatMissionElement
 
-function VeafCombatMissionElement.new ()
+function VeafCombatMissionElement:new()
     local self = setmetatable({}, VeafCombatMissionElement)
-    self.__index = self
     self.name = nil
     self.groups = nil
     self.coalition = nil
@@ -408,7 +408,7 @@ function VeafCombatMissionElement.new ()
 end
 
 function VeafCombatMissionElement:copy()
-    local copy = VeafCombatMissionElement.new()
+    local copy = VeafCombatMissionElement:new()
 
     -- copy the attributes
     copy.name = self.name
@@ -547,9 +547,8 @@ VeafCombatMission =
 }
 VeafCombatMission.__index = VeafCombatMission
 
-function VeafCombatMission.new ()
+function VeafCombatMission:new()
     local self = setmetatable({}, VeafCombatMission)
-    self.__index = self
     self.name = nil
     self.friendlyName = nil
     self.secured = false
@@ -570,7 +569,7 @@ function VeafCombatMission.new ()
 end
 
 function VeafCombatMission:copy(newSkill, newScale)
-    local copy = VeafCombatMission.new()
+    local copy = VeafCombatMission:new()
 
     -- copy the attributes
     copy.name = self.name
@@ -869,9 +868,13 @@ function VeafCombatMission:activate(silent)
             -- spawn the element
             veafCombatMission.logTrace(string.format("chance hit (%d <= %d)",chance, missionElement:getSpawnChance()))
             for _, groupName in pairs(missionElement:getGroups()) do
-                local spawn = SPAWN:New(groupName)
-                                    :InitSkill(missionElement:getSkill())
-                                    :InitCoalition(missionElement:getCoalition())
+                local spawn = veafCombatMission.MOOSE_SPAWN_OBJECTS[groupName]
+                if not spawn then
+                    spawn = SPAWN:New(groupName)
+                    veafCombatMission.MOOSE_SPAWN_OBJECTS[groupName] = spawn
+                end
+                spawn:InitSkill(missionElement:getSkill())
+                     :InitCoalition(missionElement:getCoalition())
                 local spawnRadius = missionElement:getSpawnRadius()
                 if (missionElement:getScale() > 1 and spawnRadius < veafCombatMission.MinimumSpacingBetweenClones) then
                     spawnRadius = veafCombatMission.MinimumSpacingBetweenClones 
@@ -986,7 +989,7 @@ function VeafCombatMission:updateRadioMenu(inBatch)
     -- populate the radio menu
     veafCombatMission.logTrace("populate the radio menu")
     -- global commands
-    veafRadio.addCommandToSubmenu("Get info", self.radioRootPath, veafCombatMission.GetInformationOnMission, self.name, veafRadio.USAGE_ForGroup)
+    veafRadio.addCommandToSubmenu("Get info", self.radioRootPath, veafCombatMission.GetInformationOnMission, self.name, veafRadio.USAGE_ForAll)
     if self:isActive() then
         -- mission is active, set up accordingly (desactivate mission, get information, pop smoke, etc.)
         veafCombatMission.logTrace("mission is active")
@@ -1042,10 +1045,10 @@ function veafCombatMission.AddMission(mission)
 end
 
 -- add a mission and create copies with different skills
-function veafCombatMission.AddMissionsWithSkillAndScale(mission, skills, scales)
+function veafCombatMission.AddMissionsWithSkillAndScale(mission, includeOriginal, skills, scales)
     veafCombatMission.logDebug(string.format("veafCombatMission.AddMissionsWithSkill([%s])",mission:getName() or ""))
     
-    if (mission:isRadioMenuEnabled()) then
+    if (mission:isRadioMenuEnabled() and includeOriginal) then
         veafCombatMission.AddMission(mission)
     end
 
@@ -1054,9 +1057,9 @@ function veafCombatMission.AddMissionsWithSkillAndScale(mission, skills, scales)
     
     for _, scale in pairs(scales) do
         for _, skill in pairs(skills) do 
-            local copy = mission:copy(skill, scale):setRadioMenuEnabled(false)
+            local copy = mission:copy(skill, scale)--:setRadioMenuEnabled(false)
             copy:setName(mission:getName().."/"..skill.."/"..scale)
-            copy:setFriendlyName(mission:getFriendlyName().."/"..skill.."/"..scale)
+            copy:setFriendlyName(mission:getFriendlyName())
             veafCombatMission.AddMission(copy)
         end
     end
@@ -1085,6 +1088,7 @@ function veafCombatMission.ActivateMission(name, silent)
             trigger.action.outText("VeafCombatMission "..mission:getFriendlyName().." was already active.", 10)
         end
     end
+    veafCombatMission.buildRadioMenu()
 end
 
 -- desactivate a mission by number
@@ -1103,6 +1107,7 @@ function veafCombatMission.DesactivateMission(name, silent)
     if not silent and not mission:isSilent() then
         trigger.action.outText("VeafCombatMission "..mission:getFriendlyName().." has been desactivated.", 10)
     end
+    veafCombatMission.buildRadioMenu()
 end
 
 -- print information about a mission
@@ -1131,25 +1136,43 @@ end
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 local function _groupMissions()
     local missionGroups = {}
+    local activeGroups = {}
 
     for _, mission in pairs(veafCombatMission.missionsDict) do
-        veafCombatMission.logTrace(string.format("missionName=%s", mission:getName()))
-        local groupName = mission:getName()
-        groupName = groupName:gsub("/Random/%d", "/<Skill>/<Scale>")
-        groupName = groupName:gsub("/Average/%d", "/<Skill>/<Scale>")
-        groupName = groupName:gsub("/Good/%d", "/<Skill>/<Scale>")
-        groupName = groupName:gsub("/High/%d", "/<Skill>/<Scale>")
-        groupName = groupName:gsub("/Excellent/%d", "/<Skill>/<Scale>")
-        veafCombatMission.logTrace(string.format("groupName=%s", groupName))
-        if not(missionGroups[groupName]) then
-            missionGroups[groupName] = {}
-            veafCombatMission.logTrace(string.format("creating group %s", groupName))
+        veafCombatMission.logTrace(string.format("grouping missionName=%s", mission:getName()))
+        if mission:isRadioMenuEnabled() then
+            local regex = ("^([^/]+)/([^/]+)/(.+)$")
+            local name, skill, scale = mission:getName():match(regex)
+            veafCombatMission.logTrace(string.format("name=%s, skill=%s, scale=%s", tostring(name), tostring(skill), tostring(scale)))
+            local groupName = name
+            if not groupName then groupName = mission:getName() end
+            if not(missionGroups[groupName]) then
+                missionGroups[groupName] = {}
+                --veafCombatMission.logTrace(string.format("creating group %s", groupName))
+            end
+            table.insert(missionGroups[groupName], mission)
+            if mission:isActive() then
+                veafCombatMission.logTrace(string.format("mission %s is active", mission:getName()))
+                veafCombatMission.logTrace(string.format("activating group %s", groupName))
+                if not(activeGroups[groupName]) then
+                    activeGroups[groupName] = {}
+                end
+                if skill then
+                    veafCombatMission.logTrace(string.format("activating skill %s", skill))
+                    if not(activeGroups[groupName][skill]) then
+                        activeGroups[groupName][skill] = {}
+                    end
+                    if scale then 
+                        veafCombatMission.logTrace(string.format("activating scale %s", scale))
+                        activeGroups[groupName][skill][scale] = true
+                    end
+                end
+            end
         end
-        table.insert(missionGroups[groupName], mission)
     end
-    veafRadio.logTrace(string.format("missionGroups=%s",veaf.p(missionGroups)))
-    --veafRadio.logTrace(string.format("#missionGroups=%d",#missionGroups))
-    return missionGroups
+    --veafCombatMission.logTrace(string.format("missionGroups=%s",veaf.p(missionGroups)))
+    veafCombatMission.logTrace(string.format("activeGroups=%s",veaf.p(activeGroups)))
+    return missionGroups, activeGroups
 end
 
 function veafCombatMission._buildMissionRadioMenu(menu, title, element)
@@ -1166,21 +1189,41 @@ function veafCombatMission._buildMissionRadioMenu(menu, title, element)
         for _, mission in pairs(missions) do
             local regex = ("^([^/]+)/([^/]+)/(%d+)$")
             local name, skill, scale = mission:getName():match(regex)
-            veafCombatMission.logTrace(string.format("name=%s, skill=%s, scale=%s", tostring(name), tostring(skill), tostring(scale)))
-            if not skills[skill] then skills[skill] = {} end
-            skills[skill][tostring(scale)] = { mission } 
+            --veafCombatMission.logTrace(string.format("name=%s, skill=%s, scale=%s", tostring(name), tostring(skill), tostring(scale)))
+            if not skills[skill] then 
+                skills[skill] = {} 
+            end
+            skills[skill][scale] = mission 
         end
         
         veafCombatMission.logTrace(string.format("skills=%s", veaf.p(skills)))
         
         -- create the radio menus
+        local title = title
+        if element.activeGroups then title = "* "..title end
         local missionPath = veafRadio.addSubMenu(title, menu)
         veafCombatMission.logTrace(string.format("  %s", title))
-        for skill, scales in pairs(skills) do
-            local skillPath = veafRadio.addSubMenu(skill, missionPath)
+        local skillsNames = {}
+        for skill, _ in pairs(skills) do
+            table.insert(skillsNames, skill)
+        end
+        table.sort(skillsNames)
+        for _, skill in pairs(skillsNames) do
+            local scales = skills[skill]
+            local skillTitle = skill
+            if element.activeGroups and element.activeGroups[skill] then skillTitle = "* "..skillTitle end
+            local skillPath = veafRadio.addSubMenu(skillTitle, missionPath)
             veafCombatMission.logTrace(string.format("    %s", skill))
-            for scale, mission in pairs(scales) do
-                local scalePath = veafRadio.addSubMenu("scale "..scale, skillPath)
+            local scalesNames = {}
+            for scale, _ in pairs(scales) do
+                table.insert(scalesNames, scale)
+            end
+            table.sort(scalesNames)
+            for _, scale in pairs(scalesNames) do
+                local mission = scales[scale]
+                local scaleTitle = "scale "..scale
+                if element.activeGroups and element.activeGroups[skill] and element.activeGroups[skill][scale] then scaleTitle = "* "..scaleTitle end
+                local scalePath = veafRadio.addSubMenu(scaleTitle, skillPath)
                 veafCombatMission.logTrace(string.format("      %s", scale))
                 mission.radioRootPath = scalePath
                 mission:updateRadioMenu(true)
@@ -1192,7 +1235,11 @@ end
 --- Build the initial radio menu
 function veafCombatMission.buildRadioMenu()
     veafCombatMission.logDebug("buildRadioMenu()")
-    veafCombatMission.rootPath = veafRadio.addMenu(veafCombatMission.RadioMenuName)
+    if veafCombatMission.rootPath then 
+        veafRadio.clearSubmenu(veafCombatMission.rootPath)
+    else
+        veafCombatMission.rootPath = veafRadio.addMenu(veafCombatMission.RadioMenuName)
+    end
     if not(veafRadio.skipHelpMenus) then
         veafRadio.addCommandToSubmenu("HELP", veafCombatMission.rootPath, veafCombatMission.help, nil, veafRadio.USAGE_ForGroup)
     end
@@ -1200,13 +1247,13 @@ function veafCombatMission.buildRadioMenu()
     veafRadio.addCommandToSubmenu("List active", veafCombatMission.rootPath, veafCombatMission.listActiveMissions, nil, veafRadio.USAGE_ForAll)
     
     local missions = {}
-    local groupedMissions = _groupMissions()
-    for groupName, missionsInGroup in pairs(groupedMissions) do
-        veafRadio.logTrace(string.format("processing groupName=%s",groupName))
-        missions[groupName] = {title=missionsInGroup[1]:getRadioMenuName(), sort=missionsInGroup[1]:getFriendlyName(), missions=missionsInGroup}
+    local missionGroups, activeGroups = _groupMissions()
+    for groupName, missionsInGroup in pairs(missionGroups) do
+        veafCombatMission.logTrace(string.format("processing groupName=%s",groupName))
+        missions[groupName] = {title=missionsInGroup[1]:getRadioMenuName(), sort=missionsInGroup[1]:getFriendlyName(), missions=missionsInGroup, activeGroups=activeGroups[groupName]}
     end
-    veafRadio.logTrace(string.format("missions=%s",veaf.p(missions)))
-    --veafRadio.logTrace(string.format("#missions=%d",#missions))
+    veafCombatMission.logTrace(string.format("missions=%s",veaf.p(missions)))
+    --veafCombatMission.logTrace(string.format("#missions=%d",#missions))
     veafRadio.addPaginatedRadioElements(veafCombatMission.rootPath, veafCombatMission._buildMissionRadioMenu, missions)
     veafRadio.refreshRadioMenu()
 end
@@ -1222,21 +1269,10 @@ end
 
 function veafCombatMission.listAvailableMissions() 
     -- sort the missions alphabetically
-    sortedMissions = {}
-    missions = {}
-    for _, mission in pairs(veafCombatMission.missionsDict) do
-        local missionName = mission:getName()
-        veafCombatMission.logTrace(string.format("missionName=%s", missionName))
-        missionName = missionName:gsub("/Random/%d", "/<Skill>/<Scale>")
-        missionName = missionName:gsub("/Average/%d", "/<Skill>/<Scale>")
-        missionName = missionName:gsub("/Good/%d", "/<Skill>/<Scale>")
-        missionName = missionName:gsub("/High/%d", "/<Skill>/<Scale>")
-        missionName = missionName:gsub("/Excellent/%d", "/<Skill>/<Scale>")
-        veafCombatMission.logTrace(string.format("missionName=%s", missionName))
-        if not(missions[missionName]) then
-            missions[missionName] = true
-            table.insert(sortedMissions, missionName)
-        end
+    local sortedMissions = {}
+    local groupedMissions = _groupMissions()
+    for groupName, missionsInGroup in pairs(groupedMissions) do
+        table.insert(sortedMissions, groupName)
     end
     table.sort(sortedMissions)
     

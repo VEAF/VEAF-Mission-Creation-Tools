@@ -33,7 +33,7 @@ veaf.Id = "VEAF - "
 veaf.MainId = "MAIN - "
 
 --- Version.
-veaf.Version = "1.5.0"
+veaf.Version = "1.6.0"
 
 -- trace level, specific to this module
 veaf.MainTrace = false

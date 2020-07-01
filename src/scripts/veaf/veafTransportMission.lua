@@ -49,7 +49,7 @@ veafTransportMission = {}
 veafTransportMission.Id = "TRANSPORT MISSION - "
 
 --- Version.
-veafTransportMission.Version = "1.3.1"
+veafTransportMission.Version = "1.3.2"
 
 -- trace level, specific to this module
 veafTransportMission.Trace = false

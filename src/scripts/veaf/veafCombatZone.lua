@@ -48,7 +48,7 @@ veafCombatZone = {}
 veafCombatZone.Id = "COMBAT ZONE - "
 
 --- Version.
-veafCombatZone.Version = "1.2.1"
+veafCombatZone.Version = "1.2.2"
 
 -- trace level, specific to this module
 veafCombatZone.Trace = false
@@ -133,9 +133,8 @@ VeafCombatZoneElement =
 }
 VeafCombatZoneElement.__index = VeafCombatZoneElement
 
-function VeafCombatZoneElement.new ()
+function VeafCombatZoneElement:new ()
     local self = setmetatable({}, VeafCombatZoneElement)
-    self.__index = self
     self.name = nil
     self.position = nil
     self.dcsStatic = false
@@ -296,9 +295,8 @@ VeafCombatZone =
 }
 VeafCombatZone.__index = VeafCombatZone
 
-function VeafCombatZone.new ()
+function VeafCombatZone:new()
     local self = setmetatable({}, VeafCombatZone)
-    self.__index = self
     self.friendlyName = nil
     self.missionEditorZoneName = nil
     self.briefing = nil
@@ -490,7 +488,7 @@ function VeafCombatZone:initialize()
     -- process special commands in the units 
     local alreadyAddedGroups = {}
     for _,unit in pairs(units) do
-        local zoneElement = VeafCombatZoneElement.new()
+        local zoneElement = VeafCombatZoneElement:new()
         zoneElement:setCoalition(unit:getCoalition())
         local unitName = unit:getName()
         veafCombatZone.logTrace(string.format("processing unit [%s] of coalition [%d]", unitName, unit:getCoalition()))
@@ -929,7 +927,7 @@ function VeafCombatZone:updateRadioMenu(inBatch)
     -- populate the radio menu
     veafCombatZone.logTrace("populate the radio menu")
     -- global commands
-    veafRadio.addCommandToSubmenu("Get info", self.radioRootPath, veafCombatZone.GetInformationOnZone, self.missionEditorZoneName, veafRadio.USAGE_ForGroup)
+    veafRadio.addCommandToSubmenu("Get info", self.radioRootPath, veafCombatZone.GetInformationOnZone, self.missionEditorZoneName, veafRadio.USAGE_ForAll)
     if self:isActive() then
         -- zone is active, set up accordingly (desactivate zone, get information, pop smoke, etc.)
         veafCombatZone.logTrace("zone is active")

@@ -27,7 +27,7 @@ veafShortcuts = {}
 veafShortcuts.Id = "SHORTCUTS - "
 
 --- Version.
-veafShortcuts.Version = "1.0.1"
+veafShortcuts.Version = "1.0.2"
 
 -- trace level, specific to this module
 veafShortcuts.Trace = false
@@ -87,9 +87,8 @@ VeafAlias =
 }
 VeafAlias.__index = VeafAlias
 
-function VeafAlias.new ()
+function VeafAlias:new()
     local self = setmetatable({}, VeafAlias)
-    self.__index = self
     self.veafCommand = nil
     self.bypassSecurity = false
     self.hidden = false
@@ -334,7 +333,7 @@ function veafShortcuts.buildRadioMenu()
     veafShortcuts.rootPath = veafRadio.addMenu(veafShortcuts.RadioMenuName)
     
     if not(veafRadio.skipHelpMenus) then
-        veafRadio.addCommandToSubmenu("HELP - all aliases", veafShortcuts.rootPath, veafShortcuts.helpAllAliases, nil, veafRadio.USAGE_ForGroup)
+        veafRadio.addCommandToSubmenu("HELP - all aliases", veafShortcuts.rootPath, veafShortcuts.helpAllAliases, nil, veafRadio.USAGE_ForAll)
     end
 
     local localWeather = veafRadio.addSubMenu("Local weather", veafShortcuts.rootPath)
@@ -367,7 +366,7 @@ veafShortcuts.logInfo(string.format("Loading version %s", veafShortcuts.Version)
 function veafShortcuts.buildDefaultList()
     -- generic sam groups
     veafShortcuts.AddAlias(
-        VeafAlias.new()
+        VeafAlias:new()
             :setName("-sam")
             :setDescription("Random SAM battery")
             :setVeafCommand("_spawn samgroup")
@@ -375,7 +374,7 @@ function veafShortcuts.buildDefaultList()
             :setBypassSecurity(true)
     )
     veafShortcuts.AddAlias(
-        VeafAlias.new()
+        VeafAlias:new()
             :setName("-samLR")
             :setDescription("Random long range SAM battery")
             :setVeafCommand("_spawn samgroup")
@@ -383,7 +382,7 @@ function veafShortcuts.buildDefaultList()
             :setBypassSecurity(true)
     )
     veafShortcuts.AddAlias(
-        VeafAlias.new()
+        VeafAlias:new()
             :setName("-samSR")
             :setDescription("Random short range SAM battery")
             :setVeafCommand("_spawn samgroup")
@@ -392,98 +391,98 @@ function veafShortcuts.buildDefaultList()
     )
     -- specific air defenses groups and units  
     veafShortcuts.AddAlias(
-        VeafAlias.new()
+        VeafAlias:new()
         :setName("-sa2")
         :setDescription("SA-2 Guideline (S-75 Dvina) battery")
         :setVeafCommand("_spawn group, name sa2")
         :setBypassSecurity(true)
     )
     veafShortcuts.AddAlias(
-        VeafAlias.new()
+        VeafAlias:new()
         :setName("-sa3")
         :setDescription("SA-3 Goa (S-125 Neva/Pechora) battery")
         :setVeafCommand("_spawn group, name sa3")
         :setBypassSecurity(true)
     )
     veafShortcuts.AddAlias(
-        VeafAlias.new()
+        VeafAlias:new()
             :setName("-sa6")
             :setDescription("SA-6 Gainful (2K12 Kub) battery")
             :setVeafCommand("_spawn group, name sa6")
             :setBypassSecurity(true)
     )
     veafShortcuts.AddAlias(
-        VeafAlias.new()
+        VeafAlias:new()
             :setName("-sa8")
             :setDescription("SA-8 Osa (9K33 Osa) sam vehicle")
             :setVeafCommand("_spawn unit, name Osa 9A33 ln")
             :setBypassSecurity(true)
     )
     veafShortcuts.AddAlias(
-        VeafAlias.new()
+        VeafAlias:new()
             :setName("-sa9")
             :setDescription("SA-9 Strela-1 (9K31 Strela-1) sam vehicle")
             :setVeafCommand("_spawn unit, name Strela-1 9P31")
             :setBypassSecurity(true)
     )
     veafShortcuts.AddAlias(
-        VeafAlias.new()
+        VeafAlias:new()
             :setName("-sa10")
             :setDescription("SA-10 Grumble (S-300) battery")
             :setVeafCommand("_spawn group, name sa10")
             :setBypassSecurity(true)
     )
     veafShortcuts.AddAlias(
-        VeafAlias.new()
+        VeafAlias:new()
             :setName("-sa11")
             :setDescription("SA-11 Gadfly (9K37 Buk) battery")
             :setVeafCommand("_spawn group, name sa11")
             :setBypassSecurity(true)
     )
     veafShortcuts.AddAlias(
-        VeafAlias.new()
+        VeafAlias:new()
             :setName("-sa13")
             :setDescription("SA-13 Strela (9A35M3) sam vehicle")
             :setVeafCommand("_spawn unit, name Strela-10M3")
             :setBypassSecurity(true)
     )
     veafShortcuts.AddAlias(
-        VeafAlias.new()
+        VeafAlias:new()
             :setName("-sa15")
             :setDescription("SA-15 Gauntlet (9K330 Tor) sam vehicle")
             :setVeafCommand("_spawn unit, name sa15")
             :setBypassSecurity(true)
     )
     veafShortcuts.AddAlias(
-        VeafAlias.new()
+        VeafAlias:new()
             :setName("-sa18")
             :setDescription("SA-18 manpad soldier")
             :setVeafCommand("_spawn unit, name SA-18 Igla-S manpad")
             :setBypassSecurity(true)
     )
     veafShortcuts.AddAlias(
-        VeafAlias.new()
+        VeafAlias:new()
             :setName("-sa19")
             :setDescription("SA-19 Tunguska (2K22 Tunguska) sam vehicle")
             :setVeafCommand("_spawn unit, name 2S6 Tunguska")
             :setBypassSecurity(true)
     )
     veafShortcuts.AddAlias(
-        VeafAlias.new()
+        VeafAlias:new()
             :setName("-shilka")
             :setDescription("ZSU-23-4 Shilka AAA vehicle")
             :setVeafCommand("_spawn unit, name ZSU-23-4 Shilka")
             :setBypassSecurity(true)
     )
     veafShortcuts.AddAlias(
-        VeafAlias.new()
+        VeafAlias:new()
             :setName("-zu23")
             :setDescription("ZU-23 AAA vehicle")
             :setVeafCommand("_spawn unit, name Ural-375 ZU-23")
             :setBypassSecurity(true)
     )
     veafShortcuts.AddAlias(
-        VeafAlias.new()
+        VeafAlias:new()
             :setName("-manpads")
             :setDescription("mutiple SA-18 manpad soldier peppered in a wide radius")
             :setVeafCommand("_spawn unit, name SA-18 Igla-S manpad, radius 5000")
@@ -494,14 +493,14 @@ function veafShortcuts.buildDefaultList()
 
     -- shortcuts to commands
     veafShortcuts.AddAlias(
-        VeafAlias.new()
+        VeafAlias:new()
             :setName("-point")
             :setDescription("Name a point on the map")
             :setVeafCommand("_name point")
             :setBypassSecurity(true)
     )
     -- veafShortcuts.AddAlias(
-    --     VeafAlias.new()
+    --     VeafAlias:new()
     --         :setName("-login")
     --         :setDescription("Unlock the system")
     --         :setHidden(true)
@@ -509,7 +508,7 @@ function veafShortcuts.buildDefaultList()
     --         :setBypassSecurity(true)
     -- )
     veafShortcuts.AddAlias(
-        VeafAlias.new()
+        VeafAlias:new()
             :setName("-logout")
             :setDescription("Lock the system")
             :setHidden(true)
@@ -518,14 +517,14 @@ function veafShortcuts.buildDefaultList()
     )
     -- shortcuts to specific groups
     veafShortcuts.AddAlias(
-        VeafAlias.new()
+        VeafAlias:new()
             :setName("-mortar")
             :setDescription("Mortar team")
             :setVeafCommand("_spawn group, name mortar, country USA")
             :setBypassSecurity(true)
     )
     veafShortcuts.AddAlias(
-        VeafAlias.new()
+        VeafAlias:new()
             :setName("-arty")
             :setDescription("M-109 artillery battery")
             :setVeafCommand("_spawn group, name M-109, country USA")
@@ -533,7 +532,7 @@ function veafShortcuts.buildDefaultList()
     )
     -- shortcuts to dynamic groups
     veafShortcuts.AddAlias(
-        VeafAlias.new()
+        VeafAlias:new()
             :setName("-armor")
             :setDescription("Dynamic armor group")
             :setVeafCommand("_spawn armorgroup")
@@ -543,7 +542,7 @@ function veafShortcuts.buildDefaultList()
             :setBypassSecurity(true)
     )
     veafShortcuts.AddAlias(
-        VeafAlias.new()
+        VeafAlias:new()
             :setName("-infantry")
             :setDescription("Dynamic infantry section")
             :setVeafCommand("_spawn infantrygroup")
@@ -553,7 +552,7 @@ function veafShortcuts.buildDefaultList()
             :setBypassSecurity(true)
     )
     veafShortcuts.AddAlias(
-        VeafAlias.new()
+        VeafAlias:new()
             :setName("-transport")
             :setDescription("Dynamic transport company")
             :setVeafCommand("_spawn transportgroup")
@@ -562,7 +561,7 @@ function veafShortcuts.buildDefaultList()
             :setBypassSecurity(true)
     )
     veafShortcuts.AddAlias(
-        VeafAlias.new()
+        VeafAlias:new()
             :setName("-combat")
             :setDescription("Dynamic combat group")
             :setVeafCommand("_spawn combatgroup")
@@ -572,7 +571,7 @@ function veafShortcuts.buildDefaultList()
             :setBypassSecurity(true)
     )
     veafShortcuts.AddAlias(
-        VeafAlias.new()
+        VeafAlias:new()
             :setName("-cas")
             :setDescription("Generate a random CAS group for training")
             :setVeafCommand("_cas, disperse")
@@ -580,7 +579,7 @@ function veafShortcuts.buildDefaultList()
     )
     -- other shortcuts
     veafShortcuts.AddAlias(
-        VeafAlias.new()
+        VeafAlias:new()
             :setName("-convoy")
             :setDescription("Convoy - needs \", dest POINTNAME\"")
             :setVeafCommand("_spawn convoy")
@@ -590,14 +589,14 @@ function veafShortcuts.buildDefaultList()
             :setBypassSecurity(true)
     )
     veafShortcuts.AddAlias(
-        VeafAlias.new()
+        VeafAlias:new()
             :setName("-jtac")
             :setDescription("JTAC humvee")
             :setVeafCommand("_spawn jtac")
             :setBypassSecurity(true)
     )
     veafShortcuts.AddAlias(
-        VeafAlias.new()
+        VeafAlias:new()
             :setName("-shell")
             :setDescription("Artillery shelling of a zone with HE")
             :setVeafCommand("_spawn bomb")
@@ -607,7 +606,7 @@ function veafShortcuts.buildDefaultList()
             :setBypassSecurity(true)
     )
     veafShortcuts.AddAlias(
-        VeafAlias.new()
+        VeafAlias:new()
             :setName("-light")
             :setDescription("Illumination by artillery shelling of a zone")
             :setVeafCommand("_spawn flare, radius 1000")
@@ -615,7 +614,7 @@ function veafShortcuts.buildDefaultList()
             :setBypassSecurity(true)
     )
     veafShortcuts.AddAlias(
-        VeafAlias.new()
+        VeafAlias:new()
             :setName("-smoke")
             :setDescription("Artillery shelling of a zone with smoke")
             :setVeafCommand("_spawn smoke, color white")

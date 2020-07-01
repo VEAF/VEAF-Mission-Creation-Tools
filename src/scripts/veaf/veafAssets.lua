@@ -24,7 +24,7 @@ veafAssets = {}
 veafAssets.Id = "ASSETS - "
 
 --- Version.
-veafAssets.Version = "1.5.0"
+veafAssets.Version = "1.6.0"
 
 -- trace level, specific to this module
 veafAssets.Trace = false

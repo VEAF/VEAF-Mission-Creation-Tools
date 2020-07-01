@@ -45,10 +45,10 @@ veafRadio = {}
 veafRadio.Id = "RADIO - "
 
 --- Version.
-veafRadio.Version = "1.3.0"
+veafRadio.Version = "1.4.0"
 
 -- trace level, specific to this module
-veafRadio.Trace = true
+veafRadio.Trace = false
 
 veafRadio.RadioMenuName = "VEAF"
 
@@ -61,7 +61,7 @@ veafRadio.USAGE_ForGroup = 1
 veafRadio.USAGE_ForUnit  = 2
 
 -- maximum size for radio menu
-veafRadio.MAXIMUM_SIZE = 4500
+veafRadio.MAXIMUM_SIZE = -1
 
 -- delay for the actual refresh
 veafRadio.refreshRadioMenu_DELAY = 1
@@ -198,7 +198,7 @@ function veafRadio._refreshRadioMenu()
   local maxSize = 0
   for group, size in pairs(veafRadio.radioMenuSize) do
     if maxSize < size then maxSize = size end
-    if size >= veafRadio.MAXIMUM_SIZE then
+    if veafRadio.MAXIMUM_SIZE > 0 and size >= veafRadio.MAXIMUM_SIZE  then
       veafRadio.reportRadioMenuSizeBreached("veafRadio._refreshRadioMenu()", group, size)
     end
   end
@@ -231,10 +231,10 @@ function veafRadio._addCommand(groupId, title, menu, command, parameters)
   ----veafRadio.logTrace(routines.utils.oneLineSerialize({_parameters = _parameters}))
   
   if groupId then
-    veafRadio.logTrace(string.format("adding for group %s command %s",groupId or "", _title or ""))
+    --veafRadio.logTrace(string.format("adding for group %s command %s",groupId or "", _title or ""))
     missionCommands.addCommandForGroup(groupId, _title, menu, _method, _parameters)
   else
-    veafRadio.logTrace(string.format("adding for all command %s",_title or ""))
+    --veafRadio.logTrace(string.format("adding for all command %s",_title or ""))
     missionCommands.addCommand(_title, menu, _method, _parameters)
   end
 
@@ -247,7 +247,7 @@ function veafRadio.refreshRadioSubmenu(parentRadioMenu, radioMenu)
 
   -- warn if the size starts to get too big
   for group, size in pairs(veafRadio.radioMenuSize) do
-    if size >= veafRadio.MAXIMUM_SIZE then
+    if veafRadio.MAXIMUM_SIZE > 0 and size >= veafRadio.MAXIMUM_SIZE then
       veafRadio.reportRadioMenuSizeBreached(string.format("veafRadio.refreshRadioSubmenu()",radioMenu.title), group, size)
     end
   end
@@ -269,35 +269,35 @@ function veafRadio.refreshRadioSubmenu(parentRadioMenu, radioMenu)
     end
     if command.usage ~= veafRadio.USAGE_ForAll then
     
-    -- build menu for each player group
-    local alreadyDoneGroups = {}
-    for groupId, groupData in pairs(veafRadio.humanGroups) do
-        for _, callsign in pairs(groupData.callsigns) do
-        local unitData = groupData.units[callsign]
-        local unitName = unitData.name
+        -- build menu for each player group
+        local alreadyDoneGroups = {}
+        for groupId, groupData in pairs(veafRadio.humanGroups) do
+            for _, callsign in pairs(groupData.callsigns) do
+            local unitData = groupData.units[callsign]
+            local unitName = unitData.name
 
-        -- add radio command by player unit or group
-        local parameters = command.parameters
-        if parameters == nil then
-            parameters = unitName
-        else
-            parameters = { command.parameters }
-            table.insert(parameters, unitName)
-        end 
-        local _title = command.title
-        if command.usage == veafRadio.USAGE_ForUnit then
-            _title = callsign .. " - " .. command.title
+            -- add radio command by player unit or group
+            local parameters = command.parameters
+            if parameters == nil then
+                parameters = unitName
+            else
+                parameters = { command.parameters }
+                table.insert(parameters, unitName)
+            end 
+            local _title = command.title
+            if command.usage == veafRadio.USAGE_ForUnit then
+                _title = callsign .. " - " .. command.title
+            end
+            if alreadyDoneGroups[groupId] == nil or command.usage == veafRadio.USAGE_ForUnit then
+                veafRadio.addSizeForGroup(groupId, string.len(_title))
+                veafRadio._addCommand(groupId, _title, radioMenu.dcsRadioMenu, command, parameters, trace)
+            end
+            alreadyDoneGroups[groupId] = true
+            end
         end
-        if alreadyDoneGroups[groupId] == nil or command.usage == veafRadio.USAGE_ForUnit then
-            veafRadio.addSizeForGroup(groupId, string.len(_title))
-            veafRadio._addCommand(groupId, _title, radioMenu.dcsRadioMenu, command, parameters, trace)
-        end
-        alreadyDoneGroups[groupId] = true
-        end
-    end
     else
-    veafRadio.addSizeForAll(string.len(command.title))
-    veafRadio._addCommand(nil, command.title, radioMenu.dcsRadioMenu, command, command.parameters, trace)
+        veafRadio.addSizeForAll(string.len(command.title))
+        veafRadio._addCommand(nil, command.title, radioMenu.dcsRadioMenu, command, command.parameters, trace)
     end
   end  
   
@@ -515,7 +515,7 @@ function veafRadio.buildHumanUnits()
     for name, unit in pairs(mist.DBs.humansByName) do
         -- not already in units list ?
         if veafRadio.humanUnits[unit.unitName] == nil then
-            veafRadio.logTrace(string.format("human player found name=%s, unitName=%s, groupId=%s", name, unit.unitName,unit.groupId))
+            --veafRadio.logTrace(string.format("human player found name=%s, unitName=%s, groupId=%s", name, unit.unitName,unit.groupId))
             local callsign = unit.callsign
             if type(callsign) == "table" then callsign = callsign["name"] end
             if type(callsign) == "number" then callsign = "" .. callsign end

@@ -68,7 +68,7 @@ veafMove = {}
 veafMove.Id = "MOVE - "
 
 --- Version.
-veafMove.Version = "1.4"
+veafMove.Version = "1.4.1"
 
 -- trace level, specific to this module
 veafMove.Trace = false

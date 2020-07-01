@@ -37,7 +37,7 @@ veafNamedPoints = {}
 veafNamedPoints.Id = "NAMED POINTS - "
 
 --- Version.
-veafNamedPoints.Version = "1.3.1"
+veafNamedPoints.Version = "1.4.0"
 
 -- trace level, specific to this module
 veafNamedPoints.Trace = false
@@ -371,7 +371,7 @@ function veafNamedPoints.buildRadioMenu()
         veafRadio.addCommandToSubmenu("HELP", veafNamedPoints.rootPath, veafNamedPoints.help, nil, veafRadio.USAGE_ForGroup)
     end
     
-    veafRadio.addCommandToSubmenu("List all points", veafNamedPoints.rootPath, veafNamedPoints.listAllPoints, nil, veafRadio.USAGE_ForGroup)
+    veafRadio.addCommandToSubmenu("List all points", veafNamedPoints.rootPath, veafNamedPoints.listAllPoints, nil, veafRadio.USAGE_ForAll)
     veafNamedPoints._refreshAtcRadioMenu()
     veafNamedPoints._refreshWeatherReportsRadioMenu()
 end

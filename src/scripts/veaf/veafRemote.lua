@@ -28,13 +28,16 @@ veafRemote = {}
 veafRemote.Id = "REMOTE - "
 
 --- Version.
-veafRemote.Version = "1.0.3"
+veafRemote.Version = "1.0.4"
 
 -- trace level, specific to this module
 veafRemote.Trace = false
 
--- if false, SLMOD will never be called
+-- if false, SLMOD will not be called for regular commands
 veafRemote.USE_SLMOD = false
+
+-- if false, SLMOD will never be called
+veafRemote.USE_SLMOD_FOR_SPECIAL_COMMANDS = false
 
 veafRemote.SecondsBetweenFlagMonitorChecks = 5
 
@@ -73,12 +76,15 @@ end
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- SLMOD monitoring
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-function veafRemote.monitorWithSlMod(command, script, requireAdmin, flag, coalition)
-    mist.scheduleFunction(veafRemote._monitorWithSlMod, {command, script, flag, coalition, requireAdmin}, timer.getTime()+5)    
+function veafRemote.monitorWithSlModSpecialCommand(command, script, requireAdmin, flag, coalition)
+    mist.scheduleFunction(veafRemote._monitorWithSlMod, {command, script, flag, coalition, requireAdmin, true}, timer.getTime()+5)    
 end
 
-function veafRemote._monitorWithSlMod(command, script, flag, coalition, requireAdmin)
+function veafRemote.monitorWithSlMod(command, script, requireAdmin, flag, coalition)
+    mist.scheduleFunction(veafRemote._monitorWithSlMod, {command, script, flag, coalition, requireAdmin, false}, timer.getTime()+5)    
+end
+
+function veafRemote._monitorWithSlMod(command, script, flag, coalition, requireAdmin, isSpecialCommand)
     
     local actualFlag = flag
     if not actualFlag then
@@ -93,9 +99,16 @@ function veafRemote._monitorWithSlMod(command, script, flag, coalition, requireA
         actualRequireAdmin = true
     end
     
+    local isSpecialCommand = isSpecialCommand
+    if isSpecialCommand == nil then
+        isSpecialCommand = false
+    end
+
     veafRemote.logTrace(string.format("setting remote configuration for command=[%s], script=[%s], flag=[%d], requireAdmin=[%s], coalition=[%s]",tostring(command), tostring(script), actualFlag, tostring(actualRequireAdmin), tostring(actualCoalition)))
-    if slmod and veafRemote.USE_SLMOD then
-        slmod.chat_cmd(command, actualFlag, -1, actualCoalition, actualRequireAdmin)
+    if veafRemote.USE_SLMOD or (veafRemote.USE_SLMOD_FOR_SPECIAL_COMMANDS and isSpecialCommand) then 
+        if slmod  then
+            slmod.chat_cmd(command, actualFlag, -1, actualCoalition, actualRequireAdmin)
+        end
     end
     veafRemote.monitoredCommands[command:lower()] = actualFlag
     veafRemote.startMonitoringFlag(actualFlag, script)
@@ -235,9 +248,9 @@ function veafRemote.buildDefaultList()
     local TEST = false
 
     -- add standard commands
-    veafRemote.monitorWithSlMod("-veaf test", [[trigger.action.outText("VEAF - test command received from remote, flag=66600", 10)]], false, 66600)
-    veafRemote.monitorWithSlMod("-veaf login", [[veafSecurity.authenticate(1)]])
-    veafRemote.monitorWithSlMod("-veaf logout", [[veafSecurity.logout(true)]])
+    veafRemote.monitorWithSlModSpecialCommand("-veaf test", [[trigger.action.outText("VEAF - test command received from remote, flag=66600", 10)]], false, 66600)
+    veafRemote.monitorWithSlModSpecialCommand("-veaf login", [[veafSecurity.authenticate(1)]])
+    veafRemote.monitorWithSlModSpecialCommand("-veaf logout", [[veafSecurity.logout(true)]])
 
     -- add all the combat missions
     if veafCombatMission then

@@ -486,7 +486,7 @@ function veafCasMission.generateArmorPlatoon(groupName, defense, armor, side, si
                 end
             else
                 if side == veafCasMission.SIDE_BLUE then
-                    armorType = veaf.randomlyChooseFrom({'M-2 Bradley', 'M-2 Bradley', 'M-60', 'MBT Leopard1A3'})
+                    armorType = veaf.randomlyChooseFrom({'M-2 Bradley', 'M-2 Bradley', 'M-60', 'MBT Leopard 1A3'})
                 else
                     armorType = veaf.randomlyChooseFrom({'BMP-1', 'BMP-2', 'T-55', 'T-72B'})
                 end
@@ -500,7 +500,7 @@ function veafCasMission.generateArmorPlatoon(groupName, defense, armor, side, si
                 end
             else
                 if side == veafCasMission.SIDE_BLUE then
-                    armorType = veaf.randomlyChooseFrom({'M-2 Bradley', 'M-2 Bradley', 'MBT Leopard1A3', 'M-1 Abrams'}, armor-5)
+                    armorType = veaf.randomlyChooseFrom({'M-2 Bradley', 'M-2 Bradley', 'MBT Leopard 1A3', 'M-1 Abrams'}, armor-5)
                 else
                     armorType = veaf.randomlyChooseFrom({'BMP-2', 'BMP-3', 'T-72B', 'T-80UD', 'T-90'}, armor-5)
                 end

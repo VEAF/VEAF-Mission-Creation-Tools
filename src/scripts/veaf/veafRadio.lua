@@ -45,7 +45,7 @@ veafRadio = {}
 veafRadio.Id = "RADIO - "
 
 --- Version.
-veafRadio.Version = "1.4.1"
+veafRadio.Version = "1.4.2"
 
 -- trace level, specific to this module
 veafRadio.Trace = false
@@ -61,7 +61,7 @@ veafRadio.USAGE_ForGroup = 1
 veafRadio.USAGE_ForUnit  = 2
 
 -- maximum size for radio menu
-veafRadio.MAXIMUM_SIZE = -1
+veafRadio.MAXIMUM_SIZE = 4500
 
 -- delay for the actual refresh
 veafRadio.refreshRadioMenu_DELAY = 1
@@ -196,13 +196,17 @@ function veafRadio._refreshRadioMenu()
 
   -- warn if the size starts to get too big
   local maxSize = 0
+  local maxGroup = -1
   for group, size in pairs(veafRadio.radioMenuSize) do
-    if maxSize < size then maxSize = size end
+    if maxSize < size then 
+      maxSize = size 
+      maxGroup = group
+    end
     if veafRadio.MAXIMUM_SIZE > 0 and size >= veafRadio.MAXIMUM_SIZE  then
       veafRadio.reportRadioMenuSizeBreached("veafRadio._refreshRadioMenu()", group, size)
     end
   end
-  veafRadio.logDebug(string.format("veafRadio._refreshRadioMenu() max(veafRadio.radioMenuSize)=%d",maxSize))
+  veafRadio.logDebug(string.format("veafRadio._refreshRadioMenu() max(veafRadio.radioMenuSize)=%d,%d",maxSize, maxGroup))
 
 end
 

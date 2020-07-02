@@ -66,7 +66,7 @@ veafSpawn = {}
 veafSpawn.Id = "SPAWN - "
 
 --- Version.
-veafSpawn.Version = "1.11.1"
+veafSpawn.Version = "1.11.2"
 
 -- trace level, specific to this module
 veafSpawn.Trace = false
@@ -1320,27 +1320,34 @@ end
 
 --- destroy unit(s)
 function veafSpawn.destroy(spawnSpot, radius, unitName)
+    veafSpawn.logDebug(string.format("destroy(radius=%s, unitName=%s)", tostring(radius), tostring(unitName)))
+    veafSpawn.logTrace(string.format("spawnSpot=%s", veaf.p(spawnSpot)))
     if unitName then
         -- destroy a specific unit
         local c = Unit.getByName(unitName)
         if c then
+            veafSpawn.logTrace("destroy a specific unit")
             Unit.destroy(c)
         end
 
         -- or a specific static
         c = StaticObject.getByName(unitName)
         if c then
+            veafSpawn.logTrace("destroy a specific static")
             StaticObject.destroy(c)
         end
 
         -- or a specific group
         c = Group.getByName(unitName)
         if c then
+            veafSpawn.logTrace("destroy a specific group")
             Group.destroy(c)
         end
     else
         -- radius based destruction
+        veafSpawn.logTrace("radius based destruction")
         local units = veaf.findUnitsInCircle(spawnSpot, radius or 150)
+        veafSpawn.logTrace(string.format("units=%s", veaf.p(units)))
         if units then
             for name, _ in pairs(units) do
                 -- try and find a  unit

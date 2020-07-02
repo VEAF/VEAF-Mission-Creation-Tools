@@ -810,6 +810,8 @@ function veaf.computeCoordinatesOffsetFromRoute(startingPoint, destinationPoint,
 end
 
 function veaf.findUnitsInCircle(center, radius)
+    veaf.mainLogTrace(string.format("findUnitsInCircle(radius=%s)", tostring(radius)))
+    veaf.mainLogTrace(string.format("center=%s", veaf.p(center)))
     local result = {}
     local units = mist.DBs.unitsByName -- local copy for faster execution
     for name, _ in pairs(units) do
@@ -821,6 +823,7 @@ function veaf.findUnitsInCircle(center, radius)
             local pos = unit:getPosition().p
             if pos then -- you never know O.o
                 distanceFromCenter = ((pos.x - center.x)^2 + (pos.z - center.z)^2)^0.5
+                veaf.mainLogTrace(string.format("name=%s; distanceFromCenter=%s", tostring(name), veaf.p(distanceFromCenter)))
                 if distanceFromCenter <= radius then
                     result[name] = unit
                 end

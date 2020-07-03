@@ -37,7 +37,7 @@ veafNamedPoints = {}
 veafNamedPoints.Id = "NAMED POINTS - "
 
 --- Version.
-veafNamedPoints.Version = "1.4.1"
+veafNamedPoints.Version = "1.5.0"
 
 -- trace level, specific to this module
 veafNamedPoints.Trace = false
@@ -200,7 +200,8 @@ function veafNamedPoints.getWeatherAtPoint(parameters)
     veafNamedPoints.logTrace(string.format("getWeatherAtPoint(name = %s)",name))
     local point = veafNamedPoints.getPoint(name)
     if point then
-        local weatherReport = veaf.weatherReport(point, nil, true)
+        local weatherReport = "WEATHER        : " .. name .. "\n\n"
+        weatherReport = weatherReport .. veaf.weatherReport(point, nil, true)
         veaf.outTextForUnit(unitName, weatherReport, 30)
     end
 end
@@ -211,7 +212,7 @@ function veafNamedPoints.getAtcAtPoint(parameters)
     local point = veafNamedPoints.getPoint(name)
     if point then
         -- exanple : point={x=-315414,y=480,z=897262, atc=true, tower="138.00", runways={{name="12R", hdg=121, ils="110.30"},{name="30L", hdg=301, ils="108.90"}}}
-        local atcReport = "ATC            : " .. name .. "\n"
+        local atcReport = "ATC            : " .. name .. "\n\n"
         
         -- runway and other information
         if point.tower then
@@ -255,7 +256,7 @@ function veafNamedPoints.getAtcAtPoint(parameters)
 
         -- weather
         atcReport = atcReport .. "\n\n"
-        local weatherReport = veaf.weatherReport(point)
+        local weatherReport = veaf.weatherReport(point, nil, true)
         atcReport = atcReport ..weatherReport
         veaf.outTextForUnit(unitName, atcReport, 30)
     end
@@ -309,6 +310,27 @@ function veafNamedPoints.getAtcAtClosestPoint(unitName)
     end
 end
 
+function veafNamedPoints.getWeatherAtClosestPoint(unitName)
+    veafNamedPoints.logDebug(string.format("veafNamedPoints.getWeatherAtClosestPoint(unitName=%s)",unitName))
+    local closestPointName = nil
+    local minDistance = 99999999
+    local unit = Unit.getByName(unitName)
+    if unit then
+        for name, point in pairs(veafNamedPoints.namedPoints) do
+            distanceFromPlayer = ((point.x - unit:getPosition().p.x)^2 + (point.z - unit:getPosition().p.z)^2)^0.5
+            veafNamedPoints.logTrace(string.format("distanceFromPlayer = %d",distanceFromPlayer))
+            if distanceFromPlayer < minDistance then
+                minDistance = distanceFromPlayer
+                closestPointName = name
+                veafNamedPoints.logTrace(string.format("point %s is closest",name))
+            end
+        end
+    end
+    if closestPointName then
+        veafNamedPoints.getWeatherAtPoint({closestPointName, unitName})
+    end
+end
+
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Radio menu and help
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -343,14 +365,6 @@ end
 --- refresh the ATC radio menu
 function veafNamedPoints._refreshAtcRadioMenu()
     if not veafNamedPoints.LowerRadioMenuSize then
-        if veafNamedPoints.atcClosestPath then
-            veafNamedPoints.logTrace("deleting ATC On Closest Point submenu")
-            veafRadio.delSubmenu(veafNamedPoints.atcClosestPath, veafNamedPoints.rootPath)
-        end
-        veafNamedPoints.logTrace("adding ATC On Closest Point submenu")
-        veafNamedPoints.atcClosestPath = veafRadio.addSubMenu("ATC on closest point", veafNamedPoints.rootPath)
-        veafRadio.addCommandToSubmenu("ATC on closest point" , veafNamedPoints.atcClosestPath, veafNamedPoints.getAtcAtClosestPoint, nil, veafRadio.USAGE_ForUnit)    
-
         if veafNamedPoints.atcPath then
             veafNamedPoints.logTrace("deleting ATC submenu")
             veafRadio.delSubmenu(veafNamedPoints.atcPath, veafNamedPoints.rootPath)
@@ -361,6 +375,7 @@ function veafNamedPoints._refreshAtcRadioMenu()
         end
         veafNamedPoints.atcPath = veafRadio.addPaginatedRadioMenu("Get ATC information", veafNamedPoints.rootPath, veafAssets._buildAtcRadioMenu, points)
     end
+    
     veafRadio.refreshRadioMenu()
 end
 
@@ -372,6 +387,9 @@ function veafNamedPoints.buildRadioMenu()
     end
     
     veafRadio.addCommandToSubmenu("List all points", veafNamedPoints.rootPath, veafNamedPoints.listAllPoints, nil, veafRadio.USAGE_ForAll)
+    veafRadio.addCommandToSubmenu("Weather on closest point" , veafNamedPoints.rootPath, veafNamedPoints.getWeatherAtClosestPoint, nil, veafRadio.USAGE_ForGroup)    
+    veafRadio.addCommandToSubmenu("ATC on closest point" , veafNamedPoints.rootPath, veafNamedPoints.getAtcAtClosestPoint, nil, veafRadio.USAGE_ForGroup)    
+
     veafNamedPoints._refreshAtcRadioMenu()
     veafNamedPoints._refreshWeatherReportsRadioMenu()
 end

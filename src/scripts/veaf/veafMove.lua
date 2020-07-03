@@ -523,7 +523,7 @@ function veafMove.buildRadioMenu()
         end
         local menuName = string.format("Move %s to me", tankerName)
         local moveTankerPath = veafRadio.addSubMenu(menuName, veafMove.rootPath)
-        veafRadio.addCommandToSubmenu(menuName , moveTankerPath, veafMove.moveTankerToMe, tankerUnitName, veafRadio.USAGE_ForUnit)    
+        veafRadio.addCommandToSubmenu(menuName , moveTankerPath, veafMove.moveTankerToMe, tankerUnitName, veafRadio.USAGE_ForGroup)    
     end
 end
 

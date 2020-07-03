@@ -248,6 +248,15 @@ function veafShortcuts.GetWeatherAtCurrentPosition(unitName)
     end
 end
 
+function veafShortcuts.GetWeatherAtClosestPoint(unitName)
+    veafNamedPoints.logDebug(string.format("veafShortcuts.GetWeatherAtClosestPoint(unitName=%s)",unitName))
+    local unit = Unit.getByName(unitName)
+    if unit then
+        local weatherReport = veaf.weatherReport(unit:getPosition().p, nil, true) -- include LASTE
+        veaf.outTextForUnit(unitName, weatherReport, 30)
+    end
+end
+
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Event handler functions.
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -330,18 +339,18 @@ end
 --- Build the initial radio menu
 function veafShortcuts.buildRadioMenu()
     veafShortcuts.logDebug("buildRadioMenu()")
+    
+    if veafRadio.skipHelpMenus then return end -- completely skip the menu since there are only help elements
+    
     veafShortcuts.rootPath = veafRadio.addMenu(veafShortcuts.RadioMenuName)
     
     if not(veafRadio.skipHelpMenus) then
         veafRadio.addCommandToSubmenu("HELP - all aliases", veafShortcuts.rootPath, veafShortcuts.helpAllAliases, nil, veafRadio.USAGE_ForAll)
     end
 
-    local localWeather = veafRadio.addSubMenu("Local weather", veafShortcuts.rootPath)
-    veafRadio.addCommandToSubmenu("Local weather" , localWeather, veafShortcuts.GetWeatherAtCurrentPosition, nil, veafRadio.USAGE_ForUnit)    
-
-    -- this one needs veafNamedPoints.lua
-    local atcClosestPath = veafRadio.addSubMenu("ATC on closest point", veafShortcuts.rootPath)
-    veafRadio.addCommandToSubmenu("ATC on closest point" , atcClosestPath, veafNamedPoints.getAtcAtClosestPoint, nil, veafRadio.USAGE_ForUnit)    
+    -- these ones need veafNamedPoints.lua
+    --veafRadio.addCommandToSubmenu("Weather on closest point" , veafShortcuts.rootPath, veafNamedPoints.getWeatherAtClosestPoint, nil, veafRadio.USAGE_ForGroup)    
+    --veafRadio.addCommandToSubmenu("ATC on closest point" , veafShortcuts.rootPath, veafNamedPoints.getAtcAtClosestPoint, nil, veafRadio.USAGE_ForGroup)    
     
     veafRadio.refreshRadioMenu()
 end

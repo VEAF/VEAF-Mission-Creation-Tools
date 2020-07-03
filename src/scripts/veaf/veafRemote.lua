@@ -41,7 +41,7 @@ veafRemote.USE_SLMOD_FOR_SPECIAL_COMMANDS = true
 
 veafRemote.SecondsBetweenFlagMonitorChecks = 5
 
-veafRemote.CommandStarter = "///"
+veafRemote.CommandStarter = "_remote"
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Do not change anything below unless you know what you are doing!
@@ -105,7 +105,7 @@ function veafRemote._monitorWithSlMod(command, script, flag, coalition, requireA
     end
 
     veafRemote.logTrace(string.format("setting remote configuration for command=[%s], script=[%s], flag=[%d], requireAdmin=[%s], coalition=[%s]",tostring(command), tostring(script), actualFlag, tostring(actualRequireAdmin), tostring(actualCoalition)))
-    veafRemote.monitoredCommands[command:lower()] = script
+    veafRemote.monitoredCommands[command:lower()] = {script=script, requireAdmin=requireAdmin}
     if veafRemote.USE_SLMOD or (veafRemote.USE_SLMOD_FOR_SPECIAL_COMMANDS and isSpecialCommand) then 
         if slmod  then
             slmod.chat_cmd(command, actualFlag, -1, actualCoalition, actualRequireAdmin)
@@ -319,17 +319,15 @@ end
 
 --- Extract keywords from mark text.
 function veafRemote.markTextAnalysis(text)
-    if text then 
+    veafRemote.logTrace(string.format("veafRemote.markTextAnalysis(text=[%s])", tostring(text)))
   
-        veafRemote.logTrace(string.format("veafRemote.markTextAnalysis(text=[%s])", text))
-    
+    if text then 
         -- extract command and password
-        local command, password = text:match("!!([^#]+)#(.*)")
+        local password, command = text:match(veafRemote.CommandStarter.."#?([^%s]*)%s+(.+)")
         if command then
             veafRemote.logTrace(string.format("command = [%s]", command))
             return command, password
         end
-
     end
     return nil
 end
@@ -344,9 +342,14 @@ function veafRemote.executeCommand(command, password)
         trigger.action.outText("Bad or missing password",5)
         return false
     end
-    local scriptToExecute = veafRemote.monitoredCommands[command:lower()]
-    if scriptToExecute then 
-        veafRemote.logTrace(string.format("found script [%s] for command [%s]",scriptToExecute, command))
+    local commandData = veafRemote.monitoredCommands[command:lower()]
+    if commandData then 
+        local scriptToExecute = commandData.script
+        veafRemote.logTrace(string.format("found script [%s] for command [%s]", scriptToExecute, command))
+        local authorized = (not(commandData.requireAdmin)) or (veafSecurity.checkSecurity_L9(password))
+        if not authorized then 
+            return false
+        else
         local result, err = mist.utils.dostring(scriptToExecute)
         if result then
             veafRemote.logDebug(string.format("veafRemote.executeCommand() - lua code was successfully called for script [%s]", scriptToExecute))
@@ -354,6 +357,7 @@ function veafRemote.executeCommand(command, password)
         else
             veafRemote.logError(string.format("veafRemote.executeCommand() - error [%s] calling lua code for script [%s]", err, scriptToExecute))
             return false
+        end
         end
     else
         veafRemote.logError(string.format("veafRemote.ExecuteCommand : cannot find command [%s]",command or ""))

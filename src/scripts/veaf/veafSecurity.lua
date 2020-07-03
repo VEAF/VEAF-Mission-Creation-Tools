@@ -50,6 +50,10 @@ function veafSecurity.logError(message)
   veaf.logError(veafSecurity.Id .. message)
 end
 
+function veafSecurity.logWarning(message)
+  veaf.logWarning(veafSecurity.Id .. message)
+end
+
 function veafSecurity.logInfo(message)
   veaf.logInfo(veafSecurity.Id .. message)
 end
@@ -562,7 +566,7 @@ end
 
 function veafSecurity.checkSecurity_L0(password) 
   if not veafSecurity.checkPassword_L0(password) then
-    veafSecurity.logError("You have to give the correct L0 password to do this")
+    veafSecurity.logWarning("You have to give the correct L0 password to do this")
     trigger.action.outText("Please use the ', password <L0 password>' option", 5) 
     return false
   end
@@ -573,7 +577,7 @@ function veafSecurity.checkSecurity_L1(password)
   -- don't check the password if already logged in
   if veafSecurity.isAuthenticated() then return true end
   if not veafSecurity.checkPassword_L1(password) then
-    veafSecurity.logError("You have to give the correct L1 password to do this")
+    veafSecurity.logWarning("You have to give the correct L1 password to do this")
     trigger.action.outText("Please use the ', password <L1 password>' option", 5) 
     return false
   end
@@ -584,7 +588,7 @@ function veafSecurity.checkSecurity_L9(password)
   -- don't check the password if already logged in
   if veafSecurity.isAuthenticated() then return true end
   if not veafSecurity.checkPassword_L9(password) then
-    veafSecurity.logError("You have to give the correct L9 password to do this")
+    veafSecurity.logWarning("You have to give the correct L9 password to do this")
     trigger.action.outText("Please use the ', password <L9 password>' option", 5) 
     return false
   end

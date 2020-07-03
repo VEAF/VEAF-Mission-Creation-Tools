@@ -51,10 +51,10 @@ veafCombatMission = {}
 veafCombatMission.Id = "COMBAT MISSION - "
 
 --- Version.
-veafCombatMission.Version = "1.6.1"
+veafCombatMission.Version = "1.7.0"
 
 -- trace level, specific to this module
-veafCombatMission.Trace = true
+veafCombatMission.Trace = false
 
 --- Number of seconds between each check of the watchdog function
 veafCombatMission.SecondsBetweenWatchdogChecks = 30
@@ -1047,6 +1047,8 @@ end
 -- add a mission and create copies with different skills
 function veafCombatMission.AddMissionsWithSkillAndScale(mission, includeOriginal, skills, scales)
     veafCombatMission.logDebug(string.format("veafCombatMission.AddMissionsWithSkill([%s])",mission:getName() or ""))
+    veafCombatMission.logTrace(string.format("skills=%s",veaf.p(skills)))
+    veafCombatMission.logTrace(string.format("scales=%s",veaf.p(scales)))
     
     if (mission:isRadioMenuEnabled() and includeOriginal) then
         veafCombatMission.AddMission(mission)
@@ -1180,6 +1182,7 @@ function veafCombatMission._buildMissionRadioMenu(menu, title, element)
     if #missions == 1 then
         -- one simple mission
         local mission = missions[1]
+        if mission:isActive() then title = "* "..title end
         mission.radioRootPath = veafRadio.addSubMenu(title, menu)
         mission:updateRadioMenu(true)
     else
@@ -1189,7 +1192,7 @@ function veafCombatMission._buildMissionRadioMenu(menu, title, element)
         for _, mission in pairs(missions) do
             local regex = ("^([^/]+)/([^/]+)/(%d+)$")
             local name, skill, scale = mission:getName():match(regex)
-            --veafCombatMission.logTrace(string.format("name=%s, skill=%s, scale=%s", tostring(name), tostring(skill), tostring(scale)))
+            veafCombatMission.logTrace(string.format("missionName=[%s], name=%s, skill=%s, scale=%s", tostring(mission:getName()), tostring(name), tostring(skill), tostring(scale)))
             if not skills[skill] then 
                 skills[skill] = {} 
             end
@@ -1310,6 +1313,65 @@ function veafCombatMission.listActiveMissions()
 
     trigger.action.outText(text, 20)
 end
+
+-- add a standard CAP mission with a single group
+function veafCombatMission.addCapMission(missionName, missionDescription, missionBriefing, secured, radioMenuEnabled, skills, scales)
+    veafCombatMission.logTrace(string.format("veafCombatMission.addCapMission(%s)",tostring(missionName)))
+
+    local groupName = groupName or "OnDemand-"..missionName
+    local secured = secured
+    if secured == nil then secured = true end
+    local radioMenuEnabled = radioMenuEnabled
+    if radioMenuEnabled == nil then radioMenuEnabled = false end
+    local skills = skills
+    veafCombatMission.logTrace(string.format("checking skills"))
+    if not skills then 
+        veafCombatMission.logTrace(string.format("skills is nil"))
+        if radioMenuEnabled then
+            skills = {"Good", "Excellent"} 
+        else
+            skills = nil
+        end
+    end
+    local scales = scales
+    veafCombatMission.logTrace(string.format("checking scales"))
+    if not scales then 
+        veafCombatMission.logTrace(string.format("scales is nil"))
+        if radioMenuEnabled then
+            scales = {1, 2, 4}
+        else
+            scales = nil
+        end
+    end
+
+    veafCombatMission.logTrace(string.format("skills=(%s)", veaf.p(skills)))
+    veafCombatMission.logTrace(string.format("scales=(%s)", veaf.p(scales)))
+
+    veafCombatMission.AddMissionsWithSkillAndScale(
+		VeafCombatMission.new()
+		:setSecured(secured)
+		:setRadioMenuEnabled(radioMenuEnabled)
+		:setName(missionName)
+		:setFriendlyName(missionDescription)
+		:setBriefing(missionBriefing)
+		:addElement(
+			VeafCombatMissionElement.new()
+			:setName(groupName)
+            :setGroups({groupName})
+            :setSkill("Random")
+            :setScalable(true)
+		)
+		:addObjective(
+			VeafCombatMissionObjective.new()
+			:setName("Kill all the ennemies")
+			:setDescription("you must kill all of the ennemies")
+			:setMessage("%d ennemies destroyed !")
+			:configureAsKillEnemiesObjective()
+		)
+		:initialize()
+    ,false, skills, scales)
+end
+
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- initialisation

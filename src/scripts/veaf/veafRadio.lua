@@ -48,7 +48,7 @@ veafRadio.Id = "RADIO - "
 veafRadio.Version = "1.4.2"
 
 -- trace level, specific to this module
-veafRadio.Trace = true
+veafRadio.Trace = false
 
 veafRadio.RadioMenuName = "VEAF"
 

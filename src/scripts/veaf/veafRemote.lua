@@ -28,7 +28,7 @@ veafRemote = {}
 veafRemote.Id = "REMOTE - "
 
 --- Version.
-veafRemote.Version = "1.0.4"
+veafRemote.Version = "1.1.0"
 
 -- trace level, specific to this module
 veafRemote.Trace = false
@@ -37,7 +37,7 @@ veafRemote.Trace = false
 veafRemote.USE_SLMOD = false
 
 -- if false, SLMOD will never be called
-veafRemote.USE_SLMOD_FOR_SPECIAL_COMMANDS = false
+veafRemote.USE_SLMOD_FOR_SPECIAL_COMMANDS = true
 
 veafRemote.SecondsBetweenFlagMonitorChecks = 5
 
@@ -105,13 +105,13 @@ function veafRemote._monitorWithSlMod(command, script, flag, coalition, requireA
     end
 
     veafRemote.logTrace(string.format("setting remote configuration for command=[%s], script=[%s], flag=[%d], requireAdmin=[%s], coalition=[%s]",tostring(command), tostring(script), actualFlag, tostring(actualRequireAdmin), tostring(actualCoalition)))
+    veafRemote.monitoredCommands[command:lower()] = script
     if veafRemote.USE_SLMOD or (veafRemote.USE_SLMOD_FOR_SPECIAL_COMMANDS and isSpecialCommand) then 
         if slmod  then
             slmod.chat_cmd(command, actualFlag, -1, actualCoalition, actualRequireAdmin)
+            veafRemote.startMonitoringFlag(actualFlag, script)
         end
     end
-    veafRemote.monitoredCommands[command:lower()] = actualFlag
-    veafRemote.startMonitoringFlag(actualFlag, script)
 end
 
 function veafRemote.startMonitoringFlag(flag, scriptToExecute)
@@ -229,16 +229,6 @@ function veafRemote.addNiodCommand(name, command)
         end
     )
 end
--------------------------------------------------------------------------------------------------------------------------------------------------------------
--- initialisation
--------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-function veafRemote.initialize()
-    veafRemote.logInfo("Initializing module")
-    veafRemote.buildDefaultList()
-end
-
-veafRemote.logInfo(string.format("Loading version %s", veafRemote.Version))
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- default endpoints list
@@ -354,11 +344,17 @@ function veafRemote.executeCommand(command, password)
         trigger.action.outText("Bad or missing password",5)
         return false
     end
-    local flag = veafRemote.monitoredCommands[command:lower()]
-    if flag then 
-        veafRemote.logTrace(string.format("found flag %d for command [%s]",flag, command))
-        trigger.action.setUserFlag(flag, true)
-        return true
+    local scriptToExecute = veafRemote.monitoredCommands[command:lower()]
+    if scriptToExecute then 
+        veafRemote.logTrace(string.format("found script [%s] for command [%s]",scriptToExecute, command))
+        local result, err = mist.utils.dostring(scriptToExecute)
+        if result then
+            veafRemote.logDebug(string.format("veafRemote.executeCommand() - lua code was successfully called for script [%s]", scriptToExecute))
+            return true
+        else
+            veafRemote.logError(string.format("veafRemote.executeCommand() - error [%s] calling lua code for script [%s]", err, scriptToExecute))
+            return false
+        end
     else
         veafRemote.logError(string.format("veafRemote.ExecuteCommand : cannot find command [%s]",command or ""))
     end

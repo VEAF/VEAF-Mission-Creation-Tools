@@ -47,8 +47,6 @@ veaf.Debug = veaf.Development
 --- Enable logTrace ==> give even more output to DCS log file.
 veaf.Trace = veaf.Development
 
-veaf.SecondsBetweenFlagMonitorChecks = 5
-
 veaf.DEFAULT_GROUND_SPEED_KPH = 30
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Do not change anything below unless you know what you are doing!
@@ -807,6 +805,16 @@ function veaf.computeCoordinatesOffsetFromRoute(startingPoint, destinationPoint,
     veaf.mainLogTrace("offsetPointOnLand="..veaf.vecToString(offsetPointOnLand))
 
     return offsetPointOnLand, offsetPoint
+end
+
+function veaf.getBearingAndRangeFromTo(fromPoint, toPoint)
+    veaf.mainLogTrace("fromPoint="..veaf.vecToString(fromPoint))
+    veaf.mainLogTrace("toPoint="..veaf.vecToString(toPoint))
+    
+    local vec = { z = toPoint.z - fromPoint.z, x = toPoint.x - fromPoint.x}
+    local angle = mist.utils.round(mist.utils.toDegree(mist.utils.getDir(vec)), 0)
+    local distance = mist.utils.get2DDist(toPoint, fromPoint)
+    return angle, distance, mist.utils.round(distance / 1000, 0), mist.utils.round(mist.utils.metersToNM(distance), 0)
 end
 
 function veaf.findUnitsInCircle(center, radius)

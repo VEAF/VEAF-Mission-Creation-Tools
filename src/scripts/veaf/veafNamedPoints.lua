@@ -195,12 +195,28 @@ function veafNamedPoints.getPoint(name)
     end
 end
 
+function veafNamedPoints.getPointBearing(parameters)
+    local name, unitName = veaf.safeUnpack(parameters)
+    veafNamedPoints.logTrace(string.format("getPointBearing(%s)",name))
+    local point = veafNamedPoints.getPoint(name)
+    local unit = Unit.getByName(unitName)
+    if point and unit then
+        local angle, distance, distanceInKm, distanceInNm = veaf.getBearingAndRangeFromTo(unit:getPosition().p, point)
+        if distanceInNm > 2 then
+            return "at " .. angle .. "° for " .. distanceInNm .. " nm"
+        end
+    end
+    return nil
+end
+
 function veafNamedPoints.getWeatherAtPoint(parameters)
     local name, unitName = veaf.safeUnpack(parameters)
     veafNamedPoints.logTrace(string.format("getWeatherAtPoint(name = %s)",name))
     local point = veafNamedPoints.getPoint(name)
     if point then
-        local weatherReport = "WEATHER        : " .. name .. "\n\n"
+        local BR = veafNamedPoints.getPointBearing(parameters)
+        if BR then BR = " ("..BR..")" else BR = "" end
+        local weatherReport = "WEATHER        : " .. name .. BR .. "\n\n"
         weatherReport = weatherReport .. veaf.weatherReport(point, nil, true)
         veaf.outTextForUnit(unitName, weatherReport, 30)
     end
@@ -211,8 +227,10 @@ function veafNamedPoints.getAtcAtPoint(parameters)
     veafNamedPoints.logTrace(string.format("getAtcAtPoint(name = %s)",name))
     local point = veafNamedPoints.getPoint(name)
     if point then
+        local BR = veafNamedPoints.getPointBearing(parameters)
+        if BR then BR = " ("..BR..")" else BR = "" end
         -- exanple : point={x=-315414,y=480,z=897262, atc=true, tower="138.00", runways={{name="12R", hdg=121, ils="110.30"},{name="30L", hdg=301, ils="108.90"}}}
-        local atcReport = "ATC            : " .. name .. "\n\n"
+        local atcReport = "ATC            : " .. name .. BR .. "\n\n"
         
         -- runway and other information
         if point.tower then
@@ -318,13 +336,13 @@ function veafNamedPoints.getWeatherAtClosestPoint(unitName)
     if unit then
         for name, point in pairs(veafNamedPoints.namedPoints) do
             distanceFromPlayer = ((point.x - unit:getPosition().p.x)^2 + (point.z - unit:getPosition().p.z)^2)^0.5
-            veafNamedPoints.logTrace(string.format("distanceFromPlayer = %d",distanceFromPlayer))
+            veafNamedPoints.logTrace(string.format("name=%s, distanceFromPlayer=%d",name, distanceFromPlayer))
             if distanceFromPlayer < minDistance then
                 minDistance = distanceFromPlayer
                 closestPointName = name
-                veafNamedPoints.logTrace(string.format("point %s is closest",name))
             end
         end
+        veafNamedPoints.logTrace(string.format("closest point name=%s, distanceFromPlayer=%d",closestPointName, minDistance))
     end
     if closestPointName then
         veafNamedPoints.getWeatherAtPoint({closestPointName, unitName})

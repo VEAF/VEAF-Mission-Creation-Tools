@@ -5993,7 +5993,9 @@ function ctld.initialize()
 
     -- Scheduled functions (run cyclically) -- but hold execution for a second so we can override parts
 
-    timer.scheduleFunction(ctld.checkAIStatus, nil, timer.getTime() + 1)
+    if ctld.allowAiTeamPickups then 
+        timer.scheduleFunction(ctld.checkAIStatus, nil, timer.getTime() + 1)
+    end
     timer.scheduleFunction(ctld.checkTransportStatus, nil, timer.getTime() + 5)
 
     timer.scheduleFunction(function()

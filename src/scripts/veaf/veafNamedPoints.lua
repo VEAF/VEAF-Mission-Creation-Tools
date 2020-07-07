@@ -265,7 +265,7 @@ function veafNamedPoints.getAtcAtPoint(parameters)
                         flareColor = trigger.flareColor.Yellow
                     end
                     for i = 1, 10 do
-                        mist.scheduleFunction(veafSpawn.spawnSignalFlare, {point, flareColor , runway.hdg + mist.random(6) - 3}, timer.getTime() + i*2)
+                        mist.scheduleFunction(veafSpawn.spawnSignalFlare, {point, 0, flareColor , runway.hdg + mist.random(6) - 3}, timer.getTime() + i*2)
                     end
                 end
                 atcReport = atcReport .. "RUNWAY         : " .. runway.name .. " heading " .. runway.hdg .. ils .. flare .. "\n"

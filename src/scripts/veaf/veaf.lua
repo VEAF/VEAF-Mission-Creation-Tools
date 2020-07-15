@@ -33,7 +33,7 @@ veaf.Id = "VEAF - "
 veaf.MainId = "MAIN - "
 
 --- Version.
-veaf.Version = "1.6.1"
+veaf.Version = "1.6.2"
 
 -- trace level, specific to this module
 veaf.MainTrace = false
@@ -98,8 +98,12 @@ function veaf.logMarker(id, header, message, position, markersTable)
         if not (correctedPos.y) then
             correctedPos.y = 0
         end
+        local message = message
+        if header and id then
+            message = header..id.." "..message
+        end
         veaf.logTrace("creating trace marker #"..id.." at point "..veaf.vecToString(correctedPos))
-        trigger.action.markToAll(id, header..id.." "..message, correctedPos, false) 
+        trigger.action.markToAll(id, message, correctedPos, false) 
         if markersTable then
             table.insert(markersTable, id)
         end
@@ -953,12 +957,14 @@ end
 
 function veaf.outTextForUnit(unitName, message, duration)
     local groupId = nil
+    if unitName then
     local unit = Unit.getByName(unitName)
     if unit then 
         local group = unit:getGroup()
         if group then 
             groupId = group:getID()
         end
+    end
     end
     if groupId then 
         trigger.action.outTextForGroup(groupId, message, duration)

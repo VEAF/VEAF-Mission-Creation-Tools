@@ -45,12 +45,14 @@ veafGrass = {}
 veafGrass.Id = "GRASS - "
 
 --- Version.
-veafGrass.Version = "1.1.3"
+veafGrass.Version = "2.0.0"
 
 -- trace level, specific to this module
-veafGrass.Trace = false
+veafGrass.Trace = true
 
 veafGrass.DelayForStartup = 3
+
+veafGrass.RadiusAroundFarp = 2000
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Utility methods
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -71,12 +73,18 @@ end
 
 ------------------------------------------------------------------------------
 -- veafGrass.buildGrassRunway
--- Build a grass runway from runwayOrigin
--- @param runwayOrigin a static unit object (right side)
--- @return nil
+-- Build a grass runway from grassRunwayUnit
+-- @param grassRunwayUnit a static unit object (right side)
+-- @return a named point if successful
 ------------------------------------------------------------------------------
-function veafGrass.buildGrassRunway(name, runwayOrigin)
-	veafGrass.logInfo("Building grass runway for unit " .. runwayOrigin.unitName)
+function veafGrass.buildGrassRunway(grassRunwayUnit)
+    veafGrass.logDebug(string.format("veafGrass.buildGrassRunway()"))
+    veafGrass.logTrace(string.format("grassRunwayUnit=%s",veaf.p(grassRunwayUnit)))
+
+    if not grassRunwayUnit then return nil end
+
+    local name = grassRunwayUnit.unitName
+    local runwayOrigin = grassRunwayUnit
 	local tower = true
 	local endMarkers = false
 	
@@ -184,21 +192,7 @@ function veafGrass.buildGrassRunway(name, runwayOrigin)
 			{ hdg = (angle + 180) % 360, flare = "red"}
 		}
 	}
-	veafNamedPoints.addPoint(name:gsub("GRASS_RUNWAY","Grass strip"), point)
-end
-
-------------------------------------------------------------------------------
--- veafGrass.buildGrassRunways
--- Build all grass runway from static object like 'GRASS_RUNWAY'
--- @return nil
-------------------------------------------------------------------------------
-function veafGrass.buildGrassRunways()
-
-	for name, unit in pairs(mist.DBs.unitsByName) do
-		if string.find(name, 'GRASS_RUNWAY') then		
-            veafGrass.buildGrassRunway(name, unit)
-        end
-	end
+	return point
 end
 
 ------------------------------------------------------------------------------
@@ -206,23 +200,36 @@ end
 -- build FARP units on FARP with group name like "FARP "
 ------------------------------------------------------------------------------
 function veafGrass.buildFarpsUnits()
-
+    local farpUnits = {}
+    local grassRunwayUnits = {}
 	for name, unit in pairs(mist.DBs.unitsByName) do
-		veafGrass.logTrace("buildFarpsUnits: testing " .. unit.type .. " " .. name)
-
-		if (unit.type == "SINGLE_HELIPAD" or unit.type == "FARP") and string.find(name:upper(), 'FARP ') then
-			veafGrass.buildFarpUnits(unit)
-		end
-	end
-	
+		--veafGrass.logTrace("buildFarpsUnits: testing " .. unit.type .. " " .. name)
+        if name:upper():find('GRASS_RUNWAY') then 
+            grassRunwayUnits[name] = unit
+            --veafGrass.logTrace(string.format("found grassRunwayUnits[%s]= %s", name, veaf.p(unit)))
+        end
+        if (unit.type == "SINGLE_HELIPAD" or unit.type == "FARP") and name:upper():find('FARP ') then 
+            farpUnits[name] = unit
+            --veafGrass.logTrace(string.format("found farpUnits[%s]= %s", name, veaf.p(unit)))
+        end
+    end
+    veafGrass.logTrace(string.format("farpUnits=%s",veaf.p(farpUnits)))
+    veafGrass.logTrace(string.format("grassRunwayUnits=%s",veaf.p(grassRunwayUnits)))
+    for name, unit in pairs(farpUnits) do
+        veafGrass.logTrace(string.format("calling buildFarpsUnits(%s)",name))
+        veafGrass.buildFarpUnits(unit, grassRunwayUnits)
+    end
 end
 
 ------------------------------------------------------------------------------
 -- build nice FARP units arround the FARP
 -- @param unit farp : the FARP unit
 ------------------------------------------------------------------------------
-function veafGrass.buildFarpUnits(farp)
-	veafGrass.logInfo("Building FARP for unit " .. farp.unitName)
+function veafGrass.buildFarpUnits(farp, grassRunwayUnits)
+    veafGrass.logDebug(string.format("buildFarpUnits()"))
+    veafGrass.logTrace(string.format("farp=%s",veaf.p(farp)))
+    veafGrass.logTrace(string.format("grassRunwayUnits=%s",veaf.p(grassRunwayUnits)))
+
 
 	local angle = mist.utils.toDegree(farp.heading);
 	local tentDistance = 100
@@ -364,28 +371,56 @@ function veafGrass.buildFarpUnits(farp)
 		["units"] = {},
 	}		
 	for j,typeName in ipairs(farpEscortUnitsNames[farp.coalition]) do
-		local escrotUnit = {
+		local escortUnit = {
 			["heading"] = mist.utils.toRadian(angle-135), -- parked \\\\\
 			["type"] = typeName,
 			["x"] = unitsOrigin.x - (j-1) * unitsSpacing * math.sin(mist.utils.toRadian(angle)),
 			["y"] = unitsOrigin.y + (j-1) * unitsSpacing * math.cos(mist.utils.toRadian(angle)),
 			["skill"] = "Random",
 		}		
-		table.insert(farpEscortGroup.units, escrotUnit)
+		table.insert(farpEscortGroup.units, escortUnit)
 
 	end
 
 	mist.dynAdd(farpEscortGroup)
 	
-	-- add the FARP to the named points
-	local point = {
-		x = farp.x,
-		y = math.floor(land.getHeight(farp) + 1),
-		z = farp.y,
-		atc = true,
-		runways = {}
-	}
-	veafNamedPoints.addPoint(farp.unitName, point)
+    -- add the FARP to the named points
+    local farpNamedPoint = {
+        x = farp.x,
+        y = math.floor(land.getHeight(farp) + 1),
+        z = farp.y,
+        atc = true,
+        runways = {}
+    }
+
+    -- search for an associated grass runway
+    if (grassRunwayUnits) then
+        local grassRunwayUnit = nil
+        for name, unitDef in pairs(grassRunwayUnits) do
+            local unit = Unit.getByName(name)
+            if not unit then 
+                unit = StaticObject.getByName(name)
+            end
+            if unit then 
+                local pos = unit:getPosition().p
+                if pos then -- you never know O.o
+                    local distanceFromCenter = ((pos.x - farp.x)^2 + (pos.z - farp.y)^2)^0.5
+                    veafGrass.logTrace(string.format("name=%s; distanceFromCenter=%s", tostring(name), veaf.p(distanceFromCenter)))
+                    if distanceFromCenter <= veafGrass.RadiusAroundFarp then
+                        grassRunwayUnit = unitDef
+                        break
+                    end
+                end
+            end
+        end
+        if grassRunwayUnit then
+            veafGrass.logTrace(string.format("found grassRunwayUnit %s", veaf.p(grassRunwayUnit)))
+            farpNamedPoint = veafGrass.buildGrassRunway(grassRunwayUnit)
+        end
+    end
+    veafGrass.logTrace(string.format("farpNamedPoint=%s", veaf.p(farpNamedPoint)))
+
+	veafNamedPoints.addPoint(farp.unitName, farpNamedPoint)
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -396,11 +431,7 @@ function veafGrass.initialize()
 	-- delay all these functions 30 seconds (to ensure that the other modules are loaded)
 	
 	-- auto generate FARP units
-	mist.scheduleFunction(veafGrass.buildFarpsUnits,{},timer.getTime()+veafGrass.DelayForStartup)
-	
-	-- auto generate GRASS RUNWAY
-	mist.scheduleFunction(veafGrass.buildGrassRunways,{},timer.getTime()+veafGrass.DelayForStartup)
-
+    mist.scheduleFunction(veafGrass.buildFarpsUnits,{},timer.getTime()+veafGrass.DelayForStartup)
 end
 
 veafGrass.logInfo(string.format("Loading version %s", veafGrass.Version))

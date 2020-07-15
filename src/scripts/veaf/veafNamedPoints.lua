@@ -37,7 +37,7 @@ veafNamedPoints = {}
 veafNamedPoints.Id = "NAMED POINTS - "
 
 --- Version.
-veafNamedPoints.Version = "1.5.1"
+veafNamedPoints.Version = "1.5.2"
 
 -- trace level, specific to this module
 veafNamedPoints.Trace = false
@@ -199,7 +199,7 @@ function veafNamedPoints.getPointBearing(parameters)
     local name, unitName = veaf.safeUnpack(parameters)
     veafNamedPoints.logTrace(string.format("getPointBearing(%s)",name))
     local point = veafNamedPoints.getPoint(name)
-    local unit = Unit.getByName(unitName)
+    local unit = veafRadio.getHumanUnitOrWingman(unitName)
     if point and unit then
         local angle, distance, distanceInKm, distanceInNm = veaf.getBearingAndRangeFromTo(unit:getPosition().p, point)
         if distanceInNm > 2 then
@@ -309,7 +309,9 @@ function veafNamedPoints.getAtcAtClosestPoint(unitName)
     veafNamedPoints.logDebug(string.format("veafNamedPoints.getAtcAtClosestPoint(unitName=%s)",unitName))
     local closestPointName = nil
     local minDistance = 99999999
-    local unit = Unit.getByName(unitName)
+    veafNamedPoints.logTrace(string.format("unitName=%s",veaf.p(unitName)))
+    local unit = veafRadio.getHumanUnitOrWingman(unitName)
+    veafNamedPoints.logTrace(string.format("unit=%s",veaf.p(unit)))
     if unit then
         for name, point in pairs(veafNamedPoints.namedPoints) do
             if point.atc and not point.hidden then
@@ -332,7 +334,7 @@ function veafNamedPoints.getWeatherAtClosestPoint(unitName)
     veafNamedPoints.logDebug(string.format("veafNamedPoints.getWeatherAtClosestPoint(unitName=%s)",unitName))
     local closestPointName = nil
     local minDistance = 99999999
-    local unit = Unit.getByName(unitName)
+    local unit = veafRadio.getHumanUnitOrWingman(unitName)
     if unit then
         for name, point in pairs(veafNamedPoints.namedPoints) do
             distanceFromPlayer = ((point.x - unit:getPosition().p.x)^2 + (point.z - unit:getPosition().p.z)^2)^0.5

@@ -1391,7 +1391,7 @@ function veafSpawn._markClosestConvoyWithSmoke(unitName, markRoute)
     veafSpawn.logDebug(string.format("veafSpawn.markClosestConvoyWithSmoke(unitName=%s)",unitName))
     local closestConvoyName = nil
     local minDistance = 99999999
-    local unit = Unit.getByName(unitName)
+    local unit = veafRadio.getHumanUnitOrWingman(unitName)
     if unit then
         for name, _ in pairs(veafSpawn.spawnedConvoys) do
             local averageGroupPosition = veaf.getAveragePosition(name)

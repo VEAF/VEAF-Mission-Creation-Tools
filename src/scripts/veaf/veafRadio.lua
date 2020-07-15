@@ -45,7 +45,7 @@ veafRadio = {}
 veafRadio.Id = "RADIO - "
 
 --- Version.
-veafRadio.Version = "1.4.2"
+veafRadio.Version = "1.6.0"
 
 -- trace level, specific to this module
 veafRadio.Trace = false
@@ -615,6 +615,35 @@ function veafRadio.reportRadioMenuSizeBreached(text, group, size)
     veafRadio.reportRadioMenuSizeBreached_ALREADYDONE = true
     mist.scheduleFunction(veafRadio.reportRadioMenuSizeBreached_reset,{},timer.getTime()+60)
   end
+end
+
+function veafRadio.getHumanUnitOrWingman(unitName)
+    local result = Unit.getByName(unitName)
+    if not result then 
+        local unitData = veafRadio.humanUnits[unitName]
+        veafRadio.logTrace(string.format("unitData=%s",veaf.p(unitData)))
+        if unitData and unitData.groupId then 
+            local mistGroup = mist.DBs.groupsById[unitData.groupId]
+            veafRadio.logTrace(string.format("mistGroup=%s",veaf.p(mistGroup)))
+            if mistGroup then
+                local group = Group.getByName(mistGroup.groupName)
+                if group then
+                    veafRadio.logTrace(string.format("group=%s",veaf.p(group)))
+                    veafRadio.logTrace(string.format("group:getUnits()=%s",veaf.p(group:getUnits())))
+                    for _, groupUnit in pairs(group:getUnits()) do
+                        if not result then 
+                            result = groupUnit
+                        end
+                    end
+                end
+            end
+        end
+    end
+    if result then
+        veafRadio.logTrace(string.format("result=%s",veaf.p(result)))
+        veafRadio.logTrace(string.format("result:getName()=%s",veaf.p(result:getName())))
+    end
+    return result
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------

@@ -27,7 +27,7 @@ veafShortcuts = {}
 veafShortcuts.Id = "SHORTCUTS - "
 
 --- Version.
-veafShortcuts.Version = "1.0.2"
+veafShortcuts.Version = "1.0.3"
 
 -- trace level, specific to this module
 veafShortcuts.Trace = false
@@ -241,7 +241,7 @@ end
 
 function veafShortcuts.GetWeatherAtCurrentPosition(unitName)
     veafNamedPoints.logDebug(string.format("veafShortcuts.GetWeatherAtCurrentPosition(unitName=%s)",unitName))
-    local unit = Unit.getByName(unitName)
+    local unit = veafRadio.getHumanUnitOrWingman(unitName)
     if unit then
         local weatherReport = veaf.weatherReport(unit:getPosition().p, nil, true) -- include LASTE
         veaf.outTextForUnit(unitName, weatherReport, 30)
@@ -250,7 +250,7 @@ end
 
 function veafShortcuts.GetWeatherAtClosestPoint(unitName)
     veafNamedPoints.logDebug(string.format("veafShortcuts.GetWeatherAtClosestPoint(unitName=%s)",unitName))
-    local unit = Unit.getByName(unitName)
+    local unit = veafRadio.getHumanUnitOrWingman(unitName)
     if unit then
         local weatherReport = veaf.weatherReport(unit:getPosition().p, nil, true) -- include LASTE
         veaf.outTextForUnit(unitName, weatherReport, 30)

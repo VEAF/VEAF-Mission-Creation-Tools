@@ -48,9 +48,9 @@ veafGrass.Id = "GRASS - "
 veafGrass.Version = "2.0.0"
 
 -- trace level, specific to this module
-veafGrass.Trace = true
+veafGrass.Trace = false
 
-veafGrass.DelayForStartup = 3
+veafGrass.DelayForStartup = 0.5
 
 veafGrass.RadiusAroundFarp = 2000
 -------------------------------------------------------------------------------------------------------------------------------------------------------------

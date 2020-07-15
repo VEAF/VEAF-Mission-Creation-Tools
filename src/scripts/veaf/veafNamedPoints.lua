@@ -37,7 +37,7 @@ veafNamedPoints = {}
 veafNamedPoints.Id = "NAMED POINTS - "
 
 --- Version.
-veafNamedPoints.Version = "1.5.0"
+veafNamedPoints.Version = "1.5.1"
 
 -- trace level, specific to this module
 veafNamedPoints.Trace = false
@@ -265,7 +265,7 @@ function veafNamedPoints.getAtcAtPoint(parameters)
                         flareColor = trigger.flareColor.Yellow
                     end
                     for i = 1, 10 do
-                        mist.scheduleFunction(veafSpawn.spawnSignalFlare, {point, 0, flareColor , runway.hdg + mist.random(6) - 3}, timer.getTime() + i*2)
+                        mist.scheduleFunction(veafSpawn.spawnSignalFlare, {point, 0, 20, flareColor}, timer.getTime() + i*2)
                     end
                 end
                 atcReport = atcReport .. "RUNWAY         : " .. runway.name .. " heading " .. runway.hdg .. ils .. flare .. "\n"
@@ -288,7 +288,7 @@ function veafNamedPoints.buildPointsDatabase()
 end
 
 function veafNamedPoints.listAllPoints(unitName)
-    veafNamedPoints.logDebug(string.format("listAllPoints(unitName = %s)",unitName))
+    veafNamedPoints.logDebug(string.format("listAllPoints(unitName = %s)",tostring(unitName)))
     local message = ""
     names = {}
     for name, point in pairs(veafNamedPoints.namedPoints) do

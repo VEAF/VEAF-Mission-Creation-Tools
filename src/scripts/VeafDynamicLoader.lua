@@ -58,4 +58,10 @@ veaf.Trace = veaf.Development
 veaf.SecurityDisabled = veaf.Development
 veafSecurity.authenticated = veaf.Development
 
+-- load Witchcraft
+if witchcraft then
+	env.info( '*** Start Witchcraft *** ' )
+	witchcraft.start(_G)
+end
+
 env.info( '*** VEAF-Mission-Creation-Tools SCRIPTS INCLUDE END *** ' )

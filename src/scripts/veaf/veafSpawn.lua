@@ -66,7 +66,7 @@ veafSpawn = {}
 veafSpawn.Id = "SPAWN - "
 
 --- Version.
-veafSpawn.Version = "1.11.2"
+veafSpawn.Version = "1.12.0"
 
 -- trace level, specific to this module
 veafSpawn.Trace = false
@@ -161,15 +161,23 @@ function veafSpawn.executeCommand(eventPos, eventText, eventCoalition, bypassSec
         if options then
             for i=1,options.multiplier do
                 local spawnedGroup = nil
+
                 if not options.side then
-                    veafSpawn.logTrace(string.format("coalition=%d",coalition or -1))
+                    if options.country then
+                        -- deduct the side from the country
+                        options.side = veaf.getCoalitionForCountry(options.country, true)
+                    else
                     options.side = coalition
+                end
                 end
 
                 if not options.country then
-                    veafSpawn.logTrace(string.format("options.side=%d",options.side or -1))
-                    options.country = veaf.getFirstCountryInCoalition(options.side)
+                    -- deduct the country from the side
+                    options.country = veaf.getCountryForCoalition(options.side)    
                 end
+
+                veafSpawn.logTrace(string.format("options.side=%s",tostring(options.side)))
+                veafSpawn.logTrace(string.format("options.country=%s",tostring(options.country)))
 
                 local routeDone = false
 
@@ -807,7 +815,7 @@ function veafSpawn.spawnAirDefenseBattery(spawnSpot, radius, country, side, head
     -- shuffle the units in the group
     units = veaf.shuffle(group.units)
 
-    veafSpawn._createDcsUnits(country or veaf.getFirstCountryInCoalition(side), group.units, groupName)
+    veafSpawn._createDcsUnits(country or veaf.getCountryForCoalition(side), group.units, groupName)
  
     if not silent then 
         trigger.action.outText("Spawned dynamic air defense battery "..groupName, 5)

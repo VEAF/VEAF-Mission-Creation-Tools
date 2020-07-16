@@ -33,7 +33,7 @@ veaf.Id = "VEAF - "
 veaf.MainId = "MAIN - "
 
 --- Version.
-veaf.Version = "1.6.2"
+veaf.Version = "1.7.0"
 
 -- trace level, specific to this module
 veaf.MainTrace = false
@@ -1049,8 +1049,45 @@ function veaf.weatherReport(vec3, alt, withLASTE)
     return text
 end
 
-function veaf.getFirstCountryInCoalition(coalition)
-    veaf.mainLogTrace(string.format("veaf.getFirstCountryInCoalition(%s)", tostring(coalition or "")))
+local function _initializeCountriesAndCoalitions()
+    veaf.countriesByCoalition={}
+    veaf.coalitionByCountry={}
+
+    local function _sortByImportance(c1,c2)
+        local importantCountries = { ['usa']=true, ['russia']=true}
+        if c1 then
+            return importantCountries[c1:lower()]
+        end
+        return string.lower(c1) < string.lower(c2)
+    end
+
+    for coalitionName, countries in pairs(mist.DBs.units) do
+        coalitionName = coalitionName:lower()
+        veaf.mainLogTrace(string.format("coalitionName=%s", veaf.p(coalitionName)))
+
+        if not veaf.countriesByCoalition[coalitionName] then 
+            veaf.countriesByCoalition[coalitionName]={} 
+        end
+        for countryName, _ in pairs(countries) do
+            countryName = countryName:lower()
+            table.insert(veaf.countriesByCoalition[coalitionName], countryName)
+            veaf.coalitionByCountry[countryName]=coalitionName:lower()
+        end
+
+        table.sort(veaf.countriesByCoalition[coalitionName], _sortByImportance)
+    end
+
+    veaf.mainLogTrace(string.format("veaf.countriesByCoalition=%s", veaf.p(veaf.countriesByCoalition)))
+    veaf.mainLogTrace(string.format("veaf.coalitionByCountry=%s", veaf.p(veaf.coalitionByCountry)))
+end
+
+function veaf.getCountryForCoalition(coalition)
+    veaf.mainLogTrace(string.format("veaf.getCountryForCoalition(coalition=%s)", tostring(coalition)))
+    local coalition = coalition
+    if not coalition then 
+        coalition = 1 
+    end
+
     local coalitionName = nil
     if type(coalition) == "number" then
         if coalition == 1 then 
@@ -1063,11 +1100,42 @@ function veaf.getFirstCountryInCoalition(coalition)
     else
         coalitionName = tostring(coalition)
     end
-    veaf.mainLogTrace(string.format("coalitionName=[%s]", tostring(coalitionName or "")))
-    for countryName, _ in pairs(mist.DBs.units[coalitionName]) do
-        return countryName
+
+    if coalitionName then
+        coalitionName = coalitionName:lower()
+    else
+        return nil
     end
+
+    if not veaf.countriesByCoalition then 
+        _initializeCountriesAndCoalitions() 
+    end
+    
+    return veaf.countriesByCoalition[coalitionName][1]
 end
+
+function veaf.getCoalitionForCountry(countryName, asNumber)
+    veaf.mainLogTrace(string.format("veaf.getCoalitionForCountry(countryName=%s, asNumber=%s)", tostring(countryName), tostring(asNumber)))
+
+    if countryName then
+        countryName = countryName:lower()
+    else
+        return nil
+    end
+
+    if not veaf.coalitionByCountry then 
+        _initializeCountriesAndCoalitions() 
+    end
+    
+    local result = veaf.coalitionByCountry[countryName]
+    if asNumber then
+        if result == 'neutral' then result = 0 end
+        if result == 'red' then result = 1 end
+        if result == 'blue' then result = 2 end
+    end
+    return result
+end
+
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- mission restart at a certain hour of the day
 -------------------------------------------------------------------------------------------------------------------------------------------------------------

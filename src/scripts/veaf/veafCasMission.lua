@@ -705,7 +705,7 @@ function veafCasMission.generateCasMission(spawnSpot, size, defense, armor, spac
         trigger.action.outText("A CAS target group already exists !", 5)
         return
     end
-    local country = veaf.getFirstCountryInCoalition(side)
+    local country = veaf.getCountryForCoalition(side)
     local units = veafCasMission.generateCasGroup(country, veafCasMission.RedCasGroupName, spawnSpot, size, defense, armor, spacing, disperseOnAttack, side)
 
     -- prepare the actual DCS units

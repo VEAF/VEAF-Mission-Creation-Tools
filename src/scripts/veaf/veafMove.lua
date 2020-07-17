@@ -68,7 +68,7 @@ veafMove = {}
 veafMove.Id = "MOVE - "
 
 --- Version.
-veafMove.Version = "1.4.2"
+veafMove.Version = "1.5.0"
 
 -- trace level, specific to this module
 veafMove.Trace = false
@@ -134,7 +134,7 @@ function veafMove.onEventMarkChange(eventPos, event)
             if options.moveGroup then
                 result = veafMove.moveGroup(eventPos, options.groupName, options.speed, options.altitude)
             elseif options.moveTanker then
-                result = veafMove.moveTanker(eventPos, options.groupName, options.speed, options.altitude)
+                result = veafMove.moveTanker(eventPos, options.groupName, options.speed, options.altitude, options.hdg, options.distance)
             elseif options.moveAfac then
                 result = veafMove.moveAfac(eventPos, options.groupName, options.speed, options.altitude)
             end
@@ -174,6 +174,12 @@ function veafMove.markTextAnalysis(text)
     -- tanker refuel leg altitude in feet
     switch.altitude = -1 -- defaults to tanker original altitude
 
+    -- tanker refuel leg heading in degrees
+    switch.hdg = nil -- defaults to original heading
+
+    -- tanker refuel leg distance in degrees
+    switch.distance = nil -- defaults to original distance
+
     -- Check for correct keywords.
     if text:lower():find(veafMove.Keyphrase .. " group") then
         switch.moveGroup = true
@@ -210,6 +216,20 @@ function veafMove.markTextAnalysis(text)
             veafMove.logDebug(string.format("Keyword speed = %d", val))
             local nVal = tonumber(val)
             switch.speed = nVal
+        end
+
+        if key:lower() == "hdg" then
+            -- Set heading.
+            veafMove.logDebug(string.format("Keyword hdg = %d", val))
+            local nVal = tonumber(val)
+            switch.hdg = nVal
+        end
+
+        if key:lower() == "distance" then
+            -- Set distance.
+            veafMove.logDebug(string.format("Keyword distance = %d", val))
+            local nVal = tonumber(val)
+            switch.distance = nVal
         end
 
         if key:lower() == "alt" then
@@ -251,10 +271,11 @@ end
 -- Tanker move command
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-function veafMove.moveTanker(eventPos, groupName, speed, alt)
-    veafMove.logDebug("veafMove.moveTanker(groupName = " .. groupName .. ", speed = " .. speed .. ", alt = " .. alt)
-    veafMove.logDebug(string.format("veafMove.moveTanker: eventPos  x=%.1f z=%.1f", eventPos.x, eventPos.z))
-
+function veafMove.moveTanker(eventPos, groupName, speed, alt, hdg, distance)
+    veafMove.logDebug(string.format("veafMove.moveTanker(groupName=%s, speed=%s, alt=%s, hdg=%s, distance=%s)",tostring(groupName), tostring(speed), tostring(alt), tostring(hdg), tostring(distance)))
+    veafMove.logTrace(string.format("eventPos=%s",veaf.p(eventPos)))
+    if veafMove.Trace then veaf.cleanupLogMarkers(debugMarkers) end
+    
 	local unitGroup = Group.getByName(groupName)
 	if unitGroup == nil then
         veafMove.logInfo(groupName .. ' not found for move tanker command')
@@ -282,12 +303,12 @@ function veafMove.moveTanker(eventPos, groupName, speed, alt)
         -- point1 is the point where the tanker should move
         local point1 = points[idxPoint1]
         veafMove.logTrace("found point1")
-        --traceMarkerId = veafMove.logMarker(traceMarkerId, "point1", point1, debugMarkers)
+        traceMarkerId = veafMove.logMarker(traceMarkerId, "point1", point1, debugMarkers)
         local moveVector = {
             x = point1.x - eventPos.x,
             y = point1.y - eventPos.z,
         }
-        veafMove.logTrace("moveVector="..veaf.vecToString(moveVector))
+        veafMove.logTrace(string.format("moveVector=%s",veaf.p(moveVector)))
         -- move to event position
         point1.x = eventPos.x
         point1.y = eventPos.z
@@ -297,8 +318,8 @@ function veafMove.moveTanker(eventPos, groupName, speed, alt)
         if alt > -1 then 
             point1.alt = alt * 0.3048 -- in meters
         end
-        veafMove.logTrace("newPoint1="..veaf.vecToString(point1))
-        --traceMarkerId = veafMove.logMarker(traceMarkerId, "newPoint1", point1, debugMarkers)
+        veafMove.logTrace(string.format("newPoint1=%s",veaf.p(point1)))
+        traceMarkerId = veafMove.logMarker(traceMarkerId, "newPoint1", point1, debugMarkers)
 
         -- point 2 is the start of the tanking Orbit
         local point2 = points[idxPoint2]
@@ -335,28 +356,64 @@ function veafMove.moveTanker(eventPos, groupName, speed, alt)
             return
         end
         veafMove.logTrace("found point2")
-        --traceMarkerId = veafMove.logMarker(traceMarkerId, "point2", point2, debugMarkers)
+        traceMarkerId = veafMove.logMarker(traceMarkerId, "point2", point2, debugMarkers)
         -- apply vector to position
         point2.x = point2.x - moveVector.x
         point2.y = point2.y - moveVector.y
-        veafMove.logTrace("newPoint2="..veaf.vecToString(point2))
-        --traceMarkerId = veafMove.logMarker(traceMarkerId, "newPoint2", point2, debugMarkers)
+        veafMove.logTrace(string.format("newPoint2=%s",veaf.p(point2)))
+        traceMarkerId = veafMove.logMarker(traceMarkerId, "newPoint2", point2, debugMarkers)
 
         -- point 3 is the end of the tanking Orbit
         local point3 = points[idxPoint3]
         veafMove.logTrace("found point3")
-        --traceMarkerId = veafMove.logMarker(traceMarkerId, "point3", point3, debugMarkers)
-        -- apply vector to position
-        point3.x = point3.x - moveVector.x
-        point3.y = point3.y - moveVector.y
+        traceMarkerId = veafMove.logMarker(traceMarkerId, "point3", point3, debugMarkers)
+        -- change geometry of tanking orbit, if hdg and/or distance are set
+        if hdg ~= nil or distance ~= nil then 
+            local lastVector = moveVector
+            local distance = distance
+            local hdg = hdg
+
+            -- if distance is not set, compute distance between point2 and point3
+            if distance == nil then
+                distance = math.sqrt((point3.x - point2.x)^2+(point3.y - point2.y)^2)
+            else
+                -- convert distance to meters
+                distance = mist.utils.NMToMeters(distance)
+            end
+
+            -- if hdg is not set, compute heading between point2 and point3
+            if hdg == nil then
+                hdg = math.floor(math.deg(math.atan2(point3.y - point2.y, point3.x - point2.x)))
+                if hdg < 0 then
+                  hdg = hdg + 360
+                end
+            end
+            veafMove.logTrace(string.format("distance=%s",veaf.p(distance)))
+            veafMove.logTrace(string.format("hdg=%s",veaf.p(hdg)))
+            
+            -- compute last move vector
+            local headingRad = mist.utils.toRadian(hdg)
+            veafMove.logTrace(string.format("headingRad=%s",veaf.p(headingRad)))
+            lastVector = {
+                x = distance * math.cos(headingRad),
+                y = distance * math.sin(headingRad),
+            }
+            -- apply vector to position
+            point3.x = point2.x + lastVector.x
+            point3.y = point2.y + lastVector.y
+        else
+            -- apply vector to position
+            point3.x = point3.x - moveVector.x
+            point3.y = point3.y - moveVector.y
+        end
         if speed > -1 then 
             point3.speed = speed/1.94384  -- speed in m/s
         end
         if alt > -1 then 
             point3.alt = alt * 0.3048 -- in meters
         end
-        veafMove.logTrace("newpoint3="..veaf.vecToString(point3))
-        --traceMarkerId = veafMove.logMarker(traceMarkerId, "newpoint3", point3, debugMarkers)
+        veafMove.logTrace("newpoint3="..veaf.p(point3))
+        traceMarkerId = veafMove.logMarker(traceMarkerId, "newpoint3", point3, debugMarkers)
 
         -- replace whole mission
         veafMove.logDebug("Resetting moved tanker mission")

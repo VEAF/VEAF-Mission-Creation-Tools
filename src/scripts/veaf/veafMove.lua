@@ -68,7 +68,7 @@ veafMove = {}
 veafMove.Id = "MOVE - "
 
 --- Version.
-veafMove.Version = "1.5.0"
+veafMove.Version = "1.5.1"
 
 -- trace level, specific to this module
 veafMove.Trace = false
@@ -122,11 +122,28 @@ end
 
 --- Function executed when a mark has changed. This happens when text is entered or changed.
 function veafMove.onEventMarkChange(eventPos, event)
+    if veafMove.executeCommand(eventPos, event.text, event.coalition) then 
+        
+        -- Delete old mark.
+        veafMove.logTrace(string.format("Removing mark # %d.", event.idx))
+        trigger.action.removeMark(event.idx)
+
+    end
+end
+
+function veafMove.executeCommand(eventPos, eventText, eventCoalition, bypassSecurity)
+    
+    -- choose by default the coalition opposing the player who triggered the event
+    local coalition = 1
+    if eventCoalition == 1 then
+        coalition = 2
+    end
+
     -- Check if marker has a text and the veafMove.keyphrase keyphrase.
-    if event.text ~= nil and event.text:lower():find(veafMove.Keyphrase) then
+    if eventText ~= nil and eventText:lower():find(veafMove.Keyphrase) then
 
         -- Analyse the mark point text and extract the keywords.
-        local options = veafMove.markTextAnalysis(event.text)
+        local options = veafMove.markTextAnalysis(eventText)
         local result = false
 
         if options then
@@ -140,18 +157,12 @@ function veafMove.onEventMarkChange(eventPos, event)
             end
         else
             -- None of the keywords matched.
-            return
+            return false
         end
 
-        if result then 
-            -- Delete old mark.
-            veafMove.logTrace(string.format("Removing mark # %d.", event.idx))
-            trigger.action.removeMark(event.idx)
-
-        end
+        return result
     end
 end
-
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Analyse the mark text and extract keywords.
 -------------------------------------------------------------------------------------------------------------------------------------------------------------

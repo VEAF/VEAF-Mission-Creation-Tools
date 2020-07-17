@@ -27,7 +27,7 @@ veafShortcuts = {}
 veafShortcuts.Id = "SHORTCUTS - "
 
 --- Version.
-veafShortcuts.Version = "1.0.3"
+veafShortcuts.Version = "1.1.0"
 
 -- trace level, specific to this module
 veafShortcuts.Trace = false
@@ -229,6 +229,8 @@ function veafShortcuts.ExecuteAlias(aliasName, remainingCommand, position, coali
         elseif veafCasMission.executeCommand(position, command, coalition, doNotBypassSecurity or true) then
             return true
         elseif veafSecurity.executeCommand(position, command, doNotBypassSecurity or true) then
+            return true
+        elseif veafMove.executeCommand(position, command, doNotBypassSecurity or true) then
             return true
         else
             return false
@@ -630,6 +632,7 @@ function veafShortcuts.buildDefaultList()
             :addRandomParameter("shells", 25, 40)
             :addRandomParameter("radius", 350, 500)
             :setBypassSecurity(true)
+    )
     veafShortcuts.AddAlias(
         VeafAlias:new()
             :setName("-smoke")
@@ -643,14 +646,14 @@ function veafShortcuts.buildDefaultList()
         VeafAlias:new()
             :setName("-tanker")
             :setDescription("move a tanker to a specific location ; must follow with the tanker group name")
-            :setVeafCommand("_move tanker, name ")
+            :setVeafCommand("_move tanker, name")
             :setBypassSecurity(true)
     )
     veafShortcuts.AddAlias(
         VeafAlias:new()
             :setName("-tankerlow")
             :setDescription("move a tanker to a specific location, altitude 10000 and speed 250 ; must follow with the tanker group name")
-            :setVeafCommand("_move tanker, altitude 10000, speed 250, name ")
+            :setVeafCommand("_move tanker, altitude 10000, speed 250, name")
             :setBypassSecurity(true)
     )
 end

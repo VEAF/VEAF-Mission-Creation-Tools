@@ -45,7 +45,7 @@ veafGrass = {}
 veafGrass.Id = "GRASS - "
 
 --- Version.
-veafGrass.Version = "2.0.0"
+veafGrass.Version = "2.1.0"
 
 -- trace level, specific to this module
 veafGrass.Trace = false
@@ -393,6 +393,14 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits)
         runways = {}
     }
 
+	if ctld then
+		local _beaconInfo = ctld.createRadioBeacon(farpNamedPoint, 2, "USA", farp.unitName, -1, true)
+		if _beaconInfo ~= nil then
+			farpNamedPoint.tacan = string.format("ADF : %.2f KHz - %.2f MHz - %.2f MHz", _beaconInfo.vhf / 1000, _beaconInfo.uhf / 1000000, _beaconInfo.fm / 1000000)
+			veafGrass.logTrace(string.format("farpNamedPoint.tacan=%s", veaf.p(farpNamedPoint.tacan)))
+		end
+	end
+
     -- search for an associated grass runway
     if (grassRunwayUnits) then
         local grassRunwayUnit = nil
@@ -415,7 +423,12 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits)
         end
         if grassRunwayUnit then
             veafGrass.logTrace(string.format("found grassRunwayUnit %s", veaf.p(grassRunwayUnit)))
-            farpNamedPoint = veafGrass.buildGrassRunway(grassRunwayUnit)
+			local grassNamedPoint = veafGrass.buildGrassRunway(grassRunwayUnit)
+			farpNamedPoint.x = grassNamedPoint.x
+			farpNamedPoint.y = grassNamedPoint.y
+			farpNamedPoint.z = grassNamedPoint.z
+			farpNamedPoint.atc = grassNamedPoint.atc
+			farpNamedPoint.runways = grassNamedPoint.runways
         end
     end
     veafGrass.logTrace(string.format("farpNamedPoint=%s", veaf.p(farpNamedPoint)))

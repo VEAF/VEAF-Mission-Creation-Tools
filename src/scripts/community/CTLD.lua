@@ -2698,27 +2698,6 @@ function ctld.listFOBS(_args)
     end
 end
 
-function ctld.setSlingLoad(_args)
-
-    local _heli = ctld.getTransportUnit(_args[1])
-    if _heli == nil then
-        return -- no heli!
-    end
-
-    local _activate = _args[2]
-    if _activate == nil then _activate = false end
-
-    --veaf.logTrace("CTLD - " .. string.format("ctld.slingLoad=%s", veaf.p(ctld.slingLoad)))
-    ctld.slingLoad = _activate
-    --veaf.logTrace("CTLD - " .. string.format("ctld.slingLoad=%s", veaf.p(ctld.slingLoad)))
-
-    local _msg = "Sling loading has been deactivated ; crates have limbs now !"
-    if _activate then _msg = "Sling loading has been activated ; load those ropes !" end
-    ctld.displayMessageToGroup(_heli, _msg, 20)
-
-    ctld.addF10MenuOptions()
-end
-
 function ctld.getFOBPositionString(_fob)
 
     local _lat, _lon = coord.LOtoLL(_fob:getPosition().p)
@@ -4673,14 +4652,11 @@ function ctld.getUnitActions(_unitType)
 
 end
 
-function ctld.addF10MenuOptions_scheduler()
-    timer.scheduleFunction(ctld.addF10MenuOptions_scheduler, nil, timer.getTime() + 1)
-    ctld.addF10MenuOptions()
-end
-
 -- Adds menuitem to all heli units that are active
 function ctld.addF10MenuOptions()
     -- Loop through all Heli units
+
+    timer.scheduleFunction(ctld.addF10MenuOptions, nil, timer.getTime() + 10)
 
     for _, _unitName in pairs(ctld.transportPilotNames) do
 
@@ -4694,134 +4670,123 @@ function ctld.addF10MenuOptions()
 
                 if _groupId then
 
-                    if ctld.addedTo[tostring(_groupId)] ~= nil then
-                        --veaf.logTrace("CTLD - " .. string.format("removing menu for group %s : %s", veaf.p(_groupId), veaf.p(ctld.addedTo[tostring(_groupId)])))
-                        missionCommands.removeItemForGroup(_groupId, ctld.addedTo[tostring(_groupId)])
-                    end
+                    if ctld.addedTo[tostring(_groupId)] == nil then
 
-                    local _rootPath = missionCommands.addSubMenuForGroup(_groupId, "CTLD")
+                        local _rootPath = missionCommands.addSubMenuForGroup(_groupId, "CTLD")
 
-                    local _unitActions = ctld.getUnitActions(_unit:getTypeName())
+                        local _unitActions = ctld.getUnitActions(_unit:getTypeName())
 
 
-                    if _unitActions.troops then
+                        if _unitActions.troops then
 
-                        local _troopCommandsPath = missionCommands.addSubMenuForGroup(_groupId, "Troop Transport", _rootPath)
+                            local _troopCommandsPath = missionCommands.addSubMenuForGroup(_groupId, "Troop Transport", _rootPath)
 
-                        missionCommands.addCommandForGroup(_groupId, "Unload / Extract Troops", _troopCommandsPath, ctld.unloadExtractTroops, { _unitName })
+                            missionCommands.addCommandForGroup(_groupId, "Unload / Extract Troops", _troopCommandsPath, ctld.unloadExtractTroops, { _unitName })
 
-                        missionCommands.addCommandForGroup(_groupId, "Check Cargo", _troopCommandsPath, ctld.checkTroopStatus, { _unitName })
+                            missionCommands.addCommandForGroup(_groupId, "Check Cargo", _troopCommandsPath, ctld.checkTroopStatus, { _unitName })
 
-                        -- local _loadPath = missionCommands.addSubMenuForGroup(_groupId, "Load From Zone", _troopCommandsPath)
-                        for _,_loadGroup in pairs(ctld.loadableGroups) do
-                            if not _loadGroup.side or _loadGroup.side == _unit:getCoalition() then
+                            -- local _loadPath = missionCommands.addSubMenuForGroup(_groupId, "Load From Zone", _troopCommandsPath)
+                            for _,_loadGroup in pairs(ctld.loadableGroups) do
+                                if not _loadGroup.side or _loadGroup.side == _unit:getCoalition() then
 
-                                -- check size & unit
-                                if ctld.getTransportLimit(_unit:getTypeName()) >= _loadGroup.total then
-                                    missionCommands.addCommandForGroup(_groupId, "Load ".._loadGroup.name, _troopCommandsPath, ctld.loadTroopsFromZone, { _unitName, true,_loadGroup,false })
+                                    -- check size & unit
+                                    if ctld.getTransportLimit(_unit:getTypeName()) >= _loadGroup.total then
+                                        missionCommands.addCommandForGroup(_groupId, "Load ".._loadGroup.name, _troopCommandsPath, ctld.loadTroopsFromZone, { _unitName, true,_loadGroup,false })
+                                    end
                                 end
                             end
-                        end
 
-                        if ctld.unitCanCarryVehicles(_unit) then
+                            if ctld.unitCanCarryVehicles(_unit) then
 
-                            local _vehicleCommandsPath = missionCommands.addSubMenuForGroup(_groupId, "Vehicle / FOB Transport", _rootPath)
+                                local _vehicleCommandsPath = missionCommands.addSubMenuForGroup(_groupId, "Vehicle / FOB Transport", _rootPath)
 
-                            missionCommands.addCommandForGroup(_groupId, "Unload Vehicles", _vehicleCommandsPath, ctld.unloadTroops, { _unitName, false })
-                            missionCommands.addCommandForGroup(_groupId, "Load / Extract Vehicles", _vehicleCommandsPath, ctld.loadTroopsFromZone, { _unitName, false,"",true })
+                                missionCommands.addCommandForGroup(_groupId, "Unload Vehicles", _vehicleCommandsPath, ctld.unloadTroops, { _unitName, false })
+                                missionCommands.addCommandForGroup(_groupId, "Load / Extract Vehicles", _vehicleCommandsPath, ctld.loadTroopsFromZone, { _unitName, false,"",true })
 
-                            if ctld.enabledFOBBuilding and ctld.staticBugWorkaround == false then
+                                if ctld.enabledFOBBuilding and ctld.staticBugWorkaround == false then
 
-                                missionCommands.addCommandForGroup(_groupId, "Load / Unload FOB Crate", _vehicleCommandsPath, ctld.loadUnloadFOBCrate, { _unitName, false })
+                                    missionCommands.addCommandForGroup(_groupId, "Load / Unload FOB Crate", _vehicleCommandsPath, ctld.loadUnloadFOBCrate, { _unitName, false })
+                                end
+                                missionCommands.addCommandForGroup(_groupId, "Check Cargo", _vehicleCommandsPath, ctld.checkTroopStatus, { _unitName })
                             end
-                            missionCommands.addCommandForGroup(_groupId, "Check Cargo", _vehicleCommandsPath, ctld.checkTroopStatus, { _unitName })
+
                         end
 
-                    end
 
+                        if ctld.enableCrates and _unitActions.crates then
 
-                    if ctld.enableCrates and _unitActions.crates then
+                            if ctld.unitCanCarryVehicles(_unit) == false then
 
-                        if ctld.unitCanCarryVehicles(_unit) == false then
+                                -- local _cratePath = missionCommands.addSubMenuForGroup(_groupId, "Spawn Crate", _rootPath)
+                                -- add menu for spawning crates
+                                for _subMenuName, _crates in pairs(ctld.spawnableCrates) do
 
-                            -- local _cratePath = missionCommands.addSubMenuForGroup(_groupId, "Spawn Crate", _rootPath)
-                            -- add menu for spawning crates
-                            for _subMenuName, _crates in pairs(ctld.spawnableCrates) do
+                                    local _cratePath = missionCommands.addSubMenuForGroup(_groupId, _subMenuName, _rootPath)
+                                    for _, _crate in pairs(_crates) do
 
-                                local _cratePath = missionCommands.addSubMenuForGroup(_groupId, _subMenuName, _rootPath)
-                                for _, _crate in pairs(_crates) do
+                                        if ctld.isJTACUnitType(_crate.unit) == false
+                                                or (ctld.isJTACUnitType(_crate.unit) == true and ctld.JTAC_dropEnabled) then
+                                            if _crate.side == nil or (_crate.side == _unit:getCoalition()) then
 
-                                    if ctld.isJTACUnitType(_crate.unit) == false
-                                            or (ctld.isJTACUnitType(_crate.unit) == true and ctld.JTAC_dropEnabled) then
-                                        if _crate.side == nil or (_crate.side == _unit:getCoalition()) then
+                                                local _crateRadioMsg = _crate.desc
 
-                                            local _crateRadioMsg = _crate.desc
+                                                --add in the number of crates required to build something
+                                                if _crate.cratesRequired ~= nil and _crate.cratesRequired > 1 then
+                                                    _crateRadioMsg = _crateRadioMsg.." (".._crate.cratesRequired..")"
+                                                end
 
-                                            --add in the number of crates required to build something
-                                            if _crate.cratesRequired ~= nil and _crate.cratesRequired > 1 then
-                                                _crateRadioMsg = _crateRadioMsg.." (".._crate.cratesRequired..")"
+                                                missionCommands.addCommandForGroup(_groupId,_crateRadioMsg, _cratePath, ctld.spawnCrate, { _unitName, _crate.weight })
                                             end
-
-                                            missionCommands.addCommandForGroup(_groupId,_crateRadioMsg, _cratePath, ctld.spawnCrate, { _unitName, _crate.weight })
                                         end
                                     end
                                 end
                             end
                         end
-                    end
 
-                    if (ctld.enabledFOBBuilding or ctld.enableCrates) and _unitActions.crates then
+                        if (ctld.enabledFOBBuilding or ctld.enableCrates) and _unitActions.crates then
 
-                        local _crateCommands = missionCommands.addSubMenuForGroup(_groupId, "CTLD Commands", _rootPath)
-                        if ctld.hoverPickup == false then
-                            if  ctld.slingLoad == false then
-                                missionCommands.addCommandForGroup(_groupId, "Load Nearby Crate", _crateCommands, ctld.loadNearbyCrate,  _unitName )
+                            local _crateCommands = missionCommands.addSubMenuForGroup(_groupId, "CTLD Commands", _rootPath)
+                            if ctld.hoverPickup == false then
+                                if  ctld.slingLoad == false then
+                                    missionCommands.addCommandForGroup(_groupId, "Load Nearby Crate", _crateCommands, ctld.loadNearbyCrate,  _unitName )
+                                end
+                            end
+
+                            missionCommands.addCommandForGroup(_groupId, "Unpack Any Crate", _crateCommands, ctld.unpackCrates, { _unitName })
+
+                            if ctld.slingLoad == false then
+                                missionCommands.addCommandForGroup(_groupId, "Drop Crate", _crateCommands, ctld.dropSlingCrate, { _unitName })
+                                missionCommands.addCommandForGroup(_groupId, "Current Cargo Status", _crateCommands, ctld.slingCargoStatus, { _unitName })
+                            end
+
+                            missionCommands.addCommandForGroup(_groupId, "List Nearby Crates", _crateCommands, ctld.listNearbyCrates, { _unitName })
+
+                            if ctld.enabledFOBBuilding then
+                                missionCommands.addCommandForGroup(_groupId, "List FOBs", _crateCommands, ctld.listFOBS, { _unitName })
                             end
                         end
 
-                        missionCommands.addCommandForGroup(_groupId, "Unpack Any Crate", _crateCommands, ctld.unpackCrates, { _unitName })
 
-                        if ctld.slingLoad == false then
-                            missionCommands.addCommandForGroup(_groupId, "Drop Crate", _crateCommands, ctld.dropSlingCrate, { _unitName })
-                            missionCommands.addCommandForGroup(_groupId, "Current Cargo Status", _crateCommands, ctld.slingCargoStatus, { _unitName })
+                        if ctld.enableSmokeDrop then
+                            local _smokeMenu = missionCommands.addSubMenuForGroup(_groupId, "Smoke Markers", _rootPath)
+                            missionCommands.addCommandForGroup(_groupId, "Drop Red Smoke", _smokeMenu, ctld.dropSmoke, { _unitName, trigger.smokeColor.Red })
+                            missionCommands.addCommandForGroup(_groupId, "Drop Blue Smoke", _smokeMenu, ctld.dropSmoke, { _unitName, trigger.smokeColor.Blue })
+                            missionCommands.addCommandForGroup(_groupId, "Drop Orange Smoke", _smokeMenu, ctld.dropSmoke, { _unitName, trigger.smokeColor.Orange })
+                            missionCommands.addCommandForGroup(_groupId, "Drop Green Smoke", _smokeMenu, ctld.dropSmoke, { _unitName, trigger.smokeColor.Green })
                         end
 
-                        missionCommands.addCommandForGroup(_groupId, "List Nearby Crates", _crateCommands, ctld.listNearbyCrates, { _unitName })
-
-                        if ctld.enabledFOBBuilding then
-                            missionCommands.addCommandForGroup(_groupId, "List FOBs", _crateCommands, ctld.listFOBS, { _unitName })
+                        if ctld.enabledRadioBeaconDrop then
+                            local _radioCommands = missionCommands.addSubMenuForGroup(_groupId, "Radio Beacons", _rootPath)
+                            missionCommands.addCommandForGroup(_groupId, "List Beacons", _radioCommands, ctld.listRadioBeacons, { _unitName })
+                            missionCommands.addCommandForGroup(_groupId, "Drop Beacon", _radioCommands, ctld.dropRadioBeacon, { _unitName })
+                            missionCommands.addCommandForGroup(_groupId, "Remove Closet Beacon", _radioCommands, ctld.removeRadioBeacon, { _unitName })
+                        elseif ctld.deployedRadioBeacons ~= {} then
+                            local _radioCommands = missionCommands.addSubMenuForGroup(_groupId, "Radio Beacons", _rootPath)
+                            missionCommands.addCommandForGroup(_groupId, "List Beacons", _radioCommands, ctld.listRadioBeacons, { _unitName })
                         end
 
-                        if ctld.slingLoad == false then
-                            missionCommands.addCommandForGroup(_groupId, "Activate slingload", _crateCommands, ctld.setSlingLoad, { _unitName, true })
-                        else
-                            missionCommands.addCommandForGroup(_groupId, "Deactivate slingload", _crateCommands, ctld.setSlingLoad, { _unitName, false })
-                        end
-
+                        ctld.addedTo[tostring(_groupId)] = true
                     end
-
-
-                    if ctld.enableSmokeDrop then
-                        local _smokeMenu = missionCommands.addSubMenuForGroup(_groupId, "Smoke Markers", _rootPath)
-                        missionCommands.addCommandForGroup(_groupId, "Drop Red Smoke", _smokeMenu, ctld.dropSmoke, { _unitName, trigger.smokeColor.Red })
-                        missionCommands.addCommandForGroup(_groupId, "Drop Blue Smoke", _smokeMenu, ctld.dropSmoke, { _unitName, trigger.smokeColor.Blue })
-                        missionCommands.addCommandForGroup(_groupId, "Drop Orange Smoke", _smokeMenu, ctld.dropSmoke, { _unitName, trigger.smokeColor.Orange })
-                        missionCommands.addCommandForGroup(_groupId, "Drop Green Smoke", _smokeMenu, ctld.dropSmoke, { _unitName, trigger.smokeColor.Green })
-                    end
-
-                    if ctld.enabledRadioBeaconDrop then
-                        local _radioCommands = missionCommands.addSubMenuForGroup(_groupId, "Radio Beacons", _rootPath)
-                        missionCommands.addCommandForGroup(_groupId, "List Beacons", _radioCommands, ctld.listRadioBeacons, { _unitName })
-                        missionCommands.addCommandForGroup(_groupId, "Drop Beacon", _radioCommands, ctld.dropRadioBeacon, { _unitName })
-                        missionCommands.addCommandForGroup(_groupId, "Remove Closet Beacon", _radioCommands, ctld.removeRadioBeacon, { _unitName })
-                    elseif ctld.deployedRadioBeacons ~= {} then
-                        local _radioCommands = missionCommands.addSubMenuForGroup(_groupId, "Radio Beacons", _rootPath)
-                        missionCommands.addCommandForGroup(_groupId, "List Beacons", _radioCommands, ctld.listRadioBeacons, { _unitName })
-                    end
-                    
-                    ctld.addedTo[tostring(_groupId)] = _rootPath
-                    --veaf.logTrace("CTLD - " .. string.format("setting menu for group %s : %s", veaf.p(_groupId), veaf.p(ctld.addedTo[tostring(_groupId)])))
-
                 end
             else
                 -- env.info(string.format("unit nil %s",_unitName))

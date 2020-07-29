@@ -51,7 +51,7 @@ veafCombatMission = {}
 veafCombatMission.Id = "COMBAT MISSION - "
 
 --- Version.
-veafCombatMission.Version = "1.7.0"
+veafCombatMission.Version = "1.7.1"
 
 -- trace level, specific to this module
 veafCombatMission.Trace = false
@@ -274,31 +274,10 @@ function VeafCombatMissionObjective:configureAsKillEnemiesObjective(nbKillsToWin
             veafCombatMission.logTrace(string.format("nbKillsToWin = %d",nbKillsToWin))
             veafCombatMission.logTrace(string.format("whatsInAKill = %d",whatsInAKill))
 
-            local nbDeadUnits = 0
-            local nbLiveUnits = 0
-
-            for _, group in pairs(mission:getSpawnedGroups()) do
-                veafCombatMission.logTrace(string.format("processing group [%s]",group:GetName()))
-                if group:GetUnits() then
-                    for _, unit in pairs(group:GetUnits()) do
-                        veafCombatMission.logTrace(string.format("unit:GetLifeRelative() = %f",unit:GetLifeRelative()))
-                        if unit:GetLifeRelative() == 1.0 then
-                            veafCombatMission.logTrace(string.format("unit[%s] is alive",unit:GetName()))
-                            nbLiveUnits = nbLiveUnits + 1
-                        elseif unit:GetLifeRelative()*100 > whatsInAKill then
-                            veafCombatMission.logTrace(string.format("unit[%s] is damaged (%d %%)",unit:GetName(), unit:GetLifeRelative()*100 ))
-                            nbLiveUnits = nbLiveUnits + 1
-                        else
-                            veafCombatMission.logTrace(string.format("unit[%s] is dead",unit:GetName()))
-                            nbDeadUnits = nbDeadUnits + 1
-                        end
-                    end
-                else -- this is a bug but let's say that if there are no units in a group we count one kill
-                    nbDeadUnits = nbDeadUnits + 1
-                end
-            end
+            local nbLiveUnits, nbDamagedUnits, nbDeadUnits = mission:getRemainingEnemies(whatsInAKill)
             
             veafCombatMission.logTrace(string.format("nbLiveUnits = %d",nbLiveUnits))
+            veafCombatMission.logTrace(string.format("nbDamagedUnits = %d",nbDamagedUnits))
             veafCombatMission.logTrace(string.format("nbDeadUnits = %d",nbDeadUnits))
         
             if (nbKillsToWin == -1 and nbLiveUnits == 0) or (nbKillsToWin >= 0 and nbDeadUnits >= nbKillsToWin) then 
@@ -558,6 +537,7 @@ function VeafCombatMission:new()
     self.active = false
     self.training = false
     self.spawnedGroups = {}
+    self.spawnedUnitsCountByGroup = {}
     self.radioMarkersPath = nil
     self.radioTargetInfoPath = nil
     self.radioRootPath = nil
@@ -673,6 +653,11 @@ function VeafCombatMission:addSpawnedGroup(group)
         self.spawnedGroups = {}
     end
     table.insert(self.spawnedGroups, group)
+    
+    -- count units in group
+    self.spawnedUnitsCountByGroup[group:GetName()] = #group:GetUnits()
+    veafCombatMission.logTrace(string.format("%s units in group [%s]",tostring(self.spawnedUnitsCountByGroup[group:GetName()]), tostring(group:GetName())))
+
     return self
 end
 
@@ -785,37 +770,58 @@ function VeafCombatMission:initialize()
     return self
 end
 
-function VeafCombatMission:getRemainingEnemies()
-    -- TODO count remaining enemies
-    local nbDeadUnits = 0
-    local nbLiveUnits = 0
+function VeafCombatMission:getRemainingEnemiesString()
+    local nbLiveUnits, nbDamagedUnits, nbDeadUnits = self:getRemainingEnemies()
+    return string.format("%d alive (%d damaged), %d dead", nbLiveUnits, nbDamagedUnits, nbDeadUnits)
+end
 
+function VeafCombatMission:getRemainingEnemies(whatsInAKill)
+    local whatsInAKill = whatsInAKill or 0.01
+    local nbLiveUnits = 0
+    local nbDamagedUnits = 0
+    local nbDeadUnits = 0
     for _, group in pairs(self:getSpawnedGroups()) do
         veafCombatMission.logTrace(string.format("processing group [%s]",group:GetName()))
+        local groupLiveUnits = 0
+        local groupDamagedUnits = 0
         if group:GetUnits() then
             for _, unit in pairs(group:GetUnits()) do
                 veafCombatMission.logTrace(string.format("processing unit [%s]",unit:GetName()))
                 veafCombatMission.logTrace(string.format("unit:GetLifeRelative() = %f",unit:GetLifeRelative()))
                 if unit:GetLifeRelative() == 1.0 then
                     veafCombatMission.logTrace(string.format("unit[%s] is alive",unit:GetName()))
-                    nbLiveUnits = nbLiveUnits + 1
-                elseif unit:GetLifeRelative() > 0 then
+                    groupLiveUnits = groupLiveUnits + 1
+                elseif unit:GetLifeRelative() > whatsInAKill then
                     veafCombatMission.logTrace(string.format("unit[%s] is damaged (%d %%)",unit:GetName(), unit:GetLifeRelative()*100 ))
-                    nbLiveUnits = nbLiveUnits + 1
+                    groupDamagedUnits = groupDamagedUnits + 1
+                    groupLiveUnits = groupLiveUnits + 1
                 else
                     veafCombatMission.logTrace(string.format("unit[%s] is dead",unit:GetName()))
-                    nbDeadUnits = nbDeadUnits + 1
+                    -- should never come to that, Moose do not return dead units in GetUnits()
                 end
             end
-        else -- this is a bug but let's say that if there are no units in a group we count one kill
-            nbDeadUnits = nbDeadUnits + 1
+        else
+            groupLiveUnits = 0
         end
+        local groupDeadUnits = (self.spawnedUnitsCountByGroup[group:GetName()] or 0) - groupLiveUnits
+        if groupDeadUnits < 0 then -- should never happen but who knows ? This is DCS !
+            groupDeadUnits = 0 
+        end
+
+        veafCombatMission.logTrace(string.format("groupLiveUnits = %d",groupLiveUnits))
+        veafCombatMission.logTrace(string.format("groupDamagedUnits = %d",groupDamagedUnits))
+        veafCombatMission.logTrace(string.format("groupDeadUnits = %d",groupDeadUnits))
+
+        nbLiveUnits = nbLiveUnits + groupLiveUnits
+        nbDamagedUnits = nbDamagedUnits + groupDamagedUnits
+        nbDeadUnits = nbDeadUnits + groupDeadUnits
     end
 
     veafCombatMission.logTrace(string.format("nbLiveUnits = %d",nbLiveUnits))
+    veafCombatMission.logTrace(string.format("nbDamagedUnits = %d",nbDamagedUnits))
     veafCombatMission.logTrace(string.format("nbDeadUnits = %d",nbDeadUnits))
 
-    return string.format("%d alive, %d dead", nbLiveUnits, nbDeadUnits)
+    return nbLiveUnits, nbDamagedUnits, nbDeadUnits
 end    
 
 function VeafCombatMission:getInformation()
@@ -836,7 +842,7 @@ function VeafCombatMission:getInformation()
     if self:isActive() then
 
         -- generate information dispatch
-        message = message .. "ENEMIES : " ..self:getRemainingEnemies() .."\n"
+        message = message .. "ENEMIES : " ..self:getRemainingEnemiesString() .."\n"
 
         if self:isTraining() then 
             -- TODO find the position of the enemies
@@ -1294,7 +1300,7 @@ function veafCombatMission.listActiveMissions()
     sortedMissions = {}
     for _, mission in pairs(veafCombatMission.missionsDict) do
         if mission:isActive() then
-            table.insert(sortedMissions, mission:getName() .. ' : ' .. mission:getRemainingEnemies())
+            table.insert(sortedMissions, mission:getName() .. ' : ' .. mission:getRemainingEnemiesString())
         end
     end
     table.sort(sortedMissions)

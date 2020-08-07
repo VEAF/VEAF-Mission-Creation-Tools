@@ -39,7 +39,7 @@ veafUnits = {}
 veafUnits.Id = "UNITS - "
 
 --- Version.
-veafUnits.Version = "1.4.0"
+veafUnits.Version = "1.5.1"
 
 -- trace level, specific to this module
 veafUnits.Trace = false
@@ -925,7 +925,7 @@ veafUnits.GroupsDatabase = {
         aliases = {"mortar"},
         group = {
             disposition = { h = 6, w = 4},
-            units = { {"ARTY 2B11 mortar", number = 24} },
+            units = { {"2B11 mortar", number = 24} },
             description = "2B11 Mortar team",
             groupName = "2B11 Mortar team",
         },
@@ -934,7 +934,7 @@ veafUnits.GroupsDatabase = {
         aliases = {"M-109"},
         group = {
             disposition = { h = 3, w = 2},
-            units = { {"ARTY M-109", number = 6} },
+            units = { {"M-109", number = 6} },
             description = "M-109 artillery battery",
             groupName = "M-109 artillery battery",
         },
@@ -1201,7 +1201,7 @@ veafUnits.GroupsDatabase = {
                 -- the search radar
                 {"Dog Ear radar", random},  
                 -- Tor battery
-                {"Tor 9A331", hdg = 180, number = {min=1, max=2}, random}, 
+                {"Tor 9A331", hdg = 180, number = {min=1, max=1}, random}, 
                 -- SA-8 battery                
                 {"Osa 9A33 ln", number = {min=1, max=2}, random}, 
                 -- Some SA13
@@ -1228,7 +1228,7 @@ veafUnits.GroupsDatabase = {
                 -- Some SA13
                 {"Strela-10M3", number = {min=1, max=2}, random},
                 -- Some Shilkas
-                {"ZSU-23-4 Shilka", number = {min=2, max=4}, random},
+                {"ZSU-23-4 Shilka", number = {min=1, max=2}, random},
                 -- a supply truck or three
                 {"Transport Ural-4320-31 Armored", number = {min=1, max=3}, random}, 
             },
@@ -1245,11 +1245,11 @@ veafUnits.GroupsDatabase = {
                 -- the search radar
                 {"Dog Ear radar", random},  
                 -- SA13 battery
-                {"Strela-10M3", number = {min=1, max=3}, random},
+                {"Strela-10M3", number = {min=1, max=2}, random},
                 -- Some SA9
-                {"Strela-1 9P31", number = {min=1, max=3}, random},
+                {"Strela-1 9P31", number = {min=1, max=2}, random},
                 -- Some Shilkas
-                {"ZSU-23-4 Shilka", number = {min=2, max=4}, random},
+                {"ZSU-23-4 Shilka", number = {min=1, max=2}, random},
                 -- a supply truck or three
                 {"Transport Ural-4320-31 Armored", number = {min=1, max=3}, random}, 
             },
@@ -1266,9 +1266,9 @@ veafUnits.GroupsDatabase = {
                 -- the search radar
                 {"Dog Ear radar", random},  
                 -- SA9 battery
-                {"Strela-1 9P31", number = {min=2, max=4}, random}, 
+                {"Strela-1 9P31", number = {min=1, max=2}, random}, 
                 -- Some Shilkas
-                {"ZSU-23-4 Shilka", number = {min=1, max=4}, random},
+                {"ZSU-23-4 Shilka", number = {min=1, max=2}, random},
                 -- a supply truck or three
                 {"Transport Ural-4320-31 Armored", number = {min=1, max=3}, random}, 
             },
@@ -1285,7 +1285,7 @@ veafUnits.GroupsDatabase = {
                 -- the search radar
                 {"Dog Ear radar", random},  
                 -- Some Shilkas
-                {"ZSU-23-4 Shilka", number = {min=2, max=4}, random},
+                {"ZSU-23-4 Shilka", number = {min=1, max=2}, random},
                 -- a supply truck or three
                 {"Transport Ural-4320-31 Armored", number = {min=1, max=3}, random}, 
             },
@@ -1300,7 +1300,7 @@ veafUnits.GroupsDatabase = {
             disposition = { h= 7, w= 7},
             units = {
                 -- Some Ural-375 ZU-23
-                {"Ural-375 ZU-23", number = {min=2, max=4}, random},
+                {"Ural-375 ZU-23", number = {min=1, max=2}, random},
                 -- a supply truck or three
                 {"Transport Ural-4320-31 Armored", number = {min=1, max=3}, random}, 
             },

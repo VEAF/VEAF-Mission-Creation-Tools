@@ -33,7 +33,7 @@ veaf.Id = "VEAF - "
 veaf.MainId = "MAIN - "
 
 --- Version.
-veaf.Version = "1.7.0"
+veaf.Version = "1.8.0"
 
 -- trace level, specific to this module
 veaf.MainTrace = false
@@ -425,7 +425,7 @@ function veaf.getWind(point)
     veaf.mainLogTrace(string.format("Wind data: |v| = %.1f", strength))
     veaf.mainLogTrace(string.format("Wind data: ang = %.1f", direction))
     
-    -- Return wind direction and strength km/h.
+    -- Return wind direction and strength (in m/s).
     return direction, strength, windvec3
   end
 
@@ -1198,6 +1198,36 @@ function veaf.safeUnpack(package)
         return package
     end
 end
+
+function veaf.getRandomizableNumeric(val)
+    veaf.mainLogTrace(string.format("getRandomizableNumeric(%s)", tostring(val)))
+    local nVal = tonumber(val)
+    veaf.mainLogTrace(string.format("nVal=%s", tostring(nVal)))
+    if nVal == nil then 
+        -- maybe it's a range ?
+        local dashPos = val:find("-")
+        veaf.mainLogTrace(string.format("dashPos=%s", tostring(dashPos)))
+        if dashPos then 
+            local lower = val:sub(1, dashPos-1)
+            veaf.mainLogTrace(string.format("lower=%s", tostring(lower)))
+            if lower then 
+                lower = tonumber(lower)
+            end
+            if lower == nil then lower = 0 end
+            local upper = val:sub(dashPos+1)
+            veaf.mainLogTrace(string.format("upper=%s", tostring(upper)))
+            if upper then 
+                upper = tonumber(upper)
+            end
+            if upper == nil then upper = 5 end
+            nVal = math.random(lower, upper)
+            veaf.mainLogTrace(string.format("random nVal=%s", tostring(nVal)))
+        end
+    end
+    veaf.mainLogTrace(string.format("nVal=%s", tostring(nVal)))
+    return nVal
+end
+
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- initialisation

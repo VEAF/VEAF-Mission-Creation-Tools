@@ -66,7 +66,7 @@ veafSpawn = {}
 veafSpawn.Id = "SPAWN - "
 
 --- Version.
-veafSpawn.Version = "1.12.0"
+veafSpawn.Version = "1.13.0"
 
 -- trace level, specific to this module
 veafSpawn.Trace = false
@@ -407,102 +407,102 @@ function veafSpawn.markTextAnalysis(text)
 
         if key:lower() == "unitname" then
             -- Set name.
-            veafSpawn.logTrace(string.format("Keyword unitname = %s", val))
+            veafSpawn.logTrace(string.format("Keyword unitname = %s", tostring(val)))
             switch.unitName = val
         end
 
         if (switch.group or switch.teleport or switch.unit) and key:lower() == "name" then
             -- Set name.
-            veafSpawn.logTrace(string.format("Keyword name = %s", val))
+            veafSpawn.logTrace(string.format("Keyword name = %s", tostring(val)))
             switch.name = val
         end
 
         if (key:lower() == "destination" or key:lower() == "dest") then
             -- Set destination.
-            veafSpawn.logTrace(string.format("Keyword destination = %s", val))
+            veafSpawn.logTrace(string.format("Keyword destination = %s", tostring(val)))
             switch.destination = val
         end
 
         if key:lower() == "isconvoy" then
-            veafSpawn.logTrace(string.format("Keyword isconvoy found", val))
+            veafSpawn.logTrace("Keyword isconvoy found")
             switch.convoy = true
         end
 
         if key:lower() == "patrol" then
-            veafSpawn.logTrace(string.format("Keyword patrol found", val))
+            veafSpawn.logTrace("Keyword patrol found")
             switch.patrol = true
         end
 
         if key:lower() == "offroad" then
-            veafSpawn.logTrace(string.format("Keyword offroad found", val))
+            veafSpawn.logTrace("Keyword offroad found")
             switch.offroad = true
         end
 
         if key:lower() == "radius" then
             -- Set name.
-            veafSpawn.logTrace(string.format("Keyword radius = %d", val))
-            local nVal = tonumber(val)
+            veafSpawn.logTrace(string.format("Keyword radius = %s", tostring(val)))
+            local nVal = veaf.getRandomizableNumeric(val)
             switch.radius = nVal
         end
 
         if key:lower() == "spacing" then
             -- Set spacing.
-            veafSpawn.logTrace(string.format("Keyword spacing = %d", val))
-            local nVal = tonumber(val)
+            veafSpawn.logTrace(string.format("Keyword spacing = %s", tostring(val)))
+            local nVal = veaf.getRandomizableNumeric(val)
             switch.spacing = nVal
         end
         
         if key:lower() == "multiplier" then
             -- Set multiplier.
-            veafSpawn.logTrace(string.format("Keyword multiplier = %d", val))
-            local nVal = tonumber(val)
+            veafSpawn.logTrace(string.format("Keyword multiplier = %s", tostring(val)))
+            local nVal = veaf.getRandomizableNumeric(val)
             switch.multiplier = nVal
         end
 
         if key:lower() == "alt" then
             -- Set altitude.
-            veafSpawn.logTrace(string.format("Keyword alt = %d", val))
-            local nVal = tonumber(val)
+            veafSpawn.logTrace(string.format("Keyword alt = %s", tostring(val)))
+            local nVal = veaf.getRandomizableNumeric(val)
             switch.altitude = nVal
         end
         
         if key:lower() == "speed" then
             -- Set altitude.
-            veafSpawn.logTrace(string.format("Keyword speed = %d", val))
-            local nVal = tonumber(val)
+            veafSpawn.logTrace(string.format("Keyword speed = %s", tostring(val)))
+            local nVal = veaf.getRandomizableNumeric(val)
             switch.speed = nVal
         end
         
         if key:lower() == "shells" then
             -- Set altitude.
-            veafSpawn.logTrace(string.format("Keyword shells = %d", val))
-            local nVal = tonumber(val)
+            veafSpawn.logTrace(string.format("Keyword shells = %s", tostring(val)))
+            local nVal = veaf.getRandomizableNumeric(val)
             switch.shells = nVal
         end
 
         if key:lower() == "hdg" then
             -- Set heading.
-            veafSpawn.logTrace(string.format("Keyword hdg = %d", val))
-            local nVal = tonumber(val)
+            veafSpawn.logTrace(string.format("Keyword hdg = %s", tostring(val)))
+            local nVal = veaf.getRandomizableNumeric(val)
             switch.heading = nVal
         end
         
         if key:lower() == "heading" then
             -- Set heading.
-            veafSpawn.logTrace(string.format("Keyword heading = %d", val))
-            local nVal = tonumber(val)
+            veafSpawn.logTrace(string.format("Keyword heading = %s", tostring(val)))
+            local nVal = veaf.getRandomizableNumeric(val)
             switch.heading = nVal
         end
 
         if key:lower() == "country" then
             -- Set country
-            veafSpawn.logTrace(string.format("Keyword country = %s", val))
+            veafSpawn.logTrace(string.format("Keyword country = %s", tostring(val)))
             switch.country = val:upper()
         end
         
         if key:lower() == "side" then
             -- Set side
-            veafSpawn.logTrace(string.format("Keyword side = %s", val))
+            veafSpawn.logTrace(string.format("Keyword side = %s", tostring(val)))
             if val:upper() == "BLUE" then
                 switch.side = veafCasMission.SIDE_BLUE
             else
@@ -512,27 +512,27 @@ function veafSpawn.markTextAnalysis(text)
 
         if key:lower() == "password" then
             -- Unlock the command
-            veafSpawn.logTrace(string.format("Keyword password", val))
+            veafSpawn.logTrace(string.format("Keyword password", tostring(val)))
             switch.password = val
         end
 
         if key:lower() == "power" then
             -- Set bomb power.
-            veafSpawn.logTrace(string.format("Keyword power = %d", val))
-            local nVal = tonumber(val)
+            veafSpawn.logTrace(string.format("Keyword power = %s", tostring(val)))
+            local nVal = veaf.getRandomizableNumeric(val)
             switch.bombPower = nVal
         end
         
         if key:lower() == "laser" then
             -- Set laser code.
-            veafSpawn.logTrace(string.format("laser code = %d", val))
-            local nVal = tonumber(val)
+            veafSpawn.logTrace(string.format("laser code = %s", tostring(val)))
+            local nVal = veaf.getRandomizableNumeric(val)
             switch.laserCode = nVal
         end        
         
         if key:lower() == "color" then
             -- Set smoke color.
-            veafSpawn.logTrace(string.format("Keyword color = %s", val))
+            veafSpawn.logTrace(string.format("Keyword color = %s", tostring(val)))
             if (val:lower() == "red") then 
                 switch.smokeColor = trigger.smokeColor.Red
             elseif (val:lower() == "green") then 
@@ -548,14 +548,14 @@ function veafSpawn.markTextAnalysis(text)
 
         if key:lower() == "alt" then
             -- Set alt.
-            veafSpawn.logTrace(string.format("Keyword alt = %d", val))
-            local nVal = tonumber(val)
+            veafSpawn.logTrace(string.format("Keyword alt = %s", tostring(val)))
+            local nVal = veaf.getRandomizableNumeric(val)
             switch.alt = nVal
         end
 
         if switch.cargo and key:lower() == "name" then
             -- Set cargo type.
-            veafSpawn.logTrace(string.format("Keyword name = %s", val))
+            veafSpawn.logTrace(string.format("Keyword name = %s", tostring(val)))
             switch.cargoType = val
         end
 
@@ -567,15 +567,15 @@ function veafSpawn.markTextAnalysis(text)
         
         if key:lower() == "size" then
             -- Set size.
-            veafSpawn.logTrace(string.format("Keyword size = %d", val))
-            local nVal = tonumber(val)
+            veafSpawn.logTrace(string.format("Keyword size = %s", tostring(val)))
+            local nVal = veaf.getRandomizableNumeric(val)
             switch.size = nVal
         end
 
         if key:lower() == "defense" then
             -- Set defense.
-            veafSpawn.logTrace(string.format("Keyword defense = %d", val))
-            local nVal = tonumber(val)
+            veafSpawn.logTrace(string.format("Keyword defense = %s", tostring(val)))
+            local nVal = veaf.getRandomizableNumeric(val)
             if nVal >= 0 then
                 switch.defense = nVal
             end
@@ -583,8 +583,8 @@ function veafSpawn.markTextAnalysis(text)
 
         if key:lower() == "armor" then
             -- Set armor.
-            veafSpawn.logTrace(string.format("Keyword armor = %d", val))
-            local nVal = tonumber(val)
+            veafSpawn.logTrace(string.format("Keyword armor = %s", tostring(val)))
+            local nVal = veaf.getRandomizableNumeric(val)
             if nVal >= 0 then
                 switch.armor = nVal
             end

@@ -48,13 +48,13 @@ veafCombatZone = {}
 veafCombatZone.Id = "COMBAT ZONE - "
 
 --- Version.
-veafCombatZone.Version = "1.2.3"
+veafCombatZone.Version = "1.2.4"
 
 -- trace level, specific to this module
 veafCombatZone.Trace = false
 
 --- Number of seconds between each check of the zone watchdog function
-veafCombatZone.SecondsBetweenWatchdogChecks = 30
+veafCombatZone.SecondsBetweenWatchdogChecks = 60
 
 --- Number of seconds between each smoke request on the zones
 veafCombatZone.SecondsBetweenSmokeRequests = 180

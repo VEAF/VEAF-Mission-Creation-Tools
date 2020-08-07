@@ -72,7 +72,7 @@ veafCasMission = {}
 veafCasMission.Id = "CAS MISSION - "
 
 --- Version.
-veafCasMission.Version = "1.7.1"
+veafCasMission.Version = "1.8.0"
 
 -- trace level, specific to this module
 veafCasMission.Trace = false
@@ -300,13 +300,23 @@ end
 local function _addDefenseForGroups(group, side, defense, multiple)
     veafCasMission.logTrace(string.format("_addDefenseForGroups(defense=[%s], side=[%s], multiple=[%s])", defense  or "", side or "", multiple or ""))
     for _ = 1, multiple do
-        if defense == 5 then
-            -- defense = 5 : add a SA9 and a Tunguska (resp. M1097 Avenger and a M6 Linebacker)
+        if defense > 5 then
+            -- defense > 5 : add a SA9/13, a SA8 and a Tunguska (resp. M1097 Avenger and a M6 Linebacker)
             if side == veafCasMission.SIDE_BLUE then
                 table.insert(group.units, { "M1097 Avenger", random })
                 table.insert(group.units, { "M6 Linebacker", random })
             else
-                table.insert(group.units, { "Strela-1 9P31", random })
+                table.insert(group.units, { veaf.randomlyChooseFrom({"Strela-1 9P31", "Strela-10M3"}), random })
+                table.insert(group.units, { "Osa 9A33 ln", random })
+                table.insert(group.units, { "2S6 Tunguska", random })
+            end
+        elseif defense == 5 then
+            -- defense = 5 : add a SA8 and a Tunguska (resp. M1097 Avenger and a M6 Linebacker)
+            if side == veafCasMission.SIDE_BLUE then
+                table.insert(group.units, { "M1097 Avenger", random })
+                table.insert(group.units, { "M6 Linebacker", random })
+            else
+                table.insert(group.units, { "Osa 9A33 ln", random })
                 table.insert(group.units, { "2S6 Tunguska", random })
             end
         elseif defense == 4 then
@@ -319,11 +329,11 @@ local function _addDefenseForGroups(group, side, defense, multiple)
                 table.insert(group.units, { "2S6 Tunguska", random })
             end
         elseif defense == 3 then
-            -- defense = 3 : add a Tunguska (resp. a M6 Linebacker)
+            -- defense = 3 : add a SA9/SA13 (resp. a M6 Linebacker)
             if side == veafCasMission.SIDE_BLUE then
                 table.insert(group.units, { "M6 Linebacker", random })
             else
-                table.insert(group.units, { "2S6 Tunguska", random })
+                table.insert(group.units, { veaf.randomlyChooseFrom({"Strela-1 9P31", "Strela-10M3"}), random })
             end
         elseif defense == 2 then
             -- defense = 2 : add a Shilka (resp. a Gepard)
@@ -458,7 +468,7 @@ function veafCasMission.generateArmorPlatoon(groupName, defense, armor, side, si
                 end
             else
                 if side == veafCasMission.SIDE_BLUE then
-                    armorType = veaf.randomlyChooseFrom({'IFV Boman', 'IFV MCV-80', 'M-2 Bradley'})
+                    armorType = veaf.randomlyChooseFrom({'IFV Marder', 'IFV MCV-80', 'IFV LAV-25', 'M-2 Bradley'})
                 else
                     armorType = veaf.randomlyChooseFrom({'BRDM-2', 'BMD-1', 'BMP-1'})
                 end
@@ -570,7 +580,7 @@ function veafCasMission.generateInfantryGroup(groupName, defense, armor, side, s
         end
     elseif armor > 0 then
         if side == veafCasMission.SIDE_BLUE then
-            table.insert(group.units, { "IFV Boman", cell=11, random })
+            table.insert(group.units, { "IFV Marder", cell=11, random })
         else
             table.insert(group.units, { "BTR-80", cell=11, random })
         end

@@ -33,10 +33,10 @@ veaf.Id = "VEAF - "
 veaf.MainId = "MAIN - "
 
 --- Version.
-veaf.Version = "1.8.0"
+veaf.Version = "1.8.1.003"
 
 -- trace level, specific to this module
-veaf.MainTrace = false
+veaf.MainTrace = true
 
 --- Development version ?
 veaf.Development = true
@@ -1199,11 +1199,79 @@ function veaf.safeUnpack(package)
     end
 end
 
-function veaf.getRandomizableNumeric(val)
-    veaf.mainLogTrace(string.format("getRandomizableNumeric(%s)", tostring(val)))
+function veaf.getRandomizableNumeric_random(val)
+    veaf.mainLogTrace(string.format("getRandomizableNumeric_random(%s)", tostring(val)))
     local nVal = tonumber(val)
     veaf.mainLogTrace(string.format("nVal=%s", tostring(nVal)))
     if nVal == nil then 
+        --[[
+        local dashPos = nil
+        for i = 1, #val do
+            local c = val:sub(i,i)
+            if c == '-' then 
+                dashPos = i
+                break
+            end
+        end
+        if dashPos then 
+            local lower = val:sub(1, dashPos-1)
+            veaf.mainLogTrace(string.format("lower=%s", tostring(lower)))
+            if lower then 
+                lower = tonumber(lower)
+            end
+            if lower == nil then lower = 0 end
+            local upper = val:sub(dashPos+1)
+            veaf.mainLogTrace(string.format("upper=%s", tostring(upper)))
+            if upper then 
+                upper = tonumber(upper)
+            end
+            if upper == nil then upper = 5 end
+            nVal = math.random(lower, upper)
+            veaf.mainLogTrace(string.format("random nVal=%s", tostring(nVal)))
+        end
+        --]]
+
+        -- [[
+        if val == "1-2" then nVal = math.random(1,2) end
+        if val == "1-3" then nVal = math.random(1,3) end
+        if val == "1-4" then nVal = math.random(1,4) end
+        if val == "1-5" then nVal = math.random(1,5) end
+
+        if val == "2-3" then nVal = math.random(2,3) end
+        if val == "2-4" then nVal = math.random(2,4) end
+        if val == "2-5" then nVal = math.random(2,5) end
+
+        if val == "3-4" then nVal = math.random(3,4) end
+        if val == "3-5" then nVal = math.random(3,5) end
+
+        if val == "4-5" then nVal = math.random(4,5) end
+
+        if val == "5-10" then nVal = math.random(5,10) end
+
+        if val == "10-15" then nVal = math.random(10,15) end
+        --]]
+
+        --[[
+        if val == "1-2" then nVal = 2 end
+        if val == "1-3" then nVal = 3 end
+        if val == "1-4" then nVal = 3 end
+        if val == "1-5" then nVal = 3 end
+
+        if val == "2-3" then nVal = 2 end
+        if val == "2-4" then nVal = 3 end
+        if val == "2-5" then nVal = 3 end
+
+        if val == "3-4" then nVal = 3 end
+        if val == "3-5" then nVal = 4 end
+
+        if val == "4-5" then nVal = 4 end
+
+        if val == "5-10" then nVal = 7 end
+        
+        if val == "10-15" then nVal = 12 end
+        --]]
+
+    --[[
         -- maybe it's a range ?
         local dashPos = val:find("-")
         veaf.mainLogTrace(string.format("dashPos=%s", tostring(dashPos)))
@@ -1223,9 +1291,42 @@ function veaf.getRandomizableNumeric(val)
             nVal = math.random(lower, upper)
             veaf.mainLogTrace(string.format("random nVal=%s", tostring(nVal)))
         end
+        --]]
     end
     veaf.mainLogTrace(string.format("nVal=%s", tostring(nVal)))
     return nVal
+end
+
+function veaf.getRandomizableNumeric_norandom(val)
+    veaf.mainLogTrace(string.format("getRandomizableNumeric_norandom(%s)", tostring(val)))
+    local nVal = tonumber(val)
+    veaf.mainLogTrace(string.format("nVal=%s", tostring(nVal)))
+    if nVal == nil then 
+        if val == "1-2" then nVal = 2 end
+        if val == "1-3" then nVal = 3 end
+        if val == "1-4" then nVal = 3 end
+        if val == "1-5" then nVal = 3 end
+
+        if val == "2-3" then nVal = 2 end
+        if val == "2-4" then nVal = 3 end
+        if val == "2-5" then nVal = 3 end
+
+        if val == "3-4" then nVal = 3 end
+        if val == "3-5" then nVal = 4 end
+
+        if val == "4-5" then nVal = 4 end
+
+        if val == "5-10" then nVal = 7 end
+        
+        if val == "10-15" then nVal = 12 end
+    end
+    veaf.mainLogTrace(string.format("nVal=%s", tostring(nVal)))
+    return nVal
+end
+
+function veaf.getRandomizableNumeric(val)
+    veaf.mainLogTrace(string.format("getRandomizableNumeric(%s)", tostring(val)))
+    return veaf.getRandomizableNumeric_random(val)
 end
 
 

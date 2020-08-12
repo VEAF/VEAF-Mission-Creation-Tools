@@ -48,7 +48,7 @@ veafCombatZone = {}
 veafCombatZone.Id = "COMBAT ZONE - "
 
 --- Version.
-veafCombatZone.Version = "1.2.4"
+veafCombatZone.Version = "1.3.0"
 
 -- trace level, specific to this module
 veafCombatZone.Trace = true
@@ -588,9 +588,11 @@ function VeafCombatZone:getInformation()
     if self:isActive() then
 
         -- generate information dispatch
+        local nbShipsR = 0
         local nbVehiclesR = 0
         local nbInfantryR = 0
         local nbStaticsR = 0
+        local nbShipsB = 0
         local nbVehiclesB = 0
         local nbInfantryB = 0
         local nbStaticsB = 0
@@ -620,6 +622,8 @@ function VeafCombatZone:getInformation()
                                     unitsByTypeR[typeName] = unitsByTypeR[typeName] + 1
                                     if unit.vehicle then
                                         nbVehiclesR = nbVehiclesR + 1
+                                    elseif unit.naval then 
+                                        nbShipsR = nbShipsR + 1
                                     else
                                         nbInfantryR = nbInfantryR + 1
                                     end
@@ -630,6 +634,8 @@ function VeafCombatZone:getInformation()
                                     unitsByTypeB[typeName] = unitsByTypeB[typeName] + 1
                                     if unit.vehicle then
                                         nbVehiclesB = nbVehiclesB + 1
+                                    elseif unit.naval then 
+                                        nbShipsB = nbShipsB + 1
                                     else
                                         nbInfantryB = nbInfantryB + 1
                                     end
@@ -641,8 +647,21 @@ function VeafCombatZone:getInformation()
             end
         end
 
-        if nbStaticsB+nbVehiclesB+nbInfantryB > 0 then
-            message = message .. "FRIENDS: ".. nbStaticsB .. " structure(s), " .. nbVehiclesB .. " vehicle(s) and " .. nbInfantryB .. " soldier(s) remain.\n"
+        if nbShipsB+nbStaticsB+nbVehiclesB+nbInfantryB > 0 then
+            local msgs = {}
+            if nbShipsB > 0 then
+                table.insert(msgs, nbShipsB .. " ship(s)")
+            end
+            if nbStaticsB > 0 then
+                table.insert(msgs, nbStaticsB .. " structure(s)")
+            end
+            if nbVehiclesB > 0 then
+                table.insert(msgs, nbVehiclesB .. " vehicle(s)")
+            end
+            if nbInfantryB > 0 then
+                table.insert(msgs, nbInfantryB .. " soldier(s)")
+            end
+            message = message .. "FRIENDS: ".. table.concat(msgs, ",") .." remaining.\n"
             if self:isTraining() then 
                 local firstUnit = true
                 for name, count in pairs(unitsByTypeB) do
@@ -656,18 +675,33 @@ function VeafCombatZone:getInformation()
                 message = message .. "\n"
             end
         end       
-        message = message .. "ENEMIES: ".. nbStaticsR .. " structure(s), " .. nbVehiclesR .. " vehicle(s) and " .. nbInfantryR .. " soldier(s) remain.\n"
-        if self:isTraining() then 
-            local firstUnit = true
-            for name, count in pairs(unitsByTypeR) do
-                local separator = ", "
-                if firstUnit then 
-                    separator = ""
-                    firstUnit = false
-                end
-                message = message .. string.format("%s%d %s",separator, count, name)
+        if nbShipsR+nbStaticsR+nbVehiclesR+nbInfantryR > 0 then
+            local msgs = {}
+            if nbShipsR > 0 then
+                table.insert(msgs, nbShipsR .. " ship(s)")
             end
-            message = message .. "\n"
+            if nbStaticsR > 0 then
+                table.insert(msgs, nbStaticsR .. " structure(s)")
+            end
+            if nbVehiclesR > 0 then
+                table.insert(msgs, nbVehiclesR .. " vehicle(s)")
+            end
+            if nbInfantryR > 0 then
+                table.insert(msgs, nbInfantryR .. " soldier(s)")
+            end
+            message = message .. "ENEMIES: ".. table.concat(msgs, ",") .." remaining.\n"
+            if self:isTraining() then 
+                local firstUnit = true
+                for name, count in pairs(unitsByTypeR) do
+                    local separator = ", "
+                    if firstUnit then 
+                        separator = ""
+                        firstUnit = false
+                    end
+                    message = message .. string.format("%s%d %s",separator, count, name)
+                end
+                message = message .. "\n"
+            end
         end
         message = message .. "\n"
 

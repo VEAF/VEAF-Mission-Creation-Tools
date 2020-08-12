@@ -541,6 +541,27 @@ function veafShortcuts.buildDefaultList()
             :setVeafCommand("_spawn group, name M-109, country USA")
             :setBypassSecurity(true)
     )
+    veafShortcuts.AddAlias(
+        VeafAlias:new()
+            :setName("-cargoships")
+            :setDescription("Cargo ships")
+            :setVeafCommand("_spawn group, name cargoships-nodef, country RUSSIA, offroad, speed 60")
+            :setBypassSecurity(true)
+    )
+    veafShortcuts.AddAlias(
+        VeafAlias:new()
+            :setName("-escortedcargoships")
+            :setDescription("Cargo ships (escorted)")
+            :setVeafCommand("_spawn group, name cargoships-escorted, country RUSSIA, offroad, speed 60")
+            :setBypassSecurity(true)
+    )
+    veafShortcuts.AddAlias(
+        VeafAlias:new()
+            :setName("-combatships")
+            :setDescription("Combat ships")
+            :setVeafCommand("_spawn group, name combatships, country RUSSIA, offroad, speed 60")
+            :setBypassSecurity(true)
+    )
     -- shortcuts to dynamic groups
     veafShortcuts.AddAlias(
         VeafAlias:new()

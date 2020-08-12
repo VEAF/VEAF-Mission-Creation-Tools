@@ -1083,6 +1083,48 @@ veafUnits.GroupsDatabase = {
             groupName = "RU small supply convoy with no defense",
         },
     },
+    {
+        aliases = {"cargoships-nodef", "cargoships"},
+        group = {
+            disposition = { h = 20, w = 20},
+            units = {
+                {"Dry-cargo ship-1", number = {min=1, max=3}, random, size=150},
+                {"Dry-cargo ship-2", number = {min=1, max=3}, random, size=150},
+                {"ELNYA", number = {min=1, max=3}, random, size=150},
+            },
+            description = "Cargo ships with no defense",
+            groupName = "Cargo ships with no defense",
+        },
+    },
+    {
+        aliases = {"cargoships-escorted"},
+        group = {
+            disposition = { h = 20, w = 20},
+            units = {
+                {"Dry-cargo ship-1", number = {min=1, max=3}, random, size=150},
+                {"Dry-cargo ship-2", number = {min=1, max=3}, random, size=150},
+                {"ELNYA", number = {min=1, max=3}, random, size=150},
+                {"MOLNIYA", number = {min=1, max=2}, random, size=150},
+                {"ALBATROS", number = {min=1, max=2}, random, size=150},
+                {"NEUSTRASH", number = {min=0, max=1}, random, size=150},
+            },
+            description = "Cargo ships with escort",
+            groupName = "Cargo ships with escort",
+        },
+    },
+    {
+        aliases = {"combatships"},
+        group = {
+            disposition = { h = 20, w = 20},
+            units = {
+                {"MOLNIYA", number = {min=2, max=3}, random, size=150},
+                {"ALBATROS", number = {min=2, max=3}, random, size=150},
+                {"NEUSTRASH", number = {min=1, max=2}, random, size=150},
+            },
+            description = "Combat ships with possible FFG defense",
+            groupName = "Combat ships",
+        },
+    },
     ---
     --- groups made for dynamic group spawning (veafCasMission.generateAirDefenseGroup)
     ---

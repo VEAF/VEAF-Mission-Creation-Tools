@@ -33,10 +33,10 @@ veafSecurity = {}
 veafSecurity.Id = "SECURITY - "
 
 --- Version.
-veafSecurity.Version = "1.1.1"
+veafSecurity.Version = "1.1.2"
 
 -- trace level, specific to this module
-veafSecurity.Trace = false
+veafSecurity.Trace = true
 
 --- Key phrase to look for in the mark text which triggers the command.
 veafSecurity.Keyphrase = "_auth"
@@ -511,7 +511,7 @@ end
 function veafSecurity.authenticate(minutes)
   local actualMinutes = minutes or veafSecurity.authDuration
   if not veafSecurity.authenticated then
-    trigger.action.outText("The system is authenticated for "..veafSecurity.authDuration.." minutes", actualMinutes)
+    trigger.action.outText("The system is authenticated for %d minutes", actualMinutes)
     veafSecurity.authenticated = true
     veafRadio.refreshRadioMenu()
     if veafSecurity.logoutWatchdog then

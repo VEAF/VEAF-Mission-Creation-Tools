@@ -51,7 +51,7 @@ veafCombatZone.Id = "COMBAT ZONE - "
 veafCombatZone.Version = "1.3.0"
 
 -- trace level, specific to this module
-veafCombatZone.Trace = true
+veafCombatZone.Trace = false
 
 --- Number of seconds between each check of the zone watchdog function
 veafCombatZone.SecondsBetweenWatchdogChecks = 60

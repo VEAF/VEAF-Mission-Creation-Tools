@@ -33,7 +33,7 @@ veafSecurity = {}
 veafSecurity.Id = "SECURITY - "
 
 --- Version.
-veafSecurity.Version = "1.1.2"
+veafSecurity.Version = "1.1.3"
 
 -- trace level, specific to this module
 veafSecurity.Trace = true
@@ -507,11 +507,11 @@ function veafSecurity.logout(withMessage)
   end
 end
 
---- authenticate all radios for a few seconds
+--- authenticate all radios for a short time
 function veafSecurity.authenticate(minutes)
   local actualMinutes = minutes or veafSecurity.authDuration
   if not veafSecurity.authenticated then
-    trigger.action.outText("The system is authenticated for %d minutes", actualMinutes)
+    trigger.action.outText(string.format("The system is authenticated for %d minutes", actualMinutes))
     veafSecurity.authenticated = true
     veafRadio.refreshRadioMenu()
     if veafSecurity.logoutWatchdog then

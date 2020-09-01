@@ -27,7 +27,7 @@ veafShortcuts = {}
 veafShortcuts.Id = "SHORTCUTS - "
 
 --- Version.
-veafShortcuts.Version = "1.2.0"
+veafShortcuts.Version = "1.3.0"
 
 -- trace level, specific to this module
 veafShortcuts.Trace = false
@@ -648,19 +648,8 @@ function veafShortcuts.buildDefaultList()
     veafShortcuts.AddAlias(
         VeafAlias:new()
             :setName("-smoke")
-            :setDescription("Artillery shelling of a zone with smoke")
-            :setVeafCommand("_spawn smoke, color white")
-            :addRandomParameter("shells", 25, 40)
-            :addRandomParameter("radius", 350, 500)
-            :setBypassSecurity(true)
-    )
-    veafShortcuts.AddAlias(
-        VeafAlias:new()
-            :setName("-smoke")
-            :setDescription("Artillery shelling of a zone with smoke")
-            :setVeafCommand("_spawn smoke, color white")
-            :addRandomParameter("shells", 25, 40)
-            :addRandomParameter("radius", 350, 500)
+            :setDescription("Spawn a single white smoke")
+            :setVeafCommand("_spawn smoke, color white, shells 1, radius 1")
             :setBypassSecurity(true)
     )
     veafShortcuts.AddAlias(

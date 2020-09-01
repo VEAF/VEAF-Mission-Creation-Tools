@@ -66,7 +66,7 @@ veafSpawn = {}
 veafSpawn.Id = "SPAWN - "
 
 --- Version.
-veafSpawn.Version = "1.13.0"
+veafSpawn.Version = "1.13.1"
 
 -- trace level, specific to this module
 veafSpawn.Trace = false
@@ -236,7 +236,7 @@ function veafSpawn.executeCommand(eventPos, eventText, eventCoalition, bypassSec
                     if not (bypassSecurity or veafSecurity.checkSecurity_L1(options.password)) then return end
                     veafSpawn.spawnBomb(eventPos, options.radius, options.shells, options.bombPower, options.password)
                 elseif options.smoke then
-                    veafSpawn.spawnSmoke(eventPos, options.radius, options.shells, options.smokeColor)
+                    veafSpawn.spawnSmoke(eventPos, options.smokeColor, options.radius, options.shells)
                 elseif options.flare then
                     veafSpawn.spawnIlluminationFlare(eventPos, options.radius, options.shells, options.alt)
                 elseif options.signal then
@@ -1271,8 +1271,10 @@ function veafSpawn.spawnBomb(spawnSpot, radius, shells, power, password)
 end
 
 --- add a smoke marker over the marker area
-function veafSpawn.spawnSmoke(spawnSpot, radius, shells, color)
+function veafSpawn.spawnSmoke(spawnSpot, color, radius, shells)
     veafSpawn.logDebug("spawnSmoke(color = " .. color ..")")
+    local radius = radius or 50
+    local shells = shells or 1
     
     local shellTime = 0
     for shell=1,shells do

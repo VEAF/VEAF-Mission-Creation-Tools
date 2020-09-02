@@ -27,10 +27,10 @@ veafShortcuts = {}
 veafShortcuts.Id = "SHORTCUTS - "
 
 --- Version.
-veafShortcuts.Version = "1.3.0"
+veafShortcuts.Version = "1.4.0"
 
 -- trace level, specific to this module
-veafShortcuts.Trace = false
+veafShortcuts.Trace = true
 
 veafShortcuts.RadioMenuName = "SHORTCUTS"
 
@@ -218,10 +218,11 @@ function veafShortcuts.ExecuteAlias(aliasName, remainingCommand, position, coali
         local command = command .. (remainingCommand or "")
         veafShortcuts.logTrace(string.format("command = [%s]",command or ""))
         -- check for shortcuts
-        if veafShortcuts.executeCommand(position, command, coalition) then
-            return true
+        --if veafShortcuts.executeCommand(position, command, coalition) then
+        --    return true
         -- check for SPAWN module commands
-        elseif veafSpawn.executeCommand(position, command, coalitionForSpawn, doNotBypassSecurity or true, spawnedGroups) then
+        --else
+        if veafSpawn.executeCommand(position, command, coalitionForSpawn, doNotBypassSecurity or true, spawnedGroups) then
             return true
         -- check for NAMED POINT module commands
         elseif veafNamedPoints.executeCommand(position, {text=command, coalition=-1}, doNotBypassSecurity or true) then
@@ -231,6 +232,8 @@ function veafShortcuts.ExecuteAlias(aliasName, remainingCommand, position, coali
         elseif veafSecurity.executeCommand(position, command, doNotBypassSecurity or true) then
             return true
         elseif veafMove.executeCommand(position, command, doNotBypassSecurity or true) then
+            return true
+        elseif veafRadio.executeCommand(position, command, coalition, doNotBypassSecurity or true) then
             return true
         else
             return false
@@ -286,6 +289,8 @@ function veafShortcuts.executeCommand(eventPos, eventText, eventCoalition, spawn
             -- do the magic
             if veafShortcuts.ExecuteAlias(alias, remainder, eventPos, eventCoalition, spawnedGroups) then 
                 return true
+            else 
+                return false
             end
         end
     end
@@ -342,13 +347,13 @@ end
 function veafShortcuts.buildRadioMenu()
     veafShortcuts.logDebug("buildRadioMenu()")
     
-    if veafRadio.skipHelpMenus then return end -- completely skip the menu since there are only help elements
+    --if veafRadio.skipHelpMenus then return end -- completely skip the menu since there are only help elements
     
     veafShortcuts.rootPath = veafRadio.addMenu(veafShortcuts.RadioMenuName)
     
-    if not(veafRadio.skipHelpMenus) then
+    --if not(veafRadio.skipHelpMenus) then
         veafRadio.addCommandToSubmenu("HELP - all aliases", veafShortcuts.rootPath, veafShortcuts.helpAllAliases, nil, veafRadio.USAGE_ForAll)
-    end
+    --end
 
     -- these ones need veafNamedPoints.lua
     --veafRadio.addCommandToSubmenu("Weather on closest point" , veafShortcuts.rootPath, veafNamedPoints.getWeatherAtClosestPoint, nil, veafRadio.USAGE_ForGroup)    
@@ -607,6 +612,21 @@ function veafShortcuts.buildDefaultList()
             :setName("-cas")
             :setDescription("Generate a random CAS group for training")
             :setVeafCommand("_cas, disperse")
+            :setBypassSecurity(true)
+    )
+    -- radio shortcuts
+    veafShortcuts.AddAlias(
+        VeafAlias:new()
+            :setName("-send")
+            :setDescription("Send radio message - needs \"MESSAGE\"")
+            :setVeafCommand("_radio transmit, message")
+            :setBypassSecurity(true)
+    )
+    veafShortcuts.AddAlias(
+        VeafAlias:new()
+            :setName("-play")
+            :setDescription("Play sound over radio - needs \"FILENAME\"")
+            :setVeafCommand("_radio play, path")
             :setBypassSecurity(true)
     )
     -- other shortcuts

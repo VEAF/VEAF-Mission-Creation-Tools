@@ -45,10 +45,10 @@ veafRadio = {}
 veafRadio.Id = "RADIO - "
 
 --- Version.
-veafRadio.Version = "1.6.0"
+veafRadio.Version = "1.7.0"
 
 -- trace level, specific to this module
-veafRadio.Trace = false
+veafRadio.Trace = true
 
 veafRadio.RadioMenuName = "VEAF"
 
@@ -65,6 +65,10 @@ veafRadio.MAXIMUM_SIZE = 4200
 
 -- delay for the actual refresh
 veafRadio.refreshRadioMenu_DELAY = 1
+
+--- Key phrase to look for in the mark text which triggers the command.
+veafRadio.Keyphrase = "_radio"
+
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Do not change anything below unless you know what you are doing!
@@ -112,7 +116,128 @@ function veafRadio.logTrace(message)
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
--- Event handler.
+-- Event handler functions.
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+--- Function executed when a mark has changed. This happens when text is entered or changed.
+function veafRadio.onEventMarkChange(eventPos, event)
+  if veafRadio.executeCommand(eventPos, event.text, event.coalition) then 
+
+      -- Delete old mark.
+      veafRadio.logTrace(string.format("Removing mark # %d.", event.idx))
+      trigger.action.removeMark(event.idx)
+  end
+end
+
+function veafRadio.executeCommand(eventPos, eventText, eventCoalition, bypassSecurity)
+  veafRadio.logTrace(string.format("veafRadio.executeCommand(%s)", eventText))
+
+  -- Check if marker has a text and the veafRadio.keyphrase keyphrase.
+  if eventText ~= nil and eventText:lower():find(veafRadio.Keyphrase) then
+
+      -- Analyse the mark point text and extract the keywords.
+      local options = veafRadio.markTextAnalysis(eventText)
+
+      if options then
+          veafRadio.logTrace(string.format("options.path=%s",veaf.p(options.path)))
+          -- Check options commands
+          if options.transmit and options.message and options.frequencies and options.name then
+              -- transmit a radio message via SRS
+              veafRadio.transmitMessage(options.message, options.frequencies, options.modulations, options.volume, options.name, eventCoalition, eventPos, options.quiet)
+              return true
+          elseif options.playmp3 and options.path and options.frequencies and options.name then
+            -- play a MP3 file via SRS
+            veafRadio.playToRadio(options.path, options.frequencies, options.modulations, options.volume, options.name, eventCoalition, eventPos, options.quiet)
+            return true
+          end
+      else
+          -- None of the keywords matched.
+          return false
+      end
+  end
+  return false
+end    
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- Analyse the mark text and extract keywords.
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+--- Extract keywords from mark text.
+function veafRadio.markTextAnalysis(text)
+
+  veafRadio.logTrace(string.format("markTextAnalysis(%s)", text))
+
+  -- Option parameters extracted from the mark text.
+  local switch = {}
+  switch.transmit = false
+  switch.playmp3 = false
+
+  switch.message = nil
+  switch.frequencies = "251"
+  switch.modulations = "AM"
+  switch.volume = "1.0"
+  switch.name = "SRS"
+  switch.quiet = false
+  switch.path = nil
+
+  -- Check for correct keywords.
+  if text:lower():find(veafRadio.Keyphrase .. " transmit") then
+    switch.transmit = true
+  elseif text:lower():find(veafRadio.Keyphrase .. " play") then
+    switch.playmp3 = true
+  else
+      return nil
+  end
+
+  -- keywords are split by ","
+  local keywords = veaf.split(text, ",")
+
+  for _, keyphrase in pairs(keywords) do
+    -- Split keyphrase by space. First one is the key and second, ... the parameter(s) until the next comma.
+    local str = veaf.breakString(veaf.trim(keyphrase), " ")
+    local key = str[1]
+    local val = str[2]
+
+    if key:lower() == "message" then
+      -- Set message.
+      veafSpawn.logTrace(string.format("Keyword message = %s", tostring(val)))
+      switch.message = val
+    elseif key:lower() == "path" then
+      -- Set path.
+      veafSpawn.logTrace(string.format("Keyword path = %s", tostring(val)))
+      switch.path = val
+    elseif key:lower() == "name" then
+      -- Set name.
+      veafSpawn.logTrace(string.format("Keyword name = %s", tostring(val)))
+      switch.name = val
+    elseif key:lower() == "quiet" then
+      -- Set quiet.
+      veafSpawn.logTrace("Keyword quiet found")
+      switch.quiet = true
+    elseif key:lower() == "freq" or key:lower() == "freqs" or key:lower() == "frequency" or key:lower() == "frequencies" then
+      -- Set frequencies.
+      veafSpawn.logTrace(string.format("Keyword frequencies = %s", tostring(val)))
+      switch.frequencies = val
+    elseif key:lower() == "mod" or key:lower() == "mods" or key:lower() == "modulation" or key:lower() == "modulations" then
+      -- Set modulations.
+      veafSpawn.logTrace(string.format("Keyword modulations = %s", tostring(val)))
+      switch.modulations = val
+    elseif key:lower() == "vol" or key:lower() == "volume" then
+      -- Set volume.
+      veafSpawn.logTrace(string.format("Keyword volume = %s", tostring(val)))
+      switch.volume = val
+    elseif key:lower() == "path" then
+      -- Set path.
+      veafSpawn.logTrace(string.format("Keyword path = %s", tostring(val)))
+      switch.path = val
+    end
+
+  end
+
+  return switch
+end
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- Main event handler (used for PLAYER ENTER UNIT events)
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 --- Event handler.
@@ -128,6 +253,7 @@ function veafRadio.eventHandler:onEvent(Event)
 
   -- Debug output.
   if Event.id == world.event.S_EVENT_PLAYER_ENTER_UNIT then
+    local _unitname = ""
     veafRadio.logDebug("S_EVENT_PLAYER_ENTER_UNIT")
     veafRadio.logTrace(string.format("Event id        = %s", tostring(Event.id)))
     veafRadio.logTrace(string.format("Event time      = %s", tostring(Event.time)))
@@ -135,14 +261,16 @@ function veafRadio.eventHandler:onEvent(Event)
     veafRadio.logTrace(string.format("Event coalition = %s", tostring(Event.coalition)))
     veafRadio.logTrace(string.format("Event group id  = %s", tostring(Event.groupID)))
     if Event.initiator ~= nil then
-        local _unitname = Event.initiator:getName()
-        veafRadio.logTrace(string.format("Event ini unit  = %s", tostring(_unitname)))
+      local _unitname = Event.initiator:getName()
+      veafRadio.logTrace(string.format("Event ini unit  = %s", tostring(_unitname)))
     end
     veafRadio.logTrace(string.format("Event text      = \n%s", tostring(Event.text)))
 
     -- refresh the radio menu
     -- TODO refresh it only for this player ? Is this even possible ?
     veafRadio.refreshRadioMenu()
+    -- debug with logInfo message to check if this mechanism is working
+    veafRadio.logInfo(string.format("refreshRadioMenu() following event S_EVENT_PLAYER_ENTER_UNIT, initiator:getName()=[%s]", tostring(_unitname)))
   end
 end
 
@@ -647,10 +775,85 @@ function veafRadio.getHumanUnitOrWingman(unitName)
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- radio utilities
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+-- transmit a radio message via SRS
+function veafRadio.transmitMessage(message, frequencies, modulations, volume, name, coalition, eventPos, quiet)
+  veafRadio.logDebug(string.format("transmitMessage(name=%s, coalition=%s, frequencies=%s, modulations=%s, volume=%s, message=%s)", tostring(name), tostring(coalition), tostring(frequencies), tostring(modulations), tostring(volume), tostring(message)))
+  if eventPos then 
+    veafRadio.logTrace(string.format("eventPos=%s",veaf.p(eventPos)))
+  end
+
+  if veafSanitized_os and STTS then
+    message = message:gsub("\"","\\\"")
+    local cmd = string.format("start \"%s\" \"%s\\%s\" \"%s\" %s %s %s %s \"%s\" %s", STTS.DIRECTORY, STTS.DIRECTORY, STTS.EXECUTABLE, message, frequencies, modulations, coalition,STTS.SRS_PORT, name, volume )
+    veafRadio.logTrace(string.format("executing os command %s", cmd))
+    veafSanitized_os.execute(cmd)
+  end
+
+  if not quiet then
+    trigger.action.outTextForCoalition(coalition, string.format("%s (%s) : %s", name, frequencies, message), 30)
+  end
+end
+
+-- play a MP3 file via SRS
+function veafRadio.playToRadio(pathToMP3, frequencies, modulations, volume, name, coalition, eventPos, quiet)
+  veafRadio.logDebug(string.format("playToRadio(name=%s, coalition=%s, frequencies=%s, modulations=%s, volume=%s, pathToMP3=%s)", tostring(name), tostring(coalition), tostring(frequencies), tostring(modulations), tostring(volume), tostring(pathToMP3)))
+  if eventPos then 
+    veafRadio.logTrace(string.format("eventPos=%s",veaf.p(eventPos)))
+  end
+
+  if veafSanitized_os and STTS then
+    
+    local pathToMP3 = pathToMP3
+    if pathToMP3 and not(pathToMP3:find("\\")) then
+      pathToMP3 = STTS.MP3_FOLDER .. "\\" .. pathToMP3
+    end
+
+    if pathToMP3 and not(pathToMP3:find(".mp3")) then
+      pathToMP3 = pathToMP3 .. ".mp3"
+    end
+
+    local cmd = string.format("start \"%s\" \"%s\\%s\" \"%s\" %s %s %s %s \"%s\" %s", STTS.DIRECTORY, STTS.DIRECTORY, STTS.EXECUTABLE, pathToMP3, frequencies, modulations, coalition,STTS.SRS_PORT, name, volume )
+    veafRadio.logTrace(string.format("executing os command %s", cmd))
+    veafSanitized_os.execute(cmd)
+  end
+
+  if not quiet then
+    trigger.action.outTextForCoalition(coalition, string.format("%s (%s) : playing %s", name, frequencies, pathToMP3), 30)
+  end
+end
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- initialisation
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 function veafRadio.initialize(skipHelpMenus)
+    -- Find the path of the SRS radio configuration script
+    -- We're going to need it to define :
+    --  STTS.DIRECTORY
+    --- STTS.SRS_PORT
+    local srsConfigPath=nil
+    if veafSanitized_lfs then
+        srsConfigPath = veafSanitized_lfs.writedir() .. "\\DCS-SimpleRadio-Standalone\\SRS_for_scripting_config.lua"
+        veafRadio.logDebug(string.format("srsConfigPath = %s", tostring(srsConfigPath)))
+        if srsConfigPath then
+          -- execute the script
+          local file = assert(loadfile(srsConfigPath))
+          if file then
+            file()
+            veafRadio.logInfo("SRS configuration file loaded")
+            STTS.MP3_FOLDER = veafSanitized_lfs.writedir() .."\\..\\..\\Music"
+            veafRadio.logTrace(string.format("STTS.SRS_PORT = %s", tostring(STTS.SRS_PORT)))
+            veafRadio.logTrace(string.format("STTS.DIRECTORY = %s", tostring(STTS.DIRECTORY)))
+            veafRadio.logTrace(string.format("STTS.EXECUTABLE = %s", tostring(STTS.EXECUTABLE)))
+          else
+            veafRadio.logError(string.format("Error while loading SRS configuration file [%s]",srsConfigPath))
+          end
+      end
+    end
+
     veafRadio.skipHelpMenus = skipHelpMenus or false
 
     -- Build the initial radio menu
@@ -660,6 +863,7 @@ function veafRadio.initialize(skipHelpMenus)
 
     -- Add "player enter unit" event handler.
     world.addEventHandler(veafRadio.eventHandler)
+    veafMarkers.registerEventHandler(veafMarkers.MarkerChange, veafRadio.onEventMarkChange)
 end
 
 veafRadio.logInfo(string.format("Loading version %s", veafRadio.Version))

@@ -45,15 +45,12 @@ veafRadio = {}
 veafRadio.Id = "RADIO - "
 
 --- Version.
-veafRadio.Version = "1.7.0"
+veafRadio.Version = "1.8.0"
 
 -- trace level, specific to this module
-veafRadio.Trace = true
+veafRadio.Trace = false
 
 veafRadio.RadioMenuName = "VEAF"
-
---- Number of seconds between each automatic rebuild of the radio menu
-veafRadio.SecondsBetweenRadioMenuAutomaticRebuild = 600 -- 10 minutes ; should not be necessary as the menu is refreshed when a human enters a unit
 
 -- constants used to determine how the radio menu is set up
 veafRadio.USAGE_ForAll   = 0
@@ -245,34 +242,91 @@ veafRadio.eventHandler = {}
 
 --- Handle world events.
 function veafRadio.eventHandler:onEvent(Event)
-
-  -- Only interested in S_EVENT_PLAYER_ENTER_UNIT
-  if Event == nil or not Event.id == world.event.S_EVENT_PLAYER_ENTER_UNIT  then
+  
+  -- Only interested in S_EVENT_BIRTH (S_EVENT_PLAYER_ENTER_UNIT is not fired in MP)
+  if Event == nil or not Event.id == world.event.S_EVENT_BIRTH  then
       return true
   end
 
   -- Debug output.
-  if Event.id == world.event.S_EVENT_PLAYER_ENTER_UNIT then
+  if Event.id == world.event.S_EVENT_BIRTH then
     local _unitname = ""
-    veafRadio.logDebug("S_EVENT_PLAYER_ENTER_UNIT")
+    veafRadio.logTrace("S_EVENT_BIRTH")
     veafRadio.logTrace(string.format("Event id        = %s", tostring(Event.id)))
     veafRadio.logTrace(string.format("Event time      = %s", tostring(Event.time)))
     veafRadio.logTrace(string.format("Event idx       = %s", tostring(Event.idx)))
     veafRadio.logTrace(string.format("Event coalition = %s", tostring(Event.coalition)))
     veafRadio.logTrace(string.format("Event group id  = %s", tostring(Event.groupID)))
     if Event.initiator ~= nil then
-      local _unitname = Event.initiator:getName()
+      _unitname = Event.initiator:getName()
       veafRadio.logTrace(string.format("Event ini unit  = %s", tostring(_unitname)))
     end
     veafRadio.logTrace(string.format("Event text      = \n%s", tostring(Event.text)))
 
-    -- refresh the radio menu
-    -- TODO refresh it only for this player ? Is this even possible ?
-    veafRadio.refreshRadioMenu()
-    -- debug with logInfo message to check if this mechanism is working
-    veafRadio.logInfo(string.format("refreshRadioMenu() following event S_EVENT_PLAYER_ENTER_UNIT, initiator:getName()=[%s]", tostring(_unitname)))
+    if Event.id == 15 and _unitname and veafRadio.humanUnits[_unitname] then
+      -- refresh the radio menu
+      veafRadio.refreshRadioMenu() -- TODO refresh it only for this player ? Is this even possible ?
+      -- debug with logInfo message to check if this mechanism is working
+      veafRadio.logInfo(string.format("refreshRadioMenu() following event S_EVENT_BIRTH of human unit %s", tostring(_unitname)))
+    end
   end
 end
+
+-- function veafRadio.eventHandler:onEvent(Event)
+--   local EVENTS = {
+--   [0] =  "S_EVENT_INVALID",
+--   [1] =  "S_EVENT_SHOT",
+--   [2] =  "S_EVENT_HIT",
+--   [3] =  "S_EVENT_TAKEOFF",
+--   [4] =  "S_EVENT_LAND",
+--   [5] =  "S_EVENT_CRASH",
+--   [6] =  "S_EVENT_EJECTION",
+--   [7] =  "S_EVENT_REFUELING",
+--   [8] =  "S_EVENT_DEAD",
+--   [9] =  "S_EVENT_PILOT_DEAD",
+--   [10] =  "S_EVENT_BASE_CAPTURED",
+--   [11] =  "S_EVENT_MISSION_START",
+--   [12] =  "S_EVENT_MISSION_END",
+--   [13] =  "S_EVENT_TOOK_CONTROL",
+--   [14] =  "S_EVENT_REFUELING_STOP",
+--   [15] =  "S_EVENT_BIRTH",
+--   [16] =  "S_EVENT_HUMAN_FAILURE",
+--   [17] =  "S_EVENT_DETAILED_FAILURE",
+--   [18] =  "S_EVENT_ENGINE_STARTUP",
+--   [19] =  "S_EVENT_ENGINE_SHUTDOWN",
+--   [20] =  "S_EVENT_PLAYER_ENTER_UNIT",
+--   [21] =  "S_EVENT_PLAYER_LEAVE_UNIT",
+--   [22] =  "S_EVENT_PLAYER_COMMENT",
+--   [23] =  "S_EVENT_SHOOTING_START",
+--   [24] =  "S_EVENT_SHOOTING_END",
+--   [25] =  "S_EVENT_MARK_ADDED",
+--   [26] =  "S_EVENT_MARK_CHANGE",
+--   [27] =  "S_EVENT_MARK_REMOVED",
+--   [28] =  "S_EVENT_KILL",
+--   [29] =  "S_EVENT_SCORE",
+--   [30] =  "S_EVENT_UNIT_LOST",
+--   [31] =  "S_EVENT_LANDING_AFTER_EJECTION"}
+
+--   local _unitname = ""
+--   veafRadio.logInfo("GOT AN EVENT")
+--   veafRadio.logInfo(string.format("Event id        = %s - %s", tostring(Event.id), EVENTS[Event.id]))
+--   veafRadio.logInfo(string.format("Event time      = %s", tostring(Event.time)))
+--   veafRadio.logInfo(string.format("Event idx       = %s", tostring(Event.idx)))
+--   veafRadio.logInfo(string.format("Event coalition = %s", tostring(Event.coalition)))
+--   veafRadio.logInfo(string.format("Event group id  = %s", tostring(Event.groupID)))
+--   if Event.initiator ~= nil then
+--     _unitname = Event.initiator:getName()
+--     veafRadio.logInfo(string.format("Event ini unit  = %s", tostring(_unitname)))
+--   end
+--   veafRadio.logInfo(string.format("Event text      = \n%s", tostring(Event.text)))
+  
+--   if Event.id == 15 and _unitname and veafRadio.humanUnits[_unitname] then
+--     -- refresh the radio menu
+--     veafRadio.refreshRadioMenu() -- TODO refresh it only for this player ? Is this even possible ?
+--     -- debug with logInfo message to check if this mechanism is working
+--     veafRadio.logInfo(string.format("refreshRadioMenu() following event S_EVENT_BIRTH of human unit %s", tostring(_unitname)))
+--   end
+-- end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Radio menu methods
@@ -683,12 +737,13 @@ function veafRadio.buildHumanUnits()
     for name, unit in pairs(mist.DBs.humansByName) do
         -- not already in units list ?
         if veafRadio.humanUnits[unit.unitName] == nil then
-            --veafRadio.logTrace(string.format("human player found name=%s, unitName=%s, groupId=%s", name, unit.unitName,unit.groupId))
+            veafRadio.logTrace(string.format("human player found name=%s, unitName=%s, groupId=%s", name, unit.unitName,unit.groupId))
             local callsign = unit.callsign
             if type(callsign) == "table" then callsign = callsign["name"] end
             if type(callsign) == "number" then callsign = "" .. callsign end
             local unitObject = {name=unit.unitName, groupId=unit.groupId, callsign=callsign}
             veafRadio.humanUnits[unit.unitName] = unitObject
+            veafRadio.logTrace(string.format("veafRadio.humanUnits[%s]=\n%s",unit.unitName,veaf.p(veafRadio.humanUnits[unit.unitName])))
             if not veafRadio.humanGroups[unit.groupId] then 
               veafRadio.humanGroups[unit.groupId] = {}
               veafRadio.humanGroups[unit.groupId].callsigns = {}
@@ -703,16 +758,6 @@ function veafRadio.buildHumanUnits()
     for _, groupData in pairs(veafRadio.humanGroups) do
       table.sort(groupData.callsigns)
     end
-end
-
-function veafRadio.radioRefreshWatchdog()
-  veafRadio.logDebug("veafRadio.radioRefreshWatchdog()")
-  -- refresh the menu
-  veafRadio.refreshRadioMenu()
-
-  veafRadio.logDebug("veafRadio.radioRefreshWatchdog() - rescheduling in "..veafRadio.SecondsBetweenRadioMenuAutomaticRebuild)
-  -- reschedule
-  mist.scheduleFunction(veafRadio.radioRefreshWatchdog,{},timer.getTime()+veafRadio.SecondsBetweenRadioMenuAutomaticRebuild)
 end
 
 function veafRadio.addSizeForGroup(groupId, sizeToAdd)
@@ -838,9 +883,11 @@ function veafRadio.initialize(skipHelpMenus)
     if veafSanitized_lfs then
         srsConfigPath = veafSanitized_lfs.writedir() .. "\\DCS-SimpleRadio-Standalone\\SRS_for_scripting_config.lua"
         veafRadio.logDebug(string.format("srsConfigPath = %s", tostring(srsConfigPath)))
+        --local test = veafSanitized_lfs.currentdir()
+        --veafRadio.logDebug(string.format("test = %s", tostring(test)))
         if srsConfigPath then
           -- execute the script
-          local file = assert(loadfile(srsConfigPath))
+          local file = loadfile(srsConfigPath)
           if file then
             file()
             veafRadio.logInfo("SRS configuration file loaded")
@@ -849,7 +896,7 @@ function veafRadio.initialize(skipHelpMenus)
             veafRadio.logTrace(string.format("STTS.DIRECTORY = %s", tostring(STTS.DIRECTORY)))
             veafRadio.logTrace(string.format("STTS.EXECUTABLE = %s", tostring(STTS.EXECUTABLE)))
           else
-            veafRadio.logError(string.format("Error while loading SRS configuration file [%s]",srsConfigPath))
+            veafRadio.logWarning(string.format("Error while loading SRS configuration file [%s]",srsConfigPath))
           end
       end
     end
@@ -859,10 +906,11 @@ function veafRadio.initialize(skipHelpMenus)
     -- Build the initial radio menu
     veafRadio.buildHumanUnits()
     veafRadio.refreshRadioMenu()
-    --veafRadio.radioRefreshWatchdog()
-
-    -- Add "player enter unit" event handler.
+    
+    -- Add "player unit birth" event handler.
     world.addEventHandler(veafRadio.eventHandler)
+
+    -- add marker change event handler
     veafMarkers.registerEventHandler(veafMarkers.MarkerChange, veafRadio.onEventMarkChange)
 end
 

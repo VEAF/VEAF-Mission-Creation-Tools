@@ -24,7 +24,7 @@ veafAssets = {}
 veafAssets.Id = "ASSETS - "
 
 --- Version.
-veafAssets.Version = "1.6.1"
+veafAssets.Version = "1.7.0"
 
 -- trace level, specific to this module
 veafAssets.Trace = false
@@ -173,7 +173,7 @@ function veafAssets.respawn(name)
         local text = "I've respawned " .. theAsset.description
         if theAsset.jtac then
             if ctld then 
-                ctld.JTACAutoLase(name, theAsset.jtac, false, "vehicle")
+                veafSpawn.JTACAutoLase(name, theAsset.jtac, theAsset)
                 text = text .. " lasing with code " .. theAsset.jtac
             end
         end
@@ -213,7 +213,7 @@ function veafAssets.initialize()
     for name, asset in pairs(veafAssets.assets) do
         if asset.jtac then
             if ctld then 
-                ctld.JTACAutoLase(name, asset.jtac, false, "vehicle")
+                veafSpawn.JTACAutoLase(name, asset.jtac, asset)
             end
         end
     end

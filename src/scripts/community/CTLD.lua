@@ -4912,8 +4912,27 @@ ctld.jtacRadioAdded = {} --keeps track of who's had the radio command added
 ctld.jtacGeneratedLaserCodes = {} -- keeps track of generated codes, cycles when they run out
 ctld.jtacLaserPointCodes = {}
 
+function ctld.JTACAutoLase(_jtacGroupName, _laserCode, _smoke, _lock, _colour, _radio)
+    -- log.info(string.format("CTLD - JTACAutoLase : %s", _jtacGroupName))
 
-function ctld.JTACAutoLase(_jtacGroupName, _laserCode, _smoke, _lock, _colour)
+    local function notifyCoalition(message, time, side, shortMessage)
+        local shortMessage = shortMessage
+        if shortMessage == nil then 
+            shortMessage = message
+        end
+        -- log.info(string.format("CTLD - notifyCoalition ; _side=%s : %s", tostring(side), message))
+        if _radio then
+            local _radioCallback = _radio.callback
+            -- log.info(string.format("CTLD - _radioCallback = \n%s", veaf.p(_radioCallback)))
+            local _radioData = _radio.radioData
+            -- log.info(string.format("CTLD - _radioData = \n%s", veaf.p(_radioData)))
+            _radioCallback(shortMessage, _radioData, side)
+            -- log.info("CTLD - called _radioCallback")
+            ctld.notifyCoalition(message, time, side)
+        else
+            ctld.notifyCoalition(message, time, side)
+        end
+    end
 
     if ctld.jtacStop[_jtacGroupName] == true then
         ctld.jtacStop[_jtacGroupName] = nil -- allow it to be started again
@@ -4943,7 +4962,7 @@ function ctld.JTACAutoLase(_jtacGroupName, _laserCode, _smoke, _lock, _colour)
                     ctld.cleanupJTAC(_jtacGroupName)
 
                     env.info(_jtacGroupName .. ' in Transport - Waiting 10 seconds')
-                    timer.scheduleFunction(ctld.timerJTACAutoLase, { _jtacGroupName, _laserCode, _smoke, _lock, _colour }, timer.getTime() + 10)
+                    timer.scheduleFunction(ctld.timerJTACAutoLase, { _jtacGroupName, _laserCode, _smoke, _lock, _colour, _radio }, timer.getTime() + 10)
                     return
                 end
 
@@ -4952,7 +4971,7 @@ function ctld.JTACAutoLase(_jtacGroupName, _laserCode, _smoke, _lock, _colour)
                     ctld.cleanupJTAC(_jtacGroupName)
 
                     env.info(_jtacGroupName .. ' in Transport - Waiting 10 seconds')
-                    timer.scheduleFunction(ctld.timerJTACAutoLase, { _jtacGroupName, _laserCode, _smoke, _lock, _colour }, timer.getTime() + 10)
+                    timer.scheduleFunction(ctld.timerJTACAutoLase, { _jtacGroupName, _laserCode, _smoke, _lock, _colour, _radio }, timer.getTime() + 10)
                     return
                 end
             end
@@ -4960,7 +4979,7 @@ function ctld.JTACAutoLase(_jtacGroupName, _laserCode, _smoke, _lock, _colour)
 
 
         if ctld.jtacUnits[_jtacGroupName] ~= nil then
-            ctld.notifyCoalition("JTAC Group " .. _jtacGroupName .. " KIA!", 10, ctld.jtacUnits[_jtacGroupName].side)
+            notifyCoalition("JTAC Group " .. _jtacGroupName .. " KIA!", 10, ctld.jtacUnits[_jtacGroupName].side)
         end
 
         --remove from list
@@ -5004,12 +5023,14 @@ function ctld.JTACAutoLase(_jtacGroupName, _laserCode, _smoke, _lock, _colour)
         ctld.cleanupJTAC(_jtacGroupName)
 
         env.info(_jtacGroupName .. ' Not Active - Waiting 30 seconds')
-        timer.scheduleFunction(ctld.timerJTACAutoLase, { _jtacGroupName, _laserCode, _smoke, _lock, _colour }, timer.getTime() + 30)
+        timer.scheduleFunction(ctld.timerJTACAutoLase, { _jtacGroupName, _laserCode, _smoke, _lock, _colour, _radio }, timer.getTime() + 30)
 
         return
     end
 
     local _enemyUnit = ctld.getCurrentUnit(_jtacUnit, _jtacGroupName)
+    local targetDestroyed = false
+    local targetLost = false
 
     if _enemyUnit == nil and ctld.jtacCurrentTargets[_jtacGroupName] ~= nil then
 
@@ -5020,9 +5041,9 @@ function ctld.JTACAutoLase(_jtacGroupName, _laserCode, _smoke, _lock, _colour)
         local _tempUnit = Unit.getByName(_tempUnitInfo.name)
 
         if _tempUnit ~= nil and _tempUnit:getLife() > 0 and _tempUnit:isActive() == true then
-            ctld.notifyCoalition(_jtacGroupName .. " target " .. _tempUnitInfo.unitType .. " lost. Scanning for Targets. ", 10, _jtacUnit:getCoalition())
+            targetLost = true
         else
-            ctld.notifyCoalition(_jtacGroupName .. " target " .. _tempUnitInfo.unitType .. " KIA. Good Job! Scanning for Targets. ", 10, _jtacUnit:getCoalition())
+            targetDestroyed = true
         end
 
         --remove from smoke list
@@ -5043,8 +5064,18 @@ function ctld.JTACAutoLase(_jtacGroupName, _laserCode, _smoke, _lock, _colour)
 
             -- store current target for easy lookup
             ctld.jtacCurrentTargets[_jtacGroupName] = { name = _enemyUnit:getName(), unitType = _enemyUnit:getTypeName(), unitId = _enemyUnit:getID() }
-
-            ctld.notifyCoalition(_jtacGroupName .. " lasing new target " .. _enemyUnit:getTypeName() .. '. CODE: ' .. _laserCode .. ctld.getPositionString(_enemyUnit), 10, _jtacUnit:getCoalition())
+            local action = ", lasing new target, "
+            if targetLost then
+                action = ", target lost " .. action
+                targetLost = false
+            elseif targetDestroyed then
+                action = ", target destroyed " .. action
+                targetDestroyed = false
+            end
+        
+            local message = _jtacGroupName .. action .. _enemyUnit:getTypeName()
+            local fullMessage = message .. '. CODE: ' .. _laserCode .. ". POSITION: " .. ctld.getPositionString(_enemyUnit)
+            notifyCoalition(fullMessage, 10, _jtacUnit:getCoalition(), message)
 
             -- create smoke
             if _smoke == true then
@@ -5060,7 +5091,7 @@ function ctld.JTACAutoLase(_jtacGroupName, _laserCode, _smoke, _lock, _colour)
         ctld.laseUnit(_enemyUnit, _jtacUnit, _jtacGroupName, _laserCode)
 
         --   env.info('Timer timerSparkleLase '..jtacGroupName.." "..laserCode.." "..enemyUnit:getName())
-        timer.scheduleFunction(ctld.timerJTACAutoLase, { _jtacGroupName, _laserCode, _smoke, _lock, _colour }, timer.getTime() + 1)
+        timer.scheduleFunction(ctld.timerJTACAutoLase, { _jtacGroupName, _laserCode, _smoke, _lock, _colour, _radio }, timer.getTime() + 15)
 
 
         if _smoke == true then
@@ -5080,7 +5111,13 @@ function ctld.JTACAutoLase(_jtacGroupName, _laserCode, _smoke, _lock, _colour)
         ctld.cancelLase(_jtacGroupName)
         --  env.info('Timer Slow timerSparkleLase '..jtacGroupName.." "..laserCode.." "..enemyUnit:getName())
 
-        timer.scheduleFunction(ctld.timerJTACAutoLase, { _jtacGroupName, _laserCode, _smoke, _lock, _colour }, timer.getTime() + 5)
+        timer.scheduleFunction(ctld.timerJTACAutoLase, { _jtacGroupName, _laserCode, _smoke, _lock, _colour, _radio }, timer.getTime() + 5)
+    end
+
+    if targetLost then
+        notifyCoalition(_jtacGroupName .. ", target lost.", 10, _jtacUnit:getCoalition())
+    elseif targetDestroyed then
+        notifyCoalition(_jtacGroupName .. ", target destroyed.", 10, _jtacUnit:getCoalition())
     end
 end
 
@@ -5091,7 +5128,7 @@ end
 -- used by the timer function
 function ctld.timerJTACAutoLase(_args)
 
-    ctld.JTACAutoLase(_args[1], _args[2], _args[3], _args[4], _args[5])
+    ctld.JTACAutoLase(_args[1], _args[2], _args[3], _args[4], _args[5], _args[6])
 end
 
 function ctld.cleanupJTAC(_jtacGroupName)
@@ -6075,7 +6112,7 @@ function ctld.initialize()
     end
     env.info("END search for crates")
 
-    env.info("CTLD READY")
+    env.info("CTLD 2020.08.06-1 READY")
 end
 
 --DEBUG FUNCTION

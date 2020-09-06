@@ -45,9 +45,10 @@ veafRadio = {}
 veafRadio.Id = "RADIO - "
 
 --- Version.
-veafRadio.Version = "1.8.0"
+veafRadio.Version = "1.8.1"
 
 -- trace level, specific to this module
+veafRadio.Debug = false
 veafRadio.Trace = false
 
 veafRadio.RadioMenuName = "VEAF"
@@ -103,7 +104,9 @@ function veafRadio.logInfo(message)
 end
 
 function veafRadio.logDebug(message)
+  if message and veafRadio.Debug then 
     veaf.logDebug(veafRadio.Id .. message)
+  end
 end
 
 function veafRadio.logTrace(message)
@@ -837,7 +840,7 @@ function veafRadio.transmitMessage(message, frequencies, modulations, volume, na
     veafSanitized_os.execute(cmd)
   end
 
-  if not quiet then
+  if not quiet and coalition then
     trigger.action.outTextForCoalition(coalition, string.format("%s (%s) : %s", name, frequencies, message), 30)
   end
 end

@@ -66,9 +66,10 @@ veafSpawn = {}
 veafSpawn.Id = "SPAWN - "
 
 --- Version.
-veafSpawn.Version = "1.13.1"
+veafSpawn.Version = "1.14.0"
 
 -- trace level, specific to this module
+veafSpawn.Debug = false
 veafSpawn.Trace = false
 
 --- Key phrase to look for in the mark text which triggers the spawn command.
@@ -121,7 +122,9 @@ function veafSpawn.logInfo(message)
 end    
 
 function veafSpawn.logDebug(message)
-    veaf.logDebug(veafSpawn.Id .. message)
+    if message and veafSpawn.Debug then
+        veaf.logDebug(veafSpawn.Id .. message)
+    end
 end    
 
 function veafSpawn.logTrace(message)
@@ -1054,7 +1057,7 @@ function veafSpawn.spawnUnit(spawnSpot, radius, name, country, alt, hdg, unitNam
 
         -- start lasing 
         if ctld then 
-            ctld.JTACAutoLase(groupName, laserCode, false, "vehicle")
+            veafSpawn.JTACAutoLase(groupName, laserCode, nil)
         end
       end
 
@@ -1476,6 +1479,31 @@ function veafSpawn.cleanupAllConvoys()
         trigger.action.outText("No convoy found", 10)
     end
 end    
+
+function veafSpawn.notifyCoalition(message, radioData, coalition)
+    veafSpawn.logDebug("veafSpawn.notifyCoalition()")
+    veafSpawn.logDebug(string.format("message=%s",tostring(message)))
+    veafSpawn.logDebug(string.format("coalition=%s",tostring(coalition)))
+    veafSpawn.logDebug(string.format("radioData=%s\n",veaf.p(radioData)))
+    veafRadio.transmitMessage(message, radioData.freq, radioData.mod, 1.0, radioData.name, coalition, nil, true)
+end
+
+function veafSpawn.JTACAutoLase(groupName, laserCode, radioData)
+    veafSpawn.logDebug("veafSpawn.JTACAutoLase()")
+    veafSpawn.logDebug(string.format("groupName=%s",tostring(groupName)))
+    veafSpawn.logDebug(string.format("laserCode=%s",tostring(laserCode)))
+    veafSpawn.logDebug(string.format("radioData=%s\n",veaf.p(radioData)))
+    local radio = nil
+    if radioData then
+        if radioData.freq then
+            radio = { callback=veafSpawn.notifyCoalition, radioData=radioData}
+        end
+    end
+    veafSpawn.logDebug(string.format("radioData=%s\n",veaf.p(radioData)))
+    veafSpawn.logDebug(string.format("calling CTLD"))
+    ctld.JTACAutoLase(groupName, laserCode, false, "vehicle", nil, radio)
+end
+    
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Radio menu and help
 -------------------------------------------------------------------------------------------------------------------------------------------------------------

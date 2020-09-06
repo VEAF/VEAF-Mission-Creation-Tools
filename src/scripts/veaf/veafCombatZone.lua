@@ -51,6 +51,7 @@ veafCombatZone.Id = "COMBAT ZONE - "
 veafCombatZone.Version = "1.3.0"
 
 -- trace level, specific to this module
+veafCombatZone.Debug = false
 veafCombatZone.Trace = false
 
 --- Number of seconds between each check of the zone watchdog function
@@ -94,7 +95,9 @@ function veafCombatZone.logInfo(message)
 end
 
 function veafCombatZone.logDebug(message)
-    veaf.logDebug(veafCombatZone.Id .. message)
+    if message and veafCombatZone.Debug then 
+        veaf.logDebug(veafCombatZone.Id .. message)
+    end
 end
 
 function veafCombatZone.logTrace(message)

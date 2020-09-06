@@ -30,6 +30,7 @@ veafShortcuts.Id = "SHORTCUTS - "
 veafShortcuts.Version = "1.4.0"
 
 -- trace level, specific to this module
+veafShortcuts.Debug = false
 veafShortcuts.Trace = false
 
 veafShortcuts.RadioMenuName = "SHORTCUTS"
@@ -58,7 +59,9 @@ function veafShortcuts.logInfo(message)
 end
 
 function veafShortcuts.logDebug(message)
-    veaf.logDebug(veafShortcuts.Id .. message)
+    if message and veafShortcuts.Debug then 
+        veaf.logDebug(veafShortcuts.Id .. message)
+    end
 end
 
 function veafShortcuts.logTrace(message)

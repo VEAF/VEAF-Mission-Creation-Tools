@@ -36,7 +36,7 @@ veaf.MainId = "MAIN - "
 veaf.Version = "1.8.1.003"
 
 -- trace level, specific to this module
-veaf.MainTrace = true
+veaf.MainTrace = false
 
 --- Development version ?
 veaf.Development = true

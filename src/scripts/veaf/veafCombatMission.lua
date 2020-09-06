@@ -54,6 +54,7 @@ veafCombatMission.Id = "COMBAT MISSION - "
 veafCombatMission.Version = "1.7.1"
 
 -- trace level, specific to this module
+veafCombatMission.Debug = false
 veafCombatMission.Trace = false
 
 --- Number of seconds between each check of the watchdog function
@@ -92,7 +93,9 @@ function veafCombatMission.logInfo(message)
 end
 
 function veafCombatMission.logDebug(message)
-    veaf.logDebug(veafCombatMission.Id .. message)
+    if message and veafCombatMission.Debug then 
+        veaf.logDebug(veafCombatMission.Id .. message)
+    end
 end
 
 function veafCombatMission.logTrace(message)
@@ -1043,7 +1046,7 @@ end
 -- add a mission
 function veafCombatMission.AddMission(mission)
     veafCombatMission.logDebug(string.format("veafCombatMission.AddMission([%s])",mission:getName() or ""))
-    veafCombatMission.logInfo(string.format("Adding mission [%s]", mission:getName()))
+    veafCombatMission.logDebug(string.format("Adding mission [%s]", mission:getName()))
     mission:initialize()
     table.insert(veafCombatMission.missionsList, mission)
     veafCombatMission.missionsDict[mission:getName()] = mission

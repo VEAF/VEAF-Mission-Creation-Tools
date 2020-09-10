@@ -66,7 +66,7 @@ veafSpawn = {}
 veafSpawn.Id = "SPAWN - "
 
 --- Version.
-veafSpawn.Version = "1.14.0"
+veafSpawn.Version = "1.15.1"
 
 -- trace level, specific to this module
 veafSpawn.Debug = false
@@ -188,7 +188,7 @@ function veafSpawn.executeCommand(eventPos, eventText, eventCoalition, bypassSec
                 if options.unit then
                     -- check security
                     if not (bypassSecurity or veafSecurity.checkSecurity_L9(options.password)) then return end
-                    spawnedGroup = veafSpawn.spawnUnit(eventPos, options.radius, options.name, options.country, options.altitude, options.heading, options.unitName, options.role, options.laserCode, bypassSecurity)
+                    spawnedGroup = veafSpawn.spawnUnit(eventPos, options.radius, options.name, options.country, options.altitude, options.heading, options.unitName, options.role, options.laserCode, options.freq, options.mod, bypassSecurity)
                 elseif options.group then
                     -- check security
                     if not (bypassSecurity or veafSecurity.checkSecurity_L9(options.password)) then return end
@@ -271,6 +271,21 @@ end
 function veafSpawn.markTextAnalysis(text)
     veafSpawn.logTrace(string.format("veafSpawn.markTextAnalysis(text=%s)", text))
 
+    local function convertLaserToFreq(laser)
+        veafSpawn.logTrace(string.format("convertLaserToFreq(laser=%s)", tostring(laser)))
+        if laser and laser >= 1111 and laser <= 1688 then
+            local laserB = math.floor((laser - 1000)/100)
+            local laserCD = laser - 1000 - laserB*100
+            local frequency = tostring(30+laserB+laserCD*0.05)
+            veafSpawn.logTrace(string.format("laserB=%s", tostring(laserB)))
+            veafSpawn.logTrace(string.format("laserCD=%s", tostring(laserCD)))
+            veafSpawn.logTrace(string.format("frequency=%s", tostring(frequency)))
+            return frequency
+        else 
+            return nil
+        end
+    end
+
     -- Option parameters extracted from the mark text.
     local switch = {}
     switch.unit = false
@@ -349,6 +364,10 @@ function veafSpawn.markTextAnalysis(text)
     switch.alt = veafSpawn.IlluminationFlareAglAltitude
 
     switch.password = nil
+
+    -- JTAC radio comms
+    switch.freq = convertLaserToFreq(switch.laserCode)
+    switch.mod = "fm"
 
     -- Check for correct keywords.
     if text:lower():find(veafSpawn.SpawnKeyphrase .. " unit") then
@@ -530,9 +549,22 @@ function veafSpawn.markTextAnalysis(text)
             -- Set laser code.
             veafSpawn.logTrace(string.format("laser code = %s", tostring(val)))
             local nVal = veaf.getRandomizableNumeric(val)
+            switch.freq = convertLaserToFreq(nVal)
             switch.laserCode = nVal
         end        
         
+        if key:lower() == "freq" then
+            -- Set JTAC frequency.
+            veafSpawn.logTrace(string.format("freq = %s", tostring(val)))
+            switch.freq = val
+        end        
+
+        if key:lower() == "mod" then
+            -- Set JTAC modulation.
+            veafSpawn.logTrace(string.format("mod = %s", tostring(val)))
+            switch.mod = val
+        end        
+
         if key:lower() == "color" then
             -- Set smoke color.
             veafSpawn.logTrace(string.format("Keyword color = %s", tostring(val)))
@@ -955,7 +987,7 @@ end
 -- @param string unitName (callsign)
 -- @param string role (ex: jtac)
 -- @param int laserCode (ex: 1688)
-function veafSpawn.spawnUnit(spawnSpot, radius, name, country, alt, hdg, unitName, role, laserCode, silent)
+function veafSpawn.spawnUnit(spawnSpot, radius, name, country, alt, hdg, unitName, role, laserCode, freq, mod, silent)
     veafSpawn.logDebug(string.format("spawnUnit(name = %s, country=%s, alt=%d, hdg= %d)",name, country, alt, hdg))
     
     local spawnSpot = veaf.placePointOnLand(mist.getRandPointInCircle(spawnSpot, radius))
@@ -985,8 +1017,10 @@ function veafSpawn.spawnUnit(spawnSpot, radius, name, country, alt, hdg, unitNam
     veafSpawn.logTrace("spawnUnit unit = " .. unit.displayName .. ", dcsUnit = " .. tostring(unit.typeName))
     
     if role == "jtac" then
-      groupName = "jtac_" .. laserCode
-      unitName = "jtac_" .. laserCode
+        local name = "JTAC " .. tostring(laserCode):sub(1,1) .. " " .. tostring(laserCode):sub(2,2) .. " " .. tostring(laserCode):sub(3,3) .. " " .. tostring(laserCode):sub(4,4)
+        veafSpawn.logTrace(string.format("name=%s", tostring(name)))
+        groupName = name
+        unitName = name
     else
       groupName = veafSpawn.RedSpawnedUnitsGroupName .. " #" .. veafSpawn.spawnedUnitsCounter
       if not unitName then
@@ -1057,13 +1091,20 @@ function veafSpawn.spawnUnit(spawnSpot, radius, name, country, alt, hdg, unitNam
 
         -- start lasing 
         if ctld then 
-            veafSpawn.JTACAutoLase(groupName, laserCode, nil)
+            local radioData = {freq=freq, mod=mod, name=groupName}
+            veafSpawn.JTACAutoLase(groupName, laserCode, radioData)
         end
       end
 
     -- message the unit spawning
-    if not silent then 
-        trigger.action.outText("A " .. unit.displayName .. "("..country..") has been spawned", 5)
+    veafSpawn.logTrace(string.format("message the unit spawning"))
+    if (role == "jtac") or not silent then 
+        local message = "A " .. unit.displayName .. "("..country..") has been spawned"
+        if role == "jtac" then
+            message = "JTAC spawned, lasing on "..laserCode..", available on "..freq.." "..mod
+        end
+        veafSpawn.logTrace(message)
+        trigger.action.outText(message, 15)
     end
 
     return groupName
@@ -1481,27 +1522,28 @@ function veafSpawn.cleanupAllConvoys()
 end    
 
 function veafSpawn.notifyCoalition(message, radioData, coalition)
-    veafSpawn.logDebug("veafSpawn.notifyCoalition()")
-    veafSpawn.logDebug(string.format("message=%s",tostring(message)))
-    veafSpawn.logDebug(string.format("coalition=%s",tostring(coalition)))
-    veafSpawn.logDebug(string.format("radioData=%s\n",veaf.p(radioData)))
+    veafSpawn.logTrace("veafSpawn.notifyCoalition()")
+    veafSpawn.logTrace(string.format("message=%s",tostring(message)))
+    veafSpawn.logTrace(string.format("coalition=%s",tostring(coalition)))
+    veafSpawn.logTrace(string.format("radioData=%s\n",veaf.p(radioData)))
     veafRadio.transmitMessage(message, radioData.freq, radioData.mod, 1.0, radioData.name, coalition, nil, true)
 end
 
 function veafSpawn.JTACAutoLase(groupName, laserCode, radioData)
     veafSpawn.logDebug("veafSpawn.JTACAutoLase()")
-    veafSpawn.logDebug(string.format("groupName=%s",tostring(groupName)))
-    veafSpawn.logDebug(string.format("laserCode=%s",tostring(laserCode)))
-    veafSpawn.logDebug(string.format("radioData=%s\n",veaf.p(radioData)))
+    veafSpawn.logTrace(string.format("groupName=%s",tostring(groupName)))
+    veafSpawn.logTrace(string.format("laserCode=%s",tostring(laserCode)))
+    veafSpawn.logTrace(string.format("radioData=%s\n",veaf.p(radioData)))
     local radio = nil
     if radioData then
         if radioData.freq then
             radio = { callback=veafSpawn.notifyCoalition, radioData=radioData}
         end
     end
-    veafSpawn.logDebug(string.format("radioData=%s\n",veaf.p(radioData)))
-    veafSpawn.logDebug(string.format("calling CTLD"))
+    veafSpawn.logTrace(string.format("radioData=%s\n",veaf.p(radioData)))
+    veafSpawn.logTrace(string.format("calling CTLD"))
     ctld.JTACAutoLase(groupName, laserCode, false, "vehicle", nil, radio)
+    veafSpawn.logTrace(string.format("CTLD called"))
 end
     
 -------------------------------------------------------------------------------------------------------------------------------------------------------------

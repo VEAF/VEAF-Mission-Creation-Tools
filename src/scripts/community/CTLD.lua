@@ -6112,7 +6112,7 @@ function ctld.initialize()
     end
     env.info("END search for crates")
 
-    env.info("CTLD 2020.08.06-1 READY")
+    env.info("CTLD 2020.08.07-1 READY")
 end
 
 --DEBUG FUNCTION

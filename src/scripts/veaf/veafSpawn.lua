@@ -1091,6 +1091,7 @@ function veafSpawn.spawnUnit(spawnSpot, radius, name, country, alt, hdg, unitNam
 
         -- start lasing 
         if ctld then 
+            ctld.cleanupJTAC(groupName)
             local radioData = {freq=freq, mod=mod, name=groupName}
             veafSpawn.JTACAutoLase(groupName, laserCode, radioData)
         end
@@ -1542,7 +1543,7 @@ function veafSpawn.JTACAutoLase(groupName, laserCode, radioData)
     end
     veafSpawn.logTrace(string.format("radioData=%s\n",veaf.p(radioData)))
     veafSpawn.logTrace(string.format("calling CTLD"))
-    ctld.JTACAutoLase(groupName, laserCode, false, "vehicle", nil, radio)
+    ctld.JTACAutoLase(groupName, laserCode, false, "all", nil, radio)
     veafSpawn.logTrace(string.format("CTLD called"))
 end
     

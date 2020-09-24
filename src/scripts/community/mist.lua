@@ -6453,7 +6453,7 @@ do -- group tasks scope
 		if group then
 			local groupCon = group:getController()
 			if groupCon then
-                log:warn(misTask)
+                --log:warn(misTask)
 				groupCon:setTask(misTask)
 				return true
 			end

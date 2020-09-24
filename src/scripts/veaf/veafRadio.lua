@@ -59,7 +59,7 @@ veafRadio.USAGE_ForGroup = 1
 veafRadio.USAGE_ForUnit  = 2
 
 -- maximum size for radio menu
-veafRadio.MAXIMUM_SIZE = 4200
+veafRadio.MAXIMUM_SIZE = 99999 -- 4200
 
 -- delay for the actual refresh
 veafRadio.refreshRadioMenu_DELAY = 1

@@ -69,8 +69,8 @@ veafSpawn.Id = "SPAWN - "
 veafSpawn.Version = "1.15.1"
 
 -- trace level, specific to this module
-veafSpawn.Debug = false
-veafSpawn.Trace = false
+veafSpawn.Debug = true
+veafSpawn.Trace = true
 
 --- Key phrase to look for in the mark text which triggers the spawn command.
 veafSpawn.SpawnKeyphrase = "_spawn"
@@ -188,7 +188,15 @@ function veafSpawn.executeCommand(eventPos, eventText, eventCoalition, bypassSec
                 if options.unit then
                     -- check security
                     if not (bypassSecurity or veafSecurity.checkSecurity_L9(options.password)) then return end
-                    spawnedGroup = veafSpawn.spawnUnit(eventPos, options.radius, options.name, options.country, options.altitude, options.heading, options.unitName, options.role, options.laserCode, options.freq, options.mod, bypassSecurity)
+                    local code = options.laserCode
+                    local channel = options.freq
+                    local band = options.mod
+                    if options.role == "tacan" then
+                        channel = options.tacanChannel or "99"
+                        code = options.tacanCode or "T"..tostring(channel)
+                        band = options.tacanBand or "X"
+                    end
+                    spawnedGroup = veafSpawn.spawnUnit(eventPos, options.radius, options.name, options.country, options.altitude, options.heading, options.unitName, options.role, code, channel, band, bypassSecurity)
                 elseif options.group then
                     -- check security
                     if not (bypassSecurity or veafSecurity.checkSecurity_L9(options.password)) then return end
@@ -369,6 +377,10 @@ function veafSpawn.markTextAnalysis(text)
     switch.freq = convertLaserToFreq(switch.laserCode)
     switch.mod = "fm"
 
+    -- TACAN name and channel
+    switch.tacanChannel = 99
+    switch.tacanBand = "X"
+
     -- Check for correct keywords.
     if text:lower():find(veafSpawn.SpawnKeyphrase .. " unit") then
         switch.unit = true
@@ -410,6 +422,15 @@ function veafSpawn.markTextAnalysis(text)
         switch.name = "APC M1025 HMMWV"
         -- default JTAC name (will overwrite previous unit with same name)
         switch.unitName = "JTAC1"
+    elseif text:lower():find(veafSpawn.SpawnKeyphrase .. " tacan") then
+        switch.role = 'tacan'
+        switch.unit = true
+        -- default country for friendly tacan: USA
+        switch.country = "USA"
+        -- default name for tacan
+        switch.name = "TACAN_beacon"
+        -- default name (will overwrite previous unit with same name)
+        switch.unitName = "TACAN TCN"
     elseif text:lower():find(veafSpawn.DestroyKeyphrase) then
         switch.destroy = true
     elseif text:lower():find(veafSpawn.TeleportKeyphrase) then
@@ -563,6 +584,25 @@ function veafSpawn.markTextAnalysis(text)
             -- Set JTAC modulation.
             veafSpawn.logTrace(string.format("mod = %s", tostring(val)))
             switch.mod = val
+        end        
+
+        if key:lower() == "band" then
+            -- Set TACAN band
+            veafSpawn.logTrace(string.format("band = %s", tostring(val)))
+            switch.tacanBand = val
+        end        
+
+        if key:lower() == "code" then
+            -- Set TACAN code
+            veafSpawn.logTrace(string.format("code = %s", tostring(val)))
+            switch.tacanCode = val
+        end        
+
+        if key:lower() == "channel" then
+            -- Set TACAN channel.
+            veafSpawn.logTrace(string.format("channel = %s", tostring(val)))
+            local nVal = veaf.getRandomizableNumeric(val)
+            switch.tacanChannel = nVal
         end        
 
         if key:lower() == "color" then
@@ -986,8 +1026,7 @@ end
 -- @param int hdg (0..359)
 -- @param string unitName (callsign)
 -- @param string role (ex: jtac)
--- @param int laserCode (ex: 1688)
-function veafSpawn.spawnUnit(spawnSpot, radius, name, country, alt, hdg, unitName, role, laserCode, freq, mod, silent)
+function veafSpawn.spawnUnit(spawnSpot, radius, name, country, alt, hdg, unitName, role, code, freq, mod, silent)
     veafSpawn.logDebug(string.format("spawnUnit(name = %s, country=%s, alt=%d, hdg= %d)",name, country, alt, hdg))
     
     local spawnSpot = veaf.placePointOnLand(mist.getRandPointInCircle(spawnSpot, radius))
@@ -1017,7 +1056,12 @@ function veafSpawn.spawnUnit(spawnSpot, radius, name, country, alt, hdg, unitNam
     veafSpawn.logTrace("spawnUnit unit = " .. unit.displayName .. ", dcsUnit = " .. tostring(unit.typeName))
     
     if role == "jtac" then
-        local name = "JTAC " .. tostring(laserCode):sub(1,1) .. " " .. tostring(laserCode):sub(2,2) .. " " .. tostring(laserCode):sub(3,3) .. " " .. tostring(laserCode):sub(4,4)
+        local name = "JTAC " .. tostring(code):sub(1,1) .. " " .. tostring(code):sub(2,2) .. " " .. tostring(code):sub(3,3) .. " " .. tostring(code):sub(4,4)
+        veafSpawn.logTrace(string.format("name=%s", tostring(name)))
+        groupName = name
+        unitName = name
+    elseif role == "tacan" then
+        local name = "TACAN " .. tostring(freq)..tostring(mod)
         veafSpawn.logTrace(string.format("name=%s", tostring(name)))
         groupName = name
         unitName = name
@@ -1093,16 +1137,46 @@ function veafSpawn.spawnUnit(spawnSpot, radius, name, country, alt, hdg, unitNam
         if ctld then 
             ctld.cleanupJTAC(groupName)
             local radioData = {freq=freq, mod=mod, name=groupName}
-            veafSpawn.JTACAutoLase(groupName, laserCode, radioData)
+            veafSpawn.JTACAutoLase(groupName, code, radioData)
         end
-      end
+
+    elseif role == "tacan" then
+        local mod = string.upper(mod) or "X"
+        local txFreq = (1025 + freq - 1) * 1000000
+        local rxFreq = (962 + freq - 1) * 1000000
+        if mod == "Y" then
+            rxFreq = (1088 + freq - 1) * 1000000
+        end
+        veafSpawn.logTrace(string.format("txFreq=%s", tostring(txFreq)))
+        veafSpawn.logTrace(string.format("rxFreq=%s", tostring(rxFreq)))
+
+        local command = { 
+            id = 'ActivateBeacon', 
+            params = { 
+                type = 4,
+                system = 18, 
+                callsign = code or "TCN", 
+                frequency = rxFreq,
+                AA = false,
+                channel = freq,
+                bearing = true,
+                modeChannel = mod,
+            }
+        }
+                
+        veafSpawn.logTrace(string.format("setting %s", veaf.p(command)))
+        local spawnedGroup = Group.getByName(groupName)
+        local controller = spawnedGroup:getController()
+        controller:setCommand(command)
+        veafSpawn.logTrace(string.format("done setting command"))
+    end
 
     -- message the unit spawning
     veafSpawn.logTrace(string.format("message the unit spawning"))
     if (role == "jtac") or not silent then 
         local message = "A " .. unit.displayName .. "("..country..") has been spawned"
         if role == "jtac" then
-            message = "JTAC spawned, lasing on "..laserCode..", available on "..freq.." "..mod
+            message = "JTAC spawned, lasing on "..code..", available on "..freq.." "..mod
         end
         veafSpawn.logTrace(message)
         trigger.action.outText(message, 15)

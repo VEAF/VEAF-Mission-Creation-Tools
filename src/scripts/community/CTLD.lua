@@ -3266,11 +3266,11 @@ function ctld.spawnRadioBeaconUnit(_point, _country, _type)
     local _radioGroup = {
         ["visible"] = false,
        -- ["groupId"] = _groupId,
-        ["hidden"] = false,
+        ["hidden"] = true,
         ["units"] = {
             [1] = {
                 ["y"] = _point.z,
-                ["type"] = "2B11 mortar",
+                ["type"] = "TACAN_beacon",
                 ["name"] = _type .. " Radio Beacon Unit #" .. _unitId,
              --   ["unitId"] = _unitId,
                 ["heading"] = 0,

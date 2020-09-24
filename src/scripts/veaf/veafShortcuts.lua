@@ -689,4 +689,11 @@ function veafShortcuts.buildDefaultList()
             :setVeafCommand("_move tanker, altitude 10000, speed 250, name")
             :setBypassSecurity(true)
     )
+    veafShortcuts.AddAlias(
+        VeafAlias:new()
+            :setName("-tacan")
+            :setDescription("create a portable TACAN beacon ; must follow with the tacan channel")
+            :setVeafCommand("_spawn tacan, band X, channel")
+            :setBypassSecurity(true)
+    )
 end

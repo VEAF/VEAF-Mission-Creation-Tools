@@ -393,8 +393,15 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits)
         runways = {}
     }
 
+    -- add the FARP to the named points
+    local beaconPoint = {
+        x = farp.x - 250,
+        y = math.floor(land.getHeight(farp) + 1),
+        z = farp.y - 250
+    }
+
 	if ctld then
-		local _beaconInfo = ctld.createRadioBeacon(farpNamedPoint, 2, "USA", farp.unitName, -1, true)
+		local _beaconInfo = ctld.createRadioBeacon(beaconPoint, 2, "USA", farp.unitName, -1, true)
 		if _beaconInfo ~= nil then
 			farpNamedPoint.tacan = string.format("ADF : %.2f KHz - %.2f MHz - %.2f MHz", _beaconInfo.vhf / 1000, _beaconInfo.uhf / 1000000, _beaconInfo.fm / 1000000)
 			veafGrass.logTrace(string.format("farpNamedPoint.tacan=%s", veaf.p(farpNamedPoint.tacan)))

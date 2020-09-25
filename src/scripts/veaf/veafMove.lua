@@ -68,7 +68,7 @@ veafMove = {}
 veafMove.Id = "MOVE - "
 
 --- Version.
-veafMove.Version = "1.5.1"
+veafMove.Version = "1.6.0"
 
 -- trace level, specific to this module
 veafMove.Trace = false
@@ -557,6 +557,27 @@ function veafMove.moveAfac(eventPos, groupName, speed, alt)
     return true
 end
 
+-- prepare tanker units
+function veafMove.findAllTankers()
+    local TankerTypeNames = {"KC130", "KC-135", "KC135MPRS", "KJ-2000", "IL-78M"}
+    veafMove.logTrace(string.format("findAllTankers()"))
+    local result = {}
+    local units = mist.DBs.unitsByName -- local copy for faster execution
+    for name, unit in pairs(units) do
+        veafMove.logTrace(string.format("name=%s, unit.type=%s", veaf.p(name), veaf.p(unit.type)))
+        --veafMove.logTrace(string.format("unit=%s", veaf.p(unit)))
+        --local unit = Unit.getByName(name)
+        if unit then 
+            for _, tankerTypeName in pairs(TankerTypeNames) do
+                if tankerTypeName:lower() == unit.type:lower() then
+                    table.insert(result, unit.groupName)
+                end
+            end
+        end
+    end
+    return result
+end
+
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Radio menu and help
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -615,6 +636,10 @@ end
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 function veafMove.initialize()
+    if #veafMove.Tankers == 0 then
+        -- find all existing Tankers
+        veafMove.Tankers = veafMove.findAllTankers()
+    end
     veafMove.buildRadioMenu()
     veafMarkers.registerEventHandler(veafMarkers.MarkerChange, veafMove.onEventMarkChange)
 end

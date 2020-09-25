@@ -48,7 +48,7 @@ veafCarrierOperations = {}
 veafCarrierOperations.Id = "CARRIER - "
 
 --- Version.
-veafCarrierOperations.Version = "1.4.5"
+veafCarrierOperations.Version = "1.5.0"
 
 -- trace level, specific to this module
 veafCarrierOperations.Trace = false
@@ -764,17 +764,23 @@ function veafCarrierOperations.initializeCarrierGroups()
     -- find the carriers and add them to the veafCarrierOperations.carriers table, store its initial location and create the menus
     for name, group in pairs(mist.DBs.groupsByName) do
         veafCarrierOperations.logTrace("found group "..name)
-        if name:match(veafCarrierOperations.CarrierGroupNamePattern) then
-            veafCarrierOperations.carriers[name] = {}
-            local carrier = veafCarrierOperations.carriers[name]
-            veafCarrierOperations.logTrace("found carrier !")
-
+        -- search groups with a carrier unit in the group
+        local carrier = nil
             -- find the actual carrier unit
             local group = Group.getByName(name)
+        if group then
             for _, unit in pairs(group:getUnits()) do
                 local unitType = unit:getDesc()["typeName"]
                 for knownCarrierType, data in pairs(veafCarrierOperations.AllCarriers) do
                     if unitType == knownCarrierType then
+                        -- found a carrier, initialize the carrier group object if needed
+                        if not carrier then 
+                            veafCarrierOperations.carriers[name] = {}
+                            carrier = veafCarrierOperations.carriers[name]
+                            veafCarrierOperations.logTrace("found carrier !")
+                        else
+                            veafCarrierOperations.logWarning(string.format("more than one carrier in group %s", veaf.p(name)))
+                        end
                         carrier.carrierUnit = unit
                         carrier.carrierUnitName = carrier.carrierUnit:getName()
                         carrier.runwayAngleWithBRC = data.runwayAngleWithBRC
@@ -795,6 +801,7 @@ function veafCarrierOperations.initializeCarrierGroups()
                 end
             end
 
+            if carrier then
             -- take note of the carrier route
             carrier.missionRoute = mist.getGroupRoute(name, 'task')
             if veafCarrierOperations.Trace then
@@ -804,6 +811,7 @@ function veafCarrierOperations.initializeCarrierGroups()
             end
         end
     end
+end
 end
 
 function veafCarrierOperations.doOperations()

@@ -49,7 +49,7 @@ veafTransportMission = {}
 veafTransportMission.Id = "TRANSPORT MISSION - "
 
 --- Version.
-veafTransportMission.Version = "1.3.2"
+veafTransportMission.Version = "1.4.0"
 
 -- trace level, specific to this module
 veafTransportMission.Trace = false
@@ -721,6 +721,39 @@ function veafTransportMission.resetAllCargoes()
     trigger.action.outText("All cargoes have been respawned", 15)
 end
 
+function veafTransportMission.initializeAllHelosInCTLD()
+    local TransportHeloTypeNames = {"Mi-8MT", "UH-1H"}
+    local result = {}
+    for name, unit in pairs(mist.DBs.humansByName) do
+        veafTransportMission.logTrace(string.format("human player found name=%s, unitName=%s, groupName=%s", name, unit.unitName,unit.groupName))
+        -- check if it's a transport helo (Mi-8 or Huey)
+        for _, transportHeloTypeName in pairs(TransportHeloTypeNames) do
+            if transportHeloTypeName:lower() == unit.type:lower() then
+                table.insert(ctld.transportPilotNames, unit.unitName)
+                veafTransportMission.logDebug(string.format("Adding CTLD transport pilot %s of group %s", unit.unitName, unit.groupName))
+            end
+        end
+    end
+end
+
+function veafTransportMission.initializeAllLogisticInCTLD()
+    local CarrierTypeNames = {"LHA_Tarawa", "Stennis", "CVN_71", "KUZNECOW"}
+    local result = {}
+    local units = mist.DBs.unitsByName -- local copy for faster execution
+    for name, unit in pairs(units) do
+        veafMove.logTrace(string.format("name=%s, unit.type=%s", veaf.p(name), veaf.p(unit.type)))
+        --veafMove.logTrace(string.format("unit=%s", veaf.p(unit)))
+        --local unit = Unit.getByName(name)
+        if unit then 
+            for _, carrierTypeName in pairs(CarrierTypeNames) do
+                if carrierTypeName:lower() == unit.type:lower() then
+                    table.insert(ctld.logisticUnits, unit.unitName)
+                    veafTransportMission.logDebug(string.format("Adding CTLD logistic unit %s of group %s", unit.unitName, unit.groupName))
+                end
+            end
+        end
+    end
+end
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- initialisation
 -------------------------------------------------------------------------------------------------------------------------------------------------------------

@@ -176,6 +176,7 @@ end
 function veafNamedPoints._addPoint(name, point)
     veafNamedPoints.logTrace(string.format("addPoint(name = %s)",name))
     veafNamedPoints.logTrace("point=" .. veaf.vecToString(point))
+    if not point.y then point.y = 0 end
     point.name = name:upper()
     veafNamedPoints.namedPoints[name:upper()] = point
 end

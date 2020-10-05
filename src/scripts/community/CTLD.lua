@@ -5283,7 +5283,7 @@ end
 
 -- Find nearest enemy to JTAC that isn't blocked by terrain
 function ctld.findNearestVisibleEnemy(_jtacUnit, _targetType,_distance)
-    log.info(string.format("CTLD - ctld.findNearestVisibleEnemy, _targetType=%s", _targetType))
+    --log.info(string.format("CTLD - ctld.findNearestVisibleEnemy, _targetType=%s", _targetType))
 
     --local startTime = os.clock()
 
@@ -5371,12 +5371,12 @@ function ctld.findNearestVisibleEnemy(_jtacUnit, _targetType,_distance)
     local result = nil
     for _, _enemyUnit in ipairs(_unitList) do
         local _enemyName = _enemyUnit.unit:getName()
-        log.info(string.format("CTLD - checking _enemyName=%s", _enemyName))
+        --log.info(string.format("CTLD - checking _enemyName=%s", _enemyName))
 
         -- check for air defenses
-        log.info(string.format("CTLD - _enemyUnit.unit:getDesc()[attributes]=%s", veaf.p(_enemyUnit.unit:getDesc()["attributes"])))
+        --log.info(string.format("CTLD - _enemyUnit.unit:getDesc()[attributes]=%s", veaf.p(_enemyUnit.unit:getDesc()["attributes"])))
         local airdefense = (_enemyUnit.unit:getDesc()["attributes"]["Air Defence"] ~= nil)
-        log.info(string.format("CTLD - airdefense=%s", tostring(airdefense)))
+        --log.info(string.format("CTLD - airdefense=%s", tostring(airdefense)))
 
         if (_targetType == "vehicle" and ctld.isVehicle(_enemyUnit.unit)) or _targetType == "all" then
             if airdefense then

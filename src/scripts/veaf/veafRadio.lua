@@ -67,6 +67,8 @@ veafRadio.refreshRadioMenu_DELAY = 1
 --- Key phrase to look for in the mark text which triggers the command.
 veafRadio.Keyphrase = "_radio"
 
+--- number of seconds between beacons checks
+veafRadio.BEACONS_SCHEDULE = 5
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Do not change anything below unless you know what you are doing!
@@ -86,6 +88,8 @@ veafRadio.radioMenu.commands = {}
 
 --- Counts the size of the radio menu
 veafRadio.radioMenuSize = {}
+
+veafRadio.beacons = {}
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Utility methods
@@ -823,6 +827,50 @@ function veafRadio.getHumanUnitOrWingman(unitName)
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- radio beacons
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+function veafRadio.startBeacon(name, firstRunDelay, secondsBetweenRepeats, frequencies, modulations, message, mp3, volume, coalition)
+  veafRadio.logDebug(string.format("startBeacon(name=%s, firstRunDelay=%s, secondsBetweenRepeats=%s, coalition=%s, frequencies=%s, modulations=%s, volume=%s, message=%s, mp3=%s)", tostring(name), tostring(firstRunDelay), tostring(secondsBetweenRepeats), tostring(coalition), tostring(frequencies), tostring(modulations), tostring(volume), tostring(message), tostring(mp3)))
+  
+  local beacon = veafRadio.beacons[name:lower()]
+  if not beacon then beacon = {} end
+  beacon.name = name
+  beacon.secondsBetweenRepeats = secondsBetweenRepeats
+  beacon.nextRun = timer.getTime()+firstRunDelay
+  beacon.frequencies = frequencies
+  beacon.modulations = modulations
+  beacon.volume = volume
+  beacon.coalition = coalition
+  beacon.message = message
+  beacon.mp3 = mp3
+
+  veafRadio.logDebug(string.format("adding beacon %s", tostring(name)))
+  veafRadio.beacons[name:lower()] = beacon
+end
+
+function veafRadio._runBeacons()
+  veafRadio.logTrace("_runBeacons()")
+  
+  local now = timer.getTime()
+  veafRadio.logDebug(string.format("now = %s", tostring(now)))
+  for name, beacon in pairs(veafRadio.beacons) do
+    veafRadio.logTrace(string.format("checking %s supposed to run at %s", tostring(beacon.name), tostring(beacon.nextRun)))
+    if beacon.nextRun <= now then
+      veafRadio.logTrace(string.format("running beacon %s", tostring(name)))
+      if beacon.message then
+        veafRadio.transmitMessage(beacon.message, beacon.frequencies, beacon.modulations, beacon.volume, beacon.name, beacon.coalition, nil, true)
+      elseif beacon.mp3 then
+        veafRadio.playToRadio(beacon.mp3, beacon.frequencies, beacon.modulations, beacon.volume, beacon.name, beacon.coalition, nil, true)
+      end
+      beacon.nextRun = now + beacon.secondsBetweenRepeats
+    end
+  end
+
+  veafRadio.logTrace(string.format("rescheduling in %s seconds", tostring(veafRadio.BEACONS_SCHEDULE)))
+  mist.scheduleFunction(veafRadio._runBeacons,{},timer.getTime()+veafRadio.BEACONS_SCHEDULE)
+end
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- radio utilities
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -835,9 +883,12 @@ function veafRadio.transmitMessage(message, frequencies, modulations, volume, na
 
   if veafSanitized_os and STTS then
     message = message:gsub("\"","\\\"")
-    local cmd = string.format("start \"%s\" \"%s\\%s\" \"%s\" %s %s %s %s \"%s\" %s", STTS.DIRECTORY, STTS.DIRECTORY, STTS.EXECUTABLE, message, frequencies, modulations, coalition,STTS.SRS_PORT, name, volume )
+    local cmd = string.format("start \"%s\" \"%s\\%s\" \"%s\" %s %s %s %s \"%s\" %s", STTS.DIRECTORY, STTS.DIRECTORY, STTS.EXECUTABLE, message, frequencies, modulations, coalition, STTS.SRS_PORT, name, volume )
     veafRadio.logTrace(string.format("executing os command %s", cmd))
-    veafSanitized_os.execute(cmd)
+    local result = veafSanitized_os.execute(cmd)
+    if result == nil then
+      veafRadio.logTrace(string.format("Nil result after executing os command %s", cmd))
+    return result
   end
 
   if not quiet and coalition then
@@ -915,6 +966,9 @@ function veafRadio.initialize(skipHelpMenus)
 
     -- add marker change event handler
     veafMarkers.registerEventHandler(veafMarkers.MarkerChange, veafRadio.onEventMarkChange)
+
+    -- start the beacons
+    veafRadio._runBeacons()
 end
 
 veafRadio.logInfo(string.format("Loading version %s", veafRadio.Version))

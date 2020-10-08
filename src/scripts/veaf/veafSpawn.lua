@@ -69,8 +69,8 @@ veafSpawn.Id = "SPAWN - "
 veafSpawn.Version = "1.16.0"
 
 -- trace level, specific to this module
-veafSpawn.Debug = false
-veafSpawn.Trace = false
+veafSpawn.Debug = true
+veafSpawn.Trace = true
 
 --- Key phrase to look for in the mark text which triggers the spawn command.
 veafSpawn.SpawnKeyphrase = "_spawn"
@@ -275,24 +275,26 @@ end
 -- Analyse the mark text and extract keywords.
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
+function veafSpawn.convertLaserToFreq(laser)
+    veafSpawn.logTrace(string.format("convertLaserToFreq(laser=%s)", tostring(laser)))
+    local laser = tonumber(laser)
+    if laser and laser >= 1111 and laser <= 1688 then
+        local laserB = math.floor((laser - 1000)/100)
+        local laserCD = laser - 1000 - laserB*100
+        local frequency = tostring(30+laserB+laserCD*0.05)
+        veafSpawn.logTrace(string.format("laserB=%s", tostring(laserB)))
+        veafSpawn.logTrace(string.format("laserCD=%s", tostring(laserCD)))
+        veafSpawn.logTrace(string.format("frequency=%s", tostring(frequency)))
+        return frequency
+    else 
+        return nil
+    end
+end
+
 --- Extract keywords from mark text.
 function veafSpawn.markTextAnalysis(text)
     veafSpawn.logTrace(string.format("veafSpawn.markTextAnalysis(text=%s)", text))
 
-    local function convertLaserToFreq(laser)
-        veafSpawn.logTrace(string.format("convertLaserToFreq(laser=%s)", tostring(laser)))
-        if laser and laser >= 1111 and laser <= 1688 then
-            local laserB = math.floor((laser - 1000)/100)
-            local laserCD = laser - 1000 - laserB*100
-            local frequency = tostring(30+laserB+laserCD*0.05)
-            veafSpawn.logTrace(string.format("laserB=%s", tostring(laserB)))
-            veafSpawn.logTrace(string.format("laserCD=%s", tostring(laserCD)))
-            veafSpawn.logTrace(string.format("frequency=%s", tostring(frequency)))
-            return frequency
-        else 
-            return nil
-        end
-    end
 
     -- Option parameters extracted from the mark text.
     local switch = {}
@@ -374,8 +376,8 @@ function veafSpawn.markTextAnalysis(text)
     switch.password = nil
 
     -- JTAC radio comms
-    switch.freq = convertLaserToFreq(switch.laserCode)
-    switch.mod = "fm"
+    switch.freq = veafSpawn.convertLaserToFreq(switch.laserCode)
+    switch.mod = "am"
 
     -- TACAN name and channel
     switch.tacanChannel = 99
@@ -570,7 +572,7 @@ function veafSpawn.markTextAnalysis(text)
             -- Set laser code.
             veafSpawn.logTrace(string.format("laser code = %s", tostring(val)))
             local nVal = veaf.getRandomizableNumeric(val)
-            switch.freq = convertLaserToFreq(nVal)
+            switch.freq = veafSpawn.convertLaserToFreq(nVal)
             switch.laserCode = nVal
         end        
         

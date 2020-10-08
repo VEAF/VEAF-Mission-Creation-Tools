@@ -887,7 +887,8 @@ function veafRadio.transmitMessage(message, frequencies, modulations, volume, na
     veafRadio.logTrace(string.format("executing os command %s", cmd))
     local result = veafSanitized_os.execute(cmd)
     if result == nil then
-      veafRadio.logTrace(string.format("Nil result after executing os command %s", cmd))
+      veafRadio.logWarning(string.format("Nil result after executing os command %s", cmd))
+    end
     return result
   end
 

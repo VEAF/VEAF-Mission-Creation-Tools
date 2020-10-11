@@ -1,0 +1,1 @@
+This folder contains scripts used in conjunction with dcs-liberation (https://github.com/Khopa/dcs_liberation)

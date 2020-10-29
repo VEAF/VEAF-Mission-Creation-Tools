@@ -1,5 +1,7 @@
 # VEAF-Mission-Creation-Tools
 
+[![Badge-Discord]][Link-Discord]
+
 All scripts, libraries and documentation needed to build a dynamic mission in DCS using the VEAF scripts
 
 ## How to work on this package ?
@@ -34,3 +36,6 @@ And also lots of design-time functionality :
 - injecting real weather in a mission
 
 And probably other things I forget ;)
+
+[Badge-Discord]: https://img.shields.io/discord/471061487662792715?label=VEAF%20Discord&style=for-the-badge
+[Link-Discord]: https://tinyurl.com/veafdisc

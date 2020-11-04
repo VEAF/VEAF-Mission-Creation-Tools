@@ -30,8 +30,8 @@ veafShortcuts.Id = "SHORTCUTS - "
 veafShortcuts.Version = "1.4.0"
 
 -- trace level, specific to this module
-veafShortcuts.Debug = false
-veafShortcuts.Trace = false
+veafShortcuts.Debug = true
+veafShortcuts.Trace = true
 
 veafShortcuts.RadioMenuName = "SHORTCUTS"
 
@@ -366,19 +366,6 @@ function veafShortcuts.buildRadioMenu()
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
--- initialisation
--------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-function veafShortcuts.initialize()
-    veafShortcuts.logInfo("Initializing module")
-    veafShortcuts.buildDefaultList()
-    veafShortcuts.buildRadioMenu()
-    veafMarkers.registerEventHandler(veafMarkers.MarkerChange, veafShortcuts.onEventMarkChange)
-end
-
-veafShortcuts.logInfo(string.format("Loading version %s", veafShortcuts.Version))
-
--------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- default aliases list
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -697,3 +684,41 @@ function veafShortcuts.buildDefaultList()
             :setBypassSecurity(true)
     )
 end
+
+function veafShortcuts.dumpAliasesList(export_path)
+
+    local jsonify = function(key, value)
+        veafShortcuts.logTrace(string.format("jsonify(%s)", veaf.p(value)))
+        if json then
+            return json.stringify(veafShortcuts.GetAlias(value))
+        else
+            return ""
+        end
+    end
+
+    -- sort the aliases alphabetically
+    sortedAliases = {}
+    for _, alias in pairs(veafShortcuts.aliases) do
+        table.insert(sortedAliases, alias:getName())
+    end
+    table.sort(sortedAliases)
+    veafShortcuts.logTrace(string.format("sortedAliases=%s", veaf.p(sortedAliases)))
+
+    
+    veaf.exportAsJson(sortedAliases, "aliases", jsonify, "AliasesList.json", export_path)
+end
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- initialisation
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+function veafShortcuts.initialize()
+    veafShortcuts.logInfo("Initializing module")
+    veafShortcuts.buildDefaultList()
+    veafShortcuts.buildRadioMenu()
+    veafMarkers.registerEventHandler(veafMarkers.MarkerChange, veafShortcuts.onEventMarkChange)
+    veafShortcuts.dumpAliasesList()
+end
+
+veafShortcuts.logInfo(string.format("Loading version %s", veafShortcuts.Version))
+

@@ -1381,43 +1381,16 @@ function veafCombatMission.addCapMission(missionName, missionDescription, missio
     ,false, skills, scales)
 end
 
-
--------------------------------------------------------------------------------------------------------------------------------------------------------------
--- initialisation
--------------------------------------------------------------------------------------------------------------------------------------------------------------
-function veafCombatMission.initialize()
-    veafCombatMission.logInfo("Initializing module")
-    veafCombatMission.buildRadioMenu()
-end
-
 function veafCombatMission.dumpMissionsList(export_path)
-    local veafSanitized_lfs = veafSanitized_lfs
-    if not veafSanitized_lfs then veafSanitized_lfs = lfs end
 
-    local veafSanitized_io = veafSanitized_io
-    if not veafSanitized_io then veafSanitized_io = io end
-
-    local veafSanitized_os = veafSanitized_os
-    if not veafSanitized_os then veafSanitized_os = os end
-
-    local function writeln(file, text)
-        file:write(text.."\r\n")
+    local jsonify = function(key, value)
+        veafShortcuts.logTrace(string.format("jsonify(%s)", veaf.p(value)))
+        if json then
+            return json.stringify(veafCombatMission.missionsDict[value])
+        else
+            return ""
+        end
     end
-    
-    local export_path = export_path
-    if not export_path then
-        export_path = veafSanitized_os.getenv("VEAF_EXPORT_DIR")
-        if export_path then export_path = export_path .. "\\" end
-    end
-    if not export_path then
-        export_path = veafSanitized_os.getenv("TEMP")
-        if export_path then export_path = export_path .. "\\" end
-    end
-    if not export_path then
-        export_path = veafSanitized_lfs.writedir()
-    end
-
-    veafCombatMission.logInfo("Dumping missions list as json to "..export_path)
 
     -- sort the missions alphabetically
     sortedMissions = {}
@@ -1425,27 +1398,18 @@ function veafCombatMission.dumpMissionsList(export_path)
         table.insert(sortedMissions, mission:getName())
     end
     table.sort(sortedMissions)
+    
+    veaf.exportAsJson(sortedMissions, "combatMissions", jsonify, "CombatMissionsList.json", export_path)
+end
 
-    local header = 
-[[
-{
-  "combatMissions": [
-]]      
-    local footer = 
-[[
-  ]
-}
-]]      
-    local file = veafSanitized_io.open(export_path.."CombatMissionsList.json", "w")
-    writeln(file, header)
-    for _, missionName in pairs(sortedMissions) do
-        writeln(file, '  {')
-        writeln(file, '    "name" : "' .. missionName .. '",')
-        writeln(file, '    "briefing" : "' .. veafCombatMission.missionsDict[missionName]:getBriefing():gsub("\n","\\n") .. '"')
-        writeln(file, '  },')
-    end
-    writeln(file, footer)
-    file:close()
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- initialisation
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+function veafCombatMission.initialize()
+    veafCombatMission.logInfo("Initializing module")
+    veafCombatMission.buildRadioMenu()
+    veafCombatMission.dumpMissionsList()
 end
 
 veafCombatMission.logInfo(string.format("Loading version %s", veafCombatMission.Version))
+

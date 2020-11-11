@@ -45,7 +45,7 @@ veafRadio = {}
 veafRadio.Id = "RADIO - "
 
 --- Version.
-veafRadio.Version = "1.8.1"
+veafRadio.Version = "1.8.2"
 
 -- trace level, specific to this module
 veafRadio.Debug = false
@@ -883,7 +883,7 @@ function veafRadio.transmitMessage(message, frequencies, modulations, volume, na
 
   if veafSanitized_os and STTS then
     message = message:gsub("\"","\\\"")
-    local cmd = string.format("start \"%s\" \"%s\\%s\" \"%s\" %s %s %s %s \"%s\" %s", STTS.DIRECTORY, STTS.DIRECTORY, STTS.EXECUTABLE, message, frequencies, modulations, coalition, STTS.SRS_PORT, name, volume )
+    local cmd = string.format("start /min \"%s\" \"%s\\%s\" \"%s\" %s %s %s %s \"%s\" %s", STTS.DIRECTORY, STTS.DIRECTORY, STTS.EXECUTABLE, message, frequencies, modulations, coalition, STTS.SRS_PORT, name, volume )
     veafRadio.logTrace(string.format("executing os command %s", cmd))
     local result = veafSanitized_os.execute(cmd)
     if result == nil then
@@ -915,7 +915,7 @@ function veafRadio.playToRadio(pathToMP3, frequencies, modulations, volume, name
       pathToMP3 = pathToMP3 .. ".mp3"
     end
 
-    local cmd = string.format("start \"%s\" \"%s\\%s\" \"%s\" %s %s %s %s \"%s\" %s", STTS.DIRECTORY, STTS.DIRECTORY, STTS.EXECUTABLE, pathToMP3, frequencies, modulations, coalition,STTS.SRS_PORT, name, volume )
+    local cmd = string.format("start /min \"%s\" \"%s\\%s\" \"%s\" %s %s %s %s \"%s\" %s", STTS.DIRECTORY, STTS.DIRECTORY, STTS.EXECUTABLE, pathToMP3, frequencies, modulations, coalition,STTS.SRS_PORT, name, volume )
     veafRadio.logTrace(string.format("executing os command %s", cmd))
     veafSanitized_os.execute(cmd)
   end

@@ -45,7 +45,7 @@ veafGrass = {}
 veafGrass.Id = "GRASS - "
 
 --- Version.
-veafGrass.Version = "2.1.0"
+veafGrass.Version = "2.1.1"
 
 -- trace level, specific to this module
 veafGrass.Trace = false
@@ -208,7 +208,7 @@ function veafGrass.buildFarpsUnits()
             grassRunwayUnits[name] = unit
             --veafGrass.logTrace(string.format("found grassRunwayUnits[%s]= %s", name, veaf.p(unit)))
         end
-        if (unit.type == "SINGLE_HELIPAD" or unit.type == "FARP") and name:upper():find('FARP ') then 
+        if (unit.type == "SINGLE_HELIPAD" or unit.type == "FARP" or unit.type == "Invisible FARP") and name:upper():find('FARP ') then 
             farpUnits[name] = unit
             --veafGrass.logTrace(string.format("found farpUnits[%s]= %s", name, veaf.p(unit)))
         end

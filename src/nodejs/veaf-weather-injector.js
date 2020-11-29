@@ -101,6 +101,17 @@ async function injectWeather(parameters) {
     missionData = missionData.slice(0, matchpos) + missionData.slice(matchpos).replace(/\["start_time"\] = (\d+)/, `["start_time"] = ${missionStartTime}`);
   }
 
+  // set the mission date
+  var dateObj = new Date();
+  var month = dateObj.getUTCMonth() + 1; //months from 1-12
+  var day = dateObj.getUTCDate();
+  //var year = dateObj.getUTCFullYear();
+  if (!quiet) console.log(`Setting mission start date to ${day}/${month}`);
+  let matchpos = missionData.regexLastIndexOf(/\["Day"\] = (\d+)/g);
+  missionData = missionData.slice(0, matchpos) + missionData.slice(matchpos).replace(/\["Day"\] = (\d+)/, `["Day"] = ${day}`);
+  matchpos = missionData.regexLastIndexOf(/\["Month"\] = (\d+)/g);
+  missionData = missionData.slice(0, matchpos) + missionData.slice(matchpos).replace(/\["Month"\] = (\d+)/, `["Month"] = ${month}`);
+
   if (trace)
   {
     let writeStream = fs.createWriteStream('mission.lua');

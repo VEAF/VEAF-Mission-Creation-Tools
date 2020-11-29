@@ -77,10 +77,19 @@ class DCSCheckWXConvertEnricher {
     return Math.floor(this.getDeterministicRandomFloat(min, max));
   }
 
+  /**
+   * convert "from degrees" in "to degrees"
+   * @param int angle the wind is going from this direction (like in METAR)
+   * @return int angle the wind is going to this direction (like in DCS Mission Editor)
+   */
+  convertFromTo(angle) {
+	return this.normalizeDegrees(angle - 180);
+  }
+
   normalizeDegrees(angle) {
     let retangle = angle;
     if (retangle < 0) retangle = retangle + 360;
-    if (retangle >= 360) retangle = retangle - 360;
+    retangle = retangle % 360;
     return retangle;
   }
 
@@ -155,10 +164,10 @@ class DCSCheckWXConvertEnricher {
 
   getWindASL() {
     try {
-      return { 'direction': this.getClosestResult()['wind']['degrees'], 'speed': this.getClosestResult()['wind']['speed_mps'] };
+      return { 'direction': this.convertFromTo(this.getClosestResult()['wind']['degrees']), 'speed': this.getClosestResult()['wind']['speed_mps'] };
     } catch (err) {
       console.log(err);
-      return { 'direction': this.getDeterministicRandomInt(0, 360), 'speed': this.getDeterministicRandomFloat(0, 1) };
+      return { 'direction': this.convertFromTo(this.getDeterministicRandomInt(0, 360)), 'speed': this.getDeterministicRandomFloat(0, 1) };
     }
   }
 

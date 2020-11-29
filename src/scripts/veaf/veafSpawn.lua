@@ -254,11 +254,14 @@ function veafSpawn.executeCommand(eventPos, eventText, eventCoalition, bypassSec
                     veafSpawn.spawnSignalFlare(eventPos, options.radius, options.shells, options.smokeColor)
                 end
                 if spawnedGroup then
+                    local groupObject = Group.getByName(spawnedGroup)
+                    -- make the group combat ready !
+                    veaf.readyForCombat(groupObject)
                     if not routeDone and options.destination then
                         --  make the group go to destination
-                        local actualPosition = Group.getByName(spawnedGroup):getUnit(1):getPosition().p
+                        local actualPosition = groupObject:getUnit(1):getPosition().p
                         local route = veaf.generateVehiclesRoute(actualPosition, options.destination, not options.offroad, options.speed, options.patrol)
-                        mist.goRoute(spawnedGroup, route)
+                        mist.goRoute(groupObject, route)
                     end
                     if spawnedGroups then
                         table.insert(spawnedGroups, spawnedGroup)

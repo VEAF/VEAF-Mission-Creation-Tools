@@ -33,7 +33,7 @@ veaf.Id = "VEAF - "
 veaf.MainId = "MAIN - "
 
 --- Version.
-veaf.Version = "1.8.1.003"
+veaf.Version = "1.9.0"
 
 -- trace level, specific to this module
 veaf.MainTrace = false
@@ -913,6 +913,17 @@ function veaf.moveGroupAt(groupName, leadUnitName, heading, speed, timeInSeconds
     return true
 end
 
+function veaf.readyForCombat(group)
+    if type(group) == 'string' then
+        group = Group.getByName(group)
+    end
+    if group then
+        local cont = group:getController()
+        cont:setOnOff(true)
+        cont:setOption(AI.Option.Ground.id.ALARM_STATE, AI.Option.Ground.val.ALARM_STATE.RED)	
+        cont:setOption(AI.Option.Air.id.ROE, AI.Option.Air.val.ROE.WEAPON_FREE)
+    end
+end
 
 -- Makes a group move to a specific waypoint at a specific speed
 function veaf.moveGroupTo(groupName, pos, speed, altitude)

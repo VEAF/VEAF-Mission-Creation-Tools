@@ -48,7 +48,7 @@ veafCombatZone = {}
 veafCombatZone.Id = "COMBAT ZONE - "
 
 --- Version.
-veafCombatZone.Version = "1.3.0"
+veafCombatZone.Version = "1.4.0"
 
 -- trace level, specific to this module
 veafCombatZone.Debug = false
@@ -790,6 +790,7 @@ function VeafCombatZone:activate()
                                 if type(newGroup) == 'table' then
                                     veafCombatZone.logTrace(string.format("[%s]:activate() - mist.teleportToPoint([%s])", self:getMissionEditorZoneName(), zoneElement:getName()))
                                     self:addSpawnedGroup(newGroup.name)
+                                    veaf.readyForCombat(newGroup.name)
                                 else
                                     veafCombatZone.logTrace(string.format("[%s]:activate() - mist.teleportToPoint([%s]) failed", self:getMissionEditorZoneName(), zoneElement:getName()))
                                 end

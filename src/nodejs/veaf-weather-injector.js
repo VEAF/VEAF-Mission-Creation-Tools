@@ -39,7 +39,7 @@ async function injectWeatherFromConfiguration(parameters) {
         return;
       }
       for (let i=0; i<data.targets.length; i++) {       
-        let { version, weather, weatherfile, time } = data.targets[i];
+        let { version, weather, weatherfile, time, dontSetToday, setTodayYear } = data.targets[i];
         let parameters = {
           sourceMissionFileName: sourceMissionFileName,
           targetMissionFileName: targetMissionFileName.replace("${version}", version),
@@ -47,6 +47,8 @@ async function injectWeatherFromConfiguration(parameters) {
           weatherFileName:  weatherfile ? configurationFolder + weatherfile : null,
           metarString: weather,
           variableForMetar: data.variableForMetar,
+          setToday: !dontSetToday,
+          setTodayYear: setTodayYear,
           trace: trace,
           quiet: quiet
         }
@@ -60,7 +62,7 @@ async function injectWeatherFromConfiguration(parameters) {
 }
 
 async function injectWeather(parameters) {
-  let { sourceMissionFileName, targetMissionFileName, missionStartTime, weatherFileName, metarString, variableForMetar, trace, quiet } = parameters;
+  let { sourceMissionFileName, targetMissionFileName, missionStartTime, weatherFileName, metarString, variableForMetar, setToday, setTodayYear, trace, quiet } = parameters;
   if (targetMissionFileName && targetMissionFileName.indexOf(".miz") < 0)
     targetMissionFileName = targetMissionFileName + ".miz";
   if (!quiet) console.log(`DCS weather injector starting`);
@@ -102,15 +104,21 @@ async function injectWeather(parameters) {
   }
 
   // set the mission date
+  if (setToday) {
   var dateObj = new Date();
   var month = dateObj.getUTCMonth() + 1; //months from 1-12
   var day = dateObj.getUTCDate();
-  //var year = dateObj.getUTCFullYear();
+    var year = dateObj.getUTCFullYear();
   if (!quiet) console.log(`Setting mission start date to ${day}/${month}`);
   let matchpos = missionData.regexLastIndexOf(/\["Day"\] = (\d+)/g);
   missionData = missionData.slice(0, matchpos) + missionData.slice(matchpos).replace(/\["Day"\] = (\d+)/, `["Day"] = ${day}`);
   matchpos = missionData.regexLastIndexOf(/\["Month"\] = (\d+)/g);
   missionData = missionData.slice(0, matchpos) + missionData.slice(matchpos).replace(/\["Month"\] = (\d+)/, `["Month"] = ${month}`);
+    if (setTodayYear) {
+      matchpos = missionData.regexLastIndexOf(/\["Year"\] = (\d+)/g);
+      missionData = missionData.slice(0, matchpos) + missionData.slice(matchpos).replace(/\["Year"\] = (\d+)/, `["Year"] = ${year}`);
+    }
+  }
 
   if (trace)
   {

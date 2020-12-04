@@ -236,7 +236,7 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits)
 	local tentSpacing = 30
 	local otherDistance = 85
 	local otherSpacing = 15
-	local unitsDistance = 80
+	local unitsDistance = 75
 
 	-- fix distances on FARP
 	if farp.type == "FARP" then

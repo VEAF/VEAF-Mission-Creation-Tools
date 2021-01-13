@@ -164,11 +164,11 @@ function veafInterpreter.processObject(unitName)
             local position = unit:getPosition().p
             veafInterpreter.logTrace(string.format("found the unit at : [%s]", veaf.vecToString(position)))
             local groupName = unit:getGroup():getName()
-            veafInterpreter.logTrace(string.format("groupName = [%s]", groupName))
+            veafInterpreter.logDebug(string.format("in [%s]", groupName))
             local route = mist.getGroupRoute(groupName, 'task')
             veafInterpreter.logTrace(string.format("route = [%s]", veaf.p(route)))
             if veafInterpreter.execute(command, position, unit:getCoalition(), route) then 
-                unit:destroy()
+                unit:getGroup():destroy()
             end
         end
     end

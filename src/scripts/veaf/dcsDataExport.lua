@@ -138,7 +138,7 @@ local function _sortUnits(u1,u2)
     end
 end
 
-local function browseUnits(out, database, defaultCategory, fullDcsUnit)
+local function browseUnits(out, database, defaultCategory, fullDcsUnit, exportAllAttributes)
     for _, unit in pairs(database) do
         if fullDcsUnit then
             out[unit["type"]] = unit
@@ -159,6 +159,12 @@ local function browseUnits(out, database, defaultCategory, fullDcsUnit)
                 end
             end
             if unit["attribute"] then
+                if exportAllAttributes then
+                    u.attribute = {}
+                    for _, attribute in pairs(unit["attribute"]) do
+                        u.attribute[attribute] = true
+                    end
+                end
                 for _, attr in pairs(unit["attribute"]) do
                     if type(attr) == "string" then
                         if attr:lower() == "ships" then u.naval = true end
@@ -174,14 +180,15 @@ end
 
 local units = {}
 local fullDcsUnit = false
-browseUnits(units, db.Units.Planes.Plane, "Plane", fullDcsUnit)
-browseUnits(units, db.Units.Helicopters.Helicopter, "Helicopter", fullDcsUnit)
-browseUnits(units, db.Units.Cars.Car, "Vehicle", fullDcsUnit)
-browseUnits(units, db.Units.Ships.Ship, "Ship", fullDcsUnit)
-browseUnits(units, db.Units.Fortifications.Fortification, "Fortification", fullDcsUnit)
-browseUnits(units, db.Units.GroundObjects.GroundObject, "GroundObject", fullDcsUnit)
-browseUnits(units, db.Units.Warehouses.Warehouse, "Warehouse", fullDcsUnit)
-browseUnits(units, db.Units.Cargos.Cargo, "Cargo", fullDcsUnit)
+local exportAllAttributes = true
+browseUnits(units, db.Units.Planes.Plane, "Plane", fullDcsUnit, exportAllAttributes)
+browseUnits(units, db.Units.Helicopters.Helicopter, "Helicopter", fullDcsUnit, exportAllAttributes)
+browseUnits(units, db.Units.Cars.Car, "Vehicle", fullDcsUnit, exportAllAttributes)
+browseUnits(units, db.Units.Ships.Ship, "Ship", fullDcsUnit, exportAllAttributes)
+browseUnits(units, db.Units.Fortifications.Fortification, "Fortification", fullDcsUnit, exportAllAttributes)
+browseUnits(units, db.Units.GroundObjects.GroundObject, "GroundObject", fullDcsUnit, exportAllAttributes)
+browseUnits(units, db.Units.Warehouses.Warehouse, "Warehouse", fullDcsUnit, exportAllAttributes)
+browseUnits(units, db.Units.Cargos.Cargo, "Cargo", fullDcsUnit, exportAllAttributes)
 local values = {}
 if fullDcsUnit then
     values = units    

@@ -54,7 +54,7 @@ veafInterpreter = {}
 veafInterpreter.Id = "INTERPRETER - "
 
 --- Version.
-veafInterpreter.Version = "1.0.2"
+veafInterpreter.Version = "1.1.0"
 
 -- trace level, specific to this module
 veafInterpreter.Trace = false

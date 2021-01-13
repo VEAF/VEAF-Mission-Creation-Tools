@@ -66,7 +66,7 @@ veafSpawn = {}
 veafSpawn.Id = "SPAWN - "
 
 --- Version.
-veafSpawn.Version = "1.16.0"
+veafSpawn.Version = "1.17.0"
 
 -- trace level, specific to this module
 veafSpawn.Debug = true
@@ -262,6 +262,10 @@ function veafSpawn.executeCommand(eventPos, eventText, eventCoalition, bypassSec
                         local actualPosition = groupObject:getUnit(1):getPosition().p
                         local route = veaf.generateVehiclesRoute(actualPosition, options.destination, not options.offroad, options.speed, options.patrol)
                         mist.goRoute(groupObject, route)
+                    end
+                    -- add the group to the IADS, if there is one
+                    if veafSkynet then
+                        veafSkynet.addGroupToNetwork(groupObject)
                     end
                     if spawnedGroups then
                         table.insert(spawnedGroups, spawnedGroup)

@@ -48,7 +48,7 @@ veafCombatZone = {}
 veafCombatZone.Id = "COMBAT ZONE - "
 
 --- Version.
-veafCombatZone.Version = "1.4.0"
+veafCombatZone.Version = "1.5.0"
 
 -- trace level, specific to this module
 veafCombatZone.Debug = false
@@ -849,6 +849,11 @@ function VeafCombatZone:desactivate()
         end
     end
     self:clearSpawnedGroups()
+    
+    -- reset the IADS', if the module is active
+    if veafSkynet then
+        veafSkynet.reinitialize()
+    end
 
     -- refresh the radio menu
     self:updateRadioMenu()

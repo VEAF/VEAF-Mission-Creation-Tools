@@ -495,6 +495,27 @@ function veafShortcuts.buildDefaultList()
             :addRandomParameter("multiplier", 3, 6)
             :setBypassSecurity(true)
     )
+    veafShortcuts.AddAlias(
+        VeafAlias:new()
+            :setName("-roland")
+            :setDescription("Roland battery with EWR (US by default)")
+            :setVeafCommand("_spawn group, name roland, country USA")
+            :setBypassSecurity(true)
+    )
+    veafShortcuts.AddAlias(
+        VeafAlias:new()
+            :setName("-rolandnoew")
+            :setDescription("Roland battery without EWR (US by default)")
+            :setVeafCommand("_spawn group, name roland-noew, country USA")
+            :setBypassSecurity(true)
+    )
+    veafShortcuts.AddAlias(
+        VeafAlias:new()
+            :setName("-patriot")
+            :setDescription("Patriot battery (US by default)")
+            :setVeafCommand("_spawn group, name patriot, country USA")
+            :setBypassSecurity(true)
+    )
 
 
     -- shortcuts to commands

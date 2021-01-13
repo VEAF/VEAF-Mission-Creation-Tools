@@ -871,7 +871,7 @@ veafUnits.GroupsDatabase = {
         aliases = {"sa10", "s300", "bb"},
         group = {
             disposition = { h= 10, w= 13},
-            units = {{"S-300PS 40B6M tr", cell = 7}, {"S-300PS 5P85C ln", cell = 29}, {"S-300PS 5P85D ln", cell = 37}, {"S-300PS 5P85D ln", cell = 43}, {"S-300PS 5P85C ln", cell = 49}, {"S-300PS 5P85C ln", cell = 57}, {"S-300PS 5P85D ln", cell = 61}, {"S-300PS 5P85D ln", cell = 71}, {"S-300PS 5P85C ln", cell = 73}, {"S-300PS 64H6E sr", cell = 98}, {"S-300PS 54K6 cp", cell = 118}, {"S-300PS 40B6MD sr", cell = 130}},
+            units = {{"S-300PS 40B6M tr", cell ="Patriot lnt ln", cell = 29}, {"Patriot ln", cell = 37}, {"S-300PS 5P85D ln", cell = 43}, {"Patriot ln", cell = 49}, {"Patriot ln", cell = 57}, {"S-300PS 5P85D ln", cell = 61}, {"S-300PS 5P85D ln", cell = 71}, {"Patriot ln", cell = 73}, {"S-300PS 64H6E sr", cell = 98}, {"S-300PS 54K6 cp", cell = 118}, {"S-300PS 40B6MD sr", cell = 130}},
             description = "S300 SAM site",
             groupName = "S300"
         },
@@ -886,7 +886,7 @@ veafUnits.GroupsDatabase = {
         },
     },
     {
-        aliases = {"roland", "rd", "mim-115"},
+        aliases = {"roland"},
         group = {
             disposition = { h= 3, w= 3},
             units = {{"Roland Radar", random}, {"Roland ADS", random, hdg = 0}, {"Roland ADS", random, hdg = 225}, {"Roland ADS", random, hdg = 135}},
@@ -895,10 +895,19 @@ veafUnits.GroupsDatabase = {
         },
     },
     {
+        aliases = {"roland-noew"},
+        group = {
+            disposition = { h= 3, w= 3},
+            units = {{"Roland ADS", random, hdg = 0}, {"Roland ADS", random, hdg = 225}, {"Roland ADS", random, hdg = 135}},
+            description = "Roland SAM site",
+            groupName = "Roland"
+        },
+    },
+    {
         aliases = {"hawk", "ha", "mim-23"},
         group = {
             disposition = { h= 7, w= 3},
-            units = {{"Hawk pcp", cell = 8}, {"Hawk sr", cell = 13}, {"Hawk tr", cell = 15}, {"Hawk ln", cell = 1, hdg = 225}, {"Hawk ln", cell = 3, hdg = 0 }, {"Hawk ln", cell = 21, hdg = 135}},
+            units = {{"Hawk sr", cell = 13}, {"Hawk pcp", cell = 8}, {"Hawk tr", cell = 15}, {"Hawk ln", cell = 1, hdg = 225}, {"Hawk ln", cell = 3, hdg = 0 }, {"Hawk ln", cell = 21, hdg = 135}},
             description = "Hawk SAM site",
             groupName = "Hawk"
         },
@@ -906,8 +915,29 @@ veafUnits.GroupsDatabase = {
     {
         aliases = {"patriot", "pa", "mim-104"},
         group = {
-            disposition = { h= 7, w= 4},
-            units = {{"Patriot ln", cell = 1}, {"Patriot cp", cell = 8}, {"Patriot str", cell = 10}, {"Patriot AMG", cell = 19}, {"Patriot ECS", cell = 25}, {"Patriot EPP", cell = 28}},
+            disposition = { h= 7, w= 12},
+            units = {
+                {"Patriot str", cell = 66}, 
+                {"Patriot cp" , cell = 78},  
+                {"Patriot AMG", cell = 79}, 
+                {"Patriot ECS", cell = 67}, 
+                {"Patriot EPP", cell = 68}, 
+
+                {"Patriot ln", cell = 1},
+                {"Patriot ln", cell = 2},
+                {"Patriot ln", cell = 3},
+                {"Patriot ln", cell = 4},
+                
+                {"Patriot ln", cell = 29},
+                {"Patriot ln", cell = 30},
+                {"Patriot ln", cell = 31},
+                {"Patriot ln", cell = 32},
+
+                {"Patriot ln", cell = 9},
+                {"Patriot ln", cell = 10},
+                {"Patriot ln", cell = 11},
+                {"Patriot ln", cell = 12}
+            },
             description = "Patriot SAM site",
             groupName = "Patriot"
         },

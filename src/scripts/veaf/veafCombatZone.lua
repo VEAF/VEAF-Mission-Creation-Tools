@@ -48,7 +48,7 @@ veafCombatZone = {}
 veafCombatZone.Id = "COMBAT ZONE - "
 
 --- Version.
-veafCombatZone.Version = "1.5.0"
+veafCombatZone.Version = "1.6.0"
 
 -- trace level, specific to this module
 veafCombatZone.Debug = false
@@ -1115,51 +1115,32 @@ function veafCombatZone.findUnitsInTriggerZone(triggerZoneName)
     local triggerZone = trigger.misc.getZone(triggerZoneName)
     
     local units_by_name = {}
-    local l_units = mist.DBs.units	--local reference for faster execution
+    local l_units = veaf.getUnitsOfAllCoalitions(true)
     local units = {}
     local groupNames = {}
     local alreadyAddedGroups = {}
     local zoneCoordinates = {}
     zoneCoordinates = {radius = triggerZone.radius, x = triggerZone.point.x, y = triggerZone.point.y, z = triggerZone.point.z}
     
-    -- the following code is liberally adapted from MiST (thanks Grimes !)
-    for coa, coa_tbl in pairs(l_units) do
-        for country, country_table in pairs(coa_tbl) do
-            for unit_type, unit_type_tbl in pairs(country_table) do
-                if type(unit_type_tbl) == 'table' then
-                    for group_ind, group_tbl in pairs(unit_type_tbl) do
-                        if type(group_tbl) == 'table' then
-                            for unit_ind, mist_unit in pairs(group_tbl.units) do
-                                local unitName = mist_unit.unitName
-                                local unit = Unit.getByName(unitName)
-                                if not unit then 
-                                    unit = StaticObject.getByName(unitName)
-                                end
-                                if unit then
-                                    local unit_pos = unit:getPosition().p
-                                    if unit_pos then
-                                        if (((unit_pos.x - zoneCoordinates.x)^2 + (unit_pos.z - zoneCoordinates.z)^2)^0.5 <= zoneCoordinates.radius) then
-                                            veafCombatZone.logTrace(string.format("adding unit [%s]", unitName))
-                                            veafCombatZone.logTrace(string.format("unit:getCategory() = [%d]", unit:getCategory()))
-                                            local groupName = nil
-                                            if (unit:getCategory() == 3) or (unit:getCategory() == 4) then
-                                                groupName = unitName -- default for static objects = groups themselves
-                                            else
-                                                groupName = unit:getGroup():getName()
-                                            end
-                                            veafCombatZone.logTrace(string.format("groupName = %s", groupName))
-                                            if string.sub(groupName:upper(),1,string.len(triggerZoneName))==triggerZoneName:upper() then
-                                                units[#units + 1] = unit
-                                                if not alreadyAddedGroups[groupName] then 
-                                                    alreadyAddedGroups[groupName] = groupName
-                                                    groupNames[#groupNames + 1] = groupName
-                                                end
-                                            end
-                                        end
-                                    end
-                                end
-                            end
-                        end
+    for _, unit in pairs(l_units) do
+        local unitName = unit:getName()
+        local unit_pos = unit:getPosition().p
+        if unit_pos then
+            if (((unit_pos.x - zoneCoordinates.x)^2 + (unit_pos.z - zoneCoordinates.z)^2)^0.5 <= zoneCoordinates.radius) then
+                veafCombatZone.logTrace(string.format("adding unit [%s]", unitName))
+                veafCombatZone.logTrace(string.format("unit:getCategory() = [%d]", unit:getCategory()))
+                local groupName = nil
+                if (unit:getCategory() == 3) or (unit:getCategory() == 4) then
+                    groupName = unitName -- default for static objects = groups themselves
+                else
+                    groupName = unit:getGroup():getName()
+                end
+                veafCombatZone.logTrace(string.format("groupName = %s", groupName))
+                if string.sub(groupName:upper(),1,string.len(triggerZoneName))==triggerZoneName:upper() then
+                    units[#units + 1] = unit
+                    if not alreadyAddedGroups[groupName] then 
+                        alreadyAddedGroups[groupName] = groupName
+                        groupNames[#groupNames + 1] = groupName
                     end
                 end
             end

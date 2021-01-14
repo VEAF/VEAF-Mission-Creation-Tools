@@ -18,8 +18,6 @@
 
 ### Bug - needs to be corrected
 
-- units spawned with the interpreter are immune to the "_destroy" command !
-- when working on Skynet, I noticed that browsing mist.DBs.units did not find the newly spawned groups but the old ones (when starting the mission, interpreter ran spawn commands and deleted the original groups) ; could be worth checking if the "cannot destroy" bug could come from there
 ## Notes
 
 ### add an AWACS module

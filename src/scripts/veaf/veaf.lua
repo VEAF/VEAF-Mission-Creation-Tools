@@ -33,7 +33,7 @@ veaf.Id = "VEAF - "
 veaf.MainId = "MAIN - "
 
 --- Version.
-veaf.Version = "1.9.0"
+veaf.Version = "1.10.0"
 
 -- trace level, specific to this module
 veaf.MainTrace = false
@@ -1017,24 +1017,73 @@ function veaf.getBearingAndRangeFromTo(fromPoint, toPoint)
     return angle, distance, mist.utils.round(distance / 1000, 0), mist.utils.round(mist.utils.metersToNM(distance), 0)
 end
 
+function veaf.getGroupsOfCoalition(coa)
+    local coalitions = { coalition.side.RED, coalition.side.BLUE, coalition.side.NEUTRAL}
+    if coa then 
+        coalitions = { coa } 
+    end
+    local allDcsGroups = {}
+    for _, coa in pairs(coalitions) do
+        local dcsGroups = coalition.getGroups(coa)
+        for _, dcsGroup in pairs(dcsGroups) do
+            table.insert(allDcsGroups, dcsGroup)
+        end
+    end
+    return allDcsGroups
+end
+
+function veaf.getStaticsOfCoalition(coa)
+    local coalitions = { coalition.side.RED, coalition.side.BLUE, coalition.side.NEUTRAL}
+    if coa then 
+        coalitions = { coa } 
+    end
+    local allDcsStatics = {}
+    for _, coa in pairs(coalitions) do
+        local dcsStatics = coalition.getStaticObjects(coa)
+        for _, dcsStatic in pairs(dcsStatics) do
+            table.insert(allDcsStatics, dcsStatic)
+        end
+    end
+    return allDcsStatics
+end
+
+function veaf.getUnitsOfAllCoalitions(includeStatics)
+    return veaf.getUnitsOfCoalition(includeStatics)
+end
+
+function veaf.getUnitsOfCoalition(includeStatics, coa)
+    local allDcsUnits = {}
+    local allDcsGroups = veaf.getGroupsOfCoalition(coa)
+    for _, group in pairs(allDcsGroups) do
+        for _, unit in pairs(group:getUnits()) do
+            table.insert(allDcsUnits, unit)
+        end
+    end
+    if includeStatics then
+        local allDcsStatics = veaf.getStaticsOfCoalition(coa)
+        for _, staticUnit in pairs(allDcsStatics) do
+            table.insert(allDcsUnits, staticUnit)
+        end
+    end
+    return allDcsUnits
+end
+
 function veaf.findUnitsInCircle(center, radius)
     veaf.mainLogTrace(string.format("findUnitsInCircle(radius=%s)", tostring(radius)))
     veaf.mainLogTrace(string.format("center=%s", veaf.p(center)))
+
+
+    local allDcsUnits = veaf.getUnitsOfAllCoalitions(true)
+    
     local result = {}
-    local units = mist.DBs.unitsByName -- local copy for faster execution
-    for name, _ in pairs(units) do
-        local unit = Unit.getByName(name)
-        if not unit then 
-            unit = StaticObject.getByName(name)
-        end
-        if unit then 
-            local pos = unit:getPosition().p
-            if pos then -- you never know O.o
-                distanceFromCenter = ((pos.x - center.x)^2 + (pos.z - center.z)^2)^0.5
-                veaf.mainLogTrace(string.format("name=%s; distanceFromCenter=%s", tostring(name), veaf.p(distanceFromCenter)))
-                if distanceFromCenter <= radius then
-                    result[name] = unit
-                end
+    for _, unit in pairs(allDcsUnits) do
+        local pos = unit:getPosition().p
+        if pos then -- you never know O.o
+            local name = unit:getName()
+            distanceFromCenter = ((pos.x - center.x)^2 + (pos.z - center.z)^2)^0.5
+            veaf.mainLogTrace(string.format("name=%s; distanceFromCenter=%s", tostring(name), veaf.p(distanceFromCenter)))
+            if distanceFromCenter <= radius then
+                result[name] = unit
             end
         end
     end

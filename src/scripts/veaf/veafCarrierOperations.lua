@@ -258,9 +258,10 @@ function veafCarrierOperations.continueCarrierOperations(groupName)
         end
         veaf.moveGroupTo(groupName, newWaypoint, actualSpeed, 0)
         carrier.heading = dir
-        carrier.speed = veaf.round(speed * 1.94384, 0)
         veafCarrierOperations.logTrace("carrier.heading = " .. carrier.heading .. " (true)")
-        veafCarrierOperations.logTrace("carrier.heading = " .. carrier.heading + magdev .. " (mag)")
+        carrier.heading_mag = dir + magdev
+        veafCarrierOperations.logTrace("carrier.heading = " .. carrier.heading_mag .. " (mag)")
+        carrier.speed = veaf.round(speed * 1.94384, 0)
         veafCarrierOperations.logTrace("carrier.speed = " .. carrier.speed .. " kn")
 
         -- check if a Pedro group exists for this carrier
@@ -295,8 +296,8 @@ function veafCarrierOperations.continueCarrierOperations(groupName)
             if (pedroGroup) then
                 veafCarrierOperations.logDebug("found Pedro group")
                 
-                -- waypoint #1 is 250m to port
-                local offsetPointOnLand, offsetPoint = veaf.computeCoordinatesOffsetFromRoute(startPosition, newWaypoint, 0, 250)
+                -- waypoint #1 is 500m to port
+                local offsetPointOnLand, offsetPoint = veaf.computeCoordinatesOffsetFromRoute(startPosition, newWaypoint, 0, 500)
                 local pedroWaypoint1 = offsetPoint
                 local distanceFromWP1 = ((pedroUnit:getPosition().p.x - pedroWaypoint1.x)^2 + (pedroUnit:getPosition().p.z - pedroWaypoint1.z)^2)^0.5
                 if distanceFromWP1 > 500 then
@@ -306,8 +307,8 @@ function veafCarrierOperations.continueCarrierOperations(groupName)
                     pedroWaypoint1 = nil
                 end
 
-                -- waypoint #2 is 250m to port, near the end of the carrier route
-                local offsetPointOnLand, offsetPoint = veaf.computeCoordinatesOffsetFromRoute(startPosition, newWaypoint, length - 250, 250)
+                -- waypoint #2 is 500m to port, near the end of the carrier route
+                local offsetPointOnLand, offsetPoint = veaf.computeCoordinatesOffsetFromRoute(startPosition, newWaypoint, length - 250, 500)
                 local pedroWaypoint2 = offsetPoint
                 veafCarrierOperations.logTrace("Pedro WP2 = " .. veaf.vecToString(pedroWaypoint2))
                 veafCarrierOperations.traceMarkerId = veafCarrierOperations.logMarker(veafCarrierOperations.traceMarkerId, "pedroWaypoint2", pedroWaypoint2, veafCarrierOperations.debugMarkersErasedAtEachStep)
@@ -586,7 +587,7 @@ function veafCarrierOperations.getAtcForCarrierOperations(groupName, skipNavigat
     if carrier.conductingAirOperations then
         local remainingTime = veaf.round((carrier.airOperationsEndAt - timer.getTime()) /60, 1)
         result = "The carrier group "..groupName.." is conducting air operations :\n" ..
-        "  - Base Recovery Course : " .. carrier.heading .. " (true) at " .. carrier.speed .. " kn\n" ..
+        "  - BRC : " .. carrier.heading_mag .. " (".. carrier.heading .. " true) at " .. carrier.speed .. " kn\n" ..
         "  - Remaining time : " .. remainingTime .. " minutes\n"
         if carrier.tankerData then
             result = result ..

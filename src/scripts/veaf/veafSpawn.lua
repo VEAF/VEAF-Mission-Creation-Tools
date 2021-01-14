@@ -170,8 +170,8 @@ function veafSpawn.executeCommand(eventPos, eventText, eventCoalition, bypassSec
                         -- deduct the side from the country
                         options.side = veaf.getCoalitionForCountry(options.country, true)
                     else
-                    options.side = coalition
-                end
+                        options.side = coalition
+                    end
                 end
 
                 if not options.country then

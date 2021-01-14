@@ -66,7 +66,7 @@ veafSpawn = {}
 veafSpawn.Id = "SPAWN - "
 
 --- Version.
-veafSpawn.Version = "1.17.0"
+veafSpawn.Version = "1.17.1"
 
 -- trace level, specific to this module
 veafSpawn.Debug = true
@@ -192,7 +192,7 @@ function veafSpawn.executeCommand(eventPos, eventText, eventCoalition, bypassSec
                     local channel = options.freq
                     local band = options.mod
                     if options.role == "tacan" then
-                        channel = options.tacanChannel or "99"
+                        channel = options.tacanChannel or 99
                         code = options.tacanCode or "T"..tostring(channel)
                         band = options.tacanBand or "X"
                     end
@@ -1150,10 +1150,13 @@ function veafSpawn.spawnUnit(spawnSpot, radius, name, country, alt, hdg, unitNam
         end
 
     elseif role == "tacan" then
+        veafSpawn.logTrace(string.format("name=%s", tostring(name)))
+        veafSpawn.logTrace(string.format("freq=%s", tostring(freq)))
         local mod = string.upper(mod) or "X"
+        veafSpawn.logTrace(string.format("mod=%s", tostring(mod)))
         local txFreq = (1025 + freq - 1) * 1000000
         local rxFreq = (962 + freq - 1) * 1000000
-        if mod == "Y" then
+        if (freq < 64 and mod == "Y") or (freq >= 64 and mod == "X") then
             rxFreq = (1088 + freq - 1) * 1000000
         end
         veafSpawn.logTrace(string.format("txFreq=%s", tostring(txFreq)))

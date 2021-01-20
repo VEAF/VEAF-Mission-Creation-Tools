@@ -68,7 +68,7 @@ veafMove = {}
 veafMove.Id = "MOVE - "
 
 --- Version.
-veafMove.Version = "1.6.0"
+veafMove.Version = "1.7.0"
 
 -- trace level, specific to this module
 veafMove.Trace = false
@@ -95,6 +95,14 @@ veafMove.Tankers = {}
 -- Utility methods
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
+function veafMove.logError(message)
+    veaf.logError(veafMove.Id .. message)
+  end
+  
+function veafMove.logWarning(message)
+    veaf.logWarning(veafMove.Id .. message)
+  end
+  
 function veafMove.logInfo(message)
     veaf.logInfo(veafMove.Id .. message)
 end
@@ -152,6 +160,8 @@ function veafMove.executeCommand(eventPos, eventText, eventCoalition, bypassSecu
                 result = veafMove.moveGroup(eventPos, options.groupName, options.speed, options.altitude)
             elseif options.moveTanker then
                 result = veafMove.moveTanker(eventPos, options.groupName, options.speed, options.altitude, options.hdg, options.distance)
+            elseif options.changeTanker then
+                result = veafMove.changeTanker(eventPos, options.speed, options.altitude)
             elseif options.moveAfac then
                 result = veafMove.moveAfac(eventPos, options.groupName, options.speed, options.altitude)
             end
@@ -174,6 +184,7 @@ function veafMove.markTextAnalysis(text)
     local switch = {}
     switch.moveGroup = false
     switch.moveTanker = false
+    switch.changeTanker = false
     switch.moveAfac = false
 
     -- the name of the group to move ; mandatory
@@ -195,6 +206,10 @@ function veafMove.markTextAnalysis(text)
     if text:lower():find(veafMove.Keyphrase .. " group") then
         switch.moveGroup = true
         switch.speed = 20
+    elseif text:lower():find(veafMove.Keyphrase .. " tankermission") then
+        switch.changeTanker = true
+        switch.speed = -1
+        switch.altitude = -1
     elseif text:lower():find(veafMove.Keyphrase .. " tanker") then
         switch.moveTanker = true
         switch.speed = -1
@@ -277,6 +292,147 @@ function veafMove.moveGroup(eventPos, groupName, speed, altitude)
     end
     return result
 end
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- Change tanker mission parameters
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+function veafMove.changeTanker(eventPos, speed, alt)
+    veafMove.logDebug(string.format("veafMove.changeTanker(speed=%s, alt=%s)", tostring(speed), tostring(alt)))
+    veafMove.logTrace(string.format("eventPos=%s",veaf.p(eventPos)))
+    if veafMove.Trace then veaf.cleanupLogMarkers(debugMarkers) end
+    
+    local tankerUnit = nil
+    local units = veaf.findUnitsInCircle(eventPos, 2000, false)
+    veafMove.logTrace(string.format("units=%s", veaf.p(units)))
+    if units then
+        for name, _ in pairs(units) do
+            -- try and find a tanker unit
+            local unit = Unit.getByName(name)
+            if unit and unit:getDesc()["attributes"]["Tankers"] then
+                tankerUnit = unit
+                break
+            end
+        end
+    end
+
+    if not tankerUnit then
+        veafMove.logWarning("Cannot find tanker unit around marker")
+		trigger.action.outText("Cannot find tanker unit around marker" , 10)
+        return false
+    end
+
+    local tankerGroup = tankerUnit:getGroup()
+    local tankerGroupName = tankerGroup:getName()
+
+    local tankerData = veaf.getGroupData(tankerGroupName)
+    if not(tankerData) then
+        local text = "Cannot move tanker " .. tankerGroupName .. " ; cannot find group data"
+        veafMove.logInfo(text)
+        trigger.action.outText(text)
+        return
+    end
+
+    local route = veaf.findInTable(tankerData, "route")
+    local points = veaf.findInTable(route, "points")
+    if points then
+        veafMove.logTrace("found a " .. #points .. "-points route for tanker " .. tankerGroupName)
+        -- modify the last 3 points
+        local idxPoint1 = #points-2
+        local idxPoint2 = #points-1
+        local idxPoint3 = #points
+
+        -- point1 is the point where the tanker mission starts ; we'll change the speed and altitude
+        local point1 = points[idxPoint1]
+        veafMove.logTrace("found point1")
+        traceMarkerId = veafMove.logMarker(traceMarkerId, "point1", point1, debugMarkers)
+        -- set speed
+        if speed > -1 then 
+            point1.speed = speed/1.94384  -- in m/s
+        else
+            speed = point1.speed*1.94384  -- in knots 
+        end
+        -- set altitude
+        if alt > -1 then 
+            point1.alt = alt * 0.3048 -- in meters
+        else
+            alt = point1.alt / 0.3048 -- in feet
+        end
+        veafMove.logTrace(string.format("newPoint1=%s",veaf.p(point1)))
+        traceMarkerId = veafMove.logMarker(traceMarkerId, "newPoint1", point1, debugMarkers)
+
+        -- point 2 is the start of the tanking Orbit ; we'll change the speed and altitude
+        local point2 = points[idxPoint2]
+        veafMove.logTrace("found point2")
+        traceMarkerId = veafMove.logMarker(traceMarkerId, "point2", point2, debugMarkers)
+        local foundOrbit = false
+        local task1 = veaf.findInTable(point2, "task")
+        if task1 then
+            local tasks = task1.params.tasks
+            if (tasks) then
+                veaf.mainLogTrace("found " .. #tasks .. " tasks")
+                for j, task in pairs(tasks) do
+                    veaf.mainLogTrace("found task #" .. j)
+                    if task.params then
+                        veaf.mainLogTrace("has .params")
+                        if task.id and task.id == "Orbit" then
+                            veaf.mainLogDebug("Found a ORBIT task for tanker " .. tankerGroupName)
+                            foundOrbit = true
+                            if speed > -1 then 
+                                task.params.speed = speed/1.94384  -- in m/s
+                                point2.speed = speed/1.94384  -- in m/s
+                            end
+                            if alt > -1 then 
+                                task.params.altitude = alt * 0.3048 -- in meters
+                                point2.alt = alt * 0.3048 -- in meters
+                            end
+                        end
+                    end
+                end
+            end
+        end
+        if not foundOrbit then 
+            local text = "Cannot set tanker " .. tankerGroupName .. " parameters because it has no ORBIT task defined"
+            veafMove.logInfo(text)
+            trigger.action.outText(text)
+            return
+        end
+        traceMarkerId = veafMove.logMarker(traceMarkerId, "newPoint2", point2, debugMarkers)
+
+        -- point 3 is the end of the tanking Orbit ; we'll change the speed and altitude
+        local point3 = points[idxPoint3]
+        veafMove.logTrace("found point3")
+        traceMarkerId = veafMove.logMarker(traceMarkerId, "point3", point3, debugMarkers)
+        -- change speed
+        if speed > -1 then 
+            point3.speed = speed/1.94384  -- in m/s
+        end
+        -- change altitude
+        if alt > -1 then 
+            point3.alt = alt * 0.3048 -- in meters
+        end
+        veafMove.logTrace("newpoint3="..veaf.p(point3))
+        traceMarkerId = veafMove.logMarker(traceMarkerId, "newpoint3", point3, debugMarkers)
+
+        -- replace whole mission
+        veafMove.logDebug("Resetting changed tanker mission")
+        -- replace the mission
+        local mission = { 
+            id = 'Mission', 
+            params = tankerData
+        }
+        local controller = tankerGroup:getController()
+        controller:setTask(mission)
+        
+        local msg = string.format("Set tanker %s to %d kn (ground) at %d ft", tankerGroupName, speed, alt)
+        veafMove.logInfo(msg)
+		trigger.action.outText(msg , 10)
+        return true
+    else
+        return false
+    end
+end
+
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Tanker move command

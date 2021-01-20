@@ -1487,7 +1487,7 @@ function veafSpawn.destroy(spawnSpot, radius, unitName)
     else
         -- radius based destruction
         veafSpawn.logTrace("radius based destruction")
-        local units = veaf.findUnitsInCircle(spawnSpot, radius or 150)
+        local units = veaf.findUnitsInCircle(spawnSpot, radius or 150, true)
         veafSpawn.logTrace(string.format("units=%s", veaf.p(units)))
         if units then
             for name, _ in pairs(units) do

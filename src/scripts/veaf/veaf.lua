@@ -1068,12 +1068,12 @@ function veaf.getUnitsOfCoalition(includeStatics, coa)
     return allDcsUnits
 end
 
-function veaf.findUnitsInCircle(center, radius)
+function veaf.findUnitsInCircle(center, radius, includeStatics)
     veaf.mainLogTrace(string.format("findUnitsInCircle(radius=%s)", tostring(radius)))
     veaf.mainLogTrace(string.format("center=%s", veaf.p(center)))
 
 
-    local allDcsUnits = veaf.getUnitsOfAllCoalitions(true)
+    local allDcsUnits = veaf.getUnitsOfAllCoalitions(includeStatics)
     
     local result = {}
     for _, unit in pairs(allDcsUnits) do
@@ -1575,14 +1575,14 @@ function veaf.getRandomizableNumeric(val)
 end
 
 function veaf.exportAsJson(data, name, jsonify, filename, export_path)
-    local veafSanitized_lfs = veafSanitized_lfs
-    if not veafSanitized_lfs then veafSanitized_lfs = lfs end
+    local l_veafSanitized_lfs = veafSanitized_lfs
+    if not l_veafSanitized_lfs then l_veafSanitized_lfs = lfs end
 
-    local veafSanitized_io = veafSanitized_io
-    if not veafSanitized_io then veafSanitized_io = io end
+    local l_veafSanitized_io = veafSanitized_io
+    if not l_veafSanitized_io then l_veafSanitized_io = io end
 
-    local veafSanitized_os = veafSanitized_os
-    if not veafSanitized_os then veafSanitized_os = os end
+    local l_veafSanitized_os = veafSanitized_os
+    if not veafSanitized_os then l_veafSanitized_os = os end
 
     local function writeln(file, text)
         file:write(text.."\r\n")
@@ -1590,15 +1590,15 @@ function veaf.exportAsJson(data, name, jsonify, filename, export_path)
     
     local export_path = export_path
     if not export_path then
-        export_path = veafSanitized_os.getenv("VEAF_EXPORT_DIR")
+        export_path = l_veafSanitized_os.getenv("VEAF_EXPORT_DIR")
         if export_path then export_path = export_path .. "\\" end
     end
     if not export_path then
-        export_path = veafSanitized_os.getenv("TEMP")
+        export_path = l_veafSanitized_os.getenv("TEMP")
         if export_path then export_path = export_path .. "\\" end
     end
     if not export_path then
-        export_path = veafSanitized_lfs.writedir()
+        export_path = l_veafSanitized_lfs.writedir()
     end
 
     local filename = filename or name .. ".json"
@@ -1617,7 +1617,7 @@ function veaf.exportAsJson(data, name, jsonify, filename, export_path)
     footer = footer .. ']\n'
     footer = footer .. '}\n'
 
-    local file = veafSanitized_io.open(export_path..filename, "w")
+    local file = l_veafSanitized_io.open(export_path..filename, "w")
     writeln(file, header)
     writeln(file, table.concat(content, ",\n"))
     writeln(file, footer)

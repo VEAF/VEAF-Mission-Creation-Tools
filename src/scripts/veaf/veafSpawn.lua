@@ -960,7 +960,17 @@ function veafSpawn.spawnConvoy(spawnSpot, radius, country, side, speed, patrol, 
     
     local spawnSpot = veaf.placePointOnLand(mist.getRandPointInCircle(spawnSpot, radius))
     veafSpawn.logTrace("spawnSpot=" .. veaf.vecToString(spawnSpot))
-    if not destination then return end
+
+    -- check that destination exists
+    local point = nil
+    if destination then
+        point = veafNamedPoints.getPoint(destination)
+    end
+    if not(point) then
+        trigger.action.outText("A point named "..destination.." cannot be found !", 5)
+        return false
+    end
+
 
     local units = {}
     local groupId = math.random(99999)

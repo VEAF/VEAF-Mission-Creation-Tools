@@ -39,7 +39,7 @@ veafUnits = {}
 veafUnits.Id = "UNITS - "
 
 --- Version.
-veafUnits.Version = "1.6.0"
+veafUnits.Version = "1.6.1"
 
 -- trace level, specific to this module
 veafUnits.Trace = false
@@ -871,7 +871,34 @@ veafUnits.GroupsDatabase = {
         aliases = {"sa10", "s300", "bb"},
         group = {
             disposition = { h= 10, w= 13},
-            units = {{"S-300PS 40B6M tr", cell ="Patriot lnt ln", cell = 29}, {"Patriot ln", cell = 37}, {"S-300PS 5P85D ln", cell = 43}, {"Patriot ln", cell = 49}, {"Patriot ln", cell = 57}, {"S-300PS 5P85D ln", cell = 61}, {"S-300PS 5P85D ln", cell = 71}, {"Patriot ln", cell = 73}, {"S-300PS 64H6E sr", cell = 98}, {"S-300PS 54K6 cp", cell = 118}, {"S-300PS 40B6MD sr", cell = 130}},
+            units = {
+                        {"S-300PS 40B6MD sr", cell = 130},
+                        {"S-300PS 40B6M tr", cell = 7},
+                        {"S-300PS 5P85C ln", cell = 29},
+                        {"S-300PS 5P85D ln", cell = 37},
+                        {"S-300PS 5P85D ln", cell = 43},
+                        {"S-300PS 5P85C ln", cell = 49},
+                        {"S-300PS 5P85C ln", cell = 57},
+                        {"S-300PS 5P85D ln", cell = 61},
+                        {"S-300PS 5P85D ln", cell = 71},
+                        {"S-300PS 5P85C ln", cell = 73},
+                        {"S-300PS 64H6E sr", cell = 98},
+                        {"S-300PS 54K6 cp", cell = 118}
+                    },
+
+            units = {
+                        {"S-300PS 40B6M tr", cell ="Patriot lnt ln", cell = 29}, 
+                        {"Patriot ln", cell = 37}, 
+                        {"S-300PS 5P85D ln", cell = 43}, 
+                        {"Patriot ln", cell = 49}, 
+                        {"Patriot ln", cell = 57}, 
+                        {"S-300PS 5P85D ln", cell = 61}, 
+                        {"S-300PS 5P85D ln", cell = 71}, 
+                        {"Patriot ln", cell = 73}, 
+                        {"S-300PS 64H6E sr", cell = 98}, 
+                        {"S-300PS 54K6 cp", cell = 118}, 
+                        {"S-300PS 40B6MD sr", cell = 130}
+                    },
             description = "S300 SAM site",
             groupName = "S300"
         },

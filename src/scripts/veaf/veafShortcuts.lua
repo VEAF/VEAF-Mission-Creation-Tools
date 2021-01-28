@@ -27,7 +27,7 @@ veafShortcuts = {}
 veafShortcuts.Id = "SHORTCUTS - "
 
 --- Version.
-veafShortcuts.Version = "1.7.0"
+veafShortcuts.Version = "1.7.1"
 
 -- trace level, specific to this module
 veafShortcuts.Debug = false
@@ -714,6 +714,7 @@ function veafShortcuts.buildDefaultList()
             :setName("-tankerhere")
             :setDescription("move a tanker to a specific location ; must follow with the tanker group name ; can also set speed, alt, hdg and distance")
             :setVeafCommand("_move tanker, name")
+            :dontEndWithComma()
             :setBypassSecurity(true)
     )
     veafShortcuts.AddAlias(

@@ -122,6 +122,10 @@ function veaf.mainLogError(message)
     veaf.logError(veaf.MainId .. message)
 end
 
+function veaf.mainLogWarning(message)
+    veaf.logWarning(veaf.MainId .. message)
+end
+
 function veaf.mainLogInfo(message)
     veaf.logInfo(veaf.MainId .. message)
 end
@@ -1603,7 +1607,7 @@ function veaf.exportAsJson(data, name, jsonify, filename, export_path)
 
     local filename = filename or name .. ".json"
 
-    veafCombatMission.logInfo("Dumping ".. name .." as json to "..filename .. " in "..export_path)
+    veaf.mainLogInfo("Dumping ".. name .." as json to "..filename .. " in "..export_path)
 
     local header =    '{\n'
     header = header .. '  "' .. name .. '": [\n'   
@@ -1623,7 +1627,7 @@ function veaf.exportAsJson(data, name, jsonify, filename, export_path)
     writeln(file, footer)
     file:close()
 end
-    
+
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- initialisation
 -------------------------------------------------------------------------------------------------------------------------------------------------------------

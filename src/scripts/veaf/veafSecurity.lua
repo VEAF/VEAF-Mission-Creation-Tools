@@ -525,7 +525,7 @@ function veafSecurity._checkPassword(password, level)
   if password == nil then 
     return false
   end
-  veafSecurity.logDebug(string.format("checkUser(password = %s)",password))
+  veafSecurity.logDebug(string.format("checkPassword(password = %s)",password))
   local hash = sha1.hex(password)
   veafSecurity.logTrace(string.format("hash = [%s]",hash))
   if level[hash] ~= nil then

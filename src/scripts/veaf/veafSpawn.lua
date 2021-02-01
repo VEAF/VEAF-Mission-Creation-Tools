@@ -66,11 +66,11 @@ veafSpawn = {}
 veafSpawn.Id = "SPAWN - "
 
 --- Version.
-veafSpawn.Version = "1.17.1"
+veafSpawn.Version = "1.18.0"
 
 -- trace level, specific to this module
-veafSpawn.Debug = true
-veafSpawn.Trace = true
+veafSpawn.Debug = false
+veafSpawn.Trace = false
 
 --- Key phrase to look for in the mark text which triggers the spawn command.
 veafSpawn.SpawnKeyphrase = "_spawn"
@@ -264,7 +264,7 @@ function veafSpawn.executeCommand(eventPos, eventText, eventCoalition, bypassSec
                         mist.goRoute(groupObject, route)
                     end
                     -- add the group to the IADS, if there is one
-                    if veafSkynet then
+                    if veafSkynet and options.skynet then -- only add static stuff like sam groups and sam batteries, not mobile groups and convoys
                         veafSkynet.addGroupToNetwork(groupObject)
                     end
                     if spawnedGroups then
@@ -326,6 +326,7 @@ function veafSpawn.markTextAnalysis(text)
     switch.speed = nil
     switch.shells = 1
     switch.multiplier = 1
+    switch.skynet = false -- if true, add to skynet
 
     -- spawned group/unit type/alias
     switch.name = ""
@@ -384,7 +385,7 @@ function veafSpawn.markTextAnalysis(text)
 
     -- JTAC radio comms
     switch.freq = veafSpawn.convertLaserToFreq(switch.laserCode)
-    switch.mod = "am"
+    switch.mod = "fm"
 
     -- TACAN name and channel
     switch.tacanChannel = 99
@@ -455,7 +456,7 @@ function veafSpawn.markTextAnalysis(text)
         -- Split keyphrase by space. First one is the key and second, ... the parameter(s) until the next comma.
         local str = veaf.breakString(veaf.trim(keyphrase), " ")
         local key = str[1]
-        local val = str[2]
+        local val = str[2] or ""
 
         if key:lower() == "unitname" then
             -- Set name.
@@ -488,6 +489,12 @@ function veafSpawn.markTextAnalysis(text)
         if key:lower() == "offroad" then
             veafSpawn.logTrace("Keyword offroad found")
             switch.offroad = true
+        end
+
+        if key:lower() == "skynet" then
+            -- Set name.
+            veafSpawn.logTrace(string.format("Keyword skynet = %s", tostring(val)))
+            switch.skynet = (val:lower() == "true")
         end
 
         if key:lower() == "radius" then

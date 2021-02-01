@@ -10,6 +10,9 @@
 - add a function to help find a town location
 - make a module that decorate a ship (statics spawn, SSW escort by subs, helos and S3s, speed and drift DDs)
 - move the bullseye
+- _destroy could delete the named points
+- add JTACs to the DCS Jtac menu
+- find a way to spawn convoys on the road to speed up convoy setup
 
 ### RFC - needs to be done
 
@@ -18,8 +21,7 @@
 
 ### Bug - needs to be corrected
 
-- it's possible to name two points with the same name (`-point charlie`) ; this should move the point
-
+- it's possible to name two points with the same name (`-point charlie`) ; this should move the point 
 ## Notes
 
 ### add an AWACS module

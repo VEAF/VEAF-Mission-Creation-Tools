@@ -27,7 +27,7 @@ veafShortcuts = {}
 veafShortcuts.Id = "SHORTCUTS - "
 
 --- Version.
-veafShortcuts.Version = "1.8.0"
+veafShortcuts.Version = "1.9.0"
 
 -- trace level, specific to this module
 veafShortcuts.Debug = false
@@ -243,11 +243,10 @@ function veafShortcuts.ExecuteAlias(aliasName, remainingCommand, position, coali
         local command = command .. (remainingCommand or "")
         veafShortcuts.logTrace(string.format("command = [%s]",command or ""))
         -- check for shortcuts
-        --if veafShortcuts.executeCommand(position, command, coalition) then
-        --    return true
+        if veafShortcuts.executeCommand(position, command, coalition) then
+            return true
         -- check for SPAWN module commands
-        --else
-        if veafSpawn.executeCommand(position, command, coalitionForSpawn, doNotBypassSecurity or true, spawnedGroups) then
+        elseif veafSpawn.executeCommand(position, command, coalitionForSpawn, doNotBypassSecurity or true, spawnedGroups) then
             return true
         -- check for NAMED POINT module commands
         elseif veafNamedPoints.executeCommand(position, {text=command, coalition=-1}, doNotBypassSecurity or true) then
@@ -692,7 +691,18 @@ function veafShortcuts.buildDefaultList()
             :addRandomParameter("shells", 25, 40)
             :addRandomParameter("radius", 350, 500)
             :addRandomParameter("power", 100, 300)
-            --:setBypassSecurity(true)
+            :setHidden(true)
+    )
+    veafShortcuts.AddAlias(
+        VeafAlias:new()
+            :setName("-shells")
+            :setDescription("Artillery shelling of a small zone with low-yield HE")
+            :setVeafCommand("-shell")
+            :addRandomParameter("shells", 5, 10)
+            :addRandomParameter("radius", 50, 100)
+            :addRandomParameter("power", 10, 50)
+            :addRandomParameter("multiplier", 5, 10)
+            :setHidden(true)
     )
     veafShortcuts.AddAlias(
         VeafAlias:new()

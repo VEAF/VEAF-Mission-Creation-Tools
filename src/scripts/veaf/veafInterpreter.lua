@@ -54,7 +54,7 @@ veafInterpreter = {}
 veafInterpreter.Id = "INTERPRETER - "
 
 --- Version.
-veafInterpreter.Version = "1.1.0"
+veafInterpreter.Version = "1.2.0"
 
 -- trace level, specific to this module
 veafInterpreter.Trace = false
@@ -80,7 +80,9 @@ function veafInterpreter.logInfo(message)
 end
 
 function veafInterpreter.logDebug(message)
-    veaf.logDebug(veafInterpreter.Id .. message)
+    if message and veafInterpreter.Debug then 
+        veaf.logDebug(veafInterpreter.Id .. message)
+    end
 end
 
 function veafInterpreter.logTrace(message)
@@ -109,6 +111,11 @@ function veafInterpreter.interpret(text)
 end
 
 function veafInterpreter.execute(command, position, coalition, route, spawnedGroups, doNotBypassSecurity)
+    local function logDebug(message)
+        veafInterpreter.logDebug(message)
+        return true
+    end
+
     if command == nil then return end
     if position == nil then return end
     veafInterpreter.logTrace(string.format("veafInterpreter.execute([%s],[%s])",command, veaf.vecToString(position)))
@@ -122,18 +129,21 @@ function veafInterpreter.execute(command, position, coalition, route, spawnedGro
     local commandExecuted = false
     spawnedGroups = spawnedGroups or {}
 
-    -- check for shortcuts
-    if veafShortcuts.executeCommand(position, command, coalition, spawnedGroups) then
+    if logDebug("checking in veafShortcuts") and veafShortcuts.executeCommand(position, command, coalition, spawnedGroups) then
         commandExecuted = true
-    -- check for SPAWN module commands
-    elseif veafSpawn.executeCommand(position, command, invertedCoalition, doNotBypassSecurity or true, spawnedGroups) then
+    elseif logDebug("checking in veafSpawn") and veafSpawn.executeCommand(position, command, invertedCoalition, doNotBypassSecurity or true, spawnedGroups) then
         commandExecuted = true
-    -- check for NAMED POINT module commands
-    elseif veafNamedPoints.executeCommand(position, {text=command, coalition=-1}, doNotBypassSecurity or true) then
+    elseif logDebug("checking in veafNamedPoints") and veafNamedPoints.executeCommand(position, {text=command, coalition=-1}, doNotBypassSecurity or true) then
         commandExecuted = true
-    elseif veafCasMission.executeCommand(position, command, invertedCoalition, doNotBypassSecurity or true) then
+    elseif logDebug("checking in veafCasMission") and veafCasMission.executeCommand(position, command, invertedCoalition, doNotBypassSecurity or true) then
         commandExecuted = true
-    elseif veafSecurity.executeCommand(position, command, doNotBypassSecurity or true) then
+    elseif logDebug("checking in veafSecurity") and veafSecurity.executeCommand(position, command, doNotBypassSecurity or true) then
+        commandExecuted = true
+    elseif logDebug("checking in veafMove") and veafMove.executeCommand(position, command, doNotBypassSecurity or true) then
+        commandExecuted = true
+    elseif logDebug("checking in veafRadio") and veafRadio.executeCommand(position, command, invertedCoalition, doNotBypassSecurity or true) then
+        commandExecuted = true
+    elseif logDebug("checking in veafRemote") and veafRemote.executeCommand(position, command, invertedCoalition) then
         commandExecuted = true
     else
         commandExecuted = false

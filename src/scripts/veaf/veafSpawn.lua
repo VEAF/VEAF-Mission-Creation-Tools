@@ -66,7 +66,7 @@ veafSpawn = {}
 veafSpawn.Id = "SPAWN - "
 
 --- Version.
-veafSpawn.Version = "1.18.0"
+veafSpawn.Version = "1.18.1"
 
 -- trace level, specific to this module
 veafSpawn.Debug = false
@@ -149,13 +149,14 @@ function veafSpawn.onEventMarkChange(eventPos, event)
 end
 
 function veafSpawn.executeCommand(eventPos, eventText, eventCoalition, bypassSecurity, spawnedGroups)
+    veafSpawn.logDebug(string.format("veafShortcuts.executeCommand(eventText=[%s])", eventText))
     -- choose by default the coalition opposing the player who triggered the event
     local coalition = 1
     if eventCoalition == 1 then
         coalition = 2
     end
 
-    -- Check if marker has a text and the veafSpawn.keyphrase keyphrase.
+    -- Check if marker has a text and the veafSpawn.SpawnKeyphrase keyphrase.
     if eventText ~= nil and (eventText:lower():find(veafSpawn.SpawnKeyphrase) or eventText:lower():find(veafSpawn.DestroyKeyphrase) or eventText:lower():find(veafSpawn.TeleportKeyphrase)) then
         
         -- Analyse the mark point text and extract the keywords.

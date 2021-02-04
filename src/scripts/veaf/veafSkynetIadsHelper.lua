@@ -28,10 +28,10 @@ veafSkynet = {}
 veafSkynet.Id = "SKYNET - "
 
 --- Version.
-veafSkynet.Version = "1.0.0"
+veafSkynet.Version = "1.1.0"
 
 -- trace level, specific to this module
-veafSkynet.Trace = true
+veafSkynet.Trace = false
 
 -- delay before the mission groups are added to the IADS' at start
 veafSkynet.DelayForStartup = 1
@@ -43,6 +43,7 @@ veafSkynet.DelayForRestart = 10
 -- Do not change anything below unless you know what you are doing!
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
+veafSkynet.initialized = false
 veafSkynet.redIADS = nil
 veafSkynet.blueIADS = nil
 veafSkynet.iadsSamUnitsTypes = {}
@@ -86,6 +87,10 @@ end
 
 
 function veafSkynet.addGroupToNetwork(dcsGroup, alreadyAddedGroups)
+    if not veafSkynet.initialized then 
+        return false 
+    end
+
     local batchMode = (alreadyAddedGroups ~= nil)
     local alreadyAddedGroups = alreadyAddedGroups or {}
     local groupName = dcsGroup:getName()
@@ -202,6 +207,10 @@ end
 
 -- reset the IADS networks and rebuild them. Useful when a dynamic combat zone is deactivated
 function veafSkynet.reinitialize()
+    if not veafSkynet.initialized then 
+        return false 
+    end
+
     if veafSkynet.redIADS then
         veafSkynet.redIADS:removeRadioMenu()
         veafSkynet.redIADS:deactivate()
@@ -267,6 +276,9 @@ function veafSkynet.initialize(includeRedInRadio, debugRed, includeBlueInRadio, 
 
     veafSkynet.logInfo(string.format("Loading units in %s seconds", tostring(veafSkynet.DelayForStartup)))
     mist.scheduleFunction(veafSkynet.reinitialize,{}, timer.getTime()+veafSkynet.DelayForStartup)
+
+    veafSkynet.initialized = true
+    veafSkynet.logInfo(string.format("Skynet IADS has been initialized"))
 end
 
 veafSkynet.logInfo(string.format("Loading version %s", veafSkynet.Version))

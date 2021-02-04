@@ -28,9 +28,10 @@ veafRemote = {}
 veafRemote.Id = "REMOTE - "
 
 --- Version.
-veafRemote.Version = "1.1.0"
+veafRemote.Version = "1.2.0"
 
 -- trace level, specific to this module
+veafRemote.Debug = false
 veafRemote.Trace = false
 
 -- if false, SLMOD will not be called for regular commands
@@ -59,12 +60,18 @@ function veafRemote.logError(message)
     veaf.logError(veafRemote.Id .. message)
 end
 
+function veafRemote.logWarning(message)
+    veaf.logWarning(veafRemote.Id .. message)
+end
+
 function veafRemote.logInfo(message)
     veaf.logInfo(veafRemote.Id .. message)
 end
 
 function veafRemote.logDebug(message)
-    veaf.logDebug(veafRemote.Id .. message)
+    if message and veafRemote.Debug then 
+        veaf.logDebug(veafRemote.Id .. message)
+    end
 end
 
 function veafRemote.logTrace(message)
@@ -77,11 +84,15 @@ end
 -- SLMOD monitoring
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 function veafRemote.monitorWithSlModSpecialCommand(command, script, requireAdmin, flag, coalition)
-    mist.scheduleFunction(veafRemote._monitorWithSlMod, {command, script, flag, coalition, requireAdmin, true}, timer.getTime()+5)    
+    -- don't schedule because it causes problems with interpreter commands that are being executed too soon
+    -- mist.scheduleFunction(veafRemote._monitorWithSlMod, {command, script, flag, coalition, requireAdmin, true}, timer.getTime()+5)    
+    veafRemote._monitorWithSlMod(command, script, flag, coalition, requireAdmin, true)
 end
 
 function veafRemote.monitorWithSlMod(command, script, requireAdmin, flag, coalition)
-    mist.scheduleFunction(veafRemote._monitorWithSlMod, {command, script, flag, coalition, requireAdmin, false}, timer.getTime()+5)    
+    -- don't schedule because it causes problems with interpreter commands that are being executed too soon
+    --mist.scheduleFunction(veafRemote._monitorWithSlMod, {command, script, flag, coalition, requireAdmin, false}, timer.getTime()+5)    
+    veafRemote._monitorWithSlMod(command, script, flag, coalition, requireAdmin, false)
 end
 
 function veafRemote._monitorWithSlMod(command, script, flag, coalition, requireAdmin, isSpecialCommand)
@@ -254,6 +265,18 @@ function veafRemote.buildDefaultList()
         end
     end
 
+    -- add all the combat zones
+    if veafCombatZone then
+        for _, zone in pairs(veafCombatZone.zonesDict) do
+            local zoneName = zone:getMissionEditorZoneName()
+            veafRemote.logTrace(string.format("Adding %s", zoneName))
+            veafRemote.monitorWithSlMod("-veaf start-silent-" .. zoneName, [[ veafCombatZone.ActivateZone("]] .. zoneName .. [[", true) ]])
+            veafRemote.monitorWithSlMod("-veaf stop-silent-" .. zoneName, [[ veafCombatZone.DesactivateZone("]] .. zoneName .. [[", true) ]])
+            veafRemote.monitorWithSlMod("-veaf start-" .. zoneName, [[ veafCombatZone.ActivateZone("]] .. zoneName .. [[", false) ]])
+            veafRemote.monitorWithSlMod("-veaf stop-" .. zoneName, [[ veafCombatZone.DesactivateZone("]] .. zoneName .. [[", false) ]])
+        end
+    end
+
     if TEST then
 
         -- test
@@ -299,20 +322,34 @@ end
 
 --- Function executed when a mark has changed. This happens when text is entered or changed.
 function veafRemote.onEventMarkChange(eventPos, event)
-    -- Check if marker has a text and contains an alias
-    if event.text ~= nil then
+    if veafRemote.executeCommand(eventPos, event.text, event.coalition) then 
+        
+        -- Delete old mark.
+        veafRemote.logTrace(string.format("Removing mark # %d.", event.idx))
+        trigger.action.removeMark(event.idx)
+
+    end
+end
+
+
+function veafRemote.executeCommand(eventPos, eventText, eventCoalition)
+    veafRemote.logDebug(string.format("veafRemote.executeCommand(eventText=[%s])", tostring(eventText)))
+
+    -- choose by default the coalition opposing the player who triggered the event
+    local coalition = 1
+    if eventCoalition == 1 then
+        coalition = 2
+    end
+
+    -- Check if marker has a text and the veafRemote.CommandStarter keyphrase.
+    if eventText ~= nil and eventText:lower():find(veafRemote.CommandStarter) then
         
         -- Analyse the mark point text and extract the keywords.
-        local command, password = veafRemote.markTextAnalysis(event.text)
+        local command, password = veafRemote.markTextAnalysis(eventText)
 
         if command then
-
             -- do the magic
-            if veafRemote.executeCommand(command, password) then 
-                -- Delete old mark.
-                veafRemote.logTrace(string.format("Removing mark # %d.", event.idx))
-                trigger.action.removeMark(event.idx)
-            end
+            return veafRemote.executeRemoteCommand(command, password)
         end
     end
 end
@@ -333,12 +370,12 @@ function veafRemote.markTextAnalysis(text)
 end
 
 -- execute a command
-function veafRemote.executeCommand(command, password)
+function veafRemote.executeRemoteCommand(command, password)
     local command = command or ""
     local password = password or ""
-    veafRemote.logDebug(string.format("veafRemote.ExecuteCommand([%s])",command))
+    veafRemote.logDebug(string.format("veafRemote.executeRemoteCommand([%s])",command))
     if not(veafSecurity.checkPassword_L1(password)) then
-        veafRemote.logError(string.format("veafRemote.ExecuteCommand([%s]) - bad or missing password",command))
+        veafRemote.logError(string.format("veafRemote.executeRemoteCommand([%s]) - bad or missing password",command))
         trigger.action.outText("Bad or missing password",5)
         return false
     end
@@ -350,17 +387,17 @@ function veafRemote.executeCommand(command, password)
         if not authorized then 
             return false
         else
-        local result, err = mist.utils.dostring(scriptToExecute)
-        if result then
-            veafRemote.logDebug(string.format("veafRemote.executeCommand() - lua code was successfully called for script [%s]", scriptToExecute))
-            return true
-        else
-            veafRemote.logError(string.format("veafRemote.executeCommand() - error [%s] calling lua code for script [%s]", err, scriptToExecute))
-            return false
-        end
+            local result, err = mist.utils.dostring(scriptToExecute)
+            if result then
+                veafRemote.logDebug(string.format("veafRemote.executeRemoteCommand() - lua code was successfully called for script [%s]", scriptToExecute))
+                return true
+            else
+                veafRemote.logError(string.format("veafRemote.executeRemoteCommand() - error [%s] calling lua code for script [%s]", err, scriptToExecute))
+                return false
+            end
         end
     else
-        veafRemote.logError(string.format("veafRemote.ExecuteCommand : cannot find command [%s]",command or ""))
+        veafRemote.logWarning(string.format("veafRemote.executeRemoteCommand : cannot find command [%s]",command or ""))
     end
     return false
 end

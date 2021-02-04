@@ -27,7 +27,7 @@ veafShortcuts = {}
 veafShortcuts.Id = "SHORTCUTS - "
 
 --- Version.
-veafShortcuts.Version = "1.9.0"
+veafShortcuts.Version = "1.10.0"
 
 -- trace level, specific to this module
 veafShortcuts.Debug = false
@@ -224,6 +224,11 @@ end
 
 -- execute an alias command
 function veafShortcuts.ExecuteAlias(aliasName, remainingCommand, position, coalition, spawnedGroups)
+    local function logDebug(message)
+        veafShortcuts.logDebug(message)
+        return true
+    end
+
     veafShortcuts.logDebug(string.format("veafShortcuts.ExecuteAlias([%s],[%s],[%d])",aliasName or "",remainingCommand or "",coalition or 99))
     local alias = veafShortcuts.GetAlias(aliasName)
     if alias then 
@@ -242,22 +247,21 @@ function veafShortcuts.ExecuteAlias(aliasName, remainingCommand, position, coali
 
         local command = command .. (remainingCommand or "")
         veafShortcuts.logTrace(string.format("command = [%s]",command or ""))
-        -- check for shortcuts
-        if veafShortcuts.executeCommand(position, command, coalition) then
+        if logDebug("checking in veafShortcuts") and veafShortcuts.executeCommand(position, command, coalition, spawnedGroups) then
             return true
-        -- check for SPAWN module commands
-        elseif veafSpawn.executeCommand(position, command, coalitionForSpawn, doNotBypassSecurity or true, spawnedGroups) then
+        elseif logDebug("checking in veafSpawn") and veafSpawn.executeCommand(position, command, coalitionForSpawn, doNotBypassSecurity or true, spawnedGroups) then
             return true
-        -- check for NAMED POINT module commands
-        elseif veafNamedPoints.executeCommand(position, {text=command, coalition=-1}, doNotBypassSecurity or true) then
+        elseif logDebug("checking in veafNamedPoints") and veafNamedPoints.executeCommand(position, {text=command, coalition=-1}, doNotBypassSecurity or true) then
             return true
-        elseif veafCasMission.executeCommand(position, command, coalition, doNotBypassSecurity or true) then
+        elseif logDebug("checking in veafCasMission") and veafCasMission.executeCommand(position, command, coalition, doNotBypassSecurity or true) then
             return true
-        elseif veafSecurity.executeCommand(position, command, doNotBypassSecurity or true) then
+        elseif logDebug("checking in veafSecurity") and veafSecurity.executeCommand(position, command, doNotBypassSecurity or true) then
             return true
-        elseif veafMove.executeCommand(position, command, doNotBypassSecurity or true) then
+        elseif logDebug("checking in veafMove") and veafMove.executeCommand(position, command, doNotBypassSecurity or true) then
             return true
-        elseif veafRadio.executeCommand(position, command, coalition, doNotBypassSecurity or true) then
+        elseif logDebug("checking in veafRadio") and veafRadio.executeCommand(position, command, coalition, doNotBypassSecurity or true) then
+            return true
+        elseif logDebug("checking in veafRemote") and veafRemote.executeCommand(position, command, coalitionForSpawn) then
             return true
         else
             return false
@@ -302,6 +306,8 @@ function veafShortcuts.onEventMarkChange(eventPos, event)
 end
 
 function veafShortcuts.executeCommand(eventPos, eventText, eventCoalition, spawnedGroups)
+    veafShortcuts.logDebug(string.format("veafShortcuts.executeCommand(eventText=[%s])", eventText))
+
     -- Check if marker has a text and contains an alias
     if eventText ~= nil then
         

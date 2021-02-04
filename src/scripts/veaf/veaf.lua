@@ -40,7 +40,7 @@ veaf.MainTrace = false
 
 --- Development version ?
 veaf.Development = true
-veaf.SecurityDisabled = false
+veaf.SecurityDisabled = true
 
 --- Enable logDebug ==> give more output to DCS log file.
 veaf.Debug = veaf.Development
@@ -1481,17 +1481,45 @@ function veaf.getRandomizableNumeric_random(val)
         if val == "1-3" then nVal = math.random(1,3) end
         if val == "1-4" then nVal = math.random(1,4) end
         if val == "1-5" then nVal = math.random(1,5) end
+        if val == "1-6" then nVal = math.random(1,6) end
+        if val == "1-7" then nVal = math.random(1,7) end
+        if val == "1-8" then nVal = math.random(1,8) end
+        if val == "1-9" then nVal = math.random(1,9) end
 
         if val == "2-3" then nVal = math.random(2,3) end
         if val == "2-4" then nVal = math.random(2,4) end
         if val == "2-5" then nVal = math.random(2,5) end
+        if val == "1-6" then nVal = math.random(1,6) end
+        if val == "1-7" then nVal = math.random(1,7) end
+        if val == "1-8" then nVal = math.random(1,8) end
+        if val == "1-9" then nVal = math.random(1,9) end
 
         if val == "3-4" then nVal = math.random(3,4) end
         if val == "3-5" then nVal = math.random(3,5) end
+        if val == "3-6" then nVal = math.random(3,6) end
+        if val == "3-7" then nVal = math.random(3,7) end
+        if val == "3-8" then nVal = math.random(3,8) end
+        if val == "3-9" then nVal = math.random(3,9) end
 
         if val == "4-5" then nVal = math.random(4,5) end
+        if val == "4-6" then nVal = math.random(4,6) end
+        if val == "4-7" then nVal = math.random(4,7) end
+        if val == "4-8" then nVal = math.random(4,8) end
+        if val == "4-9" then nVal = math.random(4,9) end
 
-        if val == "5-10" then nVal = math.random(5,10) end
+        if val == "5-6" then nVal = math.random(5,6) end
+        if val == "5-7" then nVal = math.random(5,7) end
+        if val == "5-8" then nVal = math.random(5,8) end
+        if val == "5-9" then nVal = math.random(5,9) end
+
+        if val == "6-7" then nVal = math.random(6,7) end
+        if val == "6-8" then nVal = math.random(6,8) end
+        if val == "6-9" then nVal = math.random(6,9) end
+
+        if val == "7-8" then nVal = math.random(7,8) end
+        if val == "7-9" then nVal = math.random(7,9) end
+
+        if val == "8-9" then nVal = math.random(8,9) end
 
         if val == "10-15" then nVal = math.random(10,15) end
         --]]

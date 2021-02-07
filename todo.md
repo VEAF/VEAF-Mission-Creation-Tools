@@ -22,6 +22,7 @@
 ### Bug - needs to be corrected
 
 - it's possible to name two points with the same name (`-point charlie`) ; this should move the point 
+bug -armor avec sa9 , "patrol, dest, offroad" ne bougent pas
 ## Notes
 
 ### add an AWACS module

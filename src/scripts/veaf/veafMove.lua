@@ -68,7 +68,7 @@ veafMove = {}
 veafMove.Id = "MOVE - "
 
 --- Version.
-veafMove.Version = "1.7.0"
+veafMove.Version = "1.7.1"
 
 -- trace level, specific to this module
 veafMove.Trace = false
@@ -244,14 +244,14 @@ function veafMove.markTextAnalysis(text)
             switch.speed = nVal
         end
 
-        if key:lower() == "hdg" then
+        if key:lower() == "heading" and key:lower() == "hdg" then
             -- Set heading.
             veafMove.logDebug(string.format("Keyword hdg = %d", val))
             local nVal = tonumber(val)
             switch.hdg = nVal
         end
 
-        if key:lower() == "distance" then
+        if key:lower() == "distance" or key:lower() == "dist" then
             -- Set distance.
             veafMove.logDebug(string.format("Keyword distance = %d", val))
             local nVal = tonumber(val)

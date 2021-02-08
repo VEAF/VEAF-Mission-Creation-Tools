@@ -37,7 +37,7 @@ veafNamedPoints = {}
 veafNamedPoints.Id = "NAMED POINTS - "
 
 --- Version.
-veafNamedPoints.Version = "1.6.1"
+veafNamedPoints.Version = "1.7.0"
 
 -- trace level, specific to this module
 veafNamedPoints.Trace = false
@@ -153,17 +153,31 @@ end
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 --- Create the point in the named points database
-function veafNamedPoints.namePoint(targetSpot, name, coalition)
+function veafNamedPoints.namePoint(targetSpot, name, coalition, silent)
     veafNamedPoints.logDebug(string.format("namePoint(name = %s, coalition=%s)",name, coalition))
     veafNamedPoints.logDebug("targetSpot=" .. veaf.vecToString(targetSpot))
-    targetSpot.hidden = false
-    veafNamedPoints.addPoint(name, targetSpot)
 
-    local message = "The point named " .. name .. " has been created. See F10 radio menu for details."
-    trigger.action.outText(message,5)
+    -- find an existing point with the same name
+    local existingPoint = veafNamedPoints.getPoint(name)
+    veafNamedPoints.logTrace(string.format("existingPoint=%s", veaf.p(existingPoint)))
+    if existingPoint and existingPoint.markerId then
+        -- delete the existing point
+        trigger.action.removeMark(existingPoint.markerId)
+    end
+
+    local point = { x = targetSpot.x, y = targetSpot.y, z = targetSpot.z}
+    point.hidden = false
+    veafNamedPoints.addPoint(name, point)
+
+    local message = nil
+    if not silent then
+        message = "VEAF - Point named "..name.." added for own coalition."
+    end
     
     veafNamedPoints.markid = veafNamedPoints.markid + 1
-    trigger.action.markToCoalition(veafNamedPoints.markid, "VEAF - Point named "..name, targetSpot, coalition, true, "VEAF - Point named "..name.." added for own coalition.") 
+    point.markerId = veafNamedPoints.markid
+    trigger.action.markToCoalition(veafNamedPoints.markid, "VEAF - Point named "..name, point, coalition, true, message) 
+    veafNamedPoints.logTrace(string.format("created point %s", veaf.p(point)))
 end
 
 function veafNamedPoints.addPoint(name, point)
@@ -179,6 +193,7 @@ function veafNamedPoints._addPoint(name, point)
     if not point.y then point.y = 0 end
     point.name = name:upper()
     veafNamedPoints.namedPoints[name:upper()] = point
+    return point
 end
 
 function veafNamedPoints.delPoint(name)

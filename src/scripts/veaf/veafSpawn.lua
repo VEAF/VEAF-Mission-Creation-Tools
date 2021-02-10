@@ -1,58 +1,6 @@
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- VEAF spawn command and functions for DCS World
--- By zip (2018)
---
--- Features:
--- ---------
--- * Listen to marker change events and execute spawn commands, with optional parameters
--- * Possibilities : 
--- *    - spawn a specific ennemy unit or group
--- *    - create a cargo drop to be picked by a helo
--- * Works with all current and future maps (Caucasus, NTTR, Normandy, PG, ...)
---
--- Prerequisite:
--- ------------
--- * This script requires DCS 2.5.1 or higher and MIST 4.3.74 or higher.
--- * It also requires the base veaf.lua script library (version 1.0 or higher)
--- * It also requires the veafMarkers.lua script library (version 1.0 or higher)
--- * It also requires the dcsUnits.lua script library (version 1.0 or higher)
--- * It also requires the veafUnits.lua script library (version 1.0 or higher)
---
--- Load the script:
--- ----------------
--- 1.) Download the script and save it anywhere on your hard drive.
--- 2.) Open your mission in the mission editor.
--- 3.) Add a new trigger:
---     * TYPE   "4 MISSION START"
---     * ACTION "DO SCRIPT FILE"
---     * OPEN --> Browse to the location of MIST and click OK.
---     * ACTION "DO SCRIPT FILE"
---     * OPEN --> Browse to the location of veaf.lua and click OK.
---     * ACTION "DO SCRIPT FILE"
---     * OPEN --> Browse to the location of veafMarkers.lua and click OK.
---     * ACTION "DO SCRIPT FILE"
---     * OPEN --> Browse to the location of veafUnits.lua and click OK.
---     * ACTION "DO SCRIPT FILE"
---     * OPEN --> Browse to the location of this script and click OK.
---     * ACTION "DO SCRIPT"
---     * set the script command to "veafSpawn.initialize()" and click OK.
--- 4.) Save the mission and start it.
--- 5.) Have fun :)
---
--- Basic Usage:
--- ------------
--- 1.) Place a mark on the F10 map.
--- 2.) As text enter a command
--- 3.) Click somewhere else on the map to submit the new text.
--- 4.) The command will be processed. A message will appear to confirm this
--- 5.) The original mark will disappear.
---
--- Commands and options: see online help function veafSpawn.help()
---
--- *** NOTE ***
--- * All keywords are CaSE inSenSITvE.
--- * Commas are the separators between options ==> They are IMPORTANT!
---
+-- By zip (2021)
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 --- veafSpawn Table.
@@ -66,35 +14,23 @@ veafSpawn = {}
 veafSpawn.Id = "SPAWN - "
 
 --- Version.
-veafSpawn.Version = "1.18.1"
+veafSpawn.Version = "2.0.0"
 
 -- trace level, specific to this module
-veafSpawn.Debug = false
-veafSpawn.Trace = false
+veafSpawn.Debug = true
+veafSpawn.Trace = true
 
 --- Key phrase to look for in the mark text which triggers the spawn command.
 veafSpawn.SpawnKeyphrase = "_spawn"
 
---- Key phrase to look for in the mark text which triggers the destroy command.
-veafSpawn.DestroyKeyphrase = "_destroy"
-
---- Key phrase to look for in the mark text which triggers the teleport command.
-veafSpawn.TeleportKeyphrase = "_teleport"
-
---- Name of the spawned units group 
-veafSpawn.RedSpawnedUnitsGroupName = "VEAF Spawned Units"
-
---- Illumination flare default initial altitude (in meters AGL)
-veafSpawn.IlluminationFlareAglAltitude = 1000
+--- Prefix forthe spawned units groups name
+veafSpawn.SpawnedUnitsGroupPrefix = "VEAF-spawn"
 
 veafSpawn.RadioMenuName = "SPAWN"
 
 --- static object type spawned when using the "logistic" keyword
 veafSpawn.LogisticUnitType = "FARP Ammo Dump Coating"
 veafSpawn.LogisticUnitCategory = "Fortifications"
-
-veafSpawn.ShellingInterval = 5 -- seconds between shells, randomized by 30%
-veafSpawn.IlluminationShellingInterval = 30 -- seconds between illumination shells, randomized by 30%
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Do not change anything below unless you know what you are doing!
@@ -107,7 +43,6 @@ veafSpawn.spawnedUnitsCounter = 0
 
 -- store all the convoys spawned
 veafSpawn.spawnedConvoys = {}
-
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Utility methods
@@ -157,7 +92,7 @@ function veafSpawn.executeCommand(eventPos, eventText, eventCoalition, bypassSec
     end
 
     -- Check if marker has a text and the veafSpawn.SpawnKeyphrase keyphrase.
-    if eventText ~= nil and (eventText:lower():find(veafSpawn.SpawnKeyphrase) or eventText:lower():find(veafSpawn.DestroyKeyphrase) or eventText:lower():find(veafSpawn.TeleportKeyphrase)) then
+    if eventText ~= nil and eventText:lower():find(veafSpawn.SpawnKeyphrase) then
         
         -- Analyse the mark point text and extract the keywords.
         local options = veafSpawn.markTextAnalysis(eventText)
@@ -187,8 +122,6 @@ function veafSpawn.executeCommand(eventPos, eventText, eventCoalition, bypassSec
 
                 -- Check options commands
                 if options.unit then
-                    -- check security
-                    if not (bypassSecurity or veafSecurity.checkSecurity_L9(options.password)) then return end
                     local code = options.laserCode
                     local channel = options.freq
                     local band = options.mod
@@ -197,6 +130,8 @@ function veafSpawn.executeCommand(eventPos, eventText, eventCoalition, bypassSec
                         code = options.tacanCode or "T"..tostring(channel)
                         band = options.tacanBand or "X"
                     end
+                    -- check security
+                    if not (bypassSecurity or veafSecurity.checkSecurity_L9(options.password)) then return end
                     spawnedGroup = veafSpawn.spawnUnit(eventPos, options.radius, options.name, options.country, options.altitude, options.heading, options.unitName, options.role, code, channel, band, bypassSecurity)
                 elseif options.group then
                     -- check security
@@ -230,29 +165,11 @@ function veafSpawn.executeCommand(eventPos, eventText, eventCoalition, bypassSec
                 elseif options.cargo then
                     -- check security
                     if not (bypassSecurity or veafSecurity.checkSecurity_L9(options.password)) then return end
-                    spawnedGroup = veafSpawn.spawnCargo(eventPos, options.radius, options.cargoType, options.cargoSmoke, options.unitName, bypassSecurity)
+                    spawnedGroup = veafSpawn.spawnCargo(eventPos, options.radius, options.cargoType, options.<, options.unitName, bypassSecurity)
                 elseif options.logistic then
                     -- check security
                     if not (bypassSecurity or veafSecurity.checkSecurity_L9(options.password)) then return end
                     spawnedGroup = veafSpawn.spawnLogistic(eventPos, options.radius, bypassSecurity)
-                elseif options.destroy then
-                    -- check security
-                    if not (bypassSecurity or veafSecurity.checkSecurity_L1(options.password)) then return end
-                    veafSpawn.destroy(eventPos, options.radius, options.unitName)
-                elseif options.teleport then
-                    -- check security
-                    if not (bypassSecurity or veafSecurity.checkSecurity_L1(options.password)) then return end
-                    veafSpawn.teleport(eventPos, options.radius, options.name, bypassSecurity)
-                elseif options.bomb then
-                    -- check security
-                    if not (bypassSecurity or veafSecurity.checkSecurity_L1(options.password)) then return end
-                    veafSpawn.spawnBomb(eventPos, options.radius, options.shells, options.bombPower, options.password)
-                elseif options.smoke then
-                    veafSpawn.spawnSmoke(eventPos, options.smokeColor, options.radius, options.shells)
-                elseif options.flare then
-                    veafSpawn.spawnIlluminationFlare(eventPos, options.radius, options.shells, options.alt)
-                elseif options.signal then
-                    veafSpawn.spawnSignalFlare(eventPos, options.radius, options.shells, options.smokeColor)
                 end
                 if spawnedGroup then
                     local groupObject = Group.getByName(spawnedGroup)
@@ -310,12 +227,6 @@ function veafSpawn.markTextAnalysis(text)
     switch.group = false
     switch.cargo = false
     switch.logistic = false
-    switch.smoke = false
-    switch.flare = false
-    switch.signal = false
-    switch.bomb = false
-    switch.destroy = false
-    switch.teleport = false
     switch.convoy = false
     switch.role = nil
     switch.laserCode = 1688
@@ -325,7 +236,6 @@ function veafSpawn.markTextAnalysis(text)
     switch.transportCompany = false
     switch.fullCombatGroup = false
     switch.speed = nil
-    switch.shells = 1
     switch.multiplier = 1
     switch.skynet = false -- if true, add to skynet
 
@@ -363,12 +273,6 @@ function veafSpawn.markTextAnalysis(text)
 
     -- armor force ; ranges from 1 to 5, 5 being the strongest and most modern.
     switch.armor = math.random(5)
-
-    -- bomb power
-    switch.bombPower = 100
-
-    -- smoke color
-    switch.smokeColor = trigger.smokeColor.Red
 
     -- optional cargo smoke
     switch.cargoSmoke = false
@@ -477,11 +381,6 @@ function veafSpawn.markTextAnalysis(text)
             switch.destination = val
         end
 
-        if key:lower() == "isconvoy" then
-            veafSpawn.logTrace("Keyword isconvoy found")
-            switch.convoy = true
-        end
-
         if key:lower() == "patrol" then
             veafSpawn.logTrace("Keyword patrol found")
             switch.patrol = true
@@ -533,27 +432,13 @@ function veafSpawn.markTextAnalysis(text)
             switch.speed = nVal
         end
         
-        if key:lower() == "shells" then
-            -- Set altitude.
-            veafSpawn.logTrace(string.format("Keyword shells = %s", tostring(val)))
-            local nVal = veaf.getRandomizableNumeric(val)
-            switch.shells = nVal
-        end
-
-        if key:lower() == "hdg" then
+        if key:lower() == "hdg" or key:lower() == "heading" then
             -- Set heading.
             veafSpawn.logTrace(string.format("Keyword hdg = %s", tostring(val)))
             local nVal = veaf.getRandomizableNumeric(val)
             switch.heading = nVal
         end
         
-        if key:lower() == "heading" then
-            -- Set heading.
-            veafSpawn.logTrace(string.format("Keyword heading = %s", tostring(val)))
-            local nVal = veaf.getRandomizableNumeric(val)
-            switch.heading = nVal
-        end
-
         if key:lower() == "country" then
             -- Set country
             veafSpawn.logTrace(string.format("Keyword country = %s", tostring(val)))
@@ -576,13 +461,6 @@ function veafSpawn.markTextAnalysis(text)
             switch.password = val
         end
 
-        if key:lower() == "power" then
-            -- Set bomb power.
-            veafSpawn.logTrace(string.format("Keyword power = %s", tostring(val)))
-            local nVal = veaf.getRandomizableNumeric(val)
-            switch.bombPower = nVal
-        end
-        
         if key:lower() == "laser" then
             -- Set laser code.
             veafSpawn.logTrace(string.format("laser code = %s", tostring(val)))
@@ -621,29 +499,6 @@ function veafSpawn.markTextAnalysis(text)
             local nVal = veaf.getRandomizableNumeric(val)
             switch.tacanChannel = nVal
         end        
-
-        if key:lower() == "color" then
-            -- Set smoke color.
-            veafSpawn.logTrace(string.format("Keyword color = %s", tostring(val)))
-            if (val:lower() == "red") then 
-                switch.smokeColor = trigger.smokeColor.Red
-            elseif (val:lower() == "green") then 
-                switch.smokeColor = trigger.smokeColor.Green
-            elseif (val:lower() == "orange") then 
-                switch.smokeColor = trigger.smokeColor.Orange
-            elseif (val:lower() == "blue") then 
-                switch.smokeColor = trigger.smokeColor.Blue
-            elseif (val:lower() == "white") then 
-                switch.smokeColor = trigger.smokeColor.White
-            end
-        end
-
-        if key:lower() == "alt" then
-            -- Set alt.
-            veafSpawn.logTrace(string.format("Keyword alt = %s", tostring(val)))
-            local nVal = veaf.getRandomizableNumeric(val)
-            switch.alt = nVal
-        end
 
         if switch.cargo and key:lower() == "name" then
             -- Set cargo type.
@@ -1090,7 +945,7 @@ function veafSpawn.spawnUnit(spawnSpot, radius, name, country, alt, hdg, unitNam
         groupName = name
         unitName = name
     else
-      groupName = veafSpawn.RedSpawnedUnitsGroupName .. " #" .. veafSpawn.spawnedUnitsCounter
+      groupName = veafSpawn.SpawnedUnitsGroupPrefix .. " #" .. veafSpawn.spawnedUnitsCounter
       if not unitName then
         unitName = unit.displayName .. " #" .. veafSpawn.spawnedUnitsCounter
       end

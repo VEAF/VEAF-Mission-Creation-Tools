@@ -105,7 +105,7 @@ Hercules_Cargo.types = {
 	["ART GVOZDIKA [34720lb]"] = {['name'] = "SAU Gvozdika", ['container'] = false},
 	["APC MTLB Air [26400lb]"] = {['name'] = "MTLB", ['container'] = true},
 	["APC MTLB Skid [26290lb]"] = {['name'] = "MTLB", ['container'] = false},
-	--["Generic Crate [20000lb]"] = {['name'] =  "Hercules_Container_Parachute", ['container'] = true}
+	["Generic Crate [20000lb]"] = {['name'] =  "Hercules_Container_Parachute", ['container'] = true}
 }
 function inTable(table, element, Log)
 	if Log then

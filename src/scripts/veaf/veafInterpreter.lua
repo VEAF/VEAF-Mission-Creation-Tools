@@ -54,7 +54,7 @@ veafInterpreter = {}
 veafInterpreter.Id = "INTERPRETER - "
 
 --- Version.
-veafInterpreter.Version = "1.2.0"
+veafInterpreter.Version = "1.3.0"
 
 -- trace level, specific to this module
 veafInterpreter.Trace = false
@@ -163,9 +163,7 @@ function veafInterpreter.execute(command, position, coalition, route, spawnedGro
 
 end
 
-function veafInterpreter.processObject(unitName)
-    veafInterpreter.logTrace(string.format("veafInterpreter.processObject([%s])", unitName))
-    local command = veafInterpreter.interpret(unitName)
+function veafInterpreter.executeCommandOnUnit(unitName, command)
     if command then 
         -- found an interpretable command
         veafInterpreter.logDebug(string.format("found an interpretable command : [%s]", command))
@@ -183,6 +181,13 @@ function veafInterpreter.processObject(unitName)
         end
     end
 end
+
+function veafInterpreter.processObject(unitName)
+    veafInterpreter.logTrace(string.format("veafInterpreter.processObject([%s])", unitName))
+    local command = veafInterpreter.interpret(unitName)
+    veafInterpreter.executeCommandOnUnit(unitName, command)
+end
+
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- initialisation
 -------------------------------------------------------------------------------------------------------------------------------------------------------------

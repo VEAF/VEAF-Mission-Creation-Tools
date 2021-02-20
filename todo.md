@@ -18,6 +18,7 @@
 
 - update SLMOD to make the chat_cmd_net function check __all__ the chat commands in one run (don't spawn xxx threads)
 - gérer le tacan du PA dans carrier ops
+- bouger les escortes avec les tankers
 
 ### Bug - needs to be corrected
 

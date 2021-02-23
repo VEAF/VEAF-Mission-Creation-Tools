@@ -27,7 +27,7 @@ veafMissionEditor = {}
 veafMissionEditor.Id = "MISSION EDITOR - "
 
 --- Version.
-veafMissionEditor.Version = "1.1.0"
+veafMissionEditor.Version = "1.1.1"
 
 -- trace level, specific to this module
 veafMissionEditor.Debug = false
@@ -188,11 +188,11 @@ function veafMissionEditor.editMission(inFilePath, outFilePath, tableName, proce
     end
 
     veafMissionEditor.logDebug(string.format("Reading lua table from [%s]",inFilePath))
-    local table = veafMissionEditor.readMissionFile(inFilePath, tableName)
+    local _table = veafMissionEditor.readMissionFile(inFilePath, tableName)
     veafMissionEditor.logDebug("Processing lua table")
-    table = _processFunction(table)
+    _table = _processFunction(_table)
     veafMissionEditor.logDebug("Exporting table as lua")
-    local tableAsLua = veafMissionEditor.serialize(tableName, table)
+    local tableAsLua = veafMissionEditor.serialize(tableName, _table)
     veafMissionEditor.logDebug(string.format("Writing lua table to [%s]",outFilePath))
     veafMissionEditor.writeMissionFile(outFilePath, tableAsLua)
 end

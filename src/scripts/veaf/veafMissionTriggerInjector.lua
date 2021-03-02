@@ -38,8 +38,8 @@ veafMissionTriggerInjector.Id = "MISSIONTRIGGERS_EDITOR - "
 veafMissionTriggerInjector.Version = "1.0.0"
 
 -- trace level, specific to this module
-veafMissionTriggerInjector.Trace = true
-veafMissionTriggerInjector.Debug = true
+veafMissionTriggerInjector.Trace = false
+veafMissionTriggerInjector.Debug = false
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Do not change anything below unless you know what you are doing!
@@ -355,7 +355,7 @@ veafMissionTriggerInjector.dictionary = {
     ["DictKey_ActionText_10108"] = 'assert(loadfile(VEAF_DYNAMIC_PATH .. "/src/scripts/VeafDynamicLoader.lua"))()',
     ["DictKey_ActionText_10201"] = 'env.info("STATIC LOADING")',
     ["DictKey_ActionText_10301"] = 'assert(loadfile(VEAF_DYNAMIC_MISSIONPATH .. "/src/scripts/missionConfig.lua"))()',
-    ["DictKey_ActionText_10501"] = "return false -- set to 'true' for dynamic loading",
+    ["DictKey_ActionText_10501"] = "return false -- set to true for dynamic loading",
     ["DictKey_ActionText_10601"] = "return VEAF_DYNAMIC_PATH~=nil",
     ["DictKey_ActionText_10701"] = "return VEAF_DYNAMIC_PATH==nil",
     ["DictKey_ActionText_10801"] = "return VEAF_DYNAMIC_PATH~=nil",

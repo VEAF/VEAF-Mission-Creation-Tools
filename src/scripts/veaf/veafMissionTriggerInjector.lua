@@ -78,7 +78,7 @@ veafMissionTriggerInjector.trig = {}
 veafMissionTriggerInjector.trig.actions = {
     [1] = 'a_do_script(getValueDictByKey("DictKey_ActionText_10001"));a_do_script(getValueDictByKey("DictKey_ActionText_10002"));',
     [2] = 'a_do_script(getValueDictByKey("DictKey_ActionText_10101"));a_do_script(getValueDictByKey("DictKey_ActionText_10102"));a_do_script(getValueDictByKey("DictKey_ActionText_10103"));a_do_script(getValueDictByKey("DictKey_ActionText_10104"));a_do_script(getValueDictByKey("DictKey_ActionText_10105"));a_do_script(getValueDictByKey("DictKey_ActionText_10106"));a_do_script(getValueDictByKey("DictKey_ActionText_10107"));a_do_script(getValueDictByKey("DictKey_ActionText_10108"));',
-    [3] = 'a_do_script(getValueDictByKey("DictKey_ActionText_10201"));a_do_script_file(getValueResourceByKey("DictKey_ActionText_10202"));a_do_script_file(getValueResourceByKey("DictKey_ActionText_10203"));a_do_script_file(getValueResourceByKey("DictKey_ActionText_10204"));a_do_script_file(getValueResourceByKey("DictKey_ActionText_10205"));a_do_script_file(getValueResourceByKey("DictKey_ActionText_10206"));a_do_script_file(getValueResourceByKey("DictKey_ActionText_10207"));a_do_script_file(getValueResourceByKey("DictKey_ActionText_10208"));a_do_script_file(getValueResourceByKey("DictKey_ActionText_10209"));a_do_script_file(getValueResourceByKey("DictKey_ActionText_10210"));a_do_script_file(getValueResourceByKey("DictKey_ActionText_10211"));a_do_script_file(getValueResourceByKey("DictKey_ActionText_10212"));a_do_script_file(getValueResourceByKey("DictKey_ActionText_10213"));a_do_script_file(getValueResourceByKey("DictKey_ActionText_10214"));a_do_script_file(getValueResourceByKey("DictKey_ActionText_10215"));a_do_script_file(getValueResourceByKey("DictKey_ActionText_10216"));a_do_script_file(getValueResourceByKey("DictKey_ActionText_10217"));a_do_script_file(getValueResourceByKey("DictKey_ActionText_10218"));a_do_script_file(getValueResourceByKey("DictKey_ActionText_10219"));a_do_script_file(getValueResourceByKey("DictKey_ActionText_10220"));a_do_script_file(getValueResourceByKey("DictKey_ActionText_10221"));a_do_script_file(getValueResourceByKey("DictKey_ActionText_10222"));a_do_script_file(getValueResourceByKey("DictKey_ActionText_10223"));a_do_script_file(getValueResourceByKey("DictKey_ActionText_10224"));a_do_script_file(getValueResourceByKey("DictKey_ActionText_10225"));a_do_script_file(getValueResourceByKey("DictKey_ActionText_10226"));a_do_script_file(getValueResourceByKey("DictKey_ActionText_10227"));a_do_script_file(getValueResourceByKey("DictKey_ActionText_10228"));',
+    [3] = 'a_do_script(getValueDictByKey("DictKey_ActionText_10201"));a_do_script_file(getValueResourceByKey("DictKey_ActionText_10202"));a_do_script_file(getValueResourceByKey("DictKey_ActionText_10203"));a_do_script_file(getValueResourceByKey("DictKey_ActionText_10204"));a_do_script_file(getValueResourceByKey("DictKey_ActionText_10205"));a_do_script_file(getValueResourceByKey("DictKey_ActionText_10206"));a_do_script_file(getValueResourceByKey("DictKey_ActionText_10207"));a_do_script_file(getValueResourceByKey("DictKey_ActionText_10208"));a_do_script_file(getValueResourceByKey("DictKey_ActionText_10209"));a_do_script_file(getValueResourceByKey("DictKey_ActionText_10210"));a_do_script_file(getValueResourceByKey("DictKey_ActionText_10211"));a_do_script_file(getValueResourceByKey("DictKey_ActionText_10212"));a_do_script_file(getValueResourceByKey("DictKey_ActionText_10213"));a_do_script_file(getValueResourceByKey("DictKey_ActionText_10214"));a_do_script_file(getValueResourceByKey("DictKey_ActionText_10215"));a_do_script_file(getValueResourceByKey("DictKey_ActionText_10216"));a_do_script_file(getValueResourceByKey("DictKey_ActionText_10217"));a_do_script_file(getValueResourceByKey("DictKey_ActionText_10218"));a_do_script_file(getValueResourceByKey("DictKey_ActionText_10219"));a_do_script_file(getValueResourceByKey("DictKey_ActionText_10220"));a_do_script_file(getValueResourceByKey("DictKey_ActionText_10221"));a_do_script_file(getValueResourceByKey("DictKey_ActionText_10222"));a_do_script_file(getValueResourceByKey("DictKey_ActionText_10223"));a_do_script_file(getValueResourceByKey("DictKey_ActionText_10224"));a_do_script_file(getValueResourceByKey("DictKey_ActionText_10225"));a_do_script_file(getValueResourceByKey("DictKey_ActionText_10226"));a_do_script_file(getValueResourceByKey("DictKey_ActionText_10227"));a_do_script_file(getValueResourceByKey("DictKey_ActionText_10228"));a_do_script_file(getValueResourceByKey("DictKey_ActionText_10229"));',
     [4] = 'a_do_script(getValueDictByKey("DictKey_ActionText_10301"));',
     [5] = 'a_do_script_file(getValueResourceByKey("DictKey_ActionText_10401"));'
 }
@@ -287,7 +287,11 @@ veafMissionTriggerInjector.trigrules = {
             [28] = {
                 ["file"] = "DictKey_ActionText_10228",
                 ["predicate"] = "a_do_script_file"
-            } -- end of [28]
+            }, -- end of [28]
+            [29] = {
+                ["file"] = "DictKey_ActionText_10229",
+                ["predicate"] = "a_do_script_file"
+            } -- end of [29]
         }, -- end of ["actions"]
         ["colorItem"] = "0x00ff80ff",
         ["comment"] = "mission start - static",
@@ -390,6 +394,7 @@ veafMissionTriggerInjector.mapresource = {
     ["DictKey_ActionText_10226"] = "veafCombatMission.lua",
     ["DictKey_ActionText_10227"] = "veafRemote.lua",
     ["DictKey_ActionText_10228"] = "veafSkynetIadsHelper.lua",
+    ["DictKey_ActionText_10229"] = "veafSanctuary.lua",
     ["DictKey_ActionText_10401"] = "missionConfig.lua"
 }
 

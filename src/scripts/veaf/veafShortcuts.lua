@@ -27,7 +27,7 @@ veafShortcuts = {}
 veafShortcuts.Id = "SHORTCUTS - "
 
 --- Version.
-veafShortcuts.Version = "1.11.0"
+veafShortcuts.Version = "1.11.1"
 
 -- trace level, specific to this module
 veafShortcuts.Debug = false
@@ -249,7 +249,7 @@ function veafShortcuts.ExecuteAlias(aliasName, remainingCommand, position, coali
         veafShortcuts.logTrace(string.format("command = [%s]",command or ""))
         if logDebug("checking in veafShortcuts") and veafShortcuts.executeCommand(position, command, coalition, spawnedGroups) then
             return true
-        elseif logDebug("checking in veafSpawn") and veafSpawn.executeCommand(position, command, coalitionForSpawn, doNotBypassSecurity or true, spawnedGroups) then
+        elseif logDebug("checking in veafSpawn") and veafSpawn.executeCommand(position, command, coalition, doNotBypassSecurity or true, spawnedGroups) then
             return true
         elseif logDebug("checking in veafNamedPoints") and veafNamedPoints.executeCommand(position, {text=command, coalition=-1}, doNotBypassSecurity or true) then
             return true
@@ -261,7 +261,7 @@ function veafShortcuts.ExecuteAlias(aliasName, remainingCommand, position, coali
             return true
         elseif logDebug("checking in veafRadio") and veafRadio.executeCommand(position, command, coalition, doNotBypassSecurity or true) then
             return true
-        elseif logDebug("checking in veafRemote") and veafRemote.executeCommand(position, command, coalitionForSpawn) then
+        elseif logDebug("checking in veafRemote") and veafRemote.executeCommand(position, command, coalition) then
             return true
         else
             return false

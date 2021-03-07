@@ -51,7 +51,7 @@ veafCombatMission = {}
 veafCombatMission.Id = "COMBAT MISSION - "
 
 --- Version.
-veafCombatMission.Version = "1.7.1"
+veafCombatMission.Version = "1.8.0"
 
 -- trace level, specific to this module
 veafCombatMission.Debug = false
@@ -1324,10 +1324,12 @@ function veafCombatMission.listActiveMissions()
 end
 
 -- add a standard CAP mission with a single group
-function veafCombatMission.addCapMission(missionName, missionDescription, missionBriefing, secured, radioMenuEnabled, skills, scales)
+function veafCombatMission.addCapMission(missionName, missionDescription, missionBriefing, secured, radioMenuEnabled, skills, scales, spawnRadius)
     veafCombatMission.logTrace(string.format("veafCombatMission.addCapMission(%s)",tostring(missionName)))
 
     local groupName = groupName or "OnDemand-"..missionName
+    local spawnRadius = spawnRadius
+    if spawnRadius == nil then spawnRadius = 20000 end
     local secured = secured
     if secured == nil then secured = true end
     local radioMenuEnabled = radioMenuEnabled
@@ -1347,7 +1349,7 @@ function veafCombatMission.addCapMission(missionName, missionDescription, missio
     if not scales then 
         veafCombatMission.logTrace(string.format("scales is nil"))
         if radioMenuEnabled then
-            scales = {1, 2, 4}
+            scales = {1, 2}
         else
             scales = nil
         end
@@ -1369,6 +1371,7 @@ function veafCombatMission.addCapMission(missionName, missionDescription, missio
             :setGroups({groupName})
             :setSkill("Random")
             :setScalable(true)
+            :setSpawnRadius(spawnRadius)
 		)
 		:addObjective(
 			VeafCombatMissionObjective.new()

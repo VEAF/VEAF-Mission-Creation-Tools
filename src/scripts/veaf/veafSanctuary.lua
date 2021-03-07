@@ -31,10 +31,10 @@ veafSanctuary.Id = "SANCTUARY - "
 veafSanctuary.Version = "1.0.0"
 
 -- debug level, specific to this module
-veafSanctuary.Debug = true
+veafSanctuary.Debug = false
 
 -- trace level, specific to this module
-veafSanctuary.Trace = true
+veafSanctuary.Trace = false
 
 -- delay before the sanctuary zones start reporting
 veafSanctuary.DelayForStartup = 0
@@ -74,13 +74,11 @@ veafSanctuary.initialized = false
 veafSanctuary.spawnedSAMs  = {}
 veafSanctuary.humanUnitsToFollow  = {}
 veafSanctuary.zonesList  = {}
+veafSanctuary.humanUnits = {}
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Utility methods
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-veafSanctuary.debugMarkers = {}
-veafSanctuary.traceMarkerId = 9898
 
 function veafSanctuary.logError(message)
     veaf.logError(veafSanctuary.Id .. message)
@@ -99,12 +97,6 @@ end
 function veafSanctuary.logTrace(message)
     if message and veafSanctuary.Trace then 
         veaf.logTrace(veafSanctuary.Id .. message)
-    end
-end
-
-function veafSanctuary.logMarker(id, message, position, markersTable)
-    if veafSanctuary.Trace then 
-        return veaf.logMarker(id, veafSanctuary.Id, message, position, markersTable)
     end
 end
 
@@ -223,7 +215,6 @@ function VeafSanctuaryZone:setPolygonFromUnits(unitNames)
             unit:destroy()
             veafSanctuary.logTrace(string.format("position = %s", veaf.p(position)))
             table.insert(polygon, mist.utils.deepCopy(position))
-            veafSanctuary.traceMarkerId = veafSanctuary.logMarker(veafSanctuary.traceMarkerId, unitName, position, veafSanctuary.debugMarkers)
         end
     end
     veafSanctuary.logTrace(string.format("polygon = %s", veaf.p(polygon)))
@@ -363,35 +354,40 @@ function VeafSanctuaryZone:handleUnit(unit, data)
             firstInZone = timer.getTime()
             data.firstInZone = firstInZone
         end
-        local timeInZone = timer.getTime() - firstInZone
         local unitname = unit:getName()
-        local message = string.format("Unit %s is in the %s zone since %d seconds", unitname, self:getName(), timeInZone)
+        local playername = unit:getPlayerName()
+        local callsign = unit:getCallsign()
+        local timeInZone = timer.getTime() - firstInZone
+        veafSanctuary.logTrace(string.format("unitname=%s, playername=%s, callsign=%s", veaf.p(unitname), veaf.p(playername), veaf.p(callsign)))
+
+        local message = string.format("Unit %s is in the %s zone since %d seconds", playername, self:getName(), timeInZone)
         trigger.action.outTextForCoalition(self:getCoalition(), message, veafSanctuary.MESSAGE_TIME)
         veafSanctuary.logInfo(message)
         local groupId = unit:getGroup():getID()
         if self:getDelayInstant() > -1 and timeInZone >= self:getDelayInstant() then
             -- insta-death !
-            local message = string.format("Instantly killing unit %s, in zone %s since %d seconds", unitname, self:getName(), timeInZone)
+            local message = string.format("Instantly killing unit %s, in zone %s since %d seconds", playername, self:getName(), timeInZone)
             trigger.action.outTextForCoalition(self:getCoalition(), message, veafSanctuary.MESSAGE_TIME)
             veafSanctuary.logInfo(message)
             unit:destroy()
         elseif self:getDelaySpawn() > -1 and timeInZone >= self:getDelaySpawn() then
             -- spawn defense systems
-            local message = string.format("Spawning defense systems to fend off unit %s, in zone %s since %d seconds", unitname, self:getName(), timeInZone)
+            local message = string.format("Spawning defense systems to fend off unit %s, in zone %s since %d seconds", playername, self:getName(), timeInZone)
             trigger.action.outTextForCoalition(self:getCoalition(), message, veafSanctuary.MESSAGE_TIME)
             veafSanctuary.logInfo(message)
-            trigger.action.outTextForGroup(groupId, string.format("CRITICAL: %s - %s", unitname, self:getMessageSpawn()), veafSanctuary.MESSAGE_TIME)
+            trigger.action.outTextForGroup(groupId, string.format("CRITICAL: %s - %s", playername, self:getMessageSpawn()), veafSanctuary.MESSAGE_TIME)
             -- compute the position of the unit in 5 seconds
             local positionIn5s = mist.vec.add(position, mist.vec.scalarMult(unit:getVelocity(), 5))
             self:deployDefenses(positionIn5s, timeInZone)
         elseif self:getDelayWarning() > -1 and timeInZone >= self:getDelayWarning() then
             -- simple warning
-            veafSanctuary.logDebug(string.format("Issuing a warning to unit %s", veaf.p(unitname)))
-            trigger.action.outTextForGroup(groupId, string.format("WARNING: %s - %s", unitname, self:getMessageWarning()), veafSanctuary.MESSAGE_TIME)
+            veafSanctuary.logDebug(string.format("Issuing a warning to unit %s", veaf.p(playername)))
+            trigger.action.outTextForGroup(groupId, string.format("WARNING: %s - %s", playername, self:getMessageWarning()), veafSanctuary.MESSAGE_TIME)
         end
     elseif data.firstInZone >= 0 then
+        local playername = unit:getPlayerName()
         -- reset the counter
-        veafSanctuary.logDebug(string.format("%s got out of the zone", veaf.p(unitname)))
+        veafSanctuary.logDebug(string.format("%s got out of the zone", veaf.p(playername)))
         data.firstInZone = -1
     end
 
@@ -428,18 +424,31 @@ function veafSanctuary.eventHandler:onEvent(event)
     
     veafSanctuary.logTrace(string.format("event %s",veaf.p(veaf.EVENTMETA[event.id].Text)))
 
-    if not(event.id == world.event.S_EVENT_PLAYER_ENTER_UNIT or event.id == world.event.S_EVENT_PLAYER_LEAVE_UNIT) then
+    if not(
+           event.id == world.event.S_EVENT_PLAYER_ENTER_UNIT 
+        or event.id == world.event.S_EVENT_PLAYER_LEAVE_UNIT
+        or event.id == world.event.S_EVENT_BIRTH
+        or event.id == world.event.S_EVENT_DEAD
+        ) then
         return 
     end
-    
+
+    if not event.initiator then
+        return
+    end
+
     local _unitname = event.initiator:getName()
     veafSanctuary.logTrace(string.format("event initiator unit  = %s", veaf.p(_unitname)))
 
-    if event.id == world.event.S_EVENT_PLAYER_ENTER_UNIT then
+    if event.id == world.event.S_EVENT_PLAYER_ENTER_UNIT 
+    or event.id == world.event.S_EVENT_BIRTH and _unitname and veafSanctuary.humanUnits[_unitname]
+    then
         -- register the human unit in the follow-up list when the human gets in the unit
         veafSanctuary.logTrace(string.format("registering human unit to follow: %s", veaf.p(_unitname)))
         veafSanctuary.humanUnitsToFollow[_unitname] = { firstInZone = -1}
-    elseif event.id == world.event.S_EVENT_PLAYER_LEAVE_UNIT then
+    elseif event.id == world.event.S_EVENT_PLAYER_LEAVE_UNIT 
+    or     event.id == world.event.S_EVENT_DEAD and _unitname and veafSanctuary.humanUnits[_unitname]
+    then
         -- unregister the human unit from the follow-up list when the human gets in the unit
         veafSanctuary.logTrace(string.format("deregistering human unit to follow: %s", veaf.p(_unitname)))
         veafSanctuary.humanUnitsToFollow[_unitname] = nil
@@ -471,12 +480,20 @@ function veafSanctuary.loop()
 
     mist.scheduleFunction(veafSanctuary.loop, {}, timer.getTime() + veafSanctuary.DelayBetweenChecks)
 end
+
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- initialisation
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 function veafSanctuary.initialize()
     veafSanctuary.logInfo("Initializing module")
+
+    -- prepare humans units
+    veafSanctuary.humanUnits = {}
+    for name, _ in pairs(mist.DBs.humansByName) do
+        veafSanctuary.logTrace(string.format("mist.DBs.humansByName[%s]=??", veaf.p(name)))
+        veafSanctuary.humanUnits[name] = true
+    end
 
     --- Add the event handler.
     world.addEventHandler(veafSanctuary.eventHandler)

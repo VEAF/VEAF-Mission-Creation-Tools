@@ -960,7 +960,8 @@ function veafRadio.initialize(skipHelpMenus)
 
     -- Build the initial radio menu
     veafRadio.buildHumanUnits()
-    veafRadio.refreshRadioMenu()
+    veafRadio.refreshRadioMenu(false)
+    mist.scheduleFunction(veafRadio._refreshRadioMenu,{},timer.getTime()+15)
     
     -- Add "player unit birth" event handler.
     world.addEventHandler(veafRadio.eventHandler)

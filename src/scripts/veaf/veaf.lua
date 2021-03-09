@@ -33,7 +33,7 @@ veaf.Id = "VEAF - "
 veaf.MainId = "MAIN - "
 
 --- Version.
-veaf.Version = "1.10.0"
+veaf.Version = "1.11.0"
 
 -- trace level, specific to this module
 veaf.MainTrace = false
@@ -1700,6 +1700,17 @@ function veaf.getRandomizableNumeric_random(val)
         --]]
 
         -- [[
+        
+        if val == "0-1" then nVal = math.random(1,2) end
+        if val == "0-2" then nVal = math.random(1,2) end
+        if val == "0-3" then nVal = math.random(1,3) end
+        if val == "0-4" then nVal = math.random(1,4) end
+        if val == "0-5" then nVal = math.random(1,5) end
+        if val == "0-6" then nVal = math.random(1,6) end
+        if val == "0-7" then nVal = math.random(1,7) end
+        if val == "0-8" then nVal = math.random(1,8) end
+        if val == "0-9" then nVal = math.random(1,9) end
+    
         if val == "1-2" then nVal = math.random(1,2) end
         if val == "1-3" then nVal = math.random(1,3) end
         if val == "1-4" then nVal = math.random(1,4) end

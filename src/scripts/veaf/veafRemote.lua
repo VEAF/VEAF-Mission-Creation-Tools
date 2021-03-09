@@ -322,7 +322,7 @@ end
 
 --- Function executed when a mark has changed. This happens when text is entered or changed.
 function veafRemote.onEventMarkChange(eventPos, event)
-    if veafRemote.executeCommand(eventPos, event.text, event.coalition) then 
+    if veafRemote.executeCommand(eventPos, event.text) then 
         
         -- Delete old mark.
         veafRemote.logTrace(string.format("Removing mark # %d.", event.idx))
@@ -332,14 +332,8 @@ function veafRemote.onEventMarkChange(eventPos, event)
 end
 
 
-function veafRemote.executeCommand(eventPos, eventText, eventCoalition)
+function veafRemote.executeCommand(eventPos, eventText)
     veafRemote.logDebug(string.format("veafRemote.executeCommand(eventText=[%s])", tostring(eventText)))
-
-    -- choose by default the coalition opposing the player who triggered the event
-    local coalition = 1
-    if eventCoalition == 1 then
-        coalition = 2
-    end
 
     -- Check if marker has a text and the veafRemote.CommandStarter keyphrase.
     if eventText ~= nil and eventText:lower():find(veafRemote.CommandStarter) then

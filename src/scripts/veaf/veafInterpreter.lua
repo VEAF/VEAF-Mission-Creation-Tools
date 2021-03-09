@@ -120,30 +120,24 @@ function veafInterpreter.execute(command, position, coalition, route, spawnedGro
     if position == nil then return end
     veafInterpreter.logTrace(string.format("veafInterpreter.execute([%s],[%s])",command, veaf.vecToString(position)))
 
-    -- for spawn choose by default the coalition opposing the unit in which the intepreter command is stored ; the SPAWN and CAS module will also invert, and voilà !
-    local invertedCoalition = 1
-    if coalition == 1 then
-        invertedCoalition = 2
-    end
-
     local commandExecuted = false
     spawnedGroups = spawnedGroups or {}
 
     if logDebug("checking in veafShortcuts") and veafShortcuts.executeCommand(position, command, coalition, spawnedGroups) then
         commandExecuted = true
-    elseif logDebug("checking in veafSpawn") and veafSpawn.executeCommand(position, command, invertedCoalition, doNotBypassSecurity or true, spawnedGroups) then
+    elseif logDebug("checking in veafSpawn") and veafSpawn.executeCommand(position, command, coalition, doNotBypassSecurity or true, spawnedGroups) then
         commandExecuted = true
     elseif logDebug("checking in veafNamedPoints") and veafNamedPoints.executeCommand(position, {text=command, coalition=-1}, doNotBypassSecurity or true) then
         commandExecuted = true
-    elseif logDebug("checking in veafCasMission") and veafCasMission.executeCommand(position, command, invertedCoalition, doNotBypassSecurity or true) then
+    elseif logDebug("checking in veafCasMission") and veafCasMission.executeCommand(position, command, coalition, doNotBypassSecurity or true) then
         commandExecuted = true
     elseif logDebug("checking in veafSecurity") and veafSecurity.executeCommand(position, command, doNotBypassSecurity or true) then
         commandExecuted = true
     elseif logDebug("checking in veafMove") and veafMove.executeCommand(position, command, doNotBypassSecurity or true) then
         commandExecuted = true
-    elseif logDebug("checking in veafRadio") and veafRadio.executeCommand(position, command, invertedCoalition, doNotBypassSecurity or true) then
+    elseif logDebug("checking in veafRadio") and veafRadio.executeCommand(position, command, coalition, doNotBypassSecurity or true) then
         commandExecuted = true
-    elseif logDebug("checking in veafRemote") and veafRemote.executeCommand(position, command, invertedCoalition) then
+    elseif logDebug("checking in veafRemote") and veafRemote.executeCommand(position, command, coalition) then
         commandExecuted = true
     else
         commandExecuted = false

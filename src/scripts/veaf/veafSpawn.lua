@@ -139,7 +139,14 @@ end
 
 --- Function executed when a mark has changed. This happens when text is entered or changed.
 function veafSpawn.onEventMarkChange(eventPos, event)
-    if veafSpawn.executeCommand(eventPos, event.text, event.coalition) then 
+
+    -- choose by default the coalition opposing the player who triggered the event
+    local invertedCoalition = 1
+    if event.coalition == 1 then
+        invertedCoalition = 2
+    end
+
+    if veafSpawn.executeCommand(eventPos, event.text, invertedCoalition) then 
         
         -- Delete old mark.
         veafSpawn.logTrace(string.format("Removing mark # %d.", event.idx))
@@ -148,13 +155,8 @@ function veafSpawn.onEventMarkChange(eventPos, event)
     end
 end
 
-function veafSpawn.executeCommand(eventPos, eventText, eventCoalition, bypassSecurity, spawnedGroups)
+function veafSpawn.executeCommand(eventPos, eventText, coalition, bypassSecurity, spawnedGroups)
     veafSpawn.logDebug(string.format("veafShortcuts.executeCommand(eventText=[%s])", eventText))
-    -- choose by default the coalition opposing the player who triggered the event
-    local coalition = 1
-    if eventCoalition == 1 then
-        coalition = 2
-    end
 
     -- Check if marker has a text and the veafSpawn.SpawnKeyphrase keyphrase.
     if eventText ~= nil and (eventText:lower():find(veafSpawn.SpawnKeyphrase) or eventText:lower():find(veafSpawn.DestroyKeyphrase) or eventText:lower():find(veafSpawn.TeleportKeyphrase)) then
@@ -837,7 +839,7 @@ end
 
 --- Spawns a dynamic infantry group 
 function veafSpawn.spawnInfantryGroup(spawnSpot, radius, country, side, heading, spacing, defense, armor, size, silent)
-    veafSpawn.logDebug(string.format("spawnInfantryGroup(country=%s, side=%d, heading=%d, spacing=%d, defense=%d, armor=%d)",country, side, heading, spacing, defense, armor))
+    veafSpawn.logDebug(string.format("spawnInfantryGroup(country=%s, side=%s, heading=%s, spacing=%s, defense=%s, armor=%s, size=%s)", veaf.p(country), veaf.p(side), veaf.p(heading), veaf.p(spacing), veaf.p(defense), veaf.p(armor), veaf.p(size)))
     
     local spawnSpot = veaf.placePointOnLand(mist.getRandPointInCircle(spawnSpot, radius))
     veafSpawn.logTrace("spawnSpot=" .. veaf.vecToString(spawnSpot))
@@ -863,7 +865,7 @@ end
 
 --- Spawns a dynamic armored platoon
 function veafSpawn.spawnArmoredPlatoon(spawnSpot, radius, country, side, heading, spacing, defense, armor, size, silent)
-    veafSpawn.logDebug(string.format("spawnArmoredPlatoon(country=%s, side=%d, heading=%d, spacing=%d, defense=%d, armor=%d, size=%d)",country, side, heading, spacing, defense, armor, size))
+    veafSpawn.logDebug(string.format("spawnArmoredPlatoon(country=%s, side=%s, heading=%s, spacing=%s, defense=%s, armor=%s, size=%s)", veaf.p(country), veaf.p(side), veaf.p(heading), veaf.p(spacing), veaf.p(defense), veaf.p(armor), veaf.p(size)))
     
     local spawnSpot = veaf.placePointOnLand(mist.getRandPointInCircle(spawnSpot, radius))
     veafSpawn.logTrace("spawnSpot=" .. veaf.vecToString(spawnSpot))
@@ -889,7 +891,7 @@ end
 
 --- Spawns a dynamic air defense battery
 function veafSpawn.spawnAirDefenseBattery(spawnSpot, radius, country, side, heading, spacing, defense, silent)
-    veafSpawn.logDebug(string.format("spawnAirDefenseBattery(country=%s, side=%d, heading=%d, spacing=%d, defense=%d)",country, side, heading, spacing, defense))
+    veafSpawn.logDebug(string.format("spawnAirDefenseBattery(country=%s, side=%s, heading=%s, spacing=%s, defense=%s)", veaf.p(country), veaf.p(side), veaf.p(heading), veaf.p(spacing), veaf.p(defense)))
 
     local spawnSpot = veaf.placePointOnLand(mist.getRandPointInCircle(spawnSpot, radius))
     veafSpawn.logTrace("spawnSpot=" .. veaf.vecToString(spawnSpot))
@@ -915,7 +917,7 @@ end
 
 --- Spawns a dynamic transport company
 function veafSpawn.spawnTransportCompany(spawnSpot, radius, country, side, heading, spacing, defense, size, silent)
-    veafSpawn.logDebug(string.format("spawnTransportCompany(country=%s, side=%d, heading=%d, spacing=%d, defense=%d, size=%d)",country, side, heading, spacing, defense, size))
+    veafSpawn.logDebug(string.format("spawnTransportCompany(country=%s, side=%s, heading=%s, spacing=%s, defense=%s, size=%s)", veaf.p(country), veaf.p(side), veaf.p(heading), veaf.p(spacing), veaf.p(defense), veaf.p(size)))
     
     local spawnSpot = veaf.placePointOnLand(mist.getRandPointInCircle(spawnSpot, radius))
     veafSpawn.logTrace("spawnSpot=" .. veaf.vecToString(spawnSpot))
@@ -941,7 +943,7 @@ end
 
 --- Spawns a dynamic full combat group composed of multiple platoons
 function veafSpawn.spawnFullCombatGroup(spawnSpot, radius, country, side, heading, spacing, defense, armor, size, silent)
-    veafSpawn.logDebug(string.format("spawnFullCombatGroup(country=%s, side=%d, heading=%d, spacing=%d, defense=%d, armor=%d, size=%d)",country, side, heading, spacing, defense, armor, size))
+    veafSpawn.logDebug(string.format("spawnFullCombatGroup(country=%s, side=%s, heading=%s, spacing=%s, defense=%s, armor=%s, size=%s)", veaf.p(country), veaf.p(side), veaf.p(heading), veaf.p(spacing), veaf.p(defense), veaf.p(armor), veaf.p(size)))
     
     local spawnSpot = veaf.placePointOnLand(mist.getRandPointInCircle(spawnSpot, radius))
     veafSpawn.logTrace("spawnSpot=" .. veaf.vecToString(spawnSpot))
@@ -961,7 +963,7 @@ end
 
 --- Spawn a specific group at a specific spot
 function veafSpawn.spawnConvoy(spawnSpot, radius, country, side, speed, patrol, offroad, destination, defense, size, armor, silent)
-    veafSpawn.logDebug(string.format("spawnConvoy(country=%s, destination=%s, defense=%d, size=%d, armor=%d, speed=%s, patrol=%s)",country, destination, defense, size, armor, tostring(speed or ""), tostring(patrol or "")))
+    veafSpawn.logDebug(string.format("spawnConvoy(country=%s, destination=%s, defense=%d, size=%d, armor=%d, speed=%s, patrol=%s)", veaf.p(country), veaf.p(destination), veaf.p(defense), veaf.p(size), veaf.p(armor), veaf.p(speed), veaf.p(patrol)))
     
     local spawnSpot = veaf.placePointOnLand(mist.getRandPointInCircle(spawnSpot, radius))
     veafSpawn.logTrace("spawnSpot=" .. veaf.vecToString(spawnSpot))
@@ -1051,7 +1053,7 @@ end
 -- @param string unitName (callsign)
 -- @param string role (ex: jtac)
 function veafSpawn.spawnUnit(spawnSpot, radius, name, country, alt, hdg, unitName, role, code, freq, mod, silent)
-    veafSpawn.logDebug(string.format("spawnUnit(name = %s, country=%s, alt=%d, hdg= %d)",name, country, alt, hdg))
+    veafSpawn.logDebug(string.format("spawnUnit(name = %s, country=%s, alt=%d, hdg= %d)", veaf.p(name), veaf.p(country), veaf.p(alt), veaf.p(hdg)))
     
     local spawnSpot = veaf.placePointOnLand(mist.getRandPointInCircle(spawnSpot, radius))
     veafSpawn.logTrace(string.format("spawnUnit: spawnSpot  x=%.1f y=%.1f, z=%.1f", spawnSpot.x, spawnSpot.y, spawnSpot.z))

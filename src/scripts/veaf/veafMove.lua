@@ -158,7 +158,7 @@ end
 
 --- Function executed when a mark has changed. This happens when text is entered or changed.
 function veafMove.onEventMarkChange(eventPos, event)
-    if veafMove.executeCommand(eventPos, event.text, event.coalition) then 
+    if veafMove.executeCommand(eventPos, event.text) then 
         
         -- Delete old mark.
         veafMove.logTrace(string.format("Removing mark # %d.", event.idx))
@@ -167,14 +167,8 @@ function veafMove.onEventMarkChange(eventPos, event)
     end
 end
 
-function veafMove.executeCommand(eventPos, eventText, eventCoalition, bypassSecurity)
+function veafMove.executeCommand(eventPos, eventText, bypassSecurity)
     
-    -- choose by default the coalition opposing the player who triggered the event
-    local coalition = 1
-    if eventCoalition == 1 then
-        coalition = 2
-    end
-
     -- Check if marker has a text and the veafMove.keyphrase keyphrase.
     if eventText ~= nil and eventText:lower():find(veafMove.Keyphrase) then
 

@@ -230,6 +230,7 @@ function veafShortcuts.ExecuteAlias(aliasName, remainingCommand, position, coali
     end
 
     veafShortcuts.logDebug(string.format("veafShortcuts.ExecuteAlias([%s],[%s],[%d])",aliasName or "",remainingCommand or "",coalition or 99))
+
     local alias = veafShortcuts.GetAlias(aliasName)
     if alias then 
         veafShortcuts.logTrace(string.format("found VeafAlias[%s]",alias:getName() or ""))
@@ -296,7 +297,14 @@ end
 
 --- Function executed when a mark has changed. This happens when text is entered or changed.
 function veafShortcuts.onEventMarkChange(eventPos, event)
-    if veafShortcuts.executeCommand(eventPos, event.text, event.coalition) then 
+
+    -- choose by default the coalition opposing the player who triggered the event
+    local invertedCoalition = 1
+    if event.coalition == 1 then
+        invertedCoalition = 2
+    end
+
+    if veafShortcuts.executeCommand(eventPos, event.text, invertedCoalition) then 
         
         -- Delete old mark.
         veafShortcuts.logTrace(string.format("Removing mark # %d.", event.idx))

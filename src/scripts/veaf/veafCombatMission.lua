@@ -51,7 +51,7 @@ veafCombatMission = {}
 veafCombatMission.Id = "COMBAT MISSION - "
 
 --- Version.
-veafCombatMission.Version = "1.8.0"
+veafCombatMission.Version = "1.9.0"
 
 -- trace level, specific to this module
 veafCombatMission.Debug = false
@@ -63,6 +63,8 @@ veafCombatMission.SecondsBetweenWatchdogChecks = 30
 veafCombatMission.RadioMenuName = "MISSIONS"
 
 veafCombatMission.MinimumSpacingBetweenClones = 300 -- minimum spawn distance between clones of a group
+
+veafCombatMission.RemoteCommandParser = "([[a-zA-Z0-9]+)%s?([^%s]*)%s?(.*)"
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Do not change anything below unless you know what you are doing!
@@ -1403,6 +1405,48 @@ function veafCombatMission.dumpMissionsList(export_path)
     table.sort(sortedMissions)
     
     veaf.exportAsJson(sortedMissions, "combatMissions", jsonify, "CombatMissionsList.json", export_path)
+end
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- remote interface
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+-- execute command from the remote interface
+function veafCombatMission.executeCommandFromRemote(parameters)
+    veafCombatMission.logDebug(string.format("veafCombatMission.executeCommandFromRemote()"))
+    veafCombatMission.logTrace(string.format("parameters= %s", veaf.p(parameters)))
+    local _pilot, _pilotName, _unitName, _command = unpack(parameters)
+    veafCombatMission.logTrace(string.format("_pilot= %s", veaf.p(_pilot)))
+    veafCombatMission.logTrace(string.format("_pilotName= %s", veaf.p(_pilotName)))
+    veafCombatMission.logTrace(string.format("_unitName= %s", veaf.p(_unitName)))
+    veafCombatMission.logTrace(string.format("_command= %s", veaf.p(_command)))
+    if not _pilot or not _command then 
+        return false
+    end
+
+    if _command then
+        -- parse the command
+        local _action, _missionName, _parameters = _command:match(veafCombatMission.RemoteCommandParser)
+        veafCombatMission.logTrace(string.format("_action=%s",veaf.p(_action)))
+        veafCombatMission.logTrace(string.format("_missionName=%s",veaf.p(_missionName)))
+        veafCombatMission.logTrace(string.format("_parameters=%s",veaf.p(_parameters)))
+        if _action and _action:lower() == "list" then 
+            veafCombatMission.logInfo(string.format("[%s] is listing air missions)",veaf.p(_pilot.name)))
+            veafCombatMission.listAvailableMissions()
+            return true
+        elseif _action and _action:lower() == "start" and _missionName then 
+            local _silent = _parameters and _parameters:lower() == "silent"
+            veafCombatMission.logInfo(string.format("[%s] is starting air mission [%s] %s)",veaf.p(_pilot.name), veaf.p(_missionName), veaf.p(_parameters)))
+            veafCombatMission.ActivateMission(_missionName, _silent)
+            return true
+        elseif _action and _action:lower() == "stop" then 
+            local _silent = _parameters and _parameters:lower() == "silent"
+            veafCombatMission.logInfo(string.format("[%s] is stopping air mission [%s] %s)",veaf.p(_pilot.name), veaf.p(_missionName), veaf.p(_parameters)))
+            veafCombatMission.DesactivateMission(_missionName, _silent)
+            return true
+        end
+    end               
+    return false
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------

@@ -1,0 +1,17 @@
+pilots = 
+{
+	-- super administrators
+	-- can run everything, including arbitrary code
+	["fffffffffffffffffffffffffffffff1"] = { name="John Doe", level=99},
+	-- administrators
+	-- can set the server to restart at the next time there is no one connected
+	["fffffffffffffffffffffffffffffff2"] = { name="James Doe", level=10},
+	-- standard users
+	-- can unlock the commands, spawn things and start combat missions and zones
+	["fffffffffffffffffffffffffffffff3"] = { name="Kirk Doe", level=1},
+	-- registered guests
+	-- can only send messages
+	["fffffffffffffffffffffffffffffff4"] = { name="Jim Doe", level=0},
+} -- end of pilots
+
+

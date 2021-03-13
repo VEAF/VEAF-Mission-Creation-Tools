@@ -33,7 +33,7 @@ veaf.Id = "VEAF - "
 veaf.MainId = "MAIN - "
 
 --- Version.
-veaf.Version = "1.11.0"
+veaf.Version = "1.12.0"
 
 -- trace level, specific to this module
 veaf.MainTrace = false
@@ -731,6 +731,86 @@ function veaf.getLandHeight(vec3)
     return height
 end
 
+-- get a LL position based on a string 
+-- can be UTM (U38TMP334456 or u37TMP4351)
+-- can be LL with either : or - as a separator, and either DMS, DM decimal, or D decimal (N42:23:45E044-12.5 or N42.3345E044-12.5)
+function veaf.computeLLFromString(value)
+    local function _computeLLValueFromString(value)
+        local result = -1
+        if value:find(":") or value:find("-") then
+            -- convert in arc-seconds
+            local values = veaf.splitWithPattern(value, "[:-]+")
+            local weights = {3600, 60, 1}
+            for _, element in pairs(values) do
+                local weight = table.remove(weights, 1)
+                local elementInArcSec = tonumber(element)*weight
+                result = result + elementInArcSec
+            end
+        else
+            -- decimals
+            result = tonumber(value)
+        end
+        return result / 3600
+    end
+    
+    local result = -1
+    if value then
+        local _value = value:lower()
+        local _firstChar = _value:sub(1,1)
+        if _firstChar == "u" then
+            -- UTM coordinates
+            local _zone, _digraph, _digits = _value:match("u(%d%d[a-z])([a-z][a-z])(%d+)")
+            veaf.mainLogTrace(string.format("_zone=%s",veaf.p(_zone)))
+            veaf.mainLogTrace(string.format("_digraph=%s",veaf.p(_digraph)))
+            veaf.mainLogTrace(string.format("_digits=%s",veaf.p(_digits)))
+            if _zone and _digraph and _digits then
+                local _nDigits = #_digits
+                local _northing = tonumber(_digits:sub(_nDigits/2+1))
+                if _northing < 10 then
+                    _northing = _northing * 10000
+                elseif _northing < 100 then
+                    _northing = _northing * 1000
+                elseif _northing < 1000 then
+                    _northing = _northing * 100
+                elseif _northing < 10000 then
+                    _northing = _northing * 10
+                end
+
+                local _easting = tonumber(_digits:sub(1, _nDigits/2))
+                if _easting < 10 then
+                    _easting = _easting * 10000
+                elseif _easting < 100 then
+                    _easting = _easting * 1000
+                elseif _easting < 1000 then
+                    _easting = _easting * 100
+                elseif _easting < 10000 then
+                    _easting = _easting * 10
+                end
+
+                local _utm= { UTMZone = _zone:upper(), MGRSDigraph = _digraph:upper(), Easting = _easting, Northing = _northing }  
+                veaf.mainLogTrace(string.format("_utm=%s",veaf.p(_utm)))
+                return coord.MGRStoLL(_utm)
+            end
+        elseif _firstChar == "n" or _firstChar == "s" or _firstChar == "e" or _firstChar == "w" then
+            -- LL coordinates
+            local _signLat, _digitsLat, _signLon, _digitsLon = _value:match([[([news])([%d:\.-]+)([news])([%d:\.-]+)]])
+            local _multLat = 1
+            if _signLat == "s" then 
+                _multLat = -1
+            end
+            local _multLon = 1
+            if _signLon == "w" then 
+                _multLon = -1
+            end
+            local _lat = _multLat * _computeLLValueFromString(_digitsLat)
+            local _lon = _multLon * _computeLLValueFromString(_digitsLon)
+            return _lat, _lon
+        end
+    end
+    -- unrecognized format
+    return nil
+end
+ 
 --- Return a point at the same coordinates, but on the surface
 function veaf.placePointOnLand(vec3)
     -- convert a vec2 to a vec3
@@ -759,6 +839,25 @@ function veaf.trim(s)
 end
 
 --- Split string. C.f. http://stackoverflow.com/questions/1426954/split-string-in-lua
+function veaf.splitWithPattern(str, pat)
+    local t = {}  -- NOTE: use {n = 0} in Lua-5.0
+    local fpat = "(.-)" .. pat
+    local last_end = 1
+    local s, e, cap = str:find(fpat, 1)
+    while s do
+        if s ~= 1 or cap ~= "" then
+            table.insert(t, cap)
+        end
+        last_end = e+1
+        s, e, cap = str:find(fpat, last_end)
+    end
+    if last_end <= #str then
+        cap = str:sub(last_end)
+        table.insert(t, cap)
+    end
+    return t
+end
+
 function veaf.split(str, sep)
     local result = {}
     local regex = ("([^%s]+)"):format(sep)

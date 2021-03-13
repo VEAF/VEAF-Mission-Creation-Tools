@@ -33,7 +33,7 @@ veafSecurity = {}
 veafSecurity.Id = "SECURITY - "
 
 --- Version.
-veafSecurity.Version = "1.1.4"
+veafSecurity.Version = "1.2.0"
 
 -- trace level, specific to this module
 veafSecurity.Trace = false
@@ -43,29 +43,31 @@ veafSecurity.Keyphrase = "_auth"
 
 veafSecurity.authDuration = 10
 
+veafSecurity.RemoteCommandParser = "([[a-zA-Z0-9]+)%s?(.*)"
+
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Utility methods
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 function veafSecurity.logError(message)
-  veaf.logError(veafSecurity.Id .. message)
+    veaf.logError(veafSecurity.Id .. message)
 end
 
 function veafSecurity.logWarning(message)
-  veaf.logWarning(veafSecurity.Id .. message)
+    veaf.logWarning(veafSecurity.Id .. message)
 end
 
 function veafSecurity.logInfo(message)
-  veaf.logInfo(veafSecurity.Id .. message)
+    veaf.logInfo(veafSecurity.Id .. message)
 end
 
 function veafSecurity.logDebug(message)
-  veaf.logDebug(veafSecurity.Id .. message)
+    veaf.logDebug(veafSecurity.Id .. message)
 end
 
 function veafSecurity.logTrace(message)
-  if message and veafSecurity.Trace then
-    veaf.logTrace(veafSecurity.Id .. message)
-  end
+    if message and veafSecurity.Trace then
+        veaf.logTrace(veafSecurity.Id .. message)
+    end
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -416,6 +418,52 @@ end
 ----------------------------------------------------------------------
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- remote interface
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+-- execute command from the remote interface
+function veafSecurity.executeCommandFromRemote(parameters)
+    veafSecurity.logDebug(string.format("veafSecurity.executeCommandFromRemote()"))
+    veafSecurity.logTrace(string.format("parameters= %s", veaf.p(parameters)))
+    local _pilot, _pilotName, _unitName, _command = unpack(parameters)
+    veafSecurity.logTrace(string.format("_pilot= %s", veaf.p(_pilot)))
+    veafSecurity.logTrace(string.format("_pilotName= %s", veaf.p(_pilotName)))
+    veafSecurity.logTrace(string.format("_unitName= %s", veaf.p(_unitName)))
+    veafSecurity.logTrace(string.format("_command= %s", veaf.p(_command)))
+    if not _pilot or not _command then 
+        return false
+    end
+    
+    if _command then
+        -- parse the command
+        local _action, _parameters = _command:match(veafSecurity.RemoteCommandParser)
+        veafSecurity.logTrace(string.format("_action=%s",veaf.p(_action)))
+        veafSecurity.logTrace(string.format("_parameters=%s",veaf.p(_parameters)))
+        if _action and _action:lower() == "login" then 
+            if _pilot.level >= veafSecurity.LEVEL_L1 then
+                veafSecurity.logInfo(string.format("[%s] is unlocking the mission",veaf.p(_pilotName)))
+                veafSecurity.authenticate(_parameters)
+                return true
+            else
+                veafSecurity.logWarning(string.format("[%s] has not the required level to unlock the mission",veaf.p(_pilotName)))
+                return false
+            end
+        elseif _action and _action:lower() == "logout" then 
+            if _pilot.level >= veafSecurity.LEVEL_L1 then
+                local _silent = _parameters and _parameters:lower() == "silent"
+                veafSecurity.logInfo(string.format("[%s] is locking the mission",veaf.p(_pilotName)))
+                veafSecurity.logout(not _silent)
+                return true
+            else
+                veafSecurity.logWarning(string.format("[%s] has not the required level to lock the mission",veaf.p(_pilotName)))
+                return false
+            end
+        end
+    end    
+    return false           
+end
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Event handler functions.
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -509,16 +557,19 @@ end
 
 --- authenticate all radios for a short time
 function veafSecurity.authenticate(minutes)
-  local actualMinutes = minutes or veafSecurity.authDuration
-  if not veafSecurity.authenticated then
-    trigger.action.outText(string.format("The system is authenticated for %d minutes", actualMinutes), 15)
-    veafSecurity.authenticated = true
-    veafRadio.refreshRadioMenu()
-    if veafSecurity.logoutWatchdog then
-      mist.removeFunction(veafSecurity.logoutWatchdog)
+    local actualMinutes = minutes or veafSecurity.authDuration
+    if type(actualMinutes) == "string" and not(actualMinutes:match("%d+")) then
+        actualMinutes = veafSecurity.authDuration
     end
-    veafSecurity.logoutWatchdog = mist.scheduleFunction(veafSecurity.logout,{true},timer.getTime()+actualMinutes*60)
-  end
+    if not veafSecurity.authenticated then
+        trigger.action.outText(string.format("The system is authenticated for %d minutes", actualMinutes), 15)
+        veafSecurity.authenticated = true
+        veafRadio.refreshRadioMenu()
+        if veafSecurity.logoutWatchdog then
+            mist.removeFunction(veafSecurity.logoutWatchdog)
+        end
+        veafSecurity.logoutWatchdog = mist.scheduleFunction(veafSecurity.logout,{true},timer.getTime()+actualMinutes*60)
+    end
 end
 
 function veafSecurity._checkPassword(password, level)

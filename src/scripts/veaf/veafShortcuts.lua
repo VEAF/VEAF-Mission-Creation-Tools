@@ -27,7 +27,7 @@ veafShortcuts = {}
 veafShortcuts.Id = "SHORTCUTS - "
 
 --- Version.
-veafShortcuts.Version = "1.11.1"
+veafShortcuts.Version = "1.12.0"
 
 -- trace level, specific to this module
 veafShortcuts.Debug = false
@@ -36,6 +36,9 @@ veafShortcuts.Trace = false
 veafShortcuts.RadioMenuName = "SHORTCUTS"
 
 veafShortcuts.AliasStarter = "-"
+
+veafShortcuts.RemoteCommandParser = "([a-zA-Z0-9:\\.-]+)%s(.*)"
+
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Do not change anything below unless you know what you are doing!
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -182,6 +185,47 @@ function VeafAlias:isHidden()
     return self.hidden
 end
 
+function VeafAlias:execute(remainingCommand, position, coalition, spawnedGroups)
+    local function logDebug(message)
+        veafShortcuts.logDebug(message)
+        return true
+    end
+
+    local command = self:getVeafCommand()
+    for _, parameter in pairs(self:getRandomParameters()) do
+        veafShortcuts.logTrace(string.format("randomizing [%s]",parameter.name or ""))
+        local value = math.random(parameter.low, parameter.high)
+        veafShortcuts.logTrace(string.format("got [%d]",value))
+        command = string.format("%s, %s %d",command, parameter.name, value)
+    end
+    if self:isEndsWithComma() then
+        veafShortcuts.logTrace("adding a comma")
+        command = command .. ", "
+    end
+
+    local command = command .. (remainingCommand or "")
+    veafShortcuts.logTrace(string.format("command = [%s]",command or ""))
+    if logDebug("checking in veafShortcuts") and veafShortcuts.executeCommand(position, command, coalition, spawnedGroups) then
+        return true
+    elseif logDebug("checking in veafSpawn") and veafSpawn.executeCommand(position, command, coalition, doNotBypassSecurity or true, spawnedGroups) then
+        return true
+    elseif logDebug("checking in veafNamedPoints") and veafNamedPoints.executeCommand(position, {text=command, coalition=-1}, doNotBypassSecurity or true) then
+        return true
+    elseif logDebug("checking in veafCasMission") and veafCasMission.executeCommand(position, command, coalition, doNotBypassSecurity or true) then
+        return true
+    elseif logDebug("checking in veafSecurity") and veafSecurity.executeCommand(position, command, doNotBypassSecurity or true) then
+        return true
+    elseif logDebug("checking in veafMove") and veafMove.executeCommand(position, command, doNotBypassSecurity or true) then
+        return true
+    elseif logDebug("checking in veafRadio") and veafRadio.executeCommand(position, command, coalition, doNotBypassSecurity or true) then
+        return true
+    elseif logDebug("checking in veafRemote") and veafRemote.executeCommand(position, command, coalition) then
+        return true
+    else
+        return false
+    end
+end
+
 ---
 --- other methods
 ---
@@ -224,49 +268,12 @@ end
 
 -- execute an alias command
 function veafShortcuts.ExecuteAlias(aliasName, remainingCommand, position, coalition, spawnedGroups)
-    local function logDebug(message)
-        veafShortcuts.logDebug(message)
-        return true
-    end
-
     veafShortcuts.logDebug(string.format("veafShortcuts.ExecuteAlias([%s],[%s],[%d])",aliasName or "",remainingCommand or "",coalition or 99))
 
     local alias = veafShortcuts.GetAlias(aliasName)
     if alias then 
         veafShortcuts.logTrace(string.format("found VeafAlias[%s]",alias:getName() or ""))
-        local command = alias:getVeafCommand()
-        for _, parameter in pairs(alias:getRandomParameters()) do
-            veafShortcuts.logTrace(string.format("randomizing [%s]",parameter.name or ""))
-            local value = math.random(parameter.low, parameter.high)
-            veafShortcuts.logTrace(string.format("got [%d]",value))
-            command = string.format("%s, %s %d",command, parameter.name, value)
-        end
-        if alias:isEndsWithComma() then
-            veafShortcuts.logTrace("adding a comma")
-            command = command .. ", "
-        end
-
-        local command = command .. (remainingCommand or "")
-        veafShortcuts.logTrace(string.format("command = [%s]",command or ""))
-        if logDebug("checking in veafShortcuts") and veafShortcuts.executeCommand(position, command, coalition, spawnedGroups) then
-            return true
-        elseif logDebug("checking in veafSpawn") and veafSpawn.executeCommand(position, command, coalition, doNotBypassSecurity or true, spawnedGroups) then
-            return true
-        elseif logDebug("checking in veafNamedPoints") and veafNamedPoints.executeCommand(position, {text=command, coalition=-1}, doNotBypassSecurity or true) then
-            return true
-        elseif logDebug("checking in veafCasMission") and veafCasMission.executeCommand(position, command, coalition, doNotBypassSecurity or true) then
-            return true
-        elseif logDebug("checking in veafSecurity") and veafSecurity.executeCommand(position, command, doNotBypassSecurity or true) then
-            return true
-        elseif logDebug("checking in veafMove") and veafMove.executeCommand(position, command, doNotBypassSecurity or true) then
-            return true
-        elseif logDebug("checking in veafRadio") and veafRadio.executeCommand(position, command, coalition, doNotBypassSecurity or true) then
-            return true
-        elseif logDebug("checking in veafRemote") and veafRemote.executeCommand(position, command, coalition) then
-            return true
-        else
-            return false
-        end
+        alias:execute(remainingCommand, position, coalition, spawnedGroups)
     else
         veafShortcuts.logError(string.format("veafShortcuts.ExecuteAlias : cannot find alias [%s]",aliasName or ""))
     end
@@ -791,6 +798,49 @@ function veafShortcuts.dumpAliasesList(export_path)
 
     
     veaf.exportAsJson(sortedAliases, "aliases", jsonify, "AliasesList.json", export_path)
+end
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- remote interface
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+-- execute command from the remote interface
+function veafShortcuts.executeCommandFromRemote(parameters)
+    veafShortcuts.logDebug(string.format("veafShortcuts.executeCommandFromRemote()"))
+    veafShortcuts.logTrace(string.format("parameters= %s", veaf.p(parameters)))
+    local _pilot, _pilotName, _unitName, _command = unpack(parameters)
+    veafShortcuts.logTrace(string.format("_pilot= %s", veaf.p(_pilot)))
+    veafShortcuts.logTrace(string.format("_pilotName= %s", veaf.p(_pilotName)))
+    veafShortcuts.logTrace(string.format("_unitName= %s", veaf.p(_unitName)))
+    veafShortcuts.logTrace(string.format("_command= %s", veaf.p(_command)))
+    if not _pilot or not _command then 
+        return false
+    end
+
+    if _command then
+        -- parse the command
+        local _coords, _alias = _command:match(veafShortcuts.RemoteCommandParser)
+        veafShortcuts.logTrace(string.format("_coords=%s",veaf.p(_coords)))
+        veafShortcuts.logTrace(string.format("_alias=%s",veaf.p(_alias)))
+        if _coords and _alias then
+            local _unit = Unit.getByName(_unitName)
+            if _unit then 
+                local _lat, _lon = veaf.computeLLFromString(_coords)
+                veafShortcuts.logTrace(string.format("_lat=%s",veaf.p(_lat)))
+                veafShortcuts.logTrace(string.format("_lon=%s",veaf.p(_lon)))
+                if _lat and _lon then 
+                    local _pos = coord.LLtoLO(_lat, _lon)
+                    veafShortcuts.logTrace(string.format("_pos=%s",veaf.p(_pos)))
+                    local _coa = _unit:getCoalition()
+                    veafShortcuts.logTrace(string.format("_coa=%s",veaf.p(_coa)))
+                    veafShortcuts.logInfo(string.format("[%s] is running an alias at position [%s] for coalition [%s] : [%s]",veaf.p(_pilot.name), veaf.p(_pos), veaf.p(_coa), veaf.p(_alias)))
+                    veafShortcuts.executeCommand(_pos, _alias, _coa)
+                    return true
+                end
+            end
+        end
+    end
+    return false
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------

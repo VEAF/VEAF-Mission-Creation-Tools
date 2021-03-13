@@ -37,9 +37,10 @@ veafNamedPoints = {}
 veafNamedPoints.Id = "NAMED POINTS - "
 
 --- Version.
-veafNamedPoints.Version = "1.7.0"
+veafNamedPoints.Version = "1.8.0"
 
 -- trace level, specific to this module
+veafNamedPoints.Debug = false
 veafNamedPoints.Trace = false
 
 --- Key phrase to look for in the mark text which triggers the command.
@@ -52,6 +53,9 @@ veafNamedPoints.Points = {
 veafNamedPoints.RadioMenuName = "NAMED POINTS"
 
 veafNamedPoints.LowerRadioMenuSize = true
+
+veafNamedPoints.RemoteCommandParser = "([[a-zA-Z0-9]+)%s?([^%s]*)%s?(.*)"
+
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Do not change anything below unless you know what you are doing!
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -75,7 +79,9 @@ function veafNamedPoints.logInfo(message)
 end
 
 function veafNamedPoints.logDebug(message)
-    veaf.logDebug(veafNamedPoints.Id .. message)
+    if message and veafNamedPoints.Debug then
+        veaf.logDebug(veafNamedPoints.Id .. message)
+    end
 end
 
 function veafNamedPoints.logTrace(message)
@@ -438,6 +444,42 @@ function veafNamedPoints.help(unitName)
         'Create a marker and type "_name point [a name]" in the text\n' ..
         'This will store the position in the named points database for later reference\n'
         veaf.outTextForUnit(unitName, text, 30)
+end
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- remote interface
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+-- execute command from the remote interface
+function veafNamedPoints.executeCommandFromRemote(parameters)
+    veafNamedPoints.logDebug(string.format("veafNamedPoints.executeCommandFromRemote()"))
+    veafNamedPoints.logTrace(string.format("parameters= %s", veaf.p(parameters)))
+    local _pilot, _pilotName, _unitName, _command = unpack(parameters)
+    veafNamedPoints.logTrace(string.format("_pilot= %s", veaf.p(_pilot)))
+    veafNamedPoints.logTrace(string.format("_pilotName= %s", veaf.p(_pilotName)))
+    veafNamedPoints.logTrace(string.format("_unitName= %s", veaf.p(_unitName)))
+    veafNamedPoints.logTrace(string.format("_command= %s", veaf.p(_command)))
+    if not _pilot or not _command then 
+        return false
+    end
+
+    if _command then
+        -- parse the command
+        local _action, _pointName, _parameters = _command:match(veafNamedPoints.RemoteCommandParser)
+        veafNamedPoints.logTrace(string.format("_action=%s",veaf.p(_action)))
+        veafNamedPoints.logTrace(string.format("_pointName=%s",veaf.p(_pointName)))
+        veafNamedPoints.logTrace(string.format("_parameters=%s",veaf.p(_parameters)))
+        if _action and _action:lower() == "weather" then 
+            veafNamedPoints.logInfo(string.format("[%s] is requesting weather at his position",veaf.p(_pilotName)))
+            veafNamedPoints.getWeatherAtClosestPoint(_unitName)
+            return true
+        elseif _action and _action:lower() == "atc" then 
+            veafNamedPoints.logInfo(string.format("[%s] is requesting atc at his position",veaf.p(_pilotName)))
+            veafNamedPoints.getAtcAtClosestPoint(_unitName)
+            return true
+        end
+    end    
+    return false           
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------

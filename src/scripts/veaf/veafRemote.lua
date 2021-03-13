@@ -28,7 +28,7 @@ veafRemote = {}
 veafRemote.Id = "REMOTE - "
 
 --- Version.
-veafRemote.Version = "1.2.0"
+veafRemote.Version = "2.0.0"
 
 -- trace level, specific to this module
 veafRemote.Debug = false
@@ -44,6 +44,8 @@ veafRemote.SecondsBetweenFlagMonitorChecks = 5
 
 veafRemote.CommandStarter = "_remote"
 
+veafRemote.MIN_LEVEL_FOR_MARKER = 10
+
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Do not change anything below unless you know what you are doing!
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -51,6 +53,7 @@ veafRemote.CommandStarter = "_remote"
 veafRemote.monitoredFlags = {}
 veafRemote.monitoredCommands = {}
 veafRemote.maxMonitoredFlag = 27000
+veafRemote.remoteUsers = {}
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Utility methods
@@ -396,7 +399,65 @@ function veafRemote.executeRemoteCommand(command, password)
     return false
 end
 
+-- execute command from the remote interface (see VEAF-server-hook.lua)
+function veafRemote.executeCommandFromRemote(username, level, unitName, veafModule, command)
+    veafRemote.logDebug(string.format("veafRemote.executeCommandFromRemote([%s], [%s], [%s], [%s], [%s])", veaf.p(username), veaf.p(level), veaf.p(unitName), veaf.p(veafModule), veaf.p(command)))
+    --local _user = veafRemote.getRemoteUser(username)
+    --veafRemote.logTrace(string.format("_user = [%s]",veaf.p(_user)))
+    --if not _user then 
+    --    return false
+    --end
+    if not veafModule or not username or not command then
+        return false
+    end
+    local _user = { name = username, level = tonumber(level or "-1")}
+    local _parameters = { _user, username, unitName, command }
+    local _status, _retval
+    local _module = veafModule:lower()
+    if _module == "air" then
+        veafRemote.logDebug(string.format("running veafCombatMission.executeCommandFromRemote"))
+        _status, _retval = pcall(veafCombatMission.executeCommandFromRemote, _parameters)
+    elseif _module == "point" then
+        veafRemote.logDebug(string.format("running veafNamedPoints.executeCommandFromRemote"))
+        _status, _retval = pcall(veafNamedPoints.executeCommandFromRemote, _parameters)
+    elseif _module == "alias" then
+        veafRemote.logDebug(string.format("running veafShortcuts.executeCommandFromRemote"))
+        _status, _retval = pcall(veafShortcuts.executeCommandFromRemote, _parameters)
+    elseif _module == "secu" then
+        veafRemote.logDebug(string.format("running veafSecurity.executeCommandFromRemote"))
+        _status, _retval = pcall(veafSecurity.executeCommandFromRemote, _parameters)
+    else
+        veafRemote.logError(string.format("Module not found : [%s]", veaf.p(veafModule)))
+        return false
+    end
+    veafRemote.logTrace(string.format("_status = [%s]",veaf.p(_status)))
+    veafRemote.logTrace(string.format("_retval = [%s]",veaf.p(_retval)))
+    if not _status then
+        veafRemote.logError(string.format("Error when [%s] tried running [%s] : %s", veaf.p(_user.name), veaf.p(_code), veaf.p(_retval)))
+    else
+        veafRemote.logInfo(string.format("[%s] ran [%s] : %s", veaf.p(_user.name), veaf.p(_code), veaf.p(_retval)))
+    end
+    return _status
+end
 
+-- register a user from the server
+function veafRemote.registerUser(username, userpower, ucid)
+    veafRemote.logDebug(string.format("veafRemote.registerUser([%s], [%s], [%s])",veaf.p(username), veaf.p(userpower), veaf.p(ucid)))
+    if not username or not ucid then 
+        return false
+    end
+    veafRemote.remoteUsers[username:lower()] = { name = username, level = tonumber(userpower or "-1"), ucid = ucid }
+end
+
+-- return a user from the server table
+function veafRemote.getRemoteUser(username)
+    if not username then 
+        return nil
+    end
+    veafRemote.logTrace(string.format("username = [%s]",veaf.p(username)))
+    veafRemote.logTrace(string.format("veafRemote.remoteUsers = [%s]",veaf.p(veafRemote.remoteUsers)))
+    local _user = veafRemote.remoteUsers[username:lower()]
+end
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- initialisation
 -------------------------------------------------------------------------------------------------------------------------------------------------------------

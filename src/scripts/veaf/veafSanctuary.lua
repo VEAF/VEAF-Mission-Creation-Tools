@@ -289,13 +289,7 @@ function VeafSanctuaryZone:deployDefenses(position, timeInZone)
     veafSanctuary.logTrace(string.format("VeafSanctuaryZone[%s]:deployDefenses()", veaf.p(self.name)))
     if veafShortcuts then
         local spawnedGroupsNames = {}
-        
-        -- invert the coalition, because the SPAWN system will do the same
-        local coa = coalition.side.RED
-        if self:getCoalition() == coalition.side.RED then
-            coa = coalition.side.BLUE
-        end
-    
+          
         veafShortcuts.ExecuteAlias("-sa15", "radius 4000, multiplier 6", position, coa, spawnedGroupsNames)
         self:addSpawnedGroups(spawnedGroupsNames)
         veafSanctuary.logTrace(string.format("spawnedGroupsNames = %s", veaf.p(spawnedGroupsNames)))

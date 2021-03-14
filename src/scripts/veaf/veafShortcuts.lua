@@ -274,8 +274,10 @@ function veafShortcuts.ExecuteAlias(aliasName, remainingCommand, position, coali
     if alias then 
         veafShortcuts.logTrace(string.format("found VeafAlias[%s]",alias:getName() or ""))
         alias:execute(remainingCommand, position, coalition, spawnedGroups)
+        return true
     else
         veafShortcuts.logError(string.format("veafShortcuts.ExecuteAlias : cannot find alias [%s]",aliasName or ""))
+        return false
     end
     return false
 end
@@ -330,14 +332,10 @@ function veafShortcuts.executeCommand(eventPos, eventText, eventCoalition, spawn
         local alias, remainder = veafShortcuts.markTextAnalysis(eventText)
 
         if alias then
-
             -- do the magic
-            if veafShortcuts.ExecuteAlias(alias, remainder, eventPos, eventCoalition, spawnedGroups) then 
-                return true
-            else 
-                return false
-            end
+            return veafShortcuts.ExecuteAlias(alias, remainder, eventPos, eventCoalition, spawnedGroups)
         end
+        return false
     end
 
     -- None of the keywords matched.

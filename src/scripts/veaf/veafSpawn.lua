@@ -139,6 +139,7 @@ end
 
 --- Function executed when a mark has changed. This happens when text is entered or changed.
 function veafSpawn.onEventMarkChange(eventPos, event)
+    veafSpawn.logTrace(string.format("event  = %s", veaf.p(event)))
 
     -- choose by default the coalition opposing the player who triggered the event
     local invertedCoalition = 1
@@ -146,7 +147,9 @@ function veafSpawn.onEventMarkChange(eventPos, event)
         invertedCoalition = 2
     end
 
-    if veafSpawn.executeCommand(eventPos, event.text, invertedCoalition) then 
+    veafSpawn.logTrace(string.format("event.idx  = %s", veaf.p(event.idx)))
+
+    if veafSpawn.executeCommand(eventPos, event.text, invertedCoalition, event.idx) then 
         
         -- Delete old mark.
         veafSpawn.logTrace(string.format("Removing mark # %d.", event.idx))
@@ -155,8 +158,10 @@ function veafSpawn.onEventMarkChange(eventPos, event)
     end
 end
 
-function veafSpawn.executeCommand(eventPos, eventText, coalition, bypassSecurity, spawnedGroups)
-    veafSpawn.logDebug(string.format("veafShortcuts.executeCommand(eventText=[%s])", eventText))
+function veafSpawn.executeCommand(eventPos, eventText, coalition, markId, bypassSecurity, spawnedGroups)
+    veafSpawn.logDebug(string.format("veafSpawn.executeCommand(eventText=[%s])", eventText))
+    veafSpawn.logTrace(string.format("markId  = %s", veaf.p(markId)))
+    veafSpawn.logTrace(string.format("bypassSecurity  = %s", veaf.p(bypassSecurity)))
 
     -- Check if marker has a text and the veafSpawn.SpawnKeyphrase keyphrase.
     if eventText ~= nil and (eventText:lower():find(veafSpawn.SpawnKeyphrase) or eventText:lower():find(veafSpawn.DestroyKeyphrase) or eventText:lower():find(veafSpawn.TeleportKeyphrase)) then
@@ -190,7 +195,7 @@ function veafSpawn.executeCommand(eventPos, eventText, coalition, bypassSecurity
                 -- Check options commands
                 if options.unit then
                     -- check security
-                    if not (bypassSecurity or veafSecurity.checkSecurity_L9(options.password)) then return end
+                    if not (bypassSecurity or veafSecurity.checkSecurity_L9(options.password, markId)) then return end
                     local code = options.laserCode
                     local channel = options.freq
                     local band = options.mod
@@ -202,52 +207,52 @@ function veafSpawn.executeCommand(eventPos, eventText, coalition, bypassSecurity
                     spawnedGroup = veafSpawn.spawnUnit(eventPos, options.radius, options.name, options.country, options.altitude, options.heading, options.unitName, options.role, code, channel, band, bypassSecurity)
                 elseif options.group then
                     -- check security
-                    if not (bypassSecurity or veafSecurity.checkSecurity_L9(options.password)) then return end
+                    if not (bypassSecurity or veafSecurity.checkSecurity_L9(options.password, markId)) then return end
                     spawnedGroup = veafSpawn.spawnGroup(eventPos, options.radius, options.name, options.country, options.altitude, options.heading, options.spacing, bypassSecurity)
                 elseif options.infantryGroup then
                     -- check security
-                    if not (bypassSecurity or veafSecurity.checkSecurity_L9(options.password)) then return end
+                    if not (bypassSecurity or veafSecurity.checkSecurity_L9(options.password, markId)) then return end
                     spawnedGroup = veafSpawn.spawnInfantryGroup(eventPos, options.radius, options.country, options.side, options.heading, options.spacing, options.defense, options.armor, options.size, bypassSecurity)
                 elseif options.armoredPlatoon then
                     -- check security
-                    if not (bypassSecurity or veafSecurity.checkSecurity_L9(options.password)) then return end
+                    if not (bypassSecurity or veafSecurity.checkSecurity_L9(options.password, markId)) then return end
                     spawnedGroup = veafSpawn.spawnArmoredPlatoon(eventPos, options.radius, options.country, options.side, options.heading, options.spacing, options.defense, options.armor, options.size, bypassSecurity)
                 elseif options.airDefenseBattery then
                     -- check security
-                    if not (bypassSecurity or veafSecurity.checkSecurity_L9(options.password)) then return end
+                    if not (bypassSecurity or veafSecurity.checkSecurity_L9(options.password, markId)) then return end
                     spawnedGroup = veafSpawn.spawnAirDefenseBattery(eventPos, options.radius, options.country, options.side, options.heading, options.spacing, options.defense, bypassSecurity)
                 elseif options.transportCompany then
                     -- check security
-                    if not (bypassSecurity or veafSecurity.checkSecurity_L9(options.password)) then return end
+                    if not (bypassSecurity or veafSecurity.checkSecurity_L9(options.password, markId)) then return end
                     spawnedGroup = veafSpawn.spawnTransportCompany(eventPos, options.radius, options.country, options.side, options.heading, options.spacing, options.defense, options.size, bypassSecurity)
                 elseif options.fullCombatGroup then
                     -- check security
-                    if not (bypassSecurity or veafSecurity.checkSecurity_L9(options.password)) then return end
+                    if not (bypassSecurity or veafSecurity.checkSecurity_L9(options.password, markId)) then return end
                     spawnedGroup = veafSpawn.spawnFullCombatGroup(eventPos, options.radius, options.country, options.side, options.heading, options.spacing, options.defense, options.armor, options.size, bypassSecurity)
                 elseif options.convoy then
                     -- check security
-                    if not (bypassSecurity or veafSecurity.checkSecurity_L9(options.password)) then return end
+                    if not (bypassSecurity or veafSecurity.checkSecurity_L9(options.password, markId)) then return end
                     spawnedGroup = veafSpawn.spawnConvoy(eventPos, options.radius, options.country, options.side, options.speed, options.patrol, options.offroad, options.destination, options.defense, options.size, options.armor, bypassSecurity)
                     routeDone = true
                 elseif options.cargo then
                     -- check security
-                    if not (bypassSecurity or veafSecurity.checkSecurity_L9(options.password)) then return end
+                    if not (bypassSecurity or veafSecurity.checkSecurity_L9(options.password, markId)) then return end
                     spawnedGroup = veafSpawn.spawnCargo(eventPos, options.radius, options.cargoType, options.cargoSmoke, options.unitName, bypassSecurity)
                 elseif options.logistic then
                     -- check security
-                    if not (bypassSecurity or veafSecurity.checkSecurity_L9(options.password)) then return end
+                    if not (bypassSecurity or veafSecurity.checkSecurity_L9(options.password, markId)) then return end
                     spawnedGroup = veafSpawn.spawnLogistic(eventPos, options.radius, bypassSecurity)
                 elseif options.destroy then
                     -- check security
-                    if not (bypassSecurity or veafSecurity.checkSecurity_L1(options.password)) then return end
+                    if not (bypassSecurity or veafSecurity.checkSecurity_L1(options.password, markId)) then return end
                     veafSpawn.destroy(eventPos, options.radius, options.unitName)
                 elseif options.teleport then
                     -- check security
-                    if not (bypassSecurity or veafSecurity.checkSecurity_L1(options.password)) then return end
+                    if not (bypassSecurity or veafSecurity.checkSecurity_L1(options.password, markId)) then return end
                     veafSpawn.teleport(eventPos, options.radius, options.name, bypassSecurity)
                 elseif options.bomb then
                     -- check security
-                    if not (bypassSecurity or veafSecurity.checkSecurity_L1(options.password)) then return end
+                    if not (bypassSecurity or veafSecurity.checkSecurity_L1(options.password, markId)) then return end
                     veafSpawn.spawnBomb(eventPos, options.radius, options.shells, options.bombPower, options.password)
                 elseif options.smoke then
                     veafSpawn.spawnSmoke(eventPos, options.smokeColor, options.radius, options.shells)

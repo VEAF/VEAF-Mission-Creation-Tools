@@ -290,11 +290,11 @@ function VeafSanctuaryZone:deployDefenses(position, timeInZone)
     if veafShortcuts then
         local spawnedGroupsNames = {}
           
-        veafShortcuts.ExecuteAlias("-sa15", "radius 4000, multiplier 6", position, coa, spawnedGroupsNames)
+        veafShortcuts.ExecuteAlias("-sa15", "radius 4000, multiplier 6", position, coa, nil, spawnedGroupsNames)
         self:addSpawnedGroups(spawnedGroupsNames)
         veafSanctuary.logTrace(string.format("spawnedGroupsNames = %s", veaf.p(spawnedGroupsNames)))
         if timeInZone > veafSanctuary.HARDER_DEFENSES_AFTER then 
-            veafShortcuts.ExecuteAlias("-sa10", "radius 6000, multiplier 3", position, coa, spawnedGroupsNames)
+            veafShortcuts.ExecuteAlias("-sa10", "radius 6000, multiplier 3", position, coa, nil, spawnedGroupsNames)
             self:addSpawnedGroups(spawnedGroupsNames)
             veafSanctuary.logTrace(string.format("spawnedGroupsNames = %s", veaf.p(spawnedGroupsNames)))
         end

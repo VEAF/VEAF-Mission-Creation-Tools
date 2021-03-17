@@ -110,7 +110,7 @@ function veafInterpreter.interpret(text)
     return result
 end
 
-function veafInterpreter.execute(command, position, coalition, route, spawnedGroups, doNotBypassSecurity)
+function veafInterpreter.execute(command, position, coalition, route, spawnedGroups)
     local function logDebug(message)
         veafInterpreter.logDebug(message)
         return true
@@ -123,19 +123,19 @@ function veafInterpreter.execute(command, position, coalition, route, spawnedGro
     local commandExecuted = false
     spawnedGroups = spawnedGroups or {}
 
-    if logDebug("checking in veafShortcuts") and veafShortcuts.executeCommand(position, command, coalition, spawnedGroups) then
+    if logDebug("checking in veafShortcuts") and veafShortcuts.executeCommand(position, command, coalition, nil, true, spawnedGroups) then
         commandExecuted = true
-    elseif logDebug("checking in veafSpawn") and veafSpawn.executeCommand(position, command, coalition, doNotBypassSecurity or true, spawnedGroups) then
+    elseif logDebug("checking in veafSpawn") and veafSpawn.executeCommand(position, command, coalition, nil, true, spawnedGroups) then
         commandExecuted = true
-    elseif logDebug("checking in veafNamedPoints") and veafNamedPoints.executeCommand(position, {text=command, coalition=-1}, doNotBypassSecurity or true) then
+    elseif logDebug("checking in veafNamedPoints") and veafNamedPoints.executeCommand(position, {text=command, coalition=-1}, true) then
         commandExecuted = true
-    elseif logDebug("checking in veafCasMission") and veafCasMission.executeCommand(position, command, coalition, doNotBypassSecurity or true) then
+    elseif logDebug("checking in veafCasMission") and veafCasMission.executeCommand(position, command, coalition, true) then
         commandExecuted = true
-    elseif logDebug("checking in veafSecurity") and veafSecurity.executeCommand(position, command, doNotBypassSecurity or true) then
+    elseif logDebug("checking in veafSecurity") and veafSecurity.executeCommand(position, command, true) then
         commandExecuted = true
-    elseif logDebug("checking in veafMove") and veafMove.executeCommand(position, command, doNotBypassSecurity or true) then
+    elseif logDebug("checking in veafMove") and veafMove.executeCommand(position, command, true) then
         commandExecuted = true
-    elseif logDebug("checking in veafRadio") and veafRadio.executeCommand(position, command, coalition, doNotBypassSecurity or true) then
+    elseif logDebug("checking in veafRadio") and veafRadio.executeCommand(position, command, coalition, true) then
         commandExecuted = true
     elseif logDebug("checking in veafRemote") and veafRemote.executeCommand(position, command, coalition) then
         commandExecuted = true
@@ -169,7 +169,7 @@ function veafInterpreter.executeCommandOnUnit(unitName, command)
             veafInterpreter.logDebug(string.format("in [%s]", groupName))
             local route = mist.getGroupRoute(groupName, 'task')
             veafInterpreter.logTrace(string.format("route = [%s]", veaf.p(route)))
-            if veafInterpreter.execute(command, position, unit:getCoalition(), route) then 
+            if veafInterpreter.execute(command, position, unit:getCoalition(), nil, route) then 
                 unit:getGroup():destroy()
             end
         end

@@ -45,7 +45,9 @@ veafSecurity.authDuration = 10
 
 veafSecurity.RemoteCommandParser = "([[a-zA-Z0-9]+)%s?(.*)"
 
-veafSecurity.LEVEL_L1 = 1
+veafSecurity.LEVEL_L0 = 0
+veafSecurity.LEVEL_L1 = 10
+veafSecurity.LEVEL_L9 = 90
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Utility methods
@@ -617,8 +619,26 @@ function veafSecurity.checkPassword_L9(password)
     veafSecurity._checkPassword(password, veafSecurity.password_L0)
 end
 
-function veafSecurity.checkSecurity_L0(password) 
-  if not veafSecurity.checkPassword_L0(password) then
+function veafSecurity.getMarkerSecurityLevel(markId)
+  veafSecurity.logTrace(string.format("veafSecurity.getMarkerSecurityLevel([%s])",veaf.p(markId)))
+  local _author = nil
+  for _, panel in pairs(world.getMarkPanels( )) do
+    if panel.idx == markId then  
+      _author = panel.author
+    end
+  end 
+  local _user = veafRemote.getRemoteUser(_author)
+  if _user then 
+    veafSecurity.logTrace(string.format("_user = [%s]",veaf.p(_user)))
+    return _user.level
+  end
+  return -1
+end
+
+function veafSecurity.checkSecurity_L0(password, markId)
+    -- don't check the password if already logged in
+  if veafSecurity.isAuthenticated() then return true end
+  if veafSecurity.getMarkerSecurityLevel(markId) < veafSecurity.LEVEL_L0 and not veafSecurity.checkPassword_L0(password) then
     veafSecurity.logWarning("You have to give the correct L0 password to do this")
     trigger.action.outText("Please use the ', password <L0 password>' option", 5) 
     return false
@@ -626,10 +646,10 @@ function veafSecurity.checkSecurity_L0(password)
   return true
 end
 
-function veafSecurity.checkSecurity_L1(password) 
+function veafSecurity.checkSecurity_L1(password, markId) 
   -- don't check the password if already logged in
   if veafSecurity.isAuthenticated() then return true end
-  if not veafSecurity.checkPassword_L1(password) then
+  if veafSecurity.getMarkerSecurityLevel(markId) < veafSecurity.LEVEL_L1 and not veafSecurity.checkPassword_L1(password) then
     veafSecurity.logWarning("You have to give the correct L1 password to do this")
     trigger.action.outText("Please use the ', password <L1 password>' option", 5) 
     return false
@@ -637,10 +657,10 @@ function veafSecurity.checkSecurity_L1(password)
   return true
 end
 
-function veafSecurity.checkSecurity_L9(password) 
+function veafSecurity.checkSecurity_L9(password, markId) 
   -- don't check the password if already logged in
   if veafSecurity.isAuthenticated() then return true end
-  if not veafSecurity.checkPassword_L9(password) then
+  if veafSecurity.getMarkerSecurityLevel(markId) < veafSecurity.LEVEL_L9 and not veafSecurity.checkPassword_L9(password) then
     veafSecurity.logWarning("You have to give the correct L9 password to do this")
     trigger.action.outText("Please use the ', password <L9 password>' option", 5) 
     return false

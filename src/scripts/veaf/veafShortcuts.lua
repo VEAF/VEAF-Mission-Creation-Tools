@@ -185,11 +185,13 @@ function VeafAlias:isHidden()
     return self.hidden
 end
 
-function VeafAlias:execute(remainingCommand, position, coalition, spawnedGroups)
+function VeafAlias:execute(remainingCommand, position, coalition, markId, bypassSecurity, spawnedGroups)
     local function logDebug(message)
         veafShortcuts.logDebug(message)
         return true
     end
+
+    veafShortcuts.logTrace(string.format("markId=[%s]",veaf.p(markId)))
 
     local command = self:getVeafCommand()
     for _, parameter in pairs(self:getRandomParameters()) do
@@ -203,21 +205,23 @@ function VeafAlias:execute(remainingCommand, position, coalition, spawnedGroups)
         command = command .. ", "
     end
 
+    local _bypassSecurity = bypassSecurity or self:isBypassSecurity()
+
     local command = command .. (remainingCommand or "")
     veafShortcuts.logTrace(string.format("command = [%s]",command or ""))
-    if logDebug("checking in veafShortcuts") and veafShortcuts.executeCommand(position, command, coalition, spawnedGroups) then
+    if logDebug("checking in veafShortcuts") and veafShortcuts.executeCommand(position, command, coalition, markId, _bypassSecurity, spawnedGroups) then
         return true
-    elseif logDebug("checking in veafSpawn") and veafSpawn.executeCommand(position, command, coalition, doNotBypassSecurity or true, spawnedGroups) then
+    elseif logDebug("checking in veafSpawn") and veafSpawn.executeCommand(position, command, coalition, markId, _bypassSecurity, spawnedGroups) then
         return true
-    elseif logDebug("checking in veafNamedPoints") and veafNamedPoints.executeCommand(position, {text=command, coalition=-1}, doNotBypassSecurity or true) then
+    elseif logDebug("checking in veafNamedPoints") and veafNamedPoints.executeCommand(position, {text=command, coalition=-1}, _bypassSecurity) then
         return true
-    elseif logDebug("checking in veafCasMission") and veafCasMission.executeCommand(position, command, coalition, doNotBypassSecurity or true) then
+    elseif logDebug("checking in veafCasMission") and veafCasMission.executeCommand(position, command, coalition, _bypassSecurity) then
         return true
-    elseif logDebug("checking in veafSecurity") and veafSecurity.executeCommand(position, command, doNotBypassSecurity or true) then
+    elseif logDebug("checking in veafSecurity") and veafSecurity.executeCommand(position, command, _bypassSecurity) then
         return true
-    elseif logDebug("checking in veafMove") and veafMove.executeCommand(position, command, doNotBypassSecurity or true) then
+    elseif logDebug("checking in veafMove") and veafMove.executeCommand(position, command, _bypassSecurity) then
         return true
-    elseif logDebug("checking in veafRadio") and veafRadio.executeCommand(position, command, coalition, doNotBypassSecurity or true) then
+    elseif logDebug("checking in veafRadio") and veafRadio.executeCommand(position, command, coalition, _bypassSecurity) then
         return true
     elseif logDebug("checking in veafRemote") and veafRemote.executeCommand(position, command, coalition) then
         return true
@@ -267,13 +271,15 @@ function veafShortcuts.AddAlias(alias)
 end
 
 -- execute an alias command
-function veafShortcuts.ExecuteAlias(aliasName, remainingCommand, position, coalition, spawnedGroups)
+function veafShortcuts.ExecuteAlias(aliasName, remainingCommand, position, coalition, markId, bypassSecurity, spawnedGroups)
     veafShortcuts.logDebug(string.format("veafShortcuts.ExecuteAlias([%s],[%s],[%d])",aliasName or "",remainingCommand or "",coalition or 99))
+    veafShortcuts.logTrace(string.format("markId=[%s]",veaf.p(markId)))
+    veafShortcuts.logTrace(string.format("bypassSecurity=[%s]",veaf.p(bypassSecurity)))
 
     local alias = veafShortcuts.GetAlias(aliasName)
     if alias then 
         veafShortcuts.logTrace(string.format("found VeafAlias[%s]",alias:getName() or ""))
-        alias:execute(remainingCommand, position, coalition, spawnedGroups)
+        alias:execute(remainingCommand, position, coalition, markId, bypassSecurity, spawnedGroups)
         return true
     else
         veafShortcuts.logError(string.format("veafShortcuts.ExecuteAlias : cannot find alias [%s]",aliasName or ""))
@@ -313,7 +319,9 @@ function veafShortcuts.onEventMarkChange(eventPos, event)
         invertedCoalition = 2
     end
 
-    if veafShortcuts.executeCommand(eventPos, event.text, invertedCoalition) then 
+    veafSpawn.logTrace(string.format("event.idx  = %s", veaf.p(event.idx)))
+
+    if veafShortcuts.executeCommand(eventPos, event.text, invertedCoalition, event.idx) then 
         
         -- Delete old mark.
         veafShortcuts.logTrace(string.format("Removing mark # %d.", event.idx))
@@ -322,7 +330,7 @@ function veafShortcuts.onEventMarkChange(eventPos, event)
     end
 end
 
-function veafShortcuts.executeCommand(eventPos, eventText, eventCoalition, spawnedGroups)
+function veafShortcuts.executeCommand(eventPos, eventText, eventCoalition, markId, bypassSecurity, spawnedGroups)
     veafShortcuts.logDebug(string.format("veafShortcuts.executeCommand(eventText=[%s])", eventText))
 
     -- Check if marker has a text and contains an alias
@@ -333,7 +341,7 @@ function veafShortcuts.executeCommand(eventPos, eventText, eventCoalition, spawn
 
         if alias then
             -- do the magic
-            return veafShortcuts.ExecuteAlias(alias, remainder, eventPos, eventCoalition, spawnedGroups)
+            return veafShortcuts.ExecuteAlias(alias, remainder, eventPos, eventCoalition, markId, bypassSecurity, spawnedGroups)
         end
         return false
     end
@@ -832,7 +840,7 @@ function veafShortcuts.executeCommandFromRemote(parameters)
                     local _coa = _unit:getCoalition()
                     veafShortcuts.logTrace(string.format("_coa=%s",veaf.p(_coa)))
                     veafShortcuts.logInfo(string.format("[%s] is running an alias at position [%s] for coalition [%s] : [%s]",veaf.p(_pilot.name), veaf.p(_pos), veaf.p(_coa), veaf.p(_alias)))
-                    veafShortcuts.executeCommand(_pos, _alias, _coa)
+                    veafShortcuts.executeCommand(_pos, _alias, _coa, _unitName)
                     return true
                 end
             end

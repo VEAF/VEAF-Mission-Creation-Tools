@@ -323,7 +323,7 @@ function veafServerHook.parse(pilot, playerName, unitName, message)
         if pilot.level >= 10 then
             veafServerHook.maxMissionDuration = 0
             veafServerHook.closeServerAtLastDisconnect = false
-            local _message = string.format("[%s] is asking for mission restart at next disconnection",p(playerName))
+            local _message = string.format("[%s] is asking for mission restart when the last pilot disconnects from the server",p(playerName))
             veafServerHook.logInfo(_message)
             veafServerHook.sendMessage(_message, 10)
             return true
@@ -333,7 +333,7 @@ function veafServerHook.parse(pilot, playerName, unitName, message)
         if pilot.level >= 90 then
             veafServerHook.maxMissionDuration = 0
             veafServerHook.closeServerAtLastDisconnect = true
-            local _message = string.format("[%s] is asking for server halt at next disconnection",p(playerName))
+            local _message = string.format("[%s] is asking for server halt the last pilot disconnects from the server",p(playerName))
             veafServerHook.logInfo(_message)
             veafServerHook.sendMessage(_message, 10)
             return true

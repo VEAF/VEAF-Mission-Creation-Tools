@@ -34,7 +34,7 @@ DCS_DIR = lfs.writedir()
 veafServerHook.Id = "VEAFHOOK - "
 
 --- Version.
-veafServerHook.Version = "1.0.0"
+veafServerHook.Version = "1.0.1"
 
 -- trace level, specific to this module
 veafServerHook.Trace = true
@@ -47,9 +47,9 @@ veafServerHook.CommandParser = "/([a-zA-Z0-9]+)%s?(.*)"
 veafServerHook.DEFAULT_MAX_MISSION_DURATION = 4 * 60
 
 -- scripts injected in the mission
-REGISTER_PLAYER =  [[ veafRemote.registerUser("%s", "%s", "%s") ]]
-RUN_COMMAND = [[ veafRemote.executeCommandFromRemote("%s", "%s", "%s", "%s", "%s") ]]
-SEND_MESSAGE = [[ trigger.action.outText("%s", %s) ]]
+REGISTER_PLAYER =  [[ if veafRemote and veafRemote.registerUser then veafRemote.registerUser("%s", "%s", "%s") end ]]
+RUN_COMMAND = [[ if veafRemote and veafRemote.executeCommandFromRemote then veafRemote.executeCommandFromRemote("%s", "%s", "%s", "%s", "%s") end ]]
+SEND_MESSAGE = [[ if trigger and trigger.action and trigger.action.outText then trigger.action.outText("%s", %s) end ]]
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Do not change anything below unless you know what you are doing!
 -------------------------------------------------------------------------------------------------------------------------------------------------------------

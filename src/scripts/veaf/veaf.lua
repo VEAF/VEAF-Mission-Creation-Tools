@@ -61,11 +61,11 @@ veaf.config = {}
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 function veaf.logError(message)
-    log.error(veaf.Id .. message)
+    env.error(veaf.Id .. message)
 end
 
 function veaf.logWarning(message)
-    log.warning(veaf.Id ..  message)
+    env.warning(veaf.Id ..  message)
 end
 
 function veaf.logInfo(message)

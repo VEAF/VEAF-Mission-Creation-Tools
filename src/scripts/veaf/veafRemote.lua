@@ -423,6 +423,9 @@ function veafRemote.executeCommandFromRemote(username, level, unitName, veafModu
     elseif _module == "alias" then
         veafRemote.logDebug(string.format("running veafShortcuts.executeCommandFromRemote"))
         _status, _retval = pcall(veafShortcuts.executeCommandFromRemote, _parameters)
+    elseif _module == "carrier" then
+        veafRemote.logDebug(string.format("running veafShortcuts.executeCommandFromRemote"))
+        _status, _retval = pcall(veafCarrierOperations.executeCommandFromRemote, _parameters)
     elseif _module == "secu" then
         veafRemote.logDebug(string.format("running veafSecurity.executeCommandFromRemote"))
         _status, _retval = pcall(veafSecurity.executeCommandFromRemote, _parameters)
@@ -451,13 +454,14 @@ end
 
 -- return a user from the server table
 function veafRemote.getRemoteUser(username)
+    veafRemote.logDebug(string.format("veafRemote.getRemoteUser([%s])",veaf.p(username)))
+    veafRemote.logTrace(string.format("veafRemote.remoteUsers = [%s]",veaf.p(veafRemote.remoteUsers)))
     if not username then 
         return nil
     end
-    veafRemote.logTrace(string.format("username = [%s]",veaf.p(username)))
-    veafRemote.logTrace(string.format("veafRemote.remoteUsers = [%s]",veaf.p(veafRemote.remoteUsers)))
-    local _user = veafRemote.remoteUsers[username:lower()]
+    return veafRemote.remoteUsers[username:lower()]
 end
+
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- initialisation
 -------------------------------------------------------------------------------------------------------------------------------------------------------------

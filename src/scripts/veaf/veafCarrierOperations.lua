@@ -71,6 +71,8 @@ veafCarrierOperations.ALIGNMENT_MANOEUVER_SPEED = 8 -- carrier speed when not ye
 veafCarrierOperations.MAX_OPERATIONS_DURATION = 45 -- operations are stopped after
 veafCarrierOperations.SCHEDULER_INTERVAL = 2 -- scheduler runs every 2 minutes
 
+veafCarrierOperations.RemoteCommandParser = "([[a-zA-Z0-9]+)%s?([^%s]*)%s?(.*)"
+
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Do not change anything below unless you know what you are doing!
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -860,7 +862,94 @@ function veafCarrierOperations.operationsScheduler()
     mist.scheduleFunction(veafCarrierOperations.operationsScheduler,{},timer.getTime() + veafCarrierOperations.SCHEDULER_INTERVAL * 60)
 end
 
-------------------------------------------------------------------------------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- remote interface
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+function veafCarrierOperations.listAvailableCarriers(forGroup)
+    local _message = "Available carriers :\n"
+    for name, carrier in pairs(veafCarrierOperations.carriers) do
+        _message = _message .. " - " .. name .. "\n"
+    end
+    if forGroup then
+        trigger.action.outTextForGroup(forGroup, _message, 15)
+    else
+        trigger.action.outText(_message, 15)
+    end
+end
+
+-- execute command from the remote interface
+function veafCarrierOperations.executeCommandFromRemote(parameters)
+    veafCarrierOperations.logDebug(string.format("veafCarrierOperations.executeCommandFromRemote()"))
+    veafCarrierOperations.logTrace(string.format("parameters= %s", veaf.p(parameters)))
+    local _pilot, _pilotName, _unitName, _command = unpack(parameters)
+    veafCarrierOperations.logTrace(string.format("_pilot= %s", veaf.p(_pilot)))
+    veafCarrierOperations.logTrace(string.format("_pilotName= %s", veaf.p(_pilotName)))
+    veafCarrierOperations.logTrace(string.format("_unitName= %s", veaf.p(_unitName)))
+    veafCarrierOperations.logTrace(string.format("_command= %s", veaf.p(_command)))
+    if not _pilot or not _command then 
+        return false
+    end
+
+    local function findCarrier(carrierName)
+        local _result = nil
+        local _name = carrierName:lower()
+        for name, carrier in pairs(veafCarrierOperations.carriers) do
+            if name:lower():find(_name) then
+                _result = name
+            end
+        end
+        return _result   
+    end
+    
+    if _command then
+        -- parse the command
+        local _action, _carrierName, _parameters = _command:match(veafCarrierOperations.RemoteCommandParser)
+        veafCarrierOperations.logTrace(string.format("_action=%s",veaf.p(_action)))
+        veafCarrierOperations.logTrace(string.format("_carrierName=%s",veaf.p(_carrierName)))
+        veafCarrierOperations.logTrace(string.format("_parameters=%s",veaf.p(_parameters)))
+        local _groupId = nil
+        if _unitName then 
+            local _unit = Unit.getByName(_unitName)
+            if _unit then 
+                _groupId = _unit:getGroup():getID()
+            end
+        end
+        veafCarrierOperations.logTrace(string.format("_groupId=%s",veaf.p(_groupId)))
+        if _action and _action:lower() == "list" then 
+            veafCarrierOperations.logInfo(string.format("[%s] is listing carriers)",veaf.p(_pilot.name)))
+            veafCarrierOperations.listAvailableCarriers(_groupId)
+            return true
+        elseif _action and _action:lower() == "start" and _carrierName then 
+            local _duration = 45
+            if _parameters and type(_parameters) == "number" then
+                _duration = tonumber(parameters)
+            end
+            local _carrier = findCarrier(_carrierName)
+            veafCarrierOperations.logTrace(string.format("_duration=%s",veaf.p(_duration)))
+            veafCarrierOperations.logInfo(string.format("[%s] is starting operations on carrier [%s] for %s)",veaf.p(_pilot.name), veaf.p(_carrier), veaf.p(_parameters)))
+            veafCarrierOperations.startCarrierOperations({_carrier, _duration})
+            return true
+        elseif _action and _action:lower() == "stop" then 
+            local _carrier = findCarrier(_carrierName)
+            veafCarrierOperations.logInfo(string.format("[%s] is stopping operations on carrier [%s])",veaf.p(_pilot.name), veaf.p(_carrier)))
+            veafCarrierOperations.stopCarrierOperations(_carrier)
+            return true
+        elseif _action and _action:lower() == "atc" then 
+            local _carrier = findCarrier(_carrierName)
+            veafCarrierOperations.logInfo(string.format("[%s] is requesting atc on carrier [%s])",veaf.p(_pilot.name), veaf.p(_carrier)))
+            local text = veafCarrierOperations.getAtcForCarrierOperations(_carrier)
+            if _groupId then
+                trigger.action.outTextForGroup(_groupId, text, 15)
+            else
+                trigger.action.outText(text, 15)
+            end
+            return true
+        end
+    end               
+    return false
+end
+
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- initialisation
 -------------------------------------------------------------------------------------------------------------------------------------------------------------

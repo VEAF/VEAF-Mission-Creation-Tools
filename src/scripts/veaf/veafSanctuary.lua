@@ -30,10 +30,8 @@ veafSanctuary.Id = "SANCTUARY - "
 --- Version.
 veafSanctuary.Version = "1.0.0"
 
--- debug level, specific to this module
-veafSanctuary.Debug = false
-
 -- trace level, specific to this module
+veafSanctuary.Debug = false
 veafSanctuary.Trace = false
 
 -- delay before the sanctuary zones start reporting
@@ -46,7 +44,7 @@ veafSanctuary.DelayBetweenChecks = 15
 veafSanctuary.DEFAULT_DELAY_WARNING = 0
 
 -- default message when entering the zone
-veafSanctuary.DEFAULT_MESSAGE_WARNING = "Warning : you've entered a sanctuary zone and will be shot if you don't leave IMMEDIATELY"
+veafSanctuary.DEFAULT_MESSAGE_WARNING = "Warning, %s : you've entered a sanctuary zone and will be shot if you don't leave IMMEDIATELY"
 
 -- time to display the messages
 veafSanctuary.MESSAGE_TIME = 20
@@ -290,11 +288,11 @@ function VeafSanctuaryZone:deployDefenses(position, timeInZone)
     if veafShortcuts then
         local spawnedGroupsNames = {}
           
-        veafShortcuts.ExecuteAlias("-sa15", "radius 4000, multiplier 6", position, coa, nil, spawnedGroupsNames)
+        veafShortcuts.ExecuteAlias("-sa15", "radius 4000, multiplier 6", position, self:getCoalition(), nil, spawnedGroupsNames)
         self:addSpawnedGroups(spawnedGroupsNames)
         veafSanctuary.logTrace(string.format("spawnedGroupsNames = %s", veaf.p(spawnedGroupsNames)))
         if timeInZone > veafSanctuary.HARDER_DEFENSES_AFTER then 
-            veafShortcuts.ExecuteAlias("-sa10", "radius 6000, multiplier 3", position, coa, nil, spawnedGroupsNames)
+            veafShortcuts.ExecuteAlias("-sa10", "radius 6000, multiplier 3", position, self:getCoalition(), nil, spawnedGroupsNames)
             self:addSpawnedGroups(spawnedGroupsNames)
             veafSanctuary.logTrace(string.format("spawnedGroupsNames = %s", veaf.p(spawnedGroupsNames)))
         end
@@ -376,7 +374,7 @@ function VeafSanctuaryZone:handleUnit(unit, data)
         elseif self:getDelayWarning() > -1 and timeInZone >= self:getDelayWarning() then
             -- simple warning
             veafSanctuary.logDebug(string.format("Issuing a warning to unit %s", veaf.p(playername)))
-            trigger.action.outTextForGroup(groupId, string.format("WARNING: %s - %s", playername, self:getMessageWarning()), veafSanctuary.MESSAGE_TIME)
+            trigger.action.outTextForGroup(groupId, string.format(self:getMessageWarning(), playername), veafSanctuary.MESSAGE_TIME)
         end
     elseif data.firstInZone >= 0 then
         local playername = unit:getPlayerName()

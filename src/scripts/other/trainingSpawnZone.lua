@@ -5,17 +5,17 @@ trainingSpawnZone = {}
 trainingSpawnZone.Id = "TRAININGZONE - "
 
 --- Version.
-trainingSpawnZone.Version = "1.0.0"
+trainingSpawnZone.Version = "1.1.0"
 
 -- trace level, specific to this module
 trainingSpawnZone.Trace = false
-trainingSpawnZone.Debug = true
+trainingSpawnZone.Debug = false
 
 trainingSpawnZone.MESSAGE_REGISTERED = "Zone [%s] has been registered"
 trainingSpawnZone.MESSAGE_ACTIVATED = "Zone [%s] has been activated"
 trainingSpawnZone.MESSAGE_DEACTIVATED = "Zone [%s] has been deactivated"
 trainingSpawnZone.MESSAGE_DURATION = 10
-trainingSpawnZone.CHECK_FREQUENCY = 2
+trainingSpawnZone.CHECK_FREQUENCY = 5
 
 
 trainingSpawnZone.zones = {}
@@ -202,16 +202,19 @@ function trainingSpawnZone.checkZone(zoneName)
             end
         end
     end
+
+    mist.scheduleFunction(trainingSpawnZone.checkZone, { zoneName }, timer.getTime() + trainingSpawnZone.CHECK_FREQUENCY)
+
 end
 
-function trainingSpawnZone.checkAllZones()
-    trainingSpawnZone.logTrace(string.format("trainingSpawnZone.checkAllZones()"))
+function trainingSpawnZone.start()
+    trainingSpawnZone.logTrace(string.format("trainingSpawnZone.start()"))
 
+    local _separation = 0
     for _, zone in pairs(trainingSpawnZone.zones) do
-        trainingSpawnZone.checkZone(zone.name)
+        _separation = _separation + 0.3
+        trainingSpawnZone.logDebug(string.format("scheduling call to trainingSpawnZone.checkZone([%s])", trainingSpawnZone.p(zone.name)))
+        mist.scheduleFunction(trainingSpawnZone.checkZone, { zone.name }, timer.getTime() + _separation)
     end
 
-    mist.scheduleFunction(trainingSpawnZone.checkAllZones, {}, timer.getTime() + trainingSpawnZone.CHECK_FREQUENCY)
 end
-
-trainingSpawnZone.checkAllZones()

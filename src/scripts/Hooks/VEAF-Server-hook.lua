@@ -37,8 +37,8 @@ veafServerHook.Id = "VEAFHOOK - "
 veafServerHook.Version = "1.0.1"
 
 -- trace level, specific to this module
-veafServerHook.Trace = true
-veafServerHook.Debug = true
+veafServerHook.Trace = false
+veafServerHook.Debug = false
 
 veafServerHook.CommandStarter = "/"
 veafServerHook.CommandParser = "/([a-zA-Z0-9]+)%s?(.*)"
@@ -57,7 +57,7 @@ SEND_MESSAGE = [[ if trigger and trigger.action and trigger.action.outText then 
 veafServerHook.pilots = {}
 
 veafServerHook.closeServerAtMissionStop = false
-veafServerHook.closeServerAtLastDisconnect = false
+veafServerHook.closeServerAtLastDisconnect = true
 
 veafServerHook.lastFrameTime = 0
 
@@ -152,19 +152,16 @@ local _status, _retValue = pcall(net.dostring_in, 'mission', 'return a_do_script
     else
         veafServerHook.logInfo(string.format("Maximum mission duration is set to %s", p(veafServerHook.maxMissionDuration)))
     end
+
+    veafServerHook.closeServerAtLastDisconnect = true -- halt the server when the mission stops, by default
 end
 
 function veafServerHook.onSimulationStop()
     veafServerHook.logDebug(string.format("veafServerHook.onSimulationStop()"))
-    veafServerHook.stopMissionIfNeeded()
     if veafServerHook.closeServerAtMissionStop then
         veafServerHook.logInfo(string.format("veafServerHook.onSimulationStop() - stopping the server"))
         DCS.exitProcess()
     end
-end
-
-function veafServerHook.onTriggerMessage(message)	
-    veafServerHook.logDebug(string.format("veafServerHook.onTriggerMessage([%s])", p(message)))
 end
 
 function veafServerHook.onPlayerConnect(id)
@@ -193,14 +190,6 @@ function veafServerHook.onPlayerDisconnect(id, err_code)
     veafServerHook.logDebug(string.format("veafServerHook.onPlayerDisconnect([%s], [%s])", p(id), p(err_code)))
     veafServerHook.stopMissionIfNeeded()
 end    
-
-function veafServerHook.onRadioMessage(message, duration)
-    veafServerHook.logDebug(string.format("veafServerHook.onRadioMessage([%s], [%s])", p(duration), p(message)))
-end
-
-function veafServerHook.onShowGameMenu()
-    veafServerHook.logDebug(string.format("veafServerHook.onShowGameMenu()"))
-end
 
 function veafServerHook.onChatMessage(message, from)
     veafServerHook.logDebug(string.format("veafServerHook.onChatMessage([%s], [%s])",p(from), p(message)))
@@ -234,62 +223,6 @@ function veafServerHook.onChatMessage(message, from)
     return false
 end
 
-function veafServerHook.onSimulationFrame()
-    --let's not pollute the log 
-    --veafServerHook.logDebug(string.format("veafServerHook.onSimulationFrame()"))
-    
-    --local now = DCS.getRealTime()
-    
-    -- log every 15 seconds
-    --[[
-    if now > veafServerHook.lastFrameTime + 15.0 then
-        veafServerHook.lastFrameTime = now 
-        veafServerHook.logDebug(string.format("veafServerHook.onSimulationFrame() - tick"))
-    end
-    ]]
-    
-    --veafServerHook.stopMissionIfNeeded()
-end
-
-function veafServerHook.onShowRadioMenu(a_h)
-    veafServerHook.logDebug(string.format("veafServerHook.onShowRadioMenu([%s])",p(a_h)))
-end
-
-function veafServerHook.onShowPool()
-    veafServerHook.logDebug(string.format("veafServerHook.onShowPool()"))
-end
-
-function veafServerHook.onShowBriefing()
-    veafServerHook.logDebug(string.format("veafServerHook.onShowBriefing()"))
-end
-
-function veafServerHook.onShowChatAll()
-    veafServerHook.logDebug(string.format("veafServerHook.onShowChatAll()"))
-end
-
-function veafServerHook.onShowChatTeam()
-    veafServerHook.logDebug(string.format("veafServerHook.onShowChatTeam()"))
-end
-
-function veafServerHook.onShowChatRead()
-    veafServerHook.logDebug(string.format("veafServerHook.onShowChatRead()"))
-end
-
-function veafServerHook.onShowMessage(a_text, a_duration)
-    veafServerHook.logDebug(string.format("veafServerHook.onShowMessage([%s], [%s])",p(a_text), p(a_duration)))
-end
-
-function veafServerHook.onTriggerMessage(message, duration, clearView)
-    veafServerHook.logDebug(string.format("veafServerHook.onTriggerMessage([%s], [%s], [%s])",p(message), p(duration), p(clearView)))
-end
-
-function veafServerHook.onRadioMessage(message, duration)
-    veafServerHook.logDebug(string.format("veafServerHook.onRadioMessage([%s], [%s])",p(message), p(duration)))
-end
-
-function veafServerHook.onRadioCommand(command_message)
-    veafServerHook.logDebug(string.format("veafServerHook.onRadioCommand([%s])",p(command_message)))
-end
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Core methods
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -333,7 +266,7 @@ function veafServerHook.parse(pilot, playerName, unitName, message)
         if pilot.level >= 90 then
             veafServerHook.maxMissionDuration = 0
             veafServerHook.closeServerAtLastDisconnect = true
-            local _message = string.format("[%s] is asking for server halt the last pilot disconnects from the server",p(playerName))
+            local _message = string.format("[%s] is asking for server halt when the last pilot disconnects from the server",p(playerName))
             veafServerHook.logInfo(_message)
             veafServerHook.sendMessage(_message, 10)
             return true

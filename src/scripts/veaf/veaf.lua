@@ -33,7 +33,7 @@ veaf.Id = "VEAF - "
 veaf.MainId = "MAIN - "
 
 --- Version.
-veaf.Version = "1.12.0"
+veaf.Version = "1.12.1"
 
 -- trace level, specific to this module
 veaf.MainTrace = false
@@ -1943,23 +1943,27 @@ function veaf.exportAsJson(data, name, jsonify, filename, export_path)
     if not l_veafSanitized_io then l_veafSanitized_io = io end
 
     local l_veafSanitized_os = veafSanitized_os
-    if not veafSanitized_os then l_veafSanitized_os = os end
+    if not l_veafSanitized_os then l_veafSanitized_os = os end
 
     local function writeln(file, text)
         file:write(text.."\r\n")
     end
     
     local export_path = export_path
-    if not export_path then
+    if not export_path and l_veafSanitized_os then
         export_path = l_veafSanitized_os.getenv("VEAF_EXPORT_DIR")
         if export_path then export_path = export_path .. "\\" end
     end
-    if not export_path then
+    if not export_path and l_veafSanitized_os then
         export_path = l_veafSanitized_os.getenv("TEMP")
         if export_path then export_path = export_path .. "\\" end
     end
-    if not export_path then
+    if not export_path and l_veafSanitized_lfs then
         export_path = l_veafSanitized_lfs.writedir()
+    end
+
+    if not export_path then
+        return
     end
 
     local filename = filename or name .. ".json"

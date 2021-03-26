@@ -1,0 +1,50 @@
+{
+  "variableForMetar": "METAR",
+  "targets": [
+    {
+      "version": "0200-real",
+      "realweather": true,
+      "time": 7200
+    },
+    {
+      "version": "0500-real",
+      "realweather": true,
+      "time": 18000
+    },
+    {
+      "version": "0600-overcast-low",
+      "weatherfile": "overcast-low.lua",
+      "time": 21600
+    },
+    {
+      "version": "0700-real",
+      "realweather": true,
+      "time": 25200
+    },
+    {
+      "version": "0700-scattered",
+      "weather": "KQND 150856Z AUTO VRB04G11KT 9999 SCT050 SCT100 39/05 A2989 RMK AO2 SLP103 WND DATA ESTMD T03900045 50007",
+      "time": 25200
+    },
+    {
+      "version": "0700-broken",
+      "weather": "KQND 150856Z AUTO VRB04G11KT 9999 SCT050 BKN100 39/05 A2989 RMK AO2 SLP103 WND DATA ESTMD T03900045 50007",
+      "time": 25200
+    },
+    {
+      "version": "0800-overcast-high",
+      "weatherfile": "overcast-high.lua",
+      "time": 28800
+    },
+    {
+      "version": "1700-real",
+      "realweather": true,
+      "time": 61200
+    },
+    {
+      "version": "2030-real",
+      "realweather": true,
+      "time": 73800
+    }
+  ]
+}

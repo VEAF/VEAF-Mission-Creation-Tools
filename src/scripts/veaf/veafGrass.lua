@@ -45,7 +45,7 @@ veafGrass = {}
 veafGrass.Id = "GRASS - "
 
 --- Version.
-veafGrass.Version = "2.1.1"
+veafGrass.Version = "2.2.0"
 
 -- trace level, specific to this module
 veafGrass.Trace = false
@@ -230,8 +230,17 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits)
     veafGrass.logTrace(string.format("farp=%s",veaf.p(farp)))
     veafGrass.logTrace(string.format("grassRunwayUnits=%s",veaf.p(grassRunwayUnits)))
 
+	local farpCoalition = farp.coalition
+	if type(farpCoalition == "number") then
+		if farpCoalition == 1 then
+			farpCoalition = "red"
+		else
+			farpCoalition = "blue"
+		end
+	end
 
-	local angle = mist.utils.toDegree(farp.heading);
+	local farpHeading = farp.heading or 0
+	local angle = mist.utils.toDegree(farpHeading)
 	local tentDistance = 100
 	local tentSpacing = 30
 	local otherDistance = 85
@@ -256,7 +265,7 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits)
 			local tent = {
 				["category"] = 'static',
 				["categoryStatic"] = 'Fortifications',
-				["coalition"] = farp.coalition,
+				["coalition"] = farpCoalition,
 				["country"] = farp.country,
 				["countryId"] = farp.countryId,
 				["heading"] = mist.utils.toRadian(angle-90),
@@ -285,7 +294,7 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits)
 		local otherUnit = {
 			["category"] = 'static',
 			["categoryStatic"] = 'Fortifications',
-			["coalition"] = farp.coalition,
+			["coalition"] = farpCoalition,
 			["country"] = farp.country,
 			["countryId"] = farp.countryId,
 			["heading"] = mist.utils.toRadian(angle-90),
@@ -311,7 +320,7 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits)
 		["categoryStatic"] = 'Fortifications',
 		["shape_name"] = "H-Windsock_RW",
 		["type"] = "Windsock",	
-		["coalition"] = farp.coalition,
+		["coalition"] = farpCoalition,
 		["country"] = farp.country,
 		["countryId"] = farp.countryId,
 		["heading"] = mist.utils.toRadian(angle-90),
@@ -327,7 +336,7 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits)
 			["categoryStatic"] = 'Fortifications',
 			["shape_name"] = "H-Windsock_RW",
 			["type"] = "Windsock",	
-			["coalition"] = farp.coalition,
+			["coalition"] = farpCoalition,
 			["country"] = farp.country,
 			["countryId"] = farp.countryId,
 			["heading"] = mist.utils.toRadian(angle-90),
@@ -364,13 +373,14 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits)
 	
 	local farpEscortGroup = {
 		["category"] = 'vehicle',
-		["coalition"] = farp.coalition,
+		["coalition"] = farpCoalition,
 		["country"] = farp.country,
 		["countryId"] = farp.countryId,
 		["groupName"] = farp.groupName .. ' escort',
 		["units"] = {},
-	}		
-	for j,typeName in ipairs(farpEscortUnitsNames[farp.coalition]) do
+	}
+
+	for j,typeName in ipairs(farpEscortUnitsNames[farpCoalition]) do
 		local escortUnit = {
 			["heading"] = mist.utils.toRadian(angle-135), -- parked \\\\\
 			["type"] = typeName,
@@ -401,7 +411,7 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits)
     }
 
 	if ctld then
-		local _beaconInfo = ctld.createRadioBeacon(beaconPoint, 2, "USA", farp.unitName, -1, true)
+		local _beaconInfo = ctld.createRadioBeacon(beaconPoint, 2, "USA", farp.unitName or farp.name, -1, true)
 		if _beaconInfo ~= nil then
 			farpNamedPoint.tacan = string.format("ADF : %.2f KHz - %.2f MHz - %.2f MHz", _beaconInfo.vhf / 1000, _beaconInfo.uhf / 1000000, _beaconInfo.fm / 1000000)
 			veafGrass.logTrace(string.format("farpNamedPoint.tacan=%s", veaf.p(farpNamedPoint.tacan)))
@@ -440,7 +450,7 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits)
     end
     veafGrass.logTrace(string.format("farpNamedPoint=%s", veaf.p(farpNamedPoint)))
 
-	veafNamedPoints.addPoint(farp.unitName, farpNamedPoint)
+	veafNamedPoints.addPoint(farp.unitName or farp.name, farpNamedPoint)
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------

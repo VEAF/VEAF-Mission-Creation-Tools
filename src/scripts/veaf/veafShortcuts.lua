@@ -781,6 +781,13 @@ function veafShortcuts.buildDefaultList()
             :setVeafCommand("_spawn tacan, band X, channel 99")
             :setBypassSecurity(true)
     )
+    veafShortcuts.AddAlias(
+        VeafAlias:new()
+            :setName("-farp")
+            :setDescription("create a new FARP")
+            :setVeafCommand("_spawn farp, side blue, radius 0")
+            :setBypassSecurity(true)
+    )
 end
 
 function veafShortcuts.dumpAliasesList(export_path)

@@ -66,7 +66,7 @@ veafSpawn = {}
 veafSpawn.Id = "SPAWN - "
 
 --- Version.
-veafSpawn.Version = "1.18.1"
+veafSpawn.Version = "1.19.0"
 
 -- trace level, specific to this module
 veafSpawn.Debug = false
@@ -205,6 +205,10 @@ function veafSpawn.executeCommand(eventPos, eventText, coalition, markId, bypass
                         band = options.tacanBand or "X"
                     end
                     spawnedGroup = veafSpawn.spawnUnit(eventPos, options.radius, options.name, options.country, options.altitude, options.heading, options.unitName, options.role, code, channel, band, bypassSecurity)
+                elseif options.farp then
+                    -- check security
+                    if not (bypassSecurity or veafSecurity.checkSecurity_L9(options.password, markId)) then return end
+                    spawnedGroup = veafSpawn.spawnFarp(eventPos, options.radius, options.name, options.country, options.farpType, options.side, options.heading, options.spacing, bypassSecurity)
                 elseif options.group then
                     -- check security
                     if not (bypassSecurity or veafSecurity.checkSecurity_L9(options.password, markId)) then return end
@@ -315,6 +319,8 @@ function veafSpawn.markTextAnalysis(text)
     local switch = {}
     switch.unit = false
     switch.group = false
+    switch.farp = false
+    switch.farpType = "invisible"
     switch.cargo = false
     switch.logistic = false
     switch.smoke = false
@@ -404,6 +410,8 @@ function veafSpawn.markTextAnalysis(text)
         switch.unit = true
     elseif text:lower():find(veafSpawn.SpawnKeyphrase .. " group") then
         switch.group = true
+    elseif text:lower():find(veafSpawn.SpawnKeyphrase .. " farp") then
+        switch.farp = true
     elseif text:lower():find(veafSpawn.SpawnKeyphrase .. " convoy") then
         switch.convoy = true
         switch.size = 10 -- default the size parameter to 10
@@ -658,6 +666,12 @@ function veafSpawn.markTextAnalysis(text)
             switch.cargoType = val
         end
 
+        if switch.farp and key:lower() == "type" then
+            -- Set farp type.
+            veafSpawn.logTrace(string.format("Keyword type = %s", tostring(val)))
+            switch.farpType = val
+        end
+
         if switch.cargo and key:lower() == "smoke" then
             -- Mark with green smoke.
             veafSpawn.logTrace("Keyword smoke is set")
@@ -790,6 +804,68 @@ function veafSpawn.doSpawnGroup(spawnSpot, radius, groupDefinition, country, alt
     end
 
     return groupName
+end
+
+--- Spawn a FARP
+function veafSpawn.spawnFarp(spawnSpot, radius, name, country, farptype, side, hdg, spacing, silent)
+    veafSpawn.logDebug(string.format("spawnFarp(name=%s, country=%s, farptype=%s, side=%s, hdg=%s, spacing=%s)",veaf.p(name), veaf.p(country), veaf.p(farptype), veaf.p(side), veaf.p(hdg), veaf.p(spacing)))
+    
+    local radius = radius or 0
+    local name = name
+    local hdg = hdg or 0
+    local side = side or 1
+    local spacing = spacing or 50
+    local silent = silent or false
+    local country = country or "usa"
+    local farptype = farptype or ""
+
+    local spawnPosition = veaf.placePointOnLand(mist.getRandPointInCircle(spawnSpot, radius))
+    veafSpawn.logTrace(string.format("spawnPosition=%s", veaf.p(spawnPosition)))
+    if not name or name == "" then 
+        local _lat, _lon = coord.LOtoLL(spawnSpot)
+        veafSpawn.logTrace(string.format("_lat=%s", veaf.p(_lat)))
+        veafSpawn.logTrace(string.format("_lon=%s", veaf.p(_lon)))
+        local _mgrs = coord.LLtoMGRS(_lat, _lon)
+        veafSpawn.logTrace(string.format("_mgrs=%s", veaf.p(_mgrs)))
+        --local _UTM = _mgrs.UTMZone .. _mgrs.MGRSDigraph .. math.floor(_mgrs.Easting / 1000) .. math.floor(_mgrs.Northing / 1000)
+        local _UTM = _mgrs.MGRSDigraph .. math.floor(_mgrs.Easting / 1000) .. math.floor(_mgrs.Northing / 1000)
+        name = "FARP ".. _UTM:upper()
+    end 
+
+    local _type = "Invisible FARP"
+    local _shape = "invisiblefarp"
+    if farptype:lower() == "quad" then
+        _type = "FARP"
+        _shape = "FARPs"
+    elseif farptype:lower() == "single" then
+        _type = "FARP"
+        _shape = "FARP"
+    end
+
+    -- spawn the FARP
+    local _farpStatic = {
+        ["category"] = "Heliports",
+        ["shape_name"] = _shape,
+        ["type"] = _type,
+      --  ["unitId"] = _unitId,
+        ["y"] = spawnPosition.z,
+        ["x"] = spawnPosition.x,
+        ["groupName"] = name,
+        ["name"] = name,
+        ["canCargo"] = false,
+        ["heading"] = hdg,
+        ["country"] = country,
+        ["coalition"] = side
+    }
+    mist.dynAddStatic(_farpStatic)
+    local _spawnedFARP = StaticObject.getByName(name)
+    veafSpawn.logTrace(string.format("_spawnedFARP=%s", veaf.p(_spawnedFARP)))
+    if _spawnedFARP then
+        veafSpawn.logDebug(string.format("Spawned the FARP static %s", veaf.p(name)))
+
+        -- populate the FARP
+        veafGrass.buildFarpUnits(_farpStatic)
+    end
 end
 
 --- Spawn a specific group at a specific spot

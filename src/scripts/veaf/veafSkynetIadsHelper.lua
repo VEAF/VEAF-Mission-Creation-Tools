@@ -28,7 +28,7 @@ veafSkynet = {}
 veafSkynet.Id = "SKYNET - "
 
 --- Version.
-veafSkynet.Version = "1.1.0"
+veafSkynet.Version = "1.1.1"
 
 -- trace level, specific to this module
 veafSkynet.Trace = false
@@ -212,11 +212,15 @@ function veafSkynet.reinitialize()
     end
 
     if veafSkynet.redIADS then
-        veafSkynet.redIADS:removeRadioMenu()
+        if veafSkynet.includeRedInRadio then 
+            veafSkynet.redIADS:removeRadioMenu()
+        end
         veafSkynet.redIADS:deactivate()
     end
     if veafSkynet.blueIADS then
-        veafSkynet.blueIADS:removeRadioMenu()
+        if veafSkynet.includeBlueInRadio then 
+            veafSkynet.blueIADS:removeRadioMenu()
+        end
         veafSkynet.blueIADS:deactivate()
     end
     createNetworks(true)

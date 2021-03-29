@@ -45,7 +45,7 @@ veafRadio = {}
 veafRadio.Id = "RADIO - "
 
 --- Version.
-veafRadio.Version = "1.8.2"
+veafRadio.Version = "1.8.3"
 
 -- trace level, specific to this module
 veafRadio.Debug = false
@@ -723,7 +723,7 @@ function veafRadio.addPaginatedRadioElements(radioMenu, addCommandToSubmenuMetho
     veafRadio.logTrace("sortedTitles="..veaf.p(sortedTitles))
 
     _buildRadioMenuPage(radioMenu, sortedTitles, elementsByTitle, addCommandToSubmenuMethod, pageSize, 1)
-    veafRadio.refreshRadioMenu()
+    --veafRadio.refreshRadioMenu()
 end
 
 -- build a paginated submenu (main method)

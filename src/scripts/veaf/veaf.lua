@@ -301,67 +301,6 @@ veaf.EVENTMETA = {
         Side = "I",
         Event = "OnEventMarkRemoved",
         Text = "S_EVENT_MARK_REMOVED"
-    },
-    [EVENTS.NewCargo] = {
-        Order = 1,
-        Event = "OnEventNewCargo",
-        Text = "S_EVENT_NEW_CARGO"
-    },
-    [EVENTS.DeleteCargo] = {
-        Order = 1,
-        Event = "OnEventDeleteCargo",
-        Text = "S_EVENT_DELETE_CARGO"
-    },
-    [EVENTS.NewZone] = {
-        Order = 1,
-        Event = "OnEventNewZone",
-        Text = "S_EVENT_NEW_ZONE"
-    },
-    [EVENTS.DeleteZone] = {
-        Order = 1,
-        Event = "OnEventDeleteZone",
-        Text = "S_EVENT_DELETE_ZONE"
-    },
-    [EVENTS.NewZoneGoal] = {
-        Order = 1,
-        Event = "OnEventNewZoneGoal",
-        Text = "S_EVENT_NEW_ZONE_GOAL"
-    },
-    [EVENTS.DeleteZoneGoal] = {
-        Order = 1,
-        Event = "OnEventDeleteZoneGoal",
-        Text = "S_EVENT_DELETE_ZONE_GOAL"
-    },
-    [EVENTS.RemoveUnit] = {
-        Order = -1,
-        Event = "OnEventRemoveUnit",
-        Text = "S_EVENT_REMOVE_UNIT"
-    },
-    -- Added with DCS 2.5.6
-    [EVENTS.DetailedFailure] = {
-        Order = 1,
-        Event = "OnEventDetailedFailure",
-        Text = "S_EVENT_DETAILED_FAILURE"
-    },
-    [EVENTS.Kill] = {
-        Order = 1,
-        Event = "OnEventKill",
-        Text = "S_EVENT_KILL"
-    },
-    [EVENTS.Score] = {
-        Order = 1,
-        Event = "OnEventScore",
-        Text = "S_EVENT_SCORE"
-    },
-    [EVENTS.UnitLost] = {
-        Order = 1,
-        Event = "OnEventUnitLost",
-        Text = "S_EVENT_UNIT_LOST"
-    },
-    [EVENTS.LandingAfterEjection] = {
-        Order = 1,
-        Event = "OnEventLandingAfterEjection",
-        Text = "S_EVENT_LANDING_AFTER_EJECTION"
     }
 }
 
@@ -1988,7 +1927,21 @@ function veaf.exportAsJson(data, name, jsonify, filename, export_path)
     writeln(file, footer)
     file:close()
 end
-    
+
+function veaf.isUnitAlive(unit)
+    return unit and unit:isExist() and unit:isActive()
+end
+
+function veaf.getUnitLifeRelative(unit)
+    if unit and veaf.isUnitAlive(unit) then
+        local life0=unit:getLife0()
+        local lifeN=unit:getLife()
+        return lifeN/life0
+    else
+        return 0
+    end
+end
+
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- initialisation
 -------------------------------------------------------------------------------------------------------------------------------------------------------------

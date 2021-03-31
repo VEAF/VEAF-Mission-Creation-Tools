@@ -51,7 +51,7 @@ veafCombatMission = {}
 veafCombatMission.Id = "COMBAT MISSION - "
 
 --- Version.
-veafCombatMission.Version = "1.10.0"
+veafCombatMission.Version = "2.0.0"
 
 -- trace level, specific to this module
 veafCombatMission.Debug = false
@@ -78,9 +78,6 @@ veafCombatMission.missionsList = {}
 
 -- Missions dictionary (map of VeafCombatMission objects by mission name)
 veafCombatMission.missionsDict = {}
-
--- Keep MOOSE SPAWN objects here
-veafCombatMission.MOOSE_SPAWN_OBJECTS = {}
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Utility methods
@@ -363,8 +360,6 @@ VeafCombatMissionElement =
     name,
     -- groups : a list of group names that compose this element
     groups,
-    --  coalition (0 = neutral, 1 = red, 2 = blue)
-    coalition, -- SPAWN:InitCoalition(Coalition)
     -- skill ("Average", "Good", "High", "Excellent" or "Random"), defaults to "Random"
     skill, -- SPAWN:InitSkill(Skill)
     -- spawn radius in meters (randomness introduced in the respawn mechanism)
@@ -382,7 +377,7 @@ function VeafCombatMissionElement:new()
     local self = setmetatable({}, VeafCombatMissionElement)
     self.name = nil
     self.groups = nil
-    self.coalition = nil
+    self.spawnPoints = nil
     self.skill = "Random"
     self.spawnRadius = 0
     self.spawnChance = 100
@@ -396,7 +391,6 @@ function VeafCombatMissionElement:copy()
 
     -- copy the attributes
     copy.name = self.name
-    copy.coalition = self.coalition
     copy.skill = self.skill
     copy.spawnRadius = self.spawnRadius
     copy.spawnChance = self.spawnChance
@@ -407,6 +401,10 @@ function VeafCombatMissionElement:copy()
     copy.groups = {}
     for _, group in pairs(self.groups) do
         table.insert(copy.groups, group)
+    end
+    copy.spawnPoints = {}
+    for groupName, spawnPoint in pairs(self.spawnPoints) do
+        copy.spawnPoints[groupName] = spawnPoint
     end
 
     return copy
@@ -426,7 +424,22 @@ function VeafCombatMissionElement:getName()
 end
 
 function VeafCombatMissionElement:setGroups(value)
+    veafCombatMission.logDebug(string.format("VeafCombatMissionElement[%s]:setGroups(%s)",veaf.p(self.name), veaf.p(value)))
     self.groups = value
+    self.spawnPoints = {}
+    for _, groupName in pairs(self.groups) do
+        veafCombatMission.logTrace(string.format("processing groupName=%s",veaf.p(groupName)))
+        local _group = Group.getByName(groupName)
+        veafCombatMission.logTrace(string.format("_group=%s",veaf.p(_group)))
+        if _group then
+            local _unit1 = _group:getUnit(1)
+            veafCombatMission.logTrace(string.format("_unit1=%s",veaf.p(_unit1)))
+            if _unit1 then
+                veafCombatMission.logTrace(string.format("_unit1:getPoint()=%s",veaf.p(_unit1:getPoint())))
+                self.spawnPoints[groupName] = _unit1:getPoint()
+            end
+        end
+    end
     return self
 end
 
@@ -441,15 +454,6 @@ end
 
 function VeafCombatMissionElement:getSkill()
     return self.skill
-end
-
-function VeafCombatMissionElement:setCoalition(value)
-    self.coalition = value
-    return self
-end
-
-function VeafCombatMissionElement:getCoalition()
-    return self.coalition
 end
 
 function VeafCombatMissionElement:setSpawnRadius(value)
@@ -653,15 +657,15 @@ function VeafCombatMission:addElement(value)
 end
 
 function VeafCombatMission:addSpawnedGroup(group)
-    veafCombatMission.logDebug(string.format("VeafCombatMission[%s]:addSpawnedGroup(%s)",self.name or "", group:GetName() or ""))
+    veafCombatMission.logDebug(string.format("VeafCombatMission[%s]:addSpawnedGroup(%s)",self.name or "", group:getName() or ""))
     if not self.spawnedGroups then 
         self.spawnedGroups = {}
     end
     table.insert(self.spawnedGroups, group)
     
     -- count units in group
-    self.spawnedUnitsCountByGroup[group:GetName()] = #group:GetUnits()
-    veafCombatMission.logTrace(string.format("%s units in group [%s]",tostring(self.spawnedUnitsCountByGroup[group:GetName()]), tostring(group:GetName())))
+    self.spawnedUnitsCountByGroup[group:getName()] = #group:getUnits()
+    veafCombatMission.logTrace(string.format("%s units in group [%s]",tostring(self.spawnedUnitsCountByGroup[group:getName()]), tostring(group:getName())))
 
     return self
 end
@@ -669,7 +673,7 @@ end
 function VeafCombatMission:getSpawnedGroups()
     veafCombatMission.logDebug(string.format("VeafCombatMission[%s]:getSpawnedGroups()",self.name or ""))
     for _, group in pairs(self.spawnedGroups) do
-        veafCombatMission.logTrace(string.format("spawnedGroups[%s]",group:GetName()))
+        veafCombatMission.logTrace(string.format("spawnedGroups[%s]",group:getName()))
     end
     return self.spawnedGroups
 end
@@ -786,29 +790,29 @@ function VeafCombatMission:getRemainingEnemies(whatsInAKill)
     local nbDamagedUnits = 0
     local nbDeadUnits = 0
     for _, group in pairs(self:getSpawnedGroups()) do
-        veafCombatMission.logTrace(string.format("processing group [%s]",group:GetName()))
+        veafCombatMission.logTrace(string.format("processing group [%s]",group:getName()))
         local groupLiveUnits = 0
         local groupDamagedUnits = 0
-        if group:GetUnits() then
-            for _, unit in pairs(group:GetUnits()) do
-                veafCombatMission.logTrace(string.format("processing unit [%s]",unit:GetName()))
-                veafCombatMission.logTrace(string.format("unit:GetLifeRelative() = %f",unit:GetLifeRelative()))
-                if unit:GetLifeRelative() == 1.0 then
-                    veafCombatMission.logTrace(string.format("unit[%s] is alive",unit:GetName()))
+        if group:getUnits() then
+            for _, unit in pairs(group:getUnits()) do
+                veafCombatMission.logTrace(string.format("processing unit [%s]",unit:getName()))
+                veafCombatMission.logTrace(string.format("veaf.getUnitLifeRelative(unit) = %f",veaf.getUnitLifeRelative(unit)))
+                if veaf.getUnitLifeRelative(unit) == 1.0 then
+                    veafCombatMission.logTrace(string.format("unit[%s] is alive",unit:getName()))
                     groupLiveUnits = groupLiveUnits + 1
-                elseif unit:GetLifeRelative() > whatsInAKill then
-                    veafCombatMission.logTrace(string.format("unit[%s] is damaged (%d %%)",unit:GetName(), unit:GetLifeRelative()*100 ))
+                elseif veaf.getUnitLifeRelative(unit) > whatsInAKill then
+                    veafCombatMission.logTrace(string.format("unit[%s] is damaged (%d %%)",unit:getName(), veaf.getUnitLifeRelative(unit)*100 ))
                     groupDamagedUnits = groupDamagedUnits + 1
                     groupLiveUnits = groupLiveUnits + 1
                 else
-                    veafCombatMission.logTrace(string.format("unit[%s] is dead",unit:GetName()))
-                    -- should never come to that, Moose do not return dead units in GetUnits()
+                    veafCombatMission.logTrace(string.format("unit[%s] is dead",unit:getName()))
+                    -- should never come to that, Moose do not return dead units in getUnits()
                 end
             end
         else
             groupLiveUnits = 0
         end
-        local groupDeadUnits = (self.spawnedUnitsCountByGroup[group:GetName()] or 0) - groupLiveUnits
+        local groupDeadUnits = (self.spawnedUnitsCountByGroup[group:getName()] or 0) - groupLiveUnits
         if groupDeadUnits < 0 then -- should never happen but who knows ? This is DCS !
             groupDeadUnits = 0 
         end
@@ -879,21 +883,33 @@ function VeafCombatMission:activate(silent)
             -- spawn the element
             veafCombatMission.logTrace(string.format("chance hit (%d <= %d)",chance, missionElement:getSpawnChance()))
             for _, groupName in pairs(missionElement:getGroups()) do
-                local spawn = veafCombatMission.MOOSE_SPAWN_OBJECTS[groupName]
-                if not spawn then
-                    spawn = SPAWN:New(groupName)
-                    veafCombatMission.MOOSE_SPAWN_OBJECTS[groupName] = spawn
+                local _spawnPoint = missionElement.spawnPoints[groupName]
+                veafCombatMission.logTrace(string.format("_spawnPoint=%s",veaf.p(_spawnPoint)))
+                local _spawnRadius = missionElement:getSpawnRadius()
+                if (missionElement:getScale() > 1 and _spawnRadius < veafCombatMission.MinimumSpacingBetweenClones) then
+                    _spawnRadius = veafCombatMission.MinimumSpacingBetweenClones 
                 end
-                spawn:InitSkill(missionElement:getSkill())
-                     :InitCoalition(missionElement:getCoalition())
-                local spawnRadius = missionElement:getSpawnRadius()
-                if (missionElement:getScale() > 1 and spawnRadius < veafCombatMission.MinimumSpacingBetweenClones) then
-                    spawnRadius = veafCombatMission.MinimumSpacingBetweenClones 
-                end
-                spawn = spawn:InitRandomizePosition(true, spawnRadius, nil)
+                veafCombatMission.logTrace(string.format("_spawnRadius=%s",veaf.p(_spawnRadius)))
+
+                local vars = {}
+                vars.gpName = groupName
+                vars.action = 'clone'
+                vars.point = _spawnPoint
+                vars.radius = _spawnRadius
+                vars.disperse = false
+                vars.route = mist.getGroupRoute(groupName, 'task')
+                --veafCombatMission.logTrace(string.format("vars=%s",veaf.p(vars)))
+
                 for i=1,missionElement:getScale() do
-                    local group = spawn:Spawn()
-                    self:addSpawnedGroup(group)
+                    local _group = mist.teleportToPoint(vars, true)
+                    --veafCombatMission.logTrace(string.format("_group=%s",veaf.p(_group)))
+                    for _, unit in pairs(_group.units) do
+                        unit.skill = missionElement:getSkill()
+                    end
+                    local _spawnedGroup = mist.dynAdd(_group)
+                    --veafCombatMission.logTrace(string.format("_spawnedGroup=%s",veaf.p(_spawnedGroup)))
+                    local _dcsSpawnedGroup = Group.getByName(_spawnedGroup.name)
+                    self:addSpawnedGroup(_dcsSpawnedGroup)
                 end
             end
         else 
@@ -922,8 +938,8 @@ function VeafCombatMission:desactivate()
     self:unscheduleWatchdogFunction()
 
     for _, group in pairs(self:getSpawnedGroups()) do
-        veafCombatMission.logTrace(string.format("trying to destroy group [%s]",group:GetName()))
-        group:Destroy(false)
+        veafCombatMission.logTrace(string.format("trying to destroy group [%s]",group:getName()))
+        group:destroy()
     end
     self:clearSpawnedGroups()
 

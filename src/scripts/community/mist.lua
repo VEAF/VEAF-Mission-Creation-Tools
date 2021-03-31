@@ -3231,7 +3231,7 @@ do -- group functions scope
     
     end
 
-	function mist.teleportToPoint(vars) -- main teleport function that all of teleport/respawn functions call
+	function mist.teleportToPoint(vars, prepareOnly) -- main teleport function that all of teleport/respawn functions call
 		--log:info(vars)
         local point = vars.point
 		local gpName
@@ -3386,12 +3386,14 @@ do -- group functions scope
 		end
 		--log:info(newGroupData)
 		--mist.debug.writeData(mist.utils.serialize,{'teleportToPoint', newGroupData}, 'newGroupData.lua')
-		if string.lower(newGroupData.category) == 'static' then
-			--log:info(newGroupData)
-			return mist.dynAddStatic(newGroupData)
+		if not prepareOnly then
+			if string.lower(newGroupData.category) == 'static' then
+				--log:info(newGroupData)
+				return mist.dynAddStatic(newGroupData)
+			end
+			return mist.dynAdd(newGroupData)
 		end
-		return mist.dynAdd(newGroupData)
-
+		return newGroupData
 	end
 
 	function mist.respawnInZone(gpName, zone, disperse, maxDisp)

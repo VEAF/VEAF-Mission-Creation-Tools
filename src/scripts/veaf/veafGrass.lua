@@ -225,7 +225,7 @@ end
 -- build nice FARP units arround the FARP
 -- @param unit farp : the FARP unit
 ------------------------------------------------------------------------------
-function veafGrass.buildFarpUnits(farp, grassRunwayUnits)
+function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName)
     veafGrass.logDebug(string.format("buildFarpUnits()"))
     veafGrass.logTrace(string.format("farp=%s",veaf.p(farp)))
     veafGrass.logTrace(string.format("grassRunwayUnits=%s",veaf.p(grassRunwayUnits)))
@@ -273,7 +273,9 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits)
 				["x"] = tentOrigin.x + (i-1) * tentSpacing * math.cos(mist.utils.toRadian(angle)) - (j-1) * tentSpacing * math.sin(mist.utils.toRadian(angle)),
 				["y"] = tentOrigin.y + (i-1) * tentSpacing * math.sin(mist.utils.toRadian(angle)) + (j-1) * tentSpacing *  math.cos(mist.utils.toRadian(angle)),
 			}
-			
+			if groupName then
+				tent["groupName"] = groupName
+			end			
 			mist.dynAddStatic(tent)
 			
 		end	
@@ -302,6 +304,9 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits)
 			["x"] = otherOrigin.x - (j-1) * otherSpacing * math.sin(mist.utils.toRadian(angle)),
 			["y"] = otherOrigin.y + (j-1) * otherSpacing * math.cos(mist.utils.toRadian(angle)),
 		}		
+		if groupName then
+			otherUnit["groupName"] = groupName
+		end			
 		mist.dynAddStatic(otherUnit)
 	end
 
@@ -327,6 +332,9 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits)
 		["x"] = farp.x + windstockDistance * math.cos(mist.utils.toRadian(angle + windstockAngle)),
 		["y"] = farp.y + windstockDistance * math.sin(mist.utils.toRadian(angle + windstockAngle)),
 	}
+	if groupName then
+		windstockUnit["groupName"] = groupName
+	end			
 	mist.dynAddStatic(windstockUnit)
 
 	-- on FARP unit, place a second windsock, at 90°
@@ -343,6 +351,9 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits)
 			["x"] = farp.x + windstockDistance * math.cos(mist.utils.toRadian(angle + windstockAngle - 90)),
 			["y"] = farp.y + windstockDistance * math.sin(mist.utils.toRadian(angle + windstockAngle - 90)),
 		}
+		if groupName then
+			windstockUnit["groupName"] = groupName
+		end			
 		mist.dynAddStatic(windstockUnit)
 	end
 
@@ -376,9 +387,12 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits)
 		["coalition"] = farpCoalition,
 		["country"] = farp.country,
 		["countryId"] = farp.countryId,
-		["groupName"] = farp.groupName .. ' escort',
+		["groupName"] = farp.groupName,
 		["units"] = {},
 	}
+	if groupName then
+		farpEscortGroup["groupName"] = groupName
+	end			
 
 	for j,typeName in ipairs(farpEscortUnitsNames[farpCoalition]) do
 		local escortUnit = {

@@ -66,7 +66,7 @@ veafSpawn = {}
 veafSpawn.Id = "SPAWN - "
 
 --- Version.
-veafSpawn.Version = "1.19.0"
+veafSpawn.Version = "1.19.1"
 
 -- trace level, specific to this module
 veafSpawn.Debug = false
@@ -860,12 +860,15 @@ function veafSpawn.spawnFarp(spawnSpot, radius, name, country, farptype, side, h
     mist.dynAddStatic(_farpStatic)
     local _spawnedFARP = StaticObject.getByName(name)
     veafSpawn.logTrace(string.format("_spawnedFARP=%s", veaf.p(_spawnedFARP)))
+
     if _spawnedFARP then
         veafSpawn.logDebug(string.format("Spawned the FARP static %s", veaf.p(name)))
 
         -- populate the FARP
-        veafGrass.buildFarpUnits(_farpStatic)
+        veafGrass.buildFarpUnits(_farpStatic, nil, name)
     end
+
+    return name
 end
 
 --- Spawn a specific group at a specific spot

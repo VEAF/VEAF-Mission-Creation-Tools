@@ -51,7 +51,7 @@ veafCombatMission = {}
 veafCombatMission.Id = "COMBAT MISSION - "
 
 --- Version.
-veafCombatMission.Version = "1.9.0"
+veafCombatMission.Version = "1.10.0"
 
 -- trace level, specific to this module
 veafCombatMission.Debug = false
@@ -1404,7 +1404,11 @@ function veafCombatMission.dumpMissionsList(export_path)
     end
     table.sort(sortedMissions)
     
-    veaf.exportAsJson(sortedMissions, "combatMissions", jsonify, "CombatMissionsList.json", export_path)
+    local _filename = "CombatMissionsList.json"
+    if veaf.config.MISSION_NAME then
+        _filename = "CombatMissionsList_" .. veaf.config.MISSION_NAME .. ".json"
+    end
+    veaf.exportAsJson(sortedMissions, "combatMissions", jsonify, _filename, export_path)
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -1455,7 +1459,7 @@ end
 function veafCombatMission.initialize()
     veafCombatMission.logInfo("Initializing module")
     veafCombatMission.buildRadioMenu()
-    veafCombatMission.dumpMissionsList()
+    veafCombatMission.dumpMissionsList(veaf.config.MISSION_EXPORT_PATH)
 end
 
 veafCombatMission.logInfo(string.format("Loading version %s", veafCombatMission.Version))

@@ -27,7 +27,7 @@ veafShortcuts = {}
 veafShortcuts.Id = "SHORTCUTS - "
 
 --- Version.
-veafShortcuts.Version = "1.12.0"
+veafShortcuts.Version = "1.13.0"
 
 -- trace level, specific to this module
 veafShortcuts.Debug = false
@@ -809,8 +809,11 @@ function veafShortcuts.dumpAliasesList(export_path)
     table.sort(sortedAliases)
     veafShortcuts.logTrace(string.format("sortedAliases=%s", veaf.p(sortedAliases)))
 
-    
-    veaf.exportAsJson(sortedAliases, "aliases", jsonify, "AliasesList.json", export_path)
+    local _filename = "AliasesList.json"
+    if veaf.config.MISSION_NAME then
+        _filename = "AliasesList_" .. veaf.config.MISSION_NAME .. ".json"
+    end
+    veaf.exportAsJson(sortedAliases, "aliases", jsonify, _filename, export_path or veaf.config.MISSION_EXPORT_PATH)
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------

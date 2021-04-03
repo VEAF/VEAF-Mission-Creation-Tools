@@ -82,9 +82,9 @@
       "time": 61200
     },
     {
-      "version": "2030-real",
-      "realweather": true,
-      "time": 73800
+      "version": "2230-clear",
+      "weather": "KQND 150856Z AUTO VRB04G11KT 9999 SCT100 SCT150 39/05 A2989 RMK AO2 SLP103 WND DATA ESTMD T03900045 50007",
+      "time": 81000
     }
   ]
 }

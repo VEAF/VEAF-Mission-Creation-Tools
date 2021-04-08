@@ -28,7 +28,7 @@ veafSanctuary = {}
 veafSanctuary.Id = "SANCTUARY - "
 
 --- Version.
-veafSanctuary.Version = "1.0.0"
+veafSanctuary.Version = "1.1.0"
 
 -- trace level, specific to this module
 veafSanctuary.Debug = false
@@ -44,7 +44,7 @@ veafSanctuary.DelayBetweenChecks = 15
 veafSanctuary.DEFAULT_DELAY_WARNING = 0
 
 -- default message when entering the zone
-veafSanctuary.DEFAULT_MESSAGE_WARNING = "Warning, %s : you've entered a sanctuary zone and will be shot if you don't leave IMMEDIATELY"
+veafSanctuary.DEFAULT_MESSAGE_WARNING = "Warning, %s : you've entered a sanctuary zone and will be shot in %d seconds if you don't leave IMMEDIATELY"
 
 -- time to display the messages
 veafSanctuary.MESSAGE_TIME = 20
@@ -374,7 +374,7 @@ function VeafSanctuaryZone:handleUnit(unit, data)
         elseif self:getDelayWarning() > -1 and timeInZone >= self:getDelayWarning() then
             -- simple warning
             veafSanctuary.logDebug(string.format("Issuing a warning to unit %s", veaf.p(playername)))
-            trigger.action.outTextForGroup(groupId, string.format(self:getMessageWarning(), playername), veafSanctuary.MESSAGE_TIME)
+            trigger.action.outTextForGroup(groupId, string.format(self:getMessageWarning(), playername, self:getDelayInstant() - timeInZone), veafSanctuary.MESSAGE_TIME)
         end
     elseif data.firstInZone >= 0 then
         local playername = unit:getPlayerName()

@@ -27,7 +27,7 @@ veafShortcuts = {}
 veafShortcuts.Id = "SHORTCUTS - "
 
 --- Version.
-veafShortcuts.Version = "1.13.0"
+veafShortcuts.Version = "1.14.0"
 
 -- trace level, specific to this module
 veafShortcuts.Debug = false
@@ -556,7 +556,41 @@ function veafShortcuts.buildDefaultList()
             :setVeafCommand("_spawn group, name patriot, country USA, skynet true")
             :setBypassSecurity(true)
     )
-
+    veafShortcuts.AddAlias(
+        VeafAlias:new()
+            :setName("-burke")
+            :setDescription("USS Arleigh Burke IIa destroyer (US by default)")
+            :setVeafCommand("_spawn unit, name USS_Arleigh_Burke_IIa, country USA, skynet true")
+            :setBypassSecurity(true)
+    )  
+    veafShortcuts.AddAlias(
+        VeafAlias:new()
+            :setName("-perry")
+            :setDescription("O.H. Perry destroyer (US by default)")
+            :setVeafCommand("_spawn unit, name PERRY, country USA, skynet true")
+            :setBypassSecurity(true)
+    )
+    veafShortcuts.AddAlias(
+        VeafAlias:new()
+            :setName("-ticonderoga")
+            :setDescription("Ticonderoga frigate (US by default)")
+            :setVeafCommand("_spawn unit, name TICONDEROG, country USA, skynet true")
+            :setBypassSecurity(true)
+    )
+    veafShortcuts.AddAlias(
+        VeafAlias:new()
+            :setName("-rezky")
+            :setDescription("FF 1135M Rezky frigate (RU by default)")
+            :setVeafCommand("_spawn unit, name REZKY, country RUSSIA, skynet true")
+            :setBypassSecurity(true)
+    )
+    veafShortcuts.AddAlias(
+        VeafAlias:new()
+            :setName("-pyotr")
+            :setDescription("CGN 1144.2 Pyotr Velikiy (RU by default)")
+            :setVeafCommand("_spawn unit, name PIOTR, country RUSSIA, skynet true")
+            :setBypassSecurity(true)
+    )
 
     -- shortcuts to commands
     veafShortcuts.AddAlias(

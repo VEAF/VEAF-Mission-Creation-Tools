@@ -670,6 +670,15 @@ function veaf.getLandHeight(vec3)
     return height
 end
 
+function veaf.invertHeading(heading)
+    veaf.mainLogTrace(string.format("invertHeading(%s)", veaf.p(heading)))
+    local result = heading - 180
+    if result <= 0 then
+        result = result + 360
+    end
+    return result
+end
+
 -- get a LL position based on a string 
 -- can be UTM (U38TMP334456 or u37TMP4351)
 -- can be LL with either : or - as a separator, and either DMS, DM decimal, or D decimal (N42:23:45E044-12.5 or N42.3345E044-12.5)

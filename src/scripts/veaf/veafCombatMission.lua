@@ -767,7 +767,7 @@ function VeafCombatMission:getRemainingEnemies(whatsInAKill)
         veafCombatMission.logTrace(string.format("processing group [%s]",group:getName()))
         local groupLiveUnits = 0
         local groupDamagedUnits = 0
-        if group:getUnits() then
+        if group and group:getUnits() then
             for _, unit in pairs(group:getUnits()) do
                 veafCombatMission.logTrace(string.format("processing unit [%s]",unit:getName()))
                 veafCombatMission.logTrace(string.format("veaf.getUnitLifeRelative(unit) = %f",veaf.getUnitLifeRelative(unit)))

@@ -634,15 +634,11 @@ function veafSanctuary.eventHandler:onEvent(event)
         veafSanctuary.logTrace(string.format("event initiator unit  = %s", veaf.p(_unitname)))
 
         if event.id == world.event.S_EVENT_PLAYER_ENTER_UNIT 
-    if event.id == world.event.S_EVENT_PLAYER_ENTER_UNIT 
-        if event.id == world.event.S_EVENT_PLAYER_ENTER_UNIT 
         or event.id == world.event.S_EVENT_BIRTH and _unitname and veafSanctuary.humanUnits[_unitname]
         then
             -- register the human unit in the follow-up list when the human gets in the unit
             veafSanctuary.logTrace(string.format("registering human unit to follow: %s", veaf.p(_unitname)))
             veafSanctuary.humanUnitsToFollow[_unitname] = { firstInZone = -1}
-        elseif event.id == world.event.S_EVENT_PLAYER_LEAVE_UNIT 
-    elseif event.id == world.event.S_EVENT_PLAYER_LEAVE_UNIT 
         elseif event.id == world.event.S_EVENT_PLAYER_LEAVE_UNIT 
         or     event.id == world.event.S_EVENT_DEAD and _unitname and veafSanctuary.humanUnits[_unitname]
         then

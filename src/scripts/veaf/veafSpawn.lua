@@ -66,7 +66,7 @@ veafSpawn = {}
 veafSpawn.Id = "SPAWN - "
 
 --- Version.
-veafSpawn.Version = "1.19.1"
+veafSpawn.Version = "1.20.0"
 
 -- trace level, specific to this module
 veafSpawn.Debug = false
@@ -1557,6 +1557,40 @@ function veafSpawn.spawnIlluminationFlare(spawnSpot, radius, shells, height)
         spawnSpot.y = veaf.getLandHeight(spawnSpot) + height
         veafSpawn.logTrace(string.format("shell #%d : shellTime=%d, shellHeight=%d, power=%d", shell, shellTime, shellDelay, shellHeight))
         mist.scheduleFunction(trigger.action.illuminationBomb, {spawnSpot}, timer.getTime() + shellTime)
+    end
+end
+
+--- FLAK-related constants
+veafSpawn.NB_OF_FLAKS_AT_DENSITY_1 = 30
+veafSpawn.DEFAULT_FLAK_CLOUD_SIZE = 30
+veafSpawn.DEFAULT_FLAK_POWER = 1
+veafSpawn.DEFAULT_FLAK_REPEAT_DELAY = 0.2
+veafSpawn.DEFAULT_FLAK_FIRE_DELAY = 0.1
+
+function veafSpawn.destroyObjectWithFlak(object, power, density)
+    veafSpawn.logDebug(string.format("veafSpawn.destroyObjectWithFlak(%s, %s, %s)", veaf.p(power), veaf.p(cloudSize), veaf.p(density)))
+    veafSpawn.logTrace(string.format("object=%s", veaf.p(object)))
+    local _power = power or veafSpawn.DEFAULT_FLAK_POWER
+    local _density = density or 1
+
+    if object and object:isExist() then
+        local point = object:getPoint()
+        local positionForFlak = mist.vec.add(point, mist.vec.scalarMult(object:getVelocity(), veafSpawn.DEFAULT_FLAK_FIRE_DELAY))
+        local nbFlaks = veafSpawn.NB_OF_FLAKS_AT_DENSITY_1 * _density
+        veafSpawn.logTrace(string.format("firing %d flak shells", nbFlaks))
+        for i = 1, nbFlaks do
+            local flakPoint = {
+                x = point.x + (veafSpawn.DEFAULT_FLAK_CLOUD_SIZE * math.random(-100,100) / 100),
+                y = point.y + (veafSpawn.DEFAULT_FLAK_CLOUD_SIZE * math.random(-100,100) / 100),
+                z = point.z + (veafSpawn.DEFAULT_FLAK_CLOUD_SIZE * math.random(-100,100) / 100)
+            }
+            --veafSpawn.logTrace(string.format("flakPoint=%s", veaf.p(flakPoint)))
+            trigger.action.explosion(flakPoint, _power)
+        end
+
+        -- reschedule to check if the object is destroyed
+        veafSpawn.logTrace(string.format("reschedule to check if the object is destroyed"))
+        mist.scheduleFunction(veafSpawn.destroyObjectWithFlak, {object, power, cloudSize, density}, timer.getTime() + veafSpawn.DEFAULT_FLAK_REPEAT_DELAY)
     end
 end
 

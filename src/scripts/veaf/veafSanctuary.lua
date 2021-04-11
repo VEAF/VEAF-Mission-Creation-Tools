@@ -28,7 +28,7 @@ veafSanctuary = {}
 veafSanctuary.Id = "SANCTUARY - "
 
 --- Version.
-veafSanctuary.Version = "1.2.0"
+veafSanctuary.Version = "1.3.0"
 
 -- trace level, specific to this module
 veafSanctuary.Debug = false
@@ -194,11 +194,7 @@ function VeafSanctuaryZone:getCoalition()
 end
 
 function VeafSanctuaryZone:setProtectFromMissiles()
-    ----------------------------------------------------------
-    -- AT THE MOMENT, IT DOES NOT WORK AGAINS HUMAN WEAPONS --
-    --         THEREFORE THIS FEATURE IS DISABLED           --
-    ----------------------------------------------------------
-    self.protectFromMissiles = false --true
+    self.protectFromMissiles = true
     return self
 end
 
@@ -463,10 +459,10 @@ function VeafSanctuaryZone:handleWeapon(weapon)
                 local targetUnit = Unit.getByName(target:getName())
                 if targetUnit and targetUnit:getCoalition() == self:getCoalition() then
                     local targetPlayername = targetUnit:getPlayerName()
-                    -- TODO debug - REMOVE LATER
-                    -- if not targetPlayername or targetPlayername == "" then
-                    --     targetPlayername = "AI-target" 
-                    -- end
+                    -- if the target is AI, then protect it anyway (protect assets, prevent bases bombing)
+                    if not targetPlayername or targetPlayername == "" then
+                        targetPlayername = "AI-target" 
+                    end
                     -- TODO debug - REMOVE LATER
                    veafSanctuary.logTrace(string.format("targetPlayername=%s", veaf.p(targetPlayername)))
                     if targetPlayername and targetPlayername ~= "" then
@@ -475,8 +471,8 @@ function VeafSanctuaryZone:handleWeapon(weapon)
                         veafSanctuary.logTrace(string.format("position=%s", veaf.p(position)))   
                         local inZone = self:isPositionInZone(position)
                         if inZone then
-                            -- destroy the weapon
-                            weapon:destroy()
+                            -- destroy the weapon with flak  - :destroy() does not work for human players and weapons in MP
+                            veafSpawn.destroyObjectWithFlak(weapon, 1)
                             -- warn the target
                             veafSanctuary.logDebug(string.format("Issuing a warning to unit %s", veaf.p(targetPlayername)))
                             trigger.action.outTextForGroup(targetUnit:getGroup():getID(), string.format(self:getMessageShotTarget(), targetPlayername, launcherPlayername), veafSanctuary.MESSAGE_TIME)                
@@ -493,7 +489,8 @@ function VeafSanctuaryZone:handleWeapon(weapon)
                                 local message = string.format("Instantly killing unit %s, too many offenses agains players in zone %s", launcherPlayername, self:getName())
                                 trigger.action.outTextForCoalition(self:getCoalition(), message, veafSanctuary.MESSAGE_TIME)
                                 veafSanctuary.logInfo(message)
-                                launcherUnit:destroy()
+                                -- flak the plane - :destroy() does not work for human players and weapons in MP
+                                veafSpawn.destroyObjectWithFlak(launcherUnit, 2, 2)
                             else
                                 -- warn the launcher
                                 veafSanctuary.logDebug(string.format("Issuing a warning to unit %s", veaf.p(launcherPlayername)))
@@ -546,7 +543,8 @@ function VeafSanctuaryZone:handleUnit(unit, data)
             local message = string.format("Instantly killing unit %s, in zone %s since %d seconds", playername, self:getName(), timeInZone)
             trigger.action.outTextForCoalition(self:getCoalition(), message, veafSanctuary.MESSAGE_TIME)
             veafSanctuary.logInfo(message)
-            unit:destroy()
+            -- flak the plane - :destroy() does not work for human players and weapons in MP
+            veafSpawn.destroyObjectWithFlak(unit, 2, 2)
         elseif self:getDelaySpawn() > -1 and timeInZone >= self:getDelaySpawn() then
             -- spawn defense systems
             local message = string.format("Spawning defense systems to fend off unit %s, in zone %s since %d seconds", playername, self:getName(), timeInZone)
@@ -558,7 +556,7 @@ function VeafSanctuaryZone:handleUnit(unit, data)
             -- simple warning
             veafSanctuary.logDebug(string.format("Issuing a warning to unit %s", veaf.p(playername)))
             local delay = self:getDelayInstant()
-            if delay < 0 or self:getDelaySpawn() < delay then
+            if delay < 0 or (self:getDelaySpawn() > 0 and self:getDelaySpawn() < delay) then
                 delay = self:getDelaySpawn()
             end
             trigger.action.outTextForGroup(groupId, string.format(self:getMessageWarning(), playername, delay - timeInZone), veafSanctuary.MESSAGE_TIME)
@@ -623,7 +621,6 @@ function veafSanctuary.eventHandler:onEvent(event)
         for _, zone in pairs(veafSanctuary.zonesList) do
             veafSanctuary.logTrace(string.format("zone:getName()=%s", veaf.p(zone:getName())))
             mist.scheduleFunction(VeafSanctuaryZone.handleWeapon, {zone, event.weapon}, timer.getTime() + veafSanctuary.DESTROY_WEAPONS_AFTER)
-            --zone:handleWeapon(event.weapon)
         end
     else -- process human players events
         if not event.initiator then

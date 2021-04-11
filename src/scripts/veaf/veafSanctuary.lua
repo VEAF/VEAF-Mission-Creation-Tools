@@ -67,6 +67,9 @@ veafSanctuary.DELETE_DEFENSES_AFTER = 75
 -- time before handling weapons
 veafSanctuary.DESTROY_WEAPONS_AFTER = 2
 
+-- clean slate
+veafSanctuary.FORGIVE_SHOOTER_AFTER = 10 * 60 -- 10 minutes
+
 -- default message to target when weapon launch is detected
 veafSanctuary.DEFAULT_MESSAGE_SHOT_TARGET = "Warning, %s : you've been attacked by %s ; we destroyed the missile in the air !"
 
@@ -437,6 +440,11 @@ function VeafSanctuaryZone:isPositionInZone(position)
     return inZone
 end
 
+function VeafSanctuaryZone:forgive(playerName)
+    veafSanctuary.logTrace(string.format("VeafSanctuaryZone[%s]:forgive(%s)", veaf.p(self.name), veaf.p(playerName)))
+    self.offensesByOffender[playerName] = 0
+end
+
 function VeafSanctuaryZone:handleWeapon(weapon)
     veafSanctuary.logTrace(string.format("VeafSanctuaryZone[%s]:handleWeapon()", veaf.p(self.name)))
     veafSanctuary.logTrace(string.format("weapon=%s", veaf.p(weapon)))
@@ -491,6 +499,8 @@ function VeafSanctuaryZone:handleWeapon(weapon)
                                 veafSanctuary.logInfo(message)
                                 -- flak the plane - :destroy() does not work for human players and weapons in MP
                                 veafSpawn.destroyObjectWithFlak(launcherUnit, 2, 2)
+                                -- forgive the player in 10 minutes (let him get out of trouble and don't kill him straight if he comes back)
+                                mist.scheduleFunction(VeafSanctuaryZone.forgive, {self, launcherPlayername}, timer.getTime() + veafSanctuary.FORGIVE_SHOOTER_AFTER)  
                             else
                                 -- warn the launcher
                                 veafSanctuary.logDebug(string.format("Issuing a warning to unit %s", veaf.p(launcherPlayername)))

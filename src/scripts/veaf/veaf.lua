@@ -1928,26 +1928,30 @@ function veaf.writeLineToTextFile(line, filename, filepath)
     if not filepath and l_veafSanitized_os then
         filepath = l_veafSanitized_os.getenv("VEAF_EXPORT_DIR")
         if filepath then filepath = filepath .. "\\" end
+        veaf.mainLogTrace(string.format("filepath=%s", veaf.p(filepath)))
     end
     if not filepath and l_veafSanitized_os then
         filepath = l_veafSanitized_os.getenv("TEMP")
         if filepath then filepath = filepath .. "\\" end
+        veaf.mainLogTrace(string.format("filepath=%s", veaf.p(filepath)))
     end
     if not filepath and l_veafSanitized_lfs then
         filepath = l_veafSanitized_lfs.writedir()
+        veaf.mainLogTrace(string.format("filepath=%s", veaf.p(filepath)))
     end
 
     if not filepath then
         return
     end
 
-    local filename = filename or "default.log"
+    local filename = filepath .. (filename or "default.log")
 
     local date = ""
     if l_veafSanitized_os then
         date = l_veafSanitized_os.date('%Y-%m-%d %H:%M:%S.000')
     end
     
+    veaf.mainLogTrace(string.format("filename=%s", veaf.p(filename)))
     local file = l_veafSanitized_io.open(filename, "a")
     if file then
         veaf.mainLogTrace(string.format("file:write(%s)", veaf.p(line)))
@@ -1974,21 +1978,25 @@ function veaf.exportAsJson(data, name, jsonify, filename, export_path)
     if not export_path and l_veafSanitized_os then
         export_path = l_veafSanitized_os.getenv("VEAF_EXPORT_DIR")
         if export_path then export_path = export_path .. "\\" end
+        veaf.mainLogTrace(string.format("export_path=%s", veaf.p(export_path)))
     end
     if not export_path and l_veafSanitized_os then
         export_path = l_veafSanitized_os.getenv("TEMP")
         if export_path then export_path = export_path .. "\\" end
+        veaf.mainLogTrace(string.format("export_path=%s", veaf.p(export_path)))
     end
     if not export_path and l_veafSanitized_lfs then
         export_path = l_veafSanitized_lfs.writedir()
+        veaf.mainLogTrace(string.format("export_path=%s", veaf.p(export_path)))
     end
-
+    
     if not export_path then
         return
     end
-
+    
     local filename = filename or name .. ".json"
-
+    veaf.mainLogTrace(string.format("filename=%s", veaf.p(filename)))
+    
     veaf.mainLogInfo("Dumping ".. name .." as json to "..filename .. " in "..export_path)
 
     local header =    '{\n'
@@ -2022,6 +2030,10 @@ function veaf.getUnitLifeRelative(unit)
     else
         return 0
     end
+end
+
+function veaf.setServerName(value)
+    veaf.config.SERVER_NAME = value
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------

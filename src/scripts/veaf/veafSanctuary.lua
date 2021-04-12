@@ -31,11 +31,11 @@ veafSanctuary.Id = "SANCTUARY - "
 veafSanctuary.Version = "1.4.0"
 
 -- trace level, specific to this module
-veafSanctuary.Debug = false
-veafSanctuary.Trace = false
+veafSanctuary.Debug = true
+veafSanctuary.Trace = true
 veafSanctuary.RecordAction = true
-veafSanctuary.RecordTraceTrespassing = false
-veafSanctuary.RecordTraceShooting = false
+veafSanctuary.RecordTraceTrespassing = true
+veafSanctuary.RecordTraceShooting = true
 
 -- delay before the sanctuary zones start reporting
 veafSanctuary.DelayForStartup = 0
@@ -118,11 +118,18 @@ end
 
 function veafSanctuary._recordAction(message)
     if message and veafSanctuary.RecordAction then
-        local _filename = "sanctuary_zones.log"
+        local _filename = "sanctuary_zones"
         if veaf.config.MISSION_NAME then
-            _filename = "sanctuary_zones_" .. veaf.config.MISSION_NAME .. ".log"
+            veafSanctuary.logTrace(string.format("veaf.config.MISSION_NAME=%s", veaf.p(veaf.config.MISSION_NAME)))
+            _filename = _filename .. "-" .. veaf.config.MISSION_NAME
         end
-        
+        if veaf.config.SERVER_NAME then
+            veafSanctuary.logTrace(string.format("veaf.config.SERVER_NAME=%s", veaf.p(veaf.config.SERVER_NAME)))
+            _filename = _filename .. "-" .. veaf.config.SERVER_NAME
+        end
+        _filename = _filename  .. ".log"
+        veafSanctuary.logTrace(string.format("_filename=%s", veaf.p(_filename)))
+
         veaf.writeLineToTextFile(message, _filename)
     end
 end

@@ -608,9 +608,39 @@ function veaf.serialize(name, value, level)
     local t_str = serialize_to_t(name, value, level)
   
     return table.concat(t_str)
-  end
-  
+end
+
+function veaf.ifnn(o, field)
+    return veaf.ifnns(o, {field})
+end
+
+function veaf.ifnns(o, fields)
+    local result = nil
+    if o then
+        result = {}
+        for _, field in pairs(fields) do
+            if o[field] then
+                if type(o[field]) == "function" then
+                    result[field] = o[field](o)
+                else
+                    result[field] = o[field]
+                end
+            end
+        end
+    end
+    return result
+end
+
 function veaf.p(o, level)
+    if o and type(o) == "table" and (o.x and o.z and o.y)  then
+        return string.format("{x=%s, z=%s, y=%s}", veaf.p(o.x), veaf.p(o.z), veaf.p(o.y))
+    elseif o and type(o) == "table" and (o.x and o.y)  then
+        return string.format("{x=%s, y=%s}", veaf.p(o.x), veaf.p(o.y))
+    end
+    return veaf._p(o, level)
+end
+
+function veaf._p(o, level)
     local MAX_LEVEL = 20
     if level == nil then level = 0 end
     if level > MAX_LEVEL then 
@@ -1883,6 +1913,49 @@ function veaf.getRandomizableNumeric(val)
     return veaf.getRandomizableNumeric_random(val)
 end
 
+function veaf.writeLineToTextFile(line, filename, filepath)
+    veaf.mainLogTrace(string.format("writeLineToTextFile(%s, %s)", veaf.p(line), veaf.p(filename)))
+    local l_veafSanitized_lfs = veafSanitized_lfs
+    if not l_veafSanitized_lfs then l_veafSanitized_lfs = lfs end
+
+    local l_veafSanitized_io = veafSanitized_io
+    if not l_veafSanitized_io then l_veafSanitized_io = io end
+
+    local l_veafSanitized_os = veafSanitized_os
+    if not l_veafSanitized_os then l_veafSanitized_os = os end
+
+    local filepath = filepath
+    if not filepath and l_veafSanitized_os then
+        filepath = l_veafSanitized_os.getenv("VEAF_EXPORT_DIR")
+        if filepath then filepath = filepath .. "\\" end
+    end
+    if not filepath and l_veafSanitized_os then
+        filepath = l_veafSanitized_os.getenv("TEMP")
+        if filepath then filepath = filepath .. "\\" end
+    end
+    if not filepath and l_veafSanitized_lfs then
+        filepath = l_veafSanitized_lfs.writedir()
+    end
+
+    if not filepath then
+        return
+    end
+
+    local filename = filename or "default.log"
+
+    local date = ""
+    if l_veafSanitized_os then
+        date = l_veafSanitized_os.date('%Y-%m-%d %H:%M:%S.000')
+    end
+    
+    local file = l_veafSanitized_io.open(filename, "a")
+    if file then
+        veaf.mainLogTrace(string.format("file:write(%s)", veaf.p(line)))
+        file:write(string.format("[%s] %s\r\n", date, line))
+        file:close()
+    end
+end
+
 function veaf.exportAsJson(data, name, jsonify, filename, export_path)
     local l_veafSanitized_lfs = veafSanitized_lfs
     if not l_veafSanitized_lfs then l_veafSanitized_lfs = lfs end
@@ -1916,7 +1989,7 @@ function veaf.exportAsJson(data, name, jsonify, filename, export_path)
 
     local filename = filename or name .. ".json"
 
-    veafCombatMission.logInfo("Dumping ".. name .." as json to "..filename .. " in "..export_path)
+    veaf.mainLogInfo("Dumping ".. name .." as json to "..filename .. " in "..export_path)
 
     local header =    '{\n'
     header = header .. '  "' .. name .. '": [\n'   

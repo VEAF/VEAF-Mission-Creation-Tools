@@ -28,11 +28,14 @@ veafSanctuary = {}
 veafSanctuary.Id = "SANCTUARY - "
 
 --- Version.
-veafSanctuary.Version = "1.3.0"
+veafSanctuary.Version = "1.4.0"
 
 -- trace level, specific to this module
 veafSanctuary.Debug = false
 veafSanctuary.Trace = false
+veafSanctuary.RecordAction = true
+veafSanctuary.RecordTraceTrespassing = false
+veafSanctuary.RecordTraceShooting = false
 
 -- delay before the sanctuary zones start reporting
 veafSanctuary.DelayForStartup = 0
@@ -110,6 +113,41 @@ end
 function veafSanctuary.logTrace(message)
     if message and veafSanctuary.Trace then 
         veaf.logTrace(veafSanctuary.Id .. message)
+    end
+end
+
+function veafSanctuary._recordAction(message)
+    if message and veafSanctuary.RecordAction then
+        local _filename = "sanctuary_zones.log"
+        if veaf.config.MISSION_NAME then
+            _filename = "sanctuary_zones_" .. veaf.config.MISSION_NAME .. ".log"
+        end
+        
+        veaf.writeLineToTextFile(message, _filename)
+    end
+end
+
+function veafSanctuary.recordAction(message)
+    if message then 
+        local _message = "ACTION  - " .. message
+        veafSanctuary.logInfo(_message)
+        veafSanctuary._recordAction(veafSanctuary._recordAction(" INFO    SCRIPTING: VEAF - I - " .. _message))
+    end
+end
+
+function veafSanctuary.recordTraceShooting(message)
+    if message and veafSanctuary.RecordTraceShooting then
+        local _message = "SHOOTING - " .. message
+        veafSanctuary.logTrace(_message)
+        veafSanctuary._recordAction(" INFO    SCRIPTING: VEAF - T - " .. _message)
+    end
+end
+
+function veafSanctuary.recordTraceTrespassing(message)
+    if message and veafSanctuary.RecordTraceTrespassing then
+        local _message = "TRESPASS - " .. message
+        veafSanctuary.logTrace(_message)
+        veafSanctuary._recordAction(" INFO    SCRIPTING: VEAF - T - " .. _message)
     end
 end
 
@@ -197,6 +235,7 @@ function VeafSanctuaryZone:getCoalition()
 end
 
 function VeafSanctuaryZone:setProtectFromMissiles()
+    veafSanctuary.logTrace(string.format("VeafSanctuaryZone[%s]:setProtectFromMissiles()", veaf.p(self.name)))
     self.protectFromMissiles = true
     return self
 end
@@ -233,9 +272,36 @@ function VeafSanctuaryZone:setPolygon(value)
     return self
 end
 
-function VeafSanctuaryZone:setPolygonFromUnits(unitNames)
+function VeafSanctuaryZone:setPolygonFromUnitsInSequence(unitNamePrefix, markPositions)
+    veafSanctuary.logTrace(string.format("VeafSanctuaryZone[%s]:setPolygonFromUnitsInSequence(%s, %s)", veaf.p(self.name), veaf.p(unitNamePrefix), veaf.p(markPositions)))
+
+    local unitNames = {}
+    local sequence = 0
+    while true do
+        sequence = sequence + 1
+        local unitName = string.format("%s #%03d", unitNamePrefix, sequence)
+        --veafSanctuary.logTrace(string.format("unitName=%s", veaf.p(unitName)))
+        local unit = Unit.getByName(unitName)
+        if not unit then
+            local group = Group.getByName(unitName)
+            if group then
+                unit = group:getUnit(1)
+            end
+        end
+        --veafSanctuary.logTrace(string.format("unit=%s", veaf.p(veaf.ifnn(unit, "getID"))))
+        if not unit then
+            return self:setPolygonFromUnits(unitNames, markPositions)
+        else
+            table.insert(unitNames, unitName)
+        end
+    end
+end
+
+function VeafSanctuaryZone:setPolygonFromUnits(unitNames, markPositions)
     veafSanctuary.logTrace(string.format("VeafSanctuaryZone[%s]:setPolygonFromUnits()", veaf.p(self.name)))
     local polygon = {}
+    local positionMarkerBase = math.random(5000, 10000)
+    local i = 1
     for _, unitName in pairs(unitNames) do
         veafSanctuary.logTrace(string.format("unitName = %s", veaf.p(unitName)))
         local unit = Unit.getByName(unitName)
@@ -248,6 +314,10 @@ function VeafSanctuaryZone:setPolygonFromUnits(unitNames)
         if unit then
             -- get position, place tracing marker and remove the unit
             local position = unit:getPosition().p
+            if markPositions then
+                i = i + 1
+                trigger.action.markToAll(positionMarkerBase + i, string.format("%s - %d", self:getName(), i), position, true) 
+            end
             unit:destroy()
             veafSanctuary.logTrace(string.format("position = %s", veaf.p(position)))
             table.insert(polygon, mist.utils.deepCopy(position))
@@ -446,13 +516,13 @@ function VeafSanctuaryZone:forgive(playerName)
 end
 
 function VeafSanctuaryZone:handleWeapon(weapon)
-    veafSanctuary.logTrace(string.format("VeafSanctuaryZone[%s]:handleWeapon()", veaf.p(self.name)))
-    veafSanctuary.logTrace(string.format("weapon=%s", veaf.p(weapon)))
+    veafSanctuary.recordTraceShooting(string.format("VeafSanctuaryZone[%s]:handleWeapon()", veaf.p(self.name)))
+    veafSanctuary.recordTraceShooting(string.format("weapon=%s", veaf.p(veaf.ifnns(weapon, {"getID", "getName", "getTypeName"}))))
 
     if self:isProtectFromMissiles() then
         -- check if the missile was shot by a human from the other coalition
         local launcherUnit = weapon:getLauncher()
-        veafSanctuary.logTrace(string.format("launcherUnit=%s", veaf.p(launcherUnit)))
+        veafSanctuary.recordTraceShooting(string.format("launcherUnit=%s", veaf.p(veaf.ifnns(launcherUnit, {"getID", "getName", "getTypeName", "getPlayerName", "getCoalition"}))))
         if launcherUnit and launcherUnit:getCoalition() ~= self:getCoalition() then
             local launcherPlayername = launcherUnit:getPlayerName()
             -- TODO debug - REMOVE LATER
@@ -460,11 +530,11 @@ function VeafSanctuaryZone:handleWeapon(weapon)
             --      launcherPlayername = "AI-launcher" 
             -- end
             -- TODO debug - REMOVE LATER
-            veafSanctuary.logTrace(string.format("launcherPlayername=%s", veaf.p(launcherPlayername)))
             if launcherPlayername and launcherPlayername ~= "" then
                 -- check if the target is a human from our coalition
                 local target = weapon:getTarget()
                 local targetUnit = Unit.getByName(target:getName())
+                veafSanctuary.recordTraceShooting(string.format("targetUnit=%s", veaf.p(veaf.ifnns(targetUnit, {"getID", "getName", "getTypeName", "getPlayerName", "getCoalition"}))))
                 if targetUnit and targetUnit:getCoalition() == self:getCoalition() then
                     local targetPlayername = targetUnit:getPlayerName()
                     -- if the target is AI, then protect it anyway (protect assets, prevent bases bombing)
@@ -472,18 +542,19 @@ function VeafSanctuaryZone:handleWeapon(weapon)
                         targetPlayername = "AI-target" 
                     end
                     -- TODO debug - REMOVE LATER
-                   veafSanctuary.logTrace(string.format("targetPlayername=%s", veaf.p(targetPlayername)))
+                   veafSanctuary.recordTraceShooting(string.format("targetPlayername=%s", veaf.p(targetPlayername)))
                     if targetPlayername and targetPlayername ~= "" then
                         -- check if the target is in the zone
                         local position = targetUnit:getPosition().p
-                        veafSanctuary.logTrace(string.format("position=%s", veaf.p(position)))   
+                        veafSanctuary.recordTraceShooting(string.format("position=%s", veaf.p(position)))   
                         local inZone = self:isPositionInZone(position)
                         if inZone then
                             -- destroy the weapon with flak  - :destroy() does not work for human players and weapons in MP
                             veafSpawn.destroyObjectWithFlak(weapon, 1)
                             -- warn the target
-                            veafSanctuary.logDebug(string.format("Issuing a warning to unit %s", veaf.p(targetPlayername)))
-                            trigger.action.outTextForGroup(targetUnit:getGroup():getID(), string.format(self:getMessageShotTarget(), targetPlayername, launcherPlayername), veafSanctuary.MESSAGE_TIME)                
+                            local message = string.format(self:getMessageShotTarget(), targetPlayername, launcherPlayername)
+                            veafSanctuary.recordAction(string.format("Issuing a warning to target : %s", message))
+                            trigger.action.outTextForGroup(targetUnit:getGroup():getID(), message, veafSanctuary.MESSAGE_TIME)                
                             -- count the offence
                             local count = self.offensesByOffender[launcherPlayername]
                             if not self.offensesByOffender[launcherPlayername] then 
@@ -491,20 +562,21 @@ function VeafSanctuaryZone:handleWeapon(weapon)
                             else
                                 self.offensesByOffender[launcherPlayername] = self.offensesByOffender[launcherPlayername] + 1
                             end
-                            veafSanctuary.logTrace(string.format("self.offensesByOffender[launcherPlayername]=%s", veaf.p(self.offensesByOffender[launcherPlayername])))
+                            veafSanctuary.recordTraceShooting(string.format("self.offensesByOffender[launcherPlayername]=%s", veaf.p(self.offensesByOffender[launcherPlayername])))
                             if self.offensesByOffender[launcherPlayername] >= self:getOffensesBeforeDestruction() then
                                 -- destroy the offender
                                 local message = string.format("Instantly killing unit %s, too many offenses agains players in zone %s", launcherPlayername, self:getName())
                                 trigger.action.outTextForCoalition(self:getCoalition(), message, veafSanctuary.MESSAGE_TIME)
-                                veafSanctuary.logInfo(message)
+                                veafSanctuary.recordAction(message)
                                 -- flak the plane - :destroy() does not work for human players and weapons in MP
                                 veafSpawn.destroyObjectWithFlak(launcherUnit, 2, 2)
                                 -- forgive the player in 10 minutes (let him get out of trouble and don't kill him straight if he comes back)
                                 mist.scheduleFunction(VeafSanctuaryZone.forgive, {self, launcherPlayername}, timer.getTime() + veafSanctuary.FORGIVE_SHOOTER_AFTER)  
                             else
                                 -- warn the launcher
-                                veafSanctuary.logDebug(string.format("Issuing a warning to unit %s", veaf.p(launcherPlayername)))
-                                trigger.action.outTextForGroup(launcherUnit:getGroup():getID(), string.format(self:getMessageShotLauncher(), launcherPlayername, targetPlayername), veafSanctuary.MESSAGE_TIME)                
+                                local message = string.format(self:getMessageShotLauncher(), launcherPlayername, targetPlayername)
+                                veafSanctuary.recordAction(string.format("Issuing a warning to shooter : %s", message))
+                                trigger.action.outTextForGroup(launcherUnit:getGroup():getID(), message, veafSanctuary.MESSAGE_TIME)                
                             end
                         end
                     end
@@ -515,7 +587,7 @@ function VeafSanctuaryZone:handleWeapon(weapon)
 end
 
 function VeafSanctuaryZone:handleUnit(unit, data)
-    veafSanctuary.logTrace(string.format("VeafSanctuaryZone[%s]:handleUnit()", veaf.p(self.name)))
+    veafSanctuary.recordTraceTrespassing(string.format("VeafSanctuaryZone[%s]:handleUnit()", veaf.p(self.name)))
 
     if not(unit) then
         return 
@@ -523,13 +595,14 @@ function VeafSanctuaryZone:handleUnit(unit, data)
 
     local coalition = unit:getCoalition()
     if coalition == self:getCoalition() then
-        veafSanctuary.logTrace(string.format("We're not concerned by this unit"))
+        veafSanctuary.recordTraceTrespassing(string.format("We're not concerned by this unit"))
         return -- we're not concerned by this unit
     end
 
     local position = unit:getPosition().p
-    veafSanctuary.logTrace(string.format("position=%s", veaf.p(position)))   
+    veafSanctuary.recordTraceTrespassing(string.format("position=%s", veaf.p(position)))   
     local inZone = self:isPositionInZone(position)
+    veafSanctuary.recordTraceTrespassing(string.format("inZone=%s", veaf.p(inZone)))   
 
     -- let's decide what we do
     if inZone then 
@@ -542,39 +615,45 @@ function VeafSanctuaryZone:handleUnit(unit, data)
         local playername = unit:getPlayerName()
         local callsign = unit:getCallsign()
         local timeInZone = timer.getTime() - firstInZone
-        veafSanctuary.logTrace(string.format("unitname=%s, playername=%s, callsign=%s", veaf.p(unitname), veaf.p(playername), veaf.p(callsign)))
+        veafSanctuary.recordTraceTrespassing(string.format("unitname=%s, playername=%s, callsign=%s", veaf.p(unitname), veaf.p(playername), veaf.p(callsign)))
 
         local message = string.format("Unit %s is in the %s zone since %d seconds", playername, self:getName(), timeInZone)
         trigger.action.outTextForCoalition(self:getCoalition(), message, veafSanctuary.MESSAGE_TIME)
-        veafSanctuary.logInfo(message)
+        veafSanctuary.recordAction(message)
         local groupId = unit:getGroup():getID()
         if self:getDelayInstant() > -1 and timeInZone >= self:getDelayInstant() then
             -- insta-death !
             local message = string.format("Instantly killing unit %s, in zone %s since %d seconds", playername, self:getName(), timeInZone)
             trigger.action.outTextForCoalition(self:getCoalition(), message, veafSanctuary.MESSAGE_TIME)
-            veafSanctuary.logInfo(message)
+            veafSanctuary.recordAction(message)
             -- flak the plane - :destroy() does not work for human players and weapons in MP
             veafSpawn.destroyObjectWithFlak(unit, 2, 2)
         elseif self:getDelaySpawn() > -1 and timeInZone >= self:getDelaySpawn() then
             -- spawn defense systems
-            local message = string.format("Spawning defense systems to fend off unit %s, in zone %s since %d seconds", playername, self:getName(), timeInZone)
-            trigger.action.outTextForCoalition(self:getCoalition(), message, veafSanctuary.MESSAGE_TIME)
-            veafSanctuary.logInfo(message)
-            trigger.action.outTextForGroup(groupId, string.format("CRITICAL: %s - %s", playername, self:getMessageSpawn()), veafSanctuary.MESSAGE_TIME)
             self:deployDefenses(position, unit, timeInZone)
+
+            local message = string.format("Spawning defense systems to fend off unit %s, in zone %s since %d seconds", playername, self:getName(), timeInZone)
+            veafSanctuary.recordAction(string.format("Issuing a warning to protected coalition : %s", message))
+            trigger.action.outTextForCoalition(self:getCoalition(), message, veafSanctuary.MESSAGE_TIME)
+
+            local message = string.format("CRITICAL: %s - %s", playername, self:getMessageSpawn())
+            veafSanctuary.recordAction(string.format("Issuing a warning to trespasser : %s", message))
+            trigger.action.outTextForGroup(groupId, message, veafSanctuary.MESSAGE_TIME)
         elseif self:getDelayWarning() > -1 and timeInZone >= self:getDelayWarning() then
             -- simple warning
-            veafSanctuary.logDebug(string.format("Issuing a warning to unit %s", veaf.p(playername)))
             local delay = self:getDelayInstant()
             if delay < 0 or (self:getDelaySpawn() > 0 and self:getDelaySpawn() < delay) then
                 delay = self:getDelaySpawn()
             end
-            trigger.action.outTextForGroup(groupId, string.format(self:getMessageWarning(), playername, delay - timeInZone), veafSanctuary.MESSAGE_TIME)
+            local message = string.format(self:getMessageWarning(), playername, delay - timeInZone)
+            veafSanctuary.recordAction(string.format("Issuing a warning to trespasser : %s", message))
+            trigger.action.outTextForGroup(groupId, message, veafSanctuary.MESSAGE_TIME)
         end
     elseif data.firstInZone >= 0 then
         local playername = unit:getPlayerName()
         -- reset the counter
-        veafSanctuary.logDebug(string.format("%s got out of the zone", veaf.p(playername)))
+        local message = string.format("%s got out of the zone", veaf.p(playername))
+        veafSanctuary.recordAction(message)
         data.firstInZone = -1
     end
 
@@ -609,12 +688,6 @@ function veafSanctuary.eventHandler:onEvent(event)
         return 
     end
     
-    local eventId = event.id
-    if veaf.EVENTMETA[event.id] then
-        eventId = veaf.EVENTMETA[event.id].Text
-    end
-    veafSanctuary.logTrace(string.format("event %s",veaf.p(eventId)))
-
     if not(
            event.id == world.event.S_EVENT_PLAYER_ENTER_UNIT 
         or event.id == world.event.S_EVENT_PLAYER_LEAVE_UNIT
@@ -626,7 +699,7 @@ function veafSanctuary.eventHandler:onEvent(event)
     end
 
     if (event.id == world.event.S_EVENT_SHOT) then -- process shooting events
-        veafSanctuary.logTrace("S_EVENT_SHOT !")
+        veafSanctuary.recordTraceShooting("S_EVENT_SHOT !")
         -- process all zones
         for _, zone in pairs(veafSanctuary.zonesList) do
             veafSanctuary.logTrace(string.format("zone:getName()=%s", veaf.p(zone:getName())))
@@ -637,21 +710,31 @@ function veafSanctuary.eventHandler:onEvent(event)
             return
         end
 
+        local eventId = event.id
+        if veaf.EVENTMETA[event.id] then
+            eventId = veaf.EVENTMETA[event.id].Text
+        end
+        
         local _unitname = event.initiator:getName()
-        veafSanctuary.logTrace(string.format("event initiator unit  = %s", veaf.p(_unitname)))
-
+        --veafSanctuary.logTrace(string.format("event initiator unit  = %s", veaf.p(_unitname)))
         if event.id == world.event.S_EVENT_PLAYER_ENTER_UNIT 
         or event.id == world.event.S_EVENT_BIRTH and _unitname and veafSanctuary.humanUnits[_unitname]
         then
-            -- register the human unit in the follow-up list when the human gets in the unit
-            veafSanctuary.logTrace(string.format("registering human unit to follow: %s", veaf.p(_unitname)))
-            veafSanctuary.humanUnitsToFollow[_unitname] = { firstInZone = -1}
+            veafSanctuary.recordTraceTrespassing(string.format("event=%s",veaf.p(eventId)))
+            if (not veafSanctuary.humanUnitsToFollow[_unitname]) then
+                -- register the human unit in the follow-up list when the human gets in the unit
+                veafSanctuary.recordTraceTrespassing(string.format("registering human unit to follow: %s", veaf.p(_unitname)))
+                veafSanctuary.humanUnitsToFollow[_unitname] = { firstInZone = -1}
+            end
         elseif event.id == world.event.S_EVENT_PLAYER_LEAVE_UNIT 
         or     event.id == world.event.S_EVENT_DEAD and _unitname and veafSanctuary.humanUnits[_unitname]
         then
-            -- unregister the human unit from the follow-up list when the human gets in the unit
-            veafSanctuary.logTrace(string.format("deregistering human unit to follow: %s", veaf.p(_unitname)))
-            veafSanctuary.humanUnitsToFollow[_unitname] = nil
+            veafSanctuary.recordTraceTrespassing(string.format("event=%s",veaf.p(eventId)))
+            if (veafSanctuary.humanUnitsToFollow[_unitname]) then
+                -- unregister the human unit from the follow-up list when the human gets in the unit
+                veafSanctuary.recordTraceTrespassing(string.format("deregistering human unit to follow: %s", veaf.p(_unitname)))
+                veafSanctuary.humanUnitsToFollow[_unitname] = nil
+            end
         end
     end
 end
@@ -687,12 +770,12 @@ end
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 function veafSanctuary.initialize()
-    veafSanctuary.logInfo("Initializing module")
+    veafSanctuary.recordAction("Initializing module")
 
     -- prepare humans units
     veafSanctuary.humanUnits = {}
     for name, _ in pairs(mist.DBs.humansByName) do
-        veafSanctuary.logTrace(string.format("mist.DBs.humansByName[%s]=??", veaf.p(name)))
+        --veafSanctuary.logTrace(string.format("mist.DBs.humansByName[%s]=??", veaf.p(name)))
         veafSanctuary.humanUnits[name] = true
     end
 

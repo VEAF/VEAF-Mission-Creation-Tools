@@ -60,7 +60,11 @@ class Configuration {
   }
 
   get maxAgeInHours() {
-    return this._maxAgeInHours || 24;
+    if (this._maxAgeInHours == null) {
+      return 24
+    } else {
+      return this._maxAgeInHours
+    }
   }
 
   get maxAge() {

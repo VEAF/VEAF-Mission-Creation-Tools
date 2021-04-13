@@ -112,10 +112,16 @@ class DCSCheckWXConvertEnricher {
     if (!data['temperature']['celsius']) { if (this.trace) console.log("!data['temperature']['celsius']"); return null; }
     if (level >= 1 && !data['wind']) { if (this.trace) console.log("!data['wind']"); return null; }
     if (level >= 1 && !data['wind']['degrees']) { if (this.trace) console.log("!data['wind']['degrees']"); return null; }
-    if (level >= 1 && !data['wind']['speed_mps']) { if (this.trace) console.log("!data['wind']['speed_mps']"); return null; }
+    if (level >= 1 && !(data['wind']['speed_mps'] || data['wind']['speed_kts'] || data['wind']['speed_kph'] || data['wind']['speed_mph'])) { if (this.trace) console.log("!data['wind']['speed_mps']"); return null; }
     if (level >= 3 && !data['wind']['gust_kts']) { if (this.trace) console.log("!data['wind']['gust_kts']"); return null; }
     if (level >= 2 && !data['clouds']) { if (this.trace) console.log("!data['clouds']"); return null; }
-    if (level >= 2 && !data['clouds']['base_meters_agl']) { if (this.trace) console.log("!data['clouds']['base_meters_agl']"); return null; }
+    if (level >= 2 && data['clouds']) {
+      let result = false
+      data['clouds'].forEach(cloud => {
+        result = result || (cloud['base_meters_agl'] || cloud['base_feet_agl'])
+      });
+      if (!result) { if (this.trace) console.log("!data['clouds']['base_meters_agl']"); return null; }
+    }
     if (!data['conditions']) { if (this.trace) console.log("!data['conditions']"); return null; }
     if (level >= 1 && !data['visibility']) { if (this.trace) console.log("!data['visibility']"); return null; }
     if (level >= 1 && !data['visibility']['meters_float']) { if (this.trace) console.log("!data['visibility']['meters_float']"); return null; }
@@ -248,12 +254,13 @@ class DCSCheckWXConvertEnricher {
 
   containsAnyCondition(conditioncodes) {
     let conditions = this.getClosestResult()['conditions'];
+    let result = false
     conditions.forEach((cond) => {
       //if (this.trace) console.log(cloud);
-      if (conditioncodes.indexOf(cond) != -1)
-        return true;
+      if (conditioncodes.indexOf(cond.abbreviation) != -1) 
+        result = true;
     });
-    return false;
+    return result;
   }
 
   getCloudDensity() {

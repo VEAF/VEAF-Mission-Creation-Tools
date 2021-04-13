@@ -189,46 +189,56 @@ async function injectWeather(parameters) {
     if (trace) console.log("getVisibility=" + weatherdata.getVisibility());
 
     weatherDataString = `
-    ["weather"] = {
+    ["weather"] = 
+    {
       ["atmosphere_type"] = 0,
-      ["clouds"] = {
-        ["base"] = ${weatherdata.getCloudBase()},
-        ["density"] = ${weatherdata.getCloudDensity()},
-        ["iprecptns"] = ${weatherdata.getWeatherType()},
-        ["thickness"] = ${weatherdata.getCloudThickness()},
-      }, -- end of ["clouds"]
-      ["cyclones"] = {
-      }, -- end of ["cyclones"]
-      ["dust_density"] = 0,
-      ["enable_dust"] = false,
-      ["enable_fog"] = ${weatherdata.getFogEnabled()},
-      ["fog"] = {
-        ["thickness"] = ${weatherdata.getFogThickness()},
-        ["visibility"] = ${weatherdata.getFogVisibility()},
-      }, -- end of ["fog"]
       ["groundTurbulence"] = ${weatherdata.getGroundTurbulence()},
-      ["qnh"] = ${weatherdata.getBarometerMMHg()},
-      ["season"] = {
+      ["enable_fog"] = ${weatherdata.getFogEnabled()},
+      ["season"] = 
+      {
         ["temperature"] = ${weatherdata.getTemperatureASL()},
       }, -- end of ["season"]
       ["type_weather"] = 2,
-      ["visibility"] = {
-        ["distance"] = ${weatherdata.getVisibility()},
-      }, -- end of ["visibility"]
-      ["wind"] = {
-        ["at2000"] = {
-          ["dir"] = ${weatherdata.getWind2000()['direction']},
-          ["speed"] = ${weatherdata.getWind2000()['speed']},
-        }, -- end of ["at2000"]
-        ["at8000"] = {
-          ["dir"] = ${weatherdata.getWind8000()['direction']},
+      ["qnh"] = ${weatherdata.getBarometerMMHg()},
+      ["cyclones"] = 
+      {
+      }, -- end of ["cyclones"]
+      ["wind"] = 
+      {
+        ["at8000"] = 
+        {
           ["speed"] = ${weatherdata.getWind8000()['speed']},
+          ["dir"] = ${weatherdata.getWind8000()['direction']},
         }, -- end of ["at8000"]
-        ["atGround"] = {
-          ["dir"] = ${weatherdata.getWindASL()['direction']},
+        ["at2000"] = 
+        {
+          ["speed"] = ${weatherdata.getWind2000()['speed']},
+          ["dir"] = ${weatherdata.getWind2000()['direction']},
+        }, -- end of ["at2000"]
+        ["atGround"] = 
+        {
           ["speed"] = ${weatherdata.getWindASL()['speed'] / 2},
+          ["dir"] = ${weatherdata.getWindASL()['direction']},
         }, -- end of ["atGround"]
       }, -- end of ["wind"]
+      ["dust_density"] = 0,
+      ["enable_dust"] = false,
+      ["fog"] = 
+      {
+        ["thickness"] = ${weatherdata.getFogThickness()},
+        ["visibility"] = ${weatherdata.getFogVisibility()},
+      }, -- end of ["fog"]
+      ["visibility"] = 
+      {
+        ["distance"] = ${weatherdata.getVisibility()},
+      }, -- end of ["visibility"]
+      ["clouds"] = 
+      {
+        ["density"] = ${weatherdata.getCloudDensity()},
+        ["thickness"] = ${weatherdata.getCloudThickness()},
+        ["base"] = ${weatherdata.getCloudBase()},
+        ["iprecptns"] = ${weatherdata.getWeatherType()},
+      }, -- end of ["clouds"]
     }, -- end of ["weather"]     
     `;
 

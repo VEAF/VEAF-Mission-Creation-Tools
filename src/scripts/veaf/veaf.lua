@@ -33,7 +33,7 @@ veaf.Id = "VEAF - "
 veaf.MainId = "MAIN - "
 
 --- Version.
-veaf.Version = "1.12.1"
+veaf.Version = "1.13.0"
 
 -- trace level, specific to this module
 veaf.MainTrace = false
@@ -951,11 +951,22 @@ function veaf.generateVehiclesRoute(startPoint, destination, onRoad, speed, patr
 
     local endPoint = veafNamedPoints.getPoint(destination)
     if not(endPoint) then
-        trigger.action.outText("A point named "..destination.." cannot be found !", 5)
+        -- check if these are coordinates
+        local _lat, _lon = veaf.computeLLFromString(destination)
+        veaf.mainLogTrace(string.format("_lat=%s",veaf.p(_lat)))
+        veaf.mainLogTrace(string.format("_lon=%s",veaf.p(_lon)))
+        if _lat and _lon then 
+            endPoint = coord.LLtoLO(_lat, _lon)
+        end
+    end
+    if not(endPoint) then
+        local msg = "A point named "..destination.." cannot be found, and these are not valid coordinates !"
+        veaf.logWarning(msg)
+        trigger.action.outText(msg, 5)
         return
     end
-    veaf.mainLogTrace(string.format("endPoint = {x = %d, y = %d, z = %d}", endPoint.x, endPoint.y, endPoint.z))
-
+    veaf.mainLogTrace(string.format("endPoint=%s", veaf.p(endPoint)))
+        
     if onRoad then
         veaf.mainLogTrace("setting startPoint on a road")
         local road_x, road_z = land.getClosestPointOnRoads('roads',startPoint.x, startPoint.z)

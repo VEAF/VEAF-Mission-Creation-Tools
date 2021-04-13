@@ -66,7 +66,7 @@ veafSpawn = {}
 veafSpawn.Id = "SPAWN - "
 
 --- Version.
-veafSpawn.Version = "1.20.0"
+veafSpawn.Version = "1.21.0"
 
 -- trace level, specific to this module
 veafSpawn.Debug = false
@@ -1058,10 +1058,18 @@ function veafSpawn.spawnConvoy(spawnSpot, radius, country, side, speed, patrol, 
         point = veafNamedPoints.getPoint(destination)
     end
     if not(point) then
-        trigger.action.outText("A point named "..destination.." cannot be found !", 5)
+        local _lat, _lon = veaf.computeLLFromString(destination)
+        veafSpawn.logTrace(string.format("_lat=%s",veaf.p(_lat)))
+        veafSpawn.logTrace(string.format("_lon=%s",veaf.p(_lon)))
+        if _lat and _lon then 
+            point = coord.LLtoLO(_lat, _lon)
+            veafSpawn.logTrace(string.format("point=%s",veaf.p(point)))
+        end
+    end
+    if not(point) then
+        trigger.action.outText("A point named "..destination.." cannot be found, and these are not valid coordinates !", 5)
         return false
     end
-
 
     local units = {}
     local groupId = math.random(99999)

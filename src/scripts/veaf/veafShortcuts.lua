@@ -27,7 +27,7 @@ veafShortcuts = {}
 veafShortcuts.Id = "SHORTCUTS - "
 
 --- Version.
-veafShortcuts.Version = "1.15.0"
+veafShortcuts.Version = "1.15.1"
 
 -- trace level, specific to this module
 veafShortcuts.Debug = false
@@ -279,7 +279,7 @@ function veafShortcuts.ExecuteAlias(aliasName, delay, remainingCommand, position
     local alias = veafShortcuts.GetAlias(aliasName)
     if alias then 
         veafShortcuts.logTrace(string.format("found VeafAlias[%s]",alias:getName() or ""))
-        if delay then
+        if delay and delay ~= "" then
             mist.scheduleFunction(VeafAlias.execute, {alias, remainingCommand, position, coalition, markId, bypassSecurity, spawnedGroups}, timer.getTime() + delay)
         else
             alias:execute(remainingCommand, position, coalition, markId, bypassSecurity, spawnedGroups)

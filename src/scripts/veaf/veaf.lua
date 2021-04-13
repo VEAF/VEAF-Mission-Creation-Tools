@@ -621,7 +621,12 @@ function veaf.ifnns(o, fields)
         for _, field in pairs(fields) do
             if o[field] then
                 if type(o[field]) == "function" then
-                    result[field] = o[field](o)
+                    local sta, res = pcall(o[field],o)
+                    if sta then 
+                        result[field] = res
+                    else
+                        result[field] = nil
+                    end
                 else
                     result[field] = o[field]
                 end

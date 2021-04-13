@@ -31,10 +31,11 @@ veafSanctuary.Id = "SANCTUARY - "
 veafSanctuary.Version = "1.4.0"
 
 -- trace level, specific to this module
-veafSanctuary.Debug = true
-veafSanctuary.Trace = true
+veafSanctuary.Debug = false
+veafSanctuary.Trace = false
 veafSanctuary.RecordAction = true
-veafSanctuary.RecordTraceTrespassing = true
+veafSanctuary.RecordTrace = true
+veafSanctuary.RecordTraceTrespassing = false
 veafSanctuary.RecordTraceShooting = true
 
 -- delay before the sanctuary zones start reporting
@@ -139,6 +140,14 @@ function veafSanctuary.recordAction(message)
         local _message = "ACTION  - " .. message
         veafSanctuary.logInfo(_message)
         veafSanctuary._recordAction(veafSanctuary._recordAction(" INFO    SCRIPTING: VEAF - I - " .. _message))
+    end
+end
+
+function veafSanctuary.recordTrace(message)
+    if message and veafSanctuary.RecordTrace then
+        local _message = "SANCTUARY - " .. message
+        veafSanctuary.logTrace(_message)
+        veafSanctuary._recordAction(" INFO    SCRIPTING: VEAF - T - " .. _message)
     end
 end
 
@@ -727,19 +736,19 @@ function veafSanctuary.eventHandler:onEvent(event)
         if event.id == world.event.S_EVENT_PLAYER_ENTER_UNIT 
         or event.id == world.event.S_EVENT_BIRTH and _unitname and veafSanctuary.humanUnits[_unitname]
         then
-            veafSanctuary.recordTraceTrespassing(string.format("event=%s",veaf.p(eventId)))
+            veafSanctuary.recordTrace(string.format("event=%s",veaf.p(eventId)))
             if (not veafSanctuary.humanUnitsToFollow[_unitname]) then
                 -- register the human unit in the follow-up list when the human gets in the unit
-                veafSanctuary.recordTraceTrespassing(string.format("registering human unit to follow: %s", veaf.p(_unitname)))
+                veafSanctuary.recordTrace(string.format("registering human unit to follow: %s", veaf.p(_unitname)))
                 veafSanctuary.humanUnitsToFollow[_unitname] = { firstInZone = -1}
             end
         elseif event.id == world.event.S_EVENT_PLAYER_LEAVE_UNIT 
         or     event.id == world.event.S_EVENT_DEAD and _unitname and veafSanctuary.humanUnits[_unitname]
         then
-            veafSanctuary.recordTraceTrespassing(string.format("event=%s",veaf.p(eventId)))
+            veafSanctuary.recordTrace(string.format("event=%s",veaf.p(eventId)))
             if (veafSanctuary.humanUnitsToFollow[_unitname]) then
                 -- unregister the human unit from the follow-up list when the human gets in the unit
-                veafSanctuary.recordTraceTrespassing(string.format("deregistering human unit to follow: %s", veaf.p(_unitname)))
+                veafSanctuary.recordTrace(string.format("deregistering human unit to follow: %s", veaf.p(_unitname)))
                 veafSanctuary.humanUnitsToFollow[_unitname] = nil
             end
         end

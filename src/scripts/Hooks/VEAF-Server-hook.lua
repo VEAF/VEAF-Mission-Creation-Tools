@@ -178,7 +178,7 @@ function veafServerHook.onPlayerConnect(id)
     if pilot then
         veafServerHook.logInfo(string.format("VEAF pilot [%s] connecting", p(playerName)))
         veafServerHook.logTrace(string.format("pilot=%s",p(pilot)))
-        local payload = string.format(REGISTER_PLAYER, playerName, pilot.level, ucid, uni)
+        local payload = string.format(REGISTER_PLAYER, playerName, pilot.level, ucid)
         veafServerHook.logTrace(string.format("payload=%s",p(payload)))
         veafServerHook.injectCode(payload)
     else
@@ -195,7 +195,7 @@ function veafServerHook.onChatMessage(message, from)
     veafServerHook.logDebug(string.format("veafServerHook.onChatMessage([%s], [%s])",p(from), p(message)))
     
     -- try and recognize a command
-    if message ~= nil and message:lower():find(veafServerHook.CommandStarter) then
+    if message ~= nil and message:lower():sub(1, #veafServerHook.CommandStarter) == veafServerHook.CommandStarter then
         local _playerDetails = net.get_player_info( from )
         if _playerDetails ~=nil then
             local playerInfo = {}
@@ -213,7 +213,7 @@ function veafServerHook.onChatMessage(message, from)
             -- parse the message
             local pilot = veafServerHook.pilots[ucid]
             veafServerHook.logTrace(string.format("pilot=%s",p(pilot)))
-            if veafServerHook.parse(pilot, playerName, unitName, message) then
+            if veafServerHook.parse(pilot, playerName, ucid, unitName, message) then
                 veafServerHook.logInfo(string.format("Player %s ran command %s", playerName, message))
             else
                 veafServerHook.logWarning(string.format("Player %s was denied running command %s", playerName, message))
@@ -226,7 +226,7 @@ end
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Core methods
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
-function veafServerHook.parse(pilot, playerName, unitName, message)
+function veafServerHook.parse(pilot, playerName, ucid, unitName, message)
     veafServerHook.logTrace(string.format("veafServerHook.parse([%s] , [%s])", p(playerName), p(message)))
     veafServerHook.logTrace(string.format("pilot=%s",p(pilot)))
     veafServerHook.logTrace(string.format("unitName=%s",p(unitName)))
@@ -238,6 +238,12 @@ function veafServerHook.parse(pilot, playerName, unitName, message)
     local _module, _command = message:match(veafServerHook.CommandParser)
     veafServerHook.logTrace(string.format("_module=%s",p(_module)))
     veafServerHook.logTrace(string.format("_command=%s",p(_command)))
+    if pilot.level > 0 then
+        -- register the player
+        local payload = string.format(REGISTER_PLAYER, playerName, pilot.level, ucid)
+        veafServerHook.logTrace(string.format("payload=%s",p(payload)))
+        veafServerHook.injectCode(payload)
+    end
     if _module and _module:lower() == "send" then
         -- any registered pilot can call the TEST commands
         if pilot.level >= 0 then

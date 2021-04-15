@@ -38,8 +38,12 @@ async function injectWeatherFromConfiguration(parameters) {
         console.error("cannot parse file content " + configurationFile); // invalid content
         return;
       }
+      let moments = data.moments;
       for (let i=0; i<data.targets.length; i++) {       
-        let { version, weather, weatherfile, time, dontSetToday, setTodayYear } = data.targets[i];
+        let { version, weather, weatherfile, time, moment, dontSetToday, setTodayYear } = data.targets[i];
+        if (moment && moments[moment]) {
+          time = moments[moment];
+        }
         let parameters = {
           sourceMissionFileName: sourceMissionFileName,
           targetMissionFileName: targetMissionFileName.replace("${version}", version),
@@ -178,6 +182,7 @@ async function injectWeather(parameters) {
     if (trace) console.log("getWind2000=" + weatherdata.getWind2000());
     if (trace) console.log("getWind8000=" + weatherdata.getWind8000());
     if (trace) console.log("getGroundTurbulence=" + weatherdata.getGroundTurbulence());
+    if (trace) console.log("getCloudPreset=" + weatherdata.getCloudPreset());
     if (trace) console.log("getCloudMinMax=" + weatherdata.getCloudMinMax());
     if (trace) console.log("getCloudBase=" + weatherdata.getCloudBase());
     if (trace) console.log("getCloudThickness=" + weatherdata.getCloudThickness());
@@ -187,6 +192,10 @@ async function injectWeather(parameters) {
     if (trace) console.log("getFogVisibility=" + weatherdata.getFogVisibility());
     if (trace) console.log("getFogThickness=" + weatherdata.getFogThickness());
     if (trace) console.log("getVisibility=" + weatherdata.getVisibility());
+
+    let presetString = ""
+    if (weatherdata.getCloudPreset())
+      presetString = `["preset"] = "${weatherdata.getCloudPreset()}",`;
 
     weatherDataString = `
     ["weather"] = 
@@ -234,6 +243,7 @@ async function injectWeather(parameters) {
       }, -- end of ["visibility"]
       ["clouds"] = 
       {
+        ${presetString}
         ["density"] = ${weatherdata.getCloudDensity()},
         ["thickness"] = ${weatherdata.getCloudThickness()},
         ["base"] = ${weatherdata.getCloudBase()},
@@ -257,7 +267,7 @@ async function injectWeather(parameters) {
 
   if (trace)
   {
-    let writeStream = fs.createWriteStream('mission.lua');
+    let writeStream = fs.createWriteStream('mission-2.lua');
     writeStream.write(missionData, 'utf8');
     writeStream.on('finish', () => {
       console.log('wrote all data to mission-2.lua');

@@ -1,6 +1,6 @@
 {
   "name": "veaf-mission-creation-tools",
-  "version": "2.52.1",
+  "version": "2.53.0",
   "description": "A set of tools that help set up a and run dynamic missions",
   "main": "src/nodejs/app.js",
   "bin": {
@@ -38,7 +38,6 @@
     "got": "^11.1.4",
     "graceful-fs": "^4.1.6",
     "jszip": "~3.4.0",
-    "metar": "~1.0.0",
     "universalify": "^2.0.0",
     "y18n": "~4.0.1",
     "yargs": "~15.3.1"

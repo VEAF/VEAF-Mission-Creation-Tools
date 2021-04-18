@@ -16,8 +16,8 @@
 
 ### RFC - needs to be done
 
-- update SLMOD to make the chat_cmd_net function check __all__ the chat commands in one run (don't spawn xxx threads)
 - bouger les escortes avec les tankers
+- gérer la sécurité en venant d'une commande chat pour _tous_ les modules (fait uniquement pour shortcuts)
 ### Bug - needs to be corrected
 
 bug -armor avec sa9 , "patrol, dest, offroad" ne bougent pas

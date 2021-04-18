@@ -889,7 +889,7 @@ function veafShortcuts.executeCommandFromRemote(parameters)
                 veafShortcuts.logTrace(string.format("_pos=%s",veaf.p(_pos)))
                 veafShortcuts.logTrace(string.format("_coa=%s",veaf.p(_coa)))
                 veafShortcuts.logInfo(string.format("[%s] is running an alias at position [%s] for coalition [%s] : [%s]",veaf.p(_pilot.name), veaf.p(_pos), veaf.p(_coa), veaf.p(_alias)))
-                veafShortcuts.executeCommand(_pos, _alias, _coa, _unitName)
+                veafShortcuts.executeCommand(_pos, _alias, _coa, _pilot.name)
                 return true
             end
         end

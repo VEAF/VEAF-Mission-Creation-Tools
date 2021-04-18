@@ -2053,6 +2053,278 @@ function veaf.setServerName(value)
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- Quick Reaction Alert - https://en.wikipedia.org/wiki/Quick_Reaction_Alert
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+VeafQRA =
+{
+    -- technical name (DCS zone name)
+    name = nil,
+    -- description for the briefing
+    description = nil,
+    -- aircraft groups forming the QRA
+    groups = nil,
+    -- coalition for the QRA
+    coalition = nil,
+    -- coalitions the QRA is defending against
+    ennemyCoalitions = nil,
+    -- message when the QRA is triggered
+    messageStart = nil,
+    -- message when the QRA is destroyed
+    messageDestroyed = nil,
+    -- message when the QRA is ready
+    messageReady = nil,
+    -- silent means no message is emitted
+    silent = nil,
+    -- radius of the defenders groups spawn
+    radius = nil,
+
+    timer = nil,
+    state = nil,
+    _enemyHumanUnits = nil
+}
+VeafQRA.__index = VeafQRA
+
+VeafQRA.STATUS_READY = 1
+VeafQRA.STATUS_ACTIVE = 2
+VeafQRA.STATUS_DEAD = 3
+
+VeafQRA.WATCHDOG_DELAY = 5
+
+VeafQRA.DEFAULT_MESSAGE_START = "%s is deployed"
+VeafQRA.DEFAULT_MESSAGE_DESTROYED = "%s has been destroyed"
+VeafQRA.DEFAULT_MESSAGE_READY = "%s is ready"
+
+function VeafQRA:new()
+    veaf.mainLogTrace(string.format("VeafQRA:new()"))
+    local self = setmetatable({}, VeafQRA)
+    self.name = nil
+    self.description = nil
+    self.groups = {}
+    self.coalition = nil
+    self.ennemyCoalitions = {}
+    self.messageStart = VeafQRA.DEFAULT_MESSAGE_START
+    self.messageDestroyed = VeafQRA.DEFAULT_MESSAGE_DESTROYED
+    self.messageReady = VeafQRA.DEFAULT_MESSAGE_READY
+    self.silent = false
+    self.radius = 0
+    
+    self._enemyHumanUnits = nil
+    self.timer = 0
+    self.state = nil
+    return self
+end
+
+function VeafQRA:setName(value)
+    veaf.mainLogTrace(string.format("VeafQRA[]:setName(%s)", veaf.p(value)))
+    self.name = value
+    return self
+end
+
+function VeafQRA:getName()
+    return self.name
+end
+
+function VeafQRA:setDescription(value)
+    veaf.mainLogTrace(string.format("VeafQRA[%s]:setDescription(%s)", veaf.p(self.name), veaf.p(value)))
+    self.description = value
+    return self
+end
+
+function VeafQRA:getDescription()
+    return self.description or self.name
+end
+
+function VeafQRA:addGroup(value)
+    veaf.mainLogTrace(string.format("VeafQRA[%s]:addGroup(%s)", veaf.p(self.name), veaf.p(value)))
+    table.insert(self.groups, value)
+    return self
+end
+
+function VeafQRA:getGroups()
+    return self.groups
+end
+
+function VeafQRA:setCoalition(value)
+    veaf.mainLogTrace(string.format("VeafQRA[%s]:setCoalition(%s)", veaf.p(self.name), veaf.p(value)))
+    self.coalition = value
+    return self
+end
+
+function VeafQRA:getCoalition()
+    return self.coalition
+end
+
+function VeafQRA:addEnnemyCoalition(value)
+    veaf.mainLogTrace(string.format("VeafQRA[%s]:addEnnemyCoalition(%s)", veaf.p(self.name), veaf.p(value)))
+    self.ennemyCoalitions[value] = value
+    return self
+end
+
+function VeafQRA:getEnnemyCoalitions()
+    return self.ennemyCoalitions
+end
+
+function VeafQRA:setMessageStart(value)
+    veaf.mainLogTrace(string.format("VeafQRA[%s]:setMessageStart(%s)", veaf.p(self.name), veaf.p(value)))
+    self.messageStart = value
+    return self
+end
+
+function VeafQRA:getMessageStart()
+    return self.messageStart
+end
+
+function VeafQRA:setMessageDestroyed(value)
+    veaf.mainLogTrace(string.format("VeafQRA[%s]:setMessageDestroyed(%s)", veaf.p(self.name), veaf.p(value)))
+    self.messageDestroyed = value
+    return self
+end
+
+function VeafQRA:getMessageDestroyed()
+    return self.messageDestroyed
+end
+
+function VeafQRA:setMessageReady(value)
+    veaf.mainLogTrace(string.format("VeafQRA[%s]:setMessageReady(%s)", veaf.p(self.name), veaf.p(value)))
+    self.messageReady = value
+    return self
+end
+
+function VeafQRA:getMessageReady()
+    return self.messageReady
+end
+
+function VeafQRA:setSilent(value)
+    veaf.mainLogTrace(string.format("VeafQRA[]:setSilent(%s)", veaf.p(value)))
+    self.silent = value
+    return self
+end
+
+function VeafQRA:isSilent()
+    return self.silent
+end
+
+function VeafQRA:setRadius(value)
+    veaf.mainLogTrace(string.format("VeafQRA[]:setRadius(%s)", veaf.p(value)))
+    self.radius = value
+    return self
+end
+
+function VeafQRA:getRadius()
+    return self.radius
+end
+
+
+
+
+function VeafQRA:_getEnemyHumanUnits()
+    --veaf.mainLogTrace(string.format("VeafQRA[%s]:_getEnemyHumanUnits() - computing", veaf.p(self.name)))
+    if not self._enemyHumanUnits then
+        veaf.mainLogTrace(string.format("VeafQRA[%s]:_getEnemyHumanUnits() - computing", veaf.p(self.name)))
+        self._enemyHumanUnits = {}
+        veaf.mainLogTrace(string.format("self:getEnnemyCoalitions()[]=%s", veaf.p(self:getEnnemyCoalitions())))
+        for name, unit in pairs(mist.DBs.humansByName) do
+            veaf.mainLogTrace(string.format("unit=%s", veaf._p(unit)))
+            veaf.mainLogTrace(string.format("unit.coalition=%s", veaf.p(unit.coalition)))
+            local coalitionId = 0
+            if unit.coalition then
+                if unit.coalition:lower() == "red" then
+                    coalitionId = coalition.side.RED
+                elseif unit.coalition:lower() == "blue" then
+                    coalitionId = coalition.side.BLUE
+                end
+            end                    
+            if self:getEnnemyCoalitions()[coalitionId] then
+                table.insert(self._enemyHumanUnits, unit.unitName)
+            end
+        end
+    end
+    return self._enemyHumanUnits
+end
+
+function VeafQRA:check()
+    veaf.mainLogTrace(string.format("VeafQRA[%s]:check()", veaf.p(self.name)))
+    veaf.mainLogTrace(string.format("self.state=%s", veaf._p(self.state)))
+
+    local unitNames = self:_getEnemyHumanUnits()
+    veaf.mainLogTrace(string.format("unitNames=%s", veaf.p(unitNames)))
+    local unitsInZone = mist.getUnitsInZones(unitNames, {self:getName()})
+    veaf.mainLogTrace(string.format("unitsInZone=%s", veaf._p(unitsInZone)))
+    if (self.state == VeafQRA.STATUS_READY) and (unitsInZone and #unitsInZone > 0) then
+        -- trigger the QRA
+        self:deploy()
+    elseif (self.state == VeafQRA.STATUS_DEAD) and (not unitsInZone or #unitsInZone == 0) then
+        -- rearm the QRA
+        self:rearm()
+    elseif (self.state == VeafQRA.STATUS_ACTIVE) then
+        local qraAlive = false
+        for _, groupName in pairs(self:getGroups()) do
+            if Group.getByName(groupName) then
+                qraAlive = true
+            end
+        end
+        if not qraAlive then
+            -- signal QRA destroyed
+            self:destroyed()
+        end
+    end
+
+    mist.scheduleFunction(VeafQRA.check, {self}, timer.getTime() + VeafQRA.WATCHDOG_DELAY)    
+end
+
+function VeafQRA:deploy()
+    veaf.mainLogTrace(string.format("VeafQRA[%s]:deploy()", veaf.p(self.name)))
+    if not self:isSilent() then
+        local msg = string.format(self:getMessageStart(), self:getDescription())
+        for coalition, _ in pairs(self:getEnnemyCoalitions()) do
+            trigger.action.outTextForCoalition(coalition, msg, 15)
+        end
+    end
+    for _, groupName in pairs(self:getGroups()) do
+		local vars = {}
+		vars.gpName = groupName
+		vars.action = 'respawn'
+		vars.radius = self:getRadius()
+        vars.route = mist.getGroupRoute(groupName, 'task')
+		mist.teleportToPoint(vars) -- respawn with radius
+    end
+    self.state = VeafQRA.STATUS_ACTIVE
+end
+
+function VeafQRA:destroyed()
+    veaf.mainLogTrace(string.format("VeafQRA[%s]:destroyed()", veaf.p(self.name)))
+    if not self:isSilent() then
+        local msg = string.format(self:getMessageDestroyed(), self:getDescription())
+        for coalition, _ in pairs(self:getEnnemyCoalitions()) do
+            trigger.action.outTextForCoalition(coalition, msg, 15)
+        end
+    end
+    self.state = VeafQRA.STATUS_DEAD
+end
+
+function VeafQRA:rearm(silent)
+    veaf.mainLogTrace(string.format("VeafQRA[%s]:rearm()", veaf.p(self.name)))
+    if not self:isSilent() and not silent then
+        local msg = string.format(self:getMessageReady(), self:getDescription())
+        for coalition, _ in pairs(self:getEnnemyCoalitions()) do
+            trigger.action.outTextForCoalition(coalition, msg, 15) 
+        end
+    end
+    for _, groupName in pairs(self:getGroups()) do
+        local group = Group.getByName(groupName)
+        if group then
+            group:destroy()
+        end
+    end
+    self.state = VeafQRA.STATUS_READY
+end
+
+function VeafQRA:start()
+    veaf.mainLogTrace(string.format("VeafQRA[%s]:start()", veaf.p(self.name)))
+    self:rearm() -- TODO set true
+    mist.scheduleFunction(VeafQRA.check, {self}, timer.getTime() + VeafQRA.WATCHDOG_DELAY)    
+end
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- initialisation
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 

@@ -27,7 +27,7 @@ veafShortcuts = {}
 veafShortcuts.Id = "SHORTCUTS - "
 
 --- Version.
-veafShortcuts.Version = "1.15.1"
+veafShortcuts.Version = "1.16.0"
 
 -- trace level, specific to this module
 veafShortcuts.Debug = false
@@ -876,20 +876,21 @@ function veafShortcuts.executeCommandFromRemote(parameters)
         veafShortcuts.logTrace(string.format("_coords=%s",veaf.p(_coords)))
         veafShortcuts.logTrace(string.format("_alias=%s",veaf.p(_alias)))
         if _coords and _alias then
+            local _coa = coalition.side.BLUE
             local _unit = Unit.getByName(_unitName)
             if _unit then 
-                local _lat, _lon = veaf.computeLLFromString(_coords)
-                veafShortcuts.logTrace(string.format("_lat=%s",veaf.p(_lat)))
-                veafShortcuts.logTrace(string.format("_lon=%s",veaf.p(_lon)))
-                if _lat and _lon then 
-                    local _pos = coord.LLtoLO(_lat, _lon)
-                    veafShortcuts.logTrace(string.format("_pos=%s",veaf.p(_pos)))
-                    local _coa = _unit:getCoalition()
-                    veafShortcuts.logTrace(string.format("_coa=%s",veaf.p(_coa)))
-                    veafShortcuts.logInfo(string.format("[%s] is running an alias at position [%s] for coalition [%s] : [%s]",veaf.p(_pilot.name), veaf.p(_pos), veaf.p(_coa), veaf.p(_alias)))
-                    veafShortcuts.executeCommand(_pos, _alias, _coa, _unitName)
-                    return true
-                end
+                _coa = _unit:getCoalition()
+            end
+            local _lat, _lon = veaf.computeLLFromString(_coords)
+            veafShortcuts.logTrace(string.format("_lat=%s",veaf.p(_lat)))
+            veafShortcuts.logTrace(string.format("_lon=%s",veaf.p(_lon)))
+            if _lat and _lon then 
+                local _pos = coord.LLtoLO(_lat, _lon)
+                veafShortcuts.logTrace(string.format("_pos=%s",veaf.p(_pos)))
+                veafShortcuts.logTrace(string.format("_coa=%s",veaf.p(_coa)))
+                veafShortcuts.logInfo(string.format("[%s] is running an alias at position [%s] for coalition [%s] : [%s]",veaf.p(_pilot.name), veaf.p(_pos), veaf.p(_coa), veaf.p(_alias)))
+                veafShortcuts.executeCommand(_pos, _alias, _coa, _unitName)
+                return true
             end
         end
     end

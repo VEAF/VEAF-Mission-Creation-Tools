@@ -33,10 +33,10 @@ veafSecurity = {}
 veafSecurity.Id = "SECURITY - "
 
 --- Version.
-veafSecurity.Version = "1.2.0"
+veafSecurity.Version = "1.2.1"
 
 -- trace level, specific to this module
-veafSecurity.Trace = false
+veafSecurity.Trace = true
 
 --- Key phrase to look for in the mark text which triggers the command.
 veafSecurity.Keyphrase = "_auth"
@@ -627,9 +627,13 @@ function veafSecurity.getMarkerSecurityLevel(markId)
       _author = panel.author
     end
   end 
+  if _author == nil then
+    -- markId may actually be the username if called from veafRemote - yes I know it's ugly
+    _author = markId
+  end
   local _user = veafRemote.getRemoteUser(_author)
+  veafSecurity.logTrace(string.format("_user = [%s]",veaf.p(_user)))
   if _user then 
-    veafSecurity.logTrace(string.format("_user = [%s]",veaf.p(_user)))
     return _user.level
   end
   return -1

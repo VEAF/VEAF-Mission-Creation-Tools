@@ -28,7 +28,7 @@ veafRemote = {}
 veafRemote.Id = "REMOTE - "
 
 --- Version.
-veafRemote.Version = "2.0.0"
+veafRemote.Version = "2.1.0"
 
 -- trace level, specific to this module
 veafRemote.Debug = false
@@ -38,7 +38,7 @@ veafRemote.Trace = false
 veafRemote.USE_SLMOD = false
 
 -- if false, SLMOD will never be called
-veafRemote.USE_SLMOD_FOR_SPECIAL_COMMANDS = true
+veafRemote.USE_SLMOD_FOR_SPECIAL_COMMANDS = false
 
 veafRemote.SecondsBetweenFlagMonitorChecks = 5
 
@@ -250,11 +250,6 @@ end
 
 function veafRemote.buildDefaultList()
     local TEST = false
-
-    -- add standard commands
-    veafRemote.monitorWithSlModSpecialCommand("-veaf test", [[trigger.action.outText("VEAF - test command received from remote, flag=66600", 10)]], false, 66600)
-    veafRemote.monitorWithSlModSpecialCommand("-veaf login", [[veafSecurity.authenticate(1)]])
-    veafRemote.monitorWithSlModSpecialCommand("-veaf logout", [[veafSecurity.logout(true)]])
 
     -- add all the combat missions
     if veafCombatMission then

@@ -72,7 +72,7 @@ veafCasMission = {}
 veafCasMission.Id = "CAS MISSION - "
 
 --- Version.
-veafCasMission.Version = "1.8.0"
+veafCasMission.Version = "1.9.0"
 
 -- trace level, specific to this module
 veafCasMission.Trace = false
@@ -297,53 +297,135 @@ end
 -- CAS target group generation and management
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-local function _addDefenseForGroups(group, side, defense, multiple)
-    veafCasMission.logTrace(string.format("_addDefenseForGroups(defense=[%s], side=[%s], multiple=[%s])", defense  or "", side or "", multiple or ""))
+local function _addDefenseForGroups(group, side, defense, multiple, forInfantry)
+    veafCasMission.logTrace(string.format("_addDefenseForGroups(defense=[%s], side=[%s], multiple=[%s], forInfantry=[%s])", veaf.p(defense), veaf.p(side), veaf.p(multiple), veaf.p(forInfantry)))
+    local _actualDefense = defense
+    if defense > 0 then
+        -- roll a dice : 20% chance to get a -1 (lower) difficulty, 30% chance to get a +1 (higher) difficulty, and 50% to get what was asked for
+        local _dice = math.random(100)
+        veafCasMission.logTrace("_dice = " .. _dice)
+        if _dice <= 20 then
+            _actualDefense = defense - 1
+        elseif _dice > 80 then
+            _actualDefense = defense + 1
+        end
+    end
+    if _actualDefense > 5 then _actualDefense = 5 end
+    if _actualDefense < 0 then _actualDefense = 0 end
+    veafCasMission.logTrace("_actualDefense = " .. _actualDefense)
     for _ = 1, multiple do
-        if defense > 5 then
-            -- defense > 5 : add a SA9/13, a SA8 and a Tunguska (resp. M1097 Avenger and a M6 Linebacker)
+        if _actualDefense > 5 then
+            -- _actualDefense > 5 : add a SA9/13, a SA8 and a Tunguska (resp. M1097 Avenger and a M6 Linebacker)
             if side == veafCasMission.SIDE_BLUE then
-                table.insert(group.units, { "M1097 Avenger", random })
-                table.insert(group.units, { "M6 Linebacker", random })
+                if forInfantry then
+                    -- only spawn manpads
+                    for _ = 1, math.random(1,_actualDefense-2) do
+                        table.insert(group.units, { "Stinger comm", random })
+                        table.insert(group.units, { "Soldier stinger", random })
+                    end
+                else
+                    table.insert(group.units, { "M1097 Avenger", random })
+                    table.insert(group.units, { "M6 Linebacker", random })
+                end
             else
-                table.insert(group.units, { veaf.randomlyChooseFrom({"Strela-1 9P31", "Strela-10M3"}), random })
-                table.insert(group.units, { "Osa 9A33 ln", random })
-                table.insert(group.units, { "2S6 Tunguska", random })
+                if forInfantry then
+                    -- only spawn manpads
+                    for _ = 1, math.random(1,_actualDefense-2) do
+                        -- for _actualDefense = 4-5, spawn a modern Igla-S team
+                        table.insert(group.units, { "SA-18 Igla-S comm", random })
+                        table.insert(group.units, { "SA-18 Igla-S manpad", random })
+                    end
+                else
+                    table.insert(group.units, { veaf.randomlyChooseFrom({"Strela-1 9P31", "Strela-10M3"}), random })
+                    table.insert(group.units, { "Osa 9A33 ln", random })
+                    table.insert(group.units, { "2S6 Tunguska", random })
+                end
             end
-        elseif defense == 5 then
-            -- defense = 5 : add a SA8 and a Tunguska (resp. M1097 Avenger and a M6 Linebacker)
+        elseif _actualDefense == 5 then
+            -- _actualDefense = 5 : add a SA8 and a Tunguska (resp. M1097 Avenger and a M6 Linebacker)
             if side == veafCasMission.SIDE_BLUE then
-                table.insert(group.units, { "M1097 Avenger", random })
-                table.insert(group.units, { "M6 Linebacker", random })
+                if forInfantry then
+                    -- only spawn manpads
+                    for _ = 1, math.random(1,_actualDefense-2) do
+                        table.insert(group.units, { "Stinger comm", random })
+                        table.insert(group.units, { "Soldier stinger", random })
+                    end
+                else
+                    table.insert(group.units, { "M1097 Avenger", random })
+                    table.insert(group.units, { "M6 Linebacker", random })
+                end
             else
-                table.insert(group.units, { "Osa 9A33 ln", random })
-                table.insert(group.units, { "2S6 Tunguska", random })
+                if forInfantry then
+                    -- only spawn manpads
+                    for _ = 1, math.random(1,_actualDefense-2) do
+                        -- for _actualDefense = 4-5, spawn a modern Igla-S team
+                        table.insert(group.units, { "SA-18 Igla-S comm", random })
+                        table.insert(group.units, { "SA-18 Igla-S manpad", random })
+                    end
+                else
+                    table.insert(group.units, { "Osa 9A33 ln", random })
+                    table.insert(group.units, { "2S6 Tunguska", random })
+                end
             end
-        elseif defense == 4 then
-            -- defense = 4 : add a Shilka and a Tunguska (resp. Gepard and a M6 Linebacker)
+        elseif _actualDefense == 4 then
+            -- _actualDefense = 4 : add a Shilka and a Tunguska (resp. Gepard and a M6 Linebacker)
+            if side == veafCasMission.SIDE_BLUE then
+                if forInfantry then
+                    -- only spawn manpads
+                    for _ = 1, math.random(1,_actualDefense-2) do
+                        table.insert(group.units, { "Stinger comm", random })
+                        table.insert(group.units, { "Soldier stinger", random })
+                    end
+                else
+                    table.insert(group.units, { "Gepard", random })
+                    table.insert(group.units, { "M6 Linebacker", random })
+                end
+            else
+                if forInfantry then
+                    -- only spawn manpads
+                    for _ = 1, math.random(1,_actualDefense-2) do
+                        -- for _actualDefense = 4-5, spawn a modern Igla-S team
+                        table.insert(group.units, { "SA-18 Igla-S comm", random })
+                        table.insert(group.units, { "SA-18 Igla-S manpad", random })
+                    end
+                else
+                    table.insert(group.units, { "ZSU-23-4 Shilka", random })
+                    table.insert(group.units, { "2S6 Tunguska", random })
+                end
+            end
+        elseif _actualDefense == 3 then
+            -- _actualDefense = 3 : add a SA9/SA13 (resp. a M6 Linebacker)
+            if side == veafCasMission.SIDE_BLUE then
+                if forInfantry then
+                    -- only spawn manpads
+                    for _ = 1, math.random(1,_actualDefense-2) do
+                        table.insert(group.units, { "Stinger comm", random })
+                        table.insert(group.units, { "Soldier stinger", random })
+                    end
+                else
+                    table.insert(group.units, { "M6 Linebacker", random })
+                end
+            else
+                if forInfantry then
+                    -- only spawn manpads
+                    for _ = 1, math.random(1,_actualDefense-2) do
+                        -- for _actualDefense = 3, spawn an older Igla team
+                        table.insert(group.units, { "SA-18 Igla comm", random })
+                        table.insert(group.units, { "SA-18 Igla manpad", random })
+                    end
+                else
+                    table.insert(group.units, { veaf.randomlyChooseFrom({"Strela-1 9P31", "Strela-10M3"}), random })
+                end
+            end
+        elseif _actualDefense == 2 then
+            -- _actualDefense = 2 : add a Shilka (resp. a Gepard)
             if side == veafCasMission.SIDE_BLUE then
                 table.insert(group.units, { "Gepard", random })
-                table.insert(group.units, { "M6 Linebacker", random })
-            else
-                table.insert(group.units, { "ZSU-23-4 Shilka", random })
-                table.insert(group.units, { "2S6 Tunguska", random })
-            end
-        elseif defense == 3 then
-            -- defense = 3 : add a SA9/SA13 (resp. a M6 Linebacker)
-            if side == veafCasMission.SIDE_BLUE then
-                table.insert(group.units, { "M6 Linebacker", random })
-            else
-                table.insert(group.units, { veaf.randomlyChooseFrom({"Strela-1 9P31", "Strela-10M3"}), random })
-            end
-        elseif defense == 2 then
-            -- defense = 2 : add a Shilka (resp. a Gepard)
-            if side == veafCasMission.SIDE_BLUE then
-                table.insert(group.units, { "Gepard", random })
             else
                 table.insert(group.units, { "ZSU-23-4 Shilka", random })
             end
-        elseif defense == 1 then
-            -- defense = 1 : add a ZU23 on a truck (resp. a Vulcan)
+        elseif _actualDefense == 1 then
+            -- _actualDefense = 1 : add a ZU23 on a truck (resp. a Vulcan)
             if side == veafCasMission.SIDE_BLUE then
                 table.insert(group.units, { "Vulcan", random })
             else
@@ -592,31 +674,11 @@ function veafCasMission.generateInfantryGroup(groupName, defense, armor, side, s
         end
     end
 
-    -- add manpads if needed
-    if defense > 3 then
-        for _ = 1, math.random(1,defense-2) do
-            -- for defense = 4-5, spawn a modern Igla-S team
-            if side == veafCasMission.SIDE_BLUE then
-                table.insert(group.units, { "Stinger comm", random })
-                table.insert(group.units, { "Soldier stinger", random })
-            else
-                table.insert(group.units, { "SA-18 Igla-S comm", random })
-                table.insert(group.units, { "SA-18 Igla-S manpad", random })
-            end
-        end
-    elseif defense > 0 then
-        for _ = 1, math.random(1,defense) do
-            -- for defense = 1-3, spawn an older Igla team
-            if side == veafCasMission.SIDE_BLUE then
-                table.insert(group.units, { "Stinger comm", random })
-                table.insert(group.units, { "Soldier stinger", random })
-            else
-                table.insert(group.units, { "SA-18 Igla comm", random })
-                table.insert(group.units, { "SA-18 Igla manpad", random })
-            end
-        end
+    -- add air defense
+    if not veaf.config.ww2 then
+        _addDefenseForGroups(group, side, defense, 1, true)
     else
-        -- for defense = 0, don't spawn any manpad
+        -- nothing, there are no mobile defense units in WW2
     end
 
     return group

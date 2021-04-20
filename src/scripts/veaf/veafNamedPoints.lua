@@ -37,7 +37,7 @@ veafNamedPoints = {}
 veafNamedPoints.Id = "NAMED POINTS - "
 
 --- Version.
-veafNamedPoints.Version = "1.9.0"
+veafNamedPoints.Version = "1.9.1"
 
 -- trace level, specific to this module
 veafNamedPoints.Debug = false
@@ -309,13 +309,14 @@ function veafNamedPoints.pointFromString(coordinatesString)
     veafShortcuts.logTrace(string.format("_lat=%s",veaf.p(_lat)))
     veafShortcuts.logTrace(string.format("_lon=%s",veaf.p(_lon)))
     if _lat and _lon then 
-        _result = veafNamedPoints.pointFromLL(lat, long)
+        _result = veafNamedPoints.pointFromLL(_lat, _lon)
     end
     return _result
 end
 
 function veafNamedPoints.pointFromLL(lat, long)
-    return coord.LLtoLO(_lat, _lon)
+    veafNamedPoints.logDebug(string.format("pointFromLL(lat = %s, long = %s)",veaf.p(lat), veaf.p(long)))
+    return coord.LLtoLO(lat, long)
 end
 
 function veafNamedPoints.addDataToPoint(point, data)

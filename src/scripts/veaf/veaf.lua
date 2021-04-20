@@ -33,7 +33,7 @@ veaf.Id = "VEAF - "
 veaf.MainId = "MAIN - "
 
 --- Version.
-veaf.Version = "1.13.0"
+veaf.Version = "1.13.1"
 
 -- trace level, specific to this module
 veaf.MainTrace = false
@@ -725,15 +725,17 @@ function veaf.computeLLFromString(value)
             local values = veaf.splitWithPattern(value, "[:-]+")
             local weights = {3600, 60, 1}
             for _, element in pairs(values) do
+                veaf.mainLogTrace(string.format("element=%s",veaf.p(element)))
                 local weight = table.remove(weights, 1)
                 local elementInArcSec = tonumber(element)*weight
                 result = result + elementInArcSec
             end
+            result = result / 3600
         else
             -- decimals
             result = tonumber(value)
         end
-        return result / 3600
+        return result
     end
     
     local result = -1

@@ -325,6 +325,7 @@ function veafNamedPoints.addDataToPoint(point, data)
                 point[key] = value
             end
         end
+        return point
     end
 end
 

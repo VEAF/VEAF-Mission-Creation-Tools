@@ -37,7 +37,7 @@ veafNamedPoints = {}
 veafNamedPoints.Id = "NAMED POINTS - "
 
 --- Version.
-veafNamedPoints.Version = "1.8.0"
+veafNamedPoints.Version = "1.9.0"
 
 -- trace level, specific to this module
 veafNamedPoints.Debug = false
@@ -299,6 +299,32 @@ function veafNamedPoints.getAtcAtPoint(parameters)
         local weatherReport = veaf.weatherReport(point, nil, true)
         atcReport = atcReport ..weatherReport
         veaf.outTextForUnit(unitName, atcReport, 30)
+    end
+end
+
+function veafNamedPoints.pointFromString(coordinatesString)
+    veafNamedPoints.logDebug(string.format("pointFromString(coordinatesString = %s)",veaf.p(coordinatesString)))
+    local _result = nil
+    local _lat, _lon = veaf.computeLLFromString(coordinatesString)
+    veafShortcuts.logTrace(string.format("_lat=%s",veaf.p(_lat)))
+    veafShortcuts.logTrace(string.format("_lon=%s",veaf.p(_lon)))
+    if _lat and _lon then 
+        _result = veafNamedPoints.pointFromLL(lat, long)
+    end
+    return _result
+end
+
+function veafNamedPoints.pointFromLL(lat, long)
+    return coord.LLtoLO(_lat, _lon)
+end
+
+function veafNamedPoints.addDataToPoint(point, data)
+    if point then
+        if data then 
+            for key, value in pairs(data) do
+                point[key] = value
+            end
+        end
     end
 end
 

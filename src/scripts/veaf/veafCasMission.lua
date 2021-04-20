@@ -72,7 +72,7 @@ veafCasMission = {}
 veafCasMission.Id = "CAS MISSION - "
 
 --- Version.
-veafCasMission.Version = "1.9.0"
+veafCasMission.Version = "1.9.1"
 
 -- trace level, specific to this module
 veafCasMission.Trace = false
@@ -143,11 +143,16 @@ end
 
 --- Function executed when a mark has changed. This happens when text is entered or changed.
 function veafCasMission.onEventMarkChange(eventPos, event)
-    -- choose by default the coalition of the player who triggered the event
-    local coalition = event.coalition
-    veafCasMission.logTrace(string.format("coalition=%d", coalition))
 
-    if veafCasMission.executeCommand(eventPos, event.text, coalition) then        
+    -- choose by default the coalition opposing the player who triggered the event
+    local invertedCoalition = 1
+    if event.coalition == 1 then
+        invertedCoalition = 2
+    end
+
+    veafCasMission.logTrace(string.format("coalition=%d", invertedCoalition))
+
+    if veafCasMission.executeCommand(eventPos, event.text, invertedCoalition) then        
         -- Delete old mark.
         veafCasMission.logTrace(string.format("Removing mark # %d.", event.idx))
         trigger.action.removeMark(event.idx)

@@ -33,7 +33,7 @@ veaf.Id = "VEAF - "
 veaf.MainId = "MAIN - "
 
 --- Version.
-veaf.Version = "1.13.1"
+veaf.Version = "1.13.2"
 
 -- trace level, specific to this module
 veaf.MainTrace = false
@@ -750,25 +750,29 @@ function veaf.computeLLFromString(value)
             veaf.mainLogTrace(string.format("_digits=%s",veaf.p(_digits)))
             if _zone and _digraph and _digits then
                 local _nDigits = #_digits
-                local _northing = tonumber(_digits:sub(_nDigits/2+1))
-                if _northing < 10 then
+                local _northingString = _digits:sub(_nDigits/2+1)
+                local _northing = tonumber(_northingString)
+                veaf.mainLogTrace(string.format("_northing=%s",veaf.p(_northing)))
+                if #_northingString == 1 then
                     _northing = _northing * 10000
-                elseif _northing < 100 then
+                elseif #_northingString == 2 then
                     _northing = _northing * 1000
-                elseif _northing < 1000 then
+                elseif #_northingString == 3 then
                     _northing = _northing * 100
-                elseif _northing < 10000 then
+                elseif #_northingString == 4 then
                     _northing = _northing * 10
                 end
 
-                local _easting = tonumber(_digits:sub(1, _nDigits/2))
-                if _easting < 10 then
+                local _eastingString = _digits:sub(1, _nDigits/2)
+                local _easting = tonumber(_eastingString)
+                veaf.mainLogTrace(string.format("_easting=%s",veaf.p(_easting)))
+                if #_eastingString == 1 then
                     _easting = _easting * 10000
-                elseif _easting < 100 then
+                elseif #_eastingString == 2 then
                     _easting = _easting * 1000
-                elseif _easting < 1000 then
+                elseif #_eastingString == 3 then
                     _easting = _easting * 100
-                elseif _easting < 10000 then
+                elseif #_eastingString == 4 then
                     _easting = _easting * 10
                 end
 

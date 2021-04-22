@@ -1,6 +1,6 @@
 -- execute(dofile) this script at the end of
 -- of 'DCS World\MissionEditor\modules\me_mission.lua'
--- base.dofile("d:\\dev\\VEAF-Mission-Creation-Tools\\scripts\\community\\dcsDataExport.lua")
+-- base.dofile([[D:\dev\_VEAF\VEAF-Mission-Creation-Tools\src\scripts\veaf\dcsDataExport.lua]])
 
 -------------------------------------------------------------------------------
 -- settings

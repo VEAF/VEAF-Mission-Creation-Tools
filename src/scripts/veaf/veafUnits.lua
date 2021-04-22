@@ -39,7 +39,7 @@ veafUnits = {}
 veafUnits.Id = "UNITS - "
 
 --- Version.
-veafUnits.Version = "1.7.1"
+veafUnits.Version = "1.8.0"
 
 -- trace level, specific to this module
 veafUnits.Trace = false
@@ -1442,7 +1442,7 @@ veafUnits.GroupsDatabase = {
     --- Seemingly realistic russian air defense batteries
     ---
     {
-        aliases = {"RU-SAM-Shilka-Battery"},
+        aliases = {"RU-SAM-Shilka-Battery", "shilka-battery"},
         group = {
             disposition = { h= 5, w= 5},
             units = {
@@ -1458,7 +1458,23 @@ veafUnits.GroupsDatabase = {
         },
     },
     {
-        aliases = {"RU-SAM-SA9-Battery"},
+        aliases = {"RU-SAM-S60-Battery", "s60-battery"},
+        group = {
+            disposition = { h= 5, w= 5},
+            units = {
+                -- the search radar
+                {"Dog Ear radar", cell = 13},  
+                -- the actual air defense units
+                {"S-60_Type59_Artillery", hdg = 0, random=true}, {"S-60_Type59_Artillery", hdg = 90, random=true}, {"S-60_Type59_Artillery", hdg = 180, random=true}, {"S-60_Type59_Artillery", hdg = 270, random=true}, 
+                -- a supply truck or three
+                {"Transport Ural-4320-31 Armored", number = {min=1, max=3}, random=true}, 
+            },
+            description = "S-60 battery",
+            groupName = "S-60 battery"
+        },
+    },
+    {
+        aliases = {"RU-SAM-SA9-Battery", "sa9-battery"},
         group = {
             disposition = { h= 5, w= 5},
             units = {
@@ -1474,7 +1490,7 @@ veafUnits.GroupsDatabase = {
         },
     },
     {
-        aliases = {"RU-SAM-SA13-Battery"},
+        aliases = {"RU-SAM-SA13-Battery", "sa19-battery"},
         group = {
             disposition = { h= 5, w= 5},
             units = {

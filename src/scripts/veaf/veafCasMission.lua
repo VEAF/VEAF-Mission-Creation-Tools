@@ -72,7 +72,7 @@ veafCasMission = {}
 veafCasMission.Id = "CAS MISSION - "
 
 --- Version.
-veafCasMission.Version = "1.10.0"
+veafCasMission.Version = "1.11.0"
 
 -- trace level, specific to this module
 veafCasMission.Trace = false
@@ -394,7 +394,7 @@ local function _addDefenseForGroups(group, side, defense, multiple, forInfantry)
                         table.insert(group.units, { "SA-18 Igla-S manpad", random=true })
                     end
                 else
-                    table.insert(group.units, { veaf.randomlyChooseFrom({"ZSU-23-4 Shilka", "ZSU-23-4 Shilka", "ZSU_57_2", "S-60_Type59_Artillery"}), random=true })
+                    table.insert(group.units, { veaf.randomlyChooseFrom({"ZSU-23-4 Shilka", "ZSU-23-4 Shilka", "ZSU_57_2"}), random=true })
                     table.insert(group.units, { "2S6 Tunguska", random=true })
                 end
             end
@@ -420,7 +420,7 @@ local function _addDefenseForGroups(group, side, defense, multiple, forInfantry)
                     end
                 else
                     table.insert(group.units, { veaf.randomlyChooseFrom({"Strela-1 9P31", "Strela-10M3"}), random=true })
-                    table.insert(group.units, { veaf.randomlyChooseFrom({"ZSU-23-4 Shilka", "ZSU-23-4 Shilka", "ZSU_57_2", "S-60_Type59_Artillery"}), random=true })
+                    table.insert(group.units, { veaf.randomlyChooseFrom({"ZSU-23-4 Shilka", "ZSU-23-4 Shilka", "ZSU_57_2"}), random=true })
                 end
             end
         elseif _actualDefense == 2 then
@@ -428,15 +428,15 @@ local function _addDefenseForGroups(group, side, defense, multiple, forInfantry)
             if side == veafCasMission.SIDE_BLUE then
                 table.insert(group.units, { "Gepard", random=true })
             else
-                table.insert(group.units, { veaf.randomlyChooseFrom({"ZSU-23-4 Shilka", "ZSU_57_2", "S-60_Type59_Artillery"}), random=true })
-                table.insert(group.units, { veaf.randomlyChooseFrom({"ZSU-23-4 Shilka", "ZSU_57_2", "S-60_Type59_Artillery"}), random=true })
+                table.insert(group.units, { veaf.randomlyChooseFrom({"ZSU-23-4 Shilka", "ZSU_57_2"}), random=true })
+                table.insert(group.units, { veaf.randomlyChooseFrom({"ZSU-23-4 Shilka", "ZSU_57_2"}), random=true })
             end
         elseif _actualDefense == 1 then
             -- _actualDefense = 1 : add a ZU23 on a truck (resp. a Vulcan)
             if side == veafCasMission.SIDE_BLUE then
                 table.insert(group.units, { "Vulcan", random=true })
             else
-                table.insert(group.units, { veaf.randomlyChooseFrom({"Ural-375 ZU-23", "ZSU_57_2", "S-60_Type59_Artillery"}), random=true })
+                table.insert(group.units, { veaf.randomlyChooseFrom({"Ural-375 ZU-23", "ZSU_57_2"}), random=true })
             end
         end
     end

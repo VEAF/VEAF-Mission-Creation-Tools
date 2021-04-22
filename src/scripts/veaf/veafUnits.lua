@@ -39,7 +39,7 @@ veafUnits = {}
 veafUnits.Id = "UNITS - "
 
 --- Version.
-veafUnits.Version = "1.6.2"
+veafUnits.Version = "1.7.0"
 
 -- trace level, specific to this module
 veafUnits.Trace = false
@@ -797,7 +797,11 @@ veafUnits.GroupsDatabase = {
         aliases = {"sa2", "sa-2", "fs"},
         group = {
             disposition = { h= 6, w= 8},
-            units = {{"SNR_75V", cell = 20}, {"p-19 s-125 sr", cell = 48}, {"S_75M_Volhov", cell = 2, hdg = 315}, {"S_75M_Volhov", cell = 6, hdg = 45}, {"S_75M_Volhov", cell = 17, hdg = 270}, {"S_75M_Volhov", cell = 24, hdg = 90}, {"S_75M_Volhov", cell = 34, hdg = 225}, {"S_75M_Volhov", cell = 38, hdg = 135}},
+            units = {
+                {"SNR_75V", cell = 20}, {"p-19 s-125 sr", cell = 48}, {"S_75M_Volhov", cell = 2, hdg = 315}, {"S_75M_Volhov", cell = 6, hdg = 45}, {"S_75M_Volhov", cell = 17, hdg = 270}, {"S_75M_Volhov", cell = 24, hdg = 90}, {"S_75M_Volhov", cell = 34, hdg = 225}, {"S_75M_Volhov", cell = 38, hdg = 135},
+                {"ZSU_57_2", number = {min=1, max=2}, random=true},
+                {"S-60_Type59_Artillery", number = {min=1, max=2}, random=true},
+            },
             description = "SA-2 SAM site",
             groupName = "SA2"
         },
@@ -839,7 +843,11 @@ veafUnits.GroupsDatabase = {
         aliases = {"sa3", "sa-3", "lb"},
         group = {
             disposition = { h= 7, w= 9},
-            units = {{"p-19 s-125 sr", cell = 1}, {"snr s-125 tr", cell = 33}, {"5p73 s-125 ln", cell = 18}, {"5p73 s-125 ln", cell = 30}, {"5p73 s-125 ln", cell = 61}},
+            units = {
+                {"p-19 s-125 sr", cell = 1}, {"snr s-125 tr", cell = 33}, {"5p73 s-125 ln", cell = 18}, {"5p73 s-125 ln", cell = 30}, {"5p73 s-125 ln", cell = 61},
+                {"ZSU_57_2", number = {min=1, max=2}, random=true},
+                {"S-60_Type59_Artillery", number = {min=1, max=2}, random=true},
+            },
             description = "SA-3 SAM site",
             groupName = "SA3"
         },
@@ -848,11 +856,14 @@ veafUnits.GroupsDatabase = {
         aliases = {"sa6", "sa-6", "06"},
         group = {
             disposition = { h= 7, w= 7},
-            units = {{"Kub 1S91 str", cell = 25}, {"Kub 2P25 ln", cell = 4, hdg = 180}, {"Kub 2P25 ln", cell = 22, hdg = 90}, {"Kub 2P25 ln", cell = 28, hdg = 270}, {"Kub 2P25 ln", cell = 46, hdg = 0},
-            {"Fuel Truck ATZ-10", number = 2, random},
-            {"GPU APA-80 on ZiL-131", number = 1, random},
-            {"Transport Ural-4320-31 Armored", number = 2, random},
-            {"CP Ural-375 PBU", number = 1, random},
+            units = {
+                {"Kub 1S91 str", cell = 25}, {"Kub 2P25 ln", cell = 4, hdg = 180}, {"Kub 2P25 ln", cell = 22, hdg = 90}, {"Kub 2P25 ln", cell = 28, hdg = 270}, {"Kub 2P25 ln", cell = 46, hdg = 0},
+                {"ZSU_57_2", number = {min=1, max=2}, random=true},
+                {"S-60_Type59_Artillery", number = {min=1, max=2}, random=true},
+                {"Fuel Truck ATZ-10", number = 2, random=true},
+                {"GPU APA-80 on ZiL-131", number = 1, random=true},
+                {"Transport Ural-4320-31 Armored", number = 2, random=true},
+                {"CP Ural-375 PBU", number = 1, random=true},
             },
             description = "SA-6 SAM site",
             groupName = "SA6"
@@ -862,7 +873,11 @@ veafUnits.GroupsDatabase = {
         aliases = {"sa11", "sa-11", "sd"},
         group = {
             disposition = { h= 9, w= 9},
-            units = {{"SA-11 Buk SR 9S18M1", cell = 42}, {"SA-11 Buk CC 9S470M1", cell = 39}, {"SA-11 Buk LN 9A310M1", cell = 1}, {"SA-11 Buk LN 9A310M1", cell = 5}, {"SA-11 Buk LN 9A310M1", cell = 9}, {"SA-11 Buk LN 9A310M1", cell = 72}, {"SA-11 Buk LN 9A310M1", cell = 76}, {"SA-11 Buk LN 9A310M1", cell = 81}},
+            units = {
+                {"SA-11 Buk SR 9S18M1", cell = 42}, {"SA-11 Buk CC 9S470M1", cell = 39}, {"SA-11 Buk LN 9A310M1", cell = 1}, {"SA-11 Buk LN 9A310M1", cell = 5}, {"SA-11 Buk LN 9A310M1", cell = 9}, {"SA-11 Buk LN 9A310M1", cell = 72}, {"SA-11 Buk LN 9A310M1", cell = 76}, {"SA-11 Buk LN 9A310M1", cell = 81},
+                {"ZSU_57_2", number = {min=1, max=2}, random=true},
+                {"S-60_Type59_Artillery", number = {min=1, max=2}, random=true},
+            },
             description = "SA-11 SAM site",
             groupName = "SA11"
         },
@@ -872,19 +887,21 @@ veafUnits.GroupsDatabase = {
         group = {
             disposition = { h= 10, w= 13},
             units = {
-                        {"S-300PS 40B6MD sr", cell = 130},
-                        {"S-300PS 40B6M tr", cell = 7},
-                        {"S-300PS 5P85C ln", cell = 29},
-                        {"S-300PS 5P85D ln", cell = 37},
-                        {"S-300PS 5P85D ln", cell = 43},
-                        {"S-300PS 5P85C ln", cell = 49},
-                        {"S-300PS 5P85C ln", cell = 57},
-                        {"S-300PS 5P85D ln", cell = 61},
-                        {"S-300PS 5P85D ln", cell = 71},
-                        {"S-300PS 5P85C ln", cell = 73},
-                        {"S-300PS 64H6E sr", cell = 98},
-                        {"S-300PS 54K6 cp", cell = 118}
-                    },
+                {"S-300PS 40B6MD sr", cell = 130},
+                {"S-300PS 40B6M tr", cell = 7},
+                {"S-300PS 5P85C ln", cell = 29},
+                {"S-300PS 5P85D ln", cell = 37},
+                {"S-300PS 5P85D ln", cell = 43},
+                {"S-300PS 5P85C ln", cell = 49},
+                {"S-300PS 5P85C ln", cell = 57},
+                {"S-300PS 5P85D ln", cell = 61},
+                {"S-300PS 5P85D ln", cell = 71},
+                {"S-300PS 5P85C ln", cell = 73},
+                {"S-300PS 64H6E sr", cell = 98},
+                {"S-300PS 54K6 cp", cell = 118},
+                {"ZSU_57_2", number = {min=1, max=2}, random=true},
+                {"S-60_Type59_Artillery", number = {min=1, max=2}, random=true},
+            },
             description = "S300 SAM site",
             groupName = "S300"
         },
@@ -893,7 +910,7 @@ veafUnits.GroupsDatabase = {
         aliases = {"infantry section", "infsec"},
         group = {
             disposition = { h= 10, w= 4},
-            units = {{"IFV BTR-80", cell=38, random},{"IFV BTR-80", cell=39, random},{"INF Soldier AK", number = {min=12, max=30}, random}, {"SA-18 Igla manpad", number = {min=0, max=2}, random}},
+            units = {{"IFV BTR-80", cell=38, random=true},{"IFV BTR-80", cell=39, random=true},{"INF Soldier AK", number = {min=12, max=30}, random=true}, {"SA-18 Igla manpad", number = {min=0, max=2}, random=true}},
             description = "Mechanized infantry section with APCs",
             groupName = "Mechanized infantry section"
         },
@@ -902,7 +919,7 @@ veafUnits.GroupsDatabase = {
         aliases = {"roland"},
         group = {
             disposition = { h= 3, w= 3},
-            units = {{"Roland Radar", random}, {"Roland ADS", random, hdg = 0}, {"Roland ADS", random, hdg = 225}, {"Roland ADS", random, hdg = 135}},
+            units = {{"Roland Radar", random=true}, {"Roland ADS", random=true, hdg = 0}, {"Roland ADS", random=true, hdg = 225}, {"Roland ADS", random=true, hdg = 135}},
             description = "Roland SAM site",
             groupName = "Roland"
         },
@@ -911,7 +928,7 @@ veafUnits.GroupsDatabase = {
         aliases = {"roland-noew"},
         group = {
             disposition = { h= 3, w= 3},
-            units = {{"Roland ADS", random, hdg = 0}, {"Roland ADS", random, hdg = 225}, {"Roland ADS", random, hdg = 135}},
+            units = {{"Roland ADS", random=true, hdg = 0}, {"Roland ADS", random=true, hdg = 225}, {"Roland ADS", random=true, hdg = 135}},
             description = "Roland SAM site",
             groupName = "Roland"
         },
@@ -959,7 +976,7 @@ veafUnits.GroupsDatabase = {
         aliases = {"US infgroup"},
         group = {
             disposition = { h = 5, w = 5},
-            units = {{"IFV Hummer", number = {min=1, max=2}, random},{"INF Soldier M249", number = {min=1, max=2}, random},{"INF Soldier M4 GRG", number = {min=2, max=4}, random},{"INF Soldier M4", number = {min=6, max=15}, random}},
+            units = {{"IFV Hummer", number = {min=1, max=2}, random=true},{"INF Soldier M249", number = {min=1, max=2}, random=true},{"INF Soldier M4 GRG", number = {min=2, max=4}, random=true},{"INF Soldier M4", number = {min=6, max=15}, random=true}},
             description = "US infantry group",
             groupName = "US infantry group",
         },
@@ -987,11 +1004,11 @@ veafUnits.GroupsDatabase = {
         group = {
             disposition = { h = 20, w = 20},
             units = {
-                {"IFV Hummer", number = {min=2, max=4}, random},
-                {"Truck M 818", number = {min=3, max=6}, random},
-                {"Truck M978 HEMTT Tanker", number = {min=0, max=3}, random},
-                {"Truck Predator GCS", number = {min=0, max=2}, random},
-                {"Truck Predator TrojanSpirit", number = {min=0, max=2}, random},
+                {"IFV Hummer", number = {min=2, max=4}, random=true},
+                {"Truck M 818", number = {min=3, max=6}, random=true},
+                {"Truck M978 HEMTT Tanker", number = {min=0, max=3}, random=true},
+                {"Truck Predator GCS", number = {min=0, max=2}, random=true},
+                {"Truck Predator TrojanSpirit", number = {min=0, max=2}, random=true},
             },
             description = "US infantry group",
             groupName = "US infantry group",
@@ -1002,20 +1019,22 @@ veafUnits.GroupsDatabase = {
         group = {
             disposition = { h = 20, w = 20},
             units = {
-                {"2S6 Tunguska", number = {min=0, max=1}, random},
-                {"Strela-10M3", number = {min=0, max=1}, random},
-                {"Strela-1 9P31", number = {min=0, max=1}, random},
-                {"ZSU-23-4 Shilka", number = {min=0, max=2}, random},
-                {"Ural-375 ZU-23", number = {min=0, max=2}, random},
-                {"UAZ-469", number = {min=2, max=4}, random},
-                {"Truck SKP-11", number = {min=1, max=3}, random},
-                {"Truck Ural-375 PBU", number = {min=1, max=3}, random},
-                {"Truck Ural-375", number = {min=1, max=3}, random},
-                {"Truck Ural-4320 APA-5D", number = {min=1, max=3}, random},
-                {"Truck Ural-4320-31", number = {min=1, max=3}, random},
-                {"Truck Ural-4320T", number = {min=1, max=3}, random},
-                {"Truck ZiL-131 APA-80", number = {min=1, max=3}, random},
-                {"Truck ZIL-131 KUNG", number = {min=1, max=3}, random},
+                {"2S6 Tunguska", number = {min=0, max=1}, random=true},
+                {"Strela-10M3", number = {min=0, max=1}, random=true},
+                {"Strela-1 9P31", number = {min=0, max=1}, random=true},
+                {"ZSU-23-4 Shilka", number = {min=0, max=2}, random=true},
+                {"ZSU_57_2", number = {min=0, max=1}, random=true},
+                {"S-60_Type59_Artillery", number = {min=0, max=1}, random=true},
+                {"Ural-375 ZU-23", number = {min=0, max=2}, random=true},
+                {"UAZ-469", number = {min=2, max=4}, random=true},
+                {"Truck SKP-11", number = {min=1, max=3}, random=true},
+                {"Truck Ural-375 PBU", number = {min=1, max=3}, random=true},
+                {"Truck Ural-375", number = {min=1, max=3}, random=true},
+                {"Truck Ural-4320 APA-5D", number = {min=1, max=3}, random=true},
+                {"Truck Ural-4320-31", number = {min=1, max=3}, random=true},
+                {"Truck Ural-4320T", number = {min=1, max=3}, random=true},
+                {"Truck ZiL-131 APA-80", number = {min=1, max=3}, random=true},
+                {"Truck ZIL-131 KUNG", number = {min=1, max=3}, random=true},
             },
             description = "RU supply convoy with defense",
             groupName = "RU supply convoy with defense",
@@ -1026,17 +1045,19 @@ veafUnits.GroupsDatabase = {
         group = {
             disposition = { h = 20, w = 20},
             units = {
-                {"ZSU-23-4 Shilka", number = {min=0, max=2}, random},
-                {"Ural-375 ZU-23", number = {min=0, max=2}, random},
-                {"UAZ-469", number = {min=2, max=4}, random},
-                {"Truck SKP-11", number = {min=1, max=3}, random},
-                {"Truck Ural-375 PBU", number = {min=1, max=3}, random},
-                {"Truck Ural-375", number = {min=1, max=3}, random},
-                {"Truck Ural-4320 APA-5D", number = {min=1, max=3}, random},
-                {"Truck Ural-4320-31", number = {min=1, max=3}, random},
-                {"Truck Ural-4320T", number = {min=1, max=3}, random},
-                {"Truck ZiL-131 APA-80", number = {min=1, max=3}, random},
-                {"Truck ZIL-131 KUNG", number = {min=1, max=3}, random},
+                {"ZSU-23-4 Shilka", number = {min=0, max=2}, random=true},
+                {"ZSU_57_2", number = {min=0, max=1}, random=true},
+                {"S-60_Type59_Artillery", number = {min=0, max=1}, random=true},
+                {"Ural-375 ZU-23", number = {min=0, max=2}, random=true},
+                {"UAZ-469", number = {min=2, max=4}, random=true},
+                {"Truck SKP-11", number = {min=1, max=3}, random=true},
+                {"Truck Ural-375 PBU", number = {min=1, max=3}, random=true},
+                {"Truck Ural-375", number = {min=1, max=3}, random=true},
+                {"Truck Ural-4320 APA-5D", number = {min=1, max=3}, random=true},
+                {"Truck Ural-4320-31", number = {min=1, max=3}, random=true},
+                {"Truck Ural-4320T", number = {min=1, max=3}, random=true},
+                {"Truck ZiL-131 APA-80", number = {min=1, max=3}, random=true},
+                {"Truck ZIL-131 KUNG", number = {min=1, max=3}, random=true},
             },
             description = "RU supply convoy with light defense",
             groupName = "RU supply convoy with light defense",
@@ -1047,15 +1068,15 @@ veafUnits.GroupsDatabase = {
         group = {
             disposition = { h = 20, w = 20},
             units = {
-                {"UAZ-469", number = {min=2, max=4}, random},
-                {"Truck SKP-11", number = {min=1, max=3}, random},
-                {"Truck Ural-375 PBU", number = {min=1, max=3}, random},
-                {"Truck Ural-375", number = {min=1, max=3}, random},
-                {"Truck Ural-4320 APA-5D", number = {min=1, max=3}, random},
-                {"Truck Ural-4320-31", number = {min=1, max=3}, random},
-                {"Truck Ural-4320T", number = {min=1, max=3}, random},
-                {"Truck ZiL-131 APA-80", number = {min=1, max=3}, random},
-                {"Truck ZIL-131 KUNG", number = {min=1, max=3}, random},
+                {"UAZ-469", number = {min=2, max=4}, random=true},
+                {"Truck SKP-11", number = {min=1, max=3}, random=true},
+                {"Truck Ural-375 PBU", number = {min=1, max=3}, random=true},
+                {"Truck Ural-375", number = {min=1, max=3}, random=true},
+                {"Truck Ural-4320 APA-5D", number = {min=1, max=3}, random=true},
+                {"Truck Ural-4320-31", number = {min=1, max=3}, random=true},
+                {"Truck Ural-4320T", number = {min=1, max=3}, random=true},
+                {"Truck ZiL-131 APA-80", number = {min=1, max=3}, random=true},
+                {"Truck ZIL-131 KUNG", number = {min=1, max=3}, random=true},
             },
             description = "RU supply convoy with no defense",
             groupName = "RU supply convoy with no defense",
@@ -1067,20 +1088,22 @@ veafUnits.GroupsDatabase = {
         group = {
             disposition = { h = 20, w = 20},
             units = {
-                {"2S6 Tunguska", number = {min=0, max=1}, random},
-                {"Strela-10M3", number = {min=0, max=1}, random},
-                {"Strela-1 9P31", number = {min=0, max=1}, random},
-                {"ZSU-23-4 Shilka", number = {min=0, max=2}, random},
-                {"Ural-375 ZU-23", number = {min=0, max=2}, random},
-                {"UAZ-469", number = {min=1, max=2}, random},
-                {"Truck SKP-11", number = {min=1, max=2}, random},
-                {"Truck Ural-375 PBU", number = {min=0, max=2}, random},
-                {"Truck Ural-375", number = {min=0, max=2}, random},
-                {"Truck Ural-4320 APA-5D", number = {min=0, max=2}, random},
-                {"Truck Ural-4320-31", number = {min=0, max=2}, random},
-                {"Truck Ural-4320T", number = {min=0, max=2}, random},
-                {"Truck ZiL-131 APA-80", number = {min=0, max=2}, random},
-                {"Truck ZIL-131 KUNG", number = {min=0, max=2}, random},
+                {"2S6 Tunguska", number = {min=0, max=1}, random=true},
+                {"Strela-10M3", number = {min=0, max=1}, random=true},
+                {"Strela-1 9P31", number = {min=0, max=1}, random=true},
+                {"ZSU-23-4 Shilka", number = {min=0, max=2}, random=true},
+                {"ZSU_57_2", number = {min=0, max=1}, random=true},
+                {"S-60_Type59_Artillery", number = {min=0, max=1}, random=true},
+                {"Ural-375 ZU-23", number = {min=0, max=2}, random=true},
+                {"UAZ-469", number = {min=1, max=2}, random=true},
+                {"Truck SKP-11", number = {min=1, max=2}, random=true},
+                {"Truck Ural-375 PBU", number = {min=0, max=2}, random=true},
+                {"Truck Ural-375", number = {min=0, max=2}, random=true},
+                {"Truck Ural-4320 APA-5D", number = {min=0, max=2}, random=true},
+                {"Truck Ural-4320-31", number = {min=0, max=2}, random=true},
+                {"Truck Ural-4320T", number = {min=0, max=2}, random=true},
+                {"Truck ZiL-131 APA-80", number = {min=0, max=2}, random=true},
+                {"Truck ZIL-131 KUNG", number = {min=0, max=2}, random=true},
             },
             description = "RU small supply convoy with defense",
             groupName = "RU small supply convoy with defense",
@@ -1091,17 +1114,19 @@ veafUnits.GroupsDatabase = {
         group = {
             disposition = { h = 20, w = 20},
             units = {
-                {"ZSU-23-4 Shilka", number = {min=0, max=2}, random},
-                {"Ural-375 ZU-23", number = {min=0, max=2}, random},
-                {"UAZ-469", number = {min=1, max=2}, random},
-                {"Truck SKP-11", number = {min=1, max=2}, random},
-                {"Truck Ural-375 PBU", number = {min=0, max=2}, random},
-                {"Truck Ural-375", number = {min=0, max=2}, random},
-                {"Truck Ural-4320 APA-5D", number = {min=0, max=2}, random},
-                {"Truck Ural-4320-31", number = {min=0, max=2}, random},
-                {"Truck Ural-4320T", number = {min=0, max=2}, random},
-                {"Truck ZiL-131 APA-80", number = {min=0, max=2}, random},
-                {"Truck ZIL-131 KUNG", number = {min=0, max=2}, random},
+                {"ZSU-23-4 Shilka", number = {min=0, max=2}, random=true},
+                {"ZSU_57_2", number = {min=0, max=1}, random=true},
+                {"S-60_Type59_Artillery", number = {min=0, max=1}, random=true},
+                {"Ural-375 ZU-23", number = {min=0, max=2}, random=true},
+                {"UAZ-469", number = {min=1, max=2}, random=true},
+                {"Truck SKP-11", number = {min=1, max=2}, random=true},
+                {"Truck Ural-375 PBU", number = {min=0, max=2}, random=true},
+                {"Truck Ural-375", number = {min=0, max=2}, random=true},
+                {"Truck Ural-4320 APA-5D", number = {min=0, max=2}, random=true},
+                {"Truck Ural-4320-31", number = {min=0, max=2}, random=true},
+                {"Truck Ural-4320T", number = {min=0, max=2}, random=true},
+                {"Truck ZiL-131 APA-80", number = {min=0, max=2}, random=true},
+                {"Truck ZIL-131 KUNG", number = {min=0, max=2}, random=true},
             },
             description = "RU small supply convoy with light defense",
             groupName = "RU small supply convoy with light defense",
@@ -1112,15 +1137,15 @@ veafUnits.GroupsDatabase = {
         group = {
             disposition = { h = 20, w = 20},
             units = {
-                {"UAZ-469", number = {min=1, max=2}, random},
-                {"Truck SKP-11", number = {min=1, max=2}, random},
-                {"Truck Ural-375 PBU", number = {min=0, max=2}, random},
-                {"Truck Ural-375", number = {min=0, max=2}, random},
-                {"Truck Ural-4320 APA-5D", number = {min=0, max=2}, random},
-                {"Truck Ural-4320-31", number = {min=0, max=2}, random},
-                {"Truck Ural-4320T", number = {min=0, max=2}, random},
-                {"Truck ZiL-131 APA-80", number = {min=0, max=2}, random},
-                {"Truck ZIL-131 KUNG", number = {min=0, max=2}, random},
+                {"UAZ-469", number = {min=1, max=2}, random=true},
+                {"Truck SKP-11", number = {min=1, max=2}, random=true},
+                {"Truck Ural-375 PBU", number = {min=0, max=2}, random=true},
+                {"Truck Ural-375", number = {min=0, max=2}, random=true},
+                {"Truck Ural-4320 APA-5D", number = {min=0, max=2}, random=true},
+                {"Truck Ural-4320-31", number = {min=0, max=2}, random=true},
+                {"Truck Ural-4320T", number = {min=0, max=2}, random=true},
+                {"Truck ZiL-131 APA-80", number = {min=0, max=2}, random=true},
+                {"Truck ZIL-131 KUNG", number = {min=0, max=2}, random=true},
             },
             description = "RU small supply convoy with no defense",
             groupName = "RU small supply convoy with no defense",
@@ -1131,9 +1156,9 @@ veafUnits.GroupsDatabase = {
         group = {
             disposition = { h = 20, w = 20},
             units = {
-                {"Dry-cargo ship-1", number = {min=1, max=3}, random, size=150},
-                {"Dry-cargo ship-2", number = {min=1, max=3}, random, size=150},
-                {"ELNYA", number = {min=1, max=3}, random, size=150},
+                {"Dry-cargo ship-1", number = {min=1, max=3}, random=true, size=150},
+                {"Dry-cargo ship-2", number = {min=1, max=3}, random=true, size=150},
+                {"ELNYA", number = {min=1, max=3}, random=true, size=150},
             },
             description = "Cargo ships with no defense",
             groupName = "Cargo ships with no defense",
@@ -1144,12 +1169,12 @@ veafUnits.GroupsDatabase = {
         group = {
             disposition = { h = 20, w = 20},
             units = {
-                {"Dry-cargo ship-1", number = {min=1, max=3}, random, size=150},
-                {"Dry-cargo ship-2", number = {min=1, max=3}, random, size=150},
-                {"ELNYA", number = {min=1, max=3}, random, size=150},
-                {"MOLNIYA", number = {min=1, max=2}, random, size=150},
-                {"ALBATROS", number = {min=1, max=2}, random, size=150},
-                {"NEUSTRASH", number = {min=0, max=1}, random, size=150},
+                {"Dry-cargo ship-1", number = {min=1, max=3}, random=true, size=150},
+                {"Dry-cargo ship-2", number = {min=1, max=3}, random=true, size=150},
+                {"ELNYA", number = {min=1, max=3}, random=true, size=150},
+                {"MOLNIYA", number = {min=1, max=2}, random=true, size=150},
+                {"ALBATROS", number = {min=1, max=2}, random=true, size=150},
+                {"NEUSTRASH", number = {min=0, max=1}, random=true, size=150},
             },
             description = "Cargo ships with escort",
             groupName = "Cargo ships with escort",
@@ -1160,9 +1185,9 @@ veafUnits.GroupsDatabase = {
         group = {
             disposition = { h = 20, w = 20},
             units = {
-                {"MOLNIYA", number = {min=2, max=3}, random, size=150},
-                {"ALBATROS", number = {min=2, max=3}, random, size=150},
-                {"NEUSTRASH", number = {min=1, max=2}, random, size=150},
+                {"MOLNIYA", number = {min=2, max=3}, random=true, size=150},
+                {"ALBATROS", number = {min=2, max=3}, random=true, size=150},
+                {"NEUSTRASH", number = {min=1, max=2}, random=true, size=150},
             },
             description = "Combat ships with possible FFG defense",
             groupName = "Combat ships",
@@ -1180,11 +1205,11 @@ veafUnits.GroupsDatabase = {
                 -- hawk battery
                 {"Hawk pcp", cell = 8}, {"Hawk sr", cell = 13}, {"Hawk tr", cell = 15}, {"Hawk ln", cell = 1, hdg = 225}, {"Hawk ln", cell = 3, hdg = 0 }, {"Hawk ln", cell = 21, hdg = 135},
                 -- Some M48 Chaparral
-                {"M48 Chaparral", number = {min=2, max=4}, random},
+                {"M48 Chaparral", number = {min=2, max=4}, random=true},
                 -- Some Gepards
-                {"Gepard", number = {min=2, max=4}, random},
+                {"Gepard", number = {min=2, max=4}, random=true},
                 -- a supply truck or three
-                {"Transport M818", number = {min=1, max=3}, random}, 
+                {"Transport M818", number = {min=1, max=3}, random=true}, 
             },
             description = "generateAirDefenseGroup-BLUE-5",
             groupName = "generateAirDefenseGroup-BLUE-5",
@@ -1197,13 +1222,13 @@ veafUnits.GroupsDatabase = {
             disposition = { h= 7, w= 7},
             units = {
                 -- Roland battery
-                {"Roland Radar", random}, {"Roland ADS", random, hdg = 0}, {"Roland ADS", random, hdg = 225}, {"Roland ADS", random, hdg = 135},
+                {"Roland Radar", random=true}, {"Roland ADS", random=true, hdg = 0}, {"Roland ADS", random=true, hdg = 225}, {"Roland ADS", random=true, hdg = 135},
                 -- Some M48 Chaparral
-                {"M48 Chaparral", number = {min=2, max=4}, random},
+                {"M48 Chaparral", number = {min=2, max=4}, random=true},
                 -- Some Gepards
-                {"Gepard", number = {min=2, max=4}, random},
+                {"Gepard", number = {min=2, max=4}, random=true},
                 -- a supply truck or three
-                {"Transport M818", number = {min=1, max=3}, random}, 
+                {"Transport M818", number = {min=1, max=3}, random=true}, 
             },
             description = "generateAirDefenseGroup-BLUE-4",
             groupName = "generateAirDefenseGroup-BLUE-4",
@@ -1216,13 +1241,13 @@ veafUnits.GroupsDatabase = {
             disposition = { h= 7, w= 7},
             units = {
                 -- M6 Linebacker battery
-                {"M6 Linebacker", hdg = 0, random}, {"M6 Linebacker", hdg = 90, random}, {"M6 Linebacker", hdg = 180, random}, {"M6 Linebacker", hdg = 270, random}, 
+                {"M6 Linebacker", hdg = 0, random=true}, {"M6 Linebacker", hdg = 90, random=true}, {"M6 Linebacker", hdg = 180, random=true}, {"M6 Linebacker", hdg = 270, random=true}, 
                 -- Some M1097 Avenger
-                {"M1097 Avenger", number = {min=2, max=4}, random},
+                {"M1097 Avenger", number = {min=2, max=4}, random=true},
                 -- Some Gepards
-                {"Gepard", number = {min=2, max=4}, random},
+                {"Gepard", number = {min=2, max=4}, random=true},
                 -- a supply truck or three
-                {"Transport M818", number = {min=1, max=3}, random}, 
+                {"Transport M818", number = {min=1, max=3}, random=true}, 
             },
             description = "generateAirDefenseGroup-BLUE-3",
             groupName = "generateAirDefenseGroup-BLUE-3",
@@ -1235,11 +1260,11 @@ veafUnits.GroupsDatabase = {
             disposition = { h= 7, w= 7},
             units = {
                 -- Some M1097 Avenger
-                {"M1097 Avenger", number = {min=2, max=4}, random},
+                {"M1097 Avenger", number = {min=2, max=4}, random=true},
                 -- Some Vulcans
-                {"Vulcan", number = {min=2, max=4}, random},
+                {"Vulcan", number = {min=2, max=4}, random=true},
                 -- a supply truck or three
-                {"Transport M818", number = {min=1, max=3}, random}, 
+                {"Transport M818", number = {min=1, max=3}, random=true}, 
             },
             description = "generateAirDefenseGroup-BLUE-2",
             groupName = "generateAirDefenseGroup-BLUE-2",
@@ -1252,11 +1277,11 @@ veafUnits.GroupsDatabase = {
             disposition = { h= 7, w= 7},
             units = {
                 -- Some M1097 Avenger
-                {"M1097 Avenger", number = {min=0, max=1}, random},
+                {"M1097 Avenger", number = {min=0, max=1}, random=true},
                 -- Some Vulcans
-                {"Vulcan", number = {min=1, max=3}, random},
+                {"Vulcan", number = {min=1, max=3}, random=true},
                 -- a supply truck or three
-                {"Transport M818", number = {min=1, max=3}, random}, 
+                {"Transport M818", number = {min=1, max=3}, random=true}, 
             },
             description = "generateAirDefenseGroup-BLUE-1",
             groupName = "generateAirDefenseGroup-BLUE-1",
@@ -1269,9 +1294,9 @@ veafUnits.GroupsDatabase = {
             disposition = { h= 7, w= 7},
             units = {
                 -- Some AAV7
-                {"AAV7", number = {min=1, max=3}, random},
+                {"AAV7", number = {min=1, max=3}, random=true},
                 -- a supply truck or three
-                {"Transport M818", number = {min=1, max=3}, random}, 
+                {"Transport M818", number = {min=1, max=3}, random=true}, 
             },
             description = "generateAirDefenseGroup-BLUE-0",
             groupName = "generateAirDefenseGroup-BLUE-0",
@@ -1284,17 +1309,21 @@ veafUnits.GroupsDatabase = {
             disposition = { h= 7, w= 7},
             units = {
                 -- the search radar
-                {"Dog Ear radar", random},  
+                {"Dog Ear radar", random=true},  
                 -- Tor battery
-                {"Tor 9A331", hdg = 180, number = {min=1, max=1}, random}, 
+                {"Tor 9A331", hdg = 180, number = 1, random=true}, 
                 -- SA-8 battery                
-                {"Osa 9A33 ln", number = {min=1, max=2}, random}, 
+                {"Osa 9A33 ln", number = {min=1, max=2}, random=true}, 
                 -- Some SA13
-                {"Strela-10M3", number = {min=1, max=2}, random},
+                {"Strela-10M3", number = {min=1, max=2}, random=true},
                 -- Some Tunguskas
-                {"2S6 Tunguska", number = {min=1, max=2}, random},
+                {"2S6 Tunguska", number = {min=1, max=2}, random=true},
+                -- Some ZU-57-2
+                {"ZSU_57_2", number = 1, random=true},
+                -- Some S-60
+                {"S-60_Type59_Artillery", number = 1, random=true},
                 -- a supply truck or three
-                {"Transport Ural-4320-31 Armored", number = {min=1, max=3}, random}, 
+                {"Transport Ural-4320-31 Armored", number = {min=1, max=3}, random=true}, 
             },
             description = "generateAirDefenseGroup-RED-5",
             groupName = "generateAirDefenseGroup-RED-5",
@@ -1307,15 +1336,19 @@ veafUnits.GroupsDatabase = {
             disposition = { h= 7, w= 7},
             units = {
                 -- the search radar
-                {"Dog Ear radar", random},  
+                {"Dog Ear radar", random=true},  
                 -- SA-8 battery                
-                {"Osa 9A33 ln", number = {min=1, max=2}, random}, 
+                {"Osa 9A33 ln", number = {min=1, max=2}, random=true}, 
                 -- Some SA13
-                {"Strela-10M3", number = {min=1, max=2}, random},
+                {"Strela-10M3", number = {min=1, max=2}, random=true},
                 -- Some Shilkas
-                {"ZSU-23-4 Shilka", number = {min=1, max=2}, random},
+                {"ZSU-23-4 Shilka", number = {min=1, max=2}, random=true},
+                -- Some ZU-57-2
+                {"ZSU_57_2", number = {min=1, max=1}, random=true},
+                -- Some S-60
+                {"S-60_Type59_Artillery", number = {min=0, max=1}, random=true},
                 -- a supply truck or three
-                {"Transport Ural-4320-31 Armored", number = {min=1, max=3}, random}, 
+                {"Transport Ural-4320-31 Armored", number = {min=1, max=3}, random=true}, 
             },
             description = "generateAirDefenseGroup-RED-4",
             groupName = "generateAirDefenseGroup-RED-4",
@@ -1328,15 +1361,19 @@ veafUnits.GroupsDatabase = {
             disposition = { h= 7, w= 7},
             units = {
                 -- the search radar
-                {"Dog Ear radar", random},  
+                {"Dog Ear radar", random=true},  
                 -- SA13 battery
-                {"Strela-10M3", number = {min=1, max=2}, random},
+                {"Strela-10M3", number = {min=1, max=2}, random=true},
                 -- Some SA9
-                {"Strela-1 9P31", number = {min=1, max=2}, random},
+                {"Strela-1 9P31", number = {min=1, max=2}, random=true},
                 -- Some Shilkas
-                {"ZSU-23-4 Shilka", number = {min=1, max=2}, random},
+                {"ZSU-23-4 Shilka", number = {min=1, max=2}, random=true},
+                -- Some ZU-57-2
+                {"ZSU_57_2", number = {min=0, max=1}, random=true},
+                -- Some S-60
+                {"S-60_Type59_Artillery", number = {min=0, max=1}, random=true},
                 -- a supply truck or three
-                {"Transport Ural-4320-31 Armored", number = {min=1, max=3}, random}, 
+                {"Transport Ural-4320-31 Armored", number = {min=1, max=3}, random=true}, 
             },
             description = "generateAirDefenseGroup-RED-3",
             groupName = "generateAirDefenseGroup-RED-3",
@@ -1349,13 +1386,17 @@ veafUnits.GroupsDatabase = {
             disposition = { h= 7, w= 7},
             units = {
                 -- the search radar
-                {"Dog Ear radar", random},  
+                {"Dog Ear radar", random=true},  
                 -- SA9 battery
-                {"Strela-1 9P31", number = {min=1, max=2}, random}, 
+                {"Strela-1 9P31", number = {min=1, max=2}, random=true}, 
                 -- Some Shilkas
-                {"ZSU-23-4 Shilka", number = {min=1, max=2}, random},
+                {"ZSU-23-4 Shilka", number = {min=1, max=2}, random=true},
+                -- Some ZU-57-2
+                {"ZSU_57_2", number = {min=0, max=1}, random=true},
+                -- Some S-60
+                {"S-60_Type59_Artillery", number = {min=0, max=1}, random=true},
                 -- a supply truck or three
-                {"Transport Ural-4320-31 Armored", number = {min=1, max=3}, random}, 
+                {"Transport Ural-4320-31 Armored", number = {min=1, max=3}, random=true}, 
             },
             description = "generateAirDefenseGroup-RED-2",
             groupName = "generateAirDefenseGroup-RED-2",
@@ -1368,11 +1409,13 @@ veafUnits.GroupsDatabase = {
             disposition = { h= 7, w= 7},
             units = {
                 -- the search radar
-                {"Dog Ear radar", random},  
+                {"Dog Ear radar", random=true},  
                 -- Some Shilkas
-                {"ZSU-23-4 Shilka", number = {min=1, max=2}, random},
+                {"ZSU-23-4 Shilka", number = {min=1, max=2}, random=true},
+                -- Some ZU-57-2
+                {"ZSU_57_2", number = {min=0, max=1}, random=true},
                 -- a supply truck or three
-                {"Transport Ural-4320-31 Armored", number = {min=1, max=3}, random}, 
+                {"Transport Ural-4320-31 Armored", number = {min=1, max=3}, random=true}, 
             },
             description = "generateAirDefenseGroup-RED-1",
             groupName = "generateAirDefenseGroup-RED-1",
@@ -1385,9 +1428,11 @@ veafUnits.GroupsDatabase = {
             disposition = { h= 7, w= 7},
             units = {
                 -- Some Ural-375 ZU-23
-                {"Ural-375 ZU-23", number = {min=1, max=2}, random},
+                {"Ural-375 ZU-23", number = {min=0, max=1}, random=true},
+                -- Some S-60
+                {"S-60_Type59_Artillery", number = {min=0, max=1}, random=true},
                 -- a supply truck or three
-                {"Transport Ural-4320-31 Armored", number = {min=1, max=3}, random}, 
+                {"Transport Ural-4320-31 Armored", number = {min=1, max=3}, random=true}, 
             },
             description = "generateAirDefenseGroup-RED-0",
             groupName = "generateAirDefenseGroup-RED-0",
@@ -1404,9 +1449,9 @@ veafUnits.GroupsDatabase = {
                 -- the search radar
                 {"Dog Ear radar", cell = 13},  
                 -- the actual air defense units
-                {"ZSU-23-4 Shilka", hdg = 0, random}, {"ZSU-23-4 Shilka", hdg = 90, random}, {"ZSU-23-4 Shilka", hdg = 180, random}, {"ZSU-23-4 Shilka", hdg = 270, random}, 
+                {"ZSU-23-4 Shilka", hdg = 0, random=true}, {"ZSU-23-4 Shilka", hdg = 90, random=true}, {"ZSU-23-4 Shilka", hdg = 180, random=true}, {"ZSU-23-4 Shilka", hdg = 270, random=true}, 
                 -- a supply truck or three
-                {"Transport Ural-4320-31 Armored", number = {min=1, max=3}, random}, 
+                {"Transport Ural-4320-31 Armored", number = {min=1, max=3}, random=true}, 
             },
             description = "ZSU-23-4 battery",
             groupName = "ZSU-23-4 battery"
@@ -1420,9 +1465,9 @@ veafUnits.GroupsDatabase = {
                 -- the search radar
                 {"Dog Ear radar", cell = 13},  
                 -- the actual air defense units
-                {"Strela-1 9P31", hdg = 0, random}, {"Strela-1 9P31", hdg = 90, random}, {"Strela-1 9P31", hdg = 180, random}, {"Strela-1 9P31", hdg = 270, random}, 
+                {"Strela-1 9P31", hdg = 0, random=true}, {"Strela-1 9P31", hdg = 90, random=true}, {"Strela-1 9P31", hdg = 180, random=true}, {"Strela-1 9P31", hdg = 270, random=true}, 
                 -- a supply truck or three
-                {"Transport Ural-4320-31 Armored", number = {min=1, max=3}, random}, 
+                {"Transport Ural-4320-31 Armored", number = {min=1, max=3}, random=true}, 
             },
             description = "SA-9 battery",
             groupName = "SA-9 battery"
@@ -1436,9 +1481,9 @@ veafUnits.GroupsDatabase = {
                 -- the search radar
                 {"Dog Ear radar", cell = 13},  
                 -- the actual air defense units
-                {"Strela-10M3", hdg = 0, random}, {"Strela-10M3", hdg = 90, random}, {"Strela-10M3", hdg = 180, random}, {"Strela-10M3", hdg = 270, random}, 
+                {"Strela-10M3", hdg = 0, random=true}, {"Strela-10M3", hdg = 90, random=true}, {"Strela-10M3", hdg = 180, random=true}, {"Strela-10M3", hdg = 270, random=true}, 
                 -- a supply truck or three
-                {"Transport Ural-4320-31 Armored", number = {min=1, max=3}, random}, 
+                {"Transport Ural-4320-31 Armored", number = {min=1, max=3}, random=true}, 
             },
             description = "SA-13 battery",
             groupName = "SA-13 battery"

@@ -72,7 +72,7 @@ veafCasMission = {}
 veafCasMission.Id = "CAS MISSION - "
 
 --- Version.
-veafCasMission.Version = "1.9.1"
+veafCasMission.Version = "1.10.0"
 
 -- trace level, specific to this module
 veafCasMission.Trace = false
@@ -325,25 +325,25 @@ local function _addDefenseForGroups(group, side, defense, multiple, forInfantry)
                 if forInfantry then
                     -- only spawn manpads
                     for _ = 1, math.random(1,_actualDefense-2) do
-                        table.insert(group.units, { "Stinger comm", random })
-                        table.insert(group.units, { "Soldier stinger", random })
+                        table.insert(group.units, { "Stinger comm", random=true })
+                        table.insert(group.units, { "Soldier stinger", random=true })
                     end
                 else
-                    table.insert(group.units, { "M1097 Avenger", random })
-                    table.insert(group.units, { "M6 Linebacker", random })
+                    table.insert(group.units, { "M1097 Avenger", random=true })
+                    table.insert(group.units, { "M6 Linebacker", random=true })
                 end
             else
                 if forInfantry then
                     -- only spawn manpads
                     for _ = 1, math.random(1,_actualDefense-2) do
                         -- for _actualDefense = 4-5, spawn a modern Igla-S team
-                        table.insert(group.units, { "SA-18 Igla-S comm", random })
-                        table.insert(group.units, { "SA-18 Igla-S manpad", random })
+                        table.insert(group.units, { "SA-18 Igla-S comm", random=true })
+                        table.insert(group.units, { "SA-18 Igla-S manpad", random=true })
                     end
                 else
-                    table.insert(group.units, { veaf.randomlyChooseFrom({"Strela-1 9P31", "Strela-10M3"}), random })
-                    table.insert(group.units, { "Osa 9A33 ln", random })
-                    table.insert(group.units, { "2S6 Tunguska", random })
+                    table.insert(group.units, { veaf.randomlyChooseFrom({"Strela-1 9P31", "Strela-10M3"}), random=true })
+                    table.insert(group.units, { "Osa 9A33 ln", random=true })
+                    table.insert(group.units, { "2S6 Tunguska", random=true })
                 end
             end
         elseif _actualDefense == 5 then
@@ -352,24 +352,24 @@ local function _addDefenseForGroups(group, side, defense, multiple, forInfantry)
                 if forInfantry then
                     -- only spawn manpads
                     for _ = 1, math.random(1,_actualDefense-2) do
-                        table.insert(group.units, { "Stinger comm", random })
-                        table.insert(group.units, { "Soldier stinger", random })
+                        table.insert(group.units, { "Stinger comm", random=true })
+                        table.insert(group.units, { "Soldier stinger", random=true })
                     end
                 else
-                    table.insert(group.units, { "M1097 Avenger", random })
-                    table.insert(group.units, { "M6 Linebacker", random })
+                    table.insert(group.units, { "M1097 Avenger", random=true })
+                    table.insert(group.units, { "M6 Linebacker", random=true })
                 end
             else
                 if forInfantry then
                     -- only spawn manpads
                     for _ = 1, math.random(1,_actualDefense-2) do
                         -- for _actualDefense = 4-5, spawn a modern Igla-S team
-                        table.insert(group.units, { "SA-18 Igla-S comm", random })
-                        table.insert(group.units, { "SA-18 Igla-S manpad", random })
+                        table.insert(group.units, { "SA-18 Igla-S comm", random=true })
+                        table.insert(group.units, { "SA-18 Igla-S manpad", random=true })
                     end
                 else
-                    table.insert(group.units, { "Osa 9A33 ln", random })
-                    table.insert(group.units, { "2S6 Tunguska", random })
+                    table.insert(group.units, { "Osa 9A33 ln", random=true })
+                    table.insert(group.units, { "2S6 Tunguska", random=true })
                 end
             end
         elseif _actualDefense == 4 then
@@ -378,24 +378,24 @@ local function _addDefenseForGroups(group, side, defense, multiple, forInfantry)
                 if forInfantry then
                     -- only spawn manpads
                     for _ = 1, math.random(1,_actualDefense-2) do
-                        table.insert(group.units, { "Stinger comm", random })
-                        table.insert(group.units, { "Soldier stinger", random })
+                        table.insert(group.units, { "Stinger comm", random=true })
+                        table.insert(group.units, { "Soldier stinger", random=true })
                     end
                 else
-                    table.insert(group.units, { "Gepard", random })
-                    table.insert(group.units, { "M6 Linebacker", random })
+                    table.insert(group.units, { "Gepard", random=true })
+                    table.insert(group.units, { "M6 Linebacker", random=true })
                 end
             else
                 if forInfantry then
                     -- only spawn manpads
                     for _ = 1, math.random(1,_actualDefense-2) do
                         -- for _actualDefense = 4-5, spawn a modern Igla-S team
-                        table.insert(group.units, { "SA-18 Igla-S comm", random })
-                        table.insert(group.units, { "SA-18 Igla-S manpad", random })
+                        table.insert(group.units, { "SA-18 Igla-S comm", random=true })
+                        table.insert(group.units, { "SA-18 Igla-S manpad", random=true })
                     end
                 else
-                    table.insert(group.units, { "ZSU-23-4 Shilka", random })
-                    table.insert(group.units, { "2S6 Tunguska", random })
+                    table.insert(group.units, { veaf.randomlyChooseFrom({"ZSU-23-4 Shilka", "ZSU-23-4 Shilka", "ZSU_57_2", "S-60_Type59_Artillery"}), random=true })
+                    table.insert(group.units, { "2S6 Tunguska", random=true })
                 end
             end
         elseif _actualDefense == 3 then
@@ -404,37 +404,39 @@ local function _addDefenseForGroups(group, side, defense, multiple, forInfantry)
                 if forInfantry then
                     -- only spawn manpads
                     for _ = 1, math.random(1,_actualDefense-2) do
-                        table.insert(group.units, { "Stinger comm", random })
-                        table.insert(group.units, { "Soldier stinger", random })
+                        table.insert(group.units, { "Stinger comm", random=true })
+                        table.insert(group.units, { "Soldier stinger", random=true })
                     end
                 else
-                    table.insert(group.units, { "M6 Linebacker", random })
+                    table.insert(group.units, { "M6 Linebacker", random=true })
                 end
             else
                 if forInfantry then
                     -- only spawn manpads
                     for _ = 1, math.random(1,_actualDefense-2) do
                         -- for _actualDefense = 3, spawn an older Igla team
-                        table.insert(group.units, { "SA-18 Igla comm", random })
-                        table.insert(group.units, { "SA-18 Igla manpad", random })
+                        table.insert(group.units, { "SA-18 Igla comm", random=true })
+                        table.insert(group.units, { "SA-18 Igla manpad", random=true })
                     end
                 else
-                    table.insert(group.units, { veaf.randomlyChooseFrom({"Strela-1 9P31", "Strela-10M3"}), random })
+                    table.insert(group.units, { veaf.randomlyChooseFrom({"Strela-1 9P31", "Strela-10M3"}), random=true })
+                    table.insert(group.units, { veaf.randomlyChooseFrom({"ZSU-23-4 Shilka", "ZSU-23-4 Shilka", "ZSU_57_2", "S-60_Type59_Artillery"}), random=true })
                 end
             end
         elseif _actualDefense == 2 then
             -- _actualDefense = 2 : add a Shilka (resp. a Gepard)
             if side == veafCasMission.SIDE_BLUE then
-                table.insert(group.units, { "Gepard", random })
+                table.insert(group.units, { "Gepard", random=true })
             else
-                table.insert(group.units, { "ZSU-23-4 Shilka", random })
+                table.insert(group.units, { veaf.randomlyChooseFrom({"ZSU-23-4 Shilka", "ZSU_57_2", "S-60_Type59_Artillery"}), random=true })
+                table.insert(group.units, { veaf.randomlyChooseFrom({"ZSU-23-4 Shilka", "ZSU_57_2", "S-60_Type59_Artillery"}), random=true })
             end
         elseif _actualDefense == 1 then
             -- _actualDefense = 1 : add a ZU23 on a truck (resp. a Vulcan)
             if side == veafCasMission.SIDE_BLUE then
-                table.insert(group.units, { "Vulcan", random })
+                table.insert(group.units, { "Vulcan", random=true })
             else
-                table.insert(group.units, { "Ural-375 ZU-23", random })
+                table.insert(group.units, { veaf.randomlyChooseFrom({"Ural-375 ZU-23", "ZSU_57_2", "S-60_Type59_Artillery"}), random=true })
             end
         end
     end
@@ -507,7 +509,7 @@ function veafCasMission.generateTransportCompany(groupName, defense, side, size)
                 transportType = veaf.randomlyChooseFrom({'ATMZ-5', 'Ural-4320 APA-5D', 'SKP-11', 'GAZ-66', 'KAMAZ Truck', 'Ural-375', 'Ural-4320T', 'ZIL-131 KUNG' })
             end
         end
-        table.insert(group.units, { transportType, random})
+        table.insert(group.units, { transportType, random=true})
     end
 
     -- add an air defense vehicle every 10 vehicles
@@ -603,7 +605,7 @@ function veafCasMission.generateArmorPlatoon(groupName, defense, armor, side, si
                 end
             end
         end
-        table.insert(group.units, { armorType, random })
+        table.insert(group.units, { armorType, random=true })
     end
 
     -- add air defense vehicles
@@ -661,21 +663,21 @@ function veafCasMission.generateInfantryGroup(groupName, defense, armor, side, s
     -- add a transport vehicle or an APC/IFV
     if armor > 3 then
         if side == veafCasMission.SIDE_BLUE then
-            table.insert(group.units, { "M-2 Bradley", cell=11, random })
+            table.insert(group.units, { "M-2 Bradley", cell=11, random=true })
         else
-            table.insert(group.units, { "BMP-1", cell=11, random })
+            table.insert(group.units, { "BMP-1", cell=11, random=true })
         end
     elseif armor > 0 then
         if side == veafCasMission.SIDE_BLUE then
-            table.insert(group.units, { "IFV Marder", cell=11, random })
+            table.insert(group.units, { "IFV Marder", cell=11, random=true })
         else
-            table.insert(group.units, { "BTR-80", cell=11, random })
+            table.insert(group.units, { "BTR-80", cell=11, random=true })
         end
     else
         if side == veafCasMission.SIDE_BLUE then
-            table.insert(group.units, { "M 818", cell=11, random })
+            table.insert(group.units, { "M 818", cell=11, random=true })
         else
-            table.insert(group.units, { "GAZ-3308", cell=11, random })
+            table.insert(group.units, { "GAZ-3308", cell=11, random=true })
         end
     end
 

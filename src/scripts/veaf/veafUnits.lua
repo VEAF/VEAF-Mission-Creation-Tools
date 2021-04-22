@@ -39,7 +39,7 @@ veafUnits = {}
 veafUnits.Id = "UNITS - "
 
 --- Version.
-veafUnits.Version = "1.7.0"
+veafUnits.Version = "1.7.1"
 
 -- trace level, specific to this module
 veafUnits.Trace = false
@@ -171,7 +171,7 @@ function veafUnits.debugUnit(unit)
             airnaval = ", air"
         end
         
-        veafUnits.logDebug("unit " .. unit.displayName .. ", dcsType=" .. unit.typeName .. airnaval .. ", size = { width =" .. unit.width .. ", length="..unit.length.."}")
+        veafUnits.logDebug(string.format("unit=%s", veaf.p(unit)))
     end
 end
 
@@ -615,11 +615,11 @@ function veafUnits.placeGroup(group, spawnPoint, spacing, hdg)
             end
             unit.spawnPoint.z = cell.center.x
             if unit.random and spacing > 0 then
-                unit.spawnPoint.z = unit.spawnPoint.z + math.random(-((spacing-1) * unit.width)/2, ((spacing-1) * unit.width)/2)
+                unit.spawnPoint.z = unit.spawnPoint.z + math.random(-((spacing-1) * (unit.width or veafUnits.DefaultCellWidth))/2, ((spacing-1) * (unit.width or veafUnits.DefaultCellWidth))/2)
             end
             unit.spawnPoint.x = cell.center.y
             if unit.random and spacing > 0 then
-                unit.spawnPoint.x = unit.spawnPoint.x + math.random(-((spacing-1) * unit.length)/2, ((spacing-1) * unit.length)/2)
+                unit.spawnPoint.x = unit.spawnPoint.x + math.random(-((spacing-1) * (unit.length or veafUnits.DefaultCellHeight))/2, ((spacing-1) * (unit.length or veafUnits.DefaultCellHeight))/2)
             end
             unit.spawnPoint.y = spawnPoint.y
             

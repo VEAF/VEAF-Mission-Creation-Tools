@@ -226,7 +226,7 @@ async function injectWeather(parameters) {
         }, -- end of ["at2000"]
         ["atGround"] = 
         {
-          ["speed"] = ${weatherdata.getWindASL()['speed'] / 2},
+          ["speed"] = ${weatherdata.getWindASL()['speed']},
           ["dir"] = ${weatherdata.getWindASL()['direction']},
         }, -- end of ["atGround"]
       }, -- end of ["wind"]

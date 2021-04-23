@@ -204,16 +204,16 @@ function veafServerHook.onChatMessage(message, from)
             if _playerDetails.side ~= 0 and _playerDetails.slot ~= "" and _playerDetails.slot ~= nil then
                 unitName = DCS.getUnitProperty(_playerDetails.slot, DCS.UNIT_NAME)
             end
-			
+            
             veafServerHook.logTrace(string.format("playerName=%s",p(playerName)))
             veafServerHook.logTrace(string.format("ucid=%s",p(ucid)))
             veafServerHook.logTrace(string.format("unitName=%s",p(unitName)))
             -- parse the message
             local pilot = veafServerHook.pilots[ucid]
-			if from == 1 then 
-			    -- this is the server administrator
-				pilot = veafServerHook.pilots[veafServerHook.ADMIN_FAKE_UCID]
-			end
+            if from == 1 then 
+                -- this is the server administrator
+                pilot = veafServerHook.pilots[veafServerHook.ADMIN_FAKE_UCID]
+            end
             veafServerHook.logTrace(string.format("pilot=%s",p(pilot)))
             if veafServerHook.parse(pilot, playerName, ucid, unitName, message) then
                 veafServerHook.logInfo(string.format("Player %s ran command %s", playerName, message))
@@ -277,14 +277,14 @@ function veafServerHook.parse(pilot, playerName, ucid, unitName, message)
             local _message = string.format("[%s] is asking for server halt when the last pilot disconnects from the server",p(playerName))
             veafServerHook.logInfo(_message)
             veafServerHook.sendMessage(_message, 10)
-			veafServerHook.stopMissionIfNeeded()
+            veafServerHook.stopMissionIfNeeded()
             return true
         end
     elseif _module and _module:lower() == "haltnow" then
         -- only level >= 90 can trigger server halt (and hopefully autorestart)
         if pilot.level >= 90 then
-			veafServerHook.closeServerAtMissionStop = true
-			veafServerHook.onSimulationStop()
+            veafServerHook.closeServerAtMissionStop = true
+            veafServerHook.onSimulationStop()
             return true
         end
     else

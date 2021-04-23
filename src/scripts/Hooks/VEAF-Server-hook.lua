@@ -369,3 +369,58 @@ function veafServerHook.initialize()
 end
 
 DCS.setUserCallbacks(veafServerHook)
+
+
+--[[
+    Code de Special-K
+
+    DCSBot.HOST = '127.0.0.1'
+    -- when running multiple instances, this port has to be changed to a unique value
+    DCSBot.RECV_PORT = 6666
+    [...]
+    function DCSBotGui.onSimulationFrame()
+        if not DCSBot.UDPRecvSocket then
+            local host, port = DCSBot.HOST, DCSBot.RECV_PORT
+            local ip = socket.dns.toip(host)
+            DCSBot.UDPRecvSocket = socket.udp()
+            DCSBot.UDPRecvSocket:setsockname(ip, port)
+            DCSBot.UDPRecvSocket:settimeout(0.0001)
+        end
+
+        local msg, err
+        repeat
+            msg, err = DCSBot.UDPRecvSocket:receive()
+            if not err then
+                net.log('Message received: ' .. msg)
+                json = JSON:decode(msg)
+                --assert(loadstring(json.command .. '(json)'))()
+                if (json.command == 'sendChatMessage') then
+                    DCSBot.sendChatMessage(json)
+                elseif (json.command == 'registerDCSServer') then
+                    DCSBot.registerDCSServer(json)
+                elseif (json.command == 'getRunningMission') then
+                    DCSBot.getRunningMission(json)
+                elseif (json.command == 'getMissionDetails') then
+                    DCSBot.getMissionDetails(json)
+                elseif (json.command == 'getCurrentPlayers') then
+                    DCSBot.getCurrentPlayers(json)
+                elseif (json.command == 'listMissions') then
+                    DCSBot.listMissions(json)
+                elseif (json.command == 'loadMission') then
+                    DCSBot.loadMission(json)
+                elseif (json.command == 'restartMission') then
+                    DCSBot.restartMission(json)
+                elseif (json.command == 'addMission') then
+                    DCSBot.addMission(json)
+                elseif (json.command == 'deleteMission') then
+                    DCSBot.deleteMission(json)
+                end
+            end
+        until err
+    end
+    [...]
+    if DCS.isServer() then
+        DCS.setUserCallbacks(DCSBotGui)  -- here we set our callbacks
+    end
+
+]]

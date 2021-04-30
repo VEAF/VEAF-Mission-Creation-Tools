@@ -27,7 +27,7 @@ veafShortcuts = {}
 veafShortcuts.Id = "SHORTCUTS - "
 
 --- Version.
-veafShortcuts.Version = "1.16.0"
+veafShortcuts.Version = "1.17.0"
 
 -- trace level, specific to this module
 veafShortcuts.Debug = false
@@ -750,7 +750,7 @@ function veafShortcuts.buildDefaultList()
     veafShortcuts.AddAlias(
         VeafAlias:new()
             :setName("-shell")
-            :setDescription("Artillery shelling of a zone with HE")
+            :setDescription("Artillery shelling of a zone with high-yield HE")
             :setVeafCommand("_spawn bomb")
             :addRandomParameter("shells", 25, 40)
             :addRandomParameter("radius", 350, 500)
@@ -762,8 +762,8 @@ function veafShortcuts.buildDefaultList()
             :setName("-shells")
             :setDescription("Artillery shelling of a small zone with low-yield HE")
             :setVeafCommand("-shell")
-            :addRandomParameter("shells", 5, 10)
-            :addRandomParameter("radius", 50, 100)
+            :addRandomParameter("shells", 2, 5)
+            :addRandomParameter("radius", 200, 500)
             :addRandomParameter("power", 10, 50)
             :addRandomParameter("multiplier", 5, 10)
             :setHidden(true)

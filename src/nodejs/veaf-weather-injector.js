@@ -39,10 +39,10 @@ async function injectWeatherFromConfiguration(parameters) {
         return;
       }
       let moments = data.moments;
-      for (let i=0; i<data.targets.length; i++) {       
+      for (let i=0; i<data.targets.length; i++) {
         let { version, weather, weatherfile, time, moment, dontSetToday, setTodayYear } = data.targets[i];
-        if (!time && moment && moments[moment]) {
-          time = moments[moment];
+        if (!time && moment && moments && moments[0] && moments[0][moment]) {
+          time = moments[0][moment];
         }
         let parameters = {
           sourceMissionFileName: sourceMissionFileName,

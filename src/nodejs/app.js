@@ -113,7 +113,46 @@ require('yargs')
           quiet: argv.quiet
         });
       })
-  .demandCommand()
+      .command('select-mission <source> <target> <configuration>', 'Use a configuration file to create a copy of a serverSettings.lua file which startup mission is set according to the cron scheduling rules found in the configuration', (yargs) => {
+        yargs
+          .positional('source', {
+            type: 'string',
+            describe: 'path to the source serverSettings.lua file'
+          })
+          .positional('target', {
+            type: 'string',
+            describe: 'path to the target serverSettings.lua file'
+          })
+          .positional('configuration', {
+            type: 'string',
+            describe: 'path to the configuration file'
+          })
+          .option('verbose', {
+            alias: 'v',
+            type: "boolean",
+            default: false,
+            describe: "Verbosely log data to the console"
+          })
+          .option('quiet', {
+            alias: 'q',
+            type: "boolean",
+            default: false,
+            describe: "Be extra quiet"
+          })
+          .example("$0 select-mission serverSettings-private-OpenTraining-Syria-dawn.lua serverSettings.lua opentraining-public.json")
+          .epilog('for more information visit https://github.com/VEAF/VEAF-Mission-Creation-Tools')
+      }, (argv) => {
+        const {selectMission} = require('./veaf-server-mission-selector.js');
+        selectMission(
+          {
+            sourceFileName: argv.source,
+            targetFileName: argv.target,
+            configurationFile: argv.configuration,
+            trace: argv.verbose,
+            quiet: argv.quiet
+          });
+        })
+    .demandCommand()
   .help()
   .wrap(null)
   .argv;

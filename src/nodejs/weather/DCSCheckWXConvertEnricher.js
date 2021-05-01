@@ -256,11 +256,13 @@ class DCSCheckWXConvertEnricher {
   containsAnyCondition(conditioncodes) {
     let conditions = this.getClosestResult()['conditions'];
     let result = false
-    conditions.forEach((cond) => {
-      //if (this.trace) console.log(cloud);
-      if (conditioncodes.indexOf(cond.abbreviation) != -1) 
-        result = true;
-    });
+    if (conditions) {
+      conditions.forEach((cond) => {
+        //if (this.trace) console.log(cloud);
+        if (conditioncodes.indexOf(cond.abbreviation) != -1) 
+          result = true;
+      });
+    }
     return result;
   }
   
@@ -430,7 +432,7 @@ class DCSCheckWXConvertEnricher {
     if (this._cloudPreset)
       return this._cloudPreset;
       
-    this._cloudPreset = "";
+    this._cloudPreset = "Preset3";
 
     let clouds = this.getClosestResult()['clouds'];
     if (this.trace) console.log('clouds :>> ', clouds);

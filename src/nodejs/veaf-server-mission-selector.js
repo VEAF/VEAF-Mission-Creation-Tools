@@ -81,7 +81,7 @@ async function selectMission(parameters) {
       }
 
       // edit the file
-      if (trace) console.log(`selecting mission ` + selectedMission);
+      if (!quiet) console.log(`selecting mission ` + selectedMission);
       let sourceFileData = fs.readFileSync(sourceFileName, {encoding:'utf8', flag:'r'});
       let matchResult = sourceFileData.match(`[^\\[]*\\[(\\d+)\\].*${selectedMission}.*`);
       let missionNumber = "01";

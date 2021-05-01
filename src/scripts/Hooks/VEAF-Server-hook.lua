@@ -269,22 +269,30 @@ function veafServerHook.parse(pilot, playerName, ucid, unitName, message)
             veafServerHook.sendMessage(_message, 10)
             return true
         end
+    elseif _module and _module:lower() == "restartnow" then
+        -- only level >= 30 can schedule mission restart without waiting for all to disconnect
+        if pilot.level >= 30 then
+            veafServerHook.maxMissionDuration = 0
+			veafServerHook.closeServerAtMissionStop = false
+			veafServerHook.onSimulationStop()
+            return true
+        end
     elseif _module and _module:lower() == "halt" then
-        -- only level >= 90 can schedule server halt (and hopefully autorestart)
-        if pilot.level >= 90 then
+        -- only level >= 10 can schedule server halt (and hopefully autorestart)
+        if pilot.level >= 10 then
             veafServerHook.maxMissionDuration = 0
             veafServerHook.closeServerAtLastDisconnect = true
             local _message = string.format("[%s] is asking for server halt when the last pilot disconnects from the server",p(playerName))
             veafServerHook.logInfo(_message)
             veafServerHook.sendMessage(_message, 10)
-            veafServerHook.stopMissionIfNeeded()
+			veafServerHook.stopMissionIfNeeded()
             return true
         end
     elseif _module and _module:lower() == "haltnow" then
-        -- only level >= 90 can trigger server halt (and hopefully autorestart)
-        if pilot.level >= 90 then
-            veafServerHook.closeServerAtMissionStop = true
-            veafServerHook.onSimulationStop()
+        -- only level >= 50 can trigger server halt without waiting for all to disconnect
+        if pilot.level >= 50 then
+			veafServerHook.closeServerAtMissionStop = true
+			veafServerHook.onSimulationStop()
             return true
         end
     else

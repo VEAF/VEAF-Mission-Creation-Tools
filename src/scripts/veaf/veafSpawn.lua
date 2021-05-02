@@ -66,7 +66,7 @@ veafSpawn = {}
 veafSpawn.Id = "SPAWN - "
 
 --- Version.
-veafSpawn.Version = "1.22.0"
+veafSpawn.Version = "1.22.1"
 
 -- trace level, specific to this module
 veafSpawn.Debug = false
@@ -445,7 +445,7 @@ function veafSpawn.markTextAnalysis(text)
         -- default country for friendly JTAC: USA
         switch.country = "USA"
         -- default name for JTAC
-        switch.name = "APC M1025 HMMWV"
+        switch.name = "APC HMMWV Jeep"
         -- default JTAC name (will overwrite previous unit with same name)
         switch.unitName = "JTAC1"
     elseif text:lower():find(veafSpawn.SpawnKeyphrase .. " tacan") then

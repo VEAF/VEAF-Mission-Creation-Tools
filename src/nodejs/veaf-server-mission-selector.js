@@ -17,15 +17,17 @@ function fitsIn(value, parameter) {
   const list = parameter.split(",");
   if (list && list.length > 1) {
     // this is a list
-    return list.includes(value);
+    const result = list.includes(value.toString());
+    return result;
   }
 
   const array = parameter.split("-");
   if (array && array.length == 2) {
     // this is an array
-    const min = array[0];
-    const max = array[1];
-    return (value >= min && value <= max);
+    const min = Number(array[0]);
+    const max = Number(array[1]);
+    const result =  (value >= min && value <= max);
+    return result;
   }
 
   return value == parameter;

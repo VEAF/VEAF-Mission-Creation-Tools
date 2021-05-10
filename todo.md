@@ -13,6 +13,7 @@
 - _destroy could delete the named points
 - add JTACs to the DCS Jtac menu
 - find a way to spawn convoys on the road to speed up convoy setup
+- entrainement antimissile
 
 ### RFC - needs to be done
 

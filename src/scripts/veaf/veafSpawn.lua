@@ -165,7 +165,7 @@ function veafSpawn.executeCommand(eventPos, eventText, eventCoalition, bypassSec
                 elseif options.cargo then
                     -- check security
                     if not (bypassSecurity or veafSecurity.checkSecurity_L9(options.password)) then return end
-                    spawnedGroup = veafSpawn.spawnCargo(eventPos, options.radius, options.cargoType, options.<, options.unitName, bypassSecurity)
+                    spawnedGroup = veafSpawn.spawnCargo(eventPos, options.radius, options.cargoType, options.cargoSmoke, options.unitName, bypassSecurity)
                 elseif options.logistic then
                     -- check security
                     if not (bypassSecurity or veafSecurity.checkSecurity_L9(options.password)) then return end

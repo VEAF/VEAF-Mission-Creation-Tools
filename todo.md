@@ -18,6 +18,8 @@
 
 ### Bug - needs to be corrected
 
+- `-tankerhere T3-Texaco-1` ne fonctionne pas alors que `_move tanker, name T3-Texaco-1` fonctionne
+
 ## Notes
 
 ### add an AWACS module

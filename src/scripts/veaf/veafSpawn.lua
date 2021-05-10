@@ -134,6 +134,186 @@ function veafSpawn.logTrace(message)
 end    
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- Spawn manager
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- VeafSpawnedGroup object
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+VeafSpawnedGroup =
+{
+    -- technical name (DCS group object name)
+    name = nil,
+    -- description for a human
+    description = nil,
+}
+
+VeafSpawnedGroup.__index = VeafSpawnedGroup
+
+function VeafSpawnedGroup:new()
+    veafSpawn.logTrace(string.format("VeafSpawnedGroup:new()"))
+    local self = setmetatable({}, VeafSpawnedGroup)
+    self.name = nil
+    self.description = nil
+    return self
+end
+
+---
+--- setters and getters
+---
+
+function VeafSpawnedGroup:setName(value)
+    veafCombatMission.logTrace(string.format("VeafSpawnedGroup.setName([%s])",value or ""))
+    self.name = value
+    return self
+end
+
+function VeafSpawnedGroup:getName()
+    return self.name
+end
+
+function VeafSpawnedGroup:setDescription(value)
+    veafCombatMission.logTrace(string.format("VeafSpawnedGroup.setDescription([%s])",value or ""))
+    self.description = value
+    return self
+end
+
+function VeafSpawnedGroup:getDescription()
+    return self.description
+end
+
+function VeafSpawnedGroup:getDcsGroup()
+    return Group.getByName(self:getName())
+end
+
+function VeafSpawnedGroup:handleEvent_GroupDead()
+    -- don't do anything by default
+    return self
+end
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- VeafSpawnManager object
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+VeafSpawnManager = {
+    spawnedGroups = nil,
+    spawnedGroupsByName = nil,
+}
+
+VeafSpawnManager.__index = VeafSpawnManager
+
+function VeafSpawnManager:new()
+    veafSpawn.logTrace(string.format("VeafSpawnManager:new()"))
+    local self = setmetatable({}, VeafSpawnManager)
+    -- initialize object
+    spawnedGroups = {}
+    spawnedGroupsByName = {}
+    return self
+end
+
+function VeafSpawnManager:addSpawnedGroup(dcsGroup, description)
+    if dcsGroup then
+        local spawnedGroup = VeafSpawnedGroup.new():setName(dcsGroup:getName()):setDescription(description)
+        table.insert(self.spawnedGroups, spawnedGroup)
+        return spawnedGroup
+    end
+    return nil
+end
+
+function VeafSpawnManager:removeSpawnedGroup(dcsGroupOrGroupName)
+    local name = dcsGroupOrGroupName
+    if not name then 
+        return nil
+    end
+    if type(name) ~= "string" then
+        name = dcsGroupOrGroupName:getName()
+    end
+    if name then
+        local spawnedGroup = self:getSpawnedGroupByName(name)
+        if spawnedGroup then
+            local removedGroup = table.remove(self.spawnedGroups, spawnedGroup)
+            return removedGroup
+        end
+    end
+    return nil
+end
+
+function VeafSpawnManager:getSpawnedGroupByName(name)
+    local result = self.spawnedGroupsByName[name]
+    if not result then -- it's not in the cache
+        for _, spawnedGroup in pairs(self.spawnedGroups) do
+            if spawnedGroups:getName() == name then 
+                result = spawnedGroups
+                break
+            end
+        end
+        if result then 
+            self.spawnedGroupsByName[name] = result
+        end
+    end
+
+    return result
+end
+
+function VeafSpawnManager:getAllSpawnedGroups(withDescription)
+    local result = ""
+    for _, group in pairs(self.spawnedGroups) do
+
+    end
+end
+
+-- VeafSpawnManager event handlers functions.
+
+function VeafSpawnManager:onEvent_DEAD(event)
+    -- Event = {
+    --     id = 8,
+    --     time = Time,
+    --     initiator = Unit,
+    --   }
+
+    -- the unit that was destroyed
+    local dcsUnit = event.initiator
+    if dcsUnit then
+        -- find the corresponding group
+        local dcsGroup = dcsUnits:getGroup()
+        -- check if there are remaining units in the group
+        local groupAlive = false
+        for _, dcsUnit in pairs(dcsGroup:getUnits()) do
+            if dcsUnit:getLife() >= 1 then
+                groupAlive = true
+                break -- at least a unit in the group is alive
+            end
+        end
+
+        if not(groupAlive) then
+            -- find the spawnedGroup object
+            local spawnedGroup = self:getSpawnedGroupByName(dcsGroup:getName())
+            if spawnedGroup then
+                -- fire the GroupDead event
+                spawnedGroup:handleEvent_GroupDead()
+                -- remove the spawnedGroup object
+                self:removeSpawnedGroup(spawnedGroup)
+            end
+
+        end
+    end
+end
+
+function VeafSpawnManager:onEvent_UNIT_LOST(event)
+    -- Event = {
+    --     id = 30,
+    --     time = Time,
+    --     initiator = Unit,
+    --   }
+    return self:onEvent_DEAD(event)
+end
+
+-- VeafSpawnManager IA functions.
+function VeafSpawnManager.IA_moveRandomly(spawnedGroup)
+
+end
+
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Event handler functions.
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -1758,6 +1938,9 @@ end
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- initialisation
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+-- VeafSpawnManager singleton
+veafSpawn.spawnManager = VeafSpawnManager.new()
 
 function veafSpawn.initialize()
     veafSpawn.buildRadioMenu()

@@ -273,8 +273,8 @@ function veafServerHook.parse(pilot, playerName, ucid, unitName, message)
         -- only level >= 30 can schedule mission restart without waiting for all to disconnect
         if pilot.level >= 30 then
             veafServerHook.maxMissionDuration = 0
-			veafServerHook.closeServerAtMissionStop = false
-			veafServerHook.onSimulationStop()
+			veafServerHook.closeServerAtLastDisconnect = false
+			veafServerHook.stopMissionIfNeeded()
             return true
         end
     elseif _module and _module:lower() == "halt" then

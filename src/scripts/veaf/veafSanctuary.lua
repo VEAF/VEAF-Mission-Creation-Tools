@@ -28,15 +28,15 @@ veafSanctuary = {}
 veafSanctuary.Id = "SANCTUARY - "
 
 --- Version.
-veafSanctuary.Version = "1.4.0"
+veafSanctuary.Version = "1.5.0"
 
 -- trace level, specific to this module
 veafSanctuary.Debug = false
 veafSanctuary.Trace = false
 veafSanctuary.RecordAction = true
-veafSanctuary.RecordTrace = true
+veafSanctuary.RecordTrace = false
 veafSanctuary.RecordTraceTrespassing = false
-veafSanctuary.RecordTraceShooting = true
+veafSanctuary.RecordTraceShooting = false
 
 -- delay before the sanctuary zones start reporting
 veafSanctuary.DelayForStartup = 0
@@ -314,10 +314,27 @@ function VeafSanctuaryZone:setPolygonFromUnitsInSequence(unitNamePrefix, markPos
 end
 
 function VeafSanctuaryZone:setPolygonFromUnits(unitNames, markPositions)
-    veafSanctuary.logTrace(string.format("VeafSanctuaryZone[%s]:setPolygonFromUnits()", veaf.p(self.name)))
+
+    -- Color of the line marking the zone ({r, g, b, a})
+    local LINE_COLOR = {170/255, 10/255, 0/255, 220/255}
+
+    -- Type of line marking the zone
+    -- 0  No Line
+    -- 1  Solid
+    -- 2  Dashed
+    -- 3  Dotted
+    -- 4  Dot Dash
+    -- 5  Long Dash
+    -- 6  Two Dash
+    local LINE_TYPE = 6
+
+    veafSanctuary.logDebug(string.format("VeafSanctuaryZone[%s]:setPolygonFromUnits()", veaf.p(self.name)))
+    veafSanctuary.logTrace(string.format("markPositions = %s", veaf.p(markPositions)))
     local polygon = {}
-    local positionMarkerBase = math.random(5000, 10000)
+    local positionLineBase = math.random(10000, 15000)
     local i = 1
+    local lastPosition = nil
+    local firstPosition = nil
     for _, unitName in pairs(unitNames) do
         veafSanctuary.logTrace(string.format("unitName = %s", veaf.p(unitName)))
         local unit = Unit.getByName(unitName)
@@ -331,15 +348,23 @@ function VeafSanctuaryZone:setPolygonFromUnits(unitNames, markPositions)
             -- get position, place tracing marker and remove the unit
             local position = unit:getPosition().p
             if markPositions then
+                if lastPosition then
+                    trigger.action.lineToAll(-1 , positionLineBase + i , lastPosition , position , LINE_COLOR , LINE_TYPE , true)
+                else
+                    firstPosition = position
+                end
+                lastPosition = position
                 i = i + 1
-                trigger.action.markToAll(positionMarkerBase + i, string.format("%s - %d", self:getName(), i), position, true) 
             end
             unit:destroy()
             veafSanctuary.logTrace(string.format("position = %s", veaf.p(position)))
             table.insert(polygon, mist.utils.deepCopy(position))
         end
     end
-    veafSanctuary.logTrace(string.format("polygon = %s", veaf.p(polygon)))
+    if firstPosition and lastPosition then
+        trigger.action.lineToAll(-1 , positionLineBase + i , lastPosition , firstPosition , LINE_COLOR , LINE_TYPE , true)
+    end
+veafSanctuary.logTrace(string.format("polygon = %s", veaf.p(polygon)))
     return self:setPolygon(polygon)
 end
 

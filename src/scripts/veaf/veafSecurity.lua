@@ -33,7 +33,7 @@ veafSecurity = {}
 veafSecurity.Id = "SECURITY - "
 
 --- Version.
-veafSecurity.Version = "1.2.2"
+veafSecurity.Version = "1.2.3"
 
 -- trace level, specific to this module
 veafSecurity.Trace = true
@@ -46,7 +46,7 @@ veafSecurity.authDuration = 10
 veafSecurity.RemoteCommandParser = "([[a-zA-Z0-9]+)%s?(.*)"
 
 veafSecurity.LEVEL_L0 = 90
-veafSecurity.LEVEL_L1 = 30
+veafSecurity.LEVEL_L1 = 10
 veafSecurity.LEVEL_L9 = 1
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------

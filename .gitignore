@@ -5,3 +5,11 @@ cache/
 test/
 
 configuration.json
+src/c/buffering_socket/.vs/cmake.db
+src/c/buffering_socket/.vs/ProjectSettings.json
+src/c/buffering_socket/.vs/slnx.sqlite
+src/c/buffering_socket/.vs/VSWorkspaceState.json
+src/c/buffering_socket/.vs/buffering_socket/v16/.suo
+src/c/buffering_socket/.vs/buffering_socket/v16/Browse.VC.db
+src/c/buffering_socket/.vs/buffering_socket/v16/ipch/AutoPCH/d5cb4758260384b1/BUFFERINGSOCKET.ipch
+src/c/buffering_socket/.vs/buffering_socket/v16/ipch/AutoPCH/da3527794073df7f/BUFFERINGSOCKET.ipch

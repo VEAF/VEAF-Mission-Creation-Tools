@@ -1,0 +1,23 @@
+cmake_minimum_required(VERSION 3.17)
+project(BufferingSocket)
+
+set(CMAKE_CXX_STANDARD 20)
+
+set (BUFFERING_SOCKET_DLL_SOURCES 
+    "src/LuaWrapper.h" 
+    "src/LuaWrapper.cpp" 
+    "src/BufferingSocket.h" 
+    "src/BufferingSocket.cpp"
+    )
+
+include (GenerateExportHeader)
+add_library(BufferingSocket SHARED ${BUFFERING_SOCKET_DLL_SOURCES})
+
+target_link_libraries(
+    BufferingSocket
+    lua-5.1.5
+    ws2_32
+)
+
+target_include_directories (BufferingSocket PUBLIC)
+#set_target_properties(main PROPERTIES OUTPUT_NAME "BufferingSocket")

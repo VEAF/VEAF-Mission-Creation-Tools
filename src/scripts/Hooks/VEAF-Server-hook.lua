@@ -22,6 +22,10 @@ require = base.require
 io = require('io')
 lfs = require('lfs')
 os = require('os')
+package.path  = package.path..";"..lfs.currentdir().."/LuaSocket/?.lua"..";"..lfs.writedir() .. "/Mods/services/buffering_socket/lua/?.lua"
+package.cpath = package.cpath..";"..lfs.currentdir().."/LuaSocket/?.dll"..';'.. lfs.writedir()..'/Mods/services/buffering_socket/bin/?.dll;'
+veafServerHook.config = require "buffering_socket_config"
+buffering_socket = require('buffering_socket') 
 VEAF_SERVER_DIR = lfs.writedir() .. [[scripts\hooks\]]
 VEAF_PILOTS_FILE = "veaf-pilots.txt"
 DCS_DIR = lfs.writedir()
@@ -34,11 +38,11 @@ DCS_DIR = lfs.writedir()
 veafServerHook.Id = "VEAFHOOK - "
 
 --- Version.
-veafServerHook.Version = "1.1.0"
+veafServerHook.Version = "2.0.0"
 
 -- trace level, specific to this module
-veafServerHook.Trace = false
-veafServerHook.Debug = false
+veafServerHook.Trace = true
+veafServerHook.Debug = true
 
 veafServerHook.CommandStarter = "/"
 veafServerHook.CommandParser = "/([a-zA-Z0-9]+)%s?(.*)"
@@ -225,6 +229,45 @@ function veafServerHook.onChatMessage(message, from)
     return false
 end
 
+function veafServerHook.onSimulationFrame()
+    veafServerHook.logTrace(string.format("veafServerHook.onSimulationFrame()"))
+
+    local _now = DCS.getRealTime()
+	veafServerHook.lastFrameStart = _now
+
+    if _now > veafServerHook.lastSentStatus + veafServerHook.config.refreshDelay then
+        veafServerHook.lastSentStatus = _now
+        veafServerHook.logTrace(string.format("sending status"))
+
+        local data_package = {}
+
+        -- get number of connected pilots
+        veafServerHook.logTrace(string.format("get number of connected pilots"))
+        local _players = net.get_player_list()
+        veafServerHook.logTrace(string.format("_players=%s",p(_players)))
+        local _nPlayers = #_players
+        veafServerHook.logTrace(string.format("_nPlayers=%s",p(_nPlayers)))
+
+        data_package.numberOfConnectedPilots = _nPlayers - 1
+        
+        -- prepare the data package
+        veafServerHook.logTrace(string.format("prepare the data package"))
+        veafServerHook.logTrace(string.format("data_package=%s",p(data_package)))
+        local _payload
+        if data_package == nil then
+            _payload = "null"
+        else
+            _payload = net.lua2json(data_package);
+        end
+        
+        veafServerHook.logTrace(string.format("_payload=%s",p(_payload)))
+
+        -- send the payload
+        veafServerHook.logTrace(string.format("send the payload"))
+        buffering_socket.send(_payload)
+    end
+end
+
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Core methods
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -376,59 +419,9 @@ function veafServerHook.initialize()
     veafServerHook.loadPilots()
 end
 
+-- set up the socket to call the web server
+veafServerHook.logDebug(string.format("set up the socket to call the web server; host=%s and port=%s", p(veafServerHook.config.host), p(veafServerHook.config.port)))
+buffering_socket.startSession(veafServerHook.config.host, veafServerHook.config.port)
+
+veafServerHook.logDebug(string.format("registering DCS callbacks"))
 DCS.setUserCallbacks(veafServerHook)
-
-
---[[
-    Code de Special-K
-
-    DCSBot.HOST = '127.0.0.1'
-    -- when running multiple instances, this port has to be changed to a unique value
-    DCSBot.RECV_PORT = 6666
-    [...]
-    function DCSBotGui.onSimulationFrame()
-        if not DCSBot.UDPRecvSocket then
-            local host, port = DCSBot.HOST, DCSBot.RECV_PORT
-            local ip = socket.dns.toip(host)
-            DCSBot.UDPRecvSocket = socket.udp()
-            DCSBot.UDPRecvSocket:setsockname(ip, port)
-            DCSBot.UDPRecvSocket:settimeout(0.0001)
-        end
-
-        local msg, err
-        repeat
-            msg, err = DCSBot.UDPRecvSocket:receive()
-            if not err then
-                net.log('Message received: ' .. msg)
-                json = JSON:decode(msg)
-                --assert(loadstring(json.command .. '(json)'))()
-                if (json.command == 'sendChatMessage') then
-                    DCSBot.sendChatMessage(json)
-                elseif (json.command == 'registerDCSServer') then
-                    DCSBot.registerDCSServer(json)
-                elseif (json.command == 'getRunningMission') then
-                    DCSBot.getRunningMission(json)
-                elseif (json.command == 'getMissionDetails') then
-                    DCSBot.getMissionDetails(json)
-                elseif (json.command == 'getCurrentPlayers') then
-                    DCSBot.getCurrentPlayers(json)
-                elseif (json.command == 'listMissions') then
-                    DCSBot.listMissions(json)
-                elseif (json.command == 'loadMission') then
-                    DCSBot.loadMission(json)
-                elseif (json.command == 'restartMission') then
-                    DCSBot.restartMission(json)
-                elseif (json.command == 'addMission') then
-                    DCSBot.addMission(json)
-                elseif (json.command == 'deleteMission') then
-                    DCSBot.deleteMission(json)
-                end
-            end
-        until err
-    end
-    [...]
-    if DCS.isServer() then
-        DCS.setUserCallbacks(DCSBotGui)  -- here we set our callbacks
-    end
-
-]]

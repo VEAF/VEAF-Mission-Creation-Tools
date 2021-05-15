@@ -22,13 +22,13 @@ require = base.require
 io = require('io')
 lfs = require('lfs')
 os = require('os')
-package.path  = package.path..";"..lfs.currentdir().."/LuaSocket/?.lua"..";"..lfs.writedir() .. "/Mods/services/buffering_socket/lua/?.lua"
-package.cpath = package.cpath..";"..lfs.currentdir().."/LuaSocket/?.dll"..';'.. lfs.writedir()..'/Mods/services/buffering_socket/bin/?.dll;'
-veafServerHook.config = require "buffering_socket_config"
-buffering_socket = require('buffering_socket') 
-VEAF_SERVER_DIR = lfs.writedir() .. [[scripts\hooks\]]
-VEAF_PILOTS_FILE = "veaf-pilots.txt"
+package.path  = package.path..";"..lfs.currentdir().."/LuaSocket/?.lua"..";"..lfs.writedir() .. "/Mods/services/BufferingSocket/lua/?.lua"
+package.cpath = package.cpath..";"..lfs.currentdir().."/LuaSocket/?.dll"..';'.. lfs.writedir()..'/Mods/services/BufferingSocket/bin/' ..'?.dll;'
+veafServerHook.config = require "BufferingSocketConfig"
+BufferingSocket = require('BufferingSocket') 
 DCS_DIR = lfs.writedir()
+VEAF_SERVER_DIR = DCS_DIR .. [[scripts\hooks\]]
+VEAF_PILOTS_FILE = "veaf-pilots.txt"
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Global settings. Stores the script constants
@@ -38,11 +38,11 @@ DCS_DIR = lfs.writedir()
 veafServerHook.Id = "VEAFHOOK - "
 
 --- Version.
-veafServerHook.Version = "2.0.0"
+veafServerHook.Version = "2.0.1"
 
 -- trace level, specific to this module
-veafServerHook.Trace = true
-veafServerHook.Debug = true
+veafServerHook.Trace = false
+veafServerHook.Debug = false
 
 veafServerHook.CommandStarter = "/"
 veafServerHook.CommandParser = "/([a-zA-Z0-9]+)%s?(.*)"
@@ -56,6 +56,10 @@ veafServerHook.DEFAULT_MAX_MISSION_DURATION = 4 * 60
 REGISTER_PLAYER =  [[ if veafRemote and veafRemote.registerUser then veafRemote.registerUser("%s", "%s", "%s") end ]]
 RUN_COMMAND = [[ if veafRemote and veafRemote.executeCommandFromRemote then veafRemote.executeCommandFromRemote("%s", "%s", "%s", "%s", "%s") end ]]
 SEND_MESSAGE = [[ if trigger and trigger.action and trigger.action.outText then trigger.action.outText("%s", %s) end ]]
+
+-- marks the end of a data package sent to the API server socket
+veafServerHook.EOT_MARKER = ">>EOT"
+
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Do not change anything below unless you know what you are doing!
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -68,6 +72,8 @@ veafServerHook.closeServerAtLastDisconnect = true
 veafServerHook.lastFrameTime = 0
 
 veafServerHook.maxMissionDuration = veafServerHook.DEFAULT_MAX_MISSION_DURATION
+
+veafServerHook.statisticsTypes = {"ping", "crashes", "vehicules", "aircrafts", "ships", "score", "landings", "ejections"}
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Utility methods
@@ -87,13 +93,13 @@ end
 
 function veafServerHook.logDebug(message)
     if message and veafServerHook.Debug then 
-        log.write(veafServerHook.Id, log.DEBUG, message)
+        log.write(veafServerHook.Id, log.INFO, message)
     end
 end
 
 function veafServerHook.logTrace(message)
     if message and veafServerHook.Trace then 
-        log.write(veafServerHook.Id, log.TRACE, message)
+        log.write(veafServerHook.Id, log.INFO, message)
     end
 end
 
@@ -230,47 +236,76 @@ function veafServerHook.onChatMessage(message, from)
 end
 
 function veafServerHook.onSimulationFrame()
-    veafServerHook.logTrace(string.format("veafServerHook.onSimulationFrame()"))
+    --veafServerHook.logTrace(string.format("veafServerHook.onSimulationFrame()"))
 
     local _now = DCS.getRealTime()
-	veafServerHook.lastFrameStart = _now
 
-    if _now > veafServerHook.lastSentStatus + veafServerHook.config.refreshDelay then
-        veafServerHook.lastSentStatus = _now
-        veafServerHook.logTrace(string.format("sending status"))
-
-        local data_package = {}
-
-        -- get number of connected pilots
-        veafServerHook.logTrace(string.format("get number of connected pilots"))
-        local _players = net.get_player_list()
-        veafServerHook.logTrace(string.format("_players=%s",p(_players)))
-        local _nPlayers = #_players
-        veafServerHook.logTrace(string.format("_nPlayers=%s",p(_nPlayers)))
-
-        data_package.numberOfConnectedPilots = _nPlayers - 1
-        
-        -- prepare the data package
-        veafServerHook.logTrace(string.format("prepare the data package"))
-        veafServerHook.logTrace(string.format("data_package=%s",p(data_package)))
-        local _payload
-        if data_package == nil then
-            _payload = "null"
-        else
-            _payload = net.lua2json(data_package);
-        end
-        
-        veafServerHook.logTrace(string.format("_payload=%s",p(_payload)))
-
-        -- send the payload
-        veafServerHook.logTrace(string.format("send the payload"))
-        buffering_socket.send(_payload)
+    if _now > veafServerHook.lastFrameTime + veafServerHook.config.refreshDelay then
+        veafServerHook.lastFrameTime = _now
+        veafServerHook.logTrace(string.format("sending data"))
+        veafServerHook.sendData(_now)
     end
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Core methods
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+function veafServerHook.sendData(timestamp)
+    
+    local data_package = { timestamp = _now}
+
+    veafServerHook.logTrace(string.format("get basic server information"))
+    data_package.serverData = { 
+        frameTime = _now,
+        mission = DCS.getMissionFilename(),
+        missionTimeInSeconds = DCS.getModelTime(),
+        missionMaxTimeInSeconds = veafServerHook.maxMissionDuration * 3600,
+        numberOfPlayers = #net.get_player_list() - 1
+    }
+
+    -- get list of connected pilots
+    data_package.pilots = {}
+    veafServerHook.logTrace(string.format("get list of connected pilots"))
+    local players = net.get_player_list()
+    for playerId, _ in pairs(players) do
+        veafServerHook.logTrace(string.format("playerId=%s",playerId))       
+        local playerDetails = net.get_player_info(playerId)       
+        local playerName = playerDetails.name
+        local ucid = playerDetails.ucid
+        local pilotData = {
+            name = playerName,
+            level = 0,
+            stats = {}
+        }
+        for key, value in pairs(veafServerHook.statisticsTypes) do
+            local stat = net.get_stat(playerId, key)
+            veafServerHook.logTrace(string.format("stat[%s]=%s",p(key),p(stat)))
+            pilotData.stats[value] = stat
+        end
+        local pilot = veafServerHook.pilots[ucid]
+        if pilot then
+            pilotData.level = pilot.level
+        end
+        data_package.pilots[ucid] = pilotData
+    end
+
+    -- prepare the data package
+    veafServerHook.logTrace(string.format("prepare the data package"))
+    veafServerHook.logTrace(string.format("data_package=%s",p(data_package)))
+
+    local _payload = net.lua2json(data_package);
+
+    veafServerHook.logTrace(string.format("_payload=%s",p(_payload)))
+
+    -- send the payload
+    veafServerHook.logTrace(string.format("send the payload"))
+    BufferingSocket.send(_payload)
+
+    veafServerHook.logTrace(string.format("send the EOT"))
+    BufferingSocket.send(veafServerHook.EOT_MARKER)
+end
+
 function veafServerHook.parse(pilot, playerName, ucid, unitName, message)
     veafServerHook.logTrace(string.format("veafServerHook.parse([%s] , [%s])", p(playerName), p(message)))
     veafServerHook.logTrace(string.format("pilot=%s",p(pilot)))
@@ -421,7 +456,7 @@ end
 
 -- set up the socket to call the web server
 veafServerHook.logDebug(string.format("set up the socket to call the web server; host=%s and port=%s", p(veafServerHook.config.host), p(veafServerHook.config.port)))
-buffering_socket.startSession(veafServerHook.config.host, veafServerHook.config.port)
+BufferingSocket.startSession(veafServerHook.config.host, veafServerHook.config.port)
 
 veafServerHook.logDebug(string.format("registering DCS callbacks"))
 DCS.setUserCallbacks(veafServerHook)

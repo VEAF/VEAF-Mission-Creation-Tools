@@ -41,8 +41,8 @@ veafServerHook.Id = "VEAFHOOK - "
 veafServerHook.Version = "2.0.1"
 
 -- trace level, specific to this module
-veafServerHook.Trace = false
-veafServerHook.Debug = false
+veafServerHook.Trace = true
+veafServerHook.Debug = true
 
 veafServerHook.CommandStarter = "/"
 veafServerHook.CommandParser = "/([a-zA-Z0-9]+)%s?(.*)"
@@ -147,7 +147,7 @@ function veafServerHook.onSimulationStart()
     -- ask the mission for its maximum runtime
     veafServerHook.logDebug(string.format("ask the mission for its maximum runtime"))
     local _maxDuration = nil
-local _status, _retValue = pcall(net.dostring_in, 'mission', 'return a_do_script(' .. '[===[ if veaf and veaf.getMissionMaxRuntime then return veaf.getMissionMaxRuntime() else return nil end ]===]' .. ')')
+    local _status, _retValue = pcall(net.dostring_in, 'mission', 'return a_do_script(' .. '[===[ if veaf and veaf.getMissionMaxRuntime then return veaf.getMissionMaxRuntime() else return nil end ]===]' .. ')')
     veafServerHook.logTrace(string.format("_status=%s",p(_status)))
     veafServerHook.logTrace(string.format("_retValue=%s",p(_retValue)))
     if not _status then
@@ -276,11 +276,11 @@ function veafServerHook.sendData(timestamp)
         local pilotData = {
             name = playerName,
             level = 0,
+            unit = playerDetails.slot,
             stats = {}
         }
         for key, value in pairs(veafServerHook.statisticsTypes) do
             local stat = net.get_stat(playerId, key)
-            veafServerHook.logTrace(string.format("stat[%s]=%s",p(key),p(stat)))
             pilotData.stats[value] = stat
         end
         local pilot = veafServerHook.pilots[ucid]
@@ -288,6 +288,221 @@ function veafServerHook.sendData(timestamp)
             pilotData.level = pilot.level
         end
         data_package.pilots[ucid] = pilotData
+    end
+
+    -- get list of units
+    data_package.unitsAsJson = {}
+    
+    veafServerHook.logTrace(string.format("testing witchcraft code"))
+    local code = [[
+        serialize = function(val)
+            if type(val)=='number' or type(val)=='boolean' then
+                return tostring(val)
+            elseif type(val)=='string' then
+                return string.format("%q", val)
+            elseif type(val)=='table' then
+                local k,v
+                local str = '{'
+                for k,v in pairs(val) do
+                    str=str..'['..serialize(k)..']='..serialize(v)..','
+                end
+                str = str..'}'
+                return str
+            end
+            return 'nil'
+        end
+
+
+        p = function(o, level, maxLevel)
+            local maxLevel = maxLevel or 20
+            if level == nil then level = 0 end
+            if level > maxLevel then 
+                return ""
+            end
+            local text = ""
+            if (type(o) == "table") then
+                text = "\n"
+                for key,value in pairs(o) do
+                    for i=0, level do
+                        text = text .. " "
+                    end
+                    text = text .. ".".. key.."="..p(value, level+1) .. "\n";
+                end
+            elseif (type(o) == "function") then
+                text = "[function]";
+            elseif (type(o) == "boolean") then
+                if o == true then 
+                    text = "[true]";
+                else
+                    text = "[false]";
+                end
+            else
+                if o == nil then
+                    text = "[nil]";    
+                else
+                    text = tostring(o);
+                end
+            end
+            return text
+        end
+    ]]
+
+-- load serializer into mission env
+    net.dostring_in('mission', code)
+    
+    -- parse available slots
+    local slot_parser = [[
+        local side_parser = function(side)
+            local i,v
+            local slots = {}
+            for i,v in ipairs(side) do
+                local u = { unit_id = v.unitId, type = v.type, onboard_num = v.onboard_num }
+                local group = v.group
+                if group then
+                    u.group_name = group.name
+                    u.group_task = group.task
+                    u.country_name = group.country.name
+                end
+                table.insert(slots, u)
+            end
+            return slots
+        end
+        local res = { red = side_parser(db.clients.red), blue = side_parser(db.clients.blue) }
+        return serialize(res)
+    ]]
+    local val, res = net.dostring_in('mission', slot_parser)
+    --net.log(string.format("%s: (%s) %q", 'mission', tostring(res), val))
+    local slots = {}
+    if res then
+        local t = loadstring('return '..val)
+        slots = t()
+    else
+        slots = {}
+    end
+    veafServerHook.logTrace(string.format("slots=%s",p(slots)))
+
+    veafServerHook.logTrace(string.format("testing"))
+    local code = [[
+        return veafRemote.getTestValue({"[all]"}, true, true)
+    ]]
+    local _status, _retValue = pcall(net.dostring_in, 'mission', code)
+    veafServerHook.logTrace(string.format("_status=%s",p(_status)))
+    veafServerHook.logTrace(string.format("_retValue=%s",p(_retValue)))
+    veafServerHook.logTrace(string.format("type(_retValue)=%s",p(type(_retValue))))
+
+    veafServerHook.logTrace(string.format("testing 2"))
+    local code = [[
+        return "42"
+    ]]
+    local _status, _retValue = pcall(net.dostring_in, 'mission', code)
+    veafServerHook.logTrace(string.format("_status=%s",p(_status)))
+    veafServerHook.logTrace(string.format("_retValue=%s",p(_retValue)))
+    veafServerHook.logTrace(string.format("type(_retValue)=%s",p(type(_retValue))))
+
+    veafServerHook.logTrace(string.format("testing 3"))
+    local code = [[
+        local n = 0
+        for i, gp in pairs(mission.coalition.getGroups(2)) do
+            n = n + 1
+        end
+        return tostring(n)
+    ]]
+    local _status, _retValue = pcall(net.dostring_in, 'mission', code)
+    veafServerHook.logTrace(string.format("_status=%s",p(_status)))
+    veafServerHook.logTrace(string.format("_retValue=%s",p(_retValue)))
+    veafServerHook.logTrace(string.format("type(_retValue)=%s",p(type(_retValue))))
+
+    veafServerHook.logTrace(string.format("testing 4"))
+    local code = [[
+        return mission.theatre
+    ]]
+    local _status, _retValue = pcall(net.dostring_in, 'mission', code)
+    veafServerHook.logTrace(string.format("_status=%s",p(_status)))
+    veafServerHook.logTrace(string.format("_retValue=%s",p(_retValue)))
+    veafServerHook.logTrace(string.format("type(_retValue)=%s",p(type(_retValue))))
+
+    veafServerHook.logTrace(string.format("testing 5"))
+    local code = [[
+        return mission.theatre
+    ]]
+    local _status, _retValue = pcall(net.dostring_in, 'mission', code)
+    veafServerHook.logTrace(string.format("_status=%s",p(_status)))
+    veafServerHook.logTrace(string.format("_retValue=%s",p(_retValue)))
+    veafServerHook.logTrace(string.format("type(_retValue)=%s",p(type(_retValue))))
+
+    veafServerHook.logTrace(string.format("testing 6"))
+    local code = [[
+        return p(mission, 0, 2)
+    ]]
+    local _status, _retValue = pcall(net.dostring_in, 'mission', code)
+    veafServerHook.logTrace(string.format("_status=%s",p(_status)))
+    veafServerHook.logTrace(string.format("_retValue=%s",p(_retValue)))
+    veafServerHook.logTrace(string.format("type(_retValue)=%s",p(type(_retValue))))
+
+    veafServerHook.logTrace(string.format("testing 7"))
+    local code = [[
+        return p("test 7")
+    ]]
+    local _status, _retValue = pcall(net.dostring_in, 'mission', code)
+    veafServerHook.logTrace(string.format("_status=%s",p(_status)))
+    veafServerHook.logTrace(string.format("_retValue=%s",p(_retValue)))
+    veafServerHook.logTrace(string.format("type(_retValue)=%s",p(type(_retValue))))
+
+    veafServerHook.logTrace(string.format("testing 8"))
+    local code = [[
+        local keys = {}
+        for k, v in pairs(mission) do
+        keys[#keys+1] = k  
+        end
+        return p(keys)
+    ]]
+    local _status, _retValue = pcall(net.dostring_in, 'mission', code)
+    veafServerHook.logTrace(string.format("_status=%s",p(_status)))
+    veafServerHook.logTrace(string.format("_retValue=%s",p(_retValue)))
+    veafServerHook.logTrace(string.format("type(_retValue)=%s",p(type(_retValue))))
+
+    veafServerHook.logTrace(string.format("testing 9"))
+    local code = [[
+        local keys = {}
+        for k, v in pairs(db) do
+        keys[#keys+1] = k  
+        end
+        return p(keys)
+    ]]
+    local _status, _retValue = pcall(net.dostring_in, 'mission', code)
+    veafServerHook.logTrace(string.format("_status=%s",p(_status)))
+    veafServerHook.logTrace(string.format("_retValue=%s",p(_retValue)))
+    veafServerHook.logTrace(string.format("type(_retValue)=%s",p(type(_retValue))))
+
+    veafServerHook.logTrace(string.format("testing A"))
+    local code = [[
+        local keys = {}
+        for k, v in pairs(_G) do
+        keys[#keys+1] = k  
+        end
+        return p(keys)
+    ]]
+    local _status, _retValue = pcall(net.dostring_in, 'mission', code)
+    veafServerHook.logTrace(string.format("_status=%s",p(_status)))
+    veafServerHook.logTrace(string.format("_retValue=%s",p(_retValue)))
+    veafServerHook.logTrace(string.format("type(_retValue)=%s",p(type(_retValue))))
+
+    veafServerHook.logTrace(string.format("get list of units"))
+    local code = [[
+        if veafRemote and veafRemote.getUnitsListForRemote then 
+            return veafRemote.getUnitsListForRemote({"[all]"}, true, true)
+        else 
+            return nil
+        end
+    ]]
+    local _status, _retValue = pcall(net.dostring_in, 'mission', code)
+    veafServerHook.logTrace(string.format("_status=%s",p(_status)))
+    veafServerHook.logTrace(string.format("_retValue=%s",p(_retValue)))
+    veafServerHook.logTrace(string.format("type(_retValue)=%s",p(type(_retValue))))
+    if not _status then
+        veafServerHook.logWarning(string.format("Code injection failed for veafRemote.getUnitsListForRemote()"))
+    else
+        data_package.unitsAsJson = _retValue
     end
 
     -- prepare the data package
@@ -351,8 +566,8 @@ function veafServerHook.parse(pilot, playerName, ucid, unitName, message)
         -- only level >= 30 can schedule mission restart without waiting for all to disconnect
         if pilot.level >= 30 then
             veafServerHook.maxMissionDuration = 0
-			veafServerHook.closeServerAtLastDisconnect = false
-			veafServerHook.stopMissionIfNeeded()
+            veafServerHook.closeServerAtLastDisconnect = false
+            veafServerHook.stopMissionIfNeeded()
             return true
         end
     elseif _module and _module:lower() == "halt" then
@@ -363,14 +578,14 @@ function veafServerHook.parse(pilot, playerName, ucid, unitName, message)
             local _message = string.format("[%s] is asking for server halt when the last pilot disconnects from the server",p(playerName))
             veafServerHook.logInfo(_message)
             veafServerHook.sendMessage(_message, 10)
-			veafServerHook.stopMissionIfNeeded()
+            veafServerHook.stopMissionIfNeeded()
             return true
         end
     elseif _module and _module:lower() == "haltnow" then
         -- only level >= 50 can trigger server halt without waiting for all to disconnect
         if pilot.level >= 50 then
-			veafServerHook.closeServerAtMissionStop = true
-			veafServerHook.onSimulationStop()
+            veafServerHook.closeServerAtMissionStop = true
+            veafServerHook.onSimulationStop()
             return true
         end
     else

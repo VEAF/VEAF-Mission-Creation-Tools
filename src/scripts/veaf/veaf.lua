@@ -489,6 +489,94 @@ function json.parse(str, pos, end_delim)
   end
 end
 
+--------------------------------------------------------------------------------------------------------------------------------------
+-- Double queue
+--------------------------------------------------------------------------------------------------------------------------------------
+VeafDeque =
+{
+    first = 0,
+    last = -1,
+    data = {}
+}
+VeafDeque.__index = VeafDeque
+
+function VeafDeque:new(aTable)
+    local self = setmetatable({}, VeafDeque)
+    self.first = 0
+    self.last = -1
+    if aTable then
+        self.data = aTable
+        self.first = 0
+        self.last = #aTable
+    end
+    return self
+end
+
+function VeafDeque:isempty()
+    return self.first > self.last
+end
+
+function VeafDeque:pushleft(value)
+    local first = self.first - 1
+    self.first = first
+    self.data[first] = value
+end
+
+function VeafDeque:pushright(value)
+    local last = self.last + 1
+    self.last = last
+    self.data[last] = value
+end
+
+function VeafDeque:peekleft()
+    local value = nil
+    if not(self:isempty()) then
+        value = self.data[self.first]
+    end
+    return value
+end
+
+function VeafDeque:popleft()
+    local value = nil
+    if not(self:isempty()) then
+        value = self:peekleft()
+        self.data[self.first] = nil        -- to allow garbage collection
+        self.first = self.first + 1
+    end
+    return value
+end
+
+function VeafDeque:peekright()
+    local value = nil
+    if not(self:isempty()) then
+        value = self.data[self.last]
+    end
+    return value
+end
+
+function VeafDeque:popright()
+    local value = nil
+    if not(self:isempty()) then
+        value = self:peekleft()
+        self.data[self.last] = nil         -- to allow garbage collection
+        self.last = self.last - 1
+    end
+    return value
+end
+
+--- slices a table into multiple, smaller tables (of size *step*)
+function veaf.tableSlice(table, step)
+    local sliced = {}
+   
+    for first = 1, #table, step do
+      local slice = {table.unpack(table, first, first+step-1)}
+      sliced[#sliced+1] = slice
+    end
+   
+    return sliced
+  end
+
+
 --- efficiently remove elements from a table
 --- credit : Mitch McMabers (https://stackoverflow.com/questions/12394841/safely-remove-items-from-an-array-table-while-iterating)
 function veaf.arrayRemoveWhen(t, fnKeep)

@@ -17,6 +17,10 @@
 -- TODO
 --
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
+package.path  = package.path..";"..lfs.currentdir().."/LuaSocket/?.lua"..";"..lfs.writedir() .. "/Mods/services/BufferingSocket/lua/?.lua"
+package.cpath = package.cpath..";"..lfs.currentdir().."/LuaSocket/?.dll"..';'.. lfs.writedir()..'/Mods/services/BufferingSocket/bin/' ..'?.dll;'
+local socket = require("socket")
+veafRemote.config = require "BufferingSocketConfig"
 
 veafRemote = {}
 
@@ -31,8 +35,8 @@ veafRemote.Id = "REMOTE - "
 veafRemote.Version = "2.1.0"
 
 -- trace level, specific to this module
-veafRemote.Debug = false
-veafRemote.Trace = false
+veafRemote.Debug = true
+veafRemote.Trace = true
 
 -- if false, SLMOD will not be called for regular commands
 veafRemote.USE_SLMOD = false
@@ -45,6 +49,10 @@ veafRemote.SecondsBetweenFlagMonitorChecks = 5
 veafRemote.CommandStarter = "_remote"
 
 veafRemote.MIN_LEVEL_FOR_MARKER = 10
+veafRemote.PACKET_DELAY_IN_SECONDS = 0.5
+veafRemote.DATA_REFRESH_IN_SECONDS = 10
+veafRemote.DATASET_SLICE_SIZE = 500
+veafRemote.DATASET_PACKET_SIZE = 500
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Do not change anything below unless you know what you are doing!
@@ -54,6 +62,10 @@ veafRemote.monitoredFlags = {}
 veafRemote.monitoredCommands = {}
 veafRemote.maxMonitoredFlag = 27000
 veafRemote.remoteUsers = {}
+veafRemote.udpSocket = nil
+veafRemote.config = {}
+veafRemote.dataSet = nil
+veafRemote.dataSets = {}
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Utility methods
@@ -244,6 +256,167 @@ function veafRemote.addNiodCommand(name, command)
     )
 end
 
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- UDP socket send/receive
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+--- called every veafRemote.PACKET_DELAY_IN_SECONDS, send a partial dataset through the UDP socket (if a dataset exists)
+function veafRemote.sendPartialDataset()
+    -- reschedule the function
+    timer.scheduleFunction(veafRemote.sendPartialDataset, nil, timer.getTime() + veafRemote.PACKET_DELAY_IN_SECONDS)
+    
+    if veafRemote.sendPartialDatasetInProgress then
+        veafRemote.logWarning(string.format("veafRemote.sendPartialDataset reentry detected"))
+        return
+    end
+
+    veafRemote.sendPartialDatasetInProgress = true
+
+    -- slice the dataSet if needed 
+    if veafRemote.dataSet and not(veafRemote.dataSets) then
+        veafRemote.logTrace(string.format("#veafRemote.dataSet=%s",p(#veafRemote.dataSet)))
+        veafRemote.dataSets = VeafDeque.new(veaf.tableSlice(veafRemote.dataSet, veafRemote.DATASET_SLICE_SIZE))
+        veafRemote.logTrace(string.format("#veafRemote.dataSets=%s",p(#veafRemote.dataSets)))
+    end
+
+    if veafRemote.dataSets and not(veafRemote.dataSets:isempty()) then
+        veafRemote.logTrace(string.format("#veafRemote.dataSets=%s",p(#veafRemote.dataSets)))
+        local dataSet = veafRemote.dataSets:peekleft()
+        if dataSet then 
+            local nbUnits = 0
+            local dataToSend = {}
+            for _, unitName in pairs(dataSet) do
+                veafRemote.logTrace(string.format("processing unittName=%s",veaf.p(unitName)))
+                local unit = Unit.getByName(unitName)
+                if unit then
+                    unitData = {
+                        name = unitName
+                    }
+                    unitData.typeName = unit:getTypeName()
+                    if unit:getGroup() then 
+                        unitData.groupName = unit:getGroup():getName()
+                    end
+                    unitData.coalition = unit:getCoalition()
+                    unitData.country = unit:getCountry()
+                    unitData.human = unit:getPlayerName()
+                    unitData.isActive = unit:isActive()
+                    unitData.life = unit:getLife()
+                    unitData.fullLife = unit:getLife0()
+                    unitData.fuel = unit:getFuel()
+                    --unitData.ammo = unit:getAmmo() -- table is too big, will need to refine this later
+                    
+                    if (includePosition) then
+                        unitData.position = unit:getPoint()
+                        unitData.velocity = unit:getVelocity()
+                        unitData.isInAir = unit:inAir()
+                    end
+                    veafRemote.logTrace(string.format("unitData=%s", veaf.p(unitData)))
+                    table.insert(dataToSend, unitData)
+                    nbUnits = nbUnits + 1
+                end
+            end
+        
+            veafRemote.logTrace(string.format("nbUnits=%s", veaf.p(nbUnits)))
+        
+            if json then
+                -- prepare the data package
+                veafRemote.logTrace(string.format("prepare the data package"))
+                veafRemote.logTrace(string.format("data_package=%s",p(dataToSend)))
+            
+                local _payload = json.stringify(dataToSend) .. veafRemote.EOT_MARKER
+            
+                veafRemote.logTrace(string.format("_payload=%s",p(_payload)))
+            
+                -- send the payload
+                veafRemote.logTrace(string.format("send the payload"))
+                if not(veafRemote.udpSocket) then
+                    veafRemote.udpSocket = socket.udp()
+                    veafRemote.udpSocket:setpeername(veafRemote.config.host, veafRemote.config.port)
+                end
+
+                -- cut the payload into veafRemote.DATASET_PACKET_SIZE bytes packet
+                for i=1, #_payload, veafRemote.DATASET_PACKET_SIZE do
+                    veafRemote.udpSocket:send(_payload:sub(i, i+veafRemote.DATASET_PACKET_SIZE-1))
+                end
+            end      
+        end
+    end
+
+    veafRemote.sendPartialDatasetInProgress = false
+end
+
+--- called every veafRemote.DATA_REFRESH_IN_SECONDS, prepares a new dataset
+function veafRemote.prepareNewDataset(mistFilter, onlyHumans, includePosition)
+    -- reschedule the function
+    timer.scheduleFunction(veafRemote.prepareNewDataset, {mistFilter, onlyHumans, includePosition}, timer.getTime() + veafRemote.DATA_REFRESH_IN_SECONDS)
+
+    if veafRemote.prepareNewDatasetInProgress then
+        veafRemote.logWarning(string.format("veafRemote.prepareNewDataset reentry detected"))
+        return
+    end
+
+    veafRemote.prepareNewDatasetInProgress = true
+        
+    
+
+    veafRemote.prepareNewDatasetInProgress = false
+end
+
+-- returns a list of units for the remote interface to consume
+function veafRemote.getUnitsListForRemote(mistFilter, onlyHumans, includePosition)
+    veafRemote.logDebug(string.format("veafRemote.getUnitsListForRemote()"))
+    veafRemote.logTrace(string.format("mistFilter=%s", veaf.p(mistFilter)))
+    veafRemote.logTrace(string.format("onlyHumans=%s", veaf.p(onlyHumans)))
+    veafRemote.logTrace(string.format("includePosition=%s", veaf.p(includePosition)))
+
+    local mistFilter = mistFilter
+    if not(mistFilter) or (#mistFilter == 0) then mistFilter = {"[all]"} end
+    local result = {}
+    local unitNames = mist.makeUnitTable(mistFilter, onlyHumans)
+    --veafRemote.logTrace(string.format("unitNames=%s", veaf.p(unitNames)))
+    local nbUnits = 0
+    for _, unitName in pairs(unitNames) do
+        --veafRemote.logTrace(string.format("processing unittName=%s",veaf.p(unitName)))
+        local unit = Unit.getByName(unitName)
+        if unit then
+            unitData = {
+                name = unitName
+            }
+            unitData.typeName = unit:getTypeName()
+            if unit:getGroup() then 
+                unitData.groupName = unit:getGroup():getName()
+            end
+            unitData.coalition = unit:getCoalition()
+            unitData.country = unit:getCountry()
+            unitData.human = unit:getPlayerName()
+            unitData.isActive = unit:isActive()
+            unitData.life = unit:getLife()
+            unitData.fullLife = unit:getLife0()
+            unitData.fuel = unit:getFuel()
+            --unitData.ammo = unit:getAmmo() -- table is too big, will need to refine this later
+            
+            if (includePosition) then
+                unitData.position = unit:getPoint()
+                unitData.velocity = unit:getVelocity()
+                unitData.isInAir = unit:inAir()
+            end
+            veafRemote.logTrace(string.format("unitData=%s", veaf.p(unitData)))
+            table.insert(result, unitData)
+            nbUnits = nbUnits + 1
+        end
+    end
+
+    veafRemote.logTrace(string.format("nbUnits=%s", veaf.p(nbUnits)))
+
+    if json then
+        local resultAsJson = json.stringify(result)
+        veafRemote.logTrace(string.format("resultAsJson=%s", veaf.p(resultAsJson)))
+        resultAsJson = [[ [{ "name":"A-10C Batumi-0"}] ]]
+        veafRemote.logTrace(string.format("resultAsJson=%s", veaf.p(resultAsJson)))
+        return resultAsJson
+    end
+
+    return nil
+end
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- default endpoints list
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -455,6 +628,10 @@ function veafRemote.getRemoteUser(username)
         return nil
     end
     return veafRemote.remoteUsers[username:lower()]
+end
+
+function veafRemote.getTestValue(mistFilter, onlyHumans, includePosition)
+    return 42
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------

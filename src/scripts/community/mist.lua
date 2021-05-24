@@ -2213,8 +2213,9 @@ do
 
 	--- Returns a table containing unit names.
 	-- @tparam table tbl sequential strings
+	-- @tparam boolean onlyHumans if true, only return human slots
 	-- @treturn table @{UnitNameTable}
-	function mist.makeUnitTable(tbl)
+	function mist.makeUnitTable(tbl, onlyHumans)
 		--Assumption: will be passed a table of strings, sequential
 		--log:info(tbl)
 		local units_by_name = {}
@@ -2235,7 +2236,9 @@ do
 								if type(group_tbl) == 'table' and group_tbl.groupName == unit:sub(4) then
 									-- index 4 to end
 									for unit_ind, unit in pairs(group_tbl.units) do
-										units_by_name[unit.unitName] = true	--add
+										if not(onlyHumans) or (unit.skill and (unit.skill == "Client" or unit.skill == "Player")) then
+											units_by_name[unit.unitName] = true	--add
+										end
 									end
 								end
 							end
@@ -2286,7 +2289,9 @@ do
 								for group_ind, group_tbl in pairs(unit_type_tbl) do
 									if type(group_tbl) == 'table' then
 										for unit_ind, unit in pairs(group_tbl.units) do
-											units_by_name[unit.unitName] = true	--add
+											if not(onlyHumans) or (unit.skill and (unit.skill == "Client" or unit.skill == "Player")) then
+												units_by_name[unit.unitName] = true	--add
+											end
 										end
 									end
 								end
@@ -2349,7 +2354,9 @@ do
 								for group_ind, group_tbl in pairs(unit_type_tbl) do
 									if type(group_tbl) == 'table' then
 										for unit_ind, unit in pairs(group_tbl.units) do
-											units_by_name[unit.unitName] = true	--add
+											if not(onlyHumans) or (unit.skill and (unit.skill == "Client" or unit.skill == "Player")) then
+												units_by_name[unit.unitName] = true	--add
+											end
 										end
 									end
 								end
@@ -2407,7 +2414,9 @@ do
 								for group_ind, group_tbl in pairs(unit_type_tbl) do
 									if type(group_tbl) == 'table' then
 										for unit_ind, unit in pairs(group_tbl.units) do
-											units_by_name[unit.unitName] = true	--add
+											if not(onlyHumans) or (unit.skill and (unit.skill == "Client" or unit.skill == "Player")) then
+												units_by_name[unit.unitName] = true	--add
+											end
 										end
 									end
 								end
@@ -2464,7 +2473,9 @@ do
 							for group_ind, group_tbl in pairs(unit_type_tbl) do
 								if type(group_tbl) == 'table' then
 									for unit_ind, unit in pairs(group_tbl.units) do
-										units_by_name[unit.unitName] = true	--add
+										if not(onlyHumans) or (unit.skill and (unit.skill == "Client" or unit.skill == "Player")) then
+											units_by_name[unit.unitName] = true	--add
+										end
 									end
 								end
 							end

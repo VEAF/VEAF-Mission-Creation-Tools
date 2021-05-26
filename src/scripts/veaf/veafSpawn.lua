@@ -66,7 +66,7 @@ veafSpawn = {}
 veafSpawn.Id = "SPAWN - "
 
 --- Version.
-veafSpawn.Version = "1.22.2"
+veafSpawn.Version = "1.22.3"
 
 -- trace level, specific to this module
 veafSpawn.Debug = false
@@ -171,6 +171,13 @@ function veafSpawn.executeCommand(eventPos, eventText, coalition, markId, bypass
         local options = veafSpawn.markTextAnalysis(eventText)
 
         if options then
+                if not(options.radius) then
+                    if options.farp or options.cargo or options.logistic or options.destroy or options.teleport or options.bomb or options.smoke or options.flare or options.signal then
+                        options.radius = 0
+                    else
+                        options.radius = 150
+                    end
+                end
             for i=1,options.multiplier do
                 local spawnedGroup = nil
 
@@ -386,9 +393,6 @@ function veafSpawn.markTextAnalysis(text)
 
     -- optional cargo smoke
     switch.cargoSmoke = false
-
-    -- spawn or destruction radius
-    switch.radius = 150
 
     -- cargo type
     switch.cargoType = "ammo_cargo"
@@ -1451,7 +1455,7 @@ function veafSpawn.doSpawnStatic(spawnSpot, radius, staticCategory, staticType, 
     if unit then
         if not(unitName) then
             veafSpawn.spawnedUnitsCounter = veafSpawn.spawnedUnitsCounter + 1
-            unitName = unit.desc.displayName .. " #" .. veafSpawn.spawnedUnitsCounter
+            unitName = unit.name .. " #" .. veafSpawn.spawnedUnitsCounter
         end
 
         -- create the static

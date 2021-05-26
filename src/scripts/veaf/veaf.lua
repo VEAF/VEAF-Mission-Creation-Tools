@@ -929,11 +929,12 @@ function veaf.getWind(point)
 function veaf.findPointInZone(spawnSpot, dispersion, isShip)
     local unitPosition
     local tryCounter = 1000
-    
+    local _dispersion = 0
     repeat -- Place the unit in a "dispersion" ft radius circle from the spawn spot
-        unitPosition = mist.getRandPointInCircle(spawnSpot, dispersion)
+        unitPosition = mist.getRandPointInCircle(spawnSpot, _dispersion)
         local landType = land.getSurfaceType(unitPosition)
         tryCounter = tryCounter - 1
+        _dispersion = _dispersion + dispersion
     until ((isShip and landType == land.SurfaceType.WATER) or (not(isShip) and (landType == land.SurfaceType.LAND or landType == land.SurfaceType.ROAD or landType == land.SurfaceType.RUNWAY))) or tryCounter == 0
     if tryCounter == 0 then
         return nil

@@ -160,8 +160,9 @@ end
 
 function veafSpawn.executeCommand(eventPos, eventText, coalition, markId, bypassSecurity, spawnedGroups)
     veafSpawn.logDebug(string.format("veafSpawn.executeCommand(eventText=[%s])", eventText))
-    veafSpawn.logTrace(string.format("markId  = %s", veaf.p(markId)))
-    veafSpawn.logTrace(string.format("bypassSecurity  = %s", veaf.p(bypassSecurity)))
+    veafSpawn.logTrace(string.format("coalition=%s", veaf.p(coalition)))
+    veafSpawn.logTrace(string.format("markId=%s", veaf.p(markId)))
+    veafSpawn.logTrace(string.format("bypassSecurity=%s", veaf.p(bypassSecurity)))
 
     -- Check if marker has a text and the veafSpawn.SpawnKeyphrase keyphrase.
     if eventText ~= nil and (eventText:lower():find(veafSpawn.SpawnKeyphrase) or eventText:lower():find(veafSpawn.DestroyKeyphrase) or eventText:lower():find(veafSpawn.TeleportKeyphrase)) then

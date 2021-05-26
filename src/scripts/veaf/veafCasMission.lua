@@ -75,6 +75,7 @@ veafCasMission.Id = "CAS MISSION - "
 veafCasMission.Version = "1.11.0"
 
 -- trace level, specific to this module
+veafCasMission.Debug = false
 veafCasMission.Trace = false
 
 --- Key phrase to look for in the mark text which triggers the command.
@@ -128,8 +129,10 @@ function veafCasMission.logInfo(message)
 end
 
 function veafCasMission.logDebug(message)
-    veaf.logDebug(veafCasMission.Id .. message)
-end
+    if message and veafCasMission.Debug then
+        veaf.logDebug(veafCasMission.Id .. message)
+    end
+end    
 
 function veafCasMission.logTrace(message)
     if message and veafCasMission.Trace then
@@ -143,6 +146,7 @@ end
 
 --- Function executed when a mark has changed. This happens when text is entered or changed.
 function veafCasMission.onEventMarkChange(eventPos, event)
+    veafCasMission.logTrace(string.format("event  = %s", veaf.p(event)))
 
     -- choose by default the coalition opposing the player who triggered the event
     local invertedCoalition = 1
@@ -150,16 +154,24 @@ function veafCasMission.onEventMarkChange(eventPos, event)
         invertedCoalition = 2
     end
 
-    veafCasMission.logTrace(string.format("coalition=%d", invertedCoalition))
+    veafCasMission.logTrace(string.format("event.idx  = %s", veaf.p(event.idx)))
 
-    if veafCasMission.executeCommand(eventPos, event.text, invertedCoalition) then        
+    if veafCasMission.executeCommand(eventPos, event.text, invertedCoalition, event.idx) then 
+        
         -- Delete old mark.
         veafCasMission.logTrace(string.format("Removing mark # %d.", event.idx))
         trigger.action.removeMark(event.idx)
+
     end
 end
 
-function veafCasMission.executeCommand(eventPos, eventText, eventCoalition, bypassSecurity)
+function veafCasMission.executeCommand(eventPos, eventText, coalition, markId, bypassSecurity, spawnedGroups)
+    veafCasMission.logDebug(string.format("veafCasMission.executeCommand(eventText=[%s])", eventText))
+    veafCasMission.logTrace(string.format("coalition=%s", veaf.p(coalition)))
+    veafCasMission.logTrace(string.format("markId=%s", veaf.p(markId)))
+    veafCasMission.logTrace(string.format("bypassSecurity=%s", veaf.p(bypassSecurity)))
+
+
     -- Check if marker has a text and the veafCasMission.keyphrase keyphrase.
     if eventText ~= nil and eventText:lower():find(veafCasMission.Keyphrase) then
 
@@ -170,12 +182,20 @@ function veafCasMission.executeCommand(eventPos, eventText, eventCoalition, bypa
             -- Check options commands
             if options.casmission then
 
+                if not (bypassSecurity or veafSecurity.checkSecurity_L9(options.password, markId)) then return end
+                
                 if not options.side then
-                    if eventCoalition == 1 then
-                        options.side = 2
+                    if options.country then
+                        -- deduct the side from the country
+                        options.side = veaf.getCoalitionForCountry(options.country, true)
                     else
-                        options.side = 1
+                        options.side = coalition
                     end
+                end
+
+                if not options.country then
+                    -- deduct the country from the side
+                    options.country = veaf.getCountryForCoalition(options.side)    
                 end
 
                 -- create the group

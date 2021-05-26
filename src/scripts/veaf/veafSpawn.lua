@@ -66,7 +66,7 @@ veafSpawn = {}
 veafSpawn.Id = "SPAWN - "
 
 --- Version.
-veafSpawn.Version = "1.22.1"
+veafSpawn.Version = "1.22.2"
 
 -- trace level, specific to this module
 veafSpawn.Debug = false
@@ -1374,7 +1374,7 @@ function veafSpawn.doSpawnCargo(spawnSpot, radius, cargoType, unitName, cargoSmo
         unit = veafUnits.findDcsUnit(cargoType)
     end
     if unit then
-        if unit.desc.minMass and unit.desc.maxMass then
+        if unit.desc and unit.desc.minMass and unit.desc.maxMass then
             cargoWeight = math.random(unit.desc.minMass, unit.desc.maxMass)
         elseif unit.defaultMass then
             cargoWeight = unit.defaultMass
@@ -1384,7 +1384,7 @@ function veafSpawn.doSpawnCargo(spawnSpot, radius, cargoType, unitName, cargoSmo
 
             if not(unitName) then
                 veafSpawn.spawnedUnitsCounter = veafSpawn.spawnedUnitsCounter + 1
-                unitName = unit.desc.displayName .. " #" .. veafSpawn.spawnedUnitsCounter
+                unitName = unit.name .. " #" .. veafSpawn.spawnedUnitsCounter
             end
 
             -- create the cargo

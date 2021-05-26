@@ -862,7 +862,7 @@ veafUnits.GroupsDatabase = {
                 {"S-60_Type59_Artillery", number = {min=1, max=2}, random=true},
                 {"Fuel Truck ATZ-10", number = 2, random=true},
                 {"GPU APA-80 on ZiL-131", number = 1, random=true},
-                {"Transport Ural-4320-31 Armored", number = 2, random=true},
+                {"Ural-4320-31", number = 2, random=true},
                 {"CP Ural-375 PBU", number = 1, random=true},
             },
             description = "SA-6 SAM site",
@@ -1209,7 +1209,7 @@ veafUnits.GroupsDatabase = {
                 -- Some Gepards
                 {"Gepard", number = {min=2, max=4}, random=true},
                 -- a supply truck or three
-                {"Transport M818", number = {min=1, max=3}, random=true}, 
+                {"M 818", number = {min=1, max=3}, random=true}, 
             },
             description = "generateAirDefenseGroup-BLUE-5",
             groupName = "generateAirDefenseGroup-BLUE-5",
@@ -1228,7 +1228,7 @@ veafUnits.GroupsDatabase = {
                 -- Some Gepards
                 {"Gepard", number = {min=2, max=4}, random=true},
                 -- a supply truck or three
-                {"Transport M818", number = {min=1, max=3}, random=true}, 
+                {"M 818", number = {min=1, max=3}, random=true}, 
             },
             description = "generateAirDefenseGroup-BLUE-4",
             groupName = "generateAirDefenseGroup-BLUE-4",
@@ -1247,7 +1247,7 @@ veafUnits.GroupsDatabase = {
                 -- Some Gepards
                 {"Gepard", number = {min=2, max=4}, random=true},
                 -- a supply truck or three
-                {"Transport M818", number = {min=1, max=3}, random=true}, 
+                {"M 818", number = {min=1, max=3}, random=true}, 
             },
             description = "generateAirDefenseGroup-BLUE-3",
             groupName = "generateAirDefenseGroup-BLUE-3",
@@ -1264,7 +1264,7 @@ veafUnits.GroupsDatabase = {
                 -- Some Vulcans
                 {"Vulcan", number = {min=2, max=4}, random=true},
                 -- a supply truck or three
-                {"Transport M818", number = {min=1, max=3}, random=true}, 
+                {"M 818", number = {min=1, max=3}, random=true}, 
             },
             description = "generateAirDefenseGroup-BLUE-2",
             groupName = "generateAirDefenseGroup-BLUE-2",
@@ -1281,7 +1281,7 @@ veafUnits.GroupsDatabase = {
                 -- Some Vulcans
                 {"Vulcan", number = {min=1, max=3}, random=true},
                 -- a supply truck or three
-                {"Transport M818", number = {min=1, max=3}, random=true}, 
+                {"M 818", number = {min=1, max=3}, random=true}, 
             },
             description = "generateAirDefenseGroup-BLUE-1",
             groupName = "generateAirDefenseGroup-BLUE-1",
@@ -1296,7 +1296,7 @@ veafUnits.GroupsDatabase = {
                 -- Some AAV7
                 {"AAV7", number = {min=1, max=3}, random=true},
                 -- a supply truck or three
-                {"Transport M818", number = {min=1, max=3}, random=true}, 
+                {"M 818", number = {min=1, max=3}, random=true}, 
             },
             description = "generateAirDefenseGroup-BLUE-0",
             groupName = "generateAirDefenseGroup-BLUE-0",
@@ -1323,7 +1323,7 @@ veafUnits.GroupsDatabase = {
                 -- Some S-60
                 {"S-60_Type59_Artillery", number = 1, random=true},
                 -- a supply truck or three
-                {"Transport Ural-4320-31 Armored", number = {min=1, max=3}, random=true}, 
+                {"Ural-4320-31", number = {min=1, max=3}, random=true}, 
             },
             description = "generateAirDefenseGroup-RED-5",
             groupName = "generateAirDefenseGroup-RED-5",
@@ -1348,7 +1348,7 @@ veafUnits.GroupsDatabase = {
                 -- Some S-60
                 {"S-60_Type59_Artillery", number = {min=0, max=1}, random=true},
                 -- a supply truck or three
-                {"Transport Ural-4320-31 Armored", number = {min=1, max=3}, random=true}, 
+                {"Ural-4320-31", number = {min=1, max=3}, random=true}, 
             },
             description = "generateAirDefenseGroup-RED-4",
             groupName = "generateAirDefenseGroup-RED-4",
@@ -1373,7 +1373,7 @@ veafUnits.GroupsDatabase = {
                 -- Some S-60
                 {"S-60_Type59_Artillery", number = {min=0, max=1}, random=true},
                 -- a supply truck or three
-                {"Transport Ural-4320-31 Armored", number = {min=1, max=3}, random=true}, 
+                {"Ural-4320-31", number = {min=1, max=3}, random=true}, 
             },
             description = "generateAirDefenseGroup-RED-3",
             groupName = "generateAirDefenseGroup-RED-3",
@@ -1396,7 +1396,7 @@ veafUnits.GroupsDatabase = {
                 -- Some S-60
                 {"S-60_Type59_Artillery", number = {min=0, max=1}, random=true},
                 -- a supply truck or three
-                {"Transport Ural-4320-31 Armored", number = {min=1, max=3}, random=true}, 
+                {"Ural-4320-31", number = {min=1, max=3}, random=true}, 
             },
             description = "generateAirDefenseGroup-RED-2",
             groupName = "generateAirDefenseGroup-RED-2",
@@ -1415,7 +1415,7 @@ veafUnits.GroupsDatabase = {
                 -- Some ZU-57-2
                 {"ZSU_57_2", number = {min=0, max=1}, random=true},
                 -- a supply truck or three
-                {"Transport Ural-4320-31 Armored", number = {min=1, max=3}, random=true}, 
+                {"Ural-4320-31", number = {min=1, max=3}, random=true}, 
             },
             description = "generateAirDefenseGroup-RED-1",
             groupName = "generateAirDefenseGroup-RED-1",
@@ -1432,7 +1432,7 @@ veafUnits.GroupsDatabase = {
                 -- Some S-60
                 {"S-60_Type59_Artillery", number = {min=0, max=1}, random=true},
                 -- a supply truck or three
-                {"Transport Ural-4320-31 Armored", number = {min=1, max=3}, random=true}, 
+                {"Ural-4320-31", number = {min=1, max=3}, random=true}, 
             },
             description = "generateAirDefenseGroup-RED-0",
             groupName = "generateAirDefenseGroup-RED-0",
@@ -1451,7 +1451,7 @@ veafUnits.GroupsDatabase = {
                 -- the actual air defense units
                 {"ZSU-23-4 Shilka", hdg = 0, random=true}, {"ZSU-23-4 Shilka", hdg = 90, random=true}, {"ZSU-23-4 Shilka", hdg = 180, random=true}, {"ZSU-23-4 Shilka", hdg = 270, random=true}, 
                 -- a supply truck or three
-                {"Transport Ural-4320-31 Armored", number = {min=1, max=3}, random=true}, 
+                {"Ural-4320-31", number = {min=1, max=3}, random=true}, 
             },
             description = "ZSU-23-4 battery",
             groupName = "ZSU-23-4 battery"
@@ -1467,7 +1467,7 @@ veafUnits.GroupsDatabase = {
                 -- the actual air defense units
                 {"S-60_Type59_Artillery", hdg = 0, random=true}, {"S-60_Type59_Artillery", hdg = 90, random=true}, {"S-60_Type59_Artillery", hdg = 180, random=true}, {"S-60_Type59_Artillery", hdg = 270, random=true}, 
                 -- a supply truck or three
-                {"Transport Ural-4320-31 Armored", number = {min=1, max=3}, random=true}, 
+                {"Ural-4320-31", number = {min=1, max=3}, random=true}, 
             },
             description = "S-60 battery",
             groupName = "S-60 battery"
@@ -1483,7 +1483,7 @@ veafUnits.GroupsDatabase = {
                 -- the actual air defense units
                 {"Strela-1 9P31", hdg = 0, random=true}, {"Strela-1 9P31", hdg = 90, random=true}, {"Strela-1 9P31", hdg = 180, random=true}, {"Strela-1 9P31", hdg = 270, random=true}, 
                 -- a supply truck or three
-                {"Transport Ural-4320-31 Armored", number = {min=1, max=3}, random=true}, 
+                {"Ural-4320-31", number = {min=1, max=3}, random=true}, 
             },
             description = "SA-9 battery",
             groupName = "SA-9 battery"
@@ -1499,7 +1499,7 @@ veafUnits.GroupsDatabase = {
                 -- the actual air defense units
                 {"Strela-10M3", hdg = 0, random=true}, {"Strela-10M3", hdg = 90, random=true}, {"Strela-10M3", hdg = 180, random=true}, {"Strela-10M3", hdg = 270, random=true}, 
                 -- a supply truck or three
-                {"Transport Ural-4320-31 Armored", number = {min=1, max=3}, random=true}, 
+                {"Ural-4320-31", number = {min=1, max=3}, random=true}, 
             },
             description = "SA-13 battery",
             groupName = "SA-13 battery"

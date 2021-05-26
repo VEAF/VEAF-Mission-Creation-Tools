@@ -504,7 +504,7 @@ function veafCasMission.generateTransportCompany(groupName, defense, side, size)
             end
         else
             if side == veafCasMission.SIDE_BLUE then
-                transportType = veaf.randomlyChooseFrom({"APC M1025 HMMWV", "Transport M818", "HEMTT TFFT", "M978 HEMTT Tanker"})
+                transportType = veaf.randomlyChooseFrom({"LUV HMMWV Jeep", "M 818", "HEMTT TFFT", "M978 HEMTT Tanker"})
             else
                 transportType = veaf.randomlyChooseFrom({'ATMZ-5', 'Ural-4320 APA-5D', 'SKP-11', 'GAZ-66', 'KAMAZ Truck', 'Ural-375', 'Ural-4320T', 'ZIL-131 KUNG' })
             end
@@ -557,7 +557,7 @@ function veafCasMission.generateArmorPlatoon(groupName, defense, armor, side, si
                 end
             else
                 if side == veafCasMission.SIDE_BLUE then
-                    armorType = veaf.randomlyChooseFrom({'IFV Marder', 'IFV MCV-80', 'IFV LAV-25', 'M-2 Bradley'})
+                    armorType = veaf.randomlyChooseFrom({'IFV Marder', 'MCV-80', 'IFV LAV-25', 'M-2 Bradley'})
                 else
                     armorType = veaf.randomlyChooseFrom({'BRDM-2', 'BMD-1', 'BMP-1'})
                 end

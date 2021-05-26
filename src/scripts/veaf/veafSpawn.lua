@@ -445,7 +445,7 @@ function veafSpawn.markTextAnalysis(text)
         -- default country for friendly JTAC: USA
         switch.country = "USA"
         -- default name for JTAC
-        switch.name = "APC HMMWV Jeep"
+        switch.name = "LUV HMMWV Jeep"
         -- default JTAC name (will overwrite previous unit with same name)
         switch.unitName = "JTAC1"
     elseif text:lower():find(veafSpawn.SpawnKeyphrase .. " tacan") then

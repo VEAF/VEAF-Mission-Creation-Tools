@@ -125,7 +125,9 @@ end
 local function _sortUnits(u1,u2)
     if u1 and u1.category and u2 and u2.category then
         if string.lower(u1.category) == string.lower(u2.category) then 
-            if u1 and u1.name and u2 and u2.name then
+            if u1 and u1.type and u2 and u2.type then
+                return string.lower(u1.type) < string.lower(u2.type)
+            elseif u1 and u1.name and u2 and u2.name then
                 return string.lower(u1.name) < string.lower(u2.name)
             else
                 return string.lower(u1) < string.lower(u2)

@@ -251,6 +251,7 @@ async function injectWeather(parameters) {
       }, -- end of ["clouds"]
     }, -- end of ["weather"]     
     `;
+    weatherDataString = weatherDataString.replace("NaN","0"); // just in case some computation went wrong
 
     // add the METAR string to dictionary
     if (dictionaryData) {

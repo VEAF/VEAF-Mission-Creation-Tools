@@ -157,11 +157,17 @@ class DCSCheckWXConvertEnricher {
   }
 
   getBarometerMMHg() {
-    return this.getClosestResult()['barometer']['hg'] * 25.4
+    if (this.getClosestResult() && this.getClosestResult()['barometer'] && this.getClosestResult()['barometer']['hg'])
+      return this.getClosestResult()['barometer']['hg'] * 25.4;
+    else
+      return 29.92;
   }
 
   getTemperature() {
-    return this.getClosestResult()['temperature']['celsius']
+    if (this.getClosestResult() && this.getClosestResult()['temperature'] && this.getClosestResult()['temperature']['celsius'])
+      return this.getClosestResult()['temperature']['celsius'];
+    else
+      return 20;
   }
 
   getTemperatureASL() {
@@ -180,13 +186,13 @@ class DCSCheckWXConvertEnricher {
 
   getWind2000() {
     let groundWind = this.getWindASL();
-    let newDirection = this.normalizeDegrees(groundWind['direction'] + this.getDeterministicRandomInt(-10, 10));
+    let newDirection = this.normalizeDegrees(groundWind['direction'] + this.getDeterministicRandomInt(-50, 50));
     return { 'direction': newDirection, 'speed': groundWind['speed'] + this.getDeterministicRandomFloat(1, 3) };
   }
 
   getWind8000() {
     let groundWind = this.getWindASL()
-    let newDirection = this.normalizeDegrees(groundWind['direction'] + this.getDeterministicRandomInt(-20, 20));
+    let newDirection = this.normalizeDegrees(groundWind['direction'] + this.getDeterministicRandomInt(-100, 100));
     return { 'direction': newDirection, 'speed': groundWind['speed'] + this.getDeterministicRandomFloat(2, 8) };
   }
 
@@ -526,15 +532,14 @@ class DCSCheckWXConvertEnricher {
   }
 
   getVisibility() {
-    try {
+    if (this.getClosestResult() && this.getClosestResult()['visibility'] && this.getClosestResult()['visibility']['meters_float']) {
       let visibility = this.getClosestResult()['visibility']['meters_float'];
       if (visibility >= 9000)
         return 80000;
       else
         return visibility;
-    } catch (err) {
-      console.log(err);
-      return 80000;
+    } else {
+      return 80000;  
     }
   }
 }

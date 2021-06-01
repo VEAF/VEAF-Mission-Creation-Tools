@@ -23,11 +23,6 @@ if not VEAF_DYNAMIC_PATH then
   VEAF_DYNAMIC_PATH = ""
 end
 
--- load the community scripts
---__Veaf.Include( VEAF_DYNAMIC_PATH .. '/src/scripts/community/mist.lua' )
---__Veaf.Include( VEAF_DYNAMIC_PATH .. '/src/scripts/community/Moose.lua' )
---__Veaf.Include( VEAF_DYNAMIC_PATH .. '/src/scripts/community/WeatherMark.lua' )
-
 -- load the VEAF scripts
 __Veaf.Include( VEAF_DYNAMIC_PATH .. '/src/scripts/veaf/veaf.lua' )
 __Veaf.Include( VEAF_DYNAMIC_PATH .. '/src/scripts/veaf/veafAssets.lua' )

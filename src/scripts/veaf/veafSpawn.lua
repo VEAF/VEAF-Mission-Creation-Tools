@@ -66,7 +66,7 @@ veafSpawn = {}
 veafSpawn.Id = "SPAWN - "
 
 --- Version.
-veafSpawn.Version = "1.22.3"
+veafSpawn.Version = "1.23.0"
 
 -- trace level, specific to this module
 veafSpawn.Debug = false
@@ -80,6 +80,9 @@ veafSpawn.DestroyKeyphrase = "_destroy"
 
 --- Key phrase to look for in the mark text which triggers the teleport command.
 veafSpawn.TeleportKeyphrase = "_teleport"
+
+--- Key phrase to look for in the mark text which triggers the drawing commands.
+veafSpawn.DrawingKeyphrase = "_drawing"
 
 --- Name of the spawned units group 
 veafSpawn.RedSpawnedUnitsGroupName = "VEAF Spawned Units"
@@ -165,7 +168,7 @@ function veafSpawn.executeCommand(eventPos, eventText, coalition, markId, bypass
     veafSpawn.logTrace(string.format("bypassSecurity=%s", veaf.p(bypassSecurity)))
 
     -- Check if marker has a text and the veafSpawn.SpawnKeyphrase keyphrase.
-    if eventText ~= nil and (eventText:lower():find(veafSpawn.SpawnKeyphrase) or eventText:lower():find(veafSpawn.DestroyKeyphrase) or eventText:lower():find(veafSpawn.TeleportKeyphrase)) then
+    if eventText ~= nil and (eventText:lower():find(veafSpawn.SpawnKeyphrase) or eventText:lower():find(veafSpawn.DestroyKeyphrase) or eventText:lower():find(veafSpawn.TeleportKeyphrase) or eventText:lower():find(veafSpawn.DrawingKeyphrase)) then
         
         -- Analyse the mark point text and extract the keywords.
         local options = veafSpawn.markTextAnalysis(eventText)
@@ -216,7 +219,10 @@ function veafSpawn.executeCommand(eventPos, eventText, coalition, markId, bypass
                 elseif options.farp then
                     -- check security
                     if not (bypassSecurity or veafSecurity.checkSecurity_L9(options.password, markId)) then return end
-                    spawnedGroup = veafSpawn.spawnFarp(eventPos, options.radius, options.name, options.country, options.farpType, options.side, options.heading, options.spacing, bypassSecurity)
+                    if not options.type then
+                        options.type = "invisible"
+                    end
+                    spawnedGroup = veafSpawn.spawnFarp(eventPos, options.radius, options.name, options.country, options.type, options.side, options.heading, options.spacing, bypassSecurity)
                 elseif options.group then
                     -- check security
                     if not (bypassSecurity or veafSecurity.checkSecurity_L9(options.password, markId)) then return end
@@ -272,6 +278,14 @@ function veafSpawn.executeCommand(eventPos, eventText, coalition, markId, bypass
                     veafSpawn.spawnIlluminationFlare(eventPos, options.radius, options.shells, options.alt)
                 elseif options.signal then
                     veafSpawn.spawnSignalFlare(eventPos, options.radius, options.shells, options.smokeColor)
+                elseif options.addDrawing then
+                    -- check security
+                    if not (bypassSecurity or veafSecurity.checkSecurity_L1(options.password, markId)) then return end
+                    veafSpawn.addPointToDrawing(eventPos, options.name, options.drawColor, options.drawFillColor, options.type, options.drawArrow)
+                elseif options.eraseDrawing then
+                    -- check security
+                    if not (bypassSecurity or veafSecurity.checkSecurity_L1(options.password, markId)) then return end
+                    veafSpawn.eraseDrawing(options.name)
                 end
                 if spawnedGroup then
                     local groupObject = Group.getByName(spawnedGroup)
@@ -328,7 +342,7 @@ function veafSpawn.markTextAnalysis(text)
     switch.unit = false
     switch.group = false
     switch.farp = false
-    switch.farpType = "invisible"
+    switch.type = nil
     switch.cargo = false
     switch.logistic = false
     switch.smoke = false
@@ -349,6 +363,13 @@ function veafSpawn.markTextAnalysis(text)
     switch.shells = 1
     switch.multiplier = 1
     switch.skynet = false -- if true, add to skynet
+    switch.addtDrawing = false -- draw a polygon on the map
+    switch.eraseDrawing = false -- erase a polygon from the map
+    switch.stopDrawing = false -- close a polygon started on the map
+
+    switch.drawColor = nil
+    switch.drawFillColor = nil
+    switch.drawArrow = nil
 
     -- spawned group/unit type/alias
     switch.name = ""
@@ -466,6 +487,10 @@ function veafSpawn.markTextAnalysis(text)
         switch.destroy = true
     elseif text:lower():find(veafSpawn.TeleportKeyphrase) then
         switch.teleport = true
+    elseif text:lower():find(veafSpawn.DrawingKeyphrase .. " add") then
+        switch.addDrawing = true
+    elseif text:lower():find(veafSpawn.DrawingKeyphrase .. " erase") then
+        switch.eraseDrawing = true
     else
         return nil
     end
@@ -642,9 +667,19 @@ function veafSpawn.markTextAnalysis(text)
             switch.tacanChannel = nVal
         end        
 
+        if key:lower() == "arrow" then
+            veafSpawn.logTrace(string.format("Keyword arrow = %s", tostring(val)))
+            switch.drawArrow = true
+        end
+        if key:lower() == "fill" then
+            veafSpawn.logTrace(string.format("Keyword fill = %s", tostring(val)))
+            switch.drawFillColor = val
+        end
+
         if key:lower() == "color" then
-            -- Set smoke color.
             veafSpawn.logTrace(string.format("Keyword color = %s", tostring(val)))
+            switch.drawColor = val
+            -- Set smoke color.
             if (val:lower() == "red") then 
                 switch.smokeColor = trigger.smokeColor.Red
             elseif (val:lower() == "green") then 
@@ -671,10 +706,10 @@ function veafSpawn.markTextAnalysis(text)
             switch.cargoType = val
         end
 
-        if switch.farp and key:lower() == "type" then
+        if key:lower() == "type" then
             -- Set farp type.
             veafSpawn.logTrace(string.format("Keyword type = %s", tostring(val)))
-            switch.farpType = val
+            switch.type = val
         end
 
         if switch.cargo and key:lower() == "smoke" then
@@ -716,6 +751,72 @@ function veafSpawn.markTextAnalysis(text)
     if switch.unit and not(switch.name) then return nil end
     
     return switch
+end
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- Manage drawings on the map
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+veafSpawn.drawings = {}
+veafSpawn.drawingsMarkers = {}
+
+--- Add a point to a drawing on the map (or start a new drawing)
+function veafSpawn.addPointToDrawing(point, name, color, fillColor, lineType, isArrow)
+    veafSpawn.logDebug(string.format("addPointToDrawing(point=%s, name=%s, color=%s, fillColor=%s, lineType=%s, isArrow=%s)", veaf.p(point), veaf.p(name), veaf.p(color), veaf.p(fillColor), veaf.p(lineType), veaf.p(isArrow)))
+    if not name then 
+        veafSpawn.logWarning("Name is mandatory for drawing commands")
+        return
+    end
+    local drawing = veafSpawn.drawings[name:lower()]
+    if not drawing then 
+        drawing = VeafDrawingOnMap.new():setName(name)
+        veafSpawn.drawings[name:lower()] = drawing
+    end
+    local drawingMarkerId = veafSpawn.drawingsMarkers[name:lower()]
+    if drawingMarkerId then
+        trigger.action.removeMark(drawingMarkerId)
+    end
+    drawingMarkerId = veaf.getUniqueIdentifier()
+    trigger.action.markToAll(drawingMarkerId, name, point, true) 
+    veafSpawn.drawingsMarkers[name:lower()] = drawingMarkerId
+    if color then
+        drawing:setColor(color)
+    end
+    if lineType then
+        drawing:setLineType(lineType)
+    end
+    if isArrow then
+        drawing:setArrow()
+    end
+    if fillColor then
+        drawing:setFillColor(fillColor)
+    end
+    
+    drawing:addPoint(point)
+    drawing:draw()
+end
+
+--- Erase drawing from the map
+function veafSpawn.eraseDrawing(name)
+    veafSpawn.logDebug(string.format("eraseDrawing(name=%s)",veaf.p(name)))
+    if not name then 
+        veafSpawn.logWarning("Name is mandatory for drawing commands")
+        return
+    end
+    local drawing = veafSpawn.drawings[name:lower()]
+    if not drawing then 
+        local message = string.format("Could not find a drawing named %s", veaf.p(name))
+        veafSpawn.logWarning(message)
+        trigger.action.outText(message)
+        return
+    end
+    drawing:erase()
+    veafSpawn.drawings[name:lower()] = nil
+    local drawingMarkerId = veafSpawn.drawingsMarkers[name:lower()]
+    if drawingMarkerId then
+        trigger.action.removeMark(drawingMarkerId)
+    end
+    veafSpawn.drawingsMarkers[name:lower()] = nil
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------

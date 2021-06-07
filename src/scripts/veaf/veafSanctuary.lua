@@ -28,11 +28,11 @@ veafSanctuary = {}
 veafSanctuary.Id = "SANCTUARY - "
 
 --- Version.
-veafSanctuary.Version = "1.5.0"
+veafSanctuary.Version = "1.6.0"
 
 -- trace level, specific to this module
-veafSanctuary.Debug = true
-veafSanctuary.Trace = true
+veafSanctuary.Debug = false
+veafSanctuary.Trace = false
 veafSanctuary.RecordAction = true
 veafSanctuary.RecordTrace = false
 veafSanctuary.RecordTraceTrespassing = false
@@ -317,48 +317,23 @@ function VeafSanctuaryZone:setPolygonFromUnits(unitNames, markPositions)
 
     -- Color of the line marking the zone ({r, g, b, a})
     local LINE_COLOR = {0/255, 255/255, 100/255, 255/255}
-
-    -- Type of line marking the zone
-    -- 0  No Line
-    -- 1  Solid
-    -- 2  Dashed
-    -- 3  Dotted
-    -- 4  Dot Dash
-    -- 5  Long Dash
-    -- 6  Two Dash
-    local LINE_TYPE = 6
+    local LINE_TYPE = VeafDrawingOnMap.LINE_TYPE.twodashes
 
     veafSanctuary.logDebug(string.format("VeafSanctuaryZone[%s]:setPolygonFromUnits()", veaf.p(self.name)))
     veafSanctuary.logTrace(string.format("markPositions = %s", veaf.p(markPositions)))
-    local polygon = {}
-    for _, unitName in pairs(unitNames) do
-        veafSanctuary.logTrace(string.format("unitName = %s", veaf.p(unitName)))
-        local unit = Unit.getByName(unitName)
-        if not unit then
-            local group = Group.getByName(unitName)
-            if group then
-                unit = group:getUnit(1)
-            end
-        end
-        if unit then
-            -- get position, place tracing marker and remove the unit
-            local position = unit:getPosition().p
-            unit:destroy()
-            veafSanctuary.logTrace(string.format("position = %s", veaf.p(position)))
-            table.insert(polygon, mist.utils.deepCopy(position))
-        end
-    end
-    veafSanctuary.logTrace(string.format("polygon = %s", veaf.p(polygon)))
-    self:setPolygon(polygon)
-    if markPositions then
-        local drawing = VeafDrawingOnMap.new()
-        :setName(self:getName())
-        :setColor(LINE_COLOR)
-        :setLineType(VeafDrawingOnMap.LINE_TYPE.twodashes)
-        :addPoints(self:getPolygon())
-        :draw()
+    local polygon = veaf.getPolygonFromUnits(unitNames)
+    if polygon and #polygon > 0 then
+        veafSanctuary.logTrace(string.format("polygon = %s", veaf.p(polygon)))
+        self:setPolygon(polygon)
+        if markPositions then
+            local drawing = VeafDrawingOnMap.new()
+            :setName(self:getName())
+            :setColor(LINE_COLOR)
+            :setLineType(LINE_TYPE)
+            :addPoints(self:getPolygon())
+            :draw()
+        end    
     end    
-    
     return self
 end
 

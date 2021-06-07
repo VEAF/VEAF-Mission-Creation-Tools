@@ -33,10 +33,10 @@ veaf.Id = "VEAF - "
 veaf.MainId = "MAIN - "
 
 --- Version.
-veaf.Version = "1.13.2"
+veaf.Version = "1.14.0"
 
 -- trace level, specific to this module
-veaf.MainTrace = true
+veaf.MainTrace = false
 
 --- Development version ?
 veaf.Development = true
@@ -2059,6 +2059,32 @@ function veaf.setServerName(value)
     veaf.config.SERVER_NAME = value
 end
 
+function veaf.getPolygonFromUnits(unitNames)
+
+    veaf.mainLogDebug(string.format("veaf.getPolygonFromUnits()"))
+    veaf.mainLogTrace(string.format("unitNames = %s", veaf.p(unitNames)))
+    local polygon = {}
+    for _, unitName in pairs(unitNames) do
+        veaf.mainLogTrace(string.format("unitName = %s", veaf.p(unitName)))
+        local unit = Unit.getByName(unitName)
+        if not unit then
+            local group = Group.getByName(unitName)
+            if group then
+                unit = group:getUnit(1)
+            end
+        end
+        if unit then
+            -- get position, place tracing marker and remove the unit
+            local position = unit:getPosition().p
+            unit:destroy()
+            veaf.mainLogTrace(string.format("position = %s", veaf.p(position)))
+            table.insert(polygon, mist.utils.deepCopy(position))
+        end
+    end
+    veaf.mainLogTrace(string.format("polygon = %s", veaf.p(polygon)))
+    return polygon
+end
+
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Quick Reaction Alert - https://en.wikipedia.org/wiki/Quick_Reaction_Alert
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -2357,8 +2383,12 @@ VeafDrawingOnMap =
     points = nil,
     -- color ({r, g, b, a})
     color = nil,
+    -- fill color ({r, g, b, a})
+    fillColor = nil,
     -- type of line (member of VeafDrawingOnMap.LINE_TYPE)
     lineType = nil,
+    -- if true, the line is an arrow
+    isArrow = nil,
     -- marker ids
     dcsMarkerIds = nil
 }
@@ -2382,7 +2412,17 @@ VeafDrawingOnMap.LINE_TYPE = {
     ["twodashes"] = 6
 }
 
+VeafDrawingOnMap.COLORS = {
+    ["transparent"] = {0, 0, 0, 0},
+    ["black"] = {0, 0, 0, 1},
+    ["white"] = {1, 1, 1, 1},
+    ["red"] = {1, 0, 0, 1},
+    ["green"] = {0, 1, 0, 1},
+    ["blue"] = {0, 0, 1, 1}
+}
+
 VeafDrawingOnMap.DEFAULT_COLOR = {170/255, 10/255, 0/255, 220/255}
+VeafDrawingOnMap.DEFAULT_FILLCOLOR = {170/255, 10/255, 0/255, 170/255}
 
 function VeafDrawingOnMap:new()
     veaf.mainLogTrace(string.format("VeafDrawingOnMap:new()"))
@@ -2391,7 +2431,9 @@ function VeafDrawingOnMap:new()
     self.coalition = -1
     self.points = {}
     self.color = VeafDrawingOnMap.DEFAULT_COLOR
+    self.fillColor = VeafDrawingOnMap.DEFAULT_FILLCOLOR
     self.lineType = VeafDrawingOnMap.LINE_TYPE.solid
+    self.isArrow = false
     self.dcsMarkerIds = {}
     return self
 end
@@ -2418,34 +2460,73 @@ end
 
 function VeafDrawingOnMap:addPoint(value)
     veaf.mainLogTrace(string.format("VeafDrawingOnMap[%s]:addPoint(%s)", veaf.p(self.name), veaf.p(value)))
-    table.insert(self.points, mist.utils.deepCopy(value))
+    table.insert(self.points, 1, mist.utils.deepCopy(value))
     return self
 end
 
 function VeafDrawingOnMap:addPoints(value)
     veaf.mainLogTrace(string.format("VeafDrawingOnMap[%s]:addPoints(%s)", veaf.p(self.name), veaf.p(value)))
-    if value then
+    if value and #value > 0 then
         for _, item in pairs(value) do
-            table.insert(self.points, mist.utils.deepCopy(item))
+            self:addPoint(item)
         end
     end
     return self
 end
 
+function VeafDrawingOnMap:setPointsFromUnits(unitNames)
+    veaf.mainLogDebug(string.format("VeafDrawingOnMap[%s]:setPointsFromUnits()", veaf.p(self.name)))
+    local polygon = veaf.getPolygonFromUnits(unitNames)
+    self:addPoints(polygon)
+    return self
+end
+
 function VeafDrawingOnMap:setColor(value)
     veaf.mainLogTrace(string.format("VeafDrawingOnMap[%s]:setColor(%s)", veaf.p(self:getName()), veaf.p(value)))
-    self.color = mist.utils.deepCopy(value)
+    if value and type(value) == "string" then
+        value = VeafDrawingOnMap.COLORS[value:lower()]
+    end
+    if value then
+        self.color = mist.utils.deepCopy(value)
+    end
+    return self
+end
+
+function VeafDrawingOnMap:setFillColor(value)
+    veaf.mainLogTrace(string.format("VeafDrawingOnMap[%s]:setFillColor(%s)", veaf.p(self:getName()), veaf.p(value)))
+    if value and type(value) == "string" then
+        value = VeafDrawingOnMap.COLORS[value:lower()]
+    end
+    if value then
+        self.fillColor = mist.utils.deepCopy(value)
+    end
     return self
 end
 
 function VeafDrawingOnMap:setLineType(value)
     veaf.mainLogTrace(string.format("VeafDrawingOnMap[%s]:setLineType(%s)", veaf.p(self:getName()), veaf.p(value)))
-    self.lineType = value
+    if value and type(value) == "string" then
+        value = VeafDrawingOnMap.LINE_TYPE[value:lower()]
+    end
+    if value then
+        self.lineType = value
+    end
+    return self
+end
+
+function VeafDrawingOnMap:setArrow()
+    veaf.mainLogTrace(string.format("VeafDrawingOnMap[%s]:setArrow()", veaf.p(self:getName())))
+    self.isArrow = true
     return self
 end
 
 function VeafDrawingOnMap:draw()
     veaf.mainLogTrace(string.format("VeafDrawingOnMap[%s]:draw()", veaf.p(self:getName())))
+
+    -- start by erasing the drawing if it already is drawn
+    self:erase()
+
+    -- then draw it
     local lastPoint = nil
     local firstPoint = nil
     for _, point in pairs(self.points) do
@@ -2453,7 +2534,11 @@ function VeafDrawingOnMap:draw()
         local id = veaf.getUniqueIdentifier()
         if lastPoint then
             veaf.mainLogTrace(string.format("id=[%s]", veaf.p(id)))
-            trigger.action.lineToAll(self:getCoalition(), id, lastPoint, point, self.color, self.lineType, true)
+            if self.isArrow then
+                trigger.action.arrowToAll(self:getCoalition(), id, lastPoint, point, self.color, self.fillColor, self.lineType, true)
+            else
+                trigger.action.lineToAll(self:getCoalition(), id, lastPoint, point, self.color, self.lineType, true)
+            end
         else
             veaf.mainLogTrace(string.format("setting firstPoint to [%s]", veaf.p(point)))
             trigger.action.markToCoalition(id, self.name, point, self.coalition, true, nil)
@@ -2462,21 +2547,28 @@ function VeafDrawingOnMap:draw()
         table.insert(self.dcsMarkerIds, id)
         lastPoint = point
     end
+
     -- finish the polygon
-    if firstPoint and lastPoint then
+    if firstPoint and lastPoint and #self.points > 2 and not self.isArrow then
         veaf.mainLogTrace(string.format("finishing the polygon"))
         local id = veaf.getUniqueIdentifier()
         veaf.mainLogTrace(string.format("id=[%s]", veaf.p(id)))
-        trigger.action.lineToAll(self:getCoalition(), id, lastPoint, firstPoint, self.color, self.lineType, true)
+        if self.isArrow then
+            trigger.action.arrowToAll(self:getCoalition(), id, lastPoint, firstPoint, self.color, self.fillColor, self.lineType, true)
+        else
+            trigger.action.lineToAll(self:getCoalition(), id, lastPoint, firstPoint, self.color, self.lineType, true)
+        end
         table.insert(self.dcsMarkerIds, id)
     end
 end
 
 function VeafDrawingOnMap:erase()
     veaf.mainLogTrace(string.format("VeafDrawingOnMap[%s]:erase()", veaf.p(self:getName())))
-    for _, id in pairs(self.dcsMarkerIds) do
-        veaf.mainLogTrace(string.format("removing mark id=[%s]", veaf.p(id)))
-        trigger.action.removeMark(id)
+    if self.dcsMarkerIds then
+        for _, id in pairs(self.dcsMarkerIds) do
+            veaf.mainLogTrace(string.format("removing mark id=[%s]", veaf.p(id)))
+            trigger.action.removeMark(id)
+        end
     end
 end
 

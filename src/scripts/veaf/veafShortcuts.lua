@@ -27,7 +27,7 @@ veafShortcuts = {}
 veafShortcuts.Id = "SHORTCUTS - "
 
 --- Version.
-veafShortcuts.Version = "1.17.0"
+veafShortcuts.Version = "1.18.0"
 
 -- trace level, specific to this module
 veafShortcuts.Debug = false
@@ -823,6 +823,30 @@ function veafShortcuts.buildDefaultList()
             :setName("-farp")
             :setDescription("create a new FARP")
             :setVeafCommand("_spawn farp, side blue, radius 0")
+            :setBypassSecurity(false)
+    )
+    veafShortcuts.AddAlias(
+        VeafAlias:new()
+            :setName("-draw")
+            :setDescription("start a drawing on the map, or add a point to an existing drawing ; name is mandatory")
+            :setVeafCommand("_drawing add, name")
+            :dontEndWithComma()
+            :setBypassSecurity(false)
+    )
+    veafShortcuts.AddAlias(
+        VeafAlias:new()
+            :setName("-arrow")
+            :setDescription("start drawing an arrow on the map, or add a point to an existing arrow ; name is mandatory")
+            :setVeafCommand("_drawing add, arrow, name")
+            :dontEndWithComma()
+            :setBypassSecurity(false)
+    )
+    veafShortcuts.AddAlias(
+        VeafAlias:new()
+            :setName("-erasedrawing")
+            :setDescription("erase a drawing from the map ; name is mandatory")
+            :setVeafCommand("_drawing erase, name")
+            :dontEndWithComma()
             :setBypassSecurity(false)
     )
 end

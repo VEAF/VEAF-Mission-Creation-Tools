@@ -26,8 +26,8 @@ veafMissileGuardian.Id = "MISSILE GUARDIAN - "
 veafMissileGuardian.Version = "0.0.1"
 
 -- trace level, specific to this module
-veafMissileGuardian.Debug = true
-veafMissileGuardian.Trace = true
+veafMissileGuardian.Debug = false
+veafMissileGuardian.Trace = false
 
 --- Number of seconds between each check of the WIDE ZONE watchdog function
 veafMissileGuardian.SecondsBetweenWideZoneWatchdogChecks = 5

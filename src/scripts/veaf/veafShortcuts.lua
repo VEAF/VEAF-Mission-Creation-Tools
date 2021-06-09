@@ -785,6 +785,13 @@ function veafShortcuts.buildDefaultList()
     )
     veafShortcuts.AddAlias(
         VeafAlias:new()
+            :setName("-signal")
+            :setDescription("Spawn a single signal flare")
+            :setVeafCommand("_spawn signal, color green, shells 1, radius 1")
+            :setBypassSecurity(true)
+    )
+    veafShortcuts.AddAlias(
+        VeafAlias:new()
             :setName("-tankerhere")
             :setDescription("move a tanker to a specific location ; must follow with the tanker group name ; can also set speed, alt, hdg and distance")
             :setVeafCommand("_move tanker, teleport, name")

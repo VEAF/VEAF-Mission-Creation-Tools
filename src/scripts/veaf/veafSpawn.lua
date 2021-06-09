@@ -66,7 +66,7 @@ veafSpawn = {}
 veafSpawn.Id = "SPAWN - "
 
 --- Version.
-veafSpawn.Version = "1.23.0"
+veafSpawn.Version = "1.24.0"
 
 -- trace level, specific to this module
 veafSpawn.Debug = false
@@ -338,159 +338,159 @@ function veafSpawn.markTextAnalysis(text)
 
 
     -- Option parameters extracted from the mark text.
-    local switch = {}
-    switch.unit = false
-    switch.group = false
-    switch.farp = false
-    switch.type = nil
-    switch.cargo = false
-    switch.logistic = false
-    switch.smoke = false
-    switch.flare = false
-    switch.signal = false
-    switch.bomb = false
-    switch.destroy = false
-    switch.teleport = false
-    switch.convoy = false
-    switch.role = nil
-    switch.laserCode = 1688
-    switch.infantryGroup = false
-    switch.armoredPlatoon = false
-    switch.airDefenseBattery = false
-    switch.transportCompany = false
-    switch.fullCombatGroup = false
-    switch.speed = nil
-    switch.shells = 1
-    switch.multiplier = 1
-    switch.skynet = false -- if true, add to skynet
-    switch.addtDrawing = false -- draw a polygon on the map
-    switch.eraseDrawing = false -- erase a polygon from the map
-    switch.stopDrawing = false -- close a polygon started on the map
+    local options = {}
+    options.unit = false
+    options.group = false
+    options.farp = false
+    options.type = nil
+    options.cargo = false
+    options.logistic = false
+    options.smoke = false
+    options.flare = false
+    options.signal = false
+    options.bomb = false
+    options.destroy = false
+    options.teleport = false
+    options.convoy = false
+    options.role = nil
+    options.laserCode = 1688
+    options.infantryGroup = false
+    options.armoredPlatoon = false
+    options.airDefenseBattery = false
+    options.transportCompany = false
+    options.fullCombatGroup = false
+    options.speed = nil
+    options.shells = 1
+    options.multiplier = 1
+    options.skynet = false -- if true, add to skynet
+    options.addtDrawing = false -- draw a polygon on the map
+    options.eraseDrawing = false -- erase a polygon from the map
+    options.stopDrawing = false -- close a polygon started on the map
 
-    switch.drawColor = nil
-    switch.drawFillColor = nil
-    switch.drawArrow = nil
+    options.drawColor = nil
+    options.drawFillColor = nil
+    options.drawArrow = nil
 
     -- spawned group/unit type/alias
-    switch.name = ""
+    options.name = ""
 
     -- spawned unit name
-    switch.unitName = nil
+    options.unitName = nil
 
     -- spawned group units spacing
-    switch.spacing = 5
+    options.spacing = 5
     
-    switch.country = nil
-    switch.side = nil
-    switch.altitude = 0
-    switch.heading = 0
+    options.country = nil
+    options.side = nil
+    options.altitude = 0
+    options.heading = 0
     
     -- if true, group is part of a road convoy
-    switch.isConvoy = false
+    options.isConvoy = false
 
     -- if true, group is patroling between its spawn point and its destination named point
-    switch.patrol = false
+    options.patrol = false
 
     -- if true, group is set to not follow roads
-    switch.offroad = false
+    options.offroad = false
 
     -- if set and convoy is true, send the group to the named point
-    switch.destination = nil
+    options.destination = nil
 
     -- the size of the generated dynamic groups (platoons, convoys, etc.)
-    switch.size = math.random(7) + 8
+    options.size = math.random(7) + 8
 
     -- defenses force ; ranges from 1 to 5, 5 being the toughest.
-    switch.defense = math.random(5)
+    options.defense = math.random(5)
 
     -- armor force ; ranges from 1 to 5, 5 being the strongest and most modern.
-    switch.armor = math.random(5)
+    options.armor = math.random(5)
 
     -- bomb power
-    switch.bombPower = 100
+    options.bombPower = 100
 
     -- smoke color
-    switch.smokeColor = trigger.smokeColor.Red
+    options.smokeColor = trigger.smokeColor.Red
 
     -- optional cargo smoke
-    switch.cargoSmoke = false
+    options.cargoSmoke = false
 
     -- cargo type
-    switch.cargoType = "ammo_cargo"
+    options.cargoType = "ammo_cargo"
 
     -- flare agl altitude (meters)
-    switch.alt = veafSpawn.IlluminationFlareAglAltitude
+    options.alt = veafSpawn.IlluminationFlareAglAltitude
 
-    switch.password = nil
+    options.password = nil
 
     -- JTAC radio comms
-    switch.freq = veafSpawn.convertLaserToFreq(switch.laserCode)
-    switch.mod = "fm"
+    options.freq = veafSpawn.convertLaserToFreq(options.laserCode)
+    options.mod = "fm"
 
     -- TACAN name and channel
-    switch.tacanChannel = 99
-    switch.tacanBand = "X"
+    options.tacanChannel = 99
+    options.tacanBand = "X"
 
     -- Check for correct keywords.
     if text:lower():find(veafSpawn.SpawnKeyphrase .. " unit") then
-        switch.unit = true
+        options.unit = true
     elseif text:lower():find(veafSpawn.SpawnKeyphrase .. " group") then
-        switch.group = true
+        options.group = true
     elseif text:lower():find(veafSpawn.SpawnKeyphrase .. " farp") then
-        switch.farp = true
+        options.farp = true
     elseif text:lower():find(veafSpawn.SpawnKeyphrase .. " convoy") then
-        switch.convoy = true
-        switch.size = 10 -- default the size parameter to 10
+        options.convoy = true
+        options.size = 10 -- default the size parameter to 10
     elseif text:lower():find(veafSpawn.SpawnKeyphrase .. " infantrygroup") then
-        switch.infantryGroup = true
+        options.infantryGroup = true
     elseif text:lower():find(veafSpawn.SpawnKeyphrase .. " armorgroup") then
-        switch.armoredPlatoon = true
+        options.armoredPlatoon = true
     elseif text:lower():find(veafSpawn.SpawnKeyphrase .. " samgroup") then
-        switch.airDefenseBattery = true
+        options.airDefenseBattery = true
     elseif text:lower():find(veafSpawn.SpawnKeyphrase .. " transportgroup") then
-        switch.transportCompany = true
-        switch.size = math.random(2, 5)
+        options.transportCompany = true
+        options.size = math.random(2, 5)
     elseif text:lower():find(veafSpawn.SpawnKeyphrase .. " combatgroup") then
-        switch.fullCombatGroup = true
-        switch.size = 1 -- default the size parameter to 1
+        options.fullCombatGroup = true
+        options.size = 1 -- default the size parameter to 1
     elseif text:lower():find(veafSpawn.SpawnKeyphrase .. " smoke") then
-        switch.smoke = true
+        options.smoke = true
     elseif text:lower():find(veafSpawn.SpawnKeyphrase .. " flare") then
-        switch.flare = true
+        options.flare = true
     elseif text:lower():find(veafSpawn.SpawnKeyphrase .. " signal") then
-        switch.signal = true
+        options.signal = true
     elseif text:lower():find(veafSpawn.SpawnKeyphrase .. " cargo") then
-        switch.cargo = true
+        options.cargo = true
     elseif text:lower():find(veafSpawn.SpawnKeyphrase .. " logistic") then
-        switch.logistic = true
+        options.logistic = true
     elseif text:lower():find(veafSpawn.SpawnKeyphrase .. " bomb") then
-        switch.bomb = true
+        options.bomb = true
     elseif text:lower():find(veafSpawn.SpawnKeyphrase .. " jtac") then
-        switch.role = 'jtac'
-        switch.unit = true
+        options.role = 'jtac'
+        options.unit = true
         -- default country for friendly JTAC: USA
-        switch.country = "USA"
+        options.country = "USA"
         -- default name for JTAC
-        switch.name = "LUV HMMWV Jeep"
+        options.name = "LUV HMMWV Jeep"
         -- default JTAC name (will overwrite previous unit with same name)
-        switch.unitName = "JTAC1"
+        options.unitName = "JTAC1"
     elseif text:lower():find(veafSpawn.SpawnKeyphrase .. " tacan") then
-        switch.role = 'tacan'
-        switch.unit = true
+        options.role = 'tacan'
+        options.unit = true
         -- default country for friendly tacan: USA
-        switch.country = "USA"
+        options.country = "USA"
         -- default name for tacan
-        switch.name = "TACAN_beacon"
+        options.name = "TACAN_beacon"
         -- default name (will overwrite previous unit with same name)
-        switch.unitName = "TACAN TCN"
+        options.unitName = "TACAN TCN"
     elseif text:lower():find(veafSpawn.DestroyKeyphrase) then
-        switch.destroy = true
+        options.destroy = true
     elseif text:lower():find(veafSpawn.TeleportKeyphrase) then
-        switch.teleport = true
+        options.teleport = true
     elseif text:lower():find(veafSpawn.DrawingKeyphrase .. " add") then
-        switch.addDrawing = true
+        options.addDrawing = true
     elseif text:lower():find(veafSpawn.DrawingKeyphrase .. " erase") then
-        switch.eraseDrawing = true
+        options.eraseDrawing = true
     else
         return nil
     end
@@ -507,189 +507,189 @@ function veafSpawn.markTextAnalysis(text)
         if key:lower() == "unitname" then
             -- Set name.
             veafSpawn.logTrace(string.format("Keyword unitname = %s", tostring(val)))
-            switch.unitName = val
+            options.unitName = val
         end
 
         if key:lower() == "name" then
             -- Set name.
             veafSpawn.logTrace(string.format("Keyword name = %s", tostring(val)))
-            switch.name = val
+            options.name = val
         end
 
         if (key:lower() == "destination" or key:lower() == "dest") then
             -- Set destination.
             veafSpawn.logTrace(string.format("Keyword destination = %s", tostring(val)))
-            switch.destination = val
+            options.destination = val
         end
 
         if key:lower() == "isconvoy" then
             veafSpawn.logTrace("Keyword isconvoy found")
-            switch.convoy = true
+            options.convoy = true
         end
 
         if key:lower() == "patrol" then
             veafSpawn.logTrace("Keyword patrol found")
-            switch.patrol = true
+            options.patrol = true
         end
 
         if key:lower() == "offroad" then
             veafSpawn.logTrace("Keyword offroad found")
-            switch.offroad = true
+            options.offroad = true
         end
 
         if key:lower() == "skynet" then
             -- Set name.
             veafSpawn.logTrace(string.format("Keyword skynet = %s", tostring(val)))
-            switch.skynet = (val:lower() == "true")
+            options.skynet = (val:lower() == "true")
         end
 
         if key:lower() == "radius" then
             -- Set name.
             veafSpawn.logTrace(string.format("Keyword radius = %s", tostring(val)))
             local nVal = veaf.getRandomizableNumeric(val)
-            switch.radius = nVal
+            options.radius = nVal
         end
 
         if key:lower() == "spacing" then
             -- Set spacing.
             veafSpawn.logTrace(string.format("Keyword spacing = %s", tostring(val)))
             local nVal = veaf.getRandomizableNumeric(val)
-            switch.spacing = nVal
+            options.spacing = nVal
         end
         
         if key:lower() == "multiplier" then
             -- Set multiplier.
             veafSpawn.logTrace(string.format("Keyword multiplier = %s", tostring(val)))
             local nVal = veaf.getRandomizableNumeric(val)
-            switch.multiplier = nVal
+            options.multiplier = nVal
         end
 
         if key:lower() == "alt" then
             -- Set altitude.
             veafSpawn.logTrace(string.format("Keyword alt = %s", tostring(val)))
             local nVal = veaf.getRandomizableNumeric(val)
-            switch.altitude = nVal
+            options.altitude = nVal
         end
         
         if key:lower() == "speed" then
             -- Set altitude.
             veafSpawn.logTrace(string.format("Keyword speed = %s", tostring(val)))
             local nVal = veaf.getRandomizableNumeric(val)
-            switch.speed = nVal
+            options.speed = nVal
         end
         
         if key:lower() == "shells" then
             -- Set altitude.
             veafSpawn.logTrace(string.format("Keyword shells = %s", tostring(val)))
             local nVal = veaf.getRandomizableNumeric(val)
-            switch.shells = nVal
+            options.shells = nVal
         end
 
         if key:lower() == "hdg" then
             -- Set heading.
             veafSpawn.logTrace(string.format("Keyword hdg = %s", tostring(val)))
             local nVal = veaf.getRandomizableNumeric(val)
-            switch.heading = nVal
+            options.heading = nVal
         end
         
         if key:lower() == "heading" then
             -- Set heading.
             veafSpawn.logTrace(string.format("Keyword heading = %s", tostring(val)))
             local nVal = veaf.getRandomizableNumeric(val)
-            switch.heading = nVal
+            options.heading = nVal
         end
 
         if key:lower() == "country" then
             -- Set country
             veafSpawn.logTrace(string.format("Keyword country = %s", tostring(val)))
-            switch.country = val:upper()
+            options.country = val:upper()
         end
         
         if key:lower() == "side" then
             -- Set side
             veafSpawn.logTrace(string.format("Keyword side = %s", tostring(val)))
             if val:upper() == "BLUE" then
-                switch.side = veafCasMission.SIDE_BLUE
+                options.side = veafCasMission.SIDE_BLUE
             else
-                switch.side = veafCasMission.SIDE_RED
+                options.side = veafCasMission.SIDE_RED
             end
         end
 
         if key:lower() == "password" then
             -- Unlock the command
             veafSpawn.logTrace(string.format("Keyword password", tostring(val)))
-            switch.password = val
+            options.password = val
         end
 
         if key:lower() == "power" then
             -- Set bomb power.
             veafSpawn.logTrace(string.format("Keyword power = %s", tostring(val)))
             local nVal = veaf.getRandomizableNumeric(val)
-            switch.bombPower = nVal
+            options.bombPower = nVal
         end
         
         if key:lower() == "laser" then
             -- Set laser code.
             veafSpawn.logTrace(string.format("laser code = %s", tostring(val)))
             local nVal = veaf.getRandomizableNumeric(val)
-            switch.freq = veafSpawn.convertLaserToFreq(nVal)
-            switch.laserCode = nVal
+            options.freq = veafSpawn.convertLaserToFreq(nVal)
+            options.laserCode = nVal
         end        
         
         if key:lower() == "freq" then
             -- Set JTAC frequency.
             veafSpawn.logTrace(string.format("freq = %s", tostring(val)))
-            switch.freq = val
+            options.freq = val
         end        
 
         if key:lower() == "mod" then
             -- Set JTAC modulation.
             veafSpawn.logTrace(string.format("mod = %s", tostring(val)))
-            switch.mod = val
+            options.mod = val
         end        
 
         if key:lower() == "band" then
             -- Set TACAN band
             veafSpawn.logTrace(string.format("band = %s", tostring(val)))
-            switch.tacanBand = val
+            options.tacanBand = val
         end        
 
         if key:lower() == "code" then
             -- Set TACAN code
             veafSpawn.logTrace(string.format("code = %s", tostring(val)))
-            switch.tacanCode = val
+            options.tacanCode = val
         end        
 
         if key:lower() == "channel" then
             -- Set TACAN channel.
             veafSpawn.logTrace(string.format("channel = %s", tostring(val)))
             local nVal = veaf.getRandomizableNumeric(val)
-            switch.tacanChannel = nVal
+            options.tacanChannel = nVal
         end        
 
         if key:lower() == "arrow" then
             veafSpawn.logTrace(string.format("Keyword arrow = %s", tostring(val)))
-            switch.drawArrow = true
+            options.drawArrow = true
         end
         if key:lower() == "fill" then
             veafSpawn.logTrace(string.format("Keyword fill = %s", tostring(val)))
-            switch.drawFillColor = val
+            options.drawFillColor = val
         end
 
         if key:lower() == "color" then
             veafSpawn.logTrace(string.format("Keyword color = %s", tostring(val)))
-            switch.drawColor = val
+            options.drawColor = val
             -- Set smoke color.
             if (val:lower() == "red") then 
-                switch.smokeColor = trigger.smokeColor.Red
+                options.smokeColor = trigger.smokeColor.Red
             elseif (val:lower() == "green") then 
-                switch.smokeColor = trigger.smokeColor.Green
+                options.smokeColor = trigger.smokeColor.Green
             elseif (val:lower() == "orange") then 
-                switch.smokeColor = trigger.smokeColor.Orange
+                options.smokeColor = trigger.smokeColor.Orange
             elseif (val:lower() == "blue") then 
-                switch.smokeColor = trigger.smokeColor.Blue
+                options.smokeColor = trigger.smokeColor.Blue
             elseif (val:lower() == "white") then 
-                switch.smokeColor = trigger.smokeColor.White
+                options.smokeColor = trigger.smokeColor.White
             end
         end
 
@@ -697,32 +697,32 @@ function veafSpawn.markTextAnalysis(text)
             -- Set alt.
             veafSpawn.logTrace(string.format("Keyword alt = %s", tostring(val)))
             local nVal = veaf.getRandomizableNumeric(val)
-            switch.alt = nVal
+            options.alt = nVal
         end
 
-        if switch.cargo and key:lower() == "name" then
+        if options.cargo and key:lower() == "name" then
             -- Set cargo type.
             veafSpawn.logTrace(string.format("Keyword name = %s", tostring(val)))
-            switch.cargoType = val
+            options.cargoType = val
         end
 
         if key:lower() == "type" then
             -- Set farp type.
             veafSpawn.logTrace(string.format("Keyword type = %s", tostring(val)))
-            switch.type = val
+            options.type = val
         end
 
-        if switch.cargo and key:lower() == "smoke" then
+        if options.cargo and key:lower() == "smoke" then
             -- Mark with green smoke.
             veafSpawn.logTrace("Keyword smoke is set")
-            switch.cargoSmoke = true
+            options.cargoSmoke = true
         end
         
         if key:lower() == "size" then
             -- Set size.
             veafSpawn.logTrace(string.format("Keyword size = %s", tostring(val)))
             local nVal = veaf.getRandomizableNumeric(val)
-            switch.size = nVal
+            options.size = nVal
         end
 
         if key:lower() == "defense" then
@@ -730,7 +730,7 @@ function veafSpawn.markTextAnalysis(text)
             veafSpawn.logTrace(string.format("Keyword defense = %s", tostring(val)))
             local nVal = veaf.getRandomizableNumeric(val)
             if nVal >= 0 then
-                switch.defense = nVal
+                options.defense = nVal
             end
         end
 
@@ -739,18 +739,18 @@ function veafSpawn.markTextAnalysis(text)
             veafSpawn.logTrace(string.format("Keyword armor = %s", tostring(val)))
             local nVal = veaf.getRandomizableNumeric(val)
             if nVal >= 0 then
-                switch.armor = nVal
+                options.armor = nVal
             end
         end
     end
 
     -- check mandatory parameter "name" for command "group"
-    if switch.group and not(switch.name) then return nil end
+    if options.group and not(options.name) then return nil end
     
     -- check mandatory parameter "name" for command "unit"
-    if switch.unit and not(switch.name) then return nil end
+    if options.unit and not(options.name) then return nil end
     
-    return switch
+    return options
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------

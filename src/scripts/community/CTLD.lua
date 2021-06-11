@@ -4911,28 +4911,10 @@ ctld.jtacCurrentTargets = {}
 ctld.jtacRadioAdded = {} --keeps track of who's had the radio command added
 ctld.jtacGeneratedLaserCodes = {} -- keeps track of generated codes, cycles when they run out
 ctld.jtacLaserPointCodes = {}
+ctld.jtacRadioData = {}
 
 function ctld.JTACAutoLase(_jtacGroupName, _laserCode, _smoke, _lock, _colour, _radio)
     -- log.info(string.format("CTLD - JTACAutoLase : %s", _jtacGroupName))
-
-    local function notifyCoalition(message, time, side, shortMessage)
-        local shortMessage = shortMessage
-        if shortMessage == nil then 
-            shortMessage = message
-        end
-        -- log.info(string.format("CTLD - notifyCoalition ; _side=%s : %s", tostring(side), message))
-        if _radio then
-            local _radioCallback = _radio.callback
-            -- log.info(string.format("CTLD - _radioCallback = \n%s", veaf.p(_radioCallback)))
-            local _radioData = _radio.radioData
-            -- log.info(string.format("CTLD - _radioData = \n%s", veaf.p(_radioData)))
-            _radioCallback(shortMessage, _radioData, side)
-            -- log.info("CTLD - called _radioCallback")
-            ctld.notifyCoalition(message, time, side)
-        else
-            ctld.notifyCoalition(message, time, side)
-        end
-    end
 
     if ctld.jtacStop[_jtacGroupName] == true then
         ctld.jtacStop[_jtacGroupName] = nil -- allow it to be started again
@@ -4947,6 +4929,7 @@ function ctld.JTACAutoLase(_jtacGroupName, _laserCode, _smoke, _lock, _colour, _
 
 
     ctld.jtacLaserPointCodes[_jtacGroupName] = _laserCode
+    ctld.jtacRadioData[_jtacGroupName] = _radio
 
     local _jtacGroup = ctld.getGroup(_jtacGroupName)
     local _jtacUnit
@@ -4981,7 +4964,7 @@ function ctld.JTACAutoLase(_jtacGroupName, _laserCode, _smoke, _lock, _colour, _
 
 
         if ctld.jtacUnits[_jtacGroupName] ~= nil then
-            notifyCoalition("JTAC Group " .. _jtacGroupName .. " KIA!", 10, ctld.jtacUnits[_jtacGroupName].side)
+            ctld.notifyCoalition("JTAC Group " .. _jtacGroupName .. " KIA!", 10, ctld.jtacUnits[_jtacGroupName].side, _radio)
         end
 
         --remove from list
@@ -5077,7 +5060,7 @@ function ctld.JTACAutoLase(_jtacGroupName, _laserCode, _smoke, _lock, _colour, _
         
             local message = _jtacGroupName .. action .. _enemyUnit:getTypeName()
             local fullMessage = message .. '. CODE: ' .. _laserCode .. ". POSITION: " .. ctld.getPositionString(_enemyUnit)
-            notifyCoalition(fullMessage, 10, _jtacUnit:getCoalition(), message)
+            ctld.notifyCoalition(fullMessage, 10, _jtacUnit:getCoalition(), _radio, message)
 
             -- create smoke
             if _smoke == true then
@@ -5117,9 +5100,9 @@ function ctld.JTACAutoLase(_jtacGroupName, _laserCode, _smoke, _lock, _colour, _
     end
 
     if targetLost then
-        notifyCoalition(_jtacGroupName .. ", target lost.", 10, _jtacUnit:getCoalition())
+        ctld.notifyCoalition(_jtacGroupName .. ", target lost.", 10, _jtacUnit:getCoalition(), _radio)
     elseif targetDestroyed then
-        notifyCoalition(_jtacGroupName .. ", target destroyed.", 10, _jtacUnit:getCoalition())
+        ctld.notifyCoalition(_jtacGroupName .. ", target destroyed.", 10, _jtacUnit:getCoalition(), _radio)
     end
 end
 
@@ -5144,8 +5127,17 @@ function ctld.cleanupJTAC(_jtacGroupName)
 end
 
 
-function ctld.notifyCoalition(_message, _displayFor, _side)
+function ctld.notifyCoalition(_message, _displayFor, _side, _radio, _shortMessage)
 
+    local shortMessage = _shortMessage
+    if shortMessage == nil then 
+        shortMessage = _message
+    end
+    if _radio then
+        local _radioCallback = _radio.callback
+        local _radioData = _radio.radioData
+        _radioCallback(shortMessage, _radioData, _side)
+    end
 
     trigger.action.outTextForCoalition(_side, _message, _displayFor)
     trigger.action.outSoundForCoalition(_side, "radiobeep.ogg")

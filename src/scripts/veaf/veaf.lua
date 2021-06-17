@@ -33,7 +33,7 @@ veaf.Id = "VEAF - "
 veaf.MainId = "MAIN - "
 
 --- Version.
-veaf.Version = "1.14.0"
+veaf.Version = "1.15.0"
 
 -- trace level, specific to this module
 veaf.MainTrace = false
@@ -664,8 +664,6 @@ function veaf._p(o, level)
     elseif (type(o) == "function") then
         text = "[function]"
     elseif (type(o) == "boolean") then
-        if o == true then 
-          if o == true then 
         if o == true then 
             text = "[true]"
         else
@@ -2598,3 +2596,90 @@ math.random(); math.random(); math.random()
 env.setErrorMessageBoxEnabled(false)
 
 veaf.mainLogInfo(string.format("Loading version %s", veaf.Version))
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- changes to CTLD 
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+if ctld then
+    veaf.mainLogInfo(string.format("Setting up CTLD"))
+
+    -- change the init function so we can call it whenever we want
+    ctld.skipInitialisation = true
+
+    -- logging change
+    ctld.p = veaf.p
+
+    ctld.logError = function(message)
+        veaf.logError(ctld.Id .. message)
+    end
+
+    ctld.logInfo = function(message)
+        veaf.logInfo(ctld.Id .. message)
+    end    
+
+    ctld.logDebug = function(message)
+        if message and ctld.Debug then
+            veaf.logDebug(ctld.Id .. message)
+        end
+    end    
+
+    ctld.logTrace = function(message)
+        if message and ctld.Trace then
+            veaf.logTrace(ctld.Id .. message)
+        end
+    end    
+
+    -- global configuration change
+    ctld.cratesRequiredForFOB = 1
+
+    --- replace the crate 3D model with an actual crate
+    ctld.spawnableCratesModel_load = {
+        ["category"] = "Cargos",
+        ["shape_name"] = "bw_container_cargo",
+        ["type"] = "container_cargo"
+    }
+
+    -- Simulated Sling load configuration
+    ctld.minimumHoverHeight = 5.0 -- Lowest allowable height for crate hover
+    ctld.maximumHoverHeight = 15.0 -- Highest allowable height for crate hover
+    ctld.maxDistanceFromCrate = 8.0 -- Maximum distance from from crate for hover
+    ctld.hoverTime = 10 -- Time to hold hover above a crate for loading in seconds
+
+    -- ************** Maximum Units SETUP for UNITS ******************
+
+    ctld.unitLoadLimits["UH-1H"] = 12
+    ctld.unitLoadLimits["Mi-24P"] = 18
+    ctld.unitLoadLimits["Mi-8MT"] = 24
+    ctld.unitLoadLimits["Yak-52"] = 1
+
+    -- ************** Allowable actions for UNIT TYPES ******************
+
+    ctld.unitActions["Yak-52"] = {crates=false, troops=true}
+
+    -- ************** INFANTRY GROUPS FOR PICKUP ******************
+
+    table.insert(ctld.loadableGroups, {name = "2x - Standard Groups", inf = 12, mg = 4, at = 4 })
+    table.insert(ctld.loadableGroups, {name = "3x - Mortar Squad", mortar = 18})
+    table.insert(ctld.loadableGroups, {name = "4x - Mortar Squad", mortar = 24})
+
+    veaf.mainLogInfo(string.format("Done setting up CTLD"))
+end
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- changes to STTS
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+if STTS then 
+    veaf.mainLogInfo(string.format("Setting up STTS"))
+
+    --- configure SRS Text to Speech
+    veaf.logTrace(string.format("STTS - SERVER_CONFIG=%s", veaf.p(SERVER_CONFIG)))
+    if SERVER_CONFIG then
+        veaf.mainLogInfo(string.format("Setting up STTS"))
+        STTS.DIRECTORY = SERVER_CONFIG.SRS_DIRECTORY
+        STTS.SRS_PORT = SERVER_CONFIG.SRS_PORT
+        STTS.EXECUTABLE = SERVER_CONFIG.SRS_EXECUTABLE
+        STTS.os = SERVER_CONFIG.getModule("os")
+        STTS.io = SERVER_CONFIG.getModule("io")
+        veaf.mainLogInfo(string.format("Done setting up STTS"))
+    end
+end

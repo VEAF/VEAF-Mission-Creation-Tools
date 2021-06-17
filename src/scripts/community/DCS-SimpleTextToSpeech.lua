@@ -63,8 +63,17 @@ STTS.PlayMP3("C:\\Users\\Ciaran\\Downloads\\PR-Music.mp3","255,31","AM,FM","0.5"
 ]]
 
 
---STTS = {}
---ON the VEAF server, this is defined in an external configuration file (one for each server) : server\DCS-SimpleRadio-Standalone\SRS_for_scripting_config.lua
+STTS = {}
+-- FULL Path to the FOLDER containing DCS-SR-ExternalAudio.exe - EDIT TO CORRECT FOLDER
+STTS.DIRECTORY = "C:\\Users\\Ciaran\\Dropbox\\Dev\\DCS\\DCS-SRS\\install-build"
+STTS.SRS_PORT = 5002 -- LOCAL SRS PORT - DEFAULT IS 5002
+STTS.GOOGLE_CREDENTIALS = "C:\\Users\\Ciaran\\Downloads\\googletts.json"
+
+-- DONT CHANGE THIS UNLESS YOU KNOW WHAT YOU'RE DOING
+STTS.EXECUTABLE = "DCS-SR-ExternalAudio.exe"
+
+STTS.os = os
+STTS.io = io
 
 local random = math.random
 function STTS.uuid()
@@ -171,19 +180,19 @@ function STTS.TextToSpeech(message,freqs,modulations, volume,name, coalition,poi
     cmd = cmd ..string.format(" -t \"%s\"",message)
 
     if string.len(cmd) > 255 then
-        local filename = os.getenv('TMP') .. "\\DCS_STTS-" .. STTS.uuid() .. ".bat"
-        local script = io.open(filename,"w+")
+        local filename = STTS.os.getenv('TMP') .. "\\DCS_STTS-" .. STTS.uuid() .. ".bat"
+        local script = STTS.io.open(filename,"w+")
         script:write(cmd .. " && exit" )
         script:close()
         cmd = string.format("\"%s\"",filename)
-        timer.scheduleFunction(os.remove, filename, timer.getTime() + 1) 
+        timer.scheduleFunction(STTS.os.remove, filename, timer.getTime() + 1) 
     end
 
     if string.len(cmd) > 255 then
          env.info("[DCS-STTS] - cmd string too long")
          env.info("[DCS-STTS] TextToSpeech Command :\n" .. cmd.."\n")
     end
-    os.execute(cmd)
+    STTS.os.execute(cmd)
 
     return STTS.getSpeechTime(message,speed,googleTTS)
 
@@ -204,6 +213,6 @@ function STTS.PlayMP3(pathToMP3,freqs,modulations, volume,name, coalition,point 
     end
 
     env.info("[DCS-STTS] MP3/OGG Command :\n" .. cmd.."\n")
-    os.execute(cmd)
+    STTS.os.execute(cmd)
 
 end

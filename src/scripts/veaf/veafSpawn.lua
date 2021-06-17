@@ -1914,28 +1914,15 @@ function veafSpawn.cleanupAllConvoys()
     end
 end    
 
-function veafSpawn.notifyCoalition(message, radioData, coalition)
-    veafSpawn.logTrace("veafSpawn.notifyCoalition()")
-    veafSpawn.logTrace(string.format("message=%s",tostring(message)))
-    veafSpawn.logTrace(string.format("coalition=%s",tostring(coalition)))
-    veafSpawn.logTrace(string.format("radioData=%s\n",veaf.p(radioData)))
-    veafRadio.transmitMessage(message, radioData.freq, radioData.mod, 1.0, radioData.name, coalition, nil, true)
-end
-
 function veafSpawn.JTACAutoLase(groupName, laserCode, radioData)
     veafSpawn.logDebug("veafSpawn.JTACAutoLase()")
     veafSpawn.logTrace(string.format("groupName=%s",tostring(groupName)))
     veafSpawn.logTrace(string.format("laserCode=%s",tostring(laserCode)))
     veafSpawn.logTrace(string.format("radioData=%s\n",veaf.p(radioData)))
-    local radio = nil
-    if radioData then
-        if radioData.freq then
-            radio = { callback=veafSpawn.notifyCoalition, radioData=radioData}
-        end
-    end
-    veafSpawn.logTrace(string.format("radioData=%s\n",veaf.p(radioData)))
+    local _radio = radioData or {}
+    veafSpawn.logTrace(string.format("_radio=%s\n",veaf.p(_radio)))
     veafSpawn.logTrace(string.format("calling CTLD"))
-    ctld.JTACAutoLase(groupName, laserCode, false, "all", nil, radio)
+    ctld.JTACAutoLase(groupName, laserCode, false, "all", nil, _radio)
     veafSpawn.logTrace(string.format("CTLD called"))
 end
     

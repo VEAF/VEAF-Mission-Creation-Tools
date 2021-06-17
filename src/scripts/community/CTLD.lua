@@ -2341,7 +2341,7 @@ function ctld.unloadTroops(_args)
     else
 
         -- troops must be onboard to get here
-        if false and _zone.inZone == true  then  -- TODO remove after testing !!!
+        if _zone.inZone == true then
 
             if _troops then
                 ctld.displayMessageToGroup(_heli, "Dropped troops back to base", 20)

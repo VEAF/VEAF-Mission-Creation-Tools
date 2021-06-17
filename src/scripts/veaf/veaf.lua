@@ -652,32 +652,34 @@ function veaf._p(o, level)
         veaf.mainLogError("max depth reached in veaf.p : "..tostring(MAX_LEVEL))
         return ""
     end
-      local text = ""
-      if (type(o) == "table") then
-          text = "\n"
-          for key,value in pairs(o) do
-              for i=0, level do
-                  text = text .. " "
-              end
-              text = text .. ".".. key.."="..veaf.p(value, level+1) .. "\n";
-          end
-      elseif (type(o) == "function") then
-          text = "[function]";
-      elseif (type(o) == "boolean") then
+    local text = ""
+    if (type(o) == "table") then
+        text = "\n"
+        for key,value in pairs(o) do
+            for i=0, level do
+                text = text .. " "
+            end
+            text = text .. ".".. key.."="..veaf.p(value, level+1) .. "\n"
+        end
+    elseif (type(o) == "function") then
+        text = "[function]"
+    elseif (type(o) == "boolean") then
+        if o == true then 
           if o == true then 
-              text = "[true]";
-          else
-              text = "[false]";
-          end
-      else
-          if o == nil then
-              text = "[nil]";    
-          else
-              text = tostring(o);
-          end
-      end
-      return text
-  end
+        if o == true then 
+            text = "[true]"
+        else
+            text = "[false]"
+        end
+    else
+        if o == nil then
+            text = "[nil]"   
+        else
+            text = tostring(o)
+        end
+    end
+    return text
+end
 
 --- Simple round
 function veaf.round(num, numDecimalPlaces)

@@ -881,11 +881,16 @@ function veafRadio.transmitMessage(message, frequencies, modulations, volume, na
     veafRadio.logTrace(string.format("eventPos=%s",veaf.p(eventPos)))
   end
 
-  if veafSanitized_os and STTS then
+  local l_os = os
+  if not l_os and SERVER_CONFIG and SERVER_CONFIG.getModule then
+      l_os = SERVER_CONFIG.getModule("os")
+  end
+
+  if l_os and STTS then
     message = message:gsub("\"","\\\"")
     local cmd = string.format("start /min \"%s\" \"%s\\%s\" \"%s\" %s %s %s %s \"%s\" %s", STTS.DIRECTORY, STTS.DIRECTORY, STTS.EXECUTABLE, message, frequencies, modulations, coalition, STTS.SRS_PORT, name, volume )
     veafRadio.logTrace(string.format("executing os command %s", cmd))
-    local result = veafSanitized_os.execute(cmd)
+    local result = l_os.execute(cmd)
     if result == nil then
       veafRadio.logWarning(string.format("Nil result after executing os command %s", cmd))
     end
@@ -904,7 +909,12 @@ function veafRadio.playToRadio(pathToMP3, frequencies, modulations, volume, name
     veafRadio.logTrace(string.format("eventPos=%s",veaf.p(eventPos)))
   end
 
-  if veafSanitized_os and STTS then
+  local l_os = os
+  if not l_os and SERVER_CONFIG and SERVER_CONFIG.getModule then
+      l_os = SERVER_CONFIG.getModule("os")
+  end
+
+  if l_os and STTS then
     
     local pathToMP3 = pathToMP3
     if pathToMP3 and not(pathToMP3:find("\\")) then
@@ -917,7 +927,7 @@ function veafRadio.playToRadio(pathToMP3, frequencies, modulations, volume, name
 
     local cmd = string.format("start /min \"%s\" \"%s\\%s\" \"%s\" %s %s %s %s \"%s\" %s", STTS.DIRECTORY, STTS.DIRECTORY, STTS.EXECUTABLE, pathToMP3, frequencies, modulations, coalition,STTS.SRS_PORT, name, volume )
     veafRadio.logTrace(string.format("executing os command %s", cmd))
-    veafSanitized_os.execute(cmd)
+    l_os.execute(cmd)
   end
 
   if not quiet then
@@ -935,10 +945,16 @@ function veafRadio.initialize(skipHelpMenus)
     --  STTS.DIRECTORY
     --- STTS.SRS_PORT
     local srsConfigPath=nil
-    if veafSanitized_lfs then
-        srsConfigPath = veafSanitized_lfs.writedir() .. "\\DCS-SimpleRadio-Standalone\\SRS_for_scripting_config.lua"
+
+    local l_lfs = lfs
+    if not l_lfs and SERVER_CONFIG and SERVER_CONFIG.getModule then
+        l_lfs = SERVER_CONFIG.getModule("lfs")
+    end
+
+    if l_lfs then
+        srsConfigPath = l_lfs.writedir() .. "\\DCS-SimpleRadio-Standalone\\SRS_for_scripting_config.lua"
         veafRadio.logDebug(string.format("srsConfigPath = %s", tostring(srsConfigPath)))
-        --local test = veafSanitized_lfs.currentdir()
+        --local test = l_lfs.currentdir()
         --veafRadio.logDebug(string.format("test = %s", tostring(test)))
         if srsConfigPath then
           -- execute the script
@@ -946,10 +962,12 @@ function veafRadio.initialize(skipHelpMenus)
           if file then
             file()
             veafRadio.logInfo("SRS configuration file loaded")
-            STTS.MP3_FOLDER = veafSanitized_lfs.writedir() .."\\..\\..\\Music"
-            veafRadio.logTrace(string.format("STTS.SRS_PORT = %s", tostring(STTS.SRS_PORT)))
-            veafRadio.logTrace(string.format("STTS.DIRECTORY = %s", tostring(STTS.DIRECTORY)))
-            veafRadio.logTrace(string.format("STTS.EXECUTABLE = %s", tostring(STTS.EXECUTABLE)))
+            if STTS then
+              STTS.MP3_FOLDER = l_lfs.writedir() .."\\..\\..\\Music"
+              veafRadio.logTrace(string.format("STTS.SRS_PORT = %s", tostring(STTS.SRS_PORT)))
+              veafRadio.logTrace(string.format("STTS.DIRECTORY = %s", tostring(STTS.DIRECTORY)))
+              veafRadio.logTrace(string.format("STTS.EXECUTABLE = %s", tostring(STTS.EXECUTABLE)))
+            end
           else
             veafRadio.logWarning(string.format("Error while loading SRS configuration file [%s]",srsConfigPath))
           end

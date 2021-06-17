@@ -1940,28 +1940,35 @@ end
 
 function veaf.writeLineToTextFile(line, filename, filepath)
     veaf.mainLogTrace(string.format("writeLineToTextFile(%s, %s)", veaf.p(line), veaf.p(filename)))
-    local l_veafSanitized_lfs = veafSanitized_lfs
-    if not l_veafSanitized_lfs then l_veafSanitized_lfs = lfs end
 
-    local l_veafSanitized_io = veafSanitized_io
-    if not l_veafSanitized_io then l_veafSanitized_io = io end
+    local l_lfs = lfs
+    if not l_lfs and SERVER_CONFIG and SERVER_CONFIG.getModule then
+        l_lfs = SERVER_CONFIG.getModule("lfs")
+    end
 
-    local l_veafSanitized_os = veafSanitized_os
-    if not l_veafSanitized_os then l_veafSanitized_os = os end
+    local l_io = io
+    if not l_io and SERVER_CONFIG and SERVER_CONFIG.getModule then
+        l_io = SERVER_CONFIG.getModule("io")
+    end
+
+    local l_os = os
+    if not l_os and SERVER_CONFIG and SERVER_CONFIG.getModule then
+        l_os = SERVER_CONFIG.getModule("os")
+    end
 
     local filepath = filepath
-    if not filepath and l_veafSanitized_os then
-        filepath = l_veafSanitized_os.getenv("VEAF_EXPORT_DIR")
+    if not filepath and l_os then
+        filepath = l_os.getenv("VEAF_EXPORT_DIR")
         if filepath then filepath = filepath .. "\\" end
         veaf.mainLogTrace(string.format("filepath=%s", veaf.p(filepath)))
     end
-    if not filepath and l_veafSanitized_os then
-        filepath = l_veafSanitized_os.getenv("TEMP")
+    if not filepath and l_os then
+        filepath = l_os.getenv("TEMP")
         if filepath then filepath = filepath .. "\\" end
         veaf.mainLogTrace(string.format("filepath=%s", veaf.p(filepath)))
     end
-    if not filepath and l_veafSanitized_lfs then
-        filepath = l_veafSanitized_lfs.writedir()
+    if not filepath and l_lfs then
+        filepath = l_lfs.writedir()
         veaf.mainLogTrace(string.format("filepath=%s", veaf.p(filepath)))
     end
 
@@ -1972,12 +1979,12 @@ function veaf.writeLineToTextFile(line, filename, filepath)
     local filename = filepath .. (filename or "default.log")
 
     local date = ""
-    if l_veafSanitized_os then
-        date = l_veafSanitized_os.date('%Y-%m-%d %H:%M:%S.000')
+    if l_os then
+        date = l_os.date('%Y-%m-%d %H:%M:%S.000')
     end
     
     veaf.mainLogTrace(string.format("filename=%s", veaf.p(filename)))
-    local file = l_veafSanitized_io.open(filename, "a")
+    local file = l_io.open(filename, "a")
     if file then
         veaf.mainLogTrace(string.format("file:write(%s)", veaf.p(line)))
         file:write(string.format("[%s] %s\r\n", date, line))
@@ -1986,32 +1993,38 @@ function veaf.writeLineToTextFile(line, filename, filepath)
 end
 
 function veaf.exportAsJson(data, name, jsonify, filename, export_path)
-    local l_veafSanitized_lfs = veafSanitized_lfs
-    if not l_veafSanitized_lfs then l_veafSanitized_lfs = lfs end
+    local l_lfs = lfs
+    if not l_lfs and SERVER_CONFIG and SERVER_CONFIG.getModule then
+        l_lfs = SERVER_CONFIG.getModule("lfs")
+    end
 
-    local l_veafSanitized_io = veafSanitized_io
-    if not l_veafSanitized_io then l_veafSanitized_io = io end
+    local l_io = io
+    if not l_io and SERVER_CONFIG and SERVER_CONFIG.getModule then
+        l_io = SERVER_CONFIG.getModule("io")
+    end
 
-    local l_veafSanitized_os = veafSanitized_os
-    if not l_veafSanitized_os then l_veafSanitized_os = os end
+    local l_os = os
+    if not l_os and SERVER_CONFIG and SERVER_CONFIG.getModule then
+        l_os = SERVER_CONFIG.getModule("os")
+    end
 
     local function writeln(file, text)
         file:write(text.."\r\n")
     end
     
     local export_path = export_path
-    if not export_path and l_veafSanitized_os then
-        export_path = l_veafSanitized_os.getenv("VEAF_EXPORT_DIR")
+    if not export_path and l_os then
+        export_path = l_os.getenv("VEAF_EXPORT_DIR")
         if export_path then export_path = export_path .. "\\" end
         veaf.mainLogTrace(string.format("export_path=%s", veaf.p(export_path)))
     end
-    if not export_path and l_veafSanitized_os then
-        export_path = l_veafSanitized_os.getenv("TEMP")
+    if not export_path and l_os then
+        export_path = l_os.getenv("TEMP")
         if export_path then export_path = export_path .. "\\" end
         veaf.mainLogTrace(string.format("export_path=%s", veaf.p(export_path)))
     end
-    if not export_path and l_veafSanitized_lfs then
-        export_path = l_veafSanitized_lfs.writedir()
+    if not export_path and l_lfs then
+        export_path = l_lfs.writedir()
         veaf.mainLogTrace(string.format("export_path=%s", veaf.p(export_path)))
     end
     
@@ -2036,7 +2049,7 @@ function veaf.exportAsJson(data, name, jsonify, filename, export_path)
     footer = footer .. ']\n'
     footer = footer .. '}\n'
 
-    local file = l_veafSanitized_io.open(export_path..filename, "w")
+    local file = l_io.open(export_path..filename, "w")
     writeln(file, header)
     writeln(file, table.concat(content, ",\n"))
     writeln(file, footer)

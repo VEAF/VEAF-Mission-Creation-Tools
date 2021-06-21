@@ -437,7 +437,8 @@ do
         args.name = args.name or "Hound"
         args.gender = args.gender or "female"
         args.culture = args.culture or "en-US"
-
+        
+        --veafHoundElint.logTrace(string.format("transmitting on %s : %s",veaf.p(args.freq), veaf.p(msg)))
         STTS.TextToSpeech(msg,args.freq,args.modulation,args.volume,args.name,coalitionID,transmitterPos,args.speed,args.gender,args.culture,args.voice,args.googleTTS)
         return true
     end
@@ -1322,7 +1323,10 @@ do
 
     function HoundCommsManager.TransmitFromQueue(gSelf)
         local msgObj = gSelf:getNextMsg()
-        if msgObj == nil then return timer.getTime() + gSelf.settings.interval end
+        if msgObj == nil then 
+            --veafHoundElint.logTrace(string.format("gSelf.settings.interval=%s",veaf.p(gSelf.settings.interval)))
+            return timer.getTime() + gSelf.settings.interval 
+        end
         local transmitterPos = gSelf:getTransmitterPos()
 
         if transmitterPos == false then
@@ -1337,8 +1341,9 @@ do
 
         if gSelf.enabled and STTS ~= nil and msgObj.tts ~= nil then
             HoundUtils.TTS.Transmit(msgObj.tts,msgObj.coalition,gSelf.settings,transmitterPos)
-
-            return timer.getTime() + HoundUtils.TTS.getReadTime(msgObj.tts,gSelf.settings.speed) -- temp till I figure out the speed
+            local readTime = HoundUtils.TTS.getReadTime(msgObj.tts,gSelf.settings.speed) -- temp till I figure out the speed
+            --veafHoundElint.logTrace(string.format("readTime=%s",veaf.p(readTime)))
+            return timer.getTime() + readTime
         end
     end
 
@@ -1560,10 +1565,16 @@ do
     function HoundElint.generateATIS(gSelf)        
         local body = ""
         local numberEWR = 0
+        --veafHoundElint.logTrace(string.format("generateATIS"))
+        --veafHoundElint.logTrace(string.format("length(gSelf.emitters)=%s",veaf.p(length(gSelf.emitters))))
+        --veafHoundElint.logTrace(string.format("#gSelf.emitters=%s",veaf.p(#gSelf.emitters)))
+        --veafHoundElint.logTrace(string.format("gSelf.atis.loop.last_count=%s",veaf.p(gSelf.atis.loop.last_count)))
+        --veafHoundElint.logTrace(string.format("gSelf.atis.loop.last_update=%s",veaf.p(gSelf.atis.loop.last_update)))
+        --veafHoundElint.logTrace(string.format("timer.getAbsTime()=%s",veaf.p(timer.getAbsTime())))
 
         if length(gSelf.emitters) > 0 then
             if (gSelf.atis.loop.last_count ~= nil and gSelf.atis.loop.last_update ~= nil) then
-                if ((gSelf.atis.loop.last_count == #gSelf.emitters) and
+                if ((gSelf.atis.loop.last_count == length(gSelf.emitters)) and
                      ((timer.getAbsTime() - gSelf.atis.loop.last_update) < 120)) then return end
             end
             local sortedContacts = {}
@@ -1607,7 +1618,7 @@ do
         }
 
         gSelf.atis.loop.msg = msgObj
-        gSelf.atis.loop.last_count = #gSelf.emitters
+        gSelf.atis.loop.last_count = length(gSelf.emitters)
         gSelf.atis.loop.last_update =  timer.getAbsTime()
     end
 
@@ -1989,6 +2000,9 @@ do
     end
 
     function HoundElint:addRadarRadioItem(emitter)
+        if self.radioMenu.root == nil then
+            return
+        end
         local DCStypeName = emitter.DCStypeName
         local assigned = emitter.typeAssigned
         local uid = emitter.uid
@@ -2027,13 +2041,17 @@ do
     end
 
     function HoundElint:removeRadarRadioItem(emitter)
+        if self.radioMenu.root == nil then
+            return
+        end
         local DCStypeName = emitter.DCStypeName
         local assigned = emitter.typeAssigned
         local uid = emitter.uid
         -- env.info(length(emitter) .. " uid: " .. uid .. " DCStypeName: " .. DCStypeName)
-
-        if setContains(self.radioMenu.data[assigned].data,uid) then
-            self.radioMenu.data[assigned].data[uid] = missionCommands.removeItemForCoalition(self.coalitionId, self.radioMenu.data[assigned].data[uid])
+        if self.radioMenu and self.radioMenu.data then
+            if setContains(self.radioMenu.data[assigned].data,uid) then
+                self.radioMenu.data[assigned].data[uid] = missionCommands.removeItemForCoalition(self.coalitionId, self.radioMenu.data[assigned].data[uid])
+            end
         end
     end
 

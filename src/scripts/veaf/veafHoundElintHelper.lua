@@ -28,11 +28,11 @@ veafHoundElint = {}
 veafHoundElint.Id = "HOUND - "
 
 --- Version.
-veafHoundElint.Version = "0.0.1"
+veafHoundElint.Version = "1.0.0"
 
 -- trace level, specific to this module
-veafHoundElint.Debug = true
-veafHoundElint.Trace = true
+veafHoundElint.Debug = false
+veafHoundElint.Trace = false
 
 -- delay before the mission groups are added to the Hound system at start
 veafHoundElint.DelayForStartup = 1
@@ -43,6 +43,8 @@ veafHoundElint.DelayForStartup = 1
 
 veafHoundElint.initialized = false
 veafHoundElint.prefix = nil
+veafHoundElint.redParameters = {}
+veafHoundElint.blueParameters = {}
 veafHoundElint.redHound = nil
 veafHoundElint.blueHound = nil
 veafHoundElint.elintUnitsTypes = {}
@@ -167,7 +169,7 @@ function veafHoundElint.addPlatformToSystem(dcsGroup, alreadyAddedUnits, atMissi
     return didSomething
 end
 
-local function initializeHoundSystem(coa, markers, atis, inRadio, atMissionStart)
+local function initializeHoundSystem(coa, parameters, atMissionStart)
     local hound = veafHoundElint.getHoundOfCoalition(coa)
     veafHoundElint.logDebug(string.format("initializeHoundSystem %s",tostring(hound.name)))
     veafHoundElint.logDebug(string.format("atMissionStart=%s",veaf.p(atMissionStart)))
@@ -178,17 +180,28 @@ local function initializeHoundSystem(coa, markers, atis, inRadio, atMissionStart
         veafHoundElint.addPlatformToSystem(dcsGroup, alreadyAddedUnits, atMissionStart)
     end
 
-    if markers then
+    if veafHoundElint.hasMarkers(parameters) then
         hound:enableMarkers()
     end
 
-    if atis then
-        hound:toggleATIS(true)
+    if veafHoundElint.hasAtis(parameters) then
+        hound:enableATIS()
+        if type(parameters.atis) == "table" then
+            hound:configureAtis(parameters.atis)
+        end
     end
 
-    if inRadio then
+    if veafHoundElint.hasAdmin(parameters) then
         --activate the radio menu to administrate the Hound system
         hound:addAdminRadioMenu()
+    end
+
+    if veafHoundElint.hasController(parameters) then
+        local textMode = not(parameters.controller.voice)
+        hound:enableController(textMode)
+        if type(parameters.controller) == "table" then
+            hound:configureController(parameters.controller)
+        end
     end
 
     --activate the Hound system
@@ -207,8 +220,8 @@ local function createSystems(loadUnits, atMissionStart)
     veafHoundElint.blueHound = HoundElint:new(coalition.side.BLUE)
     veafHoundElint.blueHound.name = "BLUE Hound"
     if loadUnits then
-        initializeHoundSystem(coalition.side.RED, veafHoundElint.redMarkers, veafHoundElint.redAtis, veafHoundElint.redAdminRadio, atMissionStart)
-        initializeHoundSystem(coalition.side.BLUE, veafHoundElint.blueMarkers, veafHoundElint.blueAtis, veafHoundElint.blueAdminRadio, atMissionStart)
+        initializeHoundSystem(coalition.side.RED, veafHoundElint.redParameters, atMissionStart)
+        initializeHoundSystem(coalition.side.BLUE, veafHoundElint.blueParameters, atMissionStart)
     end
 end
 
@@ -230,13 +243,13 @@ function veafHoundElint._reinitialize()
     end
 
     if veafHoundElint.redHound then
-        if veafHoundElint.redAdminRadio then 
+        if veafHoundElint.hasAdmin(veafHoundElint.redParameters) then 
             veafHoundElint.redHound:removeAdminRadioMenu()
         end
         veafHoundElint.redHound:systemOff()
     end
     if veafHoundElint.blueHound then
-        if veafHoundElint.blueAdminRadio then 
+        if veafHoundElint.hasAdmin(veafHoundElint.blueParameters) then 
             veafHoundElint.blueHound:removeAdminRadioMenu()
         end
         veafHoundElint.blueHound:systemOff()
@@ -248,19 +261,35 @@ function veafHoundElint._reinitialize()
     end
 end
 
-function veafHoundElint.initialize(prefix, redMarkers, redAtis, redAdminRadio, blueMarkers, blueAtis, blueAdminRadio)
+function veafHoundElint.hasAdmin(parameters)
+    return parameters and parameters.admin
+end
+
+function veafHoundElint.hasMarkers(parameters)
+    return parameters and parameters.markers
+end
+
+function veafHoundElint.hasAtis(parameters)
+    return parameters and parameters.atis
+end
+
+function veafHoundElint.hasController(parameters)
+    return parameters and parameters.controller
+end
+
+function veafHoundElint.hasControllerVoice(parameters)
+    return parameters and parameters.controller == "voice"
+end
+
+function veafHoundElint.initialize(prefix, red, blue)
     veafHoundElint.prefix = prefix -- if nil, all capable units will be set as Elint platforms
-    veafHoundElint.redMarkers = redMarkers or true
-    veafHoundElint.redAtis = redAtis or false
-    veafHoundElint.redAdminRadio = redAdminRadio or false
-    veafHoundElint.blueMarkers = blueMarkers or true
-    veafHoundElint.blueAtis = blueAtis or false
-    veafHoundElint.blueAdminRadio = blueAdminRadio or false
+    veafHoundElint.redParameters = red or {}
+    veafHoundElint.blueParameters = blue or {}
     
     veafHoundElint.logInfo("Initializing module")
     
-    veafHoundElint.logDebug(string.format("redAdminRadio=%s",veaf.p(redAdminRadio)))
-    veafHoundElint.logDebug(string.format("blueAdminRadio=%s",veaf.p(blueAdminRadio)))
+    veafHoundElint.logDebug(string.format("red=%s",veaf.p(red)))
+    veafHoundElint.logDebug(string.format("blue=%s",veaf.p(blue)))
     
     -- prepare the list of units supported by Hound Elint
     for platformType, platformData in pairs(HoundDB.Platform[Object.Category.STATIC]) do

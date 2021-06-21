@@ -65,9 +65,9 @@ STTS.PlayMP3("C:\\Users\\Ciaran\\Downloads\\PR-Music.mp3","255,31","AM,FM","0.5"
 
 STTS = {}
 -- FULL Path to the FOLDER containing DCS-SR-ExternalAudio.exe - EDIT TO CORRECT FOLDER
-STTS.DIRECTORY = "C:\\Users\\Ciaran\\Dropbox\\Dev\\DCS\\DCS-SRS\\install-build"
-STTS.SRS_PORT = 5002 -- LOCAL SRS PORT - DEFAULT IS 5002
-STTS.GOOGLE_CREDENTIALS = "C:\\Users\\Ciaran\\Downloads\\googletts.json"
+STTS.DIRECTORY = nil
+STTS.SRS_PORT = nil
+STTS.GOOGLE_CREDENTIALS = nil
 
 -- DONT CHANGE THIS UNLESS YOU KNOW WHAT YOU'RE DOING
 STTS.EXECUTABLE = "DCS-SR-ExternalAudio.exe"
@@ -130,6 +130,10 @@ function STTS.TextToSpeech(message,freqs,modulations, volume,name, coalition,poi
     if os == nil or io == nil then 
         env.info("[DCS-STTS] LUA modules os or io are sanitized. skipping. ")
         return 
+    end
+
+    if not STTS.DIRECTORY or not STTS.EXECUTABLE then        
+        return
     end
 
 	speed = speed or 1

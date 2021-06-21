@@ -77,8 +77,8 @@ veafMissionTriggerInjector.trig = {}
 
 veafMissionTriggerInjector.trig.actions = {
     [1] = 'a_do_script("VEAF_DYNAMIC_PATH = [[d:\\dev\\_VEAF\\VEAF-Mission-Creation-Tools]]");a_do_script("VEAF_DYNAMIC_MISSIONPATH = [[D:\\dev\\_VEAF\\VEAF-Open-Training-Mission\\]]"));',
-    [2] = 'a_do_script("env.info(\"DYNAMIC LOADING\")");a_do_script("assert(loadfile(VEAF_DYNAMIC_PATH .. \"/src/scripts/community/mist.lua\"))()");a_do_script("assert(loadfile(VEAF_DYNAMIC_PATH .. \"/src/scripts/community/CTLD.lua\"))()");a_do_script("assert(loadfile(VEAF_DYNAMIC_PATH .. \"/src/scripts/community/WeatherMark.lua\"))()");a_do_script("assert(loadfile(VEAF_DYNAMIC_PATH .. \"/src/scripts/community/skynet-iads-compiled.lua\"))()");a_do_script("assert(loadfile(VEAF_DYNAMIC_PATH .. \"/src/scripts/community/Hercules_Cargo.lua\"))()");a_do_script("assert(loadfile(VEAF_DYNAMIC_PATH .. \"/src/scripts/VeafDynamicLoader.lua\"))()");',
-    [3] = 'a_do_script("env.info(\"STATIC LOADING\")");a_do_script_file(getValueResourceByKey("DictKey_ActionText_10202"));a_do_script_file(getValueResourceByKey("DictKey_ActionText_10204"));a_do_script_file(getValueResourceByKey("DictKey_ActionText_10205"));a_do_script_file(getValueResourceByKey("DictKey_ActionText_10206"));a_do_script_file(getValueResourceByKey("DictKey_ActionText_10207"));a_do_script_file(getValueResourceByKey("DictKey_ActionText_10208"));a_do_script_file(getValueResourceByKey("DictKey_ActionText_10209"));a_do_script_file(getValueResourceByKey("DictKey_ActionText_10210"));a_do_script_file(getValueResourceByKey("DictKey_ActionText_10211"));a_do_script_file(getValueResourceByKey("DictKey_ActionText_10212"));a_do_script_file(getValueResourceByKey("DictKey_ActionText_10213"));a_do_script_file(getValueResourceByKey("DictKey_ActionText_10214"));a_do_script_file(getValueResourceByKey("DictKey_ActionText_10215"));a_do_script_file(getValueResourceByKey("DictKey_ActionText_10216"));a_do_script_file(getValueResourceByKey("DictKey_ActionText_10217"));a_do_script_file(getValueResourceByKey("DictKey_ActionText_10218"));a_do_script_file(getValueResourceByKey("DictKey_ActionText_10219"));a_do_script_file(getValueResourceByKey("DictKey_ActionText_10220"));a_do_script_file(getValueResourceByKey("DictKey_ActionText_10221"));a_do_script_file(getValueResourceByKey("DictKey_ActionText_10222"));a_do_script_file(getValueResourceByKey("DictKey_ActionText_10223"));a_do_script_file(getValueResourceByKey("DictKey_ActionText_10224"));a_do_script_file(getValueResourceByKey("DictKey_ActionText_10225"));a_do_script_file(getValueResourceByKey("DictKey_ActionText_10226"));a_do_script_file(getValueResourceByKey("DictKey_ActionText_10227"));a_do_script_file(getValueResourceByKey("DictKey_ActionText_10228"));a_do_script_file(getValueResourceByKey("DictKey_ActionText_10229"));',
+    [2] = 'a_do_script("env.info(\"DYNAMIC LOADING\")");a_do_script("assert(loadfile(VEAF_DYNAMIC_PATH .. \"/src/scripts/community/mist.lua\"))()");a_do_script("assert(loadfile(VEAF_DYNAMIC_PATH .. \"/src/scripts/community/DCS-SimpleTextToSpeech.lua\"))()");a_do_script("assert(loadfile(VEAF_DYNAMIC_PATH .. \"/src/scripts/community/CTLD.lua\"))()");a_do_script("assert(loadfile(VEAF_DYNAMIC_PATH .. \"/src/scripts/community/WeatherMark.lua\"))()");a_do_script("assert(loadfile(VEAF_DYNAMIC_PATH .. \"/src/scripts/community/skynet-iads-compiled.lua\"))()");a_do_script("assert(loadfile(VEAF_DYNAMIC_PATH .. \"/src/scripts/community/Hercules_Cargo.lua\"))()");a_do_script("assert(loadfile(VEAF_DYNAMIC_PATH .. \"/src/scripts/community/HoundElint.lua\"))()");a_do_script("assert(loadfile(VEAF_DYNAMIC_PATH .. \"/src/scripts/VeafDynamicLoader.lua\"))()");',
+    [3] = 'a_do_script("env.info(\"STATIC LOADING\")");a_do_script_file(getValueResourceByKey("DictKey_ActionText_10202"));a_do_script_file(getValueResourceByKey("DictKey_ActionText_10203"));a_do_script_file(getValueResourceByKey("DictKey_ActionText_10204"));a_do_script_file(getValueResourceByKey("DictKey_ActionText_10205"));a_do_script_file(getValueResourceByKey("DictKey_ActionText_10206"));a_do_script_file(getValueResourceByKey("DictKey_ActionText_10207"));a_do_script_file(getValueResourceByKey("DictKey_ActionText_10208"));;a_do_script_file(getValueResourceByKey("DictKey_ActionText_10308"));a_do_script_file(getValueResourceByKey("DictKey_ActionText_10309"));a_do_script_file(getValueResourceByKey("DictKey_ActionText_10310"));a_do_script_file(getValueResourceByKey("DictKey_ActionText_10311"));a_do_script_file(getValueResourceByKey("DictKey_ActionText_10312"));a_do_script_file(getValueResourceByKey("DictKey_ActionText_10313"));a_do_script_file(getValueResourceByKey("DictKey_ActionText_10314"));a_do_script_file(getValueResourceByKey("DictKey_ActionText_10315"));a_do_script_file(getValueResourceByKey("DictKey_ActionText_10316"));a_do_script_file(getValueResourceByKey("DictKey_ActionText_10317"));a_do_script_file(getValueResourceByKey("DictKey_ActionText_10318"));a_do_script_file(getValueResourceByKey("DictKey_ActionText_10319"));a_do_script_file(getValueResourceByKey("DictKey_ActionText_10320"));a_do_script_file(getValueResourceByKey("DictKey_ActionText_10321"));a_do_script_file(getValueResourceByKey("DictKey_ActionText_10322"));a_do_script_file(getValueResourceByKey("DictKey_ActionText_10323"));a_do_script_file(getValueResourceByKey("DictKey_ActionText_10324"));a_do_script_file(getValueResourceByKey("DictKey_ActionText_10325"));a_do_script_file(getValueResourceByKey("DictKey_ActionText_10326"));a_do_script_file(getValueResourceByKey("DictKey_ActionText_10327"));a_do_script_file(getValueResourceByKey("DictKey_ActionText_10328"));a_do_script_file(getValueResourceByKey("DictKey_ActionText_10329"));a_do_script_file(getValueResourceByKey("DictKey_ActionText_10330"));',
     [4] = 'a_do_script("assert(loadfile(VEAF_DYNAMIC_MISSIONPATH .. \"/src/scripts/missionConfig.lua\"))()");',
     [5] = 'a_do_script_file(getValueResourceByKey("DictKey_ActionText_10401"));'
 }
@@ -128,21 +128,29 @@ veafMissionTriggerInjector.trigrules = {
             },
             [3] = {
                 ["predicate"] = "a_do_script",
-                ["text"] = "assert(loadfile(VEAF_DYNAMIC_PATH .. \"/src/scripts/community/CTLD.lua\"))()"
+                ["text"] = "assert(loadfile(VEAF_DYNAMIC_PATH .. \"/src/scripts/community/DCS-SimpleTextToSpeech.lua\"))()"
             },
             [4] = {
                 ["predicate"] = "a_do_script",
-                ["text"] = "assert(loadfile(VEAF_DYNAMIC_PATH .. \"/src/scripts/community/WeatherMark.lua\"))()"
+                ["text"] = "assert(loadfile(VEAF_DYNAMIC_PATH .. \"/src/scripts/community/CTLD.lua\"))()"
             },
             [5] = {
                 ["predicate"] = "a_do_script",
-                ["text"] = "assert(loadfile(VEAF_DYNAMIC_PATH .. \"/src/scripts/community/skynet-iads-compiled.lua\"))()"
+                ["text"] = "assert(loadfile(VEAF_DYNAMIC_PATH .. \"/src/scripts/community/WeatherMark.lua\"))()"
             },
             [6] = {
                 ["predicate"] = "a_do_script",
-                ["text"] = "assert(loadfile(VEAF_DYNAMIC_PATH .. \"/src/scripts/community/Hercules_Cargo.lua\"))()"
+                ["text"] = "assert(loadfile(VEAF_DYNAMIC_PATH .. \"/src/scripts/community/skynet-iads-compiled.lua\"))()"
             },
             [7] = {
+                ["predicate"] = "a_do_script",
+                ["text"] = "assert(loadfile(VEAF_DYNAMIC_PATH .. \"/src/scripts/community/Hercules_Cargo.lua\"))()"
+            },
+            [8] = {
+                ["predicate"] = "a_do_script",
+                ["text"] = "assert(loadfile(VEAF_DYNAMIC_PATH .. \"/src/scripts/community/HoundElint.lua\"))()"
+            },
+            [9] = {
                 ["predicate"] = "a_do_script",
                 ["text"] = "assert(loadfile(VEAF_DYNAMIC_PATH .. \"/src/scripts/VeafDynamicLoader.lua\"))()"
             }
@@ -170,107 +178,119 @@ veafMissionTriggerInjector.trigrules = {
                 ["predicate"] = "a_do_script_file"
             },
             [3] = {
-                ["file"] = "DictKey_ActionText_10204",
+                ["file"] = "DictKey_ActionText_10203",
                 ["predicate"] = "a_do_script_file"
             },
             [4] = {
-                ["file"] = "DictKey_ActionText_10205",
+                ["file"] = "DictKey_ActionText_10204",
                 ["predicate"] = "a_do_script_file"
             },
             [5] = {
-                ["file"] = "DictKey_ActionText_10206",
+                ["file"] = "DictKey_ActionText_10205",
                 ["predicate"] = "a_do_script_file"
             },
             [6] = {
-                ["file"] = "DictKey_ActionText_10207",
+                ["file"] = "DictKey_ActionText_10206",
                 ["predicate"] = "a_do_script_file"
             },
             [7] = {
-                ["file"] = "DictKey_ActionText_10208",
+                ["file"] = "DictKey_ActionText_10207",
                 ["predicate"] = "a_do_script_file"
             },
             [8] = {
-                ["file"] = "DictKey_ActionText_10209",
+                ["file"] = "DictKey_ActionText_10208",
                 ["predicate"] = "a_do_script_file"
             },
             [9] = {
-                ["file"] = "DictKey_ActionText_10210",
+                ["file"] = "DictKey_ActionText_10308",
                 ["predicate"] = "a_do_script_file"
             },
             [10] = {
-                ["file"] = "DictKey_ActionText_10211",
+                ["file"] = "DictKey_ActionText_10309",
                 ["predicate"] = "a_do_script_file"
             },
             [11] = {
-                ["file"] = "DictKey_ActionText_10212",
+                ["file"] = "DictKey_ActionText_10310",
                 ["predicate"] = "a_do_script_file"
             },
             [12] = {
-                ["file"] = "DictKey_ActionText_10213",
+                ["file"] = "DictKey_ActionText_10311",
                 ["predicate"] = "a_do_script_file"
             },
             [13] = {
-                ["file"] = "DictKey_ActionText_10214",
+                ["file"] = "DictKey_ActionText_10312",
                 ["predicate"] = "a_do_script_file"
             },
             [14] = {
-                ["file"] = "DictKey_ActionText_10215",
+                ["file"] = "DictKey_ActionText_10313",
                 ["predicate"] = "a_do_script_file"
             },
             [15] = {
-                ["file"] = "DictKey_ActionText_10216",
+                ["file"] = "DictKey_ActionText_10314",
                 ["predicate"] = "a_do_script_file"
             },
             [16] = {
-                ["file"] = "DictKey_ActionText_10217",
+                ["file"] = "DictKey_ActionText_10315",
                 ["predicate"] = "a_do_script_file"
             },
             [17] = {
-                ["file"] = "DictKey_ActionText_10218",
+                ["file"] = "DictKey_ActionText_10316",
                 ["predicate"] = "a_do_script_file"
             },
             [18] = {
-                ["file"] = "DictKey_ActionText_10219",
+                ["file"] = "DictKey_ActionText_10317",
                 ["predicate"] = "a_do_script_file"
             },
             [19] = {
-                ["file"] = "DictKey_ActionText_10220",
+                ["file"] = "DictKey_ActionText_10318",
                 ["predicate"] = "a_do_script_file"
             },
             [20] = {
-                ["file"] = "DictKey_ActionText_10221",
+                ["file"] = "DictKey_ActionText_10319",
                 ["predicate"] = "a_do_script_file"
             },
             [21] = {
-                ["file"] = "DictKey_ActionText_10222",
+                ["file"] = "DictKey_ActionText_10320",
                 ["predicate"] = "a_do_script_file"
             },
             [22] = {
-                ["file"] = "DictKey_ActionText_10223",
+                ["file"] = "DictKey_ActionText_10321",
                 ["predicate"] = "a_do_script_file"
             },
             [23] = {
-                ["file"] = "DictKey_ActionText_10224",
+                ["file"] = "DictKey_ActionText_10322",
                 ["predicate"] = "a_do_script_file"
             },
             [24] = {
-                ["file"] = "DictKey_ActionText_10225",
+                ["file"] = "DictKey_ActionText_10323",
                 ["predicate"] = "a_do_script_file"
             },
             [25] = {
-                ["file"] = "DictKey_ActionText_10226",
+                ["file"] = "DictKey_ActionText_10324",
                 ["predicate"] = "a_do_script_file"
             },
             [26] = {
-                ["file"] = "DictKey_ActionText_10227",
+                ["file"] = "DictKey_ActionText_10325",
                 ["predicate"] = "a_do_script_file"
             },
             [27] = {
-                ["file"] = "DictKey_ActionText_10228",
+                ["file"] = "DictKey_ActionText_10326",
                 ["predicate"] = "a_do_script_file"
             },
             [28] = {
-                ["file"] = "DictKey_ActionText_10229",
+                ["file"] = "DictKey_ActionText_10327",
+                ["predicate"] = "a_do_script_file"
+            },
+            [29] = {
+                ["file"] = "DictKey_ActionText_10328",
+                ["predicate"] = "a_do_script_file"
+            },
+            [30] = {
+                ["file"] = "DictKey_ActionText_10329",
+                ["predicate"] = "a_do_script_file"
+            },
+            [31] = {
+                ["file"] = "DictKey_ActionText_10330",
                 ["predicate"] = "a_do_script_file"
             }
         },
@@ -336,32 +356,35 @@ veafMissionTriggerInjector.dictionary = {
 
 veafMissionTriggerInjector.mapresource = {
     ["DictKey_ActionText_10202"] = "mist.lua",
+    ["DictKey_ActionText_10203"] = "DCS-SimpleTextToSpeech.lua",
     ["DictKey_ActionText_10204"] = "CTLD.lua",
     ["DictKey_ActionText_10205"] = "WeatherMark.lua",
     ["DictKey_ActionText_10206"] = "skynet-iads-compiled.lua",
     ["DictKey_ActionText_10207"] = "Hercules_Cargo.lua",
-    ["DictKey_ActionText_10208"] = "veaf.lua",
-    ["DictKey_ActionText_10209"] = "veafRadio.lua",
-    ["DictKey_ActionText_10210"] = "veafMarkers.lua",
-    ["DictKey_ActionText_10211"] = "veafAssets.lua",
-    ["DictKey_ActionText_10212"] = "veafSpawn.lua",
-    ["DictKey_ActionText_10213"] = "veafCasMission.lua",
-    ["DictKey_ActionText_10214"] = "veafCarrierOperations.lua",
-    ["DictKey_ActionText_10215"] = "veafCarrierOperations2.lua",
-    ["DictKey_ActionText_10216"] = "veafMove.lua",
-    ["DictKey_ActionText_10217"] = "veafGrass.lua",
-    ["DictKey_ActionText_10218"] = "dcsUnits.lua",
-    ["DictKey_ActionText_10219"] = "veafUnits.lua",
-    ["DictKey_ActionText_10220"] = "veafTransportMission.lua",
-    ["DictKey_ActionText_10221"] = "veafNamedPoints.lua",
-    ["DictKey_ActionText_10222"] = "veafShortcuts.lua",
-    ["DictKey_ActionText_10223"] = "veafSecurity.lua",
-    ["DictKey_ActionText_10224"] = "veafInterpreter.lua",
-    ["DictKey_ActionText_10225"] = "veafCombatZone.lua",
-    ["DictKey_ActionText_10226"] = "veafCombatMission.lua",
-    ["DictKey_ActionText_10227"] = "veafRemote.lua",
-    ["DictKey_ActionText_10228"] = "veafSkynetIadsHelper.lua",
-    ["DictKey_ActionText_10229"] = "veafSanctuary.lua",
+    ["DictKey_ActionText_10208"] = "HoundElint.lua",
+    ["DictKey_ActionText_10308"] = "veaf.lua",
+    ["DictKey_ActionText_10309"] = "veafRadio.lua",
+    ["DictKey_ActionText_10310"] = "veafMarkers.lua",
+    ["DictKey_ActionText_10311"] = "veafAssets.lua",
+    ["DictKey_ActionText_10312"] = "veafSpawn.lua",
+    ["DictKey_ActionText_10313"] = "veafCasMission.lua",
+    ["DictKey_ActionText_10314"] = "veafCarrierOperations.lua",
+    ["DictKey_ActionText_10315"] = "veafCarrierOperations2.lua",
+    ["DictKey_ActionText_10316"] = "veafMove.lua",
+    ["DictKey_ActionText_10317"] = "veafGrass.lua",
+    ["DictKey_ActionText_10318"] = "dcsUnits.lua",
+    ["DictKey_ActionText_10319"] = "veafUnits.lua",
+    ["DictKey_ActionText_10320"] = "veafTransportMission.lua",
+    ["DictKey_ActionText_10321"] = "veafNamedPoints.lua",
+    ["DictKey_ActionText_10322"] = "veafShortcuts.lua",
+    ["DictKey_ActionText_10323"] = "veafSecurity.lua",
+    ["DictKey_ActionText_10324"] = "veafInterpreter.lua",
+    ["DictKey_ActionText_10325"] = "veafCombatZone.lua",
+    ["DictKey_ActionText_10326"] = "veafCombatMission.lua",
+    ["DictKey_ActionText_10327"] = "veafRemote.lua",
+    ["DictKey_ActionText_10328"] = "veafSkynetIadsHelper.lua",
+    ["DictKey_ActionText_10329"] = "veafSanctuary.lua",
+    ["DictKey_ActionText_10330"] = "veafHoundElintHelper.lua",
     ["DictKey_ActionText_10401"] = "missionConfig.lua"
 }
 

@@ -301,6 +301,10 @@ function veafSpawn.executeCommand(eventPos, eventText, coalition, markId, bypass
                     if veafSkynet and options.skynet then -- only add static stuff like sam groups and sam batteries, not mobile groups and convoys
                         veafSkynet.addGroupToNetwork(groupObject)
                     end
+                    -- reset the Hound Elint system, if the module is active
+                    if veafHoundElint then
+                        veafHoundElint.addPlatformToSystem(groupObject, nil, false)
+                    end
                     if spawnedGroups then
                         table.insert(spawnedGroups, spawnedGroup)
                     end

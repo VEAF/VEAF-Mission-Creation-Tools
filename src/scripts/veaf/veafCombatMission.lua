@@ -528,6 +528,7 @@ function VeafCombatMission:new()
     self.hidden = false
     self.radioMenuEnabled = true
     self.silent = false
+    self.spawnedNamesIndex = {}
     return self
 end
 
@@ -867,7 +868,7 @@ function VeafCombatMission:activate(silent)
 
                 local vars = {}
                 vars.gpName = groupName
-                vars.action = 'clone'
+                vars.action = 'cloneWithNames'
                 vars.point = _spawnPoint
                 vars.radius = _spawnRadius
                 vars.disperse = false
@@ -875,15 +876,46 @@ function VeafCombatMission:activate(silent)
                 --veafCombatMission.logTrace(string.format("vars=%s",veaf.p(vars)))
 
                 for i=1,missionElement:getScale() do
+                    if not self.spawnedNamesIndex[groupName] then
+                        self.spawnedNamesIndex[groupName] = 0
+                    else
+                        self.spawnedNamesIndex[groupName] = self.spawnedNamesIndex[groupName] + 1
+                    end
+                    local spawnedGroupName = string.format("%s #%04d", groupName, self.spawnedNamesIndex[groupName])
+                    veafCombatMission.logTrace(string.format("spawnedGroupName=%s",veaf.p(spawnedGroupName)))
                     local _group = mist.teleportToPoint(vars, true)
-                    --veafCombatMission.logTrace(string.format("_group=%s",veaf.p(_group)))
                     for _, unit in pairs(_group.units) do
                         unit.skill = missionElement:getSkill()
                     end
+                    _group.newName = spawnedGroupName
+                    for _, unit in pairs(_group.units) do
+                        local unitName = unit.unitName
+                        veafCombatMission.logTrace(string.format("unitName=%s",veaf.p(unitName)))
+                        if not self.spawnedNamesIndex[unitName] then
+                            self.spawnedNamesIndex[unitName] = 0
+                        else
+                            self.spawnedNamesIndex[unitName] = self.spawnedNamesIndex[unitName] + 1
+                        end
+                        local spawnedUnitName = string.format("%s #%04d", unitName, self.spawnedNamesIndex[unitName])
+                        unit.newName = spawnedUnitName
+                        veafCombatMission.logTrace(string.format("spawnedUnitName=%s",veaf.p(spawnedUnitName)))                        
+                    end
+                    veafCombatMission.logTrace(string.format("_group=%s",veaf.p(_group)))
                     local _spawnedGroup = mist.dynAdd(_group)
-                    --veafCombatMission.logTrace(string.format("_spawnedGroup=%s",veaf.p(_spawnedGroup)))
+                    veafCombatMission.logTrace(string.format("_spawnedGroup.name=%s",veaf.p(_spawnedGroup.name)))
                     local _dcsSpawnedGroup = Group.getByName(_spawnedGroup.name)
+                    
+                    veafCombatMission.logTrace(string.format("_spawnedGroup.name=%s",veaf.p(_dcsSpawnedGroup:getName())))
+                    for _, unit in pairs(_dcsSpawnedGroup:getUnits()) do
+                        veafCombatMission.logTrace(string.format("_spawnedGroup.unit.name=%s",veaf.p(unit:getName())))
+                    end
+
                     self:addSpawnedGroup(_dcsSpawnedGroup)
+                    -- add the group to the Hound Elint, if there is one
+                    if veafHoundElint then
+                        veafCombatMission.logTrace(string.format("veafHoundElint.addPlatformToSystem(%s)",veaf.p(_dcsSpawnedGroup:getName())))
+                        veafHoundElint.addPlatformToSystem(_dcsSpawnedGroup)
+                    end
                 end
             end
         else 

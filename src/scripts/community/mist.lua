@@ -1438,13 +1438,15 @@ do -- the main scope
 		elseif newCat == 'BUILDING' then
 			typeName = ' bld '
 		end
-		if newGroup.clone or not newGroup.groupId then
+		if newGroup.clone or newGroup.cloneWithNames or not newGroup.groupId then
 			mistDynAddIndex[typeName] = mistDynAddIndex[typeName] + 1
 			mistGpId = mistGpId + 1
 			newGroup.groupId = mistGpId
 		end
-		if newGroup.groupName or newGroup.name then
-			if newGroup.groupName then
+		if newGroup.groupName or newGroup.name or newGroup.newName then
+			if newGroup.newName then
+			newGroup.name = newGroup.newName
+			elseif newGroup.groupName then
 				newGroup.name = newGroup.groupName
 			elseif newGroup.name then
 				newGroup.name = newGroup.name
@@ -1474,12 +1476,14 @@ do -- the main scope
 
 		for unitIndex, unitData in pairs(newGroup.units) do
 			local originalName = newGroup.units[unitIndex].unitName or newGroup.units[unitIndex].name
-			if newGroup.clone or not unitData.unitId then
+			if newGroup.clone or newGroup.cloneWithNames or not unitData.unitId then
 				mistUnitId = mistUnitId + 1
 				newGroup.units[unitIndex].unitId = mistUnitId
 			end
-			if newGroup.units[unitIndex].unitName or newGroup.units[unitIndex].name then
-				if newGroup.units[unitIndex].unitName then
+			if newGroup.units[unitIndex].unitName or newGroup.units[unitIndex].name or newGroup.units[unitIndex].newName then
+				if newGroup.units[unitIndex].newName then
+					newGroup.units[unitIndex].name = newGroup.units[unitIndex].newName
+				elseif newGroup.units[unitIndex].unitName then
 					newGroup.units[unitIndex].name = newGroup.units[unitIndex].unitName
 				elseif newGroup.units[unitIndex].name then
 					newGroup.units[unitIndex].name = newGroup.units[unitIndex].name
@@ -1550,7 +1554,9 @@ do -- the main scope
         --log:warn(newGroup)
 		-- sanitize table
 		newGroup.groupName = nil
+		newGroup.newName = nil
 		newGroup.clone = nil
+		newGroup.cloneWithNames = nil
 		newGroup.category = nil
 		newGroup.country = nil
 
@@ -1558,6 +1564,7 @@ do -- the main scope
 
 		for unitIndex, unitData in pairs(newGroup.units) do
 			newGroup.units[unitIndex].unitName = nil
+			newGroup.units[unitIndex].newName = nil
 		end
 
 		coalition.addGroup(country.id[newCountry], Unit.Category[newCat], newGroup)
@@ -3263,6 +3270,10 @@ do -- group functions scope
 			elseif string.lower(action) == 'clone' then
 				newGroupData = mist.getGroupData(gpName)
 				newGroupData.clone = 'order66'
+				dbData = true
+			elseif string.lower(action) == 'cloneWithNames' then
+				newGroupData = mist.getGroupData(gpName)
+				newGroupData.cloneWithNames = 'order66'
 				dbData = true
 			else
 				action = 'tele'

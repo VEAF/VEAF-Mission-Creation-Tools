@@ -611,7 +611,22 @@ function veaf.serialize(name, value, level)
 end
 
 function veaf.ifnn(o, field)
-    return veaf.ifnns(o, {field})
+    if o then
+        if o[field] then
+            if type(o[field]) == "function" then
+                local sta, res = pcall(o[field],o)
+                if sta then 
+                    return res
+                else
+                    return nil
+                end
+            else
+                return o[field]
+            end
+        end
+    else
+        return nil
+    end
 end
 
 function veaf.ifnns(o, fields)
@@ -637,9 +652,9 @@ function veaf.ifnns(o, fields)
 end
 
 function veaf.p(o, level)
-    if o and type(o) == "table" and (o.x and o.z and o.y)  then
+    if o and type(o) == "table" and (o.x and o.z and o.y and #o == 3) then
         return string.format("{x=%s, z=%s, y=%s}", veaf.p(o.x), veaf.p(o.z), veaf.p(o.y))
-    elseif o and type(o) == "table" and (o.x and o.y)  then
+    elseif o and type(o) == "table" and (o.x and o.y and #o == 2)  then
         return string.format("{x=%s, y=%s}", veaf.p(o.x), veaf.p(o.y))
     end
     return veaf._p(o, level)

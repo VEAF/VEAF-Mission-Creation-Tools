@@ -27,7 +27,7 @@ veafShortcuts = {}
 veafShortcuts.Id = "SHORTCUTS - "
 
 --- Version.
-veafShortcuts.Version = "1.18.0"
+veafShortcuts.Version = "1.19.0"
 
 -- trace level, specific to this module
 veafShortcuts.Debug = false
@@ -42,9 +42,6 @@ veafShortcuts.RemoteCommandParser = "([a-zA-Z0-9:\\.-]+)%s(.*)"
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Do not change anything below unless you know what you are doing!
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
-
---- Radio menus paths
-veafShortcuts.rootPath = nil
 
 -- Aliases list (table of VeafAlias objects)
 veafShortcuts.aliases = {}
@@ -377,43 +374,6 @@ function veafShortcuts.markTextAnalysis(text)
 
     end
     return nil
-end
-
--------------------------------------------------------------------------------------------------------------------------------------------------------------
--- Radio menu and help
--------------------------------------------------------------------------------------------------------------------------------------------------------------
-function veafShortcuts.helpAllAliases(unitName)
-    local text = 'List of all aliases:\n'
-            
-    for _, a in pairs(veafShortcuts.aliases) do
-        if not a:isHidden() then
-            local line = a:getName()
-            if a:getDescription() then
-                line = line .. " -> " .. a:getDescription()
-            end
-            text = text .. line .. "\n"
-        end
-    end
-    veaf.outTextForUnit(unitName, text, 30)
-end
-
---- Build the initial radio menu
-function veafShortcuts.buildRadioMenu()
-    veafShortcuts.logDebug("buildRadioMenu()")
-    
-    --if veafRadio.skipHelpMenus then return end -- completely skip the menu since there are only help elements
-    
-    veafShortcuts.rootPath = veafRadio.addMenu(veafShortcuts.RadioMenuName)
-    
-    --if not(veafRadio.skipHelpMenus) then
-        veafRadio.addCommandToSubmenu("HELP - all aliases", veafShortcuts.rootPath, veafShortcuts.helpAllAliases, nil, veafRadio.USAGE_ForAll)
-    --end
-
-    -- these ones need veafNamedPoints.lua
-    --veafRadio.addCommandToSubmenu("Weather on closest point" , veafShortcuts.rootPath, veafNamedPoints.getWeatherAtClosestPoint, nil, veafRadio.USAGE_ForGroup)    
-    --veafRadio.addCommandToSubmenu("ATC on closest point" , veafShortcuts.rootPath, veafNamedPoints.getAtcAtClosestPoint, nil, veafRadio.USAGE_ForGroup)    
-    
-    veafRadio.refreshRadioMenu()
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -935,7 +895,6 @@ end
 function veafShortcuts.initialize()
     veafShortcuts.logInfo("Initializing module")
     veafShortcuts.buildDefaultList()
-    veafShortcuts.buildRadioMenu()
     veafMarkers.registerEventHandler(veafMarkers.MarkerChange, veafShortcuts.onEventMarkChange)
     veafShortcuts.dumpAliasesList()
 end

@@ -66,7 +66,7 @@ veafSpawn = {}
 veafSpawn.Id = "SPAWN - "
 
 --- Version.
-veafSpawn.Version = "1.24.0"
+veafSpawn.Version = "1.25.0"
 
 -- trace level, specific to this module
 veafSpawn.Debug = false
@@ -98,6 +98,8 @@ veafSpawn.LogisticUnitCategory = "Fortifications"
 
 veafSpawn.ShellingInterval = 5 -- seconds between shells, randomized by 30%
 veafSpawn.IlluminationShellingInterval = 30 -- seconds between illumination shells, randomized by 30%
+
+veafSpawn.MIN_REPEAT_DELAY = 5
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Do not change anything below unless you know what you are doing!
@@ -161,11 +163,13 @@ function veafSpawn.onEventMarkChange(eventPos, event)
     end
 end
 
-function veafSpawn.executeCommand(eventPos, eventText, coalition, markId, bypassSecurity, spawnedGroups)
+function veafSpawn.executeCommand(eventPos, eventText, coalition, markId, bypassSecurity, spawnedGroups, repeatCount, repeatDelay)
     veafSpawn.logDebug(string.format("veafSpawn.executeCommand(eventText=[%s])", eventText))
     veafSpawn.logTrace(string.format("coalition=%s", veaf.p(coalition)))
     veafSpawn.logTrace(string.format("markId=%s", veaf.p(markId)))
     veafSpawn.logTrace(string.format("bypassSecurity=%s", veaf.p(bypassSecurity)))
+    veafSpawn.logTrace(string.format("repeatCount=%s", veaf.p(repeatCount)))
+    veafSpawn.logTrace(string.format("repeatDelay=%s", veaf.p(repeatDelay)))
 
     -- Check if marker has a text and the veafSpawn.SpawnKeyphrase keyphrase.
     if eventText ~= nil and (eventText:lower():find(veafSpawn.SpawnKeyphrase) or eventText:lower():find(veafSpawn.DestroyKeyphrase) or eventText:lower():find(veafSpawn.TeleportKeyphrase) or eventText:lower():find(veafSpawn.DrawingKeyphrase)) then
@@ -174,13 +178,36 @@ function veafSpawn.executeCommand(eventPos, eventText, coalition, markId, bypass
         local options = veafSpawn.markTextAnalysis(eventText)
 
         if options then
-                if not(options.radius) then
-                    if options.farp or options.cargo or options.logistic or options.destroy or options.teleport or options.bomb or options.smoke or options.flare or options.signal then
-                        options.radius = 0
-                    else
-                        options.radius = 150
-                    end
+            local repeatDelay = repeatDelay
+            local repeatCount = repeatCount
+
+            if options.repeatCount and not repeatCount then -- only use the parsed repeat options IF the parameter is not set (not during a repeat loop)
+                -- set repeatCount and repeatDelay using the parsed options
+                repeatCount = options.repeatCount
+                repeatDelay = options.repeatDelay or veafSpawn.MIN_REPEAT_DELAY
+                veafSpawn.logTrace(string.format("using parsed repeat options to set repeatCount to %s and repeatDelay to %s", veaf.p(repeatCount), veaf.p(repeatDelay)))
+            end
+
+            if repeatCount and repeatCount > 0 then
+                repeatDelay = repeatDelay
+                if repeatDelay < veafSpawn.MIN_REPEAT_DELAY then
+                    repeatDelay = veafSpawn.MIN_REPEAT_DELAY
                 end
+                repeatCount = repeatCount - 1 
+
+                -- schedule the next step of the repeated command
+                veafSpawn.logTrace(string.format("scheduling veafSpawn.executeCommand for %s repeats in %s seconds", veaf.p(repeatCount), veaf.p(repeatDelay)))
+                mist.scheduleFunction(veafSpawn.executeCommand, {eventPos, eventText, coalition, markId, bypassSecurity, spawnedGroups, repeatCount, repeatDelay}, timer.getTime() + repeatDelay)
+            end
+
+            if not(options.radius) then
+                if options.farp or options.cargo or options.logistic or options.destroy or options.teleport or options.bomb or options.smoke or options.flare or options.signal then
+                    options.radius = 0
+                else
+                    options.radius = 150
+                end
+            end
+
             for i=1,options.multiplier do
                 local spawnedGroup = nil
 
@@ -434,6 +461,10 @@ function veafSpawn.markTextAnalysis(text)
     -- TACAN name and channel
     options.tacanChannel = 99
     options.tacanBand = "X"
+
+    -- repeat options
+    options.repeatCount = nil
+    options.repeatDelay = nil
 
     -- Check for correct keywords.
     if text:lower():find(veafSpawn.SpawnKeyphrase .. " unit") then
@@ -746,6 +777,21 @@ function veafSpawn.markTextAnalysis(text)
                 options.armor = nVal
             end
         end
+
+        if key:lower() == "repeat" then
+            -- Set repeat count.
+            veafSpawn.logTrace(string.format("Keyword repeat = %s", tostring(val)))
+            local nVal = veaf.getRandomizableNumeric(val)
+            options.repeatCount = nVal
+        end
+
+        if key:lower() == "delay" then
+            -- Set delay.
+            veafSpawn.logTrace(string.format("Keyword delay = %s", tostring(val)))
+            local nVal = veaf.getRandomizableNumeric(val)
+            options.repeatDelay = nVal
+        end
+
     end
 
     -- check mandatory parameter "name" for command "group"
@@ -1519,7 +1565,7 @@ function veafSpawn.doSpawnCargo(spawnSpot, radius, cargoType, unitName, cargoSmo
                 veafSpawn.spawnSmoke(smokePosition, trigger.smokeColor.Green)
                 for i = 1, 10 do
                     veafSpawn.logTrace("Signal flare 1 at " .. timer.getTime() + i*7)
-                    mist.scheduleFunction(veafSpawn.spawnSignalFlare, {smokePosition,trigger.flareColor.Red}, timer.getTime() + i*3)
+                    mist.scheduleFunction(veafSpawn.spawnSignalFlare, {smokePosition, nil, nil, trigger.flareColor.Red}, timer.getTime() + i*3)
                 end
             end
 
@@ -1584,7 +1630,7 @@ function veafSpawn.doSpawnStatic(spawnSpot, radius, staticCategory, staticType, 
             veafSpawn.spawnSmoke(smokePosition, trigger.smokeColor.Green)
             for i = 1, 10 do
                 veafSpawn.logTrace("Signal flare 1 at " .. timer.getTime() + i*7)
-                mist.scheduleFunction(veafSpawn.spawnSignalFlare, {smokePosition,trigger.flareColor.Red}, timer.getTime() + i*3)
+                mist.scheduleFunction(veafSpawn.spawnSignalFlare, {smokePosition, nil, nil, trigger.flareColor.Red}, timer.getTime() + i*3)
             end
         end
 

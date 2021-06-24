@@ -27,7 +27,7 @@ veafShortcuts = {}
 veafShortcuts.Id = "SHORTCUTS - "
 
 --- Version.
-veafShortcuts.Version = "1.19.0"
+veafShortcuts.Version = "1.20.0"
 
 -- trace level, specific to this module
 veafShortcuts.Debug = false
@@ -741,6 +741,13 @@ function veafShortcuts.buildDefaultList()
             :setName("-smoke")
             :setDescription("Spawn a single white smoke")
             :setVeafCommand("_spawn smoke, color white, shells 1, radius 1")
+            :setBypassSecurity(true)
+    )
+    veafShortcuts.AddAlias(
+        VeafAlias:new()
+            :setName("-longsmoke")
+            :setDescription("Spawn a single white smoke, renewed every 5 minutes for 30 minutes")
+            :setVeafCommand("_spawn smoke, color white, shells 1, radius 1, repeat 5, delay 300")
             :setBypassSecurity(true)
     )
     veafShortcuts.AddAlias(

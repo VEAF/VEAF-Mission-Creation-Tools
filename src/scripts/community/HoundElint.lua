@@ -2048,7 +2048,7 @@ do
         local assigned = emitter.typeAssigned
         local uid = emitter.uid
         -- env.info(length(emitter) .. " uid: " .. uid .. " DCStypeName: " .. DCStypeName)
-        if self.radioMenu and self.radioMenu.data then
+        if self.radioMenu and self.radioMenu.data and self.radioMenu.data[assigned] and self.radioMenu.data[assigned].data then
             if setContains(self.radioMenu.data[assigned].data,uid) then
                 self.radioMenu.data[assigned].data[uid] = missionCommands.removeItemForCoalition(self.coalitionId, self.radioMenu.data[assigned].data[uid])
             end

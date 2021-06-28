@@ -197,7 +197,7 @@ local function initializeHoundSystem(coa, parameters, atMissionStart)
     end
 
     if veafHoundElint.hasController(parameters) then
-        local textMode = not(parameters.controller.voice)
+        local textMode = not(veafHoundElint.hasControllerVoice(parameters))
         hound:enableController(textMode)
         if type(parameters.controller) == "table" then
             hound:configureController(parameters.controller)
@@ -278,7 +278,7 @@ function veafHoundElint.hasController(parameters)
 end
 
 function veafHoundElint.hasControllerVoice(parameters)
-    return parameters and parameters.controller == "voice"
+    return parameters and parameters.controller and parameters.controller.voiceEnabled
 end
 
 function veafHoundElint.initialize(prefix, red, blue)

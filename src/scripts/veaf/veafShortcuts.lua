@@ -829,8 +829,8 @@ function veafShortcuts.dumpAliasesList(export_path)
 
     local jsonify = function(key, value)
         veafShortcuts.logTrace(string.format("jsonify(%s)", veaf.p(value)))
-        if json then
-            return json.stringify(veafShortcuts.GetAlias(value))
+        if veaf.json then
+            return veaf.json.stringify(veafShortcuts.GetAlias(value))
         else
             return ""
         end

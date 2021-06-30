@@ -1412,8 +1412,8 @@ function veafCombatMission.dumpMissionsList(export_path)
 
     local jsonify = function(key, value)
         veafShortcuts.logTrace(string.format("jsonify(%s)", veaf.p(value)))
-        if json then
-            return json.stringify(veafCombatMission.missionsDict[value])
+        if veaf.json then
+            return veaf.json.stringify(veafCombatMission.missionsDict[value])
         else
             return ""
         end

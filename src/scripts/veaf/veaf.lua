@@ -342,7 +342,7 @@ avoiding null values in your data to begin with.
 --]]
 
 
-json = {}
+veaf.json = {}
 
 
 -- Internal functions.
@@ -407,7 +407,7 @@ end
 
 -- Public values and functions.
 
-function json.stringify(obj, as_key)
+function veaf.json.stringify(obj, as_key)
   local s = {}  -- We'll build the string as an array of strings to be concatenated.
   local kind = kind_of(obj)  -- This is 'array' if it's an array or type(obj) otherwise.
   if kind == 'array' then
@@ -415,7 +415,7 @@ function json.stringify(obj, as_key)
     s[#s + 1] = '['
     for i, val in ipairs(obj) do
       if i > 1 then s[#s + 1] = ', ' end
-      s[#s + 1] = json.stringify(val)
+      s[#s + 1] = veaf.json.stringify(val)
     end
     s[#s + 1] = ']'
   elseif kind == 'table' then
@@ -423,9 +423,9 @@ function json.stringify(obj, as_key)
     s[#s + 1] = '{'
     for k, v in pairs(obj) do
       if #s > 1 then s[#s + 1] = ', ' end
-      s[#s + 1] = json.stringify(k, true)
+      s[#s + 1] = veaf.json.stringify(k, true)
       s[#s + 1] = ':'
-      s[#s + 1] = json.stringify(v)
+      s[#s + 1] = veaf.json.stringify(v)
     end
     s[#s + 1] = '}'
   elseif kind == 'string' then
@@ -444,9 +444,9 @@ function json.stringify(obj, as_key)
   return table.concat(s)
 end
 
-json.null = {}  -- This is a one-off table to represent the null value.
+veaf.json.null = {}  -- This is a one-off table to represent the null value.
 
-function json.parse(str, pos, end_delim)
+function veaf.json.parse(str, pos, end_delim)
   pos = pos or 1
   if pos > #str then error('Reached unexpected end of input.') end
   local pos = pos + #str:match('^%s*', pos)  -- Skip whitespace.
@@ -455,18 +455,18 @@ function json.parse(str, pos, end_delim)
     local obj, key, delim_found = {}, true, true
     pos = pos + 1
     while true do
-      key, pos = json.parse(str, pos, '}')
+      key, pos = veaf.json.parse(str, pos, '}')
       if key == nil then return obj, pos end
       if not delim_found then error('Comma missing between object items.') end
       pos = skip_delim(str, pos, ':', true)  -- true -> error if missing.
-      obj[key], pos = json.parse(str, pos)
+      obj[key], pos = veaf.json.parse(str, pos)
       pos, delim_found = skip_delim(str, pos, ',')
     end
   elseif first == '[' then  -- Parse an array.
     local arr, val, delim_found = {}, true, true
     pos = pos + 1
     while true do
-      val, pos = json.parse(str, pos, ']')
+      val, pos = veaf.json.parse(str, pos, ']')
       if val == nil then return arr, pos end
       if not delim_found then error('Comma missing between array items.') end
       arr[#arr + 1] = val
@@ -479,7 +479,7 @@ function json.parse(str, pos, end_delim)
   elseif first == end_delim then  -- End of an object or array.
     return nil, pos + 1
   else  -- Parse true, false, or null.
-    local literals = {['true'] = true, ['false'] = false, ['null'] = json.null}
+    local literals = {['true'] = true, ['false'] = false, ['null'] = veaf.json.null}
     for lit_str, lit_val in pairs(literals) do
       local lit_end = pos + #lit_str - 1
       if str:sub(pos, lit_end) == lit_str then return lit_val, lit_end + 1 end

@@ -37,7 +37,7 @@ veafNamedPoints = {}
 veafNamedPoints.Id = "NAMED POINTS - "
 
 --- Version.
-veafNamedPoints.Version = "1.9.1"
+veafNamedPoints.Version = "1.10.0"
 
 -- trace level, specific to this module
 veafNamedPoints.Debug = false
@@ -76,6 +76,14 @@ veafNamedPoints.markid=1270000
 
 function veafNamedPoints.logInfo(message)
     veaf.logInfo(veafNamedPoints.Id .. message)
+end
+
+function veafNamedPoints.logError(message)
+    veaf.logError(veafNamedPoints.Id .. message)
+end
+
+function veafNamedPoints.logWarning(message)
+    veaf.logWarning(veafNamedPoints.Id .. message)
 end
 
 function veafNamedPoints.logDebug(message)
@@ -4215,6 +4223,80 @@ function veafNamedPoints.addAllSyriaCities()
         veafNamedPoints.addCities(towns)
     end
     
+function veafNamedPoints.addAllMarianasIslandsCities()
+    towns = {
+        ["San Jose"] = { latitude = 14.965154, longitude = 145.628466, display_name = ("San Jose")},
+        ["Dandan"] = { latitude = 15.133948, longitude = 145.735471, display_name = ("Dandan")},
+        ["Koblerville"] = { latitude = 15.122667, longitude = 145.703809, display_name = ("Koblerville")},
+        ["San Vicente"] = { latitude = 15.154882, longitude = 145.739831, display_name = ("San Vicente")},
+        ["Chalan Kiya"] = { latitude = 15.165205, longitude = 145.720938, display_name = ("Chalan Kiya")},
+        ["San Jose"] = { latitude = 15.167064, longitude = 145.710962, display_name = ("San Jose")},
+        ["Garapan"] = { latitude = 15.206861, longitude = 145.721351, display_name = ("Garapan")},
+        ["Papago"] = { latitude = 15.179258, longitude = 145.752613, display_name = ("Papago")},
+        ["Kagman I"] = { latitude = 15.181232, longitude = 145.773957, display_name = ("Kagman I")},
+        ["Tanapag"] = { latitude = 15.234217, longitude = 145.747291, display_name = ("Tanapag")},
+        ["Puerto Rico"] = { latitude = 15.223099, longitude = 145.735812, display_name = ("Puerto Rico")},
+        ["San Roque"] = { latitude = 15.248449, longitude = 145.776229, display_name = ("San Roque")},
+        ["Songsong"] = { latitude = 14.139157, longitude = 145.139697, display_name = ("Songsong")},
+        ["Tuchok"] = { latitude = 14.136584, longitude = 145.154358, display_name = ("Tuchok")},
+        ["Sinapalo"] = { latitude = 14.166285, longitude = 145.233980, display_name = ("Sinapalo")},
+        ["Inarajan"] = { latitude = 13.274048, longitude = 144.746742, display_name = ("Inarajan")},
+        ["Pigua"] = { latitude = 13.270406, longitude = 144.671605, display_name = ("Pigua")},
+        ["Camp Dealy"] = { latitude = 13.353269, longitude = 144.766200, display_name = ("Camp Dealy")},
+        ["Yona"] = { latitude = 13.410619, longitude = 144.775485, display_name = ("Yona")},
+        ["Chalan Pago"] = { latitude = 13.442564, longitude = 144.768438, display_name = ("Chalan Pago")},
+        ["Afami"] = { latitude = 13.456341, longitude = 144.762765, display_name = ("Afami")},
+        ["Hagatna Heights"] = { latitude = 13.464819, longitude = 144.750032, display_name = ("Hagatna Heights")},
+        ["Hagatna"] = { latitude = 13.475871, longitude = 144.750834, display_name = ("Hagatna")},
+        ["Anigua"] = { latitude = 13.477348, longitude = 144.737995, display_name = ("Anigua")},
+        ["Piti"] = { latitude = 13.463047, longitude = 144.692784, display_name = ("Piti")},
+        ["North Tipalo"] = { latitude = 13.420384, longitude = 144.644657, display_name = ("North Tipalo")},
+        ["Lockwood Terrace"] = { latitude = 13.432602, longitude = 144.649979, display_name = ("Lockwood Terrace")},
+        ["Apra Heights"] = { latitude = 13.402864, longitude = 144.684931, display_name = ("Apra Heights")},
+        ["Agat"] = { latitude = 13.382019, longitude = 144.659212, display_name = ("Agat")},
+        ["Ladai"] = { latitude = 13.365377, longitude = 144.657204, display_name = ("Ladai")},
+        ["Umatac"] = { latitude = 13.298629, longitude = 144.665590, display_name = ("Umatac")},
+        ["Talofofo"] = { latitude = 13.354023, longitude = 144.756934, display_name = ("Talofofo")},
+        ["Mapas"] = { latitude = 13.473612, longitude = 144.774622, display_name = ("Mapas")},
+        ["Barrigada"] = { latitude = 13.465346, longitude = 144.797922, display_name = ("Barrigada")},
+        ["Asbeco"] = { latitude = 13.466340, longitude = 144.837012, display_name = ("Asbeco")},
+        ["Macheche"] = { latitude = 13.503018, longitude = 144.833579, display_name = ("Macheche")},
+        ["Corten Torres"] = { latitude = 13.441240, longitude = 144.805211, display_name = ("Corten Torres")},
+        ["Adacao"] = { latitude = 13.490890, longitude = 144.852597, display_name = ("Adacao")},
+        ["Apurguan"] = { latitude = 13.484178, longitude = 144.775571, display_name = ("Apurguan")},
+        ["Tumon"] = { latitude = 13.505412, longitude = 144.812314, display_name = ("Tumon")},
+        ["Diidedo"] = { latitude = 13.526543, longitude = 144.845629, display_name = ("Diidedo")},
+        ["Ipapao"] = { latitude = 13.524362, longitude = 144.858491, display_name = ("Ipapao")},
+        ["Gayinero"] = { latitude = 13.528355, longitude = 144.900124, display_name = ("Gayinero")},
+        ["Lupog"] = { latitude = 13.548040, longitude = 144.913590, display_name = ("Lupog")},
+        ["Yigo"] = { latitude = 13.539023, longitude = 144.884101, display_name = ("Yigo")},
+        [" Astumbo"] = { latitude = 13.554951, longitude = 144.842729, display_name = (" Astumbo")},
+        ["San Antonio"] = { latitude = 15.133342, longitude = 145.696097, display_name = ("San Antonio")},
+        ["Susupe"] = { latitude = 15.152792, longitude = 145.706059, display_name = ("Susupe")},
+        ["Matansa"] = { latitude = 15.251512, longitude = 145.783177, display_name = ("Matansa")},
+        ["Kagman II"] = { latitude = 15.176568, longitude = 145.778018, display_name = ("Kagman II")},
+        ["Kagman III"] = { latitude = 15.169898, longitude = 145.779899, display_name = ("Kagman III")},
+        ["Puetto"] = { latitude = 14.968777, longitude = 145.631754, display_name = ("Puetto")},
+        ["Peca"] = { latitude = 13.280913, longitude = 144.752703, display_name = ("Peca")},
+        ["Malojloj"] = { latitude = 13.308378, longitude = 144.761342, display_name = ("Malojloj")},
+        ["Tres Reyes"] = { latitude = 13.404876, longitude = 144.775087, display_name = ("Tres Reyes")},
+        ["Asmisen"] = { latitude = 13.400030, longitude = 144.773871, display_name = ("Asmisen")},
+        ["Toto"] = { latitude = 13.466524, longitude = 144.784103, display_name = ("Toto")},
+        ["Aspengo"] = { latitude = 13.464835, longitude = 144.798828, display_name = ("Aspengo")},
+        ["Asan"] = { latitude = 13.472373, longitude = 144.718320, display_name = ("Asan")},
+        ["Tepungan"] = { latitude = 13.467035, longitude = 144.699033, display_name = ("Tepungan")},
+        ["Santa Rita"] = { latitude = 13.393936, longitude = 144.662313, display_name = ("Santa Rita")},
+        ["Cerain"] = { latitude = 13.387143, longitude = 144.673645, display_name = ("Cerain")},
+        ["Rota"] = { latitude = 14.161794, longitude = 145.217911, display_name = ("Rota")},
+        ["Saipan"] = { latitude = 15.197839, longitude = 145.748413, display_name = ("Saipan")},
+        ["Tinian"] = { latitude = 15.025455, longitude = 145.625337, display_name = ("Tinian")},
+        ["Guam"] = { latitude = 13.506871, longitude = 144.824237, display_name = ("Guam")},
+        ["Faralon de Medinilla"] = { latitude = 16.019837, longitude = 146.059475, display_name = ("Faralon de Medinilla")},
+        ["Aguijan"] = { latitude = 14.852365, longitude = 145.558622, display_name = ("Aguijan")}
+    }
+    veafNamedPoints.addCities(towns)
+end
+        
 function veafNamedPoints.addCities(cities)
     for name, data in pairs(cities) do
         veafNamedPoints.logTrace(string.format("processing city name=[%s]",name or ""))

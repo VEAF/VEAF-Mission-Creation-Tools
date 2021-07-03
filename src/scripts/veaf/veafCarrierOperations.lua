@@ -48,7 +48,7 @@ veafCarrierOperations = {}
 veafCarrierOperations.Id = "CARRIER - "
 
 --- Version.
-veafCarrierOperations.Version = "1.6.0"
+veafCarrierOperations.Version = "1.7.0"
 
 -- trace level, specific to this module
 veafCarrierOperations.Trace = false
@@ -63,6 +63,9 @@ veafCarrierOperations.AllCarriers =
     ["LHA_Tarawa"] = { runwayAngleWithBRC = 0, desiredWindSpeedOnDeck = 20},
     ["Stennis"] = { runwayAngleWithBRC = 9.05, desiredWindSpeedOnDeck = 25},
     ["CVN_71"] = { runwayAngleWithBRC = 9.05, desiredWindSpeedOnDeck = 25},
+    ["CVN_72"] = { runwayAngleWithBRC = 9.05, desiredWindSpeedOnDeck = 25},
+    ["CVN_73"] = { runwayAngleWithBRC = 9.05, desiredWindSpeedOnDeck = 25},
+    ["CVN_75"] = { runwayAngleWithBRC = 9.05, desiredWindSpeedOnDeck = 25},
     ["KUZNECOW"] ={ runwayAngleWithBRC = 0, desiredWindSpeedOnDeck = 25}
 }
 
@@ -92,6 +95,10 @@ veafCarrierOperations.traceMarkerId = 2727
 
 function veafCarrierOperations.logError(message)
     veaf.logError(veafCarrierOperations.Id .. message)
+end
+
+function veafCarrierOperations.logWarning(message)
+    veaf.logWarning(veafCarrierOperations.Id .. message)
 end
 
 function veafCarrierOperations.logInfo(message)
@@ -293,11 +300,16 @@ function veafCarrierOperations.continueCarrierOperations(groupName)
                 carrier.pedroIsSpawned = true
             end
 
-            pedroUnit = Unit.getByName(carrier.pedroUnitName)
             local pedroGroup = Group.getByName(carrier.pedroUnitName) -- group has the same name as the unit
             if (pedroGroup) then
                 veafCarrierOperations.logDebug("found Pedro group")
                 
+                pedroUnit = Unit.getByName(carrier.pedroUnitName)
+                if not pedroUnit then 
+                    pedroUnit = pedroGroup:getUnits(1)
+                end
+                veafCarrierOperations.logDebug(string.format("pedroUnit=%s",veaf.p(pedroUnit)))
+
                 -- waypoint #1 is 500m to port
                 local offsetPointOnLand, offsetPoint = veaf.computeCoordinatesOffsetFromRoute(startPosition, newWaypoint, 0, 500)
                 local pedroWaypoint1 = offsetPoint
@@ -774,37 +786,43 @@ function veafCarrierOperations.initializeCarrierGroups()
         veafCarrierOperations.logTrace("found group "..name)
         -- search groups with a carrier unit in the group
         local carrier = nil
-            -- find the actual carrier unit
-            local group = Group.getByName(name)
+        -- find the actual carrier unit
+        local group = Group.getByName(name)
         if group then
             for _, unit in pairs(group:getUnits()) do
                 local unitType = unit:getDesc()["typeName"]
                 for knownCarrierType, data in pairs(veafCarrierOperations.AllCarriers) do
                     if unitType == knownCarrierType then
-                        -- found a carrier, initialize the carrier group object if needed
+                        local coa = group:getCoalition()
+                        veafCarrierOperations.logTrace(string.format("coa=%s", veaf.p(coa)))
+                        if coa == coalition.side.BLUE then
+                            -- found a carrier, initialize the carrier group object if needed
+                            if not carrier then 
                         if not carrier then 
-                            veafCarrierOperations.carriers[name] = {}
-                            carrier = veafCarrierOperations.carriers[name]
-                            veafCarrierOperations.logTrace("found carrier !")
-                        else
-                            veafCarrierOperations.logWarning(string.format("more than one carrier in group %s", veaf.p(name)))
+                            if not carrier then 
+                                veafCarrierOperations.carriers[name] = {}
+                                carrier = veafCarrierOperations.carriers[name]
+                                veafCarrierOperations.logTrace("found carrier !")
+                            else
+                                veafCarrierOperations.logWarning(string.format("more than one carrier in group %s", veaf.p(name)))
+                            end
+                            carrier.carrierUnit = unit
+                            carrier.carrierUnitName = carrier.carrierUnit:getName()
+                            carrier.runwayAngleWithBRC = data.runwayAngleWithBRC
+                            carrier.desiredWindSpeedOnDeck = data.desiredWindSpeedOnDeck
+                                    carrier.pedroUnitName = carrier.carrierUnitName .. " Pedro" -- rescue helo unit name
+                            local pedroUnit = Unit.getByName(carrier.pedroUnitName)
+                            if pedroUnit then
+                                pedroUnit:destroy()
+                            end
+                            carrier.tankerUnitName = carrier.carrierUnitName .. " S3B-Tanker" -- emergency tanker unit name
+                            carrier.tankerData = veaf.getTankerData(carrier.tankerUnitName)
+                            local tankerUnit = Unit.getByName(carrier.tankerUnitName)
+                            if tankerUnit then
+                                tankerUnit:destroy()
+                            end
+                            break
                         end
-                        carrier.carrierUnit = unit
-                        carrier.carrierUnitName = carrier.carrierUnit:getName()
-                        carrier.runwayAngleWithBRC = data.runwayAngleWithBRC
-                        carrier.desiredWindSpeedOnDeck = data.desiredWindSpeedOnDeck
-                                carrier.pedroUnitName = carrier.carrierUnitName .. " Pedro" -- rescue helo unit name
-                        local pedroUnit = Unit.getByName(carrier.pedroUnitName)
-                        if pedroUnit then
-                            pedroUnit:destroy()
-                        end
-                        carrier.tankerUnitName = carrier.carrierUnitName .. " S3B-Tanker" -- emergency tanker unit name
-                        carrier.tankerData = veaf.getTankerData(carrier.tankerUnitName)
-                        local tankerUnit = Unit.getByName(carrier.tankerUnitName)
-                        if tankerUnit then
-                            tankerUnit:destroy()
-                        end
-                        break
                     end
                 end
             end

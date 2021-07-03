@@ -45,7 +45,7 @@ veafRadio = {}
 veafRadio.Id = "RADIO - "
 
 --- Version.
-veafRadio.Version = "1.8.3"
+veafRadio.Version = "1.9.0"
 
 -- trace level, specific to this module
 veafRadio.Debug = false
@@ -73,7 +73,7 @@ veafRadio.BEACONS_SCHEDULE = 5
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Do not change anything below unless you know what you are doing!
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
-veafRadio.skipHelpMenus = false
+veafRadio.skipHelpMenus = true
 
 --- Humans Units (associative array unitName => unit)
 veafRadio.humanUnits = {}

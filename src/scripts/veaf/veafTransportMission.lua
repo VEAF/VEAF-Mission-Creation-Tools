@@ -49,7 +49,7 @@ veafTransportMission = {}
 veafTransportMission.Id = "TRANSPORT MISSION - "
 
 --- Version.
-veafTransportMission.Version = "1.4.0"
+veafTransportMission.Version = "1.5.0"
 
 -- trace level, specific to this module
 veafTransportMission.Trace = false
@@ -666,9 +666,8 @@ end
 
 --- Build the initial radio menu
 function veafTransportMission.buildRadioMenu()
-
-    veafTransportMission.rootPath = veafRadio.addSubMenu(veafTransportMission.RadioMenuName)
     if not(veafRadio.skipHelpMenus) then
+        veafTransportMission.rootPath = veafRadio.addSubMenu(veafTransportMission.RadioMenuName)
         veafRadio.addCommandToSubmenu("HELP", veafTransportMission.rootPath, veafTransportMission.help, nil, veafRadio.USAGE_ForGroup)
     end
     -- TODO add this command when the respawn will work (see veafTransportMission.resetAllCargoes)

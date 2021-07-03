@@ -48,7 +48,7 @@ veafCarrierOperations = {}
 veafCarrierOperations.Id = "CARRIER - "
 
 --- Version.
-veafCarrierOperations.Version = "1.5.0"
+veafCarrierOperations.Version = "1.6.0"
 
 -- trace level, specific to this module
 veafCarrierOperations.Trace = false
@@ -741,6 +741,11 @@ end
 --- Build the initial radio menu
 function veafCarrierOperations.buildRadioMenu()
     veafCarrierOperations.logDebug("veafCarrierOperations.buildRadioMenu")
+
+    -- don't create an empty menu
+    if length(veafCarrierOperations.carriers) == 0 then 
+        return
+    end
 
     veafCarrierOperations.rootPath = veafRadio.addSubMenu(veafCarrierOperations.RadioMenuName)
 

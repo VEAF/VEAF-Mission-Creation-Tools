@@ -48,7 +48,7 @@ veafCombatZone = {}
 veafCombatZone.Id = "COMBAT ZONE - "
 
 --- Version.
-veafCombatZone.Version = "1.6.0"
+veafCombatZone.Version = "1.7.0"
 
 -- trace level, specific to this module
 veafCombatZone.Debug = false
@@ -1166,6 +1166,12 @@ end
 --- Build the initial radio menu
 function veafCombatZone.buildRadioMenu()
     veafCombatZone.logDebug("buildRadioMenu()")
+
+    -- don't create an empty menu
+    if length(veafCombatZone.zonesDict) == 0 then 
+        return
+    end
+
     veafCombatZone.rootPath = veafRadio.addMenu(veafCombatZone.RadioMenuName)
     if not(veafRadio.skipHelpMenus) then
         veafRadio.addCommandToSubmenu("HELP", veafCombatZone.rootPath, veafCombatZone.help, nil, veafRadio.USAGE_ForGroup)

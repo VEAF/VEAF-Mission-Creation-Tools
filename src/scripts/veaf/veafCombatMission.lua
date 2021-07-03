@@ -25,7 +25,7 @@ veafCombatMission = {}
 veafCombatMission.Id = "COMBAT MISSION - "
 
 --- Version.
-veafCombatMission.Version = "2.0.0"
+veafCombatMission.Version = "2.1.0"
 
 -- trace level, specific to this module
 veafCombatMission.Debug = false
@@ -1271,6 +1271,12 @@ end
 --- Build the initial radio menu
 function veafCombatMission.buildRadioMenu()
     veafCombatMission.logDebug("buildRadioMenu()")
+
+    -- don't create an empty menu
+    if length(veafCombatMission.missionsDict) == 0 then 
+        return
+    end
+
     if veafCombatMission.rootPath then 
         veafRadio.clearSubmenu(veafCombatMission.rootPath)
     else

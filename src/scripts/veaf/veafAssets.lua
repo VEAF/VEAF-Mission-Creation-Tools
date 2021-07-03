@@ -24,7 +24,7 @@ veafAssets = {}
 veafAssets.Id = "ASSETS - "
 
 --- Version.
-veafAssets.Version = "1.7.0"
+veafAssets.Version = "1.8.0"
 
 -- trace level, specific to this module
 veafAssets.Trace = false
@@ -82,6 +82,11 @@ end
 
 --- Build the initial radio menu
 function veafAssets.buildRadioMenu()
+    -- don't create an empty menu
+    if length(veafAssets.assets) == 0 then 
+        return
+    end
+
     veafAssets.rootPath = veafRadio.addSubMenu(veafAssets.RadioMenuName)
     if not(veafRadio.skipHelpMenus) then
         veafRadio.addCommandToSubmenu("HELP", veafAssets.rootPath, veafAssets.help, nil, veafRadio.USAGE_ForGroup)

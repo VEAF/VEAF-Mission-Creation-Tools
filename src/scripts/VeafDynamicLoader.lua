@@ -27,7 +27,6 @@ end
 __Veaf.Include( VEAF_DYNAMIC_PATH .. '/src/scripts/veaf/veaf.lua' )
 __Veaf.Include( VEAF_DYNAMIC_PATH .. '/src/scripts/veaf/veafAssets.lua' )
 __Veaf.Include( VEAF_DYNAMIC_PATH .. '/src/scripts/veaf/veafCarrierOperations.lua' )
-__Veaf.Include( VEAF_DYNAMIC_PATH .. '/src/scripts/veaf/veafCarrierOperations2.lua' )
 __Veaf.Include( VEAF_DYNAMIC_PATH .. '/src/scripts/veaf/veafCasMission.lua' )
 __Veaf.Include( VEAF_DYNAMIC_PATH .. '/src/scripts/veaf/veafCombatMission.lua' )
 __Veaf.Include( VEAF_DYNAMIC_PATH .. '/src/scripts/veaf/veafCombatZone.lua' )

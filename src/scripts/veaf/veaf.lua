@@ -33,7 +33,7 @@ veaf.Id = "VEAF - "
 veaf.MainId = "MAIN - "
 
 --- Version.
-veaf.Version = "1.15.0"
+veaf.Version = "1.15.1"
 
 -- trace level, specific to this module
 veaf.MainTrace = false
@@ -2611,6 +2611,10 @@ math.random(); math.random(); math.random()
 env.setErrorMessageBoxEnabled(false)
 
 veaf.mainLogInfo(string.format("Loading version %s", veaf.Version))
+veaf.mainLogInfo(string.format("veaf.Development=%s", veaf.p(veaf.Development)))
+veaf.mainLogInfo(string.format("veaf.SecurityDisabled=%s", veaf.p(veaf.SecurityDisabled)))
+veaf.mainLogInfo(string.format("veaf.Debug=%s", veaf.p(veaf.Debug)))
+veaf.mainLogInfo(string.format("veaf.Trace=%s", veaf.p(veaf.Trace)))
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- changes to CTLD 

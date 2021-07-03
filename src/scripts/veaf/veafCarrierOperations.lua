@@ -48,7 +48,7 @@ veafCarrierOperations = {}
 veafCarrierOperations.Id = "CARRIER - "
 
 --- Version.
-veafCarrierOperations.Version = "1.7.0"
+veafCarrierOperations.Version = "1.8.0"
 
 -- trace level, specific to this module
 veafCarrierOperations.Trace = false
@@ -73,6 +73,7 @@ veafCarrierOperations.ALT_FOR_MEASURING_WIND = 30 -- wind is measured at 30 mete
 veafCarrierOperations.ALIGNMENT_MANOEUVER_SPEED = 8 -- carrier speed when not yet aligned to the wind (in m/s)
 veafCarrierOperations.MAX_OPERATIONS_DURATION = 45 -- operations are stopped after
 veafCarrierOperations.SCHEDULER_INTERVAL = 2 -- scheduler runs every 2 minutes
+veafCarrierOperations.MIN_WINDSPEED_FOR_CHANGING_HEADING = 2 -- don't deroute the carrier if less than 2kn wind
 
 veafCarrierOperations.RemoteCommandParser = "([[a-zA-Z0-9]+)%s?([^%s]*)%s?(.*)"
 
@@ -202,6 +203,7 @@ function veafCarrierOperations.continueCarrierOperations(groupName)
         veafCarrierOperations.logTrace("startPosition (raw) ="..veaf.vecToString(startPosition))
         currentHeading = mist.utils.round(mist.utils.toDegree(mist.getHeading(carrierUnit)), 0)
     end    
+    veafCarrierOperations.logTrace(string.format("currentHeading=%s", veaf.p(currentHeading)))
     startPosition = { x=startPosition.x, z=startPosition.z, y=startPosition.y + veafCarrierOperations.ALT_FOR_MEASURING_WIND} -- on deck, 50 meters above the water
     veafCarrierOperations.logTrace("startPosition="..veaf.vecToString(startPosition))
     veaf.cleanupLogMarkers(veafCarrierOperations.debugMarkersErasedAtEachStep)
@@ -216,29 +218,36 @@ function veafCarrierOperations.continueCarrierOperations(groupName)
     -- make the carrier move
     if startPosition ~= nil then
 	
+        local dir = currentHeading -- start with current heading
+
         --get wind info
         local wind = atmosphere.getWind(startPosition)
         local windspeed = mist.vec.mag(wind)
-        veafCarrierOperations.logTrace("windspeed="..windspeed.." m/s")
+        veafCarrierOperations.logTrace(string.format("windspeed=%s", veaf.p(windspeed)))
 
-        --get wind direction sorted
-        local dir = veaf.round(math.atan2(wind.z, wind.x) * 180 / math.pi,0)
-        if dir < 0 then
+        if windspeed >= veafCarrierOperations.MIN_WINDSPEED_FOR_CHANGING_HEADING then
+            --get wind direction sorted
+            local dir = veaf.round(math.atan2(wind.z, wind.x) * 180 / math.pi,0)
+            if dir < 0 then
+                dir = dir + 360 --converts to positive numbers		
             dir = dir + 360 --converts to positive numbers		
-        end
-        if dir <= 180 then
-            dir = dir + 180
-        else
-            dir = dir - 180
+                dir = dir + 360 --converts to positive numbers		
+            end
+            if dir <= 180 then
+                dir = dir + 180
+            else
+                dir = dir - 180
+            end
+            dir = dir + carrier.runwayAngleWithBRC --to account for angle of landing deck and movement of the ship          
+        dir = dir + carrier.runwayAngleWithBRC --to account for angle of landing deck and movement of the ship
+            dir = dir + carrier.runwayAngleWithBRC --to account for angle of landing deck and movement of the ship          
         end
 
-        dir = dir + carrier.runwayAngleWithBRC --to account for angle of landing deck and movement of the ship
-        
         if dir > 360 then
             dir = dir - 360
         end
 
-        veafCarrierOperations.logTrace("dir="..dir .. " (true)")
+        veafCarrierOperations.logTrace(string.format("dir=%s", veaf.p(dir)))
 
         local speed = 1
         local desiredWindSpeedOnDeck = carrier.desiredWindSpeedOnDeck * 0.51444444444444444444

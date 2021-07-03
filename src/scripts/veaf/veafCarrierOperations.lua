@@ -798,8 +798,6 @@ function veafCarrierOperations.initializeCarrierGroups()
                         if coa == coalition.side.BLUE then
                             -- found a carrier, initialize the carrier group object if needed
                             if not carrier then 
-                        if not carrier then 
-                            if not carrier then 
                                 veafCarrierOperations.carriers[name] = {}
                                 carrier = veafCarrierOperations.carriers[name]
                                 veafCarrierOperations.logTrace("found carrier !")

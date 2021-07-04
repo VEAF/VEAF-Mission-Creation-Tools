@@ -42,7 +42,7 @@ veafUnits.Id = "UNITS"
 veafUnits.Version = "1.8.0"
 
 -- trace level, specific to this module
---veafUnits.LogLevel = "trace"
+veafUnits.LogLevel = "trace"
 --veafUnits.LogLevel = "debug"
 
 veafUnits.logger = veaf.loggers.new(veafUnits.Id, veafUnits.LogLevel)

@@ -27,7 +27,7 @@ veafAssets.Id = "ASSETS"
 veafAssets.Version = "1.8.0"
 
 -- trace level, specific to this module
---veafAssets.LogLevel = "trace"
+veafAssets.LogLevel = "trace"
 --veafAssets.LogLevel = "debug"
 
 veafAssets.logger = veaf.loggers.new(veafAssets.Id, veafAssets.LogLevel)

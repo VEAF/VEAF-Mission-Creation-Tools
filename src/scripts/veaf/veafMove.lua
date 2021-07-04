@@ -71,7 +71,7 @@ veafMove.Id = "MOVE"
 veafMove.Version = "1.8.0"
 
 -- trace level, specific to this module
---veafMove.LogLevel = "trace"
+veafMove.LogLevel = "trace"
 --veafMove.LogLevel = "debug"
 
 veafMove.logger = veaf.loggers.new(veafMove.Id, veafMove.LogLevel)

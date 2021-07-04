@@ -75,7 +75,7 @@ veafCasMission.Id = "CASMISSION"
 veafCasMission.Version = "1.11.0"
 
 -- trace level, specific to this module
---veafCasMission.LogLevel = "trace"
+veafCasMission.LogLevel = "trace"
 --veafCasMission.LogLevel = "debug"
 
 veafCasMission.logger = veaf.loggers.new(veafCasMission.Id, veafCasMission.LogLevel)

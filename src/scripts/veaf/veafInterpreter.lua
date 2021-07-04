@@ -57,7 +57,7 @@ veafInterpreter.Id = "INTERPRETER"
 veafInterpreter.Version = "1.3.0"
 
 -- trace level, specific to this module
---veafInterpreter.LogLevel = "trace"
+veafInterpreter.LogLevel = "trace"
 --veafInterpreter.LogLevel = "debug"
 
 veafInterpreter.logger = veaf.loggers.new(veafInterpreter.Id, veafInterpreter.LogLevel)

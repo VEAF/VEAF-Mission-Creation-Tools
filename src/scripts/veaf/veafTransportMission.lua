@@ -52,7 +52,7 @@ veafTransportMission.Id = "TRANSPORTMISSION"
 veafTransportMission.Version = "1.5.0"
 
 -- trace level, specific to this module
---veafTransportMission.LogLevel = "trace"
+veafTransportMission.LogLevel = "trace"
 --veafTransportMission.LogLevel = "debug"
 
 veafTransportMission.logger = veaf.loggers.new(veafTransportMission.Id, veafTransportMission.LogLevel)

@@ -36,7 +36,7 @@ veafSecurity.Id = "SECURITY"
 veafSecurity.Version = "1.2.3"
 
 -- trace level, specific to this module
---veafSecurity.LogLevel = "trace"
+veafSecurity.LogLevel = "trace"
 --veafSecurity.LogLevel = "debug"
 
 veafSecurity.logger = veaf.loggers.new(veafSecurity.Id, veafSecurity.LogLevel)

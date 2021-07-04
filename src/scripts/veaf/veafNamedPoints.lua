@@ -40,7 +40,7 @@ veafNamedPoints.Id = "NAMED POINTS"
 veafNamedPoints.Version = "1.10.0"
 
 -- trace level, specific to this module
---veafNamedPoints.LogLevel = "trace"
+veafNamedPoints.LogLevel = "trace"
 --veafNamedPoints.LogLevel = "debug"
 
 veafNamedPoints.logger = veaf.loggers.new(veafNamedPoints.Id, veafNamedPoints.LogLevel)

@@ -51,7 +51,7 @@ veafCarrierOperations.Id = "CARRIER"
 veafCarrierOperations.Version = "1.8.0"
 
 -- trace level, specific to this module
---veafCarrierOperations.LogLevel = "trace"
+veafCarrierOperations.LogLevel = "trace"
 --veafCarrierOperations.LogLevel = "debug"
 
 veafCarrierOperations.logger = veaf.loggers.new(veafCarrierOperations.Id, veafCarrierOperations.LogLevel)

@@ -39,8 +39,9 @@ veaf.Development = true
 veaf.SecurityDisabled = true
 
 -- trace level, specific to this module
---veaf.LogLevel = "trace"
+veaf.LogLevel = "debug"
 --veaf.LogLevel = "debug"
+veaf.BaseLogLevel = mist.Logger.convertLevel("trace")
 
 veaf.DEFAULT_GROUND_SPEED_KPH = 30
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -127,8 +128,7 @@ function veaf.cleanupLogMarkers(loggerId, markersTable)
     end
 end
 
-veaf.BaseLogLevel = mist.Logger.convertLevel("info")
-if veaf.Development then
+if not veaf.Development then
     veaf.BaseLogLevel = mist.Logger.convertLevel("trace")
 end
 

@@ -31,7 +31,7 @@ veafRemote.Id = "REMOTE"
 veafRemote.Version = "2.1.0"
 
 -- trace level, specific to this module
---veafRemote.LogLevel = "trace"
+veafRemote.LogLevel = "trace"
 --veafRemote.LogLevel = "debug"
 
 veafRemote.logger = veaf.loggers.new(veafRemote.Id, veafRemote.LogLevel)

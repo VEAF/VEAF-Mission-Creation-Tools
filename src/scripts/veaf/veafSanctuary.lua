@@ -31,7 +31,7 @@ veafSanctuary.Id = "SANCTUARY"
 veafSanctuary.Version = "1.6.0"
 
 -- trace level, specific to this module
---veafSanctuary.LogLevel = "trace"
+veafSanctuary.LogLevel = "trace"
 --veafSanctuary.LogLevel = "debug"
 
 veafSanctuary.logger = veaf.loggers.new(veafSanctuary.Id, veafSanctuary.LogLevel)

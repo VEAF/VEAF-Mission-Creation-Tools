@@ -51,13 +51,16 @@ veafInterpreter = {}
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 --- Identifier. All output in DCS.log will start with this.
-veafInterpreter.Id = "INTERPRETER - "
+veafInterpreter.Id = "INTERPRETER"
 
 --- Version.
 veafInterpreter.Version = "1.3.0"
 
 -- trace level, specific to this module
-veafInterpreter.Trace = false
+--veafInterpreter.LogLevel = "trace"
+--veafInterpreter.LogLevel = "debug"
+
+veafInterpreter.logger = veaf.loggers.new(veafInterpreter.Id, veafInterpreter.LogLevel)
 
 --- Key phrase to look for in the unit name which triggers the interpreter.
 veafInterpreter.Starter = "#veafInterpreter%[\""
@@ -71,31 +74,11 @@ veafInterpreter.Trailer = "\"%]"
 -- Utility methods
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-function veafInterpreter.logError(message)
-    veaf.logError(veafInterpreter.Id .. message)
-end
-
-function veafInterpreter.logInfo(message)
-    veaf.logInfo(veafInterpreter.Id .. message)
-end
-
-function veafInterpreter.logDebug(message)
-    if message and veafInterpreter.Debug then 
-        veaf.logDebug(veafInterpreter.Id .. message)
-    end
-end
-
-function veafInterpreter.logTrace(message)
-    if message and veafInterpreter.Trace then 
-        veaf.logTrace(veafInterpreter.Id .. message)
-    end
-end
-
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Analyse the text
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 function veafInterpreter.interpret(text)
-    veafInterpreter.logTrace(string.format("veafInterpreter.interpret([%s])",text))
+    veaf.loggers.get(veafInterpreter.Id):trace(string.format("veafInterpreter.interpret([%s])",text))
     local result = nil
     local p1, p2 = text:find(veafInterpreter.Starter)
     if p2 then 
@@ -112,13 +95,13 @@ end
 
 function veafInterpreter.execute(command, position, coalition, route, spawnedGroups)
     local function logDebug(message)
-        veafInterpreter.logDebug(message)
+        veaf.loggers.get(veafInterpreter.Id):debug(message)
         return true
     end
 
     if command == nil then return end
     if position == nil then return end
-    veafInterpreter.logTrace(string.format("veafInterpreter.execute([%s],[%s])",command, veaf.vecToString(position)))
+    veaf.loggers.get(veafInterpreter.Id):trace(string.format("veafInterpreter.execute([%s],[%s])",command, veaf.vecToString(position)))
 
     local commandExecuted = false
     spawnedGroups = spawnedGroups or {}
@@ -144,10 +127,10 @@ function veafInterpreter.execute(command, position, coalition, route, spawnedGro
     end
 
     if commandExecuted then
-        veafInterpreter.logTrace(string.format("spawnedGroups = [%s]", veaf.p(spawnedGroups)))
+        veaf.loggers.get(veafInterpreter.Id):trace(string.format("spawnedGroups = [%s]", veaf.p(spawnedGroups)))
         if route and spawnedGroups then
             for _, newGroup in pairs(spawnedGroups) do
-                veafInterpreter.logTrace(string.format("newGroup = [%s]", veaf.p(newGroup)))
+                veaf.loggers.get(veafInterpreter.Id):trace(string.format("newGroup = [%s]", veaf.p(newGroup)))
                 mist.goRoute(newGroup, route)
             end
         end
@@ -160,15 +143,15 @@ end
 function veafInterpreter.executeCommandOnUnit(unitName, command)
     if command then 
         -- found an interpretable command
-        veafInterpreter.logDebug(string.format("found an interpretable command : [%s]", command))
+        veaf.loggers.get(veafInterpreter.Id):debug(string.format("found an interpretable command : [%s]", command))
         local unit = Unit.getByName(unitName)
         if unit then
             local position = unit:getPosition().p
-            veafInterpreter.logTrace(string.format("found the unit at : [%s]", veaf.vecToString(position)))
+            veaf.loggers.get(veafInterpreter.Id):trace(string.format("found the unit at : [%s]", veaf.vecToString(position)))
             local groupName = unit:getGroup():getName()
-            veafInterpreter.logDebug(string.format("in [%s]", groupName))
+            veaf.loggers.get(veafInterpreter.Id):debug(string.format("in [%s]", groupName))
             local route = mist.getGroupRoute(groupName, 'task')
-            veafInterpreter.logTrace(string.format("route = [%s]", veaf.p(route)))
+            veaf.loggers.get(veafInterpreter.Id):trace(string.format("route = [%s]", veaf.p(route)))
             if veafInterpreter.execute(command, position, unit:getCoalition(), nil, route) then 
                 unit:getGroup():destroy()
             end
@@ -177,7 +160,7 @@ function veafInterpreter.executeCommandOnUnit(unitName, command)
 end
 
 function veafInterpreter.processObject(unitName)
-    veafInterpreter.logTrace(string.format("veafInterpreter.processObject([%s])", unitName))
+    veaf.loggers.get(veafInterpreter.Id):trace(string.format("veafInterpreter.processObject([%s])", unitName))
     local command = veafInterpreter.interpret(unitName)
     veafInterpreter.executeCommandOnUnit(unitName, command)
 end
@@ -197,7 +180,7 @@ function veafInterpreter.initialize()
                         if type(group_tbl) == 'table' then
                             for unit_ind, mist_unit in pairs(group_tbl.units) do
                                 local unitName = mist_unit.unitName
-                                veafInterpreter.logTrace(string.format("initialize - checking unit [%s]", unitName))
+                                veaf.loggers.get(veafInterpreter.Id):trace(string.format("initialize - checking unit [%s]", unitName))
                                 veafInterpreter.processObject(unitName)
                             end
                         end
@@ -208,6 +191,6 @@ function veafInterpreter.initialize()
     end
 end
 
-veafInterpreter.logInfo(string.format("Loading version %s", veafInterpreter.Version))
+veaf.loggers.get(veafInterpreter.Id):info(string.format("Loading version %s", veafInterpreter.Version))
 
 

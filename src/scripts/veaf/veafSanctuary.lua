@@ -25,14 +25,17 @@ veafSanctuary = {}
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 --- Identifier. All output in DCS.log will start with this.
-veafSanctuary.Id = "SANCTUARY - "
+veafSanctuary.Id = "SANCTUARY"
 
 --- Version.
 veafSanctuary.Version = "1.6.0"
 
 -- trace level, specific to this module
-veafSanctuary.Debug = false
-veafSanctuary.Trace = false
+--veafSanctuary.LogLevel = "trace"
+--veafSanctuary.LogLevel = "debug"
+
+veafSanctuary.logger = veaf.loggers.new(veafSanctuary.Id, veafSanctuary.LogLevel)
+
 veafSanctuary.RecordAction = true
 veafSanctuary.RecordTrace = false
 veafSanctuary.RecordTraceTrespassing = false
@@ -97,39 +100,19 @@ veafSanctuary.humanUnits = {}
 -- Utility methods
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-function veafSanctuary.logError(message)
-    veaf.logError(veafSanctuary.Id .. message)
-end
-
-function veafSanctuary.logInfo(message)
-    veaf.logInfo(veafSanctuary.Id .. message)
-end
-
-function veafSanctuary.logDebug(message)
-    if message and veafSanctuary.Debug then 
-        veaf.logDebug(veafSanctuary.Id .. message)
-    end
-end
-
-function veafSanctuary.logTrace(message)
-    if message and veafSanctuary.Trace then 
-        veaf.logTrace(veafSanctuary.Id .. message)
-    end
-end
-
 function veafSanctuary._recordAction(message)
     if message and veafSanctuary.RecordAction then
         local _filename = "sanctuary_zones"
         if veaf.config.MISSION_NAME then
-            veafSanctuary.logTrace(string.format("veaf.config.MISSION_NAME=%s", veaf.p(veaf.config.MISSION_NAME)))
+            veaf.loggers.get(veafSanctuary.Id):trace(string.format("veaf.config.MISSION_NAME=%s", veaf.p(veaf.config.MISSION_NAME)))
             _filename = _filename .. "-" .. veaf.config.MISSION_NAME
         end
         if veaf.config.SERVER_NAME then
-            veafSanctuary.logTrace(string.format("veaf.config.SERVER_NAME=%s", veaf.p(veaf.config.SERVER_NAME)))
+            veaf.loggers.get(veafSanctuary.Id):trace(string.format("veaf.config.SERVER_NAME=%s", veaf.p(veaf.config.SERVER_NAME)))
             _filename = _filename .. "-" .. veaf.config.SERVER_NAME
         end
         _filename = _filename  .. ".log"
-        veafSanctuary.logTrace(string.format("_filename=%s", veaf.p(_filename)))
+        veaf.loggers.get(veafSanctuary.Id):trace(string.format("_filename=%s", veaf.p(_filename)))
 
         veaf.writeLineToTextFile(message, _filename)
     end
@@ -138,7 +121,7 @@ end
 function veafSanctuary.recordAction(message)
     if message then 
         local _message = "ACTION  - " .. message
-        veafSanctuary.logInfo(_message)
+        veaf.loggers.get(veafSanctuary.Id):info(_message)
         veafSanctuary._recordAction(veafSanctuary._recordAction(" INFO    SCRIPTING: VEAF - I - " .. _message))
     end
 end
@@ -146,7 +129,7 @@ end
 function veafSanctuary.recordTrace(message)
     if message and veafSanctuary.RecordTrace then
         local _message = "SANCTUARY - " .. message
-        veafSanctuary.logTrace(_message)
+        veaf.loggers.get(veafSanctuary.Id):trace(_message)
         veafSanctuary._recordAction(" INFO    SCRIPTING: VEAF - T - " .. _message)
     end
 end
@@ -154,7 +137,7 @@ end
 function veafSanctuary.recordTraceShooting(message)
     if message and veafSanctuary.RecordTraceShooting then
         local _message = "SHOOTING - " .. message
-        veafSanctuary.logTrace(_message)
+        veaf.loggers.get(veafSanctuary.Id):trace(_message)
         veafSanctuary._recordAction(" INFO    SCRIPTING: VEAF - T - " .. _message)
     end
 end
@@ -162,7 +145,7 @@ end
 function veafSanctuary.recordTraceTrespassing(message)
     if message and veafSanctuary.RecordTraceTrespassing then
         local _message = "TRESPASS - " .. message
-        veafSanctuary.logTrace(_message)
+        veaf.loggers.get(veafSanctuary.Id):trace(_message)
         veafSanctuary._recordAction(" INFO    SCRIPTING: VEAF - T - " .. _message)
     end
 end
@@ -251,7 +234,7 @@ function VeafSanctuaryZone:getCoalition()
 end
 
 function VeafSanctuaryZone:setProtectFromMissiles()
-    veafSanctuary.logTrace(string.format("VeafSanctuaryZone[%s]:setProtectFromMissiles()", veaf.p(self.name)))
+    veaf.loggers.get(veafSanctuary.Id):trace(string.format("VeafSanctuaryZone[%s]:setProtectFromMissiles()", veaf.p(self.name)))
     self.protectFromMissiles = true
     return self
 end
@@ -289,14 +272,14 @@ function VeafSanctuaryZone:setPolygon(value)
 end
 
 function VeafSanctuaryZone:setPolygonFromUnitsInSequence(unitNamePrefix, markPositions)
-    veafSanctuary.logTrace(string.format("VeafSanctuaryZone[%s]:setPolygonFromUnitsInSequence(%s, %s)", veaf.p(self.name), veaf.p(unitNamePrefix), veaf.p(markPositions)))
+    veaf.loggers.get(veafSanctuary.Id):trace(string.format("VeafSanctuaryZone[%s]:setPolygonFromUnitsInSequence(%s, %s)", veaf.p(self.name), veaf.p(unitNamePrefix), veaf.p(markPositions)))
 
     local unitNames = {}
     local sequence = 0
     while true do
         sequence = sequence + 1
         local unitName = string.format("%s #%03d", unitNamePrefix, sequence)
-        --veafSanctuary.logTrace(string.format("unitName=%s", veaf.p(unitName)))
+        --veaf.loggers.get(veafSanctuary.Id):trace(string.format("unitName=%s", veaf.p(unitName)))
         local unit = Unit.getByName(unitName)
         if not unit then
             local group = Group.getByName(unitName)
@@ -304,7 +287,7 @@ function VeafSanctuaryZone:setPolygonFromUnitsInSequence(unitNamePrefix, markPos
                 unit = group:getUnit(1)
             end
         end
-        --veafSanctuary.logTrace(string.format("unit=%s", veaf.p(veaf.ifnn(unit, "getID"))))
+        --veaf.loggers.get(veafSanctuary.Id):trace(string.format("unit=%s", veaf.p(veaf.ifnn(unit, "getID"))))
         if not unit then
             return self:setPolygonFromUnits(unitNames, markPositions)
         else
@@ -319,11 +302,11 @@ function VeafSanctuaryZone:setPolygonFromUnits(unitNames, markPositions)
     local LINE_COLOR = {0/255, 255/255, 100/255, 255/255}
     local LINE_TYPE = VeafDrawingOnMap.LINE_TYPE.twodashes
 
-    veafSanctuary.logDebug(string.format("VeafSanctuaryZone[%s]:setPolygonFromUnits()", veaf.p(self.name)))
-    veafSanctuary.logTrace(string.format("markPositions = %s", veaf.p(markPositions)))
+    veaf.loggers.get(veafSanctuary.Id):debug(string.format("VeafSanctuaryZone[%s]:setPolygonFromUnits()", veaf.p(self.name)))
+    veaf.loggers.get(veafSanctuary.Id):trace(string.format("markPositions = %s", veaf.p(markPositions)))
     local polygon = veaf.getPolygonFromUnits(unitNames)
     if polygon and #polygon > 0 then
-        veafSanctuary.logTrace(string.format("polygon = %s", veaf.p(polygon)))
+        veaf.loggers.get(veafSanctuary.Id):trace(string.format("polygon = %s", veaf.p(polygon)))
         self:setPolygon(polygon)
         if markPositions then
             local drawing = VeafDrawingOnMap.new()
@@ -429,25 +412,25 @@ end
 ---
 
 function VeafSanctuaryZone:deployDefenses(position, unit, timeInZone)
-    veafSanctuary.logTrace(string.format("VeafSanctuaryZone[%s]:deployDefenses()", veaf.p(self.name)))
-    veafSanctuary.logTrace(string.format("position=%s", veaf.p(position)))
+    veaf.loggers.get(veafSanctuary.Id):trace(string.format("VeafSanctuaryZone[%s]:deployDefenses()", veaf.p(self.name)))
+    veaf.loggers.get(veafSanctuary.Id):trace(string.format("position=%s", veaf.p(position)))
     -- compute the position of the unit in 20 seconds
     local positionIn20s = mist.vec.add(position, mist.vec.scalarMult(unit:getVelocity(), 20))
-    veafSanctuary.logTrace(string.format("positionIn20s=%s", veaf.p(positionIn20s)))
+    veaf.loggers.get(veafSanctuary.Id):trace(string.format("positionIn20s=%s", veaf.p(positionIn20s)))
     -- compute the position of the unit in 40 seconds, 
     local positionIn40s = mist.vec.add(position, mist.vec.scalarMult(unit:getVelocity(), 40))
-    veafSanctuary.logTrace(string.format("positionIn40s=%s", veaf.p(positionIn40s)))
+    veaf.loggers.get(veafSanctuary.Id):trace(string.format("positionIn40s=%s", veaf.p(positionIn40s)))
     -- compute a heading towards the unit
     local heading = mist.utils.round(mist.utils.toDegree(mist.getHeading(unit)), 0)
-    veafSanctuary.logTrace(string.format("heading=%s", veaf.p(heading)))
+    veaf.loggers.get(veafSanctuary.Id):trace(string.format("heading=%s", veaf.p(heading)))
     local heading1 = heading*math.random(70,130)/100
-    veafSanctuary.logTrace(string.format("heading1=%s", veaf.p(heading1)))
+    veaf.loggers.get(veafSanctuary.Id):trace(string.format("heading1=%s", veaf.p(heading1)))
     local heading1S = string.format(", hdg %s", tostring(veaf.invertHeading(heading1)))
-    veafSanctuary.logTrace(string.format("heading1S=%s", veaf.p(heading1S)))
+    veaf.loggers.get(veafSanctuary.Id):trace(string.format("heading1S=%s", veaf.p(heading1S)))
     local heading2 = heading*math.random(70,130)/100
-    veafSanctuary.logTrace(string.format("heading2=%s", veaf.p(heading2)))
+    veaf.loggers.get(veafSanctuary.Id):trace(string.format("heading2=%s", veaf.p(heading2)))
     local heading2S = string.format(", hdg %s", tostring(veaf.invertHeading(heading2)))
-    veafSanctuary.logTrace(string.format("heading2S=%s", veaf.p(heading2S)))
+    veaf.loggers.get(veafSanctuary.Id):trace(string.format("heading2S=%s", veaf.p(heading2S)))
 
     if veafShortcuts then
         local ship1 = "-burke"
@@ -464,7 +447,7 @@ function VeafSanctuaryZone:deployDefenses(position, unit, timeInZone)
 
         local spawnedGroupsNames = {}
         local surfaceType = land.getSurfaceType(mist.utils.makeVec2(position))
-        veafSanctuary.logTrace(string.format("surfaceType=%s", veaf.p(surfaceType)))
+        veaf.loggers.get(veafSanctuary.Id):trace(string.format("surfaceType=%s", veaf.p(surfaceType)))
         if surfaceType == 2 or surfaceType == 3 then 
             -- this is water
             veafShortcuts.ExecuteAlias(ship1, "radius 2000, multiplier 2, skynet false"..heading1S, positionIn20s, self:getCoalition(), nil, true, spawnedGroupsNames)
@@ -475,7 +458,7 @@ function VeafSanctuaryZone:deployDefenses(position, unit, timeInZone)
             veafShortcuts.ExecuteAlias(sam1, "radius 2000, multiplier 2, skynet false"..heading2S, positionIn20s, self:getCoalition(), nil, true, spawnedGroupsNames)
         end
         self:addSpawnedGroups(spawnedGroupsNames)
-        veafSanctuary.logTrace(string.format("spawnedGroupsNames = %s", veaf.p(spawnedGroupsNames)))
+        veaf.loggers.get(veafSanctuary.Id):trace(string.format("spawnedGroupsNames = %s", veaf.p(spawnedGroupsNames)))
         if timeInZone > veafSanctuary.HARDER_DEFENSES_AFTER then 
             if surfaceType == 2 or surfaceType == 3 then 
                 -- this is water
@@ -487,13 +470,13 @@ function VeafSanctuaryZone:deployDefenses(position, unit, timeInZone)
                 veafShortcuts.ExecuteAlias(sam2, "radius 4000, skynet false"..heading2S, positionIn40s, self:getCoalition(), nil, true, spawnedGroupsNames)
             end
             self:addSpawnedGroups(spawnedGroupsNames)
-            veafSanctuary.logTrace(string.format("spawnedGroupsNames = %s", veaf.p(spawnedGroupsNames)))
+            veaf.loggers.get(veafSanctuary.Id):trace(string.format("spawnedGroupsNames = %s", veaf.p(spawnedGroupsNames)))
         end
     end
 end
 
 function VeafSanctuaryZone:cleanupDefenses()
-    veafSanctuary.logTrace(string.format("VeafSanctuaryZone[%s]:cleanupDefenses()", veaf.p(self.name)))
+    veaf.loggers.get(veafSanctuary.Id):trace(string.format("VeafSanctuaryZone[%s]:cleanupDefenses()", veaf.p(self.name)))
     local oldestTimeToKeep = timer.getTime() - veafSanctuary.DELETE_DEFENSES_AFTER
     for name, time in pairs(self:getSpawnedGroups()) do
         if time < oldestTimeToKeep then
@@ -509,19 +492,19 @@ end
 function VeafSanctuaryZone:isPositionInZone(position)
     local inZone = false
     if self:getPolygon() then
-        veafSanctuary.logTrace("polygon mode")
+        veaf.loggers.get(veafSanctuary.Id):trace("polygon mode")
         inZone = mist.pointInPolygon(position, self:getPolygon())
     elseif self:getPosition() then
-        veafSanctuary.logTrace("circle and radius mode")
+        veaf.loggers.get(veafSanctuary.Id):trace("circle and radius mode")
         local distanceFromCenter = ((position.x - self:getPosition().x)^2 + (position.z - self:getPosition().z)^2)^0.5
-        veafSanctuary.logTrace(string.format("distanceFromCenter=%d, radius=%d", distanceFromCenter, self:getRadius()))
+        veaf.loggers.get(veafSanctuary.Id):trace(string.format("distanceFromCenter=%d, radius=%d", distanceFromCenter, self:getRadius()))
         inZone = distanceFromCenter < self:getRadius()
     end
     return inZone
 end
 
 function VeafSanctuaryZone:forgive(playerName)
-    veafSanctuary.logTrace(string.format("VeafSanctuaryZone[%s]:forgive(%s)", veaf.p(self.name), veaf.p(playerName)))
+    veaf.loggers.get(veafSanctuary.Id):trace(string.format("VeafSanctuaryZone[%s]:forgive(%s)", veaf.p(self.name), veaf.p(playerName)))
     self.offensesByOffender[playerName] = 0
 end
 
@@ -675,14 +658,14 @@ end
 
 -- add a zone
 function veafSanctuary.addZone(zone)
-    veafSanctuary.logTrace(string.format("addZone(%s)", veaf.p(zone:getName())))
+    veaf.loggers.get(veafSanctuary.Id):trace(string.format("addZone(%s)", veaf.p(zone:getName())))
     table.insert(veafSanctuary.zonesList, zone)
     return zone
 end
 
 -- add a zone from a DCS trigger zone
 function veafSanctuary.addZoneFromTriggerZone(triggerZoneName)
-    veafSanctuary.logTrace(string.format("addZoneFromTriggerZone(%s)", veaf.p(triggerZoneName)))
+    veaf.loggers.get(veafSanctuary.Id):trace(string.format("addZoneFromTriggerZone(%s)", veaf.p(triggerZoneName)))
     local triggerZone = trigger.misc.getZone(triggerZoneName)
     if triggerZoneName then
         local zone = VeafSanctuaryZone.new():setName(triggerZoneName):setRadius(triggerZone.radius):setPosition(triggerZone.point)
@@ -712,7 +695,7 @@ function veafSanctuary.eventHandler:onEvent(event)
         veafSanctuary.recordTraceShooting("S_EVENT_SHOT !")
         -- process all zones
         for _, zone in pairs(veafSanctuary.zonesList) do
-            veafSanctuary.logTrace(string.format("zone:getName()=%s", veaf.p(zone:getName())))
+            veaf.loggers.get(veafSanctuary.Id):trace(string.format("zone:getName()=%s", veaf.p(zone:getName())))
             mist.scheduleFunction(VeafSanctuaryZone.handleWeapon, {zone, event.weapon}, timer.getTime() + veafSanctuary.DESTROY_WEAPONS_AFTER)
         end
     else -- process human players events
@@ -726,7 +709,7 @@ function veafSanctuary.eventHandler:onEvent(event)
         end
         
         local _unitname = event.initiator:getName()
-        --veafSanctuary.logTrace(string.format("event initiator unit  = %s", veaf.p(_unitname)))
+        --veaf.loggers.get(veafSanctuary.Id):trace(string.format("event initiator unit  = %s", veaf.p(_unitname)))
         if event.id == world.event.S_EVENT_PLAYER_ENTER_UNIT 
         or event.id == world.event.S_EVENT_BIRTH and _unitname and veafSanctuary.humanUnits[_unitname]
         then
@@ -751,17 +734,17 @@ end
 
 -- main loop
 function veafSanctuary.loop()
-    veafSanctuary.logDebug("veafSanctuary.loop()")
+    veaf.loggers.get(veafSanctuary.Id):debug("veafSanctuary.loop()")
 
     -- process all zones
     for _, zone in pairs(veafSanctuary.zonesList) do
-        veafSanctuary.logTrace(string.format("zone:getName()=%s", veaf.p(zone:getName())))
+        veaf.loggers.get(veafSanctuary.Id):trace(string.format("zone:getName()=%s", veaf.p(zone:getName())))
 
         zone:cleanupDefenses()
 
         -- browse all the human units and check if they're in a zone
         for name, data in pairs(veafSanctuary.humanUnitsToFollow) do
-            veafSanctuary.logTrace(string.format("name=%s", veaf.p(name)))
+            veaf.loggers.get(veafSanctuary.Id):trace(string.format("name=%s", veaf.p(name)))
             local unit = Unit.getByName(name)
             if unit then
                 zone:handleUnit(unit, data)
@@ -785,7 +768,7 @@ function veafSanctuary.initialize()
     -- prepare humans units
     veafSanctuary.humanUnits = {}
     for name, _ in pairs(mist.DBs.humansByName) do
-        --veafSanctuary.logTrace(string.format("mist.DBs.humansByName[%s]=??", veaf.p(name)))
+        --veaf.loggers.get(veafSanctuary.Id):trace(string.format("mist.DBs.humansByName[%s]=??", veaf.p(name)))
         veafSanctuary.humanUnits[name] = true
     end
 
@@ -796,7 +779,7 @@ function veafSanctuary.initialize()
     mist.scheduleFunction(veafSanctuary.loop, {}, timer.getTime() + veafSanctuary.DelayForStartup)
 
     veafSanctuary.initialized = true
-    veafSanctuary.logInfo(string.format("Sanctuary system has been initialized"))
+    veaf.loggers.get(veafSanctuary.Id):info(string.format("Sanctuary system has been initialized"))
 end
 
-veafSanctuary.logInfo(string.format("Loading version %s", veafSanctuary.Version))
+veaf.loggers.get(veafSanctuary.Id):info(string.format("Loading version %s", veafSanctuary.Version))

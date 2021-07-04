@@ -20,14 +20,16 @@ veafMissileGuardian = {}
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 --- Identifier. All output in DCS.log will start with this.
-veafMissileGuardian.Id = "MISSILE GUARDIAN - "
+veafMissileGuardian.Id = "MISSILEGUARDIAN"
 
 --- Version.
 veafMissileGuardian.Version = "0.0.1"
 
 -- trace level, specific to this module
-veafMissileGuardian.Debug = false
-veafMissileGuardian.Trace = false
+--veafMissileGuardian.LogLevel = "trace"
+--veafMissileGuardian.LogLevel = "debug"
+
+veafMissileGuardian.logger = veaf.loggers.new(veafMissileGuardian.Id, veafMissileGuardian.LogLevel)
 
 --- Number of seconds between each check of the WIDE ZONE watchdog function
 veafMissileGuardian.SecondsBetweenWideZoneWatchdogChecks = 5
@@ -49,26 +51,6 @@ veafMissileGuardian.rootPath = nil
 -- Utility methods
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-function veafMissileGuardian.logError(message)
-    veaf.logError(veafMissileGuardian.Id .. message)
-end
-
-function veafMissileGuardian.logInfo(message)
-    veaf.logInfo(veafMissileGuardian.Id .. message)
-end
-
-function veafMissileGuardian.logDebug(message)
-    if message and veafMissileGuardian.Debug then 
-        veaf.logDebug(veafMissileGuardian.Id .. message)
-    end
-end
-
-function veafMissileGuardian.logTrace(message)
-    if message and veafMissileGuardian.Trace then 
-        veaf.logTrace(veafMissileGuardian.Id .. message)
-    end
-end
-
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- VeafMG_Weapon object ; represents a weapon in flight, detected by a Guardian and managed by an Protector
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -86,7 +68,7 @@ VeafMG_Weapon =
 VeafMG_Weapon.__index = VeafMG_Weapon
 
 function VeafMG_Weapon:new()
-    veafMissileGuardian.logTrace(string.format("VeafMG_Weapon:new()"))
+    veaf.loggers.get(veafMissileGuardian.Id):trace(string.format("VeafMG_Weapon:new()"))
     local self = setmetatable({}, VeafMG_Weapon)
     self.name = nil
     self.dcsWeapon = nil
@@ -112,7 +94,7 @@ end
 ---
 
 function VeafMG_Weapon:setName(value)
-    veafMissileGuardian.logTrace(string.format("VeafMG_Weapon.setName([%s])",value or ""))
+    veaf.loggers.get(veafMissileGuardian.Id):trace(string.format("VeafMG_Weapon.setName([%s])",value or ""))
     self.name = value
     return self
 end
@@ -122,7 +104,7 @@ function VeafMG_Weapon:getName()
 end
 
 function VeafMG_Weapon:setDcsWeapon(value)
-    veafMissileGuardian.logTrace(string.format("VeafMG_Weapon[%s].setDcsWeapon()",self:getName() or ""))
+    veaf.loggers.get(veafMissileGuardian.Id):trace(string.format("VeafMG_Weapon[%s].setDcsWeapon()",self:getName() or ""))
     self.dcsWeapon = value
     if self.dcsWeapon then
         self.shooter = self.dcsWeapon:getLauncher()
@@ -198,7 +180,7 @@ VeafMG_Guardian.WARNING_MESSAGE = "Warning, %s : you've been attacked by %s and 
 VeafMG_Guardian.WARNING_MESSAGE_TIME = 10
 
 function VeafMG_Guardian:new()
-    veafMissileGuardian.logTrace(string.format("VeafMG_Guardian:new()"))
+    veaf.loggers.get(veafMissileGuardian.Id):trace(string.format("VeafMG_Guardian:new()"))
     local self = setmetatable({}, VeafMG_Guardian)
     self.name = nil
     self.friendlyName = nil
@@ -233,7 +215,7 @@ end
 ---
 
 function VeafMG_Guardian:setName(value)
-    veafMissileGuardian.logTrace(string.format("VeafMG_Guardian[]:setName([%s])",value or ""))
+    veaf.loggers.get(veafMissileGuardian.Id):trace(string.format("VeafMG_Guardian[]:setName([%s])",value or ""))
     self.name = value
     return self
 end
@@ -243,7 +225,7 @@ function VeafMG_Guardian:getName()
 end
 
 function VeafMG_Guardian:setFriendlyName(value)
-    veafMissileGuardian.logTrace(string.format("VeafMG_Guardian[%s]:setFriendlyName()",self:getName() or ""))
+    veaf.loggers.get(veafMissileGuardian.Id):trace(string.format("VeafMG_Guardian[%s]:setFriendlyName()",self:getName() or ""))
     self.friendlyName = value
     return self
 end
@@ -253,7 +235,7 @@ function VeafMG_Guardian:getFriendlyName()
 end
 
 function VeafMG_Guardian:addProtectedUnit(value)
-    veafMissileGuardian.logTrace(string.format("VeafMG_Guardian[%s]:addProtectedUnit()",self:getName() or ""))
+    veaf.loggers.get(veafMissileGuardian.Id):trace(string.format("VeafMG_Guardian[%s]:addProtectedUnit()",self:getName() or ""))
     if type(value) ~= "string" then
         value = value:getName()
     end
@@ -262,7 +244,7 @@ function VeafMG_Guardian:addProtectedUnit(value)
 end
 
 function VeafMG_Guardian:setProtectedZone(value)
-    veafMissileGuardian.logTrace(string.format("VeafMG_Guardian[%s]:setProtectedZone()",self:getName() or ""))
+    veaf.loggers.get(veafMissileGuardian.Id):trace(string.format("VeafMG_Guardian[%s]:setProtectedZone()",self:getName() or ""))
     self.protectedZone = value
     return self
 end
@@ -275,18 +257,18 @@ end
 function VeafMG_Guardian:onEvent(event)
     -- only react to S_EVENT_SHOT events
     if event and event.id == world.event.S_EVENT_SHOT then
-        veafMissileGuardian.logTrace(string.format("VeafMG_Protector:onEvent(S_EVENT_SHOT) : %s", veaf.p(event)))
+        veaf.loggers.get(veafMissileGuardian.Id):trace(string.format("VeafMG_Protector:onEvent(S_EVENT_SHOT) : %s", veaf.p(event)))
         
         if event.weapon then
             -- check if the target is one of the protected units
             local _target = event.weapon:getTarget()
             if _target then
                 local _targetName = _target:getName()
-                veafMissileGuardian.logTrace(string.format("_targetName = %s", veaf.p(_targetName)))
+                veaf.loggers.get(veafMissileGuardian.Id):trace(string.format("_targetName = %s", veaf.p(_targetName)))
                 if self.protectedUnits[_targetName] then 
                     -- check if the target is in the protected zone
                     local _inZone = mist.pointInPolygon(_target:getPoint(), self.protectedZone)
-                    veafMissileGuardian.logTrace(string.format("_inZone = %s", veaf.p(_inZone)))
+                    veaf.loggers.get(veafMissileGuardian.Id):trace(string.format("_inZone = %s", veaf.p(_inZone)))
                     if _inZone then 
                         -- encapsulate the event weapon
                         local _weapon = VeafMG_Weapon.new():setDcsWeapon(event.weapon)
@@ -295,7 +277,7 @@ function VeafMG_Guardian:onEvent(event)
                         local _groupId = _target:getGroup():getID()
                         local _playername = _target:getPlayerName()
                         if _playername then
-                            veafMissileGuardian.logDebug(string.format("Issuing a warning to unit %s", veaf.p(_playername)))
+                            veaf.loggers.get(veafMissileGuardian.Id):debug(string.format("Issuing a warning to unit %s", veaf.p(_playername)))
                             trigger.action.outTextForGroup(_groupId, string.format(VeafMG_Guardian.WARNING_MESSAGE, _playername, _weapon:getShooterName()), VeafMG_Guardian.WARNING_MESSAGE_TIME)
                         end
 
@@ -334,7 +316,7 @@ VeafMG_Protector =
 VeafMG_Protector.__index = VeafMG_Protector
 
 function VeafMG_Protector:new()
-    veafMissileGuardian.logTrace(string.format("VeafMG_Protector:new()"))
+    veaf.loggers.get(veafMissileGuardian.Id):trace(string.format("VeafMG_Protector:new()"))
     local self = setmetatable({}, VeafMG_Protector)
     self.name = nil
     self.secondsBetweenWatchdogChecks = nil
@@ -353,7 +335,7 @@ function VeafMG_Protector:copy()
     -- deep copy the collections
     -- copy.parameters = {}
     -- for name, value in pairs(self.parameters) do
-    --     veafMissileGuardian.logTrace(string.format("copying parameter %s : ",tostring(name)))
+    --     veaf.loggers.get(veafMissileGuardian.Id):trace(string.format("copying parameter %s : ",tostring(name)))
     --     copy.parameters[name]=value
     -- end
 
@@ -365,7 +347,7 @@ end
 ---
 
 function VeafMG_Protector:setName(value)
-    veafMissileGuardian.logTrace(string.format("VeafMG_Protector[]:setName([%s])",value or ""))
+    veaf.loggers.get(veafMissileGuardian.Id):trace(string.format("VeafMG_Protector[]:setName([%s])",value or ""))
     self.name = value
     return self
 end
@@ -375,7 +357,7 @@ function VeafMG_Protector:getName()
 end
 
 function VeafMG_Protector:setSecondsBetweenWatchdogChecks(value)
-    veafMissileGuardian.logTrace(string.format("VeafMG_Protector[%s]:setSecondsBetweenWatchdogChecks()",self:getName() or ""))
+    veaf.loggers.get(veafMissileGuardian.Id):trace(string.format("VeafMG_Protector[%s]:setSecondsBetweenWatchdogChecks()",self:getName() or ""))
     self.secondsBetweenWatchdogChecks = value
     return self
 end
@@ -385,7 +367,7 @@ function VeafMG_Protector:getSecondsBetweenWatchdogChecks()
 end
 
 function VeafMG_Protector:setWeapon(value)
-    veafMissileGuardian.logTrace(string.format("VeafMG_Protector[%s]:setWeapon()",self:getName() or ""))
+    veaf.loggers.get(veafMissileGuardian.Id):trace(string.format("VeafMG_Protector[%s]:setWeapon()",self:getName() or ""))
     self.weapon = value
     return self
 end
@@ -421,13 +403,13 @@ end
 
 -- add a new guardian
 function veafMissileGuardian.AddGuardian(guardian)
-    veafMissileGuardian.logDebug(string.format("veafMissileGuardian.AddGuardian([%s])",guardian:getName() or ""))
+    veaf.loggers.get(veafMissileGuardian.Id):debug(string.format("veafMissileGuardian.AddGuardian([%s])",guardian:getName() or ""))
     return guardian
 end
 
 -- activate a guardian
 function veafMissileGuardian.ActivateGuardian(name, silent)
-    veafMissileGuardian.logDebug(string.format("veafMissileGuardian.ActivateGuardian([%s])",name or ""))
+    veaf.loggers.get(veafMissileGuardian.Id):debug(string.format("veafMissileGuardian.ActivateGuardian([%s])",name or ""))
     local guardian = veafMissileGuardian.GetGuardian(name)
     local result = guardian:activate(silent)
     if not silent and not guardian:isSilent() then
@@ -442,7 +424,7 @@ end
 
 -- desactivate a guardian
 function veafMissileGuardian.DesactivateGuardian(name, silent)
-    veafMissileGuardian.logDebug(string.format("veafMissileGuardian.DesactivateGuardian([%s])",name or ""))
+    veaf.loggers.get(veafMissileGuardian.Id):debug(string.format("veafMissileGuardian.DesactivateGuardian([%s])",name or ""))
     local guardian = veafMissileGuardian.GetGuardian(name)
     local result = guardian:desactivate(silent)
     if not silent and not guardian:isSilent() then
@@ -469,25 +451,25 @@ function veafMissileGuardian._buildMissionRadioMenu(menu, title, element)
         mission:updateRadioMenu(true)
     else
         -- group by skill and scale
-        veafMissileGuardian.logTrace("group by skill and scale")
+        veaf.loggers.get(veafMissileGuardian.Id):trace("group by skill and scale")
         local skills = {}
         for _, mission in pairs(missions) do
             local regex = ("^([^/]+)/([^/]+)/(%d+)$")
             local name, skill, scale = mission:getName():match(regex)
-            veafMissileGuardian.logTrace(string.format("missionName=[%s], name=%s, skill=%s, scale=%s", tostring(mission:getName()), tostring(name), tostring(skill), tostring(scale)))
+            veaf.loggers.get(veafMissileGuardian.Id):trace(string.format("missionName=[%s], name=%s, skill=%s, scale=%s", tostring(mission:getName()), tostring(name), tostring(skill), tostring(scale)))
             if not skills[skill] then 
                 skills[skill] = {} 
             end
             skills[skill][scale] = mission 
         end
         
-        veafMissileGuardian.logTrace(string.format("skills=%s", veaf.p(skills)))
+        veaf.loggers.get(veafMissileGuardian.Id):trace(string.format("skills=%s", veaf.p(skills)))
         
         -- create the radio menus
         local title = title
         if element.activeGroups then title = "* "..title end
         local missionPath = veafRadio.addSubMenu(title, menu)
-        veafMissileGuardian.logTrace(string.format("  %s", title))
+        veaf.loggers.get(veafMissileGuardian.Id):trace(string.format("  %s", title))
         local skillsNames = {}
         for skill, _ in pairs(skills) do
             table.insert(skillsNames, skill)
@@ -498,7 +480,7 @@ function veafMissileGuardian._buildMissionRadioMenu(menu, title, element)
             local skillTitle = skill
             if element.activeGroups and element.activeGroups[skill] then skillTitle = "* "..skillTitle end
             local skillPath = veafRadio.addSubMenu(skillTitle, missionPath)
-            veafMissileGuardian.logTrace(string.format("    %s", skill))
+            veaf.loggers.get(veafMissileGuardian.Id):trace(string.format("    %s", skill))
             local scalesNames = {}
             for scale, _ in pairs(scales) do
                 table.insert(scalesNames, scale)
@@ -509,7 +491,7 @@ function veafMissileGuardian._buildMissionRadioMenu(menu, title, element)
                 local scaleTitle = "scale "..scale
                 if element.activeGroups and element.activeGroups[skill] and element.activeGroups[skill][scale] then scaleTitle = "* "..scaleTitle end
                 local scalePath = veafRadio.addSubMenu(scaleTitle, skillPath)
-                veafMissileGuardian.logTrace(string.format("      %s", scale))
+                veaf.loggers.get(veafMissileGuardian.Id):trace(string.format("      %s", scale))
                 mission.radioRootPath = scalePath
                 mission:updateRadioMenu(true)
             end
@@ -519,7 +501,7 @@ end
 
 --- Build the initial radio menu
 function veafMissileGuardian.buildRadioMenu()
-    veafMissileGuardian.logDebug("buildRadioMenu()")
+    veaf.loggers.get(veafMissileGuardian.Id):debug("buildRadioMenu()")
     if veafMissileGuardian.rootPath then 
         veafRadio.clearSubmenu(veafMissileGuardian.rootPath)
     else
@@ -534,11 +516,11 @@ function veafMissileGuardian.buildRadioMenu()
     local missions = {}
     local missionGroups, activeGroups = _groupMissions()
     for groupName, missionsInGroup in pairs(missionGroups) do
-        veafMissileGuardian.logTrace(string.format("processing groupName=%s",groupName))
+        veaf.loggers.get(veafMissileGuardian.Id):trace(string.format("processing groupName=%s",groupName))
         missions[groupName] = {title=missionsInGroup[1]:getRadioMenuName(), sort=missionsInGroup[1]:getFriendlyName(), missions=missionsInGroup, activeGroups=activeGroups[groupName]}
     end
-    veafMissileGuardian.logTrace(string.format("missions=%s",veaf.p(missions)))
-    --veafMissileGuardian.logTrace(string.format("#missions=%d",#missions))
+    veaf.loggers.get(veafMissileGuardian.Id):trace(string.format("missions=%s",veaf.p(missions)))
+    --veaf.loggers.get(veafMissileGuardian.Id):trace(string.format("#missions=%d",#missions))
     veafRadio.addPaginatedRadioElements(veafMissileGuardian.rootPath, veafMissileGuardian._buildMissionRadioMenu, missions)
     veafRadio.refreshRadioMenu()
 end
@@ -589,13 +571,13 @@ end
 
 -- execute command from the remote interface
 function veafMissileGuardian.executeCommandFromRemote(parameters)
-    veafMissileGuardian.logDebug(string.format("veafMissileGuardian.executeCommandFromRemote()"))
-    veafMissileGuardian.logTrace(string.format("parameters= %s", veaf.p(parameters)))
+    veaf.loggers.get(veafMissileGuardian.Id):debug(string.format("veafMissileGuardian.executeCommandFromRemote()"))
+    veaf.loggers.get(veafMissileGuardian.Id):trace(string.format("parameters= %s", veaf.p(parameters)))
     local _pilot, _pilotName, _unitName, _command = unpack(parameters)
-    veafMissileGuardian.logTrace(string.format("_pilot= %s", veaf.p(_pilot)))
-    veafMissileGuardian.logTrace(string.format("_pilotName= %s", veaf.p(_pilotName)))
-    veafMissileGuardian.logTrace(string.format("_unitName= %s", veaf.p(_unitName)))
-    veafMissileGuardian.logTrace(string.format("_command= %s", veaf.p(_command)))
+    veaf.loggers.get(veafMissileGuardian.Id):trace(string.format("_pilot= %s", veaf.p(_pilot)))
+    veaf.loggers.get(veafMissileGuardian.Id):trace(string.format("_pilotName= %s", veaf.p(_pilotName)))
+    veaf.loggers.get(veafMissileGuardian.Id):trace(string.format("_unitName= %s", veaf.p(_unitName)))
+    veaf.loggers.get(veafMissileGuardian.Id):trace(string.format("_command= %s", veaf.p(_command)))
     if not _pilot or not _command then 
         return false
     end
@@ -603,21 +585,21 @@ function veafMissileGuardian.executeCommandFromRemote(parameters)
     if _command then
         -- parse the command
         local _action, _missionName, _parameters = _command:match(veafMissileGuardian.RemoteCommandParser)
-        veafMissileGuardian.logTrace(string.format("_action=%s",veaf.p(_action)))
-        veafMissileGuardian.logTrace(string.format("_guardianName=%s",veaf.p(_missionName)))
-        veafMissileGuardian.logTrace(string.format("_parameters=%s",veaf.p(_parameters)))
+        veaf.loggers.get(veafMissileGuardian.Id):trace(string.format("_action=%s",veaf.p(_action)))
+        veaf.loggers.get(veafMissileGuardian.Id):trace(string.format("_guardianName=%s",veaf.p(_missionName)))
+        veaf.loggers.get(veafMissileGuardian.Id):trace(string.format("_parameters=%s",veaf.p(_parameters)))
         if _action and _action:lower() == "list" then 
-            veafMissileGuardian.logInfo(string.format("[%s] is listing air missions)",veaf.p(_pilot.name)))
+            veaf.loggers.get(veafMissileGuardian.Id):info(string.format("[%s] is listing air missions)",veaf.p(_pilot.name)))
             veafMissileGuardian.listAvailableMissions()
             return true
         elseif _action and _action:lower() == "start" and _missionName then 
             local _silent = _parameters and _parameters:lower() == "silent"
-            veafMissileGuardian.logInfo(string.format("[%s] is starting air mission [%s] %s)",veaf.p(_pilot.name), veaf.p(_missionName), veaf.p(_parameters)))
+            veaf.loggers.get(veafMissileGuardian.Id):info(string.format("[%s] is starting air mission [%s] %s)",veaf.p(_pilot.name), veaf.p(_missionName), veaf.p(_parameters)))
             veafMissileGuardian.ActivateMission(_missionName, _silent)
             return true
         elseif _action and _action:lower() == "stop" then 
             local _silent = _parameters and _parameters:lower() == "silent"
-            veafMissileGuardian.logInfo(string.format("[%s] is stopping air mission [%s] %s)",veaf.p(_pilot.name), veaf.p(_missionName), veaf.p(_parameters)))
+            veaf.loggers.get(veafMissileGuardian.Id):info(string.format("[%s] is stopping air mission [%s] %s)",veaf.p(_pilot.name), veaf.p(_missionName), veaf.p(_parameters)))
             veafMissileGuardian.DesactivateMission(_missionName, _silent)
             return true
         end
@@ -629,10 +611,10 @@ end
 -- initialisation
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 function veafMissileGuardian.initialize()
-    veafMissileGuardian.logInfo("Initializing module")
+    veaf.loggers.get(veafMissileGuardian.Id):info("Initializing module")
     veafMissileGuardian.buildRadioMenu()
     veafMissileGuardian.dumpMissionsList(veaf.config.MISSION_EXPORT_PATH)
 end
 
-veafMissileGuardian.logInfo(string.format("Loading version %s", veafMissileGuardian.Version))
+veaf.loggers.get(veafMissileGuardian.Id):info(string.format("Loading version %s", veafMissileGuardian.Version))
 

@@ -7208,28 +7208,36 @@ do -- mist.Logger scope
 	-- @tparam[opt] number|string level the log level defines which messages
 	-- will be logged and which will be omitted. Log level 3 beeing the most verbose
 	-- and 0 disabling all output. This can also[ be a string. Allowed strings are:
-	-- "none" (0), "error" (1), "warning" (2) and "info" (3).
+	-- "none" (0), "error" (1), "warning" (2), "info" (3), "debug" (4) and "trace" (5).
 	-- @usage myLogger:setLevel("info")
 	-- @usage -- log everything
 	--myLogger:setLevel(3)
 	function mist.Logger:setLevel(level)
+		self.level = mist.Logger.convertLevel(level)
+	end
+
+	function mist.Logger.convertLevel(level)
 		if not level then
-			self.level = 2
+			return 2
 		else
 			if type(level) == 'string' then
 				if level == 'none' or level == 'off' then
-					self.level = 0
+					return 0
 				elseif level == 'error' then
-					self.level = 1
+					return 1
 				elseif level == 'warning' or level == 'warn' then
-					self.level = 2
+					return 2
 				elseif level == 'info' then
-					self.level = 3
+					return 3
+				elseif level == 'debug' then
+					return 4
+				elseif level == 'trace' then
+					return 5
 				end
 			elseif type(level) == 'number' then
-				self.level = level
+				return level
 			else
-				self.level = 2
+				return 2
 			end
 		end
 	end
@@ -7291,13 +7299,13 @@ do -- mist.Logger scope
 				local texts = splitText(text)
 				for i = 1, #texts do
 					if i == 1 then
-						env.error(self.tag .. '|' .. texts[i])
+						env.error(self.tag .. '|E|' .. texts[i])
 					else
 						env.error(texts[i])
 					end
 				end
 			else
-				env.error(self.tag .. '|' .. text, mistSettings.errorPopup)
+				env.error(self.tag .. '|E|' .. text, mistSettings.errorPopup)
 			end
 		end
 	end
@@ -7315,13 +7323,13 @@ do -- mist.Logger scope
 				local texts = splitText(text)
 				for i = 1, #texts do
 					if i == 1 then
-						env.warning(self.tag .. '|' .. texts[i])
+						env.warning(self.tag .. '|W|' .. texts[i])
 					else
 						env.warning(texts[i])
 					end
 				end
 			else
-				env.warning(self.tag .. '|' .. text, mistSettings.warnPopup)
+				env.warning(self.tag .. '|W|' .. text, mistSettings.warnPopup)
 			end
 		end
 	end
@@ -7339,13 +7347,61 @@ do -- mist.Logger scope
 				local texts = splitText(text)
 				for i = 1, #texts do
 					if i == 1 then
-						env.info(self.tag .. '|' .. texts[i])
+						env.info(self.tag .. '|I|' .. texts[i])
 					else
 						env.info(texts[i])
 					end
 				end
 			else
-				env.info(self.tag .. '|' .. text, mistSettings.infoPopup)
+				env.info(self.tag .. '|I|' .. text, mistSettings.infoPopup)
+			end
+		end
+	end
+
+	--- Logs a debug message.
+	-- logs a message prefixed with this loggers tag to dcs.log as
+	-- long as the highest log level (4) "debug" is set.
+	-- @tparam string text the text with keywords to substitute.
+	-- @param ... variables to be used for substitution.
+	-- @see warn
+	function mist.Logger:debug(text, ...)
+		if self.level >= 4 then
+			text = formatText(text, unpack(arg))
+			if text:len() > 4000 then
+				local texts = splitText(text)
+				for i = 1, #texts do
+					if i == 1 then
+						env.info(self.tag .. '|D|' .. texts[i])
+					else
+						env.info(texts[i])
+					end
+				end
+			else
+				env.info(self.tag .. '|D|' .. text, false)
+			end
+		end
+	end
+
+	--- Logs a trace message.
+	-- logs a message prefixed with this loggers tag to dcs.log as
+	-- long as the highest log level (4) "trace" is set.
+	-- @tparam string text the text with keywords to substitute.
+	-- @param ... variables to be used for substitution.
+	-- @see warn
+	function mist.Logger:trace(text, ...)
+		if self.level >= 5 then
+			text = formatText(text, unpack(arg))
+			if text:len() > 4000 then
+				local texts = splitText(text)
+				for i = 1, #texts do
+					if i == 1 then
+						env.info(self.tag .. '|T|' .. texts[i])
+					else
+						env.info(texts[i])
+					end
+				end
+			else
+				env.info(self.tag .. '|T|' .. text, false)
 			end
 		end
 	end

@@ -25,14 +25,16 @@ veafRemote = {}
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 --- Identifier. All output in DCS.log will start with this.
-veafRemote.Id = "REMOTE - "
+veafRemote.Id = "REMOTE"
 
 --- Version.
 veafRemote.Version = "2.1.0"
 
 -- trace level, specific to this module
-veafRemote.Debug = false
-veafRemote.Trace = false
+--veafRemote.LogLevel = "trace"
+--veafRemote.LogLevel = "debug"
+
+veafRemote.logger = veaf.loggers.new(veafRemote.Id, veafRemote.LogLevel)
 
 -- if false, SLMOD will not be called for regular commands
 veafRemote.USE_SLMOD = false
@@ -58,30 +60,6 @@ veafRemote.remoteUsers = {}
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Utility methods
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-function veafRemote.logError(message)
-    veaf.logError(veafRemote.Id .. message)
-end
-
-function veafRemote.logWarning(message)
-    veaf.logWarning(veafRemote.Id .. message)
-end
-
-function veafRemote.logInfo(message)
-    veaf.logInfo(veafRemote.Id .. message)
-end
-
-function veafRemote.logDebug(message)
-    if message and veafRemote.Debug then 
-        veaf.logDebug(veafRemote.Id .. message)
-    end
-end
-
-function veafRemote.logTrace(message)
-    if message and veafRemote.Trace then 
-        veaf.logTrace(veafRemote.Id .. message)
-    end
-end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- SLMOD monitoring
@@ -118,7 +96,7 @@ function veafRemote._monitorWithSlMod(command, script, flag, coalition, requireA
         isSpecialCommand = false
     end
 
-    veafRemote.logTrace(string.format("setting remote configuration for command=[%s], script=[%s], flag=[%d], requireAdmin=[%s], coalition=[%s]",tostring(command), tostring(script), actualFlag, tostring(actualRequireAdmin), tostring(actualCoalition)))
+    veaf.loggers.get(veafRemote.Id):trace(string.format("setting remote configuration for command=[%s], script=[%s], flag=[%d], requireAdmin=[%s], coalition=[%s]",tostring(command), tostring(script), actualFlag, tostring(actualRequireAdmin), tostring(actualCoalition)))
     veafRemote.monitoredCommands[command:lower()] = {script=script, requireAdmin=requireAdmin}
     if veafRemote.USE_SLMOD or (veafRemote.USE_SLMOD_FOR_SPECIAL_COMMANDS and isSpecialCommand) then 
         if slmod  then
@@ -136,26 +114,26 @@ function veafRemote.startMonitoringFlag(flag, scriptToExecute)
 end
 
 function veafRemote._monitorFlags()
-    --veafRemote.logTrace("veafRemote._monitorFlags()")
+    --veaf.loggers.get(veafRemote.Id):trace("veafRemote._monitorFlags()")
     for flag, scriptToExecute in pairs(veafRemote.monitoredFlags) do
-        --veafRemote.logTrace(string.format("veafRemote._monitorFlags() - checking flag %s", flag))
+        --veaf.loggers.get(veafRemote.Id):trace(string.format("veafRemote._monitorFlags() - checking flag %s", flag))
         local flagValue = trigger.misc.getUserFlag(flag)
-        --veafRemote.logTrace(string.format("veafRemote._monitorFlags() - flagValue = [%d]", flagValue))
+        --veaf.loggers.get(veafRemote.Id):trace(string.format("veafRemote._monitorFlags() - flagValue = [%d]", flagValue))
         if flagValue > 0 then
             -- call the script
-            veafRemote.logDebug(string.format("veafRemote._monitorFlags() - flag %s was TRUE", flag))
-            veafRemote.logDebug(string.format("veafRemote._monitorFlags() - calling lua code [%s]", scriptToExecute))
+            veaf.loggers.get(veafRemote.Id):debug(string.format("veafRemote._monitorFlags() - flag %s was TRUE", flag))
+            veaf.loggers.get(veafRemote.Id):debug(string.format("veafRemote._monitorFlags() - calling lua code [%s]", scriptToExecute))
             local result, err = mist.utils.dostring(scriptToExecute)
             if result then
-                veafRemote.logDebug(string.format("veafRemote._monitorFlags() - lua code was successfully called for flag [%s]", flag))
+                veaf.loggers.get(veafRemote.Id):debug(string.format("veafRemote._monitorFlags() - lua code was successfully called for flag [%s]", flag))
             else
-                veafRemote.logError(string.format("veafRemote._monitorFlags() - error [%s] calling lua code for flag [%s]", err, flag))
+                veaf.loggers.get(veafRemote.Id):error(string.format("veafRemote._monitorFlags() - error [%s] calling lua code for flag [%s]", err, flag))
             end
             -- reset the flag
             trigger.action.setUserFlag(flag, false)
-            veafRemote.logDebug(string.format("veafRemote._monitorFlags() - flag [%s] was reset", flag))
+            veaf.loggers.get(veafRemote.Id):debug(string.format("veafRemote._monitorFlags() - flag [%s] was reset", flag))
         else
-            --veafRemote.logTrace(string.format("veafRemote._monitorFlags() - flag %s was FALSE or not set", flag))
+            --veaf.loggers.get(veafRemote.Id):trace(string.format("veafRemote._monitorFlags() - flag %s was FALSE or not set", flag))
         end
     end
     mist.scheduleFunction(veafRemote._monitorFlags, nil, timer.getTime()+veafRemote.SecondsBetweenFlagMonitorChecks)    
@@ -167,21 +145,21 @@ end
 
 function veafRemote.addNiodCallback(name, parameters, code)
     if niod then 
-        veafRemote.logInfo("Adding NIOD function "..name)
+        veaf.loggers.get(veafRemote.Id):info("Adding NIOD function "..name)
         niod.functions[name] = function(payload)
         -- start of inline function
             
-            veafRemote.logDebug(string.format("niod callback [%s] was called with payload %s", veaf.p(name), veaf.p(payload)))
+            veaf.loggers.get(veafRemote.Id):debug(string.format("niod callback [%s] was called with payload %s", veaf.p(name), veaf.p(payload)))
             
             local errors = {}
             
             -- check mandatory parameters presence
             for parameterName, parameterData in pairs(parameters) do
-                veafRemote.logTrace(string.format("checking if parameter [%s] is mandatory", veaf.p(parameterName)))
+                veaf.loggers.get(veafRemote.Id):trace(string.format("checking if parameter [%s] is mandatory", veaf.p(parameterName)))
                 if parameterData and parameterData.mandatory then 
                     if not (payload and payload[parameterName]) then 
                         local text = "missing mandatory parameter "..parameterName
-                        veafRemote.logTrace(text)
+                        veaf.loggers.get(veafRemote.Id):trace(text)
                         table.insert(errors, text)
                     end
                 end
@@ -195,7 +173,7 @@ function veafRemote.addNiodCallback(name, parameters, code)
                         table.insert(errors, "unknown parameter "..parameterName)
                     elseif value and not(type(value) == parameter.type) then
                         local text =  string.format("parameter %s should have type %s, has %s ", parameterName, parameter.type, type(value))
-                        veafRemote.logTrace(text)
+                        veaf.loggers.get(veafRemote.Id):trace(text)
                         table.insert(errors, text)
                     end
                 end
@@ -207,11 +185,11 @@ function veafRemote.addNiodCallback(name, parameters, code)
                 for _, error in pairs(errors) do
                     errorMessage = errorMessage .. "\n" .. error
                 end
-                veafRemote.logError(string.format("niod callback [%s] was called with incorrect parameters :", veaf.p(name), errorMessage))
+                veaf.loggers.get(veafRemote.Id):error(string.format("niod callback [%s] was called with incorrect parameters :", veaf.p(name), errorMessage))
                 return errorMessage
             else
-                veafRemote.logTrace(string.format("payload = %s", veaf.p(payload)))
-                veafRemote.logTrace(string.format("unpacked payload = %s", veaf.p(veaf.safeUnpack(payload))))
+                veaf.loggers.get(veafRemote.Id):trace(string.format("payload = %s", veaf.p(payload)))
+                veaf.loggers.get(veafRemote.Id):trace(string.format("unpacked payload = %s", veaf.p(veaf.safeUnpack(payload))))
                 local status, retval = pcall(code,veaf.safeUnpack(payload))
                 if status then
                     return retval
@@ -223,7 +201,7 @@ function veafRemote.addNiodCallback(name, parameters, code)
         end -- of inline function
 
     else
-        veafRemote.logError("NIOD is not loaded !")
+        veaf.loggers.get(veafRemote.Id):error("NIOD is not loaded !")
     end
 end
 
@@ -238,7 +216,7 @@ function veafRemote.addNiodCommand(name, command)
             silent={    mandatory=false, type="boolean"}
         },
         function(parameters, x, y, z, silent)
-            veaf.logDebug(string.format("niod->command %s (%s, %s, %s, %s, %s)", veaf.p(parameters), veaf.p(x), veaf.p(y), veaf.p(z), veaf.p(silent)))
+            veaf.loggers.get(veafRemote.Id):debug(string.format("niod->command %s (%s, %s, %s, %s, %s)", veaf.p(parameters), veaf.p(x), veaf.p(y), veaf.p(z), veaf.p(silent)))
             return veafRemote.executeCommand({x=x or 0, y=y or 0, z=z or 0}, command..parameters, 99)
         end
     )
@@ -255,7 +233,7 @@ function veafRemote.buildDefaultList()
     if veafCombatMission then
         for _, mission in pairs(veafCombatMission.missionsDict) do
             local missionName = mission:getName()
-            veafRemote.logTrace(string.format("Adding %s", missionName))
+            veaf.loggers.get(veafRemote.Id):trace(string.format("Adding %s", missionName))
             veafRemote.monitorWithSlMod("-veaf start-silent-" .. missionName, [[ veafCombatMission.ActivateMission("]] .. missionName .. [[", true) ]])
             veafRemote.monitorWithSlMod("-veaf stop-silent-" .. missionName, [[ veafCombatMission.DesactivateMission("]] .. missionName .. [[", true) ]])
             veafRemote.monitorWithSlMod("-veaf start-" .. missionName, [[ veafCombatMission.ActivateMission("]] .. missionName .. [[", false) ]])
@@ -267,7 +245,7 @@ function veafRemote.buildDefaultList()
     if veafCombatZone then
         for _, zone in pairs(veafCombatZone.zonesDict) do
             local zoneName = zone:getMissionEditorZoneName()
-            veafRemote.logTrace(string.format("Adding %s", zoneName))
+            veaf.loggers.get(veafRemote.Id):trace(string.format("Adding %s", zoneName))
             veafRemote.monitorWithSlMod("-veaf start-silent-" .. zoneName, [[ veafCombatZone.ActivateZone("]] .. zoneName .. [[", true) ]])
             veafRemote.monitorWithSlMod("-veaf stop-silent-" .. zoneName, [[ veafCombatZone.DesactivateZone("]] .. zoneName .. [[", true) ]])
             veafRemote.monitorWithSlMod("-veaf start-" .. zoneName, [[ veafCombatZone.ActivateZone("]] .. zoneName .. [[", false) ]])
@@ -288,7 +266,7 @@ function veafRemote.buildDefaultList()
             },
             function(param1S_M, param2S, param3N, param4B)
                 local text = string.format("niod.test(%s, %s, %s, %s)", veaf.p(param1S_M), veaf.p(param2S), veaf.p(param3N), veaf.p(param4B))
-                veafRemote.logDebug(text)
+                veaf.loggers.get(veafRemote.Id):debug(text)
                 trigger.action.outText(text, 15)
             end
         )
@@ -301,7 +279,7 @@ function veafRemote.buildDefaultList()
                 silent={    mandatory=false, type="boolean"}
             },
             function(password, timeout, silent)
-                veafRemote.logDebug(string.format("niod.login(%s, %s, %s)",veaf.p(password), veaf.p(timeout),veaf.p(silent))) -- TODO remove password from log
+                veaf.loggers.get(veafRemote.Id):debug(string.format("niod.login(%s, %s, %s)",veaf.p(password), veaf.p(timeout),veaf.p(silent))) -- TODO remove password from log
                 if veafSecurity.checkPassword_L1(password) then
                     veafSecurity.authenticate(silent, timeout)
                     return "Mission is unlocked"
@@ -323,7 +301,7 @@ function veafRemote.onEventMarkChange(eventPos, event)
     if veafRemote.executeCommand(eventPos, event.text) then 
         
         -- Delete old mark.
-        veafRemote.logTrace(string.format("Removing mark # %d.", event.idx))
+        veaf.loggers.get(veafRemote.Id):trace(string.format("Removing mark # %d.", event.idx))
         trigger.action.removeMark(event.idx)
 
     end
@@ -331,7 +309,7 @@ end
 
 
 function veafRemote.executeCommand(eventPos, eventText)
-    veafRemote.logDebug(string.format("veafRemote.executeCommand(eventText=[%s])", tostring(eventText)))
+    veaf.loggers.get(veafRemote.Id):debug(string.format("veafRemote.executeCommand(eventText=[%s])", tostring(eventText)))
 
     -- Check if marker has a text and the veafRemote.CommandStarter keyphrase.
     if eventText ~= nil and eventText:lower():find(veafRemote.CommandStarter) then
@@ -348,13 +326,13 @@ end
 
 --- Extract keywords from mark text.
 function veafRemote.markTextAnalysis(text)
-    veafRemote.logTrace(string.format("veafRemote.markTextAnalysis(text=[%s])", tostring(text)))
+    veaf.loggers.get(veafRemote.Id):trace(string.format("veafRemote.markTextAnalysis(text=[%s])", tostring(text)))
   
     if text then 
         -- extract command and password
         local password, command = text:match(veafRemote.CommandStarter.."#?([^%s]*)%s+(.+)")
         if command then
-            veafRemote.logTrace(string.format("command = [%s]", command))
+            veaf.loggers.get(veafRemote.Id):trace(string.format("command = [%s]", command))
             return command, password
         end
     end
@@ -365,40 +343,40 @@ end
 function veafRemote.executeRemoteCommand(command, password)
     local command = command or ""
     local password = password or ""
-    veafRemote.logDebug(string.format("veafRemote.executeRemoteCommand([%s])",command))
+    veaf.loggers.get(veafRemote.Id):debug(string.format("veafRemote.executeRemoteCommand([%s])",command))
     if not(veafSecurity.checkPassword_L1(password)) then
-        veafRemote.logError(string.format("veafRemote.executeRemoteCommand([%s]) - bad or missing password",command))
+        veaf.loggers.get(veafRemote.Id):error(string.format("veafRemote.executeRemoteCommand([%s]) - bad or missing password",command))
         trigger.action.outText("Bad or missing password",5)
         return false
     end
     local commandData = veafRemote.monitoredCommands[command:lower()]
     if commandData then 
         local scriptToExecute = commandData.script
-        veafRemote.logTrace(string.format("found script [%s] for command [%s]", scriptToExecute, command))
+        veaf.loggers.get(veafRemote.Id):trace(string.format("found script [%s] for command [%s]", scriptToExecute, command))
         local authorized = (not(commandData.requireAdmin)) or (veafSecurity.checkSecurity_L9(password))
         if not authorized then 
             return false
         else
             local result, err = mist.utils.dostring(scriptToExecute)
             if result then
-                veafRemote.logDebug(string.format("veafRemote.executeRemoteCommand() - lua code was successfully called for script [%s]", scriptToExecute))
+                veaf.loggers.get(veafRemote.Id):debug(string.format("veafRemote.executeRemoteCommand() - lua code was successfully called for script [%s]", scriptToExecute))
                 return true
             else
-                veafRemote.logError(string.format("veafRemote.executeRemoteCommand() - error [%s] calling lua code for script [%s]", err, scriptToExecute))
+                veaf.loggers.get(veafRemote.Id):error(string.format("veafRemote.executeRemoteCommand() - error [%s] calling lua code for script [%s]", err, scriptToExecute))
                 return false
             end
         end
     else
-        veafRemote.logWarning(string.format("veafRemote.executeRemoteCommand : cannot find command [%s]",command or ""))
+        veaf.loggers.get(veafRemote.Id):warn(string.format("veafRemote.executeRemoteCommand : cannot find command [%s]",command or ""))
     end
     return false
 end
 
 -- execute command from the remote interface (see VEAF-server-hook.lua)
 function veafRemote.executeCommandFromRemote(username, level, unitName, veafModule, command)
-    veafRemote.logDebug(string.format("veafRemote.executeCommandFromRemote([%s], [%s], [%s], [%s], [%s])", veaf.p(username), veaf.p(level), veaf.p(unitName), veaf.p(veafModule), veaf.p(command)))
+    veaf.loggers.get(veafRemote.Id):debug(string.format("veafRemote.executeCommandFromRemote([%s], [%s], [%s], [%s], [%s])", veaf.p(username), veaf.p(level), veaf.p(unitName), veaf.p(veafModule), veaf.p(command)))
     --local _user = veafRemote.getRemoteUser(username)
-    --veafRemote.logTrace(string.format("_user = [%s]",veaf.p(_user)))
+    --veaf.loggers.get(veafRemote.Id):trace(string.format("_user = [%s]",veaf.p(_user)))
     --if not _user then 
     --    return false
     --end
@@ -410,37 +388,37 @@ function veafRemote.executeCommandFromRemote(username, level, unitName, veafModu
     local _status, _retval
     local _module = veafModule:lower()
     if _module == "air" then
-        veafRemote.logDebug(string.format("running veafCombatMission.executeCommandFromRemote"))
+        veaf.loggers.get(veafRemote.Id):debug(string.format("running veafCombatMission.executeCommandFromRemote"))
         _status, _retval = pcall(veafCombatMission.executeCommandFromRemote, _parameters)
     elseif _module == "point" then
-        veafRemote.logDebug(string.format("running veafNamedPoints.executeCommandFromRemote"))
+        veaf.loggers.get(veafRemote.Id):debug(string.format("running veafNamedPoints.executeCommandFromRemote"))
         _status, _retval = pcall(veafNamedPoints.executeCommandFromRemote, _parameters)
     elseif _module == "alias" then
-        veafRemote.logDebug(string.format("running veafShortcuts.executeCommandFromRemote"))
+        veaf.loggers.get(veafRemote.Id):debug(string.format("running veafShortcuts.executeCommandFromRemote"))
         _status, _retval = pcall(veafShortcuts.executeCommandFromRemote, _parameters)
     elseif _module == "carrier" then
-        veafRemote.logDebug(string.format("running veafShortcuts.executeCommandFromRemote"))
+        veaf.loggers.get(veafRemote.Id):debug(string.format("running veafShortcuts.executeCommandFromRemote"))
         _status, _retval = pcall(veafCarrierOperations.executeCommandFromRemote, _parameters)
     elseif _module == "secu" then
-        veafRemote.logDebug(string.format("running veafSecurity.executeCommandFromRemote"))
+        veaf.loggers.get(veafRemote.Id):debug(string.format("running veafSecurity.executeCommandFromRemote"))
         _status, _retval = pcall(veafSecurity.executeCommandFromRemote, _parameters)
     else
-        veafRemote.logError(string.format("Module not found : [%s]", veaf.p(veafModule)))
+        veaf.loggers.get(veafRemote.Id):error(string.format("Module not found : [%s]", veaf.p(veafModule)))
         return false
     end
-    veafRemote.logTrace(string.format("_status = [%s]",veaf.p(_status)))
-    veafRemote.logTrace(string.format("_retval = [%s]",veaf.p(_retval)))
+    veaf.loggers.get(veafRemote.Id):trace(string.format("_status = [%s]",veaf.p(_status)))
+    veaf.loggers.get(veafRemote.Id):trace(string.format("_retval = [%s]",veaf.p(_retval)))
     if not _status then
-        veafRemote.logError(string.format("Error when [%s] tried running [%s] : %s", veaf.p(_user.name), veaf.p(_code), veaf.p(_retval)))
+        veaf.loggers.get(veafRemote.Id):error(string.format("Error when [%s] tried running [%s] : %s", veaf.p(_user.name), veaf.p(_code), veaf.p(_retval)))
     else
-        veafRemote.logInfo(string.format("[%s] ran [%s] : %s", veaf.p(_user.name), veaf.p(_code), veaf.p(_retval)))
+        veaf.loggers.get(veafRemote.Id):info(string.format("[%s] ran [%s] : %s", veaf.p(_user.name), veaf.p(_code), veaf.p(_retval)))
     end
     return _status
 end
 
 -- register a user from the server
 function veafRemote.registerUser(username, userpower, ucid)
-    veafRemote.logDebug(string.format("veafRemote.registerUser([%s], [%s], [%s])",veaf.p(username), veaf.p(userpower), veaf.p(ucid)))
+    veaf.loggers.get(veafRemote.Id):debug(string.format("veafRemote.registerUser([%s], [%s], [%s])",veaf.p(username), veaf.p(userpower), veaf.p(ucid)))
     if not username or not ucid then 
         return false
     end
@@ -449,8 +427,8 @@ end
 
 -- return a user from the server table
 function veafRemote.getRemoteUser(username)
-    veafRemote.logDebug(string.format("veafRemote.getRemoteUser([%s])",veaf.p(username)))
-    veafRemote.logTrace(string.format("veafRemote.remoteUsers = [%s]",veaf.p(veafRemote.remoteUsers)))
+    veaf.loggers.get(veafRemote.Id):debug(string.format("veafRemote.getRemoteUser([%s])",veaf.p(username)))
+    veaf.loggers.get(veafRemote.Id):trace(string.format("veafRemote.remoteUsers = [%s]",veaf.p(veafRemote.remoteUsers)))
     if not username then 
         return nil
     end
@@ -462,9 +440,9 @@ end
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 function veafRemote.initialize()
-    veafRemote.logInfo("Initializing module")
+    veaf.loggers.get(veafRemote.Id):info("Initializing module")
     veafRemote.buildDefaultList()
     veafMarkers.registerEventHandler(veafMarkers.MarkerChange, veafRemote.onEventMarkChange)
 end
 
-veafRemote.logInfo(string.format("Loading version %s", veafRemote.Version))
+veaf.loggers.get(veafRemote.Id):info(string.format("Loading version %s", veafRemote.Version))

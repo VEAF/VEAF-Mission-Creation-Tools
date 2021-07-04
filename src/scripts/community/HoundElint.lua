@@ -438,7 +438,6 @@ do
         args.gender = args.gender or "female"
         args.culture = args.culture or "en-US"
         
-        --veafHoundElint.logTrace(string.format("transmitting on %s : %s",veaf.p(args.freq), veaf.p(msg)))
         STTS.TextToSpeech(msg,args.freq,args.modulation,args.volume,args.name,coalitionID,transmitterPos,args.speed,args.gender,args.culture,args.voice,args.googleTTS)
         return true
     end
@@ -1324,7 +1323,6 @@ do
     function HoundCommsManager.TransmitFromQueue(gSelf)
         local msgObj = gSelf:getNextMsg()
         if msgObj == nil then 
-            --veafHoundElint.logTrace(string.format("gSelf.settings.interval=%s",veaf.p(gSelf.settings.interval)))
             return timer.getTime() + gSelf.settings.interval 
         end
         local transmitterPos = gSelf:getTransmitterPos()
@@ -1342,7 +1340,6 @@ do
         if gSelf.enabled and STTS ~= nil and msgObj.tts ~= nil then
             HoundUtils.TTS.Transmit(msgObj.tts,msgObj.coalition,gSelf.settings,transmitterPos)
             local readTime = HoundUtils.TTS.getReadTime(msgObj.tts,gSelf.settings.speed) -- temp till I figure out the speed
-            --veafHoundElint.logTrace(string.format("readTime=%s",veaf.p(readTime)))
             return timer.getTime() + readTime
         end
     end
@@ -1473,7 +1470,6 @@ do
         if length(self.platform) < 1 then return end
         for i=table.getn(self.platform),1,-1  do
             if self.platform[i]:isExist() == false or self.platform[i]:getLife() < 1 or (self.platform[i]:getCategory() ~= Object.Category.STATIC and self.platform[i]:isActive() == false) then
-                --veafHoundElint.logTrace(string.format("removing dead platform %s",veaf.p(self.platform[i])))
                 table.remove(self.platform,i)
             end
         end
@@ -1565,12 +1561,6 @@ do
     function HoundElint.generateATIS(gSelf)        
         local body = ""
         local numberEWR = 0
-        --veafHoundElint.logTrace(string.format("generateATIS"))
-        --veafHoundElint.logTrace(string.format("length(gSelf.emitters)=%s",veaf.p(length(gSelf.emitters))))
-        --veafHoundElint.logTrace(string.format("#gSelf.emitters=%s",veaf.p(#gSelf.emitters)))
-        --veafHoundElint.logTrace(string.format("gSelf.atis.loop.last_count=%s",veaf.p(gSelf.atis.loop.last_count)))
-        --veafHoundElint.logTrace(string.format("gSelf.atis.loop.last_update=%s",veaf.p(gSelf.atis.loop.last_update)))
-        --veafHoundElint.logTrace(string.format("timer.getAbsTime()=%s",veaf.p(timer.getAbsTime())))
 
         if length(gSelf.emitters) > 0 then
             if (gSelf.atis.loop.last_count ~= nil and gSelf.atis.loop.last_update ~= nil) then
@@ -1811,9 +1801,7 @@ do
         -- end
         for uid, emitter in pairs(self.emitters) do
             if emitter ~= nil then
-                --veafHoundElint.logTrace(string.format("emitter=%s",veaf.p(emitter)))
                 local isNew = emitter:processData()
-                --veafHoundElint.logTrace(string.format("isNew=%s",veaf.p(isNew)))
                 if isNew then
                     self:notifyNewEmitter(emitter)
                     if self.useMarkers then emitter:updateMarker(self.coalitionId) end
@@ -1846,15 +1834,12 @@ do
     end
 
     function HoundElint.runCycle(self)
-        --veafHoundElint.logDebug(string.format("HoundElint.runCycle(%s)",veaf.p(self.coalitionId)))
 
         if self.coalitionId == nil then return end
-        --veafHoundElint.logTrace(string.format("self.platform=%s",veaf.p(self.platform)))
         if self.platform then self:platformRefresh() end
         if length(self.platform) > 0 then
             self:Sniff()
         end
-        --veafHoundElint.logTrace(string.format("self.emitters=%s",veaf.p(self.emitters)))
         if length(self.emitters) > 0 then
             if timer.getAbsTime() % math.floor(gaussian(self.settings.processInterval,3)) < self.settings.mainInterval+5 then 
                 self:Process() 

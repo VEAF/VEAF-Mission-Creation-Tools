@@ -25,13 +25,16 @@ veafSkynet = {}
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 --- Identifier. All output in DCS.log will start with this.
-veafSkynet.Id = "SKYNET - "
+veafSkynet.Id = "SKYNET"
 
 --- Version.
 veafSkynet.Version = "1.1.1"
 
 -- trace level, specific to this module
-veafSkynet.Trace = false
+--veafSkynet.LogLevel = "trace"
+--veafSkynet.LogLevel = "debug"
+
+veafSkynet.logger = veaf.loggers.new(veafSkynet.Id, veafSkynet.LogLevel)
 
 -- delay before the mission groups are added to the IADS' at start
 veafSkynet.DelayForStartup = 1
@@ -52,24 +55,6 @@ veafSkynet.iadsEwrUnitsTypes = {}
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Utility methods
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-function veafSkynet.logError(message)
-    veaf.logError(veafSkynet.Id .. message)
-end
-
-function veafSkynet.logInfo(message)
-    veaf.logInfo(veafSkynet.Id .. message)
-end
-
-function veafSkynet.logDebug(message)
-    veaf.logDebug(veafSkynet.Id .. message)
-end
-
-function veafSkynet.logTrace(message)
-    if message and veafSkynet.Trace then 
-        veaf.logTrace(veafSkynet.Id .. message)
-    end
-end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- core functions
@@ -97,34 +82,34 @@ function veafSkynet.addGroupToNetwork(dcsGroup, alreadyAddedGroups)
     local coa = dcsGroup:getCoalition()
     local iads = veafSkynet.getIadsOfCoalition(coa)
     if not(iads) then
-        veafSkynet.logTrace(string.format("no IADS for the coalition of %s", tostring(groupName)))
+        veaf.loggers.get(veafSkynet.Id):trace(string.format("no IADS for the coalition of %s", tostring(groupName)))
         return false
     end
     local didSomething = false
-    veafSkynet.logTrace(string.format("addGroupToNetwork(%s) to %s", tostring(groupName), tostring(iads:getCoalitionString())))
-    veafSkynet.logTrace(string.format("batchMode = %s", tostring(batchMode)))
+    veaf.loggers.get(veafSkynet.Id):trace(string.format("addGroupToNetwork(%s) to %s", tostring(groupName), tostring(iads:getCoalitionString())))
+    veaf.loggers.get(veafSkynet.Id):trace(string.format("batchMode = %s", tostring(batchMode)))
 
     for _, dcsUnit in pairs(dcsGroup:getUnits()) do
         local unitName = dcsUnit:getName()
         local unitType = dcsUnit:getDesc()["typeName"]
-        veafSkynet.logTrace(string.format("checking unit %s of type %s", tostring(unitName), tostring(unitType)))
+        veaf.loggers.get(veafSkynet.Id):trace(string.format("checking unit %s of type %s", tostring(unitName), tostring(unitType)))
 
         -- check if the unitType is supported by Skynet IADS
         if veafSkynet.iadsSamUnitsTypes[unitType] then
-            veafSkynet.logTrace(string.format("-> supported SAM type"))
+            veaf.loggers.get(veafSkynet.Id):trace(string.format("-> supported SAM type"))
             if not(alreadyAddedGroups[groupName]) then
-                veafSkynet.logTrace(string.format("adding a SAM group : %s", groupName))
+                veaf.loggers.get(veafSkynet.Id):trace(string.format("adding a SAM group : %s", groupName))
                 local samsite = iads:addSAMSite(groupName)
                 if samsite then 
                     didSomething = true
                     alreadyAddedGroups[groupName] = true
-                    veafSkynet.logTrace(string.format("adding a SAM -> OK"))
+                    veaf.loggers.get(veafSkynet.Id):trace(string.format("adding a SAM -> OK"))
                 end
             end
         end
         if veafSkynet.iadsEwrUnitsTypes[unitType] then
             if not(alreadyAddedGroups[groupName]) then -- only add EWR for units not belonging to successfully initialized SAM groups
-                veafSkynet.logTrace(string.format("adding an EWR unit : %s", unitName))
+                veaf.loggers.get(veafSkynet.Id):trace(string.format("adding an EWR unit : %s", unitName))
                 local ewr = iads:addEarlyWarningRadar(unitName)
                 if ewr then 
                     didSomething = true
@@ -149,10 +134,10 @@ end
 
 local function initializeIADS(coa, inRadio, debug)
     local iads = veafSkynet.getIadsOfCoalition(coa)
-    veafSkynet.logDebug(string.format("initializeIADS %s",tostring(iads:getCoalitionString())))
+    veaf.loggers.get(veafSkynet.Id):debug(string.format("initializeIADS %s",tostring(iads:getCoalitionString())))
 
     if debug then
-        veafSkynet.logDebug("adding debug information")
+        veaf.loggers.get(veafSkynet.Id):debug("adding debug information")
         local iadsDebug = iads:getDebugSettings()
         iadsDebug.IADSStatus = true
         iadsDebug.samWentDark = true
@@ -232,12 +217,12 @@ function veafSkynet.initialize(includeRedInRadio, debugRed, includeBlueInRadio, 
     veafSkynet.includeBlueInRadio = includeBlueInRadio or false
     veafSkynet.debugBlue = debugBlue or false
     
-    veafSkynet.logInfo("Initializing module")
+    veaf.loggers.get(veafSkynet.Id):info("Initializing module")
     
-    veafSkynet.logDebug(string.format("includeRedInRadio=%s",veaf.p(includeRedInRadio)))
-    veafSkynet.logDebug(string.format("debugRed=%s",veaf.p(debugRed)))
-    veafSkynet.logDebug(string.format("includeBlueInRadio=%s",veaf.p(includeBlueInRadio)))
-    veafSkynet.logDebug(string.format("debugBlue=%s",veaf.p(debugBlue)))
+    veaf.loggers.get(veafSkynet.Id):debug(string.format("includeRedInRadio=%s",veaf.p(includeRedInRadio)))
+    veaf.loggers.get(veafSkynet.Id):debug(string.format("debugRed=%s",veaf.p(debugRed)))
+    veaf.loggers.get(veafSkynet.Id):debug(string.format("includeBlueInRadio=%s",veaf.p(includeBlueInRadio)))
+    veaf.loggers.get(veafSkynet.Id):debug(string.format("debugBlue=%s",veaf.p(debugBlue)))
     
     -- prepare the list of units supported by Skynet IADS
     for groupName, groupData in pairs(SkynetIADS.database) do
@@ -252,37 +237,37 @@ function veafSkynet.initialize(includeRedInRadio, debugRed, includeBlueInRadio, 
             end
         end
     end
-    veafSkynet.logTrace(string.format("veafSkynet.iadsSamUnitsTypes=%s",veaf.p(veafSkynet.iadsSamUnitsTypes)))
+    veaf.loggers.get(veafSkynet.Id):trace(string.format("veafSkynet.iadsSamUnitsTypes=%s",veaf.p(veafSkynet.iadsSamUnitsTypes)))
     
     -- add EWR-capable units
     local EWR_attributes = {"EWR", "AWACS" ,"RADAR_BAND1_FOR_ARM", "RADAR_BAND2_FOR_ARM"}
     for _, unit in pairs(dcsUnits.DcsUnitsDatabase) do
         if unit then
-            veafSkynet.logTrace(string.format("testing unit %s",veaf.p(unit.type)))
+            veaf.loggers.get(veafSkynet.Id):trace(string.format("testing unit %s",veaf.p(unit.type)))
             if unit.attribute then
-                veafSkynet.logTrace(string.format("unit.attribute = %s",veaf.p(unit.attribute)))
+                veaf.loggers.get(veafSkynet.Id):trace(string.format("unit.attribute = %s",veaf.p(unit.attribute)))
                 if (unit.attribute["SAM SR"]) then
                     veafSkynet.iadsEwrUnitsTypes[unit.type] = true
-                    veafSkynet.logTrace(string.format("-> EWR"))
+                    veaf.loggers.get(veafSkynet.Id):trace(string.format("-> EWR"))
                 elseif (unit.attribute["AWACS"]) then
                     veafSkynet.iadsEwrUnitsTypes[unit.type] = true
-                    veafSkynet.logTrace(string.format("-> EWR"))
+                    veaf.loggers.get(veafSkynet.Id):trace(string.format("-> EWR"))
                 elseif (unit.attribute["Ships"] and (unit.attribute["RADAR_BAND1_FOR_ARM"] or unit.attribute["RADAR_BAND2_FOR_ARM"])) then
                     veafSkynet.iadsEwrUnitsTypes[unit.type] = true
-                    veafSkynet.logTrace(string.format("-> EWR"))
+                    veaf.loggers.get(veafSkynet.Id):trace(string.format("-> EWR"))
                 end
             end
         end
     end
-    veafSkynet.logTrace(string.format("veafSkynet.iadsEwrUnitsTypes=%s",veaf.p(veafSkynet.iadsEwrUnitsTypes)))
+    veaf.loggers.get(veafSkynet.Id):trace(string.format("veafSkynet.iadsEwrUnitsTypes=%s",veaf.p(veafSkynet.iadsEwrUnitsTypes)))
     
     createNetworks(false)
 
-    veafSkynet.logInfo(string.format("Loading units in %s seconds", tostring(veafSkynet.DelayForStartup)))
+    veaf.loggers.get(veafSkynet.Id):info(string.format("Loading units in %s seconds", tostring(veafSkynet.DelayForStartup)))
     mist.scheduleFunction(veafSkynet.reinitialize,{}, timer.getTime()+veafSkynet.DelayForStartup)
 
     veafSkynet.initialized = true
-    veafSkynet.logInfo(string.format("Skynet IADS has been initialized"))
+    veaf.loggers.get(veafSkynet.Id):info(string.format("Skynet IADS has been initialized"))
 end
 
-veafSkynet.logInfo(string.format("Loading version %s", veafSkynet.Version))
+veaf.loggers.get(veafSkynet.Id):info(string.format("Loading version %s", veafSkynet.Version))

@@ -46,13 +46,16 @@ veafTransportMission = {}
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 --- Identifier. All output in DCS.log will start with this.
-veafTransportMission.Id = "TRANSPORT MISSION - "
+veafTransportMission.Id = "TRANSPORTMISSION"
 
 --- Version.
 veafTransportMission.Version = "1.5.0"
 
 -- trace level, specific to this module
-veafTransportMission.Trace = false
+--veafTransportMission.LogLevel = "trace"
+--veafTransportMission.LogLevel = "debug"
+
+veafTransportMission.logger = veaf.loggers.new(veafTransportMission.Id, veafTransportMission.LogLevel)
 
 --- Key phrase to look for in the mark text which triggers the command.
 veafTransportMission.Keyphrase = "_transport"
@@ -139,20 +142,6 @@ veafTransportMission.rootPath = nil
 -- Utility methods
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-function veafTransportMission.logInfo(message)
-    veaf.logInfo(veafTransportMission.Id .. message)
-end
-
-function veafTransportMission.logDebug(message)
-    veaf.logDebug(veafTransportMission.Id .. message)
-end
-
-function veafTransportMission.logTrace(message)
-    if message and veafTransportMission.Trace then
-        veaf.logTrace(veafTransportMission.Id .. message)
-    end
-end
-
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Event handler functions.
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -179,7 +168,7 @@ function veafTransportMission.onEventMarkChange(eventPos, event)
         end
 
         -- Delete old mark.
-        veafTransportMission.logTrace(string.format("Removing mark # %d.", event.idx))
+        veaf.loggers.get(veafTransportMission.Id):trace(string.format("Removing mark # %d.", event.idx))
         trigger.action.removeMark(event.idx)
     end
 end
@@ -228,13 +217,13 @@ function veafTransportMission.markTextAnalysis(text)
 
         if key:lower() == "password" then
             -- Unlock the command
-            veafSpawn.logDebug(string.format("Keyword password", val))
+            veaf.loggers.get(veafTransportMission.Id):debug(string.format("Keyword password", val))
             switch.password = val
         end
 
         if switch.transportmission and key:lower() == "size" then
             -- Set size.
-            veafTransportMission.logDebug(string.format("Keyword size = %d", val))
+            veaf.loggers.get(veafTransportMission.Id):debug(string.format("Keyword size = %d", val))
             local nVal = tonumber(val)
             if nVal <= 5 and nVal >= 1 then
                 switch.size = nVal
@@ -243,7 +232,7 @@ function veafTransportMission.markTextAnalysis(text)
 
         if switch.transportmission and key:lower() == "defense" then
             -- Set defense.
-            veafTransportMission.logDebug(string.format("Keyword defense = %d", val))
+            veaf.loggers.get(veafTransportMission.Id):debug(string.format("Keyword defense = %d", val))
             local nVal = tonumber(val)
             if nVal <= 5 and nVal >= 0 then
                 switch.defense = nVal
@@ -252,7 +241,7 @@ function veafTransportMission.markTextAnalysis(text)
 
         if switch.transportmission and key:lower() == "blocade" then
             -- Set blocade.
-            veafTransportMission.logDebug(string.format("Keyword blocade = %d", val))
+            veaf.loggers.get(veafTransportMission.Id):debug(string.format("Keyword blocade = %d", val))
             local nVal = tonumber(val)
             if nVal <= 5 and nVal >= 0 then
                 switch.blocade = nVal
@@ -261,7 +250,7 @@ function veafTransportMission.markTextAnalysis(text)
 
         if switch.transportmission and key:lower() == "from" then
             -- Set armor.
-            veafTransportMission.logDebug(string.format("Keyword from = %s", val))
+            veaf.loggers.get(veafTransportMission.Id):debug(string.format("Keyword from = %s", val))
             switch.from = val
         end
     end
@@ -274,12 +263,12 @@ end
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 function veafTransportMission.doRadioTransmission(groupName)
-    veafTransportMission.logTrace("doRadioTransmission("..groupName..")")
+    veaf.loggers.get(veafTransportMission.Id):trace("doRadioTransmission("..groupName..")")
     local group = Group.getByName(groupName)
     if group then
-        veafTransportMission.logTrace("Group is transmitting")
+        veaf.loggers.get(veafTransportMission.Id):trace("Group is transmitting")
         local averageGroupPosition = veaf.getAveragePosition(groupName)
-        veafTransportMission.logTrace("averageGroupPosition=" .. veaf.vecToString(averageGroupPosition))
+        veaf.loggers.get(veafTransportMission.Id):trace("averageGroupPosition=" .. veaf.vecToString(averageGroupPosition))
         trigger.action.radioTransmission(veafTransportMission.AdfRadioSound, averageGroupPosition, 0, false, veafTransportMission.AdfFrequency, veafTransportMission.AdfPower)
     end
     
@@ -362,8 +351,8 @@ end
 
 --- Generates a transport mission
 function veafTransportMission.generateTransportMission(targetSpot, size, defense, blocade, from)
-    veafTransportMission.logDebug(string.format("generateTransportMission(size = %s, defense=%s, blocade=%d, from=%s)",size, defense, blocade, from))
-    veafTransportMission.logDebug("generateTransportMission: targetSpot " .. veaf.vecToString(targetSpot))
+    veaf.loggers.get(veafTransportMission.Id):debug(string.format("generateTransportMission(size = %s, defense=%s, blocade=%d, from=%s)",size, defense, blocade, from))
+    veaf.loggers.get(veafTransportMission.Id):debug("generateTransportMission: targetSpot " .. veaf.vecToString(targetSpot))
 
     if veafTransportMission.friendlyGroupAliveCheckTaskID ~= 'none' then
         trigger.action.outText("A transport mission already exists !", 5)
@@ -382,15 +371,15 @@ function veafTransportMission.generateTransportMission(targetSpot, size, defense
     -- generate a friendly group around the target target spot
     local groupPosition = veaf.findPointInZone(targetSpot, 100, false)
     if groupPosition ~= nil then
-        veafTransportMission.logTrace("groupPosition=" .. veaf.vecToString(groupPosition))
+        veaf.loggers.get(veafTransportMission.Id):trace("groupPosition=" .. veaf.vecToString(groupPosition))
         groupPosition = { x = groupPosition.x, z = groupPosition.y, y = 0 }
         groupPosition = veaf.placePointOnLand(groupPosition)
-        veafTransportMission.logTrace("groupPosition on land=" .. veaf.vecToString(groupPosition))
+        veaf.loggers.get(veafTransportMission.Id):trace("groupPosition on land=" .. veaf.vecToString(groupPosition))
 
         -- compute player route to friendly group
         local vecAB = {x = groupPosition.x +- startPoint.x, y = 0, z = groupPosition.z - startPoint.z}
         routeDistance = mist.vec.mag(vecAB)
-        veafTransportMission.logTrace("routeDistance="..routeDistance)
+        veaf.loggers.get(veafTransportMission.Id):trace("routeDistance="..routeDistance)
         if routeDistance < veafTransportMission.MinimumRouteDistance then
             trigger.action.outText("This drop zone is too close ; you have to place it at least " .. veafTransportMission.MinimumRouteDistance / 1000 .. " km away from point "..from.." !", 5)
             return
@@ -398,26 +387,26 @@ function veafTransportMission.generateTransportMission(targetSpot, size, defense
 
         veafTransportMission.generateFriendlyGroup(groupPosition)
     else
-        veafTransportMission.logInfo("cannot find a suitable position for group "..groupId)
+        veaf.loggers.get(veafTransportMission.Id):info("cannot find a suitable position for group "..groupId)
         return
     end
 
     -- generate cargo to be picked up near the player helo
-    veafTransportMission.logDebug("Generating cargo")
+    veaf.loggers.get(veafTransportMission.Id):debug("Generating cargo")
     local startPosition = veaf.placePointOnLand(startPoint)
-    veafTransportMission.logTrace("startPosition=" .. veaf.vecToString(startPosition))
+    veaf.loggers.get(veafTransportMission.Id):trace("startPosition=" .. veaf.vecToString(startPosition))
     for i = 1, size do
         local spawnSpot = { x = startPosition.x + 50, z = startPosition.z + i * 10, y = startPosition.y }
-        veafTransportMission.logTrace("spawnSpot=" .. veaf.vecToString(spawnSpot))
+        veaf.loggers.get(veafTransportMission.Id):trace("spawnSpot=" .. veaf.vecToString(spawnSpot))
         local cargoType = veafTransportMission.CargoTypes[math.random(#veafTransportMission.CargoTypes)]
         local cargoName = veafTransportMission.BlueCargoName .. " #" .. i
         veafSpawn.doSpawnCargo(spawnSpot, cargoType, cargoName, false, true)
     end
-    veafTransportMission.logDebug("Done generating cargo")
+    veaf.loggers.get(veafTransportMission.Id):debug("Done generating cargo")
 
     -- generate enemy air defense on the way
     if defense > 0 then
-        veafTransportMission.logDebug("Generating air defense")
+        veaf.loggers.get(veafTransportMission.Id):debug("Generating air defense")
 
          -- place groups on the way
          local startingDistance = veafTransportMission.SafeZoneDistance -- enemy presence start after the safe zone
@@ -427,14 +416,14 @@ function veafTransportMission.generateTransportMission(targetSpot, size, defense
          local groupNum = 1
          for stepNum = 1, nbSteps do
             local distanceFromStartingPoint = startingDistance + stepNum * distanceStep + math.random(distanceStep/5, 4*distanceStep/5)
-            veafTransportMission.logTrace("distanceFromStartingPoint="..distanceFromStartingPoint)
+            veaf.loggers.get(veafTransportMission.Id):trace("distanceFromStartingPoint="..distanceFromStartingPoint)
 
             -- place an enemy defense group along the way
             local offset = math.random(veafTransportMission.LeftOrRightMinOffset, veafTransportMission.LeftOrRightMaxOffset)
             if math.random(100) < 51 then 
                offset = -offset 
             end
-            veafTransportMission.logTrace("offset="..offset)
+            veaf.loggers.get(veafTransportMission.Id):trace("offset="..offset)
             local spawnPoint = veaf.computeCoordinatesOffsetFromRoute(startPoint, groupPosition, distanceFromStartingPoint, offset)
             local groupName = veafTransportMission.RedDefenseGroupName .. " #"  .. groupNum
             veafTransportMission.generateEnemyDefenseGroup(spawnPoint, groupName, defense)
@@ -450,7 +439,7 @@ function veafTransportMission.generateTransportMission(targetSpot, size, defense
                 if math.random(100) < 51 then 
                    offset = -offset 
                 end
-                veafTransportMission.logTrace("offset="..offset)
+                veaf.loggers.get(veafTransportMission.Id):trace("offset="..offset)
                 local spawnPoint = veaf.computeCoordinatesOffsetFromRoute(startPoint, groupPosition, distanceFromStartingPoint, offset)
                 local groupName = veafTransportMission.RedDefenseGroupName .. " #"  .. groupNum
                 veafTransportMission.generateEnemyDefenseGroup(spawnPoint, groupName, defense)
@@ -459,14 +448,14 @@ function veafTransportMission.generateTransportMission(targetSpot, size, defense
 
          end
 
-        veafTransportMission.logDebug("Done generating air defense")
+        veaf.loggers.get(veafTransportMission.Id):debug("Done generating air defense")
     end
 
     -- generate enemy blocade forces
     if blocade > 0 then
-        veafTransportMission.logDebug("Generating blocade")
+        veaf.loggers.get(veafTransportMission.Id):debug("Generating blocade")
         -- TODO
-        veafTransportMission.logDebug("Done generating blocade")
+        veaf.loggers.get(veafTransportMission.Id):debug("Done generating blocade")
     end
 
     -- add radio menu for drop zone information (by player group)
@@ -491,7 +480,7 @@ end
 function veafTransportMission.friendlyGroupWatchdog() 
     local nbVehicles, nbInfantry = veafUnits.countInfantryAndVehicles(veafTransportMission.BlueGroupName)
     if nbVehicles + nbInfantry > 0 then
-        ----veafTransportMission.logTrace("Group is still alive with "..nbVehicles.." vehicles and "..nbInfantry.." soldiers")
+        ----veaf.loggers.get(veafTransportMission.Id):trace("Group is still alive with "..nbVehicles.." vehicles and "..nbInfantry.." soldiers")
         veafTransportMission.friendlyGroupAliveCheckTaskID = mist.scheduleFunction(veafTransportMission.friendlyGroupWatchdog,{},timer.getTime()+veafTransportMission.SecondsBetweenWatchdogChecks)
     else
         trigger.action.outText("Friendly group has been destroyed! The mission is a failure!", 5)
@@ -548,7 +537,7 @@ end
 
 --- add a smoke marker over the drop zone
 function veafTransportMission.smokeTarget()
-    veafTransportMission.logDebug("smokeTarget()")
+    veaf.loggers.get(veafTransportMission.Id):debug("smokeTarget()")
     veafSpawn.spawnSmoke(veaf.getAveragePosition(veafTransportMission.BlueGroupName), trigger.smokeColor.Green)
 	trigger.action.outText('Copy smoke requested, GREEN smoke marks the drop zone!',5)
     veafRadio.delCommand(veafTransportMission.targetMarkersPath, 'Request smoke on drop zone')
@@ -559,7 +548,7 @@ end
 
 --- Reset the smoke request radio menu
 function veafTransportMission.smokeReset()
-    veafTransportMission.logDebug("smokeReset()")
+    veaf.loggers.get(veafTransportMission.Id):debug("smokeReset()")
     veafRadio.delCommand(veafTransportMission.targetMarkersPath, 'Drop zone is marked with GREEN smoke')
     veafRadio.addCommandToSubmenu('Request smoke on drop zone', veafTransportMission.targetMarkersPath, veafTransportMission.smokeTarget)
     trigger.action.outText('Smoke marker over drop zone available',5)
@@ -568,7 +557,7 @@ end
 
 --- add an illumination flare over the target area
 function veafTransportMission.flareTarget()
-    veafTransportMission.logDebug("flareTarget()")
+    veaf.loggers.get(veafTransportMission.Id):debug("flareTarget()")
     veafSpawn.spawnIlluminationFlare(veaf.getAveragePosition(veafTransportMission.BlueGroupName))
 	trigger.action.outText('Copy illumination flare requested, illumination flare over target area!',5)
     veafRadio.delCommand(veafTransportMission.targetMarkersPath, 'Request illumination flare over drop zone')
@@ -579,7 +568,7 @@ end
 
 --- Reset the flare request radio menu
 function veafTransportMission.flareReset()
-    veafTransportMission.logDebug("flareReset()")
+    veaf.loggers.get(veafTransportMission.Id):debug("flareReset()")
     veafRadio.delCommand(veafTransportMission.targetMarkersPath, 'Drop zone is lit with illumination flare')
     veafRadio.addCommandToSubmenu('Request illumination flare over drop zone', veafTransportMission.targetMarkersPath, veafTransportMission.flareTarget)
     trigger.action.outText('Illumination flare over drop zone available',5)
@@ -595,16 +584,16 @@ end
 
 --- Cleanup after either mission is ended or aborted
 function veafTransportMission.cleanupAfterMission()
-    veafTransportMission.logTrace("cleanupAfterMission()")
+    veaf.loggers.get(veafTransportMission.Id):trace("cleanupAfterMission()")
 
     -- destroy groups
-    veafTransportMission.logTrace("destroy friendly group")
+    veaf.loggers.get(veafTransportMission.Id):trace("destroy friendly group")
     local group = Group.getByName(veafTransportMission.BlueGroupName)
     if group and group:isExist() == true then
         group:destroy()
     end
 
-    veafTransportMission.logTrace("destroy cargos")
+    veaf.loggers.get(veafTransportMission.Id):trace("destroy cargos")
     local unitNum = 1
     local doIt = true
     while doIt do
@@ -617,7 +606,7 @@ function veafTransportMission.cleanupAfterMission()
         end
     end
 
-    veafTransportMission.logTrace("destroy enemy defense group")
+    veaf.loggers.get(veafTransportMission.Id):trace("destroy enemy defense group")
     local groupNum = 1
     local doIt = true
     while doIt do
@@ -630,21 +619,21 @@ function veafTransportMission.cleanupAfterMission()
         end
     end
 
-    veafTransportMission.logTrace("destroy enemy blocade group")
+    veaf.loggers.get(veafTransportMission.Id):trace("destroy enemy blocade group")
     group = Group.getByName(veafTransportMission.RedBlocadeGroupName)
     if group and group:isExist() == true then
         group:destroy()
     end
 
     -- remove the watchdog function
-    veafTransportMission.logTrace("remove the watchdog function")
+    veaf.loggers.get(veafTransportMission.Id):trace("remove the watchdog function")
     if veafTransportMission.friendlyGroupAliveCheckTaskID ~= 'none' then
         mist.removeFunction(veafTransportMission.friendlyGroupAliveCheckTaskID)
     end
     veafTransportMission.friendlyGroupAliveCheckTaskID = 'none'
 
     -- remove the watchdog function
-    veafTransportMission.logTrace("remove the adf loop function")
+    veaf.loggers.get(veafTransportMission.Id):trace("remove the adf loop function")
     if veafTransportMission.friendlyGroupAdfLoopTaskID ~= 'none' then
         mist.removeFunction(veafTransportMission.friendlyGroupAdfLoopTaskID)
     end
@@ -656,7 +645,7 @@ function veafTransportMission.cleanupAfterMission()
     veafRadio.delSubmenu(veafTransportMission.targetMarkersPath, veafTransportMission.rootPath)
 
     veafRadio.refreshRadioMenu()
-    veafTransportMission.logTrace("cleanupAfterMission DONE")
+    veaf.loggers.get(veafTransportMission.Id):trace("cleanupAfterMission DONE")
 
 end
 
@@ -724,12 +713,12 @@ function veafTransportMission.initializeAllHelosInCTLD()
     local TransportHeloTypeNames = {"Mi-8MT", "UH-1H"}
     local result = {}
     for name, unit in pairs(mist.DBs.humansByName) do
-        veafTransportMission.logTrace(string.format("human player found name=%s, unitName=%s, groupName=%s", name, unit.unitName,unit.groupName))
+        veaf.loggers.get(veafTransportMission.Id):trace(string.format("human player found name=%s, unitName=%s, groupName=%s", name, unit.unitName,unit.groupName))
         -- check if it's a transport helo (Mi-8 or Huey)
         for _, transportHeloTypeName in pairs(TransportHeloTypeNames) do
             if transportHeloTypeName:lower() == unit.type:lower() then
                 table.insert(ctld.transportPilotNames, unit.unitName)
-                veafTransportMission.logDebug(string.format("Adding CTLD transport pilot %s of group %s", unit.unitName, unit.groupName))
+                veaf.loggers.get(veafTransportMission.Id):debug(string.format("Adding CTLD transport pilot %s of group %s", unit.unitName, unit.groupName))
             end
         end
     end
@@ -740,14 +729,14 @@ function veafTransportMission.initializeAllLogisticInCTLD()
     local result = {}
     local units = mist.DBs.unitsByName -- local copy for faster execution
     for name, unit in pairs(units) do
-        veafMove.logTrace(string.format("name=%s, unit.type=%s", veaf.p(name), veaf.p(unit.type)))
-        --veafMove.logTrace(string.format("unit=%s", veaf.p(unit)))
+        veaf.loggers.get(veafTransportMission.Id):trace(string.format("name=%s, unit.type=%s", veaf.p(name), veaf.p(unit.type)))
+        --veaf.loggers.get(veafTransportMission.Id):trace(string.format("unit=%s", veaf.p(unit)))
         --local unit = Unit.getByName(name)
         if unit then 
             for _, carrierTypeName in pairs(CarrierTypeNames) do
                 if carrierTypeName:lower() == unit.type:lower() then
                     table.insert(ctld.logisticUnits, unit.unitName)
-                    veafTransportMission.logDebug(string.format("Adding CTLD logistic unit %s of group %s", unit.unitName, unit.groupName))
+                    veaf.loggers.get(veafTransportMission.Id):debug(string.format("Adding CTLD logistic unit %s of group %s", unit.unitName, unit.groupName))
                 end
             end
         end
@@ -762,7 +751,7 @@ function veafTransportMission.initialize()
     veafMarkers.registerEventHandler(veafMarkers.MarkerChange, veafTransportMission.onEventMarkChange)
 end
 
-veafTransportMission.logInfo(string.format("Loading version %s", veafTransportMission.Version))
+veaf.loggers.get(veafTransportMission.Id):info(string.format("Loading version %s", veafTransportMission.Version))
 
 --- Enable/Disable error boxes displayed on screen.
 env.setErrorMessageBoxEnabled(false)

@@ -29,23 +29,18 @@ veaf = {}
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 --- Identifier. All output in DCS.log will start with this.
-veaf.Id = "VEAF - "
-veaf.MainId = "MAIN - "
+veaf.Id = "VEAF"
 
 --- Version.
 veaf.Version = "1.15.1"
-
--- trace level, specific to this module
-veaf.MainTrace = false
 
 --- Development version ?
 veaf.Development = true
 veaf.SecurityDisabled = true
 
---- Enable logDebug ==> give more output to DCS log file.
-veaf.Debug = veaf.Development
---- Enable logTrace ==> give even more output to DCS log file.
-veaf.Trace = veaf.Development
+-- trace level, specific to this module
+--veaf.LogLevel = "trace"
+--veaf.LogLevel = "debug"
 
 veaf.DEFAULT_GROUND_SPEED_KPH = 30
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -57,38 +52,49 @@ veaf.maxMonitoredFlag = 27000
 veaf.config = {}
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
--- Utility methods
+-- Logging
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-function veaf.logError(message)
-    env.error(veaf.Id .. message)
-end
+veaf.loggers = {}
 
-function veaf.logWarning(message)
-    env.warning(veaf.Id ..  message)
-end
-
-function veaf.logInfo(message)
-    env.info(veaf.Id .."I - " ..  message)
-end
-
-function veaf.logDebug(message)
-    if veaf.Debug then
-        env.info(veaf.Id .."D - " ..  message)
+function veaf.loggers.convertLevel(level)
+    if not level then
+        return 3
+    else
+        return mist.Logger.convertLevel(level)
     end
 end
 
-function veaf.logTrace(message)
-    if veaf.Trace then
-        env.info(veaf.Id .."T - " ..  message)
+function veaf.loggers.new(loggerId, level) 
+    if not loggerId or #loggerId == 0 then
+        return nil
     end
+    local result = mist.Logger:new(loggerId:upper(), "info")
+    local level = veaf.loggers.convertLevel(level)
+    if veaf.BaseLogLevel < level then
+        level = veaf.BaseLogLevel
+    end
+    result:setLevel(level)
+    veaf.loggers[loggerId:lower()] = result
+    return result
 end
 
-function veaf.logMarker(id, header, message, position, markersTable)
+function veaf.loggers.get(loggerId) 
+    local result = nil
+    if loggerId and #loggerId > 0 then
+        result = veaf.loggers[loggerId:lower()]
+    end
+    if not result then 
+        result = veaf.loggers.get("veaf")
+    end
+    return result
+end
+
+function veaf.logMarker(loggerId, id, header, message, position, markersTable)
     if not id then
         id = 99999 
     end
-    if veaf.Trace then
+    if veaf.BaseLogLevel >= 5 then
         local correctedPos = {}
         correctedPos.x = position.x
         if not(position.z) then
@@ -105,7 +111,7 @@ function veaf.logMarker(id, header, message, position, markersTable)
         if header and id then
             message = header..id.." "..message
         end
-        veaf.logTrace("creating trace marker #"..id.." at point "..veaf.vecToString(correctedPos))
+        veaf.loggers.get(loggerId):trace("creating trace marker #%s at point %s", id, veaf.vecToString(correctedPos))
         trigger.action.markToAll(id, message, correctedPos, false) 
         if markersTable then
             table.insert(markersTable, id)
@@ -114,36 +120,24 @@ function veaf.logMarker(id, header, message, position, markersTable)
     return id + 1
 end
 
-function veaf.cleanupLogMarkers(markersTable)
+function veaf.cleanupLogMarkers(loggerId, markersTable)
     for _, markerId in pairs(markersTable) do
-        veaf.logTrace("deleting trace marker #"..markerId)
+        veaf.loggers.get(loggerId):trace("deleting trace marker #%s", markerId)
         trigger.action.removeMark(markerId)    
     end
 end
 
-function veaf.mainLogError(message)
-    veaf.logError(veaf.MainId .. message)
+veaf.BaseLogLevel = mist.Logger.convertLevel("info")
+if veaf.Development then
+    veaf.BaseLogLevel = mist.Logger.convertLevel("trace")
 end
 
-function veaf.mainLogInfo(message)
-    veaf.logInfo(veaf.MainId .. message)
-end
+veaf.logger = veaf.loggers.new(veaf.Id, veaf.LogLevel)
+veaf.baseLogger = veaf.loggers.new("BASE"):setLevel(veaf.BaseLogLevel)
 
-function veaf.mainLogDebug(message)
-    veaf.logDebug(veaf.MainId .. message)
-end
-
-function veaf.mainLogTrace(message)
-    if message and veaf.MainTrace then
-        veaf.logTrace(veaf.MainId .. message)
-    end
-end
-
-function veaf.mainLogMarker(id, message, position, markersTable)
-    if veaf.MainTrace then 
-        return veaf.logMarker(id, veaf.Id, message, position, markersTable)
-    end
-end
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- Utility methods
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 veaf.EVENTMETA = {
     [world.event.S_EVENT_SHOT] = {
@@ -600,7 +594,7 @@ function veaf.serialize(name, value, level)
                 table.insert(var_str_tbl, level .. "}, -- end of " .. name .. "\n")
             end
         else
-            veaf.mainLogError("Cannot serialize a " .. type(value))
+            veaf.loggers.get(veaf.Id):error("Cannot serialize a " .. type(value))
         end
         return var_str_tbl
     end
@@ -664,7 +658,7 @@ function veaf._p(o, level)
     local MAX_LEVEL = 20
     if level == nil then level = 0 end
     if level > MAX_LEVEL then 
-        veaf.mainLogError("max depth reached in veaf.p : "..tostring(MAX_LEVEL))
+        veaf.loggers.get(veaf.Id):error("max depth reached in veaf.p : "..tostring(MAX_LEVEL))
         return ""
     end
     local text = ""
@@ -711,17 +705,17 @@ end
 
 --- Return the height of the land at the coordinate.
 function veaf.getLandHeight(vec3)
-    veaf.mainLogTrace(string.format("getLandHeight: vec3  x=%.1f y=%.1f, z=%.1f", vec3.x, vec3.y, vec3.z))
+    veaf.loggers.get(veaf.Id):trace(string.format("getLandHeight: vec3  x=%.1f y=%.1f, z=%.1f", vec3.x, vec3.y, vec3.z))
     local vec2 = {x = vec3.x, y = vec3.z}
-    veaf.mainLogTrace(string.format("getLandHeight: vec2  x=%.1f z=%.1f", vec3.x, vec3.z))
+    veaf.loggers.get(veaf.Id):trace(string.format("getLandHeight: vec2  x=%.1f z=%.1f", vec3.x, vec3.z))
     -- We add 1 m "safety margin" because data from getlandheight gives the surface and wind at or below the surface is zero!
     local height = math.floor(land.getHeight(vec2) + 1)
-    veaf.mainLogTrace(string.format("getLandHeight: result  height=%.1f",height))
+    veaf.loggers.get(veaf.Id):trace(string.format("getLandHeight: result  height=%.1f",height))
     return height
 end
 
 function veaf.invertHeading(heading)
-    veaf.mainLogTrace(string.format("invertHeading(%s)", veaf.p(heading)))
+    veaf.loggers.get(veaf.Id):trace(string.format("invertHeading(%s)", veaf.p(heading)))
     local result = heading - 180
     if result <= 0 then
         result = result + 360
@@ -740,7 +734,7 @@ function veaf.computeLLFromString(value)
             local values = veaf.splitWithPattern(value, "[:-]+")
             local weights = {3600, 60, 1}
             for _, element in pairs(values) do
-                veaf.mainLogTrace(string.format("element=%s",veaf.p(element)))
+                veaf.loggers.get(veaf.Id):trace(string.format("element=%s",veaf.p(element)))
                 local weight = table.remove(weights, 1)
                 local elementInArcSec = tonumber(element)*weight
                 result = result + elementInArcSec
@@ -760,14 +754,14 @@ function veaf.computeLLFromString(value)
         if _firstChar == "u" then
             -- UTM coordinates
             local _zone, _digraph, _digits = _value:match("u(%d%d[a-z])([a-z][a-z])(%d+)")
-            veaf.mainLogTrace(string.format("_zone=%s",veaf.p(_zone)))
-            veaf.mainLogTrace(string.format("_digraph=%s",veaf.p(_digraph)))
-            veaf.mainLogTrace(string.format("_digits=%s",veaf.p(_digits)))
+            veaf.loggers.get(veaf.Id):trace(string.format("_zone=%s",veaf.p(_zone)))
+            veaf.loggers.get(veaf.Id):trace(string.format("_digraph=%s",veaf.p(_digraph)))
+            veaf.loggers.get(veaf.Id):trace(string.format("_digits=%s",veaf.p(_digits)))
             if _zone and _digraph and _digits then
                 local _nDigits = #_digits
                 local _northingString = _digits:sub(_nDigits/2+1)
                 local _northing = tonumber(_northingString)
-                veaf.mainLogTrace(string.format("_northing=%s",veaf.p(_northing)))
+                veaf.loggers.get(veaf.Id):trace(string.format("_northing=%s",veaf.p(_northing)))
                 if #_northingString == 1 then
                     _northing = _northing * 10000
                 elseif #_northingString == 2 then
@@ -780,7 +774,7 @@ function veaf.computeLLFromString(value)
 
                 local _eastingString = _digits:sub(1, _nDigits/2)
                 local _easting = tonumber(_eastingString)
-                veaf.mainLogTrace(string.format("_easting=%s",veaf.p(_easting)))
+                veaf.loggers.get(veaf.Id):trace(string.format("_easting=%s",veaf.p(_easting)))
                 if #_eastingString == 1 then
                     _easting = _easting * 10000
                 elseif #_eastingString == 2 then
@@ -792,7 +786,7 @@ function veaf.computeLLFromString(value)
                 end
 
                 local _utm= { UTMZone = _zone:upper(), MGRSDigraph = _digraph:upper(), Easting = _easting, Northing = _northing }  
-                veaf.mainLogTrace(string.format("_utm=%s",veaf.p(_utm)))
+                veaf.loggers.get(veaf.Id):trace(string.format("_utm=%s",veaf.p(_utm)))
                 return coord.MGRStoLL(_utm)
             end
         elseif _firstChar == "n" or _firstChar == "s" or _firstChar == "e" or _firstChar == "w" then
@@ -827,11 +821,11 @@ function veaf.placePointOnLand(vec3)
         vec3.y = 0
     end
     
-    veaf.mainLogTrace(string.format("getLandHeight: vec3  x=%.1f y=%.1f, z=%.1f", vec3.x, vec3.y, vec3.z))
+    veaf.loggers.get(veaf.Id):trace(string.format("getLandHeight: vec3  x=%.1f y=%.1f, z=%.1f", vec3.x, vec3.y, vec3.z))
     local height = veaf.getLandHeight(vec3)
-    veaf.mainLogTrace(string.format("getLandHeight: result  height=%.1f",height))
+    veaf.loggers.get(veaf.Id):trace(string.format("getLandHeight: result  height=%.1f",height))
     local result={x=vec3.x, y=height, z=vec3.z}
-    veaf.mainLogTrace(string.format("placePointOnLand: result  x=%.1f y=%.1f, z=%.1f", result.x, result.y, result.z))
+    veaf.loggers.get(veaf.Id):trace(string.format("placePointOnLand: result  x=%.1f y=%.1f, z=%.1f", result.x, result.y, result.z))
     return result
 end
 
@@ -931,10 +925,10 @@ function veaf.getWind(point)
     local strength=math.floor(math.sqrt((windvec3.x)^2+(windvec3.z)^2))
     
     -- Debug output.
-    veaf.mainLogTrace(string.format("Wind data: point x=%.1f y=%.1f, z=%.1f", point.x, point.y,point.z))
-    veaf.mainLogTrace(string.format("Wind data: wind  x=%.1f y=%.1f, z=%.1f", windvec3.x, windvec3.y,windvec3.z))
-    veaf.mainLogTrace(string.format("Wind data: |v| = %.1f", strength))
-    veaf.mainLogTrace(string.format("Wind data: ang = %.1f", direction))
+    veaf.loggers.get(veaf.Id):trace(string.format("Wind data: point x=%.1f y=%.1f, z=%.1f", point.x, point.y,point.z))
+    veaf.loggers.get(veaf.Id):trace(string.format("Wind data: wind  x=%.1f y=%.1f, z=%.1f", windvec3.x, windvec3.y,windvec3.z))
+    veaf.loggers.get(veaf.Id):trace(string.format("Wind data: |v| = %.1f", strength))
+    veaf.loggers.get(veaf.Id):trace(string.format("Wind data: ang = %.1f", direction))
     
     -- Return wind direction and strength (in m/s).
     return direction, strength, windvec3
@@ -960,12 +954,12 @@ end
 
 --- TODO doc
 function veaf.generateVehiclesRoute(startPoint, destination, onRoad, speed, patrol)
-    veaf.mainLogTrace(string.format("veaf.generateVehiclesRoute(onRoad=[%s], speed=[%s], patrol=[%s])", tostring(onRoad or ""), tostring(speed or ""), tostring(patrol or "")))
+    veaf.loggers.get(veaf.Id):trace(string.format("veaf.generateVehiclesRoute(onRoad=[%s], speed=[%s], patrol=[%s])", tostring(onRoad or ""), tostring(speed or ""), tostring(patrol or "")))
 
     speed = speed or veaf.DEFAULT_GROUND_SPEED_KPH
     onRoad = onRoad or false
     patrol = patrol or false
-    veaf.mainLogTrace(string.format("startPoint = {x = %d, y = %d, z = %d}", startPoint.x, startPoint.y, startPoint.z))
+    veaf.loggers.get(veaf.Id):trace(string.format("startPoint = {x = %d, y = %d, z = %d}", startPoint.x, startPoint.y, startPoint.z))
     local action = "Diamond"
     if onRoad then
         action = "On Road"
@@ -975,38 +969,38 @@ function veaf.generateVehiclesRoute(startPoint, destination, onRoad, speed, patr
     if not(endPoint) then
         -- check if these are coordinates
         local _lat, _lon = veaf.computeLLFromString(destination)
-        veaf.mainLogTrace(string.format("_lat=%s",veaf.p(_lat)))
-        veaf.mainLogTrace(string.format("_lon=%s",veaf.p(_lon)))
+        veaf.loggers.get(veaf.Id):trace(string.format("_lat=%s",veaf.p(_lat)))
+        veaf.loggers.get(veaf.Id):trace(string.format("_lon=%s",veaf.p(_lon)))
         if _lat and _lon then 
             endPoint = coord.LLtoLO(_lat, _lon)
         end
     end
     if not(endPoint) then
         local msg = "A point named "..destination.." cannot be found, and these are not valid coordinates !"
-        veaf.logWarning(msg)
+        veaf.loggers.get(veaf.Id):warn(msg)
         trigger.action.outText(msg, 5)
         return
     end
-    veaf.mainLogTrace(string.format("endPoint=%s", veaf.p(endPoint)))
+    veaf.loggers.get(veaf.Id):trace(string.format("endPoint=%s", veaf.p(endPoint)))
         
     if onRoad then
-        veaf.mainLogTrace("setting startPoint on a road")
+        veaf.loggers.get(veaf.Id):trace("setting startPoint on a road")
         local road_x, road_z = land.getClosestPointOnRoads('roads',startPoint.x, startPoint.z)
         startPoint = veaf.placePointOnLand({x = road_x, y = 0, z = road_z})
     else
         startPoint = veaf.placePointOnLand({x = startPoint.x, y = 0, z = startPoint.z})
     end
     
-    veaf.mainLogTrace(string.format("startPoint = {x = %d, y = %d, z = %d}", startPoint.x, startPoint.y, startPoint.z))
+    veaf.loggers.get(veaf.Id):trace(string.format("startPoint = {x = %d, y = %d, z = %d}", startPoint.x, startPoint.y, startPoint.z))
 
     if onRoad then
-        veaf.mainLogTrace("setting endPoint on a road")
+        veaf.loggers.get(veaf.Id):trace("setting endPoint on a road")
         road_x, road_z =land.getClosestPointOnRoads('roads',endPoint.x, endPoint.z)
         endPoint = veaf.placePointOnLand({x = road_x, y = 0, z = road_z})
     else
         endPoint = veaf.placePointOnLand({x = endPoint.x, y = 0, z = endPoint.z})
     end
-    veaf.mainLogTrace(string.format("endPoint = {x = %d, y = %d, z = %d}", endPoint.x, endPoint.y, endPoint.z))
+    veaf.loggers.get(veaf.Id):trace(string.format("endPoint = {x = %d, y = %d, z = %d}", endPoint.x, endPoint.y, endPoint.z))
     
     local vehiclesRoute = {
         [1] = 
@@ -1090,7 +1084,7 @@ function veaf.generateVehiclesRoute(startPoint, destination, onRoad, speed, patr
             ["speed_locked"] = true,
         }
     end
-    veaf.mainLogTrace(string.format("vehiclesRoute = %s", veaf.p(vehiclesRoute)))
+    veaf.loggers.get(veaf.Id):trace(string.format("vehiclesRoute = %s", veaf.p(vehiclesRoute)))
 
     return vehiclesRoute
 end
@@ -1112,17 +1106,17 @@ function veaf.addUnit(group, spawnSpot, dispersion, unitType, unitName, skill)
             }
         )
     else
-        veaf.mainLogInfo("cannot find a suitable position for unit "..unitType)
+        veaf.loggers.get(veaf.Id):info("cannot find a suitable position for unit "..unitType)
     end
 end
 
 --- Makes a group move to a waypoint set at a specific heading and at a distance covered at a specific speed in an hour
 function veaf.moveGroupAt(groupName, leadUnitName, heading, speed, timeInSeconds, endPosition, pMiddlePointDistance)
-    veaf.mainLogDebug("veaf.moveGroupAt(groupName=" .. groupName .. ", heading="..heading.. ", speed=".. speed..", timeInSeconds="..(timeInSeconds or 0))
+    veaf.loggers.get(veaf.Id):debug("veaf.moveGroupAt(groupName=" .. groupName .. ", heading="..heading.. ", speed=".. speed..", timeInSeconds="..(timeInSeconds or 0))
 
     local unitGroup = Group.getByName(groupName)
     if unitGroup == nil then
-        veaf.mainLogError("veaf.moveGroupAt: " .. groupName .. ' not found')
+        veaf.loggers.get(veaf.Id):error("veaf.moveGroupAt: " .. groupName .. ' not found')
 		return false
     end
     
@@ -1131,15 +1125,15 @@ function veaf.moveGroupAt(groupName, leadUnitName, heading, speed, timeInSeconds
         leadUnit = Unit.getByName(leadUnitName)
     end
     if leadUnit == nil then
-        veaf.mainLogError("veaf.moveGroupAt: " .. leadUnitName .. ' not found')
+        veaf.loggers.get(veaf.Id):error("veaf.moveGroupAt: " .. leadUnitName .. ' not found')
 		return false
     end
     
     local headingRad = mist.utils.toRadian(heading)
-    veaf.mainLogTrace("headingRad="..headingRad)
+    veaf.loggers.get(veaf.Id):trace("headingRad="..headingRad)
     local fromPosition = leadUnit:getPosition().p
     fromPosition = { x = fromPosition.x, y = fromPosition.z }
-    veaf.mainLogTrace("fromPosition="..veaf.vecToString(fromPosition))
+    veaf.loggers.get(veaf.Id):trace("fromPosition="..veaf.vecToString(fromPosition))
 
     local mission = { 
 		id = 'Mission', 
@@ -1180,7 +1174,7 @@ function veaf.moveGroupAt(groupName, leadUnitName, heading, speed, timeInSeconds
         }
         fromPosition.x = newWaypoint1.x
         fromPosition.y = newWaypoint1.y
-        veaf.mainLogTrace("newWaypoint1="..veaf.vecToString(newWaypoint1))
+        veaf.loggers.get(veaf.Id):trace("newWaypoint1="..veaf.vecToString(newWaypoint1))
 
         table.insert(mission.params.route.points, 
             {
@@ -1204,14 +1198,14 @@ function veaf.moveGroupAt(groupName, leadUnitName, heading, speed, timeInSeconds
     else
         length = speed * 3600 -- m travelled in 1 hour
     end
-    veaf.mainLogTrace("length="..length .. " m")
+    veaf.loggers.get(veaf.Id):trace("length="..length .. " m")
 
     -- new route point
 	local newWaypoint2 = {
 		x = fromPosition.x + length * math.cos(headingRad),
 		y = fromPosition.y + length * math.sin(headingRad),
 	}
-    veaf.mainLogTrace("newWaypoint2="..veaf.vecToString(newWaypoint2))
+    veaf.loggers.get(veaf.Id):trace("newWaypoint2="..veaf.vecToString(newWaypoint2))
 
     table.insert(mission.params.route.points, 
         {
@@ -1268,12 +1262,12 @@ function veaf.moveGroupTo(groupName, pos, speed, altitude)
     if not(altitude) then
         altitude = 0
     end
-    veaf.mainLogDebug("veaf.moveGroupTo(groupName=" .. groupName .. ", speed=".. speed .. ", altitude=".. altitude)
-    veaf.mainLogDebug("pos="..veaf.vecToString(pos))
+    veaf.loggers.get(veaf.Id):debug("veaf.moveGroupTo(groupName=" .. groupName .. ", speed=".. speed .. ", altitude=".. altitude)
+    veaf.loggers.get(veaf.Id):debug("pos="..veaf.vecToString(pos))
 
 	local unitGroup = Group.getByName(groupName)
     if unitGroup == nil then
-        veaf.mainLogError("veaf.moveGroupTo: " .. groupName .. ' not found')
+        veaf.loggers.get(veaf.Id):error("veaf.moveGroupTo: " .. groupName .. ' not found')
 		return false
     end
     
@@ -1324,30 +1318,30 @@ end
 --- Computes the coordinates of a point offset from a route of a certain distance, at a certain distance from route start
 --- e.g. we go from [startingPoint] to [destinationPoint], and at [distanceFromStartingPoint] we look at [offset] meters (left if <0, right else)
 function veaf.computeCoordinatesOffsetFromRoute(startingPoint, destinationPoint, distanceFromStartingPoint, offset)
-    veaf.mainLogTrace("startingPoint="..veaf.vecToString(startingPoint))
-    veaf.mainLogTrace("destinationPoint="..veaf.vecToString(destinationPoint))
+    veaf.loggers.get(veaf.Id):trace("startingPoint="..veaf.vecToString(startingPoint))
+    veaf.loggers.get(veaf.Id):trace("destinationPoint="..veaf.vecToString(destinationPoint))
     
     local vecAB = {x = destinationPoint.x +- startingPoint.x, y = destinationPoint.y - startingPoint.y, z = destinationPoint.z - startingPoint.z}
-    veaf.mainLogTrace("vecAB="..veaf.vecToString(vecAB))
+    veaf.loggers.get(veaf.Id):trace("vecAB="..veaf.vecToString(vecAB))
     local alpha = math.atan2(vecAB.x, vecAB.z) -- atan2(y, x) 
-    veaf.mainLogTrace("alpha="..alpha)
+    veaf.loggers.get(veaf.Id):trace("alpha="..alpha)
     local r = math.sqrt(distanceFromStartingPoint * distanceFromStartingPoint + offset * offset)
-    veaf.mainLogTrace("r="..r)
+    veaf.loggers.get(veaf.Id):trace("r="..r)
     local beta = math.atan(offset / distanceFromStartingPoint)
-    veaf.mainLogTrace("beta="..beta)
+    veaf.loggers.get(veaf.Id):trace("beta="..beta)
     local tho = alpha + beta
-    veaf.mainLogTrace("tho="..tho)
+    veaf.loggers.get(veaf.Id):trace("tho="..tho)
     local offsetPoint = { z = r * math.cos(tho) + startingPoint.z, y = 0, x = r * math.sin(tho) + startingPoint.x}
-    veaf.mainLogTrace("offsetPoint="..veaf.vecToString(offsetPoint))
+    veaf.loggers.get(veaf.Id):trace("offsetPoint="..veaf.vecToString(offsetPoint))
     local offsetPointOnLand = veaf.placePointOnLand(offsetPoint)
-    veaf.mainLogTrace("offsetPointOnLand="..veaf.vecToString(offsetPointOnLand))
+    veaf.loggers.get(veaf.Id):trace("offsetPointOnLand="..veaf.vecToString(offsetPointOnLand))
 
     return offsetPointOnLand, offsetPoint
 end
 
 function veaf.getBearingAndRangeFromTo(fromPoint, toPoint)
-    veaf.mainLogTrace("fromPoint="..veaf.vecToString(fromPoint))
-    veaf.mainLogTrace("toPoint="..veaf.vecToString(toPoint))
+    veaf.loggers.get(veaf.Id):trace("fromPoint="..veaf.vecToString(fromPoint))
+    veaf.loggers.get(veaf.Id):trace("toPoint="..veaf.vecToString(toPoint))
     
     local vec = { z = toPoint.z - fromPoint.z, x = toPoint.x - fromPoint.x}
     local angle = mist.utils.round(mist.utils.toDegree(mist.utils.getDir(vec)), 0)
@@ -1407,8 +1401,8 @@ function veaf.getUnitsOfCoalition(includeStatics, coa)
 end
 
 function veaf.findUnitsInCircle(center, radius, includeStatics)
-    veaf.mainLogTrace(string.format("findUnitsInCircle(radius=%s)", tostring(radius)))
-    veaf.mainLogTrace(string.format("center=%s", veaf.p(center)))
+    veaf.loggers.get(veaf.Id):trace(string.format("findUnitsInCircle(radius=%s)", tostring(radius)))
+    veaf.loggers.get(veaf.Id):trace(string.format("center=%s", veaf.p(center)))
 
 
     local allDcsUnits = veaf.getUnitsOfAllCoalitions(includeStatics)
@@ -1419,7 +1413,7 @@ function veaf.findUnitsInCircle(center, radius, includeStatics)
         if pos then -- you never know O.o
             local name = unit:getName()
             distanceFromCenter = ((pos.x - center.x)^2 + (pos.z - center.z)^2)^0.5
-            veaf.mainLogTrace(string.format("name=%s; distanceFromCenter=%s", tostring(name), veaf.p(distanceFromCenter)))
+            veaf.loggers.get(veaf.Id):trace(string.format("name=%s; distanceFromCenter=%s", tostring(name), veaf.p(distanceFromCenter)))
             if distanceFromCenter <= radius then
                 result[name] = unit
             end
@@ -1435,7 +1429,7 @@ function veaf.getGroupData(groupIdent)
         if mist.DBs.MEgroupsByName[groupIdent] then
             gpId = mist.DBs.MEgroupsByName[groupIdent].groupId
         else
-            veaf.mainLogInfo(groupIdent..' not found in mist.DBs.MEgroupsByName')
+            veaf.loggers.get(veaf.Id):info(groupIdent..' not found in mist.DBs.MEgroupsByName')
         end
 
     for coa_name, coa_data in pairs(env.mission.coalition) do
@@ -1458,7 +1452,7 @@ function veaf.getGroupData(groupIdent)
         end
     end
     
-    veaf.mainLogInfo(' no group data found for '..groupIdent)
+    veaf.loggers.get(veaf.Id):info(' no group data found for '..groupIdent)
     return nil
 end
 
@@ -1468,13 +1462,13 @@ function veaf.findInTable(data, key)
         result = data[key]
     end
     if result then 
-        veaf.mainLogTrace(".findInTable found ".. key)
+        veaf.loggers.get(veaf.Id):trace(".findInTable found ".. key)
     end
     return result
 end
 
 function veaf.getTankerData(tankerGroupName)
-    veaf.mainLogTrace("getTankerData " .. tankerGroupName)
+    veaf.loggers.get(veaf.Id):trace("getTankerData " .. tankerGroupName)
     local result = nil
     local tankerData = veaf.getGroupData(tankerGroupName)
     if tankerData then
@@ -1502,25 +1496,25 @@ function veaf.getTankerData(tankerGroupName)
         local route = veaf.findInTable(tankerData, "route")
         local points = veaf.findInTable(route, "points")
         if points then
-            veaf.mainLogTrace("found a " .. #points .. "-points route for tanker " .. tankerGroupName)
+            veaf.loggers.get(veaf.Id):trace("found a " .. #points .. "-points route for tanker " .. tankerGroupName)
             for i, point in pairs(points) do
-                veaf.mainLogTrace("found point #" .. i)
+                veaf.loggers.get(veaf.Id):trace("found point #" .. i)
                 local task = veaf.findInTable(point, "task")
                 if task then
                     local tasks = task.params.tasks
                     if (tasks) then
-                        veaf.mainLogTrace("found " .. #tasks .. " tasks")
+                        veaf.loggers.get(veaf.Id):trace("found " .. #tasks .. " tasks")
                         for j, task in pairs(tasks) do
-                            veaf.mainLogTrace("found task #" .. j)
+                            veaf.loggers.get(veaf.Id):trace("found task #" .. j)
                             if task.params then
-                                veaf.mainLogTrace("has .params")
+                                veaf.loggers.get(veaf.Id):trace("has .params")
                                 if task.params.action then
-                                    veaf.mainLogTrace("has .action")
+                                    veaf.loggers.get(veaf.Id):trace("has .action")
                                     if task.params.action.params then
-                                        veaf.mainLogTrace("has .params")
+                                        veaf.loggers.get(veaf.Id):trace("has .params")
                                         if task.params.action.params.channel then
-                                            veaf.mainLogTrace("has .channel")
-                                            veaf.mainLogInfo("Found a TACAN task for tanker " .. tankerGroupName)
+                                            veaf.loggers.get(veaf.Id):trace("has .channel")
+                                            veaf.loggers.get(veaf.Id):info("Found a TACAN task for tanker " .. tankerGroupName)
                                             result.tankerTacanTask = task
                                             result.tankerTacanChannel = task.params.action.params.channel
                                             result.tankerTacanMode = task.params.action.params.modeChannel
@@ -1569,11 +1563,11 @@ function veaf.weatherReport(vec3, alt, withLASTE)
 
     -- At user specified altitude.
     T,Pqfe=atmosphere.getTemperatureAndPressure({x=vec3.x, y=alt, z=vec3.z})
-    veaf.mainLogTrace(string.format("T = %.1f, Pqfe = %.2f", T,Pqfe))
+    veaf.loggers.get(veaf.Id):trace(string.format("T = %.1f, Pqfe = %.2f", T,Pqfe))
     
     -- Get pressure at sea level.
     local _,Pqnh=atmosphere.getTemperatureAndPressure({x=vec3.x, y=0, z=vec3.z})
-    veaf.mainLogTrace(string.format("Pqnh = %.2f", Pqnh))
+    veaf.loggers.get(veaf.Id):trace(string.format("Pqnh = %.2f", Pqnh))
     
     -- Convert pressure from Pascal to hecto Pascal.
     Pqfe=Pqfe/100
@@ -1589,7 +1583,7 @@ function veaf.weatherReport(vec3, alt, withLASTE)
   
     -- Get wind direction and speed.
     local Dir,Vel=weathermark._GetWind(vec3, alt)
-    veaf.mainLogTrace(string.format("Dir = %.1f, Vel = %.1f", Dir,Vel))
+    veaf.loggers.get(veaf.Id):trace(string.format("Dir = %.1f, Vel = %.1f", Dir,Vel))
 
     -- Get Beaufort wind scale.
     local Bn,Bd=weathermark._BeaufortScale(Vel)
@@ -1646,7 +1640,7 @@ local function _initializeCountriesAndCoalitions()
 
     for coalitionName, countries in pairs(mist.DBs.units) do
         coalitionName = coalitionName:lower()
-        veaf.mainLogTrace(string.format("coalitionName=%s", veaf.p(coalitionName)))
+        veaf.loggers.get(veaf.Id):trace(string.format("coalitionName=%s", veaf.p(coalitionName)))
 
         if not veaf.countriesByCoalition[coalitionName] then 
             veaf.countriesByCoalition[coalitionName]={} 
@@ -1660,12 +1654,12 @@ local function _initializeCountriesAndCoalitions()
         table.sort(veaf.countriesByCoalition[coalitionName], _sortByImportance)
     end
 
-    veaf.mainLogTrace(string.format("veaf.countriesByCoalition=%s", veaf.p(veaf.countriesByCoalition)))
-    veaf.mainLogTrace(string.format("veaf.coalitionByCountry=%s", veaf.p(veaf.coalitionByCountry)))
+    veaf.loggers.get(veaf.Id):trace(string.format("veaf.countriesByCoalition=%s", veaf.p(veaf.countriesByCoalition)))
+    veaf.loggers.get(veaf.Id):trace(string.format("veaf.coalitionByCountry=%s", veaf.p(veaf.coalitionByCountry)))
 end
 
 function veaf.getCountryForCoalition(coalition)
-    veaf.mainLogTrace(string.format("veaf.getCountryForCoalition(coalition=%s)", tostring(coalition)))
+    veaf.loggers.get(veaf.Id):trace(string.format("veaf.getCountryForCoalition(coalition=%s)", tostring(coalition)))
     local coalition = coalition
     if not coalition then 
         coalition = 1 
@@ -1698,7 +1692,7 @@ function veaf.getCountryForCoalition(coalition)
 end
 
 function veaf.getCoalitionForCountry(countryName, asNumber)
-    veaf.mainLogTrace(string.format("veaf.getCoalitionForCountry(countryName=%s, asNumber=%s)", tostring(countryName), tostring(asNumber)))
+    veaf.loggers.get(veaf.Id):trace(string.format("veaf.getCoalitionForCountry(countryName=%s, asNumber=%s)", tostring(countryName), tostring(asNumber)))
 
     if countryName then
         countryName = countryName:lower()
@@ -1723,29 +1717,29 @@ end
 -- mission restart at a certain hour of the day
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 function veaf._endMission(delay1, message1, delay2, message2, delay3, message3)
-    veaf.mainLogTrace(string.format("veaf._endMission(delay1=%s, message1=%s, delay2=%s, message2=%s, delay3=%s, message3=%s)", veaf.p(delay1), veaf.p(message1), veaf.p(delay2), veaf.p(message2), veaf.p(delay3), veaf.p(message3)))
+    veaf.loggers.get(veaf.Id):trace(string.format("veaf._endMission(delay1=%s, message1=%s, delay2=%s, message2=%s, delay3=%s, message3=%s)", veaf.p(delay1), veaf.p(message1), veaf.p(delay2), veaf.p(message2), veaf.p(delay3), veaf.p(message3)))
 
     if not delay1 then
         -- no more delay, let's end this !
         trigger.action.outText("Ending mission !",30)
-        veaf.mainLogInfo("ending mission")
+        veaf.loggers.get(veaf.Id):info("ending mission")
         trigger.action.setUserFlag("666", 1)
     else 
         -- show the message
         trigger.action.outText(message1,30)
         -- schedule this function after "delay1" seconds
-        veaf.mainLogInfo(string.format("schedule veaf._endMission after %d seconds", delay1))
+        veaf.loggers.get(veaf.Id):info(string.format("schedule veaf._endMission after %d seconds", delay1))
         mist.scheduleFunction(veaf._endMission, {delay2, message2, delay3, message3}, timer.getTime()+delay1)
     end
 end
 
 function veaf._checkForEndMission(endTimeInSeconds, checkIntervalInSeconds, checkMessage, delay1, message1, delay2, message2, delay3, message3)
-    veaf.mainLogTrace(string.format("veaf._checkForEndMission(endTimeInSeconds=%s, checkIntervalInSeconds=%s, checkMessage=%s, delay1=%s, message1=%s, delay2=%s, message2=%s, delay3=%s, message3=%s)", veaf.p(endTimeInSeconds), veaf.p(checkIntervalInSeconds), veaf.p(checkMessage), veaf.p(delay1), veaf.p(message1), veaf.p(delay2), veaf.p(message2), veaf.p(delay3), veaf.p(message3)))
+    veaf.loggers.get(veaf.Id):trace(string.format("veaf._checkForEndMission(endTimeInSeconds=%s, checkIntervalInSeconds=%s, checkMessage=%s, delay1=%s, message1=%s, delay2=%s, message2=%s, delay3=%s, message3=%s)", veaf.p(endTimeInSeconds), veaf.p(checkIntervalInSeconds), veaf.p(checkMessage), veaf.p(delay1), veaf.p(message1), veaf.p(delay2), veaf.p(message2), veaf.p(delay3), veaf.p(message3)))
     
-    veaf.mainLogTrace(string.format("timer.getAbsTime()=%d", timer.getAbsTime()))
+    veaf.loggers.get(veaf.Id):trace(string.format("timer.getAbsTime()=%d", timer.getAbsTime()))
 
     if timer.getAbsTime() >= endTimeInSeconds then
-        veaf.mainLogTrace("calling veaf._endMission")
+        veaf.loggers.get(veaf.Id):trace("calling veaf._endMission")
         veaf._endMission(delay1, message1, delay2, message2, delay3, message3)
     else
         -- output the message if specified
@@ -1753,21 +1747,21 @@ function veaf._checkForEndMission(endTimeInSeconds, checkIntervalInSeconds, chec
             trigger.action.outText(checkMessage,30)
         end
         -- schedule this function after a delay
-        veaf.mainLogTrace(string.format("schedule veaf._checkForEndMission after %d seconds", checkIntervalInSeconds))
+        veaf.loggers.get(veaf.Id):trace(string.format("schedule veaf._checkForEndMission after %d seconds", checkIntervalInSeconds))
         mist.scheduleFunction(veaf._checkForEndMission, {endTimeInSeconds, checkIntervalInSeconds, checkMessage, delay1, message1, delay2, message2, delay3, message3}, timer.getTime()+checkIntervalInSeconds)
     end
 end
 
 function veaf.endMissionAt(endTimeHour, endTimeMinute, checkIntervalInSeconds, checkMessage, delay1, message1, delay2, message2, delay3, message3)
-    veaf.mainLogTrace(string.format("veaf.endMissionAt(endTimeHour=%s, endTimeMinute=%s, checkIntervalInSeconds=%s, checkMessage=%s, delay1=%s, message1=%s, delay2=%s, message2=%s, delay3=%s, message3=%s)", veaf.p(endTimeHour), veaf.p(endTimeMinute), veaf.p(checkIntervalInSeconds), veaf.p(checkMessage), veaf.p(delay1), veaf.p(message1), veaf.p(delay2), veaf.p(message2), veaf.p(delay3), veaf.p(message3)))
+    veaf.loggers.get(veaf.Id):trace(string.format("veaf.endMissionAt(endTimeHour=%s, endTimeMinute=%s, checkIntervalInSeconds=%s, checkMessage=%s, delay1=%s, message1=%s, delay2=%s, message2=%s, delay3=%s, message3=%s)", veaf.p(endTimeHour), veaf.p(endTimeMinute), veaf.p(checkIntervalInSeconds), veaf.p(checkMessage), veaf.p(delay1), veaf.p(message1), veaf.p(delay2), veaf.p(message2), veaf.p(delay3), veaf.p(message3)))
 
     local endTimeInSeconds = endTimeHour * 3600 + endTimeMinute * 60
-    veaf.mainLogTrace(string.format("endTimeInSeconds=%d", endTimeInSeconds))
+    veaf.loggers.get(veaf.Id):trace(string.format("endTimeInSeconds=%d", endTimeInSeconds))
     veaf._checkForEndMission(endTimeInSeconds, checkIntervalInSeconds, checkMessage, delay1, message1, delay2, message2, delay3, message3)    
 end
 
 function veaf.randomlyChooseFrom(aTable, bias)
-    veaf.mainLogTrace(string.format("randomlyChooseFrom(%d):%s",bias or 0, veaf.p(aTable)))
+    veaf.loggers.get(veaf.Id):trace(string.format("randomlyChooseFrom(%d):%s",bias or 0, veaf.p(aTable)))
     local index = math.floor(math.random(1, #aTable)) + (bias or 0)
     if index < 1 then index = 1 end
     if index > #aTable then index = #aTable end
@@ -1783,9 +1777,9 @@ function veaf.safeUnpack(package)
 end
 
 function veaf.getRandomizableNumeric_random(val)
-    veaf.mainLogTrace(string.format("getRandomizableNumeric_random(%s)", tostring(val)))
+    veaf.loggers.get(veaf.Id):trace(string.format("getRandomizableNumeric_random(%s)", tostring(val)))
     local nVal = tonumber(val)
-    veaf.mainLogTrace(string.format("nVal=%s", tostring(nVal)))
+    veaf.loggers.get(veaf.Id):trace(string.format("nVal=%s", tostring(nVal)))
     if nVal == nil then 
         --[[
         local dashPos = nil
@@ -1798,19 +1792,19 @@ function veaf.getRandomizableNumeric_random(val)
         end
         if dashPos then 
             local lower = val:sub(1, dashPos-1)
-            veaf.mainLogTrace(string.format("lower=%s", tostring(lower)))
+            veaf.loggers.get(veaf.Id):trace(string.format("lower=%s", tostring(lower)))
             if lower then 
                 lower = tonumber(lower)
             end
             if lower == nil then lower = 0 end
             local upper = val:sub(dashPos+1)
-            veaf.mainLogTrace(string.format("upper=%s", tostring(upper)))
+            veaf.loggers.get(veaf.Id):trace(string.format("upper=%s", tostring(upper)))
             if upper then 
                 upper = tonumber(upper)
             end
             if upper == nil then upper = 5 end
             nVal = math.random(lower, upper)
-            veaf.mainLogTrace(string.format("random nVal=%s", tostring(nVal)))
+            veaf.loggers.get(veaf.Id):trace(string.format("random nVal=%s", tostring(nVal)))
         end
         --]]
 
@@ -1896,33 +1890,33 @@ function veaf.getRandomizableNumeric_random(val)
     --[[
         -- maybe it's a range ?
         local dashPos = val:find("-")
-        veaf.mainLogTrace(string.format("dashPos=%s", tostring(dashPos)))
+        veaf.loggers.get(veaf.Id):trace(string.format("dashPos=%s", tostring(dashPos)))
         if dashPos then 
             local lower = val:sub(1, dashPos-1)
-            veaf.mainLogTrace(string.format("lower=%s", tostring(lower)))
+            veaf.loggers.get(veaf.Id):trace(string.format("lower=%s", tostring(lower)))
             if lower then 
                 lower = tonumber(lower)
             end
             if lower == nil then lower = 0 end
             local upper = val:sub(dashPos+1)
-            veaf.mainLogTrace(string.format("upper=%s", tostring(upper)))
+            veaf.loggers.get(veaf.Id):trace(string.format("upper=%s", tostring(upper)))
             if upper then 
                 upper = tonumber(upper)
             end
             if upper == nil then upper = 5 end
             nVal = math.random(lower, upper)
-            veaf.mainLogTrace(string.format("random nVal=%s", tostring(nVal)))
+            veaf.loggers.get(veaf.Id):trace(string.format("random nVal=%s", tostring(nVal)))
         end
         --]]
     end
-    veaf.mainLogTrace(string.format("nVal=%s", tostring(nVal)))
+    veaf.loggers.get(veaf.Id):trace(string.format("nVal=%s", tostring(nVal)))
     return nVal
 end
 
 function veaf.getRandomizableNumeric_norandom(val)
-    veaf.mainLogTrace(string.format("getRandomizableNumeric_norandom(%s)", tostring(val)))
+    veaf.loggers.get(veaf.Id):trace(string.format("getRandomizableNumeric_norandom(%s)", tostring(val)))
     local nVal = tonumber(val)
-    veaf.mainLogTrace(string.format("nVal=%s", tostring(nVal)))
+    veaf.loggers.get(veaf.Id):trace(string.format("nVal=%s", tostring(nVal)))
     if nVal == nil then 
         if val == "1-2" then nVal = 2 end
         if val == "1-3" then nVal = 3 end
@@ -1942,17 +1936,17 @@ function veaf.getRandomizableNumeric_norandom(val)
         
         if val == "10-15" then nVal = 12 end
     end
-    veaf.mainLogTrace(string.format("nVal=%s", tostring(nVal)))
+    veaf.loggers.get(veaf.Id):trace(string.format("nVal=%s", tostring(nVal)))
     return nVal
 end
 
 function veaf.getRandomizableNumeric(val)
-    veaf.mainLogTrace(string.format("getRandomizableNumeric(%s)", tostring(val)))
+    veaf.loggers.get(veaf.Id):trace(string.format("getRandomizableNumeric(%s)", tostring(val)))
     return veaf.getRandomizableNumeric_random(val)
 end
 
 function veaf.writeLineToTextFile(line, filename, filepath)
-    veaf.mainLogTrace(string.format("writeLineToTextFile(%s, %s)", veaf.p(line), veaf.p(filename)))
+    veaf.loggers.get(veaf.Id):trace(string.format("writeLineToTextFile(%s, %s)", veaf.p(line), veaf.p(filename)))
 
     local l_lfs = lfs
     if not l_lfs and SERVER_CONFIG and SERVER_CONFIG.getModule then
@@ -1973,16 +1967,16 @@ function veaf.writeLineToTextFile(line, filename, filepath)
     if not filepath and l_os then
         filepath = l_os.getenv("VEAF_EXPORT_DIR")
         if filepath then filepath = filepath .. "\\" end
-        veaf.mainLogTrace(string.format("filepath=%s", veaf.p(filepath)))
+        veaf.loggers.get(veaf.Id):trace(string.format("filepath=%s", veaf.p(filepath)))
     end
     if not filepath and l_os then
         filepath = l_os.getenv("TEMP")
         if filepath then filepath = filepath .. "\\" end
-        veaf.mainLogTrace(string.format("filepath=%s", veaf.p(filepath)))
+        veaf.loggers.get(veaf.Id):trace(string.format("filepath=%s", veaf.p(filepath)))
     end
     if not filepath and l_lfs then
         filepath = l_lfs.writedir()
-        veaf.mainLogTrace(string.format("filepath=%s", veaf.p(filepath)))
+        veaf.loggers.get(veaf.Id):trace(string.format("filepath=%s", veaf.p(filepath)))
     end
 
     if not filepath then
@@ -1996,10 +1990,10 @@ function veaf.writeLineToTextFile(line, filename, filepath)
         date = l_os.date('%Y-%m-%d %H:%M:%S.000')
     end
     
-    veaf.mainLogTrace(string.format("filename=%s", veaf.p(filename)))
+    veaf.loggers.get(veaf.Id):trace(string.format("filename=%s", veaf.p(filename)))
     local file = l_io.open(filename, "a")
     if file then
-        veaf.mainLogTrace(string.format("file:write(%s)", veaf.p(line)))
+        veaf.loggers.get(veaf.Id):trace(string.format("file:write(%s)", veaf.p(line)))
         file:write(string.format("[%s] %s\r\n", date, line))
         file:close()
     end
@@ -2029,16 +2023,16 @@ function veaf.exportAsJson(data, name, jsonify, filename, export_path)
     if not export_path and l_os then
         export_path = l_os.getenv("VEAF_EXPORT_DIR")
         if export_path then export_path = export_path .. "\\" end
-        veaf.mainLogTrace(string.format("export_path=%s", veaf.p(export_path)))
+        veaf.loggers.get(veaf.Id):trace(string.format("export_path=%s", veaf.p(export_path)))
     end
     if not export_path and l_os then
         export_path = l_os.getenv("TEMP")
         if export_path then export_path = export_path .. "\\" end
-        veaf.mainLogTrace(string.format("export_path=%s", veaf.p(export_path)))
+        veaf.loggers.get(veaf.Id):trace(string.format("export_path=%s", veaf.p(export_path)))
     end
     if not export_path and l_lfs then
         export_path = l_lfs.writedir()
-        veaf.mainLogTrace(string.format("export_path=%s", veaf.p(export_path)))
+        veaf.loggers.get(veaf.Id):trace(string.format("export_path=%s", veaf.p(export_path)))
     end
     
     if not export_path then
@@ -2046,9 +2040,9 @@ function veaf.exportAsJson(data, name, jsonify, filename, export_path)
     end
     
     local filename = filename or name .. ".json"
-    veaf.mainLogTrace(string.format("filename=%s", veaf.p(filename)))
+    veaf.loggers.get(veaf.Id):trace(string.format("filename=%s", veaf.p(filename)))
     
-    veaf.mainLogInfo("Dumping ".. name .." as json to "..filename .. " in "..export_path)
+    veaf.loggers.get(veaf.Id):info("Dumping ".. name .." as json to "..filename .. " in "..export_path)
 
     local header =    '{\n'
     header = header .. '  "' .. name .. '": [\n'   
@@ -2089,11 +2083,11 @@ end
 
 function veaf.getPolygonFromUnits(unitNames)
 
-    veaf.mainLogDebug(string.format("veaf.getPolygonFromUnits()"))
-    veaf.mainLogTrace(string.format("unitNames = %s", veaf.p(unitNames)))
+    veaf.loggers.get(veaf.Id):debug(string.format("veaf.getPolygonFromUnits()"))
+    veaf.loggers.get(veaf.Id):trace(string.format("unitNames = %s", veaf.p(unitNames)))
     local polygon = {}
     for _, unitName in pairs(unitNames) do
-        veaf.mainLogTrace(string.format("unitName = %s", veaf.p(unitName)))
+        veaf.loggers.get(veaf.Id):trace(string.format("unitName = %s", veaf.p(unitName)))
         local unit = Unit.getByName(unitName)
         if not unit then
             local group = Group.getByName(unitName)
@@ -2105,11 +2099,11 @@ function veaf.getPolygonFromUnits(unitNames)
             -- get position, place tracing marker and remove the unit
             local position = unit:getPosition().p
             unit:destroy()
-            veaf.mainLogTrace(string.format("position = %s", veaf.p(position)))
+            veaf.loggers.get(veaf.Id):trace(string.format("position = %s", veaf.p(position)))
             table.insert(polygon, mist.utils.deepCopy(position))
         end
     end
-    veaf.mainLogTrace(string.format("polygon = %s", veaf.p(polygon)))
+    veaf.loggers.get(veaf.Id):trace(string.format("polygon = %s", veaf.p(polygon)))
     return polygon
 end
 
@@ -2156,7 +2150,7 @@ VeafQRA.DEFAULT_MESSAGE_DESTROYED = "%s has been destroyed"
 VeafQRA.DEFAULT_MESSAGE_READY = "%s is ready"
 
 function VeafQRA:new()
-    veaf.mainLogTrace(string.format("VeafQRA:new()"))
+    veaf.loggers.get(veaf.Id):trace(string.format("VeafQRA:new()"))
     local self = setmetatable({}, VeafQRA)
     self.name = nil
     self.description = nil
@@ -2176,7 +2170,7 @@ function VeafQRA:new()
 end
 
 function VeafQRA:setName(value)
-    veaf.mainLogTrace(string.format("VeafQRA[]:setName(%s)", veaf.p(value)))
+    veaf.loggers.get(veaf.Id):trace(string.format("VeafQRA[]:setName(%s)", veaf.p(value)))
     self.name = value
     return self
 end
@@ -2186,7 +2180,7 @@ function VeafQRA:getName()
 end
 
 function VeafQRA:setDescription(value)
-    veaf.mainLogTrace(string.format("VeafQRA[%s]:setDescription(%s)", veaf.p(self.name), veaf.p(value)))
+    veaf.loggers.get(veaf.Id):trace(string.format("VeafQRA[%s]:setDescription(%s)", veaf.p(self.name), veaf.p(value)))
     self.description = value
     return self
 end
@@ -2196,7 +2190,7 @@ function VeafQRA:getDescription()
 end
 
 function VeafQRA:addGroup(value)
-    veaf.mainLogTrace(string.format("VeafQRA[%s]:addGroup(%s)", veaf.p(self.name), veaf.p(value)))
+    veaf.loggers.get(veaf.Id):trace(string.format("VeafQRA[%s]:addGroup(%s)", veaf.p(self.name), veaf.p(value)))
     table.insert(self.groups, value)
     return self
 end
@@ -2206,7 +2200,7 @@ function VeafQRA:getGroups()
 end
 
 function VeafQRA:setCoalition(value)
-    veaf.mainLogTrace(string.format("VeafQRA[%s]:setCoalition(%s)", veaf.p(self.name), veaf.p(value)))
+    veaf.loggers.get(veaf.Id):trace(string.format("VeafQRA[%s]:setCoalition(%s)", veaf.p(self.name), veaf.p(value)))
     self.coalition = value
     return self
 end
@@ -2216,7 +2210,7 @@ function VeafQRA:getCoalition()
 end
 
 function VeafQRA:addEnnemyCoalition(value)
-    veaf.mainLogTrace(string.format("VeafQRA[%s]:addEnnemyCoalition(%s)", veaf.p(self.name), veaf.p(value)))
+    veaf.loggers.get(veaf.Id):trace(string.format("VeafQRA[%s]:addEnnemyCoalition(%s)", veaf.p(self.name), veaf.p(value)))
     self.ennemyCoalitions[value] = value
     return self
 end
@@ -2226,7 +2220,7 @@ function VeafQRA:getEnnemyCoalitions()
 end
 
 function VeafQRA:setMessageStart(value)
-    veaf.mainLogTrace(string.format("VeafQRA[%s]:setMessageStart(%s)", veaf.p(self.name), veaf.p(value)))
+    veaf.loggers.get(veaf.Id):trace(string.format("VeafQRA[%s]:setMessageStart(%s)", veaf.p(self.name), veaf.p(value)))
     self.messageStart = value
     return self
 end
@@ -2236,7 +2230,7 @@ function VeafQRA:getMessageStart()
 end
 
 function VeafQRA:setMessageDestroyed(value)
-    veaf.mainLogTrace(string.format("VeafQRA[%s]:setMessageDestroyed(%s)", veaf.p(self.name), veaf.p(value)))
+    veaf.loggers.get(veaf.Id):trace(string.format("VeafQRA[%s]:setMessageDestroyed(%s)", veaf.p(self.name), veaf.p(value)))
     self.messageDestroyed = value
     return self
 end
@@ -2246,7 +2240,7 @@ function VeafQRA:getMessageDestroyed()
 end
 
 function VeafQRA:setMessageReady(value)
-    veaf.mainLogTrace(string.format("VeafQRA[%s]:setMessageReady(%s)", veaf.p(self.name), veaf.p(value)))
+    veaf.loggers.get(veaf.Id):trace(string.format("VeafQRA[%s]:setMessageReady(%s)", veaf.p(self.name), veaf.p(value)))
     self.messageReady = value
     return self
 end
@@ -2256,7 +2250,7 @@ function VeafQRA:getMessageReady()
 end
 
 function VeafQRA:setSilent(value)
-    veaf.mainLogTrace(string.format("VeafQRA[]:setSilent(%s)", veaf.p(value)))
+    veaf.loggers.get(veaf.Id):trace(string.format("VeafQRA[]:setSilent(%s)", veaf.p(value)))
     self.silent = value
     return self
 end
@@ -2266,7 +2260,7 @@ function VeafQRA:isSilent()
 end
 
 function VeafQRA:setRadius(value)
-    veaf.mainLogTrace(string.format("VeafQRA[]:setRadius(%s)", veaf.p(value)))
+    veaf.loggers.get(veaf.Id):trace(string.format("VeafQRA[]:setRadius(%s)", veaf.p(value)))
     self.radius = value
     return self
 end
@@ -2279,14 +2273,14 @@ end
 
 
 function VeafQRA:_getEnemyHumanUnits()
-    --veaf.mainLogTrace(string.format("VeafQRA[%s]:_getEnemyHumanUnits() - computing", veaf.p(self.name)))
+    --veaf.loggers.get(veaf.Id):trace(string.format("VeafQRA[%s]:_getEnemyHumanUnits() - computing", veaf.p(self.name)))
     if not self._enemyHumanUnits then
-        veaf.mainLogTrace(string.format("VeafQRA[%s]:_getEnemyHumanUnits() - computing", veaf.p(self.name)))
+        veaf.loggers.get(veaf.Id):trace(string.format("VeafQRA[%s]:_getEnemyHumanUnits() - computing", veaf.p(self.name)))
         self._enemyHumanUnits = {}
-        veaf.mainLogTrace(string.format("self:getEnnemyCoalitions()[]=%s", veaf.p(self:getEnnemyCoalitions())))
+        veaf.loggers.get(veaf.Id):trace(string.format("self:getEnnemyCoalitions()[]=%s", veaf.p(self:getEnnemyCoalitions())))
         for name, unit in pairs(mist.DBs.humansByName) do
-            veaf.mainLogTrace(string.format("unit=%s", veaf._p(unit)))
-            veaf.mainLogTrace(string.format("unit.coalition=%s", veaf.p(unit.coalition)))
+            veaf.loggers.get(veaf.Id):trace(string.format("unit=%s", veaf._p(unit)))
+            veaf.loggers.get(veaf.Id):trace(string.format("unit.coalition=%s", veaf.p(unit.coalition)))
             local coalitionId = 0
             if unit.coalition then
                 if unit.coalition:lower() == "red" then
@@ -2304,13 +2298,13 @@ function VeafQRA:_getEnemyHumanUnits()
 end
 
 function VeafQRA:check()
-    veaf.mainLogTrace(string.format("VeafQRA[%s]:check()", veaf.p(self.name)))
-    veaf.mainLogTrace(string.format("self.state=%s", veaf._p(self.state)))
+    veaf.loggers.get(veaf.Id):trace(string.format("VeafQRA[%s]:check()", veaf.p(self.name)))
+    veaf.loggers.get(veaf.Id):trace(string.format("self.state=%s", veaf._p(self.state)))
 
     local unitNames = self:_getEnemyHumanUnits()
-    veaf.mainLogTrace(string.format("unitNames=%s", veaf.p(unitNames)))
+    veaf.loggers.get(veaf.Id):trace(string.format("unitNames=%s", veaf.p(unitNames)))
     local unitsInZone = mist.getUnitsInZones(unitNames, {self:getName()})
-    veaf.mainLogTrace(string.format("unitsInZone=%s", veaf._p(unitsInZone)))
+    veaf.loggers.get(veaf.Id):trace(string.format("unitsInZone=%s", veaf._p(unitsInZone)))
     if (self.state == VeafQRA.STATUS_READY) and (unitsInZone and #unitsInZone > 0) then
         -- trigger the QRA
         self:deploy()
@@ -2334,7 +2328,7 @@ function VeafQRA:check()
 end
 
 function VeafQRA:deploy()
-    veaf.mainLogTrace(string.format("VeafQRA[%s]:deploy()", veaf.p(self.name)))
+    veaf.loggers.get(veaf.Id):trace(string.format("VeafQRA[%s]:deploy()", veaf.p(self.name)))
     if not self:isSilent() then
         local msg = string.format(self:getMessageStart(), self:getDescription())
         for coalition, _ in pairs(self:getEnnemyCoalitions()) do
@@ -2353,7 +2347,7 @@ function VeafQRA:deploy()
 end
 
 function VeafQRA:destroyed()
-    veaf.mainLogTrace(string.format("VeafQRA[%s]:destroyed()", veaf.p(self.name)))
+    veaf.loggers.get(veaf.Id):trace(string.format("VeafQRA[%s]:destroyed()", veaf.p(self.name)))
     if not self:isSilent() then
         local msg = string.format(self:getMessageDestroyed(), self:getDescription())
         for coalition, _ in pairs(self:getEnnemyCoalitions()) do
@@ -2364,7 +2358,7 @@ function VeafQRA:destroyed()
 end
 
 function VeafQRA:rearm(silent)
-    veaf.mainLogTrace(string.format("VeafQRA[%s]:rearm()", veaf.p(self.name)))
+    veaf.loggers.get(veaf.Id):trace(string.format("VeafQRA[%s]:rearm()", veaf.p(self.name)))
     if not self:isSilent() and not silent then
         local msg = string.format(self:getMessageReady(), self:getDescription())
         for coalition, _ in pairs(self:getEnnemyCoalitions()) do
@@ -2381,7 +2375,7 @@ function VeafQRA:rearm(silent)
 end
 
 function VeafQRA:start()
-    veaf.mainLogTrace(string.format("VeafQRA[%s]:start()", veaf.p(self.name)))
+    veaf.loggers.get(veaf.Id):trace(string.format("VeafQRA[%s]:start()", veaf.p(self.name)))
     self:rearm() -- TODO set true
     mist.scheduleFunction(VeafQRA.check, {self}, timer.getTime() + VeafQRA.WATCHDOG_DELAY)    
 end
@@ -2453,7 +2447,7 @@ VeafDrawingOnMap.DEFAULT_COLOR = {170/255, 10/255, 0/255, 220/255}
 VeafDrawingOnMap.DEFAULT_FILLCOLOR = {170/255, 10/255, 0/255, 170/255}
 
 function VeafDrawingOnMap:new()
-    veaf.mainLogTrace(string.format("VeafDrawingOnMap:new()"))
+    veaf.loggers.get(veaf.Id):trace(string.format("VeafDrawingOnMap:new()"))
     local self = setmetatable({}, VeafDrawingOnMap)
     self.name = nil
     self.coalition = -1
@@ -2467,7 +2461,7 @@ function VeafDrawingOnMap:new()
 end
 
 function VeafDrawingOnMap:setName(value)
-    veaf.mainLogTrace(string.format("VeafDrawingOnMap[]:setName(%s)", veaf.p(value)))
+    veaf.loggers.get(veaf.Id):trace(string.format("VeafDrawingOnMap[]:setName(%s)", veaf.p(value)))
     self.name = value
     return self
 end
@@ -2477,7 +2471,7 @@ function VeafDrawingOnMap:getName()
 end
  
 function VeafDrawingOnMap:setCoalition(value)
-    veaf.mainLogTrace(string.format("VeafDrawingOnMap[%s]:setCoalition(%s)", veaf.p(self:getName()), veaf.p(value)))
+    veaf.loggers.get(veaf.Id):trace(string.format("VeafDrawingOnMap[%s]:setCoalition(%s)", veaf.p(self:getName()), veaf.p(value)))
     self.coalition = value
     return self
 end
@@ -2487,13 +2481,13 @@ function VeafDrawingOnMap:getCoalition()
 end
 
 function VeafDrawingOnMap:addPoint(value)
-    veaf.mainLogTrace(string.format("VeafDrawingOnMap[%s]:addPoint(%s)", veaf.p(self.name), veaf.p(value)))
+    veaf.loggers.get(veaf.Id):trace(string.format("VeafDrawingOnMap[%s]:addPoint(%s)", veaf.p(self.name), veaf.p(value)))
     table.insert(self.points, 1, mist.utils.deepCopy(value))
     return self
 end
 
 function VeafDrawingOnMap:addPoints(value)
-    veaf.mainLogTrace(string.format("VeafDrawingOnMap[%s]:addPoints(%s)", veaf.p(self.name), veaf.p(value)))
+    veaf.loggers.get(veaf.Id):trace(string.format("VeafDrawingOnMap[%s]:addPoints(%s)", veaf.p(self.name), veaf.p(value)))
     if value and #value > 0 then
         for _, item in pairs(value) do
             self:addPoint(item)
@@ -2503,14 +2497,14 @@ function VeafDrawingOnMap:addPoints(value)
 end
 
 function VeafDrawingOnMap:setPointsFromUnits(unitNames)
-    veaf.mainLogDebug(string.format("VeafDrawingOnMap[%s]:setPointsFromUnits()", veaf.p(self.name)))
+    veaf.loggers.get(veaf.Id):debug(string.format("VeafDrawingOnMap[%s]:setPointsFromUnits()", veaf.p(self.name)))
     local polygon = veaf.getPolygonFromUnits(unitNames)
     self:addPoints(polygon)
     return self
 end
 
 function VeafDrawingOnMap:setColor(value)
-    veaf.mainLogTrace(string.format("VeafDrawingOnMap[%s]:setColor(%s)", veaf.p(self:getName()), veaf.p(value)))
+    veaf.loggers.get(veaf.Id):trace(string.format("VeafDrawingOnMap[%s]:setColor(%s)", veaf.p(self:getName()), veaf.p(value)))
     if value and type(value) == "string" then
         value = VeafDrawingOnMap.COLORS[value:lower()]
     end
@@ -2521,7 +2515,7 @@ function VeafDrawingOnMap:setColor(value)
 end
 
 function VeafDrawingOnMap:setFillColor(value)
-    veaf.mainLogTrace(string.format("VeafDrawingOnMap[%s]:setFillColor(%s)", veaf.p(self:getName()), veaf.p(value)))
+    veaf.loggers.get(veaf.Id):trace(string.format("VeafDrawingOnMap[%s]:setFillColor(%s)", veaf.p(self:getName()), veaf.p(value)))
     if value and type(value) == "string" then
         value = VeafDrawingOnMap.COLORS[value:lower()]
     end
@@ -2532,7 +2526,7 @@ function VeafDrawingOnMap:setFillColor(value)
 end
 
 function VeafDrawingOnMap:setLineType(value)
-    veaf.mainLogTrace(string.format("VeafDrawingOnMap[%s]:setLineType(%s)", veaf.p(self:getName()), veaf.p(value)))
+    veaf.loggers.get(veaf.Id):trace(string.format("VeafDrawingOnMap[%s]:setLineType(%s)", veaf.p(self:getName()), veaf.p(value)))
     if value and type(value) == "string" then
         value = VeafDrawingOnMap.LINE_TYPE[value:lower()]
     end
@@ -2543,13 +2537,13 @@ function VeafDrawingOnMap:setLineType(value)
 end
 
 function VeafDrawingOnMap:setArrow()
-    veaf.mainLogTrace(string.format("VeafDrawingOnMap[%s]:setArrow()", veaf.p(self:getName())))
+    veaf.loggers.get(veaf.Id):trace(string.format("VeafDrawingOnMap[%s]:setArrow()", veaf.p(self:getName())))
     self.isArrow = true
     return self
 end
 
 function VeafDrawingOnMap:draw()
-    veaf.mainLogTrace(string.format("VeafDrawingOnMap[%s]:draw()", veaf.p(self:getName())))
+    veaf.loggers.get(veaf.Id):trace(string.format("VeafDrawingOnMap[%s]:draw()", veaf.p(self:getName())))
 
     -- start by erasing the drawing if it already is drawn
     self:erase()
@@ -2558,17 +2552,17 @@ function VeafDrawingOnMap:draw()
     local lastPoint = nil
     local firstPoint = nil
     for _, point in pairs(self.points) do
-        veaf.mainLogTrace(string.format("drawing line [%s] - [%s]", veaf.p(lastPoint), veaf.p(point)))
+        veaf.loggers.get(veaf.Id):trace(string.format("drawing line [%s] - [%s]", veaf.p(lastPoint), veaf.p(point)))
         local id = veaf.getUniqueIdentifier()
         if lastPoint then
-            veaf.mainLogTrace(string.format("id=[%s]", veaf.p(id)))
+            veaf.loggers.get(veaf.Id):trace(string.format("id=[%s]", veaf.p(id)))
             if self.isArrow then
                 trigger.action.arrowToAll(self:getCoalition(), id, lastPoint, point, self.color, self.fillColor, self.lineType, true)
             else
                 trigger.action.lineToAll(self:getCoalition(), id, lastPoint, point, self.color, self.lineType, true)
             end
         else
-            veaf.mainLogTrace(string.format("setting firstPoint to [%s]", veaf.p(point)))
+            veaf.loggers.get(veaf.Id):trace(string.format("setting firstPoint to [%s]", veaf.p(point)))
             trigger.action.markToCoalition(id, self.name, point, self.coalition, true, nil)
             firstPoint = point
         end
@@ -2578,9 +2572,9 @@ function VeafDrawingOnMap:draw()
 
     -- finish the polygon
     if firstPoint and lastPoint and #self.points > 2 and not self.isArrow then
-        veaf.mainLogTrace(string.format("finishing the polygon"))
+        veaf.loggers.get(veaf.Id):trace(string.format("finishing the polygon"))
         local id = veaf.getUniqueIdentifier()
-        veaf.mainLogTrace(string.format("id=[%s]", veaf.p(id)))
+        veaf.loggers.get(veaf.Id):trace(string.format("id=[%s]", veaf.p(id)))
         if self.isArrow then
             trigger.action.arrowToAll(self:getCoalition(), id, lastPoint, firstPoint, self.color, self.fillColor, self.lineType, true)
         else
@@ -2591,10 +2585,10 @@ function VeafDrawingOnMap:draw()
 end
 
 function VeafDrawingOnMap:erase()
-    veaf.mainLogTrace(string.format("VeafDrawingOnMap[%s]:erase()", veaf.p(self:getName())))
+    veaf.loggers.get(veaf.Id):trace(string.format("VeafDrawingOnMap[%s]:erase()", veaf.p(self:getName())))
     if self.dcsMarkerIds then
         for _, id in pairs(self.dcsMarkerIds) do
-            veaf.mainLogTrace(string.format("removing mark id=[%s]", veaf.p(id)))
+            veaf.loggers.get(veaf.Id):trace(string.format("removing mark id=[%s]", veaf.p(id)))
             trigger.action.removeMark(id)
         end
     end
@@ -2610,42 +2604,43 @@ math.random(); math.random(); math.random()
 --- Enable/Disable error boxes displayed on screen.
 env.setErrorMessageBoxEnabled(false)
 
-veaf.mainLogInfo(string.format("Loading version %s", veaf.Version))
-veaf.mainLogInfo(string.format("veaf.Development=%s", veaf.p(veaf.Development)))
-veaf.mainLogInfo(string.format("veaf.SecurityDisabled=%s", veaf.p(veaf.SecurityDisabled)))
-veaf.mainLogInfo(string.format("veaf.Debug=%s", veaf.p(veaf.Debug)))
-veaf.mainLogInfo(string.format("veaf.Trace=%s", veaf.p(veaf.Trace)))
+veaf.loggers.get(veaf.Id):info(string.format("Loading version %s", veaf.Version))
+veaf.loggers.get(veaf.Id):info(string.format("veaf.Development=%s", veaf.p(veaf.Development)))
+veaf.loggers.get(veaf.Id):info(string.format("veaf.SecurityDisabled=%s", veaf.p(veaf.SecurityDisabled)))
+veaf.loggers.get(veaf.Id):info(string.format("veaf.Debug=%s", veaf.p(veaf.Debug)))
+veaf.loggers.get(veaf.Id):info(string.format("veaf.Trace=%s", veaf.p(veaf.Trace)))
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- changes to CTLD 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 if ctld then
-    veaf.mainLogInfo(string.format("Setting up CTLD"))
+    veaf.loggers.get(veaf.Id):info(string.format("Setting up CTLD"))
 
     -- change the init function so we can call it whenever we want
     ctld.skipInitialisation = true
 
     -- logging change
     ctld.p = veaf.p
+    ctld.Id = "CTLD"
+    --ctld.LogLevel = "trace"
+    --ctld.LogLevel = "debug"
+    
+    ctld.logger = veaf.loggers.new(ctld.Id, ctld.LogLevel)
 
     ctld.logError = function(message)
-        veaf.logError(ctld.Id .. message)
+        veaf.loggers.get(ctld.Id):error(message)
     end
 
     ctld.logInfo = function(message)
-        veaf.logInfo(ctld.Id .. message)
+        veaf.loggers.get(ctld.Id):info(message)
     end    
 
     ctld.logDebug = function(message)
-        if message and ctld.Debug then
-            veaf.logDebug(ctld.Id .. message)
-        end
+        veaf.loggers.get(ctld.Id):debug(message)
     end    
 
     ctld.logTrace = function(message)
-        if message and ctld.Trace then
-            veaf.logTrace(ctld.Id .. message)
-        end
+        veaf.loggers.get(ctld.Id):trace(message)
     end    
 
     -- global configuration change
@@ -2681,24 +2676,24 @@ if ctld then
     table.insert(ctld.loadableGroups, {name = "3x - Mortar Squad", mortar = 18})
     table.insert(ctld.loadableGroups, {name = "4x - Mortar Squad", mortar = 24})
 
-    veaf.mainLogInfo(string.format("Done setting up CTLD"))
+    veaf.loggers.get(veaf.Id):info(string.format("Done setting up CTLD"))
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- changes to STTS
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 if STTS then 
-    veaf.mainLogInfo(string.format("Setting up STTS"))
+    veaf.loggers.get(veaf.Id):info(string.format("Setting up STTS"))
 
     --- configure SRS Text to Speech
-    veaf.logTrace(string.format("STTS - SERVER_CONFIG=%s", veaf.p(SERVER_CONFIG)))
+    veaf.loggers.get(veaf.Id):trace(string.format("STTS - SERVER_CONFIG=%s", veaf.p(SERVER_CONFIG)))
     if SERVER_CONFIG then
-        veaf.mainLogInfo(string.format("Setting up STTS"))
+        veaf.loggers.get(veaf.Id):info(string.format("Setting up STTS"))
         STTS.DIRECTORY = SERVER_CONFIG.SRS_DIRECTORY
         STTS.SRS_PORT = SERVER_CONFIG.SRS_PORT
         STTS.EXECUTABLE = SERVER_CONFIG.SRS_EXECUTABLE
         STTS.os = SERVER_CONFIG.getModule("os")
         STTS.io = SERVER_CONFIG.getModule("io")
-        veaf.mainLogInfo(string.format("Done setting up STTS"))
+        veaf.loggers.get(veaf.Id):info(string.format("Done setting up STTS"))
     end
 end

@@ -21,13 +21,16 @@ veafAssets = {}
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 --- Identifier. All output in DCS.log will start with this.
-veafAssets.Id = "ASSETS - "
+veafAssets.Id = "ASSETS"
 
 --- Version.
 veafAssets.Version = "1.8.0"
 
 -- trace level, specific to this module
-veafAssets.Trace = false
+--veafAssets.LogLevel = "trace"
+--veafAssets.LogLevel = "debug"
+
+veafAssets.logger = veaf.loggers.new(veafAssets.Id, veafAssets.LogLevel)
 
 veafAssets.Assets = {
     -- list the assets common to all missions below
@@ -42,24 +45,6 @@ veafAssets.RadioMenuName = "ASSETS"
 veafAssets.rootPath = nil
 
 veafAssets.assets = {}
-
--------------------------------------------------------------------------------------------------------------------------------------------------------------
--- Utility methods
--------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-function veafAssets.logInfo(message)
-    veaf.logInfo(veafAssets.Id .. message)
-end
-
-function veafAssets.logDebug(message)
-    veaf.logDebug(veafAssets.Id .. message)
-end
-
-function veafAssets.logTrace(message)
-    if message and veafAssets.Trace then
-        veaf.logTrace(veafAssets.Id .. message)
-    end
-end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Radio menu and help
@@ -98,7 +83,7 @@ end
 
 function veafAssets.info(parameters)
     local name, unitName = veaf.safeUnpack(parameters)
-    veafAssets.logDebug("veafAssets.info "..name)
+    veaf.loggers.get(veafAssets.Id):debug("veafAssets.info "..name)
     local theAsset = nil
     for _, asset in pairs(veafAssets.assets) do
         if asset.name == name then
@@ -107,13 +92,13 @@ function veafAssets.info(parameters)
     end
     if theAsset then
         local group = Group.getByName(theAsset.name)
-        veafAssets.logTrace(string.format("assets[%s] = '%s'",theAsset.name, theAsset.description))
+        veaf.loggers.get(veafAssets.Id):trace(string.format("assets[%s] = '%s'",theAsset.name, theAsset.description))
         local text = theAsset.description .. " is not active nor alive"
         if group then
-            veafAssets.logDebug("found asset group")
+            veaf.loggers.get(veafAssets.Id):debug("found asset group")
             local nAlive = 0
             for _, unit in pairs(group:getUnits()) do
-                veafAssets.logTrace("unit life = "..unit:getLife())
+                veaf.loggers.get(veafAssets.Id):trace("unit life = "..unit:getLife())
                 if unit:getLife() >= 1 then
                     nAlive = nAlive + 1
                 end
@@ -134,7 +119,7 @@ function veafAssets.info(parameters)
 end
 
 function veafAssets.dispose(name)
-    veafAssets.logDebug("veafAssets.dispose "..name)
+    veaf.loggers.get(veafAssets.Id):debug("veafAssets.dispose "..name)
     local theAsset = nil
     for _, asset in pairs(veafAssets.assets) do
         if asset.name == name then
@@ -142,7 +127,7 @@ function veafAssets.dispose(name)
         end
     end
     if theAsset then
-        veafAssets.logDebug("veafSpawn.destroy "..theAsset.name)
+        veaf.loggers.get(veafAssets.Id):debug("veafSpawn.destroy "..theAsset.name)
         local group = Group.getByName(theAsset.name)
         if group then
             for _, unit in pairs(group:getUnits()) do
@@ -155,7 +140,7 @@ function veafAssets.dispose(name)
 end
 
 function veafAssets.respawn(name)
-    veafAssets.logDebug("veafAssets.respawn "..name)
+    veaf.loggers.get(veafAssets.Id):debug("veafAssets.respawn "..name)
     local theAsset = nil
     for _, asset in pairs(veafAssets.assets) do
         if asset.name == name then
@@ -165,13 +150,13 @@ function veafAssets.respawn(name)
     if theAsset then
         mist.respawnGroup(name, true)
         if theAsset.linked then
-            veafAssets.logTrace(string.format("veafAssets[%s].linked=%s",name, veaf.p(theAsset.linked)))
+            veaf.loggers.get(veafAssets.Id):trace(string.format("veafAssets[%s].linked=%s",name, veaf.p(theAsset.linked)))
             -- there are linked groups to respawn
             if type(theAsset.linked) == "string" then
                 theAsset.linked = {theAsset.linked}
             end
             for _, linkedGroup in pairs(theAsset.linked) do
-                veafAssets.logTrace(string.format("respawning linked group [%s]",linkedGroup))
+                veaf.loggers.get(veafAssets.Id):trace(string.format("respawning linked group [%s]",linkedGroup))
                 mist.respawnGroup(linkedGroup, true)
             end
         end
@@ -188,7 +173,7 @@ end
 
 
 function veafAssets.help(unitName)
-    veafAssets.logTrace(string.format("help(%s)",unitName or ""))
+    veaf.loggers.get(veafAssets.Id):trace(string.format("help(%s)",unitName or ""))
     local text =
         'The radio menu lists all the assets, friendly or enemy\n' ..
         'Use these menus to respawn the assets when needed\n'
@@ -224,7 +209,7 @@ function veafAssets.initialize()
     end
 end
 
-veafAssets.logInfo(string.format("Loading version %s", veafAssets.Version))
+veaf.loggers.get(veafAssets.Id):info(string.format("Loading version %s", veafAssets.Version))
 
 --- Enable/Disable error boxes displayed on screen.
 env.setErrorMessageBoxEnabled(false)

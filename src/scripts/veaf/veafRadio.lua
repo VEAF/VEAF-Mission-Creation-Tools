@@ -42,14 +42,16 @@ veafRadio = {}
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 --- Identifier. All output in DCS.log will start with this.
-veafRadio.Id = "RADIO - "
+veafRadio.Id = "RADIO"
 
 --- Version.
 veafRadio.Version = "1.9.0"
 
 -- trace level, specific to this module
-veafRadio.Debug = false
-veafRadio.Trace = false
+--veafRadio.LogLevel = "trace"
+--veafRadio.LogLevel = "debug"
+
+veafRadio.logger = veaf.loggers.new(veafRadio.Id, veafRadio.LogLevel)
 
 veafRadio.RadioMenuName = "VEAF"
 
@@ -95,30 +97,6 @@ veafRadio.beacons = {}
 -- Utility methods
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-function veafRadio.logError(message)
-  veaf.logError(veafRadio.Id .. message)
-end
-
-function veafRadio.logWarning(message)
-  veaf.logWarning(veafRadio.Id .. message)
-end
-
-function veafRadio.logInfo(message)
-    veaf.logInfo(veafRadio.Id .. message)
-end
-
-function veafRadio.logDebug(message)
-  if message and veafRadio.Debug then 
-    veaf.logDebug(veafRadio.Id .. message)
-  end
-end
-
-function veafRadio.logTrace(message)
-  if message and veafRadio.Trace then 
-    veaf.logTrace(veafRadio.Id .. message)
-  end
-end
-
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Event handler functions.
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -128,13 +106,13 @@ function veafRadio.onEventMarkChange(eventPos, event)
   if veafRadio.executeCommand(eventPos, event.text, event.coalition) then 
 
       -- Delete old mark.
-      veafRadio.logTrace(string.format("Removing mark # %d.", event.idx))
+      veaf.loggers.get(veafRadio.Id):trace(string.format("Removing mark # %d.", event.idx))
       trigger.action.removeMark(event.idx)
   end
 end
 
 function veafRadio.executeCommand(eventPos, eventText, eventCoalition, bypassSecurity)
-  veafRadio.logTrace(string.format("veafRadio.executeCommand(%s)", eventText))
+  veaf.loggers.get(veafRadio.Id):trace(string.format("veafRadio.executeCommand(%s)", eventText))
 
   -- Check if marker has a text and the veafRadio.keyphrase keyphrase.
   if eventText ~= nil and eventText:lower():find(veafRadio.Keyphrase) then
@@ -143,7 +121,7 @@ function veafRadio.executeCommand(eventPos, eventText, eventCoalition, bypassSec
       local options = veafRadio.markTextAnalysis(eventText)
 
       if options then
-          veafRadio.logTrace(string.format("options.path=%s",veaf.p(options.path)))
+          veaf.loggers.get(veafRadio.Id):trace(string.format("options.path=%s",veaf.p(options.path)))
           -- Check options commands
           if options.transmit and options.message and options.frequencies and options.name then
               -- transmit a radio message via SRS
@@ -168,7 +146,7 @@ end
 --- Extract keywords from mark text.
 function veafRadio.markTextAnalysis(text)
 
-  veafRadio.logTrace(string.format("markTextAnalysis(%s)", text))
+  veaf.loggers.get(veafRadio.Id):trace(string.format("markTextAnalysis(%s)", text))
 
   -- Option parameters extracted from the mark text.
   local switch = {}
@@ -203,35 +181,35 @@ function veafRadio.markTextAnalysis(text)
 
     if key:lower() == "message" then
       -- Set message.
-      veafSpawn.logTrace(string.format("Keyword message = %s", tostring(val)))
+      veaf.loggers.get(veafRadio.Id):trace(string.format("Keyword message = %s", tostring(val)))
       switch.message = val
     elseif key:lower() == "path" then
       -- Set path.
-      veafSpawn.logTrace(string.format("Keyword path = %s", tostring(val)))
+      veaf.loggers.get(veafRadio.Id):trace(string.format("Keyword path = %s", tostring(val)))
       switch.path = val
     elseif key:lower() == "name" then
       -- Set name.
-      veafSpawn.logTrace(string.format("Keyword name = %s", tostring(val)))
+      veaf.loggers.get(veafRadio.Id):trace(string.format("Keyword name = %s", tostring(val)))
       switch.name = val
     elseif key:lower() == "quiet" then
       -- Set quiet.
-      veafSpawn.logTrace("Keyword quiet found")
+      veaf.loggers.get(veafRadio.Id):trace("Keyword quiet found")
       switch.quiet = true
     elseif key:lower() == "freq" or key:lower() == "freqs" or key:lower() == "frequency" or key:lower() == "frequencies" then
       -- Set frequencies.
-      veafSpawn.logTrace(string.format("Keyword frequencies = %s", tostring(val)))
+      veaf.loggers.get(veafRadio.Id):trace(string.format("Keyword frequencies = %s", tostring(val)))
       switch.frequencies = val
     elseif key:lower() == "mod" or key:lower() == "mods" or key:lower() == "modulation" or key:lower() == "modulations" then
       -- Set modulations.
-      veafSpawn.logTrace(string.format("Keyword modulations = %s", tostring(val)))
+      veaf.loggers.get(veafRadio.Id):trace(string.format("Keyword modulations = %s", tostring(val)))
       switch.modulations = val
     elseif key:lower() == "vol" or key:lower() == "volume" then
       -- Set volume.
-      veafSpawn.logTrace(string.format("Keyword volume = %s", tostring(val)))
+      veaf.loggers.get(veafRadio.Id):trace(string.format("Keyword volume = %s", tostring(val)))
       switch.volume = val
     elseif key:lower() == "path" then
       -- Set path.
-      veafSpawn.logTrace(string.format("Keyword path = %s", tostring(val)))
+      veaf.loggers.get(veafRadio.Id):trace(string.format("Keyword path = %s", tostring(val)))
       switch.path = val
     end
 
@@ -258,23 +236,23 @@ function veafRadio.eventHandler:onEvent(Event)
   -- Debug output.
   if Event.id == world.event.S_EVENT_BIRTH then
     local _unitname = ""
-    veafRadio.logTrace("S_EVENT_BIRTH")
-    veafRadio.logTrace(string.format("Event id        = %s", tostring(Event.id)))
-    veafRadio.logTrace(string.format("Event time      = %s", tostring(Event.time)))
-    veafRadio.logTrace(string.format("Event idx       = %s", tostring(Event.idx)))
-    veafRadio.logTrace(string.format("Event coalition = %s", tostring(Event.coalition)))
-    veafRadio.logTrace(string.format("Event group id  = %s", tostring(Event.groupID)))
+    veaf.loggers.get(veafRadio.Id):trace("S_EVENT_BIRTH")
+    veaf.loggers.get(veafRadio.Id):trace(string.format("Event id        = %s", tostring(Event.id)))
+    veaf.loggers.get(veafRadio.Id):trace(string.format("Event time      = %s", tostring(Event.time)))
+    veaf.loggers.get(veafRadio.Id):trace(string.format("Event idx       = %s", tostring(Event.idx)))
+    veaf.loggers.get(veafRadio.Id):trace(string.format("Event coalition = %s", tostring(Event.coalition)))
+    veaf.loggers.get(veafRadio.Id):trace(string.format("Event group id  = %s", tostring(Event.groupID)))
     if Event.initiator ~= nil then
       _unitname = Event.initiator:getName()
-      veafRadio.logTrace(string.format("Event ini unit  = %s", tostring(_unitname)))
+      veaf.loggers.get(veafRadio.Id):trace(string.format("Event ini unit  = %s", tostring(_unitname)))
     end
-    veafRadio.logTrace(string.format("Event text      = \n%s", tostring(Event.text)))
+    veaf.loggers.get(veafRadio.Id):trace(string.format("Event text      = \n%s", tostring(Event.text)))
 
     if Event.id == 15 and _unitname and veafRadio.humanUnits[_unitname] then
       -- refresh the radio menu
       veafRadio.refreshRadioMenu() -- TODO refresh it only for this player ? Is this even possible ?
       -- debug with logInfo message to check if this mechanism is working
-      veafRadio.logInfo(string.format("refreshRadioMenu() following event S_EVENT_BIRTH of human unit %s", tostring(_unitname)))
+      veaf.loggers.get(veafRadio.Id):info(string.format("refreshRadioMenu() following event S_EVENT_BIRTH of human unit %s", tostring(_unitname)))
     end
   end
 end
@@ -315,23 +293,23 @@ end
 --   [31] =  "S_EVENT_LANDING_AFTER_EJECTION"}
 
 --   local _unitname = ""
---   veafRadio.logInfo("GOT AN EVENT")
---   veafRadio.logInfo(string.format("Event id        = %s - %s", tostring(Event.id), EVENTS[Event.id]))
---   veafRadio.logInfo(string.format("Event time      = %s", tostring(Event.time)))
---   veafRadio.logInfo(string.format("Event idx       = %s", tostring(Event.idx)))
---   veafRadio.logInfo(string.format("Event coalition = %s", tostring(Event.coalition)))
---   veafRadio.logInfo(string.format("Event group id  = %s", tostring(Event.groupID)))
+--   veaf.loggers.get(veafRadio.Id):info("GOT AN EVENT")
+--   veaf.loggers.get(veafRadio.Id):info(string.format("Event id        = %s - %s", tostring(Event.id), EVENTS[Event.id]))
+--   veaf.loggers.get(veafRadio.Id):info(string.format("Event time      = %s", tostring(Event.time)))
+--   veaf.loggers.get(veafRadio.Id):info(string.format("Event idx       = %s", tostring(Event.idx)))
+--   veaf.loggers.get(veafRadio.Id):info(string.format("Event coalition = %s", tostring(Event.coalition)))
+--   veaf.loggers.get(veafRadio.Id):info(string.format("Event group id  = %s", tostring(Event.groupID)))
 --   if Event.initiator ~= nil then
 --     _unitname = Event.initiator:getName()
---     veafRadio.logInfo(string.format("Event ini unit  = %s", tostring(_unitname)))
+--     veaf.loggers.get(veafRadio.Id):info(string.format("Event ini unit  = %s", tostring(_unitname)))
 --   end
---   veafRadio.logInfo(string.format("Event text      = \n%s", tostring(Event.text)))
+--   veaf.loggers.get(veafRadio.Id):info(string.format("Event text      = \n%s", tostring(Event.text)))
   
 --   if Event.id == 15 and _unitname and veafRadio.humanUnits[_unitname] then
 --     -- refresh the radio menu
 --     veafRadio.refreshRadioMenu() -- TODO refresh it only for this player ? Is this even possible ?
 --     -- debug with logInfo message to check if this mechanism is working
---     veafRadio.logInfo(string.format("refreshRadioMenu() following event S_EVENT_BIRTH of human unit %s", tostring(_unitname)))
+--     veaf.loggers.get(veafRadio.Id):info(string.format("refreshRadioMenu() following event S_EVENT_BIRTH of human unit %s", tostring(_unitname)))
 --   end
 -- end
 
@@ -340,14 +318,14 @@ end
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 function veafRadio._proxyMethod(parameters)
-  veafRadio.logTrace("parameters="..veaf.p(parameters))  
+  veaf.loggers.get(veafRadio.Id):trace("parameters="..veaf.p(parameters))  
   local realMethod, realParameters = veaf.safeUnpack(parameters)
-  veafRadio.logTrace("realMethod="..veaf.p(realMethod))  
-  veafRadio.logTrace("realParameters="..veaf.p(realParameters))  
+  veaf.loggers.get(veafRadio.Id):trace("realMethod="..veaf.p(realMethod))  
+  veaf.loggers.get(veafRadio.Id):trace("realParameters="..veaf.p(realParameters))  
   if veafSecurity.isAuthenticated() then
     realMethod(realParameters)
   else
-    veafRadio.logError("Your radio has to be authenticated for '+'' commands")
+    veaf.loggers.get(veafRadio.Id):error("Your radio has to be authenticated for '+'' commands")
     trigger.action.outText("Your radio has to be authenticated for '+'' commands", 5) 
   end  
 end
@@ -355,7 +333,7 @@ end
 --- Refresh the radio menu, based on stored information
 --- This is called from another method that has first changed the radio menu information by adding or removing elements
 function veafRadio.refreshRadioMenu(dontDelay)
-  veafRadio.logDebug(string.format("veafRadio.refreshRadioMenu()"))
+  veaf.loggers.get(veafRadio.Id):debug(string.format("veafRadio.refreshRadioMenu()"))
 
   -- delay the refresh if possible
   if not dontDelay then
@@ -369,15 +347,15 @@ end
 
 --- actually refresh the radio menu, based on stored information
 function veafRadio._refreshRadioMenu()
-  veafRadio.logDebug(string.format("veafRadio._refreshRadioMenu()"))
+  veaf.loggers.get(veafRadio.Id):debug(string.format("veafRadio._refreshRadioMenu()"))
   veafRadio.refreshRadioMenuDelayedScheduling = nil
 
   -- completely delete the dcs radio menu
-  veafRadio.logTrace("completely delete the dcs radio menu")
+  veaf.loggers.get(veafRadio.Id):trace("completely delete the dcs radio menu")
   if veafRadio.radioMenu.dcsRadioMenu then
     missionCommands.removeItem(veafRadio.radioMenu.dcsRadioMenu)
   else
-    veafRadio.logInfo("_refreshRadioMenu() first time : no DCS radio menu yet")
+    veaf.loggers.get(veafRadio.Id):info("_refreshRadioMenu() first time : no DCS radio menu yet")
   end
 
   local radioMeasures = {
@@ -391,7 +369,7 @@ function veafRadio._refreshRadioMenu()
   veafRadio.addSizeForAll(string.len(veafRadio.RadioMenuName))
   
   -- create all the commands and submenus in the dcs radio menu
-  veafRadio.logTrace("create all the commands and submenus in the dcs radio menu")
+  veaf.loggers.get(veafRadio.Id):trace("create all the commands and submenus in the dcs radio menu")
   veafRadio.refreshRadioSubmenu(nil, veafRadio.radioMenu, radioMeasures)        
 
   -- warn if the size starts to get too big
@@ -407,20 +385,20 @@ function veafRadio._refreshRadioMenu()
     end
   end
 
-  veafRadio.logDebug(string.format("veafRadio._refreshRadioMenu() max(veafRadio.radioMenuSize)=%d,%d",maxSize, maxGroup))
-  veafRadio.logTrace("radioMeasures="..veaf.p(radioMeasures))
+  veaf.loggers.get(veafRadio.Id):debug(string.format("veafRadio._refreshRadioMenu() max(veafRadio.radioMenuSize)=%d,%d",maxSize, maxGroup))
+  veaf.loggers.get(veafRadio.Id):trace("radioMeasures="..veaf.p(radioMeasures))
 
 end
 
 function veafRadio._addCommand(groupId, title, menu, command, parameters) 
   if not command.method then
-    veafRadio.logError("ERROR - missing method for command " .. title)
+    veaf.loggers.get(veafRadio.Id):error("ERROR - missing method for command " .. title)
   end
   local _title = title
   local _method = command.method
   local _parameters = parameters
   if command.isSecured then
-    veafRadio.logTrace("adding secured command")
+    veaf.loggers.get(veafRadio.Id):trace("adding secured command")
     
     _method = veafRadio._proxyMethod
     _parameters = {command.method, _parameters}
@@ -432,22 +410,22 @@ function veafRadio._addCommand(groupId, title, menu, command, parameters)
     end
   end
 
-  ----veafRadio.logTrace(routines.utils.oneLineSerialize({_title = _title}))
-  ----veafRadio.logTrace(routines.utils.oneLineSerialize({_method = _method}))
-  ----veafRadio.logTrace(routines.utils.oneLineSerialize({_parameters = _parameters}))
+  ----veaf.loggers.get(veafRadio.Id):trace(routines.utils.oneLineSerialize({_title = _title}))
+  ----veaf.loggers.get(veafRadio.Id):trace(routines.utils.oneLineSerialize({_method = _method}))
+  ----veaf.loggers.get(veafRadio.Id):trace(routines.utils.oneLineSerialize({_parameters = _parameters}))
   
   if groupId then
-    --veafRadio.logTrace(string.format("adding for group %s command %s",groupId or "", _title or ""))
+    --veaf.loggers.get(veafRadio.Id):trace(string.format("adding for group %s command %s",groupId or "", _title or ""))
     missionCommands.addCommandForGroup(groupId, _title, menu, _method, _parameters)
   else
-    --veafRadio.logTrace(string.format("adding for all command %s",_title or ""))
+    --veaf.loggers.get(veafRadio.Id):trace(string.format("adding for all command %s",_title or ""))
     missionCommands.addCommand(_title, menu, _method, _parameters)
   end
 
 end
 
 function veafRadio.refreshRadioSubmenu(parentRadioMenu, radioMenu, radioMeasures)
-  veafRadio.logTrace("veafRadio.refreshRadioSubmenu "..radioMenu.title)
+  veaf.loggers.get(veafRadio.Id):trace("veafRadio.refreshRadioSubmenu "..radioMenu.title)
 
   
   local trace = false
@@ -613,17 +591,17 @@ end
 
 function veafRadio.clearSubmenu(subMenu)
   if not subMenu then 
-    veafRadio.logError("veafRadio.clearSubmenu() subMenu parameter is nil !")
+    veaf.loggers.get(veafRadio.Id):error("veafRadio.clearSubmenu() subMenu parameter is nil !")
     return
   end
-  veafRadio.logDebug(string.format("veafRadio.clearSubmenu(%s)",subMenu.title))
+  veaf.loggers.get(veafRadio.Id):debug(string.format("veafRadio.clearSubmenu(%s)",subMenu.title))
   subMenu.subMenus = {}
   subMenu.commands = {}
 end
 
 function veafRadio.delSubmenu(subMenu, radioMenu)
   if not subMenu then 
-    veafRadio.logError("veafRadio.delSubmenu() subMenu parameter is nil !")
+    veaf.loggers.get(veafRadio.Id):error("veafRadio.delSubmenu() subMenu parameter is nil !")
     return
   end
   local menu = veafRadio.radioMenu
@@ -632,14 +610,14 @@ function veafRadio.delSubmenu(subMenu, radioMenu)
   end
   veaf.arrayRemoveWhen(menu.subMenus, function(t, i, j)
     -- Return true to keep the value, or false to discard it.
-    --veafRadio.logTrace("searching for " .. subMenu.title)
+    --veaf.loggers.get(veafRadio.Id):trace("searching for " .. subMenu.title)
     local v = menu.subMenus[i]
-    --veafRadio.logTrace("checking " .. v.title)
+    --veaf.loggers.get(veafRadio.Id):trace("checking " .. v.title)
     if v == subMenu then
-      --veafRadio.logTrace("found ! removing " .. v.title)
+      --veaf.loggers.get(veafRadio.Id):trace("found ! removing " .. v.title)
       return false
     else
-      --veafRadio.logTrace("keeping " .. v.title)
+      --veaf.loggers.get(veafRadio.Id):trace("keeping " .. v.title)
       return true
     end
   end);
@@ -647,10 +625,10 @@ end
 
 -- build a paginated submenu (internal paginating method)
 local function _buildRadioMenuPage(menu, titles, elementsByTitle, addCommandToSubmenuMethod, pageSize, startIndex)
-  veafRadio.logTrace(string.format("_buildRadioMenuPage(pageSize=%s, startIndex=%s)",tostring(pageSize), tostring(startIndex)))
+  veaf.loggers.get(veafRadio.Id):trace(string.format("_buildRadioMenuPage(pageSize=%s, startIndex=%s)",tostring(pageSize), tostring(startIndex)))
   
   local titlesCount = #titles
-  veafRadio.logTrace(string.format("titlesCount = %d",titlesCount))
+  veaf.loggers.get(veafRadio.Id):trace(string.format("titlesCount = %d",titlesCount))
 
   local pageSize = pageSize
   if not pageSize then
@@ -661,16 +639,16 @@ local function _buildRadioMenuPage(menu, titles, elementsByTitle, addCommandToSu
   if endIndex - startIndex >= pageSize then
       endIndex = startIndex + pageSize - 2
   end
-  veafRadio.logTrace(string.format("endIndex = %d",endIndex))
-  veafRadio.logTrace(string.format("adding commands from %d to %d",startIndex, endIndex))
+  veaf.loggers.get(veafRadio.Id):trace(string.format("endIndex = %d",endIndex))
+  veaf.loggers.get(veafRadio.Id):trace(string.format("adding commands from %d to %d",startIndex, endIndex))
   for index = startIndex, endIndex do
       local title = titles[index]
-      veafRadio.logTrace(string.format("titles[%d] = %s",index, title))
+      veaf.loggers.get(veafRadio.Id):trace(string.format("titles[%d] = %s",index, title))
       local element = elementsByTitle[title]
       addCommandToSubmenuMethod(menu, title, element)
   end
   if endIndex < titlesCount then
-      veafRadio.logTrace("adding next page menu")
+      veaf.loggers.get(veafRadio.Id):trace("adding next page menu")
       local nextPageMenu = veafRadio.addSubMenu("Next page", menu)
       _buildRadioMenuPage(nextPageMenu, titles, elementsByTitle, addCommandToSubmenuMethod, 10, endIndex+1)
   end
@@ -678,10 +656,10 @@ end
 
 -- build a paginated submenu (main method)
 function veafRadio.addPaginatedRadioElements(radioMenu, addCommandToSubmenuMethod, elements, titleAttribute, sortAttribute)
-    veafRadio.logTrace(string.format("veafRadio.addPaginatedRadioElements() : elements=%s",veaf.p(elements)))
+    veaf.loggers.get(veafRadio.Id):trace(string.format("veafRadio.addPaginatedRadioElements() : elements=%s",veaf.p(elements)))
     
     if not addCommandToSubmenuMethod then 
-        veafRadio.logError("veafRadio.addPaginatedRadioMenu : addCommandToSubmenuMethod is mandatory !")
+        veaf.loggers.get(veafRadio.Id):error("veafRadio.addPaginatedRadioMenu : addCommandToSubmenuMethod is mandatory !")
         return
     end
 
@@ -720,7 +698,7 @@ function veafRadio.addPaginatedRadioElements(radioMenu, addCommandToSubmenuMetho
         elementsByTitle[title] = sortedElements[i].element
     end
     table.sort(sortedTitles)
-    veafRadio.logTrace("sortedTitles="..veaf.p(sortedTitles))
+    veaf.loggers.get(veafRadio.Id):trace("sortedTitles="..veaf.p(sortedTitles))
 
     _buildRadioMenuPage(radioMenu, sortedTitles, elementsByTitle, addCommandToSubmenuMethod, pageSize, 1)
     --veafRadio.refreshRadioMenu()
@@ -728,7 +706,7 @@ end
 
 -- build a paginated submenu (main method)
 function veafRadio.addPaginatedRadioMenu(title, radioMenu, addCommandToSubmenuMethod, elements, titleAttribute, sortAttribute)
-    veafRadio.logTrace(string.format("veafRadio.addPaginatedRadioMenu(title=%s)",title))
+    veaf.loggers.get(veafRadio.Id):trace(string.format("veafRadio.addPaginatedRadioMenu(title=%s)",title))
     
     local firstPagePath = veafRadio.addSubMenu(title, radioMenu)
     veafRadio.addPaginatedRadioElements(firstPagePath, addCommandToSubmenuMethod, elements, titleAttribute, sortAttribute)
@@ -744,13 +722,13 @@ function veafRadio.buildHumanUnits()
     for name, unit in pairs(mist.DBs.humansByName) do
         -- not already in units list ?
         if veafRadio.humanUnits[unit.unitName] == nil then
-            veafRadio.logTrace(string.format("human player found name=%s, unitName=%s, groupId=%s", name, unit.unitName,unit.groupId))
+            veaf.loggers.get(veafRadio.Id):trace(string.format("human player found name=%s, unitName=%s, groupId=%s", name, unit.unitName,unit.groupId))
             local callsign = unit.callsign
             if type(callsign) == "table" then callsign = callsign["name"] end
             if type(callsign) == "number" then callsign = "" .. callsign end
             local unitObject = {name=unit.unitName, groupId=unit.groupId, callsign=callsign}
             veafRadio.humanUnits[unit.unitName] = unitObject
-            veafRadio.logTrace(string.format("veafRadio.humanUnits[%s]=\n%s",unit.unitName,veaf.p(veafRadio.humanUnits[unit.unitName])))
+            veaf.loggers.get(veafRadio.Id):trace(string.format("veafRadio.humanUnits[%s]=\n%s",unit.unitName,veaf.p(veafRadio.humanUnits[unit.unitName])))
             if not veafRadio.humanGroups[unit.groupId] then 
               veafRadio.humanGroups[unit.groupId] = {}
               veafRadio.humanGroups[unit.groupId].callsigns = {}
@@ -790,7 +768,7 @@ end
 function veafRadio.reportRadioMenuSizeBreached(text, group, size)
   if not veafRadio.reportRadioMenuSizeBreached_ALREADYDONE then
     local message = string.format("%s - Maximum radio menu size reached : [%s]%d / %d",text or "", tostring(group), size, veafRadio.MAXIMUM_SIZE)
-    veafRadio.logWarning(string.format("%s - Maximum radio menu size reached : [%s]%d / %d",text or "", tostring(group), size, veafRadio.MAXIMUM_SIZE))
+    veaf.loggers.get(veafRadio.Id):warn(string.format("%s - Maximum radio menu size reached : [%s]%d / %d",text or "", tostring(group), size, veafRadio.MAXIMUM_SIZE))
     trigger.action.outText(string.format("Maximum radio menu size reached : [%s]%d / %d",tostring(group), size, veafRadio.MAXIMUM_SIZE),5)
     veafRadio.reportRadioMenuSizeBreached_ALREADYDONE = true
     mist.scheduleFunction(veafRadio.reportRadioMenuSizeBreached_reset,{},timer.getTime()+60)
@@ -801,15 +779,15 @@ function veafRadio.getHumanUnitOrWingman(unitName)
     local result = Unit.getByName(unitName)
     if not result then 
         local unitData = veafRadio.humanUnits[unitName]
-        veafRadio.logTrace(string.format("unitData=%s",veaf.p(unitData)))
+        veaf.loggers.get(veafRadio.Id):trace(string.format("unitData=%s",veaf.p(unitData)))
         if unitData and unitData.groupId then 
             local mistGroup = mist.DBs.groupsById[unitData.groupId]
-            veafRadio.logTrace(string.format("mistGroup=%s",veaf.p(mistGroup)))
+            veaf.loggers.get(veafRadio.Id):trace(string.format("mistGroup=%s",veaf.p(mistGroup)))
             if mistGroup then
                 local group = Group.getByName(mistGroup.groupName)
                 if group then
-                    veafRadio.logTrace(string.format("group=%s",veaf.p(group)))
-                    veafRadio.logTrace(string.format("group:getUnits()=%s",veaf.p(group:getUnits())))
+                    veaf.loggers.get(veafRadio.Id):trace(string.format("group=%s",veaf.p(group)))
+                    veaf.loggers.get(veafRadio.Id):trace(string.format("group:getUnits()=%s",veaf.p(group:getUnits())))
                     for _, groupUnit in pairs(group:getUnits()) do
                         if not result then 
                             result = groupUnit
@@ -820,8 +798,8 @@ function veafRadio.getHumanUnitOrWingman(unitName)
         end
     end
     if result then
-        veafRadio.logTrace(string.format("result=%s",veaf.p(result)))
-        veafRadio.logTrace(string.format("result:getName()=%s",veaf.p(result:getName())))
+        veaf.loggers.get(veafRadio.Id):trace(string.format("result=%s",veaf.p(result)))
+        veaf.loggers.get(veafRadio.Id):trace(string.format("result:getName()=%s",veaf.p(result:getName())))
     end
     return result
 end
@@ -831,7 +809,7 @@ end
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 function veafRadio.startBeacon(name, firstRunDelay, secondsBetweenRepeats, frequencies, modulations, message, mp3, volume, coalition)
-  veafRadio.logDebug(string.format("startBeacon(name=%s, firstRunDelay=%s, secondsBetweenRepeats=%s, coalition=%s, frequencies=%s, modulations=%s, volume=%s, message=%s, mp3=%s)", tostring(name), tostring(firstRunDelay), tostring(secondsBetweenRepeats), tostring(coalition), tostring(frequencies), tostring(modulations), tostring(volume), tostring(message), tostring(mp3)))
+  veaf.loggers.get(veafRadio.Id):debug(string.format("startBeacon(name=%s, firstRunDelay=%s, secondsBetweenRepeats=%s, coalition=%s, frequencies=%s, modulations=%s, volume=%s, message=%s, mp3=%s)", tostring(name), tostring(firstRunDelay), tostring(secondsBetweenRepeats), tostring(coalition), tostring(frequencies), tostring(modulations), tostring(volume), tostring(message), tostring(mp3)))
   
   local beacon = veafRadio.beacons[name:lower()]
   if not beacon then beacon = {} end
@@ -845,19 +823,19 @@ function veafRadio.startBeacon(name, firstRunDelay, secondsBetweenRepeats, frequ
   beacon.message = message
   beacon.mp3 = mp3
 
-  veafRadio.logDebug(string.format("adding beacon %s", tostring(name)))
+  veaf.loggers.get(veafRadio.Id):debug(string.format("adding beacon %s", tostring(name)))
   veafRadio.beacons[name:lower()] = beacon
 end
 
 function veafRadio._runBeacons()
-  veafRadio.logTrace("_runBeacons()")
+  veaf.loggers.get(veafRadio.Id):trace("_runBeacons()")
   
   local now = timer.getTime()
-  veafRadio.logDebug(string.format("now = %s", tostring(now)))
+  veaf.loggers.get(veafRadio.Id):debug(string.format("now = %s", tostring(now)))
   for name, beacon in pairs(veafRadio.beacons) do
-    veafRadio.logTrace(string.format("checking %s supposed to run at %s", tostring(beacon.name), tostring(beacon.nextRun)))
+    veaf.loggers.get(veafRadio.Id):trace(string.format("checking %s supposed to run at %s", tostring(beacon.name), tostring(beacon.nextRun)))
     if beacon.nextRun <= now then
-      veafRadio.logTrace(string.format("running beacon %s", tostring(name)))
+      veaf.loggers.get(veafRadio.Id):trace(string.format("running beacon %s", tostring(name)))
       if beacon.message then
         veafRadio.transmitMessage(beacon.message, beacon.frequencies, beacon.modulations, beacon.volume, beacon.name, beacon.coalition, nil, true)
       elseif beacon.mp3 then
@@ -867,7 +845,7 @@ function veafRadio._runBeacons()
     end
   end
 
-  veafRadio.logTrace(string.format("rescheduling in %s seconds", tostring(veafRadio.BEACONS_SCHEDULE)))
+  veaf.loggers.get(veafRadio.Id):trace(string.format("rescheduling in %s seconds", tostring(veafRadio.BEACONS_SCHEDULE)))
   mist.scheduleFunction(veafRadio._runBeacons,{},timer.getTime()+veafRadio.BEACONS_SCHEDULE)
 end
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -876,9 +854,9 @@ end
 
 -- transmit a radio message via SRS
 function veafRadio.transmitMessage(message, frequencies, modulations, volume, name, coalition, eventPos, quiet)
-  veafRadio.logDebug(string.format("transmitMessage(name=%s, coalition=%s, frequencies=%s, modulations=%s, volume=%s, message=%s)", tostring(name), tostring(coalition), tostring(frequencies), tostring(modulations), tostring(volume), tostring(message)))
+  veaf.loggers.get(veafRadio.Id):debug(string.format("transmitMessage(name=%s, coalition=%s, frequencies=%s, modulations=%s, volume=%s, message=%s)", tostring(name), tostring(coalition), tostring(frequencies), tostring(modulations), tostring(volume), tostring(message)))
   if eventPos then 
-    veafRadio.logTrace(string.format("eventPos=%s",veaf.p(eventPos)))
+    veaf.loggers.get(veafRadio.Id):trace(string.format("eventPos=%s",veaf.p(eventPos)))
   end
 
   local l_os = os
@@ -889,10 +867,10 @@ function veafRadio.transmitMessage(message, frequencies, modulations, volume, na
   if l_os and STTS then
     message = message:gsub("\"","\\\"")
     local cmd = string.format("start /min \"%s\" \"%s\\%s\" \"%s\" %s %s %s %s \"%s\" %s", STTS.DIRECTORY, STTS.DIRECTORY, STTS.EXECUTABLE, message, frequencies, modulations, coalition, STTS.SRS_PORT, name, volume )
-    veafRadio.logTrace(string.format("executing os command %s", cmd))
+    veaf.loggers.get(veafRadio.Id):trace(string.format("executing os command %s", cmd))
     local result = l_os.execute(cmd)
     if result == nil then
-      veafRadio.logWarning(string.format("Nil result after executing os command %s", cmd))
+      veaf.loggers.get(veafRadio.Id):warn(string.format("Nil result after executing os command %s", cmd))
     end
     return result
   end
@@ -904,9 +882,9 @@ end
 
 -- play a MP3 file via SRS
 function veafRadio.playToRadio(pathToMP3, frequencies, modulations, volume, name, coalition, eventPos, quiet)
-  veafRadio.logDebug(string.format("playToRadio(name=%s, coalition=%s, frequencies=%s, modulations=%s, volume=%s, pathToMP3=%s)", tostring(name), tostring(coalition), tostring(frequencies), tostring(modulations), tostring(volume), tostring(pathToMP3)))
+  veaf.loggers.get(veafRadio.Id):debug(string.format("playToRadio(name=%s, coalition=%s, frequencies=%s, modulations=%s, volume=%s, pathToMP3=%s)", tostring(name), tostring(coalition), tostring(frequencies), tostring(modulations), tostring(volume), tostring(pathToMP3)))
   if eventPos then 
-    veafRadio.logTrace(string.format("eventPos=%s",veaf.p(eventPos)))
+    veaf.loggers.get(veafRadio.Id):trace(string.format("eventPos=%s",veaf.p(eventPos)))
   end
 
   local l_os = os
@@ -926,7 +904,7 @@ function veafRadio.playToRadio(pathToMP3, frequencies, modulations, volume, name
     end
 
     local cmd = string.format("start /min \"%s\" \"%s\\%s\" \"%s\" %s %s %s %s \"%s\" %s", STTS.DIRECTORY, STTS.DIRECTORY, STTS.EXECUTABLE, pathToMP3, frequencies, modulations, coalition,STTS.SRS_PORT, name, volume )
-    veafRadio.logTrace(string.format("executing os command %s", cmd))
+    veaf.loggers.get(veafRadio.Id):trace(string.format("executing os command %s", cmd))
     l_os.execute(cmd)
   end
 
@@ -953,23 +931,23 @@ function veafRadio.initialize(skipHelpMenus)
 
     if l_lfs then
         srsConfigPath = l_lfs.writedir() .. "\\DCS-SimpleRadio-Standalone\\SRS_for_scripting_config.lua"
-        veafRadio.logDebug(string.format("srsConfigPath = %s", tostring(srsConfigPath)))
+        veaf.loggers.get(veafRadio.Id):debug(string.format("srsConfigPath = %s", tostring(srsConfigPath)))
         --local test = l_lfs.currentdir()
-        --veafRadio.logDebug(string.format("test = %s", tostring(test)))
+        --veaf.loggers.get(veafRadio.Id):debug(string.format("test = %s", tostring(test)))
         if srsConfigPath then
           -- execute the script
           local file = loadfile(srsConfigPath)
           if file then
             file()
-            veafRadio.logInfo("SRS configuration file loaded")
+            veaf.loggers.get(veafRadio.Id):info("SRS configuration file loaded")
             if STTS then
               STTS.MP3_FOLDER = l_lfs.writedir() .."\\..\\..\\Music"
-              veafRadio.logTrace(string.format("STTS.SRS_PORT = %s", tostring(STTS.SRS_PORT)))
-              veafRadio.logTrace(string.format("STTS.DIRECTORY = %s", tostring(STTS.DIRECTORY)))
-              veafRadio.logTrace(string.format("STTS.EXECUTABLE = %s", tostring(STTS.EXECUTABLE)))
+              veaf.loggers.get(veafRadio.Id):trace(string.format("STTS.SRS_PORT = %s", tostring(STTS.SRS_PORT)))
+              veaf.loggers.get(veafRadio.Id):trace(string.format("STTS.DIRECTORY = %s", tostring(STTS.DIRECTORY)))
+              veaf.loggers.get(veafRadio.Id):trace(string.format("STTS.EXECUTABLE = %s", tostring(STTS.EXECUTABLE)))
             end
           else
-            veafRadio.logWarning(string.format("Error while loading SRS configuration file [%s]",srsConfigPath))
+            veaf.loggers.get(veafRadio.Id):warn(string.format("Error while loading SRS configuration file [%s]",srsConfigPath))
           end
       end
     end
@@ -991,5 +969,5 @@ function veafRadio.initialize(skipHelpMenus)
     veafRadio._runBeacons()
 end
 
-veafRadio.logInfo(string.format("Loading version %s", veafRadio.Version))
+veaf.loggers.get(veafRadio.Id):info(string.format("Loading version %s", veafRadio.Version))
 

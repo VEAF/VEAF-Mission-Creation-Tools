@@ -30,13 +30,16 @@ veafSecurity = {}
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 --- Identifier. All output in DCS.log will start with this.
-veafSecurity.Id = "SECURITY - "
+veafSecurity.Id = "SECURITY"
 
 --- Version.
 veafSecurity.Version = "1.2.3"
 
 -- trace level, specific to this module
-veafSecurity.Trace = true
+--veafSecurity.LogLevel = "trace"
+--veafSecurity.LogLevel = "debug"
+
+veafSecurity.logger = veaf.loggers.new(veafSecurity.Id, veafSecurity.LogLevel)
 
 --- Key phrase to look for in the mark text which triggers the command.
 veafSecurity.Keyphrase = "_auth"
@@ -52,27 +55,6 @@ veafSecurity.LEVEL_L9 = 1
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Utility methods
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
-function veafSecurity.logError(message)
-    veaf.logError(veafSecurity.Id .. message)
-end
-
-function veafSecurity.logWarning(message)
-    veaf.logWarning(veafSecurity.Id .. message)
-end
-
-function veafSecurity.logInfo(message)
-    veaf.logInfo(veafSecurity.Id .. message)
-end
-
-function veafSecurity.logDebug(message)
-    veaf.logDebug(veafSecurity.Id .. message)
-end
-
-function veafSecurity.logTrace(message)
-    if message and veafSecurity.Trace then
-        veaf.logTrace(veafSecurity.Id .. message)
-    end
-end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Do not change anything below unless you know what you are doing!
@@ -427,13 +409,13 @@ end
 
 -- execute command from the remote interface
 function veafSecurity.executeCommandFromRemote(parameters)
-    veafSecurity.logDebug(string.format("veafSecurity.executeCommandFromRemote()"))
-    veafSecurity.logTrace(string.format("parameters= %s", veaf.p(parameters)))
+    veaf.loggers.get(veafSecurity.Id):debug(string.format("veafSecurity.executeCommandFromRemote()"))
+    veaf.loggers.get(veafSecurity.Id):trace(string.format("parameters= %s", veaf.p(parameters)))
     local _pilot, _pilotName, _unitName, _command = unpack(parameters)
-    veafSecurity.logTrace(string.format("_pilot= %s", veaf.p(_pilot)))
-    veafSecurity.logTrace(string.format("_pilotName= %s", veaf.p(_pilotName)))
-    veafSecurity.logTrace(string.format("_unitName= %s", veaf.p(_unitName)))
-    veafSecurity.logTrace(string.format("_command= %s", veaf.p(_command)))
+    veaf.loggers.get(veafSecurity.Id):trace(string.format("_pilot= %s", veaf.p(_pilot)))
+    veaf.loggers.get(veafSecurity.Id):trace(string.format("_pilotName= %s", veaf.p(_pilotName)))
+    veaf.loggers.get(veafSecurity.Id):trace(string.format("_unitName= %s", veaf.p(_unitName)))
+    veaf.loggers.get(veafSecurity.Id):trace(string.format("_command= %s", veaf.p(_command)))
     if not _pilot or not _command then 
         return false
     end
@@ -441,25 +423,25 @@ function veafSecurity.executeCommandFromRemote(parameters)
     if _command then
         -- parse the command
         local _action, _parameters = _command:match(veafSecurity.RemoteCommandParser)
-        veafSecurity.logTrace(string.format("_action=%s",veaf.p(_action)))
-        veafSecurity.logTrace(string.format("_parameters=%s",veaf.p(_parameters)))
+        veaf.loggers.get(veafSecurity.Id):trace(string.format("_action=%s",veaf.p(_action)))
+        veaf.loggers.get(veafSecurity.Id):trace(string.format("_parameters=%s",veaf.p(_parameters)))
         if _action and _action:lower() == "login" then 
             if _pilot.level >= veafSecurity.LEVEL_L1 then
-                veafSecurity.logInfo(string.format("[%s] is unlocking the mission",veaf.p(_pilotName)))
+                veaf.loggers.get(veafSecurity.Id):info(string.format("[%s] is unlocking the mission",veaf.p(_pilotName)))
                 veafSecurity.authenticate(_parameters)
                 return true
             else
-                veafSecurity.logWarning(string.format("[%s] has not the required level to unlock the mission",veaf.p(_pilotName)))
+                veaf.loggers.get(veafSecurity.Id):warn(string.format("[%s] has not the required level to unlock the mission",veaf.p(_pilotName)))
                 return false
             end
         elseif _action and _action:lower() == "logout" then 
             if _pilot.level >= veafSecurity.LEVEL_L1 then
                 local _silent = _parameters and _parameters:lower() == "silent"
-                veafSecurity.logInfo(string.format("[%s] is locking the mission",veaf.p(_pilotName)))
+                veaf.loggers.get(veafSecurity.Id):info(string.format("[%s] is locking the mission",veaf.p(_pilotName)))
                 veafSecurity.logout(not _silent)
                 return true
             else
-                veafSecurity.logWarning(string.format("[%s] has not the required level to lock the mission",veaf.p(_pilotName)))
+                veaf.loggers.get(veafSecurity.Id):warn(string.format("[%s] has not the required level to lock the mission",veaf.p(_pilotName)))
                 return false
             end
         end
@@ -475,7 +457,7 @@ end
 function veafSecurity.onEventMarkChange(eventPos, event)
   if veafSecurity.executeCommand(eventPos, event.text) then        
       -- Delete old mark.
-      veafSecurity.logTrace(string.format("Removing mark # %d.", event.idx))
+      veaf.loggers.get(veafSecurity.Id):trace(string.format("Removing mark # %d.", event.idx))
       trigger.action.removeMark(event.idx)
   end
 end
@@ -537,7 +519,7 @@ function veafSecurity.markTextAnalysis(text)
   else
       switch.password = text
       switch.login = true
-      ----veafSecurity.logTrace(string.format("switch.password=[%s]",switch.password))
+      ----veaf.loggers.get(veafSecurity.Id):trace(string.format("switch.password=[%s]",switch.password))
   end
 
   return switch
@@ -580,14 +562,14 @@ function veafSecurity._checkPassword(password, level)
   if password == nil then 
     return false
   end
-  veafSecurity.logDebug(string.format("checkPassword(password = %s)",password))
+  veaf.loggers.get(veafSecurity.Id):debug(string.format("checkPassword(password = %s)",password))
   local hash = sha1.hex(password)
-  veafSecurity.logTrace(string.format("hash = [%s]",hash))
+  veaf.loggers.get(veafSecurity.Id):trace(string.format("hash = [%s]",hash))
   if level[hash] ~= nil then
-      veafSecurity.logDebug("user authenticated")
+      veaf.loggers.get(veafSecurity.Id):debug("user authenticated")
       return true
   else
-      veafSecurity.logDebug("user not found")
+      veaf.loggers.get(veafSecurity.Id):debug("user not found")
       return false
   end 
 end
@@ -620,7 +602,7 @@ function veafSecurity.checkPassword_L9(password)
 end
 
 function veafSecurity.getMarkerSecurityLevel(markId)
-  veafSecurity.logTrace(string.format("veafSecurity.getMarkerSecurityLevel([%s])",veaf.p(markId)))
+  veaf.loggers.get(veafSecurity.Id):trace(string.format("veafSecurity.getMarkerSecurityLevel([%s])",veaf.p(markId)))
   local _author = nil
   for _, panel in pairs(world.getMarkPanels( )) do
     if panel.idx == markId then  
@@ -632,7 +614,7 @@ function veafSecurity.getMarkerSecurityLevel(markId)
     _author = markId
   end
   local _user = veafRemote.getRemoteUser(_author)
-  veafSecurity.logTrace(string.format("_user = [%s]",veaf.p(_user)))
+  veaf.loggers.get(veafSecurity.Id):trace(string.format("_user = [%s]",veaf.p(_user)))
   if _user then 
     return _user.level
   end
@@ -643,7 +625,7 @@ function veafSecurity.checkSecurity_L0(password, markId)
     -- don't check the password if already logged in
   if veafSecurity.isAuthenticated() then return true end
   if veafSecurity.getMarkerSecurityLevel(markId) < veafSecurity.LEVEL_L0 and not veafSecurity.checkPassword_L0(password) then
-    veafSecurity.logWarning("You have to give the correct L0 password to do this")
+    veaf.loggers.get(veaf.ISecveafSecurityd):warn("You have to give the correct L0 password to do this")
     trigger.action.outText("Please use the ', password <L0 password>' option", 5) 
     return false
   end
@@ -654,7 +636,7 @@ function veafSecurity.checkSecurity_L1(password, markId)
   -- don't check the password if already logged in
   if veafSecurity.isAuthenticated() then return true end
   if veafSecurity.getMarkerSecurityLevel(markId) < veafSecurity.LEVEL_L1 and not veafSecurity.checkPassword_L1(password) then
-    veafSecurity.logWarning("You have to give the correct L1 password to do this")
+    veaf.loggers.get(veaf.ISecveafSecurityd):warn("You have to give the correct L1 password to do this")
     trigger.action.outText("Please use the ', password <L1 password>' option", 5) 
     return false
   end
@@ -665,7 +647,7 @@ function veafSecurity.checkSecurity_L9(password, markId)
   -- don't check the password if already logged in
   if veafSecurity.isAuthenticated() then return true end
   if veafSecurity.getMarkerSecurityLevel(markId) < veafSecurity.LEVEL_L9 and not veafSecurity.checkPassword_L9(password) then
-    veafSecurity.logWarning("You have to give the correct L9 password to do this")
+    veaf.loggers.get(veaf.ISecveafSecurityd):warn("You have to give the correct L9 password to do this")
     trigger.action.outText("Please use the ', password <L9 password>' option", 5) 
     return false
   end
@@ -680,5 +662,5 @@ function veafSecurity.initialize()
   veafMarkers.registerEventHandler(veafMarkers.MarkerChange, veafSecurity.onEventMarkChange)
 end
 
-veafSecurity.logInfo(string.format("Loading version %s", veafSecurity.Version))
+veaf.loggers.get(veafSecurity.Id):info(string.format("Loading version %s", veafSecurity.Version))
 

@@ -25,6 +25,12 @@ dcsUnits.Id = "DCSUNITS - "
 --- Version.
 dcsUnits.Version = "2021.04.22"
 
+-- trace level, specific to this module
+--dcsUnits.LogLevel = "trace"
+--dcsUnits.LogLevel = "debug"
+
+dcsUnits.logger = veaf.loggers.new(dcsUnits.Id, dcsUnits.LogLevel)
+
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Do not change anything below unless you know what you are doing!
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -32,24 +38,6 @@ dcsUnits.Version = "2021.04.22"
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Utility methods
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-function dcsUnits.logInfo(message)
-    if message then
-        veaf.logInfo(dcsUnits.Id .. message)
-    end
-end
-
-function dcsUnits.logDebug(message)
-    if message then
-        veaf.logDebug(dcsUnits.Id .. message)
-    end
-end
-
-function dcsUnits.logTrace(message)
-    if message then
-        veaf.logTrace(dcsUnits.Id .. message)
-    end
-end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Raw DCS units database
@@ -12992,11 +12980,11 @@ function dcsUnits.addCargoUnit( name, displayName, shape, shapeDstr, life, canEx
     res.desc.maxMass = maxMass
     res.desc.category = 'Cargo'
 
-    dcsUnits.logDebug("Adding custom cargo "..displayName)
+    veaf.loggers.get(dcsUnits.Id):debug("Adding custom cargo "..displayName)
     dcsUnits.DcsUnitsDatabase[name] = res
 end
 
-dcsUnits.logInfo(string.format("Loading version %s", dcsUnits.Version))
+veaf.loggers.get(dcsUnits.Id):info(string.format("Loading version %s", dcsUnits.Version))
 
 -- dcsUnits.addCargoUnit( "jeep_cargo", "jeep_cargo", "jeep_cargo", "jeep_cargo",10,false, 100, 1200,  {"Cargos"}, 100, 4000 );
 -- dcsUnits.addCargoUnit( "bambi_bucket", "bambi_bucket", "bambi_bucket","bambi_bucket",5,false, 1000, 1500,  {"Cargos"}, 1000, 2000 );

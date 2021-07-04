@@ -65,13 +65,16 @@ veafMove = {}
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 --- Identifier. All output in DCS.log will start with this.
-veafMove.Id = "MOVE - "
+veafMove.Id = "MOVE"
 
 --- Version.
 veafMove.Version = "1.8.0"
 
 -- trace level, specific to this module
-veafMove.Trace = false
+--veafMove.LogLevel = "trace"
+--veafMove.LogLevel = "debug"
+
+veafMove.logger = veaf.loggers.new(veafMove.Id, veafMove.LogLevel)
 
 --- Key phrase to look for in the mark text which triggers the command.
 veafMove.Keyphrase = "_move"
@@ -123,31 +126,9 @@ veafMove.Tankers = {}
 -- Utility methods
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-function veafMove.logError(message)
-    veaf.logError(veafMove.Id .. message)
-  end
-  
-function veafMove.logWarning(message)
-    veaf.logWarning(veafMove.Id .. message)
-  end
-  
-function veafMove.logInfo(message)
-    veaf.logInfo(veafMove.Id .. message)
-end
-
-function veafMove.logDebug(message)
-    veaf.logDebug(veafMove.Id .. message)
-end
-
-function veafMove.logTrace(message)
-    if message and veafMove.Trace then
-        veaf.logTrace(veafMove.Id .. message)
-    end
-end
-
 function veafMove.logMarker(id, message, position, markersTable)
     if veafMove.Trace then 
-        return veaf.logMarker(id, veafMove.Id, message, position, markersTable)
+        return veaf.logMarker(id, veafMove.Id, position, markersTable, message)
     end
 end
 
@@ -161,7 +142,7 @@ function veafMove.onEventMarkChange(eventPos, event)
     if veafMove.executeCommand(eventPos, event.text) then 
         
         -- Delete old mark.
-        veafMove.logTrace(string.format("Removing mark # %d.", event.idx))
+        veaf.loggers.get(veafMove.Id):trace(string.format("Removing mark # %d.", event.idx))
         trigger.action.removeMark(event.idx)
 
     end
@@ -261,45 +242,45 @@ function veafMove.markTextAnalysis(text)
 
         if key:lower() == "name" then
             -- Set group name
-            veafMove.logDebug(string.format("Keyword name = %s", val))
+            veaf.loggers.get(veafMove.Id):debug(string.format("Keyword name = %s", val))
             switch.groupName = val
         end
 
         if key:lower() == "speed" or key:lower() == "spd" then
             -- Set speed.
-            veafMove.logDebug(string.format("Keyword speed = %d", val))
+            veaf.loggers.get(veafMove.Id):debug(string.format("Keyword speed = %d", val))
             local nVal = tonumber(val)
             switch.speed = nVal
         end
 
         if key:lower() == "heading" or key:lower() == "hdg" then
             -- Set heading.
-            veafMove.logDebug(string.format("Keyword hdg = %d", val))
+            veaf.loggers.get(veafMove.Id):debug(string.format("Keyword hdg = %d", val))
             local nVal = tonumber(val)
             switch.hdg = nVal
         end
 
         if key:lower() == "distance" or key:lower() == "dist" then
             -- Set distance.
-            veafMove.logDebug(string.format("Keyword distance = %d", val))
+            veaf.loggers.get(veafMove.Id):debug(string.format("Keyword distance = %d", val))
             local nVal = tonumber(val)
             switch.distance = nVal
         end
 
         if key:lower() == "alt" or key:lower() == "altitude" then
             -- Set altitude.
-            veafMove.logDebug(string.format("Keyword alt = %d", val))
+            veaf.loggers.get(veafMove.Id):debug(string.format("Keyword alt = %d", val))
             local nVal = tonumber(val)
             switch.altitude = nVal
         end
 
         if key:lower() == "teleport" then
-            veafMove.logTrace("Keyword teleport found")
+            veaf.loggers.get(veafMove.Id):trace("Keyword teleport found")
             switch.teleport = true
         end
 
         if key:lower() == "silent" then
-            veafMove.logTrace("Keyword silent found")
+            veaf.loggers.get(veafMove.Id):trace("Keyword silent found")
             switch.silent = true
         end
 
@@ -321,8 +302,8 @@ end
 -- @param float speed in knots
 ------------------------------------------------------------------------------
 function veafMove.moveGroup(eventPos, groupName, speed, altitude)
-    veafMove.logDebug("veafMove.moveGroup(groupName = " .. groupName .. ", speed = " .. speed .. ", altitude=".. altitude)
-    veafMove.logDebug(string.format("veafMove.moveGroup: eventPos  x=%.1f z=%.1f", eventPos.x, eventPos.z))
+    veaf.loggers.get(veafMove.Id):debug("veafMove.moveGroup(groupName = " .. groupName .. ", speed = " .. speed .. ", altitude=".. altitude)
+    veaf.loggers.get(veafMove.Id):debug(string.format("veafMove.moveGroup: eventPos  x=%.1f z=%.1f", eventPos.x, eventPos.z))
 
     local result = veaf.moveGroupTo(groupName, eventPos, speed, altitude)
     if not(result) then
@@ -336,13 +317,13 @@ end
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 function veafMove.changeTanker(eventPos, speed, alt)
-    veafMove.logDebug(string.format("veafMove.changeTanker(speed=%s, alt=%s)", tostring(speed), tostring(alt)))
-    veafMove.logTrace(string.format("eventPos=%s",veaf.p(eventPos)))
+    veaf.loggers.get(veafMove.Id):debug(string.format("veafMove.changeTanker(speed=%s, alt=%s)", tostring(speed), tostring(alt)))
+    veaf.loggers.get(veafMove.Id):trace(string.format("eventPos=%s",veaf.p(eventPos)))
     if veafMove.Trace then veaf.cleanupLogMarkers(debugMarkers) end
     
     local tankerUnit = nil
     local units = veaf.findUnitsInCircle(eventPos, 2000, false)
-    veafMove.logTrace(string.format("units=%s", veaf.p(units)))
+    veaf.loggers.get(veafMove.Id):trace(string.format("units=%s", veaf.p(units)))
     if units then
         for name, _ in pairs(units) do
             -- try and find a tanker unit
@@ -355,7 +336,7 @@ function veafMove.changeTanker(eventPos, speed, alt)
     end
 
     if not tankerUnit then
-        veafMove.logWarning("Cannot find tanker unit around marker")
+        veaf.loggers.get(veafMove.Id):warn("Cannot find tanker unit around marker")
 		trigger.action.outText("Cannot find tanker unit around marker" , 10)
         return false
     end
@@ -366,7 +347,7 @@ function veafMove.changeTanker(eventPos, speed, alt)
     local tankerData = veaf.getGroupData(tankerGroupName)
     if not(tankerData) then
         local text = "Cannot move tanker " .. tankerGroupName .. " ; cannot find group data"
-        veafMove.logInfo(text)
+        veaf.loggers.get(veafMove.Id):info(text)
         trigger.action.outText(text)
         return
     end
@@ -374,7 +355,7 @@ function veafMove.changeTanker(eventPos, speed, alt)
     local route = veaf.findInTable(tankerData, "route")
     local points = veaf.findInTable(route, "points")
     if points then
-        veafMove.logTrace("found a " .. #points .. "-points route for tanker " .. tankerGroupName)
+        veaf.loggers.get(veafMove.Id):trace("found a " .. #points .. "-points route for tanker " .. tankerGroupName)
         -- modify the last 3 points
         local idxPoint1 = #points-2
         local idxPoint2 = #points-1
@@ -382,7 +363,7 @@ function veafMove.changeTanker(eventPos, speed, alt)
 
         -- point1 is the point where the tanker mission starts ; we'll change the speed and altitude
         local point1 = points[idxPoint1]
-        veafMove.logTrace("found point1")
+        veaf.loggers.get(veafMove.Id):trace("found point1")
         traceMarkerId = veafMove.logMarker(traceMarkerId, "point1", point1, debugMarkers)
         -- set speed
         if speed > -1 then 
@@ -396,12 +377,12 @@ function veafMove.changeTanker(eventPos, speed, alt)
         else
             alt = point1.alt / 0.3048 -- in feet
         end
-        veafMove.logTrace(string.format("newPoint1=%s",veaf.p(point1)))
+        veaf.loggers.get(veafMove.Id):trace(string.format("newPoint1=%s",veaf.p(point1)))
         traceMarkerId = veafMove.logMarker(traceMarkerId, "newPoint1", point1, debugMarkers)
 
         -- point 2 is the start of the tanking Orbit ; we'll change the speed and altitude
         local point2 = points[idxPoint2]
-        veafMove.logTrace("found point2")
+        veaf.loggers.get(veafMove.Id):trace("found point2")
         traceMarkerId = veafMove.logMarker(traceMarkerId, "point2", point2, debugMarkers)
         local foundOrbit = false
         local task1 = veaf.findInTable(point2, "task")
@@ -431,7 +412,7 @@ function veafMove.changeTanker(eventPos, speed, alt)
         end
         if not foundOrbit then 
             local text = "Cannot set tanker " .. tankerGroupName .. " parameters because it has no ORBIT task defined"
-            veafMove.logInfo(text)
+            veaf.loggers.get(veafMove.Id):info(text)
             trigger.action.outText(text)
             return
         end
@@ -439,7 +420,7 @@ function veafMove.changeTanker(eventPos, speed, alt)
 
         -- point 3 is the end of the tanking Orbit ; we'll change the speed and altitude
         local point3 = points[idxPoint3]
-        veafMove.logTrace("found point3")
+        veaf.loggers.get(veafMove.Id):trace("found point3")
         traceMarkerId = veafMove.logMarker(traceMarkerId, "point3", point3, debugMarkers)
         -- change speed
         if speed > -1 then 
@@ -449,11 +430,11 @@ function veafMove.changeTanker(eventPos, speed, alt)
         if alt > -1 then 
             point3.alt = alt * 0.3048 -- in meters
         end
-        veafMove.logTrace("newpoint3="..veaf.p(point3))
+        veaf.loggers.get(veafMove.Id):trace("newpoint3="..veaf.p(point3))
         traceMarkerId = veafMove.logMarker(traceMarkerId, "newpoint3", point3, debugMarkers)
 
         -- replace whole mission
-        veafMove.logDebug("Resetting changed tanker mission")
+        veaf.loggers.get(veafMove.Id):debug("Resetting changed tanker mission")
         -- replace the mission
         local mission = { 
             id = 'Mission', 
@@ -463,7 +444,7 @@ function veafMove.changeTanker(eventPos, speed, alt)
         controller:setTask(mission)
         
         local msg = string.format("Set tanker %s to %d kn (ground) at %d ft", tankerGroupName, speed, alt)
-        veafMove.logInfo(msg)
+        veaf.loggers.get(veafMove.Id):info(msg)
 		trigger.action.outText(msg , 10)
         return true
     else
@@ -476,16 +457,16 @@ end
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 function veafMove.moveTanker(eventPos, groupName, speed, alt, hdg, distance, teleport, silent)
-    veafMove.logDebug(string.format("veafMove.moveTanker(groupName=%s, speed=%s, alt=%s, hdg=%s, distance=%s)",tostring(groupName), tostring(speed), tostring(alt), tostring(hdg), tostring(distance)))
+    veaf.loggers.get(veafMove.Id):debug(string.format("veafMove.moveTanker(groupName=%s, speed=%s, alt=%s, hdg=%s, distance=%s)",tostring(groupName), tostring(speed), tostring(alt), tostring(hdg), tostring(distance)))
     if veafMove.Trace then veaf.cleanupLogMarkers(debugMarkers) end
     
-    veafMove.logTrace(string.format("eventPos=%s",veaf.p(eventPos)))
+    veaf.loggers.get(veafMove.Id):trace(string.format("eventPos=%s",veaf.p(eventPos)))
     
     local FIRSTPOINT_DISTANCE_SECONDS = 60 -- seconds to fly to WP1
     
     local unitGroup = Group.getByName(groupName)
 	if unitGroup == nil then
-        veafMove.logInfo(groupName .. ' not found for move tanker command')
+        veaf.loggers.get(veafMove.Id):info(groupName .. ' not found for move tanker command')
 		trigger.action.outText(groupName .. ' not found for move tanker command' , 10)
 		return false
     end
@@ -493,7 +474,7 @@ function veafMove.moveTanker(eventPos, groupName, speed, alt, hdg, distance, tel
     local tankerData = veaf.getGroupData(groupName)
     if not(tankerData) then
         local text = "Cannot move tanker " .. groupName .. " ; cannot find group"
-        veafMove.logInfo(text)
+        veaf.loggers.get(veafMove.Id):info(text)
         trigger.action.outText(text)
         return false
     end
@@ -501,22 +482,22 @@ function veafMove.moveTanker(eventPos, groupName, speed, alt, hdg, distance, tel
     local route = veaf.findInTable(tankerData, "route")
     local points = veaf.findInTable(route, "points")
     if points then
-        veafMove.logTrace("found a " .. #points .. "-points route for tanker " .. groupName)
+        veaf.loggers.get(veafMove.Id):trace("found a " .. #points .. "-points route for tanker " .. groupName)
         -- modify the last 3 points
         local idxPoint1 = #points-2
         local idxPoint2 = #points-1
         local idxPoint3 = #points
 
         local point1 = points[idxPoint1]
-        veafMove.logTrace(string.format("point1=%s",veaf.p(point1)))
+        veaf.loggers.get(veafMove.Id):trace(string.format("point1=%s",veaf.p(point1)))
         traceMarkerId = veafMove.logMarker(traceMarkerId, "point1", point1, debugMarkers)
 
         local point2 = points[idxPoint2]
-        veafMove.logTrace(string.format("point2=%s",veaf.p(point2)))
+        veaf.loggers.get(veafMove.Id):trace(string.format("point2=%s",veaf.p(point2)))
         traceMarkerId = veafMove.logMarker(traceMarkerId, "point2", point2, debugMarkers)
 
         local point3 = points[idxPoint3]
-        veafMove.logTrace(string.format("point3=%s",veaf.p(point3)))
+        veaf.loggers.get(veafMove.Id):trace(string.format("point3=%s",veaf.p(point3)))
         traceMarkerId = veafMove.logMarker(traceMarkerId, "point3", point3, debugMarkers)
 
         -- if distance is not set, compute distance between point2 and point3
@@ -557,25 +538,25 @@ function veafMove.moveTanker(eventPos, groupName, speed, alt, hdg, distance, tel
             alt = alt * 0.3048 -- meters
         end
 
-        veafMove.logTrace(string.format("distance=%s",veaf.p(distance)))
-        veafMove.logTrace(string.format("hdg=%s",veaf.p(hdg)))
-        veafMove.logTrace(string.format("speed=%s",veaf.p(speed)))
-        veafMove.logTrace(string.format("alt=%s",veaf.p(alt)))
+        veaf.loggers.get(veafMove.Id):trace(string.format("distance=%s",veaf.p(distance)))
+        veaf.loggers.get(veafMove.Id):trace(string.format("hdg=%s",veaf.p(hdg)))
+        veaf.loggers.get(veafMove.Id):trace(string.format("speed=%s",veaf.p(speed)))
+        veaf.loggers.get(veafMove.Id):trace(string.format("alt=%s",veaf.p(alt)))
 
         -- the first point in the refuel leg is based on the marker position
         local startLegPoint= { x=eventPos.x, y=eventPos.z, alt=alt, speed=speed }
-        veafMove.logTrace(string.format("startLegPoint=%s",veaf.p(startLegPoint)))
+        veaf.loggers.get(veafMove.Id):trace(string.format("startLegPoint=%s",veaf.p(startLegPoint)))
         if veafNamedPoints and not silent then
             veafNamedPoints.namePoint({x=startLegPoint.x, y=startLegPoint.alt, z=startLegPoint.y}, groupName .. " refuel start", unitGroup:getCoalition(), true)
         end
 
         -- compute the second point in the refuel leg based on desired heading and distance
         local endLegPoint= { x=startLegPoint.x, y=startLegPoint.y, alt=alt, speed=speed }
-        veafMove.logTrace(string.format("distance=%s",veaf.p(distance)))
-        veafMove.logTrace(string.format("hdg=%s",veaf.p(hdg)))
+        veaf.loggers.get(veafMove.Id):trace(string.format("distance=%s",veaf.p(distance)))
+        veaf.loggers.get(veafMove.Id):trace(string.format("hdg=%s",veaf.p(hdg)))
         endLegPoint.x = startLegPoint.x + distance * math.cos(hdg)
         endLegPoint.y = startLegPoint.y + distance * math.sin(hdg)
-        veafMove.logTrace(string.format("endLegPoint=%s",veaf.p(endLegPoint)))
+        veaf.loggers.get(veafMove.Id):trace(string.format("endLegPoint=%s",veaf.p(endLegPoint)))
         if veafNamedPoints and not silent then
             veafNamedPoints.namePoint({x=endLegPoint.x, y=endLegPoint.alt, z=endLegPoint.y}, groupName .. " refuel end", unitGroup:getCoalition(), true)
         end
@@ -587,19 +568,19 @@ function veafMove.moveTanker(eventPos, groupName, speed, alt, hdg, distance, tel
         if reverseHdg < 0 then
             reverseHdg = reverseHdg + math.pi*2
         end
-        veafMove.logTrace(string.format("reverseHdg=%s",veaf.p(reverseHdg)))
+        veaf.loggers.get(veafMove.Id):trace(string.format("reverseHdg=%s",veaf.p(reverseHdg)))
         movePoint.x = startLegPoint.x + speed * FIRSTPOINT_DISTANCE_SECONDS * math.cos(reverseHdg)
         movePoint.y = startLegPoint.y + speed * FIRSTPOINT_DISTANCE_SECONDS * math.sin(reverseHdg)
         teleportPoint.x = startLegPoint.x + 2 * speed * FIRSTPOINT_DISTANCE_SECONDS * math.cos(reverseHdg)
         teleportPoint.y = startLegPoint.y + 2 * speed * FIRSTPOINT_DISTANCE_SECONDS * math.sin(reverseHdg)
-        veafMove.logTrace(string.format("movePoint=%s",veaf.p(movePoint)))
+        veaf.loggers.get(veafMove.Id):trace(string.format("movePoint=%s",veaf.p(movePoint)))
 
         -- set point1 to the computed movePoint
         point1.x = movePoint.x
         point1.y = movePoint.y
         point1.alt = movePoint.alt
         point1.speed = movePoint.speed
-        veafMove.logTrace(string.format("newPoint1=%s",veaf.p(point1)))
+        veaf.loggers.get(veafMove.Id):trace(string.format("newPoint1=%s",veaf.p(point1)))
         traceMarkerId = veafMove.logMarker(traceMarkerId, "newPoint1", point1, debugMarkers)
 
         -- set point2 to the start of the tanking Orbit (startLegPoint)
@@ -625,7 +606,7 @@ function veafMove.moveTanker(eventPos, groupName, speed, alt, hdg, distance, tel
         end
         if not foundOrbit then 
             local text = "Cannot move tanker " .. groupName .. " because it has no ORBIT task defined"
-            veafMove.logInfo(text)
+            veaf.loggers.get(veafMove.Id):info(text)
             trigger.action.outText(text)
             return false
         end
@@ -633,7 +614,7 @@ function veafMove.moveTanker(eventPos, groupName, speed, alt, hdg, distance, tel
         point2.y = startLegPoint.y
         point2.alt = startLegPoint.alt
         point2.speed = startLegPoint.speed
-        veafMove.logTrace(string.format("newPoint2=%s",veaf.p(point2)))
+        veaf.loggers.get(veafMove.Id):trace(string.format("newPoint2=%s",veaf.p(point2)))
         traceMarkerId = veafMove.logMarker(traceMarkerId, "newPoint2", point2, debugMarkers)
 
         -- set point2 to the end of the tanking Orbit (endLegPoint)
@@ -641,24 +622,24 @@ function veafMove.moveTanker(eventPos, groupName, speed, alt, hdg, distance, tel
         point3.y = endLegPoint.y
         point3.alt = endLegPoint.alt
         point3.speed = endLegPoint.speed
-        veafMove.logTrace("newpoint3="..veaf.p(point3))
+        veaf.loggers.get(veafMove.Id):trace("newpoint3="..veaf.p(point3))
         traceMarkerId = veafMove.logMarker(traceMarkerId, "newpoint3", point3, debugMarkers)
 
         local delay = 0
 
         -- teleport if the option is set
         if teleport then
-            veafMove.logDebug("Teleport the group")   
+            veaf.loggers.get(veafMove.Id):debug("Teleport the group")   
             local vars = { groupName = groupName, point = teleportPoint, action = "respawn" }
             local grp = mist.teleportToPoint(vars)
             unitGroup = Group.getByName(groupName)
             delay = 1
         end
 
-        veafMove.logDebug(string.format("Resetting moved tanker mission in %d seconds", delay))
+        veaf.loggers.get(veafMove.Id):debug(string.format("Resetting moved tanker mission in %d seconds", delay))
         local replaceMission = function(unitGroup, tankerData)
-            veafMove.logDebug(string.format("Resetting moved tanker %s mission", unitGroup:getName()))
-            veafMove.logDebug(string.format("tankerData=%s", veaf.p(tankerData)))
+            veaf.loggers.get(veafMove.Id):debug(string.format("Resetting moved tanker %s mission", unitGroup:getName()))
+            veaf.loggers.get(veafMove.Id):debug(string.format("tankerData=%s", veaf.p(tankerData)))
             -- replace the mission
             local mission = { 
                 id = 'Mission', 
@@ -690,12 +671,12 @@ function veafMove.moveAfac(eventPos, groupName, speed, alt)
     if not alt then
         alt = 20000
     end
-    veafMove.logDebug("veafMove.moveAfac(groupName = " .. groupName .. ", speed = " .. speed .. ", alt = " .. alt)
-    veafMove.logDebug(string.format("veafMove.moveAfac: eventPos  x=%.1f z=%.1f", eventPos.x, eventPos.z))
+    veaf.loggers.get(veafMove.Id):debug("veafMove.moveAfac(groupName = " .. groupName .. ", speed = " .. speed .. ", alt = " .. alt)
+    veaf.loggers.get(veafMove.Id):debug(string.format("veafMove.moveAfac: eventPos  x=%.1f z=%.1f", eventPos.x, eventPos.z))
 
 	local unitGroup = Group.getByName(groupName)
 	if unitGroup == nil then
-        veafMove.logInfo(groupName .. ' not found for move afac command')
+        veaf.loggers.get(veafMove.Id):info(groupName .. ' not found for move afac command')
 		trigger.action.outText(groupName .. ' not found for move afac command' , 10)
 		return false
 	end
@@ -792,12 +773,12 @@ end
 -- prepare tanker units
 function veafMove.findAllTankers()
     local TankerTypeNames = {"KC130", "KC-135", "KC135MPRS", "KJ-2000", "IL-78M"}
-    veafMove.logTrace(string.format("findAllTankers()"))
+    veaf.loggers.get(veafMove.Id):trace(string.format("findAllTankers()"))
     local result = {}
     local units = mist.DBs.unitsByName -- local copy for faster execution
     for name, unit in pairs(units) do
-        veafMove.logTrace(string.format("name=%s, unit.type=%s", veaf.p(name), veaf.p(unit.type)))
-        --veafMove.logTrace(string.format("unit=%s", veaf.p(unit)))
+        veaf.loggers.get(veafMove.Id):trace(string.format("name=%s, unit.type=%s", veaf.p(name), veaf.p(unit.type)))
+        --veaf.loggers.get(veafMove.Id):trace(string.format("unit=%s", veaf.p(unit)))
         --local unit = Unit.getByName(name)
         if unit then 
             for _, tankerTypeName in pairs(TankerTypeNames) do
@@ -818,11 +799,11 @@ end
 function veafMove.moveTankerToMe(parameters)
     local subParameters, unitName = veaf.safeUnpack(parameters)
     local tankerName, direction = veaf.safeUnpack(subParameters)
-    veafMove.logDebug(string.format("veafMove.moveTankerToMe(tankerName=%s, unitName=%s, direction=%d)", tankerName, unitName, direction))
+    veaf.loggers.get(veafMove.Id):debug(string.format("veafMove.moveTankerToMe(tankerName=%s, unitName=%s, direction=%d)", tankerName, unitName, direction))
     local unit = Unit.getByName(unitName)
     if unit then
         local unitType = unit:getDesc()["typeName"]
-        veafMove.logTrace(string.format("checking unit %s of type %s", tostring(unitName), tostring(unitType)))
+        veaf.loggers.get(veafMove.Id):trace(string.format("checking unit %s of type %s", tostring(unitName), tostring(unitType)))
         local tankerMissionParameters = veafMove.tankerMissionParameters[unitType]
         if not tankerMissionParameters then
             tankerMissionParameters = { speed = -1, alt = -1}  -- -1 means to use the currently defined speed and altitude
@@ -834,7 +815,7 @@ end
 
 --- Build the initial radio menu
 function veafMove.buildRadioMenu()
-    veafMove.logDebug(string.format("veafMove.buildRadioMenu()"))
+    veaf.loggers.get(veafMove.Id):debug(string.format("veafMove.buildRadioMenu()"))
     veafMove.rootPath = veafRadio.addSubMenu(veafMove.RadioMenuName)
     if not(veafRadio.skipHelpMenus) then
         veafRadio.addCommandToSubmenu("HELP", veafMove.rootPath, veafMove.help, nil, veafRadio.USAGE_ForGroup)
@@ -842,11 +823,11 @@ function veafMove.buildRadioMenu()
     for _, tankerUnitName in pairs(veafMove.Tankers) do
         local tankerName = tankerUnitName
         if veafAssets then
-            veafMove.logTrace(string.format("searching for asset name %s", tankerUnitName))
+            veaf.loggers.get(veafMove.Id):trace(string.format("searching for asset name %s", tankerUnitName))
             local asset = veafAssets.get(tankerUnitName)
             if asset then 
                 tankerName = asset.description
-                veafMove.logTrace(string.format("found asset name : %s", tankerName))
+                veaf.loggers.get(veafMove.Id):trace(string.format("found asset name : %s", tankerName))
             end
         end
         -- Move tanker to me
@@ -888,6 +869,6 @@ function veafMove.initialize()
     veafMarkers.registerEventHandler(veafMarkers.MarkerChange, veafMove.onEventMarkChange)
 end
 
-veafMove.logInfo(string.format("Loading version %s", veafMove.Version))
+veaf.loggers.get(veafMove.Id):info(string.format("Loading version %s", veafMove.Version))
 
 

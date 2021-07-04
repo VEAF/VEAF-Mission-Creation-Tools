@@ -36,13 +36,16 @@ veafUnits = {}
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 --- Identifier. All output in DCS.log will start with this.
-veafUnits.Id = "UNITS - "
+veafUnits.Id = "UNITS"
 
 --- Version.
 veafUnits.Version = "1.8.0"
 
 -- trace level, specific to this module
-veafUnits.Trace = false
+--veafUnits.LogLevel = "trace"
+--veafUnits.LogLevel = "debug"
+
+veafUnits.logger = veaf.loggers.new(veafUnits.Id, veafUnits.LogLevel)
 
 --- If no unit is spawned in a cell, it will default to this width
 veafUnits.DefaultCellWidth = 10
@@ -61,35 +64,11 @@ veafUnits.OutputListsForDocumentation = false
 -- Utility methods
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-function veafUnits.logError(message)
-    if message then
-        veaf.logError(veafUnits.Id .. message)
-    end
-end
-
-function veafUnits.logInfo(message)
-    if message then
-        veaf.logInfo(veafUnits.Id .. message)
-    end
-end
-
-function veafUnits.logDebug(message)
-    if message then
-        veaf.logDebug(veafUnits.Id .. message)
-    end
-end
-
-function veafUnits.logTrace(message)
-    if message and veafUnits.Trace then
-        veaf.logTrace(veafUnits.Id .. message)
-    end
-end
-
 function veafUnits.traceGroup(group, cells)
     if group and veafUnits.Trace then
-        veafUnits.logTrace("")
-        veafUnits.logTrace(" Group : " .. group.description)
-        veafUnits.logTrace("")
+        veaf.loggers.get(veafUnits.Id):trace("")
+        veaf.loggers.get(veafUnits.Id):trace(" Group : " .. group.description)
+        veaf.loggers.get(veafUnits.Id):trace("")
         local nCols = group.disposition.w
         local nRows = group.disposition.h
         
@@ -100,8 +79,8 @@ function veafUnits.traceGroup(group, cells)
             line1 = line1 .. "                ".. string.format("%02d", nCol) .."              |" 
             line2 = line2 .. "--------------------------------|"
         end
-        veafUnits.logTrace(line1)
-        veafUnits.logTrace(line2)
+        veaf.loggers.get(veafUnits.Id):trace(line1)
+        veaf.loggers.get(veafUnits.Id):trace(line2)
 
         local unitCounter = 1
         for nRow = 1, nRows do 
@@ -154,10 +133,10 @@ function veafUnits.traceGroup(group, cells)
                 line4 = line4 .. "--------------------------------|"
 
             end
-            veafUnits.logTrace(line1)
-            veafUnits.logTrace(line2)
-            veafUnits.logTrace(line3)
-            veafUnits.logTrace(line4)
+            veaf.loggers.get(veafUnits.Id):trace(line1)
+            veaf.loggers.get(veafUnits.Id):trace(line2)
+            veaf.loggers.get(veafUnits.Id):trace(line3)
+            veaf.loggers.get(veafUnits.Id):trace(line4)
         end
     end
 end
@@ -171,7 +150,7 @@ function veafUnits.debugUnit(unit)
             airnaval = ", air"
         end
         
-        veafUnits.logDebug(string.format("unit=%s", veaf.p(unit)))
+        veaf.loggers.get(veafUnits.Id):debug(string.format("unit=%s", veaf.p(unit)))
     end
 end
 
@@ -204,7 +183,7 @@ end
 
 --- searches the DCS database for a unit having this type (case insensitive)
 function veafUnits.findDcsUnit(unitType)
-    veafUnits.logTrace("veafUnits.findDcsUnit(unitType=" .. unitType .. ")")
+    veaf.loggers.get(veafUnits.Id):trace("veafUnits.findDcsUnit(unitType=" .. unitType .. ")")
 
     -- find the desired unit in the DCS units database
     local unit = nil
@@ -231,7 +210,7 @@ function veafUnits.processGroup(group)
     result.description = group.description
     result.groupName = group.groupName
     result.units = {}
-    veafUnits.logTrace("group="..veaf.p(group))
+    veaf.loggers.get(veafUnits.Id):trace("group="..veaf.p(group))
     local unitNumber = 1
     -- replace all units with a simplified structure made from the DCS unit metadata structure
     for i = 1, #group.units do
@@ -242,7 +221,7 @@ function veafUnits.processGroup(group)
         local hdg = nil
         local random = false
         local u = group.units[i]
-        veafUnits.logTrace("u="..veaf.p(u))
+        veaf.loggers.get(veafUnits.Id):trace("u="..veaf.p(u))
         if type(u) == "string" then 
             -- information was skipped using simplified syntax
             unitType = u
@@ -251,7 +230,7 @@ function veafUnits.processGroup(group)
             if not unitType then 
                 unitType = u[1]
             end
-            veafUnits.logTrace("unitType="..veaf.p(unitType))
+            veaf.loggers.get(veafUnits.Id):trace("unitType="..veaf.p(unitType))
             cell = u.cell
             number = u.number
             size = u.size
@@ -282,12 +261,12 @@ function veafUnits.processGroup(group)
         if not(hdg) then 
             hdg = math.random(0, 359) -- default heading is random
         end
-        veafUnits.logTrace(string.format("hdg=%d",hdg))
+        veaf.loggers.get(veafUnits.Id):trace(string.format("hdg=%d",hdg))
         for numUnit = 1, number do
-            veafUnits.logTrace("searching for unit [" .. unitType .. "] listed in group [" .. group.groupName .. "]")
+            veaf.loggers.get(veafUnits.Id):trace("searching for unit [" .. unitType .. "] listed in group [" .. group.groupName .. "]")
             local unit = veafUnits.findUnit(unitType)
             if not(unit) then 
-                veafUnits.logInfo("cannot find unit [" .. unitType .. "] listed in group [" .. group.groupName .. "]")
+                veaf.loggers.get(veafUnits.Id):info("cannot find unit [" .. unitType .. "] listed in group [" .. group.groupName .. "]")
             else 
                 unit.cell = cell
                 unit.hdg = hdg
@@ -312,7 +291,7 @@ function veafUnits.processGroup(group)
         end
     end
     
-    veafUnits.logTrace("result="..veaf.p(result))
+    veaf.loggers.get(veafUnits.Id):trace("result="..veaf.p(result))
 
     return result
 end
@@ -320,7 +299,7 @@ end
 
 --- searches the database for a group having this alias (case insensitive)
 function veafUnits.findGroup(groupAlias)
-    veafUnits.logDebug("veafUnits.findGroup(groupAlias=" .. groupAlias .. ")")
+    veaf.loggers.get(veafUnits.Id):debug("veafUnits.findGroup(groupAlias=" .. groupAlias .. ")")
 
     -- find the desired group in the groups database
     local result = nil
@@ -339,7 +318,7 @@ end
 
 --- searches the database for a unit having this alias (case insensitive)
 function veafUnits.findUnit(unitAlias)
-    veafUnits.logTrace("veafUnits.findUnit(unitAlias=" .. unitAlias .. ")")
+    veaf.loggers.get(veafUnits.Id):trace("veafUnits.findUnit(unitAlias=" .. unitAlias .. ")")
     
     -- find the desired unit in the units database
     local unit = nil
@@ -359,7 +338,7 @@ function veafUnits.findUnit(unitAlias)
         unit = veafUnits.findDcsUnit(unitAlias)
     end
     if not(unit) then 
-        veafUnits.logInfo("cannot find unit [" .. unitAlias .. "]")
+        veaf.loggers.get(veafUnits.Id):info("cannot find unit [" .. unitAlias .. "]")
     else
         unit = veafUnits.makeUnitFromDcsStructure(unit, cell)
     end
@@ -411,15 +390,15 @@ end
 
 --- checks if position is correct for the unit type
 function veafUnits.checkPositionForUnit(spawnPosition, unit)
-    veafUnits.logTrace("checkPositionForUnit()")
-    veafUnits.logTrace(string.format("checkPositionForUnit: spawnPosition=", veaf.vecToString(spawnPosition)))
+    veaf.loggers.get(veafUnits.Id):trace("checkPositionForUnit()")
+    veaf.loggers.get(veafUnits.Id):trace(string.format("checkPositionForUnit: spawnPosition=", veaf.vecToString(spawnPosition)))
     local vec2 = { x = spawnPosition.x, y = spawnPosition.z }
-    veafUnits.logTrace(string.format("checkPositionForUnit: vec2=", veaf.vecToString(vec2)))
+    veaf.loggers.get(veafUnits.Id):trace(string.format("checkPositionForUnit: vec2=", veaf.vecToString(vec2)))
     local landType = land.getSurfaceType(vec2)
     if landType == land.SurfaceType.WATER then
-        veafUnits.logTrace("landType = WATER")
+        veaf.loggers.get(veafUnits.Id):trace("landType = WATER")
     else
-        veafUnits.logTrace("landType = GROUND")
+        veaf.loggers.get(veafUnits.Id):trace("landType = GROUND")
     end
     veafUnits.debugUnit(unit)
     if spawnPosition then
@@ -442,7 +421,7 @@ end
 
 --- Adds a placement point to every unit of the group, centering the whole group around the spawnPoint, and adding an optional spacing
 function veafUnits.placeGroup(group, spawnPoint, spacing, hdg)
-    veafUnits.logTrace(string.format("group = %s",veaf.p(group)))
+    veaf.loggers.get(veafUnits.Id):trace(string.format("group = %s",veaf.p(group)))
     if not(hdg) then
         hdg = 0 -- default north
     end
@@ -567,19 +546,19 @@ function veafUnits.placeGroup(group, spawnPoint, spacing, hdg)
     for nRow = 1, #rows do -- bottom -> up
         totalHeight = totalHeight + rows[#rows-nRow+1].height
     end
-    veafUnits.logTrace(string.format("totalWidth = %d",totalWidth))
-    veafUnits.logTrace(string.format("totalHeight = %d",totalHeight))
+    veaf.loggers.get(veafUnits.Id):trace(string.format("totalWidth = %d",totalWidth))
+    veaf.loggers.get(veafUnits.Id):trace(string.format("totalHeight = %d",totalHeight))
     -- place the grid
     local currentColLeft = spawnPoint.z - totalWidth/2
     local currentColTop = spawnPoint.x - totalHeight/2
     for nCol = 1, #cols do
-        veafUnits.logTrace(string.format("currentColLeft = %d",currentColLeft))
+        veaf.loggers.get(veafUnits.Id):trace(string.format("currentColLeft = %d",currentColLeft))
         cols[nCol].left = currentColLeft
         cols[nCol].right= currentColLeft + cols[nCol].width
         currentColLeft = cols[nCol].right
     end
     for nRow = 1, #rows do -- bottom -> up
-        veafUnits.logTrace(string.format("currentColTop = %d",currentColTop))
+        veaf.loggers.get(veafUnits.Id):trace(string.format("currentColTop = %d",currentColTop))
         rows[#rows-nRow+1].bottom = currentColTop
         rows[#rows-nRow+1].top = currentColTop + rows[#rows-nRow+1].height
         currentColTop = rows[#rows-nRow+1].top
@@ -604,14 +583,14 @@ function veafUnits.placeGroup(group, spawnPoint, spacing, hdg)
     
     -- randomly place the units
     for _, cell in pairs(cells) do
-        veafUnits.logTrace(string.format("cell = %s",veaf.p(cell)))
+        veaf.loggers.get(veafUnits.Id):trace(string.format("cell = %s",veaf.p(cell)))
         local unit = cell.unit
         if unit then
             unit.spawnPoint = {}
             if not cell.center then
-                veafUnits.logError(string.format("Cannot find cell.center !"))
-                veafUnits.logError(string.format("cell = %s",veaf.p(cell)))
-                veafUnits.logError(string.format("group = %s",veaf.p(group)))
+                veaf.loggers.get(veafUnits.Id):error(string.format("Cannot find cell.center !"))
+                veaf.loggers.get(veafUnits.Id):error(string.format("cell = %s",veaf.p(cell)))
+                veaf.loggers.get(veafUnits.Id):error(string.format("group = %s",veaf.p(group)))
             end
             unit.spawnPoint.z = cell.center.x
             if unit.random and spacing > 0 then
@@ -665,7 +644,7 @@ This goes in [documentation\content\Mission maker\references\group-list.md]:
 |Name|Description|Aliases|
 |--|--|--|
 ]]
-    veafUnits.logInfo(text)
+    veaf.loggers.get(veafUnits.Id):info(text)
 
     -- make a copy of the table
     local groupsCopy = {}
@@ -679,7 +658,7 @@ This goes in [documentation\content\Mission maker\references\group-list.md]:
     -- use the keys to retrieve the values in the sorted order
     for _, g in pairs(groupsCopy) do  
         text = "|" .. g.group.groupName .. "|" .. g.group.description .. "|" .. table.concat(g.aliases, ", ") .. "|\n" 
-        veafUnits.logInfo(text)
+        veaf.loggers.get(veafUnits.Id):info(text)
     end
 end
 
@@ -698,7 +677,7 @@ This goes in [documentation\content\Mission maker\references\units-list.md]:
 |Name|Description|Aliases|
 |--|--|--|
 ]]
-    veafUnits.logInfo(text)
+    veaf.loggers.get(veafUnits.Id):info(text)
     -- make a copy of the table
     local units = {}
     for k, data in pairs(dcsUnits.DcsUnitsDatabase) do 
@@ -727,7 +706,7 @@ This goes in [documentation\content\Mission maker\references\units-list.md]:
             text = text .. table.concat(u.aliases, ", ")
         end
         text = text .. "|"
-        veafUnits.logInfo(text)
+        veaf.loggers.get(veafUnits.Id):info(text)
     end
 end
 
@@ -1507,7 +1486,7 @@ veafUnits.GroupsDatabase = {
     },
 }
 
-veafUnits.logInfo(string.format("Loading version %s", veafUnits.Version))
+veaf.loggers.get(veafUnits.Id):info(string.format("Loading version %s", veafUnits.Version))
 
 if veafUnits.OutputListsForDocumentation then
     veafUnits.logGroupsListInMarkdown()

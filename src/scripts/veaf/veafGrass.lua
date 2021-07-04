@@ -42,13 +42,16 @@ veafGrass = {}
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 --- Identifier. All output in DCS.log will start with this.
-veafGrass.Id = "GRASS - "
+veafGrass.Id = "GRASS"
 
 --- Version.
 veafGrass.Version = "2.2.0"
 
 -- trace level, specific to this module
-veafGrass.Trace = false
+--veafGrass.LogLevel = "trace"
+--veafGrass.LogLevel = "debug"
+
+veafGrass.logger = veaf.loggers.new(veafGrass.Id, veafGrass.LogLevel)
 
 veafGrass.DelayForStartup = 0.5
 
@@ -57,19 +60,6 @@ veafGrass.RadiusAroundFarp = 2000
 -- Utility methods
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-function veafGrass.logInfo(message)
-    veaf.logInfo(veafGrass.Id .. message)
-end
-
-function veafGrass.logDebug(message)
-    veaf.logDebug(veafGrass.Id .. message)
-end
-
-function veafGrass.logTrace(message)
-	if message and veafGrass.Trace then
-		veaf.logTrace(veafGrass.Id .. message)
-	end
-end
 
 ------------------------------------------------------------------------------
 -- veafGrass.buildGrassRunway
@@ -78,8 +68,8 @@ end
 -- @return a named point if successful
 ------------------------------------------------------------------------------
 function veafGrass.buildGrassRunway(grassRunwayUnit)
-    veafGrass.logDebug(string.format("veafGrass.buildGrassRunway()"))
-    veafGrass.logTrace(string.format("grassRunwayUnit=%s",veaf.p(grassRunwayUnit)))
+    veaf.loggers.get(veafGrass.Id):debug(string.format("veafGrass.buildGrassRunway()"))
+    veaf.loggers.get(veafGrass.Id):trace(string.format("grassRunwayUnit=%s",veaf.p(grassRunwayUnit)))
 
     if not grassRunwayUnit then return nil end
 
@@ -203,20 +193,20 @@ function veafGrass.buildFarpsUnits()
     local farpUnits = {}
     local grassRunwayUnits = {}
 	for name, unit in pairs(mist.DBs.unitsByName) do
-		--veafGrass.logTrace("buildFarpsUnits: testing " .. unit.type .. " " .. name)
+		--veaf.loggers.get(veafGrass.Id):trace("buildFarpsUnits: testing " .. unit.type .. " " .. name)
         if name:upper():find('GRASS_RUNWAY') then 
             grassRunwayUnits[name] = unit
-            --veafGrass.logTrace(string.format("found grassRunwayUnits[%s]= %s", name, veaf.p(unit)))
+            --veaf.loggers.get(veafGrass.Id):trace(string.format("found grassRunwayUnits[%s]= %s", name, veaf.p(unit)))
         end
         if (unit.type == "SINGLE_HELIPAD" or unit.type == "FARP" or unit.type == "Invisible FARP") and name:upper():find('FARP ') then 
             farpUnits[name] = unit
-            --veafGrass.logTrace(string.format("found farpUnits[%s]= %s", name, veaf.p(unit)))
+            --veaf.loggers.get(veafGrass.Id):trace(string.format("found farpUnits[%s]= %s", name, veaf.p(unit)))
         end
     end
-    veafGrass.logTrace(string.format("farpUnits=%s",veaf.p(farpUnits)))
-    veafGrass.logTrace(string.format("grassRunwayUnits=%s",veaf.p(grassRunwayUnits)))
+    veaf.loggers.get(veafGrass.Id):trace(string.format("farpUnits=%s",veaf.p(farpUnits)))
+    veaf.loggers.get(veafGrass.Id):trace(string.format("grassRunwayUnits=%s",veaf.p(grassRunwayUnits)))
     for name, unit in pairs(farpUnits) do
-        veafGrass.logTrace(string.format("calling buildFarpsUnits(%s)",name))
+        veaf.loggers.get(veafGrass.Id):trace(string.format("calling buildFarpsUnits(%s)",name))
         veafGrass.buildFarpUnits(unit, grassRunwayUnits)
     end
 end
@@ -226,9 +216,9 @@ end
 -- @param unit farp : the FARP unit
 ------------------------------------------------------------------------------
 function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName)
-    veafGrass.logDebug(string.format("buildFarpUnits()"))
-    veafGrass.logTrace(string.format("farp=%s",veaf.p(farp)))
-    veafGrass.logTrace(string.format("grassRunwayUnits=%s",veaf.p(grassRunwayUnits)))
+    veaf.loggers.get(veafGrass.Id):debug(string.format("buildFarpUnits()"))
+    veaf.loggers.get(veafGrass.Id):trace(string.format("farp=%s",veaf.p(farp)))
+    veaf.loggers.get(veafGrass.Id):trace(string.format("grassRunwayUnits=%s",veaf.p(grassRunwayUnits)))
 
 	local farpCoalition = farp.coalition
 	if type(farpCoalition == "number") then
@@ -428,7 +418,7 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName)
 		local _beaconInfo = ctld.createRadioBeacon(beaconPoint, 2, "USA", farp.unitName or farp.name, -1, true)
 		if _beaconInfo ~= nil then
 			farpNamedPoint.tacan = string.format("ADF : %.2f KHz - %.2f MHz - %.2f MHz", _beaconInfo.vhf / 1000, _beaconInfo.uhf / 1000000, _beaconInfo.fm / 1000000)
-			veafGrass.logTrace(string.format("farpNamedPoint.tacan=%s", veaf.p(farpNamedPoint.tacan)))
+			veaf.loggers.get(veafGrass.Id):trace(string.format("farpNamedPoint.tacan=%s", veaf.p(farpNamedPoint.tacan)))
 		end
 	end
 
@@ -444,7 +434,7 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName)
                 local pos = unit:getPosition().p
                 if pos then -- you never know O.o
                     local distanceFromCenter = ((pos.x - farp.x)^2 + (pos.z - farp.y)^2)^0.5
-                    veafGrass.logTrace(string.format("name=%s; distanceFromCenter=%s", tostring(name), veaf.p(distanceFromCenter)))
+                    veaf.loggers.get(veafGrass.Id):trace(string.format("name=%s; distanceFromCenter=%s", tostring(name), veaf.p(distanceFromCenter)))
                     if distanceFromCenter <= veafGrass.RadiusAroundFarp then
                         grassRunwayUnit = unitDef
                         break
@@ -453,7 +443,7 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName)
             end
         end
         if grassRunwayUnit then
-            veafGrass.logTrace(string.format("found grassRunwayUnit %s", veaf.p(grassRunwayUnit)))
+            veaf.loggers.get(veafGrass.Id):trace(string.format("found grassRunwayUnit %s", veaf.p(grassRunwayUnit)))
 			local grassNamedPoint = veafGrass.buildGrassRunway(grassRunwayUnit)
 			farpNamedPoint.x = grassNamedPoint.x
 			farpNamedPoint.y = grassNamedPoint.y
@@ -462,7 +452,7 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName)
 			farpNamedPoint.runways = grassNamedPoint.runways
         end
     end
-    veafGrass.logTrace(string.format("farpNamedPoint=%s", veaf.p(farpNamedPoint)))
+    veaf.loggers.get(veafGrass.Id):trace(string.format("farpNamedPoint=%s", veaf.p(farpNamedPoint)))
 
 	veafNamedPoints.addPoint(farp.unitName or farp.name, farpNamedPoint)
 end
@@ -478,4 +468,4 @@ function veafGrass.initialize()
     mist.scheduleFunction(veafGrass.buildFarpsUnits,{},timer.getTime()+veafGrass.DelayForStartup)
 end
 
-veafGrass.logInfo(string.format("Loading version %s", veafGrass.Version))
+veaf.loggers.get(veafGrass.Id):info(string.format("Loading version %s", veafGrass.Version))

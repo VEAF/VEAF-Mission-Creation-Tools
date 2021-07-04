@@ -45,13 +45,16 @@ veafCarrierOperations = {}
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 --- Identifier. All output in DCS.log will start with this.
-veafCarrierOperations.Id = "CARRIER - "
+veafCarrierOperations.Id = "CARRIER"
 
 --- Version.
 veafCarrierOperations.Version = "1.8.0"
 
 -- trace level, specific to this module
-veafCarrierOperations.Trace = false
+--veafCarrierOperations.LogLevel = "trace"
+--veafCarrierOperations.LogLevel = "debug"
+
+veafCarrierOperations.logger = veaf.loggers.new(veafCarrierOperations.Id, veafCarrierOperations.LogLevel)
 
 --- All the carrier groups must comply with this name
 veafCarrierOperations.CarrierGroupNamePattern = "^CSG-.*$"
@@ -94,34 +97,6 @@ veafCarrierOperations.debugMarkersErasedAtEachStep = {}
 veafCarrierOperations.debugMarkersForTanker = {}
 veafCarrierOperations.traceMarkerId = 2727
 
-function veafCarrierOperations.logError(message)
-    veaf.logError(veafCarrierOperations.Id .. message)
-end
-
-function veafCarrierOperations.logWarning(message)
-    veaf.logWarning(veafCarrierOperations.Id .. message)
-end
-
-function veafCarrierOperations.logInfo(message)
-    veaf.logInfo(veafCarrierOperations.Id .. message)
-end
-
-function veafCarrierOperations.logDebug(message)
-    veaf.logDebug(veafCarrierOperations.Id .. message)
-end
-
-function veafCarrierOperations.logTrace(message)
-    if message and veafCarrierOperations.Trace then 
-        veaf.logTrace(veafCarrierOperations.Id .. message)
-    end
-end
-
-function veafCarrierOperations.logMarker(id, message, position, markersTable)
-    if veafCarrierOperations.Trace then 
-        return veaf.logMarker(id, veafCarrierOperations.Id, message, position, markersTable)
-    end
-end
-
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Carrier operations commands
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -129,13 +104,13 @@ end
 --- Start carrier operations ; changes the radio menu item to END and make the carrier move
 function veafCarrierOperations.startCarrierOperations(parameters)
     local groupName, duration = veaf.safeUnpack(parameters)
-    veafCarrierOperations.logDebug("startCarrierOperations(".. groupName .. ")")
+    veaf.loggers.get(veafCarrierOperations.Id):debug("startCarrierOperations(".. groupName .. ")")
 
     local carrier = veafCarrierOperations.carriers[groupName]
 
     if not(carrier) then
         local text = "Cannot find the carrier group "..groupName
-        veafCarrierOperations.logError(text)
+        veaf.loggers.get(veafCarrierOperations.Id):error(text)
         trigger.action.outText(text, 5)
         return
     end
@@ -153,7 +128,7 @@ function veafCarrierOperations.startCarrierOperations(parameters)
                 carrier.runwayAngleWithBRC = data.runwayAngleWithBRC
                 carrier.desiredWindSpeedOnDeck = data.desiredWindSpeedOnDeck
                 carrier.initialPosition = unit:getPosition().p
-                veafCarrierOperations.logTrace("initialPosition="..veaf.vecToString(carrier.initialPosition))
+                veaf.loggers.get(veafCarrierOperations.Id):trace("initialPosition="..veaf.vecToString(carrier.initialPosition))
                 break
             end
         end
@@ -170,24 +145,24 @@ function veafCarrierOperations.startCarrierOperations(parameters)
         veafCarrierOperations.getAtcForCarrierOperations(groupName) ..
         "\nGetting a good alignment may require up to 5 minutes"
 
-    veafCarrierOperations.logInfo(text)    
+    veaf.loggers.get(veafCarrierOperations.Id):info(text)    
     trigger.action.outText(text, 25)
     
     -- change the menu
-    veafCarrierOperations.logTrace("change the menu")
+    veaf.loggers.get(veafCarrierOperations.Id):trace("change the menu")
     veafCarrierOperations.rebuildRadioMenu()
 
 end
 
 --- Continue carrier operations ; make the carrier move according to the wind. Called by startCarrierOperations and by the scheduler.
 function veafCarrierOperations.continueCarrierOperations(groupName)
-    veafCarrierOperations.logDebug("continueCarrierOperations(".. groupName .. ")")
+    veaf.loggers.get(veafCarrierOperations.Id):debug("continueCarrierOperations(".. groupName .. ")")
 
     local carrier = veafCarrierOperations.carriers[groupName]
 
     if not(carrier) then
         local text = "Cannot find the carrier group "..groupName
-        veafCarrierOperations.logError(text)
+        veaf.loggers.get(veafCarrierOperations.Id):error(text)
         trigger.action.outText(text, 5)
         return
     end
@@ -200,20 +175,20 @@ function veafCarrierOperations.continueCarrierOperations(groupName)
     local currentHeading = 0
     if carrierUnit then 
         startPosition = carrierUnit:getPosition().p
-        veafCarrierOperations.logTrace("startPosition (raw) ="..veaf.vecToString(startPosition))
+        veaf.loggers.get(veafCarrierOperations.Id):trace("startPosition (raw) ="..veaf.vecToString(startPosition))
         currentHeading = mist.utils.round(mist.utils.toDegree(mist.getHeading(carrierUnit)), 0)
     end    
-    veafCarrierOperations.logTrace(string.format("currentHeading=%s", veaf.p(currentHeading)))
+    veaf.loggers.get(veafCarrierOperations.Id):trace(string.format("currentHeading=%s", veaf.p(currentHeading)))
     startPosition = { x=startPosition.x, z=startPosition.z, y=startPosition.y + veafCarrierOperations.ALT_FOR_MEASURING_WIND} -- on deck, 50 meters above the water
-    veafCarrierOperations.logTrace("startPosition="..veaf.vecToString(startPosition))
+    veaf.loggers.get(veafCarrierOperations.Id):trace("startPosition="..veaf.vecToString(startPosition))
     veaf.cleanupLogMarkers(veafCarrierOperations.debugMarkersErasedAtEachStep)
-    veafCarrierOperations.traceMarkerId = veafCarrierOperations.logMarker(veafCarrierOperations.traceMarkerId, "startPosition", startPosition, veafCarrierOperations.debugMarkersErasedAtEachStep)
+    veafCarrierOperations.traceMarkerId = veaf.logMarker(veafCarrierOperations.Id, veafCarrierOperations.traceMarkerId, "startPosition", startPosition, veafCarrierOperations.debugMarkersErasedAtEachStep)
     local carrierDistanceFromInitialPosition = ((startPosition.x - carrier.initialPosition.x)^2 + (startPosition.z - carrier.initialPosition.z)^2)^0.5
-    veafCarrierOperations.logTrace("carrierDistanceFromInitialPosition="..carrierDistanceFromInitialPosition)
+    veaf.loggers.get(veafCarrierOperations.Id):trace("carrierDistanceFromInitialPosition="..carrierDistanceFromInitialPosition)
 
     -- compute magnetic deviation at carrier position
     local magdev = veaf.round(mist.getNorthCorrection(startPosition) * 180 / math.pi,1)
-    veafCarrierOperations.logTrace("magdev = " .. magdev)
+    veaf.loggers.get(veafCarrierOperations.Id):trace("magdev = " .. magdev)
 
     -- make the carrier move
     if startPosition ~= nil then
@@ -223,7 +198,7 @@ function veafCarrierOperations.continueCarrierOperations(groupName)
         --get wind info
         local wind = atmosphere.getWind(startPosition)
         local windspeed = mist.vec.mag(wind)
-        veafCarrierOperations.logTrace(string.format("windspeed=%s", veaf.p(windspeed)))
+        veaf.loggers.get(veafCarrierOperations.Id):trace(string.format("windspeed=%s", veaf.p(windspeed)))
 
         if windspeed >= veafCarrierOperations.MIN_WINDSPEED_FOR_CHANGING_HEADING then
             --get wind direction sorted
@@ -247,7 +222,7 @@ function veafCarrierOperations.continueCarrierOperations(groupName)
             dir = dir - 360
         end
 
-        veafCarrierOperations.logTrace(string.format("dir=%s", veaf.p(dir)))
+        veaf.loggers.get(veafCarrierOperations.Id):trace(string.format("dir=%s", veaf.p(dir)))
 
         local speed = 1
         local desiredWindSpeedOnDeck = carrier.desiredWindSpeedOnDeck * 0.51444444444444444444
@@ -255,7 +230,7 @@ function veafCarrierOperations.continueCarrierOperations(groupName)
         if windspeed < desiredWindSpeedOnDeck then
             speed = desiredWindSpeedOnDeck - windspeed 
         end
-        veafCarrierOperations.logTrace("BRC speed="..speed.." m/s")
+        veaf.loggers.get(veafCarrierOperations.Id):trace("BRC speed="..speed.." m/s")
 
         -- compute a new waypoint
         local headingRad = mist.utils.toRadian(dir)
@@ -265,10 +240,10 @@ function veafCarrierOperations.continueCarrierOperations(groupName)
             z = startPosition.z + length * math.sin(headingRad),
             y = startPosition.y
         }
-        veafCarrierOperations.logTrace("headingRad="..headingRad)
-        veafCarrierOperations.logTrace("length="..length)
-        veafCarrierOperations.logTrace("newWaypoint="..veaf.vecToString(newWaypoint))
-        veafCarrierOperations.traceMarkerId = veafCarrierOperations.logMarker(veafCarrierOperations.traceMarkerId, "newWaypoint", newWaypoint, veafCarrierOperations.debugMarkersErasedAtEachStep)
+        veaf.loggers.get(veafCarrierOperations.Id):trace("headingRad="..headingRad)
+        veaf.loggers.get(veafCarrierOperations.Id):trace("length="..length)
+        veaf.loggers.get(veafCarrierOperations.Id):trace("newWaypoint="..veaf.vecToString(newWaypoint))
+        veafCarrierOperations.traceMarkerId = veaf.logMarker(veafCarrierOperations.Id, veafCarrierOperations.traceMarkerId, "newWaypoint", newWaypoint, veafCarrierOperations.debugMarkersErasedAtEachStep)
         
         local actualSpeed = speed
         if math.abs(dir - currentHeading) > 15 then -- still aligning
@@ -276,20 +251,20 @@ function veafCarrierOperations.continueCarrierOperations(groupName)
         end
         veaf.moveGroupTo(groupName, newWaypoint, actualSpeed, 0)
         carrier.heading = dir
-        veafCarrierOperations.logTrace("carrier.heading = " .. carrier.heading .. " (true)")
+        veaf.loggers.get(veafCarrierOperations.Id):trace("carrier.heading = " .. carrier.heading .. " (true)")
         carrier.heading_mag = dir + magdev
-        veafCarrierOperations.logTrace("carrier.heading = " .. carrier.heading_mag .. " (mag)")
+        veaf.loggers.get(veafCarrierOperations.Id):trace("carrier.heading = " .. carrier.heading_mag .. " (mag)")
         carrier.speed = veaf.round(speed * 1.94384, 0)
-        veafCarrierOperations.logTrace("carrier.speed = " .. carrier.speed .. " kn")
+        veaf.loggers.get(veafCarrierOperations.Id):trace("carrier.speed = " .. carrier.speed .. " kn")
 
         -- check if a Pedro group exists for this carrier
         if not(mist.getGroupData(carrier.pedroUnitName)) then
-            veafCarrierOperations.logInfo("No Pedro group named " .. carrier.pedroUnitName)
+            veaf.loggers.get(veafCarrierOperations.Id):info("No Pedro group named " .. carrier.pedroUnitName)
         else
         -- prepare or correct the Pedro route (SH-60B, 250ft high, 1nm to the starboard side of the carrier, riding along at the same speed and heading)
             local pedroUnit = Unit.getByName(carrier.pedroUnitName)
             if (pedroUnit) then
-                veafCarrierOperations.logDebug("found Pedro unit")
+                veaf.loggers.get(veafCarrierOperations.Id):debug("found Pedro unit")
                 -- check if unit is still alive
                 if pedroUnit:getLife() < 1 then
                     pedroUnit = nil -- respawn when damaged
@@ -298,7 +273,7 @@ function veafCarrierOperations.continueCarrierOperations(groupName)
             
             -- spawn if needed
             if not(pedroUnit and carrier.pedroIsSpawned) then
-                veafCarrierOperations.logDebug("respawning Pedro unit")
+                veaf.loggers.get(veafCarrierOperations.Id):debug("respawning Pedro unit")
                 local vars = {}
                 vars.gpName = carrier.pedroUnitName
                 vars.action = 'respawn'
@@ -311,21 +286,21 @@ function veafCarrierOperations.continueCarrierOperations(groupName)
 
             local pedroGroup = Group.getByName(carrier.pedroUnitName) -- group has the same name as the unit
             if (pedroGroup) then
-                veafCarrierOperations.logDebug("found Pedro group")
+                veaf.loggers.get(veafCarrierOperations.Id):debug("found Pedro group")
                 
                 pedroUnit = Unit.getByName(carrier.pedroUnitName)
                 if not pedroUnit then 
                     pedroUnit = pedroGroup:getUnits(1)
                 end
-                veafCarrierOperations.logDebug(string.format("pedroUnit=%s",veaf.p(pedroUnit)))
+                veaf.loggers.get(veafCarrierOperations.Id):debug(string.format("pedroUnit=%s",veaf.p(pedroUnit)))
 
                 -- waypoint #1 is 500m to port
                 local offsetPointOnLand, offsetPoint = veaf.computeCoordinatesOffsetFromRoute(startPosition, newWaypoint, 0, 500)
                 local pedroWaypoint1 = offsetPoint
                 local distanceFromWP1 = ((pedroUnit:getPosition().p.x - pedroWaypoint1.x)^2 + (pedroUnit:getPosition().p.z - pedroWaypoint1.z)^2)^0.5
                 if distanceFromWP1 > 500 then
-                    veafCarrierOperations.logTrace("Pedro WP1 = " .. veaf.vecToString(pedroWaypoint1))
-                    veafCarrierOperations.traceMarkerId = veafCarrierOperations.logMarker(veafCarrierOperations.traceMarkerId, "pedroWaypoint1", pedroWaypoint1, veafCarrierOperations.debugMarkersErasedAtEachStep)
+                    veaf.loggers.get(veafCarrierOperations.Id):trace("Pedro WP1 = " .. veaf.vecToString(pedroWaypoint1))
+                    veafCarrierOperations.traceMarkerId = veaf.logMarker(veafCarrierOperations.Id, veafCarrierOperations.traceMarkerId, "pedroWaypoint1", pedroWaypoint1, veafCarrierOperations.debugMarkersErasedAtEachStep)
                 else
                     pedroWaypoint1 = nil
                 end
@@ -333,8 +308,8 @@ function veafCarrierOperations.continueCarrierOperations(groupName)
                 -- waypoint #2 is 500m to port, near the end of the carrier route
                 local offsetPointOnLand, offsetPoint = veaf.computeCoordinatesOffsetFromRoute(startPosition, newWaypoint, length - 250, 500)
                 local pedroWaypoint2 = offsetPoint
-                veafCarrierOperations.logTrace("Pedro WP2 = " .. veaf.vecToString(pedroWaypoint2))
-                veafCarrierOperations.traceMarkerId = veafCarrierOperations.logMarker(veafCarrierOperations.traceMarkerId, "pedroWaypoint2", pedroWaypoint2, veafCarrierOperations.debugMarkersErasedAtEachStep)
+                veaf.loggers.get(veafCarrierOperations.Id):trace("Pedro WP2 = " .. veaf.vecToString(pedroWaypoint2))
+                veafCarrierOperations.traceMarkerId = veaf.logMarker(veafCarrierOperations.Id, veafCarrierOperations.traceMarkerId, "pedroWaypoint2", pedroWaypoint2, veafCarrierOperations.debugMarkersErasedAtEachStep)
 
                 local mission = { 
                     id = 'Mission', 
@@ -409,7 +384,7 @@ function veafCarrierOperations.continueCarrierOperations(groupName)
                 end
 
                 -- replace whole mission
-                veafCarrierOperations.logDebug("Setting Pedro mission")
+                veaf.loggers.get(veafCarrierOperations.Id):debug("Setting Pedro mission")
                 local controller = pedroGroup:getController()
                 controller:setTask(mission)
 
@@ -419,7 +394,7 @@ function veafCarrierOperations.continueCarrierOperations(groupName)
 
         -- check if a S3B-Tanker group exists for this carrier
         if not(mist.getGroupData(carrier.tankerUnitName)) then
-            veafCarrierOperations.logInfo("No Tanker group named " .. carrier.tankerUnitName)
+            veaf.loggers.get(veafCarrierOperations.Id):info("No Tanker group named " .. carrier.tankerUnitName)
         else
 
             local routeTanker = (carrierDistanceFromInitialPosition > 18520)
@@ -428,7 +403,7 @@ function veafCarrierOperations.continueCarrierOperations(groupName)
                 -- prepare or correct the Tanker route (8000ft high, 10nm aft and 4nm to the starboard side of the carrier, refueling on BRC)
                 local tankerUnit = Unit.getByName(carrier.tankerUnitName)
                 if (tankerUnit) then
-                    veafCarrierOperations.logDebug("found Tanker unit")
+                    veaf.loggers.get(veafCarrierOperations.Id):debug("found Tanker unit")
                     -- check if unit is still alive
                     if tankerUnit:getLife() < 1 then
                         tankerUnit = nil -- respawn when damaged
@@ -437,7 +412,7 @@ function veafCarrierOperations.continueCarrierOperations(groupName)
                 
                 -- spawn if needed
                 if not(tankerUnit and carrier.tankerIsSpawned) then
-                    veafCarrierOperations.logDebug("respawning Tanker unit")
+                    veaf.loggers.get(veafCarrierOperations.Id):debug("respawning Tanker unit")
                     local vars = {}
                     vars.gpName = carrier.tankerUnitName
                     vars.action = 'respawn'
@@ -451,21 +426,21 @@ function veafCarrierOperations.continueCarrierOperations(groupName)
                 tankerUnit = Unit.getByName(carrier.tankerUnitName)
                 local tankerGroup = Group.getByName(carrier.tankerUnitName) -- group has the same name as the unit
                 if (tankerGroup) then
-                    veafCarrierOperations.logDebug("found Tanker group")
-                    veafCarrierOperations.logTrace("groupName="..tankerGroup:getName())
+                    veaf.loggers.get(veafCarrierOperations.Id):debug("found Tanker group")
+                    veaf.loggers.get(veafCarrierOperations.Id):trace("groupName="..tankerGroup:getName())
                     
                     -- waypoint #1 is 5nm to port, 5nm to the front
                     local offsetPointOnLand, offsetPoint = veaf.computeCoordinatesOffsetFromRoute(startPosition, newWaypoint, 9000, 9000)
                     local tankerWaypoint1 = offsetPoint
-                    veafCarrierOperations.logTrace("Tanker WP1 = " .. veaf.vecToString(tankerWaypoint1))
+                    veaf.loggers.get(veafCarrierOperations.Id):trace("Tanker WP1 = " .. veaf.vecToString(tankerWaypoint1))
                     veaf.cleanupLogMarkers(veafCarrierOperations.debugMarkersForTanker)
-                    veafCarrierOperations.traceMarkerId = veafCarrierOperations.logMarker(veafCarrierOperations.traceMarkerId, "tankerWaypoint1", tankerWaypoint1, veafCarrierOperations.debugMarkersForTanker)
+                    veafCarrierOperations.traceMarkerId = veaf.logMarker(veafCarrierOperations.Id, veafCarrierOperations.traceMarkerId, "tankerWaypoint1", tankerWaypoint1, veafCarrierOperations.debugMarkersForTanker)
 
                     -- waypoint #2 is 20nm ahead of waypoint #2, on BRC
                     local offsetPointOnLand, offsetPoint = veaf.computeCoordinatesOffsetFromRoute(startPosition, newWaypoint, 37000 + 9000, 9000)
                     local tankerWaypoint2 = offsetPoint
-                    veafCarrierOperations.logTrace("Tanker WP2 = " .. veaf.vecToString(tankerWaypoint2))
-                    veafCarrierOperations.traceMarkerId = veafCarrierOperations.logMarker(veafCarrierOperations.traceMarkerId, "tankerWaypoint2", tankerWaypoint2, veafCarrierOperations.debugMarkersForTanker)
+                    veaf.loggers.get(veafCarrierOperations.Id):trace("Tanker WP2 = " .. veaf.vecToString(tankerWaypoint2))
+                    veafCarrierOperations.traceMarkerId = veaf.logMarker(veafCarrierOperations.Id, veafCarrierOperations.traceMarkerId, "tankerWaypoint2", tankerWaypoint2, veafCarrierOperations.debugMarkersForTanker)
 
                     local mission = { 
                         id = 'Mission', 
@@ -571,7 +546,7 @@ function veafCarrierOperations.continueCarrierOperations(groupName)
                     }                
 
                     -- replace whole mission
-                    veafCarrierOperations.logDebug("Setting Tanker mission")
+                    veaf.loggers.get(veafCarrierOperations.Id):debug("Setting Tanker mission")
                     local controller = tankerGroup:getController()
                     controller:setTask(mission)
                     carrier.tankerRouteIsSet = true
@@ -584,7 +559,7 @@ end
 
 --- Gets informations about current carrier operations
 function veafCarrierOperations.getAtcForCarrierOperations(groupName, skipNavigationData)
-    veafCarrierOperations.logDebug("getAtcForCarrierOperations(".. groupName .. ")")
+    veaf.loggers.get(veafCarrierOperations.Id):debug("getAtcForCarrierOperations(".. groupName .. ")")
 
     local carrier = veafCarrierOperations.carriers[groupName]
     local carrierUnit = Unit.getByName(carrier.carrierUnitName)
@@ -599,7 +574,7 @@ function veafCarrierOperations.getAtcForCarrierOperations(groupName, skipNavigat
 
     if not(carrier) then
         local text = "Cannot find the carrier group "..groupName
-        veafCarrierOperations.logError(text)
+        veaf.loggers.get(veafCarrierOperations.Id):error(text)
         trigger.action.outText(text, 5)
         return
     end
@@ -626,7 +601,7 @@ function veafCarrierOperations.getAtcForCarrierOperations(groupName, skipNavigat
         if currentHeading > -1 and currentSpeed > -1 then
             -- compute magnetic deviation at carrier position
             local magdev = veaf.round(mist.getNorthCorrection(startPosition) * 180 / math.pi,1)
-            veafCarrierOperations.logTrace("magdev = " .. magdev)
+            veaf.loggers.get(veafCarrierOperations.Id):trace("magdev = " .. magdev)
             
             result = result ..
             "\n"..
@@ -645,20 +620,20 @@ end
 --- Gets informations about current carrier operations
 function veafCarrierOperations.atcForCarrierOperations(parameters)
     local groupName, unitName = veaf.safeUnpack(parameters)
-    veafCarrierOperations.logDebug("atcForCarrierOperations(".. groupName .. ")")
+    veaf.loggers.get(veafCarrierOperations.Id):debug("atcForCarrierOperations(".. groupName .. ")")
     local text = veafCarrierOperations.getAtcForCarrierOperations(groupName)
     veaf.outTextForUnit(unitName, text, 15)
 end
 
 --- Ends carrier operations ; changes the radio menu item to START and send the carrier back to its starting point
 function veafCarrierOperations.stopCarrierOperations(groupName)
-    veafCarrierOperations.logDebug("stopCarrierOperations(".. groupName .. ")")
+    veaf.loggers.get(veafCarrierOperations.Id):debug("stopCarrierOperations(".. groupName .. ")")
 
     local carrier = veafCarrierOperations.carriers[groupName]
 
     if not(carrier) then
         local text = "Cannot find the carrier group "..groupName
-        veafCarrierOperations.logError(text)
+        veaf.loggers.get(veafCarrierOperations.Id):error(text)
         trigger.action.outText(text, 5)
         return
     end
@@ -667,13 +642,13 @@ function veafCarrierOperations.stopCarrierOperations(groupName)
     local carrierPosition = carrierUnit:getPosition().p
     
     local text = "The carrier group "..groupName.." has stopped air operations ; it's moving back to its initial position"
-    veafCarrierOperations.logInfo(text)
+    veaf.loggers.get(veafCarrierOperations.Id):info(text)
     trigger.action.outText(text, 5)
     carrier.conductingAirOperations = false
     carrier.stoppedAirOperations = true
 
     -- change the menu
-    veafCarrierOperations.logTrace("change the menu")
+    veaf.loggers.get(veafCarrierOperations.Id):trace("change the menu")
     veafCarrierOperations.rebuildRadioMenu()
 
     -- make the Pedro land
@@ -681,7 +656,7 @@ function veafCarrierOperations.stopCarrierOperations(groupName)
         carrier.pedroIsSpawned = false
         local pedroUnit = Unit.getByName(carrier.pedroUnitName)
         if (pedroUnit) then
-            veafCarrierOperations.logDebug("found Pedro unit ; destroying it")
+            veaf.loggers.get(veafCarrierOperations.Id):debug("found Pedro unit ; destroying it")
             pedroUnit:destroy()
         end
     end    
@@ -691,7 +666,7 @@ function veafCarrierOperations.stopCarrierOperations(groupName)
         carrier.tankerIsSpawned = false
         local tankerUnit = Unit.getByName(carrier.tankerUnitName)
         if (tankerUnit) then
-            veafCarrierOperations.logDebug("found tanker unit ; destroying it")
+            veaf.loggers.get(veafCarrierOperations.Id):debug("found tanker unit ; destroying it")
             tankerUnit:destroy()
         end
     end    
@@ -705,54 +680,54 @@ end
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 --- Rebuild the radio menu
 function veafCarrierOperations.rebuildRadioMenu()
-    veafCarrierOperations.logDebug("veafCarrierOperations.rebuildRadioMenu()")
+    veaf.loggers.get(veafCarrierOperations.Id):debug("veafCarrierOperations.rebuildRadioMenu()")
 
     -- find the carriers in the veafCarrierOperations.carriers table and prepare their menus
     for name, carrier in pairs(veafCarrierOperations.carriers) do
-        veafCarrierOperations.logTrace("rebuildRadioMenu processing "..name)
+        veaf.loggers.get(veafCarrierOperations.Id):trace("rebuildRadioMenu processing "..name)
         
         -- remove the start menu
         if carrier.startMenuName1 then
-            veafCarrierOperations.logTrace("remove carrier.startMenuName1="..carrier.startMenuName1)
+            veaf.loggers.get(veafCarrierOperations.Id):trace("remove carrier.startMenuName1="..carrier.startMenuName1)
             veafRadio.delCommand(veafCarrierOperations.rootPath, carrier.startMenuName1)
         end
         if carrier.startMenuName2 then
-            veafCarrierOperations.logTrace("remove carrier.startMenuName2="..carrier.startMenuName2)
+            veaf.loggers.get(veafCarrierOperations.Id):trace("remove carrier.startMenuName2="..carrier.startMenuName2)
             veafRadio.delCommand(veafCarrierOperations.rootPath, carrier.startMenuName2)
         end
 
         -- remove the stop menu
         if carrier.stopMenuName then
-            veafCarrierOperations.logTrace("remove carrier.stopMenuName="..carrier.stopMenuName)
+            veaf.loggers.get(veafCarrierOperations.Id):trace("remove carrier.stopMenuName="..carrier.stopMenuName)
             veafRadio.delCommand(veafCarrierOperations.rootPath, carrier.stopMenuName)
         end
 
         -- remove the ATC menu (by player group)
         if carrier.getInfoMenuName then
-            veafCarrierOperations.logTrace("remove carrier.getInfoMenuName="..carrier.getInfoMenuName)
+            veaf.loggers.get(veafCarrierOperations.Id):trace("remove carrier.getInfoMenuName="..carrier.getInfoMenuName)
             veafRadio.delCommand(veafCarrierOperations.rootPath, carrier.getInfoMenuName)
         end
 
         if carrier.conductingAirOperations then
             -- add the stop menu
             carrier.stopMenuName = name .. " - End air operations"
-            veafCarrierOperations.logTrace("add carrier.stopMenuName="..carrier.stopMenuName)
+            veaf.loggers.get(veafCarrierOperations.Id):trace("add carrier.stopMenuName="..carrier.stopMenuName)
             veafRadio.addSecuredCommandToSubmenu(carrier.stopMenuName, veafCarrierOperations.rootPath, veafCarrierOperations.stopCarrierOperations, name)
         else
             -- add the "start for veafCarrierOperations.MAX_OPERATIONS_DURATION" menu
             carrier.startMenuName1 = name .. " - Start carrier air operations for " .. veafCarrierOperations.MAX_OPERATIONS_DURATION .. " minutes"
-            veafCarrierOperations.logTrace("add carrier.startMenuName1="..carrier.startMenuName1)
+            veaf.loggers.get(veafCarrierOperations.Id):trace("add carrier.startMenuName1="..carrier.startMenuName1)
             veafRadio.addSecuredCommandToSubmenu(carrier.startMenuName1, veafCarrierOperations.rootPath, veafCarrierOperations.startCarrierOperations, { name, veafCarrierOperations.MAX_OPERATIONS_DURATION })
 
             -- add the "start for veafCarrierOperations.MAX_OPERATIONS_DURATION * 2" menu
             carrier.startMenuName2 = name .. " - Start carrier air operations for " .. veafCarrierOperations.MAX_OPERATIONS_DURATION * 2 .. " minutes"
-            veafCarrierOperations.logTrace("add carrier.startMenuName2="..carrier.startMenuName2)
+            veaf.loggers.get(veafCarrierOperations.Id):trace("add carrier.startMenuName2="..carrier.startMenuName2)
             veafRadio.addSecuredCommandToSubmenu(carrier.startMenuName2, veafCarrierOperations.rootPath, veafCarrierOperations.startCarrierOperations, { name, veafCarrierOperations.MAX_OPERATIONS_DURATION * 2 })
         end
 
         -- add the ATC menu (by player group)
         carrier.getInfoMenuName = name .. " - ATC - Request informations"
-        veafCarrierOperations.logTrace("add carrier.getInfoMenuName="..carrier.getInfoMenuName)
+        veaf.loggers.get(veafCarrierOperations.Id):trace("add carrier.getInfoMenuName="..carrier.getInfoMenuName)
         veafRadio.addCommandToSubmenu(carrier.getInfoMenuName, veafCarrierOperations.rootPath, veafCarrierOperations.atcForCarrierOperations, name, veafRadio.USAGE_ForGroup)
 
         veafRadio.refreshRadioMenu()
@@ -761,7 +736,7 @@ end
 
 --- Build the initial radio menu
 function veafCarrierOperations.buildRadioMenu()
-    veafCarrierOperations.logDebug("veafCarrierOperations.buildRadioMenu")
+    veaf.loggers.get(veafCarrierOperations.Id):debug("veafCarrierOperations.buildRadioMenu")
 
     -- don't create an empty menu
     if length(veafCarrierOperations.carriers) == 0 then 
@@ -792,7 +767,7 @@ end
 function veafCarrierOperations.initializeCarrierGroups()
     -- find the carriers and add them to the veafCarrierOperations.carriers table, store its initial location and create the menus
     for name, group in pairs(mist.DBs.groupsByName) do
-        veafCarrierOperations.logTrace("found group "..name)
+        veaf.loggers.get(veafCarrierOperations.Id):trace("found group "..name)
         -- search groups with a carrier unit in the group
         local carrier = nil
         -- find the actual carrier unit
@@ -803,15 +778,15 @@ function veafCarrierOperations.initializeCarrierGroups()
                 for knownCarrierType, data in pairs(veafCarrierOperations.AllCarriers) do
                     if unitType == knownCarrierType then
                         local coa = group:getCoalition()
-                        veafCarrierOperations.logTrace(string.format("coa=%s", veaf.p(coa)))
+                        veaf.loggers.get(veafCarrierOperations.Id):trace(string.format("coa=%s", veaf.p(coa)))
                         if coa == coalition.side.BLUE then
                             -- found a carrier, initialize the carrier group object if needed
                             if not carrier then 
                                 veafCarrierOperations.carriers[name] = {}
                                 carrier = veafCarrierOperations.carriers[name]
-                                veafCarrierOperations.logTrace("found carrier !")
+                                veaf.loggers.get(veafCarrierOperations.Id):trace("found carrier !")
                             else
-                                veafCarrierOperations.logWarning(string.format("more than one carrier in group %s", veaf.p(name)))
+                                veaf.loggers.get(veafCarrierOperations.Id):warn(string.format("more than one carrier in group %s", veaf.p(name)))
                             end
                             carrier.carrierUnit = unit
                             carrier.carrierUnitName = carrier.carrierUnit:getName()
@@ -839,7 +814,7 @@ function veafCarrierOperations.initializeCarrierGroups()
             carrier.missionRoute = mist.getGroupRoute(name, 'task')
             if veafCarrierOperations.Trace then
                 for num, point in pairs(carrier.missionRoute) do
-                    veafCarrierOperations.traceMarkerId = veafCarrierOperations.logMarker(veafCarrierOperations.traceMarkerId, string.format("[%s] point %d", name, tostring(num)), point, nil)
+                    veafCarrierOperations.traceMarkerId = veaf.logMarker(veafCarrierOperations.Id, veafCarrierOperations.traceMarkerId, string.format("[%s] point %d", name, tostring(num)), point, nil)
                 end
             end
         end
@@ -848,34 +823,34 @@ end
 end
 
 function veafCarrierOperations.doOperations()
-    veafCarrierOperations.logDebug("veafCarrierOperations.doOperations()")
+    veaf.loggers.get(veafCarrierOperations.Id):debug("veafCarrierOperations.doOperations()")
 
     -- find the carriers in the veafCarrierOperations.carriers table and check if they are operating
     for name, carrier in pairs(veafCarrierOperations.carriers) do
-        veafCarrierOperations.logDebug("checking " .. name)
+        veaf.loggers.get(veafCarrierOperations.Id):debug("checking " .. name)
         if carrier.conductingAirOperations then
-            veafCarrierOperations.logDebug(name .. " is conducting operations ; checking course and ops duration")
+            veaf.loggers.get(veafCarrierOperations.Id):debug(name .. " is conducting operations ; checking course and ops duration")
             if carrier.airOperationsEndAt < timer.getTime() then
                 -- time to stop operations
-                veafCarrierOperations.logInfo(name .. " has been conducting operations long enough ; stopping ops")
+                veaf.loggers.get(veafCarrierOperations.Id):info(name .. " has been conducting operations long enough ; stopping ops")
                 veafCarrierOperations.stopCarrierOperations(name)
             else
                 local remainingTime = veaf.round((carrier.airOperationsEndAt - timer.getTime()) /60, 1)
-                veafCarrierOperations.logDebug(name .. " will continue conducting operations for " .. remainingTime .. " more minutes")
+                veaf.loggers.get(veafCarrierOperations.Id):debug(name .. " will continue conducting operations for " .. remainingTime .. " more minutes")
                 -- check and reset course
                 veafCarrierOperations.continueCarrierOperations(name)
             end
         elseif carrier.stoppedAirOperations then
-            veafCarrierOperations.logDebug(name .. " stopped conducting operations")
+            veaf.loggers.get(veafCarrierOperations.Id):debug(name .. " stopped conducting operations")
             carrier.stoppedAirOperations = false
             -- reset the carrier group route to its original route (set in the mission)
             if carrier.missionRoute then
-                veafCarrierOperations.logDebug(string.format("resetting carrier %s route", name))
-                veafCarrierOperations.logTrace("carrier.missionRoute="..veaf.p(carrier.missionRoute))
+                veaf.loggers.get(veafCarrierOperations.Id):debug(string.format("resetting carrier %s route", name))
+                veaf.loggers.get(veafCarrierOperations.Id):trace("carrier.missionRoute="..veaf.p(carrier.missionRoute))
                 local result = mist.goRoute(name, carrier.missionRoute)
             end
         else
-            veafCarrierOperations.logDebug(name .. " is not conducting operations")
+            veaf.loggers.get(veafCarrierOperations.Id):debug(name .. " is not conducting operations")
         end
     end
 end
@@ -884,11 +859,11 @@ end
 --- It will make any carrier group that has started carrier operations maintain a correct course for recovery, even if wind changes.
 --- Also, it will stop carrier operations after a set time (see veafCarrierOperations.MAX_OPERATIONS_DURATION).
 function veafCarrierOperations.operationsScheduler()
-    veafCarrierOperations.logDebug("veafCarrierOperations.operationsScheduler()")
+    veaf.loggers.get(veafCarrierOperations.Id):debug("veafCarrierOperations.operationsScheduler()")
 
     veafCarrierOperations.doOperations()
 
-    veafCarrierOperations.logDebug("veafCarrierOperations.operationsScheduler() - rescheduling in " .. veafCarrierOperations.SCHEDULER_INTERVAL * 60 .. " s")
+    veaf.loggers.get(veafCarrierOperations.Id):debug("veafCarrierOperations.operationsScheduler() - rescheduling in " .. veafCarrierOperations.SCHEDULER_INTERVAL * 60 .. " s")
     mist.scheduleFunction(veafCarrierOperations.operationsScheduler,{},timer.getTime() + veafCarrierOperations.SCHEDULER_INTERVAL * 60)
 end
 
@@ -910,13 +885,13 @@ end
 
 -- execute command from the remote interface
 function veafCarrierOperations.executeCommandFromRemote(parameters)
-    veafCarrierOperations.logDebug(string.format("veafCarrierOperations.executeCommandFromRemote()"))
-    veafCarrierOperations.logTrace(string.format("parameters= %s", veaf.p(parameters)))
+    veaf.loggers.get(veafCarrierOperations.Id):debug(string.format("veafCarrierOperations.executeCommandFromRemote()"))
+    veaf.loggers.get(veafCarrierOperations.Id):trace(string.format("parameters= %s", veaf.p(parameters)))
     local _pilot, _pilotName, _unitName, _command = unpack(parameters)
-    veafCarrierOperations.logTrace(string.format("_pilot= %s", veaf.p(_pilot)))
-    veafCarrierOperations.logTrace(string.format("_pilotName= %s", veaf.p(_pilotName)))
-    veafCarrierOperations.logTrace(string.format("_unitName= %s", veaf.p(_unitName)))
-    veafCarrierOperations.logTrace(string.format("_command= %s", veaf.p(_command)))
+    veaf.loggers.get(veafCarrierOperations.Id):trace(string.format("_pilot= %s", veaf.p(_pilot)))
+    veaf.loggers.get(veafCarrierOperations.Id):trace(string.format("_pilotName= %s", veaf.p(_pilotName)))
+    veaf.loggers.get(veafCarrierOperations.Id):trace(string.format("_unitName= %s", veaf.p(_unitName)))
+    veaf.loggers.get(veafCarrierOperations.Id):trace(string.format("_command= %s", veaf.p(_command)))
     if not _pilot or not _command then 
         return false
     end
@@ -935,9 +910,9 @@ function veafCarrierOperations.executeCommandFromRemote(parameters)
     if _command then
         -- parse the command
         local _action, _carrierName, _parameters = _command:match(veafCarrierOperations.RemoteCommandParser)
-        veafCarrierOperations.logTrace(string.format("_action=%s",veaf.p(_action)))
-        veafCarrierOperations.logTrace(string.format("_carrierName=%s",veaf.p(_carrierName)))
-        veafCarrierOperations.logTrace(string.format("_parameters=%s",veaf.p(_parameters)))
+        veaf.loggers.get(veafCarrierOperations.Id):trace(string.format("_action=%s",veaf.p(_action)))
+        veaf.loggers.get(veafCarrierOperations.Id):trace(string.format("_carrierName=%s",veaf.p(_carrierName)))
+        veaf.loggers.get(veafCarrierOperations.Id):trace(string.format("_parameters=%s",veaf.p(_parameters)))
         local _groupId = nil
         if _unitName then 
             local _unit = Unit.getByName(_unitName)
@@ -945,9 +920,9 @@ function veafCarrierOperations.executeCommandFromRemote(parameters)
                 _groupId = _unit:getGroup():getID()
             end
         end
-        veafCarrierOperations.logTrace(string.format("_groupId=%s",veaf.p(_groupId)))
+        veaf.loggers.get(veafCarrierOperations.Id):trace(string.format("_groupId=%s",veaf.p(_groupId)))
         if _action and _action:lower() == "list" then 
-            veafCarrierOperations.logInfo(string.format("[%s] is listing carriers)",veaf.p(_pilot.name)))
+            veaf.loggers.get(veafCarrierOperations.Id):info(string.format("[%s] is listing carriers)",veaf.p(_pilot.name)))
             veafCarrierOperations.listAvailableCarriers(_groupId)
             return true
         elseif _action and _action:lower() == "start" and _carrierName then 
@@ -956,18 +931,18 @@ function veafCarrierOperations.executeCommandFromRemote(parameters)
                 _duration = tonumber(parameters)
             end
             local _carrier = findCarrier(_carrierName)
-            veafCarrierOperations.logTrace(string.format("_duration=%s",veaf.p(_duration)))
-            veafCarrierOperations.logInfo(string.format("[%s] is starting operations on carrier [%s] for %s)",veaf.p(_pilot.name), veaf.p(_carrier), veaf.p(_parameters)))
+            veaf.loggers.get(veafCarrierOperations.Id):trace(string.format("_duration=%s",veaf.p(_duration)))
+            veaf.loggers.get(veafCarrierOperations.Id):info(string.format("[%s] is starting operations on carrier [%s] for %s)",veaf.p(_pilot.name), veaf.p(_carrier), veaf.p(_parameters)))
             veafCarrierOperations.startCarrierOperations({_carrier, _duration})
             return true
         elseif _action and _action:lower() == "stop" then 
             local _carrier = findCarrier(_carrierName)
-            veafCarrierOperations.logInfo(string.format("[%s] is stopping operations on carrier [%s])",veaf.p(_pilot.name), veaf.p(_carrier)))
+            veaf.loggers.get(veafCarrierOperations.Id):info(string.format("[%s] is stopping operations on carrier [%s])",veaf.p(_pilot.name), veaf.p(_carrier)))
             veafCarrierOperations.stopCarrierOperations(_carrier)
             return true
         elseif _action and _action:lower() == "atc" then 
             local _carrier = findCarrier(_carrierName)
-            veafCarrierOperations.logInfo(string.format("[%s] is requesting atc on carrier [%s])",veaf.p(_pilot.name), veaf.p(_carrier)))
+            veaf.loggers.get(veafCarrierOperations.Id):info(string.format("[%s] is requesting atc on carrier [%s])",veaf.p(_pilot.name), veaf.p(_carrier)))
             local text = veafCarrierOperations.getAtcForCarrierOperations(_carrier)
             if _groupId then
                 trigger.action.outTextForGroup(_groupId, text, 15)
@@ -990,7 +965,7 @@ function veafCarrierOperations.initialize()
     veafCarrierOperations.operationsScheduler()
 end
 
-veafCarrierOperations.logInfo(string.format("Loading version %s", veafCarrierOperations.Version))
+veaf.loggers.get(veafCarrierOperations.Id):info(string.format("Loading version %s", veafCarrierOperations.Version))
 
 --- Enable/Disable error boxes displayed on screen.
 env.setErrorMessageBoxEnabled(false)

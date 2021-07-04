@@ -37,7 +37,7 @@ veafMarkers = {}
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 --- Identifier. All output in DCS.log will start with this.
-veafMarkers.Id = "MARKERS - "
+veafMarkers.Id = "MARKERS"
 
 --- Version.
 veafMarkers.Version = "1.1.0"
@@ -46,8 +46,10 @@ veafMarkers.Version = "1.1.0"
 veafMarkers.DCSbugfixed = true
 
 -- trace level, specific to this module
-veafMarkers.Trace = false
-veafMarkers.Debug = false
+--veafMarkers.LogLevel = "trace"
+--veafMarkers.LogLevel = "debug"
+
+veafMarkers.logger = veaf.loggers.new(veafMarkers.Id, veafMarkers.LogLevel)
 
 veafMarkers.MarkerAdd = 1
 veafMarkers.MarkerChange = 2
@@ -66,26 +68,6 @@ veafMarkers.onEventMarkRemoveEventHandlers = {}
 -- Utility methods
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-function veafMarkers.logError(message)
-    veaf.logError(veafMarkers.Id .. message)
-end
-
-function veafMarkers.logInfo(message)
-    veaf.logInfo(veafMarkers.Id .. message)
-end
-
-function veafMarkers.logDebug(message)
-    if veafMarkers.Debug then
-        veaf.logDebug(veafMarkers.Id .. message)
-    end
-end
-
-function veafMarkers.logTrace(message)
-    if veafMarkers.Trace then
-        veaf.logTrace(veafMarkers.Id .. message)
-    end
-end
-
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Event handler.
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -102,25 +84,25 @@ function veafMarkers.eventHandler:onEvent(Event)
 
     -- Debug output.
     if Event.id == world.event.S_EVENT_MARK_ADDED then
-        veafMarkers.logDebug("S_EVENT_MARK_ADDED")
+        veaf.loggers.get(veafMarkers.Id):debug("S_EVENT_MARK_ADDED")
     elseif Event.id == world.event.S_EVENT_MARK_CHANGE then
-        veafMarkers.logDebug("S_EVENT_MARK_CHANGE")
+        veaf.loggers.get(veafMarkers.Id):debug("S_EVENT_MARK_CHANGE")
     elseif Event.id == world.event.S_EVENT_MARK_REMOVED then
-        veafMarkers.logDebug("S_EVENT_MARK_REMOVED")
+        veaf.loggers.get(veafMarkers.Id):debug("S_EVENT_MARK_REMOVED")
     end
-    veafMarkers.logTrace(string.format("Event id        = %s", tostring(Event.id)))
-    veafMarkers.logTrace(string.format("Event time      = %s", tostring(Event.time)))
-    veafMarkers.logTrace(string.format("Event idx       = %s", tostring(Event.idx)))
-    veafMarkers.logTrace(string.format("Event coalition = %s", tostring(Event.coalition)))
-    veafMarkers.logTrace(string.format("Event group id  = %s", tostring(Event.groupID)))
-    veafMarkers.logTrace(string.format("Event pos X     = %s", tostring(Event.pos.x)))
-    veafMarkers.logTrace(string.format("Event pos Y     = %s", tostring(Event.pos.y)))
-    veafMarkers.logTrace(string.format("Event pos Z     = %s", tostring(Event.pos.z)))
+    veaf.loggers.get(veafMarkers.Id):trace(string.format("Event id        = %s", tostring(Event.id)))
+    veaf.loggers.get(veafMarkers.Id):trace(string.format("Event time      = %s", tostring(Event.time)))
+    veaf.loggers.get(veafMarkers.Id):trace(string.format("Event idx       = %s", tostring(Event.idx)))
+    veaf.loggers.get(veafMarkers.Id):trace(string.format("Event coalition = %s", tostring(Event.coalition)))
+    veaf.loggers.get(veafMarkers.Id):trace(string.format("Event group id  = %s", tostring(Event.groupID)))
+    veaf.loggers.get(veafMarkers.Id):trace(string.format("Event pos X     = %s", tostring(Event.pos.x)))
+    veaf.loggers.get(veafMarkers.Id):trace(string.format("Event pos Y     = %s", tostring(Event.pos.y)))
+    veaf.loggers.get(veafMarkers.Id):trace(string.format("Event pos Z     = %s", tostring(Event.pos.z)))
     if Event.initiator ~= nil then
         local _unitname = Event.initiator:getName()
-        veafMarkers.logTrace(string.format("Event ini unit  = %s", tostring(_unitname)))
+        veaf.loggers.get(veafMarkers.Id):trace(string.format("Event ini unit  = %s", tostring(_unitname)))
     end
-    veafMarkers.logTrace(string.format("Event text      = \n%s", tostring(Event.text)))
+    veaf.loggers.get(veafMarkers.Id):trace(string.format("Event text      = \n%s", tostring(Event.text)))
 
     -- Call event function when a marker has changed, i.e. text was entered or changed.
     if Event.id == world.event.S_EVENT_MARK_CHANGE then
@@ -160,12 +142,12 @@ function veafMarkers.onEvent(event, eventHandlersTable)
 
             -- call the event handler
             local eventHandler = eventHandlersTable[i]
-            veafMarkers.logDebug("Calling eventHandler #" .. eventHandler.id)
+            veaf.loggers.get(veafMarkers.Id):debug("Calling eventHandler #" .. eventHandler.id)
             local err, errmsg = pcall(eventHandler.f, vec3, event)
             if not err then
-                veafMarkers.logError('Error in event handler #' .. eventHandler.id .. ' : '.. errmsg)
+                veaf.loggers.get(veafMarkers.Id):error('Error in event handler #' .. eventHandler.id .. ' : '.. errmsg)
             end
-            veafMarkers.logDebug("Returning after eventHandler #" .. eventHandler.id)
+            veaf.loggers.get(veafMarkers.Id):debug("Returning after eventHandler #" .. eventHandler.id)
         end
     end    
 end
@@ -229,4 +211,4 @@ world.addEventHandler(veafMarkers.eventHandler)
 --- Enable/Disable error boxes displayed on screen.
 env.setErrorMessageBoxEnabled(false)
 
-veafMarkers.logInfo(string.format("Loading version %s", veafMarkers.Version))
+veaf.loggers.get(veafMarkers.Id):info(string.format("Loading version %s", veafMarkers.Version))

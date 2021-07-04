@@ -48,10 +48,10 @@ veafCombatZone = {}
 veafCombatZone.Id = "COMBATZONE"
 
 --- Version.
-veafCombatZone.Version = "1.7.0"
+veafCombatZone.Version = "1.7.1"
 
 -- trace level, specific to this module
---veafCombatZone.LogLevel = "trace"
+veafCombatZone.LogLevel = "trace"
 --veafCombatZone.LogLevel = "debug"
 
 veafCombatZone.logger = veaf.loggers.new(veafCombatZone.Id, veafCombatZone.LogLevel)
@@ -513,7 +513,7 @@ function VeafCombatZone:initialize()
         else
             -- it's a group or a static unit
             local groupName = nil
-            if unit:getCategory() == 3 then
+            if unit:getCategory() >= 3 and  unit:getCategory() <=6 then
                 groupName = unitName -- default for static objects = groups themselves
                 zoneElement:setDcsStatic(true)
                 if not zoneElement:getSpawnRadius() then 
@@ -1120,7 +1120,7 @@ function veafCombatZone.findUnitsInTriggerZone(triggerZoneName)
                 veaf.loggers.get(veafCombatZone.Id):trace(string.format("adding unit [%s]", unitName))
                 veaf.loggers.get(veafCombatZone.Id):trace(string.format("unit:getCategory() = [%d]", unit:getCategory()))
                 local groupName = nil
-                if (unit:getCategory() == 3) or (unit:getCategory() == 4) then
+                if unit:getCategory() >= 3 and  unit:getCategory() <=6 then
                     groupName = unitName -- default for static objects = groups themselves
                 else
                     groupName = unit:getGroup():getName()

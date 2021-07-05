@@ -50,10 +50,9 @@ __Veaf.Include( VEAF_DYNAMIC_PATH .. '/src/scripts/veaf/veafHoundElintHelper.lua
 -- set the environment in debug mode
 env.info( '*** VEAF-Mission-Creation-Tools set the environment in debug mode *** ' )
 veaf.Development = true
-veaf.Debug = veaf.Development
-veaf.Trace = veaf.Development
-veaf.SecurityDisabled = veaf.Development
-veafSecurity.authenticated = veaf.Development
+veaf.loggers.get(veaf.Id):setLevel("trace")
+veaf.SecurityDisabled = true
+veafSecurity.authenticated = true
 
 --[[ load Witchcraft
 if witchcraft then

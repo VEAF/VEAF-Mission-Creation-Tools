@@ -39,9 +39,11 @@ veaf.Development = true
 veaf.SecurityDisabled = true
 
 -- trace level, specific to this module
-veaf.LogLevel = "debug"
+--veaf.LogLevel = "trace"
 --veaf.LogLevel = "debug"
-veaf.BaseLogLevel = mist.Logger.convertLevel("trace")
+
+-- log level, limiting all the modules
+veaf.BaseLogLevel = 5 --trace
 
 veaf.DEFAULT_GROUND_SPEED_KPH = 30
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -51,89 +53,6 @@ veaf.DEFAULT_GROUND_SPEED_KPH = 30
 veaf.monitoredFlags = {}
 veaf.maxMonitoredFlag = 27000
 veaf.config = {}
-
--------------------------------------------------------------------------------------------------------------------------------------------------------------
--- Logging
--------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-veaf.loggers = {}
-
-function veaf.loggers.convertLevel(level)
-    if not level then
-        return 3
-    else
-        return mist.Logger.convertLevel(level)
-    end
-end
-
-function veaf.loggers.new(loggerId, level) 
-    if not loggerId or #loggerId == 0 then
-        return nil
-    end
-    local result = mist.Logger:new(loggerId:upper(), "info")
-    local level = veaf.loggers.convertLevel(level)
-    if veaf.BaseLogLevel < level then
-        level = veaf.BaseLogLevel
-    end
-    result:setLevel(level)
-    veaf.loggers[loggerId:lower()] = result
-    return result
-end
-
-function veaf.loggers.get(loggerId) 
-    local result = nil
-    if loggerId and #loggerId > 0 then
-        result = veaf.loggers[loggerId:lower()]
-    end
-    if not result then 
-        result = veaf.loggers.get("veaf")
-    end
-    return result
-end
-
-function veaf.logMarker(loggerId, id, header, message, position, markersTable)
-    if not id then
-        id = 99999 
-    end
-    if veaf.BaseLogLevel >= 5 then
-        local correctedPos = {}
-        correctedPos.x = position.x
-        if not(position.z) then
-            correctedPos.z = position.y
-            correctedPos.y = position.alt
-        else
-            correctedPos.z = position.z
-            correctedPos.y = position.y
-        end
-        if not (correctedPos.y) then
-            correctedPos.y = 0
-        end
-        local message = message
-        if header and id then
-            message = header..id.." "..message
-        end
-        veaf.loggers.get(loggerId):trace("creating trace marker #%s at point %s", id, veaf.vecToString(correctedPos))
-        trigger.action.markToAll(id, message, correctedPos, false) 
-        if markersTable then
-            table.insert(markersTable, id)
-        end
-    end
-    return id + 1
-end
-
-function veaf.cleanupLogMarkers(loggerId, markersTable)
-    for _, markerId in pairs(markersTable) do
-        veaf.loggers.get(loggerId):trace("deleting trace marker #%s", markerId)
-        trigger.action.removeMark(markerId)    
-    end
-end
-
-if not veaf.Development then
-    veaf.BaseLogLevel = mist.Logger.convertLevel("trace")
-end
-
-veaf.logger = veaf.loggers.new(veaf.Id, veaf.LogLevel)
-veaf.baseLogger = veaf.loggers.new("BASE"):setLevel(veaf.BaseLogLevel)
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Utility methods
@@ -2132,6 +2051,8 @@ VeafQRA =
     silent = nil,
     -- radius of the defenders groups spawn
     radius = nil,
+    -- react when helicopters enter the zone
+    reactOnHelicopters = nil,
 
     timer = nil,
     state = nil,
@@ -2162,6 +2083,7 @@ function VeafQRA:new()
     self.messageReady = VeafQRA.DEFAULT_MESSAGE_READY
     self.silent = false
     self.radius = 0
+    self.reactOnHelicopters = false
     
     self._enemyHumanUnits = nil
     self.timer = 0
@@ -2259,6 +2181,16 @@ function VeafQRA:isSilent()
     return self.silent
 end
 
+function VeafQRA:setReactOnHelicopters()
+    veaf.loggers.get(veaf.Id):trace("VeafQRA[]:setReactOnHelicopters()")
+    self.reactOnHelicopters = true
+    return self
+end
+
+function VeafQRA:isReactOnHelicopters()
+    return self.reactOnHelicopters
+end
+
 function VeafQRA:setRadius(value)
     veaf.loggers.get(veaf.Id):trace(string.format("VeafQRA[]:setRadius(%s)", veaf.p(value)))
     self.radius = value
@@ -2279,7 +2211,9 @@ function VeafQRA:_getEnemyHumanUnits()
         self._enemyHumanUnits = {}
         veaf.loggers.get(veaf.Id):trace(string.format("self:getEnnemyCoalitions()[]=%s", veaf.p(self:getEnnemyCoalitions())))
         for name, unit in pairs(mist.DBs.humansByName) do
-            veaf.loggers.get(veaf.Id):trace(string.format("unit=%s", veaf._p(unit)))
+            --veaf.loggers.get(veaf.Id):trace("unit=%s", unit)
+            veaf.loggers.get(veaf.Id):trace("unit.unitName=%s", unit.unitName)
+            veaf.loggers.get(veaf.Id):trace("unit.groupName=%s", unit.groupName)
             veaf.loggers.get(veaf.Id):trace(string.format("unit.coalition=%s", veaf.p(unit.coalition)))
             local coalitionId = 0
             if unit.coalition then
@@ -2290,7 +2224,15 @@ function VeafQRA:_getEnemyHumanUnits()
                 end
             end                    
             if self:getEnnemyCoalitions()[coalitionId] then
-                table.insert(self._enemyHumanUnits, unit.unitName)
+                if unit.category then
+                    veaf.loggers.get(veaf.Id):trace("unit.category=%s", unit.category)
+                    if     (unit.category == "plane")
+                        or (unit.category == "helicopter" and self:isReactOnHelicopters())
+                    then
+                        veaf.loggers.get(veaf.Id):trace("adding unit to enemy human units for QRA")
+                        table.insert(self._enemyHumanUnits, unit.unitName)
+                    end
+                end
             end
         end
     end
@@ -2595,6 +2537,195 @@ function VeafDrawingOnMap:erase()
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- Logging
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+veaf.loggers = {}
+
+veaf.Logger =
+{
+    -- technical name
+    name = nil,
+    -- logging level
+    level = nil,
+}
+veaf.Logger.__index = veaf.Logger
+
+veaf.Logger.LEVEL = {
+    ["error"]=1,
+    ["warning"]=2,
+    ["info"]=3,
+    ["debug"]=4,
+    ["trace"]=5,
+}
+
+function veaf.Logger:new(name, level)
+    local self = setmetatable({}, veaf.Logger)
+    self:setName(name)
+    self:setLevel(level)
+    return self
+end
+
+function veaf.Logger:setName(value)
+    self.name = value
+    return self
+end
+
+function veaf.Logger:getName()
+    return self.name
+end
+
+function veaf.Logger:setLevel(value, force)
+    local level = value
+    if type(level) == "string" then
+        level = veaf.Logger.LEVEL[level:lower()]
+    end
+    if not level then 
+        level = veaf.Logger.LEVEL["info"]
+    end
+    if veaf.BaseLogLevel < level and not force then
+        level = veaf.BaseLogLevel
+    end
+    self.level = level
+    return self
+end
+
+function veaf.Logger:getLevel()
+    return self.Level
+end
+
+function veaf.Logger.formatText(text, ...)
+    if not text then 
+        return "" 
+    end
+    if type(text) ~= 'string' then
+        text = veaf.p(text)
+    else
+        if arg and arg.n and arg.n > 0 then
+            local pArgs = {}
+            for index,value in ipairs(arg) do
+                pArgs[index] = veaf.p(value)
+            end
+            text = text:format(unpack(pArgs))
+        end            
+    end
+    local fName = nil
+    local cLine = nil
+    if debug then
+        local dInfo = debug.getinfo(3)
+        fName = dInfo.name
+        cLine = dInfo.currentline
+        -- local fsrc = dinfo.short_src
+        --local fLine = dInfo.linedefined
+    end
+    if fName and cLine then
+        return fName .. '|' .. cLine .. ': ' .. text
+    elseif cLine then
+        return cLine .. ': ' .. text
+    else
+        return ' ' .. text
+    end
+end
+
+function veaf.Logger:error(text, ...)
+    if self.level >= 1 then
+        text = veaf.Logger.formatText(text, unpack(arg))
+        env.error(self.name .. '|E|' .. text)
+    end
+end
+
+function veaf.Logger:warn(text, ...)
+    if self.level >= 2 then
+        text = veaf.Logger.formatText(text, unpack(arg))
+        env.warning(self.name .. '|W|' .. text)
+    end
+end
+
+function veaf.Logger:info(text, ...)
+    if self.level >= 3 then
+        text = veaf.Logger.formatText(text, unpack(arg))
+        env.info(self.name .. '|I|' .. text)
+    end
+end
+
+function veaf.Logger:debug(text, ...)
+    if self.level >= 4 then
+        text = veaf.Logger.formatText(text, unpack(arg))
+        env.info(self.name .. '|D|' .. text)
+    end
+end
+
+function veaf.Logger:trace(text, ...)
+    if self.level >= 5 then
+        text = veaf.Logger.formatText(text, unpack(arg))
+        env.info(self.name .. '|T|' .. text)
+    end
+end
+
+function veaf.loggers.new(loggerId, level) 
+    if not loggerId or #loggerId == 0 then
+        return nil
+    end
+    local result = veaf.Logger:new(loggerId:upper(), level)
+    veaf.loggers[loggerId:lower()] = result
+    return result
+end
+
+function veaf.loggers.get(loggerId) 
+    local result = nil
+    if loggerId and #loggerId > 0 then
+        result = veaf.loggers[loggerId:lower()]
+    end
+    if not result then 
+        result = veaf.loggers.get("veaf")
+    end
+    return result
+end
+
+function veaf.logMarker(loggerId, id, header, message, position, markersTable)
+    if not id then
+        id = 99999 
+    end
+    if veaf.BaseLogLevel >= 5 then
+        local correctedPos = {}
+        correctedPos.x = position.x
+        if not(position.z) then
+            correctedPos.z = position.y
+            correctedPos.y = position.alt
+        else
+            correctedPos.z = position.z
+            correctedPos.y = position.y
+        end
+        if not (correctedPos.y) then
+            correctedPos.y = 0
+        end
+        local message = message
+        if header and id then
+            message = header..id.." "..message
+        end
+        veaf.loggers.get(loggerId):trace("creating trace marker #%s at point %s", id, veaf.vecToString(correctedPos))
+        trigger.action.markToAll(id, message, correctedPos, false) 
+        if markersTable then
+            table.insert(markersTable, id)
+        end
+    end
+    return id + 1
+end
+
+function veaf.cleanupLogMarkers(loggerId, markersTable)
+    for _, markerId in pairs(markersTable) do
+        veaf.loggers.get(loggerId):trace("deleting trace marker #%s", markerId)
+        trigger.action.removeMark(markerId)    
+    end
+end
+
+if not veaf.Development then
+    veaf.BaseLogLevel = veaf.Logger.LEVEL["trace"]
+end
+
+veaf.logger = veaf.loggers.new(veaf.Id, veaf.LogLevel)
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- initialisation
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -2604,11 +2735,11 @@ math.random(); math.random(); math.random()
 --- Enable/Disable error boxes displayed on screen.
 env.setErrorMessageBoxEnabled(false)
 
-veaf.loggers.get(veaf.Id):info(string.format("Loading version %s", veaf.Version))
-veaf.loggers.get(veaf.Id):info(string.format("veaf.Development=%s", veaf.p(veaf.Development)))
-veaf.loggers.get(veaf.Id):info(string.format("veaf.SecurityDisabled=%s", veaf.p(veaf.SecurityDisabled)))
-veaf.loggers.get(veaf.Id):info(string.format("veaf.Debug=%s", veaf.p(veaf.Debug)))
-veaf.loggers.get(veaf.Id):info(string.format("veaf.Trace=%s", veaf.p(veaf.Trace)))
+veaf.loggers.get(veaf.Id):info("Loading version %s", veaf.Version)
+veaf.loggers.get(veaf.Id):info("veaf.Development=%s", veaf.Development)
+veaf.loggers.get(veaf.Id):info("veaf.SecurityDisabled=%s", veaf.SecurityDisabled)
+veaf.loggers.get(veaf.Id):info("veaf.Debug=%s", veaf.Debug)
+veaf.loggers.get(veaf.Id):info("veaf.Trace=%s", veaf.Trace)
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- changes to CTLD 

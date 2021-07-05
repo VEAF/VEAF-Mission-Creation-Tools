@@ -785,7 +785,9 @@ function VeafCombatZone:activate()
                                     self:addSpawnedGroup(newGroup)
                                     veaf.loggers.get(veafCombatZone.Id):trace(string.format("newGroup = [%s]", newGroup))
                                     local route = zoneElement:getRoute()
+                                    veaf.loggers.get(veafCombatZone.Id):trace(string.format("got route"))
                                     local result = mist.goRoute(newGroup, route)
+                                    veaf.loggers.get(veafCombatZone.Id):trace(string.format("sent group on its way"))
                                 end
                             end
                         else 

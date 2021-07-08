@@ -39,7 +39,7 @@ veafUnits = {}
 veafUnits.Id = "UNITS"
 
 --- Version.
-veafUnits.Version = "1.8.1"
+veafUnits.Version = "1.8.2"
 
 -- trace level, specific to this module
 --veafUnits.LogLevel = "trace"
@@ -828,7 +828,7 @@ veafUnits.GroupsDatabase = {
                 {"ATZ-10", number = 2, random=true},
                 {"GPU APA-80 on ZiL-131", number = 1, random=true},
                 {"Ural-4320-31", number = 2, random=true},
-                {"CP Ural-375 PBU", number = 1, random=true},
+                {"Ural-375 PBU", number = 1, random=true},
             },
             description = "SA-6 SAM site",
             groupName = "SA6"

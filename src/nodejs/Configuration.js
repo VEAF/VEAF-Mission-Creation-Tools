@@ -5,7 +5,8 @@ class Configuration {
     "caucasus": {"lat": 42.355691, "lon": 43.323853},
     "persiangulf": {"lat": 26.304151 , "lon": 56.378506},
     "nevada": {"lat": 36.145615, "lon": -115.187618},
-    "normandy": {"lat": 49.183336, "lon": -0.365908}
+    "normandy": {"lat": 49.183336, "lon": -0.365908},
+    "marianaislands": {"lat": 14.079866, "lon": 145.15311411102653}
   }
   _checkwx_apikey;
   _cacheFolder;

@@ -39,7 +39,7 @@ veafUnits = {}
 veafUnits.Id = "UNITS"
 
 --- Version.
-veafUnits.Version = "1.8.0"
+veafUnits.Version = "1.8.1"
 
 -- trace level, specific to this module
 --veafUnits.LogLevel = "trace"
@@ -825,7 +825,7 @@ veafUnits.GroupsDatabase = {
                 {"Kub 1S91 str", cell = 25}, {"Kub 2P25 ln", cell = 4, hdg = 180}, {"Kub 2P25 ln", cell = 22, hdg = 90}, {"Kub 2P25 ln", cell = 28, hdg = 270}, {"Kub 2P25 ln", cell = 46, hdg = 0},
                 {"ZSU_57_2", number = {min=1, max=2}, random=true},
                 {"S-60_Type59_Artillery", number = {min=1, max=2}, random=true},
-                {"Fuel Truck ATZ-10", number = 2, random=true},
+                {"ATZ-10", number = 2, random=true},
                 {"GPU APA-80 on ZiL-131", number = 1, random=true},
                 {"Ural-4320-31", number = 2, random=true},
                 {"CP Ural-375 PBU", number = 1, random=true},
@@ -993,7 +993,7 @@ veafUnits.GroupsDatabase = {
                 {"Ural-375 ZU-23", number = {min=0, max=2}, random=true},
                 {"UAZ-469", number = {min=2, max=4}, random=true},
                 {"Truck SKP-11", number = {min=1, max=3}, random=true},
-                {"Truck Ural-375 PBU", number = {min=1, max=3}, random=true},
+                {"Ural-375 PBU", number = {min=1, max=3}, random=true},
                 {"Truck Ural-375", number = {min=1, max=3}, random=true},
                 {"Truck Ural-4320 APA-5D", number = {min=1, max=3}, random=true},
                 {"Truck Ural-4320-31", number = {min=1, max=3}, random=true},
@@ -1016,7 +1016,7 @@ veafUnits.GroupsDatabase = {
                 {"Ural-375 ZU-23", number = {min=0, max=2}, random=true},
                 {"UAZ-469", number = {min=2, max=4}, random=true},
                 {"Truck SKP-11", number = {min=1, max=3}, random=true},
-                {"Truck Ural-375 PBU", number = {min=1, max=3}, random=true},
+                {"Ural-375 PBU", number = {min=1, max=3}, random=true},
                 {"Truck Ural-375", number = {min=1, max=3}, random=true},
                 {"Truck Ural-4320 APA-5D", number = {min=1, max=3}, random=true},
                 {"Truck Ural-4320-31", number = {min=1, max=3}, random=true},
@@ -1035,7 +1035,7 @@ veafUnits.GroupsDatabase = {
             units = {
                 {"UAZ-469", number = {min=2, max=4}, random=true},
                 {"Truck SKP-11", number = {min=1, max=3}, random=true},
-                {"Truck Ural-375 PBU", number = {min=1, max=3}, random=true},
+                {"Ural-375 PBU", number = {min=1, max=3}, random=true},
                 {"Truck Ural-375", number = {min=1, max=3}, random=true},
                 {"Truck Ural-4320 APA-5D", number = {min=1, max=3}, random=true},
                 {"Truck Ural-4320-31", number = {min=1, max=3}, random=true},
@@ -1062,7 +1062,7 @@ veafUnits.GroupsDatabase = {
                 {"Ural-375 ZU-23", number = {min=0, max=2}, random=true},
                 {"UAZ-469", number = {min=1, max=2}, random=true},
                 {"Truck SKP-11", number = {min=1, max=2}, random=true},
-                {"Truck Ural-375 PBU", number = {min=0, max=2}, random=true},
+                {"Ural-375 PBU", number = {min=0, max=2}, random=true},
                 {"Truck Ural-375", number = {min=0, max=2}, random=true},
                 {"Truck Ural-4320 APA-5D", number = {min=0, max=2}, random=true},
                 {"Truck Ural-4320-31", number = {min=0, max=2}, random=true},
@@ -1085,7 +1085,7 @@ veafUnits.GroupsDatabase = {
                 {"Ural-375 ZU-23", number = {min=0, max=2}, random=true},
                 {"UAZ-469", number = {min=1, max=2}, random=true},
                 {"Truck SKP-11", number = {min=1, max=2}, random=true},
-                {"Truck Ural-375 PBU", number = {min=0, max=2}, random=true},
+                {"Ural-375 PBU", number = {min=0, max=2}, random=true},
                 {"Truck Ural-375", number = {min=0, max=2}, random=true},
                 {"Truck Ural-4320 APA-5D", number = {min=0, max=2}, random=true},
                 {"Truck Ural-4320-31", number = {min=0, max=2}, random=true},
@@ -1104,7 +1104,7 @@ veafUnits.GroupsDatabase = {
             units = {
                 {"UAZ-469", number = {min=1, max=2}, random=true},
                 {"Truck SKP-11", number = {min=1, max=2}, random=true},
-                {"Truck Ural-375 PBU", number = {min=0, max=2}, random=true},
+                {"Ural-375 PBU", number = {min=0, max=2}, random=true},
                 {"Truck Ural-375", number = {min=0, max=2}, random=true},
                 {"Truck Ural-4320 APA-5D", number = {min=0, max=2}, random=true},
                 {"Truck Ural-4320-31", number = {min=0, max=2}, random=true},

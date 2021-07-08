@@ -1275,7 +1275,7 @@ end
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 --- Spawn a specific unit at a specific spot
--- @param position spawnSpot
+-- @param position spawnPosition
 -- @param string name
 -- @param string country
 -- @param int speed
@@ -1284,11 +1284,8 @@ end
 -- @param int hdg (0..359)
 -- @param string unitName (callsign)
 -- @param string role (ex: jtac)
-function veafSpawn.spawnUnit(spawnSpot, radius, name, country, alt, hdg, unitName, role, code, freq, mod, silent)
+function veafSpawn.spawnUnit(spawnPosition, radius, name, country, alt, hdg, unitName, role, code, freq, mod, silent)
     veaf.loggers.get(veafSpawn.Id):debug(string.format("spawnUnit(name = %s, country=%s, alt=%d, hdg= %d)", veaf.p(name), veaf.p(country), veaf.p(alt), veaf.p(hdg)))
-    
-    local spawnSpot = veaf.placePointOnLand(mist.getRandPointInCircle(spawnSpot, radius))
-    veaf.loggers.get(veafSpawn.Id):trace(string.format("spawnUnit: spawnSpot  x=%.1f y=%.1f, z=%.1f", spawnSpot.x, spawnSpot.y, spawnSpot.z))
     
     veafSpawn.spawnedUnitsCounter = veafSpawn.spawnedUnitsCounter + 1
 
@@ -1333,12 +1330,22 @@ function veafSpawn.spawnUnit(spawnSpot, radius, name, country, alt, hdg, unitNam
     veaf.loggers.get(veafSpawn.Id):trace("groupName="..groupName)
     veaf.loggers.get(veafSpawn.Id):trace("unitName="..unitName)
 
-    if alt > 0 then
-        spawnSpot.y = alt
-    end
+    local spawnSpot = nil
+    local nbTries = 25
+    repeat
+        spawnSpot = veaf.placePointOnLand(mist.getRandPointInCircle(spawnPosition, radius))
+        veaf.loggers.get(veafSpawn.Id):trace(string.format("spawnUnit: spawnSpot  x=%.1f y=%.1f, z=%.1f", spawnSpot.x, spawnSpot.y, spawnSpot.z))   
+        if alt > 0 then
+            spawnSpot.y = alt
+        end
+        if not veafUnits.checkPositionForUnit(spawnSpot, unit) then
+            veaf.loggers.get(veafSpawn.Id):debug("finding another spawnSpot for unit %s, remaining tries #%s", unit.displayName, nbTries)
+            spawnSpot = nil
+            nbTries = nbTries - 1
+        end
+    until spawnSpot or nbTries <= 0
 
-    -- check if position is correct for the unit type
-    if not veafUnits.checkPositionForUnit(spawnSpot, unit) then
+    if not spawnSpot then
         veaf.loggers.get(veafSpawn.Id):info("cannot find a suitable position for spawning unit "..unit.displayName)
         trigger.action.outText("cannot find a suitable position for spawning unit "..unit.displayName, 5)
         return

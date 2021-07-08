@@ -151,7 +151,7 @@ function veafInterpreter.executeCommandOnUnit(unitName, command)
             veaf.loggers.get(veafInterpreter.Id):debug(string.format("in [%s]", groupName))
             local route = mist.getGroupRoute(groupName, 'task')
             veaf.loggers.get(veafInterpreter.Id):trace(string.format("route = [%s]", veaf.p(route)))
-            if veafInterpreter.execute(command, position, unit:getCoalition(), nil, route) then 
+            if veafInterpreter.execute(command, position, unit:getCoalition(), route, nil) then 
                 unit:getGroup():destroy()
             end
         end

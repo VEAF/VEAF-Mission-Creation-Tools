@@ -40,10 +40,9 @@ veafNamedPoints.Id = "NAMED POINTS"
 veafNamedPoints.Version = "1.10.0"
 
 -- trace level, specific to this module
-veafNamedPoints.LogLevel = "trace"
---veafNamedPoints.LogLevel = "debug"
+--veafNamedPoints.LogLevel = "trace"
 
-veafNamedPoints.logger = veaf.loggers.new(veafNamedPoints.Id, veafNamedPoints.LogLevel)
+veaf.loggers.new(veafNamedPoints.Id, veafNamedPoints.LogLevel)
 
 --- Key phrase to look for in the mark text which triggers the command.
 veafNamedPoints.Keyphrase = "_name point"

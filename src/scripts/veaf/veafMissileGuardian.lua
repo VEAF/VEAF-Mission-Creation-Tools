@@ -26,10 +26,9 @@ veafMissileGuardian.Id = "MISSILEGUARDIAN"
 veafMissileGuardian.Version = "0.0.1"
 
 -- trace level, specific to this module
-veafMissileGuardian.LogLevel = "trace"
---veafMissileGuardian.LogLevel = "debug"
+--veafMissileGuardian.LogLevel = "trace"
 
-veafMissileGuardian.logger = veaf.loggers.new(veafMissileGuardian.Id, veafMissileGuardian.LogLevel)
+veaf.loggers.new(veafMissileGuardian.Id, veafMissileGuardian.LogLevel)
 
 --- Number of seconds between each check of the WIDE ZONE watchdog function
 veafMissileGuardian.SecondsBetweenWideZoneWatchdogChecks = 5

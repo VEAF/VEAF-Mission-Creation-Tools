@@ -51,10 +51,9 @@ veafCarrierOperations.Id = "CARRIER"
 veafCarrierOperations.Version = "1.8.0"
 
 -- trace level, specific to this module
-veafCarrierOperations.LogLevel = "trace"
---veafCarrierOperations.LogLevel = "debug"
+--veafCarrierOperations.LogLevel = "trace"
 
-veafCarrierOperations.logger = veaf.loggers.new(veafCarrierOperations.Id, veafCarrierOperations.LogLevel)
+veaf.loggers.new(veafCarrierOperations.Id, veafCarrierOperations.LogLevel)
 
 --- All the carrier groups must comply with this name
 veafCarrierOperations.CarrierGroupNamePattern = "^CSG-.*$"
@@ -181,8 +180,8 @@ function veafCarrierOperations.continueCarrierOperations(groupName)
     veaf.loggers.get(veafCarrierOperations.Id):trace(string.format("currentHeading=%s", veaf.p(currentHeading)))
     startPosition = { x=startPosition.x, z=startPosition.z, y=startPosition.y + veafCarrierOperations.ALT_FOR_MEASURING_WIND} -- on deck, 50 meters above the water
     veaf.loggers.get(veafCarrierOperations.Id):trace("startPosition="..veaf.vecToString(startPosition))
-    veaf.cleanupLogMarkers(veafCarrierOperations.debugMarkersErasedAtEachStep)
-    veafCarrierOperations.traceMarkerId = veaf.logMarker(veafCarrierOperations.Id, veafCarrierOperations.traceMarkerId, "startPosition", startPosition, veafCarrierOperations.debugMarkersErasedAtEachStep)
+    veaf.loggers.get(veafCarrierOperations.Id):cleanupMarkers(veafCarrierOperations.debugMarkersErasedAtEachStep)
+    veafCarrierOperations.traceMarkerId = veaf.loggers.get(veafCarrierOperations.Id):marker(veafCarrierOperations.traceMarkerId, "startPosition", startPosition, veafCarrierOperations.debugMarkersErasedAtEachStep)
     local carrierDistanceFromInitialPosition = ((startPosition.x - carrier.initialPosition.x)^2 + (startPosition.z - carrier.initialPosition.z)^2)^0.5
     veaf.loggers.get(veafCarrierOperations.Id):trace("carrierDistanceFromInitialPosition="..carrierDistanceFromInitialPosition)
 
@@ -243,7 +242,7 @@ function veafCarrierOperations.continueCarrierOperations(groupName)
         veaf.loggers.get(veafCarrierOperations.Id):trace("headingRad="..headingRad)
         veaf.loggers.get(veafCarrierOperations.Id):trace("length="..length)
         veaf.loggers.get(veafCarrierOperations.Id):trace("newWaypoint="..veaf.vecToString(newWaypoint))
-        veafCarrierOperations.traceMarkerId = veaf.logMarker(veafCarrierOperations.Id, veafCarrierOperations.traceMarkerId, "newWaypoint", newWaypoint, veafCarrierOperations.debugMarkersErasedAtEachStep)
+        veafCarrierOperations.traceMarkerId = veaf.loggers.get(veafCarrierOperations.Id):marker(veafCarrierOperations.traceMarkerId, "newWaypoint", newWaypoint, veafCarrierOperations.debugMarkersErasedAtEachStep)
         
         local actualSpeed = speed
         if math.abs(dir - currentHeading) > 15 then -- still aligning
@@ -300,7 +299,7 @@ function veafCarrierOperations.continueCarrierOperations(groupName)
                 local distanceFromWP1 = ((pedroUnit:getPosition().p.x - pedroWaypoint1.x)^2 + (pedroUnit:getPosition().p.z - pedroWaypoint1.z)^2)^0.5
                 if distanceFromWP1 > 500 then
                     veaf.loggers.get(veafCarrierOperations.Id):trace("Pedro WP1 = " .. veaf.vecToString(pedroWaypoint1))
-                    veafCarrierOperations.traceMarkerId = veaf.logMarker(veafCarrierOperations.Id, veafCarrierOperations.traceMarkerId, "pedroWaypoint1", pedroWaypoint1, veafCarrierOperations.debugMarkersErasedAtEachStep)
+                    veafCarrierOperations.traceMarkerId = veaf.loggers.get(veafCarrierOperations.Id):marker(veafCarrierOperations.traceMarkerId, "pedroWaypoint1", pedroWaypoint1, veafCarrierOperations.debugMarkersErasedAtEachStep)
                 else
                     pedroWaypoint1 = nil
                 end
@@ -309,7 +308,7 @@ function veafCarrierOperations.continueCarrierOperations(groupName)
                 local offsetPointOnLand, offsetPoint = veaf.computeCoordinatesOffsetFromRoute(startPosition, newWaypoint, length - 250, 500)
                 local pedroWaypoint2 = offsetPoint
                 veaf.loggers.get(veafCarrierOperations.Id):trace("Pedro WP2 = " .. veaf.vecToString(pedroWaypoint2))
-                veafCarrierOperations.traceMarkerId = veaf.logMarker(veafCarrierOperations.Id, veafCarrierOperations.traceMarkerId, "pedroWaypoint2", pedroWaypoint2, veafCarrierOperations.debugMarkersErasedAtEachStep)
+                veafCarrierOperations.traceMarkerId = veaf.loggers.get(veafCarrierOperations.Id):marker(veafCarrierOperations.traceMarkerId, "pedroWaypoint2", pedroWaypoint2, veafCarrierOperations.debugMarkersErasedAtEachStep)
 
                 local mission = { 
                     id = 'Mission', 
@@ -433,14 +432,14 @@ function veafCarrierOperations.continueCarrierOperations(groupName)
                     local offsetPointOnLand, offsetPoint = veaf.computeCoordinatesOffsetFromRoute(startPosition, newWaypoint, 9000, 9000)
                     local tankerWaypoint1 = offsetPoint
                     veaf.loggers.get(veafCarrierOperations.Id):trace("Tanker WP1 = " .. veaf.vecToString(tankerWaypoint1))
-                    veaf.cleanupLogMarkers(veafCarrierOperations.debugMarkersForTanker)
-                    veafCarrierOperations.traceMarkerId = veaf.logMarker(veafCarrierOperations.Id, veafCarrierOperations.traceMarkerId, "tankerWaypoint1", tankerWaypoint1, veafCarrierOperations.debugMarkersForTanker)
+                    veaf.loggers.get(veafCarrierOperations.Id):cleanupMarkers(veafCarrierOperations.debugMarkersForTanker)
+                    veafCarrierOperations.traceMarkerId = veaf.loggers.get(veafCarrierOperations.Id):marker(veafCarrierOperations.traceMarkerId, "tankerWaypoint1", tankerWaypoint1, veafCarrierOperations.debugMarkersForTanker)
 
                     -- waypoint #2 is 20nm ahead of waypoint #2, on BRC
                     local offsetPointOnLand, offsetPoint = veaf.computeCoordinatesOffsetFromRoute(startPosition, newWaypoint, 37000 + 9000, 9000)
                     local tankerWaypoint2 = offsetPoint
                     veaf.loggers.get(veafCarrierOperations.Id):trace("Tanker WP2 = " .. veaf.vecToString(tankerWaypoint2))
-                    veafCarrierOperations.traceMarkerId = veaf.logMarker(veafCarrierOperations.Id, veafCarrierOperations.traceMarkerId, "tankerWaypoint2", tankerWaypoint2, veafCarrierOperations.debugMarkersForTanker)
+                    veafCarrierOperations.traceMarkerId = veaf.loggers.get(veafCarrierOperations.Id):marker(veafCarrierOperations.traceMarkerId, "tankerWaypoint2", tankerWaypoint2, veafCarrierOperations.debugMarkersForTanker)
 
                     local mission = { 
                         id = 'Mission', 
@@ -814,7 +813,7 @@ function veafCarrierOperations.initializeCarrierGroups()
             carrier.missionRoute = mist.getGroupRoute(name, 'task')
             if veafCarrierOperations.Trace then
                 for num, point in pairs(carrier.missionRoute) do
-                    veafCarrierOperations.traceMarkerId = veaf.logMarker(veafCarrierOperations.Id, veafCarrierOperations.traceMarkerId, string.format("[%s] point %d", name, tostring(num)), point, nil)
+                    veafCarrierOperations.traceMarkerId = veaf.loggers.get(veafCarrierOperations.Id):marker(veafCarrierOperations.traceMarkerId, string.format("[%s] point %d", name, tostring(num)), point, nil)
                 end
             end
         end

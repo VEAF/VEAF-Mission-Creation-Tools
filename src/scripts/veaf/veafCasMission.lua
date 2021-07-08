@@ -75,10 +75,9 @@ veafCasMission.Id = "CASMISSION"
 veafCasMission.Version = "1.11.0"
 
 -- trace level, specific to this module
-veafCasMission.LogLevel = "trace"
---veafCasMission.LogLevel = "debug"
+--veafCasMission.LogLevel = "trace"
 
-veafCasMission.logger = veaf.loggers.new(veafCasMission.Id, veafCasMission.LogLevel)
+veaf.loggers.new(veafCasMission.Id, veafCasMission.LogLevel)
 
 --- Key phrase to look for in the mark text which triggers the command.
 veafCasMission.Keyphrase = "_cas"

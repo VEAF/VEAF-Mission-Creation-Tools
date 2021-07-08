@@ -48,10 +48,9 @@ veafGrass.Id = "GRASS"
 veafGrass.Version = "2.2.0"
 
 -- trace level, specific to this module
-veafGrass.LogLevel = "trace"
---veafGrass.LogLevel = "debug"
+--veafGrass.LogLevel = "trace"
 
-veafGrass.logger = veaf.loggers.new(veafGrass.Id, veafGrass.LogLevel)
+veaf.loggers.new(veafGrass.Id, veafGrass.LogLevel)
 
 veafGrass.DelayForStartup = 0.5
 

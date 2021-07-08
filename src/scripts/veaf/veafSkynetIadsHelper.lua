@@ -32,9 +32,8 @@ veafSkynet.Version = "1.1.1"
 
 -- trace level, specific to this module
 --veafSkynet.LogLevel = "trace"
---veafSkynet.LogLevel = "debug"
 
-veafSkynet.logger = veaf.loggers.new(veafSkynet.Id, veafSkynet.LogLevel)
+veaf.loggers.new(veafSkynet.Id, veafSkynet.LogLevel)
 
 -- delay before the mission groups are added to the IADS' at start
 veafSkynet.DelayForStartup = 1

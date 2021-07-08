@@ -42,10 +42,9 @@ veafUnits.Id = "UNITS"
 veafUnits.Version = "1.8.0"
 
 -- trace level, specific to this module
-veafUnits.LogLevel = "trace"
---veafUnits.LogLevel = "debug"
+--veafUnits.LogLevel = "trace"
 
-veafUnits.logger = veaf.loggers.new(veafUnits.Id, veafUnits.LogLevel)
+veaf.loggers.new(veafUnits.Id, veafUnits.LogLevel)
 
 --- If no unit is spawned in a cell, it will default to this width
 veafUnits.DefaultCellWidth = 10
@@ -138,19 +137,6 @@ function veafUnits.traceGroup(group, cells)
             veaf.loggers.get(veafUnits.Id):trace(line3)
             veaf.loggers.get(veafUnits.Id):trace(line4)
         end
-    end
-end
-
-function veafUnits.debugUnit(unit)
-    if unit and veafUnits.Trace then 
-        local airnaval = ""
-        if unit.naval then
-            airnaval = ", naval"
-        elseif unit.air then
-            airnaval = ", air"
-        end
-        
-        veaf.loggers.get(veafUnits.Id):debug(string.format("unit=%s", veaf.p(unit)))
     end
 end
 
@@ -391,16 +377,16 @@ end
 --- checks if position is correct for the unit type
 function veafUnits.checkPositionForUnit(spawnPosition, unit)
     veaf.loggers.get(veafUnits.Id):trace("checkPositionForUnit()")
-    veaf.loggers.get(veafUnits.Id):trace(string.format("checkPositionForUnit: spawnPosition=", veaf.vecToString(spawnPosition)))
+    veaf.loggers.get(veafUnits.Id):trace("spawnPosition=%s", spawnPosition)
     local vec2 = { x = spawnPosition.x, y = spawnPosition.z }
-    veaf.loggers.get(veafUnits.Id):trace(string.format("checkPositionForUnit: vec2=", veaf.vecToString(vec2)))
+    veaf.loggers.get(veafUnits.Id):trace("vec2=%s", vec2)
+    veaf.loggers.get(veafUnits.Id):trace("unit=%s", unit)
     local landType = land.getSurfaceType(vec2)
     if landType == land.SurfaceType.WATER then
         veaf.loggers.get(veafUnits.Id):trace("landType = WATER")
     else
         veaf.loggers.get(veafUnits.Id):trace("landType = GROUND")
     end
-    veafUnits.debugUnit(unit)
     if spawnPosition then
         if unit.air then -- if the unit is a plane or helicopter
             if spawnPosition.z <= 10 then -- if lower than 10m don't spawn unit

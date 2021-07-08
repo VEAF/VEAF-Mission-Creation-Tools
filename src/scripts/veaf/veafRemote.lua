@@ -31,10 +31,9 @@ veafRemote.Id = "REMOTE"
 veafRemote.Version = "2.1.0"
 
 -- trace level, specific to this module
-veafRemote.LogLevel = "trace"
---veafRemote.LogLevel = "debug"
+--veafRemote.LogLevel = "trace"
 
-veafRemote.logger = veaf.loggers.new(veafRemote.Id, veafRemote.LogLevel)
+veaf.loggers.new(veafRemote.Id, veafRemote.LogLevel)
 
 -- if false, SLMOD will not be called for regular commands
 veafRemote.USE_SLMOD = false

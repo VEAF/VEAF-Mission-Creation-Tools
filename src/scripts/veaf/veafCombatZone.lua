@@ -51,10 +51,9 @@ veafCombatZone.Id = "COMBATZONE"
 veafCombatZone.Version = "1.7.1"
 
 -- trace level, specific to this module
-veafCombatZone.LogLevel = "trace"
---veafCombatZone.LogLevel = "debug"
+--veafCombatZone.LogLevel = "trace"
 
-veafCombatZone.logger = veaf.loggers.new(veafCombatZone.Id, veafCombatZone.LogLevel)
+veaf.loggers.new(veafCombatZone.Id, veafCombatZone.LogLevel)
 
 --- Number of seconds between each check of the zone watchdog function
 veafCombatZone.SecondsBetweenWatchdogChecks = 60

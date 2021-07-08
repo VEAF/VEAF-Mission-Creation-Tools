@@ -71,10 +71,9 @@ veafMove.Id = "MOVE"
 veafMove.Version = "1.8.0"
 
 -- trace level, specific to this module
-veafMove.LogLevel = "trace"
---veafMove.LogLevel = "debug"
+--veafMove.LogLevel = "trace"
 
-veafMove.logger = veaf.loggers.new(veafMove.Id, veafMove.LogLevel)
+veaf.loggers.new(veafMove.Id, veafMove.LogLevel)
 
 --- Key phrase to look for in the mark text which triggers the command.
 veafMove.Keyphrase = "_move"
@@ -125,13 +124,6 @@ veafMove.Tankers = {}
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Utility methods
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-function veafMove.logMarker(id, message, position, markersTable)
-    if veafMove.Trace then 
-        return veaf.logMarker(id, veafMove.Id, position, markersTable, message)
-    end
-end
-
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Event handler functions.
@@ -319,7 +311,7 @@ end
 function veafMove.changeTanker(eventPos, speed, alt)
     veaf.loggers.get(veafMove.Id):debug(string.format("veafMove.changeTanker(speed=%s, alt=%s)", tostring(speed), tostring(alt)))
     veaf.loggers.get(veafMove.Id):trace(string.format("eventPos=%s",veaf.p(eventPos)))
-    if veafMove.Trace then veaf.cleanupLogMarkers(debugMarkers) end
+    veaf.loggers.get(veafMove.Id):cleanupMarkers(debugMarkers)
     
     local tankerUnit = nil
     local units = veaf.findUnitsInCircle(eventPos, 2000, false)
@@ -364,7 +356,7 @@ function veafMove.changeTanker(eventPos, speed, alt)
         -- point1 is the point where the tanker mission starts ; we'll change the speed and altitude
         local point1 = points[idxPoint1]
         veaf.loggers.get(veafMove.Id):trace("found point1")
-        traceMarkerId = veafMove.logMarker(traceMarkerId, "point1", point1, debugMarkers)
+        traceMarkerId = veaf.loggers.get(veafMove.Id)(traceMarkerId, "point1", point1, debugMarkers)
         -- set speed
         if speed > -1 then 
             point1.speed = speed/1.94384  -- in m/s
@@ -378,12 +370,12 @@ function veafMove.changeTanker(eventPos, speed, alt)
             alt = point1.alt / 0.3048 -- in feet
         end
         veaf.loggers.get(veafMove.Id):trace(string.format("newPoint1=%s",veaf.p(point1)))
-        traceMarkerId = veafMove.logMarker(traceMarkerId, "newPoint1", point1, debugMarkers)
+        traceMarkerId = veaf.loggers.get(veafMove.Id)(traceMarkerId, "newPoint1", point1, debugMarkers)
 
         -- point 2 is the start of the tanking Orbit ; we'll change the speed and altitude
         local point2 = points[idxPoint2]
         veaf.loggers.get(veafMove.Id):trace("found point2")
-        traceMarkerId = veafMove.logMarker(traceMarkerId, "point2", point2, debugMarkers)
+        traceMarkerId = veaf.loggers.get(veafMove.Id)(traceMarkerId, "point2", point2, debugMarkers)
         local foundOrbit = false
         local task1 = veaf.findInTable(point2, "task")
         if task1 then
@@ -416,12 +408,12 @@ function veafMove.changeTanker(eventPos, speed, alt)
             trigger.action.outText(text)
             return
         end
-        traceMarkerId = veafMove.logMarker(traceMarkerId, "newPoint2", point2, debugMarkers)
+        traceMarkerId = veaf.loggers.get(veafMove.Id)(traceMarkerId, "newPoint2", point2, debugMarkers)
 
         -- point 3 is the end of the tanking Orbit ; we'll change the speed and altitude
         local point3 = points[idxPoint3]
         veaf.loggers.get(veafMove.Id):trace("found point3")
-        traceMarkerId = veafMove.logMarker(traceMarkerId, "point3", point3, debugMarkers)
+        traceMarkerId = veaf.loggers.get(veafMove.Id)(traceMarkerId, "point3", point3, debugMarkers)
         -- change speed
         if speed > -1 then 
             point3.speed = speed/1.94384  -- in m/s
@@ -431,7 +423,7 @@ function veafMove.changeTanker(eventPos, speed, alt)
             point3.alt = alt * 0.3048 -- in meters
         end
         veaf.loggers.get(veafMove.Id):trace("newpoint3="..veaf.p(point3))
-        traceMarkerId = veafMove.logMarker(traceMarkerId, "newpoint3", point3, debugMarkers)
+        traceMarkerId = veaf.loggers.get(veafMove.Id)(traceMarkerId, "newpoint3", point3, debugMarkers)
 
         -- replace whole mission
         veaf.loggers.get(veafMove.Id):debug("Resetting changed tanker mission")
@@ -458,7 +450,7 @@ end
 
 function veafMove.moveTanker(eventPos, groupName, speed, alt, hdg, distance, teleport, silent)
     veaf.loggers.get(veafMove.Id):debug(string.format("veafMove.moveTanker(groupName=%s, speed=%s, alt=%s, hdg=%s, distance=%s)",tostring(groupName), tostring(speed), tostring(alt), tostring(hdg), tostring(distance)))
-    if veafMove.Trace then veaf.cleanupLogMarkers(debugMarkers) end
+    veaf.loggers.get(veafMove.Id):cleanupMarkers(debugMarkers)
     
     veaf.loggers.get(veafMove.Id):trace(string.format("eventPos=%s",veaf.p(eventPos)))
     
@@ -490,15 +482,15 @@ function veafMove.moveTanker(eventPos, groupName, speed, alt, hdg, distance, tel
 
         local point1 = points[idxPoint1]
         veaf.loggers.get(veafMove.Id):trace(string.format("point1=%s",veaf.p(point1)))
-        traceMarkerId = veafMove.logMarker(traceMarkerId, "point1", point1, debugMarkers)
+        traceMarkerId = veaf.loggers.get(veafMove.Id)(traceMarkerId, "point1", point1, debugMarkers)
 
         local point2 = points[idxPoint2]
         veaf.loggers.get(veafMove.Id):trace(string.format("point2=%s",veaf.p(point2)))
-        traceMarkerId = veafMove.logMarker(traceMarkerId, "point2", point2, debugMarkers)
+        traceMarkerId = veaf.loggers.get(veafMove.Id)(traceMarkerId, "point2", point2, debugMarkers)
 
         local point3 = points[idxPoint3]
         veaf.loggers.get(veafMove.Id):trace(string.format("point3=%s",veaf.p(point3)))
-        traceMarkerId = veafMove.logMarker(traceMarkerId, "point3", point3, debugMarkers)
+        traceMarkerId = veaf.loggers.get(veafMove.Id)(traceMarkerId, "point3", point3, debugMarkers)
 
         -- if distance is not set, compute distance between point2 and point3
         local distance = distance
@@ -581,7 +573,7 @@ function veafMove.moveTanker(eventPos, groupName, speed, alt, hdg, distance, tel
         point1.alt = movePoint.alt
         point1.speed = movePoint.speed
         veaf.loggers.get(veafMove.Id):trace(string.format("newPoint1=%s",veaf.p(point1)))
-        traceMarkerId = veafMove.logMarker(traceMarkerId, "newPoint1", point1, debugMarkers)
+        traceMarkerId = veaf.loggers.get(veafMove.Id)(traceMarkerId, "newPoint1", point1, debugMarkers)
 
         -- set point2 to the start of the tanking Orbit (startLegPoint)
         local foundOrbit = false
@@ -615,7 +607,7 @@ function veafMove.moveTanker(eventPos, groupName, speed, alt, hdg, distance, tel
         point2.alt = startLegPoint.alt
         point2.speed = startLegPoint.speed
         veaf.loggers.get(veafMove.Id):trace(string.format("newPoint2=%s",veaf.p(point2)))
-        traceMarkerId = veafMove.logMarker(traceMarkerId, "newPoint2", point2, debugMarkers)
+        traceMarkerId = veaf.loggers.get(veafMove.Id)(traceMarkerId, "newPoint2", point2, debugMarkers)
 
         -- set point2 to the end of the tanking Orbit (endLegPoint)
         point3.x = endLegPoint.x
@@ -623,7 +615,7 @@ function veafMove.moveTanker(eventPos, groupName, speed, alt, hdg, distance, tel
         point3.alt = endLegPoint.alt
         point3.speed = endLegPoint.speed
         veaf.loggers.get(veafMove.Id):trace("newpoint3="..veaf.p(point3))
-        traceMarkerId = veafMove.logMarker(traceMarkerId, "newpoint3", point3, debugMarkers)
+        traceMarkerId = veaf.loggers.get(veafMove.Id)(traceMarkerId, "newpoint3", point3, debugMarkers)
 
         local delay = 0
 

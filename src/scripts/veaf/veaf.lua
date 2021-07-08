@@ -2027,6 +2027,204 @@ function veaf.getPolygonFromUnits(unitNames)
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- Logging
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+veaf.loggers = {}
+veaf.loggers.dict = {}
+
+veaf.Logger =
+{
+    -- technical name
+    name = nil,
+    -- logging level
+    level = nil,
+}
+veaf.Logger.__index = veaf.Logger
+
+veaf.Logger.LEVEL = {
+    ["error"]=1,
+    ["warning"]=2,
+    ["info"]=3,
+    ["debug"]=4,
+    ["trace"]=5,
+}
+
+function veaf.Logger:new(name, level)
+    local self = setmetatable({}, veaf.Logger)
+    self:setName(name)
+    self:setLevel(level)
+    return self
+end
+
+function veaf.Logger:setName(value)
+    self.name = value
+    return self
+end
+
+function veaf.Logger:getName()
+    return self.name
+end
+
+function veaf.Logger:setLevel(value, force)
+    local level = value
+    if type(level) == "string" then
+        level = veaf.Logger.LEVEL[level:lower()]
+    end
+    if not level then 
+        level = veaf.Logger.LEVEL["info"]
+    end
+    if veaf.BaseLogLevel < level and not force then
+        level = veaf.BaseLogLevel
+    end
+    self.level = level
+    return self
+end
+
+function veaf.Logger:getLevel()
+    return self.level
+end
+
+function veaf.Logger.formatText(text, ...)
+    if not text then 
+        return "" 
+    end
+    if type(text) ~= 'string' then
+        text = veaf.p(text)
+    else
+        if arg and arg.n and arg.n > 0 then
+            local pArgs = {}
+            for index,value in ipairs(arg) do
+                pArgs[index] = veaf.p(value)
+            end
+            text = text:format(unpack(pArgs))
+        end            
+    end
+    local fName = nil
+    local cLine = nil
+    if debug then
+        local dInfo = debug.getinfo(3)
+        fName = dInfo.name
+        cLine = dInfo.currentline
+        -- local fsrc = dinfo.short_src
+        --local fLine = dInfo.linedefined
+    end
+    if fName and cLine then
+        return fName .. '|' .. cLine .. ': ' .. text
+    elseif cLine then
+        return cLine .. ': ' .. text
+    else
+        return ' ' .. text
+    end
+end
+
+function veaf.Logger:error(text, ...)
+    if self.level >= 1 then
+        text = veaf.Logger.formatText(text, unpack(arg))
+        env.error(self.name .. '|E|' .. text)
+    end
+end
+
+function veaf.Logger:warn(text, ...)
+    if self.level >= 2 then
+        text = veaf.Logger.formatText(text, unpack(arg))
+        env.warning(self.name .. '|W|' .. text)
+    end
+end
+
+function veaf.Logger:info(text, ...)
+    if self.level >= 3 then
+        text = veaf.Logger.formatText(text, unpack(arg))
+        env.info(self.name .. '|I|' .. text)
+    end
+end
+
+function veaf.Logger:debug(text, ...)
+    if self.level >= 4 then
+        text = veaf.Logger.formatText(text, unpack(arg))
+        env.info(self.name .. '|D|' .. text)
+    end
+end
+
+function veaf.Logger:trace(text, ...)
+    if self.level >= 5 then
+        text = veaf.Logger.formatText(text, unpack(arg))
+        env.info(self.name .. '|T|' .. text)
+    end
+end
+
+function veaf.Logger:marker(id, header, message, position, markersTable)
+    if not id then
+        id = 99999 
+    end
+    if self.level >= 5 then
+        local correctedPos = {}
+        correctedPos.x = position.x
+        if not(position.z) then
+            correctedPos.z = position.y
+            correctedPos.y = position.alt
+        else
+            correctedPos.z = position.z
+            correctedPos.y = position.y
+        end
+        if not (correctedPos.y) then
+            correctedPos.y = 0
+        end
+        local message = message
+        if header and id then
+            message = header..id.." "..message
+        end
+        self:trace("creating trace marker #%s at point %s", id, veaf.vecToString(correctedPos))
+        trigger.action.markToAll(id, message, correctedPos, false) 
+        if markersTable then
+            table.insert(markersTable, id)
+        end
+    end
+    return id + 1
+end
+
+function veaf.Logger:cleanupMarkers(markersTable)
+    for _, markerId in pairs(markersTable) do
+        self:trace("deleting trace marker #%s", markerId)
+        trigger.action.removeMark(markerId)    
+    end
+end
+
+function veaf.loggers.setBaseLevel(level) 
+    veaf.BaseLogLevel = level
+    -- reset all loggers level if lower than the base level
+    for name, logger in pairs(veaf.loggers.dict) do
+        logger:setLevel(logger:getLevel())
+    end
+end
+
+function veaf.loggers.new(loggerId, level) 
+    if not loggerId or #loggerId == 0 then
+        return nil
+    end
+    local result = veaf.Logger:new(loggerId:upper(), level)
+    veaf.loggers.dict[loggerId:lower()] = result
+    return result
+end
+
+function veaf.loggers.get(loggerId) 
+    local result = nil
+    if loggerId and #loggerId > 0 then
+        result = veaf.loggers.dict[loggerId:lower()]
+    end
+    if not result then 
+        result = veaf.loggers.get("veaf")
+    end
+    return result
+end
+
+if veaf.Development then
+    veaf.loggers.setBaseLevel(veaf.Logger.LEVEL["trace"])
+end
+
+veaf.loggers.new(veaf.Id, veaf.LogLevel)
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Quick Reaction Alert - https://en.wikipedia.org/wiki/Quick_Reaction_Alert
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 VeafQRA =
@@ -2060,6 +2258,11 @@ VeafQRA =
 }
 VeafQRA.__index = VeafQRA
 
+VeafQRA.Id = "QRA"
+--VeafQRA.LogLevel = "debug"
+
+veaf.loggers.new(VeafQRA.Id, VeafQRA.LogLevel)
+
 VeafQRA.STATUS_READY = 1
 VeafQRA.STATUS_ACTIVE = 2
 VeafQRA.STATUS_DEAD = 3
@@ -2071,7 +2274,7 @@ VeafQRA.DEFAULT_MESSAGE_DESTROYED = "%s has been destroyed"
 VeafQRA.DEFAULT_MESSAGE_READY = "%s is ready"
 
 function VeafQRA:new()
-    veaf.loggers.get(veaf.Id):trace(string.format("VeafQRA:new()"))
+    veaf.loggers.get(VeafQRA.Id):trace(string.format("VeafQRA:new()"))
     local self = setmetatable({}, VeafQRA)
     self.name = nil
     self.description = nil
@@ -2092,7 +2295,7 @@ function VeafQRA:new()
 end
 
 function VeafQRA:setName(value)
-    veaf.loggers.get(veaf.Id):trace(string.format("VeafQRA[]:setName(%s)", veaf.p(value)))
+    veaf.loggers.get(VeafQRA.Id):trace(string.format("VeafQRA[]:setName(%s)", veaf.p(value)))
     self.name = value
     return self
 end
@@ -2102,7 +2305,7 @@ function VeafQRA:getName()
 end
 
 function VeafQRA:setDescription(value)
-    veaf.loggers.get(veaf.Id):trace(string.format("VeafQRA[%s]:setDescription(%s)", veaf.p(self.name), veaf.p(value)))
+    veaf.loggers.get(VeafQRA.Id):trace(string.format("VeafQRA[%s]:setDescription(%s)", veaf.p(self.name), veaf.p(value)))
     self.description = value
     return self
 end
@@ -2112,7 +2315,7 @@ function VeafQRA:getDescription()
 end
 
 function VeafQRA:addGroup(value)
-    veaf.loggers.get(veaf.Id):trace(string.format("VeafQRA[%s]:addGroup(%s)", veaf.p(self.name), veaf.p(value)))
+    veaf.loggers.get(VeafQRA.Id):trace(string.format("VeafQRA[%s]:addGroup(%s)", veaf.p(self.name), veaf.p(value)))
     table.insert(self.groups, value)
     return self
 end
@@ -2122,7 +2325,7 @@ function VeafQRA:getGroups()
 end
 
 function VeafQRA:setCoalition(value)
-    veaf.loggers.get(veaf.Id):trace(string.format("VeafQRA[%s]:setCoalition(%s)", veaf.p(self.name), veaf.p(value)))
+    veaf.loggers.get(VeafQRA.Id):trace(string.format("VeafQRA[%s]:setCoalition(%s)", veaf.p(self.name), veaf.p(value)))
     self.coalition = value
     return self
 end
@@ -2132,7 +2335,7 @@ function VeafQRA:getCoalition()
 end
 
 function VeafQRA:addEnnemyCoalition(value)
-    veaf.loggers.get(veaf.Id):trace(string.format("VeafQRA[%s]:addEnnemyCoalition(%s)", veaf.p(self.name), veaf.p(value)))
+    veaf.loggers.get(VeafQRA.Id):trace(string.format("VeafQRA[%s]:addEnnemyCoalition(%s)", veaf.p(self.name), veaf.p(value)))
     self.ennemyCoalitions[value] = value
     return self
 end
@@ -2142,7 +2345,7 @@ function VeafQRA:getEnnemyCoalitions()
 end
 
 function VeafQRA:setMessageStart(value)
-    veaf.loggers.get(veaf.Id):trace(string.format("VeafQRA[%s]:setMessageStart(%s)", veaf.p(self.name), veaf.p(value)))
+    veaf.loggers.get(VeafQRA.Id):trace(string.format("VeafQRA[%s]:setMessageStart(%s)", veaf.p(self.name), veaf.p(value)))
     self.messageStart = value
     return self
 end
@@ -2152,7 +2355,7 @@ function VeafQRA:getMessageStart()
 end
 
 function VeafQRA:setMessageDestroyed(value)
-    veaf.loggers.get(veaf.Id):trace(string.format("VeafQRA[%s]:setMessageDestroyed(%s)", veaf.p(self.name), veaf.p(value)))
+    veaf.loggers.get(VeafQRA.Id):trace(string.format("VeafQRA[%s]:setMessageDestroyed(%s)", veaf.p(self.name), veaf.p(value)))
     self.messageDestroyed = value
     return self
 end
@@ -2162,7 +2365,7 @@ function VeafQRA:getMessageDestroyed()
 end
 
 function VeafQRA:setMessageReady(value)
-    veaf.loggers.get(veaf.Id):trace(string.format("VeafQRA[%s]:setMessageReady(%s)", veaf.p(self.name), veaf.p(value)))
+    veaf.loggers.get(VeafQRA.Id):trace(string.format("VeafQRA[%s]:setMessageReady(%s)", veaf.p(self.name), veaf.p(value)))
     self.messageReady = value
     return self
 end
@@ -2172,7 +2375,7 @@ function VeafQRA:getMessageReady()
 end
 
 function VeafQRA:setSilent(value)
-    veaf.loggers.get(veaf.Id):trace(string.format("VeafQRA[]:setSilent(%s)", veaf.p(value)))
+    veaf.loggers.get(VeafQRA.Id):trace(string.format("VeafQRA[]:setSilent(%s)", veaf.p(value)))
     self.silent = value
     return self
 end
@@ -2182,7 +2385,7 @@ function VeafQRA:isSilent()
 end
 
 function VeafQRA:setReactOnHelicopters()
-    veaf.loggers.get(veaf.Id):trace("VeafQRA[]:setReactOnHelicopters()")
+    veaf.loggers.get(VeafQRA.Id):trace("VeafQRA[]:setReactOnHelicopters()")
     self.reactOnHelicopters = true
     return self
 end
@@ -2192,7 +2395,7 @@ function VeafQRA:isReactOnHelicopters()
 end
 
 function VeafQRA:setRadius(value)
-    veaf.loggers.get(veaf.Id):trace(string.format("VeafQRA[]:setRadius(%s)", veaf.p(value)))
+    veaf.loggers.get(VeafQRA.Id):trace(string.format("VeafQRA[]:setRadius(%s)", veaf.p(value)))
     self.radius = value
     return self
 end
@@ -2205,16 +2408,16 @@ end
 
 
 function VeafQRA:_getEnemyHumanUnits()
-    --veaf.loggers.get(veaf.Id):trace(string.format("VeafQRA[%s]:_getEnemyHumanUnits() - computing", veaf.p(self.name)))
+    --veaf.loggers.get(VeafQRA.Id):trace(string.format("VeafQRA[%s]:_getEnemyHumanUnits() - computing", veaf.p(self.name)))
     if not self._enemyHumanUnits then
-        veaf.loggers.get(veaf.Id):trace(string.format("VeafQRA[%s]:_getEnemyHumanUnits() - computing", veaf.p(self.name)))
+        veaf.loggers.get(VeafQRA.Id):trace(string.format("VeafQRA[%s]:_getEnemyHumanUnits() - computing", veaf.p(self.name)))
         self._enemyHumanUnits = {}
-        veaf.loggers.get(veaf.Id):trace(string.format("self:getEnnemyCoalitions()[]=%s", veaf.p(self:getEnnemyCoalitions())))
+        veaf.loggers.get(VeafQRA.Id):trace(string.format("self:getEnnemyCoalitions()[]=%s", veaf.p(self:getEnnemyCoalitions())))
         for name, unit in pairs(mist.DBs.humansByName) do
-            --veaf.loggers.get(veaf.Id):trace("unit=%s", unit)
-            veaf.loggers.get(veaf.Id):trace("unit.unitName=%s", unit.unitName)
-            veaf.loggers.get(veaf.Id):trace("unit.groupName=%s", unit.groupName)
-            veaf.loggers.get(veaf.Id):trace(string.format("unit.coalition=%s", veaf.p(unit.coalition)))
+            --veaf.loggers.get(VeafQRA.Id):trace("unit=%s", unit)
+            veaf.loggers.get(VeafQRA.Id):trace("unit.unitName=%s", unit.unitName)
+            veaf.loggers.get(VeafQRA.Id):trace("unit.groupName=%s", unit.groupName)
+            veaf.loggers.get(VeafQRA.Id):trace(string.format("unit.coalition=%s", veaf.p(unit.coalition)))
             local coalitionId = 0
             if unit.coalition then
                 if unit.coalition:lower() == "red" then
@@ -2225,11 +2428,11 @@ function VeafQRA:_getEnemyHumanUnits()
             end                    
             if self:getEnnemyCoalitions()[coalitionId] then
                 if unit.category then
-                    veaf.loggers.get(veaf.Id):trace("unit.category=%s", unit.category)
+                    veaf.loggers.get(VeafQRA.Id):trace("unit.category=%s", unit.category)
                     if     (unit.category == "plane")
                         or (unit.category == "helicopter" and self:isReactOnHelicopters())
                     then
-                        veaf.loggers.get(veaf.Id):trace("adding unit to enemy human units for QRA")
+                        veaf.loggers.get(VeafQRA.Id):trace("adding unit to enemy human units for QRA")
                         table.insert(self._enemyHumanUnits, unit.unitName)
                     end
                 end
@@ -2240,13 +2443,13 @@ function VeafQRA:_getEnemyHumanUnits()
 end
 
 function VeafQRA:check()
-    veaf.loggers.get(veaf.Id):trace(string.format("VeafQRA[%s]:check()", veaf.p(self.name)))
-    veaf.loggers.get(veaf.Id):trace(string.format("self.state=%s", veaf._p(self.state)))
+    veaf.loggers.get(VeafQRA.Id):trace(string.format("VeafQRA[%s]:check()", veaf.p(self.name)))
+    veaf.loggers.get(VeafQRA.Id):trace(string.format("self.state=%s", veaf._p(self.state)))
 
     local unitNames = self:_getEnemyHumanUnits()
-    veaf.loggers.get(veaf.Id):trace(string.format("unitNames=%s", veaf.p(unitNames)))
+    veaf.loggers.get(VeafQRA.Id):trace(string.format("unitNames=%s", veaf.p(unitNames)))
     local unitsInZone = mist.getUnitsInZones(unitNames, {self:getName()})
-    veaf.loggers.get(veaf.Id):trace(string.format("unitsInZone=%s", veaf._p(unitsInZone)))
+    veaf.loggers.get(VeafQRA.Id):trace(string.format("unitsInZone=%s", veaf._p(unitsInZone)))
     if (self.state == VeafQRA.STATUS_READY) and (unitsInZone and #unitsInZone > 0) then
         -- trigger the QRA
         self:deploy()
@@ -2270,7 +2473,7 @@ function VeafQRA:check()
 end
 
 function VeafQRA:deploy()
-    veaf.loggers.get(veaf.Id):trace(string.format("VeafQRA[%s]:deploy()", veaf.p(self.name)))
+    veaf.loggers.get(VeafQRA.Id):trace(string.format("VeafQRA[%s]:deploy()", veaf.p(self.name)))
     if not self:isSilent() then
         local msg = string.format(self:getMessageStart(), self:getDescription())
         for coalition, _ in pairs(self:getEnnemyCoalitions()) do
@@ -2289,7 +2492,7 @@ function VeafQRA:deploy()
 end
 
 function VeafQRA:destroyed()
-    veaf.loggers.get(veaf.Id):trace(string.format("VeafQRA[%s]:destroyed()", veaf.p(self.name)))
+    veaf.loggers.get(VeafQRA.Id):trace(string.format("VeafQRA[%s]:destroyed()", veaf.p(self.name)))
     if not self:isSilent() then
         local msg = string.format(self:getMessageDestroyed(), self:getDescription())
         for coalition, _ in pairs(self:getEnnemyCoalitions()) do
@@ -2300,7 +2503,7 @@ function VeafQRA:destroyed()
 end
 
 function VeafQRA:rearm(silent)
-    veaf.loggers.get(veaf.Id):trace(string.format("VeafQRA[%s]:rearm()", veaf.p(self.name)))
+    veaf.loggers.get(VeafQRA.Id):trace(string.format("VeafQRA[%s]:rearm()", veaf.p(self.name)))
     if not self:isSilent() and not silent then
         local msg = string.format(self:getMessageReady(), self:getDescription())
         for coalition, _ in pairs(self:getEnnemyCoalitions()) do
@@ -2317,7 +2520,7 @@ function VeafQRA:rearm(silent)
 end
 
 function VeafQRA:start()
-    veaf.loggers.get(veaf.Id):trace(string.format("VeafQRA[%s]:start()", veaf.p(self.name)))
+    veaf.loggers.get(VeafQRA.Id):trace(string.format("VeafQRA[%s]:start()", veaf.p(self.name)))
     self:rearm() -- TODO set true
     mist.scheduleFunction(VeafQRA.check, {self}, timer.getTime() + VeafQRA.WATCHDOG_DELAY)    
 end
@@ -2535,195 +2738,6 @@ function VeafDrawingOnMap:erase()
         end
     end
 end
-
--------------------------------------------------------------------------------------------------------------------------------------------------------------
--- Logging
--------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-veaf.loggers = {}
-
-veaf.Logger =
-{
-    -- technical name
-    name = nil,
-    -- logging level
-    level = nil,
-}
-veaf.Logger.__index = veaf.Logger
-
-veaf.Logger.LEVEL = {
-    ["error"]=1,
-    ["warning"]=2,
-    ["info"]=3,
-    ["debug"]=4,
-    ["trace"]=5,
-}
-
-function veaf.Logger:new(name, level)
-    local self = setmetatable({}, veaf.Logger)
-    self:setName(name)
-    self:setLevel(level)
-    return self
-end
-
-function veaf.Logger:setName(value)
-    self.name = value
-    return self
-end
-
-function veaf.Logger:getName()
-    return self.name
-end
-
-function veaf.Logger:setLevel(value, force)
-    local level = value
-    if type(level) == "string" then
-        level = veaf.Logger.LEVEL[level:lower()]
-    end
-    if not level then 
-        level = veaf.Logger.LEVEL["info"]
-    end
-    if veaf.BaseLogLevel < level and not force then
-        level = veaf.BaseLogLevel
-    end
-    self.level = level
-    return self
-end
-
-function veaf.Logger:getLevel()
-    return self.Level
-end
-
-function veaf.Logger.formatText(text, ...)
-    if not text then 
-        return "" 
-    end
-    if type(text) ~= 'string' then
-        text = veaf.p(text)
-    else
-        if arg and arg.n and arg.n > 0 then
-            local pArgs = {}
-            for index,value in ipairs(arg) do
-                pArgs[index] = veaf.p(value)
-            end
-            text = text:format(unpack(pArgs))
-        end            
-    end
-    local fName = nil
-    local cLine = nil
-    if debug then
-        local dInfo = debug.getinfo(3)
-        fName = dInfo.name
-        cLine = dInfo.currentline
-        -- local fsrc = dinfo.short_src
-        --local fLine = dInfo.linedefined
-    end
-    if fName and cLine then
-        return fName .. '|' .. cLine .. ': ' .. text
-    elseif cLine then
-        return cLine .. ': ' .. text
-    else
-        return ' ' .. text
-    end
-end
-
-function veaf.Logger:error(text, ...)
-    if self.level >= 1 then
-        text = veaf.Logger.formatText(text, unpack(arg))
-        env.error(self.name .. '|E|' .. text)
-    end
-end
-
-function veaf.Logger:warn(text, ...)
-    if self.level >= 2 then
-        text = veaf.Logger.formatText(text, unpack(arg))
-        env.warning(self.name .. '|W|' .. text)
-    end
-end
-
-function veaf.Logger:info(text, ...)
-    if self.level >= 3 then
-        text = veaf.Logger.formatText(text, unpack(arg))
-        env.info(self.name .. '|I|' .. text)
-    end
-end
-
-function veaf.Logger:debug(text, ...)
-    if self.level >= 4 then
-        text = veaf.Logger.formatText(text, unpack(arg))
-        env.info(self.name .. '|D|' .. text)
-    end
-end
-
-function veaf.Logger:trace(text, ...)
-    if self.level >= 5 then
-        text = veaf.Logger.formatText(text, unpack(arg))
-        env.info(self.name .. '|T|' .. text)
-    end
-end
-
-function veaf.loggers.new(loggerId, level) 
-    if not loggerId or #loggerId == 0 then
-        return nil
-    end
-    local result = veaf.Logger:new(loggerId:upper(), level)
-    veaf.loggers[loggerId:lower()] = result
-    return result
-end
-
-function veaf.loggers.get(loggerId) 
-    local result = nil
-    if loggerId and #loggerId > 0 then
-        result = veaf.loggers[loggerId:lower()]
-    end
-    if not result then 
-        result = veaf.loggers.get("veaf")
-    end
-    return result
-end
-
-function veaf.logMarker(loggerId, id, header, message, position, markersTable)
-    if not id then
-        id = 99999 
-    end
-    if veaf.BaseLogLevel >= 5 then
-        local correctedPos = {}
-        correctedPos.x = position.x
-        if not(position.z) then
-            correctedPos.z = position.y
-            correctedPos.y = position.alt
-        else
-            correctedPos.z = position.z
-            correctedPos.y = position.y
-        end
-        if not (correctedPos.y) then
-            correctedPos.y = 0
-        end
-        local message = message
-        if header and id then
-            message = header..id.." "..message
-        end
-        veaf.loggers.get(loggerId):trace("creating trace marker #%s at point %s", id, veaf.vecToString(correctedPos))
-        trigger.action.markToAll(id, message, correctedPos, false) 
-        if markersTable then
-            table.insert(markersTable, id)
-        end
-    end
-    return id + 1
-end
-
-function veaf.cleanupLogMarkers(loggerId, markersTable)
-    for _, markerId in pairs(markersTable) do
-        veaf.loggers.get(loggerId):trace("deleting trace marker #%s", markerId)
-        trigger.action.removeMark(markerId)    
-    end
-end
-
-if not veaf.Development then
-    veaf.BaseLogLevel = veaf.Logger.LEVEL["trace"]
-end
-
-veaf.logger = veaf.loggers.new(veaf.Id, veaf.LogLevel)
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- initialisation

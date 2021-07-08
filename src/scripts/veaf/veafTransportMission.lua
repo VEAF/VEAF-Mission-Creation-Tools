@@ -52,10 +52,9 @@ veafTransportMission.Id = "TRANSPORTMISSION"
 veafTransportMission.Version = "1.5.0"
 
 -- trace level, specific to this module
-veafTransportMission.LogLevel = "trace"
---veafTransportMission.LogLevel = "debug"
+--veafTransportMission.LogLevel = "trace"
 
-veafTransportMission.logger = veaf.loggers.new(veafTransportMission.Id, veafTransportMission.LogLevel)
+veaf.loggers.new(veafTransportMission.Id, veafTransportMission.LogLevel)
 
 --- Key phrase to look for in the mark text which triggers the command.
 veafTransportMission.Keyphrase = "_transport"

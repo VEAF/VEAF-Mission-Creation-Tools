@@ -28,10 +28,9 @@ veafCombatMission.Id = "COMBATMISSION"
 veafCombatMission.Version = "2.1.0"
 
 -- trace level, specific to this module
-veafCombatMission.LogLevel = "trace"
---veafCombatMission.LogLevel = "debug"
+--veafCombatMission.LogLevel = "trace"
 
-veafCombatMission.logger = veaf.loggers.new(veafCombatMission.Id, veafCombatMission.LogLevel)
+veaf.loggers.new(veafCombatMission.Id, veafCombatMission.LogLevel)
 
 --- Number of seconds between each check of the watchdog function
 veafCombatMission.SecondsBetweenWatchdogChecks = 30

@@ -46,10 +46,9 @@ veafMarkers.Version = "1.1.0"
 veafMarkers.DCSbugfixed = true
 
 -- trace level, specific to this module
-veafMarkers.LogLevel = "trace"
---veafMarkers.LogLevel = "debug"
+--veafMarkers.LogLevel = "trace"
 
-veafMarkers.logger = veaf.loggers.new(veafMarkers.Id, veafMarkers.LogLevel)
+veaf.loggers.new(veafMarkers.Id, veafMarkers.LogLevel)
 
 veafMarkers.MarkerAdd = 1
 veafMarkers.MarkerChange = 2

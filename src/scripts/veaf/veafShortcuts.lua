@@ -30,10 +30,9 @@ veafShortcuts.Id = "SHORTCUTS"
 veafShortcuts.Version = "1.20.0"
 
 -- trace level, specific to this module
-veafShortcuts.LogLevel = "trace"
---veafShortcuts.LogLevel = "debug"
+--veafShortcuts.LogLevel = "trace"
 
-veafShortcuts.logger = veaf.loggers.new(veafShortcuts.Id, veafShortcuts.LogLevel)
+veaf.loggers.new(veafShortcuts.Id, veafShortcuts.LogLevel)
 
 veafShortcuts.RadioMenuName = "SHORTCUTS"
 

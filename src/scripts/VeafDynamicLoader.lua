@@ -50,7 +50,7 @@ __Veaf.Include( VEAF_DYNAMIC_PATH .. '/src/scripts/veaf/veafHoundElintHelper.lua
 -- set the environment in debug mode
 env.info( '*** VEAF-Mission-Creation-Tools set the environment in debug mode *** ' )
 veaf.Development = true
-veaf.loggers.get(veaf.Id):setLevel("trace")
+veaf.loggers.setBaseLevel(veaf.Logger.LEVEL["trace"])
 veaf.SecurityDisabled = true
 veafSecurity.authenticated = true
 

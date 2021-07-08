@@ -49,9 +49,8 @@ veafRadio.Version = "1.9.0"
 
 -- trace level, specific to this module
 --veafRadio.LogLevel = "trace"
---veafRadio.LogLevel = "debug"
 
-veafRadio.logger = veaf.loggers.new(veafRadio.Id, veafRadio.LogLevel)
+veaf.loggers.new(veafRadio.Id, veafRadio.LogLevel)
 
 veafRadio.RadioMenuName = "VEAF"
 

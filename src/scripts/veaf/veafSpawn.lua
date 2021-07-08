@@ -69,10 +69,9 @@ veafSpawn.Id = "SPAWN"
 veafSpawn.Version = "1.25.0"
 
 -- trace level, specific to this module
-veafSpawn.LogLevel = "trace"
---veafSpawn.LogLevel = "debug"
+--veafSpawn.LogLevel = "trace"
 
-veafSpawn.logger = veaf.loggers.new(veafSpawn.Id, veafSpawn.LogLevel)
+veaf.loggers.new(veafSpawn.Id, veafSpawn.LogLevel)
 
 --- Key phrase to look for in the mark text which triggers the spawn command.
 veafSpawn.SpawnKeyphrase = "_spawn"

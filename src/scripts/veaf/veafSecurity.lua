@@ -36,10 +36,9 @@ veafSecurity.Id = "SECURITY"
 veafSecurity.Version = "1.2.3"
 
 -- trace level, specific to this module
-veafSecurity.LogLevel = "trace"
---veafSecurity.LogLevel = "debug"
+--veafSecurity.LogLevel = "trace"
 
-veafSecurity.logger = veaf.loggers.new(veafSecurity.Id, veafSecurity.LogLevel)
+veaf.loggers.new(veafSecurity.Id, veafSecurity.LogLevel)
 
 --- Key phrase to look for in the mark text which triggers the command.
 veafSecurity.Keyphrase = "_auth"

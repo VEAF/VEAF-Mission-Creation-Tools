@@ -32,9 +32,8 @@ veafHoundElint.Version = "1.0.0"
 
 -- trace level, specific to this module
 --veafHoundElint.LogLevel = "trace"
---veafHoundElint.LogLevel = "debug"
 
-veafHoundElint.logger = veaf.loggers.new(veafHoundElint.Id, veafHoundElint.LogLevel)
+veaf.loggers.new(veafHoundElint.Id, veafHoundElint.LogLevel)
 
 -- delay before the mission groups are added to the Hound system at start
 veafHoundElint.DelayForStartup = 1

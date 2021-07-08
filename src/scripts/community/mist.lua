@@ -3292,7 +3292,7 @@ do -- group functions scope
         if string.lower(newGroupData.category) == 'ship' then
             validTerrain = {'SHALLOW_WATER' , 'WATER'}
         elseif string.lower(newGroupData.category) == 'vehicle' then
-            validTerrain = {'LAND', 'ROAD'}
+            validTerrain = {'LAND', 'ROAD', 'RUNWAY'}
         end
         local offsets = {}
 		if point and radius >= 0 then

@@ -2806,9 +2806,9 @@ if ctld then
 
     -- ************** Maximum Units SETUP for UNITS ******************
 
-    ctld.unitLoadLimits["UH-1H"] = 12
-    ctld.unitLoadLimits["Mi-24P"] = 18
-    ctld.unitLoadLimits["Mi-8MT"] = 24
+    ctld.unitLoadLimits["UH-1H"] = 10
+    ctld.unitLoadLimits["Mi-24P"] = 10
+    ctld.unitLoadLimits["Mi-8MT"] = 20
     ctld.unitLoadLimits["Yak-52"] = 1
 
     -- ************** Allowable actions for UNIT TYPES ******************
@@ -2819,9 +2819,66 @@ if ctld then
 
     table.insert(ctld.loadableGroups, {name = "2x - Standard Groups", inf = 12, mg = 4, at = 4 })
     table.insert(ctld.loadableGroups, {name = "3x - Mortar Squad", mortar = 18})
-    table.insert(ctld.loadableGroups, {name = "4x - Mortar Squad", mortar = 24})
+    
+    ctld.autoInitializeAllHumanTransports = function()
+        local TransportTypeNames = {"Mi-8MT", "UH-1H", "Mi-24P", "Yak-52"}
+        local result = {}
+        for name, unit in pairs(mist.DBs.humansByName) do
+            veaf.loggers.get(ctld.Id):trace(string.format("human player found name=%s, unitName=%s, groupName=%s", name, unit.unitName,unit.groupName))
+            -- check if it's a transport helo (Mi-8 or Huey)
+            for _, transportTypeName in pairs(TransportTypeNames) do
+                if transportTypeName:lower() == unit.type:lower() then
+                    table.insert(ctld.transportPilotNames, unit.unitName)
+                    veaf.loggers.get(ctld.Id):debug(string.format("Adding CTLD transport pilot %s of group %s", unit.unitName, unit.groupName))
+                end
+            end
+        end
+    end
 
-    veaf.loggers.get(veaf.Id):info(string.format("Done setting up CTLD"))
+    ctld.autoInitializeAllLogistic = function()
+        local CarrierTypeNames = {"LHA_Tarawa", "Stennis", "CVN_71", "KUZNECOW"}
+        local result = {}
+        local units = mist.DBs.unitsByName -- local copy for faster execution
+        for name, unit in pairs(units) do
+            veaf.loggers.get(ctld.Id):trace(string.format("name=%s, unit.type=%s", veaf.p(name), veaf.p(unit.type)))
+            --veaf.loggers.get(ctld.Id):trace(string.format("unit=%s", veaf.p(unit)))
+            --local unit = Unit.getByName(name)
+            if unit then 
+                for _, carrierTypeName in pairs(CarrierTypeNames) do
+                    if carrierTypeName:lower() == unit.type:lower() then
+                        table.insert(ctld.logisticUnits, unit.unitName)
+                        veaf.loggers.get(ctld.Id):debug(string.format("Adding CTLD logistic unit %s of group %s", unit.unitName, unit.groupName))
+                    end
+                end
+            end
+        end
+    end
+
+    -- generate 20 pickup zone names in the form "pickzone #001"
+    ctld.pickupZones = {}
+    for i = 1, 20 do
+        table.insert(ctld.pickupZones, { string.format("pickzone #%03d",i), "none", -1, "yes", 0 })
+    end
+
+    -- generate 20 logistic unit names in the form "logistic #001"
+    ctld.logisticUnits = {}
+    for i = 1, 20 do
+        table.insert(ctld.logisticUnits, string.format("logistic #%03d",i))
+    end
+    
+    -- Use only the automatic initialization
+    ctld.transportPilotNames = {} 
+
+    -- automatically add all the human-manned transport aircrafts to ctld.transportPilotNames
+    ctld.autoInitializeAllHumanTransports()
+
+    -- Use only the automatic initialization
+    ctld.logisticUnits = {}
+
+    -- automatically add all the carriers and FARPs to ctld.logisticUnits
+    ctld.autoInitializeAllLogistic()
+
+    veaf.loggers.get(ctld.Id):info(string.format("Done setting up CTLD"))
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------

@@ -27,7 +27,7 @@ veafShortcuts = {}
 veafShortcuts.Id = "SHORTCUTS"
 
 --- Version.
-veafShortcuts.Version = "1.20.0"
+veafShortcuts.Version = "1.21.0"
 
 -- trace level, specific to this module
 --veafShortcuts.LogLevel = "trace"
@@ -695,6 +695,29 @@ function veafShortcuts.buildDefaultList()
             :addRandomParameter("shells", 25, 40)
             :addRandomParameter("radius", 350, 500)
             :addRandomParameter("power", 100, 300)
+            :setHidden(true)
+    )
+    veafShortcuts.AddAlias(
+        VeafAlias:new()
+            :setName("-shells")
+            :setDescription("Artillery shelling of a small zone with low-yield HE")
+            :setVeafCommand("-shell")
+            :addRandomParameter("shells", 2, 5)
+            :addRandomParameter("radius", 200, 500)
+            :addRandomParameter("power", 10, 50)
+            :addRandomParameter("multiplier", 5, 10)
+            :setHidden(true)
+    )
+    veafShortcuts.AddAlias(
+        VeafAlias:new()
+            :setName("-flak")
+            :setDescription("Anti-air Artillery shelling of a zone with flak")
+            :setVeafCommand("_spawn bomb, alt 6000")
+            :addRandomParameter("shells", 10, 15)
+            :addRandomParameter("radius", 1000, 1500)
+            :addRandomParameter("power", 500, 750)
+            :addRandomParameter("altdelta", 800, 1000)
+            :addRandomParameter("multiplier", 6, 10)
             :setHidden(true)
     )
     veafShortcuts.AddAlias(

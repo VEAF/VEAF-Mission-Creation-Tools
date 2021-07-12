@@ -66,7 +66,7 @@ veafSpawn = {}
 veafSpawn.Id = "SPAWN"
 
 --- Version.
-veafSpawn.Version = "1.25.0"
+veafSpawn.Version = "1.26.0"
 
 -- trace level, specific to this module
 --veafSpawn.LogLevel = "trace"
@@ -98,6 +98,7 @@ veafSpawn.LogisticUnitType = "FARP Ammo Dump Coating"
 veafSpawn.LogisticUnitCategory = "Fortifications"
 
 veafSpawn.ShellingInterval = 5 -- seconds between shells, randomized by 30%
+veafSpawn.FlakingInterval = 2 -- seconds between flak shells, randomized by 30%
 veafSpawn.IlluminationShellingInterval = 30 -- seconds between illumination shells, randomized by 30%
 
 veafSpawn.MIN_REPEAT_DELAY = 5
@@ -279,11 +280,11 @@ function veafSpawn.executeCommand(eventPos, eventText, coalition, markId, bypass
                 elseif options.bomb then
                     -- check security
                     if not (bypassSecurity or veafSecurity.checkSecurity_L1(options.password, markId)) then return end
-                    veafSpawn.spawnBomb(eventPos, options.radius, options.shells, options.bombPower, options.password)
+                    veafSpawn.spawnBomb(eventPos, options.radius, options.shells, options.bombPower, options.altitude, options.altitudedelta, options.password)
                 elseif options.smoke then
                     veafSpawn.spawnSmoke(eventPos, options.smokeColor, options.radius, options.shells)
                 elseif options.flare then
-                    veafSpawn.spawnIlluminationFlare(eventPos, options.radius, options.shells, options.alt)
+                    veafSpawn.spawnIlluminationFlare(eventPos, options.radius, options.shells, options.altitude)
                 elseif options.signal then
                     veafSpawn.spawnSignalFlare(eventPos, options.radius, options.shells, options.smokeColor)
                 elseif options.addDrawing then
@@ -395,6 +396,7 @@ function veafSpawn.markTextAnalysis(text)
     options.country = nil
     options.side = nil
     options.altitude = 0
+    options.altitudedelta = 0
     options.heading = 0
     
     -- if true, group is part of a road convoy
@@ -587,6 +589,13 @@ function veafSpawn.markTextAnalysis(text)
             options.altitude = nVal
         end
         
+        if key:lower() == "altdelta" then
+            -- Set altitude delta.
+            veaf.loggers.get(veafSpawn.Id):trace(string.format("Keyword altdelta = %s", tostring(val)))
+            local nVal = veaf.getRandomizableNumeric(val)
+            options.altitudedelta = nVal
+        end
+
         if key:lower() == "speed" then
             -- Set altitude.
             veaf.loggers.get(veafSpawn.Id):trace(string.format("Keyword speed = %s", tostring(val)))
@@ -1637,15 +1646,22 @@ end
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 --- trigger an explosion at the marker area
-function veafSpawn.spawnBomb(spawnSpot, radius, shells, power, password)
+function veafSpawn.spawnBomb(spawnSpot, radius, shells, power, altitude, altitudedelta, password)
     veaf.loggers.get(veafSpawn.Id):debug("spawnBomb(power=" .. power ..")")
 
     local shellTime = 0
+    local shellDelay = 0
     for shell=1,shells do
         local spawnSpot = veaf.placePointOnLand(mist.getRandPointInCircle(spawnSpot, radius))
+        if altitude then
+            spawnSpot.y = altitude + altitudedelta * ((math.random(100)-50)/100)
+            shellDelay = veafSpawn.FlakingInterval
+        else
+            shellDelay = veafSpawn.ShellingInterval
+        end
         veaf.loggers.get(veafSpawn.Id):trace(string.format("spawnSpot=%s", veaf.vecToString(spawnSpot)))
         
-        local shellDelay = veafSpawn.ShellingInterval * (math.random(100) + 30)/100
+        local shellDelay = shellDelay * (math.random(100) + 30)/100
         local shellPower = power * (math.random(100) + 30)/100
         -- check security
         if not veafSecurity.checkPassword_L0(password) then

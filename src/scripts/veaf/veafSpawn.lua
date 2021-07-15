@@ -66,10 +66,10 @@ veafSpawn = {}
 veafSpawn.Id = "SPAWN"
 
 --- Version.
-veafSpawn.Version = "1.26.0"
+veafSpawn.Version = "1.27.0"
 
 -- trace level, specific to this module
-veafSpawn.LogLevel = "trace"
+--veafSpawn.LogLevel = "trace"
 
 veaf.loggers.new(veafSpawn.Id, veafSpawn.LogLevel)
 
@@ -2315,10 +2315,10 @@ function veafSpawn.spawnCombatAirPatrol(spawnSpot, radius, name, altitude, altde
     vars.name = _template:getName()
     vars.route = newRoute
     --vars.route = mist.getGroupRoute(_template:getName(), "task")
-    vars.action = 'cloneWithNames'
+    vars.action = 'clone'
     vars.point = position
     local newGroup = mist.teleportToPoint(vars, true)
-    newGroup.task = "CAP"
+    --newGroup.task = "CAP"
     veaf.loggers.get(veafSpawn.Id):trace("newGroup=%s",newGroup)
     if not veafSpawn.spawnedNamesIndex[groupName] then
         veafSpawn.spawnedNamesIndex[groupName] = 0

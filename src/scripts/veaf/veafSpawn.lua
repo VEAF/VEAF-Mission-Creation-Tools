@@ -66,7 +66,7 @@ veafSpawn = {}
 veafSpawn.Id = "SPAWN"
 
 --- Version.
-veafSpawn.Version = "1.27.0"
+veafSpawn.Version = "1.28.0"
 
 -- trace level, specific to this module
 --veafSpawn.LogLevel = "trace"
@@ -103,7 +103,7 @@ veafSpawn.IlluminationShellingInterval = 30 -- seconds between illumination shel
 
 veafSpawn.MIN_REPEAT_DELAY = 5
 
-veafSpawn.AirUnitTemplatesPrefix = "OnDemand-CAP-"
+veafSpawn.AirUnitTemplatesPrefix = "veafSpawn-"
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Do not change anything below unless you know what you are doing!
@@ -244,7 +244,7 @@ function veafSpawn.executeCommand(eventPos, eventText, coalition, markId, bypass
                 elseif options.cap then
                     -- check security
                     if not (bypassSecurity or veafSecurity.checkSecurity_L9(options.password, markId)) then return end
-                    spawnedGroup = veafSpawn.spawnCombatAirPatrol(eventPos, options.radius, options.name, options.altitude, options.altdelta, options.heading, options.distance, options.speed, options.skill, bypassSecurity)
+                    spawnedGroup = veafSpawn.spawnCombatAirPatrol(eventPos, options.radius, options.name, options.altitude, options.altdelta, options.heading, options.distance, options.speed, options.capradius, options.skill, bypassSecurity)
                 elseif options.group then
                     -- check security
                     if not (bypassSecurity or veafSecurity.checkSecurity_L9(options.password, markId)) then return end
@@ -387,6 +387,7 @@ function veafSpawn.markTextAnalysis(text)
     options.transportCompany = false
     options.fullCombatGroup = false
     options.speed = nil
+    options.capradius = nil
     options.shells = 1
     options.multiplier = 1
     options.skynet = false -- if true, add to skynet
@@ -615,12 +616,19 @@ function veafSpawn.markTextAnalysis(text)
         end
 
         if key:lower() == "speed" then
-            -- Set altitude.
+            -- Set speed.
             veaf.loggers.get(veafSpawn.Id):trace(string.format("Keyword speed = %s", tostring(val)))
             local nVal = veaf.getRandomizableNumeric(val)
             options.speed = nVal
         end
         
+        if key:lower() == "capradius" then
+            -- Set capradius.
+            veaf.loggers.get(veafSpawn.Id):trace(string.format("Keyword capradius = %s", tostring(val)))
+            local nVal = veaf.getRandomizableNumeric(val)
+            options.capradius = nVal
+        end
+
         if key:lower() == "shells" then
             -- Set altitude.
             veaf.loggers.get(veafSpawn.Id):trace(string.format("Keyword shells = %s", tostring(val)))
@@ -2038,6 +2046,7 @@ VeafAirUnitTemplate.__index = VeafAirUnitTemplate
 function VeafAirUnitTemplate:new ()
     local self = setmetatable({}, VeafAirUnitTemplate)
     self.name = nil
+    self.humanName = nil
     self.coalition = nil
     return self
 end
@@ -2092,7 +2101,26 @@ function veafSpawn.initializeAirUnitTemplates()
 
 end
 
-function veafSpawn.spawnCombatAirPatrol(spawnSpot, radius, name, altitude, altdelta, hdg, distance, speed, skill, silent)
+function veafSpawn.listAllCAP(unitName)
+    veaf.loggers.get(veafSpawn.Id):debug("veafSpawn.listAllCAP(unitName=%s)",unitName)
+    local sorted = {}
+    for name, template in pairs(veafSpawn.airUnitTemplates) do
+        local _name = template:getName():sub(veafSpawn.AirUnitTemplatesPrefix:len()+1)
+        table.insert(sorted, _name)
+    end
+    table.sort(sorted)
+    local text = ""
+    for _, name in pairs(sorted) do
+        text = text .. name .. "\n"
+    end
+    if text == "" then
+        veaf.outTextForUnit(unitName, "No CAP available for spawn", 10)
+    else
+        veaf.outTextForUnit(unitName, text, 30)
+    end
+end
+
+function veafSpawn.spawnCombatAirPatrol(spawnSpot, radius, name, altitude, altdelta, hdg, distance, speed, capRadius, skill, silent)
     local radius = radius or 5000 -- m
     local altitude = altitude 
     if altitude == 0 then
@@ -2102,10 +2130,14 @@ function veafSpawn.spawnCombatAirPatrol(spawnSpot, radius, name, altitude, altde
     local hdg = hdg or 0
     local distance = distance or 60 -- nm
     local speed = speed or 370 -- knots
+    local capRadius = capRadius or distance / 2
     local skill = skill or "random"
 
     -- convert distance to meters
     distance = distance * 1852 -- meters
+
+    -- convert capRadius to meters
+    capRadius = capRadius * 1852 -- meters
 
     -- convert speed to m/s
     speed = speed/1.94384
@@ -2122,6 +2154,7 @@ function veafSpawn.spawnCombatAirPatrol(spawnSpot, radius, name, altitude, altde
     veaf.loggers.get(veafSpawn.Id):trace("hdg=%s", hdg)
     veaf.loggers.get(veafSpawn.Id):trace("distance=%s", distance)
     veaf.loggers.get(veafSpawn.Id):trace("speed=%s", speed)
+    veaf.loggers.get(veafSpawn.Id):trace("capRadius=%s", capRadius)
     veaf.loggers.get(veafSpawn.Id):trace("skill=%s", skill)
     veaf.loggers.get(veafSpawn.Id):trace("silent=%s", silent)
    
@@ -2299,16 +2332,16 @@ function veafSpawn.spawnCombatAirPatrol(spawnSpot, radius, name, altitude, altde
     }
     parameters.wp2 = { x = parameters.wp1.x + 2500 * math.cos(headingRad), y = parameters.wp1.y + 2500 * math.sin(headingRad) } -- second wp at 2500m in the right direction
     parameters.wp3 = { x = parameters.wp2.x + distance * math.cos(headingRad), y = parameters.wp2.y + distance * math.sin(headingRad) } -- last wp at the right distance in the right direction
-    parameters.targetZone = { x = parameters.wp2.x + distance/2 * math.cos(headingRad), y = parameters.wp2.y + distance/2 * math.sin(headingRad), radius = distance/2 } -- target zone at the middle point between wp2 and wp3
+    parameters.targetZone = { x = parameters.wp3.x - capRadius * math.cos(headingRad), y = parameters.wp3.y - capRadius * math.sin(headingRad), radius = capRadius } -- target zone at the middle point between wp2 and wp3
+
     veaf.loggers.get(veafSpawn.Id):trace("parameters=%s",parameters)
     local newRoute = getRoute(parameters)
     --veaf.loggers.get(veafSpawn.Id):trace("newRoute=%s",newRoute)
-
+    
     veafSpawn.traceMarkerId = veaf.loggers.get(veafSpawn.Id):marker(veafSpawn.traceMarkerId, "CAP", "wp1", parameters.wp1)
     veafSpawn.traceMarkerId = veaf.loggers.get(veafSpawn.Id):marker(veafSpawn.traceMarkerId, "CAP", "wp2", parameters.wp2)
     veafSpawn.traceMarkerId = veaf.loggers.get(veafSpawn.Id):marker(veafSpawn.traceMarkerId, "CAP", "wp3", parameters.wp3)
-    veafSpawn.traceMarkerId = veaf.loggers.get(veafSpawn.Id):marker(veafSpawn.traceMarkerId, "CAP", "targetZone", parameters.targetZone)
-
+    veafSpawn.traceMarkerId = veaf.loggers.get(veafSpawn.Id):marker(veafSpawn.traceMarkerId, "CAP", "targetZone", parameters.targetZone, nil, capRadius, {1,0,0,0.15})
     -- (re)spawn group
     local vars = {}
     vars.gpName = _template:getName()
@@ -2373,6 +2406,7 @@ end
 function veafSpawn.buildRadioMenu()
     veaf.loggers.get(veafSpawn.Id):debug(string.format("veafSpawn.buildRadioMenu()"))
     veafSpawn.rootPath = veafRadio.addSubMenu(veafSpawn.RadioMenuName)
+    veafRadio.addCommandToSubmenu("Available CAP spawns", veafSpawn.rootPath, veafSpawn.listAllCAP, nil, veafRadio.USAGE_ForAll)
     veafRadio.addCommandToSubmenu("Info on all convoys", veafSpawn.rootPath, veafSpawn.infoOnAllConvoys, nil, veafRadio.USAGE_ForGroup)
     local menuPath = veafRadio.addSubMenu("Mark closest convoy route", veafSpawn.rootPath)
     veafRadio.addCommandToSubmenu("Mark closest convoy route" , menuPath, veafSpawn.markClosestConvoyRouteWithSmoke, nil, veafRadio.USAGE_ForGroup)    

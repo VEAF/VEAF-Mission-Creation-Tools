@@ -32,7 +32,7 @@ veaf = {}
 veaf.Id = "VEAF"
 
 --- Version.
-veaf.Version = "1.15.1"
+veaf.Version = "1.16.0"
 
 --- Development version ?
 veaf.Development = true
@@ -2190,7 +2190,7 @@ function veaf.Logger:trace(text, ...)
     end
 end
 
-function veaf.Logger:marker(id, header, message, position, markersTable)
+function veaf.Logger:marker(id, header, message, position, markersTable, radius, fillColor)
     if not id then
         id = 99999 
     end
@@ -2212,7 +2212,11 @@ function veaf.Logger:marker(id, header, message, position, markersTable)
             message = header..id.." "..message
         end
         self:trace("creating trace marker #%s at point %s", id, veaf.vecToString(correctedPos))
-        trigger.action.markToAll(id, message, correctedPos, false) 
+        if radius then
+            trigger.action.circleToAll(-1, id, correctedPos, radius, fillColor, fillColor, 3, false)
+        else
+            trigger.action.markToAll(id, message, correctedPos, false) 
+        end
         if markersTable then
             table.insert(markersTable, id)
         end

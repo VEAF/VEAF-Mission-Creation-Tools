@@ -25,10 +25,10 @@ veafCombatMission = {}
 veafCombatMission.Id = "COMBATMISSION"
 
 --- Version.
-veafCombatMission.Version = "2.1.0"
+veafCombatMission.Version = "2.1.1"
 
 -- trace level, specific to this module
---veafCombatMission.LogLevel = "trace"
+--veafCombatMission.LogLevel = "debug"
 
 veaf.loggers.new(veafCombatMission.Id, veafCombatMission.LogLevel)
 
@@ -822,7 +822,7 @@ end
 
 -- activate the mission
 function VeafCombatMission:activate(silent)
-    veaf.loggers.get(veafCombatMission.Id):trace(string.format("VeafCombatMission[%s]:activate(%s)",self:getName(), tostring(silent)))
+    veaf.loggers.get(veafCombatMission.Id):debug(string.format("VeafCombatMission[%s]:activate(%s)",self:getName(), tostring(silent)))
     
     -- don't start twice
     if self:isActive() then 
@@ -833,11 +833,11 @@ function VeafCombatMission:activate(silent)
     self:setSilent(self:isHidden() or silent)
 
     for _, missionElement in pairs(self.elements) do
-        veaf.loggers.get(veafCombatMission.Id):trace(string.format("processing element [%s]",missionElement:getName()))
+        veaf.loggers.get(veafCombatMission.Id):debug(string.format("processing element [%s]",missionElement:getName()))
         local chance = math.random(0, 100)
         if chance <= missionElement:getSpawnChance() then
             -- spawn the element
-            veaf.loggers.get(veafCombatMission.Id):trace(string.format("chance hit (%d <= %d)",chance, missionElement:getSpawnChance()))
+            veaf.loggers.get(veafCombatMission.Id):debug(string.format("chance hit (%d <= %d)",chance, missionElement:getSpawnChance()))
             for _, groupName in pairs(missionElement:getGroups()) do
                 local _spawnPoint = missionElement.spawnPoints[groupName]
                 veaf.loggers.get(veafCombatMission.Id):trace(string.format("_spawnPoint=%s",veaf.p(_spawnPoint)))
@@ -849,7 +849,7 @@ function VeafCombatMission:activate(silent)
 
                 local vars = {}
                 vars.gpName = groupName
-                vars.action = 'cloneWithNames'
+                vars.action = 'clone'
                 vars.point = _spawnPoint
                 vars.radius = _spawnRadius
                 vars.disperse = false
@@ -858,7 +858,7 @@ function VeafCombatMission:activate(silent)
 
                 for i=1,missionElement:getScale() do
                     if not self.spawnedNamesIndex[groupName] then
-                        self.spawnedNamesIndex[groupName] = 0
+                        self.spawnedNamesIndex[groupName] = 1
                     else
                         self.spawnedNamesIndex[groupName] = self.spawnedNamesIndex[groupName] + 1
                     end
@@ -868,17 +868,17 @@ function VeafCombatMission:activate(silent)
                     for _, unit in pairs(_group.units) do
                         unit.skill = missionElement:getSkill()
                     end
-                    _group.newName = spawnedGroupName
+                    _group.groupName = spawnedGroupName
                     for _, unit in pairs(_group.units) do
                         local unitName = unit.unitName
                         veaf.loggers.get(veafCombatMission.Id):trace(string.format("unitName=%s",veaf.p(unitName)))
                         if not self.spawnedNamesIndex[unitName] then
-                            self.spawnedNamesIndex[unitName] = 0
+                            self.spawnedNamesIndex[unitName] = 1
                         else
                             self.spawnedNamesIndex[unitName] = self.spawnedNamesIndex[unitName] + 1
                         end
                         local spawnedUnitName = string.format("%s #%04d", unitName, self.spawnedNamesIndex[unitName])
-                        unit.newName = spawnedUnitName
+                        unit.groupName = spawnedUnitName
                         veaf.loggers.get(veafCombatMission.Id):trace(string.format("spawnedUnitName=%s",veaf.p(spawnedUnitName)))                        
                     end
                     veaf.loggers.get(veafCombatMission.Id):trace(string.format("_group=%s",veaf.p(_group)))
@@ -894,13 +894,13 @@ function VeafCombatMission:activate(silent)
                     self:addSpawnedGroup(_dcsSpawnedGroup)
                     -- add the group to the Hound Elint, if there is one
                     if veafHoundElint then
-                        veaf.loggers.get(veafCombatMission.Id):trace(string.format("veafHoundElint.addPlatformToSystem(%s)",veaf.p(_dcsSpawnedGroup:getName())))
+                        veaf.loggers.get(veafCombatMission.Id):debug(string.format("veafHoundElint.addPlatformToSystem(%s)",veaf.p(_dcsSpawnedGroup:getName())))
                         veafHoundElint.addPlatformToSystem(_dcsSpawnedGroup)
                     end
                 end
             end
         else 
-            veaf.loggers.get(veafCombatMission.Id):trace(string.format("chance missed (%d > %d)",chance, missionElement:getSpawnChance()))
+            veaf.loggers.get(veafCombatMission.Id):debug(string.format("chance missed (%d > %d)",chance, missionElement:getSpawnChance()))
         end
     end
 

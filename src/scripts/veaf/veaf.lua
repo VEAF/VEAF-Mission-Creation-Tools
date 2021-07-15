@@ -2085,6 +2085,17 @@ function veaf.Logger:getLevel()
     return self.level
 end
 
+function veaf.Logger.splitText(text)
+    local tbl = {}
+    while text:len() > 4000 do
+        local sub = text:sub(1, 4000)
+        text = text:sub(4001)
+        table.insert(tbl, sub)
+    end
+    table.insert(tbl, text)
+    return tbl
+end
+
 function veaf.Logger.formatText(text, ...)
     if not text then 
         return "" 
@@ -2118,38 +2129,64 @@ function veaf.Logger.formatText(text, ...)
     end
 end
 
+function veaf.Logger:print(level, text)
+    local texts = veaf.Logger.splitText(text)
+    local levelChar = 'E'
+    local logFunction = env.error
+    if level == veaf.Logger.LEVEL["warning"] then
+        levelChar = 'W'
+        logFunction = env.warning
+    elseif level == veaf.Logger.LEVEL["info"] then
+        levelChar = 'I'
+        logFunction = env.info
+    elseif level == veaf.Logger.LEVEL["debug"] then
+        levelChar = 'D'
+        logFunction = env.info
+    elseif level == veaf.Logger.LEVEL["trace"] then
+        levelChar = 'T'
+        logFunction = env.info
+    end
+    for i = 1, #texts do
+        if i == 1 then
+            logFunction(self.name .. '|' .. levelChar .. '|' .. texts[i])
+        else
+            logFunction(texts[i])
+        end
+    end
+end
+
 function veaf.Logger:error(text, ...)
     if self.level >= 1 then
         text = veaf.Logger.formatText(text, unpack(arg))
-        env.error(self.name .. '|E|' .. text)
+        self:print(1, text)
     end
 end
 
 function veaf.Logger:warn(text, ...)
     if self.level >= 2 then
         text = veaf.Logger.formatText(text, unpack(arg))
-        env.warning(self.name .. '|W|' .. text)
+        self:print(2, text)
     end
 end
 
 function veaf.Logger:info(text, ...)
     if self.level >= 3 then
         text = veaf.Logger.formatText(text, unpack(arg))
-        env.info(self.name .. '|I|' .. text)
+        self:print(3, text)
     end
 end
 
 function veaf.Logger:debug(text, ...)
     if self.level >= 4 then
         text = veaf.Logger.formatText(text, unpack(arg))
-        env.info(self.name .. '|D|' .. text)
+        self:print(4, text)
     end
 end
 
 function veaf.Logger:trace(text, ...)
     if self.level >= 5 then
         text = veaf.Logger.formatText(text, unpack(arg))
-        env.info(self.name .. '|T|' .. text)
+        self:print(5, text)
     end
 end
 

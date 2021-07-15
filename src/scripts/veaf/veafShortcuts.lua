@@ -27,7 +27,7 @@ veafShortcuts = {}
 veafShortcuts.Id = "SHORTCUTS"
 
 --- Version.
-veafShortcuts.Version = "1.21.0"
+veafShortcuts.Version = "1.22.0"
 
 -- trace level, specific to this module
 --veafShortcuts.LogLevel = "trace"
@@ -823,6 +823,14 @@ function veafShortcuts.buildDefaultList()
             :setName("-erasedrawing")
             :setDescription("erase a drawing from the map ; name is mandatory")
             :setVeafCommand("_drawing erase, name")
+            :dontEndWithComma()
+            :setBypassSecurity(false)
+    )
+    veafShortcuts.AddAlias(
+        VeafAlias:new()
+            :setName("-cap")
+            :setDescription("Dynamic combat air patrol")
+            :setVeafCommand("_spawn cap, name")
             :dontEndWithComma()
             :setBypassSecurity(false)
     )

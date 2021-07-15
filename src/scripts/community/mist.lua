@@ -34,8 +34,8 @@ mist = {}
 
 -- don't change these
 mist.majorVersion = 4
-mist.minorVersion = 4
-mist.build = 90
+mist.minorVersion = 5
+mist.build = 96
 
 -- forward declaration of log shorthand
 local log
@@ -151,6 +151,9 @@ do -- the main scope
 					for cntry_id, cntry_data in pairs(coa_data.country) do
 
 						local countryName = string.lower(cntry_data.name)
+                        if cntry_data.id and country.names[cntry_data.id] then
+                            countryName = string.lower(country.names[cntry_data.id])
+                        end
 						mist.DBs.units[coa_name][countryName] = {}
 						mist.DBs.units[coa_name][countryName].countryId = cntry_data.id
 
@@ -172,7 +175,7 @@ do -- the main scope
 
 												mist.DBs.units[coa_name][countryName][category][group_num] = {}
 												local groupName = group_data.name
-												if env.mission.version > 7 then
+												if env.mission.version > 7 and env.mission.version < 19 then
 													groupName = env.getValueDictByKey(groupName)
 												end
 												mist.DBs.units[coa_name][countryName][category][group_num].groupName = groupName
@@ -196,7 +199,7 @@ do -- the main scope
 													local units_tbl = mist.DBs.units[coa_name][countryName][category][group_num].units	--pointer to the units table for this group
 
 													units_tbl[unit_num] = {}
-													if env.mission.version > 7 then
+													if env.mission.version > 7 and env.mission.version < 19 then
 														units_tbl[unit_num].unitName = env.getValueDictByKey(unit_data.name)
 													else
 														units_tbl[unit_num].unitName = unit_data.name
@@ -443,6 +446,42 @@ do -- the main scope
 			["Small house 1A area"] = "domik1a-all",
 			["White_Flag"] = "H-Flag_W",
 			["Airshow_Cone"] = "Comp_cone",
+            ["Bulk Cargo Ship Ivanov"] = "barge-1",
+            ["Bulk Cargo Ship Yakushev"] = "barge-2",
+            ["Outpost"]="block",
+            ["Road outpost"]="block-onroad",
+            ["Container camo"] = "bw_container_cargo",
+            ["Tech Hangar A"] = "ceh_ang_a",
+            ["Bunker 1"] = "dot",
+            ["Bunker 2"] = "dot2",
+            ["Tanker Elnya 160"] = "elnya",
+            ["F-shape barrier"] = "f_bar_cargo",
+            ["Helipad Single"] = "farp",
+            ["FARP"] = "farps",
+            ["Fueltank"] = "fueltank_cargo",
+            ["Gate"] = "gate",
+            ["FARP Fuel Depot"] = "gsm rus",
+            ["Armed house"] = "home1_a",
+            ["FARP Command Post"] = "kp-ug",
+            ["Watch Tower Armed"] = "ohr-vyshka",
+            ["Oiltank"] = "oiltank_cargo",
+            ["Pipes small"] = "pipes_small_cargo",
+            ["Pipes big"] = "pipes_big_cargo",
+            ["Oil platform"] = "plavbaza",
+            ["Tetrapod"] = "tetrapod_cargo",
+            ["Fuel tank"] = "toplivo",
+            ["Trunks long"] = "trunks_long_cargo",
+            ["Trunks small"] = "trunks_small_cargo",
+            ["Passenger liner"] = "yastrebow",
+            ["Passenger boat"] = "zwezdny",
+            ["Oil rig"] = "oil_platform",
+            ["Gas platform"] = "gas_platform",
+            ["Container 20ft"] = "container_20ft",
+            ["Container 40ft"] = "container_40ft",
+            ["Downed pilot"] = "cadaver",
+            ["Parachute"] = "parash",
+            ["Pilot F15 Parachute"] = "pilot_f15_parachute",
+            ["Pilot standing"] = "pilot_parashut",
 		}
 		
 		
@@ -649,9 +688,14 @@ do -- the main scope
 				newTable.category = 'static'
 			else
 				unitOneRef = newObject:getUnits()
-				newTable.countryId = tonumber(unitOneRef[1]:getCountry())
-				newTable.coalitionId = tonumber(unitOneRef[1]:getCoalition())
-				newTable.category = tonumber(newObject:getCategory())
+				if #unitOneRef > 0 and unitOneRef[1] and type(unitOneRef[1]) == 'table' then
+                    newTable.countryId = tonumber(unitOneRef[1]:getCountry())
+                    newTable.coalitionId = tonumber(unitOneRef[1]:getCoalition())
+                    newTable.category = tonumber(newObject:getCategory())
+                else
+                    log:warn('getUnits failed to return on $1 ; Built Data: $2.', event, newTable)
+                    return false
+                end
 			end
 			for countryData, countryId in pairs(country.id) do
 				if newTable.country and string.upper(countryData) == string.upper(newTable.country) or countryId == newTable.countryId then
@@ -1380,7 +1424,7 @@ do -- the main scope
 	-- Will generate groupId, groupName, unitId, and unitName if needed
 	-- @tparam table newGroup table containting values needed for spawning a group.
 	function mist.dynAdd(newGroup)
-
+        --log:warn(newGroup)
 		--mist.debug.writeData(mist.utils.serialize,{'msg', newGroup}, 'newGroupOrig.lua')
 		local cntry = newGroup.country
 		if newGroup.countryId then
@@ -2214,9 +2258,25 @@ do
 	--- Returns a table containing unit names.
 	-- @tparam table tbl sequential strings
 	-- @treturn table @{UnitNameTable}
-	function mist.makeUnitTable(tbl)
+	function mist.makeUnitTable(tbl, exclude)
 		--Assumption: will be passed a table of strings, sequential
 		--log:info(tbl)
+        
+        
+        local excludeType = {}
+        if exclude then
+            if type(exclude) == 'table' then
+                for x, y in pairs(exclude) do
+                    excludeType[x] = true
+                    excludeType[y] = true
+                end
+            else
+                excludeType[exclude] = true
+            end
+        
+        end
+        
+        
 		local units_by_name = {}
 
 		local l_munits = mist.DBs.units	--local reference for faster execution
@@ -2277,12 +2337,15 @@ do
 			elseif unit:sub(4,12) == '[vehicle]' then
 				category = 'vehicle'
 				country_start = 13
+            elseif unit:sub(4, 11) == '[static]' then
+				category = 'static'
+                country_start = 12
 			end
 			for coa, coa_tbl in pairs(l_munits) do
 				for country, country_table in pairs(coa_tbl) do
 					if country == string.lower(unit:sub(country_start)) then	 -- match
 						for unit_type, unit_type_tbl in pairs(country_table) do
-							if type(unit_type_tbl) == 'table' and (category == '' or unit_type == category) then
+							if type(unit_type_tbl) == 'table' and (category == '' or unit_type == category) and not excludeType[unit_type] then
 								for group_ind, group_tbl in pairs(unit_type_tbl) do
 									if type(group_tbl) == 'table' then
 										for unit_ind, unit in pairs(group_tbl.units) do
@@ -2310,12 +2373,15 @@ do
 			elseif unit:sub(5,13) == '[vehicle]' then
 				category = 'vehicle'
 				country_start = 14
+            elseif unit:sub(5, 12) == '[static]' then
+				category = 'static'
+                country_start = 13
 			end
 			for coa, coa_tbl in pairs(l_munits) do
 				for country, country_table in pairs(coa_tbl) do
 					if country == string.lower(unit:sub(country_start)) then	 -- match
 						for unit_type, unit_type_tbl in pairs(country_table) do
-							if type(unit_type_tbl) == 'table' and (category == '' or unit_type == category) then
+							if type(unit_type_tbl) == 'table' and (category == '' or unit_type == category) and not excludeType[unit_type]  then
 								for group_ind, group_tbl in pairs(unit_type_tbl) do
 									if type(group_tbl) == 'table' then
 										for unit_ind, unit in pairs(group_tbl.units) do
@@ -2340,12 +2406,14 @@ do
 				category = 'ship'
 			elseif unit:sub(7) == '[vehicle]' then
 				category = 'vehicle'
+            elseif unit:sub(7) == '[static]'  then
+				category = 'static'
 			end
 			for coa, coa_tbl in pairs(l_munits) do
 				if coa == 'blue' then
 					for country, country_table in pairs(coa_tbl) do
 						for unit_type, unit_type_tbl in pairs(country_table) do
-							if type(unit_type_tbl) == 'table' and (category == '' or unit_type == category) then
+							if type(unit_type_tbl) == 'table' and (category == '' or unit_type == category) and not excludeType[unit_type]  then
 								for group_ind, group_tbl in pairs(unit_type_tbl) do
 									if type(group_tbl) == 'table' then
 										for unit_ind, unit in pairs(group_tbl.units) do
@@ -2368,12 +2436,14 @@ do
 				category = 'ship'
 			elseif unit:sub(8) == '[vehicle]' then
 				category = 'vehicle'
+            elseif unit:sub(8) == '[static]' then
+				category = 'static'
 			end
 			for coa, coa_tbl in pairs(l_munits) do
 				if coa == 'blue' then
 					for country, country_table in pairs(coa_tbl) do
 						for unit_type, unit_type_tbl in pairs(country_table) do
-							if type(unit_type_tbl) == 'table' and (category == '' or unit_type == category) then
+							if type(unit_type_tbl) == 'table' and (category == '' or unit_type == category) and not excludeType[unit_type] then
 								for group_ind, group_tbl in pairs(unit_type_tbl) do
 									if type(group_tbl) == 'table' then
 										for unit_ind, unit in pairs(group_tbl.units) do
@@ -2398,12 +2468,14 @@ do
 				category = 'ship'
 			elseif unit:sub(6) == '[vehicle]' then
 				category = 'vehicle'
+            elseif unit:sub(6) == '[static]'  then
+				category = 'static'
 			end
 			for coa, coa_tbl in pairs(l_munits) do
 				if coa == 'red' then
 					for country, country_table in pairs(coa_tbl) do
 						for unit_type, unit_type_tbl in pairs(country_table) do
-							if type(unit_type_tbl) == 'table' and (category == '' or unit_type == category) then
+							if type(unit_type_tbl) == 'table' and (category == '' or unit_type == category) and not excludeType[unit_type] then
 								for group_ind, group_tbl in pairs(unit_type_tbl) do
 									if type(group_tbl) == 'table' then
 										for unit_ind, unit in pairs(group_tbl.units) do
@@ -2426,12 +2498,14 @@ do
 				category = 'ship'
 			elseif unit:sub(7) == '[vehicle]' then
 				category = 'vehicle'
+            elseif unit:sub(7) == '[static]'  then
+				category = 'static'
 			end
 			for coa, coa_tbl in pairs(l_munits) do
 				if coa == 'red' then
 					for country, country_table in pairs(coa_tbl) do
 						for unit_type, unit_type_tbl in pairs(country_table) do
-							if type(unit_type_tbl) == 'table' and (category == '' or unit_type == category) then
+							if type(unit_type_tbl) == 'table' and (category == '' or unit_type == category) and not excludeType[unit_type] then
 								for group_ind, group_tbl in pairs(unit_type_tbl) do
 									if type(group_tbl) == 'table' then
 										for unit_ind, unit in pairs(group_tbl.units) do
@@ -2456,11 +2530,13 @@ do
 				category = 'ship'
 			elseif unit:sub(6) == '[vehicle]' then
 				category = 'vehicle'
+            elseif unit:sub(6) == '[static]' then
+				category = 'static'
 			end
 			for coa, coa_tbl in pairs(l_munits) do
 				for country, country_table in pairs(coa_tbl) do
 					for unit_type, unit_type_tbl in pairs(country_table) do
-						if type(unit_type_tbl) == 'table' and (category == '' or unit_type == category) then
+						if type(unit_type_tbl) == 'table' and (category == '' or unit_type == category) and not excludeType[unit_type] then
 							for group_ind, group_tbl in pairs(unit_type_tbl) do
 								if type(group_tbl) == 'table' then
 									for unit_ind, unit in pairs(group_tbl.units) do
@@ -2482,11 +2558,13 @@ do
 				category = 'ship'
 			elseif unit:sub(7) == '[vehicle]' then
 				category = 'vehicle'
+            elseif unit:sub(7) == '[static]'  then
+				category = 'static'
 			end
 			for coa, coa_tbl in pairs(l_munits) do
 				for country, country_table in pairs(coa_tbl) do
 					for unit_type, unit_type_tbl in pairs(country_table) do
-						if type(unit_type_tbl) == 'table' and (category == '' or unit_type == category) then
+						if type(unit_type_tbl) == 'table' and (category == '' or unit_type == category) and not excludeType[unit_type] then
 							for group_ind, group_tbl in pairs(unit_type_tbl) do
 								if type(group_tbl) == 'table' then
 									for unit_ind, unit in pairs(group_tbl.units) do
@@ -2595,13 +2673,15 @@ function mist.getUnitsInPolygon(unit_names, polyZone, max_alt)
 	local units = {}
 
 	for i = 1, #unit_names do
-		units[#units + 1] = Unit.getByName(unit_names[i])
+		units[#units + 1] = Unit.getByName(unit_names[i]) or StaticObject.getByName(unit_names[i])
 	end
 
 	local inZoneUnits = {}
 	for i =1, #units do
-		if units[i]:isActive() and mist.pointInPolygon(units[i]:getPosition().p, polyZone, max_alt) then
-			inZoneUnits[#inZoneUnits + 1] = units[i]
+		local lUnit = units[i]
+        local lCat = lUnit:getCategory()
+        if ((lCat == 14 and lUnit:isActive()) or lCat ~= 1) and mist.pointInPolygon(lUnit:getPosition().p, polyZone, max_alt) then
+			inZoneUnits[#inZoneUnits + 1] = lUnit
 		end
 	end
 
@@ -2624,7 +2704,8 @@ function mist.getUnitsInZones(unit_names, zone_names, zone_type)
 	local zones = {}
 
 	for k = 1, #unit_names do
-		local unit = Unit.getByName(unit_names[k])
+		
+        local unit = Unit.getByName(unit_names[k]) or StaticObject.getByName(unit_names[k])
 		if unit then
 			units[#units + 1] = unit
 		end
@@ -2641,20 +2722,23 @@ function mist.getUnitsInZones(unit_names, zone_names, zone_type)
 	local in_zone_units = {}
 
 	for units_ind = 1, #units do
-		for zones_ind = 1, #zones do
+        local lUnit = units[units_ind]
+        local unit_pos = lUnit:getPosition().p
+        local lCat = lUnit:getCategory()
+        for zones_ind = 1, #zones do
 			if zone_type == 'sphere' then	--add land height value for sphere zone type
 				local alt = land.getHeight({x = zones[zones_ind].x, y = zones[zones_ind].z})
 				if alt then
 					zones[zones_ind].y = alt
 				end
 			end
-			local unit_pos = units[units_ind]:getPosition().p
-            if unit_pos and units[units_ind]:isActive() == true then
+
+            if unit_pos and ((lCat == 1 and lUnit:isActive() == true) or lCat ~= 1) then -- it is a unit and is active or it is not a unit
 				if zone_type == 'cylinder' and (((unit_pos.x - zones[zones_ind].x)^2 + (unit_pos.z - zones[zones_ind].z)^2)^0.5 <= zones[zones_ind].radius) then
-					in_zone_units[#in_zone_units + 1] = units[units_ind]
+					in_zone_units[#in_zone_units + 1] = lUnit
 					break
 				elseif zone_type == 'sphere' and (((unit_pos.x - zones[zones_ind].x)^2 + (unit_pos.y - zones[zones_ind].y)^2 + (unit_pos.z - zones[zones_ind].z)^2)^0.5 <= zones[zones_ind].radius) then
-					in_zone_units[#in_zone_units + 1] = units[units_ind]
+					in_zone_units[#in_zone_units + 1] = lUnit
 					break
 				end
 			end
@@ -2679,14 +2763,14 @@ function mist.getUnitsInMovingZones(unit_names, zone_unit_names, radius, zone_ty
 	local zone_units = {}
 
 	for k = 1, #unit_names do
-		local unit = Unit.getByName(unit_names[k])
+		local unit = Unit.getByName(unit_names[k]) or StaticObject.getByName(unit_names[k])
 		if unit then
 			units[#units + 1] = unit
 		end
 	end
 
 	for k = 1, #zone_unit_names do
-		local unit = Unit.getByName(zone_unit_names[k])
+		local unit = Unit.getByName(zone_unit_names[k]) or StaticObject.getByName(zone_unit_names[k])
 		if unit then
 			zone_units[#zone_units + 1] = unit
 		end
@@ -2695,15 +2779,18 @@ function mist.getUnitsInMovingZones(unit_names, zone_unit_names, radius, zone_ty
 	local in_zone_units = {}
 
 	for units_ind = 1, #units do
+        local lUnit = units[units_ind]
+        local lCat = lUnit:getCategory()
+        local unit_pos = lUnit:getPosition().p
 		for zone_units_ind = 1, #zone_units do
-			local unit_pos = units[units_ind]:getPosition().p
+			
 			local zone_unit_pos = zone_units[zone_units_ind]:getPosition().p
-			if unit_pos and zone_unit_pos and units[units_ind]:isActive() == true then
+			if unit_pos and zone_unit_pos and ((lCat == 1 and lUnit:isActive()) or lCat ~= 1) then
 				if zone_type == 'cylinder' and (((unit_pos.x - zone_unit_pos.x)^2 + (unit_pos.z - zone_unit_pos.z)^2)^0.5 <= radius) then
-					in_zone_units[#in_zone_units + 1] = units[units_ind]
+					in_zone_units[#in_zone_units + 1] = lUnit
 					break
 				elseif zone_type == 'sphere' and (((unit_pos.x - zone_unit_pos.x)^2 + (unit_pos.y - zone_unit_pos.y)^2 + (unit_pos.z - zone_unit_pos.z)^2)^0.5 <= radius) then
-					in_zone_units[#in_zone_units + 1] = units[units_ind]
+					in_zone_units[#in_zone_units + 1] = lUnit
 					break
 				end
 			end
@@ -2721,7 +2808,8 @@ function mist.getUnitsLOS(unitset1, altoffset1, unitset2, altoffset2, radius)
 	-- get the positions all in one step, saves execution time.
 	for unitset1_ind = 1, #unitset1 do
 		local unit1 = Unit.getByName(unitset1[unitset1_ind])
-		if unit1 and unit1:isActive() == true then
+        local lCat = unit1:getCategory()
+		if unit1 and ((lCat == 1 and unit1:isActive()) or lCat ~= 1) then
 			unit_info1[#unit_info1 + 1] = {}
 			unit_info1[#unit_info1].unit = unit1
 			unit_info1[#unit_info1].pos	= unit1:getPosition().p
@@ -2730,7 +2818,8 @@ function mist.getUnitsLOS(unitset1, altoffset1, unitset2, altoffset2, radius)
 
 	for unitset2_ind = 1, #unitset2 do
 		local unit2 = Unit.getByName(unitset2[unitset2_ind])
-		if unit2 and unit2:isActive() == true then
+        local lCat = unit2:getCategory()
+		if unit2 and ((lCat == 1 and unit2:isActive()) or lCat ~= 1) then
 			unit_info2[#unit_info2 + 1] = {}
 			unit_info2[#unit_info2].unit = unit2
 			unit_info2[#unit_info2].pos	= unit2:getPosition().p
@@ -2985,7 +3074,146 @@ function mist.getLeadingBRString(vars)
 	end
 end
 
+--[[getPathLength from GSH
+-- Returns the length between the defined set of points. Can also return the point index before the cutoff was achieved
+p - table of path points, vec2 or vec3
+cutoff - number distance after which to stop at
+topo  - boolean for if it should get the topographical distance
+
+]]
+
+function mist.getPathLength(p, cutoff, topo)
+    local l = 0
+    local cut = 0 or cutOff
+    local path = {}
+
+    for i = 1, #p do
+        if topo then
+            table.insert(path, mist.utils.makeVec3GL(p[i]))
+        else
+            table.insert(path, mist.utils.makeVec3(p[i]))
+        end
+    end
+    
+    for i = 1, #path do
+        if i + 1 <= #path then 
+            if topo then 
+                l = mist.utils.get3DDist(path[i], path[i+1]) + l
+            else
+                l = mist.utils.get2DDist(path[i], path[i+1]) + l
+            end
+        end
+        if cut ~= 0 and l > cut  then
+            return l, i
+        end
+    end
+    return l
 end
+
+--[[
+Return a series of points to simplify the input table. Best used in conjunction with findPathOnRoads to turn the massive table into a list of X points. 
+p - table of path points, can be vec2 or vec3
+num - number of segments. 
+exact - boolean for whether or not it returns the exact distance or uses the first WP to that distance. 
+
+
+]]
+
+function mist.getPathInSegments(p, num, exact)
+    local tot = mist.getPathLength(p)
+    local checkDist = tot/num
+    local typeUsed = 'vec2'
+
+    local points = {[1] = p[1]}
+    local curDist = 0
+    for i = 1, #p do
+        if i + 1 <= #p then
+            curDist = mist.utils.get2DDist(p[i], p[i+1]) + curDist
+            if curDist > checkDist then
+                curDist = 0
+                if exact then
+                    -- get avg point between the two
+                    -- insert into point table
+                    -- need to be accurate... maybe reassign the point for the value it is checking?
+                    -- insert into p table?
+                else
+                    table.insert(points, p[i])                
+                end
+            end
+        
+        end
+
+    end
+    return points
+
+end
+
+
+function mist.getPointAtDistanceOnPath(p, dist, r, rtn)
+    log:info('find distance: $1', dist)
+    local rType = r or 'roads'
+    local point = {x= 0, y = 0, z = 0}
+    local path = {}
+    local ret = rtn or 'vec2'
+    local l = 0
+    if p[1] and #p == 2 then
+        path = land.findPathOnRoads(rType, p[1].x, p[1].y, p[2].x, p[2].y)
+    else
+        path = p
+    end
+    for i = 1, #path do
+        if i + 1 <= #path then 
+            nextPoint = path[i+1]
+            if topo then 
+                l = mist.utils.get3DDist(path[i], path[i+1]) + l
+            else
+                l = mist.utils.get2DDist(path[i], path[i+1]) + l
+            end
+        end
+        if l > dist then
+            local diff = dist
+            if i ~= 1 then -- get difference
+                diff = l - dist
+            end
+            local dir = mist.utils.getHeadingPoints(mist.utils.makeVec3(path[i]), mist.utils.makeVec3(path[i+1]))
+            local x, y 
+            if r then 
+                x, y = land.getClosestPointOnRoads(rType, mist.utils.round((math.cos(dir) * diff) + path[i].x,1),  mist.utils.round((math.sin(dir) * diff) + path[i].y,1))
+            else
+                x, y = mist.utils.round((math.cos(dir) * diff) + path[i].x,1),  mist.utils.round((math.sin(dir) * diff) + path[i].y,1)
+            end
+            
+            if ret == 'vec2' then
+                return {x = x, y = y}, dir
+            elseif ret == 'vec3' then
+                return {x = x, y = 0, z = y}, dir
+            end
+            
+            return {x = x, y = y}, dir
+        end
+    end
+    log:warn('Find point at distance: $1, path distance $2', dist, l)
+    return false
+end
+
+
+function mist.projectPoint(point, dist, theta)
+    local newPoint = {}
+    if point.z then
+       newPoint.z = mist.utils.round(math.sin(theta) * dist + point.z, 3)
+       newPoint.y = mist.utils.deepCopy(point.y)
+    else
+       newPoint.y = mist.utils.round(math.sin(theta) * dist + point.y, 3)
+    end
+    newPoint.x = mist.utils.round(math.cos(theta) * dist + point.x, 3)
+
+    return newPoint
+end
+
+end
+
+
+
 
 --- Group functions.
 -- @section groups
@@ -3037,6 +3265,9 @@ do -- group functions scope
 
 			newData.units = {}
 			local newUnits = newGroup:getUnits()
+            if #newUnits == 0 then
+                log:warn('getCurrentGroupData has returned no units for: $1', gpName)
+            end
 			for unitNum, unitData in pairs(newGroup:getUnits()) do
 				newData.units[unitNum] = {}
                 local uName = unitData:getName()
@@ -3264,10 +3495,6 @@ do -- group functions scope
 				newGroupData = mist.getGroupData(gpName)
 				newGroupData.clone = 'order66'
 				dbData = true
-			elseif string.lower(action) == 'cloneWithNames' then
-				newGroupData = mist.getGroupData(gpName)
-				newGroupData.cloneWithNames = 'order66'
-				dbData = true
 			else
 				action = 'tele'
 				newGroupData = mist.getCurrentGroupData(gpName)
@@ -3276,16 +3503,29 @@ do -- group functions scope
 			action = 'tele'
 			newGroupData = vars.groupData
 		end
+        
+        if vars.newGroupName then
+            newGroupData.groupName = vars.newGroupName
+        end
 		
+        if #newGroupData.units == 0 then
+            log:warn('$1 has no units in group table', gpName)
+            return
+        end
+        
 		--log:info('get Randomized Point')
 		local diff = {x = 0, y = 0}
 		local newCoord, origCoord 
         
         local validTerrain = {'LAND', 'ROAD', 'SHALLOW_WATER', 'WATER', 'RUNWAY'}
-        if string.lower(newGroupData.category) == 'ship' then
-            validTerrain = {'SHALLOW_WATER' , 'WATER'}
-        elseif string.lower(newGroupData.category) == 'vehicle' then
+        if vars.validTerrain then
+            validTerrain = vars.validTerrain
+        else
+            if string.lower(newGroupData.category) == 'ship' then
+                validTerrain = {'SHALLOW_WATER' , 'WATER'}
+            elseif string.lower(newGroupData.category) == 'vehicle' then
             validTerrain = {'LAND', 'ROAD', 'RUNWAY'}
+            end
         end
         local offsets = {}
 		if point and radius >= 0 then
@@ -4052,6 +4292,13 @@ do -- mist.util scope
 		end
 	end
 
+    function mist.utils.getHeadingPoints(point1, point2, north) -- sick of writing this out. 
+        if north then 
+            return mist.utils.getDir(mist.vec.sub(mist.utils.makeVec3(point2), mist.utils.makeVec3(point1)), (mist.utils.makeVec3(point1)))
+        else
+            return mist.utils.getDir(mist.vec.sub(mist.utils.makeVec3(point2), mist.utils.makeVec3(point1))) 
+        end
+    end
 	--- Returns heading-error corrected direction.
 	-- True-north corrected direction from point along vector vec.
 	-- @tparam Vec3 vec
@@ -4832,7 +5079,7 @@ unitTableDef = table or nil
 		if stopflag == -1 or (type(trigger.misc.getUserFlag(stopflag)) == 'number' and trigger.misc.getUserFlag(stopflag) == 0) or (type(trigger.misc.getUserFlag(stopflag)) == 'boolean' and trigger.misc.getUserFlag(stopflag) == 0) then
 			local num_in_zone = 0
 			for i = 1, #units do
-				local unit = Unit.getByName(units[i])
+				local unit = Unit.getByName(units[i]) or StaticObject.getByName(units[i])
 				if unit then
 					local pos = unit:getPosition().p
 					if mist.pointInPolygon(pos, zone, maxalt) then
@@ -5294,7 +5541,7 @@ do -- mist.msg scope
 			if type(value) == 'table' then
 				for roleName, roleVal in pairs(value) do
 					for rIndex, rVal in pairs(roleVal) do
-                        if env.mission.groundControl[index][roleName][rIndex] > 0 then
+                        if type(rVal) == 'number' and rVal > 0 then
                             caSlots = true
                             break
                         end
@@ -6436,6 +6683,7 @@ do -- group tasks scope
 	mist.air = {}
 	mist.air.fixedWing = {}
 	mist.air.heli = {}
+    mist.ship = {}
 
 	--- Tasks group to follow a route.
 	-- This sets the mission task for the given group.
@@ -6491,7 +6739,7 @@ do -- group tasks scope
 
 												for point_num, point in pairs(group_data.route.points) do
 													local routeData = {}
-													if env.mission.version > 7 then
+													if env.mission.version > 7 and env.mission.version < 19 then
 														routeData.name = env.getValueDictByKey(point.name)
 													else
 														routeData.name = point.name
@@ -6867,7 +7115,9 @@ do -- group tasks scope
 	end
 	
 	function mist.getRandomPointInPoly(zone)
-		local avg = mist.getAvgPoint(zone)
+		--env.info('Zone Size: '.. #zone)
+        local avg = mist.getAvgPoint(zone)
+        --log:warn(avg)
 		local radius = 0
 		local minR = math.huge
 		local newCoord = {}
@@ -6879,6 +7129,8 @@ do -- group tasks scope
 				minR = mist.utils.get2DDist(avg, zone[i])
 			end
 		end
+        --log:warn('Radius: $1', radius)
+        --log:warn('minR: $1', minR)
 		local lSpawnPos = {}
 		for j = 1, 100 do
 			newCoord = mist.getRandPointInCircle(avg, radius)
@@ -6947,17 +7199,17 @@ do -- group tasks scope
 		return
 	end
 
-	function mist.groupRandomDistSelf(gpData, dist, form, heading, speed)
+	function mist.groupRandomDistSelf(gpData, dist, form, heading, speed, disableRoads)
 		local pos = mist.getLeadPos(gpData)
 		local fakeZone = {}
 		fakeZone.radius = dist or math.random(300, 1000)
 		fakeZone.point = {x = pos.x, y = pos.y, z = pos.z}
-		mist.groupToRandomZone(gpData, fakeZone, form, heading, speed)
+		mist.groupToRandomZone(gpData, fakeZone, form, heading, speed, disableRoads)
 
 		return
 	end
 
-	function mist.groupToRandomZone(gpData, zone, form, heading, speed)
+	function mist.groupToRandomZone(gpData, zone, form, heading, speed, disableRoads)
 		if type(gpData) == 'string' then
 			gpData = Group.getByName(gpData)
 		end
@@ -6979,7 +7231,7 @@ do -- group tasks scope
 		vars.headingDegrees = heading
 		vars.speed = speed
 		vars.point = mist.utils.zoneToVec3(zone)
-
+        vars.disableRoads = disableRoads
 		mist.groupToRandomPoint(vars)
 
 		return
@@ -7201,36 +7453,28 @@ do -- mist.Logger scope
 	-- @tparam[opt] number|string level the log level defines which messages
 	-- will be logged and which will be omitted. Log level 3 beeing the most verbose
 	-- and 0 disabling all output. This can also[ be a string. Allowed strings are:
-	-- "none" (0), "error" (1), "warning" (2), "info" (3), "debug" (4) and "trace" (5).
+	-- "none" (0), "error" (1), "warning" (2) and "info" (3).
 	-- @usage myLogger:setLevel("info")
 	-- @usage -- log everything
 	--myLogger:setLevel(3)
 	function mist.Logger:setLevel(level)
-		self.level = mist.Logger.convertLevel(level)
-	end
-
-	function mist.Logger.convertLevel(level)
 		if not level then
-			return 2
+			self.level = 2
 		else
 			if type(level) == 'string' then
 				if level == 'none' or level == 'off' then
-					return 0
+					self.level = 0
 				elseif level == 'error' then
-					return 1
+					self.level = 1
 				elseif level == 'warning' or level == 'warn' then
-					return 2
+					self.level = 2
 				elseif level == 'info' then
-					return 3
-				elseif level == 'debug' then
-					return 4
-				elseif level == 'trace' then
-					return 5
+					self.level = 3
 				end
 			elseif type(level) == 'number' then
-				return level
+				self.level = level
 			else
-				return 2
+				self.level = 2
 			end
 		end
 	end
@@ -7292,13 +7536,13 @@ do -- mist.Logger scope
 				local texts = splitText(text)
 				for i = 1, #texts do
 					if i == 1 then
-						env.error(self.tag .. '|E|' .. texts[i])
+						env.error(self.tag .. '|' .. texts[i])
 					else
 						env.error(texts[i])
 					end
 				end
 			else
-				env.error(self.tag .. '|E|' .. text, mistSettings.errorPopup)
+				env.error(self.tag .. '|' .. text, mistSettings.errorPopup)
 			end
 		end
 	end
@@ -7316,13 +7560,13 @@ do -- mist.Logger scope
 				local texts = splitText(text)
 				for i = 1, #texts do
 					if i == 1 then
-						env.warning(self.tag .. '|W|' .. texts[i])
+						env.warning(self.tag .. '|' .. texts[i])
 					else
 						env.warning(texts[i])
 					end
 				end
 			else
-				env.warning(self.tag .. '|W|' .. text, mistSettings.warnPopup)
+				env.warning(self.tag .. '|' .. text, mistSettings.warnPopup)
 			end
 		end
 	end
@@ -7340,61 +7584,13 @@ do -- mist.Logger scope
 				local texts = splitText(text)
 				for i = 1, #texts do
 					if i == 1 then
-						env.info(self.tag .. '|I|' .. texts[i])
+						env.info(self.tag .. '|' .. texts[i])
 					else
 						env.info(texts[i])
 					end
 				end
 			else
-				env.info(self.tag .. '|I|' .. text, mistSettings.infoPopup)
-			end
-		end
-	end
-
-	--- Logs a debug message.
-	-- logs a message prefixed with this loggers tag to dcs.log as
-	-- long as the highest log level (4) "debug" is set.
-	-- @tparam string text the text with keywords to substitute.
-	-- @param ... variables to be used for substitution.
-	-- @see warn
-	function mist.Logger:debug(text, ...)
-		if self.level >= 4 then
-			text = formatText(text, unpack(arg))
-			if text:len() > 4000 then
-				local texts = splitText(text)
-				for i = 1, #texts do
-					if i == 1 then
-						env.info(self.tag .. '|D|' .. texts[i])
-					else
-						env.info(texts[i])
-					end
-				end
-			else
-				env.info(self.tag .. '|D|' .. text, false)
-			end
-		end
-	end
-
-	--- Logs a trace message.
-	-- logs a message prefixed with this loggers tag to dcs.log as
-	-- long as the highest log level (4) "trace" is set.
-	-- @tparam string text the text with keywords to substitute.
-	-- @param ... variables to be used for substitution.
-	-- @see warn
-	function mist.Logger:trace(text, ...)
-		if self.level >= 5 then
-			text = formatText(text, unpack(arg))
-			if text:len() > 4000 then
-				local texts = splitText(text)
-				for i = 1, #texts do
-					if i == 1 then
-						env.info(self.tag .. '|T|' .. texts[i])
-					else
-						env.info(texts[i])
-					end
-				end
-			else
-				env.info(self.tag .. '|T|' .. text, false)
+				env.info(self.tag .. '|' .. text, mistSettings.infoPopup)
 			end
 		end
 	end

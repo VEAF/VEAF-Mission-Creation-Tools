@@ -41,6 +41,7 @@ veaf.SecurityDisabled = true
 -- trace level, specific to this module
 --veaf.LogLevel = "trace"
 --veaf.LogLevel = "debug"
+--veaf.ForcedLogLevel = "trace"
 
 -- log level, limiting all the modules
 veaf.BaseLogLevel = 5 --trace
@@ -2067,6 +2068,9 @@ function veaf.Logger:getName()
 end
 
 function veaf.Logger:setLevel(value, force)
+    if veaf.ForcedLogLevel then
+        value = veaf.ForcedLogLevel
+    end
     local level = value
     if type(level) == "string" then
         level = veaf.Logger.LEVEL[level:lower()]

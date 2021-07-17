@@ -758,7 +758,7 @@ do
     HoundContact = {}
     HoundContact.__index = HoundContact
 
-    function HoundContact:New(DCS_Unit,platformCoalition)
+    function HoundContact:New(DCS_Unit,platformCoalition,useDiamond)
         local elintcontact = {}
         setmetatable(elintcontact, HoundContact)
         elintcontact.unit = DCS_Unit
@@ -766,6 +766,7 @@ do
         elintcontact.DCStypeName = DCS_Unit:getTypeName()
         elintcontact.typeName = DCS_Unit:getTypeName()
         elintcontact.isEWR = false
+        elintcontact.useDiamond = useDiamond
         elintcontact.typeAssigned = "Unknown" 
         if setContains(HoundDB.Sam,DCS_Unit:getTypeName())  then
             local unitName = DCS_Unit:getTypeName()
@@ -960,10 +961,19 @@ do
             fillcolor[3] = 1
             linecolor[3] = 1
         end        
-        trigger.action.circleToAll(self.platformCoalition,self.markpointID,self.pos.p,self.uncertenty_radius.r,linecolor,fillcolor,3,true)
-        -- linecolor[4] = 0.6
-        -- trigger.action.textToAll(self.platformCoalition , self.markpointID+1 , self.pos.p , linecolor,{0,0,0,0} , 12 , true , self.typeName .. " " .. (self.uid%100) .. "\n(" .. self.uncertenty_radius.major .. "/" .. self.uncertenty_radius.minor .. "@" .. self.uncertenty_radius.az .. "|" .. HoundUtils:timeDelta(self.last_seen) .. "s)")
-        trigger.action.markToCoalition(self.markpointID+1, self.typeName .. " " .. (self.uid%100) .. " (" .. self.uncertenty_radius.major .. "/" .. self.uncertenty_radius.minor .. "@" .. self.uncertenty_radius.az .. "|" .. HoundUtils:timeDelta(self.last_seen) .. "s)",self.pos.p,self.platformCoalition,true)
+        -- place the central marker
+        trigger.action.markToCoalition(self.markpointID, self.typeName .. " " .. (self.uid%100) .. " (" .. self.uncertenty_radius.major .. "/" .. self.uncertenty_radius.minor .. "@" .. self.uncertenty_radius.az .. "|" .. HoundUtils:timeDelta(self.last_seen) .. "s)",self.pos.p,self.platformCoalition,true)
+        if self.useDiamond then
+            -- draw the uncertainty lines
+            local theta = mist.utils.toRadian(self.uncertenty_radius.az)
+            local majorStart = { x = self.pos.p.x - self.uncertenty_radius.major / 2 * math.cos(theta), z = self.pos.p.z - self.uncertenty_radius.major / 2 * math.sin(theta)}
+            local majorEnd = { x = self.pos.p.x + self.uncertenty_radius.major / 2 * math.cos(theta), z = self.pos.p.z + self.uncertenty_radius.major / 2 * math.sin(theta)}
+            local minorStart = { x = self.pos.p.x + self.uncertenty_radius.minor / 2 * math.sin(theta), z = self.pos.p.z - self.uncertenty_radius.minor / 2 * math.cos(theta)}
+            local minorEnd = { x = self.pos.p.x - self.uncertenty_radius.minor / 2 * math.sin(theta), z = self.pos.p.z + self.uncertenty_radius.minor / 2 * math.cos(theta)}
+            trigger.action.quadToAll(self.platformCoalition, self.markpointID+1, majorStart, minorStart, majorEnd, minorEnd, linecolor, fillcolor, 3, true)
+        else
+            trigger.action.circleToAll(self.platformCoalition,self.markpointID+1,self.pos.p,self.uncertenty_radius.r,linecolor,fillcolor,3,true)
+        end
     end
 
     function HoundContact:getTextData(utmZone,MGRSdigits)
@@ -1385,6 +1395,7 @@ do
         elint.radioAdminMenu = nil
         elint.coalitionId = nil
         elint.useMarkers = true
+        elint.useDiamond = true
         elint.addPositionError = false
         elint.positionErrorRadius = 30
 
@@ -1554,6 +1565,14 @@ do
         self.useMarkers = false 
     end
     
+    function HoundElint:enableDiamond()
+        self.useDiamond = true
+    end
+
+    function HoundElint:disableDiamond()
+        self.useDiamond = false
+    end
+
     --[[
         ATIS functions
     --]]
@@ -1777,7 +1796,7 @@ do
                 if land.isVisible(platformPos, radarPos) then
                     if (self.emitters[RadarUid] == nil) then
                         self.emitters[RadarUid] =
-                            HoundContact:New(radar, self.coalitionId)
+                            HoundContact:New(radar, self.coalitionId, self.useDiamond)
                     end
                     local sensorMargins = self:getSensorPrecision(platform,self.emitters[RadarUid].band)
                     if sensorMargins < 15 then

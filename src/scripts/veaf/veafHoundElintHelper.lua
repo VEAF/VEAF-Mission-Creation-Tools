@@ -163,6 +163,7 @@ local function initializeHoundSystem(coa, parameters, atMissionStart)
 
     if veafHoundElint.hasMarkers(parameters) then
         hound:enableMarkers()
+        hound:enableDiamond()
     end
 
     if veafHoundElint.hasAtis(parameters) then

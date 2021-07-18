@@ -66,7 +66,7 @@ veafSpawn = {}
 veafSpawn.Id = "SPAWN"
 
 --- Version.
-veafSpawn.Version = "1.28.0"
+veafSpawn.Version = "1.29.0"
 
 -- trace level, specific to this module
 --veafSpawn.LogLevel = "trace"
@@ -2160,79 +2160,199 @@ function veafSpawn.spawnCombatAirPatrol(spawnSpot, radius, name, altitude, altde
    
     local getRoute = function(parameters)
         local newRoute = {
-            ["points"] = {
-                [1] = {
-                    ["action"] = "Turning Point",
+            ["routeRelativeTOT"] = true,
+            ["points"] = 
+            {
+                [1] = 
+                {
                     ["alt"] = parameters.altitude,
+                    ["action"] = "Turning Point",
                     ["alt_type"] = "BARO",
-                    ["ETA"] = 0,
-                    ["ETA_locked"] = false,
-                    ["formation_template"] = "",
-                    ["name"] = "SPAWN",
                     ["speed"] = parameters.speed,
-                    ["speed_locked"] = true,
-                    ["task"] = {
+                    ["task"] = 
+                    {
                         ["id"] = "ComboTask",
-                        ["params"] = {
-                            ["tasks"] = {
-                                [1] = {
+                        ["params"] = 
+                        {
+                            ["tasks"] = 
+                            {
+                                [1] = 
+                                {
                                     ["enabled"] = true,
-                                    ["auto"] = true,
-                                    ["id"] = "EngageTargets",
-                                    ["key"] = "CAP",
+                                    ["auto"] = false,
+                                    ["id"] = "WrappedAction",
                                     ["number"] = 1,
                                     ["params"] = 
                                     {
-                                        ["targetTypes"] = 
+                                        ["action"] = 
                                         {
-                                            [1] = "Air",
-                                        }, -- end of ["targetTypes"]
-                                        ["priority"] = 0,
+                                            ["id"] = "Option",
+                                            ["params"] = 
+                                            {
+                                                ["value"] = 2,
+                                                ["name"] = 0,
+                                            }, -- end of ["params"]
+                                        }, -- end of ["action"]
                                     }, -- end of ["params"]
                                 }, -- end of [1]
-                            }, -- end of ["tasks"]
-                        }, -- end of ["params"]
-                    }, -- end of ["task"]
-                    ["type"] = "Turning Point",
-                    ["x"] = parameters.wp1.x,
-                    ["y"] = parameters.wp1.y,
-                }, -- end of [1]
-                [2] = {
-                    ["action"] = "Turning Point",
-                    ["alt"] = parameters.altitude,
-                    ["alt_type"] = "BARO",
-                    ["ETA"] = 15.986507046635,
-                    ["ETA_locked"] = false,
-                    ["formation_template"] = "",
-                    ["name"] = "",
-                    ["properties"] = {
-                        ["addopt"] = {
-                        }, -- end of ["addopt"]
-                    }, -- end of ["properties"]
-                    ["speed"] = parameters.speed,
-                    ["speed_locked"] = true,
-                    ["task"] = {
-                        ["id"] = "ComboTask",
-                        ["params"] = {
-                            ["tasks"] = {
-                                [1] = {
+                                [2] = 
+                                {
+                                    ["enabled"] = true,
                                     ["auto"] = false,
-                                    ["enabled"] = false,
-                                    ["id"] = "EngageTargets",
-                                    ["key"] = "CAP",
-                                    ["number"] = 1,
-                                    ["params"] = {
-                                        ["priority"] = 0,
-                                        ["targetTypes"] = {
-                                            [1] = "Air",
-                                        }, -- end of ["targetTypes"]
+                                    ["id"] = "WrappedAction",
+                                    ["number"] = 2,
+                                    ["params"] = 
+                                    {
+                                        ["action"] = 
+                                        {
+                                            ["id"] = "Option",
+                                            ["params"] = 
+                                            {
+                                                ["value"] = 3,
+                                                ["name"] = 1,
+                                            }, -- end of ["params"]
+                                        }, -- end of ["action"]
                                     }, -- end of ["params"]
-                                }, -- end of [1]
-                                [2] = {
+                                }, -- end of [2]
+                                [3] = 
+                                {
+                                    ["enabled"] = true,
+                                    ["auto"] = false,
+                                    ["id"] = "WrappedAction",
+                                    ["number"] = 3,
+                                    ["params"] = 
+                                    {
+                                        ["action"] = 
+                                        {
+                                            ["id"] = "Option",
+                                            ["params"] = 
+                                            {
+                                                ["value"] = 2,
+                                                ["name"] = 3,
+                                            }, -- end of ["params"]
+                                        }, -- end of ["action"]
+                                    }, -- end of ["params"]
+                                }, -- end of [3]
+                                [4] = 
+                                {
+                                    ["enabled"] = true,
+                                    ["auto"] = false,
+                                    ["id"] = "WrappedAction",
+                                    ["number"] = 4,
+                                    ["params"] = 
+                                    {
+                                        ["action"] = 
+                                        {
+                                            ["id"] = "Option",
+                                            ["params"] = 
+                                            {
+                                                ["value"] = 1,
+                                                ["name"] = 4,
+                                            }, -- end of ["params"]
+                                        }, -- end of ["action"]
+                                    }, -- end of ["params"]
+                                }, -- end of [4]
+                                [5] = 
+                                {
+                                    ["enabled"] = true,
+                                    ["auto"] = false,
+                                    ["id"] = "WrappedAction",
+                                    ["number"] = 5,
+                                    ["params"] = 
+                                    {
+                                        ["action"] = 
+                                        {
+                                            ["id"] = "Option",
+                                            ["params"] = 
+                                            {
+                                                ["value"] = true,
+                                                ["name"] = 6,
+                                            }, -- end of ["params"]
+                                        }, -- end of ["action"]
+                                    }, -- end of ["params"]
+                                }, -- end of [5]
+                                [6] = 
+                                {
+                                    ["enabled"] = true,
+                                    ["auto"] = false,
+                                    ["id"] = "WrappedAction",
+                                    ["number"] = 6,
+                                    ["params"] = 
+                                    {
+                                        ["action"] = 
+                                        {
+                                            ["id"] = "Option",
+                                            ["params"] = 
+                                            {
+                                                ["value"] = 268402688,
+                                                ["name"] = 10,
+                                            }, -- end of ["params"]
+                                        }, -- end of ["action"]
+                                    }, -- end of ["params"]
+                                }, -- end of [6]
+                                [7] = 
+                                {
+                                    ["enabled"] = true,
+                                    ["auto"] = false,
+                                    ["id"] = "WrappedAction",
+                                    ["number"] = 7,
+                                    ["params"] = 
+                                    {
+                                        ["action"] = 
+                                        {
+                                            ["id"] = "Option",
+                                            ["params"] = 
+                                            {
+                                                ["value"] = 1,
+                                                ["name"] = 13,
+                                            }, -- end of ["params"]
+                                        }, -- end of ["action"]
+                                    }, -- end of ["params"]
+                                }, -- end of [7]
+                                [8] = 
+                                {
+                                    ["enabled"] = true,
+                                    ["auto"] = false,
+                                    ["id"] = "WrappedAction",
+                                    ["number"] = 8,
+                                    ["params"] = 
+                                    {
+                                        ["action"] = 
+                                        {
+                                            ["id"] = "Option",
+                                            ["params"] = 
+                                            {
+                                                ["value"] = 4,
+                                                ["name"] = 18,
+                                            }, -- end of ["params"]
+                                        }, -- end of ["action"]
+                                    }, -- end of ["params"]
+                                }, -- end of [8]
+                                [9] = 
+                                {
+                                    ["enabled"] = true,
+                                    ["auto"] = false,
+                                    ["id"] = "WrappedAction",
+                                    ["number"] = 9,
+                                    ["params"] = 
+                                    {
+                                        ["action"] = 
+                                        {
+                                            ["id"] = "Option",
+                                            ["params"] = 
+                                            {
+                                                ["value"] = false,
+                                                ["name"] = 19,
+                                            }, -- end of ["params"]
+                                        }, -- end of ["action"]
+                                    }, -- end of ["params"]
+                                }, -- end of [9]                            
+                                [10] = 
+                                {
                                     ["auto"] = false,
                                     ["enabled"] = true,
                                     ["id"] = "EngageTargetsInZone",
-                                    ["number"] = 2,
+                                    ["number"] = 10,
                                     ["params"] = {
                                         ["noTargetTypes"] = {
                                             [1] = "Cruise missiles",
@@ -2241,7 +2361,7 @@ function veafSpawn.spawnCombatAirPatrol(spawnSpot, radius, name, altitude, altde
                                             [4] = "AG Missiles",
                                             [5] = "SA Missiles",
                                         }, -- end of ["noTargetTypes"]
-                                        ["priority"] = 0,
+                                        ["priority"] = 10,
                                         ["targetTypes"] = {
                                             [1] = "Air",
                                         }, -- end of ["targetTypes"]
@@ -2250,43 +2370,46 @@ function veafSpawn.spawnCombatAirPatrol(spawnSpot, radius, name, altitude, altde
                                         ["y"] = parameters.targetZone.y,
                                         ["zoneRadius"] = parameters.targetZone.radius,
                                     }, -- end of ["params"]
-                                }, -- end of [2]
+                                }, -- end of [10]
                             }, -- end of ["tasks"]
                         }, -- end of ["params"]
                     }, -- end of ["task"]
                     ["type"] = "Turning Point",
-                    ["x"] = parameters.wp2.x,
+                    ["ETA"] = 0,
+                    ["ETA_locked"] = true,
                     ["y"] = parameters.wp2.y,
-                }, -- end of [2]
-                [3] = {
-                    ["action"] = "Turning Point",
-                    ["alt"] = parameters.altitude,
-                    ["alt_type"] = "BARO",
-                    ["ETA"] = 397.63355070491,
-                    ["ETA_locked"] = false,
+                    ["x"] = parameters.wp2.x,
                     ["formation_template"] = "",
-                    ["name"] = "",
-                    ["properties"] = {
-                        ["addopt"] = {
-                        }, -- end of ["addopt"]
-                    }, -- end of ["properties"]
-                    ["speed"] = parameters.speed,
                     ["speed_locked"] = true,
-                    ["task"] = {
+                }, -- end of [1]
+                [2] = 
+                {
+                    ["alt"] = parameters.altitude,
+                    ["action"] = "Turning Point",
+                    ["alt_type"] = "BARO",
+                    ["speed"] = parameters.speed,
+                    ["task"] = 
+                    {
                         ["id"] = "ComboTask",
-                        ["params"] = {
-                            ["tasks"] = {
-                                [1] = {
-                                    ["auto"] = false,
+                        ["params"] = 
+                        {
+                            ["tasks"] = 
+                            {
+                                [1] = 
+                                {
                                     ["enabled"] = true,
+                                    ["auto"] = false,
                                     ["id"] = "WrappedAction",
                                     ["number"] = 1,
-                                    ["params"] = {
-                                        ["action"] = {
+                                    ["params"] = 
+                                    {
+                                        ["action"] = 
+                                        {
                                             ["id"] = "SwitchWaypoint",
-                                            ["params"] = {
+                                            ["params"] = 
+                                            {
+                                                ["goToWaypointIndex"] = 1,
                                                 ["fromWaypointIndex"] = 3,
-                                                ["goToWaypointIndex"] = 2,
                                             }, -- end of ["params"]
                                         }, -- end of ["action"]
                                     }, -- end of ["params"]
@@ -2295,13 +2418,15 @@ function veafSpawn.spawnCombatAirPatrol(spawnSpot, radius, name, altitude, altde
                         }, -- end of ["params"]
                     }, -- end of ["task"]
                     ["type"] = "Turning Point",
-                    ["x"] = parameters.wp3.x,
+                    ["ETA"] = 790.96549625914,
+                    ["ETA_locked"] = false,
                     ["y"] = parameters.wp3.y,
+                    ["x"] = parameters.wp3.x,
+                    ["formation_template"] = "",
+                    ["speed_locked"] = true,
                 }, -- end of [3]
             }, -- end of ["points"]
-            ["routeRelativeTOT"] = true,
         }
-
         return newRoute
     end
     

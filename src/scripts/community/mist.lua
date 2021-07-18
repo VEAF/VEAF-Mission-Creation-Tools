@@ -3484,26 +3484,34 @@ do -- group functions scope
 		local route = vars.route
 		local dbData = false
 
-		local newGroupData
-		if gpName and not vars.groupData then
+		local newGroupData = vars.groupData
+		if gpName then
 			if string.lower(action) == 'teleport' or string.lower(action) == 'tele' then
-				newGroupData = mist.getCurrentGroupData(gpName)
+				if not newGroupData then
+					newGroupData = mist.getCurrentGroupData(gpName)
+				end
 			elseif string.lower(action) == 'respawn' then
-				newGroupData = mist.getGroupData(gpName)
+				if not newGroupData then
+					newGroupData = mist.getGroupData(gpName)
+				end
 				dbData = true
 			elseif string.lower(action) == 'clone' then
-				newGroupData = mist.getGroupData(gpName)
+				if not newGroupData then
+					newGroupData = mist.getGroupData(gpName)
+				end
 				newGroupData.clone = 'order66'
 				dbData = true
 			else
 				action = 'tele'
-				newGroupData = mist.getCurrentGroupData(gpName)
+				if not newGroupData then
+					newGroupData = mist.getCurrentGroupData(gpName)
+				end
 			end
 		else
 			action = 'tele'
 			newGroupData = vars.groupData
 		end
-        
+		veaf.loggers.get(veafSpawn.Id):trace("START - newGroupData=%s",newGroupData)
         if vars.newGroupName then
             newGroupData.groupName = vars.newGroupName
         end
@@ -3628,6 +3636,7 @@ do -- group functions scope
 		if route then
 			newGroupData.route = route
 		end
+		veaf.loggers.get(veafSpawn.Id):trace("END - newGroupData=%s",newGroupData)
 		--log:info(newGroupData)
 		--mist.debug.writeData(mist.utils.serialize,{'teleportToPoint', newGroupData}, 'newGroupData.lua')
 		if not prepareOnly then

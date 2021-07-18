@@ -66,7 +66,7 @@ veafSpawn = {}
 veafSpawn.Id = "SPAWN"
 
 --- Version.
-veafSpawn.Version = "1.29.0"
+veafSpawn.Version = "1.30.0"
 
 -- trace level, specific to this module
 --veafSpawn.LogLevel = "trace"
@@ -2048,6 +2048,7 @@ function VeafAirUnitTemplate:new ()
     self.name = nil
     self.humanName = nil
     self.coalition = nil
+    self.groupData = nil
     return self
 end
 
@@ -2073,11 +2074,21 @@ function VeafAirUnitTemplate:getCoalition()
     return self.coalition
 end
 
+function VeafAirUnitTemplate:setGroupData(value)
+    self.groupData = value
+    return self
+end
+
+function VeafAirUnitTemplate:getGroupData()
+    return self.groupData
+end
+
 function veafSpawn.initializeAirUnitTemplates()
     
     veaf.loggers.get(veafSpawn.Id):debug("veafSpawn.initializeAirUnitTemplates()")
 
     -- find groups with the air units template prefix
+    veaf.loggers.get(veafSpawn.Id):debug("find groups with the air units template prefix")
     local _prefix = veafSpawn.AirUnitTemplatesPrefix:upper()
     veaf.loggers.get(veafSpawn.Id):trace("_prefix=%s",_prefix)
     local _templateGroups = {}
@@ -2096,7 +2107,24 @@ function veafSpawn.initializeAirUnitTemplates()
         veaf.loggers.get(veafSpawn.Id):trace("_groupName=%s", _groupName)
         local _template = VeafAirUnitTemplate.new():setName(_groupName)
         veafSpawn.airUnitTemplates[_groupName:upper()] = _template
-        --group:destroy() -- NO NEED TO DESTROY, IT'S LATE ACTIVATED
+    end
+
+    -- find groups within the veafSpawn.SpawnablePlanes table
+    -- DOES NOT WORK YET
+    if veafSpawn.SpawnablePlanes then 
+        veaf.loggers.get(veafSpawn.Id):debug("find groups within the veafSpawn.SpawnablePlanes table")
+        for _, groupData in pairs(veafSpawn.SpawnablePlanes) do
+            local _groupName = groupData.name
+            veaf.loggers.get(veafSpawn.Id):trace("_groupName=%s", _groupName)
+            groupData.country="russia"
+            groupData.countryId=0
+            groupData.category="plane"
+            groupData.coalition="red"
+            groupData.uncontrolled=false
+            groupData.hidden=false
+            local _template = VeafAirUnitTemplate.new():setName(_groupName):setGroupData(groupData)
+            veafSpawn.airUnitTemplates[_groupName:upper()] = _template
+        end
     end
 
 end
@@ -2471,6 +2499,7 @@ function veafSpawn.spawnCombatAirPatrol(spawnSpot, radius, name, altitude, altde
     local vars = {}
     vars.gpName = _template:getName()
     vars.name = _template:getName()
+    vars.groupData = _template:getGroupData()
     vars.route = newRoute
     --vars.route = mist.getGroupRoute(_template:getName(), "task")
     vars.action = 'clone'
@@ -2489,9 +2518,10 @@ function veafSpawn.spawnCombatAirPatrol(spawnSpot, radius, name, altitude, altde
     for _, unit in pairs(_group.units) do
         unit.skill = skill
     end
+    _group.hidden=false
     _group.newName = spawnedGroupName
     for _, unit in pairs(_group.units) do
-        local unitName = unit.unitName
+        local unitName = unit.unitName or unit.name
         veaf.loggers.get(veafSpawn.Id):trace("unitName=%s",unitName)
         if not veafSpawn.spawnedNamesIndex[unitName] then
             veafSpawn.spawnedNamesIndex[unitName] = 0

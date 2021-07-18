@@ -15,11 +15,11 @@
 -- ------------
 -- Call the script by running it in a lua environment ; it needs the veafMissionEditor library, so the script working directory must contain the veafMissionEditor.lua file
 -- 
--- veafMissionFlightPlanEditor.lua <mission folder path> <radio settings file> [-debug|-trace]
+-- veafMissionFlightPlanEditor.lua <mission folder path> <settings file> [-debug|-trace]
 -- 
 -- Command line options:
 -- * <mission folder path> the path to the exploded mission files (no trailing backslash)
--- * <radio settings file> the path to the preset templates file (see radioSettings-example.lua)
+-- * <settings file> the path to the settings file
 -- * -debug if set, the script will output some information ; useful to find out which units were edited
 -- * -trace if set, the script will output a lot of information : useful to understand what went wrong
 -------------------------------------------------------------------------------------------------------------------------------------------------------------

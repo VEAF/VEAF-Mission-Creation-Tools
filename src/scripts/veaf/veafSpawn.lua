@@ -66,7 +66,7 @@ veafSpawn = {}
 veafSpawn.Id = "SPAWN"
 
 --- Version.
-veafSpawn.Version = "1.30.0"
+veafSpawn.Version = "1.30.1"
 
 -- trace level, specific to this module
 --veafSpawn.LogLevel = "trace"
@@ -411,7 +411,7 @@ function veafSpawn.markTextAnalysis(text)
     options.country = nil
     options.side = nil
     options.altitude = 0
-    options.altitudedelta = nil
+    options.altitudedelta = 0
     options.heading = 0
     options.distance = nil
     options.skill = nil
@@ -1698,13 +1698,15 @@ function veafSpawn.spawnBomb(spawnSpot, radius, shells, power, altitude, altitud
     local shellDelay = 0
     for shell=1,shells do
         local spawnSpot = veaf.placePointOnLand(mist.getRandPointInCircle(spawnSpot, radius))
-        if altitude then
+        veaf.loggers.get(veafSpawn.Id):trace("spawnSpot=%s", spawnSpot)
+        veaf.loggers.get(veafSpawn.Id):trace("altitude=%s", altitude)
+        if altitude and altitude > 0 then
             spawnSpot.y = altitude + altitudedelta * ((math.random(100)-50)/100)
             shellDelay = veafSpawn.FlakingInterval
         else
             shellDelay = veafSpawn.ShellingInterval
         end
-        veaf.loggers.get(veafSpawn.Id):trace(string.format("spawnSpot=%s", veaf.vecToString(spawnSpot)))
+        veaf.loggers.get(veafSpawn.Id):trace("spawnSpot=%s", spawnSpot)
         
         local shellDelay = shellDelay * (math.random(100) + 30)/100
         local shellPower = power * (math.random(100) + 30)/100

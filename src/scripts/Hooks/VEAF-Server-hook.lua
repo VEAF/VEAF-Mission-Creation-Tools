@@ -52,6 +52,9 @@ veafServerHook.ADMIN_FAKE_UCID = "0123456789ABCDEF012345-AdminVEAF"
 -- maximum mission duration before the server is restarted (in minutes, mission model time)
 veafServerHook.DEFAULT_MAX_MISSION_DURATION = 4 * 60
 
+-- maximum number of players before allowing restart of the server
+veafServerHook.DEFAULT_MAX_PLAYERS_FOR_RESTART = 1
+
 -- scripts injected in the mission
 REGISTER_PLAYER =  [[ if veafRemote and veafRemote.registerUser then veafRemote.registerUser("%s", "%s", "%s") end ]]
 RUN_COMMAND = [[ if veafRemote and veafRemote.executeCommandFromRemote then veafRemote.executeCommandFromRemote("%s", "%s", "%s", "%s", "%s") end ]]
@@ -72,6 +75,8 @@ veafServerHook.closeServerAtLastDisconnect = true
 veafServerHook.lastFrameTime = 0
 
 veafServerHook.maxMissionDuration = veafServerHook.DEFAULT_MAX_MISSION_DURATION
+
+veafServerHook.maxPlayersForRestart = veafServerHook.DEFAULT_MAX_PLAYERS_FOR_RESTART
 
 veafServerHook.statisticsTypes = {"ping", "crashes", "vehicules", "aircrafts", "ships", "score", "landings", "ejections"}
 
@@ -147,7 +152,7 @@ function veafServerHook.onSimulationStart()
     -- ask the mission for its maximum runtime
     veafServerHook.logDebug(string.format("ask the mission for its maximum runtime"))
     local _maxDuration = nil
-local _status, _retValue = pcall(net.dostring_in, 'mission', 'return a_do_script(' .. '[===[ if veaf and veaf.getMissionMaxRuntime then return veaf.getMissionMaxRuntime() else return nil end ]===]' .. ')')
+    local _status, _retValue = pcall(net.dostring_in, 'mission', 'return a_do_script(' .. '[===[ if veaf and veaf.getMissionMaxRuntime then return veaf.getMissionMaxRuntime() else return nil end ]===]' .. ')')
     veafServerHook.logTrace(string.format("_status=%s",p(_status)))
     veafServerHook.logTrace(string.format("_retValue=%s",p(_retValue)))
     if not _status then
@@ -157,6 +162,7 @@ local _status, _retValue = pcall(net.dostring_in, 'mission', 'return a_do_script
             _maxDuration = tonumber(_retValue)
         end
     end
+    
     veafServerHook.maxMissionDuration = _maxDuration
     if veafServerHook.maxMissionDuration == nil then
         veafServerHook.maxMissionDuration = veafServerHook.DEFAULT_MAX_MISSION_DURATION
@@ -164,6 +170,9 @@ local _status, _retValue = pcall(net.dostring_in, 'mission', 'return a_do_script
     else
         veafServerHook.logInfo(string.format("Maximum mission duration is set to %s", p(veafServerHook.maxMissionDuration)))
     end
+
+    veafServerHook.maxPlayersForRestart = veafServerHook.DEFAULT_MAX_PLAYERS_FOR_RESTART
+    veafServerHook.logInfo(string.format("Maximum number of players for restart is set to its default value (%s)", p(veafServerHook.maxPlayersForRestart)))
 
     veafServerHook.closeServerAtLastDisconnect = true -- halt the server when the mission stops, by default
 end
@@ -261,7 +270,8 @@ function veafServerHook.sendData(timestamp)
         mission = DCS.getMissionFilename(),
         missionTimeInSeconds = DCS.getModelTime(),
         missionMaxTimeInSeconds = veafServerHook.maxMissionDuration * 3600,
-        numberOfPlayers = #net.get_player_list() - 1
+        numberOfPlayers = #net.get_player_list() - 1,
+        maxPlayersForRestart = veafServerHook.maxPlayersForRestart
     }
 
     -- get list of connected pilots
@@ -345,13 +355,18 @@ function veafServerHook.parse(pilot, playerName, ucid, unitName, message)
             local _message = string.format("[%s] is asking for mission restart when the last pilot disconnects from the server",p(playerName))
             veafServerHook.logInfo(_message)
             veafServerHook.sendMessage(_message, 10)
+			veafServerHook.stopMissionIfNeeded()
             return true
         end
     elseif _module and _module:lower() == "restartnow" then
         -- only level >= 30 can schedule mission restart without waiting for all to disconnect
         if pilot.level >= 30 then
             veafServerHook.maxMissionDuration = 0
+            veafServerHook.maxPlayersForRestart = 666
 			veafServerHook.closeServerAtLastDisconnect = false
+            local _message = string.format("[%s] is asking for mission restart now",p(playerName))
+            veafServerHook.logInfo(_message)
+            veafServerHook.sendMessage(_message, 10)
 			veafServerHook.stopMissionIfNeeded()
             return true
         end
@@ -369,7 +384,9 @@ function veafServerHook.parse(pilot, playerName, ucid, unitName, message)
     elseif _module and _module:lower() == "haltnow" then
         -- only level >= 50 can trigger server halt without waiting for all to disconnect
         if pilot.level >= 50 then
+            veafServerHook.maxMissionDuration = 0
 			veafServerHook.closeServerAtMissionStop = true
+            veafServerHook.maxPlayersForRestart = 666
 			veafServerHook.onSimulationStop()
             return true
         end
@@ -394,7 +411,7 @@ function veafServerHook.stopMissionIfNeeded()
         veafServerHook.logTrace(string.format("_players=%s",p(_players)))
         local _nPlayers = #_players
         veafServerHook.logTrace(string.format("_nPlayers=%s",p(_nPlayers)))
-        if _nPlayers <= 1 then -- only the administrator remains           
+        if _nPlayers <= veafServerHook.maxPlayersForRestart then -- only the administrator remains           
             -- restart the server
             veafServerHook.logInfo(string.format("veafServerHook.stopMissionIfNeeded() - stopping the mission"))
             if veafServerHook.closeServerAtLastDisconnect then

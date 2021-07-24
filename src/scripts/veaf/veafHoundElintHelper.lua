@@ -162,8 +162,7 @@ local function initializeHoundSystem(coa, parameters, atMissionStart)
     end
 
     if veafHoundElint.hasMarkers(parameters) then
-        hound:enableMarkers()
-        hound:enableDiamond()
+        hound:enableMarkers(HOUND.MARKER.DIAMOND)
     end
 
     if veafHoundElint.hasAtis(parameters) then
@@ -290,3 +289,4 @@ function veafHoundElint.initialize(prefix, red, blue)
 end
 
 veaf.loggers.get(veafHoundElint.Id):info(string.format("Loading version %s", veafHoundElint.Version))
+HoundUtils._MarkId = 1235634 -- select a less obvious marker id range that `1`

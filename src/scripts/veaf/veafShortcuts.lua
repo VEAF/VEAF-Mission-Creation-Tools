@@ -913,26 +913,46 @@ function veafShortcuts.executeCommandFromRemote(parameters)
     end
 
     if _command then
-        -- parse the command
-        local _coords, _alias = _command:match(veafShortcuts.RemoteCommandParser)
-        veaf.loggers.get(veafShortcuts.Id):trace(string.format("_coords=%s",veaf.p(_coords)))
-        veaf.loggers.get(veafShortcuts.Id):trace(string.format("_alias=%s",veaf.p(_alias)))
-        if _coords and _alias then
-            local _coa = coalition.side.BLUE
-            local _unit = Unit.getByName(_unitName)
-            if _unit then 
-                _coa = _unit:getCoalition()
+        local _lat, _lon, _alias = nil, nil, nil
+        local _coa = coalition.side.BLUE
+        local _unit = Unit.getByName(_unitName)
+        if _unit then 
+            _coa = _unit:getCoalition()
+            veaf.loggers.get(veafShortcuts.Id):trace("_coa=s",veaf.p(_coa))
+        end
+        -- choose by default the coalition opposing the player who triggered the event
+        local invertedCoalition = 1
+        if _coa == 1 then
+            invertedCoalition = 2
+        end
+        if _command:sub(1,1) == veafShortcuts.AliasStarter or _command:sub(2,2) == veafShortcuts.AliasStarter then
+            -- there is only the command
+            _alias = _command
+            veaf.loggers.get(veafShortcuts.Id):trace(string.format("_coords=%s",veaf.p(_coords)))
+            veaf.loggers.get(veafShortcuts.Id):trace(string.format("_alias=%s",veaf.p(_alias)))
+        else
+            -- parse the command
+            local _coords, __alias = _command:match(veafShortcuts.RemoteCommandParser)
+            _alias = __alias
+            veaf.loggers.get(veafShortcuts.Id):trace(string.format("_coords=%s",veaf.p(_coords)))
+            veaf.loggers.get(veafShortcuts.Id):trace(string.format("_alias=%s",veaf.p(_alias)))
+            if _coords then
+                _lat, _lon = veaf.computeLLFromString(_coords)
+                veaf.loggers.get(veafShortcuts.Id):trace(string.format("_lat=%s",veaf.p(_lat)))
+                veaf.loggers.get(veafShortcuts.Id):trace(string.format("_lon=%s",veaf.p(_lon)))
             end
-            local _lat, _lon = veaf.computeLLFromString(_coords)
-            veaf.loggers.get(veafShortcuts.Id):trace(string.format("_lat=%s",veaf.p(_lat)))
-            veaf.loggers.get(veafShortcuts.Id):trace(string.format("_lon=%s",veaf.p(_lon)))
+        end
+        if _alias then
             if _lat and _lon then 
                 local _pos = coord.LLtoLO(_lat, _lon)
                 veaf.loggers.get(veafShortcuts.Id):trace(string.format("_pos=%s",veaf.p(_pos)))
                 veaf.loggers.get(veafShortcuts.Id):trace(string.format("_coa=%s",veaf.p(_coa)))
                 veaf.loggers.get(veafShortcuts.Id):info(string.format("[%s] is running an alias at position [%s] for coalition [%s] : [%s]",veaf.p(_pilot.name), veaf.p(_pos), veaf.p(_coa), veaf.p(_alias)))
-                veafShortcuts.executeCommand(_pos, _alias, _coa, _pilot.name)
+                veafShortcuts.executeCommand(_pos, _alias, invertedCoalition, _pilot.name)
                 return true
+            else
+                veaf.loggers.get(veafShortcuts.Id):info(string.format("[%s] is running an alias with no specific position for coalition [%s] : [%s]",veaf.p(_pilot.name), veaf.p(_coa), veaf.p(_alias)))
+                veafShortcuts.executeCommand(nil, _alias, invertedCoalition, _pilot.name)
             end
         end
     end

@@ -612,6 +612,7 @@ function veafSecurity.getMarkerSecurityLevel(markId)
   veaf.loggers.get(veafSecurity.Id):trace(string.format("veafSecurity.getMarkerSecurityLevel([%s])",veaf.p(markId)))
   local _author = nil
   for _, panel in pairs(world.getMarkPanels( )) do
+    veaf.loggers.get(veafSecurity.Id):trace("panel=%s", veaf.p(panel))
     if panel.idx == markId then  
       _author = panel.author
     end
@@ -620,6 +621,7 @@ function veafSecurity.getMarkerSecurityLevel(markId)
     -- markId may actually be the username if called from veafRemote - yes I know it's ugly
     _author = markId
   end
+  veaf.loggers.get(veafSecurity.Id):trace("_author=%s",_author)
   local _user = veafRemote.getRemoteUser(_author)
   veaf.loggers.get(veafSecurity.Id):trace(string.format("_user = [%s]",veaf.p(_user)))
   if _user then 

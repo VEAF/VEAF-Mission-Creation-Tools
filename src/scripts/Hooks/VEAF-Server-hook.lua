@@ -38,7 +38,7 @@ VEAF_PILOTS_FILE = "veaf-pilots.txt"
 veafServerHook.Id = "VEAFHOOK - "
 
 --- Version.
-veafServerHook.Version = "2.0.1"
+veafServerHook.Version = "2.1.0"
 
 -- trace level, specific to this module
 veafServerHook.Trace = false
@@ -49,8 +49,14 @@ veafServerHook.CommandParser = "/([a-zA-Z0-9]+)%s?(.*)"
 
 veafServerHook.ADMIN_FAKE_UCID = "0123456789ABCDEF012345-AdminVEAF"
 
+-- frequency of checks for server restart, outside of pilot disconnecting
+veafServerHook.FRAME_CHECK_FREQUENCY_IN_SECONDS = 30
+
 -- maximum mission duration before the server is restarted (in minutes, mission model time)
-veafServerHook.DEFAULT_MAX_MISSION_DURATION = 4 * 60
+veafServerHook.DEFAULT_MAX_MISSION_DURATION = 2 * 60
+
+-- maximum server uptime before it is restarted (in minutes)
+veafServerHook.DEFAULT_MAX_SERVER_UPTIME = 2 * 60
 
 -- maximum number of players before allowing restart of the server
 veafServerHook.DEFAULT_MAX_PLAYERS_FOR_RESTART = 1
@@ -72,9 +78,12 @@ veafServerHook.pilots = {}
 veafServerHook.closeServerAtMissionStop = false
 veafServerHook.closeServerAtLastDisconnect = true
 
-veafServerHook.lastFrameTime = 0
+veafServerHook.lastUDPFrameTime = 0
+veafServerHook.lastServerUptimeCheckFrameTime = 0
 
 veafServerHook.maxMissionDuration = veafServerHook.DEFAULT_MAX_MISSION_DURATION
+
+veafServerHook.maxServerUptime = veafServerHook.DEFAULT_MAX_SERVER_UPTIME
 
 veafServerHook.maxPlayersForRestart = veafServerHook.DEFAULT_MAX_PLAYERS_FOR_RESTART
 
@@ -171,6 +180,8 @@ function veafServerHook.onSimulationStart()
         veafServerHook.logInfo(string.format("Maximum mission duration is set to %s", p(veafServerHook.maxMissionDuration)))
     end
 
+    veafServerHook.maxServerUptime = veafServerHook.DEFAULT_MAX_SERVER_UPTIME
+
     veafServerHook.maxPlayersForRestart = veafServerHook.DEFAULT_MAX_PLAYERS_FOR_RESTART
     veafServerHook.logInfo(string.format("Maximum number of players for restart is set to its default value (%s)", p(veafServerHook.maxPlayersForRestart)))
 
@@ -249,8 +260,14 @@ function veafServerHook.onSimulationFrame()
 
     local _now = DCS.getRealTime()
 
-    if _now > veafServerHook.lastFrameTime + veafServerHook.config.refreshDelay then
-        veafServerHook.lastFrameTime = _now
+    if _now > veafServerHook.lastServerUptimeCheckFrameTime + veafServerHook.FRAME_CHECK_FREQUENCY_IN_SECONDS then
+        veafServerHook.lastServerUptimeCheckFrameTime = _now
+        veafServerHook.logTrace(string.format("checking server uptime"))
+        veafServerHook.stopMissionIfNeeded()
+    end        
+    
+    if veafServerHook.config.activate and _now > veafServerHook.lastUDPFrameTime + veafServerHook.config.refreshDelay then
+        veafServerHook.lastUDPFrameTime = _now
         veafServerHook.logTrace(string.format("sending data"))
         veafServerHook.sendData(_now)
     end
@@ -269,7 +286,8 @@ function veafServerHook.sendData(timestamp)
         frameTime = _now,
         mission = DCS.getMissionFilename(),
         missionTimeInSeconds = DCS.getModelTime(),
-        missionMaxTimeInSeconds = veafServerHook.maxMissionDuration * 3600,
+        missionMaxTimeInSeconds = veafServerHook.maxMissionDuration * 60,
+        serverMaxUptimeInSeconds = veafServerHook.maxServerUptime * 60,
         numberOfPlayers = #net.get_player_list() - 1,
         maxPlayersForRestart = veafServerHook.maxPlayersForRestart
     }
@@ -286,6 +304,7 @@ function veafServerHook.sendData(timestamp)
         local pilotData = {
             name = playerName,
             level = 0,
+            unit = playerDetails.slot,
             stats = {}
         }
         for key, value in pairs(veafServerHook.statisticsTypes) do
@@ -351,29 +370,32 @@ function veafServerHook.parse(pilot, playerName, ucid, unitName, message)
         -- only level >= 10 can schedule mission restart
         if pilot.level >= 10 then
             veafServerHook.maxMissionDuration = 0
+            veafServerHook.maxServerUptime = 0
             veafServerHook.closeServerAtLastDisconnect = false
             local _message = string.format("[%s] is asking for mission restart when the last pilot disconnects from the server",p(playerName))
             veafServerHook.logInfo(_message)
             veafServerHook.sendMessage(_message, 10)
-			veafServerHook.stopMissionIfNeeded()
+            veafServerHook.stopMissionIfNeeded()
             return true
         end
     elseif _module and _module:lower() == "restartnow" then
         -- only level >= 30 can schedule mission restart without waiting for all to disconnect
         if pilot.level >= 30 then
             veafServerHook.maxMissionDuration = 0
+            veafServerHook.maxServerUptime = 0
             veafServerHook.maxPlayersForRestart = 666
-			veafServerHook.closeServerAtLastDisconnect = false
+            veafServerHook.closeServerAtLastDisconnect = false
             local _message = string.format("[%s] is asking for mission restart now",p(playerName))
             veafServerHook.logInfo(_message)
             veafServerHook.sendMessage(_message, 10)
-			veafServerHook.stopMissionIfNeeded()
+            veafServerHook.stopMissionIfNeeded()
             return true
         end
     elseif _module and _module:lower() == "halt" then
         -- only level >= 10 can schedule server halt (and hopefully autorestart)
         if pilot.level >= 10 then
             veafServerHook.maxMissionDuration = 0
+            veafServerHook.maxServerUptime = 0
             veafServerHook.closeServerAtLastDisconnect = true
             local _message = string.format("[%s] is asking for server halt when the last pilot disconnects from the server",p(playerName))
             veafServerHook.logInfo(_message)
@@ -385,9 +407,24 @@ function veafServerHook.parse(pilot, playerName, ucid, unitName, message)
         -- only level >= 50 can trigger server halt without waiting for all to disconnect
         if pilot.level >= 50 then
             veafServerHook.maxMissionDuration = 0
-			veafServerHook.closeServerAtMissionStop = true
+            veafServerHook.maxServerUptime = 0
+            veafServerHook.closeServerAtMissionStop = true
             veafServerHook.maxPlayersForRestart = 666
-			veafServerHook.onSimulationStop()
+            veafServerHook.onSimulationStop()
+            return true
+        end
+    elseif _module and _module:lower() == "pause" then
+        -- only level >= 10 can pause and unpause the server
+        if pilot.level >= 10 then
+            local pause = DCS.getPause()
+            local onoff = "on"
+            if pause then 
+                onoff = "off"
+            end
+            local _message = string.format("[%s] is setting the server %s pause",p(playerName), onoff)
+            veafServerHook.logInfo(_message)
+            veafServerHook.sendMessage(_message, 10)
+            DCS.setPause(not pause)
             return true
         end
     else
@@ -402,10 +439,12 @@ function veafServerHook.parse(pilot, playerName, ucid, unitName, message)
 end
 
 function veafServerHook.stopMissionIfNeeded()
-    veafServerHook.logDebug(string.format("veafServerHook.stopMissionIfNeeded()"))
+    veafServerHook.logTrace(string.format("veafServerHook.stopMissionIfNeeded()"))
     local _modelTimeInSeconds = DCS.getModelTime()
     veafServerHook.logTrace(string.format("_modelTimeInSeconds=%s",p(_modelTimeInSeconds)))
-    if _modelTimeInSeconds >= veafServerHook.maxMissionDuration * 60 then
+    local _realTimeInSeconds = DCS.getRealTime()
+    veafServerHook.logTrace(string.format("_realTimeInSeconds=%s",p(_realTimeInSeconds)))
+    if (_modelTimeInSeconds >= veafServerHook.maxMissionDuration * 60) or (_realTimeInSeconds >= veafServerHook.maxServerUptime * 60) then
         -- check if no one is connected (triggered on last disconnect)
         local _players = net.get_player_list()
         veafServerHook.logTrace(string.format("_players=%s",p(_players)))
@@ -472,8 +511,10 @@ function veafServerHook.initialize()
 end
 
 -- set up the socket to call the web server
-veafServerHook.logDebug(string.format("set up the socket to call the web server; host=%s and port=%s", p(veafServerHook.config.host), p(veafServerHook.config.port)))
-BufferingSocket.startSession(veafServerHook.config.host, veafServerHook.config.port)
+if veafServerHook.config.activate then 
+    veafServerHook.logDebug(string.format("set up the socket to call the web server; host=%s and port=%s", p(veafServerHook.config.host), p(veafServerHook.config.port)))
+    BufferingSocket.startSession(veafServerHook.config.host, veafServerHook.config.port)
+end
 
 veafServerHook.logDebug(string.format("registering DCS callbacks"))
 DCS.setUserCallbacks(veafServerHook)

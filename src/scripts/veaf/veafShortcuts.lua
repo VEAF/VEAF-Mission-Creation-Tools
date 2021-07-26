@@ -836,7 +836,7 @@ function veafShortcuts.buildDefaultList()
     )
     veafShortcuts.AddAlias(
         VeafAlias:new()
-            :setName("-flag?")
+            :setName("-flag")
             :setDescription("Mission Master : get flag value")
             :setVeafCommand("_mm getflag, name")
             :dontEndWithComma()

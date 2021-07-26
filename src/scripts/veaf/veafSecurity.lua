@@ -33,7 +33,7 @@ veafSecurity = {}
 veafSecurity.Id = "SECURITY"
 
 --- Version.
-veafSecurity.Version = "1.2.3"
+veafSecurity.Version = "1.3.0"
 
 -- trace level, specific to this module
 --veafSecurity.LogLevel = "trace"
@@ -62,6 +62,7 @@ veafSecurity.LEVEL_L9 = 1
 veafSecurity.password_L0 = {}
 veafSecurity.password_L1 = {}
 veafSecurity.password_L9 = {}
+veafSecurity.password_MM = {}
 
 -- list the security passwords common to all missions below
 veafSecurity.password_L0["47c7808d1079fd20add322bbd5cf23b93ad1841e"] = true
@@ -600,6 +601,13 @@ function veafSecurity.checkPassword_L9(password)
     veafSecurity._checkPassword(password, veafSecurity.password_L0)
 end
 
+function veafSecurity.checkPassword_MM(password)
+  return 
+    veaf.SecurityDisabled 
+    or 
+    veafSecurity._checkPassword(password, veafSecurity.password_MM)
+end
+
 function veafSecurity.getMarkerSecurityLevel(markId)
   veaf.loggers.get(veafSecurity.Id):trace(string.format("veafSecurity.getMarkerSecurityLevel([%s])",veaf.p(markId)))
   local _author = nil
@@ -648,6 +656,15 @@ function veafSecurity.checkSecurity_L9(password, markId)
   if veafSecurity.getMarkerSecurityLevel(markId) < veafSecurity.LEVEL_L9 and not veafSecurity.checkPassword_L9(password) then
     veaf.loggers.get(veaf.ISecveafSecurityd):warn("You have to give the correct L9 password to do this")
     trigger.action.outText("Please use the ', password <L9 password>' option", 5) 
+    return false
+  end
+  return true
+end
+
+function veafSecurity.checkSecurity_MM(password) 
+  if not veafSecurity.checkPassword_MM(password) then
+    veaf.loggers.get(veaf.ISecveafSecurityd):warn("You have to give the correct Mission Master password to do this")
+    trigger.action.outText("Please use the ', password <MM password>' option", 5) 
     return false
   end
   return true

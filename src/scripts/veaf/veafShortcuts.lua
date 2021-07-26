@@ -27,7 +27,7 @@ veafShortcuts = {}
 veafShortcuts.Id = "SHORTCUTS"
 
 --- Version.
-veafShortcuts.Version = "1.22.0"
+veafShortcuts.Version = "1.23.0"
 
 -- trace level, specific to this module
 --veafShortcuts.LogLevel = "trace"
@@ -834,6 +834,39 @@ function veafShortcuts.buildDefaultList()
             :dontEndWithComma()
             :setBypassSecurity(false)
     )
+    veafShortcuts.AddAlias(
+        VeafAlias:new()
+            :setName("-flag?")
+            :setDescription("Mission Master : get flag value")
+            :setVeafCommand("_mm getflag, name")
+            :dontEndWithComma()
+            :setBypassSecurity(false)
+    )
+    veafShortcuts.AddAlias(
+        VeafAlias:new()
+            :setName("-flagon")
+            :setDescription("Mission Master : set flag value to ON")
+            :setVeafCommand("_mm flagon, name")
+            :dontEndWithComma()
+            :setBypassSecurity(false)
+    )
+    veafShortcuts.AddAlias(
+        VeafAlias:new()
+            :setName("-flagoff")
+            :setDescription("Mission Master : set flag value to OFF")
+            :setVeafCommand("_mm flagoff, name")
+            :dontEndWithComma()
+            :setBypassSecurity(false)
+    )
+    veafShortcuts.AddAlias(
+        VeafAlias:new()
+            :setName("-run")
+            :setDescription("Mission Master : run runnable")
+            :setVeafCommand("_mm run, name")
+            :dontEndWithComma()
+            :setBypassSecurity(false)
+    )
+
 end
 
 function veafShortcuts.dumpAliasesList(export_path)

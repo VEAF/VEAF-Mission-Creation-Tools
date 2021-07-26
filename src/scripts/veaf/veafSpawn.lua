@@ -66,7 +66,7 @@ veafSpawn = {}
 veafSpawn.Id = "SPAWN"
 
 --- Version.
-veafSpawn.Version = "1.30.1"
+veafSpawn.Version = "1.31.0"
 
 -- trace level, specific to this module
 --veafSpawn.LogLevel = "trace"
@@ -84,6 +84,9 @@ veafSpawn.TeleportKeyphrase = "_teleport"
 
 --- Key phrase to look for in the mark text which triggers the drawing commands.
 veafSpawn.DrawingKeyphrase = "_drawing"
+
+--- Key phrase to look for in the mark text which triggers the mission master commands.
+veafSpawn.MissionMasterKeyphrase = "_mm"
 
 --- Name of the spawned units group 
 veafSpawn.RedSpawnedUnitsGroupName = "VEAF Spawned Units"
@@ -163,7 +166,7 @@ function veafSpawn.executeCommand(eventPos, eventText, coalition, markId, bypass
     veaf.loggers.get(veafSpawn.Id):trace(string.format("repeatDelay=%s", veaf.p(repeatDelay)))
 
     -- Check if marker has a text and the veafSpawn.SpawnKeyphrase keyphrase.
-    if eventText ~= nil and (eventText:lower():find(veafSpawn.SpawnKeyphrase) or eventText:lower():find(veafSpawn.DestroyKeyphrase) or eventText:lower():find(veafSpawn.TeleportKeyphrase) or eventText:lower():find(veafSpawn.DrawingKeyphrase)) then
+    if eventText ~= nil and (eventText:lower():find(veafSpawn.SpawnKeyphrase) or eventText:lower():find(veafSpawn.DestroyKeyphrase) or eventText:lower():find(veafSpawn.TeleportKeyphrase) or eventText:lower():find(veafSpawn.DrawingKeyphrase) or eventText:lower():find(veafSpawn.MissionMasterKeyphrase)) then
         
         -- Analyse the mark point text and extract the keywords.
         local options = veafSpawn.markTextAnalysis(eventText)
@@ -308,6 +311,22 @@ function veafSpawn.executeCommand(eventPos, eventText, coalition, markId, bypass
                     -- check security
                     if not (bypassSecurity or veafSecurity.checkSecurity_L1(options.password, markId)) then return end
                     veafSpawn.eraseDrawing(options.name)
+                elseif options.mmFlagOn then
+                    -- check security
+                    if not (bypassSecurity or veafSecurity.checkSecurity_MM(options.password)) then return end
+                    veafSpawn.missionMasterSetFlag(options.name, 1)
+                elseif options.mmFlagOff then
+                    -- check security
+                    if not (bypassSecurity or veafSecurity.checkSecurity_MM(options.password)) then return end
+                    veafSpawn.missionMasterSetFlag(options.name, 0)
+                elseif options.mmGetFlag then
+                    -- check security
+                    if not (bypassSecurity or veafSecurity.checkSecurity_MM(options.password)) then return end
+                    veafSpawn.missionMasterGetFlag(options.name)
+                elseif options.mmRun then
+                    -- check security
+                    if not (bypassSecurity or veafSecurity.checkSecurity_MM(options.password)) then return end
+                    veafSpawn.missionMasterRun(options.name)
                 end
                 if spawnedGroup then
                     local groupObject = Group.getByName(spawnedGroup)
@@ -528,6 +547,14 @@ function veafSpawn.markTextAnalysis(text)
         options.addDrawing = true
     elseif text:lower():find(veafSpawn.DrawingKeyphrase .. " erase") then
         options.eraseDrawing = true
+    elseif text:lower():find(veafSpawn.MissionMasterKeyphrase .. " flagon") then
+        options.mmFlagOn = true
+    elseif text:lower():find(veafSpawn.MissionMasterKeyphrase .. " flagoff") then
+        options.mmFlagOff = true
+    elseif text:lower():find(veafSpawn.MissionMasterKeyphrase .. " getflag") then
+        options.mmGetFlag = true
+    elseif text:lower():find(veafSpawn.MissionMasterKeyphrase .. " run") then
+        options.mmRun = true
     else
         return nil
     end
@@ -756,20 +783,6 @@ function veafSpawn.markTextAnalysis(text)
             options.distance = nVal
         end
 
-        if key:lower() == "alt" then
-            -- Set alt.
-            veaf.loggers.get(veafSpawn.Id):trace(string.format("Keyword alt = %s", tostring(val)))
-            local nVal = veaf.getRandomizableNumeric(val)
-            options.alt = nVal
-        end
-
-        if key:lower() == "altdelta" then
-            -- Set altitude delta.
-            veaf.loggers.get(veafSpawn.Id):trace(string.format("Keyword altdelta = %s", tostring(val)))
-            local nVal = veaf.getRandomizableNumeric(val)
-            options.altdelta = nVal
-        end
-
         if options.cargo and key:lower() == "name" then
             -- Set cargo type.
             veaf.loggers.get(veafSpawn.Id):trace(string.format("Keyword name = %s", tostring(val)))
@@ -835,7 +848,10 @@ function veafSpawn.markTextAnalysis(text)
     -- check mandatory parameter "name" for command "unit"
     if options.unit and not(options.name) then return nil end
     
-    return options
+    -- check mandatory parameter "name" for all mission master commands
+    if (options.mmFlagOff or options.mmFlagOn or options.mmRun) and not(options.name) then return nil end
+
+return options
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -2555,6 +2571,63 @@ function veafSpawn.spawnCombatAirPatrol(spawnSpot, radius, name, altitude, altde
 
     return _spawnedGroup.name
 end
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- Mission master features
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+veafSpawn.missionMasterRunnables = {}
+
+function veafSpawn.missionMasterAddRunnable(name, code)
+    veaf.loggers.get(veafSpawn.Id):debug("veafSpawn.missionMasterAddRunnable(name=%s)",name)
+    veafSpawn.missionMasterRunnables[veaf.ifnn(name, "upper")] = code
+end
+
+function veafSpawn.missionMasterRun(name)
+    veaf.loggers.get(veafSpawn.Id):debug("veafSpawn.missionMasterRun(name=%s)",name)
+    if not name or #name == 0 then
+        veaf.loggers.get(veafSpawn.Id):warn("name is mandatory", name)    
+        trigger.action.outText(string.format("Mission Master, `run` requires the name or number of the flag"), 5) 
+        return 
+    end
+
+    local code = veafSpawn.missionMasterRunnables[veaf.ifnn(name, "upper")]
+    if code then
+        local sta, res = pcall(code)
+        if sta then 
+            veaf.loggers.get(veafSpawn.Id):warn("The runnable [%s] was successfully run and returned : %s", name, veaf.p(res))    
+            trigger.action.outText(string.format("Mission Master, the runnable [%s] was successfully run and returned : %s", name, veaf.p(res)), 5) 
+        else
+            veaf.loggers.get(veafSpawn.Id):warn("The runnable [%s] returned an error : %s", name, veaf.p(res))    
+            trigger.action.outText(string.format("Mission Master, the runnable [%s] returned an error : %s", name, veaf.p(res)), 5) 
+        end
+    else
+        veaf.loggers.get(veafSpawn.Id):warn("The runnable [%s] does not exist", name)
+        trigger.action.outText(string.format("Mission Master, the runnable [%s] does not exist", name), 5) 
+    end
+end
+
+function veafSpawn.missionMasterSetFlag(name, value)
+    veaf.loggers.get(veafSpawn.Id):debug("veafSpawn.missionMasterSetFlag(name=%s, value=%s)", name, value)
+    if not name or #name == 0 then
+        veaf.loggers.get(veafSpawn.Id):warn("name is mandatory", name)    
+        trigger.action.outText(string.format("Mission Master, `setFlag` requires the name or number of the flag"), 5) 
+        return 
+    end
+    trigger.action.setUserFlag(name , value)
+end
+
+function veafSpawn.missionMasterGetFlag(name)
+    veaf.loggers.get(veafSpawn.Id):debug("veafSpawn.missionMasterGetFlag(name=%s)", name)
+    if not name or #name == 0 then
+        veaf.loggers.get(veafSpawn.Id):warn("name is mandatory", name)    
+        trigger.action.outText(string.format("Mission Master, `getFlag` requires the name or number of the flag"), 5) 
+        return 
+    end
+    local value = trigger.misc.getUserFlag(name)
+    veaf.loggers.get(veafSpawn.Id):warn("Flag [%s] has value [%s]", name, value)    
+    trigger.action.outText(string.format("Mission Master, flag [%s] has value [%s]", name, veaf.p(value)), 5) 
+end
+
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Radio menu
 -------------------------------------------------------------------------------------------------------------------------------------------------------------

@@ -1051,7 +1051,7 @@ end
 function veafCombatZone.GetZone(zoneName)
     veaf.loggers.get(veafCombatZone.Id):debug(string.format("veafCombatZone.GetZone([%s])",zoneName or ""))
     veaf.loggers.get(veafCombatZone.Id):debug(string.format("Searching for zone with name [%s]", zoneName))
-    local zone = veafCombatZone.zonesDict[zoneName]
+    local zone = veafCombatZone.zonesDict[zoneName:lower()]
     if not zone then 
         local message = string.format("VeafCombatZone [%s] was not found !",zoneName)
         veaf.loggers.get(veafCombatZone.Id):error(message)
@@ -1066,7 +1066,7 @@ function veafCombatZone.AddZone(zone)
     veaf.loggers.get(veafCombatZone.Id):info(string.format("Adding zone [%s]", zone.missionEditorZoneName))
     zone:initialize()
     table.insert(veafCombatZone.zonesList, zone)
-    veafCombatZone.zonesDict[zone.missionEditorZoneName] = zone
+    veafCombatZone.zonesDict[zone.missionEditorZoneName:lower()] = zone
     return zone
 end
 
@@ -1082,6 +1082,12 @@ end
 function veafCombatZone.ActivateZone(zoneName, silent)
     veaf.loggers.get(veafCombatZone.Id):debug(string.format("veafCombatZone.ActivateZone([%s])",zoneName or ""))
     local zone = veafCombatZone.GetZone(zoneName)
+    if zone:isActive() then
+        if not silent then
+            trigger.action.outText("VeafCombatZone "..zone:getFriendlyName().." is already active.", 10)
+        end
+        return
+    end
     zone:activate()
     if not silent then
         trigger.action.outText("VeafCombatZone "..zone:getFriendlyName().." has been activated.", 10)
@@ -1101,6 +1107,12 @@ end
 function veafCombatZone.DesactivateZone(zoneName, silent)
     veaf.loggers.get(veafCombatZone.Id):debug(string.format("veafCombatZone.DesactivateZone([%s])",zoneName or ""))
     local zone = veafCombatZone.GetZone(zoneName)
+    if not(zone:isActive()) then
+        if not silent then
+            trigger.action.outText("VeafCombatZone "..zone:getFriendlyName().." is not active.", 10)
+        end
+        return
+    end
     zone:desactivate()
     if not silent then
         trigger.action.outText("VeafCombatZone "..zone:getFriendlyName().." has been desactivated.", 10)

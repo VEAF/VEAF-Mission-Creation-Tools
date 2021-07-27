@@ -27,7 +27,7 @@ veafShortcuts = {}
 veafShortcuts.Id = "SHORTCUTS"
 
 --- Version.
-veafShortcuts.Version = "1.23.0"
+veafShortcuts.Version = "1.24.0"
 
 -- trace level, specific to this module
 --veafShortcuts.LogLevel = "trace"
@@ -93,7 +93,7 @@ end
 ---
 
 function VeafAlias:setName(value)
-    veaf.loggers.get(veafShortcuts.Id):trace(string.format("VeafAlias[%s]:setName([%s])", self.name or "", value or ""))
+    veaf.loggers.get(veafShortcuts.Id):trace(string.format("VeafAlias[%s]:setName([%s])", veaf.p(self.name) or "", value or ""))
     self.name = value
     return self
 end
@@ -102,9 +102,8 @@ function VeafAlias:getName()
     return self.name
 end
 
-
 function VeafAlias:setVeafCommand(value)
-    veaf.loggers.get(veafShortcuts.Id):trace(string.format("VeafAlias[%s]:setVeafCommand([%s])", self.name, value or ""))
+    veaf.loggers.get(veafShortcuts.Id):trace(string.format("VeafAlias[%s]:setVeafCommand([%s])", veaf.p(self.name), value or ""))
     self.veafCommand = value
     return self
 end
@@ -114,7 +113,7 @@ function VeafAlias:getVeafCommand()
 end
 
 function VeafAlias:setEndsWithComma(value)
-    veaf.loggers.get(veafShortcuts.Id):trace(string.format("VeafAlias[%s]:setEndsWithComma([%s])", self.name, value or ""))
+    veaf.loggers.get(veafShortcuts.Id):trace(string.format("VeafAlias[%s]:setEndsWithComma([%s])", veaf.p(self.name), value or ""))
     self.endsWithComma = value
     return self
 end
@@ -124,7 +123,7 @@ function VeafAlias:isEndsWithComma()
 end
 
 function VeafAlias:addRandomParameter(name, low, high)
-    veaf.loggers.get(veafShortcuts.Id):trace(string.format("VeafAlias[%s]:addRandomParameter([%s], %s, %s)", self.name, name or "", low or "", high or ""))
+    veaf.loggers.get(veafShortcuts.Id):trace(string.format("VeafAlias[%s]:addRandomParameter([%s], %s, %s)", veaf.p(self.name), name or "", low or "", high or ""))
     table.insert(self.randomParameters, { name = name, low = low or 1, high = high or 6})
     return self
 end
@@ -134,13 +133,13 @@ function VeafAlias:getRandomParameters()
 end
 
 function VeafAlias:dontEndWithComma()
-    veaf.loggers.get(veafShortcuts.Id):trace(string.format("VeafAlias[%s]:dontEndWithComma()", self.name))
+    veaf.loggers.get(veafShortcuts.Id):trace(string.format("VeafAlias[%s]:dontEndWithComma()", veaf.p(self.name)))
     self:setEndsWithComma(false)
     return self
 end
 
 function VeafAlias:setDescription(value)
-    veaf.loggers.get(veafShortcuts.Id):trace(string.format("VeafAlias[%s]:setDescription([%s])", self.name, value or ""))
+    veaf.loggers.get(veafShortcuts.Id):trace(string.format("VeafAlias[%s]:setDescription([%s])", veaf.p(self.name), value or ""))
     self.description = value
     return self
 end
@@ -150,7 +149,7 @@ function VeafAlias:getDescription()
 end
 
 function VeafAlias:setBypassSecurity(value)
-    veaf.loggers.get(veafShortcuts.Id):trace(string.format("VeafAlias[%s]:setBypassSecurity([%s])", self.name, tostring(value) or ""))
+    veaf.loggers.get(veafShortcuts.Id):trace(string.format("VeafAlias[%s]:setBypassSecurity([%s])", veaf.p(self.name), tostring(value) or ""))
     self.bypassSecurity = value
     return self
 end
@@ -160,7 +159,7 @@ function VeafAlias:isBypassSecurity()
 end
 
 function VeafAlias:setHidden(value)
-    veaf.loggers.get(veafShortcuts.Id):trace(string.format("VeafAlias[%s]:setHidden([%s])", self.name, tostring(value) or ""))
+    veaf.loggers.get(veafShortcuts.Id):trace(string.format("VeafAlias[%s]:setHidden([%s])", veaf.p(self.name), tostring(value) or ""))
     self.hidden = value
     return self
 end
@@ -170,7 +169,7 @@ function VeafAlias:isHidden()
 end
 
 function VeafAlias:setBatchAliases(value)
-    veaf.loggers.get(veafShortcuts.Id):trace("VeafAlias[%s]:setBatchAliases([%s])", self.name, veaf.p(value))
+    veaf.loggers.get(veafShortcuts.Id):trace("VeafAlias[%s]:setBatchAliases([%s])", veaf.p(self.name), veaf.p(value))
     self.batchAliases = value
     -- by default, batches are hidden and have a L1 password
     self:setPassword(veafSecurity.PASSWORD_L1)
@@ -243,6 +242,214 @@ end
 ---
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- VeafAliasForCombatMission object
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+VeafAliasForCombatMission = {}
+VeafAliasForCombatMission.__index = VeafAliasForCombatMission
+
+function VeafAliasForCombatMission:new()
+    local self = setmetatable(mist.utils.deepCopy(VeafAlias.new()), VeafAliasForCombatMission)
+    self:setPassword(veafSecurity.PASSWORD_L1)
+    self:setHidden(true)
+    return self
+end
+
+setmetatable(VeafAliasForCombatMission, {__index = VeafAlias})
+
+---
+--- overloaded members
+---
+
+function VeafAliasForCombatMission:execute(remainingCommand, position, coalition, markId, bypassSecurity, spawnedGroups)
+    veaf.loggers.get(veafShortcuts.Id):trace("VeafAliasForCombatMission[%s]:execute([%s])", veaf.p(self.name), veaf.p(remainingCommand))
+
+    local command = self:getVeafCommand()
+    for _, parameter in pairs(self:getRandomParameters()) do
+        veaf.loggers.get(veafShortcuts.Id):trace(string.format("randomizing [%s]",parameter.name or ""))
+        local value = math.random(parameter.low, parameter.high)
+        veaf.loggers.get(veafShortcuts.Id):trace(string.format("got [%d]",value))
+        command = string.format("%s, %s %d",command, parameter.name, value)
+    end
+    if self:isEndsWithComma() then
+        veaf.loggers.get(veafShortcuts.Id):trace("adding a comma")
+        command = command .. ", "
+    end
+
+    local _bypassSecurity = bypassSecurity or self:isBypassSecurity()
+
+    local command = command .. (remainingCommand or "")
+    veaf.loggers.get(veafShortcuts.Id):trace("command=%s", veaf.p(command))
+
+    local keywords = veaf.split(command, ",")
+
+    local silent = false
+    local missionName = nil
+    for _, keyphrase in pairs(keywords) do
+        local str = veaf.breakString(veaf.trim(keyphrase), " ")
+        local key = str[1]
+        local val = str[2] or ""
+
+        if key:lower() == "silent" then
+            silent = true
+        end
+
+        if key:lower() == "name" then
+            missionName = val
+        end
+
+        if key:lower() == "password" then
+            password = val
+        end
+    end
+
+    if not (bypassSecurity or veafSecurity.isAuthenticated()) then
+        veaf.loggers.get(veafShortcuts.Id):trace("password=%s", veaf.p(password))
+        local hash = nil
+        if password then 
+            hash = sha1.hex(password)
+        end
+        if not(self:hasPassword(hash)) then
+            veaf.loggers.get(veafShortcuts.Id):warn("You have to give the correct alias password for %s to do this", self:getName())
+            trigger.action.outText("Please use the ', password <alias password>' option", 5)
+            return false
+        end
+    end
+
+    veaf.loggers.get(veafShortcuts.Id):trace("missionName=%s", veaf.p(missionName))
+    veaf.loggers.get(veafShortcuts.Id):trace("silent=%s", veaf.p(silent))
+
+    if not missionName or #missionName == 0 then
+        local msg = string.format("VeafAliasForCombatMission: mission name is mandatory")
+        veaf.loggers.get(veafShortcuts.Id):warn(msg)
+        trigger.action.outText(msg, 5)
+        return false
+    end
+
+    local mission = veafCombatMission.GetMission(missionName)
+    if not mission then 
+        local msg = string.format("VeafAliasForCombatMission: mission %s does not exist", veaf.p(missionName))
+        veaf.loggers.get(veafShortcuts.Id):warn(msg)
+        trigger.action.outText(msg, 5)
+        return false
+    end
+
+    --veaf.loggers.get(veafShortcuts.Id):trace("mission=%s", veaf.p(mission))
+
+    if command:lower():sub(1, 5) == "start" then
+        local result = veafCombatMission.ActivateMission(missionName, silent)
+        return result
+    elseif command:lower():sub(1, 4) == "stop" then
+        local result = veafCombatMission.DesactivateMission(missionName, silent)
+        return result
+    end
+
+end
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- VeafAliasForCombatZone object
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+VeafAliasForCombatZone = {}
+VeafAliasForCombatZone.__index = VeafAliasForCombatZone
+
+function VeafAliasForCombatZone:new()
+    local self = setmetatable(mist.utils.deepCopy(VeafAlias.new()), VeafAliasForCombatZone)
+    self:setPassword(veafSecurity.PASSWORD_L1)
+    self:setHidden(true)
+    return self
+end
+
+setmetatable(VeafAliasForCombatZone, {__index = VeafAlias})
+
+---
+--- overloaded members
+---
+
+function VeafAliasForCombatZone:execute(remainingCommand, position, coalition, markId, bypassSecurity, spawnedGroups)
+    veaf.loggers.get(veafShortcuts.Id):trace("VeafAliasForCombatZone[%s]:execute([%s])", veaf.p(self.name), veaf.p(remainingCommand))
+
+    local command = self:getVeafCommand()
+    for _, parameter in pairs(self:getRandomParameters()) do
+        veaf.loggers.get(veafShortcuts.Id):trace(string.format("randomizing [%s]",parameter.name or ""))
+        local value = math.random(parameter.low, parameter.high)
+        veaf.loggers.get(veafShortcuts.Id):trace(string.format("got [%d]",value))
+        command = string.format("%s, %s %d",command, parameter.name, value)
+    end
+    if self:isEndsWithComma() then
+        veaf.loggers.get(veafShortcuts.Id):trace("adding a comma")
+        command = command .. ", "
+    end
+
+    local _bypassSecurity = bypassSecurity or self:isBypassSecurity()
+
+    local command = command .. (remainingCommand or "")
+    veaf.loggers.get(veafShortcuts.Id):trace("command=%s", veaf.p(command))
+
+    local keywords = veaf.split(command, ",")
+
+    local silent = false
+    local zoneName = nil
+    for _, keyphrase in pairs(keywords) do
+        local str = veaf.breakString(veaf.trim(keyphrase), " ")
+        local key = str[1]
+        local val = str[2] or ""
+
+        if key:lower() == "silent" then
+            silent = true
+        end
+
+        if key:lower() == "name" then
+            zoneName = val
+        end
+
+        if key:lower() == "password" then
+            password = val
+        end
+    end
+
+    if not (bypassSecurity or veafSecurity.isAuthenticated()) then
+        veaf.loggers.get(veafShortcuts.Id):trace("password=%s", veaf.p(password))
+        local hash = nil
+        if password then 
+            hash = sha1.hex(password)
+        end
+        if not(self:hasPassword(hash)) then
+            veaf.loggers.get(veafShortcuts.Id):warn("You have to give the correct alias password for %s to do this", self:getName())
+            trigger.action.outText("Please use the ', password <alias password>' option", 5)
+            return false
+        end
+    end
+
+    veaf.loggers.get(veafShortcuts.Id):trace("zoneName=%s", veaf.p(zoneName))
+    veaf.loggers.get(veafShortcuts.Id):trace("silent=%s", veaf.p(silent))
+
+    if not zoneName or #zoneName == 0 then
+        local msg = string.format("VeafAliasForCombatZone: zone name is mandatory")
+        veaf.loggers.get(veafShortcuts.Id):warn(msg)
+        trigger.action.outText(msg, 5)
+        return false
+    end
+
+    local zone = veafCombatZone.GetZone(zoneName)
+    if not zone then 
+        local msg = string.format("VeafAliasForCombatZone: zone %s does not exist", veaf.p(zoneName))
+        veaf.loggers.get(veafShortcuts.Id):warn(msg)
+        trigger.action.outText(msg, 5)
+        return false
+    end
+
+    --veaf.loggers.get(veafShortcuts.Id):trace("zone=%s", veaf.p(zone))
+
+    if command:lower():sub(1, 5) == "start" then
+        local result = veafCombatZone.ActivateZone(zoneName, silent)
+        return result
+    elseif command:lower():sub(1, 4) == "stop" then
+        local result = veafCombatZone.DesactivateZone(zoneName, silent)
+        return result
+    end
+
+end
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- global functions
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -301,7 +508,7 @@ function veafShortcuts.ExecuteAlias(aliasName, delay, remainingCommand, position
                 end
             end
             
-            if not (bypassSecurity) then
+            if not (bypassSecurity or veafSecurity.isAuthenticated()) then
                 veaf.loggers.get(veafShortcuts.Id):trace("password=%s", veaf.p(password))
                 local hash = nil
                 if password then 
@@ -948,6 +1155,38 @@ function veafShortcuts.buildDefaultList()
             :setName("-run")
             :setDescription("Mission Master : run runnable")
             :setVeafCommand("_mm run, name")
+            :dontEndWithComma()
+            :setBypassSecurity(false)
+    )
+    veafShortcuts.AddAlias(
+        VeafAliasForCombatMission:new()
+            :setName("-airstart")
+            :setDescription("Run a combat mission")
+            :setVeafCommand("start, name")
+            :dontEndWithComma()
+            :setBypassSecurity(false)
+    )
+    veafShortcuts.AddAlias(
+        VeafAliasForCombatMission:new()
+            :setName("-airstop")
+            :setDescription("Stop a combat mission")
+            :setVeafCommand("stop, name")
+            :dontEndWithComma()
+            :setBypassSecurity(false)
+    )
+    veafShortcuts.AddAlias(
+        VeafAliasForCombatZone:new()
+            :setName("-zonestart")
+            :setDescription("Activate a combat zone")
+            :setVeafCommand("start, name")
+            :dontEndWithComma()
+            :setBypassSecurity(false)
+    )
+    veafShortcuts.AddAlias(
+        VeafAliasForCombatZone:new()
+            :setName("-zonestop")
+            :setDescription("Desactivate a combat zone")
+            :setVeafCommand("stop, name")
             :dontEndWithComma()
             :setBypassSecurity(false)
     )

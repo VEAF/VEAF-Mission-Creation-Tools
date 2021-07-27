@@ -25,10 +25,10 @@ veafCombatMission = {}
 veafCombatMission.Id = "COMBATMISSION"
 
 --- Version.
-veafCombatMission.Version = "2.1.1"
+veafCombatMission.Version = "2.1.2"
 
 -- trace level, specific to this module
---veafCombatMission.LogLevel = "debug"
+--veafCombatMission.LogLevel = "trace"
 
 veaf.loggers.new(veafCombatMission.Id, veafCombatMission.LogLevel)
 
@@ -1039,7 +1039,7 @@ end
 function veafCombatMission.GetMission(name)
     veaf.loggers.get(veafCombatMission.Id):debug(string.format("veafCombatMission.GetMission([%s])",name or ""))
     veaf.loggers.get(veafCombatMission.Id):debug(string.format("Searching for mission with name [%s]", name))
-    local mission = veafCombatMission.missionsDict[name]
+    local mission = veafCombatMission.missionsDict[name:lower()]
     if not mission then 
         local message = string.format("VeafCombatMission [%s] was not found !",name)
         veaf.loggers.get(veafCombatMission.Id):error(message)
@@ -1054,7 +1054,7 @@ function veafCombatMission.AddMission(mission)
     veaf.loggers.get(veafCombatMission.Id):debug(string.format("Adding mission [%s]", mission:getName()))
     mission:initialize()
     table.insert(veafCombatMission.missionsList, mission)
-    veafCombatMission.missionsDict[mission:getName()] = mission
+    veafCombatMission.missionsDict[mission:getName():lower()] = mission
     return mission
 end
 

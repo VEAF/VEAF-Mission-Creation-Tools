@@ -66,10 +66,10 @@ veafSpawn = {}
 veafSpawn.Id = "SPAWN"
 
 --- Version.
-veafSpawn.Version = "1.31.0"
+veafSpawn.Version = "1.32.0"
 
 -- trace level, specific to this module
-veafSpawn.LogLevel = "trace"
+--veafSpawn.LogLevel = "trace"
 
 veaf.loggers.new(veafSpawn.Id, veafSpawn.LogLevel)
 
@@ -247,7 +247,7 @@ function veafSpawn.executeCommand(eventPos, eventText, coalition, markId, bypass
                 elseif options.cap then
                     -- check security
                     if not (bypassSecurity or veafSecurity.checkSecurity_L9(options.password, markId)) then return end
-                    spawnedGroup = veafSpawn.spawnCombatAirPatrol(eventPos, options.radius, options.name, options.altitude, options.altdelta, options.heading, options.distance, options.speed, options.capradius, options.skill, bypassSecurity)
+                    spawnedGroup = veafSpawn.spawnCombatAirPatrol(eventPos, options.radius, options.name, options.country, options.altitude, options.altdelta, options.heading, options.distance, options.speed, options.capradius, options.skill, bypassSecurity)
                 elseif options.group then
                     -- check security
                     if not (bypassSecurity or veafSecurity.checkSecurity_L9(options.password, markId)) then return end
@@ -2166,7 +2166,7 @@ function veafSpawn.listAllCAP(unitName)
     end
 end
 
-function veafSpawn.spawnCombatAirPatrol(spawnSpot, radius, name, altitude, altdelta, hdg, distance, speed, capRadius, skill, silent)
+function veafSpawn.spawnCombatAirPatrol(spawnSpot, radius, name, country, altitude, altdelta, hdg, distance, speed, capRadius, skill, silent)
     local radius = radius or 5000 -- m
     local altitude = altitude 
     if altitude == 0 then
@@ -2192,17 +2192,18 @@ function veafSpawn.spawnCombatAirPatrol(spawnSpot, radius, name, altitude, altde
     altitude = altitude * 0.3048 -- meters
     altdelta = altdelta * 0.3048 -- meters
 
-    veaf.loggers.get(veafSpawn.Id):trace("spawnSpot=%s", spawnSpot)
-    veaf.loggers.get(veafSpawn.Id):trace("radius=%s", radius)
-    veaf.loggers.get(veafSpawn.Id):trace("name=%s", name)
-    veaf.loggers.get(veafSpawn.Id):trace("altitude=%s", altitude)
-    veaf.loggers.get(veafSpawn.Id):trace("altdelta=%s", altdelta)
-    veaf.loggers.get(veafSpawn.Id):trace("hdg=%s", hdg)
-    veaf.loggers.get(veafSpawn.Id):trace("distance=%s", distance)
-    veaf.loggers.get(veafSpawn.Id):trace("speed=%s", speed)
-    veaf.loggers.get(veafSpawn.Id):trace("capRadius=%s", capRadius)
-    veaf.loggers.get(veafSpawn.Id):trace("skill=%s", skill)
-    veaf.loggers.get(veafSpawn.Id):trace("silent=%s", silent)
+    veaf.loggers.get(veafSpawn.Id):trace("spawnSpot=%s", veaf.p(spawnSpot))
+    veaf.loggers.get(veafSpawn.Id):trace("radius=%s", veaf.p(radius))
+    veaf.loggers.get(veafSpawn.Id):trace("name=%s", veaf.p(name))
+    veaf.loggers.get(veafSpawn.Id):trace("country=%s", veaf.p(country))
+    veaf.loggers.get(veafSpawn.Id):trace("altitude=%s", veaf.p(altitude))
+    veaf.loggers.get(veafSpawn.Id):trace("altdelta=%s", veaf.p(altdelta))
+    veaf.loggers.get(veafSpawn.Id):trace("hdg=%s", veaf.p(hdg))
+    veaf.loggers.get(veafSpawn.Id):trace("distance=%s", veaf.p(distance))
+    veaf.loggers.get(veafSpawn.Id):trace("speed=%s", veaf.p(speed))
+    veaf.loggers.get(veafSpawn.Id):trace("capRadius=%s", veaf.p(capRadius))
+    veaf.loggers.get(veafSpawn.Id):trace("skill=%s", veaf.p(skill))
+    veaf.loggers.get(veafSpawn.Id):trace("silent=%s", veaf.p(silent))
    
     local getRoute = function(parameters)
         local newRoute = {
@@ -2507,57 +2508,64 @@ function veafSpawn.spawnCombatAirPatrol(spawnSpot, radius, name, altitude, altde
 
     veaf.loggers.get(veafSpawn.Id):trace("parameters=%s",parameters)
     local newRoute = getRoute(parameters)
-    --veaf.loggers.get(veafSpawn.Id):trace("newRoute=%s",newRoute)
     
     veafSpawn.traceMarkerId = veaf.loggers.get(veafSpawn.Id):marker(veafSpawn.traceMarkerId, "CAP", "wp1", parameters.wp1)
     veafSpawn.traceMarkerId = veaf.loggers.get(veafSpawn.Id):marker(veafSpawn.traceMarkerId, "CAP", "wp2", parameters.wp2)
     veafSpawn.traceMarkerId = veaf.loggers.get(veafSpawn.Id):marker(veafSpawn.traceMarkerId, "CAP", "wp3", parameters.wp3)
     veafSpawn.traceMarkerId = veaf.loggers.get(veafSpawn.Id):marker(veafSpawn.traceMarkerId, "CAP", "targetZone", parameters.targetZone, nil, capRadius, {1,0,0,0.15})
+
+    if not veafSpawn.spawnedNamesIndex[groupName] then
+        veafSpawn.spawnedNamesIndex[groupName] = 1
+    else
+        veafSpawn.spawnedNamesIndex[groupName] = veafSpawn.spawnedNamesIndex[groupName] + 1
+    end
+    local newGroupName = string.format("%s #%04d", groupName, veafSpawn.spawnedNamesIndex[groupName])
+    veaf.loggers.get(veafSpawn.Id):trace("newGroupName=%s",newGroupName)
+
     -- (re)spawn group
     local vars = {}
     vars.gpName = _template:getName()
     vars.name = _template:getName()
     vars.groupData = _template:getGroupData()
     vars.route = newRoute
-    --vars.route = mist.getGroupRoute(_template:getName(), "task")
     vars.action = 'clone'
     vars.point = position
+    vars.newGroupName = newGroupName
+
     local newGroup = mist.teleportToPoint(vars, true)
-    --newGroup.task = "CAP"
-    veaf.loggers.get(veafSpawn.Id):trace("newGroup=%s",newGroup)
-    if not veafSpawn.spawnedNamesIndex[groupName] then
-        veafSpawn.spawnedNamesIndex[groupName] = 0
-    else
-        veafSpawn.spawnedNamesIndex[groupName] = veafSpawn.spawnedNamesIndex[groupName] + 1
+    if country and #country > 0 then
+        newGroup.country = country:lower()
+        newGroup.coalition = veaf.getCoalitionForCountry(country)
+        newGroup.countryId = veaf.getCountryId(country)
     end
-    local spawnedGroupName = string.format("%s #%04d", groupName, veafSpawn.spawnedNamesIndex[groupName])
-    veaf.loggers.get(veafSpawn.Id):trace("spawnedGroupName=%s",spawnedGroupName)
-    local _group = mist.teleportToPoint(vars, true)
-    for _, unit in pairs(_group.units) do
+    --newGroup.task = "CAP"
+    veaf.loggers.get(veafSpawn.Id):trace("newGroup=%s", veaf.p(newGroup, nil, {"route", "payload"}))
+
+    for _, unit in pairs(newGroup.units) do
         unit.skill = skill
     end
-    _group.hidden=false
-    _group.newName = spawnedGroupName
-    for _, unit in pairs(_group.units) do
+    newGroup.hidden=false
+    newGroup.name = newGroupName
+    for _, unit in pairs(newGroup.units) do
         local unitName = unit.unitName or unit.name
         veaf.loggers.get(veafSpawn.Id):trace("unitName=%s",unitName)
         if not veafSpawn.spawnedNamesIndex[unitName] then
-            veafSpawn.spawnedNamesIndex[unitName] = 0
+            veafSpawn.spawnedNamesIndex[unitName] = 1
         else
             veafSpawn.spawnedNamesIndex[unitName] = veafSpawn.spawnedNamesIndex[unitName] + 1
         end
         local spawnedUnitName = string.format("%s #%04d", unitName, veafSpawn.spawnedNamesIndex[unitName])
-        unit.newName = spawnedUnitName
+        unit.name = spawnedUnitName
         unit.alt = position.y
         veaf.loggers.get(veafSpawn.Id):trace("spawnedUnitName=%s",spawnedUnitName)
     end
-    veaf.loggers.get(veafSpawn.Id):trace("_group=%s",_group)
-    local _spawnedGroup = mist.dynAdd(_group)
-    veaf.loggers.get(veafSpawn.Id):trace("_spawnedGroup=%s",_spawnedGroup)
+    veaf.loggers.get(veafSpawn.Id):trace("newGroup=%s", veaf.p(newGroup, nil, {"route", "payload"}))
+    local _spawnedGroup = mist.dynAdd(newGroup)
+    veaf.loggers.get(veafSpawn.Id):trace("_spawnedGroup=%s", veaf.p(_spawnedGroup, nil, {"route", "payload"}))
     veaf.loggers.get(veafSpawn.Id):trace("_spawnedGroup.name=%s",_spawnedGroup.name)
     local _dcsSpawnedGroup = Group.getByName(_spawnedGroup.name)
     mist.goRoute(_spawnedGroup.name, newRoute)
-    veaf.loggers.get(veafSpawn.Id):trace("_dcsSpawnedGroup=%s",_dcsSpawnedGroup)
+    veaf.loggers.get(veafSpawn.Id):trace("_dcsSpawnedGroup=%s", veaf.p(_dcsSpawnedGroup, nil, {"route", "payload"}))
     veaf.loggers.get(veafSpawn.Id):trace("_dcsSpawnedGroup.name=%s",_dcsSpawnedGroup:getName())
     for _, unit in pairs(_dcsSpawnedGroup:getUnits()) do
         veaf.loggers.get(veafSpawn.Id):trace("_dcsSpawnedGroup.unit.name=%s",unit:getName())

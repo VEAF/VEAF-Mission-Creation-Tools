@@ -565,16 +565,22 @@ function veaf.ifnns(o, fields)
     return result
 end
 
-function veaf.p(o, level)
+function veaf.p(o, level, skip)
     if o and type(o) == "table" and (o.x and o.z and o.y and #o == 3) then
         return string.format("{x=%s, z=%s, y=%s}", veaf.p(o.x), veaf.p(o.z), veaf.p(o.y))
     elseif o and type(o) == "table" and (o.x and o.y and #o == 2)  then
         return string.format("{x=%s, y=%s}", veaf.p(o.x), veaf.p(o.y))
     end
-    return veaf._p(o, level)
+    local skip = skip
+    if skip and type(skip)=="table" then
+        for _, value in ipairs(skip) do
+            skip[value]=true
+        end
+    end
+    return veaf._p(o, level, skip)
 end
 
-function veaf._p(o, level)
+function veaf._p(o, level, skip)
     local MAX_LEVEL = 20
     if level == nil then level = 0 end
     if level > MAX_LEVEL then 
@@ -584,11 +590,24 @@ function veaf._p(o, level)
     local text = ""
     if (type(o) == "table") then
         text = "\n"
-        for key,value in pairs(o) do
+        local keys = {}
+        local values = {}
+        for key, value in pairs(o) do
+            local sKey = tostring(key)
+            table.insert(keys, sKey)
+            values[sKey] = value
+        end
+        table.sort(keys)
+        for _, key in pairs(keys) do
+            local value = values[key]
             for i=0, level do
                 text = text .. " "
             end
-            text = text .. ".".. key.."="..veaf.p(value, level+1) .. "\n"
+            if not (skip and skip[key]) then
+                text = text .. ".".. key.."="..veaf.p(value, level+1, skip) .. "\n"
+            else
+                text = text .. ".".. key.."= [[SKIPPED]]\n"
+            end
         end
     elseif (type(o) == "function") then
         text = "[function]"
@@ -1576,6 +1595,17 @@ local function _initializeCountriesAndCoalitions()
 
     veaf.loggers.get(veaf.Id):trace(string.format("veaf.countriesByCoalition=%s", veaf.p(veaf.countriesByCoalition)))
     veaf.loggers.get(veaf.Id):trace(string.format("veaf.coalitionByCountry=%s", veaf.p(veaf.coalitionByCountry)))
+end
+
+function veaf.getCountryId(countryName)
+    veaf.loggers.get(veaf.Id):trace("veaf.getCountryId(%s)", veaf.p(countryName))
+    local countryName = string.lower(countryName or "")
+    for id, name in pairs(country.name) do
+        if name:lower() == countryName then
+            return id
+        end
+    end
+    return 0
 end
 
 function veaf.getCountryForCoalition(coalition)

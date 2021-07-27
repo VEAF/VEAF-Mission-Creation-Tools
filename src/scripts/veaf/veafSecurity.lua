@@ -65,8 +65,10 @@ veafSecurity.password_L9 = {}
 veafSecurity.password_MM = {}
 
 -- list the security passwords common to all missions below
-veafSecurity.password_L0["47c7808d1079fd20add322bbd5cf23b93ad1841e"] = true
-veafSecurity.password_L1["988d613da2a9b3a71b30d45f3cb20b9e0f3db1fa"] = true
+veafSecurity.PASSWORD_L0 = "47c7808d1079fd20add322bbd5cf23b93ad1841e"
+veafSecurity.PASSWORD_L1 = "bdc82f5ef92369919a3a53515023ce19f68656cc"
+veafSecurity.password_L0[veafSecurity.PASSWORD_L0] = true
+veafSecurity.password_L1[veafSecurity.PASSWORD_L1] = true
 
 veafSecurity.authenticated = veaf.SecurityDisabled
 
@@ -634,7 +636,7 @@ function veafSecurity.checkSecurity_L0(password, markId)
     -- don't check the password if already logged in
   if veafSecurity.isAuthenticated() then return true end
   if veafSecurity.getMarkerSecurityLevel(markId) < veafSecurity.LEVEL_L0 and not veafSecurity.checkPassword_L0(password) then
-    veaf.loggers.get(veaf.ISecveafSecurityd):warn("You have to give the correct L0 password to do this")
+    veaf.loggers.get(veafSecurity.Id):warn("You have to give the correct L0 password to do this")
     trigger.action.outText("Please use the ', password <L0 password>' option", 5) 
     return false
   end
@@ -645,7 +647,7 @@ function veafSecurity.checkSecurity_L1(password, markId)
   -- don't check the password if already logged in
   if veafSecurity.isAuthenticated() then return true end
   if veafSecurity.getMarkerSecurityLevel(markId) < veafSecurity.LEVEL_L1 and not veafSecurity.checkPassword_L1(password) then
-    veaf.loggers.get(veaf.ISecveafSecurityd):warn("You have to give the correct L1 password to do this")
+    veaf.loggers.get(veafSecurity.Id):warn("You have to give the correct L1 password to do this")
     trigger.action.outText("Please use the ', password <L1 password>' option", 5) 
     return false
   end
@@ -656,7 +658,7 @@ function veafSecurity.checkSecurity_L9(password, markId)
   -- don't check the password if already logged in
   if veafSecurity.isAuthenticated() then return true end
   if veafSecurity.getMarkerSecurityLevel(markId) < veafSecurity.LEVEL_L9 and not veafSecurity.checkPassword_L9(password) then
-    veaf.loggers.get(veaf.ISecveafSecurityd):warn("You have to give the correct L9 password to do this")
+    veaf.loggers.get(veafSecurity.Id):warn("You have to give the correct L9 password to do this")
     trigger.action.outText("Please use the ', password <L9 password>' option", 5) 
     return false
   end
@@ -665,7 +667,7 @@ end
 
 function veafSecurity.checkSecurity_MM(password) 
   if not veafSecurity.checkPassword_MM(password) then
-    veaf.loggers.get(veaf.ISecveafSecurityd):warn("You have to give the correct Mission Master password to do this")
+    veaf.loggers.get(veafSecurity.Id):warn("You have to give the correct Mission Master password to do this")
     trigger.action.outText("Please use the ', password <MM password>' option", 5) 
     return false
   end

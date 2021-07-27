@@ -181,6 +181,30 @@ function _deepcopy(orig, copies)
 end
 
 function veafSpawnableAircraftsEditor.editCategory(coa_name, country_name, category_name, category_t)
+  local function parseTable(o, level)
+    local MAX_LEVEL = 50
+    if level == nil then level = 0 end
+    if level > MAX_LEVEL then 
+      logError("max depth reached in parseTable : "..tostring(MAX_LEVEL))
+      return
+    end
+    if (type(o) == "table") then
+      for key,value in pairs(o) do
+        veafSpawnableAircraftsEditor.logTrace(string.format("parseTable %s", p(key)))
+        if tostring(key):lower() == "groupid" then
+          veafSpawnableAircraftsEditor.maxGroupId = veafSpawnableAircraftsEditor.maxGroupId + 1
+          o[key] = veafSpawnableAircraftsEditor.maxGroupId
+          veafSpawnableAircraftsEditor.logDebug(string.format("veafSpawnableAircraftsEditor.maxGroupId=[%s]", p(veafSpawnableAircraftsEditor.maxGroupId)))
+        elseif tostring(key):lower() == "unitid" then
+          veafSpawnableAircraftsEditor.maxUnitId = veafSpawnableAircraftsEditor.maxUnitId + 1
+          o[key] = veafSpawnableAircraftsEditor.maxUnitId
+          veafSpawnableAircraftsEditor.logDebug(string.format("veafSpawnableAircraftsEditor.maxUnitId=[%s]", p(veafSpawnableAircraftsEditor.maxUnitId)))
+        end
+        parseTable(value, level+1)
+      end
+    end
+  end
+
   if not category_t then 
     return 
   end
@@ -202,6 +226,7 @@ function veafSpawnableAircraftsEditor.editCategory(coa_name, country_name, categ
           for _, settingsGroup in pairs(setting_t.groups) do
             if settingsGroup.name then
               local newGroup = _deepcopy(settingsGroup)
+              parseTable(newGroup)
               local groupNameUpper = settingsGroup.name:upper()
               veafSpawnableAircraftsEditor.logDebug(string.format("  groupNameUpper=%s",p(groupNameUpper)))
               -- check if the aircraft group exists
@@ -230,6 +255,42 @@ function veafSpawnableAircraftsEditor.editCategory(coa_name, country_name, categ
 end
 
 function veafSpawnableAircraftsEditor.editGroups(missionTable)
+
+  -- find max maxGroupId and unitId
+  veafSpawnableAircraftsEditor.maxGroupId = 1
+  veafSpawnableAircraftsEditor.maxUnitId = 1
+  local function parseTable(o, level)
+    local MAX_LEVEL = 50
+    if level == nil then level = 0 end
+    if level > MAX_LEVEL then 
+      logError("max depth reached in parseTable : "..tostring(MAX_LEVEL))
+      return
+    end
+    if (type(o) == "table") then
+      for key,value in pairs(o) do
+        veafSpawnableAircraftsEditor.logTrace(string.format("parseTable %s", p(key)))
+        if tostring(key):lower() == "groupid" then
+          local nVal = tonumber(value or "0")
+          veafSpawnableAircraftsEditor.logTrace(string.format("groupid=[%s]", p(value)))
+          if nVal > veafSpawnableAircraftsEditor.maxGroupId then
+            veafSpawnableAircraftsEditor.maxGroupId = nVal
+            veafSpawnableAircraftsEditor.logTrace(string.format("veafSpawnableAircraftsEditor.maxGroupId=[%s]", p(veafSpawnableAircraftsEditor.maxGroupId)))
+          end
+        elseif tostring(key):lower() == "unitid" then
+          local nVal = tonumber(value or "0")
+          veafSpawnableAircraftsEditor.logTrace(string.format("unitid=[%s]", p(value)))
+          if nVal > veafSpawnableAircraftsEditor.maxUnitId then
+            veafSpawnableAircraftsEditor.maxUnitId = nVal
+            veafSpawnableAircraftsEditor.logTrace(string.format("veafSpawnableAircraftsEditor.maxUnitId=[%s]", p(veafSpawnableAircraftsEditor.maxUnitId)))
+          end          
+        end
+        parseTable(value, level+1)
+      end
+    end
+  end
+  parseTable(missionTable)
+  veafSpawnableAircraftsEditor.logDebug(string.format("veafSpawnableAircraftsEditor.maxGroupId=[%s]", p(veafSpawnableAircraftsEditor.maxGroupId)))
+  veafSpawnableAircraftsEditor.logDebug(string.format("veafSpawnableAircraftsEditor.maxUnitId=[%s]", p(veafSpawnableAircraftsEditor.maxUnitId)))
 
   local coalitions_t = missionTable["coalition"]
   -- browse coalitions

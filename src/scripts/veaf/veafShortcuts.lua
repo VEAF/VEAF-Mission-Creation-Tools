@@ -68,6 +68,10 @@ VeafAlias =
     randomParameters,
     -- if TRUE, security is bypassed
     bypassSecurity,
+    -- if set, the alias will actually be a batch of aliases to execute in order
+    batchAliases,
+    -- if set, the alias is password protected with a specific password
+    password,
 }
 VeafAlias.__index = VeafAlias
 
@@ -79,6 +83,8 @@ function VeafAlias:new()
     self.randomParameters = {}
     self.endsWithComma = true
     self.description = nil
+    self.batchAliases = nil
+    self.password = nil
     return self
 end
 
@@ -161,6 +167,30 @@ end
 
 function VeafAlias:isHidden()
     return self.hidden
+end
+
+function VeafAlias:setBatchAliases(value)
+    veaf.loggers.get(veafShortcuts.Id):trace("VeafAlias[%s]:setBatchAliases([%s])", self.name, veaf.p(value))
+    self.batchAliases = value
+    -- by default, batches are hidden and have a L1 password
+    self:setPassword(veafSecurity.PASSWORD_L1)
+    self:setHidden(true)
+    return self
+end
+
+function VeafAlias:getBatchAliases()
+    return self.batchAliases
+end
+
+function VeafAlias:setPassword(value)
+    veaf.loggers.get(veafShortcuts.Id):trace("VeafAlias[%s]:setPassword([%s])", veaf.p(self.name), veaf.p(value))
+    self.password = {}
+    self.password[value] = true
+    return self
+end
+
+function VeafAlias:hasPassword(value)
+    return self.password and self.password[value]
 end
 
 function VeafAlias:execute(remainingCommand, position, coalition, markId, bypassSecurity, spawnedGroups)
@@ -256,15 +286,52 @@ function veafShortcuts.ExecuteAlias(aliasName, delay, remainingCommand, position
     local alias = veafShortcuts.GetAlias(aliasName)
     if alias then 
         veaf.loggers.get(veafShortcuts.Id):trace(string.format("found VeafAlias[%s]",alias:getName() or ""))
-        if delay and delay ~= "" then
-            mist.scheduleFunction(VeafAlias.execute, {alias, remainingCommand, position, coalition, markId, bypassSecurity, spawnedGroups}, timer.getTime() + delay)
-        else
-            alias:execute(remainingCommand, position, coalition, markId, bypassSecurity, spawnedGroups)
+        if alias:getBatchAliases() then -- no alias to actually execute, but instead run a batch
+            -- the batch aliases are always password protected by a Mission Master password, so search for one
+            local password = nil
+            local keywords = veaf.split(remainingCommand, ",")
+
+            for _, keyphrase in pairs(keywords) do
+                local str = veaf.breakString(veaf.trim(keyphrase), " ")
+                local key = str[1]
+                local val = str[2] or ""
+
+                if key:lower() == "password" then
+                    password = val
+                end
+            end
+            
+            if not (bypassSecurity) then
+                veaf.loggers.get(veafShortcuts.Id):trace("password=%s", veaf.p(password))
+                local hash = nil
+                if password then 
+                    hash = sha1.hex(password)
+                end
+                if not(alias:hasPassword(hash)) then
+                    veaf.loggers.get(veafShortcuts.Id):warn("You have to give the correct alias password for %s to do this", alias:getName())
+                    trigger.action.outText("Please use the ', password <alias password>' option", 5)
+                    return false
+                end
+            end
+
+            local _msg = string.format("running batch alias [%s] : %s", alias:getName(), alias:getDescription())
+            veaf.loggers.get(veafShortcuts.Id):info(_msg)
+            trigger.action.outText(_msg, 10)
+    
+            -- run the batch
+            for index, textToExecute in ipairs(alias:getBatchAliases()) do
+                veafShortcuts.executeCommand(position, textToExecute, coalition, markId, true, spawnedGroups)
+            end
+        else       
+            if delay and delay ~= "" then
+                mist.scheduleFunction(VeafAlias.execute, {alias, remainingCommand, position, coalition, markId, bypassSecurity, spawnedGroups}, timer.getTime() + delay)
+            else
+                alias:execute(remainingCommand, position, coalition, markId, bypassSecurity, spawnedGroups)
+            end
         end
         return true
     else
         veaf.loggers.get(veafShortcuts.Id):error(string.format("veafShortcuts.ExecuteAlias : cannot find alias [%s]",aliasName or ""))
-        return false
     end
     return false
 end
@@ -318,11 +385,28 @@ function veafShortcuts.executeCommand(eventPos, eventText, eventCoalition, markI
     if eventText ~= nil then
         
         -- Analyse the mark point text and extract the keywords.
-        local alias, delay, remainder = veafShortcuts.markTextAnalysis(eventText)
+        local alias, coords, delay, remainder = veafShortcuts.markTextAnalysis(eventText)
 
         if alias then
+            local position = eventPos
+
+            if coords and #coords > 0 then
+                local _lat, _lon = veaf.computeLLFromString(coords)
+                veaf.loggers.get(veafShortcuts.Id):trace(string.format("_lat=%s",veaf.p(_lat)))
+                veaf.loggers.get(veafShortcuts.Id):trace(string.format("_lon=%s",veaf.p(_lon)))
+                if _lat and _lon then 
+                    position = coord.LLtoLO(_lat, _lon)
+                    veaf.loggers.get(veafShortcuts.Id):trace(string.format("position=%s",veaf.p(position)))
+                else
+                    local _msg = string.format("unable to decode coordinates [%s]", veaf.p(coords))
+                    veaf.loggers.get(veafShortcuts.Id):warn(_msg)
+                    trigger.action.outText(_msg, 5)
+                    return
+                end
+            end
+    
             -- do the magic
-            return veafShortcuts.ExecuteAlias(alias, delay, remainder, eventPos, eventCoalition, markId, bypassSecurity, spawnedGroups)
+            return veafShortcuts.ExecuteAlias(alias, delay, remainder, position, eventCoalition, markId, bypassSecurity, spawnedGroups)
         end
         return false
     end
@@ -342,13 +426,14 @@ function veafShortcuts.markTextAnalysis(text)
             veaf.loggers.get(veafShortcuts.Id):trace("found veafShortcuts.AliasStarter")
 
             -- extract alias and remainder
-            local alias, delay, remainder = text:match("(-[^!^ ^,]+)!?(%d*)(.*)")
+            local alias, coords, delay, remainder = text:match("(-[^#^!^ ^,]+)#?([^!^,^%s]*)!?(%d*)(.*)")
             veaf.loggers.get(veafShortcuts.Id):trace(string.format("alias=[%s]", veaf.p(alias)))
+            veaf.loggers.get(veafShortcuts.Id):trace(string.format("coords=[%s]", veaf.p(coords)))
             veaf.loggers.get(veafShortcuts.Id):trace(string.format("delay=[%s]", veaf.p(delay)))
             veaf.loggers.get(veafShortcuts.Id):trace(string.format("remainder=[%s]", veaf.p(remainder)))
             if alias then
                 veaf.loggers.get(veafShortcuts.Id):trace(string.format("alias = [%s]", alias))
-                return alias, delay, remainder
+                return alias, coords, delay, remainder
             end
         end
 
@@ -866,7 +951,6 @@ function veafShortcuts.buildDefaultList()
             :dontEndWithComma()
             :setBypassSecurity(false)
     )
-
 end
 
 function veafShortcuts.dumpAliasesList(export_path)

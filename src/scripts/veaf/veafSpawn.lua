@@ -69,7 +69,7 @@ veafSpawn.Id = "SPAWN"
 veafSpawn.Version = "1.31.0"
 
 -- trace level, specific to this module
---veafSpawn.LogLevel = "trace"
+veafSpawn.LogLevel = "trace"
 
 veaf.loggers.new(veafSpawn.Id, veafSpawn.LogLevel)
 
@@ -908,7 +908,7 @@ function veafSpawn.eraseDrawing(name)
     if not drawing then 
         local message = string.format("Could not find a drawing named %s", veaf.p(name))
         veaf.loggers.getSpawn(veaf.Id):warn(message)
-        trigger.action.outText(message)
+        trigger.action.outText(message, 5)
         return
     end
     drawing:erase()

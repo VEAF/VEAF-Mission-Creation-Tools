@@ -2253,16 +2253,102 @@ function veaf.Logger:marker(id, header, message, position, markersTable, radius,
         end
         if markersTable then
             table.insert(markersTable, id)
+            --self:trace("markersTable=%s", veaf.p(markersTable))
+        end
+    end
+    return id + 1
+end
+
+function veaf.Logger:markerArrow(id, header, message, positionStart, positionEnd, markersTable, lineType, fillColor)
+    if not id then
+        id = 99999 
+    end
+    if self.level >= 5 then
+        local points = { positionStart, positionEnd }
+        for _, point in ipairs(points) do
+            local correctedPos = {}
+            correctedPos.x = point.x
+            if not(point.z) then
+                correctedPos.z = point.y
+                correctedPos.y = point.alt
+            else
+                correctedPos.z = point.z
+                correctedPos.y = point.y
+            end
+            if not (correctedPos.y) then
+                correctedPos.y = 0
+            end
+            point.x = correctedPos.x
+            point.y = correctedPos.y
+            point.z = correctedPos.z
+        end
+        local positionStart = points[1]
+        local positionEnd = points[2]
+
+        local message = message
+        if header and id then
+            message = header..id.." "..message
+        end
+        
+        self:trace("creating trace arrow #%s from point %s to point %s", id, veaf.vecToString(positionStart), veaf.vecToString(positionEnd))
+        
+        trigger.action.arrowToAll(-1, id, positionEnd, positionStart, fillColor, fillColor, lineType, false, message)
+        if markersTable then
+            table.insert(markersTable, id)
+            --self:trace("markersTable=%s", veaf.p(markersTable))
+        end
+    end
+    return id + 1
+end
+
+function veaf.Logger:markerQuad(id, header, message, points, markersTable, lineType, fillColor)
+    if not id then
+        id = 99999 
+    end
+    if self.level >= 5 then
+        local points = points
+        for _, point in ipairs(points) do
+            local correctedPos = {}
+            correctedPos.x = point.x
+            if not(point.z) then
+                correctedPos.z = point.y
+                correctedPos.y = point.alt
+            else
+                correctedPos.z = point.z
+                correctedPos.y = point.y
+            end
+            if not (correctedPos.y) then
+                correctedPos.y = 0
+            end
+            point.x = correctedPos.x
+            point.y = correctedPos.y
+            point.z = correctedPos.z
+        end
+
+        local message = message
+        if header and id then
+            message = header..id.." "..message
+        end
+        
+        self:trace("creating trace quad #%s", id)
+        
+        trigger.action.quadToAll(-1, id, points[1], points[2], points[3], points[4], fillColor, fillColor, lineType, false, message)
+        if markersTable then
+            table.insert(markersTable, id)
+            --self:trace("markersTable=%s", veaf.p(markersTable))
         end
     end
     return id + 1
 end
 
 function veaf.Logger:cleanupMarkers(markersTable)
-    for _, markerId in pairs(markersTable) do
-        self:trace("deleting trace marker #%s", markerId)
+    local n=#markersTable
+    for i=1,n do
+        local markerId = markersTable[i]
+        markersTable[i] = nil
+        self:trace("deleting trace marker #%s at pos", markerId, i)
         trigger.action.removeMark(markerId)    
-    end
+    end   
 end
 
 function veaf.loggers.setBaseLevel(level) 

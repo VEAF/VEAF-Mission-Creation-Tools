@@ -48,10 +48,10 @@ veafCarrierOperations = {}
 veafCarrierOperations.Id = "CARRIER"
 
 --- Version.
-veafCarrierOperations.Version = "1.8.0"
+veafCarrierOperations.Version = "1.9.0"
 
 -- trace level, specific to this module
---veafCarrierOperations.LogLevel = "trace"
+veafCarrierOperations.LogLevel = "trace"
 
 veaf.loggers.new(veafCarrierOperations.Id, veafCarrierOperations.LogLevel)
 
@@ -72,10 +72,11 @@ veafCarrierOperations.AllCarriers =
 }
 
 veafCarrierOperations.ALT_FOR_MEASURING_WIND = 30 -- wind is measured at 30 meters, 10 meters above deck
-veafCarrierOperations.ALIGNMENT_MANOEUVER_SPEED = 8 -- carrier speed when not yet aligned to the wind (in m/s)
-veafCarrierOperations.MAX_OPERATIONS_DURATION = 45 -- operations are stopped after
-veafCarrierOperations.SCHEDULER_INTERVAL = 2 -- scheduler runs every 2 minutes
-veafCarrierOperations.MIN_WINDSPEED_FOR_CHANGING_HEADING = 2 -- don't deroute the carrier if less than 2kn wind
+veafCarrierOperations.ALIGNMENT_MANOEUVER_SPEED = 20 * 0.51445 -- carrier speed when not yet aligned to the wind (in m/s)
+veafCarrierOperations.MAX_OPERATIONS_DURATION = 45 -- operations are stopped after (minutes)
+veafCarrierOperations.SCHEDULER_INTERVAL = 1 -- scheduler runs every minute
+veafCarrierOperations.MIN_WINDSPEED_FOR_CHANGING_HEADING = 4 * 0.51445 -- don't deroute the carrier if the wind speed is lower than this (m/s)
+veafCarrierOperations.MIN_CARRIER_SPEED = 4 * 0.51445 -- don't make the carrier steam at less than this speed (m/s)
 
 veafCarrierOperations.RemoteCommandParser = "([[a-zA-Z0-9]+)%s?([^%s]*)%s?(.*)"
 
@@ -93,8 +94,20 @@ veafCarrierOperations.carriers = {}
 -- Utility methods
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 veafCarrierOperations.debugMarkersErasedAtEachStep = {}
-veafCarrierOperations.debugMarkersForTanker = {}
 veafCarrierOperations.traceMarkerId = 2727
+
+function veafCarrierOperations.getDebugMarkersErasedAtEachStep(name)
+    if not name then
+        return nil
+    end
+    if not veafCarrierOperations.debugMarkersErasedAtEachStep then 
+        veafCarrierOperations.debugMarkersErasedAtEachStep = {}
+    end
+    if not veafCarrierOperations.debugMarkersErasedAtEachStep[name] then
+        veafCarrierOperations.debugMarkersErasedAtEachStep[name] = {}
+    end
+    return veafCarrierOperations.debugMarkersErasedAtEachStep[name]
+end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Carrier operations commands
@@ -175,20 +188,24 @@ function veafCarrierOperations.continueCarrierOperations(groupName)
     if carrierUnit then 
         startPosition = carrierUnit:getPosition().p
         veaf.loggers.get(veafCarrierOperations.Id):trace("startPosition (raw) ="..veaf.vecToString(startPosition))
-        currentHeading = mist.utils.round(mist.utils.toDegree(mist.getHeading(carrierUnit)), 0)
+        currentHeading = mist.utils.round(mist.utils.toDegree(mist.getHeading(carrierUnit, true)), 0)
     end    
     veaf.loggers.get(veafCarrierOperations.Id):trace(string.format("currentHeading=%s", veaf.p(currentHeading)))
     startPosition = { x=startPosition.x, z=startPosition.z, y=startPosition.y + veafCarrierOperations.ALT_FOR_MEASURING_WIND} -- on deck, 50 meters above the water
     veaf.loggers.get(veafCarrierOperations.Id):trace("startPosition="..veaf.vecToString(startPosition))
-    veaf.loggers.get(veafCarrierOperations.Id):cleanupMarkers(veafCarrierOperations.debugMarkersErasedAtEachStep)
-    veafCarrierOperations.traceMarkerId = veaf.loggers.get(veafCarrierOperations.Id):marker(veafCarrierOperations.traceMarkerId, "startPosition", startPosition, veafCarrierOperations.debugMarkersErasedAtEachStep)
+    veaf.loggers.get(veafCarrierOperations.Id):cleanupMarkers(veafCarrierOperations.getDebugMarkersErasedAtEachStep(carrier.carrierUnitName))
+    --veafCarrierOperations.traceMarkerId = veaf.loggers.get(veafCarrierOperations.Id):marker(veafCarrierOperations.traceMarkerId, "CARRIER", "startPosition", startPosition, veafCarrierOperations.getDebugMarkersErasedAtEachStep(carrier.carrierUnitName))
     local carrierDistanceFromInitialPosition = ((startPosition.x - carrier.initialPosition.x)^2 + (startPosition.z - carrier.initialPosition.z)^2)^0.5
     veaf.loggers.get(veafCarrierOperations.Id):trace("carrierDistanceFromInitialPosition="..carrierDistanceFromInitialPosition)
 
     -- compute magnetic deviation at carrier position
+    -- let's not use mist.getNorthCorrection, it's not computing magnetic deviation...
+    -- TODO find how to actually compute it
+    --[[
     local magdev = veaf.round(mist.getNorthCorrection(startPosition) * 180 / math.pi,1)
     veaf.loggers.get(veafCarrierOperations.Id):trace("magdev = " .. magdev)
-
+    ]]
+    
     -- make the carrier move
     if startPosition ~= nil then
 	
@@ -196,12 +213,13 @@ function veafCarrierOperations.continueCarrierOperations(groupName)
 
         --get wind info
         local wind = atmosphere.getWind(startPosition)
+        veaf.loggers.get(veafCarrierOperations.Id):trace("wind=%s", veaf.p(wind))
         local windspeed = mist.vec.mag(wind)
         veaf.loggers.get(veafCarrierOperations.Id):trace(string.format("windspeed=%s", veaf.p(windspeed)))
 
         if windspeed >= veafCarrierOperations.MIN_WINDSPEED_FOR_CHANGING_HEADING then
             --get wind direction sorted
-            local dir = veaf.round(math.atan2(wind.z, wind.x) * 180 / math.pi,0)
+            dir = veaf.round(math.atan2(wind.z, wind.x) * 180 / math.pi,0)
             if dir < 0 then
                 dir = dir + 360 --converts to positive numbers		
             dir = dir + 360 --converts to positive numbers		
@@ -212,9 +230,8 @@ function veafCarrierOperations.continueCarrierOperations(groupName)
             else
                 dir = dir - 180
             end
-            dir = dir + carrier.runwayAngleWithBRC --to account for angle of landing deck and movement of the ship          
-        dir = dir + carrier.runwayAngleWithBRC --to account for angle of landing deck and movement of the ship
-            dir = dir + carrier.runwayAngleWithBRC --to account for angle of landing deck and movement of the ship          
+            veaf.loggers.get(veafCarrierOperations.Id):trace(string.format("wind direction=%s", veaf.p(dir)))
+            dir = veaf.round(dir + carrier.runwayAngleWithBRC) --to account for angle of landing deck and movement of the ship          
         end
 
         if dir > 360 then
@@ -224,10 +241,13 @@ function veafCarrierOperations.continueCarrierOperations(groupName)
         veaf.loggers.get(veafCarrierOperations.Id):trace(string.format("dir=%s", veaf.p(dir)))
 
         local speed = 1
-        local desiredWindSpeedOnDeck = carrier.desiredWindSpeedOnDeck * 0.51444444444444444444
+        local desiredWindSpeedOnDeck = carrier.desiredWindSpeedOnDeck * 0.51445
         if desiredWindSpeedOnDeck < 1 then desiredWindSpeedOnDeck = 1 end -- minimum 1 m/s 
         if windspeed < desiredWindSpeedOnDeck then
             speed = desiredWindSpeedOnDeck - windspeed 
+        end
+        if speed < veafCarrierOperations.MIN_CARRIER_SPEED then 
+            speed = veafCarrierOperations.MIN_CARRIER_SPEED
         end
         veaf.loggers.get(veafCarrierOperations.Id):trace("BRC speed="..speed.." m/s")
 
@@ -239,10 +259,60 @@ function veafCarrierOperations.continueCarrierOperations(groupName)
             z = startPosition.z + length * math.sin(headingRad),
             y = startPosition.y
         }
+
+        -- check for obstructions
+        local carrierGroup = Group.getByName(groupName)
+        local unitsToCheck = {}
+        if carrierGroup then
+            for _, unitToCheck in pairs(carrierGroup:getUnits()) do
+                veaf.loggers.get(veafCarrierOperations.Id):trace("checking %s %s", veaf.p(unitToCheck:getTypeName()), veaf.p(unitToCheck:getName()))
+                if not carrierUnit or unitToCheck:getID() ~= carrierUnit:getID() then
+                    table.insert(unitsToCheck, unitToCheck)
+                end
+            end
+        end
+        veaf.loggers.get(veafCarrierOperations.Id):trace("unitsToCheck=%s", veaf.p(unitsToCheck))
+        local pointA = veaf.computeCoordinatesOffsetFromRoute(startPosition, newWaypoint, 500, 500)
+        local pointB = veaf.computeCoordinatesOffsetFromRoute(startPosition, newWaypoint, 500, -500)
+        local pointC = veaf.computeCoordinatesOffsetFromRoute(startPosition, newWaypoint, 2000, -500)
+        local pointD = veaf.computeCoordinatesOffsetFromRoute(startPosition, newWaypoint, 2000, 500)
+        local polygon = {pointA, pointB, pointC, pointD}
+        veaf.loggers.get(veafCarrierOperations.Id):trace("polygon=%s", veaf.p(polygon))
+        veafCarrierOperations.traceMarkerId = veaf.loggers.get(veafCarrierOperations.Id):markerQuad(veafCarrierOperations.traceMarkerId, "CARRIER", "obstructionsCheck", {pointA, pointB, pointC, pointD}, veafCarrierOperations.getDebugMarkersErasedAtEachStep(carrier.carrierUnitName), VeafDrawingOnMap.LINE_TYPE["dashed"], {1, 0, 0, 0.5})
+
+        local obstructions = {}
+        for i =1, #unitsToCheck do
+            local lUnit = unitsToCheck[i]
+            veaf.loggers.get(veafCarrierOperations.Id):trace("lUnit:getName()=%s", veaf.p(lUnit:getName()))
+            if mist.pointInPolygon(lUnit:getPosition().p, polygon) then
+                obstructions[#obstructions + 1] = lUnit
+            end
+        end
+
+        veaf.loggers.get(veafCarrierOperations.Id):trace("obstructions=%s", veaf.p(obstructions))
+        if #obstructions > 0 then
+            -- obstructions found, derouting
+            local newDir = dir + 90
+            if newDir > 360 then
+                newDir = newDir - 360
+            end
+    
+            local msg = string.format("Obstruction found at heading %s, derouting %s to heading %s", veaf.p(#obstructions), veaf.p(dir), veaf.p(groupName), veaf.p(newDir))
+            veaf.loggers.get(veafCarrierOperations.Id):debug(msg)
+            trigger.action.outText(msg, 5)
+            headingRad = mist.utils.toRadian(newDir)
+            length = 4000
+            newWaypoint = {
+                x = startPosition.x + length * math.cos(headingRad),
+                z = startPosition.z + length * math.sin(headingRad),
+                y = startPosition.y
+            }
+        end
+
         veaf.loggers.get(veafCarrierOperations.Id):trace("headingRad="..headingRad)
         veaf.loggers.get(veafCarrierOperations.Id):trace("length="..length)
         veaf.loggers.get(veafCarrierOperations.Id):trace("newWaypoint="..veaf.vecToString(newWaypoint))
-        veafCarrierOperations.traceMarkerId = veaf.loggers.get(veafCarrierOperations.Id):marker(veafCarrierOperations.traceMarkerId, "newWaypoint", newWaypoint, veafCarrierOperations.debugMarkersErasedAtEachStep)
+        veafCarrierOperations.traceMarkerId = veaf.loggers.get(veafCarrierOperations.Id):markerArrow(veafCarrierOperations.traceMarkerId, "CARRIER", "route", startPosition, newWaypoint, veafCarrierOperations.getDebugMarkersErasedAtEachStep(carrier.carrierUnitName), VeafDrawingOnMap.LINE_TYPE["dashed"], {0, 0, 1, 0.3})
         
         local actualSpeed = speed
         if math.abs(dir - currentHeading) > 15 then -- still aligning
@@ -251,14 +321,14 @@ function veafCarrierOperations.continueCarrierOperations(groupName)
         veaf.moveGroupTo(groupName, newWaypoint, actualSpeed, 0)
         carrier.heading = dir
         veaf.loggers.get(veafCarrierOperations.Id):trace("carrier.heading = " .. carrier.heading .. " (true)")
-        carrier.heading_mag = dir + magdev
-        veaf.loggers.get(veafCarrierOperations.Id):trace("carrier.heading = " .. carrier.heading_mag .. " (mag)")
+        --carrier.heading_mag = dir + magdev
+        --veaf.loggers.get(veafCarrierOperations.Id):trace("carrier.heading = " .. carrier.heading_mag .. " (mag)")
         carrier.speed = veaf.round(speed * 1.94384, 0)
         veaf.loggers.get(veafCarrierOperations.Id):trace("carrier.speed = " .. carrier.speed .. " kn")
 
         -- check if a Pedro group exists for this carrier
-        if not(mist.getGroupData(carrier.pedroUnitName)) then
-            veaf.loggers.get(veafCarrierOperations.Id):info("No Pedro group named " .. carrier.pedroUnitName)
+        if not(mist.DBs.groupsByName[carrier.pedroUnitName]) then
+            veaf.loggers.get(veafCarrierOperations.Id):warn("No Pedro group named " .. carrier.pedroUnitName)
         else
         -- prepare or correct the Pedro route (SH-60B, 250ft high, 1nm to the starboard side of the carrier, riding along at the same speed and heading)
             local pedroUnit = Unit.getByName(carrier.pedroUnitName)
@@ -299,7 +369,7 @@ function veafCarrierOperations.continueCarrierOperations(groupName)
                 local distanceFromWP1 = ((pedroUnit:getPosition().p.x - pedroWaypoint1.x)^2 + (pedroUnit:getPosition().p.z - pedroWaypoint1.z)^2)^0.5
                 if distanceFromWP1 > 500 then
                     veaf.loggers.get(veafCarrierOperations.Id):trace("Pedro WP1 = " .. veaf.vecToString(pedroWaypoint1))
-                    veafCarrierOperations.traceMarkerId = veaf.loggers.get(veafCarrierOperations.Id):marker(veafCarrierOperations.traceMarkerId, "pedroWaypoint1", pedroWaypoint1, veafCarrierOperations.debugMarkersErasedAtEachStep)
+                    veafCarrierOperations.traceMarkerId = veaf.loggers.get(veafCarrierOperations.Id):marker(veafCarrierOperations.traceMarkerId, "CARRIER", "pedroWaypoint1", pedroWaypoint1, veafCarrierOperations.getDebugMarkersErasedAtEachStep(carrier.carrierUnitName))
                 else
                     pedroWaypoint1 = nil
                 end
@@ -308,7 +378,7 @@ function veafCarrierOperations.continueCarrierOperations(groupName)
                 local offsetPointOnLand, offsetPoint = veaf.computeCoordinatesOffsetFromRoute(startPosition, newWaypoint, length - 250, 500)
                 local pedroWaypoint2 = offsetPoint
                 veaf.loggers.get(veafCarrierOperations.Id):trace("Pedro WP2 = " .. veaf.vecToString(pedroWaypoint2))
-                veafCarrierOperations.traceMarkerId = veaf.loggers.get(veafCarrierOperations.Id):marker(veafCarrierOperations.traceMarkerId, "pedroWaypoint2", pedroWaypoint2, veafCarrierOperations.debugMarkersErasedAtEachStep)
+                veafCarrierOperations.traceMarkerId = veaf.loggers.get(veafCarrierOperations.Id):marker(veafCarrierOperations.traceMarkerId, "CARRIER", "pedroWaypoint2", pedroWaypoint2, veafCarrierOperations.getDebugMarkersErasedAtEachStep(carrier.carrierUnitName))
 
                 local mission = { 
                     id = 'Mission', 
@@ -392,8 +462,8 @@ function veafCarrierOperations.continueCarrierOperations(groupName)
 
 
         -- check if a S3B-Tanker group exists for this carrier
-        if not(mist.getGroupData(carrier.tankerUnitName)) then
-            veaf.loggers.get(veafCarrierOperations.Id):info("No Tanker group named " .. carrier.tankerUnitName)
+        if not(mist.DBs.groupsByName[carrier.tankerUnitName]) then
+            veaf.loggers.get(veafCarrierOperations.Id):warn("No Tanker group named " .. carrier.tankerUnitName)
         else
 
             local routeTanker = (carrierDistanceFromInitialPosition > 18520)
@@ -432,14 +502,13 @@ function veafCarrierOperations.continueCarrierOperations(groupName)
                     local offsetPointOnLand, offsetPoint = veaf.computeCoordinatesOffsetFromRoute(startPosition, newWaypoint, 9000, 9000)
                     local tankerWaypoint1 = offsetPoint
                     veaf.loggers.get(veafCarrierOperations.Id):trace("Tanker WP1 = " .. veaf.vecToString(tankerWaypoint1))
-                    veaf.loggers.get(veafCarrierOperations.Id):cleanupMarkers(veafCarrierOperations.debugMarkersForTanker)
-                    veafCarrierOperations.traceMarkerId = veaf.loggers.get(veafCarrierOperations.Id):marker(veafCarrierOperations.traceMarkerId, "tankerWaypoint1", tankerWaypoint1, veafCarrierOperations.debugMarkersForTanker)
+                    veafCarrierOperations.traceMarkerId = veaf.loggers.get(veafCarrierOperations.Id):marker(veafCarrierOperations.traceMarkerId, "CARRIER", "tankerWaypoint1", tankerWaypoint1, veafCarrierOperations.getDebugMarkersErasedAtEachStep(carrier.carrierUnitName))
 
                     -- waypoint #2 is 20nm ahead of waypoint #2, on BRC
                     local offsetPointOnLand, offsetPoint = veaf.computeCoordinatesOffsetFromRoute(startPosition, newWaypoint, 37000 + 9000, 9000)
                     local tankerWaypoint2 = offsetPoint
                     veaf.loggers.get(veafCarrierOperations.Id):trace("Tanker WP2 = " .. veaf.vecToString(tankerWaypoint2))
-                    veafCarrierOperations.traceMarkerId = veaf.loggers.get(veafCarrierOperations.Id):marker(veafCarrierOperations.traceMarkerId, "tankerWaypoint2", tankerWaypoint2, veafCarrierOperations.debugMarkersForTanker)
+                    veafCarrierOperations.traceMarkerId = veaf.loggers.get(veafCarrierOperations.Id):marker(veafCarrierOperations.traceMarkerId, "CARRIER", "tankerWaypoint2", tankerWaypoint2, veafCarrierOperations.getDebugMarkersErasedAtEachStep(carrier.carrierUnitName))
 
                     local mission = { 
                         id = 'Mission', 
@@ -566,7 +635,7 @@ function veafCarrierOperations.getAtcForCarrierOperations(groupName, skipNavigat
     local currentSpeed = -1
     local startPosition = nil
     if carrierUnit then 
-        currentHeading = mist.utils.round(mist.utils.toDegree(mist.getHeading(carrierUnit)), 0)
+        currentHeading = mist.utils.round(mist.utils.toDegree(mist.getHeading(carrierUnit, true)), 0)
         currentSpeed = mist.utils.round(mist.utils.mpsToKnots(mist.vec.mag(carrierUnit:getVelocity())),0)
         startPosition = { x=carrierUnit:getPosition().p.x, z=carrierUnit:getPosition().p.z, y=veafCarrierOperations.ALT_FOR_MEASURING_WIND} -- on deck, 50 meters above the water
     end
@@ -584,7 +653,8 @@ function veafCarrierOperations.getAtcForCarrierOperations(groupName, skipNavigat
     if carrier.conductingAirOperations then
         local remainingTime = veaf.round((carrier.airOperationsEndAt - timer.getTime()) /60, 1)
         result = "The carrier group "..groupName.." is conducting air operations :\n" ..
-        "  - BRC : " .. carrier.heading_mag .. " (".. carrier.heading .. " true) at " .. carrier.speed .. " kn\n" ..
+        --"  - BRC : " .. carrier.heading_mag .. " (".. carrier.heading .. " true) at " .. carrier.speed .. " kn\n" ..
+        "  - BRC : " .. carrier.heading .. " (true) at " .. carrier.speed .. " kn\n" ..
         "  - Remaining time : " .. remainingTime .. " minutes\n"
         if carrier.tankerData then
             result = result ..
@@ -599,14 +669,17 @@ function veafCarrierOperations.getAtcForCarrierOperations(groupName, skipNavigat
 
         if currentHeading > -1 and currentSpeed > -1 then
             -- compute magnetic deviation at carrier position
+            -- let's not use mist.getNorthCorrection, it's not computing magnetic deviation...
+            -- TODO find how to actually compute it
+            --[[
             local magdev = veaf.round(mist.getNorthCorrection(startPosition) * 180 / math.pi,1)
             veaf.loggers.get(veafCarrierOperations.Id):trace("magdev = " .. magdev)
-            
+            ]]
             result = result ..
             "\n"..
             "Current navigation parameters\n" ..
-            "  - Current heading (true) " .. veaf.round(currentHeading - magdev, 0) .. "\n" ..
-            "  - Current heading (mag)  " .. veaf.round(currentHeading, 0) .. "\n" ..
+            "  - Current heading (true) " .. veaf.round(currentHeading, 0) .. "\n" ..
+            --"  - Current heading (mag)  " .. veaf.round(currentHeading, 0) .. "\n" ..
             "  - Current speed " .. currentSpeed .. " kn\n"
         end
     end
@@ -811,9 +884,10 @@ function veafCarrierOperations.initializeCarrierGroups()
             if carrier then
             -- take note of the carrier route
             carrier.missionRoute = mist.getGroupRoute(name, 'task')
+            veaf.loggers.get(veafCarrierOperations.Id):trace("carrier.missionRoute=%s", veaf.p(carrier.missionRoute))
             if veafCarrierOperations.Trace then
                 for num, point in pairs(carrier.missionRoute) do
-                    veafCarrierOperations.traceMarkerId = veaf.loggers.get(veafCarrierOperations.Id):marker(veafCarrierOperations.traceMarkerId, string.format("[%s] point %d", name, tostring(num)), point, nil)
+                    veafCarrierOperations.traceMarkerId = veaf.loggers.get(veafCarrierOperations.Id):marker(veafCarrierOperations.traceMarkerId, "CARRIER", string.format("[%s] point %d", name, tostring(num)), point, nil)
                 end
             end
         end
@@ -840,7 +914,9 @@ function veafCarrierOperations.doOperations()
                 veafCarrierOperations.continueCarrierOperations(name)
             end
         elseif carrier.stoppedAirOperations then
+            carrier.conductingAirOperations = false
             veaf.loggers.get(veafCarrierOperations.Id):debug(name .. " stopped conducting operations")
+            veaf.loggers.get(veafCarrierOperations.Id):cleanupMarkers(veafCarrierOperations.getDebugMarkersErasedAtEachStep(carrier.carrierUnitName))
             carrier.stoppedAirOperations = false
             -- reset the carrier group route to its original route (set in the mission)
             if carrier.missionRoute then

@@ -9,6 +9,328 @@
 --local export_path = [[c:\Users\dpier\Saved Games\DCS.openbeta\Logs\ObjectDB\]]
 local export_path = [[.\]]
 
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- Logging
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+veaf = {}
+veaf.loggers = {}
+veaf.loggers.dict = {}
+
+veaf.Logger =
+{
+    -- technical name
+    name = nil,
+    -- logging level
+    level = nil,
+}
+veaf.Logger.__index = veaf.Logger
+
+veaf.Logger.LEVEL = {
+    ["error"]=1,
+    ["warning"]=2,
+    ["info"]=3,
+    ["debug"]=4,
+    ["trace"]=5,
+}
+
+function veaf.Logger:new(name, level)
+    local self = setmetatable({}, veaf.Logger)
+    self:setName(name)
+    self:setLevel(level)
+    return self
+end
+
+function veaf.Logger:setName(value)
+    self.name = value
+    return self
+end
+
+function veaf.Logger:getName()
+    return self.name
+end
+
+function veaf.Logger:setLevel(value, force)
+    if veaf.ForcedLogLevel then
+        value = veaf.ForcedLogLevel
+    end
+    local level = value
+    if type(level) == "string" then
+        level = veaf.Logger.LEVEL[level:lower()]
+    end
+    if not level then 
+        level = veaf.Logger.LEVEL["info"]
+    end
+    if veaf.BaseLogLevel and veaf.BaseLogLevel < level and not force then
+        level = veaf.BaseLogLevel
+    end
+    self.level = level
+    return self
+end
+
+function veaf.Logger:getLevel()
+    return self.level
+end
+
+function veaf.Logger.splitText(text)
+    local tbl = {}
+    while text:len() > 4000 do
+        local sub = text:sub(1, 4000)
+        text = text:sub(4001)
+        table.insert(tbl, sub)
+    end
+    table.insert(tbl, text)
+    return tbl
+end
+
+function veaf.Logger.formatText(text, ...)
+    if not text then 
+        return "" 
+    end
+    if type(text) ~= 'string' then
+        text = veaf.p(text)
+    else
+        if arg and arg.n and arg.n > 0 then
+            text = text:format(unpack(arg))
+        end            
+    end
+    local fName = nil
+    local cLine = nil
+    if debug then
+        local dInfo = debug.getinfo(3)
+        fName = dInfo.name
+        cLine = dInfo.currentline
+        -- local fsrc = dinfo.short_src
+        --local fLine = dInfo.linedefined
+    end
+    if fName and cLine then
+        return fName .. '|' .. cLine .. ': ' .. text
+    elseif cLine then
+        return cLine .. ': ' .. text
+    else
+        return ' ' .. text
+    end
+end
+
+function veaf.Logger:print(level, text)
+    local texts = veaf.Logger.splitText(text)
+    local levelChar = 'E'
+    if level == veaf.Logger.LEVEL["warning"] then
+        levelChar = 'W'
+    elseif level == veaf.Logger.LEVEL["info"] then
+        levelChar = 'I'
+    elseif level == veaf.Logger.LEVEL["debug"] then
+        levelChar = 'D'
+    elseif level == veaf.Logger.LEVEL["trace"] then
+        levelChar = 'T'
+    end
+    for i = 1, #texts do
+        if i == 1 then
+            print(self.name .. '|' .. levelChar .. '|' .. texts[i])
+        else
+            print(texts[i])
+        end
+    end
+end
+
+function veaf.Logger:error(text, ...)
+    if self.level >= 1 then
+        text = veaf.Logger.formatText(text, unpack(arg))
+        self:print(1, text)
+    end
+end
+
+function veaf.Logger:warn(text, ...)
+    if self.level >= 2 then
+        text = veaf.Logger.formatText(text, unpack(arg))
+        self:print(2, text)
+    end
+end
+
+function veaf.Logger:info(text, ...)
+    if self.level >= 3 then
+        text = veaf.Logger.formatText(text, unpack(arg))
+        self:print(3, text)
+    end
+end
+
+function veaf.Logger:debug(text, ...)
+    if self.level >= 4 then
+        text = veaf.Logger.formatText(text, unpack(arg))
+        self:print(4, text)
+    end
+end
+
+function veaf.Logger:trace(text, ...)
+    if self.level >= 5 then
+        text = veaf.Logger.formatText(text, unpack(arg))
+        self:print(5, text)
+    end
+end
+
+function veaf.loggers.setBaseLevel(level) 
+    veaf.BaseLogLevel = level
+    -- reset all loggers level if lower than the base level
+    for name, logger in pairs(veaf.loggers.dict) do
+        logger:setLevel(logger:getLevel())
+    end
+end
+
+function veaf.loggers.new(loggerId, level) 
+    if not loggerId or #loggerId == 0 then
+        return nil
+    end
+    local result = veaf.Logger:new(loggerId:upper(), level)
+    veaf.loggers.dict[loggerId:lower()] = result
+    return result
+end
+
+function veaf.loggers.get(loggerId) 
+    local result = nil
+    if loggerId and #loggerId > 0 then
+        result = veaf.loggers.dict[loggerId:lower()]
+    end
+    if not result then 
+        result = veaf.loggers.get("veaf")
+    end
+    return result
+end
+
+function veaf.p(obj, maxLevel, skip, serializeInLua)
+    local skip = skip
+    if skip and type(skip)=="table" then
+        for _, value in ipairs(skip) do
+            skip[value]=true
+        end
+    end
+    return veaf._p(nil, obj, maxLevel, 0, skip, serializeInLua)
+end
+
+function veaf._p(objKey, objValue, maxLevel, level, skip, serializeInLua)
+    local function getSerializationForSingle(value)
+        if value == nil then
+            if serializeInLua then
+                return "nil"
+            else
+                return getSerializationForSingle("[nil]")
+            end
+        elseif serializeInLua and type(value)=="string" then
+            return "\"" .. string.gsub(value, [["]], [[\"]]) .. "\""
+        else
+            return tostring(value)
+        end
+    end
+
+    local function alphanumsort(o)
+        local function conv(s)
+           local res, dot = "", ""
+           for n, m, c in tostring(s):gmatch"(0*(%d*))(.?)" do
+              if n == "" then
+                 dot, c = "", dot..c
+              else
+                 res = res..(dot == "" and ("%03d%s"):format(#m, m)
+                                       or "."..n)
+                 dot, c = c:match"(%.?)(.*)"
+              end
+              res = res..c:gsub(".", "\0%0")
+           end
+           return res
+        end
+        table.sort(o,
+           function (a, b)
+              local ca, cb = conv(a), conv(b)
+              return ca < cb or ca == cb and a < b
+           end)
+        return o
+     end
+     
+    local MAX_LEVEL = 20
+    if level == nil then level = 0 end
+    if level > MAX_LEVEL then 
+        logError("max depth reached in p : "..tostring(MAX_LEVEL))
+        return ""
+    end
+
+    local text = ""
+    if (type(objValue) == "table") then
+        if 
+        (maxLevel and level >= maxLevel) 
+        or
+        (skip and skip[objKey])
+        then
+            text = getSerializationForSingle("[table]")
+        else
+            if level > 0 then
+                text = text .. "\n"
+            end
+            local keys = {}
+            local realKeys = {}
+            for realKey, _ in pairs(objValue) do
+                local key = tostring(realKey)
+                realKeys[key] = realKey
+                table.insert(keys, key)
+            end
+            keys = alphanumsort(keys)
+        
+            local firstElement = true
+            for _, key in pairs(keys) do
+                local padding = ""
+                for i=0, level do
+                    if serializeInLua then
+                        padding = padding .. "    "
+                    else
+                        padding = padding .. "---|"
+                    end
+                end
+                local value = objValue[realKeys[key]]
+                local carriageReturn = "\n"
+                local result, wasTable = veaf._p(key, value, maxLevel, level+1, skip, serializeInLua)
+                if wasTable then
+                    carriageReturn = ""
+                end
+                if serializeInLua then
+                    text = text .. padding
+                    if not firstElement then
+                        text = text .. ","
+                    end
+                    local realKey = realKeys[key]
+                    if type(realKey) == "number" then
+                        text = text .. "[" .. key .."] = "
+                    else
+                        text = text .. "[\"" .. key .."\"] = "
+                    end
+                    if wasTable then
+                        text = text .. "{" .. result .. carriageReturn
+                        text = text .. padding .. "}\n"
+                    else
+                        text = text .. result .. carriageReturn
+                    end
+                else
+                    text = text .. padding .. ".".. key.."=".. result .. carriageReturn
+                end
+                firstElement = false
+            end
+            return text, true
+        end
+    elseif (type(objValue) == "function") then
+        text = getSerializationForSingle("[function]")
+    elseif (type(objValue) == "boolean") then
+        if objValue == true then 
+            text = getSerializationForSingle("[true]")
+        else
+            text = getSerializationForSingle("[false]")
+        end
+    else
+        text = getSerializationForSingle(objValue)
+    end
+    return text, false
+end
+
+
+--veaf.loggers.setBaseLevel(veaf.Logger.LEVEL["trace"])
+dcsDataExport = {}
+dcsDataExport.Id = "DCSEXPORT"
+veaf.loggers.new(dcsDataExport.Id, "trace")
+
 -------------------------------------------------------------------------------
 -- helper functions
 -------------------------------------------------------------------------------
@@ -180,17 +502,27 @@ local function browseUnits(out, database, defaultCategory, fullDcsUnit, exportAl
     end
 end
 
+-- export all units as a lua file
+local file = io.open(export_path.."db.Units.lua", "w")
+writeln(file, "db={\n    [\"Units\"] = {" .. veaf.p(db.Units, nil, nil, true).."}\n}")
+file:close()
+
 local units = {}
 local fullDcsUnit = false
 local exportAllAttributes = true
-browseUnits(units, db.Units.Planes.Plane, "Plane", fullDcsUnit, exportAllAttributes)
-browseUnits(units, db.Units.Helicopters.Helicopter, "Helicopter", fullDcsUnit, exportAllAttributes)
-browseUnits(units, db.Units.Cars.Car, "Vehicle", fullDcsUnit, exportAllAttributes)
-browseUnits(units, db.Units.Ships.Ship, "Ship", fullDcsUnit, exportAllAttributes)
-browseUnits(units, db.Units.Fortifications.Fortification, "Fortification", fullDcsUnit, exportAllAttributes)
-browseUnits(units, db.Units.GroundObjects.GroundObject, "GroundObject", fullDcsUnit, exportAllAttributes)
-browseUnits(units, db.Units.Warehouses.Warehouse, "Warehouse", fullDcsUnit, exportAllAttributes)
+browseUnits(units, db.Units.Animals.Animal, "Animal", fullDcsUnit, exportAllAttributes)
 browseUnits(units, db.Units.Cargos.Cargo, "Cargo", fullDcsUnit, exportAllAttributes)
+browseUnits(units, db.Units.Cars.Car, "Vehicle", fullDcsUnit, exportAllAttributes)
+browseUnits(units, db.Units.Effects.Effect, "Effect", fullDcsUnit, exportAllAttributes)
+browseUnits(units, db.Units.Fortifications.Fortification, "Fortification", fullDcsUnit, exportAllAttributes)
+browseUnits(units, db.Units.GrassAirfields.GrassAirfield, "GrassAirfield", fullDcsUnit, exportAllAttributes)
+browseUnits(units, db.Units.GroundObjects.GroundObject, "GroundObject", fullDcsUnit, exportAllAttributes)
+browseUnits(units, db.Units.Helicopters.Helicopter, "Helicopter", fullDcsUnit, exportAllAttributes)
+browseUnits(units, db.Units.Heliports.Heliport, "Heliport", fullDcsUnit, exportAllAttributes)
+browseUnits(units, db.Units.Personnel.Personnel, "Personnel", fullDcsUnit, exportAllAttributes)
+browseUnits(units, db.Units.Planes.Plane, "Plane", fullDcsUnit, exportAllAttributes)
+browseUnits(units, db.Units.Ships.Ship, "Ship", fullDcsUnit, exportAllAttributes)
+browseUnits(units, db.Units.Warehouses.Warehouse, "Warehouse", fullDcsUnit, exportAllAttributes)
 local values = {}
 if fullDcsUnit then
     values = units    
@@ -200,6 +532,6 @@ else
     end
     table.sort(values, _sortUnits)
 end
-local file = io.open(export_path.."units.lua", "w")
+local file = io.open(export_path.."dcsUnits.lua", "w")
 writeln(file, mist.utils.serialize("units", values))
 file:close()

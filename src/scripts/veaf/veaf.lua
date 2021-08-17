@@ -32,7 +32,7 @@ veaf = {}
 veaf.Id = "VEAF"
 
 --- Version.
-veaf.Version = "1.16.0"
+veaf.Version = "1.17.0"
 
 --- Development version ?
 veaf.Development = true
@@ -748,6 +748,18 @@ function veaf.computeLLFromString(value)
     return nil
 end
  
+function veaf.silenceAtcOnAllAirbases()
+    local bases = world.getAirbases()
+    for _, base in pairs(bases) do
+        if base:getDesc() then
+            if base:getDesc().category == Airbase.Category.AIRDROME then
+                veaf.loggers.get(veaf.Id):info("silencing ATC at base %s", veaf.p(base:getDesc().displayName))
+                base:setRadioSilentMode(true)
+            end
+        end
+    end
+end
+
 --- Return a point at the same coordinates, but on the surface
 function veaf.placePointOnLand(vec3)
     -- convert a vec2 to a vec3

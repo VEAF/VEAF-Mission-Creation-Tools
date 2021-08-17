@@ -10,11 +10,33 @@ const CachedMetar = MetarCache.CachedMetar;
 const Configuration = require('./Configuration.js');
 const configuration = new Configuration();
 const path = require('path');
+const SolarCalc = require('solar-calc');
+var sunrise = 18000; // default value = 5:00
+var sunset = 68400; // default value = 19:00
 
 String.prototype.regexLastIndexOf = function (regex) {
   var match = this.match(regex);
 
   return match ? this.lastIndexOf(match.slice(-1)) : -1;
+}
+
+function parseMoment(moment) {
+  if (isNaN(moment)) {
+    if (moment.indexOf(':') >= 0) {
+      // this is a time string
+      var timeSplits = moment.split(':');
+      var seconds = (+timeSplits[0]) * 60 * 60 + (+timeSplits[1]) * 60; 
+      return seconds
+    } else {
+      var seconds = eval(moment)
+      return seconds
+    }
+  }
+  else return moment
+}
+
+function toDcsTime(date) {
+  return date.getHours()*3600 + date.getMinutes()*60 + date.getSeconds();
 }
 
 async function injectWeatherFromConfiguration(parameters) {
@@ -38,11 +60,27 @@ async function injectWeatherFromConfiguration(parameters) {
         console.error("cannot parse file content " + configurationFile); // invalid content
         return;
       }
-      let moments = data.moments;
+      var midnight = new Date();
+      midnight.setHours(0,0,0,0);
+      if (data.position) {
+        let lat = data.position["lat"];
+        let lon = data.position["lon"];
+        let tz = data.position["tz"];
+        var solar = new SolarCalc(midnight, lat, lon);
+        sunrise = toDcsTime(new Date(solar.sunrise.toLocaleString("en-US", {timeZone: tz})));
+        sunset = toDcsTime(new Date(solar.sunset.toLocaleString("en-US", {timeZone: tz})));
+      }
+      let moments = {}
+      for (const key in data.moments) {
+        if (Object.hasOwnProperty.call(data.moments, key)) {
+          let value = data.moments[key];
+          moments[key] = parseMoment(value);
+        }
+      }
       for (let i=0; i<data.targets.length; i++) {
         let { version, weather, weatherfile, time, moment, dontSetToday, setTodayYear } = data.targets[i];
-        if (!time && moment && moments && moments[0] && moments[0][moment]) {
-          time = moments[0][moment];
+        if (!time && moment && moments && moments[moment]) {
+          time = moments[moment];
         }
         let parameters = {
           sourceMissionFileName: sourceMissionFileName,

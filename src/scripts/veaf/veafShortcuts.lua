@@ -27,7 +27,7 @@ veafShortcuts = {}
 veafShortcuts.Id = "SHORTCUTS"
 
 --- Version.
-veafShortcuts.Version = "1.24.0"
+veafShortcuts.Version = "1.25.0"
 
 -- trace level, specific to this module
 --veafShortcuts.LogLevel = "trace"
@@ -1027,8 +1027,8 @@ function veafShortcuts.buildDefaultList()
         VeafAlias:new()
             :setName("-light")
             :setDescription("Illumination by artillery shelling of a zone")
-            :setVeafCommand("_spawn flare, radius 1000")
-            :addRandomParameter("shells", 20, 30)
+            :setVeafCommand("_spawn flare, radius 1500")
+            :addRandomParameter("shells", 10, 15)
             :setBypassSecurity(true)
     )
     veafShortcuts.AddAlias(

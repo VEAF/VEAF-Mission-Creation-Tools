@@ -66,7 +66,7 @@ veafSpawn = {}
 veafSpawn.Id = "SPAWN"
 
 --- Version.
-veafSpawn.Version = "1.32.0"
+veafSpawn.Version = "1.33.0"
 
 -- trace level, specific to this module
 --veafSpawn.LogLevel = "trace"
@@ -102,7 +102,7 @@ veafSpawn.LogisticUnitCategory = "Fortifications"
 
 veafSpawn.ShellingInterval = 5 -- seconds between shells, randomized by 30%
 veafSpawn.FlakingInterval = 2 -- seconds between flak shells, randomized by 30%
-veafSpawn.IlluminationShellingInterval = 30 -- seconds between illumination shells, randomized by 30%
+veafSpawn.IlluminationShellingInterval = 45 -- seconds between illumination shells, randomized by 30%
 
 veafSpawn.MIN_REPEAT_DELAY = 5
 
@@ -296,11 +296,18 @@ function veafSpawn.executeCommand(eventPos, eventText, coalition, markId, bypass
                 elseif options.bomb then
                     -- check security
                     if not (bypassSecurity or veafSecurity.checkSecurity_L1(options.password, markId)) then return end
-                    veafSpawn.spawnBomb(eventPos, options.radius, options.shells, options.bombPower, options.altitude, options.altitudedelta, options.password)
+                    veafSpawn.spawnBomb(eventPos, options.radius, options.shells, options.power, options.altitude, options.altitudedelta, options.password)
                 elseif options.smoke then
                     veafSpawn.spawnSmoke(eventPos, options.smokeColor, options.radius, options.shells)
                 elseif options.flare then
-                    veafSpawn.spawnIlluminationFlare(eventPos, options.radius, options.shells, options.altitude)
+                    if not options.altitude or options.altitude == 0 then
+                        options.altitude = 1000
+                    end
+                    if not options.power or options.power == 0 then
+                        options.power = 500
+                    end
+                    options.power = options.power * 1000
+                    veafSpawn.spawnIlluminationFlare(eventPos, options.radius, options.shells, options.power, options.altitude, options.heading, options.distance, options.speed)
                 elseif options.signal then
                     veafSpawn.spawnSignalFlare(eventPos, options.radius, options.shells, options.smokeColor)
                 elseif options.addDrawing then
@@ -457,7 +464,7 @@ function veafSpawn.markTextAnalysis(text)
     options.armor = math.random(5)
 
     -- bomb power
-    options.bombPower = 100
+    options.power = 100
 
     -- smoke color
     options.smokeColor = trigger.smokeColor.Red
@@ -703,7 +710,7 @@ function veafSpawn.markTextAnalysis(text)
             -- Set bomb power.
             veaf.loggers.get(veafSpawn.Id):trace(string.format("Keyword power = %s", tostring(val)))
             local nVal = veaf.getRandomizableNumeric(val)
-            options.bombPower = nVal
+            options.power = nVal
         end
         
         if key:lower() == "laser" then
@@ -1730,9 +1737,9 @@ function veafSpawn.spawnBomb(spawnSpot, radius, shells, power, altitude, altitud
         if not veafSecurity.checkPassword_L0(password) then
             if shellPower > 1000 then shellPower = 1000 end
         end
-        shellTime = shellTime + shellDelay
         veaf.loggers.get(veafSpawn.Id):trace(string.format("shell #%d : shellTime=%d, shellDelay=%d, power=%d", shell, shellTime, shellDelay, shellPower))
         mist.scheduleFunction(trigger.action.explosion, {spawnSpot, power}, timer.getTime() + shellTime)
+        shellTime = shellTime + shellDelay
     end
 end
 
@@ -1748,13 +1755,13 @@ function veafSpawn.spawnSmoke(spawnSpot, color, radius, shells)
         veaf.loggers.get(veafSpawn.Id):trace(string.format("spawnSpot=%s", veaf.vecToString(spawnSpot)))
         
         local shellDelay = veafSpawn.ShellingInterval * (math.random(100) + 30)/100
-        shellTime = shellTime + shellDelay
         veaf.loggers.get(veafSpawn.Id):trace(string.format("shell #%d : shellTime=%d, shellDelay=%d", shell, shellTime, shellDelay))
         if shells > 1 then
             -- add a small explosion under the smoke to simulate smoke shells
             mist.scheduleFunction(trigger.action.explosion, {spawnSpot, 1}, timer.getTime() + shellTime-1)
         end
         mist.scheduleFunction(trigger.action.smoke, {spawnSpot, color}, timer.getTime() + shellTime)
+        shellTime = shellTime + shellDelay
     end
 end
 
@@ -1768,29 +1775,76 @@ function veafSpawn.spawnSignalFlare(spawnSpot, radius, shells, color)
         veaf.loggers.get(veafSpawn.Id):trace(string.format("spawnSpot=%s", veaf.vecToString(spawnSpot)))
         
         local shellDelay = veafSpawn.ShellingInterval * (math.random(100) + 30)/100
-        shellTime = shellTime + shellDelay
         local azimuth = math.random(359)
         veaf.loggers.get(veafSpawn.Id):trace(string.format("shell #%d : shellTime=%d, shellDelay=%d", shell, shellTime, shellDelay))
         mist.scheduleFunction(trigger.action.signalFlare, {spawnSpot, color, azimuth}, timer.getTime() + shellTime)
+        shellTime = shellTime + shellDelay
+    end
+end
+
+function veafSpawn.spawnIlluminationFlares(spawnSpot, radius, shells, power, height)
+    for shell=1, shells do
+        local shellHeight = height * (math.random(100, 130))/100-15
+        local shellPower = power * (math.random(100, 130))/100-15
+        local newSpawnSpot = veaf.placePointOnLand(mist.getRandPointInCircle(spawnSpot, radius))
+        newSpawnSpot.y = veaf.getLandHeight(newSpawnSpot) + shellHeight
+        veaf.loggers.get(veafSpawn.Id):trace(string.format("shell #%d : shellHeight=%d, shellPower=%d", shell, shellHeight, shellPower))
+        -- add a small explosion under the flare to simulate flare shells
+        trigger.action.explosion(spawnSpot, 1)
+        trigger.action.illuminationBomb(newSpawnSpot, shellPower)
     end
 end
 
 --- add an illumination flare over the target area
-function veafSpawn.spawnIlluminationFlare(spawnSpot, radius, shells, height)
-    if height == nil then height = veafSpawn.IlluminationFlareAglAltitude end
-    veaf.loggers.get(veafSpawn.Id):debug("spawnIlluminationFlare(height = " .. height ..")")
-    
-    local shellTime = 0
-    for shell=1,shells do
-        local spawnSpot = veaf.placePointOnLand(mist.getRandPointInCircle(spawnSpot, radius))
-        veaf.loggers.get(veafSpawn.Id):trace(string.format("spawnSpot=%s", veaf.vecToString(spawnSpot)))
-        
-        local shellDelay = veafSpawn.IlluminationShellingInterval * (math.random(100) + 30)/100
-        shellTime = shellTime + shellDelay
-        shellHeight = height * (math.random(100) + 30)/100
-        spawnSpot.y = veaf.getLandHeight(spawnSpot) + height
-        veaf.loggers.get(veafSpawn.Id):trace(string.format("shell #%d : shellTime=%d, shellHeight=%d, power=%d", shell, shellTime, shellDelay, shellHeight))
-        mist.scheduleFunction(trigger.action.illuminationBomb, {spawnSpot}, timer.getTime() + shellTime)
+function veafSpawn.spawnIlluminationFlare(spawnSpot, radius, steps, power, height, heading, distance, speed)
+    veaf.loggers.get(veafSpawn.Id):debug("spawnIlluminationFlare()")
+    veaf.loggers.get(veafSpawn.Id):trace("spawnSpot=%s", veaf.p(spawnSpot))
+    veaf.loggers.get(veafSpawn.Id):trace("radius=%s", veaf.p(radius))
+    veaf.loggers.get(veafSpawn.Id):trace("steps=%s", veaf.p(steps))
+    veaf.loggers.get(veafSpawn.Id):trace("power=%s", veaf.p(power))
+    veaf.loggers.get(veafSpawn.Id):trace("height=%s", veaf.p(height))
+    veaf.loggers.get(veafSpawn.Id):trace("heading=%s", veaf.p(heading))
+    veaf.loggers.get(veafSpawn.Id):trace("distance=%s", veaf.p(distance))
+
+    local cosHeading
+    local sinHeading
+    local stepDistance
+    if heading then
+        if distance then
+            distance = distance * 1852 -- meters
+            stepDistance = distance / (steps - 1)
+        elseif speed then
+            speed = speed / 1.94384 -- m/s
+            stepDistance = speed * veafSpawn.IlluminationShellingInterval
+        end
+        local headingRad = mist.utils.toRadian(heading)
+        cosHeading = math.cos(headingRad)
+        sinHeading = math.sin(headingRad)
+    end
+
+    local stepTime = 0
+    for step=1, steps do
+        local stepDelay = veafSpawn.IlluminationShellingInterval * (math.random(100, 130)-15)/100
+        local newSpawnSpot = mist.utils.deepCopy(spawnSpot)
+        if stepDistance then
+            newSpawnSpot.x = spawnSpot.x + stepDistance * (step - 1) * cosHeading
+            newSpawnSpot.z = spawnSpot.z + stepDistance * (step - 1) * sinHeading
+        end
+        local shellsPerStep = math.random(5, 10)
+        veaf.loggers.get(veafSpawn.Id):trace(string.format("step #%d : stepTime=%d, shellDelay=%d", step, stepTime, stepDelay))
+        for shell=1, shellsPerStep do
+            local shellDelay = shell/4 + (math.random(100, 150)-25)/100
+            local shellHeight = height * (math.random(100, 130)-15)/100
+            local shellPower = power * (math.random(100, 130)-15)/100
+            local newSpawnSpot = veaf.placePointOnLand(mist.getRandPointInCircle(newSpawnSpot, radius))
+            newSpawnSpot.y = veaf.getLandHeight(newSpawnSpot) + shellHeight
+            veaf.loggers.get(veafSpawn.Id):trace(string.format("shell #%d : shellHeight=%d, shellPower=%d", shell, shellHeight, shellPower))
+            local time = timer.getTime() + stepTime + shellDelay
+            -- add a small explosion under the flare to simulate flare shells
+            mist.scheduleFunction(trigger.action.explosion, {newSpawnSpot, 0.1}, time)
+            mist.scheduleFunction(trigger.action.illuminationBomb, {newSpawnSpot, shellPower}, time)
+        end
+        stepTime = stepTime + stepDelay
     end
 end
 

@@ -32,7 +32,7 @@ veaf = {}
 veaf.Id = "VEAF"
 
 --- Version.
-veaf.Version = "1.17.0"
+veaf.Version = "1.17.1"
 
 --- Development version ?
 veaf.Development = true
@@ -2940,9 +2940,9 @@ if ctld then
     -- logging change
     ctld.p = veaf.p
     ctld.Id = "CTLD"
-    --ctld.LogLevel = "trace"
+    ctld.LogLevel = "trace"
     --ctld.LogLevel = "debug"
-    
+
     ctld.logger = veaf.loggers.new(ctld.Id, ctld.LogLevel)
 
     ctld.logError = function(message)
@@ -2994,11 +2994,11 @@ if ctld then
     table.insert(ctld.loadableGroups, {name = "3x - Mortar Squad", mortar = 18})
     
     ctld.autoInitializeAllHumanTransports = function()
+        veaf.loggers.get(ctld.Id):info("autoInitializeAllHumanTransports()")
         local TransportTypeNames = {"Mi-8MT", "UH-1H", "Mi-24P", "Yak-52"}
-        local result = {}
         for name, unit in pairs(mist.DBs.humansByName) do
             veaf.loggers.get(ctld.Id):trace(string.format("human player found name=%s, unitName=%s, groupName=%s", name, unit.unitName,unit.groupName))
-            -- check if it's a transport helo (Mi-8 or Huey)
+            -- check if it's a transport helo
             for _, transportTypeName in pairs(TransportTypeNames) do
                 if transportTypeName:lower() == unit.type:lower() then
                     table.insert(ctld.transportPilotNames, unit.unitName)
@@ -3006,11 +3006,12 @@ if ctld then
                 end
             end
         end
+        veaf.loggers.get(ctld.Id):trace("ctld.transportPilotNames=%s", veaf.p(ctld.transportPilotNames))
     end
 
     ctld.autoInitializeAllLogistic = function()
+        veaf.loggers.get(ctld.Id):info("autoInitializeAllLogistic()")
         local CarrierTypeNames = {"LHA_Tarawa", "Stennis", "CVN_71", "KUZNECOW"}
-        local result = {}
         local units = mist.DBs.unitsByName -- local copy for faster execution
         for name, unit in pairs(units) do
             veaf.loggers.get(ctld.Id):trace(string.format("name=%s, unit.type=%s", veaf.p(name), veaf.p(unit.type)))
@@ -3025,15 +3026,18 @@ if ctld then
                 end
             end
         end
+        veaf.loggers.get(ctld.Id):trace("ctld.logisticUnits=%s", veaf.p(ctld.logisticUnits))
     end
 
     -- generate 20 pickup zone names in the form "pickzone #001"
+    veaf.loggers.get(ctld.Id):debug("generate 20 pickup zone names in the form 'pickzone #001'")
     ctld.pickupZones = {}
     for i = 1, 20 do
         table.insert(ctld.pickupZones, { string.format("pickzone #%03d",i), "none", -1, "yes", 0 })
     end
 
     -- generate 20 logistic unit names in the form "logistic #001"
+    veaf.loggers.get(ctld.Id):debug("generate 20 logistic unit names in the form 'logistic #001'")
     ctld.logisticUnits = {}
     for i = 1, 20 do
         table.insert(ctld.logisticUnits, string.format("logistic #%03d",i))
@@ -3050,6 +3054,8 @@ if ctld then
 
     -- automatically add all the carriers and FARPs to ctld.logisticUnits
     ctld.autoInitializeAllLogistic()
+
+    ctld.initialize(true)
 
     veaf.loggers.get(ctld.Id):info(string.format("Done setting up CTLD"))
 end

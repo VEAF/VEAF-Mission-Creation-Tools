@@ -4641,6 +4641,7 @@ function ctld.refreshSmoke()
 
 
             --only trigger if smoke is on AND zone is active
+            ctld.logTrace(string.format("_zoneDetails=%s",ctld.p(_zoneDetails)))
             if _triggerZone ~= nil and _zoneDetails[2] >= 0 and _zoneDetails[4] == 1 then
 
                 -- Trigger smoke markers
@@ -6062,7 +6063,7 @@ end
 
 -- ***************** SETUP SCRIPT ****************
 function ctld.initialize(force)
-    ctld.logInfo(string.format("Initializing version %s", ctld.Version))
+    ctld.logInfo(string.format("ctld.initialize() - initializing version %s", ctld.Version))
     ctld.logTrace(string.format("ctld.alreadyInitialized=%s", ctld.p(ctld.alreadyInitialized)))
     ctld.logTrace(string.format("force=%s", ctld.p(force)))
 
@@ -6152,7 +6153,9 @@ function ctld.initialize(force)
 
 
     --sort out pickup zones
+    ctld.logDebug("sort out pickup zones")
     for _, _zone in pairs(ctld.pickupZones) do
+        ctld.logTrace(string.format("before: _zone=%s",ctld.p(_zone)))
         local _zoneName = _zone[1]
         local _zoneColor = _zone[2]
         local _zoneActive = _zone[4]
@@ -6183,6 +6186,7 @@ function ctld.initialize(force)
             _zone[4] = 0
         end
 
+        ctld.logTrace(string.format("after: _zone=%s",ctld.p(_zone)))
     end
 
     --sort out dropoff zones

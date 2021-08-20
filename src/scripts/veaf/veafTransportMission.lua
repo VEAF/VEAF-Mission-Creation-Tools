@@ -49,7 +49,7 @@ veafTransportMission = {}
 veafTransportMission.Id = "TRANSPORTMISSION"
 
 --- Version.
-veafTransportMission.Version = "1.5.0"
+veafTransportMission.Version = "1.6.0"
 
 -- trace level, specific to this module
 --veafTransportMission.LogLevel = "trace"
@@ -709,37 +709,11 @@ function veafTransportMission.resetAllCargoes()
 end
 
 function veafTransportMission.initializeAllHelosInCTLD()
-    local TransportHeloTypeNames = {"Mi-8MT", "UH-1H"}
-    local result = {}
-    for name, unit in pairs(mist.DBs.humansByName) do
-        veaf.loggers.get(veafTransportMission.Id):trace(string.format("human player found name=%s, unitName=%s, groupName=%s", name, unit.unitName,unit.groupName))
-        -- check if it's a transport helo (Mi-8 or Huey)
-        for _, transportHeloTypeName in pairs(TransportHeloTypeNames) do
-            if transportHeloTypeName:lower() == unit.type:lower() then
-                table.insert(ctld.transportPilotNames, unit.unitName)
-                veaf.loggers.get(veafTransportMission.Id):debug(string.format("Adding CTLD transport pilot %s of group %s", unit.unitName, unit.groupName))
-            end
-        end
-    end
+    veaf.loggers.get(veafTransportMission.Id):warn("Please use ctld.autoInitializeAllHumanTransports - it's automatically run by the veaf.lua script")
 end
 
 function veafTransportMission.initializeAllLogisticInCTLD()
-    local CarrierTypeNames = {"LHA_Tarawa", "Stennis", "CVN_71", "KUZNECOW"}
-    local result = {}
-    local units = mist.DBs.unitsByName -- local copy for faster execution
-    for name, unit in pairs(units) do
-        veaf.loggers.get(veafTransportMission.Id):trace(string.format("name=%s, unit.type=%s", veaf.p(name), veaf.p(unit.type)))
-        --veaf.loggers.get(veafTransportMission.Id):trace(string.format("unit=%s", veaf.p(unit)))
-        --local unit = Unit.getByName(name)
-        if unit then 
-            for _, carrierTypeName in pairs(CarrierTypeNames) do
-                if carrierTypeName:lower() == unit.type:lower() then
-                    table.insert(ctld.logisticUnits, unit.unitName)
-                    veaf.loggers.get(veafTransportMission.Id):debug(string.format("Adding CTLD logistic unit %s of group %s", unit.unitName, unit.groupName))
-                end
-            end
-        end
-    end
+    veaf.loggers.get(veafTransportMission.Id):warn("Please use ctld.autoInitializeAllLogistic - it's automatically run by the veaf.lua script")
 end
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- initialisation

@@ -188,7 +188,7 @@ function veafMissionRadioPresetsEditor.editUnit(coa_name, country_name, unit_t)
             veafMissionRadioPresetsEditor.logTrace("  Country checked")
             local type = setting_t["type"]
             veafMissionRadioPresetsEditor.logTrace(string.format("  type=%s",veafMissionRadioPresetsEditor.p(type)))
-            if not(type) or type == unitType then
+            if not(type) or string.match(unitType:lower(), type:lower()) then
               veafMissionRadioPresetsEditor.logTrace("  Unit type checked")
               -- edit the unit
               veafMissionRadioPresetsEditor.logDebug(string.format("-> Edited unit unitType=%s, unitName=%s, unitId=%s in coa_name=%s, country_name=%s) ", veafMissionRadioPresetsEditor.p(unitType), veafMissionRadioPresetsEditor.p(unitName), veafMissionRadioPresetsEditor.p(unitId),veafMissionRadioPresetsEditor.p(coa_name), veafMissionRadioPresetsEditor.p(country_name)))

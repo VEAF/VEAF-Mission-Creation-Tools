@@ -2695,7 +2695,7 @@ end
 function VeafQRA:start()
     veaf.loggers.get(VeafQRA.Id):trace(string.format("VeafQRA[%s]:start()", veaf.p(self.name)))
     self:rearm() -- TODO set true
-    mist.scheduleFunction(VeafQRA.check, {self}, timer.getTime() + VeafQRA.WATCHDOG_DELAY)    
+    self:check()
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------

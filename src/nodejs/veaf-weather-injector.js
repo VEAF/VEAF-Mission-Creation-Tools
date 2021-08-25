@@ -13,6 +13,8 @@ const path = require('path');
 const SolarCalc = require('solar-calc');
 var sunrise = 18000; // default value = 5:00
 var sunset = 68400; // default value = 19:00
+const DefaultMetar = 'UG27 221130Z 04515KT CAVOK Q1020 NOSIG';
+
 
 String.prototype.regexLastIndexOf = function (regex) {
   var match = this.match(regex);
@@ -197,7 +199,12 @@ async function injectWeather(parameters) {
       if (!metar || metar.age > configuration.maxAge) {
         // read it from CheckWX
         let checkwx = new CheckWX(configuration.checkwx_apikey);
-        metar = await checkwx.getWeatherForLatLon(theatre.lat, theatre.lon);
+        try {
+          metar = await checkwx.getWeatherForLatLon(theatre.lat, theatre.lon);
+        } catch (error) {
+          console.log("Error while fetching weather on checkwx ! ", error)
+          metar = DefaultMetar;
+        }
         if (trace) console.log(metar);
         if (!metar) {
           console.error("cannot get metar from CheckWX !");

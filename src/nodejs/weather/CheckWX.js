@@ -27,6 +27,14 @@ class CheckWX {
         headers: {
           "Accept": "application/json",
           "X-API-Key": this._apiKey
+        },
+        timeout: {
+          lookup: 100,
+          connect: 50,
+          secureConnect: 50,
+          socket: 1000,
+          send: 1000,
+          response: 1000
         }
       };
 

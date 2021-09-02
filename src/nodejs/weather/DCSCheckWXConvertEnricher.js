@@ -160,7 +160,7 @@ class DCSCheckWXConvertEnricher {
     if (this.getClosestResult() && this.getClosestResult()['barometer'] && this.getClosestResult()['barometer']['hg'])
       return this.getClosestResult()['barometer']['hg'] * 25.4;
     else
-      return 29.92;
+      return 29.92 * 25.4;
   }
 
   getTemperature() {

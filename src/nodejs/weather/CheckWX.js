@@ -29,12 +29,12 @@ class CheckWX {
           "X-API-Key": this._apiKey
         },
         timeout: {
-          lookup: 100,
-          connect: 50,
-          secureConnect: 50,
-          socket: 1000,
-          send: 1000,
-          response: 1000
+          lookup: 1000,
+          connect: 500,
+          secureConnect: 500,
+          socket: 10000,
+          send: 10000,
+          response: 10000
         }
       };
 

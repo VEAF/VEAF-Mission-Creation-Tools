@@ -13,7 +13,7 @@ const path = require('path');
 const SolarCalc = require('solar-calc');
 var sunrise = 18000; // default value = 5:00
 var sunset = 68400; // default value = 19:00
-const DefaultMetar = 'UG27 221130Z 04515KT CAVOK Q1020 NOSIG';
+const DefaultMetar = 'UG27 221130Z 04515KT CAVOK 17/12 Q1020 NOSIG';
 
 
 String.prototype.regexLastIndexOf = function (regex) {

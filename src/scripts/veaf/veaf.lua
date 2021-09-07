@@ -32,7 +32,7 @@ veaf = {}
 veaf.Id = "VEAF"
 
 --- Version.
-veaf.Version = "1.17.1"
+veaf.Version = "1.17.2"
 
 --- Development version ?
 veaf.Development = true
@@ -625,6 +625,14 @@ function veaf._p(o, level, skip)
         end
     end
     return text
+end
+
+function veaf.length(T)
+    local count = 0
+    if T ~= nil then
+        for _ in pairs(T) do count = count + 1 end
+    end
+    return count
 end
 
 --- Simple round

@@ -24,7 +24,7 @@ veafAssets = {}
 veafAssets.Id = "ASSETS"
 
 --- Version.
-veafAssets.Version = "1.8.0"
+veafAssets.Version = "1.8.1"
 
 -- trace level, specific to this module
 --veafAssets.LogLevel = "trace"
@@ -67,7 +67,7 @@ end
 --- Build the initial radio menu
 function veafAssets.buildRadioMenu()
     -- don't create an empty menu
-    if length(veafAssets.assets) == 0 then 
+    if veaf.length(veafAssets.assets) == 0 then 
         return
     end
 

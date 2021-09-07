@@ -37,7 +37,7 @@ veafNamedPoints = {}
 veafNamedPoints.Id = "NAMED POINTS"
 
 --- Version.
-veafNamedPoints.Version = "1.10.0"
+veafNamedPoints.Version = "1.10.1"
 
 -- trace level, specific to this module
 --veafNamedPoints.LogLevel = "trace"
@@ -4275,6 +4275,10 @@ function veafNamedPoints.addAllMarianasIslandsCities()
 end
         
 function veafNamedPoints.addCities(cities)
+    mist.scheduleFunction(veafNamedPoints._addCities, {cities}, timer.getTime() + 1) -- wait until the module had a chance to initialize
+end
+
+function veafNamedPoints._addCities(cities)
     for name, data in pairs(cities) do
         veaf.loggers.get(veafNamedPoints.Id):trace(string.format("processing city name=[%s]",name or ""))
         local point = coord.LLtoLO(data.latitude, data.longitude)

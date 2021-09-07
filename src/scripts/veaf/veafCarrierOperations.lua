@@ -48,7 +48,7 @@ veafCarrierOperations = {}
 veafCarrierOperations.Id = "CARRIER"
 
 --- Version.
-veafCarrierOperations.Version = "1.9.0"
+veafCarrierOperations.Version = "1.9.1"
 
 -- trace level, specific to this module
 --veafCarrierOperations.LogLevel = "trace"
@@ -811,7 +811,7 @@ function veafCarrierOperations.buildRadioMenu()
     veaf.loggers.get(veafCarrierOperations.Id):debug("veafCarrierOperations.buildRadioMenu")
 
     -- don't create an empty menu
-    if length(veafCarrierOperations.carriers) == 0 then 
+    if veaf.length(veafCarrierOperations.carriers) == 0 then 
         return
     end
 

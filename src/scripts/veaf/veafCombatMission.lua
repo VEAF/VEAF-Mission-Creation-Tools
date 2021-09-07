@@ -25,7 +25,7 @@ veafCombatMission = {}
 veafCombatMission.Id = "COMBATMISSION"
 
 --- Version.
-veafCombatMission.Version = "2.1.2"
+veafCombatMission.Version = "2.1.3"
 
 -- trace level, specific to this module
 --veafCombatMission.LogLevel = "trace"
@@ -1254,7 +1254,7 @@ function veafCombatMission.buildRadioMenu()
     veaf.loggers.get(veafCombatMission.Id):debug("buildRadioMenu()")
 
     -- don't create an empty menu
-    if length(veafCombatMission.missionsDict) == 0 then 
+    if veaf.length(veafCombatMission.missionsDict) == 0 then 
         return
     end
 

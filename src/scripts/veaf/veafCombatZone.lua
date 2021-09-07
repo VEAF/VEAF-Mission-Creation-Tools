@@ -48,7 +48,7 @@ veafCombatZone = {}
 veafCombatZone.Id = "COMBATZONE"
 
 --- Version.
-veafCombatZone.Version = "1.8.0"
+veafCombatZone.Version = "1.8.1"
 
 -- trace level, specific to this module
 --veafCombatZone.LogLevel = "trace"
@@ -1221,7 +1221,7 @@ function veafCombatZone.buildRadioMenu()
     veaf.loggers.get(veafCombatZone.Id):debug("buildRadioMenu()")
 
     -- don't create an empty menu
-    if length(veafCombatZone.zonesDict) == 0 then 
+    if veaf.length(veafCombatZone.zonesDict) == 0 then 
         return
     end
 

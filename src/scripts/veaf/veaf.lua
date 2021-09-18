@@ -2948,7 +2948,8 @@ if ctld then
     -- logging change
     ctld.p = veaf.p
     ctld.Id = "CTLD"
-    ctld.LogLevel = "trace"
+    ctld.LogLevel = "info"
+    --ctld.LogLevel = "trace"
     --ctld.LogLevel = "debug"
 
     ctld.logger = veaf.loggers.new(ctld.Id, ctld.LogLevel)

@@ -29,9 +29,9 @@ ctld.Id = "CTLD - "
 ctld.Version = "20210617.02"
 
 -- debug level, specific to this module
-ctld.Debug = true
+ctld.Debug = false
 -- trace level, specific to this module
-ctld.Trace = true
+ctld.Trace = false
 
 ctld.alreadyInitialized = false -- if true, ctld.initialize() will not run
 

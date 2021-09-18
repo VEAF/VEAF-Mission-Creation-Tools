@@ -48,7 +48,7 @@ veafCombatZone = {}
 veafCombatZone.Id = "COMBATZONE"
 
 --- Version.
-veafCombatZone.Version = "1.8.1"
+veafCombatZone.Version = "1.9.0"
 
 -- trace level, specific to this module
 --veafCombatZone.LogLevel = "trace"
@@ -277,6 +277,8 @@ VeafCombatZone =
     active,
     -- zone is a training zone
     training,
+    -- zone is completable (i.e. disable it when all ennemies are dead)
+    completable,
     -- DCS groups that have been spawned (for cleaning up later)
     spawnedGroups,
     --- Radio menus paths
@@ -303,6 +305,7 @@ function VeafCombatZone:new()
     self.zoneCenter = nil
     self.active = false
     self.training = false
+    self.completable = true
     self.spawnedGroups = {}
     self.delayedSpawners = {}
     self.radioMarkersPath = nil
@@ -363,6 +366,15 @@ end
 
 function VeafCombatZone:setTraining(value)
     self.training = value
+    return self
+end
+
+function VeafCombatZone:isCompletable()
+    return self.completable
+end
+
+function VeafCombatZone:setCompletable(value)
+    self.completable = value
     return self
 end
 
@@ -451,7 +463,9 @@ end
 ---
 function VeafCombatZone:scheduleWatchdogFunction()
     veaf.loggers.get(veafCombatZone.Id):debug(string.format("VeafCombatZone[%s]:scheduleWatchdogFunction()",self.missionEditorZoneName or ""))
-    self.watchdogFunctionId = mist.scheduleFunction(veafCombatZone.CompletionCheck,{self.missionEditorZoneName},timer.getTime()+veafCombatZone.SecondsBetweenWatchdogChecks)
+    if self:isCompletable() then
+        self.watchdogFunctionId = mist.scheduleFunction(veafCombatZone.CompletionCheck,{self.missionEditorZoneName},timer.getTime()+veafCombatZone.SecondsBetweenWatchdogChecks)
+    end
     return self
 end
 
@@ -905,6 +919,9 @@ end
 -- check if there are still units in zone
 function VeafCombatZone:completionCheck()
     veaf.loggers.get(veafCombatZone.Id):debug(string.format("VeafCombatZone[%s]:completionCheck()",self.missionEditorZoneName or ""))
+    if not self:isCompletable() then
+        return
+    end
     local nbUnitsR = 0
     local nbUnitsB = 0
 

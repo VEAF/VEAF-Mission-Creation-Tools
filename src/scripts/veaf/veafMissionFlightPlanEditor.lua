@@ -34,7 +34,7 @@ veafMissionFlightPlanEditor = {}
 veafMissionFlightPlanEditor.Id = "FPL_EDITOR - "
 
 --- Version.
-veafMissionFlightPlanEditor.Version = "0.0.1"
+veafMissionFlightPlanEditor.Version = "1.0.1"
 
 -- trace level, specific to this module
 veafMissionFlightPlanEditor.Trace = false
@@ -180,6 +180,16 @@ function _deepcopy(orig, copies)
     return copy
 end
 
+local function reverse(t)
+  local n = #t
+  local i = 1
+  while i < n do
+    t[i],t[n] = t[n],t[i]
+    i = i + 1
+    n = n - 1
+  end
+end
+
 function veafMissionFlightPlanEditor.editGroup(coa_name, country_name, category_name, group_t, unitType)
   --veafMissionFlightPlanEditor.logTrace(string.format("editGroup(%s)",p(group_t)))
   local hasBeenEdited = false
@@ -215,8 +225,20 @@ function veafMissionFlightPlanEditor.editGroup(coa_name, country_name, category_
               local points = group_t["route"]["points"]
               if points then
                 veafMissionFlightPlanEditor.logTrace("    found [points]")
-                for newPointIndex, newPoint in pairs(setting_t["waypoints"]) do
-                  veafMissionFlightPlanEditor.logTrace(string.format("    newPointIndex=%s",p(newPointIndex)))
+                
+                if setting_t.replaceAllButFirst then
+                  veafMissionFlightPlanEditor.logTrace("    clearing [points]")
+                  for i = 2, #points do
+                    if points[i] then
+                      points[i] = nil
+                    end
+                  end
+                  group_t["route"]["points"] = points
+                end
+                
+                veafMissionFlightPlanEditor.logTrace(string.format("    setting_t[\"waypoints\"]=%s",p(setting_t["waypoints"])))
+                for i = 1, #setting_t["waypoints"] do
+                  local newPoint = setting_t["waypoints"][i]
                   veafMissionFlightPlanEditor.logTrace(string.format("    newPoint=%s",p(newPoint)))
                   if type(newPoint) == "string" then
                     -- this is a shortcut to the WAYPOINTS table
@@ -228,6 +250,8 @@ function veafMissionFlightPlanEditor.editGroup(coa_name, country_name, category_
                   -- check if the waypoint exists in the points collection
                   for pointIndex, point in pairs(points) do
                     local name = point["name"]
+                    veafMissionFlightPlanEditor.logTrace(string.format("      pointIndex=%s",p(pointIndex)))
+                    veafMissionFlightPlanEditor.logTrace(string.format("      point=%s",p(point)))
                     if name and name:upper() == newPointName then
                       -- replace this point
                       newPointPosition = pointIndex

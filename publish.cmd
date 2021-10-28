@@ -4,6 +4,6 @@ echo ------------------------------
 echo publishing scripts package
 echo ------------------------------
 
-call npm publish
+call yarn publish
 popd
 pause

@@ -28,7 +28,7 @@ veafSkynet = {}
 veafSkynet.Id = "SKYNET"
 
 --- Version.
-veafSkynet.Version = "1.1.1"
+veafSkynet.Version = "1.1.2"
 
 -- trace level, specific to this module
 --veafSkynet.LogLevel = "trace"
@@ -239,13 +239,15 @@ function veafSkynet.initialize(includeRedInRadio, debugRed, includeBlueInRadio, 
     veaf.loggers.get(veafSkynet.Id):trace(string.format("veafSkynet.iadsSamUnitsTypes=%s",veaf.p(veafSkynet.iadsSamUnitsTypes)))
     
     -- add EWR-capable units
-    local EWR_attributes = {"EWR", "AWACS" ,"RADAR_BAND1_FOR_ARM", "RADAR_BAND2_FOR_ARM"}
     for _, unit in pairs(dcsUnits.DcsUnitsDatabase) do
         if unit then
             veaf.loggers.get(veafSkynet.Id):trace(string.format("testing unit %s",veaf.p(unit.type)))
             if unit.attribute then
                 veaf.loggers.get(veafSkynet.Id):trace(string.format("unit.attribute = %s",veaf.p(unit.attribute)))
                 if (unit.attribute["SAM SR"]) then
+                    veafSkynet.iadsEwrUnitsTypes[unit.type] = true
+                    veaf.loggers.get(veafSkynet.Id):trace(string.format("-> EWR"))
+                elseif (unit.attribute["EWR"]) then
                     veafSkynet.iadsEwrUnitsTypes[unit.type] = true
                     veaf.loggers.get(veafSkynet.Id):trace(string.format("-> EWR"))
                 elseif (unit.attribute["AWACS"]) then

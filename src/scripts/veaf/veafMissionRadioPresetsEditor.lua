@@ -34,7 +34,7 @@ veafMissionRadioPresetsEditor = {}
 veafMissionRadioPresetsEditor.Id = "RADIOPRESETS_EDITOR - "
 
 --- Version.
-veafMissionRadioPresetsEditor.Version = "1.2.0"
+veafMissionRadioPresetsEditor.Version = "1.2.1"
 
 -- trace level, specific to this module
 veafMissionRadioPresetsEditor.Trace = false
@@ -171,24 +171,27 @@ function veafMissionRadioPresetsEditor.editUnit(coa_name, country_name, unit_t)
   local unitName = unit_t["name"]
   local unitId = unit_t["unitId"]
   local unitType = unit_t["type"]
-  veafMissionRadioPresetsEditor.logDebug(string.format("Testing unit unitType=%s, unitName=%s, unitId=%s in coa_name=%s, country_name=%s) ", veafMissionRadioPresetsEditor.p(unitType), veafMissionRadioPresetsEditor.p(unitName), veafMissionRadioPresetsEditor.p(unitId),veafMissionRadioPresetsEditor.p(coa_name), veafMissionRadioPresetsEditor.p(country_name)))
+  veafMissionRadioPresetsEditor.logDebug("\n\n")
+  veafMissionRadioPresetsEditor.logDebug(string.format("Testing unit unitType=[%s], unitName=%s, unitId=%s in coa_name=%s, country_name=%s) ", veafMissionRadioPresetsEditor.p(unitType), veafMissionRadioPresetsEditor.p(unitName), veafMissionRadioPresetsEditor.p(unitId),veafMissionRadioPresetsEditor.p(coa_name), veafMissionRadioPresetsEditor.p(country_name)))
 
   if unit_t["skill"] and unit_t["skill"] == "Client" then -- only human players
     veafMissionRadioPresetsEditor.logTrace("Client found")
     if unitType then
       veafMissionRadioPresetsEditor.logTrace("Checking in radioSettings")
       for setting, setting_t in pairs(radioSettings) do
+        veafMissionRadioPresetsEditor.logTrace("\n")
+        veafMissionRadioPresetsEditor.logTrace(string.format("Testing setting %s", veafMissionRadioPresetsEditor.p(setting)))
         local coalition = setting_t["coalition"]
-        veafMissionRadioPresetsEditor.logTrace(string.format("  coalition=%s",veafMissionRadioPresetsEditor.p(coalition)))
+        veafMissionRadioPresetsEditor.logTrace(string.format("  coalition=%s / %s",veafMissionRadioPresetsEditor.p(coalition), veafMissionRadioPresetsEditor.p(coa_name)))
         if not(coalition) or coalition == coa_name then
           veafMissionRadioPresetsEditor.logTrace("  Coalition checked")
           local country = setting_t["country"]
-          veafMissionRadioPresetsEditor.logTrace(string.format("  country=%s",veafMissionRadioPresetsEditor.p(country)))
+          veafMissionRadioPresetsEditor.logTrace(string.format("  country=%s / %s",veafMissionRadioPresetsEditor.p(country),veafMissionRadioPresetsEditor.p(country_name)))
           if not(country) or country == country_name then
             veafMissionRadioPresetsEditor.logTrace("  Country checked")
             local type = setting_t["type"]
-            veafMissionRadioPresetsEditor.logTrace(string.format("  type=%s",veafMissionRadioPresetsEditor.p(type)))
-            if not(type) or string.match(unitType:lower(), type:lower()) then
+            veafMissionRadioPresetsEditor.logTrace(string.format("  type=[%s] / [%s]",veafMissionRadioPresetsEditor.p(type),veafMissionRadioPresetsEditor.p(unitType)))
+            if not(type) or unitType:lower() == type:lower() or string.match(unitType:lower(), type:lower()) then
               veafMissionRadioPresetsEditor.logTrace("  Unit type checked")
               -- edit the unit
               veafMissionRadioPresetsEditor.logDebug(string.format("-> Edited unit unitType=%s, unitName=%s, unitId=%s in coa_name=%s, country_name=%s) ", veafMissionRadioPresetsEditor.p(unitType), veafMissionRadioPresetsEditor.p(unitName), veafMissionRadioPresetsEditor.p(unitId),veafMissionRadioPresetsEditor.p(coa_name), veafMissionRadioPresetsEditor.p(country_name)))

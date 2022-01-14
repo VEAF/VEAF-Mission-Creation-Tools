@@ -85,6 +85,12 @@ async function injectWeatherFromConfiguration(parameters) {
       for (const key in data.moments) {
         if (Object.hasOwnProperty.call(data.moments, key)) {
           let value = data.moments[key];
+          moments[key] = value;
+        }
+      }
+      for (const key in moments) {
+        if (Object.hasOwnProperty.call(moments, key)) {
+          let value = moments[key];
           moments[key] = parseMoment(value);
         }
       }

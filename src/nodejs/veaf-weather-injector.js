@@ -13,7 +13,7 @@ const path = require('path');
 const SolarCalc = require('solar-calc');
 var sunrise = 18000; // default value = 5:00
 var sunset = 68400; // default value = 19:00
-const DefaultMetar = 'UG27 221130Z 04515KT CAVOK 17/12 Q1020 NOSIG';
+const DefaultMetar = 'LFJY 221130Z 04515KT CAVOK 17/12 Q1020 NOSIG';
 
 
 String.prototype.regexLastIndexOf = function (regex) {
@@ -72,7 +72,16 @@ async function injectWeatherFromConfiguration(parameters) {
         sunrise = toDcsTime(new Date(solar.sunrise.toLocaleString("en-US", {timeZone: tz})));
         sunset = toDcsTime(new Date(solar.sunset.toLocaleString("en-US", {timeZone: tz})));
       }
-      let moments = {}
+      let moments = {
+        "night" : "02:00",
+        "beforedawn" : "sunrise-90*60",
+        "sunrise" : "sunrise",
+        "dawn" : "sunrise+30*60",
+        "morning" : "sunrise+90*60",
+        "day" : "15:00",
+        "beforesunset" : "sunset-90*60",
+        "sunset" : "sunset" 
+      } // default moments
       for (const key in data.moments) {
         if (Object.hasOwnProperty.call(data.moments, key)) {
           let value = data.moments[key];
@@ -80,7 +89,7 @@ async function injectWeatherFromConfiguration(parameters) {
         }
       }
       for (let i=0; i<data.targets.length; i++) {
-        let { version, weather, weatherfile, time, moment, dontSetToday, setTodayYear } = data.targets[i];
+        let { version, weather, weatherfile, time, moment, dontSetToday, dontSetTodayYear } = data.targets[i];
         if (!time && moment && moments && moments[moment]) {
           time = moments[moment];
         }
@@ -92,7 +101,7 @@ async function injectWeatherFromConfiguration(parameters) {
           metarString: weather,
           variableForMetar: data.variableForMetar,
           setToday: !dontSetToday,
-          setTodayYear: setTodayYear,
+          setTodayYear: !dontSetTodayYear,
           trace: trace,
           quiet: quiet
         }

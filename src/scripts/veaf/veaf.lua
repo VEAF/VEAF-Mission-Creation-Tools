@@ -2991,11 +2991,13 @@ if ctld then
     ctld.unitLoadLimits["UH-1H"] = 10
     ctld.unitLoadLimits["Mi-24P"] = 10
     ctld.unitLoadLimits["Mi-8MT"] = 20
+    ctld.unitLoadLimits["UH-60L"] = 20
     ctld.unitLoadLimits["Yak-52"] = 1
 
     -- ************** Allowable actions for UNIT TYPES ******************
 
     ctld.unitActions["Yak-52"] = {crates=false, troops=true}
+    ctld.unitActions["UH-60L"] = {crates=true, troops=true}
 
     -- ************** INFANTRY GROUPS FOR PICKUP ******************
 
@@ -3004,7 +3006,7 @@ if ctld then
     
     ctld.autoInitializeAllHumanTransports = function()
         veaf.loggers.get(ctld.Id):info("autoInitializeAllHumanTransports()")
-        local TransportTypeNames = {"Mi-8MT", "UH-1H", "Mi-24P", "Yak-52"}
+        local TransportTypeNames = {"Mi-8MT", "UH-1H", "Mi-24P", "Yak-52", "UH-60L"}
         for name, unit in pairs(mist.DBs.humansByName) do
             veaf.loggers.get(ctld.Id):trace(string.format("human player found name=%s, unitName=%s, groupName=%s", name, unit.unitName,unit.groupName))
             -- check if it's a transport helo

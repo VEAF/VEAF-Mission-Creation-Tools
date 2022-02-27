@@ -27,7 +27,7 @@ veafShortcuts = {}
 veafShortcuts.Id = "SHORTCUTS"
 
 --- Version.
-veafShortcuts.Version = "1.25.0"
+veafShortcuts.Version = "1.26.0"
 
 -- trace level, specific to this module
 --veafShortcuts.LogLevel = "trace"
@@ -539,6 +539,27 @@ function veafShortcuts.ExecuteAlias(aliasName, delay, remainingCommand, position
         return true
     else
         veaf.loggers.get(veafShortcuts.Id):error(string.format("veafShortcuts.ExecuteAlias : cannot find alias [%s]",aliasName or ""))
+    end
+    return false
+end
+
+-- execute an alias command
+function veafShortcuts.ExecuteBatchAliasesList(aliasBatchList, delay, coalition, silent)
+    veaf.loggers.get(veafShortcuts.Id):debug(string.format("veafShortcuts.ExecuteBatchAliasesList([%s],[%s],[%s])", veaf.p(aliasBatchList), veaf.p(delay), veaf.p(coalition)))
+    veaf.loggers.get(veafShortcuts.Id):trace(string.format("bypassSecurity=[%s]",veaf.p(bypassSecurity)))
+    if aliasBatchList and #aliasBatchList > 0 then -- run a batch
+
+        local _msg = string.format("running batch list [%s]", veaf.p(aliasBatchList))
+        veaf.loggers.get(veafShortcuts.Id):info(_msg)
+        if not(silent) then trigger.action.outText(_msg, 10) end
+
+        -- run the batch
+        for index, textToExecute in ipairs(aliasBatchList) do
+            veafShortcuts.executeCommand(nil, textToExecute, coalition, nil, true)
+        end
+        return true
+    else
+        veaf.loggers.get(veafShortcuts.Id):error(string.format("veafShortcuts.ExecuteBatchAliasesList : batch list is empty"))
     end
     return false
 end

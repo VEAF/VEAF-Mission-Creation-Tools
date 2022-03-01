@@ -417,7 +417,7 @@ function veafSpawn.markTextAnalysis(text)
     options.shells = 1
     options.multiplier = 1
     options.skynet = false -- if true, add to skynet
-    options.addtDrawing = false -- draw a polygon on the map
+    options.addDrawing = false -- draw a polygon on the map
     options.eraseDrawing = false -- erase a polygon from the map
     options.stopDrawing = false -- close a polygon started on the map
 

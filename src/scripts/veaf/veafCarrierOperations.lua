@@ -69,7 +69,8 @@ veafCarrierOperations.AllCarriers =
     ["CVN_73"] = { runwayAngleWithBRC = 9.05, desiredWindSpeedOnDeck = 25},
     ["CVN_75"] = { runwayAngleWithBRC = 9.05, desiredWindSpeedOnDeck = 25},
     ["Forrestal"] = { runwayAngleWithBRC = 9.05, desiredWindSpeedOnDeck = 25},
-    ["KUZNECOW"] ={ runwayAngleWithBRC = 0, desiredWindSpeedOnDeck = 25}
+    ["KUZNECOW"] ={ runwayAngleWithBRC = 0, desiredWindSpeedOnDeck = 25},
+    ["CV_1143_5"] ={ runwayAngleWithBRC = 0, desiredWindSpeedOnDeck = 25}
 }
 
 veafCarrierOperations.ALT_FOR_MEASURING_WIND = 30 -- wind is measured at 30 meters, 10 meters above deck

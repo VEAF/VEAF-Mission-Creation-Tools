@@ -28,7 +28,7 @@ veafSkynet = {}
 veafSkynet.Id = "SKYNET"
 
 --- Version.
-veafSkynet.Version = "1.1.2"
+veafSkynet.Version = "1.2.0"
 
 -- trace level, specific to this module
 --veafSkynet.LogLevel = "trace"
@@ -119,11 +119,14 @@ function veafSkynet.addGroupToNetwork(dcsGroup, alreadyAddedGroups)
 
     if didSomething and not(batchMode) then
         -- specific configurations, for each SAM type
-        iads:getSAMSitesByNatoName('SA-10'):setActAsEW(true)
-        iads:getSAMSitesByNatoName('SA-6'):setActAsEW(true)
-        iads:getSAMSitesByNatoName('Patriot'):setActAsEW(true)
-        iads:getSAMSitesByNatoName('Hawk'):setActAsEW(true)
-
+        iads:getSAMSitesByNatoName('SA-10'):setActAsEW(false)
+        iads:getSAMSitesByNatoName('SA-6'):setActAsEW(false)
+        iads:getSAMSitesByNatoName('Patriot'):setActAsEW(false)
+        iads:getSAMSitesByNatoName('Hawk'):setActAsEW(false)
+        iads:getSAMSitesByNatoName('Mcc-sr'):setActAsEW(false)
+        iads:getSAMSitesByNatoName('Ewr'):setActAsEW(true)
+        iads:getSAMSitesByNatoName('SA-5'):setActAsEW(false)
+    
         -- reactivate the IADS after a warmup delay
         iads:setupSAMSitesAndThenActivate(veafSkynet.DelayForRestart)
     end
@@ -160,10 +163,13 @@ local function initializeIADS(coa, inRadio, debug)
     end
 
     -- specific configurations, for each SAM type
-    iads:getSAMSitesByNatoName('SA-10'):setActAsEW(true)
-    iads:getSAMSitesByNatoName('SA-6'):setActAsEW(true)
-    iads:getSAMSitesByNatoName('Patriot'):setActAsEW(true)
-    iads:getSAMSitesByNatoName('Hawk'):setActAsEW(true)
+    iads:getSAMSitesByNatoName('SA-10'):setActAsEW(false)
+    iads:getSAMSitesByNatoName('SA-6'):setActAsEW(false)
+    iads:getSAMSitesByNatoName('Patriot'):setActAsEW(false)
+    iads:getSAMSitesByNatoName('Hawk'):setActAsEW(false)
+	iads:getSAMSitesByNatoName('Mcc-sr'):setActAsEW(false)
+	iads:getSAMSitesByNatoName('Ewr'):setActAsEW(true)
+	iads:getSAMSitesByNatoName('SA-5'):setActAsEW(false)
 
     if inRadio then
         --activate the radio menu to toggle IADS Status output

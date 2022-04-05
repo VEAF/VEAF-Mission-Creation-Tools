@@ -48,7 +48,7 @@ veafCarrierOperations = {}
 veafCarrierOperations.Id = "CARRIER"
 
 --- Version.
-veafCarrierOperations.Version = "1.10.0"
+veafCarrierOperations.Version = "1.11.0"
 
 -- trace level, specific to this module
 veafCarrierOperations.LogLevel = "trace"
@@ -59,6 +59,8 @@ veaf.loggers.new(veafCarrierOperations.Id, veafCarrierOperations.LogLevel)
 veafCarrierOperations.CarrierGroupNamePattern = "^CSG-.*$"
 
 veafCarrierOperations.RadioMenuName = "CARRIER OPS"
+veafCarrierOperations.RadioMenuNameBlue = "CARRIER OPS - BLUE"
+veafCarrierOperations.RadioMenuNameRed = "CARRIER OPS - RED"
 
 veafCarrierOperations.AllCarriers = 
 {
@@ -88,6 +90,8 @@ veafCarrierOperations.RemoteCommandParser = "([[a-zA-Z0-9]+)%s?([^%s]*)%s?(.*)"
 
 --- Radio menus paths
 veafCarrierOperations.rootPath = nil
+veafCarrierOperations.rootPathBlue = nil
+veafCarrierOperations.rootPathRed = nil
 
 --- Carrier groups data, for Carrier Operations commands
 veafCarrierOperations.carriers = {}
@@ -766,7 +770,12 @@ function veafCarrierOperations.rebuildRadioMenu()
 
         -- create the submenu
         veaf.loggers.get(veafCarrierOperations.Id):trace("create the submenu")
-        carrier.menuPath = veafRadio.addSubMenu(name, veafCarrierOperations.rootPath)
+        local menuRoot = veafCarrierOperations.rootPathRed
+        if carrier.side == coalition.side.BLUE then
+            menuRoot = veafCarrierOperations.rootPathBlue
+        end
+
+        carrier.menuPath = veafRadio.addSubMenu(name, menuRoot)
 
         if carrier.conductingAirOperations then
             -- add the stop menu
@@ -798,6 +807,8 @@ function veafCarrierOperations.buildRadioMenu()
     end
 
     veafCarrierOperations.rootPath = veafRadio.addSubMenu(veafCarrierOperations.RadioMenuName)
+    veafCarrierOperations.rootPathBlue = veafRadio.addSubMenu(veafCarrierOperations.RadioMenuNameBlue, veafCarrierOperations.rootPath)
+    veafCarrierOperations.rootPathRed = veafRadio.addSubMenu(veafCarrierOperations.RadioMenuNameRed, veafCarrierOperations.rootPath)
 
     -- build HELP menu for each group
     if not(veafRadio.skipHelpMenus) then
@@ -833,32 +844,31 @@ function veafCarrierOperations.initializeCarrierGroups()
                     if unitType == knownCarrierType then
                         local coa = group:getCoalition()
                         veaf.loggers.get(veafCarrierOperations.Id):trace(string.format("coa=%s", veaf.p(coa)))
-                        if coa == coalition.side.BLUE then
-                            -- found a carrier, initialize the carrier group object if needed
-                            if not carrier then 
-                                veafCarrierOperations.carriers[name] = {}
-                                carrier = veafCarrierOperations.carriers[name]
-                                veaf.loggers.get(veafCarrierOperations.Id):trace("found carrier !")
-                            else
-                                veaf.loggers.get(veafCarrierOperations.Id):warn(string.format("more than one carrier in group %s", veaf.p(name)))
-                            end
-                            carrier.carrierUnit = unit
-                            carrier.carrierUnitName = carrier.carrierUnit:getName()
-                            carrier.runwayAngleWithBRC = data.runwayAngleWithBRC
-                            carrier.desiredWindSpeedOnDeck = data.desiredWindSpeedOnDeck
-                                    carrier.pedroUnitName = carrier.carrierUnitName .. " Pedro" -- rescue helo unit name
-                            local pedroUnit = Unit.getByName(carrier.pedroUnitName)
-                            if pedroUnit then
-                                pedroUnit:destroy()
-                            end
-                            carrier.tankerUnitName = carrier.carrierUnitName .. " S3B-Tanker" -- emergency tanker unit name
-                            carrier.tankerData = veaf.getTankerData(carrier.tankerUnitName)
-                            local tankerUnit = Unit.getByName(carrier.tankerUnitName)
-                            if tankerUnit then
-                                tankerUnit:destroy()
-                            end
-                            break
+                        -- found a carrier, initialize the carrier group object if needed
+                        if not carrier then 
+                            veafCarrierOperations.carriers[name] = {}
+                            carrier = veafCarrierOperations.carriers[name]
+                            veaf.loggers.get(veafCarrierOperations.Id):trace("found carrier !")
+                        else
+                            veaf.loggers.get(veafCarrierOperations.Id):warn(string.format("more than one carrier in group %s", veaf.p(name)))
                         end
+                        carrier.side = coa
+                        carrier.carrierUnit = unit
+                        carrier.carrierUnitName = carrier.carrierUnit:getName()
+                        carrier.runwayAngleWithBRC = data.runwayAngleWithBRC
+                        carrier.desiredWindSpeedOnDeck = data.desiredWindSpeedOnDeck
+                                carrier.pedroUnitName = carrier.carrierUnitName .. " Pedro" -- rescue helo unit name
+                        local pedroUnit = Unit.getByName(carrier.pedroUnitName)
+                        if pedroUnit then
+                            pedroUnit:destroy()
+                        end
+                        carrier.tankerUnitName = carrier.carrierUnitName .. " S3B-Tanker" -- emergency tanker unit name
+                        carrier.tankerData = veaf.getTankerData(carrier.tankerUnitName)
+                        local tankerUnit = Unit.getByName(carrier.tankerUnitName)
+                        if tankerUnit then
+                            tankerUnit:destroy()
+                        end
+                        break
                     end
                 end
             end

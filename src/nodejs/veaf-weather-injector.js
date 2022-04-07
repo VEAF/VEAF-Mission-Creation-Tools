@@ -309,7 +309,7 @@ async function injectWeather(parameters) {
         ["base"] = ${weatherdata.getCloudBase()},
         ["iprecptns"] = ${weatherdata.getWeatherType()},
       }, -- end of ["clouds"]
-    }, -- end of ["weather"]     
+    },
     `;
     weatherDataString = weatherDataString.replace("NaN","0"); // just in case some computation went wrong
 
@@ -323,15 +323,16 @@ async function injectWeather(parameters) {
 
   // store the weather in the mission data
   let weatherStartPos = missionData.indexOf('["weather"] = ');
-  // find the first brace, then count the braces to find the end of the weather block
+  // find the first brace
   let nbBraces = 0;
-  let weatherEndPos = weatherStartPos + '["weather"] = '.length;
+  let weatherEndPos = weatherStartPos;
   do {
     let charToCheck = missionData.charAt(weatherEndPos)
     if (charToCheck == '{')
       nbBraces++;
-    weatherEndPos++;
+      weatherEndPos++;
   } while (nbBraces == 0)
+  // count the braces to find the end of the weather block
   do {
     let charToCheck = missionData.charAt(weatherEndPos)
     if (charToCheck == '{')

@@ -323,7 +323,24 @@ async function injectWeather(parameters) {
 
   // store the weather in the mission data
   let weatherStartPos = missionData.indexOf('["weather"] = ');
-  let weatherEndPos = missionData.lastIndexOf('-- end of ["weather"]') + '-- end of ["weather"]'.length;
+  // find the first brace, then count the braces to find the end of the weather block
+  let nbBraces = 0;
+  let weatherEndPos = weatherStartPos + '["weather"] = '.length;
+  do {
+    let charToCheck = missionData.charAt(weatherEndPos)
+    if (charToCheck == '{')
+      nbBraces++;
+    weatherEndPos++;
+  } while (nbBraces == 0)
+  do {
+    let charToCheck = missionData.charAt(weatherEndPos)
+    if (charToCheck == '{')
+      nbBraces++;
+    if (charToCheck == '}')
+      nbBraces--;
+    weatherEndPos++;
+  } while (nbBraces > 0)
+  weatherEndPos++;
   missionData = missionData.slice(0, weatherStartPos) + weatherDataString + missionData.slice(weatherEndPos);
 
   if (trace)

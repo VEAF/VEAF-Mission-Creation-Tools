@@ -45,7 +45,7 @@ veafRadio = {}
 veafRadio.Id = "RADIO"
 
 --- Version.
-veafRadio.Version = "1.9.0"
+veafRadio.Version = "1.10.0"
 
 -- trace level, specific to this module
 --veafRadio.LogLevel = "trace"
@@ -910,6 +910,57 @@ function veafRadio.playToRadio(pathToMP3, frequencies, modulations, volume, name
   if not quiet then
     trigger.action.outTextForCoalition(coalition, string.format("%s (%s) : playing %s", name, frequencies, pathToMP3), 30)
   end
+end
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- user menus
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+function veafRadio.createUserMenu(configuration, groupId)
+    veaf.loggers.get(veafRadio.Id):debug("veafRadio.createUserMenu(groupId=%s, configuration=%s)",veaf.p(groupId), veaf.p(configuration))
+
+    local function _recursivelyCreateMenu(configuration, parentMenu)
+        veaf.loggers.get(veafRadio.Id):trace("_recursivelyCreateMenu(configuration=%s, parentMenu=%s)",veaf.p(configuration), veaf.p(parentMenu))
+        local result
+
+        for _, item in pairs(configuration) do
+            local itemType = item[1]
+            veaf.loggers.get(veafRadio.Id):trace("itemType = [%s]",veaf.p(itemType))
+            local name = item[2]
+            veaf.loggers.get(veafRadio.Id):trace("name = [%s]",veaf.p(name))
+            if itemType == "menu" then
+                -- this is a menu with a content
+                local content = item[3]
+                veaf.loggers.get(veafRadio.Id):trace("content = [%s]",veaf.p(content))
+                
+                veaf.loggers.get(veafRadio.Id):trace("creating menu name=%s",veaf.p(name))
+                if groupId ~= nil then
+                    result = missionCommands.addSubMenuForGroup(groupId, name, parentMenu)
+                else
+                    result = missionCommands.addSubMenu(name, parentMenu)
+                end
+                -- recurse if needed
+                if content ~= nil and #content > 0 then
+                    _recursivelyCreateMenu(content, result)
+                end
+            else
+                -- this is a command with a function
+                local aFunction = item[3]
+                veaf.loggers.get(veafRadio.Id):trace("aFunction = [%s]",veaf.p(aFunction))
+                local parameters = item[4]
+                veaf.loggers.get(veafRadio.Id):trace("parameters = [%s]",veaf.p(parameters))
+
+                veaf.loggers.get(veafRadio.Id):trace("creating command name=%s",veaf.p(name))
+                if groupId ~= nil then
+                    missionCommands.addCommandForGroup(groupId, name, parentMenu, aFunction, parameters)
+                else
+                    missionCommands.addCommand(name, parentMenu, aFunction, parameters)
+                end
+            end
+        end
+    end
+
+    _recursivelyCreateMenu(configuration, nil)
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------

@@ -66,7 +66,7 @@ veafSpawn = {}
 veafSpawn.Id = "SPAWN"
 
 --- Version.
-veafSpawn.Version = "1.33.0"
+veafSpawn.Version = "1.34.0"
 
 -- trace level, specific to this module
 --veafSpawn.LogLevel = "trace"
@@ -2638,41 +2638,65 @@ end
 -- Mission master features
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 veafSpawn.missionMasterRunnables = {}
+veafSpawn.missionMasterRunnables.__silent = true
 
-function veafSpawn.missionMasterAddRunnable(name, code)
+function veafSpawn.missionMasterSetMessagingMode(silent, toGroupId)
+    veafSpawn.missionMasterRunnables.__silent = silent
+    veafSpawn.missionMasterRunnables.__toGroupId = toGroupId
+end
+
+function veafSpawn.missionMasterOutText(message)
+    -- don't send the message if __silent is true
+    if not(veafSpawn.missionMasterRunnables.__silent) then 
+        if (veafSpawn.missionMasterRunnables.__toGroupId) then
+            -- send to a group
+            trigger.action.outTextForGroup(veafSpawn.missionMasterRunnables.__toGroupId, message, 5) 
+        else
+            -- send to all
+            trigger.action.outText(message, 5) 
+        end
+    end
+end
+
+function veafSpawn.missionMasterAddRunnable(name, code, parameters)
     veaf.loggers.get(veafSpawn.Id):debug("veafSpawn.missionMasterAddRunnable(name=%s)",name)
-    veafSpawn.missionMasterRunnables[veaf.ifnn(name, "upper")] = code
+    veafSpawn.missionMasterRunnables[veaf.ifnn(name, "upper")] = { code, parameters }
 end
 
 function veafSpawn.missionMasterRun(name)
     veaf.loggers.get(veafSpawn.Id):debug("veafSpawn.missionMasterRun(name=%s)",name)
     if not name or #name == 0 then
-        veaf.loggers.get(veafSpawn.Id):warn("name is mandatory", name)    
-        trigger.action.outText(string.format("Mission Master, `run` requires the name or number of the flag"), 5) 
+        local message = "Mission Master, `run` requires the name of the code to be run"
+        veaf.loggers.get(veafSpawn.Id):warn(message)    
+        veafSpawn.missionMasterOutText(message)
         return 
     end
 
-    local code = veafSpawn.missionMasterRunnables[veaf.ifnn(name, "upper")]
+    local code, parameters = veaf.safeUnpack(veafSpawn.missionMasterRunnables[veaf.ifnn(name, "upper")])
     if code then
-        local sta, res = pcall(code)
+        local sta, res = pcall(code, parameters)
         if sta then 
-            veaf.loggers.get(veafSpawn.Id):warn("The runnable [%s] was successfully run and returned : %s", name, veaf.p(res))    
-            trigger.action.outText(string.format("Mission Master, the runnable [%s] was successfully run and returned : %s", name, veaf.p(res)), 5) 
+            message = string.format("Mission Master, the runnable [%s] was successfully run and returned : %s", name, veaf.p(res))
+            veaf.loggers.get(veafSpawn.Id):warn(message)    
+            veafSpawn.missionMasterOutText(message)
         else
-            veaf.loggers.get(veafSpawn.Id):warn("The runnable [%s] returned an error : %s", name, veaf.p(res))    
-            trigger.action.outText(string.format("Mission Master, the runnable [%s] returned an error : %s", name, veaf.p(res)), 5) 
+            message = string.format("Mission Master, the runnable [%s] returned an error : %s", name, veaf.p(res))
+            veaf.loggers.get(veafSpawn.Id):warn(message)
+            veafSpawn.missionMasterOutText(message)
         end
     else
-        veaf.loggers.get(veafSpawn.Id):warn("The runnable [%s] does not exist", name)
-        trigger.action.outText(string.format("Mission Master, the runnable [%s] does not exist", name), 5) 
+        message = string.format("Mission Master, the runnable [%s] does not exist", name)
+        veaf.loggers.get(veafSpawn.Id):warn(message)
+        veafSpawn.missionMasterOutText(message)
     end
 end
 
 function veafSpawn.missionMasterSetFlag(name, value)
     veaf.loggers.get(veafSpawn.Id):debug("veafSpawn.missionMasterSetFlag(name=%s, value=%s)", name, value)
     if not name or #name == 0 then
-        veaf.loggers.get(veafSpawn.Id):warn("name is mandatory", name)    
-        trigger.action.outText(string.format("Mission Master, `setFlag` requires the name or number of the flag"), 5) 
+        message = "Mission Master, `setFlag` requires the name or number of the flag"
+        veaf.loggers.get(veafSpawn.Id):warn(message)
+        veafSpawn.missionMasterOutText(message)
         return 
     end
     trigger.action.setUserFlag(name , value)
@@ -2681,13 +2705,15 @@ end
 function veafSpawn.missionMasterGetFlag(name)
     veaf.loggers.get(veafSpawn.Id):debug("veafSpawn.missionMasterGetFlag(name=%s)", name)
     if not name or #name == 0 then
-        veaf.loggers.get(veafSpawn.Id):warn("name is mandatory", name)    
-        trigger.action.outText(string.format("Mission Master, `getFlag` requires the name or number of the flag"), 5) 
+        message = "Mission Master, `getFlag` requires the name or number of the flag"
+        veaf.loggers.get(veafSpawn.Id):warn(message)
+        veafSpawn.missionMasterOutText(message)
         return 
     end
     local value = trigger.misc.getUserFlag(name)
-    veaf.loggers.get(veafSpawn.Id):warn("Flag [%s] has value [%s]", name, value)    
-    trigger.action.outText(string.format("Mission Master, flag [%s] has value [%s]", name, veaf.p(value)), 5) 
+    message = string.format("Mission Master, flag [%s] has value [%s]", name, veaf.p(value))
+    veaf.loggers.get(veafSpawn.Id):info(message)
+    veafSpawn.missionMasterOutText(message)
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------

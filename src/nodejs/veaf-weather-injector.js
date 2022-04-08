@@ -137,8 +137,7 @@ async function injectWeather(parameters) {
     let zippedMissionObject = await JSZip.loadAsync(zippedMissionFile);
     // Read the contents of the 'mission' file
     missionData = await zippedMissionObject.file("mission").async("string")
-    if (variableForMetar)
-      dictionaryData = await zippedMissionObject.file("l10n/DEFAULT/dictionary").async("string")
+    dictionaryData = await zippedMissionObject.file("l10n/DEFAULT/dictionary").async("string")
 
     if (!missionData) {
       console.error("cannot read mission file");

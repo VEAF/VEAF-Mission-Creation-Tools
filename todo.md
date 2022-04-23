@@ -13,11 +13,13 @@
 - _destroy could delete the named points
 - add JTACs to the DCS Jtac menu
 - find a way to spawn convoys on the road to speed up convoy setup
+- progression en liant les combatzones l'une après l'autre
 
 ### RFC - needs to be done
 
 - bouger les escortes avec les tankers
 - gérer la sécurité en venant d'une commande chat pour _tous_ les modules (fait uniquement pour shortcuts)
+
 ### Bug - needs to be corrected
 
 bug -armor avec sa9 , "patrol, dest, offroad" ne bougent pas

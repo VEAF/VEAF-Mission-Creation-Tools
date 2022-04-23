@@ -32,14 +32,14 @@ veaf = {}
 veaf.Id = "VEAF"
 
 --- Version.
-veaf.Version = "1.17.2"
+veaf.Version = "1.18.0"
 
 --- Development version ?
 veaf.Development = true
 veaf.SecurityDisabled = true
 
 -- trace level, specific to this module
---veaf.LogLevel = "trace"
+veaf.LogLevel = "trace"
 --veaf.LogLevel = "debug"
 --veaf.ForcedLogLevel = "trace"
 
@@ -1359,15 +1359,24 @@ function veaf.getUnitsOfCoalition(includeStatics, coa)
     return allDcsUnits
 end
 
-function veaf.findUnitsInCircle(center, radius, includeStatics)
+function veaf.findUnitsInCircle(center, radius, includeStatics, onlyTheseUnits)
     veaf.loggers.get(veaf.Id):trace(string.format("findUnitsInCircle(radius=%s)", tostring(radius)))
     veaf.loggers.get(veaf.Id):trace(string.format("center=%s", veaf.p(center)))
 
-
-    local allDcsUnits = veaf.getUnitsOfAllCoalitions(includeStatics)
+    local unitsToCheck = {}
+    if onlyTheseUnits then
+        for k = 1, #onlyTheseUnits do
+            local unit = Unit.getByName(onlyTheseUnits[k]) or StaticObject.getByName(onlyTheseUnits[k])
+            if unit then
+                unitsToCheck[#unitsToCheck + 1] = unit
+            end
+        end
+    else
+        unitsToCheck = veaf.getUnitsOfAllCoalitions(includeStatics)
+    end
     
     local result = {}
-    for _, unit in pairs(allDcsUnits) do
+    for _, unit in pairs(unitsToCheck) do
         local pos = unit:getPosition().p
         if pos then -- you never know O.o
             local name = unit:getName()
@@ -2412,10 +2421,16 @@ VeafQRA =
 {
     -- technical name (DCS zone name)
     name = nil,
+    -- center (point in the center of the circle, when not using a zone)
+    zoneCenter = nil,
+    -- radius (size of the circle, when not using a zone)
+    zoneRadius = nil,
     -- description for the briefing
     description = nil,
     -- aircraft groups forming the QRA
     groups = nil,
+    -- aircraft groups forming the QRA, in a table by enemy quantity (i.e. if this number of enemies are in the zone, spawn these groups)
+    groupsToDeployByEnemyQuantity = nil,
     -- coalition for the QRA
     coalition = nil,
     -- coalitions the QRA is defending against
@@ -2429,9 +2444,13 @@ VeafQRA =
     -- silent means no message is emitted
     silent = nil,
     -- radius of the defenders groups spawn
-    radius = nil,
-    -- react when helicopters enter the zone
+    respawnRadius = nil,
+    -- reacts when helicopters enter the zone
     reactOnHelicopters = nil,
+    -- delay before rearming
+    delayBeforeRearming = -1,
+    -- the enemy does not have to leave the zone before the QRA is rearmed
+    noNeedToLeaveZoneBeforeRearming = false,
 
     timer = nil,
     state = nil,
@@ -2440,10 +2459,11 @@ VeafQRA =
 VeafQRA.__index = VeafQRA
 
 VeafQRA.Id = "QRA"
---VeafQRA.LogLevel = "debug"
+VeafQRA.LogLevel = "trace"
 
 veaf.loggers.new(VeafQRA.Id, VeafQRA.LogLevel)
 
+VeafQRA.STATUS_WILLREARM = 0
 VeafQRA.STATUS_READY = 1
 VeafQRA.STATUS_ACTIVE = 2
 VeafQRA.STATUS_DEAD = 3
@@ -2458,16 +2478,21 @@ function VeafQRA:new()
     veaf.loggers.get(VeafQRA.Id):trace(string.format("VeafQRA:new()"))
     local self = setmetatable({}, VeafQRA)
     self.name = nil
+    self.zoneCenter = nil
+    self.zoneRadius = nil
     self.description = nil
     self.groups = {}
+    self.groupsToDeployByEnemyQuantity = {}
     self.coalition = nil
     self.ennemyCoalitions = {}
     self.messageStart = VeafQRA.DEFAULT_MESSAGE_START
     self.messageDestroyed = VeafQRA.DEFAULT_MESSAGE_DESTROYED
     self.messageReady = VeafQRA.DEFAULT_MESSAGE_READY
     self.silent = false
-    self.radius = 0
+    self.respawnRadius = 0
     self.reactOnHelicopters = false
+    self.delayBeforeRearming = -1
+    self.noNeedToLeaveZoneBeforeRearming = false
     
     self._enemyHumanUnits = nil
     self.timer = 0
@@ -2485,6 +2510,28 @@ function VeafQRA:getName()
     return self.name
 end
 
+function VeafQRA:setZoneCenter(value)
+    veaf.loggers.get(VeafQRA.Id):trace(string.format("VeafQRA[%s]:setZoneCenter(%s)", veaf.p(self.name), veaf.p(value)))
+    self.zoneCenter = value
+    return self
+end
+
+function VeafQRA:setZoneCenterFromCoordinates(value)
+    veaf.loggers.get(VeafQRA.Id):trace(string.format("VeafQRA[%s]:setZoneCenterFromCoordinates(%s)", veaf.p(self.name), veaf.p(value)))
+    local _lat, _lon = veaf.computeLLFromString(value)
+    veaf.loggers.get(VeafQRA.Id):trace(string.format("_lat=%s)", veaf.p(_lat)))
+    veaf.loggers.get(VeafQRA.Id):trace(string.format("_lon=%s)", veaf.p(_lon)))
+    local vec3 = coord.LLtoLO(_lat, _lon)
+    veaf.loggers.get(VeafQRA.Id):trace(string.format("vec3=%s)", veaf.p(vec3)))
+    return self:setZoneCenter(vec3)
+end
+
+function VeafQRA:setZoneRadius(value)
+    veaf.loggers.get(VeafQRA.Id):trace(string.format("VeafQRA[%s]:setZoneRadius(%s)", veaf.p(self.name), veaf.p(value)))
+    self.zoneRadius = value
+    return self
+end
+
 function VeafQRA:setDescription(value)
     veaf.loggers.get(VeafQRA.Id):trace(string.format("VeafQRA[%s]:setDescription(%s)", veaf.p(self.name), veaf.p(value)))
     self.description = value
@@ -2497,12 +2544,21 @@ end
 
 function VeafQRA:addGroup(value)
     veaf.loggers.get(VeafQRA.Id):trace(string.format("VeafQRA[%s]:addGroup(%s)", veaf.p(self.name), veaf.p(value)))
+    if not self.groupsToDeployByEnemyQuantity[1] then
+        self.groupsToDeployByEnemyQuantity[1] = {}
+    end
+    table.insert(self.groupsToDeployByEnemyQuantity[1], value)
     table.insert(self.groups, value)
     return self
 end
 
-function VeafQRA:getGroups()
-    return self.groups
+function VeafQRA:setGroupsToDeployByEnemyQuantity(enemyNb, groupsToDeploy)
+    veaf.loggers.get(VeafQRA.Id):trace(string.format("VeafQRA[%s]:setGroupsToDeployByEnemyQuantity(%s) -> %s", veaf.p(self.name), veaf.p(enemyNb), veaf.p(groupsToDeploy)))
+    self.groupsToDeployByEnemyQuantity[enemyNb] = groupsToDeploy
+    for _, value in pairs(groupsToDeploy) do
+        table.insert(self.groups, value)
+    end
+    return self
 end
 
 function VeafQRA:setCoalition(value)
@@ -2511,18 +2567,10 @@ function VeafQRA:setCoalition(value)
     return self
 end
 
-function VeafQRA:getCoalition()
-    return self.coalition
-end
-
 function VeafQRA:addEnnemyCoalition(value)
     veaf.loggers.get(VeafQRA.Id):trace(string.format("VeafQRA[%s]:addEnnemyCoalition(%s)", veaf.p(self.name), veaf.p(value)))
     self.ennemyCoalitions[value] = value
     return self
-end
-
-function VeafQRA:getEnnemyCoalitions()
-    return self.ennemyCoalitions
 end
 
 function VeafQRA:setMessageStart(value)
@@ -2531,18 +2579,10 @@ function VeafQRA:setMessageStart(value)
     return self
 end
 
-function VeafQRA:getMessageStart()
-    return self.messageStart
-end
-
 function VeafQRA:setMessageDestroyed(value)
     veaf.loggers.get(VeafQRA.Id):trace(string.format("VeafQRA[%s]:setMessageDestroyed(%s)", veaf.p(self.name), veaf.p(value)))
     self.messageDestroyed = value
     return self
-end
-
-function VeafQRA:getMessageDestroyed()
-    return self.messageDestroyed
 end
 
 function VeafQRA:setMessageReady(value)
@@ -2551,50 +2591,43 @@ function VeafQRA:setMessageReady(value)
     return self
 end
 
-function VeafQRA:getMessageReady()
-    return self.messageReady
-end
-
 function VeafQRA:setSilent(value)
-    veaf.loggers.get(VeafQRA.Id):trace(string.format("VeafQRA[]:setSilent(%s)", veaf.p(value)))
+    veaf.loggers.get(VeafQRA.Id):trace(string.format("VeafQRA[%s]:setSilent(%s)", veaf.p(self.name), veaf.p(value)))
     self.silent = value
     return self
 end
 
-function VeafQRA:isSilent()
-    return self.silent
-end
-
 function VeafQRA:setReactOnHelicopters()
-    veaf.loggers.get(VeafQRA.Id):trace("VeafQRA[]:setReactOnHelicopters()")
+    veaf.loggers.get(VeafQRA.Id):trace(string.format("VeafQRA[%s]:setReactOnHelicopters()", veaf.p(self.name)))
     self.reactOnHelicopters = true
     return self
 end
 
-function VeafQRA:isReactOnHelicopters()
-    return self.reactOnHelicopters
-end
-
-function VeafQRA:setRadius(value)
-    veaf.loggers.get(VeafQRA.Id):trace(string.format("VeafQRA[]:setRadius(%s)", veaf.p(value)))
-    self.radius = value
+function VeafQRA:setRespawnRadius(value)
+    veaf.loggers.get(VeafQRA.Id):trace(string.format("VeafQRA[%s]:setRespawnRadius(%s)", veaf.p(self.name), veaf.p(value)))
+    self.respawnRadius = value
     return self
 end
 
-function VeafQRA:getRadius()
-    return self.radius
+function VeafQRA:setDelayBeforeRearming(value)
+    veaf.loggers.get(VeafQRA.Id):trace(string.format("VeafQRA[%s]:setDelayBeforeRearming(%s)", veaf.p(self.name), veaf.p(value)))
+    self.delayBeforeRearming = value
+    return self
 end
 
-
-
+function VeafQRA:setNoNeedToLeaveZoneBeforeRearming()
+    veaf.loggers.get(VeafQRA.Id):trace(string.format("VeafQRA[%s]:setNoNeedToLeaveZoneBeforeRearming()", veaf.p(self.name)))
+    self.noNeedToLeaveZoneBeforeRearming = true
+    return self
+end
 
 function VeafQRA:_getEnemyHumanUnits()
     --veaf.loggers.get(VeafQRA.Id):trace(string.format("VeafQRA[%s]:_getEnemyHumanUnits() - computing", veaf.p(self.name)))
     if not self._enemyHumanUnits then
         veaf.loggers.get(VeafQRA.Id):trace(string.format("VeafQRA[%s]:_getEnemyHumanUnits() - computing", veaf.p(self.name)))
         self._enemyHumanUnits = {}
-        veaf.loggers.get(VeafQRA.Id):trace(string.format("self:getEnnemyCoalitions()[]=%s", veaf.p(self:getEnnemyCoalitions())))
-        for name, unit in pairs(mist.DBs.humansByName) do
+        veaf.loggers.get(VeafQRA.Id):trace(string.format("ennemyCoalitions[]=%s", veaf.p(self.ennemyCoalitions)))
+        for _, unit in pairs(mist.DBs.humansByName) do
             --veaf.loggers.get(VeafQRA.Id):trace("unit=%s", unit)
             veaf.loggers.get(VeafQRA.Id):trace("unit.unitName=%s", unit.unitName)
             veaf.loggers.get(VeafQRA.Id):trace("unit.groupName=%s", unit.groupName)
@@ -2607,11 +2640,11 @@ function VeafQRA:_getEnemyHumanUnits()
                     coalitionId = coalition.side.BLUE
                 end
             end                    
-            if self:getEnnemyCoalitions()[coalitionId] then
+            if self.ennemyCoalitions[coalitionId] then
                 if unit.category then
                     veaf.loggers.get(VeafQRA.Id):trace("unit.category=%s", unit.category)
                     if     (unit.category == "plane")
-                        or (unit.category == "helicopter" and self:isReactOnHelicopters())
+                        or (unit.category == "helicopter" and self.reactOnHelicopters)
                     then
                         veaf.loggers.get(VeafQRA.Id):trace("adding unit to enemy human units for QRA")
                         table.insert(self._enemyHumanUnits, unit.unitName)
@@ -2629,17 +2662,32 @@ function VeafQRA:check()
 
     local unitNames = self:_getEnemyHumanUnits()
     veaf.loggers.get(VeafQRA.Id):trace(string.format("unitNames=%s", veaf.p(unitNames)))
-    local unitsInZone = mist.getUnitsInZones(unitNames, {self:getName()})
+    local unitsInZone = nil
+    if trigger.misc.getZone(self:getName()) then
+        unitsInZone = mist.getUnitsInZones(unitNames, {self:getName()})
+    else
+        unitsInZone = veaf.findUnitsInCircle(self.zoneCenter, self.zoneRadius, false, unitNames)
+    end
+    local nbUnitsInZone = 0
+    for _ in pairs(unitsInZone) do nbUnitsInZone = nbUnitsInZone + 1 end
     veaf.loggers.get(VeafQRA.Id):trace(string.format("unitsInZone=%s", veaf._p(unitsInZone)))
-    if (self.state == VeafQRA.STATUS_READY) and (unitsInZone and #unitsInZone > 0) then
+    veaf.loggers.get(VeafQRA.Id):trace(string.format("#unitsInZone=%s", veaf._p(#unitsInZone)))
+    veaf.loggers.get(VeafQRA.Id):trace(string.format("nbUnitsInZone=%s", veaf._p(nbUnitsInZone)))
+    veaf.loggers.get(VeafQRA.Id):trace(string.format("state=%s", veaf._p(self.state)))
+    if (self.state == VeafQRA.STATUS_READY) and (unitsInZone and nbUnitsInZone > 0) then
         -- trigger the QRA
-        self:deploy()
-    elseif (self.state == VeafQRA.STATUS_DEAD) and (not unitsInZone or #unitsInZone == 0) then
-        -- rearm the QRA
-        self:rearm()
+        self:deploy(nbUnitsInZone)
+    elseif (self.state == VeafQRA.STATUS_DEAD) and (self.noNeedToLeaveZoneBeforeRearming or (not unitsInZone or nbUnitsInZone == 0)) then
+        -- rearm the QRA after a delay (if set)
+        if self.delayBeforeRearming > 0 then
+            mist.scheduleFunction(VeafQRA.rearm, {self}, timer.getTime()+self.delayBeforeRearming)
+            self.state = VeafQRA.STATUS_WILLREARM
+        else
+            self:rearm()
+        end
     elseif (self.state == VeafQRA.STATUS_ACTIVE) then
         local qraAlive = false
-        for _, groupName in pairs(self:getGroups()) do
+        for _, groupName in pairs(self.groups) do
             if Group.getByName(groupName) then
                 qraAlive = true
             end
@@ -2649,34 +2697,50 @@ function VeafQRA:check()
             self:destroyed()
         end
     end
-
     mist.scheduleFunction(VeafQRA.check, {self}, timer.getTime() + VeafQRA.WATCHDOG_DELAY)    
 end
 
-function VeafQRA:deploy()
+function VeafQRA:chooseGroupsToDeploy(nbUnitsInZone)
+    veaf.loggers.get(VeafQRA.Id):trace(string.format("VeafQRA[%s]:chooseGroupsToDeploy(%s)", veaf.p(self.name), veaf.p(nbUnitsInZone)))
+    local biggestNumberLowerThanUnitsInZone = -1
+    local groupsToDeploy = nil
+    for enemyNb, groups in pairs(self.groupsToDeployByEnemyQuantity) do
+        if nbUnitsInZone >= enemyNb then 
+            biggestNumberLowerThanUnitsInZone = enemyNb
+            groupsToDeploy = groups
+        end 
+    end
+    return groupsToDeploy
+end
+
+function VeafQRA:deploy(nbUnitsInZone)
     veaf.loggers.get(VeafQRA.Id):trace(string.format("VeafQRA[%s]:deploy()", veaf.p(self.name)))
-    if not self:isSilent() then
-        local msg = string.format(self:getMessageStart(), self:getDescription())
-        for coalition, _ in pairs(self:getEnnemyCoalitions()) do
+    veaf.loggers.get(VeafQRA.Id):trace(string.format("nbUnitsInZone=[%s]", veaf.p(nbUnitsInZone)))
+    if not self.silent then
+        local msg = string.format(self.messageStart, self:getDescription())
+        for coalition, _ in pairs(self.ennemyCoalitions) do
             trigger.action.outTextForCoalition(coalition, msg, 15)
         end
     end
-    for _, groupName in pairs(self:getGroups()) do
-		local vars = {}
-		vars.gpName = groupName
-		vars.action = 'respawn'
-		vars.radius = self:getRadius()
-        vars.route = mist.getGroupRoute(groupName, 'task')
-		mist.teleportToPoint(vars) -- respawn with radius
+    local groupsToDeploy = self:chooseGroupsToDeploy(nbUnitsInZone)
+    if groupsToDeploy then
+        for _, groupName in pairs(groupsToDeploy) do
+            local vars = {}
+            vars.gpName = groupName
+            vars.action = 'respawn'
+            vars.radius = self.respawnRadius
+            vars.route = mist.getGroupRoute(groupName, 'task')
+            mist.teleportToPoint(vars) -- respawn with radius
+        end
+        self.state = VeafQRA.STATUS_ACTIVE
     end
-    self.state = VeafQRA.STATUS_ACTIVE
 end
 
 function VeafQRA:destroyed()
     veaf.loggers.get(VeafQRA.Id):trace(string.format("VeafQRA[%s]:destroyed()", veaf.p(self.name)))
-    if not self:isSilent() then
-        local msg = string.format(self:getMessageDestroyed(), self:getDescription())
-        for coalition, _ in pairs(self:getEnnemyCoalitions()) do
+    if not self.silent then
+        local msg = string.format(self.messageDestroyed, self:getDescription())
+        for coalition, _ in pairs(self.ennemyCoalitions) do
             trigger.action.outTextForCoalition(coalition, msg, 15)
         end
     end
@@ -2685,13 +2749,13 @@ end
 
 function VeafQRA:rearm(silent)
     veaf.loggers.get(VeafQRA.Id):trace(string.format("VeafQRA[%s]:rearm()", veaf.p(self.name)))
-    if not self:isSilent() and not silent then
-        local msg = string.format(self:getMessageReady(), self:getDescription())
-        for coalition, _ in pairs(self:getEnnemyCoalitions()) do
+    if not self.silent and not silent then
+        local msg = string.format(self.messageReady, self:getDescription())
+        for coalition, _ in pairs(self.ennemyCoalitions) do
             trigger.action.outTextForCoalition(coalition, msg, 15) 
         end
     end
-    for _, groupName in pairs(self:getGroups()) do
+    for _, groupName in pairs(self.groups) do
         local group = Group.getByName(groupName)
         if group then
             group:destroy()

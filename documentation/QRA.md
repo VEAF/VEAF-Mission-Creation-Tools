@@ -6,43 +6,7 @@ This object simulates aircraft groups that are on alert somewhere, and can react
 
 It uses a state machine :
 
-```flow
-st=>start: Start:>
-e=>end:>
-activable=>operation: Activable
-active=>operation: Active
-disabled=>operation: Disabled
-ready=>operation: Ready
-
-checkEnemyInZone=>condition: Enemy group 
-in zone:>
-
-checkStillActive=>condition: Any allied group
-still alive:>
-
-checkEnemyLeft=>condition: All enemy groups
-left the zone:>
-
-checkTimer=>condition: Activation
-time is up:>
-
-st->activable
-
-activable->checkEnemyInZone
-checkEnemyInZone(yes, right)->active
-
-active->checkStillActive
-checkStillActive(yes, right)->disabled
-
-active->checkStillActive
-checkStillActive(yes, right)->disabled
-
-disabled->checkEnemyLeft
-checkEnemyLeft(yes, right)->ready
-
-ready->checkTimer
-checkTimer(yes, right)->activable
-```
+![qra-state-machine](/VEAF-Mission-Creation-Tools/images/qra-flowchart.jpg?raw=true "qra-flowchart.jpg")
 
 The last conditions ("All enemy groups left the zone" and "Activation time is up") are optional
 

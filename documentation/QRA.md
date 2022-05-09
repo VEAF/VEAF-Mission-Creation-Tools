@@ -6,7 +6,7 @@ This object simulates aircraft groups that are on alert somewhere, and can react
 
 It uses a state machine :
 
-![qra-state-machine](/VEAF-Mission-Creation-Tools/images/qra-flowchart.jpg?raw=true "qra-flowchart.jpg")
+![qra-state-machine](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/master/documentation/qra-flowchart.jpg?raw=true "qra-flowchart.jpg")
 
 The last conditions ("All enemy groups left the zone" and "Activation time is up") are optional
 

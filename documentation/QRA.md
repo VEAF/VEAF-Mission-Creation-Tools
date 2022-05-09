@@ -169,6 +169,8 @@ Also optional, a delay (in seconds) can be added before rearming the QRA by usin
 
 It is also possible to react not only to enemy aircrafts entering the zone, but also enemy helicopters, by using `VeafQRA:setReactOnHelicopters()`
 
+Lastly, it is possible for the QRA to be reset if all the enemy aircrafts leave the zone, if `VeafQRA:setResetWhenLeavingZone()` is used.
+
 ## Other options
 
 There is a possibility to randomize the location of the allied response groups spawns by using `VeafQRA:setRespawnRadius(value)` ; they'll spawn in the set radius (in meters) around the point where they are set in the mission editor.

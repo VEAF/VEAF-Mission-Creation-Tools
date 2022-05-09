@@ -2680,7 +2680,8 @@ function mist.getUnitsInPolygon(unit_names, polyZone, max_alt)
 	for i =1, #units do
 		local lUnit = units[i]
         local lCat = lUnit:getCategory()
-        if ((lCat == 14 and lUnit:isActive()) or lCat ~= 1) and mist.pointInPolygon(lUnit:getPosition().p, polyZone, max_alt) then
+				if ((lCat == 1 and lUnit:isActive() == true) or lCat ~= 1)  -- it is a unit and is active or it is not a unit
+        	and mist.pointInPolygon(lUnit:getPosition().p, polyZone, max_alt) then
 			inZoneUnits[#inZoneUnits + 1] = lUnit
 		end
 	end

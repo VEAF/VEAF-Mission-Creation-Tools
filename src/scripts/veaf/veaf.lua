@@ -32,7 +32,7 @@ veaf = {}
 veaf.Id = "VEAF"
 
 --- Version.
-veaf.Version = "1.20.0"
+veaf.Version = "1.21.0"
 
 --- Development version ?
 veaf.Development = true
@@ -2450,6 +2450,8 @@ VeafQRA =
     respawnRadius = nil,
     -- reacts when helicopters enter the zone
     reactOnHelicopters = nil,
+    -- delay before activating
+    delayBeforeActivating = -1,
     -- delay before rearming
     delayBeforeRearming = -1,
     -- the enemy does not have to leave the zone before the QRA is rearmed
@@ -2470,6 +2472,7 @@ veaf.loggers.new(VeafQRA.Id, VeafQRA.LogLevel)
 
 VeafQRA.STATUS_WILLREARM = 0
 VeafQRA.STATUS_READY = 1
+VeafQRA.STATUS_READY_WAITINGFORMORE = 1.5
 VeafQRA.STATUS_ACTIVE = 2
 VeafQRA.STATUS_DEAD = 3
 
@@ -2497,11 +2500,12 @@ function VeafQRA:new()
     self.respawnRadius = 250
     self.reactOnHelicopters = false
     self.delayBeforeRearming = -1
+    self.delayBeforeActivating = -1
     self.noNeedToLeaveZoneBeforeRearming = false
     self.resetWhenLeavingZone = false
     
     self._enemyHumanUnits = nil
-    self.timer = 0
+    self.timeSinceReady = -1
     self.state = nil
     return self
 end
@@ -2644,6 +2648,11 @@ function VeafQRA:setResetWhenLeavingZone()
     return self
 end
 
+function VeafQRA:setDelayBeforeActivating(value)
+    veaf.loggers.get(VeafQRA.Id):trace(string.format("VeafQRA[%s]:setDelayBeforeActivating(%s)", veaf.p(self.name), veaf.p(value)))
+    self.delayBeforeActivating = value
+    return self
+end
 
 function VeafQRA:_getEnemyHumanUnits()
     --veaf.loggers.get(VeafQRA.Id):trace(string.format("VeafQRA[%s]:_getEnemyHumanUnits() - computing", veaf.p(self.name)))
@@ -2683,6 +2692,7 @@ end
 function VeafQRA:check()
     veaf.loggers.get(VeafQRA.Id):trace(string.format("VeafQRA[%s]:check()", veaf.p(self.name)))
     veaf.loggers.get(VeafQRA.Id):trace(string.format("self.state=%s", veaf._p(self.state)))
+    veaf.loggers.get(VeafQRA.Id):trace(string.format("timer.getTime()=%s", veaf._p(timer.getTime())))
 
     local unitNames = self:_getEnemyHumanUnits()
     veaf.loggers.get(VeafQRA.Id):trace(string.format("unitNames=%s", veaf.p(unitNames)))
@@ -2706,8 +2716,13 @@ function VeafQRA:check()
     veaf.loggers.get(VeafQRA.Id):trace(string.format("nbUnitsInZone=%s", veaf._p(nbUnitsInZone)))
     veaf.loggers.get(VeafQRA.Id):trace(string.format("state=%s", veaf._p(self.state)))
     if (self.state == VeafQRA.STATUS_READY) and (unitsInZone and nbUnitsInZone > 0) then
+        veaf.loggers.get(VeafQRA.Id):debug(string.format("self.state set to VeafQRA.STATUS_READY_WAITINGFORMORE at timer.getTime()=%s", veaf._p(timer.getTime())))
+        self.state = VeafQRA.STATUS_READY_WAITINGFORMORE
+        self.timeSinceReady = timer.getTime()
+    elseif (self.state == VeafQRA.STATUS_READY_WAITINGFORMORE) and (unitsInZone and nbUnitsInZone > 0) and (timer.getTime() - self.timeSinceReady > self.delayBeforeActivating) then
         -- trigger the QRA
         self:deploy(nbUnitsInZone)
+        self.timeSinceReady = -1
     elseif (self.state == VeafQRA.STATUS_DEAD) and (self.noNeedToLeaveZoneBeforeRearming or (not unitsInZone or nbUnitsInZone == 0)) then
         -- rearm the QRA after a delay (if set)
         if self.delayBeforeRearming > 0 then

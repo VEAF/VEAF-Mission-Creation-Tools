@@ -165,7 +165,7 @@ As said in the synopsis, the condition for rearming the QRA is that all the enem
 
 This is optional, when using `VeafQRA:setNoNeedToLeaveZoneBeforeRearming()` the QRA is rearmed as soon as the last allied response group is destroyed.
 
-Also optional, a delay (in seconds) can be added before rearming the QRA by using `VeafQRA:setDelayBeforeRearming(value)`
+A delay (optional, in seconds) can be added before rearming the QRA by using `VeafQRA:setDelayBeforeRearming(value)`; in the same way, another delay (also optional, also in seconds) can be set between the time the first enemy is detected in the zone and the time the QRA is activated, by using `VeafQRA:setDelayBeforeActivating(value)`
 
 It is also possible to react not only to enemy aircrafts entering the zone, but also enemy helicopters, by using `VeafQRA:setReactOnHelicopters()`
 

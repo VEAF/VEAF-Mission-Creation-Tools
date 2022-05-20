@@ -121,12 +121,12 @@ function veafSkynet.addGroupToNetwork(dcsGroup, alreadyAddedGroups)
         -- specific configurations, for each SAM type
         iads:getSAMSitesByNatoName('SA-10'):setActAsEW(false)
         iads:getSAMSitesByNatoName('SA-6'):setActAsEW(false)
+        iads:getSAMSitesByNatoName('SA-5'):setActAsEW(false)
         iads:getSAMSitesByNatoName('Patriot'):setActAsEW(false)
         iads:getSAMSitesByNatoName('Hawk'):setActAsEW(false)
-        iads:getSAMSitesByNatoName('Mcc-sr'):setActAsEW(false)
-        iads:getSAMSitesByNatoName('Ewr'):setActAsEW(true)
-        iads:getSAMSitesByNatoName('SA-5'):setActAsEW(false)
-    
+        iads:getSAMSitesByNatoName('Dog Ear'):setActAsEW(false)
+        iads:getSAMSitesByNatoName('Tall Rack'):setActAsEW(true)
+        
         -- reactivate the IADS after a warmup delay
         iads:setupSAMSitesAndThenActivate(veafSkynet.DelayForRestart)
     end
@@ -165,11 +165,11 @@ local function initializeIADS(coa, inRadio, debug)
     -- specific configurations, for each SAM type
     iads:getSAMSitesByNatoName('SA-10'):setActAsEW(false)
     iads:getSAMSitesByNatoName('SA-6'):setActAsEW(false)
+    iads:getSAMSitesByNatoName('SA-5'):setActAsEW(false)
     iads:getSAMSitesByNatoName('Patriot'):setActAsEW(false)
     iads:getSAMSitesByNatoName('Hawk'):setActAsEW(false)
-	iads:getSAMSitesByNatoName('Mcc-sr'):setActAsEW(false)
-	iads:getSAMSitesByNatoName('Ewr'):setActAsEW(true)
-	iads:getSAMSitesByNatoName('SA-5'):setActAsEW(false)
+	iads:getSAMSitesByNatoName('Dog Ear'):setActAsEW(false)
+	iads:getSAMSitesByNatoName('Tall Rack'):setActAsEW(true)
 
     if inRadio then
         --activate the radio menu to toggle IADS Status output
@@ -257,9 +257,6 @@ function veafSkynet.initialize(includeRedInRadio, debugRed, includeBlueInRadio, 
                     veafSkynet.iadsEwrUnitsTypes[unit.type] = true
                     veaf.loggers.get(veafSkynet.Id):trace(string.format("-> EWR"))
                 elseif (unit.attribute["AWACS"]) then
-                    veafSkynet.iadsEwrUnitsTypes[unit.type] = true
-                    veaf.loggers.get(veafSkynet.Id):trace(string.format("-> EWR"))
-                elseif (unit.attribute["Ships"] and (unit.attribute["RADAR_BAND1_FOR_ARM"] or unit.attribute["RADAR_BAND2_FOR_ARM"])) then
                     veafSkynet.iadsEwrUnitsTypes[unit.type] = true
                     veaf.loggers.get(veafSkynet.Id):trace(string.format("-> EWR"))
                 end

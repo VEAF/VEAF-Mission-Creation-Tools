@@ -48,7 +48,7 @@ veafCombatZone = {}
 veafCombatZone.Id = "COMBATZONE"
 
 --- Version.
-veafCombatZone.Version = "1.9.0"
+veafCombatZone.Version = "1.10.0"
 
 -- trace level, specific to this module
 --veafCombatZone.LogLevel = "trace"
@@ -1062,8 +1062,187 @@ function VeafCombatZone:updateRadioMenu(inBatch)
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- VeafCombatOperation object
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+VeafCombatOperation = 
+{
+    -- zone name (human-friendly)
+    friendlyName,
+    -- technical zone name (named missionEditorZoneName not to break all zone stuffs)
+    missionEditorZoneName,
+    -- mission briefing
+    briefing,
+    -- zone is active
+    active,
+}
+VeafCombatOperation.__index = VeafCombatOperation
+
+function VeafCombatOperation:new()
+    local self = setmetatable({}, VeafCombatOperation)
+    self.friendlyName = nil
+    self.missionEditorZoneName = nil
+    self.briefing = nil
+    return self
+end
+
+---
+--- setters and getters
+---
+function VeafCombatOperation:getRadioMenuName()
+    return self:getFriendlyName()
+end
+
+function VeafCombatOperation:setFriendlyName(value)
+    self.friendlyName = value
+    return self
+end
+
+function VeafCombatOperation:getFriendlyName()
+    return self.friendlyName
+end
+
+function VeafCombatOperation:setBriefing(value)
+    self.briefing = value
+    return self
+end
+
+function VeafCombatOperation:getBriefing()
+    return self.briefing
+end
+
+function VeafCombatOperation:setMissionEditorZoneName(value)
+    self.missionEditorZoneName = value
+    return self
+end
+
+function VeafCombatOperation:getMissionEditorZoneName()
+    return self.missionEditorZoneName
+end
+
+function VeafCombatOperation:isActive()
+    return self.active
+end
+
+function VeafCombatOperation:setActive(value)
+    self.active = value
+    return self
+end
+
+function VeafCombatOperation:getInformation()
+    veaf.loggers.get(veafCombatZone.Id):debug(string.format("VeafCombatOperation[%s]:getInformation()",self.missionEditorZoneName or ""))
+    local message =      "COMBAT OPERATION "..self:getFriendlyName().." \n\n"
+    if (self:getBriefing()) then
+        message = message .. "BRIEFING: \n"
+        message = message .. self:getBriefing()
+        message = message .. "\n\n"
+    end
+
+    return message
+end
+
+
+-------------------
+--- Other methods
+-------------------
+
+function VeafCombatOperation:initialize()
+    veaf.loggers.get(veafCombatZone.Id):debug(string.format("VeafCombatOperation[%s]:initialize()",self.missionEditorZoneName or ""))
+
+    -- check parameters
+    if not self.missionEditorZoneName then 
+        return self 
+    end
+    if not self.friendlyName then 
+        self:setFriendlyName(self.missionEditorZoneName)
+    end
+
+    -- deactivate the zone
+    veaf.loggers.get(veafCombatZone.Id):trace("desactivate the zone")
+    self:desactivate()
+
+    return self
+end
+
+-- activate the operation
+function VeafCombatOperation:activate()
+    veaf.loggers.get(veafCombatZone.Id):trace(string.format("VeafCombatOperation[%s]:activate()",self:getMissionEditorZoneName()))
+    self:setActive(true)
+
+    -- refresh the radio menu
+    self:updateRadioMenu()
+
+    return self
+end
+
+-- desactivate the zone
+function VeafCombatOperation:desactivate()
+    veaf.loggers.get(veafCombatZone.Id):debug(string.format("VeafCombatOperation[%s]:desactivate()",self.missionEditorZoneName or ""))
+    self:setActive(false)
+
+    -- refresh the radio menu
+    self:updateRadioMenu()
+
+    return self
+end
+
+-- updates the radio menu according to the zone state
+function VeafCombatOperation:updateRadioMenu(inBatch)
+    veaf.loggers.get(veafCombatZone.Id):debug(string.format("VeafCombatOperation[%s]:updateRadioMenu(%s)",self.missionEditorZoneName or "", tostring(inBatch)))
+    
+    -- do not update the radio menu if not yet initialized
+    if not veafCombatZone.rootPath then
+        return self
+    end
+
+    -- reset the radio menu
+    if self.radioRootPath then
+        veaf.loggers.get(veafCombatZone.Id):trace("reset the radio submenu")
+        veafRadio.clearSubmenu(self.radioRootPath)
+    else
+        veaf.loggers.get(veafCombatZone.Id):trace("add the radio submenu")
+        self.radioRootPath = veafRadio.addSubMenu(self:getRadioMenuName(), veafCombatZone.rootPath)
+    end
+
+    -- populate the radio menu
+    veaf.loggers.get(veafCombatZone.Id):trace("populate the radio menu")
+    -- global commands
+    veafRadio.addCommandToSubmenu("Get info", self.radioRootPath, veafCombatZone.GetInformationOnZone, self.missionEditorZoneName, veafRadio.USAGE_ForAll)
+    if self:isActive() then
+        -- zone is active, set up accordingly (desactivate zone, get information, pop smoke, etc.)
+        veaf.loggers.get(veafCombatZone.Id):trace("zone is active")
+
+        veafRadio.addSecuredCommandToSubmenu('Desactivate zone', self.radioRootPath, veafCombatZone.DesactivateZone, self.missionEditorZoneName, veafRadio.USAGE_ForAll)
+
+        -- if self.smokeResetFunctionId then 
+        --     veafRadio.addCommandToSubmenu('Smoke not available', self.radioRootPath, veaf.emptyFunction, nil, veafRadio.USAGE_ForAll)
+        -- else
+        --     veafRadio.addCommandToSubmenu('Request RED smoke on target', self.radioRootPath, veafCombatZone.SmokeZone, self.missionEditorZoneName, veafRadio.USAGE_ForAll)
+        -- end
+        -- if self.flareResetFunctionId then 
+        --     veafRadio.addCommandToSubmenu('Flare not available', self.radioRootPath, veaf.emptyFunction, nil, veafRadio.USAGE_ForAll)
+        -- else
+        --     veafRadio.addCommandToSubmenu('Request illumination flare on target', self.radioRootPath, veafCombatZone.LightUpZone, self.missionEditorZoneName, veafRadio.USAGE_ForAll)
+        -- end
+    else
+        -- zone is not active, set up accordingly (activate zone)
+        veaf.loggers.get(veafCombatZone.Id):trace("zone is not active")
+
+        veafRadio.addSecuredCommandToSubmenu('Activate zone', self.radioRootPath, veafCombatZone.ActivateZone, self.missionEditorZoneName, veafRadio.USAGE_ForAll)
+    end
+
+    if not inBatch then veafRadio.refreshRadioMenu() end
+    return self
+end
+
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- global functions
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------------------------------------
+--- GLOBAL INTERFACE, working for both zones and operations
+--------------------------------------------------------------------------------------------------------------
 
 function veafCombatZone.GetZone(zoneName)
     veaf.loggers.get(veafCombatZone.Id):debug(string.format("veafCombatZone.GetZone([%s])",zoneName or ""))
@@ -1073,9 +1252,9 @@ function veafCombatZone.GetZone(zoneName)
         local message = string.format("VeafCombatZone [%s] was not found !",zoneName)
         veaf.loggers.get(veafCombatZone.Id):error(message)
         trigger.action.outText(message,5)
-    end
+    end    
     return zone
-end
+end    
 
 -- add a zone
 function veafCombatZone.AddZone(zone)
@@ -1085,15 +1264,15 @@ function veafCombatZone.AddZone(zone)
     table.insert(veafCombatZone.zonesList, zone)
     veafCombatZone.zonesDict[zone.missionEditorZoneName:lower()] = zone
     return zone
-end
+end    
 
 -- activate a zone by number
 function veafCombatZone.ActivateZoneNumber(number, silent)
     local zone = veafCombatZone.zonesList[number]
     if zone then 
         veafCombatZone.ActivateZone(zone:getMissionEditorZoneName(), silent)
-    end
-end
+    end    
+end    
 
 -- activate a zone
 function veafCombatZone.ActivateZone(zoneName, silent)
@@ -1102,23 +1281,23 @@ function veafCombatZone.ActivateZone(zoneName, silent)
     if zone:isActive() then
         if not silent then
             trigger.action.outText("VeafCombatZone "..zone:getFriendlyName().." is already active.", 10)
-        end
+        end    
         return
-    end
+    end    
     zone:activate()
     if not silent then
         trigger.action.outText("VeafCombatZone "..zone:getFriendlyName().." has been activated.", 10)
         mist.scheduleFunction(veafCombatZone.GetInformationOnZone,{{zoneName}},timer.getTime()+1)
-    end
-end
+    end    
+end    
 
 -- desactivate a zone by number
 function veafCombatZone.DesactivateZoneNumber(number, silent)
     local zone = veafCombatZone.zonesList[number]
     if zone then 
         veafCombatZone.DesactivateZone(zone:getMissionEditorZoneName(), silent)
-    end
-end
+    end    
+end    
 
 -- desactivate a zone by name
 function veafCombatZone.DesactivateZone(zoneName, silent)
@@ -1127,14 +1306,14 @@ function veafCombatZone.DesactivateZone(zoneName, silent)
     if not(zone:isActive()) then
         if not silent then
             trigger.action.outText("VeafCombatZone "..zone:getFriendlyName().." is not active.", 10)
-        end
+        end    
         return
-    end
+    end    
     zone:desactivate()
     if not silent then
         trigger.action.outText("VeafCombatZone "..zone:getFriendlyName().." has been desactivated.", 10)
-    end
-end
+    end    
+end    
 
 -- print information about a zone
 function veafCombatZone.GetInformationOnZone(parameters)
@@ -1146,8 +1325,12 @@ function veafCombatZone.GetInformationOnZone(parameters)
         veaf.outTextForUnit(unitName, text, 30)
     else
         trigger.action.outText(text, 30)
-    end
-end
+    end    
+end    
+
+--------------------------------------------------------------------------------------------------------------
+--- END OF GLOBAL INTERFACE
+--------------------------------------------------------------------------------------------------------------
 
 -- pop a smoke over a zone
 function veafCombatZone.SmokeZone(zoneName)

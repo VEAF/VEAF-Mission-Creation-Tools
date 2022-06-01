@@ -1067,14 +1067,18 @@ end
 
 VeafCombatOperation = 
 {
-    -- zone name (human-friendly)
+    -- operation name (human-friendly)
     friendlyName,
-    -- technical zone name (named missionEditorZoneName not to break all zone stuffs)
+    -- technical operation name (named missionEditorZoneName not to break all zone stuffs)
     missionEditorZoneName,
     -- mission briefing
     briefing,
-    -- zone is active
+    -- operation is active
     active,
+    -- list of zones used as tasking order
+    taskingOrderList,
+    -- dictionnary of zones used as tasking order
+    taskingOrderDict
 }
 VeafCombatOperation.__index = VeafCombatOperation
 
@@ -1083,6 +1087,8 @@ function VeafCombatOperation:new()
     self.friendlyName = nil
     self.missionEditorZoneName = nil
     self.briefing = nil
+    self.taskingOrderList = {}
+    self.taskingOrderDict = {}
     return self
 end
 
@@ -1138,9 +1144,28 @@ function VeafCombatOperation:getInformation()
         message = message .. "\n\n"
     end
 
+    if veaf.length(self.taskingOrderList) > 0 then
+        message = message .. "ATOs:\n"
+        for _, taskingOrder in pairs(self.taskingOrderDict) do
+            message = message .. taskingOrder:getFriendlyName() .. "\n"
+        end
+        message = message .. "\n\n"
+    end
+    
     return message
 end
 
+function VeafCombatOperation:addTaskOrder(zone)
+    veaf.loggers.get(veafCombatZone.Id):debug(string.format("VeafCombatOperation[%s]:addTaskOrder(%s)",self.missionEditorZoneName or "", zone.missionEditorZoneName))
+    veaf.loggers.get(veafCombatZone.Id):info(string.format("Adding combat zone %s to operation %s", zone.missionEditorZoneName, self.missionEditorZoneName or ""))
+    
+    zone:initialize()
+    
+    table.insert(self.taskingOrderList, zone)
+    self.taskingOrderDict[zone.missionEditorZoneName] = zone
+
+    return self
+end
 
 -------------------
 --- Other methods

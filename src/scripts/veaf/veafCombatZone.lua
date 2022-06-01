@@ -1062,6 +1062,35 @@ function VeafCombatZone:updateRadioMenu(inBatch)
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- VeafCombatOperationTaskingOrder object
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+VeafCombatOperationTaskingOrder = {
+    -- combat zone of the tasking order
+    zone,
+    -- what tasking orders needs to be completed before starting this one
+    requiredComplete
+}
+VeafCombatOperationTaskingOrder.__index = VeafCombatOperationTaskingOrder
+
+function VeafCombatOperationTaskingOrder:new(zone)
+    local self = setmetatable({}, VeafCombatOperationTaskingOrder)
+    self.zone = zone
+    self.requiredComplete = {}
+
+    return self
+end
+
+function VeafCombatOperationTaskingOrder:setRequiredComplete(requiredComplete)
+    self.requiredComplete = requiredComplete
+    return self
+end
+
+function VeafCombatOperationTaskingOrder:getZone()
+    return self.zone
+end
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- VeafCombatOperation object
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -1078,7 +1107,9 @@ VeafCombatOperation =
     -- list of zones used as tasking order
     taskingOrderList,
     -- dictionnary of zones used as tasking order
-    taskingOrderDict
+    taskingOrderDict,
+    -- combat zone that we want to be completed before continuing operation
+    primaryTaskingOrders
 }
 VeafCombatOperation.__index = VeafCombatOperation
 
@@ -1087,8 +1118,9 @@ function VeafCombatOperation:new()
     self.friendlyName = nil
     self.missionEditorZoneName = nil
     self.briefing = nil
-    self.taskingOrderList = {}
-    self.taskingOrderDict = {}
+    self.taskingOrderList = {}  -- VeafCombatOperationTaskingOrder instances
+    self.taskingOrderDict = {}  -- VeafCombatOperationTaskingOrder instances
+    self.primaryTaskingOrders = {} -- VeafCombatOperationTaskingOrder instances
     return self
 end
 
@@ -1147,22 +1179,42 @@ function VeafCombatOperation:getInformation()
     if veaf.length(self.taskingOrderList) > 0 then
         message = message .. "ATOs:\n"
         for _, taskingOrder in pairs(self.taskingOrderDict) do
-            message = message .. taskingOrder:getFriendlyName() .. "\n"
+            message = message .. taskingOrder.zone:getFriendlyName()
+
+            if veaf.length(taskingOrder.requiredComplete) > 0 then
+                message = message .. " Needs: " .. table.concat(taskingOrder.requiredComplete, ", ") .. "\n"
+            end
+            message = message .. "\n"
         end
         message = message .. "\n\n"
+    end
+
+    message = message .. "Active tasks: " 
+    for _, primaryTaskingOrder in pairs(self.primaryTaskingOrders) do
+        message = message .. primaryTaskingOrder:getZone():getFriendlyName() .. "\n"
+        message = message .. "BRIEFING:\n" .. primaryTaskingOrder:getZone():getInformation() .. "\n==========================================="
     end
     
     return message
 end
 
-function VeafCombatOperation:addTaskOrder(zone)
+function VeafCombatOperation:addTaskOrder(zone, requiredComplete)
+    -- add requiredComplete in log
     veaf.loggers.get(veafCombatZone.Id):debug(string.format("VeafCombatOperation[%s]:addTaskOrder(%s)",self.missionEditorZoneName or "", zone.missionEditorZoneName))
     veaf.loggers.get(veafCombatZone.Id):info(string.format("Adding combat zone %s to operation %s", zone.missionEditorZoneName, self.missionEditorZoneName or ""))
     
-    zone:initialize()
-    
-    table.insert(self.taskingOrderList, zone)
-    self.taskingOrderDict[zone.missionEditorZoneName] = zone
+    for _, mandatoryZoneName in pairs(requiredComplete or {}) do
+        if(not self.taskingOrderDict[mandatoryZoneName]) then
+            veaf.loggers.get(veafCombatZone.Id):error(string.format("Cannot add mandatory zone %s as it is not in known zones", mandatoryZoneName))
+            return self
+        end
+    end
+
+    local newTaskingOrder = VeafCombatOperationTaskingOrder:new(zone)
+        :setRequiredComplete(requiredComplete or {})
+
+    table.insert(self.taskingOrderList, newTaskingOrder)
+    self.taskingOrderDict[zone.missionEditorZoneName] = newTaskingOrder
 
     return self
 end
@@ -1181,6 +1233,18 @@ function VeafCombatOperation:initialize()
     if not self.friendlyName then 
         self:setFriendlyName(self.missionEditorZoneName)
     end
+
+    local primaryTasks = {}
+    -- initializes and activates member combat zones and sets starting primary tasks
+    for _, taskingOrder in pairs(self.taskingOrderDict) do
+        taskingOrder:getZone():initialize()
+        taskingOrder:getZone():activate()
+
+        -- selects combat zones with no requiredComplete combat zones
+        if veaf.length(taskingOrder.requiredComplete) == 0 then table.insert(primaryTasks, taskingOrder) end
+    end
+
+    self.primaryTaskingOrders = primaryTasks
 
     -- deactivate the zone
     veaf.loggers.get(veafCombatZone.Id):trace("desactivate the zone")

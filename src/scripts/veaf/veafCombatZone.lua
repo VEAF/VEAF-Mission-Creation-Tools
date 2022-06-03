@@ -56,7 +56,7 @@ veafCombatZone.Version = "1.10.0"
 veaf.loggers.new(veafCombatZone.Id, veafCombatZone.LogLevel)
 
 --- Number of seconds between each check of the zone watchdog function
-veafCombatZone.SecondsBetweenWatchdogChecks = 60
+veafCombatZone.SecondsBetweenWatchdogChecks = 10
 
 --- Number of seconds between each smoke request on the zones
 veafCombatZone.SecondsBetweenSmokeRequests = 180
@@ -84,8 +84,10 @@ veafCombatZone.zonesList = {}
 veafCombatZone.zonesDict = {}
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
--- Utility methods
+-- Utilities
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+local messageSeparator = "\n===============================================================\n"
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- VeafCombatZoneElement object
@@ -1186,23 +1188,13 @@ function VeafCombatOperation:getInformation()
         message = message .. "\n\n"
     end
 
-    if veaf.length(self.taskingOrderList) > 0 then
-        message = message .. "ATOs:\n"
-        for _, taskingOrder in pairs(self.taskingOrderDict) do
-            message = message .. taskingOrder.zone:getFriendlyName()
 
-            if veaf.length(taskingOrder.requiredCompleteNames) > 0 then
-                message = message .. " Needs: " .. table.concat(taskingOrder.requiredCompleteNames, ", ") .. "\n"
-            end
-            message = message .. "\n"
-        end
-        message = message .. "\n\n"
-    end
-
-    message = message .. "Active tasks: " 
+    message = message .. messageSeparator .. "Air Tasking Orders: " .. messageSeparator
     for _, primaryTaskingOrder in pairs(self.primaryTaskingOrders) do
-        message = message .. primaryTaskingOrder:getZone():getFriendlyName() .. "\n"
-        message = message .. "BRIEFING:\n" .. primaryTaskingOrder:getZone():getInformation() .. "\n==========================================="
+        if primaryTaskingOrder.zone:isActive() then
+            message = message .. primaryTaskingOrder:getZone():getFriendlyName() .. "\n"
+            message = message .. primaryTaskingOrder:getZone():getInformation() .. messageSeparator
+        end
     end
     
     return message

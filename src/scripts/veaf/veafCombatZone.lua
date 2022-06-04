@@ -303,7 +303,9 @@ VeafCombatZone =
     -- "pop smoke" command reset function id
     smokeResetFunctionId,
     -- "pop flare" command reset function id
-    flareResetFunctionId
+    flareResetFunctionId,
+    -- function to call when combat zone is over. The function is passed self combat zone
+    onCompletedHook
 }
 VeafCombatZone.__index = VeafCombatZone
 
@@ -328,12 +330,18 @@ function VeafCombatZone:new()
     self.watchdogFunctionId = nil
     self.smokeResetFunctionId = nil
     self.flareResetFunctionId = nil
+    self.onCompletedHook = nil
     return self
 end
 
 ---
 --- setters and getters
 ---
+function VeafCombatZone:setOnCompletedHook(onCompletedFunction) 
+    self.onCompletedHook = onCompletedFunction
+    return self
+end
+
 function VeafCombatZone:setEnableRadioMenu(enableRadioMenu)
     self.enableRadioMenu = enableRadioMenu
     return self
@@ -977,6 +985,7 @@ function VeafCombatZone:completionCheck()
             local message = string.format(veafCombatZone.EventMessages.CombatZoneComplete, self:getFriendlyName())
             trigger.action.outText(message, 15)
         end
+        if self.onCompletedHook then self.onCompletedHook(self) end
         self:desactivate()
     else
         -- reschedule
@@ -1129,8 +1138,10 @@ VeafCombatOperation =
     -- combat zone that we want to be completed before continuing operation
     primaryTaskingOrders,
     -- the watchdog function checks for zone objectives completion
-    watchdogFunctionId
-}
+    watchdogFunctionId,
+    -- function to call when combat zone is over. The function is passed self combat zone
+    onCompletedHook
+    }
 VeafCombatOperation.__index = VeafCombatOperation
 
 function VeafCombatOperation:new()
@@ -1147,6 +1158,11 @@ end
 ---
 --- setters and getters
 ---
+function VeafCombatZone:setOnCompletedHook(onCompletedFunction) 
+    self.onCompletedHook = onCompletedFunction
+    return self
+end
+
 function VeafCombatOperation:getRadioMenuName()
     return self:getFriendlyName()
 end

@@ -76,7 +76,8 @@ veafCombatZone.EventMessages = {
     The zone will now be desactivated.
     You can replay by activating it again, in the radio menu.]],
     PopSmokeRequest = "Copy RED smoke requested on %s !",
-    UseFlareRequest = "Copy illumination flare requested on %s !"
+    UseFlareRequest = "Copy illumination flare requested on %s !",
+    CombatOperationComplete = "Operation %s is over. Congratulations !"
 }
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -1315,7 +1316,7 @@ function VeafCombatOperation:completionCheck()
         veaf.loggers.get(veafCombatZone.Id):trace("No tasks left")
         self.active = false
 
-        trigger.action.outText(string.format("Operation %s is over. Congratulations", self.friendlyName), 10)
+        trigger.action.outText(string.format(veafCombatZone.EventMessages.CombatOperationComplete, self.friendlyName), 10)
         return self
     end
     

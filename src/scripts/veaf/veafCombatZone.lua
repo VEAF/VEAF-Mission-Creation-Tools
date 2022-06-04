@@ -56,7 +56,7 @@ veafCombatZone.Version = "1.10.0"
 veaf.loggers.new(veafCombatZone.Id, veafCombatZone.LogLevel)
 
 --- Number of seconds between each check of the zone watchdog function
-veafCombatZone.SecondsBetweenWatchdogChecks = 10
+veafCombatZone.SecondsBetweenWatchdogChecks = 60
 
 --- Number of seconds between each smoke request on the zones
 veafCombatZone.SecondsBetweenSmokeRequests = 180
@@ -69,6 +69,15 @@ veafCombatZone.DefaultSpawnRadiusForUnits = 50
 veafCombatZone.DefaultSpawnRadiusForStatics = 0
 
 veafCombatZone.RadioMenuName = "COMBAT ZONES"
+
+veafCombatZone.EventMessages = {
+    CombatZoneComplete = [[
+    Well done ! All enemies in zone %s have been destroyed or routed.
+    The zone will now be desactivated.
+    You can replay by activating it again, in the radio menu.]],
+    PopSmokeRequest = "Copy RED smoke requested on %s !",
+    UseFlareRequest = "Copy illumination flare requested on %s !"
+}
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Do not change anything below unless you know what you are doing!
@@ -964,11 +973,10 @@ function VeafCombatZone:completionCheck()
 
     if nbUnitsR == 0 then 
         -- everyone is dead, let's end this mess
-        local message = string.format([[
-Well done ! All enemies in zone %s have been destroyed or routed.
-The zone will now be desactivated.
-You can replay by activating it again, in the radio menu.]], self:getFriendlyName())
-        trigger.action.outText(message, 15)
+        if veafCombatZone.EventMessages.CombatZoneComplete then
+            local message = string.format(veafCombatZone.EventMessages.CombatZoneComplete, self:getFriendlyName())
+            trigger.action.outText(message, 15)
+        end
         self:desactivate()
     else
         -- reschedule
@@ -998,7 +1006,7 @@ function VeafCombatZone:popSmoke()
     veaf.loggers.get(veafCombatZone.Id):trace(string.format("smokePoint=%s",veaf.vecToString(smokePoint)))
     veafSpawn.spawnSmoke(smokePoint, trigger.smokeColor.Red)
     self.smokeResetFunctionId = mist.scheduleFunction(veafCombatZone.SmokeReset,{self.missionEditorZoneName},timer.getTime()+veafCombatZone.SecondsBetweenSmokeRequests)
-    trigger.action.outText(string.format("Copy RED smoke requested on %s !", self:getFriendlyName()),5)
+    trigger.action.outText(string.format(veafCombatZone.EventMessages.PopSmokeRequest, self:getFriendlyName()),5)
     self:updateRadioMenu()
 
     return self
@@ -1011,7 +1019,7 @@ function VeafCombatZone:popFlare()
 
     veafSpawn.spawnIlluminationFlare(self:getCenter())
     self.flareResetFunctionId = mist.scheduleFunction(veafCombatZone.FlareReset,{self.missionEditorZoneName},timer.getTime()+veafCombatZone.SecondsBetweenFlareRequests)
-    trigger.action.outText(string.format("Copy illumination flare requested on %s !", self:getFriendlyName()),5)
+    trigger.action.outText(string.format(veafCombatZone.EventMessages.UseFlareRequest, self:getFriendlyName()),5)
     self:updateRadioMenu()
 
     return self
@@ -1181,11 +1189,11 @@ end
 
 function VeafCombatOperation:getInformation()
     veaf.loggers.get(veafCombatZone.Id):debug(string.format("VeafCombatOperation[%s]:getInformation()",self.missionEditorZoneName or ""))
-    local message =      "COMBAT OPERATION "..self:getFriendlyName().." \n\n"
+    local message = "OPERATION "..self:getFriendlyName().." \n\n"
     if (self:getBriefing()) then
-        message = message .. "BRIEFING: \n"
+        message = message .. messageSeparator
         message = message .. self:getBriefing()
-        message = message .. "\n\n"
+        message = message .. messageSeparator .. "\n\n"
     end
 
 
@@ -1253,7 +1261,6 @@ function VeafCombatOperation:completionCheck()
     for _, primaryTask in pairs(self.primaryTaskingOrders) do
         if primaryTask:getZone():isActive() then 
             veaf.loggers.get(veafCombatZone.Id):trace("Still got work to do.")
-            trigger.action.outText(string.format("Still got work to do", self.friendlyName), 10)
 
             -- reschedule
             self:scheduleWatchdogFunction()

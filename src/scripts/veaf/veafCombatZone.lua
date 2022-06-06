@@ -1228,7 +1228,7 @@ end
 function VeafCombatOperation:addTaskingOrder(zone, requiredComplete)
     -- add requiredComplete in log
     veaf.loggers.get(veafCombatZone.Id):debug(string.format("VeafCombatOperation[%s]:addTaskingOrder(%s)",self.missionEditorZoneName or "", zone.missionEditorZoneName))
-    veaf.loggers.get(veafCombatZone.Id):info(string.format("Adding combat zone %s to operation %s", zone.missionEditorZoneName, self.missionEditorZoneName or ""))
+    veaf.loggers.get(veafCombatZone.Id):trace(string.format("Adding combat zone %s to operation %s", zone.missionEditorZoneName, self.missionEditorZoneName or ""))
     
     for _, mandatoryZoneName in pairs(requiredComplete or {}) do
         if(not self.taskingOrderDict[mandatoryZoneName]) then

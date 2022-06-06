@@ -1424,7 +1424,7 @@ function VeafCombatOperation:updateRadioMenu(inBatch)
         -- zone is active, set up accordingly (desactivate zone, get information, pop smoke, etc.)
         veaf.loggers.get(veafCombatZone.Id):trace("zone is active")
 
-        veafRadio.addSecuredCommandToSubmenu('Desactivate zone', self.radioRootPath, veafCombatZone.DesactivateZone, self.missionEditorZoneName, veafRadio.USAGE_ForAll)
+        -- veafRadio.addSecuredCommandToSubmenu('Desactivate zone', self.radioRootPath, veafCombatZone.DesactivateZone, self.missionEditorZoneName, veafRadio.USAGE_ForAll)
 
         -- if self.smokeResetFunctionId then 
         --     veafRadio.addCommandToSubmenu('Smoke not available', self.radioRootPath, veaf.emptyFunction, nil, veafRadio.USAGE_ForAll)
@@ -1440,7 +1440,7 @@ function VeafCombatOperation:updateRadioMenu(inBatch)
         -- zone is not active, set up accordingly (activate zone)
         veaf.loggers.get(veafCombatZone.Id):trace("zone is not active")
 
-        veafRadio.addSecuredCommandToSubmenu('Activate zone', self.radioRootPath, veafCombatZone.ActivateZone, self.missionEditorZoneName, veafRadio.USAGE_ForAll)
+        -- veafRadio.addSecuredCommandToSubmenu('Activate zone', self.radioRootPath, veafCombatZone.ActivateZone, self.missionEditorZoneName, veafRadio.USAGE_ForAll)
     end
 
     if not inBatch then veafRadio.refreshRadioMenu() end

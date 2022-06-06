@@ -1205,7 +1205,7 @@ function VeafCombatOperation:setActive(value)
 end
 
 function VeafCombatOperation:getInformation()
-    veaf.loggers.get(veafCombatZone.Id):debug(string.format("VeafCombatOperation[%s]:getInformation()",self.missionEditorZoneName or ""))
+    veaf.loggers.get(veafCombatZone.Id):debug(string.format("VeafCombatOperation[%s]:getInformation()",veaf.p(self.missionEditorZoneName) ))
     local message = "OPERATION "..self:getFriendlyName().." \n\n"
     if (self:getBriefing()) then
         message = message .. messageSeparator
@@ -1227,12 +1227,13 @@ end
 
 function VeafCombatOperation:addTaskingOrder(zone, requiredComplete)
     -- add requiredComplete in log
-    veaf.loggers.get(veafCombatZone.Id):debug(string.format("VeafCombatOperation[%s]:addTaskingOrder(%s)",self.missionEditorZoneName or "", zone.missionEditorZoneName))
-    veaf.loggers.get(veafCombatZone.Id):trace(string.format("Adding combat zone %s to operation %s", zone.missionEditorZoneName, self.missionEditorZoneName or ""))
+    veaf.loggers.get(veafCombatZone.Id):debug(string.format("VeafCombatOperation[%s]:addTaskingOrder(%s)",veaf.p(self.missionEditorZoneName), veaf.p(zone.missionEditorZoneName)))
+    veaf.loggers.get(veafCombatZone.Id):trace(string.format("Adding combat zone %s to operation %s", zone.missionEditorZoneName, veaf.p(self.missionEditorZoneName)))
+    veaf.loggers.get(veafCombatZone.Id):trace(string.format("Tasks required before activation: %s", veaf.p(requiredComplete)))
     
     for _, mandatoryZoneName in pairs(requiredComplete or {}) do
         if(not self.taskingOrderDict[mandatoryZoneName]) then
-            veaf.loggers.get(veafCombatZone.Id):error(string.format("Cannot add mandatory zone %s as it is not in known zones", mandatoryZoneName))
+            veaf.loggers.get(veafCombatZone.Id):error(string.format("Cannot add mandatory zone %s as it is not in known zones", veaf.p(mandatoryZoneName)))
             return self
         end
     end
@@ -1256,13 +1257,13 @@ end
 --- Other methods
 -------------------
 function VeafCombatOperation:scheduleWatchdogFunction()
-    veaf.loggers.get(veafCombatZone.Id):debug(string.format("VeafCombatOperation[%s]:scheduleWatchdogFunction()",self.missionEditorZoneName or ""))
+    veaf.loggers.get(veafCombatZone.Id):debug(string.format("VeafCombatOperation[%s]:scheduleWatchdogFunction()", veaf.p(self.missionEditorZoneName)))
     self.watchdogFunctionId = mist.scheduleFunction(veafCombatZone.CompletionCheck,{self.missionEditorZoneName},timer.getTime()+veafCombatZone.SecondsBetweenWatchdogChecks)
     return self
 end
 
 function VeafCombatOperation:unscheduleWatchdogFunction()
-    veaf.loggers.get(veafCombatZone.Id):debug(string.format("VeafCombatOperation[%s]:unscheduleWatchdogFunction()",self.missionEditorZoneName or ""))
+    veaf.loggers.get(veafCombatZone.Id):debug(string.format("VeafCombatOperation[%s]:unscheduleWatchdogFunction()",veaf.p(self.missionEditorZoneName)))
     if self.watchdogFunctionId then
         mist.removeFunction(self.watchdogFunctionId)
     end
@@ -1272,7 +1273,7 @@ end
 
 -- checks if primary tasks are completed to unlock next
 function VeafCombatOperation:completionCheck()
-    veaf.loggers.get(veafCombatZone.Id):debug(string.format("VeafCombatOperation[%s]:completionCheck()",self.missionEditorZoneName or ""))
+    veaf.loggers.get(veafCombatZone.Id):debug(string.format("VeafCombatOperation[%s]:completionCheck()",veaf.p(self.missionEditorZoneName)))
 
     -- if any of primary tasks is still active, then check is done
     for _, primaryTask in pairs(self.primaryTaskingOrders) do
@@ -1334,7 +1335,7 @@ function VeafCombatOperation:completionCheck()
 end
 
 function VeafCombatOperation:initialize()
-    veaf.loggers.get(veafCombatZone.Id):debug(string.format("VeafCombatOperation[%s]:initialize()",self.missionEditorZoneName or ""))
+    veaf.loggers.get(veafCombatZone.Id):debug(string.format("VeafCombatOperation[%s]:initialize()",veaf.p(self.missionEditorZoneName)))
 
     -- check parameters
     if not self.missionEditorZoneName then 
@@ -1359,7 +1360,7 @@ end
 
 -- activate the operation
 function VeafCombatOperation:activate()
-    veaf.loggers.get(veafCombatZone.Id):trace(string.format("VeafCombatOperation[%s]:activate()",self:getMissionEditorZoneName()))
+    veaf.loggers.get(veafCombatZone.Id):trace(string.format("VeafCombatOperation[%s]:activate()", veaf.p(self.missionEditorZoneName)))
     self:setActive(true)
     
     local primaryTasks = {}
@@ -1386,7 +1387,7 @@ end
 
 -- desactivate the operation
 function VeafCombatOperation:desactivate()
-    veaf.loggers.get(veafCombatZone.Id):debug(string.format("VeafCombatOperation[%s]:desactivate()",self.missionEditorZoneName or ""))
+    veaf.loggers.get(veafCombatZone.Id):debug(string.format("VeafCombatOperation[%s]:desactivate()",veaf.p(self.missionEditorZoneName)))
     self:setActive(false)
 
     -- unscheduel watchdog function
@@ -1400,7 +1401,7 @@ end
 
 -- updates the radio menu according to the zone state
 function VeafCombatOperation:updateRadioMenu(inBatch)
-    veaf.loggers.get(veafCombatZone.Id):debug(string.format("VeafCombatOperation[%s]:updateRadioMenu(%s)",self.missionEditorZoneName or "", tostring(inBatch)))
+    veaf.loggers.get(veafCombatZone.Id):debug(string.format("VeafCombatOperation[%s]:updateRadioMenu(%s)",veaf.p(self.missionEditorZoneName), veaf.p(inBatch)))
     
     -- do not update the radio menu if not yet initialized
     if not veafCombatZone.rootPath then

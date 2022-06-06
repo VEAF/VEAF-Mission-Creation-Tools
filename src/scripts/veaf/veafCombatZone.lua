@@ -94,7 +94,7 @@ veafCombatZone.zonesList = {}
 veafCombatZone.zonesDict = {}
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
--- Utilities
+-- Utils
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 local messageSeparator = "\n===============================================================\n"
@@ -343,8 +343,8 @@ function VeafCombatZone:setOnCompletedHook(onCompletedFunction)
     return self
 end
 
-function VeafCombatZone:setEnableRadioMenu(enableRadioMenu)
-    self.enableRadioMenu = enableRadioMenu
+function VeafCombatZone:disableRadioMenu()
+    self.enableRadioMenu = false
     return self
 end
 
@@ -1238,7 +1238,7 @@ function VeafCombatOperation:addTaskingOrder(zone, requiredComplete)
     end
 
     veaf.loggers.get(veafCombatZone.Id):trace("remove task order from combat zone radio menu")
-    zone:setEnableRadioMenu(false)
+    zone:disableRadioMenu()
     
     -- adds tasking order to the zone lists to make it accessible
     veafCombatZone.AddZone(zone)

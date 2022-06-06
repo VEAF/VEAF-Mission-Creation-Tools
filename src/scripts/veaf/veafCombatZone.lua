@@ -1316,7 +1316,9 @@ function VeafCombatOperation:completionCheck()
         veaf.loggers.get(veafCombatZone.Id):trace("No tasks left")
         self.active = false
 
-        trigger.action.outText(string.format(veafCombatZone.EventMessages.CombatOperationComplete, self.friendlyName), 10)
+        if veafCombatZone.EventMessages.CombatOperationComplete then
+            trigger.action.outText(string.format(veafCombatZone.EventMessages.CombatOperationComplete, self.friendlyName), 10)
+        end
         return self
     end
     

@@ -55,9 +55,6 @@ veafCarrierOperations.LogLevel = "trace"
 
 veaf.loggers.new(veafCarrierOperations.Id, veafCarrierOperations.LogLevel)
 
---- All the carrier groups must comply with this name
-veafCarrierOperations.CarrierGroupNamePattern = "^CSG-.*$"
-
 veafCarrierOperations.RadioMenuName = "CARRIER OPS"
 veafCarrierOperations.RadioMenuNameBlue = "CARRIER OPS - BLUE"
 veafCarrierOperations.RadioMenuNameRed = "CARRIER OPS - RED"

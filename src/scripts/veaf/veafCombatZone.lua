@@ -94,7 +94,7 @@ veafCombatZone.zonesList = {}
 veafCombatZone.zonesDict = {}
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
--- Utilities
+-- Utils
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 local messageSeparator = "\n===============================================================\n"
@@ -343,8 +343,8 @@ function VeafCombatZone:setOnCompletedHook(onCompletedFunction)
     return self
 end
 
-function VeafCombatZone:setEnableRadioMenu(enableRadioMenu)
-    self.enableRadioMenu = enableRadioMenu
+function VeafCombatZone:disableRadioMenu()
+    self.enableRadioMenu = false
     return self
 end
 
@@ -415,7 +415,7 @@ function VeafCombatZone:addSpawnedGroup(groupOrName)
     if type(groupName) ~= "string" then 
         groupName = tostring(groupName)    
     end
-    veaf.loggers.get(veafCombatZone.Id):debug(string.format("VeafCombatZone[%s]:addSpawnedGroup(%s)",self.missionEditorZoneName or "", groupName or ""))
+    veaf.loggers.get(veafCombatZone.Id):debug(string.format("VeafCombatZone[%s]:addSpawnedGroup(%s)",veaf.p(self.missionEditorZoneName), veaf.p(groupName)))
     if not self.spawnedGroups then 
         self.spawnedGroups = {}
     end
@@ -424,7 +424,7 @@ function VeafCombatZone:addSpawnedGroup(groupOrName)
 end
 
 function VeafCombatZone:getSpawnedGroups()
-    veaf.loggers.get(veafCombatZone.Id):debug(string.format("VeafCombatZone[%s]:getSpawnedGroups()",self.missionEditorZoneName or ""))
+    veaf.loggers.get(veafCombatZone.Id):debug(string.format("VeafCombatZone[%s]:getSpawnedGroups()",veaf.p(self.missionEditorZoneName)))
     veaf.loggers.get(veafCombatZone.Id):debug(veaf.serialize("self.spawnedGroups", self.spawnedGroups))
     return self.spawnedGroups
 end
@@ -435,7 +435,7 @@ function VeafCombatZone:clearSpawnedGroups()
 end
 
 function VeafCombatZone:addDelayedSpawner(id)
-    veaf.loggers.get(veafCombatZone.Id):debug("VeafCombatZone[%s]:addDelayedSpawner(%s)", self.missionEditorZoneName, id)
+    veaf.loggers.get(veafCombatZone.Id):debug("VeafCombatZone[%s]:addDelayedSpawner(%s)", veaf.p(self.missionEditorZoneName), veaf.p(id))
     if not self.delayedSpawners then 
         self.delayedSpawners = {}
     end
@@ -444,7 +444,7 @@ function VeafCombatZone:addDelayedSpawner(id)
 end
 
 function VeafCombatZone:getDelayedSpawners()
-    veaf.loggers.get(veafCombatZone.Id):debug("VeafCombatZone[%s]:getDelayedSpawners()", self.missionEditorZoneName)
+    veaf.loggers.get(veafCombatZone.Id):debug("VeafCombatZone[%s]:getDelayedSpawners()", veaf.p(self.missionEditorZoneName))
     veaf.loggers.get(veafCombatZone.Id):debug("self.delayedSpawners=%s", self.delayedSpawners)
     return self.delayedSpawners
 end
@@ -455,7 +455,7 @@ function VeafCombatZone:clearDelayedSpawners()
 end
 
 function VeafCombatZone:addZoneElement(element)
-    veaf.loggers.get(veafCombatZone.Id):debug(string.format("VeafCombatZone[%s]:addZoneElement(%s)",self.missionEditorZoneName or "", element:getName()))
+    veaf.loggers.get(veafCombatZone.Id):debug(string.format("VeafCombatZone[%s]:addZoneElement(%s)",veaf.p(self.missionEditorZoneName), veaf.p(element:getName())))
     if not self.elements then 
         self.elements = {}
     end
@@ -476,13 +476,13 @@ function VeafCombatZone:addZoneElement(element)
 end
 
 function VeafCombatZone:getZoneElements()
-    veaf.loggers.get(veafCombatZone.Id):debug(string.format("VeafCombatZone[%s]:getZoneElement()",self.missionEditorZoneName or ""))
+    veaf.loggers.get(veafCombatZone.Id):debug(string.format("VeafCombatZone[%s]:getZoneElement()",veaf.p(self.missionEditorZoneName)))
     veaf.loggers.get(veafCombatZone.Id):trace(veaf.serialize("self.elements", self.elements))
     return self.elements
 end
 
 function VeafCombatZone:getZoneElementsGroups()
-    veaf.loggers.get(veafCombatZone.Id):debug(string.format("VeafCombatZone[%s]:getZoneElementsGroups()",self.missionEditorZoneName or ""))
+    veaf.loggers.get(veafCombatZone.Id):debug(string.format("VeafCombatZone[%s]:getZoneElementsGroups()",veaf.p(self.missionEditorZoneName)))
     return self.elementGroups
 end
 
@@ -490,7 +490,7 @@ end
 --- other methods
 ---
 function VeafCombatZone:scheduleWatchdogFunction()
-    veaf.loggers.get(veafCombatZone.Id):debug(string.format("VeafCombatZone[%s]:scheduleWatchdogFunction()",self.missionEditorZoneName or ""))
+    veaf.loggers.get(veafCombatZone.Id):debug(string.format("VeafCombatZone[%s]:scheduleWatchdogFunction()",veaf.p(self.missionEditorZoneName)))
     if self:isCompletable() then
         self.watchdogFunctionId = mist.scheduleFunction(veafCombatZone.CompletionCheck,{self.missionEditorZoneName},timer.getTime()+veafCombatZone.SecondsBetweenWatchdogChecks)
     end
@@ -498,7 +498,7 @@ function VeafCombatZone:scheduleWatchdogFunction()
 end
 
 function VeafCombatZone:unscheduleWatchdogFunction()
-    veaf.loggers.get(veafCombatZone.Id):debug(string.format("VeafCombatZone[%s]:unscheduleWatchdogFunction()",self.missionEditorZoneName or ""))
+    veaf.loggers.get(veafCombatZone.Id):debug(string.format("VeafCombatZone[%s]:unscheduleWatchdogFunction()",veaf.p(self.missionEditorZoneName)))
     if self.watchdogFunctionId then
         mist.removeFunction(self.watchdogFunctionId)
     end
@@ -517,7 +517,7 @@ function VeafCombatZone:addDefaultObjectives()
 end
 
 function VeafCombatZone:initialize()
-    veaf.loggers.get(veafCombatZone.Id):debug(string.format("VeafCombatZone[%s]:initialize()",self.missionEditorZoneName or ""))
+    veaf.loggers.get(veafCombatZone.Id):debug(string.format("VeafCombatZone[%s]:initialize()",veaf.p(self.missionEditorZoneName)))
 
     -- check parameters
     if not self.missionEditorZoneName then 
@@ -533,7 +533,7 @@ function VeafCombatZone:initialize()
     -- find the trigger zone center
     self.zoneCenter = mist.utils.zoneToVec3(self.missionEditorZoneName)
     if not self.zoneCenter then 
-        local message = string.format("Trigger zone [%s] does not exist in the mission !",self.missionEditorZoneName)
+        local message = string.format("Trigger zone [%s] does not exist in the mission !",veaf.p(self.missionEditorZoneName))
         veaf.loggers.get(veafCombatZone.Id):error(message)
         trigger.action.outText(message,5)
         return self
@@ -642,7 +642,7 @@ function VeafCombatZone:initialize()
 end
 
 function VeafCombatZone:getInformation()
-    veaf.loggers.get(veafCombatZone.Id):debug(string.format("VeafCombatZone[%s]:getInformation()",self.missionEditorZoneName or ""))
+    veaf.loggers.get(veafCombatZone.Id):debug(string.format("VeafCombatZone[%s]:getInformation()",veaf.p(self.missionEditorZoneName)))
     local message =      "COMBAT ZONE "..self:getFriendlyName().." \n\n"
     if (self:getBriefing()) then
         message = message .. "BRIEFING: \n"
@@ -905,7 +905,7 @@ end
 
 -- desactivate the zone
 function VeafCombatZone:desactivate()
-    veaf.loggers.get(veafCombatZone.Id):debug(string.format("VeafCombatZone[%s]:desactivate()",self.missionEditorZoneName or ""))
+    veaf.loggers.get(veafCombatZone.Id):debug(string.format("VeafCombatZone[%s]:desactivate()",veaf.p(self.missionEditorZoneName)))
     self:setActive(false)
     self:unscheduleWatchdogFunction()
 
@@ -946,7 +946,7 @@ end
 
 -- check if there are still units in zone
 function VeafCombatZone:completionCheck()
-    veaf.loggers.get(veafCombatZone.Id):debug(string.format("VeafCombatZone[%s]:completionCheck()",self.missionEditorZoneName or ""))
+    veaf.loggers.get(veafCombatZone.Id):debug(string.format("VeafCombatZone[%s]:completionCheck()",veaf.p(self.missionEditorZoneName)))
     if not self:isCompletable() then
         return
     end
@@ -997,7 +997,7 @@ end
 
 -- pop a smoke marker over the zone
 function VeafCombatZone:popSmoke()
-    veaf.loggers.get(veafCombatZone.Id):debug(string.format("VeafCombatZone[%s]:popSmoke()",self.missionEditorZoneName or ""))
+    veaf.loggers.get(veafCombatZone.Id):debug(string.format("VeafCombatZone[%s]:popSmoke()",veaf.p(self.missionEditorZoneName)))
     veaf.loggers.get(veafCombatZone.Id):trace(string.format("self:getCenter()=%s",veaf.vecToString(self:getCenter())))
     local smokePoint = self:getCenter()
     if self:isTraining() then 
@@ -1024,7 +1024,7 @@ end
 
 -- pop an illumination  flare over a zone
 function VeafCombatZone:popFlare()
-    veaf.loggers.get(veafCombatZone.Id):debug(string.format("VeafCombatZone[%s]:popFlare()",self.missionEditorZoneName or ""))
+    veaf.loggers.get(veafCombatZone.Id):debug(string.format("VeafCombatZone[%s]:popFlare()",veaf.p(self.missionEditorZoneName)))
     veaf.loggers.get(veafCombatZone.Id):trace(string.format("self:getCenter()=%s",veaf.vecToString(self:getCenter())))
 
     veafSpawn.spawnIlluminationFlare(self:getCenter())
@@ -1037,7 +1037,7 @@ end
 
 -- updates the radio menu according to the zone state
 function VeafCombatZone:updateRadioMenu(inBatch)
-    veaf.loggers.get(veafCombatZone.Id):debug(string.format("VeafCombatZone[%s]:updateRadioMenu(%s)",self.missionEditorZoneName or "", tostring(inBatch)))
+    veaf.loggers.get(veafCombatZone.Id):debug(string.format("VeafCombatZone[%s]:updateRadioMenu(%s)",veaf.p(self.missionEditorZoneName), tostring(inBatch)))
     
     -- do not update the radio menu if not yet initialized or if we don't want to
     if not veafCombatZone.rootPath or not self.enableRadioMenu then
@@ -1205,7 +1205,7 @@ function VeafCombatOperation:setActive(value)
 end
 
 function VeafCombatOperation:getInformation()
-    veaf.loggers.get(veafCombatZone.Id):debug(string.format("VeafCombatOperation[%s]:getInformation()",self.missionEditorZoneName or ""))
+    veaf.loggers.get(veafCombatZone.Id):debug(string.format("VeafCombatOperation[%s]:getInformation()",veaf.p(self.missionEditorZoneName) ))
     local message = "OPERATION "..self:getFriendlyName().." \n\n"
     if (self:getBriefing()) then
         message = message .. messageSeparator
@@ -1227,18 +1227,19 @@ end
 
 function VeafCombatOperation:addTaskingOrder(zone, requiredComplete)
     -- add requiredComplete in log
-    veaf.loggers.get(veafCombatZone.Id):debug(string.format("VeafCombatOperation[%s]:addTaskingOrder(%s)",self.missionEditorZoneName or "", zone.missionEditorZoneName))
-    veaf.loggers.get(veafCombatZone.Id):info(string.format("Adding combat zone %s to operation %s", zone.missionEditorZoneName, self.missionEditorZoneName or ""))
+    veaf.loggers.get(veafCombatZone.Id):debug(string.format("VeafCombatOperation[%s]:addTaskingOrder(%s)",veaf.p(self.missionEditorZoneName), veaf.p(zone.missionEditorZoneName)))
+    veaf.loggers.get(veafCombatZone.Id):trace(string.format("Adding combat zone %s to operation %s", zone.missionEditorZoneName, veaf.p(self.missionEditorZoneName)))
+    veaf.loggers.get(veafCombatZone.Id):trace(string.format("Tasks required before activation: %s", veaf.p(requiredComplete)))
     
     for _, mandatoryZoneName in pairs(requiredComplete or {}) do
         if(not self.taskingOrderDict[mandatoryZoneName]) then
-            veaf.loggers.get(veafCombatZone.Id):error(string.format("Cannot add mandatory zone %s as it is not in known zones", mandatoryZoneName))
+            veaf.loggers.get(veafCombatZone.Id):error(string.format("Cannot add mandatory zone %s as it is not in known zones", veaf.p(mandatoryZoneName)))
             return self
         end
     end
 
     veaf.loggers.get(veafCombatZone.Id):trace("remove task order from combat zone radio menu")
-    zone:setEnableRadioMenu(false)
+    zone:disableRadioMenu()
     
     -- adds tasking order to the zone lists to make it accessible
     veafCombatZone.AddZone(zone)
@@ -1256,13 +1257,13 @@ end
 --- Other methods
 -------------------
 function VeafCombatOperation:scheduleWatchdogFunction()
-    veaf.loggers.get(veafCombatZone.Id):debug(string.format("VeafCombatOperation[%s]:scheduleWatchdogFunction()",self.missionEditorZoneName or ""))
+    veaf.loggers.get(veafCombatZone.Id):debug(string.format("VeafCombatOperation[%s]:scheduleWatchdogFunction()", veaf.p(self.missionEditorZoneName)))
     self.watchdogFunctionId = mist.scheduleFunction(veafCombatZone.CompletionCheck,{self.missionEditorZoneName},timer.getTime()+veafCombatZone.SecondsBetweenWatchdogChecks)
     return self
 end
 
 function VeafCombatOperation:unscheduleWatchdogFunction()
-    veaf.loggers.get(veafCombatZone.Id):debug(string.format("VeafCombatOperation[%s]:unscheduleWatchdogFunction()",self.missionEditorZoneName or ""))
+    veaf.loggers.get(veafCombatZone.Id):debug(string.format("VeafCombatOperation[%s]:unscheduleWatchdogFunction()",veaf.p(self.missionEditorZoneName)))
     if self.watchdogFunctionId then
         mist.removeFunction(self.watchdogFunctionId)
     end
@@ -1272,7 +1273,7 @@ end
 
 -- checks if primary tasks are completed to unlock next
 function VeafCombatOperation:completionCheck()
-    veaf.loggers.get(veafCombatZone.Id):debug(string.format("VeafCombatOperation[%s]:completionCheck()",self.missionEditorZoneName or ""))
+    veaf.loggers.get(veafCombatZone.Id):debug(string.format("VeafCombatOperation[%s]:completionCheck()",veaf.p(self.missionEditorZoneName)))
 
     -- if any of primary tasks is still active, then check is done
     for _, primaryTask in pairs(self.primaryTaskingOrders) do
@@ -1316,7 +1317,9 @@ function VeafCombatOperation:completionCheck()
         veaf.loggers.get(veafCombatZone.Id):trace("No tasks left")
         self.active = false
 
-        trigger.action.outText(string.format(veafCombatZone.EventMessages.CombatOperationComplete, self.friendlyName), 10)
+        if veafCombatZone.EventMessages.CombatOperationComplete then
+            trigger.action.outText(string.format(veafCombatZone.EventMessages.CombatOperationComplete, self.friendlyName), 10)
+        end
         return self
     end
     
@@ -1332,7 +1335,7 @@ function VeafCombatOperation:completionCheck()
 end
 
 function VeafCombatOperation:initialize()
-    veaf.loggers.get(veafCombatZone.Id):debug(string.format("VeafCombatOperation[%s]:initialize()",self.missionEditorZoneName or ""))
+    veaf.loggers.get(veafCombatZone.Id):debug(string.format("VeafCombatOperation[%s]:initialize()",veaf.p(self.missionEditorZoneName)))
 
     -- check parameters
     if not self.missionEditorZoneName then 
@@ -1357,7 +1360,7 @@ end
 
 -- activate the operation
 function VeafCombatOperation:activate()
-    veaf.loggers.get(veafCombatZone.Id):trace(string.format("VeafCombatOperation[%s]:activate()",self:getMissionEditorZoneName()))
+    veaf.loggers.get(veafCombatZone.Id):trace(string.format("VeafCombatOperation[%s]:activate()", veaf.p(self.missionEditorZoneName)))
     self:setActive(true)
     
     local primaryTasks = {}
@@ -1384,7 +1387,7 @@ end
 
 -- desactivate the operation
 function VeafCombatOperation:desactivate()
-    veaf.loggers.get(veafCombatZone.Id):debug(string.format("VeafCombatOperation[%s]:desactivate()",self.missionEditorZoneName or ""))
+    veaf.loggers.get(veafCombatZone.Id):debug(string.format("VeafCombatOperation[%s]:desactivate()",veaf.p(self.missionEditorZoneName)))
     self:setActive(false)
 
     -- unscheduel watchdog function
@@ -1398,7 +1401,7 @@ end
 
 -- updates the radio menu according to the zone state
 function VeafCombatOperation:updateRadioMenu(inBatch)
-    veaf.loggers.get(veafCombatZone.Id):debug(string.format("VeafCombatOperation[%s]:updateRadioMenu(%s)",self.missionEditorZoneName or "", tostring(inBatch)))
+    veaf.loggers.get(veafCombatZone.Id):debug(string.format("VeafCombatOperation[%s]:updateRadioMenu(%s)",veaf.p(self.missionEditorZoneName), veaf.p(inBatch)))
     
     -- do not update the radio menu if not yet initialized
     if not veafCombatZone.rootPath then
@@ -1422,7 +1425,7 @@ function VeafCombatOperation:updateRadioMenu(inBatch)
         -- zone is active, set up accordingly (desactivate zone, get information, pop smoke, etc.)
         veaf.loggers.get(veafCombatZone.Id):trace("zone is active")
 
-        veafRadio.addSecuredCommandToSubmenu('Desactivate zone', self.radioRootPath, veafCombatZone.DesactivateZone, self.missionEditorZoneName, veafRadio.USAGE_ForAll)
+        -- veafRadio.addSecuredCommandToSubmenu('Desactivate zone', self.radioRootPath, veafCombatZone.DesactivateZone, self.missionEditorZoneName, veafRadio.USAGE_ForAll)
 
         -- if self.smokeResetFunctionId then 
         --     veafRadio.addCommandToSubmenu('Smoke not available', self.radioRootPath, veaf.emptyFunction, nil, veafRadio.USAGE_ForAll)
@@ -1438,7 +1441,7 @@ function VeafCombatOperation:updateRadioMenu(inBatch)
         -- zone is not active, set up accordingly (activate zone)
         veaf.loggers.get(veafCombatZone.Id):trace("zone is not active")
 
-        veafRadio.addSecuredCommandToSubmenu('Activate zone', self.radioRootPath, veafCombatZone.ActivateZone, self.missionEditorZoneName, veafRadio.USAGE_ForAll)
+        -- veafRadio.addSecuredCommandToSubmenu('Activate zone', self.radioRootPath, veafCombatZone.ActivateZone, self.missionEditorZoneName, veafRadio.USAGE_ForAll)
     end
 
     if not inBatch then veafRadio.refreshRadioMenu() end

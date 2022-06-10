@@ -70,6 +70,12 @@ veafCombatZone.DefaultSpawnRadiusForStatics = 0
 
 veafCombatZone.RadioMenuName = "COMBAT ZONES"
 
+-- Combat zones specific radio menu name
+veafCombatZone.CombatZoneRadioMenuName = nil
+
+-- Combat operations specific radio menu name
+veafCombatZone.OperationRadioMenuName = nil
+
 veafCombatZone.EventMessages = {
     CombatZoneComplete = [[
     Well done ! All enemies in zone %s have been destroyed or routed.
@@ -86,6 +92,11 @@ veafCombatZone.EventMessages = {
 
 --- Radio menus paths
 veafCombatZone.rootPath = nil
+
+--- Combat Zones radio menus paths
+veafCombatZone.combatZoneRootPath = nil
+--- Operation radio menus paths
+veafCombatZone.operationRootPath = nil
 
 -- Zones list (table of VeafCombatZone objects)
 veafCombatZone.zonesList = {}
@@ -1044,13 +1055,18 @@ function VeafCombatZone:updateRadioMenu(inBatch)
         return self
     end
 
+    local menuToFill = veafCombatZone.rootPath
+    if(veafCombatZone.combatZoneRootPath) then
+        menuToFill = veafCombatZone.combatZoneRootPath
+    end
+
     -- reset the radio menu
     if self.radioRootPath then
         veaf.loggers.get(veafCombatZone.Id):trace("reset the radio submenu")
         veafRadio.clearSubmenu(self.radioRootPath)
     else
         veaf.loggers.get(veafCombatZone.Id):trace("add the radio submenu")
-        self.radioRootPath = veafRadio.addSubMenu(self:getRadioMenuName(), veafCombatZone.rootPath)
+        self.radioRootPath = veafRadio.addSubMenu(self:getRadioMenuName(), menuToFill)
     end
 
     -- populate the radio menu
@@ -1408,13 +1424,18 @@ function VeafCombatOperation:updateRadioMenu(inBatch)
         return self
     end
 
+    local menuToFill = veafCombatZone.rootPath
+    if(veafCombatZone.operationRootPath) then
+        menuToFill = veafCombatZone.operationRootPath
+    end
+
     -- reset the radio menu
     if self.radioRootPath then
         veaf.loggers.get(veafCombatZone.Id):trace("reset the radio submenu")
         veafRadio.clearSubmenu(self.radioRootPath)
     else
         veaf.loggers.get(veafCombatZone.Id):trace("add the radio submenu")
-        self.radioRootPath = veafRadio.addSubMenu(self:getRadioMenuName(), veafCombatZone.rootPath)
+        self.radioRootPath = veafRadio.addSubMenu(self:getRadioMenuName(), menuToFill)
     end
 
     -- populate the radio menu
@@ -1642,6 +1663,14 @@ function veafCombatZone.buildRadioMenu()
     if not(veafRadio.skipHelpMenus) then
         veafRadio.addCommandToSubmenu("HELP", veafCombatZone.rootPath, veafCombatZone.help, nil, veafRadio.USAGE_ForGroup)
     end
+    
+    if(veafCombatZone.CombatZoneRadioMenuName) then
+        veafCombatZone.combatZoneRootPath = veafRadio.addSubMenu(veafCombatZone.CombatZoneRadioMenuName, veafCombatZone.rootPath)
+    end
+
+    if(veafCombatZone.OperationRadioMenuName) then
+        veafCombatZone.operationRootPath = veafRadio.addSubMenu(veafCombatZone.OperationRadioMenuName, veafCombatZone.rootPath)
+    end
         
     -- sort the zones alphabetically
     names = {}
@@ -1684,10 +1713,12 @@ end
 
 function veafCombatZone.help(unitName)
     local text =
-        'Combat zones are defined by the mission maker, and listed here\n' ..
+        'Combat zones are defined by the mission maker\n' ..
         'You can activate and desactivate them at will,\n' ..
-        'as well as ask for information, JTAC laser and smoke.'
-
+        'as well as ask for information, JTAC laser and smoke. \n\n' ..
+        'Combat operations are defined by the mission maker\n' ..
+        'A combat operation is a series of combat zones to complete,\n' ..
+        'You can ask information to get briefing and intel for current tasking orders.'
     veaf.outTextForUnit(unitName, text, 30)
 end
 

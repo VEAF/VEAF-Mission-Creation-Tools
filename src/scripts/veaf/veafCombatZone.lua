@@ -1297,6 +1297,7 @@ function VeafCombatOperation:completionCheck()
             veaf.loggers.get(veafCombatZone.Id):trace("Still got work to do.")
 
             -- reschedule
+            self:updateRadioMenu()
             self:scheduleWatchdogFunction()
 
             return self 
@@ -1344,6 +1345,7 @@ function VeafCombatOperation:completionCheck()
     self.primaryTaskingOrders = newPrimaryTasks
 
     -- reschedule
+    self:updateRadioMenu()
     self:scheduleWatchdogFunction()
 
 
@@ -1442,6 +1444,11 @@ function VeafCombatOperation:updateRadioMenu(inBatch)
     veaf.loggers.get(veafCombatZone.Id):trace("populate the radio menu")
     -- global commands
     veafRadio.addCommandToSubmenu("Get info", self.radioRootPath, veafCombatZone.GetInformationOnZone, self.missionEditorZoneName, veafRadio.USAGE_ForAll)
+    for _, taskingOrder in pairs(self.taskingOrderDict) do
+        veaf.loggers.get(veafCombatZone.Id):trace(string.format("Add briefing for %s, %s", taskingOrder.zone:getFriendlyName(), taskingOrder.zone:getMissionEditorZoneName()))
+        veafRadio.addCommandToSubmenu("Briefing " .. taskingOrder.zone:getFriendlyName(), self.radioRootPath, veafCombatZone.GetInformationOnZone, taskingOrder.zone:getMissionEditorZoneName(), veafRadio.USAGE_ForAll)
+    end
+
     if self:isActive() then
         -- zone is active, set up accordingly (desactivate zone, get information, pop smoke, etc.)
         veaf.loggers.get(veafCombatZone.Id):trace("zone is active")

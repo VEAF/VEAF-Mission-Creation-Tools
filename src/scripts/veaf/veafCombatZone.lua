@@ -1229,15 +1229,14 @@ function VeafCombatOperation:getInformation()
     if (self:getBriefing()) then
         message = message .. messageSeparator
         message = message .. self:getBriefing()
-        message = message .. messageSeparator .. "\n\n"
+        message = message .. "\n\n"
     end
 
 
-    message = message .. messageSeparator .. "Air Tasking Orders: " .. messageSeparator
+    message = message .. messageSeparator .. "Available air Tasking Orders: \n"
     for _, primaryTaskingOrder in pairs(self.primaryTaskingOrders) do
         if primaryTaskingOrder.zone:isActive() then
             message = message .. primaryTaskingOrder:getZone():getFriendlyName() .. "\n"
-            message = message .. primaryTaskingOrder:getZone():getInformation() .. messageSeparator
         end
     end
     
@@ -1461,7 +1460,7 @@ function VeafCombatOperation:updateRadioMenu(inBatch)
     veaf.loggers.get(veafCombatZone.Id):trace("populate the radio menu")
     -- global commands
     veafRadio.addCommandToSubmenu("Get info", self.radioRootPath, veafCombatZone.GetInformationOnZone, self.missionEditorZoneName, veafRadio.USAGE_ForAll)
-    for _, taskingOrder in pairs(self.taskingOrderDict) do
+    for _, taskingOrder in pairs(self.primaryTaskingOrders) do
         if taskingOrder.zone:isActive() then
             veaf.loggers.get(veafCombatZone.Id):trace(string.format("Add briefing for %s, %s", taskingOrder.zone:getFriendlyName(), taskingOrder.zone:getMissionEditorZoneName()))
             veafRadio.addCommandToSubmenu("Briefing " .. taskingOrder.zone:getFriendlyName(), self.radioRootPath, veafCombatZone.GetInformationOnZone, taskingOrder.zone:getMissionEditorZoneName(), veafRadio.USAGE_ForAll)

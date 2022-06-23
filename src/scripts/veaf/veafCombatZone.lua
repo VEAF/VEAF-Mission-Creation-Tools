@@ -1157,8 +1157,10 @@ VeafCombatOperation =
     -- the watchdog function checks for zone objectives completion
     watchdogFunctionId,
     -- function to call when combat zone is over. The function is passed self combat zone
-    onCompletedHook
-    }
+    onCompletedHook,
+    -- how many tasks were complete so far
+    currentCompletedTaskingOrderCount
+}
 VeafCombatOperation.__index = VeafCombatOperation
 
 function VeafCombatOperation:new()
@@ -1169,6 +1171,7 @@ function VeafCombatOperation:new()
     self.taskingOrderList = {}  -- VeafCombatOperationTaskingOrder instances
     self.taskingOrderDict = {}  -- VeafCombatOperationTaskingOrder instances
     self.primaryTaskingOrders = {} -- VeafCombatOperationTaskingOrder instances
+    self.currentCompletedTaskingOrderCount = 0
     return self
 end
 
@@ -1287,24 +1290,10 @@ function VeafCombatOperation:unscheduleWatchdogFunction()
     return self
 end
 
--- checks if primary tasks are completed to unlock next
-function VeafCombatOperation:completionCheck()
-    veaf.loggers.get(veafCombatZone.Id):debug(string.format("VeafCombatOperation[%s]:completionCheck()",veaf.p(self.missionEditorZoneName)))
+function VeafCombatOperation:updatePrimaryTasks()
+    veaf.loggers.get(veafCombatZone.Id):debug(string.format("VeafCombatOperation[%s]:updatePrimaryTasks()",veaf.p(self.missionEditorZoneName)))
 
-    -- if any of primary tasks is still active, then check is done
-    for _, primaryTask in pairs(self.primaryTaskingOrders) do
-        if primaryTask:getZone():isActive() then 
-            veaf.loggers.get(veafCombatZone.Id):trace("Still got work to do.")
-
-            -- reschedule
-            self:updateRadioMenu()
-            self:scheduleWatchdogFunction()
-
-            return self 
-        end
-    end
-
-    veaf.loggers.get(veafCombatZone.Id):trace("Primary tasks complete, clear primary tasks")
+    veaf.loggers.get(veafCombatZone.Id):trace("Clear primary tasks")
     self.primaryTaskingOrders = {}
 
     veaf.loggers.get(veafCombatZone.Id):trace("Look for next tasks")
@@ -1343,9 +1332,37 @@ function VeafCombatOperation:completionCheck()
     
     veaf.loggers.get(veafCombatZone.Id):trace("Setting new primary tasks")
     self.primaryTaskingOrders = newPrimaryTasks
+end
+
+-- checks if primary tasks are completed to unlock next
+function VeafCombatOperation:completionCheck()
+    veaf.loggers.get(veafCombatZone.Id):debug(string.format("VeafCombatOperation[%s]:completionCheck()",veaf.p(self.missionEditorZoneName)))
+
+    local completedTaskingOrderCount = 0
+    -- if any of primary tasks is still active, then check is done
+    for _, primaryTask in pairs(self.primaryTaskingOrders) do
+        if not primaryTask:getZone():isActive() then 
+            veaf.loggers.get(veafCombatZone.Id):trace(string.format("Primary task %s is completed",primaryTask:getZone():getFriendlyName()))
+            completedTaskingOrderCount = completedTaskingOrderCount + 1
+        end
+    end
+
+    veaf.loggers.get(veafCombatZone.Id):trace(string.format("%s completed out of %s, previous was %s",completedTaskingOrderCount, #self.primaryTaskingOrders, self.currentCompletedTaskingOrderCount))
+    if completedTaskingOrderCount == #self.primaryTaskingOrders then
+        veaf.loggers.get(veafCombatZone.Id):trace("Primary tasks complete")
+        self:updatePrimaryTasks()
+        completedTaskingOrderCount = 0
+    end
+    
+    veaf.loggers.get(veafCombatZone.Id):trace("Still got work to do.")
+
+    if completedTaskingOrderCount ~= self.currentCompletedTaskingOrderCount then
+        veaf.loggers.get(veafCombatZone.Id):trace("New tasking order completed. Update radio.")
+        self:updateRadioMenu()
+    end
+    self.currentCompletedTaskingOrderCount = completedTaskingOrderCount
 
     -- reschedule
-    self:updateRadioMenu()
     self:scheduleWatchdogFunction()
 
 
@@ -1445,8 +1462,13 @@ function VeafCombatOperation:updateRadioMenu(inBatch)
     -- global commands
     veafRadio.addCommandToSubmenu("Get info", self.radioRootPath, veafCombatZone.GetInformationOnZone, self.missionEditorZoneName, veafRadio.USAGE_ForAll)
     for _, taskingOrder in pairs(self.taskingOrderDict) do
-        veaf.loggers.get(veafCombatZone.Id):trace(string.format("Add briefing for %s, %s", taskingOrder.zone:getFriendlyName(), taskingOrder.zone:getMissionEditorZoneName()))
-        veafRadio.addCommandToSubmenu("Briefing " .. taskingOrder.zone:getFriendlyName(), self.radioRootPath, veafCombatZone.GetInformationOnZone, taskingOrder.zone:getMissionEditorZoneName(), veafRadio.USAGE_ForAll)
+        if taskingOrder.zone:isActive() then
+            veaf.loggers.get(veafCombatZone.Id):trace(string.format("Add briefing for %s, %s", taskingOrder.zone:getFriendlyName(), taskingOrder.zone:getMissionEditorZoneName()))
+            veafRadio.addCommandToSubmenu("Briefing " .. taskingOrder.zone:getFriendlyName(), self.radioRootPath, veafCombatZone.GetInformationOnZone, taskingOrder.zone:getMissionEditorZoneName(), veafRadio.USAGE_ForAll)
+        else
+            veaf.loggers.get(veafCombatZone.Id):trace(string.format("Skip briefing for %s, %s as it is not active", taskingOrder.zone:getFriendlyName(), taskingOrder.zone:getMissionEditorZoneName()))
+        end
+
     end
 
     if self:isActive() then

@@ -1232,12 +1232,15 @@ function VeafCombatOperation:getInformation()
         message = message .. "\n\n"
     end
 
-
-    message = message .. messageSeparator .. "Available air Tasking Orders: \n"
-    for _, primaryTaskingOrder in pairs(self.primaryTaskingOrders) do
-        if primaryTaskingOrder.zone:isActive() then
-            message = message .. primaryTaskingOrder:getZone():getFriendlyName() .. "\n"
+    if self:isActive() then
+        message = message .. messageSeparator .. "Air Tasking Orders: \n"
+        for _, primaryTaskingOrder in pairs(self.primaryTaskingOrders) do
+            if primaryTaskingOrder.zone:isActive() then
+                message = message .. primaryTaskingOrder:getZone():getFriendlyName() .. "\n"
+            end
         end
+    else
+        message = message .. string.format(veafCombatZone.EventMessages.CombatOperationComplete, self:getFriendlyName())
     end
     
     return message
@@ -1320,7 +1323,8 @@ function VeafCombatOperation:updatePrimaryTasks()
     -- No task left, operation complete !
     if veaf.length(newPrimaryTasks) == 0 then
         veaf.loggers.get(veafCombatZone.Id):trace("No tasks left")
-        self.active = false
+        self:desactivate()
+        
 
         if veafCombatZone.EventMessages.CombatOperationComplete then
             trigger.action.outText(string.format(veafCombatZone.EventMessages.CombatOperationComplete, self.friendlyName), 10)
@@ -1351,6 +1355,9 @@ function VeafCombatOperation:completionCheck()
         veaf.loggers.get(veafCombatZone.Id):trace("Primary tasks complete")
         self:updatePrimaryTasks()
         completedTaskingOrderCount = 0
+        if not self:isActive() then
+            return self
+        end
     end
     
     veaf.loggers.get(veafCombatZone.Id):trace("Still got work to do.")

@@ -27,7 +27,7 @@ veafShortcuts = {}
 veafShortcuts.Id = "SHORTCUTS"
 
 --- Version.
-veafShortcuts.Version = "1.26.0"
+veafShortcuts.Version = "1.27.0"
 
 -- trace level, specific to this module
 --veafShortcuts.LogLevel = "trace"
@@ -694,9 +694,30 @@ function veafShortcuts.buildDefaultList()
     -- specific air defenses groups and units  
     veafShortcuts.AddAlias(
         VeafAlias:new()
+            :setName("-hq7")
+            :setDescription("HQ-7 Red Banner battery")
+            :setVeafCommand("_spawn group, name hq7, skynet true")
+            :setBypassSecurity(false)
+    )
+    veafShortcuts.AddAlias(
+        VeafAlias:new()
+            :setName("-hq7noew")
+            :setDescription("HQ-7 Red Banner battery without EWR")
+            :setVeafCommand("_spawn group, name hq7-noew, skynet true")
+            :setBypassSecurity(false)
+    )
+    veafShortcuts.AddAlias(
+        VeafAlias:new()
             :setName("-sa2")
             :setDescription("SA-2 Guideline (S-75 Dvina) battery")
             :setVeafCommand("_spawn group, name sa2, skynet true")
+            :setBypassSecurity(false)
+    )
+    veafShortcuts.AddAlias(
+        VeafAlias:new()
+            :setName("-sa5")
+            :setDescription("SA-5 Gammon (S-200 Dubna) battery")
+            :setVeafCommand("_spawn group, name sa5, skynet true")
             :setBypassSecurity(false)
     )
     veafShortcuts.AddAlias(
@@ -757,9 +778,23 @@ function veafShortcuts.buildDefaultList()
     )
     veafShortcuts.AddAlias(
         VeafAlias:new()
+            :setName("-insurgent_manpad")
+            :setDescription("Insurgent SA-18 manpad squad")
+            :setVeafCommand("_spawn group, name ins_manpad")
+            :setBypassSecurity(false)
+    )
+    veafShortcuts.AddAlias(
+        VeafAlias:new()
             :setName("-sa18")
-            :setDescription("SA-18 manpad soldier")
-            :setVeafCommand("_spawn unit, name SA-18 Igla-S manpad")
+            :setDescription("SA-18 manpad squad")
+            :setVeafCommand("_spawn group, name sa18_squad")
+            :setBypassSecurity(false)
+    )
+    veafShortcuts.AddAlias(
+        VeafAlias:new()
+            :setName("-sa18s")
+            :setDescription("SA-18S manpad squad")
+            :setVeafCommand("_spawn group, name sa18s_squad")
             :setBypassSecurity(false)
     )
     veafShortcuts.AddAlias(
@@ -786,7 +821,7 @@ function veafShortcuts.buildDefaultList()
     veafShortcuts.AddAlias(
         VeafAlias:new()
             :setName("-manpads")
-            :setDescription("mutiple SA-18 manpad soldier peppered in a wide radius")
+            :setDescription("mutiple SA-18S manpad soldier peppered in a wide radius")
             :setVeafCommand("_spawn unit, name SA-18 Igla-S manpad, radius 5000, skynet true")
             :addRandomParameter("multiplier", 3, 6)
             :setBypassSecurity(false)
@@ -807,9 +842,51 @@ function veafShortcuts.buildDefaultList()
     )
     veafShortcuts.AddAlias(
         VeafAlias:new()
+            :setName("-nasams")
+            :setDescription("NASAMS battery with 120C (US by default)")
+            :setVeafCommand("_spawn group, name nasams_c, country USA, skynet true")
+            :setBypassSecurity(false)
+    )
+    veafShortcuts.AddAlias(
+        VeafAlias:new()
+            :setName("-nasams_b")
+            :setDescription("NASAMS battery with 120B (US by default)")
+            :setVeafCommand("_spawn group, name nasams_b, country USA, skynet true")
+            :setBypassSecurity(false)
+    )
+    veafShortcuts.AddAlias(
+        VeafAlias:new()
             :setName("-patriot")
             :setDescription("Patriot battery (US by default)")
             :setVeafCommand("_spawn group, name patriot, country USA, skynet true")
+            :setBypassSecurity(false)
+    )
+    veafShortcuts.AddAlias(
+        VeafAlias:new()
+            :setName("-stinger")
+            :setDescription("Stinger manpad squad (US by default)")
+            :setVeafCommand("_spawn group, name stinger_squad, country USA")
+            :setBypassSecurity(false)
+    )
+    veafShortcuts.AddAlias(
+        VeafAlias:new()
+            :setName("-dogear")
+            :setDescription("Dogear Radar")
+            :setVeafCommand("_spawn unit, name dogear, skynet true, ewr")
+            :setBypassSecurity(false)
+    )
+    veafShortcuts.AddAlias(
+        VeafAlias:new()
+            :setName("-blue_ewr")
+            :setDescription("F-117 Domed EWR (US by default)")
+            :setVeafCommand("_spawn group, name blue_ewr, country USA, skynet true")
+            :setBypassSecurity(false)
+    )
+    veafShortcuts.AddAlias(
+        VeafAlias:new()
+            :setName("-ewr")
+            :setDescription("55G6 Mast EWR")
+            :setVeafCommand("_spawn group, name ewr, skynet true")
             :setBypassSecurity(false)
     )
     veafShortcuts.AddAlias(
@@ -845,6 +922,28 @@ function veafShortcuts.buildDefaultList()
             :setName("-pyotr")
             :setDescription("CGN 1144.2 Pyotr Velikiy (RU by default)")
             :setVeafCommand("_spawn unit, name PIOTR, country RUSSIA, skynet true")
+            :setBypassSecurity(false)
+    )
+    -- convoys
+    veafShortcuts.AddAlias(
+        VeafAlias:new()
+            :setName("-hv_convoy_red")
+            :setDescription("Red High Value Attack convoy")
+            :setVeafCommand("_spawn group, name hv_convoy_red, country RUSSIA, skynet false, alarm 0") --skynet is set to false as Radar SAMs will not move otherwise (AI turned off). Alarm is set to 0, meaning Alarm state 0 for proper movement of the scud
+            :setBypassSecurity(false)
+    )
+    veafShortcuts.AddAlias(
+        VeafAlias:new()
+            :setName("-attack_convoy_red")
+            :setDescription("Red Attack convoy")
+            :setVeafCommand("_spawn group, name convoy_red, country RUSSIA, skynet false") --skynet is set to false as Radar SAMs will not move otherwise (AI turned off). Alarm is set to 0, meaning Alarm state 0 for proper movement of the scud
+            :setBypassSecurity(false)
+    )
+    veafShortcuts.AddAlias(
+        VeafAlias:new()
+            :setName("-civilian_convoy_red")
+            :setDescription("Red Civilian convoy")
+            :setVeafCommand("_spawn group, name civilian_convoy_red, country RUSSIA") --skynet is set to false as Radar SAMs will not move otherwise (AI turned off). Alarm is set to 0, meaning Alarm state 0 for proper movement of the scud
             :setBypassSecurity(false)
     )
 
@@ -998,6 +1097,13 @@ function veafShortcuts.buildDefaultList()
             :setName("-jtac")
             :setDescription("JTAC humvee")
             :setVeafCommand("_spawn jtac")
+            :setBypassSecurity(true)
+    )
+    veafShortcuts.AddAlias(
+        VeafAlias:new()
+            :setName("-afac")
+            :setDescription("AFAC MQ-9 Reaper")
+            :setVeafCommand("_spawn afac")
             :setBypassSecurity(true)
     )
     veafShortcuts.AddAlias(

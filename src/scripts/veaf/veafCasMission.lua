@@ -72,7 +72,7 @@ veafCasMission = {}
 veafCasMission.Id = "CASMISSION"
 
 --- Version.
-veafCasMission.Version = "1.11.0"
+veafCasMission.Version = "1.11.1"
 
 -- trace level, specific to this module
 --veafCasMission.LogLevel = "trace"
@@ -692,7 +692,7 @@ function veafCasMission.generateInfantryGroup(groupName, defense, armor, side, s
     return group
 end
 
-function veafCasMission.placeGroup(groupDefinition, spawnPosition, spacing, resultTable)
+function veafCasMission.placeGroup(groupDefinition, spawnPosition, spacing, resultTable, hasDest)
     if spawnPosition ~= nil and groupDefinition ~= nil then
         veaf.loggers.get(veafCasMission.Id):trace(string.format("veafCasMission.placeGroup(#groupDefinition.units=%d)",#groupDefinition.units))
 
@@ -703,7 +703,7 @@ function veafCasMission.placeGroup(groupDefinition, spawnPosition, spacing, resu
         -- place its units
         groupPosition = { x = spawnPosition.x, z = spawnPosition.y }
         local hdg = math.random(359)
-        local group, cells = veafUnits.placeGroup(group, veaf.placePointOnLand(groupPosition), spacing+3, hdg)
+        local group, cells = veafUnits.placeGroup(group, veaf.placePointOnLand(groupPosition), spacing+3, hdg, hasDest)
         if veaf.Trace then 
             veafUnits.traceGroup(group, cells)
         end

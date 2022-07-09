@@ -48,10 +48,10 @@ veafCarrierOperations = {}
 veafCarrierOperations.Id = "CARRIER"
 
 --- Version.
-veafCarrierOperations.Version = "1.11.0"
+veafCarrierOperations.Version = "1.11.1"
 
 -- trace level, specific to this module
-veafCarrierOperations.LogLevel = "trace"
+--veafCarrierOperations.LogLevel = "trace"
 
 veaf.loggers.new(veafCarrierOperations.Id, veafCarrierOperations.LogLevel)
 
@@ -61,15 +61,15 @@ veafCarrierOperations.RadioMenuNameRed = "CARRIER OPS - RED"
 
 veafCarrierOperations.AllCarriers = 
 {
-    ["LHA_Tarawa"] = { runwayAngleWithBRC = 0, desiredWindSpeedOnDeck = 20},
+    ["LHA_Tarawa"] = { runwayAngleWithBRC = -1, desiredWindSpeedOnDeck = 20},
     ["Stennis"] = { runwayAngleWithBRC = 9.05, desiredWindSpeedOnDeck = 25},
     ["CVN_71"] = { runwayAngleWithBRC = 9.05, desiredWindSpeedOnDeck = 25},
     ["CVN_72"] = { runwayAngleWithBRC = 9.05, desiredWindSpeedOnDeck = 25},
     ["CVN_73"] = { runwayAngleWithBRC = 9.05, desiredWindSpeedOnDeck = 25},
     ["CVN_75"] = { runwayAngleWithBRC = 9.05, desiredWindSpeedOnDeck = 25},
     ["Forrestal"] = { runwayAngleWithBRC = 9.05, desiredWindSpeedOnDeck = 25},
-    ["KUZNECOW"] ={ runwayAngleWithBRC = 0, desiredWindSpeedOnDeck = 25},
-    ["CV_1143_5"] ={ runwayAngleWithBRC = 0, desiredWindSpeedOnDeck = 25}
+    ["KUZNECOW"] ={ runwayAngleWithBRC = 9, desiredWindSpeedOnDeck = 25},
+    ["CV_1143_5"] ={ runwayAngleWithBRC = 9, desiredWindSpeedOnDeck = 25}
 }
 
 veafCarrierOperations.ALT_FOR_MEASURING_WIND = 30 -- wind is measured at 30 meters, 10 meters above deck
@@ -488,7 +488,9 @@ function veafCarrierOperations.continueCarrierOperations(groupName)
                     local vars = {}
                     vars.gpName = carrier.tankerUnitName
                     vars.action = 'respawn'
-                    vars.point = startPosition
+                    vars.point = {}
+                    vars.point.x = startPosition.x
+                    vars.point.z = startPosition.z
                     vars.point.y = 2500
                     vars.radius = 500
                     mist.teleportToPoint(vars)
@@ -561,7 +563,7 @@ function veafCarrierOperations.continueCarrierOperations(groupName)
                                         }, -- end of ["task"]
                                         ["type"] = "Turning Point",
                                         ["ETA"] = 0,
-                                        ["ETA_locked"] = true,
+                                        ["ETA_locked"] = false,
                                         ["x"] = startPosition.x,
                                         ["y"] = startPosition.z,
                                         ["speed_locked"] = true,
@@ -763,14 +765,14 @@ function veafCarrierOperations.rebuildRadioMenu()
         
         -- remove the submenu
         veaf.loggers.get(veafCarrierOperations.Id):trace("remove the submenu")
-        veafRadio.delSubmenu(carrier.menuPath, veafCarrierOperations.rootPath)
-
-        -- create the submenu
-        veaf.loggers.get(veafCarrierOperations.Id):trace("create the submenu")
         local menuRoot = veafCarrierOperations.rootPathRed
         if carrier.side == coalition.side.BLUE then
             menuRoot = veafCarrierOperations.rootPathBlue
         end
+        veafRadio.delSubmenu(carrier.menuPath, menuRoot)
+
+        -- create the submenu
+        veaf.loggers.get(veafCarrierOperations.Id):trace("create the submenu")
 
         carrier.menuPath = veafRadio.addSubMenu(name, menuRoot)
 

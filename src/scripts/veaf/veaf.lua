@@ -32,7 +32,7 @@ veaf = {}
 veaf.Id = "VEAF"
 
 --- Version.
-veaf.Version = "1.21.0"
+veaf.Version = "1.21.1"
 
 --- Development version ?
 veaf.Development = true
@@ -1205,14 +1205,14 @@ function veaf.moveGroupAt(groupName, leadUnitName, heading, speed, timeInSeconds
     return true
 end
 
-function veaf.readyForCombat(group)
+function veaf.readyForCombat(group, alarm)
     if type(group) == 'string' then
         group = Group.getByName(group)
     end
     if group then
         local cont = group:getController()
         cont:setOnOff(true)
-        cont:setOption(AI.Option.Ground.id.ALARM_STATE, AI.Option.Ground.val.ALARM_STATE.RED)	
+        cont:setOption(AI.Option.Ground.id.ALARM_STATE, alarm)	
         cont:setOption(AI.Option.Air.id.ROE, AI.Option.Air.val.ROE.WEAPON_FREE)
     end
 end
@@ -2087,6 +2087,38 @@ function veaf.getPolygonFromUnits(unitNames)
     return polygon
 end
 
+function veaf.laserCodeToDigit(code)
+    local codeDigit = {}
+    codeDigit.units=code%10
+    codeDigit.tens=(code%100-codeDigit.units)/10
+    codeDigit.hundreds=(code%1000-codeDigit.tens*10-codeDigit.units)/100
+    codeDigit.thousands=(code-codeDigit.hundreds*100-codeDigit.tens*10-codeDigit.units)/1000
+
+    veaf.loggers.get(veaf.Id):debug(string.format("laser code : %s", veaf.p(code)))
+    veaf.loggers.get(veaf.Id):debug(string.format("laser code digits : %s", veaf.p(codeDigit)))
+    
+    return codeDigit
+end
+
+--computes the heading between two points in radians
+function veaf.headingBetweenPoints(point1, point2)
+
+    local hdg
+
+    if point1 and point2 and point1.x and point1.y and point2.x and point2.y then
+        -- if hdg is not set, compute heading between point2 and point3
+        hdg = math.floor(math.deg(math.atan2(point2.y - point1.y, point2.x - point1.x)))
+        if hdg < 0 then
+            hdg = hdg + 360
+        end
+    end
+
+    -- convert heading to radians
+    hdg = hdg * math.pi / 180
+
+    return hdg
+
+end
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Logging
 -------------------------------------------------------------------------------------------------------------------------------------------------------------

@@ -667,9 +667,13 @@ function veafSpawn.markTextAnalysis(text)
         end
 
         if key:lower() == "pointdefense" then
-            -- Set force IADS EWR toggle for unit spawn
+            -- Tells IADS to add the spawned SAM to the point defenses of the specified site or to the nearest site
             veaf.loggers.get(veafSpawn.Id):trace(string.format("Keyword pointdefense found"))
             options.pointDefense = true
+            if val ~= "" then
+                veaf.loggers.get(veafSpawn.Id):trace(string.format("groupName specified : %s", tostring(val)))
+                options.pointDefense = tostring(val) 
+            end
         end
 
         --to be placed after the skynet input, SAMs in the skynet network work better if set to AlarmState RED, so AlarmState is equal to 2 if skynet is enabled

@@ -31,7 +31,7 @@ veafSkynet.Id = "SKYNET"
 veafSkynet.Version = "1.2.1"
 
 -- trace level, specific to this module
---veafSkynet.LogLevel = "trace"
+-- veafSkynet.LogLevel = "trace"
 
 veaf.loggers.new(veafSkynet.Id, veafSkynet.LogLevel)
 
@@ -169,9 +169,9 @@ function veafSkynet.addGroupToNetwork(dcsGroup, forceEwr, pointDefense, alreadyA
                 veaf.loggers.get(veafSkynet.Id):trace(string.format("adding a SAM group : %s", groupName))
                 local samsite = iads:addSAMSite(groupName)
                 if samsite then 
+                    addedSite = samsite
                     didSomething = true
                     alreadyAddedGroups[groupName] = true
-                    addedSite = samsite
                     veaf.loggers.get(veafSkynet.Id):trace(string.format("adding a SAM -> OK"))
                 end
             end
@@ -183,25 +183,59 @@ function veafSkynet.addGroupToNetwork(dcsGroup, forceEwr, pointDefense, alreadyA
                 veaf.loggers.get(veafSkynet.Id):trace(string.format("adding an EWR unit : %s", unitName))
                 local ewr = iads:addEarlyWarningRadar(unitName)
                 if ewr then 
-                    didSomething = true
                     addedSite = ewr
+                    didSomething = true
                     ewrFlag = true
+                    veaf.loggers.get(veafSkynet.Id):trace(string.format("adding an EWR -> OK"))
                 end
             end        
         end
 
         --user requested configuration
-        if pointDefense and not(forceEwr) and not(ewrFlag) then
+        if addedSite and pointDefense and not(forceEwr) and not(ewrFlag) then
             veaf.loggers.get(veafSkynet.Id):trace(string.format("SAM is pointDefense"))
 
-            local nearestSAMSite_name = veafSkynet.getNearestIADSSite(dcsUnit, groupName)
-            if nearestSAMSite_name then
-                veaf.loggers.get(veafSkynet.Id):info("Point Defense added")
-                trigger.action.outText("Point Defense added",5)
-                iads:getSAMSiteByGroupName(nearestSAMSite_name):addPointDefence(addedSite)
+            local defended_name = nil
+            if pointDefense == true then 
+                veaf.loggers.get(veafSkynet.Id):trace(string.format("Find nearest site to defend"))
+                defended_name = veafSkynet.getNearestIADSSite(dcsUnit, groupName)
             else
-                veaf.loggers.get(veafSkynet.Id):info("Could not find SAM site within range to add point defense to (adding for EWR is WIP)")
-                trigger.action.outText("Could not find SAM site within range to add point defense to (adding for EWR is WIP)", 10)
+                defended_name = pointDefense
+                local defended_SAM = iads:getSAMSiteByGroupName(defended_name)
+                local defended_EWR = iads:getEarlyWarningRadars(defended_name)
+
+                local defended_site = defended_EWR
+                if defended_SAM then
+                    defended_site = defended_SAM
+                end
+
+                if defended_site then
+                    local defended_pos = veaf.getAvgGroupPos(defended_name)
+                    local dcsUnit_pos = dcsUnit:getPosition()
+                    local distance = math.sqrt((dcsUnit_pos.p.x-defended_pos.x)^2+(dcsUnit_pos.p.z-defended_pos.z)^2)
+                    veaf.loggers.get(veafSkynet.Id):trace(string.format("Distance between requested site and pointDefense : %s", veaf.p(distance)))
+
+                    if distance > veafSkynet.MaxPointDefenseDistanceFromSite then
+                        defended_name = nil
+                        veaf.loggers.get(veafSkynet.Id):info("User requested SAM Site out of reach for point defense")
+                    end
+                else
+                    defended_name = nil
+                end 
+            end
+            
+            if defended_name then
+                local text = string.format("Point Defense added to site : %s", string.format(defended_name))
+                veaf.loggers.get(veafSkynet.Id):info(text)
+                trigger.action.outText(text,5)
+                if iads:getSAMSiteByGroupName(defended_name) then
+                    iads:getSAMSiteByGroupName(defended_name):addPointDefence(addedSite)
+                else
+                    iads:getEarlyWarningRadars(defended_name):addPointDefence(addedSite)
+                end
+            else
+                veaf.loggers.get(veafSkynet.Id):info("Could not find SAM site within range to add point defense to (adding for nearest EWR is WIP)")
+                trigger.action.outText("Could not find SAM site within range to add point defense to (adding for nearest EWR is WIP)", 10)
             end
         elseif forceEwr then
             veaf.loggers.get(veafSkynet.Id):trace(string.format("SAM/EWR is forced EWR"))
@@ -213,18 +247,19 @@ function veafSkynet.addGroupToNetwork(dcsGroup, forceEwr, pointDefense, alreadyA
         end
     end
 
-    if didSomething and not(batchMode) and not(forceEwr) and not(pointDefense) then
-        -- specific configurations, for each SAM type
-        veaf.loggers.get(veafSkynet.Id):trace("Specific configuration applied")
+    if didSomething then
+        if not(batchMode) and not(forceEwr) and not(pointDefense) then
+            -- specific configurations, for each SAM type
+            veaf.loggers.get(veafSkynet.Id):trace("Specific configuration applied")
 
-        iads:getSAMSitesByNatoName('SA-10'):setActAsEW(false)
-        iads:getSAMSitesByNatoName('SA-6'):setActAsEW(false)
-        iads:getSAMSitesByNatoName('SA-5'):setActAsEW(false)
-        iads:getSAMSitesByNatoName('Patriot'):setActAsEW(false)
-        iads:getSAMSitesByNatoName('Hawk'):setActAsEW(false)
-        iads:getSAMSitesByNatoName('Dog Ear'):setActAsEW(false)
-        iads:getSAMSitesByNatoName('Tall Rack'):setActAsEW(true) --55G6 EWR
-        
+            iads:getSAMSitesByNatoName('SA-10'):setActAsEW(false)
+            iads:getSAMSitesByNatoName('SA-6'):setActAsEW(false)
+            iads:getSAMSitesByNatoName('SA-5'):setActAsEW(false)
+            iads:getSAMSitesByNatoName('Patriot'):setActAsEW(false)
+            iads:getSAMSitesByNatoName('Hawk'):setActAsEW(false)
+            iads:getSAMSitesByNatoName('Dog Ear'):setActAsEW(false)
+            iads:getSAMSitesByNatoName('Tall Rack'):setActAsEW(true) --55G6 EWR
+        end       
         -- reactivate the IADS after a warmup delay
         iads:setupSAMSitesAndThenActivate(veafSkynet.DelayForRestart)
     end

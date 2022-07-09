@@ -45,7 +45,7 @@ veafGrass = {}
 veafGrass.Id = "GRASS"
 
 --- Version.
-veafGrass.Version = "2.2.0"
+veafGrass.Version = "2.2.1"
 
 -- trace level, specific to this module
 --veafGrass.LogLevel = "trace"
@@ -414,7 +414,7 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName)
     }
 
 	if ctld then
-		local _beaconInfo = ctld.createRadioBeacon(beaconPoint, 2, "USA", farp.unitName or farp.name, -1, true)
+		local _beaconInfo = ctld.createRadioBeacon(beaconPoint, farpCoalition, farp.country, farp.unitName or farp.name, -1, true)
 		if _beaconInfo ~= nil then
 			farpNamedPoint.tacan = string.format("ADF : %.2f KHz - %.2f MHz - %.2f MHz", _beaconInfo.vhf / 1000, _beaconInfo.uhf / 1000000, _beaconInfo.fm / 1000000)
 			veaf.loggers.get(veafGrass.Id):trace(string.format("farpNamedPoint.tacan=%s", veaf.p(farpNamedPoint.tacan)))

@@ -128,6 +128,8 @@ veafSpawn.spawnedNamesIndex = {}
 
 --AFAC related base data
 veafSpawn.AFAC = {}
+-- number of AFAC spawned
+veafSpawn.AFAC.numberSpawned = nil
 -- maximum number of AFACs allowed for spawning by players
 veafSpawn.AFAC.maximumAmount = 8
 -- base frequency for the first AFAC spawned
@@ -1377,7 +1379,8 @@ function veafSpawn.spawnConvoy(spawnSpot, name, radius, country, side, heading, 
         return false
     end
 
-    local units = {}
+    local groupUnits = {}
+    groupUnits.units = {}
     local groupId = math.random(99999)
     local groupName = name
     if not groupName or groupName == "" then
@@ -1393,13 +1396,9 @@ function veafSpawn.spawnConvoy(spawnSpot, name, radius, country, side, heading, 
         -- process the group 
         local group = veafUnits.processGroup(group)
         
-        -- place its units
-        local group, cells = veafUnits.placeGroup(group, veaf.placePointOnLand(spawnSpot), 4, heading, true)
-        veafUnits.traceGroup(group, cells)
-        
         -- add the units to the global units list
         for _,u in pairs(group.units) do
-            table.insert(units, u)
+            table.insert(groupUnits.units, u)
         end
     end
 
@@ -1411,30 +1410,33 @@ function veafSpawn.spawnConvoy(spawnSpot, name, radius, country, side, heading, 
         -- process the group 
         local group = veafUnits.processGroup(group)
         
-        -- place its units
-        local group, cells = veafUnits.placeGroup(group, veaf.placePointOnLand(spawnSpot), 4, heading, true)
-        
         -- add the units to the global units list
         for _,u in pairs(group.units) do
-            table.insert(units, u)
+            table.insert(groupUnits.units, u)
         end
     end
 
-    -- shuffle the units in the convoy
-    --disabled the shuffle to not have interractions with the line spawn put in place for faster departure times
-    --units = veaf.shuffle(units)
+    if groupUnits.units then
+        -- place its units
+        local groupUnits, cells = veafUnits.placeGroup(groupUnits, veaf.placePointOnLand(spawnSpot), 4, heading, true)
+        veafUnits.traceGroup(units, cells)
+    
+        -- shuffle the units in the convoy
+        --disabled the shuffle to not have interractions with the line spawn put in place for faster departure times
+        --units = veaf.shuffle(units)
 
-    veafSpawn._createDcsUnits(country, units, groupName)
- 
-    local route = veaf.generateVehiclesRoute(spawnSpot, destination, not offroad, speed, patrol)
-    veafSpawn.spawnedConvoys[groupName] = {route=route, name=groupName}
+        veafSpawn._createDcsUnits(country, groupUnits.units, groupName)
+    
+        local route = veaf.generateVehiclesRoute(spawnSpot, destination, not offroad, speed, patrol)
+        veafSpawn.spawnedConvoys[groupName] = {route=route, name=groupName}
 
-    --  make the group go to destination
-    veaf.loggers.get(veafSpawn.Id):trace("make the group go to destination : ".. groupName)
-    mist.goRoute(groupName, route)
+        --  make the group go to destination
+        veaf.loggers.get(veafSpawn.Id):trace("make the group go to destination : ".. groupName)
+        mist.goRoute(groupName, route)
 
-    if not silent then 
-        trigger.action.outText("Spawned convoy "..groupName, 5)
+        if not silent then 
+            trigger.action.outText("Spawned convoy "..groupName, 5)
+        end
     end
 
     return groupName
@@ -2342,19 +2344,26 @@ function veafSpawn.spawnAFAC(spawnSpot, name, country, altitude, speed, hdg, fre
     veaf.loggers.get(veafSpawn.Id):trace("_template=%s",_template)
     local groupName = _template:getName()
 
-    if not veafSpawn.spawnedNamesIndex[groupName] then
-        veafSpawn.spawnedNamesIndex[groupName] = 1
-    elseif veafSpawn.spawnedNamesIndex[groupName] > veafSpawn.AFAC.maximumAmount then
+    if not veafSpawn.AFAC.numberSpawned then
+        veafSpawn.AFAC.numberSpawned = 1
+    elseif veafSpawn.AFAC.numberSpawned > veafSpawn.AFAC.maximumAmount then
         veaf.loggers.get(veafSpawn.Id):info("The limit for AFACs was reached, typing the command again will start deleting AFACs")
         trigger.action.outText("The limit for AFACs was reached, typing the command again will start deleting AFACs", 10)
-        veafSpawn.spawnedNamesIndex[groupName] = nil
+        veafSpawn.AFAC.numberSpawned = nil
         return false
     end
+
+    --essentially the same counter but for the template group itself, not for all AFACs
+    if not veafSpawn.spawnedNamesIndex[groupName] then
+        veafSpawn.spawnedNamesIndex[groupName] = 1
+    end
+
+    veaf.loggers.get(veafSpawn.Id):info(string.format("number of AFAC spawned : %s", veaf.p(veafSpawn.AFAC.numberSpawned)))
     
     local codeDigit = {}
     codeDigit = veaf.laserCodeToDigit(code)
 
-    local newGroupName = string.format("%s - %01d %01d %01d %01d", veafSpawn.AFAC.callsigns[veafSpawn.spawnedNamesIndex[groupName]], codeDigit.thousands, codeDigit.hundreds, codeDigit.tens, codeDigit.units)
+    local newGroupName = string.format("%s - %01d %01d %01d %01d", veafSpawn.AFAC.callsigns[veafSpawn.AFAC.numberSpawned], codeDigit.thousands, codeDigit.hundreds, codeDigit.tens, codeDigit.units)
     veaf.loggers.get(veafSpawn.Id):trace("newGroupName=%s",newGroupName)
     
     local altitude = altitude 
@@ -2379,7 +2388,7 @@ function veafSpawn.spawnAFAC(spawnSpot, name, country, altitude, speed, hdg, fre
     local distanceFromTeleport = 3000 --distance between the orbit point and the teleport point in meters
 
     --calculate DCS radio frequency based on which AFAC out of 8 this is
-    local dcsFrequency = veafSpawn.AFAC.baseAFACfrequency+(veafSpawn.spawnedNamesIndex[groupName]-1)*50000 -- .05 MHz increments
+    local dcsFrequency = veafSpawn.AFAC.baseAFACfrequency+(veafSpawn.AFAC.numberSpawned-1)*50000 -- .05 MHz increments
 
     veaf.loggers.get(veafSpawn.Id):trace("spawnSpot=%s", veaf.p(spawnSpot))
     veaf.loggers.get(veafSpawn.Id):trace("name=%s", veaf.p(name))
@@ -2435,7 +2444,7 @@ function veafSpawn.spawnAFAC(spawnSpot, name, country, altitude, speed, hdg, fre
                                 ["params"] = {
                                     ["frequency"]=dcsFrequency,
                                     ["modulation"]=0, --0 is AM, 1 is FM
-                                    ["callname"]=veafSpawn.spawnedNamesIndex[groupName],
+                                    ["callname"]=veafSpawn.AFAC.numberSpawned,
                                     ["number"]=9, --number 9 as in it's callsign Springfield 9-1 for example
                                     ["priority"]=0,
                                 }
@@ -2501,12 +2510,7 @@ function veafSpawn.spawnAFAC(spawnSpot, name, country, altitude, speed, hdg, fre
     for _, unit in pairs(newGroup.units) do
         local unitName = unit.unitName or unit.name
         veaf.loggers.get(veafSpawn.Id):trace("unitName=%s",unitName)
-        if not veafSpawn.spawnedNamesIndex[unitName] then
-            veafSpawn.spawnedNamesIndex[unitName] = 1
-        else
-            veafSpawn.spawnedNamesIndex[unitName] = veafSpawn.spawnedNamesIndex[unitName] + 1
-        end
-        local spawnedUnitName = string.format("%s #%04d", unitName, veafSpawn.spawnedNamesIndex[unitName])
+        local spawnedUnitName = string.format("%s #%04d", unitName, veafSpawn.spawnedNamesIndex[groupName])
         unit.name = spawnedUnitName
         unit.alt = teleportSpot.alt
         veaf.loggers.get(veafSpawn.Id):trace("spawnedUnitName=%s",spawnedUnitName)
@@ -2535,8 +2539,8 @@ function veafSpawn.spawnAFAC(spawnSpot, name, country, altitude, speed, hdg, fre
             veafHoundElint.addPlatformToSystem(_dcsSpawnedGroup)
         end
 
-        local humanFrequency = dcsFrequency/10^6
-        local text = "AFAC Callsign - " .. string.format(_spawnedGroup.name) .. " (" .. string.format(country) .. ") - spawned, available on " .. string.format(humanFrequency) .. "AM (DCS AFAC system) or " .. string.format(frequency) .. string.upper(mod) .. " (AutoLase AFAC System)"
+        local humanFrequency = dcsFrequency/1000000
+        local text = "AFAC " .. string.format(veafSpawn.AFAC.numberSpawned) .. "/" .. string.format(veafSpawn.AFAC.maximumAmount) .. " - " .. string.format(_spawnedGroup.name) .. " (" .. string.format(country) .. ") - on " .. string.format(humanFrequency) .. "AM (DCS) or " .. string.format(frequency) .. string.upper(mod) .. " (SRS)"
         veaf.loggers.get(veafSpawn.Id):info(text)
         trigger.action.outText(text, 15)
  
@@ -2564,6 +2568,8 @@ function veafSpawn.spawnAFAC(spawnSpot, name, country, altitude, speed, hdg, fre
         end
 
         veafSpawn.spawnedNamesIndex[groupName] = veafSpawn.spawnedNamesIndex[groupName] + 1
+        veafSpawn.AFAC.numberSpawned= veafSpawn.AFAC.numberSpawned + 1
+        
         return _spawnedGroup.name
     else
         veaf.loggers.get(veafSpawn.Id):error("MIST could not add AFAC")
@@ -3075,7 +3081,7 @@ end
 function veafSpawn.buildRadioMenu()
     veaf.loggers.get(veafSpawn.Id):debug(string.format("veafSpawn.buildRadioMenu()"))
     veafSpawn.rootPath = veafRadio.addSubMenu(veafSpawn.RadioMenuName)
-    veafRadio.addCommandToSubmenu("Available CAP spawns", veafSpawn.rootPath, veafSpawn.listAllCAP, nil, veafRadio.USAGE_ForAll)
+    veafRadio.addCommandToSubmenu("Available Aircraft spawns", veafSpawn.rootPath, veafSpawn.listAllCAP, nil, veafRadio.USAGE_ForAll)
     veafRadio.addCommandToSubmenu("Info on all convoys", veafSpawn.rootPath, veafSpawn.infoOnAllConvoys, nil, veafRadio.USAGE_ForGroup)
     local menuPath = veafRadio.addSubMenu("Mark closest convoy route", veafSpawn.rootPath)
     veafRadio.addCommandToSubmenu("Mark closest convoy route" , menuPath, veafSpawn.markClosestConvoyRouteWithSmoke, nil, veafRadio.USAGE_ForGroup)    

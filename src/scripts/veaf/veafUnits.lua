@@ -448,7 +448,7 @@ function veafUnits.placeGroup(group, spawnPoint, spacing, hdg, hasDest)
     local fixedUnits = {}
     local freeUnits = {}
     for _, unit in pairs(group.units) do
-        if unit.cell and not hasDest then
+        if unit.cell and not hasDest then --if the convoy has a destination, programmer defined patterns do not apply anymore as the convoy is spawned in a line
             table.insert(fixedUnits, unit)
         else
             table.insert(freeUnits, unit)
@@ -461,19 +461,17 @@ function veafUnits.placeGroup(group, spawnPoint, spacing, hdg, hasDest)
         allCells[cellNum] = cellNum
     end
         
-    if not hasDest then --if the convoy has a destination, programmer defined patterns do not apply anymore as the convoy is spawned in a line
-        -- place fixed units in their designated cells
-        for i = 1, #fixedUnits do 
-            local unit = fixedUnits[i]
-            cells[unit.cell] = {}
-            cells[unit.cell].unit = unit
-            
-            -- remove this cell from the list of available cells
-            for cellNum = 1, #allCells do
-                if allCells[cellNum] == unit.cell then
-                    table.remove(allCells, cellNum)
-                    break
-                end
+    -- place fixed units in their designated cells
+    for i = 1, #fixedUnits do 
+        local unit = fixedUnits[i]
+        cells[unit.cell] = {}
+        cells[unit.cell].unit = unit
+        
+        -- remove this cell from the list of available cells
+        for cellNum = 1, #allCells do
+            if allCells[cellNum] == unit.cell then
+                table.remove(allCells, cellNum)
+                break
             end
         end
     end

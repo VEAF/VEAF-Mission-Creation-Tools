@@ -200,8 +200,8 @@ function veafSkynet.addGroupToNetwork(dcsGroup, forceEwr, pointDefense, alreadyA
                 trigger.action.outText("Point Defense added",5)
                 iads:getSAMSiteByGroupName(nearestSAMSite_name):addPointDefence(addedSite)
             else
-                veaf.loggers.get(veafSkynet.Id):info("Could not find SAM site within range to add point defense to (WIP)")
-                trigger.action.outText("Could not find SAM site within range to add point defense to (WIP)", 10)
+                veaf.loggers.get(veafSkynet.Id):info("Could not find SAM site within range to add point defense to (adding for EWR is WIP)")
+                trigger.action.outText("Could not find SAM site within range to add point defense to (adding for EWR is WIP)", 10)
             end
         elseif forceEwr then
             veaf.loggers.get(veafSkynet.Id):trace(string.format("SAM/EWR is forced EWR"))

@@ -465,15 +465,13 @@ function veafMove.moveTanker(eventPos, groupName, speed, alt, hdg, distance, tel
 		return false
     end
     
-    local unitGroup_Id = nil
     local tankerData = veaf.getGroupData(groupName)
     if not(tankerData) then
-        local text = "Cannot move tanker " .. groupName .. " ; cannot find group"
+        local text = "Cannot move tanker " .. groupName .. " ; no group data"
         veaf.loggers.get(veafMove.Id):info(text)
         trigger.action.outText(text)
         return false
     end
-    unitGroup_Id = Group.getID(unitGroup) --this and only this serves as a groupID, what is given in tankerData and EscortData does not correspond on the DCS side
 
     local route = veaf.findInTable(tankerData, "route")
     local points = veaf.findInTable(route, "points")
@@ -559,10 +557,10 @@ function veafMove.moveTanker(eventPos, groupName, speed, alt, hdg, distance, tel
             reverseHdg = reverseHdg + math.pi*2
         end
         veaf.loggers.get(veafMove.Id):trace(string.format("reverseHdg=%s",veaf.p(reverseHdg)))
-        movePoint.x = startLegPoint.x + speed * FIRSTPOINT_DISTANCE_SECONDS * math.cos(reverseHdg)
-        movePoint.y = startLegPoint.y + speed * FIRSTPOINT_DISTANCE_SECONDS * math.sin(reverseHdg)
-        teleportPoint.x = startLegPoint.x + 2 * speed * FIRSTPOINT_DISTANCE_SECONDS * math.cos(reverseHdg)
-        teleportPoint.y = startLegPoint.y + 2 * speed * FIRSTPOINT_DISTANCE_SECONDS * math.sin(reverseHdg)
+        movePoint.x = startLegPoint.x + 1.5 * speed * FIRSTPOINT_DISTANCE_SECONDS * math.cos(reverseHdg)
+        movePoint.y = startLegPoint.y + 1.5 * speed * FIRSTPOINT_DISTANCE_SECONDS * math.sin(reverseHdg)
+        teleportPoint.x = startLegPoint.x + 3 * speed * FIRSTPOINT_DISTANCE_SECONDS * math.cos(reverseHdg)
+        teleportPoint.y = startLegPoint.y + 3 * speed * FIRSTPOINT_DISTANCE_SECONDS * math.sin(reverseHdg)
         veaf.loggers.get(veafMove.Id):trace(string.format("movePoint=%s",veaf.p(movePoint)))
 
         -- set point1 to the computed movePoint
@@ -612,85 +610,6 @@ function veafMove.moveTanker(eventPos, groupName, speed, alt, hdg, distance, tel
         point3.speed = endLegPoint.speed
         veaf.loggers.get(veafMove.Id):trace("newpoint3="..veaf.p(point3))
 
-
-        --verify escort existence and correct configuration
-        local groupName_escort = groupName.." escort"
-        local unitGroup_escort = Group.getByName(groupName_escort)
-        local escort_flag = false
-        local route_escort = {}
-        local points_escort = {}
-        local idxPoint1_escort = nil
-        local idxPoint2_escort = nil
-        local point1_escort = {}
-        local point2_escort = {}
-        local task2_escort = {}
-        local tasks_escort = {}
-        local task_escort = {}
-        local EscortData = {}
-        if unitGroup_escort ~= nil then  
-            EscortData = veaf.getGroupData(groupName_escort)
-            if not(EscortData) then
-                local text = "Cannot move Escort " .. groupName_escort .. " ; cannot find group"
-                veaf.loggers.get(veafMove.Id):info(text)
-            else
-                route_escort = veaf.findInTable(EscortData, "route")
-                points_escort = veaf.findInTable(route_escort, "points")
-    
-                if points_escort then
-                    veaf.loggers.get(veafMove.Id):debug("Escort has WP")
-                    idxPoint1_escort = #points_escort-1 --second to last waypoint
-                    idxPoint2_escort = #points_escort --last waypoint where the escort has to be set up in the editor
-                    point1_escort = points_escort[idxPoint1_escort]
-                    point2_escort = points_escort[idxPoint2_escort]
-                    task2_escort = veaf.findInTable(point2_escort, "task")
-                    if task2_escort.params.tasks then
-                        veaf.loggers.get(veafMove.Id):debug("Last escort WP has tasks")
-                        tasks_escort = task2_escort.params.tasks
-                        for k, task in pairs(tasks_escort) do
-                            --if task.enabled and task.id and task.id == "Escort" and task.params and task.params.groupId == unitGroup_Id then --this line should be used to verify proper configuration of the escort but as it turns out the groupId stored in params has nothing to do with the groupId DCS needs for the escort task, use Group.getID(groupClass) instead
-                            if task.enabled and task.id and task.id == "Escort" and task.params then
-                                veaf.loggers.get(veafMove.Id):trace("Found correct escort Tasking ! Escorted ID : %s", unitGroup_Id)
-                                escort_flag=true --esort exists and is correctly configured
-                                task_escort=task --recover the escort task table to insert the "new" escorted ID, even though it's the same but it seems DCS destroys it after the escorted group respawns
-                            end
-                        end
-                    end
-                end
-            end
-        else
-            veaf.loggers.get(veafMove.Id):info(groupName_escort .. ' not found for move tanker escort command')
-        end
-        
-        local teleportPoint_escort = {}
-        teleportPoint_escort.x = teleportPoint.x
-        teleportPoint_escort.y = teleportPoint.y
-        teleportPoint_escort.alt = teleportPoint.alt
-        if escort_flag then
-            --distances by which the escort is offseted from the escorted group in the map's referential, task_escort provides relative spacing
-            local escort_offset = {}
-            escort_offset.x = (task_escort.params.pos.x*math.cos(hdg) - task_escort.params.pos.z*math.sin(hdg))
-            escort_offset.z = (task_escort.params.pos.x*math.sin(hdg) + task_escort.params.pos.z*math.cos(hdg))
-
-            teleportPoint_escort.x = teleportPoint.x + escort_offset.x
-            teleportPoint_escort.y = teleportPoint.y + escort_offset.z
-            teleportPoint_escort.alt = teleportPoint.alt + task_escort.params.pos.y
-            teleportPoint_escort.speed = teleportPoint.speed
-
-            --Effectively waypoint 0, the AI will have to fly over it and in the editor it never poses a problem but in scripting the AI will do orbits to try and reach it
-            --so it has to be offseted
-            point1_escort.x = (teleportPoint.x + movePoint.x)/2 + escort_offset.x
-            point1_escort.y = (teleportPoint.y + movePoint.y)/2 + escort_offset.z
-            point1_escort.alt = movePoint.alt + task_escort.params.pos.y
-            point1_escort.speed = movePoint.speed
-
-            --Waypoint 1 where the escort tasking will come into play
-            point2_escort.x = 2*point1_escort.x - teleportPoint.x - escort_offset.x
-            point2_escort.y =  2*point1_escort.y - teleportPoint.y - escort_offset.z
-            point2_escort.alt = movePoint.alt + task_escort.params.pos.y
-            point2_escort.speed = movePoint.speed
-        end
-
-
         --actually move the group
         local delay = 0
 
@@ -700,48 +619,178 @@ function veafMove.moveTanker(eventPos, groupName, speed, alt, hdg, distance, tel
             local vars = { groupName = groupName, point = teleportPoint, action = "teleport"}
             local grp = mist.teleportToPoint(vars)
             unitGroup = Group.getByName(groupName)
-            unitGroup_Id = Group.getID(unitGroup) --get the new groupID which has now changed
 
-            if escort_flag then
-                veaf.loggers.get(veafMove.Id):debug("Teleport the escort")   
-                task_escort.params.groupId = unitGroup_Id --assign the new groupID within the old escort mission, only necessary after teleporting as the tanker's ID will have changed
-                local vars_escort = { groupName = groupName_escort, point = teleportPoint_escort, action = "teleport"}
-                local grp_escort = mist.teleportToPoint(vars_escort)
-                unitGroup_escort = Group.getByName(groupName_escort)
-            end
+            veafMove.teleportEscort(groupName, movePoint, teleportPoint)
 
             delay = 1
         end
 
-        veaf.loggers.get(veafMove.Id):debug(string.format("Resetting moved tanker/escort mission in %d seconds", delay))
-        local replaceMission = function(unitGroup, tankerData, escort_flag, unitGroup_escort, EscortData)
-            veaf.loggers.get(veafMove.Id):debug(string.format("Resetting moved tanker %s mission", unitGroup:getName()))
-            veaf.loggers.get(veafMove.Id):debug(string.format("tankerData=%s", veaf.p(tankerData)))
-            -- replace the mission ... for the tanker
-            local mission = { 
-                id = 'Mission', 
-                params = tankerData
-            }
-            local controller = unitGroup:getController()
-            controller:setTask(mission)
+        veaf.loggers.get(veafMove.Id):debug(string.format("Resetting moved tanker mission in %d seconds", delay))
+        veafMove.replaceMission(unitGroup, tankerData, delay)
 
-            if escort_flag then
-                veaf.loggers.get(veafMove.Id):debug(string.format("Resetting moved Tanker Escort %s mission", unitGroup_escort:getName()))
-                veaf.loggers.get(veafMove.Id):debug(string.format("EscortData=%s", veaf.p(EscortData)))
-                --... for the escort, necessary to re assign the mission wether the tanker was teleported (== changed ID) or not because DCS
-                local escort_mission = { 
-                    id = 'Mission', 
-                    params = EscortData  
-                }
-                local escort_controller = unitGroup_escort:getController()
-                escort_controller:setTask(escort_mission)
-            end
-        end
-        mist.scheduleFunction(replaceMission, {unitGroup, tankerData, escort_flag, unitGroup_escort, EscortData}, timer.getTime()+delay)
         return true
     else
         return false
     end
+end
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- Escort move method, only called internally
+-- @param escorted_groupName, string, corresponds to the groupname of the aicraft being escorted
+-- @param movePoint, vec3 + speed, corresponds to the first waypoint that the escorted aircraft will take after it was moved
+-- @param teleportPoint, vec3 + speed, corresponds to the waypoint on which the escorted aircraft is teleported to, this is required
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+function veafMove.teleportEscort(escorted_groupName, movePoint, teleportPoint)
+
+    --verify existence of the escorted aircraft
+    local unitGroup = Group.getByName(escorted_groupName)
+
+    if not unitGroup then
+        veaf.loggers.get(veafMove.Id):info("Cannot move the escort of " .. escorted_groupName .. " ; this groupName does not correspond to any aircraft")
+        return false
+    end
+
+    --verify the existence of the escort and proper configuration
+    local escortedId = Group.getID(unitGroup) --this and only this serves as a groupID, what is given in EscortData does not correspond on the DCS side
+    local groupName_escort = escorted_groupName .. " escort" --standardized escort groupName
+    local unitGroup_escort = Group.getByName(groupName_escort)
+    local escort_flag = false --indicates the go ahead for teleport/replaceMission calls
+    local route_escort = {}
+    local points_escort = {}
+    local idxPoint1_escort = nil
+    local idxPoint2_escort = nil
+    local point1_escort = {}
+    local point2_escort = {}
+    local task2_escort = {}
+    local tasks_escort = {}
+    local task_escort = {}
+    local EscortData = {}
+    if unitGroup_escort ~= nil then  
+        EscortData = veaf.getGroupData(groupName_escort)
+        if not(EscortData) then
+            local text = "Cannot move Escort " .. groupName_escort .. " ; no group data"
+            veaf.loggers.get(veafMove.Id):info(text)
+        else
+            veaf.loggers.get(veafMove.Id):trace("EscortData : %s", veaf.p(EscortData))
+            route_escort = veaf.findInTable(EscortData, "route")
+            points_escort = veaf.findInTable(route_escort, "points")
+
+            if points_escort then
+                veaf.loggers.get(veafMove.Id):debug("Escort has WP")
+                idxPoint1_escort = #points_escort-1 --second to last waypoint
+                idxPoint2_escort = #points_escort --last waypoint where the escort has to be set up in the editor
+                point1_escort = points_escort[idxPoint1_escort]
+                point2_escort = points_escort[idxPoint2_escort]
+                task2_escort = veaf.findInTable(point2_escort, "task")
+                if task2_escort.params.tasks then
+                    veaf.loggers.get(veafMove.Id):debug("Last escort WP has tasks")
+                    tasks_escort = task2_escort.params.tasks
+                    for k, task in pairs(tasks_escort) do
+                        --if task.enabled and task.id and task.id == "Escort" and task.params and task.params.groupId == unitGroup_Id then --this line should be used to verify proper configuration of the escort but as it turns out the groupId stored in params has nothing to do with the groupId DCS needs for the escort task, use Group.getID(groupClass) instead to get the correct ID required for DCS, but no way to derive it from EscortData 
+                        if task.enabled and task.id and task.id == "Escort" and task.params then
+                            veaf.loggers.get(veafMove.Id):trace("Found correct escort Tasking ! Extracted Escorted ID : %s", task.params.groupId)
+                            veaf.loggers.get(veafMove.Id):trace("Required escort ID : %s", escortedId)
+                            escort_flag = true
+                            task_escort=task --recover the escort task table to insert the "new" escorted ID, even though it's the same but it seems DCS destroys it after the escorted group respawns
+                        end
+                    end
+                end
+            end
+        end
+    else
+        veaf.loggers.get(veafMove.Id):info(groupName_escort .. ' not found for move tanker escort command')
+    end
+
+    if not escort_flag then 
+        return false 
+    end
+    
+    --distances by which the escort is offseted from the escorted group in the map's referential, task_escort provides relative spacing
+    local escort_offset = {}
+    local hdg = veaf.headingBetweenPoints(teleportPoint, movePoint)
+    escort_offset.x = (task_escort.params.pos.x*math.cos(hdg) - task_escort.params.pos.z*math.sin(hdg))
+    escort_offset.z = (task_escort.params.pos.x*math.sin(hdg) + task_escort.params.pos.z*math.cos(hdg))
+
+    local teleportPoint_escort = {}
+    teleportPoint_escort.x = teleportPoint.x + escort_offset.x
+    teleportPoint_escort.y = teleportPoint.y + escort_offset.z
+    teleportPoint_escort.alt = teleportPoint.alt + task_escort.params.pos.y
+    teleportPoint_escort.speed = teleportPoint.speed
+
+    --Effectively waypoint 0, the AI will have to fly over it and in the editor it never poses a problem but in scripting the AI will do orbits to try and reach it
+    --so it has to be offseted
+    point1_escort.x = (teleportPoint.x + movePoint.x)/2 + escort_offset.x
+    point1_escort.y = (teleportPoint.y + movePoint.y)/2 + escort_offset.z
+    point1_escort.alt = movePoint.alt + task_escort.params.pos.y
+    point1_escort.speed = movePoint.speed
+
+    --Waypoint 1 where the escort tasking will come into play
+    point2_escort.x = 2*point1_escort.x - teleportPoint.x - escort_offset.x
+    point2_escort.y =  2*point1_escort.y - teleportPoint.y - escort_offset.z
+    point2_escort.alt = movePoint.alt + task_escort.params.pos.y
+    point2_escort.speed = movePoint.speed
+
+    task_escort.params.groupId = escortedId --assign the new groupID within the old escort mission, only necessary after teleporting as the tanker's ID will have changed
+    
+    veaf.loggers.get(veafMove.Id):debug("Teleport the escort")   
+    local vars_escort = { groupName = groupName_escort, point = teleportPoint_escort, action = "teleport"}
+    local grp_escort = mist.teleportToPoint(vars_escort)
+    unitGroup_escort = Group.getByName(groupName_escort)
+
+    veafMove.replaceMission(unitGroup_escort, EscortData)
+    --this method appears to not work very well, the escort just doesn't defend the group
+
+    --mist.goRoute(groupName_escort, route_escort)
+    --works even worse, sends them to X=0, Z=0
+
+    return true
+end
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- support method to replace the mission of moved aircraft (default delay of 1s for teleported aircraft)
+-- @param unitGroup, data returned by the Group.getByName(groupName) command
+-- @param missionData, data returned by the veaf.getGroupData(groupName) command
+-- @optional param delay, integer, delay to apply before replacing the mission, useful when teleporting, recommended 1s for such a scenario (which is the default value)
+-- @optional param immortal, boolean, sets the group which is seeing it's mission replaced to immortal and invisible
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+function veafMove.replaceMission(unitGroup, missionData, delay, immortal)
+
+    local delay = delay or 1
+
+    local actualReplaceMission = function(unitGroup, missionData, immortal)
+        veaf.loggers.get(veafMove.Id):debug(string.format("Resetting moved Tanker Escort %s mission", unitGroup:getName()))
+        veaf.loggers.get(veafMove.Id):debug(string.format("EscortData=%s", veaf.p(missionData)))
+        --... for the escort, necessary to re assign the mission wether the tanker was teleported (== changed ID) or not because DCS
+        local escort_mission = { 
+            id = 'Mission', 
+            params = missionData 
+        }
+        local controller = unitGroup:getController()
+        controller:setTask(escort_mission)
+
+        if immortal then
+            -- JTAC needs to be invisible and immortal
+            veaf.loggers.get(veafMove.Id):trace("AFAC immortalized")
+            local _setImmortal = {
+                id = 'SetImmortal',
+                params = {
+                    value = true
+                }
+            }
+            -- invisible to AI, Shagrat
+            local _setInvisible = {
+                id = 'SetInvisible',
+                params = {
+                    value = true
+                }
+            }
+
+            Controller.setCommand(controller, _setImmortal)
+            Controller.setCommand(controller, _setInvisible)
+        end
+    end
+
+    mist.scheduleFunction(actualReplaceMission, {unitGroup, missionData, immortal}, timer.getTime()+delay)
 end
 
 ------------------------------------------------------------------------------
@@ -868,40 +917,7 @@ function veafMove.moveAfac(eventPos, groupName, speed, alt, heading, immortal)
         local delay=1
     
         -- replace whole mission
-        local setMission = function(unitGroup, afacData, immortal)
-            veaf.loggers.get(veafMove.Id):trace("AFAC retasked with modified mission")
-
-            local mission = {
-                id = 'Mission',
-                params = afacData
-            }
-    
-            local controller = unitGroup:getController()
-            controller:setTask(mission)
-
-            if immortal then
-                -- JTAC needs to be invisible and immortal
-                veaf.loggers.get(veafMove.Id):trace("AFAC immortalized")
-                local _setImmortal = {
-                    id = 'SetImmortal',
-                    params = {
-                        value = true
-                    }
-                }
-                -- invisible to AI, Shagrat
-                local _setInvisible = {
-                    id = 'SetInvisible',
-                    params = {
-                        value = true
-                    }
-                }
-
-                Controller.setCommand(controller, _setImmortal)
-                Controller.setCommand(controller, _setInvisible)
-            end
-        end
-    
-        mist.scheduleFunction(setMission, {unitGroup, afacData, immortal}, timer.getTime()+delay)
+        veafMove.replaceMission(unitGroup, afacData, delay, immortal)
         
         return true
     else

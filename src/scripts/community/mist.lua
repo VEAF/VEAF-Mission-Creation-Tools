@@ -1529,7 +1529,8 @@ do -- the main scope
 					newGroup.units[unitIndex].name = newGroup.units[unitIndex].name
 				end
 			end
-			if newGroup.clone or not unitData.name then
+			--if the unit name was not given or already exists in the case of a clone, derive a new one from the group name
+			if (newGroup.clone and mist.DBs.unitsByName[unitData.name]) or not unitData.name then
 				newGroup.units[unitIndex].name = tostring(newGroup.name .. ' unit' .. unitIndex)
 			end
 

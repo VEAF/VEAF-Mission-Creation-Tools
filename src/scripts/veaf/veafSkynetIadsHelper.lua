@@ -31,7 +31,7 @@ veafSkynet.Id = "SKYNET"
 veafSkynet.Version = "1.2.1"
 
 -- trace level, specific to this module
--- veafSkynet.LogLevel = "trace"
+--veafSkynet.LogLevel = "trace"
 
 veaf.loggers.new(veafSkynet.Id, veafSkynet.LogLevel)
 
@@ -85,18 +85,25 @@ function veafSkynet.getNearestIADSSite(dcsUnit, currentGroup)
 
     local CoalitionSites = nil
 
-    local searchForGroup = function(CoalitionSites, pos, currentGroupName)
+    local searchForGroup = function(CoalitionSites, pos, currentGroupName, ewrFlag)
         local minDistance = veafSkynet.MaxPointDefenseDistanceFromSite
         local FoundGroup = nil
 
         for site, site_info in pairs(CoalitionSites) do
             local site_name = site_info.dcsName -- For EWRs it looks like this gives the unit's name which would need to be reversed to the group to get position data
+            
             veaf.loggers.get(veafSkynet.Id):trace(string.format("Checked Site groupName : %s", veaf.p(site_name))) 
             --for k,v in pairs(site_info) do 
             --    veaf.loggers.get(veafSkynet.Id):trace(string.format("Checked Site info key : %s", veaf.p(k))) --dump the skynet data structure
             --end
             
             if site_name and currentGroupName ~= site_name then
+                if ewrFlag then
+                    local unit = Unit.getByName(site_name)
+                    local group = Unit.getGroup(unit)
+                    site_name = Group.getName(group)
+                end
+
                 local groupAvgPosition = veaf.getAveragePosition(site_name)
                 veaf.loggers.get(veafSkynet.Id):trace(string.format("Checked Site groupAvgPosition : %s", veaf.p(groupAvgPosition)))
 
@@ -118,7 +125,7 @@ function veafSkynet.getNearestIADSSite(dcsUnit, currentGroup)
 
     --start by going through the EWRs
     CoalitionSites = iads:getEarlyWarningRadars()
-    nearestEWRname, minEWRDistance = searchForGroup(CoalitionSites, defensePos, currentGroup)
+    nearestEWRname, minEWRDistance = searchForGroup(CoalitionSites, defensePos, currentGroup, true)
 
     --search for SAM sites
     CoalitionSites = iads:getSAMSites()
@@ -227,15 +234,15 @@ function veafSkynet.addGroupToNetwork(dcsGroup, forceEwr, pointDefense, alreadyA
             if defended_name then
                 local text = string.format("Point Defense added to site : %s", string.format(defended_name))
                 veaf.loggers.get(veafSkynet.Id):info(text)
-                trigger.action.outText(text,5)
+                trigger.action.outText(text,10)
                 if iads:getSAMSiteByGroupName(defended_name) then
                     iads:getSAMSiteByGroupName(defended_name):addPointDefence(addedSite)
                 else
                     iads:getEarlyWarningRadars(defended_name):addPointDefence(addedSite)
                 end
             else
-                veaf.loggers.get(veafSkynet.Id):info("Could not find SAM site within range to add point defense to (adding for nearest EWR is WIP)")
-                trigger.action.outText("Could not find SAM site within range to add point defense to (adding for nearest EWR is WIP)", 10)
+                veaf.loggers.get(veafSkynet.Id):info("Could not find SAM site within range to add point defense")
+                trigger.action.outText("Could not find SAM site within range to add point defense", 15)
             end
         elseif forceEwr then
             veaf.loggers.get(veafSkynet.Id):trace(string.format("SAM/EWR is forced EWR"))

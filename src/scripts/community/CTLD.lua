@@ -5093,6 +5093,8 @@ function ctld.addJTACRadioCommand(_side)
                         missionCommands.removeItemForGroup(_groupId, ctld.jtacGroupSubMenuPath[_jtacGroupName])
                     end
 
+                    ctld.logTrace(string.format("jtacTargetsList for %s is : %s", ctld.p(_jtacGroupName), ctld.p(ctld.jtacTargetsList[_jtacGroupName])))
+
                     if #ctld.jtacTargetsList[_jtacGroupName] > 1 then
 
                         local jtacGroupSubMenuName = string.format(_jtacGroupName .. " TGT Selection")
@@ -5106,6 +5108,8 @@ function ctld.addJTACRadioCommand(_side)
                         --add the JTAC group submenu to the current page
                         ctld.jtacGroupSubMenuPath[_jtacGroupName] = missionCommands.addSubMenuForGroup(_groupId, jtacGroupSubMenuName, jtacCurrentPagePath)
 
+                        ctld.logTrace(string.format("jtacGroupSubMenuPath for %s is : %s", ctld.p(_jtacGroupName), ctld.p(ctld.jtacGroupSubMenuPath[_jtacGroupName])))
+
                         --make a copy of the JTAC group submenu's path to insert the target's list on as many pages as required. The JTAC's group submenu path only leads to the first page
                         local jtacTargetPagePath = mist.utils.deepCopy(ctld.jtacGroupSubMenuPath[_jtacGroupName])
                         --add a reset targeting option to revert to automatic JTAC unit targeting
@@ -5114,12 +5118,36 @@ function ctld.addJTACRadioCommand(_side)
                         --counter to know when to add the next page submenu to fit all of the targets in the JTAC's group submenu
                         local itemCounter = 0
 
-                        for _, target in pairs(ctld.jtacTargetsList[_jtacGroupName]) do
-                            --do not add the current JTAC's target to the list
-                            if target.unit:getName() ~= ctld.jtacCurrentTargets[_jtacGroupName].name then
+                        --number of units for each unitType
+                        --this could definitely be integrated in the for loop below if the submenu and command creation happened all at once at the end, but not sure if the performance gain is really noticeable
+                        local typeNameAmount = {}
+                        for _,target in pairs(ctld.jtacTargetsList[_jtacGroupName]) do
+                            --check if the jtac has a current target before filtering it out if possible
+                            if (ctld.jtacCurrentTargets[_jtacGroupName] and target.unit:getName() ~= ctld.jtacCurrentTargets[_jtacGroupName].name) then
                                 local targetType_name = target.unit:getTypeName()
 
                                 if targetType_name then
+                                    if typeNameAmount[targetType_name] then
+                                        typeNameAmount[targetType_name] = typeNameAmount[targetType_name] + 1
+                                    else
+                                        typeNameAmount[targetType_name] = 1
+                                    end
+                                end
+                            end
+                        end
+
+                        --indicator table to know which unitType was already added to the radio submenu
+                        local radioAddedTypeNames = {}
+
+                        for _,target in pairs(ctld.jtacTargetsList[_jtacGroupName]) do
+                            --check if the JTAC has a current target, if so then do not add the current JTAC's target to the list or duplicate type names
+                            if (ctld.jtacCurrentTargets[_jtacGroupName] and target.unit:getName() ~= ctld.jtacCurrentTargets[_jtacGroupName].name) then
+                                local targetType_name = target.unit:getTypeName()
+
+                                if targetType_name and not radioAddedTypeNames[targetType_name] then
+
+                                    radioAddedTypeNames[targetType_name] = true
+
                                     itemCounter = itemCounter + 1
 
                                     --F2 through F10 makes 9 entries possible per page, with one being the NextMenu submenu. Pages other than the first would have 10 entires but worse case scenario is considered
@@ -5128,7 +5156,11 @@ function ctld.addJTACRadioCommand(_side)
                                     end
 
                                     local targetUnit_name = target.unit:getName()
-                                    missionCommands.addCommandForGroup(_groupId, string.format(targetType_name), jtacTargetPagePath, ctld.setJTACTarget, {jtacGroupName = _jtacGroupName, targetName = targetUnit_name})
+
+                                    ctld.logTrace(string.format("target selection command path for %s is : %s", ctld.p(targetUnit_name), ctld.p(jtacTargetPagePath)))
+
+                                    typeNameAmount[targetType_name] = typeNameAmount[targetType_name] or 1 --extra safety just in case, for some reason, that the getTypeName() method broke halfway through the above loop
+                                    missionCommands.addCommandForGroup(_groupId, string.format(targetType_name .. "(" .. typeNameAmount[targetType_name] .. ")"), jtacTargetPagePath, ctld.setJTACTarget, {jtacGroupName = _jtacGroupName, targetName = targetUnit_name})
                                 end
                             end
                         end
@@ -5173,7 +5205,7 @@ ctld.jtacSmokeMarks = {}
 ctld.jtacUnits = {} -- list of JTAC units for f10 command
 ctld.jtacStop = {} -- jtacs to tell to stop lasing
 ctld.jtacCurrentTargets = {}
-ctld.jtacTargetsList = {} --current available targets to each JTAC for lasing (targets from other JTACs are filtered out). Contains DCS unit objects with their methods.
+ctld.jtacTargetsList = {} --current available targets to each JTAC for lasing (targets from other JTACs are filtered out). Contains DCS unit objects with their methods and the distance to the JTAC {unit, dist}
 ctld.jtacSelectedTarget = {} --currently user selected target if it contains a unit's name, otherwise contains 1 or nil (if not initialized)
 ctld.jtacRadioAdded = {} --keeps track of who's had the radio command added
 ctld.jtacGroupSubMenuPath = {} --keeps track of which submenu contains each JTAC's target selection menu
@@ -5313,6 +5345,15 @@ function ctld.JTACAutoLase(_jtacGroupName, _laserCode, _smoke, _lock, _colour, _
     --update targets list and store the next potential target if the selected one was lost
     local _defaultEnemyUnit = ctld.findNearestVisibleEnemy(_jtacUnit, _lock) 
 
+    --search for the current target in the targets list which should contain it if the JTAC has visual (except that all of the targeted units are omitted from the list so that's not going to work)
+    -- if ctld.jtacTargetsList[_jtacGroupName] and ctld.jtacCurrentTargets[_jtacGroupName] then
+    --     for _,target in pairs(ctld.jtacTargetsList[_jtacGroupName]) do
+    --         if target.unit:getName() == ctld.jtacCurrentTargets[_jtacGroupName].name then
+    --             _enemyUnit = target.unit
+    --         end
+    --     end
+    -- end
+
     -- if the JTAC sees a unit and a target was selected by users but is not the current unit, check if the selected target is in the targets list, if it is, then it's been reacquired
     if _enemyUnit and ctld.jtacSelectedTarget[_jtacGroupName] ~= 1 and ctld.jtacSelectedTarget[_jtacGroupName] ~= _enemyUnit:getName() then
         for _,target in pairs(ctld.jtacTargetsList[_jtacGroupName]) do
@@ -5368,10 +5409,10 @@ function ctld.JTACAutoLase(_jtacGroupName, _laserCode, _smoke, _lock, _colour, _
             ctld.jtacCurrentTargets[_jtacGroupName] = { name = _defaultEnemyUnit:getName(), unitType = _defaultEnemyUnit:getTypeName(), unitId = _defaultEnemyUnit:getID() }
             local action = ", lasing new target, "
             if targetLost then
-                action = ", target lost " .. action
+                action = ", target lost" .. action
                 targetLost = false
             elseif targetDestroyed then
-                action = ", target destroyed " .. action
+                action = ", target destroyed" .. action
                 targetDestroyed = false
             end
         

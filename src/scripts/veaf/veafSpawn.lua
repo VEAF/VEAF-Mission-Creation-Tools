@@ -136,14 +136,14 @@ veafSpawn.AFAC.maximumAmount = 8
 veafSpawn.AFAC.baseAFACfrequency = 226300000 -- 226.300000 MHz otherwise known as 226300000 Hz
 -- callsign list of the AFACs
 veafSpawn.AFAC.callsigns = {
-    [1] = "Enfield 9",
-    [2] = "Springfield 9",
-    [3] = "Uzi 9",
-    [4] = "Colt 9",
-    [5] = "Dodge 9",
-    [6] = "Ford 9",
-    [7] = "Chevy 9",
-    [8] = "Pontiac 9",
+    [1] = "Enfield 9 1",
+    [2] = "Springfield 9 1",
+    [3] = "Uzi 9 1",
+    [4] = "Colt 9 1",
+    [5] = "Dodge 9 1",
+    [6] = "Ford 9 1",
+    [7] = "Chevy 9 1",
+    [8] = "Pontiac 9 1",
 }
 -- AFAC mission data as MIST isn't able to recover it from dynamically spawned aircrafts
 veafSpawn.AFAC.missionData = {}
@@ -2367,7 +2367,7 @@ function veafSpawn.spawnAFAC(spawnSpot, name, country, altitude, speed, hdg, fre
     local codeDigit = {}
     codeDigit = veaf.laserCodeToDigit(code)
 
-    local newGroupName = string.format("%s - %01d %01d %01d %01d", veafSpawn.AFAC.callsigns[veafSpawn.AFAC.numberSpawned], codeDigit.thousands, codeDigit.hundreds, codeDigit.tens, codeDigit.units)
+    local newGroupName = veafSpawn.AFAC.callsigns[veafSpawn.AFAC.numberSpawned]
     veaf.loggers.get(veafSpawn.Id):trace("newGroupName=%s",newGroupName)
     
     local altitude = altitude 
@@ -2506,19 +2506,19 @@ function veafSpawn.spawnAFAC(spawnSpot, name, country, altitude, speed, hdg, fre
     --newGroup.task = "AFAC"
     veaf.loggers.get(veafSpawn.Id):trace("newGroup=%s", veaf.p(newGroup, nil, {"route", "payload"}))
 
-    for _, unit in pairs(newGroup.units) do
-        unit.skill = "Excellent"
-    end
+    --setup of the new group
+    local unit = newGroup.units[1]
+    unit.skill = "Excellent"
     newGroup.hidden=false
     newGroup.name = newGroupName
-    for _, unit in pairs(newGroup.units) do
-        local unitName = unit.unitName or unit.name
-        veaf.loggers.get(veafSpawn.Id):trace("unitName=%s",unitName)
-        local spawnedUnitName = string.format("%s #%04d", unitName, veafSpawn.spawnedNamesIndex[groupName])
-        unit.name = spawnedUnitName
-        unit.alt = teleportSpot.alt
-        veaf.loggers.get(veafSpawn.Id):trace("spawnedUnitName=%s",spawnedUnitName)
-    end
+
+    local unitName = newGroupName
+    veaf.loggers.get(veafSpawn.Id):trace("unitName=%s",unitName)
+    unit.unitName = unitName
+    unit.name = unitName
+
+    unit.alt = teleportSpot.alt
+
     veaf.loggers.get(veafSpawn.Id):trace("newGroup=%s", veaf.p(newGroup, nil, {"route", "payload"}))
     local _spawnedGroup = mist.dynAdd(newGroup)
 
@@ -2527,7 +2527,8 @@ function veafSpawn.spawnAFAC(spawnSpot, name, country, altitude, speed, hdg, fre
         veaf.loggers.get(veafSpawn.Id):trace("_spawnedGroup.name=%s",_spawnedGroup.name)
         mist.goRoute(_spawnedGroup.name, newRoute)
 
-        --veafSpawn.AFAC.missionData[veafSpawn.spawnedNamesIndex[groupName]] = veaf.getGroupData(_spawnedGroup.name) --Does not work to recover the mission data of the dynamically spawned afac for movie command later on, for mist the group simply does not exist so it has no data
+        --veaf.loggers.get(veafSpawn.Id):trace("_spawnedGroup=%s", veaf.p(_spawnedGroup))
+        --veafSpawn.AFAC.missionData[veafSpawn.spawnedNamesIndex[groupName]] = _spawnedGroup --Does not work to recover the mission data of the dynamically spawned afac for movie command later on, for mist the group simply does not exist anyways
 
         -- start lasing 
         if ctld then 
@@ -2544,7 +2545,7 @@ function veafSpawn.spawnAFAC(spawnSpot, name, country, altitude, speed, hdg, fre
         end
 
         local humanFrequency = dcsFrequency/1000000
-        local text = "AFAC " .. string.format(veafSpawn.AFAC.numberSpawned) .. "/" .. string.format(veafSpawn.AFAC.maximumAmount) .. " - " .. string.format(_spawnedGroup.name) .. " (" .. string.format(country) .. ") - on " .. string.format(humanFrequency) .. "AM (DCS) or " .. string.format(frequency) .. string.upper(mod) .. " (SRS)"
+        local text = "AFAC " .. string.format(veafSpawn.AFAC.numberSpawned) .. "/" .. string.format(veafSpawn.AFAC.maximumAmount) .. " - " .. string.format(_spawnedGroup.name) .. " (" .. string.format(country) .. ") - on " .. string.format(humanFrequency) .. "AM (DCS AFAC) or " .. string.format(frequency) .. string.upper(mod) .. " (SRS)"
         veaf.loggers.get(veafSpawn.Id):info(text)
         trigger.action.outText(text, 15)
  

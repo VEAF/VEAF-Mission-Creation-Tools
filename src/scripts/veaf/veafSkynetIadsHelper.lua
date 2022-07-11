@@ -31,7 +31,7 @@ veafSkynet.Id = "SKYNET"
 veafSkynet.Version = "1.2.1"
 
 -- trace level, specific to this module
-veafSkynet.LogLevel = "trace"
+--veafSkynet.LogLevel = "trace"
 
 veaf.loggers.new(veafSkynet.Id, veafSkynet.LogLevel)
 

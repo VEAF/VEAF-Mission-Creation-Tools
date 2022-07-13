@@ -66,7 +66,7 @@ veafSpawn = {}
 veafSpawn.Id = "SPAWN"
 
 --- Version.
-veafSpawn.Version = "1.34.0"
+veafSpawn.Version = "1.35.0"
 
 -- trace level, specific to this module
 --veafSpawn.LogLevel = "trace"
@@ -2351,9 +2351,18 @@ function veafSpawn.spawnAFAC(spawnSpot, name, country, altitude, speed, hdg, fre
     if not veafSpawn.AFAC.numberSpawned then
         veafSpawn.AFAC.numberSpawned = 1
     elseif veafSpawn.AFAC.numberSpawned > veafSpawn.AFAC.maximumAmount then
-        veaf.loggers.get(veafSpawn.Id):info("The limit for AFACs was reached, typing the command again will start deleting AFACs")
-        trigger.action.outText("The limit for AFACs was reached, typing the command again will start deleting AFACs", 10)
-        veafSpawn.AFAC.numberSpawned = nil
+        veaf.loggers.get(veafSpawn.Id):info("The limit for AFACs was reached")
+        trigger.action.outText("The limit for AFACs was reached", 10)
+
+        -- adding more than 8 AFACs will cause radio menu issues in the DCS JTAC menu, not ideal but could be ignored if the DCS JTAC system is not used
+        
+        -- veaf.loggers.get(veafSpawn.Id):info("The limit for AFACs was reached, typing the command again will start deleting AFACs")
+        -- trigger.action.outText("The limit for AFACs was reached, typing the command again will start deleting AFACs", 10)
+        -- veafSpawn.AFAC.numberSpawned = nil
+        -- local resetNumber = string.sub(veafSpawn.AFAC.callsigns[1],-1)
+        -- for CallsignIndex,callsign in pairs(veafSpawn.AFAC.callsigns) do
+        --     veafSpawn.AFAC.callsigns[CallsignIndex] = string.gsub(callsign, "9 " .. string.format(resetNumber), "9 " .. string.format(resetNumber+1))
+        -- end
         return false
     end
 

@@ -352,6 +352,7 @@ function veafUnits.makeUnitFromDcsStructure(dcsUnit, cell)
         }, -- end of ["aliases"]
     }, -- end of [9]
 ]]
+    result.category = dcsUnit.category
     result.typeName = dcsUnit.type
     result.displayName = dcsUnit.description
     result.naval = (dcsUnit.naval)

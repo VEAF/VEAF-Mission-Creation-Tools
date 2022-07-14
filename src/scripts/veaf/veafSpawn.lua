@@ -1530,14 +1530,24 @@ function veafSpawn.spawnUnit(spawnPosition, radius, name, country, alt, hdg, uni
         local toInsert = {}
 
         if unit.static or static then
+
+            if unit.category then
+                if unit.category == "Heliport" then
+                    unit.category = "Heliports"
+                end
+                -- if unit.category == "Effects" then
+                --     unit.category = "Effect"
+                -- end
+            end
+
             toInsert = {
                     ["x"] = spawnSpot.x,
                     ["y"] = spawnSpot.z,
                     ["type"] = unit.typeName,
                     ["name"] = unitName,
+                    ["category"] = unit.category,
                     ["heading"] = mist.utils.toRadian(hdg),
             }
-            veaf.loggers.get(veafSpawn.Id):trace(string.format("toInsert x=%.1f y=%.1f, type=%s, name=%s, country=%s", toInsert.x, toInsert.y, toInsert.type, toInsert.name, country ))
         else
             toInsert = {
                 ["x"] = spawnSpot.x,
@@ -1549,26 +1559,27 @@ function veafSpawn.spawnUnit(spawnPosition, radius, name, country, alt, hdg, uni
                 ["skill"] = "Random",
                 ["heading"] = mist.utils.toRadian(hdg),
             }
-            veaf.loggers.get(veafSpawn.Id):trace(string.format("toInsert x=%.1f y=%.1f, alt=%.1f, type=%s, name=%s, speed=%d, skill=%s, country=%s", toInsert.x, toInsert.y, toInsert.alt, toInsert.type, toInsert.name, toInsert.speed, toInsert.skill, country ))
         end
             
         table.insert(units, toInsert)       
     end
 
+    veaf.loggers.get(veafSpawn.Id):trace(string.format("unitData = %s", veaf.p(units)))
+        
     -- actually spawn the unit
     if unit.static or static then --if the unit was forced to spawn as a static it could still be an air or a naval unit so this check goes first
         veaf.loggers.get(veafSpawn.Id):trace("Spawning STATIC")
-        mist.dynAddStatic({country = country, category = "STATIC", units = units})
+        mist.dynAddStatic({country = country, groupName = groupName, units = units})
         groupName = nil --statics do not have a group name, you must set groupName to nil to avoid other scripts interacting
     elseif unit.air then
         veaf.loggers.get(veafSpawn.Id):trace("Spawning AIRPLANE")
-        mist.dynAdd({country = country, category = "PLANE", name = groupName, units = units})
+        mist.dynAdd({country = country, category = "PLANE", groupName = groupName, units = units})
     elseif unit.naval then
         veaf.loggers.get(veafSpawn.Id):trace("Spawning SHIP")
-        mist.dynAdd({country = country, category = "SHIP", name = groupName, units = units})
+        mist.dynAdd({country = country, category = "SHIP", groupName = groupName, units = units})
     else
         veaf.loggers.get(veafSpawn.Id):trace("Spawning GROUND_UNIT")
-        mist.dynAdd({country = country, category = "GROUND_UNIT", name = groupName, units = units})
+        mist.dynAdd({country = country, category = "GROUND_UNIT", groupName = groupName, units = units})
     end
 
     if role == "jtac" and not static then

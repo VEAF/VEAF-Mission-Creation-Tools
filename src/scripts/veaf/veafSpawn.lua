@@ -66,7 +66,7 @@ veafSpawn = {}
 veafSpawn.Id = "SPAWN"
 
 --- Version.
-veafSpawn.Version = "1.36.0"
+veafSpawn.Version = "1.37.0"
 
 -- trace level, specific to this module
 --veafSpawn.LogLevel = "trace"
@@ -307,7 +307,7 @@ function veafSpawn.executeCommand(eventPos, eventText, coalition, markId, bypass
                 elseif options.convoy then
                     -- check security
                     if not (bypassSecurity or veafSecurity.checkSecurity_L9(options.password, markId)) then return end
-                    spawnedGroup = veafSpawn.spawnConvoy(eventPos, options.name, options.radius, options.country, options.side, options.heading, options.speed, options.patrol, options.offroad, options.destination, options.defense, options.size, options.armor, bypassSecurity)
+                    spawnedGroup = veafSpawn.spawnConvoy(eventPos, options.name, options.radius, options.country, options.side, options.heading, options.spacing, options.speed, options.patrol, options.offroad, options.destination, options.defense, options.size, options.armor, bypassSecurity)
                     routeDone = true
                 elseif options.cargo then
                     -- check security
@@ -1353,7 +1353,7 @@ function veafSpawn.spawnFullCombatGroup(spawnSpot, radius, country, side, headin
 end
 
 --- Spawn a specific group at a specific spot
-function veafSpawn.spawnConvoy(spawnSpot, name, radius, country, side, heading, speed, patrol, offroad, destination, defense, size, armor, silent)
+function veafSpawn.spawnConvoy(spawnSpot, name, radius, country, side, heading, spacing, speed, patrol, offroad, destination, defense, size, armor, silent)
     veaf.loggers.get(veafSpawn.Id):debug(string.format("spawnConvoy(spawnSpot=[%s], name=[%s], radius=[%s], country=[%s], side=[%s], speed=[%s], patrol=[%s], offroad=[%s], destination=[%s], defense=[%s], size=[%s], armor=[%s], silent=[%s], AlarmState=[%s])", veaf.p(spawnSpot), veaf.p(name), veaf.p(radius), veaf.p(country), veaf.p(side), veaf.p(speed), veaf.p(patrol), veaf.p(offroad), veaf.p(destination), veaf.p(defense), veaf.p(size), veaf.p(armor), veaf.p(silent), veaf.p(AlarmState)))
     
     if not(destination) then
@@ -1422,7 +1422,7 @@ function veafSpawn.spawnConvoy(spawnSpot, name, radius, country, side, heading, 
 
     if groupUnits.units then
         -- place its units
-        local groupUnits, cells = veafUnits.placeGroup(groupUnits, veaf.placePointOnLand(spawnSpot), 4, heading, true)
+        local groupUnits, cells = veafUnits.placeGroup(groupUnits, veaf.placePointOnLand(spawnSpot), spacing, heading, true)
         veafUnits.traceGroup(units, cells)
     
         -- shuffle the units in the convoy

@@ -66,7 +66,7 @@ veafSpawn = {}
 veafSpawn.Id = "SPAWN"
 
 --- Version.
-veafSpawn.Version = "1.35.0"
+veafSpawn.Version = "1.36.0"
 
 -- trace level, specific to this module
 --veafSpawn.LogLevel = "trace"
@@ -279,7 +279,7 @@ function veafSpawn.executeCommand(eventPos, eventText, coalition, markId, bypass
                 elseif options.afac then
                     --check security
                     if not (bypassSecurity or veafSecurity.checkSecurity_L9(options.password, markId)) then return end
-                    spawnedGroup = veafSpawn.spawnAFAC(eventPos, options.name, options.country, options.altitude, options.speed, options.heading, options.freq, options.mod, options.laserCode, bypassSecurity, options.immortal)
+                    spawnedGroup = veafSpawn.spawnAFAC(eventPos, options.name, options.country, options.altitude, options.speed, options.heading, options.freq, options.mod, options.laserCode, options.immortal, bypassSecurity)
                 elseif options.group then
                     -- check security
                     if not (bypassSecurity or veafSecurity.checkSecurity_L9(options.password, markId)) then return end
@@ -2337,7 +2337,7 @@ function veafSpawn.listAllCAP(unitName)
     end
 end
 
-function veafSpawn.spawnAFAC(spawnSpot, name, country, altitude, speed, hdg, frequency, mod, code, silent, immortal)
+function veafSpawn.spawnAFAC(spawnSpot, name, country, altitude, speed, hdg, frequency, mod, code, immortal, silent)
     
     -- find template
     local _name = veafSpawn.AirUnitTemplatesPrefix .. name 
@@ -2578,6 +2578,11 @@ function veafSpawn.spawnAFAC(spawnSpot, name, country, altitude, speed, hdg, fre
 
             Controller.setCommand(controller, _setImmortal)
             Controller.setCommand(controller, _setInvisible)
+        end
+
+        if veafNamedPoints and not silent then
+            text = "AFAC" .. " - " .. string.format(_spawnedGroup.name) .. " - " .. string.format(humanFrequency) .. "AM (DCS) or " .. string.format(frequency) .. string.upper(mod) .. " (SRS)"
+            veafNamedPoints.namePoint({x=spawnSpot.x, y=altitude, z=spawnSpot.z}, text, veaf.getCoalitionForCountry(country, true), true)
         end
 
         veafSpawn.spawnedNamesIndex[groupName] = veafSpawn.spawnedNamesIndex[groupName] + 1

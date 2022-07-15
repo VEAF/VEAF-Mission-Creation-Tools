@@ -32,7 +32,7 @@ veaf = {}
 veaf.Id = "VEAF"
 
 --- Version.
-veaf.Version = "1.21.1"
+veaf.Version = "1.21.2"
 
 --- Development version ?
 veaf.Development = true
@@ -1205,11 +1205,19 @@ function veaf.moveGroupAt(groupName, leadUnitName, heading, speed, timeInSeconds
     return true
 end
 
+veaf.defaultSpawnedAlarmState = 2
+
 function veaf.readyForCombat(group, alarm)
     if type(group) == 'string' then
         group = Group.getByName(group)
     end
     if group then
+
+        local alarm = alarm
+        if not alarm then
+            alarm = veaf.defaultSpawnedAlarmState
+        end
+
         local cont = group:getController()
         cont:setOnOff(true)
         cont:setOption(AI.Option.Ground.id.ALARM_STATE, alarm)	

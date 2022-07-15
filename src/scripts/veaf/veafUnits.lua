@@ -39,7 +39,7 @@ veafUnits = {}
 veafUnits.Id = "UNITS"
 
 --- Version.
-veafUnits.Version = "1.9.2"
+veafUnits.Version = "1.10.0"
 
 -- trace level, specific to this module
 --veafUnits.LogLevel = "trace"
@@ -1213,10 +1213,19 @@ veafUnits.GroupsDatabase = {
     },
     --artillery
     {
+        aliases = {"insurgent_arty"},
+        group = {
+            disposition = { h = 2, w = 4},
+            units = { {"tt_B8M1", number = {min=1, max=2}}, {"HL_B8M1", number = {min=1, max=2}} },
+            description = "Insurgent artillery battery",
+            groupName = "Insurgent artillery battery",
+        },
+    },
+    {
         aliases = {"mortar"},
         group = {
-            disposition = { h = 6, w = 4},
-            units = { {"2B11 mortar", number = 24} },
+            disposition = { h = 2, w = 4},
+            units = { {"2B11 mortar", number = 4} },
             description = "2B11 Mortar team",
             groupName = "2B11 Mortar team",
         },
@@ -1224,10 +1233,19 @@ veafUnits.GroupsDatabase = {
     {
         aliases = {"M-109"},
         group = {
-            disposition = { h = 3, w = 2},
-            units = { {"M-109", number = 6} },
+            disposition = { h = 2, w = 3},
+            units = { {"M-109", number = 3} },
             description = "M-109 artillery battery",
             groupName = "M-109 artillery battery",
+        },
+    },
+    {
+        aliases = {"MLRS"},
+        group = {
+            disposition = { h = 2, w = 4},
+            units = { {"MLRS", number = 4} },
+            description = "US MLRS artillery battery",
+            groupName = "US MLRS artillery battery",
         },
     },
     --convoys
@@ -1411,7 +1429,7 @@ veafUnits.GroupsDatabase = {
        },
     },
     {
-        -- Offensive convoy potentially defended by Sa-15, Sa-19, Sa-13 and armor
+        -- Offensive convoy potentially defended by Sa-15, Shilka, Sa-13 and armor
         aliases = {"attack_convoy_red"},
         group = {
             disposition = { h= 4, w= 4},
@@ -1424,7 +1442,7 @@ veafUnits.GroupsDatabase = {
                 {"T-72B3", random=true},
                 {"BTR-82A", random=true},
 
-                --supply truck and C2
+                --supply truck
                 {"ZIL-135", random=true},
 
                 --IR defense
@@ -1432,6 +1450,27 @@ veafUnits.GroupsDatabase = {
             },
             description = "Attack convoy red",
             groupName =  "Attack convoy red"
+       },
+    },
+    {
+        -- Quick reaction convoy potentially defended by Roland and armor
+        aliases = {"QRC_red"},
+        group = {
+            disposition = { h= 4, w= 4},
+            units = {
+                --Radar defense
+                {"Roland ADS", number = {min=0, max=1}, random=true},
+
+                -- armor
+                {"BTR-82A", number = {min=0, max=1}, random=true},
+                {"BTR-82A", random=true},
+
+                --ATGM
+                {"VAB_Mephisto", random=true},
+                {"VAB_Mephisto", random=true},
+            },
+            description = "Quick reaction convoy red",
+            groupName =  "Quick reaction convoy red"
        },
     },
     {
@@ -1446,6 +1485,27 @@ veafUnits.GroupsDatabase = {
             },
             description = "Civilian convoy red",
             groupName =  "Civilian convoy red"
+       },
+    },
+    {
+        -- Quick reaction convoy potentially defended by Roland and armor
+        aliases = {"QRC_blue"},
+        group = {
+            disposition = { h= 4, w= 4},
+            units = {
+                --Radar defense
+                {"Roland ADS", number = {min=0, max=1}, random=true},
+
+                -- armor
+                {"M1128 Stryker MGS", number = {min=0, max=1}, random=true},
+                {"M1128 Stryker MGS", random=true},
+
+                --ATGM
+                {"M1134 Stryker ATGM", random=true},
+                {"M1134 Stryker ATGM", random=true},
+            },
+            description = "Quick reaction convoy blue",
+            groupName =  "Quick reaction convoy blue"
        },
     },
     --ships

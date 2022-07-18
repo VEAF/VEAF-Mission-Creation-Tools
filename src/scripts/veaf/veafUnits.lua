@@ -1234,7 +1234,7 @@ veafUnits.GroupsDatabase = {
         aliases = {"M-109"},
         group = {
             disposition = { h = 2, w = 3},
-            units = { {"M-109", number = 3} },
+            units = { {"M-109", number = 3}, {"MLRS FDDM", number = 1} },
             description = "M-109 artillery battery",
             groupName = "M-109 artillery battery",
         },
@@ -1243,9 +1243,45 @@ veafUnits.GroupsDatabase = {
         aliases = {"MLRS"},
         group = {
             disposition = { h = 2, w = 4},
-            units = { {"MLRS", number = 4} },
-            description = "US MLRS artillery battery",
-            groupName = "US MLRS artillery battery",
+            units = { {"MLRS", number = 4}, {"MLRS FDDM", number = 1} },
+            description = "M270 MLRS artillery battery",
+            groupName = "M270 MLRS artillery battery",
+        },
+    },
+    {
+        aliases = {"SmerchCM"},
+        group = {
+            disposition = { h = 2, w = 4},
+            units = { {"Smerch", number = 4}, {"Grad_FDDM", number = 1} },
+            description = "Smerch (CM) MLRS artillery battery",
+            groupName = "Smerch (CM) MLRS artillery battery",
+        },
+    },
+    {
+        aliases = {"SmerchHE"},
+        group = {
+            disposition = { h = 2, w = 4},
+            units = { {"Smerch_HE", number = 4}, {"Grad_FDDM", number = 1} },
+            description = "Smerch (HE) MLRS artillery battery",
+            groupName = "Smerch (HE) MLRS artillery battery",
+        },
+    },
+    {
+        aliases = {"Uragan"},
+        group = {
+            disposition = { h = 2, w = 4},
+            units = { {"Uragan_BM-27", number = 4}, {"Grad_FDDM", number = 1} },
+            description = "Uragan MLRS artillery battery",
+            groupName = "Uragan MLRS artillery battery",
+        },
+    },
+    {
+        aliases = {"Grad"},
+        group = {
+            disposition = { h = 2, w = 4},
+            units = { {"Grad-URAL", number = 4}, {"Grad_FDDM", number = 1} },
+            description = "Grad MLRS artillery battery",
+            groupName = "Grad MLRS artillery battery",
         },
     },
     --convoys

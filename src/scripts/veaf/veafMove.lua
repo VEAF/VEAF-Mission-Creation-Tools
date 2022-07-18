@@ -68,7 +68,7 @@ veafMove = {}
 veafMove.Id = "MOVE"
 
 --- Version.
-veafMove.Version = "1.9.0"
+veafMove.Version = "1.9.1"
 
 -- trace level, specific to this module
 --veafMove.LogLevel = "trace"
@@ -472,6 +472,7 @@ function veafMove.moveTanker(eventPos, groupName, speed, alt, hdg, distance, tel
         trigger.action.outText(text)
         return false
     end
+    veaf.loggers.get(veafMove.Id):trace("tankerData : %s", veaf.p(tankerData))
 
     local route = veaf.findInTable(tankerData, "route")
     local points = veaf.findInTable(route, "points")
@@ -758,19 +759,24 @@ function veafMove.replaceMission(unitGroup, missionData, delay, immortal)
     local delay = delay or 1
 
     local actualReplaceMission = function(unitGroup, missionData, immortal)
-        veaf.loggers.get(veafMove.Id):debug(string.format("Resetting moved Tanker Escort %s mission", unitGroup:getName()))
-        veaf.loggers.get(veafMove.Id):debug(string.format("EscortData=%s", veaf.p(missionData)))
+
+        local freq = missionData.frequency or 243 --set frequency or guard channel
+        local mod = missionData.modulation or 0 --set modulation or AM (=0)
+        
+        veaf.loggers.get(veafMove.Id):debug(string.format("Resetting %s mission", unitGroup:getName()))
+        veaf.loggers.get(veafMove.Id):debug(string.format("replaceMissionData=%s", veaf.p(missionData)))
         --... for the escort, necessary to re assign the mission wether the tanker was teleported (== changed ID) or not because DCS
-        local escort_mission = { 
+
+        local mission = { 
             id = 'Mission', 
             params = missionData 
         }
         local controller = unitGroup:getController()
-        controller:setTask(escort_mission)
+        controller:setTask(mission)
 
         if immortal then
             -- JTAC needs to be invisible and immortal
-            veaf.loggers.get(veafMove.Id):trace("AFAC immortalized")
+            veaf.loggers.get(veafMove.Id):trace("Group immortalized")
             local _setImmortal = {
                 id = 'SetImmortal',
                 params = {
@@ -788,6 +794,17 @@ function veafMove.replaceMission(unitGroup, missionData, delay, immortal)
             Controller.setCommand(controller, _setImmortal)
             Controller.setCommand(controller, _setInvisible)
         end
+
+        --have to set the frequency again as setTask seems to ignore missionData.frequency and switch the unit to 124AM
+        local _setFrequency = {
+            id = 'SetFrequency',
+            params = {
+                frequency = freq * 1000000,
+                modulation = mod
+            }
+        }
+
+        Controller.setCommand(controller, _setFrequency)
     end
 
     mist.scheduleFunction(actualReplaceMission, {unitGroup, missionData, immortal}, timer.getTime()+delay)

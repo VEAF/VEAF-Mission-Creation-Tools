@@ -48,7 +48,7 @@ veafCarrierOperations = {}
 veafCarrierOperations.Id = "CARRIER"
 
 --- Version.
-veafCarrierOperations.Version = "1.11.1"
+veafCarrierOperations.Version = "1.11.2"
 
 -- trace level, specific to this module
 --veafCarrierOperations.LogLevel = "trace"
@@ -623,6 +623,15 @@ function veafCarrierOperations.continueCarrierOperations(groupName)
                     local controller = tankerGroup:getController()
                     controller:setTask(mission)
                     carrier.tankerRouteIsSet = true
+
+                    local _setFrequency = {
+                        id = 'SetFrequency',
+                        params = {
+                            frequency = carrier.tankerData.tankerFrequency * 1000000, --Hz
+                            modulation = 0 --AM
+                        }
+                    }
+                    Controller.setCommand(controller, _setFrequency)
 
                 end
             end

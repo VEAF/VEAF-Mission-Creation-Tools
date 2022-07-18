@@ -456,8 +456,10 @@ do -- the main scope
             ["Bunker 2"] = "dot2",
             ["Tanker Elnya 160"] = "elnya",
             ["F-shape barrier"] = "f_bar_cargo",
-            ["Helipad Single"] = "farp",
+			["Helipad Single"] = "farp",
+            ["FARP_SINGLE_01"] = "farp", --both of these entries are the same but this one has the correct typeName as per the DCS units datatable
             ["FARP"] = "farps",
+			["Invisible FARP"] = "invisiblefarp",
             ["Fueltank"] = "fueltank_cargo",
             ["Gate"] = "gate",
             ["FARP Fuel Depot"] = "gsm rus",
@@ -482,6 +484,7 @@ do -- the main scope
             ["Parachute"] = "parash",
             ["Pilot F15 Parachute"] = "pilot_f15_parachute",
             ["Pilot standing"] = "pilot_parashut",
+			--["Big smoke"] = "small_smoke_and_fire", --doesn't work
 		}
 		
 		

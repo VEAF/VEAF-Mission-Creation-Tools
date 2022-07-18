@@ -39,7 +39,7 @@ veafUnits = {}
 veafUnits.Id = "UNITS"
 
 --- Version.
-veafUnits.Version = "1.9.2"
+veafUnits.Version = "1.11.0"
 
 -- trace level, specific to this module
 --veafUnits.LogLevel = "trace"
@@ -352,6 +352,7 @@ function veafUnits.makeUnitFromDcsStructure(dcsUnit, cell)
         }, -- end of ["aliases"]
     }, -- end of [9]
 ]]
+    result.category = dcsUnit.category
     result.typeName = dcsUnit.type
     result.displayName = dcsUnit.description
     result.naval = (dcsUnit.naval)
@@ -1212,10 +1213,19 @@ veafUnits.GroupsDatabase = {
     },
     --artillery
     {
+        aliases = {"insurgent_arty"},
+        group = {
+            disposition = { h = 2, w = 4},
+            units = { {"tt_B8M1", number = {min=1, max=2}}, {"HL_B8M1", number = {min=1, max=2}} },
+            description = "Insurgent artillery battery",
+            groupName = "Insurgent artillery battery",
+        },
+    },
+    {
         aliases = {"mortar"},
         group = {
-            disposition = { h = 6, w = 4},
-            units = { {"2B11 mortar", number = 24} },
+            disposition = { h = 2, w = 4},
+            units = { {"2B11 mortar", number = 4} },
             description = "2B11 Mortar team",
             groupName = "2B11 Mortar team",
         },
@@ -1223,10 +1233,55 @@ veafUnits.GroupsDatabase = {
     {
         aliases = {"M-109"},
         group = {
-            disposition = { h = 3, w = 2},
-            units = { {"M-109", number = 6} },
+            disposition = { h = 2, w = 3},
+            units = { {"M-109", number = 3}, {"MLRS FDDM", number = 1} },
             description = "M-109 artillery battery",
             groupName = "M-109 artillery battery",
+        },
+    },
+    {
+        aliases = {"MLRS"},
+        group = {
+            disposition = { h = 2, w = 4},
+            units = { {"MLRS", number = 4}, {"MLRS FDDM", number = 1} },
+            description = "M270 MLRS artillery battery",
+            groupName = "M270 MLRS artillery battery",
+        },
+    },
+    {
+        aliases = {"SmerchCM"},
+        group = {
+            disposition = { h = 2, w = 4},
+            units = { {"Smerch", number = 4}, {"Grad_FDDM", number = 1} },
+            description = "Smerch (CM) MLRS artillery battery",
+            groupName = "Smerch (CM) MLRS artillery battery",
+        },
+    },
+    {
+        aliases = {"SmerchHE"},
+        group = {
+            disposition = { h = 2, w = 4},
+            units = { {"Smerch_HE", number = 4}, {"Grad_FDDM", number = 1} },
+            description = "Smerch (HE) MLRS artillery battery",
+            groupName = "Smerch (HE) MLRS artillery battery",
+        },
+    },
+    {
+        aliases = {"Uragan"},
+        group = {
+            disposition = { h = 2, w = 4},
+            units = { {"Uragan_BM-27", number = 4}, {"Grad_FDDM", number = 1} },
+            description = "Uragan MLRS artillery battery",
+            groupName = "Uragan MLRS artillery battery",
+        },
+    },
+    {
+        aliases = {"Grad"},
+        group = {
+            disposition = { h = 2, w = 4},
+            units = { {"Grad-URAL", number = 4}, {"Grad_FDDM", number = 1} },
+            description = "Grad MLRS artillery battery",
+            groupName = "Grad MLRS artillery battery",
         },
     },
     --convoys
@@ -1410,7 +1465,7 @@ veafUnits.GroupsDatabase = {
        },
     },
     {
-        -- Offensive convoy potentially defended by Sa-15, Sa-19, Sa-13 and armor
+        -- Offensive convoy potentially defended by Sa-15, Shilka, Sa-13 and armor
         aliases = {"attack_convoy_red"},
         group = {
             disposition = { h= 4, w= 4},
@@ -1423,7 +1478,7 @@ veafUnits.GroupsDatabase = {
                 {"T-72B3", random=true},
                 {"BTR-82A", random=true},
 
-                --supply truck and C2
+                --supply truck
                 {"ZIL-135", random=true},
 
                 --IR defense
@@ -1431,6 +1486,27 @@ veafUnits.GroupsDatabase = {
             },
             description = "Attack convoy red",
             groupName =  "Attack convoy red"
+       },
+    },
+    {
+        -- Quick reaction convoy potentially defended by Roland and armor
+        aliases = {"QRC_red"},
+        group = {
+            disposition = { h= 4, w= 4},
+            units = {
+                --Radar defense
+                {"Roland ADS", number = {min=0, max=1}, random=true},
+
+                -- armor
+                {"BTR-82A", number = {min=0, max=1}, random=true},
+                {"BTR-82A", random=true},
+
+                --ATGM
+                {"VAB_Mephisto", random=true},
+                {"VAB_Mephisto", random=true},
+            },
+            description = "Quick reaction convoy red",
+            groupName =  "Quick reaction convoy red"
        },
     },
     {
@@ -1445,6 +1521,27 @@ veafUnits.GroupsDatabase = {
             },
             description = "Civilian convoy red",
             groupName =  "Civilian convoy red"
+       },
+    },
+    {
+        -- Quick reaction convoy potentially defended by Roland and armor
+        aliases = {"QRC_blue"},
+        group = {
+            disposition = { h= 4, w= 4},
+            units = {
+                --Radar defense
+                {"Roland ADS", number = {min=0, max=1}, random=true},
+
+                -- armor
+                {"M1128 Stryker MGS", number = {min=0, max=1}, random=true},
+                {"M1128 Stryker MGS", random=true},
+
+                --ATGM
+                {"M1134 Stryker ATGM", random=true},
+                {"M1134 Stryker ATGM", random=true},
+            },
+            description = "Quick reaction convoy blue",
+            groupName =  "Quick reaction convoy blue"
        },
     },
     --ships

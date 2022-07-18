@@ -2506,7 +2506,7 @@ VeafQRA =
 VeafQRA.__index = VeafQRA
 
 VeafQRA.Id = "QRA"
-VeafQRA.LogLevel = "trace"
+--VeafQRA.LogLevel = "trace"
 
 veaf.loggers.new(VeafQRA.Id, VeafQRA.LogLevel)
 

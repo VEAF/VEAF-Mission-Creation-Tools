@@ -1178,7 +1178,7 @@ end
 ---
 --- setters and getters
 ---
-function VeafCombatZone:setOnCompletedHook(onCompletedFunction) 
+function VeafCombatOperation:setOnCompletedHook(onCompletedFunction) 
     self.onCompletedHook = onCompletedFunction
     return self
 end

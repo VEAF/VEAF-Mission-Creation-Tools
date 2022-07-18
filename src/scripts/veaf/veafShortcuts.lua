@@ -27,7 +27,7 @@ veafShortcuts = {}
 veafShortcuts.Id = "SHORTCUTS"
 
 --- Version.
-veafShortcuts.Version = "1.27.0"
+veafShortcuts.Version = "1.28.0"
 
 -- trace level, specific to this module
 --veafShortcuts.LogLevel = "trace"

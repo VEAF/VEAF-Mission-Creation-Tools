@@ -39,7 +39,7 @@ veafUnits = {}
 veafUnits.Id = "UNITS"
 
 --- Version.
-veafUnits.Version = "1.10.0"
+veafUnits.Version = "1.11.0"
 
 -- trace level, specific to this module
 --veafUnits.LogLevel = "trace"

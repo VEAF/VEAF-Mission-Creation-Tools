@@ -1,41 +1,78 @@
-# VEAF-Mission-Creation-Tools
+# VEAF Mission Creation Tools
 
-[![Badge-Discord]][Link-Discord]
+### Introduction
 
-All scripts, libraries and documentation needed to build a dynamic mission in DCS using the VEAF scripts
+The VEAF Mission Creation Tools contains tools and scripts designed to make it easy to create, share and maintain dynamic missions.
 
-## How to work on this package ?
+It is composed of:
 
-See the [demo mission](https://github.com/VEAF/VEAF-Demo-Mission)
-TODO
+* the VEAF scripts (modules)
+* the community scripts, sometimes edited by VEAF
+* a mission creation, edition and publication workflow
+* tools to support this workflow
+* this documentation
 
-## What is this ? Is it like Moose ?
+### Roles
 
-A bit like that, and not.
-It uses MiST (and a tiny teeny part of Moose, for air spawns) to handle lots of runtime functionality :
-- spawning of units and groups (and portable TACANs)
-- air-to-ground missions 
-- air-to-air missions
-- transport missions
-- carrier operations (not Moose)
-- tanker move
-- weather and ATC
-- shelling a zone, lighting it up
-- managing assets (tankers, awacs, aircraft carriers) : getting info, state, respawning them if needed
-- managing named points (position, info, ATC)
-- managing a dynamic radio menu
-- managing remote calls to the mission through NIOD (RPC) and SLMOD (LUA sockets)
-- managing security (not allowing everyone to do every action)
-- define groups templates
+When you have an interest in the VEAF Mission Creation Tools, you may be a mission programmer or a mission maker.
 
-And also lots of design-time functionality :
-- automatically populating FARPs and grass runways with all that is neeed
-- spawning things at the start of a mission (interpreter of data stored in a fake unit on the mission)
-- normalizing a mission file (removing useless key in the dictionary, sorting everything) so it's easy to compare versions
-- injecting radio presets globally (e.g. all blue F18 get a standard freq plan)
-- injecting real weather in a mission
+Mission makers want to use the tools to create, share and maintain a mission.
 
-And probably other things I forget ;)
+Mission programmers help us maintain and enhance the tools by adding features, correcting bugs, configuring new data.
 
-[Badge-Discord]: https://img.shields.io/discord/471061487662792715?label=VEAF%20Discord&style=for-the-badge
-[Link-Discord]: https://tinyurl.com/veafdisc
+#### How to use the tools as a mission maker
+
+Please have a look at the Misson Maker documentation.
+
+For those looking for a quick start, read the demo mission page to learn how you can fork the demo repository and create your own mission.
+
+#### How to participate to the development of the tools
+
+The Misson Programmer documentation details all you need to know about that.
+
+You can contact us, we'll guide you into our community.
+
+### Workflow
+
+All missions that use the VEAF Mission Creation Tools share some base concepts:
+
+* they integrate (some of) the VEAF and community scripts in a load trigger
+* they initialize and configure these scripts in another trigger
+* they share a few conventions when naming units and groups
+
+This is easier if the mission folder is organized like that:
+
+* _src_ - all the mission source files
+* _src/mission_ - the mission definition (the lua files created by the DCS mission editor and originally compressed into a zipped _.miz_ file)
+* _src/scripts_ - (optional) the custom scripts used to configure the VEAF modules specifically for this mission
+* _src/radioSettings.lua_ - (optional) the radio frequencies that will be injected
+* _build.cmd_ - the build script is responsible for creating the _.miz_ file that will contain all the lua definitions, the scripts, the configuration files, etc.
+* _extract.cmd_ - this script will extract the lua definition files from a _.miz_ file freshly edited with the DCS mission editor
+* _package.json_ - this allows the build and extract scripts to download the latest version of the VEAF Mission Creation Tools
+
+The easiest way to create such a folder is to fork the demo mission provided by us (please read the demo mission page).
+
+When working on the mission, always follow this workflow:
+
+First, create a mission in the DCS mission editor, and save it in the main folder of your mission (alongside the _build_ and _extract_ scripts)
+
+1. run the _extract_ script to put all the lua definition files in the _src_ folder
+2. edit the configuration scripts, the radio presets configuration, update the VEAF Mission Creation Tools, etc.
+3. run the _build_ script to assemble all the scripts, the configuration files, and the mission into a _.miz_ file; it'll be generated in the _build_ folder
+4. edit the _.miz_ file with the DCS mission editor
+5. \-> back to step 1; rinse and repeat.
+
+### Questions, feature requests, bug reports
+
+There are several ways of getting in touch with the VEAF:
+
+* we have a [very nice forum](https://community.veaf.org); you can post in the open [International Room](https://community.veaf.org/category/29/international-room)
+* you can [create issues](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues) and [pull requests](https://github.com/VEAF/VEAF-Mission-Creation-Tools/pulls) on the [GitHub repository](https://github.com/VEAF/VEAF-Mission-Creation-Tools)
+* our [Discord server](https://discord.gg/YezPzzQ) can be used to chat (both text and voice) with the VEAF members and developpers; we're nice people and some of us even speak english ^^
+* you can send [emails](mailto:veaf@gmail.com) to the VEAF; they won't be read everyday, so please try and use one of the other communication mediums.
+
+### Hall of fame
+
+* David "Zip" Pierron, VEAF
+* Frédéric "Coubystark" Coubard, VEAF
+* "Mitch", VEAF

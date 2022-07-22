@@ -66,7 +66,7 @@ veafSpawn = {}
 veafSpawn.Id = "SPAWN"
 
 --- Version.
-veafSpawn.Version = "1.38.0"
+veafSpawn.Version = "1.38.1"
 
 -- trace level, specific to this module
 --veafSpawn.LogLevel = "trace"
@@ -2635,11 +2635,13 @@ function veafSpawn.spawnAFAC(spawnSpot, name, country, altitude, speed, hdg, fre
             Controller.setCommand(controller, _setInvisible)
         end
 
+        local afacMarkId = nil
         if veafNamedPoints and not silent then
             text = "AFAC" .. " - " .. string.format(_spawnedGroup.name) .. " - " .. string.format(humanFrequency) .. "AM (DCS) or " .. string.format(frequency) .. string.upper(mod) .. " (SRS)"
-            veafNamedPoints.namePoint({x=spawnSpot.x, y=altitude, z=spawnSpot.z}, text, veaf.getCoalitionForCountry(country, true), true)
+            afacMarkId = veafNamedPoints.namePoint({x=spawnSpot.x, y=altitude, z=spawnSpot.z}, text, veaf.getCoalitionForCountry(country, true), true)
         end
 
+        veafSpawn.afacWatchdog(newGroupName, text)
         veafSpawn.spawnedNamesIndex[groupName] = veafSpawn.spawnedNamesIndex[groupName] + 1
         veafSpawn.AFAC.numberSpawned= veafSpawn.AFAC.numberSpawned + 1
         
@@ -2647,6 +2649,28 @@ function veafSpawn.spawnAFAC(spawnSpot, name, country, altitude, speed, hdg, fre
     else
         veaf.loggers.get(veafSpawn.Id):error("MIST could not add AFAC")
         return nil
+    end
+end
+
+function veafSpawn.afacWatchdog(afacGroupName, markName)
+    if afacGroupName and not Group.getByName(afacGroupName) then
+        veaf.loggers.get(veafSpawn.Id):info(string.format("AFAC named=%s is KIA, removing mark (if it exists) and allowing it to be spawned again", veaf.p(afacGroupName)))
+
+        if veafNamedPoints and markName then
+            local existingPoint = veafNamedPoints.getPoint(markName)
+            veaf.loggers.get(veafSpawn.Id):trace(string.format("existingPoint=%s", veaf.p(existingPoint)))
+            if existingPoint and existingPoint.markerId then
+                -- delete the existing point
+                trigger.action.removeMark(existingPoint.markerId)
+            end
+        end
+
+        --Make the callsign and callsign index available again for spawn
+        --TODO
+
+    else
+        veaf.loggers.get(veafSpawn.Id):trace(string.format("AFAC named=%s is alive", veaf.p(afacGroupName)))
+        mist.scheduleFunction(veafSpawn.afacWatchdog, {afacGroupName, markName}, timer.getTime()+120)
     end
 end
 

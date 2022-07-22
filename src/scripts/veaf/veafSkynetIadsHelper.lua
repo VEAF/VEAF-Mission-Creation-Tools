@@ -31,7 +31,7 @@ veafSkynet.Id = "SKYNET"
 veafSkynet.Version = "2.0.0"
 
 -- trace level, specific to this module
---veafSkynet.LogLevel = "trace"
+veafSkynet.LogLevel = "trace"
 
 veaf.loggers.new(veafSkynet.Id, veafSkynet.LogLevel)
 
@@ -469,13 +469,14 @@ local function createNetworks(networkName, coa, loadUnits, UserAdd)
     return false
 end
 
--- reset the IADS networks and rebuild them. Useful when a dynamic combat zone is deactivated
-function veafSkynet.reinitialize()
+-- reset an IADS network, useful when many additions are made at once to harmonize the structure
+function veafSkynet.reinitializeNetwork(networkName)
     if not veafSkynet.initialized then 
         return false 
     end
 
-    for networkName, networkStructure in pairs(veafSkynet.structure) do
+    if networkName and veafSkynet.structure[networkName] then
+        local networkStructure = veafSkynet.structure[networkName]
         if networkStructure.iads then
             veaf.loggers.get(veafSkynet.Id):trace("Stored structure for network named %s has IADS, deactivating", veaf.p(networkName))
             if networkStructure.includeInRadio then 
@@ -485,6 +486,17 @@ function veafSkynet.reinitialize()
             networkStructure.iads:deactivate()
         end
         createNetworks(networkName, networkStructure.coalitionID, true)
+    end
+end
+
+-- reset an IADS networks, useful when many additions/destructions are made at once to harmonize the structures on the skynet side
+function veafSkynet.reinitialize()
+    if not veafSkynet.initialized then 
+        return false 
+    end
+
+    for networkName,_ in pairs(veafSkynet.structure) do
+        veafSkynet.reinitializeNetwork(networkName)
     end
 end
 

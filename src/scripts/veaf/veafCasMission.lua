@@ -832,7 +832,7 @@ function veafCasMission.generateCasMission(spawnSpot, size, defense, armor, spac
     if coalition.side.RED ~= side then
         opposing_side = coalition.side.RED
     end
-    veafSpawn.spawnAFAC(spawnSpot, "mq9", veaf.getCountryForCoalition(opposing_side), nil, nil, nil, veaf.convertLaserToFreq(1688), "FM", 1688, true, false)
+    veafSpawn.spawnAFAC(spawnSpot, "mq9", veaf.getCountryForCoalition(opposing_side), nil, nil, nil, veafSpawn.convertLaserToFreq(1688), "FM", 1688, true, false)
 
     -- build menu for each player
     veafRadio.addCommandToSubmenu('Target information', veafCasMission.rootPath, veafCasMission.reportTargetInformation, nil, veafRadio.USAGE_ForGroup)

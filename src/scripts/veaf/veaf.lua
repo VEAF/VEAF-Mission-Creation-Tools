@@ -2523,6 +2523,14 @@ VeafQRA.DEFAULT_MESSAGE_START = "%s is deployed"
 VeafQRA.DEFAULT_MESSAGE_DESTROYED = "%s has been destroyed"
 VeafQRA.DEFAULT_MESSAGE_READY = "%s is ready"
 
+function VeafQRA.ToggleAllSilence()
+    if VeafQRA.AllSilence == true then
+        VeafQRA.AllSilence = false
+    else
+        VeafQRA.AllSilence = true
+    end
+end
+
 function VeafQRA:new()
     veaf.loggers.get(VeafQRA.Id):trace(string.format("VeafQRA:new()"))
     local self = setmetatable({}, VeafQRA)

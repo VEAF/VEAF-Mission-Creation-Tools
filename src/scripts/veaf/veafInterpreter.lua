@@ -54,7 +54,7 @@ veafInterpreter = {}
 veafInterpreter.Id = "INTERPRETER"
 
 --- Version.
-veafInterpreter.Version = "1.3.0"
+veafInterpreter.Version = "1.4.0"
 
 -- trace level, specific to this module
 --veafInterpreter.LogLevel = "trace"
@@ -105,38 +105,25 @@ function veafInterpreter.execute(command, position, coalition, route, spawnedGro
     local commandExecuted = false
     spawnedGroups = spawnedGroups or {}
 
-    if logDebug("checking in veafShortcuts") and veafShortcuts.executeCommand(position, command, coalition, nil, true, spawnedGroups) then
-        commandExecuted = true
-    elseif logDebug("checking in veafSpawn") and veafSpawn.executeCommand(position, command, coalition, nil, true, spawnedGroups) then
-        commandExecuted = true
+    if logDebug("checking in veafShortcuts") and veafShortcuts.executeCommand(position, command, coalition, nil, true, spawnedGroups, route) then
+        return true
+    elseif logDebug("checking in veafSpawn") and veafSpawn.executeCommand(position, command, coalition, nil, true, spawnedGroups, nil, nil, route, true) then
+        return true
     elseif logDebug("checking in veafNamedPoints") and veafNamedPoints.executeCommand(position, {text=command, coalition=-1}, true) then
-        commandExecuted = true
+        return true
     elseif logDebug("checking in veafCasMission") and veafCasMission.executeCommand(position, command, coalition, true) then
-        commandExecuted = true
+        return true
     elseif logDebug("checking in veafSecurity") and veafSecurity.executeCommand(position, command, true) then
-        commandExecuted = true
+        return true
     elseif logDebug("checking in veafMove") and veafMove.executeCommand(position, command, true) then
-        commandExecuted = true
+        return true
     elseif logDebug("checking in veafRadio") and veafRadio.executeCommand(position, command, coalition, true) then
-        commandExecuted = true
+        return true
     elseif logDebug("checking in veafRemote") and veafRemote.executeCommand(position, command, coalition) then
-        commandExecuted = true
+        return true
     else
-        commandExecuted = false
+        return false
     end
-
-    if commandExecuted then
-        veaf.loggers.get(veafInterpreter.Id):trace(string.format("spawnedGroups = [%s]", veaf.p(spawnedGroups)))
-        if route and spawnedGroups then
-            for _, newGroup in pairs(spawnedGroups) do
-                veaf.loggers.get(veafInterpreter.Id):trace(string.format("newGroup = [%s]", veaf.p(newGroup)))
-                mist.goRoute(newGroup, route)
-            end
-        end
-    end
-
-    return commandExecuted
-
 end
 
 function veafInterpreter.executeCommandOnUnit(unitName, command)

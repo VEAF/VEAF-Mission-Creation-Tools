@@ -39,7 +39,7 @@ veafUnits = {}
 veafUnits.Id = "UNITS"
 
 --- Version.
-veafUnits.Version = "1.11.0"
+veafUnits.Version = "1.11.1"
 
 -- trace level, specific to this module
 --veafUnits.LogLevel = "trace"
@@ -1884,7 +1884,7 @@ veafUnits.GroupsDatabase = {
         },
     },
     {
-        aliases = {"RU-SAM-SA13-Battery", "sa19-battery"},
+        aliases = {"RU-SAM-SA13-Battery", "sa13-battery"},
         group = {
             disposition = { h= 5, w= 5},
             units = {

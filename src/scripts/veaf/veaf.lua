@@ -32,7 +32,7 @@ veaf = {}
 veaf.Id = "VEAF"
 
 --- Version.
-veaf.Version = "1.21.2"
+veaf.Version = "1.21.3"
 
 --- Development version ?
 veaf.Development = true
@@ -2518,9 +2518,18 @@ VeafQRA.STATUS_DEAD = 3
 
 VeafQRA.WATCHDOG_DELAY = 5
 
+VeafQRA.AllSilence = false --value to set all spawned QRAs to silent if true. By default it's false but this value can be set in the missionConfig
 VeafQRA.DEFAULT_MESSAGE_START = "%s is deployed"
 VeafQRA.DEFAULT_MESSAGE_DESTROYED = "%s has been destroyed"
 VeafQRA.DEFAULT_MESSAGE_READY = "%s is ready"
+
+function VeafQRA.ToggleAllSilence()
+    if VeafQRA.AllSilence == true then
+        VeafQRA.AllSilence = false
+    else
+        VeafQRA.AllSilence = true
+    end
+end
 
 function VeafQRA:new()
     veaf.loggers.get(VeafQRA.Id):trace(string.format("VeafQRA:new()"))
@@ -2536,7 +2545,7 @@ function VeafQRA:new()
     self.messageStart = VeafQRA.DEFAULT_MESSAGE_START
     self.messageDestroyed = VeafQRA.DEFAULT_MESSAGE_DESTROYED
     self.messageReady = VeafQRA.DEFAULT_MESSAGE_READY
-    self.silent = false
+    self.silent = VeafQRA.AllSilence
     self.respawnRadius = 250
     self.reactOnHelicopters = false
     self.delayBeforeRearming = -1

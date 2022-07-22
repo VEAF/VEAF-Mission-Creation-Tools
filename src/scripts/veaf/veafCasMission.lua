@@ -346,7 +346,7 @@ local function _addDefenseForGroups(group, side, defense, multiple, forInfantry)
                 else
                     table.insert(group.units, { veaf.randomlyChooseFrom({"Strela-1 9P31", "Strela-10M3"}), random=true })
                     table.insert(group.units, { "Tor 9A331", random=true })
-                    table.insert(group.units, { "2S6 Tunguska", random=true })
+                    table.insert(group.units, { "ZSU-23-4 Shilka", random=true })
                 end
             end
         elseif _actualDefense == 5 then

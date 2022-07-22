@@ -66,7 +66,7 @@ veafSpawn = {}
 veafSpawn.Id = "SPAWN"
 
 --- Version.
-veafSpawn.Version = "1.38.1"
+veafSpawn.Version = "1.38.2"
 
 -- trace level, specific to this module
 --veafSpawn.LogLevel = "trace"
@@ -289,7 +289,7 @@ function veafSpawn.executeCommand(eventPos, eventText, coalition, markId, bypass
                 elseif options.afac then
                     --check security
                     if not (bypassSecurity or veafSecurity.checkSecurity_L9(options.password, markId)) then return end
-                    spawnedGroup = veafSpawn.spawnAFAC(eventPos, options.name, options.country, options.altitude, options.speed, options.heading, options.freq, options.mod, options.laserCode, options.immortal, bypassSecurity)
+                    spawnedGroup = veafSpawn.spawnAFAC(eventPos, options.name, options.country, options.altitude, options.speed, options.heading, options.freq, options.mod, options.laserCode, options.immortal, false)
                 elseif options.group then
                     -- check security
                     if not (bypassSecurity or veafSecurity.checkSecurity_L9(options.password, markId)) then return end

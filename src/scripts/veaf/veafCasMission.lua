@@ -72,7 +72,7 @@ veafCasMission = {}
 veafCasMission.Id = "CASMISSION"
 
 --- Version.
-veafCasMission.Version = "1.12.0"
+veafCasMission.Version = "1.13.0"
 
 -- trace level, specific to this module
 --veafCasMission.LogLevel = "trace"
@@ -827,8 +827,12 @@ function veafCasMission.generateCasMission(spawnSpot, size, defense, armor, spac
     controller:setOption(9, 2) -- set alarm state to red
     controller:setOption(AI.Option.Ground.id.DISPERSE_ON_ATTACK, disperseOnAttack) -- set disperse on attack according to the option
 
-    -- Move reaper
-    -- TODO
+    -- Spawn Reaper
+    local opposing_side = coalition.side.BLUE
+    if coalition.side.RED ~= side then
+        opposing_side = coalition.side.RED
+    end
+    veafSpawn.spawnAFAC(spawnSpot, "mq9", veaf.getCountryForCoalition(opposing_side), nil, nil, nil, veaf.convertLaserToFreq(1688), "FM", 1688, true, false)
 
     -- build menu for each player
     veafRadio.addCommandToSubmenu('Target information', veafCasMission.rootPath, veafCasMission.reportTargetInformation, nil, veafRadio.USAGE_ForGroup)

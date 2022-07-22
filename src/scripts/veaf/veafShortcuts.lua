@@ -27,7 +27,7 @@ veafShortcuts = {}
 veafShortcuts.Id = "SHORTCUTS"
 
 --- Version.
-veafShortcuts.Version = "1.28.0"
+veafShortcuts.Version = "1.28.1"
 
 -- trace level, specific to this module
 --veafShortcuts.LogLevel = "trace"
@@ -192,7 +192,7 @@ function VeafAlias:hasPassword(value)
     return self.password and self.password[value]
 end
 
-function VeafAlias:execute(remainingCommand, position, coalition, markId, bypassSecurity, spawnedGroups)
+function VeafAlias:execute(remainingCommand, position, coalition, markId, bypassSecurity, spawnedGroups, route)
     local function logDebug(message)
         veaf.loggers.get(veafShortcuts.Id):debug(message)
         return true
@@ -216,9 +216,10 @@ function VeafAlias:execute(remainingCommand, position, coalition, markId, bypass
 
     local command = command .. (remainingCommand or "")
     veaf.loggers.get(veafShortcuts.Id):trace(string.format("command = [%s]",command or ""))
-    if logDebug("checking in veafShortcuts") and veafShortcuts.executeCommand(position, command, coalition, markId, _bypassSecurity, spawnedGroups) then
+
+    if logDebug("checking in veafShortcuts") and veafShortcuts.executeCommand(position, command, coalition, markId, _bypassSecurity, spawnedGroups, route) then
         return true
-    elseif logDebug("checking in veafSpawn") and veafSpawn.executeCommand(position, command, coalition, markId, _bypassSecurity, spawnedGroups) then
+    elseif logDebug("checking in veafSpawn") and veafSpawn.executeCommand(position, command, coalition, markId, _bypassSecurity, spawnedGroups, nil, nil, route) then
         return true
     elseif logDebug("checking in veafNamedPoints") and veafNamedPoints.executeCommand(position, {text=command, coalition=-1}, _bypassSecurity) then
         return true
@@ -485,10 +486,11 @@ function veafShortcuts.AddAlias(alias)
 end
 
 -- execute an alias command
-function veafShortcuts.ExecuteAlias(aliasName, delay, remainingCommand, position, coalition, markId, bypassSecurity, spawnedGroups)
+function veafShortcuts.ExecuteAlias(aliasName, delay, remainingCommand, position, coalition, markId, bypassSecurity, spawnedGroups, route)
     veaf.loggers.get(veafShortcuts.Id):debug(string.format("veafShortcuts.ExecuteAlias([%s],[%s],[%s],[%s],[%s])", veaf.p(aliasName), veaf.p(delay), veaf.p(remainingCommand), veaf.p(position), veaf.p(coalition)))
     veaf.loggers.get(veafShortcuts.Id):trace(string.format("markId=[%s]",veaf.p(markId)))
     veaf.loggers.get(veafShortcuts.Id):trace(string.format("bypassSecurity=[%s]",veaf.p(bypassSecurity)))
+    veaf.loggers.get(veafShortcuts.Id):trace(string.format("route=[%s]",veaf.p(route)))
 
     local alias = veafShortcuts.GetAlias(aliasName)
     if alias then 
@@ -527,13 +529,13 @@ function veafShortcuts.ExecuteAlias(aliasName, delay, remainingCommand, position
     
             -- run the batch
             for index, textToExecute in ipairs(alias:getBatchAliases()) do
-                veafShortcuts.executeCommand(position, textToExecute, coalition, markId, true, spawnedGroups)
+                veafShortcuts.executeCommand(position, textToExecute, coalition, markId, true, spawnedGroups, route)
             end
         else       
             if delay and delay ~= "" then
-                mist.scheduleFunction(VeafAlias.execute, {alias, remainingCommand, position, coalition, markId, bypassSecurity, spawnedGroups}, timer.getTime() + delay)
+                mist.scheduleFunction(VeafAlias.execute, {alias, remainingCommand, position, coalition, markId, bypassSecurity, spawnedGroups, route}, timer.getTime() + delay)
             else
-                alias:execute(remainingCommand, position, coalition, markId, bypassSecurity, spawnedGroups)
+                alias:execute(remainingCommand, position, coalition, markId, bypassSecurity, spawnedGroups, route)
             end
         end
         return true
@@ -606,7 +608,7 @@ function veafShortcuts.onEventMarkChange(eventPos, event)
     end
 end
 
-function veafShortcuts.executeCommand(eventPos, eventText, eventCoalition, markId, bypassSecurity, spawnedGroups)
+function veafShortcuts.executeCommand(eventPos, eventText, eventCoalition, markId, bypassSecurity, spawnedGroups, route)
     veaf.loggers.get(veafShortcuts.Id):debug(string.format("veafShortcuts.executeCommand(eventText=[%s])", eventText))
 
     -- Check if marker has a text and contains an alias
@@ -634,7 +636,7 @@ function veafShortcuts.executeCommand(eventPos, eventText, eventCoalition, markI
             end
     
             -- do the magic
-            return veafShortcuts.ExecuteAlias(alias, delay, remainder, position, eventCoalition, markId, bypassSecurity, spawnedGroups)
+            return veafShortcuts.ExecuteAlias(alias, delay, remainder, position, eventCoalition, markId, bypassSecurity, spawnedGroups, route)
         end
         return false
     end

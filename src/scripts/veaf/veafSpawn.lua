@@ -66,7 +66,7 @@ veafSpawn = {}
 veafSpawn.Id = "SPAWN"
 
 --- Version.
-veafSpawn.Version = "1.37.0"
+veafSpawn.Version = "1.38.0"
 
 -- trace level, specific to this module
 --veafSpawn.LogLevel = "trace"
@@ -179,13 +179,15 @@ function veafSpawn.onEventMarkChange(eventPos, event)
     end
 end
 
-function veafSpawn.executeCommand(eventPos, eventText, coalition, markId, bypassSecurity, spawnedGroups, repeatCount, repeatDelay)
+function veafSpawn.executeCommand(eventPos, eventText, coalition, markId, bypassSecurity, spawnedGroups, repeatCount, repeatDelay, route, allowStartDelay)
     veaf.loggers.get(veafSpawn.Id):debug(string.format("veafSpawn.executeCommand(eventText=[%s])", eventText))
     veaf.loggers.get(veafSpawn.Id):trace(string.format("coalition=%s", veaf.p(coalition)))
     veaf.loggers.get(veafSpawn.Id):trace(string.format("markId=%s", veaf.p(markId)))
     veaf.loggers.get(veafSpawn.Id):trace(string.format("bypassSecurity=%s", veaf.p(bypassSecurity)))
     veaf.loggers.get(veafSpawn.Id):trace(string.format("repeatCount=%s", veaf.p(repeatCount)))
     veaf.loggers.get(veafSpawn.Id):trace(string.format("repeatDelay=%s", veaf.p(repeatDelay)))
+    veaf.loggers.get(veafSpawn.Id):trace(string.format("route=%s", veaf.p(route)))
+    veaf.loggers.get(veafSpawn.Id):trace(string.format("allowStartDelay=%s", veaf.p(allowStartDelay)))
 
     -- Check if marker has a text and the veafSpawn.SpawnKeyphrase keyphrase.
     if eventText ~= nil and (eventText:lower():find(veafSpawn.SpawnKeyphrase) or eventText:lower():find(veafSpawn.DestroyKeyphrase) or eventText:lower():find(veafSpawn.TeleportKeyphrase) or eventText:lower():find(veafSpawn.DrawingKeyphrase) or eventText:lower():find(veafSpawn.MissionMasterKeyphrase)) then
@@ -196,6 +198,14 @@ function veafSpawn.executeCommand(eventPos, eventText, coalition, markId, bypass
         if options then
             local repeatDelay = repeatDelay
             local repeatCount = repeatCount
+            local allowStartDelay = allowStartDelay or false
+            local startDelay = options.delayedStart
+
+            if allowStartDelay and startDelay and startDelay > 0 then
+                veaf.loggers.get(veafSpawn.Id):trace(string.format("scheduling veafSpawn.executeCommand for a delayed start in %s seconds", veaf.p(startDelay)))
+                mist.scheduleFunction(veafSpawn.executeCommand, {eventPos, eventText, coalition, markId, bypassSecurity, spawnedGroups, nil, nil, route, false}, timer.getTime() + startDelay)
+                return true
+            end
 
             if options.repeatCount and not repeatCount then -- only use the parsed repeat options IF the parameter is not set (not during a repeat loop)
                 -- set repeatCount and repeatDelay using the parsed options
@@ -213,7 +223,7 @@ function veafSpawn.executeCommand(eventPos, eventText, coalition, markId, bypass
 
                 -- schedule the next step of the repeated command
                 veaf.loggers.get(veafSpawn.Id):trace(string.format("scheduling veafSpawn.executeCommand for %s repeats in %s seconds", veaf.p(repeatCount), veaf.p(repeatDelay)))
-                mist.scheduleFunction(veafSpawn.executeCommand, {eventPos, eventText, coalition, markId, bypassSecurity, spawnedGroups, repeatCount, repeatDelay}, timer.getTime() + repeatDelay)
+                mist.scheduleFunction(veafSpawn.executeCommand, {eventPos, eventText, coalition, markId, bypassSecurity, spawnedGroups, repeatCount, repeatDelay, route, false}, timer.getTime() + repeatDelay)
             end
 
             if not(options.radius) then
@@ -371,15 +381,29 @@ function veafSpawn.executeCommand(eventPos, eventText, coalition, markId, bypass
                     local groupObject = Group.getByName(spawnedGroup)
                     -- make the group combat ready ! well except if the user said otherwise, tweak the AlarmState for some scenarios
                     veaf.readyForCombat(groupObject, options.AlarmState)
-                    if not routeDone and options.destination then
+                    if not route and not routeDone and options.destination then
                         --  make the group go to destination
                         local actualPosition = groupObject:getUnit(1):getPosition().p
                         local route = veaf.generateVehiclesRoute(actualPosition, options.destination, not options.offroad, options.speed, options.patrol)
                         mist.goRoute(groupObject, route)
+                    elseif route then
+                        mist.goRoute(groupObject, route)
                     end
                     -- add the group to the IADS, if there is one
                     if veafSkynet and options.skynet then -- only add static stuff like sam groups and sam batteries, not mobile groups and convoys
-                        veafSkynet.addGroupToNetwork(groupObject, options.forceEwr, options.pointDefense)
+                        veaf.loggers.get(veafSpawn.Id):trace("options.skynet= %s", veaf.p(options.skynet))
+                        if type(options.skynet) == "boolean" then --it means options.skynet is true
+                            options.skynet = veafSkynet.defaultIADS[tostring(options.side)]
+                        end
+                        veaf.loggers.get(veafSpawn.Id):trace("Adding spawned group to skynet, networkName= %s", veaf.p(options.skynet))
+                        local networkName = options.skynet
+                        if veafSkynet.addGroupToNetwork(networkName, groupObject, options.forceEwr, options.pointDefense, nil, bypassSecurity) then
+                            veaf.loggers.get(veafSpawn.Id):trace("Group Added to IADS network")
+                            if not bypassSecurity then trigger.action.outText(string.format("Group added to the IADS named \"%s\"", options.skynet),15) end
+                        else
+                            veaf.loggers.get(veafSpawn.Id):trace("Could not find IADS network")
+                            if not bypassSecurity then trigger.action.outText(string.format("Could not add group to the IADS named \"%s\", network not found", options.skynet),15) end
+                        end
                     end
                     -- reset the Hound Elint system, if the module is active
                     if veafHoundElint then
@@ -532,6 +556,9 @@ function veafSpawn.markTextAnalysis(text)
     options.repeatCount = nil
     options.repeatDelay = nil
 
+    -- delayed start option
+    options.delayedStart = 0
+
     -- Check for correct keywords.
     if text:lower():find(veafSpawn.SpawnKeyphrase .. " unit") then
         options.unit = true
@@ -655,9 +682,14 @@ function veafSpawn.markTextAnalysis(text)
         end
 
         if key:lower() == "skynet" then
-            -- Set name.
+            -- Retreive the name of the IADS you wish to add the spawned group to
             veaf.loggers.get(veafSpawn.Id):trace(string.format("Keyword skynet = %s", tostring(val)))
-            options.skynet = (val:lower() == "true")
+            options.skynet = val:lower()
+            if options.skynet == "true" then
+                options.skynet = true
+            elseif options.skynet == "false" then
+                options.skynet = false
+            end
         end
 
         if key:lower() == "ewr" then
@@ -925,9 +957,20 @@ function veafSpawn.markTextAnalysis(text)
         end
 
         if key:lower() == "immortal" then
-            -- Set static unit spawn toggle
+            -- Set spawned unit to invisible and immortal
             veaf.loggers.get(veafSpawn.Id):trace(string.format("Keyword immortal found"))
             options.immortal = true
+        end
+
+        if key:lower() == "delayed" then
+            -- Set delayed start on first spawn occurence
+            veaf.loggers.get(veafSpawn.Id):trace(string.format("Keyword delayed = %s", tostring(val)))
+            local nVal = veaf.getRandomizableNumeric(val)
+            if nVal >= 0 then
+                options.delayedStart = nVal
+            else
+                options.delayedStart = veafSpawn.MIN_REPEAT_DELAY
+            end
         end
 
     end
@@ -2363,7 +2406,7 @@ function veafSpawn.spawnAFAC(spawnSpot, name, country, altitude, speed, hdg, fre
         veafSpawn.AFAC.numberSpawned = 1
     elseif veafSpawn.AFAC.numberSpawned > veafSpawn.AFAC.maximumAmount then
         veaf.loggers.get(veafSpawn.Id):info("The limit for AFACs was reached")
-        trigger.action.outText("The limit for AFACs was reached", 10)
+        if not silent then trigger.action.outText("The limit for AFACs was reached", 15) end
 
         -- adding more than 8 AFACs will cause radio menu issues in the DCS JTAC menu, not ideal but could be ignored if the DCS JTAC system is not used
         
@@ -2390,8 +2433,8 @@ function veafSpawn.spawnAFAC(spawnSpot, name, country, altitude, speed, hdg, fre
     local newGroupName = veafSpawn.AFAC.callsigns[veafSpawn.AFAC.numberSpawned]
     veaf.loggers.get(veafSpawn.Id):trace("newGroupName=%s",newGroupName)
     
-    local altitude = altitude 
-    if altitude == 0 then
+    local altitude = altitude or 15000
+    if altitude <= 8000 then
         altitude = 15000 -- ft
     end
 
@@ -2567,7 +2610,7 @@ function veafSpawn.spawnAFAC(spawnSpot, name, country, altitude, speed, hdg, fre
         local humanFrequency = dcsFrequency/1000000
         local text = "AFAC " .. string.format(veafSpawn.AFAC.numberSpawned) .. "/" .. string.format(veafSpawn.AFAC.maximumAmount) .. " - " .. string.format(_spawnedGroup.name) .. " (" .. string.format(country) .. ") - on " .. string.format(humanFrequency) .. "AM (DCS AFAC) or " .. string.format(frequency) .. string.upper(mod) .. " (SRS)"
         veaf.loggers.get(veafSpawn.Id):info(text)
-        trigger.action.outText(text, 15)
+        if not silent then trigger.action.outText(text, 15) end
  
         local controller = _dcsSpawnedGroup:getController()
 

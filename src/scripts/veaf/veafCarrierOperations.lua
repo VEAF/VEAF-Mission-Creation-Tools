@@ -48,7 +48,7 @@ veafCarrierOperations = {}
 veafCarrierOperations.Id = "CARRIER"
 
 --- Version.
-veafCarrierOperations.Version = "1.11.2"
+veafCarrierOperations.Version = "1.11.3"
 
 -- trace level, specific to this module
 --veafCarrierOperations.LogLevel = "trace"
@@ -772,13 +772,16 @@ function veafCarrierOperations.rebuildRadioMenu()
     for name, carrier in pairs(veafCarrierOperations.carriers) do
         veaf.loggers.get(veafCarrierOperations.Id):trace("rebuildRadioMenu processing "..name)
         
-        -- remove the submenu
-        veaf.loggers.get(veafCarrierOperations.Id):trace("remove the submenu")
         local menuRoot = veafCarrierOperations.rootPathRed
         if carrier.side == coalition.side.BLUE then
             menuRoot = veafCarrierOperations.rootPathBlue
         end
-        veafRadio.delSubmenu(carrier.menuPath, menuRoot)
+
+        -- remove the submenu if it exists
+        if carrier.menuPath then
+            veafRadio.delSubmenu(carrier.menuPath, menuRoot)
+            veaf.loggers.get(veafCarrierOperations.Id):trace("remove the submenu")
+        end
 
         -- create the submenu
         veaf.loggers.get(veafCarrierOperations.Id):trace("create the submenu")

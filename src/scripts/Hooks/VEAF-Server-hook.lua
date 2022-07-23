@@ -231,8 +231,15 @@ function veafServerHook.onChatMessage(message, from)
             local playerName = _playerDetails.name
             local ucid = _playerDetails.ucid
             local unitName = nil
+            veafServerHook.logTrace(string.format("_playerDetails.slot=%s",p(_playerDetails.slot)))
             if _playerDetails.side ~= 0 and _playerDetails.slot ~= "" and _playerDetails.slot ~= nil then
-                unitName = DCS.getUnitProperty(_playerDetails.slot, DCS.UNIT_NAME)
+                local slot = _playerDetails.slot
+                if string.find(tostring(slot), "_", 1, true) then
+                    --extract substring - get the seat ID
+                    slot = string.sub(slot, 1, string.find(slot, "_", 1, true)-1)
+                end
+                veafServerHook.logTrace(string.format("slot=%s",p(slot)))
+                unitName = DCS.getUnitProperty(slot, DCS.UNIT_NAME)
             end
             
             veafServerHook.logTrace(string.format("playerName=%s",p(playerName)))

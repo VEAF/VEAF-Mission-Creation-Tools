@@ -66,7 +66,7 @@ veafSpawn = {}
 veafSpawn.Id = "SPAWN"
 
 --- Version.
-veafSpawn.Version = "1.38.2"
+veafSpawn.Version = "1.39.0"
 
 -- trace level, specific to this module
 --veafSpawn.LogLevel = "trace"
@@ -136,14 +136,14 @@ veafSpawn.AFAC.maximumAmount = 8
 veafSpawn.AFAC.baseAFACfrequency = 226300000 -- 226.300000 MHz otherwise known as 226300000 Hz
 -- callsign list of the AFACs
 veafSpawn.AFAC.callsigns = {
-    [1] = "Enfield 9 1",
-    [2] = "Springfield 9 1",
-    [3] = "Uzi 9 1",
-    [4] = "Colt 9 1",
-    [5] = "Dodge 9 1",
-    [6] = "Ford 9 1",
-    [7] = "Chevy 9 1",
-    [8] = "Pontiac 9 1",
+    [1] = {name = "Enfield 9 1", taken = false},
+    [2] = {name = "Springfield 9 1", taken = false},
+    [3] = {name = "Uzi 9 1", taken = false},
+    [4] = {name = "Colt 9 1", taken = false},
+    [5] = {name = "Dodge 9 1", taken = false},
+    [6] = {name = "Ford 9 1", taken = false},
+    [7] = {name = "Chevy 9 1", taken = false},
+    [8] = {name = "Pontiac 9 1", taken = false},
 }
 -- AFAC mission data as MIST isn't able to recover it from dynamically spawned aircrafts
 veafSpawn.AFAC.missionData = {}
@@ -2405,34 +2405,33 @@ function veafSpawn.spawnAFAC(spawnSpot, name, country, altitude, speed, hdg, fre
     if not veafSpawn.AFAC.numberSpawned then
         veafSpawn.AFAC.numberSpawned = 1
     elseif veafSpawn.AFAC.numberSpawned > veafSpawn.AFAC.maximumAmount then
-        veaf.loggers.get(veafSpawn.Id):info("The limit for AFACs was reached")
-        if not silent then trigger.action.outText("The limit for AFACs was reached", 15) end
-
-        -- adding more than 8 AFACs will cause radio menu issues in the DCS JTAC menu, not ideal but could be ignored if the DCS JTAC system is not used
-        
-        -- veaf.loggers.get(veafSpawn.Id):info("The limit for AFACs was reached, typing the command again will start deleting AFACs")
-        -- trigger.action.outText("The limit for AFACs was reached, typing the command again will start deleting AFACs", 10)
-        -- veafSpawn.AFAC.numberSpawned = nil
-        -- local resetNumber = string.sub(veafSpawn.AFAC.callsigns[1],-1)
-        -- for CallsignIndex,callsign in pairs(veafSpawn.AFAC.callsigns) do
-        --     veafSpawn.AFAC.callsigns[CallsignIndex] = string.gsub(callsign, "9 " .. string.format(resetNumber), "9 " .. string.format(resetNumber+1))
-        -- end
+        veaf.loggers.get(veafSpawn.Id):info("The limit for AFACs was reached, one needs to be destroyed")
+        if not silent then trigger.action.outText("The limit for AFACs was reached, one needs to be destroyed", 15) end
         return false
     end
 
+    veaf.loggers.get(veafSpawn.Id):info(string.format("number of AFAC spawned : %s", veaf.p(veafSpawn.AFAC.numberSpawned)))
+
+    local AFAC_num = veafSpawn.AFAC.numberSpawned
+    local newGroupName = veafSpawn.AFAC.callsigns[veafSpawn.AFAC.numberSpawned].name
+    for i = 1, veafSpawn.AFAC.maximumAmount do
+        if veafSpawn.AFAC.callsigns[i].taken == false then
+            newGroupName = veafSpawn.AFAC.callsigns[i].name
+            AFAC_num = i
+            break
+        end
+    end
+    veaf.loggers.get(veafSpawn.Id):trace("newGroupName=%s",newGroupName)
+    veaf.loggers.get(veafSpawn.Id):trace("AFAC_num=%s",AFAC_num)
+    
     --essentially the same counter but for the template group itself, not for all AFACs
     if not veafSpawn.spawnedNamesIndex[groupName] then
         veafSpawn.spawnedNamesIndex[groupName] = 1
     end
 
-    veaf.loggers.get(veafSpawn.Id):info(string.format("number of AFAC spawned : %s", veaf.p(veafSpawn.AFAC.numberSpawned)))
-    
     local codeDigit = {}
     codeDigit = veaf.laserCodeToDigit(code)
 
-    local newGroupName = veafSpawn.AFAC.callsigns[veafSpawn.AFAC.numberSpawned]
-    veaf.loggers.get(veafSpawn.Id):trace("newGroupName=%s",newGroupName)
-    
     local altitude = altitude or 15000
     if altitude <= 8000 then
         altitude = 15000 -- ft
@@ -2635,12 +2634,24 @@ function veafSpawn.spawnAFAC(spawnSpot, name, country, altitude, speed, hdg, fre
             Controller.setCommand(controller, _setInvisible)
         end
 
+        --set the callsign to avoid desyncs in the DCS JTAC menu
+        local _setCallsign = { 
+            id = 'SetCallsign', 
+            params = { 
+              callname = AFAC_num, 
+              number = 9, 
+            } 
+        }
+
+        Controller.setCommand(controller, _setCallsign)
+
         if veafNamedPoints and not silent then
             text = "AFAC" .. " - " .. string.format(_spawnedGroup.name) .. " - " .. string.format(humanFrequency) .. "AM (DCS) or " .. string.format(frequency) .. string.upper(mod) .. " (SRS)"
             veafNamedPoints.namePoint({x=spawnSpot.x, y=altitude, z=spawnSpot.z}, text, veaf.getCoalitionForCountry(country, true), true)
         end
 
-        veafSpawn.afacWatchdog(newGroupName, text)
+        veafSpawn.afacWatchdog(newGroupName, AFAC_num, text)
+        veafSpawn.AFAC.callsigns[AFAC_num].taken = true
         veafSpawn.spawnedNamesIndex[groupName] = veafSpawn.spawnedNamesIndex[groupName] + 1
         veafSpawn.AFAC.numberSpawned= veafSpawn.AFAC.numberSpawned + 1
         
@@ -2651,9 +2662,10 @@ function veafSpawn.spawnAFAC(spawnSpot, name, country, altitude, speed, hdg, fre
     end
 end
 
-function veafSpawn.afacWatchdog(afacGroupName, markName)
+function veafSpawn.afacWatchdog(afacGroupName, AFAC_num, markName)
     if afacGroupName and not Group.getByName(afacGroupName) then
         veaf.loggers.get(veafSpawn.Id):info(string.format("AFAC named=%s is KIA, removing mark (if it exists) and allowing it to be spawned again", veaf.p(afacGroupName)))
+        veaf.loggers.get(veafSpawn.Id):trace(string.format("markName=%s", veaf.p(markName)))
 
         if veafNamedPoints and markName then
             local existingPoint = veafNamedPoints.getPoint(markName)
@@ -2664,12 +2676,15 @@ function veafSpawn.afacWatchdog(afacGroupName, markName)
             end
         end
 
-        --Make the callsign and callsign index available again for spawn
-        --TODO
+        --Make the callsign index available again for spawn
+        veaf.loggers.get(veafSpawn.Id):trace(string.format("AFAC_num=%s", veaf.p(AFAC_num)))
+        veafSpawn.AFAC.callsigns[AFAC_num].taken = false
+        veafSpawn.AFAC.numberSpawned = veafSpawn.AFAC.numberSpawned - 1
+        mist.DBs.groupsByName[afacGroupName] = nil --MIST does not do it on it's own, I highly recommend looking for an alternative, this is to spawn the AFAC once again with the unit name equal to the group name
 
     else
         veaf.loggers.get(veafSpawn.Id):trace(string.format("AFAC named=%s is alive", veaf.p(afacGroupName)))
-        mist.scheduleFunction(veafSpawn.afacWatchdog, {afacGroupName, markName}, timer.getTime()+120)
+        mist.scheduleFunction(veafSpawn.afacWatchdog, {afacGroupName, AFAC_num, markName}, timer.getTime()+120)
     end
 end
 

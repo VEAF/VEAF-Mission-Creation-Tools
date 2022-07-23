@@ -54,7 +54,7 @@ veafInterpreter = {}
 veafInterpreter.Id = "INTERPRETER"
 
 --- Version.
-veafInterpreter.Version = "1.4.0"
+veafInterpreter.Version = "1.5.0"
 
 -- trace level, specific to this module
 --veafInterpreter.LogLevel = "trace"
@@ -68,6 +68,9 @@ veafInterpreter.Trailer = "\"%]"
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Do not change anything below unless you know what you are doing!
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+-- delay before the mission editor unit names are interpreted
+veafInterpreter.DelayForStartup = 1
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Utility methods
@@ -154,8 +157,12 @@ end
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- initialisation
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
-
 function veafInterpreter.initialize()
+    mist.scheduleFunction(veafInterpreter._initialize, {}, timer.getTime()+veafInterpreter.DelayForStartup)
+end
+
+
+function veafInterpreter._initialize()
     -- the following code is liberally adapted from MiST (thanks Grimes !)
     local l_units = mist.DBs.units	--local reference for faster execution
     for coa, coa_tbl in pairs(l_units) do

@@ -2680,7 +2680,7 @@ function veafSpawn.afacWatchdog(afacGroupName, AFAC_num, markName)
         veaf.loggers.get(veafSpawn.Id):trace(string.format("AFAC_num=%s", veaf.p(AFAC_num)))
         veafSpawn.AFAC.callsigns[AFAC_num].taken = false
         veafSpawn.AFAC.numberSpawned = veafSpawn.AFAC.numberSpawned - 1
-        mist.DBs.groupsByName[afacGroupName] = nil --MIST does not do it on it's own, I highly recommend looking for an alternative, this is to spawn the AFAC once again with the unit name equal to the group name
+        mist.DBs.unitsByName[afacGroupName] = nil --MIST does not do it on it's own, I highly recommend looking for an alternative, this is to spawn the AFAC once again with the unit name equal to the group name
 
     else
         veaf.loggers.get(veafSpawn.Id):trace(string.format("AFAC named=%s is alive", veaf.p(afacGroupName)))

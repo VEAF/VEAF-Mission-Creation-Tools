@@ -39,7 +39,7 @@ veafUnits = {}
 veafUnits.Id = "UNITS"
 
 --- Version.
-veafUnits.Version = "1.11.1"
+veafUnits.Version = "1.12.0"
 
 -- trace level, specific to this module
 --veafUnits.LogLevel = "trace"
@@ -817,6 +817,8 @@ veafUnits.GroupsDatabase = {
                 {"HQ-7_STR_SP", cell = 8}, 
                 --LN
                 {"HQ-7_LN_SP", cell = 1, hdg = 300}, {"HQ-7_LN_SP", cell = 5, hdg = 60}, {"HQ-7_LN_SP", cell = 23, hdg = 180},
+                --supply truck
+                {"Ural-375", random=true},
             },
             description = "HQ-7 SAM site",
             groupName = "HQ-7"
@@ -826,7 +828,7 @@ veafUnits.GroupsDatabase = {
         aliases = {"hq7-noew"},
         group = {
             disposition = { h= 5, w= 5},
-            units = {{"HQ-7_LN_SP", cell = 1, hdg = 300}, {"HQ-7_LN_SP", cell = 5, hdg = 60}, {"HQ-7_LN_SP", cell = 23, hdg = 180}},
+            units = {{"HQ-7_LN_SP", cell = 1, hdg = 300}, {"HQ-7_LN_SP", cell = 5, hdg = 60}, {"HQ-7_LN_SP", cell = 23, hdg = 180}, {"Ural-375", random=true},},
             description = "HQ-7 SAM site",
             groupName = "HQ-7"
         },
@@ -840,6 +842,7 @@ veafUnits.GroupsDatabase = {
                 {"SNR_75V", cell = 20}, {"p-19 s-125 sr", cell = 48}, {"S_75M_Volhov", cell = 2, hdg = 315}, {"S_75M_Volhov", cell = 6, hdg = 45}, {"S_75M_Volhov", cell = 17, hdg = 270}, {"S_75M_Volhov", cell = 24, hdg = 90}, {"S_75M_Volhov", cell = 34, hdg = 225}, {"S_75M_Volhov", cell = 38, hdg = 135},
                 {"ZSU_57_2", number = {min=1, max=2}, random=true},
                 {"S-60_Type59_Artillery", number = {min=1, max=2}, random=true},
+                {"ZIL-135", number = {min = 1, max = 2}, random=true},
             },
             description = "SA-2 SAM site",
             groupName = "SA2"
@@ -853,6 +856,7 @@ veafUnits.GroupsDatabase = {
                 {"p-19 s-125 sr", cell = 1}, {"snr s-125 tr", cell = 33}, {"5p73 s-125 ln", cell = 18, hdg = 30}, {"5p73 s-125 ln", cell = 30, hdg = 270}, {"5p73 s-125 ln", cell = 61, hdg = 150},
                 {"ZSU_57_2", number = {min=1, max=2}, random=true},
                 {"S-60_Type59_Artillery", number = {min=1, max=2}, random=true},
+                {"ZIL-135", number = {min = 1, max = 2}, random=true},
             },
             description = "SA-3 SAM site",
             groupName = "SA3"
@@ -901,28 +905,22 @@ veafUnits.GroupsDatabase = {
             disposition = { h= 7, w= 7},
             units = {
                 {"Kub 1S91 str", cell = 25}, {"Kub 2P25 ln", cell = 4, hdg = 180}, {"Kub 2P25 ln", cell = 22, hdg = 90}, {"Kub 2P25 ln", cell = 28, hdg = 270}, {"Kub 2P25 ln", cell = 46, hdg = 0},
-                {"ZSU_57_2", number = {min=1, max=2}, random=true},
-                {"S-60_Type59_Artillery", number = {min=1, max=2}, random=true},
-                {"ATZ-10", number = 2, random=true},
-                {"GPU APA-80 on ZiL-131", number = 1, random=true},
-                {"Ural-4320-31", number = 2, random=true},
-                {"Ural-375 PBU", number = 1, random=true}
+                {"ZSU-23-4 Shilka", number = {min=1, max=2}, random=true},
+                {"ATZ-5", random=true},
+                {"ZIL-135", number = {min = 1, max = 2}, random=true},
+                {"Ural-375 PBU", random=true}
             },
             description = "SA-6 SAM site",
             groupName = "SA6"
         },
     },
     {
-        aliases = {"sa11", "sa-11", "sd"},
+        aliases = {"sa8_squad"},
         group = {
-            disposition = { h= 9, w= 9},
-            units = {
-                {"SA-11 Buk SR 9S18M1", cell = 42}, {"SA-11 Buk CC 9S470M1", cell = 39}, {"SA-11 Buk LN 9A310M1", cell = 1}, {"SA-11 Buk LN 9A310M1", cell = 5}, {"SA-11 Buk LN 9A310M1", cell = 9}, {"SA-11 Buk LN 9A310M1", cell = 72}, {"SA-11 Buk LN 9A310M1", cell = 76}, {"SA-11 Buk LN 9A310M1", cell = 81},
-                {"ZSU_57_2", number = {min=1, max=2}, random=true},
-                {"S-60_Type59_Artillery", number = {min=1, max=2}, random=true}
-            },
-            description = "SA-11 SAM site",
-            groupName = "SA11"
+            disposition = { h= 4, w= 4},
+            units = {{"Osa 9A33 ln", random = true}, {"GAZ-66", random=true}},
+            description = "Sa-8 SAM site",
+            groupName = "SA8"
         },
     },
     {
@@ -942,11 +940,34 @@ veafUnits.GroupsDatabase = {
                 {"S-300PS 5P85C ln", cell = 73},
                 {"S-300PS 64H6E sr", cell = 98},
                 {"S-300PS 54K6 cp", cell = 118},
-                {"ZSU_57_2", number = {min=1, max=2}, random=true},
-                {"S-60_Type59_Artillery", number = {min=1, max=2}, random=true}
+                {"ZSU-23-4 Shilka", number = {min=1, max=2}, random=true},
+                {"2S6 Tunguska", random=true},
             },
             description = "S300 SAM site",
             groupName = "S300"
+        },
+    },
+    {
+        aliases = {"sa11", "sa-11", "sd"},
+        group = {
+            disposition = { h= 9, w= 9},
+            units = {
+                {"SA-11 Buk SR 9S18M1", cell = 42}, {"SA-11 Buk CC 9S470M1", cell = 39}, {"SA-11 Buk LN 9A310M1", cell = 1}, {"SA-11 Buk LN 9A310M1", cell = 5}, {"SA-11 Buk LN 9A310M1", cell = 9}, {"SA-11 Buk LN 9A310M1", cell = 72}, {"SA-11 Buk LN 9A310M1", cell = 76}, {"SA-11 Buk LN 9A310M1", cell = 81},
+                {"ZSU-23-4 Shilka", number = {min=1, max=2}, random=true},
+                {"ATZ-5", random=true},
+                {"Ural-375", number = {min = 1, max = 2}, random=true},
+            },
+            description = "SA-11 SAM site",
+            groupName = "SA11"
+        },
+    },
+    {
+        aliases = {"sa15_squad"},
+        group = {
+            disposition = { h= 4, w= 4},
+            units = {{"Tor 9A331", random = true}, {"GAZ-66", random=true}},
+            description = "Sa-15 SAM site",
+            groupName = "SA15"
         },
     },
     {
@@ -1037,6 +1058,9 @@ veafUnits.GroupsDatabase = {
                 {"rapier_fsa_launcher", cell = 5, hdg = 45},
                 {"rapier_fsa_launcher", cell = 21, hdg = 225},
                 {"rapier_fsa_launcher", cell = 25, hdg = 135},
+
+                --supply/crew truck
+                {"Land_Rover_101_FC", number = {min=1, max = 2}, random = true}, 
             },
             description = "Rapier SAM site",
             groupName = "Rapier"
@@ -1054,6 +1078,9 @@ veafUnits.GroupsDatabase = {
                 {"rapier_fsa_launcher", cell = 5, hdg = 45},
                 {"rapier_fsa_launcher", cell = 21, hdg = 225},
                 {"rapier_fsa_launcher", cell = 25, hdg = 135},
+
+                --supply/crew truck
+                {"Land_Rover_101_FC", number = {min=1, max = 2}, random = true}, 
             },
             description = "Rapier SAM site with radar",
             groupName = "Rapier-radar"
@@ -1142,7 +1169,14 @@ veafUnits.GroupsDatabase = {
         aliases = {"hawk", "ha", "mim-23"},
         group = {
             disposition = { h= 7, w= 3},
-            units = {{"Hawk sr", cell = 13}, {"Hawk pcp", cell = 8}, {"Hawk tr", cell = 15}, {"Hawk ln", cell = 1, hdg = 225}, {"Hawk ln", cell = 3, hdg = 0 }, {"Hawk ln", cell = 21, hdg = 135}},
+            units = {
+                {"Hawk sr", cell = 13}, {"Hawk pcp", cell = 8}, {"Hawk tr", cell = 15}, {"Hawk ln", cell = 1, hdg = 225}, {"Hawk ln", cell = 3, hdg = 0 }, {"Hawk ln", cell = 21, hdg = 135},
+
+                -- a supply truck or three
+                {"M 818", number = {min=1, max=3}, random=true},
+                --AAA defense
+                {"Vulcan", random=true},
+            },
             description = "Hawk SAM site",
             groupName = "Hawk"
         },
@@ -1152,26 +1186,30 @@ veafUnits.GroupsDatabase = {
         group = {
             disposition = { h= 7, w= 12},
             units = {
-                {"Patriot str", cell = 66}, 
+                {"Patriot str", cell = 66, hdg = 0}, 
                 {"Patriot cp" , cell = 78},  
                 {"Patriot AMG", cell = 79}, 
                 {"Patriot ECS", cell = 67}, 
                 {"Patriot EPP", cell = 68}, 
 
-                {"Patriot ln", cell = 1},
-                {"Patriot ln", cell = 2},
-                {"Patriot ln", cell = 3},
-                {"Patriot ln", cell = 4},
+                {"Patriot ln", cell = 1, hdg = 280},
+                {"Patriot ln", cell = 2, hdg = 300},
                 
-                {"Patriot ln", cell = 29},
-                {"Patriot ln", cell = 30},
-                {"Patriot ln", cell = 31},
-                {"Patriot ln", cell = 32},
+                {"Patriot ln", cell = 28, hdg = 20},
+                {"Patriot ln", cell = 29, hdg = 40},
+                {"Patriot ln", cell = 32, hdg = 330},
+                {"Patriot ln", cell = 33, hdg = 310},
 
-                {"Patriot ln", cell = 9},
-                {"Patriot ln", cell = 10},
-                {"Patriot ln", cell = 11},
-                {"Patriot ln", cell = 12}
+                {"Patriot ln", cell = 11, hdg = 60},
+                {"Patriot ln", cell = 12, hdg = 80},
+
+                --supply trucks
+                {"M 818", number = {min=2, max=5}, random=true},
+
+                --AAA defense
+                {"Vulcan", number = {min=0, max=1}, cell = 60},
+                {"Vulcan", number = {min=0, max=1}, cell = 48},
+                {"Vulcan", cell = 54},
             },
             description = "Patriot SAM site",
             groupName = "Patriot"
@@ -1234,16 +1272,34 @@ veafUnits.GroupsDatabase = {
         aliases = {"M-109"},
         group = {
             disposition = { h = 2, w = 3},
-            units = { {"M-109", number = 3}, {"MLRS FDDM", number = 1} },
+            units = { {"M-109", number = 3}, {"MLRS FDDM", number = 1}, {"M 818", number = 1} },
             description = "M-109 artillery battery",
             groupName = "M-109 artillery battery",
+        },
+    },
+    {
+        aliases = {"PLZ05"},
+        group = {
+            disposition = { h = 2, w = 3},
+            units = { {"PLZ05", number = 3}, {"Grad_FDDM", number = 1}, {"Ural-375", number = 1} },
+            description = "PLZ05 artillery battery",
+            groupName = "PLZ05 artillery battery",
+        },
+    },
+    {
+        aliases = {"Msta"},
+        group = {
+            disposition = { h = 2, w = 3},
+            units = { {"SAU Msta", number = 3}, {"Grad_FDDM", number = 1}, {"Ural-375", number = 1} },
+            description = "Msta artillery battery",
+            groupName = "Msta artillery battery",
         },
     },
     {
         aliases = {"MLRS"},
         group = {
             disposition = { h = 2, w = 4},
-            units = { {"MLRS", number = 4}, {"MLRS FDDM", number = 1} },
+            units = { {"MLRS", number = 4}, {"MLRS FDDM", number = 1}, {"M 818", number = 1} },
             description = "M270 MLRS artillery battery",
             groupName = "M270 MLRS artillery battery",
         },
@@ -1252,7 +1308,7 @@ veafUnits.GroupsDatabase = {
         aliases = {"SmerchCM"},
         group = {
             disposition = { h = 2, w = 4},
-            units = { {"Smerch", number = 4}, {"Grad_FDDM", number = 1} },
+            units = { {"Smerch", number = 4}, {"Grad_FDDM", number = 1}, {"ZIL-135", number = 2} },
             description = "Smerch (CM) MLRS artillery battery",
             groupName = "Smerch (CM) MLRS artillery battery",
         },
@@ -1261,7 +1317,7 @@ veafUnits.GroupsDatabase = {
         aliases = {"SmerchHE"},
         group = {
             disposition = { h = 2, w = 4},
-            units = { {"Smerch_HE", number = 4}, {"Grad_FDDM", number = 1} },
+            units = { {"Smerch_HE", number = 4}, {"Grad_FDDM", number = 1}, {"ZIL-135", number = 2} },
             description = "Smerch (HE) MLRS artillery battery",
             groupName = "Smerch (HE) MLRS artillery battery",
         },
@@ -1270,7 +1326,7 @@ veafUnits.GroupsDatabase = {
         aliases = {"Uragan"},
         group = {
             disposition = { h = 2, w = 4},
-            units = { {"Uragan_BM-27", number = 4}, {"Grad_FDDM", number = 1} },
+            units = { {"Uragan_BM-27", number = 4}, {"Grad_FDDM", number = 1}, {"ZIL-135", number = 2} },
             description = "Uragan MLRS artillery battery",
             groupName = "Uragan MLRS artillery battery",
         },
@@ -1279,7 +1335,7 @@ veafUnits.GroupsDatabase = {
         aliases = {"Grad"},
         group = {
             disposition = { h = 2, w = 4},
-            units = { {"Grad-URAL", number = 4}, {"Grad_FDDM", number = 1} },
+            units = { {"Grad-URAL", number = 4}, {"Grad_FDDM", number = 1}, {"Ural-375", number = 2} },
             description = "Grad MLRS artillery battery",
             groupName = "Grad MLRS artillery battery",
         },

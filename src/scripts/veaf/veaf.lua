@@ -2523,11 +2523,11 @@ VeafQRA.DEFAULT_MESSAGE_START = "%s is deployed"
 VeafQRA.DEFAULT_MESSAGE_DESTROYED = "%s has been destroyed"
 VeafQRA.DEFAULT_MESSAGE_READY = "%s is ready"
 
-function VeafQRA.ToggleAllSilence()
-    if VeafQRA.AllSilence == true then
-        VeafQRA.AllSilence = false
-    else
+function VeafQRA.ToggleAllSilence(state)
+    if state then 
         VeafQRA.AllSilence = true
+    else
+        VeafQRA.AllSilence = false
     end
 end
 

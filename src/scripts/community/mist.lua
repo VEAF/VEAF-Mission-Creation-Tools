@@ -1498,6 +1498,7 @@ do -- the main scope
 			end
 		end
 
+		--if the group is being cloned and the group name already exist or if no group name was specified then generate a name
 		if newGroup.clone and mist.DBs.groupsByName[newGroup.name] or not newGroup.name then
 			newGroup.name = tostring(newCountry .. tostring(typeName) .. mistDynAddIndex[typeName])
 		end

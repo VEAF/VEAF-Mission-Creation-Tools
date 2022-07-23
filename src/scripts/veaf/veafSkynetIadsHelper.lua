@@ -31,7 +31,7 @@ veafSkynet.Id = "SKYNET"
 veafSkynet.Version = "2.0.0"
 
 -- trace level, specific to this module
-veafSkynet.LogLevel = "trace"
+--veafSkynet.LogLevel = "trace"
 
 veaf.loggers.new(veafSkynet.Id, veafSkynet.LogLevel)
 
@@ -39,7 +39,7 @@ veaf.loggers.new(veafSkynet.Id, veafSkynet.LogLevel)
 veafSkynet.DelayForStartup = 1
 
 -- delay before restarting the IADS when adding a single group
-veafSkynet.DelayForRestart = 10
+veafSkynet.DelayForRestart = 65
 
 -- maximum x or y (z in DCS) between a SAM site and it's point defenses in meters
 veafSkynet.MaxPointDefenseDistanceFromSite = 10000

@@ -2578,6 +2578,7 @@ function veafSpawn.spawnAFAC(spawnSpot, name, country, altitude, speed, hdg, fre
     veaf.loggers.get(veafSpawn.Id):trace("unitName=%s",unitName)
     unit.unitName = unitName
     unit.name = unitName
+    newGroup.sameName = true
 
     unit.alt = teleportSpot.alt
 

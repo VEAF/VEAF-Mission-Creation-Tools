@@ -1715,6 +1715,11 @@ do -- the main scope
             --end
 		end
 
+		--option that the user can set to have the group name equal to the unit name if the unit name/group name is not already taken by another unit
+		if not newGroup.sameName then
+			newGroup.sameName = false
+		end
+
 		if not newGroup.hidden then
 			newGroup.hidden = false
 		end
@@ -1745,8 +1750,8 @@ do -- the main scope
 					newGroup.units[unitIndex].name = newGroup.units[unitIndex].name
 				end
 			end
-			--if the unit name was not given or already exists in the case of a clone, derive a new one from the group name
-			if (newGroup.clone and mist.DBs.unitsByName[unitData.name]) or not unitData.name then
+			--if the unit name was not given or, in the case of a clone, if the specified unit name is not taken by any other units but the user did not request to keep that given name -> then generate a new unit name from the group name and unit index
+			if not unitData.name or (newGroup.clone and (mist.DBs.unitsByName[unitData.name] or not newGroup.sameName)) then
 				newGroup.units[unitIndex].name = tostring(newGroup.name .. ' unit' .. unitIndex)
 			end
 
@@ -1798,11 +1803,11 @@ do -- the main scope
                 end
             end
 		else -- if aircraft and no route assigned. make a quick and stupid route so AI doesnt RTB immediately
-			--if newCat == 'AIRPLANE' or newCat == 'HELICOPTER' then
+			if newCat == 'AIRPLANE' or newCat == 'HELICOPTER' then
 				newGroup.route = {}
 				newGroup.route.points = {}
 				newGroup.route.points[1] = {}
-			--end
+			end
 		end
 		newGroup.country = newCountry
 
@@ -1828,6 +1833,7 @@ do -- the main scope
 		-- sanitize table
 		newGroup.groupName = nil
 		newGroup.clone = nil
+		newGroup.sameName = nil
 		newGroup.category = nil
 		newGroup.country = nil
 
@@ -4027,7 +4033,7 @@ do -- group functions scope
     
     end
 
-	function mist.teleportToPoint(vars) -- main teleport function that all of teleport/respawn functions call
+	function mist.teleportToPoint(vars, prepareOnly) -- main teleport function that all of teleport/respawn functions call
 		--log:warn(vars)
         local point = vars.point
 		local gpName
@@ -4232,12 +4238,14 @@ do -- group functions scope
         
 		--log:warn(newGroupData)
 		--mist.debug.writeData(mist.utils.serialize,{'teleportToPoint', newGroupData}, 'newGroupData.lua')
-		if string.lower(newGroupData.category) == 'static' then
-			--log:warn(newGroupData)
-			return mist.dynAddStatic(newGroupData)
+		if not prepareOnly then
+			if string.lower(newGroupData.category) == 'static' then
+				--log:warn(newGroupData)
+				return mist.dynAddStatic(newGroupData)
+			end
+			return mist.dynAdd(newGroupData)
 		end
-		return mist.dynAdd(newGroupData)
-
+		return newGroupData
 	end
 
 	function mist.respawnInZone(gpName, zone, disperse, maxDisp, v)

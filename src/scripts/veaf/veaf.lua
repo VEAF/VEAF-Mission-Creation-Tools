@@ -32,7 +32,7 @@ veaf = {}
 veaf.Id = "VEAF"
 
 --- Version.
-veaf.Version = "1.21.3"
+veaf.Version = "1.22.0"
 
 --- Development version ?
 veaf.Development = true
@@ -1207,21 +1207,32 @@ end
 
 veaf.defaultAlarmState = 2
 
-function veaf.readyForCombat(group, alarm)
+function veaf.readyForCombat(group, alarm, disperseTime)
+    veaf.loggers.get(veaf.Id):trace(string.format("group=%s, alarm=%s, disperseTime=%s", veaf.p(group), veaf.p(alarm), veaf.p(disperseTime)))
     if type(group) == 'string' then
         group = Group.getByName(group)
     end
     if group then
+        veaf.loggers.get(veaf.Id):trace("got group")
 
         local alarm = alarm
         if not alarm or alarm < 0 or alarm > 2 then
             alarm = veaf.defaultAlarmState
         end
 
+        local disperseTime = disperseTime
+        if not disperseTime or disperseTime < 0 then
+            disperseTime = 0
+        end
+
         local cont = group:getController()
         cont:setOnOff(true)
         cont:setOption(AI.Option.Ground.id.ALARM_STATE, alarm)	
-        cont:setOption(AI.Option.Air.id.ROE, AI.Option.Air.val.ROE.WEAPON_FREE)
+        cont:setOption(AI.Option.Ground.id.DISPERSE_ON_ATTACK, disperseTime) -- set disperse on attack according to the option
+        cont:setOption(AI.Option.Air.id.ROE, AI.Option.Air.val.ROE.WEAPON_FREE) -- set fire at will
+        cont:setOption(AI.Option.Ground.id.ROE, AI.Option.Air.val.ROE.WEAPON_FREE) -- set fire at will
+        cont:setOption(AI.Option.Naval.id.ROE, AI.Option.Air.val.ROE.WEAPON_FREE) -- set fire at will
+        cont:setOption(AI.Option.Ground.id.ENGAGE_AIR_WEAPONS, true) -- engage air-to-ground weapons with SAMs
     end
 end
 

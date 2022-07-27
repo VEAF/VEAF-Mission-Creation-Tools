@@ -39,7 +39,7 @@ veafUnits = {}
 veafUnits.Id = "UNITS"
 
 --- Version.
-veafUnits.Version = "1.12.0"
+veafUnits.Version = "1.12.1"
 
 -- trace level, specific to this module
 --veafUnits.LogLevel = "trace"
@@ -782,6 +782,10 @@ veafUnits.UnitsDatabase = {
         aliases = {"red-ewr"},
         unitType = "1L13 EWR",
     },
+    {
+        aliases = {"avenger"},
+        unitType = "M1097 Avenger",
+    },
 }
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -924,6 +928,15 @@ veafUnits.GroupsDatabase = {
         },
     },
     {
+        aliases = {"sa9_squad"},
+        group = {
+            disposition = { h= 4, w= 4},
+            units = {{"Strela-1 9P31", random = true}, {"GAZ-66", random=true}},
+            description = "Sa-9 SAM site",
+            groupName = "SA9"
+        },
+    },
+    {
         aliases = {"sa10", "s300", "bb"},
         group = {
             disposition = { h= 10, w= 13},
@@ -959,6 +972,15 @@ veafUnits.GroupsDatabase = {
             },
             description = "SA-11 SAM site",
             groupName = "SA11"
+        },
+    },
+    {
+        aliases = {"sa13_squad"},
+        group = {
+            disposition = { h= 4, w= 4},
+            units = {{"Strela-10M3", random = true}, {"GAZ-66", random=true}},
+            description = "Sa-13 SAM site",
+            groupName = "SA13"
         },
     },
     {
@@ -1026,7 +1048,16 @@ veafUnits.GroupsDatabase = {
             description = "Sa-18S Manpad Squad",
             groupName = "Red Modern Manpad Squad"
         },
-    },  
+    }, 
+    {
+        aliases = {"sa19_squad"},
+        group = {
+            disposition = { h= 4, w= 4},
+            units = {{"2S6 Tunguska", random = true}, {"Ural-375", random=true}},
+            description = "Sa-19 SAM site",
+            groupName = "SA19"
+        },
+    }, 
     {
         -- red ewr position
         aliases = {"red_ewr", "ewr"},
@@ -1103,6 +1134,15 @@ veafUnits.GroupsDatabase = {
             },
             description = "Stinger Manpad Squad",
             groupName = "Blue Manpad Squad"
+        },
+    },
+    {
+        aliases = {"avenger_squad"},
+        group = {
+            disposition = { h= 4, w= 4},
+            units = {{"M1097 Avenger", random = true}, {"M 818", random=true}},
+            description = "Avenger SAM site",
+            groupName = "Avenger"
         },
     },
     {

@@ -23,7 +23,7 @@ dcsUnits = {}
 dcsUnits.Id = "DCSUNITS - "
 
 --- Version.
-dcsUnits.Version = "2022.07.22"
+dcsUnits.Version = "2022.07.26"
 
 -- trace level, specific to this module
 --dcsUnits.LogLevel = "trace"
@@ -43,6 +43,7 @@ dcsUnits.NavalStatics = {
 	["Orca"]=true,
 	["Gas platform"]=true,
 	["Oil rig"]=true,
+	["M1 barrage balloon"] = true,
 }
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -5875,9 +5876,15 @@ dcsUnits.DcsUnitsDatabase =
 	}, -- end of [189]
 	[190] = 
 	{
+		["desc"] = 
+		{
+			["maxMass"] = 2000,
+			["minMass"] = 1000,
+		}, -- end of ["desc"]
 		["type"] = "ammo_cargo",
 		["name"] = "Ammo",
 		["category"] = "Cargo",
+		["defaultMass"] = 1500,
 		["description"] = "Ammo",
 		["attribute"] = 
 		{
@@ -5889,9 +5896,15 @@ dcsUnits.DcsUnitsDatabase =
 	}, -- end of [190]
 	[191] = 
 	{
+		["desc"] = 
+		{
+			["maxMass"] = 480,
+			["minMass"] = 100,
+		}, -- end of ["desc"]
 		["type"] = "barrels_cargo",
 		["name"] = "Barrels",
 		["category"] = "Cargo",
+		["defaultMass"] = 480,
 		["description"] = "Barrels",
 		["attribute"] = 
 		{
@@ -5903,9 +5916,15 @@ dcsUnits.DcsUnitsDatabase =
 	}, -- end of [191]
 	[192] = 
 	{
+		["desc"] = 
+		{
+			["maxMass"] = 4000,
+			["minMass"] = 100,
+		}, -- end of ["desc"]
 		["type"] = "container_cargo",
 		["name"] = "Container",
 		["category"] = "Cargo",
+		["defaultMass"] = 1200,
 		["description"] = "Container",
 		["attribute"] = 
 		{
@@ -5917,9 +5936,15 @@ dcsUnits.DcsUnitsDatabase =
 	}, -- end of [192]
 	[193] = 
 	{
+		["desc"] = 
+		{
+			["maxMass"] = 823,
+			["minMass"] = 823,
+		}, -- end of ["desc"]
 		["type"] = "f_bar_cargo",
 		["name"] = "F-shape barrier",
 		["category"] = "Cargo",
+		["defaultMass"] = 823,
 		["description"] = "F-shape barrier",
 		["attribute"] = 
 		{
@@ -5931,9 +5956,15 @@ dcsUnits.DcsUnitsDatabase =
 	}, -- end of [193]
 	[194] = 
 	{
+		["desc"] = 
+		{
+			["maxMass"] = 5000,
+			["minMass"] = 800,
+		}, -- end of ["desc"]
 		["type"] = "fueltank_cargo",
 		["name"] = "Fueltank",
 		["category"] = "Cargo",
+		["defaultMass"] = 2400,
 		["description"] = "Fueltank",
 		["attribute"] = 
 		{
@@ -5945,9 +5976,15 @@ dcsUnits.DcsUnitsDatabase =
 	}, -- end of [194]
 	[195] = 
 	{
+		["desc"] = 
+		{
+			["maxMass"] = 10000,
+			["minMass"] = 3800,
+		}, -- end of ["desc"]
 		["type"] = "iso_container",
 		["name"] = "ISO container",
 		["category"] = "Cargo",
+		["defaultMass"] = 4500,
 		["description"] = "ISO container",
 		["attribute"] = 
 		{
@@ -5959,9 +5996,15 @@ dcsUnits.DcsUnitsDatabase =
 	}, -- end of [195]
 	[196] = 
 	{
+		["desc"] = 
+		{
+			["maxMass"] = 10000,
+			["minMass"] = 2200,
+		}, -- end of ["desc"]
 		["type"] = "iso_container_small",
 		["name"] = "ISO container small",
 		["category"] = "Cargo",
+		["defaultMass"] = 3200,
 		["description"] = "ISO container small",
 		["attribute"] = 
 		{
@@ -5973,9 +6016,15 @@ dcsUnits.DcsUnitsDatabase =
 	}, -- end of [196]
 	[197] = 
 	{
+		["desc"] = 
+		{
+			["maxMass"] = 840,
+			["minMass"] = 840,
+		}, -- end of ["desc"]
 		["type"] = "m117_cargo",
 		["name"] = "M117 bombs",
 		["category"] = "Cargo",
+		["defaultMass"] = 840,
 		["description"] = "M117 bombs",
 		["attribute"] = 
 		{
@@ -5987,9 +6036,15 @@ dcsUnits.DcsUnitsDatabase =
 	}, -- end of [197]
 	[198] = 
 	{
+		["desc"] = 
+		{
+			["maxMass"] = 5000,
+			["minMass"] = 700,
+		}, -- end of ["desc"]
 		["type"] = "oiltank_cargo",
 		["name"] = "Oiltank",
 		["category"] = "Cargo",
+		["defaultMass"] = 2300,
 		["description"] = "Oiltank",
 		["attribute"] = 
 		{
@@ -6001,9 +6056,15 @@ dcsUnits.DcsUnitsDatabase =
 	}, -- end of [198]
 	[199] = 
 	{
+		["desc"] = 
+		{
+			["maxMass"] = 4815,
+			["minMass"] = 4815,
+		}, -- end of ["desc"]
 		["type"] = "pipes_big_cargo",
 		["name"] = "Pipes big",
 		["category"] = "Cargo",
+		["defaultMass"] = 4815,
 		["description"] = "Pipes big",
 		["attribute"] = 
 		{
@@ -6015,9 +6076,15 @@ dcsUnits.DcsUnitsDatabase =
 	}, -- end of [199]
 	[200] = 
 	{
+		["desc"] = 
+		{
+			["maxMass"] = 4350,
+			["minMass"] = 4350,
+		}, -- end of ["desc"]
 		["type"] = "pipes_small_cargo",
 		["name"] = "Pipes small",
 		["category"] = "Cargo",
+		["defaultMass"] = 4350,
 		["description"] = "Pipes small",
 		["attribute"] = 
 		{
@@ -6029,9 +6096,15 @@ dcsUnits.DcsUnitsDatabase =
 	}, -- end of [200]
 	[201] = 
 	{
+		["desc"] = 
+		{
+			["maxMass"] = 5000,
+			["minMass"] = 5000,
+		}, -- end of ["desc"]
 		["type"] = "tetrapod_cargo",
 		["name"] = "Tetrapod",
 		["category"] = "Cargo",
+		["defaultMass"] = 5000,
 		["description"] = "Tetrapod",
 		["attribute"] = 
 		{
@@ -6043,9 +6116,15 @@ dcsUnits.DcsUnitsDatabase =
 	}, -- end of [201]
 	[202] = 
 	{
+		["desc"] = 
+		{
+			["maxMass"] = 4747,
+			["minMass"] = 4747,
+		}, -- end of ["desc"]
 		["type"] = "trunks_long_cargo",
 		["name"] = "Trunks long",
 		["category"] = "Cargo",
+		["defaultMass"] = 4747,
 		["description"] = "Trunks long",
 		["attribute"] = 
 		{
@@ -6057,9 +6136,15 @@ dcsUnits.DcsUnitsDatabase =
 	}, -- end of [202]
 	[203] = 
 	{
+		["desc"] = 
+		{
+			["maxMass"] = 5000,
+			["minMass"] = 5000,
+		}, -- end of ["desc"]
 		["type"] = "trunks_small_cargo",
 		["name"] = "Trunks short",
 		["category"] = "Cargo",
+		["defaultMass"] = 5000,
 		["description"] = "Trunks short",
 		["attribute"] = 
 		{
@@ -6071,9 +6156,15 @@ dcsUnits.DcsUnitsDatabase =
 	}, -- end of [203]
 	[204] = 
 	{
+		["desc"] = 
+		{
+			["maxMass"] = 10000,
+			["minMass"] = 100,
+		}, -- end of ["desc"]
 		["type"] = "uh1h_cargo",
 		["name"] = "UH-1H cargo",
 		["category"] = "Cargo",
+		["defaultMass"] = 1000,
 		["description"] = "UH-1H cargo",
 		["attribute"] = 
 		{
@@ -6431,6 +6522,7 @@ dcsUnits.DcsUnitsDatabase =
 		["type"] = "345 Excavator",
 		["name"] = "Excavator",
 		["category"] = "Fortification",
+		["isPutToWater"] = true,
 		["description"] = "Excavator",
 		["attribute"] = 
 		{
@@ -6491,6 +6583,7 @@ dcsUnits.DcsUnitsDatabase =
 		["type"] = "Belgian gate",
 		["name"] = "Belgian gate",
 		["category"] = "Fortification",
+		["isPutToWater"] = true,
 		["description"] = "Belgian gate",
 		["attribute"] = 
 		{
@@ -6506,6 +6599,7 @@ dcsUnits.DcsUnitsDatabase =
 		["type"] = "billboard_motorized",
 		["name"] = "Billboard Motorized",
 		["category"] = "Fortification",
+		["isPutToWater"] = true,
 		["description"] = "Billboard Motorized",
 		["attribute"] = 
 		{
@@ -7165,6 +7259,7 @@ dcsUnits.DcsUnitsDatabase =
 		["type"] = "Log posts 1",
 		["name"] = "Log posts 1",
 		["category"] = "Fortification",
+		["isPutToWater"] = true,
 		["description"] = "Log posts 1",
 		["attribute"] = 
 		{
@@ -7180,6 +7275,7 @@ dcsUnits.DcsUnitsDatabase =
 		["type"] = "Log posts 2",
 		["name"] = "Log posts 2",
 		["category"] = "Fortification",
+		["isPutToWater"] = true,
 		["description"] = "Log posts 2",
 		["attribute"] = 
 		{
@@ -7195,6 +7291,7 @@ dcsUnits.DcsUnitsDatabase =
 		["type"] = "Log posts 3",
 		["name"] = "Log posts 3",
 		["category"] = "Fortification",
+		["isPutToWater"] = true,
 		["description"] = "Log posts 3",
 		["attribute"] = 
 		{
@@ -7210,6 +7307,7 @@ dcsUnits.DcsUnitsDatabase =
 		["type"] = "Log ramps 1",
 		["name"] = "Log ramps 1",
 		["category"] = "Fortification",
+		["isPutToWater"] = true,
 		["description"] = "Log ramps 1",
 		["attribute"] = 
 		{
@@ -7225,6 +7323,7 @@ dcsUnits.DcsUnitsDatabase =
 		["type"] = "Log ramps 2",
 		["name"] = "Log ramps 2",
 		["category"] = "Fortification",
+		["isPutToWater"] = true,
 		["description"] = "Log ramps 2",
 		["attribute"] = 
 		{
@@ -7240,6 +7339,7 @@ dcsUnits.DcsUnitsDatabase =
 		["type"] = "Log ramps 3",
 		["name"] = "Log ramps 3",
 		["category"] = "Fortification",
+		["isPutToWater"] = true,
 		["description"] = "Log ramps 3",
 		["attribute"] = 
 		{
@@ -7265,6 +7365,7 @@ dcsUnits.DcsUnitsDatabase =
 		["type"] = "Nodding_Donkey",
 		["name"] = "Nodding Donkey",
 		["category"] = "Fortification",
+		["isPutToWater"] = true,
 		["description"] = "Nodding Donkey",
 		["attribute"] = 
 		{
@@ -7280,6 +7381,7 @@ dcsUnits.DcsUnitsDatabase =
 		["type"] = "offshore WindTurbine",
 		["name"] = "offshore Wind Turbine",
 		["category"] = "Fortification",
+		["isPutToWater"] = true,
 		["description"] = "offshore Wind Turbine",
 		["attribute"] = 
 		{
@@ -7295,6 +7397,7 @@ dcsUnits.DcsUnitsDatabase =
 		["type"] = "offshore WindTurbine2",
 		["name"] = "offshore Wind Turbine2",
 		["category"] = "Fortification",
+		["isPutToWater"] = true,
 		["description"] = "offshore Wind Turbine2",
 		["attribute"] = 
 		{
@@ -7330,6 +7433,7 @@ dcsUnits.DcsUnitsDatabase =
 		["type"] = "Orca",
 		["name"] = "Orca Whale",
 		["category"] = "Fortification",
+		["isPutToWater"] = true,
 		["description"] = "Orca Whale",
 		["attribute"] = 
 		{
@@ -7567,6 +7671,7 @@ dcsUnits.DcsUnitsDatabase =
 		["type"] = "Ski Ramp",
 		["name"] = "Skiramp",
 		["category"] = "Fortification",
+		["isPutToWater"] = true,
 		["description"] = "Skiramp",
 		["attribute"] = 
 		{
@@ -7682,6 +7787,7 @@ dcsUnits.DcsUnitsDatabase =
 		["type"] = "Small_LightHouse",
 		["name"] = "Small_LightHouse",
 		["category"] = "Fortification",
+		["isPutToWater"] = true,
 		["description"] = "Small_LightHouse",
 		["attribute"] = 
 		{
@@ -7697,6 +7803,7 @@ dcsUnits.DcsUnitsDatabase =
 		["type"] = "Stanley_LightHouse",
 		["name"] = "Stanley LightHouse",
 		["category"] = "Fortification",
+		["isPutToWater"] = true,
 		["description"] = "Stanley LightHouse",
 		["attribute"] = 
 		{
@@ -7882,6 +7989,7 @@ dcsUnits.DcsUnitsDatabase =
 		["type"] = "Tower Crane",
 		["name"] = "TowerCrane",
 		["category"] = "Fortification",
+		["isPutToWater"] = true,
 		["description"] = "TowerCrane",
 		["attribute"] = 
 		{
@@ -7987,6 +8095,7 @@ dcsUnits.DcsUnitsDatabase =
 		["type"] = "WindTurbine",
 		["name"] = "Wind Turbine",
 		["category"] = "Fortification",
+		["isPutToWater"] = true,
 		["description"] = "Wind Turbine",
 		["attribute"] = 
 		{
@@ -8002,6 +8111,7 @@ dcsUnits.DcsUnitsDatabase =
 		["type"] = "WindTurbine_11",
 		["name"] = "Wind Turbine 11",
 		["category"] = "Fortification",
+		["isPutToWater"] = true,
 		["description"] = "Wind Turbine 11",
 		["attribute"] = 
 		{
@@ -8605,6 +8715,7 @@ dcsUnits.DcsUnitsDatabase =
 		["type"] = "FARP",
 		["name"] = "FARP",
 		["category"] = "Heliport",
+		["isPutToWater"] = true,
 		["description"] = "FARP",
 		["aliases"] = 
 		{
@@ -8615,6 +8726,7 @@ dcsUnits.DcsUnitsDatabase =
 		["type"] = "FARP_SINGLE_01",
 		["name"] = "PAD Single",
 		["category"] = "Heliport",
+		["isPutToWater"] = true,
 		["description"] = "PAD Single",
 		["attribute"] = 
 		{
@@ -8630,6 +8742,7 @@ dcsUnits.DcsUnitsDatabase =
 		["type"] = "Gas platform",
 		["name"] = "Gas platform",
 		["category"] = "Heliport",
+		["isPutToWater"] = true,
 		["description"] = "Gas platform",
 		["attribute"] = 
 		{
@@ -8660,6 +8773,7 @@ dcsUnits.DcsUnitsDatabase =
 		["type"] = "Oil rig",
 		["name"] = "Oil rig",
 		["category"] = "Heliport",
+		["isPutToWater"] = true,
 		["description"] = "Oil rig",
 		["attribute"] = 
 		{
@@ -8675,6 +8789,7 @@ dcsUnits.DcsUnitsDatabase =
 		["type"] = "SINGLE_HELIPAD",
 		["name"] = "Helipad Single",
 		["category"] = "Heliport",
+		["isPutToWater"] = true,
 		["description"] = "Helipad Single",
 		["aliases"] = 
 		{
@@ -15279,4 +15394,6 @@ dcsUnits.DcsUnitsDatabase =
 		}, -- end of ["aliases"]
 	}, -- end of [635]
 } -- end of units
+
+
 

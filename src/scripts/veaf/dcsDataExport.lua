@@ -350,7 +350,7 @@ local function safe_name(name)
     return safeName
 end
 
-local function has_value (tab, val)
+local function has_value(tab, val)
     for index, value in ipairs(tab) do
         if value == val then
             return true
@@ -498,6 +498,21 @@ local function browseUnits(out, database, defaultCategory, fullDcsUnit, exportAl
                     end
                 end
             end
+            if unit["isPutToWater"] and type(unit["isPutToWater"]) == 'boolean' then
+                u.isPutToWater = unit["isPutToWater"]
+            end
+            if u.category == "Cargo" then
+                u.defaultMass = 0
+                if u.category == "Cargo" and unit["mass"] and type(unit["mass"]) == 'number' then
+                    u.defaultMass = unit["mass"]
+                end
+                u.desc = {}
+                if u.category == "Cargo" and unit["maxMass"] and unit["minMass"] and type(unit["maxMass"]) == 'number' and type(unit["minMass"]) == 'number' then
+                    u.desc.minMass = unit["minMass"]
+                    u.desc.maxMass = unit["maxMass"]
+                end
+            end
+
         end
     end
 end

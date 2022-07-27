@@ -28,10 +28,10 @@ veafSkynet = {}
 veafSkynet.Id = "SKYNET"
 
 --- Version.
-veafSkynet.Version = "2.0.0"
+veafSkynet.Version = "2.0.1"
 
 -- trace level, specific to this module
---veafSkynet.LogLevel = "trace"
+--eafSkynet.LogLevel = "trace"
 
 veaf.loggers.new(veafSkynet.Id, veafSkynet.LogLevel)
 
@@ -306,11 +306,9 @@ function veafSkynet.addGroupToNetwork(networkName, dcsGroup, forceEwr, pointDefe
             iads:getSAMSitesByNatoName('SA-5'):setActAsEW(false)
             iads:getSAMSitesByNatoName('Patriot'):setActAsEW(false)
             iads:getSAMSitesByNatoName('Hawk'):setActAsEW(false)
-            iads:getSAMSitesByNatoName('Dog Ear'):setActAsEW(false)
-            iads:getSAMSitesByNatoName('Tall Rack'):setActAsEW(true) --55G6 EWR
         end       
-        -- reactivate the IADS after a warmup delay
-        iads:setupSAMSitesAndThenActivate(veafSkynet.DelayForRestart)
+        -- reactivate (rebuild coverage) the IADS after a warmup delay
+        mist.scheduleFunction(SkynetIADS.activate, {iads}, timer.getTime() + 1)
 
         --add the added site to the structure of the network it was added to
         veafSkynet.structure[networkName].groups[groupName] = { forceEwr = forceEwr, pointDefense = defended_name }
@@ -380,16 +378,14 @@ local function initializeIADS(networkName, coa, inRadio, debug)
     iads:getSAMSitesByNatoName('SA-5'):setActAsEW(false)
     iads:getSAMSitesByNatoName('Patriot'):setActAsEW(false)
     iads:getSAMSitesByNatoName('Hawk'):setActAsEW(false)
-	iads:getSAMSitesByNatoName('Dog Ear'):setActAsEW(false)  
-	iads:getSAMSitesByNatoName('Tall Rack'):setActAsEW(true) --55G6 EWR
 
     if inRadio then
         --activate the radio menu to toggle IADS Status output
         iads:addRadioMenu()
     end
 
-    --activate the IADS after a 60s warmup delay (default value)
-    iads:setupSAMSitesAndThenActivate()
+    --activate (build coverage) the IADS after a warmup delay
+    mist.scheduleFunction(SkynetIADS.activate, {iads}, timer.getTime() + 1)
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------

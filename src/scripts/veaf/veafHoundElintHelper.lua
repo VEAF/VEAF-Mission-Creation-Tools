@@ -28,7 +28,7 @@ veafHoundElint = {}
 veafHoundElint.Id = "HOUND"
 
 --- Version.
-veafHoundElint.Version = "1.0.0"
+veafHoundElint.Version = "1.1.0"
 
 -- trace level, specific to this module
 --veafHoundElint.LogLevel = "trace"
@@ -87,6 +87,12 @@ end
 
 
 function veafHoundElint.addPlatformToSystem(dcsGroup, alreadyAddedUnits, atMissionStart)
+    
+    if not dcsGroup then
+        veaf.loggers.get(veafHoundElint.Id):debug("group cannot exist")
+        return false
+    end
+    
     local groupName = dcsGroup:getName()
     local coa = dcsGroup:getCoalition()
     local hound = veafHoundElint.getHoundOfCoalition(coa)
@@ -103,13 +109,9 @@ function veafHoundElint.addPlatformToSystem(dcsGroup, alreadyAddedUnits, atMissi
         veaf.loggers.get(veafHoundElint.Id):error(string.format("no Hound system for the coalition of %s", veaf.p(groupName)))
         return false
     end
-    local didSomething = false
-    --veaf.loggers.get(veafHoundElint.Id):trace(string.format("batchMode = %s", veaf.p(batchMode)))
-    veaf.loggers.get(veafHoundElint.Id):trace(string.format("dcsGroup=%s", veaf.p(mist.utils.deepCopy(dcsGroup))))
-    for _, dcsUnit in pairs(dcsGroup:getUnits()) do
-        veaf.loggers.get(veafHoundElint.Id):trace(string.format("dcsUnit.getName=%s", veaf.p(veaf.ifnn(dcsUnit, "getName"))))
-        veaf.loggers.get(veafHoundElint.Id):trace(string.format("dcsUnit:isActive()=%s", veaf.p(dcsUnit:isActive())))
-        if not(atMissionStart) or dcsUnit:isActive() then
+
+    local _addUnitToSystem = function(dcsUnit, isFunctional) 
+        if not(atMissionStart) or isFunctional then
             local unitName = dcsUnit:getName()
             local unitType = dcsUnit:getDesc()["typeName"]
             veaf.loggers.get(veafHoundElint.Id):trace(string.format("checking unit %s of type %s", veaf.p(unitName), veaf.p(unitType)))
@@ -138,6 +140,22 @@ function veafHoundElint.addPlatformToSystem(dcsGroup, alreadyAddedUnits, atMissi
                 end
             end
         end
+    end
+
+    local didSomething = false
+    --veaf.loggers.get(veafHoundElint.Id):trace(string.format("batchMode = %s", veaf.p(batchMode)))
+    veaf.loggers.get(veafHoundElint.Id):trace(string.format("dcsGroup=%s", veaf.p(mist.utils.deepCopy(dcsGroup))))
+
+    if Group.getByName(groupName) then
+        for _, dcsUnit in pairs(dcsGroup:getUnits()) do
+            veaf.loggers.get(veafHoundElint.Id):trace(string.format("dcsUnit.getName=%s", veaf.p(veaf.ifnn(dcsUnit, "getName"))))
+            veaf.loggers.get(veafHoundElint.Id):trace(string.format("dcsUnit:isActive()=%s", veaf.p(dcsUnit:isActive())))
+            _addUnitToSystem(dcsUnit, dcsUnit:isActive())
+        end
+    elseif StaticObject.getByName(groupName) then
+        veaf.loggers.get(veafHoundElint.Id):trace("Group is Static")
+        veaf.loggers.get(veafHoundElint.Id):trace(string.format("dcsGroup:isExist()=%s", veaf.p(dcsGroup:isExist())))
+        _addUnitToSystem(dcsGroup, dcsGroup:isExist())
     end
 
     if didSomething and not(batchMode) then

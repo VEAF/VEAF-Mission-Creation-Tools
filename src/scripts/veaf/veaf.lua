@@ -2533,21 +2533,21 @@ VeafQRA =
     -- reset the QRA immediately if all the enemy units leave the zone
     resetWhenLeavingZone = false,
     -- maximum number of QRA ready for action at once, -1 indicates infinite
-    QRAmaxCount = -1
+    QRAmaxCount = -1,
     -- number of groups of aircrafts that can be spawned for this QRA in total, -1 indicates infinite
-    QRAcount = -1
+    QRAcount = -1,
     -- delay in minutes before the QRA counter is increased by one, simulating some sort of logistic chain of aircrafts, -1 indicates no resupply
-    delayBeforeQRAresupply = -1
+    delayBeforeQRAresupply = -1,
     -- maximum number of resupplies at a given time, simulating some sort of warehousing, -1 indicates infinite. Is decremented every time a resupply happens.
-    QRAresupplyMax = -1
+    QRAresupplyMax = -1,
     -- minimum QRAcount that will trigger a resupply, -1 indicates as soon as an aircraft is lost
-    QRAminCountforResupply = -1
+    QRAminCountforResupply = -1,
     -- how many aircraft groups are resupplied at once   
-    resupplyAmount = 1
+    resupplyAmount = 1,
     -- indicator to know if the QRA is being resupplied or not
-    isResupplying = false
+    isResupplying = false,
     -- name of the airport to which the QRA is linked, QRAs will be deployed only if this is set and the airport is captured by the QRA's coalition or if this is not set
-    airportLink = nil
+    airportLink = nil,
 
     timer = nil,
     state = nil,

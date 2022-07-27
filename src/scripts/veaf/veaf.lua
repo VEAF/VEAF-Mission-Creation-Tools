@@ -1712,6 +1712,29 @@ function veaf.getCoalitionForCountry(countryName, asNumber)
     return result
 end
 
+function veaf.getAirbaseForCoalition(airbase_name, coa)
+    local airbase = nil
+    
+    if coa and airbase_name then
+
+        if type(coa) == 'string' then 
+            if coa:lower() == "red" then 
+                coa = coalition.side.RED
+            elseif coa:lower() == "blue" then
+                coa = coalition.side.BLUE
+            end
+        end
+
+        if (coa == coalition.side.RED or coa == coalition.side.BLUE) and type(airbase_name) == 'string' then
+            local temp = Airbase.getByName(airbase_name)
+        
+            if temp and temp:getCoalition() == coa then
+                airbase = temp
+            end
+        end
+    end
+end
+
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- mission restart at a certain hour of the day
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -2509,6 +2532,22 @@ VeafQRA =
     noNeedToLeaveZoneBeforeRearming = false,
     -- reset the QRA immediately if all the enemy units leave the zone
     resetWhenLeavingZone = false,
+    -- maximum number of QRA ready for action at once, -1 indicates infinite
+    QRAmaxCount = -1
+    -- number of groups of aircrafts that can be spawned for this QRA in total, -1 indicates infinite
+    QRAcount = -1
+    -- delay in minutes before the QRA counter is increased by one, simulating some sort of logistic chain of aircrafts, -1 indicates no resupply
+    delayBeforeQRAresupply = -1
+    -- maximum number of resupplies at a given time, simulating some sort of warehousing, -1 indicates infinite. Is decremented every time a resupply happens.
+    QRAresupplyMax = -1
+    -- minimum QRAcount that will trigger a resupply, -1 indicates as soon as an aircraft is lost
+    QRAminCountforResupply = -1
+    -- how many aircraft groups are resupplied at once   
+    resupplyAmount = 1
+    -- indicator to know if the QRA is being resupplied or not
+    isResupplying = false
+    -- name of the airport to which the QRA is linked, QRAs will be deployed only if this is set and the airport is captured by the QRA's coalition or if this is not set
+    airportLink = nil
 
     timer = nil,
     state = nil,
@@ -2526,6 +2565,8 @@ VeafQRA.STATUS_READY = 1
 VeafQRA.STATUS_READY_WAITINGFORMORE = 1.5
 VeafQRA.STATUS_ACTIVE = 2
 VeafQRA.STATUS_DEAD = 3
+VeafQRA.STATUS_OUT = 4
+VeafQRA.STATUS_NOAIRBASE = 5
 
 VeafQRA.WATCHDOG_DELAY = 5
 
@@ -2563,6 +2604,14 @@ function VeafQRA:new()
     self.delayBeforeActivating = -1
     self.noNeedToLeaveZoneBeforeRearming = false
     self.resetWhenLeavingZone = false
+    self.QRAmaxCount = -1
+    self.QRAcount = -1
+    self.delayBeforeQRAresupply = -1
+    self.QRAresupplyMax = -1
+    self.QRAminCountforResupply = -1
+    self.resupplyAmount = 1
+    self.isResupplying = false
+    self.airportLink = nil
     
     self._enemyHumanUnits = nil
     self.timeSinceReady = -1
@@ -2671,9 +2720,80 @@ function VeafQRA:setMessageReady(value)
     return self
 end
 
-function VeafQRA:setSilent()
-    veaf.loggers.get(VeafQRA.Id):trace(string.format("VeafQRA[%s]:setSilent()", veaf.p(self.name)))
-    self.silent = true
+function VeafQRA:setSilent(state)
+    
+    local state = state
+    if state then 
+        state = true
+    else
+        state = false
+    end
+
+    veaf.loggers.get(VeafQRA.Id):trace(string.format("VeafQRA[%s]:setSilent(%s)", veaf.p(self.name), veaf.p(state)))
+    self.silent = state
+    return self
+end
+
+function VeafQRA:setQRAcount(count)
+
+    if count and type(count) == 'number' and count >= -1 then 
+        veaf.loggers.get(VeafQRA.Id):trace(string.format("VeafQRA[%s]:setQRAcount(%s)", veaf.p(self.name), veaf.p(count)))
+        self.QRAcount = count
+    end
+    return self
+end
+
+function VeafQRA:setQRAmaxCount(maxCount)
+
+    if maxCount and type(maxCount) == 'number' and maxCount >= -1 then 
+        veaf.loggers.get(VeafQRA.Id):trace(string.format("VeafQRA[%s]:setQRAmaxCount(%s)", veaf.p(self.name), veaf.p(maxCount)))
+        self.QRAmaxCount = maxCount
+    end
+    return self
+end
+
+function VeafQRA:setQRAresupplyDelay(resupplyDelay)
+
+    if resupplyDelay and type(resupplyDelay) == 'number' and resupplyDelay >= -1 then 
+        veaf.loggers.get(VeafQRA.Id):trace(string.format("VeafQRA[%s]:setQRAresupplyDelay(%s)", veaf.p(self.name), veaf.p(resupplyDelay)))
+        self.delayBeforeQRAresupply = resupplyDelay
+    end
+    return self
+end
+
+function VeafQRA:setQRAmaxResupplyCount(maxResupplyCount)
+
+    if maxResupplyCount and type(maxResupplyCount) == 'number' and maxResupplyCount >= -1 then 
+        veaf.loggers.get(VeafQRA.Id):trace(string.format("VeafQRA[%s]:setQRAmaxResupplyCount(%s)", veaf.p(self.name), veaf.p(maxResupplyCount)))
+        self.QRAresupplyMax = maxResupplyCount
+    end
+    return self
+end
+
+function VeafQRA:setQRAminCountforResupply(minCountforResupply)
+
+    if minCountforResupply and type(minCountforResupply) == 'number' and minCountforResupply >= -1 then 
+        veaf.loggers.get(VeafQRA.Id):trace(string.format("VeafQRA[%s]:setQRAminCountforResupply(%s)", veaf.p(self.name), veaf.p(minCountforResupply)))
+        self.QRAminCountforResupply = minCountforResupply
+    end
+    return self
+end
+
+function VeafQRA:setResupplyAmount(resupplyAmount)
+
+    if resupplyAmount and type(resupplyAmount) == 'number' and resupplyAmount >= 1 then 
+        veaf.loggers.get(VeafQRA.Id):trace(string.format("VeafQRA[%s]:setResupplyAmount(%s)", veaf.p(self.name), veaf.p(resupplyAmount)))
+        self.resupplyAmount = resupplyAmount
+    end
+    return self
+end
+
+function VeafQRA:setAirportLink(airport_name)
+
+    if airport_name and type(airport_name) == 'string' and Airbase.getByName(airport_name) then 
+        veaf.loggers.get(VeafQRA.Id):trace(string.format("VeafQRA[%s]:setAirportLink(%s)", veaf.p(self.name), veaf.p(airport_name)))
+        self.airportLink = airport_name
+    end
     return self
 end
 
@@ -2806,7 +2926,70 @@ function VeafQRA:check()
             self:rearm()
         end
     end
-    mist.scheduleFunction(VeafQRA.check, {self}, timer.getTime() + VeafQRA.WATCHDOG_DELAY)    
+    
+    mist.scheduleFunction(VeafQRA.check, {self}, timer.getTime() + VeafQRA.WATCHDOG_DELAY) 
+    --if warehousing is activated (resupply delay and QRAs are counted)
+    if self.delayBeforeQRAresupply ~= -1 and self.QRAcount ~= -1 then
+        self:checkWarehousing()
+    end
+end
+
+    -- -- maximum number of QRA ready for action at once, -1 indicates infinite
+    -- QRAmaxCount = -1
+    -- -- number of groups of aircrafts that can be spawned for this QRA in total, -1 indicates infinite
+    -- QRAcount = -1
+    -- -- delay in minutes before the QRA counter is increased by one, simulating some sort of logistic chain of aircrafts, -1 indicates no resupply
+    -- delayBeforeQRAresupply = -1
+    -- -- maximum number of resupplies at a given time, simulating some sort of warehousing, -1 indicates infinite. Is decremented every time a resupply happens.
+    -- QRAresupplyMax = -1
+    -- -- minimum QRAcount that will trigger a resupply, -1 indicates as soon as an aircraft is lost
+    -- QRAminCountforResupply = -1
+    -- -- how many aircraft groups are resupplied at once   
+    --resupplyAmount = 1
+    -- -- indicator to know if the QRA is being resupplied or not
+    --isResupplying = false
+    
+function VeafQRA:checkWarehousing()
+    --if the aircraft cap is infinite or if the available aircraft count is below the threshold or an aircraft was just lost -> resupply by the amount specified if not already resupplying
+    if self.QRAmaxCount == -1 or self.QRAcount < self.QRAminCountforResupply or (self.QRAmaxCount > self.QRAcount and self.QRAminCountforResupply == -1) then
+        
+        local amount_resuppliable = self.QRAresupplyMax - self.resupplyAmount
+        
+        if self.QRAresupplyMax == -1 or amount_resuppliable > 0 then
+
+            local amount_resupplied = amount_resuppliable
+            if self.QRAresupplyMax == -1 or amount_resupplied > self.resupplyAmount then
+                amount_resupplied = self.resupplyAmount
+            end
+
+            if amount_resupplied ~= 0 then
+                self.isResupplying = true
+                if self.delayBeforeQRAresupply ~= 0 then
+                    mist.scheduleFunction(VeafQRA.resupply, {self, amount_resupplied}, timer.getTime()+self.delayBeforeQRAresupply)
+                else
+                    self:resupply(amount_resupplied)
+                end
+            end
+        end
+    end
+
+    if self.QRAcount == 0 then
+        self.state = VeafQRA.STATUS_OUT
+    end
+end
+
+function VeafQRA:resupply(resupplyAmount)
+    self.QRAcount = self.QRAcount + resupplyAmount
+    
+    if self.QRAresupplyMax ~= -1 then
+        self.QRAresupplyMax = self.QRAresupplyMax - resupplyAmount
+    end
+
+    self.isResupplying = false
+
+    if resupplyAmount > 0 and self.state == VeafQRA.STATUS_OUT then
+        self.state = VeafQRA.STATUS_READY
+    end
 end
 
 function VeafQRA:chooseGroupsToDeploy(nbUnitsInZone)
@@ -2879,6 +3062,10 @@ function VeafQRA:destroyed()
         end
     end
     self.state = VeafQRA.STATUS_DEAD
+
+    if self.QRAcount > 0 then
+        self.QRAcount = self.QRAcount - 1
+    end
 end
 
 function VeafQRA:rearm(silent)

@@ -39,7 +39,7 @@ veafUnits = {}
 veafUnits.Id = "UNITS"
 
 --- Version.
-veafUnits.Version = "1.12.1"
+veafUnits.Version = "1.12.2"
 
 -- trace level, specific to this module
 --veafUnits.LogLevel = "trace"
@@ -833,7 +833,32 @@ veafUnits.GroupsDatabase = {
         group = {
             disposition = { h= 5, w= 5},
             units = {{"HQ-7_LN_SP", cell = 1, hdg = 300}, {"HQ-7_LN_SP", cell = 5, hdg = 60}, {"HQ-7_LN_SP", cell = 23, hdg = 180}, {"Ural-375", random=true},},
-            description = "HQ-7 SAM site",
+            description = "HQ-7 SAM site without STR",
+            groupName = "HQ-7"
+        },
+    },
+    {
+        aliases = {"hq7eo"},
+        group = {
+            disposition = { h= 5, w= 5},
+            units = {
+                --STR
+                {"HQ-7_STR_SP", cell = 8}, 
+                --LN
+                {"HQ-7_LN_EO", cell = 1, hdg = 300}, {"HQ-7_LN_EO", cell = 5, hdg = 60}, {"HQ-7_LN_EO", cell = 23, hdg = 180},
+                --supply truck
+                {"Ural-375", random=true},
+            },
+            description = "HQ-7EO SAM site",
+            groupName = "HQ-7"
+        },
+    },
+    {
+        aliases = {"hq7eo-noew"},
+        group = {
+            disposition = { h= 5, w= 5},
+            units = {{"HQ-7_LN_EO", cell = 1, hdg = 300}, {"HQ-7_LN_EO", cell = 5, hdg = 60}, {"HQ-7_LN_EO", cell = 23, hdg = 180}, {"Ural-375", random=true},},
+            description = "HQ-7EO SAM site without STR",
             groupName = "HQ-7"
         },
     },

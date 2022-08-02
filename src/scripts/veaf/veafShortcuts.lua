@@ -27,7 +27,7 @@ veafShortcuts = {}
 veafShortcuts.Id = "SHORTCUTS"
 
 --- Version.
-veafShortcuts.Version = "1.28.2"
+veafShortcuts.Version = "1.28.3"
 
 -- trace level, specific to this module
 --veafShortcuts.LogLevel = "trace"
@@ -697,15 +697,29 @@ function veafShortcuts.buildDefaultList()
     veafShortcuts.AddAlias(
         VeafAlias:new()
             :setName("-hq7")
-            :setDescription("HQ-7 Red Banner battery")
+            :setDescription("HQ-7 (Red Banner) battery")
             :setVeafCommand("_spawn group, name hq7, skynet true")
             :setBypassSecurity(false)
     )
     veafShortcuts.AddAlias(
         VeafAlias:new()
             :setName("-hq7noew")
-            :setDescription("HQ-7 Red Banner battery without EWR")
+            :setDescription("HQ-7 (Red Banner) battery without EWR")
             :setVeafCommand("_spawn group, name hq7-noew, skynet true")
+            :setBypassSecurity(false)
+    )
+    veafShortcuts.AddAlias(
+        VeafAlias:new()
+            :setName("-hq7eo")
+            :setDescription("HQ-7EO (Red Banner) battery")
+            :setVeafCommand("_spawn group, name hq7eo, skynet true")
+            :setBypassSecurity(false)
+    )
+    veafShortcuts.AddAlias(
+        VeafAlias:new()
+            :setName("-hq7eo_noew")
+            :setDescription("HQ-7EO (Red Banner) battery without EWR")
+            :setVeafCommand("_spawn group, name hq7eo-noew, skynet true")
             :setBypassSecurity(false)
     )
     veafShortcuts.AddAlias(
@@ -872,6 +886,13 @@ function veafShortcuts.buildDefaultList()
     )
     veafShortcuts.AddAlias(
         VeafAlias:new()
+            :setName("-hawk")
+            :setDescription("Hawk battery (US by default)")
+            :setVeafCommand("_spawn group, name hawk, country USA, skynet true")
+            :setBypassSecurity(false)
+    )
+    veafShortcuts.AddAlias(
+        VeafAlias:new()
             :setName("-patriot")
             :setDescription("Patriot battery (US by default)")
             :setVeafCommand("_spawn group, name patriot, country USA, skynet true")
@@ -1002,6 +1023,13 @@ function veafShortcuts.buildDefaultList()
     )
     veafShortcuts.AddAlias(
         VeafAlias:new()
+            :setName("-destroy")
+            :setDescription("Destroy any unit within 100m")
+            :setVeafCommand("_destroy, radius 100")
+            :setBypassSecurity(false)
+    )
+    veafShortcuts.AddAlias(
+        VeafAlias:new()
             :setName("-login")
             :setDescription("Unlock the system")
             :setHidden(true)
@@ -1030,6 +1058,55 @@ function veafShortcuts.buildDefaultList()
             :setName("-arty")
             :setDescription("M-109 artillery battery")
             :setVeafCommand("_spawn group, name M-109, country USA")
+            :setBypassSecurity(false)
+    )
+    veafShortcuts.AddAlias(
+        VeafAlias:new()
+            :setName("-msta")
+            :setDescription("Msta artillery battery")
+            :setVeafCommand("_spawn group, name msta")
+            :setBypassSecurity(false)
+    )
+    veafShortcuts.AddAlias(
+        VeafAlias:new()
+            :setName("-plz05")
+            :setDescription("PLZ-05 artillery battery")
+            :setVeafCommand("_spawn group, name plz05")
+            :setBypassSecurity(false)
+    )
+    veafShortcuts.AddAlias(
+        VeafAlias:new()
+            :setName("-mlrs")
+            :setDescription("MLRS artillery battery")
+            :setVeafCommand("_spawn group, name mlrs, country USA")
+            :setBypassSecurity(false)
+    )
+    veafShortcuts.AddAlias(
+        VeafAlias:new()
+            :setName("-smerch_he")
+            :setDescription("Smerch HE artillery battery")
+            :setVeafCommand("_spawn group, name smerchhe")
+            :setBypassSecurity(false)
+    )
+    veafShortcuts.AddAlias(
+        VeafAlias:new()
+            :setName("-smerch_cm")
+            :setDescription("Smerch CM artillery battery")
+            :setVeafCommand("_spawn group, name smerchcm")
+            :setBypassSecurity(false)
+    )
+    veafShortcuts.AddAlias(
+        VeafAlias:new()
+            :setName("-uragan")
+            :setDescription("Uragan artillery battery")
+            :setVeafCommand("_spawn group, name uragan")
+            :setBypassSecurity(false)
+    )
+    veafShortcuts.AddAlias(
+        VeafAlias:new()
+            :setName("-grad")
+            :setDescription("Grad artillery battery")
+            :setVeafCommand("_spawn group, name grad")
             :setBypassSecurity(false)
     )
     veafShortcuts.AddAlias(

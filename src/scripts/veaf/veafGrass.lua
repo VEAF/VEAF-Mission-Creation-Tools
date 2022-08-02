@@ -199,12 +199,12 @@ function veafGrass.buildFarpsUnits(hiddenOnMFD)
 		--veaf.loggers.get(veafGrass.Id):trace("buildFarpsUnits: testing " .. unit.type .. " " .. name)
         if name:upper():find('GRASS_RUNWAY') then 
             grassRunwayUnits[name] = unit
-            --veaf.loggers.get(veafGrass.Id):trace(string.format("found grassRunwayUnits[%s]= %s", name, veaf.p(unit)))
+            veaf.loggers.get(veafGrass.Id):trace(string.format("found grassRunwayUnits[%s]= %s", name, veaf.p(unit)))
         end
 		--first two types should represent the same object depending on if you're on the MIST side or DCS side, as a safety added both
         if (unit.type == "SINGLE_HELIPAD" or unit.type == "FARP_SINGLE_01" or unit.type == "FARP" or unit.type == "Invisible FARP") and name:upper():find('FARP ') then 
             farpUnits[name] = unit
-            --veaf.loggers.get(veafGrass.Id):trace(string.format("found farpUnits[%s]= %s", name, veaf.p(unit)))
+            veaf.loggers.get(veafGrass.Id):trace(string.format("found farpUnits[%s]= %s", name, veaf.p(unit)))
         end
     end
     veaf.loggers.get(veafGrass.Id):trace(string.format("farpUnits=%s",veaf.p(farpUnits)))

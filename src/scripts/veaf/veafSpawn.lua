@@ -417,8 +417,8 @@ function veafSpawn.executeCommand(eventPos, eventText, coalition, markId, bypass
                                     veaf.loggers.get(veafSpawn.Id):trace("Group Added to IADS network")
                                     if not bypassSecurity then trigger.action.outText(string.format("Group added to the IADS named \"%s\"", options.skynet),15) end
                                 else
-                                    veaf.loggers.get(veafSpawn.Id):trace("Could not find IADS network")
-                                    if not bypassSecurity then trigger.action.outText(string.format("Could not add group to the IADS named \"%s\", network not found", options.skynet),15) end
+                                    veaf.loggers.get(veafSpawn.Id):trace("Could not find IADS network or group is not supported by IADS")
+                                    if not bypassSecurity then trigger.action.outText(string.format("Could not add group to the IADS named \"%s\", network not found or group not supported", options.skynet),15) end
                                 end
                             end
                         end

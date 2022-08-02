@@ -222,12 +222,20 @@ function veafCarrierOperations.continueCarrierOperations(groupName)
 
         if windspeed >= veafCarrierOperations.MIN_WINDSPEED_FOR_CHANGING_HEADING then
             --get wind direction sorted
-            dir = veaf.round(math.atan2(wind.z, wind.x) * 180 / math.pi,0)
-            if dir < 0 then
-                dir = dir + 360 --converts to positive numbers		
-            dir = dir + 360 --converts to positive numbers		
-                dir = dir + 360 --converts to positive numbers		
+            if wind.x ~= 0 then
+                dir = veaf.round(math.atan2(wind.z, wind.x) * 180 / math.pi,0)
+            elseif wind.z < 0 then
+                dir = 270
+            elseif wind.z > 0 then
+                dir = 90
+            elseif wind.z == 0 then
+                dir = carrier.heading
             end
+
+            if dir < 0 then
+                dir = dir + 360 --converts to positive numbers			
+            end
+
             if dir <= 180 then
                 dir = dir + 180
             else
@@ -868,7 +876,9 @@ function veafCarrierOperations.initializeCarrierGroups()
                         carrier.carrierUnitName = carrier.carrierUnit:getName()
                         carrier.runwayAngleWithBRC = data.runwayAngleWithBRC
                         carrier.desiredWindSpeedOnDeck = data.desiredWindSpeedOnDeck
-                                carrier.pedroUnitName = carrier.carrierUnitName .. " Pedro" -- rescue helo unit name
+                        carrier.heading = mist.getHeading(unit, true)
+
+                        carrier.pedroUnitName = carrier.carrierUnitName .. " Pedro" -- rescue helo unit name
                         local pedroUnit = Unit.getByName(carrier.pedroUnitName)
                         if pedroUnit then
                             pedroUnit:destroy()

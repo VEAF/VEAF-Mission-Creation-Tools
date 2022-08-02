@@ -69,7 +69,7 @@ veafSpawn.Id = "SPAWN"
 veafSpawn.Version = "1.40.0"
 
 -- trace level, specific to this module
-veafSpawn.LogLevel = "trace"
+--veafSpawn.LogLevel = "trace"
 
 veaf.loggers.new(veafSpawn.Id, veafSpawn.LogLevel)
 

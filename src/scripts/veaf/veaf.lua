@@ -39,7 +39,7 @@ veaf.Development = true
 veaf.SecurityDisabled = true
 
 -- trace level, specific to this module
---veaf.LogLevel = "trace"
+veaf.LogLevel = "trace"
 --veaf.LogLevel = "debug"
 --veaf.ForcedLogLevel = "trace"
 
@@ -1715,6 +1715,7 @@ end
 function veaf.getAirbaseForCoalition(airbase_name, coa)
     local airbase = nil
     
+    veaf.loggers.get(veaf.Id):trace(string.format("veaf.getAirbaseforCoalition(airbase_name = %s, coa = %s)", veaf.p(airbase_name), veaf.p(coa)))
     if coa and airbase_name then
 
         if type(coa) == 'string' then 
@@ -1724,15 +1725,145 @@ function veaf.getAirbaseForCoalition(airbase_name, coa)
                 coa = coalition.side.BLUE
             end
         end
+        veaf.loggers.get(veaf.Id):trace(string.format("final coalition is = %s", veaf.p(coa)))
 
         if (coa == coalition.side.RED or coa == coalition.side.BLUE) and type(airbase_name) == 'string' then
             local temp = Airbase.getByName(airbase_name)
-        
-            if temp and temp:getCoalition() == coa then
-                airbase = temp
+            veaf.loggers.get(veaf.Id):trace(string.format("Associed Airbase ID : %s", veaf.p(temp)))
+
+            if temp then
+                veaf.loggers.get(veaf.Id):trace(string.format("Associed Airbase Coalition : %s", veaf.p(temp:getCoalition())))
+                if temp:getCoalition() == coa then
+                    veaf.loggers.get(veaf.Id):trace(string.format("The Airbase was found and is held by the correct coalition"))
+                    airbase = temp
+                end
             end
         end
     end
+
+    return airbase
+end
+
+veaf.AIRBASES_LIFE0 = {}
+veaf.STANDARD_CARRIER_LIFE0 = 1000 --this fluctuates a lot from ship to ship, took the lowest
+veaf.STANDARD_AIRBASE_LIFE0 = 3600
+veaf.STANDARD_HELIPAD_LIFE0 = 10000000
+veaf.STANDARD_BUILDING_LIFE0 = 3600
+
+function veaf.loadAirbasesLife0()
+    local airbases = world.getAirbases()
+    veaf.loggers.get(veaf.Id):trace(string.format("Loading Life0 of airbases..."))
+
+    for _,airbase in pairs(airbases) do
+        local airbase_name = airbase:getName()
+        veaf.loggers.get(veaf.Id):trace(string.format("Checking airbase named %s", veaf.p(airbase_name)))
+        veaf.AIRBASES_LIFE0[airbase_name] = veaf.getAirbaseLife(airbase_name, false, true)
+
+        if veaf.AIRBASES_LIFE0[airbase_name] == 0 then 
+            veaf.loggers.get(veaf.Id):trace(string.format("Returned Life0 is 0, discarding result"))
+            veaf.AIRBASES_LIFE0[airbase_name] = nil 
+        end
+    end
+end
+
+--This method is used to get the life of any airbase/FARP/Carrier/HeloCarrier etc. through it's unit name. You can choose to have the life returned as a percentage (0 to 1) and also to not automatically adjust/store the maximum lifes of the airbases you might check through loading = true (loading mode is used for the function veaf.loadAirbasesLife0())
+--Beware that, some airbases do not posses a life or a life0 to calculate a percentage. This method will return -1 if so.
+function veaf.getAirbaseLife(airbase_name, percentage, loading)
+    veaf.loggers.get(veaf.Id):trace(string.format("veaf.getAirbaseLife(airbase_name = %s, percentage = %s, loading = %s)", veaf.p(airbase_name), veaf.p(percentage), veaf.p(loading)))
+
+    local airbase_life = -1
+    local airbase_life0 = -1
+
+    if airbase_name and type(airbase_name) == 'string' then
+        local airbase = Airbase.getByName(airbase_name)
+        veaf.loggers.get(veaf.Id):trace(string.format("Airbase ID : %s", veaf.p(airbase)))
+
+        if airbase then
+            local airbase_desc = airbase:getDesc()
+            veaf.loggers.get(veaf.Id):trace(string.format("Airbase Desc : %s", veaf.p(airbase_desc)))
+
+            if airbase_desc and airbase_desc.life and airbase_desc.attributes then
+                airbase_life0 = veaf.AIRBASES_LIFE0[airbase_name]
+                airbase_life = airbase_desc.life
+
+                -- local AirbaseUnit = StaticObject.getByName(airbase_name)
+                -- if AirbaseUnit then
+                --     veaf.loggers.get(veaf.Id):trace(string.format("Got an AirbaseUnit through StaticObject.getByName(), associated life is %s", veaf.p(AirbaseUnit:getLife())))
+                -- end
+                
+                if airbase_desc.attributes["AircraftCarrier"] or airbase_desc.attributes["Aircraft Carriers"] or airbase_desc.attributes["HelicopterCarrier"] then
+                    local AircraftCarrier_unit = Unit.getByName(airbase_name)
+                    veaf.loggers.get(veaf.Id):trace(string.format("Airbase is a Carrier Unit ID : %s", veaf.p(AircraftCarrier_unit)))
+                    
+                    if AircraftCarrier_unit then
+                        --airbase_life0 = AircraftCarrier_unit:getLife0()  --returns 0, thanks ED, had to load them at mission start to counter this issue
+                        if not airbase_life0 then 
+                            airbase_life0 = veaf.STANDARD_CARRIER_LIFE0
+                            veaf.loggers.get(veaf.Id):trace(string.format("Carrier doesn't have a Life0 stored yet, using default of %s", veaf.p(veaf.STANDARD_CARRIER_LIFE0)))
+                        end
+                        airbase_life = AircraftCarrier_unit:getLife()
+                        veaf.loggers.get(veaf.Id):trace(string.format("Carrier Life : %s", veaf.p(airbase_life)))
+                    end
+                elseif airbase_desc.attributes["Helipad"] and not airbase_life0 then
+                    airbase_life0 = veaf.STANDARD_HELIPAD_LIFE0
+                    veaf.loggers.get(veaf.Id):trace(string.format("Helipad doesn't have a Life0 stored yet, using default of %s", veaf.p(veaf.STANDARD_HELIPAD_LIFE0)))
+                elseif airbase_desc.attributes["Airfields"] and not airbase_life0 then
+                    airbase_life0 = veaf.STANDARD_AIRBASE_LIFE0
+                    veaf.loggers.get(veaf.Id):trace(string.format("Airfield doesn't have a Life0 stored yet, using default of %s", veaf.p(veaf.STANDARD_AIRBASE_LIFE0)))
+                elseif airbase_desc.attributes["Buildings"] then
+                    local BuildingUnit = StaticObject.getByName(airbase_name)
+                    veaf.loggers.get(veaf.Id):trace(string.format("Airbase is a Building Unit ID : %s", veaf.p(BuildingUnit)))
+
+                    if BuildingUnit then
+                        if not airbase_life0 then
+                            airbase_life0 = veaf.STANDARD_BUILDING_LIFE0
+                            veaf.loggers.get(veaf.Id):trace(string.format("Building doesn't have a Life0 stored yet, using default of %s", veaf.p(veaf.STANDARD_BUILDING_LIFE0)))
+                        end
+                        airbase_life = BuildingUnit:getLife()
+                        veaf.loggers.get(veaf.Id):trace(string.format("Building Life : %s", veaf.p(airbase_life)))
+                    else
+                        airbase_life0 = -1
+                        airbase_life = -1
+                        veaf.loggers.get(veaf.Id):trace(string.format("Building that is an airbase doesn't have any life data, discarding"))
+                    end
+                elseif not airbase_life0 then
+                    if airbase_life > 0 then
+                        airbase_life0 = airbase_life
+                        veaf.loggers.get(veaf.Id):trace(string.format("Airbase category does not have a default life0 setting, using life instead"))
+                    else
+                        airbase_life = -1
+                        airbase_life0 = -1
+                        eaf.loggers.get(veaf.Id):trace(string.format("Airbase category does not have a default life0 setting nor does it have a life, discarding"))
+                    end
+                end
+
+                veaf.loggers.get(veaf.Id):trace(string.format("Airbase Life : %s, Airbase Life0 : %s", veaf.p(airbase_life), veaf.p(airbase_life0)))
+            end
+        end
+    end
+
+    if airbase_life0 and airbase_life0 > 0 and airbase_life and airbase_life > 0 then
+        local airbase_life_percentage = airbase_life/airbase_life0
+        
+        if not loading then
+            --if the airbase life percentage is superior to 100%, there standard life0 chosen was obviously wrong and needs updating
+            if airbase_life_percentage > 1 then
+                airbase_life_percentage = 1
+                veaf.AIRBASES_LIFE0[airbase_name] = airbase_life
+                veaf.loggers.get(veaf.Id):trace(string.format("Storing Life0 = Life for airbase..."))
+            elseif not veaf.AIRBASES_LIFE0[airbase_name] then
+                veaf.AIRBASES_LIFE0[airbase_name] = airbase_life0
+                veaf.loggers.get(veaf.Id):trace(string.format("Storing default Life0 for airbase type..."))
+            end
+        end
+
+        if percentage then
+            airbase_life = airbase_life_percentage
+        end
+    end
+
+    veaf.loggers.get(veaf.Id):trace(string.format("Final Airbase (named %s) Life : %s, isPercentage = %s", veaf.p(airbase_name), veaf.p(airbase_life), veaf.p(percentage)))
+    return airbase_life
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -2512,12 +2643,24 @@ VeafQRA =
     coalition = nil,
     -- coalitions the QRA is defending against
     ennemyCoalitions = nil,
-    -- message when the QRA is triggered
+    -- message when the QRA is started
     messageStart = nil,
+    -- message when the QRA is triggered
+    messageDeploy = nil,
     -- message when the QRA is destroyed
     messageDestroyed = nil,
     -- message when the QRA is ready
     messageReady = nil,
+    -- message when the QRA is out of aircrafts
+    messageOut = nil,
+    -- message when the QRA has been resupplied and will start operations against
+    messageResupplied = nil,
+    -- message when the QRA has lost the airbase it operates from
+    messageAirbaseDown = nil,
+    -- message when the QRA has retrieved the airbase it operates from and will start operations again
+    messageAirbaseUp = nil,
+    -- message when the QRA is stopped
+    messageStop = nil,
     -- silent means no message is emitted
     silent = nil,
     -- radius of the defenders groups spawn
@@ -2534,11 +2677,11 @@ VeafQRA =
     resetWhenLeavingZone = false,
     -- maximum number of QRA ready for action at once, -1 indicates infinite
     QRAmaxCount = -1,
-    -- number of groups of aircrafts that can be spawned for this QRA in total, -1 indicates infinite
+    -- number of groups of aircrafts that can be spawned for this QRA in total, -1 indicates infinite.
     QRAcount = -1,
-    -- delay in minutes before the QRA counter is increased by one, simulating some sort of logistic chain of aircrafts, -1 indicates no resupply
-    delayBeforeQRAresupply = -1,
-    -- maximum number of resupplies at a given time, simulating some sort of warehousing, -1 indicates infinite. Is decremented every time a resupply happens.
+    -- delay in minutes before the QRA counter is increased by one, simulating some sort of logistic chain of aircrafts.
+    delayBeforeQRAresupply = 0,
+    -- maximum number of resupplies at a given time, simulating some sort of warehousing, -1 indicates infinite. Is decremented every time a resupply happens. 0 indicates no resupply.
     QRAresupplyMax = -1,
     -- minimum QRAcount that will trigger a resupply, -1 indicates as soon as an aircraft is lost
     QRAminCountforResupply = -1,
@@ -2548,15 +2691,22 @@ VeafQRA =
     isResupplying = false,
     -- name of the airport to which the QRA is linked, QRAs will be deployed only if this is set and the airport is captured by the QRA's coalition or if this is not set
     airportLink = nil,
+    -- minimum linked airbase life percentage (from 0 to 1) for the QRA to have it's airbase available
+    airportMinLifePercent = nil,
+    -- boolean to know if the status OUT was announced or not
+    outAnnounced = false,
+    -- boolean to know if the status NOAIRBASE was announced or not
+    noAB_announced = false,
 
     timer = nil,
     state = nil,
+    scheduled_state = nil,
     _enemyHumanUnits = nil
 }
 VeafQRA.__index = VeafQRA
 
 VeafQRA.Id = "QRA"
---VeafQRA.LogLevel = "trace"
+VeafQRA.LogLevel = "trace"
 
 veaf.loggers.new(VeafQRA.Id, VeafQRA.LogLevel)
 
@@ -2565,15 +2715,26 @@ VeafQRA.STATUS_READY = 1
 VeafQRA.STATUS_READY_WAITINGFORMORE = 1.5
 VeafQRA.STATUS_ACTIVE = 2
 VeafQRA.STATUS_DEAD = 3
+
+--scheduled states
 VeafQRA.STATUS_OUT = 4
 VeafQRA.STATUS_NOAIRBASE = 5
+VeafQRA.STATUS_STOP = 6
 
 VeafQRA.WATCHDOG_DELAY = 5
 
+VeafQRA.DEFAULT_airbaseMinLifePercent = 0.9
+
 VeafQRA.AllSilence = false --value to set all spawned QRAs to silent if true. By default it's false but this value can be set in the missionConfig
-VeafQRA.DEFAULT_MESSAGE_START = "%s is deployed"
+VeafQRA.DEFAULT_MESSAGE_START = "%s is online"
+VeafQRA.DEFAULT_MESSAGE_DEPLOY = "%s is deploying"
 VeafQRA.DEFAULT_MESSAGE_DESTROYED = "%s has been destroyed"
 VeafQRA.DEFAULT_MESSAGE_READY = "%s is ready"
+VeafQRA.DEFAULT_MESSAGE_OUT = "%s is out of aircrafts"
+VeafQRA.DEFAULT_MESSAGE_RESUPPLIED = "%s has been resupplied"
+VeafQRA.DEFAULT_MESSAGE_AIRBASE_DOWN = "%s lost it's airbase"
+VeafQRA.DEFAULT_MESSAGE_AIRBASE_UP = "%s now has an airbase"
+VeafQRA.DEFAULT_MESSAGE_STOP = "%s is offline"
 
 function VeafQRA.ToggleAllSilence(state)
     if state then 
@@ -2595,8 +2756,14 @@ function VeafQRA:new()
     self.coalition = nil
     self.ennemyCoalitions = {}
     self.messageStart = VeafQRA.DEFAULT_MESSAGE_START
+    self.messageDeploy = VeafQRA.DEFAULT_MESSAGE_DEPLOY
     self.messageDestroyed = VeafQRA.DEFAULT_MESSAGE_DESTROYED
     self.messageReady = VeafQRA.DEFAULT_MESSAGE_READY
+    self.messageOut = VeafQRA.DEFAULT_MESSAGE_OUT
+    self.messageResupplied = VeafQRA.DEFAULT_MESSAGE_RESUPPLIED
+    self.messageAirbaseDown = VeafQRA.DEFAULT_MESSAGE_AIRBASE_DOWN
+    self.messageAirbaseUp = VeafQRA.DEFAULT_MESSAGE_AIRBASE_UP
+    self.messageStop = VeafQRA.DEFAULT_MESSAGE_STOP
     self.silent = VeafQRA.AllSilence
     self.respawnRadius = 250
     self.reactOnHelicopters = false
@@ -2606,16 +2773,20 @@ function VeafQRA:new()
     self.resetWhenLeavingZone = false
     self.QRAmaxCount = -1
     self.QRAcount = -1
-    self.delayBeforeQRAresupply = -1
+    self.delayBeforeQRAresupply = 0
     self.QRAresupplyMax = -1
     self.QRAminCountforResupply = -1
     self.resupplyAmount = 1
     self.isResupplying = false
     self.airportLink = nil
+    self.airportMinLifePercent = VeafQRA.DEFAULT_airbaseMinLifePercent
+    self.outAnnounced = false
+    self.noAB_announced = false
     
     self._enemyHumanUnits = nil
     self.timeSinceReady = -1
     self.state = nil
+    self.scheduled_state = nil
     return self
 end
 
@@ -2708,6 +2879,12 @@ function VeafQRA:setMessageStart(value)
     return self
 end
 
+function VeafQRA:setMessageDeploy(value)
+    veaf.loggers.get(VeafQRA.Id):trace(string.format("VeafQRA[%s]:setMessageDeploy(%s)", veaf.p(self.name), veaf.p(value)))
+    self.messageDeploy = value
+    return self
+end
+
 function VeafQRA:setMessageDestroyed(value)
     veaf.loggers.get(VeafQRA.Id):trace(string.format("VeafQRA[%s]:setMessageDestroyed(%s)", veaf.p(self.name), veaf.p(value)))
     self.messageDestroyed = value
@@ -2717,6 +2894,36 @@ end
 function VeafQRA:setMessageReady(value)
     veaf.loggers.get(VeafQRA.Id):trace(string.format("VeafQRA[%s]:setMessageReady(%s)", veaf.p(self.name), veaf.p(value)))
     self.messageReady = value
+    return self
+end
+
+function VeafQRA:setMessageOut(value)
+    veaf.loggers.get(VeafQRA.Id):trace(string.format("VeafQRA[%s]:setMessageOut(%s)", veaf.p(self.name), veaf.p(value)))
+    self.messageOut = value
+    return self
+end
+
+function VeafQRA:setMessageResupplied(value)
+    veaf.loggers.get(VeafQRA.Id):trace(string.format("VeafQRA[%s]:setMessageResupplied(%s)", veaf.p(self.name), veaf.p(value)))
+    self.messageResupplied = value
+    return self
+end
+
+function VeafQRA:setMessageAirbaseDown(value)
+    veaf.loggers.get(VeafQRA.Id):trace(string.format("VeafQRA[%s]:setMessageAirbaseDown(%s)", veaf.p(self.name), veaf.p(value)))
+    self.messageAirbaseDown = value
+    return self
+end
+
+function VeafQRA:setMessageAirbaseUp(value)
+    veaf.loggers.get(VeafQRA.Id):trace(string.format("VeafQRA[%s]:setMessageAirbaseUp(%s)", veaf.p(self.name), veaf.p(value)))
+    self.messageAirbaseUp = value
+    return self
+end
+
+function VeafQRA:setMessageStop(value)
+    veaf.loggers.get(VeafQRA.Id):trace(string.format("VeafQRA[%s]:setMessageStop(%s)", veaf.p(self.name), veaf.p(value)))
+    self.messageStop = value
     return self
 end
 
@@ -2734,6 +2941,7 @@ function VeafQRA:setSilent(state)
     return self
 end
 
+--TODO, warehousing for each group within a QRA and not just the whole QRA
 function VeafQRA:setQRAcount(count)
 
     if count and type(count) == 'number' and count >= -1 then 
@@ -2754,7 +2962,7 @@ end
 
 function VeafQRA:setQRAresupplyDelay(resupplyDelay)
 
-    if resupplyDelay and type(resupplyDelay) == 'number' and resupplyDelay >= -1 then 
+    if resupplyDelay and type(resupplyDelay) == 'number' and resupplyDelay >= 0 then 
         veaf.loggers.get(VeafQRA.Id):trace(string.format("VeafQRA[%s]:setQRAresupplyDelay(%s)", veaf.p(self.name), veaf.p(resupplyDelay)))
         self.delayBeforeQRAresupply = resupplyDelay
     end
@@ -2772,7 +2980,7 @@ end
 
 function VeafQRA:setQRAminCountforResupply(minCountforResupply)
 
-    if minCountforResupply and type(minCountforResupply) == 'number' and minCountforResupply >= -1 then 
+    if minCountforResupply and type(minCountforResupply) == 'number' and minCountforResupply >= -1 and minCountforResupply ~= 0 then 
         veaf.loggers.get(VeafQRA.Id):trace(string.format("VeafQRA[%s]:setQRAminCountforResupply(%s)", veaf.p(self.name), veaf.p(minCountforResupply)))
         self.QRAminCountforResupply = minCountforResupply
     end
@@ -2793,6 +3001,15 @@ function VeafQRA:setAirportLink(airport_name)
     if airport_name and type(airport_name) == 'string' and Airbase.getByName(airport_name) then 
         veaf.loggers.get(VeafQRA.Id):trace(string.format("VeafQRA[%s]:setAirportLink(%s)", veaf.p(self.name), veaf.p(airport_name)))
         self.airportLink = airport_name
+    end
+    return self
+end
+
+function VeafQRA:setAirportMinLifePercent(value)
+
+    if value and value >= 0 and value <= 1 then 
+        veaf.loggers.get(VeafQRA.Id):trace(string.format("VeafQRA[%s]:setAirportMinLifePercent(%s)", veaf.p(self.name), veaf.p(value)))
+        self.airportMinLifePercent = value
     end
     return self
 end
@@ -2874,63 +3091,156 @@ function VeafQRA:check()
     veaf.loggers.get(VeafQRA.Id):trace(string.format("self.state=%s", veaf._p(self.state)))
     veaf.loggers.get(VeafQRA.Id):trace(string.format("timer.getTime()=%s", veaf._p(timer.getTime())))
 
-    local unitNames = self:_getEnemyHumanUnits()
-    veaf.loggers.get(VeafQRA.Id):trace(string.format("unitNames=%s", veaf.p(unitNames)))
-    local unitsInZone = nil
-    local triggerZone = veaf.getTriggerZone(self.triggerZone)
-    if triggerZone then
-        veaf.loggers.get(VeafQRA.Id):trace(string.format("triggerZone=%s", veaf._p(triggerZone)))
-        if triggerZone.type == 0 then -- circular
-            unitsInZone = mist.getUnitsInZones(unitNames, {self.triggerZone})
-        elseif triggerZone.type == 2 then -- quad point
-            veaf.loggers.get(VeafQRA.Id):trace(string.format("checking in polygon %s", veaf._p(triggerZone.verticies)))
-            unitsInZone = mist.getUnitsInPolygon(unitNames, triggerZone.verticies)
+    --scheduled state application is attempted regardless of airportlink checks etc. to take into account user requested states which go through scheduled_states as well
+    --Stop scheduled is checked before even running the check function as it has the highest priority
+    self:applyScheduledState()
+
+    if self.state ~= VeafQRA.STATUS_STOP then
+
+        --if the QRA is linked to an airbase. Airport is checked before even trying to deploy a group and check warehousing which has a lower priority
+        if self.airportLink then
+            veaf.loggers.get(VeafQRA.Id):trace(string.format("Checking Airport link : %s", veaf.p(self.airportLink)))
+            self:checkAirport()
+            self:applyScheduledState()
         end
-    else
-        unitsInZone = veaf.findUnitsInCircle(self.zoneCenter, self.zoneRadius, false, unitNames)
-    end
-    local nbUnitsInZone = 0
-    for _ in pairs(unitsInZone) do nbUnitsInZone = nbUnitsInZone + 1 end
-    veaf.loggers.get(VeafQRA.Id):trace(string.format("unitsInZone=%s", veaf._p(unitsInZone)))
-    veaf.loggers.get(VeafQRA.Id):trace(string.format("#unitsInZone=%s", veaf._p(#unitsInZone)))
-    veaf.loggers.get(VeafQRA.Id):trace(string.format("nbUnitsInZone=%s", veaf._p(nbUnitsInZone)))
-    veaf.loggers.get(VeafQRA.Id):trace(string.format("state=%s", veaf._p(self.state)))
-    if (self.state == VeafQRA.STATUS_READY) and (unitsInZone and nbUnitsInZone > 0) then
-        veaf.loggers.get(VeafQRA.Id):debug(string.format("self.state set to VeafQRA.STATUS_READY_WAITINGFORMORE at timer.getTime()=%s", veaf._p(timer.getTime())))
-        self.state = VeafQRA.STATUS_READY_WAITINGFORMORE
-        self.timeSinceReady = timer.getTime()
-    elseif (self.state == VeafQRA.STATUS_READY_WAITINGFORMORE) and (unitsInZone and nbUnitsInZone > 0) and (timer.getTime() - self.timeSinceReady > self.delayBeforeActivating) then
-        -- trigger the QRA
-        self:deploy(nbUnitsInZone)
-        self.timeSinceReady = -1
-    elseif (self.state == VeafQRA.STATUS_DEAD) and (self.noNeedToLeaveZoneBeforeRearming or (not unitsInZone or nbUnitsInZone == 0)) then
-        -- rearm the QRA after a delay (if set)
-        if self.delayBeforeRearming > 0 then
-            mist.scheduleFunction(VeafQRA.rearm, {self}, timer.getTime()+self.delayBeforeRearming)
-            self.state = VeafQRA.STATUS_WILLREARM
-        else
-            self:rearm()
-        end
-    elseif (self.state == VeafQRA.STATUS_ACTIVE) then
-        local qraAlive = false
-        for _, groupName in pairs(self.spawnedGroups) do
-            if Group.getByName(groupName) then
-                qraAlive = true
+
+        if self.state ~= VeafQRA.STATUS_NOAIRBASE then
+ 
+            --if warehousing is activated. Warehousing is checked before even trying to deploy a group
+            if self.QRAcount ~= -1 then
+                veaf.loggers.get(VeafQRA.Id):trace(string.format("Checking Warehousing..."))
+                veaf.loggers.get(VeafQRA.Id):trace(string.format("QRACount : %s", veaf.p(self.QRAcount)))
+                self:checkWarehousing()
+                self:applyScheduledState()
+            end
+
+            if self.state ~= VeafQRA.STATUS_OUT then
+                local unitNames = self:_getEnemyHumanUnits()
+                veaf.loggers.get(VeafQRA.Id):trace(string.format("unitNames=%s", veaf.p(unitNames)))
+                local unitsInZone = nil
+                local triggerZone = veaf.getTriggerZone(self.triggerZone)
+                if triggerZone then
+                    veaf.loggers.get(VeafQRA.Id):trace(string.format("triggerZone=%s", veaf._p(triggerZone)))
+                    if triggerZone.type == 0 then -- circular
+                        unitsInZone = mist.getUnitsInZones(unitNames, {self.triggerZone})
+                    elseif triggerZone.type == 2 then -- quad point
+                        veaf.loggers.get(VeafQRA.Id):trace(string.format("checking in polygon %s", veaf._p(triggerZone.verticies)))
+                        unitsInZone = mist.getUnitsInPolygon(unitNames, triggerZone.verticies)
+                    end
+                else
+                    unitsInZone = veaf.findUnitsInCircle(self.zoneCenter, self.zoneRadius, false, unitNames)
+                end
+                local nbUnitsInZone = 0
+                for _ in pairs(unitsInZone) do nbUnitsInZone = nbUnitsInZone + 1 end
+                veaf.loggers.get(VeafQRA.Id):trace(string.format("unitsInZone=%s", veaf._p(unitsInZone)))
+                veaf.loggers.get(VeafQRA.Id):trace(string.format("#unitsInZone=%s", veaf._p(#unitsInZone)))
+                veaf.loggers.get(VeafQRA.Id):trace(string.format("nbUnitsInZone=%s", veaf._p(nbUnitsInZone)))
+                veaf.loggers.get(VeafQRA.Id):trace(string.format("state=%s", veaf._p(self.state)))
+                if (self.state == VeafQRA.STATUS_READY) and (unitsInZone and nbUnitsInZone > 0) then
+                    veaf.loggers.get(VeafQRA.Id):debug(string.format("self.state set to VeafQRA.STATUS_READY_WAITINGFORMORE at timer.getTime()=%s", veaf._p(timer.getTime())))
+                    self.state = VeafQRA.STATUS_READY_WAITINGFORMORE
+                    self.timeSinceReady = timer.getTime()
+                elseif (self.state == VeafQRA.STATUS_READY_WAITINGFORMORE) and (unitsInZone and nbUnitsInZone > 0) and (timer.getTime() - self.timeSinceReady > self.delayBeforeActivating) then
+                    -- trigger the QRA
+                    self:deploy(nbUnitsInZone)
+                    self.timeSinceReady = -1
+                elseif (self.state == VeafQRA.STATUS_DEAD) and (self.noNeedToLeaveZoneBeforeRearming or (not unitsInZone or nbUnitsInZone == 0)) then
+                    -- rearm the QRA after a delay (if set)
+                    if self.delayBeforeRearming > 0 then
+                        mist.scheduleFunction(VeafQRA.rearm, {self}, timer.getTime()+self.delayBeforeRearming)
+                        self.state = VeafQRA.STATUS_WILLREARM
+                    else
+                        self:rearm()
+                    end
+                elseif (self.state == VeafQRA.STATUS_ACTIVE) then
+                    local qraAlive = false
+                    local inAir = false
+                    for _, groupName in pairs(self.spawnedGroups) do
+                        local group = Group.getByName(groupName)
+                        if group then
+                            qraAlive = true
+                            local units = group:getUnits()
+                            if units then
+                                for _,unit in pairs(units) do
+                                    if unit and unit:inAir() then
+                                        inAir = true
+                                    end
+                                end
+                            end
+                        end
+                    end
+                    if not qraAlive then
+                        -- signal QRA destroyed
+                        self:destroyed()
+                    elseif (self.resetWhenLeavingZone and nbUnitsInZone == 0) or inAir == false then 
+                        -- QRA reset
+                        self:rearm()
+                    end
+                end
             end
         end
-        if not qraAlive then
-            -- signal QRA destroyed
-            self:destroyed()
-        elseif self.resetWhenLeavingZone and nbUnitsInZone == 0 then 
-            -- QRA reset
-            self:rearm()
-        end
-    end
     
-    mist.scheduleFunction(VeafQRA.check, {self}, timer.getTime() + VeafQRA.WATCHDOG_DELAY) 
-    --if warehousing is activated (resupply delay and QRAs are counted)
-    if self.delayBeforeQRAresupply ~= -1 and self.QRAcount ~= -1 then
-        self:checkWarehousing()
+        mist.scheduleFunction(VeafQRA.check, {self}, timer.getTime() + VeafQRA.WATCHDOG_DELAY) 
+    end
+end
+
+function VeafQRA:setScheduledState(scheduledState)
+    --priority level 1
+    veaf.loggers.get(VeafQRA.Id):trace(string.format("VeafQRA[%s]:setScheduledState(%s)", veaf.p(self.name), veaf.p(scheduledState)))
+    if scheduledState == VeafQRA.STATUS_STOP then
+        self.scheduled_state = VeafQRA.STATUS_STOP
+        veaf.loggers.get(VeafQRA.Id):trace(string.format("QRA STOP scheduled"))
+    --priority level 2
+    elseif scheduledState == VeafQRA.STATUS_NOAIRBASE and self.scheduled_state ~= VeafQRA.STATUS_STOP then
+        self.scheduled_state = VeafQRA.STATUS_NOAIRBASE
+        veaf.loggers.get(VeafQRA.Id):trace(string.format("QRA NOAIRBASE scheduled"))
+    --priority level 3
+    elseif scheduledState == VeafQRA.STATUS_OUT and self.scheduled_state ~= VeafQRA.STATUS_STOP and self.scheduled_state ~= VeafQRA.STATUS_NOAIRBASE then
+        self.scheduled_state = VeafQRA.STATUS_OUT
+        veaf.loggers.get(VeafQRA.Id):trace(string.format("QRA OUT scheduled"))
+    end
+    return self
+end
+
+function VeafQRA:applyScheduledState()
+    if self.scheduled_state and self.state ~= VeafQRA.STATUS_ACTIVE then
+        veaf.loggers.get(VeafQRA.Id):trace(string.format("QRA taking scheduled status : %s", veaf.p(self.scheduled_state)))
+        self.state = self.scheduled_state
+    end
+end
+
+function VeafQRA:checkAirport()
+    local QRA_airportObject = veaf.getAirbaseForCoalition(self.airportLink, self.coalition)
+    local airport_life_percent = nil
+    if QRA_airportObject then
+        airport_life_percent = veaf.getAirbaseLife(self.airportLink, true)
+    end
+
+    veaf.loggers.get(VeafQRA.Id):trace(string.format("VeafQRA[%s] is linked to airbase %s", veaf.p(self.name), veaf.p(self.airportLink)))
+
+    if not QRA_airportObject or airport_life_percent < self.airportMinLifePercent then
+        veaf.loggers.get(VeafQRA.Id):trace(string.format("QRA lost it's airbase"))
+        self:setScheduledState(VeafQRA.STATUS_NOAIRBASE)
+        if not self.silent and not self.noAB_announced then
+            local msg = string.format(self.messageAirbaseDown, self:getDescription())
+            for coalition, _ in pairs(self.ennemyCoalitions) do
+                trigger.action.outTextForCoalition(coalition, msg, 15) 
+            end
+        end
+        self.noAB_announced = true
+        
+    elseif self.state == VeafQRA.STATUS_NOAIRBASE then
+        veaf.loggers.get(VeafQRA.Id):trace(string.format("QRA has it's airbase %s", veaf.p(QRA_airportObject:getName())))
+        if not self.silent then
+            local msg = string.format(self.messageAirbaseUp, self:getDescription())
+            for coalition, _ in pairs(self.ennemyCoalitions) do
+                trigger.action.outTextForCoalition(coalition, msg, 15) 
+            end
+        end
+
+        self.noAB_announced = false
+        self.state = VeafQRA.STATUS_DEAD --QRA that have just been recommisionned act as if they were dead since they need to be rearmed after a delay
+        if self.scheduled_state == VeafQRA.STATUS_NOAIRBASE then self.scheduled_state = nil end --make sure you reset the scheduled state if you are within the bounds of this method
     end
 end
 
@@ -2938,9 +3248,9 @@ end
     -- QRAmaxCount = -1
     -- -- number of groups of aircrafts that can be spawned for this QRA in total, -1 indicates infinite
     -- QRAcount = -1
-    -- -- delay in minutes before the QRA counter is increased by one, simulating some sort of logistic chain of aircrafts, -1 indicates no resupply
-    -- delayBeforeQRAresupply = -1
-    -- -- maximum number of resupplies at a given time, simulating some sort of warehousing, -1 indicates infinite. Is decremented every time a resupply happens.
+    -- -- delay in minutes before the QRA counter is increased by one, simulating some sort of logistic chain of aircrafts.
+    -- delayBeforeQRAresupply = 0
+    -- -- maximum number of resupplies at a given time, simulating some sort of warehousing, -1 indicates infinite. Is decremented every time a resupply happens if not equal to -1 originally. 0 indicated no resupply.
     -- QRAresupplyMax = -1
     -- -- minimum QRAcount that will trigger a resupply, -1 indicates as soon as an aircraft is lost
     -- QRAminCountforResupply = -1
@@ -2950,46 +3260,92 @@ end
     --isResupplying = false
     
 function VeafQRA:checkWarehousing()
-    --if the aircraft cap is infinite or if the available aircraft count is below the threshold or an aircraft was just lost -> resupply by the amount specified if not already resupplying
-    if self.QRAmaxCount == -1 or self.QRAcount < self.QRAminCountforResupply or (self.QRAmaxCount > self.QRAcount and self.QRAminCountforResupply == -1) then
-        
-        local amount_resuppliable = self.QRAresupplyMax - self.resupplyAmount
-        
-        if self.QRAresupplyMax == -1 or amount_resuppliable > 0 then
+    veaf.loggers.get(VeafQRA.Id):trace(string.format("VeafQRA[%s] resupply state is %s", veaf.p(self.name), veaf.p(self.isResupplying)))
+    
+    --if a resupply is not already on the way and if there are aircrafts in stock and if the available aircraft count is below the threshold or if an aircraft was just lost and the resupply mode indicates to resupply whenever an aircraft is lost
+    if not self.isResupplying and self.QRAresupplyMax ~= 0 and (self.QRAcount < self.QRAminCountforResupply or (self.QRAcount < self.QRAmaxCount or (self.QRAmaxCount == -1 and self.state == VeafQRA.STATUS_DEAD)) and self.QRAminCountforResupply == -1) then
+        veaf.loggers.get(VeafQRA.Id):trace(string.format("QRA has %s/%s aircraft groups available", veaf.p(self.QRAcount), veaf.p(self.QRAmaxCount)))
+        veaf.loggers.get(VeafQRA.Id):trace(string.format("QRA has %s aircraft groups ready for resupply (-1 for infinite)", veaf.p(self.QRAresupplyMax)))   
+        veaf.loggers.get(VeafQRA.Id):trace(string.format("QRA resupply asks for %s aircraft groups", veaf.p(self.resupplyAmount)))
+        local resupplyAmount = self.resupplyAmount
+        --take into account the maximum number of QRA groups as to not oversupply it
+        if self.QRAmaxCount ~= -1 and resupplyAmount > self.QRAmaxCount - self.QRAcount then
+            resupplyAmount = self.QRAmaxCount - self.QRAcount
+            veaf.loggers.get(VeafQRA.Id):trace(string.format("There are only %s available aircraft group slots for this QRA", veaf.p(self.QRAmaxCount - self.QRAcount)))
+        end
 
-            local amount_resupplied = amount_resuppliable
-            if self.QRAresupplyMax == -1 or amount_resupplied > self.resupplyAmount then
-                amount_resupplied = self.resupplyAmount
-            end
-
-            if amount_resupplied ~= 0 then
-                self.isResupplying = true
-                if self.delayBeforeQRAresupply ~= 0 then
-                    mist.scheduleFunction(VeafQRA.resupply, {self, amount_resupplied}, timer.getTime()+self.delayBeforeQRAresupply)
-                else
-                    self:resupply(amount_resupplied)
-                end
+        --take into account the maximum number of QRA groups that can be supplied by the stock
+        if self.QRAresupplyMax ~= -1 and resupplyAmount > self.QRAresupplyMax then
+            resupplyAmount = self.QRAresupplyMax
+            veaf.loggers.get(VeafQRA.Id):trace(string.format("QRA can only be resupplied by %s aircraft groups", veaf.p(self.QRAresupplyMax)))
+        end
+        
+        veaf.loggers.get(VeafQRA.Id):trace(string.format("%s aircraft groups will be handled for resupply", veaf.p(resupplyAmount)))
+        if resupplyAmount > 0 then
+            self.isResupplying = true
+            if self.delayBeforeQRAresupply > 0 then
+                veaf.loggers.get(VeafQRA.Id):trace(string.format("QRA will be resupplied in %s seconds", veaf.p(self.delayBeforeQRAresupply)))
+                mist.scheduleFunction(VeafQRA.resupply, {self, resupplyAmount}, timer.getTime()+self.delayBeforeQRAresupply)
+            else
+                veaf.loggers.get(VeafQRA.Id):trace(string.format("QRA is being resupplied..."))
+                self:resupply(resupplyAmount)
             end
         end
     end
 
     if self.QRAcount == 0 then
-        self.state = VeafQRA.STATUS_OUT
+        veaf.loggers.get(VeafQRA.Id):trace(string.format("QRA is out of aircraft groups"))
+        if not self.silent and not self.outAnnounced then
+            local msg = string.format(self.messageOut, self:getDescription())
+            for coalition, _ in pairs(self.ennemyCoalitions) do
+                trigger.action.outTextForCoalition(coalition, msg, 15) 
+            end
+
+            self.outAnnounced = true
+        end
+
+        self:setScheduledState(VeafQRA.STATUS_OUT)
     end
 end
 
 function VeafQRA:resupply(resupplyAmount)
-    self.QRAcount = self.QRAcount + resupplyAmount
-    
-    if self.QRAresupplyMax ~= -1 then
-        self.QRAresupplyMax = self.QRAresupplyMax - resupplyAmount
+    veaf.loggers.get(VeafQRA.Id):trace(string.format("VeafQRA[%s]:resupply(%s)", veaf.p(self.name), veaf.p(resupplyAmount)))
+
+    --if the QRA can still operate, then execute the resupply, the list would need to be expanded if new scheduled status blocking operations were added
+    if self.scheduled_state ~= VeafQRA.STATUS_NOAIRBASE and self.scheduled_state ~= VeafQRA.STATUS_STOP then
+        if resupplyAmount and type(resupplyAmount) == 'number' and resupplyAmount > 0 then
+            veaf.loggers.get(VeafQRA.Id):trace(string.format("QRA is going to be resupplied, old count is : %s", veaf.p(self.QRAcount)))
+            self.QRAcount = self.QRAcount + resupplyAmount
+            veaf.loggers.get(VeafQRA.Id):trace(string.format("QRA was resupplied, new count is : %s", veaf.p(self.QRAcount)))
+            
+            veaf.loggers.get(VeafQRA.Id):trace(string.format("QRA previously had %s aircraft groups ready for resupply (-1 for infinite)", veaf.p(self.QRAresupplyMax)))
+            if self.QRAresupplyMax ~= -1 then
+                self.QRAresupplyMax = self.QRAresupplyMax - resupplyAmount
+                if self.QRAresupplyMax < 0 then
+                    self.QRAresupplyMax = 0
+                end
+            end
+            veaf.loggers.get(VeafQRA.Id):trace(string.format("QRA now only has %s aircraft groups ready for resupply (-1 for infinite)", veaf.p(self.QRAresupplyMax)))
+
+            if self.state == VeafQRA.STATUS_OUT then
+                veaf.loggers.get(VeafQRA.Id):trace(string.format("QRA now has at least one aircraft group ready for action, resuming service..."))
+                if not self.silent then
+                    local msg = string.format(self.messageResupplied, self:getDescription())
+                    for coalition, _ in pairs(self.ennemyCoalitions) do
+                        trigger.action.outTextForCoalition(coalition, msg, 15) 
+                    end
+                end
+
+                self.outAnnounced = false
+                self.state = VeafQRA.STATUS_DEAD --QRA that have just arrived act as if the QRA had just died, they need to be rearmed
+                if self.scheduled_state == VeafQRA.STATUS_OUT then self.scheduled_state = nil end --make sure you reset the scheduled state if you are within the bounds of this method
+            end
+        end
+    else
+        veaf.loggers.get(VeafQRA.Id):trace(string.format("QRA is no longer operating, resupply did not take place"))
     end
 
     self.isResupplying = false
-
-    if resupplyAmount > 0 and self.state == VeafQRA.STATUS_OUT then
-        self.state = VeafQRA.STATUS_READY
-    end
 end
 
 function VeafQRA:chooseGroupsToDeploy(nbUnitsInZone)
@@ -3027,7 +3383,7 @@ function VeafQRA:deploy(nbUnitsInZone)
     veaf.loggers.get(VeafQRA.Id):trace(string.format("VeafQRA[%s]:deploy()", veaf.p(self.name)))
     veaf.loggers.get(VeafQRA.Id):trace(string.format("nbUnitsInZone=[%s]", veaf.p(nbUnitsInZone)))
     if not self.silent then
-        local msg = string.format(self.messageStart, self:getDescription())
+        local msg = string.format(self.messageDeploy, self:getDescription())
         for coalition, _ in pairs(self.ennemyCoalitions) do
             trigger.action.outTextForCoalition(coalition, msg, 15)
         end
@@ -3064,6 +3420,7 @@ function VeafQRA:destroyed()
     self.state = VeafQRA.STATUS_DEAD
 
     if self.QRAcount > 0 then
+        veaf.loggers.get(VeafQRA.Id):trace(string.format("QRA will now see one of it's aicraft groups removed"))
         self.QRAcount = self.QRAcount - 1
     end
 end
@@ -3091,6 +3448,30 @@ function VeafQRA:start()
     veaf.loggers.get(VeafQRA.Id):trace(string.format("VeafQRA[%s]:start()", veaf.p(self.name)))
     self:rearm()
     self:check()
+    self.scheduled_state = nil --make sure you reset the scheduled state if you are within the bounds of this method
+
+    if not self.silent then
+        local msg = string.format(self.messageStart, self:getDescription())
+        for coalition, _ in pairs(self.ennemyCoalitions) do
+            trigger.action.outTextForCoalition(coalition, msg, 15)
+        end
+    end
+
+    return self
+end
+
+function VeafQRA:stop(silent)
+    veaf.loggers.get(VeafQRA.Id):trace(string.format("VeafQRA[%s]:stop()", veaf.p(self.name)))
+    self:setScheduledState(VeafQRA.STATUS_STOP)
+
+    if not self.silent and not silent then
+        local msg = string.format(self.messageStop, self:getDescription())
+        for coalition, _ in pairs(self.ennemyCoalitions) do
+            trigger.action.outTextForCoalition(coalition, msg, 15) 
+        end
+    end
+
+    return self
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -3358,6 +3739,9 @@ veaf.loggers.get(veaf.Id):info("veaf.Trace=%s", veaf.Trace)
 
 -- discover trigger zones
 veaf._discoverTriggerZones()
+
+--store maximum airbase lifes
+veaf.loadAirbasesLife0()
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- changes to CTLD 

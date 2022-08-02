@@ -66,7 +66,7 @@ veafSpawn = {}
 veafSpawn.Id = "SPAWN"
 
 --- Version.
-veafSpawn.Version = "1.40.0"
+veafSpawn.Version = "1.40.1"
 
 -- trace level, specific to this module
 --veafSpawn.LogLevel = "trace"

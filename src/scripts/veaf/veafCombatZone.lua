@@ -48,7 +48,7 @@ veafCombatZone = {}
 veafCombatZone.Id = "COMBATZONE"
 
 --- Version.
-veafCombatZone.Version = "1.10.0"
+veafCombatZone.Version = "1.11.0"
 
 -- trace level, specific to this module
 --veafCombatZone.LogLevel = "trace"
@@ -1072,7 +1072,7 @@ function VeafCombatZone:updateRadioMenu(inBatch)
     -- populate the radio menu
     veaf.loggers.get(veafCombatZone.Id):trace("populate the radio menu")
     -- global commands
-    veafRadio.addCommandToSubmenu("Get info", self.radioRootPath, veafCombatZone.GetInformationOnZone, self.missionEditorZoneName, veafRadio.USAGE_ForAll)
+    veafRadio.addCommandToSubmenu("Get info", self.radioRootPath, veafCombatZone.GetInformationOnZone, self.missionEditorZoneName, veafRadio.USAGE_ForGroup)
     if self:isActive() then
         -- zone is active, set up accordingly (desactivate zone, get information, pop smoke, etc.)
         veaf.loggers.get(veafCombatZone.Id):trace("zone is active")
@@ -1082,14 +1082,14 @@ function VeafCombatZone:updateRadioMenu(inBatch)
             veafRadio.addSecuredCommandToSubmenu('Desactivate zone', self.radioRootPath, veafCombatZone.DesactivateZone, self.missionEditorZoneName, veafRadio.USAGE_ForAll)
         end
         if self.smokeResetFunctionId then 
-            veafRadio.addCommandToSubmenu('Smoke not available', self.radioRootPath, veaf.emptyFunction, nil, veafRadio.USAGE_ForAll)
+            veafRadio.addCommandToSubmenu('Smoke not available', self.radioRootPath, veaf.emptyFunction, nil, veafRadio.USAGE_ForGroup)
         else
-            veafRadio.addCommandToSubmenu('Request RED smoke on target', self.radioRootPath, veafCombatZone.SmokeZone, self.missionEditorZoneName, veafRadio.USAGE_ForAll)
+            veafRadio.addCommandToSubmenu('Request RED smoke on target', self.radioRootPath, veafCombatZone.SmokeZone, self.missionEditorZoneName, veafRadio.USAGE_ForGroup)
         end
         if self.flareResetFunctionId then 
-            veafRadio.addCommandToSubmenu('Flare not available', self.radioRootPath, veaf.emptyFunction, nil, veafRadio.USAGE_ForAll)
+            veafRadio.addCommandToSubmenu('Flare not available', self.radioRootPath, veaf.emptyFunction, nil, veafRadio.USAGE_ForGroup)
         else
-            veafRadio.addCommandToSubmenu('Request illumination flare on target', self.radioRootPath, veafCombatZone.LightUpZone, self.missionEditorZoneName, veafRadio.USAGE_ForAll)
+            veafRadio.addCommandToSubmenu('Request illumination flare on target', self.radioRootPath, veafCombatZone.LightUpZone, self.missionEditorZoneName, veafRadio.USAGE_ForGroup)
         end
     else
         -- zone is not active, set up accordingly (activate zone)
@@ -1466,11 +1466,11 @@ function VeafCombatOperation:updateRadioMenu(inBatch)
     -- populate the radio menu
     veaf.loggers.get(veafCombatZone.Id):trace("populate the radio menu")
     -- global commands
-    veafRadio.addCommandToSubmenu("Get info", self.radioRootPath, veafCombatZone.GetInformationOnZone, self.missionEditorZoneName, veafRadio.USAGE_ForAll)
+    veafRadio.addCommandToSubmenu("Get info", self.radioRootPath, veafCombatZone.GetInformationOnZone, self.missionEditorZoneName, veafRadio.USAGE_ForGroup)
     for _, taskingOrder in pairs(self.primaryTaskingOrders) do
         if taskingOrder.zone:isActive() then
             veaf.loggers.get(veafCombatZone.Id):trace(string.format("Add briefing for %s, %s", taskingOrder.zone:getFriendlyName(), taskingOrder.zone:getMissionEditorZoneName()))
-            veafRadio.addCommandToSubmenu("Briefing " .. taskingOrder.zone:getFriendlyName(), self.radioRootPath, veafCombatZone.GetInformationOnZone, taskingOrder.zone:getMissionEditorZoneName(), veafRadio.USAGE_ForAll)
+            veafRadio.addCommandToSubmenu("Briefing " .. taskingOrder.zone:getFriendlyName(), self.radioRootPath, veafCombatZone.GetInformationOnZone, taskingOrder.zone:getMissionEditorZoneName(), veafRadio.USAGE_ForGroup)
         else
             veaf.loggers.get(veafCombatZone.Id):trace(string.format("Skip briefing for %s, %s as it is not active", taskingOrder.zone:getFriendlyName(), taskingOrder.zone:getMissionEditorZoneName()))
         end
@@ -1586,8 +1586,9 @@ end
 
 -- print information about a zone
 function veafCombatZone.GetInformationOnZone(parameters)
+    veaf.loggers.get(veafCombatZone.Id):debug(string.format("veafCombatZone.GetInformationOnZone([%s])",veaf.p(parameters)))
     local zoneName, unitName = veaf.safeUnpack(parameters)
-    veaf.loggers.get(veafCombatZone.Id):debug(string.format("veafCombatZone.GetInformationOnZone([%s])",zoneName or ""))
+    
     local zone = veafCombatZone.GetZone(zoneName)
     local text = zone:getInformation()
     if unitName then

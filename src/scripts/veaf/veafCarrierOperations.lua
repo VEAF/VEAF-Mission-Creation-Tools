@@ -118,7 +118,7 @@ end
 
 --- Start carrier operations ; changes the radio menu item to END and make the carrier move
 function veafCarrierOperations.startCarrierOperations(parameters)
-    local groupName, duration = veaf.safeUnpack(parameters)
+    local groupName, duration, userUnitName = veaf.safeUnpack(parameters)
     veaf.loggers.get(veafCarrierOperations.Id):debug("startCarrierOperations(".. groupName .. ")")
 
     local carrier = veafCarrierOperations.carriers[groupName]
@@ -126,7 +126,7 @@ function veafCarrierOperations.startCarrierOperations(parameters)
     if not(carrier) then
         local text = "Cannot find the carrier group "..groupName
         veaf.loggers.get(veafCarrierOperations.Id):error(text)
-        trigger.action.outText(text, 5)
+        veaf.outTextForUnit(userUnitName, text, 5)
         return
     end
 
@@ -161,7 +161,7 @@ function veafCarrierOperations.startCarrierOperations(parameters)
         "\nGetting a good alignment may require up to 5 minutes"
 
     veaf.loggers.get(veafCarrierOperations.Id):info(text)    
-    trigger.action.outText(text, 25)
+    veaf.outTextForUnit(userUnitName, text, 25)
     
     -- change the menu
     veaf.loggers.get(veafCarrierOperations.Id):trace("change the menu")
@@ -170,7 +170,7 @@ function veafCarrierOperations.startCarrierOperations(parameters)
 end
 
 --- Continue carrier operations ; make the carrier move according to the wind. Called by startCarrierOperations and by the scheduler.
-function veafCarrierOperations.continueCarrierOperations(groupName)
+function veafCarrierOperations.continueCarrierOperations(groupName, userUnitName)
     veaf.loggers.get(veafCarrierOperations.Id):debug("continueCarrierOperations(".. groupName .. ")")
 
     local carrier = veafCarrierOperations.carriers[groupName]
@@ -178,7 +178,7 @@ function veafCarrierOperations.continueCarrierOperations(groupName)
     if not(carrier) then
         local text = "Cannot find the carrier group "..groupName
         veaf.loggers.get(veafCarrierOperations.Id):error(text)
-        trigger.action.outText(text, 5)
+        veaf.outTextForUnit(userUnitName, text, 5)
         return
     end
 
@@ -310,7 +310,7 @@ function veafCarrierOperations.continueCarrierOperations(groupName)
     
             local msg = string.format("Obstruction found at heading %s, derouting %s to heading %s", veaf.p(#obstructions), veaf.p(dir), veaf.p(groupName), veaf.p(newDir))
             veaf.loggers.get(veafCarrierOperations.Id):debug(msg)
-            trigger.action.outText(msg, 5)
+            veaf.outTextForUnit(userUnitName, msg, 5)
             headingRad = mist.utils.toRadian(newDir)
             length = 4000
             newWaypoint = {
@@ -720,7 +720,8 @@ function veafCarrierOperations.atcForCarrierOperations(parameters)
 end
 
 --- Ends carrier operations ; changes the radio menu item to START and send the carrier back to its starting point
-function veafCarrierOperations.stopCarrierOperations(groupName)
+function veafCarrierOperations.stopCarrierOperations(parameters)
+    local groupName, userUnitName = veaf.safeUnpack(parameters)
     veaf.loggers.get(veafCarrierOperations.Id):debug("stopCarrierOperations(".. groupName .. ")")
 
     local carrier = veafCarrierOperations.carriers[groupName]
@@ -737,7 +738,7 @@ function veafCarrierOperations.stopCarrierOperations(groupName)
     
     local text = "The carrier group "..groupName.." has stopped air operations ; it's moving back to its initial position"
     veaf.loggers.get(veafCarrierOperations.Id):info(text)
-    trigger.action.outText(text, 5)
+    veaf.outTextForUnit(userUnitName, text, 5)
     carrier.conductingAirOperations = false
     carrier.stoppedAirOperations = true
 
@@ -798,15 +799,15 @@ function veafCarrierOperations.rebuildRadioMenu()
 
         if carrier.conductingAirOperations then
             -- add the stop menu
-            veafRadio.addSecuredCommandToSubmenu("End air operations", carrier.menuPath, veafCarrierOperations.stopCarrierOperations, name)
+            veafRadio.addSecuredCommandToSubmenu("End air operations", carrier.menuPath, veafCarrierOperations.stopCarrierOperations, name, veafRadio.USAGE_ForGroup)
         else
             -- add the "start for veafCarrierOperations.MAX_OPERATIONS_DURATION" menu
             local startMenuName1 = "Start carrier air operations for " .. veafCarrierOperations.MAX_OPERATIONS_DURATION .. " minutes"
-            veafRadio.addSecuredCommandToSubmenu(startMenuName1, carrier.menuPath, veafCarrierOperations.startCarrierOperations, { name, veafCarrierOperations.MAX_OPERATIONS_DURATION })
+            veafRadio.addSecuredCommandToSubmenu(startMenuName1, carrier.menuPath, veafCarrierOperations.startCarrierOperations, { name, veafCarrierOperations.MAX_OPERATIONS_DURATION }, veafRadio.USAGE_ForGroup)
 
             -- add the "start for veafCarrierOperations.MAX_OPERATIONS_DURATION * 2" menu
             local startMenuName2 = "Start carrier air operations for " .. veafCarrierOperations.MAX_OPERATIONS_DURATION * 2 .. " minutes"
-            veafRadio.addSecuredCommandToSubmenu(startMenuName2, carrier.menuPath, veafCarrierOperations.startCarrierOperations, { name, veafCarrierOperations.MAX_OPERATIONS_DURATION * 2 })
+            veafRadio.addSecuredCommandToSubmenu(startMenuName2, carrier.menuPath, veafCarrierOperations.startCarrierOperations, { name, veafCarrierOperations.MAX_OPERATIONS_DURATION * 2 }, veafRadio.USAGE_ForGroup)
         end
 
         -- add the ATC menu (by player group)

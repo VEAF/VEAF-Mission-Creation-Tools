@@ -45,7 +45,7 @@ veafGrass = {}
 veafGrass.Id = "GRASS"
 
 --- Version.
-veafGrass.Version = "2.3.0"
+veafGrass.Version = "2.3.1"
 
 -- trace level, specific to this module
 --veafGrass.LogLevel = "trace"

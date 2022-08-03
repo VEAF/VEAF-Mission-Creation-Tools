@@ -52,7 +52,7 @@ veafGrass.Version = "2.3.0"
 
 veaf.loggers.new(veafGrass.Id, veafGrass.LogLevel)
 
-veafGrass.DelayForStartup = 0.5
+veafGrass.DelayForStartup = 2
 
 veafGrass.RadiusAroundFarp = 2000
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -226,11 +226,19 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD
 	veaf.loggers.get(veafGrass.Id):trace(string.format("hiddenOnMFD=%s",veaf.p(hiddenOnMFD)))
 
 	local farpCoalition = farp.coalition
+	local farpCoalitionNumber = farp.coalition
 	if type(farpCoalition == "number") then
 		if farpCoalition == 1 then
 			farpCoalition = "red"
 		else
 			farpCoalition = "blue"
+		end
+	end
+	if type(farpCoalition == 'string') then
+		if farpCoalition == "red" then
+			farpCoalitionNumber = 1
+		else
+			farpCoalitionNumber = 2
 		end
 	end
 
@@ -267,7 +275,7 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD
 				["type"] = 'FARP Tent',
 				["x"] = tentOrigin.x + (i-1) * tentSpacing * math.cos(mist.utils.toRadian(angle)) - (j-1) * tentSpacing * math.sin(mist.utils.toRadian(angle)),
 				["y"] = tentOrigin.y + (i-1) * tentSpacing * math.sin(mist.utils.toRadian(angle)) + (j-1) * tentSpacing *  math.cos(mist.utils.toRadian(angle)),
-						["hiddenOnMFD"] = hiddenOnMFD,
+				["hiddenOnMFD"] = hiddenOnMFD,
 			}
 			if groupName then
 				tent["groupName"] = groupName
@@ -424,10 +432,12 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD
         z = farp.y - 250
     }
 
+	farpNamedPoint.tower = "No Control"
+
 	if ctld then
-		local _beaconInfo = ctld.createRadioBeacon(beaconPoint, farpCoalition, farp.country, farp.unitName or farp.name, -1, true)
+		local _beaconInfo = ctld.createRadioBeacon(beaconPoint, farpCoalitionNumber, farp.country, farp.unitName or farp.name, -1, true)
 		if _beaconInfo ~= nil then
-			farpNamedPoint.tacan = string.format("ADF : %.2f KHz - %.2f MHz - %.2f MHz", _beaconInfo.vhf / 1000, _beaconInfo.uhf / 1000000, _beaconInfo.fm / 1000000)
+			farpNamedPoint.tacan = string.format("ADF : %.2f KHz - %.2f MHz - %.2f MHz FM", _beaconInfo.vhf / 1000, _beaconInfo.uhf / 1000000, _beaconInfo.fm / 1000000)
 			veaf.loggers.get(veafGrass.Id):trace(string.format("farpNamedPoint.tacan=%s", veaf.p(farpNamedPoint.tacan)))
 		end
 	end

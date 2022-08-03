@@ -55,22 +55,6 @@ veafHoundElint.elintUnitsTypes = {}
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
--- HoundElint addon functions
--------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-function HoundElint:removeRadioMenu()
-    missionCommands.removeItem(self.radioMenu)
-end
-
-function HoundElint:new(coalition)
-    local _hound = HoundElint:create()
-    if _hound then
-        _hound.coalitionId = coalition
-    end
-    return _hound
-end
-
--------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- core functions
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -110,6 +94,8 @@ function veafHoundElint.addPlatformToSystem(dcsGroup, alreadyAddedUnits, atMissi
         return false
     end
 
+    local didSomething = false
+
     local _addUnitToSystem = function(dcsUnit, isFunctional) 
         if not(atMissionStart) or isFunctional then
             local unitName = dcsUnit:getName()
@@ -128,9 +114,9 @@ function veafHoundElint.addPlatformToSystem(dcsGroup, alreadyAddedUnits, atMissi
                         -- found the prefix at the beginning of the name
                         if not(alreadyAddedUnits[unitName]) then
                             veaf.loggers.get(veafHoundElint.Id):trace(string.format("adding a platform : %s", unitName))
-                            local platform = hound:addPlatform(unitName) -- no actual return value
+                            local added = hound:addPlatform(unitName) -- no actual return value
                             -- todo check if ok when HoundElint will give us a return value
-                            if true then 
+                            if added then 
                                 didSomething = true
                                 alreadyAddedUnits[unitName] = true
                                 veaf.loggers.get(veafHoundElint.Id):trace(string.format("adding a platform -> OK"))
@@ -142,7 +128,6 @@ function veafHoundElint.addPlatformToSystem(dcsGroup, alreadyAddedUnits, atMissi
         end
     end
 
-    local didSomething = false
     --veaf.loggers.get(veafHoundElint.Id):trace(string.format("batchMode = %s", veaf.p(batchMode)))
     veaf.loggers.get(veafHoundElint.Id):trace(string.format("dcsGroup=%s", veaf.p(mist.utils.deepCopy(dcsGroup))))
 
@@ -179,27 +164,93 @@ local function initializeHoundSystem(coa, parameters, atMissionStart)
         veafHoundElint.addPlatformToSystem(dcsGroup, alreadyAddedUnits, atMissionStart)
     end
 
-    if veafHoundElint.hasMarkers(parameters) then
-        hound:enableMarkers(HOUND.MARKER.DIAMOND)
-    end
+    if parameters then
+        if parameters.markers then
+            hound:enableMarkers(HOUND.MARKER.DIAMOND)
+        end
 
-    if veafHoundElint.hasAtis(parameters) then
-        hound:enableATIS()
-        if type(parameters.atis) == "table" then
-            hound:configureAtis(parameters.atis)
+        if parameters.platformPositionErrors then
+            hound:enablePlatformPosErrors()
+        end
+
+        if parameters.disableBDA then
+            hound:disableBDA()
+        end
+
+        if parameters.NATO_SectorCallsigns then
+            hound:useNATOCallsignes(true)
+        end
+
+        if parameters.NATOmessages then
+            hound:enableNATO()
+        end
+
+        if parameters.ATISinterval and type(parameters.ATISinterval) == 'number' and parameters.ATISinterval > 0 then 
+            hound:setAtisUpdateInterval(parameters.ATISinterval) 
+        end
+
+        if parameters.preBriefedContacts then
+            for name,_ in pairs(parameters.preBriefedContacts) do
+                if name and type(name) == 'string' and Group.getByName(name) then
+                    hound:preBriefedContact(name)
+                end
+            end
+        end
+
+        if parameters.debug then
+            hound:onScreenDebug(true)
         end
     end
 
-    if veafHoundElint.hasAdmin(parameters) then
-        --activate the radio menu to administrate the Hound system
-        hound:addAdminRadioMenu()
-    end
+    for SectorName, sectorParameters in pairs(parameters.sectors) do
+        
+        local SectorName = SectorName or "default"
+        if SectorName ~= "default" and tostring(SectorName) then
+            SectorName = tostring(SectorName)
+            local sector = hound:addSector(SectorName)
+            if sector then 
+                hound:setZone(SectorName) --no actual return value, this may well fail without telling us so meaning and atis and the lot will be put in place for a sector that's not geoconstrained
+            else
+                SectorName = "default"
+            end
+        else
+            SectorName = "default"
+        end
 
-    if veafHoundElint.hasController(parameters) then
-        local textMode = not(veafHoundElint.hasControllerVoice(parameters))
-        hound:enableController(textMode)
-        if type(parameters.controller) == "table" then
-            hound:configureController(parameters.controller)
+        if veafHoundElint.hasSectorCallsign(sectorParameters) then
+            if sectorParameters.callsign == true then
+                sectorParameters.callsign = SectorName
+            end
+            hound:setCallsign(SectorName, tostring(sectorParameters.callsign))
+        end
+
+        if veafHoundElint.hasTransmitterUnit(sectorParameters) then
+            hound:setTransmitter(SectorName, sectorParameters.transmitterUnit)
+        end
+
+        if veafHoundElint.hasAtis(sectorParameters) then
+            hound:enableAtis(SectorName, sectorParameters.atis)
+            if sectorParameters.atis.reportEWR then hound:reportEWR(SectorName, sectorParameters.atis.reportEWR) end
+        end
+
+        if veafHoundElint.hasController(sectorParameters) then
+            hound:enableController(SectorName, sectorParameters.controller)
+            local textMode = not(veafHoundElint.hasControllerVoice(sectorParameters))
+            if textMode then 
+                hound:enableText(SectorName)
+            end
+        end
+
+        if veafHoundElint.hasNotifier(sectorParameters) then
+            hound:enableNotifier(SectorName, sectorParameters.notifier)
+        end
+
+        if veafHoundElint.hasNoAlerts(sectorParameters) then
+            hound:disableAlerts(SectorName)
+        end
+
+        if veafHoundElint.hasNoTTS(sectorParameters) then
+            hound:disableTTS(SectorName)
         end
     end
 
@@ -214,9 +265,9 @@ end
 local function createSystems(loadUnits, atMissionStart)
     veaf.loggers.get(veafHoundElint.Id):debug(string.format("createSystems(%s, %s)", veaf.p(loadUnits), veaf.p(atMissionStart)))
 
-    veafHoundElint.redHound = HoundElint:new(coalition.side.RED)
+    veafHoundElint.redHound = HoundElint:create(coalition.side.RED)
     veafHoundElint.redHound.name = "RED Hound"
-    veafHoundElint.blueHound = HoundElint:new(coalition.side.BLUE)
+    veafHoundElint.blueHound = HoundElint:create(coalition.side.BLUE)
     veafHoundElint.blueHound.name = "BLUE Hound"
     if loadUnits then
         initializeHoundSystem(coalition.side.RED, veafHoundElint.redParameters, atMissionStart)
@@ -224,7 +275,7 @@ local function createSystems(loadUnits, atMissionStart)
     end
 end
 
--- reset the IADS networks and rebuild them. Useful when a dynamic combat zone is deactivated
+-- reset the Hound networks and rebuild them. Useful when a dynamic combat zone is deactivated
 function veafHoundElint.reinitialize(delay)
     veaf.loggers.get(veafHoundElint.Id):debug(string.format("reinitialize(%s)", veaf.p(delay)))
     if not veafHoundElint.reinitializeTaskID then
@@ -242,15 +293,9 @@ function veafHoundElint._reinitialize()
     end
 
     if veafHoundElint.redHound then
-        if veafHoundElint.hasAdmin(veafHoundElint.redParameters) then 
-            veafHoundElint.redHound:removeAdminRadioMenu()
-        end
         veafHoundElint.redHound:systemOff()
     end
     if veafHoundElint.blueHound then
-        if veafHoundElint.hasAdmin(veafHoundElint.blueParameters) then 
-            veafHoundElint.blueHound:removeAdminRadioMenu()
-        end
         veafHoundElint.blueHound:systemOff()
     end
     createSystems(true, false)
@@ -260,12 +305,12 @@ function veafHoundElint._reinitialize()
     end
 end
 
-function veafHoundElint.hasAdmin(parameters)
-    return parameters and parameters.admin
+function veafHoundElint.hasSectorCallsign(parameters)
+    return parameters.callsign and tostring(parameters.callsign)
 end
 
-function veafHoundElint.hasMarkers(parameters)
-    return parameters and parameters.markers
+function veafHoundElint.hasTransmitterUnit(parameters)
+    return parameters and parameters.transmitterUnit and type(parameters.transmitterUnit) == "string" and Group.getByName(parameters.transmitterUnit)
 end
 
 function veafHoundElint.hasAtis(parameters)
@@ -280,6 +325,18 @@ function veafHoundElint.hasControllerVoice(parameters)
     return parameters and parameters.controller and parameters.controller.voiceEnabled
 end
 
+function veafHoundElint.hasNotifier(parameters)
+    return parameters and parameters.notifier
+end
+
+function veafHoundElint.hasNoTTS(parameters)
+    return parameters and parameters.disableTTS
+end
+
+function veafHoundElint.hasNoAlerts(parameters)
+    return parameters and parameters.disableAlerts
+end
+
 function veafHoundElint.initialize(prefix, red, blue)
     veafHoundElint.prefix = prefix -- if nil, all capable units will be set as Elint platforms
     veafHoundElint.redParameters = red or {}
@@ -291,10 +348,10 @@ function veafHoundElint.initialize(prefix, red, blue)
     veaf.loggers.get(veafHoundElint.Id):debug(string.format("blue=%s",veaf.p(blue)))
     
     -- prepare the list of units supported by Hound Elint
-    for platformType, platformData in pairs(HoundDB.Platform[Object.Category.STATIC]) do
+    for platformType, platformData in pairs(HOUND.DB.Platform[Object.Category.STATIC]) do
         veafHoundElint.elintUnitsTypes[platformType] = true
     end
-    for platformType, platformData in pairs(HoundDB.Platform[Object.Category.UNIT]) do
+    for platformType, platformData in pairs(HOUND.DB.Platform[Object.Category.UNIT]) do
         veafHoundElint.elintUnitsTypes[platformType] = true
     end
     veaf.loggers.get(veafHoundElint.Id):trace(string.format("veafHoundElint.elintUnitsTypes=%s",veaf.p(veafHoundElint.elintUnitsTypes)))
@@ -307,4 +364,4 @@ function veafHoundElint.initialize(prefix, red, blue)
 end
 
 veaf.loggers.get(veafHoundElint.Id):info(string.format("Loading version %s", veafHoundElint.Version))
-HoundUtils._MarkId = 1235634 -- select a less obvious marker id range that `1`
+HOUND.Utils.Marker._MarkId = 1235634 -- select a less obvious marker id range that `9999`

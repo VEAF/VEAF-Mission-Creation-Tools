@@ -177,7 +177,7 @@ class DCSCheckWXConvertEnricher {
 
   getWindASL() {
     try {
-      return { 'direction': this.convertFromTo(this.getClosestResult()['wind']['degrees']), 'speed': this.getClosestResult()['wind']['speed_mps'] };
+      return { 'direction': this.getClosestResult()['wind'] ? this.convertFromTo(this.getClosestResult()['wind']['degrees']) : 0, 'speed': this.getClosestResult()['wind'] ? this.getClosestResult()['wind']['speed_mps'] : 0};
     } catch (err) {
       console.log(err);
       return { 'direction': this.convertFromTo(this.getDeterministicRandomInt(0, 360)), 'speed': this.getDeterministicRandomFloat(0, 1) };
@@ -200,7 +200,7 @@ class DCSCheckWXConvertEnricher {
     try {
       if (this.trace) console.log(this.getClosestResult()['wind']);
       if (this.trace) console.log(this.getClosestResult()['wind']['gust_mps']);
-      return this.getClosestResult()['wind']['gust_mps'] / 0.637745;
+      return this.getClosestResult()['wind'] ? this.getClosestResult()['wind']['gust_mps'] / 0.637745 : 0;
     } catch (err) {
       console.log(err);
       return this.getDeterministicRandomFloat(0, 3) / 0.637745;

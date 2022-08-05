@@ -45,10 +45,10 @@ veafRadio = {}
 veafRadio.Id = "RADIO"
 
 --- Version.
-veafRadio.Version = "1.10.0"
+veafRadio.Version = "1.11.0"
 
 -- trace level, specific to this module
---veafRadio.LogLevel = "trace"
+--veafRadio.LogLevel = "debug"
 
 veaf.loggers.new(veafRadio.Id, veafRadio.LogLevel)
 
@@ -91,7 +91,6 @@ veafRadio.radioMenu.commands = {}
 veafRadio.radioMenuSize = {}
 
 veafRadio.beacons = {}
-
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Utility methods
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -226,33 +225,127 @@ veafRadio.eventHandler = {}
 
 --- Handle world events.
 function veafRadio.eventHandler:onEvent(Event)
-  
+    local EVENTS = {
+  [0] =  "S_EVENT_INVALID",
+  [1] =  "S_EVENT_SHOT",
+  [2] =  "S_EVENT_HIT",
+  [3] =  "S_EVENT_TAKEOFF",
+  [4] =  "S_EVENT_LAND",
+  [5] =  "S_EVENT_CRASH",
+  [6] =  "S_EVENT_EJECTION",
+  [7] =  "S_EVENT_REFUELING",
+  [8] =  "S_EVENT_DEAD",
+  [9] =  "S_EVENT_PILOT_DEAD",
+  [10] =  "S_EVENT_BASE_CAPTURED",
+  [11] =  "S_EVENT_MISSION_START",
+  [12] =  "S_EVENT_MISSION_END",
+  [13] =  "S_EVENT_TOOK_CONTROL",
+  [14] =  "S_EVENT_REFUELING_STOP",
+  [15] =  "S_EVENT_BIRTH",
+  [16] =  "S_EVENT_HUMAN_FAILURE",
+  [17] =  "S_EVENT_DETAILED_FAILURE",
+  [18] =  "S_EVENT_ENGINE_STARTUP",
+  [19] =  "S_EVENT_ENGINE_SHUTDOWN",
+  [20] =  "S_EVENT_PLAYER_ENTER_UNIT",
+  [21] =  "S_EVENT_PLAYER_LEAVE_UNIT",
+  [22] =  "S_EVENT_PLAYER_COMMENT",
+  [23] =  "S_EVENT_SHOOTING_START",
+  [24] =  "S_EVENT_SHOOTING_END",
+  [25] =  "S_EVENT_MARK_ADDED",
+  [26] =  "S_EVENT_MARK_CHANGE",
+  [27] =  "S_EVENT_MARK_REMOVED",
+  [28] =  "S_EVENT_KILL",
+  [29] =  "S_EVENT_SCORE",
+  [30] =  "S_EVENT_UNIT_LOST",
+  [31] =  "S_EVENT_LANDING_AFTER_EJECTION"}
+
+  local enabledEvents = {
+  ["S_EVENT_INVALID"] = false,
+  ["S_EVENT_SHOT"] = false,
+  ["S_EVENT_HIT"] = false,
+  ["S_EVENT_TAKEOFF"] = false,
+  ["S_EVENT_LAND"] = false,
+  ["S_EVENT_CRASH"] = false,
+  ["S_EVENT_EJECTION"] = false,
+  ["S_EVENT_REFUELING"] = false,
+  ["S_EVENT_DEAD"] = true,
+  ["S_EVENT_PILOT_DEAD"] = true,
+  ["S_EVENT_BASE_CAPTURED"] = false,
+  ["S_EVENT_MISSION_START"] = false,
+  ["S_EVENT_MISSION_END"] = false,
+  ["S_EVENT_TOOK_CONTROL"] = true,
+  ["S_EVENT_REFUELING_STOP"] = false,
+  ["S_EVENT_BIRTH"] = true,
+  ["S_EVENT_HUMAN_FAILURE"] = false,
+  ["S_EVENT_DETAILED_FAILURE"] = false,
+  ["S_EVENT_ENGINE_STARTUP"] = false,
+  ["S_EVENT_ENGINE_SHUTDOWN"] = false,
+  ["S_EVENT_PLAYER_ENTER_UNIT"] = true,
+  ["S_EVENT_PLAYER_LEAVE_UNIT"] = true,
+  ["S_EVENT_PLAYER_COMMENT"] = true,
+  ["S_EVENT_SHOOTING_START"] = false,
+  ["S_EVENT_SHOOTING_END"] = false,
+  ["S_EVENT_MARK_ADDED"] = false,
+  ["S_EVENT_MARK_CHANGE"] = false,
+  ["S_EVENT_MARK_REMOVED"] = false,
+  ["S_EVENT_KILL"] = false,
+  ["S_EVENT_SCORE"] = false,
+  ["S_EVENT_UNIT_LOST"] = true,
+  ["S_EVENT_LANDING_AFTER_EJECTION"] = false
+  }
+
   -- Only interested in S_EVENT_BIRTH (S_EVENT_PLAYER_ENTER_UNIT is not fired in MP)
-  if Event == nil or not Event.id == world.event.S_EVENT_BIRTH  then
+  if Event == nil or not(enabledEvents[EVENTS[Event.id]]) then
       return true
   end
 
   -- Debug output.
-  if Event.id == world.event.S_EVENT_BIRTH then
-    local _unitname = ""
-    veaf.loggers.get(veafRadio.Id):trace("S_EVENT_BIRTH")
-    veaf.loggers.get(veafRadio.Id):trace(string.format("Event id        = %s", tostring(Event.id)))
-    veaf.loggers.get(veafRadio.Id):trace(string.format("Event time      = %s", tostring(Event.time)))
-    veaf.loggers.get(veafRadio.Id):trace(string.format("Event idx       = %s", tostring(Event.idx)))
-    veaf.loggers.get(veafRadio.Id):trace(string.format("Event coalition = %s", tostring(Event.coalition)))
-    veaf.loggers.get(veafRadio.Id):trace(string.format("Event group id  = %s", tostring(Event.groupID)))
-    if Event.initiator ~= nil then
-      _unitname = Event.initiator:getName()
-      veaf.loggers.get(veafRadio.Id):trace(string.format("Event ini unit  = %s", tostring(_unitname)))
-    end
-    veaf.loggers.get(veafRadio.Id):trace(string.format("Event text      = \n%s", tostring(Event.text)))
+  local _unitname = ""
+  veaf.loggers.get(veafRadio.Id):debug(string.format("got event %s", veaf.p(EVENTS[Event.id])))
+  veaf.loggers.get(veafRadio.Id):trace(string.format("Event id        = %s", tostring(Event.id)))
+  veaf.loggers.get(veafRadio.Id):trace(string.format("Event time      = %s", tostring(Event.time)))
+  veaf.loggers.get(veafRadio.Id):trace(string.format("Event idx       = %s", tostring(Event.idx)))
+  veaf.loggers.get(veafRadio.Id):trace(string.format("Event coalition = %s", tostring(Event.coalition)))
+  veaf.loggers.get(veafRadio.Id):trace(string.format("Event group id  = %s", tostring(Event.groupID)))
+  if Event.initiator ~= nil then
+    _unitname = Event.initiator:getName()
+    veaf.loggers.get(veafRadio.Id):debug(string.format("Event ini unit  = %s", tostring(_unitname)))
+  end
+  veaf.loggers.get(veafRadio.Id):debug(string.format("Event text      = \n%s", tostring(Event.text)))
 
-    if Event.id == 15 and _unitname and veafRadio.humanUnits[_unitname] then
+  local refreshRadioMenu = false
+  -- human unit birth
+  if Event.id == world.event.S_EVENT_BIRTH then
+
+    if _unitname and veafRadio.humanUnits[_unitname] then
+      -- a human spawned in this slot ! Yay !
+      if veafRadio.humanUnits[_unitname] then
+        veafRadio.humanUnits[_unitname].spawned = true
+      end
+
       -- refresh the radio menu
-      veafRadio.refreshRadioMenu() -- TODO refresh it only for this player ? Is this even possible ?
-      -- debug with logInfo message to check if this mechanism is working
-      veaf.loggers.get(veafRadio.Id):info(string.format("refreshRadioMenu() following event S_EVENT_BIRTH of human unit %s", tostring(_unitname)))
+      refreshRadioMenu = true
     end
+  end
+
+  -- human unit death
+  if Event.id == world.event.S_EVENT_PLAYER_LEAVE_UNIT then
+
+    if _unitname and veafRadio.humanUnits[_unitname] then
+      -- it was a human in this slot !
+      if veafRadio.humanUnits[_unitname] then
+        veafRadio.humanUnits[_unitname].spawned = false
+      end
+
+      -- refresh the radio menu
+      refreshRadioMenu = true
+    end
+  end
+
+  if refreshRadioMenu then
+    -- refresh the radio menu
+    veafRadio.refreshRadioMenu() -- TODO refresh it only for this player ? Is this even possible ?
+    veaf.loggers.get(veafRadio.Id):debug(string.format("refreshRadioMenu() following event %s of human unit %s", veaf.p(EVENTS[Event.id]), veaf.p(_unitname)))
   end
 end
 
@@ -476,27 +569,31 @@ function veafRadio.refreshRadioSubmenu(parentRadioMenu, radioMenu, radioMeasures
         local alreadyDoneGroups = {}
         for groupId, groupData in pairs(veafRadio.humanGroups) do
             for _, callsign in pairs(groupData.callsigns) do
-            local unitData = groupData.units[callsign]
-            local unitName = unitData.name
-
-            -- add radio command by player unit or group
-            local parameters = command.parameters
-            if parameters == nil then
-                parameters = unitName
-            else
-                parameters = { command.parameters }
-                table.insert(parameters, unitName)
-            end 
-            local _title = command.title
-            if command.usage == veafRadio.USAGE_ForUnit then
-                _title = callsign .. " - " .. command.title
-            end
-            if alreadyDoneGroups[groupId] == nil or command.usage == veafRadio.USAGE_ForUnit then
-                veafRadio.addSizeForGroup(groupId, string.len(_title))
-                veafRadio._addCommand(groupId, _title, radioMenu.dcsRadioMenu, command, parameters, trace)
-                measures_addCommand(groupId)
-            end
-            alreadyDoneGroups[groupId] = true
+                local unitData = groupData.units[callsign]
+                local unitName = unitData.name
+                local humanUnit =  veafRadio.humanUnits[unitName]
+                --veaf.loggers.get(veafRadio.Id):debug(string.format("checking if unit %s is spawned",veaf.p(unitName)))
+                if humanUnit and humanUnit.spawned then
+                    veaf.loggers.get(veafRadio.Id):debug(string.format("add radio command for player unit %s",veaf.p(unitName)))
+                    -- add radio command by player unit or group
+                    local parameters = command.parameters
+                    if parameters == nil then
+                        parameters = unitName
+                    else
+                        parameters = { command.parameters }
+                        table.insert(parameters, unitName)
+                    end 
+                    local _title = command.title
+                    if command.usage == veafRadio.USAGE_ForUnit then
+                        _title = callsign .. " - " .. command.title
+                    end
+                    if alreadyDoneGroups[groupId] == nil or command.usage == veafRadio.USAGE_ForUnit then
+                        veafRadio.addSizeForGroup(groupId, string.len(_title))
+                        veafRadio._addCommand(groupId, _title, radioMenu.dcsRadioMenu, command, parameters, trace)
+                        measures_addCommand(groupId)
+                    end
+                    alreadyDoneGroups[groupId] = true
+                end
             end
         end
     else

@@ -48,7 +48,7 @@ veafCombatZone = {}
 veafCombatZone.Id = "COMBATZONE"
 
 --- Version.
-veafCombatZone.Version = "1.11.0"
+veafCombatZone.Version = "1.11.1"
 
 -- trace level, specific to this module
 --veafCombatZone.LogLevel = "trace"

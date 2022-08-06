@@ -32,7 +32,7 @@ veaf = {}
 veaf.Id = "VEAF"
 
 --- Version.
-veaf.Version = "1.23.0"
+veaf.Version = "1.23.1"
 
 --- Development version ?
 veaf.Development = true

@@ -72,7 +72,7 @@ veafCasMission = {}
 veafCasMission.Id = "CASMISSION"
 
 --- Version.
-veafCasMission.Version = "1.13.1"
+veafCasMission.Version = "1.14.0"
 
 -- trace level, specific to this module
 --veafCasMission.LogLevel = "trace"

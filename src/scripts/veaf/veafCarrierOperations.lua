@@ -48,7 +48,7 @@ veafCarrierOperations = {}
 veafCarrierOperations.Id = "CARRIER"
 
 --- Version.
-veafCarrierOperations.Version = "1.11.4"
+veafCarrierOperations.Version = "1.11.5"
 
 -- trace level, specific to this module
 --veafCarrierOperations.LogLevel = "trace"

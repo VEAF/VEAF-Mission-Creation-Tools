@@ -740,7 +740,11 @@ end
 veafUnits.UnitsDatabase = {
     {
         aliases = {"hq7"},
-        unitType = {"HQ-7_LN_SP"},
+        unitType = "HQ-7_LN_SP",
+    },
+    {
+        aliases = {"hq7eo"},
+        unitType = "HQ-7_LN_EO",
     },
     {
         aliases = {"sa8", "sa-8"},
@@ -829,6 +833,20 @@ veafUnits.GroupsDatabase = {
         },
     },
     {
+        aliases = {"hq7_single"},
+        group = {
+            disposition = { h= 3, w= 3},
+            units = {
+                --LN
+                {"HQ-7_LN_SP", cell = 1},
+                --supply truck
+                {"Ural-375", random=true},
+            },
+            description = "HQ-7 SAM site",
+            groupName = "HQ-7"
+        },
+    },
+    {
         aliases = {"hq7-noew"},
         group = {
             disposition = { h= 5, w= 5},
@@ -846,6 +864,20 @@ veafUnits.GroupsDatabase = {
                 {"HQ-7_STR_SP", cell = 8}, 
                 --LN
                 {"HQ-7_LN_EO", cell = 1, hdg = 300}, {"HQ-7_LN_EO", cell = 5, hdg = 60}, {"HQ-7_LN_EO", cell = 23, hdg = 180},
+                --supply truck
+                {"Ural-375", random=true},
+            },
+            description = "HQ-7EO SAM site",
+            groupName = "HQ-7"
+        },
+    },
+    {
+        aliases = {"hq7eo_single"},
+        group = {
+            disposition = { h= 3, w= 3},
+            units = {
+                --LN
+                {"HQ-7_LN_EO", cell = 1},
                 --supply truck
                 {"Ural-375", random=true},
             },

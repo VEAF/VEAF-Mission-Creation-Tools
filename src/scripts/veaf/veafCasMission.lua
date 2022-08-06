@@ -93,6 +93,9 @@ veafCasMission.SecondsBetweenFlareRequests = 120
 
 --- Name of the CAS targets vehicles group 
 veafCasMission.RedCasGroupName = "Red CAS Group"
+veafCasMission.BlueCasGroupName = "Blue CAS Group"
+veafCasMission.casGroupName = veafCasMission.RedCasGroupName
+veafCasMission.afacName = nil
 
 veafCasMission.RadioMenuName = "CAS MISSION"
 
@@ -114,8 +117,8 @@ veafCasMission.smokeResetTaskID = 'none'
 -- Flare reset function id
 veafCasMission.flareResetTaskID = 'none'
 
-veafCasMission.SIDE_RED = 1
-veafCasMission.SIDE_BLUE = 2
+veafCasMission.SIDE_RED = coalition.side.RED
+veafCasMission.SIDE_BLUE = coalition.side.BLUE
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Utility methods
@@ -146,7 +149,7 @@ function veafCasMission.onEventMarkChange(eventPos, event)
     end
 end
 
-function veafCasMission.executeCommand(eventPos, eventText, coalition, markId, bypassSecurity, spawnedGroups)
+function veafCasMission.executeCommand(eventPos, eventText, coalition, markId, bypassSecurity)
     veaf.loggers.get(veafCasMission.Id):debug(string.format("veafCasMission.executeCommand(eventText=[%s])", eventText))
     veaf.loggers.get(veafCasMission.Id):trace(string.format("coalition=%s", veaf.p(coalition)))
     veaf.loggers.get(veafCasMission.Id):trace(string.format("markId=%s", veaf.p(markId)))
@@ -157,7 +160,7 @@ function veafCasMission.executeCommand(eventPos, eventText, coalition, markId, b
     if eventText ~= nil and eventText:lower():find(veafCasMission.Keyphrase) then
 
         -- Analyse the mark point text and extract the keywords.
-        local options = veafCasMission.markTextAnalysis(eventText, eventCoalition)
+        local options = veafCasMission.markTextAnalysis(eventText)
 
         if options then
             -- Check options commands
@@ -290,8 +293,16 @@ function veafCasMission.markTextAnalysis(text)
 
         if switch.casmission and key:lower() == "disperse" then
             -- Set disperse on attack.
-            veaf.loggers.get(veafCasMission.Id):debug("Keyword disperse is set")
-            switch.disperseOnAttack = true
+            veaf.loggers.get(veafCasMission.Id):debug("Keyword disperse = %s", val)
+            
+            if val ~= "" then
+                local nVal = tonumber(val)
+                if nVal then
+                    switch.disperseOnAttack = nVal
+                end
+            else
+                switch.disperseOnAttack = 15
+            end
         end
 
     end
@@ -330,7 +341,6 @@ local function _addDefenseForGroups(group, side, defense, multiple, forInfantry)
                     end
                 else
                     table.insert(group.units, { "M1097 Avenger", random=true })
-                    table.insert(group.units, { veaf.randomlyChooseFrom({"Roland ADS", "Roland ADS", "M1097 Avenger"}), random=true })
                     table.insert(group.units, { "Roland ADS", random=true })
                     table.insert(group.units, { "Gepard", random=true })
                 end
@@ -343,7 +353,7 @@ local function _addDefenseForGroups(group, side, defense, multiple, forInfantry)
                         table.insert(group.units, { "SA-18 Igla-S manpad", random=true })
                     end
                 else
-                    table.insert(group.units, { veaf.randomlyChooseFrom({"Osa 9A33 ln", "Tor 9A331", "Tor 9A331"}), random=true })
+                    table.insert(group.units, { veaf.randomlyChooseFrom({"2S6 Tunguska", "Tor 9A331", "Tor 9A331"}), random=true })
                     table.insert(group.units, { "Strela-10M3", random=true })
                     table.insert(group.units, { "ZSU-23-4 Shilka", random=true })
                 end
@@ -357,9 +367,8 @@ local function _addDefenseForGroups(group, side, defense, multiple, forInfantry)
                         table.insert(group.units, { "Soldier stinger", random=true })
                     end
                 else
+                    table.insert(group.units, { veaf.randomlyChooseFrom({"Gepard", "M1097 Avenger", "M1097 Avenger"}), random=true })
                     table.insert(group.units, { "Roland ADS", random=true })
-                    table.insert(group.units, { "Gepard", random=true })
-                    table.insert(group.units, { "M6 Linebacker", random=true })
                 end
             else
                 if forInfantry then
@@ -370,7 +379,7 @@ local function _addDefenseForGroups(group, side, defense, multiple, forInfantry)
                         table.insert(group.units, { "SA-18 Igla-S manpad", random=true })
                     end
                 else
-                    table.insert(group.units, { veaf.randomlyChooseFrom({"Osa 9A33 ln", "2S6 Tunguska", "Strela-10M3"}), random=true })
+                    table.insert(group.units, { veaf.randomlyChooseFrom({"Osa 9A33 ln", "2S6 Tunguska"}), random=true })
                     table.insert(group.units, { veaf.randomlyChooseFrom({"ZSU-23-4 Shilka", "Strela-10M3"}), random=true })
                 end
             end
@@ -384,8 +393,7 @@ local function _addDefenseForGroups(group, side, defense, multiple, forInfantry)
                     end
                 else
                     table.insert(group.units, { "Gepard", random=true })
-                    table.insert(group.units, { "M1097 Avenger", random=true })
-                    table.insert(group.units, { "M6 Linebacker", random=true })
+                    table.insert(group.units, { "Roland ADS", random=true })
                 end
             else
                 if forInfantry then
@@ -397,7 +405,7 @@ local function _addDefenseForGroups(group, side, defense, multiple, forInfantry)
                     end
                 else
                     table.insert(group.units, { veaf.randomlyChooseFrom({"ZSU-23-4 Shilka", "ZSU-23-4 Shilka", "ZSU_57_2"}), random=true })
-                    table.insert(group.units, { veaf.randomlyChooseFrom({"Osa 9A33 ln", "Strela-10M3"}), random=true })
+                    table.insert(group.units, { veaf.randomlyChooseFrom({"HQ-7_LN_EO", "HQ-7_LN_SP"}), random=true })
                 end
             end
         elseif _actualDefense == 3 then
@@ -470,7 +478,7 @@ function veafCasMission.generateAirDefenseGroup(groupName, defense, side)
     _groupDefinition = _groupDefinition .. tostring(_actualDefense)
     veaf.loggers.get(veafCasMission.Id):trace("_groupDefinition = " .. _groupDefinition)
 
-    group = veafUnits.findGroup(_groupDefinition)
+    local group = veafUnits.findGroup(_groupDefinition)
     if not group then
         veaf.loggers.get(veafCasMission.Id):error(string.format("veafCasMission.generateAirDefenseGroup cannot find group [%s]", _groupDefinition or ""))
     end
@@ -701,7 +709,7 @@ function veafCasMission.placeGroup(groupDefinition, spawnPosition, spacing, resu
         local group = veafUnits.processGroup(groupDefinition)
         
         -- place its units
-        groupPosition = { x = spawnPosition.x, z = spawnPosition.y }
+        local groupPosition = { x = spawnPosition.x, z = spawnPosition.y }
         local hdg = math.random(359)
         local group, cells = veafUnits.placeGroup(group, veaf.placePointOnLand(groupPosition), spacing+3, hdg, hasDest)
         if veaf.Trace then 
@@ -721,11 +729,10 @@ function veafCasMission.placeGroup(groupDefinition, spawnPosition, spacing, resu
 end
 
 --- Generates a complete CAS target group
-function veafCasMission.generateCasGroup(country, casGroupName, spawnSpot, size, defense, armor, spacing, disperseOnAttack, side)
+function veafCasMission.generateCasGroup(casGroupName, spawnSpot, size, defense, armor, spacing, side)
     veaf.loggers.get(veafCasMission.Id):trace("side = " .. tostring(side))
     side = side or veafCasMission.SIDE_RED
     local units = {}
-    local groupId = 1234 + math.random(1000)
     local zoneRadius = (size+spacing)*350
     veaf.loggers.get(veafCasMission.Id):trace("zoneRadius = " .. zoneRadius)
     
@@ -734,8 +741,9 @@ function veafCasMission.generateCasGroup(country, casGroupName, spawnSpot, size,
     veaf.loggers.get(veafCasMission.Id):trace("infantryGroupsCount = " .. infantryGroupsCount)
     for infantryGroupNumber = 1, infantryGroupsCount do
         local groupName = casGroupName .. " - Infantry Section " .. infantryGroupNumber
-        local group = veafCasMission.generateInfantryGroup(groupName, defense, armor, side)
         local groupPosition = veaf.findPointInZone(spawnSpot, zoneRadius, false)
+        veaf.loggers.get(veafCasMission.Id):trace(string.format("infantry group #%s position : %s", veaf.p(infantryGroupNumber), veaf.p(groupPosition)))
+        local group = veafCasMission.generateInfantryGroup(groupName, defense, armor, side)
         veafCasMission.placeGroup(group, groupPosition, spacing, units)
     end
 
@@ -746,6 +754,7 @@ function veafCasMission.generateCasGroup(country, casGroupName, spawnSpot, size,
         for armorGroupNumber = 1, armorPlatoonsCount do
             local groupName = casGroupName .. " - Armor Platoon " .. armorGroupNumber
             local groupPosition = veaf.findPointInZone(spawnSpot, zoneRadius, false)
+            veaf.loggers.get(veafCasMission.Id):trace(string.format("armor group #%s position : %s", veaf.p(armorGroupNumber), veaf.p(groupPosition)))
             local group = veafCasMission.generateArmorPlatoon(groupName, defense, armor, side)
             veafCasMission.placeGroup(group, groupPosition, spacing, units)
         end
@@ -761,6 +770,7 @@ function veafCasMission.generateCasGroup(country, casGroupName, spawnSpot, size,
         for airDefenseGroupNumber = 1, airDefenseGroupsCount do
             local groupName = casGroupName .. " - Air Defense Group ".. airDefenseGroupNumber
             local groupPosition = veaf.findPointInZone(spawnSpot, zoneRadius, false)
+            veaf.loggers.get(veafCasMission.Id):trace(string.format("air defense group #%s position : %s", veaf.p(airDefenseGroupNumber), veaf.p(groupPosition)))
             local group = veafCasMission.generateAirDefenseGroup(groupName, defense, side)
             veafCasMission.placeGroup(group, groupPosition, spacing, units)
         end
@@ -772,6 +782,7 @@ function veafCasMission.generateCasGroup(country, casGroupName, spawnSpot, size,
     for transportCompanyGroupNumber = 1, transportCompaniesCount do
         local groupName = casGroupName .. " - Transport Company " .. transportCompanyGroupNumber
         local groupPosition = veaf.findPointInZone(spawnSpot, zoneRadius, false)
+        veaf.loggers.get(veafCasMission.Id):trace(string.format("transport group #%s position : %s", veaf.p(transportCompanyGroupNumber), veaf.p(groupPosition)))
         local group = veafCasMission.generateTransportCompany(groupName, defense, side)
         veafCasMission.placeGroup(group, groupPosition, spacing, units)
     end
@@ -782,18 +793,22 @@ end
 --- Generates a CAS mission
 function veafCasMission.generateCasMission(spawnSpot, size, defense, armor, spacing, disperseOnAttack, side)
     if veafCasMission.groupAliveCheckTaskID ~= 'none' then
-        trigger.action.outText("A CAS target group already exists !", 5)
+        trigger.action.outText("A CAS target group already exists !", 15)
         return
     end
+    if side == veafCasMission.SIDE_BLUE then
+        veafCasMission.casGroupName = veafCasMission.BlueCasGroupName
+    end
     local country = veaf.getCountryForCoalition(side)
-    local units = veafCasMission.generateCasGroup(country, veafCasMission.RedCasGroupName, spawnSpot, size, defense, armor, spacing, disperseOnAttack, side)
+    local units = veafCasMission.generateCasGroup(veafCasMission.casGroupName, spawnSpot, size, defense, armor, spacing, side)
 
     -- prepare the actual DCS units
     local dcsUnits = {}
     for i=1, #units do
         local unit = units[i]
         local unitType = unit.typeName
-        local unitName = veafCasMission.RedCasGroupName .. " / " .. unit.displayName .. " #" .. i
+        local unitName = veafCasMission.casGroupName .. " / " .. unit.displayName .. " #" .. i
+        local unitHdg = unit.hdg
         
         local spawnPosition = unit.spawnPoint
         
@@ -807,17 +822,17 @@ function veafCasMission.generateCasMission(spawnSpot, size, defense, armor, spac
                     ["name"] = unitName,
                     ["speed"] = 0,
                     ["skill"] = "Random",
-                    ["heading"] = 0
+                    ["heading"] = unitHdg,
             }
             table.insert(dcsUnits, toInsert)
         end
     end
 
     -- actually spawn groups
-    mist.dynAdd({country = country, category = "GROUND_UNIT", name = veafCasMission.RedCasGroupName, hidden = false, units = dcsUnits})
+    mist.dynAdd({country = country, category = "GROUND_UNIT", name = veafCasMission.casGroupName, hidden = false, units = dcsUnits})
 
     -- set AI options
-    local controller = Group.getByName(veafCasMission.RedCasGroupName):getController()
+    local controller = Group.getByName(veafCasMission.casGroupName):getController()
     controller:setOption(9, 2) -- set alarm state to red
     controller:setOption(AI.Option.Ground.id.DISPERSE_ON_ATTACK, disperseOnAttack) -- set disperse on attack according to the option
 
@@ -826,7 +841,9 @@ function veafCasMission.generateCasMission(spawnSpot, size, defense, armor, spac
     if coalition.side.RED ~= side then
         opposing_side = coalition.side.RED
     end
-    veafSpawn.spawnAFAC(spawnSpot, "mq9", veaf.getCountryForCoalition(opposing_side), nil, nil, nil, veafSpawn.convertLaserToFreq(1688), "FM", 1688, true, false, false)
+
+    local avgPos = veaf.getAveragePosition(veafCasMission.casGroupName)
+    veafCasMission.afacName = veafSpawn.spawnAFAC(avgPos, "mq9", veaf.getCountryForCoalition(opposing_side), nil, nil, nil, veafSpawn.convertLaserToFreq(1688), "FM", 1688, true, false, false)
 
     -- build menu for each player
     veafRadio.addCommandToSubmenu('Target information', veafCasMission.rootPath, veafCasMission.reportTargetInformation, nil, veafRadio.USAGE_ForGroup)
@@ -837,8 +854,8 @@ function veafCasMission.generateCasMission(spawnSpot, size, defense, armor, spac
     veafRadio.addCommandToSubmenu('Request smoke on target area', veafCasMission.targetMarkersPath, veafCasMission.smokeCasTargetGroup)
     veafRadio.addCommandToSubmenu('Request illumination flare over target area', veafCasMission.targetMarkersPath, veafCasMission.flareCasTargetGroup)
 
-    local nbVehicles, nbInfantry = veafUnits.countInfantryAndVehicles(veafCasMission.RedCasGroupName)
-    local message =      "TARGET: Group of " .. nbVehicles .. " vehicles and " .. nbInfantry .. " soldiers. See F10 radio menu for details\n"
+    local nbVehicles, nbInfantry = veafUnits.countInfantryAndVehicles(veafCasMission.casGroupName)
+    local message = "TARGET: Group of " .. nbVehicles .. " vehicles and " .. nbInfantry .. " soldiers. See F10 radio menu for details\n"
     trigger.action.outText(message,5)
 
     veafRadio.refreshRadioMenu()
@@ -851,13 +868,18 @@ end
 -- @param int groupId
 function veafCasMission.reportTargetInformation(unitName)
     -- generate information dispatch
-    local nbVehicles, nbInfantry = veafUnits.countInfantryAndVehicles(veafCasMission.RedCasGroupName)
+    local nbVehicles, nbInfantry = veafUnits.countInfantryAndVehicles(veafCasMission.casGroupName)
 
-    local message =      "TARGET: Group of " .. nbVehicles .. " vehicles and " .. nbInfantry .. " soldiers.\n"
+    local message = "TARGET: Group of " .. nbVehicles .. " vehicles and " .. nbInfantry .. " soldiers.\n"
+
+    if veafCasMission.afacName then
+        message = message .. "AFAC on station: " .. veafCasMission.afacName .. "\n"
+    end
+
     message = message .. "\n"
 
     -- add coordinates and position from bullseye
-    local averageGroupPosition = veaf.getAveragePosition(veafCasMission.RedCasGroupName)
+    local averageGroupPosition = veaf.getAveragePosition(veafCasMission.casGroupName)
     local lat, lon = coord.LOtoLL(averageGroupPosition)
     local mgrsString = mist.tostringMGRS(coord.LLtoMGRS(lat, lon), 3)
     local bullseye = mist.utils.makeVec3(mist.DBs.missionData.bullseye.blue, 0)
@@ -883,7 +905,7 @@ end
 --- add a smoke marker over the target area
 function veafCasMission.smokeCasTargetGroup()
     veaf.loggers.get(veafCasMission.Id):trace("veafCasMission.smokeCasTargetGroup START")
-    veafSpawn.spawnSmoke(veaf.getAveragePosition(veafCasMission.RedCasGroupName), trigger.smokeColor.Red)
+    veafSpawn.spawnSmoke(veaf.getAveragePosition(veafCasMission.casGroupName), trigger.smokeColor.Red)
     trigger.action.outText('Copy smoke requested, RED smoke on the deck!',5)
     veafRadio.delCommand(veafCasMission.targetMarkersPath, 'Request smoke on target area')
     veafRadio.addCommandToSubmenu('Target is marked with red smoke', veafCasMission.targetMarkersPath, veaf.emptyFunction)
@@ -901,7 +923,7 @@ end
 
 --- add an illumination flare over the target area
 function veafCasMission.flareCasTargetGroup()
-    veafSpawn.spawnIlluminationFlare(veaf.getAveragePosition(veafCasMission.RedCasGroupName))
+    veafSpawn.spawnIlluminationFlare(veaf.getAveragePosition(veafCasMission.casGroupName))
 	trigger.action.outText('Copy illumination flare requested, illumination flare over target area!',5)
     veafRadio.delCommand(veafCasMission.targetMarkersPath, 'Request illumination flare over target area')
     veafRadio.addCommandToSubmenu('Target area is marked with illumination flare', veafCasMission.targetMarkersPath, veaf.emptyFunction)
@@ -919,7 +941,7 @@ end
 
 --- Checks if the vehicles group is still alive, and if not announces the end of the CAS mission
 function veafCasMission.casGroupWatchdog() 
-    local nbVehicles, nbInfantry = veafUnits.countInfantryAndVehicles(veafCasMission.RedCasGroupName)
+    local nbVehicles, nbInfantry = veafUnits.countInfantryAndVehicles(veafCasMission.casGroupName)
     if nbVehicles > 0 then
         veaf.loggers.get(veafCasMission.Id):trace("Group is still alive with "..nbVehicles.." vehicles and "..nbInfantry.." soldiers")
         veafCasMission.groupAliveCheckTaskID = mist.scheduleFunction(veafCasMission.casGroupWatchdog,{},timer.getTime()+veafCasMission.SecondsBetweenWatchdogChecks)
@@ -940,16 +962,17 @@ function veafCasMission.cleanupAfterMission()
     veaf.loggers.get(veafCasMission.Id):trace("skipCasTarget START")
 
     -- destroy vehicles and infantry groups
-    veaf.loggers.get(veafCasMission.Id):trace("destroy vehicles group")
-    local group = Group.getByName(veafCasMission.RedCasGroupName)
+    veaf.loggers.get(veafCasMission.Id):trace("destroy CAS group")
+    local group = Group.getByName(veafCasMission.casGroupName)
     if group and group:isExist() == true then
         group:destroy()
     end
-    veaf.loggers.get(veafCasMission.Id):trace("destroy infantry group")
-    group = Group.getByName(veafCasMission.RedCasGroupName)
+    veaf.loggers.get(veafCasMission.Id):trace("destroy AFAC group")
+    group = Group.getByName(veafCasMission.afacName)
     if group and group:isExist() == true then
         group:destroy()
     end
+    veafCasMission.afacName = nil
 
     -- remove the watchdog function
     veaf.loggers.get(veafCasMission.Id):trace("remove the watchdog function")

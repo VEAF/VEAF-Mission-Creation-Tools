@@ -1429,7 +1429,7 @@ function veafSpawn.spawnFullCombatGroup(spawnSpot, radius, country, side, headin
 
     local groupName = "spawn-" .. math.random(99999) .. " - Full Combat Group "
     local groupPosition = veaf.placePointOnLand(spawnSpot)
-    local units = veafCasMission.generateCasGroup(country, groupName, groupPosition, size, defense, armor, spacing, true, side)
+    local units = veafCasMission.generateCasGroup(groupName, groupPosition, size, defense, armor, spacing, side)
 
     veafSpawn._createDcsUnits(country, units, groupName, hiddenOnMFD)
  

@@ -48,7 +48,7 @@ veafCombatZone = {}
 veafCombatZone.Id = "COMBATZONE"
 
 --- Version.
-veafCombatZone.Version = "1.11.0"
+veafCombatZone.Version = "1.11.1"
 
 -- trace level, specific to this module
 --veafCombatZone.LogLevel = "trace"
@@ -1553,10 +1553,10 @@ function veafCombatZone.ActivateZone(zoneName, silent)
         end    
         return
     end    
-    zone:activate()
+    mist.scheduleFunction(zone.activate,{zone},timer.getTime()+1)
     if not silent then
         trigger.action.outText("VeafCombatZone "..zone:getFriendlyName().." has been activated.", 10)
-        mist.scheduleFunction(veafCombatZone.GetInformationOnZone,{{zoneName}},timer.getTime()+1)
+        mist.scheduleFunction(veafCombatZone.GetInformationOnZone,{{zoneName}},timer.getTime()+2)
     end    
 end    
 

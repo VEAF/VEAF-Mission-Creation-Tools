@@ -32,14 +32,14 @@ veaf = {}
 veaf.Id = "VEAF"
 
 --- Version.
-veaf.Version = "1.23.0"
+veaf.Version = "1.23.1"
 
 --- Development version ?
 veaf.Development = true
 veaf.SecurityDisabled = true
 
 -- trace level, specific to this module
-veaf.LogLevel = "trace"
+--veaf.LogLevel = "trace"
 --veaf.LogLevel = "debug"
 --veaf.ForcedLogLevel = "trace"
 
@@ -898,7 +898,8 @@ function veaf.getWind(point)
 function veaf.findPointInZone(spawnSpot, dispersion, isShip)
     local unitPosition
     local tryCounter = 1000
-    local _dispersion = 0
+    local dispersion = dispersion or 0
+    local _dispersion = dispersion
     repeat -- Place the unit in a "dispersion" ft radius circle from the spawn spot
         unitPosition = mist.getRandPointInCircle(spawnSpot, _dispersion)
         local landType = land.getSurfaceType(unitPosition)
@@ -2706,7 +2707,7 @@ VeafQRA =
 VeafQRA.__index = VeafQRA
 
 VeafQRA.Id = "QRA"
-VeafQRA.LogLevel = "trace"
+--VeafQRA.LogLevel = "trace"
 
 veaf.loggers.new(VeafQRA.Id, VeafQRA.LogLevel)
 

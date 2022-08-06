@@ -27,7 +27,7 @@ veafShortcuts = {}
 veafShortcuts.Id = "SHORTCUTS"
 
 --- Version.
-veafShortcuts.Version = "1.28.3"
+veafShortcuts.Version = "1.29.0"
 
 -- trace level, specific to this module
 --veafShortcuts.LogLevel = "trace"
@@ -703,6 +703,13 @@ function veafShortcuts.buildDefaultList()
     )
     veafShortcuts.AddAlias(
         VeafAlias:new()
+            :setName("-hq7_single")
+            :setDescription("HQ-7 (Red Banner) launcher")
+            :setVeafCommand("_spawn group, name hq7_single, skynet true")
+            :setBypassSecurity(false)
+    )
+    veafShortcuts.AddAlias(
+        VeafAlias:new()
             :setName("-hq7noew")
             :setDescription("HQ-7 (Red Banner) battery without EWR")
             :setVeafCommand("_spawn group, name hq7-noew, skynet true")
@@ -713,6 +720,13 @@ function veafShortcuts.buildDefaultList()
             :setName("-hq7eo")
             :setDescription("HQ-7EO (Red Banner) battery")
             :setVeafCommand("_spawn group, name hq7eo, skynet true")
+            :setBypassSecurity(false)
+    )
+    veafShortcuts.AddAlias(
+        VeafAlias:new()
+            :setName("-hq7eo_single")
+            :setDescription("HQ-7EO (Red Banner) launcher")
+            :setVeafCommand("_spawn group, name hq7eo_single, skynet true")
             :setBypassSecurity(false)
     )
     veafShortcuts.AddAlias(
@@ -980,21 +994,21 @@ function veafShortcuts.buildDefaultList()
         VeafAlias:new()
             :setName("-hv_convoy_red")
             :setDescription("Red High Value Attack convoy")
-            :setVeafCommand("_spawn group, name hv_convoy_red, country RUSSIA, skynet false, alarm 0") --skynet is set to false as Radar SAMs will not move otherwise (AI turned off). Alarm is set to 0, meaning Alarm state 0 for proper movement of the scud
+            :setVeafCommand("_spawn group, name hv_convoy_red, country RUSSIA, skynet false, alarm 0") --Alarm is set to 0, meaning Alarm state 0 (AUTO) for proper movement of the scud
             :setBypassSecurity(false)
     )
     veafShortcuts.AddAlias(
         VeafAlias:new()
             :setName("-attack_convoy_red")
             :setDescription("Red Attack convoy")
-            :setVeafCommand("_spawn group, name convoy_red, country RUSSIA, skynet false")
+            :setVeafCommand("_spawn group, name convoy_red, country RUSSIA, skynet true")
             :setBypassSecurity(false)
     )
     veafShortcuts.AddAlias(
         VeafAlias:new()
             :setName("-QRC_red")
             :setDescription("Quick Reaction Convoy red") --it's fast
-            :setVeafCommand("_spawn group, name QRC_red, country RUSSIA, skynet false, speed 90, spacing 2")
+            :setVeafCommand("_spawn group, name QRC_red, country RUSSIA, skynet true, speed 90, spacing 2")
             :setBypassSecurity(false)
     )
     veafShortcuts.AddAlias(
@@ -1008,7 +1022,7 @@ function veafShortcuts.buildDefaultList()
         VeafAlias:new()
             :setName("-QRC_blue")
             :setDescription("Quick Reaction Convoy blue") --it's fast
-            :setVeafCommand("_spawn group, name QRC_blue, country USA, skynet false, speed 90, spacing 2")
+            :setVeafCommand("_spawn group, name QRC_blue, country USA, skynet true, speed 90, spacing 2")
             :setBypassSecurity(false)
     )
 

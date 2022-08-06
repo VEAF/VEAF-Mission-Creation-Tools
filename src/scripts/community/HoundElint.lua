@@ -3262,7 +3262,7 @@ do
             HOUND.Logger.error("something is wrong with the object for " .. self.DCSunitName)
             self:updateDeadDCSObject()
         end
-        if type(self.unit) == "table" and self.unit.getLife then
+        if self.unit and type(self.unit) == "table" and self.DCSunitName and (Unit.getByName(self.DCSunitName) or StaticObject.getByName(self.DCSunitName)) then
             return self.unit:getLife()
         end
         return 0
@@ -3277,7 +3277,7 @@ do
     end
 
     function HOUND.Contact:updateDeadDCSObject()
-        self.unit = Unit.getByName(self.DCSunitName) or Object.getByName(self.DCSunitName)
+        self.unit = Unit.getByName(self.DCSunitName) or StaticObject.getByName(self.DCSunitName)
         if not self.unit then
             self.unit = self.DCSunitName
         end
@@ -6668,6 +6668,7 @@ do
 
         if DcsEvent.id == world.event.S_EVENT_BIRTH
             and DcsEvent.initiator:getCoalition() == self.settings:getCoalition()
+            and DcsEvent.initiator.getPlayerName ~= nil
             and DcsEvent.initiator:getPlayerName() ~= nil
             and setContains(mist.DBs.humansByName,DcsEvent.initiator:getName())
             then return self:populateRadioMenu()

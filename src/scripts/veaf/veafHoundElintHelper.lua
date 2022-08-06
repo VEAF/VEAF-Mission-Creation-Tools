@@ -31,7 +31,7 @@ veafHoundElint.Id = "HOUND"
 veafHoundElint.Version = "1.1.0"
 
 -- trace level, specific to this module
---veafHoundElint.LogLevel = "trace"
+--veafHoundElint.LogLevel = "debug"
 
 veaf.loggers.new(veafHoundElint.Id, veafHoundElint.LogLevel)
 
@@ -49,6 +49,8 @@ veafHoundElint.blueParameters = {}
 veafHoundElint.redHound = nil
 veafHoundElint.blueHound = nil
 veafHoundElint.elintUnitsTypes = {}
+
+veafHoundElint.globalSectorName = "GLOBAL"
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Utility methods
@@ -167,91 +169,153 @@ local function initializeHoundSystem(coa, parameters, atMissionStart)
     if parameters then
         if parameters.markers then
             hound:enableMarkers(HOUND.MARKER.DIAMOND)
+            veaf.loggers.get(veafHoundElint.Id):debug("enabled markers")
         end
 
         if parameters.platformPositionErrors then
             hound:enablePlatformPosErrors()
+            veaf.loggers.get(veafHoundElint.Id):debug("enabled platformPositionErrors")
         end
 
         if parameters.disableBDA then
             hound:disableBDA()
+            veaf.loggers.get(veafHoundElint.Id):debug("disabled BDA")
         end
 
         if parameters.NATO_SectorCallsigns then
             hound:useNATOCallsignes(true)
+            veaf.loggers.get(veafHoundElint.Id):debug("using NATO callsigns for zones")
         end
 
         if parameters.NATOmessages then
             hound:enableNATO()
+            veaf.loggers.get(veafHoundElint.Id):debug("using NATO message format")
         end
 
         if parameters.ATISinterval and type(parameters.ATISinterval) == 'number' and parameters.ATISinterval > 0 then 
             hound:setAtisUpdateInterval(parameters.ATISinterval) 
+            veaf.loggers.get(veafHoundElint.Id):debug(string.format("ATIS interval set to %s", veaf.p(parameters.ATISinterval)))
         end
 
         if parameters.preBriefedContacts then
-            for name,_ in pairs(parameters.preBriefedContacts) do
-                if name and type(name) == 'string' and Group.getByName(name) then
+            for _,name in pairs(parameters.preBriefedContacts) do
+                veaf.loggers.get(veafHoundElint.Id):debug(string.format("Attempting to add Pre-brief target named %s", veaf.p(name)))
+                if name and type(name) == 'string' and (Group.getByName(name) or Unit.getByName(name)) then
                     hound:preBriefedContact(name)
+                    veaf.loggers.get(veafHoundElint.Id):debug("Pre-brief target added")
                 end
             end
         end
 
         if parameters.debug then
             hound:onScreenDebug(true)
+            veaf.loggers.get(veafHoundElint.Id):debug("Debug enabled")
         end
     end
 
-    for SectorName, sectorParameters in pairs(parameters.sectors) do
+    if parameters.sectors and type(parameters.sectors) == 'table' then
+        veaf.loggers.get(veafHoundElint.Id):debug("Checking sectors...")
+        for SectorName, sectorParameters in pairs(parameters.sectors) do
+            local skip = false
         
-        local SectorName = SectorName or "default"
-        if SectorName ~= "default" and tostring(SectorName) then
-            SectorName = tostring(SectorName)
-            local sector = hound:addSector(SectorName)
-            if sector then 
-                hound:setZone(SectorName) --no actual return value, this may well fail without telling us so meaning and atis and the lot will be put in place for a sector that's not geoconstrained
-            else
+            veaf.loggers.get(veafHoundElint.Id):debug(string.format("Given Sector Name : %s", veaf.p(SectorName)))
+            veaf.loggers.get(veafHoundElint.Id):trace(string.format("Sector Params : %s", veaf.p(sectorParameters)))
+
+            local SectorName = SectorName
+            if not SectorName then
+                veaf.loggers.get(veafHoundElint.Id):debug("No SectorName has been given...")
                 SectorName = "default"
+                skip = true
             end
-        else
-            SectorName = "default"
-        end
 
-        if veafHoundElint.hasSectorCallsign(sectorParameters) then
-            if sectorParameters.callsign == true then
-                sectorParameters.callsign = SectorName
+            if SectorName ~= "default" and tostring(SectorName) then
+                SectorName = tostring(SectorName)
+                veaf.loggers.get(veafHoundElint.Id):debug(string.format("Retained Sector Name : %s", veaf.p(SectorName)))
+
+                local sector = hound:addSector(SectorName)
+                if sector then 
+                    veaf.loggers.get(veafHoundElint.Id):debug("Added sector !")
+                    if SectorName:lower() ~= veafHoundElint.globalSectorName:lower() then
+                        veaf.loggers.get(veafHoundElint.Id):debug("Setting zone for sector...")
+                        hound:setZone(SectorName, SectorName)
+                        if not hound:getZone(SectorName) then
+                            veaf.loggers.get(veafHoundElint.Id):debug("Could not find zone for sector...")
+                            hound:removeSector(SectorName)
+                            skip = true
+                        else
+                            veaf.loggers.get(veafHoundElint.Id):debug("Zone found and set")
+                        end
+                    else
+                        veaf.loggers.get(veafHoundElint.Id):debug("No zone needs to be set for global sector")
+                    end
+                else
+                    veaf.loggers.get(veafHoundElint.Id):debug("No sectors added, Hound problem...")
+                    skip = true
+                end
+            elseif SectorName ~= "default" then
+                veaf.loggers.get(veafHoundElint.Id):debug("Given Sector Name could not be converted to string...")
+                skip = true
             end
-            hound:setCallsign(SectorName, tostring(sectorParameters.callsign))
-        end
 
-        if veafHoundElint.hasTransmitterUnit(sectorParameters) then
-            hound:setTransmitter(SectorName, sectorParameters.transmitterUnit)
-        end
+            if not skip then
+                if veafHoundElint.hasSectorCallsign(sectorParameters) then
+                    veaf.loggers.get(veafHoundElint.Id):debug("Setting sector callsign...")
+                    if sectorParameters.callsign == true or not tostring(sectorParameters.callsign) then
+                        veaf.loggers.get(veafHoundElint.Id):debug("Using sector name as callsign")
+                        sectorParameters.callsign = SectorName
+                    end
+                    veaf.loggers.get(veafHoundElint.Id):trace(string.format("Callsign : %s", veaf.p(tostring(sectorParameters.callsign))))
+                    hound:setCallsign(SectorName, tostring(sectorParameters.callsign))
+                end
 
-        if veafHoundElint.hasAtis(sectorParameters) then
-            hound:enableAtis(SectorName, sectorParameters.atis)
-            if sectorParameters.atis.reportEWR then hound:reportEWR(SectorName, sectorParameters.atis.reportEWR) end
-        end
+                if veafHoundElint.hasTransmitterUnit(sectorParameters) then
+                    veaf.loggers.get(veafHoundElint.Id):debug("Setting transmitter unit...")
+                    veaf.loggers.get(veafHoundElint.Id):trace(string.format("transmitter unitName : %s", veaf.p(tostring(sectorParameters.transmitterUnit))))
+                    hound:setTransmitter(SectorName, tostring(sectorParameters.transmitterUnit))
+                end
 
-        if veafHoundElint.hasController(sectorParameters) then
-            hound:enableController(SectorName, sectorParameters.controller)
-            local textMode = not(veafHoundElint.hasControllerVoice(sectorParameters))
-            if textMode then 
-                hound:enableText(SectorName)
+                if veafHoundElint.hasAtis(sectorParameters) then
+                    veaf.loggers.get(veafHoundElint.Id):debug("Setting up ATIS...")
+                    veaf.loggers.get(veafHoundElint.Id):trace(string.format("ATIS params : %s", veaf.p(sectorParameters.atis)))
+                    hound:enableAtis(SectorName, sectorParameters.atis)
+                    if sectorParameters.atis.reportEWR then 
+                        veaf.loggers.get(veafHoundElint.Id):debug("ATIS will report EWRs as threats")
+                        hound:reportEWR(SectorName, sectorParameters.atis.reportEWR) 
+                    end
+                end
+
+                if veafHoundElint.hasController(sectorParameters) then
+                    veaf.loggers.get(veafHoundElint.Id):debug("Setting up Controller...")
+                    veaf.loggers.get(veafHoundElint.Id):trace(string.format("Controller params : %s", veaf.p(sectorParameters.controller)))
+                    hound:enableController(SectorName, sectorParameters.controller)
+                    local textMode = not(veafHoundElint.hasControllerVoice(sectorParameters))
+                    if textMode then 
+                        veaf.loggers.get(veafHoundElint.Id):debug("Controller is text only")
+                        hound:enableText(SectorName)
+                    end
+                end
+
+                if veafHoundElint.hasNotifier(sectorParameters) then
+                    veaf.loggers.get(veafHoundElint.Id):debug("Setting up Notifier...")
+                    veaf.loggers.get(veafHoundElint.Id):trace(string.format("Notifier params : %s", veaf.p(sectorParameters.notifier)))
+                    hound:enableNotifier(SectorName, sectorParameters.notifier)
+                end
+
+                if veafHoundElint.hasNoAlerts(sectorParameters) then
+                    veaf.loggers.get(veafHoundElint.Id):debug("Disabling alerts for controller/ATIS")
+                    hound:disableAlerts(SectorName)
+                end
+
+                if veafHoundElint.hasNoTTS(sectorParameters) then
+                    veaf.loggers.get(veafHoundElint.Id):debug("Disabling TTS overall")
+                    hound:disableTTS(SectorName)
+                end
+            else
+                veaf.loggers.get(veafHoundElint.Id):debug("Skipping sector")
             end
         end
-
-        if veafHoundElint.hasNotifier(sectorParameters) then
-            hound:enableNotifier(SectorName, sectorParameters.notifier)
-        end
-
-        if veafHoundElint.hasNoAlerts(sectorParameters) then
-            hound:disableAlerts(SectorName)
-        end
-
-        if veafHoundElint.hasNoTTS(sectorParameters) then
-            hound:disableTTS(SectorName)
-        end
+    else
+        veaf.loggers.get(veafHoundElint.Id):debug("No sectors to add/configure")
     end
 
     --activate the Hound system
@@ -310,7 +374,7 @@ function veafHoundElint.hasSectorCallsign(parameters)
 end
 
 function veafHoundElint.hasTransmitterUnit(parameters)
-    return parameters and parameters.transmitterUnit and type(parameters.transmitterUnit) == "string" and Group.getByName(parameters.transmitterUnit)
+    return parameters and parameters.transmitterUnit and tostring(parameters.transmitterUnit) and Group.getByName(parameters.transmitterUnit)
 end
 
 function veafHoundElint.hasAtis(parameters)

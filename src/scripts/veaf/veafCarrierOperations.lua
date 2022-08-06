@@ -51,7 +51,7 @@ veafCarrierOperations.Id = "CARRIER"
 veafCarrierOperations.Version = "1.11.4"
 
 -- trace level, specific to this module
---veafCarrierOperations.LogLevel = "trace"
+veafCarrierOperations.LogLevel = "trace"
 
 veaf.loggers.new(veafCarrierOperations.Id, veafCarrierOperations.LogLevel)
 
@@ -118,8 +118,13 @@ end
 
 --- Start carrier operations ; changes the radio menu item to END and make the carrier move
 function veafCarrierOperations.startCarrierOperations(parameters)
-    local groupName, duration, userUnitName = veaf.safeUnpack(parameters)
-    veaf.loggers.get(veafCarrierOperations.Id):debug("startCarrierOperations(".. groupName .. ")")
+    veaf.loggers.get(veafCarrierOperations.Id):debug("startCarrierOperations()")
+    veaf.loggers.get(veafCarrierOperations.Id):trace(string.format("Parameters for this command are : %s",veaf.p(parameters)))
+    local carrierInfo, userUnitName = veaf.safeUnpack(parameters)
+    local groupName, duration = veaf.safeUnpack(carrierInfo)
+    veaf.loggers.get(veafCarrierOperations.Id):debug(string.format("Carrier groupName : %s",veaf.p(groupName)))
+    veaf.loggers.get(veafCarrierOperations.Id):debug(string.format("duration : %s",veaf.p(duration)))
+    veaf.loggers.get(veafCarrierOperations.Id):debug(string.format("userUnitName : %s",veaf.p(userUnitName)))
 
     local carrier = veafCarrierOperations.carriers[groupName]
 

@@ -66,10 +66,10 @@ veafSpawn = {}
 veafSpawn.Id = "SPAWN"
 
 --- Version.
-veafSpawn.Version = "1.40.1"
+veafSpawn.Version = "1.41.0"
 
 -- trace level, specific to this module
---veafSpawn.LogLevel = "trace"
+veafSpawn.LogLevel = "trace"
 
 veaf.loggers.new(veafSpawn.Id, veafSpawn.LogLevel)
 
@@ -128,19 +128,27 @@ veafSpawn.airUnitTemplates = {}
 -- all the named groups that have been spawned
 veafSpawn.spawnedNamesIndex = {}
 
+-- time delay between the watchdog checks for each CAP
+veafSpawn.CAPwatchdogDelay = 10
+
 -- range scale of cargo weight biases
 veafSpawn.cargoWeightBiasRange = 6
 
 --AFAC related base data
 veafSpawn.AFAC = {}
 -- number of AFAC spawned
-veafSpawn.AFAC.numberSpawned = nil
+veafSpawn.AFAC.numberSpawned = {}
+veafSpawn.AFAC.numberSpawned[coalition.side.BLUE] = nil
+veafSpawn.AFAC.numberSpawned[coalition.side.RED] = nil
 -- maximum number of AFACs allowed for spawning by players
 veafSpawn.AFAC.maximumAmount = 8
 -- base frequency for the first AFAC spawned
-veafSpawn.AFAC.baseAFACfrequency = 226300000 -- 226.300000 MHz otherwise known as 226300000 Hz
+veafSpawn.AFAC.baseAFACfrequency = {}
+veafSpawn.AFAC.baseAFACfrequency[coalition.side.BLUE] = 226300000 -- 226.300000 MHz otherwise known as 226300000 Hz
+veafSpawn.AFAC.baseAFACfrequency[coalition.side.RED] = 226300000 -- 226.300000 MHz otherwise known as 226300000 Hz
 -- callsign list of the AFACs
-veafSpawn.AFAC.callsigns = {
+veafSpawn.AFAC.callsigns = {}
+veafSpawn.AFAC.callsigns[coalition.side.BLUE] = {
     [1] = {name = "Enfield 9 1", taken = false},
     [2] = {name = "Springfield 9 1", taken = false},
     [3] = {name = "Uzi 9 1", taken = false},
@@ -150,8 +158,20 @@ veafSpawn.AFAC.callsigns = {
     [7] = {name = "Chevy 9 1", taken = false},
     [8] = {name = "Pontiac 9 1", taken = false},
 }
+veafSpawn.AFAC.callsigns[coalition.side.RED] = {
+    [1] = {name = "181", taken = false},
+    [2] = {name = "281", taken = false},
+    [3] = {name = "381", taken = false},
+    [4] = {name = "481", taken = false},
+    [5] = {name = "581", taken = false},
+    [6] = {name = "681", taken = false},
+    [7] = {name = "781", taken = false},
+    [8] = {name = "881", taken = false},
+}
 -- AFAC mission data as MIST isn't able to recover it from dynamically spawned aircrafts
 veafSpawn.AFAC.missionData = {}
+veafSpawn.AFAC.missionData[coalition.side.BLUE] = {}
+veafSpawn.AFAC.missionData[coalition.side.RED] = {}
 
 veafSpawn.traceMarkerId = 3727
 
@@ -1620,6 +1640,9 @@ function veafSpawn.spawnUnit(spawnPosition, radius, name, country, alt, hdg, uni
         return
     else 
         local toInsert = {}
+        local effectPreset = nil
+        local effectTransparency = nil
+        local shapeName = nil
 
         if unit.static or static then
 
@@ -1627,8 +1650,11 @@ function veafSpawn.spawnUnit(spawnPosition, radius, name, country, alt, hdg, uni
                 if unit.category == "Heliport" then
                     unit.category = "Heliports"
                 end
-                -- if unit.category == "Effects" then
-                --     unit.category = "Effect"
+                -- if unit.category == "Effect" then
+                --     unit.category = "Effects"
+                --     effectPreset = 2
+                --     effectTransparency = 1
+                --     shapeName = "medium smoke and fire"
                 -- end
             end
 
@@ -1642,6 +1668,9 @@ function veafSpawn.spawnUnit(spawnPosition, radius, name, country, alt, hdg, uni
                 ["name"] = groupName,
                 ["category"] = unit.category,
                 ["heading"] = mist.utils.toRadian(hdg),
+                -- ["effectTransparency"] = effectTransparency,
+                -- ["effectPreset"] = effectPreset,
+                -- ["shapeName"] = shapeName,
             }
         else
             toInsert = {
@@ -2489,39 +2518,46 @@ end
 
 function veafSpawn.spawnAFAC(spawnSpot, name, country, altitude, speed, hdg, frequency, mod, code, immortal, silent, hiddenOnMFD)
     
+    local coalition = veaf.getCoalitionForCountry(country, true)
+    if not coalition then
+        veaf.loggers.get(veafSpawn.Id):error("No country/coalition for AFAC !")
+        return nil
+    end
+
     -- find template
     local _name = veafSpawn.AirUnitTemplatesPrefix .. name 
     local _template = veafSpawn.airUnitTemplates[_name:upper()]
     if not _template then
         local message = string.format("The AFAC aircraft template could not be found for \"%s\"", veaf.p(name))
         veaf.loggers.get(veafSpawn.Id):info(message)
-        trigger.action.outText(message, 15)
+        trigger.action.outTextForCoalition(coalition, message, 15)
         return nil
     end
     veaf.loggers.get(veafSpawn.Id):trace("found template=%s",_template)
     local groupName = _template:getName()
 
-    if not veafSpawn.AFAC.numberSpawned then
-        veafSpawn.AFAC.numberSpawned = 1
-    elseif veafSpawn.AFAC.numberSpawned > veafSpawn.AFAC.maximumAmount then
+    if not veafSpawn.AFAC.numberSpawned[coalition] then
+        veafSpawn.AFAC.numberSpawned[coalition] = 1
+    elseif veafSpawn.AFAC.numberSpawned[coalition] > veafSpawn.AFAC.maximumAmount then
         veaf.loggers.get(veafSpawn.Id):info("The limit for AFACs was reached, one needs to be destroyed")
-        if not silent then trigger.action.outText("The limit for AFACs was reached, one needs to be destroyed", 15) end
+        if not silent then trigger.action.outTextForCoalition(coalition, "The limit for AFACs was reached, one needs to be destroyed", 15) end
         return false
     end
 
-    veaf.loggers.get(veafSpawn.Id):info(string.format("number of AFAC spawned : %s", veaf.p(veafSpawn.AFAC.numberSpawned)))
+    veaf.loggers.get(veafSpawn.Id):info(string.format("number of AFAC spawned : %s", veaf.p(veafSpawn.AFAC.numberSpawned[coalition])))
 
-    local AFAC_num = veafSpawn.AFAC.numberSpawned
-    local newGroupName = veafSpawn.AFAC.callsigns[veafSpawn.AFAC.numberSpawned].name
+    local AFAC_num = veafSpawn.AFAC.numberSpawned[coalition]
+    local newGroupName = veafSpawn.AFAC.callsigns[coalition][AFAC_num].name
     for i = 1, veafSpawn.AFAC.maximumAmount do
-        if veafSpawn.AFAC.callsigns[i].taken == false then
-            newGroupName = veafSpawn.AFAC.callsigns[i].name
+        if veafSpawn.AFAC.callsigns[coalition][i].taken == false then
+            newGroupName = veafSpawn.AFAC.callsigns[coalition][i].name
             AFAC_num = i
             break
         end
     end
     veaf.loggers.get(veafSpawn.Id):trace("newGroupName=%s",newGroupName)
     veaf.loggers.get(veafSpawn.Id):trace("AFAC_num=%s",AFAC_num)
+    veaf.loggers.get(veafSpawn.Id):trace("AFAC coalition=%s",coalition)
     
     --essentially the same counter but for the template group itself, not for all AFACs
     if not veafSpawn.spawnedNamesIndex[groupName] then
@@ -2553,7 +2589,7 @@ function veafSpawn.spawnAFAC(spawnSpot, name, country, altitude, speed, hdg, fre
     local distanceFromTeleport = 3000 --distance between the orbit point and the teleport point in meters
 
     --calculate DCS radio frequency based on which AFAC out of 8 this is
-    local dcsFrequency = veafSpawn.AFAC.baseAFACfrequency+(veafSpawn.AFAC.numberSpawned-1)*50000 -- .05 MHz increments
+    local dcsFrequency = veafSpawn.AFAC.baseAFACfrequency[coalition]+(AFAC_num-1)*50000 -- .05 MHz increments
 
     veaf.loggers.get(veafSpawn.Id):trace("spawnSpot=%s", veaf.p(spawnSpot))
     veaf.loggers.get(veafSpawn.Id):trace("name=%s", veaf.p(name))
@@ -2610,8 +2646,8 @@ function veafSpawn.spawnAFAC(spawnSpot, name, country, altitude, speed, hdg, fre
                                 ["params"] = {
                                     ["frequency"]=dcsFrequency,
                                     ["modulation"]=0, --0 is AM, 1 is FM
-                                    ["callname"]=veafSpawn.AFAC.numberSpawned,
-                                    ["number"]=9, --number 9 as in it's callsign Springfield 9-1 for example
+                                    ["callname"]=AFAC_num,
+                                    ["number"]=7+coalition, --number x as in it's callsign Springfield x-1 for example
                                     ["priority"]=0,
                                 }
                             } -- end of [1]
@@ -2652,7 +2688,7 @@ function veafSpawn.spawnAFAC(spawnSpot, name, country, altitude, speed, hdg, fre
     local vars = {}
     vars.gpName = _template:getName()
     vars.name = _template:getName()
-    vars.groupData = _template:getGroupData()
+    --vars.groupData = _template:getGroupData()
     --replace the callsign to prevent interractions
     vars.route = newRoute
     vars.action = 'clone'
@@ -2661,8 +2697,7 @@ function veafSpawn.spawnAFAC(spawnSpot, name, country, altitude, speed, hdg, fre
 
     local newGroup = mist.teleportToPoint(vars, true)
     if country and #country > 0 then
-        newGroup.country = country:lower()
-        newGroup.coalition = veaf.getCoalitionForCountry(country)
+        newGroup.coalition = coalition
         newGroup.countryId = veaf.getCountryId(country)
     end
     --newGroup.task = "AFAC"
@@ -2689,10 +2724,12 @@ function veafSpawn.spawnAFAC(spawnSpot, name, country, altitude, speed, hdg, fre
     if _spawnedGroup then
         veaf.loggers.get(veafSpawn.Id):trace("_spawnedGroup=%s", veaf.p(_spawnedGroup, nil, {"route", "payload"}))
         veaf.loggers.get(veafSpawn.Id):trace("_spawnedGroup.name=%s",_spawnedGroup.name)
-        mist.goRoute(_spawnedGroup.name, newRoute)
+        --mist.goRoute(_spawnedGroup.name, newRoute)
 
-        --veaf.loggers.get(veafSpawn.Id):trace("_spawnedGroup=%s", veaf.p(_spawnedGroup))
-        --veafSpawn.AFAC.missionData[veafSpawn.spawnedNamesIndex[groupName]] = _spawnedGroup --Does not work to recover the mission data of the dynamically spawned afac for movie command later on, for mist the group simply does not exist anyways
+        _spawnedGroup.category = "AIRPLANE"
+        _spawnedGroup.country = country
+        veaf.loggers.get(veafSpawn.Id):trace("_spawnedGroup=%s", veaf.p(_spawnedGroup))
+        veafSpawn.AFAC.missionData[coalition][AFAC_num] = _spawnedGroup --since MIST does not store cloned group data, this is a bit of trickery to allow teleporting AFACs
 
         -- start lasing 
         if ctld then 
@@ -2702,9 +2739,9 @@ function veafSpawn.spawnAFAC(spawnSpot, name, country, altitude, speed, hdg, fre
         end
 
         local humanFrequency = dcsFrequency/1000000
-        local text = "AFAC " .. string.format(veafSpawn.AFAC.numberSpawned) .. "/" .. string.format(veafSpawn.AFAC.maximumAmount) .. " - " .. string.format(_spawnedGroup.name) .. " (" .. string.format(country) .. ") - on " .. string.format(humanFrequency) .. "AM (DCS AFAC) or " .. string.format(frequency) .. string.upper(mod) .. " (SRS)"
+        local text = "AFAC " .. string.format(veafSpawn.AFAC.numberSpawned[coalition]) .. "/" .. string.format(veafSpawn.AFAC.maximumAmount) .. " - " .. string.format(_spawnedGroup.name) .. " (" .. string.format(country) .. ") - on " .. string.format(humanFrequency) .. "AM (DCS AFAC) or " .. string.format(frequency) .. string.upper(mod) .. " (SRS)"
         veaf.loggers.get(veafSpawn.Id):info(text)
-        if not silent then trigger.action.outText(text, 15) end
+        if not silent then trigger.action.outTextForCoalition(coalition, text, 15) end
  
         local _dcsSpawnedGroup = Group.getByName(_spawnedGroup.name)
         local controller = _dcsSpawnedGroup:getController()
@@ -2746,10 +2783,10 @@ function veafSpawn.spawnAFAC(spawnSpot, name, country, altitude, speed, hdg, fre
             veafNamedPoints.namePoint({x=spawnSpot.x, y=altitude, z=spawnSpot.z}, text, veaf.getCoalitionForCountry(country, true), true)
         end
 
-        veafSpawn.afacWatchdog(newGroupName, AFAC_num, text)
-        veafSpawn.AFAC.callsigns[AFAC_num].taken = true
+        veafSpawn.afacWatchdog(newGroupName, AFAC_num, coalition, text)
+        veafSpawn.AFAC.callsigns[coalition][AFAC_num].taken = true
         veafSpawn.spawnedNamesIndex[groupName] = veafSpawn.spawnedNamesIndex[groupName] + 1
-        veafSpawn.AFAC.numberSpawned= veafSpawn.AFAC.numberSpawned + 1
+        veafSpawn.AFAC.numberSpawned[coalition] = veafSpawn.AFAC.numberSpawned[coalition] + 1
         
         return _spawnedGroup.name
     else
@@ -2758,7 +2795,7 @@ function veafSpawn.spawnAFAC(spawnSpot, name, country, altitude, speed, hdg, fre
     end
 end
 
-function veafSpawn.afacWatchdog(afacGroupName, AFAC_num, markName)
+function veafSpawn.afacWatchdog(afacGroupName, AFAC_num, coalition, markName)
     if afacGroupName and not Group.getByName(afacGroupName) then
         veaf.loggers.get(veafSpawn.Id):info(string.format("AFAC named=%s is KIA, removing mark (if it exists) and allowing it to be spawned again", veaf.p(afacGroupName)))
         veaf.loggers.get(veafSpawn.Id):trace(string.format("markName=%s", veaf.p(markName)))
@@ -2774,18 +2811,41 @@ function veafSpawn.afacWatchdog(afacGroupName, AFAC_num, markName)
 
         --Make the callsign index available again for spawn
         veaf.loggers.get(veafSpawn.Id):trace(string.format("AFAC_num=%s", veaf.p(AFAC_num)))
-        veafSpawn.AFAC.callsigns[AFAC_num].taken = false
-        veafSpawn.AFAC.numberSpawned = veafSpawn.AFAC.numberSpawned - 1
+        veafSpawn.AFAC.callsigns[coalition][AFAC_num].taken = false
+        veafSpawn.AFAC.numberSpawned[coalition] = veafSpawn.AFAC.numberSpawned[coalition] - 1
         mist.DBs.unitsByName[afacGroupName] = nil --MIST does not do it on it's own, I highly recommend looking for an alternative, this is to spawn the AFAC once again with the unit name equal to the group name
 
     else
         veaf.loggers.get(veafSpawn.Id):trace(string.format("AFAC named=%s is alive", veaf.p(afacGroupName)))
-        mist.scheduleFunction(veafSpawn.afacWatchdog, {afacGroupName, AFAC_num, markName}, timer.getTime()+120)
+
+        --update the mark if the AFAC moves
+        if veafNamedPoints and markName then
+            local existingPoint = veafNamedPoints.getPoint(markName)
+            veaf.loggers.get(veafSpawn.Id):trace(string.format("existingAFACmarker=%s", veaf.p(existingPoint)))
+            if existingPoint and existingPoint.markerId then
+                local AFAC_points = veafSpawn.AFAC.missionData[coalition][AFAC_num].route.points
+                local orbitPoint = AFAC_points[#AFAC_points]
+                if existingPoint.x ~= orbitPoint.x and existingPoint.z ~= orbitPoint.y then
+                    -- delete the existing point
+                    veaf.loggers.get(veafSpawn.Id):trace(string.format("Marker needs updating, AFAC moved, newAFACmarker=%s", veaf.p(orbitPoint)))
+                    trigger.action.removeMark(existingPoint.markerId)
+                    veafNamedPoints.namePoint({x=orbitPoint.x, y=orbitPoint.alt, z=orbitPoint.y}, markName, coalition, true)
+                end
+            end
+        end
+
+        mist.scheduleFunction(veafSpawn.afacWatchdog, {afacGroupName, AFAC_num, coalition, markName}, timer.getTime()+120)
     end
 end
 
 function veafSpawn.spawnCombatAirPatrol(spawnSpot, radius, name, country, altitude, altdelta, hdg, distance, speed, capRadius, skill, silent, hiddenOnMFD)
     
+    local coalition = veaf.getCoalitionForCountry(country, true)
+    if not coalition then
+        veaf.loggers.get(veafSpawn.Id):error("No country/coalition for CAP !")
+        return nil
+    end
+
     -- find template
     local _name = veafSpawn.AirUnitTemplatesPrefix .. name 
     local _template = veafSpawn.airUnitTemplates[_name:upper()]
@@ -2823,31 +2883,35 @@ function veafSpawn.spawnCombatAirPatrol(spawnSpot, radius, name, country, altitu
     altitude = altitude * 0.3048 -- meters
     altdelta = altdelta * 0.3048 -- meters
 
-    veaf.loggers.get(veafSpawn.Id):trace("spawnSpot=%s", veaf.p(spawnSpot))
-    veaf.loggers.get(veafSpawn.Id):trace("radius=%s", veaf.p(radius))
-    veaf.loggers.get(veafSpawn.Id):trace("name=%s", veaf.p(name))
-    veaf.loggers.get(veafSpawn.Id):trace("country=%s", veaf.p(country))
-    veaf.loggers.get(veafSpawn.Id):trace("altitude=%s", veaf.p(altitude))
-    veaf.loggers.get(veafSpawn.Id):trace("altdelta=%s", veaf.p(altdelta))
-    veaf.loggers.get(veafSpawn.Id):trace("hdg=%s", veaf.p(hdg))
-    veaf.loggers.get(veafSpawn.Id):trace("distance=%s", veaf.p(distance))
-    veaf.loggers.get(veafSpawn.Id):trace("speed=%s", veaf.p(speed))
-    veaf.loggers.get(veafSpawn.Id):trace("capRadius=%s", veaf.p(capRadius))
-    veaf.loggers.get(veafSpawn.Id):trace("skill=%s", veaf.p(skill))
-    veaf.loggers.get(veafSpawn.Id):trace("silent=%s", veaf.p(silent))
-    veaf.loggers.get(veafSpawn.Id):trace("hiddenOnMFD=%s", veaf.p(hiddenOnMFD))
+    veaf.loggers.get(veafSpawn.Id):debug("spawnSpot=%s", veaf.p(spawnSpot))
+    veaf.loggers.get(veafSpawn.Id):debug("radius=%s", veaf.p(radius))
+    veaf.loggers.get(veafSpawn.Id):debug("name=%s", veaf.p(name))
+    veaf.loggers.get(veafSpawn.Id):debug("country=%s", veaf.p(country))
+    veaf.loggers.get(veafSpawn.Id):debug("altitude=%s", veaf.p(altitude))
+    veaf.loggers.get(veafSpawn.Id):debug("altdelta=%s", veaf.p(altdelta))
+    veaf.loggers.get(veafSpawn.Id):debug("hdg=%s", veaf.p(hdg))
+    veaf.loggers.get(veafSpawn.Id):debug("distance=%s", veaf.p(distance))
+    veaf.loggers.get(veafSpawn.Id):debug("speed=%s", veaf.p(speed))
+    veaf.loggers.get(veafSpawn.Id):debug("capRadius=%s", veaf.p(capRadius))
+    veaf.loggers.get(veafSpawn.Id):debug("skill=%s", veaf.p(skill))
+    veaf.loggers.get(veafSpawn.Id):debug("silent=%s", veaf.p(silent))
+    veaf.loggers.get(veafSpawn.Id):debug("hiddenOnMFD=%s", veaf.p(hiddenOnMFD))
    
     local getRoute = function(parameters)
         local newRoute = {
-            ["routeRelativeTOT"] = true,
-            ["points"] = 
-            {
+            ["points"] = {
                 [1] = 
                 {
                     ["alt"] = parameters.altitude,
                     ["action"] = "Turning Point",
                     ["alt_type"] = "BARO",
                     ["speed"] = parameters.speed,
+                    ["properties"] = 
+                    {
+                        ["addopt"] = 
+                        {
+                        }, -- end of ["addopt"]
+                    }, -- end of ["properties"]
                     ["task"] = 
                     {
                         ["id"] = "ComboTask",
@@ -2857,86 +2921,10 @@ function veafSpawn.spawnCombatAirPatrol(spawnSpot, radius, name, country, altitu
                             {
                                 [1] = 
                                 {
-                                    ["enabled"] = true,
-                                    ["auto"] = false,
-                                    ["id"] = "WrappedAction",
                                     ["number"] = 1,
-                                    ["params"] = 
-                                    {
-                                        ["action"] = 
-                                        {
-                                            ["id"] = "Option",
-                                            ["params"] = 
-                                            {
-                                                ["value"] = 2,
-                                                ["name"] = 0,
-                                            }, -- end of ["params"]
-                                        }, -- end of ["action"]
-                                    }, -- end of ["params"]
-                                }, -- end of [1]
-                                [2] = 
-                                {
-                                    ["enabled"] = true,
-                                    ["auto"] = false,
+                                    ["auto"] = true,
                                     ["id"] = "WrappedAction",
-                                    ["number"] = 2,
-                                    ["params"] = 
-                                    {
-                                        ["action"] = 
-                                        {
-                                            ["id"] = "Option",
-                                            ["params"] = 
-                                            {
-                                                ["value"] = 3,
-                                                ["name"] = 1,
-                                            }, -- end of ["params"]
-                                        }, -- end of ["action"]
-                                    }, -- end of ["params"]
-                                }, -- end of [2]
-                                [3] = 
-                                {
                                     ["enabled"] = true,
-                                    ["auto"] = false,
-                                    ["id"] = "WrappedAction",
-                                    ["number"] = 3,
-                                    ["params"] = 
-                                    {
-                                        ["action"] = 
-                                        {
-                                            ["id"] = "Option",
-                                            ["params"] = 
-                                            {
-                                                ["value"] = 2,
-                                                ["name"] = 3,
-                                            }, -- end of ["params"]
-                                        }, -- end of ["action"]
-                                    }, -- end of ["params"]
-                                }, -- end of [3]
-                                [4] = 
-                                {
-                                    ["enabled"] = true,
-                                    ["auto"] = false,
-                                    ["id"] = "WrappedAction",
-                                    ["number"] = 4,
-                                    ["params"] = 
-                                    {
-                                        ["action"] = 
-                                        {
-                                            ["id"] = "Option",
-                                            ["params"] = 
-                                            {
-                                                ["value"] = 1,
-                                                ["name"] = 4,
-                                            }, -- end of ["params"]
-                                        }, -- end of ["action"]
-                                    }, -- end of ["params"]
-                                }, -- end of [4]
-                                [5] = 
-                                {
-                                    ["enabled"] = true,
-                                    ["auto"] = false,
-                                    ["id"] = "WrappedAction",
-                                    ["number"] = 5,
                                     ["params"] = 
                                     {
                                         ["action"] = 
@@ -2945,55 +2933,17 @@ function veafSpawn.spawnCombatAirPatrol(spawnSpot, radius, name, country, altitu
                                             ["params"] = 
                                             {
                                                 ["value"] = true,
-                                                ["name"] = 6,
+                                                ["name"] = 17,
                                             }, -- end of ["params"]
                                         }, -- end of ["action"]
                                     }, -- end of ["params"]
-                                }, -- end of [5]
-                                [6] = 
+                                }, -- end of [1]
+                                [2] = 
                                 {
-                                    ["enabled"] = true,
-                                    ["auto"] = false,
+                                    ["number"] = 2,
+                                    ["auto"] = true,
                                     ["id"] = "WrappedAction",
-                                    ["number"] = 6,
-                                    ["params"] = 
-                                    {
-                                        ["action"] = 
-                                        {
-                                            ["id"] = "Option",
-                                            ["params"] = 
-                                            {
-                                                ["value"] = 268402688,
-                                                ["name"] = 10,
-                                            }, -- end of ["params"]
-                                        }, -- end of ["action"]
-                                    }, -- end of ["params"]
-                                }, -- end of [6]
-                                [7] = 
-                                {
                                     ["enabled"] = true,
-                                    ["auto"] = false,
-                                    ["id"] = "WrappedAction",
-                                    ["number"] = 7,
-                                    ["params"] = 
-                                    {
-                                        ["action"] = 
-                                        {
-                                            ["id"] = "Option",
-                                            ["params"] = 
-                                            {
-                                                ["value"] = 1,
-                                                ["name"] = 13,
-                                            }, -- end of ["params"]
-                                        }, -- end of ["action"]
-                                    }, -- end of ["params"]
-                                }, -- end of [7]
-                                [8] = 
-                                {
-                                    ["enabled"] = true,
-                                    ["auto"] = false,
-                                    ["id"] = "WrappedAction",
-                                    ["number"] = 8,
                                     ["params"] = 
                                     {
                                         ["action"] = 
@@ -3006,13 +2956,13 @@ function veafSpawn.spawnCombatAirPatrol(spawnSpot, radius, name, country, altitu
                                             }, -- end of ["params"]
                                         }, -- end of ["action"]
                                     }, -- end of ["params"]
-                                }, -- end of [8]
-                                [9] = 
+                                }, -- end of [2]
+                                [3] = 
                                 {
-                                    ["enabled"] = true,
-                                    ["auto"] = false,
+                                    ["number"] = 3,
+                                    ["auto"] = true,
                                     ["id"] = "WrappedAction",
-                                    ["number"] = 9,
+                                    ["enabled"] = true,
                                     ["params"] = 
                                     {
                                         ["action"] = 
@@ -3020,44 +2970,51 @@ function veafSpawn.spawnCombatAirPatrol(spawnSpot, radius, name, country, altitu
                                             ["id"] = "Option",
                                             ["params"] = 
                                             {
-                                                ["value"] = false,
+                                                ["value"] = true,
                                                 ["name"] = 19,
                                             }, -- end of ["params"]
                                         }, -- end of ["action"]
                                     }, -- end of ["params"]
-                                }, -- end of [9]                            
-                                [10] = 
+                                }, -- end of [4]
+                                [4] = 
                                 {
-                                    ["auto"] = false,
+                                    ["number"] = 4,
+                                    ["auto"] = true,
+                                    ["id"] = "WrappedAction",
                                     ["enabled"] = true,
-                                    ["id"] = "EngageTargetsInZone",
-                                    ["number"] = 10,
-                                    ["params"] = {
-                                        ["noTargetTypes"] = {
-                                            [1] = "Cruise missiles",
-                                            [2] = "Antiship Missiles",
-                                            [3] = "AA Missiles",
-                                            [4] = "AG Missiles",
-                                            [5] = "SA Missiles",
-                                        }, -- end of ["noTargetTypes"]
-                                        ["priority"] = 10,
-                                        ["targetTypes"] = {
-                                            [1] = "Air",
-                                        }, -- end of ["targetTypes"]
-                                        ["value"] = "Air;",
-                                        ["x"] = parameters.targetZone.x,
-                                        ["y"] = parameters.targetZone.y,
-                                        ["zoneRadius"] = parameters.targetZone.radius,
+                                    ["params"] = 
+                                    {
+                                        ["action"] = 
+                                        {
+                                            ["id"] = "Option",
+                                            ["params"] = 
+                                            {
+                                                ["targetTypes"] = 
+                                                {
+                                                    [1] = "Planes",
+                                                    [2] = "Ground Units",
+                                                    [3] = "Naval",
+                                                    [4] = "Missile",
+                                                }, -- end of ["targetTypes"]
+                                                ["name"] = 21,
+                                                ["value"] = "Planes;Ground Units;Naval;Missile;",
+                                                ["noTargetTypes"] = 
+                                                {
+                                                    [1] = "Helicopters",
+                                                    [2] = "UAVs",
+                                                }, -- end of ["noTargetTypes"]
+                                            }, -- end of ["params"]
+                                        }, -- end of ["action"]
                                     }, -- end of ["params"]
-                                }, -- end of [10]
+                                }, -- end of [4]                        
                             }, -- end of ["tasks"]
                         }, -- end of ["params"]
                     }, -- end of ["task"]
                     ["type"] = "Turning Point",
-                    ["ETA"] = 0,
-                    ["ETA_locked"] = true,
-                    ["y"] = parameters.wp2.y,
-                    ["x"] = parameters.wp2.x,
+                    ["ETA"] = 10000,
+                    ["ETA_locked"] = false,
+                    ["y"] = parameters.wp1.y,
+                    ["x"] = parameters.wp1.x,
                     ["formation_template"] = "",
                     ["speed_locked"] = true,
                 }, -- end of [1]
@@ -3067,6 +3024,66 @@ function veafSpawn.spawnCombatAirPatrol(spawnSpot, radius, name, country, altitu
                     ["action"] = "Turning Point",
                     ["alt_type"] = "BARO",
                     ["speed"] = parameters.speed,
+                    ["properties"] = 
+                    {
+                        ["addopt"] = 
+                        {
+                        }, -- end of ["addopt"]
+                    }, -- end of ["properties"]
+                    ["task"] = 
+                    {
+                        ["id"] = "ComboTask",
+                        ["params"] = 
+                        {
+                            ["tasks"] = 
+                            { 
+                                [1] = 
+                                {
+                                    ["number"] = 1,
+                                    ["auto"] = false,
+                                    ["enabled"] = true,
+                                    ["id"] = "EngageTargetsInZone",
+                                    ["params"] = {
+                                        ["noTargetTypes"] = {
+                                            [1] = "Cruise missiles",
+                                            [2] = "Antiship Missiles",
+                                            [3] = "AA Missiles",
+                                            [4] = "AG Missiles",
+                                            [5] = "SA Missiles",
+                                        }, -- end of ["noTargetTypes"]
+                                        ["priority"] = 0,
+                                        ["targetTypes"] = {
+                                            [1] = "Air",
+                                        }, -- end of ["targetTypes"]
+                                        ["value"] = "Air;",
+                                        ["x"] = parameters.targetZone.x,
+                                        ["y"] = parameters.targetZone.y,
+                                        ["zoneRadius"] = parameters.targetZone.radius,
+                                    }, -- end of ["params"]
+                                }, -- end of [1]                       
+                            }, -- end of ["tasks"]
+                        }, -- end of ["params"]
+                    }, -- end of ["task"]
+                    ["type"] = "Turning Point",
+                    ["ETA"] = 20000,
+                    ["ETA_locked"] = false,
+                    ["y"] = parameters.wp2.y,
+                    ["x"] = parameters.wp2.x,
+                    ["formation_template"] = "",
+                    ["speed_locked"] = true,
+                }, -- end of [2]
+                [3] = 
+                {
+                    ["alt"] = parameters.altitude,
+                    ["action"] = "Turning Point",
+                    ["alt_type"] = "BARO",
+                    ["speed"] = parameters.speed,
+                    ["properties"] = 
+                    {
+                        ["addopt"] = 
+                        {
+                        }, -- end of ["addopt"]
+                    }, -- end of ["properties"]
                     ["task"] = 
                     {
                         ["id"] = "ComboTask",
@@ -3087,7 +3104,7 @@ function veafSpawn.spawnCombatAirPatrol(spawnSpot, radius, name, country, altitu
                                             ["id"] = "SwitchWaypoint",
                                             ["params"] = 
                                             {
-                                                ["goToWaypointIndex"] = 1,
+                                                ["goToWaypointIndex"] = 2,
                                                 ["fromWaypointIndex"] = 3,
                                             }, -- end of ["params"]
                                         }, -- end of ["action"]
@@ -3097,15 +3114,16 @@ function veafSpawn.spawnCombatAirPatrol(spawnSpot, radius, name, country, altitu
                         }, -- end of ["params"]
                     }, -- end of ["task"]
                     ["type"] = "Turning Point",
-                    ["ETA"] = 790.96549625914,
+                    ["ETA"] = 30000,
                     ["ETA_locked"] = false,
                     ["y"] = parameters.wp3.y,
                     ["x"] = parameters.wp3.x,
                     ["formation_template"] = "",
                     ["speed_locked"] = true,
                 }, -- end of [3]
-            }, -- end of ["points"]
+            }
         }
+
         return newRoute
     end
     
@@ -3116,7 +3134,7 @@ function veafSpawn.spawnCombatAirPatrol(spawnSpot, radius, name, country, altitu
     local position = mist.getRandPointInCircle(spawnSpot, radius)
     position.z = position.y 
     position.y = altitude
-    veaf.loggers.get(veafSpawn.Id):trace("position=%s",position)
+    veaf.loggers.get(veafSpawn.Id):debug("final spawn, position=%s",position)
 
     -- compute route
     local headingRad = mist.utils.toRadian(hdg)
@@ -3129,7 +3147,7 @@ function veafSpawn.spawnCombatAirPatrol(spawnSpot, radius, name, country, altitu
     parameters.wp3 = { x = parameters.wp2.x + distance * math.cos(headingRad), y = parameters.wp2.y + distance * math.sin(headingRad) } -- last wp at the right distance in the right direction
     parameters.targetZone = { x = parameters.wp3.x - capRadius * math.cos(headingRad), y = parameters.wp3.y - capRadius * math.sin(headingRad), radius = capRadius } -- target zone at the middle point between wp2 and wp3
 
-    veaf.loggers.get(veafSpawn.Id):trace("parameters=%s",parameters)
+    veaf.loggers.get(veafSpawn.Id):trace("to create route, parameters=%s",parameters)
     local newRoute = getRoute(parameters)
     
     veafSpawn.traceMarkerId = veaf.loggers.get(veafSpawn.Id):marker(veafSpawn.traceMarkerId, "CAP", "wp1", parameters.wp1)
@@ -3143,13 +3161,13 @@ function veafSpawn.spawnCombatAirPatrol(spawnSpot, radius, name, country, altitu
         veafSpawn.spawnedNamesIndex[groupName] = veafSpawn.spawnedNamesIndex[groupName] + 1
     end
     local newGroupName = string.format("%s #%04d", groupName, veafSpawn.spawnedNamesIndex[groupName])
-    veaf.loggers.get(veafSpawn.Id):trace("newGroupName=%s",newGroupName)
+    veaf.loggers.get(veafSpawn.Id):debug("indexed newGroupName=%s",newGroupName)
 
     -- (re)spawn group
     local vars = {}
     vars.gpName = _template:getName()
     vars.name = _template:getName()
-    vars.groupData = _template:getGroupData()
+    --vars.groupData = _template:getGroupData()
     vars.route = newRoute
     vars.action = 'clone'
     vars.point = position
@@ -3157,21 +3175,19 @@ function veafSpawn.spawnCombatAirPatrol(spawnSpot, radius, name, country, altitu
 
     local newGroup = mist.teleportToPoint(vars, true)
     if country and #country > 0 then
-        newGroup.country = country:lower()
-        newGroup.coalition = veaf.getCoalitionForCountry(country)
         newGroup.countryId = veaf.getCountryId(country)
     end
-    --newGroup.task = "CAP"
-    veaf.loggers.get(veafSpawn.Id):trace("newGroup=%s", veaf.p(newGroup, nil, {"route", "payload"}))
+    --newGroup.task = "CAP" --needs to be set in the editor
+    veaf.loggers.get(veafSpawn.Id):trace("after preparation by MIST, newGroup=%s", veaf.p(newGroup, nil, {"route", "payload"}))
 
-    newGroup.hidden=false
+    newGroup.hidden = false
     newGroup.name = newGroupName
     newGroup.hiddenOnMFD = hiddenOnMFD
 
     for _, unit in pairs(newGroup.units) do
         unit.skill = skill
         local unitName = unit.unitName or unit.name
-        veaf.loggers.get(veafSpawn.Id):trace("unitName=%s",unitName)
+        veaf.loggers.get(veafSpawn.Id):trace("original unitName=%s",unitName)
         if not veafSpawn.spawnedNamesIndex[unitName] then
             veafSpawn.spawnedNamesIndex[unitName] = 1
         else
@@ -3180,23 +3196,98 @@ function veafSpawn.spawnCombatAirPatrol(spawnSpot, radius, name, country, altitu
         local spawnedUnitName = string.format("%s #%04d", unitName, veafSpawn.spawnedNamesIndex[unitName])
         unit.name = spawnedUnitName
         unit.alt = position.y
-        veaf.loggers.get(veafSpawn.Id):trace("spawnedUnitName=%s",spawnedUnitName)
+        veaf.loggers.get(veafSpawn.Id):debug("indexed spawnedUnitName=%s",spawnedUnitName)
     end
 
-    veaf.loggers.get(veafSpawn.Id):trace("newGroup=%s", veaf.p(newGroup, nil, {"route", "payload"}))
+    veaf.loggers.get(veafSpawn.Id):trace("before mist.dynAdd, newGroup=%s", veaf.p(newGroup, nil, {"route", "payload"}))
     local _spawnedGroup = mist.dynAdd(newGroup)
-    veaf.loggers.get(veafSpawn.Id):trace("_spawnedGroup=%s", veaf.p(_spawnedGroup, nil, {"route", "payload"}))
-    veaf.loggers.get(veafSpawn.Id):trace("_spawnedGroup.name=%s",_spawnedGroup.name)
+    veaf.loggers.get(veafSpawn.Id):debug("after mist.dynAdd, _spawnedGroup.name=%s",_spawnedGroup.name)
+    veaf.loggers.get(veafSpawn.Id):trace("after mist.dynAdd, _spawnedGroup=%s", veaf.p(_spawnedGroup, nil, {"route", "payload"}))
 
     local _dcsSpawnedGroup = Group.getByName(_spawnedGroup.name)
-    mist.goRoute(_spawnedGroup.name, newRoute)
-    veaf.loggers.get(veafSpawn.Id):trace("_dcsSpawnedGroup=%s", veaf.p(_dcsSpawnedGroup, nil, {"route", "payload"}))
-    veaf.loggers.get(veafSpawn.Id):trace("_dcsSpawnedGroup.name=%s",_dcsSpawnedGroup:getName())
-    for _, unit in pairs(_dcsSpawnedGroup:getUnits()) do
-        veaf.loggers.get(veafSpawn.Id):trace("_dcsSpawnedGroup.unit.name=%s",unit:getName())
+    veaf.loggers.get(veafSpawn.Id):trace("result of dcs side getByName, _dcsSpawnedGroup=%s", veaf.p(_dcsSpawnedGroup, nil, {"route", "payload"}))
+    veaf.loggers.get(veafSpawn.Id):debug("result of dcs side getByName, _dcsSpawnedGroup.name=%s", _dcsSpawnedGroup:getName())
+    for index, unit in pairs(_dcsSpawnedGroup:getUnits()) do
+        veaf.loggers.get(veafSpawn.Id):debug("result of dcs side getByName, _dcsSpawnedGroup.unit[%s].name=%s", index, unit:getName())
     end
 
+    local controller = _dcsSpawnedGroup:getController()
+    controller:setOption(AI.Option.Air.id.PROHIBIT_AA, true)
+    veaf.loggers.get(veafSpawn.Id):debug("restricting AA engagements for the AI to no go dumb, starting target watchdog...")
+    mist.scheduleFunction(veafSpawn.CAPTargetWatchdog, {_spawnedGroup.name, newRoute.points, controller, coalition, {x = parameters.targetZone.x, z = parameters.targetZone.y}, parameters.targetZone.radius, false}, timer.getTime()+veafSpawn.CAPwatchdogDelay)
+
+    local message = string.format("A CAP of %s (%s) has been spawned", name, country)
+    veaf.loggers.get(veafSpawn.Id):info(message)
+    if not silent then trigger.action.outText(message, 15) end
+
     return _spawnedGroup.name
+end
+
+function veafSpawn.CAPTargetWatchdog(CAPname, CAProute, CAPcontroller, CAPcoalition, zone_position, zoneRadius, flipflop)
+    
+    local flipflop = flipflop or false
+    local CAPdead = false
+    local CAPlanded = true
+    local CAPgroup = Group.getByName(CAPname)
+    veaf.loggers.get(veafSpawn.Id):debug(string.format("Watchdog for CAP %s...", veaf.p(CAPname)))
+
+    if CAPname and not CAPgroup then
+        CAPdead = true
+        veaf.loggers.get(veafSpawn.Id):debug("watchdog found that Jester's dead ! (CAP is dead), stopping watchdog")
+    else
+        for _,unit in pairs(CAPgroup:getUnits()) do
+            if unit and unit:inAir() then
+                CAPlanded = false
+                veaf.loggers.get(veafSpawn.Id):trace("watchdog found that CAP is still in the air...")
+                break
+            end
+        end
+    
+        if CAPlanded then
+            CAPgroup:destroy()
+            veaf.loggers.get(veafSpawn.Id):debug("Destroying landed CAP, stopping watchdog")
+        else
+            veaf.loggers.get(veafSpawn.Id):trace("Looking in CAP zone for targets...")
+
+            local targetVolume = {
+                id = world.VolumeType.SPHERE,
+                params = {
+                    point = zone_position,
+                    radius = zoneRadius,
+                },
+            }
+
+            local ennemySpotted = false
+
+            local allowAA = function(foundUnit, CAPcoalition)
+                local group = foundUnit:getGroup()
+                local foundCoalition = foundUnit:getCoalition()
+                local foundCategory = group:getCategory()
+
+                veaf.loggers.get(veafSpawn.Id):trace(string.format("Found unit in CAP zone ! unit.category=%s(%s for airplanes, %s for helos), unitCoalition=%s (CAP coalition is %s)", veaf.p(foundCategory), Group.Category.AIRPLANE, Group.Category.HELICOPTER, veaf.p(foundCoalition), CAPcoalition))
+
+                if foundCategory and foundCoalition and foundCategory == Group.Category.AIRPLANE and foundCoalition ~= CAPcoalition then
+                    ennemySpotted = true
+                end
+            end
+
+            world.searchObjects(Object.Category.UNIT, targetVolume, allowAA, CAPcoalition)
+
+            if ennemySpotted then
+                veaf.loggers.get(veafSpawn.Id):debug("Watchdog found targets ! Allowing AA for CAP")
+                CAPcontroller:setOption(AI.Option.Air.id.PROHIBIT_AA, false)
+                flipflop = true
+            else
+                veaf.loggers.get(veafSpawn.Id):debug("Watchdog found no targets, prohibiting AA for CAP")
+                CAPcontroller:setOption(AI.Option.Air.id.PROHIBIT_AA, true)
+                if flipflop then mist.goRoute(CAPname, CAProute) end
+                flipflop = false
+            end
+
+            veaf.loggers.get(veafSpawn.Id):trace(string.format("Rescheduling watchdog in %s seconds", veafSpawn.CAPwatchdogDelay))
+            mist.scheduleFunction(veafSpawn.CAPTargetWatchdog, {CAPname, CAProute, CAPcontroller, CAPcoalition, zone_position, zoneRadius, flipflop}, timer.getTime()+veafSpawn.CAPwatchdogDelay)
+        end
+    end
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------

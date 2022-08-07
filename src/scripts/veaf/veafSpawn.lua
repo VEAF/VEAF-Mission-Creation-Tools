@@ -69,7 +69,7 @@ veafSpawn.Id = "SPAWN"
 veafSpawn.Version = "1.41.0"
 
 -- trace level, specific to this module
-veafSpawn.LogLevel = "trace"
+--veafSpawn.LogLevel = "trace"
 
 veaf.loggers.new(veafSpawn.Id, veafSpawn.LogLevel)
 
@@ -2814,7 +2814,7 @@ function veafSpawn.afacWatchdog(afacGroupName, AFAC_num, coalition, markName)
         veafSpawn.AFAC.callsigns[coalition][AFAC_num].taken = false
         veafSpawn.AFAC.numberSpawned[coalition] = veafSpawn.AFAC.numberSpawned[coalition] - 1
         mist.DBs.unitsByName[afacGroupName] = nil --MIST does not do it on it's own, I highly recommend looking for an alternative, this is to spawn the AFAC once again with the unit name equal to the group name
-
+        veafSpawn.AFAC.missionData[coalition][AFAC_num] = nil
     else
         veaf.loggers.get(veafSpawn.Id):trace(string.format("AFAC named=%s is alive", veaf.p(afacGroupName)))
 

@@ -68,7 +68,7 @@ veafMove = {}
 veafMove.Id = "MOVE"
 
 --- Version.
-veafMove.Version = "1.9.1"
+veafMove.Version = "1.9.2"
 
 -- trace level, specific to this module
 --veafMove.LogLevel = "trace"
@@ -838,14 +838,14 @@ function veafMove.moveAfac(eventPos, groupName, speed, alt, heading, immortal)
 		return false
 	end
 
+    local coalition = unitGroup:getCoalition()
+
     local afacData = veaf.getGroupData(groupName)
     if not afacData then
-        for number, dynAFACcallsign in pairs(veafSpawn.AFAC.callsigns) do
-            if groupName:find(dynAFACcallsign) then
-                veaf.loggers.get(veafMove.Id):trace("AFAC is dynamically spawned (Move command WIP)")
-                trigger.action.outText("Dynamically spawned AFACs can not be moved yet (WIP)", 10)
-                return false
-                --afacData = veafSpawn.AFAC.missionData[number] --Does not work to recover the mission data of the dynamically spawned afac for movie command later on, for mist the group simply does not exist so it has no data
+        for number, dynAFACcallsign in pairs(veafSpawn.AFAC.callsigns[coalition]) do
+            if groupName:find(dynAFACcallsign.name) then
+                veaf.loggers.get(veafMove.Id):trace("AFAC is dynamically spawned")
+                afacData = veafSpawn.AFAC.missionData[coalition][number]
             end
         end
     end
@@ -926,7 +926,7 @@ function veafMove.moveAfac(eventPos, groupName, speed, alt, heading, immortal)
 
         --teleport the group south of the requested location
         veaf.loggers.get(veafMove.Id):trace("AFAC ".. groupName .. " teleported")
-        local vars = { groupName = groupName, point = teleportPosition, action = "teleport" }
+        local vars = { groupName = groupName, groupData = afacData, anyTerrain = true, point = teleportPosition, action = "teleport" }
         local grp = mist.teleportToPoint(vars)
         unitGroup = Group.getByName(groupName) --refresh group class after respawn, not necessary but safer considering at least the groupId changes
     

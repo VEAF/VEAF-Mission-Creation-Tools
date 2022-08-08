@@ -129,7 +129,7 @@ veafSpawn.airUnitTemplates = {}
 veafSpawn.spawnedNamesIndex = {}
 
 -- time delay between the watchdog checks for each CAP
-veafSpawn.CAPwatchdogDelay = 10
+veafSpawn.CAPwatchdogDelay = 20
 
 -- range scale of cargo weight biases
 veafSpawn.cargoWeightBiasRange = 6
@@ -2975,39 +2975,8 @@ function veafSpawn.spawnCombatAirPatrol(spawnSpot, radius, name, country, altitu
                                             }, -- end of ["params"]
                                         }, -- end of ["action"]
                                     }, -- end of ["params"]
-                                }, -- end of [4]
+                                }, -- end of [3]
                                 [4] = 
-                                {
-                                    ["number"] = 4,
-                                    ["auto"] = true,
-                                    ["id"] = "WrappedAction",
-                                    ["enabled"] = true,
-                                    ["params"] = 
-                                    {
-                                        ["action"] = 
-                                        {
-                                            ["id"] = "Option",
-                                            ["params"] = 
-                                            {
-                                                ["targetTypes"] = 
-                                                {
-                                                    [1] = "Planes",
-                                                    [2] = "Ground Units",
-                                                    [3] = "Naval",
-                                                    [4] = "Missile",
-                                                }, -- end of ["targetTypes"]
-                                                ["name"] = 21,
-                                                ["value"] = "Planes;Ground Units;Naval;Missile;",
-                                                ["noTargetTypes"] = 
-                                                {
-                                                    [1] = "Helicopters",
-                                                    [2] = "UAVs",
-                                                }, -- end of ["noTargetTypes"]
-                                            }, -- end of ["params"]
-                                        }, -- end of ["action"]
-                                    }, -- end of ["params"]
-                                }, -- end of [4] 
-                                [5] = 
                                 {
                                     ["enabled"] = true,
                                     ["auto"] = true,
@@ -3025,7 +2994,7 @@ function veafSpawn.spawnCombatAirPatrol(spawnSpot, radius, name, country, altitu
                                             }, -- end of ["params"]
                                         }, -- end of ["action"]
                                     }, -- end of ["params"]
-                                }, -- end of [5]                       
+                                }, -- end of [4]                       
                             }, -- end of ["tasks"]
                         }, -- end of ["params"]
                     }, -- end of ["task"]
@@ -3056,30 +3025,30 @@ function veafSpawn.spawnCombatAirPatrol(spawnSpot, radius, name, country, altitu
                         {
                             ["tasks"] = 
                             { 
-                                [1] = 
-                                {
-                                    ["number"] = 1,
-                                    ["auto"] = false,
-                                    ["enabled"] = true,
-                                    ["id"] = "EngageTargetsInZone",
-                                    ["params"] = {
-                                        ["noTargetTypes"] = {
-                                            [1] = "Cruise missiles",
-                                            [2] = "Antiship Missiles",
-                                            [3] = "AA Missiles",
-                                            [4] = "AG Missiles",
-                                            [5] = "SA Missiles",
-                                        }, -- end of ["noTargetTypes"]
-                                        ["priority"] = 0,
-                                        ["targetTypes"] = {
-                                            [1] = "Air",
-                                        }, -- end of ["targetTypes"]
-                                        ["value"] = "Air;",
-                                        ["x"] = parameters.targetZone.x,
-                                        ["y"] = parameters.targetZone.y,
-                                        ["zoneRadius"] = parameters.targetZone.radius,
-                                    }, -- end of ["params"]
-                                }, -- end of [1]                       
+                                -- [1] = 
+                                -- {
+                                --     ["number"] = 1,
+                                --     ["auto"] = false,
+                                --     ["enabled"] = true,
+                                --     ["id"] = "EngageTargetsInZone",
+                                --     ["params"] = {
+                                --         ["noTargetTypes"] = {
+                                --             [1] = "Cruise missiles",
+                                --             [2] = "Antiship Missiles",
+                                --             [3] = "AA Missiles",
+                                --             [4] = "AG Missiles",
+                                --             [5] = "SA Missiles",
+                                --         }, -- end of ["noTargetTypes"]
+                                --         ["priority"] = 0,
+                                --         ["targetTypes"] = {
+                                --             [1] = "Air",
+                                --         }, -- end of ["targetTypes"]
+                                --         ["value"] = "Air;",
+                                --         ["x"] = parameters.targetZone.x,
+                                --         ["y"] = parameters.targetZone.y,
+                                --         ["zoneRadius"] = parameters.targetZone.radius,
+                                --     }, -- end of ["params"]
+                                -- }, -- end of [1]                       
                             }, -- end of ["tasks"]
                         }, -- end of ["params"]
                     }, -- end of ["task"]
@@ -3233,7 +3202,7 @@ function veafSpawn.spawnCombatAirPatrol(spawnSpot, radius, name, country, altitu
     local controller = _dcsSpawnedGroup:getController()
     controller:setOption(AI.Option.Air.id.PROHIBIT_AA, true)
     veaf.loggers.get(veafSpawn.Id):debug("restricting AA engagements for the AI to no go dumb, starting target watchdog...")
-    mist.scheduleFunction(veafSpawn.CAPTargetWatchdog, {_spawnedGroup.name, newRoute.points, controller, coalition, {x = parameters.targetZone.x, z = parameters.targetZone.y}, parameters.targetZone.radius, false}, timer.getTime()+veafSpawn.CAPwatchdogDelay)
+    mist.scheduleFunction(veafSpawn.CAPTargetWatchdog, {_spawnedGroup.name, newRoute.points, controller, coalition, {x = parameters.targetZone.x, z = parameters.targetZone.y}, parameters.targetZone.radius}, timer.getTime()+veafSpawn.CAPwatchdogDelay)
 
     local message = string.format("A CAP of %s (%s) has been spawned", name, country)
     veaf.loggers.get(veafSpawn.Id):info(message)
@@ -3242,11 +3211,9 @@ function veafSpawn.spawnCombatAirPatrol(spawnSpot, radius, name, country, altitu
     return _spawnedGroup.name
 end
 
-function veafSpawn.CAPTargetWatchdog(CAPname, CAProute, CAPcontroller, CAPcoalition, zone_position, zoneRadius, flipflop)
+function veafSpawn.CAPTargetWatchdog(CAPname, CAProute, CAPcontroller, CAPcoalition, zone_position, zoneRadius, TargetList, numberOfTargets)
     
-    local flipflop = flipflop or false
     local CAPdead = false
-    local CAPlanded = true
     local CAPgroup = Group.getByName(CAPname)
     veaf.loggers.get(veafSpawn.Id):debug(string.format("Watchdog for CAP %s...", veaf.p(CAPname)))
 
@@ -3254,6 +3221,8 @@ function veafSpawn.CAPTargetWatchdog(CAPname, CAProute, CAPcontroller, CAPcoalit
         CAPdead = true
         veaf.loggers.get(veafSpawn.Id):debug("watchdog found that Jester's dead ! (CAP is dead), stopping watchdog")
     else
+        local CAPlanded = true
+
         for _,unit in pairs(CAPgroup:getUnits()) do
             if unit and unit:inAir() then
                 CAPlanded = false
@@ -3266,7 +3235,18 @@ function veafSpawn.CAPTargetWatchdog(CAPname, CAProute, CAPcontroller, CAPcoalit
             CAPgroup:destroy()
             veaf.loggers.get(veafSpawn.Id):debug("Destroying landed CAP, stopping watchdog")
         else
+            local CAPposition = veaf.getAveragePosition(CAPgroup)
+            local CAPoutOfArea = {}
+            local CAPsize = CAPgroup:getSize()
+            for i=1, CAPsize do
+                CAPoutOfArea[i] = true
+            end
+            veaf.loggers.get(veafSpawn.Id):trace(string.format("CAP is composed of %s alive/active units", veaf.p(CAPsize)))
+
             veaf.loggers.get(veafSpawn.Id):trace("Looking in CAP zone for targets...")
+            local time = timer.getTime()
+            local TargetList = TargetList or {}
+            local numberOfTargets = numberOfTargets or 0
 
             local targetVolume = {
                 id = world.VolumeType.SPHERE,
@@ -3276,52 +3256,171 @@ function veafSpawn.CAPTargetWatchdog(CAPname, CAProute, CAPcontroller, CAPcoalit
                 },
             }
 
-            local ennemySpotted = false
-            local CAPoutOfArea = true
-
             local allowAA = function(foundUnit)
+                local TargetId = foundUnit:getID()
                 local group = foundUnit:getGroup()
-                local unit = group:getUnit(1)
-                local isActive = unit:isActive() 
+                local unitIndex = nil --foundUnit:getNumber() returns the Number of the unit as per the mission editor, which won't change when an element dies unlike for every other method related to units
+                for index,unit in pairs(group:getUnits()) do
+                    if unit:getID() == TargetId then
+                        unitIndex=index
+                    end
+                end
                 local name = group:getName()
-                veaf.loggers.get(veafSpawn.Id):trace(string.format("Checking group named %s...", veaf.p(name)))
-                local foundCoalition = foundUnit:getCoalition()
-                local foundCategory = group:getCategory()
+                veaf.loggers.get(veafSpawn.Id):trace(string.format("Checking group named %s, unitIndex=%s...", veaf.p(name), veaf.p(unitIndex)))
 
                 if CAPname ~= name then
-                    veaf.loggers.get(veafSpawn.Id):trace(string.format("Found unit in CAP zone ! unit.category=%s (%s for airplanes, %s for helos), unitCoalition=%s (CAP coalition is %s), isActive=%s", veaf.p(foundCategory), Group.Category.AIRPLANE, Group.Category.HELICOPTER, veaf.p(foundCoalition), CAPcoalition, veaf.p(isActive)))
+                    local isAirborn = foundUnit:isActive() and foundUnit:inAir()
+                    local foundCoalition = foundUnit:getCoalition()
+                    local foundCategory = group:getCategory()
 
-                    if isActive and foundCategory and foundCoalition and foundCategory == Group.Category.AIRPLANE and foundCoalition ~= CAPcoalition then
-                        ennemySpotted = true
+                    veaf.loggers.get(veafSpawn.Id):trace(string.format("Found unit in CAP zone ! unit.category=%s (%s for airplanes, %s for helos), unitCoalition=%s (CAP coalition is %s), isAirborn=%s", veaf.p(foundCategory), Group.Category.AIRPLANE, Group.Category.HELICOPTER, veaf.p(foundCoalition), CAPcoalition, veaf.p(isAirborn)))
+
+                    if isAirborn and foundCategory and foundCoalition and foundCoalition ~= CAPcoalition and (foundCategory == Group.Category.AIRPLANE or foundCategory == Group.Category.HELICOPTER) then
+                        local foundDesc = foundUnit:getDesc()
+                        local foundAttributes = foundDesc.attributes
+                        local foundType = foundUnit:getTypeName()
+                        local foundPosition = foundUnit:getPosition().p
+                        local distance = mist.utils.get2DDist(foundPosition, CAPposition)
+                        veaf.loggers.get(veafSpawn.Id):trace(string.format("unitID %s is a %s at position %s. This is %s meters away from the average CAP position", veaf.p(TargetId), veaf.p(foundType), veaf.p(foundPosition), veaf.p(distance)))
+
+                        local priority = nil
+                        local isNew = true
+                        if TargetList then
+                            for _,oldTarget in pairs(TargetList) do
+                                if oldTarget.TargetId == TargetId then
+                                    veaf.loggers.get(veafSpawn.Id):trace("Target has already been seen...")
+                                    isNew = false
+                                end                                    
+                            end
+                        end
+
+                        if foundAttributes["Fighters"] or foundAttributes["Multirole fighters"] then
+                            veaf.loggers.get(veafSpawn.Id):trace("Target is a Fighter")
+                            priority = math.floor(distance/2)
+                        elseif foundAttributes["Strategic bombers"] then
+                            veaf.loggers.get(veafSpawn.Id):trace("Target is a strategic bomber")
+                            priority = math.floor(distance/1.5) + 10000
+                        elseif foundAttributes["Bombers"] then
+                            veaf.loggers.get(veafSpawn.Id):trace("Target is a bomber")
+                            priority = math.floor(distance/1) + 15000
+                        elseif foundAttributes["UAVs"] and foundType ~= "Yak-52" then --wtf ED, Yak-52 UAV master race
+                            veaf.loggers.get(veafSpawn.Id):trace("Target is a UAV (except the Yak-52, that shit is not a UAV ED)")
+                            priority = math.floor(distance/0.5) + 15000
+                        elseif foundAttributes["AWACS"] then
+                            veaf.loggers.get(veafSpawn.Id):trace("Target is an AWACS")
+                            priority = math.floor(distance/0.5) + 15000
+                        elseif foundAttributes["Transports"] then
+                            veaf.loggers.get(veafSpawn.Id):trace("Target is a Transport")
+                            priority = math.floor(distance/0.5) + 15000
+                        elseif foundAttributes["Battle airplanes"] or foundAttributes["Battleplanes"] then
+                            veaf.loggers.get(veafSpawn.Id):trace("Target is a generic Battleplane")
+                            priority = math.floor(distance/0.25) + 15000
+                        elseif foundAttributes["Helicopters"] or foundAttributes["Attack helicopters"] or foundAttributes["Transport helicopters"] then
+                            veaf.loggers.get(veafSpawn.Id):trace("Target is a Helicopter")
+                            priority = math.floor(distance/0.1) + 20000
+                        else
+                            veaf.loggers.get(veafSpawn.Id):trace("Target has unknown attributes, calculating generic priority")
+                            priority = math.floor(distance/0.25) + 15000
+                        end
+                        -- https://www.geogebra.org/calculator if you want to visualize, type in functions y=x/factor + offset and set points on each curve. y is the priority, x the distance
+                    
+                        veaf.loggers.get(veafSpawn.Id):trace(string.format("Calculated priority : %s", veaf.p(priority)))
+
+                        if isNew then
+                            table.insert(TargetList, {isNew = true, seenAt = time, priority = priority, TargetId = TargetId, unit = foundUnit})
+                        else
+                            for _,oldTarget in pairs(TargetList) do
+                                if oldTarget.TargetId == TargetId then
+                                    veaf.loggers.get(veafSpawn.Id):trace("Refreshing unit that had already been seen in the TargetList")
+
+                                    oldTarget.seenAt = time
+                                    oldTarget.priority = priority
+                                end
+                            end
+                        end
                     end
                 else
-                    CAPoutOfArea = false
+                    veaf.loggers.get(veafSpawn.Id):trace("Unit is part of the CAP and is in Area")
+
+                    CAPoutOfArea[unitIndex] = false
                 end
             end
 
             world.searchObjects(Object.Category.UNIT, targetVolume, allowAA)
 
-            if CAPoutOfArea then
-                veaf.loggers.get(veafSpawn.Id):debug("CAP is outside of it's area ! discarding targets...")
-            else
-                veaf.loggers.get(veafSpawn.Id):trace("CAP was found in it's area...")
+            for i=1, CAPsize do
+                if CAPoutOfArea[i] then
+                    CAPoutOfArea = true
+                    break
+                end
+            end
+            if type(CAPoutOfArea) ~= 'boolean' then
+                CAPoutOfArea = false
             end
 
-            if ennemySpotted and not CAPoutOfArea then
-                veaf.loggers.get(veafSpawn.Id):debug("Watchdog found targets ! Allowing AA for CAP")
+            if CAPoutOfArea then
+                veaf.loggers.get(veafSpawn.Id):debug("CAP is outside of it's area ! Discarding targets...")
+            else
+                veaf.loggers.get(veafSpawn.Id):debug("CAP was found in it's area...")
+            end
+
+            if #TargetList > 0 and not CAPoutOfArea then
+                veaf.loggers.get(veafSpawn.Id):debug("Watchdog has targets ! Allowing AA for CAP")
                 CAPcontroller:setOption(AI.Option.Air.id.PROHIBIT_AA, false)
                 CAPcontroller:setOption(0,0) --weapons free
-                flipflop = true
+
+                --sort the list in reverse priority order so that the last task to be pushed in spot #1 is the one with the lowest priority, couldn't quite figure out which way works best, since this one makes the least sense it seems appropriate for DCS
+                table.sort(TargetList, function(a,b) return a.priority < b.priority end)
+                veaf.loggers.get(veafSpawn.Id):trace(string.format("Targets List : %s", veaf.p(TargetList)))
+                for index,target in pairs(TargetList) do
+                    veaf.loggers.get(veafSpawn.Id):trace(string.format("Checking target %s for pushTask to CAP...", index))
+
+                    --system to perhaps not add the unit until it is detected ?
+                    -- local isDetected = false
+                    -- for CAPindex,unit in pairs(CAPgroup:getUnits()) do
+                    --     if unit:getController():isTargetDetected(target.unit).detected then
+                    --         veaf.loggers.get(veafSpawn.Id):trace(string.format("Target is detected by CAP unit %s", CAPindex))
+                    --         isDetected = true
+                    --     end
+                    -- end
+
+                    --what would be ideal would be to not add, simply update, tasks that have already been added but since the priority is updated continually the tasks need to be updated and regardless it seems that what matters is which task is assigned first and not priority so they need to be discarded all together anyways
+                    if not Unit.isExist(target.unit) or not target.unit:inAir() or time > target.seenAt + veafSpawn.CAPwatchdogDelay*2 then
+                        veaf.loggers.get(veafSpawn.Id):trace("Target is outdated, landed or doesn't exist, removing it from the list")
+                        table.remove(TargetList, index)
+                    else
+                        local engageUnit = {
+                            id = 'EngageUnit',
+                            params = {
+                                unitId = target.TargetId,
+                                weaponType = "ALL",
+                                priority = target.priority,
+                            }
+                        }
+
+                        CAPcontroller:pushTask(engageUnit)
+
+                        if target.isNew then
+                            numberOfTargets = numberOfTargets + 1 
+                            target.isNew = false
+                        end
+                    end
+                end
             else
+                while numberOfTargets ~= 0 do --using CAPcontroller:hasTask() seems to always return true
+                    veaf.loggers.get(veafSpawn.Id):debug("resetting task #%s", veaf.p(numberOfTargets))
+                    CAPcontroller:resetTask()
+                    numberOfTargets = numberOfTargets - 1
+                end
+
                 veaf.loggers.get(veafSpawn.Id):debug("Watchdog found no targets, prohibiting AA for CAP")
                 CAPcontroller:setOption(AI.Option.Air.id.PROHIBIT_AA, true)
                 CAPcontroller:setOption(0,3) --return fire
-                if flipflop then mist.goRoute(CAPname, CAProute) end
-                flipflop = false
             end
 
-            veaf.loggers.get(veafSpawn.Id):trace(string.format("Rescheduling watchdog in %s seconds", veafSpawn.CAPwatchdogDelay))
-            mist.scheduleFunction(veafSpawn.CAPTargetWatchdog, {CAPname, CAProute, CAPcontroller, CAPcoalition, zone_position, zoneRadius, flipflop}, timer.getTime()+veafSpawn.CAPwatchdogDelay)
+            veaf.loggers.get(veafSpawn.Id):debug(string.format("Rescheduling watchdog in %s seconds", veafSpawn.CAPwatchdogDelay))
+            veaf.loggers.get(veafSpawn.Id):debug("===============================================================================")
+            mist.scheduleFunction(veafSpawn.CAPTargetWatchdog, {CAPname, CAProute, CAPcontroller, CAPcoalition, zone_position, zoneRadius, TargetList, numberOfTargets}, timer.getTime()+veafSpawn.CAPwatchdogDelay)
         end
     end
 end

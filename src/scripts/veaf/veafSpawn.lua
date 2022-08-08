@@ -3211,7 +3211,7 @@ function veafSpawn.spawnCombatAirPatrol(spawnSpot, radius, name, country, altitu
     return _spawnedGroup.name
 end
 
-function veafSpawn.CAPTargetWatchdog(CAPname, CAProute, CAPcontroller, CAPcoalition, zone_position, zoneRadius, TargetList, numberOfTargets)
+function veafSpawn.CAPTargetWatchdog(CAPname, CAProute, CAPcontroller, CAPcoalition, zone_position, zoneRadius, TargetList, numberOfTasks)
     
     local CAPdead = false
     local CAPgroup = Group.getByName(CAPname)
@@ -3246,7 +3246,7 @@ function veafSpawn.CAPTargetWatchdog(CAPname, CAProute, CAPcontroller, CAPcoalit
             veaf.loggers.get(veafSpawn.Id):trace("Looking in CAP zone for targets...")
             local time = timer.getTime()
             local TargetList = TargetList or {}
-            local numberOfTargets = numberOfTargets or 0
+            local numberOfTasks = numberOfTasks or 0
 
             local targetVolume = {
                 id = world.VolumeType.SPHERE,
@@ -3400,17 +3400,14 @@ function veafSpawn.CAPTargetWatchdog(CAPname, CAProute, CAPcontroller, CAPcoalit
 
                         CAPcontroller:pushTask(engageUnit)
 
-                        if target.isNew then
-                            numberOfTargets = numberOfTargets + 1 
-                            target.isNew = false
-                        end
+                        numberOfTasks = numberOfTasks + 1 
                     end
                 end
             else
-                while numberOfTargets ~= 0 do --using CAPcontroller:hasTask() seems to always return true
-                    veaf.loggers.get(veafSpawn.Id):debug("resetting task #%s", veaf.p(numberOfTargets))
-                    CAPcontroller:resetTask()
-                    numberOfTargets = numberOfTargets - 1
+                while numberOfTasks ~= 0 do --using CAPcontroller:hasTask() seems to always return true
+                    veaf.loggers.get(veafSpawn.Id):debug("resetting task #%s", veaf.p(numberOfTasks))
+                    CAPcontroller:resetTask() --:popTask() crashes the game
+                    numberOfTasks = numberOfTasks - 1
                 end
 
                 veaf.loggers.get(veafSpawn.Id):debug("Watchdog found no targets, prohibiting AA for CAP")
@@ -3420,7 +3417,7 @@ function veafSpawn.CAPTargetWatchdog(CAPname, CAProute, CAPcontroller, CAPcoalit
 
             veaf.loggers.get(veafSpawn.Id):debug(string.format("Rescheduling watchdog in %s seconds", veafSpawn.CAPwatchdogDelay))
             veaf.loggers.get(veafSpawn.Id):debug("===============================================================================")
-            mist.scheduleFunction(veafSpawn.CAPTargetWatchdog, {CAPname, CAProute, CAPcontroller, CAPcoalition, zone_position, zoneRadius, TargetList, numberOfTargets}, timer.getTime()+veafSpawn.CAPwatchdogDelay)
+            mist.scheduleFunction(veafSpawn.CAPTargetWatchdog, {CAPname, CAProute, CAPcontroller, CAPcoalition, zone_position, zoneRadius, TargetList, numberOfTasks}, timer.getTime()+veafSpawn.CAPwatchdogDelay)
         end
     end
 end

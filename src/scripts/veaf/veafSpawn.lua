@@ -3211,7 +3211,7 @@ function veafSpawn.spawnCombatAirPatrol(spawnSpot, radius, name, country, altitu
     return _spawnedGroup.name
 end
 
-function veafSpawn.CAPTargetWatchdog(CAPname, CAProute, CAPcontroller, CAPcoalition, zone_position, zoneRadius, TargetList, numberOfTasks)
+function veafSpawn.CAPTargetWatchdog(CAPname, CAPcontroller, CAPcoalition, zone_position, zoneRadius, TargetList, numberOfTasks)
     
     local CAPdead = false
     local CAPgroup = Group.getByName(CAPname)
@@ -3417,7 +3417,7 @@ function veafSpawn.CAPTargetWatchdog(CAPname, CAProute, CAPcontroller, CAPcoalit
 
             veaf.loggers.get(veafSpawn.Id):debug(string.format("Rescheduling watchdog in %s seconds", veafSpawn.CAPwatchdogDelay))
             veaf.loggers.get(veafSpawn.Id):debug("===============================================================================")
-            mist.scheduleFunction(veafSpawn.CAPTargetWatchdog, {CAPname, CAProute, CAPcontroller, CAPcoalition, zone_position, zoneRadius, TargetList, numberOfTasks}, timer.getTime()+veafSpawn.CAPwatchdogDelay)
+            mist.scheduleFunction(veafSpawn.CAPTargetWatchdog, {CAPname, CAPcontroller, CAPcoalition, zone_position, zoneRadius, TargetList, numberOfTasks}, timer.getTime()+veafSpawn.CAPwatchdogDelay)
         end
     end
 end

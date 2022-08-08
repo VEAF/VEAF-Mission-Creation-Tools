@@ -69,7 +69,7 @@ veafSpawn.Id = "SPAWN"
 veafSpawn.Version = "1.41.0"
 
 -- trace level, specific to this module
---veafSpawn.LogLevel = "trace"
+veafSpawn.LogLevel = "trace"
 
 veaf.loggers.new(veafSpawn.Id, veafSpawn.LogLevel)
 
@@ -3006,7 +3006,26 @@ function veafSpawn.spawnCombatAirPatrol(spawnSpot, radius, name, country, altitu
                                             }, -- end of ["params"]
                                         }, -- end of ["action"]
                                     }, -- end of ["params"]
-                                }, -- end of [4]                        
+                                }, -- end of [4] 
+                                [5] = 
+                                {
+                                    ["enabled"] = true,
+                                    ["auto"] = true,
+                                    ["id"] = "WrappedAction",
+                                    ["number"] = 5,
+                                    ["params"] = 
+                                    {
+                                        ["action"] = 
+                                        {
+                                            ["id"] = "EPLRS",
+                                            ["params"] = 
+                                            {
+                                                ["value"] = true,
+                                                ["groupId"] = 1,
+                                            }, -- end of ["params"]
+                                        }, -- end of ["action"]
+                                    }, -- end of ["params"]
+                                }, -- end of [5]                       
                             }, -- end of ["tasks"]
                         }, -- end of ["params"]
                     }, -- end of ["task"]
@@ -3258,28 +3277,45 @@ function veafSpawn.CAPTargetWatchdog(CAPname, CAProute, CAPcontroller, CAPcoalit
             }
 
             local ennemySpotted = false
+            local CAPoutOfArea = true
 
-            local allowAA = function(foundUnit, CAPcoalition)
+            local allowAA = function(foundUnit)
                 local group = foundUnit:getGroup()
+                local unit = group:getUnit(1)
+                local isActive = unit:isActive() 
+                local name = group:getName()
+                veaf.loggers.get(veafSpawn.Id):trace(string.format("Checking group named %s...", veaf.p(name)))
                 local foundCoalition = foundUnit:getCoalition()
                 local foundCategory = group:getCategory()
 
-                veaf.loggers.get(veafSpawn.Id):trace(string.format("Found unit in CAP zone ! unit.category=%s(%s for airplanes, %s for helos), unitCoalition=%s (CAP coalition is %s)", veaf.p(foundCategory), Group.Category.AIRPLANE, Group.Category.HELICOPTER, veaf.p(foundCoalition), CAPcoalition))
+                if CAPname ~= name then
+                    veaf.loggers.get(veafSpawn.Id):trace(string.format("Found unit in CAP zone ! unit.category=%s (%s for airplanes, %s for helos), unitCoalition=%s (CAP coalition is %s), isActive=%s", veaf.p(foundCategory), Group.Category.AIRPLANE, Group.Category.HELICOPTER, veaf.p(foundCoalition), CAPcoalition, veaf.p(isActive)))
 
-                if foundCategory and foundCoalition and foundCategory == Group.Category.AIRPLANE and foundCoalition ~= CAPcoalition then
-                    ennemySpotted = true
+                    if isActive and foundCategory and foundCoalition and foundCategory == Group.Category.AIRPLANE and foundCoalition ~= CAPcoalition then
+                        ennemySpotted = true
+                    end
+                else
+                    CAPoutOfArea = false
                 end
             end
 
-            world.searchObjects(Object.Category.UNIT, targetVolume, allowAA, CAPcoalition)
+            world.searchObjects(Object.Category.UNIT, targetVolume, allowAA)
 
-            if ennemySpotted then
+            if CAPoutOfArea then
+                veaf.loggers.get(veafSpawn.Id):debug("CAP is outside of it's area ! discarding targets...")
+            else
+                veaf.loggers.get(veafSpawn.Id):trace("CAP was found in it's area...")
+            end
+
+            if ennemySpotted and not CAPoutOfArea then
                 veaf.loggers.get(veafSpawn.Id):debug("Watchdog found targets ! Allowing AA for CAP")
                 CAPcontroller:setOption(AI.Option.Air.id.PROHIBIT_AA, false)
+                CAPcontroller:setOption(0,0) --weapons free
                 flipflop = true
             else
                 veaf.loggers.get(veafSpawn.Id):debug("Watchdog found no targets, prohibiting AA for CAP")
                 CAPcontroller:setOption(AI.Option.Air.id.PROHIBIT_AA, true)
+                CAPcontroller:setOption(0,3) --return fire
                 if flipflop then mist.goRoute(CAPname, CAProute) end
                 flipflop = false
             end

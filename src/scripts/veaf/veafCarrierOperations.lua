@@ -688,11 +688,11 @@ function veafCarrierOperations.getAtcForCarrierOperations(groupName, skipNavigat
             if carrier.ATC.acls then
                 result = result .. "ACLS is available"
             end
-            result = result .. "\n"
+            result = result .. "\n\n"
         end
         --"  - BRC : " .. carrier.heading_mag .. " (".. carrier.heading .. " true) at " .. carrier.speed .. " kn\n" ..
         result = result .. "  - BRC : " .. carrier.heading .. " (true) at " .. carrier.speed .. " kn\n" ..
-        "  - Remaining time : " .. remainingTime .. " minutes\n"
+        "  - Remaining time : " .. remainingTime .. " minutes\n\n"
         if carrier.tankerData then
             result = result ..
             "  - Tanker " .. carrier.tankerData.tankerCallsign .. " : TACAN " ..carrier.tankerData.tankerTacanChannel.. carrier.tankerData.tankerTacanMode ..", COMM " .. carrier.tankerData.tankerFrequency .. "\n"

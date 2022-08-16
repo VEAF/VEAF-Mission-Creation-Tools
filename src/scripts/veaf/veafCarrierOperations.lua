@@ -48,10 +48,10 @@ veafCarrierOperations = {}
 veafCarrierOperations.Id = "CARRIER"
 
 --- Version.
-veafCarrierOperations.Version = "1.11.5"
+veafCarrierOperations.Version = "1.12.0"
 
 -- trace level, specific to this module
-veafCarrierOperations.LogLevel = "trace"
+--veafCarrierOperations.LogLevel = "trace"
 
 veaf.loggers.new(veafCarrierOperations.Id, veafCarrierOperations.LogLevel)
 

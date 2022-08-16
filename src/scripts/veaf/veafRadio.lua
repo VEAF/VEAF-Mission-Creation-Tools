@@ -761,7 +761,7 @@ function veafRadio.addPaginatedRadioElements(radioMenu, addCommandToSubmenuMetho
 
     local pageSize = 10 - #radioMenu.commands
   
-      local sortedElements = {}
+    local sortedElements = {}
     local sortAttribute = sortAttribute or "sort"
     local titleAttribute = titleAttribute or "title"
     for name, element in pairs(elements) do
@@ -769,22 +769,24 @@ function veafRadio.addPaginatedRadioElements(radioMenu, addCommandToSubmenuMetho
         if not sortValue then sortValue = name end
         table.insert(sortedElements, {element=element, sort=sortValue, title=name})
     end
-    function compare(a,b)
-		if not(a) then 
-			a = {}
-		end
-		if not(a["sort"]) then 
-			a["sort"] = 0
-		end
-		if not(b) then 
-			b = {}
-		end
-		if not(b["sort"]) then 
-			b["sort"] = 0
-		end	
-        return a["sort"] < b["sort"]
+    local compare = function(a,b)
+      if not(a) then 
+        a = {}
+      end
+      if not(a["sort"]) then 
+        a["sort"] = 0
+      end
+      if not(b) then 
+        b = {}
+      end
+      if not(b["sort"]) then 
+        b["sort"] = 0
+      end	
+
+      return a["sort"] < b["sort"]
     end     
     table.sort(sortedElements, compare)
+
     local sortedTitles = {}
     local elementsByTitle = {}
     for i = 1, #sortedElements do
@@ -793,7 +795,6 @@ function veafRadio.addPaginatedRadioElements(radioMenu, addCommandToSubmenuMetho
         table.insert(sortedTitles, title)
         elementsByTitle[title] = sortedElements[i].element
     end
-    table.sort(sortedTitles)
     veaf.loggers.get(veafRadio.Id):trace("sortedTitles="..veaf.p(sortedTitles))
 
     _buildRadioMenuPage(radioMenu, sortedTitles, elementsByTitle, addCommandToSubmenuMethod, pageSize, 1)

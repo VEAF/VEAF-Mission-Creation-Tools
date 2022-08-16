@@ -1521,6 +1521,87 @@ function veaf.getTankerData(tankerGroupName)
     return result
 end
 
+function veaf.getCarrierATCdata(carrierGroupName, carrierUnitName)
+    veaf.loggers.get(veaf.Id):trace("getCarrierData Group: " .. carrierGroupName .. " Unit: " .. carrierUnitName)
+    local result = nil
+    local carrierData = veaf.getGroupData(carrierGroupName)
+    if carrierData then
+        result = {}
+        -- find carrier unit within group and gather the information
+        local units = veaf.findInTable(carrierData, "units")
+        local carrierUnitId = nil
+        for _,unit in pairs(units) do
+            if unit and unit.name and unit.name == carrierUnitName then 
+                
+                --get the unit ID which will be used later when searching for ICLS etc. assigned to the carrier itself and get the tower freq/modulation data
+                carrierUnitId = unit.unitId
+                if carrierUnitId then   
+                    if unit.frequency then
+                        local towerString = string.format("%.2f", unit.frequency / 1000000)
+                        local towerMod = "AM"
+                        if unit.modulation and unit.modulation == 1 then
+                            towerMod = "FM"
+                        end
+                        result.tower = towerString .. " " .. towerMod .. " (Check Freq. Plan)"
+                    end
+                end
+            end
+        end
+
+        --if the carrier was found and is identifiable
+        if carrierUnitId then
+            --find programmed tasks for the carrier (ACLS, ICLS, etc.)
+            local tasks = veaf.findInTable(carrierData, "tasks")
+            if tasks then
+                veaf.loggers.get(veaf.Id):trace("found " .. #tasks .. " programmed tasks for carrier " .. carrierUnitName .. " in group " .. carrierGroupName)
+                for i, task in pairs(tasks) do
+                    if task then
+                        veaf.loggers.get(veaf.Id):trace("found task #" .. i)
+                        if task.params then
+                            veaf.loggers.get(veaf.Id):trace("has .params")
+                            if task.params.action then
+                                local action = task.params.action
+                                veaf.loggers.get(veaf.Id):trace("has .action")
+                                if task.params.action.params then
+                                    local actionParams = task.params.action.params
+                                    veaf.loggers.get(veaf.Id):trace("action has .params")
+                                    if task.params.action.params.unitId and task.params.action.params.unitId == carrierUnitId then
+                                        veaf.loggers.get(veaf.Id):trace("programmed task is linked to carrier unit")
+
+                                        if action.id == "ActivateBeacon" and actionParams.channel then
+                                            veaf.loggers.get(veaf.Id):info("Found a programmed TACAN task for carrier group " .. carrierGroupName)
+                                            local channel = actionParams.channel
+                                            local mode = "X"
+                                            if actionParams.modeChannel and actionParams.modeChannel == "Y" then --should never happen for carriers
+                                                mode = "Y"
+                                            end
+                                            local callsign = "No Code"
+                                            if actionParams.callsign then
+                                                callsign = actionParams.callsign
+                                            end
+                                            result.tacan = channel .. mode .. " (" .. callsign .. ")"
+                                        elseif action.id == "ActivateICLS" and actionParams.channel then
+                                            veaf.loggers.get(veaf.Id):info("Found a programmed ICLS task for carrier group " .. carrierGroupName)
+                                            result.icls = actionParams.channel
+                                        elseif action.id == "ActivateLink4" and actionParams.frequency then
+                                            veaf.loggers.get(veaf.Id):info("Found a programmed Link4 task for carrier group " .. carrierGroupName)
+                                            result.link4 = string.format("%.2f".."MHz",actionParams.frequency / 1000000)
+                                        elseif action.id == "ActivateACLS" then
+                                            veaf.loggers.get(veaf.Id):info("Found a programmed ACLS task for carrier group " .. carrierGroupName)
+                                            result.acls = true
+                                        end
+                                    end
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+    return result
+end
+
 function veaf.outTextForUnit(unitName, message, duration)
     local groupId = nil
     if unitName then

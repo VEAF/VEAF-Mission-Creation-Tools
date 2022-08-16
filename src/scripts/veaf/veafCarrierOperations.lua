@@ -51,7 +51,7 @@ veafCarrierOperations.Id = "CARRIER"
 veafCarrierOperations.Version = "1.11.5"
 
 -- trace level, specific to this module
---veafCarrierOperations.LogLevel = "trace"
+veafCarrierOperations.LogLevel = "trace"
 
 veaf.loggers.new(veafCarrierOperations.Id, veafCarrierOperations.LogLevel)
 
@@ -679,9 +679,19 @@ function veafCarrierOperations.getAtcForCarrierOperations(groupName, skipNavigat
     
     if carrier.conductingAirOperations then
         local remainingTime = veaf.round((carrier.airOperationsEndAt - timer.getTime()) /60, 1)
-        result = "The carrier group "..groupName.." is conducting air operations :\n" ..
+        result = "The carrier group "..groupName.." is conducting air operations :\n"
+        if carrier.ATC.tower then result = result .. "  - ATC : " .. carrier.ATC.tower .. "\n" end
+        if carrier.ATC.tacan then result = result .. "  - TACAN : " .. carrier.ATC.tacan .. "\n" end
+        if carrier.ATC.icls then result = result .. "  - ICLS : " .. carrier.ATC.icls .. "\n" end
+        if carrier.ATC.link4 then 
+            result = result .. "  - LINK 4 : " .. carrier.ATC.link4 .. ", " 
+            if carrier.ATC.acls then
+                result = result .. "ACLS is available"
+            end
+            result = result .. "\n"
+        end
         --"  - BRC : " .. carrier.heading_mag .. " (".. carrier.heading .. " true) at " .. carrier.speed .. " kn\n" ..
-        "  - BRC : " .. carrier.heading .. " (true) at " .. carrier.speed .. " kn\n" ..
+        result = result .. "  - BRC : " .. carrier.heading .. " (true) at " .. carrier.speed .. " kn\n" ..
         "  - Remaining time : " .. remainingTime .. " minutes\n"
         if carrier.tankerData then
             result = result ..
@@ -884,6 +894,11 @@ function veafCarrierOperations.initializeCarrierGroups()
                         carrier.desiredWindSpeedOnDeck = data.desiredWindSpeedOnDeck
                         carrier.heading = mist.getHeading(unit, true)
 
+                        --veaf.loggers.get(veafCarrierOperations.Id):trace(string.format("Carrier Data from MIST : %s",veaf.p(veaf.getGroupData(name))))
+
+                        carrier.ATC = {}
+                        carrier.ATC = veaf.getCarrierATCdata(name, unit:getName())
+
                         carrier.pedroUnitName = carrier.carrierUnitName .. " Pedro" -- rescue helo unit name
                         local pedroUnit = Unit.getByName(carrier.pedroUnitName)
                         if pedroUnit then
@@ -1048,6 +1063,12 @@ function veafCarrierOperations.executeCommandFromRemote(parameters)
     end               
     return false
 end
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- Carrier ATC
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- initialisation

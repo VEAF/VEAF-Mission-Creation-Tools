@@ -66,10 +66,10 @@ veafSpawn = {}
 veafSpawn.Id = "SPAWN"
 
 --- Version.
-veafSpawn.Version = "1.41.0"
+veafSpawn.Version = "1.41.1"
 
 -- trace level, specific to this module
-veafSpawn.LogLevel = "trace"
+--veafSpawn.LogLevel = "trace"
 
 veaf.loggers.new(veafSpawn.Id, veafSpawn.LogLevel)
 
@@ -1302,8 +1302,8 @@ function veafSpawn._createDcsUnits(country, units, groupName, hiddenOnMFD)
         local unit = units[i]
         local unitType = unit.typeName
         local unitName = groupName .. " / " .. unit.displayName .. " #" .. i
-        local hdg = unit.heading or math.random(0, 359)
         local spawnPosition = unit.spawnPoint
+        local hdg = spawnPosition.hdg or math.random(0, 359)
         
         -- check if position is correct for the unit type
         if veafUnits.checkPositionForUnit(spawnPosition, unit) then

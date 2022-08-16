@@ -39,7 +39,7 @@ veafUnits = {}
 veafUnits.Id = "UNITS"
 
 --- Version.
-veafUnits.Version = "1.12.3"
+veafUnits.Version = "1.13.0"
 
 -- trace level, specific to this module
 --veafUnits.LogLevel = "trace"
@@ -206,6 +206,7 @@ function veafUnits.processGroup(group)
         local size = nil
         local hdg = nil
         local random = false
+        local fitToUnit = false
         local u = group.units[i]
         veaf.loggers.get(veafUnits.Id):trace("u="..veaf.p(u))
         if type(u) == "string" then 
@@ -449,7 +450,7 @@ function veafUnits.placeGroup(group, spawnPoint, spacing, hdg, hasDest)
     local fixedUnits = {}
     local freeUnits = {}
     for _, unit in pairs(group.units) do
-        if unit.cell and not hasDest then --if the convoy has a destination, programmer defined patterns do not apply anymore as the convoy is spawned in a line
+        if unit.cell and not hasDest then --if the group has a destination, programmer defined patterns do not apply anymore as the convoy is spawned in a line
             table.insert(fixedUnits, unit)
         else
             table.insert(freeUnits, unit)
@@ -637,6 +638,10 @@ function veafUnits.placeGroup(group, spawnPoint, spacing, hdg, hasDest)
             end
 
             -- unit heading
+            if hasDest then -- if the group has a destination then you want to spawn them aligned
+                unit.hdg = 0
+            end
+
             if unit.hdg then
                 local unitHeading = unit.hdg + hdg -- don't forget to add group heading
                 if unitHeading > 360 then

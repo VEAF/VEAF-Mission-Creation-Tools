@@ -48,7 +48,7 @@ veafCarrierOperations = {}
 veafCarrierOperations.Id = "CARRIER"
 
 --- Version.
-veafCarrierOperations.Version = "1.12.0"
+veafCarrierOperations.Version = "1.12.1"
 
 -- trace level, specific to this module
 --veafCarrierOperations.LogLevel = "trace"
@@ -163,7 +163,7 @@ function veafCarrierOperations.startCarrierOperations(parameters)
     
     local text = 
         veafCarrierOperations.getAtcForCarrierOperations(groupName) ..
-        "\nGetting a good alignment may require up to 5 minutes"
+        "\n\nGetting a good alignment may require up to 5 minutes"
 
     veaf.loggers.get(veafCarrierOperations.Id):info(text)    
     veaf.outTextForUnit(userUnitName, text, 25)
@@ -688,14 +688,14 @@ function veafCarrierOperations.getAtcForCarrierOperations(groupName, skipNavigat
             if carrier.ATC.acls then
                 result = result .. "ACLS is available"
             end
-            result = result .. "\n\n"
+            result = result .. "\n"
         end
         --"  - BRC : " .. carrier.heading_mag .. " (".. carrier.heading .. " true) at " .. carrier.speed .. " kn\n" ..
-        result = result .. "  - BRC : " .. carrier.heading .. " (true) at " .. carrier.speed .. " kn\n" ..
-        "  - Remaining time : " .. remainingTime .. " minutes\n\n"
+        result = result .. "\n  - BRC : " .. carrier.heading .. " (true) at " .. carrier.speed .. " kn\n" ..
+        "  - Remaining time : " .. remainingTime .. " minutes\n"
         if carrier.tankerData then
             result = result ..
-            "  - Tanker " .. carrier.tankerData.tankerCallsign .. " : TACAN " ..carrier.tankerData.tankerTacanChannel.. carrier.tankerData.tankerTacanMode ..", COMM " .. carrier.tankerData.tankerFrequency .. "\n"
+            "\n  - Tanker " .. carrier.tankerData.tankerCallsign .. " : TACAN " ..carrier.tankerData.tankerTacanChannel.. carrier.tankerData.tankerTacanMode ..", COMM " .. carrier.tankerData.tankerFrequency .. "\n"
         end
     else
         result = "The carrier group "..groupName.." is not conducting carrier air operations\n"
@@ -714,7 +714,7 @@ function veafCarrierOperations.getAtcForCarrierOperations(groupName, skipNavigat
             ]]
             result = result ..
             "\n"..
-            "Current navigation parameters\n" ..
+            "Current navigation parameters :\n" ..
             "  - Current heading (true) " .. veaf.round(currentHeading, 0) .. "\n" ..
             --"  - Current heading (mag)  " .. veaf.round(currentHeading, 0) .. "\n" ..
             "  - Current speed " .. currentSpeed .. " kn\n"

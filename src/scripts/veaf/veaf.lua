@@ -944,9 +944,11 @@ function veaf.generateVehiclesRoute(startPoint, destination, onRoad, speed, patr
     end
     veaf.loggers.get(veaf.Id):trace(string.format("endPoint=%s", veaf.p(endPoint)))
         
+    local road_x = nil
+    local road_z = nil
     if onRoad then
         veaf.loggers.get(veaf.Id):trace("setting startPoint on a road")
-        local road_x, road_z = land.getClosestPointOnRoads('roads',startPoint.x, startPoint.z)
+        road_x, road_z = land.getClosestPointOnRoads('roads',startPoint.x, startPoint.z)
         startPoint = veaf.placePointOnLand({x = road_x, y = 0, z = road_z})
     else
         startPoint = veaf.placePointOnLand({x = startPoint.x, y = 0, z = startPoint.z})
@@ -954,10 +956,11 @@ function veaf.generateVehiclesRoute(startPoint, destination, onRoad, speed, patr
     
     veaf.loggers.get(veaf.Id):trace(string.format("startPoint = {x = %d, y = %d, z = %d}", startPoint.x, startPoint.y, startPoint.z))
 
+    local trueEndPoint = mist.utils.deepCopy(endPoint)
     if onRoad then
         veaf.loggers.get(veaf.Id):trace("setting endPoint on a road")
         road_x, road_z =land.getClosestPointOnRoads('roads',endPoint.x, endPoint.z)
-        endPoint = veaf.placePointOnLand({x = road_x, y = 0, z = road_z})
+        endPoint = veaf.placePointOnLand({x = road_x, y = 0, z = road_z}) 
     else
         endPoint = veaf.placePointOnLand({x = endPoint.x, y = 0, z = endPoint.z})
     end
@@ -970,11 +973,11 @@ function veaf.generateVehiclesRoute(startPoint, destination, onRoad, speed, patr
             ["y"] = startPoint.z,
             ["alt"] = startPoint.y,
             ["type"] = "Turning Point",
-            ["ETA"] = 0,
+            ["ETA"] = 1000,
             ["alt_type"] = "BARO",
             ["formation_template"] = "",
             ["name"] = "STA",
-            ["ETA_locked"] = true,
+            ["ETA_locked"] = false,
             ["speed"] = speed / 3.6,
             ["action"] = action,
             ["task"] = 
@@ -995,7 +998,7 @@ function veaf.generateVehiclesRoute(startPoint, destination, onRoad, speed, patr
             ["y"] = endPoint.z,
             ["alt"] = endPoint.y,
             ["type"] = "Turning Point",
-            ["ETA"] = 0,
+            ["ETA"] = 2000,
             ["alt_type"] = "BARO",
             ["formation_template"] = "",
             ["name"] = "END",
@@ -1013,11 +1016,11 @@ function veaf.generateVehiclesRoute(startPoint, destination, onRoad, speed, patr
             ["y"] = startPoint.z,
             ["alt"] = startPoint.y,
             ["type"] = "Turning Point",
-            ["ETA"] = 0,
+            ["ETA"] = 3000,
             ["alt_type"] = "BARO",
             ["formation_template"] = "",
             ["name"] = "STA",
-            ["ETA_locked"] = true,
+            ["ETA_locked"] = false,
             ["speed"] = speed / 3.6,
             ["action"] = action,
             ["task"] = 
@@ -1042,6 +1045,22 @@ function veaf.generateVehiclesRoute(startPoint, destination, onRoad, speed, patr
                     }, -- end of ["tasks"]
                 }, -- end of ["params"]
             }, -- end of ["task"]
+            ["speed_locked"] = true,
+        }
+    elseif onRoad then
+        vehiclesRoute[3] = 
+        {        
+            ["x"] = trueEndPoint.x,
+            ["y"] = trueEndPoint.z,
+            ["alt"] = trueEndPoint.y,
+            ["type"] = "Turning Point",
+            ["ETA"] = 3000,
+            ["alt_type"] = "BARO",
+            ["formation_template"] = "",
+            ["name"] = "END",
+            ["ETA_locked"] = false,
+            ["speed"] = speed / 3.6,
+            ["action"] = "Diamond",
             ["speed_locked"] = true,
         }
     end

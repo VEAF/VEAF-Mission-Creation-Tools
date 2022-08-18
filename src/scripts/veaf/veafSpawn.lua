@@ -66,7 +66,7 @@ veafSpawn = {}
 veafSpawn.Id = "SPAWN"
 
 --- Version.
-veafSpawn.Version = "1.41.1"
+veafSpawn.Version = "1.41.2"
 
 -- trace level, specific to this module
 --veafSpawn.LogLevel = "trace"
@@ -420,7 +420,7 @@ function veafSpawn.executeCommand(eventPos, eventText, coalition, markId, bypass
                             if not route and not routeDone and options.destination then
                                 --  make the group go to destination
                                 local actualPosition = groupObject:getUnit(1):getPosition().p
-                                local route = veaf.generateVehiclesRoute(actualPosition, options.destination, not options.offroad, options.speed, options.patrol)
+                                local route = veaf.generateVehiclesRoute(actualPosition, options.destination, not options.offroad, options.speed, options.patrol, spawnedGroup)
                                 mist.goRoute(groupObject, route)
                             elseif route then
                                 mist.goRoute(groupObject, route)
@@ -517,7 +517,7 @@ function veafSpawn.markTextAnalysis(text)
     options.forceEwr = false -- if true, unit will be added as an IADS EWR
     options.pointDefense = false -- if true, unit will be added as point defense to the closest IADS SAM site
     options.AlarmState = 2 -- Alarm state of the convoy to be spawned, 0 is AUTO, 1 is GREEN, 2 is RED. Note: This option is useful for some vehicules which behave badly in Alarm State RED when spawned such as the Scud or Sa-11 (they deploy and can't drive anywhere). Auto is better suited
-    options.disperse = 2 --disperse time of groups if under attack, by default is set to off or 2s
+    options.disperse = 15 --disperse time of groups if under attack, by default is set to 20s
     options.showMFD = false --option to enable groups to be seen on MFDs
     options.addDrawing = false -- draw a polygon on the map
     options.eraseDrawing = false -- erase a polygon from the map
@@ -707,6 +707,9 @@ function veafSpawn.markTextAnalysis(text)
             -- Set destination.
             veaf.loggers.get(veafSpawn.Id):trace(string.format("Keyword destination = %s", tostring(val)))
             options.destination = val
+            options.AlarmState = 0 --since some units will not move when they are told to have an alarm state red, it's best to by default leave it on auto. AI is pretty all knowing anyways, it knows when it should go to red state
+            options.spacing = 1 --compress the convoy to not make it extremely long at departure
+            options.radius = 1 --convoy spawns on the marker exactly to not have them spawn in trees etc.
         end
 
         if key:lower() == "isconvoy" then
@@ -1161,6 +1164,10 @@ function veafSpawn.doSpawnGroup(spawnSpot, radius, groupDefinition, country, alt
         groupName = group.groupName .. " #" .. veafSpawn.spawnedUnitsCounter
     end
 
+    if hasDest then
+        mist.scheduleFunction(veafUnits.removePathfindingFixUnit,{groupName}, timer.getTime()+veafUnits.delayBeforePathfindingFix)
+    end
+
     for i=1, #group.units do
         local unit = group.units[i]
         local unitType = unit.typeName
@@ -1294,9 +1301,13 @@ function veafSpawn.spawnGroup(spawnSpot, radius, name, country, alt, hdg, spacin
     return spawnedGroupName
 end
 
-function veafSpawn._createDcsUnits(country, units, groupName, hiddenOnMFD)
+function veafSpawn._createDcsUnits(country, units, groupName, hiddenOnMFD, hasDest)
     veaf.loggers.get(veafSpawn.Id):debug(string.format("veafSpawn._createDcsUnits([%s])",country or ""))
     
+    if hasDest then
+        mist.scheduleFunction(veafUnits.removePathfindingFixUnit,{groupName}, timer.getTime()+veafUnits.delayBeforePathfindingFix)
+    end
+
     local dcsUnits = {}
     for i=1, #units do
         local unit = units[i]
@@ -1373,7 +1384,7 @@ function veafSpawn.spawnArmoredPlatoon(spawnSpot, radius, country, side, heading
         units = veaf.shuffle(group.units)
     end
 
-    veafSpawn._createDcsUnits(country, units, groupName, hiddenOnMFD)
+    veafSpawn._createDcsUnits(country, units, groupName, hiddenOnMFD, hasDest)
  
     if not silent then 
         trigger.action.outText("Spawned dynamic armored platoon "..groupName, 5)
@@ -1402,7 +1413,7 @@ function veafSpawn.spawnAirDefenseBattery(spawnSpot, radius, country, side, head
         units = veaf.shuffle(group.units)
     end
 
-    veafSpawn._createDcsUnits(country or veaf.getCountryForCoalition(side), units, groupName, hiddenOnMFD)
+    veafSpawn._createDcsUnits(country or veaf.getCountryForCoalition(side), units, groupName, hiddenOnMFD, hasDest)
  
     if not silent then 
         trigger.action.outText("Spawned dynamic air defense battery "..groupName, 5)
@@ -1431,7 +1442,7 @@ function veafSpawn.spawnTransportCompany(spawnSpot, radius, country, side, headi
         units = veaf.shuffle(group.units)
     end
 
-    veafSpawn._createDcsUnits(country, units, groupName, hiddenOnMFD)
+    veafSpawn._createDcsUnits(country, units, groupName, hiddenOnMFD, hasDest)
  
     if not silent then 
         trigger.action.outText("Spawned dynamic transport company "..groupName, 5)
@@ -1499,7 +1510,6 @@ function veafSpawn.spawnConvoy(spawnSpot, name, radius, country, side, heading, 
         groupName = "convoy-" .. groupId
     end
 
-    
     -- generate the transport vehicles and air defense
     if size and size > 0 then -- this is only for reading clarity sake
         -- generate the group
@@ -1531,15 +1541,15 @@ function veafSpawn.spawnConvoy(spawnSpot, name, radius, country, side, heading, 
     if groupUnits.units then
         -- place its units
         local groupUnits, cells = veafUnits.placeGroup(groupUnits, veaf.placePointOnLand(spawnSpot), spacing, heading, true)
-        veafUnits.traceGroup(units, cells)
+        veafUnits.traceGroup(groupUnits, cells)
     
         -- shuffle the units in the convoy
         --disabled the shuffle to not have interractions with the line spawn put in place for faster departure times, which shuffles units anyways
         --units = veaf.shuffle(units)
 
-        veafSpawn._createDcsUnits(country, groupUnits.units, groupName, hiddenOnMFD)
+        veafSpawn._createDcsUnits(country, groupUnits.units, groupName, hiddenOnMFD, true)
     
-        local route = veaf.generateVehiclesRoute(spawnSpot, destination, not offroad, speed, patrol)
+        local route = veaf.generateVehiclesRoute(spawnSpot, destination, not offroad, speed, patrol, groupName)
         veafSpawn.spawnedConvoys[groupName] = {route=route, name=groupName}
 
         --  make the group go to destination
@@ -2814,6 +2824,7 @@ function veafSpawn.afacWatchdog(afacGroupName, AFAC_num, coalition, markName)
         veafSpawn.AFAC.callsigns[coalition][AFAC_num].taken = false
         veafSpawn.AFAC.numberSpawned[coalition] = veafSpawn.AFAC.numberSpawned[coalition] - 1
         mist.DBs.unitsByName[afacGroupName] = nil --MIST does not do it on it's own, I highly recommend looking for an alternative, this is to spawn the AFAC once again with the unit name equal to the group name
+        mist.DBs.groupsByName[afacGroupName] = nil
         veafSpawn.AFAC.missionData[coalition][AFAC_num] = nil
     else
         veaf.loggers.get(veafSpawn.Id):trace(string.format("AFAC named=%s is alive", veaf.p(afacGroupName)))

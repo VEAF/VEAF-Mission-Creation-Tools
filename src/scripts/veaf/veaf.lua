@@ -32,7 +32,7 @@ veaf = {}
 veaf.Id = "VEAF"
 
 --- Version.
-veaf.Version = "1.23.1"
+veaf.Version = "1.24.0"
 
 --- Development version ?
 veaf.Development = true
@@ -914,7 +914,7 @@ function veaf.findPointInZone(spawnSpot, dispersion, isShip)
 end
 
 --- TODO doc
-function veaf.generateVehiclesRoute(startPoint, destination, onRoad, speed, patrol)
+function veaf.generateVehiclesRoute(startPoint, destination, onRoad, speed, patrol, groupName)
     veaf.loggers.get(veaf.Id):trace(string.format("veaf.generateVehiclesRoute(onRoad=[%s], speed=[%s], patrol=[%s])", tostring(onRoad or ""), tostring(speed or ""), tostring(patrol or "")))
 
     speed = speed or veaf.DEFAULT_GROUND_SPEED_KPH
@@ -946,6 +946,7 @@ function veaf.generateVehiclesRoute(startPoint, destination, onRoad, speed, patr
         
     local road_x = nil
     local road_z = nil
+    local trueStartPoint = mist.utils.deepCopy(startPoint)
     if onRoad then
         veaf.loggers.get(veaf.Id):trace("setting startPoint on a road")
         road_x, road_z = land.getClosestPointOnRoads('roads',startPoint.x, startPoint.z)
@@ -969,36 +970,41 @@ function veaf.generateVehiclesRoute(startPoint, destination, onRoad, speed, patr
     local vehiclesRoute = {
         [1] = 
         {
+            ["x"] = trueStartPoint.x,
+            ["y"] = trueStartPoint.z,
+            ["alt"] = trueStartPoint.y,
+            ["type"] = "Turning Point",
+            ["ETA"] = 0,
+            ["alt_type"] = "BARO",
+            ["formation_template"] = "",
+            ["name"] = "T_STA",
+            ["ETA_locked"] = false,
+            ["speed"] = 0,
+            ["action"] = "Off Road",
+            ["speed_locked"] = true,
+        }, -- end of [1]
+        [2] = 
+        {
             ["x"] = startPoint.x,
             ["y"] = startPoint.z,
             ["alt"] = startPoint.y,
             ["type"] = "Turning Point",
-            ["ETA"] = 1000,
+            ["ETA"] = 1,
             ["alt_type"] = "BARO",
             ["formation_template"] = "",
             ["name"] = "STA",
             ["ETA_locked"] = false,
             ["speed"] = speed / 3.6,
             ["action"] = action,
-            ["task"] = 
-            {
-                ["id"] = "ComboTask",
-                ["params"] = 
-                {
-                    ["tasks"] = 
-                    {
-                    }, -- end of ["tasks"]
-                }, -- end of ["params"]
-            }, -- end of ["task"]
-            ["speed_locked"] = true,
-        }, -- end of [1]
-        [2] = 
+            ["speed_locked"] = false,
+        }, -- end of [2]
+        [3] = 
         {
             ["x"] = endPoint.x,
             ["y"] = endPoint.z,
             ["alt"] = endPoint.y,
             ["type"] = "Turning Point",
-            ["ETA"] = 2000,
+            ["ETA"] = 2,
             ["alt_type"] = "BARO",
             ["formation_template"] = "",
             ["name"] = "END",
@@ -1006,20 +1012,21 @@ function veaf.generateVehiclesRoute(startPoint, destination, onRoad, speed, patr
             ["speed"] = speed / 3.6,
             ["action"] = action,
             ["speed_locked"] = true,
-        }, -- end of [2]
+        }, -- end of [3]
     }
 
     if patrol then
-        vehiclesRoute[3] = 
+
+        vehiclesRoute[4] = 
         {
             ["x"] = startPoint.x,
             ["y"] = startPoint.z,
             ["alt"] = startPoint.y,
             ["type"] = "Turning Point",
-            ["ETA"] = 3000,
+            ["ETA"] = 3,
             ["alt_type"] = "BARO",
             ["formation_template"] = "",
-            ["name"] = "STA",
+            ["name"] = "STA2",
             ["ETA_locked"] = false,
             ["speed"] = speed / 3.6,
             ["action"] = action,
@@ -1030,43 +1037,143 @@ function veaf.generateVehiclesRoute(startPoint, destination, onRoad, speed, patr
                 {
                     ["tasks"] = 
                     {
-                        [1] = 
-                        {
-                            ["enabled"] = true,
-                            ["auto"] = false,
-                            ["id"] = "GoToWaypoint",
-                            ["number"] = 1,
-                            ["params"] = 
-                            {
-                                ["fromWaypointIndex"] = 3,
-                                ["nWaypointIndx"] = 1,
-                            }, -- end of ["params"]
-                        }, -- end of [1]
+                        --sounds good ! doesn't work, pathfinding goes dumb if done this way
+                        --[1] = 
+                        --{
+                        --    ["enabled"] = true,
+                        --    ["auto"] = false,
+                        --    ["id"] = "GoToWaypoint",
+                        --    ["number"] = 1,
+                        --    ["params"] = 
+                        --    {
+                        --        ["fromWaypointIndex"] = 4,
+                        --        ["nWaypointIndx"] = 2,
+                        --    }, -- end of ["params"]
+                        --}, -- end of [1]
                     }, -- end of ["tasks"]
                 }, -- end of ["params"]
             }, -- end of ["task"]
             ["speed_locked"] = true,
         }
+
+        veaf.PatrolWatchdog(groupName, vehiclesRoute, speed/3.6, "notSeen")
     elseif onRoad then
-        vehiclesRoute[3] = 
+        vehiclesRoute[4] = 
         {        
             ["x"] = trueEndPoint.x,
             ["y"] = trueEndPoint.z,
             ["alt"] = trueEndPoint.y,
             ["type"] = "Turning Point",
-            ["ETA"] = 3000,
+            ["ETA"] = 4,
             ["alt_type"] = "BARO",
             ["formation_template"] = "",
-            ["name"] = "END",
+            ["name"] = "T_END",
             ["ETA_locked"] = false,
             ["speed"] = speed / 3.6,
             ["action"] = "Diamond",
             ["speed_locked"] = true,
         }
     end
+
+    if not patrol then
+        local endWaypoint = vehiclesRoute[4]
+        if not onRoad then
+            endWaypoint = vehiclesRoute[3]
+        end
+
+        endWaypoint.task = {}
+        endWaypoint.task = 
+        {
+            ["id"] = "ComboTask",
+            ["params"] = 
+            {
+                ["tasks"] = 
+                {
+                    [1] = 
+                    {
+                        ["number"] = 1,
+                        ["auto"] = false,
+                        ["id"] = "WrappedAction",
+                        ["enabled"] = true,
+                        ["params"] = 
+                        {
+                            ["action"] = 
+                            {
+                                ["id"] = "Option",
+                                ["params"] = 
+                                {
+                                    ["value"] = 2, --Alarm State RED
+                                    ["name"] = 9, --Alarm State
+                                }, -- end of ["params"]
+                            }, -- end of ["action"]
+                        }, -- end of ["params"]
+                    }, -- end of [1]
+                }, -- end of ["tasks"]
+            }, -- end of ["params"]
+        }
+    end
     veaf.loggers.get(veaf.Id):trace(string.format("vehiclesRoute = %s", veaf.p(vehiclesRoute)))
 
     return vehiclesRoute
+end
+
+function veaf.PatrolWatchdog(groupName,patrolRoute,speed,firstPass)
+    veaf.loggers.get(veaf.Id):debug(string.format("veaf.PatrolWatchdog(groupName=%s, speed=%s, firstPass=%s)", veaf.p(groupName), veaf.p(speed), veaf.p(firstPass)))
+    veaf.loggers.get(veaf.Id):trace(string.format("patrolRoute=%s", veaf.p(patrolRoute)))
+
+    local rescheduleTime = 30
+    local maxDist = 10
+    if firstPass then
+        maxDist = 200
+    end
+    local startPoint = {x = patrolRoute[1].x, z = patrolRoute[1].y}
+
+    local group = Group.getByName(groupName)
+    if group then
+        local controller = group:getController()
+        if controller then
+            veaf.loggers.get(veaf.Id):info("Checking if patrol is within " .. maxDist .. "m of it's start point...")
+        
+            local groupUnits = group:getUnits()
+
+            if groupUnits and groupUnits[1] and groupUnits[1]:isActive() then
+                local leadPos = groupUnits[1]:getPosition().p
+                veaf.loggers.get(veaf.Id):trace(string.format("Lead vehicule name : %s", veaf.p(groupUnits[1]:getName())))
+                veaf.loggers.get(veaf.Id):trace(string.format("Lead vehicule position : %s", veaf.p(leadPos)))
+
+                if leadPos then
+                    local distanceToStart = (leadPos.x-startPoint.x)^2+(leadPos.z-startPoint.z)^2
+                    local result = distanceToStart < maxDist^2
+
+                    if firstPass == "notSeen" and result then
+                        firstPass = "seenOnce"
+                   elseif firstPass == "seenOnce" and not result then
+                        firstPass = false
+                    end
+
+                    if not firstPass and result then
+
+                        veaf.loggers.get(veaf.Id):info("Lead vehicle in range, setting route !")
+                        mist.goRoute(group,patrolRoute)
+                        controller:setSpeed(speed)
+                        firstPass = "notSeen"
+
+                    elseif firstPass then
+                        veaf.loggers.get(veaf.Id):debug("Lead vehicle is passing in the bubble, rescheduling in " .. rescheduleTime .. "s !") 
+                    else
+                        veaf.loggers.get(veaf.Id):debug("Lead vehicle/lead controller not found or lead vehicle not within " .. maxDist .. "m, rescheduling in " .. rescheduleTime .. "s !")
+                    end
+
+                    mist.scheduleFunction(veaf.PatrolWatchdog,{groupName, patrolRoute, speed, firstPass}, timer.getTime()+rescheduleTime)
+                end
+            elseif not groupUnits[1]:isActive() then
+                veaf.loggers.get(veaf.Id):debug("Lead vehicle not active, rescheduling in 60s !")
+                mist.scheduleFunction(veaf.PatrolWatchdog,{groupName, patrolRoute, speed, firstPass}, timer.getTime()+60)
+            end
+        end
+    end
+
+    veaf.loggers.get(veaf.Id):debug("========================================================================")
 end
 
 

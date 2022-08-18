@@ -5501,16 +5501,18 @@ function ctld.cleanupJTAC(_jtacGroupName)
     ctld.jtacRadioData[_jtacGroupName] = nil
 
     --remove the JTAC's group submenu and all of the target pages it potentially contained if the JTAC has or had a menu
-    local _players = coalition.getPlayers(ctld.jtacUnits[_jtacGroupName].side)
+    if ctld.jtacUnits[_jtacGroupName] and ctld.jtacUnits[_jtacGroupName].side and ctld.jtacGroupSubMenuPath[_jtacGroupName] then
+        local _players = coalition.getPlayers(ctld.jtacUnits[_jtacGroupName].side)
 
-    if _players ~= nil then
+        if _players ~= nil then
 
-        for _, _playerUnit in pairs(_players) do
+            for _, _playerUnit in pairs(_players) do
 
-            local _groupId = ctld.getGroupId(_playerUnit)
+                local _groupId = ctld.getGroupId(_playerUnit)
 
-            if _groupId and ctld.jtacGroupSubMenuPath[_jtacGroupName] then
-                missionCommands.removeItemForGroup(_groupId, ctld.jtacGroupSubMenuPath[_jtacGroupName])
+                if _groupId then
+                    missionCommands.removeItemForGroup(_groupId, ctld.jtacGroupSubMenuPath[_jtacGroupName])
+                end
             end
         end
     end

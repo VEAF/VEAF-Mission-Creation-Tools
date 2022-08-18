@@ -39,7 +39,7 @@ veafUnits = {}
 veafUnits.Id = "UNITS"
 
 --- Version.
-veafUnits.Version = "1.13.0"
+veafUnits.Version = "1.13.1"
 
 -- trace level, specific to this module
 --veafUnits.LogLevel = "trace"
@@ -51,6 +51,21 @@ veafUnits.DefaultCellWidth = 10
 
 --- If no unit is spawned in a cell, it will default to this height
 veafUnits.DefaultCellHeight = 10
+
+--- Group format that will be spawned then destroyed from a convoy to fix the AI's dumb pathfinding as of 17/08/2022
+veafUnits.DefaultPathfindingUnitType = "TZ-22_KrAZ"
+veafUnits.DefaultPathfindingGroup = {}
+veafUnits.DefaultPathfindingGroup = 
+{
+    disposition = {h=1, w=1}, 
+    units = {
+        {veafUnits.DefaultPathfindingUnitType, random = true}
+    }, 
+    groupName = "Pathfinder", 
+    description = "Plz Fix ED"
+}
+--- delay before the pathfinding fix unit is destroyed
+veafUnits.delayBeforePathfindingFix = 5
 
 --- if true, the groups and units lists will be printed to the logs, so they can be saved to the documentation files
 veafUnits.OutputListsForDocumentation = false
@@ -439,6 +454,8 @@ function veafUnits.placeGroup(group, spawnPoint, spacing, hdg, hasDest)
     local nCols = nil
 
     if hasDest then
+        local pathfindingFixer = veafUnits.processGroup(veafUnits.DefaultPathfindingGroup) --insert a unit (structured into a group) that will be destroyed just after the convoy is spawned, this is to fix the AI weird pathfinding
+        table.insert(group.units, pathfindingFixer.units[1]) --insert the unit that has all of the necessary info into the group that's being placed
         nRows = #group.units
         nCols = 1
     else
@@ -604,6 +621,26 @@ function veafUnits.placeGroup(group, spawnPoint, spacing, hdg, hasDest)
             end            
         end
     end
+
+    --find the heading offset relative to the group's heading to spawn the units perpendicular to the road
+    -- local convoyHDGoffset = 90
+    -- if hasDest then
+    --     local road_x, road_z = land.getClosestPointOnRoads('roads',spawnPoint.x, spawnPoint.z)
+    --     local roadPoint = veaf.placePointOnLand({x = road_x, y = 0, z = road_z})
+    --     local nearestRoadHDG = mist.utils.getHeadingPoints(spawnPoint, roadPoint,false) * 180 / math.pi
+    --     veaf.loggers.get(veafUnits.Id):trace(string.format("HDG to nearest road : %s", veaf.p(nearestRoadHDG)))
+    --     veaf.loggers.get(veafUnits.Id):trace(string.format("Group HDG : %s", veaf.p(hdg)))
+    --     if nearestRoadHDG then
+    --         nearestRoadHDG = nearestRoadHDG - hdg
+    --         if nearestRoadHDG < 0 then
+    --             nearestRoadHDG = nearestRoadHDG + 360
+    --         end
+
+    --         if nearestRoadHDG >= 180 then
+    --             convoyHDGoffset = 270
+    --         end
+    --     end
+    -- end
     
     -- randomly place the units
     for _, cell in pairs(cells) do
@@ -638,8 +675,8 @@ function veafUnits.placeGroup(group, spawnPoint, spacing, hdg, hasDest)
             end
 
             -- unit heading
-            if hasDest then -- if the group has a destination then you want to spawn them aligned
-                unit.hdg = 0
+            if hasDest then --apply the offset when the group has a destination, 0 will make them spawn in line, 90 or 270 perpendicular to the group's hdg (the road if the group's hdg was set properly) etc.
+                unit.hdg = 0 --convoyHDGoffset
             end
 
             if unit.hdg then
@@ -655,6 +692,25 @@ function veafUnits.placeGroup(group, spawnPoint, spacing, hdg, hasDest)
     end 
     
     return group, cells
+end
+
+function veafUnits.removePathfindingFixUnit(groupName)
+    local group = Group.getByName(groupName)
+
+    if group then
+        local units = group:getUnits()
+        if units then
+            for _,unit in pairs(units) do
+                if unit then
+                    local unitType = unit:getTypeName()
+                    if unitType and unitType == veafUnits.DefaultPathfindingUnitType then
+                        unit:destroy()
+                        break
+                    end
+                end
+            end
+        end
+    end
 end
 
 function veafUnits.logGroupsListInMarkdown()

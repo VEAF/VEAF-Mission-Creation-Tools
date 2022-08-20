@@ -66,7 +66,7 @@ veafSpawn = {}
 veafSpawn.Id = "SPAWN"
 
 --- Version.
-veafSpawn.Version = "1.41.2"
+veafSpawn.Version = "1.41.3"
 
 -- trace level, specific to this module
 --veafSpawn.LogLevel = "trace"
@@ -3213,7 +3213,7 @@ function veafSpawn.spawnCombatAirPatrol(spawnSpot, radius, name, country, altitu
     local controller = _dcsSpawnedGroup:getController()
     controller:setOption(AI.Option.Air.id.PROHIBIT_AA, true)
     veaf.loggers.get(veafSpawn.Id):debug("restricting AA engagements for the AI to no go dumb, starting target watchdog...")
-    mist.scheduleFunction(veafSpawn.CAPTargetWatchdog, {_spawnedGroup.name, newRoute.points, controller, coalition, {x = parameters.targetZone.x, z = parameters.targetZone.y}, parameters.targetZone.radius}, timer.getTime()+veafSpawn.CAPwatchdogDelay)
+    mist.scheduleFunction(veafSpawn.CAPTargetWatchdog, {_spawnedGroup.name, controller, coalition, {x = parameters.targetZone.x, z = parameters.targetZone.y}, parameters.targetZone.radius}, timer.getTime()+veafSpawn.CAPwatchdogDelay)
 
     local message = string.format("A CAP of %s (%s) has been spawned", name, country)
     veaf.loggers.get(veafSpawn.Id):info(message)

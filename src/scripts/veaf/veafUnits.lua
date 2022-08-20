@@ -39,7 +39,7 @@ veafUnits = {}
 veafUnits.Id = "UNITS"
 
 --- Version.
-veafUnits.Version = "1.13.1"
+veafUnits.Version = "1.13.2"
 
 -- trace level, specific to this module
 --veafUnits.LogLevel = "trace"
@@ -1266,8 +1266,8 @@ veafUnits.GroupsDatabase = {
     {
         aliases = {"roland"},
         group = {
-            disposition = { h= 3, w= 3},
-            units = {{"Roland Radar", random=true}, {"Roland ADS", random=true, hdg = 0}, {"Roland ADS", random=true, hdg = 225}, {"Roland ADS", random=true, hdg = 135}},
+            disposition = { h= 5, w= 5},
+            units = {{"Roland Radar", cell = 8}, {"Roland ADS", cell = 1 , hdg = 300}, {"Roland ADS", cell = 5, hdg = 60}, {"Roland ADS", cell = 23, hdg = 180}, {"M 818", random=true}},
             description = "Roland SAM site",
             groupName = "Roland"
         },
@@ -1275,8 +1275,8 @@ veafUnits.GroupsDatabase = {
     {
         aliases = {"roland-noew"},
         group = {
-            disposition = { h= 3, w= 3},
-            units = {{"Roland ADS", random=true, hdg = 0}, {"Roland ADS", random=true, hdg = 225}, {"Roland ADS", random=true, hdg = 135}},
+            disposition = { h= 5, w= 5},
+            units = {{"Roland ADS", cell = 1 , hdg = 300}, {"Roland ADS", cell = 5, hdg = 60}, {"Roland ADS", cell = 23, hdg = 180}, {"M 818", random=true}},
             description = "Roland SAM site",
             groupName = "Roland"
         },
@@ -1326,14 +1326,28 @@ veafUnits.GroupsDatabase = {
     {
         aliases = {"hawk", "ha", "mim-23"},
         group = {
-            disposition = { h= 7, w= 3},
+            disposition = { h= 40, w= 40},
             units = {
-                {"Hawk sr", cell = 13}, {"Hawk pcp", cell = 8}, {"Hawk tr", cell = 15}, {"Hawk ln", cell = 1, hdg = 225}, {"Hawk ln", cell = 3, hdg = 0 }, {"Hawk ln", cell = 21, hdg = 135},
+                {"Hawk sr", cell = 816},
+                {"Hawk cwar", cell = 826},
+                {"Hawk cwar", cell = 1100}, 
+
+                {"Hawk tr", cell = 381, hdg = 0},
+                {"Hawk tr", cell = 1208, hdg = 240},
+                {"Hawk tr", cell = 1231, hdg = 120},
+                
+                {"Hawk pcp", cell = 941},
+                
+                {"Hawk ln", cell = 22, hdg = 0}, {"Hawk ln", cell = 297, hdg = 300 }, {"Hawk ln", cell = 306, hdg = 60},
+                {"Hawk ln", cell = 1042, hdg = 300}, {"Hawk ln", cell = 1401, hdg = 240 }, {"Hawk ln", cell = 1568, hdg = 180},
+                {"Hawk ln", cell = 1080, hdg = 60}, {"Hawk ln", cell = 1440, hdg = 120 }, {"Hawk ln", cell = 1588, hdg = 180},
 
                 -- a supply truck or three
-                {"M 818", number = {min=1, max=3}, random=true},
+                {"M 818", number = {min=4, max=6}, random=true},
                 --AAA defense
-                {"Vulcan", random=true},
+                {"Vulcan", number = {min=2, max=3}, random=true},
+                --IR defense
+                {"M1097 Avenger", random=true},
             },
             description = "Hawk SAM site",
             groupName = "Hawk"

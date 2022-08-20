@@ -195,7 +195,7 @@ function veafSpawn.onEventMarkChange(eventPos, event)
 
     veaf.loggers.get(veafSpawn.Id):trace(string.format("event.idx  = %s", veaf.p(event.idx)))
 
-    if veafSpawn.executeCommand(eventPos, event.text, invertedCoalition, event.idx) then 
+    if veafSpawn.executeCommand(eventPos, event.text, invertedCoalition, event.idx, nil, nil, nil, nil, nil, true) then
         
         -- Delete old mark.
         veaf.loggers.get(veafSpawn.Id):trace(string.format("Removing mark # %d.", event.idx))

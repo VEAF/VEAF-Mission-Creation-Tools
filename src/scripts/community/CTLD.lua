@@ -5033,9 +5033,6 @@ function ctld.addF10MenuOptions()
 
         if ctld.JTAC_jtacStatusF10 then
 
-            --count the number of times the JTAC radio menu has been refreshed based on how often you want the dynamic parts of the menu to refresh compared to the (static) JTAC Status command
-            ctld.jtacRadioRefreshCount = (ctld.jtacRadioRefreshCount)%(ctld.jtacRadioRefreshMultiplier) + 1
-
             -- get all BLUE players
             ctld.addJTACRadioCommand(2)
 
@@ -5085,21 +5082,25 @@ function ctld.addJTACRadioCommand(_side)
             local _groupId = ctld.getGroupId(_playerUnit)
 
             if _groupId then
+                
+                local newGroup = false
                 --   env.info("adding command for "..index)
                 if ctld.jtacRadioAdded[tostring(_groupId)] == nil then
                     -- env.info("about command for "..index)
+                    newGroup = true
                     local JTACpath = missionCommands.addSubMenuForGroup(_groupId, ctld.jtacMenuName)
                     missionCommands.addCommandForGroup(_groupId, "JTAC Status", JTACpath, ctld.getJTACStatus, { _playerUnit:getName() })
                     ctld.jtacRadioAdded[tostring(_groupId)] = true
                     -- env.info("Added command for " .. index)
                 end
 
-                --depending on the multiplier, this part of the radio menu will be refreshed less often or as often as the static JTAC status command, this is for better reliability for the user when navigating through the menus
-                if ctld.jtacRadioRefreshCount == ctld.jtacRadioRefreshMultiplier or ctld.newJtac then
+                --fetch the time to check for a regular refresh
+                local time = timer.getTime()
 
-                    if ctld.newJtac then
-                        ctld.newJtac = false
-                    end
+                --depending on the delay, this part of the radio menu will be refreshed less often or as often as the static JTAC status command, this is for better reliability for the user when navigating through the menus. New groups will get the lists regardless and if a new JTAC is added all lists will be refreshed regardless of the delay.
+                if ctld.jtacLastRadioRefresh + ctld.jtacRadioRefreshDelay <= time or ctld.newJtac[_side] or newGroup then
+
+                    ctld.jtacLastRadioRefresh = time
 
                     --build the path to the CTLD JTAC menu
                     local jtacCurrentPagePath = {[1]=ctld.jtacMenuName}
@@ -5185,6 +5186,10 @@ function ctld.addJTACRadioCommand(_side)
                 end
             end
         end
+
+        if ctld.newJtac[_side] then
+            ctld.newJtac[_side] = false
+        end
     end
 end
 
@@ -5226,9 +5231,9 @@ ctld.jtacTargetsList = {} --current available targets to each JTAC for lasing (t
 ctld.jtacSelectedTarget = {} --currently user selected target if it contains a unit's name, otherwise contains 1 or nil (if not initialized)
 ctld.jtacRadioAdded = {} --keeps track of who's had the radio command added
 ctld.jtacGroupSubMenuPath = {} --keeps track of which submenu contains each JTAC's target selection menu
-ctld.jtacRadioRefreshMultiplier = 6 --determines how often the dynamic parts of the jtac radio menu (target lists) will be refreshed compared to how often the ctld.addJTACRadioCommand method is called (lets say it was called every 10 seconds and this variable is set to 2, then the dynamic part is rebuilt every 20 seconds).
-ctld.jtacRadioRefreshCount = 0 --counts the number of times the ctld.addJTACRadioCommand method has been called for both coalition
-ctld.newJtac = false --indicator to know when a new JTAC is added in order to rebuild the target lists
+ctld.jtacRadioRefreshDelay = 60 --determines how often in seconds the dynamic parts of the jtac radio menu (target lists) will be refreshed
+ctld.jtacLastRadioRefresh = 0 -- time at which the target lists were refreshed for everyone at least
+ctld.newJtac = {} --indicator to know when a new JTAC is added to a coalition in order to rebuild the corresponding target lists
 ctld.jtacGeneratedLaserCodes = {} -- keeps track of generated codes, cycles when they run out
 ctld.jtacLaserPointCodes = {}
 ctld.jtacRadioData = {}
@@ -5313,13 +5318,14 @@ function ctld.JTACAutoLase(_jtacGroupName, _laserCode, _smoke, _lock, _colour, _
     else
 
         _jtacUnit = _jtacGroup[1]
+        local _jtacCoalition = _jtacUnit:getCoalition()
         --add to list
-        ctld.jtacUnits[_jtacGroupName] = { name = _jtacUnit:getName(), side = _jtacUnit:getCoalition(), radio = _radio }
+        ctld.jtacUnits[_jtacGroupName] = { name = _jtacUnit:getName(), side = _jtacCoalition, radio = _radio }
         
         --Targets list and Selected target initialization
         if not ctld.jtacTargetsList[_jtacGroupName] then
             ctld.jtacTargetsList[_jtacGroupName] = {}
-            ctld.newJtac = true
+            if _jtacCoalition then ctld.newJtac[_jtacCoalition] = true end
         end
 
         if not ctld.jtacSelectedTarget[_jtacGroupName] then

@@ -149,7 +149,7 @@ ctld.location_DMS = false -- shows coordinates as Degrees Minutes Seconds instea
 
 ctld.JTAC_lock = "all" -- "vehicle" OR "troop" OR "all" forces JTAC to only lock vehicles or troops or all ground units
 
-ctld.JTAC_laseSpotCorrections = false -- if true, the JTAC will attempt to lead the target, taking into account current wind conditions and the speed of the target (particularily useful against moving heavy armor)
+ctld.JTAC_laseSpotCorrections = true -- if true, the JTAC will attempt to lead the target, taking into account current wind conditions and the speed of the target (particularily useful against moving heavy armor)
 
 -- ***************** Pickup, dropoff and waypoint zones *****************
 

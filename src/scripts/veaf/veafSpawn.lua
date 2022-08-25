@@ -95,6 +95,7 @@ veafSpawn.RedSpawnedUnitsGroupName = "VEAF Spawned Units"
 veafSpawn.IlluminationFlareAglAltitude = 1000
 
 veafSpawn.RadioMenuName = "SPAWN"
+veafSpawn.HideRadioMenu = false
 
 --- static object type spawned when using the "logistic" keyword
 veafSpawn.LogisticUnitType = "FARP Ammo Dump Coating"
@@ -3521,20 +3522,22 @@ end
 
 --- Build the initial radio menu
 function veafSpawn.buildRadioMenu()
-    veaf.loggers.get(veafSpawn.Id):debug(string.format("veafSpawn.buildRadioMenu()"))
-    veafSpawn.rootPath = veafRadio.addSubMenu(veafSpawn.RadioMenuName)
-    veafRadio.addCommandToSubmenu("Available Aircraft spawns", veafSpawn.rootPath, veafSpawn.listAllCAP, nil, veafRadio.USAGE_ForAll)
-    veafRadio.addCommandToSubmenu("Info on all convoys", veafSpawn.rootPath, veafSpawn.infoOnAllConvoys, nil, veafRadio.USAGE_ForGroup)
-    local menuPath = veafRadio.addSubMenu("Mark closest convoy route", veafSpawn.rootPath)
-    veafRadio.addCommandToSubmenu("Mark closest convoy route" , menuPath, veafSpawn.markClosestConvoyRouteWithSmoke, nil, veafRadio.USAGE_ForGroup)    
-    local menuPath = veafRadio.addSubMenu("Mark closest convoy", veafSpawn.rootPath)
-    veafRadio.addCommandToSubmenu("Mark closest convoy" , menuPath, veafSpawn.markClosestConvoyWithSmoke, nil, veafRadio.USAGE_ForGroup)    
-    local menuPath = veafRadio.addSubMenu("Stop closest convoy", veafSpawn.rootPath)
-    veafRadio.addCommandToSubmenu("Stop closest convoy" , menuPath, veafSpawn.stopClosestConvoy, nil, veafRadio.USAGE_ForGroup)    
-    local menuPath = veafRadio.addSubMenu("Makes closest convoy move", veafSpawn.rootPath)
-    veafRadio.addCommandToSubmenu("Make closest convoy move" , menuPath, veafSpawn.moveClosestConvoy, nil, veafRadio.USAGE_ForGroup)    
-    veafRadio.addSecuredCommandToSubmenu('Cleanup all convoys', veafSpawn.rootPath, veafSpawn.cleanupAllConvoys)
-    veafRadio.refreshRadioMenu()
+    veaf.loggers.get(veafSpawn.Id):debug(string.format("veafSpawn.buildRadioMenu() hideMenu%s", veaf.p(veafSpawn.HideRadioMenu)))
+    if not veafSpawn.HideRadioMenu then
+        veafSpawn.rootPath = veafRadio.addSubMenu(veafSpawn.RadioMenuName)
+        veafRadio.addCommandToSubmenu("Available Aircraft spawns", veafSpawn.rootPath, veafSpawn.listAllCAP, nil, veafRadio.USAGE_ForAll)
+        veafRadio.addCommandToSubmenu("Info on all convoys", veafSpawn.rootPath, veafSpawn.infoOnAllConvoys, nil, veafRadio.USAGE_ForGroup)
+        local menuPath = veafRadio.addSubMenu("Mark closest convoy route", veafSpawn.rootPath)
+        veafRadio.addCommandToSubmenu("Mark closest convoy route" , menuPath, veafSpawn.markClosestConvoyRouteWithSmoke, nil, veafRadio.USAGE_ForGroup)    
+        local menuPath = veafRadio.addSubMenu("Mark closest convoy", veafSpawn.rootPath)
+        veafRadio.addCommandToSubmenu("Mark closest convoy" , menuPath, veafSpawn.markClosestConvoyWithSmoke, nil, veafRadio.USAGE_ForGroup)    
+        local menuPath = veafRadio.addSubMenu("Stop closest convoy", veafSpawn.rootPath)
+        veafRadio.addCommandToSubmenu("Stop closest convoy" , menuPath, veafSpawn.stopClosestConvoy, nil, veafRadio.USAGE_ForGroup)    
+        local menuPath = veafRadio.addSubMenu("Makes closest convoy move", veafSpawn.rootPath)
+        veafRadio.addCommandToSubmenu("Make closest convoy move" , menuPath, veafSpawn.moveClosestConvoy, nil, veafRadio.USAGE_ForGroup)    
+        veafRadio.addSecuredCommandToSubmenu('Cleanup all convoys', veafSpawn.rootPath, veafSpawn.cleanupAllConvoys)
+        veafRadio.refreshRadioMenu()
+    end
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------

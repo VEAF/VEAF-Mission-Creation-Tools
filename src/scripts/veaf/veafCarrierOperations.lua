@@ -58,6 +58,7 @@ veaf.loggers.new(veafCarrierOperations.Id, veafCarrierOperations.LogLevel)
 veafCarrierOperations.RadioMenuName = "CARRIER OPS"
 veafCarrierOperations.RadioMenuNameBlue = "CARRIER OPS - BLUE"
 veafCarrierOperations.RadioMenuNameRed = "CARRIER OPS - RED"
+veafCarrierOperations.DisableSecurity = false
 
 veafCarrierOperations.AllCarriers = 
 {
@@ -814,15 +815,27 @@ function veafCarrierOperations.rebuildRadioMenu()
 
         if carrier.conductingAirOperations then
             -- add the stop menu
-            veafRadio.addSecuredCommandToSubmenu("End air operations", carrier.menuPath, veafCarrierOperations.stopCarrierOperations, name, veafRadio.USAGE_ForGroup)
+            if veafCarrierOperations.DisableSecurity then
+                veafRadio.addCommandToSubmenu("End air operations", carrier.menuPath, veafCarrierOperations.stopCarrierOperations, name, veafRadio.USAGE_ForGroup)
+            else
+                veafRadio.addSecuredCommandToSubmenu("End air operations", carrier.menuPath, veafCarrierOperations.stopCarrierOperations, name, veafRadio.USAGE_ForGroup)
+            end
         else
             -- add the "start for veafCarrierOperations.MAX_OPERATIONS_DURATION" menu
             local startMenuName1 = "Start carrier air operations for " .. veafCarrierOperations.MAX_OPERATIONS_DURATION .. " minutes"
-            veafRadio.addSecuredCommandToSubmenu(startMenuName1, carrier.menuPath, veafCarrierOperations.startCarrierOperations, { name, veafCarrierOperations.MAX_OPERATIONS_DURATION }, veafRadio.USAGE_ForGroup)
+            if veafCarrierOperations.DisableSecurity then
+                veafRadio.addCommandToSubmenu(startMenuName1, carrier.menuPath, veafCarrierOperations.startCarrierOperations, { name, veafCarrierOperations.MAX_OPERATIONS_DURATION }, veafRadio.USAGE_ForGroup)
+            else
+                veafRadio.addSecuredCommandToSubmenu(startMenuName1, carrier.menuPath, veafCarrierOperations.startCarrierOperations, { name, veafCarrierOperations.MAX_OPERATIONS_DURATION }, veafRadio.USAGE_ForGroup)
+            end
 
             -- add the "start for veafCarrierOperations.MAX_OPERATIONS_DURATION * 2" menu
             local startMenuName2 = "Start carrier air operations for " .. veafCarrierOperations.MAX_OPERATIONS_DURATION * 2 .. " minutes"
-            veafRadio.addSecuredCommandToSubmenu(startMenuName2, carrier.menuPath, veafCarrierOperations.startCarrierOperations, { name, veafCarrierOperations.MAX_OPERATIONS_DURATION * 2 }, veafRadio.USAGE_ForGroup)
+            if veafCarrierOperations.DisableSecurity then
+                veafRadio.addCommandToSubmenu(startMenuName2, carrier.menuPath, veafCarrierOperations.startCarrierOperations, { name, veafCarrierOperations.MAX_OPERATIONS_DURATION * 2 }, veafRadio.USAGE_ForGroup)
+            else
+                veafRadio.addSecuredCommandToSubmenu(startMenuName2, carrier.menuPath, veafCarrierOperations.startCarrierOperations, { name, veafCarrierOperations.MAX_OPERATIONS_DURATION * 2 }, veafRadio.USAGE_ForGroup)
+            end
         end
 
         -- add the ATC menu (by player group)

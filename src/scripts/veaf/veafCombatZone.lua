@@ -306,6 +306,8 @@ VeafCombatZone =
     spawnedGroups,
     -- Wheter we want the combat zone to be added to populate the radio menu
     enableRadioMenu,
+     -- wheter the zone can be activated/deactivated by user via radio menu. If false, the zone won't be added to radio menu until activated
+    enableUserActivation,
     --- Radio menus paths
     radioMarkersPath,
     radioTargetInfoPath,
@@ -336,6 +338,7 @@ function VeafCombatZone:new()
     self.spawnedGroups = {}
     self.delayedSpawners = {}
     self.enableRadioMenu = true
+    self.enableUserActivation = true
     self.radioMarkersPath = nil
     self.radioTargetInfoPath = nil
     self.radioRootPath = nil
@@ -356,6 +359,11 @@ end
 
 function VeafCombatZone:disableRadioMenu()
     self.enableRadioMenu = false
+    return self
+end
+
+function VeafCombatZone:setEnableUserActivation(value)
+    self.enableUserActivation = value
     return self
 end
 
@@ -1060,44 +1068,61 @@ function VeafCombatZone:updateRadioMenu(inBatch)
         menuToFill = veafCombatZone.combatZoneRootPath
     end
 
+    local shouldAddSubMenu = self.enableUserActivation or self.active
+    veaf.loggers.get(veafCombatZone.Id):trace("User activation enabled : %s, Zone active: %s, shouldAddSubMenu: %s", veaf.p(self.enableUserActivation), veaf.p(self.active), veaf.p(shouldAddSubMenu))
+
     -- reset the radio menu
     if self.radioRootPath then
-        veaf.loggers.get(veafCombatZone.Id):trace("reset the radio submenu")
-        veafRadio.clearSubmenu(self.radioRootPath)
+        if not shouldAddSubMenu then
+            veaf.loggers.get(veafCombatZone.Id):trace("Clear and remove the radio submenu %s", veaf.p(self:getRadioMenuName()))
+            veafRadio.delSubmenu(self:getRadioMenuName(), menuToFill)
+            self.radioRootPath = nil
+        else
+            veaf.loggers.get(veafCombatZone.Id):trace("Reset the radio submenu")
+            veafRadio.clearSubmenu(self.radioRootPath)
+        end
     else
-        veaf.loggers.get(veafCombatZone.Id):trace("add the radio submenu")
-        self.radioRootPath = veafRadio.addSubMenu(self:getRadioMenuName(), menuToFill)
+        if shouldAddSubMenu then
+            veaf.loggers.get(veafCombatZone.Id):trace("add the radio submenu")
+            self.radioRootPath = veafRadio.addSubMenu(self:getRadioMenuName(), menuToFill)
+        end
     end
 
-    -- populate the radio menu
-    veaf.loggers.get(veafCombatZone.Id):trace("populate the radio menu")
-    -- global commands
-    veafRadio.addCommandToSubmenu("Get info", self.radioRootPath, veafCombatZone.GetInformationOnZone, self.missionEditorZoneName, veafRadio.USAGE_ForGroup)
-    if self:isActive() then
-        -- zone is active, set up accordingly (desactivate zone, get information, pop smoke, etc.)
-        veaf.loggers.get(veafCombatZone.Id):trace("zone is active")
-        if self:isTraining() then
-            veafRadio.addCommandToSubmenu('Desactivate zone', self.radioRootPath, veafCombatZone.DesactivateZone, self.missionEditorZoneName, veafRadio.USAGE_ForAll)
+    if shouldAddSubMenu then
+        -- populate the radio menu
+        veaf.loggers.get(veafCombatZone.Id):trace("populate the radio menu")
+        -- global commands
+        veafRadio.addCommandToSubmenu("Get info", self.radioRootPath, veafCombatZone.GetInformationOnZone, self.missionEditorZoneName, veafRadio.USAGE_ForGroup)
+        if self:isActive() then
+            -- zone is active, set up accordingly (desactivate zone, get information, pop smoke, etc.)
+            veaf.loggers.get(veafCombatZone.Id):trace("zone is active")
+            if self.enableUserActivation then
+                if self:isTraining() then
+                    veafRadio.addCommandToSubmenu('Desactivate zone', self.radioRootPath, veafCombatZone.DesactivateZone, self.missionEditorZoneName, veafRadio.USAGE_ForAll)
+                else
+                    veafRadio.addSecuredCommandToSubmenu('Desactivate zone', self.radioRootPath, veafCombatZone.DesactivateZone, self.missionEditorZoneName, veafRadio.USAGE_ForAll)
+                end
+            end
+            if self.smokeResetFunctionId then 
+                veafRadio.addCommandToSubmenu('Smoke not available', self.radioRootPath, veaf.emptyFunction, nil, veafRadio.USAGE_ForGroup)
+            else
+                veafRadio.addCommandToSubmenu('Request RED smoke on target', self.radioRootPath, veafCombatZone.SmokeZone, self.missionEditorZoneName, veafRadio.USAGE_ForGroup)
+            end
+            if self.flareResetFunctionId then 
+                veafRadio.addCommandToSubmenu('Flare not available', self.radioRootPath, veaf.emptyFunction, nil, veafRadio.USAGE_ForGroup)
+            else
+                veafRadio.addCommandToSubmenu('Request illumination flare on target', self.radioRootPath, veafCombatZone.LightUpZone, self.missionEditorZoneName, veafRadio.USAGE_ForGroup)
+            end
         else
-            veafRadio.addSecuredCommandToSubmenu('Desactivate zone', self.radioRootPath, veafCombatZone.DesactivateZone, self.missionEditorZoneName, veafRadio.USAGE_ForAll)
-        end
-        if self.smokeResetFunctionId then 
-            veafRadio.addCommandToSubmenu('Smoke not available', self.radioRootPath, veaf.emptyFunction, nil, veafRadio.USAGE_ForGroup)
-        else
-            veafRadio.addCommandToSubmenu('Request RED smoke on target', self.radioRootPath, veafCombatZone.SmokeZone, self.missionEditorZoneName, veafRadio.USAGE_ForGroup)
-        end
-        if self.flareResetFunctionId then 
-            veafRadio.addCommandToSubmenu('Flare not available', self.radioRootPath, veaf.emptyFunction, nil, veafRadio.USAGE_ForGroup)
-        else
-            veafRadio.addCommandToSubmenu('Request illumination flare on target', self.radioRootPath, veafCombatZone.LightUpZone, self.missionEditorZoneName, veafRadio.USAGE_ForGroup)
-        end
-    else
-        -- zone is not active, set up accordingly (activate zone)
-        veaf.loggers.get(veafCombatZone.Id):trace("zone is not active")
-        if self:isTraining() then
-            veafRadio.addCommandToSubmenu('Activate zone', self.radioRootPath, veafCombatZone.ActivateZone, self.missionEditorZoneName, veafRadio.USAGE_ForAll)
-        else
-            veafRadio.addSecuredCommandToSubmenu('Activate zone', self.radioRootPath, veafCombatZone.ActivateZone, self.missionEditorZoneName, veafRadio.USAGE_ForAll)
+            -- zone is not active, set up accordingly (activate zone)
+            veaf.loggers.get(veafCombatZone.Id):trace("zone is not active")
+            if self.enableUserActivation then
+                if self:isTraining() then
+                    veafRadio.addCommandToSubmenu('Activate zone', self.radioRootPath, veafCombatZone.ActivateZone, self.missionEditorZoneName, veafRadio.USAGE_ForAll)
+                else
+                    veafRadio.addSecuredCommandToSubmenu('Activate zone', self.radioRootPath, veafCombatZone.ActivateZone, self.missionEditorZoneName, veafRadio.USAGE_ForAll)
+                end
+            end
         end
     end
 

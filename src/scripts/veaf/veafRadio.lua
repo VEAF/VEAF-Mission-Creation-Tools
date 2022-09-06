@@ -702,14 +702,14 @@ function veafRadio.delSubmenu(subMenu, radioMenu)
   end
   local menu = veafRadio.radioMenu
   if radioMenu then
-     menu = radioMenu 
+    menu = radioMenu 
   end
   veaf.arrayRemoveWhen(menu.subMenus, function(t, i, j)
     -- Return true to keep the value, or false to discard it.
     --veaf.loggers.get(veafRadio.Id):trace("searching for " .. subMenu.title)
     local v = menu.subMenus[i]
-    --veaf.loggers.get(veafRadio.Id):trace("checking " .. v.title)
-    if v == subMenu then
+    --veaf.loggers.get(veafRadio.Id):trace("checking " .. v.title)    
+    if v == subMenu or v.title == subMenu then
       --veaf.loggers.get(veafRadio.Id):trace("found ! removing " .. v.title)
       return false
     else

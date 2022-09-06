@@ -304,10 +304,12 @@ VeafCombatZone =
     completable,
     -- DCS groups that have been spawned (for cleaning up later)
     spawnedGroups,
-    -- Wheter we want the combat zone to be added to populate the radio menu
+    -- Whether we want the combat zone to be added to populate the radio menu
     enableRadioMenu,
-     -- wheter the zone can be activated/deactivated by user via radio menu. If false, the zone won't be added to radio menu until activated
+    -- whether the zone can be activated/deactivated by user via radio menu. If false, the zone won't be added to radio menu until activated
     enableUserActivation,
+    -- whether we want to allow ground marking of the zone
+    enableSmokeAndFlare,
     --- Radio menus paths
     radioMarkersPath,
     radioTargetInfoPath,
@@ -339,6 +341,7 @@ function VeafCombatZone:new()
     self.delayedSpawners = {}
     self.enableRadioMenu = true
     self.enableUserActivation = true
+    self.enableSmokeAndFlare = true
     self.radioMarkersPath = nil
     self.radioTargetInfoPath = nil
     self.radioRootPath = nil
@@ -364,6 +367,11 @@ end
 
 function VeafCombatZone:setEnableUserActivation(value)
     self.enableUserActivation = value
+    return self
+end
+
+function VeafCombatZone:setEnableSmokeAndFlare(value)
+    self.enableSmokeAndFlare = value
     return self
 end
 
@@ -1103,15 +1111,17 @@ function VeafCombatZone:updateRadioMenu(inBatch)
                     veafRadio.addSecuredCommandToSubmenu('Desactivate zone', self.radioRootPath, veafCombatZone.DesactivateZone, self.missionEditorZoneName, veafRadio.USAGE_ForAll)
                 end
             end
-            if self.smokeResetFunctionId then 
-                veafRadio.addCommandToSubmenu('Smoke not available', self.radioRootPath, veaf.emptyFunction, nil, veafRadio.USAGE_ForGroup)
-            else
-                veafRadio.addCommandToSubmenu('Request RED smoke on target', self.radioRootPath, veafCombatZone.SmokeZone, self.missionEditorZoneName, veafRadio.USAGE_ForGroup)
-            end
-            if self.flareResetFunctionId then 
-                veafRadio.addCommandToSubmenu('Flare not available', self.radioRootPath, veaf.emptyFunction, nil, veafRadio.USAGE_ForGroup)
-            else
-                veafRadio.addCommandToSubmenu('Request illumination flare on target', self.radioRootPath, veafCombatZone.LightUpZone, self.missionEditorZoneName, veafRadio.USAGE_ForGroup)
+            if self.enableSmokeAndFlare then
+                if self.smokeResetFunctionId then 
+                    veafRadio.addCommandToSubmenu('Smoke not available', self.radioRootPath, veaf.emptyFunction, nil, veafRadio.USAGE_ForGroup)
+                else
+                    veafRadio.addCommandToSubmenu('Request RED smoke on target', self.radioRootPath, veafCombatZone.SmokeZone, self.missionEditorZoneName, veafRadio.USAGE_ForGroup)
+                end
+                if self.flareResetFunctionId then 
+                    veafRadio.addCommandToSubmenu('Flare not available', self.radioRootPath, veaf.emptyFunction, nil, veafRadio.USAGE_ForGroup)
+                else
+                    veafRadio.addCommandToSubmenu('Request illumination flare on target', self.radioRootPath, veafCombatZone.LightUpZone, self.missionEditorZoneName, veafRadio.USAGE_ForGroup)
+                end
             end
         else
             -- zone is not active, set up accordingly (activate zone)

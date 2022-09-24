@@ -1389,6 +1389,7 @@ function VeafCombatOperation:completionCheck()
     if completedTaskingOrderCount == #self.primaryTaskingOrders then
         veaf.loggers.get(veafCombatZone.Id):trace("Primary tasks complete")
         self:updatePrimaryTasks()
+        self:updateRadioMenu()
         completedTaskingOrderCount = 0
         if not self:isActive() then
             return self

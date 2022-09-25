@@ -41,6 +41,10 @@ require('yargs')
         type: "boolean",
         describe: "if set, connects to CheckWX to get real weather over the theatre"
       })
+      .option('clearsky', {
+        type: "boolean",
+        describe: "if set, limits to 3 octas or less"
+      })
       .option('verbose', {
         alias: 'v',
         type: "boolean",
@@ -52,6 +56,12 @@ require('yargs')
         type: "boolean",
         default: false,
         describe: "Be extra quiet"
+      })
+      .option('nocache', {
+        alias: 'nc',
+        type: "boolean",
+        default: false,
+        describe: "Don't use cached data"
       })
       .conflicts("metar", ["weather", "real"])
       .conflicts("weather", ["metar", "real"])
@@ -68,10 +78,13 @@ require('yargs')
         targetMissionFileName: argv.target,  // the name of the target mission file (default to the source)
         missionStartTime: argv.start, // the new mission start time (default: do not change time)
         metarString: argv.metar,  // a raw metar string to parse for weather injection
+        real: argv.real, // real weather
+        clearsky: argv.clearsky, // real weather but limits to 3 octas or less
         weatherFileName: argv.weather, // a lua file with the DCS weather ready to inject
         variableForMetar: argv.variable, // the name of a variable that will be replaced with the METAR string in the mission dictionary
         trace: argv.verbose,
-        quiet: argv.quiet
+        quiet: argv.quiet,
+        nocache: argv.nocache
       });
     })
     .command('injectall <source> <target> <configuration>', 'Use a configuration file to create multiple copies of a DCS mission with specific start time and weather', (yargs) => {

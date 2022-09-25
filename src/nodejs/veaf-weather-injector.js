@@ -95,7 +95,7 @@ async function injectWeatherFromConfiguration(parameters) {
         }
       }
       for (let i=0; i<data.targets.length; i++) {
-        let { version, weather, weatherfile, time, moment, dontSetToday, dontSetTodayYear } = data.targets[i];
+        let { version, weather, weatherfile, time, moment, dontSetToday, dontSetTodayYear, clearsky } = data.targets[i];
         if (!time && moment && moments && moments[moment]) {
           time = moments[moment];
         }
@@ -109,7 +109,8 @@ async function injectWeatherFromConfiguration(parameters) {
           setToday: !dontSetToday,
           setTodayYear: !dontSetTodayYear,
           trace: trace,
-          quiet: quiet
+          quiet: quiet,
+          clearsky: clearsky
         }
         await injectWeather(parameters);
       }
@@ -121,7 +122,7 @@ async function injectWeatherFromConfiguration(parameters) {
 }
 
 async function injectWeather(parameters) {
-  let { sourceMissionFileName, targetMissionFileName, missionStartTime, weatherFileName, metarString, variableForMetar, setToday, setTodayYear, trace, quiet } = parameters;
+  let { sourceMissionFileName, targetMissionFileName, missionStartTime, weatherFileName, metarString, real, clearsky, variableForMetar, setToday, setTodayYear, trace, quiet, nocache } = parameters;
   if (targetMissionFileName && targetMissionFileName.indexOf(".miz") < 0)
     targetMissionFileName = targetMissionFileName + ".miz";
   if (!quiet) console.log(`DCS weather injector starting`);
@@ -208,8 +209,11 @@ async function injectWeather(parameters) {
     } else {
       // search for real weather in the cache
       const theatre = configuration.theatres[theatreName] || configuration.theatres.caucasus;
+      let key = theatreName
+      if (real && clearsky) key = key + "-clearsky";
       if (!quiet) console.log(`Getting real weather from CheckWX in "${theatreName}"`);
-      metar = await MetarCache.getMetarFromCache(configuration.cacheFolder, theatreName);
+      if (!quiet) console.log(`Cache key is "${key}"`);
+      if (!nocache) metar = await MetarCache.getMetarFromCache(configuration.cacheFolder, key);
       if (!metar || metar.age > configuration.maxAge) {
         // read it from CheckWX
         let checkwx = new CheckWX(configuration.checkwx_apikey);
@@ -224,7 +228,7 @@ async function injectWeather(parameters) {
           console.error("cannot get metar from CheckWX !");
           process.exit(-1);
         }
-        await MetarCache.storeMetarIntoCache(configuration.cacheFolder, theatreName, metar);
+        await MetarCache.storeMetarIntoCache(configuration.cacheFolder, key, metar);
       } else {
         if (!quiet) console.log("Using cached data from " + new Date(metar.datestamp));
         metar = metar.metar;
@@ -232,7 +236,7 @@ async function injectWeather(parameters) {
     }
 
     // process METAR and inject it into the DCS Weather object
-    let weatherdata = new DCSCheckWXConvertEnricher(metar, trace);
+    let weatherdata = new DCSCheckWXConvertEnricher(metar, clearsky, trace);
     if (trace) console.log("getStationElevation=" + weatherdata.getStationElevation());
     if (trace) console.log("getBarometerMMHg=" + weatherdata.getBarometerMMHg());
     if (trace) console.log("getTemperature=" + weatherdata.getTemperature());

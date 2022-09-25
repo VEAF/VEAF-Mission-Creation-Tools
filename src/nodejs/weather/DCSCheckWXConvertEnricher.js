@@ -15,7 +15,7 @@ class DCSCheckWXConvertEnricher {
     return this._trace;
   }
 
-  constructor(weatherdata, trace) {
+  constructor(weatherdata, clearsky, trace) {
     this._trace = trace;
     this._cloudPreset = null;
     if (typeof(weatherdata) == "string") {
@@ -64,6 +64,11 @@ class DCSCheckWXConvertEnricher {
       }
       this._weatherdata = weatherdata;
       this._metar = this.getClosestResult().raw_text || "";
+      if (clearsky) {
+        this._metar = this._metar.replace("OVC", "FEW");
+        this._metar = this._metar.replace("BKN", "FEW");
+        this._metar = this._metar.replace("SCT", "FEW");
+      }
     }
   }
 

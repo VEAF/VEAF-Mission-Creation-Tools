@@ -44,11 +44,11 @@ function _checkCacheFolder(cacheFolder) {
   return cacheFolder;
 }
 
-function getMetarFromCache(cacheFolder, theatre) {
+function getMetarFromCache(cacheFolder, theatre, key) {
   return new Promise((resolve, reject) => {
     (async () => {
       try {
-        let filename = `${_checkCacheFolder(cacheFolder)}/${theatre}-cached-metar.json`;
+        let filename = `${_checkCacheFolder(cacheFolder)}/${theatre}${key}-cached-metar.json`;
         let json = await fsPromises.readFile(filename);
         if (!json) resolve(null); // no file ?
         let data = JSON.parse(json);
@@ -63,11 +63,11 @@ function getMetarFromCache(cacheFolder, theatre) {
 
 }
 
-function storeMetarIntoCache(cacheFolder, theatre, metar) {
+function storeMetarIntoCache(cacheFolder, theatre, key, metar) {
   return new Promise((resolve, reject) => {
     (async () => {
       try {
-        let filename = `${_checkCacheFolder(cacheFolder)}/${theatre}-cached-metar.json`;
+        let filename = `${_checkCacheFolder(cacheFolder)}/${theatre}${key}-cached-metar.json`;
         let cachedMetar = new CachedMetar(theatre, metar);
         let json = JSON.stringify(cachedMetar);
         await fsPromises.writeFile(filename, json);

@@ -1057,7 +1057,8 @@ function veafShortcuts.buildDefaultList()
             :setDescription("Lock the system")
             :setHidden(true)
             :setVeafCommand("_auth logout")
-            :setBypassSecurity(true)
+            :dontEndWithComma()
+            :setBypassSecurity(false)
     )
     -- shortcuts to specific groups
     veafShortcuts.AddAlias(

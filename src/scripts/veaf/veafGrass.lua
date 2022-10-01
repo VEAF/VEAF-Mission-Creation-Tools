@@ -225,6 +225,14 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD
     veaf.loggers.get(veafGrass.Id):trace(string.format("grassRunwayUnits=%s",veaf.p(grassRunwayUnits)))
 	veaf.loggers.get(veafGrass.Id):trace(string.format("hiddenOnMFD=%s",veaf.p(hiddenOnMFD)))
 
+	-- add FARP to CTLD FOBs and logistic units
+	local name = farp.name
+	if not name then name = farp.unitName end
+	if not name then name = farp.groupName end
+	table.insert(ctld.builtFOBS, name)
+	table.insert(ctld.logisticUnits, name)
+
+	local farpUnitNameCounter=1
 	local farpCoalition = farp.coalition
 	local farpCoalitionNumber = farp.coalition
 	if type(farpCoalition == "number") then
@@ -266,6 +274,7 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD
 	for j = 1,2 do
 		for i = 1,3 do
 			local tent = {
+				["unitName"] = string.format("FARP %s unit #%d", farp.groupName, farpUnitNameCounter),
 				["category"] = 'static',
 				["categoryStatic"] = 'Fortifications',
 				["coalition"] = farpCoalition,
@@ -282,6 +291,7 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD
 			end			
 
 			mist.dynAddStatic(tent)
+			farpUnitNameCounter = farpUnitNameCounter + 1
 		end	
 	end
 	
@@ -298,6 +308,7 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD
 	
 	for j,typeName in ipairs(otherUnits) do
 		local otherUnit = {
+			["unitName"] = string.format("FARP %s unit #%d", farp.groupName, farpUnitNameCounter),
 			["category"] = 'static',
 			["categoryStatic"] = 'Fortifications',
 			["coalition"] = farpCoalition,
@@ -313,6 +324,7 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD
 			otherUnit["groupName"] = groupName
 		end			
 		mist.dynAddStatic(otherUnit)
+		farpUnitNameCounter = farpUnitNameCounter + 1
 	end
 
 	-- create Windsock
@@ -326,6 +338,7 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD
 	end
 
 	local windsockUnit = {
+		["unitName"] = string.format("FARP %s unit #%d", farp.groupName, farpUnitNameCounter),
 		["category"] = 'static',
 		["categoryStatic"] = 'Fortifications',
 		["shape_name"] = "H-Windsock_RW",
@@ -342,10 +355,12 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD
 		windsockUnit["groupName"] = groupName
 	end			
 	mist.dynAddStatic(windsockUnit)
+	farpUnitNameCounter = farpUnitNameCounter + 1
 
 	-- on FARP unit, place a second windsock, at 90°
 	if farp.type == 'FARP' then
 		local windsockUnit = {
+			["unitName"] = string.format("FARP %s unit #%d", farp.groupName, farpUnitNameCounter),
 			["category"] = 'static',
 			["categoryStatic"] = 'Fortifications',
 			["shape_name"] = "H-Windsock_RW",
@@ -362,6 +377,7 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD
 			windsockUnit["groupName"] = groupName
 		end			
 		mist.dynAddStatic(windsockUnit)
+		farpUnitNameCounter = farpUnitNameCounter + 1
 	end
 
 	-- spawn a FARP escort group
@@ -404,6 +420,7 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD
 
 	for j,typeName in ipairs(farpEscortUnitsNames[farpCoalition]) do
 		local escortUnit = {
+			["unitName"] = string.format("FARP %s unit #%d", farp.groupName, farpUnitNameCounter),
 			["heading"] = mist.utils.toRadian(angle-135), -- parked \\\\\
 			["type"] = typeName,
 			["x"] = unitsOrigin.x - (j-1) * unitsSpacing * math.sin(mist.utils.toRadian(angle)),
@@ -411,6 +428,7 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD
 			["skill"] = "Random",
 		}		
 		table.insert(farpEscortGroup.units, escortUnit)
+		farpUnitNameCounter = farpUnitNameCounter + 1
 
 	end
 

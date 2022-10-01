@@ -4021,6 +4021,7 @@ if ctld then
     
     ctld.autoInitializeAllHumanTransports = function()
         veaf.loggers.get(ctld.Id):info("autoInitializeAllHumanTransports()")
+        ctld.transportPilotNames = {} 
         local TransportTypeNames = {"Mi-8MT", "UH-1H", "Mi-24P", "Yak-52", "UH-60L"}
         for name, unit in pairs(mist.DBs.humansByName) do
             veaf.loggers.get(ctld.Id):trace(string.format("human player found name=%s, unitName=%s, groupName=%s", name, unit.unitName,unit.groupName))
@@ -4036,50 +4037,51 @@ if ctld then
     end
 
     ctld.autoInitializeAllLogistic = function()
+        local LogisticTypeNames = {"LHA_Tarawa", "Stennis", "CVN_71", "KUZNECOW", "FARP Ammo Storage", "FARP Ammo Dump Coating"}
         veaf.loggers.get(ctld.Id):info("autoInitializeAllLogistic()")
-        local CarrierTypeNames = {"LHA_Tarawa", "Stennis", "CVN_71", "KUZNECOW"}
+        ctld.logisticUnits = {}
         local units = mist.DBs.unitsByName -- local copy for faster execution
         for name, unit in pairs(units) do
             veaf.loggers.get(ctld.Id):trace(string.format("name=%s, unit.type=%s", veaf.p(name), veaf.p(unit.type)))
-            --veaf.loggers.get(ctld.Id):trace(string.format("unit=%s", veaf.p(unit)))
-            --local unit = Unit.getByName(name)
             if unit then 
-                for _, carrierTypeName in pairs(CarrierTypeNames) do
-                    if carrierTypeName:lower() == unit.type:lower() then
+                for _, unitTypeName in pairs(LogisticTypeNames) do
+                    if unitTypeName:lower() == unit.type:lower() then
                         table.insert(ctld.logisticUnits, unit.unitName)
-                        veaf.loggers.get(ctld.Id):debug(string.format("Adding CTLD logistic unit %s of group %s", unit.unitName, unit.groupName))
+                        veaf.loggers.get(ctld.Id):debug("Adding CTLD logistic unit %s of group %s", veaf.p(unit.unitName), veaf.p(unit.groupName))
                     end
                 end
             end
         end
+
+        -- generate 20 logistic unit names in the form "logistic #001"
+        veaf.loggers.get(ctld.Id):debug("generate 20 logistic unit names in the form 'logistic #001'")
+        for i = 1, 20 do
+            table.insert(ctld.logisticUnits, string.format("logistic #%03d",i))
+        end
+
         veaf.loggers.get(ctld.Id):trace("ctld.logisticUnits=%s", veaf.p(ctld.logisticUnits))
     end
 
-    -- generate 20 pickup zone names in the form "pickzone #001"
-    veaf.loggers.get(ctld.Id):debug("generate 20 pickup zone names in the form 'pickzone #001'")
-    ctld.pickupZones = {}
-    for i = 1, 20 do
-        table.insert(ctld.pickupZones, { string.format("pickzone #%03d",i), "none", -1, "yes", 0 })
-    end
+    ctld.autoInitializeAllPickupZones = function()
+        veaf.loggers.get(ctld.Id):info("autoInitializeAllPickupZones()")
+        ctld.pickupZones = {}
+        -- generate 20 pickup zone names in the form "pickzone #001"
+        veaf.loggers.get(ctld.Id):debug("generate 20 pickup zone names in the form 'pickzone #001'")
+        for i = 1, 20 do
+            table.insert(ctld.pickupZones, { string.format("pickzone #%03d",i), "none", -1, "yes", 0 })
+        end
 
-    -- generate 20 logistic unit names in the form "logistic #001"
-    veaf.loggers.get(ctld.Id):debug("generate 20 logistic unit names in the form 'logistic #001'")
-    ctld.logisticUnits = {}
-    for i = 1, 20 do
-        table.insert(ctld.logisticUnits, string.format("logistic #%03d",i))
-    end
-    
-    -- Use only the automatic initialization
-    ctld.transportPilotNames = {} 
+        veaf.loggers.get(ctld.Id):trace("ctld.pickupZones=%s", veaf.p(ctld.pickupZones))
+    end    
 
     -- automatically add all the human-manned transport aircrafts to ctld.transportPilotNames
     ctld.autoInitializeAllHumanTransports()
-
-    -- Use only the automatic initialization
-    ctld.logisticUnits = {}
-
+    
     -- automatically add all the carriers and FARPs to ctld.logisticUnits
     ctld.autoInitializeAllLogistic()
+    
+    -- automatically generate pickup zones names
+    ctld.autoInitializeAllPickupZones()
 
     ctld.initialize(true)
 

@@ -1204,7 +1204,7 @@ function veafShortcuts.buildDefaultList()
         VeafAlias:new()
             :setName("-cargo")
             :setDescription("Generate a cargo for sling loading")
-            :setVeafCommand("_spawn cargo")
+            :setVeafCommand("_spawn cargo, side blue, radius 0")
             :setBypassSecurity(false)
     )
     -- radio shortcuts

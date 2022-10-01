@@ -1416,7 +1416,7 @@ veafUnits.GroupsDatabase = {
         aliases = {"US infgroup"},
         group = {
             disposition = { h = 5, w = 5},
-            units = {{"IFV Hummer", number = {min=1, max=2}, random=true},{"INF Soldier M249", number = {min=1, max=2}, random=true},{"INF Soldier M4 GRG", number = {min=2, max=4}, random=true},{"INF Soldier M4", number = {min=6, max=15}, random=true}},
+            units = {{"Hummer", number = {min=1, max=2}, random=true},{"Soldier M249", number = {min=1, max=2}, random=true},{"Soldier M4", number = {min=2, max=4}, random=true},{"Soldier M4 GRG", number = {min=6, max=15}, random=true}},
             description = "US infantry group",
             groupName = "US infantry group",
         },
@@ -1518,14 +1518,14 @@ veafUnits.GroupsDatabase = {
         group = {
             disposition = { h = 20, w = 20},
             units = {
-                {"IFV Hummer", number = {min=2, max=4}, random=true},
+                {"Hummer", number = {min=2, max=4}, random=true},
                 {"Truck M 818", number = {min=3, max=6}, random=true},
                 {"Truck M978 HEMTT Tanker", number = {min=0, max=3}, random=true},
                 {"Truck Predator GCS", number = {min=0, max=2}, random=true},
                 {"Truck Predator TrojanSpirit", number = {min=0, max=2}, random=true}
             },
-            description = "US infantry group",
-            groupName = "US infantry group",
+            description = "US supply convoy",
+            groupName = "US supply convoy",
         },
     },
     {

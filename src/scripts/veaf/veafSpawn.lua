@@ -1837,6 +1837,8 @@ end
 
 --- Spawn a specific cargo at a specific spot
 function veafSpawn.doSpawnCargo(spawnSpot, radius, cargoType, country, weightBias, unitName, cargoSmoke, silent, hiddenOnMFD)
+    local weightBias = weightBias or 2
+    local radius = radius or 0
     veaf.loggers.get(veafSpawn.Id):debug("spawnCargo(cargoType = " .. cargoType ..")")
     
     local spawnSpot = veaf.placePointOnLand(mist.getRandPointInCircle(spawnSpot, radius))

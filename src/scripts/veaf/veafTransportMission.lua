@@ -52,7 +52,7 @@ veafTransportMission.Id = "TRANSPORTMISSION"
 veafTransportMission.Version = "1.6.0"
 
 -- trace level, specific to this module
---veafTransportMission.LogLevel = "trace"
+veafTransportMission.LogLevel = "trace"
 
 veaf.loggers.new(veafTransportMission.Id, veafTransportMission.LogLevel)
 
@@ -74,7 +74,7 @@ veafTransportMission.SecondsBetweenSmokeRequests = 180
 veafTransportMission.SecondsBetweenFlareRequests = 120
 
 --- Name of the friendly group that waits for the cargo
-veafTransportMission.BlueGroupName = "Cargo - Allied Group"
+veafTransportMission.BlueGroupName = "Transport - Allied Group"
 
 --- Name of the cargo units
 veafTransportMission.BlueCargoName = "Cargo - Cargo unit"
@@ -101,8 +101,8 @@ veafTransportMission.DefaultStartPosition = "KASPI"
 -- minimum authorized route distance ; missions shorter than this will not be authorized
 veafTransportMission.MinimumRouteDistance = 15000 -- 15 km
 
--- size of the sqfe zone (no enemy group before this distance)
-veafTransportMission.SafeZoneDistance = 10000 -- 10 km
+-- size of the safe zone (no enemy group before this distance, in % of the total distance)
+veafTransportMission.SafeZoneDistance = 0.6 -- 60%
 
 -- size of the sqfe zone near drop zone (no enemy group after this distance from the drop zone)
 veafTransportMission.DropZoneSafeZoneDistance = 5000 -- 5 km
@@ -275,7 +275,7 @@ function veafTransportMission.doRadioTransmission(groupName)
 end
 
 function veafTransportMission.generateFriendlyGroup(groupPosition)
-    veafSpawn.doSpawnGroup(groupPosition, "US infgroup", "USA", 0, 0, 0, 10, veafTransportMission.BlueGroupName, true)
+    veafSpawn.doSpawnGroup(groupPosition, 0, "US infgroup", "USA", 0, 0, 0, veafTransportMission.BlueGroupName, true, false, true, true)
 
     if veafTransportMission.DoRadioTransmission then
         veafTransportMission.doRadioTransmission(veafTransportMission.BlueGroupName)
@@ -343,8 +343,7 @@ function veafTransportMission.generateEnemyDefenseGroup(groupPosition, groupName
     end
 
     groupDefinition = veafUnits.processGroup(groupDefinition)
-    veafSpawn.doSpawnGroup(groupPosition, groupDefinition, "RUSSIA", 0, 0, math.random(359), math.random(3,6), groupName, true)
-
+    veafSpawn.doSpawnGroup(groupPosition, 0, groupDefinition, "RUSSIA", 0, math.random(359), math.random(3,6), groupName, true, false, true, true)
 end
 
 
@@ -399,7 +398,7 @@ function veafTransportMission.generateTransportMission(targetSpot, size, defense
         veaf.loggers.get(veafTransportMission.Id):trace("spawnSpot=" .. veaf.vecToString(spawnSpot))
         local cargoType = veafTransportMission.CargoTypes[math.random(#veafTransportMission.CargoTypes)]
         local cargoName = veafTransportMission.BlueCargoName .. " #" .. i
-        veafSpawn.doSpawnCargo(spawnSpot, cargoType, cargoName, false, true)
+        veafSpawn.doSpawnCargo(spawnSpot, 0, cargoType, "USA")
     end
     veaf.loggers.get(veafTransportMission.Id):debug("Done generating cargo")
 
@@ -408,7 +407,7 @@ function veafTransportMission.generateTransportMission(targetSpot, size, defense
         veaf.loggers.get(veafTransportMission.Id):debug("Generating air defense")
 
          -- place groups on the way
-         local startingDistance = veafTransportMission.SafeZoneDistance -- enemy presence start after the safe zone
+         local startingDistance = routeDistance * veafTransportMission.SafeZoneDistance -- enemy presence start after the safe zone
          local defendedDistance = routeDistance - veafTransportMission.DropZoneSafeZoneDistance - startingDistance
          local distanceStep = veafTransportMission.EnemyDefenseDistanceStep
          local nbSteps = math.floor(defendedDistance / distanceStep) 
@@ -654,10 +653,8 @@ end
 
 --- Build the initial radio menu
 function veafTransportMission.buildRadioMenu()
-    if not(veafRadio.skipHelpMenus) then
-        veafTransportMission.rootPath = veafRadio.addSubMenu(veafTransportMission.RadioMenuName)
-        veafRadio.addCommandToSubmenu("HELP", veafTransportMission.rootPath, veafTransportMission.help, nil, veafRadio.USAGE_ForGroup)
-    end
+    veafTransportMission.rootPath = veafRadio.addSubMenu(veafTransportMission.RadioMenuName)
+    veafRadio.addCommandToSubmenu("HELP", veafTransportMission.rootPath, veafTransportMission.help, nil, veafRadio.USAGE_ForGroup)
     -- TODO add this command when the respawn will work (see veafTransportMission.resetAllCargoes)
     -- missionCommands.addCommand('Respawn all cargoes', veafTransportMission.rootPath, veafTransportMission.resetAllCargoes)
 end

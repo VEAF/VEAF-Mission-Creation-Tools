@@ -1400,6 +1400,7 @@ function VeafCombatOperation:completionCheck()
 
     if completedTaskingOrderCount ~= self.currentCompletedTaskingOrderCount then
         veaf.loggers.get(veafCombatZone.Id):trace("New tasking order completed. Update radio.")
+        self:updatePrimaryTasks()
         self:updateRadioMenu()
     end
     self.currentCompletedTaskingOrderCount = completedTaskingOrderCount

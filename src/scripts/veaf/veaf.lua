@@ -32,7 +32,7 @@ veaf = {}
 veaf.Id = "VEAF"
 
 --- Version.
-veaf.Version = "1.24.0"
+veaf.Version = "1.25.0"
 
 --- Development version ?
 veaf.Development = true
@@ -3942,8 +3942,8 @@ env.setErrorMessageBoxEnabled(false)
 veaf.loggers.get(veaf.Id):info("Loading version %s", veaf.Version)
 veaf.loggers.get(veaf.Id):info("veaf.Development=%s", veaf.Development)
 veaf.loggers.get(veaf.Id):info("veaf.SecurityDisabled=%s", veaf.SecurityDisabled)
-veaf.loggers.get(veaf.Id):info("veaf.Debug=%s", veaf.Debug)
-veaf.loggers.get(veaf.Id):info("veaf.Trace=%s", veaf.Trace)
+veaf.loggers.get(veaf.Id):info("veaf.LogLevel=%s", veaf.LogLevel)
+veaf.loggers.get(veaf.Id):info("veaf.ForcedLogLevel=%s", veaf.ForcedLogLevel)
 
 -- discover trigger zones
 veaf._discoverTriggerZones()

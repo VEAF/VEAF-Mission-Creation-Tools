@@ -32,13 +32,14 @@ veaf = {}
 veaf.Id = "VEAF"
 
 --- Version.
-veaf.Version = "1.25.0"
+veaf.Version = "1.26.0"
 
 --- Development version ?
 veaf.Development = true
 veaf.SecurityDisabled = true
 
 -- trace level, specific to this module
+veaf.LogLevel = "info"
 --veaf.LogLevel = "trace"
 --veaf.LogLevel = "debug"
 --veaf.ForcedLogLevel = "trace"
@@ -589,7 +590,9 @@ function veaf._p(o, level, skip)
         return ""
     end
     local text = ""
-    if (type(o) == "table") then
+    if o == nil then
+        text = "[nil]"   
+    elseif (type(o) == "table") then
         text = "\n"
         local keys = {}
         local values = {}
@@ -619,11 +622,7 @@ function veaf._p(o, level, skip)
             text = "[false]"
         end
     else
-        if o == nil then
-            text = "[nil]"   
-        else
-            text = tostring(o)
-        end
+        text = tostring(o)
     end
     return text
 end
@@ -2580,17 +2579,18 @@ function veaf.Logger.formatText(text, ...)
     if type(text) ~= 'string' then
         text = veaf.p(text)
     else
-        if arg and arg.n and arg.n > 0 then
+        local args = ...
+        if args and args.n and args.n > 0 then
             local pArgs = {}
-            for index,value in ipairs(arg) do
-                pArgs[index] = veaf.p(value)
+            for i=1,args.n do
+                pArgs[i] = veaf.p(args[i])
             end
             text = text:format(unpack(pArgs))
         end            
     end
     local fName = nil
     local cLine = nil
-    if debug then
+    if debug and debug.getinfo then
         local dInfo = debug.getinfo(3)
         fName = dInfo.name
         cLine = dInfo.currentline
@@ -2634,35 +2634,35 @@ end
 
 function veaf.Logger:error(text, ...)
     if self.level >= 1 then
-        text = veaf.Logger.formatText(text, unpack(arg))
+        text = veaf.Logger.formatText(text, arg)
         self:print(1, text)
     end
 end
 
 function veaf.Logger:warn(text, ...)
     if self.level >= 2 then
-        text = veaf.Logger.formatText(text, unpack(arg))
+        text = veaf.Logger.formatText(text, arg)
         self:print(2, text)
     end
 end
 
 function veaf.Logger:info(text, ...)
     if self.level >= 3 then
-        text = veaf.Logger.formatText(text, unpack(arg))
+        text = veaf.Logger.formatText(text, arg)
         self:print(3, text)
     end
 end
 
 function veaf.Logger:debug(text, ...)
     if self.level >= 4 then
-        text = veaf.Logger.formatText(text, unpack(arg))
+        text = veaf.Logger.formatText(text, arg)
         self:print(4, text)
     end
 end
 
 function veaf.Logger:trace(text, ...)
     if self.level >= 5 then
-        text = veaf.Logger.formatText(text, unpack(arg))
+        text = veaf.Logger.formatText(text, arg)
         self:print(5, text)
     end
 end

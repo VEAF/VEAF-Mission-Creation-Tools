@@ -37,7 +37,7 @@ veafNamedPoints = {}
 veafNamedPoints.Id = "NAMED POINTS"
 
 --- Version.
-veafNamedPoints.Version = "1.10.1"
+veafNamedPoints.Version = "1.11.0"
 
 -- trace level, specific to this module
 --veafNamedPoints.LogLevel = "trace"
@@ -333,7 +333,11 @@ function veafNamedPoints.listAllPoints(unitName)
     for _, name in pairs(names) do
         local point = veafNamedPoints.namedPoints[name]
         local lat, lon = coord.LOtoLL(point)
-        message = message .. name .. " => " .. mist.tostringLL(lat, lon, 2) .. "\n"
+        local llString = mist.tostringLL(lat, lon, 3)
+        llString = llString:sub(0,2) .. '°' .. llString:sub(4)
+        local mgrs = coord.LLtoMGRS(lat, lon)
+        local mgrsString = mist.tostringMGRS(mgrs, 5)
+        message = message .. name .. " => " .. llString .. " / " .. mgrsString .. "\n"
     end
 
     -- send message only for the unit

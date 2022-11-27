@@ -329,7 +329,7 @@ local function initializeIADS(networkName, coa, inRadio, debug)
         veaf.loggers.get(veafSkynet.Id):debug("adding debug information")
         local iadsDebug = iads:getDebugSettings()
         iadsDebug.IADSStatus = true
-        iadsDebug.samWentDark = true
+        iadsDebug.radarWentDark = true -- FG iadsDebug.samWentDark = true
         iadsDebug.contacts = true
         iadsDebug.radarWentLive = true
         iadsDebug.noWorkingCommmandCenter = false

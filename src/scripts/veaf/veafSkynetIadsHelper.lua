@@ -28,7 +28,7 @@ veafSkynet = {}
 veafSkynet.Id = "SKYNET"
 
 --- Version.
-veafSkynet.Version = "2.0.1"
+veafSkynet.Version = "2.0.2"
 
 -- trace level, specific to this module
 --veafSkynet.LogLevel = "trace"
@@ -329,7 +329,7 @@ local function initializeIADS(networkName, coa, inRadio, debug)
         veaf.loggers.get(veafSkynet.Id):debug("adding debug information")
         local iadsDebug = iads:getDebugSettings()
         iadsDebug.IADSStatus = true
-        iadsDebug.samWentDark = true
+        iadsDebug.radarWentDark = true -- FG iadsDebug.samWentDark = true
         iadsDebug.contacts = true
         iadsDebug.radarWentLive = true
         iadsDebug.noWorkingCommmandCenter = false

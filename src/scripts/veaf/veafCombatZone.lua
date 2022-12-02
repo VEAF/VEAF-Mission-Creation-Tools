@@ -379,8 +379,12 @@ function VeafCombatZone:setEnableSmokeAndFlare(value)
     return self
 end
 
-function VeafCombatZone:getRadioMenuName()
-    return self:getFriendlyName()
+function VeafCombatZone:getRadioMenuName(asActive)
+    local active = ""
+    if asActive then
+        active = "* "
+    end
+    return active .. self:getFriendlyName()
 end
 
 function VeafCombatZone:setFriendlyName(value)
@@ -1100,19 +1104,14 @@ function VeafCombatZone:updateRadioMenu(inBatch)
 
     -- reset the radio menu
     if self.radioRootPath then
-        if not shouldAddSubMenu then
-            veaf.loggers.get(veafCombatZone.Id):debug("Clear and remove the radio submenu %s", veaf.p(self:getRadioMenuName()))
-            veafRadio.delSubmenu(self:getRadioMenuName(), self.radioParentPath)
-            self.radioRootPath = nil
-        else
-            veaf.loggers.get(veafCombatZone.Id):debug("Reset the radio submenu")
-            veafRadio.clearSubmenu(self.radioRootPath)
-        end
-    else
-        if shouldAddSubMenu then
-            veaf.loggers.get(veafCombatZone.Id):debug("add the radio submenu")
-            self.radioRootPath = veafRadio.addSubMenu(self:getRadioMenuName(), self.radioParentPath)
-        end
+        veaf.loggers.get(veafCombatZone.Id):debug("Remove the radio submenu %s", veaf.p(self:getRadioMenuName()))
+        veafRadio.delSubmenu(self:getRadioMenuName(), self.radioParentPath)
+        veafRadio.delSubmenu(self:getRadioMenuName(true), self.radioParentPath)
+        self.radioRootPath = nil
+    end
+    if shouldAddSubMenu then
+        veaf.loggers.get(veafCombatZone.Id):debug("add the radio submenu")
+        self.radioRootPath = veafRadio.addSubMenu(self:getRadioMenuName(self:isActive()), self.radioParentPath)
     end
 
     if shouldAddSubMenu then

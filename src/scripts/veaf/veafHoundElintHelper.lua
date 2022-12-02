@@ -28,7 +28,7 @@ veafHoundElint = {}
 veafHoundElint.Id = "HOUND"
 
 --- Version.
-veafHoundElint.Version = "1.1.0"
+veafHoundElint.Version = "1.1.1"
 
 -- trace level, specific to this module
 --veafHoundElint.LogLevel = "debug"
@@ -73,9 +73,12 @@ end
 
 
 function veafHoundElint.addPlatformToSystem(dcsGroup, alreadyAddedUnits, atMissionStart)
+    if not veafHoundElint.initialized then 
+        return false 
+    end
     
     if not dcsGroup then
-        veaf.loggers.get(veafHoundElint.Id):debug("group cannot exist")
+        veaf.loggers.get(veafHoundElint.Id):error("group does not exist")
         return false
     end
     
@@ -83,9 +86,6 @@ function veafHoundElint.addPlatformToSystem(dcsGroup, alreadyAddedUnits, atMissi
     local coa = dcsGroup:getCoalition()
     local hound = veafHoundElint.getHoundOfCoalition(coa)
     veaf.loggers.get(veafHoundElint.Id):debug(string.format("addPlatformToSystem(%s) to %s", veaf.p(groupName), veaf.p(veaf.ifnn(hound,"name"))))
-    if not veafHoundElint.initialized then 
-        return false 
-    end
     veaf.loggers.get(veafHoundElint.Id):trace(string.format("atMissionStart=%s", veaf.p(atMissionStart)))
 
     

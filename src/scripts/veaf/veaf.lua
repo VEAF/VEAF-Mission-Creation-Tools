@@ -32,7 +32,7 @@ veaf = {}
 veaf.Id = "VEAF"
 
 --- Version.
-veaf.Version = "1.26.0"
+veaf.Version = "1.27.0"
 
 --- Development version ?
 veaf.Development = true
@@ -2635,7 +2635,11 @@ end
 function veaf.Logger:error(text, ...)
     if self.level >= 1 then
         text = veaf.Logger.formatText(text, arg)
-        self:print(1, text)
+        local mText = text
+		if debug and debug.traceback then
+			mText = mText .. "\n" .. debug.traceback()
+		end
+        self:print(1, mText)
     end
 end
 

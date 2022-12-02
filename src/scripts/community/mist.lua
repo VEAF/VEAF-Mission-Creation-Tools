@@ -1870,6 +1870,11 @@ do -- the main scope
 		end
 		taskId = taskId + 1
 		table.insert(scheduledTasks, {f = f, vars = vars, t = t, rep = rep, st = st, id = taskId})
+		local mText = "scheduled task " .. tostring(taskId) .. " with function " .. tostring(f)
+		if debug and debug.traceback then
+			mText = mText .. "\n" .. debug.traceback()
+		end
+		log:info(mText)
 		return taskId
 	end
 

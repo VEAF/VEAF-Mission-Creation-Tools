@@ -27,7 +27,7 @@ veafShortcuts = {}
 veafShortcuts.Id = "SHORTCUTS"
 
 --- Version.
-veafShortcuts.Version = "1.29.0"
+veafShortcuts.Version = "1.30.0"
 
 -- trace level, specific to this module
 --veafShortcuts.LogLevel = "trace"
@@ -1152,6 +1152,14 @@ function veafShortcuts.buildDefaultList()
             :setDescription("Random SAM battery")
             :setVeafCommand("_spawn samgroup, skynet true")
             :addRandomParameter("defense", 1, 5)
+            :setBypassSecurity(false)
+    )
+    veafShortcuts.AddAlias(
+        VeafAlias:new()
+            :setName("-aaa")
+            :setDescription("Random AAA battery")
+            :setVeafCommand("_spawn samgroup, skynet true")
+            :addRandomParameter("defense", 1, 2)
             :setBypassSecurity(false)
     )
     veafShortcuts.AddAlias(

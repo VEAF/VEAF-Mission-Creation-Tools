@@ -219,6 +219,10 @@ async function injectWeather(parameters) {
         let checkwx = new CheckWX(configuration.checkwx_apikey);
         try {
           metar = await checkwx.getWeatherForLatLon(theatre.lat, theatre.lon);
+          if (!metar || metar.results == 0) {
+            console.log("No metar returned from CheckWX, using default metar " + DefaultMetar)
+            metar = DefaultMetar
+          }
         } catch (error) {
           console.log("Error while fetching weather on checkwx ! ", error)
           metar = DefaultMetar;
@@ -228,7 +232,7 @@ async function injectWeather(parameters) {
           console.error("cannot get metar from CheckWX !");
           process.exit(-1);
         }
-        await MetarCache.storeMetarIntoCache(configuration.cacheFolder, key, metar);
+        await MetarCache.storeMetarIntoCache(configuration.cacheFolder, key, theatre, metar);
       } else {
         if (!quiet) console.log("Using cached data from " + new Date(metar.datestamp));
         metar = metar.metar;

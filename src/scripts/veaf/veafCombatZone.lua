@@ -51,7 +51,7 @@ veafCombatZone.Id = "COMBATZONE"
 veafCombatZone.Version = "1.12.0"
 
 -- trace level, specific to this module
-veafCombatZone.LogLevel = "debug"
+--veafCombatZone.LogLevel = "debug"
 
 veaf.loggers.new(veafCombatZone.Id, veafCombatZone.LogLevel)
 

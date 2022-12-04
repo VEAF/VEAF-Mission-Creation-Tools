@@ -42,7 +42,7 @@ function toDcsTime(date) {
 }
 
 async function injectWeatherFromConfiguration(parameters) {
-  let { sourceMissionFileName, targetMissionFileName, configurationFile, trace, quiet } = parameters;
+  let { sourceMissionFileName, targetMissionFileName, configurationFile, trace, quiet, nocache } = parameters;
   if (!quiet) console.log(`DCS multiple missions weather injector starting`);
 
   // read the configuration file
@@ -110,7 +110,8 @@ async function injectWeatherFromConfiguration(parameters) {
           setTodayYear: !dontSetTodayYear,
           trace: trace,
           quiet: quiet,
-          clearsky: clearsky
+          clearsky: clearsky,
+          nocache: nocache
         }
         await injectWeather(parameters);
       }

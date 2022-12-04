@@ -113,6 +113,12 @@ require('yargs')
           default: false,
           describe: "Be extra quiet"
         })
+        .option('nocache', {
+          alias: 'nc',
+          type: "boolean",
+          default: false,
+          describe: "Don't use cached data"
+        })
         .example("$0 injectall test.miz opentraining.json")
         .epilog('for more information visit https://github.com/VEAF/VEAF-Mission-Creation-Tools')
     }, (argv) => {
@@ -123,7 +129,8 @@ require('yargs')
           targetMissionFileName: argv.target, // the target mission name where ${version} will be replaced with the version string
           configurationFile: argv.configuration,  // the name of the configuration file
           trace: argv.verbose,
-          quiet: argv.quiet
+          quiet: argv.quiet,
+          nocache: argv.nocache
         });
       })
       .command('select-mission <source> <target> <configuration>', 'Use a configuration file to create a copy of a serverSettings.lua file which startup mission is set according to the cron scheduling rules found in the configuration', (yargs) => {

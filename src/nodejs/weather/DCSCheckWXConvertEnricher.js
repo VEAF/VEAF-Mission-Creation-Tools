@@ -37,7 +37,7 @@ class DCSCheckWXConvertEnricher {
             "celsius": decodedMetar.temperature || 20
           },
           "barometer": {
-            "hg" : decodedMetar.altimeterInHg || (decodedMetar.altimeterInHpa / 25.4)
+            "hg" : decodedMetar.altimeterInHg || (decodedMetar.altimeterInHpa * 0.02953)
           },
           "wind": {
             "degrees": decodedMetar.wind.direction || 0,

@@ -48,7 +48,7 @@ veafCombatZone = {}
 veafCombatZone.Id = "COMBATZONE"
 
 --- Version.
-veafCombatZone.Version = "1.12.0"
+veafCombatZone.Version = "1.13.0"
 
 -- trace level, specific to this module
 --veafCombatZone.LogLevel = "debug"
@@ -1237,42 +1237,6 @@ end
 
 function VeafCombatOperation:getRadioMenuName()
     return self:getFriendlyName()
-end
-
-function VeafCombatOperation:setFriendlyName(value)
-    self.friendlyName = value
-    return self
-end
-
-function VeafCombatOperation:getFriendlyName()
-    return self.friendlyName
-end
-
-function VeafCombatOperation:setBriefing(value)
-    self.briefing = value
-    return self
-end
-
-function VeafCombatOperation:getBriefing()
-    return self.briefing
-end
-
-function VeafCombatOperation:setMissionEditorZoneName(value)
-    self.missionEditorZoneName = value
-    return self
-end
-
-function VeafCombatOperation:getMissionEditorZoneName()
-    return self.missionEditorZoneName
-end
-
-function VeafCombatOperation:isActive()
-    return self.active
-end
-
-function VeafCombatOperation:setActive(value)
-    self.active = value
-    return self
 end
 
 function VeafCombatOperation:getInformation()

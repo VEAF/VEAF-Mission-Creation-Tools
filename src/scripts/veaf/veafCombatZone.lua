@@ -1661,7 +1661,9 @@ end
 ---
 function veafCombatZone.findUnitsInTriggerZone(triggerZoneName)
     local triggerZone = trigger.misc.getZone(triggerZoneName)
-    
+    if not(triggerZone) then 
+        veaf.loggers.get(veafCombatZone.Id):error(string.format("trigger zone %s not found", triggerZoneName))
+    end
     local units_by_name = {}
     local l_units = veaf.getUnitsOfAllCoalitions(true)
     local units = {}

@@ -32,7 +32,7 @@ veaf = {}
 veaf.Id = "VEAF"
 
 --- Version.
-veaf.Version = "1.27.0"
+veaf.Version = "1.28.0"
 
 --- Development version ?
 veaf.Development = true
@@ -2857,23 +2857,41 @@ VeafQRA =
     ennemyCoalitions = nil,
     -- message when the QRA is started
     messageStart = nil,
+    -- event when the QRA is started
+    onStart = nil,
     -- message when the QRA is triggered
     messageDeploy = nil,
+    -- event when the QRA is triggered
+    onDeploy = nil,
     -- message when the QRA is destroyed
     messageDestroyed = nil,
+    -- event when the QRA is destroyed
+    onDestroyed = nil,
     -- message when the QRA is ready
     messageReady = nil,
+    -- event when the QRA is ready
+    onReady = nil,
     -- message when the QRA is out of aircrafts
     messageOut = nil,
+    -- event when the QRA is out of aircrafts
+    onOut = nil,
     -- message when the QRA has been resupplied and will start operations against
     messageResupplied = nil,
+    -- event when the QRA has been resupplied and will start operations against
+    onResupplied = nil,
     -- message when the QRA has lost the airbase it operates from
     messageAirbaseDown = nil,
+    -- event when the QRA has lost the airbase it operates from
+    onAirbaseDown = nil,
     -- message when the QRA has retrieved the airbase it operates from and will start operations again
     messageAirbaseUp = nil,
+    -- event when the QRA has retrieved the airbase it operates from and will start operations again
+    onAirbaseUp = nil,
     -- message when the QRA is stopped
     messageStop = nil,
-    -- silent means no message is emitted
+    -- event when the QRA is stopped
+    onStop = nil,
+	    -- silent means no message is emitted
     silent = nil,
     -- radius of the defenders groups spawn
     respawnRadius = nil,
@@ -2909,7 +2927,8 @@ VeafQRA =
     outAnnounced = false,
     -- boolean to know if the status NOAIRBASE was announced or not
     noAB_announced = false,
-
+    -- minimum number of enemies in the zone to trigger deployment; updated automatically by setGroupsToDeployByEnemyQuantity
+    minimumNbEnemyPlanes = -1,
     timer = nil,
     state = nil,
     scheduled_state = nil,
@@ -3096,9 +3115,21 @@ function VeafQRA:setMessageStart(value)
     return self
 end
 
+function VeafQRA:setOnStart(value)
+    veaf.loggers.get(VeafQRA.Id):trace(string.format("VeafQRA[%s]:setOnStart()", veaf.p(self.name)))
+    self.onStart = value
+    return self
+end
+
 function VeafQRA:setMessageDeploy(value)
     veaf.loggers.get(VeafQRA.Id):trace(string.format("VeafQRA[%s]:setMessageDeploy(%s)", veaf.p(self.name), veaf.p(value)))
     self.messageDeploy = value
+    return self
+end
+
+function VeafQRA:setOnDeploy(value)
+    veaf.loggers.get(VeafQRA.Id):trace(string.format("VeafQRA[%s]:setOnDeploy()", veaf.p(self.name)))
+    self.onDeploy = value
     return self
 end
 
@@ -3108,9 +3139,21 @@ function VeafQRA:setMessageDestroyed(value)
     return self
 end
 
+function VeafQRA:setOnDestroyed(value)
+    veaf.loggers.get(VeafQRA.Id):trace(string.format("VeafQRA[%s]:setOnDestroyed()", veaf.p(self.name)))
+    self.onDestroyed = value
+    return self
+end
+
 function VeafQRA:setMessageReady(value)
     veaf.loggers.get(VeafQRA.Id):trace(string.format("VeafQRA[%s]:setMessageReady(%s)", veaf.p(self.name), veaf.p(value)))
     self.messageReady = value
+    return self
+end
+
+function VeafQRA:setOnReady(value)
+    veaf.loggers.get(VeafQRA.Id):trace(string.format("VeafQRA[%s]:setOnReady()", veaf.p(self.name)))
+    self.onReady = value
     return self
 end
 
@@ -3120,9 +3163,21 @@ function VeafQRA:setMessageOut(value)
     return self
 end
 
+function VeafQRA:setOnOut(value)
+    veaf.loggers.get(VeafQRA.Id):trace(string.format("VeafQRA[%s]:setOnOut()", veaf.p(self.name)))
+    self.onOut = value
+    return self
+end
+
 function VeafQRA:setMessageResupplied(value)
     veaf.loggers.get(VeafQRA.Id):trace(string.format("VeafQRA[%s]:setMessageResupplied(%s)", veaf.p(self.name), veaf.p(value)))
     self.messageResupplied = value
+    return self
+end
+
+function VeafQRA:setOnResupplied(value)
+    veaf.loggers.get(VeafQRA.Id):trace(string.format("VeafQRA[%s]:setOnResupplied()", veaf.p(self.name)))
+    self.onResupplied = value
     return self
 end
 
@@ -3132,15 +3187,33 @@ function VeafQRA:setMessageAirbaseDown(value)
     return self
 end
 
+function VeafQRA:setOnAirbaseDown(value)
+    veaf.loggers.get(VeafQRA.Id):trace(string.format("VeafQRA[%s]:setOnAirbaseDown()", veaf.p(self.name)))
+    self.onAirbaseDown = value
+    return self
+end
+
 function VeafQRA:setMessageAirbaseUp(value)
     veaf.loggers.get(VeafQRA.Id):trace(string.format("VeafQRA[%s]:setMessageAirbaseUp(%s)", veaf.p(self.name), veaf.p(value)))
     self.messageAirbaseUp = value
     return self
 end
 
+function VeafQRA:setOnAirbaseUp(value)
+    veaf.loggers.get(VeafQRA.Id):trace(string.format("VeafQRA[%s]:setOnAirbaseUp()", veaf.p(self.name)))
+    self.onAirbaseUp = value
+    return self
+end
+
 function VeafQRA:setMessageStop(value)
     veaf.loggers.get(VeafQRA.Id):trace(string.format("VeafQRA[%s]:setMessageStop(%s)", veaf.p(self.name), veaf.p(value)))
     self.messageStop = value
+    return self
+end
+
+function VeafQRA:setOnStop(value)
+    veaf.loggers.get(VeafQRA.Id):trace(string.format("VeafQRA[%s]:setOnStop()", veaf.p(self.name)))
+    self.onStop = value
     return self
 end
 
@@ -3444,6 +3517,9 @@ function VeafQRA:checkAirport()
                 trigger.action.outTextForCoalition(coalition, msg, 15) 
             end
         end
+        if self.onAirbaseDown then
+            self.onAirbaseDown(QRA_airportObject)
+        end
         self.noAB_announced = true
         
     elseif self.state == VeafQRA.STATUS_NOAIRBASE then
@@ -3453,6 +3529,9 @@ function VeafQRA:checkAirport()
             for coalition, _ in pairs(self.ennemyCoalitions) do
                 trigger.action.outTextForCoalition(coalition, msg, 15) 
             end
+        end
+        if self.onAirbaseUp then
+            self.onAirbaseUp(QRA_airportObject)
         end
 
         self.noAB_announced = false
@@ -3516,9 +3595,11 @@ function VeafQRA:checkWarehousing()
             local msg = string.format(self.messageOut, self:getDescription())
             for coalition, _ in pairs(self.ennemyCoalitions) do
                 trigger.action.outTextForCoalition(coalition, msg, 15) 
-            end
-
+            end           
             self.outAnnounced = true
+        end
+        if self.onOut then
+            self.onOut()
         end
 
         self:setScheduledState(VeafQRA.STATUS_OUT)
@@ -3551,6 +3632,9 @@ function VeafQRA:resupply(resupplyAmount)
                     for coalition, _ in pairs(self.ennemyCoalitions) do
                         trigger.action.outTextForCoalition(coalition, msg, 15) 
                     end
+                end
+                if self.onResupplied then
+                    self.onResupplied()
                 end
 
                 self.outAnnounced = false
@@ -3629,6 +3713,9 @@ function VeafQRA:deploy(nbUnitsInZone)
         veaf.loggers.get(VeafQRA.Id):trace(string.format("self.spawnedGroups=%s", veaf._p(self.spawnedGroups)))
         self.state = VeafQRA.STATUS_ACTIVE
     end
+    if self.onDeploy then
+        self.onDeploy(nbUnitsInZone)
+    end
 end
 
 function VeafQRA:destroyed()
@@ -3638,6 +3725,9 @@ function VeafQRA:destroyed()
         for coalition, _ in pairs(self.ennemyCoalitions) do
             trigger.action.outTextForCoalition(coalition, msg, 15)
         end
+    end
+    if self.onDestroyed then
+        self.onDestroyed()
     end
     self.state = VeafQRA.STATUS_DEAD
 
@@ -3663,6 +3753,9 @@ function VeafQRA:rearm(silent)
             end
         end
     end
+    if self.onReady then
+        self.onReady()
+    end
     self.state = VeafQRA.STATUS_READY
 end
 
@@ -3678,6 +3771,9 @@ function VeafQRA:start()
             trigger.action.outTextForCoalition(coalition, msg, 15)
         end
     end
+    if self.onStart then
+        self.onStart()
+    end
 
     return self
 end
@@ -3691,6 +3787,9 @@ function VeafQRA:stop(silent)
         for coalition, _ in pairs(self.ennemyCoalitions) do
             trigger.action.outTextForCoalition(coalition, msg, 15) 
         end
+    end
+    if self.onStop then
+        self.onStop()
     end
 
     return self

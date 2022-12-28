@@ -3139,17 +3139,17 @@ function VeafQRA:setMessageStop(value)
     return self
 end
 
-function VeafQRA:setSilent(state)
+function VeafQRA:setSilent(pSilent)
     
-    local state = state
-    if state then 
-        state = true
+    local vSilent = pSilent
+    if vSilent then 
+        vSilent = true
     else
-        state = false
+        vSilent = false
     end
 
-    veaf.loggers.get(VeafQRA.Id):trace(string.format("VeafQRA[%s]:setSilent(%s)", veaf.p(self.name), veaf.p(state)))
-    self.silent = state
+    veaf.loggers.get(VeafQRA.Id):trace(string.format("VeafQRA[%s]:setSilent(%s)", veaf.p(self.name), veaf.p(vSilent)))
+    self.silent = pSilent
     return self
 end
 
@@ -3658,9 +3658,9 @@ end
 
 function VeafQRA:start()
     veaf.loggers.get(VeafQRA.Id):trace(string.format("VeafQRA[%s]:start()", veaf.p(self.name)))
+    self.scheduled_state = nil --make sure you reset the scheduled state if you are within the bounds of this method
     self:rearm()
     self:check()
-    self.scheduled_state = nil --make sure you reset the scheduled state if you are within the bounds of this method
 
     if not self.silent then
         local msg = string.format(self.messageStart, self:getDescription())

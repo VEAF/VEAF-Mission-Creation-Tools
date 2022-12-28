@@ -2994,6 +2994,7 @@ function VeafQRA:new()
     self.airportMinLifePercent = VeafQRA.DEFAULT_airbaseMinLifePercent
     self.outAnnounced = false
     self.noAB_announced = false
+    self.minimumNbEnemyPlanes = -1
     
     self._enemyHumanUnits = nil
     self.timeSinceReady = -1
@@ -3065,6 +3066,10 @@ end
 function VeafQRA:setGroupsToDeployByEnemyQuantity(enemyNb, groupsToDeploy)
     veaf.loggers.get(VeafQRA.Id):trace(string.format("VeafQRA[%s]:setGroupsToDeployByEnemyQuantity(%s) -> %s", veaf.p(self.name), veaf.p(enemyNb), veaf.p(groupsToDeploy)))
     self.groupsToDeployByEnemyQuantity[enemyNb] = groupsToDeploy
+    if self.minimumNbEnemyPlanes == -1 or self.minimumNbEnemyPlanes > enemyNb then
+        self.minimumNbEnemyPlanes = enemyNb
+        veaf.loggers.get(VeafQRA.Id):trace(string.format("setting minimumNbEnemyPlanes to %s", veaf.p(self.minimumNbEnemyPlanes)))
+    end
     return self
 end
 
@@ -3594,6 +3599,11 @@ end
 function VeafQRA:deploy(nbUnitsInZone)
     veaf.loggers.get(VeafQRA.Id):trace(string.format("VeafQRA[%s]:deploy()", veaf.p(self.name)))
     veaf.loggers.get(VeafQRA.Id):trace(string.format("nbUnitsInZone=[%s]", veaf.p(nbUnitsInZone)))
+    if self.minimumNbEnemyPlanes ~= -1 and self.minimumNbEnemyPlanes > nbUnitsInZone then
+        veaf.loggers.get(VeafQRA.Id):trace(string.format("not enough enemies in zone, min=%s", veaf._p(self.minimumNbEnemyPlanes)))
+        return
+    end
+
     if not self.silent then
         local msg = string.format(self.messageDeploy, self:getDescription())
         for coalition, _ in pairs(self.ennemyCoalitions) do

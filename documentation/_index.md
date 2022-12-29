@@ -1,4 +1,4 @@
-![VEAF-logo](./_images/logo.png?raw=true "logo.png")
+![VEAF-logo](./.images/logo.png?raw=true "logo.png")
 
 ## Introduction
 

@@ -1,4 +1,4 @@
-![VEAF-logo](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/master/documentation/_images/logo.png?raw=true "logo.png")
+![VEAF-logo](./_images/logo.png?raw=true "logo.png")
 
 ## Introduction
 

@@ -6,8 +6,7 @@ All scripts, libraries and documentation needed to build a dynamic mission in DC
 
 ## How to work on this package ?
 
-See the [demo mission](https://github.com/VEAF/VEAF-Demo-Mission)
-TODO
+Read the [documentation]()!
 
 ## What is this ? Is it like Moose ?
 

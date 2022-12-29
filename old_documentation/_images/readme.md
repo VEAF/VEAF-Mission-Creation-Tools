@@ -1,0 +1,1 @@
+The images in this folder are referenced as direct blob urls (e.g. `https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/master/documentation/qra-flowchart.jpg?raw=true`) by the documentation *.md files

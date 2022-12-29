@@ -1,45 +1,22 @@
-# VEAF Mission Creation Tools - Documentation
-
 ## Introduction
 
-The VEAF Mission Creation Tools provide tools and scripts designed to easily create, share and maintain dynamic missions.
+The VEAF Mission Creation Tools contains tools and scripts designed to make it easy to create, share and maintain dynamic missions.
 
-They contain:
+It is composed of:
 
-* the VEAF mission scripts (organized in modules)
-* the VEAF server hooks
-* some of the community scripts, sometimes edited by VEAF (e.g. CTLD, MiST)
-* an easy mission creation, edition and publication workflow
-* tools to support this workflow, including a converter that build a dynamic mission from an existing static one
+* the VEAF scripts (modules)
+* the community scripts, sometimes edited by VEAF
+* a mission creation, edition and publication workflow
+* tools to support this workflow
 * this documentation
 
-Here are a few Github repositories that you should browse:
-- main repository: https://github.com/VEAF/VEAF-Mission-Creation-Tools
-- use this to inject the scripts an tools into an existing mission: https://github.com/VEAF/VEAF-mission-converter
-- demo mission: https://github.com/VEAF/VEAF-Demo-Mission
-- a good working example of the scripts at work: https://github.com/VEAF/VEAF-Open-Training-Mission
+## Roles
 
-## How do I use the tools in a mission I want to design?
+When you have an interest in the VEAF Mission Creation Tools, you may be a mission programmer or a mission maker.
 
-Start [here](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/master/documentation/Mission%20maker/_index.md) if you search how to use this tools as a mission maker.
+Mission makers want to use the tools to create, share and maintain a mission.
 
-## How do I contribute to this wonderful repository?
-
-First, thank you!
-
-We always welcome help, and new ideas.
-
-Please always use branches and pull requests! Start with forking the VEAF-Mission-Creation-Tools [repository](https://github.com/VEAF/VEAF-Mission-Creation-Tools), create a branch, hack away and publish your work.
-
-### I want to help maintain the documentation!
-
-The easiest way of doing this is by editing the files directly on the Github website.
-
-But you can also fork the repository (see above).
-
-### I need to add new features or correct bugs in the scripts!
-
-[Here](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/master/documentation/Mission%20programmer/_index.md) is the programmer documentation.
+Mission programmers help us maintain and enhance the tools by adding features, correcting bugs, configuring new data.
 
 ### How to use the tools as a mission maker
 
@@ -100,5 +77,3 @@ There are several ways of getting in touch with the VEAF:
 
 * David "Zip" Pierron, VEAF
 * "Mitch", VEAF
-
-

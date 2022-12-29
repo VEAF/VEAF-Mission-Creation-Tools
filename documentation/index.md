@@ -21,6 +21,11 @@ Our Github repositories:
 * the VEAF [Caucasus training mission][VEAF-Open-Training-Mission-repository] (fork or download) is a good working example of the scripts in a complex mission
 * the VEAF [multiplayer missions repository][VEAF-Multiplayer-Missions-repository] contains mission that we played with the VEAF (some may be old and deprecated!)
 
+## What do I need to start?
+
+You'll need to setup an environment, on your PC, with specific (free) software.
+
+[These instructions](./environment/index.md) are for Windows 10, no support is given for Linux or MacOS.
 ## How do I use the tools in a mission I want to design?
 
 Please read the [Misson Maker documentation](./mission-maker/index.md).

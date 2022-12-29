@@ -1,17 +1,18 @@
-# VEAF-Mission-Creation-Tools
+# [![VEAF-logo]][VEAF website] Mission Creation Tools
 
-[![Badge-Discord]][Link-Discord]
+[![Badge-Discord]][VEAF Discord]
 
 All scripts, libraries and documentation needed to build a dynamic mission in DCS using the VEAF scripts
 
 ## How to work on this package ?
 
-Read the [documentation]()!
+Read the [documentation]!
 
 ## What is this ? Is it like Moose ?
 
 A bit like that, and not.
-It uses MiST (and a tiny teeny part of Moose, for air spawns) to handle lots of runtime functionality :
+
+It uses MiST (and a tiny teeny part of Moose, for air spawns) to handle lots of runtime functionality:
 - spawning of units and groups (and portable TACANs)
 - air-to-ground missions 
 - air-to-air missions
@@ -27,7 +28,7 @@ It uses MiST (and a tiny teeny part of Moose, for air spawns) to handle lots of 
 - managing security (not allowing everyone to do every action)
 - define groups templates
 
-And also lots of design-time functionality :
+And also lots of design-time functionality:
 - automatically populating FARPs and grass runways with all that is neeed
 - spawning things at the start of a mission (interpreter of data stored in a fake unit on the mission)
 - normalizing a mission file (removing useless key in the dictionary, sorting everything) so it's easy to compare versions
@@ -36,5 +37,25 @@ And also lots of design-time functionality :
 
 And probably other things I forget ;)
 
+Enjoy!
+
+[Zip][Zip on Github].
+
+## Contacts
+
+If you need help or you want to suggest something, you can:
+
+* contact [Zip on Github]
+* go to the [VEAF website]
+* post on the [VEAF forum]
+* join the [VEAF Discord]
+
+
 [Badge-Discord]: https://img.shields.io/discord/471061487662792715?label=VEAF%20Discord&style=for-the-badge
-[Link-Discord]: https://tinyurl.com/veafdisc
+[VEAF-logo]: ./documentation/.images/logo.png?raw=true
+[VEAF Discord]: https://www.veaf.org/discord
+[Zip on Github]: https://github.com/davidp57
+[VEAF website]: https://www.veaf.org
+[VEAF forum]: https://www.veaf.org/forum
+
+[documentation]: ./documentation/index.md

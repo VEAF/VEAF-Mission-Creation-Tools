@@ -41,20 +41,17 @@ First, create a mission in the DCS mission editor, and save it in the main folde
 
 ## Contacts
 
-If you need help or you want to suggest something, you can contact [Zip on Github].
+If you need help or you want to suggest something, you can:
 
-[![VEAF-logo]][VEAF website]
+* contact [Zip][Zip on Github] on Github
+* go to the [VEAF website]
+* post on the [VEAF forum]
+* join the [VEAF Discord]
 
-[![Badge-Discord]][VEAF Discord]
-
-Don't forget the [VEAF forum] !
 
 [Badge-Discord]: https://img.shields.io/discord/471061487662792715?label=VEAF%20Discord&style=for-the-badge
-[VEAF-logo]: ../.images/logo.png?raw=true
+[VEAF-logo]: ./.images/logo.png?raw=true
 [VEAF Discord]: https://www.veaf.org/discord
 [Zip on Github]: https://github.com/davidp57
 [VEAF website]: https://www.veaf.org
 [VEAF forum]: https://www.veaf.org/forum
-
-[demo-mission-structure]: ../.images/demo-mission-structure.png?raw=true
-[workflow-01]: ../.images/editor_workflow.png?raw=true**

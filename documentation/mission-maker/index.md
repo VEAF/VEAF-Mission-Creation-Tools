@@ -1,6 +1,9 @@
 # [![VEAF-logo]][VEAF website] Mission Creation Tools - Mission maker documentation
 
 # /!\ **WORK IN PROGRESS** /!\
+The documentation is being reworked, piece by piece. 
+In the meantime, you can browse the [old documentation](../old_documentation/_index.md).
+
 
 ## Introduction
 

@@ -1,5 +1,9 @@
 # [![VEAF-logo]][VEAF website] Mission Creation Tools - Documentation
 
+# /!\ **WORK IN PROGRESS** /!\
+The documentation is being reworked, piece by piece. 
+In the meantime, you can browse the [old documentation](../old_documentation/_index.md).
+
 ## Introduction
 
 The VEAF Mission Creation Tools provide tools and scripts designed to easily create, share and maintain dynamic missions.

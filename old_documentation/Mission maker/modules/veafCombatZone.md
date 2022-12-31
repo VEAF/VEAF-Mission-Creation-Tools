@@ -14,7 +14,7 @@ Let's start by saying that you can clone the *[VEAF-Demo-Mission](https://github
 
 ### Load the script and its prerequisites
 
-Please refer to the [Load scripts in the mission](../../concepts/load-with-triggers) for loading the scripts.
+Please refer to the [Load scripts in the mission](../concepts/load-with-triggers.md) for loading the scripts.
 
 ### How to configure the script in a mission
 
@@ -67,11 +67,11 @@ Eventually, when all our zones are defined, we call `veafCombatZone.initialize()
 A combat zone starts with a mission editor zone object.
 So, first thing first, you must place such an object on the map and name it with a memorable name.
 
-![create-combatzone-01](/VEAF-Mission-Creation-Tools/images/create-combatzone-01.png?raw=true "create-combatzone-01")
+![create-combatzone-01](../../_images/create-combatzone-01.png)
 
 Then, you must add units inside the mission editor zone object (this is very important, as only the units inside the zone will be part of the combat zone), and name the groups with a name that starts with the mission editor zone name (this is equally important, as groups named otherwise will not be part of the combat zone).
 
-![create-combatzone-02](/VEAF-Mission-Creation-Tools/images/create-combatzone-02.png?raw=true "create-combatzone-02")
+![create-combatzone-02](../../_images/create-combatzone-02.png)
 
 Groups can either be actual DCS groups or statics (as the one in the screenshot above) or special groups containing a VEAF command.
 Whatever type a group is, **the first unit** of the group can have specific options inserted in its name, conditionning the spawn of the group (or the execution of the command) when the mission is later activated.
@@ -96,26 +96,27 @@ The solution is to use other characters to separate the options in the unit name
 
 **Example of randomisation by using *spawnGroup* and *spawnCount***
 
-![create-combatzone-03](/VEAF-Mission-Creation-Tools/images/create-combatzone-03.png?raw=true "create-combatzone-03")
+![create-combatzone-03](../../_images/create-combatzone-03.png)
 
 In this example, we created a zone named *combatZone_Batumi*, with 6 mission editor groups named *combatZone_Batumi - manpad-group1*, each one a manpad group with its first unit named *#spawnGroup="manpad-group1",#spawnCount=2,#spawnChance=25* (DCS adds its numbering system to make the names unique).
 
 The result is a randomisation of these manpad groups: each time the combat zone is activated, two random manpad groups out of the six possible groups are spawned.
 
-![create-combatzone-04](/VEAF-Mission-Creation-Tools/images/create-combatzone-04.gif?raw=true "create-combatzone-04")
+![create-combatzone-04](../../_images/create-combatzone-04.png)
+
 (this animation also shows a random BTR patrol)
 
 #### VEAF commands
 
 Instead of "simply" adding a DCS group to the mission editor, it's possible to define a *VEAF command* that will be executed when the *combat zone element* will be activated.
 This is done by using the *#command* spawn option; e.g. `#command="_spawn group, name sa6"`.
-The command itself can be any VEAF command that will be recognized inside a marker at runtime (see [Markers](../../concepts/usermarks)), such as:
+The command itself can be any VEAF command that will be recognized inside a marker at runtime (see [Markers](../concepts/usermarks.md)), such as:
 
-- a *_spawn* command (see the [veafSpawn](../veafspawn) documentation); e.g. `#command="_spawn group, name sa6"`
-- an *alias* (see the [veafShortcuts](../veafshortcuts) documentation); e.g. `#command="-samlr"`
-- the definition of a *named point* (see the [veafNamedPoints](../veafnamedpoints) documentation); e.g. `#command="_name point Kobuleti City"`
-- the start of a *CAS mission* (see the [veafCasMission](../veafcasmission) documentation); e.g. `#command="_cas, defense 3, size 5"`
-- a command for the *security* module (see the [veafSecurity](../veafsecurity) documentation); e.g. `#command="_auth mysecretp@ssw0rd"`
+- a *_spawn* command (see the [veafSpawn](./veafSpawn.md) documentation); e.g. `#command="_spawn group, name sa6"`
+- an *alias* (see the [veafShortcuts](./veafshortcuts.md) documentation); e.g. `#command="-samlr"`
+- the definition of a *named point* (see the [veafNamedPoints](./veafnamedpoints.md) documentation); e.g. `#command="_name point Kobuleti City"`
+- the start of a *CAS mission* (see the [veafCasMission](./veafCasMission.md) documentation); e.g. `#command="_cas, defense 3, size 5"`
+- a command for the *security* module (see the [veafSecurity](./veafsecurity.md) documentation); e.g. `#command="_auth mysecretp@ssw0rd"`
 
 The *#command* spawn option can, of course, be combined with other spawn options.
 

@@ -6,7 +6,7 @@ chapter = false
 
 The VEAF Mission Creation Tools contains .lua scripts that are meant to be ran inside a DCS mission, and also other tools that are meant to act on a mission file from the outside.
 
-These tools are mainly used in the mission building and extraction pipelines (see [workflow](../../#workflow)).
+These tools are mainly used in the mission building and extraction pipelines (see [workflow](../../_index.md#workflow)).
 
 ### Normalizer
 
@@ -102,15 +102,15 @@ The VEAF tool is included in the VEAF Mission Creation Tools, but it can be inst
 
 Simply use the `npm install -g veaf-mission-creation-tools` command in a shell (command line) and the tool will be installed.
 
-![veaf-tools-01](/VEAF-Mission-Creation-Tools/images/veaf-tools-01.png?raw=true "veaf-tools-01")
+![veaf-tools-01](../../_images/veaf-tools-01.png)
 
 You'll be able to run the tool with the `veaf-tools` command in a shell.
 
-![veaf-tools-02](/VEAF-Mission-Creation-Tools/images/veaf-tools-01.png?raw=true "veaf-tools-02")
+![veaf-tools-02](../../_images/veaf-tools-02.png)
 
 The tool contains inline help for all commands. For example, the help for the `inject` command can be displayed with `veaf-tools inject --help`.
 
-![veaf-tools-03](/VEAF-Mission-Creation-Tools/images/veaf-tools-03.png?raw=true "veaf-tools-03")
+![veaf-tools-03](../../_images/veaf-tools-03.png)
 
 ### Time and weather versioning
 

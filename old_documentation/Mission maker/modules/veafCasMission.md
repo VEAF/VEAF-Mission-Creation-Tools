@@ -36,7 +36,7 @@ This syntax is composed of a mandatory instruction (at the beginning) and mandat
 
 Example : ``_cas, defense 3, size 5``
 
-For more informations about markers, see [Concepts / F10 map user marks](../../concepts/usermarks)
+For more informations about markers, see [Concepts / F10 map user marks](../concepts/usermarks.md)
 
 ### Radio menus
 
@@ -51,6 +51,6 @@ The radio menu, when a CAS mission is active, contain the following commands:
 
 The command that will create a CAS mission is ``_cas``
 
-The options are the same as the ones in the _veafSpawn_ module for [spawning dynamic groups](../veafspawn/#spawn-dynamic-groups).
+The options are the same as the ones in the _veafSpawn_ module for [spawning dynamic groups](./veafSpawn.md#spawn-dynamic-groups).
 
-Specifically, the act of creating a CAS mission starts with the [spawning of a dynamic full combat group](../veafspawn/#full-combat-group)
+Specifically, the act of creating a CAS mission starts with the [spawning of a dynamic full combat group](./veafSpawn.md#full-combat-group)

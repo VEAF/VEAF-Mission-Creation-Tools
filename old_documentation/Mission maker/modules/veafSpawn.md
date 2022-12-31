@@ -56,7 +56,7 @@ This syntax is composed of a mandatory instruction (at the beginning) and mandat
 
 Example : ``_spawn group, name US infgroup, country USA``
 
-For more informations about markers, see [Markers](../../concepts/usermarks)
+For more informations about markers, see [Markers](../concepts/usermarks.md)
 
 ### Spawn units and groups
 
@@ -82,10 +82,10 @@ It has a specific parameter:
 
 Some parameters are specific to the ``_spawn group`` instruction:
 
-* *spacing* (default *5*) is used to add space between a group's units (see [veafUnits](../veafunits))
+* *spacing* (default *5*) is used to add space between a group's units (see [veafUnits](./veafUnits.md))
 * *isconvoy* (default *false*) if set, makes the group behave like a convoy
 
-  * **dest** (mandatory in this case) the named point where the convoy must go (see [veafNamedPoints](../veafnamedpoints))
+  * **dest** (mandatory in this case) the named point where the convoy must go (see [veafNamedPoints](./veafnamedpoints.md))
   * *patrol* (default *false*) if set, makes the group go back and forth between its spawn point and its destination point
   * *offroad* (default *false*) if set, the group will not try and use roads
 
@@ -106,7 +106,7 @@ This is the list of the parameters common to all the dynamic group spawn instruc
 * *side* (default *RED*) is the coalition the group(s) will belong to (RED or BLUE)
 * *country* (default *USA* for side=blue, *RUSSIA* for side=red) is the country the group(s) will belong to
 * *heading* (default *0*) is the global heading of the groups; units in the group will have their individual heading (in the template definition) adapted to be relative to this global heading
-* *spacing* (default *5*) is used to add space between a group's units (see [veafUnits](../veafunits)), but also to add space between the groups
+* *spacing* (default *5*) is used to add space between a group's units (see [veafUnits](./veafUnits.md)), but also to add space between the groups
 
 The type of the dynamic group is linked to the instruction itself. Each dynamic group instruction has its own set of parameter.
 
@@ -177,7 +177,7 @@ Examples:
 
 ### Spawn convoys
 
-The ``_spawn convoy`` instruction will generate a dynamic convoy, and send it on its route to a named point (see [veafNamedPoints](../veafnamedpoints/)).
+The ``_spawn convoy`` instruction will generate a dynamic convoy, and send it on its route to a named point (see [veafNamedPoints](./veafnamedpoints.md)).
 
 The convoys are tracked and managed in the VEAF SPAWN radio menu.
 
@@ -187,7 +187,7 @@ The convoy will be composed of a transport company (see [transport company](#tra
 
 This instruction accepts several parameters:
 
-* **destination** or **dest** is the name of a [named point](../veafnamedpoints/) where the convoy will drive to
+* **destination** or **dest** is the name of a [named point](./veafnamedpoints.md) where the convoy will drive to
 * *offroad* (default *false*) if set, the convoy will not try and use roads
 * *size* (default *10*) the number of trucks that will be spawned; no transport company at all if 0
 * *armor* (default *1*) will determine the personnel carrier vehicle:
@@ -208,7 +208,7 @@ The players can use the following radio menu commands:
 
 These are specific to [CTLD](https://github.com/ciribob/DCS-CTLD) and, for it to work, it has to be configured in your mission.
 
-You can follow [these instructions](../../third-party/ctld) to configure CTLD in your mission.
+You can follow [these instructions](../third-party/ctld.md) to configure CTLD in your mission.
 
 #### cargo statics
 

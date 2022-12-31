@@ -17,15 +17,15 @@ The missions in the [VEAF GitHub repository](https://github.com/VEAF) have all b
 
 ## Set up your shop
 
-To set up the mission builder workshop, please refer to [this explanation](../../#workflow)
+To set up the mission builder workshop, please refer to [this explanation](../_index.md#workflow)
 
 ## Make your mission
 
 Simply use the DCS mission editor to edit your mission.
 
-Refer to [the modules specific documentation](../modules/) for more information on how to configure and use each specific feature.
+Refer to [the modules specific documentation](../Mission%20maker/modules/_index.md) for more information on how to configure and use each specific feature.
 
-Also, you can refer to [this explanation](../#how-to-set-up-a-mission) for a detailed insight on how the demo mission is set up.
+Also, you can refer to [this explanation](../_index.md#how-to-set-up-a-mission) for a detailed insight on how the demo mission is set up.
 
 Remember, you can contact us if you need help:
 

@@ -9,13 +9,13 @@ A lot of the VEAF Mission Creation Tools functionalities are controlled through 
 
 This means that, during runtime, a player can go to the F10 map and create a user mark
 
-![f10-map-usermark-01](/VEAF-Mission-Creation-Tools/images/f10-map-usermark-01.png?raw=true "f10-map-usermark-01")
+![f10-map-usermark-01](../../_images/f10-map-usermark-01.png)
 
 In this mark, the player enters a text that the VEAF Tools scripts will understand. Of course, it has to follow a specific syntax (see the documentation of the [modules](../../modules/)) for more detail.
 
 Example : ``_spawn group, name US infgroup, country USA``
 
-![f10-map-usermark-02](/VEAF-Mission-Creation-Tools/images/f10-map-usermark-02.png?raw=true "f10-map-usermark-02")
+![f10-map-usermark-02](../../_images/f10-map-usermark-02.png)
 
 The command is sent to the scripts everytime the content of the marker changes:
 

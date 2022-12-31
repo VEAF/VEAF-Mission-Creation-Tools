@@ -30,7 +30,7 @@ Here are the triggers we're gonna create in the mission; we'll see each one of t
 
 ### choose - static or dynamic
 
-![load-with-triggers-01](/VEAF-Mission-Creation-Tools/images/load-with-triggers-01.png?raw=true "load-with-triggers-01")
+![load-with-triggers-01](../../_images/load-with-triggers-01.png)
 
 The first trigger will allow us to choose between static and dynamic loading easily, as well as define the location of the scripts on our disk. Of course, the latter differs from one person to another, and therefore it must be adapted if you want to use dynamic loading.
 
@@ -50,7 +50,7 @@ Bear in mind that these paths are probably not correct for your environment. If 
 
 ### mission start - dynamic
 
-![load-with-triggers-03](/VEAF-Mission-Creation-Tools/images/load-with-triggers-03.png?raw=true "load-with-triggers-03")
+![load-with-triggers-03](../../_images/load-with-triggers-03.png)
 
 This one has a condition:
 
@@ -77,7 +77,7 @@ assert(loadfile(script))()
 
 ### mission start - static
 
-![load-with-triggers-04](/VEAF-Mission-Creation-Tools/images/load-with-triggers-04.png?raw=true "load-with-triggers-04")
+![load-with-triggers-04](../../_images/load-with-triggers-04.png)
 
 This is the opposite of the previous trigger : it will be executed only if the *VEAF_DYNAMIC_PATH* constant has **not** been defined.
 
@@ -93,7 +93,7 @@ When executed, it simply loads all the veaf scripts using DO SCRIPT FILE stateme
 
 This is the same trigger that *mission start - dynamic*, except that is it made for loading the mission scripts (in this case, only *missionConfig.lua*)
 
-![load-with-triggers-05](/VEAF-Mission-Creation-Tools/images/load-with-triggers-05.png?raw=true "load-with-triggers-05")
+![load-with-triggers-05](../../_images/load-with-triggers-05.png)
 
 It has the same condition:
 
@@ -113,7 +113,7 @@ assert(loadfile(script))()
 
 Again, the same trigger than *mission start - static*, except that is it made for loading the mission scripts (in this case, only *missionConfig.lua*)
 
-![load-with-triggers-06](/VEAF-Mission-Creation-Tools/images/load-with-triggers-06.png?raw=true "load-with-triggers-06")
+![load-with-triggers-06](../../_images/load-with-triggers-06.png)
 
 Same condition:
 

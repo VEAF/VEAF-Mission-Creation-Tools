@@ -9,7 +9,7 @@ Pour utiliser les outils VEAF Mission Creation Tools, il vous faudra un environn
 Je vous rassure, c'est facile et on vous explique tout ici. Il suffit d'installer quelques outils.
 
 
-## Prérequis
+## Installation des outils
 
 
 Voici la liste des choses qu'il faudra mettre en place sur votre PC; nous alons détailler comment les installer dans la suite du document.
@@ -28,7 +28,9 @@ Ces outils nécessaires peuvent être installés facilement en utilisant *Chocol
 
 **ATTENTION** : il ne faut surtout pas installer deux fois les outils, avec *l'installation manuelle* et *l'installation par Chocolatey* ! C'est **l'un ou l'autre** !
 
-Pour installer Chocolatey, lancez cette commande dans une fenêtre Powershell (en mode administrateur) : `Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))`
+Pour installer Chocolatey, lancez cette commande dans une fenêtre Powershell (en mode administrateur) :
+
+`Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))`
 
 Une fois que *Chocolatey* est installé, vous pouvez installer les outils à l'aide de ces simples commandes dans une fenêtre *cmd* (en mode administrateur) :
 
@@ -37,7 +39,9 @@ Une fois que *Chocolatey* est installé, vous pouvez installer les outils à l'a
 - nodejs : `choco install -y nodejs` ; puis fermez et réouvrez la fenêtre *cmd* (en mode administrateur)
 - yarn : `npm install -g yarn`
 
-Vous aurez quand même besoin de configurer Powershell pour qu'il soit autorisé à exécuter des scripts (lire [cet article en anglais](https://docs.microsoft.com/en-us/powershell/module/microsoft.powershell.security/set-executionpolicy?view=powershell-7.1)) ; dit simplement, vous devez lancer cette commande dans une fenêtre Powershell (en mode administrateur) : `Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope LocalMachine`
+Vous aurez quand même besoin de configurer Powershell pour qu'il soit autorisé à exécuter des scripts (lire [cet article en anglais](https://docs.microsoft.com/en-us/powershell/module/microsoft.powershell.security/set-executionpolicy?view=powershell-7.1)) ; dit simplement, vous devez lancer cette commande dans une fenêtre Powershell (en mode administrateur) : 
+
+`Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope LocalMachine`
 
 ### Installation manuelle
 

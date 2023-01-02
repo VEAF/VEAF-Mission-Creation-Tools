@@ -12,12 +12,12 @@ Je vous rassure, c'est facile et on vous explique tout ici. Il suffit d'installe
 ## Installation des outils
 
 
-Voici la liste des choses qu'il faudra mettre en place sur votre PC; nous alons détailler comment les installer dans la suite du document.
+Voici la liste des choses qu'il faudra mettre en place sur votre PC; nous allons détailler comment les installer dans la suite du document.
 
 - LUA : il vous faudra un interpreter LUA, dans votre PATH, prêt à être appelé avec la commande `lua`
 - 7zip : il vous faudra 7zip, ou un autre outil de compression ZIP, dans votre PATH, prêt à être appelé avec la commande `7zip`
 - Powershell : vous aurez besoin de Powershell, et il faudra le configurer pour qu'il soit autorisé à exécuter des scripts (lire [cet article en anglais](https://docs.microsoft.com/en-us/powershell/module/microsoft.powershell.security/set-executionpolicy?view=powershell-7.1)) ; dit simplement, vous devez lancer cette commande dans une fenêtre Powershell (en mode administrateur) : `Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope LocalMachine`
-- nodeJS : il vous faudra NodeJS,pour faire tourner les programmes javascript des outils de création de mission VEAF ; voir [ici (en anglais)](https://nodejs.org/en/)
+- nodeJS : il vous faudra NodeJS, pour faire tourner les programmes javascript des outils de création de mission VEAF ; voir [ici (en anglais)](https://nodejs.org/en/)
 - yarn : il vous faudra le gestionnaire de modules Yarn, pour récupérer automatiquement les outils de création de mission VEAF ; voir [ici (en anglais)](https://yarnpkg.com/)
 
 **ATTENTION** : il ne faut pas faire à la fois *l'installation manuelle* et *l'installation par Chocolatey* !

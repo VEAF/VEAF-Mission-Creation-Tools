@@ -1,5 +1,7 @@
 # [![VEAF-logo]][VEAF website] Mission Creation Tools - install the environment
 
+**GO BACK TO THE MAIN [MISSION CREATION TOOLS INDEX](../index.md)**
+
 Ce document est également disponible [en français](index.fr.md)
 
 ## Introduction

@@ -4,6 +4,8 @@
 The documentation is being reworked, piece by piece. 
 In the meantime, you can browse the [old documentation](../old_documentation/_index.md).
 
+**GO BACK TO THE [TOOLS INDEX](index.md)**
+
 ## Introduction
 
 This nodeJS application is a collection of tools that can be used to manipulate missions.
@@ -449,8 +451,8 @@ If you need help or you want to suggest something, you can:
 [VEAF website]: https://www.veaf.org
 [VEAF forum]: https://www.veaf.org/forum
 
-[install-chocolatey-nodejs-veaftools]: ../.images/install-chocolatey-nodejs-veaftools.mp4
-[veaftools-options]: ../.images/veaftools-options.png
-[veaftools-inject-options]: ../.images/veaftools-inject-options.png
-[veaftools-injectall-options]: ../.images/veaftools-injectall-options.png
-[veaftools-injectall-demo]: ../.images/veaftools-injectall-demo.mp4
+[install-chocolatey-nodejs-veaftools]: ../.images/install-chocolatey-nodejs-veaftools.mp4?raw=true
+[veaftools-options]: ../.images/veaftools-options.png?raw=true
+[veaftools-inject-options]: ../.images/veaftools-inject-options.png?raw=true
+[veaftools-injectall-options]: ../.images/veaftools-injectall-options.png?raw=true
+[veaftools-injectall-demo]: ../.images/veaftools-injectall-demo.mp4?raw=true

@@ -4,6 +4,8 @@
 The documentation is being reworked, piece by piece. 
 In the meantime, you can browse the [old documentation](../old_documentation/_index.md).
 
+**GO BACK TO THE [TOOLS INDEX](index.md)**
+
 ## Introduction
 
 TBD 

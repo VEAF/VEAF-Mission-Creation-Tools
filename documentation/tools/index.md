@@ -4,6 +4,7 @@
 The documentation is being reworked, piece by piece. 
 In the meantime, you can browse the [old documentation](../old_documentation/_index.md).
 
+**GO BACK TO THE MAIN [MISSION CREATION TOOLS INDEX](../index.md)**
 ## Introduction
 
 The VEAF Mission Creation Tools provide scripts that make missions behave dynamically, and tools that are used to manipulate missions.

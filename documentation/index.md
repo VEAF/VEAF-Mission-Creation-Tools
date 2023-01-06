@@ -4,12 +4,20 @@
 The documentation is being reworked, piece by piece. 
 In the meantime, you can browse the [old documentation](../old_documentation/_index.md).
 
+## Table of Contents
+
+- setup and use the VEAF tools - [here](./tools/index.md)
+- setup a VEAF mission-maker environment - [here](./environment/index.md)
+- use the VEAF mission-maker features - [here](./mission-maker/index.md)
+- learn how to program the scripts in Lua - [here](./programmer/index.md)
+
 ## Introduction
 
 The VEAF Mission Creation Tools provide tools and scripts designed to easily create, share and maintain dynamic missions.
 
 They regroup:
 
+* tools to manipulate DCS mission files and servers
 * the VEAF mission scripts (organized in modules)
 * the VEAF server hooks
 * some of the community scripts, sometimes edited by VEAF (e.g. CTLD, MiST)
@@ -27,7 +35,7 @@ Our Github repositories:
 
 ## What do I need to start?
 
-You'll need to setup an environment, on your PC, with specific (free) software.
+You'll need to setup an environment, on your PC, with specific (free) software. Read this [page](./environment/index.md) for more information.
 
 [These instructions](./environment/index.md) are for Windows 10, no support is given for Linux or MacOS.
 ## How do I use the tools in a mission I want to design?

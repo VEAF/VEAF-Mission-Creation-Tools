@@ -59,7 +59,7 @@ class DCSCheckWXConvertEnricher {
       }
     } else {
       if (weatherdata.error && weatherdata.error == 'Unauthorized' ) {
-        console.error("CheckWX API Key not valid ; go get one on https://www.checkwx.com/api/newkey");
+        console.error("CheckWX API Key not valid ; go get one on https://www.checkwxapi.com/");
         process.exit(-1); 
       }
       this._weatherdata = weatherdata;

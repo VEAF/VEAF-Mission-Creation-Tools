@@ -449,8 +449,8 @@ If you need help or you want to suggest something, you can:
 [VEAF website]: https://www.veaf.org
 [VEAF forum]: https://www.veaf.org/forum
 
-[install-chocolatey-nodejs-veaftools]: ../.images/install-chocolatey-nodejs-veaftools.mp4
-[veaftools-options]: ../.images/veaftools-options.png
-[veaftools-inject-options]: ../.images/veaftools-inject-options.png
-[veaftools-injectall-options]: ../.images/veaftools-injectall-options.png
-[veaftools-injectall-demo]: ../.images/veaftools-injectall-demo.mp4
+[install-chocolatey-nodejs-veaftools]: ../.images/install-chocolatey-nodejs-veaftools.mp4?raw=true
+[veaftools-options]: ../.images/veaftools-options.png?raw=true
+[veaftools-inject-options]: ../.images/veaftools-inject-options.png?raw=true
+[veaftools-injectall-options]: ../.images/veaftools-injectall-options.png?raw=true
+[veaftools-injectall-demo]: ../.images/veaftools-injectall-demo.mp4?raw=true

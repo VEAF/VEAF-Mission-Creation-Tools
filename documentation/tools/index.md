@@ -55,5 +55,5 @@ If you need help or you want to suggest something, you can:
 [VEAF website]: https://www.veaf.org
 [VEAF forum]: https://www.veaf.org/forum
 
-[demo-mission-structure]: ../.images/demo-mission-structure.png
-[workflow-01]: ../.images/editor_workflow.png
+[demo-mission-structure]: ../.images/demo-mission-structure.png?raw=true
+[workflow-01]: ../.images/editor_workflow.png?raw=true

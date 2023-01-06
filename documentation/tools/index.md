@@ -49,7 +49,7 @@ If you need help or you want to suggest something, you can:
 
 
 [Badge-Discord]: https://img.shields.io/discord/471061487662792715?label=VEAF%20Discord&style=for-the-badge
-[VEAF-logo]: ./.images/logo.png?raw=true
+[VEAF-logo]: ../.images/logo.png?raw=true
 [VEAF Discord]: https://www.veaf.org/discord
 [Zip on Github]: https://github.com/davidp57
 [VEAF website]: https://www.veaf.org

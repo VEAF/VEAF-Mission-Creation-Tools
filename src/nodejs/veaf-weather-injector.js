@@ -123,7 +123,7 @@ async function injectWeatherFromConfiguration(parameters) {
 }
 
 async function injectWeather(parameters) {
-  let { sourceMissionFileName, targetMissionFileName, missionStartTime, weatherFileName, metarString, real, clearsky, variableForMetar, setToday, setTodayYear, trace, quiet, nocache } = parameters;
+  let { sourceMissionFileName, targetMissionFileName, missionStartTime, weatherFileName, metarString, clearsky, variableForMetar, setToday, setTodayYear, trace, quiet, nocache } = parameters;
   if (targetMissionFileName && targetMissionFileName.indexOf(".miz") < 0)
     targetMissionFileName = targetMissionFileName + ".miz";
   if (!quiet) console.log(`DCS weather injector starting`);
@@ -211,7 +211,7 @@ async function injectWeather(parameters) {
       // search for real weather in the cache
       const theatre = configuration.theatres[theatreName] || configuration.theatres.caucasus;
       let key = theatreName
-      if (real && clearsky) key = key + "-clearsky";
+      if (clearsky) key = key + "-clearsky";
       if (!quiet) console.log(`Getting real weather from CheckWX in "${theatreName}"`);
       if (!quiet) console.log(`Cache key is "${key}"`);
       if (!nocache) metar = await MetarCache.getMetarFromCache(configuration.cacheFolder, key);

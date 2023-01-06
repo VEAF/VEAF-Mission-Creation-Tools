@@ -6,7 +6,7 @@ class CheckWX {
 
   constructor(apiKey) {
     if (!apiKey) {
-      console.error("CheckWX API Key not defined; go get one on https://www.checkwx.com/api/newkey");
+      console.error("CheckWX API Key not defined; go get one on https://www.checkwxapi.com");
       process.exit(-1);
     }
     this._apiKey = apiKey

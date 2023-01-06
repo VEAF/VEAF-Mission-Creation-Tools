@@ -38,7 +38,7 @@ require('yargs')
       .option('real', {
         alias: 'r',
         type: "boolean",
-        describe: "if set, connects to CheckWX to get real weather over the theatre"
+        describe: "if set, connects to CheckWX to get real weather over the theatre; default if no weather or metar is specified"
       })
       .option('clearsky', {
         type: "boolean",
@@ -55,6 +55,18 @@ require('yargs')
         type: "boolean",
         default: false,
         describe: "Be extra quiet"
+      })
+      .option('dontSetToday', {
+        alias: 'dst',
+        type: "boolean",
+        default: false,
+        describe: "Don't set today's date"
+      })
+      .option('dontSetTodayYear', {
+        alias: 'dsty',
+        type: "string",
+        required: false,
+        describe: "Set today's date, but specify another year"
       })
       .option('nocache', {
         alias: 'nc',
@@ -77,7 +89,6 @@ require('yargs')
         targetMissionFileName: argv.target,  // the name of the target mission file (default to the source)
         missionStartTime: argv.start, // the new mission start time (default: do not change time)
         metarString: argv.metar,  // a raw metar string to parse for weather injection
-        real: argv.real, // real weather
         clearsky: argv.clearsky, // real weather but limits to 3 octas or less
         weatherFileName: argv.weather, // a lua file with the DCS weather ready to inject
         variableForMetar: argv.variable, // the name of a variable that will be replaced with the METAR string in the mission dictionary

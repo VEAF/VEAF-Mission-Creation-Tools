@@ -2,7 +2,6 @@
 
 require('yargs')
   .scriptName("veaf-mission-creation-tools")
-  .command(['build'], 'Build a DCS mission')
   .command('inject <source> [target]', 'Inject weather data in a DCS mission', (yargs) => {
     yargs
       .positional('source', {

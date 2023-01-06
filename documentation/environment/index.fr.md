@@ -37,7 +37,7 @@ Une fois que *Chocolatey* est installé, vous pouvez installer les outils à l'a
 - LUA : `choco install -y lua`
 - 7zip : `choco install -y 7zip.commandline`
 - nodejs : `choco install -y nodejs` ; puis fermez et réouvrez la fenêtre *cmd* (en mode administrateur)
-- yarn : `npm install -g yarn`
+- yarn : `npm install -g yarn` (après avoir installé *nodejs*)
 
 Vous aurez quand même besoin de configurer Powershell pour qu'il soit autorisé à exécuter des scripts (lire [cet article en anglais](https://docs.microsoft.com/en-us/powershell/module/microsoft.powershell.security/set-executionpolicy?view=powershell-7.1)) ; dit simplement, vous devez lancer cette commande dans une fenêtre Powershell (en mode administrateur) : 
 

@@ -30,11 +30,11 @@ To install Chocolatey, use this command  in an elevated (admin) Powershell promp
 
 `Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))`
 
-After *Chocolatey* is installed, use these simple commands in a elevated (admin) command prompt to install the required tools :
+After *Chocolatey* is installed, use these simple commands in a command prompt to install the required tools :
 
 - LUA: `choco install -y lua`
 - 7zip: `choco install -y 7zip.commandline`
-- nodeJS: `choco install -y nodejs` ; then close and reopen the elevated (admin) command prompt
+- nodeJS: `choco install -y nodejs` ; then close and reopen the command prompt
 - yarn: `npm install -g yarn`
 
 You'll still need to configure Powershell for script execution (read [this article](https://docs.microsoft.com/en-us/powershell/module/microsoft.powershell.security/set-executionpolicy?view=powershell-7.1)); basically you need to run this command in an elevated (admin) Powershell prompt: `Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope LocalMachine`

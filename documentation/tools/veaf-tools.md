@@ -1,4 +1,7 @@
 # [![VEAF-logo]][VEAF website] Mission Creation Tools - veaf-tools application
+# /!\N- **TRADUCTION DEEPL.COM** /!\N- *
+
+Cette page est disponible [en français](veaf-tools.fr.md), une traduction réalisée par DeepL.com, un service de traduction automatique. Elle n'est pas parfaite, mais elle est suffisamment bonne pour vous aider à comprendre le contenu de la page.
 
 # /!\ **WORK IN PROGRESS** /!\
 The documentation is being reworked, piece by piece. 

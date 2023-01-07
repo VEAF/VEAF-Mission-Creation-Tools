@@ -1,6 +1,6 @@
 {
   "name": "veaf-mission-creation-tools",
-  "version": "4.62.1",
+  "version": "4.63.0",
   "description": "A set of tools that help set up a and run dynamic missions",
   "main": "src/nodejs/app.js",
   "bin": {

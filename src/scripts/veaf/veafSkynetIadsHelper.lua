@@ -28,7 +28,7 @@ veafSkynet = {}
 veafSkynet.Id = "SKYNET"
 
 --- Version.
-veafSkynet.Version = "2.0.2"
+veafSkynet.Version = "2.1.0"
 
 -- trace level, specific to this module
 --veafSkynet.LogLevel = "trace"
@@ -39,7 +39,7 @@ veaf.loggers.new(veafSkynet.Id, veafSkynet.LogLevel)
 veafSkynet.DelayForStartup = 1
 
 -- delay before restarting the IADS when adding a single group
-veafSkynet.DelayForRestart = 65
+veafSkynet.DelayForRestart = 20
 
 -- maximum x or y (z in DCS) between a SAM site and it's point defenses in meters
 veafSkynet.MaxPointDefenseDistanceFromSite = 10000
@@ -73,6 +73,34 @@ veafSkynet.structure = {}
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- core functions
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+-- calling SkynetIADS:activate() after a delay, to avoid calling it at each time a group is added to the IADS
+function veafSkynet.delayedActivate(networkName)
+    veaf.loggers.get(veafSkynet.Id):debug("veafSkynet.delayedActivate(%s)", veaf.p(networkName))
+    local network = veafSkynet.structure[networkName]
+    if network then
+        if network.delayedActivation then
+            veaf.loggers.get(veafSkynet.Id):trace(string.format("IADS %s already has a delayed activation", veaf.p(networkName)))
+        else
+            veaf.loggers.get(veafSkynet.Id):trace(string.format("IADS %s will be activated in %d seconds", veaf.p(networkName), veafSkynet.DelayForRestart))
+            network.delayedActivation = mist.scheduleFunction(veafSkynet._activateIADS, {networkName}, timer.getTime() + veafSkynet.DelayForRestart)
+        end
+    end
+end
+
+function veafSkynet._activateIADS(networkName)
+    veaf.loggers.get(veafSkynet.Id):debug("veafSkynet._activateIADS(%s)", veaf.p(networkName))
+
+    local network = veafSkynet.structure[networkName]
+    if network then
+        network.delayedActivation = nil
+        local iads = network.iads
+        if iads then
+            veaf.loggers.get(veafSkynet.Id):debug("calling iads:activate()")
+            iads:activate()
+        end
+    end
+end
 
 function veafSkynet.getIadsOfCoalition(networkName, coa)
     local iads = nil
@@ -162,9 +190,7 @@ end
 
 
 function veafSkynet.addGroupToNetwork(networkName, dcsGroup, forceEwr, pointDefense, alreadyAddedGroups, silent)
-    if not veafSkynet.initialized then 
-        return false 
-    end
+    veaf.loggers.get(veafSkynet.Id):debug("addGroupToNetwork(%s)", veaf.p(networkName))
 
     if not dcsGroup then
         veaf.loggers.get(veafSkynet.Id):error("No group to find to add to network")
@@ -307,8 +333,10 @@ function veafSkynet.addGroupToNetwork(networkName, dcsGroup, forceEwr, pointDefe
             iads:getSAMSitesByNatoName('Patriot'):setActAsEW(false)
             iads:getSAMSitesByNatoName('Hawk'):setActAsEW(false)
         end       
-        -- reactivate (rebuild coverage) the IADS after a warmup delay
-        mist.scheduleFunction(SkynetIADS.activate, {iads}, timer.getTime() + 1)
+
+        -- reactivate (rebuild coverage) the IADS
+        veaf.loggers.get(veafSkynet.Id):trace("reactivate (rebuild coverage) the IADS")
+        veafSkynet.delayedActivate(networkName)
 
         --add the added site to the structure of the network it was added to
         veafSkynet.structure[networkName].groups[groupName] = { forceEwr = forceEwr, pointDefense = defended_name }
@@ -384,15 +412,16 @@ local function initializeIADS(networkName, coa, inRadio, debug)
         iads:addRadioMenu()
     end
 
-    --activate (build coverage) the IADS after a warmup delay
-    mist.scheduleFunction(SkynetIADS.activate, {iads}, timer.getTime() + 1)
+    --activate (build coverage) the IADS
+	veaf.loggers.get(veafSkynet.Id):debug("activate (build coverage) the IADS")
+    veafSkynet.delayedActivate(networkName)
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- initialisation
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-local function createNetworks(networkName, coa, loadUnits, UserAdd)
+local function createNetwork(networkName, coa, loadUnits, UserAdd)
    
     local UserAdd = UserAdd or false
     local loadUnits = loadUnits or false
@@ -481,7 +510,7 @@ function veafSkynet.reinitializeNetwork(networkName)
             end
             networkStructure.iads:deactivate()
         end
-        createNetworks(networkName, networkStructure.coalitionID, true)
+        createNetwork(networkName, networkStructure.coalitionID, true)
     end
 end
 
@@ -497,11 +526,16 @@ function veafSkynet.reinitialize()
 end
 
 function veafSkynet.initialize(includeRedInRadio, debugRed, includeBlueInRadio, debugBlue)
+    veaf.loggers.get(veafSkynet.Id):info(string.format("initializing Skynet in %s seconds", tostring(veafSkynet.DelayForStartup)))
+    mist.scheduleFunction(veafSkynet._initialize,{includeRedInRadio, debugRed, includeBlueInRadio, debugBlue}, timer.getTime()+veafSkynet.DelayForStartup)
+end
+
+function veafSkynet._initialize(includeRedInRadio, debugRed, includeBlueInRadio, debugBlue)
     veafSkynet.includeRedInRadio = includeRedInRadio or false
     veafSkynet.debugRed = debugRed or false
     veafSkynet.includeBlueInRadio = includeBlueInRadio or false
     veafSkynet.debugBlue = debugBlue or false
-    
+
     veaf.loggers.get(veafSkynet.Id):info("Initializing module")
     
     veaf.loggers.get(veafSkynet.Id):debug(string.format("includeRedInRadio=%s",veaf.p(includeRedInRadio)))
@@ -510,7 +544,7 @@ function veafSkynet.initialize(includeRedInRadio, debugRed, includeBlueInRadio, 
     veaf.loggers.get(veafSkynet.Id):debug(string.format("debugBlue=%s",veaf.p(debugBlue)))
     
     -- prepare the list of units supported by Skynet IADS
-    for groupName, groupData in pairs(SkynetIADS.database) do
+    for _, groupData in pairs(SkynetIADS.database) do
         for _, listName in pairs({ "searchRadar", "trackingRadar", "launchers", "misc" }) do
             if groupData['type'] ~= 'ewr' then
                 local list = groupData[listName]
@@ -546,11 +580,12 @@ function veafSkynet.initialize(includeRedInRadio, debugRed, includeBlueInRadio, 
     end
     veaf.loggers.get(veafSkynet.Id):trace(string.format("veafSkynet.iadsEwrUnitsTypes=%s",veaf.p(veafSkynet.iadsEwrUnitsTypes)))
     
-    createNetworks(veafSkynet.defaultIADS[tostring(coalition.side.BLUE)], coalition.side.BLUE, false)
-    createNetworks(veafSkynet.defaultIADS[tostring(coalition.side.RED)], coalition.side.RED, false)
 
-    veaf.loggers.get(veafSkynet.Id):info(string.format("Loading units in %s seconds", tostring(veafSkynet.DelayForStartup)))
-    mist.scheduleFunction(veafSkynet.reinitialize,{}, timer.getTime()+veafSkynet.DelayForStartup)
+    veaf.loggers.get(veafSkynet.Id):info("Creating IADS for BLUE")
+    createNetwork(veafSkynet.defaultIADS[tostring(coalition.side.BLUE)], coalition.side.BLUE, true)
+
+    veaf.loggers.get(veafSkynet.Id):info("Creating IADS for RED")
+    createNetwork(veafSkynet.defaultIADS[tostring(coalition.side.RED)], coalition.side.RED, true)
 
     veafSkynet.initialized = true
     veaf.loggers.get(veafSkynet.Id):info(string.format("Skynet IADS has been initialized"))

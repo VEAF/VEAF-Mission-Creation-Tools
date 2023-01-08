@@ -74,6 +74,25 @@ veafSkynet.structure = {}
 -- core functions
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
+-- get the IADS network for a given name ("blue iads", "red iads"")
+function getNetwork(networkName)
+    local network = nil
+    if networkName then
+        network = veafSkynet.structure[networkName]
+    end
+    return network
+end
+
+-- get the IADS object for a given name ("blue iads", "red iads"")
+function getIADS(networkName)
+    local iads = nil
+    local network = getNetwork(networkName)
+    if network then
+        iads = network.iads
+    end
+    return iads
+end
+
 -- calling SkynetIADS:activate() after a delay, to avoid calling it at each time a group is added to the IADS
 function veafSkynet.delayedActivate(networkName)
     veaf.loggers.get(veafSkynet.Id):debug("veafSkynet.delayedActivate(%s)", veaf.p(networkName))

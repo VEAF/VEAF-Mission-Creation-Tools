@@ -75,7 +75,7 @@ veafSkynet.structure = {}
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 -- get the IADS network for a given name ("blue iads", "red iads"")
-function getNetwork(networkName)
+function veafSkynet.getNetwork(networkName)
     local network = nil
     if networkName then
         network = veafSkynet.structure[networkName]
@@ -84,7 +84,7 @@ function getNetwork(networkName)
 end
 
 -- get the IADS object for a given name ("blue iads", "red iads"")
-function getIADS(networkName)
+function veafSkynet.getIADS(networkName)
     local iads = nil
     local network = getNetwork(networkName)
     if network then

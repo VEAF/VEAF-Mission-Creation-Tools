@@ -28,7 +28,7 @@ veafSkynet = {}
 veafSkynet.Id = "SKYNET"
 
 --- Version.
-veafSkynet.Version = "2.1.0"
+veafSkynet.Version = "2.1.1"
 
 -- trace level, specific to this module
 --veafSkynet.LogLevel = "trace"
@@ -86,7 +86,7 @@ end
 -- get the IADS object for a given name ("blue iads", "red iads"")
 function veafSkynet.getIADS(networkName)
     local iads = nil
-    local network = getNetwork(networkName)
+    local network = veafSkynet.getNetwork(networkName)
     if network then
         iads = network.iads
     end

@@ -1,0 +1,23 @@
+{
+  "comment-1": "Cron schedule for VEAF Mission Selector Tool",
+  "comment-2": "Generated with the 'VEAF Mission Selector Tool - Example of a calendar' Google Sheet",
+  "comment-3": "https://docs.google.com/spreadsheets/d/1DP78g43NsmC7hjyrVWKnPd7xNSb1vUi5PIRP9vxmfjo",
+  "name": "Server 1",
+  "default": "OpenTraining_Caucasus-morning-real",
+  "moments": [
+  { "month": null,"dayOfWeek": "Monday","hour": "Morning","missions": [ "VEAF-Top-Gun-Academy-Syria-morning-real" ]},
+  { "month": null,"dayOfWeek": "Monday","hour": "Afternoon","missions": [ "VEAF_OpenTraining_Caucasus-day-overcast-rain" ]},
+  { "month": null,"dayOfWeek": "Tuesday","hour": "Morning","missions": [ "VEAF-Top-Gun-Academy-Syria-day-real" ]},
+  { "month": null,"dayOfWeek": "Tuesday","hour": "Afternoon","missions": [ "VEAF_OpenTraining_Caucasus-dawn-real" ]},
+  { "month": null,"dayOfWeek": "Wednesday","hour": "Morning","missions": [ "VEAF-Top-Gun-Academy-Caucasus-day-real" ]},
+  { "month": null,"dayOfWeek": "Wednesday","hour": "Afternoon","missions": [ "VEAF_OpenTraining_Caucasus-evening-overcast-rain" ]},
+  { "month": null,"dayOfWeek": "Thursday","hour": "Morning","missions": [ "VEAF-Top-Gun-Academy-Syria-dawn-real-clear" ]},
+  { "month": null,"dayOfWeek": "Thursday","hour": "Afternoon","missions": [ "VEAF_OpenTraining_Caucasus-dawn-real" ]},
+  { "month": null,"dayOfWeek": "Friday","hour": "Morning","missions": [ "VEAF-Top-Gun-Academy-Syria-evening-real-clear" ]},
+  { "month": null,"dayOfWeek": "Friday","hour": "Afternoon","missions": [ "VEAF_OpenTraining_Caucasus-day-real-clear" ]},
+  { "month": null,"dayOfWeek": "Saturday","hour": "Morning","missions": [ "VEAF-Top-Gun-Academy-Syria-morning-real" ]},
+  { "month": null,"dayOfWeek": "Saturday","hour": "Afternoon","missions": [ "VEAF_OpenTraining_Caucasus-dawn-overcast-rain" ]},
+  { "month": null,"dayOfWeek": "Sunday","hour": "Morning","missions": [ "VEAF_OpenTraining_Caucasus-evening-real" ]},
+  { "month": null,"dayOfWeek": "Sunday","hour": "Afternoon","missions": [ "VEAF-Top-Gun-Academy-Caucasus-morning-overcast-rain" ]}
+  ]
+}

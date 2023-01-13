@@ -108,7 +108,6 @@ If you need help or you want to suggest something, you can:
 [Zip on Github]: https://github.com/davidp57
 [VEAF website]: https://www.veaf.org
 [VEAF forum]: https://www.veaf.org/forum
-[VEAF public servers repository]: https://github.com/VEAF/VEAF-Servers-Public
 
 [veaf-mission-selector-helper-google-sheet]: https://docs.google.com/spreadsheets/d/1DP78g43NsmC7hjyrVWKnPd7xNSb1vUi5PIRP9vxmfjo
 

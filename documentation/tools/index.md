@@ -18,7 +18,7 @@ At the moment, it contains the following tools:
 - Weather injector
 - mission selector
 
-Full documentation is available [here](veaf-tools.md).
+See the [VEAF Tools application documentation page](veaf-tools.md) for more details.
 
 ### Weather injector
 
@@ -30,9 +30,13 @@ It can also create different starting time and dates for the mission, either wit
 
 This is a very useful tool to use with a server that runs 24/7 and that needs to have different weather conditions for time it starts the same mission.
 
+See the [VEAF Tools application documentation page](veaf-tools.md) for more details.
+
 ### Mission selector
 
 The mission selector is used to start a dedicated server with a specific mission, depending on a schedule that is defined in a configuration file.
+
+See the [VEAF Tools application documentation page](veaf-tools.md) for more details.
 
 ## LUA dictionary normalizer
 

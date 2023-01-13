@@ -127,6 +127,7 @@ If you need help or you want to suggest something, you can:
 [Zip on Github]: https://github.com/davidp57
 [VEAF website]: https://www.veaf.org
 [VEAF forum]: https://www.veaf.org/forum
+[VEAF public servers repository]: https://github.com/VEAF/VEAF-Servers-Public
 
 [install-chocolatey-nodejs-veaftools]: ../.images/install-chocolatey-nodejs-veaftools.mp4?raw=true
 [veaftools-options]: ../.images/veaftools-options.png?raw=true

@@ -6,7 +6,11 @@ All scripts, libraries and documentation needed to build a dynamic mission in DC
 
 ## How to work on this package ?
 
-Read the [documentation]!
+Read the [documentation][documentation-site]! It's a work in progress, but it's a good start.
+
+In the meantime, the legacy documentation (unmaintained, uncomplete) is still available [here][documentation-old].
+
+Speaking of work in progress, the [documentation repository][documentation-repo] is the place to go to contribute to the documentation, if you wish to help.
 
 ## What is this ? Is it like Moose ?
 
@@ -58,4 +62,6 @@ If you need help or you want to suggest something, you can:
 [VEAF website]: https://www.veaf.org
 [VEAF forum]: https://www.veaf.org/forum
 
-[documentation]: ./documentation/index.md
+[documentation-old]: ./old_documentation/_index.md
+[documentation-site]: https://veaf.github.io/documentation/
+[documentation-repo]: https://github.com/VEAF/documentation

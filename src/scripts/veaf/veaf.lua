@@ -32,7 +32,7 @@ veaf = {}
 veaf.Id = "VEAF"
 
 --- Version.
-veaf.Version = "1.28.0"
+veaf.Version = "1.29.0"
 
 --- Development version ?
 veaf.Development = true
@@ -2170,16 +2170,26 @@ function veaf.getRandomizableNumeric_random(val)
 
         -- [[
         
-        if val == "0-1" then nVal = math.random(1,2) end
-        if val == "0-2" then nVal = math.random(1,2) end
-        if val == "0-3" then nVal = math.random(1,3) end
-        if val == "0-4" then nVal = math.random(1,4) end
-        if val == "0-5" then nVal = math.random(1,5) end
-        if val == "0-6" then nVal = math.random(1,6) end
-        if val == "0-7" then nVal = math.random(1,7) end
-        if val == "0-8" then nVal = math.random(1,8) end
-        if val == "0-9" then nVal = math.random(1,9) end
-    
+        if val == "0-1" then nVal = math.random(0,1) end
+        if val == "0-2" then nVal = math.random(0,2) end
+        if val == "0-3" then nVal = math.random(0,3) end
+        if val == "0-4" then nVal = math.random(0,4) end
+        if val == "0-5" then nVal = math.random(0,5) end
+        if val == "0-6" then nVal = math.random(0,6) end
+        if val == "0-7" then nVal = math.random(0,7) end
+        if val == "0-8" then nVal = math.random(0,8) end
+        if val == "0-9" then nVal = math.random(0,9) end
+        if val == "0-10" then nVal = math.random(0,10) end
+        if val == "0-11" then nVal = math.random(0,11) end
+        if val == "0-12" then nVal = math.random(0,12) end
+        if val == "0-13" then nVal = math.random(0,13) end
+        if val == "0-14" then nVal = math.random(0,14) end
+        if val == "0-15" then nVal = math.random(0,15) end
+        if val == "0-16" then nVal = math.random(0,16) end
+        if val == "0-17" then nVal = math.random(0,17) end
+        if val == "0-18" then nVal = math.random(0,18) end
+        if val == "0-19" then nVal = math.random(0,19) end
+          
         if val == "1-2" then nVal = math.random(1,2) end
         if val == "1-3" then nVal = math.random(1,3) end
         if val == "1-4" then nVal = math.random(1,4) end
@@ -2188,14 +2198,34 @@ function veaf.getRandomizableNumeric_random(val)
         if val == "1-7" then nVal = math.random(1,7) end
         if val == "1-8" then nVal = math.random(1,8) end
         if val == "1-9" then nVal = math.random(1,9) end
+        if val == "1-10" then nVal = math.random(1,10) end
+        if val == "1-11" then nVal = math.random(1,11) end
+        if val == "1-12" then nVal = math.random(1,12) end
+        if val == "1-13" then nVal = math.random(1,13) end
+        if val == "1-14" then nVal = math.random(1,14) end
+        if val == "1-15" then nVal = math.random(1,15) end
+        if val == "1-16" then nVal = math.random(1,16) end
+        if val == "1-17" then nVal = math.random(1,17) end
+        if val == "1-18" then nVal = math.random(1,18) end
+        if val == "1-19" then nVal = math.random(1,19) end
 
         if val == "2-3" then nVal = math.random(2,3) end
         if val == "2-4" then nVal = math.random(2,4) end
         if val == "2-5" then nVal = math.random(2,5) end
-        if val == "1-6" then nVal = math.random(1,6) end
-        if val == "1-7" then nVal = math.random(1,7) end
-        if val == "1-8" then nVal = math.random(1,8) end
-        if val == "1-9" then nVal = math.random(1,9) end
+        if val == "2-6" then nVal = math.random(2,6) end
+        if val == "2-7" then nVal = math.random(2,7) end
+        if val == "2-8" then nVal = math.random(2,8) end
+        if val == "2-9" then nVal = math.random(2,9) end
+        if val == "2-10" then nVal = math.random(2,10) end
+        if val == "2-11" then nVal = math.random(2,11) end
+        if val == "2-12" then nVal = math.random(2,12) end
+        if val == "2-13" then nVal = math.random(2,13) end
+        if val == "2-14" then nVal = math.random(2,14) end
+        if val == "2-15" then nVal = math.random(2,15) end
+        if val == "2-16" then nVal = math.random(2,16) end
+        if val == "2-17" then nVal = math.random(2,17) end
+        if val == "2-18" then nVal = math.random(2,18) end
+        if val == "2-19" then nVal = math.random(2,19) end
 
         if val == "3-4" then nVal = math.random(3,4) end
         if val == "3-5" then nVal = math.random(3,5) end
@@ -2203,51 +2233,153 @@ function veaf.getRandomizableNumeric_random(val)
         if val == "3-7" then nVal = math.random(3,7) end
         if val == "3-8" then nVal = math.random(3,8) end
         if val == "3-9" then nVal = math.random(3,9) end
+        if val == "3-10" then nVal = math.random(3,10) end
+        if val == "3-11" then nVal = math.random(3,11) end
+        if val == "3-12" then nVal = math.random(3,12) end
+        if val == "3-13" then nVal = math.random(3,13) end
+        if val == "3-14" then nVal = math.random(3,14) end
+        if val == "3-15" then nVal = math.random(3,15) end
+        if val == "3-16" then nVal = math.random(3,16) end
+        if val == "3-17" then nVal = math.random(3,17) end
+        if val == "3-18" then nVal = math.random(3,18) end
+        if val == "3-19" then nVal = math.random(3,19) end
 
         if val == "4-5" then nVal = math.random(4,5) end
         if val == "4-6" then nVal = math.random(4,6) end
         if val == "4-7" then nVal = math.random(4,7) end
         if val == "4-8" then nVal = math.random(4,8) end
         if val == "4-9" then nVal = math.random(4,9) end
+        if val == "4-10" then nVal = math.random(4,10) end
+        if val == "4-11" then nVal = math.random(4,11) end
+        if val == "4-12" then nVal = math.random(4,12) end
+        if val == "4-13" then nVal = math.random(4,13) end
+        if val == "4-14" then nVal = math.random(4,14) end
+        if val == "4-15" then nVal = math.random(4,15) end
+        if val == "4-16" then nVal = math.random(4,16) end
+        if val == "4-17" then nVal = math.random(4,17) end
+        if val == "4-18" then nVal = math.random(4,18) end
+        if val == "4-19" then nVal = math.random(4,19) end
 
         if val == "5-6" then nVal = math.random(5,6) end
         if val == "5-7" then nVal = math.random(5,7) end
         if val == "5-8" then nVal = math.random(5,8) end
         if val == "5-9" then nVal = math.random(5,9) end
+        if val == "5-10" then nVal = math.random(5,10) end
+        if val == "5-11" then nVal = math.random(5,11) end
+        if val == "5-12" then nVal = math.random(5,12) end
+        if val == "5-13" then nVal = math.random(5,13) end
+        if val == "5-14" then nVal = math.random(5,14) end
+        if val == "5-15" then nVal = math.random(5,15) end
+        if val == "5-16" then nVal = math.random(5,16) end
+        if val == "5-17" then nVal = math.random(5,17) end
+        if val == "5-18" then nVal = math.random(5,18) end
+        if val == "5-19" then nVal = math.random(5,19) end
 
         if val == "6-7" then nVal = math.random(6,7) end
         if val == "6-8" then nVal = math.random(6,8) end
         if val == "6-9" then nVal = math.random(6,9) end
+        if val == "6-10" then nVal = math.random(6,10) end
+        if val == "6-11" then nVal = math.random(6,11) end
+        if val == "6-12" then nVal = math.random(6,12) end
+        if val == "6-13" then nVal = math.random(6,13) end
+        if val == "6-14" then nVal = math.random(6,14) end
+        if val == "6-15" then nVal = math.random(6,15) end
+        if val == "6-16" then nVal = math.random(6,16) end
+        if val == "6-17" then nVal = math.random(6,17) end
+        if val == "6-18" then nVal = math.random(6,18) end
+        if val == "6-19" then nVal = math.random(6,19) end
 
         if val == "7-8" then nVal = math.random(7,8) end
         if val == "7-9" then nVal = math.random(7,9) end
+        if val == "7-10" then nVal = math.random(7,10) end
+        if val == "7-11" then nVal = math.random(7,11) end
+        if val == "7-12" then nVal = math.random(7,12) end
+        if val == "7-13" then nVal = math.random(7,13) end
+        if val == "7-14" then nVal = math.random(7,14) end
+        if val == "7-15" then nVal = math.random(7,15) end
+        if val == "7-16" then nVal = math.random(7,16) end
+        if val == "7-17" then nVal = math.random(7,17) end
+        if val == "7-18" then nVal = math.random(7,18) end
+        if val == "7-19" then nVal = math.random(7,19) end
 
         if val == "8-9" then nVal = math.random(8,9) end
+        if val == "8-10" then nVal = math.random(8,10) end
+        if val == "8-11" then nVal = math.random(8,11) end
+        if val == "8-12" then nVal = math.random(8,12) end
+        if val == "8-13" then nVal = math.random(8,13) end
+        if val == "8-14" then nVal = math.random(8,14) end
+        if val == "8-15" then nVal = math.random(8,15) end
+        if val == "8-16" then nVal = math.random(8,16) end
+        if val == "8-17" then nVal = math.random(8,17) end
+        if val == "8-18" then nVal = math.random(8,18) end
+        if val == "8-19" then nVal = math.random(8,19) end
 
+        if val == "9-10" then nVal = math.random(9,10) end
+        if val == "9-11" then nVal = math.random(9,11) end
+        if val == "9-12" then nVal = math.random(9,12) end
+        if val == "9-13" then nVal = math.random(9,13) end
+        if val == "9-14" then nVal = math.random(9,14) end
+        if val == "9-15" then nVal = math.random(9,15) end
+        if val == "9-16" then nVal = math.random(9,16) end
+        if val == "9-17" then nVal = math.random(9,17) end
+        if val == "9-18" then nVal = math.random(9,18) end
+        if val == "9-19" then nVal = math.random(9,19) end
+
+        if val == "10-11" then nVal = math.random(10,11) end
+        if val == "10-12" then nVal = math.random(10,12) end
+        if val == "10-13" then nVal = math.random(10,13) end
+        if val == "10-14" then nVal = math.random(10,14) end
         if val == "10-15" then nVal = math.random(10,15) end
-        --]]
+        if val == "10-16" then nVal = math.random(10,16) end
+        if val == "10-17" then nVal = math.random(10,17) end
+        if val == "10-18" then nVal = math.random(10,18) end
+        if val == "10-19" then nVal = math.random(10,19) end
+
+        if val == "11-12" then nVal = math.random(11,12) end
+        if val == "11-13" then nVal = math.random(11,13) end
+        if val == "11-14" then nVal = math.random(11,14) end
+        if val == "11-15" then nVal = math.random(11,15) end
+        if val == "11-16" then nVal = math.random(11,16) end
+        if val == "11-17" then nVal = math.random(11,17) end
+        if val == "11-18" then nVal = math.random(11,18) end
+        if val == "11-19" then nVal = math.random(11,19) end
+
+        if val == "12-13" then nVal = math.random(12,13) end
+        if val == "12-14" then nVal = math.random(12,14) end
+        if val == "12-15" then nVal = math.random(12,15) end
+        if val == "12-16" then nVal = math.random(12,16) end
+        if val == "12-17" then nVal = math.random(12,17) end
+        if val == "12-18" then nVal = math.random(12,18) end
+        if val == "12-19" then nVal = math.random(12,19) end
+
+        if val == "13-14" then nVal = math.random(13,14) end
+        if val == "13-15" then nVal = math.random(13,15) end
+        if val == "13-16" then nVal = math.random(13,16) end
+        if val == "13-17" then nVal = math.random(13,17) end
+        if val == "13-18" then nVal = math.random(13,18) end
+        if val == "13-19" then nVal = math.random(13,19) end
+
+        if val == "14-15" then nVal = math.random(14,15) end
+        if val == "14-16" then nVal = math.random(14,16) end
+        if val == "14-17" then nVal = math.random(14,17) end
+        if val == "14-18" then nVal = math.random(14,18) end
+        if val == "14-19" then nVal = math.random(14,19) end
+
+        if val == "15-16" then nVal = math.random(15,16) end
+        if val == "15-17" then nVal = math.random(15,17) end
+        if val == "15-18" then nVal = math.random(15,18) end
+        if val == "15-19" then nVal = math.random(15,19) end
+
+        if val == "16-17" then nVal = math.random(16,17) end
+        if val == "16-18" then nVal = math.random(16,18) end
+        if val == "16-19" then nVal = math.random(16,19) end
+
+        if val == "17-18" then nVal = math.random(17,18) end
+        if val == "17-19" then nVal = math.random(17,19) end
+
+        if val == "18-19" then nVal = math.random(18,19) end
 
         --[[
-        if val == "1-2" then nVal = 2 end
-        if val == "1-3" then nVal = 3 end
-        if val == "1-4" then nVal = 3 end
-        if val == "1-5" then nVal = 3 end
-
-        if val == "2-3" then nVal = 2 end
-        if val == "2-4" then nVal = 3 end
-        if val == "2-5" then nVal = 3 end
-
-        if val == "3-4" then nVal = 3 end
-        if val == "3-5" then nVal = 4 end
-
-        if val == "4-5" then nVal = 4 end
-
-        if val == "5-10" then nVal = 7 end
-        
-        if val == "10-15" then nVal = 12 end
-        --]]
-
-    --[[
         -- maybe it's a range ?
         local dashPos = val:find("-")
         veaf.loggers.get(veaf.Id):trace(string.format("dashPos=%s", tostring(dashPos)))

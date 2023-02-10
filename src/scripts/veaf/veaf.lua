@@ -3164,7 +3164,7 @@ function VeafQRA:setTriggerZone(value)
     veaf.loggers.get(VeafQRA.Id):trace(string.format("VeafQRA[%s]:setTriggerZone(%s)", veaf.p(self.name), veaf.p(value)))
     self.triggerZone = value
     local triggerZone = veaf.getTriggerZone(value)
-    veaf.loggers.get(VeafQRA.Id):trace(string.format("triggerZone=%s", veaf._p(triggerZone)))
+    veaf.loggers.get(VeafQRA.Id):trace(string.format("triggerZone=%s", veaf.p(triggerZone)))
     return self
 end
 
@@ -3510,8 +3510,8 @@ end
 
 function VeafQRA:check()
     veaf.loggers.get(VeafQRA.Id):trace(string.format("VeafQRA[%s]:check()", veaf.p(self.name)))
-    veaf.loggers.get(VeafQRA.Id):trace(string.format("self.state=%s", veaf._p(self.state)))
-    veaf.loggers.get(VeafQRA.Id):trace(string.format("timer.getTime()=%s", veaf._p(timer.getTime())))
+    veaf.loggers.get(VeafQRA.Id):trace(string.format("self.state=%s", veaf.p(self.state)))
+    veaf.loggers.get(VeafQRA.Id):trace(string.format("timer.getTime()=%s", veaf.p(timer.getTime())))
 
     --scheduled state application is attempted regardless of airportlink checks etc. to take into account user requested states which go through scheduled_states as well
     --Stop scheduled is checked before even running the check function as it has the highest priority
@@ -3542,11 +3542,11 @@ function VeafQRA:check()
                 local unitsInZone = nil
                 local triggerZone = veaf.getTriggerZone(self.triggerZone)
                 if triggerZone then
-                    veaf.loggers.get(VeafQRA.Id):trace(string.format("triggerZone=%s", veaf._p(triggerZone)))
+                    veaf.loggers.get(VeafQRA.Id):trace(string.format("triggerZone=%s", veaf.p(triggerZone)))
                     if triggerZone.type == 0 then -- circular
                         unitsInZone = mist.getUnitsInZones(unitNames, {self.triggerZone})
                     elseif triggerZone.type == 2 then -- quad point
-                        veaf.loggers.get(VeafQRA.Id):trace(string.format("checking in polygon %s", veaf._p(triggerZone.verticies)))
+                        veaf.loggers.get(VeafQRA.Id):trace(string.format("checking in polygon %s", veaf.p(triggerZone.verticies)))
                         unitsInZone = mist.getUnitsInPolygon(unitNames, triggerZone.verticies)
                     end
                 else
@@ -3554,12 +3554,12 @@ function VeafQRA:check()
                 end
                 local nbUnitsInZone = 0
                 for _ in pairs(unitsInZone) do nbUnitsInZone = nbUnitsInZone + 1 end
-                veaf.loggers.get(VeafQRA.Id):trace(string.format("unitsInZone=%s", veaf._p(unitsInZone)))
-                veaf.loggers.get(VeafQRA.Id):trace(string.format("#unitsInZone=%s", veaf._p(#unitsInZone)))
-                veaf.loggers.get(VeafQRA.Id):trace(string.format("nbUnitsInZone=%s", veaf._p(nbUnitsInZone)))
-                veaf.loggers.get(VeafQRA.Id):trace(string.format("state=%s", veaf._p(self.state)))
+                veaf.loggers.get(VeafQRA.Id):trace(string.format("unitsInZone=%s", veaf.p(unitsInZone)))
+                veaf.loggers.get(VeafQRA.Id):trace(string.format("#unitsInZone=%s", veaf.p(#unitsInZone)))
+                veaf.loggers.get(VeafQRA.Id):trace(string.format("nbUnitsInZone=%s", veaf.p(nbUnitsInZone)))
+                veaf.loggers.get(VeafQRA.Id):trace(string.format("state=%s", veaf.p(self.state)))
                 if (self.state == VeafQRA.STATUS_READY) and (unitsInZone and nbUnitsInZone > 0) then
-                    veaf.loggers.get(VeafQRA.Id):debug(string.format("self.state set to VeafQRA.STATUS_READY_WAITINGFORMORE at timer.getTime()=%s", veaf._p(timer.getTime())))
+                    veaf.loggers.get(VeafQRA.Id):debug(string.format("self.state set to VeafQRA.STATUS_READY_WAITINGFORMORE at timer.getTime()=%s", veaf.p(timer.getTime())))
                     self.state = VeafQRA.STATUS_READY_WAITINGFORMORE
                     self.timeSinceReady = timer.getTime()
                 elseif (self.state == VeafQRA.STATUS_READY_WAITINGFORMORE) and (unitsInZone and nbUnitsInZone > 0) and (timer.getTime() - self.timeSinceReady > self.delayBeforeActivating) then
@@ -3796,14 +3796,14 @@ function VeafQRA:chooseGroupsToDeploy(nbUnitsInZone)
         local groupsToChooseFrom = groupsToDeploy[1]
         local numberOfGroups = groupsToDeploy[2]
         local bias = groupsToDeploy[3] 
-        veaf.loggers.get(VeafQRA.Id):trace(string.format("groupsToChooseFrom=%s", veaf._p(groupsToChooseFrom)))
-        veaf.loggers.get(VeafQRA.Id):trace(string.format("numberOfGroups=%s", veaf._p(numberOfGroups)))
-        veaf.loggers.get(VeafQRA.Id):trace(string.format("bias=%s", veaf._p(bias)))
+        veaf.loggers.get(VeafQRA.Id):trace(string.format("groupsToChooseFrom=%s", veaf.p(groupsToChooseFrom)))
+        veaf.loggers.get(VeafQRA.Id):trace(string.format("numberOfGroups=%s", veaf.p(numberOfGroups)))
+        veaf.loggers.get(VeafQRA.Id):trace(string.format("bias=%s", veaf.p(bias)))
         if groupsToChooseFrom and type(groupsToChooseFrom) == "table" and numberOfGroups and type(numberOfGroups) == "number" and bias and type(bias) == "number" then
         local result = {}
             for _ = 1, numberOfGroups do
                 local group = veaf.randomlyChooseFrom(groupsToChooseFrom, bias)
-                veaf.loggers.get(VeafQRA.Id):trace(string.format("group=%s", veaf._p(group)))
+                veaf.loggers.get(VeafQRA.Id):trace(string.format("group=%s", veaf.p(group)))
                 table.insert(result, group)
             end
             groupsToDeploy = result
@@ -3816,7 +3816,7 @@ function VeafQRA:deploy(nbUnitsInZone)
     veaf.loggers.get(VeafQRA.Id):trace(string.format("VeafQRA[%s]:deploy()", veaf.p(self.name)))
     veaf.loggers.get(VeafQRA.Id):trace(string.format("nbUnitsInZone=[%s]", veaf.p(nbUnitsInZone)))
     if self.minimumNbEnemyPlanes ~= -1 and self.minimumNbEnemyPlanes > nbUnitsInZone then
-        veaf.loggers.get(VeafQRA.Id):trace(string.format("not enough enemies in zone, min=%s", veaf._p(self.minimumNbEnemyPlanes)))
+        veaf.loggers.get(VeafQRA.Id):trace(string.format("not enough enemies in zone, min=%s", veaf.p(self.minimumNbEnemyPlanes)))
         return
     end
 
@@ -3842,7 +3842,7 @@ function VeafQRA:deploy(nbUnitsInZone)
             local newGroup = mist.teleportToPoint(vars) -- respawn with radius
             table.insert(self.spawnedGroups, newGroup.name)
         end
-        veaf.loggers.get(VeafQRA.Id):trace(string.format("self.spawnedGroups=%s", veaf._p(self.spawnedGroups)))
+        veaf.loggers.get(VeafQRA.Id):trace(string.format("self.spawnedGroups=%s", veaf.p(self.spawnedGroups)))
         self.state = VeafQRA.STATUS_ACTIVE
     end
     if self.onDeploy then

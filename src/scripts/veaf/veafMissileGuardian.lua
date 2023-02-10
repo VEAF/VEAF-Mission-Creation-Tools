@@ -5,12 +5,8 @@
 -- Features:
 -- ---------
 -- * GUARDIAN objects that are configured to warn and protect specific units (helos, airplanes) of weapons fired in their direction
--- * ANGEL objects following these weapons, warning their targets (distance, aspect, danger) and optionnaly destroy weapons in the air before impact (training, protection)
--- * Works with all current and future maps (Caucasus, NTTR, Normandy, PG, ...)
---
--- Prerequisite:
--- ------------
--- See the description of the repository for this
+-- * PROTECTOR objects follow these weapons, warn their targets (distance, aspect, danger) and optionnaly destroy weapons in the air before impact (training, protection)
+-- * ANGEL objects protect a specific unit from all weapons (like a bubble of protection)
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 veafMissileGuardian = {}
@@ -265,10 +261,10 @@ function VeafMG_Guardian:onEvent(event)
                 local _targetName = _target:getName()
                 veaf.loggers.get(veafMissileGuardian.Id):trace(string.format("_targetName = %s", veaf.p(_targetName)))
                 if self.protectedUnits[_targetName] then 
-                    -- check if the target is in the protected zone
-                    local _inZone = mist.pointInPolygon(_target:getPoint(), self.protectedZone)
-                    veaf.loggers.get(veafMissileGuardian.Id):trace(string.format("_inZone = %s", veaf.p(_inZone)))
-                    if _inZone then 
+                    -- check if the target is in the protected zone (or if there is no zone)
+                    local _inZoneOrNoZone = not(self.protectedZone) or mist.pointInPolygon(_target:getPoint(), self.protectedZone)
+                    veaf.loggers.get(veafMissileGuardian.Id):trace(string.format("_inZoneOrNoZone = %s", veaf.p(_inZoneOrNoZone)))
+                    if _inZoneOrNoZone then 
                         -- encapsulate the event weapon
                         local _weapon = VeafMG_Weapon.new():setDcsWeapon(event.weapon)
 

@@ -1,4 +1,4 @@
--------------------------------------------------------------------------------------------------------------------------------------------------------------
+------------------------------------------------------------------
 -- VEAF missile guardian functions for DCS World
 -- By zip (2020)
 --
@@ -8,10 +8,8 @@
 -- * ANGEL objects following these weapons, warning their targets (distance, aspect, danger) and optionnaly destroy weapons in the air before impact (training, protection)
 -- * Works with all current and future maps (Caucasus, NTTR, Normandy, PG, ...)
 --
--- Prerequisite:
--- ------------
--- See the description of the repository for this
--------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- See the documentation : https://veaf.github.io/documentation/
+------------------------------------------------------------------
 
 veafMissileGuardian = {}
 

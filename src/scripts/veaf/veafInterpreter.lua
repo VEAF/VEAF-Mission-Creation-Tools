@@ -1,4 +1,4 @@
--------------------------------------------------------------------------------------------------------------------------------------------------------------
+------------------------------------------------------------------
 -- VEAF interpreter for DCS World
 -- By Zip (2019)
 --
@@ -8,40 +8,9 @@
 -- * Possibilities : 
 -- *    - at mission start, have pre-placed units trigger specific commands
 -- *    - serve as a base for activating commands in Combat Zones (see veafCombatZone.lua)
--- * Works with all current and future maps (Caucasus, NTTR, Normandy, PG, ...)
 --
--- Prerequisite:
--- ------------
--- * This script requires DCS 2.5.1 or higher and MIST 4.3.74 or higher.
--- * It also requires the base veaf.lua script library (version 1.0 or higher)
--- * TODO the rest of the scripts
---
--- Load the script:
--- ----------------
--- 1.) Download the script and save it anywhere on your hard drive.
--- 2.) Open your mission in the mission editor.
--- 3.) Add a new trigger:
---     * TYPE   "4 MISSION START"
---     * ACTION "DO SCRIPT FILE"
---     * OPEN --> Browse to the location of MIST and click OK.
---     * ACTION "DO SCRIPT FILE"
---     * OPEN --> Browse to the location of veaf.lua and click OK.
---     * TODO the rest of the scripts
---     * ACTION "DO SCRIPT FILE"
---     * OPEN --> Browse to the location of this script and click OK.
---     * ACTION "DO SCRIPT"
---     * set the script command to "veafInterpreter.initialize()" and click OK.
--- 4.) Save the mission and start it.
--- 5.) Have fun :)
---
--- Basic Usage:
--- ------------
--- 1.) Place a unit on the map in the mission editor
--- 2.) As the unit name, specify #veafInterpreter["<command>"] where command can be any VEAF command (e.g. "_spawn group, name redconvoy-lightdef"). Suffixes will be ignored (useful when copy/pasting units in the mission editor)
--- 4.) The command will be processed when the mission starts.
--- 5.) The original unit will disappear.
---
--------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- See the documentation : https://veaf.github.io/documentation/
+------------------------------------------------------------------
 
 --- veafInterpreter Table.
 veafInterpreter = {}

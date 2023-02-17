@@ -1,4 +1,4 @@
--------------------------------------------------------------------------------------------------------------------------------------------------------------
+------------------------------------------------------------------
 -- VEAF transport mission command and functions for DCS World
 -- By zip (2018)
 --
@@ -7,37 +7,9 @@
 -- * Listen to marker change events and creates a transport training mission, with optional parameters
 -- * Possibilities :
 -- *    - create a zone with cargo to pick up, another with friendly troops awaiting their cargo, and optionaly enemy units on the way
--- * Works with all current and future maps (Caucasus, NTTR, Normandy, PG, ...)
 --
--- Prerequisite:
--- ------------
--- * This script requires DCS 2.5.1 or higher and MIST 4.3.74 or higher.
--- * It also requires the base veaf.lua script library (version 1.0 or higher)
--- * It also requires the veafMarkers.lua script library (version 1.0 or higher)
--- * It also requires the veafSpawn.lua script library (version 1.0 or higher)
--- * It also requires the veafNamedPoints.lua script library (version 1.0 or higher)
---
--- Basic Usage:
--- ------------
--- 1.) Place a mark on the F10 map.
--- 2.) As text enter "veaf transport mission"
--- 3.) Click somewhere else on the map to submit the new text.
--- 4.) The command will be processed. A message will appear to confirm this
--- 5.) The original mark will disappear.
---
--- Options:
--- --------
--- Type "_transport" to create a default transport mission
---      add ", from [named point]" to specify starting position from the named points database (veafNamedPoints.lua) ; default is KASPI
---      add ", defense [1-5]" to specify air defense cover on the way (1 = light, 5 = heavy)
---      add ", size [1-5]" to change the number of cargo items to be transported (1 per participating helo, usually)
---      add ", blocade [1-5]" to specify enemy blocade around the drop zone (1 = light, 5 = heavy)
---
--- *** NOTE ***
--- * All keywords are CaSE inSenSITvE.
--- * Commas are the separators between options ==> They are IMPORTANT!
---
--------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- See the documentation : https://veaf.github.io/documentation/
+------------------------------------------------------------------
 
 veafTransportMission = {}
 

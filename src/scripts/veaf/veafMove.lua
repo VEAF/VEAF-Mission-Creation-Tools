@@ -1,4 +1,4 @@
--------------------------------------------------------------------------------------------------------------------------------------------------------------
+------------------------------------------------------------------
 -- VEAF move units for DCS World
 -- By mitch (2018)
 --
@@ -8,54 +8,9 @@
 -- * Possibilities : 
 -- *    - move a specific group to a marker point, at a specific speed
 -- *    - create a new tanker flightplan, moving a specific tanker group
--- * Works with all current and future maps (Caucasus, NTTR, Normandy, PG, ...)
 --
--- Prerequisite:
--- ------------
--- * This script requires DCS 2.5.1 or higher and MIST 4.3.74 or higher.
--- * It also requires the base veaf.lua script library (version 1.0 or higher)
--- * It also requires the base veafMarkers.lua script library (version 1.0 or higher)
---
--- Load the script:
--- ----------------
--- 1.) Download the script and save it anywhere on your hard drive.
--- 2.) Open your mission in the mission editor.
--- 3.) Add a new trigger:
---     * TYPE   "4 MISSION START"
---     * ACTION "DO SCRIPT FILE"
---     * OPEN --> Browse to the location of MIST and click OK.
---     * ACTION "DO SCRIPT FILE"
---     * OPEN --> Browse to the location of veaf.lua and click OK.
---     * ACTION "DO SCRIPT FILE"
---     * OPEN --> Browse to the location of veafMarkers.lua and click OK.
---     * ACTION "DO SCRIPT FILE"
---     * OPEN --> Browse to the location of this script and click OK.
---     * ACTION "DO SCRIPT"
---     * set the script command to "veafMove.initialize()" and click OK.
--- 4.) Save the mission and start it.
--- 5.) Have fun :)
---
--- Basic Usage:
--- ------------
--- 1.) Place a mark on the F10 map.
--- 2.) As text enter "veaf move group" or "veaf move tanker"
--- 3.) Click somewhere else on the map to submit the new text.
--- 4.) The command will be processed. A message will appear to confirm this
--- 5.) The original mark will disappear.
---
--- Options:
--- --------
--- Type "_move group, name [groupname]" to move the specified group to the marker point
---      add ", speed [speed]" to make the group move and at the specified speed (in knots)
--- Type "_move tanker, name [groupname]" to create a new tanker flight plan and move the specified tanker.
---      add ", speed [speed]" to make the tanker move and execute its refuel mission at the specified speed (in knots)
---      add ", alt [altitude]" to specify the refuel leg altitude (in feet)
---
--- *** NOTE ***
--- * All keywords are CaSE inSenSITvE.
--- * Commas are the separators between options ==> They are IMPORTANT!
---
--------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- See the documentation : https://veaf.github.io/documentation/
+------------------------------------------------------------------
 
 --- veafMove Table.
 veafMove = {}

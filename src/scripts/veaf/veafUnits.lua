@@ -1,33 +1,13 @@
--------------------------------------------------------------------------------------------------------------------------------------------------------------
+------------------------------------------------------------------
 -- VEAF groups and units database for DCS World
 -- By zip (2018)
 --
 -- Features:
 -- ---------
--- Contains all the units aliases and groups definitions used by the other VEAF scripts
+-- * Contains all the units aliases and groups definitions used by the other VEAF scripts
 --
--- Prerequisite:
--- ------------
--- * This script requires DCS 2.5.1 or higher and MIST 4.3.74 or higher.
--- * It also requires the veaf.lua base script library (version 1.0 or higher)
--- * It also requires the dcsUnits.lua script library (version 1.0 or higher)
---
--- Load the script:
--- ----------------
--- 1.) Download the script and save it anywhere on your hard drive.
--- 2.) Open your mission in the mission editor.
--- 3.) Add a new trigger:
---     * TYPE   "4 MISSION START"
---     * ACTION "DO SCRIPT FILE"
---     * OPEN --> Browse to the location of MIST and click OK.
---     * ACTION "DO SCRIPT FILE"
---     * OPEN --> Browse to the location of veaf.lua and click OK.
---     * ACTION "DO SCRIPT FILE"
---     * OPEN --> Browse to the location of dcsUnits.lua and click OK.
---     * ACTION "DO SCRIPT FILE"
---     * OPEN --> Browse to the location where you saved the script and click OK.
---
--------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- See the documentation : https://veaf.github.io/documentation/
+------------------------------------------------------------------
 
 veafUnits = {}
 

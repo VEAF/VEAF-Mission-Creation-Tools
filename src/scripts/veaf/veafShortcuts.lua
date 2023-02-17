@@ -1,4 +1,4 @@
--------------------------------------------------------------------------------------------------------------------------------------------------------------
+------------------------------------------------------------------
 -- VEAF shortcuts supporting functions for DCS World
 -- By zip (2020)
 --
@@ -6,16 +6,8 @@
 -- ---------
 -- * This module offers support for commands aliases and radio menu shortcuts
 --
--- Prerequisite:
--- ------------
--- * This script requires DCS 2.5.1 or higher and MIST 4.3.74 or higher.
--- * It also requires all the veaf scripts !
---
--- Basic Usage:
--- ------------
--- TODO
---
--------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- See the documentation : https://veaf.github.io/documentation/
+------------------------------------------------------------------
 
 veafShortcuts = {}
 

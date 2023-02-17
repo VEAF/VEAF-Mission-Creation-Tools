@@ -113,7 +113,7 @@ veafMissionTriggerInjector.trig.actions = {
     [1] = "a_do_script(\"VEAF_DYNAMIC_PATH = [[d:\\\\dev\\\\_VEAF\\\\VEAF-Mission-Creation-Tools]]\");",
     [2] = "a_do_script(\"VEAF_DYNAMIC_MISSIONPATH = [[d:\\\\dev\\\\_VEAF\\\\VEAF-Open-Training-Mission\\\\]]\");",
     [3] = "a_do_script(\"env.info(\\\"DYNAMIC SCRIPTS LOADING\\\")\");a_do_script(\"assert(loadfile(VEAF_DYNAMIC_PATH .. \\\"/src/scripts/community/mist.lua\\\"))()\");a_do_script(\"assert(loadfile(VEAF_DYNAMIC_PATH .. \\\"/src/scripts/community/DCS-SimpleTextToSpeech.lua\\\"))()\");a_do_script(\"assert(loadfile(VEAF_DYNAMIC_PATH .. \\\"/src/scripts/community/CTLD.lua\\\"))()\");a_do_script(\"assert(loadfile(VEAF_DYNAMIC_PATH .. \\\"/src/scripts/community/WeatherMark.lua\\\"))()\");a_do_script(\"assert(loadfile(VEAF_DYNAMIC_PATH .. \\\"/src/scripts/community/skynet-iads-compiled.lua\\\"))()\");a_do_script(\"assert(loadfile(VEAF_DYNAMIC_PATH .. \\\"/src/scripts/community/Hercules_Cargo.lua\\\"))()\");a_do_script(\"assert(loadfile(VEAF_DYNAMIC_PATH .. \\\"/src/scripts/community/HoundElint.lua\\\"))()\");a_do_script(\"assert(loadfile(VEAF_DYNAMIC_PATH .. \\\"/src/scripts/VeafDynamicLoader.lua\\\"))()\");",
-    [4] = "a_do_script(\"env.info(\\\"STATIC SCRIPTS LOADING\\\")\");a_do_script_file(getValueResourceByKey(\"DictKey_ActionText_10202\"));a_do_script_file(getValueResourceByKey(\"DictKey_ActionText_10203\"));a_do_script_file(getValueResourceByKey(\"DictKey_ActionText_10204\"));a_do_script_file(getValueResourceByKey(\"DictKey_ActionText_10205\"));a_do_script_file(getValueResourceByKey(\"DictKey_ActionText_10206\"));a_do_script_file(getValueResourceByKey(\"DictKey_ActionText_10207\"));a_do_script_file(getValueResourceByKey(\"DictKey_ActionText_10208\"));a_do_script_file(getValueResourceByKey(\"DictKey_ActionText_10308\"));a_do_script_file(getValueResourceByKey(\"DictKey_ActionText_10309\"));a_do_script_file(getValueResourceByKey(\"DictKey_ActionText_10310\"));a_do_script_file(getValueResourceByKey(\"DictKey_ActionText_10311\"));a_do_script_file(getValueResourceByKey(\"DictKey_ActionText_10312\"));a_do_script_file(getValueResourceByKey(\"DictKey_ActionText_10313\"));a_do_script_file(getValueResourceByKey(\"DictKey_ActionText_10314\"));a_do_script_file(getValueResourceByKey(\"DictKey_ActionText_10315\"));a_do_script_file(getValueResourceByKey(\"DictKey_ActionText_10316\"));a_do_script_file(getValueResourceByKey(\"DictKey_ActionText_10317\"));a_do_script_file(getValueResourceByKey(\"DictKey_ActionText_10318\"));a_do_script_file(getValueResourceByKey(\"DictKey_ActionText_10319\"));a_do_script_file(getValueResourceByKey(\"DictKey_ActionText_10320\"));a_do_script_file(getValueResourceByKey(\"DictKey_ActionText_10321\"));a_do_script_file(getValueResourceByKey(\"DictKey_ActionText_10322\"));a_do_script_file(getValueResourceByKey(\"DictKey_ActionText_10323\"));a_do_script_file(getValueResourceByKey(\"DictKey_ActionText_10324\"));a_do_script_file(getValueResourceByKey(\"DictKey_ActionText_10325\"));a_do_script_file(getValueResourceByKey(\"DictKey_ActionText_10326\"));a_do_script_file(getValueResourceByKey(\"DictKey_ActionText_10327\"));a_do_script_file(getValueResourceByKey(\"DictKey_ActionText_10328\"));a_do_script_file(getValueResourceByKey(\"DictKey_ActionText_10329\"));a_do_script_file(getValueResourceByKey(\"DictKey_ActionText_10330\"));",
+    [4] = "a_do_script(\"env.info(\\\"STATIC SCRIPTS LOADING\\\")\");a_do_script_file(getValueResourceByKey(\"DictKey_ActionText_10202\"));a_do_script_file(getValueResourceByKey(\"DictKey_ActionText_10203\"));a_do_script_file(getValueResourceByKey(\"DictKey_ActionText_10204\"));a_do_script_file(getValueResourceByKey(\"DictKey_ActionText_10205\"));a_do_script_file(getValueResourceByKey(\"DictKey_ActionText_10206\"));a_do_script_file(getValueResourceByKey(\"DictKey_ActionText_10207\"));a_do_script_file(getValueResourceByKey(\"DictKey_ActionText_10208\"));a_do_script_file(getValueResourceByKey(\"DictKey_ActionText_10308\"));a_do_script_file(getValueResourceByKey(\"DictKey_ActionText_10309\"));",
     [5] = "a_do_script(\"env.info(\\\"DYNAMIC CONFIG LOADING\\\")\");a_do_script(\"assert(loadfile(VEAF_DYNAMIC_MISSIONPATH .. \\\"/src/scripts/missionConfig.lua\\\"))()\");",
     [6] = "a_do_script(\"env.info(\\\"STATIC CONFIG LOADING\\\")\");a_do_script_file(getValueResourceByKey(\"DictKey_ActionText_10401\"));",
 }
@@ -314,111 +314,6 @@ veafMissionTriggerInjector.trigrules = {
                 ["predicate"] = "a_do_script_file",
                 ["file"] = "DictKey_ActionText_10309",
             }, -- end of [10]
-            [11] = 
-            {
-                ["predicate"] = "a_do_script_file",
-                ["file"] = "DictKey_ActionText_10310",
-            }, -- end of [11]
-            [12] = 
-            {
-                ["predicate"] = "a_do_script_file",
-                ["file"] = "DictKey_ActionText_10311",
-            }, -- end of [12]
-            [13] = 
-            {
-                ["predicate"] = "a_do_script_file",
-                ["file"] = "DictKey_ActionText_10312",
-            }, -- end of [13]
-            [14] = 
-            {
-                ["predicate"] = "a_do_script_file",
-                ["file"] = "DictKey_ActionText_10313",
-            }, -- end of [14]
-            [15] = 
-            {
-                ["predicate"] = "a_do_script_file",
-                ["file"] = "DictKey_ActionText_10314",
-            }, -- end of [15]
-            [16] = 
-            {
-                ["predicate"] = "a_do_script_file",
-                ["file"] = "DictKey_ActionText_10315",
-            }, -- end of [16]
-            [17] = 
-            {
-                ["predicate"] = "a_do_script_file",
-                ["file"] = "DictKey_ActionText_10316",
-            }, -- end of [17]
-            [18] = 
-            {
-                ["predicate"] = "a_do_script_file",
-                ["file"] = "DictKey_ActionText_10317",
-            }, -- end of [18]
-            [19] = 
-            {
-                ["predicate"] = "a_do_script_file",
-                ["file"] = "DictKey_ActionText_10318",
-            }, -- end of [19]
-            [20] = 
-            {
-                ["predicate"] = "a_do_script_file",
-                ["file"] = "DictKey_ActionText_10319",
-            }, -- end of [20]
-            [21] = 
-            {
-                ["predicate"] = "a_do_script_file",
-                ["file"] = "DictKey_ActionText_10320",
-            }, -- end of [21]
-            [22] = 
-            {
-                ["predicate"] = "a_do_script_file",
-                ["file"] = "DictKey_ActionText_10321",
-            }, -- end of [22]
-            [23] = 
-            {
-                ["predicate"] = "a_do_script_file",
-                ["file"] = "DictKey_ActionText_10322",
-            }, -- end of [23]
-            [24] = 
-            {
-                ["predicate"] = "a_do_script_file",
-                ["file"] = "DictKey_ActionText_10323",
-            }, -- end of [24]
-            [25] = 
-            {
-                ["predicate"] = "a_do_script_file",
-                ["file"] = "DictKey_ActionText_10324",
-            }, -- end of [25]
-            [26] = 
-            {
-                ["predicate"] = "a_do_script_file",
-                ["file"] = "DictKey_ActionText_10325",
-            }, -- end of [26]
-            [27] = 
-            {
-                ["predicate"] = "a_do_script_file",
-                ["file"] = "DictKey_ActionText_10326",
-            }, -- end of [27]
-            [28] = 
-            {
-                ["predicate"] = "a_do_script_file",
-                ["file"] = "DictKey_ActionText_10327",
-            }, -- end of [28]
-            [29] = 
-            {
-                ["predicate"] = "a_do_script_file",
-                ["file"] = "DictKey_ActionText_10328",
-            }, -- end of [29]
-            [30] = 
-            {
-                ["predicate"] = "a_do_script_file",
-                ["file"] = "DictKey_ActionText_10329",
-            }, -- end of [30]
-            [31] = 
-            {
-                ["predicate"] = "a_do_script_file",
-                ["file"] = "DictKey_ActionText_10330",
-            }, -- end of [31]
         }, -- end of ["actions"]
         ["predicate"] = "triggerStart",
         ["colorItem"] = "0x00ff80ff",
@@ -502,30 +397,8 @@ veafMissionTriggerInjector.mapresource = {
     ["DictKey_ActionText_10206"] = "skynet-iads-compiled.lua",
     ["DictKey_ActionText_10207"] = "Hercules_Cargo.lua",
     ["DictKey_ActionText_10208"] = "HoundElint.lua",
-    ["DictKey_ActionText_10308"] = "veaf.lua",
-    ["DictKey_ActionText_10309"] = "veafRadio.lua",
-    ["DictKey_ActionText_10310"] = "veafMarkers.lua",
-    ["DictKey_ActionText_10311"] = "veafAssets.lua",
-    ["DictKey_ActionText_10312"] = "veafSpawn.lua",
-    ["DictKey_ActionText_10313"] = "veafCasMission.lua",
-    ["DictKey_ActionText_10314"] = "veafCarrierOperations.lua",
-    ["DictKey_ActionText_10315"] = "veafCarrierOperations2.lua",
-    ["DictKey_ActionText_10316"] = "veafMove.lua",
-    ["DictKey_ActionText_10317"] = "veafGrass.lua",
-    ["DictKey_ActionText_10318"] = "dcsUnits.lua",
-    ["DictKey_ActionText_10319"] = "veafUnits.lua",
-    ["DictKey_ActionText_10320"] = "veafTransportMission.lua",
-    ["DictKey_ActionText_10321"] = "veafNamedPoints.lua",
-    ["DictKey_ActionText_10322"] = "veafShortcuts.lua",
-    ["DictKey_ActionText_10323"] = "veafSecurity.lua",
-    ["DictKey_ActionText_10324"] = "veafInterpreter.lua",
-    ["DictKey_ActionText_10325"] = "veafCombatZone.lua",
-    ["DictKey_ActionText_10326"] = "veafCombatMission.lua",
-    ["DictKey_ActionText_10327"] = "veafRemote.lua",
-    ["DictKey_ActionText_10328"] = "veafSkynetIadsHelper.lua",
-    ["DictKey_ActionText_10329"] = "veafSanctuary.lua",
-    ["DictKey_ActionText_10330"] = "veafHoundElintHelper.lua",
-    ["DictKey_ActionText_10401"] = "missionConfig.lua"
+    ["DictKey_ActionText_10308"] = "veaf-scripts.lua",
+    ["DictKey_ActionText_10309"] = "missionConfig.lua"
 }
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------

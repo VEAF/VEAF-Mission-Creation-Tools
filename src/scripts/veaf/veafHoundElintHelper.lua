@@ -1,4 +1,4 @@
--------------------------------------------------------------------------------------------------------------------------------------------------------------
+------------------------------------------------------------------
 -- VEAF helper for Hound-Elint
 -- By zip (2021)
 --
@@ -6,17 +6,8 @@
 -- ---------
 -- * This module offers support for integrating Hound-Elint in a mission
 --
--- Prerequisite:
--- ------------
--- * This script requires DCS 2.5.1 or higher and MIST 4.3.74 or higher.
--- * It also requires Hound-Elint !
--- * It also requires all the veaf scripts !
---
--- Basic Usage:
--- ------------
--- TODO
---
--------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- See the documentation : https://veaf.github.io/documentation/
+------------------------------------------------------------------
 
 veafHoundElint = {}
 

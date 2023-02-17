@@ -1,42 +1,13 @@
--------------------------------------------------------------------------------------------------------------------------------------------------------------
+------------------------------------------------------------------
 -- VEAF carrier command and functions for DCS World
 -- By zip (2018)
 --
 -- Features:
 -- ---------
 -- * Radio menus allow starting and ending carrier operations. Carriers go back to their initial point when operations are ended
--- * Works with all current and future maps (Caucasus, NTTR, Normandy, PG, ...)
 --
--- Prerequisite:
--- ------------
--- * This script requires DCS 2.5.1 or higher and MIST 4.3.74 or higher.
--- * It also requires the base veaf.lua script library (version 1.0 or higher)
--- * It also requires the base veafRadio.lua script library (version 1.0 or higher)
---
--- Load the script:
--- ----------------
--- 1.) Download the script and save it anywhere on your hard drive.
--- 2.) Open your mission in the mission editor.
--- 3.) Add a new trigger:
---     * TYPE   "4 MISSION START"
---     * ACTION "DO SCRIPT FILE"
---     * OPEN --> Browse to the location of MIST and click OK.
---     * ACTION "DO SCRIPT FILE"
---     * OPEN --> Browse to the location of veaf.lua and click OK.
---     * ACTION "DO SCRIPT FILE"
---     * OPEN --> Browse to the location of veafRadio.lua and click OK.
---     * ACTION "DO SCRIPT FILE"
---     * OPEN --> Browse to the location of this script and click OK.
---     * ACTION "DO SCRIPT"
---     * set the script command to "veafRadio.initialize();veafCarrierOperations.initialize()" and click OK.
--- 4.) Save the mission and start it.
--- 5.) Have fun :)
---
--- Basic Usage:
--- ------------
--- Use the F10 radio menu to start and end carrier operations for every detected carrier group (having a group name like "CSG-*")
---
--------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- See the documentation : https://veaf.github.io/documentation/
+------------------------------------------------------------------
 
 veafCarrierOperations = {}
 

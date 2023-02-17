@@ -1,66 +1,14 @@
--------------------------------------------------------------------------------------------------------------------------------------------------------------
--- VEAF cas command and functions for DCS World
+------------------------------------------------------------------
+-- VEAF CAS (Close Air Support) command and functions for DCS World
 -- By zip (2018)
 --
 -- Features:
 -- ---------
 -- * Listen to marker change events and creates a CAS training mission, with optional parameters
--- * Possibilities :
--- *    - create a CAS target group, protected by SAM, AAA and manpads, to use for CAS training
--- * Works with all current and future maps (Caucasus, NTTR, Normandy, PG, ...)
+-- * Create a CAS target group, protected by SAM, AAA and manpads, to use for CAS training
 --
--- Prerequisite:
--- ------------
--- * This script requires DCS 2.5.1 or higher and MIST 4.3.74 or higher.
--- * It also requires the base veaf.lua script library (version 1.0 or higher)
--- * It also requires the veafMarkers.lua script library (version 1.0 or higher)
--- * It also requires the veafSpawn.lua script library (version 1.0 or higher)
--- * It also requires the dcsUnits.lua script library (version 1.0 or higher)
--- * It also requires the veafUnits.lua script library (version 1.0 or higher)
---
--- Load the script:
--- ----------------
--- 1.) Download the script and save it anywhere on your hard drive.
--- 2.) Open your mission in the mission editor.
--- 3.) Add a new trigger:
---     * TYPE   "4 MISSION START"
---     * ACTION "DO SCRIPT FILE"
---     * OPEN --> Browse to the location of MIST and click OK.
---     * ACTION "DO SCRIPT FILE"
---     * OPEN --> Browse to the location of veaf.lua and click OK.
---     * ACTION "DO SCRIPT FILE"
---     * OPEN --> Browse to the location of veafMarkers.lua and click OK.
---     * ACTION "DO SCRIPT FILE"
---     * OPEN --> Browse to the location of veafSpawn.lua and click OK.
---     * ACTION "DO SCRIPT FILE"
---     * OPEN --> Browse to the location of this script and click OK.
---     * ACTION "DO SCRIPT"
---     * set the script command to "veafCasMission.initialize()" and click OK.
--- 4.) Save the mission and start it.
--- 5.) Have fun :)
---
--- Basic Usage:
--- ------------
--- 1.) Place a mark on the F10 map.
--- 2.) As text enter "_cas"
--- 3.) Click somewhere else on the map to submit the new text.
--- 4.) The command will be processed. A message will appear to confirm this
--- 5.) The original mark will disappear.
---
--- Options:
--- --------
--- Type "veaf cas mission" to create a default CAS target group
---      add ", defense 0" to completely disable air defenses
---      add ", defense [1-5]" to specify air defense cover (1 = light, 5 = heavy)
---      add ", size [1-5]" to change the group size (1 = small, 5 = huge)
---      add ", armor [1-5]" to specify armor presence (1 = light, 5 = heavy)
---      add ", spacing [1-5]" to change the groups spacing (1 = dense, 3 = default, 5 = sparse)
---
--- *** NOTE ***
--- * All keywords are CaSE inSenSITvE.
--- * Commas are the separators between options ==> They are IMPORTANT!
---
--------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- See the documentation : https://veaf.github.io/documentation/
+------------------------------------------------------------------
 
 veafCasMission = {}
 

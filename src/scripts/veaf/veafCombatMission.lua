@@ -1,4 +1,4 @@
--------------------------------------------------------------------------------------------------------------------------------------------------------------
+------------------------------------------------------------------
 -- VEAF combat mission functions for DCS World
 -- By zip (2020)
 --
@@ -7,13 +7,9 @@
 -- * A combat mission consists in spawning enemy aircrafts
 -- * It also contains a mass briefing, optional objectives (timed, number of kills, ...) and can trigger the activation of one or more combat zones
 -- * For each mission, a specific radio sub-menu is created, allowing common actions (get mission status, weather, briefing, start and stop the mission, etc.)
--- * Works with all current and future maps (Caucasus, NTTR, Normandy, PG, ...)
 --
--- Prerequisite:
--- ------------
--- See the description of the repository for this
---
--------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- See the documentation : https://veaf.github.io/documentation/
+------------------------------------------------------------------
 
 veafCombatMission = {}
 

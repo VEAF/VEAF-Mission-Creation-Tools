@@ -1,17 +1,13 @@
--------------------------------------------------------------------------------------------------------------------------------------------------------------
+------------------------------------------------------------------
 -- DCS World units database
 -- By zip (2018)
 --
--- Load the script:
--- ----------------
--- 1.) Download the script and save it anywhere on your hard drive.
--- 2.) Open your mission in the mission editor.
--- 3.) Add a new trigger:
---     * TYPE   "4 MISSION START"
---     * ACTION "DO SCRIPT FILE"
---     * OPEN --> Browse to the location where you saved the script and click OK.
+-- Features:
+-- ---------
+-- * lists the DCS world units
 --
--------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- See the documentation : https://veaf.github.io/documentation/
+------------------------------------------------------------------
 
 dcsUnits = {}
 
@@ -345,7 +341,7 @@ dcsUnits.DcsUnitsDatabase =
 			["NonArmoredUnits"] = true,
 			["AA_flak"] = true,
 			["All"] = true,
-			["AAA"] = true,
+["AAA"] = true,
 			[16] = true,
 			[47] = true,
 			["Rocket Attack Valid AirDefence"] = true,

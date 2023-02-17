@@ -5,3 +5,5 @@ cache/
 test/
 
 configuration.json
+veaf-scripts.lua
+compile-*.cmd

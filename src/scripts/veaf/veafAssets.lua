@@ -1,18 +1,13 @@
--------------------------------------------------------------------------------------------------------------------------------------------------------------
--- VEAF assets functions for DCS World
--- By zip (2019)
+------------------------------------------------------------------
+-- VEAF assets (important groups in a mission) management functions for DCS World
+-- By zip (2018)
 --
 -- Features:
 -- ---------
--- * manage the assets that roam the map (tankers, awacs, ...)
--- * Works with all current and future maps (Caucasus, NTTR, Normandy, PG, ...)
+-- * Manages the assets that exist the map (tankers, awacs, ...)
 --
--- Prerequisite:
--- ------------
--- * This script requires DCS 2.5.1 or higher and MIST 4.3.74 or higher.
--- * It also requires the base veaf.lua script library (version 1.0 or higher)
---
--------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- See the documentation : https://veaf.github.io/documentation/
+------------------------------------------------------------------
 
 veafAssets = {}
 

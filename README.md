@@ -4,6 +4,7 @@
 
 All scripts, libraries and documentation needed to build a dynamic mission in DCS using the VEAF scripts
 
+# /!\ Warning ! Version 5.0.0 has been released, please read the [migration guide](README-5.0.0.md) /!\
 ## How to work on this package ?
 
 Read the [documentation][documentation-site]! It's a work in progress, but it's a good start.

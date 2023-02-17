@@ -19,7 +19,7 @@ veafShortcuts = {}
 veafShortcuts.Id = "SHORTCUTS"
 
 --- Version.
-veafShortcuts.Version = "1.30.0"
+veafShortcuts.Version = "1.31.0"
 
 -- trace level, specific to this module
 --veafShortcuts.LogLevel = "trace"
@@ -1259,21 +1259,21 @@ function veafShortcuts.buildDefaultList()
     )
     veafShortcuts.AddAlias(
         VeafAlias:new()
-            :setName("-shell")
-            :setDescription("Artillery shelling of a zone with high-yield HE")
+            :setName("-cesar")
+            :setDescription("Artillery precision shelling of a zone with a few low-yield HE")
             :setVeafCommand("_spawn bomb")
-            :addRandomParameter("shells", 25, 40)
-            :addRandomParameter("radius", 350, 500)
-            :addRandomParameter("power", 100, 300)
+            :addRandomParameter("shells", 2, 5)
+            :addRandomParameter("radius", 15, 30)
+            :addRandomParameter("power", 10, 50)
             :setHidden(true)
     )
     veafShortcuts.AddAlias(
         VeafAlias:new()
             :setName("-shells")
-            :setDescription("Artillery shelling of a small zone with low-yield HE")
-            :setVeafCommand("-shell")
+            :setDescription("Artillery shelling of a small zone with lots of low-yield HE")
+            :setVeafCommand("_spawn bomb")
             :addRandomParameter("shells", 2, 5)
-            :addRandomParameter("radius", 200, 500)
+            :addRandomParameter("radius", 100, 300)
             :addRandomParameter("power", 10, 50)
             :addRandomParameter("multiplier", 5, 10)
             :setHidden(true)
@@ -1288,17 +1288,6 @@ function veafShortcuts.buildDefaultList()
             :addRandomParameter("power", 500, 750)
             :addRandomParameter("altdelta", 800, 1000)
             :addRandomParameter("multiplier", 6, 10)
-            :setHidden(true)
-    )
-    veafShortcuts.AddAlias(
-        VeafAlias:new()
-            :setName("-shells")
-            :setDescription("Artillery shelling of a small zone with low-yield HE")
-            :setVeafCommand("-shell")
-            :addRandomParameter("shells", 2, 5)
-            :addRandomParameter("radius", 200, 500)
-            :addRandomParameter("power", 10, 50)
-            :addRandomParameter("multiplier", 5, 10)
             :setHidden(true)
     )
     veafShortcuts.AddAlias(

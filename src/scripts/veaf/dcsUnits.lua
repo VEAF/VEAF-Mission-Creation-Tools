@@ -179,9 +179,9 @@ dcsUnits.DcsUnitsDatabase =
 	[5] = 
 	{
 		["type"] = "Allies_Director",
-		["name"] = "Allies_Director",
+		["name"] = "Allies Rangefinder (DRT)",
 		["category"] = "Air Defence",
-		["description"] = "Allies_Director",
+		["description"] = "Allies Rangefinder (DRT)",
 		["vehicle"] = true,
 		["attribute"] = 
 		{
@@ -341,7 +341,7 @@ dcsUnits.DcsUnitsDatabase =
 			["NonArmoredUnits"] = true,
 			["AA_flak"] = true,
 			["All"] = true,
-["AAA"] = true,
+			["AAA"] = true,
 			[16] = true,
 			[47] = true,
 			["Rocket Attack Valid AirDefence"] = true,
@@ -1794,6 +1794,37 @@ dcsUnits.DcsUnitsDatabase =
 	}, -- end of [57]
 	[58] = 
 	{
+		["type"] = "RD_75",
+		["name"] = "SAM SA-2 S-75 RD-75 Amazonka RF",
+		["category"] = "Air Defence",
+		["description"] = "SAM SA-2 S-75 RD-75 Amazonka RF",
+		["vehicle"] = true,
+		["attribute"] = 
+		{
+			[2] = true,
+			["Vehicles"] = true,
+			["SAM elements"] = true,
+			[16] = true,
+			["Ground vehicles"] = true,
+			["RADAR_BAND1_FOR_ARM"] = true,
+			["RADAR_BAND2_FOR_ARM"] = true,
+			["MR SAM"] = true,
+			["NonArmoredUnits"] = true,
+			[337] = true,
+			["Air Defence"] = true,
+			["NonAndLightArmoredUnits"] = true,
+			["SAM related"] = true,
+			["SAM TR"] = true,
+			["All"] = true,
+			["Ground Units"] = true,
+			[101] = true,
+		}, -- end of ["attribute"]
+		["aliases"] = 
+		{
+		}, -- end of ["aliases"]
+	}, -- end of [58]
+	[59] = 
+	{
 		["type"] = "RLS_19J6",
 		["name"] = "SAM SA-5 S-200 ST-68U \"Tin Shield\" SR",
 		["category"] = "Air Defence",
@@ -1823,8 +1854,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [58]
-	[59] = 
+	}, -- end of [59]
+	[60] = 
 	{
 		["type"] = "Roland ADS",
 		["name"] = "SAM Roland ADS",
@@ -1858,8 +1889,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [59]
-	[60] = 
+	}, -- end of [60]
+	[61] = 
 	{
 		["type"] = "Roland Radar",
 		["name"] = "SAM Roland EWR",
@@ -1888,8 +1919,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [60]
-	[61] = 
+	}, -- end of [61]
+	[62] = 
 	{
 		["type"] = "RPC_5N62V",
 		["name"] = "SAM SA-5 S-200 \"Square Pair\" TR",
@@ -1919,8 +1950,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [61]
-	[62] = 
+	}, -- end of [62]
+	[63] = 
 	{
 		["type"] = "S-200_Launcher",
 		["name"] = "SAM SA-5 S-200 \"Gammon\" LN",
@@ -1950,8 +1981,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [62]
-	[63] = 
+	}, -- end of [63]
+	[64] = 
 	{
 		["type"] = "S-300PS 40B6M tr",
 		["name"] = "SAM SA-10 S-300 \"Grumble\" Flap Lid TR ",
@@ -1981,8 +2012,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [63]
-	[64] = 
+	}, -- end of [64]
+	[65] = 
 	{
 		["type"] = "S-300PS 40B6MD sr",
 		["name"] = "SAM SA-10 S-300PS Low Alt SR 5N66M",
@@ -2012,8 +2043,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [64]
-	[65] = 
+	}, -- end of [65]
+	[66] = 
 	{
 		["type"] = "S-300PS 54K6 cp",
 		["name"] = "SAM SA-10 S-300 \"Grumble\" C2 ",
@@ -2041,8 +2072,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [65]
-	[66] = 
+	}, -- end of [66]
+	[67] = 
 	{
 		["type"] = "S-300PS 5P85C ln",
 		["name"] = "SAM SA-10 S-300 \"Grumble\" TEL D",
@@ -2071,8 +2102,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [66]
-	[67] = 
+	}, -- end of [67]
+	[68] = 
 	{
 		["type"] = "S-300PS 5P85D ln",
 		["name"] = "SAM SA-10 S-300 \"Grumble\" TEL C",
@@ -2101,8 +2132,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [67]
-	[68] = 
+	}, -- end of [68]
+	[69] = 
 	{
 		["type"] = "S-300PS 64H6E sr",
 		["name"] = "SAM SA-10 S-300 \"Grumble\" Big Bird SR ",
@@ -2132,8 +2163,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [68]
-	[69] = 
+	}, -- end of [69]
+	[70] = 
 	{
 		["type"] = "S-60_Type59_Artillery",
 		["name"] = "AAA S-60 57mm",
@@ -2162,8 +2193,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [69]
-	[70] = 
+	}, -- end of [70]
+	[71] = 
 	{
 		["type"] = "S_75M_Volhov",
 		["name"] = "SAM SA-2 S-75 \"Guideline\" LN",
@@ -2193,8 +2224,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [70]
-	[71] = 
+	}, -- end of [71]
+	[72] = 
 	{
 		["type"] = "SA-11 Buk CC 9S470M1",
 		["name"] = "SAM SA-11 Buk \"Gadfly\" C2 ",
@@ -2221,8 +2252,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [71]
-	[72] = 
+	}, -- end of [72]
+	[73] = 
 	{
 		["type"] = "SA-11 Buk LN 9A310M1",
 		["name"] = "SAM SA-11 Buk \"Gadfly\" Fire Dome TEL",
@@ -2255,8 +2286,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [72]
-	[73] = 
+	}, -- end of [73]
+	[74] = 
 	{
 		["type"] = "SA-11 Buk SR 9S18M1",
 		["name"] = "SAM SA-11 Buk \"Gadfly\" Snow Drift SR",
@@ -2285,8 +2316,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [73]
-	[74] = 
+	}, -- end of [74]
+	[75] = 
 	{
 		["description"] = "MANPADS SA-18 Igla \"Grouse\" C2",
 		["type"] = "SA-18 Igla comm",
@@ -2320,8 +2351,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [74]
-	[75] = 
+	}, -- end of [75]
+	[76] = 
 	{
 		["infantry"] = true,
 		["type"] = "SA-18 Igla manpad",
@@ -2356,8 +2387,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [75]
-	[76] = 
+	}, -- end of [76]
+	[77] = 
 	{
 		["description"] = "MANPADS SA-18 Igla-S \"Grouse\" C2",
 		["type"] = "SA-18 Igla-S comm",
@@ -2391,8 +2422,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [76]
-	[77] = 
+	}, -- end of [77]
+	[78] = 
 	{
 		["infantry"] = true,
 		["type"] = "SA-18 Igla-S manpad",
@@ -2427,8 +2458,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [77]
-	[78] = 
+	}, -- end of [78]
+	[79] = 
 	{
 		["type"] = "snr s-125 tr",
 		["name"] = "SAM SA-3 S-125 \"Low Blow\" TR",
@@ -2458,8 +2489,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [78]
-	[79] = 
+	}, -- end of [79]
+	[80] = 
 	{
 		["type"] = "SNR_75V",
 		["name"] = "SAM SA-2 S-75 \"Fan Song\" TR",
@@ -2489,8 +2520,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [79]
-	[80] = 
+	}, -- end of [80]
+	[81] = 
 	{
 		["infantry"] = true,
 		["type"] = "Soldier stinger",
@@ -2525,32 +2556,39 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [80]
-	[81] = 
+	}, -- end of [81]
+	[82] = 
 	{
 		["type"] = "SON_9",
 		["name"] = "AAA Fire Can SON-9",
 		["category"] = "Air Defence",
 		["description"] = "AAA Fire Can SON-9",
+		["vehicle"] = true,
 		["attribute"] = 
 		{
-			[335] = true,
-			[26] = true,
-			["NonArmoredUnits"] = true,
-			[16] = true,
-			["AAA"] = true,
-			["Optical Tracker"] = true,
-			["NonAndLightArmoredUnits"] = true,
-			["Rocket Attack Valid AirDefence"] = true,
-			["Armed Air Defence"] = true,
-			["Air Defence"] = true,
 			[2] = true,
+			["Vehicles"] = true,
+			["SAM elements"] = true,
+			[16] = true,
+			["Ground vehicles"] = true,
+			[101] = true,
+			[335] = true,
+			["NonArmoredUnits"] = true,
+			["Air Defence"] = true,
+			["Rocket Attack Valid AirDefence"] = true,
+			["SAM TR"] = true,
+			["NonAndLightArmoredUnits"] = true,
+			["Armed Air Defence"] = true,
+			["SAM related"] = true,
+			["All"] = true,
+			["Ground Units"] = true,
+			["AAA"] = true,
 		}, -- end of ["attribute"]
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [81]
-	[82] = 
+	}, -- end of [82]
+	[83] = 
 	{
 		["description"] = "MANPADS Stinger C2",
 		["type"] = "Stinger comm",
@@ -2584,8 +2622,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [82]
-	[83] = 
+	}, -- end of [83]
+	[84] = 
 	{
 		["description"] = "MANPADS Stinger C2 Desert",
 		["type"] = "Stinger comm dsr",
@@ -2619,8 +2657,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [83]
-	[84] = 
+	}, -- end of [84]
+	[85] = 
 	{
 		["type"] = "Strela-1 9P31",
 		["name"] = "SAM SA-9 Strela 1 \"Gaskin\" TEL",
@@ -2651,8 +2689,8 @@ dcsUnits.DcsUnitsDatabase =
 		{
 			[1] = "SA-9 Strela-1 9P31",
 		}, -- end of ["aliases"]
-	}, -- end of [84]
-	[85] = 
+	}, -- end of [85]
+	[86] = 
 	{
 		["type"] = "Strela-10M3",
 		["name"] = "SAM SA-13 Strela 10M3 \"Gopher\" TEL",
@@ -2685,8 +2723,8 @@ dcsUnits.DcsUnitsDatabase =
 		{
 			[1] = "SA-13 Strela-10M3 9A35M3",
 		}, -- end of ["aliases"]
-	}, -- end of [85]
-	[86] = 
+	}, -- end of [86]
+	[87] = 
 	{
 		["type"] = "Tor 9A331",
 		["name"] = "SAM SA-15 Tor \"Gauntlet\"",
@@ -2717,8 +2755,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [86]
-	[87] = 
+	}, -- end of [87]
+	[88] = 
 	{
 		["type"] = "tt_ZU-23",
 		["name"] = "SPAAA LC with ZU-23",
@@ -2747,8 +2785,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [87]
-	[88] = 
+	}, -- end of [88]
+	[89] = 
 	{
 		["type"] = "Ural-375 ZU-23",
 		["name"] = "SPAAA ZU-23-2 Mounted Ural 375",
@@ -2777,8 +2815,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [88]
-	[89] = 
+	}, -- end of [89]
+	[90] = 
 	{
 		["type"] = "Ural-375 ZU-23 Insurgent",
 		["name"] = "SPAAA ZU-23-2 Insurgent Mounted Ural-375",
@@ -2807,8 +2845,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [89]
-	[90] = 
+	}, -- end of [90]
+	[91] = 
 	{
 		["type"] = "Vulcan",
 		["name"] = "SPAAA Vulcan M163",
@@ -2842,8 +2880,8 @@ dcsUnits.DcsUnitsDatabase =
 		{
 			[1] = "M163 Vulcan",
 		}, -- end of ["aliases"]
-	}, -- end of [90]
-	[91] = 
+	}, -- end of [91]
+	[92] = 
 	{
 		["type"] = "ZSU-23-4 Shilka",
 		["name"] = "SPAAA ZSU-23-4 Shilka \"Gun Dish\"",
@@ -2876,8 +2914,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [91]
-	[92] = 
+	}, -- end of [92]
+	[93] = 
 	{
 		["type"] = "ZSU_57_2",
 		["name"] = "SPAAA ZSU-57-2",
@@ -2906,8 +2944,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [92]
-	[93] = 
+	}, -- end of [93]
+	[94] = 
 	{
 		["type"] = "ZU-23 Closed Insurgent",
 		["name"] = "AAA ZU-23 Insurgent Closed Emplacement",
@@ -2916,28 +2954,29 @@ dcsUnits.DcsUnitsDatabase =
 		["vehicle"] = true,
 		["attribute"] = 
 		{
-			["Ground vehicles"] = true,
-			["Vehicles"] = true,
-			[26] = true,
 			[2] = true,
-			["AA_flak"] = true,
-			["All"] = true,
 			["Rocket Attack Valid AirDefence"] = true,
 			[16] = true,
+			["CustomAimPoint"] = true,
 			["AAA"] = true,
-			["Armed Air Defence"] = true,
-			["NonAndLightArmoredUnits"] = true,
+			["NonArmoredUnits"] = true,
+			["Ground vehicles"] = true,
+			["Vehicles"] = true,
 			["Air Defence"] = true,
+			[26] = true,
 			[71] = true,
+			["NonAndLightArmoredUnits"] = true,
+			["All"] = true,
+			["AA_flak"] = true,
 			["Static AAA"] = true,
 			["Ground Units"] = true,
-			["NonArmoredUnits"] = true,
+			["Armed Air Defence"] = true,
 		}, -- end of ["attribute"]
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [93]
-	[94] = 
+	}, -- end of [94]
+	[95] = 
 	{
 		["type"] = "ZU-23 Emplacement",
 		["name"] = "AAA ZU-23 Emplacement",
@@ -2946,28 +2985,29 @@ dcsUnits.DcsUnitsDatabase =
 		["vehicle"] = true,
 		["attribute"] = 
 		{
+			[2] = true,
+			["Rocket Attack Valid AirDefence"] = true,
+			[16] = true,
+			["CustomAimPoint"] = true,
+			["AAA"] = true,
+			[47] = true,
 			["Ground vehicles"] = true,
 			["Vehicles"] = true,
+			["Air Defence"] = true,
 			[26] = true,
 			["NonArmoredUnits"] = true,
-			["AA_flak"] = true,
-			["All"] = true,
-			["AAA"] = true,
-			[16] = true,
-			[47] = true,
-			["Rocket Attack Valid AirDefence"] = true,
 			["NonAndLightArmoredUnits"] = true,
-			["Armed Air Defence"] = true,
-			["Air Defence"] = true,
+			["All"] = true,
+			["AA_flak"] = true,
 			["Static AAA"] = true,
 			["Ground Units"] = true,
-			[2] = true,
+			["Armed Air Defence"] = true,
 		}, -- end of ["attribute"]
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [94]
-	[95] = 
+	}, -- end of [95]
+	[96] = 
 	{
 		["type"] = "ZU-23 Emplacement Closed",
 		["name"] = "AAA ZU-23 Closed Emplacement",
@@ -2976,28 +3016,29 @@ dcsUnits.DcsUnitsDatabase =
 		["vehicle"] = true,
 		["attribute"] = 
 		{
-			["Ground vehicles"] = true,
+			[2] = true,
+			["Rocket Attack Valid AirDefence"] = true,
+			[16] = true,
+			["CustomAimPoint"] = true,
+			["AAA"] = true,
+			["NonArmoredUnits"] = true,
 			[48] = true,
+			["Ground vehicles"] = true,
+			["Air Defence"] = true,
 			[26] = true,
 			["Vehicles"] = true,
-			["AA_flak"] = true,
-			["NonArmoredUnits"] = true,
-			["All"] = true,
-			[16] = true,
-			["AAA"] = true,
-			["Rocket Attack Valid AirDefence"] = true,
 			["NonAndLightArmoredUnits"] = true,
-			["Armed Air Defence"] = true,
-			["Air Defence"] = true,
+			["AA_flak"] = true,
+			["All"] = true,
 			["Static AAA"] = true,
 			["Ground Units"] = true,
-			[2] = true,
+			["Armed Air Defence"] = true,
 		}, -- end of ["attribute"]
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [95]
-	[96] = 
+	}, -- end of [96]
+	[97] = 
 	{
 		["type"] = "ZU-23 Insurgent",
 		["name"] = "AAA ZU-23 Insurgent Emplacement",
@@ -3006,28 +3047,29 @@ dcsUnits.DcsUnitsDatabase =
 		["vehicle"] = true,
 		["attribute"] = 
 		{
-			["Ground vehicles"] = true,
-			["Vehicles"] = true,
-			[26] = true,
-			[70] = true,
-			["AA_flak"] = true,
-			["NonArmoredUnits"] = true,
-			["All"] = true,
-			[16] = true,
-			["AAA"] = true,
+			[2] = true,
 			["Rocket Attack Valid AirDefence"] = true,
-			["NonAndLightArmoredUnits"] = true,
-			["Armed Air Defence"] = true,
+			[16] = true,
+			["CustomAimPoint"] = true,
+			["AAA"] = true,
+			[70] = true,
+			["NonArmoredUnits"] = true,
+			["Ground vehicles"] = true,
 			["Air Defence"] = true,
+			[26] = true,
+			["Vehicles"] = true,
+			["NonAndLightArmoredUnits"] = true,
+			["AA_flak"] = true,
+			["All"] = true,
 			["Static AAA"] = true,
 			["Ground Units"] = true,
-			[2] = true,
+			["Armed Air Defence"] = true,
 		}, -- end of ["attribute"]
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [96]
-	[97] = 
+	}, -- end of [97]
+	[98] = 
 	{
 		["type"] = "Cow",
 		["name"] = "Cow",
@@ -3042,8 +3084,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [97]
-	[98] = 
+	}, -- end of [98]
+	[99] = 
 	{
 		["type"] = "AAV7",
 		["name"] = "APC AAV-7 Amphibious",
@@ -3073,8 +3115,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [98]
-	[99] = 
+	}, -- end of [99]
+	[100] = 
 	{
 		["type"] = "BMD-1",
 		["name"] = "IFV BMD-1",
@@ -3106,8 +3148,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [99]
-	[100] = 
+	}, -- end of [100]
+	[101] = 
 	{
 		["type"] = "BMP-1",
 		["name"] = "IFV BMP-1",
@@ -3138,8 +3180,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [100]
-	[101] = 
+	}, -- end of [101]
+	[102] = 
 	{
 		["type"] = "BMP-2",
 		["name"] = "IFV BMP-2",
@@ -3170,8 +3212,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [101]
-	[102] = 
+	}, -- end of [102]
+	[103] = 
 	{
 		["type"] = "BMP-3",
 		["name"] = "IFV BMP-3",
@@ -3203,8 +3245,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [102]
-	[103] = 
+	}, -- end of [103]
+	[104] = 
 	{
 		["type"] = "BRDM-2",
 		["name"] = "Scout BRDM-2",
@@ -3234,8 +3276,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [103]
-	[104] = 
+	}, -- end of [104]
+	[105] = 
 	{
 		["type"] = "BTR-80",
 		["name"] = "APC BTR-80",
@@ -3265,8 +3307,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [104]
-	[105] = 
+	}, -- end of [105]
+	[106] = 
 	{
 		["type"] = "BTR-82A",
 		["name"] = "IFV BTR-82A",
@@ -3296,8 +3338,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [105]
-	[106] = 
+	}, -- end of [106]
+	[107] = 
 	{
 		["type"] = "BTR_D",
 		["name"] = "APC BTR-RD",
@@ -3329,8 +3371,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [106]
-	[107] = 
+	}, -- end of [107]
+	[108] = 
 	{
 		["type"] = "Centaur_IV",
 		["name"] = "Tk Centaur IV CS",
@@ -3359,8 +3401,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [107]
-	[108] = 
+	}, -- end of [108]
+	[109] = 
 	{
 		["type"] = "Challenger2",
 		["name"] = "MBT Challenger II",
@@ -3389,8 +3431,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [108]
-	[109] = 
+	}, -- end of [109]
+	[110] = 
 	{
 		["type"] = "Chieftain_mk3",
 		["name"] = "MBT Chieftain Mk.3",
@@ -3419,8 +3461,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [109]
-	[110] = 
+	}, -- end of [110]
+	[111] = 
 	{
 		["type"] = "Churchill_VII",
 		["name"] = "Tk Churchill VII",
@@ -3449,8 +3491,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [110]
-	[111] = 
+	}, -- end of [111]
+	[112] = 
 	{
 		["type"] = "Cobra",
 		["name"] = "Scout Cobra",
@@ -3480,8 +3522,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [111]
-	[112] = 
+	}, -- end of [112]
+	[113] = 
 	{
 		["type"] = "Cromwell_IV",
 		["name"] = "Tk Cromwell IV",
@@ -3510,8 +3552,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [112]
-	[113] = 
+	}, -- end of [113]
+	[114] = 
 	{
 		["type"] = "Daimler_AC",
 		["name"] = "Car Daimler Armored",
@@ -3541,8 +3583,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [113]
-	[114] = 
+	}, -- end of [114]
+	[115] = 
 	{
 		["type"] = "Elefant_SdKfz_184",
 		["name"] = "SPG Elefant TD",
@@ -3571,8 +3613,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [114]
-	[115] = 
+	}, -- end of [115]
+	[116] = 
 	{
 		["type"] = "HL_DSHK",
 		["name"] = "Scout HL with DSHK 12.7mm",
@@ -3602,8 +3644,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [115]
-	[116] = 
+	}, -- end of [116]
+	[117] = 
 	{
 		["type"] = "HL_KORD",
 		["name"] = "Scout HL with KORD 12.7mm",
@@ -3633,8 +3675,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [116]
-	[117] = 
+	}, -- end of [117]
+	[118] = 
 	{
 		["type"] = "Jagdpanther_G1",
 		["name"] = "SPG Jagdpanther TD",
@@ -3663,8 +3705,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [117]
-	[118] = 
+	}, -- end of [118]
+	[119] = 
 	{
 		["type"] = "JagdPz_IV",
 		["name"] = "SPG Jagdpanzer IV TD",
@@ -3693,8 +3735,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [118]
-	[119] = 
+	}, -- end of [119]
+	[120] = 
 	{
 		["type"] = "LAV-25",
 		["name"] = "IFV LAV-25",
@@ -3724,8 +3766,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [119]
-	[120] = 
+	}, -- end of [120]
+	[121] = 
 	{
 		["type"] = "Leclerc",
 		["name"] = "MBT Leclerc",
@@ -3754,8 +3796,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [120]
-	[121] = 
+	}, -- end of [121]
+	[122] = 
 	{
 		["type"] = "Leopard-2",
 		["name"] = "MBT Leopard-2A6M",
@@ -3784,8 +3826,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [121]
-	[122] = 
+	}, -- end of [122]
+	[123] = 
 	{
 		["type"] = "leopard-2A4",
 		["name"] = "MBT Leopard-2A4",
@@ -3814,8 +3856,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [122]
-	[123] = 
+	}, -- end of [123]
+	[124] = 
 	{
 		["type"] = "leopard-2A4_trs",
 		["name"] = "MBT Leopard-2A4 Trs",
@@ -3844,8 +3886,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [123]
-	[124] = 
+	}, -- end of [124]
+	[125] = 
 	{
 		["type"] = "Leopard-2A5",
 		["name"] = "MBT Leopard-2A5",
@@ -3874,8 +3916,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [124]
-	[125] = 
+	}, -- end of [125]
+	[126] = 
 	{
 		["type"] = "Leopard1A3",
 		["name"] = "MBT Leopard 1A3",
@@ -3905,8 +3947,8 @@ dcsUnits.DcsUnitsDatabase =
 		{
 			[1] = "LEO1A3",
 		}, -- end of ["aliases"]
-	}, -- end of [125]
-	[126] = 
+	}, -- end of [126]
+	[127] = 
 	{
 		["type"] = "M-1 Abrams",
 		["name"] = "MBT M1A2 Abrams",
@@ -3936,8 +3978,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [126]
-	[127] = 
+	}, -- end of [127]
+	[128] = 
 	{
 		["type"] = "M-113",
 		["name"] = "APC M113",
@@ -3968,8 +4010,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [127]
-	[128] = 
+	}, -- end of [128]
+	[129] = 
 	{
 		["type"] = "M-2 Bradley",
 		["name"] = "IFV M2A2 Bradley",
@@ -4002,8 +4044,8 @@ dcsUnits.DcsUnitsDatabase =
 		{
 			[1] = "M2A2 Bradley",
 		}, -- end of ["aliases"]
-	}, -- end of [128]
-	[129] = 
+	}, -- end of [129]
+	[130] = 
 	{
 		["type"] = "M-60",
 		["name"] = "MBT M60A3 Patton",
@@ -4032,8 +4074,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [129]
-	[130] = 
+	}, -- end of [130]
+	[131] = 
 	{
 		["type"] = "M1043 HMMWV Armament",
 		["name"] = "Scout HMMWV",
@@ -4064,8 +4106,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [130]
-	[131] = 
+	}, -- end of [131]
+	[132] = 
 	{
 		["type"] = "M1045 HMMWV TOW",
 		["name"] = "ATGM HMMWV",
@@ -4097,8 +4139,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [131]
-	[132] = 
+	}, -- end of [132]
+	[133] = 
 	{
 		["type"] = "M10_GMC",
 		["name"] = "SPG M10 GMC TD",
@@ -4127,8 +4169,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [132]
-	[133] = 
+	}, -- end of [133]
+	[134] = 
 	{
 		["type"] = "M1126 Stryker ICV",
 		["name"] = "IFV M1126 Stryker ICV",
@@ -4159,8 +4201,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [133]
-	[134] = 
+	}, -- end of [134]
+	[135] = 
 	{
 		["type"] = "M1128 Stryker MGS",
 		["name"] = "SPG Stryker MGS",
@@ -4194,8 +4236,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [134]
-	[135] = 
+	}, -- end of [135]
+	[136] = 
 	{
 		["type"] = "M1134 Stryker ATGM",
 		["name"] = "ATGM Stryker",
@@ -4227,8 +4269,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [135]
-	[136] = 
+	}, -- end of [136]
+	[137] = 
 	{
 		["type"] = "M2A1_halftrack",
 		["name"] = "APC M2A1 Halftrack",
@@ -4258,8 +4300,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [136]
-	[137] = 
+	}, -- end of [137]
+	[138] = 
 	{
 		["type"] = "M4_Sherman",
 		["name"] = "Tk M4 Sherman",
@@ -4288,8 +4330,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [137]
-	[138] = 
+	}, -- end of [138]
+	[139] = 
 	{
 		["type"] = "M4_Tractor",
 		["name"] = "Tractor M4 High Speed",
@@ -4319,8 +4361,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [138]
-	[139] = 
+	}, -- end of [139]
+	[140] = 
 	{
 		["type"] = "M4A4_Sherman_FF",
 		["name"] = "Tk M4A4 Sherman Firefly",
@@ -4349,8 +4391,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [139]
-	[140] = 
+	}, -- end of [140]
+	[141] = 
 	{
 		["type"] = "M8_Greyhound",
 		["name"] = "Scout M8 Greyhound AC",
@@ -4380,8 +4422,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [140]
-	[141] = 
+	}, -- end of [141]
+	[142] = 
 	{
 		["type"] = "Marder",
 		["name"] = "IFV Marder",
@@ -4412,8 +4454,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [141]
-	[142] = 
+	}, -- end of [142]
+	[143] = 
 	{
 		["type"] = "MCV-80",
 		["name"] = "IFV Warrior ",
@@ -4443,8 +4485,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [142]
-	[143] = 
+	}, -- end of [143]
+	[144] = 
 	{
 		["type"] = "Merkava_Mk4",
 		["name"] = "MBT Merkava IV",
@@ -4474,8 +4516,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [143]
-	[144] = 
+	}, -- end of [144]
+	[145] = 
 	{
 		["type"] = "MTLB",
 		["name"] = "APC MTLB",
@@ -4506,8 +4548,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [144]
-	[145] = 
+	}, -- end of [145]
+	[146] = 
 	{
 		["type"] = "PT_76",
 		["name"] = "LT PT-76",
@@ -4536,8 +4578,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [145]
-	[146] = 
+	}, -- end of [146]
+	[147] = 
 	{
 		["type"] = "Pz_IV_H",
 		["name"] = "Tk PzIV H",
@@ -4566,8 +4608,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [146]
-	[147] = 
+	}, -- end of [147]
+	[148] = 
 	{
 		["type"] = "Pz_V_Panther_G",
 		["name"] = "Tk Panther G (Pz V)",
@@ -4596,8 +4638,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [147]
-	[148] = 
+	}, -- end of [148]
+	[149] = 
 	{
 		["type"] = "Sd_Kfz_234_2_Puma",
 		["name"] = "Scout Puma AC",
@@ -4627,8 +4669,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [148]
-	[149] = 
+	}, -- end of [149]
+	[150] = 
 	{
 		["type"] = "Sd_Kfz_251",
 		["name"] = "APC Sd.Kfz.251 Halftrack",
@@ -4658,8 +4700,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [149]
-	[150] = 
+	}, -- end of [150]
+	[151] = 
 	{
 		["type"] = "Stug_III",
 		["name"] = "SPG StuG III G AG",
@@ -4688,8 +4730,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [150]
-	[151] = 
+	}, -- end of [151]
+	[152] = 
 	{
 		["type"] = "Stug_IV",
 		["name"] = "SPG StuG IV AG",
@@ -4718,8 +4760,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [151]
-	[152] = 
+	}, -- end of [152]
+	[153] = 
 	{
 		["type"] = "SturmPzIV",
 		["name"] = "SPG Brummbaer AG",
@@ -4747,8 +4789,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [152]
-	[153] = 
+	}, -- end of [153]
+	[154] = 
 	{
 		["type"] = "T-55",
 		["name"] = "MBT T-55",
@@ -4777,8 +4819,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [153]
-	[154] = 
+	}, -- end of [154]
+	[155] = 
 	{
 		["type"] = "T-72B",
 		["name"] = "MBT T-72B",
@@ -4808,8 +4850,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [154]
-	[155] = 
+	}, -- end of [155]
+	[156] = 
 	{
 		["type"] = "T-72B3",
 		["name"] = "MBT T-72B3",
@@ -4839,8 +4881,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [155]
-	[156] = 
+	}, -- end of [156]
+	[157] = 
 	{
 		["type"] = "T-80UD",
 		["name"] = "MBT T-80U",
@@ -4869,8 +4911,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [156]
-	[157] = 
+	}, -- end of [157]
+	[158] = 
 	{
 		["type"] = "T-90",
 		["name"] = "MBT T-90",
@@ -4900,8 +4942,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [157]
-	[158] = 
+	}, -- end of [158]
+	[159] = 
 	{
 		["type"] = "Tetrarch",
 		["name"] = "Tk Tetrach",
@@ -4931,8 +4973,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [158]
-	[159] = 
+	}, -- end of [159]
+	[160] = 
 	{
 		["type"] = "Tiger_I",
 		["name"] = "Tk Tiger 1",
@@ -4961,8 +5003,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [159]
-	[160] = 
+	}, -- end of [160]
+	[161] = 
 	{
 		["type"] = "Tiger_II_H",
 		["name"] = "Tk Tiger II",
@@ -4991,8 +5033,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [160]
-	[161] = 
+	}, -- end of [161]
+	[162] = 
 	{
 		["type"] = "TPZ",
 		["name"] = "APC TPz Fuchs ",
@@ -5022,8 +5064,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [161]
-	[162] = 
+	}, -- end of [162]
+	[163] = 
 	{
 		["type"] = "tt_DSHK",
 		["name"] = "Scout LC with DSHK 12.7mm",
@@ -5053,8 +5095,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [162]
-	[163] = 
+	}, -- end of [163]
+	[164] = 
 	{
 		["type"] = "tt_KORD",
 		["name"] = "Scout LC with KORD 12.7mm",
@@ -5084,8 +5126,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [163]
-	[164] = 
+	}, -- end of [164]
+	[165] = 
 	{
 		["type"] = "TYPE-59",
 		["name"] = "MT Type 59",
@@ -5114,8 +5156,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [164]
-	[165] = 
+	}, -- end of [165]
+	[166] = 
 	{
 		["type"] = "VAB_Mephisto",
 		["name"] = "ATGM VAB Mephisto",
@@ -5147,8 +5189,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [165]
-	[166] = 
+	}, -- end of [166]
+	[167] = 
 	{
 		["type"] = "ZBD04A",
 		["name"] = "ZBD-04A",
@@ -5180,8 +5222,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [166]
-	[167] = 
+	}, -- end of [167]
+	[168] = 
 	{
 		["type"] = "ZTZ96B",
 		["name"] = "ZTZ-96B",
@@ -5211,8 +5253,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [167]
-	[168] = 
+	}, -- end of [168]
+	[169] = 
 	{
 		["type"] = "2B11 mortar",
 		["name"] = "Mortar 2B11 120mm",
@@ -5240,8 +5282,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [168]
-	[169] = 
+	}, -- end of [169]
+	[170] = 
 	{
 		["type"] = "Grad-URAL",
 		["name"] = "MLRS BM-21 Grad 122mm",
@@ -5271,8 +5313,8 @@ dcsUnits.DcsUnitsDatabase =
 		{
 			[1] = "MLRS BM-21 Grad",
 		}, -- end of ["aliases"]
-	}, -- end of [169]
-	[170] = 
+	}, -- end of [170]
+	[171] = 
 	{
 		["type"] = "Grad_FDDM",
 		["name"] = "Grad MRL FDDM (FC)",
@@ -5303,8 +5345,8 @@ dcsUnits.DcsUnitsDatabase =
 		{
 			[1] = "Boman",
 		}, -- end of ["aliases"]
-	}, -- end of [170]
-	[171] = 
+	}, -- end of [171]
+	[172] = 
 	{
 		["type"] = "HL_B8M1",
 		["name"] = "MLRS HL with B8M1 80mm",
@@ -5334,8 +5376,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [171]
-	[172] = 
+	}, -- end of [172]
+	[173] = 
 	{
 		["type"] = "LeFH_18-40-105",
 		["name"] = "FH LeFH-18 105mm",
@@ -5363,8 +5405,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [172]
-	[173] = 
+	}, -- end of [173]
+	[174] = 
 	{
 		["type"] = "M-109",
 		["name"] = "SPH M109 Paladin 155mm",
@@ -5394,8 +5436,8 @@ dcsUnits.DcsUnitsDatabase =
 		{
 			[1] = "M109",
 		}, -- end of ["aliases"]
-	}, -- end of [173]
-	[174] = 
+	}, -- end of [174]
+	[175] = 
 	{
 		["type"] = "M12_GMC",
 		["name"] = "SPH M12 GMC 155mm",
@@ -5423,8 +5465,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [174]
-	[175] = 
+	}, -- end of [175]
+	[176] = 
 	{
 		["type"] = "M2A1-105",
 		["name"] = "FH M2A1 105mm",
@@ -5452,8 +5494,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [175]
-	[176] = 
+	}, -- end of [176]
+	[177] = 
 	{
 		["type"] = "MLRS",
 		["name"] = "MLRS M270 227mm",
@@ -5484,8 +5526,8 @@ dcsUnits.DcsUnitsDatabase =
 		{
 			[1] = "M270 MLRS",
 		}, -- end of ["aliases"]
-	}, -- end of [176]
-	[177] = 
+	}, -- end of [177]
+	[178] = 
 	{
 		["type"] = "MLRS FDDM",
 		["name"] = "MRLS FDDM (FC)",
@@ -5516,8 +5558,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [177]
-	[178] = 
+	}, -- end of [178]
+	[179] = 
 	{
 		["type"] = "Pak40",
 		["name"] = "FH Pak 40 75mm",
@@ -5545,8 +5587,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [178]
-	[179] = 
+	}, -- end of [179]
+	[180] = 
 	{
 		["type"] = "PLZ05",
 		["name"] = "PLZ-05",
@@ -5574,8 +5616,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [179]
-	[180] = 
+	}, -- end of [180]
+	[181] = 
 	{
 		["type"] = "SAU 2-C9",
 		["name"] = "SPM 2S9 Nona 120mm M",
@@ -5603,8 +5645,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [180]
-	[181] = 
+	}, -- end of [181]
+	[182] = 
 	{
 		["type"] = "SAU Akatsia",
 		["name"] = "SPH 2S3 Akatsia 152mm",
@@ -5633,8 +5675,8 @@ dcsUnits.DcsUnitsDatabase =
 		{
 			[1] = "2S3 Akatsia",
 		}, -- end of ["aliases"]
-	}, -- end of [181]
-	[182] = 
+	}, -- end of [182]
+	[183] = 
 	{
 		["type"] = "SAU Gvozdika",
 		["name"] = "SPH 2S1 Gvozdika 122mm",
@@ -5662,8 +5704,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [182]
-	[183] = 
+	}, -- end of [183]
+	[184] = 
 	{
 		["type"] = "SAU Msta",
 		["name"] = "SPH 2S19 Msta 152mm",
@@ -5692,8 +5734,8 @@ dcsUnits.DcsUnitsDatabase =
 		{
 			[1] = "2S19 Msta",
 		}, -- end of ["aliases"]
-	}, -- end of [183]
-	[184] = 
+	}, -- end of [184]
+	[185] = 
 	{
 		["type"] = "Smerch",
 		["name"] = "MLRS 9A52 Smerch CM 300mm",
@@ -5722,8 +5764,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [184]
-	[185] = 
+	}, -- end of [185]
+	[186] = 
 	{
 		["type"] = "Smerch_HE",
 		["name"] = "MLRS 9A52 Smerch HE 300mm",
@@ -5752,8 +5794,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [185]
-	[186] = 
+	}, -- end of [186]
+	[187] = 
 	{
 		["type"] = "SpGH_Dana",
 		["name"] = "SPH Dana vz77 152mm",
@@ -5781,8 +5823,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [186]
-	[187] = 
+	}, -- end of [187]
+	[188] = 
 	{
 		["type"] = "T155_Firtina",
 		["name"] = "SPH T155 Firtina 155mm",
@@ -5811,8 +5853,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [187]
-	[188] = 
+	}, -- end of [188]
+	[189] = 
 	{
 		["type"] = "tt_B8M1",
 		["name"] = "MLRS LC with B8M1 80mm",
@@ -5842,8 +5884,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [188]
-	[189] = 
+	}, -- end of [189]
+	[190] = 
 	{
 		["type"] = "Uragan_BM-27",
 		["name"] = "MLRS 9K57 Uragan BM-27 220mm",
@@ -5872,8 +5914,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [189]
-	[190] = 
+	}, -- end of [190]
+	[191] = 
 	{
 		["type"] = "Wespe124",
 		["name"] = "SPH Sd.Kfz.124 Wespe 105mm",
@@ -5901,8 +5943,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [190]
-	[191] = 
+	}, -- end of [191]
+	[192] = 
 	{
 		["desc"] = 
 		{
@@ -5921,8 +5963,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [191]
-	[192] = 
+	}, -- end of [192]
+	[193] = 
 	{
 		["desc"] = 
 		{
@@ -5941,8 +5983,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [192]
-	[193] = 
+	}, -- end of [193]
+	[194] = 
 	{
 		["desc"] = 
 		{
@@ -5961,8 +6003,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [193]
-	[194] = 
+	}, -- end of [194]
+	[195] = 
 	{
 		["desc"] = 
 		{
@@ -5981,8 +6023,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [194]
-	[195] = 
+	}, -- end of [195]
+	[196] = 
 	{
 		["desc"] = 
 		{
@@ -6001,8 +6043,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [195]
-	[196] = 
+	}, -- end of [196]
+	[197] = 
 	{
 		["desc"] = 
 		{
@@ -6021,8 +6063,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [196]
-	[197] = 
+	}, -- end of [197]
+	[198] = 
 	{
 		["desc"] = 
 		{
@@ -6041,8 +6083,28 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [197]
-	[198] = 
+	}, -- end of [198]
+	[199] = 
+	{
+		["desc"] = 
+		{
+			["maxMass"] = 3500,
+			["minMass"] = 800,
+		}, -- end of ["desc"]
+		["type"] = "L118",
+		["name"] = "L118 Light Artillery Gun",
+		["category"] = "Cargo",
+		["defaultMass"] = 1260,
+		["description"] = "L118 Light Artillery Gun",
+		["attribute"] = 
+		{
+			["Cargos"] = true,
+		}, -- end of ["attribute"]
+		["aliases"] = 
+		{
+		}, -- end of ["aliases"]
+	}, -- end of [199]
+	[200] = 
 	{
 		["desc"] = 
 		{
@@ -6061,8 +6123,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [198]
-	[199] = 
+	}, -- end of [200]
+	[201] = 
 	{
 		["desc"] = 
 		{
@@ -6081,8 +6143,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [199]
-	[200] = 
+	}, -- end of [201]
+	[202] = 
 	{
 		["desc"] = 
 		{
@@ -6101,8 +6163,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [200]
-	[201] = 
+	}, -- end of [202]
+	[203] = 
 	{
 		["desc"] = 
 		{
@@ -6121,8 +6183,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [201]
-	[202] = 
+	}, -- end of [203]
+	[204] = 
 	{
 		["desc"] = 
 		{
@@ -6141,8 +6203,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [202]
-	[203] = 
+	}, -- end of [204]
+	[205] = 
 	{
 		["desc"] = 
 		{
@@ -6161,8 +6223,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [203]
-	[204] = 
+	}, -- end of [205]
+	[206] = 
 	{
 		["desc"] = 
 		{
@@ -6181,8 +6243,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [204]
-	[205] = 
+	}, -- end of [206]
+	[207] = 
 	{
 		["desc"] = 
 		{
@@ -6201,8 +6263,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [205]
-	[206] = 
+	}, -- end of [207]
+	[208] = 
 	{
 		["type"] = "Boxcartrinity",
 		["name"] = "Flatcar",
@@ -6228,8 +6290,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [206]
-	[207] = 
+	}, -- end of [208]
+	[209] = 
 	{
 		["type"] = "Coach a passenger",
 		["name"] = "Passenger Car",
@@ -6255,8 +6317,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [207]
-	[208] = 
+	}, -- end of [209]
+	[210] = 
 	{
 		["type"] = "Coach a platform",
 		["name"] = "Coach Platform",
@@ -6282,8 +6344,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [208]
-	[209] = 
+	}, -- end of [210]
+	[211] = 
 	{
 		["type"] = "Coach a tank blue",
 		["name"] = "Tank Car blue",
@@ -6309,8 +6371,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [209]
-	[210] = 
+	}, -- end of [211]
+	[212] = 
 	{
 		["type"] = "Coach a tank yellow",
 		["name"] = "Tank Car yellow",
@@ -6336,8 +6398,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [210]
-	[211] = 
+	}, -- end of [212]
+	[213] = 
 	{
 		["type"] = "Coach cargo",
 		["name"] = "Freight Van",
@@ -6363,8 +6425,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [211]
-	[212] = 
+	}, -- end of [213]
+	[214] = 
 	{
 		["type"] = "Coach cargo open",
 		["name"] = "Open Wagon",
@@ -6390,8 +6452,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [212]
-	[213] = 
+	}, -- end of [214]
+	[215] = 
 	{
 		["type"] = "DR_50Ton_Flat_Wagon",
 		["name"] = "DR 50-ton flat wagon",
@@ -6417,8 +6479,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [213]
-	[214] = 
+	}, -- end of [215]
+	[216] = 
 	{
 		["type"] = "German_covered_wagon_G10",
 		["name"] = "Wagon G10 (Germany)",
@@ -6444,8 +6506,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [214]
-	[215] = 
+	}, -- end of [216]
+	[217] = 
 	{
 		["type"] = "German_tank_wagon",
 		["name"] = "Tank Car (Germany)",
@@ -6470,8 +6532,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [215]
-	[216] = 
+	}, -- end of [217]
+	[218] = 
 	{
 		["type"] = "Tankcartrinity",
 		["name"] = "Tank Cartrinity",
@@ -6497,8 +6559,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [216]
-	[217] = 
+	}, -- end of [218]
+	[219] = 
 	{
 		["type"] = "Wellcarnsc",
 		["name"] = "Well Car",
@@ -6524,8 +6586,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [217]
-	[218] = 
+	}, -- end of [219]
+	[220] = 
 	{
 		["type"] = "big_smoke",
 		["name"] = "Big smoke",
@@ -6534,8 +6596,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [218]
-	[219] = 
+	}, -- end of [220]
+	[221] = 
 	{
 		["type"] = ".Command Center",
 		["name"] = "Command Center",
@@ -6544,13 +6606,12 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [219]
-	[220] = 
+	}, -- end of [221]
+	[222] = 
 	{
 		["type"] = "345 Excavator",
 		["name"] = "Excavator",
 		["category"] = "Fortification",
-		["isPutToWater"] = true,
 		["description"] = "Excavator",
 		["attribute"] = 
 		{
@@ -6560,8 +6621,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [220]
-	[221] = 
+	}, -- end of [222]
+	[223] = 
 	{
 		["type"] = "Airshow_Cone",
 		["name"] = "Airshow cone",
@@ -6570,8 +6631,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [221]
-	[222] = 
+	}, -- end of [223]
+	[224] = 
 	{
 		["type"] = "Airshow_Crowd",
 		["name"] = "Airshow Crowd",
@@ -6580,8 +6641,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [222]
-	[223] = 
+	}, -- end of [224]
+	[225] = 
 	{
 		["type"] = "Barracks 2",
 		["name"] = "Barracks 2",
@@ -6590,8 +6651,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [223]
-	[224] = 
+	}, -- end of [225]
+	[226] = 
 	{
 		["type"] = "Beer Bomb",
 		["name"] = "Barrel",
@@ -6605,8 +6666,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [224]
-	[225] = 
+	}, -- end of [226]
+	[227] = 
 	{
 		["type"] = "Belgian gate",
 		["name"] = "Belgian gate",
@@ -6621,13 +6682,12 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [225]
-	[226] = 
+	}, -- end of [227]
+	[228] = 
 	{
 		["type"] = "billboard_motorized",
 		["name"] = "Billboard Motorized",
 		["category"] = "Fortification",
-		["isPutToWater"] = true,
 		["description"] = "Billboard Motorized",
 		["attribute"] = 
 		{
@@ -6637,8 +6697,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [226]
-	[227] = 
+	}, -- end of [228]
+	[229] = 
 	{
 		["type"] = "Black_Tyre",
 		["name"] = "Mark Tyre Black",
@@ -6647,8 +6707,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [227]
-	[228] = 
+	}, -- end of [229]
+	[230] = 
 	{
 		["type"] = "Black_Tyre_RF",
 		["name"] = "Mark Tyre with Red Flag",
@@ -6657,8 +6717,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [228]
-	[229] = 
+	}, -- end of [230]
+	[231] = 
 	{
 		["type"] = "Black_Tyre_WF",
 		["name"] = "Mark Tyre with White Flag",
@@ -6667,8 +6727,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [229]
-	[230] = 
+	}, -- end of [231]
+	[232] = 
 	{
 		["type"] = "Boiler-house A",
 		["name"] = "Boiler-house A",
@@ -6677,8 +6737,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [230]
-	[231] = 
+	}, -- end of [232]
+	[233] = 
 	{
 		["type"] = "Bunker",
 		["name"] = "Bunker 2",
@@ -6702,8 +6762,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [231]
-	[232] = 
+	}, -- end of [233]
+	[234] = 
 	{
 		["type"] = "Cafe",
 		["name"] = "Cafe",
@@ -6712,8 +6772,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [232]
-	[233] = 
+	}, -- end of [234]
+	[235] = 
 	{
 		["type"] = "Chemical tank A",
 		["name"] = "Chemical tank A",
@@ -6722,8 +6782,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [233]
-	[234] = 
+	}, -- end of [235]
+	[236] = 
 	{
 		["type"] = "Comms tower M",
 		["name"] = "Comms tower M",
@@ -6732,8 +6792,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [234]
-	[235] = 
+	}, -- end of [236]
+	[237] = 
 	{
 		["type"] = "Concertina wire",
 		["name"] = "Concertina wire",
@@ -6747,8 +6807,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [235]
-	[236] = 
+	}, -- end of [237]
+	[238] = 
 	{
 		["type"] = "Container brown",
 		["name"] = "Container brown",
@@ -6757,8 +6817,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [236]
-	[237] = 
+	}, -- end of [238]
+	[239] = 
 	{
 		["type"] = "Container red 1",
 		["name"] = "Container red 1",
@@ -6767,8 +6827,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [237]
-	[238] = 
+	}, -- end of [239]
+	[240] = 
 	{
 		["type"] = "Container red 2",
 		["name"] = "Container red 2",
@@ -6777,8 +6837,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [238]
-	[239] = 
+	}, -- end of [240]
+	[241] = 
 	{
 		["type"] = "Container red 3",
 		["name"] = "Container red 3",
@@ -6787,8 +6847,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [239]
-	[240] = 
+	}, -- end of [241]
+	[242] = 
 	{
 		["type"] = "Container white",
 		["name"] = "Container white",
@@ -6797,8 +6857,38 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [240]
-	[241] = 
+	}, -- end of [242]
+	[243] = 
+	{
+		["type"] = "container_20ft",
+		["name"] = "Container 20ft",
+		["category"] = "Fortification",
+		["description"] = "Container 20ft",
+		["attribute"] = 
+		{
+			[5] = true,
+			[9] = true,
+		}, -- end of ["attribute"]
+		["aliases"] = 
+		{
+		}, -- end of ["aliases"]
+	}, -- end of [243]
+	[244] = 
+	{
+		["type"] = "container_40ft",
+		["name"] = "Container 40ft",
+		["category"] = "Fortification",
+		["description"] = "Container 40ft",
+		["attribute"] = 
+		{
+			[5] = true,
+			[9] = true,
+		}, -- end of ["attribute"]
+		["aliases"] = 
+		{
+		}, -- end of ["aliases"]
+	}, -- end of [244]
+	[245] = 
 	{
 		["type"] = "Czech hedgehogs 1",
 		["name"] = "Czech hedgehogs 1",
@@ -6812,8 +6902,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [241]
-	[242] = 
+	}, -- end of [245]
+	[246] = 
 	{
 		["type"] = "Czech hedgehogs 2",
 		["name"] = "Czech hedgehogs 2",
@@ -6827,8 +6917,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [242]
-	[243] = 
+	}, -- end of [246]
+	[247] = 
 	{
 		["type"] = "Dragonteeth 1",
 		["name"] = "Dragonteeth 1",
@@ -6842,8 +6932,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [243]
-	[244] = 
+	}, -- end of [247]
+	[248] = 
 	{
 		["type"] = "Dragonteeth 2",
 		["name"] = "Dragonteeth 2",
@@ -6857,8 +6947,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [244]
-	[245] = 
+	}, -- end of [248]
+	[249] = 
 	{
 		["type"] = "Dragonteeth 3",
 		["name"] = "Dragonteeth 3",
@@ -6872,8 +6962,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [245]
-	[246] = 
+	}, -- end of [249]
+	[250] = 
 	{
 		["type"] = "Dragonteeth 4",
 		["name"] = "Dragonteeth 4",
@@ -6887,8 +6977,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [246]
-	[247] = 
+	}, -- end of [250]
+	[251] = 
 	{
 		["type"] = "Dragonteeth 5",
 		["name"] = "Dragonteeth 5",
@@ -6902,8 +6992,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [247]
-	[248] = 
+	}, -- end of [251]
+	[252] = 
 	{
 		["type"] = "Electric power box",
 		["name"] = "Electric power box",
@@ -6912,8 +7002,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [248]
-	[249] = 
+	}, -- end of [252]
+	[253] = 
 	{
 		["type"] = "Farm A",
 		["name"] = "Farm A",
@@ -6922,8 +7012,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [249]
-	[250] = 
+	}, -- end of [253]
+	[254] = 
 	{
 		["type"] = "Farm B",
 		["name"] = "Farm B",
@@ -6932,8 +7022,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [250]
-	[251] = 
+	}, -- end of [254]
+	[255] = 
 	{
 		["type"] = "FARP Ammo Dump Coating",
 		["name"] = "FARP Ammo Storage",
@@ -6942,8 +7032,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [251]
-	[252] = 
+	}, -- end of [255]
+	[256] = 
 	{
 		["type"] = "FARP CP Blindage",
 		["name"] = "FARP Command Post",
@@ -6952,8 +7042,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [252]
-	[253] = 
+	}, -- end of [256]
+	[257] = 
 	{
 		["type"] = "FARP Fuel Depot",
 		["name"] = "FARP Fuel Depot",
@@ -6962,8 +7052,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [253]
-	[254] = 
+	}, -- end of [257]
+	[258] = 
 	{
 		["type"] = "FARP Tent",
 		["name"] = "FARP Tent",
@@ -6972,8 +7062,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [254]
-	[255] = 
+	}, -- end of [258]
+	[259] = 
 	{
 		["type"] = "Fire Control Bunker",
 		["name"] = "Fire control bunker",
@@ -6987,8 +7077,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [255]
-	[256] = 
+	}, -- end of [259]
+	[260] = 
 	{
 		["type"] = "fire_control",
 		["name"] = "Bunker with Fire Control Center",
@@ -7012,8 +7102,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [256]
-	[257] = 
+	}, -- end of [260]
+	[261] = 
 	{
 		["type"] = "Freya_Shelter_Brick",
 		["name"] = "Freya Shelter Brick",
@@ -7027,8 +7117,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [257]
-	[258] = 
+	}, -- end of [261]
+	[262] = 
 	{
 		["type"] = "Freya_Shelter_Concrete",
 		["name"] = "Freya Shelter Concrete",
@@ -7042,8 +7132,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [258]
-	[259] = 
+	}, -- end of [262]
+	[263] = 
 	{
 		["type"] = "Fuel tank",
 		["name"] = "Fuel tank",
@@ -7052,8 +7142,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [259]
-	[260] = 
+	}, -- end of [263]
+	[264] = 
 	{
 		["type"] = "Garage A",
 		["name"] = "Garage A",
@@ -7062,8 +7152,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [260]
-	[261] = 
+	}, -- end of [264]
+	[265] = 
 	{
 		["type"] = "Garage B",
 		["name"] = "Garage B",
@@ -7072,8 +7162,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [261]
-	[262] = 
+	}, -- end of [265]
+	[266] = 
 	{
 		["type"] = "Garage small A",
 		["name"] = "Garage small A",
@@ -7082,8 +7172,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [262]
-	[263] = 
+	}, -- end of [266]
+	[267] = 
 	{
 		["type"] = "Garage small B",
 		["name"] = "Garage small B",
@@ -7092,8 +7182,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [263]
-	[264] = 
+	}, -- end of [267]
+	[268] = 
 	{
 		["type"] = "GeneratorF",
 		["name"] = "GeneratorF",
@@ -7102,8 +7192,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [264]
-	[265] = 
+	}, -- end of [268]
+	[269] = 
 	{
 		["type"] = "Hangar A",
 		["name"] = "Hangar A",
@@ -7112,8 +7202,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [265]
-	[266] = 
+	}, -- end of [269]
+	[270] = 
 	{
 		["type"] = "Hangar B",
 		["name"] = "Hangar B",
@@ -7122,8 +7212,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [266]
-	[267] = 
+	}, -- end of [270]
+	[271] = 
 	{
 		["type"] = "Haystack 1",
 		["name"] = "Haystack 1",
@@ -7137,8 +7227,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [267]
-	[268] = 
+	}, -- end of [271]
+	[272] = 
 	{
 		["type"] = "Haystack 2",
 		["name"] = "Haystack 2",
@@ -7152,8 +7242,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [268]
-	[269] = 
+	}, -- end of [272]
+	[273] = 
 	{
 		["type"] = "Haystack 3",
 		["name"] = "Haystack 3",
@@ -7167,8 +7257,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [269]
-	[270] = 
+	}, -- end of [273]
+	[274] = 
 	{
 		["type"] = "Haystack 4",
 		["name"] = "Haystack 4",
@@ -7182,8 +7272,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [270]
-	[271] = 
+	}, -- end of [274]
+	[275] = 
 	{
 		["type"] = "Hemmkurvenhindernis",
 		["name"] = "Hemmkurvenhindernis",
@@ -7197,8 +7287,29 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [271]
-	[272] = 
+	}, -- end of [275]
+	[276] = 
+	{
+		["type"] = "Hercules_Container_Parachute_Static",
+		["name"] = "Hercules container with parachute",
+		["category"] = "Fortification",
+		["description"] = "Hercules container with parachute",
+		["attribute"] = 
+		{
+			["Fortifications"] = true,
+			["Ground Units Non Airdefence"] = true,
+			["HeavyArmoredUnits"] = true,
+			["AntiAir Armed Vehicles"] = true,
+			["Armed ground units"] = true,
+			["All"] = true,
+			[5] = true,
+			["Ground Units"] = true,
+		}, -- end of ["attribute"]
+		["aliases"] = 
+		{
+		}, -- end of ["aliases"]
+	}, -- end of [276]
+	[277] = 
 	{
 		["type"] = "house1arm",
 		["name"] = "Barracks armed",
@@ -7222,8 +7333,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [272]
-	[273] = 
+	}, -- end of [277]
+	[278] = 
 	{
 		["type"] = "house2arm",
 		["name"] = "Watch tower armed",
@@ -7247,8 +7358,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [273]
-	[274] = 
+	}, -- end of [278]
+	[279] = 
 	{
 		["type"] = "houseA_arm",
 		["name"] = "Building armed",
@@ -7271,8 +7382,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [274]
-	[275] = 
+	}, -- end of [279]
+	[280] = 
 	{
 		["type"] = "Landmine",
 		["name"] = "Landmine",
@@ -7281,8 +7392,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [275]
-	[276] = 
+	}, -- end of [280]
+	[281] = 
 	{
 		["type"] = "Log posts 1",
 		["name"] = "Log posts 1",
@@ -7297,8 +7408,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [276]
-	[277] = 
+	}, -- end of [281]
+	[282] = 
 	{
 		["type"] = "Log posts 2",
 		["name"] = "Log posts 2",
@@ -7313,8 +7424,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [277]
-	[278] = 
+	}, -- end of [282]
+	[283] = 
 	{
 		["type"] = "Log posts 3",
 		["name"] = "Log posts 3",
@@ -7329,8 +7440,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [278]
-	[279] = 
+	}, -- end of [283]
+	[284] = 
 	{
 		["type"] = "Log ramps 1",
 		["name"] = "Log ramps 1",
@@ -7345,8 +7456,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [279]
-	[280] = 
+	}, -- end of [284]
+	[285] = 
 	{
 		["type"] = "Log ramps 2",
 		["name"] = "Log ramps 2",
@@ -7361,8 +7472,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [280]
-	[281] = 
+	}, -- end of [285]
+	[286] = 
 	{
 		["type"] = "Log ramps 3",
 		["name"] = "Log ramps 3",
@@ -7377,8 +7488,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [281]
-	[282] = 
+	}, -- end of [286]
+	[287] = 
 	{
 		["type"] = "Military staff",
 		["name"] = "Military staff",
@@ -7387,82 +7498,14 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [282]
-	[283] = 
-	{
-		["type"] = "Nodding_Donkey",
-		["name"] = "Nodding Donkey",
-		["category"] = "Fortification",
-		["isPutToWater"] = true,
-		["description"] = "Nodding Donkey",
-		["attribute"] = 
-		{
-			[5] = true,
-			[9] = true,
-		}, -- end of ["attribute"]
-		["aliases"] = 
-		{
-		}, -- end of ["aliases"]
-	}, -- end of [283]
-	[284] = 
-	{
-		["type"] = "offshore WindTurbine",
-		["name"] = "offshore Wind Turbine",
-		["category"] = "Fortification",
-		["isPutToWater"] = true,
-		["description"] = "offshore Wind Turbine",
-		["attribute"] = 
-		{
-			[5] = true,
-			[9] = true,
-		}, -- end of ["attribute"]
-		["aliases"] = 
-		{
-		}, -- end of ["aliases"]
-	}, -- end of [284]
-	[285] = 
-	{
-		["type"] = "offshore WindTurbine2",
-		["name"] = "offshore Wind Turbine2",
-		["category"] = "Fortification",
-		["isPutToWater"] = true,
-		["description"] = "offshore Wind Turbine2",
-		["attribute"] = 
-		{
-			[5] = true,
-			[9] = true,
-		}, -- end of ["attribute"]
-		["aliases"] = 
-		{
-		}, -- end of ["aliases"]
-	}, -- end of [285]
-	[286] = 
-	{
-		["type"] = "Oil derrick",
-		["name"] = "Oil derrick",
-		["category"] = "Fortification",
-		["description"] = "Oil derrick",
-		["aliases"] = 
-		{
-		}, -- end of ["aliases"]
-	}, -- end of [286]
-	[287] = 
-	{
-		["type"] = "Oil platform",
-		["name"] = "Oil platform",
-		["category"] = "Fortification",
-		["description"] = "Oil platform",
-		["aliases"] = 
-		{
-		}, -- end of ["aliases"]
 	}, -- end of [287]
 	[288] = 
 	{
-		["type"] = "Orca",
-		["name"] = "Orca Whale",
+		["type"] = "Nodding_Donkey_Pump",
+		["name"] = "Nodding Donkey Pump",
 		["category"] = "Fortification",
 		["isPutToWater"] = true,
-		["description"] = "Orca Whale",
+		["description"] = "Nodding Donkey Pump",
 		["attribute"] = 
 		{
 			[5] = true,
@@ -7473,6 +7516,71 @@ dcsUnits.DcsUnitsDatabase =
 		}, -- end of ["aliases"]
 	}, -- end of [288]
 	[289] = 
+	{
+		["type"] = "offshore WindTurbine",
+		["name"] = "Offshore Wind Turbine",
+		["category"] = "Fortification",
+		["description"] = "Offshore Wind Turbine",
+		["attribute"] = 
+		{
+			[5] = true,
+			[9] = true,
+		}, -- end of ["attribute"]
+		["aliases"] = 
+		{
+		}, -- end of ["aliases"]
+	}, -- end of [289]
+	[290] = 
+	{
+		["type"] = "offshore WindTurbine2",
+		["name"] = "Offshore Wind Turbine 2",
+		["category"] = "Fortification",
+		["description"] = "Offshore Wind Turbine 2",
+		["attribute"] = 
+		{
+			[5] = true,
+			[9] = true,
+		}, -- end of ["attribute"]
+		["aliases"] = 
+		{
+		}, -- end of ["aliases"]
+	}, -- end of [290]
+	[291] = 
+	{
+		["type"] = "Oil derrick",
+		["name"] = "Oil derrick",
+		["category"] = "Fortification",
+		["description"] = "Oil derrick",
+		["aliases"] = 
+		{
+		}, -- end of ["aliases"]
+	}, -- end of [291]
+	[292] = 
+	{
+		["type"] = "Oil platform",
+		["name"] = "Oil platform",
+		["category"] = "Fortification",
+		["description"] = "Oil platform",
+		["aliases"] = 
+		{
+		}, -- end of ["aliases"]
+	}, -- end of [292]
+	[293] = 
+	{
+		["type"] = "Orca",
+		["name"] = "Orca Whale",
+		["category"] = "Fortification",
+		["description"] = "Orca Whale",
+		["attribute"] = 
+		{
+			[5] = true,
+			[9] = true,
+		}, -- end of ["attribute"]
+		["aliases"] = 
+		{
+		}, -- end of ["aliases"]
+	}, -- end of [293]
+	[294] = 
 	{
 		["type"] = "outpost",
 		["name"] = "Outpost",
@@ -7496,8 +7604,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [289]
-	[290] = 
+	}, -- end of [294]
+	[295] = 
 	{
 		["type"] = "outpost_road",
 		["name"] = "Road outpost",
@@ -7521,8 +7629,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [290]
-	[291] = 
+	}, -- end of [295]
+	[296] = 
 	{
 		["type"] = "Pump station",
 		["name"] = "Pump station",
@@ -7531,8 +7639,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [291]
-	[292] = 
+	}, -- end of [296]
+	[297] = 
 	{
 		["type"] = "Railway crossing A",
 		["name"] = "Railway crossing A",
@@ -7541,8 +7649,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [292]
-	[293] = 
+	}, -- end of [297]
+	[298] = 
 	{
 		["type"] = "Railway crossing B",
 		["name"] = "Railway crossing B",
@@ -7551,8 +7659,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [293]
-	[294] = 
+	}, -- end of [298]
+	[299] = 
 	{
 		["type"] = "Railway station",
 		["name"] = "Railway station",
@@ -7561,8 +7669,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [294]
-	[295] = 
+	}, -- end of [299]
+	[300] = 
 	{
 		["type"] = "Red_Flag",
 		["name"] = "Mark Flag Red",
@@ -7571,8 +7679,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [295]
-	[296] = 
+	}, -- end of [300]
+	[301] = 
 	{
 		["type"] = "Repair workshop",
 		["name"] = "Repair workshop",
@@ -7581,8 +7689,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [296]
-	[297] = 
+	}, -- end of [301]
+	[302] = 
 	{
 		["type"] = "Restaurant 1",
 		["name"] = "Restaurant 1",
@@ -7591,8 +7699,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [297]
-	[298] = 
+	}, -- end of [302]
+	[303] = 
 	{
 		["type"] = "Sandbox",
 		["name"] = "Bunker 1",
@@ -7616,8 +7724,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [298]
-	[299] = 
+	}, -- end of [303]
+	[304] = 
 	{
 		["type"] = "Shelter",
 		["name"] = "Shelter",
@@ -7626,8 +7734,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [299]
-	[300] = 
+	}, -- end of [304]
+	[305] = 
 	{
 		["type"] = "Shelter B",
 		["name"] = "Shelter B",
@@ -7636,8 +7744,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [300]
-	[301] = 
+	}, -- end of [305]
+	[306] = 
 	{
 		["type"] = "Shop",
 		["name"] = "Shop",
@@ -7646,8 +7754,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [301]
-	[302] = 
+	}, -- end of [306]
+	[307] = 
 	{
 		["type"] = "Siegfried Line",
 		["name"] = "Siegfried line",
@@ -7661,8 +7769,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [302]
-	[303] = 
+	}, -- end of [307]
+	[308] = 
 	{
 		["type"] = "SK_C_28_naval_gun",
 		["name"] = "Gun 15cm SK C/28 Naval in Bunker",
@@ -7693,24 +7801,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [303]
-	[304] = 
-	{
-		["type"] = "Ski Ramp",
-		["name"] = "Skiramp",
-		["category"] = "Fortification",
-		["isPutToWater"] = true,
-		["description"] = "Skiramp",
-		["attribute"] = 
-		{
-			[5] = true,
-			[9] = true,
-		}, -- end of ["attribute"]
-		["aliases"] = 
-		{
-		}, -- end of ["aliases"]
-	}, -- end of [304]
-	[305] = 
+	}, -- end of [308]
+	[309] = 
 	{
 		["type"] = "Small house 1A",
 		["name"] = "Small house 1A",
@@ -7719,8 +7811,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [305]
-	[306] = 
+	}, -- end of [309]
+	[310] = 
 	{
 		["type"] = "Small house 1A area",
 		["name"] = "Small house 1A area",
@@ -7729,8 +7821,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [306]
-	[307] = 
+	}, -- end of [310]
+	[311] = 
 	{
 		["type"] = "Small house 1B",
 		["name"] = "Small house 1B",
@@ -7739,8 +7831,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [307]
-	[308] = 
+	}, -- end of [311]
+	[312] = 
 	{
 		["type"] = "Small house 1B area",
 		["name"] = "Small house 1B area",
@@ -7749,8 +7841,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [308]
-	[309] = 
+	}, -- end of [312]
+	[313] = 
 	{
 		["type"] = "Small house 1C area",
 		["name"] = "Small house 1C area",
@@ -7759,8 +7851,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [309]
-	[310] = 
+	}, -- end of [313]
+	[314] = 
 	{
 		["type"] = "Small house 2C",
 		["name"] = "Small house 2C",
@@ -7769,8 +7861,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [310]
-	[311] = 
+	}, -- end of [314]
+	[315] = 
 	{
 		["type"] = "Small werehouse 1",
 		["name"] = "Small warehouse 1",
@@ -7779,8 +7871,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [311]
-	[312] = 
+	}, -- end of [315]
+	[316] = 
 	{
 		["type"] = "Small werehouse 2",
 		["name"] = "Small warehouse 2",
@@ -7789,8 +7881,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [312]
-	[313] = 
+	}, -- end of [316]
+	[317] = 
 	{
 		["type"] = "Small werehouse 3",
 		["name"] = "Small warehouse 3",
@@ -7799,8 +7891,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [313]
-	[314] = 
+	}, -- end of [317]
+	[318] = 
 	{
 		["type"] = "Small werehouse 4",
 		["name"] = "Small warehouse 4",
@@ -7809,8 +7901,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [314]
-	[315] = 
+	}, -- end of [318]
+	[319] = 
 	{
 		["type"] = "Small_LightHouse",
 		["name"] = "Small_LightHouse",
@@ -7825,8 +7917,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [315]
-	[316] = 
+	}, -- end of [319]
+	[320] = 
 	{
 		["type"] = "Stanley_LightHouse",
 		["name"] = "Stanley LightHouse",
@@ -7841,8 +7933,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [316]
-	[317] = 
+	}, -- end of [320]
+	[321] = 
 	{
 		["type"] = "Subsidiary structure 1",
 		["name"] = "Subsidiary structure 1",
@@ -7851,8 +7943,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [317]
-	[318] = 
+	}, -- end of [321]
+	[322] = 
 	{
 		["type"] = "Subsidiary structure 2",
 		["name"] = "Subsidiary structure 2",
@@ -7861,8 +7953,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [318]
-	[319] = 
+	}, -- end of [322]
+	[323] = 
 	{
 		["type"] = "Subsidiary structure 3",
 		["name"] = "Subsidiary structure 3",
@@ -7871,8 +7963,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [319]
-	[320] = 
+	}, -- end of [323]
+	[324] = 
 	{
 		["type"] = "Subsidiary structure A",
 		["name"] = "Subsidiary structure A",
@@ -7881,8 +7973,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [320]
-	[321] = 
+	}, -- end of [324]
+	[325] = 
 	{
 		["type"] = "Subsidiary structure B",
 		["name"] = "Subsidiary structure B",
@@ -7891,8 +7983,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [321]
-	[322] = 
+	}, -- end of [325]
+	[326] = 
 	{
 		["type"] = "Subsidiary structure C",
 		["name"] = "Subsidiary structure C",
@@ -7901,8 +7993,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [322]
-	[323] = 
+	}, -- end of [326]
+	[327] = 
 	{
 		["type"] = "Subsidiary structure D",
 		["name"] = "Subsidiary structure D",
@@ -7911,8 +8003,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [323]
-	[324] = 
+	}, -- end of [327]
+	[328] = 
 	{
 		["type"] = "Subsidiary structure E",
 		["name"] = "Subsidiary structure E",
@@ -7921,8 +8013,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [324]
-	[325] = 
+	}, -- end of [328]
+	[329] = 
 	{
 		["type"] = "Subsidiary structure F",
 		["name"] = "Subsidiary structure F",
@@ -7931,8 +8023,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [325]
-	[326] = 
+	}, -- end of [329]
+	[330] = 
 	{
 		["type"] = "Subsidiary structure G",
 		["name"] = "Subsidiary structure G",
@@ -7941,8 +8033,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [326]
-	[327] = 
+	}, -- end of [330]
+	[331] = 
 	{
 		["type"] = "Supermarket A",
 		["name"] = "Supermarket A",
@@ -7951,8 +8043,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [327]
-	[328] = 
+	}, -- end of [331]
+	[332] = 
 	{
 		["type"] = "TACAN_beacon",
 		["name"] = "Beacon TACAN Portable TTS 3030",
@@ -7976,8 +8068,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [328]
-	[329] = 
+	}, -- end of [332]
+	[333] = 
 	{
 		["type"] = "Tech combine",
 		["name"] = "Tech combine",
@@ -7986,8 +8078,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [329]
-	[330] = 
+	}, -- end of [333]
+	[334] = 
 	{
 		["type"] = "Tech hangar A",
 		["name"] = "Tech hangar A",
@@ -7996,8 +8088,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [330]
-	[331] = 
+	}, -- end of [334]
+	[335] = 
 	{
 		["type"] = "Tetrahydra",
 		["name"] = "Tetrahydra",
@@ -8011,8 +8103,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [331]
-	[332] = 
+	}, -- end of [335]
+	[336] = 
 	{
 		["type"] = "Tower Crane",
 		["name"] = "TowerCrane",
@@ -8027,8 +8119,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [332]
-	[333] = 
+	}, -- end of [336]
+	[337] = 
 	{
 		["type"] = "TV tower",
 		["name"] = "TV tower",
@@ -8037,8 +8129,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [333]
-	[334] = 
+	}, -- end of [337]
+	[338] = 
 	{
 		["type"] = "warning_board_a",
 		["name"] = "Warning Board: Spy Cannot Escape!",
@@ -8052,8 +8144,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [334]
-	[335] = 
+	}, -- end of [338]
+	[339] = 
 	{
 		["type"] = "warning_board_b",
 		["name"] = "Warning Board: Catch Spy!",
@@ -8067,8 +8159,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [335]
-	[336] = 
+	}, -- end of [339]
+	[340] = 
 	{
 		["type"] = "Water tower A",
 		["name"] = "Water tower A",
@@ -8077,8 +8169,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [336]
-	[337] = 
+	}, -- end of [340]
+	[341] = 
 	{
 		["type"] = "WC",
 		["name"] = "WC",
@@ -8087,8 +8179,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [337]
-	[338] = 
+	}, -- end of [341]
+	[342] = 
 	{
 		["type"] = "White_Flag",
 		["name"] = "Mark Flag White",
@@ -8097,8 +8189,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [338]
-	[339] = 
+	}, -- end of [342]
+	[343] = 
 	{
 		["type"] = "White_Tyre",
 		["name"] = "Mark Tyre White",
@@ -8107,8 +8199,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [339]
-	[340] = 
+	}, -- end of [343]
+	[344] = 
 	{
 		["type"] = "Windsock",
 		["name"] = "Windsock",
@@ -8117,13 +8209,12 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [340]
-	[341] = 
+	}, -- end of [344]
+	[345] = 
 	{
 		["type"] = "WindTurbine",
 		["name"] = "Wind Turbine",
 		["category"] = "Fortification",
-		["isPutToWater"] = true,
 		["description"] = "Wind Turbine",
 		["attribute"] = 
 		{
@@ -8133,14 +8224,13 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [341]
-	[342] = 
+	}, -- end of [345]
+	[346] = 
 	{
 		["type"] = "WindTurbine_11",
-		["name"] = "Wind Turbine 11",
+		["name"] = "Wind Turbine 2",
 		["category"] = "Fortification",
-		["isPutToWater"] = true,
-		["description"] = "Wind Turbine 11",
+		["description"] = "Wind Turbine 2",
 		["attribute"] = 
 		{
 			[5] = true,
@@ -8149,8 +8239,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [342]
-	[343] = 
+	}, -- end of [346]
+	[347] = 
 	{
 		["type"] = "Workshop A",
 		["name"] = "Workshop A",
@@ -8159,8 +8249,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [343]
-	[344] = 
+	}, -- end of [347]
+	[348] = 
 	{
 		["type"] = "GrassAirfield",
 		["name"] = "Grass Airfield",
@@ -8169,8 +8259,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [344]
-	[345] = 
+	}, -- end of [348]
+	[349] = 
 	{
 		["type"] = "Bridge",
 		["name"] = "Bridge",
@@ -8179,8 +8269,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [345]
-	[346] = 
+	}, -- end of [349]
+	[350] = 
 	{
 		["type"] = "Building",
 		["name"] = "Building",
@@ -8189,8 +8279,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [346]
-	[347] = 
+	}, -- end of [350]
+	[351] = 
 	{
 		["type"] = "Train",
 		["name"] = "Train",
@@ -8199,8 +8289,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [347]
-	[348] = 
+	}, -- end of [351]
+	[352] = 
 	{
 		["type"] = "Transport",
 		["name"] = "Transport",
@@ -8209,8 +8299,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [348]
-	[349] = 
+	}, -- end of [352]
+	[353] = 
 	{
 		["air"] = true,
 		["type"] = "AH-1W",
@@ -8233,8 +8323,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [349]
-	[350] = 
+	}, -- end of [353]
+	[354] = 
 	{
 		["air"] = true,
 		["type"] = "AH-64A",
@@ -8257,8 +8347,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [350]
-	[351] = 
+	}, -- end of [354]
+	[355] = 
 	{
 		["air"] = true,
 		["type"] = "AH-64D",
@@ -8281,8 +8371,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [351]
-	[352] = 
+	}, -- end of [355]
+	[356] = 
 	{
 		["air"] = true,
 		["type"] = "AH-64D_BLK_II",
@@ -8305,8 +8395,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [352]
-	[353] = 
+	}, -- end of [356]
+	[357] = 
 	{
 		["air"] = true,
 		["type"] = "CH-47D",
@@ -8329,8 +8419,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [353]
-	[354] = 
+	}, -- end of [357]
+	[358] = 
 	{
 		["air"] = true,
 		["type"] = "CH-53E",
@@ -8353,8 +8443,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [354]
-	[355] = 
+	}, -- end of [358]
+	[359] = 
 	{
 		["air"] = true,
 		["type"] = "Ka-27",
@@ -8377,8 +8467,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [355]
-	[356] = 
+	}, -- end of [359]
+	[360] = 
 	{
 		["air"] = true,
 		["type"] = "Ka-50",
@@ -8401,8 +8491,32 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [356]
-	[357] = 
+	}, -- end of [360]
+	[361] = 
+	{
+		["air"] = true,
+		["type"] = "Ka-50_3",
+		["name"] = "Ka-50 III",
+		["category"] = "Helicopter",
+		["description"] = "Ka-50 III",
+		["attribute"] = 
+		{
+			[1] = true,
+			[2] = true,
+			[6] = true,
+			[326] = true,
+			["NonAndLightArmoredUnits"] = true,
+			["Air"] = true,
+			["NonArmoredUnits"] = true,
+			["All"] = true,
+			["Helicopters"] = true,
+			["Attack helicopters"] = true,
+		}, -- end of ["attribute"]
+		["aliases"] = 
+		{
+		}, -- end of ["aliases"]
+	}, -- end of [361]
+	[362] = 
 	{
 		["air"] = true,
 		["type"] = "Mi-24P",
@@ -8425,8 +8539,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [357]
-	[358] = 
+	}, -- end of [362]
+	[363] = 
 	{
 		["air"] = true,
 		["type"] = "Mi-24V",
@@ -8449,8 +8563,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [358]
-	[359] = 
+	}, -- end of [363]
+	[364] = 
 	{
 		["air"] = true,
 		["type"] = "Mi-26",
@@ -8473,8 +8587,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [359]
-	[360] = 
+	}, -- end of [364]
+	[365] = 
 	{
 		["air"] = true,
 		["type"] = "Mi-28N",
@@ -8497,8 +8611,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [360]
-	[361] = 
+	}, -- end of [365]
+	[366] = 
 	{
 		["air"] = true,
 		["type"] = "Mi-8MT",
@@ -8521,8 +8635,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [361]
-	[362] = 
+	}, -- end of [366]
+	[367] = 
 	{
 		["air"] = true,
 		["type"] = "OH-58D",
@@ -8545,8 +8659,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [362]
-	[363] = 
+	}, -- end of [367]
+	[368] = 
 	{
 		["air"] = true,
 		["type"] = "SA342L",
@@ -8569,8 +8683,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [363]
-	[364] = 
+	}, -- end of [368]
+	[369] = 
 	{
 		["air"] = true,
 		["type"] = "SA342M",
@@ -8593,8 +8707,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [364]
-	[365] = 
+	}, -- end of [369]
+	[370] = 
 	{
 		["air"] = true,
 		["type"] = "SA342Minigun",
@@ -8617,8 +8731,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [365]
-	[366] = 
+	}, -- end of [370]
+	[371] = 
 	{
 		["air"] = true,
 		["type"] = "SA342Mistral",
@@ -8641,8 +8755,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [366]
-	[367] = 
+	}, -- end of [371]
+	[372] = 
 	{
 		["air"] = true,
 		["type"] = "SH-3W",
@@ -8665,8 +8779,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [367]
-	[368] = 
+	}, -- end of [372]
+	[373] = 
 	{
 		["air"] = true,
 		["type"] = "SH-60B",
@@ -8689,8 +8803,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [368]
-	[369] = 
+	}, -- end of [373]
+	[374] = 
 	{
 		["air"] = true,
 		["type"] = "UH-1H",
@@ -8713,8 +8827,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [369]
-	[370] = 
+	}, -- end of [374]
+	[375] = 
 	{
 		["air"] = true,
 		["type"] = "UH-60A",
@@ -8737,8 +8851,33 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [370]
-	[371] = 
+	}, -- end of [375]
+	[376] = 
+	{
+		["air"] = true,
+		["type"] = "UH-60L",
+		["name"] = "UH-60L",
+		["category"] = "Helicopter",
+		["description"] = "UH-60L",
+		["attribute"] = 
+		{
+			[1] = true,
+			[2] = true,
+			["Air"] = true,
+			["Refuelable"] = true,
+			["Helicopters"] = true,
+			[330] = true,
+			[6] = true,
+			["NonAndLightArmoredUnits"] = true,
+			["All"] = true,
+			["NonArmoredUnits"] = true,
+			["Attack helicopters"] = true,
+		}, -- end of ["attribute"]
+		["aliases"] = 
+		{
+		}, -- end of ["aliases"]
+	}, -- end of [376]
+	[377] = 
 	{
 		["type"] = "FARP",
 		["name"] = "FARP",
@@ -8748,8 +8887,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [371]
-	[372] = 
+	}, -- end of [377]
+	[378] = 
 	{
 		["type"] = "FARP_SINGLE_01",
 		["name"] = "PAD Single",
@@ -8764,8 +8903,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [372]
-	[373] = 
+	}, -- end of [378]
+	[379] = 
 	{
 		["type"] = "Gas platform",
 		["name"] = "Gas platform",
@@ -8780,8 +8919,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [373]
-	[374] = 
+	}, -- end of [379]
+	[380] = 
 	{
 		["type"] = "Invisible FARP",
 		["name"] = "Invisible FARP",
@@ -8795,8 +8934,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [374]
-	[375] = 
+	}, -- end of [380]
+	[381] = 
 	{
 		["type"] = "Oil rig",
 		["name"] = "Oil rig",
@@ -8811,8 +8950,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [375]
-	[376] = 
+	}, -- end of [381]
+	[382] = 
 	{
 		["type"] = "SINGLE_HELIPAD",
 		["name"] = "Helipad Single",
@@ -8822,8 +8961,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [376]
-	[377] = 
+	}, -- end of [382]
+	[383] = 
 	{
 		["type"] = "Infantry AK",
 		["name"] = "Infantry AK-74 Rus ver1",
@@ -8850,8 +8989,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [377]
-	[378] = 
+	}, -- end of [383]
+	[384] = 
 	{
 		["type"] = "Infantry AK Ins",
 		["name"] = "Insurgent AK-74",
@@ -8878,8 +9017,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [378]
-	[379] = 
+	}, -- end of [384]
+	[385] = 
 	{
 		["type"] = "Infantry AK ver2",
 		["name"] = "Infantry AK-74 Rus ver2",
@@ -8906,8 +9045,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [379]
-	[380] = 
+	}, -- end of [385]
+	[386] = 
 	{
 		["type"] = "Infantry AK ver3",
 		["name"] = "Infantry AK-74 Rus ver3",
@@ -8934,8 +9073,60 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [380]
-	[381] = 
+	}, -- end of [386]
+	[387] = 
+	{
+		["type"] = "Infantry Animated",
+		["name"] = "Infantry",
+		["category"] = "Infantry",
+		["infantry"] = true,
+		["description"] = "Infantry",
+		["attribute"] = 
+		{
+			["Infantry"] = true,
+			[26] = true,
+			[2] = true,
+			["CustomAimPoint"] = true,
+			[90] = true,
+			["NonArmoredUnits"] = true,
+			["NonAndLightArmoredUnits"] = true,
+			["Ground Units Non Airdefence"] = true,
+			["Armed ground units"] = true,
+			["All"] = true,
+			["Ground Units"] = true,
+			[17] = true,
+		}, -- end of ["attribute"]
+		["aliases"] = 
+		{
+		}, -- end of ["aliases"]
+	}, -- end of [387]
+	[388] = 
+	{
+		["type"] = "JTAC",
+		["name"] = "JTAC",
+		["category"] = "Infantry",
+		["infantry"] = true,
+		["description"] = "JTAC",
+		["attribute"] = 
+		{
+			["Infantry"] = true,
+			[27] = true,
+			[2] = true,
+			["CustomAimPoint"] = true,
+			[16] = true,
+			[90] = true,
+			["NonAndLightArmoredUnits"] = true,
+			["NonArmoredUnits"] = true,
+			["Armed ground units"] = true,
+			["All"] = true,
+			["Ground Units"] = true,
+			["Ground Units Non Airdefence"] = true,
+		}, -- end of ["attribute"]
+		["aliases"] = 
+		{
+		}, -- end of ["aliases"]
+	}, -- end of [388]
+	[389] = 
 	{
 		["type"] = "Paratrooper AKS-74",
 		["name"] = "Paratrooper AKS",
@@ -8960,8 +9151,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [381]
-	[382] = 
+	}, -- end of [389]
+	[390] = 
 	{
 		["type"] = "Paratrooper RPG-16",
 		["name"] = "Paratrooper RPG-16",
@@ -8986,8 +9177,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [382]
-	[383] = 
+	}, -- end of [390]
+	[391] = 
 	{
 		["type"] = "Soldier AK",
 		["name"] = "Infantry AK-74",
@@ -9012,8 +9203,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [383]
-	[384] = 
+	}, -- end of [391]
+	[392] = 
 	{
 		["type"] = "Soldier M249",
 		["name"] = "Infantry M249",
@@ -9039,8 +9230,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [384]
-	[385] = 
+	}, -- end of [392]
+	[393] = 
 	{
 		["type"] = "Soldier M4",
 		["name"] = "Infantry M4",
@@ -9065,8 +9256,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [385]
-	[386] = 
+	}, -- end of [393]
+	[394] = 
 	{
 		["type"] = "Soldier M4 GRG",
 		["name"] = "Infantry M4 Georgia",
@@ -9092,8 +9283,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [386]
-	[387] = 
+	}, -- end of [394]
+	[395] = 
 	{
 		["type"] = "Soldier RPG",
 		["name"] = "Infantry RPG",
@@ -9118,8 +9309,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [387]
-	[388] = 
+	}, -- end of [395]
+	[396] = 
 	{
 		["type"] = "soldier_mauser98",
 		["name"] = "Infantry Mauser 98",
@@ -9146,8 +9337,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [388]
-	[389] = 
+	}, -- end of [396]
+	[397] = 
 	{
 		["type"] = "soldier_wwii_br_01",
 		["name"] = "Infantry SMLE No.4 Mk-1",
@@ -9174,8 +9365,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [389]
-	[390] = 
+	}, -- end of [397]
+	[398] = 
 	{
 		["type"] = "soldier_wwii_us",
 		["name"] = "Infantry M1 Garand",
@@ -9202,8 +9393,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [390]
-	[391] = 
+	}, -- end of [398]
+	[399] = 
 	{
 		["type"] = "DRG_Class_86",
 		["name"] = "Loco DRG Class 86",
@@ -9229,8 +9420,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [391]
-	[392] = 
+	}, -- end of [399]
+	[400] = 
 	{
 		["type"] = "Electric locomotive",
 		["name"] = "Loco VL80 Electric",
@@ -9255,8 +9446,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [392]
-	[393] = 
+	}, -- end of [400]
+	[401] = 
 	{
 		["type"] = "ES44AH",
 		["name"] = "Loco ES44AH",
@@ -9282,8 +9473,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [393]
-	[394] = 
+	}, -- end of [401]
+	[402] = 
 	{
 		["type"] = "Locomotive",
 		["name"] = "Loco CHME3T",
@@ -9309,8 +9500,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [394]
-	[395] = 
+	}, -- end of [402]
+	[403] = 
 	{
 		["type"] = "hy_launcher",
 		["name"] = "AShM SS-N-2 Silkworm",
@@ -9322,7 +9513,7 @@ dcsUnits.DcsUnitsDatabase =
 			["Artillery"] = true,
 			["Ground Units Non Airdefence"] = true,
 			["Vehicles"] = true,
-			[37] = true,
+			[27] = true,
 			[2] = true,
 			["LightArmoredUnits"] = true,
 			["NonAndLightArmoredUnits"] = true,
@@ -9334,13 +9525,13 @@ dcsUnits.DcsUnitsDatabase =
 			["Armed ground units"] = true,
 			["All"] = true,
 			["Ground Units"] = true,
-			[27] = true,
+			[339] = true,
 		}, -- end of ["attribute"]
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [395]
-	[396] = 
+	}, -- end of [403]
+	[404] = 
 	{
 		["type"] = "Scud_B",
 		["name"] = "SSM SS-1C Scud-B",
@@ -9370,8 +9561,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [396]
-	[397] = 
+	}, -- end of [404]
+	[405] = 
 	{
 		["type"] = "Silkworm_SR",
 		["name"] = "AShM Silkworm SR",
@@ -9400,8 +9591,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [397]
-	[398] = 
+	}, -- end of [405]
+	[406] = 
 	{
 		["type"] = "v1_launcher",
 		["name"] = "V-1 Launch Ramp",
@@ -9430,8 +9621,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [398]
-	[399] = 
+	}, -- end of [406]
+	[407] = 
 	{
 		["type"] = "Carrier Airboss",
 		["name"] = "Carrier Airboss",
@@ -9445,8 +9636,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [399]
-	[400] = 
+	}, -- end of [407]
+	[408] = 
 	{
 		["type"] = "Carrier LSO Personell",
 		["name"] = "Carrier LSO 1",
@@ -9460,8 +9651,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [400]
-	[401] = 
+	}, -- end of [408]
+	[409] = 
 	{
 		["type"] = "Carrier LSO Personell 1",
 		["name"] = "Carrier LSO 2",
@@ -9475,8 +9666,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [401]
-	[402] = 
+	}, -- end of [409]
+	[410] = 
 	{
 		["type"] = "Carrier LSO Personell 2",
 		["name"] = "Carrier LSO 3",
@@ -9490,8 +9681,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [402]
-	[403] = 
+	}, -- end of [410]
+	[411] = 
 	{
 		["type"] = "Carrier LSO Personell 3",
 		["name"] = "Carrier LSO 4",
@@ -9505,8 +9696,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [403]
-	[404] = 
+	}, -- end of [411]
+	[412] = 
 	{
 		["type"] = "Carrier LSO Personell 4",
 		["name"] = "Carrier LSO 5",
@@ -9520,8 +9711,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [404]
-	[405] = 
+	}, -- end of [412]
+	[413] = 
 	{
 		["type"] = "Carrier LSO Personell 5",
 		["name"] = "Carrier LSO 6",
@@ -9535,8 +9726,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [405]
-	[406] = 
+	}, -- end of [413]
+	[414] = 
 	{
 		["type"] = "Carrier Seaman",
 		["name"] = "Carrier Seaman",
@@ -9550,8 +9741,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [406]
-	[407] = 
+	}, -- end of [414]
+	[415] = 
 	{
 		["type"] = "us carrier shooter",
 		["name"] = "Carrier Shooter",
@@ -9565,8 +9756,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [407]
-	[408] = 
+	}, -- end of [415]
+	[416] = 
 	{
 		["type"] = "us carrier tech",
 		["name"] = "Carrier Technician",
@@ -9580,8 +9771,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [408]
-	[409] = 
+	}, -- end of [416]
+	[417] = 
 	{
 		["air"] = true,
 		["type"] = "A-10A",
@@ -9605,8 +9796,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [409]
-	[410] = 
+	}, -- end of [417]
+	[418] = 
 	{
 		["air"] = true,
 		["type"] = "A-10C",
@@ -9632,8 +9823,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [410]
-	[411] = 
+	}, -- end of [418]
+	[419] = 
 	{
 		["air"] = true,
 		["type"] = "A-10C_2",
@@ -9659,8 +9850,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [411]
-	[412] = 
+	}, -- end of [419]
+	[420] = 
 	{
 		["air"] = true,
 		["type"] = "A-20G",
@@ -9684,8 +9875,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [412]
-	[413] = 
+	}, -- end of [420]
+	[421] = 
 	{
 		["air"] = true,
 		["type"] = "A-4E-C",
@@ -9696,20 +9887,20 @@ dcsUnits.DcsUnitsDatabase =
 		{
 			[1] = true,
 			["Air"] = true,
-			[324] = true,
+			["Refuelable"] = true,
 			["Multirole fighters"] = true,
 			["Battle airplanes"] = true,
 			["NonAndLightArmoredUnits"] = true,
 			["Planes"] = true,
 			["All"] = true,
+			[327] = true,
 			["NonArmoredUnits"] = true,
-			["Refuelable"] = true,
 		}, -- end of ["attribute"]
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [413]
-	[414] = 
+	}, -- end of [421]
+	[422] = 
 	{
 		["air"] = true,
 		["type"] = "A-50",
@@ -9732,8 +9923,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [414]
-	[415] = 
+	}, -- end of [422]
+	[423] = 
 	{
 		["air"] = true,
 		["type"] = "AJS37",
@@ -9755,8 +9946,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [415]
-	[416] = 
+	}, -- end of [423]
+	[424] = 
 	{
 		["air"] = true,
 		["type"] = "An-26B",
@@ -9778,8 +9969,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [416]
-	[417] = 
+	}, -- end of [424]
+	[425] = 
 	{
 		["air"] = true,
 		["type"] = "An-30M",
@@ -9801,8 +9992,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [417]
-	[418] = 
+	}, -- end of [425]
+	[426] = 
 	{
 		["air"] = true,
 		["type"] = "AV8BNA",
@@ -9826,8 +10017,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [418]
-	[419] = 
+	}, -- end of [426]
+	[427] = 
 	{
 		["air"] = true,
 		["type"] = "B-17G",
@@ -9851,8 +10042,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [419]
-	[420] = 
+	}, -- end of [427]
+	[428] = 
 	{
 		["air"] = true,
 		["type"] = "B-1B",
@@ -9879,8 +10070,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [420]
-	[421] = 
+	}, -- end of [428]
+	[429] = 
 	{
 		["air"] = true,
 		["type"] = "B-52H",
@@ -9907,8 +10098,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [421]
-	[422] = 
+	}, -- end of [429]
+	[430] = 
 	{
 		["air"] = true,
 		["type"] = "Bf-109K-4",
@@ -9930,8 +10121,31 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [422]
-	[423] = 
+	}, -- end of [430]
+	[431] = 
+	{
+		["air"] = true,
+		["type"] = "Bronco-OV-10A",
+		["name"] = "Bronco-OV-10A",
+		["category"] = "Plane",
+		["description"] = "Bronco-OV-10A",
+		["attribute"] = 
+		{
+			[1] = true,
+			["Air"] = true,
+			["Battle airplanes"] = true,
+			["NonAndLightArmoredUnits"] = true,
+			["Battleplanes"] = true,
+			["NonArmoredUnits"] = true,
+			["All"] = true,
+			["Planes"] = true,
+			[328] = true,
+		}, -- end of ["attribute"]
+		["aliases"] = 
+		{
+		}, -- end of ["aliases"]
+	}, -- end of [431]
+	[432] = 
 	{
 		["air"] = true,
 		["type"] = "C-101CC",
@@ -9954,8 +10168,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [423]
-	[424] = 
+	}, -- end of [432]
+	[433] = 
 	{
 		["air"] = true,
 		["type"] = "C-101EB",
@@ -9978,8 +10192,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [424]
-	[425] = 
+	}, -- end of [433]
+	[434] = 
 	{
 		["air"] = true,
 		["type"] = "C-130",
@@ -10001,8 +10215,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [425]
-	[426] = 
+	}, -- end of [434]
+	[435] = 
 	{
 		["air"] = true,
 		["type"] = "C-17A",
@@ -10025,8 +10239,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [426]
-	[427] = 
+	}, -- end of [435]
+	[436] = 
 	{
 		["air"] = true,
 		["type"] = "C-47",
@@ -10048,8 +10262,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [427]
-	[428] = 
+	}, -- end of [436]
+	[437] = 
 	{
 		["air"] = true,
 		["type"] = "Christen Eagle II",
@@ -10071,8 +10285,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [428]
-	[429] = 
+	}, -- end of [437]
+	[438] = 
 	{
 		["air"] = true,
 		["type"] = "E-2C",
@@ -10096,8 +10310,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [429]
-	[430] = 
+	}, -- end of [438]
+	[439] = 
 	{
 		["air"] = true,
 		["type"] = "E-3A",
@@ -10122,8 +10336,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [430]
-	[431] = 
+	}, -- end of [439]
+	[440] = 
 	{
 		["air"] = true,
 		["type"] = "F-117A",
@@ -10147,8 +10361,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [431]
-	[432] = 
+	}, -- end of [440]
+	[441] = 
 	{
 		["air"] = true,
 		["type"] = "F-14A",
@@ -10171,8 +10385,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [432]
-	[433] = 
+	}, -- end of [441]
+	[442] = 
 	{
 		["air"] = true,
 		["type"] = "F-14A-135-GR",
@@ -10196,8 +10410,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [433]
-	[434] = 
+	}, -- end of [442]
+	[443] = 
 	{
 		["air"] = true,
 		["type"] = "F-14B",
@@ -10221,8 +10435,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [434]
-	[435] = 
+	}, -- end of [443]
+	[444] = 
 	{
 		["air"] = true,
 		["type"] = "F-15C",
@@ -10247,8 +10461,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [435]
-	[436] = 
+	}, -- end of [444]
+	[445] = 
 	{
 		["air"] = true,
 		["type"] = "F-15E",
@@ -10273,8 +10487,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [436]
-	[437] = 
+	}, -- end of [445]
+	[446] = 
 	{
 		["air"] = true,
 		["type"] = "F-16A",
@@ -10297,8 +10511,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [437]
-	[438] = 
+	}, -- end of [446]
+	[447] = 
 	{
 		["air"] = true,
 		["type"] = "F-16A MLU",
@@ -10321,8 +10535,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [438]
-	[439] = 
+	}, -- end of [447]
+	[448] = 
 	{
 		["air"] = true,
 		["type"] = "F-16C bl.50",
@@ -10347,8 +10561,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [439]
-	[440] = 
+	}, -- end of [448]
+	[449] = 
 	{
 		["air"] = true,
 		["type"] = "F-16C bl.52d",
@@ -10373,8 +10587,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [440]
-	[441] = 
+	}, -- end of [449]
+	[450] = 
 	{
 		["air"] = true,
 		["type"] = "F-16C_50",
@@ -10399,8 +10613,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [441]
-	[442] = 
+	}, -- end of [450]
+	[451] = 
 	{
 		["air"] = true,
 		["type"] = "F-4E",
@@ -10422,8 +10636,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [442]
-	[443] = 
+	}, -- end of [451]
+	[452] = 
 	{
 		["air"] = true,
 		["type"] = "F-5E",
@@ -10445,8 +10659,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [443]
-	[444] = 
+	}, -- end of [452]
+	[453] = 
 	{
 		["air"] = true,
 		["type"] = "F-5E-3",
@@ -10468,8 +10682,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [444]
-	[445] = 
+	}, -- end of [453]
+	[454] = 
 	{
 		["air"] = true,
 		["type"] = "F-86F Sabre",
@@ -10491,8 +10705,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [445]
-	[446] = 
+	}, -- end of [454]
+	[455] = 
 	{
 		["air"] = true,
 		["type"] = "F/A-18A",
@@ -10515,8 +10729,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [446]
-	[447] = 
+	}, -- end of [455]
+	[456] = 
 	{
 		["air"] = true,
 		["type"] = "F/A-18C",
@@ -10541,8 +10755,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [447]
-	[448] = 
+	}, -- end of [456]
+	[457] = 
 	{
 		["air"] = true,
 		["type"] = "FA-18C_hornet",
@@ -10569,8 +10783,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [448]
-	[449] = 
+	}, -- end of [457]
+	[458] = 
 	{
 		["air"] = true,
 		["type"] = "FW-190A8",
@@ -10592,8 +10806,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [449]
-	[450] = 
+	}, -- end of [458]
+	[459] = 
 	{
 		["air"] = true,
 		["type"] = "FW-190D9",
@@ -10615,8 +10829,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [450]
-	[451] = 
+	}, -- end of [459]
+	[460] = 
 	{
 		["air"] = true,
 		["type"] = "H-6J",
@@ -10641,8 +10855,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [451]
-	[452] = 
+	}, -- end of [460]
+	[461] = 
 	{
 		["air"] = true,
 		["type"] = "Hawk",
@@ -10664,8 +10878,31 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [452]
-	[453] = 
+	}, -- end of [461]
+	[462] = 
+	{
+		["air"] = true,
+		["type"] = "Hercules",
+		["name"] = "Hercules",
+		["category"] = "Plane",
+		["description"] = "Hercules",
+		["attribute"] = 
+		{
+			[1] = true,
+			["Air"] = true,
+			["Planes"] = true,
+			["NonAndLightArmoredUnits"] = true,
+			["NonArmoredUnits"] = true,
+			["Transports"] = true,
+			["All"] = true,
+			[5] = true,
+			[329] = true,
+		}, -- end of ["attribute"]
+		["aliases"] = 
+		{
+		}, -- end of ["aliases"]
+	}, -- end of [462]
+	[463] = 
 	{
 		["air"] = true,
 		["type"] = "I-16",
@@ -10687,8 +10924,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [453]
-	[454] = 
+	}, -- end of [463]
+	[464] = 
 	{
 		["air"] = true,
 		["type"] = "IL-76MD",
@@ -10710,8 +10947,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [454]
-	[455] = 
+	}, -- end of [464]
+	[465] = 
 	{
 		["air"] = true,
 		["type"] = "IL-78M",
@@ -10733,8 +10970,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [455]
-	[456] = 
+	}, -- end of [465]
+	[466] = 
 	{
 		["air"] = true,
 		["type"] = "J-11A",
@@ -10756,8 +10993,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [456]
-	[457] = 
+	}, -- end of [466]
+	[467] = 
 	{
 		["air"] = true,
 		["type"] = "JF-17",
@@ -10782,8 +11019,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [457]
-	[458] = 
+	}, -- end of [467]
+	[468] = 
 	{
 		["air"] = true,
 		["type"] = "Ju-88A4",
@@ -10807,8 +11044,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [458]
-	[459] = 
+	}, -- end of [468]
+	[469] = 
 	{
 		["air"] = true,
 		["type"] = "KC-135",
@@ -10831,8 +11068,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [459]
-	[460] = 
+	}, -- end of [469]
+	[470] = 
 	{
 		["air"] = true,
 		["type"] = "KC130",
@@ -10855,8 +11092,32 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [460]
-	[461] = 
+	}, -- end of [470]
+	[471] = 
+	{
+		["air"] = true,
+		["type"] = "KC130J",
+		["name"] = "KC-130J",
+		["category"] = "Plane",
+		["description"] = "KC-130J",
+		["attribute"] = 
+		{
+			[1] = true,
+			["Air"] = true,
+			["Tankers"] = true,
+			["Refuelable"] = true,
+			[5] = true,
+			["NonAndLightArmoredUnits"] = true,
+			[331] = true,
+			["All"] = true,
+			["Planes"] = true,
+			["NonArmoredUnits"] = true,
+		}, -- end of ["attribute"]
+		["aliases"] = 
+		{
+		}, -- end of ["aliases"]
+	}, -- end of [471]
+	[472] = 
 	{
 		["air"] = true,
 		["type"] = "KC135MPRS",
@@ -10869,18 +11130,20 @@ dcsUnits.DcsUnitsDatabase =
 			["Air"] = true,
 			["Tankers"] = true,
 			["Refuelable"] = true,
+			["Link16"] = true,
 			[268] = true,
 			[5] = true,
 			["NonAndLightArmoredUnits"] = true,
-			["All"] = true,
 			["Planes"] = true,
+			["All"] = true,
+			["Datalink"] = true,
 			["NonArmoredUnits"] = true,
 		}, -- end of ["attribute"]
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [461]
-	[462] = 
+	}, -- end of [472]
+	[473] = 
 	{
 		["air"] = true,
 		["type"] = "KJ-2000",
@@ -10904,8 +11167,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [462]
-	[463] = 
+	}, -- end of [473]
+	[474] = 
 	{
 		["air"] = true,
 		["type"] = "L-39C",
@@ -10928,8 +11191,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [463]
-	[464] = 
+	}, -- end of [474]
+	[475] = 
 	{
 		["air"] = true,
 		["type"] = "L-39ZA",
@@ -10952,8 +11215,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [464]
-	[465] = 
+	}, -- end of [475]
+	[476] = 
 	{
 		["air"] = true,
 		["type"] = "M-2000C",
@@ -10976,8 +11239,54 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [465]
-	[466] = 
+	}, -- end of [476]
+	[477] = 
+	{
+		["air"] = true,
+		["type"] = "MB-339A",
+		["name"] = "MB-339A",
+		["category"] = "Plane",
+		["description"] = "MB-339A",
+		["attribute"] = 
+		{
+			[1] = true,
+			["Air"] = true,
+			["Battle airplanes"] = true,
+			["NonAndLightArmoredUnits"] = true,
+			["Battleplanes"] = true,
+			["NonArmoredUnits"] = true,
+			["All"] = true,
+			[324] = true,
+			["Planes"] = true,
+		}, -- end of ["attribute"]
+		["aliases"] = 
+		{
+		}, -- end of ["aliases"]
+	}, -- end of [477]
+	[478] = 
+	{
+		["air"] = true,
+		["type"] = "MB-339APAN",
+		["name"] = "MB-339A/PAN",
+		["category"] = "Plane",
+		["description"] = "MB-339A/PAN",
+		["attribute"] = 
+		{
+			[1] = true,
+			[325] = true,
+			["Battle airplanes"] = true,
+			["NonAndLightArmoredUnits"] = true,
+			["Battleplanes"] = true,
+			["NonArmoredUnits"] = true,
+			["All"] = true,
+			["Planes"] = true,
+			["Air"] = true,
+		}, -- end of ["attribute"]
+		["aliases"] = 
+		{
+		}, -- end of ["aliases"]
+	}, -- end of [478]
+	[479] = 
 	{
 		["air"] = true,
 		["type"] = "MiG-15bis",
@@ -10999,8 +11308,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [466]
-	[467] = 
+	}, -- end of [479]
+	[480] = 
 	{
 		["air"] = true,
 		["type"] = "MiG-19P",
@@ -11022,8 +11331,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [467]
-	[468] = 
+	}, -- end of [480]
+	[481] = 
 	{
 		["air"] = true,
 		["type"] = "MiG-21Bis",
@@ -11045,8 +11354,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [468]
-	[469] = 
+	}, -- end of [481]
+	[482] = 
 	{
 		["air"] = true,
 		["type"] = "MiG-23MLD",
@@ -11067,8 +11376,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [469]
-	[470] = 
+	}, -- end of [482]
+	[483] = 
 	{
 		["air"] = true,
 		["type"] = "MiG-25PD",
@@ -11091,8 +11400,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [470]
-	[471] = 
+	}, -- end of [483]
+	[484] = 
 	{
 		["air"] = true,
 		["type"] = "MiG-25RBT",
@@ -11114,8 +11423,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [471]
-	[472] = 
+	}, -- end of [484]
+	[485] = 
 	{
 		["air"] = true,
 		["type"] = "MiG-27K",
@@ -11137,8 +11446,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [472]
-	[473] = 
+	}, -- end of [485]
+	[486] = 
 	{
 		["air"] = true,
 		["type"] = "MiG-29A",
@@ -11160,8 +11469,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [473]
-	[474] = 
+	}, -- end of [486]
+	[487] = 
 	{
 		["air"] = true,
 		["type"] = "MiG-29G",
@@ -11183,8 +11492,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [474]
-	[475] = 
+	}, -- end of [487]
+	[488] = 
 	{
 		["air"] = true,
 		["type"] = "MiG-29S",
@@ -11206,8 +11515,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [475]
-	[476] = 
+	}, -- end of [488]
+	[489] = 
 	{
 		["air"] = true,
 		["type"] = "MiG-31",
@@ -11231,8 +11540,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [476]
-	[477] = 
+	}, -- end of [489]
+	[490] = 
 	{
 		["air"] = true,
 		["type"] = "Mirage 2000-5",
@@ -11257,8 +11566,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [477]
-	[478] = 
+	}, -- end of [490]
+	[491] = 
 	{
 		["air"] = true,
 		["type"] = "Mirage-F1B",
@@ -11269,19 +11578,19 @@ dcsUnits.DcsUnitsDatabase =
 		{
 			[1] = true,
 			["Air"] = true,
-			["Battle airplanes"] = true,
+			[319] = true,
 			["NonAndLightArmoredUnits"] = true,
-			["Planes"] = true,
+			["Battle airplanes"] = true,
 			["NonArmoredUnits"] = true,
 			["All"] = true,
-			[323] = true,
+			["Planes"] = true,
 			["Multirole fighters"] = true,
 		}, -- end of ["attribute"]
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [478]
-	[479] = 
+	}, -- end of [491]
+	[492] = 
 	{
 		["air"] = true,
 		["type"] = "Mirage-F1BD",
@@ -11295,16 +11604,16 @@ dcsUnits.DcsUnitsDatabase =
 			["Battle airplanes"] = true,
 			["NonAndLightArmoredUnits"] = true,
 			["Planes"] = true,
-			["NonArmoredUnits"] = true,
+			[322] = true,
 			["All"] = true,
-			[323] = true,
+			["NonArmoredUnits"] = true,
 			["Multirole fighters"] = true,
 		}, -- end of ["attribute"]
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [479]
-	[480] = 
+	}, -- end of [492]
+	[493] = 
 	{
 		["air"] = true,
 		["type"] = "Mirage-F1BE",
@@ -11320,14 +11629,14 @@ dcsUnits.DcsUnitsDatabase =
 			["Planes"] = true,
 			["NonArmoredUnits"] = true,
 			["All"] = true,
-			[323] = true,
+			[320] = true,
 			["Multirole fighters"] = true,
 		}, -- end of ["attribute"]
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [480]
-	[481] = 
+	}, -- end of [493]
+	[494] = 
 	{
 		["air"] = true,
 		["type"] = "Mirage-F1BQ",
@@ -11340,17 +11649,17 @@ dcsUnits.DcsUnitsDatabase =
 			["Air"] = true,
 			["Battle airplanes"] = true,
 			["NonAndLightArmoredUnits"] = true,
-			["Planes"] = true,
+			[321] = true,
 			["NonArmoredUnits"] = true,
 			["All"] = true,
-			[323] = true,
+			["Planes"] = true,
 			["Multirole fighters"] = true,
 		}, -- end of ["attribute"]
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [481]
-	[482] = 
+	}, -- end of [494]
+	[495] = 
 	{
 		["air"] = true,
 		["type"] = "Mirage-F1C",
@@ -11364,16 +11673,16 @@ dcsUnits.DcsUnitsDatabase =
 			["Battle airplanes"] = true,
 			["NonAndLightArmoredUnits"] = true,
 			["Planes"] = true,
-			["NonArmoredUnits"] = true,
+			[301] = true,
 			["All"] = true,
-			[323] = true,
+			["NonArmoredUnits"] = true,
 			["Multirole fighters"] = true,
 		}, -- end of ["attribute"]
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [482]
-	[483] = 
+	}, -- end of [495]
+	[496] = 
 	{
 		["air"] = true,
 		["type"] = "Mirage-F1C-200",
@@ -11396,8 +11705,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [483]
-	[484] = 
+	}, -- end of [496]
+	[497] = 
 	{
 		["air"] = true,
 		["type"] = "Mirage-F1CE",
@@ -11413,14 +11722,14 @@ dcsUnits.DcsUnitsDatabase =
 			["Planes"] = true,
 			["NonArmoredUnits"] = true,
 			["All"] = true,
-			[323] = true,
+			[302] = true,
 			["Multirole fighters"] = true,
 		}, -- end of ["attribute"]
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [484]
-	[485] = 
+	}, -- end of [497]
+	[498] = 
 	{
 		["air"] = true,
 		["type"] = "Mirage-F1CG",
@@ -11436,14 +11745,14 @@ dcsUnits.DcsUnitsDatabase =
 			["Planes"] = true,
 			["NonArmoredUnits"] = true,
 			["All"] = true,
-			[323] = true,
+			[310] = true,
 			["Multirole fighters"] = true,
 		}, -- end of ["attribute"]
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [485]
-	[486] = 
+	}, -- end of [498]
+	[499] = 
 	{
 		["air"] = true,
 		["type"] = "Mirage-F1CH",
@@ -11457,16 +11766,16 @@ dcsUnits.DcsUnitsDatabase =
 			["Battle airplanes"] = true,
 			["NonAndLightArmoredUnits"] = true,
 			["Planes"] = true,
-			["NonArmoredUnits"] = true,
+			[308] = true,
 			["All"] = true,
-			[323] = true,
+			["NonArmoredUnits"] = true,
 			["Multirole fighters"] = true,
 		}, -- end of ["attribute"]
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [486]
-	[487] = 
+	}, -- end of [499]
+	[500] = 
 	{
 		["air"] = true,
 		["type"] = "Mirage-F1CJ",
@@ -11477,19 +11786,19 @@ dcsUnits.DcsUnitsDatabase =
 		{
 			[1] = true,
 			["Air"] = true,
-			["Battle airplanes"] = true,
+			[312] = true,
 			["NonAndLightArmoredUnits"] = true,
-			["Planes"] = true,
+			["Battle airplanes"] = true,
 			["NonArmoredUnits"] = true,
 			["All"] = true,
-			[323] = true,
+			["Planes"] = true,
 			["Multirole fighters"] = true,
 		}, -- end of ["attribute"]
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [487]
-	[488] = 
+	}, -- end of [500]
+	[501] = 
 	{
 		["air"] = true,
 		["type"] = "Mirage-F1CK",
@@ -11501,18 +11810,18 @@ dcsUnits.DcsUnitsDatabase =
 			[1] = true,
 			["Air"] = true,
 			["Battle airplanes"] = true,
-			["NonAndLightArmoredUnits"] = true,
+			[313] = true,
 			["Planes"] = true,
 			["NonArmoredUnits"] = true,
 			["All"] = true,
-			[323] = true,
+			["NonAndLightArmoredUnits"] = true,
 			["Multirole fighters"] = true,
 		}, -- end of ["attribute"]
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [488]
-	[489] = 
+	}, -- end of [501]
+	[502] = 
 	{
 		["air"] = true,
 		["type"] = "Mirage-F1CR",
@@ -11535,8 +11844,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [489]
-	[490] = 
+	}, -- end of [502]
+	[503] = 
 	{
 		["air"] = true,
 		["type"] = "Mirage-F1CT",
@@ -11559,8 +11868,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [490]
-	[491] = 
+	}, -- end of [503]
+	[504] = 
 	{
 		["air"] = true,
 		["type"] = "Mirage-F1CZ",
@@ -11570,20 +11879,20 @@ dcsUnits.DcsUnitsDatabase =
 		["attribute"] = 
 		{
 			[1] = true,
-			["Air"] = true,
+			[311] = true,
 			["Battle airplanes"] = true,
 			["NonAndLightArmoredUnits"] = true,
 			["Planes"] = true,
 			["NonArmoredUnits"] = true,
 			["All"] = true,
-			[323] = true,
+			["Air"] = true,
 			["Multirole fighters"] = true,
 		}, -- end of ["attribute"]
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [491]
-	[492] = 
+	}, -- end of [504]
+	[505] = 
 	{
 		["air"] = true,
 		["type"] = "Mirage-F1DDA",
@@ -11605,8 +11914,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [492]
-	[493] = 
+	}, -- end of [505]
+	[506] = 
 	{
 		["air"] = true,
 		["type"] = "Mirage-F1ED",
@@ -11620,16 +11929,16 @@ dcsUnits.DcsUnitsDatabase =
 			["Battle airplanes"] = true,
 			["NonAndLightArmoredUnits"] = true,
 			["Planes"] = true,
-			["NonArmoredUnits"] = true,
+			[315] = true,
 			["All"] = true,
-			[323] = true,
+			["NonArmoredUnits"] = true,
 			["Multirole fighters"] = true,
 		}, -- end of ["attribute"]
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [493]
-	[494] = 
+	}, -- end of [506]
+	[507] = 
 	{
 		["air"] = true,
 		["type"] = "Mirage-F1EDA",
@@ -11644,15 +11953,15 @@ dcsUnits.DcsUnitsDatabase =
 			["NonAndLightArmoredUnits"] = true,
 			["Planes"] = true,
 			["NonArmoredUnits"] = true,
+			[316] = true,
 			["All"] = true,
-			[323] = true,
 			["Multirole fighters"] = true,
 		}, -- end of ["attribute"]
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [494]
-	[495] = 
+	}, -- end of [507]
+	[508] = 
 	{
 		["air"] = true,
 		["type"] = "Mirage-F1EE",
@@ -11663,19 +11972,20 @@ dcsUnits.DcsUnitsDatabase =
 		{
 			[1] = true,
 			["Air"] = true,
+			["Refuelable"] = true,
+			["Multirole fighters"] = true,
 			["Battle airplanes"] = true,
 			["NonAndLightArmoredUnits"] = true,
 			["Planes"] = true,
+			[303] = true,
 			["NonArmoredUnits"] = true,
 			["All"] = true,
-			[323] = true,
-			["Multirole fighters"] = true,
 		}, -- end of ["attribute"]
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [495]
-	[496] = 
+	}, -- end of [508]
+	[509] = 
 	{
 		["air"] = true,
 		["type"] = "Mirage-F1EH",
@@ -11698,8 +12008,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [496]
-	[497] = 
+	}, -- end of [509]
+	[510] = 
 	{
 		["air"] = true,
 		["type"] = "Mirage-F1EQ",
@@ -11722,8 +12032,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [497]
-	[498] = 
+	}, -- end of [510]
+	[511] = 
 	{
 		["air"] = true,
 		["type"] = "Mirage-F1JA",
@@ -11738,15 +12048,15 @@ dcsUnits.DcsUnitsDatabase =
 			["NonAndLightArmoredUnits"] = true,
 			["Planes"] = true,
 			["NonArmoredUnits"] = true,
+			[309] = true,
 			["All"] = true,
-			[323] = true,
 			["Multirole fighters"] = true,
 		}, -- end of ["attribute"]
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [498]
-	[499] = 
+	}, -- end of [511]
+	[512] = 
 	{
 		["air"] = true,
 		["type"] = "Mirage-F1M-CE",
@@ -11757,19 +12067,19 @@ dcsUnits.DcsUnitsDatabase =
 		{
 			[1] = true,
 			["Air"] = true,
-			["Battle airplanes"] = true,
+			[305] = true,
 			["NonAndLightArmoredUnits"] = true,
-			["Planes"] = true,
+			["Battle airplanes"] = true,
 			["NonArmoredUnits"] = true,
 			["All"] = true,
-			[323] = true,
+			["Planes"] = true,
 			["Multirole fighters"] = true,
 		}, -- end of ["attribute"]
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [499]
-	[500] = 
+	}, -- end of [512]
+	[513] = 
 	{
 		["air"] = true,
 		["type"] = "Mirage-F1M-EE",
@@ -11792,8 +12102,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [500]
-	[501] = 
+	}, -- end of [513]
+	[514] = 
 	{
 		["air"] = true,
 		["type"] = "MosquitoFBMkVI",
@@ -11816,8 +12126,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [501]
-	[502] = 
+	}, -- end of [514]
+	[515] = 
 	{
 		["air"] = true,
 		["type"] = "MQ-9 Reaper",
@@ -11840,8 +12150,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [502]
-	[503] = 
+	}, -- end of [515]
+	[516] = 
 	{
 		["air"] = true,
 		["type"] = "P-47D-30",
@@ -11863,8 +12173,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [503]
-	[504] = 
+	}, -- end of [516]
+	[517] = 
 	{
 		["air"] = true,
 		["type"] = "P-47D-30bl1",
@@ -11886,8 +12196,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [504]
-	[505] = 
+	}, -- end of [517]
+	[518] = 
 	{
 		["air"] = true,
 		["type"] = "P-47D-40",
@@ -11909,8 +12219,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [505]
-	[506] = 
+	}, -- end of [518]
+	[519] = 
 	{
 		["air"] = true,
 		["type"] = "P-51D",
@@ -11932,8 +12242,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [506]
-	[507] = 
+	}, -- end of [519]
+	[520] = 
 	{
 		["air"] = true,
 		["type"] = "P-51D-30-NA",
@@ -11955,8 +12265,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [507]
-	[508] = 
+	}, -- end of [520]
+	[521] = 
 	{
 		["air"] = true,
 		["type"] = "RQ-1A Predator",
@@ -11978,8 +12288,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [508]
-	[509] = 
+	}, -- end of [521]
+	[522] = 
 	{
 		["air"] = true,
 		["type"] = "S-3B",
@@ -12001,8 +12311,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [509]
-	[510] = 
+	}, -- end of [522]
+	[523] = 
 	{
 		["air"] = true,
 		["type"] = "S-3B Tanker",
@@ -12026,8 +12336,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [510]
-	[511] = 
+	}, -- end of [523]
+	[524] = 
 	{
 		["air"] = true,
 		["type"] = "SpitfireLFMkIX",
@@ -12049,8 +12359,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [511]
-	[512] = 
+	}, -- end of [524]
+	[525] = 
 	{
 		["air"] = true,
 		["type"] = "SpitfireLFMkIXCW",
@@ -12072,8 +12382,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [512]
-	[513] = 
+	}, -- end of [525]
+	[526] = 
 	{
 		["air"] = true,
 		["type"] = "Su-17M4",
@@ -12095,8 +12405,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [513]
-	[514] = 
+	}, -- end of [526]
+	[527] = 
 	{
 		["air"] = true,
 		["type"] = "Su-24M",
@@ -12119,8 +12429,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [514]
-	[515] = 
+	}, -- end of [527]
+	[528] = 
 	{
 		["air"] = true,
 		["type"] = "Su-24MR",
@@ -12142,8 +12452,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [515]
-	[516] = 
+	}, -- end of [528]
+	[529] = 
 	{
 		["air"] = true,
 		["type"] = "Su-25",
@@ -12166,8 +12476,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [516]
-	[517] = 
+	}, -- end of [529]
+	[530] = 
 	{
 		["air"] = true,
 		["type"] = "Su-25T",
@@ -12190,8 +12500,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [517]
-	[518] = 
+	}, -- end of [530]
+	[531] = 
 	{
 		["air"] = true,
 		["type"] = "Su-25TM",
@@ -12214,8 +12524,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [518]
-	[519] = 
+	}, -- end of [531]
+	[532] = 
 	{
 		["air"] = true,
 		["type"] = "Su-27",
@@ -12237,8 +12547,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [519]
-	[520] = 
+	}, -- end of [532]
+	[533] = 
 	{
 		["air"] = true,
 		["type"] = "Su-30",
@@ -12260,8 +12570,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [520]
-	[521] = 
+	}, -- end of [533]
+	[534] = 
 	{
 		["air"] = true,
 		["type"] = "Su-33",
@@ -12284,8 +12594,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [521]
-	[522] = 
+	}, -- end of [534]
+	[535] = 
 	{
 		["air"] = true,
 		["type"] = "Su-34",
@@ -12308,8 +12618,32 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [522]
-	[523] = 
+	}, -- end of [535]
+	[536] = 
+	{
+		["air"] = true,
+		["type"] = "T-45",
+		["name"] = "T-45",
+		["category"] = "Plane",
+		["description"] = "T-45",
+		["attribute"] = 
+		{
+			[1] = true,
+			["Air"] = true,
+			["Fighters"] = true,
+			["NonArmoredUnits"] = true,
+			["Battle airplanes"] = true,
+			["NonAndLightArmoredUnits"] = true,
+			[332] = true,
+			["All"] = true,
+			["Planes"] = true,
+			["Refuelable"] = true,
+		}, -- end of ["attribute"]
+		["aliases"] = 
+		{
+		}, -- end of ["aliases"]
+	}, -- end of [536]
+	[537] = 
 	{
 		["air"] = true,
 		["type"] = "TF-51D",
@@ -12331,8 +12665,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [523]
-	[524] = 
+	}, -- end of [537]
+	[538] = 
 	{
 		["air"] = true,
 		["type"] = "Tornado GR4",
@@ -12358,8 +12692,8 @@ dcsUnits.DcsUnitsDatabase =
 		{
 			[1] = "Tornado GR3",
 		}, -- end of ["aliases"]
-	}, -- end of [524]
-	[525] = 
+	}, -- end of [538]
+	[539] = 
 	{
 		["air"] = true,
 		["type"] = "Tornado IDS",
@@ -12384,8 +12718,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [525]
-	[526] = 
+	}, -- end of [539]
+	[540] = 
 	{
 		["air"] = true,
 		["type"] = "Tu-142",
@@ -12410,8 +12744,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [526]
-	[527] = 
+	}, -- end of [540]
+	[541] = 
 	{
 		["air"] = true,
 		["type"] = "Tu-160",
@@ -12436,8 +12770,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [527]
-	[528] = 
+	}, -- end of [541]
+	[542] = 
 	{
 		["air"] = true,
 		["type"] = "Tu-22M3",
@@ -12460,8 +12794,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [528]
-	[529] = 
+	}, -- end of [542]
+	[543] = 
 	{
 		["air"] = true,
 		["type"] = "Tu-95MS",
@@ -12486,8 +12820,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [529]
-	[530] = 
+	}, -- end of [543]
+	[544] = 
 	{
 		["air"] = true,
 		["type"] = "WingLoong-I",
@@ -12510,8 +12844,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [530]
-	[531] = 
+	}, -- end of [544]
+	[545] = 
 	{
 		["air"] = true,
 		["type"] = "Yak-40",
@@ -12533,8 +12867,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [531]
-	[532] = 
+	}, -- end of [545]
+	[546] = 
 	{
 		["air"] = true,
 		["type"] = "Yak-52",
@@ -12556,8 +12890,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [532]
-	[533] = 
+	}, -- end of [546]
+	[547] = 
 	{
 		["type"] = "ALBATROS",
 		["name"] = "Corvette 1124.4 Grisha",
@@ -12584,8 +12918,36 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [533]
-	[534] = 
+	}, -- end of [547]
+	[548] = 
+	{
+		["type"] = "BDK-775",
+		["name"] = "LS Ropucha",
+		["category"] = "Ship",
+		["naval"] = true,
+		["description"] = "LS Ropucha",
+		["attribute"] = 
+		{
+			["HeavyArmoredUnits"] = true,
+			[14] = true,
+			["Armed Air Defence"] = true,
+			["Ships"] = true,
+			[341] = true,
+			["Landing Ships"] = true,
+			["Armed ships"] = true,
+			["All"] = true,
+			["Naval"] = true,
+			["NO_SAM"] = true,
+			[3] = true,
+			["Heavy armed ships"] = true,
+			[12] = true,
+			["Armed Ship"] = true,
+		}, -- end of ["attribute"]
+		["aliases"] = 
+		{
+		}, -- end of ["aliases"]
+	}, -- end of [548]
+	[549] = 
 	{
 		["type"] = "CastleClass_01",
 		["name"] = "Castle Class",
@@ -12612,8 +12974,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [534]
-	[535] = 
+	}, -- end of [549]
+	[550] = 
 	{
 		["type"] = "CV_1143_5",
 		["name"] = "CV 1143.5 Admiral Kuznetsov(2017)",
@@ -12646,8 +13008,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [535]
-	[536] = 
+	}, -- end of [550]
+	[551] = 
 	{
 		["type"] = "CVN_71",
 		["name"] = "CVN-71 Theodore Roosevelt",
@@ -12682,8 +13044,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [536]
-	[537] = 
+	}, -- end of [551]
+	[552] = 
 	{
 		["type"] = "CVN_72",
 		["name"] = "CVN-72 Abraham Lincoln",
@@ -12718,8 +13080,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [537]
-	[538] = 
+	}, -- end of [552]
+	[553] = 
 	{
 		["type"] = "CVN_73",
 		["name"] = "CVN-73 George Washington",
@@ -12754,8 +13116,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [538]
-	[539] = 
+	}, -- end of [553]
+	[554] = 
 	{
 		["type"] = "CVN_75",
 		["name"] = "CVN-75 Harry S. Truman",
@@ -12790,8 +13152,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [539]
-	[540] = 
+	}, -- end of [554]
+	[555] = 
 	{
 		["type"] = "Dry-cargo ship-1",
 		["name"] = "Bulker Yakushev",
@@ -12813,8 +13175,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [540]
-	[541] = 
+	}, -- end of [555]
+	[556] = 
 	{
 		["type"] = "Dry-cargo ship-2",
 		["name"] = "Cargo Ivanov",
@@ -12836,8 +13198,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [541]
-	[542] = 
+	}, -- end of [556]
+	[557] = 
 	{
 		["type"] = "ELNYA",
 		["name"] = "Tanker Elnya 160",
@@ -12859,8 +13221,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [542]
-	[543] = 
+	}, -- end of [557]
+	[558] = 
 	{
 		["type"] = "Forrestal",
 		["name"] = "CV-59 Forrestal",
@@ -12895,8 +13257,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [543]
-	[544] = 
+	}, -- end of [558]
+	[559] = 
 	{
 		["type"] = "HandyWind",
 		["name"] = "Bulker Handy Wind",
@@ -12920,25 +13282,31 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [544]
-	[545] = 
+	}, -- end of [559]
+	[560] = 
 	{
 		["type"] = "HarborTug",
 		["name"] = "Harbor Tug",
 		["category"] = "Ship",
+		["naval"] = true,
 		["description"] = "Harbor Tug",
 		["attribute"] = 
 		{
-			[3] = true,
-			[5] = true,
-			[12] = true,
 			[15] = true,
+			["Unarmed ships"] = true,
+			[5] = true,
+			["HeavyArmoredUnits"] = true,
+			["Ships"] = true,
+			[3] = true,
+			["All"] = true,
+			[12] = true,
+			["Naval"] = true,
 		}, -- end of ["attribute"]
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [545]
-	[546] = 
+	}, -- end of [560]
+	[561] = 
 	{
 		["type"] = "Higgins_boat",
 		["name"] = "Boat LCVP Higgins",
@@ -12965,8 +13333,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [546]
-	[547] = 
+	}, -- end of [561]
+	[562] = 
 	{
 		["type"] = "hms_invincible",
 		["name"] = "HMS Invincible (R05)",
@@ -12997,8 +13365,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [547]
-	[548] = 
+	}, -- end of [562]
+	[563] = 
 	{
 		["type"] = "IMPROVED_KILO",
 		["name"] = "SSK 636 Improved Kilo",
@@ -13024,8 +13392,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [548]
-	[549] = 
+	}, -- end of [563]
+	[564] = 
 	{
 		["type"] = "KILO",
 		["name"] = "SSK 877V Kilo",
@@ -13051,8 +13419,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [549]
-	[550] = 
+	}, -- end of [564]
+	[565] = 
 	{
 		["type"] = "KUZNECOW",
 		["name"] = "CV 1143.5 Admiral Kuznetsov",
@@ -13085,8 +13453,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [550]
-	[551] = 
+	}, -- end of [565]
+	[566] = 
 	{
 		["type"] = "La_Combattante_II",
 		["name"] = "FAC La Combattante IIa",
@@ -13114,8 +13482,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [551]
-	[552] = 
+	}, -- end of [566]
+	[567] = 
 	{
 		["type"] = "leander-gun-achilles",
 		["name"] = "HMS Achilles (F12)",
@@ -13143,8 +13511,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [552]
-	[553] = 
+	}, -- end of [567]
+	[568] = 
 	{
 		["type"] = "leander-gun-andromeda",
 		["name"] = "HMS Andromeda (F57)",
@@ -13172,8 +13540,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [553]
-	[554] = 
+	}, -- end of [568]
+	[569] = 
 	{
 		["type"] = "leander-gun-ariadne",
 		["name"] = "HMS Ariadne (F72)",
@@ -13201,8 +13569,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [554]
-	[555] = 
+	}, -- end of [569]
+	[570] = 
 	{
 		["type"] = "leander-gun-condell",
 		["name"] = "CNS Almirante Condell (PFG-06)",
@@ -13230,8 +13598,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [555]
-	[556] = 
+	}, -- end of [570]
+	[571] = 
 	{
 		["type"] = "leander-gun-lynch",
 		["name"] = "CNS Almirante Lynch (PFG-07)",
@@ -13259,8 +13627,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [556]
-	[557] = 
+	}, -- end of [571]
+	[572] = 
 	{
 		["type"] = "LHA_Tarawa",
 		["name"] = "LHA-1 Tarawa",
@@ -13291,8 +13659,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [557]
-	[558] = 
+	}, -- end of [572]
+	[573] = 
 	{
 		["type"] = "LST_Mk2",
 		["name"] = "LST Mk.II",
@@ -13319,8 +13687,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [558]
-	[559] = 
+	}, -- end of [573]
+	[574] = 
 	{
 		["type"] = "MOLNIYA",
 		["name"] = "Corvette 1241.1 Molniya",
@@ -13348,8 +13716,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [559]
-	[560] = 
+	}, -- end of [574]
+	[575] = 
 	{
 		["type"] = "MOSCOW",
 		["name"] = "Cruiser 1164 Moskva",
@@ -13377,8 +13745,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [560]
-	[561] = 
+	}, -- end of [575]
+	[576] = 
 	{
 		["type"] = "NEUSTRASH",
 		["name"] = "Frigate 11540 Neustrashimy",
@@ -13406,8 +13774,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [561]
-	[562] = 
+	}, -- end of [576]
+	[577] = 
 	{
 		["type"] = "PERRY",
 		["name"] = "FFG Oliver Hazard Perry",
@@ -13436,8 +13804,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [562]
-	[563] = 
+	}, -- end of [577]
+	[578] = 
 	{
 		["type"] = "PIOTR",
 		["name"] = "Battlecruiser 1144.2 Pyotr Velikiy",
@@ -13466,8 +13834,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [563]
-	[564] = 
+	}, -- end of [578]
+	[579] = 
 	{
 		["type"] = "REZKY",
 		["name"] = "Frigate 1135M Rezky",
@@ -13493,8 +13861,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [564]
-	[565] = 
+	}, -- end of [579]
+	[580] = 
 	{
 		["type"] = "santafe",
 		["name"] = "ARA Santa Fe S-21",
@@ -13521,8 +13889,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [565]
-	[566] = 
+	}, -- end of [580]
+	[581] = 
 	{
 		["type"] = "Schnellboot_type_S130",
 		["name"] = "Boat Schnellboot type S130",
@@ -13548,8 +13916,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [566]
-	[567] = 
+	}, -- end of [581]
+	[582] = 
 	{
 		["type"] = "Seawise_Giant",
 		["name"] = "Tanker Seawise Giant",
@@ -13573,8 +13941,33 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [567]
-	[568] = 
+	}, -- end of [582]
+	[583] = 
+	{
+		["type"] = "Ship_Tilde_Supply",
+		["name"] = "Supply Ship MV Tilde",
+		["category"] = "Ship",
+		["naval"] = true,
+		["description"] = "Supply Ship MV Tilde",
+		["attribute"] = 
+		{
+			[15] = true,
+			["Unarmed ships"] = true,
+			["HeavyArmoredUnits"] = true,
+			["Ships"] = true,
+			[5] = true,
+			["HelicopterCarrier"] = true,
+			["Side approach departure"] = true,
+			[3] = true,
+			["All"] = true,
+			[12] = true,
+			["Naval"] = true,
+		}, -- end of ["attribute"]
+		["aliases"] = 
+		{
+		}, -- end of ["aliases"]
+	}, -- end of [583]
+	[584] = 
 	{
 		["type"] = "SOM",
 		["name"] = "SSK 641B Tango",
@@ -13600,8 +13993,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [568]
-	[569] = 
+	}, -- end of [584]
+	[585] = 
 	{
 		["type"] = "speedboat",
 		["name"] = "Boat Armed Hi-speed",
@@ -13628,8 +14021,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [569]
-	[570] = 
+	}, -- end of [585]
+	[586] = 
 	{
 		["type"] = "Stennis",
 		["name"] = "CVN-74 John C. Stennis",
@@ -13664,8 +14057,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [570]
-	[571] = 
+	}, -- end of [586]
+	[587] = 
 	{
 		["type"] = "TICONDEROG",
 		["name"] = "CG Ticonderoga",
@@ -13694,8 +14087,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [571]
-	[572] = 
+	}, -- end of [587]
+	[588] = 
 	{
 		["type"] = "Type_052B",
 		["name"] = "Type 052B Destroyer",
@@ -13725,8 +14118,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [572]
-	[573] = 
+	}, -- end of [588]
+	[589] = 
 	{
 		["type"] = "Type_052C",
 		["name"] = "Type 052C Destroyer",
@@ -13756,8 +14149,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [573]
-	[574] = 
+	}, -- end of [589]
+	[590] = 
 	{
 		["type"] = "Type_054A",
 		["name"] = "Type 054A Frigate",
@@ -13787,8 +14180,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [574]
-	[575] = 
+	}, -- end of [590]
+	[591] = 
 	{
 		["type"] = "Type_071",
 		["name"] = "Type 071 Amphibious Transport Dock",
@@ -13821,8 +14214,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [575]
-	[576] = 
+	}, -- end of [591]
+	[592] = 
 	{
 		["type"] = "Type_093",
 		["name"] = "Type 093 Attack Submarine",
@@ -13851,8 +14244,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [576]
-	[577] = 
+	}, -- end of [592]
+	[593] = 
 	{
 		["type"] = "Uboat_VIIC",
 		["name"] = "U-boat VIIC U-flak",
@@ -13880,8 +14273,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [577]
-	[578] = 
+	}, -- end of [593]
+	[594] = 
 	{
 		["type"] = "USS_Arleigh_Burke_IIa",
 		["name"] = "DDG Arleigh Burke IIa",
@@ -13910,8 +14303,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [578]
-	[579] = 
+	}, -- end of [594]
+	[595] = 
 	{
 		["type"] = "USS_Samuel_Chase",
 		["name"] = "LS Samuel Chase",
@@ -13938,8 +14331,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [579]
-	[580] = 
+	}, -- end of [595]
+	[596] = 
 	{
 		["type"] = "VINSON",
 		["name"] = "CVN-70 Carl Vinson",
@@ -13971,8 +14364,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [580]
-	[581] = 
+	}, -- end of [596]
+	[597] = 
 	{
 		["type"] = "ZWEZDNY",
 		["name"] = "Boat Zvezdny type",
@@ -13995,8 +14388,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [581]
-	[582] = 
+	}, -- end of [597]
+	[598] = 
 	{
 		["type"] = "AA8",
 		["name"] = "Firefighter Vehicle AA-7.2/60",
@@ -14022,8 +14415,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [582]
-	[583] = 
+	}, -- end of [598]
+	[599] = 
 	{
 		["type"] = "ATMZ-5",
 		["name"] = "Refueler ATMZ-5",
@@ -14049,8 +14442,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [583]
-	[584] = 
+	}, -- end of [599]
+	[600] = 
 	{
 		["type"] = "ATZ-10",
 		["name"] = "Refueler ATZ-10",
@@ -14077,8 +14470,8 @@ dcsUnits.DcsUnitsDatabase =
 		{
 			[1] = "ATZ-10 Fuel Truck",
 		}, -- end of ["aliases"]
-	}, -- end of [584]
-	[585] = 
+	}, -- end of [600]
+	[601] = 
 	{
 		["type"] = "ATZ-5",
 		["name"] = "Refueler ATZ-5",
@@ -14104,13 +14497,13 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [585]
-	[586] = 
+	}, -- end of [601]
+	[602] = 
 	{
 		["type"] = "ATZ-60_Maz",
-		["name"] = "Refueler ATZ-60 Tractor",
+		["name"] = "Refueler ATZ-60 Tractor (MAZ-7410)",
 		["category"] = "Unarmed",
-		["description"] = "Refueler ATZ-60 Tractor",
+		["description"] = "Refueler ATZ-60 Tractor (MAZ-7410)",
 		["vehicle"] = true,
 		["attribute"] = 
 		{
@@ -14131,8 +14524,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [586]
-	[587] = 
+	}, -- end of [602]
+	[603] = 
 	{
 		["type"] = "Bedford_MWD",
 		["name"] = "Truck Bedford",
@@ -14158,8 +14551,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [587]
-	[588] = 
+	}, -- end of [603]
+	[604] = 
 	{
 		["type"] = "Blitz_36-6700A",
 		["name"] = "Truck Opel Blitz",
@@ -14185,8 +14578,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [588]
-	[589] = 
+	}, -- end of [604]
+	[605] = 
 	{
 		["type"] = "CCKW_353",
 		["name"] = "Truck GMC \"Jimmy\" 6x6",
@@ -14212,8 +14605,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [589]
-	[590] = 
+	}, -- end of [605]
+	[606] = 
 	{
 		["type"] = "GAZ-3307",
 		["name"] = "Truck GAZ-3307",
@@ -14239,8 +14632,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [590]
-	[591] = 
+	}, -- end of [606]
+	[607] = 
 	{
 		["type"] = "GAZ-3308",
 		["name"] = "Truck GAZ-3308",
@@ -14266,8 +14659,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [591]
-	[592] = 
+	}, -- end of [607]
+	[608] = 
 	{
 		["type"] = "GAZ-66",
 		["name"] = "Truck GAZ-66",
@@ -14293,8 +14686,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [592]
-	[593] = 
+	}, -- end of [608]
+	[609] = 
 	{
 		["type"] = "HEMTT TFFT",
 		["name"] = "Firefighter HEMMT TFFT",
@@ -14320,8 +14713,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [593]
-	[594] = 
+	}, -- end of [609]
+	[610] = 
 	{
 		["type"] = "Horch_901_typ_40_kfz_21",
 		["name"] = "LUV Horch 901 Staff Car",
@@ -14347,8 +14740,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [594]
-	[595] = 
+	}, -- end of [610]
+	[611] = 
 	{
 		["type"] = "Hummer",
 		["name"] = "LUV HMMWV Jeep",
@@ -14381,8 +14774,8 @@ dcsUnits.DcsUnitsDatabase =
 		{
 			[1] = "M1025 HMMWV",
 		}, -- end of ["aliases"]
-	}, -- end of [595]
-	[596] = 
+	}, -- end of [611]
+	[612] = 
 	{
 		["type"] = "IKARUS Bus",
 		["name"] = "Bus IKARUS-280",
@@ -14408,8 +14801,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [596]
-	[597] = 
+	}, -- end of [612]
+	[613] = 
 	{
 		["type"] = "KAMAZ Truck",
 		["name"] = "Truck KAMAZ 43101",
@@ -14436,8 +14829,8 @@ dcsUnits.DcsUnitsDatabase =
 		{
 			[1] = "KAMAZ-43101",
 		}, -- end of ["aliases"]
-	}, -- end of [597]
-	[598] = 
+	}, -- end of [613]
+	[614] = 
 	{
 		["type"] = "KrAZ6322",
 		["name"] = "Truck KrAZ-6322 6x6",
@@ -14464,8 +14857,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [598]
-	[599] = 
+	}, -- end of [614]
+	[615] = 
 	{
 		["type"] = "Kubelwagen_82",
 		["name"] = "LUV Kubelwagen Jeep",
@@ -14491,8 +14884,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [599]
-	[600] = 
+	}, -- end of [615]
+	[616] = 
 	{
 		["type"] = "Land_Rover_101_FC",
 		["name"] = "Truck Land Rover 101 FC",
@@ -14518,8 +14911,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [600]
-	[601] = 
+	}, -- end of [616]
+	[617] = 
 	{
 		["type"] = "Land_Rover_109_S3",
 		["name"] = "LUV Land Rover 109",
@@ -14545,8 +14938,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [601]
-	[602] = 
+	}, -- end of [617]
+	[618] = 
 	{
 		["type"] = "LARC-V",
 		["name"] = "LARC-V",
@@ -14576,8 +14969,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [602]
-	[603] = 
+	}, -- end of [618]
+	[619] = 
 	{
 		["type"] = "LAZ Bus",
 		["name"] = "Bus LAZ-695",
@@ -14603,8 +14996,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [603]
-	[604] = 
+	}, -- end of [619]
+	[620] = 
 	{
 		["type"] = "LiAZ Bus",
 		["name"] = "Bus LiAZ-677",
@@ -14630,8 +15023,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [604]
-	[605] = 
+	}, -- end of [620]
+	[621] = 
 	{
 		["type"] = "M 818",
 		["name"] = "Truck M939 Heavy",
@@ -14659,8 +15052,8 @@ dcsUnits.DcsUnitsDatabase =
 		{
 			[1] = "M818",
 		}, -- end of ["aliases"]
-	}, -- end of [605]
-	[606] = 
+	}, -- end of [621]
+	[622] = 
 	{
 		["type"] = "M30_CC",
 		["name"] = "Ammo M30 Cargo Carrier",
@@ -14690,8 +15083,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [606]
-	[607] = 
+	}, -- end of [622]
+	[623] = 
 	{
 		["type"] = "M978 HEMTT Tanker",
 		["name"] = "Refueler M978 HEMTT",
@@ -14717,8 +15110,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [607]
-	[608] = 
+	}, -- end of [623]
+	[624] = 
 	{
 		["type"] = "MAZ-6303",
 		["name"] = "Truck MAZ-6303",
@@ -14744,8 +15137,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [608]
-	[609] = 
+	}, -- end of [624]
+	[625] = 
 	{
 		["type"] = "Predator GCS",
 		["name"] = "MCC Predator UAV CP & GCS",
@@ -14772,8 +15165,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [609]
-	[610] = 
+	}, -- end of [625]
+	[626] = 
 	{
 		["type"] = "Predator TrojanSpirit",
 		["name"] = "MCC-COMM Predator UAV CL",
@@ -14799,8 +15192,35 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [610]
-	[611] = 
+	}, -- end of [626]
+	[627] = 
+	{
+		["type"] = "S_75_ZIL",
+		["name"] = "S-75 Tractor (ZIL-131)",
+		["category"] = "Unarmed",
+		["description"] = "S-75 Tractor (ZIL-131)",
+		["vehicle"] = true,
+		["attribute"] = 
+		{
+			[25] = true,
+			["Vehicles"] = true,
+			[338] = true,
+			[2] = true,
+			["Trucks"] = true,
+			[17] = true,
+			["Unarmed vehicles"] = true,
+			["NonAndLightArmoredUnits"] = true,
+			["NonArmoredUnits"] = true,
+			["Ground Units Non Airdefence"] = true,
+			["All"] = true,
+			["Ground Units"] = true,
+			["Ground vehicles"] = true,
+		}, -- end of ["attribute"]
+		["aliases"] = 
+		{
+		}, -- end of ["aliases"]
+	}, -- end of [627]
+	[628] = 
 	{
 		["type"] = "Sd_Kfz_2",
 		["name"] = "LUV Kettenrad",
@@ -14830,8 +15250,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [611]
-	[612] = 
+	}, -- end of [628]
+	[629] = 
 	{
 		["type"] = "Sd_Kfz_7",
 		["name"] = "Tractor Sd.Kfz.7 Art'y Tractor",
@@ -14861,8 +15281,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [612]
-	[613] = 
+	}, -- end of [629]
+	[630] = 
 	{
 		["type"] = "SKP-11",
 		["name"] = "Truck SKP-11 Mobile ATC",
@@ -14889,8 +15309,8 @@ dcsUnits.DcsUnitsDatabase =
 		{
 			[1] = "SKP-11 Mobile Command Post",
 		}, -- end of ["aliases"]
-	}, -- end of [613]
-	[614] = 
+	}, -- end of [630]
+	[631] = 
 	{
 		["type"] = "Suidae",
 		["name"] = "Suidae",
@@ -14916,26 +15336,39 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [614]
-	[615] = 
+	}, -- end of [631]
+	[632] = 
 	{
 		["type"] = "tacr2a",
 		["name"] = "RAF Rescue",
 		["category"] = "Unarmed",
 		["description"] = "RAF Rescue",
+		["vehicle"] = true,
 		["attribute"] = 
 		{
-			[17] = true,
-			[25] = true,
-			[14] = true,
-			["APC,"] = true,
 			[2] = true,
+			["Vehicles"] = true,
+			[340] = true,
+			["Armored vehicles"] = true,
+			["AntiAir Armed Vehicles"] = true,
+			["Ground vehicles"] = true,
+			["Armed ground units"] = true,
+			["APC"] = true,
+			["Ground Units Non Airdefence"] = true,
+			["Infantry carriers"] = true,
+			[25] = true,
+			["NonAndLightArmoredUnits"] = true,
+			[14] = true,
+			["LightArmoredUnits"] = true,
+			["All"] = true,
+			["Ground Units"] = true,
+			["Armed vehicles"] = true,
 		}, -- end of ["attribute"]
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [615]
-	[616] = 
+	}, -- end of [632]
+	[633] = 
 	{
 		["type"] = "Tigr_233036",
 		["name"] = "LUV Tigr",
@@ -14966,8 +15399,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [616]
-	[617] = 
+	}, -- end of [633]
+	[634] = 
 	{
 		["type"] = "Trolley bus",
 		["name"] = "Bus ZIU-9 Trolley",
@@ -14993,13 +15426,13 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [617]
-	[618] = 
+	}, -- end of [634]
+	[635] = 
 	{
 		["type"] = "TZ-22_KrAZ",
-		["name"] = "Refueler TZ-22 Tractor",
+		["name"] = "Refueler TZ-22 Tractor (KrAZ-258B1)",
 		["category"] = "Unarmed",
-		["description"] = "Refueler TZ-22 Tractor",
+		["description"] = "Refueler TZ-22 Tractor (KrAZ-258B1)",
 		["vehicle"] = true,
 		["attribute"] = 
 		{
@@ -15020,8 +15453,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [618]
-	[619] = 
+	}, -- end of [635]
+	[636] = 
 	{
 		["type"] = "UAZ-469",
 		["name"] = "LUV UAZ-469 Jeep",
@@ -15048,8 +15481,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [619]
-	[620] = 
+	}, -- end of [636]
+	[637] = 
 	{
 		["type"] = "Ural ATsP-6",
 		["name"] = "Firefighter Ural ATsP-6",
@@ -15075,8 +15508,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [620]
-	[621] = 
+	}, -- end of [637]
+	[638] = 
 	{
 		["type"] = "Ural-375",
 		["name"] = "Truck Ural-375",
@@ -15102,8 +15535,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [621]
-	[622] = 
+	}, -- end of [638]
+	[639] = 
 	{
 		["type"] = "Ural-375 PBU",
 		["name"] = "Truck Ural-375 Mobile C2",
@@ -15129,8 +15562,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [622]
-	[623] = 
+	}, -- end of [639]
+	[640] = 
 	{
 		["type"] = "Ural-4320 APA-5D",
 		["name"] = "GPU APA-5D on Ural 4320",
@@ -15157,8 +15590,8 @@ dcsUnits.DcsUnitsDatabase =
 		{
 			[1] = "Ural-4320 APA-5D Ground Power Unit",
 		}, -- end of ["aliases"]
-	}, -- end of [623]
-	[624] = 
+	}, -- end of [640]
+	[641] = 
 	{
 		["type"] = "Ural-4320-31",
 		["name"] = "Truck Ural-4320-31 Arm'd",
@@ -15184,8 +15617,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [624]
-	[625] = 
+	}, -- end of [641]
+	[642] = 
 	{
 		["type"] = "Ural-4320T",
 		["name"] = "Truck Ural-4320T",
@@ -15211,8 +15644,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [625]
-	[626] = 
+	}, -- end of [642]
+	[643] = 
 	{
 		["type"] = "VAZ Car",
 		["name"] = "Car VAZ-2109",
@@ -15225,6 +15658,7 @@ dcsUnits.DcsUnitsDatabase =
 			["Vehicles"] = true,
 			[2] = true,
 			["Unarmed vehicles"] = true,
+			["CustomAimPoint"] = true,
 			["NonArmoredUnits"] = true,
 			[47] = true,
 			["NonAndLightArmoredUnits"] = true,
@@ -15238,8 +15672,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [626]
-	[627] = 
+	}, -- end of [643]
+	[644] = 
 	{
 		["type"] = "Willys_MB",
 		["name"] = "Car Willys Jeep",
@@ -15265,8 +15699,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [627]
-	[628] = 
+	}, -- end of [644]
+	[645] = 
 	{
 		["type"] = "ZiL-131 APA-80",
 		["name"] = "GPU APA-80 on ZIL-131",
@@ -15293,8 +15727,8 @@ dcsUnits.DcsUnitsDatabase =
 		{
 			[1] = "ZiL-131 APA-80 Ground Power Unit",
 		}, -- end of ["aliases"]
-	}, -- end of [628]
-	[629] = 
+	}, -- end of [645]
+	[646] = 
 	{
 		["type"] = "ZIL-131 KUNG",
 		["name"] = "Truck ZIL-131 (C2)",
@@ -15320,8 +15754,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [629]
-	[630] = 
+	}, -- end of [646]
+	[647] = 
 	{
 		["type"] = "ZIL-135",
 		["name"] = "Truck ZIL-135",
@@ -15347,8 +15781,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [630]
-	[631] = 
+	}, -- end of [647]
+	[648] = 
 	{
 		["type"] = "ZIL-4331",
 		["name"] = "Truck ZIL-4331",
@@ -15374,8 +15808,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [631]
-	[632] = 
+	}, -- end of [648]
+	[649] = 
 	{
 		["type"] = ".Ammunition depot",
 		["name"] = "Ammunition depot",
@@ -15384,8 +15818,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [632]
-	[633] = 
+	}, -- end of [649]
+	[650] = 
 	{
 		["type"] = "Tank",
 		["name"] = "Tank 1",
@@ -15394,8 +15828,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [633]
-	[634] = 
+	}, -- end of [650]
+	[651] = 
 	{
 		["type"] = "Tank 2",
 		["name"] = "Tank 2",
@@ -15404,8 +15838,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [634]
-	[635] = 
+	}, -- end of [651]
+	[652] = 
 	{
 		["type"] = "Tank 3",
 		["name"] = "Tank 3",
@@ -15414,8 +15848,8 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [635]
-	[636] = 
+	}, -- end of [652]
+	[653] = 
 	{
 		["type"] = "Warehouse",
 		["name"] = "Warehouse",
@@ -15424,5 +15858,5 @@ dcsUnits.DcsUnitsDatabase =
 		["aliases"] = 
 		{
 		}, -- end of ["aliases"]
-	}, -- end of [636]
+	}, -- end of [653]
 } -- end of units

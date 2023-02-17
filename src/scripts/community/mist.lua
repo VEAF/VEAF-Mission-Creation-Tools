@@ -653,10 +653,10 @@ do -- the main scope
             ["Bunker 2"] = "dot2",
             ["Tanker Elnya 160"] = "elnya",
             ["F-shape barrier"] = "f_bar_cargo",
-			["Helipad Single"] = "farp",
+            ["Helipad Single"] = "farp",
             ["FARP_SINGLE_01"] = "farp", --both of these entries are the same but this one has the correct typeName as per the DCS units datatable
             ["FARP"] = "farps",
-			["Invisible FARP"] = "invisiblefarp",
+            ["Invisible FARP"] = "invisiblefarp",
             ["Fueltank"] = "fueltank_cargo",
             ["Gate"] = "gate",
             ["FARP Fuel Depot"] = "gsm rus",
@@ -833,7 +833,7 @@ do -- the main scope
 			for i = 1, #lunits do
 				if lunits[i].category ~= 'static' then -- can't get statics with Unit.getByName :(
 					local unit = lUnit.getByName(lunits[i].unitName)
-					if unit then
+					if unit and unit:isExist() then
 						----dbLog:info("unit named $1 alive!", lunits[i].unitName) -- spammy
 						local pos = unit:getPosition()
 						local newtbl = ldeepcopy(lunits[i])
@@ -1803,11 +1803,11 @@ do -- the main scope
                 end
             end
 		else -- if aircraft and no route assigned. make a quick and stupid route so AI doesnt RTB immediately
-			if newCat == 'AIRPLANE' or newCat == 'HELICOPTER' then
+			--if newCat == 'AIRPLANE' or newCat == 'HELICOPTER' then
 				newGroup.route = {}
 				newGroup.route.points = {}
 				newGroup.route.points[1] = {}
-			end
+			--end
 		end
 		newGroup.country = newCountry
 
@@ -1870,11 +1870,6 @@ do -- the main scope
 		end
 		taskId = taskId + 1
 		table.insert(scheduledTasks, {f = f, vars = vars, t = t, rep = rep, st = st, id = taskId})
-		local mText = "scheduled task " .. tostring(taskId) .. " with function " .. tostring(f)
-		if debug and debug.traceback then
-			mText = mText .. "\n" .. debug.traceback()
-		end
-		log:info(mText)
 		return taskId
 	end
 
@@ -3230,7 +3225,7 @@ function mist.getUnitsInZones(unit_names, zone_names, zone_type)
 	for k = 1, #unit_names do
 		
         local unit = Unit.getByName(unit_names[k]) or StaticObject.getByName(unit_names[k])
-		if unit then
+		if unit and unit:isExist() then
 			units[#units + 1] = unit
 		end
 	end
@@ -7387,9 +7382,9 @@ do
            usedMarks[e.idx] = e.idx
            if not mist.DBs.markList[e.idx] then
                 --log:info('create maker DB: $1', e.idx)
-               mist.DBs.markList[e.idx] = {time = e.time, pos = e.pos, groupId = e.groupId, mType = 'panel', text = e.text, markId = e.idx, coalition = e.coalition}
+               mist.DBs.markList[e.idx] = {time = e.time, pos = e.pos, groupId = e.groupId, mType = 'panel', text = e.text, markId = e.idx, coalition = e.coalition, initiator = e.initiator}
                 if e.unit then
-                   mist.DBs.markList[e.idx].unit = e.initiaor:getName()
+                   mist.DBs.markList[e.idx].unit = e.initiator:getName()
                 end
                 --log:info(mist.marker.list[e.idx])
            end

@@ -113,9 +113,9 @@ veafMissionTriggerInjector.trig.actions = {
     [1] = "a_do_script(\"VEAF_DYNAMIC_PATH = [[d:\\\\dev\\\\_VEAF\\\\VEAF-Mission-Creation-Tools]]\");",
     [2] = "a_do_script(\"VEAF_DYNAMIC_MISSIONPATH = [[d:\\\\dev\\\\_VEAF\\\\VEAF-Open-Training-Mission\\\\]]\");",
     [3] = "a_do_script(\"env.info(\\\"DYNAMIC SCRIPTS LOADING\\\")\");a_do_script(\"assert(loadfile(VEAF_DYNAMIC_PATH .. \\\"/src/scripts/community/mist.lua\\\"))()\");a_do_script(\"assert(loadfile(VEAF_DYNAMIC_PATH .. \\\"/src/scripts/community/DCS-SimpleTextToSpeech.lua\\\"))()\");a_do_script(\"assert(loadfile(VEAF_DYNAMIC_PATH .. \\\"/src/scripts/community/CTLD.lua\\\"))()\");a_do_script(\"assert(loadfile(VEAF_DYNAMIC_PATH .. \\\"/src/scripts/community/WeatherMark.lua\\\"))()\");a_do_script(\"assert(loadfile(VEAF_DYNAMIC_PATH .. \\\"/src/scripts/community/skynet-iads-compiled.lua\\\"))()\");a_do_script(\"assert(loadfile(VEAF_DYNAMIC_PATH .. \\\"/src/scripts/community/Hercules_Cargo.lua\\\"))()\");a_do_script(\"assert(loadfile(VEAF_DYNAMIC_PATH .. \\\"/src/scripts/community/HoundElint.lua\\\"))()\");a_do_script(\"assert(loadfile(VEAF_DYNAMIC_PATH .. \\\"/src/scripts/VeafDynamicLoader.lua\\\"))()\");",
-    [4] = "a_do_script(\"env.info(\\\"STATIC SCRIPTS LOADING\\\")\");a_do_script_file(getValueResourceByKey(\"DictKey_ActionText_10202\"));a_do_script_file(getValueResourceByKey(\"DictKey_ActionText_10203\"));a_do_script_file(getValueResourceByKey(\"DictKey_ActionText_10204\"));a_do_script_file(getValueResourceByKey(\"DictKey_ActionText_10205\"));a_do_script_file(getValueResourceByKey(\"DictKey_ActionText_10206\"));a_do_script_file(getValueResourceByKey(\"DictKey_ActionText_10207\"));a_do_script_file(getValueResourceByKey(\"DictKey_ActionText_10208\"));a_do_script_file(getValueResourceByKey(\"DictKey_ActionText_10308\"));a_do_script_file(getValueResourceByKey(\"DictKey_ActionText_10309\"));",
+    [4] = "a_do_script(\"env.info(\\\"STATIC SCRIPTS LOADING\\\")\");a_do_script_file(getValueResourceByKey(\"DictKey_ActionText_10202\"));a_do_script_file(getValueResourceByKey(\"DictKey_ActionText_10203\"));a_do_script_file(getValueResourceByKey(\"DictKey_ActionText_10204\"));a_do_script_file(getValueResourceByKey(\"DictKey_ActionText_10205\"));a_do_script_file(getValueResourceByKey(\"DictKey_ActionText_10206\"));a_do_script_file(getValueResourceByKey(\"DictKey_ActionText_10207\"));a_do_script_file(getValueResourceByKey(\"DictKey_ActionText_10208\"));a_do_script_file(getValueResourceByKey(\"DictKey_ActionText_10308\"));",
     [5] = "a_do_script(\"env.info(\\\"DYNAMIC CONFIG LOADING\\\")\");a_do_script(\"assert(loadfile(VEAF_DYNAMIC_MISSIONPATH .. \\\"/src/scripts/missionConfig.lua\\\"))()\");",
-    [6] = "a_do_script(\"env.info(\\\"STATIC CONFIG LOADING\\\")\");a_do_script_file(getValueResourceByKey(\"DictKey_ActionText_10401\"));",
+    [6] = "a_do_script(\"env.info(\\\"STATIC CONFIG LOADING\\\")\");a_do_script_file(getValueResourceByKey(\"DictKey_ActionText_10309\"));",
 }
 
 veafMissionTriggerInjector.trig.conditions = {
@@ -309,11 +309,6 @@ veafMissionTriggerInjector.trigrules = {
                 ["predicate"] = "a_do_script_file",
                 ["file"] = "DictKey_ActionText_10308",
             }, -- end of [9]
-            [10] = 
-            {
-                ["predicate"] = "a_do_script_file",
-                ["file"] = "DictKey_ActionText_10309",
-            }, -- end of [10]
         }, -- end of ["actions"]
         ["predicate"] = "triggerStart",
         ["colorItem"] = "0x00ff80ff",
@@ -372,7 +367,7 @@ veafMissionTriggerInjector.trigrules = {
             [2] = 
             {
                 ["predicate"] = "a_do_script_file",
-                ["file"] = "DictKey_ActionText_10401",
+                ["file"] = "DictKey_ActionText_10309",
             }, -- end of [2]
         }, -- end of ["actions"]
         ["predicate"] = "triggerStart",

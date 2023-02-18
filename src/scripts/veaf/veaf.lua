@@ -4315,7 +4315,7 @@ if ctld then
     -- automatically generate pickup zones names
     ctld.autoInitializeAllPickupZones()
 
-    ctld.initialize(true)
+    --ctld.initialize(true) -- Since v5.0, CTLD initialization is deferred to the missionConfig.lua file
 
     veaf.loggers.get(ctld.Id):info(string.format("Done setting up CTLD"))
 end

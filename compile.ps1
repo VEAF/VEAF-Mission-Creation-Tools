@@ -95,7 +95,7 @@ Write-Output "" | Out-File $VeafOutputPath -Encoding utf8 -Append
 Write-Output "------------------ START script veaf.lua  ------------------" | Out-File $VeafOutputPath -Encoding utf8 -Append
 Write-Output "" | Out-File $VeafOutputPath -Encoding utf8 -Append
 
-Get-Content -Path ".\build\veaf.lua" | Out-File $VeafOutputPath -Encoding utf8 -Append
+Get-Content -Encoding utf8 -Path ".\build\veaf.lua" | Out-File $VeafOutputPath -Encoding utf8 -Append
 
 Write-Output "" | Out-File $VeafOutputPath -Encoding utf8 -Append
 Write-Output "------------------ END script veaf.lua  ------------------" | Out-File $VeafOutputPath -Encoding utf8 -Append
@@ -109,7 +109,7 @@ foreach ($script in $VeafScripts) {
   Write-Output "------------------ START script $script  ------------------" | Out-File $VeafOutputPath -Encoding utf8 -Append
   Write-Output "" | Out-File $VeafOutputPath -Encoding utf8 -Append
 
-  Get-Content -Path ".\build\$script" | Out-File $VeafOutputPath -Encoding utf8 -Append
+  Get-Content -Encoding utf8 -Path ".\build\$script" | Out-File $VeafOutputPath -Encoding utf8 -Append
 
   Write-Output "" | Out-File $VeafOutputPath -Encoding utf8 -Append
   Write-Output "------------------ END script $script  ------------------" | Out-File $VeafOutputPath -Encoding utf8 -Append

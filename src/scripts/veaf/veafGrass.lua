@@ -19,7 +19,7 @@ veafGrass = {}
 veafGrass.Id = "GRASS"
 
 --- Version.
-veafGrass.Version = "2.3.1"
+veafGrass.Version = "2.3.2"
 
 -- trace level, specific to this module
 --veafGrass.LogLevel = "trace"
@@ -176,7 +176,7 @@ function veafGrass.buildFarpsUnits(hiddenOnMFD)
             veaf.loggers.get(veafGrass.Id):trace(string.format("found grassRunwayUnits[%s]= %s", name, veaf.p(unit)))
         end
 		--first two types should represent the same object depending on if you're on the MIST side or DCS side, as a safety added both
-        if (unit.type == "SINGLE_HELIPAD" or unit.type == "FARP_SINGLE_01" or unit.type == "FARP" or unit.type == "Invisible FARP") and name:upper():find('FARP ') then 
+        if (unit.type == "SINGLE_HELIPAD" or unit.type == "FARP_SINGLE_01" or unit.type == "FARP" or unit.type == "Invisible FARP") and name:upper():sub(1,5)=="FARP " then 
             farpUnits[name] = unit
             veaf.loggers.get(veafGrass.Id):trace(string.format("found farpUnits[%s]= %s", name, veaf.p(unit)))
         end

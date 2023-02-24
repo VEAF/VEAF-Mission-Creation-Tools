@@ -299,6 +299,7 @@ function veafNamedPoints.addDataToPoint(point, data)
 end
 
 function veafNamedPoints.buildPointsDatabase()
+    veaf.loggers.get(veafNamedPoints.Id):debug("buildPointsDatabase()")
     veafNamedPoints.namedPoints = {}
     for name, defaultPoint in pairs(veafNamedPoints.Points) do
         veafNamedPoints._addPoint(defaultPoint.name, defaultPoint.point)
@@ -423,6 +424,8 @@ end
 
 --- Build the initial radio menu
 function veafNamedPoints.buildRadioMenu()
+    veaf.loggers.get(veafNamedPoints.Id):debug("buildRadioMenu()")
+
     veafNamedPoints.rootPath = veafRadio.addSubMenu(veafNamedPoints.RadioMenuName)
     if not(veafRadio.skipHelpMenus) then
         veafRadio.addCommandToSubmenu("HELP", veafNamedPoints.rootPath, veafNamedPoints.help, nil, veafRadio.USAGE_ForGroup)

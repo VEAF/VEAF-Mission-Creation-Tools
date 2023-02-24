@@ -23,7 +23,7 @@ veafRadio.Id = "RADIO"
 veafRadio.Version = "1.11.0"
 
 -- trace level, specific to this module
---veafRadio.LogLevel = "debug"
+--veafRadio.LogLevel = "trace"
 
 veaf.loggers.new(veafRadio.Id, veafRadio.LogLevel)
 
@@ -276,27 +276,25 @@ function veafRadio.eventHandler:onEvent(Event)
 
   -- Debug output.
   local _unitname = ""
-  veaf.loggers.get(veafRadio.Id):debug(string.format("got event %s", veaf.p(EVENTS[Event.id])))
-  veaf.loggers.get(veafRadio.Id):trace(string.format("Event id        = %s", tostring(Event.id)))
-  veaf.loggers.get(veafRadio.Id):trace(string.format("Event time      = %s", tostring(Event.time)))
-  veaf.loggers.get(veafRadio.Id):trace(string.format("Event idx       = %s", tostring(Event.idx)))
-  veaf.loggers.get(veafRadio.Id):trace(string.format("Event coalition = %s", tostring(Event.coalition)))
-  veaf.loggers.get(veafRadio.Id):trace(string.format("Event group id  = %s", tostring(Event.groupID)))
+  veaf.loggers.get(veafRadio.Id):trace(string.format("got event %s", veaf.p(EVENTS[Event.id])))
+  --veaf.loggers.get(veafRadio.Id):trace(string.format("Event id        = %s", veaf.p(Event.id)))
+  --veaf.loggers.get(veafRadio.Id):trace(string.format("Event time      = %s", veaf.p(Event.time)))
+  --veaf.loggers.get(veafRadio.Id):trace(string.format("Event idx       = %s", veaf.p(Event.idx)))
+  --veaf.loggers.get(veafRadio.Id):trace(string.format("Event coalition = %s", veaf.p(Event.coalition)))
+  --veaf.loggers.get(veafRadio.Id):trace(string.format("Event group id  = %s", veaf.p(Event.groupID)))
   if Event.initiator ~= nil then
     _unitname = Event.initiator:getName()
-    veaf.loggers.get(veafRadio.Id):debug(string.format("Event ini unit  = %s", tostring(_unitname)))
+    veaf.loggers.get(veafRadio.Id):trace(string.format("Event ini unit  = %s", veaf.p(_unitname)))
   end
-  veaf.loggers.get(veafRadio.Id):debug(string.format("Event text      = \n%s", tostring(Event.text)))
+  veaf.loggers.get(veafRadio.Id):trace(string.format("Event text      = \n%s", veaf.p(Event.text)))
 
   local refreshRadioMenu = false
   -- human unit birth
   if Event.id == world.event.S_EVENT_BIRTH then
-
     if _unitname and veafRadio.humanUnits[_unitname] then
-      -- a human spawned in this slot ! Yay !
-      if veafRadio.humanUnits[_unitname] then
-        veafRadio.humanUnits[_unitname].spawned = true
-      end
+    -- a human spawned in this slot ! Yay !
+    veaf.loggers.get(veafRadio.Id):trace(string.format("a human spawned in this slot: %s", veaf.p(_unitname)))
+    veafRadio.humanUnits[_unitname].spawned = true
 
       -- refresh the radio menu
       refreshRadioMenu = true
@@ -534,19 +532,24 @@ function veafRadio.refreshRadioSubmenu(parentRadioMenu, radioMenu, radioMeasures
   -- create the commands in the radio menu
   for count = 1,#radioMenu.commands do
     local command = radioMenu.commands[count]
+    veaf.loggers.get(veafRadio.Id):trace(string.format("command=%s",veaf.p(command)))
 
     if not command.usage then
-    command.usage = veafRadio.USAGE_ForAll
+        command.usage = veafRadio.USAGE_ForAll
     end
     if command.usage ~= veafRadio.USAGE_ForAll then
     
         -- build menu for each player group
         local alreadyDoneGroups = {}
         for groupId, groupData in pairs(veafRadio.humanGroups) do
+            veaf.loggers.get(veafRadio.Id):trace(string.format("groupId=%s",veaf.p(groupId)))
             for _, callsign in pairs(groupData.callsigns) do
+                veaf.loggers.get(veafRadio.Id):trace(string.format("callsign=%s",veaf.p(callsign)))
                 local unitData = groupData.units[callsign]
                 local unitName = unitData.name
+                veaf.loggers.get(veafRadio.Id):trace(string.format("unitName=%s",veaf.p(unitName)))
                 local humanUnit =  veafRadio.humanUnits[unitName]
+                veaf.loggers.get(veafRadio.Id):trace(string.format("humanUnit=%s",veaf.p(humanUnit)))
                 --veaf.loggers.get(veafRadio.Id):debug(string.format("checking if unit %s is spawned",veaf.p(unitName)))
                 if humanUnit and humanUnit.spawned then
                     veaf.loggers.get(veafRadio.Id):debug(string.format("add radio command for player unit %s",veaf.p(unitName)))
@@ -607,6 +610,7 @@ function veafRadio.addSecuredCommandToSubmenu(title, radioMenu, method, paramete
 end
 
 function veafRadio._addCommandToSubmenu(title, radioMenu, method, parameters, usage, isSecured)
+    veaf.loggers.get(veafRadio.Id):debug(string.format("_addCommandToSubmenu(%s)",veaf.p(title)))
     local command = {}
     command.title = title
     command.method = method
@@ -900,14 +904,14 @@ function veafRadio.startBeacon(name, firstRunDelay, secondsBetweenRepeats, frequ
 end
 
 function veafRadio._runBeacons()
-  veaf.loggers.get(veafRadio.Id):trace("_runBeacons()")
+  --veaf.loggers.get(veafRadio.Id):trace("_runBeacons()")
   
   local now = timer.getTime()
-  veaf.loggers.get(veafRadio.Id):debug(string.format("now = %s", tostring(now)))
+  --veaf.loggers.get(veafRadio.Id):debug(string.format("now = %s", tostring(now)))
   for name, beacon in pairs(veafRadio.beacons) do
-    veaf.loggers.get(veafRadio.Id):trace(string.format("checking %s supposed to run at %s", tostring(beacon.name), tostring(beacon.nextRun)))
+    --veaf.loggers.get(veafRadio.Id):trace(string.format("checking %s supposed to run at %s", tostring(beacon.name), tostring(beacon.nextRun)))
     if beacon.nextRun <= now then
-      veaf.loggers.get(veafRadio.Id):trace(string.format("running beacon %s", tostring(name)))
+      --veaf.loggers.get(veafRadio.Id):trace(string.format("running beacon %s", tostring(name)))
       if beacon.message then
         veafRadio.transmitMessage(beacon.message, beacon.frequencies, beacon.modulations, beacon.volume, beacon.name, beacon.coalition, nil, true)
       elseif beacon.mp3 then
@@ -917,7 +921,7 @@ function veafRadio._runBeacons()
     end
   end
 
-  veaf.loggers.get(veafRadio.Id):trace(string.format("rescheduling in %s seconds", tostring(veafRadio.BEACONS_SCHEDULE)))
+  --veaf.loggers.get(veafRadio.Id):trace(string.format("rescheduling in %s seconds", tostring(veafRadio.BEACONS_SCHEDULE)))
   mist.scheduleFunction(veafRadio._runBeacons,{},timer.getTime()+veafRadio.BEACONS_SCHEDULE)
 end
 -------------------------------------------------------------------------------------------------------------------------------------------------------------

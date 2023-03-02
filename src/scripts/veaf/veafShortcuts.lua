@@ -1269,7 +1269,7 @@ function veafShortcuts.buildDefaultList()
     )
     veafShortcuts.AddAlias(
         VeafAlias:new()
-            :setName("-shells")
+            :setName("-shell")
             :setDescription("Artillery shelling of a small zone with lots of low-yield HE")
             :setVeafCommand("_spawn bomb")
             :addRandomParameter("shells", 2, 5)

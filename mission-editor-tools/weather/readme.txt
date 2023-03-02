@@ -1,1 +1,0 @@
-Put these files in your <saved games>\DCS\MissionEditor\weather folder, and use them to load presets in the mission editor (weather panel)

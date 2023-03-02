@@ -30,7 +30,8 @@ param (
 "veafSkynetIadsHelper.lua",
 "veafSanctuary.lua",
 "veafHoundElintHelper.lua",
-"veafMissileGuardian.lua"
+"veafMissileGuardian.lua",
+"veafQra.lua"
 
 # make the build folder
 if(-not $Quiet) { Write-Output "make the build folder" }

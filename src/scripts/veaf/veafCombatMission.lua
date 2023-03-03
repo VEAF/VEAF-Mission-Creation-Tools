@@ -97,7 +97,7 @@ function VeafCombatMissionObjective:copy()
     copy.description = self.description
     copy.onStartupFunction = self.onStartupFunction
     copy.onCheckFunction = self.onCheckFunction
-        
+
     -- deep copy the collections
     copy.parameters = {}
     for name, value in pairs(self.parameters) do
@@ -199,7 +199,7 @@ function VeafCombatMissionObjective:configureAsTimedObjective(timeInSeconds)
         veaf.loggers.get(veafCombatMission.Id):trace(string.format("VeafCombatMissionObjective.NewTimedObjective.onCheck()"))
         local timeout = parameters.timeout
         local startTime = parameters.startTime
-        if timer.getTime() > startTime + timeout then 
+        if timer.getTime() > startTime + timeout then
             return VeafCombatMissionObjective.FAILED
         else
             return VeafCombatMissionObjective.NOTHING
@@ -209,7 +209,7 @@ function VeafCombatMissionObjective:configureAsTimedObjective(timeInSeconds)
     return self
         :setParameters({timeout=timeInSeconds})
         :setOnStartup(
-            function(parameters) 
+            function(parameters)
                 parameters["startTime"] = timer.getTime()
             end
         )
@@ -228,12 +228,12 @@ function VeafCombatMissionObjective:configureAsKillEnemiesObjective(nbKillsToWin
             veaf.loggers.get(veafCombatMission.Id):trace(string.format("whatsInAKill = %d",whatsInAKill))
 
             local nbLiveUnits, nbDamagedUnits, nbDeadUnits = mission:getRemainingEnemies(whatsInAKill)
-            
+
             veaf.loggers.get(veafCombatMission.Id):trace(string.format("nbLiveUnits = %d",nbLiveUnits))
             veaf.loggers.get(veafCombatMission.Id):trace(string.format("nbDamagedUnits = %d",nbDamagedUnits))
             veaf.loggers.get(veafCombatMission.Id):trace(string.format("nbDeadUnits = %d",nbDeadUnits))
-        
-            if (nbKillsToWin == -1 and nbLiveUnits == 0) or (nbKillsToWin >= 0 and nbDeadUnits >= nbKillsToWin) then 
+
+            if (nbKillsToWin == -1 and nbLiveUnits == 0) or (nbKillsToWin >= 0 and nbDeadUnits >= nbKillsToWin) then
                 -- objective is achieved
                 veaf.loggers.get(veafCombatMission.Id):trace(string.format("objective is achieved"))
                 local msg = string.format(self:getMessage(), nbDeadUnits)
@@ -260,7 +260,7 @@ function VeafCombatMissionObjective:configureAsPreventDestructionOfSceneryObject
     local function onCheck(mission, parameters)
         veaf.loggers.get(veafCombatMission.Id):trace(string.format("VeafCombatMissionObjective.configureAsPreventDestructionOfSceneryObjectsInZone.onCheck()"))
         if mission:isActive() then
-            
+
             local zones = parameters.zones
             local objects = parameters.objects
             local failed = false
@@ -268,7 +268,7 @@ function VeafCombatMissionObjective:configureAsPreventDestructionOfSceneryObject
 
             local killedObjects = mist.getDeadMapObjsInZones(zones)
             ----veaf.loggers.get(veafCombatMission.Id):trace(veaf.serialize("killedObjects", killedObjects))
-            
+
             for _, object in pairs(killedObjects) do
                 veaf.loggers.get(veafCombatMission.Id):trace(string.format("checking id_ = [%s]", object.object.id_))
                 if objects[object.object.id_] then
@@ -282,7 +282,7 @@ function VeafCombatMissionObjective:configureAsPreventDestructionOfSceneryObject
                 end
             end
 
-            if failed then 
+            if failed then
                 -- objective is failed
                 veaf.loggers.get(veafCombatMission.Id):trace(string.format("objective is failed"))
                 local msg = string.format(self:getMessage(), killedObjectsNames)
@@ -308,19 +308,19 @@ end
 VeafCombatMissionElement =
 {
     -- name
-    name,
+    name = nil,
     -- groups : a list of group names that compose this element
-    groups,
+    groups = nil,
     -- skill ("Average", "Good", "High", "Excellent" or "Random"), defaults to "Random"
-    skill, -- SPAWN:InitSkill(Skill)
+    skill = "Random", -- SPAWN:InitSkill(Skill)
     -- spawn radius in meters (randomness introduced in the respawn mechanism)
-    spawnRadius, -- SPAWN:InitRandomizePosition
+    spawnRadius = 0, -- SPAWN:InitRandomizePosition
     -- spawn chance in percent (xx chances in 100 that the unit is spawned - or the command run)
-    spawnChance,
+    spawnChance = 100,
     -- the element can be multiplied to scale the mission
-    scale,
+    scale = 1,
     -- if true, the element is scalable
-    scalable,
+    scalable = true,
 }
 VeafCombatMissionElement.__index = VeafCombatMissionElement
 
@@ -347,7 +347,7 @@ function VeafCombatMissionElement:copy()
     copy.spawnChance = self.spawnChance
     copy.scale = self.scale
     copy.scalable = self.scalable
-    
+
     -- deep copy the collections
     copy.groups = {}
     for _, group in pairs(self.groups) do
@@ -451,38 +451,40 @@ end
 -- VeafCombatMission object
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-VeafCombatMission = 
+VeafCombatMission =
 {
     -- mission name (technical)
-    name,
+    name = nil,
     -- mission name (human-friendly)
-    friendlyName,
+    friendlyName = nil,
     -- mission briefing
-    briefing,
+    briefing = nil,
     -- secured :  if true, the radio menu will be secured
-    secured,
+    secured = false,
     -- list of objectives
-    objectives,
+    objectives = {},
     -- list of the elements defined in the mission
-    elements,
+    elements = {},
     -- mission is active
-    active,
+    active = false,
     -- mission is a training mission
-    training,
+    training = false,
     -- DCS groups that have been spawned (for cleaning up later)
-    spawnedGroups,
+    spawnedGroups = {},
     --- Radio menus paths
-    radioMarkersPath,
-    radioTargetInfoPath,
-    radioRootPath,
+    radioMarkersPath = nil,
+    radioTargetInfoPath = nil,
+    radioRootPath = nil,
     -- the watchdog function checks for mission objectives completion
-    watchdogFunctionId,
+    watchdogFunctionId = nil,
     -- if false, the mission will not appear in the radio menu
-    radioMenuEnabled,
+    radioMenuEnabled = false,
     -- if true, no message will be displayed when activating/deactivating the mission
-    hidden,
+    hidden = false,
     -- same as hidden but only valid for one activation of the mission (will be reset to *hidden* at next start)
-    silent,
+    silent = false,
+    spawnedUnitsCountByGroup = {},
+    spawnedNamesIndex = {}
 }
 VeafCombatMission.__index = VeafCombatMission
 
@@ -610,11 +612,11 @@ end
 
 function VeafCombatMission:addSpawnedGroup(group)
     veaf.loggers.get(veafCombatMission.Id):debug(string.format("VeafCombatMission[%s]:addSpawnedGroup(%s)",self.name or "", group:getName() or ""))
-    if not self.spawnedGroups then 
+    if not self.spawnedGroups then
         self.spawnedGroups = {}
     end
     table.insert(self.spawnedGroups, group)
-    
+
     -- count units in group
     self.spawnedUnitsCountByGroup[group:getName()] = #group:getUnits()
     veaf.loggers.get(veafCombatMission.Id):trace(string.format("%s units in group [%s]",tostring(self.spawnedUnitsCountByGroup[group:getName()]), tostring(group:getName())))
@@ -637,7 +639,7 @@ end
 
 function VeafCombatMission:addObjective(objective)
     veaf.loggers.get(veafCombatMission.Id):debug(string.format("VeafCombatMission[%s]:addObjective(%s)",self.name or "", objective:getName() or ""))
-    if not self.objectives then 
+    if not self.objectives then
         self.objectives = {}
     end
     table.insert(self.objectives, objective)
@@ -697,11 +699,6 @@ function VeafCombatMission:unscheduleWatchdogFunction()
     return self
 end
 
-function VeafCombatMission:addObjective(value)
-    table.insert(self.objectives, value)
-    return self
-end
-
 function VeafCombatMission:getObjectives()
     return self.objectives
 end
@@ -715,10 +712,10 @@ function VeafCombatMission:initialize()
     veaf.loggers.get(veafCombatMission.Id):debug(string.format("VeafCombatMission[%s]:initialize()",self.name or ""))
 
     -- check parameters
-    if not self.name then 
-        return self 
+    if not self.name then
+        return self
     end
-    if not self.friendlyName then 
+    if not self.friendlyName then
         self:setFriendlyName(self.name)
     end
     if #self.objectives == 0 then
@@ -766,7 +763,7 @@ function VeafCombatMission:getRemainingEnemies(whatsInAKill)
         end
         local groupDeadUnits = (self.spawnedUnitsCountByGroup[group:getName()] or 0) - groupLiveUnits
         if groupDeadUnits < 0 then -- should never happen but who knows ? This is DCS !
-            groupDeadUnits = 0 
+            groupDeadUnits = 0
         end
 
         veaf.loggers.get(veafCombatMission.Id):trace(string.format("groupLiveUnits = %d",groupLiveUnits))
@@ -783,7 +780,7 @@ function VeafCombatMission:getRemainingEnemies(whatsInAKill)
     veaf.loggers.get(veafCombatMission.Id):trace(string.format("nbDeadUnits = %d",nbDeadUnits))
 
     return nbLiveUnits, nbDamagedUnits, nbDeadUnits
-end    
+end
 
 function VeafCombatMission:getInformation()
     veaf.loggers.get(veafCombatMission.Id):debug(string.format("VeafCombatMission[%s]:getInformation()",self.name or ""))
@@ -805,7 +802,7 @@ function VeafCombatMission:getInformation()
         -- generate information dispatch
         message = message .. "ENEMIES : " ..self:getRemainingEnemiesString() .."\n"
 
-        if self:isTraining() then 
+        if self:isTraining() then
             -- TODO find the position of the enemies
         end
 
@@ -819,9 +816,9 @@ end
 -- activate the mission
 function VeafCombatMission:activate(silent)
     veaf.loggers.get(veafCombatMission.Id):debug(string.format("VeafCombatMission[%s]:activate(%s)",self:getName(), tostring(silent)))
-    
+
     -- don't start twice
-    if self:isActive() then 
+    if self:isActive() then
         return nil
     end
 
@@ -839,7 +836,7 @@ function VeafCombatMission:activate(silent)
                 veaf.loggers.get(veafCombatMission.Id):trace(string.format("_spawnPoint=%s",veaf.p(_spawnPoint)))
                 local _spawnRadius = missionElement:getSpawnRadius()
                 if (missionElement:getScale() > 1 and _spawnRadius < veafCombatMission.MinimumSpacingBetweenClones) then
-                    _spawnRadius = veafCombatMission.MinimumSpacingBetweenClones 
+                    _spawnRadius = veafCombatMission.MinimumSpacingBetweenClones
                 end
                 veaf.loggers.get(veafCombatMission.Id):trace(string.format("_spawnRadius=%s",veaf.p(_spawnRadius)))
 
@@ -861,41 +858,46 @@ function VeafCombatMission:activate(silent)
                     local spawnedGroupName = string.format("%s #%04d", groupName, self.spawnedNamesIndex[groupName])
                     veaf.loggers.get(veafCombatMission.Id):trace(string.format("spawnedGroupName=%s",veaf.p(spawnedGroupName)))
                     local _group = mist.teleportToPoint(vars, true)
-                    for _, unit in pairs(_group.units) do
-                        unit.skill = missionElement:getSkill()
+                    if _group then 
+                        for _, unit in pairs(_group.units) do
+                            unit.skill = missionElement:getSkill()
+                        end
                     end
                     _group.groupName = spawnedGroupName
-                    for _, unit in pairs(_group.units) do
-                        local unitName = unit.unitName
-                        veaf.loggers.get(veafCombatMission.Id):trace(string.format("unitName=%s",veaf.p(unitName)))
-                        if not self.spawnedNamesIndex[unitName] then
-                            self.spawnedNamesIndex[unitName] = 1
-                        else
-                            self.spawnedNamesIndex[unitName] = self.spawnedNamesIndex[unitName] + 1
+                    if _group then 
+                        for _, unit in pairs(_group.units) do
+                            local unitName = unit.unitName
+                            veaf.loggers.get(veafCombatMission.Id):trace(string.format("unitName=%s",veaf.p(unitName)))
+                            if not self.spawnedNamesIndex[unitName] then
+                                self.spawnedNamesIndex[unitName] = 1
+                            else
+                                self.spawnedNamesIndex[unitName] = self.spawnedNamesIndex[unitName] + 1
+                            end
+                            local spawnedUnitName = string.format("%s #%04d", unitName, self.spawnedNamesIndex[unitName])
+                            unit.groupName = spawnedUnitName
+                            veaf.loggers.get(veafCombatMission.Id):trace(string.format("spawnedUnitName=%s",veaf.p(spawnedUnitName)))
                         end
-                        local spawnedUnitName = string.format("%s #%04d", unitName, self.spawnedNamesIndex[unitName])
-                        unit.groupName = spawnedUnitName
-                        veaf.loggers.get(veafCombatMission.Id):trace(string.format("spawnedUnitName=%s",veaf.p(spawnedUnitName)))                        
                     end
                     veaf.loggers.get(veafCombatMission.Id):trace(string.format("_group=%s",veaf.p(_group)))
                     local _spawnedGroup = mist.dynAdd(_group)
-                    veaf.loggers.get(veafCombatMission.Id):trace(string.format("_spawnedGroup.name=%s",veaf.p(_spawnedGroup.name)))
-                    local _dcsSpawnedGroup = Group.getByName(_spawnedGroup.name)
-                    
-                    veaf.loggers.get(veafCombatMission.Id):trace(string.format("_spawnedGroup.name=%s",veaf.p(_dcsSpawnedGroup:getName())))
-                    for _, unit in pairs(_dcsSpawnedGroup:getUnits()) do
-                        veaf.loggers.get(veafCombatMission.Id):trace(string.format("_spawnedGroup.unit.name=%s",veaf.p(unit:getName())))
-                    end
-
-                    self:addSpawnedGroup(_dcsSpawnedGroup)
-                    -- add the group to the Hound Elint, if there is one
-                    if veafHoundElint then
-                        veaf.loggers.get(veafCombatMission.Id):debug(string.format("veafHoundElint.addPlatformToSystem(%s)",veaf.p(_dcsSpawnedGroup:getName())))
-                        veafHoundElint.addPlatformToSystem(_dcsSpawnedGroup)
+                    if _spawnedGroup then
+                        veaf.loggers.get(veafCombatMission.Id):trace(string.format("_spawnedGroup.name=%s",veaf.p(_spawnedGroup.name)))
+                        local _dcsSpawnedGroup = Group.getByName(_spawnedGroup.name)
+                        veaf.loggers.get(veafCombatMission.Id):trace(string.format("_spawnedGroup.name=%s",veaf.p(_dcsSpawnedGroup:getName())))
+                        for _, unit in pairs(_dcsSpawnedGroup:getUnits()) do
+                            veaf.loggers.get(veafCombatMission.Id):trace(string.format("_spawnedGroup.unit.name=%s",veaf.p(unit:getName())))
+                        end
+    
+                        self:addSpawnedGroup(_dcsSpawnedGroup)
+                        -- add the group to the Hound Elint, if there is one
+                        if veafHoundElint then
+                            veaf.loggers.get(veafCombatMission.Id):debug(string.format("veafHoundElint.addPlatformToSystem(%s)",veaf.p(_dcsSpawnedGroup:getName())))
+                            veafHoundElint.addPlatformToSystem(_dcsSpawnedGroup)
+                        end
                     end
                 end
             end
-        else 
+        else
             veaf.loggers.get(veafCombatMission.Id):debug(string.format("chance missed (%d > %d)",chance, missionElement:getSpawnChance()))
         end
     end
@@ -951,7 +953,7 @@ function VeafCombatMission:completionCheck()
 Objective not met : %s
 The mission %s will now end.
 You can replay by starting it again, in the radio menu.]], objective:getDescription(), self:getFriendlyName())
-            if not self:isSilent() then 
+            if not self:isSilent() then
                 trigger.action.outText(message, 15)
             end
             self:desactivate()
@@ -962,8 +964,8 @@ You can replay by starting it again, in the radio menu.]], objective:getDescript
 All objectives were met !
 The mission %s is a success ! It will now end.
 You can replay by starting it again, in the radio menu.]], self:getFriendlyName())
-            if not self:isSilent() then 
-                trigger.action.outText(message, 15) 
+            if not self:isSilent() then
+                trigger.action.outText(message, 15)
             end
             self:desactivate()
             reschedule = false
@@ -984,7 +986,7 @@ function VeafCombatMission:updateRadioMenu(inBatch)
     if not self:isRadioMenuEnabled() then
         return self
     end
-    
+
     -- do not update the radio menu if not yet initialized
     if not veafCombatMission.rootPath then
         return self
@@ -1036,7 +1038,7 @@ function veafCombatMission.GetMission(name)
     veaf.loggers.get(veafCombatMission.Id):debug(string.format("veafCombatMission.GetMission([%s])",name or ""))
     veaf.loggers.get(veafCombatMission.Id):debug(string.format("Searching for mission with name [%s]", name))
     local mission = veafCombatMission.missionsDict[name:lower()]
-    if not mission then 
+    if not mission then
         local message = string.format("VeafCombatMission [%s] was not found !",name)
         veaf.loggers.get(veafCombatMission.Id):error(message)
         trigger.action.outText(message,5)
@@ -1059,16 +1061,16 @@ function veafCombatMission.AddMissionsWithSkillAndScale(mission, includeOriginal
     veaf.loggers.get(veafCombatMission.Id):debug(string.format("veafCombatMission.AddMissionsWithSkill([%s])",mission:getName() or ""))
     veaf.loggers.get(veafCombatMission.Id):trace(string.format("skills=%s",veaf.p(skills)))
     veaf.loggers.get(veafCombatMission.Id):trace(string.format("scales=%s",veaf.p(scales)))
-    
+
     if (mission:isRadioMenuEnabled() and includeOriginal) then
         veafCombatMission.AddMission(mission)
     end
 
     local skills = skills or  {"Average", "Good", "High", "Excellent", "Random"}
     local scales = scales or {1, 2, 3, 4}
-    
+
     for _, scale in pairs(scales) do
-        for _, skill in pairs(skills) do 
+        for _, skill in pairs(skills) do
             local copy = mission:copy(skill, scale)--:setRadioMenuEnabled(false)
             copy:setName(mission:getName().."/"..skill.."/"..scale)
             copy:setFriendlyName(mission:getFriendlyName())
@@ -1082,7 +1084,7 @@ end
 -- activate a mission by number
 function veafCombatMission.ActivateMissionNumber(number, silent)
     local mission = veafCombatMission.GetMissionNumber(number)
-    if mission then 
+    if mission then
         veafCombatMission.ActivateMission(mission:getName(), silent)
     end
 end
@@ -1106,7 +1108,7 @@ end
 -- desactivate a mission by number
 function veafCombatMission.DesactivateMissionNumber(number, silent)
     local mission = veafCombatMission.GetMission(number)
-    if mission then 
+    if mission then
         veafCombatMission.DesactivateMission(mission:getName(), silent)
     end
 end
@@ -1174,7 +1176,7 @@ local function _groupMissions()
                     if not(activeGroups[groupName][skill]) then
                         activeGroups[groupName][skill] = {}
                     end
-                    if scale then 
+                    if scale then
                         veaf.loggers.get(veafCombatMission.Id):trace(string.format("activating scale %s", scale))
                         activeGroups[groupName][skill][scale] = true
                     end
@@ -1203,14 +1205,14 @@ function veafCombatMission._buildMissionRadioMenu(menu, title, element)
             local regex = ("^([^/]+)/([^/]+)/(%d+)$")
             local name, skill, scale = mission:getName():match(regex)
             veaf.loggers.get(veafCombatMission.Id):trace(string.format("missionName=[%s], name=%s, skill=%s, scale=%s", tostring(mission:getName()), tostring(name), tostring(skill), tostring(scale)))
-            if not skills[skill] then 
-                skills[skill] = {} 
+            if not skills[skill] then
+                skills[skill] = {}
             end
-            skills[skill][scale] = mission 
+            skills[skill][scale] = mission
         end
-        
+
         veaf.loggers.get(veafCombatMission.Id):trace(string.format("skills=%s", veaf.p(skills)))
-        
+
         -- create the radio menus
         local title = title
         if element.activeGroups then title = "* "..title end
@@ -1250,11 +1252,11 @@ function veafCombatMission.buildRadioMenu()
     veaf.loggers.get(veafCombatMission.Id):debug("buildRadioMenu()")
 
     -- don't create an empty menu
-    if veaf.length(veafCombatMission.missionsDict) == 0 then 
+    if veaf.length(veafCombatMission.missionsDict) == 0 then
         return
     end
 
-    if veafCombatMission.rootPath then 
+    if veafCombatMission.rootPath then
         veafRadio.clearSubmenu(veafCombatMission.rootPath)
     else
         veafCombatMission.rootPath = veafRadio.addMenu(veafCombatMission.RadioMenuName)
@@ -1264,7 +1266,7 @@ function veafCombatMission.buildRadioMenu()
     end
     veafRadio.addCommandToSubmenu("List available", veafCombatMission.rootPath, veafCombatMission.listAvailableMissions, nil, veafRadio.USAGE_ForAll)
     veafRadio.addCommandToSubmenu("List active", veafCombatMission.rootPath, veafCombatMission.listActiveMissions, nil, veafRadio.USAGE_ForAll)
-    
+
     local missions = {}
     local missionGroups, activeGroups = _groupMissions()
     for groupName, missionsInGroup in pairs(missionGroups) do
@@ -1286,7 +1288,7 @@ function veafCombatMission.help(unitName)
     veaf.outTextForUnit(unitName, text, 30)
 end
 
-function veafCombatMission.listAvailableMissions() 
+function veafCombatMission.listAvailableMissions()
     -- sort the missions alphabetically
     local sortedMissions = {}
     local groupedMissions = _groupMissions()
@@ -1294,27 +1296,27 @@ function veafCombatMission.listAvailableMissions()
         table.insert(sortedMissions, groupName)
     end
     table.sort(sortedMissions)
-    
+
     local text =
     'List of all available combat missions:\n'
 
     for _, missionName in pairs(sortedMissions) do
         text = text .. " - " .. missionName .. "\n"
     end
-    
+
     trigger.action.outText(text, 20)
 end
 
-function veafCombatMission.listActiveMissions() 
+function veafCombatMission.listActiveMissions()
     -- sort the missions alphabetically
-    sortedMissions = {}
+    local sortedMissions = {}
     for _, mission in pairs(veafCombatMission.missionsDict) do
         if mission:isActive() then
             table.insert(sortedMissions, mission:getName() .. ' : ' .. mission:getRemainingEnemiesString())
         end
     end
     table.sort(sortedMissions)
-    
+
     local text =
     'No active combat mission !'
 
@@ -1325,7 +1327,7 @@ function veafCombatMission.listActiveMissions()
         for _, missionName in pairs(sortedMissions) do
             text = text .. " - " .. missionName .. "\n"
         end
-    end    
+    end
 
     trigger.action.outText(text, 20)
 end
@@ -1334,7 +1336,7 @@ end
 function veafCombatMission.addCapMission(missionName, missionDescription, missionBriefing, secured, radioMenuEnabled, skills, scales, spawnRadius)
     veaf.loggers.get(veafCombatMission.Id):trace(string.format("veafCombatMission.addCapMission(%s)",tostring(missionName)))
 
-    local groupName = groupName or "OnDemand-"..missionName
+    local groupName = "OnDemand-"..missionName
     local spawnRadius = spawnRadius
     if spawnRadius == nil then spawnRadius = 20000 end
     local secured = secured
@@ -1343,17 +1345,17 @@ function veafCombatMission.addCapMission(missionName, missionDescription, missio
     if radioMenuEnabled == nil then radioMenuEnabled = false end
     local skills = skills
     veaf.loggers.get(veafCombatMission.Id):trace(string.format("checking skills"))
-    if not skills then 
+    if not skills then
         veaf.loggers.get(veafCombatMission.Id):trace(string.format("skills is nil"))
         if radioMenuEnabled then
-            skills = {"Good", "Excellent"} 
+            skills = {"Good", "Excellent"}
         else
             skills = nil
         end
     end
     local scales = scales
     veaf.loggers.get(veafCombatMission.Id):trace(string.format("checking scales"))
-    if not scales then 
+    if not scales then
         veaf.loggers.get(veafCombatMission.Id):trace(string.format("scales is nil"))
         if radioMenuEnabled then
             scales = {1, 2}
@@ -1366,14 +1368,14 @@ function veafCombatMission.addCapMission(missionName, missionDescription, missio
     veaf.loggers.get(veafCombatMission.Id):trace(string.format("scales=(%s)", veaf.p(scales)))
 
     veafCombatMission.AddMissionsWithSkillAndScale(
-		VeafCombatMission.new()
+		VeafCombatMission:new()
 		:setSecured(secured)
 		:setRadioMenuEnabled(radioMenuEnabled)
 		:setName(missionName)
 		:setFriendlyName(missionDescription)
 		:setBriefing(missionBriefing)
 		:addElement(
-			VeafCombatMissionElement.new()
+			VeafCombatMissionElement:new()
 			:setName(groupName)
             :setGroups({groupName})
             :setSkill("Random")
@@ -1381,7 +1383,7 @@ function veafCombatMission.addCapMission(missionName, missionDescription, missio
             :setSpawnRadius(spawnRadius)
 		)
 		:addObjective(
-			VeafCombatMissionObjective.new()
+			VeafCombatMissionObjective:new()
 			:setName("Kill all the ennemies")
 			:setDescription("you must kill all of the ennemies")
 			:setMessage("%d ennemies destroyed !")
@@ -1403,12 +1405,12 @@ function veafCombatMission.dumpMissionsList(export_path)
     end
 
     -- sort the missions alphabetically
-    sortedMissions = {}
+    local sortedMissions = {}
     for _, mission in pairs(veafCombatMission.missionsDict) do
         table.insert(sortedMissions, mission:getName())
     end
     table.sort(sortedMissions)
-    
+
     local _filename = "CombatMissionsList.json"
     if veaf.config.MISSION_NAME then
         _filename = "CombatMissionsList_" .. veaf.config.MISSION_NAME .. ".json"
@@ -1429,7 +1431,7 @@ function veafCombatMission.executeCommandFromRemote(parameters)
     veaf.loggers.get(veafCombatMission.Id):trace(string.format("_pilotName= %s", veaf.p(_pilotName)))
     veaf.loggers.get(veafCombatMission.Id):trace(string.format("_unitName= %s", veaf.p(_unitName)))
     veaf.loggers.get(veafCombatMission.Id):trace(string.format("_command= %s", veaf.p(_command)))
-    if not _pilot or not _command then 
+    if not _pilot or not _command then
         return false
     end
 
@@ -1439,22 +1441,22 @@ function veafCombatMission.executeCommandFromRemote(parameters)
         veaf.loggers.get(veafCombatMission.Id):trace(string.format("_action=%s",veaf.p(_action)))
         veaf.loggers.get(veafCombatMission.Id):trace(string.format("_missionName=%s",veaf.p(_missionName)))
         veaf.loggers.get(veafCombatMission.Id):trace(string.format("_parameters=%s",veaf.p(_parameters)))
-        if _action and _action:lower() == "list" then 
+        if _action and _action:lower() == "list" then
             veaf.loggers.get(veafCombatMission.Id):info(string.format("[%s] is listing air missions)",veaf.p(_pilot.name)))
             veafCombatMission.listAvailableMissions()
             return true
-        elseif _action and _action:lower() == "start" and _missionName then 
+        elseif _action and _action:lower() == "start" and _missionName then
             local _silent = _parameters and _parameters:lower() == "silent"
             veaf.loggers.get(veafCombatMission.Id):info(string.format("[%s] is starting air mission [%s] %s)",veaf.p(_pilot.name), veaf.p(_missionName), veaf.p(_parameters)))
             veafCombatMission.ActivateMission(_missionName, _silent)
             return true
-        elseif _action and _action:lower() == "stop" then 
+        elseif _action and _action:lower() == "stop" then
             local _silent = _parameters and _parameters:lower() == "silent"
             veaf.loggers.get(veafCombatMission.Id):info(string.format("[%s] is stopping air mission [%s] %s)",veaf.p(_pilot.name), veaf.p(_missionName), veaf.p(_parameters)))
             veafCombatMission.DesactivateMission(_missionName, _silent)
             return true
         end
-    end               
+    end
     return false
 end
 

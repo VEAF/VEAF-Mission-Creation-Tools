@@ -49,35 +49,30 @@ veafShortcuts.aliases = {}
 VeafAlias =
 {
     -- name
-    name,
+    name = nil,
     -- description
-    description,
+    description = nil,
     -- hidden from HELP
-    hidden,
+    hidden = false,
     -- the command that must be substituted to the alias
-    veafCommand,
+    veafCommand = nil,
     -- list of parameters that will be randomized if not present
-    randomParameters,
+    randomParameters = {},
     -- if TRUE, security is bypassed
-    bypassSecurity,
+    bypassSecurity = false,
     -- if set, the alias will actually be a batch of aliases to execute in order
-    batchAliases,
+    batchAliases = nil,
     -- if set, the alias is password protected with a specific password
-    password,
+    password = nil,
+    -- if set, we'll consider that the alias ends with a comma (to easily add the first parameter)
+    endsWithComma = true
 }
-VeafAlias.__index = VeafAlias
 
-function VeafAlias:new()
-    local self = setmetatable({}, VeafAlias)
-    self.veafCommand = nil
-    self.bypassSecurity = false
-    self.hidden = false
-    self.randomParameters = {}
-    self.endsWithComma = true
-    self.description = nil
-    self.batchAliases = nil
-    self.password = nil
-    return self
+function VeafAlias:new(object)
+    local o = object or {}
+    setmetatable(o, self)
+    self.__index = self
+    return o
 end
 
 ---
@@ -223,7 +218,7 @@ function VeafAlias:execute(remainingCommand, position, coalition, markId, bypass
         return true
     elseif logDebug("checking in veafRadio") and veafRadio.executeCommand(position, command, coalition, _bypassSecurity) then
         return true
-    elseif logDebug("checking in veafRemote") and veafRemote.executeCommand(position, command, coalition) then
+    elseif logDebug("checking in veafRemote") and veafRemote.executeCommand(position, command) then
         return true
     else
         return false
@@ -241,7 +236,7 @@ VeafAliasForCombatMission = {}
 VeafAliasForCombatMission.__index = VeafAliasForCombatMission
 
 function VeafAliasForCombatMission:new()
-    local self = setmetatable(mist.utils.deepCopy(VeafAlias.new()), VeafAliasForCombatMission)
+    local self = setmetatable(mist.utils.deepCopy(VeafAlias:new()), VeafAliasForCombatMission)
     self:setPassword(veafSecurity.PASSWORD_L1)
     self:setHidden(true)
     return self
@@ -277,6 +272,7 @@ function VeafAliasForCombatMission:execute(remainingCommand, position, coalition
 
     local silent = false
     local missionName = nil
+    local password = nil
     for _, keyphrase in pairs(keywords) do
         local str = veaf.breakString(veaf.trim(keyphrase), " ")
         local key = str[1]
@@ -345,7 +341,7 @@ VeafAliasForCombatZone = {}
 VeafAliasForCombatZone.__index = VeafAliasForCombatZone
 
 function VeafAliasForCombatZone:new()
-    local self = setmetatable(mist.utils.deepCopy(VeafAlias.new()), VeafAliasForCombatZone)
+    local self = setmetatable(mist.utils.deepCopy(VeafAlias:new()), VeafAliasForCombatZone)
     self:setPassword(veafSecurity.PASSWORD_L1)
     self:setHidden(true)
     return self
@@ -381,6 +377,7 @@ function VeafAliasForCombatZone:execute(remainingCommand, position, coalition, m
 
     local silent = false
     local zoneName = nil
+    local password = nil
     for _, keyphrase in pairs(keywords) do
         local str = veaf.breakString(veaf.trim(keyphrase), " ")
         local key = str[1]
@@ -539,8 +536,7 @@ end
 
 -- execute an alias command
 function veafShortcuts.ExecuteBatchAliasesList(aliasBatchList, delay, coalition, silent)
-    veaf.loggers.get(veafShortcuts.Id):debug(string.format("veafShortcuts.ExecuteBatchAliasesList([%s],[%s],[%s])", veaf.p(aliasBatchList), veaf.p(delay), veaf.p(coalition)))
-    veaf.loggers.get(veafShortcuts.Id):trace(string.format("bypassSecurity=[%s]",veaf.p(bypassSecurity)))
+    veaf.loggers.get(veafShortcuts.Id):debug(string.format("veafShortcuts.ExecuteBatchAliasesList([%s],[%s],[%s],[%s])", veaf.p(aliasBatchList), veaf.p(delay), veaf.p(coalition), veaf.p(silent)))
     if aliasBatchList and #aliasBatchList > 0 then -- run a batch
 
         local _msg = string.format("running batch list [%s]", veaf.p(aliasBatchList))
@@ -1471,7 +1467,7 @@ function veafShortcuts.dumpAliasesList(export_path)
     end
 
     -- sort the aliases alphabetically
-    sortedAliases = {}
+    local sortedAliases = {}
     for _, alias in pairs(veafShortcuts.aliases) do
         table.insert(sortedAliases, alias:getName())
     end
@@ -1493,7 +1489,7 @@ end
 function veafShortcuts.executeCommandFromRemote(parameters)
     veaf.loggers.get(veafShortcuts.Id):debug(string.format("veafShortcuts.executeCommandFromRemote()"))
     veaf.loggers.get(veafShortcuts.Id):trace(string.format("parameters= %s", veaf.p(parameters)))
-    local _pilot, _pilotName, _unitName, _command = unpack(parameters)
+    local _pilot, _pilotName, _unitName, _command = table.unpack(parameters)
     veaf.loggers.get(veafShortcuts.Id):trace(string.format("_pilot= %s", veaf.p(_pilot)))
     veaf.loggers.get(veafShortcuts.Id):trace(string.format("_pilotName= %s", veaf.p(_pilotName)))
     veaf.loggers.get(veafShortcuts.Id):trace(string.format("_unitName= %s", veaf.p(_unitName)))
@@ -1518,7 +1514,6 @@ function veafShortcuts.executeCommandFromRemote(parameters)
         if _command:sub(1,1) == veafShortcuts.AliasStarter or _command:sub(2,2) == veafShortcuts.AliasStarter then
             -- there is only the command
             _alias = _command
-            veaf.loggers.get(veafShortcuts.Id):trace(string.format("_coords=%s",veaf.p(_coords)))
             veaf.loggers.get(veafShortcuts.Id):trace(string.format("_alias=%s",veaf.p(_alias)))
         else
             -- parse the command

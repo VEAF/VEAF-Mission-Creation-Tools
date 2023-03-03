@@ -1,6 +1,6 @@
 -- execute(dofile) this script at the end of
 -- of 'DCS World\MissionEditor\modules\me_mission.lua'
--- base.dofile([[D:\dev\_VEAF\VEAF-Mission-Creation-Tools\src\scripts\veaf\dcsDataExport.lua]])
+-- base.dofile([[D:\dev\_VEAF\VEAF-Mission-Creation-Tools\src\scripts\DcsDataExport\dcsDataExport.lua]])
 
 -------------------------------------------------------------------------------
 -- settings
@@ -12,20 +12,20 @@ local export_path = [[.\]]
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Logging
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
-veaf = {}
-veaf.loggers = {}
-veaf.loggers.dict = {}
+DcsDataExport = {}
+DcsDataExport.loggers = {}
+DcsDataExport.loggers.dict = {}
 
-veaf.Logger =
+DcsDataExport.Logger =
 {
     -- technical name
     name = nil,
     -- logging level
     level = nil,
 }
-veaf.Logger.__index = veaf.Logger
+DcsDataExport.Logger.__index = DcsDataExport.Logger
 
-veaf.Logger.LEVEL = {
+DcsDataExport.Logger.LEVEL = {
     ["error"]=1,
     ["warning"]=2,
     ["info"]=3,
@@ -33,45 +33,45 @@ veaf.Logger.LEVEL = {
     ["trace"]=5,
 }
 
-function veaf.Logger:new(name, level)
-    local self = setmetatable({}, veaf.Logger)
+function DcsDataExport.Logger:new(name, level)
+    local self = setmetatable({}, DcsDataExport.Logger)
     self:setName(name)
     self:setLevel(level)
     return self
 end
 
-function veaf.Logger:setName(value)
+function DcsDataExport.Logger:setName(value)
     self.name = value
     return self
 end
 
-function veaf.Logger:getName()
+function DcsDataExport.Logger:getName()
     return self.name
 end
 
-function veaf.Logger:setLevel(value, force)
-    if veaf.ForcedLogLevel then
-        value = veaf.ForcedLogLevel
+function DcsDataExport.Logger:setLevel(value, force)
+    if DcsDataExport.ForcedLogLevel then
+        value = DcsDataExport.ForcedLogLevel
     end
     local level = value
     if type(level) == "string" then
-        level = veaf.Logger.LEVEL[level:lower()]
+        level = DcsDataExport.Logger.LEVEL[level:lower()]
     end
     if not level then 
-        level = veaf.Logger.LEVEL["info"]
+        level = DcsDataExport.Logger.LEVEL["info"]
     end
-    if veaf.BaseLogLevel and veaf.BaseLogLevel < level and not force then
-        level = veaf.BaseLogLevel
+    if DcsDataExport.BaseLogLevel and DcsDataExport.BaseLogLevel < level and not force then
+        level = DcsDataExport.BaseLogLevel
     end
     self.level = level
     return self
 end
 
-function veaf.Logger:getLevel()
+function DcsDataExport.Logger:getLevel()
     return self.level
 end
 
-function veaf.Logger.splitText(text)
+function DcsDataExport.Logger.splitText(text)
     local tbl = {}
     while text:len() > 4000 do
         local sub = text:sub(1, 4000)
@@ -82,15 +82,15 @@ function veaf.Logger.splitText(text)
     return tbl
 end
 
-function veaf.Logger.formatText(text, ...)
+function DcsDataExport.Logger.formatText(text, ...)
     if not text then 
         return "" 
     end
     if type(text) ~= 'string' then
-        text = veaf.p(text)
+        text = DcsDataExport.p(text)
     else
-        if arg and arg.n and arg.n > 0 then
-            text = text:format(unpack(arg))
+        if arg and #arg > 0 then
+            text = text:format(table.unpack(arg))
         end            
     end
     local fName = nil
@@ -111,16 +111,16 @@ function veaf.Logger.formatText(text, ...)
     end
 end
 
-function veaf.Logger:print(level, text)
-    local texts = veaf.Logger.splitText(text)
+function DcsDataExport.Logger:print(level, text)
+    local texts = DcsDataExport.Logger.splitText(text)
     local levelChar = 'E'
-    if level == veaf.Logger.LEVEL["warning"] then
+    if level == DcsDataExport.Logger.LEVEL["warning"] then
         levelChar = 'W'
-    elseif level == veaf.Logger.LEVEL["info"] then
+    elseif level == DcsDataExport.Logger.LEVEL["info"] then
         levelChar = 'I'
-    elseif level == veaf.Logger.LEVEL["debug"] then
+    elseif level == DcsDataExport.Logger.LEVEL["debug"] then
         levelChar = 'D'
-    elseif level == veaf.Logger.LEVEL["trace"] then
+    elseif level == DcsDataExport.Logger.LEVEL["trace"] then
         levelChar = 'T'
     end
     for i = 1, #texts do
@@ -132,80 +132,80 @@ function veaf.Logger:print(level, text)
     end
 end
 
-function veaf.Logger:error(text, ...)
+function DcsDataExport.Logger:error(text, ...)
     if self.level >= 1 then
-        text = veaf.Logger.formatText(text, unpack(arg))
+        text = DcsDataExport.Logger.formatText(text, table.unpack(arg))
         self:print(1, text)
     end
 end
 
-function veaf.Logger:warn(text, ...)
+function DcsDataExport.Logger:warn(text, ...)
     if self.level >= 2 then
-        text = veaf.Logger.formatText(text, unpack(arg))
+        text = DcsDataExport.Logger.formatText(text, table.unpack(arg))
         self:print(2, text)
     end
 end
 
-function veaf.Logger:info(text, ...)
+function DcsDataExport.Logger:info(text, ...)
     if self.level >= 3 then
-        text = veaf.Logger.formatText(text, unpack(arg))
+        text = DcsDataExport.Logger.formatText(text, table.unpack(arg))
         self:print(3, text)
     end
 end
 
-function veaf.Logger:debug(text, ...)
+function DcsDataExport.Logger:debug(text, ...)
     if self.level >= 4 then
-        text = veaf.Logger.formatText(text, unpack(arg))
+        text = DcsDataExport.Logger.formatText(text, table.unpack(arg))
         self:print(4, text)
     end
 end
 
-function veaf.Logger:trace(text, ...)
+function DcsDataExport.Logger:trace(text, ...)
     if self.level >= 5 then
-        text = veaf.Logger.formatText(text, unpack(arg))
+        text = DcsDataExport.Logger.formatText(text, table.unpack(arg))
         self:print(5, text)
     end
 end
 
-function veaf.loggers.setBaseLevel(level) 
-    veaf.BaseLogLevel = level
+function DcsDataExport.loggers.setBaseLevel(level) 
+    DcsDataExport.BaseLogLevel = level
     -- reset all loggers level if lower than the base level
-    for name, logger in pairs(veaf.loggers.dict) do
+    for name, logger in pairs(DcsDataExport.loggers.dict) do
         logger:setLevel(logger:getLevel())
     end
 end
 
-function veaf.loggers.new(loggerId, level) 
+function DcsDataExport.loggers.new(loggerId, level) 
     if not loggerId or #loggerId == 0 then
         return nil
     end
-    local result = veaf.Logger:new(loggerId:upper(), level)
-    veaf.loggers.dict[loggerId:lower()] = result
+    local result = DcsDataExport.Logger:new(loggerId:upper(), level)
+    DcsDataExport.loggers.dict[loggerId:lower()] = result
     return result
 end
 
-function veaf.loggers.get(loggerId) 
+function DcsDataExport.loggers.get(loggerId) 
     local result = nil
     if loggerId and #loggerId > 0 then
-        result = veaf.loggers.dict[loggerId:lower()]
+        result = DcsDataExport.loggers.dict[loggerId:lower()]
     end
     if not result then 
-        result = veaf.loggers.get("veaf")
+        result = DcsDataExport.loggers.get("DcsDataExport")
     end
     return result
 end
 
-function veaf.p(obj, maxLevel, skip, serializeInLua)
+function DcsDataExport.p(obj, maxLevel, skip, serializeInLua)
     local skip = skip
     if skip and type(skip)=="table" then
         for _, value in ipairs(skip) do
             skip[value]=true
         end
     end
-    return veaf._p(nil, obj, maxLevel, 0, skip, serializeInLua)
+    return DcsDataExport._p(nil, obj, maxLevel, 0, skip, serializeInLua)
 end
 
-function veaf._p(objKey, objValue, maxLevel, level, skip, serializeInLua)
+function DcsDataExport._p(objKey, objValue, maxLevel, level, skip, serializeInLua)
     local function getSerializationForSingle(value)
         if value == nil then
             if serializeInLua then
@@ -283,7 +283,7 @@ function veaf._p(objKey, objValue, maxLevel, level, skip, serializeInLua)
                 end
                 local value = objValue[realKeys[key]]
                 local carriageReturn = "\n"
-                local result, wasTable = veaf._p(key, value, maxLevel, level+1, skip, serializeInLua)
+                local result, wasTable = DcsDataExport._p(key, value, maxLevel, level+1, skip, serializeInLua)
                 if wasTable then
                     carriageReturn = ""
                 end
@@ -326,10 +326,9 @@ function veaf._p(objKey, objValue, maxLevel, level, skip, serializeInLua)
 end
 
 
---veaf.loggers.setBaseLevel(veaf.Logger.LEVEL["trace"])
-dcsDataExport = {}
-dcsDataExport.Id = "DCSEXPORT"
-veaf.loggers.new(dcsDataExport.Id, "trace")
+--DcsDataExport.loggers.setBaseLevel(DcsDataExport.Logger.LEVEL["trace"])
+DcsDataExport.Id = "DCSEXPORT"
+DcsDataExport.loggers.new(DcsDataExport.Id, "trace")
 
 -------------------------------------------------------------------------------
 -- helper functions
@@ -360,14 +359,11 @@ local function has_value(tab, val)
     return false
 end
 
-mist = {}
-mist.utils = {}
-
---- Serializes the give variable to a string.
+--- Serializes the give variable to a string. Stolen from MisT
 -- borrowed from slmod
 -- @param var variable to serialize
 -- @treturn string variable serialized to string
-function mist.utils.basicSerialize(var)
+function DcsDataExport.basicSerialize(var)
     if var == nil then
         return "\"\""
     else
@@ -389,7 +385,7 @@ end
 -- @param name
 -- @param value value to serialize
 -- @param level
-function mist.utils.serialize(name, value, level)
+function DcsDataExport.serialize(name, value, level)
 	--Based on ED's serialize_simple2
 	local function basicSerialize(o)
 		if type(o) == "number" then
@@ -397,7 +393,7 @@ function mist.utils.serialize(name, value, level)
 		elseif type(o) == "boolean" then
 			return tostring(o)
 		else -- assume it is a string
-			return mist.utils.basicSerialize(o)
+			return DcsDataExport.basicSerialize(o)
 		end
 	end
 
@@ -423,7 +419,7 @@ function mist.utils.serialize(name, value, level)
 				else
 					key = string.format("[%q]", k)
 				end
-				table.insert(var_str_tbl, mist.utils.serialize(key, v, level.."	"))
+				table.insert(var_str_tbl, DcsDataExport.serialize(key, v, level.."	"))
 
 			end
 			if level == "" then
@@ -519,8 +515,8 @@ end
 
 -- export all units as a lua file
 local file = io.open(export_path.."db.Units.lua", "w")
-writeln(file, "db={\n    [\"Units\"] = {" .. veaf.p(db.Units, nil, nil, true).."}\n}")
-file:close()
+writeln(file, "db={\n    [\"Units\"] = {" .. DcsDataExport.p(db.Units, nil, nil, true).."}\n}")
+if file then file:close() end
 
 local units = {}
 local fullDcsUnit = false
@@ -547,6 +543,6 @@ else
     end
     table.sort(values, _sortUnits)
 end
-local file = io.open(export_path.."dcsUnits.lua", "w")
-writeln(file, mist.utils.serialize("units", values))
-file:close()
+file = io.open(export_path.."dcsUnits.lua", "w")
+writeln(file, DcsDataExport.serialize("units", values))
+if file then file:close() end

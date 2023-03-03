@@ -132,7 +132,7 @@ function veafSkynet.getNearestIADSSite(networkName, dcsGroup)
 
     local iads = veafSkynet.getIadsOfCoalition(networkName, coa)
     if not iads then
-        veaf.loggers.get(veafSkynet.Id):trace(string.format("IADS named %s for the coalition of the group %s does not exist", veaf.p(networkName), tostring(dcsUnit:getName())))
+        veaf.loggers.get(veafSkynet.Id):trace(string.format("IADS named %s for the coalition of the group %s does not exist", veaf.p(networkName), tostring(dcsGroup:getName())))
         return false
     end
     

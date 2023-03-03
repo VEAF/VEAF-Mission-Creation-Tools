@@ -148,58 +148,43 @@ end
 VeafSanctuaryZone =
 {
     -- name
-    name,
+    name = nil,
     -- coalition that is forbidden to enter the zone
-    protectFromCoalition,
+    protectFromCoalition = nil,
     -- if true, missiles fired at units in the zone will be destroyed
-    protectFromMissiles,
+    protectFromMissiles = nil,
     -- position on the map
-    position,
+    position = nil,
     -- if set, the zone is a circle of center *position* and of radius *radius*
-    radius,
-    radiusSquared,
+    radius = nil,
+    radiusSquared = nil,
     -- if set, the zone is a polygon - this is a simple list of points
-    polygon,
+    polygon = nil,
     -- delay before warning - if -1, no warning
-    delayWarning,
+    delayWarning = veafSanctuary.DEFAULT_DELAY_WARNING,
     -- warning message
-    messageWarning,
+    messageWarning = veafSanctuary.DEFAULT_MESSAGE_WARNING,
     -- delay before instant kill - if -1, no instant kill
-    delayInstant,
+    delayInstant = veafSanctuary.DEFAULT_DELAY_INSTANT,
     -- delay before spawn of defense systems - if -1, no spawn
-    delaySpawn,
+    delaySpawn = veafSanctuary.DEFAULT_DELAY_SPAWN,
     -- spawn message
-    messageSpawn,
+    messageSpawn = veafSanctuary.DEFAULT_MESSAGE_SPAWN,
     -- message to target when weapon launch is detected
-    messageShotTarget,
+    messageShotTarget = veafSanctuary.DEFAULT_MESSAGE_SHOT_TARGET,
     --message to launcher when weapon launch is detected
-    messageShotLauncher,
-    spawnedGroups,
-    offensesByOffender,
-    offensesBeforeDestruction,
+    messageShotLauncher = veafSanctuary.DEFAULT_MESSAGE_SHOT_LAUNCHER,
+    spawnedGroups = {},
+    offensesByOffender = {},
+    offensesBeforeDestruction = veafSanctuary.DEFAULT_OFFENSES_BEFORE_DESTRUCTION
 }
 VeafSanctuaryZone.__index = VeafSanctuaryZone
 
-function VeafSanctuaryZone:new ()
-    local self = setmetatable({}, VeafSanctuaryZone)
-    self.name = nil
-    self.coalition = nil
-    self.protectFromMissiles = false
-    self.position = nil
-    self.radius = nil
-    self.radiusSquared = nil
-    self.polygon = nil
-    self.delayWarning = veafSanctuary.DEFAULT_DELAY_WARNING
-    self.messageWarning = veafSanctuary.DEFAULT_MESSAGE_WARNING
-    self.delayInstant = veafSanctuary.DEFAULT_DELAY_INSTANT
-    self.delaySpawn = veafSanctuary.DEFAULT_DELAY_SPAWN
-    self.messageSpawn = veafSanctuary.DEFAULT_MESSAGE_SPAWN
-    self.spawnedGroups = {}
-    self.offensesByOffender = {}
-    self.offensesBeforeDestruction = veafSanctuary.DEFAULT_OFFENSES_BEFORE_DESTRUCTION
-    self.messageShotTarget = veafSanctuary.DEFAULT_MESSAGE_SHOT_TARGET
-    self.messageShotLauncher = veafSanctuary.DEFAULT_MESSAGE_SHOT_LAUNCHER
-    return self
+function VeafSanctuaryZone:new(object)
+    local o = object or {}
+    setmetatable(o, self)
+    self.__index = self
+    return o
 end
 
 ---
@@ -300,7 +285,7 @@ function VeafSanctuaryZone:setPolygonFromUnits(unitNames, markPositions)
         veaf.loggers.get(veafSanctuary.Id):trace(string.format("polygon = %s", veaf.p(polygon)))
         self:setPolygon(polygon)
         if markPositions then
-            local drawing = VeafDrawingOnMap.new()
+            local drawing = VeafDrawingOnMap:new()
             :setName(self:getName())
             :setColor(LINE_COLOR)
             :setLineType(LINE_TYPE)
@@ -659,7 +644,7 @@ function veafSanctuary.addZoneFromTriggerZone(triggerZoneName)
     veaf.loggers.get(veafSanctuary.Id):trace(string.format("addZoneFromTriggerZone(%s)", veaf.p(triggerZoneName)))
     local triggerZone = trigger.misc.getZone(triggerZoneName)
     if triggerZoneName then
-        local zone = VeafSanctuaryZone.new():setName(triggerZoneName):setRadius(triggerZone.radius):setPosition(triggerZone.point)
+        local zone = VeafSanctuaryZone:new():setName(triggerZoneName):setRadius(triggerZone.radius):setPosition(triggerZone.point)
         return veafSanctuary.addZone(zone)
     end
 end

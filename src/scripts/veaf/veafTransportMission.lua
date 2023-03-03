@@ -285,22 +285,22 @@ function veafTransportMission.generateEnemyDefenseGroup(groupPosition, groupName
 
     -- add a transport vehicle or an APC/IFV
     if defenseLevel > 4 or (defenseLevel > 3 and math.random(100) > 33) or (defenseLevel > 2 and math.random(100) > 66) then
-        table.insert(groupDefinition.units, { "BMP-1", cell=11, random })
+        table.insert(groupDefinition.units, { "BMP-1", cell=11, random = true })
     elseif defenseLevel > 1 then
-        table.insert(groupDefinition.units, { "BTR-80", cell=11, random })
+        table.insert(groupDefinition.units, { "BTR-80", cell=11, random = true })
     else
-        table.insert(groupDefinition.units, { "GAZ-3308", cell=11, random })
+        table.insert(groupDefinition.units, { "GAZ-3308", cell=11, random = true })
     end
 
     -- add manpads if needed
     if defenseLevel > 3 and math.random(100) > 33 then
         -- for defenseLevel = 4-5, spawn a modern Igla-S team
-        table.insert(groupDefinition.units, { "SA-18 Igla-S comm", random })
-        table.insert(groupDefinition.units, { "SA-18 Igla-S manpad", random })
+        table.insert(groupDefinition.units, { "SA-18 Igla-S comm", random = true })
+        table.insert(groupDefinition.units, { "SA-18 Igla-S manpad", random = true })
     elseif defenseLevel > 2 and math.random(100) > 66 then
         -- for defenseLevel = 3, spawn an older Igla team
-        table.insert(groupDefinition.units, { "SA-18 Igla comm", random })
-        table.insert(groupDefinition.units, { "SA-18 Igla manpad", random })
+        table.insert(groupDefinition.units, { "SA-18 Igla comm", random = true })
+        table.insert(groupDefinition.units, { "SA-18 Igla manpad", random = true })
     else
         -- for defenseLevel = 0, don't spawn any manpad
     end
@@ -308,10 +308,10 @@ function veafTransportMission.generateEnemyDefenseGroup(groupPosition, groupName
     -- add an air defenseLevel vehicle
     if defenseLevel > 4 and math.random(100) > 66 then
         -- defenseLevel = 3-5 : add a Shilka
-        table.insert(groupDefinition.units, { "ZSU-23-4 Shilka", cell = 3, random })
+        table.insert(groupDefinition.units, { "ZSU-23-4 Shilka", cell = 3, random = true })
     elseif defenseLevel > 3 and math.random(100) > 66 then
         -- defenseLevel = 1 : add a ZU23 on a truck
-        table.insert(groupDefinition.units, { "Ural-375 ZU-23", cell = 3, random })
+        table.insert(groupDefinition.units, { "Ural-375 ZU-23", cell = 3, random = true })
     end
 
     groupDefinition = veafUnits.processGroup(groupDefinition)
@@ -357,7 +357,7 @@ function veafTransportMission.generateTransportMission(targetSpot, size, defense
 
         veafTransportMission.generateFriendlyGroup(groupPosition)
     else
-        veaf.loggers.get(veafTransportMission.Id):info("cannot find a suitable position for group "..groupId)
+        veaf.loggers.get(veafTransportMission.Id):info("cannot find a suitable position for friendly group")
         return
     end
 

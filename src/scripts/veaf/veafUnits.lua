@@ -35,13 +35,13 @@ veafUnits.DefaultCellHeight = 10
 --- Group format that will be spawned then destroyed from a convoy to fix the AI's dumb pathfinding as of 17/08/2022
 veafUnits.DefaultPathfindingUnitType = "TZ-22_KrAZ"
 veafUnits.DefaultPathfindingGroup = {}
-veafUnits.DefaultPathfindingGroup = 
+veafUnits.DefaultPathfindingGroup =
 {
-    disposition = {h=1, w=1}, 
+    disposition = {h=1, w=1},
     units = {
         {veafUnits.DefaultPathfindingUnitType, random = true}
-    }, 
-    groupName = "Pathfinder", 
+    },
+    groupName = "Pathfinder",
     description = "Plz Fix ED"
 }
 --- delay before the pathfinding fix unit is destroyed
@@ -65,19 +65,19 @@ function veafUnits.traceGroup(group, cells)
         veaf.loggers.get(veafUnits.Id):trace("")
         local nCols = group.disposition.w
         local nRows = group.disposition.h
-        
-        local line1 = "|    |" 
-        local line2 = "|----|" 
-        
+
+        local line1 = "|    |"
+        local line2 = "|----|"
+
         for nCol = 1, nCols do
-            line1 = line1 .. "                ".. string.format("%02d", nCol) .."              |" 
+            line1 = line1 .. "                ".. string.format("%02d", nCol) .."              |"
             line2 = line2 .. "--------------------------------|"
         end
         veaf.loggers.get(veafUnits.Id):trace(line1)
         veaf.loggers.get(veafUnits.Id):trace(line2)
 
         local unitCounter = 1
-        for nRow = 1, nRows do 
+        for nRow = 1, nRows do
             local line1 = "|    |"
             local line2 = "| " .. string.format("%02d", nRow) .. " |"
             local line3 = "|    |"
@@ -91,9 +91,9 @@ function veafUnits.traceGroup(group, cells)
                 local bottom = "        "
                 local bottomleft = "                      "
                 local center = "                "
-                
-                if cell then 
-                
+
+                if cell then
+
                     local unit = cell.unit
                     if unit then
                         local unitName = unit.typeName
@@ -120,7 +120,7 @@ function veafUnits.traceGroup(group, cells)
                     right = string.format("%08d",math.floor(cell.right))
                     bottom = string.format("%08d",math.floor(cell.bottom))
                 end
-                
+
                 line1 = line1 .. "  " .. top .. "                      " .. "|"
                 line2 = line2 .. "" .. left .. center .. right.. "|"
                 line3 = line3 .. bottomleft  .. bottom.. "  |"
@@ -140,16 +140,16 @@ end
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 --- Browse all the units in a group and counts the infantry and vehicles remaining
-function veafUnits.countInfantryAndVehicles(groupname) 
+function veafUnits.countInfantryAndVehicles(groupname)
     local nbVehicles = 0
     local nbInfantry = 0
     local group = Group.getByName(groupname)
     if group and group:isExist() == true and #group:getUnits() > 0 then
         for _, u in pairs(group:getUnits()) do
             local typeName = u:getTypeName()
-            if typeName then 
+            if typeName then
                 local unit = veafUnits.findUnit(typeName)
-                if unit then 
+                if unit then
                     if unit.vehicle then
                         nbVehicles = nbVehicles + 1
                     elseif unit.infantry then
@@ -183,7 +183,7 @@ end
 --- process a group definition and return a usable group table
 function veafUnits.processGroup(group)
     local result = {}
-    
+
     -- initialize result table and copy metadata
     result.disposition = {}
     result.disposition.h = group.disposition.h
@@ -204,12 +204,12 @@ function veafUnits.processGroup(group)
         local fitToUnit = false
         local u = group.units[i]
         veaf.loggers.get(veafUnits.Id):trace("u="..veaf.p(u))
-        if type(u) == "string" then 
+        if type(u) == "string" then
             -- information was skipped using simplified syntax
             unitType = u
         else
             unitType = u.typeName
-            if not unitType then 
+            if not unitType then
                 unitType = u[1]
             end
             veaf.loggers.get(veafUnits.Id):trace("unitType="..veaf.p(unitType))
@@ -217,7 +217,7 @@ function veafUnits.processGroup(group)
             number = u.number
             size = u.size
             hdg = u.hdg
-            if type(size) == "number" then 
+            if type(size) == "number" then
                 size = {}
                 size.width = u.size
                 size.height = u.size
@@ -229,10 +229,10 @@ function veafUnits.processGroup(group)
                 fitToUnit = true
             end
         end
-        if not(number) then 
+        if not(number) then
           number = 1
         end
-        if type(number) == "table" then 
+        if type(number) == "table" then
             -- create a random number of units
             local min = number.min
             local max = number.max
@@ -240,16 +240,16 @@ function veafUnits.processGroup(group)
             if not(max) then max = 1 end
             number = math.random(min, max)
         end
-        if not(hdg) then 
+        if not(hdg) then
             hdg = math.random(0, 359) -- default heading is random
         end
         veaf.loggers.get(veafUnits.Id):trace(string.format("hdg=%d",hdg))
         for numUnit = 1, number do
             veaf.loggers.get(veafUnits.Id):trace("searching for unit [" .. unitType .. "] listed in group [" .. group.groupName .. "]")
             local unit = veafUnits.findUnit(unitType)
-            if not(unit) then 
+            if not(unit) then
                 veaf.loggers.get(veafUnits.Id):info("cannot find unit [" .. unitType .. "] listed in group [" .. group.groupName .. "]")
-            else 
+            else
                 unit.cell = cell
                 unit.hdg = hdg
                 unit.random = random
@@ -260,10 +260,10 @@ function veafUnits.processGroup(group)
             end
         end
     end
-    
+
     -- check group type (WARNING : unit types should not be mixed !)
     for _, unit in pairs(result.units) do
-        if unit.naval then 
+        if unit.naval then
             result.naval = true
             break
         end
@@ -272,7 +272,7 @@ function veafUnits.processGroup(group)
             break
         end
     end
-    
+
     veaf.loggers.get(veafUnits.Id):trace("result="..veaf.p(result))
 
     return result
@@ -294,14 +294,14 @@ function veafUnits.findGroup(groupAlias)
             end
         end
     end
-    
+
     return result
 end
 
 --- searches the database for a unit having this alias (case insensitive)
 function veafUnits.findUnit(unitAlias)
     veaf.loggers.get(veafUnits.Id):trace("veafUnits.findUnit(unitAlias=" .. unitAlias .. ")")
-    
+
     -- find the desired unit in the units database
     local unit = nil
 
@@ -313,26 +313,26 @@ function veafUnits.findUnit(unitAlias)
             end
         end
     end
-       
+
     if unit then
         unit = veafUnits.findDcsUnit(unit.unitType)
     else
         unit = veafUnits.findDcsUnit(unitAlias)
     end
-    if not(unit) then 
+    if not(unit) then
         veaf.loggers.get(veafUnits.Id):info("cannot find unit [" .. unitAlias .. "]")
     else
-        unit = veafUnits.makeUnitFromDcsStructure(unit, cell)
+        unit = veafUnits.makeUnitFromDcsStructure(unit, 1)
     end
-    
+
     return unit
 end
 
 --- Creates a simple structure from DCS complex metadata structure
 function veafUnits.makeUnitFromDcsStructure(dcsUnit, cell)
     local result = {}
-    if not(dcsUnit) then 
-        return nil 
+    if not(dcsUnit) then
+        return nil
     end
 --[[
         [9] = 
@@ -354,7 +354,7 @@ function veafUnits.makeUnitFromDcsStructure(dcsUnit, cell)
     result.naval = (dcsUnit.naval)
     result.air = (dcsUnit.air)
 
-    if (not(dcsUnit.naval) and not(dcsUnit.air) and not(dcsUnit.infantry) and not(dcsUnit.vehicle) and (dcsUnit.attribute==nil or dcsUnit.attribute.Fortifications==nil)) then 
+    if (not(dcsUnit.naval) and not(dcsUnit.air) and not(dcsUnit.infantry) and not(dcsUnit.vehicle) and (dcsUnit.attribute==nil or dcsUnit.attribute.Fortifications==nil)) then
         result.static = true
     end
 
@@ -405,7 +405,7 @@ function veafUnits.checkPositionForUnit(spawnPosition, unit)
             if landType ~= land.SurfaceType.WATER then -- don't spawn over anything but water
                 return false
             end
-        else 
+        else
             if landType == land.SurfaceType.WATER then -- don't spawn over water
                 return false
             end
@@ -424,11 +424,11 @@ function veafUnits.placeGroup(group, spawnPoint, spacing, hdg, hasDest)
     local hasDest = false or hasDest
     veaf.loggers.get(veafUnits.Id):trace(string.format("hasDest = %s", veaf.p(hasDest)))
 
-    if not(group.disposition) then 
+    if not(group.disposition) then
         -- default disposition is a square
         local l = math.ceil(math.sqrt(#group.units))
         group.disposition = { h = l, w = l}
-    end 
+    end
 
     local nRows = nil
     local nCols = nil
@@ -459,13 +459,13 @@ function veafUnits.placeGroup(group, spawnPoint, spacing, hdg, hasDest)
     for cellNum = 1, nRows*nCols do
         allCells[cellNum] = cellNum
     end
-        
+
     -- place fixed units in their designated cells
-    for i = 1, #fixedUnits do 
+    for i = 1, #fixedUnits do
         local unit = fixedUnits[i]
         cells[unit.cell] = {}
         cells[unit.cell].unit = unit
-        
+
         -- remove this cell from the list of available cells
         for cellNum = 1, #allCells do
             if allCells[cellNum] == unit.cell then
@@ -476,13 +476,13 @@ function veafUnits.placeGroup(group, spawnPoint, spacing, hdg, hasDest)
     end
 
     -- randomly place non-fixed units in the remaining cells
-    for i = 1, #freeUnits do 
+    for i = 1, #freeUnits do
         local randomCellNum = allCells[math.random(1, #allCells)]
         local unit = freeUnits[i]
         unit.cell = randomCellNum
         cells[unit.cell] = {}
         cells[randomCellNum].unit = unit
-        
+
         -- remove this cell from the list of available cells
         for cellNum = 1, #allCells do
             if allCells[cellNum] == unit.cell then
@@ -507,16 +507,16 @@ function veafUnits.placeGroup(group, spawnPoint, spacing, hdg, hasDest)
     -- compute the size of the cells, rows and columns
     local cols = {}
     local rows = {}
-    for nRow = 1, nRows do 
+    for nRow = 1, nRows do
         for nCol = 1, nCols do
             local cellNum = (nRow - 1) * nCols + nCol
             local cell = cells[cellNum]
             local colWidth = 0
             local rowHeight = 0
-            if cols[nCol] then 
+            if cols[nCol] then
                 colWidth = cols[nCol].width
             end
-            if rows[nRow] then 
+            if rows[nRow] then
                 rowHeight = rows[nRow].height
             end
             if cell then
@@ -525,10 +525,10 @@ function veafUnits.placeGroup(group, spawnPoint, spacing, hdg, hasDest)
                 local unit = cell.unit
                 if unit then
                     unit.cell = cellNum
-                    if unit.width and unit.width > 0 then 
+                    if unit.width and unit.width > 0 then
                         cell.width = unit.width + (spacing * unit.width)
                     end
-                    if unit.length and unit.length > 0 then 
+                    if unit.length and unit.length > 0 then
                         cell.height = unit.length + (spacing * unit.length)
                     end
                     if unit.size then
@@ -586,7 +586,7 @@ function veafUnits.placeGroup(group, spawnPoint, spacing, hdg, hasDest)
     end
 
     -- compute the centers and extents of the cells
-    for nRow = 1, nRows do 
+    for nRow = 1, nRows do
         for nCol = 1, nCols do
             local cellNum = (nRow - 1) * nCols + nCol
             local cell = cells[cellNum]
@@ -598,7 +598,7 @@ function veafUnits.placeGroup(group, spawnPoint, spacing, hdg, hasDest)
                 cell.center = {}
                 cell.center.x = cell.left + math.random((cell.right - cell.left) / 10, (cell.right - cell.left) - ((cell.right - cell.left) / 10))
                 cell.center.y = cell.top + math.random((cell.bottom - cell.top) / 10, (cell.bottom - cell.top) - ((cell.bottom - cell.top) / 10))
-            end            
+            end
         end
     end
 
@@ -621,7 +621,7 @@ function veafUnits.placeGroup(group, spawnPoint, spacing, hdg, hasDest)
     --         end
     --     end
     -- end
-    
+
     -- randomly place the units
     for _, cell in pairs(cells) do
         veaf.loggers.get(veafUnits.Id):trace(string.format("cell = %s",veaf.p(cell)))
@@ -642,7 +642,7 @@ function veafUnits.placeGroup(group, spawnPoint, spacing, hdg, hasDest)
                 unit.spawnPoint.x = unit.spawnPoint.x + math.random(-((spacing-1) * (unit.length or veafUnits.DefaultCellHeight))/2, ((spacing-1) * (unit.length or veafUnits.DefaultCellHeight))/2)
             end
             unit.spawnPoint.y = spawnPoint.y
-            
+
             -- take into account group rotation, if needed
             if hdg > 0 then
                 local angle = mist.utils.toRadian(hdg)
@@ -669,8 +669,8 @@ function veafUnits.placeGroup(group, spawnPoint, spacing, hdg, hasDest)
                 unit.spawnPoint.hdg = 0 -- due north
             end
         end
-    end 
-    
+    end
+
     return group, cells
 end
 
@@ -701,7 +701,7 @@ function veafUnits.logGroupsListInMarkdown()
             return string.lower(g1) < string.lower(g2)
         end
     end
-        
+
     local text = [[
 This goes in [documentation\content\Mission maker\references\group-list.md]:
 
@@ -712,16 +712,16 @@ This goes in [documentation\content\Mission maker\references\group-list.md]:
 
     -- make a copy of the table
     local groupsCopy = {}
-    for _, g in pairs(veafUnits.GroupsDatabase) do 
-        if not g.hidden then 
-            table.insert(groupsCopy, g) 
-        end 
+    for _, g in pairs(veafUnits.GroupsDatabase) do
+        if not g.hidden then
+            table.insert(groupsCopy, g)
+        end
     end
     -- sort the copy
     table.sort(groupsCopy, _sortGroupNameCaseInsensitive)
     -- use the keys to retrieve the values in the sorted order
-    for _, g in pairs(groupsCopy) do  
-        text = "|" .. g.group.groupName .. "|" .. g.group.description .. "|" .. table.concat(g.aliases, ", ") .. "|\n" 
+    for _, g in pairs(groupsCopy) do
+        text = "|" .. g.group.groupName .. "|" .. g.group.description .. "|" .. table.concat(g.aliases, ", ") .. "|\n"
         veaf.loggers.get(veafUnits.Id):info(text)
     end
 end
@@ -734,7 +734,7 @@ function veafUnits.logUnitsListInMarkdown()
             return string.lower(u1) < string.lower(u2)
         end
     end
-        
+
     local text = [[
 This goes in [documentation\content\Mission maker\references\units-list.md]:
 
@@ -744,10 +744,10 @@ This goes in [documentation\content\Mission maker\references\units-list.md]:
     veaf.loggers.get(veafUnits.Id):info(text)
     -- make a copy of the table
     local units = {}
-    for k, data in pairs(dcsUnits.DcsUnitsDatabase) do 
+    for k, data in pairs(dcsUnits.DcsUnitsDatabase) do
         local u = { name = k }
-        for _, aliasData in pairs(veafUnits.UnitsDatabase) do 
-            if aliasData and aliasData.unitType and string.lower(aliasData.unitType) == string.lower(k) then 
+        for _, aliasData in pairs(veafUnits.UnitsDatabase) do
+            if aliasData and aliasData.unitType and string.lower(aliasData.unitType) == string.lower(k) then
                 u.aliases = aliasData.aliases
             end
         end
@@ -755,18 +755,18 @@ This goes in [documentation\content\Mission maker\references\units-list.md]:
             u.description = data.description
             u.typeName = data.type
         end
-        table.insert(units, u) 
+        table.insert(units, u)
     end
     -- sort the copy
     table.sort(units, _sortUnitNameCaseInsensitive)
     -- use the keys to retrieve the values in the sorted order
     for _, u in pairs(units) do  -- serialize its fields
-        text = "|" .. u.name .. "|" 
-        if u.description then 
-            text = text .. u.description 
+        text = "|" .. u.name .. "|"
+        if u.description then
+            text = text .. u.description
         end
-        text = text .. "|" 
-        if u.aliases then 
+        text = text .. "|"
+        if u.aliases then
             text = text .. table.concat(u.aliases, ", ")
         end
         text = text .. "|"
@@ -863,7 +863,7 @@ veafUnits.GroupsDatabase = {
             disposition = { h= 5, w= 5},
             units = {
                 --STR
-                {"HQ-7_STR_SP", cell = 8}, 
+                {"HQ-7_STR_SP", cell = 8},
                 --LN
                 {"HQ-7_LN_SP", cell = 1, hdg = 300}, {"HQ-7_LN_SP", cell = 5, hdg = 60}, {"HQ-7_LN_SP", cell = 23, hdg = 180},
                 --supply truck
@@ -902,7 +902,7 @@ veafUnits.GroupsDatabase = {
             disposition = { h= 5, w= 5},
             units = {
                 --STR
-                {"HQ-7_STR_SP", cell = 8}, 
+                {"HQ-7_STR_SP", cell = 8},
                 --LN
                 {"HQ-7_LN_EO", cell = 1, hdg = 300}, {"HQ-7_LN_EO", cell = 5, hdg = 60}, {"HQ-7_LN_EO", cell = 23, hdg = 180},
                 --supply truck
@@ -971,7 +971,7 @@ veafUnits.GroupsDatabase = {
             disposition = {h= 155, w= 120},
             units = {
                 -- Search radar unit
-                {"RLS_19J6", cell = 17614, size = 10}, 
+                {"RLS_19J6", cell = 17614, size = 10},
                 -- Track radar unit
                 {"RPC_5N62V", cell = 15118, size = 10},
                 --generator units
@@ -979,21 +979,21 @@ veafUnits.GroupsDatabase = {
 
                 -- launchers
                 --battery 1
-                {"S-200_Launcher", hdg = 2, cell = 676, size = 10}, {"S-200_Launcher", hdg = 4, cell = 702, size = 10}, {"S-200_Launcher", hdg = 358, cell = 2749, size = 10}, {"S-200_Launcher", hdg = 358, cell = 3069, size = 10}, {"S-200_Launcher", hdg = 358, cell = 4786, size = 10}, {"S-200_Launcher", hdg = 355, cell = 5115, size = 10}, 
+                {"S-200_Launcher", hdg = 2, cell = 676, size = 10}, {"S-200_Launcher", hdg = 4, cell = 702, size = 10}, {"S-200_Launcher", hdg = 358, cell = 2749, size = 10}, {"S-200_Launcher", hdg = 358, cell = 3069, size = 10}, {"S-200_Launcher", hdg = 358, cell = 4786, size = 10}, {"S-200_Launcher", hdg = 355, cell = 5115, size = 10},
                 --battery 2
-                {"S-200_Launcher", hdg = 347, cell = 7231, size = 10}, {"S-200_Launcher", hdg = 343, cell = 8045, size = 10}, {"S-200_Launcher", hdg = 341, cell = 8935, size = 10}, {"S-200_Launcher", hdg = 355, cell = 9962, size = 10}, {"S-200_Launcher", hdg = 350, cell = 10734, size = 10}, {"S-200_Launcher", hdg = 340, cell = 11781, size = 10}, 
+                {"S-200_Launcher", hdg = 347, cell = 7231, size = 10}, {"S-200_Launcher", hdg = 343, cell = 8045, size = 10}, {"S-200_Launcher", hdg = 341, cell = 8935, size = 10}, {"S-200_Launcher", hdg = 355, cell = 9962, size = 10}, {"S-200_Launcher", hdg = 350, cell = 10734, size = 10}, {"S-200_Launcher", hdg = 340, cell = 11781, size = 10},
 
                 -- missile loading trucks (emulated, 1 per launcher for simplicity, 2 IRL)
                 --battery 1
-                {"ZIL-135", hdg = 174, cell = 76, size = 10}, {"ZIL-135", hdg = 181, cell = 102, size = 10}, {"ZIL-135", hdg = 194, cell = 2149, size = 10}, {"ZIL-135", hdg = 179, cell = 2469, size = 10}, {"ZIL-135", hdg = 165, cell = 4186, size = 10}, {"ZIL-135", hdg = 183, cell = 4515, size = 10}, 
+                {"ZIL-135", hdg = 174, cell = 76, size = 10}, {"ZIL-135", hdg = 181, cell = 102, size = 10}, {"ZIL-135", hdg = 194, cell = 2149, size = 10}, {"ZIL-135", hdg = 179, cell = 2469, size = 10}, {"ZIL-135", hdg = 165, cell = 4186, size = 10}, {"ZIL-135", hdg = 183, cell = 4515, size = 10},
                 --battery 2
-                {"ZIL-135", hdg = 157, cell = 6631, size = 10}, {"ZIL-135", hdg = 175, cell = 7445, size = 10}, {"ZIL-135", hdg = 165, cell = 8335, size = 10}, {"ZIL-135", hdg = 175, cell = 9362, size = 10}, {"ZIL-135", hdg = 172, cell = 10134, size = 10}, {"ZIL-135", hdg = 179, cell = 11181, size = 10}, 
-                
+                {"ZIL-135", hdg = 157, cell = 6631, size = 10}, {"ZIL-135", hdg = 175, cell = 7445, size = 10}, {"ZIL-135", hdg = 165, cell = 8335, size = 10}, {"ZIL-135", hdg = 175, cell = 9362, size = 10}, {"ZIL-135", hdg = 172, cell = 10134, size = 10}, {"ZIL-135", hdg = 179, cell = 11181, size = 10},
+
                 -- C2 units
                 --battery 1
-                {"ZIL-131 KUNG", hdg = 192, cell = 2730, size = 10}, 
+                {"ZIL-131 KUNG", hdg = 192, cell = 2730, size = 10},
                 --battery 2
-                {"ZIL-131 KUNG", hdg = 170, cell = 9262, size = 10}, 
+                {"ZIL-131 KUNG", hdg = 170, cell = 9262, size = 10},
                 --site wide
                 {"ZIL-131 KUNG", cell = 14616, size = 10}
             },
@@ -1101,7 +1101,7 @@ veafUnits.GroupsDatabase = {
                 -- IglaS
                 {"Igla manpad INS", random=true},
                 -- Troops
-                {"Infantry AK Ins", number = {min=2, max=3}, random=true}, 
+                {"Infantry AK Ins", number = {min=2, max=3}, random=true},
                 -- Transport
                 {"HL_DSHK", random=true}
             },
@@ -1120,14 +1120,14 @@ veafUnits.GroupsDatabase = {
                 -- IglaS
                 {"SA-18 Igla manpad", number = {min=1, max=2}, random=true},
                 -- Troops
-                {"Infantry AK", number = {min=2, max=4}, random=true}, 
+                {"Infantry AK", number = {min=2, max=4}, random=true},
                 --Transport
                 {"UAZ-469", random=true}
             },
             description = "Sa-18 Manpad Squad",
             groupName = "Red Manpad Squad"
         },
-    }, 
+    },
     {
         -- sa18s squad
         aliases = {"sa18s_squad"},
@@ -1139,14 +1139,14 @@ veafUnits.GroupsDatabase = {
                 -- IglaS
                 {"SA-18 Igla-S manpad", number = {min=1, max=2}, random=true},
                 -- Troops
-                {"Infantry AK ver2", number = {min=2, max=6}, random=true}, 
+                {"Infantry AK ver2", number = {min=2, max=6}, random=true},
                 --Transport
                 {"Tigr_233036", random=true}
             },
             description = "Sa-18S Manpad Squad",
             groupName = "Red Modern Manpad Squad"
         },
-    }, 
+    },
     {
         aliases = {"sa19_squad"},
         group = {
@@ -1155,7 +1155,7 @@ veafUnits.GroupsDatabase = {
             description = "Sa-19 SAM site",
             groupName = "SA19"
         },
-    }, 
+    },
     {
         -- red ewr position
         aliases = {"red_ewr", "ewr"},
@@ -1174,7 +1174,7 @@ veafUnits.GroupsDatabase = {
             description = "Red EWR",
             groupName = "Red EWR"
         },
-    }, 
+    },
     --NATO 
     {
         aliases = {"rapier_optical", "rpo"},
@@ -1189,12 +1189,12 @@ veafUnits.GroupsDatabase = {
                 {"rapier_fsa_launcher", cell = 25, hdg = 135},
 
                 --supply/crew truck
-                {"Land_Rover_101_FC", number = {min=1, max = 2}, random = true}, 
+                {"Land_Rover_101_FC", number = {min=1, max = 2}, random = true},
             },
             description = "Rapier SAM site",
             groupName = "Rapier"
         },
-    }, 
+    },
     {
         aliases = {"rapier_radar", "rpr"},
         group = {
@@ -1209,12 +1209,12 @@ veafUnits.GroupsDatabase = {
                 {"rapier_fsa_launcher", cell = 25, hdg = 135},
 
                 --supply/crew truck
-                {"Land_Rover_101_FC", number = {min=1, max = 2}, random = true}, 
+                {"Land_Rover_101_FC", number = {min=1, max = 2}, random = true},
             },
             description = "Rapier SAM site with radar",
             groupName = "Rapier-radar"
         },
-    }, 
+    },
     {
         -- Stinger Squad
         aliases = {"stinger_squad"},
@@ -1226,7 +1226,7 @@ veafUnits.GroupsDatabase = {
                 -- Stinger
                 {"Soldier stinger", random=true}, {"Soldier stinger", random=true},
                 -- Troops
-                {"Soldier M4 GRG", number = {min=3, max=4}, random=true}, 
+                {"Soldier M4 GRG", number = {min=3, max=4}, random=true},
                 --Transport
                 {"Hummer", random=true}, {"Hummer", random=true}
             },
@@ -1270,7 +1270,7 @@ veafUnits.GroupsDatabase = {
                 -- Search radar unit
                 {"NASAMS_Radar_MPQ64F1", cell = 41},
                 -- launchers
-                {"NASAMS_LN_C", hdg = 315, cell = 4}, {"NASAMS_LN_C", hdg = 45, cell = 11}, {"NASAMS_LN_C", hdg = 225, cell = 70}, {"NASAMS_LN_C", hdg = 135, cell = 77}, 
+                {"NASAMS_LN_C", hdg = 315, cell = 4}, {"NASAMS_LN_C", hdg = 45, cell = 11}, {"NASAMS_LN_C", hdg = 225, cell = 70}, {"NASAMS_LN_C", hdg = 135, cell = 77},
                 -- C2
                 {"NASAMS_Command_Post", cell = 34},
                 -- a supply truck or three
@@ -1291,7 +1291,7 @@ veafUnits.GroupsDatabase = {
                 -- Search radar unit
                 {"NASAMS_Radar_MPQ64F1", cell = 41},
                 -- launchers
-                {"NASAMS_LN_B", hdg = 315, cell = 4}, {"NASAMS_LN_B", hdg = 45, cell = 11}, {"NASAMS_LN_B", hdg = 225, cell = 70}, {"NASAMS_LN_B", hdg = 135, cell = 77}, 
+                {"NASAMS_LN_B", hdg = 315, cell = 4}, {"NASAMS_LN_B", hdg = 45, cell = 11}, {"NASAMS_LN_B", hdg = 225, cell = 70}, {"NASAMS_LN_B", hdg = 135, cell = 77},
                 -- C2
                 {"NASAMS_Command_Post", cell = 34},
                 -- a supply truck or three
@@ -1310,14 +1310,14 @@ veafUnits.GroupsDatabase = {
             units = {
                 {"Hawk sr", cell = 816},
                 {"Hawk cwar", cell = 826},
-                {"Hawk cwar", cell = 1100}, 
+                {"Hawk cwar", cell = 1100},
 
                 {"Hawk tr", cell = 381, hdg = 0},
                 {"Hawk tr", cell = 1208, hdg = 240},
                 {"Hawk tr", cell = 1231, hdg = 120},
-                
+
                 {"Hawk pcp", cell = 941},
-                
+
                 {"Hawk ln", cell = 22, hdg = 0}, {"Hawk ln", cell = 297, hdg = 300 }, {"Hawk ln", cell = 306, hdg = 60},
                 {"Hawk ln", cell = 1042, hdg = 300}, {"Hawk ln", cell = 1401, hdg = 240 }, {"Hawk ln", cell = 1568, hdg = 180},
                 {"Hawk ln", cell = 1080, hdg = 60}, {"Hawk ln", cell = 1440, hdg = 120 }, {"Hawk ln", cell = 1588, hdg = 180},
@@ -1338,15 +1338,15 @@ veafUnits.GroupsDatabase = {
         group = {
             disposition = { h= 7, w= 12},
             units = {
-                {"Patriot str", cell = 66, hdg = 0}, 
-                {"Patriot cp" , cell = 78},  
-                {"Patriot AMG", cell = 79}, 
-                {"Patriot ECS", cell = 67}, 
-                {"Patriot EPP", cell = 68}, 
+                {"Patriot str", cell = 66, hdg = 0},
+                {"Patriot cp" , cell = 78},
+                {"Patriot AMG", cell = 79},
+                {"Patriot ECS", cell = 67},
+                {"Patriot EPP", cell = 68},
 
                 {"Patriot ln", cell = 1, hdg = 280},
                 {"Patriot ln", cell = 2, hdg = 300},
-                
+
                 {"Patriot ln", cell = 28, hdg = 20},
                 {"Patriot ln", cell = 29, hdg = 40},
                 {"Patriot ln", cell = 32, hdg = 330},
@@ -1830,7 +1830,7 @@ veafUnits.GroupsDatabase = {
                 -- Some Gepards
                 {"Gepard", number = {min=2, max=4}, random=true},
                 -- a supply truck or three
-                {"M 818", number = {min=1, max=3}, random=true} 
+                {"M 818", number = {min=1, max=3}, random=true}
             },
             description = "generateAirDefenseGroup-BLUE-4",
             groupName = "generateAirDefenseGroup-BLUE-4",
@@ -1845,7 +1845,7 @@ veafUnits.GroupsDatabase = {
                 -- Some Gepards
                 {"Gepard", number = {min=2, max=4}, random=true},
                 -- M6 Linebacker battery
-                {"M6 Linebacker", hdg = 0, random=true}, {"M6 Linebacker", hdg = 90, random=true}, {"M6 Linebacker", hdg = 180, random=true}, {"M6 Linebacker", hdg = 270, random=true}, 
+                {"M6 Linebacker", hdg = 0, random=true}, {"M6 Linebacker", hdg = 90, random=true}, {"M6 Linebacker", hdg = 180, random=true}, {"M6 Linebacker", hdg = 270, random=true},
                 -- Some M1097 Avenger
                 {"M1097 Avenger", number = {min=2, max=4}, random=true},
                 -- a supply truck or three
@@ -1911,11 +1911,11 @@ veafUnits.GroupsDatabase = {
             disposition = { h= 7, w= 7},
             units = {
                 -- the search radar
-                {"Dog Ear radar", random=true},  
+                {"Dog Ear radar", random=true},
                 -- Tor battery
-                {"Tor 9A331", hdg = 180, number = 1, random=true}, 
+                {"Tor 9A331", hdg = 180, number = 1, random=true},
                 -- SA-8 battery                
-                {"Osa 9A33 ln", number = {min=1, max=2}, random=true}, 
+                {"Osa 9A33 ln", number = {min=1, max=2}, random=true},
                 -- Some SA13
                 {"Strela-10M3", number = {min=1, max=2}, random=true},
                 -- Some Tunguskas
@@ -1925,7 +1925,7 @@ veafUnits.GroupsDatabase = {
                 -- Some S-60
                 {"S-60_Type59_Artillery", number = 1, random=true},
                 -- a supply truck or three
-                {"Ural-4320-31", number = {min=1, max=3}, random=true} 
+                {"Ural-4320-31", number = {min=1, max=3}, random=true}
             },
             description = "generateAirDefenseGroup-RED-5",
             groupName = "generateAirDefenseGroup-RED-5",
@@ -1938,9 +1938,9 @@ veafUnits.GroupsDatabase = {
             disposition = { h= 7, w= 7},
             units = {
                 -- the search radar
-                {"Dog Ear radar", random=true},  
+                {"Dog Ear radar", random=true},
                 -- SA-8 battery                
-                {"Osa 9A33 ln", number = {min=1, max=2}, random=true}, 
+                {"Osa 9A33 ln", number = {min=1, max=2}, random=true},
                 -- Some SA13
                 {"Strela-10M3", number = {min=1, max=2}, random=true},
                 -- Some Shilkas
@@ -1950,7 +1950,7 @@ veafUnits.GroupsDatabase = {
                 -- Some S-60
                 {"S-60_Type59_Artillery", number = {min=0, max=1}, random=true},
                 -- a supply truck or three
-                {"Ural-4320-31", number = {min=1, max=3}, random=true} 
+                {"Ural-4320-31", number = {min=1, max=3}, random=true}
             },
             description = "generateAirDefenseGroup-RED-4",
             groupName = "generateAirDefenseGroup-RED-4",
@@ -1963,7 +1963,7 @@ veafUnits.GroupsDatabase = {
             disposition = { h= 7, w= 7},
             units = {
                 -- the search radar
-                {"Dog Ear radar", random=true},  
+                {"Dog Ear radar", random=true},
                 -- SA13 battery
                 {"Strela-10M3", number = {min=1, max=2}, random=true},
                 -- Some SA9
@@ -1975,7 +1975,7 @@ veafUnits.GroupsDatabase = {
                 -- Some S-60
                 {"S-60_Type59_Artillery", number = {min=0, max=1}, random=true},
                 -- a supply truck or three
-                {"Ural-4320-31", number = {min=1, max=3}, random=true} 
+                {"Ural-4320-31", number = {min=1, max=3}, random=true}
             },
             description = "generateAirDefenseGroup-RED-3",
             groupName = "generateAirDefenseGroup-RED-3",
@@ -1988,9 +1988,9 @@ veafUnits.GroupsDatabase = {
             disposition = { h= 7, w= 7},
             units = {
                 -- the search radar
-                {"Dog Ear radar", random=true},  
+                {"Dog Ear radar", random=true},
                 -- SA9 battery
-                {"Strela-1 9P31", number = {min=1, max=2}, random=true}, 
+                {"Strela-1 9P31", number = {min=1, max=2}, random=true},
                 -- Some Shilkas
                 {"ZSU-23-4 Shilka", number = {min=1, max=2}, random=true},
                 -- Some ZU-57-2
@@ -1998,7 +1998,7 @@ veafUnits.GroupsDatabase = {
                 -- Some S-60
                 {"S-60_Type59_Artillery", number = {min=0, max=1}, random=true},
                 -- a supply truck or three
-                {"Ural-4320-31", number = {min=1, max=3}, random=true} 
+                {"Ural-4320-31", number = {min=1, max=3}, random=true}
             },
             description = "generateAirDefenseGroup-RED-2",
             groupName = "generateAirDefenseGroup-RED-2",
@@ -2011,13 +2011,13 @@ veafUnits.GroupsDatabase = {
             disposition = { h= 7, w= 7},
             units = {
                 -- the search radar
-                {"Dog Ear radar", random=true},  
+                {"Dog Ear radar", random=true},
                 -- Some Shilkas
                 {"ZSU-23-4 Shilka", number = {min=1, max=2}, random=true},
                 -- Some ZU-57-2
                 {"ZSU_57_2", number = {min=0, max=1}, random=true},
                 -- a supply truck or three
-                {"Ural-4320-31", number = {min=1, max=3}, random=true} 
+                {"Ural-4320-31", number = {min=1, max=3}, random=true}
             },
             description = "generateAirDefenseGroup-RED-1",
             groupName = "generateAirDefenseGroup-RED-1",
@@ -2034,7 +2034,7 @@ veafUnits.GroupsDatabase = {
                 -- Some S-60
                 {"S-60_Type59_Artillery", number = {min=0, max=1}, random=true},
                 -- a supply truck or three
-                {"Ural-4320-31", number = {min=1, max=3}, random=true} 
+                {"Ural-4320-31", number = {min=1, max=3}, random=true}
             },
             description = "generateAirDefenseGroup-RED-0",
             groupName = "generateAirDefenseGroup-RED-0",
@@ -2049,11 +2049,11 @@ veafUnits.GroupsDatabase = {
             disposition = { h= 5, w= 5},
             units = {
                 -- the search radar
-                {"Dog Ear radar", cell = 13},  
+                {"Dog Ear radar", cell = 13},
                 -- the actual air defense units
-                {"ZSU-23-4 Shilka", hdg = 0, random=true}, {"ZSU-23-4 Shilka", hdg = 90, random=true}, {"ZSU-23-4 Shilka", hdg = 180, random=true}, {"ZSU-23-4 Shilka", hdg = 270, random=true}, 
+                {"ZSU-23-4 Shilka", hdg = 0, random=true}, {"ZSU-23-4 Shilka", hdg = 90, random=true}, {"ZSU-23-4 Shilka", hdg = 180, random=true}, {"ZSU-23-4 Shilka", hdg = 270, random=true},
                 -- a supply truck or three
-                {"Ural-4320-31", number = {min=1, max=3}, random=true}, 
+                {"Ural-4320-31", number = {min=1, max=3}, random=true},
             },
             description = "ZSU-23-4 battery",
             groupName = "ZSU-23-4 battery"
@@ -2065,11 +2065,11 @@ veafUnits.GroupsDatabase = {
             disposition = { h= 5, w= 5},
             units = {
                 -- the search radar
-                {"Dog Ear radar", cell = 13},  
+                {"Dog Ear radar", cell = 13},
                 -- the actual air defense units
-                {"S-60_Type59_Artillery", hdg = 0, random=true}, {"S-60_Type59_Artillery", hdg = 90, random=true}, {"S-60_Type59_Artillery", hdg = 180, random=true}, {"S-60_Type59_Artillery", hdg = 270, random=true}, 
+                {"S-60_Type59_Artillery", hdg = 0, random=true}, {"S-60_Type59_Artillery", hdg = 90, random=true}, {"S-60_Type59_Artillery", hdg = 180, random=true}, {"S-60_Type59_Artillery", hdg = 270, random=true},
                 -- a supply truck or three
-                {"Ural-4320-31", number = {min=1, max=3}, random=true} 
+                {"Ural-4320-31", number = {min=1, max=3}, random=true}
             },
             description = "S-60 battery",
             groupName = "S-60 battery"
@@ -2081,11 +2081,11 @@ veafUnits.GroupsDatabase = {
             disposition = { h= 5, w= 5},
             units = {
                 -- the search radar
-                {"Dog Ear radar", cell = 13},  
+                {"Dog Ear radar", cell = 13},
                 -- the actual air defense units
-                {"Strela-1 9P31", hdg = 0, random=true}, {"Strela-1 9P31", hdg = 90, random=true}, {"Strela-1 9P31", hdg = 180, random=true}, {"Strela-1 9P31", hdg = 270, random=true}, 
+                {"Strela-1 9P31", hdg = 0, random=true}, {"Strela-1 9P31", hdg = 90, random=true}, {"Strela-1 9P31", hdg = 180, random=true}, {"Strela-1 9P31", hdg = 270, random=true},
                 -- a supply truck or three
-                {"Ural-4320-31", number = {min=1, max=3}, random=true} 
+                {"Ural-4320-31", number = {min=1, max=3}, random=true}
             },
             description = "SA-9 battery",
             groupName = "SA-9 battery"
@@ -2097,11 +2097,11 @@ veafUnits.GroupsDatabase = {
             disposition = { h= 5, w= 5},
             units = {
                 -- the search radar
-                {"Dog Ear radar", cell = 13},  
+                {"Dog Ear radar", cell = 13},
                 -- the actual air defense units
-                {"Strela-10M3", hdg = 0, random=true}, {"Strela-10M3", hdg = 90, random=true}, {"Strela-10M3", hdg = 180, random=true}, {"Strela-10M3", hdg = 270, random=true}, 
+                {"Strela-10M3", hdg = 0, random=true}, {"Strela-10M3", hdg = 90, random=true}, {"Strela-10M3", hdg = 180, random=true}, {"Strela-10M3", hdg = 270, random=true},
                 -- a supply truck or three
-                {"Ural-4320-31", number = {min=1, max=3}, random=true}, 
+                {"Ural-4320-31", number = {min=1, max=3}, random=true},
             },
             description = "SA-13 battery",
             groupName = "SA-13 battery"

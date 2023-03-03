@@ -129,7 +129,7 @@ function veafRemote.addNiodCommand(name, command)
         },
         function(parameters, x, y, z, silent)
             veaf.loggers.get(veafRemote.Id):debug(string.format("niod->command %s (%s, %s, %s, %s, %s)", veaf.p(parameters), veaf.p(x), veaf.p(y), veaf.p(z), veaf.p(silent)))
-            return veafRemote.executeCommand({x=x or 0, y=y or 0, z=z or 0}, command..parameters, 99)
+            return veafRemote.executeCommand({x=x or 0, y=y or 0, z=z or 0}, command..parameters)
         end
     )
 end
@@ -168,7 +168,7 @@ function veafRemote.buildDefaultList()
             function(password, timeout, silent)
                 veaf.loggers.get(veafRemote.Id):debug(string.format("niod.login(%s, %s, %s)",veaf.p(password), veaf.p(timeout),veaf.p(silent))) -- TODO remove password from log
                 if veafSecurity.checkPassword_L1(password) then
-                    veafSecurity.authenticate(silent, timeout)
+                    veafSecurity.authenticate(timeout)
                     return "Mission is unlocked"
                 else
                     return "wrong password"
@@ -296,9 +296,9 @@ function veafRemote.executeCommandFromRemote(username, level, unitName, veafModu
     veaf.loggers.get(veafRemote.Id):trace(string.format("_status = [%s]",veaf.p(_status)))
     veaf.loggers.get(veafRemote.Id):trace(string.format("_retval = [%s]",veaf.p(_retval)))
     if not _status then
-        veaf.loggers.get(veafRemote.Id):error(string.format("Error when [%s] tried running [%s] : %s", veaf.p(_user.name), veaf.p(_code), veaf.p(_retval)))
+        veaf.loggers.get(veafRemote.Id):error(string.format("Error when [%s] tried running [%s] in module [%s]; it returned %s", veaf.p(_user.name), veaf.p(_parameters), veaf.p(veafModule), veaf.p(_retval)))
     else
-        veaf.loggers.get(veafRemote.Id):info(string.format("[%s] ran [%s] : %s", veaf.p(_user.name), veaf.p(_code), veaf.p(_retval)))
+        veaf.loggers.get(veafRemote.Id):info(string.format("[%s] ran [%s] in module [%s]; it returned %s", veaf.p(_user.name), veaf.p(_parameters), veaf.p(veafModule), veaf.p(_retval)))
     end
     return _status
 end

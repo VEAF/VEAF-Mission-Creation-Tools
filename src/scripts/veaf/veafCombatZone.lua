@@ -90,27 +90,27 @@ local messageSeparator = "\n====================================================
 VeafCombatZoneElement =
 {
     -- name
-    name,
+    name = nil,
     -- position on the map
-    position,
+    position = nil,
     -- if true, this is a simple dcs static
-    dcsStatic,
+    dcsStatic = false,
     -- if true, this is a simple dcs group
-    dcsGroup,
+    dcsGroup = false,
     -- if true, this is a VEAF command
-    veafCommand,
+    veafCommand = nil,
     --  coalition (0 = neutral, 1 = red, 2 = blue)
-    coalition,
+    coalition = nil,
     -- route, only for veaf commands (groups already have theirs)
-    route,
+    route = nil,
     -- spawn radius in meters (randomness introduced in the respawn mechanism)
-    spawnRadius,
+    spawnRadius = 0,
     -- spawn chance in percent (xx chances in 100 that the unit is spawned - or the command run)
-    spawnChance,
+    spawnChance = 100,
     -- grouping elements (spawnGroup) so that a certain number (spawnCount) is guaranteed to spawn, by running the spawn random chance computation as often as necessary
-    spawnGroup,
+    spawnGroup = nil,
     -- grouping elements (spawnGroup) so that a certain number (spawnCount) is guaranteed to spawn, by running the spawn random chance computation as often as necessary
-    spawnCount
+    spawnCount = 1
 }
 VeafCombatZoneElement.__index = VeafCombatZoneElement
 
@@ -257,50 +257,52 @@ end
 VeafCombatZone = 
 {
     -- zone name (human-friendly)
-    friendlyName,
+    friendlyName = nil,
     -- technical zone name (in the mission editor)
-    missionEditorZoneName,
+    missionEditorZoneName = nil,
     -- mission briefing
-    briefing,
+    briefing = nil,
     -- list of defined objectives
-    objectives,
+    objectives = {},
     -- list of the elements defined in the zone
-    elements,
+    elements = {},
+    elementGroups = {},
     -- the zone center
-    zoneCenter,
+    zoneCenter = nil,
     -- zone is active
-    active,
+    active = false,
     -- zone is a training zone
-    training,
+    training = false,
     -- zone is completable (i.e. disable it when all ennemies are dead)
-    completable,
+    completable = true,
     -- DCS groups that have been spawned (for cleaning up later)
-    spawnedGroups,
+    spawnedGroups = {},
+    delayedSpawners = {},
     -- Whether we want the combat zone to be added to populate the radio menu
-    enableRadioMenu,
+    enableRadioMenu = true,
     -- whether the zone can be activated/deactivated by user via radio menu. If false, the zone won't be added to radio menu until activated
-    enableUserActivation,
+    enableUserActivation = true,
     -- whether we want to allow ground marking of the zone
-    enableSmokeAndFlare,
+    enableSmokeAndFlare = true,
     --- Radio menus
-    radioGroupName,
-    radioParentPath,
-    radioMarkersPath,
-    radioTargetInfoPath,
-    radioRootPath,
+    radioGroupName = nil,
+    radioParentPath = nil,
+    radioMarkersPath = nil,
+    radioTargetInfoPath = nil,
+    radioRootPath = nil,
     -- the watchdog function checks for zone objectives completion
-    watchdogFunctionId,
+    watchdogFunctionId = nil,
     -- "pop smoke" command reset function id
-    smokeResetFunctionId,
+    smokeResetFunctionId = nil,
     -- "pop flare" command reset function id
-    flareResetFunctionId,
+    flareResetFunctionId = nil,
     -- function to call when combat zone is over. The function is passed self combat zone
-    onCompletedHook
+    onCompletedHook = nil
 }
 VeafCombatZone.__index = VeafCombatZone
 
 function VeafCombatZone:new(object)
-    local self = setmetatable(object or {}, VeafCombatZone)
+    self = setmetatable(object or {}, VeafCombatZone)
     self.friendlyName = nil
     self.missionEditorZoneName = nil
     self.briefing = nil
@@ -882,7 +884,7 @@ function VeafCombatZone:activate()
         local spawnCount = zoneElementGroup.spawnCount
         veaf.loggers.get(veafCombatZone.Id):trace(string.format("spawnCount = [%d]",spawnCount))
         local tries = 10
-        alreadySpawnedElements = {}
+        local alreadySpawnedElements = {}
         local shuffledIndexes = {}
         for i=1,#zoneElementGroup.elements do
             local zoneElement = zoneElementGroup.elements[i]
@@ -1135,9 +1137,9 @@ end
 
 VeafCombatOperationTaskingOrder = {
     -- combat zone of the tasking order
-    zone,
+    zone = nil,
     -- what tasking orders needs to be completed before starting this one
-    requiredCompleteNames
+    requiredCompleteNames = {}
 }
 VeafCombatOperationTaskingOrder.__index = VeafCombatOperationTaskingOrder
 
@@ -1165,25 +1167,25 @@ end
 VeafCombatOperation = VeafCombatZone:new(
 {
     -- operation name (human-friendly)
-    friendlyName,
+    friendlyName = nil,
     -- technical operation name (named missionEditorZoneName not to break all zone stuffs)
-    missionEditorZoneName,
+    missionEditorZoneName = nil,
     -- mission briefing
-    briefing,
+    briefing = nil,
     -- operation is active
-    active,
+    active = false,
     -- list of zones used as tasking order
-    taskingOrderList,
+    taskingOrderList = {},
     -- dictionnary of zones used as tasking order
-    taskingOrderDict,
+    taskingOrderDict = {},
     -- combat zone that we want to be completed before continuing operation
-    primaryTaskingOrders,
+    primaryTaskingOrders = {},
     -- the watchdog function checks for zone objectives completion
-    watchdogFunctionId,
+    watchdogFunctionId = nil,
     -- function to call when combat zone is over. The function is passed self combat zone
-    onCompletedHook,
+    onCompletedHook = nil,
     -- how many tasks were complete so far
-    currentCompletedTaskingOrderCount
+    currentCompletedTaskingOrderCount = 0
 })
 VeafCombatOperation.__index = VeafCombatOperation
 
@@ -1702,12 +1704,12 @@ function veafCombatZone.buildRadioMenu()
     end
         
     -- sort the zones alphabetically
-    names = {}
-    sortedZones = {}
+    local names = {}
+    local sortedZones = {}
     for _, zone in pairs(veafCombatZone.zonesDict) do
         table.insert(sortedZones, {name=zone:getMissionEditorZoneName(), sort=zone:getFriendlyName()})
     end
-    function compare(a,b)
+    local function compare(a,b)
 		if not(a) then 
 			a = {}
 		end

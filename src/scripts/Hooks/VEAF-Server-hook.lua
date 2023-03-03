@@ -285,6 +285,7 @@ end
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 function veafServerHook.sendData(timestamp)
+    local _now = DCS.getRealTime()
     
     local data_package = { timestamp = _now}
 
@@ -500,7 +501,7 @@ function veafServerHook.loadPilots()
     local filepath = VEAF_SERVER_DIR .. VEAF_PILOTS_FILE
     local file = assert(loadfile(filepath))
     if not file then
-        veafServerHook.logError(string.format("Error while loading pilots list file [%s]",p(filePath)))
+        veafServerHook.logError(string.format("Error while loading pilots list file [%s]",p(filepath)))
         return
     end
     

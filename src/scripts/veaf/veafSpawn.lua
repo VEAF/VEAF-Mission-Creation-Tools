@@ -254,7 +254,7 @@ function veafSpawn.executeCommand(eventPos, eventText, coalition, markId, bypass
                     local band = options.mod
                     if options.role == "tacan" then
                         channel = options.tacanChannel or 99
-                        code = options.tacanCode or "T"..tostring(channel)
+                        code = options.tacanCode or ("T"..tostring(channel))
                         band = options.tacanBand or "X"
                     end
                     spawnedGroup = veafSpawn.spawnUnit(eventPos, options.radius, options.name, options.country, options.altitude, options.heading, options.unitName, options.role, options.forceStatic, code, channel, band, bypassSecurity, not options.showMFD)
@@ -317,7 +317,7 @@ function veafSpawn.executeCommand(eventPos, eventText, coalition, markId, bypass
                 elseif options.teleport then
                     -- check security
                     if not (bypassSecurity or veafSecurity.checkSecurity_L1(options.password, markId)) then return end
-                    veafSpawn.teleport(eventPos, options.radius, options.name, bypassSecurity)
+                    veafSpawn.teleport(eventPos, options.name, bypassSecurity)
                 elseif options.bomb then
                     -- check security
                     if not (bypassSecurity or veafSecurity.checkSecurity_L1(options.password, markId)) then return end
@@ -1034,7 +1034,7 @@ function veafSpawn.addPointToDrawing(point, name, color, fillColor, lineType, is
     end
     local drawing = veafSpawn.drawings[name:lower()]
     if not drawing then 
-        drawing = VeafDrawingOnMap.new():setName(name)
+        drawing = VeafDrawingOnMap:new():setName(name)
         veafSpawn.drawings[name:lower()] = drawing
     end
     local drawingMarkerId = veafSpawn.drawingsMarkers[name:lower()]
@@ -2122,7 +2122,7 @@ veafSpawn.DEFAULT_FLAK_REPEAT_DELAY = 0.2
 veafSpawn.DEFAULT_FLAK_FIRE_DELAY = 0.1
 
 function veafSpawn.destroyObjectWithFlak(object, power, density)
-    veaf.loggers.get(veafSpawn.Id):debug(string.format("veafSpawn.destroyObjectWithFlak(%s, %s, %s)", veaf.p(power), veaf.p(cloudSize), veaf.p(density)))
+    veaf.loggers.get(veafSpawn.Id):debug(string.format("veafSpawn.destroyObjectWithFlak(%s, %s, %s)", veaf.p(power), veaf.p(power), veaf.p(density)))
     veaf.loggers.get(veafSpawn.Id):trace(string.format("object=%s", veaf.p(object)))
     local _power = power or veafSpawn.DEFAULT_FLAK_POWER
     local _density = density or 1
@@ -2144,7 +2144,7 @@ function veafSpawn.destroyObjectWithFlak(object, power, density)
 
         -- reschedule to check if the object is destroyed
         veaf.loggers.get(veafSpawn.Id):trace(string.format("reschedule to check if the object is destroyed"))
-        mist.scheduleFunction(veafSpawn.destroyObjectWithFlak, {object, power, cloudSize, density}, timer.getTime() + veafSpawn.DEFAULT_FLAK_REPEAT_DELAY)
+        mist.scheduleFunction(veafSpawn.destroyObjectWithFlak, {object, power, power, density}, timer.getTime() + veafSpawn.DEFAULT_FLAK_REPEAT_DELAY)
     end
 end
 
@@ -2217,7 +2217,7 @@ function veafSpawn._findClosestConvoy(unitName)
     if unit then
         for name, _ in pairs(veafSpawn.spawnedConvoys) do
             local averageGroupPosition = veaf.getAveragePosition(name)
-            distanceFromPlayer = ((averageGroupPosition.x - unit:getPosition().p.x)^2 + (averageGroupPosition.z - unit:getPosition().p.z)^2)^0.5
+            local distanceFromPlayer = ((averageGroupPosition.x - unit:getPosition().p.x)^2 + (averageGroupPosition.z - unit:getPosition().p.z)^2)^0.5
             veaf.loggers.get(veafSpawn.Id):trace(string.format("distanceFromPlayer = %d",distanceFromPlayer))
             if distanceFromPlayer < minDistance then
                 minDistance = distanceFromPlayer
@@ -2373,21 +2373,21 @@ end
 VeafAirUnitTemplate =
 {
     -- name
-    name,
+    name = nil,
     --  coalition (0 = neutral, 1 = red, 2 = blue)
-    coalition,
+    coalition = nil,
     -- route, only for veaf commands (groups already have theirs)
-    route
+    route = nil,
+    humanName = nil,
+    groupData = nil
 }
 VeafAirUnitTemplate.__index = VeafAirUnitTemplate
 
-function VeafAirUnitTemplate:new ()
-    local self = setmetatable({}, VeafAirUnitTemplate)
-    self.name = nil
-    self.humanName = nil
-    self.coalition = nil
-    self.groupData = nil
-    return self
+function VeafAirUnitTemplate:new (object)
+    local o = object or {}
+    setmetatable(o, self)
+    self.__index = self
+    return o
 end
 
 ---
@@ -2443,7 +2443,7 @@ function veafSpawn.initializeAirUnitTemplates()
     for _, group in pairs(_templateGroups) do
         local _groupName = group:getName()
         veaf.loggers.get(veafSpawn.Id):trace("_groupName=%s", _groupName)
-        local _template = VeafAirUnitTemplate.new():setName(_groupName)
+        local _template = VeafAirUnitTemplate:new():setName(_groupName)
         veafSpawn.airUnitTemplates[_groupName:upper()] = _template
     end
 
@@ -2460,7 +2460,7 @@ function veafSpawn.initializeAirUnitTemplates()
             groupData.coalition="red"
             groupData.uncontrolled=false
             groupData.hidden=false
-            local _template = VeafAirUnitTemplate.new():setName(_groupName):setGroupData(groupData)
+            local _template = VeafAirUnitTemplate:new():setName(_groupName):setGroupData(groupData)
             veafSpawn.airUnitTemplates[_groupName:upper()] = _template
         end
     end
@@ -3319,23 +3319,21 @@ function veafSpawn.CAPTargetWatchdog(CAPname, CAPcontroller, CAPcoalition, zone_
 
             world.searchObjects(Object.Category.UNIT, targetVolume, allowAA)
 
+            local isCAPoutOfArea = false
             for i=1, CAPsize do
                 if CAPoutOfArea[i] then
-                    CAPoutOfArea = true
+                    isCAPoutOfArea = true
                     break
                 end
             end
-            if type(CAPoutOfArea) ~= 'boolean' then
-                CAPoutOfArea = false
-            end
 
-            if CAPoutOfArea then
+            if isCAPoutOfArea then
                 veaf.loggers.get(veafSpawn.Id):debug("CAP is outside of it's area ! Discarding targets...")
             else
                 veaf.loggers.get(veafSpawn.Id):debug("CAP was found in it's area...")
             end
 
-            if #TargetList > 0 and not CAPoutOfArea then
+            if #TargetList > 0 and not isCAPoutOfArea then
                 veaf.loggers.get(veafSpawn.Id):debug("Watchdog has targets ! Allowing AA for CAP")
                 CAPcontroller:setOption(AI.Option.Air.id.PROHIBIT_AA, false)
                 CAPcontroller:setOption(0,0) --weapons free
@@ -3435,16 +3433,16 @@ function veafSpawn.missionMasterRun(name)
     if code then
         local sta, res = pcall(code, parameters)
         if sta then 
-            message = string.format("Mission Master, the runnable [%s] was successfully run and returned : %s", name, veaf.p(res))
+            local message = string.format("Mission Master, the runnable [%s] was successfully run and returned : %s", name, veaf.p(res))
             veaf.loggers.get(veafSpawn.Id):warn(message)    
             veafSpawn.missionMasterOutText(message)
         else
-            message = string.format("Mission Master, the runnable [%s] returned an error : %s", name, veaf.p(res))
+            local message = string.format("Mission Master, the runnable [%s] returned an error : %s", name, veaf.p(res))
             veaf.loggers.get(veafSpawn.Id):warn(message)
             veafSpawn.missionMasterOutText(message)
         end
     else
-        message = string.format("Mission Master, the runnable [%s] does not exist", name)
+        local message = string.format("Mission Master, the runnable [%s] does not exist", name)
         veaf.loggers.get(veafSpawn.Id):warn(message)
         veafSpawn.missionMasterOutText(message)
     end
@@ -3453,7 +3451,7 @@ end
 function veafSpawn.missionMasterSetFlag(name, value)
     veaf.loggers.get(veafSpawn.Id):debug("veafSpawn.missionMasterSetFlag(name=%s, value=%s)", name, value)
     if not name or #name == 0 then
-        message = "Mission Master, `setFlag` requires the name or number of the flag"
+        local message = "Mission Master, `setFlag` requires the name or number of the flag"
         veaf.loggers.get(veafSpawn.Id):warn(message)
         veafSpawn.missionMasterOutText(message)
         return 
@@ -3464,13 +3462,13 @@ end
 function veafSpawn.missionMasterGetFlag(name)
     veaf.loggers.get(veafSpawn.Id):debug("veafSpawn.missionMasterGetFlag(name=%s)", name)
     if not name or #name == 0 then
-        message = "Mission Master, `getFlag` requires the name or number of the flag"
+        local message = "Mission Master, `getFlag` requires the name or number of the flag"
         veaf.loggers.get(veafSpawn.Id):warn(message)
         veafSpawn.missionMasterOutText(message)
         return 
     end
     local value = trigger.misc.getUserFlag(name)
-    message = string.format("Mission Master, flag [%s] has value [%s]", name, veaf.p(value))
+    local message = string.format("Mission Master, flag [%s] has value [%s]", name, veaf.p(value))
     veaf.loggers.get(veafSpawn.Id):info(message)
     veafSpawn.missionMasterOutText(message)
 end

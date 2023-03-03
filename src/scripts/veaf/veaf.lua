@@ -462,7 +462,15 @@ function veaf.serialize(name, value, level)
             return _basicSerialize(o)
         end
     end
-  
+
+    local function _sortNumberOrCaseInsensitive(a,b)
+        if type(a) == "string" or type(b) == "string" then
+          return string.lower(a) < string.lower(b)
+        else
+          return a < b
+        end
+      end
+           
     local serialize_to_t = function(name, value, level)
         ----Based on ED's serialize_simple2
   
@@ -854,7 +862,7 @@ function veaf.getWind(point)
 
     -- Get wind velocity vector.
     local windvec3  = atmosphere.getWind(point)
-    local direction = math.floor(math.deg(math.atan2(windvec3.z, windvec3.x)))
+    local direction = math.floor(math.deg(math.atan(windvec3.z, windvec3.x)))
     
     if direction < 0 then
       direction = direction + 360
@@ -1415,7 +1423,7 @@ function veaf.computeCoordinatesOffsetFromRoute(startingPoint, destinationPoint,
     
     local vecAB = {x = destinationPoint.x +- startingPoint.x, y = destinationPoint.y - startingPoint.y, z = destinationPoint.z - startingPoint.z}
     veaf.loggers.get(veaf.Id):trace("vecAB="..veaf.vecToString(vecAB))
-    local alpha = math.atan2(vecAB.x, vecAB.z) -- atan2(y, x) 
+    local alpha = math.atan(vecAB.x, vecAB.z) -- atan2(y, x) 
     veaf.loggers.get(veaf.Id):trace("alpha="..alpha)
     local r = math.sqrt(distanceFromStartingPoint * distanceFromStartingPoint + offset * offset)
     veaf.loggers.get(veaf.Id):trace("r="..r)
@@ -1513,7 +1521,7 @@ function veaf.findUnitsInCircle(center, radius, includeStatics, onlyTheseUnits)
         local pos = unit:getPosition().p
         if pos then -- you never know O.o
             local name = unit:getName()
-            distanceFromCenter = ((pos.x - center.x)^2 + (pos.z - center.z)^2)^0.5
+            local distanceFromCenter = ((pos.x - center.x)^2 + (pos.z - center.z)^2)^0.5
             veaf.loggers.get(veaf.Id):trace(string.format("name=%s; distanceFromCenter=%s", tostring(name), veaf.p(distanceFromCenter)))
             if distanceFromCenter <= radius then
                 result[name] = unit
@@ -1811,6 +1819,7 @@ end
 local function _initializeCountriesAndCoalitions()
     veaf.countriesByCoalition={}
     veaf.coalitionByCountry={}
+    veaf.countriesByName={}
 
     local function _sortByImportance(c1,c2)
         local importantCountries = { ['usa']=true, ['russia']=true}
@@ -1827,10 +1836,11 @@ local function _initializeCountriesAndCoalitions()
         if not veaf.countriesByCoalition[coalitionName] then 
             veaf.countriesByCoalition[coalitionName]={} 
         end
-        for countryName, _ in pairs(countries) do
+        for countryName, country in pairs(countries) do
             countryName = countryName:lower()
             table.insert(veaf.countriesByCoalition[coalitionName], countryName)
             veaf.coalitionByCountry[countryName]=coalitionName:lower()
+            veaf.countriesByName[countryName] = country
         end
 
         table.sort(veaf.countriesByCoalition[coalitionName], _sortByImportance)
@@ -1843,12 +1853,12 @@ end
 function veaf.getCountryId(countryName)
     veaf.loggers.get(veaf.Id):trace("veaf.getCountryId(%s)", veaf.p(countryName))
     local countryName = string.lower(countryName or "")
-    for id, name in pairs(country.name) do
-        if name:lower() == countryName then
-            return id
-        end
+    local country = veaf.countriesByName[countryName]
+    if country then
+        return country.countryId
+    else
+        return 0
     end
-    return 0
 end
 
 function veaf.getCountryForCoalition(coalition)
@@ -2027,7 +2037,7 @@ function veaf.getAirbaseLife(airbase_name, percentage, loading)
                     else
                         airbase_life = -1
                         airbase_life0 = -1
-                        eaf.loggers.get(veaf.Id):trace(string.format("Airbase category does not have a default life0 setting nor does it have a life, discarding"))
+                        veaf.loggers.get(veaf.Id):trace(string.format("Airbase category does not have a default life0 setting nor does it have a life, discarding"))
                     end
                 end
 
@@ -2117,7 +2127,7 @@ end
 
 function veaf.safeUnpack(package)
     if type(package) == 'table' then
-        return unpack(package)
+        return table.unpack(package)
     else
         return package
     end
@@ -2539,7 +2549,7 @@ function veaf.exportAsJson(data, name, jsonify, filename, export_path)
     writeln(file, header)
     writeln(file, table.concat(content, ",\n"))
     writeln(file, footer)
-    file:close()
+    if file then file:close() end
 end
 
 function veaf.isUnitAlive(unit)
@@ -2606,7 +2616,7 @@ function veaf.headingBetweenPoints(point1, point2)
 
     if point1 and point2 and point1.x and point1.y and point2.x and point2.y then
         -- if hdg is not set, compute heading between point2 and point3
-        hdg = math.floor(math.deg(math.atan2(point2.y - point1.y, point2.x - point1.x)))
+        hdg = math.floor(math.deg(math.atan(point2.y - point1.y, point2.x - point1.x)))
         if hdg < 0 then
             hdg = hdg + 360
         end
@@ -2704,7 +2714,7 @@ function veaf.Logger.formatText(text, ...)
             for i=1,args.n do
                 pArgs[i] = veaf.p(args[i])
             end
-            text = text:format(unpack(pArgs))
+            text = text:format(table.unpack(pArgs))
         end            
     end
     local fName = nil

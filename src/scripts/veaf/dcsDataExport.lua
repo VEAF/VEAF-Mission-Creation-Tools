@@ -1,6 +1,6 @@
 -- execute(dofile) this script at the end of
 -- of 'DCS World\MissionEditor\modules\me_mission.lua'
--- base.dofile([[D:\dev\_VEAF\VEAF-Mission-Creation-Tools\src\scripts\DcsDataExport\dcsDataExport.lua]])
+-- base.dofile([[D:\dev\_VEAF\VEAF-Mission-Creation-Tools\src\scripts\veaf\dcsDataExport.lua]])
 
 -------------------------------------------------------------------------------
 -- settings
@@ -90,7 +90,7 @@ function DcsDataExport.Logger.formatText(text, ...)
         text = DcsDataExport.p(text)
     else
         if arg and #arg > 0 then
-            text = text:format(table.unpack(arg))
+            text = text:format(unpack(arg))
         end            
     end
     local fName = nil
@@ -134,35 +134,35 @@ end
 
 function DcsDataExport.Logger:error(text, ...)
     if self.level >= 1 then
-        text = DcsDataExport.Logger.formatText(text, table.unpack(arg))
+        text = DcsDataExport.Logger.formatText(text, unpack(arg))
         self:print(1, text)
     end
 end
 
 function DcsDataExport.Logger:warn(text, ...)
     if self.level >= 2 then
-        text = DcsDataExport.Logger.formatText(text, table.unpack(arg))
+        text = DcsDataExport.Logger.formatText(text, unpack(arg))
         self:print(2, text)
     end
 end
 
 function DcsDataExport.Logger:info(text, ...)
     if self.level >= 3 then
-        text = DcsDataExport.Logger.formatText(text, table.unpack(arg))
+        text = DcsDataExport.Logger.formatText(text, unpack(arg))
         self:print(3, text)
     end
 end
 
 function DcsDataExport.Logger:debug(text, ...)
     if self.level >= 4 then
-        text = DcsDataExport.Logger.formatText(text, table.unpack(arg))
+        text = DcsDataExport.Logger.formatText(text, unpack(arg))
         self:print(4, text)
     end
 end
 
 function DcsDataExport.Logger:trace(text, ...)
     if self.level >= 5 then
-        text = DcsDataExport.Logger.formatText(text, table.unpack(arg))
+        text = DcsDataExport.Logger.formatText(text, unpack(arg))
         self:print(5, text)
     end
 end

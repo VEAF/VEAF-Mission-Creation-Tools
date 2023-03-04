@@ -22,7 +22,7 @@ veafShortcuts.Id = "SHORTCUTS"
 veafShortcuts.Version = "1.31.0"
 
 -- trace level, specific to this module
---veafShortcuts.LogLevel = "trace"
+veafShortcuts.LogLevel = "trace"
 
 veaf.loggers.new(veafShortcuts.Id, veafShortcuts.LogLevel)
 
@@ -46,33 +46,35 @@ veafShortcuts.aliases = {}
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- VeafAlias object
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
-VeafAlias =
-{
-    -- name
-    name = nil,
-    -- description
-    description = nil,
-    -- hidden from HELP
-    hidden = false,
-    -- the command that must be substituted to the alias
-    veafCommand = nil,
-    -- list of parameters that will be randomized if not present
-    randomParameters = {},
-    -- if TRUE, security is bypassed
-    bypassSecurity = false,
-    -- if set, the alias will actually be a batch of aliases to execute in order
-    batchAliases = nil,
-    -- if set, the alias is password protected with a specific password
-    password = nil,
-    -- if set, we'll consider that the alias ends with a comma (to easily add the first parameter)
-    endsWithComma = true
-}
+VeafAlias = {}
 
-function VeafAlias:new(object)
-    local o = object or {}
-    setmetatable(o, self)
+function VeafAlias:new(objectToCopy)
+    local objectToCreate = objectToCopy or {} -- create object if user does not provide one
+    setmetatable(objectToCreate, self)
     self.__index = self
-    return o
+    
+    -- init the new object
+    
+    -- name
+    objectToCreate.name = nil
+    -- description
+    objectToCreate.description = nil
+    -- hidden from HELP
+    objectToCreate.hidden = false
+    -- the command that must be substituted to the alias
+    objectToCreate.veafCommand = nil
+    -- list of parameters that will be randomized if not present
+    objectToCreate.randomParameters = {}
+    -- if TRUE, security is bypassed
+    objectToCreate.bypassSecurity = false
+    -- if set, the alias will actually be a batch of aliases to execute in order
+    objectToCreate.batchAliases = nil
+    -- if set, the alias is password protected with a specific password
+    objectToCreate.password = nil
+    -- if set, we'll consider that the alias ends with a comma (to easily add the first parameter)
+    objectToCreate.endsWithComma = true
+
+    return objectToCreate
 end
 
 ---
@@ -337,17 +339,19 @@ end
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- VeafAliasForCombatZone object
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
-VeafAliasForCombatZone = {}
-VeafAliasForCombatZone.__index = VeafAliasForCombatZone
+VeafAliasForCombatZone = VeafAlias:new()
 
-function VeafAliasForCombatZone:new()
-    local self = setmetatable(mist.utils.deepCopy(VeafAlias:new()), VeafAliasForCombatZone)
+function VeafAliasForCombatZone:new(objectToCopy)
+    local objectToCreate = objectToCopy or {} -- create object if user does not provide one
+    setmetatable(objectToCreate, self)
+    self.__index = self
+
+    -- init the new object
     self:setPassword(veafSecurity.PASSWORD_L1)
-    self:setHidden(true)
-    return self
-end
+    self:setHidden(true)  
 
-setmetatable(VeafAliasForCombatZone, {__index = VeafAlias})
+    return objectToCreate
+  end
 
 ---
 --- overloaded members
@@ -1489,7 +1493,7 @@ end
 function veafShortcuts.executeCommandFromRemote(parameters)
     veaf.loggers.get(veafShortcuts.Id):debug(string.format("veafShortcuts.executeCommandFromRemote()"))
     veaf.loggers.get(veafShortcuts.Id):trace(string.format("parameters= %s", veaf.p(parameters)))
-    local _pilot, _pilotName, _unitName, _command = table.unpack(parameters)
+    local _pilot, _pilotName, _unitName, _command = unpack(parameters)
     veaf.loggers.get(veafShortcuts.Id):trace(string.format("_pilot= %s", veaf.p(_pilot)))
     veaf.loggers.get(veafShortcuts.Id):trace(string.format("_pilotName= %s", veaf.p(_pilotName)))
     veaf.loggers.get(veafShortcuts.Id):trace(string.format("_unitName= %s", veaf.p(_unitName)))

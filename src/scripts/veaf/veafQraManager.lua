@@ -24,7 +24,7 @@ veafQraManager.Id = "QRA"
 veafQraManager.Version = "1.0.1"
 
 -- trace level, specific to this module
---veafQraManager.LogLevel = "trace"
+veafQraManager.LogLevel = "trace"
 
 veaf.loggers.new(veafQraManager.Id, veafQraManager.LogLevel)
 

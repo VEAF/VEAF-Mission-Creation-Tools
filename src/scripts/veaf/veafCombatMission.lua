@@ -57,36 +57,33 @@ veafCombatMission.missionsDict = {}
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- VeafCombatMissionObjective object
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
-VeafCombatMissionObjective =
-{
-    -- technical name
-    name = nil,
-    -- description for the briefing
-    description = nil,
-    -- message when the objective is completed
-    message = nil,
-    -- parameters
-    parameters = {},
-    -- function that is call when the mission starts
-    onStartupFunction = nil,
-    -- function that is called when the completion check watchdog runs (should check for objective completion and return one of the FAILED, SUCCESS or NOTHING constants)
-    onCheckFunction = nil
-}
-VeafCombatMissionObjective.__index = VeafCombatMissionObjective
+VeafCombatMissionObjective = {}
 
 VeafCombatMissionObjective.FAILED = -1
 VeafCombatMissionObjective.SUCCESS = 1
 VeafCombatMissionObjective.NOTHING = 0
 
-function VeafCombatMissionObjective:new()
-    veaf.loggers.get(veafCombatMission.Id):trace(string.format("VeafCombatMissionObjective:new()"))
-    local self = setmetatable({}, VeafCombatMissionObjective)
-    self.name = nil
-    self.description = nil
-    self.parameters = {}
-    self.onStartupFunction = nil
-    self.onCheckFunction = nil
-    return self
+function VeafCombatMissionObjective:new(objectToCopy)
+    local objectToCreate = objectToCopy or {} -- create object if user does not provide one
+    setmetatable(objectToCreate, self)
+    self.__index = self
+
+    -- init the new object
+
+    -- technical name
+    objectToCreate.name = nil
+    -- description for the briefing
+    objectToCreate.description = nil
+    -- message when the objective is completed
+    objectToCreate.message = nil
+    -- parameters
+    objectToCreate.parameters = {}
+    -- function that is call when the mission starts
+    objectToCreate.onStartupFunction = nil
+    -- function that is called when the completion check watchdog runs (should check for objective completion and return one of the FAILED, SUCCESS or NOTHING constants)
+    objectToCreate.onCheckFunction = nil
+
+    return objectToCreate
 end
 
 function VeafCombatMissionObjective:copy()
@@ -305,36 +302,32 @@ end
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- VeafCombatMissionElement object
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
-VeafCombatMissionElement =
-{
-    -- name
-    name = nil,
-    -- groups : a list of group names that compose this element
-    groups = nil,
-    -- skill ("Average", "Good", "High", "Excellent" or "Random"), defaults to "Random"
-    skill = "Random", -- SPAWN:InitSkill(Skill)
-    -- spawn radius in meters (randomness introduced in the respawn mechanism)
-    spawnRadius = 0, -- SPAWN:InitRandomizePosition
-    -- spawn chance in percent (xx chances in 100 that the unit is spawned - or the command run)
-    spawnChance = 100,
-    -- the element can be multiplied to scale the mission
-    scale = 1,
-    -- if true, the element is scalable
-    scalable = true,
-}
-VeafCombatMissionElement.__index = VeafCombatMissionElement
+VeafCombatMissionElement = {}
 
-function VeafCombatMissionElement:new()
-    local self = setmetatable({}, VeafCombatMissionElement)
-    self.name = nil
-    self.groups = nil
-    self.spawnPoints = nil
-    self.skill = "Random"
-    self.spawnRadius = 0
-    self.spawnChance = 100
-    self.scale = 1
-    self.scalable = true
-    return self
+function VeafCombatMissionElement:new(objectToCopy)
+    local objectToCreate = objectToCopy or {} -- create object if user does not provide one
+    setmetatable(objectToCreate, self)
+    self.__index = self
+
+    -- init the new object
+
+    -- name
+    objectToCreate.name = nil
+    -- groups : a list of group names that compose this element
+    objectToCreate.groups = {}
+    -- skill ("Average", "Good", "High", "Excellent" or "Random"), defaults to "Random"
+    objectToCreate.skill = "Random" -- SPAWN:InitSkill(Skill)
+    -- spawn radius in meters (randomness introduced in the respawn mechanism)
+    objectToCreate.spawnRadius = 0 -- SPAWN:InitRandomizePosition
+    -- spawn chance in percent (xx chances in 100 that the unit is spawned - or the command run)
+    objectToCreate.spawnChance = 100
+    -- the element can be multiplied to scale the mission
+    objectToCreate.scale = 1
+    -- if true, the element is scalable
+    objectToCreate.scalable = true
+    -- init tables (no need to init simple values)
+
+    return objectToCreate
 end
 
 function VeafCombatMissionElement:copy()
@@ -451,64 +444,49 @@ end
 -- VeafCombatMission object
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-VeafCombatMission =
-{
-    -- mission name (technical)
-    name = nil,
-    -- mission name (human-friendly)
-    friendlyName = nil,
-    -- mission briefing
-    briefing = nil,
-    -- secured :  if true, the radio menu will be secured
-    secured = false,
-    -- list of objectives
-    objectives = {},
-    -- list of the elements defined in the mission
-    elements = {},
-    -- mission is active
-    active = false,
-    -- mission is a training mission
-    training = false,
-    -- DCS groups that have been spawned (for cleaning up later)
-    spawnedGroups = {},
-    --- Radio menus paths
-    radioMarkersPath = nil,
-    radioTargetInfoPath = nil,
-    radioRootPath = nil,
-    -- the watchdog function checks for mission objectives completion
-    watchdogFunctionId = nil,
-    -- if false, the mission will not appear in the radio menu
-    radioMenuEnabled = false,
-    -- if true, no message will be displayed when activating/deactivating the mission
-    hidden = false,
-    -- same as hidden but only valid for one activation of the mission (will be reset to *hidden* at next start)
-    silent = false,
-    spawnedUnitsCountByGroup = {},
-    spawnedNamesIndex = {}
-}
-VeafCombatMission.__index = VeafCombatMission
+VeafCombatMission = {}
 
-function VeafCombatMission:new()
-    local self = setmetatable({}, VeafCombatMission)
-    self.name = nil
-    self.friendlyName = nil
-    self.secured = false
-    self.briefing = nil
-    self.objectives = {}
-    self.elements = {}
-    self.active = false
-    self.training = false
-    self.spawnedGroups = {}
-    self.spawnedUnitsCountByGroup = {}
-    self.radioMarkersPath = nil
-    self.radioTargetInfoPath = nil
-    self.radioRootPath = nil
-    self.watchdogFunctionId = nil
-    self.hidden = false
-    self.radioMenuEnabled = true
-    self.silent = false
-    self.spawnedNamesIndex = {}
-    return self
+function VeafCombatMission:new(objectToCopy)
+    local objectToCreate = objectToCopy or {} -- create object if user does not provide one
+    setmetatable(objectToCreate, self)
+    self.__index = self
+    
+    -- init the new object
+    
+    -- mission name (technical)
+    objectToCreate.name = nil
+    -- mission name (human-friendly)
+    objectToCreate.friendlyName = nil
+    -- mission briefing
+    objectToCreate.briefing = nil
+    -- secured :  if true, the radio menu will be secured
+    objectToCreate.secured = false
+    -- list of objectives
+    objectToCreate.objectives = {}
+    -- list of the elements defined in the mission
+    objectToCreate.elements = {}
+    -- mission is active
+    objectToCreate.active = false
+    -- mission is a training mission
+    objectToCreate.training = false
+    -- DCS groups that have been spawned (for cleaning up later)
+    objectToCreate.spawnedGroups = {}
+    --- Radio menus paths
+    objectToCreate.radioMarkersPath = nil
+    objectToCreate.radioTargetInfoPath = nil
+    objectToCreate.radioRootPath = nil
+    -- the watchdog function checks for mission objectives completion
+    objectToCreate.watchdogFunctionId = nil
+    -- if false, the mission will not appear in the radio menu
+    objectToCreate.radioMenuEnabled = false
+    -- if true, no message will be displayed when activating/deactivating the mission
+    objectToCreate.hidden = false
+    -- same as hidden but only valid for one activation of the mission (will be reset to *hidden* at next start)
+    objectToCreate.silent = false
+    objectToCreate.spawnedUnitsCountByGroup = {}
+    objectToCreate.spawnedNamesIndex = {}
+
+    return objectToCreate
 end
 
 function VeafCombatMission:copy(newSkill, newScale)
@@ -858,13 +836,13 @@ function VeafCombatMission:activate(silent)
                     local spawnedGroupName = string.format("%s #%04d", groupName, self.spawnedNamesIndex[groupName])
                     veaf.loggers.get(veafCombatMission.Id):trace(string.format("spawnedGroupName=%s",veaf.p(spawnedGroupName)))
                     local _group = mist.teleportToPoint(vars, true)
-                    if _group then 
+                    if _group then
                         for _, unit in pairs(_group.units) do
                             unit.skill = missionElement:getSkill()
                         end
                     end
                     _group.groupName = spawnedGroupName
-                    if _group then 
+                    if _group then
                         for _, unit in pairs(_group.units) do
                             local unitName = unit.unitName
                             veaf.loggers.get(veafCombatMission.Id):trace(string.format("unitName=%s",veaf.p(unitName)))
@@ -887,7 +865,7 @@ function VeafCombatMission:activate(silent)
                         for _, unit in pairs(_dcsSpawnedGroup:getUnits()) do
                             veaf.loggers.get(veafCombatMission.Id):trace(string.format("_spawnedGroup.unit.name=%s",veaf.p(unit:getName())))
                         end
-    
+
                         self:addSpawnedGroup(_dcsSpawnedGroup)
                         -- add the group to the Hound Elint, if there is one
                         if veafHoundElint then

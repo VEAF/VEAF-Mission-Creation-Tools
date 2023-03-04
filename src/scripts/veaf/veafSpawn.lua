@@ -26,7 +26,7 @@ veafSpawn.Id = "SPAWN"
 veafSpawn.Version = "1.41.3"
 
 -- trace level, specific to this module
---veafSpawn.LogLevel = "trace"
+veafSpawn.LogLevel = "trace"
 
 veaf.loggers.new(veafSpawn.Id, veafSpawn.LogLevel)
 
@@ -2011,10 +2011,12 @@ end
 
 --- add a smoke marker over the marker area
 function veafSpawn.spawnSmoke(spawnSpot, color, radius, shells)
-    veaf.loggers.get(veafSpawn.Id):debug("spawnSmoke(color = " .. color ..")")
+    veaf.loggers.get(veafSpawn.Id):debug("spawnSmoke(color=%s",veaf.p(color))
     local radius = radius or 50
     local shells = shells or 1
-    
+    veaf.loggers.get(veafSpawn.Id):trace("radius=%s", veaf.p(radius))
+    veaf.loggers.get(veafSpawn.Id):trace("shells=%s", veaf.p(shells))
+
     local shellTime = 0
     for shell=1,shells do
         local spawnSpot = veaf.placePointOnLand(mist.getRandPointInCircle(spawnSpot, radius))
@@ -2370,24 +2372,25 @@ end
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- VeafAirUnitTemplate object
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
-VeafAirUnitTemplate =
-{
-    -- name
-    name = nil,
-    --  coalition (0 = neutral, 1 = red, 2 = blue)
-    coalition = nil,
-    -- route, only for veaf commands (groups already have theirs)
-    route = nil,
-    humanName = nil,
-    groupData = nil
-}
-VeafAirUnitTemplate.__index = VeafAirUnitTemplate
+VeafAirUnitTemplate = {}
 
-function VeafAirUnitTemplate:new (object)
-    local o = object or {}
-    setmetatable(o, self)
+function VeafAirUnitTemplate:new(objectToCopy)
+    local objectToCreate = objectToCopy or {} -- create object if user does not provide one
+    setmetatable(objectToCreate, self)
     self.__index = self
-    return o
+
+    -- init the new object
+
+    -- name
+    objectToCreate.name = nil
+    --  coalition (0 = neutral, 1 = red, 2 = blue)
+    objectToCreate.coalition = nil
+    -- route, only for veaf commands (groups already have theirs)
+    objectToCreate.route = nil
+    objectToCreate.humanName = nil
+    objectToCreate.groupData = nil
+
+    return objectToCreate
 end
 
 ---

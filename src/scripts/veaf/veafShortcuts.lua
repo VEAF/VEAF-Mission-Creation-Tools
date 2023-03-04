@@ -22,7 +22,7 @@ veafShortcuts.Id = "SHORTCUTS"
 veafShortcuts.Version = "1.31.0"
 
 -- trace level, specific to this module
-veafShortcuts.LogLevel = "trace"
+--veafShortcuts.LogLevel = "trace"
 
 veaf.loggers.new(veafShortcuts.Id, veafShortcuts.LogLevel)
 

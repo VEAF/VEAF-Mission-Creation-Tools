@@ -19,7 +19,7 @@ veaf = {}
 veaf.Id = "VEAF"
 
 --- Version.
-veaf.Version = "1.29.0"
+veaf.Version = "1.30.0"
 
 --- Development version ?
 veaf.Development = true
@@ -3352,6 +3352,37 @@ if ctld then
 
         veaf.loggers.get(ctld.Id):trace("ctld.pickupZones=%s", veaf.p(ctld.pickupZones))
     end
+
+    -- we overwrite the standard CTLD function to be able to have logistic UNITS and not only logistic STATICS 
+    ---@diagnostic disable-next-line: duplicate-set-field
+    ctld.inLogisticsZone = function (_heli)
+
+        if ctld.inAir(_heli) then
+            return false
+        end
+    
+        local _heliPoint = _heli:getPoint()
+    
+        for _, _name in pairs(ctld.logisticUnits) do
+    
+            local _logistic = StaticObject.getByName(_name)
+            if not _logistic then
+                _logistic = Unit.getByName(_name)
+            end
+            if _logistic ~= nil and _logistic:getCoalition() == _heli:getCoalition() then
+    
+                --get distance
+                local _dist = ctld.getDistance(_heliPoint, _logistic:getPoint())
+    
+                if _dist <= ctld.maximumDistanceLogistic then
+                    return true
+                end
+            end
+        end
+    
+        return false
+    end
+    
 
     -- automatically add all the human-manned transport aircrafts to ctld.transportPilotNames
     ctld.autoInitializeAllHumanTransports()

@@ -20,7 +20,7 @@ veafSanctuary = {}
 veafSanctuary.Id = "SANCTUARY"
 
 --- Version.
-veafSanctuary.Version = "1.6.0"
+veafSanctuary.Version = "1.6.1"
 
 -- trace level, specific to this module
 --veafSanctuary.LogLevel = "trace"
@@ -488,7 +488,9 @@ end
 function VeafSanctuaryZone:handleWeapon(weapon)
     veafSanctuary.recordTraceShooting(string.format("VeafSanctuaryZone[%s]:handleWeapon()", veaf.p(self.name)))
     veafSanctuary.recordTraceShooting(string.format("weapon=%s", veaf.p(veaf.ifnns(weapon, {"getID", "getName", "getTypeName"}))))
-
+    if not weapon then
+        return
+    end
     if self:isProtectFromMissiles() then
         -- check if the missile was shot by a human from the other coalition
         local launcherUnit = weapon:getLauncher()

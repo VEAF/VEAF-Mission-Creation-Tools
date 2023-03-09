@@ -21,7 +21,7 @@ veafQraManager = {}
 veafQraManager.Id = "QRA"
 
 --- Version.
-veafQraManager.Version = "1.0.1"
+veafQraManager.Version = "1.0.2"
 
 -- trace level, specific to this module
 --veafQraManager.LogLevel = "trace"
@@ -946,7 +946,9 @@ function VeafQRA:deploy(nbUnitsInZone)
             vars.action = 'clone'
             vars.route = mist.getGroupRoute(groupName, 'task')
             local newGroup = mist.teleportToPoint(vars) -- respawn with radius
-            table.insert(self.spawnedGroups, newGroup.name)
+            if newGroup then
+                table.insert(self.spawnedGroups, newGroup.name)
+            end
         end
         veaf.loggers.get(veafQraManager.Id):trace(string.format("self.spawnedGroups=%s", veaf.p(self.spawnedGroups)))
         self.state = veafQraManager.STATUS_ACTIVE

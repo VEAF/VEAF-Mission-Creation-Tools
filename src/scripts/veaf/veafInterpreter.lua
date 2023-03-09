@@ -23,7 +23,7 @@ veafInterpreter = {}
 veafInterpreter.Id = "INTERPRETER"
 
 --- Version.
-veafInterpreter.Version = "1.5.0"
+veafInterpreter.Version = "1.6.0"
 
 -- trace level, specific to this module
 --veafInterpreter.LogLevel = "trace"
@@ -52,7 +52,7 @@ function veafInterpreter.interpret(text)
     veaf.loggers.get(veafInterpreter.Id):trace(string.format("veafInterpreter.interpret([%s])",text))
     local result = nil
     local p1, p2 = text:find(veafInterpreter.Starter)
-    if p2 then 
+    if p2 then
       -- starter has been found
       text = text:sub(p2 + 1)
       p1, p2 = text:find(veafInterpreter.Trailer)
@@ -99,7 +99,7 @@ function veafInterpreter.execute(command, position, coalition, route, spawnedGro
 end
 
 function veafInterpreter.executeCommandOnUnit(unitName, command)
-    if command then 
+    if command then
         -- found an interpretable command
         veaf.loggers.get(veafInterpreter.Id):debug(string.format("found an interpretable command : [%s]", command))
         local unit = Unit.getByName(unitName)
@@ -110,8 +110,18 @@ function veafInterpreter.executeCommandOnUnit(unitName, command)
             veaf.loggers.get(veafInterpreter.Id):debug(string.format("in [%s]", groupName))
             local route = mist.getGroupRoute(groupName, 'task')
             veaf.loggers.get(veafInterpreter.Id):trace(string.format("route = [%s]", veaf.p(route)))
-            if veafInterpreter.execute(command, position, unit:getCoalition(), route, nil) then 
+            if veafInterpreter.execute(command, position, unit:getCoalition(), route, nil) then
                 unit:getGroup():destroy()
+            end
+        else
+            -- it may be a static instead of a unit
+            local static = StaticObject.getByName(unitName)
+            if static then
+                local position = static:getPosition().p
+                veaf.loggers.get(veafInterpreter.Id):trace("found the static at : [%s]", veaf.vecToString(position))
+                if veafInterpreter.execute(command, position, static:getCoalition(), nil, nil) then
+                    static:destroy()
+                end
             end
         end
     end

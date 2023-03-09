@@ -23,7 +23,7 @@ veafInterpreter = {}
 veafInterpreter.Id = "INTERPRETER"
 
 --- Version.
-veafInterpreter.Version = "1.6.0"
+veafInterpreter.Version = "1.6.1"
 
 -- trace level, specific to this module
 --veafInterpreter.LogLevel = "trace"
@@ -91,7 +91,7 @@ function veafInterpreter.execute(command, position, coalition, route, spawnedGro
         return true
     elseif logDebug("checking in veafRadio") and veafRadio.executeCommand(position, command, coalition, true) then
         return true
-    elseif logDebug("checking in veafRemote") and veafRemote.executeCommand(position, command, coalition) then
+    elseif logDebug("checking in veafRemote") and veafRemote.executeCommand(position, command) then
         return true
     else
         return false

@@ -19,7 +19,7 @@ veaf = {}
 veaf.Id = "VEAF"
 
 --- Version.
-veaf.Version = "1.31.0"
+veaf.Version = "1.31.1"
 
 --- Development version ?
 veaf.Development = true
@@ -358,10 +358,14 @@ function veaf.json.parse(str, pos, end_delim)
     local obj, key, delim_found = {}, true, true
     pos = pos + 1
     while true do
+      -- not my code !
+      ---@diagnostic disable-next-line: cast-local-type
       key, pos = veaf.json.parse(str, pos, '}')
       if key == nil then return obj, pos end
       if not delim_found then error('Comma missing between object items.') end
       pos = skip_delim(str, pos, ':', true)  -- true -> error if missing.
+      -- not my code !
+      ---@diagnostic disable-next-line: need-check-nil
       obj[key], pos = veaf.json.parse(str, pos)
       pos, delim_found = skip_delim(str, pos, ',')
     end
@@ -369,6 +373,8 @@ function veaf.json.parse(str, pos, end_delim)
     local arr, val, delim_found = {}, true, true
     pos = pos + 1
     while true do
+      -- not my code !
+      ---@diagnostic disable-next-line: cast-local-type
       val, pos = veaf.json.parse(str, pos, ']')
       if val == nil then return arr, pos end
       if not delim_found then error('Comma missing between array items.') end
@@ -681,15 +687,13 @@ function veaf.computeLLFromString(value)
                 local elementInArcSec = tonumber(element)*weight
                 result = result + elementInArcSec
             end
-            result = result / 3600
+            return result / 3600
         else
             -- decimals
-            result = tonumber(value)
+            return tonumber(value)
         end
-        return result
     end
 
-    local result = -1
     if value then
         local _value = value:lower()
         local _firstChar = _value:sub(1,1)
@@ -862,7 +866,7 @@ function veaf.getWind(point)
 
     -- Get wind velocity vector.
     local windvec3  = atmosphere.getWind(point)
-    local direction = math.floor(math.deg(math.atan(windvec3.z, windvec3.x)))
+    local direction = math.floor(math.deg(math.atan2(windvec3.z, windvec3.x)))
 
     if direction < 0 then
       direction = direction + 360
@@ -1423,7 +1427,7 @@ function veaf.computeCoordinatesOffsetFromRoute(startingPoint, destinationPoint,
 
     local vecAB = {x = destinationPoint.x +- startingPoint.x, y = destinationPoint.y - startingPoint.y, z = destinationPoint.z - startingPoint.z}
     veaf.loggers.get(veaf.Id):trace("vecAB="..veaf.vecToString(vecAB))
-    local alpha = math.atan(vecAB.x, vecAB.z) -- atan2(y, x) 
+    local alpha = math.atan2(vecAB.x, vecAB.z) -- atan2(y, x) 
     veaf.loggers.get(veaf.Id):trace("alpha="..alpha)
     local r = math.sqrt(distanceFromStartingPoint * distanceFromStartingPoint + offset * offset)
     veaf.loggers.get(veaf.Id):trace("r="..r)
@@ -2494,7 +2498,7 @@ function veaf.writeLineToTextFile(line, filename, filepath)
 
     local date = ""
     if l_os then
-        date = l_os.date('%Y-%m-%d %H:%M:%S.000')
+        date = tostring(l_os.date('%Y-%m-%d %H:%M:%S.000'))
     end
 
     veaf.loggers.get(veaf.Id):trace(string.format("filename=%s", veaf.p(filename)))
@@ -2634,7 +2638,7 @@ function veaf.headingBetweenPoints(point1, point2)
 
     if point1 and point2 and point1.x and point1.y and point2.x and point2.y then
         -- if hdg is not set, compute heading between point2 and point3
-        hdg = math.floor(math.deg(math.atan(point2.y - point1.y, point2.x - point1.x)))
+        hdg = math.floor(math.deg(math.atan2(point2.y - point1.y, point2.x - point1.x)))
         if hdg < 0 then
             hdg = hdg + 360
         end
@@ -3266,18 +3270,26 @@ if ctld then
 
     ctld.logger = veaf.loggers.new(ctld.Id, ctld.LogLevel)
 
+    -- override the ctld logs with our own methods
+    ---@diagnostic disable-next-line: duplicate-set-field
     ctld.logError = function(message)
         veaf.loggers.get(ctld.Id):error(message)
     end
 
+    -- override the ctld logs with our own methods
+    ---@diagnostic disable-next-line: duplicate-set-field
     ctld.logInfo = function(message)
         veaf.loggers.get(ctld.Id):info(message)
     end
 
+    -- override the ctld logs with our own methods
+    ---@diagnostic disable-next-line: duplicate-set-field
     ctld.logDebug = function(message)
         veaf.loggers.get(ctld.Id):debug(message)
     end
 
+    -- override the ctld logs with our own methods
+    ---@diagnostic disable-next-line: duplicate-set-field
     ctld.logTrace = function(message)
         veaf.loggers.get(ctld.Id):trace(message)
     end

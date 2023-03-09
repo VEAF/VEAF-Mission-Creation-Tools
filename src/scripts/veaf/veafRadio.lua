@@ -20,7 +20,7 @@ veafRadio = {}
 veafRadio.Id = "RADIO"
 
 --- Version.
-veafRadio.Version = "1.11.0"
+veafRadio.Version = "1.11.1"
 
 -- trace level, specific to this module
 --veafRadio.LogLevel = "trace"
@@ -567,7 +567,7 @@ function veafRadio.refreshRadioSubmenu(parentRadioMenu, radioMenu, radioMeasures
                     end
                     if alreadyDoneGroups[groupId] == nil or command.usage == veafRadio.USAGE_ForUnit then
                         veafRadio.addSizeForGroup(groupId, string.len(_title))
-                        veafRadio._addCommand(groupId, _title, radioMenu.dcsRadioMenu, command, parameters, trace)
+                        veafRadio._addCommand(groupId, _title, radioMenu.dcsRadioMenu, command, parameters)
                         measures_addCommand(groupId)
                     end
                     alreadyDoneGroups[groupId] = true
@@ -576,7 +576,7 @@ function veafRadio.refreshRadioSubmenu(parentRadioMenu, radioMenu, radioMeasures
         end
     else
         veafRadio.addSizeForAll(string.len(command.title))
-        veafRadio._addCommand(nil, command.title, radioMenu.dcsRadioMenu, command, command.parameters, trace)
+        veafRadio._addCommand(nil, command.title, radioMenu.dcsRadioMenu, command, command.parameters)
         measures_addCommand()
     end
   end  

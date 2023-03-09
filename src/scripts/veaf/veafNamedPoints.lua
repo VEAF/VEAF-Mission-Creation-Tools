@@ -20,7 +20,7 @@ veafNamedPoints = {}
 veafNamedPoints.Id = "NAMED POINTS"
 
 --- Version.
-veafNamedPoints.Version = "1.11.0"
+veafNamedPoints.Version = "1.11.1"
 
 -- trace level, specific to this module
 --veafNamedPoints.LogLevel = "trace"
@@ -309,7 +309,7 @@ end
 function veafNamedPoints.listAllPoints(unitName)
     veaf.loggers.get(veafNamedPoints.Id):debug(string.format("listAllPoints(unitName = %s)",tostring(unitName)))
     local message = ""
-    names = {}
+    local names = {}
     for name, point in pairs(veafNamedPoints.namedPoints) do
         if not point.hidden then table.insert(names, name) end
     end
@@ -338,7 +338,7 @@ function veafNamedPoints.getAtcAtClosestPoint(unitName)
     if unit then
         for name, point in pairs(veafNamedPoints.namedPoints) do
             if point.atc and not point.hidden then
-                distanceFromPlayer = ((point.x - unit:getPosition().p.x)^2 + (point.z - unit:getPosition().p.z)^2)^0.5
+                local distanceFromPlayer = ((point.x - unit:getPosition().p.x)^2 + (point.z - unit:getPosition().p.z)^2)^0.5
                 veaf.loggers.get(veafNamedPoints.Id):trace(string.format("distanceFromPlayer = %d",distanceFromPlayer))
                 if distanceFromPlayer < minDistance then
                     minDistance = distanceFromPlayer
@@ -360,7 +360,7 @@ function veafNamedPoints.getWeatherAtClosestPoint(unitName)
     local unit = veafRadio.getHumanUnitOrWingman(unitName)
     if unit then
         for name, point in pairs(veafNamedPoints.namedPoints) do
-            distanceFromPlayer = ((point.x - unit:getPosition().p.x)^2 + (point.z - unit:getPosition().p.z)^2)^0.5
+            local distanceFromPlayer = ((point.x - unit:getPosition().p.x)^2 + (point.z - unit:getPosition().p.z)^2)^0.5
             veaf.loggers.get(veafNamedPoints.Id):trace(string.format("name=%s, distanceFromPlayer=%d",name, distanceFromPlayer))
             if distanceFromPlayer < minDistance then
                 minDistance = distanceFromPlayer
@@ -489,7 +489,8 @@ end
 -- initialisation
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-    
+---ths tables below comes from the game, and contain duplicate indexes
+---@diagnostic disable: duplicate-index  
 function veafNamedPoints.addAllCaucasusCities()
 
     local allCaucasusCities = {
@@ -2257,7 +2258,7 @@ function veafNamedPoints.addAllCaucasusCities()
 end
 
 function veafNamedPoints.addAllPersianGulfCities()
-    towns = {
+    local towns = {
         ["Aqr"] = { latitude = 24.810000, longitude = 56.440000, display_name = "Aqr"},
         ["Al Hadd"] = { latitude = 24.490000, longitude = 56.590000, display_name = "Al Hadd"},
         ["Magan"] = { latitude = 24.420000, longitude = 56.580000, display_name = "Magan"},
@@ -2648,7 +2649,7 @@ function veafNamedPoints.addAllPersianGulfCities()
 end
 
 function veafNamedPoints.addAllTheChannelCities()
-    towns = {
+    local towns = {
         ["Canterbury"] = { latitude = 51.280028, longitude = 1.080253, display_name = "Canterbury"},
         ["Rochester"] = { latitude = 51.389062, longitude = 0.504935, display_name = "Rochester"},
         ["Battle"] = { latitude = 50.917771, longitude = 0.483654, display_name = "Battle"},
@@ -3969,7 +3970,7 @@ function veafNamedPoints.addAllTheChannelCities()
 end
 
 function veafNamedPoints.addAllSyriaCities()
-    towns = {
+    local towns = {
         ["Racetrack for Camel Racing"] = { latitude = 34.403706, longitude = 38.198771, display_name = ("Racetrack for Camel Racing")},
         ["Marbat El-Hassan Reservoir"] = { latitude = 34.667083, longitude = 38.224691, display_name = ("Marbat El-Hassan Reservoir")},
         ["Sharqiyah Mine"] = { latitude = 34.199641, longitude = 38.014742, display_name = ("Sharqiyah Mine")},
@@ -4191,7 +4192,7 @@ function veafNamedPoints.addAllSyriaCities()
     end
     
 function veafNamedPoints.addAllMarianasIslandsCities()
-    towns = {
+    local towns = {
         ["San Jose"] = { latitude = 14.965154, longitude = 145.628466, display_name = ("San Jose")},
         ["Dandan"] = { latitude = 15.133948, longitude = 145.735471, display_name = ("Dandan")},
         ["Koblerville"] = { latitude = 15.122667, longitude = 145.703809, display_name = ("Koblerville")},

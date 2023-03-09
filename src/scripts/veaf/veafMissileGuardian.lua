@@ -268,7 +268,7 @@ function VeafMG_Guardian:onEvent(event)
                     veaf.loggers.get(veafMissileGuardian.Id):trace(string.format("_inZone = %s", veaf.p(_inZone)))
                     if _inZone then 
                         -- encapsulate the event weapon
-                        local _weapon = VeafMG_Weapon.new():setDcsWeapon(event.weapon)
+                        local _weapon = VeafMG_Weapon:new():setDcsWeapon(event.weapon)
 
                         -- message the target unit
                         local _groupId = _target:getGroup():getID()
@@ -507,18 +507,6 @@ function veafMissileGuardian.buildRadioMenu()
     if not(veafRadio.skipHelpMenus) then
         veafRadio.addCommandToSubmenu("HELP", veafMissileGuardian.rootPath, veafMissileGuardian.help, nil, veafRadio.USAGE_ForGroup)
     end
-    veafRadio.addCommandToSubmenu("List available", veafMissileGuardian.rootPath, veafMissileGuardian.listAvailableMissions, nil, veafRadio.USAGE_ForAll)
-    veafRadio.addCommandToSubmenu("List active", veafMissileGuardian.rootPath, veafMissileGuardian.listActiveMissions, nil, veafRadio.USAGE_ForAll)
-    
-    local missions = {}
-    local missionGroups, activeGroups = _groupMissions()
-    for groupName, missionsInGroup in pairs(missionGroups) do
-        veaf.loggers.get(veafMissileGuardian.Id):trace(string.format("processing groupName=%s",groupName))
-        missions[groupName] = {title=missionsInGroup[1]:getRadioMenuName(), sort=missionsInGroup[1]:getFriendlyName(), missions=missionsInGroup, activeGroups=activeGroups[groupName]}
-    end
-    veaf.loggers.get(veafMissileGuardian.Id):trace(string.format("missions=%s",veaf.p(missions)))
-    --veaf.loggers.get(veafMissileGuardian.Id):trace(string.format("#missions=%d",#missions))
-    veafRadio.addPaginatedRadioElements(veafMissileGuardian.rootPath, veafMissileGuardian._buildMissionRadioMenu, missions)
     veafRadio.refreshRadioMenu()
 end
 
@@ -539,7 +527,7 @@ end
 
 function veafMissileGuardian.listActiveMissions() 
     -- sort the missions alphabetically
-    sortedMissions = {}
+    local sortedMissions = {}
     for _, mission in pairs(veafMissileGuardian.missionsDict) do
         if mission:isActive() then
             table.insert(sortedMissions, mission:getName() .. ' : ' .. mission:getRemainingEnemiesString())

@@ -23,7 +23,7 @@ veafSpawn = {}
 veafSpawn.Id = "SPAWN"
 
 --- Version.
-veafSpawn.Version = "1.41.3"
+veafSpawn.Version = "1.42.0"
 
 -- trace level, specific to this module
 --veafSpawn.LogLevel = "trace"
@@ -265,6 +265,10 @@ function veafSpawn.executeCommand(eventPos, eventText, coalition, markId, bypass
                         options.type = "invisible"
                     end
                     spawnedGroup = veafSpawn.spawnFarp(eventPos, options.radius, options.name, options.country, options.type, options.side, options.heading, options.spacing, bypassSecurity, not options.showMFD)
+                elseif options.fob then
+                    -- check security
+                    if not (bypassSecurity or veafSecurity.checkSecurity_L9(options.password, markId)) then return end
+                    spawnedGroup = veafSpawn.spawnFob(eventPos, options.radius, options.name, options.country, options.type, options.side, options.heading, options.spacing, bypassSecurity, not options.showMFD)
                 elseif options.cap then
                     -- check security
                     if not (bypassSecurity or veafSecurity.checkSecurity_L9(options.password, markId)) then return end
@@ -450,6 +454,7 @@ function veafSpawn.markTextAnalysis(text)
     options.group = false
     options.cap = false
     options.farp = false
+    options.fob = false
     options.type = nil
     options.cargo = false
     options.logistic = false
@@ -575,6 +580,8 @@ function veafSpawn.markTextAnalysis(text)
         options.group = true
     elseif text:lower():find(veafSpawn.SpawnKeyphrase .. " farp") then
         options.farp = true
+    elseif text:lower():find(veafSpawn.SpawnKeyphrase .. " fob") then
+        options.fob = true
     elseif text:lower():find(veafSpawn.SpawnKeyphrase .. " convoy") then
         options.convoy = true
         options.size = 10 -- default the size parameter to 10
@@ -1185,25 +1192,23 @@ end
 
 --- Spawn a FARP
 function veafSpawn.spawnFarp(spawnSpot, radius, name, country, farptype, side, hdg, spacing, silent, hiddenOnMFD)
-    veaf.loggers.get(veafSpawn.Id):debug(string.format("spawnFarp(name=%s, country=%s, farptype=%s, side=%s, hdg=%s, spacing=%s, silent=%s, hiddenOnMFD=%s)",veaf.p(name), veaf.p(country), veaf.p(farptype), veaf.p(side), veaf.p(hdg), veaf.p(spacing), veaf.p(silent), veaf.p(hiddenOnMFD)))
+    veaf.loggers.get(veafSpawn.Id):debug("spawnFarp(name=%s, country=%s, farptype=%s, side=%s, hdg=%s, spacing=%s, silent=%s, hiddenOnMFD=%s)",veaf.p(name), veaf.p(country), veaf.p(farptype), veaf.p(side), veaf.p(hdg), veaf.p(spacing), veaf.p(silent), veaf.p(hiddenOnMFD))
     
     local radius = radius or 0
     local name = name
     local hdg = hdg or 0
     local side = side or 1
-    local spacing = spacing or 50
-    local silent = silent or false
     local country = country or "usa"
     local farptype = farptype or ""
 
     local spawnPosition = veaf.placePointOnLand(mist.getRandPointInCircle(spawnSpot, radius))
-    veaf.loggers.get(veafSpawn.Id):trace(string.format("spawnPosition=%s", veaf.p(spawnPosition)))
+    veaf.loggers.get(veafSpawn.Id):trace("spawnPosition=%s", veaf.p(spawnPosition))
     if not name or name == "" then 
         local _lat, _lon = coord.LOtoLL(spawnSpot)
-        veaf.loggers.get(veafSpawn.Id):trace(string.format("_lat=%s", veaf.p(_lat)))
-        veaf.loggers.get(veafSpawn.Id):trace(string.format("_lon=%s", veaf.p(_lon)))
+        veaf.loggers.get(veafSpawn.Id):trace("_lat=%s", veaf.p(_lat))
+        veaf.loggers.get(veafSpawn.Id):trace("_lon=%s", veaf.p(_lon))
         local _mgrs = coord.LLtoMGRS(_lat, _lon)
-        veaf.loggers.get(veafSpawn.Id):trace(string.format("_mgrs=%s", veaf.p(_mgrs)))
+        veaf.loggers.get(veafSpawn.Id):trace("_mgrs=%s", veaf.p(_mgrs))
         --local _UTM = _mgrs.UTMZone .. _mgrs.MGRSDigraph .. math.floor(_mgrs.Easting / 1000) .. math.floor(_mgrs.Northing / 1000)
         local _UTM = _mgrs.MGRSDigraph .. math.floor(_mgrs.Easting / 1000) .. math.floor(_mgrs.Northing / 1000)
         name = "FARP ".. _UTM:upper()
@@ -1230,23 +1235,93 @@ function veafSpawn.spawnFarp(spawnSpot, radius, name, country, farptype, side, h
         ["groupName"] = name,
         ["name"] = name,
         ["canCargo"] = false,
-        ["heading"] = hdg,
+        ["heading"] = mist.utils.toRadian(hdg),
         ["country"] = country,
         ["coalition"] = side,
         --["hiddenOnMFD"] = hiddenOnMFD, --some helicopters won't see the FARPs if this option is true and the FARPs are from the same coalition as the helo, the NS430 will still see them though.
     }
     mist.dynAddStatic(_farpStatic)
     local _spawnedFARP = StaticObject.getByName(name)
-    veaf.loggers.get(veafSpawn.Id):trace(string.format("_spawnedFARP=%s", veaf.p(_spawnedFARP)))
+    veaf.loggers.get(veafSpawn.Id):trace("_spawnedFARP=%s", veaf.p(_spawnedFARP))
 
     if _spawnedFARP then
-        veaf.loggers.get(veafSpawn.Id):debug(string.format("Spawned the FARP static %s", veaf.p(name)))
+        veaf.loggers.get(veafSpawn.Id):debug("Spawned the FARP static %s", veaf.p(name))
 
         -- populate the FARP but make the units invisible to MFDs as they are redundant (FARP already shows if wanted)
         veafGrass.buildFarpUnits(_farpStatic, nil, name, hiddenOnMFD)
     end
 
     return name
+end
+
+--- Spawn a FARP
+function veafSpawn.spawnFob(spawnSpot, radius, name, country, fobtype, side, hdg, spacing, silent, hiddenOnMFD)
+    veaf.loggers.get(veafSpawn.Id):debug("spawnFob(name=%s, country=%s, fobtype=%s, side=%s, hdg=%s, spacing=%s, silent=%s, hiddenOnMFD=%s)",veaf.p(name), veaf.p(country), veaf.p(fobtype), veaf.p(side), veaf.p(hdg), veaf.p(spacing), veaf.p(silent), veaf.p(hiddenOnMFD))
+
+    if not ctld then
+        veaf.loggers.get(veafSpawn.Id):error("spawnFob([%s]): cannot spawn FOB without CTLD!)",veaf.p(name))
+        return nil
+    end
+
+    local _radius = radius or 0
+    local _fobName = name
+    local _side = side or 1
+    local _country = country or "usa"
+    local _fobtype = fobtype or "" -- only a single FOB type in CTLD, yet
+
+    local _spawnPosition = veaf.placePointOnLand(mist.getRandPointInCircle(spawnSpot, _radius))
+    veaf.loggers.get(veafSpawn.Id):trace("spawnPosition=%s", veaf.p(_spawnPosition))
+    if not _fobName or _fobName == "" then 
+        local _lat, _lon = coord.LOtoLL(spawnSpot)
+        veaf.loggers.get(veafSpawn.Id):trace("_lat=%s", veaf.p(_lat))
+        veaf.loggers.get(veafSpawn.Id):trace("_lon=%s", veaf.p(_lon))
+        local _mgrs = coord.LLtoMGRS(_lat, _lon)
+        veaf.loggers.get(veafSpawn.Id):trace("_mgrs=%s", veaf.p(_mgrs))
+        local _UTM = _mgrs.MGRSDigraph .. math.floor(_mgrs.Easting / 1000) .. math.floor(_mgrs.Northing / 1000)
+        _fobName = "FOB ".. _UTM:upper()
+    end
+
+    -- make name unique
+    _fobName = string.format("%s #%i", _fobName, veaf.getUniqueIdentifier())
+
+    local _fob = ctld.spawnFOB(_country, nil, _spawnPosition, _fobName)
+
+    --make it able to deploy crates and pickup troops
+    table.insert(ctld.logisticUnits, _fob:getName())
+    table.insert(ctld.builtFOBS, _fob:getName())
+
+    -- add the FOB to the named points
+    local _namedPoint = _spawnPosition
+    _namedPoint.atc = true
+    _namedPoint.runways = {}
+
+    -- spawn a beacon
+    local _beaconPoint = {
+        x = _namedPoint.x - 250,
+        y = _namedPoint.y,
+        z = _namedPoint.z - 250
+    }
+    local _beaconInfo = ctld.createRadioBeacon(_beaconPoint, _side, _country, _fobName, -1, true)
+    if _beaconInfo ~= nil then
+        _namedPoint.tacan = string.format("ADF : %.2f KHz - %.2f MHz - %.2f MHz FM", _beaconInfo.vhf / 1000, _beaconInfo.uhf / 1000000, _beaconInfo.fm / 1000000)
+        veaf.loggers.get(veafSpawn.Id):trace("_namedPoint.tacan=%s", veaf.p(_namedPoint.tacan))
+    end
+
+    ctld.beaconCount = ctld.beaconCount + 1
+    local _radioBeaconName = "FOB Beacon #" .. ctld.beaconCount
+    local _radioBeaconDetails = ctld.createRadioBeacon(_spawnPosition, _side, _country, _radioBeaconName, nil, true)
+    ctld.fobBeacons[_fobName] = { vhf = _radioBeaconDetails.vhf, uhf = _radioBeaconDetails.uhf, fm = _radioBeaconDetails.fm }
+    trigger.action.outTextForCoalition(_side, string.format("Finished building FOB %s! Crates and Troops can now be picked up.", _fobName), 10)
+
+
+	_namedPoint.tower = "No Control"
+
+    veaf.loggers.get(veafSpawn.Id):trace("_namedPoint=%s", veaf.p(_namedPoint))
+
+	veafNamedPoints.addPoint(_fobName, _namedPoint)
+
+    veaf.loggers.get(veafSpawn.Id):info("Spawned FOB %s", veaf.p(_fobName))
+    return _fobName
 end
 
 --- Spawn a specific group at a specific spot

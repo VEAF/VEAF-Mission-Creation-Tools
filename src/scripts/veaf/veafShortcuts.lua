@@ -1363,6 +1363,13 @@ function veafShortcuts.buildDefaultList()
     )
     veafShortcuts.AddAlias(
         VeafAlias:new()
+            :setName("-fob")
+            :setDescription("create a new FOB")
+            :setVeafCommand("_spawn fob, side blue, radius 0")
+            :setBypassSecurity(false)
+    )
+    veafShortcuts.AddAlias(
+        VeafAlias:new()
             :setName("-draw")
             :setDescription("start a drawing on the map, or add a point to an existing drawing ; name is mandatory")
             :setVeafCommand("_drawing add, name")

@@ -19,7 +19,7 @@ veafGrass = {}
 veafGrass.Id = "GRASS"
 
 --- Version.
-veafGrass.Version = "2.3.2"
+veafGrass.Version = "2.3.3"
 
 -- trace level, specific to this module
 --veafGrass.LogLevel = "trace"
@@ -76,7 +76,7 @@ function veafGrass.buildGrassRunway(grassRunwayUnit, hiddenOnMFD)
         ["coalition"] = runwayOrigin.coalition,
         ["country"] = runwayOrigin.country,
         ["countryId"] = runwayOrigin.countryId,
-        ["heading"] = runwayOrigin.heading,
+        ["heading"] = mist.utils.toRadian(runwayOrigin.heading),
         ["shape_name"] =  runwayOrigin.shape_name,
         ["type"] = runwayOrigin.type,
 		["hiddenOnMFD"] = hiddenOnMFD,
@@ -203,8 +203,10 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD
 	local name = farp.name
 	if not name then name = farp.unitName end
 	if not name then name = farp.groupName end
-	table.insert(ctld.builtFOBS, name)
-	table.insert(ctld.logisticUnits, name)
+	if ctld then
+		table.insert(ctld.builtFOBS, name)
+		table.insert(ctld.logisticUnits, name)
+	end
 
 	local farpUnitNameCounter=1
 	local farpCoalition = farp.coalition
@@ -457,11 +459,13 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD
         if grassRunwayUnit then
             veaf.loggers.get(veafGrass.Id):trace(string.format("found grassRunwayUnit %s", veaf.p(grassRunwayUnit)))
 			local grassNamedPoint = veafGrass.buildGrassRunway(grassRunwayUnit, hiddenOnMFD)
-			farpNamedPoint.x = grassNamedPoint.x
-			farpNamedPoint.y = grassNamedPoint.y
-			farpNamedPoint.z = grassNamedPoint.z
-			farpNamedPoint.atc = grassNamedPoint.atc
-			farpNamedPoint.runways = grassNamedPoint.runways
+			if grassNamedPoint then
+				farpNamedPoint.x = grassNamedPoint.x
+				farpNamedPoint.y = grassNamedPoint.y
+				farpNamedPoint.z = grassNamedPoint.z
+				farpNamedPoint.atc = grassNamedPoint.atc
+				farpNamedPoint.runways = grassNamedPoint.runways
+			end
         end
     end
     veaf.loggers.get(veafGrass.Id):trace(string.format("farpNamedPoint=%s", veaf.p(farpNamedPoint)))

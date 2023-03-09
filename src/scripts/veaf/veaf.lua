@@ -19,7 +19,7 @@ veaf = {}
 veaf.Id = "VEAF"
 
 --- Version.
-veaf.Version = "1.30.0"
+veaf.Version = "1.31.0"
 
 --- Development version ?
 veaf.Development = true
@@ -1820,6 +1820,7 @@ local function _initializeCountriesAndCoalitions()
     veaf.countriesByCoalition={}
     veaf.coalitionByCountry={}
     veaf.countriesByName={}
+    veaf.countriesNamesById={}
 
     local function _sortByImportance(c1,c2)
         local importantCountries = { ['usa']=true, ['russia']=true}
@@ -1831,27 +1832,35 @@ local function _initializeCountriesAndCoalitions()
 
     for coalitionName, countries in pairs(mist.DBs.units) do
         coalitionName = coalitionName:lower()
-        veaf.loggers.get(veaf.Id):trace(string.format("coalitionName=%s", veaf.p(coalitionName)))
+        veaf.loggers.get(veaf.Id):trace("coalitionName=%s", veaf.p(coalitionName))
 
         if not veaf.countriesByCoalition[coalitionName] then
             veaf.countriesByCoalition[coalitionName]={}
         end
+        veaf.loggers.get(veaf.Id):trace("countries=%s", veaf.p(countries))
         for countryName, country in pairs(countries) do
+            veaf.loggers.get(veaf.Id):trace("country=%s", veaf.p(country))
             countryName = countryName:lower()
             table.insert(veaf.countriesByCoalition[coalitionName], countryName)
             veaf.coalitionByCountry[countryName]=coalitionName:lower()
             veaf.countriesByName[countryName] = country
+            veaf.countriesNamesById[country.countryId] = countryName
         end
 
         table.sort(veaf.countriesByCoalition[coalitionName], _sortByImportance)
     end
 
-    veaf.loggers.get(veaf.Id):trace(string.format("veaf.countriesByCoalition=%s", veaf.p(veaf.countriesByCoalition)))
-    veaf.loggers.get(veaf.Id):trace(string.format("veaf.coalitionByCountry=%s", veaf.p(veaf.coalitionByCountry)))
+    veaf.loggers.get(veaf.Id):trace("veaf.countriesByCoalition=%s", veaf.p(veaf.countriesByCoalition))
+    veaf.loggers.get(veaf.Id):trace("veaf.coalitionByCountry=%s", veaf.p(veaf.coalitionByCountry))
+    veaf.loggers.get(veaf.Id):trace("veaf.countriesByName=%s", veaf.p(veaf.countriesByName))
+    veaf.loggers.get(veaf.Id):trace("veaf.countriesNamesById=%s", veaf.p(veaf.countriesNamesById))
 end
 
 function veaf.getCountryId(countryName)
     veaf.loggers.get(veaf.Id):trace("veaf.getCountryId(%s)", veaf.p(countryName))
+    if not veaf.countriesByName then
+        _initializeCountriesAndCoalitions()
+    end
     local countryName = string.lower(countryName or "")
     local country = veaf.countriesByName[countryName]
     if country then
@@ -1861,8 +1870,17 @@ function veaf.getCountryId(countryName)
     end
 end
 
+function veaf.getCountryName(countryId)
+    veaf.loggers.get(veaf.Id):trace("veaf.getCountryName(%s)", veaf.p(countryId))
+    if not veaf.coalitionByCountry then
+        _initializeCountriesAndCoalitions()
+    end
+    local countryName = veaf.countriesNamesById[countryId]
+    return countryName
+end
+
 function veaf.getCountryForCoalition(coalition)
-    veaf.loggers.get(veaf.Id):trace(string.format("veaf.getCountryForCoalition(coalition=%s)", tostring(coalition)))
+    veaf.loggers.get(veaf.Id):trace("veaf.getCountryForCoalition(coalition=%s)", tostring(coalition))
     local coalition = coalition
     if not coalition then
         coalition = 1
@@ -3242,8 +3260,8 @@ if ctld then
     -- logging change
     ctld.p = veaf.p
     ctld.Id = "CTLD"
-    ctld.LogLevel = "info"
-    --ctld.LogLevel = "trace"
+    --ctld.LogLevel = "info"
+    ctld.LogLevel = "trace"
     --ctld.LogLevel = "debug"
 
     ctld.logger = veaf.loggers.new(ctld.Id, ctld.LogLevel)
@@ -3342,8 +3360,25 @@ if ctld then
     end
 
     ctld.autoInitializeAllPickupZones = function()
+        local PickupShipNames = {"LHA_Tarawa", "Stennis", "CVN_71", "KUZNECOW"}
         veaf.loggers.get(ctld.Id):info("autoInitializeAllPickupZones()")
         ctld.pickupZones = {}
+        -- add all ships to the pickup zones table
+        local units = mist.makeUnitTable({"[all][ship]"}) -- get all ships in the mission
+        veaf.loggers.get(ctld.Id):trace("units=%s", veaf.p(units))
+        for _, unitName in pairs(units) do
+            if unitName then
+                local unitObject = Unit.getByName(unitName)
+                local _unitCoalition = nil
+                if unitObject then
+                    _unitCoalition = veaf.getCoalitionForCountry(veaf.getCountryName(unitObject:getCountry()), true)
+                end
+                local zone = {unitName, nil, -1, "yes", _unitCoalition, nil}
+                table.insert(ctld.pickupZones, zone)
+                veaf.loggers.get(ctld.Id):debug("Adding CTLD pickup zone for ship: [%s]", veaf.p(zone))
+            end
+        end
+
         -- generate 20 pickup zone names in the form "pickzone #001"
         veaf.loggers.get(ctld.Id):debug("generate 20 pickup zone names in the form 'pickzone #001'")
         for i = 1, 20 do

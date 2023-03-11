@@ -23,7 +23,7 @@ veafSpawn = {}
 veafSpawn.Id = "SPAWN"
 
 --- Version.
-veafSpawn.Version = "1.42.0"
+veafSpawn.Version = "1.43.0"
 
 -- trace level, specific to this module
 --veafSpawn.LogLevel = "trace"
@@ -253,7 +253,9 @@ function veafSpawn.executeCommand(eventPos, eventText, coalition, markId, bypass
                     local channel = options.freq
                     local band = options.mod
                     if options.role == "tacan" then
+---@diagnostic disable-next-line: cast-local-type
                         channel = options.tacanChannel or 99
+---@diagnostic disable-next-line: cast-local-type
                         code = options.tacanCode or ("T"..tostring(channel))
                         band = options.tacanBand or "X"
                     end
@@ -1257,6 +1259,8 @@ end
 --- Spawn a FARP
 function veafSpawn.spawnFob(spawnSpot, radius, name, country, fobtype, side, hdg, spacing, silent, hiddenOnMFD)
     veaf.loggers.get(veafSpawn.Id):debug("spawnFob(name=%s, country=%s, fobtype=%s, side=%s, hdg=%s, spacing=%s, silent=%s, hiddenOnMFD=%s)",veaf.p(name), veaf.p(country), veaf.p(fobtype), veaf.p(side), veaf.p(hdg), veaf.p(spacing), veaf.p(silent), veaf.p(hiddenOnMFD))
+    local TOWER_DISTANCE = 20
+    local BEACON_DISTANCE = 3
 
     if not ctld then
         veaf.loggers.get(veafSpawn.Id):error("spawnFob([%s]): cannot spawn FOB without CTLD!)",veaf.p(name))
@@ -1268,6 +1272,7 @@ function veafSpawn.spawnFob(spawnSpot, radius, name, country, fobtype, side, hdg
     local _side = side or 1
     local _country = country or "usa"
     local _fobtype = fobtype or "" -- only a single FOB type in CTLD, yet
+	local _hdg = hdg or 0
 
     local _spawnPosition = veaf.placePointOnLand(mist.getRandPointInCircle(spawnSpot, _radius))
     veaf.loggers.get(veafSpawn.Id):trace("spawnPosition=%s", veaf.p(_spawnPosition))
@@ -1284,11 +1289,36 @@ function veafSpawn.spawnFob(spawnSpot, radius, name, country, fobtype, side, hdg
     -- make name unique
     _fobName = string.format("%s #%i", _fobName, veaf.getUniqueIdentifier())
 
-    local _fob = ctld.spawnFOB(_country, nil, _spawnPosition, _fobName)
+    -- spawn the FOB buildings
+    local _outpost = {
+        category = "Fortifications",
+        type = "outpost",
+        y = _spawnPosition.z,
+        x = _spawnPosition.x,
+        name = _fobName,
+        canCargo = false,
+        heading = mist.utils.toRadian(hdg),
+        country = _country
+    }
+    mist.dynAddStatic(_outpost)
+    local _fob = StaticObject.getByName(_outpost["name"])
+
+    local _tower = {
+        type = "house2arm",
+        rate = 100,
+        y = _outpost.y + TOWER_DISTANCE * math.sin(mist.utils.toRadian(_hdg)),
+        x = _outpost.x + TOWER_DISTANCE * math.cos(mist.utils.toRadian(_hdg)),
+        name = _fobName .. " Watchtower #002",
+        category = "Fortifications",
+        canCargo = false,
+        heading = mist.utils.toRadian(hdg),
+        country = _country
+    }
+    mist.dynAddStatic(_tower)
 
     --make it able to deploy crates and pickup troops
-    table.insert(ctld.logisticUnits, _fob:getName())
-    table.insert(ctld.builtFOBS, _fob:getName())
+    table.insert(ctld.logisticUnits, _fobName)
+    table.insert(ctld.builtFOBS, _fobName)
 
     -- add the FOB to the named points
     local _namedPoint = _spawnPosition
@@ -1297,22 +1327,19 @@ function veafSpawn.spawnFob(spawnSpot, radius, name, country, fobtype, side, hdg
 
     -- spawn a beacon
     local _beaconPoint = {
-        x = _namedPoint.x - 250,
-        y = _namedPoint.y,
-        z = _namedPoint.z - 250
+        z = _tower.y + BEACON_DISTANCE * math.sin(mist.utils.toRadian(_hdg)),
+        x = _tower.x + BEACON_DISTANCE * math.cos(mist.utils.toRadian(_hdg)),
+        y = _spawnPosition.y,
     }
-    local _beaconInfo = ctld.createRadioBeacon(_beaconPoint, _side, _country, _fobName, -1, true)
-    if _beaconInfo ~= nil then
-        _namedPoint.tacan = string.format("ADF : %.2f KHz - %.2f MHz - %.2f MHz FM", _beaconInfo.vhf / 1000, _beaconInfo.uhf / 1000000, _beaconInfo.fm / 1000000)
-        veaf.loggers.get(veafSpawn.Id):trace("_namedPoint.tacan=%s", veaf.p(_namedPoint.tacan))
-    end
-
     ctld.beaconCount = ctld.beaconCount + 1
     local _radioBeaconName = "FOB Beacon #" .. ctld.beaconCount
-    local _radioBeaconDetails = ctld.createRadioBeacon(_spawnPosition, _side, _country, _radioBeaconName, nil, true)
+    local _radioBeaconDetails = ctld.createRadioBeacon(_beaconPoint, _side, _country, _radioBeaconName, nil, true)
     ctld.fobBeacons[_fobName] = { vhf = _radioBeaconDetails.vhf, uhf = _radioBeaconDetails.uhf, fm = _radioBeaconDetails.fm }
+    if _radioBeaconDetails ~= nil then
+        _namedPoint.tacan = string.format("ADF : %.2f KHz - %.2f MHz - %.2f MHz FM", _radioBeaconDetails.vhf / 1000, _radioBeaconDetails.uhf / 1000000, _radioBeaconDetails.fm / 1000000)
+        veaf.loggers.get(veafSpawn.Id):trace("_namedPoint.tacan=%s", veaf.p(_namedPoint.tacan))
+    end
     trigger.action.outTextForCoalition(_side, string.format("Finished building FOB %s! Crates and Troops can now be picked up.", _fobName), 10)
-
 
 	_namedPoint.tower = "No Control"
 
@@ -2294,6 +2321,10 @@ function veafSpawn._findClosestConvoy(unitName)
     if unit then
         for name, _ in pairs(veafSpawn.spawnedConvoys) do
             local averageGroupPosition = veaf.getAveragePosition(name)
+            if not averageGroupPosition then
+                veaf.loggers.get(veafSpawn.Id):error("cannot get average position of %s",veaf.p(unitName))
+                return nil
+            end
             local distanceFromPlayer = ((averageGroupPosition.x - unit:getPosition().p.x)^2 + (averageGroupPosition.z - unit:getPosition().p.z)^2)^0.5
             veaf.loggers.get(veafSpawn.Id):trace(string.format("distanceFromPlayer = %d",distanceFromPlayer))
             if distanceFromPlayer < minDistance then
@@ -2744,6 +2775,10 @@ function veafSpawn.spawnAFAC(spawnSpot, name, country, altitude, speed, hdg, fre
     vars.newGroupName = newGroupName
 
     local newGroup = mist.teleportToPoint(vars, true)
+    if not newGroup then
+        veaf.loggers.get(veafSpawn.Id):error("cannot respawn group %s",veaf.p(vars.name))
+        return nil
+    end
     if country and #country > 0 then
         newGroup.coalition = coalition
         newGroup.countryId = veaf.getCountryId(country)
@@ -2753,6 +2788,11 @@ function veafSpawn.spawnAFAC(spawnSpot, name, country, altitude, speed, hdg, fre
 
     --setup of the new group
     local unit = newGroup.units[1]
+    if not unit then
+        veaf.loggers.get(veafSpawn.Id):error("cannot get first unit of group %s",veaf.p(newGroup:getName()))
+        return nil
+    end
+
     unit.skill = "Excellent"
     newGroup.hidden=false
     newGroup.name = newGroupName
@@ -3211,6 +3251,10 @@ function veafSpawn.spawnCombatAirPatrol(spawnSpot, radius, name, country, altitu
     vars.newGroupName = newGroupName
 
     local newGroup = mist.teleportToPoint(vars, true)
+    if not newGroup then
+        veaf.loggers.get(veafSpawn.Id):error("cannot respawn group %s",veaf.p(vars.name))
+        return nil
+    end
     if country and #country > 0 then
         newGroup.countryId = veaf.getCountryId(country)
     end
@@ -3238,6 +3282,10 @@ function veafSpawn.spawnCombatAirPatrol(spawnSpot, radius, name, country, altitu
 
     veaf.loggers.get(veafSpawn.Id):trace("before mist.dynAdd, newGroup=%s", veaf.p(newGroup, nil, {"route", "payload"}))
     local _spawnedGroup = mist.dynAdd(newGroup)
+    if not _spawnedGroup then
+        veaf.loggers.get(veafSpawn.Id):error("cannot spawn group %s",veaf.p(newGroup.name))
+        return nil
+    end
     veaf.loggers.get(veafSpawn.Id):debug("after mist.dynAdd, _spawnedGroup.name=%s",_spawnedGroup.name)
     veaf.loggers.get(veafSpawn.Id):trace("after mist.dynAdd, _spawnedGroup=%s", veaf.p(_spawnedGroup, nil, {"route", "payload"}))
 

@@ -26,7 +26,7 @@ veafAirWaves.Id = "AIRWAVES - "
 veafAirWaves.Version = "0.0.1"
 
 -- trace level, specific to this module
-veafAirWaves.LogLevel = "trace"
+--veafAirWaves.LogLevel = "trace"
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Do not change anything below unless you know what you are doing!

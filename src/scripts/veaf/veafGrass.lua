@@ -19,10 +19,10 @@ veafGrass = {}
 veafGrass.Id = "GRASS"
 
 --- Version.
-veafGrass.Version = "2.3.3"
+veafGrass.Version = "2.3.4"
 
 -- trace level, specific to this module
---veafGrass.LogLevel = "trace"
+veafGrass.LogLevel = "trace"
 
 veaf.loggers.new(veafGrass.Id, veafGrass.LogLevel)
 
@@ -76,7 +76,7 @@ function veafGrass.buildGrassRunway(grassRunwayUnit, hiddenOnMFD)
         ["coalition"] = runwayOrigin.coalition,
         ["country"] = runwayOrigin.country,
         ["countryId"] = runwayOrigin.countryId,
-        ["heading"] = mist.utils.toRadian(runwayOrigin.heading),
+        ["heading"] = runwayOrigin.heading,
         ["shape_name"] =  runwayOrigin.shape_name,
         ["type"] = runwayOrigin.type,
 		["hiddenOnMFD"] = hiddenOnMFD,

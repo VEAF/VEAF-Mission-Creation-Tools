@@ -18,6 +18,11 @@ require('yargs')
         required: false,
         describe: "the new mission start time in seconds since midnight"
       })
+      .option('date', {
+        type: "number",
+        required: false,
+        describe: "the starting date of the mission, with an optional clock time (e.g. `20230126` or `202301260635` for 6:35am)"
+      })
       .option('metar', {
         alias: 'm',
         type: "string",
@@ -80,6 +85,7 @@ require('yargs')
       .example("$0 inject test.miz --real")
       .example('$0 inject d:\\tmp\\test.miz -s 34000 -m "KQND 150856Z AUTO VRB04G11KT 9999 CLR 39/05 A2989 RMK AO2 SLP103 WND DATA ESTMD T03900045 50007"')
       .example("$0 inject ./tmp/test.miz ./tmp/newmission.miz --start 86000 --weather scattered.lua")
+      .example("$0 inject ./tmp/test.miz ./tmp/newmission.miz --date 202301260635 --weather scattered.lua")
       .epilog('for more information visit https://github.com/VEAF/VEAF-Mission-Creation-Tools')
   }, (argv) => {
     const {injectWeather} = require('./veaf-weather-injector.js');
@@ -88,6 +94,7 @@ require('yargs')
         sourceMissionFileName: argv.source,  // the name of the source mission file (mandatory)
         targetMissionFileName: argv.target,  // the name of the target mission file (default to the source)
         missionStartTime: argv.start, // the new mission start time (default: do not change time)
+        missionStartDate: argv.date, // the new mission start date (default: do not change date)
         metarString: argv.metar,  // a raw metar string to parse for weather injection
         clearsky: argv.clearsky, // real weather but limits to 3 octas or less
         weatherFileName: argv.weather, // a lua file with the DCS weather ready to inject

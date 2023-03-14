@@ -164,12 +164,14 @@ async function injectWeather(parameters) {
 
   // set the mission start time
   if (missionStartTime) {
+    missionStartTime = '' + missionStartTime
     if (!quiet) console.log(`Setting mission start time to ${missionStartTime}`);
       let matchpos = missionData.regexLastIndexOf(/\["start_time"\] = (\d+)/g);
     missionData = missionData.slice(0, matchpos) + missionData.slice(matchpos).replace(/\["start_time"\] = (\d+)/, `["start_time"] = ${missionStartTime}`);
   }
 
   if (missionStartDate) {
+    missionStartDate = '' + missionStartDate
     // set the mission start date
     if (missionStartDate.length == 12) {
       var hours = missionStartDate.slice(8,10)

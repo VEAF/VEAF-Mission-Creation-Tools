@@ -5,3 +5,7 @@ cache/
 configuration.json
 veaf-scripts.lua
 compile-*.cmd
+test/test-out.miz
+.gitignore
+mission.lua
+mission-2.lua

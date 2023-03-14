@@ -1,0 +1,236 @@
+Tester l'erreur du cache
+
+SERVERSETTINGS = serverSettings-public-default
+refreshing OpenTraining missions on public server
+C:\Users\veaf\Saved Games\DCS.missions
+refreshing OpenTraining missions for public server
+VEAF_FOLDER=C:\Users\veaf
+MISSION_FOLDER=C:\Users\veaf\Saved Games\DCS.missions\_VEAF_OpenTraining.public
+OPENTRAINING_FOLDER=C:\Users\veaf\Saved Games\DCS.missions\VEAF_OpenTraining-Caucasus
+Refreshing OpenTraining for server public based on C:\Users\veaf\Saved Games\DCS.missions\VEAF_OpenTraining-Caucasus\VEAF_OpenTraining_Caucasus_20221029.miz
+DCS multiple missions weather injector starting
+DCS weather injector starting
+opening DCS mission C:\Users\veaf\Saved Games\DCS.missions\VEAF_OpenTraining-Caucasus\VEAF_OpenTraining_Caucasus_20221029.miz
+Setting mission start time to 7200
+Setting mission start date to 3/11
+Getting real weather from CheckWX in "caucasus"
+Cache key is "caucasus"
+Setting variable ${METAR} to the METAR string "UGKO 031930Z 10007KT 9999 -SHRA BKN017CB OVC035 09/08 Q1019 NOSIG"
+Mission saved to "C:\Users\veaf\Saved Games\DCS.missions\_VEAF_OpenTraining.public\VEAF_OpenTraining_Caucasus-night-real.miz"
+DCS weather injector starting
+opening DCS mission C:\Users\veaf\Saved Games\DCS.missions\VEAF_OpenTraining-Caucasus\VEAF_OpenTraining_Caucasus_20221029.miz
+Setting mission start time to 22326
+Setting mission start date to 3/11
+Getting real weather from CheckWX in "caucasus"
+Cache key is "caucasus"
+Setting variable ${METAR} to the METAR string "UGKO 031930Z 10007KT 9999 -SHRA FEW017CB FEW035 09/08 Q1019 NOSIG"
+Mission saved to "C:\Users\veaf\Saved Games\DCS.missions\_VEAF_OpenTraining.public\VEAF_OpenTraining_Caucasus-beforedawn-real-clear.miz"
+DCS weather injector starting
+opening DCS mission C:\Users\veaf\Saved Games\DCS.missions\VEAF_OpenTraining-Caucasus\VEAF_OpenTraining_Caucasus_20221029.miz
+Setting mission start time to 29526
+Setting mission start date to 3/11
+Getting real weather from CheckWX in "caucasus"
+Cache key is "caucasus"
+Setting variable ${METAR} to the METAR string "UGKO 031930Z 10007KT 9999 -SHRA BKN017CB OVC035 09/08 Q1019 NOSIG"
+Mission saved to "C:\Users\veaf\Saved Games\DCS.missions\_VEAF_OpenTraining.public\VEAF_OpenTraining_Caucasus-dawn-real.miz"
+DCS weather injector starting
+opening DCS mission C:\Users\veaf\Saved Games\DCS.missions\VEAF_OpenTraining-Caucasus\VEAF_OpenTraining_Caucasus_20221029.miz
+Setting mission start time to 64667
+Setting mission start date to 3/11
+Getting real weather from CheckWX in "caucasus"
+Cache key is "caucasus"
+Setting variable ${METAR} to the METAR string "UGKO 031930Z 10007KT 9999 -SHRA BKN017CB OVC035 09/08 Q1019 NOSIG"
+Mission saved to "C:\Users\veaf\Saved Games\DCS.missions\_VEAF_OpenTraining.public\VEAF_OpenTraining_Caucasus-sunset-real.miz"
+DCS weather injector starting
+opening DCS mission C:\Users\veaf\Saved Games\DCS.missions\VEAF_OpenTraining-Caucasus\VEAF_OpenTraining_Caucasus_20221029.miz
+Setting mission start time to 29526
+Setting mission start date to 3/11
+Getting real weather from CheckWX in "caucasus"
+Cache key is "caucasus"
+Setting variable ${METAR} to the METAR string "UGKO 031930Z 10007KT 9999 -SHRA FEW017CB FEW035 09/08 Q1019 NOSIG"
+Mission saved to "C:\Users\veaf\Saved Games\DCS.missions\_VEAF_OpenTraining.public\VEAF_OpenTraining_Caucasus-dawn-real-clear.miz"
+DCS weather injector starting
+opening DCS mission C:\Users\veaf\Saved Games\DCS.missions\VEAF_OpenTraining-Caucasus\VEAF_OpenTraining_Caucasus_20221029.miz
+Setting mission start time to 29526
+Setting mission start date to 3/11
+Reading weather from DCS lua file C:\Users\veaf\Saved Games\DCS.missions\VEAF_OpenTraining-Caucasus\weatherAndTime/broken-1.lua
+Mission saved to "C:\Users\veaf\Saved Games\DCS.missions\_VEAF_OpenTraining.public\VEAF_OpenTraining_Caucasus-dawn-broken.miz"
+DCS weather injector starting
+opening DCS mission C:\Users\veaf\Saved Games\DCS.missions\VEAF_OpenTraining-Caucasus\VEAF_OpenTraining_Caucasus_20221029.miz
+Setting mission start time to 29526
+Setting mission start date to 3/11
+Reading weather from DCS lua file C:\Users\veaf\Saved Games\DCS.missions\VEAF_OpenTraining-Caucasus\weatherAndTime/overcast-1.lua
+Mission saved to "C:\Users\veaf\Saved Games\DCS.missions\_VEAF_OpenTraining.public\VEAF_OpenTraining_Caucasus-dawn-overcast.miz"
+DCS weather injector starting
+opening DCS mission C:\Users\veaf\Saved Games\DCS.missions\VEAF_OpenTraining-Caucasus\VEAF_OpenTraining_Caucasus_20221029.miz
+Setting mission start time to 29526
+Setting mission start date to 3/11
+Reading weather from DCS lua file C:\Users\veaf\Saved Games\DCS.missions\VEAF_OpenTraining-Caucasus\weatherAndTime/overcast-rain-1.lua
+Mission saved to "C:\Users\veaf\Saved Games\DCS.missions\_VEAF_OpenTraining.public\VEAF_OpenTraining_Caucasus-dawn-overcast-rain.miz"
+DCS weather injector starting
+opening DCS mission C:\Users\veaf\Saved Games\DCS.missions\VEAF_OpenTraining-Caucasus\VEAF_OpenTraining_Caucasus_20221029.miz
+Setting mission start time to 33126
+Setting mission start date to 3/11
+Getting real weather from CheckWX in "caucasus"
+Cache key is "caucasus"
+Setting variable ${METAR} to the METAR string "UGKO 031930Z 10007KT 9999 -SHRA BKN017CB OVC035 09/08 Q1019 NOSIG"
+Mission saved to "C:\Users\veaf\Saved Games\DCS.missions\_VEAF_OpenTraining.public\VEAF_OpenTraining_Caucasus-morning-real.miz"
+DCS weather injector starting
+opening DCS mission C:\Users\veaf\Saved Games\DCS.missions\VEAF_OpenTraining-Caucasus\VEAF_OpenTraining_Caucasus_20221029.miz
+Setting mission start time to 33126
+Setting mission start date to 3/11
+Getting real weather from CheckWX in "caucasus"
+Cache key is "caucasus"
+Setting variable ${METAR} to the METAR string "UGKO 031930Z 10007KT 9999 -SHRA FEW017CB FEW035 09/08 Q1019 NOSIG"
+Mission saved to "C:\Users\veaf\Saved Games\DCS.missions\_VEAF_OpenTraining.public\VEAF_OpenTraining_Caucasus-morning-real-clear.miz"
+DCS weather injector starting
+opening DCS mission C:\Users\veaf\Saved Games\DCS.missions\VEAF_OpenTraining-Caucasus\VEAF_OpenTraining_Caucasus_20221029.miz
+Setting mission start time to 33126
+Setting mission start date to 3/11
+Reading weather from DCS lua file C:\Users\veaf\Saved Games\DCS.missions\VEAF_OpenTraining-Caucasus\weatherAndTime/broken-1.lua
+Mission saved to "C:\Users\veaf\Saved Games\DCS.missions\_VEAF_OpenTraining.public\VEAF_OpenTraining_Caucasus-morning-broken.miz"
+DCS weather injector starting
+opening DCS mission C:\Users\veaf\Saved Games\DCS.missions\VEAF_OpenTraining-Caucasus\VEAF_OpenTraining_Caucasus_20221029.miz
+Setting mission start time to 33126
+Setting mission start date to 3/11
+Reading weather from DCS lua file C:\Users\veaf\Saved Games\DCS.missions\VEAF_OpenTraining-Caucasus\weatherAndTime/overcast-1.lua
+Mission saved to "C:\Users\veaf\Saved Games\DCS.missions\_VEAF_OpenTraining.public\VEAF_OpenTraining_Caucasus-morning-overcast.miz"
+DCS weather injector starting
+opening DCS mission C:\Users\veaf\Saved Games\DCS.missions\VEAF_OpenTraining-Caucasus\VEAF_OpenTraining_Caucasus_20221029.miz
+Setting mission start time to 33126
+Setting mission start date to 3/11
+Reading weather from DCS lua file C:\Users\veaf\Saved Games\DCS.missions\VEAF_OpenTraining-Caucasus\weatherAndTime/overcast-rain-1.lua
+Mission saved to "C:\Users\veaf\Saved Games\DCS.missions\_VEAF_OpenTraining.public\VEAF_OpenTraining_Caucasus-morning-overcast-rain.miz"
+DCS weather injector starting
+opening DCS mission C:\Users\veaf\Saved Games\DCS.missions\VEAF_OpenTraining-Caucasus\VEAF_OpenTraining_Caucasus_20221029.miz
+Setting mission start time to 29526
+Setting mission start date to 3/11
+Generating weather from METAR string "UG27 221130Z 04515KT CAVOK Q1020 NOSIG"
+Setting variable ${METAR} to the METAR string "UG27 221130Z 04515KT CAVOK Q1020 NOSIG"
+Mission saved to "C:\Users\veaf\Saved Games\DCS.missions\_VEAF_OpenTraining.public\VEAF_OpenTraining_Caucasus-dawn-crosswind-vaziani.miz"
+DCS weather injector starting
+opening DCS mission C:\Users\veaf\Saved Games\DCS.missions\VEAF_OpenTraining-Caucasus\VEAF_OpenTraining_Caucasus_20221029.miz
+Setting mission start time to 29526
+Setting mission start date to 3/11
+Generating weather from METAR string "UG27 221130Z 04515KT +SHRA BKN008 OVC024 Q1006 NOSIG"
+Setting variable ${METAR} to the METAR string "UG27 221130Z 04515KT +SHRA BKN008 OVC024 Q1006 NOSIG"
+Mission saved to "C:\Users\veaf\Saved Games\DCS.missions\_VEAF_OpenTraining.public\VEAF_OpenTraining_Caucasus-dawn-crosswind-rain-vaziani.miz"
+DCS weather injector starting
+opening DCS mission C:\Users\veaf\Saved Games\DCS.missions\VEAF_OpenTraining-Caucasus\VEAF_OpenTraining_Caucasus_20221029.miz
+Setting mission start time to 54000
+Setting mission start date to 3/11
+Getting real weather from CheckWX in "caucasus"
+Cache key is "caucasus"
+Setting variable ${METAR} to the METAR string "UGKO 031930Z 10007KT 9999 -SHRA BKN017CB OVC035 09/08 Q1019 NOSIG"
+Mission saved to "C:\Users\veaf\Saved Games\DCS.missions\_VEAF_OpenTraining.public\VEAF_OpenTraining_Caucasus-day-real.miz"
+DCS weather injector starting
+opening DCS mission C:\Users\veaf\Saved Games\DCS.missions\VEAF_OpenTraining-Caucasus\VEAF_OpenTraining_Caucasus_20221029.miz
+Setting mission start time to 54000
+Setting mission start date to 3/11
+Getting real weather from CheckWX in "caucasus"
+Cache key is "caucasus"
+Setting variable ${METAR} to the METAR string "UGKO 031930Z 10007KT 9999 -SHRA FEW017CB FEW035 09/08 Q1019 NOSIG"
+Mission saved to "C:\Users\veaf\Saved Games\DCS.missions\_VEAF_OpenTraining.public\VEAF_OpenTraining_Caucasus-day-real-clear.miz"
+DCS weather injector starting
+opening DCS mission C:\Users\veaf\Saved Games\DCS.missions\VEAF_OpenTraining-Caucasus\VEAF_OpenTraining_Caucasus_20221029.miz
+Setting mission start time to 54000
+Setting mission start date to 3/11
+Reading weather from DCS lua file C:\Users\veaf\Saved Games\DCS.missions\VEAF_OpenTraining-Caucasus\weatherAndTime/broken-1.lua
+Mission saved to "C:\Users\veaf\Saved Games\DCS.missions\_VEAF_OpenTraining.public\VEAF_OpenTraining_Caucasus-day-broken.miz"
+DCS weather injector starting
+opening DCS mission C:\Users\veaf\Saved Games\DCS.missions\VEAF_OpenTraining-Caucasus\VEAF_OpenTraining_Caucasus_20221029.miz
+Setting mission start time to 54000
+Setting mission start date to 3/11
+Reading weather from DCS lua file C:\Users\veaf\Saved Games\DCS.missions\VEAF_OpenTraining-Caucasus\weatherAndTime/overcast-1.lua
+Mission saved to "C:\Users\veaf\Saved Games\DCS.missions\_VEAF_OpenTraining.public\VEAF_OpenTraining_Caucasus-day-overcast.miz"
+DCS weather injector starting
+opening DCS mission C:\Users\veaf\Saved Games\DCS.missions\VEAF_OpenTraining-Caucasus\VEAF_OpenTraining_Caucasus_20221029.miz
+Setting mission start time to 54000
+Setting mission start date to 3/11
+Reading weather from DCS lua file C:\Users\veaf\Saved Games\DCS.missions\VEAF_OpenTraining-Caucasus\weatherAndTime/overcast-rain-1.lua
+Mission saved to "C:\Users\veaf\Saved Games\DCS.missions\_VEAF_OpenTraining.public\VEAF_OpenTraining_Caucasus-day-overcast-rain.miz"
+DCS weather injector starting
+opening DCS mission C:\Users\veaf\Saved Games\DCS.missions\VEAF_OpenTraining-Caucasus\VEAF_OpenTraining_Caucasus_20221029.miz
+Setting mission start time to 59267
+Setting mission start date to 3/11
+Getting real weather from CheckWX in "caucasus"
+Cache key is "caucasus"
+Setting variable ${METAR} to the METAR string "UGKO 031930Z 10007KT 9999 -SHRA BKN017CB OVC035 09/08 Q1019 NOSIG"
+Mission saved to "C:\Users\veaf\Saved Games\DCS.missions\_VEAF_OpenTraining.public\VEAF_OpenTraining_Caucasus-evening-real.miz"
+DCS weather injector starting
+opening DCS mission C:\Users\veaf\Saved Games\DCS.missions\VEAF_OpenTraining-Caucasus\VEAF_OpenTraining_Caucasus_20221029.miz
+Setting mission start time to 59267
+Setting mission start date to 3/11
+Getting real weather from CheckWX in "caucasus"
+Cache key is "caucasus"
+Setting variable ${METAR} to the METAR string "UGKO 031930Z 10007KT 9999 -SHRA FEW017CB FEW035 09/08 Q1019 NOSIG"
+Mission saved to "C:\Users\veaf\Saved Games\DCS.missions\_VEAF_OpenTraining.public\VEAF_OpenTraining_Caucasus-evening-real-clear.miz"
+DCS weather injector starting
+opening DCS mission C:\Users\veaf\Saved Games\DCS.missions\VEAF_OpenTraining-Caucasus\VEAF_OpenTraining_Caucasus_20221029.miz
+Setting mission start time to 59267
+Setting mission start date to 3/11
+Reading weather from DCS lua file C:\Users\veaf\Saved Games\DCS.missions\VEAF_OpenTraining-Caucasus\weatherAndTime/broken-1.lua
+Mission saved to "C:\Users\veaf\Saved Games\DCS.missions\_VEAF_OpenTraining.public\VEAF_OpenTraining_Caucasus-evening-broken.miz"
+DCS weather injector starting
+opening DCS mission C:\Users\veaf\Saved Games\DCS.missions\VEAF_OpenTraining-Caucasus\VEAF_OpenTraining_Caucasus_20221029.miz
+Setting mission start time to 59267
+Setting mission start date to 3/11
+Reading weather from DCS lua file C:\Users\veaf\Saved Games\DCS.missions\VEAF_OpenTraining-Caucasus\weatherAndTime/overcast-1.lua
+
+
+OPENTRAINING_FOLDER=C:\Users\veaf\Saved Games\DCS.missions\VEAF_OpenTraining-Marianas
+Refreshing OpenTraining for server public2 based on C:\Users\veaf\Saved Games\DCS.missions\VEAF_OpenTraining-Marianas\VEAF_OpenTraining_Marianas_20221029.miz
+Error while fetching weather on checkwx !  RequestError: Timeout awaiting 'socket' for 10000ms
+    at ClientRequest.<anonymous> (C:\Users\veaf\AppData\Roaming\npm\node_modules\veaf-mission-creation-tools\node_modules\got\dist\source\core\index.js:970:65)
+    at Object.onceWrapper (events.js:422:26)
+    at ClientRequest.emit (events.js:327:22)
+    at ClientRequest.origin.emit (C:\Users\veaf\AppData\Roaming\npm\node_modules\veaf-mission-creation-tools\node_modules\@szmarczak\http-timer\dist\source\index.js:43:20)
+    at TLSSocket.socketErrorListener (_http_client.js:469:9)
+    at TLSSocket.emit (events.js:315:20)
+    at emitErrorNT (internal/streams/destroy.js:106:8)
+    at emitErrorCloseNT (internal/streams/destroy.js:74:3)
+    at processTicksAndRejections (internal/process/task_queues.js:80:21)
+    at runNextTicks (internal/process/task_queues.js:62:3)
+    at timeoutHandler (C:\Users\veaf\AppData\Roaming\npm\node_modules\veaf-mission-creation-tools\node_modules\got\dist\source\core\utils\timed-out.js:36:25)
+    at ClientRequest.socketTimeoutHandler (C:\Users\veaf\AppData\Roaming\npm\node_modules\veaf-mission-creation-tools\node_modules\got\dist\source\core\utils\timed-out.js:61:13)
+    at Object.onceWrapper (events.js:421:28)
+    at ClientRequest.emit (events.js:327:22)
+    at ClientRequest.origin.emit (C:\Users\veaf\AppData\Roaming\npm\node_modules\veaf-mission-creation-tools\node_modules\@szmarczak\http-timer\dist\source\index.js:43:20)
+    at TLSSocket.emitRequestTimeout (_http_client.js:784:9)
+    at Object.onceWrapper (events.js:421:28)
+    at TLSSocket.emit (events.js:327:22)
+    at TLSSocket.Socket._onTimeout (net.js:483:8)
+    at listOnTimeout (internal/timers.js:554:17) {
+  name: 'TimeoutError',
+  code: 'ETIMEDOUT',
+  timings: {
+    start: 1667505723495,
+    socket: 1667505723495,
+    lookup: 1667505723495,
+    connect: 1667505723571,
+    secureConnect: 1667505723722,
+    upload: 1667505723722,
+    response: undefined,
+    end: undefined,
+    error: 1667505733727,
+    abort: undefined,
+    phases: {
+      wait: 0,
+      dns: 0,
+      tcp: 76,
+      tls: 151,
+      request: 0,
+      firstByte: undefined,
+      download: undefined,
+      total: 10232
+    }
+  },
+  event: 'socket'
+}
+[Error: ENOENT: no such file or directory, open 'C:\Users\veaf\Saved Games\DCS.missions\cache\marianaislandsLFJY 221130Z 04515KT CAVOK 17\12 Q1020 NOSIG-cached-metar.json'] {
+  errno: -4058,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: 'C:\\Users\\veaf\\Saved Games\\DCS.missions\\cache\\marianaislandsLFJY 221130Z 04515KT CAVOK 17\\12 Q1020 NOSIG-cached-metar.json'
+}
+The system cannot find the path specified.

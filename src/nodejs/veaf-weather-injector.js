@@ -95,14 +95,16 @@ async function injectWeatherFromConfiguration(parameters) {
         }
       }
       for (let i=0; i<data.targets.length; i++) {
-        let { version, weather, weatherfile, time, moment, dontSetToday, dontSetTodayYear, clearsky } = data.targets[i];
+        let { version, weather, weatherfile, date, time, moment, dontSetToday, dontSetTodayYear, clearsky } = data.targets[i];
         if (!time && moment && moments && moments[moment]) {
           time = moments[moment];
         }
+        if (date) dontSetToday = true
         let parameters = {
           sourceMissionFileName: sourceMissionFileName,
           targetMissionFileName: targetMissionFileName.replace("${version}", version),
           missionStartTime: time,
+          missionStartDate: date,
           weatherFileName:  weatherfile ? configurationFolder + weatherfile : null,
           metarString: weather,
           variableForMetar: data.variableForMetar,
@@ -122,8 +124,12 @@ async function injectWeatherFromConfiguration(parameters) {
   if (!quiet) console.log("All done !");
 }
 
+function isNumeric(n) {
+  return !isNaN(parseFloat(n)) && isFinite(n);
+}
+
 async function injectWeather(parameters) {
-  let { sourceMissionFileName, targetMissionFileName, missionStartTime, weatherFileName, metarString, clearsky, variableForMetar, setToday, setTodayYear, trace, quiet, nocache } = parameters;
+  let { sourceMissionFileName, targetMissionFileName, missionStartTime, missionStartDate, weatherFileName, metarString, clearsky, variableForMetar, setToday, setTodayYear, trace, quiet, nocache } = parameters;
   if (targetMissionFileName && targetMissionFileName.indexOf(".miz") < 0)
     targetMissionFileName = targetMissionFileName + ".miz";
   if (!quiet) console.log(`DCS weather injector starting`);
@@ -159,25 +165,51 @@ async function injectWeather(parameters) {
   // set the mission start time
   if (missionStartTime) {
     if (!quiet) console.log(`Setting mission start time to ${missionStartTime}`);
-    let matchpos = missionData.regexLastIndexOf(/\["start_time"\] = (\d+)/g);
+      let matchpos = missionData.regexLastIndexOf(/\["start_time"\] = (\d+)/g);
     missionData = missionData.slice(0, matchpos) + missionData.slice(matchpos).replace(/\["start_time"\] = (\d+)/, `["start_time"] = ${missionStartTime}`);
   }
 
-  // set the mission date
-  if (setToday) {
-  var dateObj = new Date();
-  var month = dateObj.getUTCMonth() + 1; //months from 1-12
-  var day = dateObj.getUTCDate();
-    var year = dateObj.getUTCFullYear();
-  if (!quiet) console.log(`Setting mission start date to ${day}/${month}`);
-  let matchpos = missionData.regexLastIndexOf(/\["Day"\] = (\d+)/g);
-  missionData = missionData.slice(0, matchpos) + missionData.slice(matchpos).replace(/\["Day"\] = (\d+)/, `["Day"] = ${day}`);
-  matchpos = missionData.regexLastIndexOf(/\["Month"\] = (\d+)/g);
-  missionData = missionData.slice(0, matchpos) + missionData.slice(matchpos).replace(/\["Month"\] = (\d+)/, `["Month"] = ${month}`);
-    if (setTodayYear) {
-      matchpos = missionData.regexLastIndexOf(/\["Year"\] = (\d+)/g);
-      missionData = missionData.slice(0, matchpos) + missionData.slice(matchpos).replace(/\["Year"\] = (\d+)/, `["Year"] = ${year}`);
+  if (missionStartDate) {
+    // set the mission start date
+    if (missionStartDate.length == 12) {
+      var hours = missionStartDate.slice(8,10)
+      var minutes = missionStartDate.slice(10,12)
+      if (isNumeric(hours) && hours >= 0 && hours <= 23 && isNumeric(minutes) && minutes >= 0 && minutes <= 59) {
+        if (!quiet) console.log(`Setting mission start time to ${hours}:${minutes}`)
+        var dcsTime = hours * 3600 + minutes * 60
+        let matchpos = missionData.regexLastIndexOf(/\["start_time"\] = (\d+)/g);
+        missionData = missionData.slice(0, matchpos) + missionData.slice(matchpos).replace(/\["start_time"\] = (\d+)/, `["start_time"] = ${dcsTime}`);
+      }
     }
+    if (missionStartDate.length >= 8) {
+      var year = missionStartDate.slice(0,4)
+      var month = missionStartDate.slice(4,6)
+      var day = missionStartDate.slice(6,8)
+      if (isNumeric(year) && isNumeric(month) && isNumeric(day) && year > 1900 && year < 2100 && month >= 1 && month <= 12 && day >= 1 && day <= 31) {
+        if (!quiet) console.log(`Setting mission start date to ${day}/${month}/${year}`);
+        let matchpos = missionData.regexLastIndexOf(/\["Day"\] = (\d+)/g);
+        missionData = missionData.slice(0, matchpos) + missionData.slice(matchpos).replace(/\["Day"\] = (\d+)/, `["Day"] = ${day}`);
+        matchpos = missionData.regexLastIndexOf(/\["Month"\] = (\d+)/g);
+        missionData = missionData.slice(0, matchpos) + missionData.slice(matchpos).replace(/\["Month"\] = (\d+)/, `["Month"] = ${month}`);
+        matchpos = missionData.regexLastIndexOf(/\["Year"\] = (\d+)/g);
+        missionData = missionData.slice(0, matchpos) + missionData.slice(matchpos).replace(/\["Year"\] = (\d+)/, `["Year"] = ${year}`);
+      }
+    }
+  } else if (setToday) {
+    // set the mission date to the current date
+    var dateObj = new Date();
+    var month = dateObj.getUTCMonth() + 1; //months from 1-12
+    var day = dateObj.getUTCDate();
+    var year = dateObj.getUTCFullYear();
+    if (!quiet) console.log(`Setting mission start date to ${day}/${month}`);
+    let matchpos = missionData.regexLastIndexOf(/\["Day"\] = (\d+)/g);
+    missionData = missionData.slice(0, matchpos) + missionData.slice(matchpos).replace(/\["Day"\] = (\d+)/, `["Day"] = ${day}`);
+    matchpos = missionData.regexLastIndexOf(/\["Month"\] = (\d+)/g);
+    missionData = missionData.slice(0, matchpos) + missionData.slice(matchpos).replace(/\["Month"\] = (\d+)/, `["Month"] = ${month}`);
+      if (setTodayYear) { // set the current year
+        matchpos = missionData.regexLastIndexOf(/\["Year"\] = (\d+)/g);
+        missionData = missionData.slice(0, matchpos) + missionData.slice(matchpos).replace(/\["Year"\] = (\d+)/, `["Year"] = ${year}`);
+      }
   }
 
   if (trace)

@@ -1,8 +1,6 @@
 build/
-.vscode/
 node_modules/
 cache/
-test/
 
 configuration.json
 veaf-scripts.lua

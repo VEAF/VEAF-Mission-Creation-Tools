@@ -1,0 +1,90 @@
+{
+  "name": "public",
+  "default": "VEAF-Top-Gun-Academy-Caucasus-morning-real",
+  "moments": [
+    {
+      "month": null,
+      "dayOfWeek": "1",
+      "hour": "0-12",
+      "mission": "Top-Gun-Academy-Caucasus-morning-scattered"
+    },
+    {
+      "month": null,
+      "dayOfWeek": "1",
+      "hour": "12-24",
+      "mission": "OpenTraining_Caucasus-day-scattered"
+    },
+    {
+      "month": null,
+      "dayOfWeek": "2",
+      "hour": "0-12",
+      "mission": "Top-Gun-Academy-Syria-evening-scattered"
+    },
+    {
+      "month": null,
+      "dayOfWeek": "2",
+      "hour": "12-24",
+      "mission": "OpenTraining_Caucasus-morning-real"
+    },
+    {
+      "month": null,
+      "dayOfWeek": "3",
+      "hour": "0-12",
+      "mission": "Top-Gun-Academy-Caucasus-morning-scattered"
+    },
+    {
+      "month": null,
+      "dayOfWeek": "3",
+      "hour": "12-24",
+      "mission": "OpenTraining_Caucasus-morning-real"
+    },
+    {
+      "month": null,
+      "dayOfWeek": "4",
+      "hour": "0-12",
+      "mission": "Top-Gun-Academy-Syria-day-scattered"
+    },
+    {
+      "month": null,
+      "dayOfWeek": "4",
+      "hour": "12-24",
+      "mission": "OpenTraining_Caucasus-morning-real"
+    },
+    {
+      "month": null,
+      "dayOfWeek": "5",
+      "hour": "0-12",
+      "mission": "Top-Gun-Academy-Syria-day-scattered"
+    },
+    {
+      "month": null,
+      "dayOfWeek": "5",
+      "hour": "12-24",
+      "mission": "OpenTraining_Caucasus-evening-scattered"
+    },
+    {
+      "month": null,
+      "dayOfWeek": "6",
+      "hour": "0-12",
+      "mission": "Top-Gun-Academy-Syria-day-scattered"
+    },
+    {
+      "month": null,
+      "dayOfWeek": "6",
+      "hour": "12-24",
+      "mission": "OpenTraining_Caucasus-evening-scattered"
+    },
+    {
+      "month": null,
+      "dayOfWeek": "7",
+      "hour": "0-12",
+      "mission": "OpenTraining_Caucasus-day-scattered"
+    },
+    {
+      "month": null,
+      "dayOfWeek": "7",
+      "hour": "12-24",
+      "mission": "Top-Gun-Academy-Caucasus-morning-scattered"
+    }
+  ]
+}

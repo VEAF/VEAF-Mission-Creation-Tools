@@ -1,0 +1,38 @@
+{
+  "variableForMetar": "METAR",
+  "moments": 
+    {
+      "onehour_tosunrise" : "sunrise-60*60",
+      "late_morning" : "sunrise+120*60"
+    },
+  "position": 
+    {
+      "lat": 42.355691,
+      "lon": 43.323853,
+      "tz": "Asia/Tbilisi"
+    },
+  "targets": [
+    {
+      "version": "beforedawn-real-clear",
+      "realweather": true,
+      "clearsky": true,
+      "moment": "beforedawn"
+    },
+    {
+      "version": "beforesunrise-real",
+      "realweather": true,
+      "moment": "onehour_tosunrise",
+      "date": "20230126"
+    },
+    {
+      "version": "dawn-broken",
+      "weatherfile": "broken-1.lua",
+      "date": "202301260617"
+    },
+    {
+      "version": "dawn-crosswind-vaziani",
+      "weather": "UG27 221130Z 04515KT CAVOK Q1020 NOSIG",
+      "time": "20680"
+    }
+  ]
+}

@@ -1,0 +1,1 @@
+This folder contains files that are used when testing the VEAF tools

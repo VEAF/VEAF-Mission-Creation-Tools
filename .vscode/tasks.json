@@ -1,0 +1,46 @@
+{
+    // See https://go.microsoft.com/fwlink/?LinkId=733558
+    // for the documentation about the tasks.json format
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "build Demo mission",
+            "type": "shell",
+            "command": "./buildDemoMission.cmd",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "isBackground": true,
+            "problemMatcher": []
+        },
+        {
+            "label": "build Helo Training mission",
+            "type": "shell",
+            "command": "./buildHelicopterTrainingMission.cmd",
+            "group": "build",
+            "isBackground": true
+        },
+        {
+            "label": "build TRAD mission",
+            "type": "shell",
+            "command": "./buildTRADMission.cmd",
+            "group": "build",
+            "isBackground": true
+        },
+        {
+            "label": "build OpenTraining mission",
+            "type": "shell",
+            "command": "./buildOTMission.cmd",
+            "group": "build",
+            "isBackground": true
+        },
+        {
+            "label": "test Mission Editor",
+            "type": "shell",
+            "command": "./testMissionEditor.cmd",
+            "group": "build",
+            "isBackground": false
+        }
+    ]
+}

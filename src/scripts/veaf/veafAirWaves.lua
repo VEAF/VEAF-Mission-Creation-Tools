@@ -1,16 +1,13 @@
 ------------------------------------------------------------------
--- VEAF Quick Reaction Alert for DCS World
--- https://en.wikipedia.org/wiki/Quick_Reaction_Alert
--- By Zip (2020) and Rex (2022)
+-- VEAF Air Waves for DCS World
+-- By Zip (2023)
 --
 -- Features:
 -- ---------
--- * Define zones that are defended by an AI flight
--- * Default behavior: when an ennemy aircraft enters the zone, QRA patrol is spawned; then, when it is destroyed, the zone is not defended anymore; when all enemy aircrafts have left the zone, it resets and can respawn a new QRA
+-- * Define zones that are defended by waves of AI flights
 --
 -- See the documentation : https://veaf.github.io/documentation/
 ------------------------------------------------------------------
-
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Global settings. Stores the script constants
@@ -183,9 +180,9 @@ function AirWaveZone:new(objectToCopy)
   -- human units that are being watched
   objectToCreate.playerHumanUnits = nil
   -- players in the zone will only be detected below this altitude (in feet)
-  objectToCreate.minimumAltitude = 999999
+  objectToCreate.minimumAltitude = -9999999
   -- players in the zone will only be detected above this altitude (in feet)
-  objectToCreate.maximumAltitude = 0
+  objectToCreate.maximumAltitude = 9999999
   -- current wave number
   objectToCreate.currentWaveIndex = 0
 
@@ -364,7 +361,6 @@ function AirWaveZone:setMinimumAltitudeInFeet(value)
 end
 
 function AirWaveZone:getMinimumAltitudeInMeters()
-  veaf.loggers.get(veafAirWaves.Id):trace("AirWaveZone[%s]:getMinimumAltitudeInMeters()=%s", veaf.p(self.name), veaf.p(self.minimumAltitude))
   return self.minimumAltitude
 end
 
@@ -375,7 +371,6 @@ function AirWaveZone:setMaximumAltitudeInFeet(value)
 end
 
 function AirWaveZone:getMaximumAltitudeInMeters()
-  veaf.loggers.get(veafAirWaves.Id):trace("AirWaveZone[%s]:getMaximumAltitudeInMeters()=%s", veaf.p(self.name), veaf.p(self.maximumAltitude))
   return self.maximumAltitude
 end
 

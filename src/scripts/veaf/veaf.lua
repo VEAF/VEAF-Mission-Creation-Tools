@@ -19,7 +19,7 @@ veaf = {}
 veaf.Id = "VEAF"
 
 --- Version.
-veaf.Version = "1.31.1"
+veaf.Version = "1.32.0"
 
 --- Development version ?
 veaf.Development = true
@@ -2650,6 +2650,29 @@ function veaf.headingBetweenPoints(point1, point2)
     return hdg
 
 end
+
+---checks if a string starts with a prefix
+---@param aString any
+---@param aPrefix any
+---@param caseSensitive? boolean   ; if true, case sensitive search
+---@return boolean
+function veaf.startsWith(aString, aPrefix, caseSensitive)
+    local aString = aString
+    if not aString then
+        veaf.loggers.get(veaf.Id):error("veaf.startsWith: parameter aString is mandatory")
+        return false
+    elseif not caseSensitive then
+        aString = aString:upper()
+    end
+    local aPrefix = aPrefix
+    if not aPrefix then
+        veaf.loggers.get(veaf.Id):error("veaf.startsWith: parameter aPrefix is mandatory")
+        return false
+    elseif not caseSensitive then
+        aPrefix = aPrefix:upper()
+    end
+    return string.sub(aString,1,string.len(aPrefix))==aPrefix
+end
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Logging
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -3017,7 +3040,6 @@ VeafDrawingOnMap =
     -- marker ids
     dcsMarkerIds = nil
 }
-VeafDrawingOnMap.__index = VeafDrawingOnMap
 
 -- Type of line marking the zone
 -- 0  No Line
@@ -3049,18 +3071,24 @@ VeafDrawingOnMap.COLORS = {
 VeafDrawingOnMap.DEFAULT_COLOR = {170/255, 10/255, 0/255, 220/255}
 VeafDrawingOnMap.DEFAULT_FILLCOLOR = {170/255, 10/255, 0/255, 170/255}
 
-function VeafDrawingOnMap:new()
-    veaf.loggers.get(veaf.Id):trace(string.format("VeafDrawingOnMap:new()"))
-    local self = setmetatable({}, VeafDrawingOnMap)
-    self.name = nil
-    self.coalition = -1
-    self.points = {}
-    self.color = VeafDrawingOnMap.DEFAULT_COLOR
-    self.fillColor = VeafDrawingOnMap.DEFAULT_FILLCOLOR
-    self.lineType = VeafDrawingOnMap.LINE_TYPE.solid
-    self.isArrow = false
-    self.dcsMarkerIds = {}
-    return self
+function VeafDrawingOnMap:new(objectToCopy)
+    veaf.loggers.get(veaf.Id):debug("VeafDrawingOnMap:new()")
+    local objectToCreate = objectToCopy or {} -- create object if user does not provide one
+    setmetatable(objectToCreate, self)
+    self.__index = self
+
+    -- init the new object
+
+    objectToCreate.name = nil
+    objectToCreate.coalition = -1
+    objectToCreate.points = {}
+    objectToCreate.color = VeafDrawingOnMap.DEFAULT_COLOR
+    objectToCreate.fillColor = VeafDrawingOnMap.DEFAULT_FILLCOLOR
+    objectToCreate.lineType = VeafDrawingOnMap.LINE_TYPE.solid
+    objectToCreate.isArrow = false
+    objectToCreate.dcsMarkerIds = {}
+
+    return objectToCreate
 end
 
 function VeafDrawingOnMap:setName(value)
@@ -3185,6 +3213,8 @@ function VeafDrawingOnMap:draw()
         end
         table.insert(self.dcsMarkerIds, id)
     end
+
+    return self
 end
 
 function VeafDrawingOnMap:erase()
@@ -3195,6 +3225,50 @@ function VeafDrawingOnMap:erase()
             trigger.action.removeMark(id)
         end
     end
+
+    return self
+end
+
+VeafCircleOnMap = VeafDrawingOnMap:new()
+
+function VeafCircleOnMap:new(objectToCopy)
+    local objectToCreate = objectToCopy or {} -- create object if user does not provide one
+    setmetatable(objectToCreate, self)
+    self.__index = self
+
+    -- init the new object
+
+    -- radius in meters
+    objectToCreate.radius = nil
+
+    return objectToCreate
+end
+
+function VeafCircleOnMap:setCenter(value)
+    veaf.loggers.get(veaf.Id):trace(string.format("VeafCircleOnMap[%s]:setCenter(%s)", veaf.p(self.name), veaf.p(value)))
+    self.points = { mist.utils.deepCopy(value) }
+    return self
+end
+
+function VeafCircleOnMap:setRadius(value)
+    veaf.loggers.get(veaf.Id):trace(string.format("VeafCircleOnMap[%s]:setRadius(%s)", veaf.p(self.name), veaf.p(value)))
+    self.radius = value
+    return self
+end
+
+function VeafCircleOnMap:draw()
+    veaf.loggers.get(veaf.Id):trace(string.format("VeafCircleOnMap[%s]:draw()", veaf.p(self:getName())))
+
+    -- start by erasing the drawing if it already is drawn
+    self:erase()
+
+    -- then draw it
+    local id = veaf.getUniqueIdentifier()
+    veaf.loggers.get(veaf.Id):trace(string.format("id=[%s]", veaf.p(id)))
+    trigger.action.circleToAll(self:getCoalition(), id , self.points[1], self.radius , self.color, self.fillColor, self.lineType, true)
+    table.insert(self.dcsMarkerIds, id)
+
+    return self
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -3265,7 +3339,7 @@ if ctld then
     ctld.p = veaf.p
     ctld.Id = "CTLD"
     --ctld.LogLevel = "info"
-    ctld.LogLevel = "trace"
+    --ctld.LogLevel = "trace"
     --ctld.LogLevel = "debug"
 
     ctld.logger = veaf.loggers.new(ctld.Id, ctld.LogLevel)

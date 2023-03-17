@@ -39,7 +39,9 @@
         "veafSpawn",
         "veafRecorder",
         "veafEventHandler",
-        "veafGrass"
+        "veafGrass",
+        "veafCombatZone",
+        "veafQraManager"
     ],
     "cmake.sourceDirectory": "${workspaceFolder}/src/c/buffering_socket",
     "files.associations": {

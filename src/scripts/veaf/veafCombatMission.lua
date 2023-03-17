@@ -444,7 +444,40 @@ end
 -- VeafCombatMission object
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-VeafCombatMission = {}
+VeafCombatMission = {
+    -- mission name (technical)
+    name = nil,
+    -- mission name (human-friendly)
+    friendlyName = nil,
+    -- mission briefing
+    briefing = nil,
+    -- secured :  if true, the radio menu will be secured
+    secured = false,
+    -- list of objectives
+    objectives = {},
+    -- list of the elements defined in the mission
+    elements = {},
+    -- mission is active
+    active = false,
+    -- mission is a training mission
+    training = false,
+    -- DCS groups that have been spawned (for cleaning up later)
+    spawnedGroups = {},
+    --- Radio menus paths
+    radioMarkersPath = nil,
+    radioTargetInfoPath = nil,
+    radioRootPath = nil,
+    -- the watchdog function checks for mission objectives completion
+    watchdogFunctionId = nil,
+    -- if false, the mission will not appear in the radio menu
+    radioMenuEnabled = false,
+    -- if true, no message will be displayed when activating/deactivating the mission
+    hidden = false,
+    -- same as hidden but only valid for one activation of the mission (will be reset to *hidden* at next start)
+    silent = false,
+    spawnedUnitsCountByGroup = {},
+    spawnedNamesIndex = {}
+}
 
 function VeafCombatMission:new(objectToCopy)
     local objectToCreate = objectToCopy or {} -- create object if user does not provide one

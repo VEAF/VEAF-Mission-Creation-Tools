@@ -20,10 +20,10 @@ veafCombatZone = {}
 veafCombatZone.Id = "COMBATZONE"
 
 --- Version.
-veafCombatZone.Version = "1.13.0"
+veafCombatZone.Version = "1.13.1"
 
 -- trace level, specific to this module
---veafCombatZone.LogLevel = "debug"
+--veafCombatZone.LogLevel = "trace"
 
 veaf.loggers.new(veafCombatZone.Id, veafCombatZone.LogLevel)
 
@@ -623,17 +623,35 @@ function VeafCombatZone:initialize()
 
     -- remove all units in the trigger zone (we want it CLEAN !)
     local units, groupNames = veaf.safeUnpack(veafCombatZone.findUnitsInTriggerZone(self.missionEditorZoneName))
-    for _, groupName in pairs(groupNames) do
+    if (groupNames) then
+        for _, groupName in pairs(groupNames) do
 
-        veaf.loggers.get(veafCombatZone.Id):trace(string.format("destroying group [%s]",groupName))
-        local group = Group.getByName(groupName)
-        if not group then
-            group = StaticObject.getByName(groupName)
-        end
-        if group then
-            group:destroy()
+            veaf.loggers.get(veafCombatZone.Id):trace(string.format("destroying group [%s]",groupName))
+            local group = Group.getByName(groupName)
+            if not group then
+                group = StaticObject.getByName(groupName)
+            end
+            if group then
+                group:destroy()
+            end
         end
     end
+    -- Workaround a new bug introduced by ED with 2.8.3.37556: https://forum.dcs.world/topic/124151-known-scripting-engine-issues/page/8/#comment-5170313
+    -- Some (weirdly not all) statics have :getName() return "static" instead of their actual name
+    -- We'll use the units list and clean up until it's fixed.
+    -- TODO remove the workaround when bug is fixed (two more weeks)
+    --[[workaround ED bug START]]
+    if (units) then
+        for _, unit in pairs(units) do
+            if unit then
+                veaf.loggers.get(veafCombatZone.Id):trace("destroying unit [%s]",veaf.p(unit))
+                veaf.loggers.get(veafCombatZone.Id):trace("unit:getTypeName()=%s", veaf.p(unit:getTypeName()))
+                veaf.loggers.get(veafCombatZone.Id):trace("unit:getID()=%s", veaf.p(unit:getID()))
+                unit:destroy()
+            end
+        end
+    end
+    --[[workaround ED bug END]]
 
     return self
 end
@@ -1620,13 +1638,18 @@ function veafCombatZone.findUnitsInTriggerZone(triggerZoneName)
                 veaf.loggers.get(veafCombatZone.Id):trace(string.format("adding unit [%s]", unitName))
                 veaf.loggers.get(veafCombatZone.Id):trace(string.format("unit:getCategory() = [%d]", unit:getCategory()))
                 local groupName = nil
-                if unit:getCategory() >= 3 and  unit:getCategory() <=6 then
+                local unitCategory = unit:getCategory()
+                if unitCategory >= 3 and  unitCategory <=6 then
                     groupName = unitName -- default for static objects = groups themselves
                 else
                     groupName = unit:getGroup():getName()
                 end
                 veaf.loggers.get(veafCombatZone.Id):trace(string.format("groupName = %s", groupName))
-                if string.sub(groupName:upper(),1,string.len(triggerZoneName))==triggerZoneName:upper() then
+                -- Workaround a new bug introduced by ED with 2.8.3.37556: https://forum.dcs.world/topic/124151-known-scripting-engine-issues/page/8/#comment-5170313
+                -- Some (weirdly not all) statics have :getName() return "static" instead of their actual name
+                -- Until then add them to the units list without checking the name.
+                -- TODO remove the workaround when bug is fixed (two more weeks)
+                if string.sub(groupName:upper(),1,string.len(triggerZoneName))==triggerZoneName:upper() --[[workaround ED bug START]] or unitCategory == 3 --[[workaround ED bug END]] then
                     units[#units + 1] = unit
                     if not alreadyAddedGroups[groupName] then
                         alreadyAddedGroups[groupName] = groupName

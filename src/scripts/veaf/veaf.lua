@@ -19,16 +19,14 @@ veaf = {}
 veaf.Id = "VEAF"
 
 --- Version.
-veaf.Version = "1.32.0"
+veaf.Version = "1.33.0"
 
 --- Development version ?
 veaf.Development = true
 veaf.SecurityDisabled = true
 
 -- trace level, specific to this module
-veaf.LogLevel = "info"
 --veaf.LogLevel = "trace"
---veaf.LogLevel = "debug"
 --veaf.ForcedLogLevel = "trace"
 
 -- log level, limiting all the modules
@@ -3391,11 +3389,19 @@ if ctld then
     ctld.unitLoadLimits["Mi-8MT"] = 20
     ctld.unitLoadLimits["UH-60L"] = 20
     ctld.unitLoadLimits["Yak-52"] = 1
+    ctld.unitLoadLimits["SA342L"] = 1
+    ctld.unitLoadLimits["SA342M"] = 1
+    ctld.unitLoadLimits["SA342Mistral"] = 1
+    ctld.unitLoadLimits["SA342Minigun"] = 1
 
     -- ************** Allowable actions for UNIT TYPES ******************
 
     ctld.unitActions["Yak-52"] = {crates=false, troops=true}
     ctld.unitActions["UH-60L"] = {crates=true, troops=true}
+    ctld.unitActions["SA342L"] = {crates=false, troops=true}
+    ctld.unitActions["SA342M"] = {crates=false, troops=true}
+    ctld.unitActions["SA342Mistral"] = {crates=false, troops=true}
+    ctld.unitActions["SA342Minigun"] = {crates=false, troops=true}
 
     -- ************** INFANTRY GROUPS FOR PICKUP ******************
 
@@ -3405,7 +3411,7 @@ if ctld then
     ctld.autoInitializeAllHumanTransports = function()
         veaf.loggers.get(ctld.Id):info("autoInitializeAllHumanTransports()")
         ctld.transportPilotNames = {}
-        local TransportTypeNames = {"Mi-8MT", "UH-1H", "Mi-24P", "Yak-52", "UH-60L"}
+        local TransportTypeNames = {"Mi-8MT", "UH-1H", "Mi-24P", "Yak-52", "UH-60L", "SA342L", "SA342M", "SA342Mistral", "SA342Minigun"}
         for name, unit in pairs(mist.DBs.humansByName) do
             veaf.loggers.get(ctld.Id):trace(string.format("human player found name=%s, unitName=%s, groupName=%s", name, unit.unitName,unit.groupName))
             -- check if it's a transport helo

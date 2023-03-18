@@ -20,7 +20,15 @@ veafCombatZone = {}
 veafCombatZone.Id = "COMBATZONE"
 
 --- Version.
-veafCombatZone.Version = "1.13.1"
+veafCombatZone.Version = "1.13.2"
+
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- CAVEAT : search for this in the code whenever the 2.8.3.37556 "static" bug will have been corrected: workaround ED bug 2.8.3.37556
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- All new bug was introduced by ED with 2.8.3.37556: https://forum.dcs.world/topic/124151-known-scripting-engine-issues/page/8/#comment-5170313
+-- Some (weirdly not all) statics have :getName() return "static" instead of their actual name
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 -- trace level, specific to this module
 --veafCombatZone.LogLevel = "trace"
@@ -548,73 +556,84 @@ function VeafCombatZone:initialize()
         zoneElement:setCoalition(unit:getCoalition())
         local unitName = unit:getName()
         veaf.loggers.get(veafCombatZone.Id):trace(string.format("processing unit [%s] of coalition [%d]", unitName, unit:getCoalition()))
-        zoneElement:setPosition(unit:getPosition().p)
-        local spawnRadius, command, chance
-        local _, _, spawnRadius = unitName:lower():find("#spawnradius%s*=%s*(%d+)")
-        local _, _, command = unitName:lower():find("#command%s*=%s*\"([^\"]+)\"")
-        local _, _, spawnChance = unitName:lower():find("#spawnchance%s*=%s*(%d+)")
-        local _, _, spawnGroup = unitName:lower():find("#spawngroup%s*=%s*\"([^\"]+)\"")
-        local _, _, spawnCount = unitName:lower():find("#spawncount%s*=%s*(%d+)")
-        local _, _, spawnDelay = unitName:lower():find("#spawndelay%s*=%s*(%d+)")
-        if spawnRadius then
-            veaf.loggers.get(veafCombatZone.Id):trace(string.format("spawnRadius = [%d]", spawnRadius))
-            zoneElement:setSpawnRadius(spawnRadius)
-        end
-        if spawnChance then
-            veaf.loggers.get(veafCombatZone.Id):trace(string.format("spawnChance = [%d]", spawnChance))
-            zoneElement:setSpawnChance(spawnChance)
-        end
-        if spawnCount then
-            veaf.loggers.get(veafCombatZone.Id):trace(string.format("spawnCount = [%d]", spawnCount))
-            zoneElement:setSpawnCount(spawnCount)
-        end
-        if spawnGroup then
-            veaf.loggers.get(veafCombatZone.Id):trace(string.format("spawnGroup = [%s]", spawnGroup))
-            zoneElement:setSpawnGroup(spawnGroup)
-        end
-        if spawnDelay then
-            veaf.loggers.get(veafCombatZone.Id):trace(string.format("spawnDelay = [%s]", spawnDelay))
-            zoneElement:setSpawnDelay(spawnDelay)
-        end
-        if command then
-            -- it's a fake unit transporting a VEAF command
-            veaf.loggers.get(veafCombatZone.Id):trace(string.format("command = [%s]", command))
-            zoneElement:setVeafCommand(command)
-            local groupName = unit:getGroup():getName()
-            zoneElement:setName(groupName)
-            veaf.loggers.get(veafCombatZone.Id):trace(string.format("groupName = [%s]", groupName))
-            local route = mist.getGroupRoute(groupName, 'task')
-            zoneElement:setRoute(route)
-            if not zoneElement:getSpawnGroup() then zoneElement:setSpawnGroup(groupName) end -- default the spawn group to the group name in case there is no spawn group  defined
+        -- Workaround a new bug introduced by ED with 2.8.3.37556: https://forum.dcs.world/topic/124151-known-scripting-engine-issues/page/8/#comment-5170313
+        -- Some (weirdly not all) statics have :getName() return "static" instead of their actual name
+        -- We'll skip the static units until it's fixed.
+        --[[workaround ED bug 2.8.3.37556 START]]
+        if unitName == "static" then
+            veaf.loggers.get(veafCombatZone.Id):warn("VeafCombatZone[%s] skipping static unit because of DCS bug in OB 2.8.3.37556: unit:getDesc()=%s", veaf.p(self.missionEditorZoneName), veaf.p(unit:getDesc()))
         else
-            -- it's a group or a static unit
-            local groupName = nil
-            if unit:getCategory() >= 3 and  unit:getCategory() <=6 then
-                groupName = unitName -- default for static objects = groups themselves
-                zoneElement:setDcsStatic(true)
-                if not zoneElement:getSpawnRadius() then
-                    zoneElement:setSpawnRadius(veafCombatZone.DefaultSpawnRadiusForStatics)
-                end
-            else
-                groupName = unit:getGroup():getName()
-                zoneElement:setDcsGroup(true)
-                if not zoneElement:getSpawnRadius() then
-                    zoneElement:setSpawnRadius(veafCombatZone.DefaultSpawnRadiusForUnits)
-                end
+        --[[workaround ED bug 2.8.3.37556 END]]
+            zoneElement:setPosition(unit:getPosition().p)
+            local spawnRadius, command, spawnChance, spawnGroup, spawnCount, spawnDelay
+            _, _, spawnRadius = unitName:lower():find("#spawnradius%s*=%s*(%d+)")
+            _, _, command = unitName:lower():find("#command%s*=%s*\"([^\"]+)\"")
+            _, _, spawnChance = unitName:lower():find("#spawnchance%s*=%s*(%d+)")
+            _, _, spawnGroup = unitName:lower():find("#spawngroup%s*=%s*\"([^\"]+)\"")
+            _, _, spawnCount = unitName:lower():find("#spawncount%s*=%s*(%d+)")
+            _, _, spawnDelay = unitName:lower():find("#spawndelay%s*=%s*(%d+)")
+            if spawnRadius then
+                veaf.loggers.get(veafCombatZone.Id):trace(string.format("spawnRadius = [%d]", spawnRadius))
+                zoneElement:setSpawnRadius(spawnRadius)
             end
-            if not zoneElement:getSpawnGroup() then zoneElement:setSpawnGroup(groupName) end -- default the spawn group to the group name in case there is no spawn group  defined
-            if not alreadyAddedGroups[groupName] then
-                -- add a group element
-                veaf.loggers.get(veafCombatZone.Id):trace(string.format("adding group [%s]", groupName))
-                alreadyAddedGroups[groupName] = groupName
+            if spawnChance then
+                veaf.loggers.get(veafCombatZone.Id):trace(string.format("spawnChance = [%d]", spawnChance))
+                zoneElement:setSpawnChance(spawnChance)
+            end
+            if spawnCount then
+                veaf.loggers.get(veafCombatZone.Id):trace(string.format("spawnCount = [%d]", spawnCount))
+                zoneElement:setSpawnCount(spawnCount)
+            end
+            if spawnGroup then
+                veaf.loggers.get(veafCombatZone.Id):trace(string.format("spawnGroup = [%s]", spawnGroup))
+                zoneElement:setSpawnGroup(spawnGroup)
+            end
+            if spawnDelay then
+                veaf.loggers.get(veafCombatZone.Id):trace(string.format("spawnDelay = [%s]", spawnDelay))
+                zoneElement:setSpawnDelay(spawnDelay)
+            end
+            if command then
+                -- it's a fake unit transporting a VEAF command
+                veaf.loggers.get(veafCombatZone.Id):trace(string.format("command = [%s]", command))
+                zoneElement:setVeafCommand(command)
+                local groupName = unit:getGroup():getName()
                 zoneElement:setName(groupName)
+                veaf.loggers.get(veafCombatZone.Id):trace(string.format("groupName = [%s]", groupName))
+                local route = mist.getGroupRoute(groupName, 'task')
+                zoneElement:setRoute(route)
+                if not zoneElement:getSpawnGroup() then zoneElement:setSpawnGroup(groupName) end -- default the spawn group to the group name in case there is no spawn group  defined
             else
-                veaf.loggers.get(veafCombatZone.Id):trace(string.format("skipping group [%s]", groupName))
-                zoneElement = nil -- don't add this element, it's a group that has already been added
+                -- it's a group or a static unit
+                local groupName = nil
+                if unit:getCategory() >= 3 and  unit:getCategory() <=6 then
+                    groupName = unitName -- default for static objects = groups themselves
+                    zoneElement:setDcsStatic(true)
+                    if not zoneElement:getSpawnRadius() then
+                        zoneElement:setSpawnRadius(veafCombatZone.DefaultSpawnRadiusForStatics)
+                    end
+                else
+                    groupName = unit:getGroup():getName()
+                    zoneElement:setDcsGroup(true)
+                    if not zoneElement:getSpawnRadius() then
+                        zoneElement:setSpawnRadius(veafCombatZone.DefaultSpawnRadiusForUnits)
+                    end
+                end
+                if not zoneElement:getSpawnGroup() then zoneElement:setSpawnGroup(groupName) end -- default the spawn group to the group name in case there is no spawn group  defined
+                if not alreadyAddedGroups[groupName] then
+                    -- add a group element
+                    veaf.loggers.get(veafCombatZone.Id):trace(string.format("adding group [%s]", groupName))
+                    alreadyAddedGroups[groupName] = groupName
+                    zoneElement:setName(groupName)
+                else
+                    veaf.loggers.get(veafCombatZone.Id):trace(string.format("skipping group [%s]", groupName))
+                    zoneElement = nil -- don't add this element, it's a group that has already been added
+                end
             end
-        end
 
-        if zoneElement then self:addZoneElement(zoneElement) end
+            if zoneElement then self:addZoneElement(zoneElement) end
+        --[[workaround ED bug 2.8.3.37556 START]]
+        end
+        --[[workaround ED bug 2.8.3.37556 END]]
     end
 
     -- deactivate the zone
@@ -640,7 +659,7 @@ function VeafCombatZone:initialize()
     -- Some (weirdly not all) statics have :getName() return "static" instead of their actual name
     -- We'll use the units list and clean up until it's fixed.
     -- TODO remove the workaround when bug is fixed (two more weeks)
-    --[[workaround ED bug START]]
+    --[[workaround ED bug 2.8.3.37556 START]]
     if (units) then
         for _, unit in pairs(units) do
             if unit then
@@ -651,7 +670,7 @@ function VeafCombatZone:initialize()
             end
         end
     end
-    --[[workaround ED bug END]]
+    --[[workaround ED bug 2.8.3.37556 END]]
 
     return self
 end
@@ -1649,7 +1668,7 @@ function veafCombatZone.findUnitsInTriggerZone(triggerZoneName)
                 -- Some (weirdly not all) statics have :getName() return "static" instead of their actual name
                 -- Until then add them to the units list without checking the name.
                 -- TODO remove the workaround when bug is fixed (two more weeks)
-                if string.sub(groupName:upper(),1,string.len(triggerZoneName))==triggerZoneName:upper() --[[workaround ED bug START]] or unitCategory == 3 --[[workaround ED bug END]] then
+                if string.sub(groupName:upper(),1,string.len(triggerZoneName))==triggerZoneName:upper() --[[workaround ED bug 2.8.3.37556 START]] or unitCategory == 3 --[[workaround ED bug 2.8.3.37556 END]] then
                     units[#units + 1] = unit
                     if not alreadyAddedGroups[groupName] then
                         alreadyAddedGroups[groupName] = groupName

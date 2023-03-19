@@ -17,15 +17,15 @@
 
 veafServerHook = {}
 
-base = _G 
-require = base.require 
+base = _G
+require = base.require
 io = require('io')
 lfs = require('lfs')
 os = require('os')
 package.path  = package.path..";"..lfs.currentdir().."/LuaSocket/?.lua"..";"..lfs.writedir() .. "/Mods/services/BufferingSocket/lua/?.lua"
 package.cpath = package.cpath..";"..lfs.currentdir().."/LuaSocket/?.dll"..';'.. lfs.writedir()..'/Mods/services/BufferingSocket/bin/' ..'?.dll;'
 veafServerHook.config = require "BufferingSocketConfig"
-BufferingSocket = require('BufferingSocket') 
+BufferingSocket = require('BufferingSocket')
 DCS_DIR = lfs.writedir()
 VEAF_SERVER_DIR = DCS_DIR .. [[scripts\hooks\]]
 VEAF_PILOTS_FILE = "veaf-pilots.txt"
@@ -38,7 +38,7 @@ VEAF_PILOTS_FILE = "veaf-pilots.txt"
 veafServerHook.Id = "VEAFHOOK - "
 
 --- Version.
-veafServerHook.Version = "2.1.1"
+veafServerHook.Version = "2.2.0"
 
 -- trace level, specific to this module
 veafServerHook.Trace = false
@@ -63,6 +63,7 @@ veafServerHook.DEFAULT_MAX_PLAYERS_FOR_RESTART = 1
 
 -- scripts injected in the mission
 REGISTER_PLAYER =  [[ if veafRemote and veafRemote.registerUser then veafRemote.registerUser("%s", "%s", "%s") end ]]
+REGISTER_PLAYER_SLOT =  [[ if veafRemote and veafRemote.registerUserSlot then veafRemote.registerUserSlot("%s", "%s", "%s") end ]]
 RUN_COMMAND = [[ if veafRemote and veafRemote.executeCommandFromRemote then veafRemote.executeCommandFromRemote("%s", "%s", "%s", "%s", "%s") end ]]
 SEND_MESSAGE = [[ if trigger and trigger.action and trigger.action.outText then trigger.action.outText("%s", %s) end ]]
 
@@ -106,13 +107,13 @@ function veafServerHook.logInfo(message)
 end
 
 function veafServerHook.logDebug(message)
-    if message and veafServerHook.Debug then 
+    if message and veafServerHook.Debug then
         log.write(veafServerHook.Id, log.INFO, message)
     end
 end
 
 function veafServerHook.logTrace(message)
-    if message and veafServerHook.Trace then 
+    if message and veafServerHook.Trace then
         log.write(veafServerHook.Id, log.INFO, message)
     end
 end
@@ -120,7 +121,7 @@ end
 function veafServerHook.veafServerHook.p(o, level)
     local MAX_LEVEL = 20
 if level == nil then level = 0 end
-if level > MAX_LEVEL then 
+if level > MAX_LEVEL then
     veafServerHook.logError("max depth reached in p : "..tostring(MAX_LEVEL))
     return ""
 end
@@ -136,14 +137,14 @@ if (type(o) == "table") then
 elseif (type(o) == "function") then
     text = "[function]";
     elseif (type(o) == "boolean") then
-        if o == true then 
+        if o == true then
             text = "[true]";
         else
             text = "[false]";
         end
     else
         if o == nil then
-            text = "[nil]";    
+            text = "[nil]";
         else
             text = tostring(o);
         end
@@ -171,7 +172,7 @@ function veafServerHook.onSimulationStart()
             _maxDuration = tonumber(_retValue)
         end
     end
-    
+
     veafServerHook.maxMissionDuration = _maxDuration
     if veafServerHook.maxMissionDuration == nil then
         veafServerHook.maxMissionDuration = veafServerHook.DEFAULT_MAX_MISSION_DURATION
@@ -216,14 +217,41 @@ function veafServerHook.onPlayerConnect(id)
     end
 end
 
+function veafServerHook.onPlayerChangeSlot(id)
+    veafServerHook.logDebug(string.format("veafServerHook.onPlayerChangeSlot([%s])", veafServerHook.p(id)))
+    local _playerDetails = net.get_player_info(id)
+    local playerName = _playerDetails.name
+    local ucid = _playerDetails.ucid
+    local unitName = nil
+    veafServerHook.logTrace(string.format("_playerDetails.slot=%s",veafServerHook.p(_playerDetails.slot)))
+    if _playerDetails.side ~= 0 and _playerDetails.slot ~= "" and _playerDetails.slot ~= nil then
+        local slot = _playerDetails.slot
+        if string.find(tostring(slot), "_", 1, true) then
+            --extract substring - get the seat ID
+            slot = string.sub(slot, 1, string.find(slot, "_", 1, true)-1)
+        end
+        veafServerHook.logTrace(string.format("slot=%s",veafServerHook.p(slot)))
+        unitName = DCS.getUnitProperty(slot, DCS.UNIT_NAME)
+    end
+
+    veafServerHook.logTrace(string.format("playerName=%s",veafServerHook.p(playerName)))
+    veafServerHook.logTrace(string.format("ucid=%s",veafServerHook.p(ucid)))
+    veafServerHook.logTrace(string.format("unitName=%s",veafServerHook.p(unitName)))
+
+    -- set the player current unit name
+    local payload = string.format(REGISTER_PLAYER_SLOT, playerName, ucid, unitName) -- unitName will be nil if the player is a spectator
+    veafServerHook.logTrace(string.format("payload=%s",veafServerHook.p(payload)))
+    veafServerHook.injectCode(payload)
+end
+
 function veafServerHook.onPlayerDisconnect(id, err_code)
     veafServerHook.logDebug(string.format("veafServerHook.onPlayerDisconnect([%s], [%s])", veafServerHook.p(id), veafServerHook.p(err_code)))
     veafServerHook.stopMissionIfNeeded()
-end    
+end
 
 function veafServerHook.onChatMessage(message, from)
     veafServerHook.logDebug(string.format("veafServerHook.onChatMessage([%s], [%s])",veafServerHook.p(from), veafServerHook.p(message)))
-    
+
     -- try and recognize a command
     if message ~= nil and message:lower():sub(1, #veafServerHook.CommandStarter) == veafServerHook.CommandStarter then
         local _playerDetails = net.get_player_info( from )
@@ -241,13 +269,13 @@ function veafServerHook.onChatMessage(message, from)
                 veafServerHook.logTrace(string.format("slot=%s",veafServerHook.p(slot)))
                 unitName = DCS.getUnitProperty(slot, DCS.UNIT_NAME)
             end
-            
+
             veafServerHook.logTrace(string.format("playerName=%s",veafServerHook.p(playerName)))
             veafServerHook.logTrace(string.format("ucid=%s",veafServerHook.p(ucid)))
             veafServerHook.logTrace(string.format("unitName=%s",veafServerHook.p(unitName)))
             -- parse the message
             local pilot = veafServerHook.pilots[ucid]
-            if from == 1 then 
+            if from == 1 then
                 -- this is the server administrator
                 pilot = veafServerHook.pilots[veafServerHook.ADMIN_FAKE_UCID]
             end
@@ -271,8 +299,8 @@ function veafServerHook.onSimulationFrame()
         veafServerHook.lastServerUptimeCheckFrameTime = _now
         veafServerHook.logTrace(string.format("checking server uptime"))
         veafServerHook.stopMissionIfNeeded()
-    end        
-    
+    end
+
     if veafServerHook.config.activate and _now > veafServerHook.lastUDPFrameTime + veafServerHook.config.refreshDelay then
         veafServerHook.lastUDPFrameTime = _now
         veafServerHook.logTrace(string.format("sending data"))
@@ -286,11 +314,11 @@ end
 
 function veafServerHook.sendData(timestamp)
     local _now = DCS.getRealTime()
-    
+
     local data_package = { timestamp = _now}
 
     veafServerHook.logTrace(string.format("get basic server information"))
-    data_package.serverData = { 
+    data_package.serverData = {
         frameTime = _now,
         mission = DCS.getMissionFilename(),
         missionTimeInSeconds = DCS.getModelTime(),
@@ -305,8 +333,8 @@ function veafServerHook.sendData(timestamp)
     veafServerHook.logTrace(string.format("get list of connected pilots"))
     local players = net.get_player_list()
     for playerId, _ in pairs(players) do
-        veafServerHook.logTrace(string.format("playerId=%s",playerId))       
-        local playerDetails = net.get_player_info(playerId)       
+        veafServerHook.logTrace(string.format("playerId=%s",playerId))
+        local playerDetails = net.get_player_info(playerId)
         local playerName = playerDetails.name
         local ucid = playerDetails.ucid
         local pilotData = {
@@ -347,7 +375,7 @@ function veafServerHook.parse(pilot, playerName, ucid, unitName, message)
     veafServerHook.logTrace(string.format("veafServerHook.parse([%s] , [%s])", veafServerHook.p(playerName), veafServerHook.p(message)))
     veafServerHook.logTrace(string.format("pilot=%s",veafServerHook.p(pilot)))
     veafServerHook.logTrace(string.format("unitName=%s",veafServerHook.p(unitName)))
-    
+
     if not pilot then
         veafServerHook.logWarning(string.format("Unknown pilot [%s] sent chat message [%s])",veafServerHook.p(playerName), veafServerHook.p(message)))
     end
@@ -426,7 +454,7 @@ function veafServerHook.parse(pilot, playerName, ucid, unitName, message)
         if pilot.level >= 10 then
             local pause = DCS.getPause()
             local onoff = "on"
-            if pause then 
+            if pause then
                 onoff = "off"
             end
             local _message = string.format("[%s] is setting the server %s pause",veafServerHook.p(playerName), onoff)
@@ -504,7 +532,7 @@ function veafServerHook.loadPilots()
         veafServerHook.logError(string.format("Error while loading pilots list file [%s]",veafServerHook.p(filepath)))
         return
     end
-    
+
     file()
     local returner = loadstring("return pilots")
     if returner then
@@ -523,7 +551,7 @@ function veafServerHook.initialize()
 end
 
 -- set up the socket to call the web server
-if veafServerHook.config.activate then 
+if veafServerHook.config.activate then
     veafServerHook.logDebug(string.format("set up the socket to call the web server; host=%s and port=%s", veafServerHook.p(veafServerHook.config.host), veafServerHook.p(veafServerHook.config.port)))
     BufferingSocket.startSession(veafServerHook.config.host, veafServerHook.config.port)
 end

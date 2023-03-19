@@ -222,6 +222,9 @@ function AirWaveZone:setMessageStart(value)
   return self
 end
 
+---Set the onStart callback
+---@param value function takes 2 parameters: the zone name (string), the monitored player units (table)
+---@return table self
 function AirWaveZone:setOnStart(value)
   veaf.loggers.get(veafAirWaves.Id):debug("AirWaveZone[%s]:setOnStart()", veaf.p(self.name))
   self.onStart = value
@@ -234,6 +237,9 @@ function AirWaveZone:setMessageDeploy(value)
   return self
 end
 
+---Set the onDeploy callback
+---@param value function takes 3 parameters: the zone name (string), the wave index (int), the monitored player units (table)
+---@return table self
 function AirWaveZone:setOnDeploy(value)
   veaf.loggers.get(veafAirWaves.Id):debug("AirWaveZone[%s]:setOnDeploy()", veaf.p(self.name))
   self.onDeploy = value
@@ -246,6 +252,9 @@ function AirWaveZone:setMessageDestroyed(value)
   return self
 end
 
+---Set the onDestroyed callback
+---@param value function takes 3 parameters: the zone name (string), the wave index (int), the monitored player units (table)
+---@return table self
 function AirWaveZone:setOnDestroyed(value)
   veaf.loggers.get(veafAirWaves.Id):debug("AirWaveZone[%s]:setOnDestroyed()", veaf.p(self.name))
   self.onDestroyed = value
@@ -258,6 +267,9 @@ function AirWaveZone:setMessageWon(value)
   return self
 end
 
+---Set the onWon callback
+---@param value function takes 2 parameters: the zone name (string), the monitored player units (table)
+---@return table self
 function AirWaveZone:setOnWon(value)
   veaf.loggers.get(veafAirWaves.Id):debug("AirWaveZone[%s]:setOnWon()", veaf.p(self.name))
   self.onWon = value
@@ -270,6 +282,9 @@ function AirWaveZone:setMessageLost(value)
   return self
 end
 
+---Set the onLost callback
+---@param value function takes 2 parameters: the zone name (string), the monitored player units (table)
+---@return table self
 function AirWaveZone:setOnLost(value)
   veaf.loggers.get(veafAirWaves.Id):debug("AirWaveZone[%s]:setOnLost()", veaf.p(self.name))
   self.onLost = value
@@ -282,6 +297,9 @@ function AirWaveZone:setMessageStop(value)
   return self
 end
 
+---Set the onStop callback
+---@param value function takes 2 parameters: the zone name (string), the monitored player units (table)
+---@return table self
 function AirWaveZone:setOnStop(value)
   veaf.loggers.get(veafAirWaves.Id):debug("AirWaveZone[%s]:setOnStop()", veaf.p(self.name))
   self.onStop = value
@@ -584,12 +602,6 @@ end
 function AirWaveZone:deployWave()
   veaf.loggers.get(veafAirWaves.Id):debug("AirWaveZone[%s]:deployWave()", veaf.p(self.name))
 
-  if not self.silent then
-    local msg = string.format(self.messageDeploy, self:getDescription(), self.currentWaveIndex)
-    for coalition, _ in pairs(self.playerCoalitions) do
-      trigger.action.outTextForCoalition(coalition, msg, 15)
-    end
-  end
   local groupsToDeploy = self:chooseGroupsToDeploy()
   self.spawnedGroupsNames = {}
   if groupsToDeploy then
@@ -665,9 +677,7 @@ function AirWaveZone:deployWave()
     veaf.loggers.get(veafAirWaves.Id):trace("self.spawnedGroupsNames=%s", veaf.p(self.spawnedGroupsNames))
     self:_setState(veafAirWaves.STATUS_ACTIVE)
   end
-  if self.onDeploy then
-    self.onDeploy()
-  end
+  self:signalDeploy()
   return (self.spawnedGroupsNames and #self.spawnedGroupsNames > 0)
 end
 
@@ -680,7 +690,8 @@ function AirWaveZone:signalStart()
     end
   end
   if self.onStart then
-    self.onStart()
+    veaf.loggers.get(veafAirWaves.Id):trace("self.playerHumanUnits=%s", veaf.p(self.playerHumanUnits))
+    self.onStart(self.name, self.playerUnitsNames)
   end
 end
 
@@ -693,7 +704,7 @@ function AirWaveZone:signalDeploy()
     end
   end
   if self.onDeploy then
-    self.onDeploy()
+    self.onDeploy(self.name, self.currentWaveIndex, self.playerUnitsNames)
   end
 end
 
@@ -706,7 +717,7 @@ function AirWaveZone:signalDestroyed()
     end
   end
   if self.onDestroyed then
-    self.onDestroyed()
+    self.onDestroyed(self.name, self.currentWaveIndex, self.playerUnitsNames)
   end
 end
 
@@ -719,7 +730,7 @@ function AirWaveZone:signalWon()
     end
   end
   if self.onWon then
-    self.onWon()
+    self.onWon(self.name, self.playerUnitsNames)
   end
 end
 
@@ -732,7 +743,7 @@ function AirWaveZone:signalLost()
     end
   end
   if self.onLost then
-    self.onLost()
+    self.onLost(self.name, self.playerUnitsNames)
   end
 end
 
@@ -745,7 +756,7 @@ function AirWaveZone:signalStop()
     end
   end
   if self.onStop then
-    self.onStop()
+    self.onStop(self.name, self.playerUnitsNames)
   end
 end
 

@@ -19,7 +19,7 @@ veafRemote = {}
 veafRemote.Id = "REMOTE"
 
 --- Version.
-veafRemote.Version = "2.1.0"
+veafRemote.Version = "2.2.0"
 
 -- trace level, specific to this module
 --veafRemote.LogLevel = "trace"
@@ -46,6 +46,7 @@ veafRemote.monitoredFlags = {}
 veafRemote.monitoredCommands = {}
 veafRemote.maxMonitoredFlag = 27000
 veafRemote.remoteUsers = {}
+veafRemote.remoteUnitsPilots = {}
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Utility methods
@@ -56,32 +57,32 @@ veafRemote.remoteUsers = {}
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 function veafRemote.addNiodCallback(name, parameters, code)
-    if niod then 
+    if niod then
         veaf.loggers.get(veafRemote.Id):info("Adding NIOD function "..name)
         niod.functions[name] = function(payload)
         -- start of inline function
-            
+
             veaf.loggers.get(veafRemote.Id):debug(string.format("niod callback [%s] was called with payload %s", veaf.p(name), veaf.p(payload)))
-            
+
             local errors = {}
-            
+
             -- check mandatory parameters presence
             for parameterName, parameterData in pairs(parameters) do
                 veaf.loggers.get(veafRemote.Id):trace(string.format("checking if parameter [%s] is mandatory", veaf.p(parameterName)))
-                if parameterData and parameterData.mandatory then 
-                    if not (payload and payload[parameterName]) then 
+                if parameterData and parameterData.mandatory then
+                    if not (payload and payload[parameterName]) then
                         local text = "missing mandatory parameter "..parameterName
                         veaf.loggers.get(veafRemote.Id):trace(text)
                         table.insert(errors, text)
                     end
                 end
             end
-            
+
             -- check parameters type
-            if payload then 
+            if payload then
                 for parameterName, value in pairs(payload) do
                     local parameter = parameters[parameterName]
-                    if not parameter then 
+                    if not parameter then
                         table.insert(errors, "unknown parameter "..parameterName)
                     elseif value and not(type(value) == parameter.type) then
                         local text =  string.format("parameter %s should have type %s, has %s ", parameterName, parameter.type, type(value))
@@ -90,7 +91,7 @@ function veafRemote.addNiodCallback(name, parameters, code)
                     end
                 end
             end
-            
+
             -- stop on error
             if #errors > 0 then
                 local errorMessage = ""
@@ -119,12 +120,12 @@ end
 
 function veafRemote.addNiodCommand(name, command)
     veafRemote.addNiodCallback(
-        name, 
+        name,
         {
-            parameters={   mandatory=false, type="string"}, 
-            x={   mandatory=false, type="number"}, 
-            y={   mandatory=false, type="number"}, 
-            z={   mandatory=false, type="number"}, 
+            parameters={   mandatory=false, type="string"},
+            x={   mandatory=false, type="number"},
+            y={   mandatory=false, type="number"},
+            z={   mandatory=false, type="number"},
             silent={    mandatory=false, type="boolean"}
         },
         function(parameters, x, y, z, silent)
@@ -144,12 +145,12 @@ function veafRemote.buildDefaultList()
 
         -- test
         veafRemote.addNiodCallback(
-            "test", 
+            "test",
             {
-                param1S_M={  mandatory=true, type="string"}, 
-                param2S={  mandatory=false, type="string"}, 
-                param3N={  mandatory=false, type="number"}, 
-                param4B={  mandatory=false, type="boolean"}, 
+                param1S_M={  mandatory=true, type="string"},
+                param2S={  mandatory=false, type="string"},
+                param3N={  mandatory=false, type="number"},
+                param4B={  mandatory=false, type="boolean"},
             },
             function(param1S_M, param2S, param3N, param4B)
                 local text = string.format("niod.test(%s, %s, %s, %s)", veaf.p(param1S_M), veaf.p(param2S), veaf.p(param3N), veaf.p(param4B))
@@ -159,10 +160,10 @@ function veafRemote.buildDefaultList()
         )
         -- login
         veafRemote.addNiodCallback(
-            "login", 
+            "login",
             {
-                password={  mandatory=true, type="string"}, 
-                timeout={   mandatory=false, type="number"}, 
+                password={  mandatory=true, type="string"},
+                timeout={   mandatory=false, type="number"},
                 silent={    mandatory=false, type="boolean"}
             },
             function(password, timeout, silent)
@@ -185,8 +186,8 @@ end
 
 --- Function executed when a mark has changed. This happens when text is entered or changed.
 function veafRemote.onEventMarkChange(eventPos, event)
-    if veafRemote.executeCommand(eventPos, event.text) then 
-        
+    if veafRemote.executeCommand(eventPos, event.text) then
+
         -- Delete old mark.
         veaf.loggers.get(veafRemote.Id):trace(string.format("Removing mark # %d.", event.idx))
         trigger.action.removeMark(event.idx)
@@ -200,7 +201,7 @@ function veafRemote.executeCommand(eventPos, eventText)
 
     -- Check if marker has a text and the veafRemote.CommandStarter keyphrase.
     if eventText ~= nil and eventText:lower():find(veafRemote.CommandStarter) then
-        
+
         -- Analyse the mark point text and extract the keywords.
         local command, password = veafRemote.markTextAnalysis(eventText)
 
@@ -214,8 +215,8 @@ end
 --- Extract keywords from mark text.
 function veafRemote.markTextAnalysis(text)
     veaf.loggers.get(veafRemote.Id):trace(string.format("veafRemote.markTextAnalysis(text=[%s])", tostring(text)))
-  
-    if text then 
+
+    if text then
         -- extract command and password
         local password, command = text:match(veafRemote.CommandStarter.."#?([^%s]*)%s+(.+)")
         if command then
@@ -237,11 +238,11 @@ function veafRemote.executeRemoteCommand(command, password)
         return false
     end
     local commandData = veafRemote.monitoredCommands[command:lower()]
-    if commandData then 
+    if commandData then
         local scriptToExecute = commandData.script
         veaf.loggers.get(veafRemote.Id):trace(string.format("found script [%s] for command [%s]", scriptToExecute, command))
         local authorized = (not(commandData.requireAdmin)) or (veafSecurity.checkSecurity_L9(password))
-        if not authorized then 
+        if not authorized then
             return false
         else
             local result, err = mist.utils.dostring(scriptToExecute)
@@ -306,20 +307,52 @@ end
 -- register a user from the server
 function veafRemote.registerUser(username, userpower, ucid)
     veaf.loggers.get(veafRemote.Id):debug(string.format("veafRemote.registerUser([%s], [%s], [%s])",veaf.p(username), veaf.p(userpower), veaf.p(ucid)))
-    if not username or not ucid then 
+    if not username or not ucid then
         return false
     end
     veafRemote.remoteUsers[username:lower()] = { name = username, level = tonumber(userpower or "-1"), ucid = ucid }
+end
+
+-- register a user slot from the server; called when the player changes slot
+function veafRemote.registerUserSlot(username, ucid, unitName)
+    veaf.loggers.get(veafRemote.Id):debug(string.format("veafRemote.registerUserSlot([%s], [%s], [%s])",veaf.p(username), veaf.p(ucid), veaf.p(unitName)))
+    if not username or not unitName then
+        return false
+    end
+    local remoteUser = veafRemote.remoteUsers[username:lower()]
+    if not remoteUser then
+        remoteUser = { name = username, ucid = ucid}
+    end
+    local previousUnit = remoteUser.unitName
+    remoteUser.unitName = unitName -- can be nil if the player got out of the unit
+    -- unregister the previous unit, if any
+    if previousUnit then
+        veafRemote.remoteUnitsPilots[previousUnit] = nil
+    end
+    -- register the current unit, if any
+    if unitName then
+        veafRemote.remoteUnitsPilots[unitName] = remoteUser
+    end
 end
 
 -- return a user from the server table
 function veafRemote.getRemoteUser(username)
     veaf.loggers.get(veafRemote.Id):debug(string.format("veafRemote.getRemoteUser([%s])",veaf.p(username)))
     veaf.loggers.get(veafRemote.Id):trace(string.format("veafRemote.remoteUsers = [%s]",veaf.p(veafRemote.remoteUsers)))
-    if not username then 
+    if not username then
         return nil
     end
     return veafRemote.remoteUsers[username:lower()]
+end
+
+-- return a user from the server units table
+function veafRemote.getRemoteUserFromUnit(unitName)
+    veaf.loggers.get(veafRemote.Id):debug(string.format("veafRemote.getRemoteUserFromUnit([%s])",veaf.p(unitName)))
+    veaf.loggers.get(veafRemote.Id):trace(string.format("veafRemote.remoteUnitsPilots = [%s]",veaf.p(veafRemote.remoteUnitsPilots)))
+    if not unitName then
+        return nil
+    end
+    return veafRemote.remoteUnitsPilots[unitName]
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------

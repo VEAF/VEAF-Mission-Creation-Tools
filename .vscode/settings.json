@@ -41,7 +41,8 @@
         "veafEventHandler",
         "veafGrass",
         "veafCombatZone",
-        "veafQraManager"
+        "veafQraManager",
+        "veafRemote"
     ],
     "cmake.sourceDirectory": "${workspaceFolder}/src/c/buffering_socket",
     "files.associations": {

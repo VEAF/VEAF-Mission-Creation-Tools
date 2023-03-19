@@ -21,7 +21,7 @@ veafQraManager = {}
 veafQraManager.Id = "QRA"
 
 --- Version.
-veafQraManager.Version = "1.1.0"
+veafQraManager.Version = "1.2.0"
 
 -- trace level, specific to this module
 --veafQraManager.LogLevel = "trace"
@@ -74,114 +74,114 @@ veafQraManager.qras = {}
 -- VeafQRA class methods
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-VeafQRA =
-{
+VeafQRA = {}
+function VeafQRA.init(object)
     -- technical name (QRA instance name)
-    name = nil,
+    object.name = nil
     -- trigger zone name (if set, we'll use a DCS trigger zone)
-    triggerZoneCenter = nil,
+    object.triggerZoneName = nil
     -- center (point in the center of the circle, when not using a DCS trigger zone)
-    zoneCenter = nil,
+    object.zoneCenter = nil
     -- radius (size of the circle, when not using a zone)
-    zoneRadius = nil,
+    object.zoneRadius = nil
     -- draw the zone on screen
-    drawZone = false,
+    object.drawZone = false
     -- description for the briefing
-    description = nil,
+    object.description = nil
     -- aircraft groups forming the QRA
-    groups = nil,
+    object.groups = {}
     -- aircraft groups forming the QRA, in a table by enemy quantity (i.e. if this number of enemies are in the zone, spawn these groups)
-    groupsToDeployByEnemyQuantity = nil,
+    object.groupsToDeployByEnemyQuantity = {}
     -- coalition for the QRA
-    coalition = nil,
+    object.coalition = nil
     -- coalitions the QRA is defending against
-    ennemyCoalitions = nil,
+    object.ennemyCoalitions = {}
     -- message when the QRA is started
-    messageStart = nil,
+    object.messageStart = veafQraManager.DEFAULT_MESSAGE_START
     -- event when the QRA is started
-    onStart = nil,
+    object.onStart = nil
     -- message when the QRA is triggered
-    messageDeploy = nil,
+    object.messageDeploy = veafQraManager.DEFAULT_MESSAGE_DEPLOY
     -- event when the QRA is triggered
-    onDeploy = nil,
+    object.onDeploy = nil
     -- message when the QRA is destroyed
-    messageDestroyed = nil,
+    object.messageDestroyed = veafQraManager.DEFAULT_MESSAGE_DESTROYED
     -- event when the QRA is destroyed
-    onDestroyed = nil,
+    object.onDestroyed = nil
     -- message when the QRA is ready
-    messageReady = nil,
+    object.messageReady = veafQraManager.DEFAULT_MESSAGE_READY
     -- event when the QRA is ready
-    onReady = nil,
+    object.onReady = nil
     -- message when the QRA is out of aircrafts
-    messageOut = nil,
+    object.messageOut = veafQraManager.DEFAULT_MESSAGE_OUT
     -- event when the QRA is out of aircrafts
-    onOut = nil,
+    object.onOut = nil
     -- message when the QRA has been resupplied and will start operations against
-    messageResupplied = nil,
+    object.messageResupplied = veafQraManager.DEFAULT_MESSAGE_RESUPPLIED
     -- event when the QRA has been resupplied and will start operations against
-    onResupplied = nil,
+    object.onResupplied = nil
     -- message when the QRA has lost the airbase it operates from
-    messageAirbaseDown = nil,
+    object.messageAirbaseDown = veafQraManager.DEFAULT_MESSAGE_AIRBASE_DOWN
     -- event when the QRA has lost the airbase it operates from
-    onAirbaseDown = nil,
+    object.onAirbaseDown = nil
     -- message when the QRA has retrieved the airbase it operates from and will start operations again
-    messageAirbaseUp = nil,
+    object.messageAirbaseUp = veafQraManager.DEFAULT_MESSAGE_AIRBASE_UP
     -- event when the QRA has retrieved the airbase it operates from and will start operations again
-    onAirbaseUp = nil,
+    object.onAirbaseUp = nil
     -- message when the QRA is stopped
-    messageStop = nil,
+    object.messageStop = veafQraManager.DEFAULT_MESSAGE_STOP
     -- event when the QRA is stopped
-    onStop = nil,
+    object.onStop = nil
 	-- silent means no message is emitted
-    silent = nil,
+    object.silent = veafQraManager.AllSilence
     -- default position for respawns (im meters, lat/lon, relative to the zone center)
-    respawnDefaultOffset = {latDelta=0, lonDelta=0},
+    object.respawnDefaultOffset = {latDelta=0, lonDelta=0}
     -- radius of the defenders groups spawn
-    respawnRadius = nil,
+    object.respawnRadius = 250
     -- reacts when helicopters enter the zone
-    reactOnHelicopters = nil,
+    object.reactOnHelicopters = false
     -- delay before activating
-    delayBeforeActivating = -1,
+    object.delayBeforeActivating = -1
     -- delay before rearming
-    delayBeforeRearming = -1,
+    object.delayBeforeRearming = -1
     -- the enemy does not have to leave the zone before the QRA is rearmed
-    noNeedToLeaveZoneBeforeRearming = false,
+    object.noNeedToLeaveZoneBeforeRearming = false
     -- reset the QRA immediately if all the enemy units leave the zone
-    resetWhenLeavingZone = false,
+    object.resetWhenLeavingZone = false
     -- maximum number of QRA ready for action at once, -1 indicates infinite
-    QRAmaxCount = -1,
+    object.QRAmaxCount = -1
     -- number of groups of aircrafts that can be spawned for this QRA in total, -1 indicates infinite.
-    QRAcount = -1,
+    object.QRAcount = -1
     -- delay in minutes before the QRA counter is increased by one, simulating some sort of logistic chain of aircrafts.
-    delayBeforeQRAresupply = 0,
+    object.delayBeforeQRAresupply = 0
     -- maximum number of resupplies at a given time, simulating some sort of warehousing, -1 indicates infinite. Is decremented every time a resupply happens. 0 indicates no resupply.
-    QRAresupplyMax = -1,
+    object.QRAresupplyMax = -1
     -- minimum QRAcount that will trigger a resupply, -1 indicates as soon as an aircraft is lost
-    QRAminCountforResupply = -1,
+    object.QRAminCountforResupply = -1
     -- how many aircraft groups are resupplied at once   
-    resupplyAmount = 1,
+    object.resupplyAmount = 1
     -- indicator to know if the QRA is being resupplied or not
-    isResupplying = false,
+    object.isResupplying = false
     -- name of the airport to which the QRA is linked, QRAs will be deployed only if this is set and the airport is captured by the QRA's coalition or if this is not set
-    airportLink = nil,
+    object.airportLink = nil
     -- minimum linked airbase life percentage (from 0 to 1) for the QRA to have it's airbase available
-    airportMinLifePercent = nil,
+    object.airportMinLifePercent = veafQraManager.DEFAULT_airbaseMinLifePercent
     -- boolean to know if the status OUT was announced or not
-    outAnnounced = false,
+    object.outAnnounced = false
     -- boolean to know if the status NOAIRBASE was announced or not
-    noAB_announced = false,
+    object.noAB_announced = false
     -- minimum number of enemies in the zone to trigger deployment; updated automatically by setGroupsToDeployByEnemyQuantity
-    minimumNbEnemyPlanes = -1,
+    object.minimumNbEnemyPlanes = -1
     -- planes in the zone will only be detected below this altitude (in feet)
-    minimumAltitude = 999999,
+    object.minimumAltitude = -999999
     -- planes in the zone will only be detected above this altitude (in feet)
-    maximumAltitude = 0,
-    timer = nil,
-    state = nil,
-    scheduled_state = nil,
-    _enemyHumanUnits = nil
-}
-VeafQRA.__index = VeafQRA
+    object.maximumAltitude = 999999
+    object.timer = nil
+    object.state = nil
+    object.scheduled_state = nil
+    object._enemyHumanUnits = nil
+    object.spawnedGroupsNames = {}
+end
 
 function VeafQRA.ToggleAllSilence(state)
     if state then
@@ -191,52 +191,17 @@ function VeafQRA.ToggleAllSilence(state)
     end
 end
 
-function VeafQRA:new()
+function VeafQRA:new(objectToCopy)
     veaf.loggers.get(veafQraManager.Id):debug("VeafQRA:new()")
-    local self = setmetatable({}, VeafQRA)
-    self.name = nil
-    self.zoneCenter = nil
-    self.zoneRadius = nil
-    self.drawZone = false
-    self.description = nil
-    self.groupsToDeployByEnemyQuantity = {}
-    self.spawnedGroups = {}
-    self.coalition = nil
-    self.ennemyCoalitions = {}
-    self.messageStart = veafQraManager.DEFAULT_MESSAGE_START
-    self.messageDeploy = veafQraManager.DEFAULT_MESSAGE_DEPLOY
-    self.messageDestroyed = veafQraManager.DEFAULT_MESSAGE_DESTROYED
-    self.messageReady = veafQraManager.DEFAULT_MESSAGE_READY
-    self.messageOut = veafQraManager.DEFAULT_MESSAGE_OUT
-    self.messageResupplied = veafQraManager.DEFAULT_MESSAGE_RESUPPLIED
-    self.messageAirbaseDown = veafQraManager.DEFAULT_MESSAGE_AIRBASE_DOWN
-    self.messageAirbaseUp = veafQraManager.DEFAULT_MESSAGE_AIRBASE_UP
-    self.messageStop = veafQraManager.DEFAULT_MESSAGE_STOP
-    self.silent = veafQraManager.AllSilence
-    self.respawnDefaultOffset = {latDelta=0, lonDelta=0}
-    self.respawnRadius = 250
-    self.reactOnHelicopters = false
-    self.delayBeforeRearming = -1
-    self.delayBeforeActivating = -1
-    self.noNeedToLeaveZoneBeforeRearming = false
-    self.resetWhenLeavingZone = false
-    self.QRAmaxCount = -1
-    self.QRAcount = -1
-    self.delayBeforeQRAresupply = 0
-    self.QRAresupplyMax = -1
-    self.QRAminCountforResupply = -1
-    self.resupplyAmount = 1
-    self.isResupplying = false
-    self.airportLink = nil
-    self.airportMinLifePercent = veafQraManager.DEFAULT_airbaseMinLifePercent
-    self.outAnnounced = false
-    self.noAB_announced = false
-    self.minimumNbEnemyPlanes = -1
-    self._enemyHumanUnits = nil
-    self.timeSinceReady = -1
-    self.state = nil
-    self.scheduled_state = nil
-    return self
+
+    local objectToCreate = objectToCopy or {} -- create object if user does not provide one
+    setmetatable(objectToCreate, self)
+    self.__index = self
+
+    -- init the new object
+    VeafQRA.init(objectToCreate)
+
+    return objectToCreate
 end
 
 function VeafQRA:setName(value)
@@ -247,8 +212,7 @@ end
 
 function VeafQRA:setTriggerZone(value)
     veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:setTriggerZone(%s)", veaf.p(self.name), veaf.p(value))
-    self.triggerZone = value
-    local triggerZone = veaf.getTriggerZone(value)
+    self.triggerZoneName = value
     return self
 end
 
@@ -323,6 +287,15 @@ function VeafQRA:addEnnemyCoalition(value)
     veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:addEnnemyCoalition(%s)", veaf.p(self.name), veaf.p(value))
     self.ennemyCoalitions[value] = value
     return self
+end
+
+function VeafQRA:getEnnemyCoalition()
+    local result = nil
+    for coalition, _ in pairs(self.ennemyCoalitions) do
+      result = coalition
+      break
+    end
+    return result
 end
 
 function VeafQRA:setMessageStart(value)
@@ -568,7 +541,7 @@ function VeafQRA:getMinimumAltitudeInMeters()
 end
 
 function VeafQRA:setMaximumAltitudeInFeet(value)
-  veaf.loggers.get(veafQraManager.Id):trace("VeafQRA[%s]:setMaximumAltitudeInFeet(%s)", veaf.p(self.name), veaf.p(value))
+  veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:setMaximumAltitudeInFeet(%s)", veaf.p(self.name), veaf.p(value))
   self.maximumAltitude = value * 0.3048 -- convert from feet
   return self
 end
@@ -606,8 +579,8 @@ function VeafQRA:_getEnemyHumanUnits()
 end
 
 function VeafQRA:check()
-    veaf.loggers.get(veafQraManager.Id):trace("VeafQRA[%s]:check()", veaf.p(self.name))
-    veaf.loggers.get(veafQraManager.Id):trace("self.state=%s", veaf.p(veafQraManager.statusToString(self.state)))
+    veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:check()", veaf.p(self.name))
+    veaf.loggers.get(veafQraManager.Id):debug("self.state=%s", veaf.p(veafQraManager.statusToString(self.state)))
     veaf.loggers.get(veafQraManager.Id):trace("timer.getTime()=%s", veaf.p(timer.getTime()))
 
     --scheduled state application is attempted regardless of airportlink checks etc. to take into account user requested states which go through scheduled_states as well
@@ -636,10 +609,10 @@ function VeafQRA:check()
             if self.state ~= veafQraManager.STATUS_OUT then
                 local unitNames = self:_getEnemyHumanUnits()
                 local unitsInZone = nil
-                local triggerZone = veaf.getTriggerZone(self.triggerZone)
+                local triggerZone = veaf.getTriggerZone(self.triggerZoneName)
                 if triggerZone then
                     if triggerZone.type == 0 then -- circular
-                        unitsInZone = mist.getUnitsInZones(unitNames, {self.triggerZone})
+                        unitsInZone = mist.getUnitsInZones(unitNames, {self.triggerZoneName})
                     elseif triggerZone.type == 2 then -- quad point
                         unitsInZone = mist.getUnitsInPolygon(unitNames, triggerZone.verticies)
                     end
@@ -651,7 +624,7 @@ function VeafQRA:check()
                     -- check the unit altitude against the ceiling and floor
                     if unit:inAir() then -- never count a landed aircraft
                         local alt = unit:getPoint().y
-                        if alt < self:getMinimumAltitudeInMeters() or alt > self:getMaximumAltitudeInMeters() then
+                        if alt >= self:getMinimumAltitudeInMeters() and alt <= self:getMaximumAltitudeInMeters() then
                             nbUnitsInZone = nbUnitsInZone + 1
                         end
                     end
@@ -675,7 +648,7 @@ function VeafQRA:check()
                 elseif (self.state == veafQraManager.STATUS_ACTIVE) then
                     local qraAlive = false
                     local qraInAir = false
-                    for _, groupName in pairs(self.spawnedGroups) do
+                    for _, groupName in pairs(self.spawnedGroupsNames) do
                         local group = Group.getByName(groupName)
                         if group then
                             local groupAtLeastOneUnitAlive = false
@@ -729,22 +702,22 @@ function VeafQRA:setScheduledState(scheduledState)
     veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:setScheduledState(%s)", veaf.p(self.name), veaf.p(scheduledState))
     if scheduledState == veafQraManager.STATUS_STOP then
         self.scheduled_state = veafQraManager.STATUS_STOP
-        veaf.loggers.get(veafQraManager.Id):trace("QRA STOP scheduled")
+        veaf.loggers.get(veafQraManager.Id):debug("QRA STOP scheduled")
     --priority level 2
     elseif scheduledState == veafQraManager.STATUS_NOAIRBASE and self.scheduled_state ~= veafQraManager.STATUS_STOP then
         self.scheduled_state = veafQraManager.STATUS_NOAIRBASE
-        veaf.loggers.get(veafQraManager.Id):trace("QRA NOAIRBASE scheduled")
+        veaf.loggers.get(veafQraManager.Id):debug("QRA NOAIRBASE scheduled")
     --priority level 3
     elseif scheduledState == veafQraManager.STATUS_OUT and self.scheduled_state ~= veafQraManager.STATUS_STOP and self.scheduled_state ~= veafQraManager.STATUS_NOAIRBASE then
         self.scheduled_state = veafQraManager.STATUS_OUT
-        veaf.loggers.get(veafQraManager.Id):trace("QRA OUT scheduled")
+        veaf.loggers.get(veafQraManager.Id):debug("QRA OUT scheduled")
     end
     return self
 end
 
 function VeafQRA:applyScheduledState()
     if self.scheduled_state and self.state ~= veafQraManager.STATUS_ACTIVE then
-        veaf.loggers.get(veafQraManager.Id):trace("QRA taking scheduled status : %s", veaf.p(self.scheduled_state))
+        veaf.loggers.get(veafQraManager.Id):debug("QRA taking scheduled status : %s", veaf.p(self.scheduled_state))
         self.state = self.scheduled_state
     end
 end
@@ -857,7 +830,7 @@ function VeafQRA:checkWarehousing()
 end
 
 function VeafQRA:resupply(resupplyAmount)
-    veaf.loggers.get(veafQraManager.Id):trace("VeafQRA[%s]:resupply(%s)", veaf.p(self.name), veaf.p(resupplyAmount))
+    veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:resupply(%s)", veaf.p(self.name), veaf.p(resupplyAmount))
 
     --if the QRA can still operate, then execute the resupply, the list would need to be expanded if new scheduled status blocking operations were added
     if self.scheduled_state ~= veafQraManager.STATUS_NOAIRBASE and self.scheduled_state ~= veafQraManager.STATUS_STOP then
@@ -900,7 +873,7 @@ function VeafQRA:resupply(resupplyAmount)
 end
 
 function VeafQRA:chooseGroupsToDeploy(nbUnitsInZone)
-    veaf.loggers.get(veafQraManager.Id):trace("VeafQRA[%s]:chooseGroupsToDeploy(%s)", veaf.p(self.name), veaf.p(nbUnitsInZone))
+    veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:chooseGroupsToDeploy(%s)", veaf.p(self.name), veaf.p(nbUnitsInZone))
     local biggestNumberLowerThanUnitsInZone = -1
     local groupsToDeploy = nil
     for enemyNb, groups in pairs(self.groupsToDeployByEnemyQuantity) do
@@ -942,8 +915,17 @@ function VeafQRA:deploy(nbUnitsInZone)
         end
     end
     local groupsToDeploy = self:chooseGroupsToDeploy(nbUnitsInZone)
-    self.spawnedGroups = {}
+    self.spawnedGroupsNames = {}
     if groupsToDeploy then
+        local zoneCenter = {}
+        if self.triggerZoneName then
+            local triggerZone = veaf.getTriggerZone(self.triggerZoneName)
+            zoneCenter.x = triggerZone.x
+            zoneCenter.z = triggerZone.y
+            zoneCenter.y = 0
+        elseif self.zoneCenter then
+            zoneCenter = self.zoneCenter
+        end
         for _, groupNameOrCommand in pairs(groupsToDeploy) do
             -- check if this is a DCS group or a VEAF command
             if veaf.startsWith(groupNameOrCommand, "[") or veaf.startsWith(groupNameOrCommand, "-") then
@@ -964,42 +946,47 @@ function VeafQRA:deploy(nbUnitsInZone)
                 veaf.loggers.get(veafQraManager.Id):debug("running command [%s]", veaf.p(command))
                 veaf.loggers.get(veafQraManager.Id):trace("latDelta = [%s]", veaf.p(latDelta))
                 veaf.loggers.get(veafQraManager.Id):trace("lonDelta = [%s]", veaf.p(lonDelta))
-                local qraCenter = {}
-                if self.triggerZone then
-                    local triggerZone = veaf.getTriggerZone(self.triggerZone)
-                    qraCenter.x = triggerZone.x
-                    qraCenter.z = triggerZone.y
-                    qraCenter.y = 0
-                elseif self.zoneCenter then
-                    qraCenter = self.zoneCenter
-                end
-                local position = {x = qraCenter.x - lonDelta, y = qraCenter.y, z = qraCenter.z + latDelta}
-                local position = mist.getRandPointInCircle(position, self.respawnRadius)
+                local position = {x = zoneCenter.x - lonDelta, y = zoneCenter.y, z = zoneCenter.z + latDelta}
+                local randomPosition = mist.getRandPointInCircle(position, self.respawnRadius)
                 local spawnedGroupsNames = {}
-                veafInterpreter.execute(command, position, self.coalition, nil, spawnedGroupsNames)
+                veafInterpreter.execute(command, randomPosition, self.coalition, nil, spawnedGroupsNames)
                 for _, newGroupName in pairs(spawnedGroupsNames) do
-                    table.insert(self.spawnedGroups, newGroupName)
+                    table.insert(self.spawnedGroupsNames, newGroupName)
                 end
             else
                 -- this is a DCS group
                 local groupName = groupNameOrCommand
                 veaf.loggers.get(veafQraManager.Id):debug("spawning group [%s]", veaf.p(groupName))
                 local group = Group.getByName(groupName)
-                local spawnSpot = group:getUnit(1):getPoint()
-                local vars = {}
-                vars.point = mist.getRandPointInCircle(spawnSpot, self.respawnRadius)
-                vars.point.z = vars.point.y
-                vars.point.y = spawnSpot.y
-                vars.gpName = groupName
-                vars.action = 'clone'
-                vars.route = mist.getGroupRoute(groupName, 'task')
-                local newGroup = mist.teleportToPoint(vars) -- respawn with radius
-                if newGroup then
-                    table.insert(self.spawnedGroups, newGroup.name)
+                if not group then
+                    veaf.loggers.get(veafQraManager.Id):error("group [%s] does not exist in the mission!", veaf.p(groupName))
+                else
+                    veaf.loggers.get(veafQraManager.Id):debug("group=%s", veaf.p(group))
+                    veaf.loggers.get(veafQraManager.Id):debug("group:getUnits()=%s", veaf.p(group:getUnits()))
+                    local spawnSpot = {x = zoneCenter.x - self.respawnDefaultOffset.lonDelta, y = zoneCenter.y, z = zoneCenter.z + self.respawnDefaultOffset.latDelta}
+                    -- Try and set the spawn spot at the place the group has been set in the Mission Editor.
+                    -- Unfortunately this is sometimes not possible because DCS is not returning the group units for some reason.
+                    -- When this happens we'll default to the default spawn offset (same as spawning with VEAF commands)
+                    if not group:getUnit(1) then
+                        veaf.loggers.get(veafQraManager.Id):warn("group [%s] does not have any unit!", veaf.p(groupName))
+                    else
+                        spawnSpot =  group:getUnit(1):getPoint()
+                    end
+                    local vars = {}
+                    vars.point = mist.getRandPointInCircle(spawnSpot, self.respawnRadius)
+                    vars.point.z = vars.point.y
+                    vars.point.y = spawnSpot.y
+                    vars.gpName = groupName
+                    vars.action = 'clone'
+                    vars.route = mist.getGroupRoute(groupName, 'task')
+                    local newGroup = mist.teleportToPoint(vars) -- respawn with radius
+                    if newGroup then
+                        table.insert(self.spawnedGroupsNames, newGroup.name)
+                    end
                 end
             end
         end
-        veaf.loggers.get(veafQraManager.Id):trace("self.spawnedGroups=%s", veaf.p(self.spawnedGroups))
+        veaf.loggers.get(veafQraManager.Id):trace("self.spawnedGroups=%s", veaf.p(self.spawnedGroupsNames))
         self.state = veafQraManager.STATUS_ACTIVE
     end
     if self.onDeploy then
@@ -1034,8 +1021,8 @@ function VeafQRA:rearm(silent)
             trigger.action.outTextForCoalition(coalition, msg, 15)
         end
     end
-    if self.spawnedGroups then
-        for _, groupName in pairs(self.spawnedGroups) do
+    if self.spawnedGroupsNames then
+        for _, groupName in pairs(self.spawnedGroupsNames) do
             local group = Group.getByName(groupName)
             if group then
                 group:destroy()
@@ -1056,16 +1043,18 @@ function VeafQRA:start()
 
     -- draw the zone
     if self.drawZone then
-        if self.triggerZone then
-            self.zoneDrawing = mist.marker.drawZone(self.triggerZone, {message=self:getDescription(), readOnly=true})
+        if self.triggerZoneName then
+            self.zoneDrawing = mist.marker.drawZone(self.triggerZoneName, {message=self:getDescription(), readOnly=true})
         else
             self.zoneDrawing = VeafCircleOnMap:new()
-                                :setCenter(self.zoneCenter)
-                                :setRadius(self.zoneRadius)
-                                :setLineType("dashed")
-                                :setColor("white")
-                                :setFillColor("transparent")
-                                :draw()
+            :setName(self:getName())
+            :setCoalition(self:getEnnemyCoalition())
+            :setCenter(self.zoneCenter)
+            :setRadius(self.zoneRadius)
+            :setLineType("dashed")
+            :setColor("white")
+            :setFillColor("transparent")
+            :draw()
         end
     end
 
@@ -1087,8 +1076,8 @@ function VeafQRA:stop(silent)
     self:setScheduledState(veafQraManager.STATUS_STOP)
 
     -- just in case, despawn the spawned groups
-    if self.spawnedGroups then
-        for _, groupName in pairs(self.spawnedGroups) do
+    if self.spawnedGroupsNames then
+        for _, groupName in pairs(self.spawnedGroupsNames) do
             local group = Group.getByName(groupName)
             if group then group:destroy() end
         end
@@ -1096,7 +1085,7 @@ function VeafQRA:stop(silent)
 
     -- erase the zone
     if self.zoneDrawing then
-        if self.triggerZone then
+        if self.triggerZoneName then
             mist.marker.remove(self.zoneDrawing.markId)
         else
             self.zoneDrawing:erase()
@@ -1130,3 +1119,5 @@ end
 function veafQraManager.get(aNameString)
   return veafQraManager.qras[aNameString]
 end
+
+veaf.loggers.get(veafQraManager.Id):info(string.format("Loading version %s", veafQraManager.Version))

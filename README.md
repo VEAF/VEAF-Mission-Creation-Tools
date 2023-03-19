@@ -13,6 +13,8 @@ In the meantime, the legacy documentation (unmaintained, uncomplete) is still av
 
 Speaking of work in progress, the [documentation repository][documentation-repo] is the place to go to contribute to the documentation, if you wish to help.
 
+If you want to program with us, you can start by looking at the code, specially the `exampleObjectOrientedProgramming.lua` example
+
 ## What is this ? Is it like Moose ?
 
 A bit like that, and not.

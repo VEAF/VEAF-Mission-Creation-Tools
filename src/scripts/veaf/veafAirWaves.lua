@@ -20,7 +20,7 @@ veafAirWaves = {}
 veafAirWaves.Id = "AIRWAVES - "
 
 --- Version.
-veafAirWaves.Version = "1.0.2"
+veafAirWaves.Version = "1.1.0"
 
 -- trace level, specific to this module
 --veafAirWaves.LogLevel = "trace"
@@ -39,66 +39,72 @@ veafAirWaves.WATCHDOG_DELAY = 1
 -- AirWave class methods
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-AirWaveZone = {
+AirWaveZone = {}
+function AirWaveZone.init(object)
   -- technical name (AirWave instance name)
-  name = nil,
-  -- description for the briefing
-  description = nil,
+  object.name = nil
+  -- description for the messages
+  object.description = nil
   -- trigger zone name (if set, we'll use a DCS trigger zone)
-  triggerZoneName = nil,
+  object.triggerZoneName = nil
   -- center (point in the center of the circle, when not using a DCS trigger zone)
-  zoneCenter = nil,
-  -- radius (size of the circle, when not using a zone)
-  zoneRadius = nil,
+  object.zoneCenter = nil
+  -- radius (size of the circle, when not using a zone) - in meters
+  object.zoneRadius = nil
+  -- draw the zone on screen
+  object.drawZone = false
+  -- default position for respawns (im meters, lat/lon, relative to the zone center)
+  object.respawnDefaultOffset = {latDelta=0, lonDelta=0}
   -- radius of the waves groups spawn
-  respawnRadius = 250,
-  -- coalitions of the players
-  playerCoalitions = {},
+  object.respawnRadius = 250
+  -- coalitions of the players (only human units from these coalitions will be monitored)
+  object.playerCoalitions = {}
   -- player units (if they die, reset the zone)
-  playerUnitsNames = {},
+  object.playerUnitsNames = {}
   -- aircraft groups forming the waves
-  waves = {},
+  object.waves = {}
   -- groups that have been spawned (the current wave)
-  spawnedGroupsNames = {},
+  object.spawnedGroupsNames = {}
   -- silent means no message is emitted
-  silent = false,
+  object.silent = false
   -- message when the zone is activated
-  messageStart = veafAirWaves.DEFAULT_MESSAGE_START,
+  object.messageStart = veafAirWaves.DEFAULT_MESSAGE_START
   -- event when the zone is activated
-  onStart = nil,
+  object.onStart = nil
   -- message when a wave is triggered
-  messageDeploy = veafAirWaves.DEFAULT_MESSAGE_DEPLOY,
+  object.messageDeploy = veafAirWaves.DEFAULT_MESSAGE_DEPLOY
   -- event  when a wave is triggered
-  onDeploy = nil,
+  object.onDeploy = nil
   -- message when a wave is destroyed
-  messageDestroyed = veafAirWaves.DEFAULT_MESSAGE_DESTROYED,
+  object.messageDestroyed = veafAirWaves.DEFAULT_MESSAGE_DESTROYED
   -- event when a wave is destroyed
-  onDestroyed = nil,
+  object.onDestroyed = nil
   -- message when all waves are finished
-  messageWon = veafAirWaves.DEFAULT_MESSAGE_WON,
+  object.messageWon = veafAirWaves.DEFAULT_MESSAGE_WON
   -- event when all waves are finished
-  onWon = nil,
-  -- message when all players are dead
-  messageLost = veafAirWaves.DEFAULT_MESSAGE_LOST,
+  object.onWon = nil
+  -- message when the zone is lost
+  object.messageLost = veafAirWaves.DEFAULT_MESSAGE_LOST
   -- event when all players are dead
-  onLost = nil,
+  object.onLost = nil
   -- message when the zone is deactivated
-  messageStop = veafAirWaves.DEFAULT_MESSAGE_STOP,
+  object.messageStop = veafAirWaves.DEFAULT_MESSAGE_STOP
   -- event when the zone is deactivated
-  onStop = nil,
+  object.onStop = nil
   -- delay in seconds between waves of ennemy planes
-  delayBetweenWaves = 0,
+  object.delayBetweenWaves = 0
   -- if true, the zone will reset when player dies
-  resetWhenDying = true,
+  object.resetWhenDying = true
   -- human units that are being watched
-  playerHumanUnits = nil,
+  object.playerHumanUnits = nil
   -- players in the zone will only be detected below this altitude (in feet)
-  minimumAltitude = 999999,
+  object.minimumAltitude = -999999
   -- players in the zone will only be detected above this altitude (in feet)
-  maximumAltitude = 0,
+  object.maximumAltitude = 999999
   -- current wave number
-  currentWaveIndex = 0
-}
+  object.currentWaveIndex = 0
+  object.zoneDrawing = nil
+end
 
 function veafAirWaves.statusToString(status)
   if status == veafAirWaves.STATUS_READY then return "STATUS_READY" end
@@ -112,85 +118,29 @@ veafAirWaves.STATUS_ACTIVE = 2
 veafAirWaves.STATUS_NEXTWAVE = 3
 veafAirWaves.STATUS_OVER = 4
 
-veafAirWaves.DEFAULT_MESSAGE_START = "AirWaves zone %s is online"
-veafAirWaves.DEFAULT_MESSAGE_DEPLOY = "AirWaves zone %s is deploying wave %s"
-veafAirWaves.DEFAULT_MESSAGE_DESTROYED = "AirWaves zone %s: wave %s has been destroyed"
-veafAirWaves.DEFAULT_MESSAGE_WON = "AirWaves zone %s is over (no more waves)"
-veafAirWaves.DEFAULT_MESSAGE_LOST = "AirWaves zone %s is lost (no more players)"
-veafAirWaves.DEFAULT_MESSAGE_STOP = "AirWaves zone %s is offline"
+veafAirWaves.MINIMUM_LIFE_FOR_AI_IN_PERCENT = 10
+
+veafAirWaves.DEFAULT_MESSAGE_START = "Zone %s is online"
+veafAirWaves.DEFAULT_MESSAGE_DEPLOY = "Zone %s is deploying wave %s"
+veafAirWaves.DEFAULT_MESSAGE_DESTROYED = "Zone %s: wave %s has been destroyed"
+veafAirWaves.DEFAULT_MESSAGE_WON = "Zone %s is won (no more waves)"
+veafAirWaves.DEFAULT_MESSAGE_LOST = "Zone %s is lost (no more players)"
+veafAirWaves.DEFAULT_MESSAGE_STOP = "Zone %s is offline"
 
 function AirWaveZone:new(objectToCopy)
   veaf.loggers.get(veafAirWaves.Id):debug("AirWave:new()")
   local objectToCreate = objectToCopy or {} -- create object if user does not provide one
   setmetatable(objectToCreate, self)
   self.__index = self
-  
+
   -- init the new object
-  
-  -- technical name (AirWave instance name)
-  objectToCreate.name = nil
-  -- description for the briefing
-  objectToCreate.description = nil
-  -- trigger zone name (if set, we'll use a DCS trigger zone)
-  objectToCreate.triggerZoneCenter = nil
-  -- center (point in the center of the circle, when not using a DCS trigger zone)
-  objectToCreate.zoneCenter = nil
-  -- radius (size of the circle, when not using a zone)
-  objectToCreate.zoneRadius = nil
-  -- radius of the waves groups spawn
-  objectToCreate.respawnRadius = 250
-  -- coalitions of the players
-  objectToCreate.playerCoalitions = {}
-  -- player units (if they die, reset the zone)
-  objectToCreate.playerUnitsNames = {}
-  -- aircraft groups forming the waves
-  objectToCreate.waves = {}
-  -- groups that have been spawned (the current wave)
-  objectToCreate.spawnedGroupsNames = {}
-  -- silent means no message is emitted
-  objectToCreate.silent = false
-  -- message when the zone is activated
-  objectToCreate.messageStart = veafAirWaves.DEFAULT_MESSAGE_START
-  -- event when the zone is activated
-  objectToCreate.onStart = nil
-  -- message when a wave is triggered
-  objectToCreate.messageDeploy = veafAirWaves.DEFAULT_MESSAGE_DEPLOY
-  -- event  when a wave is triggered
-  objectToCreate.onDeploy = nil
-  -- message when a wave is destroyed
-  objectToCreate.messageDestroyed = veafAirWaves.DEFAULT_MESSAGE_DESTROYED
-  -- event when a wave is destroyed
-  objectToCreate.onDestroyed = nil
-  -- message when all waves are finished
-  objectToCreate.messageWon = veafAirWaves.DEFAULT_MESSAGE_WON
-  -- event when all waves are finished
-  objectToCreate.onWon = nil
-  -- message when all players are dead
-  objectToCreate.messageLost = veafAirWaves.DEFAULT_MESSAGE_LOST
-  -- event when all players are dead
-  objectToCreate.onLost = nil
-  -- message when the zone is deactivated
-  objectToCreate.messageStop = veafAirWaves.DEFAULT_MESSAGE_STOP
-  -- event when the zone is deactivated
-  objectToCreate.onStop = nil
-  -- delay in seconds between waves of ennemy planes
-  objectToCreate.delayBetweenWaves = 0
-  -- if true, the zone will reset when player dies
-  objectToCreate.resetWhenDying = true
-  -- human units that are being watched
-  objectToCreate.playerHumanUnits = nil
-  -- players in the zone will only be detected below this altitude (in feet)
-  objectToCreate.minimumAltitude = -9999999
-  -- players in the zone will only be detected above this altitude (in feet)
-  objectToCreate.maximumAltitude = 9999999
-  -- current wave number
-  objectToCreate.currentWaveIndex = 0
+  AirWaveZone.init(objectToCreate)
 
   return objectToCreate
 end
 
 function AirWaveZone:setName(value)
-  veaf.loggers.get(veafAirWaves.Id):trace("AirWaveZone[]:setName(%s)", veaf.p(value))
+  veaf.loggers.get(veafAirWaves.Id):debug("AirWaveZone[]:setName(%s)", veaf.p(value))
   self.name = value
   return veafAirWaves.add(self) -- add the zone to the list as soon as a name is available to index it
 end
@@ -200,39 +150,45 @@ function AirWaveZone:getName()
 end
 
 function AirWaveZone:setTriggerZone(value)
-  veaf.loggers.get(veafAirWaves.Id):trace("AirWaveZone[%s]:setTriggerZone(%s)", veaf.p(self.name), veaf.p(value))
+  veaf.loggers.get(veafAirWaves.Id):debug("AirWaveZone[%s]:setTriggerZone(%s)", veaf.p(self.name), veaf.p(value))
   self.triggerZoneName = value
   local triggerZone = veaf.getTriggerZone(value)
-  veaf.loggers.get(veafAirWaves.Id):trace("triggerZone=%s", veaf.p(triggerZone))
+  --veaf.loggers.get(veafAirWaves.Id):trace("triggerZone=%s", veaf.p(triggerZone))
   self:setZoneCenter({ x=triggerZone.x, y=triggerZone.y})
   self:setZoneRadius(triggerZone.radius)
   return self
 end
 
 function AirWaveZone:setZoneCenter(value)
-  veaf.loggers.get(veafAirWaves.Id):trace("AirWaveZone[%s]:setZoneCenter(%s)", veaf.p(self.name), veaf.p(value))
+  veaf.loggers.get(veafAirWaves.Id):debug("AirWaveZone[%s]:setZoneCenter(%s)", veaf.p(self.name), veaf.p(value))
   self.zoneCenter = value
   return self
 end
 
 function AirWaveZone:setZoneCenterFromCoordinates(value)
-  veaf.loggers.get(veafAirWaves.Id):trace("AirWaveZone[%s]:setZoneCenterFromCoordinates(%s)", veaf.p(self.name), veaf.p(value))
+  veaf.loggers.get(veafAirWaves.Id):debug("AirWaveZone[%s]:setZoneCenterFromCoordinates(%s)", veaf.p(self.name), veaf.p(value))
   local _lat, _lon = veaf.computeLLFromString(value)
-  veaf.loggers.get(veafAirWaves.Id):trace("_lat=%s)", veaf.p(_lat))
-  veaf.loggers.get(veafAirWaves.Id):trace("_lon=%s)", veaf.p(_lon))
+  --veaf.loggers.get(veafAirWaves.Id):trace("_lat=%s)", veaf.p(_lat))
+  --veaf.loggers.get(veafAirWaves.Id):trace("_lon=%s)", veaf.p(_lon))
   local vec3 = coord.LLtoLO(_lat, _lon)
-  veaf.loggers.get(veafAirWaves.Id):trace("vec3=%s)", veaf.p(vec3))
+  --veaf.loggers.get(veafAirWaves.Id):trace("vec3=%s)", veaf.p(vec3))
   return self:setZoneCenter(vec3)
 end
 
 function AirWaveZone:setZoneRadius(value)
-  veaf.loggers.get(veafAirWaves.Id):trace("AirWaveZone[%s]:setZoneRadius(%s)", veaf.p(self.name), veaf.p(value))
+  veaf.loggers.get(veafAirWaves.Id):debug("AirWaveZone[%s]:setZoneRadius(%s)", veaf.p(self.name), veaf.p(value))
   self.zoneRadius = value
   return self
 end
 
+function AirWaveZone:setDrawZone(value)
+  veaf.loggers.get(veafAirWaves.Id):debug("AirWaveZone[%s]:setDrawZone(%s)", veaf.p(self.name), veaf.p(value))
+  self.drawZone = value or false
+  return self
+end
+
 function AirWaveZone:setDescription(value)
-  veaf.loggers.get(veafAirWaves.Id):trace("AirWaveZone[%s]:setDescription(%s)", veaf.p(self.name), veaf.p(value))
+  veaf.loggers.get(veafAirWaves.Id):debug("AirWaveZone[%s]:setDescription(%s)", veaf.p(self.name), veaf.p(value))
   self.description = value
   return veafAirWaves.add(self) -- add the zone to the list as soon as a description is available to index it
 end
@@ -241,13 +197,18 @@ function AirWaveZone:getDescription()
   return self.description or self.name
 end
 
+---add a wave of ennemy planes
+---@param groups any a list of groups or VEAF commands; VEAF commands can be prefixed with [lat, lon], specifying the location of their spawn relative to the center of the zone; default value is set with "setRespawnDefaultOffset"
+---@param number any how many of these groups will actually be spawned (can be multiple times the same group!)
+---@param bias any shifts the random generator to the right of the list
+---@return table self
 function AirWaveZone:addRandomWave(groups, number, bias)
-  veaf.loggers.get(veafAirWaves.Id):trace(string.format("VeafQRA[%s]:addRandomWave(%s, %s, %s)", veaf.p(self.name), veaf.p(groups), veaf.p(number), veaf.p(bias)))
+  veaf.loggers.get(veafAirWaves.Id):debug(string.format("VeafQRA[%s]:addRandomWave(%s, %s, %s)", veaf.p(self.name), veaf.p(groups), veaf.p(number), veaf.p(bias)))
   return self:addWave({groups, number or 1, bias or 0})
 end
 
 function AirWaveZone:addWave(wave)
-  veaf.loggers.get(veafAirWaves.Id):trace("AirWaveZone[%s]:addWave(%s)", veaf.p(self.name), veaf.p(wave))
+  veaf.loggers.get(veafAirWaves.Id):debug("AirWaveZone[%s]:addWave(%s)", veaf.p(self.name), veaf.p(wave))
   if not self.waves then
     self.waves = {}
   end
@@ -256,106 +217,129 @@ function AirWaveZone:addWave(wave)
 end
 
 function AirWaveZone:setMessageStart(value)
-  veaf.loggers.get(veafAirWaves.Id):trace("AirWaveZone[%s]:setMessageStart(%s)", veaf.p(self.name), veaf.p(value))
+  veaf.loggers.get(veafAirWaves.Id):debug("AirWaveZone[%s]:setMessageStart()", veaf.p(self.name))
   self.messageStart = value
   return self
 end
 
 function AirWaveZone:setOnStart(value)
-  veaf.loggers.get(veafAirWaves.Id):trace("AirWaveZone[%s]:setOnStart()", veaf.p(self.name))
+  veaf.loggers.get(veafAirWaves.Id):debug("AirWaveZone[%s]:setOnStart()", veaf.p(self.name))
   self.onStart = value
   return self
 end
 
 function AirWaveZone:setMessageDeploy(value)
-  veaf.loggers.get(veafAirWaves.Id):trace("AirWaveZone[%s]:setMessageDeploy(%s)", veaf.p(self.name), veaf.p(value))
+  veaf.loggers.get(veafAirWaves.Id):debug("AirWaveZone[%s]:setMessageDeploy()", veaf.p(self.name))
   self.messageDeploy = value
   return self
 end
 
 function AirWaveZone:setOnDeploy(value)
-  veaf.loggers.get(veafAirWaves.Id):trace("AirWaveZone[%s]:setOnDeploy()", veaf.p(self.name))
+  veaf.loggers.get(veafAirWaves.Id):debug("AirWaveZone[%s]:setOnDeploy()", veaf.p(self.name))
   self.onDeploy = value
   return self
 end
 
 function AirWaveZone:setMessageDestroyed(value)
-  veaf.loggers.get(veafAirWaves.Id):trace("AirWaveZone[%s]:setMessageDestroyed(%s)", veaf.p(self.name), veaf.p(value))
+  veaf.loggers.get(veafAirWaves.Id):debug("AirWaveZone[%s]:setMessageDestroyed()", veaf.p(self.name))
   self.messageDestroyed = value
   return self
 end
 
 function AirWaveZone:setOnDestroyed(value)
-  veaf.loggers.get(veafAirWaves.Id):trace("AirWaveZone[%s]:setOnDestroyed()", veaf.p(self.name))
+  veaf.loggers.get(veafAirWaves.Id):debug("AirWaveZone[%s]:setOnDestroyed()", veaf.p(self.name))
   self.onDestroyed = value
   return self
 end
 
 function AirWaveZone:setMessageWon(value)
-  veaf.loggers.get(veafAirWaves.Id):trace("AirWaveZone[%s]:setMessageWon(%s)", veaf.p(self.name), veaf.p(value))
+  veaf.loggers.get(veafAirWaves.Id):debug("AirWaveZone[%s]:setMessageWon()", veaf.p(self.name))
   self.messageWon = value
   return self
 end
 
 function AirWaveZone:setOnWon(value)
-  veaf.loggers.get(veafAirWaves.Id):trace("AirWaveZone[%s]:setOnWon()", veaf.p(self.name))
+  veaf.loggers.get(veafAirWaves.Id):debug("AirWaveZone[%s]:setOnWon()", veaf.p(self.name))
   self.onWon = value
   return self
 end
 
+function AirWaveZone:setMessageLost(value)
+  veaf.loggers.get(veafAirWaves.Id):debug("AirWaveZone[%s]:setMessageLost()", veaf.p(self.name))
+  self.messageLost = value
+  return self
+end
+
+function AirWaveZone:setOnLost(value)
+  veaf.loggers.get(veafAirWaves.Id):debug("AirWaveZone[%s]:setOnLost()", veaf.p(self.name))
+  self.onLost = value
+  return self
+end
+
 function AirWaveZone:setMessageStop(value)
-  veaf.loggers.get(veafAirWaves.Id):trace("AirWaveZone[%s]:setMessageStop(%s)", veaf.p(self.name), veaf.p(value))
+  veaf.loggers.get(veafAirWaves.Id):debug("AirWaveZone[%s]:setMessageStop()", veaf.p(self.name))
   self.messageStop = value
   return self
 end
 
 function AirWaveZone:setOnStop(value)
-  veaf.loggers.get(veafAirWaves.Id):trace("AirWaveZone[%s]:setOnStop()", veaf.p(self.name))
+  veaf.loggers.get(veafAirWaves.Id):debug("AirWaveZone[%s]:setOnStop()", veaf.p(self.name))
   self.onStop = value
   return self
 end
 
-function AirWaveZone:setSilent(pSilent)
-  
-  local vSilent = pSilent
-  if vSilent then
-    vSilent = true
-  else
-    vSilent = false
-  end
-  
-  veaf.loggers.get(veafAirWaves.Id):trace("AirWaveZone[%s]:setSilent(%s)", veaf.p(self.name), veaf.p(vSilent))
-  self.silent = pSilent
+function AirWaveZone:setSilent(value)
+  veaf.loggers.get(veafAirWaves.Id):debug("AirWaveZone[%s]:setSilent(%s)", veaf.p(self.name), veaf.p(value))
+  self.silent = value or false
   return self
 end
 
 function AirWaveZone:setRespawnRadius(value)
-  veaf.loggers.get(veafAirWaves.Id):trace("AirWaveZone[%s]:setRespawnRadius(%s)", veaf.p(self.name), veaf.p(value))
+  veaf.loggers.get(veafAirWaves.Id):debug("AirWaveZone[%s]:setRespawnRadius(%s)", veaf.p(self.name), veaf.p(value))
   self.respawnRadius = value
   if self.respawnRadius < 250 then self.respawnRadius = 250 end
   return self
 end
 
+---set the default respawn offset (in meters, relative to the zone center)
+---@param defaultOffsetLatitude any in meters
+---@param defaultOffsetLongitude any in meters
+---@return table self
+function AirWaveZone:setRespawnDefaultOffset(defaultOffsetLatitude, defaultOffsetLongitude)
+    veaf.loggers.get(veafAirWaves.Id):debug("AirWaveZone[%s]:setRespawnDefaultOffset(%s, %s)", veaf.p(self.name), veaf.p(defaultOffsetLatitude), veaf.p(defaultOffsetLongitude))
+    self.respawnDefaultOffset = { latDelta = defaultOffsetLatitude, lonDelta = defaultOffsetLongitude}
+    return self
+end
+
 function AirWaveZone:addPlayerCoalition(value)
-  veaf.loggers.get(veafAirWaves.Id):trace("AirWaveZone[%s]:addPlayerCoalition(%s)", veaf.p(self.name), veaf.p(value))
+  veaf.loggers.get(veafAirWaves.Id):debug("AirWaveZone[%s]:addPlayerCoalition(%s)", veaf.p(self.name), veaf.p(value))
   self.playerCoalitions[value] = value
   return self
 end
 
+function AirWaveZone:getPlayerCoalition()
+  local result = nil
+  for coalition, _ in pairs(self.playerCoalitions) do
+    result = coalition
+    break
+  end
+  return result
+end
+
 function AirWaveZone:setDelayBeforeNextWave(value)
-  veaf.loggers.get(veafAirWaves.Id):trace("AirWaveZone[%s]:setDelayBeforeNextWave(%s)", veaf.p(self.name), veaf.p(value))
+  veaf.loggers.get(veafAirWaves.Id):debug("AirWaveZone[%s]:setDelayBeforeNextWave(%s)", veaf.p(self.name), veaf.p(value))
   self.delayBeforeNextWave = value
   return self
 end
 
 function AirWaveZone:setResetWhenDying()
-  veaf.loggers.get(veafAirWaves.Id):trace("AirWaveZone[%s]:setResetWhenDying()", veaf.p(self.name))
+  veaf.loggers.get(veafAirWaves.Id):debug("AirWaveZone[%s]:setResetWhenDying()", veaf.p(self.name))
   self.resetWhenDying = true
   return self
 end
 
 function AirWaveZone:setMinimumAltitudeInFeet(value)
-  veaf.loggers.get(veafAirWaves.Id):trace("AirWaveZone[%s]:setMinimumAltitudeInFeet(%s)", veaf.p(self.name), veaf.p(value))
+  veaf.loggers.get(veafAirWaves.Id):debug("AirWaveZone[%s]:setMinimumAltitudeInFeet(%s)", veaf.p(self.name), veaf.p(value))
   self.minimumAltitude = value * 0.3048 -- convert from feet
   return self
 end
@@ -365,7 +349,7 @@ function AirWaveZone:getMinimumAltitudeInMeters()
 end
 
 function AirWaveZone:setMaximumAltitudeInFeet(value)
-  veaf.loggers.get(veafAirWaves.Id):trace("AirWaveZone[%s]:setMaximumAltitudeInFeet(%s)", veaf.p(self.name), veaf.p(value))
+  veaf.loggers.get(veafAirWaves.Id):debug("AirWaveZone[%s]:setMaximumAltitudeInFeet(%s)", veaf.p(self.name), veaf.p(value))
   self.maximumAltitude = value * 0.3048 -- convert from feet
   return self
 end
@@ -424,8 +408,8 @@ function AirWaveZone:getPlayerUnits()
 end
 
 function AirWaveZone:check()
-  veaf.loggers.get(veafAirWaves.Id):trace("AirWaveZone[%s]:check()", veaf.p(self.name))
-  veaf.loggers.get(veafAirWaves.Id):trace("self.state=%s", veaf.p(veafAirWaves.statusToString(self.state)))
+  veaf.loggers.get(veafAirWaves.Id):debug("AirWaveZone[%s]:check()", veaf.p(self.name))
+  veaf.loggers.get(veafAirWaves.Id):debug("self.state=%s", veaf.p(veafAirWaves.statusToString(self.state)))
   veaf.loggers.get(veafAirWaves.Id):trace("timer.getTime()=%s", veaf.p(timer.getTime()))
 
   -- whatever the state, monitor the player units if they're defined
@@ -445,8 +429,11 @@ function AirWaveZone:check()
       end
     end
     if not (atLeastOnePlayerAlive and atLeastOnePlayerAirborne) then
-      -- signal that all players have been destroyed
-      self:signalLost()
+      veaf.loggers.get(veafAirWaves.Id):debug("player is dead or despawned in %s", veaf.p(self:getName()))
+      if self.state ~= veafAirWaves.STATUS_OVER then
+        -- signal that all players have been destroyed
+        self:signalLost()
+      end
       if self.resetWhenDying then
         self:signalStop()
         -- reset the zone
@@ -473,6 +460,9 @@ function AirWaveZone:check()
         unitsInZone = mist.getUnitsInPolygon(unitNames, triggerZone.verticies)
       end
     else
+      --veaf.loggers.get(veafAirWaves.Id):trace("self.zoneCenter=%s", veaf.p(self.zoneCenter))
+      --veaf.loggers.get(veafAirWaves.Id):trace("self.zoneRadius=%s", veaf.p(self.zoneRadius))
+      --veaf.loggers.get(veafAirWaves.Id):trace("unitNames=%s", veaf.p(unitNames))
       unitsInZone = veaf.findUnitsInCircle(self.zoneCenter, self.zoneRadius, false, unitNames)
     end
     local nbUnitsInZone = 0
@@ -482,6 +472,8 @@ function AirWaveZone:check()
         local alt = unit:getPoint().y
         --veaf.loggers.get(veafAirWaves.Id):trace("check the unit altitude against the ceiling and floor")
         --veaf.loggers.get(veafAirWaves.Id):trace("alt=%s", veaf.p(alt))
+        --veaf.loggers.get(veafAirWaves.Id):trace("self:getMinimumAltitudeInMeters()=%s", veaf.p(self:getMinimumAltitudeInMeters()))
+        --veaf.loggers.get(veafAirWaves.Id):trace("self:getMaximumAltitudeInMeters()=%s", veaf.p(self:getMaximumAltitudeInMeters()))
         if alt >= self:getMinimumAltitudeInMeters() and alt <= self:getMaximumAltitudeInMeters() then
           nbUnitsInZone = nbUnitsInZone + 1
           -- add the unit to the player units list, so that we can monitor it
@@ -490,7 +482,7 @@ function AirWaveZone:check()
       end
     end
     --veaf.loggers.get(veafAirWaves.Id):trace("unitsInZone=%s", veaf.p(unitsInZone))
-    veaf.loggers.get(veafAirWaves.Id):trace("#unitsInZone=%s", veaf.p(#unitsInZone))
+    --veaf.loggers.get(veafAirWaves.Id):trace("#unitsInZone=%s", veaf.p(#unitsInZone))
     veaf.loggers.get(veafAirWaves.Id):trace("nbUnitsInZone=%s", veaf.p(nbUnitsInZone))
     if unitsInZone and nbUnitsInZone > 0 then
       -- reset wave index
@@ -513,22 +505,42 @@ function AirWaveZone:check()
   elseif self.state == veafAirWaves.STATUS_ACTIVE then
     -- zone is active, check if the current wave is still alive
     local currentWaveAlive = false
-    local inAir = false
+    local currentWaveInAir = false
     for _, groupName in pairs(self.spawnedGroupsNames) do
       local group = Group.getByName(groupName)
       if group then
-        currentWaveAlive = true
+        local groupAtLeastOneUnitAlive = false
+        local groupAtLeastOneUnitInAir = false
+        local category = group:getCategory()
         local units = group:getUnits()
         if units then
           for _,unit in pairs(units) do
-            if unit and unit:inAir() then
-              inAir = true
+            if unit then
+              local unitLife = unit:getLife()
+              local unitLife0 = unit:getLife0()
+              local unitLifePercent = 100 * unitLife / unitLife0
+              if unitLifePercent >= veafAirWaves.MINIMUM_LIFE_FOR_AI_IN_PERCENT then
+                groupAtLeastOneUnitAlive = true
+              end
+              if category == 0 --[[airplanes]] or category == 1 --[[helicopters]] then
+              -- check if at least one unit is still airborne
+                if unit:inAir() then
+                  groupAtLeastOneUnitInAir = true
+                end
+              else
+                -- consider that ground units have never landed
+                groupAtLeastOneUnitInAir = true
+              end
             end
           end
         end
+        currentWaveAlive = currentWaveAlive or groupAtLeastOneUnitAlive
+        currentWaveInAir = currentWaveInAir or groupAtLeastOneUnitInAir
+        veaf.loggers.get(veafAirWaves.Id):trace("qraAlive=%s", veaf.p(currentWaveAlive))
+        veaf.loggers.get(veafAirWaves.Id):trace("qraInAir=%s", veaf.p(currentWaveInAir))
       end
     end
-    if not (currentWaveAlive and inAir) then
+    if not (currentWaveAlive and currentWaveInAir) then
       -- signal that wave has been destroyed
       self:signalDestroyed()
       -- prepare next wave
@@ -553,9 +565,9 @@ function AirWaveZone:chooseGroupsToDeploy()
     local groupsToChooseFrom = groupsToDeploy[1]
     local numberOfGroups = groupsToDeploy[2]
     local bias = groupsToDeploy[3]
-    veaf.loggers.get(veafAirWaves.Id):trace("groupsToChooseFrom=%s", veaf.p(groupsToChooseFrom))
-    veaf.loggers.get(veafAirWaves.Id):trace("numberOfGroups=%s", veaf.p(numberOfGroups))
-    veaf.loggers.get(veafAirWaves.Id):trace("bias=%s", veaf.p(bias))
+    --veaf.loggers.get(veafAirWaves.Id):trace("groupsToChooseFrom=%s", veaf.p(groupsToChooseFrom))
+    --veaf.loggers.get(veafAirWaves.Id):trace("numberOfGroups=%s", veaf.p(numberOfGroups))
+    --veaf.loggers.get(veafAirWaves.Id):trace("bias=%s", veaf.p(bias))
     if groupsToChooseFrom and type(groupsToChooseFrom) == "table" and numberOfGroups and type(numberOfGroups) == "number" and bias and type(bias) == "number" then
       local result = {}
       for _ = 1, numberOfGroups do
@@ -581,22 +593,76 @@ function AirWaveZone:deployWave()
   local groupsToDeploy = self:chooseGroupsToDeploy()
   self.spawnedGroupsNames = {}
   if groupsToDeploy then
-    for _, groupName in pairs(groupsToDeploy) do
-      local group = Group.getByName(groupName)
-      local spawnSpot = group:getUnit(1):getPoint()
-      local vars = {}
-      vars.point = mist.getRandPointInCircle(spawnSpot, self.respawnRadius)
-      vars.point.z = vars.point.y
-      vars.point.y = spawnSpot.y
-      vars.gpName = groupName
-      vars.action = 'clone'
-      vars.route = mist.getGroupRoute(groupName, 'task')
-      local newGroup = mist.teleportToPoint(vars) -- respawn with radius
-      if newGroup then
-        table.insert(self.spawnedGroupsNames, newGroup.name)
+    local zoneCenter = {}
+    if self.triggerZoneName then
+      local triggerZone = veaf.getTriggerZone(self.triggerZoneName)
+      zoneCenter.x = triggerZone.x
+      zoneCenter.z = triggerZone.y
+      zoneCenter.y = 0
+    elseif self.zoneCenter then
+      zoneCenter = self.zoneCenter
+    end
+    for _, groupNameOrCommand in pairs(groupsToDeploy) do
+      -- check if this is a DCS group or a VEAF command
+      if veaf.startsWith(groupNameOrCommand, "[") or veaf.startsWith(groupNameOrCommand, "-") then
+        -- this is a command
+        local command = groupNameOrCommand
+        local latDelta = self.respawnDefaultOffset.latDelta
+        local lonDelta = self.respawnDefaultOffset.lonDelta
+        if veaf.startsWith(groupNameOrCommand, "[") then
+          -- extract relative coordinates and the actual command
+          local coords
+          coords, command = groupNameOrCommand:match("%[(.*)%](.*)")
+          --veaf.loggers.get(veafAirWaves.Id):trace("coords=%s", veaf.p(coords))
+          --veaf.loggers.get(veafAirWaves.Id):trace("command=%s", veaf.p(command))
+          if coords then
+            latDelta, lonDelta = coords:match("([%+-%d]+),%s*([%+-%d]+)")
+          end
+        end
+        veaf.loggers.get(veafAirWaves.Id):debug("running command [%s]", veaf.p(command))
+        --veaf.loggers.get(veafAirWaves.Id):trace("latDelta = [%s]", veaf.p(latDelta))
+        --veaf.loggers.get(veafAirWaves.Id):trace("lonDelta = [%s]", veaf.p(lonDelta))
+        local position = {x = zoneCenter.x - lonDelta, y = zoneCenter.y, z = zoneCenter.z + latDelta}
+        local randomPosition = mist.getRandPointInCircle(position, self.respawnRadius)
+        local spawnedGroupsNames = {}
+        veafInterpreter.execute(command, randomPosition, self.coalition, nil, spawnedGroupsNames)
+        for _, newGroupName in pairs(spawnedGroupsNames) do
+          table.insert(self.spawnedGroupsNames, newGroupName)
+        end
+      else
+        -- this is a DCS group
+        local groupName = groupNameOrCommand
+        veaf.loggers.get(veafAirWaves.Id):debug("spawning group [%s]", veaf.p(groupName))
+        local group = Group.getByName(groupName)
+        if not group then
+          veaf.loggers.get(veafAirWaves.Id):error("group [%s] does not exist in the mission!", veaf.p(groupName))
+        else
+          veaf.loggers.get(veafAirWaves.Id):debug("group=%s", veaf.p(group))
+          veaf.loggers.get(veafAirWaves.Id):debug("group:getUnits()=%s", veaf.p(group:getUnits()))
+          local spawnSpot = {x = zoneCenter.x - self.respawnDefaultOffset.lonDelta, y = zoneCenter.y, z = zoneCenter.z + self.respawnDefaultOffset.latDelta}
+          -- Try and set the spawn spot at the place the group has been set in the Mission Editor.
+          -- Unfortunately this is sometimes not possible because DCS is not returning the group units for some reason.
+          -- When this happens we'll default to the default spawn offset (same as spawning with VEAF commands)
+          if not group:getUnit(1) then
+            veaf.loggers.get(veafAirWaves.Id):warn("group [%s] does not have any unit!", veaf.p(groupName))
+          else
+            spawnSpot =  group:getUnit(1):getPoint()
+          end
+          local vars = {}
+          vars.point = mist.getRandPointInCircle(spawnSpot, self.respawnRadius)
+          vars.point.z = vars.point.y
+          vars.point.y = spawnSpot.y
+          vars.gpName = groupName
+          vars.action = 'clone'
+          vars.route = mist.getGroupRoute(groupName, 'task')
+          local newGroup = mist.teleportToPoint(vars) -- respawn with radius
+          if newGroup then
+            table.insert(self.spawnedGroupsNames, newGroup.name)
+          end
+        end
       end
     end
-    --veaf.loggers.get(veafAirWaves.Id):trace("self.spawnedGroupsNames=%s", veaf.p(self.spawnedGroupsNames))
+    veaf.loggers.get(veafAirWaves.Id):trace("self.spawnedGroupsNames=%s", veaf.p(self.spawnedGroupsNames))
     self:_setState(veafAirWaves.STATUS_ACTIVE)
   end
   if self.onDeploy then
@@ -687,6 +753,24 @@ function AirWaveZone:start()
   veaf.loggers.get(veafAirWaves.Id):debug("AirWaveZone[%s]:start()", veaf.p(self.name))
   self:_setState(veafAirWaves.STATUS_READY)
   self:check()
+
+  -- draw the zone
+  if self.drawZone then
+    if self.triggerZoneName then
+      self.zoneDrawing = mist.marker.drawZone(self.triggerZoneName, {message=self:getDescription(), readOnly=true})
+    else
+      self.zoneDrawing = VeafCircleOnMap:new()
+      :setName(self:getName())
+      :setCoalition(self:getPlayerCoalition())
+      :setCenter(self.zoneCenter)
+      :setRadius(self.zoneRadius)
+      :setLineType("dashed")
+      :setColor("white")
+      :setFillColor("transparent")
+      :draw()
+    end
+  end
+
   self:signalStart()
   return self
 end
@@ -695,6 +779,17 @@ function AirWaveZone:stop()
   veaf.loggers.get(veafAirWaves.Id):debug("AirWaveZone[%s]:stop()", veaf.p(self.name))
   self:reset()
   self:_setState(veafAirWaves.STATUS_STOP)
+
+  -- erase the zone
+  if self.zoneDrawing then
+    if self.triggerZoneName then
+      mist.marker.remove(self.zoneDrawing.markId)
+    else
+      self.zoneDrawing:erase()
+    end
+    self.zoneDrawing = nil
+  end
+
   self:signalStop()
   return self
 end
@@ -728,3 +823,5 @@ end
 function veafAirWaves.get(aNameString)
   return veafAirWaves.zones[aNameString]
 end
+
+veaf.loggers.get(veafAirWaves.Id):info(string.format("Loading version %s", veafAirWaves.Version))

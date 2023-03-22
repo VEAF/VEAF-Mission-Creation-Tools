@@ -19,7 +19,7 @@ veaf = {}
 veaf.Id = "VEAF"
 
 --- Version.
-veaf.Version = "1.34.0"
+veaf.Version = "1.35.0"
 
 --- Development version ?
 veaf.Development = true
@@ -2478,13 +2478,13 @@ function veaf.writeLineToTextFile(line, filename, filepath)
         if filepath then filepath = filepath .. "\\" end
         veaf.loggers.get(veaf.Id):trace(string.format("filepath=%s", veaf.p(filepath)))
     end
+    if not filepath and l_lfs then
+        filepath = l_lfs.writedir()
+        veaf.loggers.get(veaf.Id):trace(string.format("filepath=%s", veaf.p(filepath)))
+    end
     if not filepath and l_os then
         filepath = l_os.getenv("TEMP")
         if filepath then filepath = filepath .. "\\" end
-        veaf.loggers.get(veaf.Id):trace(string.format("filepath=%s", veaf.p(filepath)))
-    end
-    if not filepath and l_lfs then
-        filepath = l_lfs.writedir()
         veaf.loggers.get(veaf.Id):trace(string.format("filepath=%s", veaf.p(filepath)))
     end
 

@@ -27,7 +27,7 @@ veafMissionEditor = {}
 veafMissionEditor.Id = "MISSION EDITOR - "
 
 --- Version.
-veafMissionEditor.Version = "1.1.1"
+veafMissionEditor.Version = "1.2.0"
 
 -- trace level, specific to this module
 veafMissionEditor.Debug = false
@@ -74,7 +74,7 @@ end
 -- Core methods
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-function veafMissionEditor.serialize(name, value, level)
+function veafMissionEditor.serialize(name, value, level, addEndOfComments)
   -- mostly based on slMod serializer 
 
   local function _basicSerialize(s)
@@ -100,8 +100,13 @@ function veafMissionEditor.serialize(name, value, level)
       end
   end
 
-  local serialize_to_t = function(name, value, level)
+  local serialize_to_t = function(name, value, level, addEndOfComments)
       ----Based on ED's serialize_simple2
+      
+      local endOf = addEndOfComments
+      if endOf == nil then
+        endOf = true
+      end
 
       local var_str_tbl = {}
       if level == nil then
@@ -132,12 +137,16 @@ function veafMissionEditor.serialize(name, value, level)
                   key = string.format("[%q]", k)
               end
 
-              table.insert(var_str_tbl, veafMissionEditor.serialize(key, v, level .. "  "))
+              table.insert(var_str_tbl, veafMissionEditor.serialize(key, v, level .. "  ", addEndOfComments))
+          end
+          local sEndOf = ""
+          if endOf then
+            sEndOf = " -- end of " .. name
           end
           if level == "" then
-              table.insert(var_str_tbl, level .. "} -- end of " .. name .. "\n")
+              table.insert(var_str_tbl, level .. "}" .. sEndOf .. "\n")
           else
-              table.insert(var_str_tbl, level .. "}, -- end of " .. name .. "\n")
+              table.insert(var_str_tbl, level .. "}," .. sEndOf .. "\n")
           end
       else
           veafMissionEditor.logError("Cannot serialize a " .. type(value))
@@ -145,7 +154,7 @@ function veafMissionEditor.serialize(name, value, level)
       return var_str_tbl
   end
 
-  local t_str = serialize_to_t(name, value, level)
+  local t_str = serialize_to_t(name, value, level, addEndOfComments)
 
   return table.concat(t_str)
 end
@@ -181,7 +190,7 @@ function veafMissionEditor.writeMissionFile(filePath, tableAsLua)
     file:close();
 end
 
-function veafMissionEditor.editMission(inFilePath, outFilePath, tableName, processFunction)
+function veafMissionEditor.editMission(inFilePath, outFilePath, tableName, processFunction, addEndOfComments)
     local _processFunction = processFunction
     if not _processFunction then 
         _processFunction = veafMissionEditor.processMission
@@ -192,7 +201,7 @@ function veafMissionEditor.editMission(inFilePath, outFilePath, tableName, proce
     veafMissionEditor.logDebug("Processing lua table")
     _table = _processFunction(_table)
     veafMissionEditor.logDebug("Exporting table as lua")
-    local tableAsLua = veafMissionEditor.serialize(tableName, _table)
+    local tableAsLua = veafMissionEditor.serialize(tableName, _table, nil, addEndOfComments)
     veafMissionEditor.logDebug(string.format("Writing lua table to [%s]",outFilePath))
     veafMissionEditor.writeMissionFile(outFilePath, tableAsLua)
 end

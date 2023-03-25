@@ -42,7 +42,8 @@
         "veafGrass",
         "veafCombatZone",
         "veafQraManager",
-        "veafRemote"
+        "veafRemote",
+        "veafSpawnableAircraftsEditor"
     ],
     "cmake.sourceDirectory": "${workspaceFolder}/src/c/buffering_socket",
     "files.associations": {
@@ -101,5 +102,6 @@
         "xtr1common": "cpp",
         "xutility": "cpp"
     },
-    "Lua.workspace.checkThirdParty": false
+    "Lua.workspace.checkThirdParty": false,
+    "Lua.diagnostics.workspaceDelay": 30000
 }

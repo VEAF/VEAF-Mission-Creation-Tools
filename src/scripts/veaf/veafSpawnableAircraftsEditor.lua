@@ -26,6 +26,7 @@
 -- * -nameFilter, a regex that will be used to filter the groups that are processed (in either direction) by matching their names. Default to nil, all groups processed
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
+--require("src/scripts/veaf/veafMissionEditor")
 require("veafMissionEditor")
 
 veafSpawnableAircraftsEditor = {}
@@ -38,7 +39,7 @@ veafSpawnableAircraftsEditor = {}
 veafSpawnableAircraftsEditor.Id = "SPAWN_AC - "
 
 --- Version.
-veafSpawnableAircraftsEditor.Version = "1.1.0"
+veafSpawnableAircraftsEditor.Version = "1.1.1"
 
 -- trace level, specific to this module
 veafSpawnableAircraftsEditor.Trace = false
@@ -524,11 +525,9 @@ function veafSpawnableAircraftsEditor.injectInMission(filePath, settingsPath, na
         --veafSpawnableAircraftsEditor.logTrace(string.format("parseTable %s", p(key)))
         if tostring(key):lower() == "groupid" then
           maxGroupId = maxGroupId + 1
-          o[key] = maxGroupId
           --veafSpawnableAircraftsEditor.logDebug(string.format("maxGroupId=[%s]", p(maxGroupId)))
         elseif tostring(key):lower() == "unitid" then
           maxUnitId = maxUnitId + 1
-          o[key] = maxUnitId
           --veafSpawnableAircraftsEditor.logDebug(string.format("maxUnitId=[%s]", p(maxUnitId)))
         end
         computeMaxIds(value)
@@ -613,7 +612,7 @@ function veafSpawnableAircraftsEditor.injectInMission(filePath, settingsPath, na
             local foundIndex = nil
             for index, group_t in pairs(missionGroups_t) do
               local missionGroupName = group_t.name
-              if missionGroupName == spawnGroupName then
+              if missionGroupName:upper() == spawnGroupName:upper() then
                 foundIndex = index
                 break
               end

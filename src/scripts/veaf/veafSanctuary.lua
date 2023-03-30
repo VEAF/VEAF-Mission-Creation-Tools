@@ -20,7 +20,7 @@ veafSanctuary = {}
 veafSanctuary.Id = "SANCTUARY"
 
 --- Version.
-veafSanctuary.Version = "1.6.1"
+veafSanctuary.Version = "1.6.2"
 
 -- trace level, specific to this module
 --veafSanctuary.LogLevel = "trace"
@@ -202,6 +202,7 @@ function VeafSanctuaryZone:getName()
 end
 
 function VeafSanctuaryZone:setCoalition(value)
+    veaf.loggers.get(veafSanctuary.Id):debug(string.format("VeafSanctuaryZone[%s]:setCoalition(%s)", veaf.p(self.name), veaf.p(value)))
     self.coalition = value
     return self
 end
@@ -291,6 +292,7 @@ function VeafSanctuaryZone:setPolygonFromUnits(unitNames, markPositions)
             :setColor(LINE_COLOR)
             :setLineType(LINE_TYPE)
             :addPoints(self:getPolygon())
+            :setCoalition(self:getCoalition())
             :draw()
         end
     end

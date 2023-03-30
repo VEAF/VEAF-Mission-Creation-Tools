@@ -39,7 +39,7 @@ veafSpawnableAircraftsEditor = {}
 veafSpawnableAircraftsEditor.Id = "SPAWN_AC - "
 
 --- Version.
-veafSpawnableAircraftsEditor.Version = "1.1.1"
+veafSpawnableAircraftsEditor.Version = "1.1.2"
 
 -- trace level, specific to this module
 veafSpawnableAircraftsEditor.Trace = false
@@ -49,6 +49,18 @@ veafSpawnableAircraftsEditor.Debug = false
 -- default position for all flights that are processed (imported from .miz to the configuration file) in meters, DCS model
 local DEFAULT_POSITION_X = 0
 local DEFAULT_POSITION_Y = 0
+
+-- default callsign by id
+local DEFAULT_CALLSIGNS_BY_ID = {
+  [1] = "Enfield",
+  [2] = "Springfield",
+  [3] = "Uzi",
+  [4] = "Colt",
+  [5] = "Dodge",
+  [6] = "Ford",
+  [7] = "Chevy",
+  [8] = "Pontiac"
+}
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Do not change anything below unless you know what you are doing!
@@ -181,6 +193,8 @@ function veafSpawnableAircraftsEditor.logTrace(message)
   end
 end
 
+local p = nil
+
 local function _p(o, level)
   local MAX_LEVEL = 20
   if level == nil then level = 0 end
@@ -195,7 +209,7 @@ local function _p(o, level)
           for i=0, level do
               text = text .. " "
           end
-          text = text .. ".".. key.."="..p(value, level+1) .. "\n"
+          text = text .. "." .. key .. "=" .. p(value, level+1) .. "\n"
       end
   elseif (type(o) == "function") then
       text = "[function]"
@@ -215,7 +229,7 @@ local function _p(o, level)
   return text
 end
 
-local function p(o, level)
+p = function(o, level)
   if o and type(o) == "table" and (o.x and o.z and o.y and #o == 3) then
       return string.format("{x=%s, z=%s, y=%s}", p(o.x), p(o.z), p(o.y))
   elseif o and type(o) == "table" and (o.x and o.y and #o == 2)  then
@@ -516,21 +530,74 @@ function veafSpawnableAircraftsEditor.injectInMission(filePath, settingsPath, na
     end
   end
 
-  local maxGroupId = 1
-  local maxUnitId = 1
+  local availableCallsigns = {}
+  for digit1 = 1, 8, 1 do
+    for digit2 = 1, 9, 1 do
+      for digit3 = 1, 9, 1 do
+        local callsignId = digit1*100+digit2*10+digit3
+        availableCallsigns[callsignId] = true
+      end
+    end
+  end
 
-  local function computeMaxIds(o)
+  local availableGroupIds = {}
+  for i = 1, 30000, 1 do
+    availableGroupIds[i] = true
+  end
+
+  local availableUnitIds = {}
+  for i = 1, 50000, 1 do
+    availableUnitIds[i] = true
+  end
+
+  local function getNextAvailableId(idLibrary, maxId)
+    for i = 1, maxId, 1 do
+      if idLibrary[i] then
+        idLibrary[i] = false
+        return i
+      end
+    end
+  end
+
+  local function getNextAvailableCallsign()
+    return getNextAvailableId(availableCallsigns, 999)
+  end
+
+  local function getNextAvailableGroupId()
+    return getNextAvailableId(availableGroupIds, 30000)
+  end
+
+  local function getNextAvailableUnitId()
+    return getNextAvailableId(availableUnitIds, 50000)
+  end
+
+  local function findAvailableIds(o)
     if (type(o) == "table") then
       for key,value in pairs(o) do
         --veafSpawnableAircraftsEditor.logTrace(string.format("parseTable %s", p(key)))
         if tostring(key):lower() == "groupid" then
-          maxGroupId = maxGroupId + 1
-          --veafSpawnableAircraftsEditor.logDebug(string.format("maxGroupId=[%s]", p(maxGroupId)))
+          local groupId = tonumber(value)
+          if groupId then
+            availableGroupIds[groupId] = false
+            veafSpawnableAircraftsEditor.logTrace(string.format("groupId [%s] is not available", p(groupId)))
+          end
         elseif tostring(key):lower() == "unitid" then
-          maxUnitId = maxUnitId + 1
-          --veafSpawnableAircraftsEditor.logDebug(string.format("maxUnitId=[%s]", p(maxUnitId)))
+          local unitId = tonumber(value)
+          if unitId then
+            availableUnitIds[unitId] = false
+            veafSpawnableAircraftsEditor.logTrace(string.format("unitId [%s] is not available", p(unitId)))
+          end
+        elseif tostring(key):lower() == "callsign" then
+          if type(value) == "table" then
+            local digit1 = value[1] or 0
+            local digit2 = value[2] or 0
+            local digit3 = value[3] or 0
+            local callsignId = digit1*100+digit2*10+digit3
+            availableCallsigns[callsignId] = false
+            veafSpawnableAircraftsEditor.logTrace(string.format("callsignId [%s] is not available", p(callsignId)))
+          end
         end
-        computeMaxIds(value)
+        findAvailableIds(value)
       end
     end
   end
@@ -540,15 +607,12 @@ function veafSpawnableAircraftsEditor.injectInMission(filePath, settingsPath, na
   ---@return table missionTable the same LUA mission table, processed and ready to be written back to the `mission` file
   local function processMissionTable(missionTable)
 
-    -- find max maxGroupId and unitId
-    computeMaxIds(missionTable) -- this will populate the local maxUnitId and maxGroupId variables
-    veafSpawnableAircraftsEditor.logDebug(string.format("maxGroupId=[%s]", p(maxGroupId)))
-    veafSpawnableAircraftsEditor.logDebug(string.format("maxUnitId=[%s]", p(maxUnitId)))
-  
+    -- find all available ids (groups, units, callsigns)
+    findAvailableIds(missionTable) -- this will populate the local availableCallsigns, availableGroupIds, availableUnitIds variables
+
     -- find the country tables in the mission table
     local missionCountryTablesByName = {}
     local missionCoalitionTablesByName = {}
-    local missionCoalitionsNamesByCountryName = {} -- TODO pas sûr que ça serve
     -- browse coalitions
     for _, missionCoalition_t in pairs(missionTable["coalition"]) do
       local missionCoalitionName = missionCoalition_t["name"]
@@ -561,14 +625,10 @@ function veafSpawnableAircraftsEditor.injectInMission(filePath, settingsPath, na
         local missionCountryName = missionCountry_t["name"]
         if missionCountryName then
           veafSpawnableAircraftsEditor.logTrace(string.format("found country [%s]",missionCountryName))
-          missionCoalitionsNamesByCountryName[missionCountryName:lower()] = missionCoalitionName
           missionCountryTablesByName[missionCountryName:lower()] = missionCountry_t
         end
       end
     end
-
-    local currentGroupId = maxGroupId
-    local currentUnitId = maxUnitId
 
     -- process all the spawnable aircrafts groups by country
     for spawnCountryName, spawnCategoriesTable in pairs(veafSpawnableAircraftsByCountryAndCategory) do
@@ -619,11 +679,22 @@ function veafSpawnableAircraftsEditor.injectInMission(filePath, settingsPath, na
             end
             local newGroupData = deepcopy(spawnGroupData)
             -- change the group and units ids
-            currentGroupId = currentGroupId + 1
-            newGroupData.groupId = currentGroupId
+            newGroupData.groupId = getNextAvailableGroupId()
             for _, newUnitData in pairs(newGroupData.units) do
-              currentUnitId = currentUnitId + 1
-              newUnitData.unitId = currentUnitId
+              newUnitData.unitId = getNextAvailableUnitId()
+              local callsignData = newUnitData.callsign
+              if callsignData and type(callsignData) == "table" then
+                local oldCallsign = callsignData.name
+                local availableCallsignId = getNextAvailableCallsign()
+                local digit1 = math.floor(availableCallsignId / 100)
+                local digit2 = math.floor((availableCallsignId - (digit1*100)) / 10)
+                local digit3 = availableCallsignId - (digit1*100) - (digit2*10)
+                callsignData.name = DEFAULT_CALLSIGNS_BY_ID[digit1] .. digit2 .. digit3
+                callsignData[1] = digit1
+                callsignData[2] = digit2
+                callsignData[3] = digit3
+                veafSpawnableAircraftsEditor.logDebug(string.format("unitName=[%s] unitId=[%s], callsign changed from [%s] to [%s]", newUnitData.name, newUnitData.unitId, oldCallsign, callsignData.name))
+              end
             end
             -- reset work data
             newGroupData.veafSpawnableAircraftsEditorData = nil

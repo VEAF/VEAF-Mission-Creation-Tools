@@ -6,14 +6,15 @@
     "configurations": [
         {
             "name": "veafSpawnableAircraftsEditor",
-            "program": "${workspaceFolder}/src/scripts/veaf/veafSpawnableAircraftsEditor.lua",
-            //"arg": ["${workspaceFolder}/test", "${workspaceFolder}/test/veafSpawnableAircraftsEditorSettings.lua", "-trace"],
-            //"arg": ["${workspaceFolder}/test", "${workspaceFolder}/test/veafSpawnableAircraftsEditorSettings.lua", "-trace", "-namefilter", "\".* EASY .*\""],
-            "arg": ["${workspaceFolder}/test", "${workspaceFolder}/test/veafSpawnableAircraftsEditorSettings.lua", "-trace", "-import"],
-            //"arg": ["${workspaceFolder}/test", "${workspaceFolder}/test/veafSpawnableAircraftsEditorSettings.lua", "-trace", "-import", "-namefilter", "\".* EASY .*\""],
+            "program": "veafSpawnableAircraftsEditor.lua",
+            "arg": ["${workspaceFolder}/test", "${workspaceFolder}/src/defaults/veafSpawnableAircraftsEditor/settings.lua", "-trace"],
+            //"arg": ["${workspaceFolder}/test", "${workspaceFolder}/src/defaults/veafSpawnableAircraftsEditor/settings.lua", "-trace", "-namefilter", "\".* EASY .*\""],
+            //"arg": ["${workspaceFolder}/test", "${workspaceFolder}/src/defaults/veafSpawnableAircraftsEditor/settings.lua", "-trace", "-import"],
+            //"arg": ["${workspaceFolder}/test", "${workspaceFolder}/src/defaults/veafSpawnableAircraftsEditor/settings.lua", "-trace", "-import", "-namefilter", "\".* EASY .*\""],
             "request": "launch",
             "stopOnEntry": true,
-            "type": "lua"
+            "type": "lua",
+            "cwd": "${workspaceFolder}/src/scripts/veaf",
         },
         {
             "name": "compile.ps1",

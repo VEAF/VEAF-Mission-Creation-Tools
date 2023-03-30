@@ -19,7 +19,7 @@ veaf = {}
 veaf.Id = "VEAF"
 
 --- Version.
-veaf.Version = "1.35.0"
+veaf.Version = "1.35.1"
 
 --- Development version ?
 veaf.Development = true
@@ -3024,7 +3024,7 @@ function VeafDrawingOnMap.init(object)
     -- technical name (identifier)
     object.name = nil
     -- coalition
-    object.coalition = nil
+    object.coalition = coalition.side.BLUE
     -- points forming the drawing
     object.points = {}
     -- color ({r, g, b, a})

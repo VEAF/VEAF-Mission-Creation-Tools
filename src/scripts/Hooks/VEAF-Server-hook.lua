@@ -38,7 +38,7 @@ VEAF_PILOTS_FILE = "veaf-pilots.txt"
 veafServerHook.Id = "VEAFHOOK - "
 
 --- Version.
-veafServerHook.Version = "2.2.0"
+veafServerHook.Version = "2.3.0"
 
 -- trace level, specific to this module
 veafServerHook.Trace = false
@@ -118,7 +118,7 @@ function veafServerHook.logTrace(message)
     end
 end
 
-function veafServerHook.veafServerHook.p(o, level)
+function veafServerHook.p(o, level)
     local MAX_LEVEL = 20
 if level == nil then level = 0 end
 if level > MAX_LEVEL then
@@ -132,7 +132,7 @@ if (type(o) == "table") then
         for i=0, level do
             text = text .. " "
         end
-        text = text .. ".".. key.."="..veafServerHook.veafServerHook.p(value, level+1) .. "\n";
+        text = text .. ".".. key.."="..veafServerHook.p(value, level+1) .. "\n";
     end
 elseif (type(o) == "function") then
     text = "[function]";
@@ -163,8 +163,8 @@ function veafServerHook.onSimulationStart()
     veafServerHook.logDebug(string.format("ask the mission for its maximum runtime"))
     local _maxDuration = nil
     local _status, _retValue = pcall(net.dostring_in, 'mission', 'return a_do_script(' .. '[===[ if veaf and veaf.getMissionMaxRuntime then return veaf.getMissionMaxRuntime() else return nil end ]===]' .. ')')
-    veafServerHook.logTrace(string.format("_status=%s",veafServerHook.veafServerHook.p(_status)))
-    veafServerHook.logTrace(string.format("_retValue=%s",veafServerHook.veafServerHook.p(_retValue)))
+    veafServerHook.logTrace(string.format("_status=%s",veafServerHook.p(_status)))
+    veafServerHook.logTrace(string.format("_retValue=%s",veafServerHook.p(_retValue)))
     if not _status then
         veafServerHook.logWarning(string.format("Code injection failed for veaf.getMissionMaxRuntime()"))
     else
@@ -206,15 +206,16 @@ function veafServerHook.onPlayerConnect(id)
     veafServerHook.logTrace(string.format("ucid=%s",veafServerHook.p(ucid)))
     -- parse the message
     local pilot = veafServerHook.pilots[ucid]
-    if pilot then
-        veafServerHook.logInfo(string.format("VEAF pilot [%s] connecting", veafServerHook.p(playerName)))
-        veafServerHook.logTrace(string.format("pilot=%s",veafServerHook.p(pilot)))
-        local payload = string.format(REGISTER_PLAYER, playerName, pilot.level, ucid)
-        veafServerHook.logTrace(string.format("payload=%s",veafServerHook.p(payload)))
-        veafServerHook.injectCode(payload)
-    else
+    if not pilot then
         veafServerHook.logInfo(string.format("Unknown pilot [%s] connecting", veafServerHook.p(playerName)))
+        pilot = { level = -1} -- no power at all
+    else
+        veafServerHook.logInfo(string.format("VEAF pilot [%s] connecting", veafServerHook.p(playerName)))
     end
+    veafServerHook.logTrace(string.format("pilot=%s",veafServerHook.p(pilot)))
+    local payload = string.format(REGISTER_PLAYER, playerName, pilot.level, ucid)
+    veafServerHook.logTrace(string.format("payload=%s",veafServerHook.p(payload)))
+    veafServerHook.injectCode(payload)
 end
 
 function veafServerHook.onPlayerChangeSlot(id)
@@ -233,7 +234,6 @@ function veafServerHook.onPlayerChangeSlot(id)
         veafServerHook.logTrace(string.format("slot=%s",veafServerHook.p(slot)))
         unitName = DCS.getUnitProperty(slot, DCS.UNIT_NAME)
     end
-
     veafServerHook.logTrace(string.format("playerName=%s",veafServerHook.p(playerName)))
     veafServerHook.logTrace(string.format("ucid=%s",veafServerHook.p(ucid)))
     veafServerHook.logTrace(string.format("unitName=%s",veafServerHook.p(unitName)))

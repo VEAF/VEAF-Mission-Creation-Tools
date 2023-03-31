@@ -175,7 +175,7 @@ They're well configured, are grouped by difficulty (easy / normal / hard) and th
 
 The following spawns were originally added by Zip and may not be perfectly configured.
 
-Please prefer the ones added by Sharko (see (here)[#list-of-aircrafts])
+Please prefer the ones added by Sharko (see [here](#list-of-aircrafts))
 
 - `JF17-Fox2`
 - `JF17-Fox3`

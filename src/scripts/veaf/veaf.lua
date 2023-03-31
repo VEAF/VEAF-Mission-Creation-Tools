@@ -19,13 +19,14 @@ veaf = {}
 veaf.Id = "VEAF"
 
 --- Version.
-veaf.Version = "1.35.1"
+veaf.Version = "1.36.0"
 
 --- Development version ?
 veaf.Development = true
 veaf.SecurityDisabled = true
 
 -- trace level, specific to this module
+--veaf.LogLevel = "debug"
 --veaf.LogLevel = "trace"
 --veaf.ForcedLogLevel = "trace"
 
@@ -2455,7 +2456,7 @@ function veaf.getRandomizableNumeric(val)
 end
 
 function veaf.writeLineToTextFile(line, filename, filepath)
-    veaf.loggers.get(veaf.Id):trace(string.format("writeLineToTextFile(%s, %s)", veaf.p(line), veaf.p(filename)))
+    veaf.loggers.get(veaf.Id):debug(string.format("writeLineToTextFile(%s, %s)", veaf.p(line), veaf.p(filename)))
 
     local l_lfs = lfs
     if not l_lfs and SERVER_CONFIG and SERVER_CONFIG.getModule then
@@ -2472,35 +2473,39 @@ function veaf.writeLineToTextFile(line, filename, filepath)
         l_os = SERVER_CONFIG.getModule("os")
     end
 
-    local filepath = filepath
-    if not filepath and l_os then
-        filepath = l_os.getenv("VEAF_EXPORT_DIR")
-        if filepath then filepath = filepath .. "\\" end
-        veaf.loggers.get(veaf.Id):trace(string.format("filepath=%s", veaf.p(filepath)))
+    local l_filepath = filepath
+    if not l_filepath and l_os then
+        l_filepath = l_os.getenv("VEAF_EXPORT_DIR")
+        if l_filepath then l_filepath = l_filepath .. "\\" end
+        veaf.loggers.get(veaf.Id):debug(string.format("filepath=%s", veaf.p(l_filepath)))
     end
-    if not filepath and l_lfs then
-        filepath = l_lfs.writedir()
-        veaf.loggers.get(veaf.Id):trace(string.format("filepath=%s", veaf.p(filepath)))
+    if not l_filepath and l_lfs then
+        l_filepath = l_lfs.writedir()
+        veaf.loggers.get(veaf.Id):debug(string.format("filepath=%s", veaf.p(l_filepath)))
     end
-    if not filepath and l_os then
-        filepath = l_os.getenv("TEMP")
-        if filepath then filepath = filepath .. "\\" end
-        veaf.loggers.get(veaf.Id):trace(string.format("filepath=%s", veaf.p(filepath)))
+    if not l_filepath and l_os then
+        l_filepath = l_os.getenv("TEMP")
+        if l_filepath then l_filepath = l_filepath .. "\\" end
+        veaf.loggers.get(veaf.Id):debug(string.format("filepath=%s", veaf.p(l_filepath)))
+    end
+    if l_filepath == "SERVER_SAVEDGAMES_DIR" then
+        l_filepath = l_lfs.writedir()
+        veaf.loggers.get(veaf.Id):debug(string.format("filepath=%s", veaf.p(l_filepath)))
     end
 
-    if not filepath then
+    if not l_filepath then
         return
     end
 
-    local filename = filepath .. (filename or "default.log")
+    local l_filename = l_filepath .. (filename or "default.log")
 
     local date = ""
     if l_os then
         date = tostring(l_os.date('%Y-%m-%d %H:%M:%S.000'))
     end
 
-    veaf.loggers.get(veaf.Id):trace(string.format("filename=%s", veaf.p(filename)))
-    local file = l_io.open(filename, "a")
+    veaf.loggers.get(veaf.Id):debug(string.format("filename=%s", veaf.p(l_filename)))
+    local file = l_io.open(l_filename, "a")
     if file then
         veaf.loggers.get(veaf.Id):trace(string.format("file:write(%s)", veaf.p(line)))
         file:write(string.format("[%s] %s\r\n", date, line))
@@ -2509,6 +2514,7 @@ function veaf.writeLineToTextFile(line, filename, filepath)
 end
 
 function veaf.exportAsJson(data, name, jsonify, filename, export_path)
+
     local l_lfs = lfs
     if not l_lfs and SERVER_CONFIG and SERVER_CONFIG.getModule then
         l_lfs = SERVER_CONFIG.getModule("lfs")
@@ -2524,34 +2530,38 @@ function veaf.exportAsJson(data, name, jsonify, filename, export_path)
         l_os = SERVER_CONFIG.getModule("os")
     end
 
+    local l_export_path = export_path
+    if not l_export_path and l_os then
+        l_export_path = l_os.getenv("VEAF_EXPORT_DIR")
+        if l_export_path then l_export_path = l_export_path .. "\\" end
+        veaf.loggers.get(veaf.Id):debug(string.format("filepath=%s", veaf.p(l_export_path)))
+    end
+    if not l_export_path and l_lfs then
+        l_export_path = l_lfs.writedir()
+        veaf.loggers.get(veaf.Id):debug(string.format("filepath=%s", veaf.p(l_export_path)))
+    end
+    if not l_export_path and l_os then
+        l_export_path = l_os.getenv("TEMP")
+        if l_export_path then l_export_path = l_export_path .. "\\" end
+        veaf.loggers.get(veaf.Id):debug(string.format("filepath=%s", veaf.p(l_export_path)))
+    end
+    if l_export_path == "SERVER_SAVEDGAMES_DIR" then
+        l_export_path = l_lfs.writedir()
+        veaf.loggers.get(veaf.Id):debug(string.format("filepath=%s", veaf.p(l_export_path)))
+    end
+
+    if not l_export_path then
+        return
+    end
+
     local function writeln(file, text)
         file:write(text.."\r\n")
-    end
-
-    local export_path = export_path
-    if not export_path and l_os then
-        export_path = l_os.getenv("VEAF_EXPORT_DIR")
-        if export_path then export_path = export_path .. "\\" end
-        veaf.loggers.get(veaf.Id):trace(string.format("export_path=%s", veaf.p(export_path)))
-    end
-    if not export_path and l_os then
-        export_path = l_os.getenv("TEMP")
-        if export_path then export_path = export_path .. "\\" end
-        veaf.loggers.get(veaf.Id):trace(string.format("export_path=%s", veaf.p(export_path)))
-    end
-    if not export_path and l_lfs then
-        export_path = l_lfs.writedir()
-        veaf.loggers.get(veaf.Id):trace(string.format("export_path=%s", veaf.p(export_path)))
-    end
-
-    if not export_path then
-        return
     end
 
     local filename = filename or name .. ".json"
     veaf.loggers.get(veaf.Id):trace(string.format("filename=%s", veaf.p(filename)))
 
-    veaf.loggers.get(veaf.Id):info("Dumping ".. name .." as json to "..filename .. " in "..export_path)
+    veaf.loggers.get(veaf.Id):info("Dumping ".. name .." as json to "..filename .. " in ".. l_export_path)
 
     local header =    '{\n'
     header = header .. '  "' .. name .. '": [\n'
@@ -2565,7 +2575,7 @@ function veaf.exportAsJson(data, name, jsonify, filename, export_path)
     footer = footer .. ']\n'
     footer = footer .. '}\n'
 
-    local file = l_io.open(export_path..filename, "w")
+    local file = l_io.open(l_export_path .. filename, "w")
     writeln(file, header)
     writeln(file, table.concat(content, ",\n"))
     writeln(file, footer)

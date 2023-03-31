@@ -12,7 +12,7 @@ They are not case sensitive.
 
 <u>Examples:</u>
 
-`-cap easy` will spawn a random group containing "easy" in its name; it can be `J-11A - FOX2 - ECM ON - Radar OFF - EASY X1` or `MIG29A - FOX2 - Radar OFF - EASY X2` or multiple others.
+`-cap easy` will spawn a random group containing "easy" in its name; e.g., `J-11A - FOX2 - ECM ON - Radar OFF - EASY X1` or `MIG29A - FOX2 - Radar OFF - EASY X2`
 
 `-cap fox3.*x2` will spawn a random group containing "fox3" and "x2" in its name; in this case, it'll always spawn a pair of fox3 fighters.
 

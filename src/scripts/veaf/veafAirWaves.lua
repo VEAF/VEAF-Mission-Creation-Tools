@@ -20,7 +20,7 @@ veafAirWaves = {}
 veafAirWaves.Id = "AIRWAVES - "
 
 --- Version.
-veafAirWaves.Version = "1.1.0"
+veafAirWaves.Version = "1.2.0"
 
 -- trace level, specific to this module
 --veafAirWaves.LogLevel = "trace"
@@ -213,6 +213,14 @@ function AirWaveZone:addWave(wave)
     self.waves = {}
   end
   table.insert(self.waves, wave)
+  return self
+end
+
+---reset the waves table to zero; useful when deep copying a zone to reset the waves and set something different
+---@return table self
+function AirWaveZone:resetWaves()
+  veaf.loggers.get(veafAirWaves.Id):debug("AirWaveZone[%s]:resetWaves()", veaf.p(self.name))
+  self.waves = {}
   return self
 end
 

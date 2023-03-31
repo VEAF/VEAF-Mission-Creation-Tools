@@ -8,7 +8,7 @@ These collections of planes can then be spawned in the missions using the `_spaw
 
 These commands can search this list for the name of the group specified; this supports filters that can help select a random group from the list of all groups matching the partial name.
 
-They are not cass sensitive.
+They are not case sensitive.
 
 <u>Examples:</u>
 

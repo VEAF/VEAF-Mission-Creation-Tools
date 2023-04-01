@@ -19,7 +19,7 @@ veafShortcuts = {}
 veafShortcuts.Id = "SHORTCUTS"
 
 --- Version.
-veafShortcuts.Version = "1.31.0"
+veafShortcuts.Version = "1.32.0"
 
 -- trace level, specific to this module
 --veafShortcuts.LogLevel = "trace"
@@ -453,15 +453,8 @@ function veafShortcuts.GetAlias(aliasName)
     veaf.loggers.get(veafShortcuts.Id):debug(string.format("Searching for alias with name [%s]", aliasName))
 
     -- find the desired alias in the aliases list
-    local alias = nil
+    local alias = veafShortcuts.aliases[aliasName:lower()]
 
-    for _, a in pairs(veafShortcuts.aliases) do
-        if a:getName():lower() == aliasName:lower() then
-            alias = a
-            break
-        end
-    end
-    
     if not alias then 
         local message = string.format("VeafAlias [%s] was not found !",aliasName)
         veaf.loggers.get(veafShortcuts.Id):error(message)
@@ -474,7 +467,7 @@ end
 -- add an alias
 function veafShortcuts.AddAlias(alias)
     veaf.loggers.get(veafShortcuts.Id):debug(string.format("veafShortcuts.AddAlias([%s])",alias:getName() or ""))
-    table.insert(veafShortcuts.aliases, alias)
+    veafShortcuts.aliases[alias:getName():lower()] = alias
     return alias
 end
 

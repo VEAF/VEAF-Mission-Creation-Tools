@@ -19,7 +19,7 @@ veaf = {}
 veaf.Id = "VEAF"
 
 --- Version.
-veaf.Version = "1.37.0"
+veaf.Version = "1.38.0"
 
 --- Development version ?
 veaf.Development = true
@@ -398,6 +398,9 @@ function veaf.json.parse(str, pos, end_delim)
 end
 
 local escapeChars = nil
+---Escapes a string so it can no longer be a pattern (regex)
+---@param stringToEscape string
+---@return string
 function veaf.escapeRegex(stringToEscape)
     local regexCharsToEscape = "^$()%.[]*+-?"
     if not escapeChars then
@@ -420,6 +423,29 @@ function veaf.escapeRegex(stringToEscape)
     end
     return result
 end
+
+---checks if a string starts with a prefix
+---@param aString any
+---@param aPrefix any
+---@param caseSensitive? boolean   ; if true, case sensitive search
+---@return boolean
+function veaf.startsWith(aString, aPrefix, caseSensitive)
+    local _aString = aString
+    if not _aString then
+        return false
+    elseif not caseSensitive then
+        _aString = _aString:upper()
+    end
+    local _aPrefix = aPrefix
+    if not _aPrefix then
+        return false
+    elseif not caseSensitive then
+        _aPrefix = _aPrefix:upper()
+    end
+    return string.sub(_aString,1,string.len(_aPrefix))==_aPrefix
+end
+
+
 
 --- efficiently remove elements from a table
 --- credit : Mitch McMabers (https://stackoverflow.com/questions/12394841/safely-remove-items-from-an-array-table-while-iterating)

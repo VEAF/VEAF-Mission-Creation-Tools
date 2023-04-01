@@ -23,6 +23,7 @@
 -- * -debug if set, the script will output some information ; useful to find out which units were edited
 -- * -trace if set, the script will output a lot of information : useful to understand what went wrong
 -- * -import if set, the script will import data from the .miz file (the exploded mission folder) instead of injecting data. Useful to update the settings file
+-- * -dontclean, if set, the script will not delete all the groups starting with "veafSpawn-" from the mission
 -- * -nameFilter, a regex that will be used to filter the groups that are processed (in either direction) by matching their names. Default to nil, all groups processed
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -39,7 +40,7 @@ veafSpawnableAircraftsEditor = {}
 veafSpawnableAircraftsEditor.Id = "SPAWN_AC - "
 
 --- Version.
-veafSpawnableAircraftsEditor.Version = "1.1.2"
+veafSpawnableAircraftsEditor.Version = "1.2.0"
 
 -- trace level, specific to this module
 veafSpawnableAircraftsEditor.Trace = false
@@ -627,6 +628,24 @@ function veafSpawnableAircraftsEditor.injectInMission(filePath, settingsPath, na
           veafSpawnableAircraftsEditor.logTrace(string.format("found country [%s]",missionCountryName))
           missionCountryTablesByName[missionCountryName:lower()] = missionCountry_t
         end
+        -- remove all the existing veafSpawn aircrafts groups
+        if not veafSpawnableAircraftsEditor.leaveExistingGroupsInPlace then
+          for _, categoryName in pairs(CATEGORIES) do
+            local missionCategory_t = missionCountry_t[categoryName]
+            if missionCategory_t then
+              local missionCategoryGroup_t = missionCategory_t.group
+              if missionCategoryGroup_t then
+                for index, missionGroup_t in pairs(missionCategoryGroup_t) do
+                  local groupName = missionGroup_t.name
+                  if groupName and startsWith(groupName, "veafSpawn-", false) then
+                    veafSpawnableAircraftsEditor.logDebug(string.format("removing existing group from mission: [%s]",groupName))
+                    missionCategoryGroup_t[index] = nil
+                  end
+                end
+              end
+            end
+          end
+        end
       end
     end
 
@@ -693,7 +712,7 @@ function veafSpawnableAircraftsEditor.injectInMission(filePath, settingsPath, na
                 callsignData[1] = digit1
                 callsignData[2] = digit2
                 callsignData[3] = digit3
-                veafSpawnableAircraftsEditor.logDebug(string.format("unitName=[%s] unitId=[%s], callsign changed from [%s] to [%s]", newUnitData.name, newUnitData.unitId, oldCallsign, callsignData.name))
+                veafSpawnableAircraftsEditor.logTrace(string.format("unitName=[%s] unitId=[%s], callsign changed from [%s] to [%s]", newUnitData.name, newUnitData.unitId, oldCallsign, callsignData.name))
               end
             end
             -- reset work data
@@ -704,9 +723,11 @@ function veafSpawnableAircraftsEditor.injectInMission(filePath, settingsPath, na
             newGroupData.hidden = true
             if foundIndex then
               -- found it, let's replace the group data
+              veafSpawnableAircraftsEditor.logDebug(string.format("replacing existing group in mission: [%s]", spawnGroupName))
               missionGroups_t[foundIndex] = newGroupData
             else
               -- inject the group as new
+              veafSpawnableAircraftsEditor.logDebug(string.format("adding new group in mission: [%s]", spawnGroupName))
               table.insert(missionGroups_t, newGroupData)
             end
           end
@@ -749,6 +770,8 @@ for i = 3, #arg, 1 do
     import = true
   elseif arg[i]:lower() == "-namefilter" then
     nameFilter = arg[i+1]
+  elseif arg[i]:lower() == "-dontclean" then
+    veafSpawnableAircraftsEditor.leaveExistingGroupsInPlace = true
   end
 end
 if veafSpawnableAircraftsEditor.debug or veafSpawnableAircraftsEditor.trace then

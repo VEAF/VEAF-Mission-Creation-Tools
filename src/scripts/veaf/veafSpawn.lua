@@ -23,7 +23,7 @@ veafSpawn = {}
 veafSpawn.Id = "SPAWN"
 
 --- Version.
-veafSpawn.Version = "1.43.0"
+veafSpawn.Version = "1.44.0"
 
 -- trace level, specific to this module
 --veafSpawn.LogLevel = "trace"
@@ -2938,12 +2938,18 @@ function veafSpawn.spawnCombatAirPatrol(spawnSpot, radius, name, country, altitu
     end
 
     -- find template amongst the existing templates (name can be a regex)
-    local nameUpper = ".*" .. (name or ".*"):upper() .. ".*"
+    local nameUpper = (name or ""):upper()
+    local regexNameUpper = ".*" .. (nameUpper or ".*") .. ".*"
+    if not name then
+        regexNameUpper = ".*"
+    end
+    local escapedNameUpper = veaf.escapeRegex(nameUpper)
+    veaf.loggers.get(veafSpawn.Id):trace("nameUpper=%s", veaf.p(nameUpper))
     local templatesNamesToChooseFrom = {}
     local chosenTemplateName = nil
     for templateNameUpper, templateData in pairs(veafSpawn.airUnitTemplates) do
         veaf.loggers.get(veafSpawn.Id):trace("templateNameUpper=%s", veaf.p(templateNameUpper))
-        if templateNameUpper:match(nameUpper) then
+        if templateNameUpper:match(regexNameUpper) or templateNameUpper:match(escapedNameUpper) then
             local templateName = templateData.name
             veaf.loggers.get(veafSpawn.Id):trace("templateName=%s", veaf.p(templateName))
             table.insert(templatesNamesToChooseFrom, templateName)
@@ -3595,4 +3601,3 @@ function veafSpawn.initialize()
 end
 
 veaf.loggers.get(veafSpawn.Id):info(string.format("Loading version %s", veafSpawn.Version))
-

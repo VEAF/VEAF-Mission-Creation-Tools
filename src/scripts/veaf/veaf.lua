@@ -19,7 +19,7 @@ veaf = {}
 veaf.Id = "VEAF"
 
 --- Version.
-veaf.Version = "1.36.0"
+veaf.Version = "1.37.0"
 
 --- Development version ?
 veaf.Development = true
@@ -395,6 +395,30 @@ function veaf.json.parse(str, pos, end_delim)
     local pos_info_str = 'position ' .. pos .. ': ' .. str:sub(pos, pos + 10)
     error('Invalid json syntax starting at ' .. pos_info_str)
   end
+end
+
+local escapeChars = nil
+function veaf.escapeRegex(stringToEscape)
+    local regexCharsToEscape = "^$()%.[]*+-?"
+    if not escapeChars then
+        escapeChars = {}
+        for i = 1, string.len(regexCharsToEscape) do
+            local char = string.sub(regexCharsToEscape,i,i)
+            escapeChars[char] = true
+        end
+    end
+
+    local result = ""
+    if stringToEscape then
+        for i = 1, string.len(stringToEscape) do
+            local char = string.sub(stringToEscape,i,i)
+            if escapeChars[char] then
+                result = result .. "%"
+            end
+            result = result .. char
+        end
+    end
+    return result
 end
 
 --- efficiently remove elements from a table

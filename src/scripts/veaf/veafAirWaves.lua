@@ -20,7 +20,7 @@ veafAirWaves = {}
 veafAirWaves.Id = "AIRWAVES - "
 
 --- Version.
-veafAirWaves.Version = "1.3.0"
+veafAirWaves.Version = "1.4.0"
 
 -- trace level, specific to this module
 veafAirWaves.LogLevel = "trace"
@@ -106,6 +106,7 @@ function AirWaveZone.init(object)
   -- current wave number
   object.currentWaveIndex = 0
   object.zoneDrawing = nil
+  object.checkFunctionSchedule = nil
 end
 
 function veafAirWaves.statusToString(status)
@@ -205,9 +206,19 @@ end
 ---@param number any how many of these groups will actually be spawned (can be multiple times the same group!)
 ---@param bias any shifts the random generator to the right of the list
 ---@return table self
-function AirWaveZone:addRandomWave(groups, number, bias)
-  veaf.loggers.get(veafAirWaves.Id):debug(string.format("VeafQRA[%s]:addRandomWave(%s, %s, %s)", veaf.p(self.name), veaf.p(groups), veaf.p(number), veaf.p(bias)))
-  return self:addWave({groups, number or 1, bias or 0})
+function AirWaveZone:addRandomSimultaneousWave(groups, number, bias)
+  veaf.loggers.get(veafAirWaves.Id):debug(string.format("VeafQRA[%s]:addRandomSimultaneousWave(%s, %s, %s)", veaf.p(self.name), veaf.p(groups), veaf.p(number), veaf.p(bias)))
+  return self:addRandomWave(groups, number, bias, true)
+end
+
+---add a wave of ennemy planes
+---@param groups any a list of groups or VEAF commands; VEAF commands can be prefixed with [lat, lon], specifying the location of their spawn relative to the center of the zone; default value is set with "setRespawnDefaultOffset"
+---@param number any how many of these groups will actually be spawned (can be multiple times the same group!)
+---@param bias any shifts the random generator to the right of the list
+---@return table self
+function AirWaveZone:addRandomWave(groups, number, bias, simultaneous)
+  veaf.loggers.get(veafAirWaves.Id):debug(string.format("VeafQRA[%s]:addRandomWave(%s, %s, %s, %s)", veaf.p(self.name), veaf.p(groups), veaf.p(number), veaf.p(bias), veaf.p(simultaneous)))
+  return self:addWave({groups=groups, number=number or 1, bias=bias or 0, simultaneous=simultaneous})
 end
 
 function AirWaveZone:addWave(wave)
@@ -533,6 +544,27 @@ function AirWaveZone:check()
       if self:deployWave() then
         self:_setState(veafAirWaves.STATUS_ACTIVE)
       end
+      -- check next waves if they're simultaneous
+      local simultaneous = false
+      local nextWaveIndex = self.currentWaveIndex + 1
+      repeat
+        veaf.loggers.get(veafAirWaves.Id):trace("check for simultaneous wave: nextWaveIndex=%s", veaf.p(nextWaveIndex))
+        if nextWaveIndex <= #self.waves then
+          local nextWave = self.waves[nextWaveIndex]
+          simultaneous = nextWave.simultaneous or false
+          veaf.loggers.get(veafAirWaves.Id):trace("check - simultaneous=%s", veaf.p(simultaneous))
+          if simultaneous then
+            self.currentWaveIndex = nextWaveIndex
+            veaf.loggers.get(veafAirWaves.Id):trace("check - found simultaneous wave: nextWaveIndex=%s", veaf.p(nextWaveIndex))
+            if self:deployWave() then
+              nextWaveIndex = nextWaveIndex + 1
+            end
+          end
+        end
+      until nextWaveIndex > #self.waves or not simultaneous
+      veaf.loggers.get(veafAirWaves.Id):trace("simultaneous=%s", veaf.p(simultaneous))
+      veaf.loggers.get(veafAirWaves.Id):trace("nextWaveIndex=%s", veaf.p(nextWaveIndex))
+      veaf.loggers.get(veafAirWaves.Id):trace("#self.waves=%s", veaf.p(#self.waves))
     else
       self:signalWon()
       self:_setState(veafAirWaves.STATUS_OVER)
@@ -585,7 +617,7 @@ function AirWaveZone:check()
     -- zone has still to be reset to restart
   end
 
-  mist.scheduleFunction(AirWaveZone.check, {self}, timer.getTime() + veafAirWaves.WATCHDOG_DELAY)
+  self.checkFunctionSchedule = mist.scheduleFunction(AirWaveZone.check, {self}, timer.getTime() + veafAirWaves.WATCHDOG_DELAY)
 end
 
 function AirWaveZone:chooseGroupsToDeploy()
@@ -597,9 +629,9 @@ function AirWaveZone:chooseGroupsToDeploy()
   end
   if groupsToDeploy then
     -- process a random group definition
-    local groupsToChooseFrom = groupsToDeploy[1]
-    local numberOfGroups = groupsToDeploy[2]
-    local bias = groupsToDeploy[3]
+    local groupsToChooseFrom = groupsToDeploy.groups
+    local numberOfGroups = groupsToDeploy.number
+    local bias = groupsToDeploy.bias
     --veaf.loggers.get(veafAirWaves.Id):trace("groupsToChooseFrom=%s", veaf.p(groupsToChooseFrom))
     --veaf.loggers.get(veafAirWaves.Id):trace("numberOfGroups=%s", veaf.p(numberOfGroups))
     --veaf.loggers.get(veafAirWaves.Id):trace("bias=%s", veaf.p(bias))
@@ -613,14 +645,17 @@ function AirWaveZone:chooseGroupsToDeploy()
       groupsToDeploy = result
     end
   end
-  return groupsToDeploy
+  return groupsToDeploy, groupsToDeploy[4] or false
 end
 
 function AirWaveZone:deployWave()
   veaf.loggers.get(veafAirWaves.Id):debug("AirWaveZone[%s]:deployWave()", veaf.p(self.name))
 
-  local groupsToDeploy = self:chooseGroupsToDeploy()
-  self.spawnedGroupsNames = {}
+  local groupsToDeploy, simultaneous = self:chooseGroupsToDeploy()
+  veaf.loggers.get(veafAirWaves.Id):debug("simultaneous=%s", veaf.p(simultaneous))
+  if not simultaneous then -- don't reset the groups that have spawned in the previous waves if we're simultaneous
+    self.spawnedGroupsNames = {}
+  end
   if groupsToDeploy then
     local zoneCenter = {}
     if self.triggerZoneName then
@@ -852,6 +887,11 @@ function AirWaveZone:stop()
   end
 
   self:signalStop()
+
+  if self.checkFunctionSchedule then
+    mist.removeFunction(self.checkFunctionSchedule)
+  end
+
   return self
 end
 

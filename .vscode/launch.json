@@ -7,7 +7,8 @@
         {
             "name": "veafSpawnableAircraftsEditor",
             "program": "veafSpawnableAircraftsEditor.lua",
-            "arg": ["${workspaceFolder}/test", "${workspaceFolder}/src/defaults/veafSpawnableAircraftsEditor/settings.lua", "-trace"],
+            "arg": ["${workspaceFolder}/test", "${workspaceFolder}/src/defaults/veafSpawnableAircraftsEditor/settings.lua", "-debug"],
+            //"arg": ["${workspaceFolder}/test", "${workspaceFolder}/src/defaults/veafSpawnableAircraftsEditor/settings.lua", "-debug", "-dontclean"],
             //"arg": ["${workspaceFolder}/test", "${workspaceFolder}/src/defaults/veafSpawnableAircraftsEditor/settings.lua", "-trace", "-namefilter", "\".* EASY .*\""],
             //"arg": ["${workspaceFolder}/test", "${workspaceFolder}/src/defaults/veafSpawnableAircraftsEditor/settings.lua", "-trace", "-import"],
             //"arg": ["${workspaceFolder}/test", "${workspaceFolder}/src/defaults/veafSpawnableAircraftsEditor/settings.lua", "-trace", "-import", "-namefilter", "\".* EASY .*\""],

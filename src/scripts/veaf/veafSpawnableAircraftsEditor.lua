@@ -40,7 +40,7 @@ veafSpawnableAircraftsEditor = {}
 veafSpawnableAircraftsEditor.Id = "SPAWN_AC - "
 
 --- Version.
-veafSpawnableAircraftsEditor.Version = "1.2.0"
+veafSpawnableAircraftsEditor.Version = "1.2.1"
 
 -- trace level, specific to this module
 veafSpawnableAircraftsEditor.Trace = false
@@ -635,13 +635,18 @@ function veafSpawnableAircraftsEditor.injectInMission(filePath, settingsPath, na
             if missionCategory_t then
               local missionCategoryGroup_t = missionCategory_t.group
               if missionCategoryGroup_t then
-                for index, missionGroup_t in pairs(missionCategoryGroup_t) do
+                local newMissionCategoryGroup_t = {}
+                for _, missionGroup_t in pairs(missionCategoryGroup_t) do
                   local groupName = missionGroup_t.name
-                  if groupName and startsWith(groupName, "veafSpawn-", false) then
-                    veafSpawnableAircraftsEditor.logDebug(string.format("removing existing group from mission: [%s]",groupName))
-                    missionCategoryGroup_t[index] = nil
+                  if groupName then
+                    if not startsWith(groupName, "veafSpawn-", false) then
+                      table.insert(newMissionCategoryGroup_t, missionGroup_t)
+                    else
+                      veafSpawnableAircraftsEditor.logDebug(string.format("removing existing group from mission: [%s]",groupName))
+                    end
                   end
                 end
+                missionCategory_t.group = newMissionCategoryGroup_t
               end
             end
           end

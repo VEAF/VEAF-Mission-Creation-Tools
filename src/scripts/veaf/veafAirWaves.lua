@@ -20,10 +20,10 @@ veafAirWaves = {}
 veafAirWaves.Id = "AIRWAVES - "
 
 --- Version.
-veafAirWaves.Version = "1.2.0"
+veafAirWaves.Version = "1.3.0"
 
 -- trace level, specific to this module
---veafAirWaves.LogLevel = "trace"
+veafAirWaves.LogLevel = "trace"
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Do not change anything below unless you know what you are doing!
@@ -73,6 +73,8 @@ function AirWaveZone.init(object)
   object.onStart = nil
   -- message when a wave is triggered
   object.messageDeploy = veafAirWaves.DEFAULT_MESSAGE_DEPLOY
+  -- message to each players in the zone when a wave is triggered
+  object.messageDeployPlayers = veafAirWaves.DEFAULT_MESSAGE_DEPLOY_PLAYERS
   -- event  when a wave is triggered
   object.onDeploy = nil
   -- message when a wave is destroyed
@@ -122,6 +124,7 @@ veafAirWaves.MINIMUM_LIFE_FOR_AI_IN_PERCENT = 10
 
 veafAirWaves.DEFAULT_MESSAGE_START = "Zone %s is online"
 veafAirWaves.DEFAULT_MESSAGE_DEPLOY = "Zone %s is deploying wave %s"
+veafAirWaves.DEFAULT_MESSAGE_DEPLOY_PLAYERS = "Wave %s deploying, %s"
 veafAirWaves.DEFAULT_MESSAGE_DESTROYED = "Zone %s: wave %s has been destroyed"
 veafAirWaves.DEFAULT_MESSAGE_WON = "Zone %s is won (no more waves)"
 veafAirWaves.DEFAULT_MESSAGE_LOST = "Zone %s is lost (no more players)"
@@ -242,6 +245,12 @@ end
 function AirWaveZone:setMessageDeploy(value)
   veaf.loggers.get(veafAirWaves.Id):debug("AirWaveZone[%s]:setMessageDeploy()", veaf.p(self.name))
   self.messageDeploy = value
+  return self
+end
+
+function AirWaveZone:setMessageDeployPlayers(value)
+  veaf.loggers.get(veafAirWaves.Id):debug("AirWaveZone[%s]:setMessageDeployPlayers()", veaf.p(self.name))
+  self.messageDeployPlayers = value
   return self
 end
 
@@ -475,24 +484,24 @@ function AirWaveZone:check()
     self.playerUnitsNames = {}
     local unitNames = self:getPlayerUnits()
     --veaf.loggers.get(veafAirWaves.Id):trace("unitNames=%s", veaf.p(unitNames))
-    local unitsInZone = nil
+    self.unitsInZone = nil
     local triggerZone = veaf.getTriggerZone(self.triggerZoneName)
     if triggerZone then
       --veaf.loggers.get(veafAirWaves.Id):trace("triggerZone=%s", veaf.p(triggerZone))
       if triggerZone.type == 0 then -- circular
-        unitsInZone = mist.getUnitsInZones(unitNames, {self.triggerZoneName})
+        self.unitsInZone = mist.getUnitsInZones(unitNames, {self.triggerZoneName})
       elseif triggerZone.type == 2 then -- quad point
         --veaf.loggers.get(veafAirWaves.Id):trace("checking in polygon %s", veaf.p(triggerZone.verticies))
-        unitsInZone = mist.getUnitsInPolygon(unitNames, triggerZone.verticies)
+        self.unitsInZone = mist.getUnitsInPolygon(unitNames, triggerZone.verticies)
       end
     else
       --veaf.loggers.get(veafAirWaves.Id):trace("self.zoneCenter=%s", veaf.p(self.zoneCenter))
       --veaf.loggers.get(veafAirWaves.Id):trace("self.zoneRadius=%s", veaf.p(self.zoneRadius))
       --veaf.loggers.get(veafAirWaves.Id):trace("unitNames=%s", veaf.p(unitNames))
-      unitsInZone = veaf.findUnitsInCircle(self.zoneCenter, self.zoneRadius, false, unitNames)
+      self.unitsInZone = veaf.findUnitsInCircle(self.zoneCenter, self.zoneRadius, false, unitNames)
     end
     local nbUnitsInZone = 0
-    for _, unit in pairs(unitsInZone) do
+    for _, unit in pairs(self.unitsInZone) do
       -- check the unit altitude against the ceiling and floor
       if unit:inAir() then -- never count a landed aircraft
         local alt = unit:getPoint().y
@@ -507,10 +516,10 @@ function AirWaveZone:check()
         end
       end
     end
-    --veaf.loggers.get(veafAirWaves.Id):trace("unitsInZone=%s", veaf.p(unitsInZone))
-    --veaf.loggers.get(veafAirWaves.Id):trace("#unitsInZone=%s", veaf.p(#unitsInZone))
+    --veaf.loggers.get(veafAirWaves.Id):trace("self.unitsInZone=%s", veaf.p(self.unitsInZone))
+    --veaf.loggers.get(veafAirWaves.Id):trace("#self.unitsInZone=%s", veaf.p(#self.unitsInZone))
     veaf.loggers.get(veafAirWaves.Id):trace("nbUnitsInZone=%s", veaf.p(nbUnitsInZone))
-    if unitsInZone and nbUnitsInZone > 0 then
+    if self.unitsInZone and nbUnitsInZone > 0 then
       -- reset wave index
       self.currentWaveIndex = 0
       self:_setState(veafAirWaves.STATUS_NEXTWAVE)
@@ -706,9 +715,42 @@ end
 function AirWaveZone:signalDeploy()
   veaf.loggers.get(veafAirWaves.Id):debug("AirWaveZone[%s]:signalDeploy()", veaf.p(self.name))
   if not self.silent then
+    -- messages to all
     local msg = string.format(self.messageDeploy, self:getDescription(), self.currentWaveIndex)
     for coalition, _ in pairs(self.playerCoalitions) do
       trigger.action.outTextForCoalition(coalition, msg, 15)
+    end
+    -- messages to players with BRAA
+    if self.unitsInZone then
+      for _, unitInZone in pairs(self.unitsInZone) do
+        -- compute BRAA of closest group
+        local braa = { bearing = -1, distance = 9999}
+        for _, spawnedGroupName in pairs(self.spawnedGroupsNames) do
+          local spawnedGroupPosition = mist.getAvgGroupPos(spawnedGroupName)
+          veaf.loggers.get(veafAirWaves.Id):trace("point=%s", veaf.p(spawnedGroupPosition))
+          local unitPosition = nil
+          if unitInZone and unitInZone:getPosition() then
+            unitPosition = unitInZone:getPosition().p
+          end
+          if spawnedGroupPosition and unitPosition then
+            local bearing, _, _, distanceInNm = veaf.getBearingAndRangeFromTo(unitPosition, spawnedGroupPosition)
+            if braa.distance > distanceInNm then
+              -- this is closer than the group we had before
+              braa.distance = math.floor(distanceInNm)
+              braa.bearing = math.floor(bearing)
+            end
+          end
+        end
+        if braa.bearing > -1 then
+          -- found a group
+          local braaS = string.format("BRA %03d/%02d", braa.bearing, braa.distance)
+          if braa.distance < 5 then
+            braaS = "MERGED"
+          end
+          msg = string.format(self.messageDeployPlayers, self.currentWaveIndex, braaS)
+          veaf.outTextForUnit(unitInZone:getName(), msg, 15)
+        end
+      end
     end
   end
   if self.onDeploy then

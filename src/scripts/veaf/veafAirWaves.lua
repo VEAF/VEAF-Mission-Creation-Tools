@@ -20,10 +20,10 @@ veafAirWaves = {}
 veafAirWaves.Id = "AIRWAVES - "
 
 --- Version.
-veafAirWaves.Version = "1.4.0"
+veafAirWaves.Version = "1.5.0"
 
 -- trace level, specific to this module
-veafAirWaves.LogLevel = "trace"
+--veafAirWaves.LogLevel = "trace"
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Do not change anything below unless you know what you are doing!
@@ -103,9 +103,19 @@ function AirWaveZone.init(object)
   object.minimumAltitude = -999999
   -- players in the zone will only be detected above this altitude (in feet)
   object.maximumAltitude = 999999
+  -- the function that decides if a wave is dead or not (as a set of groups and units)
+  object.isEnemyWaveDeadCallback = AirWaveZone.isEnemyWaveDead
+  -- the function that decides if IA ennemy groups are dead (individually)
+  object.isEnemyGroupDeadCallback = AirWaveZone.isEnemyGroupDead
+  -- the function that handles crippled enemy units
+  object.handleCrippledEnemyUnitCallback = AirWaveZone.handleCrippledEnemyUnit
+  ------------------------------------------------------------------------
+
   -- current wave number
   object.currentWaveIndex = 0
+  -- the drawing object that has been used to draw the zone
   object.zoneDrawing = nil
+  -- the scheduled state of the :check() function
   object.checkFunctionSchedule = nil
 end
 
@@ -422,6 +432,95 @@ function AirWaveZone:reset()
   return self
 end
 
+---the function that decides if a wave is dead or not (as a set of groups and units)
+---@param callback function the callback function will be called with 3 parameters: a zone, the wave index number, the spawned groups names list; it must return a boolean
+function AirWaveZone:setIsEnemyWaveDeadCallback(callback)
+  veaf.loggers.get(veafAirWaves.Id):debug("AirWaveZone[%s]:setIsEnemyWaveDeadCallback()", veaf.p(self.name))
+  self.isEnemyWaveDeadCallback = callback
+  return self
+end
+
+---the function that decides if a group is dead or not (individually)
+---@param callback function the callback function will be called with 3 parameters: a zone, the wave index number, a DCS group table; it must return a boolean
+function AirWaveZone:setIsEnemyGroupDeadCallback(callback)
+  veaf.loggers.get(veafAirWaves.Id):debug("AirWaveZone[%s]:setIsEnemyGroupDeadCallback()", veaf.p(self.name))
+  self.isEnemyGroupDeadCallback = callback
+  return self
+end
+
+--- the function that handles crippled enemy units
+---@param callback function the callback function will be called with 3 parameters: a zone, the wave index number, a DCS unit table; it must do what it wants with the unit
+function AirWaveZone:setHandleCrippledEnemyUnitCallback(callback)
+  veaf.loggers.get(veafAirWaves.Id):debug("AirWaveZone[%s]:setHandleCrippledEnemyUnitCallback()", veaf.p(self.name))
+  self.handleCrippledEnemyUnitCallback = callback
+  return self
+end
+
+-- the function that decides if a wave is dead or not (as a set of groups and units)
+function AirWaveZone:isEnemyWaveDead(waveNumber, waveGroupsNames)
+  veaf.loggers.get(veafAirWaves.Id):trace("AirWaveZone[%s]:isEnemyWaveDead(%s)", veaf.p(self.name), veaf.p(waveNumber))
+  veaf.loggers.get(veafAirWaves.Id):trace("waveGroupsNames=%s", veaf.p(waveGroupsNames))
+
+  local currentWaveAlive = false
+  for _, groupName in pairs(waveGroupsNames) do
+    local group = Group.getByName(groupName)
+    if group then
+      local groupIsDead = self.isEnemyGroupDeadCallback(self, self.currentWaveIndex, group)
+      veaf.loggers.get(veafAirWaves.Id):trace("groupIsDead=%s", veaf.p(groupIsDead))
+      if not groupIsDead then
+        currentWaveAlive = true
+      end
+    end
+  end
+  veaf.loggers.get(veafAirWaves.Id):trace("currentWaveAlive=%s", veaf.p(currentWaveAlive))
+  return not currentWaveAlive
+end
+
+-- the function that decides if IA ennemy groups are dead (individually)
+function AirWaveZone:isEnemyGroupDead(waveNumber, group)
+  veaf.loggers.get(veafAirWaves.Id):trace("AirWaveZone[%s]:isEnemyGroupDead(%s)", veaf.p(self.name), veaf.p(waveNumber))
+  if not group then return true end
+  veaf.loggers.get(veafAirWaves.Id):trace("group:getName()=%s", veaf.p(group:getName()))
+
+  local groupAtLeastOneUnitAlive = false
+  local category = group:getCategory()
+  local units = group:getUnits()
+  if units then
+    for _,unit in pairs(units) do
+      veaf.loggers.get(veafAirWaves.Id):trace("unit:getName()=%s", veaf.p(unit:getName()))
+      local unitAlive = false
+      local unitLife = unit:getLife()
+      local unitLife0 = unit:getLife0()
+      local unitLifePercent = 100 * unitLife / unitLife0
+      veaf.loggers.get(veafAirWaves.Id):trace("unitLifePercent=%s", veaf.p(unitLifePercent))
+      if unitLifePercent >= veafAirWaves.MINIMUM_LIFE_FOR_AI_IN_PERCENT then
+        if category == 0 --[[airplanes]] or category == 1 --[[helicopters]] then
+          if unit:inAir() then
+            unitAlive = true
+          end
+        else
+          unitAlive = true
+        end
+      end
+      if not unitAlive then
+        self.handleCrippledEnemyUnitCallback(self, self.currentWaveIndex, unit)
+      else
+        groupAtLeastOneUnitAlive = true
+      end
+    end
+  end
+  return not groupAtLeastOneUnitAlive
+end
+
+-- the function that handles crippled enemy units
+function AirWaveZone:handleCrippledEnemyUnit(waveNumber, unit)
+  veaf.loggers.get(veafAirWaves.Id):trace("AirWaveZone[%s]:handleCrippledEnemyUnit(%s)", veaf.p(self.name), veaf.p(waveNumber))
+  if not unit then return end
+  veaf.loggers.get(veafAirWaves.Id):trace("unit:getName()=%s", veaf.p(unit:getName()))
+  -- simply despawn the unit
+  unit:destroy()
+end
+
 function AirWaveZone:getPlayerUnits()
   if not self.playerHumanUnits then
     --veaf.loggers.get(veafAirWaves.Id):trace("AirWaveZone[%s]:getPlayerUnits() - computing", veaf.p(self.name))
@@ -571,43 +670,10 @@ function AirWaveZone:check()
     end
   elseif self.state == veafAirWaves.STATUS_ACTIVE then
     -- zone is active, check if the current wave is still alive
-    local currentWaveAlive = false
-    local currentWaveInAir = false
-    for _, groupName in pairs(self.spawnedGroupsNames) do
-      local group = Group.getByName(groupName)
-      if group then
-        local groupAtLeastOneUnitAlive = false
-        local groupAtLeastOneUnitInAir = false
-        local category = group:getCategory()
-        local units = group:getUnits()
-        if units then
-          for _,unit in pairs(units) do
-            if unit then
-              local unitLife = unit:getLife()
-              local unitLife0 = unit:getLife0()
-              local unitLifePercent = 100 * unitLife / unitLife0
-              if unitLifePercent >= veafAirWaves.MINIMUM_LIFE_FOR_AI_IN_PERCENT then
-                groupAtLeastOneUnitAlive = true
-              end
-              if category == 0 --[[airplanes]] or category == 1 --[[helicopters]] then
-              -- check if at least one unit is still airborne
-                if unit:inAir() then
-                  groupAtLeastOneUnitInAir = true
-                end
-              else
-                -- consider that ground units have never landed
-                groupAtLeastOneUnitInAir = true
-              end
-            end
-          end
-        end
-        currentWaveAlive = currentWaveAlive or groupAtLeastOneUnitAlive
-        currentWaveInAir = currentWaveInAir or groupAtLeastOneUnitInAir
-        veaf.loggers.get(veafAirWaves.Id):trace("qraAlive=%s", veaf.p(currentWaveAlive))
-        veaf.loggers.get(veafAirWaves.Id):trace("qraInAir=%s", veaf.p(currentWaveInAir))
-      end
-    end
-    if not (currentWaveAlive and currentWaveInAir) then
+    local waveIsDead = self.isEnemyWaveDeadCallback(self, self.currentWaveIndex, self.spawnedGroupsNames)
+    if waveIsDead then
+      -- clean up any eventual remaining group of the wave
+      self:destroyCurrentWave()
       -- signal that wave has been destroyed
       self:signalDestroyed()
       -- prepare next wave

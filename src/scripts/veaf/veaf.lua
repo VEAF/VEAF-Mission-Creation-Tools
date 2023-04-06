@@ -19,7 +19,7 @@ veaf = {}
 veaf.Id = "VEAF"
 
 --- Version.
-veaf.Version = "1.38.0"
+veaf.Version = "1.39.0"
 
 --- Development version ?
 veaf.Development = true
@@ -939,7 +939,84 @@ function veaf.getWind(point)
 
     -- Return wind direction and strength (in m/s).
     return direction, strength, windvec3
-  end
+end
+
+---comment
+---@param mach number the mach number
+---@param altitude any in feet, defaults to 10000
+---@param temperature any in celsius, defaults to ISA temperature at altitude
+function veaf.convertMachSpeed(mach, altitude, temperature)
+    return veaf.convertSpeeds(mach, nil, nil, altitude, temperature)
+end
+
+---comment
+---@param ktas number the true airspeed in knots
+---@param altitude any in feet, defaults to 10000
+---@param temperature any in celsius, defaults to ISA temperature at altitude
+function veaf.convertTrueAirSpeed(ktas, altitude, temperature)
+    return veaf.convertSpeeds(nil, nil, ktas, altitude, temperature)
+end
+
+---comment
+---@param kias number the indicated airspeed in knots
+---@param altitude any in feet, defaults to 10000
+---@param temperature any in celsius, defaults to ISA temperature at altitude
+function veaf.convertIndicatedAirSpeed(kias, altitude, temperature)
+    return veaf.convertSpeeds(nil, kias, nil, altitude, temperature)
+end
+
+---Computes speeds based on a speed parameter (mach, tas, ias) and altitude/temperature
+---@param mach number? the mach number
+---@param kias number? the indicated airspeed in knots
+---@param ktas number? the true airspeed in knots
+---@param altitude any in feet, defaults to 10000
+---@param temperature any in celsius, defaults to ISA temperature at altitude
+---@return table result containing KTAS, KIAS, Mach, IAS_ms and TAS_ms
+function veaf.convertSpeeds(mach, kias, ktas, altitude, temperature)
+    local result = {
+        KTAS = ktas,
+        KIAS = kias,
+        Mach = 0
+    }
+    local altitude = altitude
+    if not altitude then
+        altitude = 10000 -- default to 10000 ft
+    end
+
+    local temperature = temperature
+    if not temperature then
+        -- compute ISA temperature based on altitude
+        temperature = 15 - (1.98 * altitude / 1000)
+    end
+
+    if mach then
+        -- compute speeds from mach number
+        result.Mach = mach
+
+        result.KTAS = 39 * mach * math.sqrt(temperature + 273.15) -- temperature in the formula is in Kelvin
+        result.TAS_ms = result.KTAS / 1.94384
+
+        result.KIAS = 0 -- TODO later
+    elseif kias then
+        -- compute speeds from ias
+        result.KIAS = kias
+        result.IAS_ms = result.KIAS / 1.94384
+
+        result.KTAS = kias * (1 + (altitude / 1000 * .02)) -- TODO do better
+        result.TAS_ms = result.KTAS / 1.94384
+
+        result.Mach = result.KTAS / (39 * math.sqrt(temperature + 273.15)) -- temperature in the formula is in Kelvin
+    elseif ktas then
+        -- compute speeds from tas
+        result.KTAS = ktas
+        result.TAS_ms = result.KTAS / 1.94384
+
+        result.KIAS = 0 -- TODO later
+
+        result.Mach = result.KTAS / (39 * math.sqrt(temperature + 273.15)) -- temperature in the formula is in Kelvin
+    end
+    return result
+end
 
 --- Find a suitable point for spawning a unit in a <dispersion>-sized circle around a spot
 function veaf.findPointInZone(spawnSpot, dispersion, isShip)

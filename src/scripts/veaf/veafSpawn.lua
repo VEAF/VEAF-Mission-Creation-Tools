@@ -23,7 +23,7 @@ veafSpawn = {}
 veafSpawn.Id = "SPAWN"
 
 --- Version.
-veafSpawn.Version = "1.44.0"
+veafSpawn.Version = "1.45.0"
 
 -- trace level, specific to this module
 --veafSpawn.LogLevel = "trace"
@@ -2968,16 +2968,28 @@ function veafSpawn.spawnCombatAirPatrol(spawnSpot, radius, name, country, altitu
     veaf.loggers.get(veafSpawn.Id):trace("found template=%s",chosenTemplateData)
     local groupName = chosenTemplateName
 
+    local function convertSpeeds(speed, mach, altitude)
+        local result = speed
+        if not result then
+            -- compute ground speed in m/s based on MACH and altitude
+            result = veaf.convertMachSpeed(0.3, altitude).TAS_ms
+        else
+            -- compute ground speed in m/s based on IAS and altitude
+            result = veaf.convertIndicatedAirSpeed(speed, altitude).TAS_ms
+        end
+        return result
+    end
+
     local radius = radius or 5000 -- m
     local altitude = (altitude or 27000) --[[ ft ]] * 0.3048 --[[ meters ]]
     local altitudeDelta = (altitudeDelta or 2000) --[[ ft ]] * 0.3048 --[[ meters ]]
     local hdg = hdg or 0
-    local distance = (distance or 60) --[[ nm ]] * 1852 --[[ meters ]]
-    local speed0 = (speed or 200 --[[ knots ]]) / 1.94384 --[[ m/s ]]
-    local speed1 = (speed or 350 --[[ knots ]]) / 1.94384 --[[ m/s ]]
-    local speed2 = (speed or 420 --[[ knots ]]) / 1.94384 --[[ m/s ]]
-    local speed3 = (speed or 420 --[[ knots ]]) / 1.94384 --[[ m/s ]]
-    local capRadius = (capRadius or (distance / 2 / 1852) --[[ already in meters!]]) * 1852 --[[ meters ]]
+    local speed0 = convertSpeeds(speed, 0.3, altitude)
+    local speed1 = convertSpeeds(speed, 0.5, altitude)
+    local speed2 = convertSpeeds(speed, 0.63, altitude)
+    local speed3 = convertSpeeds(speed, 0.63, altitude)
+    local distance = (distance or 20) --[[ nm ]] * 1852 --[[ meters ]]
+    local capRadius = (capRadius or 60) * 1852 --[[ meters ]]
     local skill = skill or "random"
 
     veaf.loggers.get(veafSpawn.Id):trace("spawnSpot=%s", veaf.p(spawnSpot))
@@ -3180,10 +3192,10 @@ function veafSpawn.spawnCombatAirPatrol(spawnSpot, radius, name, country, altitu
     local headingRad = mist.utils.toRadian(hdg)
     local parameters = {
         altitude = altitude,
-        speed0 = speed0 + (speed0 * 0.02 * altitude / 304.8), -- convert IAS speed to TAS
-        speed1 = speed1 + (speed1 * 0.02 * altitude / 304.8), -- convert IAS speed to TAS
-        speed2 = speed2 + (speed2 * 0.02 * altitude / 304.8), -- convert IAS speed to TAS
-        speed3 = speed3 + (speed3 * 0.02 * altitude / 304.8), -- convert IAS speed to TAS
+        speed0 = speed0,
+        speed1 = speed1,
+        speed2 = speed2,
+        speed3 = speed3,
         wp1 = { x = position.x, y = position.z },
         wp1Options = chosenTemplateWp1Task
     }

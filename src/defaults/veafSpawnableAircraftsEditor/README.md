@@ -8,11 +8,11 @@ These collections of planes can then be spawned in the missions using the `_spaw
 
 These commands can search this list for the name of the group specified; this supports filters that can help select a random group from the list of all groups matching the partial name.
 
-They are not cass sensitive.
+They are not case sensitive.
 
 <u>Examples:</u>
 
-`-cap easy` will spawn a random group containing "easy" in its name; it can be `J-11A - FOX2 - ECM ON - Radar OFF - EASY X1` or `MIG29A - FOX2 - Radar OFF - EASY X2` or multiple others.
+`-cap easy` will spawn a random group containing "easy" in its name; e.g., `J-11A - FOX2 - ECM ON - Radar OFF - EASY X1` or `MIG29A - FOX2 - Radar OFF - EASY X2`
 
 `-cap fox3.*x2` will spawn a random group containing "fox3" and "x2" in its name; in this case, it'll always spawn a pair of fox3 fighters.
 
@@ -175,7 +175,7 @@ They're well configured, are grouped by difficulty (easy / normal / hard) and th
 
 The following spawns were originally added by Zip and may not be perfectly configured.
 
-Please prefer the ones added by Sharko (see (here)[#list-of-aircrafts])
+Please prefer the ones added by Sharko (see [here](#list-of-aircrafts))
 
 - `JF17-Fox2`
 - `JF17-Fox3`

@@ -20,7 +20,7 @@ veafAirWaves = {}
 veafAirWaves.Id = "AIRWAVES - "
 
 --- Version.
-veafAirWaves.Version = "1.5.0"
+veafAirWaves.Version = "1.6.0"
 
 -- trace level, specific to this module
 --veafAirWaves.LogLevel = "trace"
@@ -71,11 +71,19 @@ function AirWaveZone.init(object)
   object.messageStart = veafAirWaves.DEFAULT_MESSAGE_START
   -- event when the zone is activated
   object.onStart = nil
+  -- message when the zone is waiting for more players
+  object.messageWaitForHumans = veafAirWaves.DEFAULT_MESSAGE_WAIT_FOR_HUMANS
+  -- event when the zone is waiting for more players
+  object.onWaitForHumans = nil
+  -- message when a wave will be triggered
+  object.messageWaitToDeploy = veafAirWaves.DEFAULT_MESSAGE_WAIT_TO_DEPLOY
+  -- event when a wave will be triggered
+  object.onWaitToDeploy = nil
   -- message when a wave is triggered
   object.messageDeploy = veafAirWaves.DEFAULT_MESSAGE_DEPLOY
   -- message to each players in the zone when a wave is triggered
   object.messageDeployPlayers = veafAirWaves.DEFAULT_MESSAGE_DEPLOY_PLAYERS
-  -- event  when a wave is triggered
+  -- event when a wave is triggered
   object.onDeploy = nil
   -- message when a wave is destroyed
   object.messageDestroyed = veafAirWaves.DEFAULT_MESSAGE_DESTROYED
@@ -93,8 +101,10 @@ function AirWaveZone.init(object)
   object.messageStop = veafAirWaves.DEFAULT_MESSAGE_STOP
   -- event when the zone is deactivated
   object.onStop = nil
-  -- delay in seconds between waves of ennemy planes
+  -- default delay in seconds between waves of enemy planes
   object.delayBetweenWaves = 0
+  -- delay in seconds between the first human in zone and the actual activation of the zone
+  object.delayBeforeActivation = 0
   -- if true, the zone will reset when player dies
   object.resetWhenDying = true
   -- human units that are being watched
@@ -107,6 +117,8 @@ function AirWaveZone.init(object)
   object.isEnemyWaveDeadCallback = AirWaveZone.isEnemyWaveDead
   -- the function that decides if IA ennemy groups are dead (individually)
   object.isEnemyGroupDeadCallback = AirWaveZone.isEnemyGroupDead
+  -- the minimum percentage of life that an AI unit is supposed to have to be considered alive
+  object.minimumLifeForAiInPercent = veafAirWaves.MINIMUM_LIFE_FOR_AI_IN_PERCENT
   -- the function that handles crippled enemy units
   object.handleCrippledEnemyUnitCallback = AirWaveZone.handleCrippledEnemyUnit
   ------------------------------------------------------------------------
@@ -121,25 +133,31 @@ end
 
 function veafAirWaves.statusToString(status)
   if status == veafAirWaves.STATUS_READY then return "STATUS_READY" end
+  if status == veafAirWaves.STATUS_WAITING_FOR_MORE_HUMANS then return "STATUS_WAITING_FOR_MORE_HUMANS" end
   if status == veafAirWaves.STATUS_ACTIVE then return "STATUS_ACTIVE" end
+  if status == veafAirWaves.STATUS_WAITING_FOR_NEXTWAVE then return "STATUS_WAITING_FOR_NEXTWAVE" end
   if status == veafAirWaves.STATUS_NEXTWAVE then return "STATUS_NEXTWAVE" end
   if status == veafAirWaves.STATUS_OVER then return "STATUS_OVER" end
   return ""
 end
 veafAirWaves.STATUS_READY = 1
+veafAirWaves.STATUS_WAITING_FOR_MORE_HUMANS = 1.5
 veafAirWaves.STATUS_ACTIVE = 2
+veafAirWaves.STATUS_WAITING_FOR_NEXTWAVE = 2.5
 veafAirWaves.STATUS_NEXTWAVE = 3
 veafAirWaves.STATUS_OVER = 4
 
 veafAirWaves.MINIMUM_LIFE_FOR_AI_IN_PERCENT = 10
 
-veafAirWaves.DEFAULT_MESSAGE_START = "Zone %s is online"
-veafAirWaves.DEFAULT_MESSAGE_DEPLOY = "Zone %s is deploying wave %s"
+veafAirWaves.DEFAULT_MESSAGE_START = "%s - online"
+veafAirWaves.DEFAULT_MESSAGE_WAIT_FOR_HUMANS = "%s - waiting %s seconds for more players"
+veafAirWaves.DEFAULT_MESSAGE_WAIT_TO_DEPLOY = "%s - waiting %s seconds before next wave"
+veafAirWaves.DEFAULT_MESSAGE_DEPLOY = "%s - deploying wave %s"
 veafAirWaves.DEFAULT_MESSAGE_DEPLOY_PLAYERS = "Wave %s deploying, %s"
-veafAirWaves.DEFAULT_MESSAGE_DESTROYED = "Zone %s: wave %s has been destroyed"
-veafAirWaves.DEFAULT_MESSAGE_WON = "Zone %s is won (no more waves)"
-veafAirWaves.DEFAULT_MESSAGE_LOST = "Zone %s is lost (no more players)"
-veafAirWaves.DEFAULT_MESSAGE_STOP = "Zone %s is offline"
+veafAirWaves.DEFAULT_MESSAGE_DESTROYED = "%s - wave %s has been destroyed"
+veafAirWaves.DEFAULT_MESSAGE_WON = "%s - won (no more waves)"
+veafAirWaves.DEFAULT_MESSAGE_LOST = "%s - lost (no more players)"
+veafAirWaves.DEFAULT_MESSAGE_STOP = "%s - offline"
 
 function AirWaveZone:new(objectToCopy)
   veaf.loggers.get(veafAirWaves.Id):debug("AirWave:new()")
@@ -167,7 +185,6 @@ function AirWaveZone:setTriggerZone(value)
   veaf.loggers.get(veafAirWaves.Id):debug("AirWaveZone[%s]:setTriggerZone(%s)", veaf.p(self.name), veaf.p(value))
   self.triggerZoneName = value
   local triggerZone = veaf.getTriggerZone(value)
-  --veaf.loggers.get(veafAirWaves.Id):trace("triggerZone=%s", veaf.p(triggerZone))
   self:setZoneCenter({ x=triggerZone.x, y=triggerZone.y})
   self:setZoneRadius(triggerZone.radius)
   return self
@@ -182,10 +199,7 @@ end
 function AirWaveZone:setZoneCenterFromCoordinates(value)
   veaf.loggers.get(veafAirWaves.Id):debug("AirWaveZone[%s]:setZoneCenterFromCoordinates(%s)", veaf.p(self.name), veaf.p(value))
   local _lat, _lon = veaf.computeLLFromString(value)
-  --veaf.loggers.get(veafAirWaves.Id):trace("_lat=%s)", veaf.p(_lat))
-  --veaf.loggers.get(veafAirWaves.Id):trace("_lon=%s)", veaf.p(_lon))
   local vec3 = coord.LLtoLO(_lat, _lon)
-  --veaf.loggers.get(veafAirWaves.Id):trace("vec3=%s)", veaf.p(vec3))
   return self:setZoneCenter(vec3)
 end
 
@@ -211,32 +225,67 @@ function AirWaveZone:getDescription()
   return self.description or self.name
 end
 
----add a wave of ennemy planes
----@param groups any a list of groups or VEAF commands; VEAF commands can be prefixed with [lat, lon], specifying the location of their spawn relative to the center of the zone; default value is set with "setRespawnDefaultOffset"
----@param number any how many of these groups will actually be spawned (can be multiple times the same group!)
----@param bias any shifts the random generator to the right of the list
----@return table self
-function AirWaveZone:addRandomSimultaneousWave(groups, number, bias)
-  veaf.loggers.get(veafAirWaves.Id):debug(string.format("VeafQRA[%s]:addRandomSimultaneousWave(%s, %s, %s)", veaf.p(self.name), veaf.p(groups), veaf.p(number), veaf.p(bias)))
-  return self:addRandomWave(groups, number, bias, true)
-end
-
----add a wave of ennemy planes
----@param groups any a list of groups or VEAF commands; VEAF commands can be prefixed with [lat, lon], specifying the location of their spawn relative to the center of the zone; default value is set with "setRespawnDefaultOffset"
----@param number any how many of these groups will actually be spawned (can be multiple times the same group!)
----@param bias any shifts the random generator to the right of the list
----@return table self
-function AirWaveZone:addRandomWave(groups, number, bias, simultaneous)
-  veaf.loggers.get(veafAirWaves.Id):debug(string.format("VeafQRA[%s]:addRandomWave(%s, %s, %s, %s)", veaf.p(self.name), veaf.p(groups), veaf.p(number), veaf.p(bias), veaf.p(simultaneous)))
-  return self:addWave({groups=groups, number=number or 1, bias=bias or 0, simultaneous=simultaneous})
-end
-
-function AirWaveZone:addWave(wave)
-  veaf.loggers.get(veafAirWaves.Id):debug("AirWaveZone[%s]:addWave(%s)", veaf.p(self.name), veaf.p(wave))
-  if not self.waves then
-    self.waves = {}
+---adds a wave of enemy planes
+---parameters are very flexible: they can be:
+--- a table containing the following fields:
+---     - groups a list of groups or VEAF commands; VEAF commands can be prefixed with [lat, lon], specifying the location of their spawn relative to the center of the zone; default value is set with "setRespawnDefaultOffset"
+---     - number how many of these groups will actually be spawned (can be multiple times the same group!); it can be a "randomizable number", e.g., "2-6" for "between 2 and 6"
+---     - bias shifts the random generator to the right of the list; it can be a "randomizable number" too
+---     - delay the delay between this wave and the next one - if negative, then the next wave is spawned instantaneously (no waiting for this wave to be completed); it can be a "randomizable number" too
+--- or a list of strings (the groups or VEAF commands)
+--- or almost anything in between; we'll take a string as if it were a table containing one string, anywhere
+--- examples:
+---   :addWave("group1")
+---   :addWave("group1", "group2")
+---   :addWave({"group1", "group2"})
+---   :addWave({ groups={"group1", "group2"}, number = 2})
+---   :addWave({ groups="group1", number = 2})
+---returns self
+function AirWaveZone:addWave(...)
+  veaf.loggers.get(veafAirWaves.Id):debug(string.format("VeafQRA[%s]:addWave() : %s", veaf.p(self.name), veaf.p(arg)))
+  local nArgs = arg.n or 0
+  if arg and nArgs > 0 then
+    local groups = {}
+    local number = 1
+    local bias = 0
+    local delay = nil
+    for i = 1, nArgs, 1 do
+      local parameter = arg[i]
+      if type(parameter) == "string" then
+        table.insert(groups, parameter)
+      elseif type(parameter) == "table" then
+        if parameter.groups then
+          -- this is a parameters table, let's use it
+          if type(parameter.groups) == "string" then
+            -- we need a table
+            groups = { parameter.groups }
+          else
+            groups = parameter.groups
+          end
+          number = parameter.number
+          bias = parameter.bias
+          delay = parameter.delay
+          break
+        else
+          for j = 1, #parameter, 1 do
+            local s = parameter[j]
+            if type(s) == "string" then
+              table.insert(groups, parameter)
+            end
+          end
+          break
+        end
+      end
+    end
+    veaf.loggers.get(veafAirWaves.Id):trace("groups=%s", veaf.p(groups))
+    veaf.loggers.get(veafAirWaves.Id):trace("number=%s", veaf.p(number))
+    veaf.loggers.get(veafAirWaves.Id):trace("bias=%s", veaf.p(bias))
+    veaf.loggers.get(veafAirWaves.Id):trace("delay=%s", veaf.p(delay))
+    if not self.waves then
+      self.waves = {}
+    end
+    table.insert(self.waves, {groups=groups, number=number or 1, bias=bias or 0, delay=delay})
   end
-  table.insert(self.waves, wave)
   return self
 end
 
@@ -260,6 +309,36 @@ end
 function AirWaveZone:setOnStart(value)
   veaf.loggers.get(veafAirWaves.Id):debug("AirWaveZone[%s]:setOnStart()", veaf.p(self.name))
   self.onStart = value
+  return self
+end
+
+function AirWaveZone:setMessageWaitForHumans(value)
+  veaf.loggers.get(veafAirWaves.Id):debug("AirWaveZone[%s]:setMessageWaitForHumans()", veaf.p(self.name))
+  self.messageWaitForHumans = value
+  return self
+end
+
+---Set the onWaitForHumans callback
+---@param value function takes 3 parameters: the zone name (string), the wave index (int), the monitored player units (table)
+---@return table self
+function AirWaveZone:setOnWaitForHumans(value)
+  veaf.loggers.get(veafAirWaves.Id):debug("AirWaveZone[%s]:setOnWaitForHumans()", veaf.p(self.name))
+  self.onWaitForHumans = value
+  return self
+end
+
+function AirWaveZone:setMessageWaitToDeploy(value)
+  veaf.loggers.get(veafAirWaves.Id):debug("AirWaveZone[%s]:setMessageWaitToDeploy()", veaf.p(self.name))
+  self.messageWaitToDeploy = value
+  return self
+end
+
+---Set the onWaitToDeploy callback
+---@param value function takes 3 parameters: the zone name (string), the wave index (int), the monitored player units (table)
+---@return table self
+function AirWaveZone:setOnWaitToDeploy(value)
+  veaf.loggers.get(veafAirWaves.Id):debug("AirWaveZone[%s]:setOnWaitToDeploy()", veaf.p(self.name))
+  self.onWaitToDeploy = value
   return self
 end
 
@@ -382,9 +461,21 @@ function AirWaveZone:getPlayerCoalition()
   return result
 end
 
-function AirWaveZone:setDelayBeforeNextWave(value)
-  veaf.loggers.get(veafAirWaves.Id):debug("AirWaveZone[%s]:setDelayBeforeNextWave(%s)", veaf.p(self.name), veaf.p(value))
-  self.delayBeforeNextWave = value
+---Sets the default delay in seconds between waves of enemy planes
+---@param value number a delay in seconds
+---@return table self
+function AirWaveZone:setDelayBetweenWaves(value)
+  veaf.loggers.get(veafAirWaves.Id):debug("AirWaveZone[%s]:setDelayBetweenWaves(%s)", veaf.p(self.name), veaf.p(value))
+  self.delayBetweenWaves = value
+  return self
+end
+
+---Sets the delay in seconds between the first human in zone and the actual activation of the zone
+---@param value number a delay in seconds
+---@return table self
+function AirWaveZone:setDelayBeforeActivation(value)
+  veaf.loggers.get(veafAirWaves.Id):debug("AirWaveZone[%s]:setDelayBeforeActivation(%s)", veaf.p(self.name), veaf.p(value))
+  self.delayBeforeActivation = value
   return self
 end
 
@@ -424,6 +515,7 @@ function AirWaveZone:reset()
   veaf.loggers.get(veafAirWaves.Id):debug("AirWaveZone[%s]:reset()", veaf.p(self.name))
   -- no more players, reset the players list
   self.playerUnitsNames = {}
+  self.unitsInZone = {}
   -- despawn the ennemies
   self:destroyCurrentWave()
   -- reset the wave index
@@ -448,6 +540,16 @@ function AirWaveZone:setIsEnemyGroupDeadCallback(callback)
   return self
 end
 
+---Sets the minimum percentage of life that an AI unit is supposed to have to be considered alive
+---@param value number percentage
+---@return table
+function AirWaveZone:setMinimumLifeForAiInPercent(value)
+  veaf.loggers.get(veafAirWaves.Id):debug("AirWaveZone[%s]:setMinimumLifeForAiInPercent(%s)", veaf.p(self.name), veaf.p(value))
+  self.minimumLifeForAiInPercent = value
+  return self
+end
+
+
 --- the function that handles crippled enemy units
 ---@param callback function the callback function will be called with 3 parameters: a zone, the wave index number, a DCS unit table; it must do what it wants with the unit
 function AirWaveZone:setHandleCrippledEnemyUnitCallback(callback)
@@ -458,42 +560,38 @@ end
 
 -- the function that decides if a wave is dead or not (as a set of groups and units)
 function AirWaveZone:isEnemyWaveDead(waveNumber, waveGroupsNames)
-  veaf.loggers.get(veafAirWaves.Id):trace("AirWaveZone[%s]:isEnemyWaveDead(%s)", veaf.p(self.name), veaf.p(waveNumber))
-  veaf.loggers.get(veafAirWaves.Id):trace("waveGroupsNames=%s", veaf.p(waveGroupsNames))
+  --veaf.loggers.get(veafAirWaves.Id):trace("AirWaveZone[%s]:isEnemyWaveDead(%s)", veaf.p(self.name), veaf.p(waveNumber))
+  --veaf.loggers.get(veafAirWaves.Id):trace("waveGroupsNames=%s", veaf.p(waveGroupsNames))
 
   local currentWaveAlive = false
   for _, groupName in pairs(waveGroupsNames) do
     local group = Group.getByName(groupName)
     if group then
       local groupIsDead = self.isEnemyGroupDeadCallback(self, self.currentWaveIndex, group)
-      veaf.loggers.get(veafAirWaves.Id):trace("groupIsDead=%s", veaf.p(groupIsDead))
       if not groupIsDead then
         currentWaveAlive = true
       end
     end
   end
-  veaf.loggers.get(veafAirWaves.Id):trace("currentWaveAlive=%s", veaf.p(currentWaveAlive))
   return not currentWaveAlive
 end
 
 -- the function that decides if IA ennemy groups are dead (individually)
 function AirWaveZone:isEnemyGroupDead(waveNumber, group)
-  veaf.loggers.get(veafAirWaves.Id):trace("AirWaveZone[%s]:isEnemyGroupDead(%s)", veaf.p(self.name), veaf.p(waveNumber))
+  --veaf.loggers.get(veafAirWaves.Id):trace("AirWaveZone[%s]:isEnemyGroupDead(%s)", veaf.p(self.name), veaf.p(waveNumber))
   if not group then return true end
-  veaf.loggers.get(veafAirWaves.Id):trace("group:getName()=%s", veaf.p(group:getName()))
+  --veaf.loggers.get(veafAirWaves.Id):trace("group:getName()=%s", veaf.p(group:getName()))
 
   local groupAtLeastOneUnitAlive = false
   local category = group:getCategory()
   local units = group:getUnits()
   if units then
     for _,unit in pairs(units) do
-      veaf.loggers.get(veafAirWaves.Id):trace("unit:getName()=%s", veaf.p(unit:getName()))
       local unitAlive = false
       local unitLife = unit:getLife()
       local unitLife0 = unit:getLife0()
       local unitLifePercent = 100 * unitLife / unitLife0
-      veaf.loggers.get(veafAirWaves.Id):trace("unitLifePercent=%s", veaf.p(unitLifePercent))
-      if unitLifePercent >= veafAirWaves.MINIMUM_LIFE_FOR_AI_IN_PERCENT then
+      if unitLifePercent >= self.minimumLifeForAiInPercent then
         if category == 0 --[[airplanes]] or category == 1 --[[helicopters]] then
           if unit:inAir() then
             unitAlive = true
@@ -514,22 +612,17 @@ end
 
 -- the function that handles crippled enemy units
 function AirWaveZone:handleCrippledEnemyUnit(waveNumber, unit)
-  veaf.loggers.get(veafAirWaves.Id):trace("AirWaveZone[%s]:handleCrippledEnemyUnit(%s)", veaf.p(self.name), veaf.p(waveNumber))
+  veaf.loggers.get(veafAirWaves.Id):debug("AirWaveZone[%s]:handleCrippledEnemyUnit(%s)", veaf.p(self.name), veaf.p(waveNumber))
   if not unit then return end
-  veaf.loggers.get(veafAirWaves.Id):trace("unit:getName()=%s", veaf.p(unit:getName()))
+  veaf.loggers.get(veafAirWaves.Id):debug("unit:getName()=%s", veaf.p(unit:getName()))
   -- simply despawn the unit
   unit:destroy()
 end
 
 function AirWaveZone:getPlayerUnits()
   if not self.playerHumanUnits then
-    --veaf.loggers.get(veafAirWaves.Id):trace("AirWaveZone[%s]:getPlayerUnits() - computing", veaf.p(self.name))
     self.playerHumanUnits = {}
-    --veaf.loggers.get(veafAirWaves.Id):trace("playerCoalitions[]=%s", veaf.p(self.playerCoalitions))
     for _, unit in pairs(mist.DBs.humansByName) do
-      --veaf.loggers.get(veafAirWaves.Id):trace("unit.unitName=%s", unit.unitName)
-      --veaf.loggers.get(veafAirWaves.Id):trace("unit.groupName=%s", unit.groupName)
-      --veaf.loggers.get(veafAirWaves.Id):trace("unit.coalition=%s", veaf.p(unit.coalition))
       local coalitionId = 0
       if unit.coalition then
         if unit.coalition:lower() == "red" then
@@ -540,9 +633,7 @@ function AirWaveZone:getPlayerUnits()
       end
       if self.playerCoalitions[coalitionId] then
         if unit.category then
-          --veaf.loggers.get(veafAirWaves.Id):trace("unit.category=%s", unit.category)
           if unit.category == "plane" then
-            veaf.loggers.get(veafAirWaves.Id):trace("adding player unit to zone: %s", unit.unitName)
             table.insert(self.playerHumanUnits, unit.unitName)
           end
         end
@@ -553,19 +644,15 @@ function AirWaveZone:getPlayerUnits()
 end
 
 function AirWaveZone:check()
-  veaf.loggers.get(veafAirWaves.Id):debug("AirWaveZone[%s]:check()", veaf.p(self.name))
-  veaf.loggers.get(veafAirWaves.Id):debug("self.state=%s", veaf.p(veafAirWaves.statusToString(self.state)))
-  veaf.loggers.get(veafAirWaves.Id):trace("timer.getTime()=%s", veaf.p(timer.getTime()))
+  veaf.loggers.get(veafAirWaves.Id):debug("AirWaveZone[%s]:check() -> self.state=%s", veaf.p(self.name), veaf.p(veafAirWaves.statusToString(self.state)))
+  veaf.loggers.get(veafAirWaves.Id):trace("AirWaveZone[%s]:check() -> timer.getTime()=%s", veaf.p(self.name), veaf.p(timer.getTime()))
 
   -- whatever the state, monitor the player units if they're defined
-  --veaf.loggers.get(veafAirWaves.Id):trace("self.playerUnitsNames=%s", veaf.p(self.playerUnitsNames))
   if self.playerUnitsNames and #self.playerUnitsNames > 0 then
     local atLeastOnePlayerAlive = false
     local atLeastOnePlayerAirborne = false
     for _, _unitName in pairs(self.playerUnitsNames) do
-      --veaf.loggers.get(veafAirWaves.Id):trace("_unitName=%s", veaf.p(_unitName))
       local _unit = Unit.getByName(_unitName)
-      --veaf.loggers.get(veafAirWaves.Id):trace("_unit=%s", veaf.p(_unit))
       if _unit then 
         atLeastOnePlayerAlive = true
         if _unit:inAir() then
@@ -589,84 +676,96 @@ function AirWaveZone:check()
     end
   end
 
-  if self.state == veafAirWaves.STATUS_READY then
-    -- zone is ready, check for players entering
-    self.playerUnitsNames = {}
+  local function getHumansInZone()
+    local resultUnitsNames = {}
+    local resultUnits = {}
     local unitNames = self:getPlayerUnits()
-    --veaf.loggers.get(veafAirWaves.Id):trace("unitNames=%s", veaf.p(unitNames))
-    self.unitsInZone = nil
     local triggerZone = veaf.getTriggerZone(self.triggerZoneName)
+    local humanUnits = nil
     if triggerZone then
-      --veaf.loggers.get(veafAirWaves.Id):trace("triggerZone=%s", veaf.p(triggerZone))
       if triggerZone.type == 0 then -- circular
-        self.unitsInZone = mist.getUnitsInZones(unitNames, {self.triggerZoneName})
+        humanUnits = mist.getUnitsInZones(unitNames, {self.triggerZoneName})
       elseif triggerZone.type == 2 then -- quad point
-        --veaf.loggers.get(veafAirWaves.Id):trace("checking in polygon %s", veaf.p(triggerZone.verticies))
-        self.unitsInZone = mist.getUnitsInPolygon(unitNames, triggerZone.verticies)
+        humanUnits = mist.getUnitsInPolygon(unitNames, triggerZone.verticies)
       end
     else
-      --veaf.loggers.get(veafAirWaves.Id):trace("self.zoneCenter=%s", veaf.p(self.zoneCenter))
-      --veaf.loggers.get(veafAirWaves.Id):trace("self.zoneRadius=%s", veaf.p(self.zoneRadius))
-      --veaf.loggers.get(veafAirWaves.Id):trace("unitNames=%s", veaf.p(unitNames))
-      self.unitsInZone = veaf.findUnitsInCircle(self.zoneCenter, self.zoneRadius, false, unitNames)
+      humanUnits = veaf.findUnitsInCircle(self.zoneCenter, self.zoneRadius, false, unitNames)
     end
-    local nbUnitsInZone = 0
-    for _, unit in pairs(self.unitsInZone) do
+    for _, unit in pairs(humanUnits) do
       -- check the unit altitude against the ceiling and floor
       if unit:inAir() then -- never count a landed aircraft
         local alt = unit:getPoint().y
-        --veaf.loggers.get(veafAirWaves.Id):trace("check the unit altitude against the ceiling and floor")
-        --veaf.loggers.get(veafAirWaves.Id):trace("alt=%s", veaf.p(alt))
-        --veaf.loggers.get(veafAirWaves.Id):trace("self:getMinimumAltitudeInMeters()=%s", veaf.p(self:getMinimumAltitudeInMeters()))
-        --veaf.loggers.get(veafAirWaves.Id):trace("self:getMaximumAltitudeInMeters()=%s", veaf.p(self:getMaximumAltitudeInMeters()))
         if alt >= self:getMinimumAltitudeInMeters() and alt <= self:getMaximumAltitudeInMeters() then
-          nbUnitsInZone = nbUnitsInZone + 1
           -- add the unit to the player units list, so that we can monitor it
-          table.insert(self.playerUnitsNames, unit:getName())
+          table.insert(resultUnitsNames, unit:getName())
+          table.insert(resultUnits, unit)
         end
       end
     end
-    --veaf.loggers.get(veafAirWaves.Id):trace("self.unitsInZone=%s", veaf.p(self.unitsInZone))
-    --veaf.loggers.get(veafAirWaves.Id):trace("#self.unitsInZone=%s", veaf.p(#self.unitsInZone))
-    veaf.loggers.get(veafAirWaves.Id):trace("nbUnitsInZone=%s", veaf.p(nbUnitsInZone))
-    if self.unitsInZone and nbUnitsInZone > 0 then
-      -- reset wave index
-      self.currentWaveIndex = 0
-      self:_setState(veafAirWaves.STATUS_NEXTWAVE)
+    return resultUnits, resultUnitsNames
+  end
+
+  if self.state == veafAirWaves.STATUS_READY then
+    local humansInZone, humanInZoneNames = getHumansInZone()
+    if humansInZone and #humansInZone > 0 then
+      -- store the human units that we're going to monitor
+      self.unitsInZone = humansInZone
+      self.playerUnitsNames = humanInZoneNames
+      self:_setState(veafAirWaves.STATUS_WAITING_FOR_MORE_HUMANS)
+      if self.delayBeforeActivation and self.delayBeforeActivation > 0 then
+        self:signalWaitForHumans()
+      end
+      self.timeOfActivation = timer.getTime() + self.delayBeforeActivation
+      veaf.loggers.get(veafAirWaves.Id):debug("waiting %s seconds before activation", veaf.p(self.delayBeforeActivation))
+      veaf.loggers.get(veafAirWaves.Id):trace("self.timeOfActivation=%s", veaf.p(self.timeOfActivation))
+      veaf.loggers.get(veafAirWaves.Id):debug("restart the check immediately")
+      -- restart the check immediately (we don't want to wait for the next state to be processed)
+      self:check()
+    end
+  elseif self.state == veafAirWaves.STATUS_WAITING_FOR_MORE_HUMANS then
+    -- wait until the delay has passed
+    if self.timeOfActivation and timer.getTime() >= self.timeOfActivation then
+      -- zone is ready, check for players entering
+      local humansInZone, humanInZoneNames = getHumansInZone()
+      if humansInZone and #humansInZone > 0 then
+        -- store the human units that we're going to monitor
+        self.unitsInZone = humansInZone
+        self.playerUnitsNames = humanInZoneNames
+        -- reset wave index
+        self.currentWaveIndex = 0
+        self:_setState(veafAirWaves.STATUS_NEXTWAVE)
+        -- restart the check immediately (we don't want to wait for the next state to be processed)
+        self:check()
+      end
     end
   elseif self.state == veafAirWaves.STATUS_NEXTWAVE then
     -- wave has been destroyed, or it's the first time a wave has to be deployed; check if there is a next one and deploy it
-    --veaf.loggers.get(veafAirWaves.Id):trace("self.currentWaveIndex=%s", veaf.p(self.currentWaveIndex))
-    --veaf.loggers.get(veafAirWaves.Id):trace("#self.waves=%s", veaf.p(#self.waves))
     if self.currentWaveIndex < #self.waves then
-      self.currentWaveIndex = self.currentWaveIndex + 1
-      if self:deployWave() then
-        self:_setState(veafAirWaves.STATUS_ACTIVE)
+      if not self.delayBeforeNextWave then
+        self.delayBeforeNextWave = self.delayBetweenWaves
       end
-      -- check next waves if they're simultaneous
-      local simultaneous = false
-      local nextWaveIndex = self.currentWaveIndex + 1
-      repeat
-        veaf.loggers.get(veafAirWaves.Id):trace("check for simultaneous wave: nextWaveIndex=%s", veaf.p(nextWaveIndex))
-        if nextWaveIndex <= #self.waves then
-          local nextWave = self.waves[nextWaveIndex]
-          simultaneous = nextWave.simultaneous or false
-          veaf.loggers.get(veafAirWaves.Id):trace("check - simultaneous=%s", veaf.p(simultaneous))
-          if simultaneous then
-            self.currentWaveIndex = nextWaveIndex
-            veaf.loggers.get(veafAirWaves.Id):trace("check - found simultaneous wave: nextWaveIndex=%s", veaf.p(nextWaveIndex))
-            if self:deployWave() then
-              nextWaveIndex = nextWaveIndex + 1
-            end
-          end
-        end
-      until nextWaveIndex > #self.waves or not simultaneous
-      veaf.loggers.get(veafAirWaves.Id):trace("simultaneous=%s", veaf.p(simultaneous))
-      veaf.loggers.get(veafAirWaves.Id):trace("nextWaveIndex=%s", veaf.p(nextWaveIndex))
-      veaf.loggers.get(veafAirWaves.Id):trace("#self.waves=%s", veaf.p(#self.waves))
+      self:_setState(veafAirWaves.STATUS_WAITING_FOR_NEXTWAVE)
+      if self.delayBeforeNextWave and self.delayBeforeNextWave > 0 then
+        self:signalWaitToDeploy()
+      end
+      self.timeOfNextWave = timer.getTime() + self.delayBeforeNextWave
+      veaf.loggers.get(veafAirWaves.Id):debug("waiting %s seconds before spawning next wave(s)", veaf.p(self.delayBeforeNextWave))
+      veaf.loggers.get(veafAirWaves.Id):trace("self.timeOfActivation=%s", veaf.p(self.timeOfActivation))
+      -- restart the check immediately (we don't want to wait for the next state to be processed)
+      self:check()
     else
       self:signalWon()
       self:_setState(veafAirWaves.STATUS_OVER)
+    end
+  elseif self.state == veafAirWaves.STATUS_WAITING_FOR_NEXTWAVE then
+    -- wait until the delay has passed
+    if self.timeOfNextWave and timer.getTime() >= self.timeOfNextWave then
+      -- deploy the next wave
+      local spawnedGroups, delayBeforeNextWave = self:deployWaves()
+      if spawnedGroups then
+        self.delayBeforeNextWave = delayBeforeNextWave or self.delayBetweenWaves
+        self:_setState(veafAirWaves.STATUS_ACTIVE)
+      end
     end
   elseif self.state == veafAirWaves.STATUS_ACTIVE then
     -- zone is active, check if the current wave is still alive
@@ -678,51 +777,70 @@ function AirWaveZone:check()
       self:signalDestroyed()
       -- prepare next wave
       self:_setState(veafAirWaves.STATUS_NEXTWAVE)
+      -- restart the check immediately (we don't want to wait for the next state to be processed)
+      self:check()
     end
   elseif self.state == veafAirWaves.STATUS_OVER then
     -- zone has still to be reset to restart
   end
-
-  self.checkFunctionSchedule = mist.scheduleFunction(AirWaveZone.check, {self}, timer.getTime() + veafAirWaves.WATCHDOG_DELAY)
+  if self.checkFunctionSchedule then
+    -- deschedule if needed
+    mist.removeFunction(self.checkFunctionSchedule)
+  end
+  self.checkFunctionSchedule = mist.scheduleFunction(AirWaveZone.check, {self}, timer.getTime() + veafAirWaves.WATCHDOG_DELAY + math.random(0, 2)) -- randomize reschedules so not all zones are working at the same time
 end
 
 function AirWaveZone:chooseGroupsToDeploy()
-  veaf.loggers.get(veafAirWaves.Id):trace("AirWaveZone[%s]:chooseGroupsToDeploy()", veaf.p(self.name))
+  veaf.loggers.get(veafAirWaves.Id):debug("AirWaveZone[%s]:chooseGroupsToDeploy()", veaf.p(self.name))
 
-  local groupsToDeploy = nil
   if self.currentWaveIndex <= #self.waves then
-    groupsToDeploy = self.waves[self.currentWaveIndex]
-  end
-  if groupsToDeploy then
-    -- process a random group definition
-    local groupsToChooseFrom = groupsToDeploy.groups
-    local numberOfGroups = groupsToDeploy.number
-    local bias = groupsToDeploy.bias
-    --veaf.loggers.get(veafAirWaves.Id):trace("groupsToChooseFrom=%s", veaf.p(groupsToChooseFrom))
-    --veaf.loggers.get(veafAirWaves.Id):trace("numberOfGroups=%s", veaf.p(numberOfGroups))
-    --veaf.loggers.get(veafAirWaves.Id):trace("bias=%s", veaf.p(bias))
-    if groupsToChooseFrom and type(groupsToChooseFrom) == "table" and numberOfGroups and type(numberOfGroups) == "number" and bias and type(bias) == "number" then
+    local nextWave = self.waves[self.currentWaveIndex]
+    if nextWave then
+      -- process a random group definition
+      local groupsToChooseFrom = nextWave.groups
+      local numberOfGroups = nextWave.number
+      local bias = nextWave.bias
+      local delay = nextWave.delay
       local result = {}
-      for _ = 1, numberOfGroups do
-        local group = veaf.randomlyChooseFrom(groupsToChooseFrom, bias)
-        veaf.loggers.get(veafAirWaves.Id):trace("group=%s", veaf.p(group))
-        table.insert(result, group)
+      if type(numberOfGroups) == "string" then
+        -- convert randomizable numeric to number
+        numberOfGroups = veaf.getRandomizableNumeric(numberOfGroups)
       end
-      groupsToDeploy = result
+      if type(bias) == "string" then
+        -- convert randomizable numeric to number
+        bias = veaf.getRandomizableNumeric(bias)
+      end
+      if delay ~= nil and type(delay) == "string" then
+        -- convert randomizable numeric to number
+        delay = veaf.getRandomizableNumeric(delay)
+      end
+      if groupsToChooseFrom and type(groupsToChooseFrom) == "table" and numberOfGroups and type(numberOfGroups) == "number" and bias and type(bias) == "number" then
+        for _ = 1, numberOfGroups do
+          local group = veaf.randomlyChooseFrom(groupsToChooseFrom, bias)
+          table.insert(result, group)
+        end
+      end
+      return result, delay
     end
   end
-  return groupsToDeploy, groupsToDeploy[4] or false
 end
 
-function AirWaveZone:deployWave()
-  veaf.loggers.get(veafAirWaves.Id):debug("AirWaveZone[%s]:deployWave()", veaf.p(self.name))
-
-  local groupsToDeploy, simultaneous = self:chooseGroupsToDeploy()
-  veaf.loggers.get(veafAirWaves.Id):debug("simultaneous=%s", veaf.p(simultaneous))
-  if not simultaneous then -- don't reset the groups that have spawned in the previous waves if we're simultaneous
-    self.spawnedGroupsNames = {}
-  end
-  if groupsToDeploy then
+function AirWaveZone:deployWaves()
+  veaf.loggers.get(veafAirWaves.Id):debug("AirWaveZone[%s]:deployWaves()", veaf.p(self.name))
+  self.spawnedGroupsNames = {}
+  local groupsToDeployForTheseWaves = {}
+  local lastDelay
+  repeat
+    self.currentWaveIndex = self.currentWaveIndex + 1
+    local groupsToDeploy, delay = self:chooseGroupsToDeploy()
+    veaf.loggers.get(veafAirWaves.Id):debug("groupsToDeploy=%s", veaf.p(groupsToDeploy))
+    veaf.loggers.get(veafAirWaves.Id):debug("delay=%s", veaf.p(delay))
+    lastDelay = delay
+    for _, group in pairs(groupsToDeploy) do
+      table.insert(groupsToDeployForTheseWaves, group)
+    end
+  until not lastDelay or lastDelay >= 0 or self.currentWaveIndex >= #self.waves
+  if groupsToDeployForTheseWaves then
     local zoneCenter = {}
     if self.triggerZoneName then
       local triggerZone = veaf.getTriggerZone(self.triggerZoneName)
@@ -732,7 +850,7 @@ function AirWaveZone:deployWave()
     elseif self.zoneCenter then
       zoneCenter = self.zoneCenter
     end
-    for _, groupNameOrCommand in pairs(groupsToDeploy) do
+    for _, groupNameOrCommand in pairs(groupsToDeployForTheseWaves) do
       -- check if this is a DCS group or a VEAF command
       if veaf.startsWith(groupNameOrCommand, "[") or veaf.startsWith(groupNameOrCommand, "-") then
         -- this is a command
@@ -743,15 +861,11 @@ function AirWaveZone:deployWave()
           -- extract relative coordinates and the actual command
           local coords
           coords, command = groupNameOrCommand:match("%[(.*)%](.*)")
-          --veaf.loggers.get(veafAirWaves.Id):trace("coords=%s", veaf.p(coords))
-          --veaf.loggers.get(veafAirWaves.Id):trace("command=%s", veaf.p(command))
           if coords then
             latDelta, lonDelta = coords:match("([%+-%d]+),%s*([%+-%d]+)")
           end
         end
         veaf.loggers.get(veafAirWaves.Id):debug("running command [%s]", veaf.p(command))
-        --veaf.loggers.get(veafAirWaves.Id):trace("latDelta = [%s]", veaf.p(latDelta))
-        --veaf.loggers.get(veafAirWaves.Id):trace("lonDelta = [%s]", veaf.p(lonDelta))
         local position = {x = zoneCenter.x - lonDelta, y = zoneCenter.y, z = zoneCenter.z + latDelta}
         local randomPosition = mist.getRandPointInCircle(position, self.respawnRadius)
         local spawnedGroupsNames = {}
@@ -796,7 +910,26 @@ function AirWaveZone:deployWave()
     self:_setState(veafAirWaves.STATUS_ACTIVE)
   end
   self:signalDeploy()
-  return (self.spawnedGroupsNames and #self.spawnedGroupsNames > 0)
+  return (self.spawnedGroupsNames and #self.spawnedGroupsNames > 0), lastDelay
+end
+
+---Sends a message to all players in the zone, but only once per group (because we're actually messaging whole groups, thanks DCS)
+---@param msg string the message to be sent
+function AirWaveZone:signalToPlayers(msg)
+  local groupsAlreadyMessaged = {}
+  if self.unitsInZone then
+    for _, unitInZone in pairs(self.unitsInZone) do
+      local group = unitInZone:getGroup()
+      local groupId = nil
+      if group then
+          groupId = group:getID()
+      end
+      if groupId and not groupsAlreadyMessaged[groupId] then
+        groupsAlreadyMessaged[groupId] = true
+        trigger.action.outTextForGroup(groupId, msg, 15)
+      end
+    end
+  end
 end
 
 function AirWaveZone:signalStart()
@@ -808,8 +941,27 @@ function AirWaveZone:signalStart()
     end
   end
   if self.onStart then
-    veaf.loggers.get(veafAirWaves.Id):trace("self.playerHumanUnits=%s", veaf.p(self.playerHumanUnits))
     self.onStart(self.name, self.playerUnitsNames)
+  end
+end
+
+function AirWaveZone:signalWaitForHumans()
+  veaf.loggers.get(veafAirWaves.Id):debug("AirWaveZone[%s]:signalWaitForHumans()", veaf.p(self.name))
+  if not self.silent then
+    self:signalToPlayers(string.format(self.messageWaitForHumans, self:getDescription(), self.delayBeforeActivation))
+  end
+  if self.onWaitForHumans then
+    self.onWaitForHumans(self.name, self.playerUnitsNames)
+  end
+end
+
+function AirWaveZone:signalWaitToDeploy()
+  veaf.loggers.get(veafAirWaves.Id):debug("AirWaveZone[%s]:signalWaitToDeploy()", veaf.p(self.name))
+  if not self.silent then
+    self:signalToPlayers(string.format(self.messageWaitToDeploy, self:getDescription(), self.delayBeforeNextWave))
+  end
+  if self.onWaitToDeploy then
+    self.onWaitToDeploy(self.name, self.playerUnitsNames)
   end
 end
 
@@ -823,12 +975,12 @@ function AirWaveZone:signalDeploy()
     end
     -- messages to players with BRAA
     if self.unitsInZone then
+      local groupsAlreadyMessaged = {}
       for _, unitInZone in pairs(self.unitsInZone) do
         -- compute BRAA of closest group
         local braa = { bearing = -1, distance = 9999}
         for _, spawnedGroupName in pairs(self.spawnedGroupsNames) do
           local spawnedGroupPosition = mist.getAvgGroupPos(spawnedGroupName)
-          veaf.loggers.get(veafAirWaves.Id):trace("point=%s", veaf.p(spawnedGroupPosition))
           local unitPosition = nil
           if unitInZone and unitInZone:getPosition() then
             unitPosition = unitInZone:getPosition().p
@@ -848,8 +1000,15 @@ function AirWaveZone:signalDeploy()
           if braa.distance < 5 then
             braaS = "MERGED"
           end
-          msg = string.format(self.messageDeployPlayers, self.currentWaveIndex, braaS)
-          veaf.outTextForUnit(unitInZone:getName(), msg, 15)
+          local group = unitInZone:getGroup()
+          local groupId = nil
+          if group then
+              groupId = group:getID()
+          end
+          if groupId and not groupsAlreadyMessaged[groupId] then
+            groupsAlreadyMessaged[groupId] = true
+            trigger.action.outTextForGroup(groupId, string.format(self.messageDeployPlayers, self.currentWaveIndex, braaS), 15)
+          end
         end
       end
     end
@@ -862,10 +1021,7 @@ end
 function AirWaveZone:signalDestroyed()
   veaf.loggers.get(veafAirWaves.Id):debug("AirWaveZone[%s]:signalDestroyed()", veaf.p(self.name))
   if not self.silent then
-    local msg = string.format(self.messageDestroyed, self:getDescription(), self.currentWaveIndex)
-    for coalition, _ in pairs(self.playerCoalitions) do
-      trigger.action.outTextForCoalition(coalition, msg, 15)
-    end
+    self:signalToPlayers(string.format(self.messageDestroyed, self:getDescription(), self.currentWaveIndex))
   end
   if self.onDestroyed then
     self.onDestroyed(self.name, self.currentWaveIndex, self.playerUnitsNames)
@@ -875,10 +1031,7 @@ end
 function AirWaveZone:signalWon()
   veaf.loggers.get(veafAirWaves.Id):debug("AirWaveZone[%s]:signalWon()", veaf.p(self.name))
   if not self.silent then
-    local msg = string.format(self.messageWon, self:getDescription())
-    for coalition, _ in pairs(self.playerCoalitions) do
-      trigger.action.outTextForCoalition(coalition, msg, 15)
-    end
+    self:signalToPlayers(string.format(self.messageWon, self:getDescription()))
   end
   if self.onWon then
     self.onWon(self.name, self.playerUnitsNames)

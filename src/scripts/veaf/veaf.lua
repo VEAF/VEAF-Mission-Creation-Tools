@@ -19,7 +19,7 @@ veaf = {}
 veaf.Id = "VEAF"
 
 --- Version.
-veaf.Version = "1.39.0"
+veaf.Version = "1.40.0"
 
 --- Development version ?
 veaf.Development = true
@@ -423,29 +423,6 @@ function veaf.escapeRegex(stringToEscape)
     end
     return result
 end
-
----checks if a string starts with a prefix
----@param aString any
----@param aPrefix any
----@param caseSensitive? boolean   ; if true, case sensitive search
----@return boolean
-function veaf.startsWith(aString, aPrefix, caseSensitive)
-    local _aString = aString
-    if not _aString then
-        return false
-    elseif not caseSensitive then
-        _aString = _aString:upper()
-    end
-    local _aPrefix = aPrefix
-    if not _aPrefix then
-        return false
-    elseif not caseSensitive then
-        _aPrefix = _aPrefix:upper()
-    end
-    return string.sub(_aString,1,string.len(_aPrefix))==_aPrefix
-end
-
-
 
 --- efficiently remove elements from a table
 --- credit : Mitch McMabers (https://stackoverflow.com/questions/12394841/safely-remove-items-from-an-array-table-while-iterating)
@@ -2283,37 +2260,35 @@ end
 
 function veaf.getRandomizableNumeric_random(val)
     veaf.loggers.get(veaf.Id):trace(string.format("getRandomizableNumeric_random(%s)", tostring(val)))
+    local MIN = 0
+    local MAX = 99
     local nVal = tonumber(val)
-    veaf.loggers.get(veaf.Id):trace(string.format("nVal=%s", tostring(nVal)))
+    veaf.loggers.get(veaf.Id):trace("nVal=%s", veaf.p(nVal))
     if nVal == nil then
-        --[[
-        local dashPos = nil
-        for i = 1, #val do
-            local c = val:sub(i,i)
-            if c == '-' then 
-                dashPos = i
-                break
-            end
-        end
+        local dashPos = string.find(val,"%-")
+        veaf.loggers.get(veaf.Id):trace("dashPos=%s", veaf.p(dashPos))
         if dashPos then 
             local lower = val:sub(1, dashPos-1)
-            veaf.loggers.get(veaf.Id):trace(string.format("lower=%s", tostring(lower)))
+            veaf.loggers.get(veaf.Id):trace("lower=%s", veaf.p(lower))
             if lower then 
                 lower = tonumber(lower)
             end
-            if lower == nil then lower = 0 end
+            if lower == nil then
+                lower = MIN
+            end
             local upper = val:sub(dashPos+1)
-            veaf.loggers.get(veaf.Id):trace(string.format("upper=%s", tostring(upper)))
+            veaf.loggers.get(veaf.Id):trace("upper=%s", veaf.p(upper))
             if upper then 
                 upper = tonumber(upper)
             end
-            if upper == nil then upper = 5 end
+            if upper == nil then
+                upper = MAX
+            end
             nVal = math.random(lower, upper)
-            veaf.loggers.get(veaf.Id):trace(string.format("random nVal=%s", tostring(nVal)))
+            veaf.loggers.get(veaf.Id):trace("nVal=%s", veaf.p(nVal))
         end
-        --]]
-
-        -- [[
+    end
+        --[[ 
 
         if val == "0-1" then nVal = math.random(0,1) end
         if val == "0-2" then nVal = math.random(0,2) end
@@ -2523,29 +2498,8 @@ function veaf.getRandomizableNumeric_random(val)
         if val == "17-19" then nVal = math.random(17,19) end
 
         if val == "18-19" then nVal = math.random(18,19) end
+        ]]
 
-        --[[
-        -- maybe it's a range ?
-        local dashPos = val:find("-")
-        veaf.loggers.get(veaf.Id):trace(string.format("dashPos=%s", tostring(dashPos)))
-        if dashPos then 
-            local lower = val:sub(1, dashPos-1)
-            veaf.loggers.get(veaf.Id):trace(string.format("lower=%s", tostring(lower)))
-            if lower then 
-                lower = tonumber(lower)
-            end
-            if lower == nil then lower = 0 end
-            local upper = val:sub(dashPos+1)
-            veaf.loggers.get(veaf.Id):trace(string.format("upper=%s", tostring(upper)))
-            if upper then 
-                upper = tonumber(upper)
-            end
-            if upper == nil then upper = 5 end
-            nVal = math.random(lower, upper)
-            veaf.loggers.get(veaf.Id):trace(string.format("random nVal=%s", tostring(nVal)))
-        end
-        --]]
-    end
     veaf.loggers.get(veaf.Id):trace(string.format("nVal=%s", tostring(nVal)))
     return nVal
 end

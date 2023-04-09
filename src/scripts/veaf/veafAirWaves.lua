@@ -20,10 +20,10 @@ veafAirWaves = {}
 veafAirWaves.Id = "AIRWAVES - "
 
 --- Version.
-veafAirWaves.Version = "1.6.0"
+veafAirWaves.Version = "1.7.0"
 
 -- trace level, specific to this module
---veafAirWaves.LogLevel = "trace"
+veafAirWaves.LogLevel = "trace"
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Do not change anything below unless you know what you are doing!
@@ -85,6 +85,10 @@ function AirWaveZone.init(object)
   object.messageDeployPlayers = veafAirWaves.DEFAULT_MESSAGE_DEPLOY_PLAYERS
   -- event when a wave is triggered
   object.onDeploy = nil
+  -- message when a player is outside of zone
+  object.messageOutsideOfZone = veafAirWaves.DEFAULT_MESSAGE_OUTSIDE_OF_ZONE_PLAYERS
+  -- event when a player is outside of zone
+  object.onOutsideOfZone = nil
   -- message when a wave is destroyed
   object.messageDestroyed = veafAirWaves.DEFAULT_MESSAGE_DESTROYED
   -- event when a wave is destroyed
@@ -113,6 +117,10 @@ function AirWaveZone.init(object)
   object.minimumAltitude = -999999
   -- players in the zone will only be detected above this altitude (in feet)
   object.maximumAltitude = 999999
+  -- players staying out of the zone for more that this number of seconds will be destroyed
+  object.maxSecondsOutsideOfZonePlayers = veafAirWaves.MAX_SECONDS_OUTSIDE_OF_ZONE_PLAYERS
+  -- IA staying out of the zone for more that this number of seconds will be destroyed
+  object.maxSecondsOutsideOfZoneIA = veafAirWaves.MAX_SECONDS_OUTSIDE_OF_ZONE_IA
   -- the function that decides if a wave is dead or not (as a set of groups and units)
   object.isEnemyWaveDeadCallback = AirWaveZone.isEnemyWaveDead
   -- the function that decides if IA ennemy groups are dead (individually)
@@ -129,6 +137,8 @@ function AirWaveZone.init(object)
   object.zoneDrawing = nil
   -- the scheduled state of the :check() function
   object.checkFunctionSchedule = nil
+  -- the time humans exited the zone
+  object.timestampsOutOfZone = {}
 end
 
 function veafAirWaves.statusToString(status)
@@ -149,11 +159,14 @@ veafAirWaves.STATUS_OVER = 4
 
 veafAirWaves.MINIMUM_LIFE_FOR_AI_IN_PERCENT = 10
 
+veafAirWaves.MAX_SECONDS_OUTSIDE_OF_ZONE_PLAYERS = 60
+veafAirWaves.MAX_SECONDS_OUTSIDE_OF_ZONE_IA = 30
 veafAirWaves.DEFAULT_MESSAGE_START = "%s - online"
 veafAirWaves.DEFAULT_MESSAGE_WAIT_FOR_HUMANS = "%s - waiting %s seconds for more players"
 veafAirWaves.DEFAULT_MESSAGE_WAIT_TO_DEPLOY = "%s - waiting %s seconds before next wave"
 veafAirWaves.DEFAULT_MESSAGE_DEPLOY = "%s - deploying wave %s"
 veafAirWaves.DEFAULT_MESSAGE_DEPLOY_PLAYERS = "Wave %s deploying, %s"
+veafAirWaves.DEFAULT_MESSAGE_OUTSIDE_OF_ZONE_PLAYERS = "%s - you've been outside of the zone for %s seconds; go back inside, or you'll be destroyed after %s seconds."
 veafAirWaves.DEFAULT_MESSAGE_DESTROYED = "%s - wave %s has been destroyed"
 veafAirWaves.DEFAULT_MESSAGE_WON = "%s - won (no more waves)"
 veafAirWaves.DEFAULT_MESSAGE_LOST = "%s - lost (no more players)"
@@ -243,6 +256,7 @@ end
 ---returns self
 function AirWaveZone:addWave(...)
   veaf.loggers.get(veafAirWaves.Id):debug(string.format("VeafQRA[%s]:addWave() : %s", veaf.p(self.name), veaf.p(arg)))
+---@diagnostic disable-next-line: undefined-field this is a field defined in the vararg api
   local nArgs = arg.n or 0
   if arg and nArgs > 0 then
     local groups = {}
@@ -277,10 +291,6 @@ function AirWaveZone:addWave(...)
         end
       end
     end
-    veaf.loggers.get(veafAirWaves.Id):trace("groups=%s", veaf.p(groups))
-    veaf.loggers.get(veafAirWaves.Id):trace("number=%s", veaf.p(number))
-    veaf.loggers.get(veafAirWaves.Id):trace("bias=%s", veaf.p(bias))
-    veaf.loggers.get(veafAirWaves.Id):trace("delay=%s", veaf.p(delay))
     if not self.waves then
       self.waves = {}
     end
@@ -375,6 +385,21 @@ end
 function AirWaveZone:setOnDestroyed(value)
   veaf.loggers.get(veafAirWaves.Id):debug("AirWaveZone[%s]:setOnDestroyed()", veaf.p(self.name))
   self.onDestroyed = value
+  return self
+end
+
+function AirWaveZone:setMessageOutsideOfZone(value)
+  veaf.loggers.get(veafAirWaves.Id):debug("AirWaveZone[%s]:setMessageOutsideOfZone()", veaf.p(self.name))
+  self.messageOutsideOfZone = value
+  return self
+end
+
+---Set the onOutsideOfZone callback
+---@param value function takes 3 parameters: the zone name (string), the wave index (int), the monitored player units (table)
+---@return table self
+function AirWaveZone:setOnOutsideOfZone(value)
+  veaf.loggers.get(veafAirWaves.Id):debug("AirWaveZone[%s]:setOnOutsideOfZone()", veaf.p(self.name))
+  self.onOutsideOfZone = value
   return self
 end
 
@@ -479,9 +504,9 @@ function AirWaveZone:setDelayBeforeActivation(value)
   return self
 end
 
-function AirWaveZone:setResetWhenDying()
-  veaf.loggers.get(veafAirWaves.Id):debug("AirWaveZone[%s]:setResetWhenDying()", veaf.p(self.name))
-  self.resetWhenDying = true
+function AirWaveZone:setResetWhenDying(value)
+  veaf.loggers.get(veafAirWaves.Id):debug("AirWaveZone[%s]:setResetWhenDying(%s)", veaf.p(self.name), veaf.p(value))
+  self.resetWhenDying = value
   return self
 end
 
@@ -505,8 +530,26 @@ function AirWaveZone:getMaximumAltitudeInMeters()
   return self.maximumAltitude
 end
 
+---Sets the maximum number of seconds an IA can stay out of its zone before being destroyed
+---@param value number a delay in seconds
+---@return table self
+function AirWaveZone:setMaxSecondsOutsideOfZoneIA(value)
+  veaf.loggers.get(veafAirWaves.Id):debug("AirWaveZone[%s]:setMaxSecondsOutsideOfZoneIA(%s)", veaf.p(self.name), veaf.p(value))
+  self.maxSecondsOutsideOfZoneIA = value
+  return self
+end
+
+---Sets the maximum number of seconds a player can stay out of its zone before being destroyed; players will be messaged as soon as they exit the zone, and every check
+---@param value number a delay in seconds
+---@return table self
+function AirWaveZone:setMaxSecondsOutsideOfZonePlayers(value)
+  veaf.loggers.get(veafAirWaves.Id):debug("AirWaveZone[%s]:setMaxSecondsOutsideOfZonePlayers(%s)", veaf.p(self.name), veaf.p(value))
+  self.maxSecondsOutsideOfZonePlayers = value
+  return self
+end
+
 function AirWaveZone:_setState(value)
-  veaf.loggers.get(veafAirWaves.Id):trace("AirWaveZone[%s]:_setState(%s)", veaf.p(self.name), veaf.p(veafAirWaves.statusToString(value)))
+  veaf.loggers.get(veafAirWaves.Id):debug("AirWaveZone[%s]:_setState(%s)", veaf.p(self.name), veaf.p(veafAirWaves.statusToString(value)))
   self.state = value
   return self
 end
@@ -520,7 +563,8 @@ function AirWaveZone:reset()
   self:destroyCurrentWave()
   -- reset the wave index
   self.currentWaveIndex = 0
-
+  -- reset the time humans exited the zone
+  self.timestampsOutOfZone = {}
   return self
 end
 
@@ -619,9 +663,9 @@ function AirWaveZone:handleCrippledEnemyUnit(waveNumber, unit)
   unit:destroy()
 end
 
-function AirWaveZone:getPlayerUnits()
-  if not self.playerHumanUnits then
-    self.playerHumanUnits = {}
+function AirWaveZone:getPlayerUnitsNames()
+  if not self.playerHumanUnitsNames then
+    self.playerHumanUnitsNames = {}
     for _, unit in pairs(mist.DBs.humansByName) do
       local coalitionId = 0
       if unit.coalition then
@@ -634,29 +678,94 @@ function AirWaveZone:getPlayerUnits()
       if self.playerCoalitions[coalitionId] then
         if unit.category then
           if unit.category == "plane" then
-            table.insert(self.playerHumanUnits, unit.unitName)
+            table.insert(self.playerHumanUnitsNames, unit.unitName)
           end
         end
       end
     end
   end
-  return self.playerHumanUnits
+  return self.playerHumanUnitsNames
 end
 
 function AirWaveZone:check()
   veaf.loggers.get(veafAirWaves.Id):debug("AirWaveZone[%s]:check() -> self.state=%s", veaf.p(self.name), veaf.p(veafAirWaves.statusToString(self.state)))
   veaf.loggers.get(veafAirWaves.Id):trace("AirWaveZone[%s]:check() -> timer.getTime()=%s", veaf.p(self.name), veaf.p(timer.getTime()))
 
+  local function getHumansInZone()
+    local resultUnitsByName = {}
+    local resultUnitsNames = {}
+    local resultUnits = {}
+    local unitNames = self:getPlayerUnitsNames()
+    local triggerZone = veaf.getTriggerZone(self.triggerZoneName)
+    local humanUnits = nil
+    if triggerZone then
+      if triggerZone.type == 0 then -- circular
+        humanUnits = mist.getUnitsInZones(unitNames, {self.triggerZoneName})
+      elseif triggerZone.type == 2 then -- quad point
+        humanUnits = mist.getUnitsInPolygon(unitNames, triggerZone.verticies)
+      end
+    else
+      humanUnits = veaf.findUnitsInCircle(self.zoneCenter, self.zoneRadius, false, unitNames)
+    end
+    for _, unit in pairs(humanUnits) do
+      -- check the unit altitude against the ceiling and floor
+      if unit:inAir() then -- never count a landed aircraft
+        local alt = unit:getPoint().y
+        if alt >= self:getMinimumAltitudeInMeters() and alt <= self:getMaximumAltitudeInMeters() then
+          -- add the unit to the player units list, so that we can monitor it
+          local unitName = unit:getName()
+          table.insert(resultUnitsNames, unitName)
+          table.insert(resultUnits, unit)
+          resultUnitsByName[unitName] = unit
+        end
+      end
+    end
+    return resultUnits, resultUnitsNames, resultUnitsByName
+  end
+
+  local humansInZone, humansInZoneNames, humansInZoneByName = getHumansInZone()
+
   -- whatever the state, monitor the player units if they're defined
   if self.playerUnitsNames and #self.playerUnitsNames > 0 then
     local atLeastOnePlayerAlive = false
     local atLeastOnePlayerAirborne = false
-    for _, _unitName in pairs(self.playerUnitsNames) do
-      local _unit = Unit.getByName(_unitName)
-      if _unit then 
+    for _, unitName in pairs(self.playerUnitsNames) do
+      local unit = Unit.getByName(unitName)
+      if unit then
+        -- check alive
         atLeastOnePlayerAlive = true
-        if _unit:inAir() then
+        if unit:inAir() then
           atLeastOnePlayerAirborne = true
+        end
+        -- check in zone
+        if humansInZoneByName[unitName] then
+          self.timestampsOutOfZone[unitName] = nil
+        else
+          local timestampOutOfZone = timer.getTime()
+          if self.timestampsOutOfZone[unitName] then
+            timestampOutOfZone = self.timestampsOutOfZone[unitName]
+          else
+            self.timestampsOutOfZone[unitName] = timestampOutOfZone
+          end
+          local seconds = timer.getTime() - timestampOutOfZone
+          self:signalOutsideOfZone(unitName, seconds)
+          local secondsOffend = seconds - self.maxSecondsOutsideOfZonePlayers
+          if secondsOffend > 0 then
+            -- destroy the player
+            if secondsOffend > self.maxSecondsOutsideOfZonePlayers then
+              veaf.loggers.get(veafAirWaves.Id):debug("destroy out of zone player unitName=%s", veaf.p(unitName))
+              unit:destroy()
+            else
+              veaf.loggers.get(veafAirWaves.Id):debug("flak out of zone player unitName=%s", veaf.p(unitName))
+              local point = unit:getPoint()
+              local positionForFlak1 = mist.vec.add(point, mist.vec.scalarMult(unit:getVelocity(), 1))
+              local positionForFlak2 = mist.vec.add(point, mist.vec.scalarMult(unit:getVelocity(), 2))
+              local positionForFlak3 = mist.vec.add(point, mist.vec.scalarMult(unit:getVelocity(), 3))
+              veafSpawn.spawnBomb(positionForFlak1, 50, 5, 25 + seconds - self.maxSecondsOutsideOfZonePlayers, positionForFlak1.y, 50)
+              veafSpawn.spawnBomb(positionForFlak2, 50, 5, 25 + seconds - self.maxSecondsOutsideOfZonePlayers, positionForFlak2.y, 50)
+              veafSpawn.spawnBomb(positionForFlak3, 50, 5, 25 + seconds - self.maxSecondsOutsideOfZonePlayers, positionForFlak3.y, 50)
+            end
+          end
         end
       end
     end
@@ -676,41 +785,11 @@ function AirWaveZone:check()
     end
   end
 
-  local function getHumansInZone()
-    local resultUnitsNames = {}
-    local resultUnits = {}
-    local unitNames = self:getPlayerUnits()
-    local triggerZone = veaf.getTriggerZone(self.triggerZoneName)
-    local humanUnits = nil
-    if triggerZone then
-      if triggerZone.type == 0 then -- circular
-        humanUnits = mist.getUnitsInZones(unitNames, {self.triggerZoneName})
-      elseif triggerZone.type == 2 then -- quad point
-        humanUnits = mist.getUnitsInPolygon(unitNames, triggerZone.verticies)
-      end
-    else
-      humanUnits = veaf.findUnitsInCircle(self.zoneCenter, self.zoneRadius, false, unitNames)
-    end
-    for _, unit in pairs(humanUnits) do
-      -- check the unit altitude against the ceiling and floor
-      if unit:inAir() then -- never count a landed aircraft
-        local alt = unit:getPoint().y
-        if alt >= self:getMinimumAltitudeInMeters() and alt <= self:getMaximumAltitudeInMeters() then
-          -- add the unit to the player units list, so that we can monitor it
-          table.insert(resultUnitsNames, unit:getName())
-          table.insert(resultUnits, unit)
-        end
-      end
-    end
-    return resultUnits, resultUnitsNames
-  end
-
   if self.state == veafAirWaves.STATUS_READY then
-    local humansInZone, humanInZoneNames = getHumansInZone()
     if humansInZone and #humansInZone > 0 then
       -- store the human units that we're going to monitor
       self.unitsInZone = humansInZone
-      self.playerUnitsNames = humanInZoneNames
+      self.playerUnitsNames = humansInZoneNames
       self:_setState(veafAirWaves.STATUS_WAITING_FOR_MORE_HUMANS)
       if self.delayBeforeActivation and self.delayBeforeActivation > 0 then
         self:signalWaitForHumans()
@@ -750,7 +829,7 @@ function AirWaveZone:check()
       end
       self.timeOfNextWave = timer.getTime() + self.delayBeforeNextWave
       veaf.loggers.get(veafAirWaves.Id):debug("waiting %s seconds before spawning next wave(s)", veaf.p(self.delayBeforeNextWave))
-      veaf.loggers.get(veafAirWaves.Id):trace("self.timeOfActivation=%s", veaf.p(self.timeOfActivation))
+      veaf.loggers.get(veafAirWaves.Id):trace("self.timeOfNextWave=%s", veaf.p(self.timeOfNextWave))
       -- restart the check immediately (we don't want to wait for the next state to be processed)
       self:check()
     else
@@ -768,7 +847,9 @@ function AirWaveZone:check()
       end
     end
   elseif self.state == veafAirWaves.STATUS_ACTIVE then
-    -- zone is active, check if the current wave is still alive
+    -- zone is active
+    
+    -- check if the current wave is still alive
     local waveIsDead = self.isEnemyWaveDeadCallback(self, self.currentWaveIndex, self.spawnedGroupsNames)
     if waveIsDead then
       -- clean up any eventual remaining group of the wave
@@ -779,6 +860,47 @@ function AirWaveZone:check()
       self:_setState(veafAirWaves.STATUS_NEXTWAVE)
       -- restart the check immediately (we don't want to wait for the next state to be processed)
       self:check()
+    else
+      -- check if any IA wandered out of the zone for longer than it should have (maxSecondsOutsideOfZoneIA)
+      local triggerZone = veaf.getTriggerZone(self.triggerZoneName)
+      for _, groupName in pairs(self.spawnedGroupsNames) do
+        local group = Group.getByName(groupName)
+        if group then
+          local units = group:getUnits()
+          if units then
+            for _, unit in pairs(units) do
+              local unitName = unit:getName()
+              local outOfZone = false
+              if triggerZone then
+                outOfZone = not(veaf.isUnitInZone(unit, triggerZone))
+              else
+                local pos = unit:getPosition().p
+                if pos then -- you never know O.o
+                    local distanceFromCenter = ((pos.x - self.zoneCenter.x)^2 + (pos.z - self.zoneCenter.z)^2)^0.5
+                    outOfZone = (distanceFromCenter > self.zoneRadius)
+                end
+              end
+              if outOfZone then
+                local timestampOutOfZone = timer.getTime()
+                if self.timestampsOutOfZone[unitName] then
+                  timestampOutOfZone = self.timestampsOutOfZone[unitName]
+                else
+                  self.timestampsOutOfZone[unitName] = timestampOutOfZone
+                end
+                local seconds = timer.getTime() - timestampOutOfZone
+                local secondsOffend = seconds - self.maxSecondsOutsideOfZoneIA
+                if secondsOffend > 0 then
+                  -- destroy the IA
+                  veaf.loggers.get(veafAirWaves.Id):debug("destroy out of zone AI unitName=%s", veaf.p(unitName))
+                  unit:destroy()
+                end
+              else
+                self.timestampsOutOfZone[unitName] = nil
+              end
+            end
+          end
+        end
+      end
     end
   elseif self.state == veafAirWaves.STATUS_OVER then
     -- zone has still to be reset to restart
@@ -916,18 +1038,10 @@ end
 ---Sends a message to all players in the zone, but only once per group (because we're actually messaging whole groups, thanks DCS)
 ---@param msg string the message to be sent
 function AirWaveZone:signalToPlayers(msg)
-  local groupsAlreadyMessaged = {}
   if self.unitsInZone then
     for _, unitInZone in pairs(self.unitsInZone) do
-      local group = unitInZone:getGroup()
-      local groupId = nil
-      if group then
-          groupId = group:getID()
-      end
-      if groupId and not groupsAlreadyMessaged[groupId] then
-        groupsAlreadyMessaged[groupId] = true
-        trigger.action.outTextForGroup(groupId, msg, 15)
-      end
+      local unitName = unitInZone:getName()
+      veaf.outTextForUnit(unitName, msg, 15)
     end
   end
 end
@@ -1025,6 +1139,16 @@ function AirWaveZone:signalDestroyed()
   end
   if self.onDestroyed then
     self.onDestroyed(self.name, self.currentWaveIndex, self.playerUnitsNames)
+  end
+end
+
+function AirWaveZone:signalOutsideOfZone(playerUnitName, seconds)
+  veaf.loggers.get(veafAirWaves.Id):debug("AirWaveZone[%s]:signalOutsideOfZone(player=%s, seconds=%s)", veaf.p(self.name), veaf.p(playerUnitName), veaf.p(seconds))
+  if not self.silent then
+    veaf.outTextForUnit(playerUnitName, string.format(self.messageOutsideOfZone, self:getDescription(), seconds, self.maxSecondsOutsideOfZonePlayers), 15)
+  end
+  if self.onOutsideOfZone then
+    self.onOutsideOfZone(self.name, playerUnitName, seconds)
   end
 end
 

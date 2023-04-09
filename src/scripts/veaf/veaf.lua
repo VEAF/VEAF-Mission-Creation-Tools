@@ -19,7 +19,7 @@ veaf = {}
 veaf.Id = "VEAF"
 
 --- Version.
-veaf.Version = "1.40.0"
+veaf.Version = "1.42.0"
 
 --- Development version ?
 veaf.Development = true
@@ -1014,6 +1014,79 @@ function veaf.findPointInZone(spawnSpot, dispersion, isShip)
     end
 end
 
+---Fixes a table of mixed units and unit names and returns a table of DCS units
+---@param unitsOrNames table a list of units, unit names, or a mix
+---@return table the DCS units
+function veaf.fixUnitsTable(unitsOrNames)
+	local units = {}
+    for _, unitOrName in pairs(unitsOrNames) do
+        local unit = nil
+        if type(unitOrName) == "table" then
+            -- already an unit
+            unit = unitOrName
+        elseif type(unitOrName) == "string" then
+            -- find by name
+            unit = Unit.getByName(unitOrName) or StaticObject.getByName(unitOrName)
+        end
+        if unit then
+            table.insert(units, unit)
+        end
+    end
+    return units
+end
+
+---checks if a unit is in a trigger zone
+---@param unitOrName any a DCS unit or an unit name
+---@param zoneOrName any a DCS trigger zone or a trigger zone name (any type)
+---@return boolean true if the unit is in the trigger zone
+function veaf.isUnitInZone(unitOrName, zoneOrName)
+    veaf.loggers.get(veaf.Id):debug("veaf.isUnitInZone(unitOrName=%s, zoneOrName=%s)", veaf.p(unitOrName), veaf.p(zoneOrName))
+    local result = false
+    local unit = nil
+    if unitOrName then
+        if type(unitOrName) == "table" then
+            -- already an unit
+            unit = unitOrName
+        elseif type(unitOrName) == "string" then
+            -- find by name
+            unit = Unit.getByName(unitOrName) or StaticObject.getByName(unitOrName)
+        end
+    end
+
+    local zone = nil
+    if zoneOrName then
+        if type(zoneOrName) == "table" then
+            -- already a DCS zone
+            zone = zoneOrName
+        elseif type(zoneOrName) == "string" then
+            -- find by name
+            zone = veaf.getTriggerZone(zoneOrName)
+        end
+    end
+    veaf.loggers.get(veaf.Id):trace("unit=%s", veaf.p(unit))
+    veaf.loggers.get(veaf.Id):trace("zone=%s", veaf.p(zone))
+    if zone and unit then
+        local unitPosition = unit:getPosition().p
+        veaf.loggers.get(veaf.Id):trace("unitPosition=%s", veaf.p(unitPosition))
+        local unitCategory = unit:getCategory()
+        veaf.loggers.get(veaf.Id):trace("unitCategory=%s", veaf.p(unitCategory))
+        if unitPosition and ((unitCategory == 1 and unit:isActive() == true) or unitCategory ~= 1) then -- it is a unit and is active or it is not a unit
+            if zone.verts  then
+                if mist.pointInPolygon(unitPosition, zone.verts) then
+                    result = true
+                end
+
+            else
+                if ((unitPosition.x - zone.x)^2 + (unitPosition.z - zone.y)^2)^0.5 <= zone.radius then
+                    result = true
+                end
+            end
+        end
+    end
+
+    return result
+end
+
 --- TODO doc
 function veaf.generateVehiclesRoute(startPoint, destination, onRoad, speed, patrol, groupName)
     veaf.loggers.get(veaf.Id):trace(string.format("veaf.generateVehiclesRoute(onRoad=[%s], speed=[%s], patrol=[%s])", tostring(onRoad or ""), tostring(speed or ""), tostring(patrol or "")))
@@ -1830,17 +1903,21 @@ function veaf.getCarrierATCdata(carrierGroupName, carrierUnitName)
 end
 
 function veaf.outTextForUnit(unitName, message, duration)
+    local unitId = nil
     local groupId = nil
     if unitName then
     local unit = Unit.getByName(unitName)
     if unit then
+        unitId = unit:getID()
         local group = unit:getGroup()
         if group then
             groupId = group:getID()
         end
     end
     end
-    if groupId then
+    if unitId then
+        trigger.action.outTextForUnit(unitId, message, duration)
+    elseif groupId then
         trigger.action.outTextForGroup(groupId, message, duration)
     else
         trigger.action.outText(message, duration)

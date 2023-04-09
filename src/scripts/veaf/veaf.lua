@@ -19,7 +19,7 @@ veaf = {}
 veaf.Id = "VEAF"
 
 --- Version.
-veaf.Version = "1.40.0"
+veaf.Version = "1.41.0"
 
 --- Development version ?
 veaf.Development = true
@@ -1830,17 +1830,21 @@ function veaf.getCarrierATCdata(carrierGroupName, carrierUnitName)
 end
 
 function veaf.outTextForUnit(unitName, message, duration)
+    local unitId = nil
     local groupId = nil
     if unitName then
     local unit = Unit.getByName(unitName)
     if unit then
+        unitId = unit:getID()
         local group = unit:getGroup()
         if group then
             groupId = group:getID()
         end
     end
     end
-    if groupId then
+    if unitId then
+        trigger.action.outTextForUnit(unitId, message, duration)
+    elseif groupId then
         trigger.action.outTextForGroup(groupId, message, duration)
     else
         trigger.action.outText(message, duration)

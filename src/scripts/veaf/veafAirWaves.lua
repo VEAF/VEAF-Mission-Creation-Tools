@@ -161,7 +161,6 @@ veafAirWaves.MINIMUM_LIFE_FOR_AI_IN_PERCENT = 10
 
 veafAirWaves.MAX_SECONDS_OUTSIDE_OF_ZONE_PLAYERS = 60
 veafAirWaves.MAX_SECONDS_OUTSIDE_OF_ZONE_IA = 30
-
 veafAirWaves.DEFAULT_MESSAGE_START = "%s - online"
 veafAirWaves.DEFAULT_MESSAGE_WAIT_FOR_HUMANS = "%s - waiting %s seconds for more players"
 veafAirWaves.DEFAULT_MESSAGE_WAIT_TO_DEPLOY = "%s - waiting %s seconds before next wave"
@@ -691,7 +690,7 @@ end
 function AirWaveZone:check()
   veaf.loggers.get(veafAirWaves.Id):debug("AirWaveZone[%s]:check() -> self.state=%s", veaf.p(self.name), veaf.p(veafAirWaves.statusToString(self.state)))
   veaf.loggers.get(veafAirWaves.Id):trace("AirWaveZone[%s]:check() -> timer.getTime()=%s", veaf.p(self.name), veaf.p(timer.getTime()))
-  
+
   local function getHumansInZone()
     local resultUnitsByName = {}
     local resultUnitsNames = {}

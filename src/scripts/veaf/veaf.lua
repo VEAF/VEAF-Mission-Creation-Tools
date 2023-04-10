@@ -1062,7 +1062,6 @@ function veaf.isUnitInZone(unitOrName, zoneOrName)
             zone = veaf.getTriggerZone(zoneOrName)
         end
     end
-
     if zone and unit then
         local unitPosition = unit:getPosition().p
         local unitCategory = unit:getCategory()

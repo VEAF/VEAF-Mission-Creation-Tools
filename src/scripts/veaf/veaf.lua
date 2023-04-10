@@ -19,7 +19,7 @@ veaf = {}
 veaf.Id = "VEAF"
 
 --- Version.
-veaf.Version = "1.42.0"
+veaf.Version = "1.43.0"
 
 --- Development version ?
 veaf.Development = true
@@ -1040,8 +1040,7 @@ end
 ---@param zoneOrName any a DCS trigger zone or a trigger zone name (any type)
 ---@return boolean true if the unit is in the trigger zone
 function veaf.isUnitInZone(unitOrName, zoneOrName)
-    veaf.loggers.get(veaf.Id):debug("veaf.isUnitInZone(unitOrName=%s, zoneOrName=%s)", veaf.p(unitOrName), veaf.p(zoneOrName))
-    local result = false
+    local unitIsInZone = false
     local unit = nil
     if unitOrName then
         if type(unitOrName) == "table" then
@@ -1063,28 +1062,23 @@ function veaf.isUnitInZone(unitOrName, zoneOrName)
             zone = veaf.getTriggerZone(zoneOrName)
         end
     end
-    veaf.loggers.get(veaf.Id):trace("unit=%s", veaf.p(unit))
-    veaf.loggers.get(veaf.Id):trace("zone=%s", veaf.p(zone))
     if zone and unit then
         local unitPosition = unit:getPosition().p
-        veaf.loggers.get(veaf.Id):trace("unitPosition=%s", veaf.p(unitPosition))
         local unitCategory = unit:getCategory()
-        veaf.loggers.get(veaf.Id):trace("unitCategory=%s", veaf.p(unitCategory))
         if unitPosition and ((unitCategory == 1 and unit:isActive() == true) or unitCategory ~= 1) then -- it is a unit and is active or it is not a unit
-            if zone.verts  then
-                if mist.pointInPolygon(unitPosition, zone.verts) then
-                    result = true
+            if zone.verticies  then
+                local pointInPolygon = mist.pointInPolygon(unitPosition, zone.verticies)
+                if pointInPolygon then
+                    unitIsInZone = true
                 end
-
             else
                 if ((unitPosition.x - zone.x)^2 + (unitPosition.z - zone.y)^2)^0.5 <= zone.radius then
-                    result = true
+                    unitIsInZone = true
                 end
             end
         end
     end
-
-    return result
+    return unitIsInZone
 end
 
 --- TODO doc

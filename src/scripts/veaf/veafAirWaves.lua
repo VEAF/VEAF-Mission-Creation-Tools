@@ -20,10 +20,10 @@ veafAirWaves = {}
 veafAirWaves.Id = "AIRWAVES - "
 
 --- Version.
-veafAirWaves.Version = "1.7.0"
+veafAirWaves.Version = "1.7.1"
 
 -- trace level, specific to this module
-veafAirWaves.LogLevel = "trace"
+--veafAirWaves.LogLevel = "trace"
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Do not change anything below unless you know what you are doing!
@@ -107,12 +107,22 @@ function AirWaveZone.init(object)
   object.onStop = nil
   -- default delay in seconds between waves of enemy planes
   object.delayBetweenWaves = 0
+  -- the delay after this wave, and before the next one (either set in the wave definition, or it's the default delayBetweenWaves)
+  object.delayBeforeNextWave = nil
+  -- the time when the next wave is supposed to spawn (used to know when to actually spawn when in the STATUS_WAITING_FOR_NEXTWAVE state)
+  object.timeOfNextWave = nil
   -- delay in seconds between the first human in zone and the actual activation of the zone
   object.delayBeforeActivation = 0
+  -- the time when the zones is supposed to be activated (used to know when to actually activate when in the STATUS_WAITING_FOR_MORE_HUMANS state)
+  object.timeOfActivation = nil
   -- if true, the zone will reset when player dies
   object.resetWhenDying = true
   -- human units that are being watched
   object.playerHumanUnits = nil
+  -- names of the human units that are being watched
+  object.playerHumanUnitsNames = nil
+  -- IA units that are being watched
+  object.unitsInZone = {}
   -- players in the zone will only be detected below this altitude (in feet)
   object.minimumAltitude = -999999
   -- players in the zone will only be detected above this altitude (in feet)
@@ -129,8 +139,6 @@ function AirWaveZone.init(object)
   object.minimumLifeForAiInPercent = veafAirWaves.MINIMUM_LIFE_FOR_AI_IN_PERCENT
   -- the function that handles crippled enemy units
   object.handleCrippledEnemyUnitCallback = AirWaveZone.handleCrippledEnemyUnit
-  ------------------------------------------------------------------------
-
   -- current wave number
   object.currentWaveIndex = 0
   -- the drawing object that has been used to draw the zone
@@ -139,6 +147,7 @@ function AirWaveZone.init(object)
   object.checkFunctionSchedule = nil
   -- the time humans exited the zone
   object.timestampsOutOfZone = {}
+
 end
 
 function veafAirWaves.statusToString(status)
@@ -554,20 +563,6 @@ function AirWaveZone:_setState(value)
   return self
 end
 
-function AirWaveZone:reset()
-  veaf.loggers.get(veafAirWaves.Id):debug("AirWaveZone[%s]:reset()", veaf.p(self.name))
-  -- no more players, reset the players list
-  self.playerUnitsNames = {}
-  self.unitsInZone = {}
-  -- despawn the ennemies
-  self:destroyCurrentWave()
-  -- reset the wave index
-  self.currentWaveIndex = 0
-  -- reset the time humans exited the zone
-  self.timestampsOutOfZone = {}
-  return self
-end
-
 ---the function that decides if a wave is dead or not (as a set of groups and units)
 ---@param callback function the callback function will be called with 3 parameters: a zone, the wave index number, the spawned groups names list; it must return a boolean
 function AirWaveZone:setIsEnemyWaveDeadCallback(callback)
@@ -593,12 +588,51 @@ function AirWaveZone:setMinimumLifeForAiInPercent(value)
   return self
 end
 
-
 --- the function that handles crippled enemy units
 ---@param callback function the callback function will be called with 3 parameters: a zone, the wave index number, a DCS unit table; it must do what it wants with the unit
 function AirWaveZone:setHandleCrippledEnemyUnitCallback(callback)
   veaf.loggers.get(veafAirWaves.Id):debug("AirWaveZone[%s]:setHandleCrippledEnemyUnitCallback()", veaf.p(self.name))
   self.handleCrippledEnemyUnitCallback = callback
+  return self
+end
+
+function AirWaveZone:reset()
+  veaf.loggers.get(veafAirWaves.Id):debug("AirWaveZone[%s]:reset()", veaf.p(self.name))
+
+  -- despawn the ennemies
+  self:destroyCurrentWave()
+
+  -- reset all the zone properties
+
+  -- player units (if they die, reset the zone)
+  self.playerUnitsNames = {}
+  -- groups that have been spawned (the current wave)
+  self.spawnedGroupsNames = {}
+  -- the delay after this wave, and before the next one (either set in the wave definition, or it's the default delayBetweenWaves)
+  self.delayBeforeNextWave = nil
+  -- the time when the next wave is supposed to spawn (used to know when to actually spawn when in the STATUS_WAITING_FOR_NEXTWAVE state)
+  self.timeOfNextWave = nil
+  -- the time when the zones is supposed to be activated (used to know when to actually activate when in the STATUS_WAITING_FOR_MORE_HUMANS state)
+  self.timeOfActivation = nil
+  -- human units that are being watched
+  self.playerHumanUnits = nil
+  -- names of the human units that are being watched
+  self.playerHumanUnitsNames = nil
+  -- IA units that are being watched
+  self.unitsInZone = {}
+  -- current wave number
+  self.currentWaveIndex = 0
+  -- the drawing object that has been used to draw the zone
+  self.zoneDrawing = nil
+  -- the time humans exited the zone
+  self.timestampsOutOfZone = {}
+
+  -- deschedule the check() function
+  if self.checkFunctionSchedule then
+    mist.removeFunction(self.checkFunctionSchedule)
+    self.checkFunctionSchedule = nil
+  end
+
   return self
 end
 
@@ -776,11 +810,9 @@ function AirWaveZone:check()
         self:signalLost()
       end
       if self.resetWhenDying then
-        self:signalStop()
         -- reset the zone
-        self:reset()
-        -- zone is ready for the next players
-        self:_setState(veafAirWaves.STATUS_READY)
+        self:stop()
+        self:start()
       end
     end
   end
@@ -908,6 +940,7 @@ function AirWaveZone:check()
   if self.checkFunctionSchedule then
     -- deschedule if needed
     mist.removeFunction(self.checkFunctionSchedule)
+    self.checkFunctionSchedule = nil
   end
   self.checkFunctionSchedule = mist.scheduleFunction(AirWaveZone.check, {self}, timer.getTime() + veafAirWaves.WATCHDOG_DELAY + math.random(0, 2)) -- randomize reschedules so not all zones are working at the same time
 end
@@ -999,20 +1032,19 @@ function AirWaveZone:deployWaves()
         -- this is a DCS group
         local groupName = groupNameOrCommand
         veaf.loggers.get(veafAirWaves.Id):debug("spawning group [%s]", veaf.p(groupName))
-        local group = Group.getByName(groupName)
-        if not group then
+        local groupData = mist.getGroupData(groupName)
+        veaf.loggers.get(veafAirWaves.Id):trace("groupData=%s", veaf.p(groupData))
+        if not groupData then
           veaf.loggers.get(veafAirWaves.Id):error("group [%s] does not exist in the mission!", veaf.p(groupName))
         else
-          veaf.loggers.get(veafAirWaves.Id):debug("group=%s", veaf.p(group))
-          veaf.loggers.get(veafAirWaves.Id):debug("group:getUnits()=%s", veaf.p(group:getUnits()))
           local spawnSpot = {x = zoneCenter.x - self.respawnDefaultOffset.lonDelta, y = zoneCenter.y, z = zoneCenter.z + self.respawnDefaultOffset.latDelta}
           -- Try and set the spawn spot at the place the group has been set in the Mission Editor.
           -- Unfortunately this is sometimes not possible because DCS is not returning the group units for some reason.
           -- When this happens we'll default to the default spawn offset (same as spawning with VEAF commands)
-          if not group:getUnit(1) then
+          if not groupData.units[1] then
             veaf.loggers.get(veafAirWaves.Id):warn("group [%s] does not have any unit!", veaf.p(groupName))
           else
-            spawnSpot =  group:getUnit(1):getPoint()
+            spawnSpot =  groupData.units[1]
           end
           local vars = {}
           vars.point = mist.getRandPointInCircle(spawnSpot, self.respawnRadius)
@@ -1190,6 +1222,7 @@ end
 
 function AirWaveZone:start()
   veaf.loggers.get(veafAirWaves.Id):debug("AirWaveZone[%s]:start()", veaf.p(self.name))
+  self:reset()
   self:_setState(veafAirWaves.STATUS_READY)
   self:check()
 
@@ -1230,11 +1263,6 @@ function AirWaveZone:stop()
   end
 
   self:signalStop()
-
-  if self.checkFunctionSchedule then
-    mist.removeFunction(self.checkFunctionSchedule)
-  end
-
   return self
 end
 

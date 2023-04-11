@@ -957,6 +957,8 @@ function veaf.convertSpeeds(mach, kias, ktas, altitude, temperature, pressure)
         Mach = 0,
     }
 
+    veaf.loggers.get(veaf.Id):debug(string.format("veaf.convertSpeeds(mach = %d, kias = %d, ktas = %d, altitude = %d, temperature = %d, pressure = %d) -> initial", result.Mach, result.KIAS, result.KTAS, altitude, temperature, pressure))
+
     local h_tropopause = 11000 --m, tropopause start altitude
     local ft_2_m = 0.30488
 
@@ -969,7 +971,7 @@ function veaf.convertSpeeds(mach, kias, ktas, altitude, temperature, pressure)
 
     local T0 = 288.15 --K, ISA+0 altitude, may need to be corrected for mission ground temp
     local Tz = -0.0065 --K/m, ISA temperature gradient in troposphere
-    local T_tropopause = 216.85 --K, temperature at the border between tropopause and troposphere (temperature in the tropopause)
+    local T_tropopause = 216.65 --K, temperature at the border between tropopause and troposphere (temperature in the tropopause)
     local P0 = 101325 --Pa, standard pressure
     local Gamma = 1.4 --Air heat capacity ratio
     local r = 287.03 --J/kg/K Perfect Gas constant for air
@@ -987,13 +989,17 @@ function veaf.convertSpeeds(mach, kias, ktas, altitude, temperature, pressure)
         temperature = temperature + 273.15 --conversion to Kelvin
     end
 
+    local function P_troposphere(temperature)
+        return P0*(1+temperature/T0)^(-g/(r*Tz))
+    end
+
     local pressure = pressure
     if not pressure then
         -- compute pressure based on altitude and ISA temperature
         if altitude<h_tropopause then
-            pressure = P0*(1+temperature/T0)^(-g/(r*Tz))
+            pressure = P_troposphere(temperature)
         else
-            pressure = P0*(1+T_tropopause/T0)^(-g/(r*Tz)) * math.exp(-g*(altitude-h_tropopause)/(r*T_tropopause))
+            pressure = P_troposphere(T_tropopause) * math.exp(-g*(altitude-h_tropopause)/(r*T_tropopause))
         end
     end
 
@@ -1027,18 +1033,25 @@ function veaf.convertSpeeds(mach, kias, ktas, altitude, temperature, pressure)
     ---@param getIAS boolean if true, switches to conversion mode from IAS to TAS
     ---@return number so if you provide only mach_P (TAS), this will return mach_0 (IAS), and if you provide mach_0 and getTAS true (IAS), this will return mach_P (TAS)
     local function getConvertedMach(mach1, getTAS)
+        
+        veaf.loggers.get(veaf.Id):debug(string.format("getConvertedMach(mach1 = %d, getTAS = %d", mach1, getTAS))
+        
         local DPP1 = 0;
         if mach1 > 1 then
             DPP1 = lord_rayleighDPP(mach1); --At this point it's still deltaP / Pp (DPPP) (subscript p = at pitot tube, subscript 0 = at sea level)
         else
             DPP1 = isentropicDPP(mach1); --At this point it's still deltaP / Pp (DPPP) (subscript p = at pitot tube, subscript 0 = at sea level)
         end
+
+        veaf.loggers.get(veaf.Id):debug(string.format("DPP1 = %d -> initial", DPP1))
         
         if getTAS then
             DPP1 = P0*DPP1/pressure --conversion from DPP0 to DPPP
         else
             DPP1 = pressure*DPP1/P0 --conversion from DPPP to DPP0
         end
+
+        veaf.loggers.get(veaf.Id):debug(string.format("DPP1 = %d -> final", DPP1))
 
         local mach2 = 1
 
@@ -1053,11 +1066,15 @@ function veaf.convertSpeeds(mach, kias, ktas, altitude, temperature, pressure)
         if DPP1 > lord_rayleighDPP(1) then
 
             mach2 = converge_2_DPP(0.25) - 0.25 --coarse
+            veaf.loggers.get(veaf.Id):debug(string.format("coarse mach2 = %d", mach2))
             mach2 = converge_2_DPP(0.0125) - 0.0125 --medium
+            veaf.loggers.get(veaf.Id):debug(string.format("medium mach2 = %d", mach2))
             mach2 = converge_2_DPP(0.00625) --fine
+            veaf.loggers.get(veaf.Id):debug(string.format("fine mach2 = %d", mach2))
 
         else
             mach2 = math.sqrt(2*((DPP1+1)^(1/B)-1)/(Gamma-1))
+            veaf.loggers.get(veaf.Id):debug(string.format("subsonic mach2 = %d", mach2))
         end
 
         return mach2
@@ -1066,6 +1083,8 @@ function veaf.convertSpeeds(mach, kias, ktas, altitude, temperature, pressure)
     local ms_2_kt = 1.94384
     local a1 = speedOfSound(temperature)
     local a0 = speedOfSound(T0)
+    veaf.loggers.get(veaf.Id):debug(string.format("a0 = %d, a1 = %d", a0, a1))
+
 
     if mach then
         -- compute speeds from mach number
@@ -1095,6 +1114,9 @@ function veaf.convertSpeeds(mach, kias, ktas, altitude, temperature, pressure)
         result.IAS_ms = getConvertedMach(result.Mach)*a0
         result.KIAS = result.IAS_ms * ms_2_kt
     end
+
+    veaf.loggers.get(veaf.Id):debug(string.format("veaf.convertSpeeds(mach = %d, kias = %d, ktas = %d, altitude = %d, temperature = %d, pressure = %d) -> final", result.Mach, result.KIAS, result.KTAS, altitude, temperature, pressure))
+
     return result
 end
 

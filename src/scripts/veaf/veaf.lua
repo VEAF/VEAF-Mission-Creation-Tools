@@ -987,7 +987,7 @@ function veaf.convertSpeeds(mach, kias, ktas, altitude, temperature, pressure)
     end
 
     local function P_troposphere(temperature)
-        return P0*(1+temperature/T0)^(-g/(r*Tz))
+        return P0*(1+(temperature-T0)/T0)^(-g/(r*Tz))
     end
 
     local pressure = pressure

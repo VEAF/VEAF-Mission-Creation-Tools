@@ -20,10 +20,10 @@ veafAirWaves = {}
 veafAirWaves.Id = "AIRWAVES - "
 
 --- Version.
-veafAirWaves.Version = "1.7.1"
+veafAirWaves.Version = "1.7.2"
 
 -- trace level, specific to this module
---veafAirWaves.LogLevel = "trace"
+veafAirWaves.LogLevel = "trace"
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Do not change anything below unless you know what you are doing!
@@ -1044,8 +1044,9 @@ function AirWaveZone:deployWaves()
           if not groupData.units[1] then
             veaf.loggers.get(veafAirWaves.Id):warn("group [%s] does not have any unit!", veaf.p(groupName))
           else
-            spawnSpot =  groupData.units[1]
+            spawnSpot =  { x = groupData.units[1].x, y = groupData.units[1].alt, z = groupData.units[1].y }
           end
+          veaf.loggers.get(veafAirWaves.Id):trace("spawnSpot=%s", veaf.p(spawnSpot))
           local vars = {}
           vars.point = mist.getRandPointInCircle(spawnSpot, self.respawnRadius)
           vars.point.z = vars.point.y
@@ -1053,6 +1054,7 @@ function AirWaveZone:deployWaves()
           vars.gpName = groupName
           vars.action = 'clone'
           vars.route = mist.getGroupRoute(groupName, 'task')
+          veaf.loggers.get(veafAirWaves.Id):trace("vars=%s", veaf.p(vars))
           local newGroup = mist.teleportToPoint(vars) -- respawn with radius
           if newGroup then
             table.insert(self.spawnedGroupsNames, newGroup.name)

@@ -946,7 +946,7 @@ end
 ---@param mach number? the mach number
 ---@param kias number? the indicated airspeed in knots
 ---@param ktas number? the true airspeed in knots
----@param altitude any in feet, defaults to 10000
+---@param altitude any in meters, defaults to 10000
 ---@param temperature any in celsius, defaults to ISA temperature at altitude
 ---@param pressure any in pa, defaults to ISA temperature at altitude
 ---@return table result containing KTAS, KIAS, Mach, IAS_ms and TAS_ms
@@ -959,15 +959,12 @@ function veaf.convertSpeeds(mach, kias, ktas, altitude, temperature, pressure)
         Mach = 0,
     }
 
-    local h_tropopause = 11000 --m, tropopause start altitude
-    local ft_2_m = 0.30488
+    local h_tropopause = 11000 --m, tropopause start altitude<
 
     local altitude = altitude
     if not altitude then
-        altitude = 10000 -- default to 10000 ft
+        altitude = 10000 -- default to 10000m
     end
-
-    altitude = altitude*ft_2_m --convert 2 meters
 
     local T0 = 288.15 --K, ISA+0 altitude, may need to be corrected for mission ground temp
     local Tz = -0.0065 --K/m, ISA temperature gradient in troposphere
@@ -981,9 +978,9 @@ function veaf.convertSpeeds(mach, kias, ktas, altitude, temperature, pressure)
     if not temperature then
         -- compute ISA temperature based on altitude
         if altitude<h_tropopause then
-            temperature = T0 - Tz*altitude --troposphere (temp in K)
+            temperature = T0 + Tz*altitude --troposphere (temp in K)
         else
-            temperature = T_tropopause --tropopause (max altitude 66000ft) (temp in K)
+            temperature = T_tropopause --tropopause (max altitude 20000m) (temp in K)
         end
     else
         temperature = temperature + 273.15 --conversion to Kelvin

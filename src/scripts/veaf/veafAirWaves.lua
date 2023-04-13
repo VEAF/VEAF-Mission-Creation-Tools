@@ -20,7 +20,7 @@ veafAirWaves = {}
 veafAirWaves.Id = "AIRWAVES - "
 
 --- Version.
-veafAirWaves.Version = "1.7.2"
+veafAirWaves.Version = "1.7.3"
 
 -- trace level, specific to this module
 veafAirWaves.LogLevel = "trace"
@@ -207,10 +207,15 @@ function AirWaveZone:setTriggerZone(value)
   veaf.loggers.get(veafAirWaves.Id):debug("AirWaveZone[%s]:setTriggerZone(%s)", veaf.p(self.name), veaf.p(value))
   self.triggerZoneName = value
   local triggerZone = veaf.getTriggerZone(value)
-  self:setZoneCenter({ x=triggerZone.x, y=triggerZone.y})
-  self:setZoneRadius(triggerZone.radius)
+  if triggerZone then
+    self:setZoneCenter({ x=triggerZone.x, y=triggerZone.y})
+    self:setZoneRadius(triggerZone.radius)
+  else
+    veaf.loggers.get(veafAirWaves.Id):error("AirWaveZone[%s]:setTriggerZone(): trigger zone [%s] does not exist", veaf.p(self.name), veaf.p(value))
+  end
   return self
 end
+
 
 function AirWaveZone:setZoneCenter(value)
   veaf.loggers.get(veafAirWaves.Id):debug("AirWaveZone[%s]:setZoneCenter(%s)", veaf.p(self.name), veaf.p(value))

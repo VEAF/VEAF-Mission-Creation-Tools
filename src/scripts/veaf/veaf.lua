@@ -2730,8 +2730,6 @@ function veaf.getRandomizableNumeric(val)
 end
 
 function veaf.writeLineToTextFile(line, filename, filepath)
-    veaf.loggers.get(veaf.Id):debug(string.format("writeLineToTextFile(%s, %s)", veaf.p(line), veaf.p(filename)))
-
     local l_lfs = lfs
     if not l_lfs and SERVER_CONFIG and SERVER_CONFIG.getModule then
         l_lfs = SERVER_CONFIG.getModule("lfs")

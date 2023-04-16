@@ -112,16 +112,16 @@ function getRandomizableNumeric_random(val)
   local nVal = tonumber(val)
   if nVal == nil then
     local dashPos = string.find(val,"%-")
-    if dashPos then 
+    if dashPos then
       local lower = val:sub(1, dashPos-1)
-      if lower then 
+      if lower then
         lower = tonumber(lower)
       end
       if lower == nil then
         lower = MIN
       end
       local upper = val:sub(dashPos+1)
-      if upper then 
+      if upper then
         upper = tonumber(upper)
       end
       if upper == nil then
@@ -228,3 +228,32 @@ local point = {
 }
 
 print(_PointInPolygon(point, poly))
+
+local group = Group.getByName("Fregate Machin")
+local namedPoint = veafNamedPoints.getPoint("Arty TGT") -- le nom du point qu'on a placé auparavant
+--[[
+-- les points sont composés de :
+namedPoint = { 
+  x = 123456, -- DCS latitude (in m)
+  y = 1000, -- altitude (in m)
+  z = -123456 -- DCS longitude (in m)
+}
+]]
+if namedPoint and group then
+  local fireTask = {
+    id = 'FireAtPoint',
+    params = {
+      point = {x = namedPoint.x, y = namedPoint.z},
+      radius = 100, -- meters
+      expendQty = 30, -- shells
+      expendQtyEnabled = true,
+      --weaponType = number,
+      altitude = namedPoint.y,
+      alt_type = 0, -- MSL (QNH)
+    }
+  }
+  local controller = group:getController()
+  if controller then
+    controller:pushTask(fireTask)
+  end
+end

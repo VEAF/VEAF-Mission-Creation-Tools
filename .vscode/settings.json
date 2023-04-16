@@ -43,7 +43,8 @@
         "veafCombatZone",
         "veafQraManager",
         "veafRemote",
-        "veafSpawnableAircraftsEditor"
+        "veafSpawnableAircraftsEditor",
+        "veafCombatMission"
     ],
     "cmake.sourceDirectory": "${workspaceFolder}/src/c/buffering_socket",
     "files.associations": {

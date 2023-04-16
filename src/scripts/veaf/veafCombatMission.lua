@@ -21,10 +21,10 @@ veafCombatMission = {}
 veafCombatMission.Id = "COMBATMISSION"
 
 --- Version.
-veafCombatMission.Version = "2.1.3"
+veafCombatMission.Version = "2.1.4"
 
 -- trace level, specific to this module
---veafCombatMission.LogLevel = "trace"
+veafCombatMission.LogLevel = "trace"
 
 veaf.loggers.new(veafCombatMission.Id, veafCombatMission.LogLevel)
 
@@ -1407,7 +1407,9 @@ end
 function veafCombatMission.dumpMissionsList(export_path)
 
     local jsonify = function(key, value)
-        veaf.loggers.get(veafCombatMission.Id):trace(string.format("jsonify(%s)", veaf.p(value)))
+        veaf.loggers.get(veafCombatMission.Id):trace("jsonify()")
+        veaf.loggers.get(veafCombatMission.Id):trace("key=%s", veaf.p(key))
+        veaf.loggers.get(veafCombatMission.Id):trace("value=%s", veaf.p(value))
         if veaf.json then
             return veaf.json.stringify(veafCombatMission.missionsDict[value])
         else
@@ -1418,7 +1420,8 @@ function veafCombatMission.dumpMissionsList(export_path)
     -- sort the missions alphabetically
     local sortedMissions = {}
     for _, mission in pairs(veafCombatMission.missionsDict) do
-        table.insert(sortedMissions, mission:getName())
+        veaf.loggers.get(veafCombatMission.Id):trace("mission=%s", veaf.p(mission))
+        table.insert(sortedMissions, mission:getName():lower())
     end
     table.sort(sortedMissions)
 

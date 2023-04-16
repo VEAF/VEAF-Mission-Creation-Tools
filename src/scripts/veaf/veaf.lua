@@ -2841,6 +2841,7 @@ function veaf.exportAsJson(data, name, jsonify, filename, export_path)
     local content = {}
     for key, value in pairs(data) do
         local line =  jsonify(key, value)
+        veaf.loggers.get(veaf.Id):trace("line=%s", veaf.p(line))
         table.insert(content, line)
     end
     local footer =    '\n'

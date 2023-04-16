@@ -21,7 +21,7 @@ veafEventHandler = {}
 veafEventHandler.Id = "EVENTS - "
 
 --- Version.
-veafEventHandler.Version = "1.0.1"
+veafEventHandler.Version = "1.1.0"
 
 -- trace level, specific to this module
 --veafEventHandler.LogLevel = "trace"
@@ -44,9 +44,13 @@ end
 function veafEventHandler.completeUnitFromName(unitName)
   if unitName ~= nil then
     local unitType = nil
+    local unitLifePercent = nil
     local unit = Unit.getByName(unitName)
     if unit then
       unitType = unit:getTypeName()
+      local unitLife = unit:getLife()
+      local unitLife0 = unit:getLife0()
+      unitLifePercent = 100 * unitLife / unitLife0
     end
     local unitPilotName = nil
     local unitPilotUcid = nil
@@ -61,6 +65,7 @@ function veafEventHandler.completeUnitFromName(unitName)
       unitType = unitType,
       unitPilotName = unitPilotName,
       unitPilotUcid = unitPilotUcid,
+      unitLifePercent = unitLifePercent
     }
   else
     return nil
@@ -185,7 +190,7 @@ function veafEventHandler.checkEventKnown(eventNameOrId, warnOnly)
   else
     local message = string.format("Event is not recognized by the VEAF Recorder: [%s]", veaf.p(eventNameOrId))
     if warnOnly then
-      veaf.loggers.get(veafEventHandler.Id):warning(message)
+      veaf.loggers.get(veafEventHandler.Id):warn(message)
     else
       veaf.loggers.get(veafEventHandler.Id):error(message)
     end

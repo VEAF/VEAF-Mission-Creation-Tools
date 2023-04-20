@@ -4108,7 +4108,7 @@ do -- group functions scope
             if string.lower(newGroupData.category) == 'ship' then
                 validTerrain = {'SHALLOW_WATER' , 'WATER'}
             elseif string.lower(newGroupData.category) == 'vehicle' then
-                validTerrain = {'LAND', 'ROAD'}
+                validTerrain = {'LAND', 'ROAD', 'RUNWAY'} -- Zip, VEAF, 2023.04.20: why can't we spawn stuff on a runway? also, dams are considered "RUNWAY" terrain by DCS
             end
         end
 

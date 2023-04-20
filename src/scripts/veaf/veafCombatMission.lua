@@ -24,7 +24,7 @@ veafCombatMission.Id = "COMBATMISSION"
 veafCombatMission.Version = "2.1.5"
 
 -- trace level, specific to this module
-veafCombatMission.LogLevel = "trace"
+--veafCombatMission.LogLevel = "trace"
 
 veaf.loggers.new(veafCombatMission.Id, veafCombatMission.LogLevel)
 

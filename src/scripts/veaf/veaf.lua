@@ -19,7 +19,7 @@ veaf = {}
 veaf.Id = "VEAF"
 
 --- Version.
-veaf.Version = "1.44.1"
+veaf.Version = "1.44.2"
 
 --- Development version ?
 veaf.Development = true
@@ -2861,12 +2861,15 @@ end
 
 function veaf.getUnitLifeRelative(unit)
     if unit and veaf.isUnitAlive(unit) then
-        local life0=unit:getLife0()
-        local lifeN=unit:getLife()
-        if life0 > 0 then
-            return lifeN/life0
+        local unitLife=unit:getLife()
+        local unitLife0 = 0
+        if unit.getLife0 then -- statics have no life0
+          unitLife0 = unit:getLife0()
+        end
+        if unitLife0 > 0 then
+            return unitLife/unitLife0
         else 
-            return nil
+            return unitLife
         end
     else
         return 0

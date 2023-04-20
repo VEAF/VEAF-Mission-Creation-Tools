@@ -20,10 +20,10 @@ veafAirWaves = {}
 veafAirWaves.Id = "AIRWAVES - "
 
 --- Version.
-veafAirWaves.Version = "1.7.5"
+veafAirWaves.Version = "1.7.6"
 
 -- trace level, specific to this module
-veafAirWaves.LogLevel = "trace"
+--veafAirWaves.LogLevel = "trace"
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Do not change anything below unless you know what you are doing!
@@ -688,17 +688,21 @@ function AirWaveZone:isEnemyGroupDead(waveNumber, group)
     for _,unit in pairs(units) do
       local unitAlive = false
       local unitLife = unit:getLife()
-      local unitLife0 = unit:getLife0()
+      local unitLife0 = 0
+      if unit.getLife0 then -- statics have no life0
+        unitLife0 = unit:getLife0()
+      end
+      local unitLifePercent = unitLife
       if unitLife0 > 0 then
-        local unitLifePercent = 100 * unitLife / unitLife0
-        if unitLifePercent > self.minimumLifeForAiInPercent then
-          if category == 0 --[[airplanes]] or category == 1 --[[helicopters]] then
-            if unit:inAir() then
-              unitAlive = true
-            end
-          else
+        unitLifePercent = 100 * unitLife / unitLife0
+      end
+      if unitLifePercent > self.minimumLifeForAiInPercent then
+        if category == 0 --[[airplanes]] or category == 1 --[[helicopters]] then
+          if unit:inAir() then
             unitAlive = true
           end
+        else
+          unitAlive = true
         end
       end
       if not unitAlive then

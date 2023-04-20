@@ -21,7 +21,7 @@ veafEventHandler = {}
 veafEventHandler.Id = "EVENTS - "
 
 --- Version.
-veafEventHandler.Version = "1.1.1"
+veafEventHandler.Version = "1.1.2"
 
 -- trace level, specific to this module
 --veafEventHandler.LogLevel = "trace"
@@ -42,6 +42,7 @@ function veafEventHandler.completeUnit(unit)
 end
 
 function veafEventHandler.completeUnitFromName(unitName)
+  veaf.loggers.get(veafEventHandler.Id):trace("veafEventHandler.completeUnitFromName(unitName=%s)", veaf.p(unitName))
   if unitName ~= nil then
     local unitType = nil
     local unitLifePercent = nil
@@ -49,7 +50,11 @@ function veafEventHandler.completeUnitFromName(unitName)
     if unit then
       unitType = unit:getTypeName()
       local unitLife = unit:getLife()
-      local unitLife0 = unit:getLife0()
+      local unitLife0 = 0
+      if unit.getLife0 then -- statics have no life0
+        unitLife0 = unit:getLife0()
+      end
+      unitLifePercent = unitLife
       if unitLife0 > 0 then
         unitLifePercent = 100 * unitLife / unitLife0
       end

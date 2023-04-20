@@ -20,8 +20,7 @@ veafCombatZone = {}
 veafCombatZone.Id = "COMBATZONE"
 
 --- Version.
-veafCombatZone.Version = "1.13.4"
-
+veafCombatZone.Version = "1.13.5"
 
 -- trace level, specific to this module
 --veafCombatZone.LogLevel = "trace"
@@ -1076,14 +1075,14 @@ function VeafCombatZone:updateRadioMenu(inBatch)
             end
             if self.enableSmokeAndFlare then
                 if self.smokeResetFunctionId then
-                    veafRadio.addCommandToSubmenu('Smoke not available', self.radioRootPath, veaf.emptyFunction, nil, veafRadio.USAGE_ForGroup)
+                    veafRadio.addCommandToSubmenu('Smoke not available', self.radioRootPath, veaf.emptyFunction, nil, veafRadio.USAGE_ForAll)
                 else
-                    veafRadio.addCommandToSubmenu('Request RED smoke on target', self.radioRootPath, veafCombatZone.SmokeZone, self.missionEditorZoneName, veafRadio.USAGE_ForGroup)
+                    veafRadio.addCommandToSubmenu('Request RED smoke on target', self.radioRootPath, veafCombatZone.SmokeZone, self.missionEditorZoneName, veafRadio.USAGE_ForAll)
                 end
                 if self.flareResetFunctionId then
-                    veafRadio.addCommandToSubmenu('Flare not available', self.radioRootPath, veaf.emptyFunction, nil, veafRadio.USAGE_ForGroup)
+                    veafRadio.addCommandToSubmenu('Flare not available', self.radioRootPath, veaf.emptyFunction, nil, veafRadio.USAGE_ForAll)
                 else
-                    veafRadio.addCommandToSubmenu('Request illumination flare on target', self.radioRootPath, veafCombatZone.LightUpZone, self.missionEditorZoneName, veafRadio.USAGE_ForGroup)
+                    veafRadio.addCommandToSubmenu('Request illumination flare on target', self.radioRootPath, veafCombatZone.LightUpZone, self.missionEditorZoneName, veafRadio.USAGE_ForAll)
                 end
             end
         else
@@ -1474,7 +1473,7 @@ end
 --------------------------------------------------------------------------------------------------------------
 
 function veafCombatZone.GetZone(zoneName)
-    veaf.loggers.get(veafCombatZone.Id):trace(string.format("veafCombatZone.GetZone([%s])",zoneName or ""))
+    veaf.loggers.get(veafCombatZone.Id):trace(string.format("veafCombatZone.GetZone([%s])", veaf.p(zoneName)))
     veaf.loggers.get(veafCombatZone.Id):trace(string.format("Searching for zone with name [%s]", zoneName))
     local zone = veafCombatZone.zonesDict[zoneName:lower()]
     if not zone then
@@ -1504,7 +1503,7 @@ end
 
 -- activate a zone
 function veafCombatZone.ActivateZone(zoneName, silent)
-    veaf.loggers.get(veafCombatZone.Id):debug(string.format("veafCombatZone.ActivateZone([%s])",zoneName or ""))
+    veaf.loggers.get(veafCombatZone.Id):debug(string.format("veafCombatZone.ActivateZone([%s])", veaf.p(zoneName)))
     local zone = veafCombatZone.GetZone(zoneName)
     if zone:isActive() then
         if not silent then
@@ -1529,7 +1528,7 @@ end
 
 -- desactivate a zone by name
 function veafCombatZone.DesactivateZone(zoneName, silent)
-    veaf.loggers.get(veafCombatZone.Id):debug(string.format("veafCombatZone.DesactivateZone([%s])",zoneName or ""))
+    veaf.loggers.get(veafCombatZone.Id):debug(string.format("veafCombatZone.DesactivateZone([%s])", veaf.p(zoneName)))
     local zone = veafCombatZone.GetZone(zoneName)
     if not(zone:isActive()) then
         if not silent then
@@ -1563,21 +1562,21 @@ end
 
 -- pop a smoke over a zone
 function veafCombatZone.SmokeZone(zoneName)
-    veaf.loggers.get(veafCombatZone.Id):trace(string.format("veafCombatZone.SmokeZone([%s])",zoneName or ""))
+    veaf.loggers.get(veafCombatZone.Id):trace(string.format("veafCombatZone.SmokeZone([%s])", veaf.p(zoneName)))
     local zone = veafCombatZone.GetZone(zoneName)
     zone:popSmoke()
 end
 
 -- pop an illumination  flare over a zone
 function veafCombatZone.LightUpZone(zoneName)
-    veaf.loggers.get(veafCombatZone.Id):trace(string.format("veafCombatZone.LightUpZone([%s])",zoneName or ""))
+    veaf.loggers.get(veafCombatZone.Id):trace(string.format("veafCombatZone.LightUpZone([%s])", veaf.p(zoneName)))
     local zone = veafCombatZone.GetZone(zoneName)
     zone:popFlare()
 end
 
 -- reset the "pop smoke" menus
 function veafCombatZone.SmokeReset(zoneName)
-    veaf.loggers.get(veafCombatZone.Id):trace(string.format("veafCombatZone.SmokeReset([%s])",zoneName or ""))
+    veaf.loggers.get(veafCombatZone.Id):trace(string.format("veafCombatZone.SmokeReset([%s])", veaf.p(zoneName)))
     local zone = veafCombatZone.GetZone(zoneName)
     zone.smokeResetFunctionId = nil
     zone:updateRadioMenu()
@@ -1585,7 +1584,7 @@ end
 
 -- reset the "pop flare" menus
 function veafCombatZone.FlareReset(zoneName)
-    veaf.loggers.get(veafCombatZone.Id):trace(string.format("veafCombatZone.FlareReset([%s])",zoneName or ""))
+    veaf.loggers.get(veafCombatZone.Id):trace(string.format("veafCombatZone.FlareReset([%s])", veaf.p(zoneName)))
     local zone = veafCombatZone.GetZone(zoneName)
     zone.flareResetFunctionId = nil
     zone:updateRadioMenu()
@@ -1593,7 +1592,7 @@ end
 
 -- call the completion watchdog methods
 function veafCombatZone.CompletionCheck(zoneName)
-    veaf.loggers.get(veafCombatZone.Id):trace(string.format("veafCombatZone.CompletionCheck([%s])",zoneName or ""))
+    veaf.loggers.get(veafCombatZone.Id):trace(string.format("veafCombatZone.CompletionCheck([%s])", veaf.p(zoneName)))
     local zone = veafCombatZone.GetZone(zoneName)
     zone:completionCheck()
 end

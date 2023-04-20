@@ -708,6 +708,11 @@ do -- the main scope
 						for group_ind, group_data in pairs(category_data) do
 							if type(group_data) == 'table' and group_data.units and type(group_data.units) == 'table' and #group_data.units > 0 then	-- OCD paradigm programming
 								mist.DBs.groupsByName[group_data.groupName] = mist.utils.deepCopy(group_data)
+								if category_name == "static" then
+									-- statics have no "getGroup()" method, therefore we can only find them using their unit name; let's add the same group with the static unit name as key
+									local staticUnitName = group_data.units[1].unitName
+									mist.DBs.groupsByName[staticUnitName] = mist.utils.deepCopy(group_data)
+								end
 								mist.DBs.groupsById[group_data.groupId] = mist.utils.deepCopy(group_data)
 								for unit_ind, unit_data in pairs(group_data.units) do
 									mist.DBs.unitsByName[unit_data.unitName] = mist.utils.deepCopy(unit_data)

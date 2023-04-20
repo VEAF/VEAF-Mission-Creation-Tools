@@ -1259,7 +1259,7 @@ function veafSpawn.spawnFob(spawnSpot, radius, name, country, fobtype, side, hdg
     local TOWER_DISTANCE = 20
     local BEACON_DISTANCE = 3
 
-    if not ctld then
+    if not veaf.ctld_initialized then
         veaf.loggers.get(veafSpawn.Id):error("spawnFob([%s]): cannot spawn FOB without CTLD!)",veaf.p(name))
         return nil
     end

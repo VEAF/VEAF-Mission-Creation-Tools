@@ -6751,9 +6751,11 @@ math.random(); math.random(); math.random()
 --- Enable/Disable error boxes displayed on screen.
 env.setErrorMessageBoxEnabled(false)
 
--- initialize CTLD in 2 seconds, so other scripts have a chance to modify the configuration before initialization
-ctld.logInfo(string.format("Loading version %s in 2 seconds", ctld.Version))
-timer.scheduleFunction(ctld.initialize, nil, timer.getTime() + 2)
+-- initialize CTLD only out of a VEAF mission
+if not veaf then
+    ctld.logInfo(string.format("Loading version %s", ctld.Version))
+    ctld.initialize()
+end
 
 --DEBUG FUNCTION
 --        for key, value in pairs(getmetatable(_spawnedCrate)) do

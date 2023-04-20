@@ -19,7 +19,7 @@ veafGrass = {}
 veafGrass.Id = "GRASS"
 
 --- Version.
-veafGrass.Version = "2.3.4"
+veafGrass.Version = "2.3.5"
 
 -- trace level, specific to this module
 --veafGrass.LogLevel = "trace"
@@ -234,11 +234,11 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD
 	local otherSpacing = 15
 	local unitsDistance = 75
 
-	-- fix distances on FARP
-	if farp.type == "FARP" then
+	-- fix distances on FARPs
+	if farp.type == "SINGLE_HELIPAD" or farp.type == "FARP_SINGLE_01" or farp.type == "FARP" or farp.type == "Invisible FARP" then
 		tentDistance = 200
-	    unitsDistance = 150
-	    otherDistance = 130
+    unitsDistance = 150
+	  otherDistance = 130
 	end
 
 	local tentOrigin = {
@@ -307,9 +307,9 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD
 	local windsockDistance = 50
 	local windsockAngle = 45
 
-	-- fix Windsock position on FARP
-	if farp.type == "FARP" then
-		windsockDistance = 120
+	-- fix Windsock position on FARPs
+  if farp.type == "SINGLE_HELIPAD" or farp.type == "FARP_SINGLE_01" or farp.type == "FARP" or farp.type == "Invisible FARP" then
+    windsockDistance = 120
 		windsockAngle = 0
 	end
 
@@ -421,9 +421,9 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD
 
     -- add the FARP to the named points
     local beaconPoint = {
-        x = farp.x - 250,
+        x = farp.x + 250,
         y = math.floor(land.getHeight(farp) + 1),
-        z = farp.y - 250
+        z = farp.y
     }
 
 	farpNamedPoint.tower = "No Control"

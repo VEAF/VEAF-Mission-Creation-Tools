@@ -20,7 +20,7 @@ veafCasMission = {}
 veafCasMission.Id = "CASMISSION"
 
 --- Version.
-veafCasMission.Version = "1.14.0"
+veafCasMission.Version = "1.14.1"
 
 -- trace level, specific to this module
 --veafCasMission.LogLevel = "trace"
@@ -847,7 +847,7 @@ function veafCasMission.reportTargetInformation(unitName)
     message = message .. veaf.weatherReport(averageGroupPosition, nil, true)
 
     -- send message only for the unit
-    veaf.outTextForUnit(unitName, message, 30)
+    veaf.outTextForGroup(unitName, message, 30)
 end
 
 --- add a smoke marker over the target area
@@ -968,7 +968,7 @@ function veafCasMission.help(unitName)
         '   "armor [1-5]" specifies armor presence (1 = light, 5 = heavy)\n' ..
         '   "spacing [1-5]" changes the groups spacing (1 = dense, 3 = default, 5 = sparse)'
 
-    veaf.outTextForUnit(unitName, text, 30)
+        veaf.outTextForGroup(unitName, text, 30)
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------

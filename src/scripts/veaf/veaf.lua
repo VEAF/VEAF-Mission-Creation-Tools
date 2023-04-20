@@ -27,7 +27,7 @@ veaf.SecurityDisabled = true
 
 -- trace level, specific to this module
 --veaf.LogLevel = "debug"
-veaf.LogLevel = "trace"
+--veaf.LogLevel = "trace"
 --veaf.ForcedLogLevel = "trace"
 
 -- log level, limiting all the modules
@@ -2018,26 +2018,30 @@ function veaf.getCarrierATCdata(carrierGroupName, carrierUnitName)
     return result
 end
 
-function veaf.outTextForUnit(unitName, message, duration)
+function veaf.outTextForUnit(unitName, message, duration, forAllGroup)
     local unitId = nil
     local groupId = nil
     if unitName then
-    local unit = Unit.getByName(unitName)
-    if unit then
-        unitId = unit:getID()
-        local group = unit:getGroup()
-        if group then
-            groupId = group:getID()
+        local unit = Unit.getByName(unitName)
+        if unit then
+            unitId = unit:getID()
+            local group = unit:getGroup()
+            if group then
+                groupId = group:getID()
+            end
         end
     end
-    end
-    if unitId then
+    if unitId and not forAllGroup then
         trigger.action.outTextForUnit(unitId, message, duration)
     elseif groupId then
         trigger.action.outTextForGroup(groupId, message, duration)
     else
         trigger.action.outText(message, duration)
     end
+end
+
+function veaf.outTextForGroup(unitName, message, duration)
+    return veaf.outTextForUnit(unitName, message, duration, true)
 end
 
 --- Weather Report. Report pressure QFE/QNH, temperature, wind at certain location.
@@ -2868,7 +2872,7 @@ function veaf.getUnitLifeRelative(unit)
         end
         if unitLife0 > 0 then
             return unitLife/unitLife0
-        else 
+        else
             return unitLife
         end
     else

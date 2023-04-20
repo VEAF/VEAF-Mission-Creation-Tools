@@ -20,7 +20,7 @@ veafCombatZone = {}
 veafCombatZone.Id = "COMBATZONE"
 
 --- Version.
-veafCombatZone.Version = "1.13.3"
+veafCombatZone.Version = "1.13.4"
 
 
 -- trace level, specific to this module
@@ -1551,7 +1551,7 @@ function veafCombatZone.GetInformationOnZone(parameters)
     local zone = veafCombatZone.GetZone(zoneName)
     local text = zone:getInformation()
     if unitName then
-        veaf.outTextForUnit(unitName, text, 30)
+        veaf.outTextForGroup(unitName, text, 30)
     else
         trigger.action.outText(text, 30)
     end
@@ -1731,7 +1731,7 @@ function veafCombatZone.help(unitName)
         'Combat operations are defined by the mission maker\n' ..
         'A combat operation is a series of combat zones to complete,\n' ..
         'You can ask information to get briefing and intel for current tasking orders.'
-    veaf.outTextForUnit(unitName, text, 30)
+        veaf.outTextForGroup(unitName, text, 30)
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------

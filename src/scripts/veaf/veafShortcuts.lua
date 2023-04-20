@@ -19,7 +19,7 @@ veafShortcuts = {}
 veafShortcuts.Id = "SHORTCUTS"
 
 --- Version.
-veafShortcuts.Version = "1.32.0"
+veafShortcuts.Version = "1.32.1"
 
 -- trace level, specific to this module
 --veafShortcuts.LogLevel = "trace"
@@ -549,24 +549,6 @@ function veafShortcuts.ExecuteBatchAliasesList(aliasBatchList, delay, coalition,
         veaf.loggers.get(veafShortcuts.Id):error(string.format("veafShortcuts.ExecuteBatchAliasesList : batch list is empty"))
     end
     return false
-end
-
-function veafShortcuts.GetWeatherAtCurrentPosition(unitName)
-    veaf.loggers.get(veafShortcuts.Id):debug(string.format("veafShortcuts.GetWeatherAtCurrentPosition(unitName=%s)",unitName))
-    local unit = veafRadio.getHumanUnitOrWingman(unitName)
-    if unit then
-        local weatherReport = veaf.weatherReport(unit:getPosition().p, nil, true) -- include LASTE
-        veaf.outTextForUnit(unitName, weatherReport, 30)
-    end
-end
-
-function veafShortcuts.GetWeatherAtClosestPoint(unitName)
-    veaf.loggers.get(veafShortcuts.Id):debug(string.format("veafShortcuts.GetWeatherAtClosestPoint(unitName=%s)",unitName))
-    local unit = veafRadio.getHumanUnitOrWingman(unitName)
-    if unit then
-        local weatherReport = veaf.weatherReport(unit:getPosition().p, nil, true) -- include LASTE
-        veaf.outTextForUnit(unitName, weatherReport, 30)
-    end
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------

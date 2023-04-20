@@ -19,7 +19,7 @@ veafAssets = {}
 veafAssets.Id = "ASSETS"
 
 --- Version.
-veafAssets.Version = "1.8.1"
+veafAssets.Version = "1.8.2"
 
 -- trace level, specific to this module
 --veafAssets.LogLevel = "trace"
@@ -108,7 +108,7 @@ function veafAssets.info(parameters)
                 end
             end
         end 
-        veaf.outTextForUnit(unitName, text, 30)
+        veaf.outTextForGroup(unitName, text, 30)
     end
 end
 
@@ -171,7 +171,7 @@ function veafAssets.help(unitName)
     local text =
         'The radio menu lists all the assets, friendly or enemy\n' ..
         'Use these menus to respawn the assets when needed\n'
-    veaf.outTextForUnit(unitName, text, 30)
+        veaf.outTextForGroup(unitName, text, 30)
 end
 
 function veafAssets.get(assetName)

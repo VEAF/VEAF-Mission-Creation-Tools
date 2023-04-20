@@ -23,7 +23,7 @@ veafNamedPoints.Id = "NAMED POINTS"
 veafNamedPoints.Version = "1.11.1"
 
 -- trace level, specific to this module
---veafNamedPoints.LogLevel = "trace"
+veafNamedPoints.LogLevel = "trace"
 
 veaf.loggers.new(veafNamedPoints.Id, veafNamedPoints.LogLevel)
 
@@ -64,7 +64,7 @@ veafNamedPoints.markid=1270000
 
 --- Function executed when a mark has changed. This happens when text is entered or changed.
 function veafNamedPoints.onEventMarkChange(eventPos, event)
-    if veafNamedPoints.executeCommand(eventPos, event) then 
+    if veafNamedPoints.executeCommand(eventPos, event) then
 
         -- Delete old mark.
         veaf.loggers.get(veafNamedPoints.Id):trace(string.format("Removing mark # %d.", event.idx))
@@ -93,7 +93,7 @@ function veafNamedPoints.executeCommand(eventPos, event, bypassSecurity)
         end
     end
     return false
-end    
+end
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Analyse the mark text and extract keywords.
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -147,10 +147,10 @@ function veafNamedPoints.namePoint(targetSpot, name, coalition, silent)
     if not silent then
         message = "VEAF - Point named "..name.." added for own coalition."
     end
-    
+
     veafNamedPoints.markid = veafNamedPoints.markid + 1
     point.markerId = veafNamedPoints.markid
-    trigger.action.markToCoalition(veafNamedPoints.markid, "VEAF - Point named "..name, point, coalition, true, message) 
+    trigger.action.markToCoalition(veafNamedPoints.markid, "VEAF - Point named "..name, point, coalition, true, message)
     veaf.loggers.get(veafNamedPoints.Id):trace(string.format("created point %s", veaf.p(point)))
 end
 
@@ -199,7 +199,7 @@ function veafNamedPoints.getPointBearing(parameters)
     return nil
 end
 
-function veafNamedPoints.getWeatherAtPoint(parameters)
+function veafNamedPoints.getWeatherAtPoint(parameters, forUnit)
     local name, unitName = veaf.safeUnpack(parameters)
     veaf.loggers.get(veafNamedPoints.Id):trace(string.format("getWeatherAtPoint(name = %s)",name))
     local point = veafNamedPoints.getPoint(name)
@@ -208,11 +208,15 @@ function veafNamedPoints.getWeatherAtPoint(parameters)
         if BR then BR = " ("..BR..")" else BR = "" end
         local weatherReport = "WEATHER        : " .. name .. BR .. "\n\n"
         weatherReport = weatherReport .. veaf.weatherReport(point, nil, true)
-        veaf.outTextForUnit(unitName, weatherReport, 30)
+        if forUnit then
+            veaf.outTextForUnit(unitName, weatherReport, 30)
+        else
+            veaf.outTextForGroup(unitName, weatherReport, 30)
+        end
     end
 end
 
-function veafNamedPoints.getAtcAtPoint(parameters)
+function veafNamedPoints.getAtcAtPoint(parameters, forUnit)
     local name, unitName = veaf.safeUnpack(parameters)
     veaf.loggers.get(veafNamedPoints.Id):trace(string.format("getAtcAtPoint(name = %s)",name))
     local point = veafNamedPoints.getPoint(name)
@@ -221,7 +225,7 @@ function veafNamedPoints.getAtcAtPoint(parameters)
         if BR then BR = " ("..BR..")" else BR = "" end
         -- exanple : point={x=-315414,y=480,z=897262, atc=true, tower="138.00", runways={{name="12R", hdg=121, ils="110.30"},{name="30L", hdg=301, ils="108.90"}}}
         local atcReport = "ATC            : " .. name .. BR .. "\n\n"
-        
+
         -- runway and other information
         if point.tower then
             atcReport = atcReport .. "TOWER          : " .. point.tower
@@ -266,7 +270,11 @@ function veafNamedPoints.getAtcAtPoint(parameters)
         atcReport = atcReport .. "\n\n"
         local weatherReport = veaf.weatherReport(point, nil, true)
         atcReport = atcReport ..weatherReport
-        veaf.outTextForUnit(unitName, atcReport, 30)
+        if forUnit then
+            veaf.outTextForUnit(unitName, atcReport, 30)
+        else
+            veaf.outTextForGroup(unitName, atcReport, 30)
+        end
     end
 end
 
@@ -276,7 +284,7 @@ function veafNamedPoints.pointFromString(coordinatesString)
     local _lat, _lon = veaf.computeLLFromString(coordinatesString)
     veaf.loggers.get(veafNamedPoints.Id):trace(string.format("_lat=%s",veaf.p(_lat)))
     veaf.loggers.get(veafNamedPoints.Id):trace(string.format("_lon=%s",veaf.p(_lon)))
-    if _lat and _lon then 
+    if _lat and _lon then
         _result = veafNamedPoints.pointFromLL(_lat, _lon)
     end
     return _result
@@ -289,7 +297,7 @@ end
 
 function veafNamedPoints.addDataToPoint(point, data)
     if point then
-        if data then 
+        if data then
             for key, value in pairs(data) do
                 point[key] = value
             end
@@ -328,7 +336,7 @@ function veafNamedPoints.listAllPoints(unitName)
     veaf.outTextForUnit(unitName, message, 30)
 end
 
-function veafNamedPoints.getAtcAtClosestPoint(unitName)
+function veafNamedPoints.getAtcAtClosestPoint(unitName, forUnit)
     veaf.loggers.get(veafNamedPoints.Id):debug(string.format("veafNamedPoints.getAtcAtClosestPoint(unitName=%s)",unitName))
     local closestPointName = nil
     local minDistance = 99999999
@@ -349,11 +357,11 @@ function veafNamedPoints.getAtcAtClosestPoint(unitName)
         end
     end
     if closestPointName then
-        veafNamedPoints.getAtcAtPoint({closestPointName, unitName})
+        veafNamedPoints.getAtcAtPoint({closestPointName, unitName}, forUnit)
     end
 end
 
-function veafNamedPoints.getWeatherAtClosestPoint(unitName)
+function veafNamedPoints.getWeatherAtClosestPoint(unitName, forUnit)
     veaf.loggers.get(veafNamedPoints.Id):debug(string.format("veafNamedPoints.getWeatherAtClosestPoint(unitName=%s)",unitName))
     local closestPointName = nil
     local minDistance = 99999999
@@ -370,7 +378,7 @@ function veafNamedPoints.getWeatherAtClosestPoint(unitName)
         veaf.loggers.get(veafNamedPoints.Id):trace(string.format("closest point name=%s, distanceFromPlayer=%d",closestPointName, minDistance))
     end
     if closestPointName then
-        veafNamedPoints.getWeatherAtPoint({closestPointName, unitName})
+        veafNamedPoints.getWeatherAtPoint({closestPointName, unitName}, forUnit)
     end
 end
 
@@ -380,7 +388,7 @@ end
 
 function veafAssets._buildWeatherReportRadioMenu(menu, title, element)
     local namedPoint = element
-    veafRadio.addCommandToSubmenu(title , menu, veafNamedPoints.getWeatherAtPoint, element.name, veafRadio.USAGE_ForGroup)    
+    veafRadio.addCommandToSubmenu(title , menu, veafNamedPoints.getWeatherAtPoint, element.name, veafRadio.USAGE_ForGroup)
 end
 
 --- refresh the Weather Reports radio menu
@@ -402,7 +410,7 @@ end
 
 function veafAssets._buildAtcRadioMenu(menu, title, element)
     local namedPoint = element
-    veafRadio.addCommandToSubmenu(title , menu, veafNamedPoints.getAtcAtPoint, element.name, veafRadio.USAGE_ForGroup)    
+    veafRadio.addCommandToSubmenu(title , menu, veafNamedPoints.getAtcAtPoint, element.name, veafRadio.USAGE_ForGroup)
 end
 
 --- refresh the ATC radio menu
@@ -418,7 +426,7 @@ function veafNamedPoints._refreshAtcRadioMenu()
         end
         veafNamedPoints.atcPath = veafRadio.addPaginatedRadioMenu("Get ATC information", veafNamedPoints.rootPath, veafAssets._buildAtcRadioMenu, points)
     end
-    
+
     veafRadio.refreshRadioMenu()
 end
 
@@ -430,10 +438,10 @@ function veafNamedPoints.buildRadioMenu()
     if not(veafRadio.skipHelpMenus) then
         veafRadio.addCommandToSubmenu("HELP", veafNamedPoints.rootPath, veafNamedPoints.help, nil, veafRadio.USAGE_ForGroup)
     end
-    
+
     veafRadio.addCommandToSubmenu("List all points", veafNamedPoints.rootPath, veafNamedPoints.listAllPoints, nil, veafRadio.USAGE_ForGroup)
-    veafRadio.addCommandToSubmenu("Weather on closest point" , veafNamedPoints.rootPath, veafNamedPoints.getWeatherAtClosestPoint, nil, veafRadio.USAGE_ForGroup)    
-    veafRadio.addCommandToSubmenu("ATC on closest point" , veafNamedPoints.rootPath, veafNamedPoints.getAtcAtClosestPoint, nil, veafRadio.USAGE_ForGroup)    
+    veafRadio.addCommandToSubmenu("Weather on closest point" , veafNamedPoints.rootPath, veafNamedPoints.getWeatherAtClosestPoint, nil, veafRadio.USAGE_ForGroup)
+    veafRadio.addCommandToSubmenu("ATC on closest point" , veafNamedPoints.rootPath, veafNamedPoints.getAtcAtClosestPoint, nil, veafRadio.USAGE_ForGroup)
 
     veafNamedPoints._refreshAtcRadioMenu()
     veafNamedPoints._refreshWeatherReportsRadioMenu()
@@ -462,7 +470,7 @@ function veafNamedPoints.executeCommandFromRemote(parameters)
     veaf.loggers.get(veafNamedPoints.Id):trace(string.format("_pilotName= %s", veaf.p(_pilotName)))
     veaf.loggers.get(veafNamedPoints.Id):trace(string.format("_unitName= %s", veaf.p(_unitName)))
     veaf.loggers.get(veafNamedPoints.Id):trace(string.format("_command= %s", veaf.p(_command)))
-    if not _pilot or not _command then 
+    if not _pilot or not _command then
         return false
     end
 
@@ -472,17 +480,17 @@ function veafNamedPoints.executeCommandFromRemote(parameters)
         veaf.loggers.get(veafNamedPoints.Id):trace(string.format("_action=%s",veaf.p(_action)))
         veaf.loggers.get(veafNamedPoints.Id):trace(string.format("_pointName=%s",veaf.p(_pointName)))
         veaf.loggers.get(veafNamedPoints.Id):trace(string.format("_parameters=%s",veaf.p(_parameters)))
-        if _action and _action:lower() == "weather" then 
+        if _action and _action:lower() == "weather" then
             veaf.loggers.get(veafNamedPoints.Id):info(string.format("[%s] is requesting weather at his position",veaf.p(_pilotName)))
-            veafNamedPoints.getWeatherAtClosestPoint(_unitName)
+            veafNamedPoints.getWeatherAtClosestPoint(_unitName, true)
             return true
-        elseif _action and _action:lower() == "atc" then 
+        elseif _action and _action:lower() == "atc" then
             veaf.loggers.get(veafNamedPoints.Id):info(string.format("[%s] is requesting atc at his position",veaf.p(_pilotName)))
-            veafNamedPoints.getAtcAtClosestPoint(_unitName)
+            veafNamedPoints.getAtcAtClosestPoint(_unitName, true)
             return true
         end
-    end    
-    return false           
+    end
+    return false
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -4190,7 +4198,7 @@ function veafNamedPoints.addAllSyriaCities()
         }
         veafNamedPoints.addCities(towns)
     end
-    
+
 function veafNamedPoints.addAllMarianasIslandsCities()
     local towns = {
         ["San Jose"] = { latitude = 14.965154, longitude = 145.628466, display_name = ("San Jose")},
@@ -4264,7 +4272,7 @@ function veafNamedPoints.addAllMarianasIslandsCities()
     }
     veafNamedPoints.addCities(towns)
 end
-        
+
 function veafNamedPoints.addCities(cities)
     mist.scheduleFunction(veafNamedPoints._addCities, {cities}, timer.getTime() + 1) -- wait until the module had a chance to initialize
 end

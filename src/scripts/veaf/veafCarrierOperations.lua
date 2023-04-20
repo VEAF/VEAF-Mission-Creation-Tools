@@ -19,7 +19,7 @@ veafCarrierOperations = {}
 veafCarrierOperations.Id = "CARRIER"
 
 --- Version.
-veafCarrierOperations.Version = "1.12.1"
+veafCarrierOperations.Version = "1.12.2"
 
 -- trace level, specific to this module
 --veafCarrierOperations.LogLevel = "trace"
@@ -103,7 +103,7 @@ function veafCarrierOperations.startCarrierOperations(parameters)
     if not(carrier) then
         local text = "Cannot find the carrier group "..groupName
         veaf.loggers.get(veafCarrierOperations.Id):error(text)
-        veaf.outTextForUnit(userUnitName, text, 5)
+        veaf.outTextForGroup(userUnitName, text, 5)
         return
     end
 
@@ -138,7 +138,7 @@ function veafCarrierOperations.startCarrierOperations(parameters)
         "\n\nGetting a good alignment may require up to 5 minutes"
 
     veaf.loggers.get(veafCarrierOperations.Id):info(text)    
-    veaf.outTextForUnit(userUnitName, text, 25)
+    veaf.outTextForGroup(userUnitName, text, 25)
     
     -- change the menu
     veaf.loggers.get(veafCarrierOperations.Id):trace("change the menu")
@@ -155,7 +155,7 @@ function veafCarrierOperations.continueCarrierOperations(groupName, userUnitName
     if not(carrier) then
         local text = "Cannot find the carrier group "..groupName
         veaf.loggers.get(veafCarrierOperations.Id):error(text)
-        veaf.outTextForUnit(userUnitName, text, 5)
+        veaf.outTextForGroup(userUnitName, text, 5)
         return
     end
 
@@ -287,7 +287,7 @@ function veafCarrierOperations.continueCarrierOperations(groupName, userUnitName
     
             local msg = string.format("Obstruction found at heading %s, derouting %s to heading %s", veaf.p(#obstructions), veaf.p(dir), veaf.p(groupName), veaf.p(newDir))
             veaf.loggers.get(veafCarrierOperations.Id):debug(msg)
-            veaf.outTextForUnit(userUnitName, msg, 5)
+            veaf.outTextForGroup(userUnitName, msg, 5)
             headingRad = mist.utils.toRadian(newDir)
             length = 4000
             newWaypoint = {
@@ -703,7 +703,7 @@ function veafCarrierOperations.atcForCarrierOperations(parameters)
     local groupName, unitName = veaf.safeUnpack(parameters)
     veaf.loggers.get(veafCarrierOperations.Id):debug("atcForCarrierOperations(".. groupName .. ")")
     local text = veafCarrierOperations.getAtcForCarrierOperations(groupName)
-    veaf.outTextForUnit(unitName, text, 15)
+    veaf.outTextForGroup(unitName, text, 15)
 end
 
 --- Ends carrier operations ; changes the radio menu item to START and send the carrier back to its starting point
@@ -725,7 +725,7 @@ function veafCarrierOperations.stopCarrierOperations(parameters)
     
     local text = "The carrier group "..groupName.." has stopped air operations ; it's moving back to its initial position"
     veaf.loggers.get(veafCarrierOperations.Id):info(text)
-    veaf.outTextForUnit(userUnitName, text, 5)
+    veaf.outTextForGroup(userUnitName, text, 5)
     carrier.conductingAirOperations = false
     carrier.stoppedAirOperations = true
 
@@ -845,7 +845,7 @@ function veafCarrierOperations.help(unitName)
         'END  : carrier will go back to its starting point (where it was when the START command was issued)\n' ..
         'RESET: carrier will go back to where it was when the mission started'
 
-    veaf.outTextForUnit(unitName, text, 30)
+        veaf.outTextForGroup(unitName, text, 30)
 end
 
 function veafCarrierOperations.initializeCarrierGroups()

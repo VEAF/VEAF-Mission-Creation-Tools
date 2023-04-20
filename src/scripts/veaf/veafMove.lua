@@ -23,7 +23,7 @@ veafMove = {}
 veafMove.Id = "MOVE"
 
 --- Version.
-veafMove.Version = "1.9.2"
+veafMove.Version = "1.9.3"
 
 -- trace level, specific to this module
 --veafMove.LogLevel = "trace"
@@ -86,8 +86,8 @@ veafMove.Tankers = {}
 
 --- Function executed when a mark has changed. This happens when text is entered or changed.
 function veafMove.onEventMarkChange(eventPos, event)
-    if veafMove.executeCommand(eventPos, event.text) then 
-        
+    if veafMove.executeCommand(eventPos, event.text) then
+
         -- Delete old mark.
         veaf.loggers.get(veafMove.Id):trace(string.format("Removing mark # %d.", event.idx))
         trigger.action.removeMark(event.idx)
@@ -96,7 +96,7 @@ function veafMove.onEventMarkChange(eventPos, event)
 end
 
 function veafMove.executeCommand(eventPos, eventText, bypassSecurity)
-    
+
     -- Check if marker has a text and the veafMove.keyphrase keyphrase.
     if eventText ~= nil and eventText:lower():find(veafMove.Keyphrase) then
 
@@ -275,7 +275,7 @@ function veafMove.changeTanker(eventPos, speed, alt)
     veaf.loggers.get(veafMove.Id):debug(string.format("veafMove.changeTanker(speed=%s, alt=%s)", tostring(speed), tostring(alt)))
     veaf.loggers.get(veafMove.Id):trace(string.format("eventPos=%s",veaf.p(eventPos)))
     veaf.loggers.get(veafMove.Id):cleanupMarkers(debugMarkers)
-    
+
     local tankerUnit = nil
     local units = veaf.findUnitsInCircle(eventPos, 2000, false)
     veaf.loggers.get(veafMove.Id):trace(string.format("units=%s", veaf.p(units)))
@@ -320,13 +320,13 @@ function veafMove.changeTanker(eventPos, speed, alt)
         local point1 = points[idxPoint1]
         veaf.loggers.get(veafMove.Id):trace("found point1")
         -- set speed
-        if speed > -1 then 
+        if speed > -1 then
             point1.speed = speed/1.94384  -- in m/s
         else
             speed = point1.speed*1.94384  -- in knots 
         end
         -- set altitude
-        if alt > -1 then 
+        if alt > -1 then
             point1.alt = alt * 0.3048 -- in meters
         else
             alt = point1.alt / 0.3048 -- in feet
@@ -349,11 +349,11 @@ function veafMove.changeTanker(eventPos, speed, alt)
                         if task.id and task.id == "Orbit" then
                             veaf.loggers.get(veafMove.Id):debug("Found a ORBIT task for tanker " .. tankerGroupName)
                             foundOrbit = true
-                            if speed > -1 then 
+                            if speed > -1 then
                                 task.params.speed = speed/1.94384  -- in m/s
                                 point2.speed = speed/1.94384  -- in m/s
                             end
-                            if alt > -1 then 
+                            if alt > -1 then
                                 task.params.altitude = alt * 0.3048 -- in meters
                                 point2.alt = alt * 0.3048 -- in meters
                             end
@@ -362,7 +362,7 @@ function veafMove.changeTanker(eventPos, speed, alt)
                 end
             end
         end
-        if not foundOrbit then 
+        if not foundOrbit then
             local text = "Cannot set tanker " .. tankerGroupName .. " parameters because it has no ORBIT task defined"
             veaf.loggers.get(veafMove.Id):info(text)
             trigger.action.outText(text)
@@ -373,11 +373,11 @@ function veafMove.changeTanker(eventPos, speed, alt)
         local point3 = points[idxPoint3]
         veaf.loggers.get(veafMove.Id):trace("found point3")
         -- change speed
-        if speed > -1 then 
+        if speed > -1 then
             point3.speed = speed/1.94384  -- in m/s
         end
         -- change altitude
-        if alt > -1 then 
+        if alt > -1 then
             point3.alt = alt * 0.3048 -- in meters
         end
         veaf.loggers.get(veafMove.Id):trace("newpoint3="..veaf.p(point3))
@@ -385,13 +385,13 @@ function veafMove.changeTanker(eventPos, speed, alt)
         -- replace whole mission
         veaf.loggers.get(veafMove.Id):debug("Resetting changed tanker mission")
         -- replace the mission
-        local mission = { 
-            id = 'Mission', 
+        local mission = {
+            id = 'Mission',
             params = tankerData
         }
         local controller = tankerGroup:getController()
         controller:setTask(mission)
-        
+
         local msg = string.format("Set tanker %s to %d kn (ground) at %d ft", tankerGroupName, speed, alt)
         veaf.loggers.get(veafMove.Id):info(msg)
 		trigger.action.outText(msg , 10)
@@ -408,18 +408,18 @@ end
 function veafMove.moveTanker(eventPos, groupName, speed, alt, hdg, distance, teleport, silent)
     veaf.loggers.get(veafMove.Id):debug(string.format("veafMove.moveTanker(groupName=%s, speed=%s, alt=%s, hdg=%s, distance=%s)",tostring(groupName), tostring(speed), tostring(alt), tostring(hdg), tostring(distance)))
     veaf.loggers.get(veafMove.Id):cleanupMarkers(debugMarkers)
-    
+
     veaf.loggers.get(veafMove.Id):trace(string.format("eventPos=%s",veaf.p(eventPos)))
-    
+
     local FIRSTPOINT_DISTANCE_SECONDS = 60 -- seconds to fly to WP1
-    
+
     local unitGroup = Group.getByName(groupName)
 	if unitGroup == nil then
         veaf.loggers.get(veafMove.Id):info(groupName .. ' not found for move tanker command')
 		trigger.action.outText(groupName .. ' not found for move tanker command' , 10)
 		return false
     end
-    
+
     local tankerData = veaf.getGroupData(groupName)
     if not(tankerData) then
         local text = "Cannot move tanker " .. groupName .. " ; no group data"
@@ -504,7 +504,7 @@ function veafMove.moveTanker(eventPos, groupName, speed, alt, hdg, distance, tel
         if veafNamedPoints and not silent then
             veafNamedPoints.namePoint({x=endLegPoint.x, y=endLegPoint.alt, z=endLegPoint.y}, groupName .. " refuel end", unitGroup:getCoalition(), true)
         end
-        
+
         -- compute the point where the tanker should move in the opposite direction from the desired heading, at a standard distance
         local movePoint= { x=startLegPoint.x, y=startLegPoint.y, alt=alt, speed=speed }
         local teleportPoint= { x=startLegPoint.x, y=startLegPoint.y, alt=alt, speed=speed }
@@ -547,7 +547,7 @@ function veafMove.moveTanker(eventPos, groupName, speed, alt, hdg, distance, tel
                 end
             end
         end
-        if not foundOrbit then 
+        if not foundOrbit then
             local text = "Cannot move tanker " .. groupName .. " because it has no ORBIT task defined"
             veaf.loggers.get(veafMove.Id):info(text)
             trigger.action.outText(text)
@@ -571,7 +571,7 @@ function veafMove.moveTanker(eventPos, groupName, speed, alt, hdg, distance, tel
 
         -- teleport if the option is set
         if teleport then
-            veaf.loggers.get(veafMove.Id):debug("Teleport the tanker")   
+            veaf.loggers.get(veafMove.Id):debug("Teleport the tanker")
             local vars = { groupName = groupName, point = teleportPoint, action = "teleport"}
             local grp = mist.teleportToPoint(vars)
             unitGroup = Group.getByName(groupName)
@@ -621,7 +621,7 @@ function veafMove.teleportEscort(escorted_groupName, movePoint, teleportPoint)
     local tasks_escort = {}
     local task_escort = {}
     local EscortData = {}
-    if unitGroup_escort ~= nil then  
+    if unitGroup_escort ~= nil then
         EscortData = veaf.getGroupData(groupName_escort)
         if not(EscortData) then
             local text = "Cannot move Escort " .. groupName_escort .. " ; no group data"
@@ -657,10 +657,10 @@ function veafMove.teleportEscort(escorted_groupName, movePoint, teleportPoint)
         veaf.loggers.get(veafMove.Id):info(groupName_escort .. ' not found for move tanker escort command')
     end
 
-    if not escort_flag then 
-        return false 
+    if not escort_flag then
+        return false
     end
-    
+
     --distances by which the escort is offseted from the escorted group in the map's referential, task_escort provides relative spacing
     local escort_offset = {}
     local hdg = veaf.headingBetweenPoints(teleportPoint, movePoint)
@@ -687,8 +687,8 @@ function veafMove.teleportEscort(escorted_groupName, movePoint, teleportPoint)
     point2_escort.speed = movePoint.speed
 
     task_escort.params.groupId = escortedId --assign the new groupID within the old escort mission, only necessary after teleporting as the tanker's ID will have changed
-    
-    veaf.loggers.get(veafMove.Id):debug("Teleport the escort")   
+
+    veaf.loggers.get(veafMove.Id):debug("Teleport the escort")
     local vars_escort = { groupName = groupName_escort, point = teleportPoint_escort, action = "teleport"}
     local grp_escort = mist.teleportToPoint(vars_escort)
     unitGroup_escort = Group.getByName(groupName_escort)
@@ -717,14 +717,14 @@ function veafMove.replaceMission(unitGroup, missionData, delay, immortal)
 
         local freq = missionData.frequency or 243 --set frequency or guard channel
         local mod = missionData.modulation or 0 --set modulation or AM (=0)
-        
+
         veaf.loggers.get(veafMove.Id):debug(string.format("Resetting %s mission", unitGroup:getName()))
         veaf.loggers.get(veafMove.Id):debug(string.format("replaceMissionData=%s", veaf.p(missionData)))
         --... for the escort, necessary to re assign the mission wether the tanker was teleported (== changed ID) or not because DCS
 
-        local mission = { 
-            id = 'Mission', 
-            params = missionData 
+        local mission = {
+            id = 'Mission',
+            params = missionData
         }
         local controller = unitGroup:getController()
         controller:setTask(mission)
@@ -820,7 +820,7 @@ function veafMove.moveAfac(eventPos, groupName, speed, alt, heading, immortal)
         local point2_afac = points_afac[idxPoint2_afac]
         local FACflag = false
         local OrbitFlag = false
-    
+
         -- if hdg is not set, compute heading between point1 and point2
         local hdg = heading
         if hdg == nil then
@@ -828,7 +828,7 @@ function veafMove.moveAfac(eventPos, groupName, speed, alt, heading, immortal)
         else
             hdg = heading * math.pi/180
         end
-        
+
         -- teleport position
         local teleportPosition = {
             ["x"] = eventPos.x - distanceFromTeleport*math.cos(hdg), --teleport 3km south of orbit point
@@ -875,7 +875,7 @@ function veafMove.moveAfac(eventPos, groupName, speed, alt, heading, immortal)
         point1_afac.alt=teleportPosition.alt
         point1_afac.x=teleportPosition.x + distanceFromTeleport*math.cos(hdg)/2
         point1_afac.y=teleportPosition.y + distanceFromTeleport*math.sin(hdg)/2
-    
+
         point2_afac.speed=speed
         point2_afac.alt=teleportPosition.alt
         point2_afac.x=eventPos.x
@@ -889,13 +889,13 @@ function veafMove.moveAfac(eventPos, groupName, speed, alt, heading, immortal)
         end
         local grp = mist.teleportToPoint(vars)
         unitGroup = Group.getByName(groupName) --refresh group class after respawn, not necessary but safer considering at least the groupId changes
-    
+
         --necessary delay for the following code to not be ignored
         local delay=1
-    
+
         -- replace whole mission
         veafMove.replaceMission(unitGroup, afacData, delay, immortal)
-        
+
         return true
     else
         return false
@@ -913,7 +913,7 @@ function veafMove.findAllTankers()
         veaf.loggers.get(veafMove.Id):trace(string.format("name=%s, unit.type=%s", veaf.p(name), veaf.p(unit.type)))
         --veaf.loggers.get(veafMove.Id):trace(string.format("unit=%s", veaf.p(unit)))
         --local unit = Unit.getByName(name)
-        if unit then 
+        if unit then
             for _, tankerTypeName in pairs(TankerTypeNames) do
                 if tankerTypeName:lower() == unit.type:lower() then
                     table.insert(result, unit.groupName)
@@ -958,7 +958,7 @@ function veafMove.buildRadioMenu()
         if veafAssets then
             veaf.loggers.get(veafMove.Id):trace(string.format("searching for asset name %s", tankerUnitName))
             local asset = veafAssets.get(tankerUnitName)
-            if asset then 
+            if asset then
                 tankerName = asset.description
                 veaf.loggers.get(veafMove.Id):trace(string.format("found asset name : %s", tankerName))
             end
@@ -966,16 +966,16 @@ function veafMove.buildRadioMenu()
         -- Move tanker to me
         local menuName = string.format("%s - WEST", tankerName)
         local moveTankerPath = veafRadio.addSubMenu(menuName, veafMove.rootPath)
-        veafRadio.addCommandToSubmenu(menuName, moveTankerPath, veafMove.moveTankerToMe, {tankerUnitName, 270}, veafRadio.USAGE_ForGroup)    
+        veafRadio.addCommandToSubmenu(menuName, moveTankerPath, veafMove.moveTankerToMe, {tankerUnitName, 270}, veafRadio.USAGE_ForGroup)
 
         menuName = string.format("%s - EAST", tankerName)
         moveTankerPath = veafRadio.addSubMenu(menuName, veafMove.rootPath)
-        veafRadio.addCommandToSubmenu(menuName, moveTankerPath, veafMove.moveTankerToMe, {tankerUnitName, 90}, veafRadio.USAGE_ForGroup)    
+        veafRadio.addCommandToSubmenu(menuName, moveTankerPath, veafMove.moveTankerToMe, {tankerUnitName, 90}, veafRadio.USAGE_ForGroup)
     end
 end
 
 function veafMove.help(unitName)
-    local text = 
+    local text =
         'Create a marker and type "_move <group|tanker|afac>, name <groupname> " in the text\n' ..
         'This will issue a move command to the specified group in the DCS world\n' ..
         'Type "_move group, name [groupname]" to move the specified group to the marker point\n' ..
@@ -986,7 +986,7 @@ function veafMove.help(unitName)
         'Type "_move afac, name [groupname]" to create a new JTAC flight plan and move the specified afac drone.\n' ..
         '     add ", speed [speed]" to make the tanker move and execute its mission at the specified speed (in knots)\n' ..
         '     add ", alt [altitude]" to specify the altitude at which the drone will circle (in feet)'
-    veaf.outTextForUnit(unitName, text, 30)
+    veaf.outTextForGroup(unitName, text, 30)
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------

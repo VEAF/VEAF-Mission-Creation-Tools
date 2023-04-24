@@ -20,7 +20,7 @@ veafNamedPoints = {}
 veafNamedPoints.Id = "NAMED POINTS"
 
 --- Version.
-veafNamedPoints.Version = "1.11.1"
+veafNamedPoints.Version = "1.11.2"
 
 -- trace level, specific to this module
 --veafNamedPoints.LogLevel = "trace"
@@ -422,8 +422,10 @@ function veafNamedPoints.buildPointsDatabase(customPoints)
     for _, defaultPoint in pairs(veafNamedPoints.Points) do
         veafNamedPoints._addPoint(defaultPoint.name, defaultPoint.point)
     end
-    for _, defaultPoint in pairs(customPoints) do
-        veafNamedPoints._addPoint(defaultPoint.name, defaultPoint.point)
+    if customPoints then 
+        for _, defaultPoint in pairs(customPoints) do
+            veafNamedPoints._addPoint(defaultPoint.name, defaultPoint.point)
+        end
     end
 end
 

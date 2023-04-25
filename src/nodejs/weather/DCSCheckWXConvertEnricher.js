@@ -203,9 +203,15 @@ class DCSCheckWXConvertEnricher {
 
   getGroundTurbulence() {
     try {
+      let result = this.getDeterministicRandomFloat(0, 3) / 0.637745;
       if (this.trace) console.log(this.getClosestResult()['wind']);
-      if (this.trace) console.log(this.getClosestResult()['wind']['gust_mps']);
-      return this.getClosestResult()['wind'] ? this.getClosestResult()['wind']['gust_mps'] / 0.637745 : 0;
+      if (this.getClosestResult()['wind']) {
+        if (this.trace) console.log(this.getClosestResult()['wind']['gust_mps']);
+        if (this.getClosestResult()['wind']['gust_mps']) {
+          result = this.getClosestResult()['wind']['gust_mps'] / 0.637745;
+        }
+      }
+      return result;
     } catch (err) {
       console.log(err);
       return this.getDeterministicRandomFloat(0, 3) / 0.637745;

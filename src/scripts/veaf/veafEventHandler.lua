@@ -21,7 +21,7 @@ veafEventHandler = {}
 veafEventHandler.Id = "EVENTS - "
 
 --- Version.
-veafEventHandler.Version = "1.0.1"
+veafEventHandler.Version = "1.0.2"
 
 -- trace level, specific to this module
 --veafEventHandler.LogLevel = "trace"
@@ -33,7 +33,7 @@ veafEventHandler.Version = "1.0.1"
 veaf.loggers.new(veafEventHandler.Id, veafEventHandler.LogLevel)
 
 function veafEventHandler.completeUnit(unit)
-  if unit ~= nil then
+  if unit ~= nil and unit.getName then
     local unitName = unit:getName()
     return veafEventHandler.completeUnitFromName(unitName)
   else
@@ -45,7 +45,7 @@ function veafEventHandler.completeUnitFromName(unitName)
   if unitName ~= nil then
     local unitType = nil
     local unit = Unit.getByName(unitName)
-    if unit then
+    if unit and unit.getTypeName then
       unitType = unit:getTypeName()
     end
     local unitPilotName = nil

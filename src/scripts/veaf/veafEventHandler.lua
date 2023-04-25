@@ -21,7 +21,7 @@ veafEventHandler = {}
 veafEventHandler.Id = "EVENTS - "
 
 --- Version.
-veafEventHandler.Version = "1.1.2"
+veafEventHandler.Version = "1.1.3"
 
 -- trace level, specific to this module
 --veafEventHandler.LogLevel = "trace"
@@ -33,7 +33,7 @@ veafEventHandler.Version = "1.1.2"
 veaf.loggers.new(veafEventHandler.Id, veafEventHandler.LogLevel)
 
 function veafEventHandler.completeUnit(unit)
-  if unit ~= nil then
+  if unit ~= nil and unit.getName then
     local unitName = unit:getName()
     return veafEventHandler.completeUnitFromName(unitName)
   else
@@ -47,7 +47,7 @@ function veafEventHandler.completeUnitFromName(unitName)
     local unitType = nil
     local unitLifePercent = nil
     local unit = Unit.getByName(unitName)
-    if unit then
+    if unit and unit.getTypeName then
       unitType = unit:getTypeName()
       local unitLife = unit:getLife()
       local unitLife0 = 0

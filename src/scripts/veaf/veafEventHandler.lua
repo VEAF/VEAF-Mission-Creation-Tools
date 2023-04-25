@@ -21,7 +21,7 @@ veafEventHandler = {}
 veafEventHandler.Id = "EVENTS - "
 
 --- Version.
-veafEventHandler.Version = "1.0.2"
+veafEventHandler.Version = "1.2.3"
 
 -- trace level, specific to this module
 --veafEventHandler.LogLevel = "trace"

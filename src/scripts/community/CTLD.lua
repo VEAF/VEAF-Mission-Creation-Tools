@@ -26,7 +26,7 @@ ctld = {} -- DONT REMOVE!
 ctld.Id = "CTLD - "
 
 --- Version.
-ctld.Version = "20220928.01"
+ctld.Version = "20230416.01"
 
 -- debug level, specific to this module
 ctld.Debug = true
@@ -149,7 +149,7 @@ ctld.location_DMS = false -- shows coordinates as Degrees Minutes Seconds instea
 
 ctld.JTAC_lock = "all" -- "vehicle" OR "troop" OR "all" forces JTAC to only lock vehicles or troops or all ground units
 
-ctld.JTAC_laseSpotCorrections = false -- if true, the JTAC will attempt to lead the target, taking into account current wind conditions and the speed of the target (particularily useful against moving heavy armor)
+ctld.JTAC_laseSpotCorrections = true -- if true, each JTAC will have a special option (toggle on/off) available in it's menu to attempt to lead the target, taking into account current wind conditions and the speed of the target (particularily useful against moving heavy armor)
 
 -- ***************** Pickup, dropoff and waypoint zones *****************
 
@@ -5127,12 +5127,13 @@ function ctld.addJTACRadioCommand(_side)
 
                             ctld.logTrace(string.format("jtacTargetsList for %s is : %s", ctld.p(_jtacGroupName), ctld.p(ctld.jtacTargetsList[_jtacGroupName])))
 
-                            if #ctld.jtacTargetsList[_jtacGroupName] > 1 then
+                            --if JTAC has at least one target in sight (if it has only one, it'll already be designated, this menu is then simply to access special options for the JTAC like wind/target speed compensation)
+                            if ctld.jtacCurrentTargets[_jtacGroupName] then
 
-                                local jtacGroupSubMenuName = string.format(_jtacGroupName .. " TGT Selection")
+                                local jtacGroupSubMenuName = string.format(_jtacGroupName .. " TGT Select")
 
                                 jtacCounter = jtacCounter + 1
-                                --F2 through F10 makes 9 entries possible per page, with one being the NextMenu submenu
+                                --F2 through F10 makes 9 entries possible per page, with one being the NextMenu submenu. F1 is taken by JTAC status entry.
                                 if jtacCounter%9 == 0 then
                                     --recover the path to the current page with space available for JTAC group submenus
                                     jtacCurrentPagePath = missionCommands.addSubMenuForGroup(_groupId, NextPageText, jtacCurrentPagePath)
@@ -5144,43 +5145,61 @@ function ctld.addJTACRadioCommand(_side)
 
                                 --make a copy of the JTAC group submenu's path to insert the target's list on as many pages as required. The JTAC's group submenu path only leads to the first page
                                 local jtacTargetPagePath = mist.utils.deepCopy(ctld.jtacGroupSubMenuPath[_jtacGroupName])
-                                --add a reset targeting option to revert to automatic JTAC unit targeting
-                                missionCommands.addCommandForGroup(_groupId, "Reset TGT Selection", jtacTargetPagePath, ctld.setJTACTarget, {jtacGroupName = _jtacGroupName, targetName = nil})
                                 
-                                --counter to know when to add the next page submenu to fit all of the targets in the JTAC's group submenu
+                                --counter to know when to add the next page submenu to fit all of the targets in the JTAC's group submenu. SMay not actually start at 0 due to static items being present on the first page
                                 local itemCounter = 0
 
-                                --indicator table to know which unitType was already added to the radio submenu
-                                local typeNameList = {}
-                                for _,target in pairs(ctld.jtacTargetsList[_jtacGroupName]) do
-                                    local targetName = target.unit:getName()
-                                    --check if the jtac has a current target before filtering it out if possible
-                                    if (ctld.jtacCurrentTargets[_jtacGroupName] and targetName ~= ctld.jtacCurrentTargets[_jtacGroupName].name) then
-                                        local targetType_name = target.unit:getTypeName()
-
-                                        if targetType_name then
-                                                if typeNameList[targetType_name] then
-                                                    typeNameList[targetType_name].amount = typeNameList[targetType_name].amount + 1
-                                            else
-                                                    typeNameList[targetType_name] = {}
-                                                    typeNameList[targetType_name].targetName = targetName --store the first targetName
-                                                    typeNameList[targetType_name].amount = 1
-                                            end
-                                        end
+                                --special options
+                                --add a way to allow the JTAC to perform wind/target speed corrections
+                                if ctld.JTAC_laseSpotCorrections then 
+                                    itemCounter = itemCounter + 1 --one item is added to the first JTAC target page
+                                    if ctld.jtacSpecialOptions.laseSpotCorrections[_jtacGroupName] then
+                                        missionCommands.addCommandForGroup(_groupId, "DISABLE Speed Correction", jtacTargetPagePath, ctld.setLaseCompensation, {jtacGroupName = _jtacGroupName, value = false})
+                                    else
+                                        missionCommands.addCommandForGroup(_groupId, "ENABLE Speed Correction", jtacTargetPagePath, ctld.setLaseCompensation, {jtacGroupName = _jtacGroupName, value = true})
                                     end
                                 end
 
-                                for typeName,info in pairs(typeNameList) do
-                                    local amount = info.amount
-                                    local targetName = info.targetName
-                                    itemCounter = itemCounter + 1
+                                if #ctld.jtacTargetsList[_jtacGroupName] > 1 then
+                                    
+                                    --add a reset targeting option to revert to automatic JTAC unit targeting
+                                    missionCommands.addCommandForGroup(_groupId, "Reset TGT Selection", jtacTargetPagePath, ctld.setJTACTarget, {jtacGroupName = _jtacGroupName, targetName = nil})
 
-                                    --F2 through F10 makes 9 entries possible per page, with one being the NextMenu submenu. Pages other than the first would have 10 entires but worse case scenario is considered
-                                    if itemCounter%9 == 0 then
-                                        jtacTargetPagePath = missionCommands.addSubMenuForGroup(_groupId, NextPageText, jtacTargetPagePath)
+                                    itemCounter = itemCounter + 1 --one item is added to the first JTAC target page
+
+                                    --indicator table to know which unitType was already added to the radio submenu
+                                    local typeNameList = {}
+                                    for _,target in pairs(ctld.jtacTargetsList[_jtacGroupName]) do
+                                        local targetName = target.unit:getName()
+                                        --check if the jtac has a current target before filtering it out if possible
+                                        if (ctld.jtacCurrentTargets[_jtacGroupName] and targetName ~= ctld.jtacCurrentTargets[_jtacGroupName].name) then
+                                            local targetType_name = target.unit:getTypeName()
+
+                                            if targetType_name then
+                                                    if typeNameList[targetType_name] then
+                                                        typeNameList[targetType_name].amount = typeNameList[targetType_name].amount + 1
+                                                else
+                                                        typeNameList[targetType_name] = {}
+                                                        typeNameList[targetType_name].targetName = targetName --store the first targetName
+                                                        typeNameList[targetType_name].amount = 1
+                                                end
+                                            end
+                                        end
                                     end
 
-                                    missionCommands.addCommandForGroup(_groupId, string.format(typeName .. "(" .. amount .. ")"), jtacTargetPagePath, ctld.setJTACTarget, {jtacGroupName = _jtacGroupName, targetName = targetName})
+                                    for typeName,info in pairs(typeNameList) do
+                                        local amount = info.amount
+                                        local targetName = info.targetName
+                                        itemCounter = itemCounter + 1
+
+                                        --F1 through F10 makes 10 entries possible per page, with one being the NextMenu submenu.
+                                        if itemCounter%10 == 0 then
+                                            jtacTargetPagePath = missionCommands.addSubMenuForGroup(_groupId, NextPageText, jtacTargetPagePath)
+                                            itemCounter = itemCounter + 1 --added the next page item
+                                        end
+
+                                        missionCommands.addCommandForGroup(_groupId, string.format(typeName .. "(" .. amount .. ")"), jtacTargetPagePath, ctld.setJTACTarget, {jtacGroupName = _jtacGroupName, targetName = targetName})
+                                    end
                                 end
                             end
                         end
@@ -5231,6 +5250,9 @@ ctld.jtacStop = {} -- jtacs to tell to stop lasing
 ctld.jtacCurrentTargets = {}
 ctld.jtacTargetsList = {} --current available targets to each JTAC for lasing (targets from other JTACs are filtered out). Contains DCS unit objects with their methods and the distance to the JTAC {unit, dist}
 ctld.jtacSelectedTarget = {} --currently user selected target if it contains a unit's name, otherwise contains 1 or nil (if not initialized)
+ctld.jtacSpecialOptions = { --list which contains the status of special options for each jtac, until this system is further developped in the ctld.addJTACRadioCommand() function, keep the number of items below 9 !
+    laseSpotCorrections = {}; --target speed and wind compensation for laser spot
+}
 ctld.jtacRadioAdded = {} --keeps track of who's had the radio command added
 ctld.jtacGroupSubMenuPath = {} --keeps track of which submenu contains each JTAC's target selection menu
 ctld.jtacRadioRefreshDelay = 60 --determines how often in seconds the dynamic parts of the jtac radio menu (target lists) will be refreshed
@@ -5324,10 +5346,15 @@ function ctld.JTACAutoLase(_jtacGroupName, _laserCode, _smoke, _lock, _colour, _
         --add to list
         ctld.jtacUnits[_jtacGroupName] = { name = _jtacUnit:getName(), side = _jtacCoalition, radio = _radio }
         
-        --Targets list and Selected target initialization
+        --Targets list, special options and Selected target initialization
         if not ctld.jtacTargetsList[_jtacGroupName] then
+            --Target list
             ctld.jtacTargetsList[_jtacGroupName] = {}
             if _jtacCoalition then ctld.newJtac[_jtacCoalition] = true end
+
+            --Special Options
+            ctld.jtacSpecialOptions.laseSpotCorrections[_jtacGroupName] = false
+
         end
 
         if not ctld.jtacSelectedTarget[_jtacGroupName] then
@@ -5467,7 +5494,7 @@ function ctld.JTACAutoLase(_jtacGroupName, _laserCode, _smoke, _lock, _colour, _
             if _smoke == true then
 
                 --create first smoke
-                ctld.createSmokeMarker(_enemyUnit, _colour)
+                ctld.createSmokeMarker(_defaultEnemyUnit, _colour)
             end
         end
     end
@@ -5550,6 +5577,10 @@ function ctld.cleanupJTAC(_jtacGroupName)
     ctld.jtacTargetsList[_jtacGroupName] = nil
 
     ctld.jtacSelectedTarget[_jtacGroupName] = nil
+
+    for _,jtacsList in pairs(ctld.jtacSpecialOptions) do --delete all special options for that JTAC
+        jtacsList[_jtacGroupName] = nil
+    end
 
     ctld.jtacRadioData[_jtacGroupName] = nil
 
@@ -5666,10 +5697,10 @@ function ctld.laseUnit(_enemyUnit, _jtacUnit, _jtacGroupName, _laserCode)
         local _enemyVector = _enemyUnit:getPoint()
         local _enemyVectorUpdated = { x = _enemyVector.x, y = _enemyVector.y + 2.0, z = _enemyVector.z }
 
-        if ctld.JTAC_laseSpotCorrections then
+        if ctld.jtacSpecialOptions.laseSpotCorrections[_jtacGroupName] then
             local _enemySpeedVector = _enemyUnit:getVelocity()
             ctld.logTrace(string.format("_enemySpeedVector=%s", ctld.p(_enemySpeedVector)))
-            
+
             local _WindSpeedVector = atmosphere.getWind(_enemyVectorUpdated)
             ctld.logTrace(string.format("_WindSpeedVector=%s", ctld.p(_WindSpeedVector)))
             
@@ -6108,9 +6139,28 @@ function ctld.setJTACTarget(_args)
         elseif not targetName and ctld.jtacSelectedTarget[_jtacGroupName] ~= 1 then
             ctld.jtacSelectedTarget[_jtacGroupName] = 1
             ctld.jtacCurrentTargets[_jtacGroupName] = nil
+            ctld.setLaseCompensation({jtacGroupName = _jtacGroupName, value = false}) --disable laser spot corrections
 
             local message = _jtacGroupName .. ", target selection reset."
             ctld.notifyCoalition(message, 10, ctld.jtacUnits[_jtacGroupName].side, ctld.jtacRadioData[_jtacGroupName])
+        end
+    end
+end
+
+function ctld.setLaseCompensation(_args)
+    if _args then
+        local _jtacGroupName = _args.jtacGroupName
+        local _value = _args.value --expected boolean
+
+        if _jtacGroupName then
+
+            local message_end = " disabled."
+            if _value then
+                message_end = " enabled."
+            end
+            ctld.notifyCoalition(_jtacGroupName .. ", Wind and Target speed Laser Spot compensations" .. message_end, 10, ctld.jtacUnits[_jtacGroupName].side, ctld.jtacRadioData[_jtacGroupName])
+
+            ctld.jtacSpecialOptions.laseSpotCorrections[_jtacGroupName] = _value
         end
     end
 end
@@ -6701,9 +6751,11 @@ math.random(); math.random(); math.random()
 --- Enable/Disable error boxes displayed on screen.
 env.setErrorMessageBoxEnabled(false)
 
--- initialize CTLD in 2 seconds, so other scripts have a chance to modify the configuration before initialization
-ctld.logInfo(string.format("Loading version %s in 2 seconds", ctld.Version))
-timer.scheduleFunction(ctld.initialize, nil, timer.getTime() + 2)
+-- initialize CTLD only out of a VEAF mission
+if not veaf then
+    ctld.logInfo(string.format("Loading version %s", ctld.Version))
+    ctld.initialize()
+end
 
 --DEBUG FUNCTION
 --        for key, value in pairs(getmetatable(_spawnedCrate)) do

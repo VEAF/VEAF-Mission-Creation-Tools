@@ -38,7 +38,7 @@ VEAF_PILOTS_FILE = "veaf-pilots.txt"
 veafServerHook.Id = "VEAFHOOK - "
 
 --- Version.
-veafServerHook.Version = "2.3.0"
+veafServerHook.Version = "2.3.1"
 
 -- trace level, specific to this module
 veafServerHook.Trace = false
@@ -239,7 +239,7 @@ function veafServerHook.onPlayerChangeSlot(id)
     veafServerHook.logTrace(string.format("unitName=%s",veafServerHook.p(unitName)))
 
     -- set the player current unit name
-    local payload = string.format(REGISTER_PLAYER_SLOT, playerName, ucid, unitName) -- unitName will be nil if the player is a spectator
+    local payload = string.format(REGISTER_PLAYER_SLOT, playerName, ucid, unitName or "nil") -- unitName will be nil if the player is a spectator
     veafServerHook.logTrace(string.format("payload=%s",veafServerHook.p(payload)))
     veafServerHook.injectCode(payload)
 end

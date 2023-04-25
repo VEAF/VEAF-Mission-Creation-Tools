@@ -21,7 +21,7 @@ veafQraManager = {}
 veafQraManager.Id = "QRA"
 
 --- Version.
-veafQraManager.Version = "1.2.0"
+veafQraManager.Version = "1.2.1"
 
 -- trace level, specific to this module
 --veafQraManager.LogLevel = "trace"
@@ -659,8 +659,14 @@ function VeafQRA:check()
                                 for _,unit in pairs(units) do
                                     if unit then
                                         local unitLife = unit:getLife()
-                                        local unitLife0 = unit:getLife0()
-                                        local unitLifePercent = 100 * unitLife / unitLife0
+                                        local unitLife0 = 0
+                                        if unit.getLife0 then -- statics have no life0
+                                          unitLife0 = unit:getLife0()
+                                        end
+                                        local unitLifePercent = unitLife
+                                        if unitLife0 > 0 then
+                                          unitLifePercent = 100 * unitLife / unitLife0
+                                        end
                                         if unitLifePercent >= veafQraManager.MINIMUM_LIFE_FOR_QRA_IN_PERCENT then
                                             groupAtLeastOneUnitAlive = true
                                         end

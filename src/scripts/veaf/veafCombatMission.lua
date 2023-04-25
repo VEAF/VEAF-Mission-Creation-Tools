@@ -21,7 +21,7 @@ veafCombatMission = {}
 veafCombatMission.Id = "COMBATMISSION"
 
 --- Version.
-veafCombatMission.Version = "2.1.3"
+veafCombatMission.Version = "2.1.5"
 
 -- trace level, specific to this module
 --veafCombatMission.LogLevel = "trace"
@@ -1101,16 +1101,16 @@ function veafCombatMission.ActivateMissionNumber(number, silent)
 end
 
 -- activate a mission
-function veafCombatMission.ActivateMission(name, silent)
+function veafCombatMission.ActivateMission(name, silent, unitName)
     veaf.loggers.get(veafCombatMission.Id):debug(string.format("veafCombatMission.ActivateMission([%s])",name or ""))
     local mission = veafCombatMission.GetMission(name)
     local result = mission:activate(silent)
     if not silent and not mission:isSilent() then
         if result then
-            trigger.action.outText("VeafCombatMission "..mission:getFriendlyName().." has been activated.", 10)
+            veaf.outTextForUnit(unitName, "VeafCombatMission "..mission:getFriendlyName().." has been activated.", 10)
             mist.scheduleFunction(veafCombatMission.GetInformationOnMission,{{name}},timer.getTime()+1)
         else
-            trigger.action.outText("VeafCombatMission "..mission:getFriendlyName().." was already active.", 10)
+            veaf.outTextForUnit(unitName, "VeafCombatMission "..mission:getFriendlyName().." was already active.", 10)
         end
     end
     veafCombatMission.buildRadioMenu()
@@ -1125,12 +1125,12 @@ function veafCombatMission.DesactivateMissionNumber(number, silent)
 end
 
 -- desactivate a mission
-function veafCombatMission.DesactivateMission(name, silent)
+function veafCombatMission.DesactivateMission(name, silent, unitName)
     veaf.loggers.get(veafCombatMission.Id):debug(string.format("veafCombatMission.DesactivateMission([%s])",name or ""))
     local mission = veafCombatMission.GetMission(name)
     mission:desactivate()
     if not silent and not mission:isSilent() then
-        trigger.action.outText("VeafCombatMission "..mission:getFriendlyName().." has been desactivated.", 10)
+        veaf.outTextForUnit(unitName, "VeafCombatMission "..mission:getFriendlyName().." has been desactivated.", 10)
     end
     veafCombatMission.buildRadioMenu()
 end
@@ -1142,7 +1142,7 @@ function veafCombatMission.GetInformationOnMission(parameters)
     local mission = veafCombatMission.GetMission(name)
     local text = mission:getInformation()
     if unitName then
-        veaf.outTextForUnit(unitName, text, 30)
+        veaf.outTextForGroup(unitName, text, 30)
     else
         trigger.action.outText(text, 30)
     end
@@ -1296,10 +1296,10 @@ function veafCombatMission.help(unitName)
         'You can start and stop them at will,\n' ..
         'as well as ask for information about their status.'
 
-    veaf.outTextForUnit(unitName, text, 30)
+    veaf.outTextForGroup(unitName, text, 30)
 end
 
-function veafCombatMission.listAvailableMissions()
+function veafCombatMission.listAvailableMissions(unitName)
     -- sort the missions alphabetically
     local sortedMissions = {}
     local groupedMissions = _groupMissions()
@@ -1314,8 +1314,7 @@ function veafCombatMission.listAvailableMissions()
     for _, missionName in pairs(sortedMissions) do
         text = text .. " - " .. missionName .. "\n"
     end
-
-    trigger.action.outText(text, 20)
+    veaf.outTextForUnit(unitName, text, 20)
 end
 
 function veafCombatMission.listActiveMissions()
@@ -1407,7 +1406,9 @@ end
 function veafCombatMission.dumpMissionsList(export_path)
 
     local jsonify = function(key, value)
-        veaf.loggers.get(veafCombatMission.Id):trace(string.format("jsonify(%s)", veaf.p(value)))
+        veaf.loggers.get(veafCombatMission.Id):trace("jsonify()")
+        veaf.loggers.get(veafCombatMission.Id):trace("key=%s", veaf.p(key))
+        veaf.loggers.get(veafCombatMission.Id):trace("value=%s", veaf.p(value))
         if veaf.json then
             return veaf.json.stringify(veafCombatMission.missionsDict[value])
         else
@@ -1418,7 +1419,8 @@ function veafCombatMission.dumpMissionsList(export_path)
     -- sort the missions alphabetically
     local sortedMissions = {}
     for _, mission in pairs(veafCombatMission.missionsDict) do
-        table.insert(sortedMissions, mission:getName())
+        veaf.loggers.get(veafCombatMission.Id):trace("mission=%s", veaf.p(mission))
+        table.insert(sortedMissions, mission:getName():lower())
     end
     table.sort(sortedMissions)
 
@@ -1454,17 +1456,17 @@ function veafCombatMission.executeCommandFromRemote(parameters)
         veaf.loggers.get(veafCombatMission.Id):trace(string.format("_parameters=%s",veaf.p(_parameters)))
         if _action and _action:lower() == "list" then
             veaf.loggers.get(veafCombatMission.Id):info(string.format("[%s] is listing air missions)",veaf.p(_pilot.name)))
-            veafCombatMission.listAvailableMissions()
+            veafCombatMission.listAvailableMissions(_unitName)
             return true
         elseif _action and _action:lower() == "start" and _missionName then
             local _silent = _parameters and _parameters:lower() == "silent"
             veaf.loggers.get(veafCombatMission.Id):info(string.format("[%s] is starting air mission [%s] %s)",veaf.p(_pilot.name), veaf.p(_missionName), veaf.p(_parameters)))
-            veafCombatMission.ActivateMission(_missionName, _silent)
+            veafCombatMission.ActivateMission(_missionName, _silent, _unitName)
             return true
         elseif _action and _action:lower() == "stop" then
             local _silent = _parameters and _parameters:lower() == "silent"
             veaf.loggers.get(veafCombatMission.Id):info(string.format("[%s] is stopping air mission [%s] %s)",veaf.p(_pilot.name), veaf.p(_missionName), veaf.p(_parameters)))
-            veafCombatMission.DesactivateMission(_missionName, _silent)
+            veafCombatMission.DesactivateMission(_missionName, _silent, _unitName)
             return true
         end
     end

@@ -19,7 +19,7 @@ veaf = {}
 veaf.Id = "VEAF"
 
 --- Version.
-veaf.Version = "1.38.0"
+veaf.Version = "1.44.2"
 
 --- Development version ?
 veaf.Development = true
@@ -423,29 +423,6 @@ function veaf.escapeRegex(stringToEscape)
     end
     return result
 end
-
----checks if a string starts with a prefix
----@param aString any
----@param aPrefix any
----@param caseSensitive? boolean   ; if true, case sensitive search
----@return boolean
-function veaf.startsWith(aString, aPrefix, caseSensitive)
-    local _aString = aString
-    if not _aString then
-        return false
-    elseif not caseSensitive then
-        _aString = _aString:upper()
-    end
-    local _aPrefix = aPrefix
-    if not _aPrefix then
-        return false
-    elseif not caseSensitive then
-        _aPrefix = _aPrefix:upper()
-    end
-    return string.sub(_aString,1,string.len(_aPrefix))==_aPrefix
-end
-
-
 
 --- efficiently remove elements from a table
 --- credit : Mitch McMabers (https://stackoverflow.com/questions/12394841/safely-remove-items-from-an-array-table-while-iterating)
@@ -939,7 +916,206 @@ function veaf.getWind(point)
 
     -- Return wind direction and strength (in m/s).
     return direction, strength, windvec3
-  end
+end
+
+---comment
+---@param mach number the mach number
+---@param altitude any in feet, defaults to 10000
+---@param temperature any in celsius, defaults to ISA temperature at altitude
+function veaf.convertMachSpeed(mach, altitude, temperature)
+    return veaf.convertSpeeds(mach, nil, nil, altitude, temperature)
+end
+
+---comment
+---@param ktas number the true airspeed in knots
+---@param altitude any in feet, defaults to 10000
+---@param temperature any in celsius, defaults to ISA temperature at altitude
+function veaf.convertTrueAirSpeed(ktas, altitude, temperature)
+    return veaf.convertSpeeds(nil, nil, ktas, altitude, temperature)
+end
+
+---comment
+---@param kias number the indicated airspeed in knots
+---@param altitude any in feet, defaults to 10000
+---@param temperature any in celsius, defaults to ISA temperature at altitude
+function veaf.convertIndicatedAirSpeed(kias, altitude, temperature)
+    return veaf.convertSpeeds(nil, kias, nil, altitude, temperature)
+end
+
+---Computes speeds based on a speed parameter (mach, tas, ias) and altitude/temperature
+---@param mach number? the mach number
+---@param kias number? the indicated airspeed in knots
+---@param ktas number? the true airspeed in knots
+---@param altitude any in meters, defaults to 10000
+---@param temperature any in celsius, defaults to ISA temperature at altitude
+---@param pressure any in pa, defaults to ISA temperature at altitude
+---@return table result containing KTAS, KIAS, Mach, IAS_ms and TAS_ms
+function veaf.convertSpeeds(mach, kias, ktas, altitude, temperature, pressure)
+    veaf.loggers.get(veaf.Id):debug("veaf.convertSpeeds(mach=%s, kias=%s, ktas=%s, altitude=%s, temperature=%s, pressure=%s) -> initial", veaf.p(mach), veaf.p(kias), veaf.p(ktas), veaf.p(altitude), veaf.p(temperature), veaf.p(pressure))
+
+    local result = {
+        KTAS = 0,
+        KIAS = 0,
+        Mach = 0,
+    }
+
+    local h_tropopause = 11000 --m, tropopause start altitude<
+
+    local altitude = altitude
+    if not altitude then
+        altitude = 10000 -- default to 10000m
+    end
+
+    local T0 = 288.15 --K, ISA+0 altitude, may need to be corrected for mission ground temp
+    local Tz = -0.0065 --K/m, ISA temperature gradient in troposphere
+    local T_tropopause = 216.65 --K, temperature at the border between tropopause and troposphere (temperature in the tropopause)
+    local P0 = 101325 --Pa, standard pressure
+    local Gamma = 1.4 --Air heat capacity ratio
+    local r = 287.03 --J/kg/K Perfect Gas constant for air
+    local g = 9.81 --m/s^2 gravity constant on earth, might need to account for which planet ED is on
+
+    local temperature = temperature
+    if not temperature then
+        -- compute ISA temperature based on altitude
+        if altitude<h_tropopause then
+            temperature = T0 + Tz*altitude --troposphere (temp in K)
+        else
+            temperature = T_tropopause --tropopause (max altitude 20000m) (temp in K)
+        end
+    else
+        temperature = temperature + 273.15 --conversion to Kelvin
+    end
+
+    local function P_troposphere(temperature)
+        return P0*(1+(temperature-T0)/T0)^(-g/(r*Tz))
+    end
+
+    local pressure = pressure
+    if not pressure then
+        -- compute pressure based on altitude and ISA temperature
+        if altitude<h_tropopause then
+            pressure = P_troposphere(temperature)
+        else
+            pressure = P_troposphere(T_tropopause) * math.exp(-g*(altitude-h_tropopause)/(r*T_tropopause))
+        end
+    end
+
+    ---comment
+    ---@param temperature number temperature in K
+    ---@return number speed of sound in m/s
+    local function speedOfSound(temperature)
+        return math.sqrt(Gamma*r*temperature)
+    end
+
+    local B = Gamma/(Gamma-1)
+
+    ---comment
+    ---@param mach number mach number to calculate (Pt-Ps)/Ps with Pt/Ps given by isentropic relations (NOTE : (Pt-Ps)=deltaP)
+    ---@return number returns the ratio deltaP/P (DPP) (what a pitot tube would measure for M<1)
+    local function isentropicDPP(mach)
+        return (1+(Gamma-1)*mach^2/2)^B-1;
+    end
+
+    ---comment
+    ---@param mach number mach number to calculate (Pt-Ps)/Ps after a normal shock (M>1) (NOTE : (Pt-Ps)=deltaP)
+    ---@return number returns the ratio deltaP/P (DPP) after the normal shock (what a pitot tube would measure for M>1)
+    local function lord_rayleighDPP(mach)
+        local A = ((Gamma+1)*mach^2/2)^B
+        local C = ((Gamma+1)/(2*Gamma*mach^2-Gamma+1))^(B/Gamma);
+        return A*C-1;
+    end
+
+    ---comment
+    ---@param mach1 number the starting mach (mach_0 or mach_p) which determines the deltaP/P1 being computed (for a pitot tube at sea level, subscript 0 (IAS) or at altitude (TAS), subscript p)
+    ---@param getTAS boolean? if true, switches to conversion mode from IAS to TAS
+    ---@return number so if you provide only mach_P (TAS), this will return mach_0 (IAS), and if you provide mach_0 and getTAS true (IAS), this will return mach_P (TAS)
+    local function getConvertedMach(mach1, getTAS)
+
+        veaf.loggers.get(veaf.Id):debug("getConvertedMach(mach1 = %s, getTAS = %s", veaf.p(mach1), veaf.p(getTAS))
+
+        local DPP1 = 0;
+        if mach1 > 1 then
+            DPP1 = lord_rayleighDPP(mach1); --At this point it's still deltaP / Pp (DPPP) (subscript p = at pitot tube, subscript 0 = at sea level)
+        else
+            DPP1 = isentropicDPP(mach1); --At this point it's still deltaP / Pp (DPPP) (subscript p = at pitot tube, subscript 0 = at sea level)
+        end
+
+        veaf.loggers.get(veaf.Id):debug("DPP1 = %s -> initial", veaf.p(DPP1))
+
+        if getTAS then
+            DPP1 = P0*DPP1/pressure --conversion from DPP0 to DPPP
+        else
+            DPP1 = pressure*DPP1/P0 --conversion from DPPP to DPP0
+        end
+
+        veaf.loggers.get(veaf.Id):debug("DPP1 = %s -> final", veaf.p(DPP1))
+
+        local mach2 = 1
+
+        local function converge_2_DPP(machStep)
+            while(lord_rayleighDPP(mach2) < DPP1) do --DPP2 = lord_rayleighDPP(mach2)
+                mach2 = mach2+machStep
+            end
+
+            return mach2
+        end
+
+        if DPP1 > lord_rayleighDPP(1) then
+
+            mach2 = converge_2_DPP(0.25) - 0.25 --coarse
+            veaf.loggers.get(veaf.Id):debug("coarse mach2 = %s", veaf.p(mach2))
+            mach2 = converge_2_DPP(0.0125) - 0.0125 --medium
+            veaf.loggers.get(veaf.Id):debug("medium mach2 = %s", veaf.p(mach2))
+            mach2 = converge_2_DPP(0.00625) --fine
+            veaf.loggers.get(veaf.Id):debug("fine mach2 = %s", veaf.p(mach2))
+
+        else
+            mach2 = math.sqrt(2*((DPP1+1)^(1/B)-1)/(Gamma-1))
+            veaf.loggers.get(veaf.Id):debug("subsonic mach2 = %s", veaf.p(mach2))
+        end
+
+        return mach2
+    end
+
+    local ms_2_kt = 1.94384
+    local a1 = speedOfSound(temperature)
+    local a0 = speedOfSound(T0)
+    veaf.loggers.get(veaf.Id):debug("a0 = %s, a1 = %s", veaf.p(a0), veaf.p(a1))
+
+
+    if mach then
+        -- compute speeds from mach number
+        result.Mach = mach
+
+        result.TAS_ms = mach * a1
+        result.KTAS = result.TAS_ms * ms_2_kt
+
+        result.IAS_ms = getConvertedMach(result.Mach)*a0
+        result.KIAS = result.IAS_ms * ms_2_kt
+    elseif kias then
+        -- compute speeds from ias
+        result.KIAS = kias
+        result.IAS_ms = result.KIAS / ms_2_kt
+
+        result.TAS_ms = getConvertedMach(result.IAS_ms/a0, true)*a1
+        result.KTAS = result.TAS_ms * ms_2_kt
+
+        result.Mach = result.TAS_ms / a1
+    elseif ktas then
+        -- compute speeds from tas
+        result.KTAS = ktas
+        result.TAS_ms = result.KTAS / ms_2_kt
+
+        result.Mach = result.TAS_ms / a1
+
+        result.IAS_ms = getConvertedMach(result.Mach)*a0
+        result.KIAS = result.IAS_ms * ms_2_kt
+    end
+
+    veaf.loggers.get(veaf.Id):debug("veaf.convertSpeeds(mach=%s, kias=%s, ktas=%s, altitude=%s, temperature=%s, pressure=%s) -> final", veaf.p(result.Mach), veaf.p(result.KIAS), veaf.p(result.KTAS), veaf.p(altitude), veaf.p(temperature), veaf.p(pressure))
+
+    return result
+end
 
 --- Find a suitable point for spawning a unit in a <dispersion>-sized circle around a spot
 function veaf.findPointInZone(spawnSpot, dispersion, isShip)
@@ -958,6 +1134,73 @@ function veaf.findPointInZone(spawnSpot, dispersion, isShip)
     else
         return unitPosition
     end
+end
+
+---Fixes a table of mixed units and unit names and returns a table of DCS units
+---@param unitsOrNames table a list of units, unit names, or a mix
+---@return table the DCS units
+function veaf.fixUnitsTable(unitsOrNames)
+	local units = {}
+    for _, unitOrName in pairs(unitsOrNames) do
+        local unit = nil
+        if type(unitOrName) == "table" then
+            -- already an unit
+            unit = unitOrName
+        elseif type(unitOrName) == "string" then
+            -- find by name
+            unit = Unit.getByName(unitOrName) or StaticObject.getByName(unitOrName)
+        end
+        if unit then
+            table.insert(units, unit)
+        end
+    end
+    return units
+end
+
+---checks if a unit is in a trigger zone
+---@param unitOrName any a DCS unit or an unit name
+---@param zoneOrName any a DCS trigger zone or a trigger zone name (any type)
+---@return boolean true if the unit is in the trigger zone
+function veaf.isUnitInZone(unitOrName, zoneOrName)
+    local unitIsInZone = false
+    local unit = nil
+    if unitOrName then
+        if type(unitOrName) == "table" then
+            -- already an unit
+            unit = unitOrName
+        elseif type(unitOrName) == "string" then
+            -- find by name
+            unit = Unit.getByName(unitOrName) or StaticObject.getByName(unitOrName)
+        end
+    end
+
+    local zone = nil
+    if zoneOrName then
+        if type(zoneOrName) == "table" then
+            -- already a DCS zone
+            zone = zoneOrName
+        elseif type(zoneOrName) == "string" then
+            -- find by name
+            zone = veaf.getTriggerZone(zoneOrName)
+        end
+    end
+    if zone and unit then
+        local unitPosition = unit:getPosition().p
+        local unitCategory = unit:getCategory()
+        if unitPosition and ((unitCategory == 1 and unit:isActive() == true) or unitCategory ~= 1) then -- it is a unit and is active or it is not a unit
+            if zone.verticies  then
+                local pointInPolygon = mist.pointInPolygon(unitPosition, zone.verticies)
+                if pointInPolygon then
+                    unitIsInZone = true
+                end
+            else
+                if ((unitPosition.x - zone.x)^2 + (unitPosition.z - zone.y)^2)^0.5 <= zone.radius then
+                    unitIsInZone = true
+                end
+            end
+        end
+    end
+    return unitIsInZone
 end
 
 --- TODO doc
@@ -1775,22 +2018,30 @@ function veaf.getCarrierATCdata(carrierGroupName, carrierUnitName)
     return result
 end
 
-function veaf.outTextForUnit(unitName, message, duration)
+function veaf.outTextForUnit(unitName, message, duration, forAllGroup)
+    local unitId = nil
     local groupId = nil
     if unitName then
-    local unit = Unit.getByName(unitName)
-    if unit then
-        local group = unit:getGroup()
-        if group then
-            groupId = group:getID()
+        local unit = Unit.getByName(unitName)
+        if unit then
+            unitId = unit:getID()
+            local group = unit:getGroup()
+            if group then
+                groupId = group:getID()
+            end
         end
     end
-    end
-    if groupId then
+    if unitId and not forAllGroup then
+        trigger.action.outTextForUnit(unitId, message, duration)
+    elseif groupId then
         trigger.action.outTextForGroup(groupId, message, duration)
     else
         trigger.action.outText(message, duration)
     end
+end
+
+function veaf.outTextForGroup(unitName, message, duration)
+    return veaf.outTextForUnit(unitName, message, duration, true)
 end
 
 --- Weather Report. Report pressure QFE/QNH, temperature, wind at certain location.
@@ -2206,37 +2457,35 @@ end
 
 function veaf.getRandomizableNumeric_random(val)
     veaf.loggers.get(veaf.Id):trace(string.format("getRandomizableNumeric_random(%s)", tostring(val)))
+    local MIN = 0
+    local MAX = 99
     local nVal = tonumber(val)
-    veaf.loggers.get(veaf.Id):trace(string.format("nVal=%s", tostring(nVal)))
+    veaf.loggers.get(veaf.Id):trace("nVal=%s", veaf.p(nVal))
     if nVal == nil then
-        --[[
-        local dashPos = nil
-        for i = 1, #val do
-            local c = val:sub(i,i)
-            if c == '-' then 
-                dashPos = i
-                break
-            end
-        end
-        if dashPos then 
+        local dashPos = string.find(val,"%-")
+        veaf.loggers.get(veaf.Id):trace("dashPos=%s", veaf.p(dashPos))
+        if dashPos then
             local lower = val:sub(1, dashPos-1)
-            veaf.loggers.get(veaf.Id):trace(string.format("lower=%s", tostring(lower)))
-            if lower then 
+            veaf.loggers.get(veaf.Id):trace("lower=%s", veaf.p(lower))
+            if lower then
                 lower = tonumber(lower)
             end
-            if lower == nil then lower = 0 end
+            if lower == nil then
+                lower = MIN
+            end
             local upper = val:sub(dashPos+1)
-            veaf.loggers.get(veaf.Id):trace(string.format("upper=%s", tostring(upper)))
-            if upper then 
+            veaf.loggers.get(veaf.Id):trace("upper=%s", veaf.p(upper))
+            if upper then
                 upper = tonumber(upper)
             end
-            if upper == nil then upper = 5 end
+            if upper == nil then
+                upper = MAX
+            end
             nVal = math.random(lower, upper)
-            veaf.loggers.get(veaf.Id):trace(string.format("random nVal=%s", tostring(nVal)))
+            veaf.loggers.get(veaf.Id):trace("nVal=%s", veaf.p(nVal))
         end
-        --]]
-
-        -- [[
+    end
+        --[[ 
 
         if val == "0-1" then nVal = math.random(0,1) end
         if val == "0-2" then nVal = math.random(0,2) end
@@ -2446,29 +2695,8 @@ function veaf.getRandomizableNumeric_random(val)
         if val == "17-19" then nVal = math.random(17,19) end
 
         if val == "18-19" then nVal = math.random(18,19) end
+        ]]
 
-        --[[
-        -- maybe it's a range ?
-        local dashPos = val:find("-")
-        veaf.loggers.get(veaf.Id):trace(string.format("dashPos=%s", tostring(dashPos)))
-        if dashPos then 
-            local lower = val:sub(1, dashPos-1)
-            veaf.loggers.get(veaf.Id):trace(string.format("lower=%s", tostring(lower)))
-            if lower then 
-                lower = tonumber(lower)
-            end
-            if lower == nil then lower = 0 end
-            local upper = val:sub(dashPos+1)
-            veaf.loggers.get(veaf.Id):trace(string.format("upper=%s", tostring(upper)))
-            if upper then 
-                upper = tonumber(upper)
-            end
-            if upper == nil then upper = 5 end
-            nVal = math.random(lower, upper)
-            veaf.loggers.get(veaf.Id):trace(string.format("random nVal=%s", tostring(nVal)))
-        end
-        --]]
-    end
     veaf.loggers.get(veaf.Id):trace(string.format("nVal=%s", tostring(nVal)))
     return nVal
 end
@@ -2506,8 +2734,6 @@ function veaf.getRandomizableNumeric(val)
 end
 
 function veaf.writeLineToTextFile(line, filename, filepath)
-    veaf.loggers.get(veaf.Id):debug(string.format("writeLineToTextFile(%s, %s)", veaf.p(line), veaf.p(filename)))
-
     local l_lfs = lfs
     if not l_lfs and SERVER_CONFIG and SERVER_CONFIG.getModule then
         l_lfs = SERVER_CONFIG.getModule("lfs")
@@ -2619,6 +2845,7 @@ function veaf.exportAsJson(data, name, jsonify, filename, export_path)
     local content = {}
     for key, value in pairs(data) do
         local line =  jsonify(key, value)
+        veaf.loggers.get(veaf.Id):trace("line=%s", veaf.p(line))
         table.insert(content, line)
     end
     local footer =    '\n'
@@ -2638,9 +2865,16 @@ end
 
 function veaf.getUnitLifeRelative(unit)
     if unit and veaf.isUnitAlive(unit) then
-        local life0=unit:getLife0()
-        local lifeN=unit:getLife()
-        return lifeN/life0
+        local unitLife=unit:getLife()
+        local unitLife0 = 0
+        if unit.getLife0 then -- statics have no life0
+          unitLife0 = unit:getLife0()
+        end
+        if unitLife0 > 0 then
+            return unitLife/unitLife0
+        else
+            return unitLife
+        end
     else
         return 0
     end
@@ -3383,202 +3617,220 @@ veaf.loadAirbasesLife0()
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- changes to CTLD 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
-if ctld then
-    veaf.loggers.get(veaf.Id):info(string.format("Setting up CTLD"))
+-- Our CTLD (VEAF version) does not autoinitialize.
+-- Instead, we count on the mission makers to call ctld.initialize from the missionConfig.lua file (since v5.0)
+-- Here, we're upgrading the vanilla CTLD initialize function so it's smarter
 
-    -- change the init function so we can call it whenever we want
-    ctld.skipInitialisation = true
+---The VEAF replacement function that wraps up around ctld.initialize
+---@param configurationCallback function? a callback that will be called before calling the vanilla ctld.initialize function
+function veaf.ctld_initialize_replacement(configurationCallback)
+    if ctld then
+        veaf.loggers.get(veaf.Id):info(string.format("Setting up CTLD"))
 
-    -- logging change
-    ctld.p = veaf.p
-    ctld.Id = "CTLD"
-    --ctld.LogLevel = "info"
-    --ctld.LogLevel = "trace"
-    --ctld.LogLevel = "debug"
+        -- change the init function so we can call it whenever we want
+        ctld.skipInitialisation = true
 
-    ctld.logger = veaf.loggers.new(ctld.Id, ctld.LogLevel)
+        -- logging change
+        ctld.p = veaf.p
+        ctld.Id = "CTLD"
+        --ctld.LogLevel = "info"
+        --ctld.LogLevel = "trace"
+        --ctld.LogLevel = "debug"
 
-    -- override the ctld logs with our own methods
-    ---@diagnostic disable-next-line: duplicate-set-field
-    ctld.logError = function(message)
-        veaf.loggers.get(ctld.Id):error(message)
-    end
+        ctld.logger = veaf.loggers.new(ctld.Id, ctld.LogLevel)
 
-    -- override the ctld logs with our own methods
-    ---@diagnostic disable-next-line: duplicate-set-field
-    ctld.logInfo = function(message)
-        veaf.loggers.get(ctld.Id):info(message)
-    end
-
-    -- override the ctld logs with our own methods
-    ---@diagnostic disable-next-line: duplicate-set-field
-    ctld.logDebug = function(message)
-        veaf.loggers.get(ctld.Id):debug(message)
-    end
-
-    -- override the ctld logs with our own methods
-    ---@diagnostic disable-next-line: duplicate-set-field
-    ctld.logTrace = function(message)
-        veaf.loggers.get(ctld.Id):trace(message)
-    end
-
-    -- global configuration change
-    ctld.cratesRequiredForFOB = 1
-
-    --- replace the crate 3D model with an actual crate
-    ctld.spawnableCratesModel_load = {
-        ["category"] = "Cargos",
-        ["shape_name"] = "bw_container_cargo",
-        ["type"] = "container_cargo"
-    }
-
-    -- Simulated Sling load configuration
-    ctld.minimumHoverHeight = 5.0 -- Lowest allowable height for crate hover
-    ctld.maximumHoverHeight = 15.0 -- Highest allowable height for crate hover
-    ctld.maxDistanceFromCrate = 8.0 -- Maximum distance from from crate for hover
-    ctld.hoverTime = 10 -- Time to hold hover above a crate for loading in seconds
-
-    -- ************** Maximum Units SETUP for UNITS ******************
-
-    ctld.unitLoadLimits["UH-1H"] = 10
-    ctld.unitLoadLimits["Mi-24P"] = 10
-    ctld.unitLoadLimits["Mi-8MT"] = 20
-    ctld.unitLoadLimits["UH-60L"] = 20
-    ctld.unitLoadLimits["Yak-52"] = 1
-    ctld.unitLoadLimits["SA342L"] = 1
-    ctld.unitLoadLimits["SA342M"] = 1
-    ctld.unitLoadLimits["SA342Mistral"] = 1
-    ctld.unitLoadLimits["SA342Minigun"] = 1
-
-    -- ************** Allowable actions for UNIT TYPES ******************
-
-    ctld.unitActions["Yak-52"] = {crates=false, troops=true}
-    ctld.unitActions["UH-60L"] = {crates=true, troops=true}
-    ctld.unitActions["SA342L"] = {crates=false, troops=true}
-    ctld.unitActions["SA342M"] = {crates=false, troops=true}
-    ctld.unitActions["SA342Mistral"] = {crates=false, troops=true}
-    ctld.unitActions["SA342Minigun"] = {crates=false, troops=true}
-
-    -- ************** INFANTRY GROUPS FOR PICKUP ******************
-
-    table.insert(ctld.loadableGroups, {name = "2x - Standard Groups", inf = 12, mg = 4, at = 4 })
-    table.insert(ctld.loadableGroups, {name = "3x - Mortar Squad", mortar = 18})
-
-    ctld.autoInitializeAllHumanTransports = function()
-        veaf.loggers.get(ctld.Id):info("autoInitializeAllHumanTransports()")
-        ctld.transportPilotNames = {}
-        local TransportTypeNames = {"Mi-8MT", "UH-1H", "Mi-24P", "Yak-52", "UH-60L", "SA342L", "SA342M", "SA342Mistral", "SA342Minigun"}
-        for name, unit in pairs(mist.DBs.humansByName) do
-            veaf.loggers.get(ctld.Id):trace(string.format("human player found name=%s, unitName=%s, groupName=%s", name, unit.unitName,unit.groupName))
-            -- check if it's a transport helo
-            for _, transportTypeName in pairs(TransportTypeNames) do
-                if transportTypeName:lower() == unit.type:lower() then
-                    table.insert(ctld.transportPilotNames, unit.unitName)
-                    veaf.loggers.get(ctld.Id):debug(string.format("Adding CTLD transport pilot %s of group %s", unit.unitName, unit.groupName))
-                end
-            end
+        -- override the ctld logs with our own methods
+        ---@diagnostic disable-next-line: duplicate-set-field
+        ctld.logError = function(message)
+            veaf.loggers.get(ctld.Id):error(message)
         end
-        veaf.loggers.get(ctld.Id):trace("ctld.transportPilotNames=%s", veaf.p(ctld.transportPilotNames))
-    end
 
-    ctld.autoInitializeAllLogistic = function()
-        local LogisticTypeNames = {"LHA_Tarawa", "Stennis", "CVN_71", "KUZNECOW", "FARP Ammo Storage", "FARP Ammo Dump Coating"}
-        veaf.loggers.get(ctld.Id):info("autoInitializeAllLogistic()")
-        ctld.logisticUnits = {}
-        local units = mist.DBs.unitsByName -- local copy for faster execution
-        for name, unit in pairs(units) do
-            veaf.loggers.get(ctld.Id):trace(string.format("name=%s, unit.type=%s", veaf.p(name), veaf.p(unit.type)))
-            if unit then
-                for _, unitTypeName in pairs(LogisticTypeNames) do
-                    if unitTypeName:lower() == unit.type:lower() then
-                        table.insert(ctld.logisticUnits, unit.unitName)
-                        veaf.loggers.get(ctld.Id):debug("Adding CTLD logistic unit %s of group %s", veaf.p(unit.unitName), veaf.p(unit.groupName))
+        -- override the ctld logs with our own methods
+        ---@diagnostic disable-next-line: duplicate-set-field
+        ctld.logInfo = function(message)
+            veaf.loggers.get(ctld.Id):info(message)
+        end
+
+        -- override the ctld logs with our own methods
+        ---@diagnostic disable-next-line: duplicate-set-field
+        ctld.logDebug = function(message)
+            veaf.loggers.get(ctld.Id):debug(message)
+        end
+
+        -- override the ctld logs with our own methods
+        ---@diagnostic disable-next-line: duplicate-set-field
+        ctld.logTrace = function(message)
+            veaf.loggers.get(ctld.Id):trace(message)
+        end
+
+        -- global configuration change
+        ctld.cratesRequiredForFOB = 1
+
+        --- replace the crate 3D model with an actual crate
+        ctld.spawnableCratesModel_load = {
+            ["category"] = "Cargos",
+            ["shape_name"] = "bw_container_cargo",
+            ["type"] = "container_cargo"
+        }
+
+        -- Simulated Sling load configuration
+        ctld.minimumHoverHeight = 5.0 -- Lowest allowable height for crate hover
+        ctld.maximumHoverHeight = 15.0 -- Highest allowable height for crate hover
+        ctld.maxDistanceFromCrate = 8.0 -- Maximum distance from from crate for hover
+        ctld.hoverTime = 10 -- Time to hold hover above a crate for loading in seconds
+
+        -- ************** Maximum Units SETUP for UNITS ******************
+
+        ctld.unitLoadLimits["UH-1H"] = 10
+        ctld.unitLoadLimits["Mi-24P"] = 10
+        ctld.unitLoadLimits["Mi-8MT"] = 20
+        ctld.unitLoadLimits["UH-60L"] = 20
+        ctld.unitLoadLimits["Yak-52"] = 1
+        ctld.unitLoadLimits["SA342L"] = 1
+        ctld.unitLoadLimits["SA342M"] = 1
+        ctld.unitLoadLimits["SA342Mistral"] = 1
+        ctld.unitLoadLimits["SA342Minigun"] = 1
+
+        -- ************** Allowable actions for UNIT TYPES ******************
+
+        ctld.unitActions["Yak-52"] = {crates=false, troops=true}
+        ctld.unitActions["UH-60L"] = {crates=true, troops=true}
+        ctld.unitActions["SA342L"] = {crates=false, troops=true}
+        ctld.unitActions["SA342M"] = {crates=false, troops=true}
+        ctld.unitActions["SA342Mistral"] = {crates=false, troops=true}
+        ctld.unitActions["SA342Minigun"] = {crates=false, troops=true}
+
+        -- ************** INFANTRY GROUPS FOR PICKUP ******************
+
+        table.insert(ctld.loadableGroups, {name = "2x - Standard Groups", inf = 12, mg = 4, at = 4 })
+        table.insert(ctld.loadableGroups, {name = "3x - Mortar Squad", mortar = 18})
+
+        if configurationCallback and type(configurationCallback) == "function" then
+            -- a configuration callback has been set, call it
+            veaf.loggers.get(ctld.Id):info("calling the configuration callback")
+            configurationCallback()
+            veaf.loggers.get(ctld.Id):info("done calling the configuration callback")
+        end
+
+        ctld.autoInitializeAllHumanTransports = function()
+            veaf.loggers.get(ctld.Id):info("autoInitializeAllHumanTransports()")
+            ctld.transportPilotNames = {}
+            local TransportTypeNames = {"Mi-8MT", "UH-1H", "Mi-24P", "Yak-52", "UH-60L", "SA342L", "SA342M", "SA342Mistral", "SA342Minigun"}
+            for name, unit in pairs(mist.DBs.humansByName) do
+                veaf.loggers.get(ctld.Id):trace(string.format("human player found name=%s, unitName=%s, groupName=%s", name, unit.unitName,unit.groupName))
+                -- check if it's a transport helo
+                for _, transportTypeName in pairs(TransportTypeNames) do
+                    if transportTypeName:lower() == unit.type:lower() then
+                        table.insert(ctld.transportPilotNames, unit.unitName)
+                        veaf.loggers.get(ctld.Id):debug(string.format("Adding CTLD transport pilot %s of group %s", unit.unitName, unit.groupName))
                     end
                 end
             end
+            veaf.loggers.get(ctld.Id):trace("ctld.transportPilotNames=%s", veaf.p(ctld.transportPilotNames))
         end
 
-        -- generate 20 logistic unit names in the form "logistic #001"
-        veaf.loggers.get(ctld.Id):debug("generate 20 logistic unit names in the form 'logistic #001'")
-        for i = 1, 20 do
-            table.insert(ctld.logisticUnits, string.format("logistic #%03d",i))
-        end
-
-        veaf.loggers.get(ctld.Id):trace("ctld.logisticUnits=%s", veaf.p(ctld.logisticUnits))
-    end
-
-    ctld.autoInitializeAllPickupZones = function()
-        local PickupShipNames = {"LHA_Tarawa", "Stennis", "CVN_71", "KUZNECOW"}
-        veaf.loggers.get(ctld.Id):info("autoInitializeAllPickupZones()")
-        ctld.pickupZones = {}
-        -- add all ships to the pickup zones table
-        local units = mist.makeUnitTable({"[all][ship]"}) -- get all ships in the mission
-        veaf.loggers.get(ctld.Id):trace("units=%s", veaf.p(units))
-        for _, unitName in pairs(units) do
-            if unitName then
-                local unitObject = Unit.getByName(unitName)
-                local _unitCoalition = nil
-                if unitObject then
-                    _unitCoalition = veaf.getCoalitionForCountry(veaf.getCountryName(unitObject:getCountry()), true)
+        ctld.autoInitializeAllLogistic = function()
+            local LogisticTypeNames = {"LHA_Tarawa", "Stennis", "CVN_71", "KUZNECOW", "FARP Ammo Storage", "FARP Ammo Dump Coating"}
+            veaf.loggers.get(ctld.Id):info("autoInitializeAllLogistic()")
+            ctld.logisticUnits = {}
+            local units = mist.DBs.unitsByName -- local copy for faster execution
+            for name, unit in pairs(units) do
+                veaf.loggers.get(ctld.Id):trace(string.format("name=%s, unit.type=%s", veaf.p(name), veaf.p(unit.type)))
+                if unit then
+                    for _, unitTypeName in pairs(LogisticTypeNames) do
+                        if unitTypeName:lower() == unit.type:lower() then
+                            table.insert(ctld.logisticUnits, unit.unitName)
+                            veaf.loggers.get(ctld.Id):debug("Adding CTLD logistic unit %s of group %s", veaf.p(unit.unitName), veaf.p(unit.groupName))
+                        end
+                    end
                 end
-                local zone = {unitName, nil, -1, "yes", _unitCoalition, nil}
-                table.insert(ctld.pickupZones, zone)
-                veaf.loggers.get(ctld.Id):debug("Adding CTLD pickup zone for ship: [%s]", veaf.p(zone))
             end
+
+            -- generate 20 logistic unit names in the form "logistic #001"
+            veaf.loggers.get(ctld.Id):debug("generate 20 logistic unit names in the form 'logistic #001'")
+            for i = 1, 20 do
+                table.insert(ctld.logisticUnits, string.format("logistic #%03d",i))
+            end
+
+            veaf.loggers.get(ctld.Id):trace("ctld.logisticUnits=%s", veaf.p(ctld.logisticUnits))
         end
 
-        -- generate 20 pickup zone names in the form "pickzone #001"
-        veaf.loggers.get(ctld.Id):debug("generate 20 pickup zone names in the form 'pickzone #001'")
-        for i = 1, 20 do
-            table.insert(ctld.pickupZones, { string.format("pickzone #%03d",i), "none", -1, "yes", 0 })
+        ctld.autoInitializeAllPickupZones = function()
+            local PickupShipNames = {"LHA_Tarawa", "Stennis", "CVN_71", "KUZNECOW"}
+            veaf.loggers.get(ctld.Id):info("autoInitializeAllPickupZones()")
+            ctld.pickupZones = {}
+            -- add all ships to the pickup zones table
+            local units = mist.makeUnitTable({"[all][ship]"}) -- get all ships in the mission
+            veaf.loggers.get(ctld.Id):trace("units=%s", veaf.p(units))
+            for _, unitName in pairs(units) do
+                if unitName then
+                    local unitObject = Unit.getByName(unitName)
+                    local _unitCoalition = nil
+                    if unitObject then
+                        _unitCoalition = veaf.getCoalitionForCountry(veaf.getCountryName(unitObject:getCountry()), true)
+                    end
+                    local zone = {unitName, nil, -1, "yes", _unitCoalition, nil}
+                    table.insert(ctld.pickupZones, zone)
+                    veaf.loggers.get(ctld.Id):debug("Adding CTLD pickup zone for ship: [%s]", veaf.p(zone))
+                end
+            end
+
+            -- generate 20 pickup zone names in the form "pickzone #001"
+            veaf.loggers.get(ctld.Id):debug("generate 20 pickup zone names in the form 'pickzone #001'")
+            for i = 1, 20 do
+                table.insert(ctld.pickupZones, { string.format("pickzone #%03d",i), "none", -1, "yes", 0 })
+            end
+
+            veaf.loggers.get(ctld.Id):trace("ctld.pickupZones=%s", veaf.p(ctld.pickupZones))
         end
 
-        veaf.loggers.get(ctld.Id):trace("ctld.pickupZones=%s", veaf.p(ctld.pickupZones))
-    end
+        -- we overwrite the standard CTLD function to be able to have logistic UNITS and not only logistic STATICS 
+        ---@diagnostic disable-next-line: duplicate-set-field
+        ctld.inLogisticsZone = function (_heli)
+            if ctld.inAir(_heli) then
+                return false
+            end
+            local _heliPoint = _heli:getPoint()
+            for _, _name in pairs(ctld.logisticUnits) do
+                local _logistic = StaticObject.getByName(_name)
+                if not _logistic then
+                    _logistic = Unit.getByName(_name)
+                end
+                if _logistic ~= nil and _logistic:getCoalition() == _heli:getCoalition() then
 
-    -- we overwrite the standard CTLD function to be able to have logistic UNITS and not only logistic STATICS 
-    ---@diagnostic disable-next-line: duplicate-set-field
-    ctld.inLogisticsZone = function (_heli)
+                    --get distance
+                    local _dist = ctld.getDistance(_heliPoint, _logistic:getPoint())
 
-        if ctld.inAir(_heli) then
+                    if _dist <= ctld.maximumDistanceLogistic then
+                        return true
+                    end
+                end
+            end
             return false
         end
-    
-        local _heliPoint = _heli:getPoint()
-    
-        for _, _name in pairs(ctld.logisticUnits) do
-    
-            local _logistic = StaticObject.getByName(_name)
-            if not _logistic then
-                _logistic = Unit.getByName(_name)
-            end
-            if _logistic ~= nil and _logistic:getCoalition() == _heli:getCoalition() then
-    
-                --get distance
-                local _dist = ctld.getDistance(_heliPoint, _logistic:getPoint())
-    
-                if _dist <= ctld.maximumDistanceLogistic then
-                    return true
-                end
-            end
-        end
-    
-        return false
+
+        -- automatically add all the human-manned transport aircrafts to ctld.transportPilotNames
+        ctld.autoInitializeAllHumanTransports()
+
+        -- automatically add all the carriers and FARPs to ctld.logisticUnits
+        ctld.autoInitializeAllLogistic()
+
+        -- automatically generate pickup zones names
+        ctld.autoInitializeAllPickupZones()
+
+        -- call the actual CTLD.initialize
+        veaf.ctld_initialize(true)
+        veaf.ctld_initialized = true
+        veaf.loggers.get(ctld.Id):info(string.format("Done setting up CTLD"))
+    else
+        veaf.loggers.get(veaf.Id):error(string.format("CTLD is not loaded"))
     end
-    
+end
 
-    -- automatically add all the human-manned transport aircrafts to ctld.transportPilotNames
-    ctld.autoInitializeAllHumanTransports()
-
-    -- automatically add all the carriers and FARPs to ctld.logisticUnits
-    ctld.autoInitializeAllLogistic()
-
-    -- automatically generate pickup zones names
-    ctld.autoInitializeAllPickupZones()
-
-    --ctld.initialize(true) -- Since v5.0, CTLD initialization is deferred to the missionConfig.lua file
-
-    veaf.loggers.get(ctld.Id):info(string.format("Done setting up CTLD"))
+if ctld then
+    veaf.loggers.get(veaf.Id):info(string.format("replacing CTLD.initialize()"))
+    veaf.ctld_initialize = ctld.initialize -- used to call the vanilla ctld.initialize from the VEAF replacement
+    ctld.initialize = veaf.ctld_initialize_replacement -- replace the ctld.initialize with the VEAF wrapper function
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------

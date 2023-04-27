@@ -18,6 +18,15 @@
             "cwd": "${workspaceFolder}/src/scripts/veaf",
         },
         {
+            "name": "veafMissionRadioPresetsEditor",
+            "program": "veafMissionRadioPresetsEditor.lua",
+            "arg": ["${workspaceFolder}/test", "${workspaceFolder}/src/defaults/veafMissionRadioPresetsEditor/radioSettings.lua", "-trace", "-outpath", "${workspaceFolder}/test/out"],
+            "request": "launch",
+            "stopOnEntry": true,
+            "type": "lua",
+            "cwd": "${workspaceFolder}/src/scripts/veaf",
+        },
+        {
             "name": "compile.ps1",
             "type": "PowerShell",
             "request": "launch",

@@ -141,8 +141,7 @@ end
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Core methods
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
-require("src/scripts/veaf/veafMissionEditor") -- TODO reset
---require("veafMissionEditor") -- TODO reset
+require("veafMissionEditor")
 
 -- Save copied tables in `copies`, indexed by original table.
 local function _deepcopy(orig, copies)

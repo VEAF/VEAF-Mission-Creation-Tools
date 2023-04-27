@@ -37,8 +37,8 @@ veafMissionRadioPresetsEditor.Id = "RADIOPRESETS_EDITOR - "
 veafMissionRadioPresetsEditor.Version = "1.2.1"
 
 -- trace level, specific to this module
-veafMissionRadioPresetsEditor.trace = true
-veafMissionRadioPresetsEditor.debug = true
+veafMissionRadioPresetsEditor.trace = false
+veafMissionRadioPresetsEditor.debug = false
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Do not change anything below unless you know what you are doing!

@@ -37,8 +37,8 @@ veafMissionRadioPresetsEditor.Id = "RADIOPRESETS_EDITOR - "
 veafMissionRadioPresetsEditor.Version = "1.2.1"
 
 -- trace level, specific to this module
-veafMissionRadioPresetsEditor.Trace = false
-veafMissionRadioPresetsEditor.Debug = false
+veafMissionRadioPresetsEditor.trace = true
+veafMissionRadioPresetsEditor.debug = true
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Do not change anything below unless you know what you are doing!
@@ -57,13 +57,13 @@ function veafMissionRadioPresetsEditor.logInfo(message)
 end
 
 function veafMissionRadioPresetsEditor.logDebug(message)
-  if message and veafMissionRadioPresetsEditor.Debug then 
+  if message and veafMissionRadioPresetsEditor.debug then
     print(veafMissionRadioPresetsEditor.Id .. message)
   end
 end
 
 function veafMissionRadioPresetsEditor.logTrace(message)
-  if message and veafMissionRadioPresetsEditor.Trace then 
+  if message and veafMissionRadioPresetsEditor.trace then
     print(veafMissionRadioPresetsEditor.Id .. message)
   end
 end
@@ -80,7 +80,7 @@ function veafMissionRadioPresetsEditor.ifnns(o, fields)
           if o[field] then
               if type(o[field]) == "function" then
                   local sta, res = pcall(o[field],o)
-                  if sta then 
+                  if sta then
                       result[field] = res
                   else
                       result[field] = nil
@@ -106,7 +106,7 @@ end
 function veafMissionRadioPresetsEditor._p(o, level)
   local MAX_LEVEL = 20
   if level == nil then level = 0 end
-  if level > MAX_LEVEL then 
+  if level > MAX_LEVEL then
     veafMissionRadioPresetsEditor.logError("max depth reached in veafMissionRadioPresetsEditor.p : "..tostring(MAX_LEVEL))
       return ""
   end
@@ -122,14 +122,14 @@ function veafMissionRadioPresetsEditor._p(o, level)
     elseif (type(o) == "function") then
         text = "[function]";
     elseif (type(o) == "boolean") then
-        if o == true then 
+        if o == true then
             text = "[true]";
         else
             text = "[false]";
         end
     else
         if o == nil then
-            text = "[nil]";    
+            text = "[nil]";
         else
             text = tostring(o);
         end
@@ -141,7 +141,8 @@ end
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Core methods
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
-require("veafMissionEditor")
+require("src/scripts/veaf/veafMissionEditor") -- TODO reset
+--require("veafMissionEditor") -- TODO reset
 
 -- Save copied tables in `copies`, indexed by original table.
 local function _deepcopy(orig, copies)
@@ -191,7 +192,7 @@ function veafMissionRadioPresetsEditor.editUnit(coa_name, country_name, unit_t)
             veafMissionRadioPresetsEditor.logTrace("  Country checked")
             local type = setting_t["type"]
             veafMissionRadioPresetsEditor.logTrace(string.format("  type=[%s] / [%s]",veafMissionRadioPresetsEditor.p(type),veafMissionRadioPresetsEditor.p(unitType)))
-            if not(type) or unitType:lower() == type:lower() or string.match(unitType:lower(), type:lower()) then
+            if not(type) or unitType:lower() == type:lower() then
               veafMissionRadioPresetsEditor.logTrace("  Unit type checked")
               -- edit the unit
               veafMissionRadioPresetsEditor.logDebug(string.format("-> Edited unit unitType=%s, unitName=%s, unitId=%s in coa_name=%s, country_name=%s) ", veafMissionRadioPresetsEditor.p(unitType), veafMissionRadioPresetsEditor.p(unitName), veafMissionRadioPresetsEditor.p(unitId),veafMissionRadioPresetsEditor.p(coa_name), veafMissionRadioPresetsEditor.p(country_name)))
@@ -210,7 +211,7 @@ function veafMissionRadioPresetsEditor.editUnit(coa_name, country_name, unit_t)
 end
 
 function veafMissionRadioPresetsEditor.editRadioPresets(missionTable)
-  local _editGroups = function(coa_name, country_name, container) 
+  local _editGroups = function(coa_name, country_name, container)
     local groups_t = container["group"]
     for group, group_t in pairs(groups_t) do
       veafMissionRadioPresetsEditor.logTrace(string.format("Browsing group [%s]",group))
@@ -257,22 +258,23 @@ function veafMissionRadioPresetsEditor.editRadioPresets(missionTable)
   return missionTable
 end
 
-function veafMissionRadioPresetsEditor.processMission(filePath, radioSettingsPath)
+function veafMissionRadioPresetsEditor.processMission(inFilePath, outFilePath, radioSettingsPath)
   -- load the radioSettings file
   veafMissionRadioPresetsEditor.logDebug(string.format("Loading radio settings from [%s]",radioSettingsPath))
   local file = assert(loadfile(radioSettingsPath))
   if not file then
       veafMissionEditor.logError(string.format("Error while loading radio settings file [%s]",radioSettingsPath))
       return
-  end 
+  end
   file()
   veafMissionRadioPresetsEditor.logDebug("Radio settings loaded")
 
   -- edit the "mission" file
-  veafMissionRadioPresetsEditor.logDebug(string.format("Processing mission at [%s]",filePath))
-  local _filePath = filePath .. "\\mission"
+  veafMissionRadioPresetsEditor.logDebug(string.format("Processing mission at [%s]",inFilePath))
+  local inFilePath = inFilePath .. "\\mission"
+  local outFilePath = outFilePath .. "\\mission"
   local _processFunction = veafMissionRadioPresetsEditor.editRadioPresets
-  veafMissionEditor.editMission(_filePath, _filePath, "mission", _processFunction)
+  veafMissionEditor.editMission(inFilePath, outFilePath, "mission", _processFunction)
   veafMissionRadioPresetsEditor.logDebug("Mission edited")
 end
 
@@ -280,27 +282,33 @@ veafMissionRadioPresetsEditor.logDebug(string.format("#arg=%d",#arg))
 for i=0, #arg do
     veafMissionRadioPresetsEditor.logDebug(string.format("arg[%d]=%s",i,arg[i]))
 end
-if #arg < 2 then 
+if #arg < 2 then
     veafMissionRadioPresetsEditor.logError("USAGE : veafMissionRadioPresetsEditor.lua <mission folder path> <radio settings file> [-debug|-trace]")
     return
 end
 
-local filePath = arg[1]
+local inFilePath = arg[1]
+local outFilePath = inFilePath
 local radioSettingsPath = arg[2]
-local debug = arg[3] and arg[3]:upper() == "-DEBUG"
-local trace = arg[3] and arg[3]:upper() == "-TRACE"
-if debug or trace then
-  veafMissionRadioPresetsEditor.Debug = true
+for i = 3, #arg, 1 do
+  -- processing an argument
+  if arg[i]:lower() == "-debug" then
+    veafMissionRadioPresetsEditor.debug = true
+  elseif arg[i]:lower() == "-trace" then
+    veafMissionRadioPresetsEditor.trace = true
+  elseif arg[i]:lower() == "-outpath" then
+    outFilePath = arg[i+1]
+    i = i + 1
+  end
+end
+if veafMissionRadioPresetsEditor.debug or veafMissionRadioPresetsEditor.trace then
   veafMissionEditor.Debug = true
-  if trace then 
-    veafMissionRadioPresetsEditor.Trace = true
+  if veafMissionRadioPresetsEditor.trace then
     veafMissionEditor.Trace = true
   end
 else
-  veafMissionRadioPresetsEditor.Debug = false
   veafMissionEditor.Debug = false
-  veafMissionRadioPresetsEditor.Trace = false
   veafMissionEditor.Trace = false
 end
 
-veafMissionRadioPresetsEditor.processMission(filePath, radioSettingsPath)
+veafMissionRadioPresetsEditor.processMission(inFilePath, outFilePath, radioSettingsPath)

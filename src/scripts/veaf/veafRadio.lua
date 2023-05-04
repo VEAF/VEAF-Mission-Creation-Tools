@@ -20,7 +20,7 @@ veafRadio = {}
 veafRadio.Id = "RADIO"
 
 --- Version.
-veafRadio.Version = "1.11.1"
+veafRadio.Version = "1.12.0"
 
 -- trace level, specific to this module
 --veafRadio.LogLevel = "trace"
@@ -98,11 +98,11 @@ function veafRadio.executeCommand(eventPos, eventText, eventCoalition, bypassSec
           -- Check options commands
           if options.transmit and options.message and options.frequencies and options.name then
               -- transmit a radio message via SRS
-              veafRadio.transmitMessage(options.message, options.frequencies, options.modulations, options.volume, options.name, eventCoalition, eventPos, options.quiet)
+              veafRadio.transmitMessage(options.message, options.frequencies, options.modulations, options.name, eventCoalition, eventPos, options.quiet)
               return true
           elseif options.playmp3 and options.path and options.frequencies and options.name then
             -- play a MP3 file via SRS
-            veafRadio.playToRadio(options.path, options.frequencies, options.modulations, options.volume, options.name, eventCoalition, eventPos, options.quiet)
+            veafRadio.playToRadio(options.path, options.frequencies, options.modulations, options.name, eventCoalition, eventPos, options.quiet)
             return true
           end
       else
@@ -129,7 +129,6 @@ function veafRadio.markTextAnalysis(text)
   switch.message = nil
   switch.frequencies = "251"
   switch.modulations = "AM"
-  switch.volume = "1.0"
   switch.name = "SRS"
   switch.quiet = false
   switch.path = nil
@@ -176,10 +175,6 @@ function veafRadio.markTextAnalysis(text)
       -- Set modulations.
       veaf.loggers.get(veafRadio.Id):trace(string.format("Keyword modulations = %s", tostring(val)))
       switch.modulations = val
-    elseif key:lower() == "vol" or key:lower() == "volume" then
-      -- Set volume.
-      veaf.loggers.get(veafRadio.Id):trace(string.format("Keyword volume = %s", tostring(val)))
-      switch.volume = val
     elseif key:lower() == "path" then
       -- Set path.
       veaf.loggers.get(veafRadio.Id):trace(string.format("Keyword path = %s", tostring(val)))
@@ -883,8 +878,8 @@ end
 -- radio beacons
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-function veafRadio.startBeacon(name, firstRunDelay, secondsBetweenRepeats, frequencies, modulations, message, mp3, volume, coalition)
-  veaf.loggers.get(veafRadio.Id):debug(string.format("startBeacon(name=%s, firstRunDelay=%s, secondsBetweenRepeats=%s, coalition=%s, frequencies=%s, modulations=%s, volume=%s, message=%s, mp3=%s)", tostring(name), tostring(firstRunDelay), tostring(secondsBetweenRepeats), tostring(coalition), tostring(frequencies), tostring(modulations), tostring(volume), tostring(message), tostring(mp3)))
+function veafRadio.startBeacon(name, firstRunDelay, secondsBetweenRepeats, frequencies, modulations, message, mp3, coalition)
+  veaf.loggers.get(veafRadio.Id):debug("startBeacon(name=%s, firstRunDelay=%s, secondsBetweenRepeats=%s, coalition=%s, frequencies=%s, modulations=%s, message=%s, mp3=%s)", veaf.p(name), veaf.p(firstRunDelay), veaf.p(secondsBetweenRepeats), veaf.p(coalition), veaf.p(frequencies), veaf.p(modulations), veaf.p(message), veaf.p(mp3))
 
   local beacon = veafRadio.beacons[name:lower()]
   if not beacon then beacon = {} end
@@ -893,7 +888,6 @@ function veafRadio.startBeacon(name, firstRunDelay, secondsBetweenRepeats, frequ
   beacon.nextRun = timer.getTime()+firstRunDelay
   beacon.frequencies = frequencies
   beacon.modulations = modulations
-  beacon.volume = volume
   beacon.coalition = coalition
   beacon.message = message
   beacon.mp3 = mp3
@@ -912,9 +906,9 @@ function veafRadio._runBeacons()
     if beacon.nextRun <= now then
       --veaf.loggers.get(veafRadio.Id):trace(string.format("running beacon %s", tostring(name)))
       if beacon.message then
-        veafRadio.transmitMessage(beacon.message, beacon.frequencies, beacon.modulations, beacon.volume, beacon.name, beacon.coalition, nil, true)
+        veafRadio.transmitMessage(beacon.message, beacon.frequencies, beacon.modulations, beacon.name, beacon.coalition, nil, true)
       elseif beacon.mp3 then
-        veafRadio.playToRadio(beacon.mp3, beacon.frequencies, beacon.modulations, beacon.volume, beacon.name, beacon.coalition, nil, true)
+        veafRadio.playToRadio(beacon.mp3, beacon.frequencies, beacon.modulations, beacon.name, beacon.coalition, nil, true)
       end
       beacon.nextRun = now + beacon.secondsBetweenRepeats
     end
@@ -927,11 +921,24 @@ end
 -- radio utilities
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
--- transmit a radio message via SRS
-function veafRadio.transmitMessage(message, frequencies, modulations, volume, name, coalition, eventPos, quiet)
-  veaf.loggers.get(veafRadio.Id):debug(string.format("transmitMessage(name=%s, coalition=%s, frequencies=%s, modulations=%s, volume=%s, message=%s)", tostring(name), tostring(coalition), tostring(frequencies), tostring(modulations), tostring(volume), tostring(message)))
+-- transmit a radio message or play a mp3 file via SRS
+function veafRadio._transmitViaSRS(message, file, frequencies, modulations, name, coalition, eventPos)
+  veaf.loggers.get(veafRadio.Id):debug("transmitMessage(name=%s, coalition=%s, frequencies=%s, modulations=%s, message=%s, file=%s)", veaf.p(name), veaf.p(coalition), veaf.p(frequencies), veaf.p(modulations), veaf.p(message), veaf.p(file))
+  local posOption = ""
   if eventPos then
     veaf.loggers.get(veafRadio.Id):trace(string.format("eventPos=%s",veaf.p(eventPos)))
+    local lat, lon, alt = coord.LOtoLL(eventPos)
+    posOption = string.format("-L %d -O %d -A %d", lat, lon, alt)
+  end
+
+  local contentOption = ""
+  if message then
+    contentOption = string.format("-t \"%s\"", message)
+  elseif file then
+    contentOption = string.format("-i \"%s\"", file)
+  else
+    veaf.loggers.get(veafRadio.Id):error("no message nor file for veafRadio._transmitViaSRS()!")
+    return
   end
 
   local l_os = os
@@ -940,8 +947,7 @@ function veafRadio.transmitMessage(message, frequencies, modulations, volume, na
   end
 
   if l_os and STTS then
-    message = message:gsub("\"","\\\"")
-    local cmd = string.format("start /min \"%s\" \"%s\\%s\" \"%s\" %s %s %s %s \"%s\" %s", STTS.DIRECTORY, STTS.DIRECTORY, STTS.EXECUTABLE, message, frequencies, modulations, coalition, STTS.SRS_PORT, name, volume )
+    local cmd = string.format("start /min \"%s\" \"%s\\%s\" %s -f %s -m %s -c %s -p %s -n \"%s\" %s", STTS.DIRECTORY, STTS.DIRECTORY, STTS.EXECUTABLE, contentOption, frequencies, modulations, coalition, STTS.SRS_PORT, name, posOption)
     veaf.loggers.get(veafRadio.Id):trace(string.format("executing os command %s", cmd))
     local result = l_os.execute(cmd)
     if result == nil then
@@ -949,6 +955,16 @@ function veafRadio.transmitMessage(message, frequencies, modulations, volume, na
     end
     return result
   end
+end
+
+-- transmit a radio message via SRS
+function veafRadio.transmitMessage(message, frequencies, modulations, name, coalition, eventPos, quiet)
+  veaf.loggers.get(veafRadio.Id):debug("transmitMessage(name=%s, coalition=%s, frequencies=%s, modulations=%s, message=%s)", veaf.p(name), veaf.p(coalition), veaf.p(frequencies), veaf.p(modulations), veaf.p(message))
+  if eventPos then
+    veaf.loggers.get(veafRadio.Id):trace(string.format("eventPos=%s",veaf.p(eventPos)))
+  end
+
+  veafRadio._transmitViaSRS(message, nil, frequencies, modulations, name, coalition, eventPos)
 
   if not quiet and coalition then
     trigger.action.outTextForCoalition(coalition, string.format("%s (%s) : %s", name, frequencies, message), 30)
@@ -956,34 +972,15 @@ function veafRadio.transmitMessage(message, frequencies, modulations, volume, na
 end
 
 -- play a MP3 file via SRS
-function veafRadio.playToRadio(pathToMP3, frequencies, modulations, volume, name, coalition, eventPos, quiet)
-  veaf.loggers.get(veafRadio.Id):debug(string.format("playToRadio(name=%s, coalition=%s, frequencies=%s, modulations=%s, volume=%s, pathToMP3=%s)", tostring(name), tostring(coalition), tostring(frequencies), tostring(modulations), tostring(volume), tostring(pathToMP3)))
+function veafRadio.playToRadio(pathToMP3, frequencies, modulations, name, coalition, eventPos, quiet)
+  veaf.loggers.get(veafRadio.Id):debug("playToRadio(name=%s, coalition=%s, frequencies=%s, modulations=%s, pathToMP3=%s)", veaf.p(name), veaf.p(coalition), veaf.p(frequencies), veaf.p(modulations), veaf.p(pathToMP3))
   if eventPos then
     veaf.loggers.get(veafRadio.Id):trace(string.format("eventPos=%s",veaf.p(eventPos)))
   end
 
-  local l_os = os
-  if not l_os and SERVER_CONFIG and SERVER_CONFIG.getModule then
-      l_os = SERVER_CONFIG.getModule("os")
-  end
+  veafRadio._transmitViaSRS(nil, pathToMP3, frequencies, modulations, name, coalition, eventPos)
 
-  if l_os and STTS then
-
-    local pathToMP3 = pathToMP3
-    if pathToMP3 and not(pathToMP3:find("\\")) then
-      pathToMP3 = STTS.MP3_FOLDER .. "\\" .. pathToMP3
-    end
-
-    if pathToMP3 and not(pathToMP3:find(".mp3")) then
-      pathToMP3 = pathToMP3 .. ".mp3"
-    end
-
-    local cmd = string.format("start /min \"%s\" \"%s\\%s\" \"%s\" %s %s %s %s \"%s\" %s", STTS.DIRECTORY, STTS.DIRECTORY, STTS.EXECUTABLE, pathToMP3, frequencies, modulations, coalition,STTS.SRS_PORT, name, volume )
-    veaf.loggers.get(veafRadio.Id):trace(string.format("executing os command %s", cmd))
-    l_os.execute(cmd)
-  end
-
-  if not quiet then
+  if not quiet and coalition then
     trigger.action.outTextForCoalition(coalition, string.format("%s (%s) : playing %s", name, frequencies, pathToMP3), 30)
   end
 end

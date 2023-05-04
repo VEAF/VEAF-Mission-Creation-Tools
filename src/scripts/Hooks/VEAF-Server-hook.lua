@@ -38,7 +38,7 @@ VEAF_PILOTS_FILE = "veaf-pilots.txt"
 veafServerHook.Id = "VEAFHOOK - "
 
 --- Version.
-veafServerHook.Version = "2.3.1"
+veafServerHook.Version = "2.4.0"
 
 -- trace level, specific to this module
 veafServerHook.Trace = false
@@ -207,10 +207,10 @@ function veafServerHook.onPlayerConnect(id)
     -- parse the message
     local pilot = veafServerHook.pilots[ucid]
     if not pilot then
-        veafServerHook.logInfo(string.format("Unknown pilot [%s] connecting", veafServerHook.p(playerName)))
+        veafServerHook.logInfo(string.format("Unknown pilot [%s] connecting with UCID [%s]", veafServerHook.p(playerName), veafServerHook.p(ucid)))
         pilot = { level = -1} -- no power at all
     else
-        veafServerHook.logInfo(string.format("VEAF pilot [%s] connecting", veafServerHook.p(playerName)))
+        veafServerHook.logInfo(string.format("VEAF pilot [%s] connecting with UCID [%s]", veafServerHook.p(playerName), veafServerHook.p(ucid)))
     end
     veafServerHook.logTrace(string.format("pilot=%s",veafServerHook.p(pilot)))
     local payload = string.format(REGISTER_PLAYER, playerName, pilot.level, ucid)

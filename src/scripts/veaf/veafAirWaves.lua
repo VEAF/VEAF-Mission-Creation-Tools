@@ -20,7 +20,7 @@ veafAirWaves = {}
 veafAirWaves.Id = "AIRWAVES - "
 
 --- Version.
-veafAirWaves.Version = "1.7.6"
+veafAirWaves.Version = "1.7.7"
 
 -- trace level, specific to this module
 --veafAirWaves.LogLevel = "trace"
@@ -269,7 +269,7 @@ end
 ---   :addWave({ groups="group1", number = 2})
 ---returns self
 function AirWaveZone:addWave(...)
-  veaf.loggers.get(veafAirWaves.Id):debug(string.format("VeafQRA[%s]:addWave() : %s", veaf.p(self.name), veaf.p(arg)))
+  veaf.loggers.get(veafAirWaves.Id):debug(string.format("AirWaveZone[%s]:addWave() : %s", veaf.p(self.name), veaf.p(arg)))
 ---@diagnostic disable-next-line: undefined-field this is a field defined in the vararg api
   local nArgs = arg.n or 0
   if arg and nArgs > 0 then
@@ -765,8 +765,10 @@ function AirWaveZone:check()
       elseif triggerZone.type == 2 then -- quad point
         humanUnits = mist.getUnitsInPolygon(unitNames, triggerZone.verticies)
       end
-    else
+    elseif self.zoneCenter then
       humanUnits = veaf.findUnitsInCircle(self.zoneCenter, self.zoneRadius, false, unitNames)
+    else
+      veaf.loggers.get(veafAirWaves.Id):error("No triggerzone, and no zone center/radius defined!")
     end
     for _, unit in pairs(humanUnits) do
       -- check the unit altitude against the ceiling and floor

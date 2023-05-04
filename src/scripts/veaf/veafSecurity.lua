@@ -19,7 +19,7 @@ veafSecurity = {}
 veafSecurity.Id = "SECURITY"
 
 --- Version.
-veafSecurity.Version = "1.3.2"
+veafSecurity.Version = "1.3.3"
 
 -- trace level, specific to this module
 --veafSecurity.LogLevel = "trace"
@@ -661,7 +661,7 @@ function veafSecurity.checkSecurity_MM(password)
 end
 
 function veafSecurity.isAuthenticated()
-  return veafSecurity.authenticated
+  return veafSecurity.authenticated or veafSecurity.SecurityDisabled
 end
 
 function veafSecurity.initialize()

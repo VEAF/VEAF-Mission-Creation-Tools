@@ -284,11 +284,11 @@ async function injectWeather(parameters) {
     if (trace) console.log("getWind2000=" + weatherdata.getWind2000());
     if (trace) console.log("getWind8000=" + weatherdata.getWind8000());
     if (trace) console.log("getGroundTurbulence=" + weatherdata.getGroundTurbulence());
-    if (trace) console.log("getCloudPreset=" + weatherdata.getCloudPreset());
-    if (trace) console.log("getCloudMinMax=" + weatherdata.getCloudMinMax());
-    if (trace) console.log("getCloudBase=" + weatherdata.getCloudBase());
-    if (trace) console.log("getCloudThickness=" + weatherdata.getCloudThickness());
-    if (trace) console.log("getCloudDensity=" + weatherdata.getCloudDensity());
+    if (trace) console.log("getCloudPreset=" + weatherdata.getCloudPreset(clearsky));
+    if (trace) console.log("getCloudMinMax=" + weatherdata.getCloudMinMax(clearsky));
+    if (trace) console.log("getCloudBase=" + weatherdata.getCloudBase(clearsky));
+    if (trace) console.log("getCloudThickness=" + weatherdata.getCloudThickness(clearsky));
+    if (trace) console.log("getCloudDensity=" + weatherdata.getCloudDensity(clearsky));
     if (trace) console.log("getWeatherType=" + weatherdata.getWeatherType());
     if (trace) console.log("getFogEnabled=" + weatherdata.getFogEnabled());
     if (trace) console.log("getFogVisibility=" + weatherdata.getFogVisibility());

@@ -21,6 +21,11 @@ class DCSCheckWXConvertEnricher {
     if (typeof(weatherdata) == "string") {
       // we've got a text metar to parse
       this._metar = weatherdata;
+      if (clearsky) {
+        this._metar = this._metar.replace("OVC", "FEW");
+        this._metar = this._metar.replace("BKN", "FEW");
+        this._metar = this._metar.replace("SCT", "FEW");
+      }
       let decodedMetar = parseMETAR(weatherdata);
       if (decodedMetar) {
         if (decodedMetar.wind.direction == "VRB") 
@@ -218,7 +223,7 @@ class DCSCheckWXConvertEnricher {
     }
   }
 
-  getCloudMinMax() {
+  getCloudMinMax(clearsky) {
     try {
       let clouds = this.getClosestResult()['clouds'];
       if (clouds.length == 0) {
@@ -237,6 +242,7 @@ class DCSCheckWXConvertEnricher {
       });
       if (!minClouds) minClouds = 5000;
       if (!maxClouds) maxClouds = 5000;
+      if (clearsky) minClouds = 5000;
       return { 'min': minClouds, 'max': maxClouds };
     } catch (err) {
       console.log(err);
@@ -244,18 +250,18 @@ class DCSCheckWXConvertEnricher {
     }
   }
 
-  getCloudBase() {
-    return Math.max(300, this.getCloudMinMax()['min']);
+  getCloudBase(clearsky) {
+    return Math.max(300, this.getCloudMinMax(clearsky)['min']);
   }
 
-  getCloudThickness() {
+  getCloudThickness(clearsky) {
     try {
       let clouds = this.getClosestResult()['clouds'];
       if (clouds.length == 0) {
         if (this.trace) console.log("no ['clouds']");
         return this.getDeterministicRandomInt(200, 300);
       }
-      let minmaxclouds = this.getCloudMinMax();
+      let minmaxclouds = this.getCloudMinMax(clearsky);
       let highestclouds = clouds[clouds.length - 1];
       if (highestclouds['code'] == 'OVC')
         return Math.max(200, minmaxclouds['max'] - minmaxclouds['min']);
@@ -280,7 +286,7 @@ class DCSCheckWXConvertEnricher {
     return result;
   }
   
-  getCloudPreset() {
+  getCloudPreset(clearsky) {
 /*     const DCS_PRESETS = {
       "Light Scattered 1": "Preset1",
       "Light Scattered 2": "Preset2",
@@ -318,6 +324,38 @@ class DCSCheckWXConvertEnricher {
       "Preset1" : {
         "readableName": "Few Scattered Clouds \nMETAR:FEW/SCT 7/8'",
         "readableNameShort" : "Light Scattered 1"
+      },
+      "Preset2" : {
+        "readableName" : "Two Layers Few and Scattered \nMETAR:FEW/SCT 8/10 SCT 23/24",
+        "readableNameShort" : "Light Scattered 2"
+      },
+      "Preset3" : {
+        "readableName" : "Two Layer Scattered \nMETAR:SCT 8/9 FEW 21",
+        "readableNameShort" : "High Scattered 1"
+      },
+      "Preset4" : {
+        "readableName" : "Two Layer Scattered \nMETAR:SCT 8/10 FEW/SCT 24/26",
+        "readableNameShort" : "High Scattered 2"
+      },
+      "Preset5" : {
+        "readableName" : "Three Layer High altitude Scattered \nMETAR:SCT 14/17 FEW 27/29 BKN 40",
+        "readableNameShort" : "Scattered 1"
+      },
+      "Preset6" : {
+        "readableName" : "One Layer Scattered/Broken \nMETAR:SCT/BKN 8/10 FEW 40",
+        "readableNameShort" : "Scattered 2"
+      },
+      "Preset7" : {
+        "readableName" : "Two Layer Scattered/Broken \nMETAR:BKN 7.5/12 SCT/BKN 21/23 SCT 40",
+        "readableNameShort" : "Scattered 3"
+      },
+      "Preset8" : {
+        "readableName" : "Two Layer Scattered/Broken High Altitude \nMETAR:SCT/BKN 18/20 FEW 36/38 FEW 40",
+        "readableNameShort" : "High Scattered 3"
+      },
+      "Preset9" : {
+        "readableName" : "Two Layer Broken/Scattered \nMETAR:BKN 7.5/10 SCT 20/22 FEW41",
+        "readableNameShort" : "Scattered 4"
       },
       "Preset10" : {
         "readableName" : "Two Layers Scattered Large Thick Clouds  \nMETAR:SCT/BKN 18/20 FEW36/38 FEW 40",
@@ -359,10 +397,6 @@ class DCSCheckWXConvertEnricher {
         "readableName" : "Three Layers Overcast At Low Level \nMETAR:OVC 9/16 BKN/OVC LYR 23/24 31/33",
         "readableNameShort" : "Broken 7"
       },
-      "Preset2" : {
-        "readableName" : "Two Layers Few and Scattered \nMETAR:FEW/SCT 8/10 SCT 23/24",
-        "readableNameShort" : "Light Scattered 2"
-      },
       "Preset20" : {
         "readableName" : "Three Layers Overcast Low Level \nMETAR:BKN/OVC 13/18 BKN 28/30 SCT FEW 38",
         "readableNameShort" : "Broken 8"
@@ -395,34 +429,6 @@ class DCSCheckWXConvertEnricher {
         "readableName" : "Three Layer Overcast \nMETAR:OVC 8/15 SCT/BKN 25/26 34/36",
         "readableNameShort" : "Overcast 7"
       },
-      "Preset3" : {
-        "readableName" : "Two Layer Scattered \nMETAR:SCT 8/9 FEW 21",
-        "readableNameShort" : "High Scattered 1"
-      },
-      "Preset4" : {
-        "readableName" : "Two Layer Scattered \nMETAR:SCT 8/10 FEW/SCT 24/26",
-        "readableNameShort" : "High Scattered 2"
-      },
-      "Preset5" : {
-        "readableName" : "Three Layer High altitude Scattered \nMETAR:SCT 14/17 FEW 27/29 BKN 40",
-        "readableNameShort" : "Scattered 1"
-      },
-      "Preset6" : {
-        "readableName" : "One Layer Scattered/Broken \nMETAR:SCT/BKN 8/10 FEW 40",
-        "readableNameShort" : "Scattered 2"
-      },
-      "Preset7" : {
-        "readableName" : "Two Layer Scattered/Broken \nMETAR:BKN 7.5/12 SCT/BKN 21/23 SCT 40",
-        "readableNameShort" : "Scattered 3"
-      },
-      "Preset8" : {
-        "readableName" : "Two Layer Scattered/Broken High Altitude \nMETAR:SCT/BKN 18/20 FEW 36/38 FEW 40",
-        "readableNameShort" : "High Scattered 3"
-      },
-      "Preset9" : {
-        "readableName" : "Two Layer Broken/Scattered \nMETAR:BKN 7.5/10 SCT 20/22 FEW41",
-        "readableNameShort" : "Scattered 4"
-      },
       "RainyPreset1" : {
         "readableName" : "Overcast with Rain \nMETAR:VIS 3-5KM RA OVC 3/15 28/30 FEW 40",
         "readableNameShort" : "Overcast And Rain 1"
@@ -437,6 +443,7 @@ class DCSCheckWXConvertEnricher {
       }    
     }
  */
+    const DCS_CLEARSKY = ["Preset5", "Preset8", "Preset10", "Preset11"];
     const DCS_FEW = ["Preset1", "Preset2", "Preset3", "Preset4", "Preset8"];
     const DCS_SCT = ["Preset5", "Preset6", "Preset7", "Preset9", "Preset10", "Preset11", "Preset12"];
     const DCS_BKN = ["Preset13", "Preset14", "Preset15", "Preset16", "Preset17", "Preset18", "Preset19", "Preset20"];
@@ -465,18 +472,19 @@ class DCSCheckWXConvertEnricher {
         else
           this._cloudPreset = DCS_OVC[Math.floor(Math.random() * DCS_OVC.length)]; // overcast
       } else if (highestclouds.code == "BKN") {
-        this._cloudPreset = DCS_BKN[Math.floor(Math.random() * DCS_BKN.length)]; // overcast
+        this._cloudPreset = DCS_BKN[Math.floor(Math.random() * DCS_BKN.length)]; // broken
       } else if (highestclouds.code == "SCT") {
-        this._cloudPreset = DCS_SCT[Math.floor(Math.random() * DCS_SCT.length)]; // overcast
+        this._cloudPreset = DCS_SCT[Math.floor(Math.random() * DCS_SCT.length)]; // scattered
       } else if (highestclouds.code == "FEW") {
-        this._cloudPreset = DCS_FEW[Math.floor(Math.random() * DCS_FEW.length)]; // overcast
+        this._cloudPreset = DCS_FEW[Math.floor(Math.random() * DCS_FEW.length)]; // few
       }
+      if (clearsky) this._cloudPreset = DCS_CLEARSKY[Math.floor(Math.random() * DCS_CLEARSKY.length)]; // nothing lower than 15000 ft
     }
 
     return this._cloudPreset;
   }
 
-  getCloudDensity() {
+  getCloudDensity(clearsky) {
     try {
       let clouds = this.getClosestResult()['clouds'];
       if (this.trace) console.log('clouds :>> ', clouds);
@@ -491,13 +499,17 @@ class DCSCheckWXConvertEnricher {
         if (this.trace) console.log(highestclouds['code']);
         return 0;
       } else {
-        switch (highestclouds['code']) {
-          case 'FEW': return this.getDeterministicRandomInt(1, 2);
-          case 'SCT': return this.getDeterministicRandomInt(3, 4);
-          case 'BKN': return this.getDeterministicRandomInt(5, 8);
-          case 'OVC': return 9;
-          case 'VV': return this.getDeterministicRandomInt(2, 8);
-          default: return 0;
+        if (clearsky) {
+          return 1
+        } else {
+          switch (highestclouds['code']) {
+            case 'FEW': return this.getDeterministicRandomInt(1, 2);
+            case 'SCT': return this.getDeterministicRandomInt(3, 4);
+            case 'BKN': return this.getDeterministicRandomInt(5, 8);
+            case 'OVC': return 9;
+            case 'VV': return this.getDeterministicRandomInt(2, 8);
+            default: return 0;
+          }
         }
       }
     }

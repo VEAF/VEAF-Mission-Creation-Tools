@@ -19,7 +19,7 @@ veaf = {}
 veaf.Id = "VEAF"
 
 --- Version.
-veaf.Version = "1.44.2"
+veaf.Version = "1.45.0"
 
 --- Development version ?
 veaf.Development = true
@@ -3051,9 +3051,9 @@ function veaf.Logger.formatText(text, ...)
             for i=1,args.n do
                 pArgs[i] = veaf.p(args[i])
             end
-            text = text:format(unpack(pArgs))
+                text = text:format(unpack(pArgs))
+            end
         end
-    end
     local fName = nil
     local cLine = nil
     if debug and debug.getinfo then
@@ -3314,6 +3314,8 @@ end
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 VeafDrawingOnMap = {}
+VeafDrawingOnMap.DEFAULT_COLOR = {170/255, 10/255, 0/255, 220/255}
+VeafDrawingOnMap.DEFAULT_FILLCOLOR = {170/255, 10/255, 0/255, 170/255}
 function VeafDrawingOnMap.init(object)
     -- technical name (identifier)
     object.name = nil
@@ -3322,9 +3324,9 @@ function VeafDrawingOnMap.init(object)
     -- points forming the drawing
     object.points = {}
     -- color ({r, g, b, a})
-    object.color = VeafDrawingOnMap.COLORS["white"]
+    object.color = VeafDrawingOnMap.DEFAULT_COLOR
     -- fill color ({r, g, b, a})
-    object.fillColor = VeafDrawingOnMap.COLORS["transparent"]
+    object.fillColor = VeafDrawingOnMap.DEFAULT_FILLCOLOR
     -- type of line (member of VeafDrawingOnMap.LINE_TYPE)
     object.lineType = VeafDrawingOnMap.LINE_TYPE["solid"]
     -- if true, the line is an arrow
@@ -3356,12 +3358,10 @@ VeafDrawingOnMap.COLORS = {
     ["black"] = {0, 0, 0, 1},
     ["white"] = {1, 1, 1, 1},
     ["red"] = {1, 0, 0, 1},
+    ["pink"] = {1, 0, 0, 0.3},
     ["green"] = {0, 1, 0, 1},
     ["blue"] = {0, 0, 1, 1}
 }
-
-VeafDrawingOnMap.DEFAULT_COLOR = {170/255, 10/255, 0/255, 220/255}
-VeafDrawingOnMap.DEFAULT_FILLCOLOR = {170/255, 10/255, 0/255, 170/255}
 
 function VeafDrawingOnMap:new(objectToCopy)
     veaf.loggers.get(veaf.Id):debug("VeafDrawingOnMap:new()")
@@ -3558,6 +3558,71 @@ function VeafCircleOnMap:draw()
 
     return self
 end
+
+VeafSquareOnMap = VeafDrawingOnMap:new()
+function VeafSquareOnMap.init(object)
+    -- inheritance
+    VeafDrawingOnMap.init(object)
+
+    -- side length in meters
+    object.side = nil
+    -- center of the square
+    object.center = nil
+end
+function VeafSquareOnMap:new(objectToCopy)
+    local objectToCreate = objectToCopy or {} -- create object if user does not provide one
+    setmetatable(objectToCreate, self)
+    self.__index = self
+
+    -- init the new object
+    VeafSquareOnMap.init(objectToCreate)
+
+    return objectToCreate
+end
+
+function VeafSquareOnMap:setCenter(value)
+    veaf.loggers.get(veaf.Id):trace("VeafSquareOnMap[%s]:setCenter(%s)", veaf.p(self.name), veaf.p(value))
+    self.center = mist.utils.deepCopy(value)
+    self:compute()
+    return self
+end
+
+function VeafSquareOnMap:setSide(value)
+    veaf.loggers.get(veaf.Id):trace("VeafSquareOnMap[%s]:setSide(%s)", veaf.p(self.name), veaf.p(value))
+    self.side = value
+    self:compute()
+    return self
+end
+
+function VeafSquareOnMap:compute()
+    veaf.loggers.get(veaf.Id):trace("VeafSquareOnMap[%s]:compute()", veaf.p(self.name))
+    if self.side and self.center then
+        veaf.loggers.get(veaf.Id):trace("self.center=%s", veaf.p(self.center))
+        veaf.loggers.get(veaf.Id):trace("self.side=%s", veaf.p(self.side))
+        local leftDownPoint = { x = self.center.x - self.side / 2, y = self.center.y, z = self.center.z - self.side / 2 }
+        veaf.loggers.get(veaf.Id):trace("leftDownPoint=%s", veaf.p(leftDownPoint))
+        local rightUpPoint = { x = self.center.x + self.side / 2, y = self.center.y,z = self.center.z + self.side / 2 }
+        veaf.loggers.get(veaf.Id):trace("rightUpPoint=%s", veaf.p(rightUpPoint))
+        self.points = { leftDownPoint, rightUpPoint }
+    end
+    return self
+end
+
+function VeafSquareOnMap:draw()
+    veaf.loggers.get(veaf.Id):trace("VeafSquareOnMap[%s]:draw()", veaf.p(self:getName()))
+
+    -- start by erasing the drawing if it already is drawn
+    self:erase()
+
+    -- then draw it
+    local id = veaf.getUniqueIdentifier()
+    veaf.loggers.get(veaf.Id):trace("id=[%s]", veaf.p(id))
+    trigger.action.rectToAll(self:getCoalition(), id , self.points[1], self.points[2], self.color, self.fillColor, self.lineType, true)
+    table.insert(self.dcsMarkerIds, id)
+
+    return self
+end
+
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- trigger zones management

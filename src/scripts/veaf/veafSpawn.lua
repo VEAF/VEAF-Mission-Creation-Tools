@@ -23,7 +23,7 @@ veafSpawn = {}
 veafSpawn.Id = "SPAWN"
 
 --- Version.
-veafSpawn.Version = "1.46.0"
+veafSpawn.Version = "1.47.0"
 
 -- trace level, specific to this module
 --veafSpawn.LogLevel = "trace"
@@ -345,6 +345,14 @@ function veafSpawn.executeCommand(eventPos, eventText, coalition, markId, bypass
                     -- check security
                     if not (bypassSecurity or veafSecurity.checkSecurity_L1(options.password, markId)) then return end
                     veafSpawn.addPointToDrawing(eventPos, options.name, options.drawColor, options.drawFillColor, options.type, options.drawArrow)
+                elseif options.drawSquare then
+                    -- check security
+                    if not (bypassSecurity or veafSecurity.checkSecurity_L1(options.password, markId)) then return end
+                    veafSpawn.drawSquare(eventPos, options.name, options.radius, options.drawColor, options.drawFillColor, options.type)
+                elseif options.drawCircle then
+                    -- check security
+                    if not (bypassSecurity or veafSecurity.checkSecurity_L1(options.password, markId)) then return end
+                    veafSpawn.drawCircle(eventPos, options.name, options.radius, options.drawColor, options.drawFillColor, options.type)
                 elseif options.eraseDrawing then
                     -- check security
                     if not (bypassSecurity or veafSecurity.checkSecurity_L1(options.password, markId)) then return end
@@ -485,6 +493,8 @@ function veafSpawn.markTextAnalysis(text)
     options.disperse = 15 --disperse time of groups if under attack, by default is set to 20s
     options.showMFD = false --option to enable groups to be seen on MFDs
     options.addDrawing = false -- draw a polygon on the map
+    options.drawSquare = false -- draw a square on the map
+    options.drawCircle = false -- draw a circle on the map
     options.eraseDrawing = false -- erase a polygon from the map
     options.stopDrawing = false -- close a polygon started on the map
 
@@ -634,6 +644,10 @@ function veafSpawn.markTextAnalysis(text)
         options.addDrawing = true
     elseif text:lower():find(veafSpawn.DrawingKeyphrase .. " erase") then
         options.eraseDrawing = true
+    elseif text:lower():find(veafSpawn.DrawingKeyphrase .. " square") then
+        options.drawSquare = true
+    elseif text:lower():find(veafSpawn.DrawingKeyphrase .. " circle") then
+        options.drawCircle = true
     elseif text:lower():find(veafSpawn.MissionMasterKeyphrase .. " flagon") then
         options.mmFlagOn = true
     elseif text:lower():find(veafSpawn.MissionMasterKeyphrase .. " flagoff") then
@@ -1064,6 +1078,78 @@ function veafSpawn.addPointToDrawing(point, name, color, fillColor, lineType, is
     end
 
     drawing:addPoint(point)
+    drawing:draw()
+end
+
+--- Add a circle to the map
+function veafSpawn.drawCircle(point, name, radius, color, fillColor, lineType)
+    veaf.loggers.get(veafSpawn.Id):debug(string.format("drawCircle(point=%s, name=%s, radius=%s, color=%s, fillColor=%s, lineType=%s)", veaf.p(point), veaf.p(name), veaf.p(radius), veaf.p(color), veaf.p(fillColor), veaf.p(lineType)))
+    if not name then
+        veaf.loggers.get(veafSpawn.Id):warn("Name is mandatory for drawing commands")
+        return
+    end
+    local drawing = veafSpawn.drawings[name:lower()]
+    if drawing then
+        -- erase the old one first
+        drawing:erase()
+        veafSpawn.drawings[name:lower()] = nil
+    end
+    drawing = VeafCircleOnMap:new():setName(name)
+    drawing:setCenter(point)
+    drawing:setRadius(radius or 5000)
+    veafSpawn.drawings[name:lower()] = drawing
+    local drawingMarkerId = veafSpawn.drawingsMarkers[name:lower()]
+    if drawingMarkerId then
+        trigger.action.removeMark(drawingMarkerId)
+    end
+    drawingMarkerId = veaf.getUniqueIdentifier()
+    trigger.action.markToAll(drawingMarkerId, name, point, true)
+    veafSpawn.drawingsMarkers[name:lower()] = drawingMarkerId
+    if color then
+        drawing:setColor(color)
+    end
+    if lineType then
+        drawing:setLineType(lineType)
+    end
+    if fillColor then
+        drawing:setFillColor(fillColor)
+    end
+    drawing:draw()
+end
+
+--- Add a square to the map
+function veafSpawn.drawSquare(point, name, side, color, fillColor, lineType)
+    veaf.loggers.get(veafSpawn.Id):debug(string.format("drawSquare(point=%s, name=%s, side=%s, color=%s, fillColor=%s, lineType=%s)", veaf.p(point), veaf.p(name), veaf.p(side), veaf.p(color), veaf.p(fillColor), veaf.p(lineType)))
+    if not name then
+        veaf.loggers.get(veafSpawn.Id):warn("Name is mandatory for drawing commands")
+        return
+    end
+    local drawing = veafSpawn.drawings[name:lower()]
+    if drawing then
+        -- erase the old one first
+        drawing:erase()
+        veafSpawn.drawings[name:lower()] = nil
+    end
+    drawing = VeafSquareOnMap:new():setName(name)
+    drawing:setCenter(point)
+    drawing:setSide(side or 5000)
+    veafSpawn.drawings[name:lower()] = drawing
+    local drawingMarkerId = veafSpawn.drawingsMarkers[name:lower()]
+    if drawingMarkerId then
+        trigger.action.removeMark(drawingMarkerId)
+    end
+    drawingMarkerId = veaf.getUniqueIdentifier()
+    trigger.action.markToAll(drawingMarkerId, name, point, true)
+    veafSpawn.drawingsMarkers[name:lower()] = drawingMarkerId
+    if color then
+        drawing:setColor(color)
+    end
+    if lineType then
+        drawing:setLineType(lineType)
+    end
+    if fillColor then
+        drawing:setFillColor(fillColor)
+    end
     drawing:draw()
 end
 

@@ -40,7 +40,7 @@ veafSpawnableAircraftsEditor = {}
 veafSpawnableAircraftsEditor.Id = "SPAWN_AC - "
 
 --- Version.
-veafSpawnableAircraftsEditor.Version = "1.2.1"
+veafSpawnableAircraftsEditor.Version = "1.2.2"
 
 -- trace level, specific to this module
 veafSpawnableAircraftsEditor.Trace = false
@@ -572,6 +572,7 @@ function veafSpawnableAircraftsEditor.injectInMission(filePath, settingsPath, na
     return getNextAvailableId(availableUnitIds, 50000)
   end
 
+  local nbCallsignIds = 0
   local function findAvailableIds(o)
     if (type(o) == "table") then
       for key,value in pairs(o) do
@@ -595,6 +596,7 @@ function veafSpawnableAircraftsEditor.injectInMission(filePath, settingsPath, na
             local digit3 = value[3] or 0
             local callsignId = digit1*100+digit2*10+digit3
             availableCallsigns[callsignId] = false
+            nbCallsignIds = nbCallsignIds + 1
             veafSpawnableAircraftsEditor.logTrace(string.format("callsignId [%s] is not available", p(callsignId)))
           end
         end
@@ -610,6 +612,7 @@ function veafSpawnableAircraftsEditor.injectInMission(filePath, settingsPath, na
 
     -- find all available ids (groups, units, callsigns)
     findAvailableIds(missionTable) -- this will populate the local availableCallsigns, availableGroupIds, availableUnitIds variables
+    veafSpawnableAircraftsEditor.logTrace(string.format("nbCallsignIds =  [%s]", nbCallsignIds))
 
     -- find the country tables in the mission table
     local missionCountryTablesByName = {}
@@ -710,13 +713,18 @@ function veafSpawnableAircraftsEditor.injectInMission(filePath, settingsPath, na
               if callsignData and type(callsignData) == "table" then
                 local oldCallsign = callsignData.name
                 local availableCallsignId = getNextAvailableCallsign()
-                local digit1 = math.floor(availableCallsignId / 100)
-                local digit2 = math.floor((availableCallsignId - (digit1*100)) / 10)
-                local digit3 = availableCallsignId - (digit1*100) - (digit2*10)
-                callsignData.name = DEFAULT_CALLSIGNS_BY_ID[digit1] .. digit2 .. digit3
-                callsignData[1] = digit1
-                callsignData[2] = digit2
-                callsignData[3] = digit3
+                if not availableCallsignId then
+                  veafSpawnableAircraftsEditor.logError(string.format("Cannot find any available callsignId in mission for: [%s]", spawnGroupName))
+                else
+                  veafSpawnableAircraftsEditor.logTrace(string.format("availableCallsignId = [%s]", availableCallsignId))
+                  local digit1 = math.floor(availableCallsignId / 100)
+                  local digit2 = math.floor((availableCallsignId - (digit1*100)) / 10)
+                  local digit3 = availableCallsignId - (digit1*100) - (digit2*10)
+                  callsignData.name = DEFAULT_CALLSIGNS_BY_ID[digit1] .. digit2 .. digit3
+                  callsignData[1] = digit1
+                  callsignData[2] = digit2
+                  callsignData[3] = digit3
+                end
                 veafSpawnableAircraftsEditor.logTrace(string.format("unitName=[%s] unitId=[%s], callsign changed from [%s] to [%s]", newUnitData.name, newUnitData.unitId, oldCallsign, callsignData.name))
               end
             end

@@ -6,6 +6,137 @@ settings = {
                     ["countries"] = {
                         ["CJTF Blue"] = {
                             ["groups"] = {
+                                ["veafSpawn-MQ-9 - AFAC - JTAC - DRONE"] = {
+                                    ["lateActivation"] = true,
+                                    ["tasks"] = 
+                                    {
+                                    }, -- end of ["tasks"]
+                                    ["radioSet"] = true,
+                                    ["task"] = "AFAC",
+                                    ["uncontrolled"] = false,
+                                    ["hiddenOnMFD"] = true,
+                                    ["taskSelected"] = true,
+                                    ["route"] = 
+                                    {
+                                        ["routeRelativeTOT"] = true,
+                                        ["points"] = 
+                                        {
+                                            [1] = 
+                                            {
+                                                ["alt"] = 2000,
+                                                ["action"] = "Turning Point",
+                                                ["alt_type"] = "BARO",
+                                                ["properties"] = 
+                                                {
+                                                    ["addopt"] = 
+                                                    {
+                                                    }, -- end of ["addopt"]
+                                                }, -- end of ["properties"]
+                                                ["speed"] = 80.555555555556,
+                                                ["task"] = 
+                                                {
+                                                    ["id"] = "ComboTask",
+                                                    ["params"] = 
+                                                    {
+                                                        ["tasks"] = 
+                                                        {
+                                                            [1] = 
+                                                            {
+                                                                ["enabled"] = true,
+                                                                ["auto"] = true,
+                                                                ["id"] = "FAC",
+                                                                ["number"] = 1,
+                                                                ["params"] = 
+                                                                {
+                                                                    ["number"] = 9,
+                                                                    ["designation"] = "Auto",
+                                                                    ["modulation"] = 0,
+                                                                    ["callname"] = 1,
+                                                                    ["datalink"] = true,
+                                                                    ["frequency"] = 133000000,
+                                                                }, -- end of ["params"]
+                                                            },
+                                                            [2] = 
+                                                            {
+                                                                ["enabled"] = true,
+                                                                ["auto"] = true,
+                                                                ["id"] = "WrappedAction",
+                                                                ["number"] = 2,
+                                                                ["params"] = 
+                                                                {
+                                                                    ["action"] = 
+                                                                    {
+                                                                        ["id"] = "EPLRS",
+                                                                        ["params"] = 
+                                                                        {
+                                                                            ["value"] = true,
+                                                                            ["groupId"] = 27,
+                                                                        }, -- end of ["params"]
+                                                                    }, -- end of ["action"]
+                                                                }, -- end of ["params"]
+                                                            },
+                                                        }, -- end of ["tasks"]
+                                                    }, -- end of ["params"]
+                                                }, -- end of ["task"]
+                                                ["type"] = "Turning Point",
+                                                ["ETA"] = 0,
+                                                ["ETA_locked"] = true,
+                                                ["x"] = -250000,
+                                                ["y"] = -360000,
+                                                ["name"] = "veafSpawn-MQ-9 - AFAC - JTAC - DRONE",
+                                                ["formation_template"] = "",
+                                                ["speed_locked"] = true,
+                                            },
+                                        }, -- end of ["points"]
+                                    }, -- end of ["route"]
+                                    ["groupId"] = 2729,
+                                    ["hidden"] = true,
+                                    ["units"] = 
+                                    {
+                                        [1] = 
+                                        {
+                                            ["alt"] = 2000,
+                                            ["hardpoint_racks"] = true,
+                                            ["alt_type"] = "BARO",
+                                            ["livery_id"] = "'camo' scheme",
+                                            ["skill"] = "High",
+                                            ["speed"] = 80.555555555556,
+                                            ["type"] = "MQ-9 Reaper",
+                                            ["unitId"] = 5442,
+                                            ["psi"] = -2.7233683240106,
+                                            ["x"] = -250000,
+                                            ["y"] = -360000,
+                                            ["name"] = "veafSpawn-MQ-9 - AFAC - JTAC - DRONE",
+                                            ["payload"] = 
+                                            {
+                                                ["pylons"] = 
+                                                {
+                                                }, -- end of ["pylons"]
+                                                ["fuel"] = 1300,
+                                                ["flare"] = 0,
+                                                ["chaff"] = 0,
+                                                ["gun"] = 100,
+                                            }, -- end of ["payload"]
+                                            ["heading"] = 2.7233683240106,
+                                            ["callsign"] = 
+                                            {
+                                                [1] = 1,
+                                                [2] = 9,
+                                                [3] = 1,
+                                                ["name"] = "Enfield91",
+                                            }, -- end of ["callsign"]
+                                            ["onboard_num"] = "030",
+                                        },
+                                    }, -- end of ["units"]
+                                    ["x"] = -250000,
+                                    ["y"] = -360000,
+                                    ["name"] = "veafSpawn-MQ-9 - AFAC - JTAC - DRONE",
+                                    ["communication"] = true,
+                                    ["modulation"] = 0,
+                                    ["start_time"] = 0,
+                                    ["hiddenOnPlanner"] = true,
+                                    ["frequency"] = 226.6,
+                                },
                                 ["veafSpawn-F-15C - FOX1 - Radar OFF - ECM OFF - NORMAL X1"] = {
                                     ["communication"] = true,
                                     ["frequency"] = 124,

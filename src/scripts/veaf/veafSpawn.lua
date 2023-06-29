@@ -23,7 +23,7 @@ veafSpawn = {}
 veafSpawn.Id = "SPAWN"
 
 --- Version.
-veafSpawn.Version = "1.47.0"
+veafSpawn.Version = "1.48.0"
 
 -- trace level, specific to this module
 --veafSpawn.LogLevel = "trace"
@@ -582,7 +582,7 @@ function veafSpawn.markTextAnalysis(text)
         --default country for the AFAC
         options.country = "USA"
         --default AFAC spawned
-        options.name = "mq9"
+        options.name = "mq-9"
     elseif text:lower():find(veafSpawn.SpawnKeyphrase .. " cap") then
         options.cap = true
     elseif text:lower():find(veafSpawn.SpawnKeyphrase .. " group") then
@@ -2686,17 +2686,15 @@ function veafSpawn.spawnAFAC(spawnSpot, name, country, altitude, speed, hdg, fre
         return nil
     end
 
-    -- find template
-    local _name = veafSpawn.AirUnitTemplatesPrefix .. name
-    local _template = veafSpawn.airUnitTemplates[_name:upper()]
-    if not _template then
+    -- find template amongst the existing templates (name can be a regex)
+    local groupName = veafSpawn.findSpawnableAircraftGroupname(name)
+    if not groupName then
         local message = string.format("The AFAC aircraft template could not be found for \"%s\"", veaf.p(name))
         veaf.loggers.get(veafSpawn.Id):info(message)
         trigger.action.outTextForCoalition(coalition, message, 15)
         return nil
     end
-    veaf.loggers.get(veafSpawn.Id):trace("found template=%s",_template)
-    local groupName = _template:getName()
+    veaf.loggers.get(veafSpawn.Id):trace("found template=%s",groupName)
 
     if not veafSpawn.AFAC.numberSpawned[coalition] then
         veafSpawn.AFAC.numberSpawned[coalition] = 1
@@ -2848,8 +2846,8 @@ function veafSpawn.spawnAFAC(spawnSpot, name, country, altitude, speed, hdg, fre
 
     -- (re)spawn group
     local vars = {}
-    vars.gpName = _template:getName()
-    vars.name = _template:getName()
+    vars.gpName = groupName
+    vars.name = groupName
     --vars.groupData = _template:getGroupData()
     --replace the callsign to prevent interractions
     vars.route = newRoute
@@ -2942,8 +2940,8 @@ function veafSpawn.spawnAFAC(spawnSpot, name, country, altitude, speed, hdg, fre
         local _setCallsign = {
             id = 'SetCallsign',
             params = {
-              callname = AFAC_num,
-              number = 9,
+            callname = AFAC_num,
+            number = 9,
             }
         }
 
@@ -3010,19 +3008,7 @@ function veafSpawn.afacWatchdog(afacGroupName, AFAC_num, coalition, markName)
     end
 end
 
-function veafSpawn.spawnCombatAirPatrol(spawnSpot, radius, name, country, altitude, altitudeDelta, hdg, distance, speed, capRadius, skill, silent, hiddenOnMFD)
-    veaf.loggers.get(veafSpawn.Id):debug("veafSpawn.spawnCombatAirPatrol(name=%s)", name)
-
-    -- for compatibility reasons we still have altitude and altitudedelta set to zero by default
-    if altitude == 0 then altitude = nil end
-    if altitudeDelta == 0 then altitudeDelta = nil end
-
-    local coalition = veaf.getCoalitionForCountry(country, true)
-    if not coalition then
-        veaf.loggers.get(veafSpawn.Id):error("No country/coalition for CAP !")
-        return nil
-    end
-
+function veafSpawn.findSpawnableAircraftGroupname(name)
     -- find template amongst the existing templates (name can be a regex)
     local nameUpper = (name or ""):upper()
     local regexNameUpper = ".*" .. (nameUpper or ".*") .. ".*"
@@ -3052,7 +3038,24 @@ function veafSpawn.spawnCombatAirPatrol(spawnSpot, radius, name, country, altitu
     veaf.loggers.get(veafSpawn.Id):trace("templatesNamesToChooseFrom=%s", veaf.p(templatesNamesToChooseFrom))
     local chosenTemplateData = veaf.getGroupData(chosenTemplateName)
     veaf.loggers.get(veafSpawn.Id):trace("found template=%s",chosenTemplateData)
-    local groupName = chosenTemplateName
+    return chosenTemplateName
+end
+
+function veafSpawn.spawnCombatAirPatrol(spawnSpot, radius, name, country, altitude, altitudeDelta, hdg, distance, speed, capRadius, skill, silent, hiddenOnMFD)
+    veaf.loggers.get(veafSpawn.Id):debug("veafSpawn.spawnCombatAirPatrol(name=%s)", name)
+
+    -- for compatibility reasons we still have altitude and altitudedelta set to zero by default
+    if altitude == 0 then altitude = nil end
+    if altitudeDelta == 0 then altitudeDelta = nil end
+
+    local coalition = veaf.getCoalitionForCountry(country, true)
+    if not coalition then
+        veaf.loggers.get(veafSpawn.Id):error("No country/coalition for CAP !")
+        return nil
+    end
+
+    -- find template amongst the existing templates (name can be a regex)
+    local groupName = veafSpawn.findSpawnableAircraftGroupname(name)
 
     local function convertSpeeds(speed, mach, altitude)
         local result = speed

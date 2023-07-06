@@ -1,7 +1,7 @@
 cfg = 
 {
-    ["current"] = 032,
-    ["listStartIndex"] = 032,
+    ["current"] = 20,
+    ["listStartIndex"] = 20,
     ["description"] = "Server 1",
     ["require_pure_textures"] = false,
     ["advanced"] = 

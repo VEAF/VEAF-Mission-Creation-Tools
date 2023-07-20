@@ -2052,7 +2052,7 @@ function veaf.weatherReport(vec3, alt, withLASTE)
     local T
     local Pqfe
     if not alt then
-        alt = veaf.getLandHeight(vec3)
+        alt = veaf.getLandHeight(vec3) + 15 -- get the weather at 15m over the ground, as it's done IRL in general aviation
     end
 
     -- At user specified altitude.

@@ -19,7 +19,7 @@ veafGrass = {}
 veafGrass.Id = "GRASS"
 
 --- Version.
-veafGrass.Version = "2.3.5"
+veafGrass.Version = "2.3.6"
 
 -- trace level, specific to this module
 --veafGrass.LogLevel = "trace"
@@ -51,14 +51,14 @@ function veafGrass.buildGrassRunway(grassRunwayUnit, hiddenOnMFD)
     local runwayOrigin = grassRunwayUnit
 	local tower = true
 	local endMarkers = false
-	
+
 	-- runway length in meters
 	local length = 600;
 	-- a plot each XX meters
 	local space = 50;
 	-- runway width XX meters
 	local width = 30;
-	
+
 	-- nb plots
 	local nbPlots = math.ceil(length / space);
 
@@ -81,13 +81,13 @@ function veafGrass.buildGrassRunway(grassRunwayUnit, hiddenOnMFD)
         ["type"] = runwayOrigin.type,
 		["hiddenOnMFD"] = hiddenOnMFD,
 	}
-	
+
 	-- leftOrigin plot
 	local leftOriginPlot = mist.utils.deepCopy(template)
 	leftOriginPlot.x = leftOrigin.x
 	leftOriginPlot.y = leftOrigin.y
 	mist.dynAddStatic(leftOriginPlot)
-	
+
 	-- place plots
 	for i = 1, nbPlots do
 		-- right plot
@@ -95,14 +95,14 @@ function veafGrass.buildGrassRunway(grassRunwayUnit, hiddenOnMFD)
 		leftPlot.x = runwayOrigin.x + i * space * math.cos(mist.utils.toRadian(angle))
 		leftPlot.y = runwayOrigin.y + i * space * math.sin(mist.utils.toRadian(angle))
         mist.dynAddStatic(leftPlot)
-		
+
 		-- right plot
 		local rightPlot = mist.utils.deepCopy(template)
 		rightPlot.x = leftOrigin.x + i * space * math.cos(mist.utils.toRadian(angle))
 		rightPlot.y = leftOrigin.y + i * space * math.sin(mist.utils.toRadian(angle))
-        mist.dynAddStatic(rightPlot)		
+        mist.dynAddStatic(rightPlot)
 	end
-	
+
 	if (endMarkers) then
 		-- close the runway with optional markers (airshow cones)
 		template = {
@@ -121,14 +121,14 @@ function veafGrass.buildGrassRunway(grassRunwayUnit, hiddenOnMFD)
 		leftPlot.x = runwayOrigin.x + (nbPlots+1) * space * math.cos(mist.utils.toRadian(angle))
 		leftPlot.y = runwayOrigin.y + (nbPlots+1) * space * math.sin(mist.utils.toRadian(angle))
 		mist.dynAddStatic(leftPlot)
-		
+
 		-- right plot
 		local rightPlot = mist.utils.deepCopy(template)
 		rightPlot.x = leftOrigin.x + (nbPlots+1) * space * math.cos(mist.utils.toRadian(angle))
 		rightPlot.y = leftOrigin.y + (nbPlots+1) * space * math.sin(mist.utils.toRadian(angle))
 		mist.dynAddStatic(rightPlot)
 	end
-	
+
 	if (tower) then
 		-- optionally add a tower at the start of the runway
 		template = {
@@ -141,7 +141,7 @@ function veafGrass.buildGrassRunway(grassRunwayUnit, hiddenOnMFD)
 			["type"] = "house2arm",
 			["hiddenOnMFD"] = hiddenOnMFD,
 		}
-		
+
 		-- tower
 		local tower = mist.utils.deepCopy(template)
 		tower.x = leftOrigin.x-60 + (nbPlots+1.2) * space * math.cos(mist.utils.toRadian(angle))
@@ -155,7 +155,7 @@ function veafGrass.buildGrassRunway(grassRunwayUnit, hiddenOnMFD)
 		y = math.floor(land.getHeight(leftOrigin) + 1),
 		z = runwayOrigin.y+20 + (nbPlots+1) * space * math.sin(mist.utils.toRadian(angle)) + width/2 * math.cos(mist.utils.toRadian(angle-90)),
 		atc = true,
-		runways = { 
+		runways = {
 			{ hdg = (angle + 180) % 360, flare = "red"}
 		}
 	}
@@ -171,12 +171,12 @@ function veafGrass.buildFarpsUnits(hiddenOnMFD)
     local grassRunwayUnits = {}
 	for name, unit in pairs(mist.DBs.unitsByName) do
 		--veaf.loggers.get(veafGrass.Id):trace("buildFarpsUnits: testing " .. unit.type .. " " .. name)
-        if name:upper():find('GRASS_RUNWAY') then 
+        if name:upper():find('GRASS_RUNWAY') then
             grassRunwayUnits[name] = unit
             veaf.loggers.get(veafGrass.Id):trace(string.format("found grassRunwayUnits[%s]= %s", name, veaf.p(unit)))
         end
 		--first two types should represent the same object depending on if you're on the MIST side or DCS side, as a safety added both
-        if (unit.type == "SINGLE_HELIPAD" or unit.type == "FARP_SINGLE_01" or unit.type == "FARP" or unit.type == "Invisible FARP") and name:upper():sub(1,5)=="FARP " then 
+        if (unit.type == "SINGLE_HELIPAD" or unit.type == "FARP_SINGLE_01" or unit.type == "FARP" or unit.type == "Invisible FARP") and name:upper():sub(1,5)=="FARP " then
             farpUnits[name] = unit
             veaf.loggers.get(veafGrass.Id):trace(string.format("found farpUnits[%s]= %s", name, veaf.p(unit)))
         end
@@ -264,13 +264,54 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD
 			}
 			if groupName then
 				tent["groupName"] = groupName
-			end			
+			end
 
 			mist.dynAddStatic(tent)
 			farpUnitNameCounter = farpUnitNameCounter + 1
-		end	
+		end
 	end
-	
+
+	-- add visible markers to the invisible farps
+	if farp.type == "Invisible FARP" then
+		local markerDistance = 25
+		local markerAngle = -45
+		local markerUnit1 = {
+			["unitName"] = string.format("FARP %s unit #%d", farp.groupName, farpUnitNameCounter),
+			["category"] = "Unarmed",
+			["type"] = "M978 HEMTT Tanker",
+			["coalition"] = farpCoalition,
+			["country"] = farp.country,
+			["countryId"] = farp.countryId,
+			["heading"] = mist.utils.toRadian(angle-90),
+			["x"] = farp.x - markerDistance * math.cos(mist.utils.toRadian(angle + markerAngle)),
+			["y"] = farp.y - markerDistance * math.sin(mist.utils.toRadian(angle + markerAngle)),
+			["hiddenOnMFD"] = hiddenOnMFD,
+		}
+		if groupName then
+			markerUnit1["groupName"] = groupName
+		end
+		mist.dynAddStatic(markerUnit1)
+		farpUnitNameCounter = farpUnitNameCounter + 1
+		local markerUnit2 = {
+			["unitName"] = string.format("FARP %s unit #%d", farp.groupName, farpUnitNameCounter),
+			["category"] = "Fortifications",
+			["shape_name"] = "H-Windsock_RW",
+			["type"] = "Windsock",
+			["coalition"] = farpCoalition,
+			["country"] = farp.country,
+			["countryId"] = farp.countryId,
+			["heading"] = mist.utils.toRadian(angle-90),
+			["x"] = farp.x - markerDistance * math.cos(mist.utils.toRadian(angle - markerAngle)),
+			["y"] = farp.y - markerDistance * math.sin(mist.utils.toRadian(angle - markerAngle)),
+			["hiddenOnMFD"] = hiddenOnMFD,
+		}
+		if groupName then
+			markerUnit2["groupName"] = groupName
+		end
+		mist.dynAddStatic(markerUnit2)
+		farpUnitNameCounter = farpUnitNameCounter + 1
+	end
+
 	-- spawn other static units
 	local otherUnits={
 		'FARP Fuel Depot',
@@ -281,7 +322,7 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD
 		["x"] = farp.x + otherDistance * math.cos(mist.utils.toRadian(angle)),
 		["y"] = farp.y + otherDistance * math.sin(mist.utils.toRadian(angle)),
 	}
-	
+
 	for j,typeName in ipairs(otherUnits) do
 		local otherUnit = {
 			["unitName"] = string.format("FARP %s unit #%d", farp.groupName, farpUnitNameCounter),
@@ -295,10 +336,10 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD
 			["x"] = otherOrigin.x - (j-1) * otherSpacing * math.sin(mist.utils.toRadian(angle)),
 			["y"] = otherOrigin.y + (j-1) * otherSpacing * math.cos(mist.utils.toRadian(angle)),
 			["hiddenOnMFD"] = hiddenOnMFD,
-		}		
+		}
 		if groupName then
 			otherUnit["groupName"] = groupName
-		end			
+		end
 		mist.dynAddStatic(otherUnit)
 		farpUnitNameCounter = farpUnitNameCounter + 1
 	end
@@ -318,7 +359,7 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD
 		["category"] = 'static',
 		["categoryStatic"] = 'Fortifications',
 		["shape_name"] = "H-Windsock_RW",
-		["type"] = "Windsock",	
+		["type"] = "Windsock",
 		["coalition"] = farpCoalition,
 		["country"] = farp.country,
 		["countryId"] = farp.countryId,
@@ -329,7 +370,7 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD
 	}
 	if groupName then
 		windsockUnit["groupName"] = groupName
-	end			
+	end
 	mist.dynAddStatic(windsockUnit)
 	farpUnitNameCounter = farpUnitNameCounter + 1
 
@@ -340,7 +381,7 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD
 			["category"] = 'static',
 			["categoryStatic"] = 'Fortifications',
 			["shape_name"] = "H-Windsock_RW",
-			["type"] = "Windsock",	
+			["type"] = "Windsock",
 			["coalition"] = farpCoalition,
 			["country"] = farp.country,
 			["countryId"] = farp.countryId,
@@ -351,7 +392,7 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD
 		}
 		if groupName then
 			windsockUnit["groupName"] = groupName
-		end			
+		end
 		mist.dynAddStatic(windsockUnit)
 		farpUnitNameCounter = farpUnitNameCounter + 1
 	end
@@ -364,7 +405,7 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD
 			"M 818",
 			"M 818",
 			"Hummer",
-		},		
+		},
 		red = {
 			"ATZ-10",
 			"ATZ-10",
@@ -380,7 +421,7 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD
 		x = farp.x + unitsDistance * math.cos(mist.utils.toRadian(angle)),
 		y = farp.y + unitsDistance * math.sin(mist.utils.toRadian(angle)),
 	}
-	
+
 	local farpEscortGroup = {
 		["category"] = 'vehicle',
 		["coalition"] = farpCoalition,
@@ -392,7 +433,7 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD
 	}
 	if groupName then
 		farpEscortGroup["groupName"] = groupName
-	end			
+	end
 
 	for j,typeName in ipairs(farpEscortUnitsNames[farpCoalition]) do
 		local escortUnit = {
@@ -402,14 +443,14 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD
 			["x"] = unitsOrigin.x - (j-1) * unitsSpacing * math.sin(mist.utils.toRadian(angle)),
 			["y"] = unitsOrigin.y + (j-1) * unitsSpacing * math.cos(mist.utils.toRadian(angle)),
 			["skill"] = "Random",
-		}		
+		}
 		table.insert(farpEscortGroup.units, escortUnit)
 		farpUnitNameCounter = farpUnitNameCounter + 1
 
 	end
 
 	mist.dynAdd(farpEscortGroup)
-	
+
     -- add the FARP to the named points
     local farpNamedPoint = {
         x = farp.x,
@@ -441,10 +482,10 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD
         local grassRunwayUnit = nil
         for name, unitDef in pairs(grassRunwayUnits) do
             local unit = Unit.getByName(name)
-            if not unit then 
+            if not unit then
                 unit = StaticObject.getByName(name)
             end
-            if unit then 
+            if unit then
                 local pos = unit:getPosition().p
                 if pos then -- you never know O.o
                     local distanceFromCenter = ((pos.x - farp.x)^2 + (pos.z - farp.y)^2)^0.5
@@ -479,7 +520,7 @@ end
 
 function veafGrass.initialize()
 	-- delay all these functions 30 seconds (to ensure that the other modules are loaded)
-	
+
 	-- auto generate FARP units (hide these units on MFDs as they create clutter for nothing since the FARP already shows or not depending on what the Mission maker wanted, regardless, don't show them)
     mist.scheduleFunction(veafGrass.buildFarpsUnits,{true},timer.getTime()+veafGrass.DelayForStartup)
 end

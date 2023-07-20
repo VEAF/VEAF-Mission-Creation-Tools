@@ -23,7 +23,7 @@ veafSpawn = {}
 veafSpawn.Id = "SPAWN"
 
 --- Version.
-veafSpawn.Version = "1.48.1"
+veafSpawn.Version = "1.49.0"
 
 -- trace level, specific to this module
 --veafSpawn.LogLevel = "trace"
@@ -1307,6 +1307,12 @@ function veafSpawn.spawnFarp(spawnSpot, radius, name, country, farptype, side, h
     elseif farptype:lower() == "single" then
         _type = "FARP"
         _shape = "FARP"
+    elseif farptype:lower() == "pad" then
+        _type = "FARP_SINGLE_01"
+        _shape = "FARP_SINGLE_01"
+    elseif farptype:lower() == "invisible" then
+        _type = "Invisible FARP"
+        _shape = "invisiblefarp"
     end
 
     -- spawn the FARP

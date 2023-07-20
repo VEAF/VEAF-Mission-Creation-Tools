@@ -23,7 +23,7 @@ veafSpawn = {}
 veafSpawn.Id = "SPAWN"
 
 --- Version.
-veafSpawn.Version = "1.48.0"
+veafSpawn.Version = "1.48.1"
 
 -- trace level, specific to this module
 --veafSpawn.LogLevel = "trace"
@@ -3038,7 +3038,7 @@ function veafSpawn.findSpawnableAircraftGroupname(name)
     veaf.loggers.get(veafSpawn.Id):trace("templatesNamesToChooseFrom=%s", veaf.p(templatesNamesToChooseFrom))
     local chosenTemplateData = veaf.getGroupData(chosenTemplateName)
     veaf.loggers.get(veafSpawn.Id):trace("found template=%s",chosenTemplateData)
-    return chosenTemplateName
+    return chosenTemplateName, chosenTemplateData
 end
 
 function veafSpawn.spawnCombatAirPatrol(spawnSpot, radius, name, country, altitude, altitudeDelta, hdg, distance, speed, capRadius, skill, silent, hiddenOnMFD)
@@ -3055,7 +3055,11 @@ function veafSpawn.spawnCombatAirPatrol(spawnSpot, radius, name, country, altitu
     end
 
     -- find template amongst the existing templates (name can be a regex)
-    local groupName = veafSpawn.findSpawnableAircraftGroupname(name)
+    local chosenTemplateName, chosenTemplateData = veafSpawn.findSpawnableAircraftGroupname(name)
+    if not chosenTemplateName or not chosenTemplateData then
+        veaf.loggers.get(veafSpawn.Id):error("spawnCombatAirPatrol: could not find a template for %s", veaf.p(name))
+        return
+    end
 
     local function convertSpeeds(speed, mach, altitude)
         local result = speed
@@ -3300,12 +3304,12 @@ function veafSpawn.spawnCombatAirPatrol(spawnSpot, radius, name, country, altitu
     veafSpawn.traceMarkerId = veaf.loggers.get(veafSpawn.Id):marker(veafSpawn.traceMarkerId, "CAP", "wp3", parameters.wp3)
     veafSpawn.traceMarkerId = veaf.loggers.get(veafSpawn.Id):marker(veafSpawn.traceMarkerId, "CAP", "targetZone", parameters.targetZone, nil, capRadius, {1,0,0,0.15})
 
-    if not veafSpawn.spawnedNamesIndex[groupName] then
-        veafSpawn.spawnedNamesIndex[groupName] = 1
+    if not veafSpawn.spawnedNamesIndex[chosenTemplateName] then
+        veafSpawn.spawnedNamesIndex[chosenTemplateName] = 1
     else
-        veafSpawn.spawnedNamesIndex[groupName] = veafSpawn.spawnedNamesIndex[groupName] + 1
+        veafSpawn.spawnedNamesIndex[chosenTemplateName] = veafSpawn.spawnedNamesIndex[chosenTemplateName] + 1
     end
-    local newGroupName = string.format("%s #%04d", groupName, veafSpawn.spawnedNamesIndex[groupName])
+    local newGroupName = string.format("%s #%04d", chosenTemplateName, veafSpawn.spawnedNamesIndex[chosenTemplateName])
     veaf.loggers.get(veafSpawn.Id):debug("indexed newGroupName=%s",newGroupName)
 
     -- (re)spawn group

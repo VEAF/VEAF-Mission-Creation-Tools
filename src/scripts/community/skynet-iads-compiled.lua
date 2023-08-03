@@ -1,416 +1,4 @@
-env.info("--- SKYNET VERSION: 3.0.1-with_VEAF_loggers | BUILD TIME: 06.11.2022 1728Z ---")
-
--------------------------------------------------------------------------------------------------------------------------------------------------------------
--- Logging
--------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-if not veafForSkynetDebugging then veafForSkynetDebugging = {} end
-
-function veafForSkynetDebugging.p(o, level, skip)
-	if o and type(o) == "table" and (o.x and o.z and o.y and #o == 3) then
-			return string.format("{x=%s, z=%s, y=%s}", veafForSkynetDebugging.p(o.x), veafForSkynetDebugging.p(o.z), veafForSkynetDebugging.p(o.y))
-	elseif o and type(o) == "table" and (o.x and o.y and #o == 2)  then
-			return string.format("{x=%s, y=%s}", veafForSkynetDebugging.p(o.x), veafForSkynetDebugging.p(o.y))
-	end
-	local skip = skip
-	if skip and type(skip)=="table" then
-			for _, value in ipairs(skip) do
-					skip[value]=true
-			end
-	end
-	return veafForSkynetDebugging._p(o, level, skip)
-end
-
-function veafForSkynetDebugging._p(o, level, skip)
-	local MAX_LEVEL = 20
-	if level == nil then level = 0 end
-	if level > MAX_LEVEL then 
-			veafForSkynetDebugging.loggers.get(veafForSkynetDebugging.Id):error("max depth reached in veafForSkynetDebugging.p : "..tostring(MAX_LEVEL))
-			return ""
-	end
-	local text = ""
-	if o == nil then
-			text = "[nil]"   
-	elseif (type(o) == "table") then
-			text = "\n"
-			local keys = {}
-			local values = {}
-			for key, value in pairs(o) do
-					local sKey = tostring(key)
-					table.insert(keys, sKey)
-					values[sKey] = value
-			end
-			table.sort(keys)
-			for _, key in pairs(keys) do
-					local value = values[key]
-					for i=0, level do
-							text = text .. " "
-					end
-					if not (skip and skip[key]) then
-							text = text .. ".".. key.."="..veafForSkynetDebugging.p(value, level+1, skip) .. "\n"
-					else
-							text = text .. ".".. key.."= [[SKIPPED]]\n"
-					end
-			end
-	elseif (type(o) == "function") then
-			text = "[function]"
-	elseif (type(o) == "boolean") then
-			if o == true then 
-					text = "[true]"
-			else
-					text = "[false]"
-			end
-	else
-			text = tostring(o)
-	end
-	return text
-end
-
-veafForSkynetDebugging.loggers = {}
-veafForSkynetDebugging.loggers.dict = {}
-
-veafForSkynetDebugging.Logger =
-{
-    -- technical name
-    name = nil,
-    -- logging level
-    level = nil,
-}
-veafForSkynetDebugging.Logger.__index = veafForSkynetDebugging.Logger
-
-veafForSkynetDebugging.Logger.LEVEL = {
-    ["error"]=1,
-    ["warning"]=2,
-    ["info"]=3,
-    ["debug"]=4,
-    ["trace"]=5,
-}
-
-function veafForSkynetDebugging.Logger:new(name, level)
-    local self = setmetatable({}, veafForSkynetDebugging.Logger)
-    self:setName(name)
-    self:setLevel(level)
-    return self
-end
-
-function veafForSkynetDebugging.Logger:setName(value)
-    self.name = value
-    return self
-end
-
-function veafForSkynetDebugging.Logger:getName()
-    return self.name
-end
-
-function veafForSkynetDebugging.Logger:setLevel(value, force)
-    if veafForSkynetDebugging.ForcedLogLevel then
-        value = veafForSkynetDebugging.ForcedLogLevel
-    end
-    local level = value
-    if type(level) == "string" then
-        level = veafForSkynetDebugging.Logger.LEVEL[level:lower()]
-    end
-    if not level then 
-        level = veafForSkynetDebugging.Logger.LEVEL["info"]
-    end
-    if veafForSkynetDebugging.BaseLogLevel < level and not force then
-        level = veafForSkynetDebugging.BaseLogLevel
-    end
-    self.level = level
-    return self
-end
-
-function veafForSkynetDebugging.Logger:getLevel()
-    return self.level
-end
-
-function veafForSkynetDebugging.Logger.splitText(text)
-    local tbl = {}
-    while text:len() > 4000 do
-        local sub = text:sub(1, 4000)
-        text = text:sub(4001)
-        table.insert(tbl, sub)
-    end
-    table.insert(tbl, text)
-    return tbl
-end
-
-function veafForSkynetDebugging.Logger.formatText(text, ...)
-    if not text then 
-        return "" 
-    end
-    if type(text) ~= 'string' then
-        text = veafForSkynetDebugging.p(text)
-    else
-        local args = ...
-        if args and args.n and args.n > 0 then
-            local pArgs = {}
-            for i=1,args.n do
-                pArgs[i] = veafForSkynetDebugging.p(args[i])
-            end
-            text = text:format(unpack(pArgs))
-        end            
-    end
-    local fName = nil
-    local cLine = nil
-    if debug and debug.getinfo then
-        local dInfo = debug.getinfo(3)
-        fName = dInfo.name
-        cLine = dInfo.currentline
-        -- local fsrc = dinfo.short_src
-        --local fLine = dInfo.linedefined
-    end
-    if fName and cLine then
-        return fName .. '|' .. cLine .. ': ' .. text
-    elseif cLine then
-        return cLine .. ': ' .. text
-    else
-        return ' ' .. text
-    end
-end
-
-function veafForSkynetDebugging.Logger:print(level, text)
-    local texts = veafForSkynetDebugging.Logger.splitText(text)
-    local levelChar = 'E'
-    local logFunction = env.error
-    if level == veafForSkynetDebugging.Logger.LEVEL["warning"] then
-        levelChar = 'W'
-        logFunction = env.warning
-    elseif level == veafForSkynetDebugging.Logger.LEVEL["info"] then
-        levelChar = 'I'
-        logFunction = env.info
-    elseif level == veafForSkynetDebugging.Logger.LEVEL["debug"] then
-        levelChar = 'D'
-        logFunction = env.info
-    elseif level == veafForSkynetDebugging.Logger.LEVEL["trace"] then
-        levelChar = 'T'
-        logFunction = env.info
-    end
-    for i = 1, #texts do
-        if i == 1 then
-            logFunction(self.name .. '|' .. levelChar .. '|' .. texts[i])
-        else
-            logFunction(texts[i])
-        end
-    end
-end
-
-function veafForSkynetDebugging.Logger:error(text, ...)
-    if self.level >= 1 then
-        text = veafForSkynetDebugging.Logger.formatText(text, arg)
-        local mText = text
-		if debug and debug.traceback then
-			mText = mText .. "\n" .. debug.traceback()
-		end
-        self:print(1, mText)
-    end
-end
-
-function veafForSkynetDebugging.Logger:warn(text, ...)
-    if self.level >= 2 then
-        text = veafForSkynetDebugging.Logger.formatText(text, arg)
-        self:print(2, text)
-    end
-end
-
-function veafForSkynetDebugging.Logger:info(text, ...)
-    if self.level >= 3 then
-        text = veafForSkynetDebugging.Logger.formatText(text, arg)
-        self:print(3, text)
-    end
-end
-
-function veafForSkynetDebugging.Logger:debug(text, ...)
-    if self.level >= 4 then
-        text = veafForSkynetDebugging.Logger.formatText(text, arg)
-        self:print(4, text)
-    end
-end
-
-function veafForSkynetDebugging.Logger:trace(text, ...)
-    if self.level >= 5 then
-        text = veafForSkynetDebugging.Logger.formatText(text, arg)
-        self:print(5, text)
-    end
-end
-
-function veafForSkynetDebugging.Logger:marker(id, header, message, position, markersTable, radius, fillColor)
-    if not id then
-        id = 99999 
-    end
-    if self.level >= 5 then
-        local correctedPos = {}
-        correctedPos.x = position.x
-        if not(position.z) then
-            correctedPos.z = position.y
-            correctedPos.y = position.alt
-        else
-            correctedPos.z = position.z
-            correctedPos.y = position.y
-        end
-        if not (correctedPos.y) then
-            correctedPos.y = 0
-        end
-        local message = message
-        if header and id then
-            message = header..id.." "..message
-        end
-        self:trace("creating trace marker #%s at point %s", id, veafForSkynetDebugging.vecToString(correctedPos))
-        if radius then
-            trigger.action.circleToAll(-1, id, correctedPos, radius, fillColor, fillColor, 3, false)
-        else
-            trigger.action.markToAll(id, message, correctedPos, false) 
-        end
-        if markersTable then
-            table.insert(markersTable, id)
-            --self:trace("markersTable=%s", veafForSkynetDebugging.p(markersTable))
-        end
-    end
-    return id + 1
-end
-
-function veafForSkynetDebugging.Logger:markerArrow(id, header, message, positionStart, positionEnd, markersTable, lineType, fillColor)
-    if not id then
-        id = 99999 
-    end
-    if self.level >= 5 then
-        local points = { positionStart, positionEnd }
-        for _, point in ipairs(points) do
-            local correctedPos = {}
-            correctedPos.x = point.x
-            if not(point.z) then
-                correctedPos.z = point.y
-                correctedPos.y = point.alt
-            else
-                correctedPos.z = point.z
-                correctedPos.y = point.y
-            end
-            if not (correctedPos.y) then
-                correctedPos.y = 0
-            end
-            point.x = correctedPos.x
-            point.y = correctedPos.y
-            point.z = correctedPos.z
-        end
-        local positionStart = points[1]
-        local positionEnd = points[2]
-
-        local message = message
-        if header and id then
-            message = header..id.." "..message
-        end
-        
-        self:trace("creating trace arrow #%s from point %s to point %s", id, veafForSkynetDebugging.vecToString(positionStart), veafForSkynetDebugging.vecToString(positionEnd))
-        
-        trigger.action.arrowToAll(-1, id, positionEnd, positionStart, fillColor, fillColor, lineType, false, message)
-        if markersTable then
-            table.insert(markersTable, id)
-            --self:trace("markersTable=%s", veafForSkynetDebugging.p(markersTable))
-        end
-    end
-    return id + 1
-end
-
-function veafForSkynetDebugging.Logger:markerQuad(id, header, message, points, markersTable, lineType, fillColor)
-    if not id then
-        id = 99999 
-    end
-    if self.level >= 5 then
-        local points = points
-        for _, point in ipairs(points) do
-            local correctedPos = {}
-            correctedPos.x = point.x
-            if not(point.z) then
-                correctedPos.z = point.y
-                correctedPos.y = point.alt
-            else
-                correctedPos.z = point.z
-                correctedPos.y = point.y
-            end
-            if not (correctedPos.y) then
-                correctedPos.y = 0
-            end
-            point.x = correctedPos.x
-            point.y = correctedPos.y
-            point.z = correctedPos.z
-        end
-
-        local message = message
-        if header and id then
-            message = header..id.." "..message
-        end
-        
-        self:trace("creating trace quad #%s", id)
-        
-        trigger.action.quadToAll(-1, id, points[1], points[2], points[3], points[4], fillColor, fillColor, lineType, false, message)
-        if markersTable then
-            table.insert(markersTable, id)
-            --self:trace("markersTable=%s", veafForSkynetDebugging.p(markersTable))
-        end
-    end
-    return id + 1
-end
-
-function veafForSkynetDebugging.Logger:cleanupMarkers(markersTable)
-    local n=#markersTable
-    for i=1,n do
-        local markerId = markersTable[i]
-        markersTable[i] = nil
-        self:trace("deleting trace marker #%s at pos", markerId, i)
-        trigger.action.removeMark(markerId)    
-    end   
-end
-
-function veafForSkynetDebugging.loggers.setBaseLevel(level) 
-    veafForSkynetDebugging.BaseLogLevel = level
-    -- reset all loggers level if lower than the base level
-    for name, logger in pairs(veafForSkynetDebugging.loggers.dict) do
-        logger:setLevel(logger:getLevel())
-    end
-end
-
-function veafForSkynetDebugging.loggers.new(loggerId, level) 
-    if not loggerId or #loggerId == 0 then
-        return nil
-    end
-    local result = veafForSkynetDebugging.Logger:new(loggerId:upper(), level)
-    veafForSkynetDebugging.loggers.dict[loggerId:lower()] = result
-    return result
-end
-
-function veafForSkynetDebugging.loggers.get(loggerId) 
-    local result = nil
-    if loggerId and #loggerId > 0 then
-        result = veafForSkynetDebugging.loggers.dict[loggerId:lower()]
-    end
-    if not result then 
-        result = veafForSkynetDebugging.loggers.get("veafForSkynetDebugging")
-    end
-    return result
-end
-
-veafForSkynetDebugging.Development = true
-
-if veafForSkynetDebugging.Development then
-    veafForSkynetDebugging.loggers.setBaseLevel(veafForSkynetDebugging.Logger.LEVEL["trace"])
-end
-
-veafForSkynetDebugging.loggers.new(veafForSkynetDebugging.Id, veafForSkynetDebugging.LogLevel)
-
-veafSkynetIADS = {}
-
---- Identifier. All output in DCS.log will start with this.
-veafSkynetIADS.Id = "IADS"
-
---- Version.
-veafSkynetIADS.Version = "3.0.1-test2"
-
--- trace level, specific to this module
-veafSkynetIADS.LogLevel = "info"
---veafSkynetIADS.LogLevel = "trace"
-
-veafForSkynetDebugging.loggers.new(veafSkynetIADS.Id, veafSkynetIADS.LogLevel)
-
+env.info("--- SKYNET VERSION: 3.1.2RP | BUILD TIME: 10.07.2023 1851Z ---")
 do
 --this file contains the required units per sam type
 samTypesDB = {
@@ -852,7 +440,24 @@ samTypesDB = {
 		},
 
 		['harm_detection_chance'] = 60
-	},	
+	},
+	['FPS-117'] = {
+		['type'] = 'ewr',
+		['searchRadar'] = {
+			['FPS-117 Dome'] = {
+				['name'] = {
+					['NATO'] = 'FPS-117 EWR',
+				},
+			},
+			['FPS-117'] = {
+				['name'] = {
+					['NATO'] = 'FPS-117 EWR',
+				},
+			},
+
+		},
+		['harm_detection_chance'] = 70
+	},
 }
 end
 do
@@ -1841,7 +1446,6 @@ end
 
 
 function SkynetIADS.evaluateContacts(self)
-	veafForSkynetDebugging.loggers.get(veafSkynetIADS.Id):debug("SkynetIADS:evaluateContacts()")
 
 	local ewRadars = self:getUsableEarlyWarningRadars()
 	local samSites = self:getUsableSAMSites()
@@ -1949,7 +1553,6 @@ end
 
 
 function SkynetIADS:addRadarsToCommandCenters()
-	veafForSkynetDebugging.loggers.get(veafSkynetIADS.Id):debug("SkynetIADS:addRadarsToCommandCenters()")
 
 	--we clear any existing radars that may have been added earlier
 	local comCenters = self:getCommandCenters()
@@ -1977,13 +1580,11 @@ end
 -- this method rebuilds the radar coverage of the IADS, a complete rebuild is only required the first time the IADS is activated
 -- during runtime it is sufficient to call buildRadarCoverageForSAMSite or buildRadarCoverageForEarlyWarningRadar method that just updates the IADS for one unit, this saves script execution time
 function SkynetIADS:buildRadarCoverage()	
-	veafForSkynetDebugging.loggers.get(veafSkynetIADS.Id):debug("SkynetIADS:buildRadarCoverage()")
-
+	
 	--to build the basic radar coverage we use all SAM sites. Checks if SAM site has power or a connection node is done when using the SAM site later on
 	local samSites = self:getSAMSites()
 	
 	--first we clear all child and parent radars that may have been added previously
-	veafForSkynetDebugging.loggers.get(veafSkynetIADS.Id):trace("first we clear all child and parent radars that may have been added previously")
 	for i = 1, #samSites do
 		local samSite = samSites[i]
 		samSite:clearChildRadars()
@@ -1998,7 +1599,6 @@ function SkynetIADS:buildRadarCoverage()
 	end	
 	
 	--then we rebuild the radar coverage
-	veafForSkynetDebugging.loggers.get(veafSkynetIADS.Id):debug("then we rebuild the radar coverage")
 	local abstractRadarElements = self:getAbstracRadarElements()
 	for i = 1, #abstractRadarElements do
 		local abstract = abstractRadarElements[i]
@@ -2016,8 +1616,6 @@ function SkynetIADS:buildRadarCoverage()
 end
 
 function SkynetIADS:buildRadarCoverageForAbstractRadarElement(abstractRadarElement)
-	veafForSkynetDebugging.loggers.get(veafSkynetIADS.Id):debug("SkynetIADS:buildRadarCoverageForAbstractRadarElement(%s)", veafForSkynetDebugging.p(abstractRadarElement:getName()))
-
 	local abstractRadarElements = self:getAbstracRadarElements()
 	for i = 1, #abstractRadarElements do
 		local aElementToCompare = abstractRadarElements[i]
@@ -2033,8 +1631,6 @@ function SkynetIADS:buildRadarCoverageForAbstractRadarElement(abstractRadarEleme
 end
 
 function SkynetIADS:buildRadarAssociation(parent, child)
-	veafForSkynetDebugging.loggers.get(veafSkynetIADS.Id):debug("SkynetIADS:buildRadarAssociation(%s, %s)", veafForSkynetDebugging.p(parent:getName()), veafForSkynetDebugging.p(child:getName()))
-
 	--chilren should only be SAM sites not EW radars
 	if ( getmetatable(child) == SkynetIADSSamSite ) then
 		parent:addChildRadar(child)
@@ -2095,7 +1691,6 @@ end
 
 -- will start going through the Early Warning Radars and SAM sites to check what targets they have detected
 function SkynetIADS.activate(self)
-	veafForSkynetDebugging.loggers.get(veafSkynetIADS.Id):debug("SkynetIADS:activate()")
 	mist.removeFunction(self.ewRadarScanMistTaskID)
 	self.ewRadarScanMistTaskID = mist.scheduleFunction(SkynetIADS.evaluateContacts, {self}, 1, self.contactUpdateInterval)
 	self:buildRadarCoverage()
@@ -2103,7 +1698,7 @@ end
 
 function SkynetIADS:setupSAMSitesAndThenActivate(setupTime)
 	self:activate()
-	self.iads:printOutputToLog("DEPRECATED: setupSAMSitesAndThenActivate, no longer needed since using enableEmission instead of AI on / off allows for the Ground units to setup with their radars turned off")
+	self.logger:printOutputToLog("DEPRECATED: setupSAMSitesAndThenActivate, no longer needed since using enableEmission instead of AI on / off allows for the Ground units to setup with their radars turned off")
 end
 
 function SkynetIADS:deactivate()
@@ -2298,7 +1893,10 @@ end
 function SkynetIADSAbstractDCSObjectWrapper:setDCSRepresentation(representation)
 	self.dcsRepresentation = representation
 	if self.dcsRepresentation then
-		self.dcsName = self:getDCSRepresentation():getName()
+		self.dcsName = self.dcsRepresentation:getName() -- FG 11/05/2023 - baleBaron hotfix issue 81
+		if (self.dcsName == nil or string.len(self.dcsName) == 0) and self.dcsRepresentation.id_ then
+			self.dcsName = self.dcsRepresentation.id_
+		end
 	end
 end
 
@@ -3948,6 +3546,20 @@ function SkynetIADSAbstractRadarElement:areGoLiveConstraintsSatisfied(contact)
 	return true
 end
 
+function SkynetIADSAbstractRadarElement:removeGoLiveConstraint(constraintName)
+	local constraints = {}
+	for cName, constraint in pairs(self.goLiveConstraints) do
+		if cName ~= constraintName then
+			constraints[cName] = constraint
+		end
+	end
+	self.goLiveConstraints = constraints
+end
+
+function SkynetIADSAbstractRadarElement:getGoLiveConstraints()
+	return self.goLiveConstraints
+end
+
 function SkynetIADSSamSite:isDestroyed()
 	local isDestroyed = true
 	for i = 1, #self.launchers do
@@ -4218,7 +3830,17 @@ function SkynetIADSHARMDetection:getNewRadarsThatHaveDetectedContact(contact)
 			end
 		end
 	end
-	self.contactRadarsEvaluated[contact] = contact:getAbstractRadarElementsDetected()
+	-- FG correction FG self.contactRadarsEvaluated[contact] = contact:getAbstractRadarElementsDetected()
+	-- if the evaluated table is the same as the detected one, when we merge the contact and update the detected table all new radars are considered as having already evaluated the contact for HARM
+	-- so the table needs to be a *copy*
+	-- then again it is dubious that the hard ident is correct (as described in the docs) because the radars will detect the harm one after the other, and try each one in turn for the identify
+	-- the case when multiple radars will pick up the harm in the same 5 second loop (and so up the prob of ident) seems rare
+	local radarsDetected = contact:getAbstractRadarElementsDetected()
+	self.contactRadarsEvaluated[contact] = {}
+	for j = 1, #radarsDetected do
+		table.insert(self.contactRadarsEvaluated[contact], radarsDetected[j])
+	end
+	--
 	return newRadars
 end
 

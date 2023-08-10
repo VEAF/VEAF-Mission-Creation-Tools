@@ -20,10 +20,10 @@ veafRadio = {}
 veafRadio.Id = "RADIO"
 
 --- Version.
-veafRadio.Version = "1.12.0"
+veafRadio.Version = "1.13.0"
 
 -- trace level, specific to this module
---veafRadio.LogLevel = "trace"
+veafRadio.LogLevel = "trace"
 
 veaf.loggers.new(veafRadio.Id, veafRadio.LogLevel)
 
@@ -1034,6 +1034,26 @@ function veafRadio.createUserMenu(configuration, groupId)
     end
 
     _recursivelyCreateMenu(configuration, nil)
+end
+
+-- helper functions for user menus
+local spawnCapFunction = function () end
+
+
+function veafRadio.menu(name, ...)
+  return {
+      "menu", name, {...}
+  }
+end
+
+function veafRadio.command(name, aFunction, parameters)
+  return {
+      "command", name, aFunction, parameters
+  }
+end
+
+function veafRadio.mainmenu(...)
+  return { ... }
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------

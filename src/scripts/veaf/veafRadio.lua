@@ -23,7 +23,7 @@ veafRadio.Id = "RADIO"
 veafRadio.Version = "1.13.0"
 
 -- trace level, specific to this module
-veafRadio.LogLevel = "trace"
+--veafRadio.LogLevel = "trace"
 
 veaf.loggers.new(veafRadio.Id, veafRadio.LogLevel)
 

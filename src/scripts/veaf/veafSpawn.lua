@@ -23,7 +23,7 @@ veafSpawn = {}
 veafSpawn.Id = "SPAWN"
 
 --- Version.
-veafSpawn.Version = "1.49.0"
+veafSpawn.Version = "1.50.0"
 
 -- trace level, specific to this module
 --veafSpawn.LogLevel = "trace"
@@ -3650,6 +3650,34 @@ function veafSpawn.missionMasterRun(name)
         veaf.loggers.get(veafSpawn.Id):warn(message)
         veafSpawn.missionMasterOutText(message)
     end
+end
+
+function veafSpawn.missionMasterSetFlagFromTable(parameters)
+    veaf.loggers.get(veafSpawn.Id):debug("veafSpawn.missionMasterSetFlagFromTable(parameters=%s)", parameters)
+    local name, value = veaf.safeUnpack(parameters)
+    return veafSpawn.missionMasterSetFlag(name, value)
+end
+
+function veafSpawn.missionMasterIncrementFlagValue(name)
+    veafSpawn.missionMasterAddValueToFlag(name, 1)
+end
+
+function veafSpawn.missionMasterDecrementFlagValue(name)
+    veafSpawn.missionMasterAddValueToFlag(name, -1)
+end
+
+function veafSpawn.missionMasterAddValueToFlag(name, increment)
+    veaf.loggers.get(veafSpawn.Id):debug("veafSpawn.missionMasterIncrementFlagValue(name=%s, increment=%s)", name, increment)
+    if not name or #name == 0 then
+        local message = "Mission Master, `setFlag` requires the name or number of the flag"
+        veaf.loggers.get(veafSpawn.Id):warn(message)
+        veafSpawn.missionMasterOutText(message)
+        return
+    end
+    local value = veafSpawn.missionMasterGetFlag(name)
+    if not value then value = 0 end
+    veafSpawn.missionMasterSetFlag(name, value + increment)
+    trigger.action.setUserFlag(name , value)
 end
 
 function veafSpawn.missionMasterSetFlag(name, value)

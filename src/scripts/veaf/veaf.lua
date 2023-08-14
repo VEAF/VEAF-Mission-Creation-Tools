@@ -19,7 +19,7 @@ veaf = {}
 veaf.Id = "VEAF"
 
 --- Version.
-veaf.Version = "1.45.0"
+veaf.Version = "1.45.1"
 
 --- Development version ?
 veaf.Development = true
@@ -38,8 +38,6 @@ veaf.DEFAULT_GROUND_SPEED_KPH = 30
 -- Do not change anything below unless you know what you are doing!
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-veaf.monitoredFlags = {}
-veaf.maxMonitoredFlag = 27000
 veaf.config = {}
 veaf.triggerZones = {}
 

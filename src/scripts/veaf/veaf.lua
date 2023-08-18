@@ -3135,6 +3135,22 @@ function veaf.Logger:trace(text, ...)
     end
 end
 
+function veaf.Logger:wouldLogWarn()
+    return self.level >= 2
+end
+
+function veaf.Logger:wouldLogInfo()
+    return self.level >= 3
+end
+
+function veaf.Logger:wouldLogDebug()
+    return self.level >= 4
+end
+
+function veaf.Logger:wouldLogTrace()
+    return self.level >= 5
+end
+
 function veaf.Logger:marker(id, header, message, position, markersTable, radius, fillColor)
     if not id then
         id = 99999

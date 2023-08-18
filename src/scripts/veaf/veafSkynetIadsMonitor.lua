@@ -19,10 +19,10 @@ veafSkynetMonitor = {}
 veafSkynetMonitor.Id = "SKYNET_MONITOR"
 
 --- Version.
-veafSkynetMonitor.Version = "1.0.0"
+veafSkynetMonitor.Version = "1.0.1"
 
 -- trace level, specific to this module
-veafSkynetMonitor.LogLevel = "trace"
+--veafSkynetMonitor.LogLevel = "trace"
 veaf.loggers.new(veafSkynetMonitor.Id, veafSkynetMonitor.LogLevel)
 
 ---------------------------------------------------------------------------------------------------
@@ -472,8 +472,7 @@ end
 function VeafSkynetMonitorTaskContacts:Execute()
     veaf.loggers.get(veafSkynetMonitor.Id):trace("Executing VeafSkynetMonitorTaskContacts")
     local currentContacts = self:GetIadsCurrentContacts()
-    veaf.loggers.get(veafSkynetMonitor.Id):trace(self:ToString() ..
-        " - currently tracking " .. #self.TrackedUnits .. " monitored units")
+    veaf.loggers.get(veafSkynetMonitor.Id):trace(self:ToString() .. " - currently tracking " .. #self.TrackedUnits .. " monitored units")
 
     for _, sContactName in pairs(currentContacts) do
         if (self:ContactIsToMonitor(sContactName) and not self:ContactIsTracked(sContactName)) then
@@ -622,8 +621,7 @@ end
 function veafSkynetMonitor.RemoveMonitoringTask(sTaskName)
     sTaskName = sTaskName or ""
     if (sTaskName ~= "" and veafSkynetMonitor._monitoringTasks[sTaskName]) then
-        veaf.loggers.get(veafSkynetMonitor.Id):trace("Removing monitoring task: " ..
-            veafSkynetMonitor._monitoringTasks[sTaskName]:ToString())
+        veaf.loggers.get(veafSkynetMonitor.Id):trace("Removing monitoring task: " .. veafSkynetMonitor._monitoringTasks[sTaskName]:ToString())
         veafSkynetMonitor._monitoringTasks[sTaskName] = nil
     end
 

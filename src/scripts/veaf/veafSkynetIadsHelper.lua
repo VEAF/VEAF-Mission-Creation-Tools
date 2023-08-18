@@ -19,7 +19,7 @@ veafSkynet = {}
 veafSkynet.Id = "SKYNET"
 
 --- Version.
-veafSkynet.Version = "2.1.1"
+veafSkynet.Version = "2.1.2"
 
 -- trace level, specific to this module
 --veafSkynet.LogLevel = "trace"
@@ -107,27 +107,25 @@ function veafSkynet.getSkynetData(skynetElement)
         return false
     end
 
-    --local sDescriptor = veafSkynet.getStringSkynetElement(skynetElement)
-
     for skynetDataName, skynetData in pairs(SkynetIADS.database) do
         -- first check the launchers as they are the most unique thing
         if(skynetDatabaseMatchType(skynetElement.launchers, skynetData["launchers"])) then
-            --veaf.loggers.get(veafSkynet.Id):trace("Matched by launcher : " .. sDescriptor .. " > " .. skynetDataName)
+            veaf.loggers.get(veafSkynet.Id):trace("Matched by launcher : " .. veafSkynet.getStringSkynetElement(skynetElement) .. " > " .. skynetDataName)
             return skynetData
         end
 
         -- tracking and search radars can be used by multiple sites
         if(skynetDatabaseMatchType(skynetElement.trackingRadars, skynetData["trackingRadar"])) then
-            --veaf.loggers.get(veafSkynet.Id):trace("Matched by launcher : " .. sDescriptor .. " > " .. skynetDataName)
+            veaf.loggers.get(veafSkynet.Id):trace("Matched by launcher : " .. veafSkynet.getStringSkynetElement(skynetElement) .. " > " .. skynetDataName)
             return skynetData
         end
         if(skynetDatabaseMatchType(skynetElement.searchRadars, skynetData["searchRadar"])) then
-            --veaf.loggers.get(veafSkynet.Id):trace("Matched by launcher : " .. sDescriptor .. " > " .. skynetDataName)
+            veaf.loggers.get(veafSkynet.Id):trace("Matched by launcher : " .. veafSkynet.getStringSkynetElement(skynetElement) .. " > " .. skynetDataName)
             return skynetData
         end
     end
 
-    --veaf.loggers.get(veafSkynet.Id):trace("No match : " .. sDescriptor)
+    veaf.loggers.get(veafSkynet.Id):trace("No match : " .. veafSkynet.getStringSkynetElement(skynetElement))
     return nil
 end
 
@@ -676,17 +674,19 @@ local function createNetwork(networkName, coa, loadUnits, UserAdd)
                 end
                 veafSkynet.structure[networkName].iads = iads
 
-                veaf.loggers.get(veafSkynet.Id):trace("Stored structure for network named %s :", veaf.p(networkName))
-                for index,_ in pairs(veafSkynet.structure[networkName]) do
-                    veaf.loggers.get(veafSkynet.Id):trace("-> %s", veaf.p(index))
+                if veaf.loggers.get(veafSkynet.Id).wouldLogTrace() then
+                    veaf.loggers.get(veafSkynet.Id):trace("Stored structure for network named %s :", veaf.p(networkName))
+                    for index,_ in pairs(veafSkynet.structure[networkName]) do
+                        veaf.loggers.get(veafSkynet.Id):trace("-> %s", veaf.p(index))
+                    end
+                    veaf.loggers.get(veafSkynet.Id):trace("Stored IADS structure for network named %s :", veaf.p(networkName))
+                    for index,_ in pairs(veafSkynet.structure[networkName].iads) do
+                        veaf.loggers.get(veafSkynet.Id):trace("-> %s", veaf.p(index))
+                    end
+                    veaf.loggers.get(veafSkynet.Id):trace("CoalitionID for network named %s :", veaf.p(networkName))
+                    veaf.loggers.get(veafSkynet.Id):trace("-> %s", veaf.p(veafSkynet.structure[networkName].iads.coalitionID))
+                    veaf.loggers.get(veafSkynet.Id):trace("-> %s", veaf.p(veafSkynet.structure[networkName].iads:getCoalitionString()))
                 end
-                veaf.loggers.get(veafSkynet.Id):trace("Stored IADS structure for network named %s :", veaf.p(networkName))
-                for index,_ in pairs(veafSkynet.structure[networkName].iads) do
-                    veaf.loggers.get(veafSkynet.Id):trace("-> %s", veaf.p(index))
-                end
-                veaf.loggers.get(veafSkynet.Id):trace("CoalitionID for network named %s :", veaf.p(networkName))
-                veaf.loggers.get(veafSkynet.Id):trace("-> %s", veaf.p(veafSkynet.structure[networkName].iads.coalitionID))
-                veaf.loggers.get(veafSkynet.Id):trace("-> %s", veaf.p(veafSkynet.structure[networkName].iads:getCoalitionString()))
 
                 if loadUnits then
                     initializeIADS(networkName, coa, includeInRadio, debugFlag)
@@ -755,7 +755,7 @@ function veafSkynet._initialize(includeRedInRadio, debugRed, includeBlueInRadio,
         for _, listName in pairs({ "searchRadar", "trackingRadar", "launchers", "misc" }) do
             if groupData['type'] ~= 'ewr' then
                 local list = groupData[listName]
-                if list then 
+                if list then
                     for unitType, _ in pairs(list) do
                         veaf.loggers.get(veafSkynet.Id):trace(string.format("-> SAM"))
                         veafSkynet.iadsSamUnitsTypes[unitType] = true

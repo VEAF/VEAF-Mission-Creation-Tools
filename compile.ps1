@@ -28,7 +28,6 @@ param (
 "veafNamedPoints.lua",
 "veafTransportMission.lua",
 "veafSkynetIadsHelper.lua",
-"veafSkynetIadsMonitor.lua",
 "veafSanctuary.lua",
 "veafHoundElintHelper.lua",
 "veafMissileGuardian.lua",

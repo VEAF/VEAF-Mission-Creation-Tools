@@ -4664,7 +4664,7 @@ radioSettings =
     ------------------------------------------------------------------------------------------------------------------------------------------
 
     ["blue AH-64D"] = {
-        type = "AH-64D",
+        type = "AH-64D_BLK_II",
         coalition = "blue",
         country = nil,
 
@@ -4761,7 +4761,7 @@ radioSettings =
     },
 
     ["red AH-64D"] = {
-        type = "AH-64D",
+        type = "AH-64D_BLK_II",
         coalition = "red",
         country = nil,
 

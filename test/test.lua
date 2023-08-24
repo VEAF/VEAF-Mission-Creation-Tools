@@ -164,96 +164,118 @@ function deepCopy(object)
   return _copy(object)
 end
 
-function _PointInPolygon(point, poly, maxalt) --raycasting point in polygon. Code from http://softsurfer.com/Archive/algorithm_0103/algorithm_0103.htm
-	--[[local type_tbl = {
-		point = {'table'},
-		poly = {'table'},
-		maxalt = {'number', 'nil'},
-		}
-
-	local err, errmsg = typeCheck('mist.pointInPolygon', type_tbl, {point, poly, maxalt})
-	assert(err, errmsg)
-	]]
-	point = makeVec3(point)
-	local px = point.x
-	local pz = point.z
-	local cn = 0
-	local newpoly = deepCopy(poly)
-
-	if not maxalt or (point.y <= maxalt) then
-		local polysize = #newpoly
-		newpoly[#newpoly + 1] = newpoly[1]
-
-		newpoly[1] = makeVec3(newpoly[1])
-
-		for k = 1, polysize do
-			newpoly[k+1] = makeVec3(newpoly[k+1])
-			if ((newpoly[k].z <= pz) and (newpoly[k+1].z > pz)) or ((newpoly[k].z > pz) and (newpoly[k+1].z <= pz)) then
-				local vt = (pz - newpoly[k].z) / (newpoly[k+1].z - newpoly[k].z)
-				if (px < newpoly[k].x + vt*(newpoly[k+1].x - newpoly[k].x)) then
-					cn = cn + 1
-				end
-			end
-		end
-
-		return cn%2 == 1
-	else
-		return false
-	end
+-- helper functions for user menus
+local function menu(name, items)
+  return {
+      "menu", name, items
+  }
 end
 
-local poly = {
-  [1] = {
-    x = -221054.1448788,
-    y = -231563.76460471,
-  },
-  [2] = {
-    x = -219505.858408,
-    y = 147766.42074123,
-  },
-  [3] = {
-    x = 267430.23665851,
-    y = 137702.55868103,
-  },
-  [4] = {
-    x = 268978.52312931,
-    y = -219951.61607371,
+local function command(name, aFunction, parameters)
+  return {
+      "command", name, aFunction, parameters
   }
-}
-
-local point = {
-  x = 15103.758720398,
-  y = 10662.527549988,
-  z = -43786.267360434,
-}
-
-print(_PointInPolygon(point, poly))
-
-local group = Group.getByName("Fregate Machin")
-local namedPoint = veafNamedPoints.getPoint("Arty TGT") -- le nom du point qu'on a placé auparavant
---[[
--- les points sont composés de :
-namedPoint = { 
-  x = 123456, -- DCS latitude (in m)
-  y = 1000, -- altitude (in m)
-  z = -123456 -- DCS longitude (in m)
-}
-]]
-if namedPoint and group then
-  local fireTask = {
-    id = 'FireAtPoint',
-    params = {
-      point = {x = namedPoint.x, y = namedPoint.z},
-      radius = 100, -- meters
-      expendQty = 30, -- shells
-      expendQtyEnabled = true,
-      --weaponType = number,
-      altitude = namedPoint.y,
-      alt_type = 0, -- MSL (QNH)
-    }
-  }
-  local controller = group:getController()
-  if controller then
-    controller:pushTask(fireTask)
-  end
 end
+
+local spawnCapFunction = function () end
+
+local userMenu1 = {
+  {"menu", "Mission menus", {
+      {"menu", "CAP management", {
+          {"menu", "EAST", {
+              {"menu", "Easy", {
+                  {"command", "Mig21", spawnCapFunction, "EAST on Demand MIG21"},
+                  {"command", "Mig21x3", spawnCapFunction, "EAST on Demand MIG21x3"},
+              }},
+              {"menu", "Normal", {
+                  {"command", "Mig31", spawnCapFunction, "EAST on Demand mig31"},
+                  {"command", "Mig31x3", spawnCapFunction, "EAST on Demand mig31x3"},
+              }},
+          }},
+          {"menu", "WEST", {
+              {"menu", "Easy", {
+                  {"command", "Mig21", spawnCapFunction, "WEST on Demand MIG21"},
+                  {"command", "Mig21x3", spawnCapFunction, "WEST on Demand MIG21x3"},
+              }},
+              {"menu", "Normal", {
+                  {"command", "Mig31", spawnCapFunction, "WEST on Demand mig31"},
+                  {"command", "Mig31x3", spawnCapFunction, "WEST on Demand mig31x3"},
+              }},
+          }}
+      }}
+  }}
+}
+
+local userMenu2 = {
+  menu("Mission menus", {
+      menu("CAP management", {
+          menu("EAST", {
+              menu("Easy", {
+                  command("Mig21", spawnCapFunction, "EAST on Demand MIG21"),
+                  command("Mig21x3", spawnCapFunction, "EAST on Demand MIG21x3"),
+              }),
+              menu("Normal", {
+                  command("Mig31", spawnCapFunction, "EAST on Demand mig31"),
+                  command("Mig31x3", spawnCapFunction, "EAST on Demand mig31x3"),
+              }),
+          }),
+          menu("WEST", {
+              menu("Easy", {
+                  command("Mig21", spawnCapFunction, "WEST on Demand MIG21"),
+                  command("Mig21x3", spawnCapFunction, "WEST on Demand MIG21x3"),
+              }),
+              menu("Normal", {
+                  command("Mig31", spawnCapFunction, "WEST on Demand mig31"),
+                  command("Mig31x3", spawnCapFunction, "WEST on Demand mig31x3"),
+              }),
+          })
+      })
+  })
+}
+
+local function menu(name, ...)
+  return {
+      "menu", name, { ... }
+  }
+end
+
+local function command(name, aFunction, parameters)
+  return {
+      "command", name, aFunction, parameters
+  }
+end
+
+local function mainmenu(...)
+  return { ... }
+end
+
+local userMenu2 = 
+  mainmenu(
+    menu("Mission menus", 
+        menu("CAP management", 
+            menu("EAST", 
+                menu("Easy", 
+                    command("Mig21", spawnCapFunction, "EAST on Demand MIG21"),
+                    command("Mig21x3", spawnCapFunction, "EAST on Demand MIG21x3")
+                ),
+                menu("Normal", 
+                    command("Mig31", spawnCapFunction, "EAST on Demand mig31"),
+                    command("Mig31x3", spawnCapFunction, "EAST on Demand mig31x3")
+                )
+            ),
+            menu("WEST", 
+                menu("Easy", 
+                    command("Mig21", spawnCapFunction, "WEST on Demand MIG21"),
+                    command("Mig21x3", spawnCapFunction, "WEST on Demand MIG21x3")
+                ),
+                menu("Normal", 
+                    command("Mig31", spawnCapFunction, "WEST on Demand mig31"),
+                    command("Mig31x3", spawnCapFunction, "WEST on Demand mig31x3")
+                )
+            )
+        )
+    )
+  )
+  
+print(P(userMenu1))
+print(P(userMenu2))

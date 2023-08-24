@@ -19,7 +19,7 @@ veafSkynet = {}
 veafSkynet.Id = "SKYNET"
 
 --- Version.
-veafSkynet.Version = "2.1.1"
+veafSkynet.Version = "2.1.2"
 
 -- trace level, specific to this module
 --veafSkynet.LogLevel = "trace"
@@ -53,6 +53,13 @@ veafSkynet.defaultIADS = {
 veafSkynet.iadsSamUnitsTypes = {}
 veafSkynet.iadsEwrUnitsTypes = {}
 
+-- Management of point defences (Flogas)
+-- when active, veafSkynet will attempt to set eligible groups as point defence of nearby defencible groups
+-- as per Skynet database types :
+--  - "single" groups will be eligible to defend "complex" or "ewr" groups
+--  - "complex" groups will be eligible to defend "ewr" groups
+--  - "single" groups will never be defended
+veafSkynet.PointDefenceActive = false -- false by default
 --table containing the structure of each IADS network, first level is accessed with the IADS name. This contains the .coalitionID of the network, the IADS network (.iads), the groups added to the network (.groups) stored by groupName, 
 --wether this network should appear on the radio menu (.includeInRadio) and lastly if this network is in debug mode (.debugFlag). The groups store whether the group was .forceEwr or .pointDefense.
 veafSkynet.structure = {}
@@ -60,6 +67,67 @@ veafSkynet.structure = {}
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Utility methods
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
+function veafSkynet.getStringSkynetElement(skynetElement)
+    local id = skynetElement.dcsRepresentation:getID()
+    local category = skynetElement.dcsRepresentation:getCategory()
+    local s = skynetElement.dcsName
+    if (skynetElement.getNatoName) then
+        s = s .. " [" .. skynetElement:getNatoName() .. "]"
+    else
+        s = s .. " [" .. skynetElement.typeName .. "]"
+    end
+
+    s = s .. " [id=" .. id .. "]" .. " [cat=" .. category .. "]"
+    return s
+end
+
+function veafSkynet.getDcsGroupFromSkynetElement(skynetElement)
+    -- sometimes the skynet element is the group, sometimes the unit
+    local dcsGroup = Group.getByName(skynetElement.dcsName)
+    if (dcsGroup == nil) then
+        local dcsUnit = Unit.getByName(skynetElement.dcsName)
+        if (dcsUnit ~= nil) then
+            dcsGroup = Unit.getGroup(dcsUnit)
+        end
+    end
+
+    return dcsGroup
+end
+
+function veafSkynet.getSkynetData(skynetElement)
+    local function skynetDatabaseMatchType(skynetElementTypeList, skynetDatabaseTypeList)
+        if (skynetDatabaseTypeList and skynetElementTypeList and #skynetElementTypeList > 0) then
+            for i = 1, #skynetElementTypeList do
+                if (skynetDatabaseTypeList[skynetElementTypeList[i].typeName]) then
+                    return true
+                end
+            end
+        end
+
+        return false
+    end
+
+    for skynetDataName, skynetData in pairs(SkynetIADS.database) do
+        -- first check the launchers as they are the most unique thing
+        if(skynetDatabaseMatchType(skynetElement.launchers, skynetData["launchers"])) then
+            veaf.loggers.get(veafSkynet.Id):trace("Matched by launcher : " .. veafSkynet.getStringSkynetElement(skynetElement) .. " > " .. skynetDataName)
+            return skynetData
+        end
+
+        -- tracking and search radars can be used by multiple sites
+        if(skynetDatabaseMatchType(skynetElement.trackingRadars, skynetData["trackingRadar"])) then
+            veaf.loggers.get(veafSkynet.Id):trace("Matched by launcher : " .. veafSkynet.getStringSkynetElement(skynetElement) .. " > " .. skynetDataName)
+            return skynetData
+        end
+        if(skynetDatabaseMatchType(skynetElement.searchRadars, skynetData["searchRadar"])) then
+            veaf.loggers.get(veafSkynet.Id):trace("Matched by launcher : " .. veafSkynet.getStringSkynetElement(skynetElement) .. " > " .. skynetDataName)
+            return skynetData
+        end
+    end
+
+    veaf.loggers.get(veafSkynet.Id):trace("No match : " .. veafSkynet.getStringSkynetElement(skynetElement))
+    return nil
+end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- core functions
@@ -198,6 +266,127 @@ function veafSkynet.getNearestIADSSite(networkName, dcsGroup)
     return nearestSAMname
 end
 
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- Management of point defences (Flogas)
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+function veafSkynet.canBePointDefence(skynetData)
+    if (skynetData == nil) then
+        return false
+    end
+    if (skynetData["can_engage_harm"] ~= true) then
+        return false
+    end
+    if (skynetData["type"] ~= "complex" and skynetData["type"] ~= "single") then
+        return false
+    end
+
+    return true
+end
+
+function veafSkynet.findSkynetElementToDefend(skynetElementPointDefence, skynetDataPointDefence)
+    local dcsGroupPointDefence = veafSkynet.getDcsGroupFromSkynetElement(skynetElementPointDefence)
+    local iads = skynetElementPointDefence.iads
+    local pointDefenceType = skynetDataPointDefence["type"]
+
+    local pointDefencePosition = veaf.getAveragePosition(dcsGroupPointDefence)
+    if (pointDefencePosition == nil) then
+        return nil
+    end
+
+    local function findClosestSkynetElementInList(skynetElementList)
+        if (skynetElementList == nil or #skynetElementList <= 0) then
+            return nil
+        end
+
+        local iMinDistance = veafSkynet.MaxPointDefenseDistanceFromSite
+        local foundElement
+        for i = 1, #skynetElementList do
+            local skynetElement = skynetElementList[i]
+            local skynetData = veafSkynet.getSkynetData(skynetElement)
+            if (skynetData and (skynetData["type"] == "ewr" or (skynetData["type"] == "complex" and pointDefenceType == "single"))) then
+                -- ewr are always defencible, and complex sam sites only defencible by single groups
+                local dcsGroup = veafSkynet.getDcsGroupFromSkynetElement(skynetElementList[i])
+                local position = veaf.getAveragePosition(dcsGroup)
+
+                if (position) then
+                    local iDistance = math.sqrt((position.x - pointDefencePosition.x)^2 + (position.z - pointDefencePosition.z)^2)
+             
+                    if (iDistance < iMinDistance) then
+                        foundElement = skynetElement
+                        iMinDistance = iDistance
+                    end
+                end
+            end
+        end
+
+        return foundElement
+    end
+
+    local elementToDefend = findClosestSkynetElementInList (iads:getEarlyWarningRadars())
+    if (elementToDefend == nil and pointDefenceType == "single") then
+        elementToDefend = findClosestSkynetElementInList (iads:getSAMSites())
+    end
+
+    if (elementToDefend) then
+        local sDescriptorPointDefence = veafSkynet.getStringSkynetElement(skynetElementPointDefence)
+        local sDescriptorToDefend = veafSkynet.getStringSkynetElement(elementToDefend)
+        veaf.loggers.get(veafSkynet.Id):trace("Identified [ " .. sDescriptorToDefend .. " ] to be defended by [ " .. sDescriptorPointDefence .. " ]")
+    end
+
+    return elementToDefend
+end
+
+function veafSkynet.removePointDefencesFromSkynetElement(skynetElement)
+    if(skynetElement and skynetElement.pointDefences and #skynetElement.pointDefences > 0) then
+        for i = 1, #skynetElement.pointDefences do
+            skynetElement.pointDefences[i]:setIsAPointDefence(false)
+        end
+        skynetElement.pointDefences = {}
+    end
+
+    skynetElement.pointDefences = {}
+end
+
+function veafSkynet.removePointDefences(iads)
+    local ewrs = iads:getEarlyWarningRadars()
+    if (ewrs and #ewrs > 0) then
+        for i = 1, #ewrs do
+            veafSkynet.removePointDefencesFromSkynetElement(ewrs[i])
+        end
+    end
+    local samSites = iads:getSAMSites()
+    if (samSites and #samSites > 0) then
+        for i = 1, #samSites do
+            veafSkynet.removePointDefencesFromSkynetElement(samSites[i])
+        end
+    end
+end
+
+function veafSkynet.initializePointDefenceSamSite(samSite)
+    if (samSite:getIsAPointDefence()) then
+        return
+    end
+
+    local skynetData = veafSkynet.getSkynetData(samSite)
+    if (not veafSkynet.canBePointDefence(skynetData)) then
+        return
+    end
+
+    local elementToDefend = veafSkynet.findSkynetElementToDefend(samSite, skynetData)
+    if (elementToDefend) then
+        elementToDefend:addPointDefence(samSite)
+    end
+end
+
+function veafSkynet.initializePointDefences(iads)
+    veaf.loggers.get(veafSkynet.Id):debug("Analyzing network to create point defences")
+    local samSites = iads:getSAMSites()
+    if (samSites and #samSites > 0) then
+        for i = 1, #samSites do
+            veafSkynet.initializePointDefenceSamSite(samSites[i])
+        end
+    end
+end
 
 function veafSkynet.addGroupToNetwork(networkName, dcsGroup, forceEwr, pointDefense, alreadyAddedGroups, silent)
     veaf.loggers.get(veafSkynet.Id):debug("addGroupToNetwork(%s)", veaf.p(networkName))
@@ -417,6 +606,12 @@ local function initializeIADS(networkName, coa, inRadio, debug)
     iads:getSAMSitesByNatoName('Patriot'):setActAsEW(false)
     iads:getSAMSitesByNatoName('Hawk'):setActAsEW(false)
 
+    -- Management of point defences (Flogas) - initialization
+    if(veafSkynet.PointDefenceActive) then
+        veafSkynet.initializePointDefences(iads)
+    end
+    --
+
     if inRadio then
         --activate the radio menu to toggle IADS Status output
         iads:addRadioMenu()
@@ -479,17 +674,19 @@ local function createNetwork(networkName, coa, loadUnits, UserAdd)
                 end
                 veafSkynet.structure[networkName].iads = iads
 
-                veaf.loggers.get(veafSkynet.Id):trace("Stored structure for network named %s :", veaf.p(networkName))
-                for index,_ in pairs(veafSkynet.structure[networkName]) do
-                    veaf.loggers.get(veafSkynet.Id):trace("-> %s", veaf.p(index))
+                if veaf.loggers.get(veafSkynet.Id):wouldLogTrace() then
+                    veaf.loggers.get(veafSkynet.Id):trace("Stored structure for network named %s :", veaf.p(networkName))
+                    for index,_ in pairs(veafSkynet.structure[networkName]) do
+                        veaf.loggers.get(veafSkynet.Id):trace("-> %s", veaf.p(index))
+                    end
+                    veaf.loggers.get(veafSkynet.Id):trace("Stored IADS structure for network named %s :", veaf.p(networkName))
+                    for index,_ in pairs(veafSkynet.structure[networkName].iads) do
+                        veaf.loggers.get(veafSkynet.Id):trace("-> %s", veaf.p(index))
+                    end
+                    veaf.loggers.get(veafSkynet.Id):trace("CoalitionID for network named %s :", veaf.p(networkName))
+                    veaf.loggers.get(veafSkynet.Id):trace("-> %s", veaf.p(veafSkynet.structure[networkName].iads.coalitionID))
+                    veaf.loggers.get(veafSkynet.Id):trace("-> %s", veaf.p(veafSkynet.structure[networkName].iads:getCoalitionString()))
                 end
-                veaf.loggers.get(veafSkynet.Id):trace("Stored IADS structure for network named %s :", veaf.p(networkName))
-                for index,_ in pairs(veafSkynet.structure[networkName].iads) do
-                    veaf.loggers.get(veafSkynet.Id):trace("-> %s", veaf.p(index))
-                end
-                veaf.loggers.get(veafSkynet.Id):trace("CoalitionID for network named %s :", veaf.p(networkName))
-                veaf.loggers.get(veafSkynet.Id):trace("-> %s", veaf.p(veafSkynet.structure[networkName].iads.coalitionID))
-                veaf.loggers.get(veafSkynet.Id):trace("-> %s", veaf.p(veafSkynet.structure[networkName].iads:getCoalitionString()))
 
                 if loadUnits then
                     initializeIADS(networkName, coa, includeInRadio, debugFlag)
@@ -558,7 +755,7 @@ function veafSkynet._initialize(includeRedInRadio, debugRed, includeBlueInRadio,
         for _, listName in pairs({ "searchRadar", "trackingRadar", "launchers", "misc" }) do
             if groupData['type'] ~= 'ewr' then
                 local list = groupData[listName]
-                if list then 
+                if list then
                     for unitType, _ in pairs(list) do
                         veaf.loggers.get(veafSkynet.Id):trace(string.format("-> SAM"))
                         veafSkynet.iadsSamUnitsTypes[unitType] = true

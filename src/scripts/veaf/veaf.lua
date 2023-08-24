@@ -19,7 +19,7 @@ veaf = {}
 veaf.Id = "VEAF"
 
 --- Version.
-veaf.Version = "1.45.0"
+veaf.Version = "1.45.1"
 
 --- Development version ?
 veaf.Development = true
@@ -38,8 +38,6 @@ veaf.DEFAULT_GROUND_SPEED_KPH = 30
 -- Do not change anything below unless you know what you are doing!
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-veaf.monitoredFlags = {}
-veaf.maxMonitoredFlag = 27000
 veaf.config = {}
 veaf.triggerZones = {}
 
@@ -3135,6 +3133,22 @@ function veaf.Logger:trace(text, ...)
         text = veaf.Logger.formatText(text, arg)
         self:print(5, text)
     end
+end
+
+function veaf.Logger:wouldLogWarn()
+    return self.level >= 2
+end
+
+function veaf.Logger:wouldLogInfo()
+    return self.level >= 3
+end
+
+function veaf.Logger:wouldLogDebug()
+    return self.level >= 4
+end
+
+function veaf.Logger:wouldLogTrace()
+    return self.level >= 5
 end
 
 function veaf.Logger:marker(id, header, message, position, markersTable, radius, fillColor)

@@ -19,7 +19,7 @@ veafRemote = {}
 veafRemote.Id = "REMOTE"
 
 --- Version.
-veafRemote.Version = "2.2.0"
+veafRemote.Version = "2.2.1"
 
 -- trace level, specific to this module
 --veafRemote.LogLevel = "trace"
@@ -32,8 +32,6 @@ veafRemote.USE_SLMOD = false
 -- if false, SLMOD will never be called
 veafRemote.USE_SLMOD_FOR_SPECIAL_COMMANDS = false
 
-veafRemote.SecondsBetweenFlagMonitorChecks = 5
-
 veafRemote.CommandStarter = "_remote"
 
 veafRemote.MIN_LEVEL_FOR_MARKER = 10
@@ -42,9 +40,7 @@ veafRemote.MIN_LEVEL_FOR_MARKER = 10
 -- Do not change anything below unless you know what you are doing!
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-veafRemote.monitoredFlags = {}
 veafRemote.monitoredCommands = {}
-veafRemote.maxMonitoredFlag = 27000
 veafRemote.remoteUsers = {}
 veafRemote.remoteUnitsPilots = {}
 

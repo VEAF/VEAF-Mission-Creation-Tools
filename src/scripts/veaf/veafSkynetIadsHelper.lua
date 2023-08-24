@@ -674,7 +674,7 @@ local function createNetwork(networkName, coa, loadUnits, UserAdd)
                 end
                 veafSkynet.structure[networkName].iads = iads
 
-                if veaf.loggers.get(veafSkynet.Id).wouldLogTrace() then
+                if veaf.loggers.get(veafSkynet.Id):wouldLogTrace() then
                     veaf.loggers.get(veafSkynet.Id):trace("Stored structure for network named %s :", veaf.p(networkName))
                     for index,_ in pairs(veafSkynet.structure[networkName]) do
                         veaf.loggers.get(veafSkynet.Id):trace("-> %s", veaf.p(index))

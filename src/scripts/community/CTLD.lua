@@ -26,7 +26,7 @@ ctld = {} -- DONT REMOVE!
 ctld.Id = "CTLD - "
 
 --- Version.
-ctld.Version = "20230416.01"
+ctld.Version = "20230825.01"
 
 -- debug level, specific to this module
 ctld.Debug = true
@@ -2764,10 +2764,12 @@ function ctld.loadNearbyCrate(_name)
 
 end
 
---recreates beacons to make sure they work!
+--check each minute if the beacons' batteries have failed, and stop them accordingly
+--there's no more need to actually refresh the beacons, since we set "loop" to true.
 function ctld.refreshRadioBeacons()
+    ctld.logDebug("ctld.refreshRadioBeacons()")
 
-    timer.scheduleFunction(ctld.refreshRadioBeacons, nil, timer.getTime() + 30)
+    timer.scheduleFunction(ctld.refreshRadioBeacons, nil, timer.getTime() + 60)
 
 
     for _index, _beaconDetails in ipairs(ctld.deployedRadioBeacons) do
@@ -3390,10 +3392,11 @@ end
 -- one for VHF and one for UHF
 -- The units are set to to NOT engage
 function ctld.createRadioBeacon(_point, _coalition, _country, _name, _batteryTime, _isFOB)
+    ctld.logDebug(string.format("ctld.createRadioBeacon(_name=%s)", ctld.p(_name)))
 
-    local _uhfGroup = ctld.spawnRadioBeaconUnit(_point, _country, "UHF")
-    local _vhfGroup = ctld.spawnRadioBeaconUnit(_point, _country, "VHF")
-    local _fmGroup = ctld.spawnRadioBeaconUnit(_point, _country, "FM")
+    local _uhfGroup = ctld.spawnRadioBeaconUnit(_point, _country, _name .. "-UHF")
+    local _vhfGroup = ctld.spawnRadioBeaconUnit(_point, _country, _name .. "-VHF")
+    local _fmGroup = ctld.spawnRadioBeaconUnit(_point, _country, _name .. "-FM")
 
     local _freq = ctld.generateADFFrequencies()
 
@@ -3443,6 +3446,8 @@ function ctld.createRadioBeacon(_point, _coalition, _country, _name, _batteryTim
         battery = _battery,
         coalition = _coalition,
     }
+    
+    ctld.logDebug(string.format("calling ctld.updateRadioBeacon for beacon %s", ctld.p(_name)))
     ctld.updateRadioBeacon(_beaconDetails)
 
     table.insert(ctld.deployedRadioBeacons, _beaconDetails)
@@ -3484,7 +3489,8 @@ end
 
 
 
-function ctld.spawnRadioBeaconUnit(_point, _country, _type)
+function ctld.spawnRadioBeaconUnit(_point, _country, _name)
+    ctld.logDebug(string.format("ctld.spawnRadioBeaconUnit(_name=%s)", ctld.p(_name)))
 
     local _groupId = ctld.getNextGroupId()
 
@@ -3498,7 +3504,7 @@ function ctld.spawnRadioBeaconUnit(_point, _country, _type)
             [1] = {
                 ["y"] = _point.z,
                 ["type"] = "TACAN_beacon",
-                ["name"] = _type .. " Radio Beacon Unit #" .. _unitId,
+                ["name"] = _name .. " - Unit #" .. _unitId,
              --   ["unitId"] = _unitId,
                 ["heading"] = 0,
                 ["playerCanDrive"] = true,
@@ -3508,7 +3514,7 @@ function ctld.spawnRadioBeaconUnit(_point, _country, _type)
         },
         --        ["y"] = _positions[1].z,
         --        ["x"] = _positions[1].x,
-        ["name"] = _type .. " Radio Beacon Group #" .. _groupId,
+        ["name"] = _name .. " - Group #" .. _groupId,
         ["task"] = {},
         --added two fields below for MIST
         ["category"] = Group.Category.GROUND,
@@ -3520,6 +3526,8 @@ function ctld.spawnRadioBeaconUnit(_point, _country, _type)
 end
 
 function ctld.updateRadioBeacon(_beaconDetails)
+    ctld.logDebug("ctld.updateRadioBeacon()")
+    ctld.logTrace(string.format("_beaconDetails=%s", ctld.p(_beaconDetails)))
 
     local _vhfGroup = Group.getByName(_beaconDetails.vhfGroup)
 
@@ -3530,14 +3538,17 @@ function ctld.updateRadioBeacon(_beaconDetails)
     local _radioLoop = {}
 
     if _vhfGroup ~= nil and _vhfGroup:getUnits() ~= nil and #_vhfGroup:getUnits() == 1 then
+        ctld.logTrace(string.format("_vhfGroup=%s", ctld.p(_vhfGroup)))
         table.insert(_radioLoop, { group = _vhfGroup, freq = _beaconDetails.vhf, silent = false, mode = 0 })
     end
 
     if _uhfGroup ~= nil and _uhfGroup:getUnits() ~= nil and #_uhfGroup:getUnits() == 1 then
+        ctld.logTrace(string.format("_uhfGroup=%s", ctld.p(_uhfGroup)))
         table.insert(_radioLoop, { group = _uhfGroup, freq = _beaconDetails.uhf, silent = true, mode = 0 })
     end
 
     if _fmGroup ~= nil and _fmGroup:getUnits() ~= nil and #_fmGroup:getUnits() == 1 then
+        ctld.logTrace(string.format("_fmGroup=%s", ctld.p(_fmGroup)))
         table.insert(_radioLoop, { group = _fmGroup, freq = _beaconDetails.fm, silent = false, mode = 1 })
     end
 
@@ -3545,14 +3556,20 @@ function ctld.updateRadioBeacon(_beaconDetails)
 
     if (_batLife <= 0 and _beaconDetails.battery ~= -1) or #_radioLoop ~= 3 then
         -- ran out of batteries
-
+        ctld.logDebug("ran out of batteries")
         if _vhfGroup ~= nil then
+            ctld.logTrace(string.format("stopping transmission of %s", ctld.p(_vhfGroup:getName())))
+            trigger.action.stopRadioTransmission(_vhfGroup:getName())
             _vhfGroup:destroy()
         end
         if _uhfGroup ~= nil then
+            ctld.logTrace(string.format("stopping transmission of %s", ctld.p(_uhfGroup:getName())))
+            trigger.action.stopRadioTransmission(_uhfGroup:getName())
             _uhfGroup:destroy()
         end
         if _fmGroup ~= nil then
+            ctld.logTrace(string.format("stopping transmission of %s", ctld.p(_fmGroup:getName())))
+            trigger.action.stopRadioTransmission(_fmGroup:getName())
             _fmGroup:destroy()
         end
 
@@ -3577,17 +3594,17 @@ function ctld.updateRadioBeacon(_beaconDetails)
 
         _groupController:setOption(AI.Option.Ground.id.ROE, AI.Option.Ground.val.ROE.WEAPON_HOLD)
 
-        trigger.action.radioTransmission(_sound, _radio.group:getUnit(1):getPoint(), _radio.mode, false, _radio.freq, 1000)
-        --This function doesnt actually stop transmitting when then sound is false. My hope is it will stop if a new beacon is created on the same
-        -- frequency... OR they fix the bug where it wont stop.
-        --        end
+        ctld.logTrace(string.format("stopping and restarting transmission of %s", ctld.p(_radio.group:getName())))
+        
+        -- stop the transmission at each call to the ctld.updateRadioBeacon method (default each minute)
+        trigger.action.stopRadioTransmission(_radio.group:getName())
 
-        --
+        -- restart it as the battery is still up
+        -- the transmission is set to loop and has the name of the transmitting DCS group (that includes the type - i.e. FM, UHF, VHF)
+        trigger.action.radioTransmission(_sound, _radio.group:getUnit(1):getPoint(), _radio.mode, true, _radio.freq, 1000, _radio.group:getName())
     end
 
     return true
-
-    --  trigger.action.radioTransmission(ctld.radioSound, _point, 1, true, _frequency, 1000)
 end
 
 function ctld.listRadioBeacons(_args)
@@ -6751,11 +6768,9 @@ math.random(); math.random(); math.random()
 --- Enable/Disable error boxes displayed on screen.
 env.setErrorMessageBoxEnabled(false)
 
--- initialize CTLD only out of a VEAF mission
-if not veaf then
-    ctld.logInfo(string.format("Loading version %s", ctld.Version))
-    ctld.initialize()
-end
+-- initialize CTLD in 2 seconds, so other scripts have a chance to modify the configuration before initialization
+ctld.logInfo(string.format("Loading version %s in 2 seconds", ctld.Version))
+timer.scheduleFunction(ctld.initialize, nil, timer.getTime() + 2)
 
 --DEBUG FUNCTION
 --        for key, value in pairs(getmetatable(_spawnedCrate)) do

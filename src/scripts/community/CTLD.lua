@@ -26,7 +26,7 @@ ctld = {} -- DONT REMOVE!
 ctld.Id = "CTLD - "
 
 --- Version.
-ctld.Version = "20230825.01"
+ctld.Version = "20230826.01"
 
 -- debug level, specific to this module
 ctld.Debug = true
@@ -149,7 +149,10 @@ ctld.location_DMS = false -- shows coordinates as Degrees Minutes Seconds instea
 
 ctld.JTAC_lock = "all" -- "vehicle" OR "troop" OR "all" forces JTAC to only lock vehicles or troops or all ground units
 
+ctld.JTAC_allowStandbyMode = true -- if true, allow players to toggle lasing on/off
 ctld.JTAC_laseSpotCorrections = true -- if true, each JTAC will have a special option (toggle on/off) available in it's menu to attempt to lead the target, taking into account current wind conditions and the speed of the target (particularily useful against moving heavy armor)
+ctld.JTAC_allowSmokeRequest = true -- if true, allow players to request a smoke on target (temporary)
+ctld.JTAC_allow9Line = true -- if true, allow players to ask for a 9Line (individual) for a specific JTAC's target
 
 -- ***************** Pickup, dropoff and waypoint zones *****************
 
@@ -5147,7 +5150,7 @@ function ctld.addJTACRadioCommand(_side)
                             --if JTAC has at least one target in sight (if it has only one, it'll already be designated, this menu is then simply to access special options for the JTAC like wind/target speed compensation)
                             if ctld.jtacCurrentTargets[_jtacGroupName] then
 
-                                local jtacGroupSubMenuName = string.format(_jtacGroupName .. " TGT Select")
+                                local jtacGroupSubMenuName = string.format(_jtacGroupName .. " Selection")
 
                                 jtacCounter = jtacCounter + 1
                                 --F2 through F10 makes 9 entries possible per page, with one being the NextMenu submenu. F1 is taken by JTAC status entry.
@@ -5165,15 +5168,35 @@ function ctld.addJTACRadioCommand(_side)
                                 
                                 --counter to know when to add the next page submenu to fit all of the targets in the JTAC's group submenu. SMay not actually start at 0 due to static items being present on the first page
                                 local itemCounter = 0
+                                local jtacSpecialOptPagePath = nil
 
                                 --special options
-                                --add a way to allow the JTAC to perform wind/target speed corrections
-                                if ctld.JTAC_laseSpotCorrections then 
-                                    itemCounter = itemCounter + 1 --one item is added to the first JTAC target page
-                                    if ctld.jtacSpecialOptions.laseSpotCorrections[_jtacGroupName] then
-                                        missionCommands.addCommandForGroup(_groupId, "DISABLE Speed Correction", jtacTargetPagePath, ctld.setLaseCompensation, {jtacGroupName = _jtacGroupName, value = false})
-                                    else
-                                        missionCommands.addCommandForGroup(_groupId, "ENABLE Speed Correction", jtacTargetPagePath, ctld.setLaseCompensation, {jtacGroupName = _jtacGroupName, value = true})
+                                local SpecialOptionsCounter = 0
+
+                                for _,_specialOption in pairs(ctld.jtacSpecialOptions) do
+                                    if _specialOption.globalToggle then 
+                                        
+                                        if not jtacSpecialOptPagePath then
+                                            itemCounter = itemCounter + 1 --one item is added to the first JTAC target page
+                                            jtacSpecialOptPagePath = missionCommands.addSubMenuForGroup(_groupId, "Actions", jtacTargetPagePath)
+                                        end
+
+                                        SpecialOptionsCounter = SpecialOptionsCounter+1
+
+                                        if SpecialOptionsCounter%10 == 0 then
+                                            jtacSpecialOptPagePath = missionCommands.addSubMenuForGroup(_groupId, NextPageText, jtacSpecialOptPagePath)
+                                            SpecialOptionsCounter = SpecialOptionsCounter+1 --Added Next Page item
+                                        end
+
+                                        if _specialOption.jtacs then
+                                            if _specialOption.jtacs[_jtacGroupName] then
+                                                missionCommands.addCommandForGroup(_groupId, "DISABLE " ..  _specialOption.message, jtacSpecialOptPagePath, _specialOption.setter, {jtacGroupName = _jtacGroupName, value = false})
+                                            else
+                                                missionCommands.addCommandForGroup(_groupId, "ENABLE " .. _specialOption.message, jtacSpecialOptPagePath, _specialOption.setter, {jtacGroupName = _jtacGroupName, value = true})
+                                            end
+                                        else
+                                            missionCommands.addCommandForGroup(_groupId, "REQUEST " .. _specialOption.message, jtacSpecialOptPagePath, _specialOption.setter, {jtacGroupName = _jtacGroupName, value = false}) --value is not used here
+                                        end
                                     end
                                 end
 
@@ -5267,8 +5290,33 @@ ctld.jtacStop = {} -- jtacs to tell to stop lasing
 ctld.jtacCurrentTargets = {}
 ctld.jtacTargetsList = {} --current available targets to each JTAC for lasing (targets from other JTACs are filtered out). Contains DCS unit objects with their methods and the distance to the JTAC {unit, dist}
 ctld.jtacSelectedTarget = {} --currently user selected target if it contains a unit's name, otherwise contains 1 or nil (if not initialized)
-ctld.jtacSpecialOptions = { --list which contains the status of special options for each jtac, until this system is further developped in the ctld.addJTACRadioCommand() function, keep the number of items below 9 !
-    laseSpotCorrections = {}; --target speed and wind compensation for laser spot
+ctld.jtacSpecialOptions = { --list which contains the status of special options for each jtac, ordered for them to show up in the correct order in the corresponding radio menu
+    standbyMode = { --#1
+        globalToggle = ctld.JTAC_allowStandbyMode;
+        message = "Standby Mode";
+        setter = nil; --ctld.setStdbMode, will be set after declaration of said function
+        jtacs = {
+            --enable flag for each JTAC
+        };
+    }; --disable designation by the JTAC
+    smokeMarker = { --#4
+        globalToggle = ctld.JTAC_allowSmokeRequest;
+        message = "Smoke on TGT";
+        setter = nil; --ctld.setSmokeOnTarget
+    }; --smoke marker on target
+    laseSpotCorrections = { --#2
+        globalToggle = ctld.JTAC_laseSpotCorrections;
+        message = "Speed Corrections";
+        setter = nil; --ctld.setLaseCompensation
+        jtacs = {
+            --enable flag for each JTAC
+        };
+    }; --target speed and wind compensation for laser spot
+    _9Line = { --#3
+        globalToggle = ctld.JTAC_allow9Line;
+        message = "9 Line";
+        setter = nil; --ctld.setJTAC9Line
+    }; --9Line message for JTAC
 }
 ctld.jtacRadioAdded = {} --keeps track of who's had the radio command added
 ctld.jtacGroupSubMenuPath = {} --keeps track of which submenu contains each JTAC's target selection menu
@@ -5370,8 +5418,11 @@ function ctld.JTACAutoLase(_jtacGroupName, _laserCode, _smoke, _lock, _colour, _
             if _jtacCoalition then ctld.newJtac[_jtacCoalition] = true end
 
             --Special Options
-            ctld.jtacSpecialOptions.laseSpotCorrections[_jtacGroupName] = false
-
+            for _,_specialOption in pairs(ctld.jtacSpecialOptions) do
+                if _specialOption.jtacs then
+                    _specialOption.jtacs[_jtacGroupName] = false
+                end
+            end
         end
 
         if not ctld.jtacSelectedTarget[_jtacGroupName] then
@@ -5477,7 +5528,14 @@ function ctld.JTACAutoLase(_jtacGroupName, _laserCode, _smoke, _lock, _colour, _
             -- store current target for easy lookup
             ctld.jtacCurrentTargets[_jtacGroupName] = { name = _defaultEnemyUnit:getName(), unitType = _defaultEnemyUnit:getTypeName(), unitId = _defaultEnemyUnit:getID() }
              
-            local action = "lasing new target, "
+            --add check for lasing or not
+            local action = "new target, "
+
+            if ctld.jtacSpecialOptions.standbyMode[_jtacGroupName] then
+                action = "standing by on " .. action
+            else
+                action = "lasing " .. action
+            end
             
             if wasSelected and targetLost then
                 action = ", temporarily " .. action
@@ -5516,7 +5574,7 @@ function ctld.JTACAutoLase(_jtacGroupName, _laserCode, _smoke, _lock, _colour, _
         end
     end
 
-    if _enemyUnit ~= nil then
+    if _enemyUnit ~= nil and not ctld.jtacSpecialOptions.standbyMode.jtacs[_jtacGroupName] then
 
         local refreshDelay = 15 --delay in between JTACAutoLase scheduled calls when a target is tracked
         local targetSpeedVec = _enemyUnit:getVelocity()
@@ -5553,7 +5611,7 @@ function ctld.JTACAutoLase(_jtacGroupName, _laserCode, _smoke, _lock, _colour, _
         end
 
     else
-        -- env.info('LASE: No Enemies Nearby')
+        -- env.info('LASE: No Enemies Nearby / Standby mode')
 
         -- stop lazing the old spot
         ctld.cancelLase(_jtacGroupName)
@@ -5595,8 +5653,10 @@ function ctld.cleanupJTAC(_jtacGroupName)
 
     ctld.jtacSelectedTarget[_jtacGroupName] = nil
 
-    for _,jtacsList in pairs(ctld.jtacSpecialOptions) do --delete all special options for that JTAC
-        jtacsList[_jtacGroupName] = nil
+    for _,_specialOption in pairs(ctld.jtacSpecialOptions) do --delete jtac specific settings for all special options
+        if _specialOption.jtacs then
+            _specialOption.jtacs[_jtacGroupName] = nil
+        end
     end
 
     ctld.jtacRadioData[_jtacGroupName] = nil
@@ -5836,7 +5896,7 @@ function ctld.findNearestVisibleEnemy(_jtacUnit, _targetType,_distance)
 
     local _nearestDistance = _maxDistance
 
-    local _jtacGroupName = _jtacUnit:getGroup():getName()
+    local _jtacGroupName = _jtacUnit:getName()
     local _jtacPoint = _jtacUnit:getPoint()
     local _coa =    _jtacUnit:getCoalition()
 
@@ -6053,15 +6113,22 @@ end
 -- gets the JTAC status and displays to coalition units
 function ctld.getJTACStatus(_args)
 
-    --returns the status of all JTAC units
+    --returns the status of all JTAC units unless the status of a single JTAC is asked for (by inserting it's groupName in _args[2])
 
     local _playerUnit = ctld.getTransportUnit(_args[1])
+    local _singleJtacGroupName = _args[2]
 
-    if _playerUnit == nil then
+    if _playerUnit == nil and _singleJtacGroupName == nil then
         return
     end
 
-    local _side = _playerUnit:getCoalition()
+    local _side = nil
+
+    if _playerUnit == nil then
+        _side = ctld.jtacUnits[_singleJtacGroupName].side
+    else
+        _side = _playerUnit:getCoalition()
+    end
 
     local _jtacGroupName = nil
     local _jtacUnit = nil
@@ -6071,50 +6138,56 @@ function ctld.getJTACStatus(_args)
     for _jtacGroupName, _jtacDetails in pairs(ctld.jtacUnits) do
 
         --look up units
-        _jtacUnit = Unit.getByName(_jtacDetails.name)
+        if _singleJtacGroupName == nil or (_singleJtacGroupName and _singleJtacGroupName == _jtacGroupName) then --if the status of a single JTAC or if the status of a single JTAC was asked and this is the correct JTAC we're going over in the loop
+            _jtacUnit = Unit.getByName(_jtacDetails.name)
 
-        if _jtacUnit ~= nil and _jtacUnit:getLife() > 0 and _jtacUnit:isActive() == true and _jtacUnit:getCoalition() == _side then
+            if _jtacUnit ~= nil and _jtacUnit:getLife() > 0 and _jtacUnit:isActive() == true and _jtacUnit:getCoalition() == _side then
 
-            local _enemyUnit = ctld.getCurrentUnit(_jtacUnit, _jtacGroupName)
+                local _enemyUnit = ctld.getCurrentUnit(_jtacUnit, _jtacGroupName)
 
-            local _laserCode = ctld.jtacLaserPointCodes[_jtacGroupName]
+                local _laserCode = ctld.jtacLaserPointCodes[_jtacGroupName]
 
-            local _start = "->" .. _jtacGroupName
-            if (_jtacDetails.radio) then
-                _start = _start .. ", available on ".._jtacDetails.radio.freq.." ".._jtacDetails.radio.mod ..","
-            end
+                local _start = "->" .. _jtacGroupName
+                if (_jtacDetails.radio) then
+                    _start = _start .. ", available on ".._jtacDetails.radio.freq.." ".._jtacDetails.radio.mod ..","
+                end
 
-            if _laserCode == nil then
-                _laserCode = "UNKNOWN"
-            end
+                if _laserCode == nil then
+                    _laserCode = "UNKNOWN"
+                end
 
-            if _enemyUnit ~= nil and _enemyUnit:getLife() > 0 and _enemyUnit:isActive() == true then
+                if _enemyUnit ~= nil and _enemyUnit:getLife() > 0 and _enemyUnit:isActive() == true then
 
-                local action = " targeting "
+                    local action = " targeting "
 
-                if ctld.jtacSelectedTarget[_jtacGroupName] == _enemyUnit:getName() then 
-                    action = " targeting selected unit "
+                    if ctld.jtacSelectedTarget[_jtacGroupName] == _enemyUnit:getName() then 
+                        action = " targeting selected unit "
+                    else
+                        if ctld.jtacSelectedTarget[_jtacGroupName] ~= 1 then
+                            action = " attempting to find selected unit, temporarily targeting "
+                        end
+                    end
+
+                    if ctld.jtacSpecialOptions.standbyMode.jtacs[_jtacGroupName] then
+                        action = action .. "(Laser OFF) "
+                    end
+
+                    _message = _message .. "" .. _start .. action .. _enemyUnit:getTypeName() .. " CODE: " .. _laserCode .. ctld.getPositionString(_enemyUnit) .. "\n"
+
+                    local _list = ctld.listNearbyEnemies(_jtacUnit)
+
+                    if _list then
+                        _message = _message.."Visual On: "
+
+                        for _,_type in pairs(_list) do
+                            _message = _message.._type.." "
+                        end
+                        _message = _message.."\n"
+                    end
+
                 else
-                    if ctld.jtacSelectedTarget[_jtacGroupName] ~= 1 then
-                        action = " attempting to find selected unit, temporarily targeting "
-                    end
+                    _message = _message .. "" .. _start .. " searching for targets" .. ctld.getPositionString(_jtacUnit) .. "\n"
                 end
-
-                _message = _message .. "" .. _start .. action .. _enemyUnit:getTypeName() .. " CODE: " .. _laserCode .. ctld.getPositionString(_enemyUnit) .. "\n"
-
-                local _list = ctld.listNearbyEnemies(_jtacUnit)
-
-                if _list then
-                    _message = _message.."Visual On: "
-
-                    for _,_type in pairs(_list) do
-                        _message = _message.._type.." "
-                    end
-                    _message = _message.."\n"
-                end
-
-            else
-                _message = _message .. "" .. _start .. " searching for targets" .. ctld.getPositionString(_jtacUnit) .. "\n"
             end
         end
     end
@@ -6156,31 +6229,109 @@ function ctld.setJTACTarget(_args)
         elseif not targetName and ctld.jtacSelectedTarget[_jtacGroupName] ~= 1 then
             ctld.jtacSelectedTarget[_jtacGroupName] = 1
             ctld.jtacCurrentTargets[_jtacGroupName] = nil
-            ctld.setLaseCompensation({jtacGroupName = _jtacGroupName, value = false}) --disable laser spot corrections
 
             local message = _jtacGroupName .. ", target selection reset."
             ctld.notifyCoalition(message, 10, ctld.jtacUnits[_jtacGroupName].side, ctld.jtacRadioData[_jtacGroupName])
+
+            if ctld.jtacSpecialOptions.laseSpotCorrections.jtacs[_jtacGroupName] then
+                ctld.setLaseCompensation({jtacGroupName = _jtacGroupName, value = false}) --disable laser spot corrections
+            end
+        end
+
+        if ctld.jtacSpecialOptions.standbyMode.jtacs[_jtacGroupName] then
+            ctld.setStdbMode({jtacGroupName = _jtacGroupName, value = false}) --make the JTAC exit standby mode after either target selection or targeting selection reset
         end
     end
 end
 
-function ctld.setLaseCompensation(_args)
+--special option setters (make sure to affect the function pointer to the corresponding .setter in the special options table after declaration of said function)
+function ctld.setSpecialOptionArgsCheck(_args)
     if _args then
         local _jtacGroupName = _args.jtacGroupName
         local _value = _args.value --expected boolean
+        local _notOutput = _args.noOutput --expected boolean
 
         if _jtacGroupName then
+            return {jtacGroupName = _jtacGroupName, value = _value, noOutput = _notOutput}
+        end
+    end
 
-            local message_end = " disabled."
-            if _value then
-                message_end = " enabled."
-            end
+    return nil
+end
+
+function ctld.setStdbMode(_args)
+    local parsedArgs = ctld.setSpecialOptionArgsCheck(_args)
+    if parsedArgs then
+              
+        local _jtacGroupName = parsedArgs.jtacGroupName
+        local _value = parsedArgs.value
+        local _noOutput = parsedArgs.noOutput
+
+        local message_end = " disabled"
+        if _value then
+            message_end = " enabled"
+        end
+        if not _noOutput then 
+            ctld.notifyCoalition(_jtacGroupName .. ", standing by, Laser and Smokes" .. message_end, 10, ctld.jtacUnits[_jtacGroupName].side, ctld.jtacRadioData[_jtacGroupName])
+        end
+
+        ctld.jtacSpecialOptions.standbyMode.jtacs[_jtacGroupName] = _value
+    end
+end
+ctld.jtacSpecialOptions.standbyMode.setter = ctld.setStdbMode
+
+function ctld.setLaseCompensation(_args)
+    local parsedArgs = ctld.setSpecialOptionArgsCheck(_args)
+    if parsedArgs then
+        
+        local _jtacGroupName = parsedArgs.jtacGroupName
+        local _value = parsedArgs.value
+        local _noOutput = parsedArgs.noOutput
+
+        local message_end = " disabled."
+        if _value then
+            message_end = " enabled."
+        end
+        if not _noOutput then 
             ctld.notifyCoalition(_jtacGroupName .. ", Wind and Target speed Laser Spot compensations" .. message_end, 10, ctld.jtacUnits[_jtacGroupName].side, ctld.jtacRadioData[_jtacGroupName])
+        end
 
-            ctld.jtacSpecialOptions.laseSpotCorrections[_jtacGroupName] = _value
+        ctld.jtacSpecialOptions.laseSpotCorrections.jtacs[_jtacGroupName] = _value
+    end
+end
+ctld.jtacSpecialOptions.laseSpotCorrections.setter = ctld.setLaseCompensation
+
+function ctld.setSmokeOnTarget(_args)
+    local parsedArgs = ctld.setSpecialOptionArgsCheck(_args)
+    if parsedArgs then
+        
+        local _jtacGroupName = parsedArgs.jtacGroupName
+        local _noOutput = parsedArgs.noOutput
+        local _enemyUnit = Unit.getByName(ctld.jtacCurrentTargets[_jtacGroupName].name)
+
+        if _enemyUnit then
+            if not _noOutput then
+                ctld.notifyCoalition(_jtacGroupName .. ", WHITE Smoke deployed near TGT", 10, ctld.jtacUnits[_jtacGroupName].side, ctld.jtacRadioData[_jtacGroupName])
+            end
+
+            local _enemyPoint = _enemyUnit:getPoint()
+            local randomCircleDiam = 30;
+            trigger.action.smoke({ x = _enemyPoint.x + math.random(randomCircleDiam,-randomCircleDiam), y = _enemyPoint.y + 2.0, z = _enemyPoint.z + math.random(randomCircleDiam,-randomCircleDiam)}, 2)
         end
     end
 end
+ctld.jtacSpecialOptions.smokeMarker.setter = ctld.setSmokeOnTarget
+
+function ctld.setJTAC9Line(_args)
+    local parsedArgs = ctld.setSpecialOptionArgsCheck(_args)
+    if parsedArgs then
+        
+        local _jtacGroupName = parsedArgs.jtacGroupName
+        
+        ctld.getJTACStatus({nil, _jtacGroupName})
+    end
+end
+ctld.jtacSpecialOptions._9Line.setter = ctld.setJTAC9Line
 
 function ctld.isInfantry(_unit)
 

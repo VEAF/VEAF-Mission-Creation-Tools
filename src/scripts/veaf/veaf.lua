@@ -3964,6 +3964,7 @@ function veaf.csar_initialize_replacement(configurationCallback)
         -- global configuration change
         csar.enableAllslots = true
         csar.useprefix = false
+        csar.radioSound = "csar-beacon.ogg"
         
         if configurationCallback and type(configurationCallback) == "function" then
             -- a configuration callback has been set, call it

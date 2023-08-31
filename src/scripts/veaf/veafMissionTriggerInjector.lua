@@ -116,7 +116,7 @@ veafMissionTriggerInjector.trig.actions = {
     [4] = "a_do_script(\"env.info(\\\"STATIC SCRIPTS LOADING\\\")\");a_do_script_file(getValueResourceByKey(\"DictKey_ActionText_10202\"));a_do_script_file(getValueResourceByKey(\"DictKey_ActionText_10203\"));a_do_script_file(getValueResourceByKey(\"DictKey_ActionText_10204\"));a_do_script_file(getValueResourceByKey(\"DictKey_ActionText_10205\"));a_do_script_file(getValueResourceByKey(\"DictKey_ActionText_10206\"));a_do_script_file(getValueResourceByKey(\"DictKey_ActionText_10207\"));a_do_script_file(getValueResourceByKey(\"DictKey_ActionText_10208\"));a_do_script_file(getValueResourceByKey(\"DictKey_ActionText_10209\"));a_do_script_file(getValueResourceByKey(\"DictKey_ActionText_10308\"));",
     [5] = "a_do_script(\"env.info(\\\"DYNAMIC CONFIG LOADING\\\")\");a_do_script(\"assert(loadfile(VEAF_DYNAMIC_MISSIONPATH .. \\\"/src/scripts/missionConfig.lua\\\"))()\");",
     [6] = "a_do_script(\"env.info(\\\"STATIC CONFIG LOADING\\\")\");a_do_script_file(getValueResourceByKey(\"DictKey_ActionText_10309\"));",
-    [7] = "a_out_sound_c(89, getValueResourceByKey(\"DictKey_ActionText_10401\"), 0);a_out_sound_c(89, getValueResourceByKey(\"DictKey_ActionText_10402\"), 0);",
+    [7] = "a_out_sound_c(89, getValueResourceByKey(\"DictKey_ActionText_10401\"), 0);a_out_sound_c(89, getValueResourceByKey(\"DictKey_ActionText_10402\"), 0);a_out_sound_c(89, getValueResourceByKey(\"DictKey_ActionText_10403\"), 0);",
 }
 
 veafMissionTriggerInjector.trig.conditions = {
@@ -398,6 +398,12 @@ veafMissionTriggerInjector.trigrules = {
                 ["predicate"] = "a_out_sound_c",
                 ["start_delay"] = 0,
             }, -- end of [2]
+            [3] = {
+                ["countrylist"] = 89,
+                ["file"] = "DictKey_ActionText_10403",
+                ["predicate"] = "a_out_sound_c",
+                ["start_delay"] = 0,
+            }, -- end of [3]
         }, -- end of ["actions"]
         ["colorItem"] = "0x00ff80ff",
         ["comment"] = "CTLD beacons loading",
@@ -430,6 +436,7 @@ veafMissionTriggerInjector.mapresource = {
     ["DictKey_ActionText_10309"] = "missionConfig.lua",
     ["DictKey_ActionText_10401"] = "beaconsilent.ogg",
     ["DictKey_ActionText_10402"] = "beacon.ogg",
+    ["DictKey_ActionText_10403"] = "csar-beacon.ogg",
 }
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------

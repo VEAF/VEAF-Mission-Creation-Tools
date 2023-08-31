@@ -19,7 +19,7 @@ veaf = {}
 veaf.Id = "VEAF"
 
 --- Version.
-veaf.Version = "1.45.1"
+veaf.Version = "1.46.0"
 
 --- Development version ?
 veaf.Development = true
@@ -3696,7 +3696,7 @@ veaf.loadAirbasesLife0()
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- changes to CTLD 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
--- Our CTLD (VEAF version) does not autoinitialize.
+-- Our CTLD (VEAF version) does not autoinitialize. It's also set to log messages using the VEAF logging functions
 -- Instead, we count on the mission makers to call ctld.initialize from the missionConfig.lua file (since v5.0)
 -- Here, we're upgrading the vanilla CTLD initialize function so it's smarter
 
@@ -3910,6 +3910,81 @@ if ctld then
     veaf.loggers.get(veaf.Id):info(string.format("replacing CTLD.initialize()"))
     veaf.ctld_initialize = ctld.initialize -- used to call the vanilla ctld.initialize from the VEAF replacement
     ctld.initialize = veaf.ctld_initialize_replacement -- replace the ctld.initialize with the VEAF wrapper function
+end
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- changes to CSAR 
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- Our CSAR (VEAF version) does not autoinitialize. It's also set to log messages using the VEAF logging functions
+-- Instead, we count on the mission makers to call csar.initialize from the missionConfig.lua file (since v5.0)
+-- Here, we're upgrading the vanilla CSAR initialize function so it's smarter
+
+---The VEAF replacement function that wraps up around ctld.initialize
+---@param configurationCallback function? a callback that will be called before calling the vanilla csar.initialize function
+function veaf.csar_initialize_replacement(configurationCallback)
+    if csar then
+        veaf.loggers.get(veaf.Id):info(string.format("Setting up CSAR"))
+
+        -- change the init function so we can call it whenever we want
+        csar.skipInitialisation = true
+
+        -- logging change
+        csar.p = veaf.p
+        csar.Id = "CSAR"
+        --csar.LogLevel = "info"
+        csar.LogLevel = "trace"
+        --csar.LogLevel = "debug"
+
+        csar.logger = veaf.loggers.new(csar.Id, csar.LogLevel)
+
+        -- override the csar logs with our own methods
+        ---@diagnostic disable-next-line: duplicate-set-field
+        csar.logError = function(message)
+            veaf.loggers.get(csar.Id):error(message)
+        end
+
+        -- override the csar logs with our own methods
+        ---@diagnostic disable-next-line: duplicate-set-field
+        csar.logInfo = function(message)
+            veaf.loggers.get(csar.Id):info(message)
+        end
+
+        -- override the csar logs with our own methods
+        ---@diagnostic disable-next-line: duplicate-set-field
+        csar.logDebug = function(message)
+            veaf.loggers.get(csar.Id):debug(message)
+        end
+
+        -- override the csar logs with our own methods
+        ---@diagnostic disable-next-line: duplicate-set-field
+        csar.logTrace = function(message)
+            veaf.loggers.get(csar.Id):trace(message)
+        end
+
+        -- global configuration change
+        csar.enableAllslots = true
+        csar.useprefix = false
+        
+        if configurationCallback and type(configurationCallback) == "function" then
+            -- a configuration callback has been set, call it
+            veaf.loggers.get(csar.Id):info("calling the configuration callback")
+            configurationCallback()
+            veaf.loggers.get(csar.Id):info("done calling the configuration callback")
+        end
+
+        -- call the actual CSAR.initialize
+        veaf.csar_initialize(true)
+        veaf.csar_initialized = true
+        veaf.loggers.get(csar.Id):info(string.format("Done setting up CSAR"))
+    else
+        veaf.loggers.get(veaf.Id):error(string.format("CSAR is not loaded"))
+    end
+end
+
+if csar then
+    veaf.loggers.get(veaf.Id):info(string.format("replacing CSAR.initialize()"))
+    veaf.csar_initialize = csar.initialize -- used to call the vanilla csar.initialize from the VEAF replacement
+    csar.initialize = veaf.csar_initialize_replacement -- replace the csar.initialize with the VEAF wrapper function
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------

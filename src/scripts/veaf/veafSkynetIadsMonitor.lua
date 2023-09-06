@@ -19,7 +19,7 @@ veafSkynetMonitor = {}
 veafSkynetMonitor.Id = "SKYNET_MONITOR"
 
 --- Version.
-veafSkynetMonitor.Version = "1.0.1"
+veafSkynetMonitor.Version = "1.1.0"
 
 -- trace level, specific to this module
 --veafSkynetMonitor.LogLevel = "trace"
@@ -85,8 +85,7 @@ function VeafSkynetMonitorDescriptor:Create(iads, options)
     {
         Iads = iads,
         Options = options,
-        FilterNatoName = {},
-        FilterGroupName = {}
+        FilterNatoName = {}
     }
     setmetatable(this, self)
     self.__index = self
@@ -356,14 +355,6 @@ function VeafSkynetMonitorDescriptor:GetStringDescription()
                     bAddEwr = false
                 end
 
-                if(self.FilterGroupName and #self.FilterGroupName > 0) then
-                    for _, sFilter in pairs(self.FilterGroupName) do
-                        if (string.match(ewr.dcsName, sFilter) == nil) then
-                            bAddEwr = false
-                        end
-                    end
-                end
-
                 if (bAddEwr) then
                     s = self:AppendLine(s, self:GetStringEwr(ewr, iIndentation + 1))
                 end
@@ -387,15 +378,7 @@ function VeafSkynetMonitorDescriptor:GetStringDescription()
                 end
                 
                 if(self.FilterNatoName and #self.FilterNatoName > 0 and not tableContains(self.FilterNatoName, samSite:getNatoName())) then
-                        bAddSamSite = false
-                end
-
-                if(self.FilterGroupName and #self.FilterGroupName > 0) then
-                    for _, sFilter in pairs(self.FilterGroupName) do
-                        if (string.match(samSite.dcsName, sFilter) == nil) then
-                            bAddSamSite = false
-                        end
-                    end
+                    bAddSamSite = false
                 end
 
                 if (bAddSamSite) then

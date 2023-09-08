@@ -1134,6 +1134,14 @@ function veafSkynet._initialize(includeRedInRadio, debugRed, includeBlueInRadio,
     createNetwork(veafSkynet.defaultIADS[tostring(coalition.side.RED)], coalition.side.RED, true)
 
     veafSkynet.initialized = true
+
+    if (veafSkynet.CommandCentersPreinitialize and #veafSkynet.CommandCentersPreinitialize > 0) then
+        for _, commandCenter in pairs(veafSkynet.CommandCentersPreinitialize) do
+            veafSkynet.addCommandCenterOfCoalition(commandCenter.CoalitionId, commandCenter.CommandCenterName) 
+        end
+
+        veafSkynet.CommandCentersPreinitialize = {}
+    end
     
     if(veafSkynet.DynamicSpawn) then
         veafSkynet.monitorDynamicSpawn(true)
@@ -1145,6 +1153,8 @@ end
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Command centers and network deactivation
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
+veafSkynet.CommandCentersPreinitialize = {} -- this is to memorize the command centers requested for a coalition, if the network of the coalition does not exist yet
+
 function veafSkynet.addCommandCenter(veafSkynetNetwork, sCommandCenterName)
     local iads = veafSkynetNetwork.iads
     
@@ -1166,18 +1176,23 @@ function veafSkynet.addCommandCenter(veafSkynetNetwork, sCommandCenterName)
     
     iads:addCommandCenter(dcsCommandCenterObject)
     veaf.loggers.get(veafSkynet.Id):trace("Command center unit added [" .. sCommandCenterName .. "]")
-    iads:buildRadarCoverage()-- as command center is added after the network initialisation, coverage should be rebuilt
+    iads:buildRadarCoverage() -- as command center is added after the network initialisation, coverage should be rebuilt
 end
 
 function veafSkynet.addCommandCenterOfCoalition(iCoalitionId, sCommandCenterName)
-    local veafSkynetNetwork = veafSkynet.getNetwork(veafSkynet.defaultIADS[tostring(iCoalitionId)])
+    if (veafSkynet.initialized) then
+        local veafSkynetNetwork = veafSkynet.getNetwork(veafSkynet.defaultIADS[tostring(iCoalitionId)])
 
-    if (veafSkynetNetwork == nil) then
-        veaf.loggers.get(veafSkynet.Id):error("Veaf skynet network not found. Please ensure that veafSkynetIadsHelper has been initialized for coalition [" .. iCoalitionId .. "]")
-        return    
+        if (veafSkynetNetwork == nil) then
+            veaf.loggers.get(veafSkynet.Id):error("Veaf skynet network not found. Please ensure that veafSkynetIadsHelper has been initialized for coalition [" .. iCoalitionId .. "]")
+            return    
+        end
+        
+        veafSkynet.addCommandCenter(veafSkynetNetwork, sCommandCenterName)  
+    else
+        veaf.loggers.get(veafSkynet.Id):trace("Veaf skynet not initialized. Command center []" .. sCommandCenterName .. "] stored to be added later for [" .. iCoalitionId .. "]")
+        table.insert (veafSkynet.CommandCentersPreinitialize, {CoalitionId = iCoalitionId, CommandCenterName = sCommandCenterName})
     end
-    
-    veafSkynet.addCommandCenter(veafSkynetNetwork, sCommandCenterName)  
 end
 
 function veafSkynet.destroyCommandCenters(veafSkynetNetwork, iExplosionStrength)

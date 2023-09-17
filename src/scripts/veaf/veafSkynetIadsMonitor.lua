@@ -154,7 +154,20 @@ function VeafSkynetMonitorDescriptor:GetStringElementStructure(details, sDetailT
     if (details == nil or #details <= 0) then
         s = self:AppendString(s, "No " .. sDetailType)
     else
-        s = self:AppendString(s, sDetailType .. ":" .. #details)
+        local iMaximumRangeMeters = nil
+        for i = 1, #details do
+            local detail = details[i]
+            if (detail.maximumRange and (iMaximumRangeMeters == nil or iMaximumRangeMeters < detail.maximumRange))then
+                iMaximumRangeMeters = detail.maximumRange
+            end
+        end
+
+        local sMaximumRange = ""
+        if (iMaximumRangeMeters) then
+            iMaximumRangeMeters = veaf.round(mist.utils.metersToNM(iMaximumRangeMeters), 1)
+            sMaximumRange = " range:" .. iMaximumRangeMeters .. "nm"
+        end
+        s = self:AppendString(s, sDetailType .. ":" .. #details .. sMaximumRange)
     end
 
     return s
@@ -206,7 +219,7 @@ function VeafSkynetMonitorDescriptor:GetStringEwr(ewr, iIndentation)
         s = self:AppendString(s, "Autonomous")
     end
     if (ewr.harmSilenceID ~= nil) then
-        s = self:AppendString(s, "Defending HARM")
+        s = self:AppendString(s, "Defending HARM (" .. ewr.harmShutdownTime .. "s left)")
     end
 
     if (tableContains(self.Options, VeafSkynetMonitorDescriptor.Option.ElementTargets)) then
@@ -266,11 +279,15 @@ function VeafSkynetMonitorDescriptor:GetStringSam(samSite, iIndentation)
             s = self:AppendString(s, "Autonomous:dark")
         end
         if (samSite.goLiveRange == SkynetIADSAbstractRadarElement.GO_LIVE_WHEN_IN_KILL_ZONE) then
-            s = self:AppendString(s, "Go live:kill zone")
+            s = self:AppendString(s, "Go live:kill zone " .. samSite.firingRangePercent .. "% of max range")
         elseif (samSite.goLiveRange == SkynetIADSAbstractRadarElement.GO_LIVE_WHEN_IN_SEARCH_RANGE) then
             s = self:AppendString(s, "Go live:search range")
         end
     end
+
+    local iRangeMeters = 0
+    local launchers = samSite:getLaunchers()
+
 
     -- Site structure
     local pointDefences = samSite:getPointDefences()
@@ -303,7 +320,7 @@ function VeafSkynetMonitorDescriptor:GetStringSam(samSite, iIndentation)
         s = self:AppendString(s, "No ammo")
     end
     if (samSite.harmSilenceID ~= nil) then
-        s = self:AppendString(s, "Defending HARM")
+        s = self:AppendString(s, "Defending HARM (" .. samSite.harmShutdownTime .. "s left)")
     end
 
     if (tableContains(self.Options, VeafSkynetMonitorDescriptor.Option.ElementTargets)) then

@@ -1,4 +1,4 @@
-env.info("--- SKYNET VERSION: 3.1.2RP | BUILD TIME: 10.07.2023 1851Z ---")
+env.info("--- SKYNET VERSION: 3.1.3RP | BUILD TIME: 18.09.2023 1943Z ---")
 do
 --this file contains the required units per sam type
 samTypesDB = {
@@ -2928,8 +2928,10 @@ end
 
 function SkynetIADSAbstractRadarElement:informOfHARM(harmContact)
 	local radars = self:getRadars()
-		for j = 1, #radars do
-			local radar = radars[j]
+	for j = 1, #radars do
+		local radar = radars[j]
+
+		if radar:isExist() then -- baleBaron PR https://github.com/walder/Skynet-IADS/pull/84
 			local distanceNM =  mist.utils.metersToNM(self:getDistanceInMetersToContact(radar, harmContact:getPosition().p))
 			local harmToSAMHeading = mist.utils.toDegree(mist.utils.getHeadingPoints(harmContact:getPosition().p, radar:getPosition().p))
 			local harmToSAMAspect = self:calculateAspectInDegrees(harmContact:getMagneticHeading(), harmToSAMHeading)
@@ -2949,6 +2951,7 @@ function SkynetIADSAbstractRadarElement:informOfHARM(harmContact)
 				end
 			end
 		end
+	end
 end
 
 function SkynetIADSAbstractElement:addObjectIdentifiedAsHARM(harmContact)

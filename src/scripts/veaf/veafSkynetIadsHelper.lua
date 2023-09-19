@@ -483,13 +483,14 @@ function veafSkynet.OnDynamicSpawn(event)
         return
     end
 
+    -- birth event will be triggered for each unit of a spawned group, but we want to manage the group, so we only work for for the first unit
     local dcsGroup = Unit.getGroup (event.initiator)
     local firstDcsUnit = dcsGroup:getUnit(1)
     if(firstDcsUnit == nil) then
         return
     end
     if(firstDcsUnit:getID() ~= event.initiator:getID()) then
-        return
+        return 
     end
 
     local coalition = dcsGroup:getCoalition()

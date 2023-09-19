@@ -11,7 +11,7 @@
 
 
 csar = {}
-csar.Version = "20230831.01"
+csar.Version = "20230919.01"
 csar.Id = "CSAR"
 
 -- SETTINGS FOR MISSION DESIGNER vvvvvvvvvvvvvvvvvv
@@ -27,6 +27,7 @@ csar.aircraftType["SA342L"] = 2
 csar.aircraftType["SA342M"] = 2
 csar.aircraftType["UH-1H"] = 8
 csar.aircraftType["Mi-8MT"] = 16
+csar.aircraftType["Mi-24P"] = 8
 
 -- Prefix Settings - Only For helicopters
 csar.useprefix    = true  -- Use the Prefixed defined below, Requires Unit have the Prefix defined below 

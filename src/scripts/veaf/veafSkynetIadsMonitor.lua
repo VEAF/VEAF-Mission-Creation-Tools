@@ -219,7 +219,7 @@ function VeafSkynetMonitorDescriptor:GetStringEwr(ewr, iIndentation)
         s = self:AppendString(s, "Autonomous")
     end
     if (ewr.harmSilenceID ~= nil) then
-        s = self:AppendString(s, "Defending HARM (" .. ewr.harmShutdownTime .. "s left)")
+        s = self:AppendString(s, "Defending HARM (shutdown time " .. ewr.harmShutdownTime .. "s)")
     end
 
     if (tableContains(self.Options, VeafSkynetMonitorDescriptor.Option.ElementTargets)) then
@@ -320,7 +320,7 @@ function VeafSkynetMonitorDescriptor:GetStringSam(samSite, iIndentation)
         s = self:AppendString(s, "No ammo")
     end
     if (samSite.harmSilenceID ~= nil) then
-        s = self:AppendString(s, "Defending HARM (" .. samSite.harmShutdownTime .. "s left)")
+        s = self:AppendString(s, "Defending HARM (shutdown time " .. samSite.harmShutdownTime .. "s)")
     end
 
     if (tableContains(self.Options, VeafSkynetMonitorDescriptor.Option.ElementTargets)) then

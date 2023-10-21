@@ -19,7 +19,7 @@ veafSkynet = {}
 veafSkynet.Id = "SKYNET"
 
 --- Version.
-veafSkynet.Version = "2.2.0"
+veafSkynet.Version = "3.0.0"
 
 -- trace level, specific to this module
 --veafSkynet.LogLevel = "trace"

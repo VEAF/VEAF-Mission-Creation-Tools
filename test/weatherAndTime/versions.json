@@ -5,12 +5,7 @@
       "onehour_tosunrise" : "sunrise-60*60",
       "late_morning" : "sunrise+120*60"
     },
-  "position": 
-    {
-      "lat": 42.355691,
-      "lon": 43.323853,
-      "tz": "Asia/Tbilisi"
-    },
+
   "targets": [
     {
       "version": "beforedawn-real-clear",

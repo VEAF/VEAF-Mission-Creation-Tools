@@ -19,7 +19,7 @@ veaf = {}
 veaf.Id = "VEAF"
 
 --- Version.
-veaf.Version = "1.46.0"
+veaf.Version = "1.46.1"
 
 --- Development version ?
 veaf.Development = true
@@ -590,6 +590,10 @@ function veaf.ifnns(o, fields)
         end
     end
     return result
+end
+
+function veaf.isNullOrEmpty(s)
+    return (s == nil or (type(s) == "string" and s == ""))
 end
 
 function veaf.p(o, level, skip)

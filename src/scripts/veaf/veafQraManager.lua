@@ -21,7 +21,7 @@ veafQraManager = {}
 veafQraManager.Id = "QRA"
 
 --- Version.
-veafQraManager.Version = "1.2.1"
+veafQraManager.Version = "1.2.2"
 
 -- trace level, specific to this module
 --veafQraManager.LogLevel = "trace"
@@ -610,6 +610,11 @@ function VeafQRA:check()
                 local unitNames = self:_getEnemyHumanUnits()
                 local unitsInZone = nil
                 local triggerZone = veaf.getTriggerZone(self.triggerZoneName)
+
+                if (not veaf.isNullOrEmpty(self.triggerZoneName) and triggerZone == nil) then
+                    veaf.loggers.get(veafQraManager.Id):error("QRA has a non-existant zone: " .. self.triggerZoneName)
+                end
+
                 if triggerZone then
                     if triggerZone.type == 0 then -- circular
                         unitsInZone = mist.getUnitsInZones(unitNames, {self.triggerZoneName})

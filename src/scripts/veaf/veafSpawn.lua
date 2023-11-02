@@ -23,7 +23,7 @@ veafSpawn = {}
 veafSpawn.Id = "SPAWN"
 
 --- Version.
-veafSpawn.Version = "1.50.1"
+veafSpawn.Version = "1.51.0"
 
 -- trace level, specific to this module
 --veafSpawn.LogLevel = "trace"
@@ -398,7 +398,7 @@ function veafSpawn.executeCommand(eventPos, eventText, coalition, markId, bypass
                                 mist.goRoute(groupObject, route)
                             end
                             -- add the group to the IADS, if there is one
-                            if veafSkynet and options.skynet then -- only add static stuff like sam groups and sam batteries, not mobile groups and convoys
+                            if veafSkynet and not veafSkynet.DynamicSpawn and options.skynet then -- only add static stuff like sam groups and sam batteries, not mobile groups and convoys -- and do not do that if DynamicSpawn is active in VeafSkynet
                                 veaf.loggers.get(veafSpawn.Id):trace("options.skynet= %s", veaf.p(options.skynet))
                                 if type(options.skynet) == "boolean" then --it means options.skynet is true
                                     options.skynet = veafSkynet.defaultIADS[tostring(options.side)]

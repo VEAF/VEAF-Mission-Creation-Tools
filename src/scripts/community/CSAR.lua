@@ -11,7 +11,7 @@
 
 
 csar = {}
-csar.Version = "20230919.01"
+csar.Version = "20231109.01"
 csar.Id = "CSAR"
 
 -- SETTINGS FOR MISSION DESIGNER vvvvvvvvvvvvvvvvvv
@@ -328,22 +328,22 @@ function csar.p(o, level)
 end
 
 function csar.logError(message)
-    env.info(" E - " .. csar.Id .. message)
+    env.info(" E - " .. csar.Id .. " - " .. message)
 end
 
 function csar.logInfo(message)
-    env.info(" I - " .. csar.Id .. message)
+    env.info(" I - " .. csar.Id .. " - " .. message)
 end
 
 function csar.logDebug(message)
     if message and csar.Debug then
-        env.info(" D - " .. csar.Id .. message)
+        env.info(" D - " .. csar.Id .. " - " .. message)
     end
 end
 
 function csar.logTrace(message)
     if message and csar.Trace then
-        env.info(" T - " .. csar.Id .. message)
+        env.info(" T - " .. csar.Id .. " - " .. message)
     end
 end
 

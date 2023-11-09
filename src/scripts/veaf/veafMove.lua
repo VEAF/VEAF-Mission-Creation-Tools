@@ -23,7 +23,7 @@ veafMove = {}
 veafMove.Id = "MOVE"
 
 --- Version.
-veafMove.Version = "1.9.3"
+veafMove.Version = "1.9.4"
 
 -- trace level, specific to this module
 --veafMove.LogLevel = "trace"
@@ -550,7 +550,7 @@ function veafMove.moveTanker(eventPos, groupName, speed, alt, hdg, distance, tel
         if not foundOrbit then
             local text = "Cannot move tanker " .. groupName .. " because it has no ORBIT task defined"
             veaf.loggers.get(veafMove.Id):info(text)
-            trigger.action.outText(text)
+            trigger.action.outText(text, 10)
             return false
         end
         point2.x = startLegPoint.x

@@ -19,7 +19,7 @@ veaf = {}
 veaf.Id = "VEAF"
 
 --- Version.
-veaf.Version = "1.46.1"
+veaf.Version = "1.46.2"
 
 --- Development version ?
 veaf.Development = true
@@ -3788,13 +3788,6 @@ function veaf.ctld_initialize_replacement(configurationCallback)
         table.insert(ctld.loadableGroups, {name = "2x - Standard Groups", inf = 12, mg = 4, at = 4 })
         table.insert(ctld.loadableGroups, {name = "3x - Mortar Squad", mortar = 18})
 
-        if configurationCallback and type(configurationCallback) == "function" then
-            -- a configuration callback has been set, call it
-            veaf.loggers.get(ctld.Id):info("calling the configuration callback")
-            configurationCallback()
-            veaf.loggers.get(ctld.Id):info("done calling the configuration callback")
-        end
-
         ctld.autoInitializeAllHumanTransports = function()
             veaf.loggers.get(ctld.Id):info("autoInitializeAllHumanTransports()")
             ctld.transportPilotNames = {}
@@ -3900,6 +3893,14 @@ function veaf.ctld_initialize_replacement(configurationCallback)
 
         -- automatically generate pickup zones names
         ctld.autoInitializeAllPickupZones()
+
+        -- if a callback is defined, this is the right moment to call it
+        if configurationCallback and type(configurationCallback) == "function" then
+            -- a configuration callback has been set, call it
+            veaf.loggers.get(ctld.Id):info("calling the configuration callback")
+            configurationCallback()
+            veaf.loggers.get(ctld.Id):info("done calling the configuration callback")
+        end
 
         -- call the actual CTLD.initialize
         veaf.ctld_initialize(true)

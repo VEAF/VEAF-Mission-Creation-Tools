@@ -1733,7 +1733,7 @@ do -- the main scope
 	function mist.dynAddStatic(n)
         
         local newObj = mist.utils.deepCopy(n)
-		log:warn(newObj)
+		--log:warn(newObj)
 		if newObj.units and newObj.units[1] then -- if its mist format
 			for entry, val in pairs(newObj.units[1]) do
 				if newObj[entry] and newObj[entry] ~= val or not newObj[entry] then
@@ -3169,7 +3169,7 @@ function mist.getDeadMapObjectsFromPoint(p, radius, filters)
     
     end
     for obj_id, obj in pairs(mist.DBs.deadObjects) do
-        log:warn(obj)
+        --log:warn(obj)
 		if obj.objectType and obj.objectType == 'building' then --dead map object
             if ((point.x - obj.objectPos.x)^2 + (point.z - obj.objectPos.z)^2)^0.5 <= r then
                if filterSize == 0 or (obj.typeName and filter[string.lower(obj.typeName)])then
@@ -3565,7 +3565,7 @@ function mist.getUnitsInMovingZones(unit_names, zone_unit_names, radius, zone_ty
 end
 
 function mist.getUnitsLOS(unitset1, altoffset1, unitset2, altoffset2, radius)
-	log:info("$1, $2, $3, $4, $5", unitset1, altoffset1, unitset2, altoffset2, radius)
+	--log:info("$1, $2, $3, $4, $5", unitset1, altoffset1, unitset2, altoffset2, radius)
 	radius = radius or math.huge
 	local unit_info1 = {}
 	local unit_info2 = {}
@@ -3917,7 +3917,7 @@ end
 
 
 function mist.getPointAtDistanceOnPath(p, dist, r, rtn)
-    log:info('find distance: $1', dist)
+    --log:info('find distance: $1', dist)
     local rType = r or 'roads'
     local point = {x= 0, y = 0, z = 0}
     local path = {}
@@ -3959,7 +3959,7 @@ function mist.getPointAtDistanceOnPath(p, dist, r, rtn)
             return {x = x, y = y}, dir
         end
     end
-    log:warn('Find point at distance: $1, path distance $2', dist, l)
+    --log:warn('Find point at distance: $1, path distance $2', dist, l)
     return false
 end
 
@@ -5838,7 +5838,7 @@ do -- mist.debug scope
                 f:write(mist.utils.tableShowSorted(_G))
             end
 			f:close()
-			log:info('Wrote debug data to $1', fdir)
+			--log:info('Wrote debug data to $1', fdir)
 			--trigger.action.outText(errmsg, 10)
 		else
 			log:alert('insufficient libraries to run mist.debug.dump_G, you must disable the sanitization of the io and lfs libraries in ./Scripts/MissionScripting.lua')
@@ -5859,7 +5859,7 @@ do -- mist.debug scope
 			local f = io.open(fdir, 'w')
 			f:write(fcn(unpack(fcnVars, 1, table.maxn(fcnVars))))
 			f:close()
-			log:info('Wrote debug data to $1', fdir)
+			--log:info('Wrote debug data to $1', fdir)
 			local errmsg = 'mist.debug.writeData wrote data to ' .. fdir
 			trigger.action.outText(errmsg, 10)
 		else
@@ -6013,7 +6013,7 @@ do -- mist.debug scope
     function mist.debug.mark(msg, coord)
         
         mist.marker.add({point = coord, text = msg})
-        log:warn('debug.mark: $1    $2', msg, coord)
+        --log:warn('debug.mark: $1    $2', msg, coord)
     end
 end
 
@@ -8710,7 +8710,7 @@ do -- group tasks scope
 		}
 		
 		useRoute[#useRoute].task = tempTask
-		log:info(useRoute)
+		--log:info(useRoute)
 		mist.goRoute(gpData, useRoute)
 
 		return
@@ -9118,7 +9118,7 @@ do -- group tasks scope
 		end
 		for validIndex, validData in pairs(typeConverted) do
 			if land.getSurfaceType(coord) == land.SurfaceType[validData] then
-				log:info('Surface is : $1', validData)
+				--log:info('Surface is : $1', validData)
                 return true
 			end
 		end

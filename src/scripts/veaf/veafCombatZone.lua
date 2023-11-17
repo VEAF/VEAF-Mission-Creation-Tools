@@ -20,7 +20,7 @@ veafCombatZone = {}
 veafCombatZone.Id = "COMBATZONE"
 
 --- Version.
-veafCombatZone.Version = "1.13.5"
+veafCombatZone.Version = "1.13.6"
 
 -- trace level, specific to this module
 --veafCombatZone.LogLevel = "trace"
@@ -589,7 +589,13 @@ function VeafCombatZone:initialize()
         else
             -- it's a group or a static unit
             local groupName = nil
-            if unit:getCategory() >= 3 and  unit:getCategory() <=6 then
+            local objectCategory = Object.getCategory(unit)
+            veaf.loggers.get(veafCombatZone.Id):trace("objectCategory=%s", veaf.p(objectCategory))
+            if objectCategory == 1 then
+                local unitCategory = Unit.getCategory(unit)
+                veaf.loggers.get(veafCombatZone.Id):trace("unitCategory=%s", veaf.p(unitCategory))
+            end
+            if objectCategory == 3 then
                 groupName = unitName -- default for static objects = groups themselves
                 zoneElement:setDcsStatic(true)
                 if not zoneElement:getSpawnRadius() then
@@ -1621,8 +1627,13 @@ function veafCombatZone.findUnitsInTriggerZone(triggerZoneName)
                 veaf.loggers.get(veafCombatZone.Id):trace(string.format("adding unit [%s]", unitName))
                 veaf.loggers.get(veafCombatZone.Id):trace(string.format("unit:getCategory() = [%d]", unit:getCategory()))
                 local groupName = nil
-                local unitCategory = unit:getCategory()
-                if unitCategory >= 3 and  unitCategory <=6 then
+                local objectCategory = Object.getCategory(unit)
+                veaf.loggers.get(veafCombatZone.Id):trace("objectCategory=%s", veaf.p(objectCategory))
+                if objectCategory == 1 then
+                    local unitCategory = Unit.getCategory(unit)
+                    veaf.loggers.get(veafCombatZone.Id):trace("unitCategory=%s", veaf.p(unitCategory))
+                end
+                if objectCategory == 3 then
                     groupName = unitName -- default for static objects = groups themselves
                 else
                     groupName = unit:getGroup():getName()

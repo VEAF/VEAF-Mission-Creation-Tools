@@ -19,7 +19,7 @@ veaf = {}
 veaf.Id = "VEAF"
 
 --- Version.
-veaf.Version = "1.46.2"
+veaf.Version = "1.46.3"
 
 --- Development version ?
 veaf.Development = true
@@ -1188,8 +1188,8 @@ function veaf.isUnitInZone(unitOrName, zoneOrName)
     end
     if zone and unit then
         local unitPosition = unit:getPosition().p
-        local unitCategory = unit:getCategory()
-        if unitPosition and ((unitCategory == 1 and unit:isActive() == true) or unitCategory ~= 1) then -- it is a unit and is active or it is not a unit
+        local objectCategory = Object.getCategory(unit)
+        if unitPosition and ((objectCategory == 1 and unit:isActive() == true) or objectCategory ~= 1) then -- it is a unit and is active or it is not a unit
             if zone.verticies  then
                 local pointInPolygon = mist.pointInPolygon(unitPosition, zone.verticies)
                 if pointInPolygon then

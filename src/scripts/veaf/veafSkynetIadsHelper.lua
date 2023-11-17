@@ -19,7 +19,7 @@ veafSkynet = {}
 veafSkynet.Id = "SKYNET"
 
 --- Version.
-veafSkynet.Version = "3.0.0"
+veafSkynet.Version = "3.0.1"
 
 -- trace level, specific to this module
 --veafSkynet.LogLevel = "trace"
@@ -479,7 +479,7 @@ function veafSkynet.OnDynamicSpawn(event)
     if(event.id ~= world.event.S_EVENT_BIRTH) then
         return
     end
-    if (event.initiator == nil or event.initiator:getCategory() ~= Object.Category.UNIT) then
+    if (event.initiator == nil or Object.getCategory(event.initiator) ~= Object.Category.UNIT) then
         return
     end
 

@@ -20,7 +20,7 @@ veafCombatZone = {}
 veafCombatZone.Id = "COMBATZONE"
 
 --- Version.
-veafCombatZone.Version = "1.13.6"
+veafCombatZone.Version = "1.13.7"
 
 -- trace level, specific to this module
 --veafCombatZone.LogLevel = "trace"
@@ -672,7 +672,7 @@ function VeafCombatZone:getInformation()
             if group then
                 for _, u in pairs(group:getUnits()) do
                     local coa = u:getCoalition()
-                    if u:getCategory() == 3 then
+                    if Object.getCategory(u) == 3 then
                         if coa == 1 then
                             nbStaticsR = nbStaticsR + 1
                         elseif coa == 2 then

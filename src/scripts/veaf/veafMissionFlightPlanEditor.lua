@@ -22,6 +22,9 @@
 -- * <settings file> the path to the settings file
 -- * -debug if set, the script will output some information ; useful to find out which units were edited
 -- * -trace if set, the script will output a lot of information : useful to understand what went wrong
+--
+-- /!\ to debug in VS Code, you'll have to temporarily copy the `veafMissionEditor.lua` from its `src/scripts/veaf` location to the root of the project
+--
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 veafMissionFlightPlanEditor = {}
@@ -34,7 +37,7 @@ veafMissionFlightPlanEditor = {}
 veafMissionFlightPlanEditor.Id = "FPL_EDITOR - "
 
 --- Version.
-veafMissionFlightPlanEditor.Version = "1.0.1"
+veafMissionFlightPlanEditor.Version = "1.0.2"
 
 -- trace level, specific to this module
 veafMissionFlightPlanEditor.Trace = false
@@ -237,13 +240,16 @@ function veafMissionFlightPlanEditor.editGroup(coa_name, country_name, category_
                 end
                 
                 veafMissionFlightPlanEditor.logTrace(string.format("    setting_t[\"waypoints\"]=%s",p(setting_t["waypoints"])))
-                for i = 1, #setting_t["waypoints"] do
-                  local newPoint = setting_t["waypoints"][i]
-                  veafMissionFlightPlanEditor.logTrace(string.format("    newPoint=%s",p(newPoint)))
-                  if type(newPoint) == "string" then
+                for _, waypoint in pairs(setting_t["waypoints"]) do
+                  local newPoint = nil
+                  veafMissionFlightPlanEditor.logTrace(string.format("    waypoint=%s",p(waypoint)))
+                  if type(waypoint) == "string" then
                     -- this is a shortcut to the WAYPOINTS table
-                    newPoint = waypoints[newPoint:upper()]
+                    newPoint = waypoints[waypoint:upper()]
+                  else
+                    newPoint = waypoint
                   end
+                  veafMissionFlightPlanEditor.logTrace(string.format("    newPoint=%s",p(newPoint)))
                   local newPointName = newPoint["name"]:upper()
                   veafMissionFlightPlanEditor.logTrace(string.format("    newPointName=%s",p(newPointName)))
                   local newPointPosition = -1

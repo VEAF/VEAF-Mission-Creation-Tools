@@ -937,11 +937,6 @@ function VeafCombatZone:desactivate()
     end
     self:clearSpawnedGroups()
 
-    -- reset the IADS', if the module is active
-    if veafSkynet then
-        veafSkynet.reinitialize()
-    end
-
     -- refresh the radio menu
     self:updateRadioMenu()
 

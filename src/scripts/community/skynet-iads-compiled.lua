@@ -1,4 +1,4 @@
-env.info("--- SKYNET VERSION: 3.1.3RP | BUILD TIME: 18.09.2023 1943Z ---")
+env.info("--- SKYNET VERSION: 3.1.4RP | BUILD TIME: 20.11.2023 2049Z ---")
 do
 --this file contains the required units per sam type
 samTypesDB = {
@@ -3154,8 +3154,10 @@ function SkynetIADSContact:getTypeName()
 	if self:isIdentifiedAsHARM() then
 		return SkynetIADSContact.HARM
 	end
-	local category = self:getDCSRepresentation():getCategory()
+	local category = Object.getCategory(self:getDCSRepresentation()) -- getCategory changed in DCS 2.9.1.48111 see https://forum.dcs.world/topic/337957-patch-notes-discussion-november-2023/#comment-5330539
 	if category == Object.Category.UNIT then
+		return self.typeName
+	elseif category == Object.Category.WEAPON then
 		return self.typeName
 	end
 	return "UNKNOWN"

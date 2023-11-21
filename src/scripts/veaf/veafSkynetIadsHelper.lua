@@ -1191,7 +1191,7 @@ function veafSkynet.addCommandCenterOfCoalition(iCoalitionId, sCommandCenterName
         
         veafSkynet.addCommandCenter(veafSkynetNetwork, sCommandCenterName)  
     else
-        veaf.loggers.get(veafSkynet.Id):trace("Veaf skynet not initialized. Command center []" .. sCommandCenterName .. "] stored to be added later for [" .. iCoalitionId .. "]")
+        veaf.loggers.get(veafSkynet.Id):trace("Veaf skynet not initialized. Command center [" .. sCommandCenterName .. "] stored to be added later for [" .. iCoalitionId .. "]")
         table.insert (veafSkynet.CommandCentersPreinitialize, {CoalitionId = iCoalitionId, CommandCenterName = sCommandCenterName})
     end
 end

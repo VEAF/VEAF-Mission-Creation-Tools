@@ -18,10 +18,11 @@ class DCSCheckWXConvertEnricher {
   constructor(weatherdata, clearsky, trace) {
     this._trace = trace;
     this._cloudPreset = null;
+    this._clearsky = clearsky
     if (typeof(weatherdata) == "string") {
       // we've got a text metar to parse
       this._metar = weatherdata;
-      if (clearsky) {
+      if (this._clearsky) {
         this._metar = this._metar.replace("OVC", "FEW");
         this._metar = this._metar.replace("BKN", "FEW");
         this._metar = this._metar.replace("SCT", "FEW");
@@ -69,7 +70,7 @@ class DCSCheckWXConvertEnricher {
       }
       this._weatherdata = weatherdata;
       this._metar = this.getClosestResult().raw_text || "";
-      if (clearsky) {
+      if (this._clearsky) {
         this._metar = this._metar.replace("OVC", "FEW");
         this._metar = this._metar.replace("BKN", "FEW");
         this._metar = this._metar.replace("SCT", "FEW");
@@ -223,7 +224,7 @@ class DCSCheckWXConvertEnricher {
     }
   }
 
-  getCloudMinMax(clearsky) {
+  getCloudMinMax() {
     try {
       let clouds = this.getClosestResult()['clouds'];
       if (clouds.length == 0) {
@@ -242,7 +243,7 @@ class DCSCheckWXConvertEnricher {
       });
       if (!minClouds) minClouds = 5000;
       if (!maxClouds) maxClouds = 5000;
-      if (clearsky) minClouds = 5000;
+      if (this._clearsky) minClouds = 5000;
       return { 'min': minClouds, 'max': maxClouds };
     } catch (err) {
       console.log(err);
@@ -250,18 +251,18 @@ class DCSCheckWXConvertEnricher {
     }
   }
 
-  getCloudBase(clearsky) {
-    return Math.max(300, this.getCloudMinMax(clearsky)['min']);
+  getCloudBase() {
+    return Math.max(300, this.getCloudMinMax()['min']);
   }
 
-  getCloudThickness(clearsky) {
+  getCloudThickness() {
     try {
       let clouds = this.getClosestResult()['clouds'];
       if (clouds.length == 0) {
         if (this.trace) console.log("no ['clouds']");
         return this.getDeterministicRandomInt(200, 300);
       }
-      let minmaxclouds = this.getCloudMinMax(clearsky);
+      let minmaxclouds = this.getCloudMinMax();
       let highestclouds = clouds[clouds.length - 1];
       if (highestclouds['code'] == 'OVC')
         return Math.max(200, minmaxclouds['max'] - minmaxclouds['min']);
@@ -286,7 +287,7 @@ class DCSCheckWXConvertEnricher {
     return result;
   }
   
-  getCloudPreset(clearsky) {
+  getCloudPreset() {
 /*     const DCS_PRESETS = {
       "Light Scattered 1": "Preset1",
       "Light Scattered 2": "Preset2",
@@ -322,132 +323,133 @@ class DCSCheckWXConvertEnricher {
 
     const DCS_PRESETS = {
       "Preset1" : {
-        "readableName": "Few Scattered Clouds \nMETAR:FEW/SCT 7/8'",
-        "readableNameShort" : "Light Scattered 1"
-      },
+        "readableNameShort" : "Light Scattered 1",
+        "metar" : "METAR: FEW/SCT 7/8",
+      } -- end of Preset1
       "Preset2" : {
-        "readableName" : "Two Layers Few and Scattered \nMETAR:FEW/SCT 8/10 SCT 23/24",
-        "readableNameShort" : "Light Scattered 2"
-      },
+        "readableNameShort" : "Light Scattered 2",
+        "metar" : "METAR: FEW/SCT 8/10 SCT 23/24",
+      } -- end of Preset2
       "Preset3" : {
-        "readableName" : "Two Layer Scattered \nMETAR:SCT 8/9 FEW 21",
-        "readableNameShort" : "High Scattered 1"
-      },
+        "readableNameShort" : "High Scattered 1",
+        "metar" : "METAR: SCT 8/9 FEW 21",
+      } -- end of Preset3
       "Preset4" : {
-        "readableName" : "Two Layer Scattered \nMETAR:SCT 8/10 FEW/SCT 24/26",
-        "readableNameShort" : "High Scattered 2"
-      },
+        "readableNameShort" : "High Scattered 2",
+        "metar" : "METAR: SCT 8/10 FEW/SCT 24/26",
+      } -- end of Preset4
       "Preset5" : {
-        "readableName" : "Three Layer High altitude Scattered \nMETAR:SCT 14/17 FEW 27/29 BKN 40",
-        "readableNameShort" : "Scattered 1"
-      },
+        "readableNameShort" : "Scattered 1",
+        "metar" : "METAR: SCT 14/17 FEW 27/29 BKN 40",
+      } -- end of Preset5
       "Preset6" : {
-        "readableName" : "One Layer Scattered/Broken \nMETAR:SCT/BKN 8/10 FEW 40",
-        "readableNameShort" : "Scattered 2"
-      },
+        "readableNameShort" : "Scattered 2",
+        "metar" : "METAR: SCT/BKN 8/10 FEW 40",
+      } -- end of Preset6
       "Preset7" : {
-        "readableName" : "Two Layer Scattered/Broken \nMETAR:BKN 7.5/12 SCT/BKN 21/23 SCT 40",
-        "readableNameShort" : "Scattered 3"
-      },
+        "readableNameShort" : "Scattered 3",
+        "metar" : "METAR: BKN 7.5/12 SCT/BKN 21/23 SCT 40",
+      } -- end of Preset7
       "Preset8" : {
-        "readableName" : "Two Layer Scattered/Broken High Altitude \nMETAR:SCT/BKN 18/20 FEW 36/38 FEW 40",
-        "readableNameShort" : "High Scattered 3"
-      },
+        "readableNameShort" : "High Scattered 3",
+        "metar" : "METAR: SCT/BKN 18/20 FEW 36/38 FEW 40",
+      } -- end of Preset8
       "Preset9" : {
-        "readableName" : "Two Layer Broken/Scattered \nMETAR:BKN 7.5/10 SCT 20/22 FEW41",
-        "readableNameShort" : "Scattered 4"
-      },
+        "readableNameShort" : "Scattered 4",
+        "metar" : "METAR: BKN 7.5/10 SCT 20/22 FEW41",
+      } -- end of Preset9
       "Preset10" : {
-        "readableName" : "Two Layers Scattered Large Thick Clouds  \nMETAR:SCT/BKN 18/20 FEW36/38 FEW 40",
-        "readableNameShort" : "Scattered 5"
-      },
+        "readableNameShort" : "Scattered 5",
+        "metar" : "METAR: SCT/BKN 18/20 FEW36/38 FEW 40",
+      } -- end of Preset10
       "Preset11" : {
-        "readableName" : "Two Layers Scattered Large Clouds High Ceiling \nMETAR:BKN 18/20 BKN 32/33 FEW 41",
-        "readableNameShort" : "Scattered 6"
-      },
+        "readableNameShort" : "Scattered 6",
+        "metar" : "METAR: BKN 18/20 BKN 32/33 FEW 41",
+      } -- end of Preset11
       "Preset12" : {
-        "readableName" : "Two Layers Scattered Large Clouds High Ceiling \nMETAR:BKN 12/14 SCT 22/23 FEW 41",
-        "readableNameShort" : "Scattered 7"
-      },
+        "readableNameShort" : "Scattered 7",
+        "metar" : "METAR: BKN 12/14 SCT 22/23 FEW 41",
+      } -- end of Preset12
       "Preset13" : {
-        "readableName" : "Two Layers Broken Clouds \nMETAR:BKN 12/14 BKN 26/28 FEW 41",
-        "readableNameShort" : "Broken 1"
-      },
+        "readableNameShort" : "Broken 1",
+        "metar" : "METAR: BKN 12/14 BKN 26/28 FEW 41",
+      } -- end of Preset13
       "Preset14" : {
-        "readableName" : "Broken Thick Low Layer with Few High Layer\nMETAR:BKN LYR 7/16 FEW 41",
-        "readableNameShort" : "Broken 2"
-      },
+        "readableNameShort" : "Broken 2",
+        "metar" : "METAR: BKN LYR 7/16 FEW 41",
+      } -- end of Preset14
       "Preset15" : {
-        "readableName" : "Two Layers Broken Large Clouds \nMETAR:SCT/BKN 14/18 BKN 24/27 FEW 40",
-        "readableNameShort" : "Broken 3"
-      },
+        "readableNameShort" : "Broken 3",
+        "metar" : "METAR: SCT/BKN 14/18 BKN 24/27 FEW 40",
+      } -- end of Preset15
       "Preset16" : {
-        "readableName" : "Two Layers Broken Large Clouds \nMETAR:BKN 14/18 BKN 28/30 FEW 40",
-        "readableNameShort" : "Broken 4"
-      },
+        "readableNameShort" : "Broken 4",
+        "metar" : "METAR: BKN 14/18 BKN 28/30 FEW 40",
+      } -- end of Preset16
       "Preset17" : {
-        "readableName" : "Three Layers Broken/Overcast \nMETAR:BKN/OVC LYR 7/13 20/22 32/34",
-        "readableNameShort" : "Broken 5"
-      },
+        "readableNameShort" : "Broken 5",
+        "metar" : "METAR: BKN/OVC LYR 7/13 20/22 32/34",
+      } -- end of Preset17
       "Preset18" : {
-        "readableName" : "Three Layers Broken/Overcast \nMETAR:BKN/OVC LYR 13/15 25/29 38/41",
-        "readableNameShort" : "Broken 6"
-      },
+        "readableNameShort" : "Broken 6",
+        "metar" : "METAR: BKN/OVC LYR 13/15 25/29 38/41",
+      } -- end of Preset18
       "Preset19" : {
-        "readableName" : "Three Layers Overcast At Low Level \nMETAR:OVC 9/16 BKN/OVC LYR 23/24 31/33",
-        "readableNameShort" : "Broken 7"
-      },
+        "readableNameShort" : "Broken 7",
+        "metar" : "METAR: OVC 9/16 BKN/OVC LYR 23/24 31/33",
+      } -- end of Preset19
       "Preset20" : {
-        "readableName" : "Three Layers Overcast Low Level \nMETAR:BKN/OVC 13/18 BKN 28/30 SCT FEW 38",
-        "readableNameShort" : "Broken 8"
-      },
+        "readableNameShort" : "Broken 8",
+        "metar" : "METAR: BKN/OVC 13/18 BKN 28/30 SCT FEW 38",
+      } -- end of Preset20
       "Preset21" : {
-        "readableName" : "Overcast low level \nMETAR:BKN/OVC LYR 7/8 17/19",
-        "readableNameShort" : "Overcast 1"
-      },
+        "readableNameShort" : "Overcast 1",
+        "metar" : "METAR: BKN/OVC LYR 7/8 17/19",
+      } -- end of Preset21
       "Preset22" : {
-        "readableName" : "Overcast low Level \nMETAR:BKN LYR 7/10 17/20",
-        "readableNameShort" : "Overcast 2"
-      },
+        "readableNameShort" : "Overcast 2",
+        "metar" : "METAR: BKN LYR 7/10 17/20",
+      } -- end of Preset22
       "Preset23" : {
-        "readableName" : "Three Layer Broken Low Level Scattered High \nMETAR:BKN LYR 11/14 18/25 SCT 32/35",
-        "readableNameShort" : "Overcast 3"
-      },
+        "readableNameShort" : "Overcast 3",
+        "metar" : "METAR: BKN LYR 11/14 18/25 SCT 32/35",
+      } -- end of Preset23
       "Preset24" : {
-        "readableName" : "Three Layer Overcast \nMETAR:BKN/OVC 3/7 17/22 BKN 34",
-        "readableNameShort" : "Overcast 4"
-      },
+        "readableNameShort" : "Overcast 4",
+        "metar" : "METAR: BKN/OVC 3/7 17/22 BKN 34",
+      } -- end of Preset24
       "Preset25" : {
-        "readableName" : "Three Layer Overcast \nMETAR:OVC LYR 12/14 22/25 40/42",
-        "readableNameShort" : "Overcast 5"
-      },
+        "readableNameShort" : "Overcast 5",
+        "metar" : "METAR: OVC LYR 12/14 22/25 40/42",
+      } -- end of Preset25
       "Preset26" : {
-        "readableName" : "Three Layer Overcast \nMETAR:OVC 9/15 BKN 23/25 SCT 32",
-        "readableNameShort" : "Overcast 6"
-      },
+        "readableNameShort" : "Overcast 6",
+        "metar" : "METAR: OVC 9/15 BKN 23/25 SCT 32",
+      } -- end of Preset26
       "Preset27" : {
-        "readableName" : "Three Layer Overcast \nMETAR:OVC 8/15 SCT/BKN 25/26 34/36",
-        "readableNameShort" : "Overcast 7"
-      },
+        "readableNameShort" : "Overcast 7",
+        "metar" : "METAR: OVC 8/15 SCT/BKN 25/26 34/36",
+      } -- end of Preset27
       "RainyPreset1" : {
-        "readableName" : "Overcast with Rain \nMETAR:VIS 3-5KM RA OVC 3/15 28/30 FEW 40",
-        "readableNameShort" : "Overcast And Rain 1"
-      },
+        "readableNameShort" : "Overcast And Rain 1",
+        "metar" : "METAR: VIS 3-5KM RA OVC 3/15 28/30 FEW 40",
+      } -- end of RainyPreset1
       "RainyPreset2" : {
-        "readableName" : "Overcast with Rain \nMETAR:VIS 1-5KM RA BKN/OVC 3/11 SCT 18/29 FEW 40",
-        "readableNameShort" : "Overcast And Rain 2"
-      },
+        "readableNameShort" : "Overcast And Rain 2",
+        "metar" : "METAR: VIS 1-5KM RA BKN/OVC 3/11 SCT 18/29 FEW 40",
+      } -- end of RainyPreset2
       "RainyPreset3" : {
-        "readableName" : "Overcast with Rain \nMETAR:VIS 3-5KM RA OVC LYR 6/18 19/21 SCT 34",
-        "readableNameShort" : "Overcast And Rain 3"
-      }    
+        "readableNameShort" : "Overcast And Rain 3",
+        "metar" : "METAR: VIS 3-5KM RA OVC LYR 6/18 19/21 SCT 34",
+      } -- end of RainyPreset3
     }
  */
-    const DCS_CLEARSKY = ["Preset5", "Preset8", "Preset10", "Preset11"];
-    const DCS_FEW = ["Preset1", "Preset2", "Preset3", "Preset4", "Preset8"];
-    const DCS_SCT = ["Preset5", "Preset6", "Preset7", "Preset9", "Preset10", "Preset11", "Preset12"];
-    const DCS_BKN = ["Preset13", "Preset14", "Preset15", "Preset16", "Preset17", "Preset18", "Preset19", "Preset20"];
-    const DCS_OVC = ["Preset21", "Preset22", "Preset23", "Preset24", "Preset25", "Preset26", "Preset27"];
+
+    const DCS_CLEARSKY = ["Preset1", "Preset2", "Preset3", "Preset4", "Preset5", "Preset8", "Preset10", "Preset11"];
+    const DCS_FEW = ["Preset1", "Preset2", "Preset3", "Preset4", "Preset5", "Preset6"];
+    const DCS_SCT = ["Preset1", "Preset2", "Preset3", "Preset4", "Preset5", "Preset6", "Preset8", "Preset10", "Preset15"];
+    const DCS_BKN = ["Preset5", "Preset6", "Preset7", "Preset8", "Preset9", "Preset10", "Preset11", "Preset12", "Preset13", "Preset14", "Preset15", "Preset16"];
+    const DCS_OVC = ["Preset17", "Preset18", "Preset19", "Preset20", "Preset21", "Preset22", "Preset23", "Preset24", "Preset25", "Preset26", "Preset27"];
     const DCS_RAIN = ["RainyPreset1", "RainyPreset2", "RainyPreset3"];
    
     if (this._cloudPreset)
@@ -478,13 +480,13 @@ class DCSCheckWXConvertEnricher {
       } else if (highestclouds.code == "FEW") {
         this._cloudPreset = DCS_FEW[Math.floor(Math.random() * DCS_FEW.length)]; // few
       }
-      if (clearsky) this._cloudPreset = DCS_CLEARSKY[Math.floor(Math.random() * DCS_CLEARSKY.length)]; // nothing lower than 15000 ft
+      if (this._clearsky) this._cloudPreset = DCS_CLEARSKY[Math.floor(Math.random() * DCS_CLEARSKY.length)]; // nothing lower than 15000 ft
     }
 
     return this._cloudPreset;
   }
 
-  getCloudDensity(clearsky) {
+  getCloudDensity() {
     try {
       let clouds = this.getClosestResult()['clouds'];
       if (this.trace) console.log('clouds :>> ', clouds);
@@ -499,7 +501,7 @@ class DCSCheckWXConvertEnricher {
         if (this.trace) console.log(highestclouds['code']);
         return 0;
       } else {
-        if (clearsky) {
+        if (this._clearsky) {
           return 1
         } else {
           switch (highestclouds['code']) {

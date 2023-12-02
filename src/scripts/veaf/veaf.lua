@@ -19,7 +19,7 @@ veaf = {}
 veaf.Id = "VEAF"
 
 --- Version.
-veaf.Version = "1.46.3"
+veaf.Version = "1.46.4"
 
 --- Development version ?
 veaf.Development = true
@@ -1948,19 +1948,21 @@ function veaf.getCarrierATCdata(carrierGroupName, carrierUnitName)
         -- find carrier unit within group and gather the information
         local units = veaf.findInTable(carrierData, "units")
         local carrierUnitId = nil
-        for _,unit in pairs(units) do
-            if unit and unit.name and unit.name == carrierUnitName then
+        if units then
+            for _,unit in pairs(units) do
+                if unit and unit.name and unit.name == carrierUnitName then
 
-                --get the unit ID which will be used later when searching for ICLS etc. assigned to the carrier itself and get the tower freq/modulation data
-                carrierUnitId = unit.unitId
-                if carrierUnitId then
-                    if unit.frequency then
-                        local towerString = string.format("%.2f", unit.frequency / 1000000)
-                        local towerMod = "AM"
-                        if unit.modulation and unit.modulation == 1 then
-                            towerMod = "FM"
+                    --get the unit ID which will be used later when searching for ICLS etc. assigned to the carrier itself and get the tower freq/modulation data
+                    carrierUnitId = unit.unitId
+                    if carrierUnitId then
+                        if unit.frequency then
+                            local towerString = string.format("%.2f", unit.frequency / 1000000)
+                            local towerMod = "AM"
+                            if unit.modulation and unit.modulation == 1 then
+                                towerMod = "FM"
+                            end
+                            result.tower = towerString .. " " .. towerMod .. " (Check Freq. Plan)"
                         end
-                        result.tower = towerString .. " " .. towerMod .. " (Check Freq. Plan)"
                     end
                 end
             end

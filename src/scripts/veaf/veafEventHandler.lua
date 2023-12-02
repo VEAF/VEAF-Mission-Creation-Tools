@@ -21,7 +21,7 @@ veafEventHandler = {}
 veafEventHandler.Id = "EVENTS - "
 
 --- Version.
-veafEventHandler.Version = "1.1.3"
+veafEventHandler.Version = "1.2.0"
 
 -- trace level, specific to this module
 --veafEventHandler.LogLevel = "trace"
@@ -190,19 +190,21 @@ veafEventHandler.knownEventsNames = {
 }
 
 veafEventHandler.knownEvents = {} -- will be set at initialisation
+veafEventHandler.unknownEvents = {} -- will be used to remember already signaled unknown events
 
 function veafEventHandler.checkEventKnown(eventNameOrId, warnOnly)
   if veafEventHandler.knownEvents[eventNameOrId] ~= nil then
     return true
-  else
+  elseif veafEventHandler.unknownEvents[eventNameOrId] == nil then
+    veafEventHandler.unknownEvents[eventNameOrId] = true
     local message = string.format("Event is not recognized by the VEAF Recorder: [%s]", veaf.p(eventNameOrId))
     if warnOnly then
       veaf.loggers.get(veafEventHandler.Id):warn(message)
     else
       veaf.loggers.get(veafEventHandler.Id):error(message)
     end
-    return false
   end
+  return false
 end
 
 function veafEventHandler.setEventEnabled(eventNameOrId, enabled)
@@ -238,8 +240,10 @@ function veafEventHandler.eventHandler:onEvent(event)
   local _event = transformEvent(event)
 
   -- Debug output.
-  veaf.loggers.get(veafEventHandler.Id):trace("event = %s", veaf.p(event))
-  veaf.loggers.get(veafEventHandler.Id):trace("_event = %s", veaf.p(_event))
+  if veaf.loggers.get(veafEventHandler.Id):wouldLogTrace() then
+    veaf.loggers.get(veafEventHandler.Id):trace("event = %s", veaf.p(event))
+    veaf.loggers.get(veafEventHandler.Id):trace("_event = %s", veaf.p(_event))
+  end
 
   -- process event
   for _, callback in pairs(veafEventHandler.callbacks) do

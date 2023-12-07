@@ -23,10 +23,10 @@ veafSpawn = {}
 veafSpawn.Id = "SPAWN"
 
 --- Version.
-veafSpawn.Version = "1.51.0"
+veafSpawn.Version = "1.52.0"
 
 -- trace level, specific to this module
---veafSpawn.LogLevel = "trace"
+veafSpawn.LogLevel = "trace"
 
 veaf.loggers.new(veafSpawn.Id, veafSpawn.LogLevel)
 
@@ -2684,6 +2684,34 @@ function veafSpawn.listAllCAP(unitName)
     end
 end
 
+function veafSpawn.dumpSpawnablePlanesList(export_path)
+    veaf.loggers.get(veafSpawn.Id):debug("veafSpawn.dumpSpawnablePlanesList(export_path=%s)", export_path)
+
+    local jsonify = function(key, value)
+        veaf.loggers.get(veafSpawn.Id):trace(string.format("jsonify(%s)", veaf.p(value)))
+        if veaf.json then
+            return veaf.json.stringify(value)
+        else
+            return ""
+        end
+    end
+
+    -- sort the spawnable planes alphabetically
+    local sortedSpawnablePlanesNames = {}
+    for _, spawnablePlane in pairs(veafSpawn.airUnitTemplates) do
+        local _name = spawnablePlane:getName():sub(veafSpawn.AirUnitTemplatesPrefix:len()+1)
+        table.insert(sortedSpawnablePlanesNames, _name)
+    end
+    table.sort(sortedSpawnablePlanesNames)
+    veaf.loggers.get(veafSpawn.Id):trace("sortedSpawnablePlanesNames=%s", veaf.p(sortedSpawnablePlanesNames))
+
+    local _filename = "SpawnablePlanes.json"
+    if veaf.config.MISSION_NAME then
+        _filename = "SpawnablePlanesList_" .. veaf.config.MISSION_NAME .. ".json"
+    end
+    veaf.exportAsJson(sortedSpawnablePlanesNames, "spawnablePlanes", jsonify, _filename, export_path or veaf.config.MISSION_EXPORT_PATH)
+end
+
 function veafSpawn.spawnAFAC(spawnSpot, name, country, altitude, speed, hdg, frequency, mod, code, immortal, silent, hiddenOnMFD)
 
     local coalition = veaf.getCoalitionForCountry(country, true)
@@ -3736,6 +3764,7 @@ function veafSpawn.initialize()
     veafSpawn.buildRadioMenu()
     veafSpawn.initializeAirUnitTemplates()
     veafMarkers.registerEventHandler(veafMarkers.MarkerChange, veafSpawn.onEventMarkChange)
+    veafSpawn.dumpSpawnablePlanesList()
 end
 
 veaf.loggers.get(veafSpawn.Id):info(string.format("Loading version %s", veafSpawn.Version))

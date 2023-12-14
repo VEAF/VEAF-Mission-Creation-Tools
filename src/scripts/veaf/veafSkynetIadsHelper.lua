@@ -113,12 +113,15 @@ function veafSkynet.getStringSkynetElement(skynetElement)
 end
 
 function veafSkynet.getDcsGroupFromSkynetElement(skynetElement)
-    local category = getmetatable(skynetElement.dcsRepresentation)
-    if (category == Group) then
-        return skynetElement.dcsRepresentation
-    elseif (category == Unit) then
-        return Unit.getGroup(skynetElement.dcsRepresentation)
+    if (skynetElement.dcsRepresentation and skynetElement.dcsRepresentation:isExist()) then
+        local category = getmetatable(skynetElement.dcsRepresentation)
+        if (category == Group) then
+            return skynetElement.dcsRepresentation
+        elseif (category == Unit) then
+            return Unit.getGroup(skynetElement.dcsRepresentation)
+        end
     end
+    
     return nil
 end
 
@@ -144,11 +147,11 @@ function veafSkynet.getSkynetData(skynetElement)
 
         -- tracking and search radars can be used by multiple sites
         if(skynetDatabaseMatchType(skynetElement.trackingRadars, skynetData["trackingRadar"])) then
-            veaf.loggers.get(veafSkynet.Id):trace("Matched by launcher : " .. veafSkynet.getStringSkynetElement(skynetElement) .. " > " .. skynetDataName)
+            veaf.loggers.get(veafSkynet.Id):trace("Matched by TR : " .. veafSkynet.getStringSkynetElement(skynetElement) .. " > " .. skynetDataName)
             return skynetData
         end
         if(skynetDatabaseMatchType(skynetElement.searchRadars, skynetData["searchRadar"])) then
-            veaf.loggers.get(veafSkynet.Id):trace("Matched by launcher : " .. veafSkynet.getStringSkynetElement(skynetElement) .. " > " .. skynetDataName)
+            veaf.loggers.get(veafSkynet.Id):trace("Matched by SR : " .. veafSkynet.getStringSkynetElement(skynetElement) .. " > " .. skynetDataName)
             return skynetData
         end
     end

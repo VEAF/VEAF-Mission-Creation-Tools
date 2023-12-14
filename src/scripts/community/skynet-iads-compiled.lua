@@ -1,4 +1,4 @@
-env.info("--- SKYNET VERSION: 3.1.4RP | BUILD TIME: 20.11.2023 2049Z ---")
+env.info("--- SKYNET VERSION: 3.1.5RP | BUILD TIME: 14.12.2023 2228Z ---")
 do
 --this file contains the required units per sam type
 samTypesDB = {
@@ -45,6 +45,11 @@ samTypesDB = {
 			['S-300PS 64H6E sr'] = {
 				['name'] = {
 					['NATO'] = 'Big Bird',
+				},
+			},
+			['S-300PS 40B6MD sr_19J6'] = {
+				['name'] = {
+					['NATO'] = 'Tin Shield',
 				},
 			},
 		},
@@ -374,7 +379,7 @@ samTypesDB = {
 			},
 		},
 		['name'] = {
-			['NATO'] = 'Zues',
+			['NATO'] = 'Zeus',
 		},
 		['harm_detection_chance'] = 10
 	},
@@ -395,6 +400,23 @@ samTypesDB = {
 		},
 		['harm_detection_chance'] = 30
 	},
+	['HEMTT_C-RAM_Phalanx'] = {
+		['type'] = 'single',
+		['searchRadar'] = {
+			['HEMTT_C-RAM_Phalanx'] = {
+			},
+		},
+		['launchers'] = {
+			['HEMTT_C-RAM_Phalanx'] = {
+			},
+		},
+		['name'] = {
+			['NATO'] = 'C-RAM Phalanx',
+		},
+		['harm_detection_chance'] = 40,
+		['can_engage_harm'] = true
+	},
+
 --- Start of EW radars:
 	['1L13 EWR'] = {
 		['type'] = 'ewr',

@@ -9,3 +9,4 @@ test/test-out.miz
 .gitignore
 mission.lua
 mission-2.lua
+SpawnablePlanesList*.json

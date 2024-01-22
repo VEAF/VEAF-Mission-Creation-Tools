@@ -3948,7 +3948,7 @@ function ctld.unpackAASystem(_heli, _nearestCrate, _nearbyCrates,_aaSystemTempla
                 local angular_step = arcRad / partAmount
 
                 for _i = 1, partAmount do
-                    local _angle = angular_step * (_i - 1) 
+                    local _angle = (angular_step * (_i - 1) + _hdg)%arcRad
                     local _xOffset = math.cos(_angle) * spawnDistance
                     local _yOffset = math.sin(_angle) * spawnDistance
 

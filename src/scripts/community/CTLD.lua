@@ -555,8 +555,8 @@ ctld.spawnableCrates = {
         { weight = 540, desc = "HAWK Launcher", unit = "Hawk ln", side = 2},
         { weight = 545, desc = "HAWK Search Radar", unit = "Hawk sr", side = 2 },
         { weight = 546, desc = "HAWK Track Radar", unit = "Hawk tr", side = 2 },
-        -- { weight = 547, desc = "HAWK PCP", unit = "Hawk pcp" , side = 2 }, -- Remove this if on 1.2
-        -- { weight = 548, desc = "HAWK CWAR", unit = "Hawk cwar" , side = 2 }, -- Remove this if on 2.5    
+        --{ weight = 547, desc = "HAWK PCP", unit = "Hawk pcp" , side = 2 }, -- Remove this if on 1.2
+        --{ weight = 548, desc = "HAWK CWAR", unit = "Hawk cwar" , side = 2 }, -- Remove this if on 2.5    
         { weight = 549, desc = "HAWK Repair", unit = "HAWK Repair" , side = 2 },
         -- End of HAWK
 
@@ -580,7 +580,7 @@ ctld.spawnableCrates = {
         { weight = 557, desc = "Patriot ECS", unit = "Patriot ECS", side = 2 },
         -- { weight = 553, desc = "Patriot ICC", unit = "Patriot cp", side = 2 },
         -- { weight = 554, desc = "Patriot EPP", unit = "Patriot EPP", side = 2 },
-        -- { weight = 558, desc = "Patriot AMG (optional)", unit = "Patriot AMG" , side = 2 },
+        --{ weight = 558, desc = "Patriot AMG (optional)", unit = "Patriot AMG" , side = 2 },
         { weight = 559, desc = "Patriot Repair", unit = "Patriot Repair" , side = 2 },
         -- End of Patriot
 
@@ -3894,7 +3894,7 @@ function ctld.unpackAASystem(_heli, _nearestCrate, _nearbyCrates,_aaSystemTempla
         end
     end
 
-    local spawnDistance = 75 -- circle diameter to spawn units in a circle and randomize position relative to the crate location
+    local spawnDistance = 50 -- circle diameter to spawn units in a circle and randomize position relative to the crate location
     local arcRad = math.pi * 2
 
     local _txt = ""

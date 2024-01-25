@@ -26,7 +26,7 @@ ctld = {} -- DONT REMOVE!
 ctld.Id = "CTLD - "
 
 --- Version.
-ctld.Version = "202401.01"
+ctld.Version = "202401.02"
 
 -- To add debugging messages to dcs.log, change the following log levels to `true`; `Debug` is less detailed than `Trace`
 ctld.Debug = false
@@ -73,9 +73,6 @@ ctld.vehiclesWeight = {
     ["M1043 HMMWV Armament"] = 2500
 }
 
-ctld.aaLaunchers = 3 -- controls how many launchers to add to the kub/buk when its spawned.
-ctld.hawkLaunchers = 8 -- controls how many launchers to add to the hawk when its spawned.
-
 ctld.spawnRPGWithCoalition = true --spawns a friendly RPG unit with Coalition forces
 ctld.spawnStinger = false -- spawns a stinger / igla soldier with a group of 6 or more soldiers!
 
@@ -115,6 +112,9 @@ ctld.hoverTime = 10 -- Time to hold hover above a crate for loading in seconds
 -- end of Simulated Sling load configuration
 
 -- AA SYSTEM CONFIG --
+
+ctld.aaLaunchers = 3 -- controls how many launchers to add to the AA systems when its spawned if no amount is specified in the template.
+
 -- Sets a limit on the number of active AA systems that can be built for RED.
 -- A system is counted as Active if its fully functional and has all parts
 -- If a system is partially destroyed, it no longer counts towards the total
@@ -124,6 +124,11 @@ ctld.hoverTime = 10 -- Time to hold hover above a crate for loading in seconds
 ctld.AASystemLimitRED = 20 -- Red side limit
 
 ctld.AASystemLimitBLUE = 20 -- Blue side limit
+
+-- Allows players to create systems using as many crates as they like
+-- Example : an amount X of patriot launcher crates allows for Y launchers to be deployed, if a player brings 2*X+Z crates (Z being lower then X), then deploys the patriot site, 2*Y launchers will be in the group and Z launcher crate will be left over
+
+ctld.AASystemCrateStacking = false
 
 --END AA SYSTEM CONFIG --
 
@@ -550,8 +555,8 @@ ctld.spawnableCrates = {
         { weight = 540, desc = "HAWK Launcher", unit = "Hawk ln", side = 2},
         { weight = 545, desc = "HAWK Search Radar", unit = "Hawk sr", side = 2 },
         { weight = 546, desc = "HAWK Track Radar", unit = "Hawk tr", side = 2 },
-        { weight = 547, desc = "HAWK PCP", unit = "Hawk pcp" , side = 2 }, -- Remove this if on 1.2
-        { weight = 548, desc = "HAWK CWAR", unit = "Hawk cwar" , side = 2 }, -- Remove this if on 2.5    
+        --{ weight = 547, desc = "HAWK PCP", unit = "Hawk pcp" , side = 2 }, -- Remove this if on 1.2
+        --{ weight = 548, desc = "HAWK CWAR", unit = "Hawk cwar" , side = 2 }, -- Remove this if on 2.5    
         { weight = 549, desc = "HAWK Repair", unit = "HAWK Repair" , side = 2 },
         -- End of HAWK
 
@@ -570,12 +575,12 @@ ctld.spawnableCrates = {
     },
     ["AA long range"] = {
         -- Patriot System
-        { weight = 555, desc = "Patriot Launcher", unit = "Patriot ln", side = 2 },
+        { weight = 555, desc = "Patriot Launcher", unit = "Patriot ln", side = 2, cratesRequired = 2},
         { weight = 556, desc = "Patriot Radar", unit = "Patriot str" , side = 2 },
         { weight = 557, desc = "Patriot ECS", unit = "Patriot ECS", side = 2 },
         -- { weight = 553, desc = "Patriot ICC", unit = "Patriot cp", side = 2 },
         -- { weight = 554, desc = "Patriot EPP", unit = "Patriot EPP", side = 2 },
-        { weight = 558, desc = "Patriot AMG (optional)", unit = "Patriot AMG" , side = 2 },
+        --{ weight = 558, desc = "Patriot AMG (optional)", unit = "Patriot AMG" , side = 2 },
         { weight = 559, desc = "Patriot Repair", unit = "Patriot Repair" , side = 2 },
         -- End of Patriot
 
@@ -1393,6 +1398,8 @@ end
 
 --- Tells CTLD What multipart AA Systems there are and what parts they need
 -- A New system added here also needs the launcher added
+-- The number of times that each part is spawned for each system is specified by the entry "amount", NOTE : they will be spawned in a circle with the corresponding headings, NOTE 2 : launchers will use the default ctld.aaLauncher amount if nothing is specified
+-- If a component does not require a crate, it can be specified via the entry "NoCrate" set to true
 ctld.AASystemTemplate = {
 
     {
@@ -1400,10 +1407,10 @@ ctld.AASystemTemplate = {
         count = 4,
         parts = {
             {name = "Hawk ln", desc = "HAWK Launcher", launcher = true},
-            {name = "Hawk tr", desc = "HAWK Track Radar"},
-            {name = "Hawk sr", desc = "HAWK Search Radar"},
-            {name = "Hawk pcp", desc = "HAWK PCP"},
-            {name = "Hawk cwar", desc = "HAWK CWAR"},
+            {name = "Hawk tr", desc = "HAWK Track Radar", amount = 2},
+            {name = "Hawk sr", desc = "HAWK Search Radar", amount = 2},
+            {name = "Hawk pcp", desc = "HAWK PCP", NoCrate = true},
+            {name = "Hawk cwar", desc = "HAWK CWAR", amount = 2, NoCrate = true},
         },
         repair = "HAWK Repair",
     },
@@ -1411,9 +1418,10 @@ ctld.AASystemTemplate = {
         name = "Patriot AA System",
         count = 4,
         parts = {
-            {name = "Patriot ln", desc = "Patriot Launcher", launcher = true},
+            {name = "Patriot ln", desc = "Patriot Launcher", launcher = true, amount = 8},
             {name = "Patriot ECS", desc = "Patriot Control Unit"},
-            {name = "Patriot str", desc = "Patriot Search and Track Radar"},
+            {name = "Patriot str", desc = "Patriot Search and Track Radar", amount = 2},
+            {name = "Patriot AMG", desc = "Patriot AMG DL relay", NoCrate = true},
         },
         repair = "Patriot Repair",
     },
@@ -1535,10 +1543,12 @@ function ctld.getTransportUnit(_unitName)
     return nil
 end
 
-function ctld.spawnCrateStatic(_country, _unitId, _point, _name, _weight,_side)
+function ctld.spawnCrateStatic(_country, _unitId, _point, _name, _weight,_side, _hdg)
 
     local _crate
     local _spawnedCrate
+
+    local hdg = _hdg or 0
 
     if ctld.staticBugWorkaround and ctld.slingLoad == false then
         local _groupId = ctld.getNextGroupId()
@@ -1555,7 +1565,7 @@ function ctld.spawnCrateStatic(_country, _unitId, _point, _name, _weight,_side)
             ["task"] = {},
         }
 
-        _group.units[1] = ctld.createUnit(_point.x , _point.z , 0, {type="UAZ-469",name=_name,unitId=_unitId})
+        _group.units[1] = ctld.createUnit(_point.x , _point.z , hdg, {type="UAZ-469",name=_name,unitId=_unitId})
 
         --switch to MIST
         _group.category = Group.Category.GROUND;
@@ -1581,7 +1591,7 @@ function ctld.spawnCrateStatic(_country, _unitId, _point, _name, _weight,_side)
         _crate["x"] = _point.x
         _crate["mass"] = _weight
         _crate["name"] = _name
-        _crate["heading"] = 0
+        _crate["heading"] = hdg
         _crate["country"] = _country
 
         mist.dynAddStatic(_crate)
@@ -3340,7 +3350,7 @@ function ctld.dropSlingCrate(_args)
         --remove crate from cargo
         ctld.inTransitSlingLoadCrates[_heli:getName()] = nil
         ctld.adaptWeightToCargo(_heli:getName())
-        local _spawnedCrate = ctld.spawnCrateStatic(_heli:getCountry(), _unitId, _point, _name, _currentCrate.weight,_side)
+        local _spawnedCrate = ctld.spawnCrateStatic(_heli:getCountry(), _unitId, _point, _name, _currentCrate.weight,_side, mist.getHeading(_heli))
     end
 end
 
@@ -3712,6 +3722,7 @@ function ctld.rearmAASystem(_heli, _nearestCrate, _nearbyCrates, _aaSystemTempla
 
             local _uniqueTypes = {} -- stores each unique part of system
             local _types = {}
+            local _hdgs = {}
             local _points = {}
 
             local _units = _nearestSystem.group:getUnits()
@@ -3726,6 +3737,7 @@ function ctld.rearmAASystem(_heli, _nearestCrate, _nearbyCrates, _aaSystemTempla
 
                         table.insert(_points, _units[x]:getPoint())
                         table.insert(_types, _units[x]:getTypeName())
+                        table.insert(_hdgs, mist.getHeading(_units[x]))
                     end
                 end
             end
@@ -3739,11 +3751,11 @@ function ctld.rearmAASystem(_heli, _nearestCrate, _nearbyCrates, _aaSystemTempla
 
                 _nearestSystem.group:destroy()
 
-                local _spawnedGroup = ctld.spawnCrateGroup(_heli, _points, _types)
+                local _spawnedGroup = ctld.spawnCrateGroup(_heli, _points, _types, _hdgs)
 
                 ctld.completeAASystems[_spawnedGroup:getName()] = ctld.getAASystemDetails(_spawnedGroup, _aaSystemTemplate)
 
-                ctld.processCallback({unit = _heli, crate =  _nearestCrate , spawnedGroup = _spawnedGroup, action = "rearm"})
+                ctld.processCallback({unit = _heli, crate =  _nearestCrate, spawnedGroup = _spawnedGroup, action = "rearm"})
 
                 trigger.action.outTextForCoalition(_heli:getCoalition(), ctld.getPlayerNameOrType(_heli) .. " successfully rearmed a full ".._aaSystemTemplate.name.." in the field", 10)
 
@@ -3773,7 +3785,7 @@ function ctld.getAASystemDetails(_hawkGroup,_aaSystemTemplate)
     local _hawkDetails = {}
 
     for _, _unit in pairs(_units) do
-        table.insert(_hawkDetails, { point = _unit:getPoint(), unit = _unit:getTypeName(), name = _unit:getName(), system =_aaSystemTemplate})
+        table.insert(_hawkDetails, { point = _unit:getPoint(), hdg = mist.getHeading(_unit), unit = _unit:getTypeName(), name = _unit:getName(), system =_aaSystemTemplate})
     end
 
     return _hawkDetails
@@ -3799,74 +3811,154 @@ end
 function ctld.unpackAASystem(_heli, _nearestCrate, _nearbyCrates,_aaSystemTemplate)
 
     if ctld.rearmAASystem(_heli, _nearestCrate, _nearbyCrates,_aaSystemTemplate) then
-        -- rearmed hawk
+        -- rearmed system
         return
     end
 
-    -- are there all the pieces close enough together
     local _systemParts = {}
 
     --initialise list of parts
     for _,_part in pairs(_aaSystemTemplate.parts) do
-        _systemParts[_part.name] = {name = _part.name,desc = _part.desc,found = false}
+        local _systemPart = {name = _part.name, desc = _part.desc, launcher = _part.launcher, amount = _part.amount, NoCrate = _part.NoCrate, found = 0, required = 1}
+        -- if the part is a NoCrate required, it's found by default
+        if _systemPart.NoCrate ~= nil then
+            _systemPart.found = 1
+        end
+        _systemParts[_part.name] = _systemPart
     end
 
-    -- find all nearest crates and add them to the list if they're part of the AA System
+    local _cratePositions = {}
+    local _crateHdg = {}
+
+    local crateDistance = 500
+
+    -- find all crates close enough and add them to the list if they're part of the AA System
     for _, _nearbyCrate in pairs(_nearbyCrates) do
+        if _nearbyCrate.dist < crateDistance then
 
-        if _nearbyCrate.dist < 500 then
+            local _name = _nearbyCrate.details.unit
 
-            if _systemParts[_nearbyCrate.details.unit] ~= nil and _systemParts[_nearbyCrate.details.unit].found == false  then
-                local _foundPart = _systemParts[_nearbyCrate.details.unit]
+            if _systemParts[_name] ~= nil then
 
-                _foundPart.found = true
-                _foundPart.crate = _nearbyCrate
+                local foundCount = _systemParts[_name].found
 
-                _systemParts[_nearbyCrate.details.unit] = _foundPart
+                -- if this is our first time encountering this part of the system
+                if foundCount == 0 then
+                    local _foundPart = _systemParts[_name]
+
+                    _foundPart.found = 1
+                    _foundPart.crates = {}
+
+                    -- store the number of crates required to compute how many crates will have to be removed later and to see if the system can be deployed
+                    local cratesRequired = _nearbyCrate.details.cratesRequired
+                    if  cratesRequired ~= nil then
+                        _foundPart.required = cratesRequired
+                    end
+
+                    _systemParts[_name] = _foundPart
+                    _cratePositions[_name] = {}
+                    _crateHdg[_name] = {}
+                else
+                    -- otherwise, we found another crate for the same part
+                    _systemParts[_name].found = foundCount + 1
+                end
+
+                -- add the crate to the part info along with it's position and heading
+                local crateUnit = _nearbyCrate.crateUnit
+                table.insert(_systemParts[_name].crates, _nearbyCrate)
+                table.insert(_cratePositions[_name], crateUnit:getPoint())
+                table.insert(_crateHdg[_name], mist.getHeading(crateUnit))
             end
         end
     end
 
-    local _count = 0
+    -- Compute the centroids for each type of crates and then the centroid of all the system crates which is used to find the spawn location for each part and a position for the NoCrate parts respectively
+    -- One issue, all crates are considered for the centroid and the headings but not all of them may be used if crate stacking is allowed
+    local _crateCentroids = {}
+    local _idxCentroids = {}
+    for _partName, _partPositions in pairs(_cratePositions) do
+        _crateCentroids[_partName] = ctld.getCentroid(_partPositions)
+        table.insert(_idxCentroids, _crateCentroids[_partName])
+    end
+    local _crateCentroid = ctld.getCentroid(_idxCentroids)
+
+    -- Compute the average heading for each type of crates to know the heading to spawn the part
+    local _aveHdg = {}
+    -- Headings of each group of crates
+    for _partName, _crateHeadings in pairs(_crateHdg) do
+        local crateCount = #_crateHeadings
+        _aveHdg[_partName] = 0
+        -- Heading of each crate within a group
+        for _index, _crateHeading in pairs(_crateHeadings) do
+            _aveHdg[_partName] = _crateHeading / crateCount + _aveHdg[_partName]
+        end
+    end
+
+    local spawnDistance = 50 -- circle diameter to spawn units in a circle and randomize position relative to the crate location
+    local arcRad = math.pi * 2
+
     local _txt = ""
 
     local _posArray = {}
+    local _hdgArray = {}
     local _typeArray = {}
+    -- for each part of the system parts
     for _name, _systemPart in pairs(_systemParts) do
 
-        if _systemPart.found == false then
+        -- check if enough crates were found to build the part
+        if _systemPart.found < _systemPart.required then
             _txt = _txt.."Missing ".._systemPart.desc.."\n"
         else
+            -- use the centroid of the crates for this part as a spawn location
+            local _point = _crateCentroids[_name]
+            -- in the case this centroid does not exist (NoCrate), use the centroid of all crates found and add some randomness
+            if _point == nil then
+                _point = _crateCentroid
+                _point = { x = _point.x + math.random(0,3)*spawnDistance, y = _point.y, z = _point.z + math.random(0,3)*spawnDistance}
+            end
 
-            local _launcherPart = ctld.getLauncherUnitFromAATemplate(_aaSystemTemplate)
+            -- use the average heading to spawn the part at
+            local _hdg = _aveHdg[_name]
+            -- if non are found (NoCrate), random heading
+            if _hdg == nil then
+                _hdg = math.random(0, arcRad)
+            end
 
-            --handle multiple launchers from one crate
-            if (_name == "Hawk ln" and ctld.hawkLaunchers > 1)
-                    or (_launcherPart == _name and ctld.aaLaunchers  > 1) then
-
-                --add multiple launcher
-                local _launchers = ctld.aaLaunchers
-
-                if _name == "Hawk ln" then
-                    _launchers = ctld.hawkLaunchers
+            -- search for the amount of times this part needs to be spawned, by default 1 for any unit and aaLaunchers for launchers
+            local partAmount = 1
+            if _systemPart.amount == nil then
+                if _systemPart.launcher ~= nil then
+                    partAmount = ctld.aaLaunchers
                 end
+            else
+                -- but the amount may also be specified in the template
+                partAmount = _systemPart.amount
+            end
+            -- if crate stacking is allowed, then find the multiplication factor for the amount depending on how many crates are required and how many were found
+            if ctld.AASystemCrateStacking then
+                _systemPart.amountFactor = _systemPart.found - _systemPart.found%_systemPart.required
+            else
+                _systemPart.amountFactor = 1
+            end
+            partAmount = partAmount * _systemPart.amountFactor
 
-                for _i = 1, _launchers do
+            --handle multiple units per part by spawning them in a circle around the crate
+            if partAmount > 1 then
+                
+                local angular_step = arcRad / partAmount
 
-                    -- spawn in a circle around the crate
-                    local _angle = math.pi * 2 * (_i - 1) / _launchers
-                    local _xOffset = math.cos(_angle) * 12
-                    local _yOffset = math.sin(_angle) * 12
+                for _i = 1, partAmount do
+                    local _angle = (angular_step * (_i - 1) + _hdg)%arcRad
+                    local _xOffset = math.cos(_angle) * spawnDistance
+                    local _yOffset = math.sin(_angle) * spawnDistance
 
-                    local _point = _systemPart.crate.crateUnit:getPoint()
-
-                    _point = { x = _point.x + _xOffset, y = _point.y, z = _point.z + _yOffset }
-
-                    table.insert(_posArray, _point)
+                    table.insert(_posArray, { x = _point.x + _xOffset, y = _point.y, z = _point.z + _yOffset })
+                    table.insert(_hdgArray, _angle) -- also spawn them perpendicular to that point of the circle
                     table.insert(_typeArray, _name)
                 end
             else
-                table.insert(_posArray, _systemPart.crate.crateUnit:getPoint())
+                table.insert(_posArray, _point)
+                table.insert(_hdgArray, _hdg)
                 table.insert(_typeArray, _name)
             end
         end
@@ -3890,28 +3982,42 @@ function ctld.unpackAASystem(_heli, _nearestCrate, _nearbyCrates,_aaSystemTempla
 
         -- destroy crates
         for _name, _systemPart in pairs(_systemParts) do
+            -- if there is a crate to delete in the first place
+            if  _systemPart.NoCrate ~= true then
+                -- figure out how many crates to delete since we searched for as many as possible, not all of them might have been used
+                local amountToDel = _systemPart.amountFactor*_systemPart.required
+                local DelCounter = 0
 
-            if _heli:getCoalition() == 1 then
-                ctld.spawnedCratesRED[_systemPart.crate.crateUnit:getName()] = nil
-            else
-                ctld.spawnedCratesBLUE[_systemPart.crate.crateUnit:getName()] = nil
+                -- for each crate found for this part
+                for _index, _crate in pairs(_systemPart.crates) do
+                    -- if we still need to delete some crates
+                    if DelCounter < amountToDel then
+                        if _heli:getCoalition() == 1 then
+                            ctld.spawnedCratesRED[_crate.crateUnit:getName()] = nil
+                        else
+                            ctld.spawnedCratesBLUE[_crate.crateUnit:getName()] = nil
+                        end
+
+                        --destroy
+                        -- if ctld.slingLoad == false then
+                            _crate.crateUnit:destroy()
+                            DelCounter = DelCounter + 1 -- count up for one more crate has been deleted
+                        --end
+                    else
+                        break
+                    end
+                end
             end
-
-            --destroy
-           -- if ctld.slingLoad == false then
-                _systemPart.crate.crateUnit:destroy()
-            --end
         end
 
         -- HAWK / BUK READY!
-        local _spawnedGroup = ctld.spawnCrateGroup(_heli, _posArray, _typeArray)
+        local _spawnedGroup = ctld.spawnCrateGroup(_heli, _posArray, _typeArray, _hdgArray)
 
         ctld.completeAASystems[_spawnedGroup:getName()] = ctld.getAASystemDetails(_spawnedGroup,_aaSystemTemplate)
 
         ctld.processCallback({unit = _heli, crate = _nearestCrate , spawnedGroup = _spawnedGroup, action = "unpack"})
 
         trigger.action.outTextForCoalition(_heli:getCoalition(), ctld.getPlayerNameOrType(_heli) .. " successfully deployed a full ".._aaSystemTemplate.name.." to the field. \n\nAA Active System limit is: ".._allowed.."\nActive: "..(_activeLaunchers+1), 10)
-
     end
 end
 
@@ -3923,8 +4029,6 @@ function ctld.getAllowedAASystems(_heli)
     else
         return ctld.AASystemLimitRED
     end
-
-
 end
 
 
@@ -3989,10 +4093,12 @@ function ctld.repairAASystem(_heli, _nearestCrate,_aaSystem)
         --spawn new one
 
         local _types = {}
+        local _hdgs = {}
         local _points = {}
 
         for _, _part in pairs(_oldHawk) do
             table.insert(_points, _part.point)
+            table.insert(_hdgs, _part.hdg)
             table.insert(_types, _part.unit)
         end
 
@@ -4000,7 +4106,7 @@ function ctld.repairAASystem(_heli, _nearestCrate,_aaSystem)
         ctld.completeAASystems[_nearestHawk.group:getName()] = nil
         _nearestHawk.group:destroy()
 
-        local _spawnedGroup = ctld.spawnCrateGroup(_heli, _points, _types)
+        local _spawnedGroup = ctld.spawnCrateGroup(_heli, _points, _types, _hdgs)
 
         ctld.completeAASystems[_spawnedGroup:getName()] = ctld.getAASystemDetails(_spawnedGroup,_aaSystem)
 
@@ -4086,7 +4192,7 @@ function ctld.unpackMultiCrate(_heli, _nearestCrate, _nearbyCrates)
 end
 
 
-function ctld.spawnCrateGroup(_heli, _positions, _types)
+function ctld.spawnCrateGroup(_heli, _positions, _types, _hdg)
 
     local _id = ctld.getNextGroupId()
 
@@ -4105,21 +4211,34 @@ function ctld.spawnCrateGroup(_heli, _positions, _types)
         ["task"] = {},
     }
 
+    local hdg = 120
+    if _hdg ~= nil then
+        hdg = _hdg
+    end
+
+    local spreadMin = 2
+    local spreadMax = 5
+    local spreadMult = 2
+
     if #_positions == 1 then
 
         local _unitId = ctld.getNextUnitId()
         local _details = { type = _types[1], unitId = _unitId, name = string.format("Unpacked %s #%i", _types[1], _unitId) }
 
-        _group.units[1] = ctld.createUnit(_positions[1].x + 5, _positions[1].z + 5, 120, _details)
+        _group.units[1] = ctld.createUnit(_positions[1].x + math.random(spreadMin,spreadMax)*spreadMult, _positions[1].z + math.random(spreadMin,spreadMax)*spreadMult, hdg, _details)
 
     else
-
         for _i, _pos in ipairs(_positions) do
+
+            local heading = 120
+            if type(hdg) == "table" then
+                heading = hdg[_i]
+            end
 
             local _unitId = ctld.getNextUnitId()
             local _details = { type = _types[_i], unitId = _unitId, name = string.format("Unpacked %s #%i", _types[_i], _unitId) }
 
-            _group.units[_i] = ctld.createUnit(_pos.x + 5, _pos.z + 5, 120, _details)
+            _group.units[_i] = ctld.createUnit(_pos.x + math.random(spreadMin,spreadMax)*spreadMult, _pos.z + math.random(spreadMin,spreadMax)*spreadMult, heading, _details)
         end
     end
 
@@ -5062,7 +5181,7 @@ function ctld.addJTACRadioCommand(_side)
                     local jtacCounter = 0
                     
                     for _jtacGroupName,jtacUnit in pairs(ctld.jtacUnits) do
-                        ctld.logTrace(string.format("JTAC - MENU - [%s] - processing menu", ctld.p(_jtacGroupName)))
+                        --ctld.logTrace(string.format("JTAC - MENU - [%s] - processing menu", ctld.p(_jtacGroupName)))
                         
                         --if the JTAC is on the same team as the group being considered
                         local jtacCoalition = ctld.jtacUnits[_jtacGroupName].side
@@ -5071,8 +5190,8 @@ function ctld.addJTACRadioCommand(_side)
                             if ctld.jtacGroupSubMenuPath[_jtacGroupName] and #ctld.jtacGroupSubMenuPath[_jtacGroupName]==2 then
                                 missionCommands.removeItemForGroup(_groupId, ctld.jtacGroupSubMenuPath[_jtacGroupName])
                             end
-                            ctld.logTrace(string.format("JTAC - MENU - [%s] - jtacTargetsList = %s", ctld.p(_jtacGroupName), ctld.p(ctld.jtacTargetsList[_jtacGroupName])))
-                            ctld.logTrace(string.format("JTAC - MENU - [%s] - jtacCurrentTargets = %s", ctld.p(_jtacGroupName), ctld.p(ctld.jtacCurrentTargets[_jtacGroupName])))
+                            --ctld.logTrace(string.format("JTAC - MENU - [%s] - jtacTargetsList = %s", ctld.p(_jtacGroupName), ctld.p(ctld.jtacTargetsList[_jtacGroupName])))
+                            --ctld.logTrace(string.format("JTAC - MENU - [%s] - jtacCurrentTargets = %s", ctld.p(_jtacGroupName), ctld.p(ctld.jtacCurrentTargets[_jtacGroupName])))
                             
                             local jtacActionMenu = false
                             for _,_specialOptionTable in pairs(ctld.jtacSpecialOptions) do
@@ -5095,7 +5214,7 @@ function ctld.addJTACRadioCommand(_side)
                                 end
                                 --add the JTAC group submenu to the current page
                                 ctld.jtacGroupSubMenuPath[_jtacGroupName] = missionCommands.addSubMenuForGroup(_groupId, jtacGroupSubMenuName, jtacCurrentPagePath)
-                                ctld.logTrace(string.format("JTAC - MENU - [%s] - jtacGroupSubMenuPath = %s", ctld.p(_jtacGroupName), ctld.p(ctld.jtacGroupSubMenuPath[_jtacGroupName])))
+                                --ctld.logTrace(string.format("JTAC - MENU - [%s] - jtacGroupSubMenuPath = %s", ctld.p(_jtacGroupName), ctld.p(ctld.jtacGroupSubMenuPath[_jtacGroupName])))
                                 
                                 --make a copy of the JTAC group submenu's path to insert the target's list on as many pages as required. The JTAC's group submenu path only leads to the first page
                                 local jtacTargetPagePath = mist.utils.deepCopy(ctld.jtacGroupSubMenuPath[_jtacGroupName])
@@ -5137,7 +5256,7 @@ function ctld.addJTACRadioCommand(_side)
                                 end
                                 
                                 if #ctld.jtacTargetsList[_jtacGroupName] >= 1 then
-                                    ctld.logTrace(string.format("JTAC - MENU - [%s] - adding targets menu", ctld.p(_jtacGroupName)))
+                                    --ctld.logTrace(string.format("JTAC - MENU - [%s] - adding targets menu", ctld.p(_jtacGroupName)))
 
                                     --add a reset targeting option to revert to automatic JTAC unit targeting
                                     missionCommands.addCommandForGroup(_groupId, "Reset TGT Selection", jtacTargetPagePath, ctld.setJTACTarget, {jtacGroupName = _jtacGroupName, targetName = nil})
@@ -6028,11 +6147,11 @@ function ctld.getGroup(groupName)
             ctld.logTrace(string.format("ctld.getGroup - %s - group:isExist()", ctld.p(groupName)))
             local _groupUnits = _group:getUnits()
 
-            if _groupUnits ~= nil and #_groupUnits > 0 then
+        if _groupUnits ~= nil and #_groupUnits > 0 then
                 ctld.logTrace(string.format("ctld.getGroup - %s - group has %s units", ctld.p(groupName), ctld.p(#_groupUnits)))
-                for _x = 1, #_groupUnits do
-                    if _groupUnits[_x]:getLife() > 0  then -- removed and _groupUnits[_x]:isExist() as isExist doesnt work on single units!
-                        table.insert(_filteredUnits, _groupUnits[_x])
+            for _x = 1, #_groupUnits do
+                if _groupUnits[_x]:getLife() > 0  then -- removed and _groupUnits[_x]:isExist() as isExist doesnt work on single units!
+                table.insert(_filteredUnits, _groupUnits[_x])
                     else
                         ctld.logTrace(string.format("ctld.getGroup - %s - dead unit %s", ctld.p(groupName), ctld.p(_groupUnits[_x]:getName())))
                     end

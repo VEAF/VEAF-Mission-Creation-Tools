@@ -1,7 +1,7 @@
-env.info("--- SKYNET VERSION: 3.1.5RP | BUILD TIME: 14.12.2023 2228Z ---")
+env.info("--- SKYNET VERSION: 3.3.1RP | BUILD TIME: 21.01.2024 1754Z ---")
 do
 --this file contains the required units per sam type
-samTypesDB = {
+samTypesDB = {	
 	['S-200'] = {
         ['type'] = 'complex',
         ['searchRadar'] = {
@@ -51,10 +51,12 @@ samTypesDB = {
 				['name'] = {
 					['NATO'] = 'Tin Shield',
 				},
-			},
+			}
 		},
 		['trackingRadar'] = {
 			['S-300PS 40B6M tr'] = {
+			},	
+			['S-300PS 5H63C 30H6_tr'] = {
 			},
 		},
 		['launchers'] = {
@@ -217,16 +219,18 @@ samTypesDB = {
 
 	},	
 	['Roland ADS'] = {
-		['type'] = 'single',
+		['type'] = 'complex',
 		['searchRadar'] = {
-			['Roland ADS'] = {
+			['Roland Radar'] = {
+				['name'] = {
+					['NATO'] = 'Roland EWR',
+				},
 			},
 		},
 		['launchers'] = {
 			['Roland ADS'] = {
 			},
 		},
-
 		['name'] = {
 			['NATO'] = 'Roland ADS',
 		},
@@ -379,7 +383,7 @@ samTypesDB = {
 			},
 		},
 		['name'] = {
-			['NATO'] = 'Zeus',
+			['NATO'] = 'Zues',
 		},
 		['harm_detection_chance'] = 10
 	},
@@ -399,8 +403,8 @@ samTypesDB = {
 			['NATO'] = 'CSA-4',
 		},
 		['harm_detection_chance'] = 30
-	},
-	['HEMTT_C-RAM_Phalanx'] = {
+	},	
+	['Phalanx'] = {
 		['type'] = 'single',
 		['searchRadar'] = {
 			['HEMTT_C-RAM_Phalanx'] = {
@@ -411,13 +415,11 @@ samTypesDB = {
 			},
 		},
 		['name'] = {
-			['NATO'] = 'C-RAM Phalanx',
+			['NATO'] = 'Phalanx',
 		},
-		['harm_detection_chance'] = 40,
-		['can_engage_harm'] = true
-	},
-
---- Start of EW radars:
+		['harm_detection_chance'] = 10
+	},	
+-- Start of RED EW radars:	
 	['1L13 EWR'] = {
 		['type'] = 'ewr',
 		['searchRadar'] = {
@@ -451,35 +453,29 @@ samTypesDB = {
 		},
 		['harm_detection_chance'] = 20
 	},
-	['Roland Radar'] = {
-		['type'] = 'ewr',
-		['searchRadar'] = {
-			['Roland Radar'] = {
-				['name'] = {
-					['NATO'] = 'Roland EWR',
-				},
-			},
-		},
-
-		['harm_detection_chance'] = 60
-	},
-	['FPS-117'] = {
+-- Start of BLUE EW radars:
+	['FPS-117 Dome'] = {
 		['type'] = 'ewr',
 		['searchRadar'] = {
 			['FPS-117 Dome'] = {
 				['name'] = {
-					['NATO'] = 'FPS-117 EWR',
+					['NATO'] = 'FPS-117 Dome',
 				},
 			},
+		},
+		['harm_detection_chance'] = 80
+	},
+	['FPS-117'] = {
+		['type'] = 'ewr',
+		['searchRadar'] = {
 			['FPS-117'] = {
 				['name'] = {
-					['NATO'] = 'FPS-117 EWR',
+					['NATO'] = 'FPS-117',
 				},
 			},
-
 		},
-		['harm_detection_chance'] = 70
-	},
+		['harm_detection_chance'] = 80
+	}
 }
 end
 do
@@ -784,17 +780,6 @@ samTypesDB['S-300PMU2'] = {
 		},
 		['S-300PMU1 40B6MD sr'] = s300PMU140B6MDsr,
 		['S-300PMU1 64N6E sr'] = s300PMU164N6Esr,
-		
-		['S-300PS 40B6MD sr'] = {
-			['name'] = {
-				['NATO'] = '',
-			},
-		},		
-		['S-300PS 64H6E sr'] = {
-			['name'] = {
-				['NATO'] = '',
-			},
-		},
 	},
 	['trackingRadar'] = {
 		['S-300PMU2 92H6E tr'] = {
@@ -1209,7 +1194,15 @@ function SkynetIADS:create(name)
 		iads.name = ""
 	end
 	iads.contactUpdateInterval = 5
+	world.addEventHandler(iads)
 	return iads
+end
+
+function SkynetIADS:onEvent(event)
+	if (event.id == world.event.S_EVENT_BIRTH ) then
+		env.info("New Object Spawned")
+	--	self:addSAMSite(event.initiator:getGroup():getName());
+	end
 end
 
 function SkynetIADS:setUpdateInterval(interval)
@@ -1344,7 +1337,7 @@ function SkynetIADS:addSAMSitesByPrefix(prefix)
 		if pos and pos == 1 then
 			--mist returns groups, units and, StaticObjects
 			local dcsObject = Group.getByName(groupName)
-			if dcsObject then
+			if dcsObject and dcsObject:getUnits()[1]:isActive() then
 				self:addSAMSite(groupName)
 			end
 		end
@@ -1915,7 +1908,7 @@ end
 function SkynetIADSAbstractDCSObjectWrapper:setDCSRepresentation(representation)
 	self.dcsRepresentation = representation
 	if self.dcsRepresentation then
-		self.dcsName = self.dcsRepresentation:getName() -- FG 11/05/2023 - baleBaron hotfix issue 81
+		self.dcsName = self.dcsRepresentation:getName()
 		if (self.dcsName == nil or string.len(self.dcsName) == 0) and self.dcsRepresentation.id_ then
 			self.dcsName = self.dcsRepresentation.id_
 		end
@@ -2675,6 +2668,7 @@ function SkynetIADSAbstractRadarElement:goLive()
 	then
 		if self:isDestroyed() == false then
 			local  cont = self:getController()
+			cont:setOnOff(true)
 			cont:setOption(AI.Option.Ground.id.ALARM_STATE, AI.Option.Ground.val.ALARM_STATE.RED)	
 			cont:setOption(AI.Option.Air.id.ROE, AI.Option.Air.val.ROE.WEAPON_FREE)
 			self:getDCSRepresentation():enableEmission(true)
@@ -2707,9 +2701,15 @@ function SkynetIADSAbstractRadarElement:goDark()
 		-- point defence will only go live if the Radar Emitting site it is protecting goes dark and this is due to a it defending against a HARM
 		if (self.harmSilenceID ~= nil) then
 			self:pointDefencesGoLive()
+			if self:isDestroyed() == false then
+				--if site goes dark due to HARM we turn off AI, this is due to a bug in DCS multiplayer where the harm will find its way to the radar emitter if just setEmissions is set to false
+				local controller = self:getController()
+				controller:setOnOff(false)
+			end
 		end
 		self.aiState = false
 		self:stopScanningForHARMs()
+		self.cachedTargets = {}
 		if self.iads:getDebugSettings().radarWentDark then
 			self.iads:printOutputToLog("GOING DARK: "..self:getDescription())
 		end
@@ -2950,30 +2950,29 @@ end
 
 function SkynetIADSAbstractRadarElement:informOfHARM(harmContact)
 	local radars = self:getRadars()
-	for j = 1, #radars do
-		local radar = radars[j]
-
-		if radar:isExist() then -- baleBaron PR https://github.com/walder/Skynet-IADS/pull/84
-			local distanceNM =  mist.utils.metersToNM(self:getDistanceInMetersToContact(radar, harmContact:getPosition().p))
-			local harmToSAMHeading = mist.utils.toDegree(mist.utils.getHeadingPoints(harmContact:getPosition().p, radar:getPosition().p))
-			local harmToSAMAspect = self:calculateAspectInDegrees(harmContact:getMagneticHeading(), harmToSAMHeading)
-			local speedKT = harmContact:getGroundSpeedInKnots(0)
-			local secondsToImpact = self:getSecondsToImpact(distanceNM, speedKT)
-			--TODO: use tti instead of distanceNM?
-			-- when iterating through the radars, store shortest tti and work with that value??
-			if ( harmToSAMAspect < SkynetIADSAbstractRadarElement.HARM_TO_SAM_ASPECT and distanceNM < SkynetIADSAbstractRadarElement.HARM_LOOKAHEAD_NM ) then
-				self:addObjectIdentifiedAsHARM(harmContact)
-				if ( #self:getPointDefences() > 0 and self:pointDefencesGoLive() == true and self.iads:getDebugSettings().harmDefence ) then
-						self.iads:printOutputToLog("POINT DEFENCES GOING LIVE FOR: "..self:getDCSName().." | TTI: "..secondsToImpact)
-				end
-				--self.iads:printOutputToLog("Ignore HARM shutdown: "..tostring(self:shallIgnoreHARMShutdown()))
-				if ( self:getIsAPointDefence() == false and ( self:isDefendingHARM() == false or ( self:getHARMShutdownTime() < secondsToImpact ) ) and self:shallIgnoreHARMShutdown() == false) then
-					self:goSilentToEvadeHARM(secondsToImpact)
-					break
+		for j = 1, #radars do
+			local radar = radars[j]
+			if radar:isExist() then
+				local distanceNM =  mist.utils.metersToNM(self:getDistanceInMetersToContact(radar, harmContact:getPosition().p))
+				local harmToSAMHeading = mist.utils.toDegree(mist.utils.getHeadingPoints(harmContact:getPosition().p, radar:getPosition().p))
+				local harmToSAMAspect = self:calculateAspectInDegrees(harmContact:getMagneticHeading(), harmToSAMHeading)
+				local speedKT = harmContact:getGroundSpeedInKnots(0)
+				local secondsToImpact = self:getSecondsToImpact(distanceNM, speedKT)
+				--TODO: use tti instead of distanceNM?
+				-- when iterating through the radars, store shortest tti and work with that value??
+				if ( harmToSAMAspect < SkynetIADSAbstractRadarElement.HARM_TO_SAM_ASPECT and distanceNM < SkynetIADSAbstractRadarElement.HARM_LOOKAHEAD_NM ) then
+					self:addObjectIdentifiedAsHARM(harmContact)
+					if ( #self:getPointDefences() > 0 and self:pointDefencesGoLive() == true and self.iads:getDebugSettings().harmDefence ) then
+							self.iads:printOutputToLog("POINT DEFENCES GOING LIVE FOR: "..self:getDCSName().." | TTI: "..secondsToImpact)
+					end
+					--self.iads:printOutputToLog("Ignore HARM shutdown: "..tostring(self:shallIgnoreHARMShutdown()))
+					if ( self:getIsAPointDefence() == false and ( self:isDefendingHARM() == false or ( self:getHARMShutdownTime() < secondsToImpact ) ) and self:shallIgnoreHARMShutdown() == false) then
+						self:goSilentToEvadeHARM(secondsToImpact)
+						break
+					end
 				end
 			end
 		end
-	end
 end
 
 function SkynetIADSAbstractElement:addObjectIdentifiedAsHARM(harmContact)
@@ -3176,12 +3175,15 @@ function SkynetIADSContact:getTypeName()
 	if self:isIdentifiedAsHARM() then
 		return SkynetIADSContact.HARM
 	end
-	local category = Object.getCategory(self:getDCSRepresentation()) -- getCategory changed in DCS 2.9.1.48111 see https://forum.dcs.world/topic/337957-patch-notes-discussion-november-2023/#comment-5330539
-	if category == Object.Category.UNIT then
-		return self.typeName
-	elseif category == Object.Category.WEAPON then
-		return self.typeName
-	end
+
+	-- self:getDCSRepresentation():getCategory() will fail with an error if self:getDCSRepresentation() is not nil but the unit is destroyed. The error will obviously interrupt the treatment that called getTypeName(), with consequences I did not try to track.
+	-- Using Object.getCategory instead will get us nil in that case.
+	if self:getDCSRepresentation() ~= nil then
+		local category = Object.getCategory(self:getDCSRepresentation())
+		if category == Object.Category.UNIT then
+			return self.typeName
+		end
+	end 
 	return "UNKNOWN"
 end
 
@@ -3844,41 +3846,31 @@ function SkynetIADSHARMDetection:cleanAgedContacts()
 end
 
 function SkynetIADSHARMDetection:getNewRadarsThatHaveDetectedContact(contact)
-	local newRadars = contact:getAbstractRadarElementsDetected()
-	local radars = self.contactRadarsEvaluated[contact]
-	if radars then
-		newRadars = {}
-		local contactRadars = contact:getAbstractRadarElementsDetected()
-		for i = 1, #contactRadars do
-			local contactRadar = contactRadars[i]
-			local newRadar = self:isElementInTable(radars, contactRadar)
-			if newRadar ~= nil then
-				table.insert(newRadars, newRadar)
-			end
+	local radarsFromContact = contact:getAbstractRadarElementsDetected()
+	local evaluatedRadars = self.contactRadarsEvaluated[contact]
+	local newRadars = {}
+	if evaluatedRadars == nil then
+		evaluatedRadars = {}
+		self.contactRadarsEvaluated[contact] = evaluatedRadars
+	end
+	for i = 1, #radarsFromContact do
+		local contactRadar = radarsFromContact[i]
+		if self:isElementInTable(evaluatedRadars, contactRadar) == false then
+			table.insert(evaluatedRadars, contactRadar)
+			table.insert(newRadars, contactRadar)
 		end
 	end
-	-- FG correction FG self.contactRadarsEvaluated[contact] = contact:getAbstractRadarElementsDetected()
-	-- if the evaluated table is the same as the detected one, when we merge the contact and update the detected table all new radars are considered as having already evaluated the contact for HARM
-	-- so the table needs to be a *copy*
-	-- then again it is dubious that the hard ident is correct (as described in the docs) because the radars will detect the harm one after the other, and try each one in turn for the identify
-	-- the case when multiple radars will pick up the harm in the same 5 second loop (and so up the prob of ident) seems rare
-	local radarsDetected = contact:getAbstractRadarElementsDetected()
-	self.contactRadarsEvaluated[contact] = {}
-	for j = 1, #radarsDetected do
-		table.insert(self.contactRadarsEvaluated[contact], radarsDetected[j])
-	end
-	--
 	return newRadars
 end
 
 function SkynetIADSHARMDetection:isElementInTable(tbl, element)
 	for i = 1, #tbl do
-		tblElement = tbl[i]
+		local tblElement = tbl[i]
 		if tblElement == element then
-			return nil
+			return true
 		end
 	end
-	return element
+	return false
 end
 
 function SkynetIADSHARMDetection:informRadarsOfHARM(contact)

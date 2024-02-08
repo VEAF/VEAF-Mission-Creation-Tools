@@ -1,4 +1,4 @@
-env.info("--- SKYNET VERSION: 3.3.1RP | BUILD TIME: 21.01.2024 1754Z ---")
+env.info("--- SKYNET VERSION: 3.3.2RP | BUILD TIME: 02.02.2024 1951Z ---")
 do
 --this file contains the required units per sam type
 samTypesDB = {	
@@ -417,7 +417,8 @@ samTypesDB = {
 		['name'] = {
 			['NATO'] = 'Phalanx',
 		},
-		['harm_detection_chance'] = 10
+		['harm_detection_chance'] = 10,
+		['can_engage_harm'] = true
 	},	
 -- Start of RED EW radars:	
 	['1L13 EWR'] = {

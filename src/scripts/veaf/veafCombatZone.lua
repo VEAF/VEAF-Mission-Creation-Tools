@@ -20,7 +20,7 @@ veafCombatZone = {}
 veafCombatZone.Id = "COMBATZONE"
 
 --- Version.
-veafCombatZone.Version = "1.13.7"
+veafCombatZone.Version = "1.13.8"
 
 -- trace level, specific to this module
 --veafCombatZone.LogLevel = "trace"
@@ -1628,7 +1628,7 @@ function veafCombatZone.findUnitsInTriggerZone(triggerZoneName)
                     local unitCategory = Unit.getCategory(unit)
                     veaf.loggers.get(veafCombatZone.Id):trace("unitCategory=%s", veaf.p(unitCategory))
                 end
-                if objectCategory == 3 then
+                if objectCategory == 3 or objectCategory == 6 then -- 3 is static objects, 6 is cargo (a kind of static object)
                     groupName = unitName -- default for static objects = groups themselves
                 else
                     groupName = unit:getGroup():getName()

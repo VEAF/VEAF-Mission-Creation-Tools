@@ -20,7 +20,7 @@ veafCombatZone = {}
 veafCombatZone.Id = "COMBATZONE"
 
 --- Version.
-veafCombatZone.Version = "1.13.8"
+veafCombatZone.Version = "1.14.0"
 
 -- trace level, specific to this module
 --veafCombatZone.LogLevel = "trace"
@@ -265,6 +265,8 @@ function VeafCombatZone:new(objectToCopy)
     -- list of the elements defined in the zone
     objectToCreate.elements = {}
     objectToCreate.elementGroups = {}
+    -- the trigger zone object
+    objectToCreate.triggerZone = nil
     -- the zone center
     objectToCreate.zoneCenter = nil
     -- zone is active
@@ -383,6 +385,10 @@ end
 function VeafCombatZone:setCompletable(value)
     self.completable = value
     return self
+end
+
+function VeafCombatZone:getTriggerZone()
+    return self.triggerZone
 end
 
 function VeafCombatZone:getCenter()
@@ -519,6 +525,14 @@ function VeafCombatZone:initialize()
     -- check parameters
     if not self.missionEditorZoneName then
         return self
+    else
+        self.triggerZone = veaf.getTriggerZone(self.missionEditorZoneName)
+        if not self.triggerZone then
+            local message = string.format("Trigger zone [%s] does not exist in the mission !",veaf.p(self.missionEditorZoneName))
+            veaf.loggers.get(veafCombatZone.Id):error(message)
+            trigger.action.outText(message,5)
+        return self
+        end
     end
     if not self.friendlyName then
         self:setFriendlyName(self.missionEditorZoneName)
@@ -539,7 +553,7 @@ function VeafCombatZone:initialize()
 
     -- find units in the trigger zone
     local units
-    units, _ = veaf.safeUnpack(veafCombatZone.findUnitsInTriggerZone(self.missionEditorZoneName))
+    units, _ = veaf.safeUnpack(self:findUnitsInCombatZone())
 
     -- process special commands in the units 
     local alreadyAddedGroups = {}
@@ -628,7 +642,7 @@ function VeafCombatZone:initialize()
     self:desactivate()
 
     -- remove all units in the trigger zone (we want it CLEAN !)
-    local units, groupNames = veaf.safeUnpack(veafCombatZone.findUnitsInTriggerZone(self.missionEditorZoneName))
+    local _, groupNames = veaf.safeUnpack(self:findUnitsInCombatZone())
     if (groupNames) then
         for _, groupName in pairs(groupNames) do
 
@@ -1002,7 +1016,7 @@ function VeafCombatZone:popSmoke()
     if self:isTraining() then
         -- compute the barycenter of all remaining units
         local totalPosition = {x = 0,y = 0,z = 0}
-        local units, _ = veaf.safeUnpack(veafCombatZone.findUnitsInTriggerZone(self.missionEditorZoneName))
+        local units, _ = veaf.safeUnpack(self:findUnitsInCombatZone())
         for count = 1,#units do
             if units[count] then
                 totalPosition = mist.vec.add(totalPosition,Unit.getPosition(units[count]).p)
@@ -1103,6 +1117,57 @@ function VeafCombatZone:updateRadioMenu(inBatch)
     return self
 end
 
+---
+--- lists all units and statics (and their groups names) in a combat zone that also match the combat zone name
+---
+function VeafCombatZone:findUnitsInCombatZone()
+    local unitsNames = veaf.getUnitsNamesOfCoalition(true, nil) -- include statics, all coalitions
+    local units = {}
+    local resultUnits = {}
+    local groupNames = {}
+    local alreadyAddedGroups = {}
+    local triggerZone = self:getTriggerZone()
+    local upperTriggerzoneName = self:getMissionEditorZoneName():upper()
+
+    if not triggerZone then
+        return self
+    end
+
+    veaf.loggers.get(veafCombatZone.Id):trace("#unitsNames=%s", veaf.p(#unitsNames))
+
+    veaf.loggers.get(veafCombatZone.Id):trace("triggerZone.type=%s", veaf.p(triggerZone.type))
+    if triggerZone.type == 0 then -- circular
+        units = mist.getUnitsInZones(unitsNames, {self:getMissionEditorZoneName()})
+    elseif triggerZone.type == 2 then -- quad point
+        units = mist.getUnitsInPolygon(unitsNames, triggerZone.verticies)
+    end
+
+    veaf.loggers.get(veafCombatZone.Id):trace("#units=%s", veaf.p(#units))
+
+    for _, unit in pairs(units) do
+        local unitName = unit:getName()
+        local objectCategory = Object.getCategory(unit)
+        local groupName = nil
+        veaf.loggers.get(veafCombatZone.Id):trace(string.format("processing unit [%s]", unitName))
+        veaf.loggers.get(veafCombatZone.Id):trace(string.format("objectCategory = [%d]", objectCategory))
+        if objectCategory == 3 or objectCategory == 6 then -- 3 is static objects, 6 is cargo (a kind of static object)
+            groupName = unitName -- default for static objects = groups themselves
+        else
+            groupName = unit:getGroup():getName()
+        end
+        veaf.loggers.get(veafCombatZone.Id):trace(string.format("groupName = %s", groupName))
+        if string.sub(groupName:upper(),1,string.len(upperTriggerzoneName))==upperTriggerzoneName then
+            resultUnits[#resultUnits + 1] = unit
+            if not alreadyAddedGroups[groupName] then
+                alreadyAddedGroups[groupName] = groupName
+                groupNames[#groupNames + 1] = groupName
+            end
+        end
+    end
+
+    veaf.loggers.get(veafCombatZone.Id):trace(string.format("found %d units (%d groups) in zone", #resultUnits, #groupNames))
+    return {resultUnits, groupNames}
+end
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- VeafCombatOperationTaskingOrder object
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -1596,57 +1661,6 @@ function veafCombatZone.CompletionCheck(zoneName)
     veaf.loggers.get(veafCombatZone.Id):trace(string.format("veafCombatZone.CompletionCheck([%s])", veaf.p(zoneName)))
     local zone = veafCombatZone.GetZone(zoneName)
     zone:completionCheck()
-end
-
----
---- lists all units and statics (and their groups names) in a trigger zone
----
-function veafCombatZone.findUnitsInTriggerZone(triggerZoneName)
-    local triggerZone = trigger.misc.getZone(triggerZoneName)
-    if not(triggerZone) then
-        veaf.loggers.get(veafCombatZone.Id):error(string.format("trigger zone %s not found", triggerZoneName))
-    end
-    local units_by_name = {}
-    local l_units = veaf.getUnitsOfAllCoalitions(true)
-    local units = {}
-    local groupNames = {}
-    local alreadyAddedGroups = {}
-    local zoneCoordinates = {}
-    zoneCoordinates = {radius = triggerZone.radius, x = triggerZone.point.x, y = triggerZone.point.y, z = triggerZone.point.z}
-
-    for _, unit in pairs(l_units) do
-        local unitName = unit:getName()
-        local unit_pos = unit:getPosition().p
-        if unit_pos then
-            if (((unit_pos.x - zoneCoordinates.x)^2 + (unit_pos.z - zoneCoordinates.z)^2)^0.5 <= zoneCoordinates.radius) then
-                veaf.loggers.get(veafCombatZone.Id):trace(string.format("adding unit [%s]", unitName))
-                veaf.loggers.get(veafCombatZone.Id):trace(string.format("unit:getCategory() = [%d]", unit:getCategory()))
-                local groupName = nil
-                local objectCategory = Object.getCategory(unit)
-                veaf.loggers.get(veafCombatZone.Id):trace("objectCategory=%s", veaf.p(objectCategory))
-                if objectCategory == 1 then
-                    local unitCategory = Unit.getCategory(unit)
-                    veaf.loggers.get(veafCombatZone.Id):trace("unitCategory=%s", veaf.p(unitCategory))
-                end
-                if objectCategory == 3 or objectCategory == 6 then -- 3 is static objects, 6 is cargo (a kind of static object)
-                    groupName = unitName -- default for static objects = groups themselves
-                else
-                    groupName = unit:getGroup():getName()
-                end
-                veaf.loggers.get(veafCombatZone.Id):trace(string.format("groupName = %s", groupName))
-                if string.sub(groupName:upper(),1,string.len(triggerZoneName))==triggerZoneName:upper() then
-                    units[#units + 1] = unit
-                    if not alreadyAddedGroups[groupName] then
-                        alreadyAddedGroups[groupName] = groupName
-                        groupNames[#groupNames + 1] = groupName
-                    end
-                end
-            end
-        end
-    end
-
-    veaf.loggers.get(veafCombatZone.Id):trace(string.format("found %d units (%d groups) in zone", #units, #groupNames))
-    return {units, groupNames}
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------

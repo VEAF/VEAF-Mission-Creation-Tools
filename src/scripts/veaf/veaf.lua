@@ -19,7 +19,7 @@ veaf = {}
 veaf.Id = "VEAF"
 
 --- Version.
-veaf.Version = "1.46.4"
+veaf.Version = "1.47.0"
 
 --- Development version ?
 veaf.Development = true
@@ -1793,6 +1793,23 @@ function veaf.getUnitsOfCoalition(includeStatics, coa)
         local allDcsStatics = veaf.getStaticsOfCoalition(coa)
         for _, staticUnit in pairs(allDcsStatics) do
             table.insert(allDcsUnits, staticUnit)
+        end
+    end
+    return allDcsUnits
+end
+
+function veaf.getUnitsNamesOfCoalition(includeStatics, coa)
+    local allDcsUnits = {}
+    local allDcsGroups = veaf.getGroupsOfCoalition(coa)
+    for _, group in pairs(allDcsGroups) do
+        for _, unit in pairs(group:getUnits()) do
+            table.insert(allDcsUnits, unit:getName())
+        end
+    end
+    if includeStatics then
+        local allDcsStatics = veaf.getStaticsOfCoalition(coa)
+        for _, staticUnit in pairs(allDcsStatics) do
+            table.insert(allDcsUnits, StaticObject.getName(staticUnit))
         end
     end
     return allDcsUnits

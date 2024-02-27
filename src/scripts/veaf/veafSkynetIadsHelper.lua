@@ -19,7 +19,7 @@ veafSkynet = {}
 veafSkynet.Id = "SKYNET"
 
 --- Version.
-veafSkynet.Version = "3.0.1"
+veafSkynet.Version = "3.1.0"
 
 -- trace level, specific to this module
 --veafSkynet.LogLevel = "trace"
@@ -76,6 +76,12 @@ veafSkynet.PointDefenceMode = veafSkynet.PointDefenceModes.None -- no point defe
 
 veafSkynet.DynamicSpawn = false -- false by default
 
+veafSkynet.SkynetElementStates =
+{
+    Autonomous = 0,
+    Live = 1,
+    Dark = 2
+}
 
 --table containing the structure of each IADS network, first level is accessed with the IADS name. This contains the .coalitionID of the network, the IADS network (.iads), the groups added to the network (.groups) stored by groupName, 
 --wether this network should appear on the radio menu (.includeInRadio) and lastly if this network is in debug mode (.debugFlag). The groups store whether the group was .forceEwr or .pointDefense.
@@ -404,7 +410,6 @@ function veafSkynet.findSkynetElementToDefend(skynetElementPointDefence, skynetD
 end
 
 function veafSkynet.removePointDefencesFromSkynetElement(skynetElement)
-    -- not tested
     if(skynetElement and skynetElement.pointDefences and #skynetElement.pointDefences > 0) then
         for i = 1, #skynetElement.pointDefences do
             skynetElement.pointDefences[i]:setIsAPointDefence(false)
@@ -547,164 +552,6 @@ function veafSkynet.isGroupUsable(dcsGroup)
         return false
     end
 end
-
---[[
-function veafSkynet.addGroupToNetworkOld(networkName, dcsGroup, forceEwr, pointDefense, alreadyAddedGroups, silent)
-    veaf.loggers.get(veafSkynet.Id):debug("addGroupToNetwork(%s)", veaf.p(networkName))
-
-    if not dcsGroup then
-        veaf.loggers.get(veafSkynet.Id):error("No group to find to add to network")
-        return false
-    end
-
-    local forceEwr = false or forceEwr
-    local pointDefense = false or pointDefense
-    local silent = false or silent
-
-    local batchMode = (alreadyAddedGroups ~= nil)
-    local alreadyAddedGroups = alreadyAddedGroups or {}
-    local groupName = dcsGroup:getName()
-    local coa = dcsGroup:getCoalition()
-    veaf.loggers.get(veafSkynet.Id):trace(string.format("networkName= %s", tostring(networkName)))
-    veaf.loggers.get(veafSkynet.Id):trace(string.format("groupName= %s", tostring(groupName)))
-    veaf.loggers.get(veafSkynet.Id):trace(string.format("Coalition= %s", tostring(coa)))
-    local iads = veafSkynet.getIadsOfCoalition(networkName, coa)
-    if not(iads) then
-        veaf.loggers.get(veafSkynet.Id):trace(string.format("IADS named %s for the coalition of the group %s does not exist", veaf.p(networkName), tostring(groupName)))
-        return false
-    end
-    local didSomething = false
-    veaf.loggers.get(veafSkynet.Id):trace(string.format("addGroupToNetwork(%s) to %s", tostring(groupName), tostring(iads:getCoalitionString())))
-    veaf.loggers.get(veafSkynet.Id):trace(string.format("batchMode = %s", tostring(batchMode)))
-    veaf.loggers.get(veafSkynet.Id):trace(string.format("forceEwr = %s", tostring(forceEwr)))
-    veaf.loggers.get(veafSkynet.Id):trace(string.format("PointDefense= %s", tostring(pointDefense)))
-
-    local defended_name = nil
-    if pointDefense and not(forceEwr) then
-        veaf.loggers.get(veafSkynet.Id):trace(string.format("SAM is pointDefense"))
-        
-        if pointDefense == true then 
-            veaf.loggers.get(veafSkynet.Id):trace(string.format("Find nearest site to defend"))
-            defended_name = veafSkynet.getNearestIADSSite(networkName, dcsGroup)
-        else
-            defended_name = pointDefense
-            local defended_SAM = iads:getSAMSiteByGroupName(defended_name)
-            local defended_EWR = iads:getEarlyWarningRadars(defended_name)
-
-            local defended_site = defended_EWR
-            if defended_SAM then
-                defended_site = defended_SAM
-            end
-
-            if defended_site then
-                local defended_pos = veaf.getAvgGroupPos(defended_name)
-                local dcsGroup_pos = veaf.getAvgGroupPos(groupName)
-                local distance = math.sqrt((dcsGroup_pos.x-defended_pos.x)^2+(dcsGroup_pos.z-defended_pos.z)^2)
-                veaf.loggers.get(veafSkynet.Id):trace(string.format("Distance between requested site and pointDefense : %s", veaf.p(distance)))
-
-                if distance > veafSkynet.MaxPointDefenseDistanceFromSite then
-                    defended_name = nil
-                    veaf.loggers.get(veafSkynet.Id):info("User requested SAM Site out of reach for point defense")
-                end
-            else
-                defended_name = nil
-            end 
-        end
-    end
-
-    for _, dcsUnit in pairs(dcsGroup:getUnits()) do
-        local unitName = dcsUnit:getName()
-        local unitType = dcsUnit:getDesc()["typeName"]
-
-        local addedSite = nil
-
-        veaf.loggers.get(veafSkynet.Id):trace(string.format("checking unit %s of type %s", tostring(unitName), tostring(unitType)))
-
-        -- check if the unitType is supported by Skynet IADS
-        if veafSkynet.iadsSamUnitsTypes[unitType] then
-            veaf.loggers.get(veafSkynet.Id):trace(string.format("-> supported SAM type"))
-            if not(alreadyAddedGroups[groupName]) then
-                veaf.loggers.get(veafSkynet.Id):trace(string.format("adding a SAM group : %s", groupName))
-                local samsite = iads:addSAMSite(groupName)
-                if samsite then 
-                    addedSite = samsite
-                    didSomething = true
-                    alreadyAddedGroups[groupName] = true
-                    veaf.loggers.get(veafSkynet.Id):trace(string.format("adding a SAM -> OK"))
-                end
-            end
-        end
-
-        local ewrFlag = false
-        if veafSkynet.iadsEwrUnitsTypes[unitType] then
-            if not(alreadyAddedGroups[groupName]) then -- only add EWR for units not belonging to successfully initialized SAM groups
-                veaf.loggers.get(veafSkynet.Id):trace(string.format("adding an EWR unit : %s", unitName))
-                local ewr = iads:addEarlyWarningRadar(unitName)
-                if ewr then 
-                    addedSite = ewr
-                    didSomething = true
-                    ewrFlag = true
-                    veaf.loggers.get(veafSkynet.Id):trace(string.format("adding an EWR -> OK"))
-                end
-            end        
-        end
-
-        --user requested configuration
-        if addedSite and pointDefense and not(forceEwr) and not(ewrFlag) then            
-            if defended_name then
-                local text = string.format("Point Defense added to site : %s", string.format(defended_name))
-                veaf.loggers.get(veafSkynet.Id):info(text)
-                if not silent then trigger.action.outText(text,10) end
-                if iads:getSAMSiteByGroupName(defended_name) then
-                    veaf.loggers.get(veafSkynet.Id):trace(string.format("adding pointDefense to SAM -> OK"))
-                    iads:getSAMSiteByGroupName(defended_name):addPointDefence(addedSite)
-                else
-                    veaf.loggers.get(veafSkynet.Id):trace(string.format("adding pointDefense to EWR -> OK"))
-                    iads:getEarlyWarningRadars(defended_name):addPointDefence(addedSite)
-
-                    --confirm that the addition of point defenses to the EWR which is gathered through it's group name but only the unit name is stored in the structure
-                    --local site_info = iads:getEarlyWarningRadars(defended_name)
-                    --veaf.loggers.get(veafSkynet.Id):debug(string.format("Recovered EWR name : %s", veaf.p(site_info[1].dcsName)))
-                    --local pointDefenses = site_info[1].pointDefences
-                    --veaf.loggers.get(veafSkynet.Id):debug(string.format("Recover pointDefense name : %s", veaf.p(pointDefenses[#pointDefenses].dcsName)))
-                end
-            else
-                veaf.loggers.get(veafSkynet.Id):info("Could not find SAM site within range to add point defenses to")
-                if not silent then trigger.action.outText("Could not find SAM site within range to add point defenses to", 15) end
-            end
-        elseif forceEwr then
-            veaf.loggers.get(veafSkynet.Id):trace(string.format("SAM/EWR is forced EWR"))
-
-            if addedSite then
-                veaf.loggers.get(veafSkynet.Id):trace("Unit Forced as EWR")
-                addedSite:setActAsEW(true)
-            end
-        end
-    end
-
-    if didSomething then
-        if not(batchMode) and not(forceEwr) and not(pointDefense) then
-            -- specific configurations, for each SAM type
-            veaf.loggers.get(veafSkynet.Id):trace("Specific configuration applied")
-
-            iads:getSAMSitesByNatoName('SA-10'):setActAsEW(false)
-            iads:getSAMSitesByNatoName('SA-6'):setActAsEW(false)
-            iads:getSAMSitesByNatoName('SA-5'):setActAsEW(false)
-            iads:getSAMSitesByNatoName('Patriot'):setActAsEW(false)
-            iads:getSAMSitesByNatoName('Hawk'):setActAsEW(false)
-        end       
-
-        -- reactivate (rebuild coverage) the IADS
-        veaf.loggers.get(veafSkynet.Id):trace("reactivate (rebuild coverage) the IADS")
-        veafSkynet.delayedActivate(networkName)
-
-        --add the added site to the structure of the network it was added to
-        veafSkynet.structure[networkName].groups[groupName] = { forceEwr = forceEwr, pointDefense = defended_name }
-    end
-
-    return didSomething
-end
-]]
 
 function veafSkynet.addGroupToNetwork(networkName, dcsGroup, forceEwr, pointDefense, alreadyAddedGroups, silent)
     veaf.loggers.get(veafSkynet.Id):debug("ADD GROUP START [" .. dcsGroup:getName() .. "] [id=" .. dcsGroup:getID() .. "] to IADS network [" .. networkName .. "]")
@@ -1234,6 +1081,72 @@ function veafSkynet.destroyCommandCentersOfCoalition(iCoalitionId, iExplosionStr
     local veafSkynetNetwork = veafSkynet.getNetwork(veafSkynet.defaultIADS[tostring(iCoalitionId)])
     veafSkynet.destroyCommandCenters(veafSkynetNetwork, iExplosionStrength)
 end
+
+function veafSkynet.deactivateNetwork(veafSkynetNetwork, elementStates)
+    local elementState = elementStates or veafSkynet.SkynetElementStates.Live
+    local iads = veafSkynetNetwork.iads
+
+    local sElementState = "live"
+    if (elementState == veafSkynet.SkynetElementStates.Autonomous) then
+        sElementState = "autonomous"
+    elseif (elementState == veafSkynet.SkynetElementStates.Dark) then
+        sElementState = "dark"
+    end
+    veaf.loggers.get(veafSkynet.Id):trace("Deactivating network " .. iads:getCoalitionString() .. ". Network elements will go " .. sElementState)
+
+    local function setGroupState(skynetElement)
+        veafSkynet.removePointDefencesFromSkynetElement(skynetElement)
+        if (elementState == veafSkynet.SkynetElementStates.Autonomous) then
+            skynetElement:resetAutonomousState()
+            skynetElement:goAutonomous()
+        elseif (elementState == veafSkynet.SkynetElementStates.Dark) then
+            skynetElement:goDark() -- goDark will not always turn the radar off - eg an EWR that is tracking targets will stay on
+        else
+            skynetElement:goLive() -- goLive will not always turn the radar on - eg a SAM site out of ammo will stay off
+        end
+    end
+
+    iads:deactivate()
+
+    local ewrs = iads:getEarlyWarningRadars()
+    for i = 1, #ewrs do
+        local ewr = ewrs[i]
+        setGroupState(ewr)
+    end
+    local sams = iads:getSAMSites()
+    for i = 1, #sams do
+        local sam = sams[i]
+        setGroupState(sam)        
+    end
+
+    -- Copying the elements and emptying the Skynet lists before doing the state switch to ensure that Skynet does not keep controlling the elements after deactivation.
+    -- Does not seem necessary after all, and keeping the lists in the Skynet network allows to reactivate it later if needed.
+    -- Note that as it is, reactivating will not rebuild point defences, so it is more of a testing thing still.
+    -- Code kept here just in case.
+    --[[
+    local skynetGroups = {}
+    for i = 1, #iads.earlyWarningRadars do
+        table.insert(skynetGroups, iads.earlyWarningRadars[i])
+    end
+    for i = 1, #iads.samSites do
+        table.insert(skynetGroups, iads.samSites[i])
+    end
+    
+    iads.earlyWarningRadars = {}
+    iads.samSites = {}
+
+    for i = 1, #skynetGroups do
+        local skynetGroup = skynetGroups[i]
+        setGroupState(skynetGroup)
+    end
+    ]]
+end
+
+function veafSkynet.deactivateNetworkOfCoalition(iCoalitionId, elementStates)
+    local veafSkynetNetwork = veafSkynet.getNetwork(veafSkynet.defaultIADS[tostring(iCoalitionId)])
+    veafSkynet.deactivateNetwork(veafSkynetNetwork, elementStates)
+end
+
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Load module
 -------------------------------------------------------------------------------------------------------------------------------------------------------------

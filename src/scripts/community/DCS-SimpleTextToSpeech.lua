@@ -96,7 +96,13 @@ function STTS.isConfiguredAndInstalled()
         end
     end
 
-    env.info(string.format("[DCS-STTS] STTS.configuredAndInstalled = %s", STTS.configuredAndInstalled))
+
+    local configuredAndInstalled = "false"
+    if STTS.configuredAndInstalled then
+        configuredAndInstalled = "true"
+    end
+    env.info(string.format("[DCS-STTS] STTS.configuredAndInstalled = %s", configuredAndInstalled))
+    
     return STTS.configuredAndInstalled
 end
 

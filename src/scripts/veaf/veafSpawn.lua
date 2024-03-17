@@ -23,10 +23,10 @@ veafSpawn = {}
 veafSpawn.Id = "SPAWN"
 
 --- Version.
-veafSpawn.Version = "1.52.0"
+veafSpawn.Version = "1.53.0"
 
 -- trace level, specific to this module
-veafSpawn.LogLevel = "trace"
+--veafSpawn.LogLevel = "trace"
 
 veaf.loggers.new(veafSpawn.Id, veafSpawn.LogLevel)
 
@@ -266,7 +266,7 @@ function veafSpawn.executeCommand(eventPos, eventText, coalition, markId, bypass
                     if not options.type then
                         options.type = "invisible"
                     end
-                    spawnedGroup = veafSpawn.spawnFarp(eventPos, options.radius, options.name, options.country, options.type, options.side, options.heading, options.spacing, bypassSecurity, not options.showMFD)
+                    spawnedGroup = veafSpawn.spawnFarp(eventPos, options.radius, options.name, options.country, options.type, options.side, options.heading, options.spacing, bypassSecurity, not options.showMFD, options.noFarpMarkers)
                 elseif options.fob then
                     -- check security
                     if not (bypassSecurity or veafSecurity.checkSecurity_L9(options.password, markId)) then return end
@@ -464,6 +464,7 @@ function veafSpawn.markTextAnalysis(text)
     options.group = false
     options.cap = false
     options.farp = false
+    options.noFarpMarkers = false
     options.fob = false
     options.type = nil
     options.cargo = false
@@ -942,6 +943,12 @@ function veafSpawn.markTextAnalysis(text)
             options.type = val
         end
 
+        if options.farp and key:lower() == "nofarpmarkers" then
+            -- Skip the invisible FARP special vehicles that mark the position of the FARP
+            veaf.loggers.get(veafSpawn.Id):trace("Keyword noFarpMarkers is set")
+            options.noFarpMarkers = true
+        end
+
         if options.cargo and key:lower() == "smoke" then
             -- Mark with green smoke.
             veaf.loggers.get(veafSpawn.Id):trace("Keyword smoke is set")
@@ -1276,8 +1283,8 @@ function veafSpawn.doSpawnGroup(spawnSpot, radius, groupDefinition, country, alt
 end
 
 --- Spawn a FARP
-function veafSpawn.spawnFarp(spawnSpot, radius, name, country, farptype, side, hdg, spacing, silent, hiddenOnMFD)
-    veaf.loggers.get(veafSpawn.Id):debug("spawnFarp(name=%s, country=%s, farptype=%s, side=%s, hdg=%s, spacing=%s, silent=%s, hiddenOnMFD=%s)",veaf.p(name), veaf.p(country), veaf.p(farptype), veaf.p(side), veaf.p(hdg), veaf.p(spacing), veaf.p(silent), veaf.p(hiddenOnMFD))
+function veafSpawn.spawnFarp(spawnSpot, radius, name, country, farptype, side, hdg, spacing, silent, hiddenOnMFD, noFarpMarkers)
+    veaf.loggers.get(veafSpawn.Id):debug("spawnFarp(name=%s, country=%s, farptype=%s, side=%s, hdg=%s, spacing=%s, silent=%s, hiddenOnMFD=%s, noFarpMarkers=%s)",veaf.p(name), veaf.p(country), veaf.p(farptype), veaf.p(side), veaf.p(hdg), veaf.p(spacing), veaf.p(silent), veaf.p(hiddenOnMFD), veaf.p(noFarpMarkers))
 
     local radius = radius or 0
     local name = name
@@ -1285,6 +1292,7 @@ function veafSpawn.spawnFarp(spawnSpot, radius, name, country, farptype, side, h
     local side = side or 1
     local country = country or "usa"
     local farptype = farptype or ""
+    local noFarpMarkers = noFarpMarkers or false
 
     local spawnPosition = veaf.placePointOnLand(mist.getRandPointInCircle(spawnSpot, radius))
     veaf.loggers.get(veafSpawn.Id):trace("spawnPosition=%s", veaf.p(spawnPosition))
@@ -1339,7 +1347,7 @@ function veafSpawn.spawnFarp(spawnSpot, radius, name, country, farptype, side, h
         veaf.loggers.get(veafSpawn.Id):debug("Spawned the FARP static %s", veaf.p(name))
 
         -- populate the FARP but make the units invisible to MFDs as they are redundant (FARP already shows if wanted)
-        veafGrass.buildFarpUnits(_farpStatic, nil, name, hiddenOnMFD)
+        veafGrass.buildFarpUnits(_farpStatic, nil, name, hiddenOnMFD, noFarpMarkers)
     end
 
     return name

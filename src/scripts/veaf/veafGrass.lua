@@ -19,7 +19,7 @@ veafGrass = {}
 veafGrass.Id = "GRASS"
 
 --- Version.
-veafGrass.Version = "2.3.6"
+veafGrass.Version = "2.4.0"
 
 -- trace level, specific to this module
 --veafGrass.LogLevel = "trace"
@@ -193,11 +193,12 @@ end
 -- build nice FARP units arround the FARP
 -- @param unit farp : the FARP unit
 ------------------------------------------------------------------------------
-function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD)
-    veaf.loggers.get(veafGrass.Id):debug(string.format("buildFarpUnits()"))
-    veaf.loggers.get(veafGrass.Id):trace(string.format("farp=%s",veaf.p(farp)))
-    veaf.loggers.get(veafGrass.Id):trace(string.format("grassRunwayUnits=%s",veaf.p(grassRunwayUnits)))
+function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD, noFarpMarkers)
+	veaf.loggers.get(veafGrass.Id):debug(string.format("buildFarpUnits()"))
+	veaf.loggers.get(veafGrass.Id):trace(string.format("farp=%s",veaf.p(farp)))
+	veaf.loggers.get(veafGrass.Id):trace(string.format("grassRunwayUnits=%s",veaf.p(grassRunwayUnits)))
 	veaf.loggers.get(veafGrass.Id):trace(string.format("hiddenOnMFD=%s",veaf.p(hiddenOnMFD)))
+	veaf.loggers.get(veafGrass.Id):trace(string.format("noFarpMarkers=%s",veaf.p(noFarpMarkers)))
 
 	-- add FARP to CTLD FOBs and logistic units
 	local name = farp.name
@@ -272,7 +273,7 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD
 	end
 
 	-- add visible markers to the invisible farps
-	if farp.type == "Invisible FARP" then
+	if farp.type == "Invisible FARP" and not noFarpMarkers then
 		local markerDistance = 25
 		local markerAngle = -45
 		local markerUnit1 = {

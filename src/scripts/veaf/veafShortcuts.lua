@@ -19,7 +19,7 @@ veafShortcuts = {}
 veafShortcuts.Id = "SHORTCUTS"
 
 --- Version.
-veafShortcuts.Version = "1.32.1"
+veafShortcuts.Version = "1.33.0"
 
 -- trace level, specific to this module
 --veafShortcuts.LogLevel = "trace"
@@ -1334,6 +1334,13 @@ function veafShortcuts.buildDefaultList()
             :setName("-farp")
             :setDescription("create a new FARP")
             :setVeafCommand("_spawn farp, side blue, radius 0")
+            :setBypassSecurity(false)
+    )
+    veafShortcuts.AddAlias(
+        VeafAlias:new()
+            :setName("-farpNoMarker")
+            :setDescription("create a new invisible FARP, skipping the special vehicles that mark its position")
+            :setVeafCommand("_spawn farp, side blue, radius 0, noFarpMarkers")
             :setBypassSecurity(false)
     )
     veafShortcuts.AddAlias(

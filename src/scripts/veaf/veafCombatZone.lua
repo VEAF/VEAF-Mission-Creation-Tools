@@ -20,7 +20,7 @@ veafCombatZone = {}
 veafCombatZone.Id = "COMBATZONE"
 
 --- Version.
-veafCombatZone.Version = "1.14.0"
+veafCombatZone.Version = "1.14.1"
 
 -- trace level, specific to this module
 --veafCombatZone.LogLevel = "trace"
@@ -609,7 +609,7 @@ function VeafCombatZone:initialize()
                 local unitCategory = Unit.getCategory(unit)
                 veaf.loggers.get(veafCombatZone.Id):trace("unitCategory=%s", veaf.p(unitCategory))
             end
-            if objectCategory == 3 then
+            if objectCategory == 3 or objectCategory == 6 then -- 3 is static objects, 6 is cargo (a kind of static object)
                 groupName = unitName -- default for static objects = groups themselves
                 zoneElement:setDcsStatic(true)
                 if not zoneElement:getSpawnRadius() then

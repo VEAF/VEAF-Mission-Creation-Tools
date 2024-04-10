@@ -1095,6 +1095,9 @@ function veafSkynet.deactivateNetwork(veafSkynetNetwork, elementStates)
     veaf.loggers.get(veafSkynet.Id):trace("Deactivating network " .. iads:getCoalitionString() .. ". Network elements will go " .. sElementState)
 
     local function setGroupState(skynetElement)
+        skynetElement:finishHarmDefence()
+        skynetElement:cleanUp()
+
         veafSkynet.removePointDefencesFromSkynetElement(skynetElement)
         if (elementState == veafSkynet.SkynetElementStates.Autonomous) then
             skynetElement:resetAutonomousState()
@@ -1106,6 +1109,7 @@ function veafSkynet.deactivateNetwork(veafSkynetNetwork, elementStates)
         end
     end
 
+    veafSkynet.monitorDynamicSpawn(false)
     iads:deactivate()
 
     local ewrs = iads:getEarlyWarningRadars()

@@ -20,7 +20,7 @@ veafCombatZone = {}
 veafCombatZone.Id = "COMBATZONE"
 
 --- Version.
-veafCombatZone.Version = "1.14.1"
+veafCombatZone.Version = "1.15.0"
 
 -- trace level, specific to this module
 --veafCombatZone.LogLevel = "trace"
@@ -273,6 +273,10 @@ function VeafCombatZone:new(objectToCopy)
     objectToCreate.active = false
     -- zone is a training zone
     objectToCreate.training = false
+    -- display the remaining units
+    objectToCreate.showUnitsList = true
+    -- display the zone coordinates and weather
+    objectToCreate.showZonePositionInfo = true
     -- zone is completable (i.e. disable it when all ennemies are dead)
     objectToCreate.completable = true
     -- DCS groups that have been spawned (for cleaning up later)
@@ -375,6 +379,28 @@ end
 
 function VeafCombatZone:setTraining(value)
     self.training = value
+    if value then 
+        self.showUnitsList = true
+        self.showZonePositionInfo = true
+    end
+    return self
+end
+
+function VeafCombatZone:isShowUnitsList()
+    return self.showUnitsList
+end
+
+function VeafCombatZone:setShowUnitsList(value)
+    self.showUnitsList = value
+    return self
+end
+
+function VeafCombatZone:isShowZonePositionInfo()
+    return self.showZonePositionInfo
+end
+
+function VeafCombatZone:setShowZonePositionInfo(value)
+    self.showZonePositionInfo = value
     return self
 end
 
@@ -729,7 +755,7 @@ function VeafCombatZone:getInformation()
             end
         end
 
-        if nbShipsB+nbStaticsB+nbVehiclesB+nbInfantryB > 0 then
+        if nbShipsB+nbStaticsB+nbVehiclesB+nbInfantryB > 0 and self:isShowUnitsList() then
             local msgs = {}
             if nbShipsB > 0 then
                 table.insert(msgs, nbShipsB .. " ship(s)")
@@ -757,7 +783,7 @@ function VeafCombatZone:getInformation()
                 message = message .. "\n"
             end
         end
-        if nbShipsR+nbStaticsR+nbVehiclesR+nbInfantryR > 0 then
+        if nbShipsR+nbStaticsR+nbVehiclesR+nbInfantryR > 0 and self:isShowUnitsList() then
             local msgs = {}
             if nbShipsR > 0 then
                 table.insert(msgs, nbShipsR .. " ship(s)")
@@ -787,26 +813,28 @@ function VeafCombatZone:getInformation()
         end
         message = message .. "\n"
 
-        -- add coordinates and position from bullseye
-        local zoneCenter = self:getCenter()
-        local lat, lon = coord.LOtoLL(zoneCenter)
-        local mgrsString = mist.tostringMGRS(coord.LLtoMGRS(lat, lon), 3)
-        local bullseye = mist.utils.makeVec3(mist.DBs.missionData.bullseye.blue, 0)
-        local vec = {x = zoneCenter.x - bullseye.x, y = zoneCenter.y - bullseye.y, z = zoneCenter.z - bullseye.z}
-        local dir = mist.utils.round(mist.utils.toDegree(mist.utils.getDir(vec, bullseye)), 0)
-        local dist = mist.utils.get2DDist(zoneCenter, bullseye)
-        local distMetric = mist.utils.round(dist/1000, 0)
-        local distImperial = mist.utils.round(mist.utils.metersToNM(dist), 0)
-        local fromBullseye = string.format('%03d', dir) .. ' for ' .. distMetric .. 'km /' .. distImperial .. 'nm'
+        if self:isShowZonePositionInfo() then
+            -- add coordinates and position from bullseye
+            local zoneCenter = self:getCenter()
+            local lat, lon = coord.LOtoLL(zoneCenter)
+            local mgrsString = mist.tostringMGRS(coord.LLtoMGRS(lat, lon), 3)
+            local bullseye = mist.utils.makeVec3(mist.DBs.missionData.bullseye.blue, 0)
+            local vec = {x = zoneCenter.x - bullseye.x, y = zoneCenter.y - bullseye.y, z = zoneCenter.z - bullseye.z}
+            local dir = mist.utils.round(mist.utils.toDegree(mist.utils.getDir(vec, bullseye)), 0)
+            local dist = mist.utils.get2DDist(zoneCenter, bullseye)
+            local distMetric = mist.utils.round(dist/1000, 0)
+            local distImperial = mist.utils.round(mist.utils.metersToNM(dist), 0)
+            local fromBullseye = string.format('%03d', dir) .. ' for ' .. distMetric .. 'km /' .. distImperial .. 'nm'
 
-        message = message .. "LAT LON (decimal): " .. mist.tostringLL(lat, lon, 2) .. ".\n"
-        message = message .. "LAT LON (DMS)    : " .. mist.tostringLL(lat, lon, 0, true) .. ".\n"
-        message = message .. "MGRS/UTM         : " .. mgrsString .. ".\n"
-        message = message .. "FROM BULLSEYE    : " .. fromBullseye .. ".\n"
-        message = message .. "\n"
+            message = message .. "LAT LON (decimal): " .. mist.tostringLL(lat, lon, 2) .. ".\n"
+            message = message .. "LAT LON (DMS)    : " .. mist.tostringLL(lat, lon, 0, true) .. ".\n"
+            message = message .. "MGRS/UTM         : " .. mgrsString .. ".\n"
+            message = message .. "FROM BULLSEYE    : " .. fromBullseye .. ".\n"
+            message = message .. "\n"
 
-        -- get altitude, qfe and wind information
-        message = message .. veaf.weatherReport(zoneCenter, nil, true)
+            -- get altitude, qfe and wind information
+            message = message .. veaf.weatherReport(zoneCenter, nil, true)
+        end
     else
         message = message .. "zone is not yet active."
     end

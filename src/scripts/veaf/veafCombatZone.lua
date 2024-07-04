@@ -323,11 +323,13 @@ function VeafCombatZone:disableRadioMenu()
     return self
 end
 
+-- make sure users cannot activate the zone (it won't be in the radio menu unless it's already active)
 function VeafCombatZone:disableUserActivation()
     self.enableUserActivation = false
     return self
 end
 
+-- make sure users can activate the zone (it will be in the radio menu even if inactive - that's the default)
 function VeafCombatZone:enableUserActivation()
     self.enableUserActivation = true
     return self

@@ -20,7 +20,7 @@ veafCombatZone = {}
 veafCombatZone.Id = "COMBATZONE"
 
 --- Version.
-veafCombatZone.Version = "1.15.0"
+veafCombatZone.Version = "1.16.0"
 
 -- trace level, specific to this module
 --veafCombatZone.LogLevel = "trace"
@@ -288,6 +288,10 @@ function VeafCombatZone:new(objectToCopy)
     objectToCreate.enableUserActivation = true
     -- whether we want to allow ground marking of the zone
     objectToCreate.enableSmokeAndFlare = true
+    -- list of chained combat zones; this is are list of combat zones, that are activated randomly
+    objectToCreate.chainedCombatZones = nil
+    -- delay (in seconds) between the end of this combat zone and the start of the other; can be a randomizable numeric (e.g. "[1-5]")
+    objectToCreate.chainedCombatZonesDelay = nil
     --- Radio menus
     objectToCreate.radioGroupName = nil
     objectToCreate.radioParentPath = nil
@@ -316,6 +320,18 @@ end
 
 function VeafCombatZone:disableRadioMenu()
     self.enableRadioMenu = false
+    return self
+end
+
+-- make sure users cannot activate the zone (it won't be in the radio menu unless it's already active)
+function VeafCombatZone:disableUserActivation()
+    self.enableUserActivation = false
+    return self
+end
+
+-- make sure users can activate the zone (it will be in the radio menu even if inactive - that's the default)
+function VeafCombatZone:enableUserActivation()
+    self.enableUserActivation = true
     return self
 end
 
@@ -513,6 +529,43 @@ end
 function VeafCombatZone:getZoneElementsGroups()
     veaf.loggers.get(veafCombatZone.Id):trace(string.format("VeafCombatZone[%s]:getZoneElementsGroups()",veaf.p(self.missionEditorZoneName)))
     return self.elementGroups
+end
+
+-- get the list of chained combat zones; this is are list of combat zones, that are activated randomly
+function VeafCombatZone:getChainedCombatZones()
+    if not self.chainedCombatZones then
+        veaf.loggers.get(veafCombatZone.Id):trace(string.format("VeafCombatZone[%s]:getChainedCombatZones() - Initializing",veaf.p(self.missionEditorZoneName)))
+        self.chainedCombatZones = {}
+    end
+    veaf.loggers.get(veafCombatZone.Id):trace(string.format("VeafCombatZone[%s]:getChainedCombatZones() = %s",veaf.p(self.missionEditorZoneName), veaf.p(self.chainedCombatZones)))
+    return self.chainedCombatZones
+end
+
+-- add a chained combat zone (by name); the zone does not have to exist at the time the function is called
+function VeafCombatZone:addChainedCombatZone(combatZoneName)
+    veaf.loggers.get(veafCombatZone.Id):trace(string.format("VeafCombatZone[%s]:addChainedCombatZone([%s])",veaf.p(self.missionEditorZoneName), veaf.p(combatZoneName)))
+    table.insert(self:getChainedCombatZones(), combatZoneName)
+    return self
+end
+
+-- get the next chained combat zone; if the list is more than 1 zone long, get one at random
+function VeafCombatZone:getNextChainedCombatZone()
+    local nextZoneName = veaf.randomlyChooseFrom(self:getChainedCombatZones())
+    veaf.loggers.get(veafCombatZone.Id):trace(string.format("VeafCombatZone[%s]:getNextChainedCombatZone() = [%s]",veaf.p(self.missionEditorZoneName), veaf.p(nextZoneName)))
+    return nextZoneName
+end
+
+-- get the delay (in seconds) between the end of this combat zone and the start of the other; if the set value was a randomizable numeric, randomize it
+function VeafCombatZone:getChainedCombatZonesDelay()
+    return veaf.getRandomizableNumeric(self.chainedCombatZonesDelay or 0)
+end
+
+-- set the delay (in seconds) between the end of this combat zone and the start of the other; can be a randomizable numeric (e.g. "1-5")
+function VeafCombatZone:setChainedCombatZonesDelay(value)
+    veaf.loggers.get(veafCombatZone.Id):trace(string.format("VeafCombatZone[%s]:setChainedCombatZonesDelay([%s])",veaf.p(self.missionEditorZoneName), veaf.p(value)))
+    if not value then value = 0 end
+    self.chainedCombatZonesDelay = value
+    return self
 end
 
 ---
@@ -949,6 +1002,17 @@ function VeafCombatZone:activate()
     return self
 end
 
+-- activate the next chained zone (if any)
+function VeafCombatZone:activateNextChainedZone()
+    local nextZoneName = self:getNextChainedCombatZone()
+    local nextZone = veafCombatZone.GetZone(nextZoneName)
+    if not nextZone then return self end
+    local delay = self:getChainedCombatZonesDelay()
+    veaf.loggers.get(veafCombatZone.Id):trace(string.format("activating the next chained zone ([%s]) in %s seconds)",veaf.p(nextZoneName), veaf.p(delay)))
+    mist.scheduleFunction(VeafCombatZone.activate,{nextZone},timer.getTime()+delay)
+    return self
+end
+
 -- desactivate the zone
 function VeafCombatZone:desactivate()
     veaf.loggers.get(veafCombatZone.Id):debug(string.format("VeafCombatZone[%s]:desactivate()",veaf.p(self.missionEditorZoneName)))
@@ -1027,8 +1091,12 @@ function VeafCombatZone:completionCheck()
             local message = string.format(veafCombatZone.EventMessages.CombatZoneComplete, self:getFriendlyName())
             trigger.action.outText(message, 15)
         end
+        -- call the onCompleted hook
         if self.onCompletedHook then self.onCompletedHook(self) end
+        -- desactivate the zone
         self:desactivate()
+        -- activate the next chained zone if needed
+        self:activateNextChainedZone()
     else
         -- reschedule
         self:scheduleWatchdogFunction()
@@ -1109,12 +1177,10 @@ function VeafCombatZone:updateRadioMenu(inBatch)
         if self:isActive() then
             -- zone is active, set up accordingly (desactivate zone, get information, pop smoke, etc.)
             veaf.loggers.get(veafCombatZone.Id):debug("zone is active")
-            if self.enableUserActivation then
                 if self:isTraining() then
                     veafRadio.addCommandToSubmenu('Desactivate zone', self.radioRootPath, veafCombatZone.DesactivateZone, self.missionEditorZoneName, veafRadio.USAGE_ForAll)
                 else
                     veafRadio.addSecuredCommandToSubmenu('Desactivate zone', self.radioRootPath, veafCombatZone.DesactivateZone, self.missionEditorZoneName, veafRadio.USAGE_ForAll)
-                end
             end
             if self.enableSmokeAndFlare then
                 if self.smokeResetFunctionId then

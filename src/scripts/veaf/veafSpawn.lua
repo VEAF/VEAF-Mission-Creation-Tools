@@ -23,7 +23,7 @@ veafSpawn = {}
 veafSpawn.Id = "SPAWN"
 
 --- Version.
-veafSpawn.Version = "1.53.0"
+veafSpawn.Version = "1.54.0"
 
 -- trace level, specific to this module
 --veafSpawn.LogLevel = "trace"
@@ -2249,21 +2249,13 @@ function veafSpawn.spawnSignalFlare(spawnSpot, radius, shells, color)
     end
 end
 
-function veafSpawn.spawnIlluminationFlares(spawnSpot, radius, shells, power, height)
-    for shell=1, shells do
-        local shellHeight = height * (math.random(100, 130))/100-15
-        local shellPower = power * (math.random(100, 130))/100-15
-        local newSpawnSpot = veaf.placePointOnLand(mist.getRandPointInCircle(spawnSpot, radius))
-        newSpawnSpot.y = veaf.getLandHeight(newSpawnSpot) + shellHeight
-        veaf.loggers.get(veafSpawn.Id):trace(string.format("shell #%d : shellHeight=%d, shellPower=%d", shell, shellHeight, shellPower))
-        -- add a small explosion under the flare to simulate flare shells
-        trigger.action.explosion(spawnSpot, 1)
-        trigger.action.illuminationBomb(newSpawnSpot, shellPower)
-    end
-end
-
 --- add an illumination flare over the target area
 function veafSpawn.spawnIlluminationFlare(spawnSpot, radius, steps, power, height, heading, distance, speed)
+    local radius = radius or 50
+    local steps = steps or 1
+    local power = power or 10
+    local height = height or 500
+
     veaf.loggers.get(veafSpawn.Id):debug("spawnIlluminationFlare()")
     veaf.loggers.get(veafSpawn.Id):trace("spawnSpot=%s", veaf.p(spawnSpot))
     veaf.loggers.get(veafSpawn.Id):trace("radius=%s", veaf.p(radius))
@@ -2272,6 +2264,7 @@ function veafSpawn.spawnIlluminationFlare(spawnSpot, radius, steps, power, heigh
     veaf.loggers.get(veafSpawn.Id):trace("height=%s", veaf.p(height))
     veaf.loggers.get(veafSpawn.Id):trace("heading=%s", veaf.p(heading))
     veaf.loggers.get(veafSpawn.Id):trace("distance=%s", veaf.p(distance))
+
 
     local cosHeading
     local sinHeading

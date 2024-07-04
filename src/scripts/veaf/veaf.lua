@@ -19,7 +19,7 @@ veaf = {}
 veaf.Id = "VEAF"
 
 --- Version.
-veaf.Version = "1.47.0"
+veaf.Version = "1.47.1"
 
 --- Development version ?
 veaf.Development = true
@@ -2460,11 +2460,17 @@ function veaf.endMissionAt(endTimeHour, endTimeMinute, checkIntervalInSeconds, c
     veaf._checkForEndMission(endTimeInSeconds, checkIntervalInSeconds, checkMessage, delay1, message1, delay2, message2, delay3, message3)
 end
 
-function veaf.randomlyChooseFrom(aTable, bias)
+function veaf.randomlyChooseFrom(aTable, bias)   
     veaf.loggers.get(veaf.Id):trace(string.format("randomlyChooseFrom(%d):%s",bias or 0, veaf.p(aTable)))
+    if aTable == nil or #aTable == 0 then
+        return nil
+    elseif #aTable == 1 then
+        return aTable[1]
+    end
     local index = math.floor(math.random(1, #aTable)) + (bias or 0)
     if index < 1 then index = 1 end
     if index > #aTable then index = #aTable end
+    veaf.loggers.get(veaf.Id):trace(string.format("index = %s", veaf.p(index)))
     return aTable[index]
 end
 

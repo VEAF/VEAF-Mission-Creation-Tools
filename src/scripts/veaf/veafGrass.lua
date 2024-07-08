@@ -19,7 +19,7 @@ veafGrass = {}
 veafGrass.Id = "GRASS"
 
 --- Version.
-veafGrass.Version = "2.4.0"
+veafGrass.Version = "2.5.0"
 
 -- trace level, specific to this module
 --veafGrass.LogLevel = "trace"
@@ -193,12 +193,19 @@ end
 -- build nice FARP units arround the FARP
 -- @param unit farp : the FARP unit
 ------------------------------------------------------------------------------
-function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD, noFarpMarkers)
+function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD, noFarpMarkers, code, freq, mod)
 	veaf.loggers.get(veafGrass.Id):debug(string.format("buildFarpUnits()"))
 	veaf.loggers.get(veafGrass.Id):trace(string.format("farp=%s",veaf.p(farp)))
 	veaf.loggers.get(veafGrass.Id):trace(string.format("grassRunwayUnits=%s",veaf.p(grassRunwayUnits)))
 	veaf.loggers.get(veafGrass.Id):trace(string.format("hiddenOnMFD=%s",veaf.p(hiddenOnMFD)))
 	veaf.loggers.get(veafGrass.Id):trace(string.format("noFarpMarkers=%s",veaf.p(noFarpMarkers)))
+	veaf.loggers.get(veafGrass.Id):trace(string.format("code=%s",veaf.p(code)))
+	veaf.loggers.get(veafGrass.Id):trace(string.format("freq=%s",veaf.p(freq)))
+	veaf.loggers.get(veafGrass.Id):trace(string.format("mod=%s",veaf.p(mod)))
+
+	local freq = freq or math.random(90)+100
+	local mod = mod or "X"
+	local code = code or "FRP"
 
 	-- add FARP to CTLD FOBs and logistic units
 	local name = farp.name
@@ -471,11 +478,44 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD
 	farpNamedPoint.tower = "No Control"
 
 	if ctld then
+		-- spawn tacan
+		mod = string.upper(mod)
+		local tacanGroupName = string.format("TACAN %s - %s%s", tostring(code), tostring(freq), tostring(mod))
+		veaf.loggers.get(veafGrass.Id):trace(string.format("tacanGroupName=%s", tostring(tacanGroupName)))
+		veaf.loggers.get(veafGrass.Id):trace(string.format("freq=%s", tostring(freq)))
+		veaf.loggers.get(veafGrass.Id):trace(string.format("mod=%s", tostring(mod)))
+		local txFreq = (1025 + freq - 1) * 1000000
+		local rxFreq = (962 + freq - 1) * 1000000
+		if (freq < 64 and mod == "Y") or (freq >= 64 and mod == "X") then
+				rxFreq = (1088 + freq - 1) * 1000000
+		end
+		veaf.loggers.get(veafGrass.Id):trace(string.format("txFreq=%s", tostring(txFreq)))
+		veaf.loggers.get(veafGrass.Id):trace(string.format("rxFreq=%s", tostring(rxFreq)))
+
+		local command = {
+				id = 'ActivateBeacon',
+				params = {
+						type = 4,
+						system = 18,
+						callsign = code,
+						frequency = rxFreq,
+						AA = false,
+						channel = freq,
+						bearing = true,
+						modeChannel = mod,
+				}
+		}
+		veaf.loggers.get(veafGrass.Id):trace(string.format("setting %s", veaf.p(command)))
+    local spawnedGroup = ctld.spawnRadioBeaconUnit(beaconPoint, farp.country, tacanGroupName, tacanGroupName)
+		local controller = spawnedGroup:getController()
+		controller:setCommand(command)
+		veaf.loggers.get(veafGrass.Id):trace(string.format("done setting TACAN command"))
+		-- spawn CTLD beacon
 		local _beaconInfo = ctld.createRadioBeacon(beaconPoint, farpCoalitionNumber, farp.country, farp.unitName or farp.name, -1, true)
 		if _beaconInfo ~= nil then
-			farpNamedPoint.tacan = string.format("ADF : %.2f KHz - %.2f MHz - %.2f MHz FM", _beaconInfo.vhf / 1000, _beaconInfo.uhf / 1000000, _beaconInfo.fm / 1000000)
+			farpNamedPoint.tacan = string.format("ADF : %.2f KHz - %.2f MHz - %.2f MHz FM - %s", _beaconInfo.vhf / 1000, _beaconInfo.uhf / 1000000, _beaconInfo.fm / 1000000, tacanGroupName)
 			veaf.loggers.get(veafGrass.Id):trace(string.format("farpNamedPoint.tacan=%s", veaf.p(farpNamedPoint.tacan)))
-		end
+		end	
 	end
 
     -- search for an associated grass runway

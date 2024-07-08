@@ -23,7 +23,7 @@ veafSpawn = {}
 veafSpawn.Id = "SPAWN"
 
 --- Version.
-veafSpawn.Version = "1.54.0"
+veafSpawn.Version = "1.55.0"
 
 -- trace level, specific to this module
 --veafSpawn.LogLevel = "trace"
@@ -253,9 +253,7 @@ function veafSpawn.executeCommand(eventPos, eventText, coalition, markId, bypass
                     local channel = options.freq
                     local band = options.mod
                     if options.role == "tacan" then
----@diagnostic disable-next-line: cast-local-type
                         channel = options.tacanChannel or 99
----@diagnostic disable-next-line: cast-local-type
                         code = options.tacanCode or ("T"..tostring(channel))
                         band = options.tacanBand or "X"
                     end
@@ -266,7 +264,10 @@ function veafSpawn.executeCommand(eventPos, eventText, coalition, markId, bypass
                     if not options.type then
                         options.type = "invisible"
                     end
-                    spawnedGroup = veafSpawn.spawnFarp(eventPos, options.radius, options.name, options.country, options.type, options.side, options.heading, options.spacing, bypassSecurity, not options.showMFD, options.noFarpMarkers)
+                    local channel = options.tacanChannel
+                    local code = options.tacanCode
+                    local mod = options.tacanBand
+                    spawnedGroup = veafSpawn.spawnFarp(eventPos, options.radius, options.name, options.country, options.type, options.side, options.heading, options.spacing, bypassSecurity, not options.showMFD, options.noFarpMarkers, code, channel, mod)
                 elseif options.fob then
                     -- check security
                     if not (bypassSecurity or veafSecurity.checkSecurity_L9(options.password, markId)) then return end
@@ -565,8 +566,8 @@ function veafSpawn.markTextAnalysis(text)
     options.mod = "fm"
 
     -- TACAN name and channel
-    options.tacanChannel = 99
-    options.tacanBand = "X"
+    options.tacanChannel = nil
+    options.tacanBand = nil
 
     -- repeat options
     options.repeatCount = nil
@@ -1283,7 +1284,7 @@ function veafSpawn.doSpawnGroup(spawnSpot, radius, groupDefinition, country, alt
 end
 
 --- Spawn a FARP
-function veafSpawn.spawnFarp(spawnSpot, radius, name, country, farptype, side, hdg, spacing, silent, hiddenOnMFD, noFarpMarkers)
+function veafSpawn.spawnFarp(spawnSpot, radius, name, country, farptype, side, hdg, spacing, silent, hiddenOnMFD, noFarpMarkers, code, freq, mod)
     veaf.loggers.get(veafSpawn.Id):debug("spawnFarp(name=%s, country=%s, farptype=%s, side=%s, hdg=%s, spacing=%s, silent=%s, hiddenOnMFD=%s, noFarpMarkers=%s)",veaf.p(name), veaf.p(country), veaf.p(farptype), veaf.p(side), veaf.p(hdg), veaf.p(spacing), veaf.p(silent), veaf.p(hiddenOnMFD), veaf.p(noFarpMarkers))
 
     local radius = radius or 0
@@ -1347,7 +1348,7 @@ function veafSpawn.spawnFarp(spawnSpot, radius, name, country, farptype, side, h
         veaf.loggers.get(veafSpawn.Id):debug("Spawned the FARP static %s", veaf.p(name))
 
         -- populate the FARP but make the units invisible to MFDs as they are redundant (FARP already shows if wanted)
-        veafGrass.buildFarpUnits(_farpStatic, nil, name, hiddenOnMFD, noFarpMarkers)
+        veafGrass.buildFarpUnits(_farpStatic, nil, name, hiddenOnMFD, noFarpMarkers, code, freq, mod)
     end
 
     return name

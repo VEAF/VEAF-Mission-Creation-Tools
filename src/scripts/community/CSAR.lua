@@ -11,7 +11,7 @@
 
 
 csar = {}
-csar.Version = "20231109.01"
+csar.Version = "2024.07.11.01-VEAF"
 csar.Id = "CSAR"
 
 -- SETTINGS FOR MISSION DESIGNER vvvvvvvvvvvvvvvvvv
@@ -2252,8 +2252,6 @@ math.random(); math.random(); math.random()
 --- Enable/Disable error boxes displayed on screen.
 env.setErrorMessageBoxEnabled(false)
 
--- initialize CSAR only out of a VEAF mission
-if not veaf then
-    csar.logInfo(string.format("Loading version %s", csar.Version))
-    csar.initialize()
-end
+-- initialize CSAR in 2 seconds, so other scripts (namely the veaf.lua script, loaded after) have a chance to modify the configuration before initialization
+csar.logInfo(string.format("Loading version %s in 2 seconds", csar.Version))
+timer.scheduleFunction(csar.initialize, nil, timer.getTime() + 2)

@@ -19,7 +19,7 @@ veafShortcuts = {}
 veafShortcuts.Id = "SHORTCUTS"
 
 --- Version.
-veafShortcuts.Version = "1.34.0"
+veafShortcuts.Version = "1.34.1"
 
 -- trace level, specific to this module
 --veafShortcuts.LogLevel = "trace"
@@ -1180,6 +1180,13 @@ function veafShortcuts.buildDefaultList()
             :setName("-cargo")
             :setDescription("Generate a cargo for sling loading")
             :setVeafCommand("_spawn cargo, side blue, radius 0")
+            :setBypassSecurity(false)
+    )
+    veafShortcuts.AddAlias(
+        VeafAlias:new()
+            :setName("-refuel")
+            :setDescription("spawns an US refuel group")
+            :setVeafCommand("_spawn group, name US-refuel, country usa, radius 0")
             :setBypassSecurity(false)
     )
     -- radio shortcuts

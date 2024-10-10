@@ -6,7 +6,7 @@
 -- settings
 -------------------------------------------------------------------------------
 
---local export_path = [[c:\Users\dpier\Saved Games\DCS.openbeta\Logs\ObjectDB\]]
+--local export_path = [[c:\Users\dpier\Saved Games\DCS\Logs\ObjectDB\]]
 local export_path = [[.\]]
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------

@@ -23,7 +23,7 @@ veafSpawn = {}
 veafSpawn.Id = "SPAWN"
 
 --- Version.
-veafSpawn.Version = "1.55.0"
+veafSpawn.Version = "1.56.0"
 
 -- trace level, specific to this module
 --veafSpawn.LogLevel = "trace"
@@ -2711,7 +2711,9 @@ function veafSpawn.dumpSpawnablePlanesList(export_path)
     if veaf.config.MISSION_NAME then
         _filename = "SpawnablePlanesList_" .. veaf.config.MISSION_NAME .. ".json"
     end
-    veaf.exportAsJson(sortedSpawnablePlanesNames, "spawnablePlanes", jsonify, _filename, export_path or veaf.config.MISSION_EXPORT_PATH)
+    if not(veaf.DO_NOT_EXPORT_JSON_FILES) then
+        veaf.exportAsJson(sortedSpawnablePlanesNames, "spawnablePlanes", jsonify, _filename, export_path or veaf.config.MISSION_EXPORT_PATH)
+    end
 end
 
 function veafSpawn.spawnAFAC(spawnSpot, name, country, altitude, speed, hdg, frequency, mod, code, immortal, silent, hiddenOnMFD)

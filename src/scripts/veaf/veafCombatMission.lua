@@ -21,7 +21,7 @@ veafCombatMission = {}
 veafCombatMission.Id = "COMBATMISSION"
 
 --- Version.
-veafCombatMission.Version = "2.1.5"
+veafCombatMission.Version = "2.2.0"
 
 -- trace level, specific to this module
 --veafCombatMission.LogLevel = "trace"
@@ -1428,7 +1428,9 @@ function veafCombatMission.dumpMissionsList(export_path)
     if veaf.config.MISSION_NAME then
         _filename = "CombatMissionsList_" .. veaf.config.MISSION_NAME .. ".json"
     end
-    veaf.exportAsJson(sortedMissions, "combatMissions", jsonify, _filename, export_path)
+    if not(veaf.DO_NOT_EXPORT_JSON_FILES) then
+        veaf.exportAsJson(sortedMissions, "combatMissions", jsonify, _filename, export_path)
+    end
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------

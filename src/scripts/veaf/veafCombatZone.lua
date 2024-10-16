@@ -1180,7 +1180,9 @@ function VeafCombatZone:updateRadioMenu(inBatch)
                 if self:isTraining() then
                     veafRadio.addCommandToSubmenu('Desactivate zone', self.radioRootPath, veafCombatZone.DesactivateZone, self.missionEditorZoneName, veafRadio.USAGE_ForAll)
                 else
-                    veafRadio.addSecuredCommandToSubmenu('Desactivate zone', self.radioRootPath, veafCombatZone.DesactivateZone, self.missionEditorZoneName, veafRadio.USAGE_ForAll)
+                    if(self.enableUserActivation) then
+                        veafRadio.addSecuredCommandToSubmenu('Desactivate zone', self.radioRootPath, veafCombatZone.DesactivateZone, self.missionEditorZoneName, veafRadio.USAGE_ForAll)
+                    end
             end
             if self.enableSmokeAndFlare then
                 if self.smokeResetFunctionId then

@@ -35,7 +35,7 @@ veafMissionTriggerInjector = {}
 veafMissionTriggerInjector.Id = "MISSIONTRIGGERS_EDITOR - "
 
 --- Version.
-veafMissionTriggerInjector.Version = "1.2.0"
+veafMissionTriggerInjector.Version = "2.0.0"
 
 -- trace level, specific to this module
 veafMissionTriggerInjector.Trace = false

@@ -19,7 +19,7 @@ veafShortcuts = {}
 veafShortcuts.Id = "SHORTCUTS"
 
 --- Version.
-veafShortcuts.Version = "1.34.0"
+veafShortcuts.Version = "1.35.0"
 
 -- trace level, specific to this module
 --veafShortcuts.LogLevel = "trace"
@@ -1182,6 +1182,13 @@ function veafShortcuts.buildDefaultList()
             :setVeafCommand("_spawn cargo, side blue, radius 0")
             :setBypassSecurity(false)
     )
+    veafShortcuts.AddAlias(
+        VeafAlias:new()
+            :setName("-refuel")
+            :setDescription("spawns an US refuel group")
+            :setVeafCommand("_spawn group, name US-refuel, country usa, radius 0")
+            :setBypassSecurity(false)
+    )
     -- radio shortcuts
     veafShortcuts.AddAlias(
         VeafAlias:new()
@@ -1489,7 +1496,9 @@ function veafShortcuts.dumpAliasesList(export_path)
     if veaf.config.MISSION_NAME then
         _filename = "AliasesList_" .. veaf.config.MISSION_NAME .. ".json"
     end
-    veaf.exportAsJson(sortedAliases, "aliases", jsonify, _filename, export_path or veaf.config.MISSION_EXPORT_PATH)
+    if not(veaf.DO_NOT_EXPORT_JSON_FILES) then
+        veaf.exportAsJson(sortedAliases, "aliases", jsonify, _filename, export_path or veaf.config.MISSION_EXPORT_PATH)
+    end
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------

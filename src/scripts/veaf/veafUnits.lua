@@ -19,7 +19,7 @@ veafUnits = {}
 veafUnits.Id = "UNITS"
 
 --- Version.
-veafUnits.Version = "1.13.2"
+veafUnits.Version = "1.13.3"
 
 -- trace level, specific to this module
 --veafUnits.LogLevel = "trace"
@@ -2105,6 +2105,20 @@ veafUnits.GroupsDatabase = {
             },
             description = "SA-13 battery",
             groupName = "SA-13 battery"
+        },
+    },
+    {
+        aliases = {"US-refuel", "refuel-group"},
+        group = {
+            disposition = { h= 1, w= 4},
+            units = {
+                {"M978 HEMTT Tanker", cell = 1, fitToUnit},
+                {"M1043 HMMWV Armament", cell = 2, fitToUnit},
+                {"Truck M939 Heavy", cell = 3, fitToUnit},
+                {"Diesel Power Station 5I57A", cell = 4, fitToUnit},
+            },
+            description = "US refuel group",
+            groupName = "US refuel group"
         },
     },
 }

@@ -19,7 +19,7 @@ veafGrass = {}
 veafGrass.Id = "GRASS"
 
 --- Version.
-veafGrass.Version = "2.6.0"
+veafGrass.Version = "2.6.1"
 
 -- trace level, specific to this module
 --veafGrass.LogLevel = "trace"
@@ -200,6 +200,9 @@ end
 ---@param farp any the FARP to be filled
 function veafGrass.fillFarpWarehouse(farp)
 	local farpName = farp.name
+	if not farpName then farpName = farp.unitName end
+	if not farpName then farpName = farp.groupName end
+	veaf.loggers.get(veafGrass.Id):debug("veafGrass.fillFarpWarehouse([%s])", veaf.p(farpName))
 	timer.scheduleFunction(
 		function(farpName)
 			local farpAirbase = Airbase.getByName(farpName)

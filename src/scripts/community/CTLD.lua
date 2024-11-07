@@ -26,7 +26,7 @@ ctld = {} -- DONT REMOVE!
 ctld.Id = "CTLD - "
 
 --- Version.
-ctld.Version = "202401.02"
+ctld.Version = "202411.01"
 
 -- To add debugging messages to dcs.log, change the following log levels to `true`; `Debug` is less detailed than `Trace`
 ctld.Debug = false
@@ -4978,12 +4978,23 @@ function ctld.addF10MenuOptions()
 
                             -- local _loadPath = missionCommands.addSubMenuForGroup(_groupId, "Load From Zone", _troopCommandsPath)
                             local _transportLimit = ctld.getTransportLimit(_unit:getTypeName())
+                            local itemNb = 0
+                            local menuPath = _troopCommandsPath
                             for _,_loadGroup in pairs(ctld.loadableGroups) do
                                 if not _loadGroup.side or _loadGroup.side == _unit:getCoalition() then
-
+                                    
                                     -- check size & unit
                                     if _transportLimit >= _loadGroup.total then
-                                        missionCommands.addCommandForGroup(_groupId, "Load ".._loadGroup.name, _troopCommandsPath, ctld.loadTroopsFromZone, { _unitName, true,_loadGroup,false })
+                                        -- add the menu item
+                                        itemNb = itemNb + 1
+                                        ctld.logTrace(string.format("itemNb=[%s] name=[%s]", ctld.p(itemNb), ctld.p(_loadGroup.name)))
+                                        if itemNb > 8 then -- page limit reached (first item is "unload")
+                                            ctld.logTrace(string.format("itemNb=[%s] page limit reached", ctld.p(itemNb)))
+                                            menuPath = missionCommands.addSubMenuForGroup(_groupId, "Next page", menuPath)
+                                            itemNb = 1
+                                        end
+                                        ctld.logTrace(string.format("menuPath=[%s]", ctld.p(menuPath)))
+                                        missionCommands.addCommandForGroup(_groupId, "Load ".._loadGroup.name, menuPath, ctld.loadTroopsFromZone, { _unitName, true,_loadGroup,false })
                                     end
                                 end
                             end

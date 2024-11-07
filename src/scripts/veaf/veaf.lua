@@ -19,7 +19,7 @@ veaf = {}
 veaf.Id = "VEAF"
 
 --- Version.
-veaf.Version = "1.47.1"
+veaf.Version = "1.49.0"
 
 --- Development version ?
 veaf.Development = true
@@ -3798,6 +3798,7 @@ function veaf.ctld_initialize_replacement(configurationCallback)
         ctld.unitLoadLimits["SA342M"] = 1
         ctld.unitLoadLimits["SA342Mistral"] = 1
         ctld.unitLoadLimits["SA342Minigun"] = 1
+        ctld.unitLoadLimits["CH-47Fbl1"] = 33
 
         -- ************** Allowable actions for UNIT TYPES ******************
 
@@ -3811,14 +3812,18 @@ function veaf.ctld_initialize_replacement(configurationCallback)
         -- ************** INFANTRY GROUPS FOR PICKUP ******************
 
         table.insert(ctld.loadableGroups, {name = "2x - Standard Groups", inf = 12, mg = 4, at = 4 })
+        table.insert(ctld.loadableGroups, {name = "3x - Standard Groups", inf = 18, mg = 6, at = 6 })
+        table.insert(ctld.loadableGroups, {name = "2x - Standard Groups + 2x Mortar", inf = 12, mg = 4, at = 4, mortar = 12 })
         table.insert(ctld.loadableGroups, {name = "3x - Mortar Squad", mortar = 18})
+        table.insert(ctld.loadableGroups, {name = "5x - Mortar Squad", mortar = 30})
 
         ctld.autoInitializeAllHumanTransports = function()
             veaf.loggers.get(ctld.Id):info("autoInitializeAllHumanTransports()")
             ctld.transportPilotNames = {}
-            local TransportTypeNames = {"Mi-8MT", "UH-1H", "Mi-24P", "Yak-52", "UH-60L", "SA342L", "SA342M", "SA342Mistral", "SA342Minigun"}
+            local TransportTypeNames = {"Mi-8MT", "UH-1H", "Mi-24P", "Yak-52", "UH-60L", "SA342L", "SA342M", "SA342Mistral", "SA342Minigun", "CH-47Fbl1"}
             for name, unit in pairs(mist.DBs.humansByName) do
                 veaf.loggers.get(ctld.Id):trace(string.format("human player found name=%s, unitName=%s, groupName=%s", name, unit.unitName,unit.groupName))
+                veaf.loggers.get(ctld.Id):trace("unit.type=[%s]",veaf.p(unit.type))
                 -- check if it's a transport helo
                 for _, transportTypeName in pairs(TransportTypeNames) do
                     if transportTypeName:lower() == unit.type:lower() then

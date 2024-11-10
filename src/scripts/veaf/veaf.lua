@@ -19,11 +19,11 @@ veaf = {}
 veaf.Id = "VEAF"
 
 --- Version.
-veaf.Version = "1.49.0"
+veaf.Version = "1.49.1"
 
 --- Development version ?
-veaf.Development = true
-veaf.SecurityDisabled = true
+veaf.Development = false
+veaf.SecurityDisabled = false
 
 -- trace level, specific to this module
 --veaf.LogLevel = "debug"
@@ -574,6 +574,10 @@ function veaf.ifnns(o, fields)
     local result = nil
     if o then
         result = {}
+        if type(fields) ~= "table" then
+            local field = fields
+            fields = { field }
+        end
         for _, field in pairs(fields) do
             if o[field] then
                 if type(o[field]) == "function" then
@@ -3743,7 +3747,7 @@ function veaf.ctld_initialize_replacement(configurationCallback)
         ctld.Id = "CTLD"
         --ctld.LogLevel = "info"
         --ctld.LogLevel = "trace"
-        --ctld.LogLevel = "debug"
+        ctld.LogLevel = "debug"
 
         ctld.logger = veaf.loggers.new(ctld.Id, ctld.LogLevel)
 
@@ -3777,9 +3781,10 @@ function veaf.ctld_initialize_replacement(configurationCallback)
         --- replace the crate 3D model with an actual crate
         ctld.spawnableCratesModel_load = {
             ["category"] = "Cargos",
-            ["shape_name"] = "bw_container_cargo",
-            ["type"] = "container_cargo"
+            ["type"] = "ammo_cargo",
+            ["name"] = "Ammo"
         }
+        ctld.spawnableCratesModel_sling = ctld.spawnableCratesModel_load
 
         -- Simulated Sling load configuration
         ctld.minimumHoverHeight = 5.0 -- Lowest allowable height for crate hover
@@ -3916,7 +3921,7 @@ function veaf.ctld_initialize_replacement(configurationCallback)
         end
 
         -- automatically add all the human-manned transport aircrafts to ctld.transportPilotNames
-        ctld.autoInitializeAllHumanTransports()
+        --ctld.autoInitializeAllHumanTransports()
 
         -- automatically add all the carriers and FARPs to ctld.logisticUnits
         ctld.autoInitializeAllLogistic()

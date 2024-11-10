@@ -23,7 +23,7 @@ veafSpawn = {}
 veafSpawn.Id = "SPAWN"
 
 --- Version.
-veafSpawn.Version = "1.56.0"
+veafSpawn.Version = "1.56.1"
 
 -- trace level, specific to this module
 --veafSpawn.LogLevel = "trace"
@@ -2003,7 +2003,7 @@ function veafSpawn.doSpawnCargo(spawnSpot, radius, cargoType, country, weightBia
 
     local units = {}
 
-    local spawnPosition = veaf.findPointInZone(spawnSpot, 50, false)
+    local spawnPosition = veaf.findPointInZone(spawnSpot)
 
     -- check spawned position validity
     if spawnPosition == nil then

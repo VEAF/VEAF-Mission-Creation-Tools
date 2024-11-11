@@ -19,7 +19,7 @@ veafGrass = {}
 veafGrass.Id = "GRASS"
 
 --- Version.
-veafGrass.Version = "2.6.1"
+veafGrass.Version = "2.7.0"
 
 -- trace level, specific to this module
 --veafGrass.LogLevel = "trace"
@@ -196,34 +196,68 @@ function veafGrass.buildFarpsUnits(hiddenOnMFD)
     end
 end
 
+---Browse all the FARP-type units and refill their warehouses
+function veafGrass.fillAllFarpWarehouses()
+	veaf.loggers.get(veafGrass.Id):debug("veafGrass.fillAllFarpWarehouses()")
+    local farpBases = {}
+    local grassBases = {}
+	local bases = world.getAirbases()
+    for _, base in pairs(bases) do
+		local name = base:getName()
+		local typeName = base:getTypeName()
+		veaf.loggers.get(veafGrass.Id):trace("fillAllFarpWarehouse: testing %s", veaf.p(name))
+        if name:upper():find('GRASS_RUNWAY') then
+            grassBases[name] = base
+            veaf.loggers.get(veafGrass.Id):trace(string.format("found grassBases[%s]= %s", name, veaf.p(base)))
+        end
+		--first two types should represent the same object depending on if you're on the MIST side or DCS side, as a safety added both
+        if (typeName == "SINGLE_HELIPAD" or typeName == "FARP_SINGLE_01" or typeName == "FARP" or typeName == "Invisible FARP") then
+            farpBases[name] = base
+            veaf.loggers.get(veafGrass.Id):trace(string.format("found farpBases[%s]= %s", name, veaf.p(base)))
+        end
+    end
+    --veaf.loggers.get(veafGrass.Id):trace(string.format("farpBases=%s",veaf.p(farpBases)))
+    for _, base in pairs(grassBases) do
+        veafGrass.fillFarpWarehouse(base)
+    end
+	--veaf.loggers.get(veafGrass.Id):trace(string.format("grassBases=%s",veaf.p(grassBases)))
+    for _, base in pairs(farpBases) do
+        veafGrass.fillFarpWarehouse(base)
+    end
+end
+
 ---Add everything to the FARP warehouse; since 2.8.x, the FARPs spawn empty, hence making it impossible to rearm or refuel (even with all the necessary vehicles)
 ---@param farp any the FARP to be filled
 function veafGrass.fillFarpWarehouse(farp)
+	veaf.loggers.get(veafGrass.Id):debug("veafGrass.fillFarpWarehouse([%s])", veaf.p(farp))
 	local farpName = farp.name
+	if not farpName then _, farpName = pcall(farp.getName, farp) end
 	if not farpName then farpName = farp.unitName end
 	if not farpName then farpName = farp.groupName end
-	veaf.loggers.get(veafGrass.Id):debug("veafGrass.fillFarpWarehouse([%s])", veaf.p(farpName))
-	timer.scheduleFunction(
-		function(farpName)
-			local farpAirbase = Airbase.getByName(farpName)
-			if farpAirbase then
-				local farpWarehouse = farpAirbase:getWarehouse()
-				if farpWarehouse then
-					farpWarehouse:setLiquidAmount(0,500000)
-					for i, datas in ipairs(veafGrass.WAREHOUSE_ITEMS) do 
-						farpWarehouse:addItem(datas.wsType, 500000)
+	veaf.loggers.get(veafGrass.Id):trace("farpName=[%s]", veaf.p(farpName))
+	if farpName then
+		timer.scheduleFunction(
+			function(farpName)
+				local farpAirbase = Airbase.getByName(farpName)
+				if farpAirbase then
+					local farpWarehouse = farpAirbase:getWarehouse()
+					if farpWarehouse then
+						farpWarehouse:setLiquidAmount(0,500000)
+						for i, datas in ipairs(veafGrass.WAREHOUSE_ITEMS) do 
+							farpWarehouse:addItem(datas.wsType, 500000)
+						end
+					else
+						veaf.loggers.get(veafGrass.Id):error("Airbase.getByName([%s]):getWarehouse() returned null", veaf.p(farpName))
 					end
 				else
-					veaf.loggers.get(veafGrass.Id):error("Airbase.getByName([%s]):getWarehouse() returned null", veaf.p(farpName))	
+					veaf.loggers.get(veafGrass.Id):error("Airbase.getByName([%s]) returned null", veaf.p(farpName))
 				end
-			else
-				veaf.loggers.get(veafGrass.Id):error("Airbase.getByName([%s]) returned null", veaf.p(farpName))
-			end
-			veaf.loggers.get(veafGrass.Id):debug("FARP [%s] successfully replenished", veaf.p(farpName))
-		end,
-		farpName,
-		timer.getTime() + 1
-	)
+				veaf.loggers.get(veafGrass.Id):debug("FARP [%s] successfully replenished", veaf.p(farpName))
+			end,
+			farpName,
+			timer.getTime() + 1
+		)
+	end
 end
 
 ------------------------------------------------------------------------------
@@ -591,7 +625,7 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD
 
 	veafNamedPoints.addPoint(farp.unitName or farp.name, farpNamedPoint)
 
-	veaf.loggers.get(veafGrass.Id):trace(string.format("calling fillFarpWarehouse(%s)",name))
+	--veaf.loggers.get(veafGrass.Id):trace(string.format("calling fillFarpWarehouse(%s)",name))
 	veafGrass.fillFarpWarehouse(farp)
 end
 

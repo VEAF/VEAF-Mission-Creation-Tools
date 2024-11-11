@@ -19,7 +19,7 @@ veafGrass = {}
 veafGrass.Id = "GRASS"
 
 --- Version.
-veafGrass.Version = "2.7.1"
+veafGrass.Version = "2.7.2"
 
 -- trace level, specific to this module
 --veafGrass.LogLevel = "trace"
@@ -226,7 +226,8 @@ function veafGrass.fillAllFarpWarehouses(rescheduleDelay)
     end
 
 	if rescheduleDelay and rescheduleDelay > 0 then
-		timer.scheduleFunction(veafGrass.fillAllFarpWarehouses, {rescheduleDelay}, timer.getTime()+rescheduleDelay)
+		veaf.loggers.get(veafGrass.Id):debug("rescheduling veafGrass.fillAllFarpWarehouses() in %s seconds",rescheduleDelay)
+		timer.scheduleFunction(veafGrass.fillAllFarpWarehouses, rescheduleDelay, timer.getTime()+rescheduleDelay)
 	end
 end
 

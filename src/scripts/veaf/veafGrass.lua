@@ -19,7 +19,7 @@ veafGrass = {}
 veafGrass.Id = "GRASS"
 
 --- Version.
-veafGrass.Version = "2.7.0"
+veafGrass.Version = "2.7.1"
 
 -- trace level, specific to this module
 --veafGrass.LogLevel = "trace"
@@ -197,8 +197,8 @@ function veafGrass.buildFarpsUnits(hiddenOnMFD)
 end
 
 ---Browse all the FARP-type units and refill their warehouses
-function veafGrass.fillAllFarpWarehouses()
-	veaf.loggers.get(veafGrass.Id):debug("veafGrass.fillAllFarpWarehouses()")
+function veafGrass.fillAllFarpWarehouses(rescheduleDelay)
+	veaf.loggers.get(veafGrass.Id):debug("veafGrass.fillAllFarpWarehouses(%s)",rescheduleDelay or "")
     local farpBases = {}
     local grassBases = {}
 	local bases = world.getAirbases()
@@ -224,6 +224,10 @@ function veafGrass.fillAllFarpWarehouses()
     for _, base in pairs(farpBases) do
         veafGrass.fillFarpWarehouse(base)
     end
+
+	if rescheduleDelay and rescheduleDelay > 0 then
+		timer.scheduleFunction(veafGrass.fillAllFarpWarehouses, {rescheduleDelay}, timer.getTime()+rescheduleDelay)
+	end
 end
 
 ---Add everything to the FARP warehouse; since 2.8.x, the FARPs spawn empty, hence making it impossible to rearm or refuel (even with all the necessary vehicles)
@@ -242,9 +246,11 @@ function veafGrass.fillFarpWarehouse(farp)
 				if farpAirbase then
 					local farpWarehouse = farpAirbase:getWarehouse()
 					if farpWarehouse then
-						farpWarehouse:setLiquidAmount(0,500000)
-						for i, datas in ipairs(veafGrass.WAREHOUSE_ITEMS) do 
-							farpWarehouse:addItem(datas.wsType, 500000)
+						for i = 0, 3, 1 do
+							farpWarehouse:setLiquidAmount(i,10000)
+						end
+						for i, datas in ipairs(veafGrass.WAREHOUSE_ITEMS) do
+							farpWarehouse:setItem(datas.wsType, 5000)
 						end
 					else
 						veaf.loggers.get(veafGrass.Id):error("Airbase.getByName([%s]):getWarehouse() returned null", veaf.p(farpName))
@@ -638,6 +644,10 @@ function veafGrass.initialize()
 
 	-- auto generate FARP units (hide these units on MFDs as they create clutter for nothing since the FARP already shows or not depending on what the Mission maker wanted, regardless, don't show them)
     mist.scheduleFunction(veafGrass.buildFarpsUnits,{true},timer.getTime()+veafGrass.DelayForStartup)
+
+	-- schedule automatic resupply of FARP warehouses
+	local RESUPPLY_DELAY_IN_SECONDS = 30
+	mist.scheduleFunction(veafGrass.fillAllFarpWarehouses,{RESUPPLY_DELAY_IN_SECONDS},timer.getTime()+veafGrass.DelayForStartup)
 end
 
 veaf.loggers.get(veafGrass.Id):info(string.format("Loading version %s", veafGrass.Version))

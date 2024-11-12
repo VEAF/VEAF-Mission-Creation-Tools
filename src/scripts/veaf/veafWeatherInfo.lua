@@ -99,8 +99,7 @@ function veafWeatherInfoData:Create(vec3, iTimeAbs, iAltitude)
    
     local iWindDir, iWindSpeedMs = weathermark._GetWind(vec3, iAltitude)
 
-    local iDayOfYear = UTILS.GetMissionDayOfYear(iTimeAbs)
-    local iSunrise, iSunset = Fg.TimeSunriseSunset(mooseCoord, iDayOfYear)
+    local sunriseTime, sunsetTime =  veafTime.getSunTimesFromAbsTime(vec3)
 
     local iVisibilityMeters = env.mission.weather.visibility.distance
     local bFog = env.mission.weather.enable_fog
@@ -134,7 +133,7 @@ function veafWeatherInfoData:Create(vec3, iTimeAbs, iAltitude)
     local this =
     {
         TimeAbs = iTimeAbs,
-        Coordinates = mooseCoord,
+        Coordinates = vec3,
         AltitudeMeter = iAltitude,
         WindDirection = UTILS.Round(iWindDir),
         WindSpeedMs = iWindSpeedMs,
@@ -153,6 +152,7 @@ function veafWeatherInfoData:Create(vec3, iTimeAbs, iAltitude)
 
     setmetatable(this, self)
 
+    veaf.loggers.get(veaf.Id):trace(this:toString())
     LogDebug(this:ToString())
     return this
 end

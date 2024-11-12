@@ -5,7 +5,10 @@
 -- Features:
 -- ---------
 -- * Provides a suite of tools to manage date and time information relative to the DCS mission
--- 
+-- standard lua datetime object is used when appropriate:
+-- --> as returned by os.date("*t", 906000490)
+-- --> dateTime = { year = 1998, month = 9, day = 16, yday = 259, wday = 4, hour = 23, min = 48, sec = 10, isdst = false }
+--
 -- See the documentation : https://veaf.github.io/documentation/
 ------------------------------------------------------------------
 veafTime = {}
@@ -25,12 +28,15 @@ veafTime.Version = "1.0.0"
 veaf.loggers.new(veafTime.Id, veafTime.LogLevel)
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
--- General date and time tools
+-- Local constants
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 local _iSecondsInMinute = 60
 local _iSecondsInHour = 3600
 local _iSecondsInDay = 86400
 
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- General date and time tools
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
 function veafTime.isLeapYear(iYear)
     return iYear % 4 == 0 and (iYear % 100 ~= 0 or iYear % 400 == 0)
 end
@@ -51,21 +57,21 @@ function veafTime.getDayOfYear(iDay, iMonth, iYear)
     return iDayOfYear
 end
 
-function veafTime.getMissionDateAndTime(iAbsTime)
+function veafTime.getMissionDateTime(iAbsTime)
     iAbsTime = iAbsTime or timer.getAbsTime()
 
     -- Calculate hours, minutes, and remaining seconds
     local iDay = env.mission.date.Day
     local iMonth = env.mission.date.Month
     local iYear = env.mission.date.Year
-    local iHours = math.floor(iAbsTime / _iSecondsInHour)
+    local iHour = math.floor(iAbsTime / _iSecondsInHour)
     local iRemainingSeconds = iAbsTime % _iSecondsInHour
-    local iMinutes = math.floor(iRemainingSeconds / _iSecondsInMinute)
-    local iSeconds = iRemainingSeconds % _iSecondsInMinute
+    local iMinute = math.floor(iRemainingSeconds / _iSecondsInMinute)
+    local iSecond = iRemainingSeconds % _iSecondsInMinute
 
     -- Handle day rollover
-    local iAdditionalDays = math.floor(iHours / 24)
-    iHours = iHours % 24
+    local iAdditionalDays = math.floor(iHour / 24)
+    iHour = iHour % 24
 
     -- Add the additional days
     iDay = iDay + iAdditionalDays
@@ -89,45 +95,44 @@ function veafTime.getMissionDateAndTime(iAbsTime)
 
     local idayOfYear = veafTime.getDayOfYear(iDay, iMonth, iYear)
 
-    return {
-        DayOfYear = idayOfYear,
-        Day = iDay,
-        Month = iMonth,
-        Year = iYear,
-        Hours = iHours,
-        Minutes = iMinutes,
-        Seconds = iSeconds
-    }
+    return { year = iYear, month = iMonth, day = iDay, yday = idayOfYear, wday = 4, hour = iHour, min = iMinute, sec = iSecond, isdst = false }
 end
 
-function veafTime.getAbsTime(toDay, toMonth, toYear, hours, minutes, seconds)
-    local iFromDay = env.mission.date.Day
-    local iFromMonth = env.mission.date.Month
-    local iFromYear = env.mission.date.Year
+function veafTime.getMissionAbsTime(dateTime)
+    local iMissionStartDay = env.mission.date.Day
+    local iMissionStartMonth = env.mission.date.Month
+    local iMissionStartYear = env.mission.date.Year
     
+    local iDay = dateTime.day
+    local iMonth = dateTime.month
+    local iYear = dateTime.year
+    local iHour = dateTime.hour
+    local iMinute = dateTime.min
+    local iSecond = dateTime.sec
+
     local iTotalDays = 0
     
     -- If we're in the same year
-    if iFromYear == toYear then
-        iTotalDays = veafTime.getDayOfYear(toDay, toMonth, toYear) - veafTime.getDayOfYear(iFromDay, iFromMonth, iFromYear)
+    if iMissionStartYear == iYear then
+        iTotalDays = veafTime.getDayOfYear(iDay, iMonth, iYear) - veafTime.getDayOfYear(iMissionStartDay, iMissionStartMonth, iMissionStartYear)
     else
         -- Days remaining in the first year
-        iTotalDays = (veafTime.isLeapYear(iFromYear) and 366 or 365) - veafTime.getDayOfYear(iFromDay, iFromMonth, iFromYear)
+        iTotalDays = (veafTime.isLeapYear(iMissionStartYear) and 366 or 365) - veafTime.getDayOfYear(iMissionStartDay, iMissionStartMonth, iMissionStartYear)
         
         -- Add days for full years in between
-        for iYear = iFromYear + 1, toYear - 1 do
+        for iYear = iMissionStartYear + 1, iYear - 1 do
             iTotalDays = iTotalDays + (veafTime.isLeapYear(iYear) and 366 or 365)
         end
         
         -- Add days in the final year
-        iTotalDays = iTotalDays + veafTime.getDayOfYear(toDay, toMonth, toYear)
+        iTotalDays = iTotalDays + veafTime.getDayOfYear(iDay, iMonth, iYear)
     end
     
     -- Calculate total seconds
-    local iAbsTime = seconds +
-                        (minutes * _iSecondsInMinute) +
-                        (hours * _iSecondsInHour) +
-                        (iTotalDays * _iSecondsInDay)
+    local iAbsTime = iSecond +
+                    (iMinute * _iSecondsInMinute) +
+                    (iHour * _iSecondsInHour) +
+                    (iTotalDays * _iSecondsInDay)
     
     return iAbsTime
 end
@@ -169,17 +174,20 @@ function veafTime.getTimezone(vec3)
     return iTimezone
 end
 
-function veafTime.getSunTimes(vec3, iAbsTime)
+function veafTime.getSunTimesFromAbsTime(vec3, iAbsTime)
     iAbsTime = iAbsTime or timer.getAbsTime()
+    local dateTime = veafTime.getMissionDateTime(iAbsTime)
+    return veafTime.getSunTimes(vec3, dateTime)
+end
 
+function veafTime.getSunTimes(vec3, dateTime)
     local PI = math.pi
     local RAD = PI / 180
     local DEG = 180 / PI
     local iLatitude, iLongitude, iAltitude = coord.LOtoLL(vec3)
 
-    local dateData = veafTime.getMissionDateAndTime(iAbsTime)
-    local iYear = dateData.Year
-    local idayOfYear = dateData.DayOfYear
+    local iYear = dateTime.year
+    local idayOfYear = dateTime.yday
 
     -- Helper function to convert decimal hours to HH:MM format
     local function _decimalToTime(iDecimalHours)
@@ -193,8 +201,8 @@ function veafTime.getSunTimes(vec3, iAbsTime)
         return 367 * iYear - math.floor(7 * (iYear + math.floor((10 + 9) / 12)) / 4) + math.floor(275 * 9 / 9) + iDayOfYear - 730531.5
     end
 
-    -- Convert latitude and longitude to radians
-    local lat_rad = iLatitude * RAD
+    -- Convert latitude to radians
+    local iLatitudeRad = iLatitude * RAD
 
     -- Calculate Julian date
     local jd = _julianDate(idayOfYear, iYear)
@@ -213,13 +221,13 @@ function veafTime.getSunTimes(vec3, iAbsTime)
     local cosDec = math.sqrt(1 - sinDec * sinDec)
 
     -- Calculate solar hour angle
-    local cosH = (math.sin(-0.0145) - math.sin(lat_rad) * sinDec) / (math.cos(lat_rad) * cosDec)
+    local cosH = (math.sin(-0.0145) - math.sin(iLatitudeRad) * sinDec) / (math.cos(iLatitudeRad) * cosDec)
 
     -- Check if the sun never rises/sets at this location on this day
     if cosH > 1 then
-        return "No sunrise/sunset - Polar night"
+        return nil -- "No sunrise/sunset - Polar night"
     elseif cosH < -1 then
-        return "No sunrise/sunset - Midnight sun"
+        return nil -- "No sunrise/sunset - Midnight sun"
     end
 
     -- Calculate sunrise and sunset hour angles
@@ -234,14 +242,12 @@ function veafTime.getSunTimes(vec3, iAbsTime)
     sunrise = sunrise % 24
     sunset = sunset % 24
 
+    local iSunriseHour, iSunriseMinute = _decimalToTime(sunrise)
+    local iSunsetHour, iSunsetMinute = _decimalToTime(sunset)
+
     return
     {
-        Sunrise = sunrise,
-        Sunset = sunset
+        Sunrise = { year = dateTime.year, month = dateTime.month, day = dateTime.day, yday = dateTime.yday, hour = iSunriseHour, min = iSunriseMinute, sec = 0, isdst = false },
+        Sunset =  { year = dateTime.year, month = dateTime.month, day = dateTime.day, yday = dateTime.yday, hour = iSunsetHour, min = iSunsetMinute, sec = 0, isdst = false }
     }
-end
-
-function veafTime.getSunAbsTimes(vec3, iAbsTime)
-    local sunTimes = veafTime.getSunTimes(vec3, iAbsTime)
-    dateData
 end

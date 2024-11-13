@@ -145,8 +145,8 @@ function veafTime.getTimezone(vec3)
 
     if (vec3) then
         -- Try to approximate for the vec3 - each timezone is roughly 15 degrees wide
-        local iLatitude, iLongitude, iAltitude = coord.LOtoLL(vec3)
-        iTimezone = math.floor((iLongitude + 7.5) / 15)
+        local nLatitude, nLongitude, _ = coord.LOtoLL(vec3)
+        iTimezone = math.floor((nLongitude + 7.5) / 15)
     elseif (env.mission.theatre == "caucasus") then
         iTimezone = 4
     elseif (env.mission.theatre == "persiangulf") then
@@ -184,7 +184,7 @@ function veafTime.getSunTimes(vec3, dateTime)
     local PI = math.pi
     local RAD = PI / 180
     local DEG = 180 / PI
-    local iLatitude, iLongitude, iAltitude = coord.LOtoLL(vec3)
+    local nLatitude, nLongitude, _ = coord.LOtoLL(vec3)
 
     local iYear = dateTime.year
     local idayOfYear = dateTime.yday
@@ -202,7 +202,7 @@ function veafTime.getSunTimes(vec3, dateTime)
     end
 
     -- Convert latitude to radians
-    local iLatitudeRad = iLatitude * RAD
+    local nLatitudeRad = nLatitude * RAD
 
     -- Calculate Julian date
     local jd = _julianDate(idayOfYear, iYear)
@@ -221,7 +221,7 @@ function veafTime.getSunTimes(vec3, dateTime)
     local cosDec = math.sqrt(1 - sinDec * sinDec)
 
     -- Calculate solar hour angle
-    local cosH = (math.sin(-0.0145) - math.sin(iLatitudeRad) * sinDec) / (math.cos(iLatitudeRad) * cosDec)
+    local cosH = (math.sin(-0.0145) - math.sin(nLatitudeRad) * sinDec) / (math.cos(nLatitudeRad) * cosDec)
 
     -- Check if the sun never rises/sets at this location on this day
     if cosH > 1 then
@@ -234,7 +234,7 @@ function veafTime.getSunTimes(vec3, dateTime)
     local H = math.acos(cosH) * DEG
 
     -- Convert to hours
-    local noon = 12 + (-iLongitude / 15)
+    local noon = 12 + (-nLongitude / 15)
     local sunrise = noon - H / 15
     local sunset = noon + H / 15
 

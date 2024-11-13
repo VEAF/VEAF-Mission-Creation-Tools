@@ -10,26 +10,26 @@
 -- See the documentation : https://veaf.github.io/documentation/
 ------------------------------------------------------------------
 
-veafWeatherInfo = {}
+veafWeather = {}
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Global module settings
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 --- Identifier. All output in DCS.log will start with this.
-veafWeatherInfo.Id = "WEATHER_INFO"
+veafWeather.Id = "WEATHER_INFO"
 
 --- Version.
-veafWeatherInfo.Version = "1.0.0"
+veafWeather.Version = "1.0.0"
 
 -- trace level, specific to this module
---veafWeatherInfo.LogLevel = "trace"
-veaf.loggers.new(veafWeatherInfo.Id, veafWeatherInfo.LogLevel)
+--veafWeather.LogLevel = "trace"
+veaf.loggers.new(veafWeather.Id, veafWeather.LogLevel)
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
--- Global weather data
+-- Local constants
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
-veafWeatherInfo.DcsPresetDensity =
+local _dcsPresetDensity =
 {
     -- {density, precipitation, visibility}
     Preset1 = {2, false, nil}, -- LS1 -- FEW/SCT
@@ -64,19 +64,84 @@ veafWeatherInfo.DcsPresetDensity =
     RainyPreset3 = {8, true, 4000} -- OVC
 }
 
-veafWeatherInfo.CloudDensity = { Clear = 0, Few = 1, Scattered = 2, Broken = 3, Overcast = 4, Cavok = 5 }
-veafWeatherInfo.CloudDensityOktas =
+local _cloudDensity = { Clear = 0, Few = 1, Scattered = 2, Broken = 3, Overcast = 4, Cavok = 5 }
+local _cloudDensityOktas =
 {
-    [0] = veafWeatherInfo.CloudDensity.Clear,
-    [1] = veafWeatherInfo.CloudDensity.Few,
-    [2] = veafWeatherInfo.CloudDensity.Few,
-    [3] = veafWeatherInfo.CloudDensity.Scattered,
-    [4] = veafWeatherInfo.CloudDensity.Scattered,
-    [5] = veafWeatherInfo.CloudDensity.Broken,
-    [6] = veafWeatherInfo.CloudDensity.Broken,
-    [7] = veafWeatherInfo.CloudDensity.Overcast,
-    [8] = veafWeatherInfo.CloudDensity.Overcast
+    [0] = _cloudDensity.Clear,
+    [1] = _cloudDensity.Few,
+    [2] = _cloudDensity.Few,
+    [3] = _cloudDensity.Scattered,
+    [4] = _cloudDensity.Scattered,
+    [5] = _cloudDensity.Broken,
+    [6] = _cloudDensity.Broken,
+    [7] = _cloudDensity.Overcast,
+    [8] = _cloudDensity.Overcast
 }
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- Local tools
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+local function _estimateClearSkyRelativeHumidity(nLatitude, nLongitude, iDayOfYear)
+    -- Base RH for clear skies
+    local base_rh = 30
+    
+    -- Seasonal adjustment
+    -- Calculate seasonal factor (-1 to 1, peaks at middle of year)
+    local seasonal_factor = math.cos((iDayOfYear - 182) * 2 * math.pi / 365)
+    
+    -- Latitude adjustment
+    -- Higher latitudes tend to have lower RH in winter, higher in summer
+    local lat_factor = math.abs(nLatitude) / 90
+    
+    -- Longitude adjustment (crude estimation of continental vs maritime)
+    -- Assume areas around 0°, 180° longitude (typical ocean areas) have higher RH
+    local long_factor = math.min(math.abs(nLongitude), math.abs(nLongitude - 180)) / 180
+    local maritime_influence = 1 - long_factor
+    
+    -- Combine factors
+    local seasonal_adjustment = seasonal_factor * 15 * lat_factor -- ±15% variation
+    local maritime_adjustment = maritime_influence * 10 -- Up to +10% for maritime areas
+    
+    -- Calculate final RH
+    local adjusted_rh = base_rh + seasonal_adjustment + maritime_adjustment
+    
+    -- Clamp between reasonable values
+    return math.max(20, math.min(70, adjusted_rh))
+end
+
+local function _estimateDewpoint(vec3, nTemperatureCelcius, nQnhPa, iCloudBaseMeters, iAbsTime)
+    local nLatitude, nLongitude, _ = coord.LOtoLL(vec3)
+    local nQnhHpa = nQnhPa / 100
+    local nRelativeHumidity
+    
+    if (iCloudBaseMeters == nil or iCloudBaseMeters > 10000) then
+        -- Clear skies - estimate RH based on location and date
+        local dateTime = veafTime.getMissionDateTime(iAbsTime)
+        nRelativeHumidity = _estimateClearSkyRelativeHumidity(nLatitude, nLongitude, dateTime.yday)
+    else
+        -- Convert cloud base to meters and estimate RH
+        nRelativeHumidity = 100 - (iCloudBaseMeters / 100)
+        -- Clamp RH between 0 and 100%
+        nRelativeHumidity = math.max(0, math.min(100, nRelativeHumidity))
+    end
+    
+    -- Constants for Magnus formula
+    local a = 17.27
+    local b = 237.7
+    
+    -- Calculate gamma term
+    local gamma = ((a * nTemperatureCelcius) / (b + nTemperatureCelcius)) + math.log(nRelativeHumidity/100.0)
+    
+    -- Calculate dew point using Magnus formula
+    local dew_point = (b * gamma) / (a - gamma)
+    
+    -- Apply pressure correction (approximate)
+    local pressure_correction = (1013.25 - nQnhHpa) * 0.0012
+    dew_point = dew_point + pressure_correction
+    
+    -- Round to one decimal place
+    return math.floor(dew_point * 10 + 0.5) / 10
+end
 
 ---------------------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------
@@ -85,27 +150,26 @@ veafWeatherInfo.CloudDensityOktas =
 ---  Can be output to string as METAR or ATIS informations
 ---------------------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------
-veafWeatherInfoData = {}
-veafWeatherInfoData.__index = veafWeatherInfoData
+veafWeatherData = {}
+veafWeatherData.__index = veafWeatherData
 ---------------------------------------------------------------------------------------------------
 ---  CTOR
-function veafWeatherInfoData:Create(vec3, iTimeAbs, iAltitude)
-    iTimeAbs = iTimeAbs or timer.getAbsTime()
+function veafWeatherData:Create(vec3, iAbsTime, iAltitudeMeters)
+    iAbsTime = iAbsTime or timer.getAbsTime()
+        
     local iGroundAltitude = veaf.getLandHeight(vec3)
-    iAltitude = iAltitude or iGroundAltitude + 1 -- check a bit above ground especially for the wind
-    if (iAltitude < iGroundAltitude) then
-        iAltitude = iGroundAltitude
+    iAltitudeMeters = iAltitudeMeters or iGroundAltitude + 1 -- check a bit above ground especially for the wind
+    if (iAltitudeMeters < iGroundAltitude) then
+        iAltitudeMeters = iGroundAltitude
     end
    
-    local iWindDir, iWindSpeedMs = weathermark._GetWind(vec3, iAltitude)
-
     local sunriseTime, sunsetTime =  veafTime.getSunTimesFromAbsTime(vec3)
-
+    local iWindDir, iWindSpeedMs = weathermark._GetWind(vec3, iAltitudeMeters)
     local iVisibilityMeters = env.mission.weather.visibility.distance
     local bFog = env.mission.weather.enable_fog
     if (bFog) then
         -- ground + 75 meters seems to be the point where it can be counted as a real impact on visibility
-        if(env.mission.weather.fog.thickness < iAltitude + 75) then
+        if(env.mission.weather.fog.thickness < iAltitudeMeters + 75) then
             bFog = false
         elseif (env.mission.weather.fog.visibility < iVisibilityMeters) then
             iVisibilityMeters = env.mission.weather.fog.visibility
@@ -121,45 +185,48 @@ function veafWeatherInfoData:Create(vec3, iTimeAbs, iAltitude)
         end
         bPrecipitation = (env.mission.weather.clouds.iprecptns > 0)
     else
-        if (DcsPresetDensity[sCloudPreset]) then
-            clouds = {Density = DcsPresetDensity[sCloudPreset][1], Base = env.mission.weather.clouds.base}
-            bPrecipitation = DcsPresetDensity[sCloudPreset][2]
-            if (DcsPresetDensity[sCloudPreset][3] and DcsPresetDensity[sCloudPreset][3] < iVisibilityMeters) then
-                iVisibilityMeters = DcsPresetDensity[sCloudPreset][3]
+        if (_dcsPresetDensity[sCloudPreset]) then
+            clouds = {Density = _dcsPresetDensity[sCloudPreset][1], Base = env.mission.weather.clouds.base}
+            bPrecipitation = _dcsPresetDensity[sCloudPreset][2]
+            if (_dcsPresetDensity[sCloudPreset][3] and _dcsPresetDensity[sCloudPreset][3] < iVisibilityMeters) then
+                iVisibilityMeters = _dcsPresetDensity[sCloudPreset][3]
             end
         end
     end
     
+    local _, nQfePa = atmosphere.getTemperatureAndPressure({ x = vec3.x, y = iGroundAltitude, z = vec3.z })
+    local nTemperatureKelvin, nQnhPa = atmosphere.getTemperatureAndPressure({ x = vec3.x, y = 0, z = vec3.z })    
+    local nTemperatureCelcius = nTemperatureKelvin - 273.15
+
     local this =
     {
-        TimeAbs = iTimeAbs,
+        TimeAbs = iAbsTime,
         Coordinates = vec3,
-        AltitudeMeter = iAltitude,
-        WindDirection = UTILS.Round(iWindDir),
+        AltitudeMeter = iAltitudeMeters,
+        WindDirection = iWindDir,
         WindSpeedMs = iWindSpeedMs,
         VisibilityMeters = iVisibilityMeters,
         Dust = env.mission.weather.enable_dust,
         Fog = bFog,
         Clouds = clouds,
         Precipitation = bPrecipitation,
-        TemperatureCelcius = mooseCoord:GetTemperature(),
-        --DewPoint, -- Magnus Formula, will need humidity to compute
-        QnhHpa = mooseCoord:GetPressure(0),
-        QfeHpa = mooseCoord:GetPressure(),
-        Sunrise = iSunrise,
-        Sunset = iSunset
+        TemperatureCelcius = nTemperatureCelcius,
+        DewPointCelcius = _estimateDewpoint(vec3, nTemperatureCelcius, nQnhPa / 100, clouds.Base, iAbsTime),
+        QnhHpa = nQnhPa / 100,
+        QfeHpa = nQfePa / 100,
+        Sunrise = sunriseTime,
+        Sunset = sunsetTime
     }
 
-    setmetatable(this, self)
+    setmetatable(this, veafWeatherData)
 
     veaf.loggers.get(veaf.Id):trace(this:toString())
-    LogDebug(this:ToString())
     return this
 end
 
 ---------------------------------------------------------------------------------------------------
 ---  METHODS
-function FgWeather:GetFormattedWind(bMagnetic)
+function veafWeatherData:GetFormattedWind(bMagnetic)
     bMagnetic = bMagnetic or false
 
     local iWindForce = UTILS.Round(UTILS.MpsToKnots(self.WindSpeedMs))

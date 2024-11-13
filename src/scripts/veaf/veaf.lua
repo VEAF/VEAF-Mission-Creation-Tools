@@ -19,11 +19,11 @@ veaf = {}
 veaf.Id = "VEAF"
 
 --- Version.
-veaf.Version = "1.49.0"
+veaf.Version = "1.50.0"
 
 --- Development version ?
-veaf.Development = true
-veaf.SecurityDisabled = true
+veaf.Development = false
+veaf.SecurityDisabled = false
 
 -- trace level, specific to this module
 --veaf.LogLevel = "debug"
@@ -574,6 +574,10 @@ function veaf.ifnns(o, fields)
     local result = nil
     if o then
         result = {}
+        if type(fields) ~= "table" then
+            local field = fields
+            fields = { field }
+        end
         for _, field in pairs(fields) do
             if o[field] then
                 if type(o[field]) == "function" then
@@ -596,7 +600,7 @@ function veaf.isNullOrEmpty(s)
     return (s == nil or (type(s) == "string" and s == ""))
 end
 
-function veaf.p(o, level, skip)
+function veaf.p(o, level, skip, includeMeta, dontRecurse)
     if o and type(o) == "table" and (o.x and o.z and o.y and #o == 3) then
         return string.format("{x=%s, z=%s, y=%s}", veaf.p(o.x), veaf.p(o.z), veaf.p(o.y))
     elseif o and type(o) == "table" and (o.x and o.y and #o == 2)  then
@@ -608,10 +612,10 @@ function veaf.p(o, level, skip)
             skip[value]=true
         end
     end
-    return veaf._p(o, level, skip)
+    return veaf._p(o, level, skip, includeMeta, dontRecurse)
 end
 
-function veaf._p(o, level, skip)
+function veaf._p(o, level, skip, includeMeta, dontRecurse)
     local MAX_LEVEL = 20
     if level == nil then level = 0 end
     if level > MAX_LEVEL then
@@ -621,7 +625,7 @@ function veaf._p(o, level, skip)
     local text = ""
     if o == nil then
         text = "[nil]"
-    elseif (type(o) == "table") then
+    elseif (type(o) == "table") and not(dontRecurse) then
         text = "\n"
         local keys = {}
         local values = {}
@@ -637,9 +641,43 @@ function veaf._p(o, level, skip)
                 text = text .. " "
             end
             if not (skip and skip[key]) then
-                text = text .. ".".. key.."="..veaf.p(value, level+1, skip) .. "\n"
+                text = text .. ".".. key.."="..veaf.p(value, level+1, skip, includeMeta, dontRecurse) .. "\n"
             else
                 text = text .. ".".. key.."= [[SKIPPED]]\n"
+            end
+        end
+        if includeMeta then
+            local metatable = getmetatable(o)
+            if metatable then
+                text = "\n"
+                local keys = {}
+                local values = {}
+                for key, value in pairs(metatable) do
+                    local sKey = tostring(key)
+                    table.insert(keys, sKey)
+                    values[sKey] = value
+                end
+                table.sort(keys)
+                for _, key in pairs(keys) do
+                    local value = values[key]
+                    for i=0, level do
+                        text = text .. " "
+                    end
+                    if not (skip and skip[key]) then
+                        if key == "getID" then
+                            value = o:getID()
+                        elseif key == "getName" then
+                            value = o:getName()
+                        elseif key == "getTypeName" then
+                            value = o:getTypeName()
+                        elseif key == "getDesc" then
+                            value = o:getDesc()
+                        end
+                        text = text .. "[META].".. key.."="..veaf.p(value, level+1, skip, includeMeta, true) .. "\n"
+                    else
+                        text = text .. "[META].".. key.."= [[SKIPPED]]\n"
+                    end
+                end
             end
         end
     elseif (type(o) == "function") then
@@ -3743,7 +3781,7 @@ function veaf.ctld_initialize_replacement(configurationCallback)
         ctld.Id = "CTLD"
         --ctld.LogLevel = "info"
         --ctld.LogLevel = "trace"
-        --ctld.LogLevel = "debug"
+        ctld.LogLevel = "debug"
 
         ctld.logger = veaf.loggers.new(ctld.Id, ctld.LogLevel)
 
@@ -3777,9 +3815,10 @@ function veaf.ctld_initialize_replacement(configurationCallback)
         --- replace the crate 3D model with an actual crate
         ctld.spawnableCratesModel_load = {
             ["category"] = "Cargos",
-            ["shape_name"] = "bw_container_cargo",
-            ["type"] = "container_cargo"
+            ["type"] = "ammo_cargo",
+            ["name"] = "Ammo"
         }
+        ctld.spawnableCratesModel_sling = ctld.spawnableCratesModel_load
 
         -- Simulated Sling load configuration
         ctld.minimumHoverHeight = 5.0 -- Lowest allowable height for crate hover
@@ -3916,7 +3955,7 @@ function veaf.ctld_initialize_replacement(configurationCallback)
         end
 
         -- automatically add all the human-manned transport aircrafts to ctld.transportPilotNames
-        ctld.autoInitializeAllHumanTransports()
+        --ctld.autoInitializeAllHumanTransports()
 
         -- automatically add all the carriers and FARPs to ctld.logisticUnits
         ctld.autoInitializeAllLogistic()

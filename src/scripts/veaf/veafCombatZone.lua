@@ -20,7 +20,7 @@ veafCombatZone = {}
 veafCombatZone.Id = "COMBATZONE"
 
 --- Version.
-veafCombatZone.Version = "1.16.1"
+veafCombatZone.Version = "1.16.2"
 
 -- trace level, specific to this module
 --veafCombatZone.LogLevel = "trace"
@@ -1636,27 +1636,36 @@ end
 
 function veafCombatZone.GetZone(zoneName)
     veaf.loggers.get(veafCombatZone.Id):trace(string.format("veafCombatZone.GetZone([%s])", veaf.p(zoneName)))
-    veaf.loggers.get(veafCombatZone.Id):trace(string.format("Searching for zone with name [%s]", zoneName))
-    local zone = veafCombatZone.zonesDict[zoneName:lower()]
-    if not zone then
-        local message = string.format("VeafCombatZone [%s] was not found !",zoneName)
-        veaf.loggers.get(veafCombatZone.Id):error(message)
-        trigger.action.outText(message,5)
+    veaf.loggers.get(veafCombatZone.Id):trace(string.format("Searching for zone with name [%s]", veaf.p(zoneName)))
+    if zoneName then
+        local zone = veafCombatZone.zonesDict[zoneName:lower()]
+        if not zone then
+            local message = string.format("VeafCombatZone [%s] was not found !",zoneName)
+            veaf.loggers.get(veafCombatZone.Id):error(message)
+            trigger.action.outText(message,5)
+        end
+        return zone
+    else
+        return nil
     end
-    return zone
 end
 
 -- add a zone
 function veafCombatZone.AddZone(zone)
-    veaf.loggers.get(veafCombatZone.Id):debug(string.format("veafCombatZone.AddZone([%s])",zone.missionEditorZoneName or ""))
-    zone:initialize()
-    table.insert(veafCombatZone.zonesList, zone)
-    veafCombatZone.zonesDict[zone.missionEditorZoneName:lower()] = zone
-    return zone
+    veaf.loggers.get(veafCombatZone.Id):debug(string.format("veafCombatZone.AddZone([%s])",veaf.p(veaf.ifnns(zone, "missionEditorZoneName"))))
+    if zone then
+        zone:initialize()
+        table.insert(veafCombatZone.zonesList, zone)
+        veafCombatZone.zonesDict[zone.missionEditorZoneName:lower()] = zone
+        return zone
+    else
+        return nil
+    end
 end
 
 -- activate a zone by number
 function veafCombatZone.ActivateZoneNumber(number, silent)
+    veaf.loggers.get(veafCombatZone.Id):debug(string.format("veafCombatZone.ActivateZoneNumber([%s])",veaf.p(number)))
     local zone = veafCombatZone.zonesList[number]
     if zone then
         veafCombatZone.ActivateZone(zone:getMissionEditorZoneName(), silent)
@@ -1667,21 +1676,27 @@ end
 function veafCombatZone.ActivateZone(zoneName, silent)
     veaf.loggers.get(veafCombatZone.Id):debug(string.format("veafCombatZone.ActivateZone([%s])", veaf.p(zoneName)))
     local zone = veafCombatZone.GetZone(zoneName)
-    if zone:isActive() then
-        if not silent then
-            trigger.action.outText("VeafCombatZone "..zone:getFriendlyName().." is already active.", 10)
+    if zone then
+        if zone:isActive() then
+            if not silent then
+                trigger.action.outText("VeafCombatZone "..zone:getFriendlyName().." is already active.", 10)
+            end
+            return
         end
-        return
-    end
-    mist.scheduleFunction(zone.activate,{zone},timer.getTime()+1)
-    if not silent then
-        trigger.action.outText("VeafCombatZone "..zone:getFriendlyName().." has been activated.", 10)
-        mist.scheduleFunction(veafCombatZone.GetInformationOnZone,{{zoneName}},timer.getTime()+2)
+        mist.scheduleFunction(zone.activate,{zone},timer.getTime()+1)
+        if not silent then
+            trigger.action.outText("VeafCombatZone "..zone:getFriendlyName().." has been activated.", 10)
+            mist.scheduleFunction(veafCombatZone.GetInformationOnZone,{{zoneName}},timer.getTime()+2)
+        end
+        return zone
+    else
+        return nil
     end
 end
 
 -- desactivate a zone by number
 function veafCombatZone.DesactivateZoneNumber(number, silent)
+    veaf.loggers.get(veafCombatZone.Id):debug(string.format("veafCombatZone.DesactivateZoneNumber([%s])",veaf.p(number)))
     local zone = veafCombatZone.zonesList[number]
     if zone then
         veafCombatZone.DesactivateZone(zone:getMissionEditorZoneName(), silent)
@@ -1692,15 +1707,20 @@ end
 function veafCombatZone.DesactivateZone(zoneName, silent)
     veaf.loggers.get(veafCombatZone.Id):debug(string.format("veafCombatZone.DesactivateZone([%s])", veaf.p(zoneName)))
     local zone = veafCombatZone.GetZone(zoneName)
-    if not(zone:isActive()) then
-        if not silent then
-            trigger.action.outText("VeafCombatZone "..zone:getFriendlyName().." is not active.", 10)
+    if zone then
+        if not(zone:isActive()) then
+            if not silent then
+                trigger.action.outText("VeafCombatZone "..zone:getFriendlyName().." is not active.", 10)
+            end
+            return
         end
-        return
-    end
-    zone:desactivate()
-    if not silent then
-        trigger.action.outText("VeafCombatZone "..zone:getFriendlyName().." has been desactivated.", 10)
+        zone:desactivate()
+        if not silent then
+            trigger.action.outText("VeafCombatZone "..zone:getFriendlyName().." has been desactivated.", 10)
+        end
+        return zone
+    else
+        return nil
     end
 end
 
@@ -1708,56 +1728,85 @@ end
 function veafCombatZone.GetInformationOnZone(parameters)
     veaf.loggers.get(veafCombatZone.Id):trace(string.format("veafCombatZone.GetInformationOnZone([%s])",veaf.p(parameters)))
     local zoneName, unitName = veaf.safeUnpack(parameters)
-
     local zone = veafCombatZone.GetZone(zoneName)
-    local text = zone:getInformation()
-    if unitName then
-        veaf.outTextForGroup(unitName, text, 30)
+    if zone then
+        local text = zone:getInformation()
+        if unitName then
+            veaf.outTextForGroup(unitName, text, 30)
+        else
+            trigger.action.outText(text, 30)
+        end
+        return zone
     else
-        trigger.action.outText(text, 30)
+        return nil
     end
 end
-
---------------------------------------------------------------------------------------------------------------
---- END OF GLOBAL INTERFACE
---------------------------------------------------------------------------------------------------------------
 
 -- pop a smoke over a zone
 function veafCombatZone.SmokeZone(zoneName)
     veaf.loggers.get(veafCombatZone.Id):trace(string.format("veafCombatZone.SmokeZone([%s])", veaf.p(zoneName)))
     local zone = veafCombatZone.GetZone(zoneName)
-    zone:popSmoke()
+    if zone then
+        zone:popSmoke()
+        return zone
+    else
+        return nil
+    end
 end
 
 -- pop an illumination  flare over a zone
 function veafCombatZone.LightUpZone(zoneName)
     veaf.loggers.get(veafCombatZone.Id):trace(string.format("veafCombatZone.LightUpZone([%s])", veaf.p(zoneName)))
     local zone = veafCombatZone.GetZone(zoneName)
-    zone:popFlare()
+    if zone then
+        zone:popFlare()
+        return zone
+    else
+        return nil
+    end
 end
 
 -- reset the "pop smoke" menus
 function veafCombatZone.SmokeReset(zoneName)
     veaf.loggers.get(veafCombatZone.Id):trace(string.format("veafCombatZone.SmokeReset([%s])", veaf.p(zoneName)))
     local zone = veafCombatZone.GetZone(zoneName)
-    zone.smokeResetFunctionId = nil
-    zone:updateRadioMenu()
+    if zone then
+        zone.smokeResetFunctionId = nil
+        zone:updateRadioMenu()
+        return zone
+    else
+        return nil
+    end
 end
 
 -- reset the "pop flare" menus
 function veafCombatZone.FlareReset(zoneName)
     veaf.loggers.get(veafCombatZone.Id):trace(string.format("veafCombatZone.FlareReset([%s])", veaf.p(zoneName)))
     local zone = veafCombatZone.GetZone(zoneName)
-    zone.flareResetFunctionId = nil
-    zone:updateRadioMenu()
+    if zone then
+        zone.flareResetFunctionId = nil
+        zone:updateRadioMenu()
+        return zone
+    else
+        return nil
+    end
 end
 
 -- call the completion watchdog methods
 function veafCombatZone.CompletionCheck(zoneName)
     veaf.loggers.get(veafCombatZone.Id):trace(string.format("veafCombatZone.CompletionCheck([%s])", veaf.p(zoneName)))
     local zone = veafCombatZone.GetZone(zoneName)
-    zone:completionCheck()
+    if zone then
+        zone:completionCheck()
+        return zone
+    else
+        return nil
+    end
 end
+
+--------------------------------------------------------------------------------------------------------------
+--- END OF GLOBAL INTERFACE
+--------------------------------------------------------------------------------------------------------------
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Radio menu and help

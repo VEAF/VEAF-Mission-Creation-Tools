@@ -21,7 +21,7 @@ veafEventHandler = {}
 veafEventHandler.Id = "EVENTS - "
 
 --- Version.
-veafEventHandler.Version = "1.2.0"
+veafEventHandler.Version = "1.2.1"
 
 -- trace level, specific to this module
 --veafEventHandler.LogLevel = "trace"
@@ -187,6 +187,10 @@ veafEventHandler.knownEventsNames = {
   [49] = "S_EVENT_UNIT_TASK_TIMEOUT",
   [50] = "S_EVENT_UNIT_TASK_STAGE",
   [51] = "S_EVENT_MAX",
+  [52] = "[UNKNOWN]", -- ???
+  [53] = "[UNKNOWN]", -- ???
+  [54] = "S_EVENT_RUNWAY_TAKEOFF", -- since 2.9.6
+  [55] = "S_EVENT_RUNWAY_TOUCH", -- since 2.9.6
 }
 
 veafEventHandler.knownEvents = {} -- will be set at initialisation

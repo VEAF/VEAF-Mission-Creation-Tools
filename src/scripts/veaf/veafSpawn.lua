@@ -23,7 +23,7 @@ veafSpawn = {}
 veafSpawn.Id = "SPAWN"
 
 --- Version.
-veafSpawn.Version = "1.56.1"
+veafSpawn.Version = "1.56.2"
 
 -- trace level, specific to this module
 --veafSpawn.LogLevel = "trace"
@@ -1303,9 +1303,8 @@ function veafSpawn.spawnFarp(spawnSpot, radius, name, country, farptype, side, h
         veaf.loggers.get(veafSpawn.Id):trace("_lon=%s", veaf.p(_lon))
         local _mgrs = coord.LLtoMGRS(_lat, _lon)
         veaf.loggers.get(veafSpawn.Id):trace("_mgrs=%s", veaf.p(_mgrs))
-        --local _UTM = _mgrs.UTMZone .. _mgrs.MGRSDigraph .. math.floor(_mgrs.Easting / 1000) .. math.floor(_mgrs.Northing / 1000)
         local _UTM = _mgrs.MGRSDigraph .. math.floor(_mgrs.Easting / 1000) .. math.floor(_mgrs.Northing / 1000)
-        name = "FARP ".. _UTM:upper()
+        name = "FARP ".. _UTM:upper() .. "-" .. timer.getTime()
     end
 
     local _type = "Invisible FARP"
@@ -1329,7 +1328,7 @@ function veafSpawn.spawnFarp(spawnSpot, radius, name, country, farptype, side, h
         ["category"] = "Heliports",
         ["shape_name"] = _shape,
         ["type"] = _type,
-        --["unitId"] = _unitId,
+        ["unitId"] =  mist.getNextUnitId(),
         ["y"] = spawnPosition.z,
         ["x"] = spawnPosition.x,
         ["groupName"] = name,
@@ -1338,7 +1337,8 @@ function veafSpawn.spawnFarp(spawnSpot, radius, name, country, farptype, side, h
         ["heading"] = mist.utils.toRadian(hdg),
         ["country"] = country,
         ["coalition"] = side,
-        --["hiddenOnMFD"] = hiddenOnMFD, --some helicopters won't see the FARPs if this option is true and the FARPs are from the same coalition as the helo, the NS430 will still see them though.
+        ["dead"] = false,
+        ["dynamicSpawn"] = true
     }
     mist.dynAddStatic(_farpStatic)
     local _spawnedFARP = StaticObject.getByName(name)

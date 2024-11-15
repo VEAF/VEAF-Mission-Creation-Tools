@@ -889,6 +889,35 @@ end
 function veaf.emptyFunction()
 end
 
+function veaf.getMagneticDeclination()
+    local nDeclination = 0
+    if (env.mission.theatre == "caucasus") then
+        nDeclination = 6
+    elseif (env.mission.theatre == "persiangulf") then
+        nDeclination = 2
+    elseif (env.mission.theatre == "Nevada") then
+        nDeclination = 12
+    elseif (env.mission.theatre == "Normandy") then
+        nDeclination = -10
+    elseif (env.mission.theatre == "thechannel") then
+        nDeclination = -10
+    elseif (env.mission.theatre == "syria") then
+        nDeclination = 5
+    elseif (env.mission.theatre == "marianaislands") then
+        nDeclination = 2
+    elseif (env.mission.theatre == "Falklands") then
+        nDeclination = 12
+    elseif (env.mission.theatre == "SinaiMap") then
+        nDeclination = 4.8
+    elseif (env.mission.theatre == "Kola") then
+        nDeclination = 15
+    elseif (env.mission.theatre == "Afghanistan") then
+        nDeclination = 3
+    end
+  
+    return nDeclination
+end
+
 --- Returns the wind direction (from) and strength.
 function veaf.getWind(point)
 

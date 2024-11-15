@@ -35,28 +35,31 @@ local _iSecondsInHour = 3600
 local _iSecondsInDay = 86400
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
--- General date and time tools
+-- Local tools
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
-function veafTime.isLeapYear(iYear)
+local function _isLeapYear(iYear)
     return iYear % 4 == 0 and (iYear % 100 ~= 0 or iYear % 400 == 0)
 end
 
-function veafTime.getDaysInMonth(iMonth, iYear)
+local function _getDaysInMonth(iMonth, iYear)
     local daysInMonth = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31}
-    if iMonth == 2 and veafTime.isLeapYear(iYear) then
+    if iMonth == 2 and _isLeapYear(iYear) then
         return 29
     end
     return daysInMonth[iMonth]
 end
 
-function veafTime.getDayOfYear(iDay, iMonth, iYear)
+local function _getDayOfYear(iDay, iMonth, iYear)
     local iDayOfYear = iDay
     for i = 1, iMonth - 1 do
-        iDayOfYear = iDayOfYear + veafTime.getDaysInMonth(i, iYear)
+        iDayOfYear = iDayOfYear + _getDaysInMonth(i, iYear)
     end
     return iDayOfYear
 end
 
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- General date and time tools
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
 function veafTime.getMissionDateTime(iAbsTime)
     iAbsTime = iAbsTime or timer.getAbsTime()
 
@@ -78,7 +81,7 @@ function veafTime.getMissionDateTime(iAbsTime)
 
     -- Handle month and year rollover
     while true do
-        local iDaysInCurrentMonth = veafTime.getDaysInMonth(iMonth, iYear)
+        local iDaysInCurrentMonth = _getDaysInMonth(iMonth, iYear)
 
         if (iDay <= iDaysInCurrentMonth) then
             break
@@ -93,7 +96,7 @@ function veafTime.getMissionDateTime(iAbsTime)
         end
     end
 
-    local idayOfYear = veafTime.getDayOfYear(iDay, iMonth, iYear)
+    local idayOfYear = _getDayOfYear(iDay, iMonth, iYear)
 
     return { year = iYear, month = iMonth, day = iDay, yday = idayOfYear, wday = 4, hour = iHour, min = iMinute, sec = iSecond, isdst = false }
 end
@@ -114,18 +117,18 @@ function veafTime.getMissionAbsTime(dateTime)
     
     -- If we're in the same year
     if iMissionStartYear == iYear then
-        iTotalDays = veafTime.getDayOfYear(iDay, iMonth, iYear) - veafTime.getDayOfYear(iMissionStartDay, iMissionStartMonth, iMissionStartYear)
+        iTotalDays = _getDayOfYear(iDay, iMonth, iYear) - _getDayOfYear(iMissionStartDay, iMissionStartMonth, iMissionStartYear)
     else
         -- Days remaining in the first year
-        iTotalDays = (veafTime.isLeapYear(iMissionStartYear) and 366 or 365) - veafTime.getDayOfYear(iMissionStartDay, iMissionStartMonth, iMissionStartYear)
+        iTotalDays = (_isLeapYear(iMissionStartYear) and 366 or 365) - _getDayOfYear(iMissionStartDay, iMissionStartMonth, iMissionStartYear)
         
         -- Add days for full years in between
         for iYear = iMissionStartYear + 1, iYear - 1 do
-            iTotalDays = iTotalDays + (veafTime.isLeapYear(iYear) and 366 or 365)
+            iTotalDays = iTotalDays + (_isLeapYear(iYear) and 366 or 365)
         end
         
         -- Add days in the final year
-        iTotalDays = iTotalDays + veafTime.getDayOfYear(iDay, iMonth, iYear)
+        iTotalDays = iTotalDays + _getDayOfYear(iDay, iMonth, iYear)
     end
     
     -- Calculate total seconds
@@ -135,6 +138,76 @@ function veafTime.getMissionAbsTime(dateTime)
                     (iTotalDays * _iSecondsInDay)
     
     return iAbsTime
+end
+
+function veafTime.absTimeToDateTime(iAbsTime)
+    iAbsTime = iAbsTime or timer.getAbsTime()
+    return veafTime.getMissionDateTime(iAbsTime)
+end
+--[[
+function veafTime.ToZulu(time)
+    time = time or timer.getAbsTime()
+    if (type(time) == "table") then
+        
+    end
+
+    return iAbsSeconds - (UTILS.GMTToLocalTimeDifference() * 3600)
+end
+]]
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- Date and time string display tools
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+function veafTime.toStringDate(dateTime)
+    return string.format("%02d/%02d/%d", dateTime.day, dateTime.month, dateTime.year)
+end
+
+function veafTime.absTimeToStringDate(iAbsTime)
+    local dateTime = veafTime.absTimeToDateTime(iAbsTime)
+    return veafTime.toStringDate(dateTime)
+end
+
+function veafTime.toStringTime(dateTime, bWithSeconds)
+    if (bWithSeconds == nil) then bWithSeconds = true end
+
+    --veaf.loggers.get(veafTime.Id):info(veaf.p(dateTime))
+
+    if (bWithSeconds) then
+        return string.format("%02d:%02d:%02d", dateTime.hour, dateTime.min, dateTime.sec)
+    else
+        return string.format("%02d:%02d", dateTime.hour, dateTime.min)
+    end
+end
+
+function veafTime.absTimeToStringTime(iAbsTime, bWithSeconds)
+    local dateTime = veafTime.absTimeToDateTime(iAbsTime)
+    return veafTime.toStringTime(dateTime, bWithSeconds)
+end
+
+function veafTime.toStringDateTime(dateTime, bWithSeconds)
+    return string.format("%s %s", veafTime.toStringDate(dateTime), veafTime.toStringTime(dateTime, bWithSeconds))
+end
+
+function veafTime.absTimeToStringDateTime(iAbsTime)
+    local dateTime = veafTime.absTimeToDateTime(iAbsTime)
+    return veafTime.toStringDateTime(dateTime, bWithSeconds)
+end
+
+function veafTime.toStringMetar(dateTime, bZulu)
+    if (bZulu == nil) then bZulu = true end
+    
+    local sTimeZone
+    if(bZulu) then
+        sTimeZone = "Z"
+    else
+        sTimeZone = "L"
+    end
+        
+    return string.format("%02d%02d%s", dateTime.hour, dateTime.minute)
+end
+
+function veafTime.toStringMetar(iAbsSeconds)
+    local oTime = Fg.TimeFromAbsSeconds(iAbsSeconds)
+    return string.format("%02d%02dZ", oTime.Hour, oTime.Minute)
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -174,13 +247,9 @@ function veafTime.getTimezone(vec3)
     return iTimezone
 end
 
-function veafTime.getSunTimesFromAbsTime(vec3, iAbsTime)
-    iAbsTime = iAbsTime or timer.getAbsTime()
-    local dateTime = veafTime.getMissionDateTime(iAbsTime)
-    return veafTime.getSunTimes(vec3, dateTime)
-end
+function veafTime.getSunTimes(vec3, iAbsTime)
+    local dateTime = veafTime.absTimeToDateTime(iAbsTime)
 
-function veafTime.getSunTimes(vec3, dateTime)
     local PI = math.pi
     local RAD = PI / 180
     local DEG = 180 / PI
@@ -193,7 +262,7 @@ function veafTime.getSunTimes(vec3, dateTime)
     local function _decimalToTime(iDecimalHours)
         local iHours = math.floor(iDecimalHours)
         local iMinutes = math.floor((iDecimalHours - iHours) * 60)
-        return { iHours, iMinutes }
+        return iHours, iMinutes
     end
 
     -- Calculate Julian date
@@ -250,4 +319,15 @@ function veafTime.getSunTimes(vec3, dateTime)
         Sunrise = { year = dateTime.year, month = dateTime.month, day = dateTime.day, yday = dateTime.yday, hour = iSunriseHour, min = iSunriseMinute, sec = 0, isdst = false },
         Sunset =  { year = dateTime.year, month = dateTime.month, day = dateTime.day, yday = dateTime.yday, hour = iSunsetHour, min = iSunsetMinute, sec = 0, isdst = false }
     }
+end
+
+function veafTime.isAeronauticalNight(vec3, iAbsTime)
+    local dateTime = veafTime.absTimeToDateTime(iAbsTime)
+    local sunriseTime, sunsetTime = veafTime.getSunTimes(vec3, iAbsTime)
+
+    local iCurrentSeconds = dateTime.hour * _iSecondsInHour + dateTime.min * _iSecondsInMinute + dateTime.sec
+    local iSunriseSeconds = sunriseTime.hour * _iSecondsInHour + sunriseTime.min * _iSecondsInMinute + sunriseTime.sec - (30 * _iSecondsInMinute) -- sunrise - 30 min
+    local iSunsetSeconds = sunsetTime.hour * _iSecondsInHour + sunsetTime.min * _iSecondsInMinute + sunsetTime.sec + (30 * _iSecondsInMinute) -- sunset + 30 min
+    
+    return iCurrentSeconds < iSunriseSeconds or iCurrentSeconds > iSunsetSeconds
 end

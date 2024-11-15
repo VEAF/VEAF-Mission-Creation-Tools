@@ -206,8 +206,15 @@ function veafNamedPoints.getWeatherAtPoint(parameters, forUnit)
     if point then
         local BR = veafNamedPoints.getPointBearing(parameters)
         if BR then BR = " ("..BR..")" else BR = "" end
+                
         local weatherReport = "WEATHER        : " .. name .. BR .. "\n\n"
         weatherReport = weatherReport .. veaf.weatherReport(point, nil, true)
+
+        -- TEST -- TODO
+        local weatherData = veafWeatherData:create(point)
+        weatherReport = weatherData:toString()
+        -- TEST
+
         if forUnit then
             veaf.outTextForUnit(unitName, weatherReport, 30)
         else

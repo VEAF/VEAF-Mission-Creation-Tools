@@ -23,8 +23,15 @@ veafWeather.Id = "WEATHER_INFO"
 veafWeather.Version = "1.0.0"
 
 -- trace level, specific to this module
---veafWeather.LogLevel = "trace"
+veafWeather.LogLevel = "trace" -- TODO
 veaf.loggers.new(veafWeather.Id, veafWeather.LogLevel)
+
+veafWeather.UnitSystem =
+{
+    Imperial = 0, -- Wind speeds in knots, visibilities in SM, altitudes in feet
+    Metric = 1, -- Wind speeds in km/h, visibilities in km, altitudes in meters
+    Hybrid = 2  -- Wind speeds in knots, visibilities in km, altitudes in feet
+}
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Local constants
@@ -152,9 +159,10 @@ end
 ---------------------------------------------------------------------------------------------------
 veafWeatherData = {}
 veafWeatherData.__index = veafWeatherData
+
 ---------------------------------------------------------------------------------------------------
 ---  CTOR
-function veafWeatherData:Create(vec3, iAbsTime, iAltitudeMeters)
+function veafWeatherData:create(vec3, iAbsTime, iAltitudeMeters)
     iAbsTime = iAbsTime or timer.getAbsTime()
         
     local iGroundAltitude = veaf.getLandHeight(vec3)
@@ -163,7 +171,7 @@ function veafWeatherData:Create(vec3, iAbsTime, iAltitudeMeters)
         iAltitudeMeters = iGroundAltitude
     end
    
-    local sunriseTime, sunsetTime =  veafTime.getSunTimesFromAbsTime(vec3)
+    local sunTimes =  veafTime.getSunTimes(vec3)
     local iWindDir, iWindSpeedMs = weathermark._GetWind(vec3, iAltitudeMeters)
     local iVisibilityMeters = env.mission.weather.visibility.distance
     local bFog = env.mission.weather.enable_fog
@@ -179,14 +187,14 @@ function veafWeatherData:Create(vec3, iAbsTime, iAltitudeMeters)
     local clouds = nil
     local bPrecipitation = false;
     local sCloudPreset = env.mission.weather.clouds.preset
-    if (Fg.IsNullOrEmpty(sCloudPreset)) then
+    if (veaf.isNullOrEmpty(sCloudPreset)) then
         if (env.mission.weather.clouds.density > 0) then
-            clouds = {Density = env.mission.weather.clouds.density, Base = env.mission.weather.clouds.base}
+            clouds = {Density = env.mission.weather.clouds.density, BaseMeters = env.mission.weather.clouds.base}
         end
         bPrecipitation = (env.mission.weather.clouds.iprecptns > 0)
     else
         if (_dcsPresetDensity[sCloudPreset]) then
-            clouds = {Density = _dcsPresetDensity[sCloudPreset][1], Base = env.mission.weather.clouds.base}
+            clouds = {Density = _dcsPresetDensity[sCloudPreset][1], BaseMeters = env.mission.weather.clouds.base}
             bPrecipitation = _dcsPresetDensity[sCloudPreset][2]
             if (_dcsPresetDensity[sCloudPreset][3] and _dcsPresetDensity[sCloudPreset][3] < iVisibilityMeters) then
                 iVisibilityMeters = _dcsPresetDensity[sCloudPreset][3]
@@ -200,8 +208,8 @@ function veafWeatherData:Create(vec3, iAbsTime, iAltitudeMeters)
 
     local this =
     {
-        TimeAbs = iAbsTime,
-        Coordinates = vec3,
+        AbsTime = iAbsTime,
+        Vec3 = vec3,
         AltitudeMeter = iAltitudeMeters,
         WindDirection = iWindDir,
         WindSpeedMs = iWindSpeedMs,
@@ -211,28 +219,39 @@ function veafWeatherData:Create(vec3, iAbsTime, iAltitudeMeters)
         Clouds = clouds,
         Precipitation = bPrecipitation,
         TemperatureCelcius = nTemperatureCelcius,
-        DewPointCelcius = _estimateDewpoint(vec3, nTemperatureCelcius, nQnhPa / 100, clouds.Base, iAbsTime),
+        DewPointCelcius = _estimateDewpoint(vec3, nTemperatureCelcius, nQnhPa / 100, clouds.BaseMeters, iAbsTime),
         QnhHpa = nQnhPa / 100,
         QfeHpa = nQfePa / 100,
-        Sunrise = sunriseTime,
-        Sunset = sunsetTime
+        Sunrise = sunTimes.Sunrise,
+        Sunset = sunTimes.Sunset
     }
 
     setmetatable(this, veafWeatherData)
 
-    veaf.loggers.get(veaf.Id):trace(this:toString())
+    veaf.loggers.get(veafWeather.Id):trace(this:toStringExtended())
+    veaf.loggers.get(veafWeather.Id):trace(this:toStringExtended(veafWeather.UnitSystem.Metric))
+    veaf.loggers.get(veafWeather.Id):trace(this:toStringExtended(veafWeather.UnitSystem.Imperial))
     return this
 end
 
 ---------------------------------------------------------------------------------------------------
 ---  METHODS
-function veafWeatherData:GetFormattedWind(bMagnetic)
+function veafWeatherData:getNormalizedWind(unitSystem, bMagnetic)
+    unitSystem = unitSystem or veafWeather.UnitSystem.Hybrid
     bMagnetic = bMagnetic or false
 
-    local iWindForce = UTILS.Round(UTILS.MpsToKnots(self.WindSpeedMs))
+    local iWindSpeed
+    if (unitSystem == veafWeather.UnitSystem.Metric) then
+        iWindSpeed = self.WindSpeedMs
+    else
+        iWindSpeed = mist.utils.mpsToKnots(self.WindSpeedMs)
+    end
+
+    iWindSpeed =  mist.utils.round(iWindSpeed)
+
     local iWindDirection = self.WindDirection
     if (bMagnetic) then
-        iWindDirection = iWindDirection - UTILS.GetMagneticDeclination()
+        iWindDirection = iWindDirection - veaf.getMagneticDeclination()
         if (iWindDirection) < 0 then
             iWindDirection = iWindDirection + 360
         end    
@@ -241,63 +260,114 @@ function veafWeatherData:GetFormattedWind(bMagnetic)
     if (iWindDirection == 0) then
         iWindDirection = 360
     end
-    return iWindForce, iWindDirection
+    return iWindSpeed, iWindDirection
 end
 
-function FgWeather:GetCloudBaseAltitudeMeters(bHeight)
+function veafWeatherData:getNormalizedCloudBase(unitSystem, bHeight)
+    unitSystem = unitSystem or veafWeather.UnitSystem.Hybrid
     bHeight = bHeight or false
+
     if (self.Clouds == nil or self.Clouds.Density <= 0) then
         return nil
     else
-         local iCloudBase = self.Clouds.Base
+         local iCloudBase = self.Clouds.BaseMeters
          if (bHeight) then
             iCloudBase = iCloudBase - self.AltitudeMeter
+        end
+
+        if (unitSystem ~= veafWeather.UnitSystem.Metric) then
+            iCloudBase = mist.utils.metersToFeet(iCloudBase)
         end
 
         return iCloudBase
     end
 end
 
-function FgWeather:GetFormattedClouds(bHeight)
+function veafWeatherData:getNormalizedClouds(unitSystem, bHeight)
+    unitSystem = unitSystem or veafWeather.UnitSystem.Hybrid
     bHeight = bHeight or false
 
-    if (self.Clouds == nil or self.Clouds.Density <= 0) then
-        return CloudDensityLabel.Clear
+    local iCloudBase = self:getNormalizedCloudBase(unitSystem, bHeight)
+
+    if (iCloudBase == nil or self.Clouds.Density <= 0) then
+        return _cloudDensity.Clear
     else
-        local iCloudBase = UTILS.Round(UTILS.MetersToFeet(self:GetCloudBaseAltitudeMeters(bHeight)) / 100) * 100
-        if (self.VisibilityMeters >= 10000 and iCloudBase >= 5000 and not self.Precipitation and not self.Fog and not self.Dust) then
-            return CloudDensityLabel.Cavok
+        iCloudBase = mist.utils.round(iCloudBase / 100) * 100
+        if (self.VisibilityMeters >= 10000 and self.Clouds.BaseMeters >= 5000 and not self.Precipitation and not self.Fog and not self.Dust) then
+            return _cloudDensity.Cavok
         else
-            return CloudDensityLabelOktas[self.Clouds.Density], iCloudBase
+            return _cloudDensityOktas[self.Clouds.Density], iCloudBase
         end
     end
 end
 
-function FgWeather:GetCarrierCase()
-    local iCloudBase = nil
-    if (self.Clouds and self.Clouds.Density > 4) then
-        iCloudBase = UTILS.Round(UTILS.MetersToFeet(self:GetCloudBaseAltitudeMeters(false)) / 100) * 100
+function veafWeatherData:getCarrierCase()
+    -- Case I departures are flown during the day when weather conditions allow departure under visual flight rules (VFR). The weather minimums are a cloud deck above 3,000 feet and visibility greater than 5 miles
+    -- Case II departures are flown during the day when visual conditions are present at the carrier, but a controlled climb through the clouds is required. The weather minimums are a cloud deck above 1,000 feet and visibility greater than 5 miles.
+    -- Case III departures are flown at night and when weather conditions are below the minimums of 1,000 feet cloud deck and 5 miles visibility
+    
+    local bNight = veafTime.isAeronauticalNightFromAbsTime(self.Vec3, self.AbsTime)
+    if (bNight) then
+        return 3
     end
 
-    LogDebug(string.format("GetCarrierCase - Cloud base=%d feet (need more than 1000 for CASE 2 and 300 for CASE 3) - visibility=%d nm (need more than 5 for CASE 1/2)", iCloudBase or -1, UTILS.MetersToNM (self.VisibilityMeters)))
+    local iCloudBase = nil
+    if (self.Clouds and self.Clouds.Density > 4) then
+        iCloudBase = self.Clouds.BaseMeters
+    end
 
-    if (self.VisibilityMeters > UTILS.NMToMeters(5) and (iCloudBase == nil or iCloudBase > 3000)) then
+    local iVisibilityCase12 = mist.utils.NMToMeters(5)
+    local iCloudBaseCase1 = mist.utils.feetToMeters(3000)
+    local iCloudBaseCase2 = mist.utils.feetToMeters(1000)
+
+    --veaf.loggers.get(veaf.Id):trace(string.format("GetCarrierCase - Cloud base=%d feet (need more than 1000 for CASE 2 and 300 for CASE 3) - visibility=%d nm (need more than 5 for CASE 1/2)", iCloudBase or -1, UTILS.MetersToNM (self.VisibilityMeters)))
+
+    if (self.VisibilityMeters > iVisibilityCase12 and (iCloudBase == nil or iCloudBase > iCloudBaseCase1)) then
         return 1
-    elseif (self.VisibilityMeters > UTILS.NMToMeters(5) and (iCloudBase == nil or iCloudBase > 1000)) then
+    elseif (self.VisibilityMeters > iVisibilityCase12 and (iCloudBase == nil or iCloudBase > iCloudBaseCase2)) then
         return 2
     else
         return 3
     end
 end
 
-function FgWeather:ToString(bWithClouds)
+function veafWeatherData:toString(unitSystem, bWithClouds, bWithLaste)
+    unitSystem = unitSystem or veafWeather.UnitSystem.Hybrid
     bWithClouds = bWithClouds or false
+    bWithLaste = bWithLaste or false
 
-    local sString = "Time=" .. Fg.TimeToStringDate(self.TimeAbs)
-    sString = sString .. " - Coord=" .. self.Coordinates:ToStringLLDMS() .. " m"
-    sString = sString .. " - Altitude=" .. UTILS.Round(self.AltitudeMeter) .. " m"
-    sString = sString .. string.format(" - Wind= %03d @ %.2f ms [%.2f kts] [decl=%d]", self.WindDirection, self.WindSpeedMs, UTILS.MpsToKnots(self.WindSpeedMs), UTILS.GetMagneticDeclination())
-    sString = sString .. " - Visibility=" .. self.VisibilityMeters .. " m"
+    local nLatitude, nLongitude = coord.LOtoLL(self.Vec3)
+    local sSpeedUnit, sVisibilityUnit, sTemperatureUnit
+    local nWindSpeed, nVisibility, nTemperature
+
+    if (unitSystem == veafWeather.UnitSystem.Metric) then
+        sSpeedUnit = "km/h"
+        sVisibilityUnit = "km"
+        sTemperatureUnit = "°C"
+
+        nWindSpeed = mist.utils.round(mist.utils.mpsToKmph(self.WindSpeedMs))
+        nVisibility = mist.utils.round(self.VisibilityMeters / 1000)
+        nTemperature = mist.utils.round(self.TemperatureCelcius)
+    elseif (unitSystem == veafWeather.UnitSystem.Imperial) then
+        sSpeedUnit = "kts"
+        sVisibilityUnit = "SM"
+        sTemperatureUnit = "°F"
+
+        nWindSpeed = mist.utils.round(mist.utils.mpsToKnots(self.WindSpeedMs))
+        nVisibility = mist.utils.round(self.VisibilityMeters * 0.000621371)
+        nTemperature = mist.utils.round(mist.utils.celsiusToFahrenheit(self.TemperatureCelcius))
+    elseif (unitSystem == veafWeather.UnitSystem.Hybrid) then
+        sSpeedUnit = "kts"
+        sVisibilityUnit = "km"
+        sTemperatureUnit = "°C"
+
+        nWindSpeed = mist.utils.round(mist.utils.mpsToKnots(self.WindSpeedMs))
+        nVisibility = mist.utils.round(self.VisibilityMeters / 1000)
+        nTemperature = mist.utils.round(self.TemperatureCelcius)
+    end
+
+    local sString = string.format("Wind=%03d @ %d %s", self.WindDirection, nWindSpeed, sSpeedUnit)
+    sString = sString .. "\nVisibility=" .. nVisibility .. " " .. sVisibilityUnit
     if (self.Fog) then
         sString = sString .. " - fog"
     end
@@ -307,19 +377,40 @@ function FgWeather:ToString(bWithClouds)
     if (self.Precipitation) then
         sString = sString .. " - precipitations"
     end
-    sString = sString .. " - Temperature=" .. UTILS.Round(self.TemperatureCelcius) .. " °C"
-    sString = sString .. " - Qnh=" .. UTILS.Round(self.QnhHpa) .. " Hpa"
-    sString = sString .. " - Qfe=" .. UTILS.Round(self.QfeHpa) .. " Hpa"
-    sString = sString .. " - Sunrise=" .. Fg.TimeToString(self.Sunrise)
-    sString = sString .. " - Sunset=" .. Fg.TimeToString(self.Sunset)
-
     if (bWithClouds) then
         sString = sString .. " - Clouds=\n" .. Fg.ToString(self.Clouds)
     end
 
+    sString = sString .. "\nTemperature=" .. nTemperature .. sTemperatureUnit
+    sString = sString .. string.format("\nQnh=%.0f Hpa - %.2f inHg", self.QnhHpa, mist.utils.converter("hpa", "inhg", self.QnhHpa))
+    sString = sString .. string.format("\nQfe=%.0f Hpa - %.2f inHg", self.QfeHpa, mist.utils.converter("hpa", "inhg", self.QfeHpa))
+    sString = sString .. "\nSunrise=" .. veafTime.toStringTime(self.Sunrise, false) .. " - Sunset=" .. veafTime.toStringTime(self.Sunset, false)
+
     return sString
 end
 
+function veafWeatherData:toStringExtended(unitSystem, bWithClouds, bWithLaste)
+    unitSystem = unitSystem or veafWeather.UnitSystem.Hybrid
+
+    local nLatitude, nLongitude = coord.LOtoLL(self.Vec3)
+    local sAltitudeUnit
+    local nAltitude
+
+    if (unitSystem == veafWeather.UnitSystem.Metric) then
+        sAltitudeUnit = "m"
+        nAltitude = self.AltitudeMeter
+    else
+        sAltitudeUnit = "ft"
+        nAltitude = mist.utils.metersToFeet(self.AltitudeMeter)
+    end
+    
+    local sString = "Time=" .. veafTime.absTimeToStringDateTime(self.AbsTime)
+    sString = sString .. "\nLocation=" .. mist.tostringLL(nLatitude, nLongitude, 0, true)
+    sString = sString .. string.format(" - Altitude=%d %s", nAltitude, sAltitudeUnit)
+    sString = sString .. "\n" .. self:toString(unitSystem, bWithClouds, bWithLaste)
+    return sString    
+end
+--[[
 function FgWeather:ToStringAtis()
     local iWindForce, iWindDirection = self:GetFormattedWind(true)
     local sWind
@@ -373,7 +464,7 @@ function FgWeather:ToStringAtis()
     sAtis = sAtis .. string.format("\nQNH %d hPa - %.2f inHg", self.QnhHpa, UTILS.hPa2inHg(self.QnhHpa))
     sAtis = sAtis .. string.format("\nQFE %d hPa - %.2f inHg", self.QfeHpa, UTILS.hPa2inHg(self.QfeHpa))
     
-    if (self.TimeAbs < self.Sunrise or self.TimeAbs > self.Sunset) then
+    if (self.AbsTime < self.Sunrise or self.AbsTime > self.Sunset) then
         local iSunriseZulu = Fg.TimeToZulu(self.Sunrise)
         sAtis = sAtis .. "\nSunrise " .. Fg.TimeToString(iSunriseZulu, false) .. "Z"
     else
@@ -552,3 +643,4 @@ function FgAtis.GetCurrentAtisStringNearest(mooseGroup)
 	local mooseAirbase = Fg.GetNearestAirbase(mooseGroup)
 	return FgAtis.GetCurrentAtisString(mooseAirbase.AirbaseName)
 end
+]]

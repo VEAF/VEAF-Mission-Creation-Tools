@@ -25,6 +25,8 @@ end
 
 -- load the VEAF scripts
 __Veaf.Include( VEAF_DYNAMIC_PATH .. '/src/scripts/veaf/veaf.lua' )
+__Veaf.Include( VEAF_DYNAMIC_PATH .. '/src/scripts/veaf/veafTime.lua' )
+__Veaf.Include( VEAF_DYNAMIC_PATH .. '/src/scripts/veaf/veafWeather.lua' )
 __Veaf.Include( VEAF_DYNAMIC_PATH .. '/src/scripts/veaf/veafAssets.lua' )
 __Veaf.Include( VEAF_DYNAMIC_PATH .. '/src/scripts/veaf/veafCarrierOperations.lua' )
 __Veaf.Include( VEAF_DYNAMIC_PATH .. '/src/scripts/veaf/veafCasMission.lua' )

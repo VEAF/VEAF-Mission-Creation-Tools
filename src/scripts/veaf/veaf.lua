@@ -19,7 +19,7 @@ veaf = {}
 veaf.Id = "VEAF"
 
 --- Version.
-veaf.Version = "1.50.0"
+veaf.Version = "1.51.0"
 
 --- Development version ?
 veaf.Development = false
@@ -3809,33 +3809,33 @@ function veaf.ctld_initialize_replacement(configurationCallback)
         ctld.p = veaf.p
         ctld.Id = "CTLD"
         --ctld.LogLevel = "info"
-        --ctld.LogLevel = "trace"
-        ctld.LogLevel = "debug"
+        --ctld.LogLevel = "debug"
+        ctld.LogLevel = "trace"
 
         ctld.logger = veaf.loggers.new(ctld.Id, ctld.LogLevel)
 
         -- override the ctld logs with our own methods
         ---@diagnostic disable-next-line: duplicate-set-field
-        ctld.logError = function(message)
-            veaf.loggers.get(ctld.Id):error(message)
+        ctld.logError = function(message, args)
+            veaf.loggers.get(ctld.Id):error(message, args)
         end
 
         -- override the ctld logs with our own methods
         ---@diagnostic disable-next-line: duplicate-set-field
-        ctld.logInfo = function(message)
-            veaf.loggers.get(ctld.Id):info(message)
+        ctld.logInfo = function(message, args)
+            veaf.loggers.get(ctld.Id):info(message, args)
         end
 
         -- override the ctld logs with our own methods
         ---@diagnostic disable-next-line: duplicate-set-field
-        ctld.logDebug = function(message)
-            veaf.loggers.get(ctld.Id):debug(message)
+        ctld.logDebug = function(message, args)
+            veaf.loggers.get(ctld.Id):debug(message, args)
         end
 
         -- override the ctld logs with our own methods
         ---@diagnostic disable-next-line: duplicate-set-field
-        ctld.logTrace = function(message)
-            veaf.loggers.get(ctld.Id):trace(message)
+        ctld.logTrace = function(message, args)
+            veaf.loggers.get(ctld.Id):trace(message, args)
         end
 
         -- global configuration change
@@ -3884,24 +3884,6 @@ function veaf.ctld_initialize_replacement(configurationCallback)
         table.insert(ctld.loadableGroups, {name = "2x - Standard Groups + 2x Mortar", inf = 12, mg = 4, at = 4, mortar = 12 })
         table.insert(ctld.loadableGroups, {name = "3x - Mortar Squad", mortar = 18})
         table.insert(ctld.loadableGroups, {name = "5x - Mortar Squad", mortar = 30})
-
-        ctld.autoInitializeAllHumanTransports = function()
-            veaf.loggers.get(ctld.Id):info("autoInitializeAllHumanTransports()")
-            ctld.transportPilotNames = {}
-            local TransportTypeNames = {"Mi-8MT", "UH-1H", "Mi-24P", "Yak-52", "UH-60L", "SA342L", "SA342M", "SA342Mistral", "SA342Minigun", "CH-47Fbl1"}
-            for name, unit in pairs(mist.DBs.humansByName) do
-                veaf.loggers.get(ctld.Id):trace(string.format("human player found name=%s, unitName=%s, groupName=%s", name, unit.unitName,unit.groupName))
-                veaf.loggers.get(ctld.Id):trace("unit.type=[%s]",veaf.p(unit.type))
-                -- check if it's a transport helo
-                for _, transportTypeName in pairs(TransportTypeNames) do
-                    if transportTypeName:lower() == unit.type:lower() then
-                        table.insert(ctld.transportPilotNames, unit.unitName)
-                        veaf.loggers.get(ctld.Id):debug(string.format("Adding CTLD transport pilot %s of group %s", unit.unitName, unit.groupName))
-                    end
-                end
-            end
-            veaf.loggers.get(ctld.Id):trace("ctld.transportPilotNames=%s", veaf.p(ctld.transportPilotNames))
-        end
 
         ctld.autoInitializeAllLogistic = function()
             local LogisticTypeNames = {"LHA_Tarawa", "Stennis", "CVN_71", "KUZNECOW", "FARP Ammo Storage", "FARP Ammo Dump Coating"}
@@ -3958,34 +3940,6 @@ function veaf.ctld_initialize_replacement(configurationCallback)
             veaf.loggers.get(ctld.Id):trace("ctld.pickupZones=%s", veaf.p(ctld.pickupZones))
         end
 
-        -- we overwrite the standard CTLD function to be able to have logistic UNITS and not only logistic STATICS 
-        ---@diagnostic disable-next-line: duplicate-set-field
-        ctld.inLogisticsZone = function (_heli)
-            if ctld.inAir(_heli) then
-                return false
-            end
-            local _heliPoint = _heli:getPoint()
-            for _, _name in pairs(ctld.logisticUnits) do
-                local _logistic = StaticObject.getByName(_name)
-                if not _logistic then
-                    _logistic = Unit.getByName(_name)
-                end
-                if _logistic ~= nil and _logistic:getCoalition() == _heli:getCoalition() then
-
-                    --get distance
-                    local _dist = ctld.getDistance(_heliPoint, _logistic:getPoint())
-
-                    if _dist <= ctld.maximumDistanceLogistic then
-                        return true
-                    end
-                end
-            end
-            return false
-        end
-
-        -- automatically add all the human-manned transport aircrafts to ctld.transportPilotNames
-        --ctld.autoInitializeAllHumanTransports()
-
         -- automatically add all the carriers and FARPs to ctld.logisticUnits
         ctld.autoInitializeAllLogistic()
 
@@ -4035,7 +3989,7 @@ function veaf.csar_initialize_replacement(configurationCallback)
         csar.p = veaf.p
         csar.Id = "CSAR"
         --csar.LogLevel = "info"
-        csar.LogLevel = "trace"
+        --csar.LogLevel = "trace"
         --csar.LogLevel = "debug"
 
         csar.logger = veaf.loggers.new(csar.Id, csar.LogLevel)

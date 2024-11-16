@@ -21,7 +21,7 @@ veafTransportMission = {}
 veafTransportMission.Id = "TRANSPORTMISSION"
 
 --- Version.
-veafTransportMission.Version = "1.6.0"
+veafTransportMission.Version = "1.7.0"
 
 -- trace level, specific to this module
 --veafTransportMission.LogLevel = "trace"
@@ -31,7 +31,7 @@ veaf.loggers.new(veafTransportMission.Id, veafTransportMission.LogLevel)
 --- Key phrase to look for in the mark text which triggers the command.
 veafTransportMission.Keyphrase = "_transport"
 
-veafTransportMission.CargoTypes = {"ammo_cargo", "barrels_cargo", "container_cargo", "fueltank_cargo" }
+veafTransportMission.CargoTypes = {"ammo_cargo", "barrels_cargo", "m117_cargo", "oiltank_cargo", "uh1h_cargo" } --, "container_cargo", "fueltank_cargo" }
 
 --- Number of seconds between each check of the friendly group ADF loop function
 veafTransportMission.SecondsBetweenAdfLoops = 30
@@ -66,9 +66,6 @@ veafTransportMission.AdfFrequency = 550000 -- in hz
 veafTransportMission.AdfPower = 1000 -- in Watt
 
 veafTransportMission.DoRadioTransmission = false -- set to true when radio transmissions will work
-
---- if not specified, mission will start at this named point
-veafTransportMission.DefaultStartPosition = "KASPI"
 
 -- minimum authorized route distance ; missions shorter than this will not be authorized
 veafTransportMission.MinimumRouteDistance = 15000 -- 15 km
@@ -165,7 +162,7 @@ function veafTransportMission.markTextAnalysis(text)
     switch.blocade = 0
 
     -- start position, named point
-    switch.from = veafTransportMission.DefaultStartPosition
+    switch.from = nil
 
     -- password
     switch.password = nil
@@ -321,11 +318,16 @@ end
 
 --- Generates a transport mission
 function veafTransportMission.generateTransportMission(targetSpot, size, defense, blocade, from)
-    veaf.loggers.get(veafTransportMission.Id):debug(string.format("generateTransportMission(size = %s, defense=%s, blocade=%d, from=%s)",size, defense, blocade, from))
-    veaf.loggers.get(veafTransportMission.Id):debug("generateTransportMission: targetSpot " .. veaf.vecToString(targetSpot))
+    veaf.loggers.get(veafTransportMission.Id):debug("generateTransportMission(size = %s, defense=%s, blocade=%d, from=%s)", veaf.p(size), veaf.p(defense), veaf.p(blocade), veaf.p(from))
+    veaf.loggers.get(veafTransportMission.Id):debug("generateTransportMission: targetSpot ", veaf.p(targetSpot))
 
     if veafTransportMission.friendlyGroupAliveCheckTaskID ~= 'none' then
         trigger.action.outText("A transport mission already exists !", 5)
+        return
+    end
+
+    if not from then
+        trigger.action.outText("The \"from\" keyword is mandatory !", 5)
         return
     end
 

@@ -22,7 +22,7 @@ veafGrass.Id = "GRASS"
 veafGrass.Version = "2.7.3"
 
 -- trace level, specific to this module
-veafGrass.LogLevel = "trace"
+--veafGrass.LogLevel = "trace"
 
 veaf.loggers.new(veafGrass.Id, veafGrass.LogLevel)
 

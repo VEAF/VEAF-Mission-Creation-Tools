@@ -7,7 +7,7 @@
 -- * Provides a suite of tools to manage date and time information relative to the DCS mission
 -- standard lua datetime object is used when appropriate:
 -- --> as returned by os.date("*t", 906000490)
--- --> dateTime = { year = 1998, month = 9, day = 16, yday = 259, wday = 4, hour = 23, min = 48, sec = 10, isdst = false }
+-- --> dateTime = { year = 1998, month = 9, day = 16, yday = 259, wday = *unused*, hour = 23, min = 48, sec = 10, isdst = *unused* }
 --
 -- See the documentation : https://veaf.github.io/documentation/
 ------------------------------------------------------------------
@@ -24,7 +24,7 @@ veafTime.Id = "TIME"
 veafTime.Version = "1.0.0"
 
 -- trace level, specific to this module
--- veafWeatherInfo.LogLevel = "trace"
+veafTime.LogLevel = "trace" -- TODO
 veaf.loggers.new(veafTime.Id, veafTime.LogLevel)
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -55,6 +55,49 @@ local function _getDayOfYear(iDay, iMonth, iYear)
         iDayOfYear = iDayOfYear + _getDaysInMonth(i, iYear)
     end
     return iDayOfYear
+end
+
+local function _adjustDate(dateTime, iDaysOffset)
+    local iYear = dateTime.year
+    local iMonth = dateTime.month
+    local iDay = dateTime.day
+    local iDayOfYear = dateTime.yday
+    
+    -- Handle day changes
+    iDay = iDay + iDaysOffset
+    iDayOfYear = iDayOfYear + iDaysOffset
+    
+    -- Handle forward changes
+    while true do
+        local iDaysInMonth = _getDaysInMonth(iMonth, iYear)
+        if (iDay <= iDaysInMonth) then
+            break
+        end
+        iDay = iDay - iDaysInMonth
+        iMonth = iMonth + 1
+        if (iMonth > 12) then
+            iMonth = 1
+            iYear = iYear + 1
+            -- Reset yday for new year
+            iDayOfYear = iDay
+        end
+    end
+    
+    -- Handle backward changes
+    while (iDay <= 0) do
+        iMonth = iMonth - 1
+        if (iMonth <= 0) then
+            iMonth = 12
+            iYear = iYear - 1
+        end
+        iDay = iDay + _getDaysInMonth(iMonth, iYear)
+        -- Adjust yday for previous year
+        if (iMonth == 12) then
+            iDayOfYear = 365 + (_isLeapYear(iYear) and 1 or 0) + iDay - _getDaysInMonth(iMonth, iYear)
+        end
+    end
+   
+    return { year = iYear, month = iMonth, day = iDay, yday = iDayOfYear, hour = dateTime.hour, min = dateTime.min, sec = dateTime.sec }
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -98,7 +141,7 @@ function veafTime.getMissionDateTime(iAbsTime)
 
     local idayOfYear = _getDayOfYear(iDay, iMonth, iYear)
 
-    return { year = iYear, month = iMonth, day = iDay, yday = idayOfYear, wday = 4, hour = iHour, min = iMinute, sec = iSecond, isdst = false }
+    return { year = iYear, month = iMonth, day = iDay, yday = idayOfYear, hour = iHour, min = iMinute, sec = iSecond }
 end
 
 function veafTime.getMissionAbsTime(dateTime)
@@ -144,16 +187,7 @@ function veafTime.absTimeToDateTime(iAbsTime)
     iAbsTime = iAbsTime or timer.getAbsTime()
     return veafTime.getMissionDateTime(iAbsTime)
 end
---[[
-function veafTime.ToZulu(time)
-    time = time or timer.getAbsTime()
-    if (type(time) == "table") then
-        
-    end
 
-    return iAbsSeconds - (UTILS.GMTToLocalTimeDifference() * 3600)
-end
-]]
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Date and time string display tools
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -169,7 +203,7 @@ end
 function veafTime.toStringTime(dateTime, bWithSeconds)
     if (bWithSeconds == nil) then bWithSeconds = true end
 
-    --veaf.loggers.get(veafTime.Id):info(veaf.p(dateTime))
+    --veaf.loggers.get(veafTime.Id):trace(veaf.p(dateTime))
 
     if (bWithSeconds) then
         return string.format("%02d:%02d:%02d", dateTime.hour, dateTime.min, dateTime.sec)
@@ -214,40 +248,73 @@ end
 -- Timezones and sun times
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 function veafTime.getTimezone(vec3)
-    local iTimezone = 0
+    local nTimezoneOffset = 0
+    local sTheatre = string.lower(env.mission.theatre)
 
     if (vec3) then
         -- Try to approximate for the vec3 - each timezone is roughly 15 degrees wide
         local nLatitude, nLongitude, _ = coord.LOtoLL(vec3)
-        iTimezone = math.floor((nLongitude + 7.5) / 15)
-    elseif (env.mission.theatre == "caucasus") then
-        iTimezone = 4
-    elseif (env.mission.theatre == "persiangulf") then
-        iTimezone = 4
-    elseif (env.mission.theatre == "Nevada") then
-        iTimezone = -8
-    elseif (env.mission.theatre == "Normandy") then
-        iTimezone = 0
-    elseif (env.mission.theatre == "thechannel") then
-        iTimezone = 2
-    elseif (env.mission.theatre == "syria") then
-        iTimezone = 3
-    elseif (env.mission.theatre == "marianaislands") then
-        iTimezone = 10
-    elseif (env.mission.theatre == "Falklands") then
-        iTimezone = -3
-    elseif (env.mission.theatre == "SinaiMap") then
-        iTimezone = 2
-    elseif (env.mission.theatre == "Kola") then
-        iTimezone = 3
-    elseif (env.mission.theatre == "Afghanistan") then
-        iTimezone = 4.5
+        nTimezoneOffset = math.floor((nLongitude + 7.5) / 15)
+    elseif (sTheatre == "caucasus") then
+        nTimezoneOffset = 4
+    elseif (sTheatre == "persiangulf") then
+        nTimezoneOffset = 4
+    elseif (sTheatre == "nevada") then
+        nTimezoneOffset = -8
+    elseif (sTheatre == "normandy") then
+        nTimezoneOffset = 0
+    elseif (sTheatre == "thechannel") then
+        nTimezoneOffset = 2
+    elseif (sTheatre == "syria") then
+        nTimezoneOffset = 3
+    elseif (sTheatre == "marianaislands") then
+        nTimezoneOffset = 10
+    elseif (sTheatre == "falklands") then
+        nTimezoneOffset = -3
+    elseif (sTheatre == "sinaiMap") then
+        nTimezoneOffset = 2
+    elseif (sTheatre == "kola") then
+        nTimezoneOffset = 3
+    elseif (sTheatre == "afghanistan") then
+        nTimezoneOffset = 4.5
     end
-
-    return iTimezone
+    --veaf.loggers.get(veafTime.Id):trace(string.format("%s - timezone=%f", env.mission.theatre, nTimezoneOffset))
+    return nTimezoneOffset
 end
 
-function veafTime.getSunTimes(vec3, iAbsTime)
+function veafTime.toZulu(dateTime, nOffsetHours)
+    nOffsetHours = nOffsetHours or veafTime.getTimezone()
+    
+    -- Create a new table to avoid modifying the original
+    local dateTimeZulu = {}
+    for k, v in pairs(dateTime) do
+        dateTimeZulu[k] = v
+    end
+    
+    -- Convert hours and handle day boundary changes
+    local iTotalMinutes = dateTimeZulu.hour * 60 + dateTimeZulu.min - (nOffsetHours * 60)
+    local iDays = math.floor(iTotalMinutes / (24 * 60))
+    iTotalMinutes = iTotalMinutes % (24 * 60)
+    
+    -- Update hours and minutes
+    dateTimeZulu.hour = math.floor(iTotalMinutes / 60)
+    dateTimeZulu.min = iTotalMinutes % 60
+    
+    -- Handle date changes if needed
+    if iDays ~= 0 then
+        return _adjustDate(dateTimeZulu, iDays)
+    end
+    
+    return dateTimeZulu
+end
+
+function veafTime.toLocal(utcDateTime, nOffsetHours)
+    nOffsetHours = nOffsetHours or veafTime.getTimezone()
+    return veafTime.toZulu(utcDateTime, -nOffsetHours)
+end
+
+function veafTime.getSunTimes(vec3, iAbsTime, bZulu)
+    bZulu = bZulu or false
     local dateTime = veafTime.absTimeToDateTime(iAbsTime)
 
     local PI = math.pi
@@ -258,8 +325,14 @@ function veafTime.getSunTimes(vec3, iAbsTime)
     local iYear = dateTime.year
     local idayOfYear = dateTime.yday
 
-    -- Helper function to convert decimal hours to HH:MM format
     local function _decimalToTime(iDecimalHours)
+        -- Handle negative hours (can happen with UTC times)
+        if (iDecimalHours < 0) then
+            iDecimalHours = iDecimalHours + 24
+        end
+        -- Handle hours >= 24
+        iDecimalHours = iDecimalHours % 24
+
         local iHours = math.floor(iDecimalHours)
         local iMinutes = math.floor((iDecimalHours - iHours) * 60)
         return iHours, iMinutes
@@ -302,22 +375,29 @@ function veafTime.getSunTimes(vec3, iAbsTime)
     -- Calculate sunrise and sunset hour angles
     local H = math.acos(cosH) * DEG
 
-    -- Convert to hours
-    local noon = 12 + (-nLongitude / 15)
-    local sunrise = noon - H / 15
-    local sunset = noon + H / 15
+    local nTimezoneOffset = veafTime.getTimezone()
+    local nSolarNoonZulu = 12 - nLongitude / 15
+    
+    -- Calculate sunrise and sunset in decimal hours
+    local nSunriseZulu = nSolarNoonZulu - H / 15
+    local nSunsetZulu = nSolarNoonZulu + H / 15
+    
+    -- Convert to local time if requested
+    local nSunriseTime = nSunriseZulu
+    local nSunsetTime = nSunsetZulu
+    
+    if (not bZulu) then
+        nSunriseTime = nSunriseTime + nTimezoneOffset
+        nSunsetTime = nSunsetTime + nTimezoneOffset
+    end
 
-    -- Adjust for any hours outside 0-24 range
-    sunrise = sunrise % 24
-    sunset = sunset % 24
-
-    local iSunriseHour, iSunriseMinute = _decimalToTime(sunrise)
-    local iSunsetHour, iSunsetMinute = _decimalToTime(sunset)
+    local iSunriseHour, iSunriseMinute = _decimalToTime(nSunriseTime)
+    local iSunsetHour, iSunsetMinute = _decimalToTime(nSunsetTime)
 
     return
     {
-        Sunrise = { year = dateTime.year, month = dateTime.month, day = dateTime.day, yday = dateTime.yday, hour = iSunriseHour, min = iSunriseMinute, sec = 0, isdst = false },
-        Sunset =  { year = dateTime.year, month = dateTime.month, day = dateTime.day, yday = dateTime.yday, hour = iSunsetHour, min = iSunsetMinute, sec = 0, isdst = false }
+        Sunrise = { year = dateTime.year, month = dateTime.month, day = dateTime.day, yday = dateTime.yday, hour = iSunriseHour, min = iSunriseMinute, sec = 0 },
+        Sunset =  { year = dateTime.year, month = dateTime.month, day = dateTime.day, yday = dateTime.yday, hour = iSunsetHour, min = iSunsetMinute, sec = 0 }
     }
 end
 

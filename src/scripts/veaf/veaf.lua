@@ -929,27 +929,29 @@ end
 
 function veaf.getMagneticDeclination()
     local nDeclination = 0
-    if (env.mission.theatre == "caucasus") then
+    local sTheatre = string.lower(env.mission.theatre)
+
+    if (sTheatre == "caucasus") then
         nDeclination = 6
-    elseif (env.mission.theatre == "persiangulf") then
+    elseif (sTheatre == "persiangulf") then
         nDeclination = 2
-    elseif (env.mission.theatre == "Nevada") then
+    elseif (sTheatre == "nevada") then
         nDeclination = 12
-    elseif (env.mission.theatre == "Normandy") then
+    elseif (sTheatre == "normandy") then
         nDeclination = -10
-    elseif (env.mission.theatre == "thechannel") then
+    elseif (sTheatre == "thechannel") then
         nDeclination = -10
-    elseif (env.mission.theatre == "syria") then
+    elseif (sTheatre == "syria") then
         nDeclination = 5
-    elseif (env.mission.theatre == "marianaislands") then
+    elseif (sTheatre == "marianaislands") then
         nDeclination = 2
-    elseif (env.mission.theatre == "Falklands") then
+    elseif (sTheatre == "falklands") then
         nDeclination = 12
-    elseif (env.mission.theatre == "SinaiMap") then
+    elseif (sTheatre == "sinaimap") then
         nDeclination = 4.8
-    elseif (env.mission.theatre == "Kola") then
+    elseif (sTheatre == "kola") then
         nDeclination = 15
-    elseif (env.mission.theatre == "Afghanistan") then
+    elseif (sTheatre == "afghanistan") then
         nDeclination = 3
     end
   

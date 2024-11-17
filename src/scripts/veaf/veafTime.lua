@@ -24,7 +24,7 @@ veafTime.Id = "TIME"
 veafTime.Version = "1.0.0"
 
 -- trace level, specific to this module
-veafTime.LogLevel = "trace" -- TODO
+veafTime.LogLevel = "trace" ----- TODO FG
 veaf.loggers.new(veafTime.Id, veafTime.LogLevel)
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -403,11 +403,18 @@ end
 
 function veafTime.isAeronauticalNight(vec3, iAbsTime)
     local dateTime = veafTime.absTimeToDateTime(iAbsTime)
-    local sunriseTime, sunsetTime = veafTime.getSunTimes(vec3, iAbsTime)
+    local sunTimes = veafTime.getSunTimes(vec3, iAbsTime)
+    local sunriseTime = sunTimes.Sunrise
+    local sunsetTime = sunTimes.Sunset
+    
+    --veaf.loggers.get(veafTime.Id):trace(veaf.p(sunriseTime))
+    --veaf.loggers.get(veafTime.Id):trace(veaf.p(sunsetTime))
 
     local iCurrentSeconds = dateTime.hour * _iSecondsInHour + dateTime.min * _iSecondsInMinute + dateTime.sec
     local iSunriseSeconds = sunriseTime.hour * _iSecondsInHour + sunriseTime.min * _iSecondsInMinute + sunriseTime.sec - (30 * _iSecondsInMinute) -- sunrise - 30 min
     local iSunsetSeconds = sunsetTime.hour * _iSecondsInHour + sunsetTime.min * _iSecondsInMinute + sunsetTime.sec + (30 * _iSecondsInMinute) -- sunset + 30 min
+    
+    --veaf.loggers.get(veafTime.Id):trace(string.format("iCurrentSeconds=%d  iSunriseSeconds=%d   iSunsetSeconds=%d", iCurrentSeconds, iSunriseSeconds, iSunsetSeconds))
     
     return iCurrentSeconds < iSunriseSeconds or iCurrentSeconds > iSunsetSeconds
 end

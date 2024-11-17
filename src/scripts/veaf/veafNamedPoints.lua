@@ -210,9 +210,9 @@ function veafNamedPoints.getWeatherAtPoint(parameters, forUnit)
         local weatherReport = "WEATHER        : " .. name .. BR .. "\n\n"
         weatherReport = weatherReport .. veaf.weatherReport(point, nil, true)
 
-        -- TEST -- TODO
+        ----- TODO FG TEST
         local weatherData = veafWeatherData:create(point)
-        weatherReport = weatherReport .. "\n\n" .. weatherData:toStringExtended(veafWeather.UnitSystem.Full, true)
+        weatherReport = weatherReport .. "\n\n" .. weatherData:toStringExtended(veafWeather.UnitSystem.Full, false)
         -- TEST
 
         if forUnit then
@@ -277,6 +277,13 @@ function veafNamedPoints.getAtcAtPoint(parameters, forUnit)
         atcReport = atcReport .. "\n\n"
         local weatherReport = veaf.weatherReport(point, nil, true)
         atcReport = atcReport ..weatherReport
+
+        -- TEST -- TODO
+        local weatherData = veafWeatherData:create(point)
+        atcReport = atcReport .. "\n\n" .. veafWeatherAtis.getAtisString(name)
+        -- TEST
+
+
         if forUnit then
             veaf.outTextForUnit(unitName, atcReport, 30)
         else

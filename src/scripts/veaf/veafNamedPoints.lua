@@ -208,12 +208,12 @@ function veafNamedPoints.getWeatherAtPoint(parameters, forUnit)
         if BR then BR = " ("..BR..")" else BR = "" end
                 
         local weatherReport = "WEATHER        : " .. name .. BR .. "\n\n"
-        weatherReport = weatherReport .. veaf.weatherReport(point, nil, true)
-
-        ----- TODO FG TEST
-        local weatherData = veafWeatherData:create(point)
-        weatherReport = weatherReport .. "\n\n" .. weatherData:toStringExtended(veafWeather.UnitSystem.Full, false)
-        -- TEST
+        if (veafWeather.Active) then
+            local weatherData = veafWeatherData:create(point)
+            weatherReport = weatherReport .. weatherData:toString(veafWeather.UnitSystem.Full, false)
+        else
+            weatherReport = weatherReport .. veaf.weatherReport(point, nil, true)
+        end
 
         if forUnit then
             veaf.outTextForUnit(unitName, weatherReport, 30)
@@ -228,61 +228,60 @@ function veafNamedPoints.getAtcAtPoint(parameters, forUnit)
     veaf.loggers.get(veafNamedPoints.Id):trace(string.format("getAtcAtPoint(name = %s)",name))
     local point = veafNamedPoints.getPoint(name)
     if point then
-        local BR = veafNamedPoints.getPointBearing(parameters)
-        if BR then BR = " ("..BR..")" else BR = "" end
-        -- exanple : point={x=-315414,y=480,z=897262, atc=true, tower="138.00", runways={{name="12R", hdg=121, ils="110.30"},{name="30L", hdg=301, ils="108.90"}}}
-        local atcReport = "ATC            : " .. name .. BR .. "\n\n"
+        local atcReport
+        if (veafWeather.Active) then
+            atcReport = veafWeatherAtis.getAtisStringFromVeafPoint(name)
+        else
+            local BR = veafNamedPoints.getPointBearing(parameters)
+            if BR then BR = " ("..BR..")" else BR = "" end
+            -- exanple : point={x=-315414,y=480,z=897262, atc=true, tower="138.00", runways={{name="12R", hdg=121, ils="110.30"},{name="30L", hdg=301, ils="108.90"}}}
+            atcReport = "ATC            : " .. name .. BR .. "\n\n"
 
-        -- runway and other information
-        if point.tower then
-            atcReport = atcReport .. "TOWER          : " .. point.tower
-            if point.tacan then
-                atcReport = atcReport .. ", " .. point.tacan
+            -- runway and other information
+            if point.tower then
+                atcReport = atcReport .. "TOWER          : " .. point.tower
+                if point.tacan then
+                    atcReport = atcReport .. ", " .. point.tacan
+                end
+                atcReport = atcReport .. "\n"
             end
-            atcReport = atcReport .. "\n"
-        end
-        if point.runways then
-            for _, runway in pairs(point.runways) do
-                if not runway.name then
-                    runway.name = math.floor((runway.hdg/10)+0.5)*10
+            if point.runways then
+                for _, runway in pairs(point.runways) do
+                    if not runway.name then
+                        runway.name = math.floor((runway.hdg/10)+0.5)*10
+                    end
+                    -- ils when available
+                    local ils = ""
+                    if runway.ils then
+                        ils = " ILS " .. runway.ils
+                    end
+                    -- pop flare if needed
+                    local flare = ""
+                    if runway.flare then
+                        flare = " marked with ".. runway.flare .. " signal flare"
+                        local flareColor = trigger.flareColor.Green
+                        if runway.flare:upper() == "RED" then
+                            flareColor = trigger.flareColor.Red
+                        end
+                        if runway.flare:upper() == "WHITE" then
+                            flareColor = trigger.flareColor.White
+                        end
+                        if runway.flare:upper() == "YELLOW" then
+                            flareColor = trigger.flareColor.Yellow
+                        end
+                        for i = 1, 10 do
+                            mist.scheduleFunction(veafSpawn.spawnSignalFlare, {point, 0, 20, flareColor}, timer.getTime() + i*2)
+                        end
+                    end
+                    atcReport = atcReport .. "RUNWAY         : " .. runway.name .. " heading " .. runway.hdg .. ils .. flare .. "\n"
                 end
-                -- ils when available
-                local ils = ""
-                if runway.ils then
-                    ils = " ILS " .. runway.ils
-                end
-                -- pop flare if needed
-                local flare = ""
-                if runway.flare then
-                    flare = " marked with ".. runway.flare .. " signal flare"
-                    local flareColor = trigger.flareColor.Green
-                    if runway.flare:upper() == "RED" then
-                        flareColor = trigger.flareColor.Red
-                    end
-                    if runway.flare:upper() == "WHITE" then
-                        flareColor = trigger.flareColor.White
-                    end
-                    if runway.flare:upper() == "YELLOW" then
-                        flareColor = trigger.flareColor.Yellow
-                    end
-                    for i = 1, 10 do
-                        mist.scheduleFunction(veafSpawn.spawnSignalFlare, {point, 0, 20, flareColor}, timer.getTime() + i*2)
-                    end
-                end
-                atcReport = atcReport .. "RUNWAY         : " .. runway.name .. " heading " .. runway.hdg .. ils .. flare .. "\n"
             end
+
+            -- weather
+            atcReport = atcReport .. "\n\n"
+            local weatherReport = veaf.weatherReport(point, nil, true)
+            atcReport = atcReport ..weatherReport
         end
-
-        -- weather
-        atcReport = atcReport .. "\n\n"
-        local weatherReport = veaf.weatherReport(point, nil, true)
-        atcReport = atcReport ..weatherReport
-
-        -- TEST -- TODO
-        local weatherData = veafWeatherData:create(point)
-        atcReport = atcReport .. "\n\n" .. veafWeatherAtis.getAtisString(name)
-        -- TEST
-
 
         if forUnit then
             veaf.outTextForUnit(unitName, atcReport, 30)
@@ -318,6 +317,42 @@ function veafNamedPoints.addDataToPoint(point, data)
         end
         return point
     end
+end
+
+function veafNamedPoints.findDcsAirbase(sPointName)
+    local dcsAirbase = Airbase.getByName(sPointName)
+    if (dcsAirbase) then
+        return dcsAirbase
+    end
+
+    -- Remove "AIRBASE " prefix if it exists (case insensitive)
+    sPointName = sPointName:gsub("^[Aa][Ii][Rr][Bb][Aa][Ss][Ee]%s+", "")
+
+    -- Helper function to normalize strings
+    local function normalize(s)
+        -- Convert to lowercase
+        s = s:lower()
+        -- Remove spaces and punctuation
+        s = s:gsub("[%s%p]", "")
+        return s
+    end
+        
+    sPointName = normalize(sPointName)
+    
+    local airBases = world.getAirbases()
+    for i = 1, #airBases do
+        dcsAirbase = airBases[i]
+        local sAirbaseName = dcsAirbase:getName()
+        -- Normalize each list item
+        sAirbaseName = normalize(sAirbaseName)
+        
+        -- Compare normalized strings
+        if (sAirbaseName == sPointName) then
+            return dcsAirbase
+        end
+    end
+        
+    return nil
 end
 
 function veafNamedPoints.buildAutomaticPointsDatabase()

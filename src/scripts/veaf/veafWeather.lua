@@ -33,6 +33,8 @@ veafWeather.UnitSystem =
     Metric = 2, -- Wind speeds in km/h, visibilities in km, altitudes in meters
     Hybrid = 3,  -- Wind speeds in knots, visibilities in km, altitudes in feet
 }
+veafWeather.DefaultUnitSystem = veafWeather.UnitSystem.Hybrid -- will be overriden depending on the theatre, by veafWeather.initDefaultUnitSystem()
+veafWeather.Active = false
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Local constants
@@ -305,9 +307,9 @@ function veafWeatherData:create(vec3, iAbsTime, iAltitudeMeters)
 
     setmetatable(this, veafWeatherData)
 
-    veaf.loggers.get(veafWeather.Id):trace(this:toStringExtended(veafWeather.UnitSystem.Hybrid, true))
-    veaf.loggers.get(veafWeather.Id):trace(this:toStringExtended(veafWeather.UnitSystem.Metric, true))
-    veaf.loggers.get(veafWeather.Id):trace(this:toStringExtended(veafWeather.UnitSystem.Imperial, true))
+    --veaf.loggers.get(veafWeather.Id):trace(this:toStringExtended(veafWeather.UnitSystem.Hybrid, true))
+    --veaf.loggers.get(veafWeather.Id):trace(this:toStringExtended(veafWeather.UnitSystem.Metric, true))
+    --veaf.loggers.get(veafWeather.Id):trace(this:toStringExtended(veafWeather.UnitSystem.Imperial, true))
     return this
 end
 
@@ -759,7 +761,7 @@ function veafWeatherAtis:Create(dcsAirbase, sLetter, dateTimeZulu)
     dateTimeZulu.min = iRecordedAtMinutes
 
     local sMessage = string.format("%s information %s, recorded at %sZ", dcsAirbase:getName(), sLetter, veafTime.toStringTime(dateTimeZulu, false))
-    sMessage = sMessage .. string.format("\nRunway in use %s", "XX")
+    -- TODO sMessage = sMessage .. string.format("\nRunway in use %s", "XX")     ----https://wiki.hoggitworld.com/view/DCS_Class_Airbase
 
     local iAltitude = nil
     if (dcsAirbase:getCategory() == Airbase.Category.SHIP) then
@@ -782,73 +784,258 @@ end
 
 ---------------------------------------------------------------------------------------------------
 ---  METHODS
-function veafWeatherAtis.getAtisString(sAirbaseName, iAbsTime)
-    if (veaf.isNullOrEmpty(sAirbaseName)) then
-        veaf.loggers.get(veafWeather.Id):error("No airbase name")
-        return "No airbase name"
+   --[[
+function veafWeatherAtis.getAirportsRunways()
+    local airBases = world.getAirbases()
+    for i = 1, #airBases do
+        local dcsAirbase = airBases[i]
+        veafWeatherAtis.getRunways(dcsAirbase)
+    end
+
+    return true
+end
+
+function veafWeatherAtis.getRunways(dcsAirbase)
+    if (dcsAirbase == nil) then
+        return nil
     end
     
-    ----https://wiki.hoggitworld.com/view/DCS_Class_Airbase
-    local dcsAirbase = veafWeatherAtis.findAirbase(sAirbaseName)
-    if (dcsAirbase == nil) then ----- TODO FG will have to account for FARPs and such
-        veaf.loggers.get(veafWeather.Id):error("Airbase " .. sAirbaseName .. " not found")
-        return "Airbase " .. sAirbaseName .. " not found"
+    local _, iCategory = dcsAirbase:getCategory()
+    if (iCategory ~= Airbase.Category.AIRDROME) then
+        return nil
     end
+    
+    veaf.loggers.get(veafWeather.Id):trace("Airbase=" .. dcsAirbase:getName())
+    local runways = {}
+  
+    local dcsRunways = dcsAirbase:getRunways()
+    for _, dcsRunway in pairs(dcsRunways) do
+        local iNumber = dcsRunway.Name
+        local iCourseRadian = dcsRunway.course
 
-    veaf.loggers.get(veafWeather.Id):trace("Airbase found from label " .. sAirbaseName .. ": " .. dcsAirbase:getName() .. " " .. dcsAirbase:getCallsign())
+        local iHeadingFromCourseDegrees = math.deg(-iCourseRadian)
+        local iHeaderFromNumberDegrees = iNumber * 10
+        
+        veaf.loggers.get(veafWeather.Id):trace("--> " .. veaf.p(dcsRunway.Name))
+        veaf.loggers.get(veafWeather.Id):trace("--> " .. dcsRunway.course)
+        veaf.loggers.get(veafWeather.Id):trace("--> " .. iHeadingFromCourseDegrees)
+        veaf.loggers.get(veafWeather.Id):trace("--> " .. iHeaderFromNumberDegrees)
+        
+        
+    end
+ Function to create a runway data table.
+    local function _createRunway(name, course, width, length, center)
+  
+ 
+  
 
+  
+      if self.AirbaseName == AIRBASE.Syria.Beirut_Rafic_Hariri and math.abs(namefromheading-name) > 1 then
+        runway.name=string.format("%02d", tonumber(namefromheading))
+      else
+       runway.name=string.format("%02d", tonumber(name))
+      end
+  
+      --runway.name=string.format("%02d", tonumber(name))
+      runway.magheading=tonumber(runway.name)*10
+      runway.heading=heading
+      runway.width=width or 0
+      runway.length=length or 0
+      runway.center=COORDINATE:NewFromVec3(center)
+  
+      -- Ensure heading is [0,360]
+      if runway.heading>360 then
+        runway.heading=runway.heading-360
+      elseif runway.heading<0 then
+        runway.heading=runway.heading+360
+      end
+  
+      -- For example at Nellis, DCS reports two runways, i.e. 03 and 21, BUT the "course" of both is -0.700 rad = 40 deg!
+      -- As a workaround, I check the difference between the "magnetic" heading derived from the name and the true heading.
+      -- If this is too large then very likely the "inverse" heading is the one we are looking for.
+      if math.abs(runway.heading-runway.magheading)>60 then
+        self:T(string.format("WARNING: Runway %s: heading=%.1f magheading=%.1f", runway.name, runway.heading, runway.magheading))
+        runway.heading=runway.heading-180
+      end
+  
+      -- Ensure heading is [0,360]
+      if runway.heading>360 then
+        runway.heading=runway.heading-360
+      elseif runway.heading<0 then
+        runway.heading=runway.heading+360
+      end
+  
+      -- Start and endpoint of runway.
+      runway.position=runway.center:Translate(-runway.length/2, runway.heading)
+      runway.endpoint=runway.center:Translate( runway.length/2, runway.heading)
+  
+      local init=runway.center:GetVec3()
+      local width = runway.width/2
+      local L2=runway.length/2
+  
+      local offset1 = {x = init.x + (math.cos(bearing + math.pi) * L2), y = init.z + (math.sin(bearing + math.pi) * L2)}
+      local offset2 = {x = init.x - (math.cos(bearing + math.pi) * L2), y = init.z - (math.sin(bearing + math.pi) * L2)}
+  
+      local points={}
+      points[1] = {x = offset1.x + (math.cos(bearing + (math.pi/2)) * width), y = offset1.y + (math.sin(bearing + (math.pi/2)) * width)}
+      points[2] = {x = offset1.x + (math.cos(bearing - (math.pi/2)) * width), y = offset1.y + (math.sin(bearing - (math.pi/2)) * width)}
+      points[3] = {x = offset2.x + (math.cos(bearing - (math.pi/2)) * width), y = offset2.y + (math.sin(bearing - (math.pi/2)) * width)}
+      points[4] = {x = offset2.x + (math.cos(bearing + (math.pi/2)) * width), y = offset2.y + (math.sin(bearing + (math.pi/2)) * width)}
+  
+      -- Runway zone.
+      runway.zone=ZONE_POLYGON_BASE:New(string.format("%s Runway %s", self.AirbaseName, runway.name), points)
+  
+      return runway
+    end
+  
+  
+    -- Get DCS object.
+    local airbase=self:GetDCSObject()
+  
+    if airbase then
+  
+  
+      -- Get DCS runways.
+      local runways=airbase:getRunways()
+  
+      -- Debug info.
+      self:T2(runways)
+  
+      if runways then
+  
+        -- Loop over runways.
+        for _,rwy in pairs(runways) do
+  
+          -- Debug info.
+          self:T(rwy)
+  
+          -- Get runway data.
+          local runway=_createRunway(rwy.Name, rwy.course, rwy.width, rwy.length, rwy.position) --#AIRBASE.Runway
+  
+          -- Add to table.
+          table.insert(Runways, runway)
+  
+          -- Include "inverse" runway.
+          if IncludeInverse then
+  
+            -- Create "inverse".
+            local idx=tonumber(runway.name)
+            local name2=tostring(idx-18)
+            if idx<18 then
+              name2=tostring(idx+18)
+            end
+  
+            -- Create "inverse" runway.
+            local runway=_createRunway(name2, rwy.course-math.pi, rwy.width, rwy.length, rwy.position) --#AIRBASE.Runway
+  
+            -- Add inverse to table.
+            table.insert(Runways, runway)
+  
+          end
+  
+        end
+  
+      end
+  
+    end
+  
+    -- Look for identical (parallel) runways, e.g. 03L and 03R at Nellis.
+    local rpairs={}
+    for i,_ri in pairs(Runways) do
+      local ri=_ri --#AIRBASE.Runway
+      for j,_rj in pairs(Runways) do
+        local rj=_rj --#AIRBASE.Runway
+        if i<j then
+          if ri.name==rj.name then
+            rpairs[i]=j
+          end
+        end
+      end
+    end
+  
+    local function isLeft(a, b, c)
+      --return ((b.x - a.x)*(c.z - a.z) - (b.z - a.z)*(c.x - a.x)) > 0
+      return ((b.z - a.z)*(c.x - a.x) - (b.x - a.x)*(c.z - a.z)) > 0
+    end
+  
+    for i,j in pairs(rpairs) do
+      local ri=Runways[i] --#AIRBASE.Runway
+      local rj=Runways[j] --#AIRBASE.Runway
+  
+      -- Draw arrow.
+      --ri.center:ArrowToAll(rj.center)
+  
+      local c0=ri.center
+  
+      -- Vector in the direction of the runway.
+      local a=UTILS.VecTranslate(c0, 1000, ri.heading)
+  
+      -- Vector from runway i to runway j.
+      local b=UTILS.VecSubstract(rj.center, ri.center)
+      b=UTILS.VecAdd(ri.center, b)
+  
+      -- Check if rj is left of ri.
+      local left=isLeft(c0, a, b)
+  
+      --env.info(string.format("Found pair %s: i=%d, j=%d, left==%s", ri.name, i, j, tostring(left)))
+  
+      if left then
+        ri.isLeft=false
+        rj.isLeft=true
+      else
+        ri.isLeft=true
+        rj.isLeft=false
+      end
+  
+      --break
+    end
+  
+    -- Set runways.
+    self.runways=Runways
+  
+    return Runways
+
+  end
+      ]]
+---------------------------------------------------------------------------------------------------
+---  STATIC METHODS
+function veafWeatherAtis.getAtisString(dcsAirbase, iAbsTime)
     local dateTimeZulu = veafTime.toZulu(veafTime.getMissionDateTime(iAbsTime))
-    veaf.loggers.get(veafWeather.Id):trace(veaf.p(dateTimeZulu))
-    local iHoursSinceMidnight = dateTimeZulu.hour
+     local iHoursSinceMidnight = dateTimeZulu.hour
     local sLetter = string.char(math.floor(iHoursSinceMidnight) + string.byte("A"))
 
     veaf.loggers.get(veafWeather.Id):trace("Zulu hours=" .. iHoursSinceMidnight .. " - Letter=" .. sLetter)
 
      -- There is no need to check more that the letter since that weather is static and the conditions will not vary
      -- If they did though, we would have to check that the letter is not for 24h or more later, and so warrant a new weather evaluation
-    local currentInEffect = veafWeatherAtis.ListInEffect[sAirbaseName]
+    local currentInEffect = veafWeatherAtis.ListInEffect[dcsAirbase:getName()]
     if (currentInEffect and currentInEffect.Letter == sLetter) then
         return currentInEffect.Message
     else
         currentInEffect = veafWeatherAtis:Create(dcsAirbase, sLetter, dateTimeZulu)
-        veafWeatherAtis.ListInEffect[sAirbaseName] = currentInEffect
+        veafWeatherAtis.ListInEffect[dcsAirbase:getName()] = currentInEffect
         return currentInEffect.Message
     end
 end
 
-function veafWeatherAtis.findAirbase(sSearchName)
-    local dcsAirbase = Airbase.getByName(sSearchName)
-    if (dcsAirbase) then
-        return dcsAirbase
+function veafWeatherAtis.getAtisStringFromVeafPoint(sPointName, iAbsTime)
+    --[[
+    if (veafWeatherAtis.getAirportsRunways()) then
+        return
+    end
+    ]]
+    if (veaf.isNullOrEmpty(sPointName)) then
+        veaf.loggers.get(veafWeather.Id):error("No point name")
+        return "No airbase name"
     end
 
-    -- Remove "AIRBASE " prefix if it exists (case insensitive)
-    sSearchName = sSearchName:gsub("^[Aa][Ii][Rr][Bb][Aa][Ss][Ee]%s+", "")
+     ----- TODO FG maybe have to account for FARPs and CV and such
+    local dcsAirbase = veafNamedPoints.findDcsAirbase(sPointName)
+    if (dcsAirbase == nil) then
+        veaf.loggers.get(veafWeather.Id):error("Airbase not found for point " .. sPointName)
+        return "Airbase not found for point " .. sPointName
+    end
 
-    -- Helper function to normalize strings
-    local function normalize(s)
-        -- Convert to lowercase
-        s = s:lower()
-        -- Remove spaces and punctuation
-        s = s:gsub("[%s%p]", "")
-        return s
-    end
-        
-    sSearchName = normalize(sSearchName)
-    
-    local airBases = world.getAirbases()
-    for i = 1, #airBases do
-        dcsAirbase = airBases[i]
-        local sAirbaseName = dcsAirbase:getName()
-        -- Normalize each list item
-        sAirbaseName = normalize(sAirbaseName)
-        
-        veaf.loggers.get(veafWeather.Id):trace(sAirbaseName .. " - " .. sSearchName)
-        -- Compare normalized strings
-        if (sAirbaseName == sSearchName) then
-            return dcsAirbase
-        end
-    end
-        
-    return nil
+    veaf.loggers.get(veafWeather.Id):trace("Airbase found from veaf point " .. sPointName .. ": " .. dcsAirbase:getName())    
+    return veafWeatherAtis.getAtisString(dcsAirbase, iAbsTime)
 end

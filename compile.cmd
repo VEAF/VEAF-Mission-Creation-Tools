@@ -80,7 +80,7 @@ if "%VERBOSE_FLAG%"=="true" set VERBOSE_PARAM=-KeepLogging
 set SECURITY_DISABLED_PARAM=
 if "%SECURITY_DISABLED_FLAG%"=="true" set SECURITY_DISABLED_PARAM=-DisableSecurity
 
-powershell -file compile.ps1 -ArtefactName "%ARTEFACT_NAME%" -VersionTag "%VERSION_TAG%" -DevelopmentVersion %DEVELOPMENT_VERSION_PARAM% -KeepLogging %VERBOSE_PARAM% -DisableSecurity %SECURITY_DISABLED_PARAM% -Quiet %QUIET_PARAM%
+powershell -file compile.ps1 -ArtefactName "%ARTEFACT_NAME%" -VersionTag "%VERSION_TAG%" %DEVELOPMENT_VERSION_PARAM% %VERBOSE_PARAM% %SECURITY_DISABLED_PARAM% %QUIET_PARAM%
 
 IF [%NOPAUSE%] == [true] GOTO EndOfFile
 pause

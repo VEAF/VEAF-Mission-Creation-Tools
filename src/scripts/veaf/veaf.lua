@@ -600,6 +600,19 @@ function veaf.isNullOrEmpty(s)
     return (s == nil or (type(s) == "string" and s == ""))
 end
 
+function veaf.tableContains(table, element)
+    if (table == nil or element == nil) then
+        return false
+    end
+    
+    for _, e in pairs(table) do
+        if (e == element) then 
+            return true 
+        end
+    end
+    return false
+end
+
 function veaf.p(o, level, skip, includeMeta, dontRecurse)
     if o and type(o) == "table" and (o.x and o.z and o.y and #o == 3) then
         return string.format("{x=%s, z=%s, y=%s}", veaf.p(o.x), veaf.p(o.z), veaf.p(o.y))

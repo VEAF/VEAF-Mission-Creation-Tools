@@ -209,8 +209,7 @@ function veafNamedPoints.getWeatherAtPoint(parameters, forUnit)
                 
         local weatherReport = "WEATHER        : " .. name .. BR .. "\n\n"
         if (veafWeather.Active) then
-            local weatherData = veafWeatherData:create(point)
-            weatherReport = weatherReport .. weatherData:toString(veafWeather.UnitSystem.Full, false)
+            weatherReport = weatherReport .. veafWeatherData.getWeatherString(point, unitName)
         else
             weatherReport = weatherReport .. veaf.weatherReport(point, nil, true)
         end

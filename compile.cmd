@@ -39,7 +39,7 @@ set DEVELOPMENT_VERSION_FLAG=false
 echo current value is "%DEVELOPMENT_VERSION_FLAG%"
 
 echo ----------------------------------------
-echo QUIET_FLAG if set to "true", will not output anything while compiling theartefact
+echo QUIET_FLAG if set to "true", will not output anything while compiling the artefact
 echo defaults to "false"
 IF [%QUIET_FLAG%] == [] GOTO DefineDefaultQUIET_FLAG
 goto DontDefineDefaultQUIET_FLAG
@@ -80,7 +80,7 @@ if "%VERBOSE_FLAG%"=="true" set VERBOSE_PARAM=-KeepLogging
 set SECURITY_DISABLED_PARAM=
 if "%SECURITY_DISABLED_FLAG%"=="true" set SECURITY_DISABLED_PARAM=-DisableSecurity
 
-powershell -file compile.ps1 -ArtefactName "%ARTEFACT_NAME%" -VersionTag "%VERSION_TAG%" %DEVELOPMENT_VERSION_PARAM% %QUIET_PARAM% %VERBOSE_PARAM% %SECURITY_DISABLED_PARAM%
+powershell -file compile.ps1 -ArtefactName "%ARTEFACT_NAME%" -VersionTag "%VERSION_TAG%" %DEVELOPMENT_VERSION_PARAM% %VERBOSE_PARAM% %SECURITY_DISABLED_PARAM% %QUIET_PARAM%
 
 IF [%NOPAUSE%] == [true] GOTO EndOfFile
 pause

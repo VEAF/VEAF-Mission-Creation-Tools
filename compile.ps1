@@ -8,6 +8,13 @@ param (
     [switch] $Quiet = $false
 )
 
+Write-Host "ArtefactName: $ArtefactName"
+Write-Host "VersionTag: $VersionTag"
+Write-Host "DevelopmentVersion: $($DevelopmentVersion.IsPresent)"
+Write-Host "KeepLogging: $($KeepLogging.IsPresent)"
+Write-Host "DisableSecurity: $($DisableSecurity.IsPresent)"
+Write-Host "Quiet: $($Quiet.IsPresent)"
+
 [String[]]$VeafScripts = 
 "veafSecurity.lua",
 "veafInterpreter.lua",

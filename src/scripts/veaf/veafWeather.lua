@@ -787,37 +787,25 @@ function veafWeatherData:toStringSlice(weatherSlice, unitSystem, bMagnetic)
     return string.format("%s:  wind %s ; %s", sAltitude, sWind, sTemperature)
 end
 
-function veafWeatherData:toStringLasteOld()
-    local function getLASTEat(vec3, alt)
-        local T,_=atmosphere.getTemperatureAndPressure({x=vec3.x, y=alt, z=vec3.z})
-        local Dir,Vel=weathermark._GetWind(vec3, alt)
-        local laste = string.format("\nFL%02d W%03d/%02d T%d", alt * weathermark.meter2feet / 1000, Dir, Vel * weathermark.mps2knots, T-273.15)
-        return laste
-    end
-
-    local text = ""
-    text=text..getLASTEat(self.Vec3, math.floor(((self.AltitudeMeter * weathermark.meter2feet + 2000)/1000)*1000+500)/weathermark.meter2feet)
-    text=text..getLASTEat(self.Vec3, math.floor(((self.AltitudeMeter * weathermark.meter2feet + 8000)/1000)*1000+500)/weathermark.meter2feet)
-    text=text..getLASTEat(self.Vec3, math.floor(((self.AltitudeMeter * weathermark.meter2feet + 16000)/1000)*1000+500)/weathermark.meter2feet)
-    --text=text..getLASTEat(vec3, _Alt + 7500)
-    return text
-end
-
 function veafWeatherData:toStringLaste()
-    local function getLASTEat(iHeightFeet)
-        local iAltitudeMeters = mist.utils.feetToMeters(iHeightFeet) + self.AltitudeMeter
+    local function _getLasteAt(iDesiredHeightFeet)
+        local iAltitudeFeet = math.floor((mist.utils.metersToFeet(self.AltitudeMeter) + iDesiredHeightFeet + 500) / 1000) * 1000
+        local iAltitudeMeters = mist.utils.feetToMeters(iAltitudeFeet)
         local iTemperatureKelvin, _ = atmosphere.getTemperatureAndPressure({ x = self.Vec3.x, y = iAltitudeMeters, z = self.Vec3.z })
         local iWindDirection, iWindSpeedMps = weathermark._GetWind(self.Vec3, iAltitudeMeters)
-        local sAltitudeFl = _getFlightLevelString(mist.utils.metersToFeet(iAltitudeMeters))
+        local iWindDirectionMagnetic = veafWeatherData:getNormalizedWindDirection(iWindDirection, true)
 
-        local sLaste = string.format("%s W%03d/%02d T%d", sAltitudeFl, iWindDirection, mist.utils.mpsToKnots(iWindSpeedMps), iTemperatureKelvin + _nKelvinToCelciusOffset)
+        local sLaste = string.format("ALT%02d W%03d/%02d T%+d", iAltitudeFeet / 1000, iWindDirectionMagnetic, mist.utils.mpsToKnots(iWindSpeedMps), iTemperatureKelvin + _nKelvinToCelciusOffset)
+        veaf.loggers.get(veafWeather.Id):trace(string.format("LASTE @ %f - W%dM %dT", iAltitudeFeet, iWindDirectionMagnetic, iWindDirection))
+        veaf.loggers.get(veafWeather.Id):trace(sLaste)
         return sLaste
     end
 
     local sLaste = ""
-    sLaste = sLaste .. string.format("\n%s", getLASTEat(2000))
-    sLaste = sLaste .. string.format("\n%s", getLASTEat(8000))
-    sLaste = sLaste .. string.format("\n%s", getLASTEat(16000))
+    sLaste = sLaste .. string.format("\n%s", _getLasteAt(2000))
+    sLaste = sLaste .. string.format("\n%s", _getLasteAt(8000))
+    sLaste = sLaste .. string.format("\n%s", _getLasteAt(16000))
+    --sLaste = sLaste .. string.format("\n%s", _getLasteAt(28000))
 
     return sLaste
 end
@@ -841,7 +829,6 @@ function veafWeatherData:toString(unitSystem, bWithLaste)
     if(bWithLaste) then
         sString = sString .. "\n"
         sString = sString .. string.format("\nLASTE:%s", self:toStringLaste())
-        --sString = sString .. string.format("\nLASTE OLD:%s", self:toStringLasteOld())
     else
         sString = sString .. "\n"
         sString = sString .. string.format("\n @ %s", self:toStringSlice(self.WeatherAt500, unitSystem))

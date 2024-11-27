@@ -1018,18 +1018,23 @@ end
 
 ---------------------------------------------------------------------------------------------------
 ---  METHODS
-   --[[
 function veafWeatherAtis.getAirportsRunways()
-    local airBases = world.getAirbases()
-    for i = 1, #airBases do
-        local dcsAirbase = airBases[i]
-        veafWeatherAtis.getRunways(dcsAirbase)
+    local dcsAirBases = world.getAirbases()
+
+    local veafAirbases = {}
+    
+    for i = 1, #dcsAirBases do
+        local dcsAirbase = dcsAirBases[i]
+        local veafAirbase = veafWeatherAtis.createVeafAirbase(dcsAirbase)
+        if (veafAirbase) then
+            table.insert(veafAirbases, veafAirbase)
+        end
     end
 
-    return true
+    return veafAirbases
 end
 
-function veafWeatherAtis.getRunways(dcsAirbase)
+function veafWeatherAtis.createVeafAirbase(dcsAirbase)
     if (dcsAirbase == nil) then
         return nil
     end
@@ -1038,25 +1043,98 @@ function veafWeatherAtis.getRunways(dcsAirbase)
     if (iCategory ~= Airbase.Category.AIRDROME) then
         return nil
     end
-    
-    veaf.loggers.get(veafWeather.Id):trace("Airbase=" .. dcsAirbase:getName())
-    local runways = {}
   
+    local veafAirbase = {}
+    veafAirbase.Name = dcsAirbase:getName()
+    veafAirbase.Runways = {}
+  
+    local function _normalizeHeading(iHeading)
+        iHeading = iHeading % 360
+        if (iHeading == 0) then iHeading = 360 end
+        return iHeading
+    end
+
+    local function _normalizeNumber(iNumber)
+        iNumber = iNumber % 36
+        if (iNumber == 0) then iNumber = 36 end
+        return iNumber
+    end
+
+    local function _numberFromHeading(iHeading)
+        return mist.utils.round(iHeading / 10)
+    end
+    
     local dcsRunways = dcsAirbase:getRunways()
     for _, dcsRunway in pairs(dcsRunways) do
-        local iNumber = dcsRunway.Name
-        local iCourseRadian = dcsRunway.course
+        local iDcsNumber = tonumber(dcsRunway.Name)
+        local iDcsHeading = _normalizeHeading(math.deg(-dcsRunway.course))
 
-        local iHeadingFromCourseDegrees = math.deg(-iCourseRadian)
-        local iHeaderFromNumberDegrees = iNumber * 10
+        if (iDcsNumber == nil) then
+            iDcsNumber = _numberFromHeading(iDcsHeading - veaf.getMagneticDeclination())
+        end
+
+        -- Calculate standard runway number (first two digits of heading)
+        local iNumberFromHeading = _numberFromHeading(iDcsHeading)
+    
+        -- Calculate the opposite heading
+        local iOppositeHeading = _normalizeHeading(iDcsHeading + 180)
+        local iOppositeNumberFromHeading =  _numberFromHeading(iOppositeHeading)
         
-        veaf.loggers.get(veafWeather.Id):trace("--> " .. veaf.p(dcsRunway.Name))
-        veaf.loggers.get(veafWeather.Id):trace("--> " .. dcsRunway.course)
-        veaf.loggers.get(veafWeather.Id):trace("--> " .. iHeadingFromCourseDegrees)
-        veaf.loggers.get(veafWeather.Id):trace("--> " .. iHeaderFromNumberDegrees)
+        -- Determine if the given runway number needs to be flipped
+        local iPrimaryNumber = iDcsNumber
+        local iSecondaryNumber = _normalizeNumber(iDcsNumber + 18)
+        local iPrimaryHeading, iSecondaryHeading
         
+        local iFlipThreshold = 4
+        if (math.abs(iDcsNumber - iOppositeNumberFromHeading) <= iFlipThreshold or math.abs(iDcsNumber - iNumberFromHeading) > iFlipThreshold) then
+            -- If DCS number if close to computed opposite heading, or far from the DCS heading, flip the heading
+            iPrimaryHeading = iOppositeHeading
+            iSecondaryHeading = iDcsHeading
+        else
+            iPrimaryHeading = iDcsHeading
+            iSecondaryHeading = iOppositeHeading
+        end
+
+        -- order the runway in ascending numbers
+        local iNumber1 = iPrimaryNumber
+        local iHeading1 = iPrimaryHeading
+        local iNumber2 = iSecondaryNumber
+        local iHeading2 = iSecondaryHeading
+
+        if (iPrimaryNumber > iSecondaryNumber) then
+            iNumber1 = iSecondaryNumber
+            iHeading1 = iSecondaryHeading
+            iNumber2 = iPrimaryNumber
+            iHeading2 = iPrimaryHeading        
+        end
         
+        local veafRunway =
+        {
+            Number1 = iNumber1,
+            Heading1 = iHeading1,
+            Number2 = iNumber2,
+            Heading2 = iHeading2  
+        }
+   
+        table.insert(veafAirbase.Runways, veafRunway)
     end
+
+    return veafAirbase
+end
+
+veaf.loggers.get(veafWeather.Id):trace("++++++++++++++++++++++++++")
+local veafAirbases = veafWeatherAtis.getAirportsRunways()
+
+for _, veafAirbase in pairs(veafAirbases) do
+    local s = veafAirbase.Name
+    
+    for _, veafRunway in pairs(veafAirbase.Runways) do
+        s = s .. string.format(" | RWY %02d(%.2fT) / %02d(%.2fT)", veafRunway.Number1, veafRunway.Heading1, veafRunway.Number2, veafRunway.Heading2)
+    end
+
+    veaf.loggers.get(veafWeather.Id):trace(s)
+end
+    --[[
  Function to create a runway data table.
     local function _createRunway(name, course, width, length, center)
   

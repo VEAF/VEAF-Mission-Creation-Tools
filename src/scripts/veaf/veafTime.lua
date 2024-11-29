@@ -8,8 +8,6 @@
 -- standard lua datetime object is used when appropriate:
 -- --> as returned by os.date("*t", 906000490)
 -- --> dateTime = { year = 1998, month = 9, day = 16, yday = 259, wday = *unused*, hour = 23, min = 48, sec = 10, isdst = *unused* }
---
--- See the documentation : https://veaf.github.io/documentation/
 ------------------------------------------------------------------
 veafTime = {}
 

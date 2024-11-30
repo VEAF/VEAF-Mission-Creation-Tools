@@ -208,7 +208,7 @@ function veafNamedPoints.getWeatherAtPoint(parameters, forUnit)
         if BR then BR = " ("..BR..")" else BR = "" end
                 
         local weatherReport = "WEATHER        : " .. name .. BR .. "\n\n"
-        if (veafWeather.Active) then
+        if (veafWeather.Active) then -- Flogas 2024 - new weather messages
             weatherReport = weatherReport .. veafWeatherData.getWeatherString(point, unitName)
         else
             weatherReport = weatherReport .. veaf.weatherReport(point, nil, true)
@@ -222,13 +222,22 @@ function veafNamedPoints.getWeatherAtPoint(parameters, forUnit)
     end
 end
 
+function veafNamedPoints.messageAtcAirbase(veafAirbase, dcsUnit, forUnit)
+    local sAtcReport = veafWeatherAtis.getAtisString(veafAirbase)
+    if forUnit then
+        veaf.outTextForUnit(dcsUnit:getName(), sAtcReport, 30)
+    else
+        veaf.outTextForGroup(dcsUnit:getName(), sAtcReport, 30)
+    end
+end
+
 function veafNamedPoints.getAtcAtPoint(parameters, forUnit)
     local name, unitName = veaf.safeUnpack(parameters)
     veaf.loggers.get(veafNamedPoints.Id):trace(string.format("getAtcAtPoint(name = %s)",name))
     local point = veafNamedPoints.getPoint(name)
     if point then
         local atcReport
-        if (veafWeather.Active) then
+        if (veafWeather.Active) then -- Flogas 2024 - new weather messages
             atcReport = veafWeatherAtis.getAtisStringFromVeafPoint(name)
         else
             local BR = veafNamedPoints.getPointBearing(parameters)
@@ -499,7 +508,20 @@ function veafNamedPoints.listAllPoints(unitName)
     veaf.outTextForUnit(unitName, message, 30)
 end
 
+function veafNamedPoints.messageAtcClosestAirbase(unitName, forUnit)
+    local dcsUnit = Unit.getByName(unitName)
+    local veafAirbase = veafAirbases.getNearestAirbase(dcsUnit)
+    if (veafAirbase) then
+        veafNamedPoints.messageAtcAirbase(veafAirbase, dcsUnit, forUnit)
+    end
+end
+
 function veafNamedPoints.getAtcAtClosestPoint(unitName, forUnit)
+    if (veafWeather.Active) then -- Flogas 2024 - new weather messages
+        veafNamedPoints.messageAtcClosestAirbase(unitName, forUnit)
+        return
+    end
+
     veaf.loggers.get(veafNamedPoints.Id):debug(string.format("veafNamedPoints.getAtcAtClosestPoint(unitName=%s)",unitName))
     local closestPointName = nil
     local minDistance = 99999999

@@ -19,10 +19,10 @@ veafAirbases.Id = "AIRBASES"
 veafAirbases.Version = "1.0.0"
 
 -- trace level, specific to this module
-veafAirbases.LogLevel = "trace" ----- TODO FG
+--veafAirbases.LogLevel = "trace"
 veaf.loggers.new(veafAirbases.Id, veafAirbases.LogLevel)
 
-veafAirbases.Airbases = {}
+veafAirbases.Airbases = nil
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Local constants
@@ -50,10 +50,20 @@ local _manualRunwayNumberCorrections =
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 ---  Static methods
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
-function veafAirbases.initialize()
-    veafAirbases.Airbases = {}
-    local dcsAirBases = world.getAirbases()
+function veafAirbases.initialize(bReset)
+    bReset = bReset or false
+    
+    if (bReset) then
+        veafAirbases.Airbases = nil
+    end
 
+    if (veafAirbases.Airbases) then
+        return
+    end
+
+    veafAirbases.Airbases = {}
+
+    local dcsAirBases = world.getAirbases()
     for i = 1, #dcsAirBases do
         local dcsAirbase = dcsAirBases[i]
 --[[
@@ -67,6 +77,92 @@ function veafAirbases.initialize()
         if (veafAirbase) then
             table.insert(veafAirbases.Airbases, veafAirbase)
         end
+    end
+end
+
+function veafAirbases.getAirbaseByName(sAirbaseName)
+    veafAirbases.initialize()
+    
+    for _, veafAirbase in pairs(veafAirbases.Airbases) do
+        if (veafAirbase.Name == sAirbaseName) then
+            return veafAirbase
+        end
+    end
+
+    return nil
+end
+
+function veafAirbases.getAirbaseFromDcsAirbase(dcsAirbase)
+    if (dcsAirbase == nil) then
+        return nil
+    end
+
+    return veafAirbases.getAirbaseByName(dcsAirbase:getName())
+end
+
+function veafAirbases.getNearestAirbaseList(dcsUnit, iCount)
+    veafAirbases.initialize()
+    
+    iCount = iCount or 1
+    local vec3Unit = dcsUnit:getPoint()
+    local iMinDistance = nil
+    local nearestList = {}
+
+    local function Sort(a, b)
+        if (a == nil and b == nil) then
+            return false
+        elseif (a == nil) then
+            return false
+        elseif (b == nil) then
+            return true
+        else
+            return a[2] < b[2]
+        end
+    end
+
+    for _, veafAirbase in pairs(veafAirbases.Airbases) do
+        local vec3Airbase = veafAirbase.DcsAirbase:getPoint()
+        local iDistance = mist.utils.get2DDist(vec3Unit, vec3Airbase)
+        local bAdded = false
+
+        -- first fill all the nil positions
+        for i = 1, iCount, 1 do
+            if (nearestList[i] == nil) then
+                nearestList[i] = { veafAirbase, iDistance }
+                bAdded = true
+                break
+            end
+        end
+
+        if (not bAdded) then
+            -- then, replace the farthest one if the current one is closer
+            for i = iCount, 1, -1 do
+                if (iDistance < nearestList[i][2]) then
+                    nearestList[i] = { veafAirbase, iDistance}
+                    bAdded = true
+                    break
+                end
+            end
+        end
+
+        if (bAdded) then
+            table.sort(nearestList, Sort)
+        end
+        
+    end
+
+    return nearestList
+end
+
+function veafAirbases.getNearestAirbase(dcsUnit)
+    local nearestList = veafAirbases.getNearestAirbaseList(dcsUnit, 1)
+    if (nearestList and #nearestList >= 1) then
+        local veafAirbase = nearestList[1][1]
+        veaf.loggers.get(veafAirbases.Id):trace(string.format("Nearest airbase for [ %s ]: [ %s ] at %dm", dcsUnit:getName(), veafAirbase:toString(), nearestList[1][2]))
+        return nearestList[1][1]
+    else
+        veaf.loggers.get(veafAirbases.Id):trace(string.format("No near airbase for [ %s ]", dcsUnit:getName()))
+        return nil
     end
 end
 
@@ -87,22 +183,22 @@ function veafAirbase:create(dcsAirbase)
     end
     
     local _, iCategory = dcsAirbase:getCategory()
-    if (iCategory ~= Airbase.Category.AIRDROME) then
-        return nil
-    end
 
     local veafRunways = {}
-    local dcsRunways = dcsAirbase:getRunways()
-    for iRunwayReportOrder, dcsRunway in pairs(dcsRunways) do
-        local veafRunway = veafAirbaseRunway:create(dcsAirbase, dcsRunway, iRunwayReportOrder)
-        if (veafRunway) then
-            table.insert(veafRunways, veafRunway)
+    if (iCategory ==Airbase.Category.AIRDROME) then
+        local dcsRunways = dcsAirbase:getRunways()
+        for iRunwayReportOrder, dcsRunway in pairs(dcsRunways) do
+            local veafRunway = veafAirbaseRunway:create(dcsAirbase, dcsRunway, iRunwayReportOrder)
+            if (veafRunway) then
+                table.insert(veafRunways, veafRunway)
+            end
         end
     end
 
     local this =
     {
         Name = dcsAirbase:getName(),
+        Category = iCategory,
         DcsAirbase = dcsAirbase,
         Runways = veafRunways
     }
@@ -111,6 +207,54 @@ function veafAirbase:create(dcsAirbase)
 
     return this
 end
+
+---------------------------------------------------------------------------------------------------
+---  Methods
+function veafAirbase:getRunwayInService(iWindDirectionTrue)
+    local function _getHeadwind(iWindDirection, nRunwayHeading)
+        local nAngle = math.abs(iWindDirection - nRunwayHeading)
+    
+        if (nAngle > 180) then
+            nAngle = 360 - nAngle
+        end
+    
+        return math.cos(math.rad(nAngle))
+    end
+
+    local bestRunwayEnd = nil
+    local nBestHeadwind = -math.huge -- Start with lowest possible value
+    
+    for i, veafRunway in ipairs(self.Runways) do
+        for _, veafRunwayEnd in ipairs(veafRunway) do
+            local nHeadwind = _getHeadwind(iWindDirectionTrue, veafRunwayEnd.Heading)
+            
+            if nHeadwind > nBestHeadwind then
+                nBestHeadwind = nHeadwind
+                bestRunwayEnd = veafRunwayEnd
+            end
+        end
+    end
+
+    local sLog = string.format("Runway in service for [ %s ] with wind from [ %03dT ] -->", self:toString(), iWindDirectionTrue)
+    if (bestRunwayEnd) then
+        sLog = sLog .. string.format(" [ %02d ]", bestRunwayEnd.Number)
+    else
+        sLog = sLog .. " none identified"
+    end
+
+    veaf.loggers.get(veafAirbases.Id):trace(sLog)
+    return bestRunwayEnd
+end
+
+function veafAirbase:getRunwayInServiceString(iWindDirectionTrue)
+    local veafRunwayEnd = self:getRunwayInService(iWindDirectionTrue)
+    if (veafRunwayEnd) then
+        return string.format("%02d", veafRunwayEnd.Number)
+    else
+        return nil
+    end
+end
+
 
 function veafAirbase:toString()
     local s = self.Name
@@ -121,8 +265,6 @@ function veafAirbase:toString()
 
     return s
 end
----------------------------------------------------------------------------------------------------
----  Methods
 
 ---------------------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------
@@ -154,6 +296,13 @@ function veafAirbaseRunway:create(dcsAirbase, dcsRunway, iReportOrder)
 
     local function _numberFromHeading(nHeading)
         return mist.utils.round(nHeading / 10)
+    end
+
+    local function _numbersOffest(iOffset1, iOffest2)
+        -- Calculate the absolute difference between angles
+        local iOffset = math.abs(iOffset1 - iOffest2)
+        local iOffsetOpposite = math.abs(36 - iOffset)
+        return math.min(iOffset, iOffsetOpposite)
     end
 
     local sAirbaseName = dcsAirbase:getName()
@@ -197,15 +346,9 @@ function veafAirbaseRunway:create(dcsAirbase, dcsRunway, iReportOrder)
     local iPrimaryNumber = iDcsNumber
     local iSecondaryNumber = _normalizeNumber(iDcsNumber + 18)
     local nPrimaryHeading, nSecondaryHeading
-    
-    if (sAirbaseName == "Pahute Mesa") then
-        veaf.loggers.get(veafAirbases.Id):trace(sAirbaseName)
-        veaf.loggers.get(veafAirbases.Id):trace(string.format("iDcsNumber=%d iOppositeNumberFromHeading=%d iNumberFromHeading=%d", iDcsNumber, iOppositeNumberFromHeading, iNumberFromHeading))
-        -- iDcsNumber=36 iOppositeNumberFromHeading=19 iNumberFromHeading=1 TODO manage the difference on the shorter path
-    end
 
     local iFlipThreshold = 4
-    if (math.abs(iDcsNumber - iOppositeNumberFromHeading) <= iFlipThreshold or math.abs(iDcsNumber - iNumberFromHeading) > iFlipThreshold) then
+    if (_numbersOffest(iDcsNumber, iOppositeNumberFromHeading) <= iFlipThreshold or _numbersOffest(iDcsNumber, iNumberFromHeading) > iFlipThreshold) then
         -- If DCS number if close to computed opposite heading, or far from the DCS heading, flip the heading
         nPrimaryHeading = nOppositeHeading
         nSecondaryHeading = nDcsHeading
@@ -229,10 +372,8 @@ function veafAirbaseRunway:create(dcsAirbase, dcsRunway, iReportOrder)
 
     local this =
     {
-        Number1 = iNumber1,
-        Heading1 = nHeading1,
-        Number2 = iNumber2,
-        Heading2 = nHeading2  
+        [1] = { Number = iNumber1, Heading = nHeading1 },
+        [2] = { Number = iNumber2, Heading = nHeading2 },
     }
 
     setmetatable(this, veafAirbaseRunway)
@@ -240,18 +381,21 @@ function veafAirbaseRunway:create(dcsAirbase, dcsRunway, iReportOrder)
     return this
 end
 
+---------------------------------------------------------------------------------------------------
+---  Methods
 function veafAirbaseRunway:toString()
-    return string.format("RWY %02d(%.2fT) / %02d(%.2fT)", self.Number1, self.Heading1, self.Number2, self.Heading2)
+    return string.format("RWY %02d(%.2fT) / %02d(%.2fT)", self[1].Number, self[1].Heading, self[2].Number, self[2].Heading)
 end
 
-
 ---------------------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------
----  INITIALIZATION
+---  MODULE TESTS
 ---------------------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------
+--[[
 veafAirbases.initialize()
-veaf.loggers.get(veafAirbases.Id):trace("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx")
+veaf.loggers.get(veafAirbases.Id):trace("Airbases and runways initialized for theater " .. env.mission.theatre)
 for _, veafAirbase in pairs(veafAirbases.Airbases) do
     veaf.loggers.get(veafAirbases.Id):trace(veafAirbase:toString())
 end
+]]

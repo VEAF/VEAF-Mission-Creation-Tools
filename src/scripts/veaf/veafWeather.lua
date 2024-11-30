@@ -20,7 +20,7 @@ veafWeather.Id = "WEATHER_INFO"
 veafWeather.Version = "1.0.0"
 
 -- trace level, specific to this module
-veafWeather.LogLevel = "trace" ----- TODO FG
+--veafWeather.LogLevel = "trace"
 veaf.loggers.new(veafWeather.Id, veafWeather.LogLevel)
 
 veafWeather.Active = false
@@ -496,18 +496,20 @@ end
 function veafWeatherData:getNormalizedWindDirection(iDirectionTrue, bMagnetic)
     bMagnetic = bMagnetic or false
 
+    local iDirection = iDirectionTrue
+    
     if (bMagnetic) then
-        iDirectionTrue = iDirectionTrue - veaf.getMagneticDeclination()
-        if (iDirectionTrue) < 0 then
-            iDirectionTrue = iDirectionTrue + 360
+        iDirection = iDirection - veaf.getMagneticDeclination()
+        if (iDirection) < 0 then
+            iDirection = iDirection + 360
         end    
     end
 
-    if (iDirectionTrue == 0) then
-        iDirectionTrue = 360
+    if (iDirection == 0) then
+        iDirection = 360
     end
 
-    return iDirectionTrue
+    return iDirection
 end
 
 function veafWeatherData:getNormalizedCloudBaseMeters(bHeight)
@@ -548,7 +550,7 @@ function veafWeatherData:getCarrierCase()
     -- Case II departures are flown during the day when visual conditions are present at the carrier, but a controlled climb through the clouds is required. The weather minimums are a cloud deck above 1,000 feet and visibility greater than 5 miles.
     -- Case III departures are flown at night and when weather conditions are below the minimums of 1,000 feet cloud deck and 5 miles visibility
     
-    local bNight = veafTime.isAeronauticalNightFromAbsTime(self.Vec3, self.AbsTime)
+    local bNight = veafTime.isAeronauticalNight(self.Vec3, self.AbsTime)
     if (bNight) then
         return 3
     end
@@ -981,7 +983,7 @@ veafWeatherAtis.__index = veafWeatherAtis
 veafWeatherAtis.ListInEffect = {}
 ---------------------------------------------------------------------------------------------------
 ---  CTORS
-function veafWeatherAtis:Create(dcsAirbase, sLetter, dateTimeZulu)
+function veafWeatherAtis:Create(veafAirbase, sLetter, dateTimeZulu)
     local iRecordedAtMinutes = math.random(2, 11) -- ATIS recorded between h:02 and hour:11
     if (iRecordedAtMinutes > dateTimeZulu.min) then
         -- if record is in the future set recording at the request time
@@ -989,21 +991,53 @@ function veafWeatherAtis:Create(dcsAirbase, sLetter, dateTimeZulu)
     end
     dateTimeZulu.min = iRecordedAtMinutes
 
-    local sMessage = string.format("%s information %s, recorded at %sZ", dcsAirbase:getName(), sLetter, veafTime.toStringTime(dateTimeZulu, false))
-    -- TODO sMessage = sMessage .. string.format("\nRunway in use %s", "XX")     ----https://wiki.hoggitworld.com/view/DCS_Class_Airbase
-
     local iAltitude = nil
-    if (dcsAirbase:getCategory() == Airbase.Category.SHIP) then
+    local unitSystem
+    if (veafAirbase.Category == Airbase.Category.SHIP) then
+        -- Maybe use the type name to decide the unit system?
+        --[[
+        local dcsShip = dcsAirbase:getUnit()
+        local dcsShipType = dcsShip:getTypeName()
+        veaf.loggers.get(veafWeather.Id):trace(veaf.p(dcsShipType))
+        ]]
+
         iAltitude = 20
+        unitSystem = veafWeatherUnitSystem.Systems.FaaNavy
+    else
+        unitSystem = veafWeatherUnitSystem.defaultForTheatre()
+    end
+    
+    local weatherData = veafWeatherData:create(veafAirbase.DcsAirbase:getPoint(), iAltitude)
+
+    local sMessage
+    
+    if (veafAirbase.Category == Airbase.Category.SHIP) then
+        sMessage = string.format("%s information at %sZ", veafAirbase.Name, veafTime.toStringTime(dateTimeZulu, false))
+        local iCarrierCase = weatherData:getCarrierCase()
+        if (iCarrierCase) then
+            local sCaseString = nil
+            if (iCarrierCase == 1) then sCaseString = "I"
+            elseif (iCarrierCase == 2) then sCaseString = "II"
+            elseif (iCarrierCase == 3) then sCaseString = "III"
+            end
+            
+            if (not veaf.isNullOrEmpty(sCaseString)) then
+                sMessage = sMessage .. string.format("\nProbable CASE %s in effect", sCaseString)
+            end
+        end
+    else
+        sMessage = string.format("%s information %s, recorded at %sZ", veafAirbase.Name, sLetter, veafTime.toStringTime(dateTimeZulu, false))
+        local sRunwayInService = veafAirbase:getRunwayInServiceString(weatherData.WindDirection)
+        if (not veaf.isNullOrEmpty(sRunwayInService)) then
+            sMessage = sMessage .. string.format("\nRecommended runway %s", sRunwayInService)
+        end
     end
 
-    local unitSystem = veafWeatherUnitSystem.defaultForTheatre()
-    local weatherData = veafWeatherData:create(dcsAirbase:getPoint(), iAltitude)
     sMessage = sMessage .. "\n" .. weatherData:toStringAtis(unitSystem)
 
     local this =
     {
-        AirbaseName = dcsAirbase:getName(),
+        AirbaseName = veafAirbase.Name,
         Letter = sLetter,
         DateTimeZulu = dateTimeZulu,
         Message = sMessage
@@ -1019,7 +1053,7 @@ end
    
 ---------------------------------------------------------------------------------------------------
 ---  Static methods
-function veafWeatherAtis.getAtisString(dcsAirbase, iAbsTime)
+function veafWeatherAtis.getAtisString(veafAirbase, iAbsTime)
     local dateTimeZulu = veafTime.toZulu(veafTime.getMissionDateTime(iAbsTime))
      local iHoursSinceMidnight = dateTimeZulu.hour
     local sLetter = string.char(math.floor(iHoursSinceMidnight) + string.byte("A"))
@@ -1028,34 +1062,44 @@ function veafWeatherAtis.getAtisString(dcsAirbase, iAbsTime)
 
      -- There is no need to check more that the letter since that weather is static and the conditions will not vary
      -- If they did though, we would have to check that the letter is not for 24h or more later, and so warrant a new weather evaluation
-    local currentInEffect = veafWeatherAtis.ListInEffect[dcsAirbase:getName()]
+    local currentInEffect = veafWeatherAtis.ListInEffect[veafAirbase.Name]
     if (currentInEffect and currentInEffect.Letter == sLetter) then
         return currentInEffect.Message
     else
-        currentInEffect = veafWeatherAtis:Create(dcsAirbase, sLetter, dateTimeZulu)
-        veafWeatherAtis.ListInEffect[dcsAirbase:getName()] = currentInEffect
+        currentInEffect = veafWeatherAtis:Create(veafAirbase, sLetter, dateTimeZulu)
+        veafWeatherAtis.ListInEffect[veafAirbase.Name] = currentInEffect
         return currentInEffect.Message
     end
 end
 
 function veafWeatherAtis.getAtisStringFromVeafPoint(sPointName, iAbsTime)
-    --[[
-    if (veafWeatherAtis.getAirportsRunways()) then
-        return
-    end
-    ]]
     if (veaf.isNullOrEmpty(sPointName)) then
         veaf.loggers.get(veafWeather.Id):error("No point name")
-        return "No airbase name"
+        return "No point name"
     end
 
-     ----- TODO FG maybe have to account for FARPs and CV and such
     local dcsAirbase = veafNamedPoints.findDcsAirbase(sPointName)
-    if (dcsAirbase == nil) then
+    local veafAirbase = veafAirbases.getAirbaseFromDcsAirbase(dcsAirbase)
+
+    if (veafAirbase == nil) then
         veaf.loggers.get(veafWeather.Id):error("Airbase not found for point " .. sPointName)
         return "Airbase not found for point " .. sPointName
     end
 
     veaf.loggers.get(veafWeather.Id):trace("Airbase found from veaf point " .. sPointName .. ": " .. dcsAirbase:getName())    
-    return veafWeatherAtis.getAtisString(dcsAirbase, iAbsTime)
+    return veafWeatherAtis.getAtisString(veafAirbase, iAbsTime)
 end
+
+
+---------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------
+---  MODULE TESTS
+---------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------
+--[[
+veafAirbases.initialize()
+veaf.loggers.get(veafWeather.Id):trace("Airbases and runways initialized for theater " .. env.mission.theatre)
+for _, veafAirbase in pairs(veafAirbases.Airbases) do
+    veaf.loggers.get(veafWeather.Id):trace(veafWeatherAtis.getAtisString(veafAirbase))
+end
+]]

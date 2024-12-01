@@ -182,10 +182,48 @@ function veafAirbase:create(dcsAirbase)
         return nil
     end
     
-    local _, iCategory = dcsAirbase:getCategory()
+    local sDisplayName = dcsAirbase:getName()
+    local iCategory = dcsAirbase:getCategoryEx()
+    local sTypeName = dcsAirbase:getTypeName()
+    if (iCategory == Airbase.Category.SHIP and string.find(sTypeName, "FARP")) then
+        iCategory = Airbase.Category.HELIPAD -- remediation for "FARP_SINGLE_01" or "VAP FARP" which are miscategorized
+    end
+
+    if (iCategory == Airbase.Category.SHIP) then
+        local sShipType = sTypeName
+        local dcsUnit = dcsAirbase:getUnit()
+        if (dcsUnit) then
+            local dcsUnitDesc = dcsUnit:getDesc()
+            local sDcsUnitType = dcsUnit:getTypeName()
+
+            if (dcsUnitDesc and not veaf.isNullOrEmpty(dcsUnitDesc.displayName)) then
+                sShipType = dcsUnitDesc.displayName
+            elseif (not veaf.isNullOrEmpty(sDcsUnitType)) then
+                sShipType = sDcsUnitType
+            end
+        end    
+        
+        sDisplayName = string.format("%s(%s)", sDisplayName, sShipType)
+        --[[       
+        if (dcsUnit) then
+            local dcsUnitName = dcsUnit:getName()
+            local dcsUnitType = dcsUnit:getTypeName()
+            veaf.loggers.get(veafAirbases.Id):trace(string.format(">>>>>>> unit - %s - type=%s", dcsUnitName, dcsUnitType))
+            veaf.loggers.get(veafAirbases.Id):trace(veaf.p(dcsUnit:getDesc()))
+            local desc = dcsUnit:getDesc()
+            veaf.loggers.get(veafAirbases.Id):trace(desc.Kmax)
+            veaf.loggers.get(veafAirbases.Id):trace(desc.displayName)
+        end
+        ]]        
+    elseif (iCategory == Airbase.Category.HELIPAD) then
+        sDisplayName = sDisplayName .. "(FARP)"
+    end
+    
+    veaf.loggers.get(veafAirbases.Id):trace(string.format(">> Airbase - %s created with display name  %s", dcsAirbase:getName(), sDisplayName))
+
 
     local veafRunways = {}
-    if (iCategory ==Airbase.Category.AIRDROME) then
+    if (iCategory == Airbase.Category.AIRDROME) then
         local dcsRunways = dcsAirbase:getRunways()
         for iRunwayReportOrder, dcsRunway in pairs(dcsRunways) do
             local veafRunway = veafAirbaseRunway:create(dcsAirbase, dcsRunway, iRunwayReportOrder)
@@ -195,9 +233,12 @@ function veafAirbase:create(dcsAirbase)
         end
     end
 
+    
+
     local this =
     {
         Name = dcsAirbase:getName(),
+        DisplayName = sDisplayName,
         Category = iCategory,
         DcsAirbase = dcsAirbase,
         Runways = veafRunways

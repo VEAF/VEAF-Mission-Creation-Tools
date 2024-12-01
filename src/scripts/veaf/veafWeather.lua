@@ -87,7 +87,7 @@ local _nKelvinToCelciusOffset = -273.15
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 local function _estimateClearSkyRelativeHumidity(nLatitude, nLongitude, iDayOfYear)
     -- Base RH for clear skies
-    local base_rh = 30
+    local baseRh = 30
     
     -- Seasonal adjustment
     -- Calculate seasonal factor (-1 to 1, peaks at middle of year)
@@ -107,10 +107,10 @@ local function _estimateClearSkyRelativeHumidity(nLatitude, nLongitude, iDayOfYe
     local maritime_adjustment = maritime_influence * 10 -- Up to +10% for maritime areas
     
     -- Calculate final RH
-    local adjusted_rh = base_rh + seasonal_adjustment + maritime_adjustment
+    local adjustedRh = baseRh + seasonal_adjustment + maritime_adjustment
     
     -- Clamp between reasonable values
-    return math.max(20, math.min(70, adjusted_rh))
+    return math.max(20, math.min(70, adjustedRh))
 end
 
 local function _adjustClearSkyRelativeHumidity(base_rh, iVisibilityMeters, bFog, bPrecipitations)
@@ -169,14 +169,15 @@ local function _estimateDewpoint(vec3, nTemperatureCelcius, nQnhPa, iCloudBaseMe
     local gamma = ((a * nTemperatureCelcius) / (b + nTemperatureCelcius)) + math.log(nRelativeHumidity/100.0)
     
     -- Calculate dew point using Magnus formula
-    local dew_point = (b * gamma) / (a - gamma)
+    local nDewPointCelcius = (b * gamma) / (a - gamma)
     
     -- Apply pressure correction (approximate)
     local pressure_correction = (1013.25 - nQnhHpa) * 0.0012
-    dew_point = dew_point + pressure_correction
+    nDewPointCelcius = nDewPointCelcius + pressure_correction
     
+    nDewPointCelcius = math.min(nDewPointCelcius, nTemperatureCelcius)
     -- Round to one decimal place
-    return math.floor(dew_point * 10 + 0.5) / 10
+    return math.floor(nDewPointCelcius * 10 + 0.5) / 10
 end
 
 local function _weatherSliceAtAltitude(vec3, iAltitudeMeters)
@@ -1012,7 +1013,7 @@ function veafWeatherAtis:Create(veafAirbase, sLetter, dateTimeZulu)
     local sMessage
     
     if (veafAirbase.Category == Airbase.Category.SHIP) then
-        sMessage = string.format("%s information at %sZ", veafAirbase.Name, veafTime.toStringTime(dateTimeZulu, false))
+        sMessage = string.format("%s information at %sZ", veafAirbase.DisplayName, veafTime.toStringTime(dateTimeZulu, false))
         local iCarrierCase = weatherData:getCarrierCase()
         if (iCarrierCase) then
             local sCaseString = nil
@@ -1025,6 +1026,8 @@ function veafWeatherAtis:Create(veafAirbase, sLetter, dateTimeZulu)
                 sMessage = sMessage .. string.format("\nProbable CASE %s in effect", sCaseString)
             end
         end
+    elseif (veafAirbase.Category == Airbase.Category.HELIPAD) then
+        sMessage = string.format("%s information at %sZ", veafAirbase.DisplayName, veafTime.toStringTime(dateTimeZulu, false))
     else
         sMessage = string.format("%s information %s, recorded at %sZ", veafAirbase.Name, sLetter, veafTime.toStringTime(dateTimeZulu, false))
         local sRunwayInService = veafAirbase:getRunwayInServiceString(weatherData.WindDirection)
@@ -1096,10 +1099,9 @@ end
 ---  MODULE TESTS
 ---------------------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------
---[[
+
 veafAirbases.initialize()
 veaf.loggers.get(veafWeather.Id):trace("Airbases and runways initialized for theater " .. env.mission.theatre)
 for _, veafAirbase in pairs(veafAirbases.Airbases) do
     veaf.loggers.get(veafWeather.Id):trace(veafWeatherAtis.getAtisString(veafAirbase))
 end
-]]

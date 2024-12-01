@@ -1099,9 +1099,10 @@ end
 ---  MODULE TESTS
 ---------------------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------
-
+--[[
 veafAirbases.initialize()
 veaf.loggers.get(veafWeather.Id):trace("Airbases and runways initialized for theater " .. env.mission.theatre)
 for _, veafAirbase in pairs(veafAirbases.Airbases) do
     veaf.loggers.get(veafWeather.Id):trace(veafWeatherAtis.getAtisString(veafAirbase))
 end
+]]

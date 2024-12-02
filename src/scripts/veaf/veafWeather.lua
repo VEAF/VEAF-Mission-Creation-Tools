@@ -984,7 +984,10 @@ veafWeatherAtis.__index = veafWeatherAtis
 veafWeatherAtis.ListInEffect = {}
 ---------------------------------------------------------------------------------------------------
 ---  CTORS
-function veafWeatherAtis:Create(veafAirbase, sLetter, dateTimeZulu)
+function veafWeatherAtis:Create(veafAirbase, dateTimeZulu)
+    local iHoursSinceMidnight = dateTimeZulu.hour
+    local sLetter = string.char(math.floor(iHoursSinceMidnight) + string.byte("A"))
+
     local iRecordedAtMinutes = math.random(2, 11) -- ATIS recorded between h:02 and hour:11
     if (iRecordedAtMinutes > dateTimeZulu.min) then
         -- if record is in the future set recording at the request time
@@ -1008,7 +1011,7 @@ function veafWeatherAtis:Create(veafAirbase, sLetter, dateTimeZulu)
         unitSystem = veafWeatherUnitSystem.defaultForTheatre()
     end
     
-    local weatherData = veafWeatherData:create(veafAirbase.DcsAirbase:getPoint(), iAltitude)
+    local weatherData = veafWeatherData:create(veafAirbase.DcsAirbase:getPoint(), nil, iAltitude)
 
     local sMessage
     
@@ -1037,6 +1040,7 @@ function veafWeatherAtis:Create(veafAirbase, sLetter, dateTimeZulu)
     end
 
     sMessage = sMessage .. "\n" .. weatherData:toStringAtis(unitSystem)
+    --sMessage = sMessage .. "\n" .. weatherData:toStringExtended()
 
     local this =
     {
@@ -1056,23 +1060,35 @@ end
    
 ---------------------------------------------------------------------------------------------------
 ---  Static methods
-function veafWeatherAtis.getAtisString(veafAirbase, iAbsTime)
-    local dateTimeZulu = veafTime.toZulu(veafTime.getMissionDateTime(iAbsTime))
-     local iHoursSinceMidnight = dateTimeZulu.hour
-    local sLetter = string.char(math.floor(iHoursSinceMidnight) + string.byte("A"))
+function veafWeatherAtis.getAtis(veafAirbase)
+    local iAbsTime = timer.getAbsTime()
+    local dateTime = veafTime.absTimeToDateTime(iAbsTime)
+    local dateTimeZulu = veafTime.toZulu(dateTime)
 
-    veaf.loggers.get(veafWeather.Id):trace("Zulu hours=" .. iHoursSinceMidnight .. " - Letter=" .. sLetter)
+    veaf.loggers.get(veafWeather.Id):trace(string.format("Preparing ATIS for airbase %s at %sZ", veafAirbase.Name, veafTime.toStringTime(dateTimeZulu, false)))
 
-     -- There is no need to check more that the letter since that weather is static and the conditions will not vary
-     -- If they did though, we would have to check that the letter is not for 24h or more later, and so warrant a new weather evaluation
-    local currentInEffect = veafWeatherAtis.ListInEffect[veafAirbase.Name]
-    if (currentInEffect and currentInEffect.Letter == sLetter) then
-        return currentInEffect.Message
-    else
-        currentInEffect = veafWeatherAtis:Create(veafAirbase, sLetter, dateTimeZulu)
-        veafWeatherAtis.ListInEffect[veafAirbase.Name] = currentInEffect
-        return currentInEffect.Message
+    local atisInEffect = veafWeatherAtis.ListInEffect[veafAirbase.Name]
+    if (atisInEffect) then
+        veaf.loggers.get(veafWeather.Id):trace(string.format("ATIS in effect: %s %s", atisInEffect.Letter, veafTime.toStringTime(atisInEffect.DateTimeZulu, false)))
+        if (dateTimeZulu.year > atisInEffect.DateTimeZulu.year or dateTimeZulu.month > atisInEffect.DateTimeZulu.month or dateTimeZulu.day > atisInEffect.DateTimeZulu.day or dateTimeZulu.hour > atisInEffect.DateTimeZulu.hour) then
+            -- if current date is in the next hour of more from the current one, declare new atis
+            veaf.loggers.get(veafWeather.Id):trace(string.format("Current time %s: new ATIS", veafTime.toStringTime(dateTimeZulu, false)))  
+            atisInEffect = nil 
+        end
     end
+
+    if (atisInEffect == nil) then
+        atisInEffect = veafWeatherAtis:Create(veafAirbase, dateTimeZulu)
+        veaf.loggers.get(veafWeather.Id):trace(string.format("New ATIS in effect for airbase %s: %s %s", veafAirbase.Name, atisInEffect.Letter, veafTime.toStringTime(atisInEffect.DateTimeZulu, false)))  
+        veafWeatherAtis.ListInEffect[veafAirbase.Name] = atisInEffect
+    end
+
+    return atisInEffect
+end
+
+function veafWeatherAtis.getAtisString(veafAirbase)
+    local atisInEffect = veafWeatherAtis.getAtis(veafAirbase)
+    return atisInEffect.Message
 end
 
 function veafWeatherAtis.getAtisStringFromVeafPoint(sPointName, iAbsTime)
@@ -1099,10 +1115,9 @@ end
 ---  MODULE TESTS
 ---------------------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------
---[[
+
 veafAirbases.initialize()
 veaf.loggers.get(veafWeather.Id):trace("Airbases and runways initialized for theater " .. env.mission.theatre)
 for _, veafAirbase in pairs(veafAirbases.Airbases) do
     veaf.loggers.get(veafWeather.Id):trace(veafWeatherAtis.getAtisString(veafAirbase))
 end
-]]

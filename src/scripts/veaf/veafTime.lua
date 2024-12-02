@@ -22,7 +22,7 @@ veafTime.Id = "TIME"
 veafTime.Version = "1.0.0"
 
 -- trace level, specific to this module
-veafTime.LogLevel = "trace" ----- TODO FG
+--veafTime.LogLevel = "trace"
 veaf.loggers.new(veafTime.Id, veafTime.LogLevel)
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------

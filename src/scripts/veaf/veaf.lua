@@ -600,6 +600,19 @@ function veaf.isNullOrEmpty(s)
     return (s == nil or (type(s) == "string" and s == ""))
 end
 
+function veaf.tableContains(table, element)
+    if (table == nil or element == nil) then
+        return false
+    end
+    
+    for _, e in pairs(table) do
+        if (e == element) then 
+            return true 
+        end
+    end
+    return false
+end
+
 function veaf.p(o, level, skip, includeMeta, dontRecurse)
     if o and type(o) == "table" and (o.x and o.z and o.y and #o == 3) then
         return string.format("{x=%s, z=%s, y=%s}", veaf.p(o.x), veaf.p(o.z), veaf.p(o.y))
@@ -925,6 +938,37 @@ function veaf.getAveragePosition(group)
 end
 
 function veaf.emptyFunction()
+end
+
+function veaf.getMagneticDeclination()
+    local nDeclination = 0
+    local sTheatre = string.lower(env.mission.theatre)
+
+    if (sTheatre == "caucasus") then
+        nDeclination = 6
+    elseif (sTheatre == "persiangulf") then
+        nDeclination = 2
+    elseif (sTheatre == "nevada") then
+        nDeclination = 12
+    elseif (sTheatre == "normandy") then
+        nDeclination = -10
+    elseif (sTheatre == "thechannel") then
+        nDeclination = -10
+    elseif (sTheatre == "syria") then
+        nDeclination = 5
+    elseif (sTheatre == "marianaislands") then
+        nDeclination = 2
+    elseif (sTheatre == "falklands") then
+        nDeclination = 12
+    elseif (sTheatre == "sinaimap") then
+        nDeclination = 4.8
+    elseif (sTheatre == "kola") then
+        nDeclination = 15
+    elseif (sTheatre == "afghanistan") then
+        nDeclination = 3
+    end
+  
+    return nDeclination
 end
 
 --- Returns the wind direction (from) and strength.

@@ -3810,16 +3810,11 @@ function veaf.ctld_initialize_replacement(configurationCallback)
         end
 
         -- global configuration change
-        ctld.cratesRequiredForFOB = 1
-
-        --- replace the crate 3D model with an actual crate
-        ctld.spawnableCratesModel_load = {
-            ["category"] = "Cargos",
-            ["type"] = "ammo_cargo",
-            ["name"] = "Ammo"
-        }
-        ctld.spawnableCratesModel_sling = ctld.spawnableCratesModel_load
-
+        ctld.addPlayerAircraftByType = true
+        ctld.loadCrateFromMenu = true -- if set to true, you can load crates with the F10 menu OR hovering, in case of using choppers and planes for example.
+        ctld.slingLoad = true -- if false, crates can be used WITHOUT slingloading, by hovering above the crate, simulating slingloading but not the weight...
+        ctld.crateWaitTime = 0 -- time in seconds to wait before you can spawn another crate
+        
         -- Simulated Sling load configuration
         ctld.minimumHoverHeight = 5.0 -- Lowest allowable height for crate hover
         ctld.maximumHoverHeight = 15.0 -- Highest allowable height for crate hover
@@ -3839,7 +3834,25 @@ function veaf.ctld_initialize_replacement(configurationCallback)
         ctld.unitLoadLimits["SA342Minigun"] = 1
         ctld.unitLoadLimits["CH-47Fbl1"] = 33
 
+        ctld.internalCargoLimits["Mi-8MT"] = 2
+        ctld.internalCargoLimits["CH-47Fbl1"] = 4
+
         -- ************** Allowable actions for UNIT TYPES ******************
+        ctld.aircraftTypeTable = {
+                "Hercules",
+                "UH-60L",
+                "Ka-50",
+                "Ka-50_3",
+                "Mi-8MT",
+                "Mi-24P",
+                "SA342L",
+                "SA342M",
+                "SA342Mistral",
+                "SA342Minigun",
+                "UH-1H",
+                "CH-47Fbl1",
+                "Yak-52",
+        }
 
         ctld.unitActions["Yak-52"] = {crates=false, troops=true}
         ctld.unitActions["UH-60L"] = {crates=true, troops=true}
@@ -3849,12 +3862,6 @@ function veaf.ctld_initialize_replacement(configurationCallback)
         ctld.unitActions["SA342Minigun"] = {crates=false, troops=true}
 
         -- ************** INFANTRY GROUPS FOR PICKUP ******************
-
-        table.insert(ctld.loadableGroups, {name = "2x - Standard Groups", inf = 12, mg = 4, at = 4 })
-        table.insert(ctld.loadableGroups, {name = "3x - Standard Groups", inf = 18, mg = 6, at = 6 })
-        table.insert(ctld.loadableGroups, {name = "2x - Standard Groups + 2x Mortar", inf = 12, mg = 4, at = 4, mortar = 12 })
-        table.insert(ctld.loadableGroups, {name = "3x - Mortar Squad", mortar = 18})
-        table.insert(ctld.loadableGroups, {name = "5x - Mortar Squad", mortar = 30})
 
         ctld.autoInitializeAllLogistic = function()
             local LogisticTypeNames = {"LHA_Tarawa", "Stennis", "CVN_71", "KUZNECOW", "FARP Ammo Storage", "FARP Ammo Dump Coating"}

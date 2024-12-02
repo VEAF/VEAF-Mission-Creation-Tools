@@ -43,14 +43,14 @@ ctld.staticBugWorkaround = false --  DCS had a bug where destroying statics woul
 
 ctld.disableAllSmoke = false -- if true, all smoke is diabled at pickup and drop off zones regardless of settings below. Leave false to respect settings below
 
--- Allow units to CTLD by aircraft type and not by pilot name
-ctld.addPlayerAircraftByType = true
+-- Allow units to CTLD by aircraft type and not by pilot name - this is done everytime a player enters a new unit
+ctld.addPlayerAircraftByType = false
 
 ctld.hoverPickup = true --  if set to false you can load crates with the F10 menu instead of hovering... Only if not using real crates!
-ctld.loadCrateFromMenu = true -- if set to true, you can load crates with the F10 menu OR hovering, in case of using choppers and planes for example.
+ctld.loadCrateFromMenu = false -- if set to true, you can load crates with the F10 menu OR hovering, in case of using choppers and planes for example.
 
 ctld.enableCrates = true -- if false, Helis will not be able to spawn or unpack crates so will be normal CTTS
-ctld.slingLoad = true -- if false, crates can be used WITHOUT slingloading, by hovering above the crate, simulating slingloading but not the weight...
+ctld.slingLoad = false -- if false, crates can be used WITHOUT slingloading, by hovering above the crate, simulating slingloading but not the weight...
 -- There are some bug with Sling-loading that can cause crashes, if these occur set slingLoad to false
 -- to use the other method.
 -- Set staticBugFix  to FALSE if use set ctld.slingLoad to TRUE
@@ -94,7 +94,7 @@ ctld.troopPickupAtFOB = true -- if true, troops can also be picked up at a creat
 
 ctld.buildTimeFOB = 120 --time in seconds for the FOB to be built
 
-ctld.crateWaitTime = 0 -- time in seconds to wait before you can spawn another crate
+ ctld.crateWaitTime = 40 -- time in seconds to wait before you can spawn another crate
 
 ctld.forceCrateToBeMoved = true -- a crate must be picked up at least once and moved before it can be unpacked. Helps to reduce crate spam
 
@@ -251,20 +251,20 @@ ctld.wpZones = {
 ctld.aircraftTypeTable = {
     --%%%%% MODS %%%%%
         --"Bronco-OV-10A",
-        "Hercules",
+        --"Hercules",
         --"SK-60",
-        "UH-60L",
+        --"UH-60L",
         --"T-45",
     
     --%%%%% CHOPPERS %%%%%
-        "Ka-50",
-        "Ka-50_3",
+        --"Ka-50",
+        --"Ka-50_3",
         "Mi-8MT",
         "Mi-24P",
-        "SA342L",
-        "SA342M",
-        "SA342Mistral",
-        "SA342Minigun",
+        --"SA342L",
+        --"SA342M",
+        --"SA342Mistral",
+        --"SA342Minigun",
         "UH-1H",
         "CH-47Fbl1",
     
@@ -282,7 +282,7 @@ ctld.aircraftTypeTable = {
         --"Mirage-F1BQ",
         --"Mirage-F1DDA",
         --"Su-25T",
-        "Yak-52",
+        --"Yak-52",
 
     --%%%%% WARBIRDS %%%%%
         --"Bf-109K-4",
@@ -560,9 +560,10 @@ ctld.unitLoadLimits = {
 -- Put the name of the Unit you want to enable loading multiple crates
 
 ctld.internalCargoLimits = {
+
     -- Remove the -- below to turn on options
-  ["Mi-8MT"] = 2,
-  ["CH-47Fbl1"] = 4,
+    --["Mi-8MT"] = 2,
+    --["CH-47Fbl1"] = 4,
 }
 
 
@@ -675,7 +676,16 @@ ctld.loadableGroups = {
     {name = "Mortar Squad", mortar = 6 },
     {name = "JTAC Group", inf = 4, jtac = 1 }, -- will make a loadable group with 4 infantry and a JTAC soldier for both coalitions
     {name = "Single JTAC", jtac = 1 }, -- will make a loadable group witha single JTAC soldier for both coalitions
-    -- {name = "Mortar Squad Red", inf = 2, mortar = 5, side =1 }, --would make a group loadable by RED only
+    {name = "2x - Standard Groups", inf = 12, mg = 4, at = 4 },
+    {name = "2x - Anti Air", inf = 4, aa = 6  },
+    {name = "2x - Anti Tank", inf = 4, at = 12  },
+    {name = "2x - Standard Groups + 2x Mortar", inf = 12, mg = 4, at = 4, mortar = 12 },
+    {name = "3x - Standard Groups", inf = 18, mg = 6, at = 6 },
+    {name = "3x - Anti Air", inf = 6, aa = 9  },
+    {name = "3x - Anti Tank", inf = 6, at = 18  },
+    {name = "3x - Mortar Squad", mortar = 18},
+    {name = "5x - Mortar Squad", mortar = 30},
+-- {name = "Mortar Squad Red", inf = 2, mortar = 5, side =1 }, --would make a group loadable by RED only
 }
 
 -- ************** SPAWNABLE CRATES ******************
@@ -759,16 +769,16 @@ ctld.loadableGroups = {
 
      },
      ["SAM long range"] = {
-         --- BLUE
-         -- Patriot System
-         { weight = 1029, desc = "Patriot Launcher", unit = "Patriot ln", side = 2 },
-         { weight = 1030, desc = "Patriot Radar", unit = "Patriot str" , side = 2 },
-         { weight = 1031, desc = "Patriot ECS", unit = "Patriot ECS", side = 2 },
-         { weight = 1032, desc = "Patriot AMG (optional)", unit = "Patriot AMG" , side = 2 },
-         { weight = 1033, desc = "Patriot Repair", unit = "Patriot Repair" , side = 2 },
-         -- End of Patriot
-     },
- }
+        --- BLUE
+        -- Patriot System
+        { weight = 1029, desc = "Patriot Launcher", unit = "Patriot ln", side = 2 },
+        { weight = 1030, desc = "Patriot Radar", unit = "Patriot str" , side = 2 },
+        { weight = 1031, desc = "Patriot ECS", unit = "Patriot ECS", side = 2 },
+        { weight = 1032, desc = "Patriot AMG (optional)", unit = "Patriot AMG" , side = 2 },
+        { weight = 1033, desc = "Patriot Repair", unit = "Patriot Repair" , side = 2 },
+        -- End of Patriot
+    },
+}
 
  ctld.spawnableCratesModels = {
     ["load"] = {
@@ -5257,26 +5267,45 @@ function ctld.addTransportF10MenuOptions(_unitName)
                     if ctld.enableCrates and _unitActions.crates then
 
                         if ctld.unitCanCarryVehicles(_unit) == false then
+                            -- sort the crate categories alphabetically
+                            local crateCategories = {}
+                            for category, _ in pairs(ctld.spawnableCrates) do
+                                table.insert(crateCategories, category)
+                            end
+                            table.sort(crateCategories)
+                            ctld.logTrace("crateCategories = [%s]", ctld.p(crateCategories))
 
-                            local _cratePath = missionCommands.addSubMenuForGroup(_groupId, "Vehicle / FOB Crates", _rootPath)
                             -- add menu for spawning crates
-                            for _subMenuName, _crates in pairs(ctld.spawnableCrates) do
+                            local itemNbMain = 0
+                            local _cratesMenuPath = missionCommands.addSubMenuForGroup(_groupId, "Vehicle / FOB Crates", _rootPath)
+                            for i = 1, #crateCategories do
+                                local _subMenuName = crateCategories[i]
+                                local _crates = ctld.spawnableCrates[_subMenuName]
 
-                                local _cratePath = missionCommands.addSubMenuForGroup(_groupId, _subMenuName, _cratePath)
+                                -- add the submenu item
+                                itemNbMain = itemNbMain + 1
+                                if itemNbMain > 9 then -- page limit reached
+                                    _cratesMenuPath = missionCommands.addSubMenuForGroup(_groupId, "Next page", _cratesMenuPath)
+                                    itemNbMain = 1
+                                end
+                                local itemNbSubmenu = 0
+                                local _subMenuPath = missionCommands.addSubMenuForGroup(_groupId, _subMenuName, _cratesMenuPath)
                                 for _, _crate in pairs(_crates) do
-
                                     if ctld.isJTACUnitType(_crate.unit) == false
                                             or (ctld.isJTACUnitType(_crate.unit) == true and ctld.JTAC_dropEnabled) then
                                         if _crate.side == nil or (_crate.side == _unit:getCoalition()) then
-
                                             local _crateRadioMsg = _crate.desc
-
                                             --add in the number of crates required to build something
                                             if _crate.cratesRequired ~= nil and _crate.cratesRequired > 1 then
                                                 _crateRadioMsg = _crateRadioMsg.." (".._crate.cratesRequired..")"
                                             end
-
-                                            missionCommands.addCommandForGroup(_groupId,_crateRadioMsg, _cratePath, ctld.spawnCrate, { _unitName, _crate.weight })
+                                            -- add the submenu item
+                                            itemNbSubmenu = itemNbSubmenu + 1
+                                            if itemNbSubmenu > 9 then -- page limit reached
+                                                _subMenuPath = missionCommands.addSubMenuForGroup(_groupId, "Next page", _subMenuPath)
+                                                itemNbSubmenu = 1
+                                            end
+                                            missionCommands.addCommandForGroup(_groupId,_crateRadioMsg, _subMenuPath, ctld.spawnCrate, { _unitName, _crate.weight })
                                         end
                                     end
                                 end

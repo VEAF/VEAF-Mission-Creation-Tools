@@ -20,7 +20,7 @@ veafNamedPoints = {}
 veafNamedPoints.Id = "NAMED POINTS"
 
 --- Version.
-veafNamedPoints.Version = "1.11.3"
+veafNamedPoints.Version = "1.12.0"
 
 -- trace level, specific to this module
 --veafNamedPoints.LogLevel = "trace"
@@ -516,6 +516,11 @@ function veafNamedPoints.messageAtcClosestAirbase(unitName, forUnit)
     end
 end
 
+function veafNamedPoints.getAtcAndWeatherAtClosestPoint(unitName, forUnit)
+    veafNamedPoints.getAtcAtClosestPoint(unitName, forUnit)
+    veafNamedPoints.getWeatherAtClosestPoint(unitName, forUnit)
+end
+
 function veafNamedPoints.getAtcAtClosestPoint(unitName, forUnit)
     if (veafWeather.Active) then -- Flogas 2024 - new weather messages
         veafNamedPoints.messageAtcClosestAirbase(unitName, forUnit)
@@ -627,6 +632,7 @@ function veafNamedPoints.buildRadioMenu()
     veafRadio.addCommandToSubmenu("List all points", veafNamedPoints.rootPath, veafNamedPoints.listAllPoints, nil, veafRadio.USAGE_ForGroup)
     veafRadio.addCommandToSubmenu("Weather on closest point" , veafNamedPoints.rootPath, veafNamedPoints.getWeatherAtClosestPoint, nil, veafRadio.USAGE_ForGroup)
     veafRadio.addCommandToSubmenu("ATC on closest point" , veafNamedPoints.rootPath, veafNamedPoints.getAtcAtClosestPoint, nil, veafRadio.USAGE_ForGroup)
+    veafRadio.addCommandToSubmenu("ATC and weather on closest point" , veafNamedPoints.rootPath, veafNamedPoints.getAtcAndWeatherAtClosestPoint, nil, veafRadio.USAGE_ForGroup)
 
     veafNamedPoints._refreshAtcRadioMenu()
     veafNamedPoints._refreshWeatherReportsRadioMenu()
@@ -671,7 +677,7 @@ function veafNamedPoints.executeCommandFromRemote(parameters)
             return true
         elseif _action and _action:lower() == "atc" then
             veaf.loggers.get(veafNamedPoints.Id):info(string.format("[%s] is requesting atc at his position",veaf.p(_pilotName)))
-            veafNamedPoints.getAtcAtClosestPoint(_unitName, true)
+            veafNamedPoints.getAtcAndWeatherAtClosestPoint(_unitName, true)
             return true
         end
     end

@@ -19,7 +19,7 @@ veafGrass = {}
 veafGrass.Id = "GRASS"
 
 --- Version.
-veafGrass.Version = "2.7.3"
+veafGrass.Version = "2.7.4"
 
 -- trace level, specific to this module
 --veafGrass.LogLevel = "trace"
@@ -233,10 +233,15 @@ veafGrass.WAREHOUSE_ITEMS={[1]={["wsType"]={[1]=1,[2]=3,[3]=43,[4]=10},["initial
 ---@param farp any the FARP to be filled
 function veafGrass.fillFarpWarehouse(farp)
 	veaf.loggers.get(veafGrass.Id):debug("veafGrass.fillFarpWarehouse()")
+	veaf.loggers.get(veafGrass.Id):trace("farp=[%s]", veaf.p(farp))
 	local farpName = farp.name
-	if not farpName then _, farpName = pcall(farp.getName, farp) end
-	if not farpName then farpName = farp.unitName end
-	if not farpName then farpName = farp.groupName end
+	veaf.loggers.get(veafGrass.Id):trace("farpName=[%s]", veaf.p(farpName))
+	local result = farpName ~= nil
+	if not result then result, farpName = pcall(Unit.getUnitName, farp) end
+	veaf.loggers.get(veafGrass.Id):trace("farpName=[%s]", veaf.p(farpName))
+	if not result then result, farpName = pcall(Group.getGroupName, farp) end
+	veaf.loggers.get(veafGrass.Id):trace("farpName=[%s]", veaf.p(farpName))
+	if not result then result, farpName = pcall(Object.getName, farp) end
 	veaf.loggers.get(veafGrass.Id):trace("farpName=[%s]", veaf.p(farpName))
 	if farpName then
 		local farpAirbase = Airbase.getByName(farpName)

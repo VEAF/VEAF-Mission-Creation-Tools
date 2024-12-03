@@ -15,9 +15,9 @@ Write-Host "KeepLogging: $($KeepLogging.IsPresent)"
 Write-Host "DisableSecurity: $($DisableSecurity.IsPresent)"
 Write-Host "Quiet: $($Quiet.IsPresent)"
 
+# WARNING: do not add veaf.lua to this list, it's added later (hardcoded) because it has to be the first in the list
 [String[]]$VeafScripts = 
 "dcsUnits.lua",
-"veaf.lua",
 "veafAirbases.lua",
 "veafAirWaves.lua",
 "veafAssets.lua",

@@ -3825,7 +3825,7 @@ function veaf.ctld_initialize_replacement(configurationCallback)
         ctld.Id = "CTLD"
         --ctld.LogLevel = "info"
         --ctld.LogLevel = "debug"
-        ctld.LogLevel = "trace"
+        --ctld.LogLevel = "trace"
 
         ctld.logger = veaf.loggers.new(ctld.Id, ctld.LogLevel)
 

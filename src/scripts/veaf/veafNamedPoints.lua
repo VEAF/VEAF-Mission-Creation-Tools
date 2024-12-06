@@ -20,7 +20,7 @@ veafNamedPoints = {}
 veafNamedPoints.Id = "NAMED POINTS"
 
 --- Version.
-veafNamedPoints.Version = "1.12.0"
+veafNamedPoints.Version = "1.13.0"
 
 -- trace level, specific to this module
 --veafNamedPoints.LogLevel = "trace"
@@ -35,8 +35,6 @@ veafNamedPoints.Points = {
 }
 
 veafNamedPoints.RadioMenuName = "NAMED POINTS"
-
-veafNamedPoints.LowerRadioMenuSize = true
 
 veafNamedPoints.RemoteCommandParser = "([[a-zA-Z0-9]+)%s?([^%s]*)%s?(.*)"
 
@@ -157,8 +155,6 @@ end
 function veafNamedPoints.addPoint(name, point)
     veaf.loggers.get(veafNamedPoints.Id):trace(string.format("addPoint: {name=\"%s\",point={x=%d,y=0,z=%d}}", name, point.x, point.z))
     veafNamedPoints._addPoint(name, point)
-    veafNamedPoints._refreshAtcRadioMenu()
-    veafNamedPoints._refreshWeatherReportsRadioMenu()
 end
 
 function veafNamedPoints._addPoint(name, point)
@@ -581,43 +577,9 @@ function veafAssets._buildWeatherReportRadioMenu(menu, title, element)
     veafRadio.addCommandToSubmenu(title , menu, veafNamedPoints.getWeatherAtPoint, element.name, veafRadio.USAGE_ForGroup)
 end
 
---- refresh the Weather Reports radio menu
-function veafNamedPoints._refreshWeatherReportsRadioMenu()
-    if not veafNamedPoints.LowerRadioMenuSize then
-        if veafNamedPoints.weatherPath then
-            veaf.loggers.get(veafNamedPoints.Id):trace("deleting weather report submenu")
-            veafRadio.delSubmenu(veafNamedPoints.weatherPath, veafNamedPoints.rootPath)
-        end
-        veaf.loggers.get(veafNamedPoints.Id):trace("adding weather report submenu")
-        local points = {}
-        for name, point in pairs(veafNamedPoints.namedPoints) do
-            if not point.hidden then points[name] = point end
-        end
-        veafNamedPoints.weatherPath = veafRadio.addPaginatedRadioMenu("Get weather report over a point", veafNamedPoints.rootPath, veafAssets._buildWeatherReportRadioMenu, points)
-        veafRadio.refreshRadioMenu()
-    end
-end
-
 function veafAssets._buildAtcRadioMenu(menu, title, element)
     local namedPoint = element
     veafRadio.addCommandToSubmenu(title , menu, veafNamedPoints.getAtcAtPoint, element.name, veafRadio.USAGE_ForGroup)
-end
-
---- refresh the ATC radio menu
-function veafNamedPoints._refreshAtcRadioMenu()
-    if not veafNamedPoints.LowerRadioMenuSize then
-        if veafNamedPoints.atcPath then
-            veaf.loggers.get(veafNamedPoints.Id):trace("deleting ATC submenu")
-            veafRadio.delSubmenu(veafNamedPoints.atcPath, veafNamedPoints.rootPath)
-        end
-        local points = {}
-        for name, point in pairs(veafNamedPoints.namedPoints) do
-            if point.atc and not point.hidden then points[name] = point end
-        end
-        veafNamedPoints.atcPath = veafRadio.addPaginatedRadioMenu("Get ATC information", veafNamedPoints.rootPath, veafAssets._buildAtcRadioMenu, points)
-    end
-
-    veafRadio.refreshRadioMenu()
 end
 
 --- Build the initial radio menu
@@ -633,9 +595,6 @@ function veafNamedPoints.buildRadioMenu()
     veafRadio.addCommandToSubmenu("Weather on closest point" , veafNamedPoints.rootPath, veafNamedPoints.getWeatherAtClosestPoint, nil, veafRadio.USAGE_ForGroup)
     veafRadio.addCommandToSubmenu("ATC on closest point" , veafNamedPoints.rootPath, veafNamedPoints.getAtcAtClosestPoint, nil, veafRadio.USAGE_ForGroup)
     veafRadio.addCommandToSubmenu("ATC and weather on closest point" , veafNamedPoints.rootPath, veafNamedPoints.getAtcAndWeatherAtClosestPoint, nil, veafRadio.USAGE_ForGroup)
-
-    veafNamedPoints._refreshAtcRadioMenu()
-    veafNamedPoints._refreshWeatherReportsRadioMenu()
 end
 
 --      add ", defense [1-5]" to specify air defense cover on the way (1 = light, 5 = heavy)

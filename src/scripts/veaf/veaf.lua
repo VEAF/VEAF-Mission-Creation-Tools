@@ -19,7 +19,7 @@ veaf = {}
 veaf.Id = "VEAF"
 
 --- Version.
-veaf.Version = "1.51.0"
+veaf.Version = "1.52.0"
 
 --- Development version ?
 veaf.Development = false
@@ -831,6 +831,42 @@ function veaf.computeLLFromString(value)
         end
     end
     -- unrecognized format
+    return nil
+end
+
+function veaf.findDcsAirbase(name)
+    local dcsAirbase = Airbase.getByName(name)
+    if (dcsAirbase) then
+        return dcsAirbase
+    end
+
+    -- Remove "AIRBASE " prefix if it exists (case insensitive)
+    name = name:gsub("^[Aa][Ii][Rr][Bb][Aa][Ss][Ee]%s+", "")
+
+    -- Helper function to normalize strings
+    local function normalize(s)
+        -- Convert to lowercase
+        s = s:lower()
+        -- Remove spaces and punctuation
+        s = s:gsub("[%s%p]", "")
+        return s
+    end
+        
+    name = normalize(name)
+    
+    local airBases = world.getAirbases()
+    for i = 1, #airBases do
+        dcsAirbase = airBases[i]
+        local sAirbaseName = dcsAirbase:getName()
+        -- Normalize each list item
+        sAirbaseName = normalize(sAirbaseName)
+        
+        -- Compare normalized strings
+        if (sAirbaseName == name) then
+            return dcsAirbase
+        end
+    end
+        
     return nil
 end
 

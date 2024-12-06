@@ -14,16 +14,21 @@ veafWeather = {}
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 --- Identifier. All output in DCS.log will start with this.
-veafWeather.Id = "WEATHER_INFO"
+veafWeather.Id = "WEATHER"
 
 --- Version.
-veafWeather.Version = "1.0.0"
+veafWeather.Version = "1.1.0"
 
 -- trace level, specific to this module
 --veafWeather.LogLevel = "trace"
 veaf.loggers.new(veafWeather.Id, veafWeather.LogLevel)
 
-veafWeather.Active = false
+--- Key phrase to look for in the mark text which triggers the command.
+veafWeather.Keyphrase = "_weather"
+
+veafWeather.RadioMenuName = "WEATHER AND ATC"
+
+veafWeather.RemoteCommandParser = "([[a-zA-Z0-9]+)%s?([^%s]*)%s?(.*)"
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Local constants
@@ -1057,7 +1062,7 @@ end
 ---------------------------------------------------------------------------------------------------
 ---  Methods
 
-   
+
 ---------------------------------------------------------------------------------------------------
 ---  Static methods
 function veafWeatherAtis.getAtis(veafAirbase)
@@ -1097,7 +1102,7 @@ function veafWeatherAtis.getAtisStringFromVeafPoint(sPointName, iAbsTime)
         return "No point name"
     end
 
-    local dcsAirbase = veafNamedPoints.findDcsAirbase(sPointName)
+    local dcsAirbase = veaf.findDcsAirbase(sPointName)
     local veafAirbase = veafAirbases.getAirbaseFromDcsAirbase(dcsAirbase)
 
     if (veafAirbase == nil) then
@@ -1105,10 +1110,99 @@ function veafWeatherAtis.getAtisStringFromVeafPoint(sPointName, iAbsTime)
         return "Airbase not found for point " .. sPointName
     end
 
-    veaf.loggers.get(veafWeather.Id):trace("Airbase found from veaf point " .. sPointName .. ": " .. dcsAirbase:getName())    
+    veaf.loggers.get(veafWeather.Id):trace("Airbase found from veaf point named %s: %s",veaf.p(sPointName), veaf.p(veaf.ifnn(dcsAirbase, "getName")))
+
     return veafWeatherAtis.getAtisString(veafAirbase, iAbsTime)
 end
 
+function veafWeather.messageWeatherAtClosestPoint(unitName, forUnit)
+    veaf.loggers.get(veafWeather.Id):debug("veafWeather.messageWeatherAtClosestPoint(unitName=%s)",veaf.p(unitName))
+    local closestPoint = veafNamedPoints.getNearestPoint(unitName)
+    if closestPoint then
+        local BR = veafNamedPoints.getPointBearing({closestPoint.name, unitName})
+        if BR then BR = " ("..BR..")" else BR = "" end
+        local weatherReport = "WEATHER        : " .. closestPoint.name .. BR .. "\n\n"
+        weatherReport = weatherReport .. veafWeatherData.getWeatherString(closestPoint, unitName)
+        if forUnit then
+            veaf.outTextForUnit(unitName, weatherReport, 30)
+        else
+            veaf.outTextForGroup(unitName, weatherReport, 30)
+        end
+    end
+end
+
+function veafWeather.messageAtcClosestAirbase(unitName, forUnit)
+    local dcsUnit = Unit.getByName(unitName)
+    local veafAirbase = veafAirbases.getNearestAirbase(dcsUnit)
+    if (veafAirbase) then
+        local sAtcReport = veafWeatherAtis.getAtisString(veafAirbase)
+        if forUnit then
+            veaf.outTextForUnit(dcsUnit:getName(), sAtcReport, 30)
+        else
+            veaf.outTextForGroup(dcsUnit:getName(), sAtcReport, 30)
+        end
+    end
+end
+
+function veafWeather.messageAtcAndWeather(unitName, forUnit)
+    veafWeather.messageWeatherAtClosestPoint(unitName, forUnit)
+    veafWeather.messageAtcClosestAirbase(unitName, forUnit)
+end
+
+
+---------------------------------------------------------------------------------------------------
+---  Radio menu and remote interface
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+--- Build the initial radio menu
+function veafWeather.buildRadioMenu()
+    veaf.loggers.get(veafWeather.Id):debug("buildRadioMenu()")
+
+    veafWeather.rootPath = veafRadio.addSubMenu(veafWeather.RadioMenuName)
+    veafRadio.addCommandToSubmenu("Weather on closest point" , veafWeather.rootPath, veafWeather.messageWeatherAtClosestPoint, nil, veafRadio.USAGE_ForGroup)
+    veafRadio.addCommandToSubmenu("ATC on closest airbase" , veafWeather.rootPath, veafWeather.messageAtcClosestAirbase, nil, veafRadio.USAGE_ForGroup)
+    veafRadio.addCommandToSubmenu("ATC and weather in one go" , veafWeather.rootPath, veafWeather.messageAtcAndWeather, nil, veafRadio.USAGE_ForGroup)
+end
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- remote interface
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+-- execute command from the remote interface
+function veafWeather.executeCommandFromRemote(parameters)
+    veaf.loggers.get(veafWeather.Id):debug(string.format("veafWeather.executeCommandFromRemote()"))
+    veaf.loggers.get(veafWeather.Id):trace(string.format("parameters= %s", veaf.p(parameters)))
+    local _pilot, _pilotName, _unitName, _command = unpack(parameters)
+    veaf.loggers.get(veafWeather.Id):trace(string.format("_pilot= %s", veaf.p(_pilot)))
+    veaf.loggers.get(veafWeather.Id):trace(string.format("_pilotName= %s", veaf.p(_pilotName)))
+    veaf.loggers.get(veafWeather.Id):trace(string.format("_unitName= %s", veaf.p(_unitName)))
+    veaf.loggers.get(veafWeather.Id):trace(string.format("_command= %s", veaf.p(_command)))
+    if not _pilot or not _command then
+        return false
+    end
+
+    if _command then
+        -- parse the command
+        local _action, _pointName, _parameters = _command:match(veafWeather.RemoteCommandParser)
+        veaf.loggers.get(veafWeather.Id):trace(string.format("_action=%s",veaf.p(_action)))
+        veaf.loggers.get(veafWeather.Id):trace(string.format("_pointName=%s",veaf.p(_pointName)))
+        veaf.loggers.get(veafWeather.Id):trace(string.format("_parameters=%s",veaf.p(_parameters)))
+        if _action and _action:lower() == "weather" then
+            veaf.loggers.get(veafWeather.Id):info(string.format("[%s] is requesting weather",veaf.p(_pilotName)))
+            veafWeather.messageWeatherAtClosestPoint(_unitName, true)
+            return true
+        elseif _action and _action:lower() == "atc" then
+            veaf.loggers.get(veafNamedPoints.Id):info(string.format("[%s] is requesting atc",veaf.p(_pilotName)))
+            veafWeather.messageAtcClosestAirbase(_unitName, true)
+            return true
+        elseif not _action or _action:lower() == "all" then
+            veaf.loggers.get(veafNamedPoints.Id):info(string.format("[%s] is requesting both atc and weather",veaf.p(_pilotName)))
+            veafWeather.messageAtcAndWeather(_unitName, true)
+            return true
+        end
+    end
+    return false
+end
 
 ---------------------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------
@@ -1116,8 +1210,11 @@ end
 ---------------------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------
 
-veafAirbases.initialize()
-veaf.loggers.get(veafWeather.Id):trace("Airbases and runways initialized for theater " .. env.mission.theatre)
-for _, veafAirbase in pairs(veafAirbases.Airbases) do
-    veaf.loggers.get(veafWeather.Id):trace(veafWeatherAtis.getAtisString(veafAirbase))
+function veafWeather.initialize()
+    veaf.loggers.get(veafWeather.Id):debug("veafWeather.initialize()")
+    veafWeather.buildRadioMenu()
+    -- TODO veafMarkers.registerEventHandler(veafMarkers.MarkerChange, veafWeather.onEventMarkChange)
+    veafAirbases.initialize()
 end
+
+veaf.loggers.get(veafWeather.Id):info(string.format("Loading version %s", veafWeather.Version))

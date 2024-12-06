@@ -20,7 +20,7 @@ veafRadio = {}
 veafRadio.Id = "RADIO"
 
 --- Version.
-veafRadio.Version = "1.13.0"
+veafRadio.Version = "1.13.1"
 
 -- trace level, specific to this module
 --veafRadio.LogLevel = "trace"
@@ -484,8 +484,11 @@ function veafRadio._addCommand(groupId, title, menu, command, parameters)
 end
 
 function veafRadio.refreshRadioSubmenu(parentRadioMenu, radioMenu, radioMeasures)
-  veaf.loggers.get(veafRadio.Id):trace("veafRadio.refreshRadioSubmenu "..radioMenu.title)
+  veaf.loggers.get(veafRadio.Id):debug("veafRadio.refreshRadioSubmenu %s", veaf.p(veaf.ifnn(radioMenu, "title")))
 
+  if not radioMenu or not radioMenu.title then
+    return
+  end
 
   local trace = false
 

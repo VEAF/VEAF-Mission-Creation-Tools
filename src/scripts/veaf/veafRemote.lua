@@ -19,7 +19,7 @@ veafRemote = {}
 veafRemote.Id = "REMOTE"
 
 --- Version.
-veafRemote.Version = "2.2.1"
+veafRemote.Version = "2.3.0"
 
 -- trace level, specific to this module
 --veafRemote.LogLevel = "trace"
@@ -277,6 +277,9 @@ function veafRemote.executeCommandFromRemote(username, level, unitName, veafModu
     elseif _module == "point" then
         veaf.loggers.get(veafRemote.Id):debug(string.format("running veafNamedPoints.executeCommandFromRemote"))
         _status, _retval = pcall(veafNamedPoints.executeCommandFromRemote, _parameters)
+    elseif _module == "atis" or _module == "atc" or _module == "weather" then
+        veaf.loggers.get(veafRemote.Id):debug(string.format("running veafWeather.executeCommandFromRemote"))
+        _status, _retval = pcall(veafWeather.executeCommandFromRemote, _parameters)
     elseif _module == "alias" then
         veaf.loggers.get(veafRemote.Id):debug(string.format("running veafShortcuts.executeCommandFromRemote"))
         _status, _retval = pcall(veafShortcuts.executeCommandFromRemote, _parameters)

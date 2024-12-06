@@ -1149,6 +1149,150 @@ function veafWeather.messageAtcAndWeather(unitName, forUnit)
     veafWeather.messageAtcClosestAirbase(unitName, forUnit)
 end
 
+----------------------------------------------------------------------------------------------------
+--- WEATHER modifications during runtime
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- VeafFog class methods
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+VeafFog = {}
+VeafFog.DELAY_BETWEEN_DYNAMIC_CHECKS = 30
+
+function VeafFog.init(object)
+  -- technical name
+  object.name = nil
+  -- scheduled function that is used to update the object
+  object.dynamicCheckFunctionScheduled = nil
+  -- if true, the object is enabled and the fog settings (static and/or dynamic) are applied
+  object.enabled = false
+  -- the dynamic fog parameters for this object
+  object.fogAnimationData = {}
+  -- the static fog parameters for this object
+  object.fogStaticData = {visibility = 10000, thickness = 150}
+  -- the static fog parameters saved by this object (stored state before it changes them)
+  object.savedFogStaticData = nil
+end
+
+function VeafFog:new(objectToCopy)
+  veaf.loggers.get(veafWeather.Id):debug("VeafFog:new()")
+  local objectToCreate = objectToCopy or {} -- create object if user does not provide one
+  setmetatable(objectToCreate, self)
+  self.__index = self
+
+  -- init the new object
+  VeafFog.init(objectToCreate)
+
+  return objectToCreate
+end
+
+function VeafFog:enable()
+    veaf.loggers.get(veafWeather.Id):debug("VeafFog[%s]:enable()", veaf.p(self.name))
+
+    self.enabled = true
+
+    -- store the existing fog parameters
+    veaf.loggers.get(veafWeather.Id):trace("store the existing fog parameters")
+    veaf.loggers.get(veafWeather.Id):trace("world.weather.getFogVisibilityDistance()=[%s]", veaf.p(world.weather.getFogVisibilityDistance()))
+    veaf.loggers.get(veafWeather.Id):trace("world.weather.getFogThickness()=[%s]", veaf.p(world.weather.getFogThickness()))
+    self.fogSavedStaticData = {visibility = world.weather.getFogVisibilityDistance(), thickness = world.weather.getFogThickness()}
+
+    -- set the fog to the programmed parameters
+    veaf.loggers.get(veafWeather.Id):trace("set the fog to the programmed parameters")
+    if self.fogDynamicData then
+        veaf.loggers.get(veafWeather.Id):trace("self.fogDynamicData=[%s]", veaf.p(self.fogDynamicData))
+        -- create an animation that starts with the current values
+        local animation = {
+            --{1, world.weather.getFogThickness(), world.weather.getFogVisibilityDistance()},
+            self.fogDynamicData
+        }
+        -- first reset fog animation
+        veaf.loggers.get(veafWeather.Id):trace("first reset fog animation")
+        world.weather.setFogAnimation({})
+        veaf.loggers.get(veafWeather.Id):trace("store the existing fog parameters")
+        veaf.loggers.get(veafWeather.Id):trace("world.weather.getFogVisibilityDistance()=[%s]", veaf.p(world.weather.getFogVisibilityDistance()))
+        veaf.loggers.get(veafWeather.Id):trace("world.weather.getFogThickness()=[%s]", veaf.p(world.weather.getFogThickness()))
+        -- set the new fog animation
+        world.weather.setFogAnimation(animation)
+    elseif self.fogStaticData then
+        veaf.loggers.get(veafWeather.Id):trace("self.fogStaticData=[%s]", veaf.p(self.fogStaticData))
+        world.weather.setFogThickness(self.fogStaticData.thickness)
+        world.weather.setFogVisibilityDistance(self.fogStaticData.visibility)
+    end
+
+    -- do the first check, the method will reschedule itself
+    veaf.loggers.get(veafWeather.Id):trace("do the first check, the method will reschedule itself")
+    self:dynamicCheck()
+
+    return self
+end
+
+function VeafFog:disable(dontRestore)
+    veaf.loggers.get(veafWeather.Id):debug("VeafFog[%s]:disable()", veaf.p(self.name))
+
+    -- disable the scheduler
+    veaf.loggers.get(veafWeather.Id):trace("disable the scheduler")
+    if self.dynamicCheckFunctionScheduled then
+        mist.removeFunction(self.dynamicCheckFunctionScheduled)
+        self.dynamicCheckFunctionScheduled = nil
+    end
+
+    self.enabled = false
+
+    if not dontRestore then
+        -- reset to the fog values stored at start
+        veaf.loggers.get(veafWeather.Id):trace("reset to the fog values stored at start")
+        if self.fogSavedStaticData then
+            world.weather.setFogThickness(self.fogSavedStaticData.thickness)
+            world.weather.setFogVisibilityDistance(self.fogSavedStaticData.visibility)
+        end
+    end
+
+    return self
+end
+
+function VeafFog:dynamicCheck()
+    veaf.loggers.get(veafWeather.Id):debug("VeafFog[%s]:dynamicCheck()", veaf.p(self.name))
+
+    -- do nothing useful for the moment
+
+    -- reschedule
+    self.dynamicCheckFunctionScheduled = timer.scheduleFunction(VeafFog.dynamicCheck, self, timer.getTime() + VeafFog.DELAY_BETWEEN_DYNAMIC_CHECKS)
+end
+
+function veafWeather.createStaticFog(name, thickness, visibility)
+    local fog = VeafFog:new()
+    fog.name = name
+    fog.fogStaticData = { thickness = thickness, visibility = visibility}
+    return fog
+end
+
+function veafWeather.createDynamicFog(name, minutes, thickness, visibility)
+    local fog = VeafFog:new()
+    fog.name = name
+    fog.fogDynamicData = {minutes, visibility, thickness}
+    return fog
+end
+
+function veafWeather.setAndActivateFog(fogObject)
+    veaf.loggers.get(veafWeather.Id):trace("fogObject=[%s]", veaf.p(fogObject))
+
+    -- disable the existing fog object if any
+    if veafWeather.existingFog ~= nil then
+        veaf.loggers.get(veafWeather.Id):trace("disable the existing fog object if any")
+        veaf.loggers.get(veafWeather.Id):trace("veafWeather.existingFog=[%s]", veaf.p(veafWeather.existingFog))
+        veafWeather.existingFog:disable(true)
+    end
+
+    -- activate the new fog object
+    veaf.loggers.get(veafWeather.Id):trace("activate the new fog object")
+    veafWeather.existingFog = fogObject
+    fogObject:enable()
+
+    trigger.action.outText("Fog set to "..fogObject.name, 5)
+
+    return fogObject
+end
 
 ---------------------------------------------------------------------------------------------------
 ---  Radio menu and remote interface
@@ -1158,10 +1302,40 @@ end
 function veafWeather.buildRadioMenu()
     veaf.loggers.get(veafWeather.Id):debug("buildRadioMenu()")
 
-    veafWeather.rootPath = veafRadio.addSubMenu(veafWeather.RadioMenuName)
+    veafWeather.rootPath = veafRadio.addMenu(veafWeather.RadioMenuName)
     veafRadio.addCommandToSubmenu("Weather on closest point" , veafWeather.rootPath, veafWeather.messageWeatherAtClosestPoint, nil, veafRadio.USAGE_ForGroup)
     veafRadio.addCommandToSubmenu("ATC on closest airbase" , veafWeather.rootPath, veafWeather.messageAtcClosestAirbase, nil, veafRadio.USAGE_ForGroup)
     veafRadio.addCommandToSubmenu("ATC and weather in one go" , veafWeather.rootPath, veafWeather.messageAtcAndWeather, nil, veafRadio.USAGE_ForGroup)
+
+    local fogPath = veafRadio.addSubMenu("Fog settings", veafWeather.rootPath)
+
+    local function addRadioCommandForFog(name, minutes, thickness, visibility, radioMenu)
+        if minutes then
+            local overMinutesText = string.format(" over %d minutes", minutes)
+            veafRadio.addSecuredCommandToSubmenu(name..overMinutesText, radioMenu, veafWeather.setAndActivateFog, veafWeather.createDynamicFog(name..overMinutesText, minutes, thickness, visibility), veafRadio.USAGE_ForAll)
+        else
+            veafRadio.addSecuredCommandToSubmenu(name, radioMenu, veafWeather.setAndActivateFog, veafWeather.createStaticFog(name, thickness, visibility), veafRadio.USAGE_ForAll)
+        end
+    end
+    
+    local staticFogPath = veafRadio.addSubMenu("Static fog", fogPath)
+    addRadioCommandForFog("Static HEAVY fog", nil, 500, 100, staticFogPath)
+    addRadioCommandForFog("Static MEDIUM fog", nil, 500, 500, staticFogPath)
+    addRadioCommandForFog("Static MEDIUM LOW fog", nil, 100, 500, staticFogPath)
+    addRadioCommandForFog("Static SPARSE fog", nil, 500, 5000, staticFogPath)
+    addRadioCommandForFog("Static SPARSE LOW fog", nil, 100, 5000, staticFogPath)
+    addRadioCommandForFog("Static NO fog", nil, 0, 0, staticFogPath)
+
+    for _, minutes in pairs({1, 5, 10, 15, 30, 60, 90}) do
+        local overMinutesText = string.format(" over %d minutes", minutes)
+        local dynamicFogPath = veafRadio.addSubMenu("Dynamic fog"..overMinutesText, fogPath)
+        addRadioCommandForFog("Dynamic HEAVY fog", minutes, 500, 100, dynamicFogPath)
+        addRadioCommandForFog("Dynamic MEDIUM fog", minutes, 500, 500, dynamicFogPath)
+        addRadioCommandForFog("Dynamic MEDIUM LOW fog", minutes, 100, 500, dynamicFogPath)
+        addRadioCommandForFog("Dynamic SPARSE fog", minutes, 500, 5000, dynamicFogPath)
+        addRadioCommandForFog("Dynamic SPARSE LOW fog", minutes, 100, 5000, dynamicFogPath)
+        addRadioCommandForFog("Dynamic NO fog", minutes, 0, 0, dynamicFogPath)
+    end
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------

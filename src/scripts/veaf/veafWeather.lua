@@ -87,10 +87,12 @@ local _cloudDensityOktas =
 }
 
 local _nKelvinToCelciusOffset = -273.15
+
+local _visibilityAffect = { None = 0, Fog = 1, Mist = 2, Haze = 3 }
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Local tools
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
-local function _estimateClearSkyRelativeHumidity(nLatitude, nLongitude, iDayOfYear)
+local function _computeClearSkyHumidity(nLatitude, nLongitude, iDayOfYear)
     -- Base RH for clear skies
     local baseRh = 30
     
@@ -118,60 +120,49 @@ local function _estimateClearSkyRelativeHumidity(nLatitude, nLongitude, iDayOfYe
     return math.max(20, math.min(70, adjustedRh))
 end
 
-local function _adjustClearSkyRelativeHumidity(base_rh, iVisibilityMeters, bFog, bPrecipitations)
-    local adjusted_rh = base_rh
-    
-    -- Visibility adjustments (visibility in meters)
-    if iVisibilityMeters < 10000 then
-        -- Increase RH as visibility decreases
-        local visibility_factor = math.max(0, (10000 - iVisibilityMeters) / 10000)
-        adjusted_rh = adjusted_rh + (visibility_factor * 20)  -- Up to +20% for low visibility
-    end
-    
-    -- Fog adjustments
-    if bFog then
-        if iVisibilityMeters < 1000 then
-            -- Dense fog
-            adjusted_rh = 100  -- Fog implies saturation
-        else
-            -- Light fog/mist
-            adjusted_rh = math.max(adjusted_rh, 90)  -- At least 90% RH with any fog
-        end
-    end
-    
-    -- Precipitation adjustments
-    if (bPrecipitations) then
-        adjusted_rh = math.max(adjusted_rh, 80)
-    end
-    
-    -- Clamp final value
-    return math.max(0, math.min(100, adjusted_rh))
-end
-
-local function _estimateDewpoint(vec3, nTemperatureCelcius, nQnhPa, iCloudBaseMeters, iVisibilityMeters, bFog, bPrecipitations, iAbsTime)
+local function _computeHumidity(vec3, iCloudBaseMeters, iVisibilityMeters, bPrecipitations, iAbsTime)
     local nLatitude, nLongitude, _ = coord.LOtoLL(vec3)
-    local nQnhHpa = nQnhPa / 100
-    local nRelativeHumidity
+    local nHumidity
     
     if (iCloudBaseMeters == nil or iCloudBaseMeters > 10000) then
         -- Clear skies - estimate RH based on location and date
         local dateTime = veafTime.getMissionDateTime(iAbsTime)
-        nRelativeHumidity = _estimateClearSkyRelativeHumidity(nLatitude, nLongitude, dateTime.yday)
+        nHumidity = _computeClearSkyHumidity(nLatitude, nLongitude, dateTime.yday)
     else
         -- Convert cloud base to meters and estimate RH
-        nRelativeHumidity = 100 - (iCloudBaseMeters / 100)
+        nHumidity = 100 - (iCloudBaseMeters / 100)
         -- Clamp RH between 0 and 100%
-        nRelativeHumidity = math.max(0, math.min(100, nRelativeHumidity))
+        nHumidity = math.max(0, math.min(100, nHumidity))
     end
     
-    nRelativeHumidity = _adjustClearSkyRelativeHumidity(nRelativeHumidity, iVisibilityMeters, bFog, bPrecipitations)
+    if (iVisibilityMeters < 1000) then
+        nHumidity = 100  -- Fog implies saturation
+    elseif (iVisibilityMeters < 5000) then
+        nHumidity = math.max(nHumidity, 90)  -- At least 90% RH with any fog
+    elseif (iVisibilityMeters < 10000) then
+        -- Increase RH as visibility decreases
+        local nVisibilityFactor = math.max(0, (10000 - iVisibilityMeters) / 10000)
+        nHumidity = nHumidity + (nVisibilityFactor * 20)  -- Up to +20% for low visibility
+    end
+    
+    -- Precipitation adjustments
+    if (bPrecipitations) then
+        nHumidity = math.max(nHumidity, 80)
+    end
+    
+    -- Clamp final value
+    return math.max(0, math.min(100, nHumidity))
+end
+
+local function _computeDewpoint(nTemperatureCelcius, nQnhPa, nHumidity)
+    local nQnhHpa = nQnhPa / 100
 
     -- Constants for Magnus formula
     local a = 17.27
     local b = 237.7
     
     -- Calculate gamma term
-    local gamma = ((a * nTemperatureCelcius) / (b + nTemperatureCelcius)) + math.log(nRelativeHumidity/100.0)
+    local gamma = ((a * nTemperatureCelcius) / (b + nTemperatureCelcius)) + math.log(nHumidity/100.0)
     
     -- Calculate dew point using Magnus formula
     local nDewPointCelcius = (b * gamma) / (a - gamma)
@@ -390,16 +381,6 @@ function veafWeatherData:create(vec3, iAbsTime, iAltitudeMeters)
     local iWindDirSurface, iWindSpeedSurfaceMps = weathermark._GetWind(vec3, iAltitudeMeters + 10) -- Measure the wind velocity at the standard height of 10 metres above the surface. This is the internationally accepted meteorological definition of ‘surface wind’ designed to eliminate distortion attributable to very local terrain effects
 
     local iVisibilityMeters = env.mission.weather.visibility.distance
-    local bFog = env.mission.weather.enable_fog
-    if (bFog) then
-        -- ground + 75 meters seems to be the point where it can be counted as a real impact on visibility
-        if(env.mission.weather.fog.thickness < iAltitudeMeters + 75) then
-            bFog = false
-        elseif (env.mission.weather.fog.visibility < iVisibilityMeters) then
-            iVisibilityMeters = env.mission.weather.fog.visibility
-        end
-    end
-
     local clouds = nil
     local bPrecipitation = false;
     local sCloudPreset = env.mission.weather.clouds.preset
@@ -418,10 +399,38 @@ function veafWeatherData:create(vec3, iAbsTime, iAltitudeMeters)
             end
         end
     end
+
+    local iFogMode = 0
+    if (env.mission.weather.fog2) then
+        iFogMode = env.mission.weather.fog2.mode
+    end
+
+    if (iFogMode > 0) then
+        local iFogThicknessMeters = world.weather.getFogThickness()
+        local iFogVisibilityMeters = world.weather.getFogVisibilityDistance()
+           
+        if (iFogThicknessMeters >= iAltitudeMeters) then
+            iVisibilityMeters = iFogVisibilityMeters
+        end
+    end
     
     local _, nQfePa = atmosphere.getTemperatureAndPressure({ x = vec3.x, y = iAltitudeMeters, z = vec3.z })
     local nTemperatureKelvin, nQnhPa = atmosphere.getTemperatureAndPressure({ x = vec3.x, y = 0, z = vec3.z })
     local nTemperatureCelcius = nTemperatureKelvin + _nKelvinToCelciusOffset
+
+    local nHumidity = _computeHumidity(vec3, clouds.BaseMeters, iVisibilityMeters, bPrecipitation, iAbsTime)
+    local nDewPointCelcius = _computeDewpoint(nTemperatureCelcius, nQnhPa, nHumidity)
+
+    -- Fog FG or mist BR: fog is less than 1000 meters visibility. Mist BR or haze HZ: if the humidity is more than 80% it is mist.
+    local visibilityAffect = _visibilityAffect.None
+    if (iVisibilityMeters < 1000) then
+        visibilityAffect = _visibilityAffect.Fog
+    elseif (iVisibilityMeters < 5000 and nHumidity >= 80) then
+        visibilityAffect = _visibilityAffect.Mist
+    elseif (iVisibilityMeters < 5000) then
+        visibilityAffect = _visibilityAffect.Haze
+    end
+
 
     local this =
     {
@@ -432,11 +441,11 @@ function veafWeatherData:create(vec3, iAbsTime, iAltitudeMeters)
         WindSpeedMps = iWindSpeedSurfaceMps,
         VisibilityMeters = iVisibilityMeters,
         Dust = env.mission.weather.enable_dust,
-        Fog = bFog,
+        VisibilityAffect = visibilityAffect, 
         Clouds = clouds,
         Precipitation = bPrecipitation,
         TemperatureCelcius = nTemperatureCelcius,
-        DewPointCelcius = _estimateDewpoint(vec3, nTemperatureCelcius, nQnhPa / 100, clouds.BaseMeters, iVisibilityMeters, bFog, bPrecipitation, iAbsTime),
+        DewPointCelcius = nDewPointCelcius,
         QnhHpa = nQnhPa / 100,
         QfeHpa = nQfePa / 100,
         Sunrise = sunTimes.Sunrise,
@@ -542,12 +551,12 @@ function veafWeatherData:getNormalizedCloudsDensity()
 end
 
 function veafWeatherData:isCavok()
-    local iCloudHeightMeters = veafWeatherData:getNormalizedCloudBaseMeters(true)
+    local iCloudHeightMeters = self:getNormalizedCloudBaseMeters(true)
 
     if (iCloudHeightMeters == nil or mist.utils.metersToFeet(iCloudHeightMeters) < 5000) then
         return false -- no clouds or cloud below 5000 ft
     else
-       return (self.VisibilityMeters >= 10000 and not self.Precipitation and not self.Fog and not self.Dust)
+       return (self.VisibilityMeters >= 10000 and not self.Precipitation and not self.Dust)
     end
 end
 
@@ -662,8 +671,12 @@ function veafWeatherData:toStringVisibility(unitSystem, bWithMax)
         sVisibility = veafWeatherData:appendString(sVisibility, sVisibilityNauticalMile)
     end
 
-    if (self.Fog) then
+    if (self.VisibilityAffect == _visibilityAffect.Fog) then
         sVisibility = sVisibility .. " - fog"
+    elseif (self.VisibilityAffect == _visibilityAffect.Haze) then
+        sVisibility = sVisibility .. " - haze"
+    elseif (self.VisibilityAffect == _visibilityAffect.Mist) then
+        sVisibility = sVisibility .. " - mist"
     end
     if (self.Dust) then
         sVisibility = sVisibility .. " - dust"
@@ -698,7 +711,7 @@ function veafWeatherData:toStringClouds(unitSystem, bHeight)
             sCloudDensity = "Few clouds"
         end
         
-        if (iCloudBaseMeters ~= nil) then
+        if (iCloudBaseMeters ~= nil and iCloudBaseMeters > 0) then
             local iCloudBaseFeet = math.floor((mist.utils.metersToFeet(iCloudBaseMeters) + 250) / 500) * 500
             local iCloudBaseMeters = math.floor((iCloudBaseMeters + 250) / 500) * 500
             local sCloudBaseFeet = string.format("%dft", iCloudBaseFeet)
@@ -1206,7 +1219,7 @@ end
 
 ---------------------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------
----  MODULE TESTS
+---  MAIN MODULE INITIALIZATION
 ---------------------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------
 
@@ -1218,3 +1231,21 @@ function veafWeather.initialize()
 end
 
 veaf.loggers.get(veafWeather.Id):info(string.format("Loading version %s", veafWeather.Version))
+
+
+-------------------- TEST STUFF------------------------------------
+--[[
+.getFogThickness=[function]
+.getFogVisibilityDistance=[function]
+.setFogAnimation=[function]
+.setFogThickness=[function]
+.setFogVisibilityDistance=[function]
+
+veafAirbases.initialize()
+for _, veafAirbase in pairs(veafAirbases.Airbases) do
+    veaf.loggers.get(veafWeather.Id):trace(veafWeatherAtis.getAtisString(veafAirbase))
+end
+veaf.loggers.get(veafWeather.Id):trace(veaf.p(env.mission.weather.enable_fog))
+veaf.loggers.get(veafWeather.Id):trace(veaf.p(world.weather.getFogVisibilityDistance()))
+veaf.loggers.get(veafWeather.Id):trace(veaf.p(world.weather.getFogThickness()))
+]]

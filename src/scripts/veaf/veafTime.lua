@@ -19,7 +19,7 @@ veafTime = {}
 veafTime.Id = "TIME"
 
 --- Version.
-veafTime.Version = "1.0.0"
+veafTime.Version = "1.1.0"
 
 -- trace level, specific to this module
 --veafTime.LogLevel = "trace"
@@ -224,24 +224,6 @@ function veafTime.absTimeToStringDateTime(iAbsTime)
     return veafTime.toStringDateTime(dateTime, bWithSeconds)
 end
 
-function veafTime.toStringMetar(dateTime, bZulu)
-    if (bZulu == nil) then bZulu = true end
-    
-    local sTimeZone
-    if(bZulu) then
-        sTimeZone = "Z"
-    else
-        sTimeZone = "L"
-    end
-        
-    return string.format("%02d%02d%s", dateTime.hour, dateTime.minute)
-end
-
-function veafTime.toStringMetar(iAbsSeconds)
-    local oTime = Fg.TimeFromAbsSeconds(iAbsSeconds)
-    return string.format("%02d%02dZ", oTime.Hour, oTime.Minute)
-end
-
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Timezones and sun times
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -415,4 +397,35 @@ function veafTime.isAeronauticalNight(vec3, iAbsTime)
     --veaf.loggers.get(veafTime.Id):trace(string.format("iCurrentSeconds=%d  iSunriseSeconds=%d   iSunsetSeconds=%d", iCurrentSeconds, iSunriseSeconds, iSunsetSeconds))
     
     return iCurrentSeconds < iSunriseSeconds or iCurrentSeconds > iSunsetSeconds
+end
+
+-- Helper function to determine season based on latitude and month
+function veafTime.determineSeason(month, latitude)
+    -- Determine if in Northern or Southern Hemisphere
+    local isNorthernHemisphere = latitude == nil or latitude >= 0
+
+    -- Season mapping adjusted for hemisphere
+    if isNorthernHemisphere then
+        -- Northern Hemisphere seasons
+        if month >= 3 and month <= 5 then
+            return "spring"
+        elseif month >= 6 and month <= 8 then
+            return "summer"
+        elseif month >= 9 and month <= 11 then
+            return "autumn"
+        else
+            return "winter"
+        end
+    else
+        -- Southern Hemisphere seasons (reversed)
+        if month >= 3 and month <= 5 then
+            return "autumn"
+        elseif month >= 6 and month <= 8 then
+            return "winter"
+        elseif month >= 9 and month <= 11 then
+            return "spring"
+        else
+            return "summer"
+        end
+    end
 end

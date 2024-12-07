@@ -1422,7 +1422,7 @@ end
 function veafWeather.createAnimatedFog(name, minutes, thickness, visibility)
     local fog = VeafFog:new()
     fog.name = name
-    fog.forAnimationData = {minutes, visibility, thickness}
+    fog.forAnimationData = {minutes * 60, visibility, thickness}
     return fog
 end
 

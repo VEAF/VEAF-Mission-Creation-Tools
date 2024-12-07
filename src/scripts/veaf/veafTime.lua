@@ -19,7 +19,7 @@ veafTime = {}
 veafTime.Id = "TIME"
 
 --- Version.
-veafTime.Version = "1.0.0"
+veafTime.Version = "1.0.1"
 
 -- trace level, specific to this module
 --veafTime.LogLevel = "trace"
@@ -98,6 +98,18 @@ local function _adjustDate(dateTime, iDaysOffset)
     return { year = iYear, month = iMonth, day = iDay, yday = iDayOfYear, hour = dateTime.hour, min = dateTime.min, sec = dateTime.sec }
 end
 
+local function _decimalToHoursMinutes(iDecimalHours)
+    -- Handle negative hours (can happen with UTC times)
+    if (iDecimalHours < 0) then
+        iDecimalHours = iDecimalHours + 24
+    end
+    -- Handle hours >= 24
+    iDecimalHours = iDecimalHours % 24
+
+    local iHours = math.floor(iDecimalHours)
+    local iMinutes = math.floor((iDecimalHours - iHours) * 60)
+    return iHours, iMinutes
+end
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- General date and time tools
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -311,86 +323,99 @@ function veafTime.toLocal(utcDateTime, nOffsetHours)
     return veafTime.toZulu(utcDateTime, -nOffsetHours)
 end
 
-function veafTime.getSunTimes(vec3, iAbsTime, bZulu)
-    bZulu = bZulu or false
+-- Constants
+local PI = math.pi
+local RAD = PI / 180
+local DEG = 180 / PI
+
+local function solar_calculations(day_of_year, year)
+    -- Julian Date calculation
+    local JD = 367 * year 
+              - math.floor((year + math.floor((9 + 1) / 12)) * 7 / 4)
+              + math.floor(275 * 1 / 9) 
+              + day_of_year 
+              + 1721013.5
+    
+    -- Mean solar longitude
+    local L0 = (280.460 + 0.9856474 * JD) % 360
+    
+    -- Mean anomaly
+    local M = (357.528 + 0.9856003 * JD) % 360
+    
+    -- Ecliptic longitude
+    local lambda = L0 + 1.915 * math.sin(M * RAD) + 0.020 * math.sin(2 * M * RAD)
+    
+    -- Obliquity of ecliptic
+    local epsilon = 23.439 - 0.0000004 * JD
+    
+    return {
+        JD = JD,
+        mean_solar_longitude = L0,
+        mean_anomaly = M,
+        ecliptic_longitude = lambda,
+        obliquity = epsilon
+    }
+end
+
+
+local function calculate_hour_angle(latitude, day_of_year, year)
+    local solar_data = solar_calculations(day_of_year, year)
+    
+    -- Solar declination
+    local declination = math.asin(
+        math.sin(solar_data.obliquity * RAD) * 
+        math.sin(solar_data.ecliptic_longitude * RAD)
+    ) * DEG
+    
+    -- Hour angle calculation
+    local lat_rad = latitude * RAD
+    
+    -- Approximation for sunrise/sunset hour angle
+    local hour_angle = math.acos(
+        -math.tan(lat_rad) * math.tan(declination * RAD)
+    ) * DEG
+    
+    return {
+        declination = declination,
+        hour_angle = hour_angle
+    }
+end
+
+local function _getSunTimesZulu(nLatitude, nLongitude, iDayOfYear, iYear)
+    local hour_angle_data = calculate_hour_angle(nLatitude, iDayOfYear, iYear)
+    
+    -- Check for polar conditions
+    -- If hour_angle is NaN, it means the sun never rises/sets
+    if (hour_angle_data.hour_angle ~= hour_angle_data.hour_angle) then
+        local is_polar_night = hour_angle_data.declination * nLatitude < 0
+        
+        return {
+            sunrise = is_polar_night and "No sunrise - Polar night" or "No sunset - Midnight sun",
+            sunset = is_polar_night and "No sunrise - Polar night" or "No sunset - Midnight sun",
+            is_polar_condition = true
+        }
+    end
+
+    -- Calculate solar noon (UTC)
+    local solar_noon = 12 - (nLongitude / 15)
+    
+    -- Calculate sunrise and sunset times
+    local sunrise_utc = solar_noon - (hour_angle_data.hour_angle / 15)
+    local sunset_utc = solar_noon + (hour_angle_data.hour_angle / 15)
+
+    return sunrise_utc, sunset_utc
+end
+
+function veafTime.getSunTimesZulu(vec3, iAbsTime)
     local dateTime = veafTime.absTimeToDateTime(iAbsTime)
-
-    local PI = math.pi
-    local RAD = PI / 180
-    local DEG = 180 / PI
+    local dateTimeZulu = veafTime.toZulu(dateTime)
     local nLatitude, nLongitude, _ = coord.LOtoLL(vec3)
-
     local iYear = dateTime.year
     local idayOfYear = dateTime.yday
 
-    local function _decimalToTime(iDecimalHours)
-        -- Handle negative hours (can happen with UTC times)
-        if (iDecimalHours < 0) then
-            iDecimalHours = iDecimalHours + 24
-        end
-        -- Handle hours >= 24
-        iDecimalHours = iDecimalHours % 24
-
-        local iHours = math.floor(iDecimalHours)
-        local iMinutes = math.floor((iDecimalHours - iHours) * 60)
-        return iHours, iMinutes
-    end
-
-    -- Calculate Julian date
-    local function _julianDate(iDayOfYear, iYear)
-        return 367 * iYear - math.floor(7 * (iYear + math.floor((10 + 9) / 12)) / 4) + math.floor(275 * 9 / 9) + iDayOfYear - 730531.5
-    end
-
-    -- Convert latitude to radians
-    local nLatitudeRad = nLatitude * RAD
-
-    -- Calculate Julian date
-    local jd = _julianDate(idayOfYear, iYear)
-
-    -- Calculate solar mean anomaly
-    local M = (0.9856 * jd - 3.289) * RAD
-
-    -- Calculate equation of center
-    local C = (1.916 * math.sin(M) + 0.020 * math.sin(2 * M) + 0.282 * math.sin(3 * M)) * RAD
-
-    -- Calculate solar true longitude
-    local L = M + C + PI
-
-    -- Calculate solar declination
-    local sinDec = 0.39782 * math.sin(L)
-    local cosDec = math.sqrt(1 - sinDec * sinDec)
-
-    -- Calculate solar hour angle
-    local cosH = (math.sin(-0.0145) - math.sin(nLatitudeRad) * sinDec) / (math.cos(nLatitudeRad) * cosDec)
-
-    -- Check if the sun never rises/sets at this location on this day
-    if cosH > 1 then
-        return nil -- "No sunrise/sunset - Polar night"
-    elseif cosH < -1 then
-        return nil -- "No sunrise/sunset - Midnight sun"
-    end
-
-    -- Calculate sunrise and sunset hour angles
-    local H = math.acos(cosH) * DEG
-
-    local nTimezoneOffset = veafTime.getTimezone()
-    local nSolarNoonZulu = 12 - nLongitude / 15
-    
-    -- Calculate sunrise and sunset in decimal hours
-    local nSunriseZulu = nSolarNoonZulu - H / 15
-    local nSunsetZulu = nSolarNoonZulu + H / 15
-    
-    -- Convert to local time if requested
-    local nSunriseTime = nSunriseZulu
-    local nSunsetTime = nSunsetZulu
-    
-    if (not bZulu) then
-        nSunriseTime = nSunriseTime + nTimezoneOffset
-        nSunsetTime = nSunsetTime + nTimezoneOffset
-    end
-
-    local iSunriseHour, iSunriseMinute = _decimalToTime(nSunriseTime)
-    local iSunsetHour, iSunsetMinute = _decimalToTime(nSunsetTime)
+    local nSunriseZulu, nSunsetZulu = _getSunTimesZulu(nLatitude, nLongitude, idayOfYear, iYear)
+    local iSunriseHour, iSunriseMinute = _decimalToHoursMinutes(nSunriseZulu)
+    local iSunsetHour, iSunsetMinute = _decimalToHoursMinutes(nSunsetZulu)
 
     return
     {
@@ -401,10 +426,11 @@ end
 
 function veafTime.isAeronauticalNight(vec3, iAbsTime)
     local dateTime = veafTime.absTimeToDateTime(iAbsTime)
-    local sunTimes = veafTime.getSunTimes(vec3, iAbsTime)
-    local sunriseTime = sunTimes.Sunrise
-    local sunsetTime = sunTimes.Sunset
-    
+    local sunTimesZulu = veafTime.getSunTimesZulu(vec3, iAbsTime)
+    local sunriseTimeZulu = sunTimesZulu.Sunrise
+    local sunsetTimeZulu = sunTimesZulu.Sunset
+    local sunriseTime = veafTime.toLocal(sunriseTimeZulu)
+    local sunsetTime = veafTime.toLocal(sunsetTimeZulu)
     --veaf.loggers.get(veafTime.Id):trace(veaf.p(sunriseTime))
     --veaf.loggers.get(veafTime.Id):trace(veaf.p(sunsetTime))
 

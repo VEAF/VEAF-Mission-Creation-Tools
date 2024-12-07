@@ -17,10 +17,10 @@ veafWeather = {}
 veafWeather.Id = "WEATHER"
 
 --- Version.
-veafWeather.Version = "1.1.0"
+veafWeather.Version = "1.2.0"
 
 -- trace level, specific to this module
-veafWeather.LogLevel = "trace"
+--veafWeather.LogLevel = "trace"
 veaf.loggers.new(veafWeather.Id, veafWeather.LogLevel)
 
 --- Key phrase to look for in the mark text which triggers the command.
@@ -1154,6 +1154,303 @@ function veafWeather.messageAtcAndWeather(unitName, forUnit)
     veafWeather.messageAtcClosestAirbase(unitName, forUnit)
 end
 
+----------------------------------------------------------------------------------------------------
+--- WEATHER modifications during runtime
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- VeafFog class methods
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+VeafFog = {}
+VeafFog.DELAY_BETWEEN_DYNAMIC_CHECKS = 5 * 60
+VeafFog.DYNAMICFOG_BASEFACTOR_HEAVY  = 0.8
+VeafFog.DYNAMICFOG_BASEFACTOR_MEDIUM = 0.5
+VeafFog.DYNAMICFOG_BASEFACTOR_SPARSE = 0.2
+
+function VeafFog.init(object)
+  -- technical name
+  object.name = nil
+  -- scheduled function that is used to update the object
+  object.dynamicCheckFunctionScheduled = nil
+  -- if true, the object is enabled and the fog settings (static and/or dynamic) are applied
+  object.enabled = false
+  -- the dynamic fog parameters for this object
+  object.fogAnimationData = {}
+  -- the static fog parameters for this object
+  object.fogStaticData = {visibility = 10000, thickness = 150}
+  -- the static fog parameters saved by this object (stored state before it changes them)
+  object.savedFogStaticData = nil
+  -- if set to a base fog factor (between 0 and 1), the fog will be dynamically computed based on latitude, season and time of day
+  object.dynamicFogBaseFactor = nil
+  -- if true, the dynamic fog system will animate the transitions
+  object.dynamicFogIsAnimated = true
+end
+
+function VeafFog:new(objectToCopy)
+  veaf.loggers.get(veafWeather.Id):debug("VeafFog:new()")
+  local objectToCreate = objectToCopy or {} -- create object if user does not provide one
+  setmetatable(objectToCreate, self)
+  self.__index = self
+
+  -- init the new object
+  VeafFog.init(objectToCreate)
+
+  return objectToCreate
+end
+
+function VeafFog:enable()
+    veaf.loggers.get(veafWeather.Id):debug("VeafFog[%s]:enable()", veaf.p(self.name))
+
+    self.enabled = true
+
+    -- store the existing fog parameters
+    veaf.loggers.get(veafWeather.Id):trace("store the existing fog parameters")
+    veaf.loggers.get(veafWeather.Id):trace("world.weather.getFogVisibilityDistance()=[%s]", veaf.p(world.weather.getFogVisibilityDistance()))
+    veaf.loggers.get(veafWeather.Id):trace("world.weather.getFogThickness()=[%s]", veaf.p(world.weather.getFogThickness()))
+    self.fogSavedStaticData = {visibility = world.weather.getFogVisibilityDistance(), thickness = world.weather.getFogThickness()}
+
+    -- set the fog to the programmed parameters
+    veaf.loggers.get(veafWeather.Id):trace("set the fog to the programmed parameters")
+    if self.forAnimationData then
+        veaf.loggers.get(veafWeather.Id):trace("self.forAnimationData=[%s]", veaf.p(self.forAnimationData))
+        -- create an animation
+        local animation = {
+            self.forAnimationData
+        }
+        -- first reset fog animation
+        veaf.loggers.get(veafWeather.Id):trace("first reset fog animation")
+        world.weather.setFogAnimation({})
+        veaf.loggers.get(veafWeather.Id):trace("store the existing fog parameters")
+        veaf.loggers.get(veafWeather.Id):trace("world.weather.getFogVisibilityDistance()=[%s]", veaf.p(world.weather.getFogVisibilityDistance()))
+        veaf.loggers.get(veafWeather.Id):trace("world.weather.getFogThickness()=[%s]", veaf.p(world.weather.getFogThickness()))
+        -- set the new fog animation
+        world.weather.setFogAnimation(animation)
+    elseif self.fogStaticData then
+        veaf.loggers.get(veafWeather.Id):trace("self.fogStaticData=[%s]", veaf.p(self.fogStaticData))
+        world.weather.setFogThickness(self.fogStaticData.thickness)
+        world.weather.setFogVisibilityDistance(self.fogStaticData.visibility)
+    end
+
+    -- do the first check, the method will reschedule itself
+    veaf.loggers.get(veafWeather.Id):trace("do the first check, the method will reschedule itself")
+    self:dynamicCheck()
+
+    return self
+end
+
+function VeafFog:disable(dontRestore)
+    veaf.loggers.get(veafWeather.Id):debug("VeafFog[%s]:disable()", veaf.p(self.name))
+
+    -- disable the scheduler
+    if self.dynamicCheckFunctionScheduled then
+        veaf.loggers.get(veafWeather.Id):trace("disable the scheduler")
+        mist.removeFunction(self.dynamicCheckFunctionScheduled)
+        self.dynamicCheckFunctionScheduled = nil
+    end
+
+    self.enabled = false
+
+    if not dontRestore then
+        -- reset to the fog values stored at start
+        veaf.loggers.get(veafWeather.Id):trace("reset to the fog values stored at start")
+        if self.fogSavedStaticData then
+            world.weather.setFogThickness(self.fogSavedStaticData.thickness)
+            world.weather.setFogVisibilityDistance(self.fogSavedStaticData.visibility)
+        end
+    end
+
+    return self
+end
+
+function VeafFog:dynamicCheck()
+    veaf.loggers.get(veafWeather.Id):debug("VeafFog[%s]:dynamicCheck()", veaf.p(self.name))
+    if self.dynamicFogBaseFactor then
+        local position = {x=0, y=0, z=0} -- somewhere in the map ^^
+
+        -- compute the fog that should be set at this moment in time
+        local date = veafTime.getMissionDateTime()
+        veaf.loggers.get(veafWeather.Id):trace("date=[%s]", veaf.p(date))
+
+        -- Seasonal adjustment based on latitude and time of year
+        local latitude, _, _ = coord.LOtoLL(position)
+        veaf.loggers.get(veafWeather.Id):trace("latitude=[%s]", veaf.p(latitude))
+        local month = date.month
+        local seasonal_peaks = { [3] = 0.8, [4] = 0.9, [5] = 0.7, [9] = 0.8, [10] = 0.9, [11] = 0.7 }
+        local season_factor = seasonal_peaks[month] or 0.5
+
+        -- Temperature-dew point difference
+        local weatherData = veafWeatherData:create(position)
+        local temp_diff = math.abs(weatherData.TemperatureCelcius - weatherData.DewPointCelcius)
+
+        -- Diurnal adjustment based on hour
+        local diurnal_factor = 0
+
+        -- Convert sunrise and sunset times to minutes since midnight
+        local sunrise_time = weatherData.Sunrise.hour * 60 + weatherData.Sunrise.min
+        local sunset_time = weatherData.Sunset.hour * 60 + weatherData.Sunset.min
+
+        -- Calculate daylight duration
+        local daylight_duration = sunset_time - sunrise_time
+
+        -- Morning is from sunrise and lasts 25% of daylight
+        local morningEnd_time = sunrise_time + 0.25 * daylight_duration
+        local morningPeak_time = sunrise_time + 0.125 * daylight_duration
+        -- Evening start is 25% before sunset
+        local eveningStart_time = sunset_time - 0.25 * daylight_duration
+        local eveningPeak_time = sunset_time - 0.125 * daylight_duration
+
+        -- Convert current time to minutes since midnight
+        local current_time = date.hour * 60 + date.min
+
+        veaf.loggers.get(veafWeather.Id):trace("sunrise_time=[%s:%s]", veaf.p(math.floor(sunrise_time/60)), veaf.p(math.fmod(sunrise_time,60)))
+        veaf.loggers.get(veafWeather.Id):trace("morningPeak_time=[%s:%s]", veaf.p(math.floor(morningPeak_time/60)), veaf.p(math.fmod(morningPeak_time,60)))
+        veaf.loggers.get(veafWeather.Id):trace("morningEnd_time=[%s:%s]", veaf.p(math.floor(morningEnd_time/60)), veaf.p(math.fmod(morningEnd_time,60)))
+        veaf.loggers.get(veafWeather.Id):trace("eveningStart_time=[%s:%s]", veaf.p(math.floor(eveningStart_time/60)), veaf.p(math.fmod(eveningStart_time,60)))
+        veaf.loggers.get(veafWeather.Id):trace("eveningPeak_time=[%s:%s]", veaf.p(math.floor(eveningPeak_time/60)), veaf.p(math.fmod(eveningPeak_time,60)))
+        veaf.loggers.get(veafWeather.Id):trace("sunset_time=[%s:%s]", veaf.p(math.floor(sunset_time/60)), veaf.p(math.fmod(sunset_time,60)))
+        veaf.loggers.get(veafWeather.Id):trace("daylight_duration=[%s]", veaf.p(daylight_duration))
+        veaf.loggers.get(veafWeather.Id):trace("current_time=[%s:%s]", veaf.p(math.floor(current_time/60)), veaf.p(math.fmod(current_time,60)))
+
+        if current_time >= sunrise_time and current_time < morningPeak_time then
+            -- Phase 1: From sunrise to middle of the morning (raise)
+            veaf.loggers.get(veafWeather.Id):trace("Phase 1: From sunrise to middle of the morning (raise)")
+            diurnal_factor = (current_time - sunrise_time) / (morningPeak_time - sunrise_time)
+        elseif current_time >= morningPeak_time and current_time < morningEnd_time then
+            -- Phase 2: From middle of the morning to end of the morning (decrease)
+            veaf.loggers.get(veafWeather.Id):trace("Phase 2: From middle of the morning to end of the morning (decrease)")
+            diurnal_factor = 1 - (current_time - morningPeak_time) / (morningEnd_time - morningPeak_time)
+        elseif current_time >= morningEnd_time and current_time < eveningStart_time then
+            -- Phase 3: Day phase (constant base value)
+            veaf.loggers.get(veafWeather.Id):trace("Phase 3: Day phase (constant base value)")
+            diurnal_factor = 0.1
+        elseif current_time >= eveningStart_time and current_time < eveningPeak_time then
+            -- Phase 4: From start of the evening to middle of the evening (raise)
+            veaf.loggers.get(veafWeather.Id):trace("Phase 4: From start of the evening to middle of the evening (raise)")
+            diurnal_factor = (current_time - eveningStart_time) / (eveningPeak_time - eveningStart_time)
+        elseif current_time >= eveningStart_time and current_time < sunset_time then
+            -- Phase 5: From middle of the evening to sunset (decrease)
+            veaf.loggers.get(veafWeather.Id):trace("Phase 5: From middle of the evening to sunset (decrease)")
+            diurnal_factor = 1 - (current_time - eveningPeak_time) / (sunset_time - eveningPeak_time)
+        end
+
+        -- Base fog probability calculation
+        local base_prob = math.max(0, math.min(1, 1 - (temp_diff / 10) - (weatherData.WindSpeedMps / 10)))
+        local fog_probability = base_prob * season_factor * diurnal_factor
+        veaf.loggers.get(veafWeather.Id):trace("weatherData.WindSpeedMps=[%s]", veaf.p(weatherData.WindSpeedMps))
+        veaf.loggers.get(veafWeather.Id):trace("temp_diff=[%s]", veaf.p(temp_diff))
+        veaf.loggers.get(veafWeather.Id):trace("base_prob=[%s]", veaf.p(base_prob))
+        veaf.loggers.get(veafWeather.Id):trace("season_factor=[%s]", veaf.p(season_factor))
+        veaf.loggers.get(veafWeather.Id):trace("diurnal_factor=[%s]", veaf.p(diurnal_factor))
+        veaf.loggers.get(veafWeather.Id):trace("fog_probability=[%s]", veaf.p(fog_probability))
+
+        -- Compute visibility and thickness based on fog_probability with smooth transitions
+        local visibility, thickness
+        if fog_probability < 0.2 then
+            visibility = 50000 * (1 - fog_probability)  -- High visibility as fog_probability decreases
+            thickness = 0  -- No fog, so no thickness
+        else
+            -- Normalize the fog factor relative to the 0.2-1.0 range
+            local normalizedFactor = (fog_probability - 0.2) / 0.8
+
+            local minVisibility = 100 * (1 - self.dynamicFogBaseFactor)
+            local maxVisibility = 5000 * (1 - self.dynamicFogBaseFactor)
+            local minThickness = 100 * self.dynamicFogBaseFactor
+            local maxThickness = 500 * self.dynamicFogBaseFactor
+            veaf.loggers.get(veafWeather.Id):trace("minVisibility=[%s]", veaf.p(minVisibility))
+            veaf.loggers.get(veafWeather.Id):trace("maxVisibility=[%s]", veaf.p(maxVisibility))
+            veaf.loggers.get(veafWeather.Id):trace("minThickness=[%s]", veaf.p(minThickness))
+            veaf.loggers.get(veafWeather.Id):trace("maxThickness=[%s]", veaf.p(maxThickness))
+
+            -- Calculate visibility (decreasing from 5000 to 100)
+            visibility = maxVisibility - ((maxVisibility - minVisibility) * normalizedFactor)
+
+            -- Calculate thickness (increasing from 100 to 1000)
+            thickness = minThickness + ((maxThickness - minThickness) * normalizedFactor)
+        end
+
+        visibility = math.floor(visibility)
+        thickness = math.floor(thickness)
+        veaf.loggers.get(veafWeather.Id):trace("thickness=[%s]", veaf.p(thickness))
+        veaf.loggers.get(veafWeather.Id):trace("visibility=[%s]", veaf.p(visibility))
+
+        if self.dynamicFogIsAnimated then
+            -- create an animation
+            veaf.loggers.get(veafWeather.Id):trace("thickness=[%s]", veaf.p(thickness))
+            local animation = {
+                VeafFog.DELAY_BETWEEN_DYNAMIC_CHECKS - VeafFog.DELAY_BETWEEN_DYNAMIC_CHECKS*0.1, visibility, thickness
+            }
+            veaf.loggers.get(veafWeather.Id):trace("animation=[%s]", veaf.p(animation))
+
+            -- first reset fog animation
+            world.weather.setFogAnimation({})
+            -- set the new fog animation
+            world.weather.setFogAnimation(animation)
+        else
+            world.weather.setFogThickness(thickness)
+            world.weather.setFogVisibilityDistance(visibility)
+        end
+    end
+
+    -- reschedule
+    self.dynamicCheckFunctionScheduled = mist.scheduleFunction(VeafFog.dynamicCheck, {self}, timer.getTime() + VeafFog.DELAY_BETWEEN_DYNAMIC_CHECKS)
+end
+
+function veafWeather.createStaticFog(name, thickness, visibility)
+    local fog = VeafFog:new()
+    fog.name = name
+    fog.fogStaticData = { thickness = thickness, visibility = visibility}
+    return fog
+end
+
+function veafWeather.createDynamicFog(name, baseFactor, notAnimated)
+    local fog = VeafFog:new()
+    fog.name = name
+    fog.dynamicFogBaseFactor = baseFactor
+    fog.dynamicFogIsAnimated = not notAnimated
+    return fog
+end
+
+function veafWeather.createAnimatedFog(name, minutes, thickness, visibility)
+    local fog = VeafFog:new()
+    fog.name = name
+    fog.forAnimationData = {minutes * 60, visibility, thickness}
+    return fog
+end
+
+function veafWeather.setAndActivateFog(fogObject)
+    veaf.loggers.get(veafWeather.Id):trace("fogObject=[%s]", veaf.p(fogObject))
+
+    -- disable the existing fog object if any
+    if veafWeather.existingFog ~= nil then
+        veaf.loggers.get(veafWeather.Id):trace("disable the existing fog object if any")
+        veaf.loggers.get(veafWeather.Id):trace("veafWeather.existingFog=[%s]", veaf.p(veafWeather.existingFog))
+        veafWeather.existingFog:disable(true)
+    end
+
+    -- activate the new fog object
+    veaf.loggers.get(veafWeather.Id):trace("activate the new fog object")
+    veafWeather.existingFog = fogObject
+    fogObject:enable()
+
+    trigger.action.outText("Fog set to "..fogObject.name, 5)
+
+    return fogObject
+end
+
+-- create and set a dynamically managed SPARSE fog (if notAnimated is true, the fog system will set values immediately instead of using a progressive animation)
+function veafWeather.setAndActivateDynamicFog_Sparse(notAnimated)
+    return veafWeather.setAndActivateFog(veafWeather.createDynamicFog("Dynamic SPARSE fog", VeafFog.DYNAMICFOG_BASEFACTOR_SPARSE, notAnimated))
+end
+
+-- create and set a dynamically managed MEDIUM fog (if notAnimated is true, the fog system will set values immediately instead of using a progressive animation)
+function veafWeather.setAndActivateDynamicFog_Medium(notAnimated)
+    return veafWeather.setAndActivateFog(veafWeather.createDynamicFog("Dynamic MEDIUM fog", VeafFog.DYNAMICFOG_BASEFACTOR_MEDIUM, notAnimated))
+end
+
+-- create and set a dynamically managed HEAVY fog (if notAnimated is true, the fog system will set values immediately instead of using a progressive animation)
+function veafWeather.setAndActivateDynamicFog_Heavy(notAnimated)
+    return veafWeather.setAndActivateFog(veafWeather.createDynamicFog("Dynamic HEAVY fog", VeafFog.DYNAMICFOG_BASEFACTOR_HEAVY, notAnimated))
+end
 
 ---------------------------------------------------------------------------------------------------
 ---  Radio menu and remote interface
@@ -1163,10 +1460,48 @@ end
 function veafWeather.buildRadioMenu()
     veaf.loggers.get(veafWeather.Id):debug("buildRadioMenu()")
 
-    veafWeather.rootPath = veafRadio.addSubMenu(veafWeather.RadioMenuName)
+    veafWeather.rootPath = veafRadio.addMenu(veafWeather.RadioMenuName)
     veafRadio.addCommandToSubmenu("Weather on closest point" , veafWeather.rootPath, veafWeather.messageWeatherAtClosestPoint, nil, veafRadio.USAGE_ForGroup)
     veafRadio.addCommandToSubmenu("ATC on closest airbase" , veafWeather.rootPath, veafWeather.messageAtcClosestAirbase, nil, veafRadio.USAGE_ForGroup)
     veafRadio.addCommandToSubmenu("ATC and weather in one go" , veafWeather.rootPath, veafWeather.messageAtcAndWeather, nil, veafRadio.USAGE_ForGroup)
+
+    local fogPath = veafRadio.addSubMenu("Fog settings", veafWeather.rootPath)
+
+    local function addRadioCommandForFog(name, minutes, baseFactor, thickness, visibility, radioMenu)
+        if minutes then
+            local overMinutesText = string.format(" over %d minutes", minutes)
+            veafRadio.addSecuredCommandToSubmenu(name..overMinutesText, radioMenu, veafWeather.setAndActivateFog, veafWeather.createAnimatedFog(name..overMinutesText, minutes, thickness, visibility), veafRadio.USAGE_ForAll)
+        elseif baseFactor then
+            veafRadio.addSecuredCommandToSubmenu(name, radioMenu, veafWeather.setAndActivateFog, veafWeather.createDynamicFog(name, baseFactor), veafRadio.USAGE_ForAll)
+        else
+            veafRadio.addSecuredCommandToSubmenu(name, radioMenu, veafWeather.setAndActivateFog, veafWeather.createStaticFog(name, thickness, visibility), veafRadio.USAGE_ForAll)
+        end
+    end
+
+    local dynamicFogPath = veafRadio.addSubMenu("Dynamic fog", fogPath)
+    addRadioCommandForFog("Dynamic HEAVY fog", nil, VeafFog.DYNAMICFOG_BASEFACTOR_HEAVY, nil, nil, dynamicFogPath)
+    addRadioCommandForFog("Dynamic MEDIUM fog", nil, VeafFog.DYNAMICFOG_BASEFACTOR_MEDIUM, nil, nil, dynamicFogPath)
+    addRadioCommandForFog("Dynamic SPARSE fog", nil, VeafFog.DYNAMICFOG_BASEFACTOR_SPARSE, nil, nil, dynamicFogPath)
+
+    local animatedFogPath = veafRadio.addSubMenu("Animated fog", fogPath)
+    for _, minutes in pairs({1, 5, 10, 15, 30, 60, 90}) do
+        local overMinutesText = string.format(" over %d minutes", minutes)
+        local _path = veafRadio.addSubMenu("Animated fog"..overMinutesText, animatedFogPath)
+        addRadioCommandForFog("Animated HEAVY fog", minutes, nil, 500, 100, _path)
+        addRadioCommandForFog("Animated MEDIUM fog", minutes, nil, 500, 500, _path)
+        addRadioCommandForFog("Animated MEDIUM LOW fog", minutes, nil, 100, 500, _path)
+        addRadioCommandForFog("Animated SPARSE fog", minutes, nil, 500, 5000, _path)
+        addRadioCommandForFog("Animated SPARSE LOW fog", minutes, nil, 100, 5000, _path)
+        addRadioCommandForFog("Animated NO fog", minutes, nil, 0, 0, _path)
+    end
+
+    local staticFogPath = veafRadio.addSubMenu("Static fog", fogPath)
+    addRadioCommandForFog("Static HEAVY fog", nil, nil, 500, 100, staticFogPath)
+    addRadioCommandForFog("Static MEDIUM fog", nil, nil, 500, 500, staticFogPath)
+    addRadioCommandForFog("Static MEDIUM LOW fog", nil, nil, 100, 500, staticFogPath)
+    addRadioCommandForFog("Static SPARSE fog", nil, nil, 500, 5000, staticFogPath)
+    addRadioCommandForFog("Static SPARSE LOW fog", nil, nil, 100, 5000, staticFogPath)
+    addRadioCommandForFog("Static NO fog", nil, nil, 0, 0, staticFogPath)
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------

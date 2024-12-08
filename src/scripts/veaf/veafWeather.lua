@@ -17,7 +17,7 @@ veafWeather = {}
 veafWeather.Id = "WEATHER"
 
 --- Version.
-veafWeather.Version = "1.2.0"
+veafWeather.Version = "1.3.0"
 
 -- trace level, specific to this module
 --veafWeather.LogLevel = "trace"
@@ -1207,6 +1207,11 @@ function VeafFog:new(objectToCopy)
   return objectToCreate
 end
 
+function VeafFog:activate()
+    veaf.loggers.get(veafWeather.Id):debug("VeafFog[%s]:activate()", veaf.p(self.name))
+    veafWeather.setAndActivateFog(self)
+end
+
 function VeafFog:enable()
     veaf.loggers.get(veafWeather.Id):debug("VeafFog[%s]:enable()", veaf.p(self.name))
 
@@ -1446,19 +1451,28 @@ function veafWeather.setAndActivateFog(fogObject)
     return fogObject
 end
 
--- create and set a dynamically managed SPARSE fog (if notAnimated is true, the fog system will set values immediately instead of using a progressive animation)
-function veafWeather.setAndActivateDynamicFog_Sparse(notAnimated)
-    return veafWeather.setAndActivateFog(veafWeather.createDynamicFog("Dynamic SPARSE fog", VeafFog.DYNAMICFOG_BASEFACTOR_SPARSE, notAnimated))
-end
+-- dynamically managed fog instances
+veafWeather.FOG_DYNAMIC_HEAVY     = veafWeather.createDynamicFog("Dynamic HEAVY fog", VeafFog.DYNAMICFOG_BASEFACTOR_HEAVY)
+veafWeather.FOG_DYNAMIC_MEDIUM    = veafWeather.createDynamicFog("Dynamic MEDIUM fog", VeafFog.DYNAMICFOG_BASEFACTOR_MEDIUM)
+veafWeather.FOG_DYNAMIC_SPARSE    = veafWeather.createDynamicFog("Dynamic SPARSE fog", VeafFog.DYNAMICFOG_BASEFACTOR_SPARSE)
 
--- create and set a dynamically managed MEDIUM fog (if notAnimated is true, the fog system will set values immediately instead of using a progressive animation)
-function veafWeather.setAndActivateDynamicFog_Medium(notAnimated)
-    return veafWeather.setAndActivateFog(veafWeather.createDynamicFog("Dynamic MEDIUM fog", VeafFog.DYNAMICFOG_BASEFACTOR_MEDIUM, notAnimated))
-end
+-- static fog instances
+veafWeather.FOG_STATIC_HEAVY      = veafWeather.createStaticFog("Static HEAVY fog", 500, 100)
+veafWeather.FOG_STATIC_MEDIUM     = veafWeather.createStaticFog("Static MEDIUM fog", 500, 500)
+veafWeather.FOG_STATIC_MEDIUM_LOW = veafWeather.createStaticFog("Static MEDIUM LOW fog", 100, 500)
+veafWeather.FOG_STATIC_SPARSE     = veafWeather.createStaticFog("Static SPARSE fog", 500, 5000)
+veafWeather.FOG_STATIC_SPARSE_LOW = veafWeather.createStaticFog("Static SPARSE LOW fog", 100, 5000)
+veafWeather.FOG_STATIC_NO         = veafWeather.createStaticFog("Static NO fog", 0, 0)
 
--- create and set a dynamically managed HEAVY fog (if notAnimated is true, the fog system will set values immediately instead of using a progressive animation)
-function veafWeather.setAndActivateDynamicFog_Heavy(notAnimated)
-    return veafWeather.setAndActivateFog(veafWeather.createDynamicFog("Dynamic HEAVY fog", VeafFog.DYNAMICFOG_BASEFACTOR_HEAVY, notAnimated))
+-- animated fog instances
+for _, minutes in pairs({1, 5, 10, 15, 30, 60, 90}) do
+    local overMinutesText = string.format(" over %d minutes", minutes)
+    veafWeather["FOG_ANIMATED_"..minutes.."M_HEAVY"]      = veafWeather.createAnimatedFog("Animated HEAVY fog"..overMinutesText, minutes, 500, 100)
+    veafWeather["FOG_ANIMATED_"..minutes.."M_MEDIUM"]     = veafWeather.createAnimatedFog("Animated MEDIUM fog"..overMinutesText, minutes, 500, 500)
+    veafWeather["FOG_ANIMATED_"..minutes.."M_MEDIUM_LOW"] = veafWeather.createAnimatedFog("Animated MEDIUM LOW fog"..overMinutesText, minutes, 100, 500)
+    veafWeather["FOG_ANIMATED_"..minutes.."M_SPARSE"]     = veafWeather.createAnimatedFog("Animated SPARSE fog"..overMinutesText, minutes, 500, 5000)
+    veafWeather["FOG_ANIMATED_"..minutes.."M_SPARSE_LOW"] = veafWeather.createAnimatedFog("Animated SPARSE LOW fog"..overMinutesText, minutes, 100, 5000)
+    veafWeather["FOG_ANIMATED_"..minutes.."M_NO"]         = veafWeather.createAnimatedFog("Animated NO fog"..overMinutesText, minutes, 0, 0)
 end
 
 ---------------------------------------------------------------------------------------------------
@@ -1476,41 +1490,30 @@ function veafWeather.buildRadioMenu()
 
     local fogPath = veafRadio.addSubMenu("Fog settings", veafWeather.rootPath)
 
-    local function addRadioCommandForFog(name, minutes, baseFactor, thickness, visibility, radioMenu)
-        if minutes then
-            local overMinutesText = string.format(" over %d minutes", minutes)
-            veafRadio.addSecuredCommandToSubmenu(name..overMinutesText, radioMenu, veafWeather.setAndActivateFog, veafWeather.createAnimatedFog(name..overMinutesText, minutes, thickness, visibility), veafRadio.USAGE_ForAll)
-        elseif baseFactor then
-            veafRadio.addSecuredCommandToSubmenu(name, radioMenu, veafWeather.setAndActivateFog, veafWeather.createDynamicFog(name, baseFactor), veafRadio.USAGE_ForAll)
-        else
-            veafRadio.addSecuredCommandToSubmenu(name, radioMenu, veafWeather.setAndActivateFog, veafWeather.createStaticFog(name, thickness, visibility), veafRadio.USAGE_ForAll)
-        end
-    end
-
     local dynamicFogPath = veafRadio.addSubMenu("Dynamic fog", fogPath)
-    addRadioCommandForFog("Dynamic HEAVY fog", nil, VeafFog.DYNAMICFOG_BASEFACTOR_HEAVY, nil, nil, dynamicFogPath)
-    addRadioCommandForFog("Dynamic MEDIUM fog", nil, VeafFog.DYNAMICFOG_BASEFACTOR_MEDIUM, nil, nil, dynamicFogPath)
-    addRadioCommandForFog("Dynamic SPARSE fog", nil, VeafFog.DYNAMICFOG_BASEFACTOR_SPARSE, nil, nil, dynamicFogPath)
+    veafRadio.addSecuredCommandToSubmenu(veafWeather.FOG_DYNAMIC_HEAVY.name, dynamicFogPath, veafWeather.setAndActivateFog, veafWeather.FOG_DYNAMIC_HEAVY, veafRadio.USAGE_ForAll)
+    veafRadio.addSecuredCommandToSubmenu(veafWeather.FOG_DYNAMIC_MEDIUM.name, dynamicFogPath, veafWeather.setAndActivateFog, veafWeather.FOG_DYNAMIC_MEDIUM, veafRadio.USAGE_ForAll)
+    veafRadio.addSecuredCommandToSubmenu(veafWeather.FOG_DYNAMIC_SPARSE.name, dynamicFogPath, veafWeather.setAndActivateFog, veafWeather.FOG_DYNAMIC_SPARSE, veafRadio.USAGE_ForAll)
 
     local animatedFogPath = veafRadio.addSubMenu("Animated fog", fogPath)
     for _, minutes in pairs({1, 5, 10, 15, 30, 60, 90}) do
         local overMinutesText = string.format(" over %d minutes", minutes)
         local _path = veafRadio.addSubMenu("Animated fog"..overMinutesText, animatedFogPath)
-        addRadioCommandForFog("Animated HEAVY fog", minutes, nil, 500, 100, _path)
-        addRadioCommandForFog("Animated MEDIUM fog", minutes, nil, 500, 500, _path)
-        addRadioCommandForFog("Animated MEDIUM LOW fog", minutes, nil, 100, 500, _path)
-        addRadioCommandForFog("Animated SPARSE fog", minutes, nil, 500, 5000, _path)
-        addRadioCommandForFog("Animated SPARSE LOW fog", minutes, nil, 100, 5000, _path)
-        addRadioCommandForFog("Animated NO fog", minutes, nil, 0, 0, _path)
+        veafRadio.addSecuredCommandToSubmenu(veafWeather["FOG_ANIMATED_"..minutes.."M_HEAVY"].name, _path, veafWeather.setAndActivateFog, veafWeather["FOG_ANIMATED_"..minutes.."M_HEAVY"], veafRadio.USAGE_ForAll)
+        veafRadio.addSecuredCommandToSubmenu(veafWeather["FOG_ANIMATED_"..minutes.."M_MEDIUM"].name, _path, veafWeather.setAndActivateFog, veafWeather["FOG_ANIMATED_"..minutes.."M_MEDIUM"], veafRadio.USAGE_ForAll)
+        veafRadio.addSecuredCommandToSubmenu(veafWeather["FOG_ANIMATED_"..minutes.."M_MEDIUM_LOW"].name, _path, veafWeather.setAndActivateFog, veafWeather["FOG_ANIMATED_"..minutes.."M_MEDIUM_LOW"], veafRadio.USAGE_ForAll)
+        veafRadio.addSecuredCommandToSubmenu(veafWeather["FOG_ANIMATED_"..minutes.."M_SPARSE"].name, _path, veafWeather.setAndActivateFog, veafWeather["FOG_ANIMATED_"..minutes.."M_SPARSE"], veafRadio.USAGE_ForAll)
+        veafRadio.addSecuredCommandToSubmenu(veafWeather["FOG_ANIMATED_"..minutes.."M_SPARSE_LOW"].name, _path, veafWeather.setAndActivateFog, veafWeather["FOG_ANIMATED_"..minutes.."M_SPARSE_LOW"], veafRadio.USAGE_ForAll)
+        veafRadio.addSecuredCommandToSubmenu(veafWeather["FOG_ANIMATED_"..minutes.."M_NO"].name, _path, veafWeather.setAndActivateFog, veafWeather.FOG_ANIMATED_5_NO, veafRadio.USAGE_ForAll)
     end
 
     local staticFogPath = veafRadio.addSubMenu("Static fog", fogPath)
-    addRadioCommandForFog("Static HEAVY fog", nil, nil, 500, 100, staticFogPath)
-    addRadioCommandForFog("Static MEDIUM fog", nil, nil, 500, 500, staticFogPath)
-    addRadioCommandForFog("Static MEDIUM LOW fog", nil, nil, 100, 500, staticFogPath)
-    addRadioCommandForFog("Static SPARSE fog", nil, nil, 500, 5000, staticFogPath)
-    addRadioCommandForFog("Static SPARSE LOW fog", nil, nil, 100, 5000, staticFogPath)
-    addRadioCommandForFog("Static NO fog", nil, nil, 0, 0, staticFogPath)
+    veafRadio.addSecuredCommandToSubmenu(veafWeather.FOG_STATIC_HEAVY.name, staticFogPath, veafWeather.setAndActivateFog, veafWeather.FOG_STATIC_HEAVY, veafRadio.USAGE_ForAll)
+    veafRadio.addSecuredCommandToSubmenu(veafWeather.FOG_STATIC_MEDIUM.name, staticFogPath, veafWeather.setAndActivateFog, veafWeather.FOG_STATIC_MEDIUM, veafRadio.USAGE_ForAll)
+    veafRadio.addSecuredCommandToSubmenu(veafWeather.FOG_STATIC_MEDIUM_LOW.name, staticFogPath, veafWeather.setAndActivateFog, veafWeather.FOG_STATIC_MEDIUM_LOW, veafRadio.USAGE_ForAll)
+    veafRadio.addSecuredCommandToSubmenu(veafWeather.FOG_STATIC_SPARSE.name, staticFogPath, veafWeather.setAndActivateFog, veafWeather.FOG_STATIC_SPARSE, veafRadio.USAGE_ForAll)
+    veafRadio.addSecuredCommandToSubmenu(veafWeather.FOG_STATIC_SPARSE_LOW.name, staticFogPath, veafWeather.setAndActivateFog, veafWeather.FOG_STATIC_SPARSE_LOW, veafRadio.USAGE_ForAll)
+    veafRadio.addSecuredCommandToSubmenu(veafWeather.FOG_STATIC_NO.name, staticFogPath, veafWeather.setAndActivateFog, veafWeather.FOG_STATIC_NO, veafRadio.USAGE_ForAll)
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -1532,22 +1535,32 @@ function veafWeather.executeCommandFromRemote(parameters)
 
     if _command then
         -- parse the command
-        local _action, _pointName, _parameters = _command:match(veafWeather.RemoteCommandParser)
+        local _action, _name, _parameters = _command:match(veafWeather.RemoteCommandParser)
         veaf.loggers.get(veafWeather.Id):trace(string.format("_action=%s",veaf.p(_action)))
-        veaf.loggers.get(veafWeather.Id):trace(string.format("_pointName=%s",veaf.p(_pointName)))
+        veaf.loggers.get(veafWeather.Id):trace(string.format("_name=%s",veaf.p(_name)))
         veaf.loggers.get(veafWeather.Id):trace(string.format("_parameters=%s",veaf.p(_parameters)))
         if _action and _action:lower() == "weather" then
             veaf.loggers.get(veafWeather.Id):info(string.format("[%s] is requesting weather",veaf.p(_pilotName)))
             veafWeather.messageWeatherAtClosestPoint(_unitName, true)
             return true
         elseif _action and _action:lower() == "atc" then
-            veaf.loggers.get(veafNamedPoints.Id):info(string.format("[%s] is requesting atc",veaf.p(_pilotName)))
+            veaf.loggers.get(veafWeather.Id):info(string.format("[%s] is requesting atc",veaf.p(_pilotName)))
             veafWeather.messageAtcClosestAirbase(_unitName, true)
             return true
         elseif not _action or _action:lower() == "all" then
-            veaf.loggers.get(veafNamedPoints.Id):info(string.format("[%s] is requesting both atc and weather",veaf.p(_pilotName)))
+            veaf.loggers.get(veafWeather.Id):info(string.format("[%s] is requesting both atc and weather",veaf.p(_pilotName)))
             veafWeather.messageAtcAndWeather(_unitName, true)
             return true
+        elseif _action and _action:lower() == "fog" then
+            if _name then
+                local uName = _name:upper()
+                local fogObject = veafWeather[uName]
+                if fogObject then
+                    veaf.loggers.get(veafWeather.Id):info(string.format("[%s] is requesting fog [%s]",veaf.p(_pilotName), veaf.p(uName)))
+                    veafWeather.setAndActivateFog(fogObject)
+                    return true
+                end
+            end
         end
     end
     return false

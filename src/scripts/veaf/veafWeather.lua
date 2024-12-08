@@ -21,7 +21,6 @@ veafWeather.Version = "1.3.0"
 
 -- trace level, specific to this module
 --veafWeather.LogLevel = "trace"
-
 veaf.loggers.new(veafWeather.Id, veafWeather.LogLevel)
 
 --- Key phrase to look for in the mark text which triggers the command.
@@ -378,7 +377,8 @@ function veafWeatherData:create(vec3, iAbsTime, iAltitudeMeters)
     iAbsTime = iAbsTime or timer.getAbsTime()
     iAltitudeMeters = iAltitudeMeters or veaf.getLandHeight(vec3)
     
-    local sunTimes = veafTime.getSunTimes(vec3)
+    local sunTimesZulu = veafTime.getSunTimesZulu(vec3)
+
     local iWindDirSurface, iWindSpeedSurfaceMps = weathermark._GetWind(vec3, iAltitudeMeters + 10) -- Measure the wind velocity at the standard height of 10 metres above the surface. This is the internationally accepted meteorological definition of ‘surface wind’ designed to eliminate distortion attributable to very local terrain effects
 
     local iVisibilityMeters = env.mission.weather.visibility.distance
@@ -401,18 +401,10 @@ function veafWeatherData:create(vec3, iAbsTime, iAltitudeMeters)
         end
     end
 
-    local iFogMode = 0
-    if (env.mission.weather.fog2) then
-        iFogMode = env.mission.weather.fog2.mode
-    end
-
-    if (iFogMode > 0) then
-        local iFogThicknessMeters = world.weather.getFogThickness()
-        local iFogVisibilityMeters = world.weather.getFogVisibilityDistance()
-           
-        if (iFogThicknessMeters >= iAltitudeMeters) then
-            iVisibilityMeters = iFogVisibilityMeters
-        end
+    local iFogThicknessMeters = world.weather.getFogThickness()
+    local iFogVisibilityMeters = world.weather.getFogVisibilityDistance()
+    if (iFogThicknessMeters >= iAltitudeMeters) then
+        iVisibilityMeters = iFogVisibilityMeters
     end
     
     local _, nQfePa = atmosphere.getTemperatureAndPressure({ x = vec3.x, y = iAltitudeMeters, z = vec3.z })
@@ -432,7 +424,6 @@ function veafWeatherData:create(vec3, iAbsTime, iAltitudeMeters)
         visibilityAffect = _visibilityAffect.Haze
     end
 
-
     local this =
     {
         AbsTime = iAbsTime,
@@ -449,8 +440,8 @@ function veafWeatherData:create(vec3, iAbsTime, iAltitudeMeters)
         DewPointCelcius = nDewPointCelcius,
         QnhHpa = nQnhPa / 100,
         QfeHpa = nQfePa / 100,
-        Sunrise = sunTimes.Sunrise,
-        Sunset = sunTimes.Sunset,
+        SunriseZulu = sunTimesZulu.Sunrise,
+        SunsetZulu = sunTimesZulu.Sunset,
 
         WeatherAt500 = _weatherSliceAtAltitude(vec3, 500),
         WeatherAt2000 = _weatherSliceAtAltitude(vec3, 2000),
@@ -763,15 +754,15 @@ function veafWeatherData:toStringPressure(unitSystem, nPressureHpa)
     return sPressure
 end
 
-function veafWeatherData:toStringSunTime(dateTime, bZulu, bLocal)
+function veafWeatherData:toStringSunTime(dateTimeZulu, bZulu, bLocal)
     local sLocal = ""
     if (bLocal) then
-        sLocal = string.format("%sL", veafTime.toStringTime(dateTime, false))
+        local dateTimeLocal = veafTime.toLocal(dateTimeZulu)
+        sLocal = string.format("%sL", veafTime.toStringTime(dateTimeLocal, false))
     end 
 
     local sZulu = ""
     if (bZulu) then
-        local dateTimeZulu = veafTime.toZulu(dateTime)
         sZulu = string.format("%sZ", veafTime.toStringTime(dateTimeZulu, false))
     end 
 
@@ -842,8 +833,8 @@ function veafWeatherData:toString(unitSystem, bWithLaste)
     sString = sString .. string.format("\nTemperature:   %s - Dew point: %s", self:toStringTemperature(self.TemperatureCelcius), self:toStringTemperature(self.DewPointCelcius))
     sString = sString .. string.format("\nQNH:           %s", self:toStringPressure(unitSystem, self.QnhHpa))
     sString = sString .. string.format("\nQFE:           %s", self:toStringPressure(unitSystem, self.QfeHpa))
-    sString = sString .. string.format("\nSunrise:       %s", self:toStringSunTime(self.Sunrise, true, true))
-    sString = sString .. string.format("\nSunset:       %s", self:toStringSunTime(self.Sunset, true, true))
+    sString = sString .. string.format("\nSunrise:       %s", self:toStringSunTime(self.SunriseZulu, true, true))
+    sString = sString .. string.format("\nSunset:       %s", self:toStringSunTime(self.SunsetZulu, true, true))
     
     if(bWithLaste) then
         sString = sString .. "\n"
@@ -896,9 +887,9 @@ function veafWeatherData:toStringAtis(unitSystem)
     sAtis = sAtis .. string.format("\nQNH %s", self:toStringPressure(unitSystem, self.QnhHpa))
     
     if(veafTime.isAeronauticalNight(self.Vec3, self.AbsTime)) then
-        sAtis = sAtis .. string.format("\nSunrise %s", self:toStringSunTime(self.Sunrise, true, false))
+        sAtis = sAtis .. string.format("\nSunrise %s", self:toStringSunTime(self.SunriseZulu, true, false))
     else
-        sAtis = sAtis .. string.format("\nSunset %s", self:toStringSunTime(self.Sunset, true, false))
+        sAtis = sAtis .. string.format("\nSunset %s", self:toStringSunTime(self.SunsetZulu, true, false))
     end
     
     return sAtis
@@ -1593,6 +1584,7 @@ veaf.loggers.get(veafWeather.Id):info(string.format("Loading version %s", veafWe
 veafAirbases.initialize()
 for _, veafAirbase in pairs(veafAirbases.Airbases) do
     veaf.loggers.get(veafWeather.Id):trace(veafWeatherAtis.getAtisString(veafAirbase))
+    veaf.loggers.get(veafWeather.Id):trace(veafWeatherData.getWeatherString(veafAirbase.DcsAirbase:getPoint()))
 end
 veaf.loggers.get(veafWeather.Id):trace(veaf.p(env.mission.weather.enable_fog))
 veaf.loggers.get(veafWeather.Id):trace(veaf.p(world.weather.getFogVisibilityDistance()))

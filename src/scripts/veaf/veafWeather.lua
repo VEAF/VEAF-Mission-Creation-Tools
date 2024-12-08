@@ -377,7 +377,8 @@ function veafWeatherData:create(vec3, iAbsTime, iAltitudeMeters)
     iAbsTime = iAbsTime or timer.getAbsTime()
     iAltitudeMeters = iAltitudeMeters or veaf.getLandHeight(vec3)
 
-    local sunTimes = veafTime.getSunTimes(vec3)
+    local sunTimesZulu = veafTime.getSunTimesZulu(vec3)
+    local sunTimesLocal = veafTime.getSunTimesLocal(vec3)
 
     local iWindDirSurface, iWindSpeedSurfaceMps = weathermark._GetWind(vec3, iAltitudeMeters + 10) -- Measure the wind velocity at the standard height of 10 metres above the surface. This is the internationally accepted meteorological definition of ‘surface wind’ designed to eliminate distortion attributable to very local terrain effects
 
@@ -440,10 +441,10 @@ function veafWeatherData:create(vec3, iAbsTime, iAltitudeMeters)
         DewPointCelcius = nDewPointCelcius,
         QnhHpa = nQnhPa / 100,
         QfeHpa = nQfePa / 100,
-        SunriseZulu = sunTimes.Sunrise,
-        SunsetZulu = sunTimes.Sunset,
-        SunriseLocal = sunTimes.SunriseLocal,
-        SunsetLocal = sunTimes.SunsetLocal,
+        SunriseZulu = sunTimesZulu.Sunrise,
+        SunsetZulu = sunTimesZulu.Sunset,
+        SunriseLocal = sunTimesLocal.Sunrise,
+        SunsetLocal = sunTimesLocal.Sunset,
 
         WeatherAt500 = _weatherSliceAtAltitude(vec3, 500),
         WeatherAt2000 = _weatherSliceAtAltitude(vec3, 2000),
@@ -451,24 +452,6 @@ function veafWeatherData:create(vec3, iAbsTime, iAltitudeMeters)
     }
 
     setmetatable(this, veafWeatherData)
-
-    --[[
-    veaf.loggers.get(veafWeather.Id):trace("**** WEATHER REPORT TEST ****")
-    veaf.loggers.get(veafWeather.Id):trace("**** FULL REPORT ****")
-    veaf.loggers.get(veafWeather.Id):trace(this:toStringExtended(veafWeatherUnitSystem.Systems.Full, true))
-    veaf.loggers.get(veafWeather.Id):trace("**** ICAO REPORT ****")
-    veaf.loggers.get(veafWeather.Id):trace(this:toStringExtended(veafWeatherUnitSystem.Systems.Icao, true))
-    veaf.loggers.get(veafWeather.Id):trace("**** ICAO METRIC REPORT ****")
-    veaf.loggers.get(veafWeather.Id):trace(this:toStringExtended(veafWeatherUnitSystem.Systems.IcaoMetric, true))
-    veaf.loggers.get(veafWeather.Id):trace("**** FAA REPORT ****")
-    veaf.loggers.get(veafWeather.Id):trace(this:toStringExtended(veafWeatherUnitSystem.Systems.Faa, true))
-    veaf.loggers.get(veafWeather.Id):trace("**** FAA NAVY REPORT ****")
-    veaf.loggers.get(veafWeather.Id):trace(this:toStringExtended(veafWeatherUnitSystem.Systems.FaaNavy, true))
-    veaf.loggers.get(veafWeather.Id):trace("**** METRIC REPORT ****")
-    veaf.loggers.get(veafWeather.Id):trace(this:toStringExtended(veafWeatherUnitSystem.Systems.Metric, true))
-    veaf.loggers.get(veafWeather.Id):trace("**** METRIC EASTERN REPORT ****")
-    veaf.loggers.get(veafWeather.Id):trace(this:toStringExtended(veafWeatherUnitSystem.Systems.MetricEastern, true))
-    ]]
     return this
 end
 
@@ -1574,8 +1557,9 @@ end
 
 veaf.loggers.get(veafWeather.Id):info(string.format("Loading version %s", veafWeather.Version))
 
-
--------------------- TEST STUFF------------------------------------
+---------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------
+-------------------- TEST STUFF--------------------------------------------------------------------
 --[[
 .getFogThickness=[function]
 .getFogVisibilityDistance=[function]

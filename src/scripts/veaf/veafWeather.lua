@@ -376,8 +376,8 @@ veafWeatherData.__index = veafWeatherData
 function veafWeatherData:create(vec3, iAbsTime, iAltitudeMeters)
     iAbsTime = iAbsTime or timer.getAbsTime()
     iAltitudeMeters = iAltitudeMeters or veaf.getLandHeight(vec3)
-    
-    local sunTimesZulu = veafTime.getSunTimesZulu(vec3)
+
+    local sunTimes = veafTime.getSunTimes(vec3)
 
     local iWindDirSurface, iWindSpeedSurfaceMps = weathermark._GetWind(vec3, iAltitudeMeters + 10) -- Measure the wind velocity at the standard height of 10 metres above the surface. This is the internationally accepted meteorological definition of ‘surface wind’ designed to eliminate distortion attributable to very local terrain effects
 
@@ -440,8 +440,10 @@ function veafWeatherData:create(vec3, iAbsTime, iAltitudeMeters)
         DewPointCelcius = nDewPointCelcius,
         QnhHpa = nQnhPa / 100,
         QfeHpa = nQfePa / 100,
-        SunriseZulu = sunTimesZulu.Sunrise,
-        SunsetZulu = sunTimesZulu.Sunset,
+        SunriseZulu = sunTimes.Sunrise,
+        SunsetZulu = sunTimes.Sunset,
+        SunriseLocal = sunTimes.SunriseLocal,
+        SunsetLocal = sunTimes.SunsetLocal,
 
         WeatherAt500 = _weatherSliceAtAltitude(vec3, 500),
         WeatherAt2000 = _weatherSliceAtAltitude(vec3, 2000),
@@ -1291,8 +1293,8 @@ function VeafFog:dynamicCheck()
         local diurnal_factor = 0
 
         -- Convert sunrise and sunset times to minutes since midnight
-        local sunrise_time = weatherData.Sunrise.hour * 60 + weatherData.Sunrise.min
-        local sunset_time = weatherData.Sunset.hour * 60 + weatherData.Sunset.min
+        local sunrise_time = weatherData.SunriseLocal.hour * 60 + weatherData.SunriseLocal.min
+        local sunset_time = weatherData.SunsetLocal.hour * 60 + weatherData.SunsetLocal.min
 
         -- Calculate daylight duration
         local daylight_duration = sunset_time - sunrise_time

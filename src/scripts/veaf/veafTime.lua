@@ -388,6 +388,13 @@ local function _getSunTimesZulu(nLatitude, nLongitude, iDayOfYear, iYear)
     return sunrise_utc, sunset_utc
 end
 
+function veafTime.getSunTimes(vec3, iAbsTime)
+    local result = veafTime.getSunTimesZulu(vec3, iAbsTime)
+    result.SunriseLocal = veafTime.toLocal(result.Sunrise)
+    result.SunsetLocal = veafTime.toLocal(result.Sunset)
+    return result
+end
+
 function veafTime.getSunTimesZulu(vec3, iAbsTime)
     local dateTime = veafTime.absTimeToDateTime(iAbsTime)
     local dateTimeZulu = veafTime.toZulu(dateTime)
@@ -402,7 +409,7 @@ function veafTime.getSunTimesZulu(vec3, iAbsTime)
     return
     {
         Sunrise = { year = dateTime.year, month = dateTime.month, day = dateTime.day, yday = dateTime.yday, hour = iSunriseHour, min = iSunriseMinute, sec = 0 },
-        Sunset =  { year = dateTime.year, month = dateTime.month, day = dateTime.day, yday = dateTime.yday, hour = iSunsetHour, min = iSunsetMinute, sec = 0 }
+        Sunset =  { year = dateTime.year, month = dateTime.month, day = dateTime.day, yday = dateTime.yday, hour = iSunsetHour, min = iSunsetMinute, sec = 0 },
     }
 end
 

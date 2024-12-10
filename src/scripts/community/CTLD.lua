@@ -20,6 +20,12 @@
         - Proxy404 - https://github.com/Proxy404
         - atcz - https://github.com/atcz
         - marcos2221- https://github.com/marcos2221
+
+    Add [issues](https://github.com/ciribob/DCS-CTLD/issues) to the GitHub repository if you want to report a bug or suggest a new feature.
+
+    Contact Zip [on Discord](https://discordapp.com/users/421317390807203850) or [on Github](https://github.com/davidp57) if you need help or want to have a friendly chat.
+
+    Send beers (or kind messages) to Ciribob [on Discord](https://discordapp.com/users/204712384747536384), he's the reason we have CTLD ^^
  ]]
 
 ctld = {} -- DONT REMOVE!
@@ -28,7 +34,7 @@ ctld = {} -- DONT REMOVE!
 ctld.Id = "CTLD - "
 
 --- Version.
-ctld.Version = "202411.01"
+ctld.Version = "202412.01"
 
 -- To add debugging messages to dcs.log, change the following log levels to `true`; `Debug` is less detailed than `Trace`
 ctld.Debug = false
@@ -94,7 +100,7 @@ ctld.troopPickupAtFOB = true -- if true, troops can also be picked up at a creat
 
 ctld.buildTimeFOB = 120 --time in seconds for the FOB to be built
 
- ctld.crateWaitTime = 40 -- time in seconds to wait before you can spawn another crate
+ctld.crateWaitTime = 40 -- time in seconds to wait before you can spawn another crate
 
 ctld.forceCrateToBeMoved = true -- a crate must be picked up at least once and moved before it can be unpacked. Helps to reduce crate spam
 
@@ -484,15 +490,15 @@ ctld.vehicleTransportEnabled = {
     "Hercules",
 }
 
- -- ************** Units able to use DCS dynamic cargo system ******************
- -- DCS (version) added the ability to load and unload cargo from aircraft.
- -- Units listed here will spawn a cargo static that can be loaded with the standard DCS cargo system
- -- We will also use this to make modifications to the menu and other checks and messages
- ctld.dynamicCargoUnits = {
+-- ************** Units able to use DCS dynamic cargo system ******************
+-- DCS (version) added the ability to load and unload cargo from aircraft.
+-- Units listed here will spawn a cargo static that can be loaded with the standard DCS cargo system
+-- We will also use this to make modifications to the menu and other checks and messages
+ctld.dynamicCargoUnits = {
     "CH-47Fbl1",
- }
- 
- 
+}
+
+
 -- ************** Maximum Units SETUP for UNITS ******************
 
 -- Put the name of the Unit you want to limit group sizes too
@@ -685,102 +691,135 @@ ctld.loadableGroups = {
     {name = "3x - Anti Tank", inf = 6, at = 18  },
     {name = "3x - Mortar Squad", mortar = 18},
     {name = "5x - Mortar Squad", mortar = 30},
--- {name = "Mortar Squad Red", inf = 2, mortar = 5, side =1 }, --would make a group loadable by RED only
+    -- {name = "Mortar Squad Red", inf = 2, mortar = 5, side =1 }, --would make a group loadable by RED only
 }
 
 -- ************** SPAWNABLE CRATES ******************
 -- Weights must be unique as we use the weight to change the cargo to the correct unit
 -- when we unpack
 --
- ctld.spawnableCrates = {
-     -- name of the sub menu on F10 for spawning crates
-     ["Combat Vehicles"] = {
-         --crates you can spawn
-         -- weight in KG
-         -- Desc is the description on the F10 MENU
-         -- unit is the model name of the unit to spawn
-         -- cratesRequired - if set requires that many crates of the same type within 100m of each other in order build the unit
-         -- side is optional but 2 is BLUE and 1 is RED
+ctld.spawnableCrates = {
+    -- name of the sub menu on F10 for spawning crates
+    ["Combat Vehicles"] = {
+        --crates you can spawn
+        -- weight in KG
+        -- Desc is the description on the F10 MENU
+        -- unit is the model name of the unit to spawn
+        -- cratesRequired - if set requires that many crates of the same type within 100m of each other in order build the unit
+        -- side is optional but 2 is BLUE and 1 is RED
 
-         -- Some descriptions are filtered to determine if JTAC or not!
+        -- Some descriptions are filtered to determine if JTAC or not!
 
-         --- BLUE
-         { weight = 1000, desc = "Humvee - MG", unit = "M1043 HMMWV Armament", side = 2 },  --careful with the names as the script matches the desc to JTAC types
-         { weight = 1001, desc = "Humvee - TOW", unit = "M1045 HMMWV TOW", side = 2, cratesRequired = 2 },
-         { weight = 1002, desc = "Light Tank - MRAP", unit="MaxxPro_MRAP", side = 2, cratesRequired = 2 },
-         { weight = 1003, desc = "Med Tank - LAV-25", unit="LAV-25", side = 2, cratesRequired = 3 },
-         { weight = 1004, desc = "Heavy Tank - Abrams", unit="M1A2C_SEP_V3", side = 2, cratesRequired = 4 },
+        --- BLUE
+        { weight = 1000.01, desc = "Humvee - MG", unit = "M1043 HMMWV Armament", side = 2 },  --careful with the names as the script matches the desc to JTAC types
+        { weight = 1000.02, desc = "Humvee - TOW", unit = "M1045 HMMWV TOW", side = 2, cratesRequired = 2 },
+        { weight = 1000.03, desc = "Light Tank - MRAP", unit="MaxxPro_MRAP", side = 2, cratesRequired = 2 },
+        { weight = 1000.04, desc = "Med Tank - LAV-25", unit="LAV-25", side = 2, cratesRequired = 3 },
+        { weight = 1000.05, desc = "Heavy Tank - Abrams", unit="M1A2C_SEP_V3", side = 2, cratesRequired = 4 },
 
-         --- RED
-         { weight = 1005, desc = "BTR-D", unit = "BTR_D", side = 1 },
-         { weight = 1006, desc = "BRDM-2", unit = "BRDM-2", side = 1 },
-         -- need more redfor!
-     },
-     ["Support"] = {
-         --- BLUE
-         { weight = 1007, desc = "Hummer - JTAC", unit = "Hummer", side = 2, cratesRequired = 2 }, -- used as jtac and unarmed, not on the crate list if JTAC is disabled
-         { weight = 1008, desc = "M-818 Ammo Truck", unit = "M 818", side = 2, cratesRequired = 2 },
-
-         --- RED
-         { weight = 1009, desc = "SKP-11 - JTAC", unit = "SKP-11", side = 1 }, -- used as jtac and unarmed, not on the crate list if JTAC is disabled
-         { weight = 1010, desc = "Ural-375 Ammo Truck", unit = "Ural-375", side = 1, cratesRequired = 2 },
-
-         --- Both
-         { weight = 1011, desc = "EWR Radar", unit="FPS-117", cratesRequired = 3 },
-         { weight = 1012, desc = "FOB Crate - Small", unit = "FOB-SMALL" }, -- Builds a FOB! - requires 3 * ctld.cratesRequiredForFOB
-
-     },
-     ["Artillery"] = {
-         --- BLUE
-         { weight = 1013, desc = "MLRS", unit = "MLRS", side=2, cratesRequired = 3 },
-         { weight = 1014, desc = "SpGH DANA", unit = "SpGH_Dana", side=2, cratesRequired = 3 },
-         { weight = 1015, desc = "T155 Firtina", unit = "T155_Firtina", side=2, cratesRequired = 3 },
-         { weight = 1016, desc = "Howitzer", unit = "M-109", side=2, cratesRequired = 3 },
+        --- RED
+        { weight = 1000.11, desc = "BTR-D", unit = "BTR_D", side = 1 },
+        { weight = 1000.12, desc = "BRDM-2", unit = "BRDM-2", side = 1 },
+        -- need more redfor!
+    },
+    ["Support"] = {
+        --- BLUE
+        { weight = 1001.01, desc = "Hummer - JTAC", unit = "Hummer", side = 2, cratesRequired = 2 }, -- used as jtac and unarmed, not on the crate list if JTAC is disabled
+        { weight = 1001.02, desc = "M-818 Ammo Truck", unit = "M 818", side = 2, cratesRequired = 2 },
+        { weight = 1001.03, desc = "M-978 Tanker", unit = "M978 HEMTT Tanker", side = 2, cratesRequired = 2 },
 
          --- RED
-         { weight = 1017, desc = "SPH 2S19 Msta", unit = "SAU Msta", side = 1, cratesRequired = 3 },
+        { weight = 1001.11, desc = "SKP-11 - JTAC", unit = "SKP-11", side = 1 }, -- used as jtac and unarmed, not on the crate list if JTAC is disabled
+        { weight = 1001.12, desc = "Ural-375 Ammo Truck", unit = "Ural-375", side = 1, cratesRequired = 2 },
+        { weight = 1001.13, desc = "KAMAZ Ammo Truck", unit = "KAMAZ Truck", side = 1, cratesRequired = 2 },
 
-     },
-     ["SAM short range"] = {
-         --- BLUE
-         { weight = 1018, desc = "M1097 Avenger", unit = "M1097 Avenger", side = 2, cratesRequired = 3 },
+        --- Both
+        { weight = 1001.21, desc = "EWR Radar", unit="FPS-117", cratesRequired = 3 },
+        { weight = 1001.22, desc = "FOB Crate - Small", unit = "FOB-SMALL" }, -- Builds a FOB! - requires 3 * ctld.cratesRequiredForFOB
 
-         --- RED
-         { weight = 1019, desc = "Strela-1 9P31", unit = "Strela-1 9P31", side = 1, cratesRequired = 3 },
+    },
+    ["Artillery"] = {
+        --- BLUE
+        { weight = 1002.01, desc = "MLRS", unit = "MLRS", side=2, cratesRequired = 3 },
+        { weight = 1002.02, desc = "SpGH DANA", unit = "SpGH_Dana", side=2, cratesRequired = 3 },
+        { weight = 1002.03, desc = "T155 Firtina", unit = "T155_Firtina", side=2, cratesRequired = 3 },
+        { weight = 1002.04, desc = "Howitzer", unit = "M-109", side=2, cratesRequired = 3 },
 
-     },
-     ["SAM mid range"] = {
-         --- BLUE
-         -- HAWK System
-         { weight = 1020, desc = "HAWK Launcher", unit = "Hawk ln", side = 2},
-         { weight = 1021, desc = "HAWK Search Radar", unit = "Hawk sr", side = 2 },
-         { weight = 1022, desc = "HAWK Track Radar", unit = "Hawk tr", side = 2 },
-         { weight = 1023, desc = "HAWK PCP", unit = "Hawk pcp" , side = 2 },
-         { weight = 1024, desc = "HAWK CWAR", unit = "Hawk cwar" , side = 2 },
-         { weight = 1025, desc = "HAWK Repair", unit = "HAWK Repair" , side = 2 },
-         -- End of HAWK
+        --- RED
+        { weight = 1002.11, desc = "SPH 2S19 Msta", unit = "SAU Msta", side = 1, cratesRequired = 3 },
 
-         --- RED
-         -- KUB SYSTEM
-         { weight = 1026, desc = "KUB Launcher", unit = "Kub 2P25 ln", side = 1},
-         { weight = 1027, desc = "KUB Radar", unit = "Kub 1S91 str", side = 1 },
-         { weight = 1028, desc = "KUB Repair", unit = "KUB Repair", side = 1},
-         -- End of KUB
+    },
+    ["SAM short range"] = {
+        --- BLUE
+        { weight = 1003.01, desc = "M1097 Avenger", unit = "M1097 Avenger", side = 2, cratesRequired = 3 },
+        { weight = 1003.02, desc = "M48 Chaparral", unit = "M48 Chaparral", side = 2, cratesRequired = 2 },
+        { weight = 1003.03, desc = "Roland ADS", unit = "Roland ADS", side = 2, cratesRequired = 3 },
+        { weight = 1003.04, desc = "Gepard AAA", unit = "Gepard", side = 2, cratesRequired = 3 },
+        { weight = 1003.05, desc = "LPWS C-RAM", unit = "HEMTT_C-RAM_Phalanx", side = 2, cratesRequired = 3 },
 
-     },
-     ["SAM long range"] = {
+        --- RED
+        { weight = 1003.11, desc = "9K33 Osa", unit = "Osa 9A33 ln", side = 1, cratesRequired = 3 },
+        { weight = 1003.12, desc = "9P31 Strela-1", unit = "Strela-1 9P31", side = 1, cratesRequired = 3 },
+        { weight = 1003.13, desc = "9K35M Strela-10", unit = "Strela-10M3", side = 1, cratesRequired = 3 },
+        { weight = 1003.14, desc = "9K331 Tor", unit = "Tor 9A331", side = 1, cratesRequired = 3 },
+        { weight = 1003.15, desc = "2K22 Tunguska", unit = "2S6 Tunguska", side = 1, cratesRequired = 3 },
+    },
+    ["SAM mid range"] = {
+        --- BLUE
+        -- HAWK System
+        { weight = 1004.01, desc = "HAWK Launcher", unit = "Hawk ln", side = 2},
+        { weight = 1004.02, desc = "HAWK Search Radar", unit = "Hawk sr", side = 2 },
+        { weight = 1004.03, desc = "HAWK Track Radar", unit = "Hawk tr", side = 2 },
+        { weight = 1004.04, desc = "HAWK PCP", unit = "Hawk pcp" , side = 2 },
+        { weight = 1004.05, desc = "HAWK CWAR", unit = "Hawk cwar" , side = 2 },
+        { weight = 1004.06, desc = "HAWK Repair", unit = "HAWK Repair" , side = 2 },
+        -- End of HAWK
+        
+        -- NASAMS Sysyem
+        { weight = 1004.11, desc = "NASAMS Launcher 120C", unit = "NASAMS_LN_C", side = 2},
+        { weight = 1004.12, desc = "NASAMS Search/Track Radar", unit = "NASAMS_Radar_MPQ64F1", side = 2 },
+        { weight = 1004.13, desc = "NASAMS Command Post", unit = "NASAMS_Command_Post", side = 2 },
+        { weight = 1004.14, desc = "NASAMS Repair", unit = "NASAMS Repair", side = 2 },
+        -- End of NASAMS
+
+        --- RED
+        -- KUB SYSTEM
+        { weight = 1004.21, desc = "KUB Launcher", unit = "Kub 2P25 ln", side = 1},
+        { weight = 1004.22, desc = "KUB Radar", unit = "Kub 1S91 str", side = 1 },
+        { weight = 1004.23, desc = "KUB Repair", unit = "KUB Repair", side = 1},
+        -- End of KUB
+
+        -- BUK System
+        { weight = 1004.31, desc = "BUK Launcher", unit = "SA-11 Buk LN 9A310M1", side = 1},
+        { weight = 1004.32, desc = "BUK Search Radar", unit = "SA-11 Buk SR 9S18M1", side = 1},
+        { weight = 1004.33, desc = "BUK CC Radar", unit = "SA-11 Buk CC 9S470M1", side = 1},
+        { weight = 1004.34, desc = "BUK Repair", unit = "BUK Repair", side = 1},
+        -- END of BUK
+    },
+    ["SAM long range"] = {
         --- BLUE
         -- Patriot System
-        { weight = 1029, desc = "Patriot Launcher", unit = "Patriot ln", side = 2 },
-        { weight = 1030, desc = "Patriot Radar", unit = "Patriot str" , side = 2 },
-        { weight = 1031, desc = "Patriot ECS", unit = "Patriot ECS", side = 2 },
-        { weight = 1032, desc = "Patriot AMG (optional)", unit = "Patriot AMG" , side = 2 },
-        { weight = 1033, desc = "Patriot Repair", unit = "Patriot Repair" , side = 2 },
+        { weight = 1005.01, desc = "Patriot Launcher", unit = "Patriot ln", side = 2 },
+        { weight = 1005.02, desc = "Patriot Radar", unit = "Patriot str" , side = 2 },
+        { weight = 1005.03, desc = "Patriot ECS", unit = "Patriot ECS", side = 2 },
+        -- { weight = 1005.04, desc = "Patriot ICC", unit = "Patriot cp", side = 2 },
+        -- { weight = 1005.05, desc = "Patriot EPP", unit = "Patriot EPP", side = 2 },
+        { weight = 1005.06, desc = "Patriot AMG (optional)", unit = "Patriot AMG" , side = 2 },
+        { weight = 1005.07, desc = "Patriot Repair", unit = "Patriot Repair" , side = 2 },
         -- End of Patriot
+
+        -- S-300 SYSTEM
+        { weight = 1005.11, desc = "S-300 Grumble TEL C", unit = "S-300PS 5P85C ln", side = 1 },
+        { weight = 1005.12, desc = "S-300 Grumble Flap Lid-A TR", unit = "S-300PS 40B6M tr", side = 1 },
+        { weight = 1005.13, desc = "S-300 Grumble Clam Shell SR", unit = "S-300PS 40B6MD sr", side = 1 },
+        { weight = 1005.14, desc = "S-300 Grumble Big Bird SR", unit = "S-300PS 64H6E sr", side = 1 },
+        { weight = 1005.15, desc = "S-300 Grumble C2", unit = "S-300PS 54K6 cp", side = 1 },
+        { weight = 1005.16, desc = "S-300 Repair", unit = "S-300 Repair", side = 1 },
+        -- End of S-300
     },
 }
 
- ctld.spawnableCratesModels = {
+ctld.spawnableCratesModels = {
     ["load"] = {
         ["category"] = "Fortifications",
         ["type"] = "Cargo04",
@@ -788,16 +827,17 @@ ctld.loadableGroups = {
     },
     ["sling"] = {
         ["category"] = "Cargos",
-         ["shape_name"] = "bw_container_cargo",
-         ["type"] = "container_cargo",
+        ["shape_name"] = "bw_container_cargo",
+        ["type"] = "container_cargo",
         ["canCargo"] = true
     },
     ["dynamic"] = {
-        ["category"] = "Cargos",
-        ["type"] = "ammo_cargo",
+       ["category"] = "Cargos",
+       ["type"] = "ammo_cargo",
         ["canCargo"] = true
     }
 }
+
 
 --[[ Placeholder for different type of cargo containers. Let's say pipes and trunks, fuel for FOB building
     ["shape_name"] = "ab-212_cargo",
@@ -1600,7 +1640,7 @@ ctld.AASystemTemplate = {
 
     {
         name = "HAWK AA System",
-        count = 4,
+        count = 5,
         parts = {
             {name = "Hawk ln", desc = "HAWK Launcher", launcher = true},
             {name = "Hawk tr", desc = "HAWK Track Radar", amount = 2},
@@ -1617,11 +1657,23 @@ ctld.AASystemTemplate = {
             {name = "Patriot ln", desc = "Patriot Launcher", launcher = true, amount = 8},
             {name = "Patriot ECS", desc = "Patriot Control Unit"},
             {name = "Patriot str", desc = "Patriot Search and Track Radar", amount = 2},
+            --{name = "Patriot cp", desc = "Patriot ICC", NoCrate = true},
+            --{name = "Patriot EPP", desc = "Patriot EPP", NoCrate = true},
             {name = "Patriot AMG", desc = "Patriot AMG DL relay", NoCrate = true},
         },
         repair = "Patriot Repair",
     },
     {
+        name = "NASAMS AA System",
+        count = 3,
+        parts = {
+            {name = "NASAMS_LN_C", desc = "NASAMS Launcher 120C", launcher = true},
+            {name = "NASAMS_Radar_MPQ64F1", desc = "NASAMS Search/Track Radar"},
+            {name = "NASAMS_Command_Post", desc = "NASAMS Command Post"},
+        },
+        repair = "NASAMS Repair",
+    },
+	{
         name = "BUK AA System",
         count = 3,
         parts = {
@@ -1639,6 +1691,19 @@ ctld.AASystemTemplate = {
             {name = "Kub 1S91 str", desc = "KUB Radar"},
         },
         repair = "KUB Repair",
+    },
+    {
+        name = "S-300 AA System",
+        count = 6,
+        parts = {
+            { desc = "S-300 Grumble TEL C", name = "S-300PS 5P85C ln", launcher = true, amount = 1 },
+            { desc = "S-300 Grumble TEL D", name = "S-300PS 5P85D ln", NoCrate = true, amount = 2 },
+            { desc = "S-300 Grumble Flap Lid-A TR", name = "S-300PS 40B6M tr"},
+            { desc = "S-300 Grumble Clam Shell SR", name = "S-300PS 40B6MD sr"},
+            { desc = "S-300 Grumble Big Bird SR", name = "S-300PS 64H6E sr"},
+            { desc = "S-300 Grumble C2", name = "S-300PS 54K6 cp"},
+        },
+        repair = "S-300 Repair",
     },
 }
 
@@ -1775,7 +1840,7 @@ function ctld.getTransportUnit(_unitName)
     return nil
 end
 
- function ctld.spawnCrateStatic(_country, _unitId, _point, _name, _weight,  _side, _hdg, _model_type)
+function ctld.spawnCrateStatic(_country, _unitId, _point, _name, _weight, _side, _hdg,_model_type)
 
     local _crate
     local _spawnedCrate
@@ -1811,13 +1876,13 @@ end
         _spawnedCrate = Unit.getByName(_name)
     else
 
-         if _model_type ~= nil then
-             _crate = mist.utils.deepCopy(ctld.spawnableCratesModels[_model_type])
-         elseif ctld.slingLoad then
-             _crate = mist.utils.deepCopy(ctld.spawnableCratesModels["sling"])
-         else
-             _crate = mist.utils.deepCopy(ctld.spawnableCratesModels["load"])
-         end
+        if _model_type ~= nil then
+            _crate = mist.utils.deepCopy(ctld.spawnableCratesModels[_model_type])
+        elseif ctld.slingLoad then
+            _crate = mist.utils.deepCopy(ctld.spawnableCratesModels["sling"])
+        else
+            _crate = mist.utils.deepCopy(ctld.spawnableCratesModels["load"])
+        end
 
         _crate["y"] = _point.z
         _crate["x"] = _point.x
@@ -1986,7 +2051,7 @@ function ctld.spawnCrate(_arguments)
             -- add to move table
             ctld.crateMove[_name] = _name
 
-            ctld.displayMessageToGroup(_heli, string.format("A %s crate weighing %s kg has been brought out and is at your %s o'clock ", _crateType.desc, _crateType.weight, _position), 20)
+            ctld.displayMessageToGroup(_heli, string.format("A %s crate weighing %.0f kg has been brought out and is at your %s o'clock ", _crateType.desc, _crateType.weight, _position), 20)
 
         else
             env.info("Couldn't find crate item to spawn")
@@ -2236,9 +2301,9 @@ function ctld.generateTroopTypes(_side, _countOrTemplate, _country)
 
         if _countOrTemplate.inf then
             if _side == 2 then
-                 _troops = ctld.insertIntoTroopsArray("Soldier M4 GRG",_countOrTemplate.inf,_troops)
+                _troops = ctld.insertIntoTroopsArray("Soldier M4 GRG",_countOrTemplate.inf,_troops)
             else
-                 _troops = ctld.insertIntoTroopsArray("Infantry AK",_countOrTemplate.inf,_troops)
+                _troops = ctld.insertIntoTroopsArray("Infantry AK",_countOrTemplate.inf,_troops)
             end
             _weight = _weight + getSoldiersWeight(_countOrTemplate.inf, ctld.RIFLE_WEIGHT)
         end
@@ -2264,9 +2329,9 @@ function ctld.generateTroopTypes(_side, _countOrTemplate, _country)
 
         if _countOrTemplate.jtac then
             if _side == 2 then
-                 _troops = ctld.insertIntoTroopsArray("Soldier M4 GRG",_countOrTemplate.jtac,_troops, "JTAC")
+                _troops = ctld.insertIntoTroopsArray("Soldier M4 GRG",_countOrTemplate.jtac,_troops, "JTAC")
             else
-                 _troops = ctld.insertIntoTroopsArray("Infantry AK",_countOrTemplate.jtac,_troops, "JTAC")
+                _troops = ctld.insertIntoTroopsArray("Infantry AK",_countOrTemplate.jtac,_troops, "JTAC")
             end
             _hasJTAC = true
             _weight = _weight + getSoldiersWeight(_countOrTemplate.jtac, ctld.JTAC_WEIGHT + ctld.RIFLE_WEIGHT)
@@ -2275,7 +2340,7 @@ function ctld.generateTroopTypes(_side, _countOrTemplate, _country)
     else
         for _i = 1, _countOrTemplate do
 
-             local _unitType = "Infantry AK"
+            local _unitType = "Infantry AK"
 
             if _side == 2 then
                 if _i <=2 then
@@ -2288,7 +2353,7 @@ function ctld.generateTroopTypes(_side, _countOrTemplate, _country)
                     _unitType = "Soldier stinger"
                     _weight = _weight + getSoldiersWeight(1, ctld.MANPAD_WEIGHT)
                 else
-                     _unitType = "Soldier M4 GRG"
+                    _unitType = "Soldier M4 GRG"
                     _weight = _weight + getSoldiersWeight(1, ctld.RIFLE_WEIGHT)
                 end
             else
@@ -2815,7 +2880,7 @@ function ctld.getWeightOfCargo(unitName)
         if _inTransit then
             local _troops = _inTransit.troops
             if _troops and _troops.units then
-                _description = _description .. string.format("%s troops onboard (%s kg)\n", #_troops.units, _troops.weight)
+                _description = _description .. string.format("%s troops onboard (%.0f kg)\n", #_troops.units, _troops.weight)
                 _weight = _weight + _troops.weight
             end
             local _vehicles = _inTransit.vehicles
@@ -2823,7 +2888,7 @@ function ctld.getWeightOfCargo(unitName)
                 for _, _unit in pairs(_vehicles.units) do
                     _weight = _weight + _unit.weight
                 end
-                _description = _description .. string.format("%s vehicles onboard (%s kg)\n", #_vehicles.units, _weight)
+                _description = _description .. string.format("%s vehicles onboard (%.0f kg)\n", #_vehicles.units, _weight)
             end
         end
     end
@@ -2831,7 +2896,7 @@ function ctld.getWeightOfCargo(unitName)
     -- add FOB crates weight
     if ctld.inTransitFOBCrates[unitName] then
         _weight = _weight + FOB_CRATE_WEIGHT
-        _description = _description .. string.format("1 FOB Crate oboard (%s kg)\n", FOB_CRATE_WEIGHT)
+        _description = _description .. string.format("1 FOB Crate oboard (%.0f kg)\n", FOB_CRATE_WEIGHT)
     end
 
     -- add simulated slingload crates weight
@@ -2839,11 +2904,11 @@ function ctld.getWeightOfCargo(unitName)
         local _crate = ctld.inTransitSlingLoadCrates[unitName][i]
         if _crate and _crate.simulatedSlingload then
             _weight = _weight + _crate.weight
-            _description = _description .. string.format("%s crate onboard (%s kg)\n", _crate.desc, _crate.weight)
+            _description = _description .. string.format("%s crate onboard (%.0f kg)\n", _crate.desc, _crate.weight)
         end
     end
     if _description ~= "" then
-        _description = _description .. string.format("Total weight of cargo : %s kg\n", _weight)
+        _description = _description .. string.format("Total weight of cargo : %.0f kg\n", _weight)
     else
         _description = "No cargo."
     end
@@ -2865,7 +2930,7 @@ function ctld.checkHoverStatus()
             ctld.inTransitSlingLoadCrates[_name] = ctld.inTransitSlingLoadCrates[_name] or {}
 
             --only check transports that are hovering and not planes
-             if _transUnit ~= nil and #ctld.inTransitSlingLoadCrates[_name] < _cargoCapacity and ctld.inAir(_transUnit) and ctld.unitCanCarryVehicles(_transUnit) == false and not ctld.unitDynamicCargoCapable(_transUnit) then
+            if _transUnit ~= nil and #ctld.inTransitSlingLoadCrates[_name] < _cargoCapacity and ctld.inAir(_transUnit) and ctld.unitCanCarryVehicles(_transUnit) == false and not ctld.unitDynamicCargoCapable(_transUnit) then
 
 
                 local _crates = ctld.getCratesAndDistance(_transUnit)
@@ -2898,31 +2963,31 @@ function ctld.checkHoverStatus()
                                 ctld.crateMove[_crateUnitName] = nil
 
                                 if _transUnit:getCoalition() == 1 then
-                                        ctld.spawnedCratesRED[_crateUnitName] = nil
-                                    else
-                                        ctld.spawnedCratesBLUE[_crateUnitName] = nil
-                                    end
-
-                                    _crate.crateUnit:destroy()
-
-                                    local _copiedCrate = mist.utils.deepCopy(_crate.details)
-                                    _copiedCrate.simulatedSlingload = true
-                                    table.insert(ctld.inTransitSlingLoadCrates[_name], _copiedCrate)
-                                    ctld.adaptWeightToCargo(_name)
+                                    ctld.spawnedCratesRED[_crateUnitName] = nil
+                                else
+                                    ctld.spawnedCratesBLUE[_crateUnitName] = nil
                                 end
 
-                                _reset = false
+                                _crate.crateUnit:destroy()
 
-                                break
-                            elseif _height <= ctld.minimumHoverHeight then
-                                ctld.displayMessageToGroup(_transUnit, "Too low to hook " .. _crate.details.desc .. " crate.\n\nHold hover for " .. ctld.hoverTime .. " seconds", 5,true)
-                                break
-                            else
-                                ctld.displayMessageToGroup(_transUnit, "Too high to hook " .. _crate.details.desc .. " crate.\n\nHold hover for " .. ctld.hoverTime .. " seconds", 5, true)
-                                break
+                                local _copiedCrate = mist.utils.deepCopy(_crate.details)
+                                _copiedCrate.simulatedSlingload = true
+                                table.insert(ctld.inTransitSlingLoadCrates[_name], _copiedCrate)
+                                ctld.adaptWeightToCargo(_name)
                             end
+
+                            _reset = false
+
+                            break
+                        elseif _height <= ctld.minimumHoverHeight then
+                            ctld.displayMessageToGroup(_transUnit, "Too low to hook " .. _crate.details.desc .. " crate.\n\nHold hover for " .. ctld.hoverTime .. " seconds", 5,true)
+                            break
+                        else
+                            ctld.displayMessageToGroup(_transUnit, "Too high to hook " .. _crate.details.desc .. " crate.\n\nHold hover for " .. ctld.hoverTime .. " seconds", 5, true)
+                            break
                         end
                     end
+                end
             end
 
             if _reset then
@@ -3280,7 +3345,7 @@ function ctld.getClosestCrate(_heli, _crates, _type)
         if (_crate.details.unit == _type or _type == nil) then
             _distance = _crate.dist
 
-             if _distance ~= nil and (_shortestDistance == -1 or _distance < _shortestDistance) and _distance > _minimumDistance then
+            if _distance ~= nil and (_shortestDistance == -1 or _distance < _shortestDistance) and _distance > _minimumDistance then
                 _shortestDistance = _distance
                 _closetCrate = _crate
             end
@@ -3374,7 +3439,7 @@ function ctld.unpackCrates(_arguments)
 
             elseif _crate ~= nil and _crate.dist < 200 then
 
-                 if ctld.forceCrateToBeMoved and ctld.crateMove[_crate.crateUnit:getName()] and not ctld.unitDynamicCargoCapable(_heli) then
+                if ctld.forceCrateToBeMoved and ctld.crateMove[_crate.crateUnit:getName()] and not ctld.unitDynamicCargoCapable(_heli) then
                     ctld.displayMessageToGroup(_heli,"Sorry you must move this crate before you unpack it!", 20)
                     return
                 end
@@ -3441,7 +3506,7 @@ function ctld.unpackCrates(_arguments)
 
             else
 
-                 ctld.displayMessageToGroup(_heli, "No friendly crates close enough to unpack, or crate too close to aircraft.", 20)
+                ctld.displayMessageToGroup(_heli, "No friendly crates close enough to unpack, or crate too close to aircraft.", 20)
             end
         end
     end, _arguments)
@@ -4010,7 +4075,7 @@ function ctld.rearmAASystem(_heli, _nearestCrate, _nearbyCrates, _aaSystemTempla
 
                 ctld.completeAASystems[_spawnedGroup:getName()] = ctld.getAASystemDetails(_spawnedGroup, _aaSystemTemplate)
 
-                ctld.processCallback({unit = _heli, crate =  _nearestCrate, spawnedGroup = _spawnedGroup, action = "rearm"})
+                ctld.processCallback({unit = _heli, crate =  _nearestCrate , spawnedGroup = _spawnedGroup, action = "rearm"})
 
                 trigger.action.outTextForCoalition(_heli:getCoalition(), ctld.getPlayerNameOrType(_heli) .. " successfully rearmed a full ".._aaSystemTemplate.name.." in the field", 10)
 
@@ -4122,7 +4187,7 @@ function ctld.unpackAASystem(_heli, _nearestCrate, _nearbyCrates,_aaSystemTempla
                 local crateUnit = _nearbyCrate.crateUnit
                 table.insert(_systemParts[_name].crates, _nearbyCrate)
                 table.insert(_cratePositions[_name], crateUnit:getPoint())
-                table.insert(_crateHdg[_name], mist.getHeading(crateUnit))
+                table.insert(_crateHdg[_name], mist.getHeading(crateUnit, true))
             end
         end
     end
@@ -4149,7 +4214,7 @@ function ctld.unpackAASystem(_heli, _nearestCrate, _nearbyCrates,_aaSystemTempla
         end
     end
 
-    local spawnDistance = 50 -- circle diameter to spawn units in a circle and randomize position relative to the crate location
+    local spawnDistance = 50 -- circle radius to spawn units in a circle and randomize position relative to the crate location
     local arcRad = math.pi * 2
 
     local _txt = ""
@@ -4273,6 +4338,7 @@ function ctld.unpackAASystem(_heli, _nearestCrate, _nearbyCrates,_aaSystemTempla
         ctld.processCallback({unit = _heli, crate = _nearestCrate , spawnedGroup = _spawnedGroup, action = "unpack"})
 
         trigger.action.outTextForCoalition(_heli:getCoalition(), ctld.getPlayerNameOrType(_heli) .. " successfully deployed a full ".._aaSystemTemplate.name.." to the field. \n\nAA Active System limit is: ".._allowed.."\nActive: "..(_activeLaunchers+1), 10)
+
     end
 end
 
@@ -4284,6 +4350,8 @@ function ctld.getAllowedAASystems(_heli)
     else
         return ctld.AASystemLimitRED
     end
+
+
 end
 
 
@@ -4432,13 +4500,14 @@ function ctld.unpackMultiCrate(_heli, _nearestCrate, _nearbyCrates)
 
 
         local _spawnedGroup = ctld.spawnCrateGroup(_heli, { _point }, { _nearestCrate.details.unit }, { _crateHdg })
-        ctld.setGrpROE(_spawnedGroup)
-        ctld.processCallback({unit = _heli, crate =  _nearestCrate , spawnedGroup = _spawnedGroup, action = "unpack"})
-
-        local _txt = string.format("%s successfully deployed %s to the field using %d crates", ctld.getPlayerNameOrType(_heli), _nearestCrate.details.desc, #_nearbyMultiCrates)
-
-        trigger.action.outTextForCoalition(_heli:getCoalition(), _txt, 10)
-
+        if _spawnedGroup == nil then
+            ctld.logError("ctld.unpackMultiCrate group was not spawned - skipping setGrpROE")
+        else
+            ctld.setGrpROE(_spawnedGroup)
+            ctld.processCallback({unit = _heli, crate =  _nearestCrate , spawnedGroup = _spawnedGroup, action = "unpack"})    
+            local _txt = string.format("%s successfully deployed %s to the field using %d crates", ctld.getPlayerNameOrType(_heli), _nearestCrate.details.desc, #_nearbyMultiCrates)
+            trigger.action.outTextForCoalition(_heli:getCoalition(), _txt, 10)
+        end
     else
 
         local _txt = string.format("Cannot build %s!\n\nIt requires %d crates and there are %d \n\nOr the crates are not within 300m of each other", _nearestCrate.details.desc, _nearestCrate.details.cratesRequired, #_nearbyMultiCrates)
@@ -4888,6 +4957,7 @@ end
 
 -- are we near friendly logistics zone
 function ctld.inLogisticsZone(_heli)
+
     if ctld.inAir(_heli) then
         return false
     end
@@ -4900,7 +4970,7 @@ function ctld.inLogisticsZone(_heli)
         if _logistic ~= nil and _logistic:getCoalition() == _heli:getCoalition() and _logistic:getLife() > 0 then
             --get distance
             local _dist = ctld.getDistance(_heliPoint, _logistic:getPoint())
-            
+
             if _dist <= ctld.maximumDistanceLogistic then
                 return true
             end
@@ -5042,7 +5112,7 @@ function ctld.unitCanCarryVehicles(_unit)
 
     for _, _name in ipairs(ctld.vehicleTransportEnabled) do
         local _nameLower = string.lower(_name)
-         if string.find(_type, _nameLower, 1, true) then
+        if string.find(_type, _nameLower, 1, true) then
             return true
         end
     end
@@ -5050,7 +5120,7 @@ function ctld.unitCanCarryVehicles(_unit)
     return false
 end
 
- function ctld.unitDynamicCargoCapable(_unit)
+function ctld.unitDynamicCargoCapable(_unit)
     local cache = {}
     local _type = string.lower(_unit:getTypeName())
     local result = cache[_type]
@@ -5068,8 +5138,8 @@ end
         ctld.logDebug("result=[%s]", ctld.p(result))
     end
     return result
- end
- 
+end
+
 function ctld.isJTACUnitType(_type)
 
     _type = string.lower(_type)
@@ -5208,157 +5278,164 @@ function ctld.addTransportF10MenuOptions(_unitName)
         local _unit = ctld.getTransportUnit(_unitName)
         if _unit then
             local _unitTypename = _unit:getTypeName()
-            local _groupId = ctld.getGroupId(_unit)
+                local _groupId = ctld.getGroupId(_unit)
 
-            if _groupId then
+                if _groupId then
 
-                if ctld.addedTo[tostring(_groupId)] == nil then
+                    if ctld.addedTo[tostring(_groupId)] == nil then
 
-                    local _rootPath = missionCommands.addSubMenuForGroup(_groupId, "CTLD")
+                        local _rootPath = missionCommands.addSubMenuForGroup(_groupId, "CTLD")
 
-                    local _unitActions = ctld.getUnitActions(_unitTypename)
+                        local _unitActions = ctld.getUnitActions(_unitTypename)
 
-                    missionCommands.addCommandForGroup(_groupId, "Check Cargo", _rootPath, ctld.checkTroopStatus, { _unitName })
+                        missionCommands.addCommandForGroup(_groupId, "Check Cargo", _rootPath, ctld.checkTroopStatus, { _unitName })
 
-                    if _unitActions.troops then
+                        if _unitActions.troops then
 
-                        local _troopCommandsPath = missionCommands.addSubMenuForGroup(_groupId, "Troop Transport", _rootPath)
+                            local _troopCommandsPath = missionCommands.addSubMenuForGroup(_groupId, "Troop Transport", _rootPath)
 
-                        missionCommands.addCommandForGroup(_groupId, "Unload / Extract Troops", _troopCommandsPath, ctld.unloadExtractTroops, { _unitName })
+                            missionCommands.addCommandForGroup(_groupId, "Unload / Extract Troops", _troopCommandsPath, ctld.unloadExtractTroops, { _unitName })
 
 
-                        -- local _loadPath = missionCommands.addSubMenuForGroup(_groupId, "Load From Zone", _troopCommandsPath)
-                        local _transportLimit = ctld.getTransportLimit(_unitTypename)
-                        local itemNb = 0
-                        local menuPath = _troopCommandsPath
-                        for _,_loadGroup in pairs(ctld.loadableGroups) do
-                            if not _loadGroup.side or _loadGroup.side == _unit:getCoalition() then
-                                
-                                -- check size & unit
-                                if _transportLimit >= _loadGroup.total then
-                                    -- add the menu item
-                                    itemNb = itemNb + 1
-                                    if itemNb > 8 then -- page limit reached (first item is "unload")
-                                        menuPath = missionCommands.addSubMenuForGroup(_groupId, "Next page", menuPath)
-                                        itemNb = 1
+                            -- local _loadPath = missionCommands.addSubMenuForGroup(_groupId, "Load From Zone", _troopCommandsPath)
+                            local _transportLimit = ctld.getTransportLimit(_unitTypename)
+                            local itemNb = 0
+                            local menuEntries = {}
+                            local menuPath = _troopCommandsPath
+                            for _,_loadGroup in pairs(ctld.loadableGroups) do
+                                if not _loadGroup.side or _loadGroup.side == _unit:getCoalition() then
+                                    -- check size & unit
+                                    if _transportLimit >= _loadGroup.total then
+                                        table.insert(menuEntries, { text = "Load ".._loadGroup.name, group = _loadGroup })
                                     end
-                                    missionCommands.addCommandForGroup(_groupId, "Load ".._loadGroup.name, menuPath, ctld.loadTroopsFromZone, { _unitName, true,_loadGroup,false })
                                 end
                             end
-                        end
-
-                        if ctld.unitCanCarryVehicles(_unit) then
-
-                            local _vehicleCommandsPath = missionCommands.addSubMenuForGroup(_groupId, "Vehicle / FOB Transport", _rootPath)
-
-                            missionCommands.addCommandForGroup(_groupId, "Unload Vehicles", _vehicleCommandsPath, ctld.unloadTroops, { _unitName, false })
-                            missionCommands.addCommandForGroup(_groupId, "Load / Extract Vehicles", _vehicleCommandsPath, ctld.loadTroopsFromZone, { _unitName, false,"",true })
-
-                            if ctld.enabledFOBBuilding and ctld.staticBugWorkaround == false then
-
-                                missionCommands.addCommandForGroup(_groupId, "Load / Unload FOB Crate", _vehicleCommandsPath, ctld.loadUnloadFOBCrate, { _unitName, false })
-                            end
-                            missionCommands.addCommandForGroup(_groupId, "Check Cargo", _vehicleCommandsPath, ctld.checkTroopStatus, { _unitName })
-                        end
-
-                    end
-
-
-                    if ctld.enableCrates and _unitActions.crates then
-
-                        if ctld.unitCanCarryVehicles(_unit) == false then
-                            -- sort the crate categories alphabetically
-                            local crateCategories = {}
-                            for category, _ in pairs(ctld.spawnableCrates) do
-                                table.insert(crateCategories, category)
-                            end
-                            table.sort(crateCategories)
-                            ctld.logTrace("crateCategories = [%s]", ctld.p(crateCategories))
-
-                            -- add menu for spawning crates
-                            local itemNbMain = 0
-                            local _cratesMenuPath = missionCommands.addSubMenuForGroup(_groupId, "Vehicle / FOB Crates", _rootPath)
-                            for i = 1, #crateCategories do
-                                local _subMenuName = crateCategories[i]
-                                local _crates = ctld.spawnableCrates[_subMenuName]
-
-                                -- add the submenu item
-                                itemNbMain = itemNbMain + 1
-                                if itemNbMain > 9 then -- page limit reached
-                                    _cratesMenuPath = missionCommands.addSubMenuForGroup(_groupId, "Next page", _cratesMenuPath)
-                                    itemNbMain = 1
+                            for _i, _menu in ipairs(menuEntries) do
+                                -- add the menu item
+                                itemNb = itemNb + 1
+                                if itemNb == 9 and _i < #menuEntries then -- page limit reached (first item is "unload")
+                                    menuPath = missionCommands.addSubMenuForGroup(_groupId, "Next page", menuPath)
+                                    itemNb = 1
                                 end
-                                local itemNbSubmenu = 0
-                                local _subMenuPath = missionCommands.addSubMenuForGroup(_groupId, _subMenuName, _cratesMenuPath)
-                                for _, _crate in pairs(_crates) do
-                                    if ctld.isJTACUnitType(_crate.unit) == false
-                                            or (ctld.isJTACUnitType(_crate.unit) == true and ctld.JTAC_dropEnabled) then
-                                        if _crate.side == nil or (_crate.side == _unit:getCoalition()) then
-                                            local _crateRadioMsg = _crate.desc
-                                            --add in the number of crates required to build something
-                                            if _crate.cratesRequired ~= nil and _crate.cratesRequired > 1 then
-                                                _crateRadioMsg = _crateRadioMsg.." (".._crate.cratesRequired..")"
+                                missionCommands.addCommandForGroup(_groupId, _menu.text, menuPath, ctld.loadTroopsFromZone, { _unitName, true,_menu.group,false })
+                            end
+
+                            if ctld.unitCanCarryVehicles(_unit) then
+
+                                local _vehicleCommandsPath = missionCommands.addSubMenuForGroup(_groupId, "Vehicle / FOB Transport", _rootPath)
+
+                                missionCommands.addCommandForGroup(_groupId, "Unload Vehicles", _vehicleCommandsPath, ctld.unloadTroops, { _unitName, false })
+                                missionCommands.addCommandForGroup(_groupId, "Load / Extract Vehicles", _vehicleCommandsPath, ctld.loadTroopsFromZone, { _unitName, false,"",true })
+
+                                if ctld.enabledFOBBuilding and ctld.staticBugWorkaround == false then
+
+                                    missionCommands.addCommandForGroup(_groupId, "Load / Unload FOB Crate", _vehicleCommandsPath, ctld.loadUnloadFOBCrate, { _unitName, false })
+                                end
+                                missionCommands.addCommandForGroup(_groupId, "Check Cargo", _vehicleCommandsPath, ctld.checkTroopStatus, { _unitName })
+                            end
+
+                        end
+
+
+                        if ctld.enableCrates and _unitActions.crates then
+
+                            if ctld.unitCanCarryVehicles(_unit) == false then
+                                -- sort the crate categories alphabetically
+                                local crateCategories = {}
+                                for category, _ in pairs(ctld.spawnableCrates) do
+                                    table.insert(crateCategories, category)
+                                end
+                                table.sort(crateCategories)
+                                ctld.logTrace("crateCategories = [%s]", ctld.p(crateCategories))
+
+                                -- add menu for spawning crates
+                                local itemNbMain = 0
+                                local _cratesMenuPath = missionCommands.addSubMenuForGroup(_groupId, "Vehicle / FOB Crates", _rootPath)
+                                for _i, _category in ipairs(crateCategories) do
+                                    local _subMenuName = _category
+                                    local _crates = ctld.spawnableCrates[_subMenuName]
+
+                                    -- add the submenu item
+                                    itemNbMain = itemNbMain + 1
+                                    if itemNbMain == 10 and _i < #crateCategories then -- page limit reached
+                                        _cratesMenuPath = missionCommands.addSubMenuForGroup(_groupId, "Next page", _cratesMenuPath)
+                                        itemNbMain = 1
+                                    end
+                                    local itemNbSubmenu = 0
+                                    local menuEntries = {}
+                                    local _subMenuPath = missionCommands.addSubMenuForGroup(_groupId, _subMenuName, _cratesMenuPath)
+                                    for _, _crate in pairs(_crates) do
+                                        if ctld.isJTACUnitType(_crate.unit) == false
+                                                or (ctld.isJTACUnitType(_crate.unit) == true and ctld.JTAC_dropEnabled) then
+                                            if _crate.side == nil or (_crate.side == _unit:getCoalition()) then
+                                                local _crateRadioMsg = _crate.desc
+                                                --add in the number of crates required to build something
+                                                if _crate.cratesRequired ~= nil and _crate.cratesRequired > 1 then
+                                                    _crateRadioMsg = _crateRadioMsg.." (".._crate.cratesRequired..")"
+                                                end
+                                                table.insert(menuEntries, { text = _crateRadioMsg, crate = _crate })
                                             end
-                                            -- add the submenu item
-                                            itemNbSubmenu = itemNbSubmenu + 1
-                                            if itemNbSubmenu > 9 then -- page limit reached
-                                                _subMenuPath = missionCommands.addSubMenuForGroup(_groupId, "Next page", _subMenuPath)
-                                                itemNbSubmenu = 1
-                                            end
-                                            missionCommands.addCommandForGroup(_groupId,_crateRadioMsg, _subMenuPath, ctld.spawnCrate, { _unitName, _crate.weight })
                                         end
                                     end
+                                    for _i, _menu in ipairs(menuEntries) do
+                                        -- add the submenu item
+                                        itemNbSubmenu = itemNbSubmenu + 1
+                                        if itemNbSubmenu == 10 and _i < #menuEntries then -- page limit reached
+                                            _subMenuPath = missionCommands.addSubMenuForGroup(_groupId, "Next page", _subMenuPath)
+                                            itemNbSubmenu = 1
+                                        end
+                                        missionCommands.addCommandForGroup(_groupId, _menu.text, _subMenuPath, ctld.spawnCrate, { _unitName, _menu.crate.weight })
+                                    end
                                 end
                             end
                         end
-                    end
 
-                    if (ctld.enabledFOBBuilding or ctld.enableCrates) and _unitActions.crates then
+                        if (ctld.enabledFOBBuilding or ctld.enableCrates) and _unitActions.crates then
 
-                        local _crateCommands = missionCommands.addSubMenuForGroup(_groupId, "CTLD Commands", _rootPath)
-                        if ctld.hoverPickup == false or ctld.loadCrateFromMenu == true then
-                            if  ctld.loadCrateFromMenu then
-                                missionCommands.addCommandForGroup(_groupId, "Load Nearby Crate", _crateCommands, ctld.loadNearbyCrate,  _unitName )
+                            local _crateCommands = missionCommands.addSubMenuForGroup(_groupId, "CTLD Commands", _rootPath)
+                            if ctld.hoverPickup == false or ctld.loadCrateFromMenu == true then
+                                if  ctld.loadCrateFromMenu then
+                                    missionCommands.addCommandForGroup(_groupId, "Load Nearby Crate", _crateCommands, ctld.loadNearbyCrate,  _unitName )
+                                end
+                            end
+
+                            missionCommands.addCommandForGroup(_groupId, "Unpack Any Crate", _crateCommands, ctld.unpackCrates, { _unitName })
+
+                            if ctld.loadCrateFromMenu or ctld.hoverPickup then
+                                missionCommands.addCommandForGroup(_groupId, "Drop Crate", _crateCommands, ctld.dropSlingCrate, { _unitName })
+                            end
+
+                            missionCommands.addCommandForGroup(_groupId, "List Nearby Crates", _crateCommands, ctld.listNearbyCrates, { _unitName })
+
+                            if ctld.enabledFOBBuilding then
+                                missionCommands.addCommandForGroup(_groupId, "List FOBs", _crateCommands, ctld.listFOBS, { _unitName })
                             end
                         end
 
-                        missionCommands.addCommandForGroup(_groupId, "Unpack Any Crate", _crateCommands, ctld.unpackCrates, { _unitName })
 
-                        if ctld.loadCrateFromMenu or ctld.hoverPickup then
-                            missionCommands.addCommandForGroup(_groupId, "Drop Crate", _crateCommands, ctld.dropSlingCrate, { _unitName })
+                        if ctld.enableSmokeDrop then
+                            local _smokeMenu = missionCommands.addSubMenuForGroup(_groupId, "Smoke Markers", _rootPath)
+                            missionCommands.addCommandForGroup(_groupId, "Drop Red Smoke", _smokeMenu, ctld.dropSmoke, { _unitName, trigger.smokeColor.Red })
+                            missionCommands.addCommandForGroup(_groupId, "Drop Blue Smoke", _smokeMenu, ctld.dropSmoke, { _unitName, trigger.smokeColor.Blue })
+                            missionCommands.addCommandForGroup(_groupId, "Drop Orange Smoke", _smokeMenu, ctld.dropSmoke, { _unitName, trigger.smokeColor.Orange })
+                            missionCommands.addCommandForGroup(_groupId, "Drop Green Smoke", _smokeMenu, ctld.dropSmoke, { _unitName, trigger.smokeColor.Green })
                         end
 
-                        missionCommands.addCommandForGroup(_groupId, "List Nearby Crates", _crateCommands, ctld.listNearbyCrates, { _unitName })
-
-                        if ctld.enabledFOBBuilding then
-                            missionCommands.addCommandForGroup(_groupId, "List FOBs", _crateCommands, ctld.listFOBS, { _unitName })
+                        if ctld.enabledRadioBeaconDrop then
+                            local _radioCommands = missionCommands.addSubMenuForGroup(_groupId, "Radio Beacons", _rootPath)
+                            missionCommands.addCommandForGroup(_groupId, "List Beacons", _radioCommands, ctld.listRadioBeacons, { _unitName })
+                            missionCommands.addCommandForGroup(_groupId, "Drop Beacon", _radioCommands, ctld.dropRadioBeacon, { _unitName })
+                            missionCommands.addCommandForGroup(_groupId, "Remove Closet Beacon", _radioCommands, ctld.removeRadioBeacon, { _unitName })
+                        elseif ctld.deployedRadioBeacons ~= {} then
+                            local _radioCommands = missionCommands.addSubMenuForGroup(_groupId, "Radio Beacons", _rootPath)
+                            missionCommands.addCommandForGroup(_groupId, "List Beacons", _radioCommands, ctld.listRadioBeacons, { _unitName })
                         end
+
+                        ctld.addedTo[tostring(_groupId)] = true
                     end
-
-
-                    if ctld.enableSmokeDrop then
-                        local _smokeMenu = missionCommands.addSubMenuForGroup(_groupId, "Smoke Markers", _rootPath)
-                        missionCommands.addCommandForGroup(_groupId, "Drop Red Smoke", _smokeMenu, ctld.dropSmoke, { _unitName, trigger.smokeColor.Red })
-                        missionCommands.addCommandForGroup(_groupId, "Drop Blue Smoke", _smokeMenu, ctld.dropSmoke, { _unitName, trigger.smokeColor.Blue })
-                        missionCommands.addCommandForGroup(_groupId, "Drop Orange Smoke", _smokeMenu, ctld.dropSmoke, { _unitName, trigger.smokeColor.Orange })
-                        missionCommands.addCommandForGroup(_groupId, "Drop Green Smoke", _smokeMenu, ctld.dropSmoke, { _unitName, trigger.smokeColor.Green })
-                    end
-
-                    if ctld.enabledRadioBeaconDrop then
-                        local _radioCommands = missionCommands.addSubMenuForGroup(_groupId, "Radio Beacons", _rootPath)
-                        missionCommands.addCommandForGroup(_groupId, "List Beacons", _radioCommands, ctld.listRadioBeacons, { _unitName })
-                        missionCommands.addCommandForGroup(_groupId, "Drop Beacon", _radioCommands, ctld.dropRadioBeacon, { _unitName })
-                        missionCommands.addCommandForGroup(_groupId, "Remove Closet Beacon", _radioCommands, ctld.removeRadioBeacon, { _unitName })
-                    elseif ctld.deployedRadioBeacons ~= {} then
-                        local _radioCommands = missionCommands.addSubMenuForGroup(_groupId, "Radio Beacons", _rootPath)
-                        missionCommands.addCommandForGroup(_groupId, "List Beacons", _radioCommands, ctld.listRadioBeacons, { _unitName })
-                    end
-
-                    ctld.addedTo[tostring(_groupId)] = true
                 end
             end
-        end
-    end)
+        end)
 
     if (not status) then
         ctld.logError(string.format("Error adding f10 to transport: %s", error))
@@ -5397,6 +5474,8 @@ function ctld.addOtherF10MenuOptions()
     if (not status) then
         env.error(string.format("Error adding f10 to other players: %s", error), false)
     end
+
+
 end
 
 --add to all players that arent transport
@@ -6427,11 +6506,11 @@ function ctld.getGroup(groupName)
             ctld.logTrace(string.format("ctld.getGroup - %s - group:isExist()", ctld.p(groupName)))
             local _groupUnits = _group:getUnits()
 
-        if _groupUnits ~= nil and #_groupUnits > 0 then
+            if _groupUnits ~= nil and #_groupUnits > 0 then
                 ctld.logTrace(string.format("ctld.getGroup - %s - group has %s units", ctld.p(groupName), ctld.p(#_groupUnits)))
-            for _x = 1, #_groupUnits do
-                if _groupUnits[_x]:getLife() > 0  then -- removed and _groupUnits[_x]:isExist() as isExist doesnt work on single units!
-                table.insert(_filteredUnits, _groupUnits[_x])
+                for _x = 1, #_groupUnits do
+                    if _groupUnits[_x]:getLife() > 0  then -- removed and _groupUnits[_x]:isExist() as isExist doesnt work on single units!
+                        table.insert(_filteredUnits, _groupUnits[_x])
                     else
                         ctld.logTrace(string.format("ctld.getGroup - %s - dead unit %s", ctld.p(groupName), ctld.p(_groupUnits[_x]:getName())))
                     end
@@ -6681,20 +6760,26 @@ function ctld.setJTAC9Line(_args)
 end
 ctld.jtacSpecialOptions._9Line.setter = ctld.setJTAC9Line
 
- function ctld.setGrpROE(_grp, _ROE)
-     if _ROE == nil then
-         _ROE = AI.Option.Ground.val.ROE.OPEN_FIRE
-     end
+function ctld.setGrpROE(_grp, _ROE)
+    if _grp == nil then
+        ctld.logError("ctld.setGrpROE called with a nil group")
+        return
+    end
 
-     _grp = ctld.getAliveGroup(_grp)
+    if _ROE == nil then
+        _ROE = AI.Option.Ground.val.ROE.OPEN_FIRE
+    end
+
+    _grp = ctld.getAliveGroup(_grp)
 
     if _grp ~= nil then
-         local _controller = _grp:getController();
-         Controller.setOption(_controller, AI.Option.Ground.id.ALARM_STATE, AI.Option.Ground.val.ALARM_STATE.AUTO)
-         Controller.setOption(_controller, AI.Option.Ground.id.ROE, _ROE)
-         _controller:setTask(_grp)
-     end
- end
+        local _controller = _grp:getController();
+        Controller.setOption(_controller, AI.Option.Ground.id.ALARM_STATE, AI.Option.Ground.val.ALARM_STATE.AUTO)
+        Controller.setOption(_controller, AI.Option.Ground.id.ROE, _ROE)
+        _controller:setTask(_grp)
+    end
+end
+
 function ctld.isInfantry(_unit)
 
     local _typeName = _unit:getTypeName()

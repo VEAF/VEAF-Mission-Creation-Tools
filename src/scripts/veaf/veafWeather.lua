@@ -252,8 +252,8 @@ veafWeatherUnitSystem.Systems =
 veafWeatherUnitSystem.DefaultUnitSystem = veafWeatherUnitSystem.Systems.Icao
 
 veafWeatherUnitSystem.Theatres = {}
-veafWeatherUnitSystem.Theatres.Faa = { "nevada", "marianaislands" }
-veafWeatherUnitSystem.Theatres.IcaoMetric = { "caucasus" }
+veafWeatherUnitSystem.Theatres.Faa = { veaf.theatreName.Nevada, veaf.theatreName.MarianaIslands }
+veafWeatherUnitSystem.Theatres.IcaoMetric = { veaf.theatreName.Caucasus }
 
 veafWeatherUnitSystem.Aircrafts = {}
 veafWeatherUnitSystem.Aircrafts.Faa =
@@ -318,7 +318,7 @@ veafWeatherUnitSystem.Aircrafts.FaaMetric =
 ---------------------------------------------------------------------------------------------------
 ---  Methods
 function veafWeatherUnitSystem.defaultForElementName(dcsElementName)
-    veaf.loggers.get(veafWeather.Id):trace(">>> veafWeatherUnitSystem:defaultForGroup - " .. dcsElementName)
+    --veaf.loggers.get(veafWeather.Id):trace(">>> veafWeatherUnitSystem:defaultForGroup - " .. dcsElementName)
 
     local sTypeName = "unknown"
     if (not veaf.isNullOrEmpty(dcsElementName)) then
@@ -331,7 +331,7 @@ function veafWeatherUnitSystem.defaultForElementName(dcsElementName)
         end
     end
 
-    veaf.loggers.get(veafWeather.Id):trace(">>> veafWeatherUnitSystem:defaultForGroup - " .. sTypeName)
+    --veaf.loggers.get(veafWeather.Id):trace(">>> veafWeatherUnitSystem:defaultForGroup - " .. sTypeName)
     return veafWeatherUnitSystem.defaultForTypeName(sTypeName)
 end
 
@@ -350,7 +350,7 @@ function veafWeatherUnitSystem.defaultForTypeName(sTypeName)
 end
 
 function veafWeatherUnitSystem.defaultForTheatre()
-    local sTheatre = string.lower(env.mission.theatre)
+    local sTheatre = env.mission.theatre
 
     if (veaf.tableContains(veafWeatherUnitSystem.Theatres.Faa, sTheatre)) then
         return veafWeatherUnitSystem.Systems.Faa
@@ -404,10 +404,13 @@ function veafWeatherData:create(vec3, iAbsTime, iAltitudeMeters)
 
     local iFogThicknessMeters = world.weather.getFogThickness()
     local iFogVisibilityMeters = world.weather.getFogVisibilityDistance()
-    if (iFogThicknessMeters >= iAltitudeMeters) then
+    if (iFogThicknessMeters >= iAltitudeMeters + 50) then -- add a bit of buffer to ignore very thin fog layers
         iVisibilityMeters = iFogVisibilityMeters
+        veaf.loggers.get(veafWeather.Id):trace("Visibility new fog=%d", iVisibilityMeters)
+    else
+        veaf.loggers.get(veafWeather.Id):trace("Visibility new fog ignored, measure point above fog ceiling")
     end
-    
+
     local _, nQfePa = atmosphere.getTemperatureAndPressure({ x = vec3.x, y = iAltitudeMeters, z = vec3.z })
     local nTemperatureKelvin, nQnhPa = atmosphere.getTemperatureAndPressure({ x = vec3.x, y = 0, z = vec3.z })
     local nTemperatureCelcius = nTemperatureKelvin + _nKelvinToCelciusOffset

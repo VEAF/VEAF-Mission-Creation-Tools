@@ -272,33 +272,33 @@ end
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 function veafTime.getTimezone(vec3)
     local nTimezoneOffset = 0
-    local sTheatre = string.lower(env.mission.theatre)
+    local sTheatre = env.mission.theatre
 
     if (vec3) then
         -- Try to approximate for the vec3 - each timezone is roughly 15 degrees wide
         local nLatitude, nLongitude, _ = coord.LOtoLL(vec3)
         nTimezoneOffset = math.floor((nLongitude + 7.5) / 15)
-    elseif (sTheatre == "caucasus") then
+    elseif (sTheatre == veaf.theatreName.Caucasus) then
         nTimezoneOffset = 4
-    elseif (sTheatre == "persiangulf") then
+    elseif (sTheatre == veaf.theatreName.PersianGulf) then
         nTimezoneOffset = 4
-    elseif (sTheatre == "nevada") then
+    elseif (sTheatre == veaf.theatreName.Nevada) then
         nTimezoneOffset = -8 -- Nevada uses DST (UTC-7 march through october) but it is not modeled in DCS
-    elseif (sTheatre == "normandy") then
+    elseif (sTheatre == veaf.theatreName.Normandy) then
         nTimezoneOffset = 0
-    elseif (sTheatre == "thechannel") then
+    elseif (sTheatre == veaf.theatreName.TheChannel) then
         nTimezoneOffset = 2
-    elseif (sTheatre == "syria") then
+    elseif (sTheatre == veaf.theatreName.Syria) then
         nTimezoneOffset = 3
-    elseif (sTheatre == "marianaislands") then
+    elseif (sTheatre == veaf.theatreName.MarianaIslands) then
         nTimezoneOffset = 10
-    elseif (sTheatre == "falklands") then
+    elseif (sTheatre == veaf.theatreName.Falklands) then
         nTimezoneOffset = -3
-    elseif (sTheatre == "sinaiMap") then
+    elseif (sTheatre == veaf.theatreName.Sinai) then
         nTimezoneOffset = 2
-    elseif (sTheatre == "kola") then
+    elseif (sTheatre == veaf.theatreName.Kola) then
         nTimezoneOffset = 3
-    elseif (sTheatre == "afghanistan") then
+    elseif (sTheatre == veaf.theatreName.Afghanistan) then
         nTimezoneOffset = 4.5
     end
     --veaf.loggers.get(veafTime.Id):trace(string.format("%s - timezone=%f", env.mission.theatre, nTimezoneOffset))

@@ -396,9 +396,11 @@ function veafWeatherData:create(vec3, iAbsTime, iAltitudeMeters)
         if (_dcsPresetDensity[sCloudPreset]) then
             clouds = {Density = _dcsPresetDensity[sCloudPreset][1], BaseMeters = env.mission.weather.clouds.base}
             bPrecipitation = _dcsPresetDensity[sCloudPreset][2]
+            --[[ -- visibilities in presets were already not reliable, and they have no meaning with the new fog visiblity setting
             if (_dcsPresetDensity[sCloudPreset][3] and _dcsPresetDensity[sCloudPreset][3] < iVisibilityMeters) then
                 iVisibilityMeters = _dcsPresetDensity[sCloudPreset][3]
             end
+            ]]
         end
     end
 

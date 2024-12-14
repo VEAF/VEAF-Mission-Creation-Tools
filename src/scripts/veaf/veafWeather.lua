@@ -404,11 +404,11 @@ function veafWeatherData:create(vec3, iAbsTime, iAltitudeMeters)
 
     local iFogThicknessMeters = world.weather.getFogThickness()
     local iFogVisibilityMeters = world.weather.getFogVisibilityDistance()
-    if (iFogThicknessMeters >= iAltitudeMeters + 50) then -- add a bit of buffer to ignore very thin fog layers
+    if (iFogThicknessMeters >= iAltitudeMeters) then
         iVisibilityMeters = iFogVisibilityMeters
         veaf.loggers.get(veafWeather.Id):trace("Visibility new fog=%d", iVisibilityMeters)
     else
-        veaf.loggers.get(veafWeather.Id):trace("Visibility new fog ignored, measure point above fog ceiling")
+        veaf.loggers.get(veafWeather.Id):trace("Visibility=%d. New fog ignored, measure point above fog ceiling [ altitude=%d, fog thickness=%d ]", iVisibilityMeters, iAltitudeMeters, iFogThicknessMeters)
     end
 
     local _, nQfePa = atmosphere.getTemperatureAndPressure({ x = vec3.x, y = iAltitudeMeters, z = vec3.z })
@@ -455,6 +455,11 @@ function veafWeatherData:create(vec3, iAbsTime, iAltitudeMeters)
     }
 
     setmetatable(this, veafWeatherData)
+
+    veaf.loggers.get(veafWeather.Id):trace(this:toString(veafWeatherUnitSystem.Systems.Faa))
+    veaf.loggers.get(veafWeather.Id):trace(this:toString(veafWeatherUnitSystem.Systems.FaaNavy))
+    veaf.loggers.get(veafWeather.Id):trace(this:toString(veafWeatherUnitSystem.Systems.Icao))
+    
     return this
 end
 
@@ -620,24 +625,41 @@ function veafWeatherData:toStringVisibility(unitSystem, bWithMax)
     if (self.VisibilityMeters >= 10000) then
         sVisibilityMeters = "10+km"
     else
-        local iVisibilityMeters = mist.utils.round(self.VisibilityMeters / 100) * 100
+        local iVisibilityMeters
+        if (self.VisibilityMeters >= 100) then
+            iVisibilityMeters = mist.utils.round(self.VisibilityMeters / 100) * 100
+        else
+            iVisibilityMeters = mist.utils.round(self.VisibilityMeters / 50) * 50
+        end
+            
         sVisibilityMeters = string.format("%dm", iVisibilityMeters)
     end
 
     local sVisibilityStatuteMile
-    local iVisibilityStatuteMile = mist.utils.round(self.VisibilityMeters * 0.000621371)
+    local iVisibilityStatuteMile = self.VisibilityMeters * 0.000621371
     if (iVisibilityStatuteMile >= 10) then
         sVisibilityStatuteMile = "10+SM"
+    elseif (iVisibilityStatuteMile >= 1) then
+        sVisibilityStatuteMile = string.format("%dSM", mist.utils.round(iVisibilityStatuteMile))
+    elseif (iVisibilityStatuteMile >= 0.75) then
+        sVisibilityStatuteMile = "3/4SM"
+    elseif (iVisibilityStatuteMile >= 0.5) then
+        sVisibilityStatuteMile = "1/2SM"
+    elseif (iVisibilityStatuteMile >= 0.25) then
+        sVisibilityStatuteMile = "1/4SM"
     else
-        sVisibilityStatuteMile = string.format("%dSM", iVisibilityStatuteMile)
+        sVisibilityStatuteMile = "0SM"
     end
 
     local sVisibilityNauticalMile
-    local iVisibilityNauticalMile = mist.utils.round(mist.utils.metersToNM(self.VisibilityMeters))
+    local iVisibilityNauticalMile = mist.utils.metersToNM(self.VisibilityMeters)
     if (iVisibilityNauticalMile >= 10) then
         sVisibilityNauticalMile = "10+NM"
+    elseif (iVisibilityNauticalMile >= 1) then
+        sVisibilityNauticalMile = string.format("%dNM", mist.utils.round(iVisibilityNauticalMile))
     else
-        sVisibilityNauticalMile = string.format("%dNM", iVisibilityNauticalMile)
+        local iVisibilityYards = mist.utils.round((iVisibilityNauticalMile * 2025.37) / 100) * 100
+        sVisibilityNauticalMile = string.format("%dyds", iVisibilityYards)
     end
 
     local sVisibility
@@ -1138,8 +1160,8 @@ function veafWeather.messageAtcClosestAirbase(unitName, forUnit)
 end
 
 function veafWeather.messageAtcAndWeather(unitName, forUnit)
-    veafWeather.messageWeatherAtClosestPoint(unitName, forUnit)
     veafWeather.messageAtcClosestAirbase(unitName, forUnit)
+    veafWeather.messageWeatherAtClosestPoint(unitName, forUnit)    
 end
 
 ----------------------------------------------------------------------------------------------------

@@ -1111,16 +1111,8 @@ function VeafCombatZone:popSmoke()
     local smokePoint = self:getCenter()
     if self:isTraining() then
         -- compute the barycenter of all remaining units
-        local totalPosition = {x = 0,y = 0,z = 0}
-        local units, _ = veaf.safeUnpack(self:findUnitsInCombatZone())
-        for count = 1,#units do
-            if units[count] then
-                totalPosition = mist.vec.add(totalPosition,Unit.getPosition(units[count]).p)
-            end
-        end
-        if #units > 0 then
-            smokePoint = mist.vec.scalar_mult(totalPosition,1/#units)
-        end
+        local barycenter = veaf.calculateBarycenterAndRadius(veaf.safeUnpack(self:findUnitsInCombatZone()))
+        smokePoint = barycenter.center
     end
     veaf.loggers.get(veafCombatZone.Id):trace(string.format("smokePoint=%s",veaf.vecToString(smokePoint)))
     veafSpawn.spawnSmoke(smokePoint, trigger.smokeColor.Red)

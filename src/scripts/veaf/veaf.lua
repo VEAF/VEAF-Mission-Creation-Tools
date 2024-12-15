@@ -1880,6 +1880,20 @@ function veaf.getGroupsOfCoalition(coa)
     return allDcsGroups
 end
 
+veaf._EnemyCoalitions = {
+    [coalition.side.RED] = coalition.side.BLUE,
+    [coalition.side.BLUE] = coalition.side.RED,
+    [coalition.side.NEUTRAL] = coalition.side.RED
+}
+
+function veaf.getEnemyCoalition(coalition)
+    if coalition then
+        return veaf._EnemyCoalitions[coalition]
+    else
+        return nil
+    end
+end
+
 function veaf.getStaticsOfCoalition(coa)
     local coalitions = { coalition.side.RED, coalition.side.BLUE, coalition.side.NEUTRAL}
     if coa then
@@ -1933,9 +1947,56 @@ function veaf.getUnitsNamesOfCoalition(includeStatics, coa)
     return allDcsUnits
 end
 
-function veaf.findUnitsInCircle(center, radius, includeStatics, onlyTheseUnits)
-    veaf.loggers.get(veaf.Id):trace(string.format("findUnitsInCircle(radius=%s)", tostring(radius)))
-    veaf.loggers.get(veaf.Id):trace(string.format("center=%s", veaf.p(center)))
+function veaf.calculateBarycenterAndRadius(dcsObjects)
+    -- Check for empty array
+    if #dcsObjects == 0 then return nil, nil end
+
+    -- Initialize variables
+    local sumX, sumY, sumZ = 0, 0, 0
+    local maxDistanceSquared = 0
+    local n = #dcsObjects
+
+    -- Single loop to compute barycenter and max distance
+    for _, pos in ipairs(dcsObjects) do
+        local coords = pos:getPosition().p
+
+        -- Accumulate coordinates for barycenter
+        sumX = sumX + coords.x
+        sumY = sumY + coords.y
+        sumZ = sumZ + coords.z
+
+        -- Simultaneously compute max distance from current barycenter
+        local bx, by, bz =
+            sumX / n,
+            sumY / n,
+            sumZ / n
+
+        local distanceSquared =
+            (coords.x - bx)^2 +
+            (coords.y - by)^2 +
+            (coords.z - bz)^2
+
+        maxDistanceSquared = math.max(maxDistanceSquared, distanceSquared)
+    end
+
+    -- Compute final barycenter and radius
+    return {
+        center = {
+            x = sumX / n,
+            y = sumY / n,
+            z = sumZ / n
+        },
+        radius = math.sqrt(maxDistanceSquared)
+    }
+end
+
+function veaf.findUnitsInCircle(center, radius, includeStatics, onlyTheseUnits, coalition)
+    veaf.loggers.get(veaf.Id):debug("findUnitsInCircle()")
+    veaf.loggers.get(veaf.Id):trace("center=%s", veaf.p(center))
+    veaf.loggers.get(veaf.Id):trace("radius=%s", veaf.p(radius))
+    veaf.loggers.get(veaf.Id):trace("includeStatics=%s", veaf.p(includeStatics))
+    veaf.loggers.get(veaf.Id):trace("onlyTheseUnits=%s", veaf.p(onlyTheseUnits))
+    veaf.loggers.get(veaf.Id):trace("coalition=%s", veaf.p(coalition))
 
     local unitsToCheck = {}
     if onlyTheseUnits then
@@ -1946,7 +2007,7 @@ function veaf.findUnitsInCircle(center, radius, includeStatics, onlyTheseUnits)
             end
         end
     else
-        unitsToCheck = veaf.getUnitsOfAllCoalitions(includeStatics)
+        unitsToCheck = veaf.getUnitsOfCoalition(includeStatics, coalition)
     end
 
     local result = {}
@@ -1955,7 +2016,7 @@ function veaf.findUnitsInCircle(center, radius, includeStatics, onlyTheseUnits)
         if pos then -- you never know O.o
             local name = unit:getName()
             local distanceFromCenter = ((pos.x - center.x)^2 + (pos.z - center.z)^2)^0.5
-            veaf.loggers.get(veaf.Id):trace(string.format("name=%s; distanceFromCenter=%s", tostring(name), veaf.p(distanceFromCenter)))
+            veaf.loggers.get(veaf.Id):trace("name=%s; distanceFromCenter=%s", tostring(name), veaf.p(distanceFromCenter))
             if distanceFromCenter <= radius then
                 result[name] = unit
             end

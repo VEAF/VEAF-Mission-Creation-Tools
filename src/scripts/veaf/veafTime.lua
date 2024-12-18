@@ -19,7 +19,7 @@ veafTime = {}
 veafTime.Id = "TIME"
 
 --- Version.
-veafTime.Version = "1.1.2"
+veafTime.Version = "1.1.3"
 
 -- trace level, specific to this module
 --veafTime.LogLevel = "trace"

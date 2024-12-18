@@ -19,7 +19,7 @@ veafNamedPoints = {}
 veafNamedPoints.Id = "NAMED POINTS"
 
 --- Version.
-veafNamedPoints.Version = "1.15.0"
+veafNamedPoints.Version = "1.16.0"
 
 -- trace level, specific to this module
 --veafNamedPoints.LogLevel = "trace"

@@ -17,7 +17,7 @@ veafWeather = {}
 veafWeather.Id = "WEATHER"
 
 --- Version.
-veafWeather.Version = "1.3.1"
+veafWeather.Version = "1.4.0"
 
 -- trace level, specific to this module
 --veafWeather.LogLevel = "trace"
@@ -252,8 +252,8 @@ veafWeatherUnitSystem.Systems =
 veafWeatherUnitSystem.DefaultUnitSystem = veafWeatherUnitSystem.Systems.Icao
 
 veafWeatherUnitSystem.Theatres = {}
-veafWeatherUnitSystem.Theatres.Faa = { "nevada", "marianaislands" }
-veafWeatherUnitSystem.Theatres.IcaoMetric = { "caucasus" }
+veafWeatherUnitSystem.Theatres.Faa = { veaf.theatreName.Nevada, veaf.theatreName.MarianaIslands }
+veafWeatherUnitSystem.Theatres.IcaoMetric = { veaf.theatreName.Caucasus }
 
 veafWeatherUnitSystem.Aircrafts = {}
 veafWeatherUnitSystem.Aircrafts.Faa =
@@ -318,7 +318,7 @@ veafWeatherUnitSystem.Aircrafts.FaaMetric =
 ---------------------------------------------------------------------------------------------------
 ---  Methods
 function veafWeatherUnitSystem.defaultForElementName(dcsElementName)
-    veaf.loggers.get(veafWeather.Id):trace(">>> veafWeatherUnitSystem:defaultForGroup - " .. dcsElementName)
+    --veaf.loggers.get(veafWeather.Id):trace(">>> veafWeatherUnitSystem:defaultForGroup - " .. dcsElementName)
 
     local sTypeName = "unknown"
     if (not veaf.isNullOrEmpty(dcsElementName)) then
@@ -331,7 +331,7 @@ function veafWeatherUnitSystem.defaultForElementName(dcsElementName)
         end
     end
 
-    veaf.loggers.get(veafWeather.Id):trace(">>> veafWeatherUnitSystem:defaultForGroup - " .. sTypeName)
+    --veaf.loggers.get(veafWeather.Id):trace(">>> veafWeatherUnitSystem:defaultForGroup - " .. sTypeName)
     return veafWeatherUnitSystem.defaultForTypeName(sTypeName)
 end
 
@@ -350,7 +350,7 @@ function veafWeatherUnitSystem.defaultForTypeName(sTypeName)
 end
 
 function veafWeatherUnitSystem.defaultForTheatre()
-    local sTheatre = string.lower(env.mission.theatre)
+    local sTheatre = env.mission.theatre
 
     if (veaf.tableContains(veafWeatherUnitSystem.Theatres.Faa, sTheatre)) then
         return veafWeatherUnitSystem.Systems.Faa
@@ -396,9 +396,11 @@ function veafWeatherData:create(vec3, iAbsTime, iAltitudeMeters)
         if (_dcsPresetDensity[sCloudPreset]) then
             clouds = {Density = _dcsPresetDensity[sCloudPreset][1], BaseMeters = env.mission.weather.clouds.base}
             bPrecipitation = _dcsPresetDensity[sCloudPreset][2]
+            --[[ -- visibilities in presets were already not reliable, and they have no meaning with the new fog visiblity setting
             if (_dcsPresetDensity[sCloudPreset][3] and _dcsPresetDensity[sCloudPreset][3] < iVisibilityMeters) then
                 iVisibilityMeters = _dcsPresetDensity[sCloudPreset][3]
             end
+            ]]
         end
     end
 
@@ -406,8 +408,11 @@ function veafWeatherData:create(vec3, iAbsTime, iAltitudeMeters)
     local iFogVisibilityMeters = world.weather.getFogVisibilityDistance()
     if (iFogThicknessMeters >= iAltitudeMeters) then
         iVisibilityMeters = iFogVisibilityMeters
+        veaf.loggers.get(veafWeather.Id):trace("Visibility new fog=%d", iVisibilityMeters)
+    else
+        veaf.loggers.get(veafWeather.Id):trace("Visibility=%d. New fog ignored, measure point above fog ceiling [ altitude=%d, fog thickness=%d ]", iVisibilityMeters, iAltitudeMeters, iFogThicknessMeters)
     end
-    
+
     local _, nQfePa = atmosphere.getTemperatureAndPressure({ x = vec3.x, y = iAltitudeMeters, z = vec3.z })
     local nTemperatureKelvin, nQnhPa = atmosphere.getTemperatureAndPressure({ x = vec3.x, y = 0, z = vec3.z })
     local nTemperatureCelcius = nTemperatureKelvin + _nKelvinToCelciusOffset
@@ -452,6 +457,11 @@ function veafWeatherData:create(vec3, iAbsTime, iAltitudeMeters)
     }
 
     setmetatable(this, veafWeatherData)
+
+    veaf.loggers.get(veafWeather.Id):trace(this:toString(veafWeatherUnitSystem.Systems.Faa))
+    veaf.loggers.get(veafWeather.Id):trace(this:toString(veafWeatherUnitSystem.Systems.FaaNavy))
+    veaf.loggers.get(veafWeather.Id):trace(this:toString(veafWeatherUnitSystem.Systems.Icao))
+    
     return this
 end
 
@@ -617,24 +627,41 @@ function veafWeatherData:toStringVisibility(unitSystem, bWithMax)
     if (self.VisibilityMeters >= 10000) then
         sVisibilityMeters = "10+km"
     else
-        local iVisibilityMeters = mist.utils.round(self.VisibilityMeters / 100) * 100
+        local iVisibilityMeters
+        if (self.VisibilityMeters >= 100) then
+            iVisibilityMeters = mist.utils.round(self.VisibilityMeters / 100) * 100
+        else
+            iVisibilityMeters = mist.utils.round(self.VisibilityMeters / 50) * 50
+        end
+            
         sVisibilityMeters = string.format("%dm", iVisibilityMeters)
     end
 
     local sVisibilityStatuteMile
-    local iVisibilityStatuteMile = mist.utils.round(self.VisibilityMeters * 0.000621371)
+    local iVisibilityStatuteMile = self.VisibilityMeters * 0.000621371
     if (iVisibilityStatuteMile >= 10) then
         sVisibilityStatuteMile = "10+SM"
+    elseif (iVisibilityStatuteMile >= 1) then
+        sVisibilityStatuteMile = string.format("%dSM", mist.utils.round(iVisibilityStatuteMile))
+    elseif (iVisibilityStatuteMile >= 0.75) then
+        sVisibilityStatuteMile = "3/4SM"
+    elseif (iVisibilityStatuteMile >= 0.5) then
+        sVisibilityStatuteMile = "1/2SM"
+    elseif (iVisibilityStatuteMile >= 0.25) then
+        sVisibilityStatuteMile = "1/4SM"
     else
-        sVisibilityStatuteMile = string.format("%dSM", iVisibilityStatuteMile)
+        sVisibilityStatuteMile = "0SM"
     end
 
     local sVisibilityNauticalMile
-    local iVisibilityNauticalMile = mist.utils.round(mist.utils.metersToNM(self.VisibilityMeters))
+    local iVisibilityNauticalMile = mist.utils.metersToNM(self.VisibilityMeters)
     if (iVisibilityNauticalMile >= 10) then
         sVisibilityNauticalMile = "10+NM"
+    elseif (iVisibilityNauticalMile >= 1) then
+        sVisibilityNauticalMile = string.format("%dNM", mist.utils.round(iVisibilityNauticalMile))
     else
-        sVisibilityNauticalMile = string.format("%dNM", iVisibilityNauticalMile)
+        local iVisibilityYards = mist.utils.round((iVisibilityNauticalMile * 2025.37) / 100) * 100
+        sVisibilityNauticalMile = string.format("%dyds", iVisibilityYards)
     end
 
     local sVisibility
@@ -1135,8 +1162,8 @@ function veafWeather.messageAtcClosestAirbase(unitName, forUnit)
 end
 
 function veafWeather.messageAtcAndWeather(unitName, forUnit)
-    veafWeather.messageWeatherAtClosestPoint(unitName, forUnit)
     veafWeather.messageAtcClosestAirbase(unitName, forUnit)
+    veafWeather.messageWeatherAtClosestPoint(unitName, forUnit)    
 end
 
 ----------------------------------------------------------------------------------------------------

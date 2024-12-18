@@ -19,7 +19,7 @@ veaf = {}
 veaf.Id = "VEAF"
 
 --- Version.
-veaf.Version = "1.52.0"
+veaf.Version = "1.52.1"
 
 --- Development version ?
 veaf.Development = false
@@ -40,6 +40,24 @@ veaf.DEFAULT_GROUND_SPEED_KPH = 30
 
 veaf.config = {}
 veaf.triggerZones = {}
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- Global constants
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+veaf.theatreName = 
+{
+    Caucasus = "Caucasus",
+    Nevada = "Nevada",
+    Normandy = "Normandy",
+    PersianGulf = "PersianGulf",
+    TheChannel = "TheChannel",
+    Syria = "Syria",
+    MarianaIslands = "MarianaIslands",
+    Falklands = "Falklands",
+    Sinai = "SinaiMap",
+    Kola = "Kola",
+    Afghanistan = "Afghanistan",
+}
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Utility methods

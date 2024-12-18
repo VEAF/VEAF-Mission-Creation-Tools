@@ -234,8 +234,6 @@ function veafAirbase:create(dcsAirbase)
         end
     end
 
-    
-
     local this =
     {
         Name = dcsAirbase:getName(),

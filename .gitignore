@@ -10,3 +10,4 @@ test/test-out.miz
 mission.lua
 mission-2.lua
 SpawnablePlanesList*.json
+.npmrc

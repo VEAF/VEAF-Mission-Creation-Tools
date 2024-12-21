@@ -17,7 +17,7 @@ veafWeather = {}
 veafWeather.Id = "WEATHER"
 
 --- Version.
-veafWeather.Version = "1.4.0"
+veafWeather.Version = "1.4.1"
 
 -- trace level, specific to this module
 --veafWeather.LogLevel = "trace"
@@ -382,7 +382,9 @@ function veafWeatherData:create(vec3, iAbsTime, iAltitudeMeters)
 
     local iWindDirSurface, iWindSpeedSurfaceMps = weathermark._GetWind(vec3, iAltitudeMeters + 10) -- Measure the wind velocity at the standard height of 10 metres above the surface. This is the internationally accepted meteorological definition of ‘surface wind’ designed to eliminate distortion attributable to very local terrain effects
 
-    local iVisibilityMeters = env.mission.weather.visibility.distance
+    -- the static env.mission.weather.visibility.distance is not used anymore, and the DCS engine apparently sets a default at 100000, as seen in this log line:
+    -- WEATHER (Main): set fog: visibility:100000  thickness:0.0
+    local iVisibilityMeters = 100000
     local clouds = nil
     local bPrecipitation = false;
     local sCloudPreset = env.mission.weather.clouds.preset

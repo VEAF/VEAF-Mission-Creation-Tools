@@ -17,7 +17,7 @@ veafWeather = {}
 veafWeather.Id = "WEATHER"
 
 --- Version.
-veafWeather.Version = "1.4.1"
+veafWeather.Version = "1.4.2"
 
 -- trace level, specific to this module
 --veafWeather.LogLevel = "trace"
@@ -432,6 +432,17 @@ function veafWeatherData:create(vec3, iAbsTime, iAltitudeMeters)
         visibilityAffect = _visibilityAffect.Haze
     end
 
+    local weatherSlices = { }
+    if (iAltitudeMeters < 600) then
+        table.insert(weatherSlices, _weatherSliceAtAltitude(vec3, 500))
+    end
+    if (iAltitudeMeters < 2100) then
+        table.insert(weatherSlices, _weatherSliceAtAltitude(vec3, 2000))
+    end
+    if (iAltitudeMeters < 8100) then
+        table.insert(weatherSlices, _weatherSliceAtAltitude(vec3, 8000))
+    end
+
     local this =
     {
         AbsTime = iAbsTime,
@@ -453,9 +464,7 @@ function veafWeatherData:create(vec3, iAbsTime, iAltitudeMeters)
         SunriseLocal = sunTimesLocal.Sunrise,
         SunsetLocal = sunTimesLocal.Sunset,
 
-        WeatherAt500 = _weatherSliceAtAltitude(vec3, 500),
-        WeatherAt2000 = _weatherSliceAtAltitude(vec3, 2000),
-        WeatherAt8000 = _weatherSliceAtAltitude(vec3, 8000)
+        WeatherSlices = weatherSlices,
     }
 
     setmetatable(this, veafWeatherData)
@@ -850,14 +859,13 @@ function veafWeatherData:toString(unitSystem, bWithLaste)
     sString = sString .. string.format("\nSunrise:       %s", self:toStringSunTime(self.SunriseZulu, true, true))
     sString = sString .. string.format("\nSunset:       %s", self:toStringSunTime(self.SunsetZulu, true, true))
     
+    sString = sString .. "\n"
     if(bWithLaste) then
-        sString = sString .. "\n"
         sString = sString .. string.format("\nLASTE:%s", self:toStringLaste())
     else
-        sString = sString .. "\n"
-        sString = sString .. string.format("\n @ %s", self:toStringSlice(self.WeatherAt500, unitSystem))
-        sString = sString .. string.format("\n @ %s", self:toStringSlice(self.WeatherAt2000, unitSystem))
-        sString = sString .. string.format("\n @ %s", self:toStringSlice(self.WeatherAt8000, unitSystem))
+        for _, weatherSlice in pairs(self.WeatherSlices) do
+            sString = sString .. string.format("\n @ %s", self:toStringSlice(weatherSlice, unitSystem))
+        end
     end
 
     return sString

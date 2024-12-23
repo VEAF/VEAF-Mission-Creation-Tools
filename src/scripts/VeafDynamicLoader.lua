@@ -53,6 +53,8 @@ __Veaf.Include( VEAF_DYNAMIC_PATH .. '/src/scripts/veaf/veafHoundElintHelper.lua
 __Veaf.Include( VEAF_DYNAMIC_PATH .. '/src/scripts/veaf/veafQraManager.lua' )
 __Veaf.Include( VEAF_DYNAMIC_PATH .. '/src/scripts/veaf/veafAirwaves.lua' )
 __Veaf.Include( VEAF_DYNAMIC_PATH .. '/src/scripts/veaf/veafEventHandler.lua' )
+__Veaf.Include( VEAF_DYNAMIC_PATH .. '/src/scripts/veaf/veafCacheManager.lua' )
+__Veaf.Include( VEAF_DYNAMIC_PATH .. '/src/scripts/veaf/veafGroundAI.lua' )
 
 -- set the environment in debug mode
 env.info( '*** VEAF-Mission-Creation-Tools set the environment in debug mode *** ' )

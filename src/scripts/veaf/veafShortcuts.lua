@@ -19,7 +19,7 @@ veafShortcuts = {}
 veafShortcuts.Id = "SHORTCUTS"
 
 --- Version.
-veafShortcuts.Version = "1.35.0"
+veafShortcuts.Version = "1.36.0"
 
 -- trace level, specific to this module
 --veafShortcuts.LogLevel = "trace"
@@ -219,6 +219,8 @@ function VeafAlias:execute(remainingCommand, position, coalition, markId, bypass
     elseif logDebug("checking in veafMove") and veafMove.executeCommand(position, command, _bypassSecurity) then
         return true
     elseif logDebug("checking in veafRadio") and veafRadio.executeCommand(position, command, coalition, _bypassSecurity) then
+        return true
+    elseif logDebug("checking in veafGroundAI") and veafGroundAI.executeCommand(position, command, coalition, _bypassSecurity) then
         return true
     elseif logDebug("checking in veafRemote") and veafRemote.executeCommand(position, command) then
         return true
@@ -1239,6 +1241,90 @@ function veafShortcuts.buildDefaultList()
             :dontEndWithComma()
             :setBypassSecurity(false)
     )
+    -- ARTY-1 commands
+    veafShortcuts.AddAlias(
+        VeafAlias:new()
+            :setName("-arty1_aim")
+            :setDescription("Orders ARTY-1 to fire for aim")
+            :setVeafCommand("_ground order, name arty-1, order aim;radius 15-30; target")
+            :dontEndWithComma() -- !! don't end with a comma, because we'd break setting the target coordinates
+    )
+    veafShortcuts.AddAlias(
+        VeafAlias:new()
+            :setName("-arty1_fire")
+            :setDescription("Orders ARTY-1 to fire for effect")
+            :setVeafCommand("_ground order, name arty-1, order fire; radius 50-150; shells 40-80; target")
+            :dontEndWithComma() -- !! don't end with a comma, because we'd break setting the target coordinates
+    )
+    veafShortcuts.AddAlias(
+        VeafAlias:new()
+            :setName("-arty1_stop")
+            :setDescription("Orders ARTY-1 to stop listening for orders")
+            :setVeafCommand("_ground stop, name arty-1")
+    )
+    veafShortcuts.AddAlias(
+        VeafAlias:new()
+            :setName("-arty1_start")
+            :setDescription("Orders ARTY-1 to start listening for orders")
+            :setVeafCommand("_ground start, name arty-1")
+    )
+
+    -- ARTY-2 commands
+    veafShortcuts.AddAlias(
+        VeafAlias:new()
+            :setName("-arty2_aim")
+            :setDescription("Orders ARTY-2 to fire for aim")
+            :setVeafCommand("_ground order, name arty-2, order aim;radius 15-30; target")
+            :dontEndWithComma() -- !! don't end with a comma, because we'd break setting the target coordinates
+    )
+    veafShortcuts.AddAlias(
+        VeafAlias:new()
+            :setName("-arty2_fire")
+            :setDescription("Orders ARTY-2 to fire for effect")
+            :setVeafCommand("_ground order, name arty-2, order fire; radius 50-150; shells 40-80; target")
+            :dontEndWithComma() -- !! don't end with a comma, because we'd break setting the target coordinates
+    )
+    veafShortcuts.AddAlias(
+        VeafAlias:new()
+            :setName("-arty2_stop")
+            :setDescription("Orders ARTY-2 to stop listening for orders")
+            :setVeafCommand("_ground stop, name arty-2")
+    )
+    veafShortcuts.AddAlias(
+        VeafAlias:new()
+            :setName("-arty2_start")
+            :setDescription("Orders ARTY-2 to start listening for orders")
+            :setVeafCommand("_ground start, name arty-2")
+    )
+
+    -- ARTY-3 commands
+    veafShortcuts.AddAlias(
+        VeafAlias:new()
+            :setName("-arty3_aim")
+            :setDescription("Orders ARTY-3 to fire for aim")
+            :setVeafCommand("_ground order, name arty-3, order aim;radius 15-30; target")
+            :dontEndWithComma() -- !! don't end with a comma, because we'd break setting the target coordinates
+    )
+    veafShortcuts.AddAlias(
+        VeafAlias:new()
+            :setName("-arty3_fire")
+            :setDescription("Orders ARTY-3 to fire for effect")
+            :setVeafCommand("_ground order, name arty-3, order fire; radius 50-150; shells 40-80; target")
+            :dontEndWithComma() -- !! don't end with a comma, because we'd break setting the target coordinates
+    )
+    veafShortcuts.AddAlias(
+        VeafAlias:new()
+            :setName("-arty3_stop")
+            :setDescription("Orders ARTY-3 to stop listening for orders")
+            :setVeafCommand("_ground stop, name arty-3")
+    )
+    veafShortcuts.AddAlias(
+        VeafAlias:new()
+            :setName("-arty3_start")
+            :setDescription("Orders ARTY-3 to start listening for orders")
+            :setVeafCommand("_ground start, name arty-3")
+    )
+
     veafShortcuts.AddAlias(
         VeafAlias:new()
             :setName("-cesar")

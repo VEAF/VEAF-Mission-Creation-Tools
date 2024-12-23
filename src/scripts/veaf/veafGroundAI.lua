@@ -137,16 +137,14 @@ end
 
 -- coalitions of the players (only human units from these coalitions will be monitored)
 function GroundUnitHandler:setPlayerCoalitions(value)
-  veaf.loggers.get(veafGroundAI.Id):debug(self.CLASS_NAME .. "[%s]:setPlayerCoalitions(%s)", veaf.p(self:getName()),
-    veaf.p(value))
+  veaf.loggers.get(veafGroundAI.Id):debug(self.CLASS_NAME .. "[%s]:setPlayerCoalitions(%s)", veaf.p(self:getName()), veaf.p(value))
   self.playerCoalitions = value
   return self
 end
 
 -- player units (only they are concerned by the messages)
 function GroundUnitHandler:setPlayerUnitsNames(value)
-  veaf.loggers.get(veafGroundAI.Id):debug(self.CLASS_NAME .. "[%s]:setPlayerUnitsNames(%s)", veaf.p(self:getName()),
-    veaf.p(value))
+  veaf.loggers.get(veafGroundAI.Id):debug(self.CLASS_NAME .. "[%s]:setPlayerUnitsNames(%s)", veaf.p(self:getName()), veaf.p(value))
   self.playerUnitsNames = value
   return self
 end
@@ -228,8 +226,7 @@ end
 
 -- the drawing objects that has been used to draw the situation
 function GroundUnitHandler:setZoneDrawings(value)
-  veaf.loggers.get(veafGroundAI.Id):debug(self.CLASS_NAME .. "[%s]:setZoneDrawings(%s)", veaf.p(self:getName()),
-    veaf.p(value))
+  veaf.loggers.get(veafGroundAI.Id):debug(self.CLASS_NAME .. "[%s]:setZoneDrawings(%s)", veaf.p(self:getName()), veaf.p(value))
   self.zoneDrawings = value
   return self
 end

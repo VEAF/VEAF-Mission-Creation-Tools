@@ -19,7 +19,7 @@ veafShortcuts = {}
 veafShortcuts.Id = "SHORTCUTS"
 
 --- Version.
-veafShortcuts.Version = "1.36.0"
+veafShortcuts.Version = "1.37.0"
 
 -- trace level, specific to this module
 --veafShortcuts.LogLevel = "trace"
@@ -1241,7 +1241,20 @@ function veafShortcuts.buildDefaultList()
             :dontEndWithComma()
             :setBypassSecurity(false)
     )
+    -- Ground unit AI
+    veafShortcuts.AddAlias(
+        VeafAlias:new()
+            :setName("-ai_set")
+            :setDescription("Sets an AI handler for a group of units")
+            :setVeafCommand("_ground set")
+    )
     -- ARTY-1 commands
+    veafShortcuts.AddAlias(
+        VeafAlias:new()
+            :setName("-arty1")
+            :setDescription("Spawns ARTY-1")
+            :setBatchAliases({"-arty, unitname arty-1", "-ai_set, name arty-1, groupname arty-1"})
+    )
     veafShortcuts.AddAlias(
         VeafAlias:new()
             :setName("-arty1_aim")
@@ -1272,6 +1285,12 @@ function veafShortcuts.buildDefaultList()
     -- ARTY-2 commands
     veafShortcuts.AddAlias(
         VeafAlias:new()
+            :setName("-arty2")
+            :setDescription("Spawns ARTY-2")
+            :setBatchAliases({"-arty, unitname arty-2", "-ai_set, name arty-2, groupname arty-2"})
+    )
+    veafShortcuts.AddAlias(
+        VeafAlias:new()
             :setName("-arty2_aim")
             :setDescription("Orders ARTY-2 to fire for aim")
             :setVeafCommand("_ground order, name arty-2, order aim;radius 15-30; target")
@@ -1298,6 +1317,12 @@ function veafShortcuts.buildDefaultList()
     )
 
     -- ARTY-3 commands
+    veafShortcuts.AddAlias(
+        VeafAlias:new()
+            :setName("-arty3")
+            :setDescription("Spawns ARTY-3")
+            :setBatchAliases({"-arty, unitname arty-3", "-ai_set, name arty-3, groupname arty-3"})
+    )
     veafShortcuts.AddAlias(
         VeafAlias:new()
             :setName("-arty3_aim")

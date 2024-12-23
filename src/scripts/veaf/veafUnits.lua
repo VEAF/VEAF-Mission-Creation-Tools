@@ -19,7 +19,7 @@ veafUnits = {}
 veafUnits.Id = "UNITS"
 
 --- Version.
-veafUnits.Version = "1.13.3"
+veafUnits.Version = "1.14.0"
 
 -- trace level, specific to this module
 --veafUnits.LogLevel = "trace"
@@ -1423,8 +1423,8 @@ veafUnits.GroupsDatabase = {
     {
         aliases = {"M-109"},
         group = {
-            disposition = { h = 2, w = 3},
-            units = { {"M-109", number = 3}, {"MLRS FDDM", number = 1}, {"M 818", number = 1} },
+            disposition = { h = 4, w = 4},
+            units = { {"M-109", number = 8}, {"MLRS FDDM", number = 1}, {"M 818", number = 1} },
             description = "M-109 artillery battery",
             groupName = "M-109 artillery battery",
         },

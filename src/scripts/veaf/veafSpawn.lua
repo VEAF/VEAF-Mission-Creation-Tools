@@ -23,7 +23,7 @@ veafSpawn = {}
 veafSpawn.Id = "SPAWN"
 
 --- Version.
-veafSpawn.Version = "1.56.2"
+veafSpawn.Version = "1.57.0"
 
 -- trace level, specific to this module
 --veafSpawn.LogLevel = "trace"
@@ -283,7 +283,7 @@ function veafSpawn.executeCommand(eventPos, eventText, coalition, markId, bypass
                 elseif options.group then
                     -- check security
                     if not (bypassSecurity or veafSecurity.checkSecurity_L9(options.password, markId)) then return end
-                    spawnedGroup = veafSpawn.spawnGroup(eventPos, options.radius, options.name, options.country, options.altitude, options.heading, options.spacing, bypassSecurity, hasDest, not options.showMFD)
+                    spawnedGroup = veafSpawn.spawnGroup(eventPos, options.radius, options.name, options.country, options.altitude, options.heading, options.spacing, options.unitName, bypassSecurity, hasDest, not options.showMFD)
                 elseif options.infantryGroup then
                     -- check security
                     if not (bypassSecurity or veafSecurity.checkSecurity_L9(options.password, markId)) then return end
@@ -1450,11 +1450,11 @@ function veafSpawn.spawnFob(spawnSpot, radius, name, country, fobtype, side, hdg
 end
 
 --- Spawn a specific group at a specific spot
-function veafSpawn.spawnGroup(spawnSpot, radius, name, country, alt, hdg, spacing, silent, hasDest, hiddenOnMFD)
+function veafSpawn.spawnGroup(spawnSpot, radius, name, country, alt, hdg, spacing, groupName, silent, hasDest, hiddenOnMFD)
 
-    veaf.loggers.get(veafSpawn.Id):debug(string.format("spawnGroup(name=%s, country=%s, alt=%s, hdg=%s, spacing=%s, silent=%s, hiddenOnMFD=%s)", veaf.p(name), veaf.p(country), veaf.p(alt), veaf.p(hdg), veaf.p(spacing), veaf.p(silent), veaf.p(hiddenOnMFD)))
+    veaf.loggers.get(veafSpawn.Id):debug("spawnGroup(name=%s, country=%s, alt=%s, hdg=%s, spacing=%s, groupName=%s, silent=%s, hiddenOnMFD=%s)", veaf.p(name), veaf.p(country), veaf.p(alt), veaf.p(hdg), veaf.p(spacing), veaf.p(silent), veaf.p(groupName), veaf.p(hiddenOnMFD))
 
-    local spawnedGroupName = veafSpawn.doSpawnGroup(spawnSpot, radius, name, country, alt, hdg, spacing, nil, silent, hasDest, hiddenOnMFD)
+    local spawnedGroupName = veafSpawn.doSpawnGroup(spawnSpot, radius, name, country, alt, hdg, spacing, groupName, silent, hasDest, hiddenOnMFD)
 
     return spawnedGroupName
 end

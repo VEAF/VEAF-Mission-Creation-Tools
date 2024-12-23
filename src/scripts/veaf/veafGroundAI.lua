@@ -31,7 +31,7 @@ veafGroundAI.LogLevel = "trace"
 
 veaf.loggers.new(veafGroundAI.Id, veafGroundAI.LogLevel)
 
-veafGroundAI.managedGroups = {}
+veafGroundAI.handlers = {}
 
 veafGroundAI.WATCHDOG_DELAY = 1
 
@@ -104,7 +104,7 @@ end
 function GroundUnitHandler:setName(value)
   veaf.loggers.get(veafGroundAI.Id):debug(self.CLASS_NAME.."[]:setName(%s)", veaf.p(value))
   self.name = value
-  return veafGroundAI.add(self) -- add the battle to the list as soon as a name is available to index it
+  return veafGroundAI.add(self) -- add the handler to the list as soon as a name is available to index it
 end
 
 -- technical name (GroundUnitHandler instance name)
@@ -237,7 +237,7 @@ end
 
 -- the scheduled state of the :check() function
 function GroundUnitHandler:setCheckFunctionSchedule(value)
-  veaf.loggers.get(veafGroundAI.Id):debug(self.CLASS_NAME.."[%s]:setCheckFunctionSchedule(%s)", veaf.p(self:getName()), veaf.p(value))
+  --veaf.loggers.get(veafGroundAI.Id):debug(self.CLASS_NAME.."[%s]:setCheckFunctionSchedule(%s)", veaf.p(self:getName()), veaf.p(value))
   self.checkFunctionSchedule = value
   return self
 end
@@ -248,18 +248,72 @@ function GroundUnitHandler:getCheckFunctionSchedule()
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- METHODS
+
+function GroundUnitHandler:handleOrder(order)
+  veaf.loggers.get(veafGroundAI.Id):debug(self.CLASS_NAME.."[%s]:handleOrder(%s)", veaf.p(self:getName()), veaf.p(order))
+  -- do nothing clever, all is done in the inheriting classes
+  self:completeOrder()
+end
+
+function GroundUnitHandler:check()
+  --veaf.loggers.get(veafGroundAI.Id):debug(self.CLASS_NAME.."[%s]:check()", veaf.p(self:getName()))
+
+  -- consider the orders in the orders list
+  local currentOrder = self:getCurrentOrder()
+  if currentOrder then
+    -- do something with the order
+    self:handleOrder(currentOrder)
+  end
+
+  -- reschedule the check function
+  self:setCheckFunctionSchedule(mist.scheduleFunction(GroundUnitHandler.check, {self}, timer.getTime() + veafGroundAI.WATCHDOG_DELAY))
+end
+
+function GroundUnitHandler:start()
+  veaf.loggers.get(veafGroundAI.Id):debug(self.CLASS_NAME.."[%s]:start()", veaf.p(self:getName()))
+  self.status = GroundUnitHandler.STATUS_ACTIVE
+  if not self.silent then
+    trigger.action.outText(self.messageStart, 10)
+  end
+  if self.onStart then
+    self.onStart(self)
+  end
+  self:check()
+end
+
+function GroundUnitHandler:stop()
+  veaf.loggers.get(veafGroundAI.Id):debug(self.CLASS_NAME.."[%s]:stop()", veaf.p(self:getName()))
+  self.status = GroundUnitHandler.STATUS_READY
+  if not self.silent then
+    trigger.action.outText(self.messageStop, 10)
+  end
+  if self.onStop then
+    self.onStop(self)
+  end
+  if self.checkFunctionSchedule then
+    mist.removeFunction(self.checkFunctionSchedule)
+    self.checkFunctionSchedule = nil
+  end
+  if self:getCheckFunctionSchedule() then
+    mist.removeFunction(self:getCheckFunctionSchedule())
+    self:setCheckFunctionSchedule(nil)
+  end
+end
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- ArtilleryUnitHandler class
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-ArtilleryUnitHandler = {}
+ArtilleryUnitHandler = GroundUnitHandler:new()
 ArtilleryUnitHandler.CLASS_NAME = "ArtilleryUnitHandler"
 
 -- fire for aim constants
-ArtilleryUnitHandler.FIREFORAIM_SHELLS = 3
-ArtilleryUnitHandler.FIREFORAIM_RADIUS = 25
+ArtilleryUnitHandler.FIREFORAIM_SHELLS = 2
+ArtilleryUnitHandler.FIREFORAIM_RADIUS = 10
 
 -- fire for effect constants
-ArtilleryUnitHandler.FIREFOREFFECT_SHELLS = 30
+ArtilleryUnitHandler.FIREFOREFFECT_SHELLS = 40
 ArtilleryUnitHandler.FIREFOREFFECT_RADIUS = 100
 
 ArtilleryUnitHandler.ORDER_STOP = 0
@@ -276,7 +330,7 @@ end
 
 function ArtilleryUnitHandler:new(objectToCopy)
   veaf.loggers.get(veafGroundAI.Id):debug(ArtilleryUnitHandler.CLASS_NAME..":new()")
-  local objectToCreate = objectToCopy or GroundUnitHandler:new({}) -- create object if user does not provide one
+  local objectToCreate = objectToCopy or {} -- create object if user does not provide one
   setmetatable(objectToCreate, self)
   self.__index = self
 
@@ -337,43 +391,69 @@ function ArtilleryUnitHandler:fireAtCoordinates(nbShells, coordinates, radius)
     radius = ArtilleryUnitHandler.DEFAULT_FIRE_RADIUS
   end
   -- check if these are coordinates
-  local _lat, _lon = veaf.computeLLFromString(coordinates)
-  veaf.loggers.get(veaf.Id):trace(string.format("_lat=%s",veaf.p(_lat)))
-  veaf.loggers.get(veaf.Id):trace(string.format("_lon=%s",veaf.p(_lon)))
-  if _lat and _lon then
-    local target = coord.LLtoLO(_lat, _lon)
-    local order = {verb=ArtilleryUnitHandler.ORDER_FIRE, parameters={nbShells=nbShells, target=target, radius=radius}}
-    self:addOrder(order)
-  else
-    veaf.loggers.get(veafGroundAI.Id):warn(self.CLASS_NAME.."[%s]:fireAtCoordinates() : coordinates are not valid: %s", veaf.p(self:getName(), veaf.p(coordinates)))
+  local target = nil
+  if type(coordinates) == "table" then
+    target = coordinates
+  elseif type(coordinates) == "string" then
+    local _lat, _lon = veaf.computeLLFromString(coordinates)
+    veaf.loggers.get(veafGroundAI.Id):trace(string.format("_lat=%s",veaf.p(_lat)))
+    veaf.loggers.get(veafGroundAI.Id):trace(string.format("_lon=%s",veaf.p(_lon)))
+    if _lat and _lon then
+        target = coord.LLtoLO(_lat, _lon)
+    else
+        veaf.loggers.get(veafGroundAI.Id):warn(self.CLASS_NAME.."[%s]:fireAtCoordinates() : coordinates are not valid: %s", veaf.p(self:getName()), veaf.p(coordinates))
+    end
   end
+  local order = {verb=ArtilleryUnitHandler.ORDER_FIRE, parameters={nbShells=nbShells, target=target, radius=radius}}
+  self:addOrder(order)
 end
 
--- this function manages the groups behavior
-function ArtilleryUnitHandler:check()
-  veaf.loggers.get(veafGroundAI.Id):debug(self.CLASS_NAME.."[%s]:check()", veaf.p(self:getName()))
-  
-  -- consider the orders in the orders list
-  local currentOrder = self:getCurrentOrder()
-  if currentOrder then
-    if currentOrder.verb == ArtilleryUnitHandler.ORDER_FIRE then
-      -- fire at the target
-      local nbShells = currentOrder.parameters.nbShells
-      local target = currentOrder.parameters.target
-      local radius = currentOrder.parameters.radius
-      -- convert the target coordinates to UTM for the message
-      local lat, lon, _ = coord.LOtoLL(target)
-      local grid = coord.LLtoMGRS(lat, lon)
-      local coordinates = grid.UTMZone .. ' ' .. grid.MGRSDigraph .. ' ' .. grid.Easting .. ' ' .. grid.Northing
-      veaf.loggers.get(veafGroundAI.Id):trace("ArtilleryUnitHandler[%s]:check() : firing %d shells at %s with a %s m dispersion", veaf.p(self:getName()), veaf.p(nbShells), veaf.p(coordinates), veaf.p(radius))
-      -- fire the shells
-      target.radius = radius
-      target.expendQty = nbShells
-      target.expendQtyEnabled = true
-      local fire = {id = 'FireAtPoint', params = target}
-      self:getDcsGroup():getController():pushTask(fire)
-      self._lastTarget = target
-    end
-    self:completeOrder()
+function ArtilleryUnitHandler:handleOrder(order)
+  veaf.loggers.get(veafGroundAI.Id):debug(self.CLASS_NAME.."[%s]:handleOrder(%s)", veaf.p(self:getName()), veaf.p(order))
+  if order.verb == ArtilleryUnitHandler.ORDER_FIRE then
+    -- fire at the target
+    local nbShells = order.parameters.nbShells
+    local target = order.parameters.target
+    local radius = order.parameters.radius
+    -- convert the target coordinates to UTM for the message
+    local lat, lon, _ = coord.LOtoLL(target)
+    local grid = coord.LLtoMGRS(lat, lon)
+    local coordinates = grid.UTMZone .. ' ' .. grid.MGRSDigraph .. ' ' .. grid.Easting .. ' ' .. grid.Northing
+    veaf.loggers.get(veafGroundAI.Id):trace("ArtilleryUnitHandler[%s]:handleOrder() : firing %d shells at %s with a %s m dispersion", veaf.p(self:getName()), veaf.p(nbShells), veaf.p(coordinates), veaf.p(radius))
+    -- fire the shells
+    local fireParams = {
+      x = target.x,
+      y = target.z,
+      zoneRadius = radius,
+      expendQty = nbShells,
+      expendQtyEnabled = true,
+      counterbattaryRadius = 500,
+    }
+    local fire = {id = 'FireAtPoint', params = fireParams}
+    self:getDcsGroup():getController():pushTask(fire)
+    self._lastTarget = target
   end
+  GroundUnitHandler.handleOrder(self, order)
+end
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+--- Global functions for the module
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+function veafGroundAI.add(handler)
+  veaf.loggers.get(veafGroundAI.Id):debug("veafGroundAI.add([%s])", veaf.p(handler:getName()))
+  veafGroundAI.handlers[handler:getName()] = handler
+  return handler
+end
+
+function veafGroundAI.get(handlerName)
+  veaf.loggers.get(veafGroundAI.Id):debug("veafGroundAI.get([%s])", veaf.p(handlerName))
+  local handler = veafGroundAI.handlers[handlerName]
+  if handler then
+    veaf.loggers.get(veafGroundAI.Id):trace("handler found: %s", veaf.p(handler))
+  end
+  return handler
+end
+
+function veafGroundAI.initialize()
+  veaf.loggers.get(veafGroundAI.Id):info("Initializing module")
 end

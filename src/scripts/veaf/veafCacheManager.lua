@@ -69,7 +69,6 @@ end
 function VeafCache:setName(value)
   veaf.loggers.get(veafCacheManager.Id):debug("VeafCache[]:setName(%s)", veaf.p(value))
   self.name = value
-  return veafCacheManager.add(self) -- add the battle to the list as soon as a name is available to index it
 end
 
 -- technical name (VeafCache instance name)
@@ -78,14 +77,14 @@ function VeafCache:getName()
 end
 
 -- default time to live
-function BattleGroup:setDefaultTimeToLive(value)
+function VeafCache:setDefaultTimeToLive(value)
   self.defaultTTL = value
-  veaf.loggers.get(veafGroundBattle.Id):debug("BattleGroup[%s]:setDefaultTimeToLive(%s)", veaf.p(self:getName()), veaf.p(value))
+  veaf.loggers.get(veafCacheManager.Id):debug("VeafCache[%s]:setDefaultTimeToLive(%s)", veaf.p(self:getName()), veaf.p(value))
   return self
 end
 
 -- default time to live
-function BattleGroup:getDefaultTimeToLive()
+function VeafCache:getDefaultTimeToLive()
   return self.defaultTTL
 end
 

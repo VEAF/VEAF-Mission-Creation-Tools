@@ -34,7 +34,7 @@ settings =
 
         ["waypoints"] =
         {
-            ["BULLSEYE"] = "BULLSEYE",
+            --["BULLSEYE"] = "BULLSEYE",
         }, -- end of ["waypoints"]
     },
 
@@ -47,7 +47,7 @@ settings =
 
         ["waypoints"] =
         {
-            ["BULLSEYE"] = "BULLSEYE",
+            --["BULLSEYE"] = "BULLSEYE",
         }, -- end of ["waypoints"]
     },
 }

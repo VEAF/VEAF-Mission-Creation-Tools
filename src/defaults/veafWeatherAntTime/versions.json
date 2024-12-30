@@ -1,0 +1,95 @@
+{
+  "variableForMetar": "METAR",
+  "targets": [
+    {
+      "version": "night-real",
+      "realweather": true,
+      "moment": "night"
+    },
+    {
+      "version": "beforedawn-real-clear",
+      "realweather": true,
+      "clearsky": true,
+      "moment": "beforedawn"
+    },
+    {
+      "version": "dawn-real",
+      "realweather": true,
+      "moment": "dawn"
+    },
+    {
+      "version": "sunset-real",
+      "realweather": true,
+      "moment": "sunset"
+    },
+    {
+      "version": "dawn-real-clear",
+      "realweather": true,
+      "clearsky": true,
+      "moment": "dawn"
+    },
+    {
+      "version": "dawn-scattered",
+      "weatherfile": "scattered-1.lua",
+      "moment": "dawn"
+    },
+    {
+      "version": "morning-real",
+      "realweather": true,
+      "moment": "morning"
+    },
+    {
+      "version": "morning-real-clear",
+      "realweather": true,
+      "clearsky": true,
+      "moment": "morning"
+    },
+    {
+      "version": "morning-scattered",
+      "weatherfile": "scattered-1.lua",
+      "moment": "morning"
+    },
+    {
+      "version": "morning-overcast-rain",
+      "weatherfile": "overcast-rain-1.lua",
+      "moment": "morning"
+    },
+    {
+      "version": "day-real",
+      "realweather": true,
+      "moment": "day"
+    },
+    {
+      "version": "day-real-clear",
+      "realweather": true,
+      "clearsky": true,
+      "moment": "day"
+    },
+    {
+      "version": "day-scattered",
+      "weatherfile": "scattered-1.lua",
+      "moment": "day"
+    },
+    {
+      "version": "day-overcast-rain",
+      "weatherfile": "overcast-rain-1.lua",
+      "moment": "day"
+    },
+    {
+      "version": "evening-real",
+      "realweather": true,
+      "moment": "beforesunset"
+    },
+    {
+      "version": "evening-real-clear",
+      "realweather": true,
+      "clearsky": true,
+      "moment": "beforesunset"
+    },
+    {
+      "version": "evening-scattered",
+      "weatherfile": "scattered-1.lua",
+      "moment": "beforesunset"
+    }
+  ]
+}

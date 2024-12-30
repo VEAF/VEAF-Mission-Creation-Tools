@@ -8,7 +8,8 @@ class Configuration {
     "normandy": {"lat": 49.183336, "lon": -0.365908},
     "syria": { "lat": 32.666667, "lon": 35.183333},
     "marianaislands": {"lat": 14.079866, "lon": 145.15311411102653},
-    "thechannel": {"lat": 49.372284, "lon": -2.364351}
+    "thechannel": {"lat": 49.372284, "lon": -2.364351},
+    "falklands": {"lat": -54.802982, "lon": -68.305737}
   }
   _checkwx_apikey;
   _cacheFolder;

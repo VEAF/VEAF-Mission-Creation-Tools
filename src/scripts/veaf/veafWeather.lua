@@ -17,10 +17,10 @@ veafWeather = {}
 veafWeather.Id = "WEATHER"
 
 --- Version.
-veafWeather.Version = "1.4.2"
+veafWeather.Version = "1.4.3"
 
 -- trace level, specific to this module
---veafWeather.LogLevel = "trace"
+veafWeather.LogLevel = "trace"
 veaf.loggers.new(veafWeather.Id, veafWeather.LogLevel)
 
 --- Key phrase to look for in the mark text which triggers the command.
@@ -317,23 +317,7 @@ veafWeatherUnitSystem.Aircrafts.FaaMetric =
 
 ---------------------------------------------------------------------------------------------------
 ---  Methods
-function veafWeatherUnitSystem.defaultForElementName(dcsElementName)
-    --veaf.loggers.get(veafWeather.Id):trace(">>> veafWeatherUnitSystem:defaultForGroup - " .. dcsElementName)
-
-    local sTypeName = "unknown"
-    if (not veaf.isNullOrEmpty(dcsElementName)) then
-        local dcsElement = Group.getByName(dcsElementName)
-        if (dcsElement == nil) then
-            dcsElement = Unit.getByName(dcsElementName)
-        end
-        if (dcsElement) then
-            sTypeName = dcsElement:getTypeName()
-        end
-    end
-
-    --veaf.loggers.get(veafWeather.Id):trace(">>> veafWeatherUnitSystem:defaultForGroup - " .. sTypeName)
-    return veafWeatherUnitSystem.defaultForTypeName(sTypeName)
-end
+--- 
 
 function veafWeatherUnitSystem.defaultForTypeName(sTypeName)
     if (veaf.tableContains(veafWeatherUnitSystem.Aircrafts.Faa, sTypeName)) then
@@ -479,18 +463,9 @@ end
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Static methods
 function veafWeatherData.getWeatherString(vec3, dcsElementName, unitSystem)
-    local sTypeName = "unknown"
     local bWithLaste = false
 
-    if (not veaf.isNullOrEmpty(dcsElementName)) then
-        local dcsElement = Group.getByName(dcsElementName)
-        if (dcsElement == nil) then
-            dcsElement = Unit.getByName(dcsElementName)
-        end
-        if (dcsElement) then
-            sTypeName = dcsElement:getTypeName()
-        end
-    end
+    local sTypeName = veaf.getDcsTypeName(dcsElementName)
 
     if (unitSystem == nil) then
         unitSystem = veafWeatherUnitSystem.defaultForTypeName(sTypeName)

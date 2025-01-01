@@ -19,7 +19,7 @@ veaf = {}
 veaf.Id = "VEAF"
 
 --- Version.
-veaf.Version = "1.52.1"
+veaf.Version = "1.53.0"
 
 --- Development version ?
 veaf.Development = false
@@ -3128,6 +3128,33 @@ function veaf.startsWith(aString, aPrefix, caseSensitive)
     end
     return string.sub(aString,1,string.len(aPrefix))==aPrefix
 end
+
+function veaf.getDcsTypeName(dcsElementName)
+    veaf.loggers.get(veaf.Id):debug("veaf.getDcsTypeName(dcsElementName=%s", veaf.p(dcsElementName))
+
+    local result = "unknown"
+
+    if (not veaf.isNullOrEmpty(dcsElementName)) then
+        -- first check for a unit named like this, because the group and its units may have the same name
+        local dcsUnit = Unit.getByName(dcsElementName)
+        veaf.loggers.get(veaf.Id):trace("Unit.getByName(dcsElementName)=%s", veaf.p(dcsUnit))
+        if not dcsUnit then
+            -- then check for a group named like that
+            local dcsGroup = Group.getByName(dcsElementName)
+            veaf.loggers.get(veaf.Id):trace("Group.getByName(dcsElementName)=%s", veaf.p(dcsGroup))
+            dcsUnit = dcsGroup and dcsGroup:getUnit(1)
+        end
+        if (dcsUnit) then
+            veaf.loggers.get(veaf.Id):trace("dcsUnit=%s", veaf.p(dcsUnit, nil, nil, true, false))
+            result = dcsUnit:getTypeName()
+        end
+    end
+
+    veaf.loggers.get(veaf.Id):trace("result=%s", veaf.p(result))
+
+    return result
+end
+
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Logging
 -------------------------------------------------------------------------------------------------------------------------------------------------------------

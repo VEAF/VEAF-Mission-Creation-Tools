@@ -35,13 +35,13 @@ ctld = {} -- DONT REMOVE!
 ctld.Id = "CTLD - "
 
 --- Version.
-ctld.Version = "1.1.0 RC"
+ctld.Version = "1.2.0 RC"
 
 -- To add debugging messages to dcs.log, change the following log levels to `true`; `Debug` is less detailed than `Trace`
 ctld.Debug = false
 ctld.Trace = false
 
-ctld.alreadyInitialized = false -- if true, ctld.initialize() will not run
+ctld.dontInitialize = true -- if true, ctld.initialize() will not run; instead, you'll have to run it from your own code - it's useful when you want to override some functions/parameters before the initialization takes place
 
 -- ***************************************************************
 -- *************** Internationalization (I18N) *******************
@@ -918,7 +918,7 @@ ctld.staticBugWorkaround = false --  DCS had a bug where destroying statics woul
 ctld.disableAllSmoke = false -- if true, all smoke is diabled at pickup and drop off zones regardless of settings below. Leave false to respect settings below
 
 -- Allow units to CTLD by aircraft type and not by pilot name - this is done everytime a player enters a new unit
-ctld.addPlayerAircraftByType = false
+ctld.addPlayerAircraftByType = true
 
 ctld.hoverPickup = true --  if set to false you can load crates with the F10 menu instead of hovering... Only if not using real crates!
 ctld.loadCrateFromMenu = false -- if set to true, you can load crates with the F10 menu OR hovering, in case of using choppers and planes for example.
@@ -5799,20 +5799,24 @@ end
 
 -- are we near friendly logistics zone
 function ctld.inLogisticsZone(_heli)
+    ctld.logDebug("ctld.inLogisticsZone(), _heli = %s", ctld.p(_heli))
 
     if ctld.inAir(_heli) then
         return false
     end
     local _heliPoint = _heli:getPoint()
+    ctld.logDebug("_heliPoint = %s", ctld.p(_heliPoint))
     for _, _name in pairs(ctld.logisticUnits) do
+        ctld.logDebug("_name = %s", ctld.p(_name))
         local _logistic = StaticObject.getByName(_name)
         if not _logistic then
             _logistic = Unit.getByName(_name)
         end
+        ctld.logDebug("_logistic = %s", ctld.p(_logistic))
         if _logistic ~= nil and _logistic:getCoalition() == _heli:getCoalition() and _logistic:getLife() > 0 then
             --get distance
             local _dist = ctld.getDistance(_heliPoint, _logistic:getPoint())
-
+            ctld.logDebug("_dist = %s", ctld.p(_dist))
             if _dist <= ctld.maximumDistanceLogistic then
                 return true
             end
@@ -7877,15 +7881,12 @@ end
 
 
 -- ***************** SETUP SCRIPT ****************
-function ctld.initialize(force)
-    ctld.logInfo(string.format("Initializing version %s", ctld.Version))
-    ctld.logTrace(string.format("ctld.alreadyInitialized=%s", ctld.p(ctld.alreadyInitialized)))
-    ctld.logTrace(string.format("force=%s", ctld.p(force)))
-
-    if ctld.alreadyInitialized and not force then
-        ctld.logInfo(string.format("Bypassing initialization because ctld.alreadyInitialized = true"))
+function ctld.initialize()
+    if ctld.dontInitialize then
+        ctld.logInfo(string.format("Skipping initializion of version %s because ctld.dontInitialize is true", ctld.Version))
         return
     end
+    ctld.logInfo(string.format("Initializing version %s", ctld.Version))
 
     assert(mist ~= nil, "\n\n** HEY MISSION-DESIGNER! **\n\nMiST has not been loaded!\n\nMake sure MiST 3.6 or higher is running\n*before* running this script!\n")
 
@@ -8199,10 +8200,6 @@ function ctld.initialize(force)
     ctld.logInfo("registering event handler")
     world.addEventHandler(ctld.eventHandler)
 
-
-    -- don't initialize more than once
-    ctld.alreadyInitialized = true
-
     env.info("CTLD READY")
 end
 
@@ -8216,10 +8213,7 @@ function ctld.eventHandler:onEvent(event)
     end
 
     -- check that we know the event
-    if not (
-        event.id == 15 -- S_EVENT_BIRTH"
-        or event.id == 20 -- S_EVENT_PLAYER_ENTER_UNIT
-        ) then
+    if event.id ~= 20 then -- S_EVENT_PLAYER_ENTER_UNIT
         return
     end
 
@@ -8227,47 +8221,63 @@ function ctld.eventHandler:onEvent(event)
     local unitName = nil
     if event.initiator ~= nil and event.initiator.getName then
         unitName = event.initiator:getName()
-        ctld.logTrace("unitName = %s", ctld.p(unitName))
+        ctld.logDebug("caught event S_EVENT_PLAYER_ENTER_UNIT for unit [%s]", ctld.p(unitName))
     end
     if not unitName then
         ctld.logWarning("no unitname found in event %s", ctld.p(event))
         return
     end
 
-    if mist.DBs.humansByName[unitName] then -- it's a human unit
-        ctld.logDebug("caught event BIRTH for human unit [%s]", ctld.p(unitName))
-        local _unit = Unit.getByName(unitName)
-        if _unit ~= nil then
-            -- assign transport pilot
-            ctld.logTrace("_unit = %s", ctld.p(_unit))
-
-            local playerTypeName = _unit:getTypeName()
-            ctld.logTrace("playerTypeName = %s", ctld.p(playerTypeName))
-
-            -- Allow units to CTLD by aircraft type and not by pilot name
-            if ctld.addPlayerAircraftByType then
-                for _,aircraftType in pairs(ctld.aircraftTypeTable) do
-                    if aircraftType == playerTypeName then
-                        ctld.logTrace("adding by aircraft type, unitName = %s", ctld.p(unitName))
-                        -- add transport unit to the list
-                        table.insert(ctld.transportPilotNames, unitName)
-                        -- add transport radio menu
-                        ctld.addTransportF10MenuOptions(unitName)
-                        break
+    local nextSteps = coroutine.create(function()
+        ctld.logTrace("in the 'nextSteps' coroutine")
+        if mist.DBs.humansByName[unitName] then -- it's a human unit
+            ctld.logDebug("caught event S_EVENT_PLAYER_ENTER_UNIT for human unit [%s]", ctld.p(unitName))
+            local _unit = Unit.getByName(unitName)
+            if _unit ~= nil then
+                -- assign transport pilot
+                ctld.logTrace("_unit = %s", ctld.p(_unit))
+    
+                local playerTypeName = _unit:getTypeName()
+                ctld.logTrace("playerTypeName = %s", ctld.p(playerTypeName))
+    
+                -- Allow units to CTLD by aircraft type and not by pilot name
+                if ctld.addPlayerAircraftByType then
+                    for _,aircraftType in pairs(ctld.aircraftTypeTable) do
+                        if aircraftType == playerTypeName then
+                            ctld.logTrace("adding by aircraft type, unitName = %s", ctld.p(unitName))
+                            -- add transport unit to the list
+                            table.insert(ctld.transportPilotNames, unitName)
+                            -- add transport radio menu
+                            ctld.addTransportF10MenuOptions(unitName)
+                            break
+                        end
                     end
-                end
-            else
-                for _, _unitName in pairs(ctld.transportPilotNames) do
-                    if _unitName == unitName then
-                        ctld.logTrace("adding by transportPilotNames, unitName = %s", ctld.p(unitName))
-                        -- add transport radio menu
-                        ctld.addTransportF10MenuOptions(unitName)
-                        break
+                else
+                    for _, _unitName in pairs(ctld.transportPilotNames) do
+                        if _unitName == unitName then
+                            ctld.logTrace("adding by transportPilotNames, unitName = %s", ctld.p(unitName))
+                            -- add transport radio menu
+                            ctld.addTransportF10MenuOptions(unitName)
+                            break
+                        end
                     end
                 end
             end
         end
+    end)
+
+    if not mist.DBs.humansByName[unitName] then
+        -- give a few milliseconds for MiST to handle the BIRTH event too
+        ctld.logTrace("give MiST some time to handle the BIRTH event too")
+        timer.scheduleFunction(function()
+            ctld.logTrace("resuming the 'nextSteps' coroutine in a timer")
+            coroutine.resume(nextSteps)
+        end, nil, timer.getTime() + 0.5)
+    else
+        ctld.logTrace("resuming the 'nextSteps' coroutine immediately")
+        coroutine.resume(nextSteps)
     end
+
 end
 
 -- initialize the random number generator to make it almost random
@@ -8276,9 +8286,9 @@ math.random(); math.random(); math.random()
 --- Enable/Disable error boxes displayed on screen.
 env.setErrorMessageBoxEnabled(false)
 
--- initialize CTLD in 2 seconds, so other scripts have a chance to modify the configuration before initialization
-ctld.logInfo(string.format("Loading version %s in 2 seconds", ctld.Version))
-timer.scheduleFunction(ctld.initialize, nil, timer.getTime() + 2)
+-- initialize CTLD
+-- if you need to have a chance to modify the configuration before initialization in your other scripts, please set ctld.dontInitialize to true and call ctld.initialize() manually
+ctld.initialize()
 
 --DEBUG FUNCTION
 --        for key, value in pairs(getmetatable(_spawnedCrate)) do

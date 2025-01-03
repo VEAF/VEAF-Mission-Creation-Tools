@@ -1595,6 +1595,17 @@ function veafShortcuts.dumpAliasesList(export_path)
         end
     end
 
+    local _filename = "AliasesList.json"
+    if veaf.config.MISSION_NAME then
+        _filename = "AliasesList_" .. veaf.config.MISSION_NAME .. ".json"
+    end
+    if not(veaf.DO_NOT_EXPORT_JSON_FILES) then
+        veaf.exportAsJson(veafShortcuts.getAliasesList(), "aliases", jsonify, _filename, export_path or veaf.config.MISSION_EXPORT_PATH)
+    end
+end
+
+function veafShortcuts.getAliasesList()
+
     -- sort the aliases alphabetically
     local sortedAliases = {}
     for _, alias in pairs(veafShortcuts.aliases) do
@@ -1603,13 +1614,7 @@ function veafShortcuts.dumpAliasesList(export_path)
     table.sort(sortedAliases)
     veaf.loggers.get(veafShortcuts.Id):trace(string.format("sortedAliases=%s", veaf.p(sortedAliases)))
 
-    local _filename = "AliasesList.json"
-    if veaf.config.MISSION_NAME then
-        _filename = "AliasesList_" .. veaf.config.MISSION_NAME .. ".json"
-    end
-    if not(veaf.DO_NOT_EXPORT_JSON_FILES) then
-        veaf.exportAsJson(sortedAliases, "aliases", jsonify, _filename, export_path or veaf.config.MISSION_EXPORT_PATH)
-    end
+    return sortedAliases
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------

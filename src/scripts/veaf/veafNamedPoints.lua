@@ -402,6 +402,7 @@ function veafNamedPoints.addAllSyriaCities() end
 function veafNamedPoints.addAllCaucasusCities() end
 function veafNamedPoints.addAllTheChannelCities() end
 function veafNamedPoints.addAllMarianasIslandsCities() end
+function veafNamedPoints.addAllPersianGulfCities() end
 -- 
 ---@diagnostic disable: duplicate-index  
 veafNamedPoints._citiesCaucasus =

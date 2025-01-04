@@ -3898,8 +3898,6 @@ function veaf.ctld_initialize_replacement(configurationCallback)
     if ctld then
         veaf.loggers.get(veaf.Id):info(string.format("Setting up CTLD"))
 
-        -- change the init function so we can call it whenever we want
-        ctld.skipInitialisation = true
 
         -- logging change
         ctld.p = veaf.p

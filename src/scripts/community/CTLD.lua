@@ -35,7 +35,7 @@ ctld = {} -- DONT REMOVE!
 ctld.Id = "CTLD - "
 
 --- Version.
-ctld.Version = "1.2.1"
+ctld.Version = "1.2.2"
 
 -- To add debugging messages to dcs.log, change the following log levels to `true`; `Debug` is less detailed than `Trace`
 ctld.Debug = false
@@ -814,77 +814,8 @@ ctld.i18n["es"]["Reset TGT Selection"] = "Restablecer selección TGT"
 ---@param ... any (list) The parameters to replace in the text, in order (all paremeters will be converted to string)
 ---@return string the translated and formatted text
 function ctld.i18n_translate(text, ...)
-    local function p(o, level)
-        local MAX_LEVEL = 20
-        if level == nil then level = 0 end
-        if level > MAX_LEVEL then
-            return ""
-        end
-        local text = ""
-        if (type(o) == "table") then
-            text = "\n"
-            for key,value in pairs(o) do
-                for i=0, level do
-                    text = text .. " "
-                end
-                text = text .. ".".. key.."="..p(value, level+1) .. "\n"
-            end
-        elseif (type(o) == "function") then
-            text = "[function]"
-        elseif (type(o) == "boolean") then
-            if o == true then
-                text = "[true]"
-            else
-                text = "[false]"
-            end
-        else
-            if o == nil then
-                text = "[nil]"
-            else
-                text = tostring(o)
-            end
-        end
-        return text
-    end
-    local function formatText(text, ...)
-        if not text then
-            return ""
-        end
-        if type(text) ~= 'string' then
-            text = p(text)
-        else
-            local args = ...
-            if args and args.n and args.n > 0 then
-                local pArgs = {}
-                for i=1,args.n do
-                    pArgs[i] = p(args[i])
-                end
-                text = text:format(unpack(pArgs))
-            end
-        end
-        local fName = nil
-        local cLine = nil
-        if debug and debug.getinfo then
-            local dInfo = debug.getinfo(3)
-            fName = dInfo.name
-            cLine = dInfo.currentline
-        end
-        if fName and cLine then
-            return fName .. '|' .. cLine .. ': ' .. text
-        elseif cLine then
-            return cLine .. ': ' .. text
-        else
-            return ' ' .. text
-        end
-    end
-    local function logTrace(message, ...)
-        message = formatText(message, arg)
-        env.info(" T - " .. ctld.Id .. message)
-    end
 
-    logTrace("ctld.i18n_translate(lang=%s, text=%s", p(ctld.i18n_lang), p(text))
     local _text = ctld.i18n[ctld.i18n_lang][text]
-    logTrace("_text=%s", p(_text))
 
     -- default to english
     if _text == nil then
@@ -899,14 +830,13 @@ function ctld.i18n_translate(text, ...)
     if arg and arg.n and arg.n > 0 then
         local _args = {}
         for i=1,arg.n do
-            _args[i] = p(arg[i])
+            _args[i] = tostring(arg[i]) or ""
         end
         for i = 1, #_args do
             _text = string.gsub(_text, "%%" .. i, _args[i])
         end
     end
 
-    logTrace("returning %s", p(_text))
     return _text
 end
 
@@ -4038,7 +3968,7 @@ function ctld.listNearbyCrates(_args)
     local _txt = ctld.i18n_translate("No Nearby Crates")
     if _message ~= "" or _fobMsg ~= "" then
 
-        local _txt = ""
+        _txt = ""
 
         if _message ~= "" then
             _txt = ctld.i18n_translate("Nearby Crates:\n%1", _message)
@@ -4500,8 +4430,14 @@ function ctld.dropSlingCrate(_args)
         local _heightDiff = ctld.heightDiff(_heli)
 
         if ctld.inAir(_heli) == false or _heightDiff <= 7.5 then
-            ctld.displayMessageToGroup(_heli, ctld.i18n_translate("%1 crate has been safely unhooked and is at your %2 o'clock", _currentCrate.desc, ctld.getClockDirection(_heli, _currentCrate.crateUnit)), 10)
             _point = ctld.getPointAt12Oclock(_heli, 30)
+            local _position = "12"
+
+            if ctld.unitDynamicCargoCapable(_heli) then
+                _point = ctld.getPointAt6Oclock(_heli, 15)
+                _position = "6"
+            end
+            ctld.displayMessageToGroup(_heli, ctld.i18n_translate("%1 crate has been safely unhooked and is at your %2 o'clock", _currentCrate.desc, _position), 10)
         elseif _heightDiff > 7.5 and _heightDiff <= 40.0 then
             ctld.displayMessageToGroup(_heli, ctld.i18n_translate("%1 crate has been safely dropped below you", _currentCrate.desc), 10)
         else -- _heightDiff > 40.0, destroy crate
@@ -6129,8 +6065,9 @@ function ctld.addTransportF10MenuOptions(_unitName)
 
                 if _groupId then
                     ctld.logTrace("_groupId = %s", ctld.p(_groupId))
+                    ctld.logTrace("ctld.addedTo = %s", ctld.p(ctld.addedTo))
                     if ctld.addedTo[tostring(_groupId)] == nil then
-
+                        ctld.logTrace("adding CTLD menu for _groupId = %s", ctld.p(_groupId))
                         local _rootPath = missionCommands.addSubMenuForGroup(_groupId, ctld.i18n_translate("CTLD"))
 
                         local _unitActions = ctld.getUnitActions(_unitTypename)
@@ -6279,6 +6216,8 @@ function ctld.addTransportF10MenuOptions(_unitName)
                         end
 
                         ctld.addedTo[tostring(_groupId)] = true
+                        ctld.logTrace("ctld.addedTo = %s", ctld.p(ctld.addedTo))
+                        ctld.logTrace("done adding CTLD menu for _groupId = %s", ctld.p(_groupId))
                     end
                 end
             end
@@ -6338,7 +6277,9 @@ function ctld.addRadioListCommand(_side)
 
             if _groupId then
 
+                ctld.logTrace("ctld.addedTo = %s", ctld.p(ctld.addedTo))
                 if ctld.addedTo[tostring(_groupId)] == nil then
+                    ctld.logTrace("adding List Radio Beacons for _groupId = %s", ctld.p(_groupId))
                     missionCommands.addCommandForGroup(_groupId, ctld.i18n_translate("List Radio Beacons"), nil, ctld.listRadioBeacons, { _playerUnit:getName() })
                     ctld.addedTo[tostring(_groupId)] = true
                 end

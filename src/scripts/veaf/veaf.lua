@@ -19,7 +19,7 @@ veaf = {}
 veaf.Id = "VEAF"
 
 --- Version.
-veaf.Version = "1.53.0"
+veaf.Version = "1.53.1"
 
 --- Development version ?
 veaf.Development = false
@@ -1954,6 +1954,11 @@ end
 function veaf.findUnitsInCircle(center, radius, includeStatics, onlyTheseUnits)
     veaf.loggers.get(veaf.Id):trace(string.format("findUnitsInCircle(radius=%s)", tostring(radius)))
     veaf.loggers.get(veaf.Id):trace(string.format("center=%s", veaf.p(center)))
+
+    if not center then
+        veaf.loggers.get(veaf.Id):error("veaf.findUnitsInCircle: center parameter is nil")
+        return {}
+    end
 
     local unitsToCheck = {}
     if onlyTheseUnits then

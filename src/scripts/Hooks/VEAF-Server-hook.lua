@@ -38,7 +38,7 @@ VEAF_PILOTS_FILE = "veaf-pilots.txt"
 veafServerHook.Id = "VEAFHOOK - "
 
 --- Version.
-veafServerHook.Version = "2.4.0"
+veafServerHook.Version = "2.4.1"
 
 -- trace level, specific to this module
 veafServerHook.Trace = false
@@ -221,6 +221,10 @@ end
 function veafServerHook.onPlayerChangeSlot(id)
     veafServerHook.logDebug(string.format("veafServerHook.onPlayerChangeSlot([%s])", veafServerHook.p(id)))
     local _playerDetails = net.get_player_info(id)
+    if not _playerDetails then
+        veafServerHook.logError(string.format("veafServerHook.onPlayerChangeSlot([%s]) - _playerDetails is nil", veafServerHook.p(id)))
+        return
+    end
     local playerName = _playerDetails.name
     local ucid = _playerDetails.ucid
     local unitName = nil

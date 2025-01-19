@@ -94,7 +94,16 @@ Mais vous pouvez également forker le [dépôt principal][VEAF-Mission-Creation-
 
 Veuillez lire la [documentation du programmeur](./programmer/index.md).
 
+-----------------------------
+
 # Contacts
+
+Si vous avez besoin d'aide ou si vous souhaitez suggérer quelque chose, vous pouvez
+
+* contacter **Zip** sur [GitHub][Zip on Github] ou sur [Discord][Zip on Discord]
+* aller sur le [site Web VEAF]
+* poster sur le [forum VEAF]
+* rejoindre le [Discord VEAF]
 
 -----------------------------
 
@@ -104,13 +113,6 @@ Réalisé et maintenu par la Virtual European Air Force, une communauté frança
 [![Badge-Discord]][VEAF Discord]
 
 -----------------------------
-
-Si vous avez besoin d'aide ou si vous souhaitez suggérer quelque chose, vous pouvez
-
-* contacter **Zip** sur [GitHub][Zip on Github] ou sur [Discord][Zip on Discord]
-* aller sur le [site Web VEAF]
-* poster sur le [forum VEAF]
-* rejoindre le [Discord VEAF]
 
 [table des matières]: ./ref_toc.md
 [index des pages]: ./ref_index.md

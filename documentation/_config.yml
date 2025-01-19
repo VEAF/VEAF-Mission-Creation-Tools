@@ -1,0 +1,22 @@
+lsi: false
+safe: true
+source: .
+incremental: false
+highlighter: rouge
+gist:
+  noscript: false
+kramdown:
+  math_engine: mathjax
+  syntax_highlighter: rouge
+
+remote_theme: pages-themes/cayman@v0.2.0
+plugins:
+- jekyll-remote-theme
+
+title: VEAF Mission Creation Tools - documentation site
+description: VEAF Mission Creation Tools - documentation for mission-makers, users and programmers
+show_downloads: true
+github:
+  zip_url: https://github.com/VEAF/VEAF-Mission-Creation-Tools/zipball/master
+  tar_url: https://github.com/VEAF/VEAF-Mission-Creation-Tools/tarball/master
+  repository_url: https://github.com/VEAF/VEAF-Mission-Creation-Tools

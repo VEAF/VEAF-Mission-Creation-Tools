@@ -1,0 +1,17 @@
+---
+---
+
+@import "{{ site.theme }}";
+
+.page-header {
+  padding: 1em;
+}
+
+.main-content {
+  padding: 1em;
+}
+/*
+h1.project-name::before {
+  content:url(/images/logo.png);
+}​
+*/

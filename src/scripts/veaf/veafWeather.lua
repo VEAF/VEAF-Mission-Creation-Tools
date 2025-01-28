@@ -17,10 +17,10 @@ veafWeather = {}
 veafWeather.Id = "WEATHER"
 
 --- Version.
-veafWeather.Version = "1.4.3"
+veafWeather.Version = "1.5.0"
 
 -- trace level, specific to this module
-veafWeather.LogLevel = "trace"
+--veafWeather.LogLevel = "trace"
 veaf.loggers.new(veafWeather.Id, veafWeather.LogLevel)
 
 --- Key phrase to look for in the mark text which triggers the command.
@@ -268,6 +268,7 @@ veafWeatherUnitSystem.Aircrafts.Faa =
     "F-15ESE",
     "F-16C_50",
     "FA-18C_hornet",
+    "F-4E-45MC",
     "UH-1H",
     "P-47D-30",
     "P-47D-40",

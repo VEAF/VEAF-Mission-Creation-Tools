@@ -768,6 +768,16 @@ function veaf.invertHeading(heading)
     return result
 end
 
+function veaf.computeAzimuth(vec3)
+    local iAngleRadian = math.atan2(vec3.z, vec3.x) -- get angle in radian, inverting x(->east) and z(->north) to account for the reference rotation and inversion
+    local iAngleDegrees = math.deg(iAngleRadian)
+
+    if (iAngleDegrees < 0) then
+        iAngleDegrees = iAngleDegrees + 360
+    end
+    return iAngleDegrees
+end
+
 -- get a LL position based on a string 
 -- can be UTM (U38TMP334456 or u37TMP4351)
 -- can be LL with either : or - as a separator, and either DMS, DM decimal, or D decimal (N42:23:45E044-12.5 or N42.3345E044-12.5)

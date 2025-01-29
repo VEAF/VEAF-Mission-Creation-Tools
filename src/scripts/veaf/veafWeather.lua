@@ -178,7 +178,7 @@ end
 
 local function _weatherSliceAtAltitude(vec3, iAltitudeMeters)
     local nTemperatureKelvin, nPressurePa = atmosphere.getTemperatureAndPressure({ x = vec3.x, y = iAltitudeMeters, z = vec3.z })
-    local iWindDir, iWindSpeedMps = weathermark._GetWind(vec3, iAltitudeMeters)
+    local iWindDir, iWindSpeedMps = veafWeather.getWind(vec3, iAltitudeMeters)
 
     return
     {
@@ -198,6 +198,36 @@ local function _getFlightLevelString(iAltitudeFeet)
     local iFlightLevel = math.floor(iAltitudeFeetRounded / 100)
     
     return string.format("FL%03d", iFlightLevel)
+end
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- Static tools
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+function veafWeather.getWind(vec3, iAltitudeMeters, bTurbulence)
+    bTurbulence = bTurbulence or false
+    
+    local vec3AtAltitude = { x = vec3.x, y = iAltitudeMeters, z = vec3.z }
+
+    local vec3Wind
+    if (bTurbulence) then
+        vec3Wind = atmosphere.getWindWithTurbulence(vec3AtAltitude)
+    else
+        vec3Wind = atmosphere.getWind(vec3AtAltitude)
+    end
+
+    local iDirection = veaf.computeAzimuth(vec3Wind)
+    
+    -- convert direction from "to" to "from"
+    if (iDirection > 180) then
+        iDirection = iDirection - 180
+      else
+        iDirection = iDirection + 180
+      end
+
+    local iSpeed = math.sqrt((vec3Wind.x)^2 + (vec3Wind.z)^2)
+
+    veaf.loggers.get(veafWeather.Id):trace("Wind vec3 alt [ %d ]: [ z(east)=%f, x(north)=%f ] -- direction [ %f ], strength [ %f ]", iAltitudeMeters, vec3Wind.z, vec3Wind.x, iDirection, iSpeed)
+    return iDirection, iSpeed
 end
 
 ---------------------------------------------------------------------------------------------------
@@ -365,7 +395,7 @@ function veafWeatherData:create(vec3, iAbsTime, iAltitudeMeters)
     local sunTimesZulu = veafTime.getSunTimesZulu(vec3)
     local sunTimesLocal = veafTime.getSunTimesLocal(vec3)
 
-    local iWindDirSurface, iWindSpeedSurfaceMps = weathermark._GetWind(vec3, iAltitudeMeters + 10) -- Measure the wind velocity at the standard height of 10 metres above the surface. This is the internationally accepted meteorological definition of ‘surface wind’ designed to eliminate distortion attributable to very local terrain effects
+    local iWindDirSurface, iWindSpeedSurfaceMps = veafWeather.getWind(vec3, iAltitudeMeters + 10) -- Measure the wind velocity at the standard height of 10 metres above the surface. This is the internationally accepted meteorological definition of ‘surface wind’ designed to eliminate distortion attributable to very local terrain effects
 
     -- the static env.mission.weather.visibility.distance is not used anymore, and the DCS engine apparently sets a default at 100000, as seen in this log line:
     -- WEATHER (Main): set fog: visibility:100000  thickness:0.0
@@ -801,7 +831,7 @@ function veafWeatherData:toStringLaste()
         local iAltitudeFeet = math.floor((mist.utils.metersToFeet(self.AltitudeMeter) + iDesiredHeightFeet + 500) / 1000) * 1000
         local iAltitudeMeters = mist.utils.feetToMeters(iAltitudeFeet)
         local iTemperatureKelvin, _ = atmosphere.getTemperatureAndPressure({ x = self.Vec3.x, y = iAltitudeMeters, z = self.Vec3.z })
-        local iWindDirection, iWindSpeedMps = weathermark._GetWind(self.Vec3, iAltitudeMeters)
+        local iWindDirection, iWindSpeedMps = veafWeather.getWind(self.Vec3, iAltitudeMeters)
         local iWindDirectionMagnetic = veafWeatherData:getNormalizedWindDirection(iWindDirection, true)
 
         local sLaste = string.format("ALT%02d W%03d/%02d T%+d", iAltitudeFeet / 1000, iWindDirectionMagnetic, mist.utils.mpsToKnots(iWindSpeedMps), iTemperatureKelvin + _nKelvinToCelciusOffset)

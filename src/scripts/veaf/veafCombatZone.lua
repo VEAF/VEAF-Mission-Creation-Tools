@@ -20,7 +20,7 @@ veafCombatZone = {}
 veafCombatZone.Id = "COMBATZONE"
 
 --- Version.
-veafCombatZone.Version = "1.16.2"
+veafCombatZone.Version = "1.17.0"
 
 -- trace level, specific to this module
 --veafCombatZone.LogLevel = "trace"
@@ -284,6 +284,8 @@ function VeafCombatZone:new(objectToCopy)
     objectToCreate.delayedSpawners = {}
     -- Whether we want the combat zone to be added to populate the radio menu
     objectToCreate.enableRadioMenu = true
+    -- Whether we want the combat zone to be cleaned when it is over
+    objectToCreate.enableJunkCleanup = true
     -- whether the zone can be activated/deactivated by user via radio menu. If false, the zone won't be added to radio menu until activated
     objectToCreate.enableUserActivation = true
     -- whether we want to allow ground marking of the zone
@@ -320,6 +322,11 @@ end
 
 function VeafCombatZone:disableRadioMenu()
     self.enableRadioMenu = false
+    return self
+end
+
+function VeafCombatZone:disableJunkCleanup()
+    self.enableJunkCleanup = false
     return self
 end
 
@@ -454,6 +461,13 @@ end
 function VeafCombatZone:getRadioGroupName()
     return self.radioGroupName
 end
+
+function VeafCombatZone:getNextGroupName()
+    self.identifier = (self.identifier or 0) + 1
+    local name = string.format("%s-#%04d",self.missionEditorZoneName, self.identifier)
+    return name
+end
+
 
 function VeafCombatZone:addSpawnedGroup(groupOrName)
     local groupName = groupOrName
@@ -896,6 +910,7 @@ function VeafCombatZone:getInformation()
 end
 
 function VeafCombatZone:spawnElement(zoneElement, now)
+    veaf.loggers.get(veafCombatZone.Id):debug("VeafCombatZone[%s]:spawnElement([%s], [%s])",veaf.p(self:getFriendlyName()), veaf.p(zoneElement:getName()), veaf.p(now))
     veaf.loggers.get(veafCombatZone.Id):trace("zoneElement=%s", zoneElement)
     if not now and zoneElement:getSpawnDelay() and type(zoneElement:getSpawnDelay()) == "number" then
         -- self-schedule
@@ -918,9 +933,11 @@ function VeafCombatZone:spawnElement(zoneElement, now)
             local vars = {}
             vars.gpName = zoneElement:getName()
             vars.name = zoneElement:getName()
+            vars.newGroupName = self:getNextGroupName()
             vars.route = mist.getGroupRoute(vars.gpName, 'task')
             vars.action = 'respawn'
             vars.point = position
+            vars.renameUnitsSequentially = true
             local newGroup = mist.teleportToPoint(vars)
             if type(newGroup) == 'table' then
                 veaf.loggers.get(veafCombatZone.Id):trace(string.format("[%s]:activate() - mist.teleportToPoint([%s])", self:getMissionEditorZoneName(), zoneElement:getName()))
@@ -970,6 +987,7 @@ function VeafCombatZone:activate()
 
             for i=1,#shuffledIndexes do
                 local zoneElement = zoneElementGroup.elements[shuffledIndexes[i]]
+                veaf.loggers.get(veafCombatZone.Id):trace(string.format("processing element [%s]",veaf.p(zoneElement)))
                 if spawnCount > 0 then
                     if not alreadySpawnedElements[zoneElement:getName()] then
                         veaf.loggers.get(veafCombatZone.Id):trace(string.format("processing element [%s]",zoneElement:getName()))
@@ -1042,6 +1060,19 @@ function VeafCombatZone:desactivate()
         end
     end
     self:clearSpawnedGroups()
+
+    if self.enableJunkCleanup then
+        -- remove the junk that the battle left behind
+        veaf.loggers.get(veafCombatZone.Id):trace("removing the junk that the battle left behind")
+        local zone = veaf.getTriggerZone(self.missionEditorZoneName)
+        local volS = {
+          id = world.VolumeType.SPHERE,
+          params = {point = veaf.placePointOnLand(zone), radius = zone.radius}
+        }
+        veaf.loggers.get(veafCombatZone.Id):trace(string.format("volS=%s",veaf.p(volS)))
+        local n=world.removeJunk(volS)
+        veaf.loggers.get(veafCombatZone.Id):trace(string.format("world.removeJunk() returned %s",veaf.p(n)))
+    end
 
     -- refresh the radio menu
     self:updateRadioMenu()

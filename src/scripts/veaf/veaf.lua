@@ -778,6 +778,10 @@ function veaf.computeAzimuth(vec3)
     return iAngleDegrees
 end
 
+function veaf.computeMagnitude(vec3)
+    return math.sqrt((vec3.x)^2 + (vec3.z)^2)
+end
+
 -- get a LL position based on a string 
 -- can be UTM (U38TMP334456 or u37TMP4351)
 -- can be LL with either : or - as a separator, and either DMS, DM decimal, or D decimal (N42:23:45E044-12.5 or N42.3345E044-12.5)

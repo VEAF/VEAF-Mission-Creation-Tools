@@ -224,7 +224,7 @@ function veafWeather.getWind(vec3, iAltitudeMeters, bTurbulence)
         iDirection = iDirection + 180
       end
 
-    local iSpeed = math.sqrt((vec3Wind.x)^2 + (vec3Wind.z)^2)
+    local iSpeed = veaf.computeMagnitude(vec3Wind)
 
     veaf.loggers.get(veafWeather.Id):trace("Wind vec3 alt [ %d ]: [ z(east)=%f, x(north)=%f ] -- direction [ %f ], strength [ %f ]", iAltitudeMeters, vec3Wind.z, vec3Wind.x, iDirection, iSpeed)
     return iDirection, iSpeed

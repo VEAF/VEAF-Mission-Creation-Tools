@@ -200,36 +200,6 @@ local function _getFlightLevelString(iAltitudeFeet)
     return string.format("FL%03d", iFlightLevel)
 end
 
--------------------------------------------------------------------------------------------------------------------------------------------------------------
--- Static tools
--------------------------------------------------------------------------------------------------------------------------------------------------------------
-function veafWeather.getWind(vec3, iAltitudeMeters, bTurbulence)
-    bTurbulence = bTurbulence or false
-    
-    local vec3AtAltitude = { x = vec3.x, y = iAltitudeMeters, z = vec3.z }
-
-    local vec3Wind
-    if (bTurbulence) then
-        vec3Wind = atmosphere.getWindWithTurbulence(vec3AtAltitude)
-    else
-        vec3Wind = atmosphere.getWind(vec3AtAltitude)
-    end
-
-    local iDirection = veaf.computeAzimuth(vec3Wind)
-    
-    -- convert direction from "to" to "from"
-    if (iDirection > 180) then
-        iDirection = iDirection - 180
-      else
-        iDirection = iDirection + 180
-      end
-
-    local iSpeed = veaf.computeMagnitude(vec3Wind)
-
-    veaf.loggers.get(veafWeather.Id):trace("Wind vec3 alt [ %d ]: [ z(east)=%f, x(north)=%f ] -- direction [ %f ], strength [ %f ]", iAltitudeMeters, vec3Wind.z, vec3Wind.x, iDirection, iSpeed)
-    return iDirection, iSpeed
-end
-
 ---------------------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------
 ---  Weather measurement unit systems class
@@ -388,14 +358,14 @@ veafWeatherData.__index = veafWeatherData
 
 ---------------------------------------------------------------------------------------------------
 ---  CTOR
-function veafWeatherData:create(vec3, iAbsTime, iAltitudeMeters)
+function veafWeatherData:create(vec3, iAbsTime, iAltitudeSurfaceMeters)
     iAbsTime = iAbsTime or timer.getAbsTime()
-    iAltitudeMeters = iAltitudeMeters or veaf.getLandHeight(vec3)
+    iAltitudeSurfaceMeters = iAltitudeSurfaceMeters or veaf.getLandHeight(vec3)
 
     local sunTimesZulu = veafTime.getSunTimesZulu(vec3)
     local sunTimesLocal = veafTime.getSunTimesLocal(vec3)
 
-    local iWindDirSurface, iWindSpeedSurfaceMps = veafWeather.getWind(vec3, iAltitudeMeters + 10) -- Measure the wind velocity at the standard height of 10 metres above the surface. This is the internationally accepted meteorological definition of ‘surface wind’ designed to eliminate distortion attributable to very local terrain effects
+    local iWindDirSurface, iWindSpeedSurfaceMps = veafWeather.getWind(vec3, iAltitudeSurfaceMeters + 10) -- Measure the wind velocity at the standard height of 10 metres above the surface. This is the internationally accepted meteorological definition of ‘surface wind’ designed to eliminate distortion attributable to very local terrain effects
 
     -- the static env.mission.weather.visibility.distance is not used anymore, and the DCS engine apparently sets a default at 100000, as seen in this log line:
     -- WEATHER (Main): set fog: visibility:100000  thickness:0.0
@@ -423,14 +393,14 @@ function veafWeatherData:create(vec3, iAbsTime, iAltitudeMeters)
 
     local iFogThicknessMeters = world.weather.getFogThickness()
     local iFogVisibilityMeters = world.weather.getFogVisibilityDistance()
-    if (iFogThicknessMeters >= iAltitudeMeters) then
+    if (iFogThicknessMeters >= iAltitudeSurfaceMeters) then
         iVisibilityMeters = iFogVisibilityMeters
         veaf.loggers.get(veafWeather.Id):trace("Visibility new fog=%d", iVisibilityMeters)
     else
-        veaf.loggers.get(veafWeather.Id):trace("Visibility=%d. New fog ignored, measure point above fog ceiling [ altitude=%d, fog thickness=%d ]", iVisibilityMeters, iAltitudeMeters, iFogThicknessMeters)
+        veaf.loggers.get(veafWeather.Id):trace("Visibility=%d. New fog ignored, measure point above fog ceiling [ altitude=%d, fog thickness=%d ]", iVisibilityMeters, iAltitudeSurfaceMeters, iFogThicknessMeters)
     end
 
-    local _, nQfePa = atmosphere.getTemperatureAndPressure({ x = vec3.x, y = iAltitudeMeters, z = vec3.z })
+    local _, nQfePa = atmosphere.getTemperatureAndPressure({ x = vec3.x, y = iAltitudeSurfaceMeters, z = vec3.z })
     local nTemperatureKelvin, nQnhPa = atmosphere.getTemperatureAndPressure({ x = vec3.x, y = 0, z = vec3.z })
     local nTemperatureCelcius = nTemperatureKelvin + _nKelvinToCelciusOffset
 
@@ -448,13 +418,13 @@ function veafWeatherData:create(vec3, iAbsTime, iAltitudeMeters)
     end
 
     local weatherSlices = { }
-    if (iAltitudeMeters < 600) then
+    if (iAltitudeSurfaceMeters < 600) then
         table.insert(weatherSlices, _weatherSliceAtAltitude(vec3, 500))
     end
-    if (iAltitudeMeters < 2100) then
+    if (iAltitudeSurfaceMeters < 2100) then
         table.insert(weatherSlices, _weatherSliceAtAltitude(vec3, 2000))
     end
-    if (iAltitudeMeters < 8100) then
+    if (iAltitudeSurfaceMeters < 8100) then
         table.insert(weatherSlices, _weatherSliceAtAltitude(vec3, 8000))
     end
 
@@ -462,7 +432,7 @@ function veafWeatherData:create(vec3, iAbsTime, iAltitudeMeters)
     {
         AbsTime = iAbsTime,
         Vec3 = vec3,
-        AltitudeMeter = iAltitudeMeters,
+        AltitudeMeter = iAltitudeSurfaceMeters,
         WindDirection = iWindDirSurface,
         WindSpeedMps = iWindSpeedSurfaceMps,
         VisibilityMeters = iVisibilityMeters,
@@ -493,7 +463,7 @@ end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Static methods
-function veafWeatherData.getWeatherString(vec3, dcsElementName, unitSystem)
+function veafWeatherData.getWeatherString(vec3, dcsElementName, unitSystem, iSurfaceAltitudeMeters)
     local bWithLaste = false
 
     local sTypeName = veaf.getDcsTypeName(dcsElementName)
@@ -506,7 +476,7 @@ function veafWeatherData.getWeatherString(vec3, dcsElementName, unitSystem)
         bWithLaste = true
     end
 
-    local weatherData = veafWeatherData:create(vec3)
+    local weatherData = veafWeatherData:create(vec3, nil, iSurfaceAltitudeMeters)
     return weatherData:toString(unitSystem, bWithLaste)
 end
 
@@ -1033,7 +1003,7 @@ function veafWeatherAtis:Create(veafAirbase, dateTimeZulu)
     end
     dateTimeZulu.min = iRecordedAtMinutes
 
-    local iAltitude = nil
+    local iSurfaceAltitudeMeters = nil
     local unitSystem
     if (veafAirbase.Category == Airbase.Category.SHIP) then
         -- Maybe use the type name to decide the unit system?
@@ -1043,13 +1013,13 @@ function veafWeatherAtis:Create(veafAirbase, dateTimeZulu)
         veaf.loggers.get(veafWeather.Id):trace(veaf.p(dcsShipType))
         ]]
 
-        iAltitude = 20
+        iSurfaceAltitudeMeters = 20 -- typical carrier deck height
         unitSystem = veafWeatherUnitSystem.Systems.FaaNavy
     else
         unitSystem = veafWeatherUnitSystem.defaultForTheatre()
     end
     
-    local weatherData = veafWeatherData:create(veafAirbase.DcsAirbase:getPoint(), nil, iAltitude)
+    local weatherData = veafWeatherData:create(veafAirbase.DcsAirbase:getPoint(), nil, iSurfaceAltitudeMeters)
 
     local sMessage
     
@@ -1148,53 +1118,20 @@ function veafWeatherAtis.getAtisStringFromVeafPoint(sPointName, iAbsTime)
     return veafWeatherAtis.getAtisString(veafAirbase, iAbsTime)
 end
 
-function veafWeather.messageWeatherAtClosestPoint(unitName, forUnit)
-    veaf.loggers.get(veafWeather.Id):debug("veafWeather.messageWeatherAtClosestPoint(unitName=%s)",veaf.p(unitName))
-    local closestPoint = veafNamedPoints.getNearestPoint(unitName)
-    if closestPoint then
-        local BR = veafNamedPoints.getPointBearing({closestPoint.name, unitName})
-        if BR then BR = " ("..BR..")" else BR = "" end
-        local weatherReport = "WEATHER        : " .. closestPoint.name .. BR .. "\n\n"
-        weatherReport = weatherReport .. veafWeatherData.getWeatherString(closestPoint, unitName)
-        if forUnit then
-            veaf.outTextForUnit(unitName, weatherReport, 30)
-        else
-            veaf.outTextForGroup(unitName, weatherReport, 30)
-        end
-    end
-end
-
-function veafWeather.messageAtcClosestAirbase(unitName, forUnit)
-    local dcsUnit = Unit.getByName(unitName)
-    local veafAirbase = veafAirbases.getNearestAirbase(dcsUnit)
-    if (veafAirbase) then
-        local sAtcReport = veafWeatherAtis.getAtisString(veafAirbase)
-        if forUnit then
-            veaf.outTextForUnit(dcsUnit:getName(), sAtcReport, 30)
-        else
-            veaf.outTextForGroup(dcsUnit:getName(), sAtcReport, 30)
-        end
-    end
-end
-
-function veafWeather.messageAtcAndWeather(unitName, forUnit)
-    veafWeather.messageAtcClosestAirbase(unitName, forUnit)
-    veafWeather.messageWeatherAtClosestPoint(unitName, forUnit)    
-end
-
-----------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------
+--- VeafFog class
 --- WEATHER modifications during runtime
-
--------------------------------------------------------------------------------------------------------------------------------------------------------------
--- VeafFog class methods
--------------------------------------------------------------------------------------------------------------------------------------------------------------
-
+---------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------
 VeafFog = {}
 VeafFog.DELAY_BETWEEN_DYNAMIC_CHECKS = 5 * 60
 VeafFog.DYNAMICFOG_BASEFACTOR_HEAVY  = 0.8
 VeafFog.DYNAMICFOG_BASEFACTOR_MEDIUM = 0.5
 VeafFog.DYNAMICFOG_BASEFACTOR_SPARSE = 0.2
 
+---------------------------------------------------------------------------------------------------
+-- VeafFog class methods
 function VeafFog.init(object)
   -- technical name
   object.name = nil
@@ -1495,9 +1432,78 @@ for _, minutes in pairs({1, 5, 10, 15, 30, 60, 90}) do
 end
 
 ---------------------------------------------------------------------------------------------------
----  Radio menu and remote interface
--------------------------------------------------------------------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------
+---  MAIN MODULE METHODS
+---------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------
 
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- Static tools
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+function veafWeather.getWind(vec3, iAltitudeMeters, bTurbulence)
+    bTurbulence = bTurbulence or false
+    
+    local vec3AtAltitude = { x = vec3.x, y = iAltitudeMeters, z = vec3.z }
+
+    local vec3Wind
+    if (bTurbulence) then
+        vec3Wind = atmosphere.getWindWithTurbulence(vec3AtAltitude)
+    else
+        vec3Wind = atmosphere.getWind(vec3AtAltitude)
+    end
+
+    local iDirection = veaf.compute2dAzimuth(vec3Wind)
+    
+    -- convert direction from "to" to "from"
+    if (iDirection > 180) then
+        iDirection = iDirection - 180
+      else
+        iDirection = iDirection + 180
+      end
+
+    local iSpeed = veaf.compute2dMagnitude(vec3Wind)
+
+    veaf.loggers.get(veafWeather.Id):trace("Wind vec3 alt [ %d ]: [ z(east)=%f, x(north)=%f ] -- direction [ %f ], strength [ %f ]", iAltitudeMeters, vec3Wind.z, vec3Wind.x, iDirection, iSpeed)
+    return iDirection, iSpeed
+end
+
+function veafWeather.messageWeatherAtClosestPoint(unitName, forUnit)
+    veaf.loggers.get(veafWeather.Id):debug("veafWeather.messageWeatherAtClosestPoint(unitName=%s)",veaf.p(unitName))
+    local closestPoint = veafNamedPoints.getNearestPoint(unitName)
+    if closestPoint then
+        local BR = veafNamedPoints.getPointBearing({closestPoint.name, unitName})
+        if BR then BR = " ("..BR..")" else BR = "" end
+        local weatherReport = "WEATHER        : " .. closestPoint.name .. BR .. "\n\n"
+        weatherReport = weatherReport .. veafWeatherData.getWeatherString(closestPoint, unitName)
+        if forUnit then
+            veaf.outTextForUnit(unitName, weatherReport, 30)
+        else
+            veaf.outTextForGroup(unitName, weatherReport, 30)
+        end
+    end
+end
+
+function veafWeather.messageAtcClosestAirbase(unitName, forUnit)
+    local dcsUnit = Unit.getByName(unitName)
+    local veafAirbase = veafAirbases.getNearestAirbase(dcsUnit)
+    if (veafAirbase) then
+        local sAtcReport = veafWeatherAtis.getAtisString(veafAirbase)
+        if forUnit then
+            veaf.outTextForUnit(dcsUnit:getName(), sAtcReport, 30)
+        else
+            veaf.outTextForGroup(dcsUnit:getName(), sAtcReport, 30)
+        end
+    end
+end
+
+function veafWeather.messageAtcAndWeather(unitName, forUnit)
+    veafWeather.messageAtcClosestAirbase(unitName, forUnit)
+    veafWeather.messageWeatherAtClosestPoint(unitName, forUnit)    
+end
+
+---------------------------------------------------------------------------------------------------
+---  Radio menu
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
 --- Build the initial radio menu
 function veafWeather.buildRadioMenu()
     veaf.loggers.get(veafWeather.Id):debug("buildRadioMenu()")
@@ -1538,7 +1544,6 @@ end
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- remote interface
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
-
 -- execute command from the remote interface
 function veafWeather.executeCommandFromRemote(parameters)
     veaf.loggers.get(veafWeather.Id):debug(string.format("veafWeather.executeCommandFromRemote()"))
@@ -1590,7 +1595,6 @@ end
 ---  MAIN MODULE INITIALIZATION
 ---------------------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------
-
 function veafWeather.initialize()
     veaf.loggers.get(veafWeather.Id):debug("veafWeather.initialize()")
     veafWeather.buildRadioMenu()

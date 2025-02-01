@@ -861,32 +861,13 @@ function VeafCombatZone:getInformation()
                     end
                     message = message .. string.format("%s%d %s",separator, count, name)
                 end
-                message = message .. "\n"
             end
         end
-        message = message .. "\n"
 
         if self:isShowZonePositionInfo() then
-            -- add coordinates and position from bullseye
             local zoneCenter = self:getCenter()
-            local lat, lon = coord.LOtoLL(zoneCenter)
-            local mgrsString = mist.tostringMGRS(coord.LLtoMGRS(lat, lon), 3)
-            local bullseye = mist.utils.makeVec3(mist.DBs.missionData.bullseye.blue, 0)
-            local vec = {x = zoneCenter.x - bullseye.x, y = zoneCenter.y - bullseye.y, z = zoneCenter.z - bullseye.z}
-            local dir = mist.utils.round(mist.utils.toDegree(mist.utils.getDir(vec, bullseye)), 0)
-            local dist = mist.utils.get2DDist(zoneCenter, bullseye)
-            local distMetric = mist.utils.round(dist/1000, 0)
-            local distImperial = mist.utils.round(mist.utils.metersToNM(dist), 0)
-            local fromBullseye = string.format('%03d', dir) .. ' for ' .. distMetric .. 'km /' .. distImperial .. 'nm'
-
-            message = message .. "LAT LON (decimal): " .. mist.tostringLL(lat, lon, 2) .. ".\n"
-            message = message .. "LAT LON (DMS)    : " .. mist.tostringLL(lat, lon, 0, true) .. ".\n"
-            message = message .. "MGRS/UTM         : " .. mgrsString .. ".\n"
-            message = message .. "FROM BULLSEYE    : " .. fromBullseye .. ".\n"
-            message = message .. "\n"
-
-            -- get altitude, qfe and wind information
-            message = message .. veaf.weatherReport(zoneCenter, nil, true)
+            message = message .. "\n\nLOCATION:\n" .. veaf.locationDesriptionString(zoneCenter)
+            message = message .. "\n\nWEATHER:\n" .. veafWeatherData.getWeatherString(zoneCenter)
         end
     else
         message = message .. "zone is not yet active."

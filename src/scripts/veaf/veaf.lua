@@ -768,7 +768,7 @@ function veaf.invertHeading(heading)
     return result
 end
 
-function veaf.computeAzimuth(vec3)
+function veaf.compute2dAzimuth(vec3)
     local iAngleRadian = math.atan2(vec3.z, vec3.x) -- get angle in radian, inverting x(->east) and z(->north) to account for the reference rotation and inversion
     local iAngleDegrees = math.deg(iAngleRadian)
 
@@ -778,7 +778,7 @@ function veaf.computeAzimuth(vec3)
     return iAngleDegrees
 end
 
-function veaf.computeMagnitude(vec3)
+function veaf.compute2dMagnitude(vec3)
     return math.sqrt((vec3.x)^2 + (vec3.z)^2)
 end
 
@@ -2220,10 +2220,33 @@ function veaf.outTextForGroup(unitName, message, duration)
     return veaf.outTextForUnit(unitName, message, duration, true)
 end
 
+function veaf.locationDesriptionString(vec3)
+    local lat, lon = coord.LOtoLL(vec3)
+    local mgrsString = mist.tostringMGRS(coord.LLtoMGRS(lat, lon), 3)
+    local bullseye = mist.utils.makeVec3(mist.DBs.missionData.bullseye.blue, 0)
+    local vec = {x = vec3.x - bullseye.x, y = vec3.y - bullseye.y, z = vec3.z - bullseye.z}
+    local dir = mist.utils.round(mist.utils.toDegree(mist.utils.getDir(vec, bullseye)), 0)
+    local dist = mist.utils.get2DDist(vec3, bullseye)
+    local distMetric = mist.utils.round(dist/1000, 0)
+    local distImperial = mist.utils.round(mist.utils.metersToNM(dist), 0)
+    local fromBullseye = string.format('%03d', dir) .. ' for ' .. distMetric .. 'km /' .. distImperial .. 'nm'
+    local iAltitudeMeters = veaf.getLandHeight(vec3)
+    local sAltitude = string.format("%d m (%d ft)", iAltitudeMeters, mist.utils.metersToFeet(iAltitudeMeters))
+
+    local message = "LAT LON (decimal): " .. mist.tostringLL(lat, lon, 2) .. ".\n"
+    message = message .. "LAT LON (DMS)    : " .. mist.tostringLL(lat, lon, 0, true) .. ".\n"
+    message = message .. "MGRS/UTM         : " .. mgrsString .. ".\n"
+    message = message .. "FROM BULLSEYE    : " .. fromBullseye .. ".\n"
+    message = message .. "ALTITUDE         : " .. sAltitude .. "."
+
+    return message
+end
+
 --- Weather Report. Report pressure QFE/QNH, temperature, wind at certain location.
 --- stolen from the weatherReport script and modified to fit our usage
 function veaf.weatherReport(vec3, alt, withLASTE)
-
+    return "veaf.weatherReport is deprecated, use veafWeatherData.getWeatherString instead"
+    --[[
     -- Get Temperature [K] and Pressure [Pa] at vec3.
     local T
     local Pqfe
@@ -2294,6 +2317,7 @@ function veaf.weatherReport(vec3, alt, withLASTE)
     end
 
     return text
+    ]]
 end
 
 local function _initializeCountriesAndCoalitions()

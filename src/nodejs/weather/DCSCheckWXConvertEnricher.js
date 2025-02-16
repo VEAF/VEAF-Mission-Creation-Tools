@@ -463,7 +463,7 @@ class DCSCheckWXConvertEnricher {
     if (this.containsAnyCondition(['TS'])) // thunderstorm is not yet implemented - return rainy weather
       this._cloudPreset = DCS_RAIN[Math.floor(Math.random() * DCS_RAIN.length)];
 
-    if (clouds.length > 0) {
+    if (clouds && clouds.length > 0) {
 
       let highestclouds = clouds[clouds.length - 1];
       if (this.trace) console.log('highestclouds :>> ', highestclouds);

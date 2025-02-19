@@ -76,7 +76,7 @@ function veafMarkers.eventHandler:onEvent(Event)
     veaf.loggers.get(veafMarkers.Id):trace(string.format("Event pos X     = %s", tostring(Event.pos.x)))
     veaf.loggers.get(veafMarkers.Id):trace(string.format("Event pos Y     = %s", tostring(Event.pos.y)))
     veaf.loggers.get(veafMarkers.Id):trace(string.format("Event pos Z     = %s", tostring(Event.pos.z)))
-    if Event.initiator ~= nil then
+    if Event.initiator ~= nil and Event.initiator.getName then
         local _unitname = Event.initiator:getName()
         veaf.loggers.get(veafMarkers.Id):trace(string.format("Event ini unit  = %s", tostring(_unitname)))
     end

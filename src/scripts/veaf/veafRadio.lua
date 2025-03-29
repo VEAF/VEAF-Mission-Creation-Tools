@@ -277,7 +277,7 @@ function veafRadio.eventHandler:onEvent(Event)
   --veaf.loggers.get(veafRadio.Id):trace(string.format("Event idx       = %s", veaf.p(Event.idx)))
   --veaf.loggers.get(veafRadio.Id):trace(string.format("Event coalition = %s", veaf.p(Event.coalition)))
   --veaf.loggers.get(veafRadio.Id):trace(string.format("Event group id  = %s", veaf.p(Event.groupID)))
-  if Event.initiator ~= nil then
+  if Event.initiator ~= nil and Event.initiator.getName then
     _unitname = Event.initiator:getName()
     veaf.loggers.get(veafRadio.Id):trace(string.format("Event ini unit  = %s", veaf.p(_unitname)))
   end

@@ -19,7 +19,7 @@ veaf = {}
 veaf.Id = "VEAF"
 
 --- Version.
-veaf.Version = "1.53.1"
+veaf.Version = "1.54.0"
 
 --- Development version ?
 veaf.Development = false
@@ -3889,6 +3889,73 @@ veaf._discoverTriggerZones()
 
 --store maximum airbase lifes
 veaf.loadAirbasesLife0()
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- changes to AIEN 
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- Our AIEN_xcl_tag (VEAF version) does not autoinitialize. It's also set to log messages using the VEAF logging functions
+-- Instead, we count on the mission makers to call AIEN.performPhaseCycle() from the missionConfig.lua file (since v5.0)
+-- Here, we're upgrading the vanilla AIEN configuration to adapt it to our preferred defaults
+
+if AIEN then
+    AIEN.Id = "AIEN"
+    --AIEN.LogLevel = "info"
+    --AIEN.LogLevel = "debug"
+    AIEN.LogLevel = "trace"
+    AIEN.logger = veaf.loggers.new(AIEN.Id, AIEN.LogLevel)
+
+    -- coalition affected by the script
+    AIEN.config.blueAI                        = true        -- true/false. If true, the AI enhancement will be applied to the blue coalition ground groups, else, no script effect will take place
+    AIEN.config.redAI                         = true        -- true/false. If true, the AI enhancement will be applied to the red  coalition ground groups, else, no script effect will take place
+
+    -- Action sets allowed.
+    AIEN.config.suppression                   = true        -- true/false. If true, once a group take fire from arty or air and it's not armoured, it will be suppressed for 15-45 seconds and won't return fire. Require reactions to be set as 'true'
+    AIEN.config.firemissions                  = true        -- true/false. If true, each artillery in the coalition will fire automatically at available targets provided by other ground units and drones
+    AIEN.config.reactions                     = true        -- true/false. If true, when a mover group gets an hit, it will react accordingly to its skills and to its situational awareness, not staying there taking hits without doing nothing
+    AIEN.config.dismount                      = true        -- true/false. //BEWARE: CAN AFFECT PERFORMANCES ON LOW END SYSTEMS // Thanks to MBot's original script, if true AI ground units with infantry transport capabilities (mainly APC/IFV/Trucks) will dismount soldiers with rifle, rpg and sometimes mandpads when appropriate
+
+    -- User advanced customization
+    AIEN.config.AIEN_xcl_tag                  = "XCL"       -- string, global, case sensitive. Can be dynamically changed by other script or triggers, since it's a global variable. used as a text format without spaces or special characters. only letters and numbers allowed. Any ground group with this 'tag' in its group name won't get AI enhancement behaviour, regardless of its coalition
+    AIEN.config.AIEN_zoneFilter               = ""          -- string, global, case sensitive. Can be dynamically changed by other script or triggers, since it's a global variable. used as a text format without spaces or special characters. only letters and numbers allowed, i.e. "AIEN" will fit. If left nil, or void string like "", won't be used. Only groups inside the named trigger zone will be affected by AIEN script behaviors of reaction, dismount and suppression, and vice versa. If no trigger zone with the specific name is in the mission, then all the groups will use AIEN features.
+    AIEN.config.message_feed                  = true        -- true/false. If true, each relevant AI action starting will also create a trigger message feedback for its coalition
+    AIEN.config.mark_on_f10_map               = true        -- true/false. If true, when an artillery fire mission is ongoing, a markpoint will appear on the map of the allied coalition to show the expected impact point
+    AIEN.config.skill_action_const            = false       -- true/false. If true, AI available reactions types will be limited by the group average skill. If not, almost 2/3 of all available actions will be always be available regardless of the group skills
+
+    -- User bug report: prior to report a bug, please try reproducing it with this variable set to "true"
+    AIEN.config.AIEN_debugProcessDetail       = true
+
+    -- movement variables
+    AIEN.config.outRoadSpeed                  = 8           -- do *3.6 for km/h, cause DCS thinks in m/s
+    AIEN.config.inRoadSpeed                   = 15          -- do *3.6 for km/h, cause DCS thinks in m/s
+    AIEN.config.infantrySpeed                 = 2           -- do *3.6 for km/h, cause DCS thinks in m/s
+    AIEN.config.repositionDistance            = 500         -- meters, radius to a specific destination point that will be randomized between 90% and 110% of this value. Used when a group is moved upon another group position: the other group position will be the destination.
+    AIEN.config.rndFleeDistance               = 2000        -- meters, reposition distance given to a group when a destination is not defined. The direction also will be totally random. Used, i.e., for "panic" reaction
+
+    -- dismounted troops variables
+    AIEN.config.droppedReposition             = 80          -- if no enemy is identified, this is the distance where dismount group will reposition themselves
+    AIEN.config.remountTime                   = 600         -- time after which dismounted troops will try to go back to their original vehicle for remount, if commanded
+    AIEN.config.infantryExtractDist           = 200         -- max distance from vehicle to troops to allow a group extraction
+    AIEN.config.infantrySearchDist            = 2000        -- max distance from vehicle to troops to allow a dismount group to run toward the enemies
+
+    -- informative calls variables
+    AIEN.config.outAmmoLowLevel               = 0.5         -- factor on total amount
+
+    -- reactions and tasking variables
+    AIEN.config.intelDbTimeout                = 1200        -- seconds. Used to cancel intelDb entries for units (not static!), when the time of the contact gathering is more than this value
+    AIEN.config.artyFireLastContactThereshold = 300         -- seconds, max amount of time since last contact to consider an arty target ok
+    AIEN.config.taskTimeout                   = 480         -- seconds after which a tasked group is removed from the database
+    AIEN.config.targetedTimeout               = 240         -- seconds after which a targeted variable in inteldb is removed from database
+    AIEN.config.disperseActionTime            = 120         -- seconds
+    AIEN.config.counterBatteryRadarRange      = 50000       -- m, capable distance for a radar to perform counter battery calculations
+    AIEN.config.counterBatteryPlanDelay       = 240         -- s, will be also randomized on +-35%. Used to define the delay of the planned counter battery fire if available
+    AIEN.config.smoke_source_num              = 5           -- number, between 4 and 9. Generated smokes for each unit when smoke reaction is called in. Any number below 4 or above 9 will be converted in the nearest threshold
+
+    -- SA evaluation variables
+    AIEN.config.proxyBuildingDistance         = 4000        -- m, if buildings are within this distance value, they are considered "close"
+    AIEN.config.proxyUnitsDistance            = 5000        -- m, if units are within this distance value, they are considered "close"
+    AIEN.config.supportDistance               = 8000        -- m, maximum distance for evaluating support or cover movements when under attack
+    AIEN.config.withrawDist                   = 15000       -- m, maximum distance for withdraw manoeuvre nearby a friendly support unit
+end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- changes to CTLD 

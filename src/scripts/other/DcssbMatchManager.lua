@@ -1,11 +1,36 @@
--- mocking DCSBot
-dcsbot = {}
-function dcsbot.sendBotTable(table)
-    env.info(string.format("DcssbMatchManager:dcsbot.sendBotTable->command=[%s]", table and table.command or "NONE"))
-    env.info(string.format("DcssbMatchManager:dcsbot.sendBotTable->match_id=[%s]", table and table.match_id or "NONE"))
-    env.info(string.format("DcssbMatchManager:dcsbot.sendBotTable->player_name=[%s]", table and table.player_name or "NONE"))
-end
+---
+--- This Lua script defines the DcssbMatchManager class, which is designed to manage player participation in matches within a DCS World mission. 
+--- It interacts with a hypothetical "DCSBot" (likely a Discord bot or similar) to register players into matches. 
+--- The script supports adding players automatically after a timeout, or when they enter a designated trigger zone. 
+--- It leverages DCS World's event system to track player activities, specifically focusing on when players enter units.
+--- 
+--- Key Components:
+---  * DcssbMatchManager Class: The core of the script. It handles match creation, player registration, and event processing.
+---  * DcssbMatchManager:new(): Constructor for the DcssbMatchManager class. Initializes a new match manager instance.
+---  * DcssbMatchManager:setName(), DcssbMatchManager:setMatchName(), DcssbMatchManager:setCoalition(), DcssbMatchManager:setTriggerZone(), DcssbMatchManager:setTimeout(): Setter methods to configure the match manager's properties (name, match name, coalition, trigger zone, and timeout).
+---  * DcssbMatchManager:addPlayerByName(), DcssbMatchManager:addPlayerByUnit(): Methods to register players into a match, either by their player name or by the name of the unit they are controlling. These methods interact with dcsbot.sendBotTable() to communicate the player addition to the external bot.
+---  * DcssbMatchManager:onEvent(): Event handler function. It listens for DCS World events, specifically S_EVENT_PLAYER_ENTER_UNIT, to detect when players enter units. Based on the configured coalition and trigger zone/timeout settings, it adds players to the match.
+---  * DcssbMatchManager:onSchedule(): A scheduled function that runs repeatedly. It checks if players are waiting to enter a trigger zone and adds them to the match when they do.
+---  * DcssbMatchManager.addMatchManager(): A factory function to create and configure a new DcssbMatchManager instance. It also adds the instance as an event handler and schedules the onSchedule function.
+---  * DcssbMatchManager.addMatchManagersForZones(): Creates multiple DcssbMatchManager instances, one for each trigger zone defined in the mission.
+---  * DcssbMatchManager.knownEvents: A table mapping DCS event IDs and names to event objects. Used for event handling and debugging.
+---  * DcssbMatchManager.initialize(): Initializes the DcssbMatchManager.knownEvents table.
+--- 
+--- The script is designed to be modular and extensible, allowing for easy creation and management of multiple matches within a single mission. 
+--- The use of trigger zones and timeouts provides flexibility in how players are added to matches. 
+--- 
+--- Usage:
+--- To use this script, you would typically call DcssbMatchManager.addMatchManager() with the desired parameters (name, match name, coalition, trigger zone, and timeout).
+--- You can also call DcssbMatchManager.addMatchManagersForZones() to create match managers for all defined trigger zones in the mission.
 
+---
+-- mocking DCSBot (for testing)
+--dcsbot = {}
+--function dcsbot.sendBotTable(table)
+--    env.info(string.format("DcssbMatchManager:dcsbot.sendBotTable->command=[%s]", table and table.command or "NONE"))
+--    env.info(string.format("DcssbMatchManager:dcsbot.sendBotTable->match_id=[%s]", table and table.match_id or "NONE"))
+--    env.info(string.format("DcssbMatchManager:dcsbot.sendBotTable->player_name=[%s]", table and table.player_name or "NONE"))
+--end
 
 DcssbMatchManager = {}
 DcssbMatchManager.LOG = true
@@ -137,7 +162,9 @@ function DcssbMatchManager:setTriggerZone(value)
             if value then 
                 if DcssbMatchManager.LOG then env.info("Zone found") end
             else
-                env.error(string.format/"DcssbMatchManager[%s]:setTriggerZone(%s) - zone not found", self:getName(), value)
+                env.error(string.format("DcssbMatchManager[%s]:setTriggerZone(%s) - zone not found", self:getName(), value))
+                self.triggerZone = nil
+                return self
             end
         end
         self.triggerZone = value
@@ -365,6 +392,18 @@ function DcssbMatchManager.addMatchManager(name, matchName, coalition, triggerZo
     return matchManager
 end
 
+function DcssbMatchManager.addMatchManagersForZones(timeout)
+    if DcssbMatchManager.LOG then env.info(string.format("DcssbMatchManager.addMatchManagersForZones(%s)", timeout or "NONE")) end
+    local matchManagers = {}
+    for name, zone in pairs(env.mission.triggers.zones) do
+        if zone and zone.name and zone.point and zone.radius then
+            local matchManager = DcssbMatchManager.addMatchManager(name, name, nil, name, timeout)
+            table.insert(matchManagers, matchManager)
+        end
+    end
+    return matchManagers
+end
+
 function DcssbMatchManager.initialize()
     -- prepare the events maps
     for eventId, eventName in pairs(DcssbMatchManager.knownEventsNames) do
@@ -379,5 +418,3 @@ function DcssbMatchManager.initialize()
 end
 
 DcssbMatchManager.initialize()
-DcssbMatchManager.addMatchManager("BLUE match 1", "match1", coalition.side.BLUE, "Blue staging area", 5)
-DcssbMatchManager.addMatchManager("RED match 1", "match1", coalition.side.RED, "Red staging area")

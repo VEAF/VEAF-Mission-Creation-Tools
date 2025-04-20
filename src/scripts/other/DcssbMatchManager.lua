@@ -1,3 +1,4 @@
+env.info("DcssbMatchManager - loading script")
 ---
 --- This Lua script defines the DcssbMatchManager class, which is designed to manage player participation in matches within a DCS World mission. 
 --- It interacts with a hypothetical "DCSBot" (likely a Discord bot or similar) to register players into matches. 
@@ -33,6 +34,7 @@
 --end
 
 DcssbMatchManager = {}
+DcssbMatchManager.Id = "DcssbMatchManager"
 DcssbMatchManager.LOG = true
 DcssbMatchManager.knownEvents = {} -- will be set at initialisation
 DcssbMatchManager.knownEventsNames = {
@@ -392,19 +394,37 @@ function DcssbMatchManager.addMatchManager(name, matchName, coalition, triggerZo
     return matchManager
 end
 
-function DcssbMatchManager.addMatchManagersForZones(timeout)
+function DcssbMatchManager.addMatchManagersForZones(timeout, exclusionList)
     if DcssbMatchManager.LOG then env.info(string.format("DcssbMatchManager.addMatchManagersForZones(%s)", timeout or "NONE")) end
     local matchManagers = {}
-    for name, zone in pairs(env.mission.triggers.zones) do
-        if zone and zone.name and zone.point and zone.radius then
-            local matchManager = DcssbMatchManager.addMatchManager(name, name, nil, name, timeout)
-            table.insert(matchManagers, matchManager)
+    for _, zone in pairs(env.mission.triggers.zones) do
+        local name = zone.name
+        --veaf.loggers.get(DcssbMatchManager.Id):trace("name=%s)", name)
+        --veaf.loggers.get(DcssbMatchManager.Id):trace("zone=%s)", zone)
+        if DcssbMatchManager.LOG then env.info(string.format("DcssbMatchManager.addMatchManagersForZones() - testing zone %s", name or "NONE")) end
+        local exclude = false
+        if exclusionList then
+            for _, value in ipairs(exclusionList) do
+                if value:upper() == name:upper() then
+                    exclude = true
+                end
+            end
+        end
+        if not exclude then
+            if zone then
+                if DcssbMatchManager.LOG then env.info(string.format("DcssbMatchManager.addMatchManagersForZones() - adding zone %s", name or "NONE")) end
+                local matchManager = DcssbMatchManager.addMatchManager(name, name, nil, name, timeout)
+                table.insert(matchManagers, matchManager)
+            end
+        else
+            if DcssbMatchManager.LOG then env.info(string.format("DcssbMatchManager.addMatchManagersForZones() - zone %s is excluded", name)) end
         end
     end
     return matchManagers
 end
 
 function DcssbMatchManager.initialize()
+    if DcssbMatchManager.LOG then env.info("DcssbMatchManager.initialize()") end
     -- prepare the events maps
     for eventId, eventName in pairs(DcssbMatchManager.knownEventsNames) do
         local event = {
@@ -418,3 +438,6 @@ function DcssbMatchManager.initialize()
 end
 
 DcssbMatchManager.initialize()
+--veaf.loggers.new(DcssbMatchManager.Id, "trace")
+
+env.info("DcssbMatchManager - script loaded")

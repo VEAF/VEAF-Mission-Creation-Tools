@@ -3900,9 +3900,10 @@ veaf.loadAirbasesLife0()
 if AIEN then
     AIEN.Id = "AIEN"
     --AIEN.LogLevel = "info"
-    --AIEN.LogLevel = "debug"
-    AIEN.LogLevel = "trace"
+    AIEN.LogLevel = "debug"
+    --AIEN.LogLevel = "trace"
     AIEN.logger = veaf.loggers.new(AIEN.Id, AIEN.LogLevel)
+    AIEN.loggers = veaf.loggers -- replace AIEN loggers with ours
 
     -- coalition affected by the script
     AIEN.config.blueAI                        = true        -- true/false. If true, the AI enhancement will be applied to the blue coalition ground groups, else, no script effect will take place

@@ -20,7 +20,7 @@ veafCasMission = {}
 veafCasMission.Id = "CASMISSION"
 
 --- Version.
-veafCasMission.Version = "1.14.1"
+veafCasMission.Version = "1.15.0"
 
 -- trace level, specific to this module
 --veafCasMission.LogLevel = "trace"
@@ -46,6 +46,184 @@ veafCasMission.casGroupName = veafCasMission.RedCasGroupName
 veafCasMission.afacName = nil
 
 veafCasMission.RadioMenuName = "CAS MISSION"
+
+veafCasMission.TRANSPORT_TYPES = {
+    [veafCasMission.SIDE_BLUE] = {
+        [veaf.ERA.MODERN] = {
+            [0] = {"LUV HMMWV Jeep", "M 818", "M978 HEMTT Tanker", "Land_Rover_101_FC", "Land_Rover_109_S3"},
+            [1] = {"LUV HMMWV Jeep", "M 818", "M978 HEMTT Tanker", "Land_Rover_101_FC", "Land_Rover_109_S3"},
+            [2] = {"LUV HMMWV Jeep", "M 818", "M978 HEMTT Tanker", "Land_Rover_101_FC", "Land_Rover_109_S3"},
+            [3] = {"LUV HMMWV Jeep", "M 818", "M978 HEMTT Tanker", "Land_Rover_101_FC", "Land_Rover_109_S3"},
+            [4] = {"LUV HMMWV Jeep", "M 818", "M978 HEMTT Tanker", "Land_Rover_101_FC", "Land_Rover_109_S3"},
+            [5] = {"LUV HMMWV Jeep", "M 818", "M978 HEMTT Tanker", "Land_Rover_101_FC", "Land_Rover_109_S3"},
+        },
+        [veaf.ERA.COLD_WAR] = {
+            [0] = {"Truck Land Rover 101 FC", "LUV Land Rover 109", "Truck M939 Heavy"},
+            [1] = {"Truck Land Rover 101 FC", "LUV Land Rover 109", "Truck M939 Heavy"},
+            [2] = {"Truck Land Rover 101 FC", "LUV Land Rover 109", "Truck M939 Heavy"},
+            [3] = {"Truck Land Rover 101 FC", "LUV Land Rover 109", "Truck M939 Heavy"},
+            [4] = {"Truck Land Rover 101 FC", "LUV Land Rover 109", "Truck M939 Heavy"},
+            [5] = {"Truck Land Rover 101 FC", "LUV Land Rover 109", "Truck M939 Heavy"},
+        },
+        [veaf.ERA.WW2] = {
+            [0] = {"Bedford_MWD", "CCKW_353", "Willys_MB"},
+            [1] = {"Bedford_MWD", "CCKW_353", "Willys_MB"},
+            [2] = {"Bedford_MWD", "CCKW_353", "Willys_MB"},
+            [3] = {"Bedford_MWD", "CCKW_353", "Willys_MB"},
+            [4] = {"Bedford_MWD", "CCKW_353", "Willys_MB"},
+            [5] = {"Bedford_MWD", "CCKW_353", "Willys_MB"},
+        }
+    },
+    [veafCasMission.SIDE_RED] = {
+        [veaf.ERA.MODERN] = {
+            [0]= {"ATZ-60_Maz", "ZIL-135", "ATZ-5", "Ural-4320 APA-5D", "SKP-11", "GAZ-66", "KAMAZ Truck", "Ural-375", "KrAZ6322", "ZIL-131 KUNG", "Tigr_233036", "UAZ-469"},
+            [1]= {"ATZ-60_Maz", "ZIL-135", "ATZ-5", "Ural-4320 APA-5D", "SKP-11", "GAZ-66", "KAMAZ Truck", "Ural-375", "KrAZ6322", "ZIL-131 KUNG", "Tigr_233036", "UAZ-469"},
+            [2]= {"ATZ-60_Maz", "ZIL-135", "ATZ-5", "Ural-4320 APA-5D", "SKP-11", "GAZ-66", "KAMAZ Truck", "Ural-375", "KrAZ6322", "ZIL-131 KUNG", "Tigr_233036", "UAZ-469"},
+            [3]= {"ATZ-60_Maz", "ZIL-135", "ATZ-5", "Ural-4320 APA-5D", "SKP-11", "GAZ-66", "KAMAZ Truck", "Ural-375", "KrAZ6322", "ZIL-131 KUNG", "Tigr_233036", "UAZ-469"},
+            [4]= {"ATZ-60_Maz", "ZIL-135", "ATZ-5", "Ural-4320 APA-5D", "SKP-11", "GAZ-66", "KAMAZ Truck", "Ural-375", "KrAZ6322", "ZIL-131 KUNG", "Tigr_233036", "UAZ-469"},
+            [5]= {"ATZ-60_Maz", "ZIL-135", "ATZ-5", "Ural-4320 APA-5D", "SKP-11", "GAZ-66", "KAMAZ Truck", "Ural-375", "KrAZ6322", "ZIL-131 KUNG", "Tigr_233036", "UAZ-469"},
+        },
+        [veaf.ERA.COLD_WAR] = {
+            [0]= {"LUV UAZ-469 Jeep", "Refueler ATMZ-5", "Refueler ATZ-10", "Refueler ATZ-5", "S-75 Tractor (ZIL-131)", "Truck GAZ-66", "Truck KAMAZ 43101", "Truck Ural-4320", "Truck Ural-4320-31 Arm'd", "Truck Ural-4320T", "Truck ZIL-131 (C2)", "Truck ZIL-135"},
+            [1]= {"LUV UAZ-469 Jeep", "Refueler ATMZ-5", "Refueler ATZ-10", "Refueler ATZ-5", "S-75 Tractor (ZIL-131)", "Truck GAZ-66", "Truck KAMAZ 43101", "Truck Ural-4320", "Truck Ural-4320-31 Arm'd", "Truck Ural-4320T", "Truck ZIL-131 (C2)", "Truck ZIL-135"},
+            [2]= {"LUV UAZ-469 Jeep", "Refueler ATMZ-5", "Refueler ATZ-10", "Refueler ATZ-5", "S-75 Tractor (ZIL-131)", "Truck GAZ-66", "Truck KAMAZ 43101", "Truck Ural-4320", "Truck Ural-4320-31 Arm'd", "Truck Ural-4320T", "Truck ZIL-131 (C2)", "Truck ZIL-135"},
+            [3]= {"LUV UAZ-469 Jeep", "Refueler ATMZ-5", "Refueler ATZ-10", "Refueler ATZ-5", "S-75 Tractor (ZIL-131)", "Truck GAZ-66", "Truck KAMAZ 43101", "Truck Ural-4320", "Truck Ural-4320-31 Arm'd", "Truck Ural-4320T", "Truck ZIL-131 (C2)", "Truck ZIL-135"},
+            [4]= {"LUV UAZ-469 Jeep", "Refueler ATMZ-5", "Refueler ATZ-10", "Refueler ATZ-5", "S-75 Tractor (ZIL-131)", "Truck GAZ-66", "Truck KAMAZ 43101", "Truck Ural-4320", "Truck Ural-4320-31 Arm'd", "Truck Ural-4320T", "Truck ZIL-131 (C2)", "Truck ZIL-135"},
+            [5]= {"LUV UAZ-469 Jeep", "Refueler ATMZ-5", "Refueler ATZ-10", "Refueler ATZ-5", "S-75 Tractor (ZIL-131)", "Truck GAZ-66", "Truck KAMAZ 43101", "Truck Ural-4320", "Truck Ural-4320-31 Arm'd", "Truck Ural-4320T", "Truck ZIL-131 (C2)", "Truck ZIL-135"},
+        },
+        [veaf.ERA.WW2] = {
+            [0] = {"Blitz_36-6700A", "Horch_901_typ_40_kfz_21", "Kubelwagen_82", "Sd_Kfz_7", "Sd_Kfz_2" },
+            [1] = {"Blitz_36-6700A", "Horch_901_typ_40_kfz_21", "Kubelwagen_82", "Sd_Kfz_7", "Sd_Kfz_2" },
+            [2] = {"Blitz_36-6700A", "Horch_901_typ_40_kfz_21", "Kubelwagen_82", "Sd_Kfz_7", "Sd_Kfz_2" },
+            [3] = {"Blitz_36-6700A", "Horch_901_typ_40_kfz_21", "Kubelwagen_82", "Sd_Kfz_7", "Sd_Kfz_2" },
+            [4] = {"Blitz_36-6700A", "Horch_901_typ_40_kfz_21", "Kubelwagen_82", "Sd_Kfz_7", "Sd_Kfz_2" },
+            [5] = {"Blitz_36-6700A", "Horch_901_typ_40_kfz_21", "Kubelwagen_82", "Sd_Kfz_7", "Sd_Kfz_2" },
+        }
+    }
+}
+
+veafCasMission.ARMOR_TYPES = {
+    [veafCasMission.SIDE_BLUE] = {
+        [veaf.ERA.MODERN] = {
+            [0] = {},
+            [1] = {"IFV Marder", "MCV-80", "IFV LAV-25", "M1134 Stryker ATGM", "M-2 Bradley"},
+            [2] = {"IFV Marder", "MCV-80", "IFV LAV-25", "M1134 Stryker ATGM", "M-2 Bradley"},
+            [3] = {"IFV Marder", "VAB_Mephisto", "M-2 Bradley", "MBT Leopard 1A3", "Chieftain_mk3"},
+            [4] = {"M-2 Bradley", "MBT Leopard 1A3", "Merkava_Mk4", "M1128 Stryker MGS"},
+            [5] = {"Merkava_Mk4", "Challenger2", "Leclerc", "Leopard-2", "M-1 Abrams"},
+        },
+        [veaf.ERA.COLD_WAR] = {
+            [0] = {},
+            [1] = {"APC M113", "APC TPz Fuchs", "APC AAV-7 Amphibious"},
+            [2] = {"APC M113", "APC TPz Fuchs", "APC AAV-7 Amphibious", "IFV Marder"},
+            [3] = {"APC M113", "APC TPz Fuchs", "APC AAV-7 Amphibious", "IFV Marder", "MBT M60A3 Patton"},
+            [4] = {"APC AAV-7 Amphibious", "IFV Marder", "MBT M60A3 Patton", "MBT Leopard 1A3", "MBT Chieftain Mk.3"},
+            [5] = {"APC AAV-7 Amphibious", "IFV Marder", "MBT M60A3 Patton", "MBT Leopard 1A3", "MBT Chieftain Mk.3"},
+        },
+        [veaf.ERA.WW2] = {
+            [0] = {},
+            [1] = {"M30_CC", "M10_GMC"},
+            [2] = {"M30_CC", "M10_GMC"},
+            [3] = {"M30_CC", "M10_GMC", "Centaur_IV"},
+            [4] = {"Centaur_IV", "Churchill_VII", "Cromwell_IV"},
+            [5] = {"Centaur_IV", "Churchill_VII", "Cromwell_IV", "M4_Sherman", "M4A4_Sherman_FF"}
+        }
+    },
+    [veafCasMission.SIDE_RED] = {
+        [veaf.ERA.MODERN] = {
+            [0] = {},
+            [1] = {"BTR-82A", "BMP-1", "VAB_Mephisto"},
+            [2] = {"BTR-82A", "BMP-1", "VAB_Mephisto", "BMP-2"},
+            [3] = {"BTR-82A", "VAB_Mephisto", "BMP-2", "T-55", "Chieftain_mk3"},
+            [4] = {"BTR-82A", "BMP-3", "Chieftain_mk3", "T-72B"},
+            [5] = {"BMP-3", "ZTZ96B", "T-72B3", "T-80UD", "T-90"}
+        },
+        [veaf.ERA.COLD_WAR] = {
+            [0] = {},
+            [1] = {"Scout BRDM-2", "APC MTLB"},
+            [2] = {"Scout BRDM-2", "APC MTLB", "IFV BMD-1", "IFV BMP-1"},
+            [3] = {"Scout BRDM-2", "APC MTLB", "IFV BMD-1", "IFV BMP-1", "APC BTR-RD"},
+            [4] = {"APC MTLB", "IFV BMD-1", "IFV BMP-1", "APC BTR-RD", "LT PT-76"},
+            [5] = {"IFV BMD-1", "IFV BMP-1", "APC BTR-RD", "LT PT-76", "MBT T-55"},
+        },
+        [veaf.ERA.WW2] = {
+            [0] = {},
+            [1] = {"Sd_Kfz_251", "Sd_Kfz_234_2_Puma"},
+            [2] = {"Sd_Kfz_251", "Sd_Kfz_234_2_Puma"},
+            [3] = {"Sd_Kfz_251", "Sd_Kfz_234_2_Puma", "Elefant_SdKfz_184"},
+            [4] = {"Pz_IV_H", "Tiger_I", "Tiger_II_H", "Stug_III", "Stug_IV"},
+            [5] = {"Pz_IV_H", "Tiger_I", "Tiger_II_H", "Stug_III", "Stug_IV", "JagdPz_IV", "Jagdpanther_G1", "Pz_V_Panther_G"}
+        }
+    }
+}
+
+veafCasMission.INFANTRY_TYPES = {
+    [veafCasMission.SIDE_BLUE] = {
+        [veaf.ERA.MODERN] = {"Soldier RPG", "Soldier M249", "Soldier M4 GRG"},
+        [veaf.ERA.COLD_WAR] = {"Soldier RPG", "Soldier M249", "Soldier M4 GRG"},
+        [veaf.ERA.WW2] = {"Soldier RPG", "Soldier M249", "Soldier M4 GRG"},
+    },
+    [veafCasMission.SIDE_RED] = {
+        [veaf.ERA.MODERN] = {"Paratrooper RPG-16", "Infantry AK ver3", "Infantry AK ver2"},
+        [veaf.ERA.COLD_WAR] = {"Paratrooper RPG-16", "Infantry AK ver3", "Infantry AK ver2"},
+        [veaf.ERA.WW2] = {"Paratrooper RPG-16", "Infantry AK ver3", "Infantry AK ver2"},
+    }
+}
+
+veafCasMission.INFANTRY_IFV_TYPES = {
+    [veafCasMission.SIDE_BLUE] = {
+        [veaf.ERA.MODERN] = {
+            [0] = {"Land_Rover_101_FC", "Land_Rover_109_S3"},
+            [1] = {"IFV Marder"},
+            [2] = {"IFV Marder"},
+            [3] = {"M-2 Bradley"},
+            [4] = {"M-2 Bradley"},
+            [5] = {"M-2 Bradley"},
+        },
+        [veaf.ERA.COLD_WAR] = {
+            [0] = {"Truck M939 Heavy"},
+            [1] = {"APC M113", "APC TPz Fuchs", "APC AAV-7 Amphibious"},
+            [2] = {"APC M113", "APC TPz Fuchs", "APC AAV-7 Amphibious", "IFV Marder"},
+            [3] = {"APC M113", "APC TPz Fuchs", "APC AAV-7 Amphibious", "IFV Marder"},
+            [4] = {"APC AAV-7 Amphibious", "IFV Marder"},
+            [5] = {"APC AAV-7 Amphibious", "IFV Marder"},
+        },
+        [veaf.ERA.WW2] = {
+            [0] = {"Bedford_MWD"},
+            [1] = {"APC M2A1 Halftrack"},
+            [2] = {"APC M2A1 Halftrack"},
+            [3] = {"M-2 Bradley"},
+            [4] = {"M-2 Bradley"},
+            [5] = {"M-2 Bradley"},
+        },
+    },
+    [veafCasMission.SIDE_RED] = {
+        [veaf.ERA.MODERN] = {
+            [0] = {"Ural-4320 APA-5D", "GAZ-66", "KAMAZ Truck"},
+            [1] = {"BMP-1"},
+            [2] = {"BMP-1"},
+            [3] = {"BMP-2"},
+            [4] = {"BMP-2"},
+            [5] = {"BMP-2"},
+        },
+        [veaf.ERA.COLD_WAR] = {
+            [0] = {"Truck KAMAZ 43101", "Truck ZIL-135", "Truck Ural-4320-31 Arm'd"},
+            [1] = {"APC MTLB"},
+            [2] = {"APC MTLB", "APC BTR-RD"},
+            [3] = {"APC MTLB", "APC BTR-RD", "IFV BMD-1"},
+            [4] = {"APC MTLB", "APC BTR-RD", "IFV BMD-1", "IFV BMP-1"},
+            [5] = {"APC BTR-RD", "IFV BMD-1", "IFV BMP-1"},
+        },
+        [veaf.ERA.WW2] = {
+            [0] = {"Blitz_36-6700A", "Horch_901_typ_40_kfz_21", "Kubelwagen_82", "Sd_Kfz_7", "Sd_Kfz_2"},
+            [1] = {"Sd_Kfz_251"},
+            [2] = {"Sd_Kfz_251"},
+            [3] = {"Sd_Kfz_234_2_Puma"},
+            [4] = {"Sd_Kfz_234_2_Puma"},
+            [5] = {"Sd_Kfz_234_2_Puma"},
+        }
+    }
+}
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Do not change anything below unless you know what you are doing!
@@ -400,7 +578,7 @@ local function _addDefenseForGroups(group, side, defense, multiple, forInfantry)
     --veaf.loggers.get(veafCasMission.Id):trace(string.format("group.units=%s", veaf.p(group.units)))
 end
 
---- Generates an air defense group
+--- TODO/feat-era/ Generates an air defense group
 function veafCasMission.generateAirDefenseGroup(groupName, defense, side)
     side = side or veafCasMission.SIDE_RED
     
@@ -450,26 +628,14 @@ function veafCasMission.generateTransportCompany(groupName, defense, side, size)
             groupName = groupName,
         }
     -- generate a transport company
-    local transportType
-  
+    local chooseFrom = veafCasMission.TRANSPORT_TYPES[side][veaf.config.era][0]
+    veaf.loggers.get(veafCasMission.Id):trace("chooseFrom=%s", chooseFrom)
     for _ = 1, groupCount do
-        if veaf.config.ww2 then
-            if side == veafCasMission.SIDE_BLUE then
-                transportType = veaf.randomlyChooseFrom({"Bedford_MWD", "CCKW_353", "Willys_MB"})
-            else
-                transportType = veaf.randomlyChooseFrom({"Blitz_36-6700A", "Horch_901_typ_40_kfz_21", "Kubelwagen_82", "Sd_Kfz_7", "Sd_Kfz_2" })
-            end
-        else
-            if side == veafCasMission.SIDE_BLUE then
-                transportType = veaf.randomlyChooseFrom({"LUV HMMWV Jeep", "M 818", "M978 HEMTT Tanker", "Land_Rover_101_FC", "Land_Rover_109_S3"})
-            else
-                transportType = veaf.randomlyChooseFrom({"ATZ-60_Maz", "ZIL-135", "ATZ-5", 'Ural-4320 APA-5D', 'SKP-11', 'GAZ-66', 'KAMAZ Truck', 'Ural-375', "KrAZ6322", 'ZIL-131 KUNG', "Tigr_233036", "UAZ-469"})
-            end
-        end
+        local transportType = veaf.randomlyChooseFrom(chooseFrom)
         table.insert(group.units, { transportType, random=true})
     end
 
-    -- add an air defense vehicle every 10 vehicles
+    -- TODO/feat-era/ add an air defense vehicle every 10 vehicles
     local nbDefense = groupCount / 10 + 1
     if nbDefense == 0 then
         nbDefense = 1
@@ -502,70 +668,25 @@ function veafCasMission.generateArmorPlatoon(groupName, defense, armor, side, si
         group.disposition.h = 4
         group.disposition.w = 4
     end
-    local armorType
-    local armorRand
-    for _ = 1, groupCount do
-        if armor <= 2 then
-            if veaf.config.ww2 then
-                if side == veafCasMission.SIDE_BLUE then
-                    armorType = veaf.randomlyChooseFrom({"M30_CC", "M10_GMC"})
-                else
-                    armorType = veaf.randomlyChooseFrom({"Sd_Kfz_251", "Sd_Kfz_234_2_Puma"})
-                end
-            else
-                if side == veafCasMission.SIDE_BLUE then
-                    armorType = veaf.randomlyChooseFrom({'IFV Marder', 'MCV-80', 'IFV LAV-25', "M1134 Stryker ATGM", 'M-2 Bradley'})
-                else
-                    armorType = veaf.randomlyChooseFrom({"BTR-82A", 'BMP-1', 'BMP-1', "VAB_Mephisto", 'BMP-2'})
-                end
-            end
-        elseif armor == 3 then
-            if veaf.config.ww2 then
-                if side == veafCasMission.SIDE_BLUE then
-                    armorType = veaf.randomlyChooseFrom({"M30_CC", "M10_GMC", "Centaur_IV",})
-                else
-                    armorType = veaf.randomlyChooseFrom({"Sd_Kfz_251", "Sd_Kfz_234_2_Puma", "Elefant_SdKfz_184"})
-                end
-            else
-                if side == veafCasMission.SIDE_BLUE then
-                    armorType = veaf.randomlyChooseFrom({'IFV Marder', "VAB_Mephisto", "M-2 Bradley", 'MBT Leopard 1A3', "Chieftain_mk3"})
-                else
-                    armorType = veaf.randomlyChooseFrom({"BTR-82A", "VAB_Mephisto", 'BMP-2', 'T-55', "Chieftain_mk3"})
-                end
-            end
-        elseif armor == 4 then
-            if veaf.config.ww2 then
-                if side == veafCasMission.SIDE_BLUE then
-                    armorType = veaf.randomlyChooseFrom({"Centaur_IV", "Churchill_VII", "Cromwell_IV"})
-                else
-                    armorType = veaf.randomlyChooseFrom({"Pz_IV_H", "Tiger_I", "Tiger_II_H","Stug_III","Stug_IV"})
-                end
-            else
-                if side == veafCasMission.SIDE_BLUE then
-                    armorType = veaf.randomlyChooseFrom({'M-2 Bradley', 'MBT Leopard 1A3', "Merkava_Mk4", "M1128 Stryker MGS"})
-                else
-                    armorType = veaf.randomlyChooseFrom({"BTR-82A", "BMP-3", "Chieftain_mk3", 'T-72B'})
-                end
-            end
-        elseif armor >= 5 then
-            if veaf.config.ww2 then
-                if side == veafCasMission.SIDE_BLUE then
-                    armorType = veaf.randomlyChooseFrom({"Centaur_IV", "Churchill_VII", "Cromwell_IV", "M4_Sherman", "M4A4_Sherman_FF"}, armor-5)
-                else
-                    armorType = veaf.randomlyChooseFrom({"Pz_IV_H", "Tiger_I", "Tiger_II_H","Stug_III","Stug_IV", "JagdPz_IV", "Jagdpanther_G1", "Pz_V_Panther_G"}, armor-5)
-                end
-            else
-                if side == veafCasMission.SIDE_BLUE then
-                    armorType = veaf.randomlyChooseFrom({"Merkava_Mk4", "Challenger2", "Leclerc", "Leopard-2", 'M-1 Abrams'}, armor-5)
-                else
-                    armorType = veaf.randomlyChooseFrom({"BMP-3", "ZTZ96B", 'T-72B3', 'T-80UD', 'T-90'}, armor-5)
-                end
-            end
-        end
-        table.insert(group.units, { armorType, random=true })
+    local armorBias = 0
+    if armor < 0 then
+        armor = 0
+    end
+    if armor > 5 then
+        armorBias = armor - 5
+        armor = 5
     end
 
-    -- add air defense vehicles
+    local chooseFrom = veafCasMission.ARMOR_TYPES[side][veaf.config.era][armor]
+    veaf.loggers.get(veafCasMission.Id):trace("chooseFrom=%s", chooseFrom)
+    for _ = 1, groupCount do
+        local armorType = veaf.randomlyChooseFrom(chooseFrom, armorBias)
+        if armorType then
+            table.insert(group.units, { armorType, random=true })
+        end
+    end
+
+    -- TODO/feat-era/ add air defense vehicles
     if not veaf.config.ww2 then
         _addDefenseForGroups(group, side, defense, 1)
     else
@@ -577,6 +698,7 @@ end
 
 --- Generates an infantry group along with its manpad units and tranport vehicles
 function veafCasMission.generateInfantryGroup(groupName, defense, armor, side, size)
+
     side = side or veafCasMission.SIDE_RED
     veaf.loggers.get(veafCasMission.Id):trace(string.format("veafCasMission.generateInfantryGroup(groupName=%s, defense=%d, armor=%d)",groupName, defense, armor))
     -- generate an infantry group
@@ -592,53 +714,20 @@ function veafCasMission.generateInfantryGroup(groupName, defense, armor, side, s
         group.disposition.h = 4
         group.disposition.w = 4
     end
+    local chooseFrom = veafCasMission.INFANTRY_TYPES[side][veaf.config.era]
+    veaf.loggers.get(veafCasMission.Id):trace("chooseFrom=%s", chooseFrom)
     for _ = 1, groupCount do
-        local rand = math.random(3)
-        local unitType = nil
-        if rand == 1 then
-            if side == veafCasMission.SIDE_BLUE then
-                unitType = 'Soldier RPG'
-            else
-                unitType = "Paratrooper RPG-16"
-            end
-        elseif rand == 2 then
-            if side == veafCasMission.SIDE_BLUE then
-                unitType = "Soldier M249"
-            else
-                unitType = "Infantry AK ver3"
-            end
-        else
-            if side == veafCasMission.SIDE_BLUE then
-                unitType = "Soldier M4 GRG"
-            else
-                unitType = "Infantry AK ver2"
-            end
-        end
+        local unitType = veaf.randomlyChooseFrom(chooseFrom)
         table.insert(group.units, { unitType })
     end
 
-    -- add a transport vehicle or an APC/IFV
-    if armor > 3 then
-        if side == veafCasMission.SIDE_BLUE then
-            table.insert(group.units, { "M-2 Bradley", cell=11, random=true })
-        else
-            table.insert(group.units, { "BMP-2", cell=11, random=true })
-        end
-    elseif armor > 0 then
-        if side == veafCasMission.SIDE_BLUE then
-            table.insert(group.units, { "IFV Marder", cell=11, random=true })
-        else
-            table.insert(group.units, { "BTR-82A", cell=11, random=true })
-        end
-    else
-        if side == veafCasMission.SIDE_BLUE then
-            table.insert(group.units, { "M 818", cell=11, random=true })
-        else
-            table.insert(group.units, { "KAMAZ Truck", cell=11, random=true })
-        end
-    end
+    -- add a transport vehicle or an APC/IFV depending on the side and the era
+    chooseFrom = veafCasMission.INFANTRY_IFV_TYPES[side][veaf.config.era][armor]
+    veaf.loggers.get(veafCasMission.Id):trace("chooseFrom=%s", chooseFrom)
+    local unitType = veaf.randomlyChooseFrom(chooseFrom)
+    table.insert(group.units, { unitType, cell=11, random=true })
 
-    -- add air defense
+    -- TODO/feat-era/ add air defense
     if not veaf.config.ww2 then
         _addDefenseForGroups(group, side, defense, 1, true)
     else

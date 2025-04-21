@@ -19,7 +19,7 @@ veaf = {}
 veaf.Id = "VEAF"
 
 --- Version.
-veaf.Version = "1.54.0"
+veaf.Version = "1.55.0"
 
 --- Development version ?
 veaf.Development = false
@@ -58,6 +58,14 @@ veaf.theatreName =
     Kola = "Kola",
     Afghanistan = "Afghanistan",
 }
+
+veaf.ERA = {
+    WW2 = "WW2",
+    COLD_WAR = "COLD_WAR",
+    MODERN = "MODERN",
+}
+
+veaf.config.era = veaf.ERA.MODERN -- default era
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Utility methods
@@ -2601,7 +2609,7 @@ function veaf.endMissionAt(endTimeHour, endTimeMinute, checkIntervalInSeconds, c
     veaf._checkForEndMission(endTimeInSeconds, checkIntervalInSeconds, checkMessage, delay1, message1, delay2, message2, delay3, message3)
 end
 
-function veaf.randomlyChooseFrom(aTable, bias)   
+function veaf.randomlyChooseFrom(aTable, bias)
     veaf.loggers.get(veaf.Id):trace(string.format("randomlyChooseFrom(%d):%s",bias or 0, veaf.p(aTable)))
     if aTable == nil or #aTable == 0 then
         return nil

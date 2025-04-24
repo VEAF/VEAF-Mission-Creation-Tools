@@ -20,7 +20,7 @@ veafCasMission = {}
 veafCasMission.Id = "CASMISSION"
 
 --- Version.
-veafCasMission.Version = "1.15.0"
+veafCasMission.Version = "1.15.2"
 
 -- trace level, specific to this module
 --veafCasMission.LogLevel = "trace"
@@ -48,7 +48,7 @@ veafCasMission.afacName = nil
 veafCasMission.RadioMenuName = "CAS MISSION"
 
 veafCasMission.TRANSPORT_TYPES = {
-    [veafCasMission.SIDE_BLUE] = {
+    [coalition.side.BLUE] = {
         [veaf.ERA.MODERN] = {
             [0] = {"LUV HMMWV Jeep", "M 818", "M978 HEMTT Tanker", "Land_Rover_101_FC", "Land_Rover_109_S3"},
             [1] = {"LUV HMMWV Jeep", "M 818", "M978 HEMTT Tanker", "Land_Rover_101_FC", "Land_Rover_109_S3"},
@@ -74,7 +74,7 @@ veafCasMission.TRANSPORT_TYPES = {
             [5] = {"Bedford_MWD", "CCKW_353", "Willys_MB"},
         }
     },
-    [veafCasMission.SIDE_RED] = {
+    [coalition.side.RED] = {
         [veaf.ERA.MODERN] = {
             [0]= {"ATZ-60_Maz", "ZIL-135", "ATZ-5", "Ural-4320 APA-5D", "SKP-11", "GAZ-66", "KAMAZ Truck", "Ural-375", "KrAZ6322", "ZIL-131 KUNG", "Tigr_233036", "UAZ-469"},
             [1]= {"ATZ-60_Maz", "ZIL-135", "ATZ-5", "Ural-4320 APA-5D", "SKP-11", "GAZ-66", "KAMAZ Truck", "Ural-375", "KrAZ6322", "ZIL-131 KUNG", "Tigr_233036", "UAZ-469"},
@@ -103,7 +103,7 @@ veafCasMission.TRANSPORT_TYPES = {
 }
 
 veafCasMission.ARMOR_TYPES = {
-    [veafCasMission.SIDE_BLUE] = {
+    [coalition.side.BLUE] = {
         [veaf.ERA.MODERN] = {
             [0] = {},
             [1] = {"IFV Marder", "MCV-80", "IFV LAV-25", "M1134 Stryker ATGM", "M-2 Bradley"},
@@ -129,7 +129,7 @@ veafCasMission.ARMOR_TYPES = {
             [5] = {"Centaur_IV", "Churchill_VII", "Cromwell_IV", "M4_Sherman", "M4A4_Sherman_FF"}
         }
     },
-    [veafCasMission.SIDE_RED] = {
+    [coalition.side.RED] = {
         [veaf.ERA.MODERN] = {
             [0] = {},
             [1] = {"BTR-82A", "BMP-1", "VAB_Mephisto"},
@@ -158,12 +158,12 @@ veafCasMission.ARMOR_TYPES = {
 }
 
 veafCasMission.INFANTRY_TYPES = {
-    [veafCasMission.SIDE_BLUE] = {
+    [coalition.side.BLUE] = {
         [veaf.ERA.MODERN] = {"Soldier RPG", "Soldier M249", "Soldier M4 GRG"},
         [veaf.ERA.COLD_WAR] = {"Soldier RPG", "Soldier M249", "Soldier M4 GRG"},
         [veaf.ERA.WW2] = {"Soldier RPG", "Soldier M249", "Soldier M4 GRG"},
     },
-    [veafCasMission.SIDE_RED] = {
+    [coalition.side.RED] = {
         [veaf.ERA.MODERN] = {"Paratrooper RPG-16", "Infantry AK ver3", "Infantry AK ver2"},
         [veaf.ERA.COLD_WAR] = {"Paratrooper RPG-16", "Infantry AK ver3", "Infantry AK ver2"},
         [veaf.ERA.WW2] = {"Paratrooper RPG-16", "Infantry AK ver3", "Infantry AK ver2"},
@@ -171,7 +171,7 @@ veafCasMission.INFANTRY_TYPES = {
 }
 
 veafCasMission.INFANTRY_IFV_TYPES = {
-    [veafCasMission.SIDE_BLUE] = {
+    [coalition.side.BLUE] = {
         [veaf.ERA.MODERN] = {
             [0] = {"Land_Rover_101_FC", "Land_Rover_109_S3"},
             [1] = {"IFV Marder"},
@@ -197,7 +197,7 @@ veafCasMission.INFANTRY_IFV_TYPES = {
             [5] = {"M-2 Bradley"},
         },
     },
-    [veafCasMission.SIDE_RED] = {
+    [coalition.side.RED] = {
         [veaf.ERA.MODERN] = {
             [0] = {"Ural-4320 APA-5D", "GAZ-66", "KAMAZ Truck"},
             [1] = {"BMP-1"},

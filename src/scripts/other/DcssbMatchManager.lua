@@ -35,19 +35,21 @@ env.info("DcssbMatchManager - loading script")
 
 DcssbMatchManager = {}
 DcssbMatchManager.Id = "DcssbMatchManager"
+DcssbMatchManager.Version = "1.0.4"
 DcssbMatchManager.LOG = true
+DcssbMatchManager.TRACE = false
 DcssbMatchManager.knownEvents = {} -- will be set at initialisation
 DcssbMatchManager.knownEventsNames = {
-    [00] = "S_EVENT_INVALID",
-    [01] = "S_EVENT_SHOT",
-    [02] = "S_EVENT_HIT",
-    [03] = "S_EVENT_TAKEOFF",
-    [04] = "S_EVENT_LAND",
-    [05] = "S_EVENT_CRASH",
-    [06] = "S_EVENT_EJECTION",
-    [07] = "S_EVENT_REFUELING",
-    [08] = "S_EVENT_DEAD",
-    [09] = "S_EVENT_PILOT_DEAD",
+    [0] = "S_EVENT_INVALID",
+    [1] = "S_EVENT_SHOT",
+    [2] = "S_EVENT_HIT",
+    [3] = "S_EVENT_TAKEOFF",
+    [4] = "S_EVENT_LAND",
+    [5] = "S_EVENT_CRASH",
+    [6] = "S_EVENT_EJECTION",
+    [7] = "S_EVENT_REFUELING",
+    [8] = "S_EVENT_DEAD",
+    [9] = "S_EVENT_PILOT_DEAD",
     [10] = "S_EVENT_BASE_CAPTURED",
     [11] = "S_EVENT_MISSION_START",
     [12] = "S_EVENT_MISSION_END",
@@ -87,15 +89,22 @@ DcssbMatchManager.knownEventsNames = {
     [46] = "S_EVENT_SIMULATION_START",
     [47] = "S_EVENT_WEAPON_REARM",
     [48] = "S_EVENT_WEAPON_DROP",
-    [49] = "S_EVENT_UNIT_TASK_TIMEOUT",
+    [49] = "S_EVENT_UNIT_TASK_COMPLETE",
     [50] = "S_EVENT_UNIT_TASK_STAGE",
-    [51] = "S_EVENT_MAX",
-    [52] = "[UNKNOWN]",                -- ???
-    [53] = "[UNKNOWN]",                -- ???
-    [54] = "S_EVENT_RUNWAY_TAKEOFF",   -- since 2.9.6
-    [55] = "S_EVENT_RUNWAY_TOUCH",     -- since 2.9.6
+    [51] = "S_EVENT_MAC_EXTRA_SCORE",
+    [52] = "S_EVENT_MISSION_RESTART",
+    [53] = "S_EVENT_MISSION_WINNER",
+    [54] = "S_EVENT_RUNWAY_TAKEOFF",
+    [55] = "S_EVENT_RUNWAY_TOUCH",
+    [56] = "S_EVENT_MAC_LMS_RESTART",
+    [57] = "S_EVENT_SIMULATION_FREEZE",
+    [58] = "S_EVENT_SIMULATION_UNFREEZE",
+    [59] = "S_EVENT_HUMAN_AIRCRAFT_REPAIR_START",
+    [60] = "S_EVENT_HUMAN_AIRCRAFT_REPAIR_FINISH",
+    [61] = "S_EVENT_MAX"
 }
 DcssbMatchManager.DEFAULT_TIMEOUT = 15 -- seconds
+DcssbMatchManager.matchManagers = {} -- list of match managers
 
 function DcssbMatchManager.init(object)
     -- technical name (identifier)
@@ -189,7 +198,6 @@ function DcssbMatchManager:getTimeout()
 end
 
 function DcssbMatchManager.addPlayerByNameForScheduler(parameters)
-    if DcssbMatchManager.LOG then env.info(string.format("DcssbMatchManager[]:addPlayerByNameForScheduler(%s)", parameters and parameters[2] or "NONE")) end
     if parameters then
         local self = parameters[1]
         local playerName = parameters[2]
@@ -215,7 +223,6 @@ function DcssbMatchManager:addPlayerByName(playerName)
 end
 
 function DcssbMatchManager.addPlayerByUnitForScheduler(parameters)
-    if DcssbMatchManager.LOG then env.info(string.format("DcssbMatchManager[]:addPlayerByUnitForScheduler(%s)", parameters and parameters[2] or "NONE")) end
     if parameters then
         local self = parameters[1]
         local unitName = parameters[2]
@@ -236,9 +243,103 @@ function DcssbMatchManager:addPlayerByUnit(unitName)
     end
 end
 
-function DcssbMatchManager:onEvent(event)
+function DcssbMatchManager:addUnitWaitingToPassInTriggerZoneToBeAdded(unitName)
+    if DcssbMatchManager.LOG then env.info(string.format("DcssbMatchManager[%s]:addUnitWaitingToPassInTriggerZoneToBeAdded(%s)", self:getName(), unitName or "NONE")) end
+    if unitName then
+        self.unitsWaitingToPassInTriggerZoneToBeAdded[unitName] = unitName
+    end
+end
+
+function DcssbMatchManager:onSchedule()
+    if DcssbMatchManager.TRACE then env.info(string.format("DcssbMatchManager[%s]:onSchedule()", self:getName())) end
+
+    -- reschedule
+    timer.scheduleFunction(DcssbMatchManager.onSchedule, self, timer.getTime() + 1) -- schedule in 1 second
+    -- check if players are waiting to pass in trigger zone
+    if self:getTriggerZone() then
+        for unitName, _ in pairs(self.unitsWaitingToPassInTriggerZoneToBeAdded) do
+            if DcssbMatchManager.LOG then env.info(string.format("DcssbMatchManager[%s]:onSchedule() - player in unit %s is waiting to pass in trigger zone", self:getName(), unitName)) end
+            local unit = Unit.getByName(unitName)
+            if not unit then
+                if DcssbMatchManager.LOG then env.info(string.format("DcssbMatchManager[%s]:onSchedule() - player in unit %s is not in game anymore", self:getName(), unitName)) end
+                self.unitsWaitingToPassInTriggerZoneToBeAdded[unitName] = nil
+            else
+                local unitPoint = unit:getPoint()
+                local zonePoint = self:getTriggerZone() and self:getTriggerZone().point
+                local zoneRadius = self:getTriggerZone() and self:getTriggerZone().radius
+                if not zonePoint or not zoneRadius then
+                    env.error(string.format("DcssbMatchManager[%s]:onSchedule() - trigger zone is not correctly defined", self:getName()))
+                    return
+                end
+                if ((unitPoint.x - zonePoint.x)^2 + (unitPoint.z - zonePoint.z)^2)^0.5 <= zoneRadius then
+                    if DcssbMatchManager.LOG then env.info(string.format("DcssbMatchManager[%s]:onSchedule() - player in unit %s is passing in trigger zone", self:getName(), unitName)) end
+                    -- if there is a timeout, schedule the player to be added to the match
+                    if self:getTimeout() then
+                        if DcssbMatchManager.LOG then env.info(string.format("DcssbMatchManager[%s]:onSchedule() - player in unit %s will be added to the match in %s seconds", self:getName(), unitName, self:getTimeout())) end
+                        timer.scheduleFunction(DcssbMatchManager.addPlayerByUnitForScheduler, {self, unitName}, timer.getTime() + self:getTimeout())
+                    else
+                        if DcssbMatchManager.LOG then env.info(string.format("DcssbMatchManager[%s]:onSchedule() - player in unit %s is being added to the match", self:getName(), unitName)) end
+                        self:addPlayerByUnit(unitName)
+                    end
+                    self.unitsWaitingToPassInTriggerZoneToBeAdded[unitName] = nil
+                end
+            end
+        end
+    end
+end
+
+function DcssbMatchManager.addMatchManager(name, matchName, coalition, triggerZone, timeout)
+    if DcssbMatchManager.LOG then env.info(string.format("DcssbMatchManager.addMatchManager(%s)", name or "NONE")) end
+    local matchManager = DcssbMatchManager:new()
+    matchManager:setName(name)
+    matchManager:setMatchName(matchName)
+    matchManager:setCoalition(coalition)
+    matchManager:setTriggerZone(triggerZone)
+    matchManager:getTriggerZone()
+    matchManager:setTimeout(timeout)
+
+    -- add the match manager instance to the list of match managers
+    table.insert(DcssbMatchManager.matchManagers, matchManager)
+
+    -- schedule the match manager
+    matchManager:onSchedule()
+
+    return matchManager
+end
+
+function DcssbMatchManager.addMatchManagersForZones(timeout, exclusionList)
+    if DcssbMatchManager.LOG then env.info(string.format("DcssbMatchManager.addMatchManagersForZones(%s)", timeout or "NONE")) end
+    local matchManagers = {}
+    for _, zone in pairs(env.mission.triggers.zones) do
+        local name = zone.name
+        --veaf.loggers.get(DcssbMatchManager.Id):trace("name=%s)", name)
+        --veaf.loggers.get(DcssbMatchManager.Id):trace("zone=%s)", zone)
+        if DcssbMatchManager.LOG then env.info(string.format("DcssbMatchManager.addMatchManagersForZones() - testing zone %s", name or "NONE")) end
+        local exclude = false
+        if exclusionList then
+            for _, value in ipairs(exclusionList) do
+                if value:upper() == name:upper() then
+                    exclude = true
+                end
+            end
+        end
+        if not exclude then
+            if zone then
+                if DcssbMatchManager.LOG then env.info(string.format("DcssbMatchManager.addMatchManagersForZones() - adding zone %s", name or "NONE")) end
+                local matchManager = DcssbMatchManager.addMatchManager(name, name, nil, name, timeout)
+                table.insert(matchManagers, matchManager)
+            end
+        else
+            if DcssbMatchManager.LOG then env.info(string.format("DcssbMatchManager.addMatchManagersForZones() - zone %s is excluded", name)) end
+        end
+    end
+    return matchManagers
+end
+
+DcssbMatchManager.eventHandler = {}
+function DcssbMatchManager.eventHandler:onEvent(event)
     local function completeUnitFromName(unitName)
-        if DcssbMatchManager.LOG then env.info(string.format("DcssbMatchManager[%s]: completeUnitFromName(unitName=%s)", self:getName(), unitName or "NONE")) end
+        if DcssbMatchManager.TRACE then env.info(string.format("DcssbMatchManager.completeUnitFromName(unitName=%s)", unitName or "NONE")) end
         if unitName ~= nil then
             local unitType = nil
             local unitLifePercent = nil
@@ -296,135 +397,50 @@ function DcssbMatchManager:onEvent(event)
     end
 
     if event == nil then
-        env.error(string.format("DcssbMatchManager[%s]:onEvent was called with a nil event!", self:getName()))
+        env.error("DcssbMatchManager.onEvent was called with a nil event!")
         return
     end
 
     local _event = transformEvent(event)
 
-    -- Debug output.
-    if DcssbMatchManager.LOG then env.info(string.format("DcssbMatchManager[%s]:onEvent(id=%s, name=%s)", self:getName(), event and event.id or "NONE", _event and _event.type and _event.type.name or "NONE")) end
-
     -- process birth event
     local eventId = (event and event.id or 0)
-    if DcssbMatchManager.LOG then env.info(string.format("DcssbMatchManager[%s]:onEvent() - eventId=%s", self:getName(), eventId or "NONE")) end
+    if DcssbMatchManager.TRACE then env.info(string.format("DcssbMatchManager.onEvent() - eventId=%s", eventId or "NONE")) end
     if eventId == world.event.S_EVENT_PLAYER_ENTER_UNIT then
-        -- check the coalition of the event initiator
-        if self:getCoalition() then
-            if _event.initiator and _event.initiator.unitName then
-                local unit = Unit.getByName(_event.initiator.unitName)
-                if unit then
-                    if unit:getCoalition() ~= self:getCoalition() then
-                        return
+        -- browse all the known match managers
+        for _, matchManager in pairs(DcssbMatchManager.matchManagers) do
+            -- check the coalition of the event initiator
+            if matchManager:getCoalition() then
+                if _event.initiator and _event.initiator.unitName then
+                    local unit = Unit.getByName(_event.initiator.unitName)
+                    if unit then
+                        if unit:getCoalition() ~= matchManager:getCoalition() then
+                            return
+                        end
                     end
                 end
             end
-        end
-        -- if there is a trigger zone, don't add player to the match now
-        if self:getTriggerZone() then
-            if DcssbMatchManager.LOG then env.info(string.format("DcssbMatchManager[%s]:onEvent() - player %s is waiting to pass in trigger zone", self:getName(), _event.initiator.unitPilotName)) end
-            self.unitsWaitingToPassInTriggerZoneToBeAdded[_event.initiator.unitName] = _event.initiator.unitName
-            return
-        end
-        -- if there is a timeout, schedule the player to be added to the match
-        if self:getTimeout() then
-            if DcssbMatchManager.LOG then env.info(string.format("DcssbMatchManager[%s]:onEvent() - player %s will be added to the match in %s seconds", self:getName(), _event.initiator.unitPilotName, self:getTimeout())) end
-            timer.scheduleFunction(DcssbMatchManager.addPlayerByNameForScheduler, {self, _event.initiator.unitPilotName}, timer.getTime() + self:getTimeout())
-        else
-            if DcssbMatchManager.LOG then env.info(string.format("DcssbMatchManager[%s]:onEvent() - player %s is being added to the match", self:getName(), _event.initiator.unitPilotName)) end
-            self:addPlayerByName(_event.initiator.unitPilotName)
-        end
-    end
-end
-
-function DcssbMatchManager:onSchedule()
-    if DcssbMatchManager.LOG then env.info(string.format("DcssbMatchManager[%s]:onSchedule()", self:getName())) end
-
-    -- reschedule
-    timer.scheduleFunction(DcssbMatchManager.onSchedule, self, timer.getTime() + 1) -- schedule in 1 second
-    -- check if players are waiting to pass in trigger zone
-    if self:getTriggerZone() then
-        for unitName, _ in pairs(self.unitsWaitingToPassInTriggerZoneToBeAdded) do
-            if DcssbMatchManager.LOG then env.info(string.format("DcssbMatchManager[%s]:onSchedule() - player in unit %s is waiting to pass in trigger zone", self:getName(), unitName)) end
-            local unit = Unit.getByName(unitName)
-            if not unit then
-                if DcssbMatchManager.LOG then env.info(string.format("DcssbMatchManager[%s]:onSchedule() - player in unit %s is not in game anymore", self:getName(), unitName)) end
-                self.unitsWaitingToPassInTriggerZoneToBeAdded[unitName] = nil
+            -- if there is a trigger zone, don't add player to the match now
+            if matchManager:getTriggerZone() then
+                if DcssbMatchManager.LOG then env.info(string.format("DcssbMatchManager.onEvent() - player %s is waiting to pass in trigger zone", _event.initiator.unitPilotName)) end
+                matchManager:addUnitWaitingToPassInTriggerZoneToBeAdded(_event.initiator.unitName)
+                return
+            end
+            -- if there is a timeout, schedule the player to be added to the match
+            if matchManager:getTimeout() then
+                if DcssbMatchManager.LOG then env.info(string.format("DcssbMatchManager.onEvent() - player %s will be added to the match in %s seconds", _event.initiator.unitPilotName, matchManager:getTimeout())) end
+                timer.scheduleFunction(DcssbMatchManager.addPlayerByNameForScheduler, {matchManager, _event.initiator.unitPilotName}, timer.getTime() + matchManager:getTimeout())
             else
-                local unitPoint = unit:getPoint()
-                local zonePoint = self:getTriggerZone() and self:getTriggerZone().point
-                local zoneRadius = self:getTriggerZone() and self:getTriggerZone().radius
-                if not zonePoint or not zoneRadius then
-                    env.error(string.format("DcssbMatchManager[%s]:onSchedule() - trigger zone is not correctly defined", self:getName()))
-                    return
-                end
-                if ((unitPoint.x - zonePoint.x)^2 + (unitPoint.z - zonePoint.z)^2)^0.5 <= zoneRadius then
-                    if DcssbMatchManager.LOG then env.info(string.format("DcssbMatchManager[%s]:onSchedule() - player in unit %s is passing in trigger zone", self:getName(), unitName)) end
-                    -- if there is a timeout, schedule the player to be added to the match
-                    if self:getTimeout() then
-                        if DcssbMatchManager.LOG then env.info(string.format("DcssbMatchManager[%s]:onEvent() - player in unit %s will be added to the match in %s seconds", self:getName(), unitName, self:getTimeout())) end
-                        timer.scheduleFunction(DcssbMatchManager.addPlayerByUnitForScheduler, {self, unitName}, timer.getTime() + self:getTimeout())
-                    else
-                        if DcssbMatchManager.LOG then env.info(string.format("DcssbMatchManager[%s]:onEvent() - player in unit %s is being added to the match", self:getName(), unitName)) end
-                        self:addPlayerByUnit(unitName)
-                    end
-                    self.unitsWaitingToPassInTriggerZoneToBeAdded[unitName] = nil
-                end
+                if DcssbMatchManager.LOG then env.info(string.format("DcssbMatchManager.onEvent() - player %s is being added to the match", _event.initiator.unitPilotName)) end
+                matchManager:addPlayerByName(_event.initiator.unitPilotName)
             end
         end
     end
-end
-
-function DcssbMatchManager.addMatchManager(name, matchName, coalition, triggerZone, timeout)
-    if DcssbMatchManager.LOG then env.info(string.format("DcssbMatchManager.addMatchManager(%s)", name or "NONE")) end
-    local matchManager = DcssbMatchManager:new()
-    matchManager:setName(name)
-    matchManager:setMatchName(matchName)
-    matchManager:setCoalition(coalition)
-    matchManager:setTriggerZone(triggerZone)
-    matchManager:getTriggerZone()
-    matchManager:setTimeout(timeout)
-
-    -- Add event handler.
-    world.addEventHandler(matchManager)
-
-    -- schedule the match manager
-    matchManager:onSchedule()
-
-    return matchManager
-end
-
-function DcssbMatchManager.addMatchManagersForZones(timeout, exclusionList)
-    if DcssbMatchManager.LOG then env.info(string.format("DcssbMatchManager.addMatchManagersForZones(%s)", timeout or "NONE")) end
-    local matchManagers = {}
-    for _, zone in pairs(env.mission.triggers.zones) do
-        local name = zone.name
-        --veaf.loggers.get(DcssbMatchManager.Id):trace("name=%s)", name)
-        --veaf.loggers.get(DcssbMatchManager.Id):trace("zone=%s)", zone)
-        if DcssbMatchManager.LOG then env.info(string.format("DcssbMatchManager.addMatchManagersForZones() - testing zone %s", name or "NONE")) end
-        local exclude = false
-        if exclusionList then
-            for _, value in ipairs(exclusionList) do
-                if value:upper() == name:upper() then
-                    exclude = true
-                end
-            end
-        end
-        if not exclude then
-            if zone then
-                if DcssbMatchManager.LOG then env.info(string.format("DcssbMatchManager.addMatchManagersForZones() - adding zone %s", name or "NONE")) end
-                local matchManager = DcssbMatchManager.addMatchManager(name, name, nil, name, timeout)
-                table.insert(matchManagers, matchManager)
-            end
-        else
-            if DcssbMatchManager.LOG then env.info(string.format("DcssbMatchManager.addMatchManagersForZones() - zone %s is excluded", name)) end
-        end
-    end
-    return matchManagers
 end
 
 function DcssbMatchManager.initialize()
-    if DcssbMatchManager.LOG then env.info("DcssbMatchManager.initialize()") end
+    if DcssbMatchManager.LOG then env.info("DcssbMatchManager.initialize() version "..DcssbMatchManager.Version) end
+
     -- prepare the events maps
     for eventId, eventName in pairs(DcssbMatchManager.knownEventsNames) do
         local event = {
@@ -435,6 +451,11 @@ function DcssbMatchManager.initialize()
         DcssbMatchManager.knownEvents[eventName] = event
         DcssbMatchManager.knownEvents[eventId] = event
     end
+
+    -- initialize the event handler
+    -- Add event handler.
+    world.addEventHandler(DcssbMatchManager.eventHandler)
+
 end
 
 DcssbMatchManager.initialize()

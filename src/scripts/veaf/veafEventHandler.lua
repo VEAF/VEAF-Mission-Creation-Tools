@@ -21,7 +21,7 @@ veafEventHandler = {}
 veafEventHandler.Id = "EVENTS - "
 
 --- Version.
-veafEventHandler.Version = "1.2.1"
+veafEventHandler.Version = "1.3.0"
 
 -- trace level, specific to this module
 --veafEventHandler.LogLevel = "trace"
@@ -135,16 +135,16 @@ end
 veafEventHandler.eventHandler = {}
 
 veafEventHandler.knownEventsNames = {
-  [00] = "S_EVENT_INVALID",
-  [01] = "S_EVENT_SHOT",
-  [02] = "S_EVENT_HIT",
-  [03] = "S_EVENT_TAKEOFF",
-  [04] = "S_EVENT_LAND",
-  [05] = "S_EVENT_CRASH",
-  [06] = "S_EVENT_EJECTION",
-  [07] = "S_EVENT_REFUELING",
-  [08] = "S_EVENT_DEAD",
-  [09] = "S_EVENT_PILOT_DEAD",
+  [0] = "S_EVENT_INVALID",
+  [1] = "S_EVENT_SHOT",
+  [2] = "S_EVENT_HIT",
+  [3] = "S_EVENT_TAKEOFF",
+  [4] = "S_EVENT_LAND",
+  [5] = "S_EVENT_CRASH",
+  [6] = "S_EVENT_EJECTION",
+  [7] = "S_EVENT_REFUELING",
+  [8] = "S_EVENT_DEAD",
+  [9] = "S_EVENT_PILOT_DEAD",
   [10] = "S_EVENT_BASE_CAPTURED",
   [11] = "S_EVENT_MISSION_START",
   [12] = "S_EVENT_MISSION_END",
@@ -184,13 +184,19 @@ veafEventHandler.knownEventsNames = {
   [46] = "S_EVENT_SIMULATION_START",
   [47] = "S_EVENT_WEAPON_REARM",
   [48] = "S_EVENT_WEAPON_DROP",
-  [49] = "S_EVENT_UNIT_TASK_TIMEOUT",
+  [49] = "S_EVENT_UNIT_TASK_COMPLETE",
   [50] = "S_EVENT_UNIT_TASK_STAGE",
-  [51] = "S_EVENT_MAX",
-  [52] = "[UNKNOWN]", -- ???
-  [53] = "[UNKNOWN]", -- ???
-  [54] = "S_EVENT_RUNWAY_TAKEOFF", -- since 2.9.6
-  [55] = "S_EVENT_RUNWAY_TOUCH", -- since 2.9.6
+  [51] = "S_EVENT_MAC_EXTRA_SCORE",
+  [52] = "S_EVENT_MISSION_RESTART",
+  [53] = "S_EVENT_MISSION_WINNER",
+  [54] = "S_EVENT_RUNWAY_TAKEOFF",
+  [55] = "S_EVENT_RUNWAY_TOUCH",
+  [56] = "S_EVENT_MAC_LMS_RESTART",
+  [57] = "S_EVENT_SIMULATION_FREEZE",
+  [58] = "S_EVENT_SIMULATION_UNFREEZE",
+  [59] = "S_EVENT_HUMAN_AIRCRAFT_REPAIR_START",
+  [60] = "S_EVENT_HUMAN_AIRCRAFT_REPAIR_FINISH",
+  [61] = "S_EVENT_MAX"
 }
 
 veafEventHandler.knownEvents = {} -- will be set at initialisation

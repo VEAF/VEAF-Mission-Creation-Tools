@@ -20,7 +20,7 @@ veafRadio = {}
 veafRadio.Id = "RADIO"
 
 --- Version.
-veafRadio.Version = "1.13.1"
+veafRadio.Version = "1.14"
 
 -- trace level, specific to this module
 --veafRadio.LogLevel = "trace"
@@ -195,83 +195,29 @@ veafRadio.eventHandler = {}
 
 --- Handle world events.
 function veafRadio.eventHandler:onEvent(Event)
-    local EVENTS = {
-  [0] =  "S_EVENT_INVALID",
-  [1] =  "S_EVENT_SHOT",
-  [2] =  "S_EVENT_HIT",
-  [3] =  "S_EVENT_TAKEOFF",
-  [4] =  "S_EVENT_LAND",
-  [5] =  "S_EVENT_CRASH",
-  [6] =  "S_EVENT_EJECTION",
-  [7] =  "S_EVENT_REFUELING",
-  [8] =  "S_EVENT_DEAD",
-  [9] =  "S_EVENT_PILOT_DEAD",
-  [10] =  "S_EVENT_BASE_CAPTURED",
-  [11] =  "S_EVENT_MISSION_START",
-  [12] =  "S_EVENT_MISSION_END",
-  [13] =  "S_EVENT_TOOK_CONTROL",
-  [14] =  "S_EVENT_REFUELING_STOP",
-  [15] =  "S_EVENT_BIRTH",
-  [16] =  "S_EVENT_HUMAN_FAILURE",
-  [17] =  "S_EVENT_DETAILED_FAILURE",
-  [18] =  "S_EVENT_ENGINE_STARTUP",
-  [19] =  "S_EVENT_ENGINE_SHUTDOWN",
-  [20] =  "S_EVENT_PLAYER_ENTER_UNIT",
-  [21] =  "S_EVENT_PLAYER_LEAVE_UNIT",
-  [22] =  "S_EVENT_PLAYER_COMMENT",
-  [23] =  "S_EVENT_SHOOTING_START",
-  [24] =  "S_EVENT_SHOOTING_END",
-  [25] =  "S_EVENT_MARK_ADDED",
-  [26] =  "S_EVENT_MARK_CHANGE",
-  [27] =  "S_EVENT_MARK_REMOVED",
-  [28] =  "S_EVENT_KILL",
-  [29] =  "S_EVENT_SCORE",
-  [30] =  "S_EVENT_UNIT_LOST",
-  [31] =  "S_EVENT_LANDING_AFTER_EJECTION"}
+  local enabledEvents = {}
 
-  local enabledEvents = {
-  ["S_EVENT_INVALID"] = false,
-  ["S_EVENT_SHOT"] = false,
-  ["S_EVENT_HIT"] = false,
-  ["S_EVENT_TAKEOFF"] = false,
-  ["S_EVENT_LAND"] = false,
-  ["S_EVENT_CRASH"] = false,
-  ["S_EVENT_EJECTION"] = false,
-  ["S_EVENT_REFUELING"] = false,
-  ["S_EVENT_DEAD"] = true,
-  ["S_EVENT_PILOT_DEAD"] = true,
-  ["S_EVENT_BASE_CAPTURED"] = false,
-  ["S_EVENT_MISSION_START"] = false,
-  ["S_EVENT_MISSION_END"] = false,
-  ["S_EVENT_TOOK_CONTROL"] = true,
-  ["S_EVENT_REFUELING_STOP"] = false,
-  ["S_EVENT_BIRTH"] = true,
-  ["S_EVENT_HUMAN_FAILURE"] = false,
-  ["S_EVENT_DETAILED_FAILURE"] = false,
-  ["S_EVENT_ENGINE_STARTUP"] = false,
-  ["S_EVENT_ENGINE_SHUTDOWN"] = false,
-  ["S_EVENT_PLAYER_ENTER_UNIT"] = true,
-  ["S_EVENT_PLAYER_LEAVE_UNIT"] = true,
-  ["S_EVENT_PLAYER_COMMENT"] = true,
-  ["S_EVENT_SHOOTING_START"] = false,
-  ["S_EVENT_SHOOTING_END"] = false,
-  ["S_EVENT_MARK_ADDED"] = false,
-  ["S_EVENT_MARK_CHANGE"] = false,
-  ["S_EVENT_MARK_REMOVED"] = false,
-  ["S_EVENT_KILL"] = false,
-  ["S_EVENT_SCORE"] = false,
-  ["S_EVENT_UNIT_LOST"] = true,
-  ["S_EVENT_LANDING_AFTER_EJECTION"] = false
-  }
+  for _, eventName in pairs(veafEventHandler.knownEventsNames) do
+    enabledEvents[eventName] = false
+  end
 
-  -- Only interested in S_EVENT_BIRTH (S_EVENT_PLAYER_ENTER_UNIT is not fired in MP)
-  if Event == nil or not(enabledEvents[EVENTS[Event.id]]) then
+  -- we only want to handle the following events
+  enabledEvents["S_EVENT_BIRTH"] = true
+  enabledEvents["S_EVENT_PLAYER_ENTER_UNIT"] = true
+  enabledEvents["S_EVENT_PLAYER_LEAVE_UNIT"] = true
+  enabledEvents["S_EVENT_PLAYER_COMMENT"] = true
+  enabledEvents["S_EVENT_UNIT_LOST"] = true
+  enabledEvents["S_EVENT_DEAD"] = true
+  enabledEvents["S_EVENT_PILOT_DEAD"] = true
+  enabledEvents["S_EVENT_TOOK_CONTROL"] = true
+  
+  if Event == nil or not(enabledEvents[veafEventHandler.knownEventsNames[Event.id]]) then
       return true
   end
 
   -- Debug output.
   local _unitname = ""
-  veaf.loggers.get(veafRadio.Id):trace(string.format("got event %s", veaf.p(EVENTS[Event.id])))
+  veaf.loggers.get(veafRadio.Id):trace(string.format("got event %s", veaf.p(veafEventHandler.knownEventsNames[Event.id])))
   --veaf.loggers.get(veafRadio.Id):trace(string.format("Event id        = %s", veaf.p(Event.id)))
   --veaf.loggers.get(veafRadio.Id):trace(string.format("Event time      = %s", veaf.p(Event.time)))
   --veaf.loggers.get(veafRadio.Id):trace(string.format("Event idx       = %s", veaf.p(Event.idx)))
@@ -313,65 +259,9 @@ function veafRadio.eventHandler:onEvent(Event)
   if refreshRadioMenu then
     -- refresh the radio menu
     veafRadio.refreshRadioMenu() -- TODO refresh it only for this player ? Is this even possible ?
-    veaf.loggers.get(veafRadio.Id):debug(string.format("refreshRadioMenu() following event %s of human unit %s", veaf.p(EVENTS[Event.id]), veaf.p(_unitname)))
+    veaf.loggers.get(veafRadio.Id):debug(string.format("refreshRadioMenu() following event %s of human unit %s", veaf.p(veafEventHandler.knownEventsNames[Event.id]), veaf.p(_unitname)))
   end
 end
-
--- function veafRadio.eventHandler:onEvent(Event)
---   local EVENTS = {
---   [0] =  "S_EVENT_INVALID",
---   [1] =  "S_EVENT_SHOT",
---   [2] =  "S_EVENT_HIT",
---   [3] =  "S_EVENT_TAKEOFF",
---   [4] =  "S_EVENT_LAND",
---   [5] =  "S_EVENT_CRASH",
---   [6] =  "S_EVENT_EJECTION",
---   [7] =  "S_EVENT_REFUELING",
---   [8] =  "S_EVENT_DEAD",
---   [9] =  "S_EVENT_PILOT_DEAD",
---   [10] =  "S_EVENT_BASE_CAPTURED",
---   [11] =  "S_EVENT_MISSION_START",
---   [12] =  "S_EVENT_MISSION_END",
---   [13] =  "S_EVENT_TOOK_CONTROL",
---   [14] =  "S_EVENT_REFUELING_STOP",
---   [15] =  "S_EVENT_BIRTH",
---   [16] =  "S_EVENT_HUMAN_FAILURE",
---   [17] =  "S_EVENT_DETAILED_FAILURE",
---   [18] =  "S_EVENT_ENGINE_STARTUP",
---   [19] =  "S_EVENT_ENGINE_SHUTDOWN",
---   [20] =  "S_EVENT_PLAYER_ENTER_UNIT",
---   [21] =  "S_EVENT_PLAYER_LEAVE_UNIT",
---   [22] =  "S_EVENT_PLAYER_COMMENT",
---   [23] =  "S_EVENT_SHOOTING_START",
---   [24] =  "S_EVENT_SHOOTING_END",
---   [25] =  "S_EVENT_MARK_ADDED",
---   [26] =  "S_EVENT_MARK_CHANGE",
---   [27] =  "S_EVENT_MARK_REMOVED",
---   [28] =  "S_EVENT_KILL",
---   [29] =  "S_EVENT_SCORE",
---   [30] =  "S_EVENT_UNIT_LOST",
---   [31] =  "S_EVENT_LANDING_AFTER_EJECTION"}
-
---   local _unitname = ""
---   veaf.loggers.get(veafRadio.Id):info("GOT AN EVENT")
---   veaf.loggers.get(veafRadio.Id):info(string.format("Event id        = %s - %s", tostring(Event.id), EVENTS[Event.id]))
---   veaf.loggers.get(veafRadio.Id):info(string.format("Event time      = %s", tostring(Event.time)))
---   veaf.loggers.get(veafRadio.Id):info(string.format("Event idx       = %s", tostring(Event.idx)))
---   veaf.loggers.get(veafRadio.Id):info(string.format("Event coalition = %s", tostring(Event.coalition)))
---   veaf.loggers.get(veafRadio.Id):info(string.format("Event group id  = %s", tostring(Event.groupID)))
---   if Event.initiator ~= nil then
---     _unitname = Event.initiator:getName()
---     veaf.loggers.get(veafRadio.Id):info(string.format("Event ini unit  = %s", tostring(_unitname)))
---   end
---   veaf.loggers.get(veafRadio.Id):info(string.format("Event text      = \n%s", tostring(Event.text)))
-
---   if Event.id == 15 and _unitname and veafRadio.humanUnits[_unitname] then
---     -- refresh the radio menu
---     veafRadio.refreshRadioMenu() -- TODO refresh it only for this player ? Is this even possible ?
---     -- debug with logInfo message to check if this mechanism is working
---     veaf.loggers.get(veafRadio.Id):info(string.format("refreshRadioMenu() following event S_EVENT_BIRTH of human unit %s", tostring(_unitname)))
---   end
--- end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Radio menu methods

@@ -19,7 +19,7 @@ veaf = {}
 veaf.Id = "VEAF"
 
 --- Version.
-veaf.Version = "1.55.0"
+veaf.Version = "1.55.1"
 
 --- Development version ?
 veaf.Development = false
@@ -843,17 +843,19 @@ function veaf.computeLLFromString(value)
         elseif _firstChar == "n" or _firstChar == "s" or _firstChar == "e" or _firstChar == "w" then
             -- LL coordinates
             local _signLat, _digitsLat, _signLon, _digitsLon = _value:match([[([news])([%d:\.-]+)([news])([%d:\.-]+)]])
-            local _multLat = 1
-            if _signLat == "s" then
-                _multLat = -1
+            if _digitsLat and _digitsLon then
+                local _multLat = 1
+                if _signLat == "s" then
+                    _multLat = -1
+                end
+                local _multLon = 1
+                if _signLon == "w" then
+                    _multLon = -1
+                end
+                local _lat = _multLat * _computeLLValueFromString(_digitsLat)
+                local _lon = _multLon * _computeLLValueFromString(_digitsLon)
+                return _lat, _lon
             end
-            local _multLon = 1
-            if _signLon == "w" then
-                _multLon = -1
-            end
-            local _lat = _multLat * _computeLLValueFromString(_digitsLat)
-            local _lon = _multLon * _computeLLValueFromString(_digitsLon)
-            return _lat, _lon
         end
     end
     -- unrecognized format

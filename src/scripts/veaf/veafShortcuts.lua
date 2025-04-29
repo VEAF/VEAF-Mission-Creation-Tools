@@ -19,7 +19,7 @@ veafShortcuts = {}
 veafShortcuts.Id = "SHORTCUTS"
 
 --- Version.
-veafShortcuts.Version = "1.38.1"
+veafShortcuts.Version = "1.38.2"
 
 -- trace level, specific to this module
 --veafShortcuts.LogLevel = "trace"
@@ -600,8 +600,8 @@ function veafShortcuts.executeCommand(eventPos, eventText, eventCoalition, markI
                 -- check for a known zone (trigger zone)
                 local triggerZone = veaf.getTriggerZone(coords)
                 if triggerZone then
-                    veaf.loggers.get(veafShortcuts.Id):trace("found trigger zone [%s]", coords)
-                    position = { x =triggerZone.x, z = triggerZone.y }
+                    veaf.loggers.get(veafShortcuts.Id):trace("found trigger zone [%s]=%s", coords, triggerZone)
+                    position = triggerZone
                 end
                 if not position then
                     veaf.loggers.get(veafShortcuts.Id):trace("coords [%s] is not a known named point or trigger zone", coords)

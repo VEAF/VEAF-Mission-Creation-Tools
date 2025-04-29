@@ -24,6 +24,7 @@ veafSpawn.Id = "SPAWN"
 
 --- Version.
 veafSpawn.Version = "1.57.1"
+veafSpawn.Version = "1.57.1"
 
 -- trace level, specific to this module
 --veafSpawn.LogLevel = "trace"
@@ -47,6 +48,8 @@ veafSpawn.MissionMasterKeyphrase = "_mm"
 
 --- if true, the spawned group names will not contain any information pertaining to their type
 veafSpawn.HideTypeFromGroupNames = true
+veafSpawn.GroupNameTemplateWithType = "%s - %s - %s"
+veafSpawn.GroupNameTemplateWithoutType = "%s - %s"
 veafSpawn.GroupNameTemplateWithType = "%s - %s - %s"
 veafSpawn.GroupNameTemplateWithoutType = "%s - %s"
 
@@ -138,6 +141,14 @@ veafSpawn.traceMarkerId = 3727
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Utility methods
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+function veafSpawn.getGroupNameTemplate()
+    if veafSpawn.HideTypeFromGroupNames then
+        return veafSpawn.GroupNameTemplateWithoutType
+    else
+        return veafSpawn.GroupNameTemplateWithType
+    end
+end
 
 function veafSpawn.getGroupNameTemplate()
     if veafSpawn.HideTypeFromGroupNames then
@@ -1528,6 +1539,7 @@ function veafSpawn.spawnInfantryGroup(spawnSpot, radius, country, side, heading,
     local spawnSpot = veaf.placePointOnLand(mist.getRandPointInCircle(spawnSpot, radius))
     veaf.loggers.get(veafSpawn.Id):trace("spawnSpot=" .. veaf.vecToString(spawnSpot))
     local groupName = string.format(veafSpawn.getGroupNameTemplate(), veaf.getCoalitionForCountry(country), tostring(math.random(99999)), "Infantry Section")
+    local groupName = string.format(veafSpawn.getGroupNameTemplate(), veaf.getCoalitionForCountry(country), tostring(math.random(99999)), "Infantry Section")
     local group = veafCasMission.generateInfantryGroup(groupName, defense, armor, side, size)
     local group = veafUnits.processGroup(group)
     local groupPosition = veaf.placePointOnLand(spawnSpot)
@@ -1584,6 +1596,7 @@ function veafSpawn.spawnAirDefenseBattery(spawnSpot, radius, country, side, head
     local spawnSpot = veaf.placePointOnLand(mist.getRandPointInCircle(spawnSpot, radius))
     veaf.loggers.get(veafSpawn.Id):trace("spawnSpot=" .. veaf.vecToString(spawnSpot))
     local groupName = string.format(veafSpawn.getGroupNameTemplate(), veaf.getCoalitionForCountry(country), tostring(math.random(99999)), "Air Defense Battery")
+    local groupName = string.format(veafSpawn.getGroupNameTemplate(), veaf.getCoalitionForCountry(country), tostring(math.random(99999)), "Air Defense Battery")
     local group = veafCasMission.generateAirDefenseGroup(groupName, defense, side)
     local group = veafUnits.processGroup(group)
     local groupPosition = veaf.placePointOnLand(spawnSpot)
@@ -1612,6 +1625,7 @@ function veafSpawn.spawnTransportCompany(spawnSpot, radius, country, side, headi
     local spawnSpot = veaf.placePointOnLand(mist.getRandPointInCircle(spawnSpot, radius))
     veaf.loggers.get(veafSpawn.Id):trace("spawnSpot=" .. veaf.vecToString(spawnSpot))
     local groupName = string.format(veafSpawn.getGroupNameTemplate(), veaf.getCoalitionForCountry(country), tostring(math.random(99999)), "Transport Company")
+    local groupName = string.format(veafSpawn.getGroupNameTemplate(), veaf.getCoalitionForCountry(country), tostring(math.random(99999)), "Transport Company")
     local group = veafCasMission.generateTransportCompany(groupName, defense, side, size)
     local group = veafUnits.processGroup(group)
     local groupPosition = veaf.placePointOnLand(spawnSpot)
@@ -1639,6 +1653,7 @@ function veafSpawn.spawnFullCombatGroup(spawnSpot, radius, country, side, headin
 
     local spawnSpot = veaf.placePointOnLand(mist.getRandPointInCircle(spawnSpot, radius))
     veaf.loggers.get(veafSpawn.Id):trace("spawnSpot=" .. veaf.vecToString(spawnSpot))
+    local groupName = string.format(veafSpawn.getGroupNameTemplate(), veaf.getCoalitionForCountry(country), tostring(math.random(99999)), "Full Combat Group")
     local groupName = string.format(veafSpawn.getGroupNameTemplate(), veaf.getCoalitionForCountry(country), tostring(math.random(99999)), "Full Combat Group")
     local groupPosition = veaf.placePointOnLand(spawnSpot)
     local units = veafCasMission.generateCasGroup(groupName, groupPosition, size, defense, armor, spacing, side)
@@ -1688,6 +1703,7 @@ function veafSpawn.spawnConvoy(spawnSpot, name, radius, country, side, heading, 
     local groupId = math.random(99999)
     local groupName = name
     if not groupName or groupName == "" then
+        groupName = string.format(veafSpawn.getGroupNameTemplate(), veaf.getCoalitionForCountry(country), tostring(groupId), "Convoy")
         groupName = string.format(veafSpawn.getGroupNameTemplate(), veaf.getCoalitionForCountry(country), tostring(groupId), "Convoy")
     end
 
@@ -1802,7 +1818,9 @@ function veafSpawn.spawnUnit(spawnPosition, radius, name, country, alt, hdg, uni
         unitName = name
     else
         groupName = string.format(veafSpawn.getGroupNameTemplate(), veaf.getCoalitionForCountry(country), tostring(veafSpawn.spawnedUnitsCounter), name)
+        groupName = string.format(veafSpawn.getGroupNameTemplate(), veaf.getCoalitionForCountry(country), tostring(veafSpawn.spawnedUnitsCounter), name)
       if not unitName then
+        unitName = string.format(veafSpawn.getGroupNameTemplate(), veaf.getCoalitionForCountry(country), tostring(veafSpawn.spawnedUnitsCounter), unit.displayName)
         unitName = string.format(veafSpawn.getGroupNameTemplate(), veaf.getCoalitionForCountry(country), tostring(veafSpawn.spawnedUnitsCounter), unit.displayName)
       end
     end

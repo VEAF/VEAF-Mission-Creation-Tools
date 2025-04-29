@@ -60,6 +60,7 @@ AIEN.config.dismount 		    = true 		-- true/false. //BEWARE: CAN AFFECT PERFORMA
 
 -- User advanced customization
 AIEN.config.AIEN_xcl_tag		= "XCL" 	-- string, global, case sensitive. Can be dynamically changed by other script or triggers, since it's a global variable. used as a text format without spaces or special characters. only letters and numbers allowed. Any ground group with this 'tag' in its group name won't get AI enhancement behaviour, regardless of its coalition 
+AIEN.config.AIEN_icl_tag		= nil    	-- string, global, case sensitive. Can be dynamically changed by other script or triggers, since it's a global variable. used as a text format without spaces or special characters. only letters and numbers allowed. Any ground group with this 'tag' in its group name will get AI enhancement behaviour; setting this variable disables the automatic inclusion of all groups in the mission. This is useful if you want to have a specific group to be affected by AIEN script behaviours, regardless of its coalition. If set, it will override the coalition settings above.
 AIEN.config.AIEN_zoneFilter     = ""    	-- string, global, case sensitive. Can be dynamically changed by other script or triggers, since it's a global variable. used as a text format without spaces or special characters. only letters and numbers allowed, i.e. "AIEN" will fit. If left nil, or void string like "", won't be used. Only groups inside the named trigger zone will be affected by AIEN script behaviors of reaction, dismount and suppression, and vice versa. If no trigger zone with the specific name is in the mission, then all the groups will use AIEN features.
 AIEN.config.message_feed        = true 		-- true/false. If true, each relevant AI action starting will also create a trigger message feedback for its coalition
 AIEN.config.mark_on_f10_map     = true 	    -- true/false. If true, when an artillery fire mission is ongoing, a markpoint will appear on the map of the allied coalition to show the expected impact point
@@ -429,7 +430,7 @@ end
 local ModuleName  						= "AIEN"
 local MainVersion 						= "1"
 local SubVersion 						= "0"
-local Build 							= "0154"
+local Build 							= "0154-VEAF-2025.04.29"
 local Date								= "2025.04.13"
 
 --## NOT USED (YET) / TO BE REMOVED
@@ -5102,6 +5103,13 @@ local function groupAllowedForAI(group)
     if group and group:isExist() and group:getUnits() and #group:getUnits() > 0 then
         if contains(group:getName(), AIEN.config.AIEN_xcl_tag) then
             return false
+        end
+        if AIEN.config.AIEN_icl_tag then
+            if contains(group:getName(), AIEN.config.AIEN_icl_tag) then
+                return true
+            else
+                return false
+            end
         end
     end
     return true

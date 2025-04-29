@@ -150,14 +150,6 @@ function veafSpawn.getGroupNameTemplate()
     end
 end
 
-function veafSpawn.getGroupNameTemplate()
-    if veafSpawn.HideTypeFromGroupNames then
-        return veafSpawn.GroupNameTemplateWithoutType
-    else
-        return veafSpawn.GroupNameTemplateWithType
-    end
-end
-
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Event handler functions.
 -------------------------------------------------------------------------------------------------------------------------------------------------------------

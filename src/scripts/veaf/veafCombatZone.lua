@@ -20,12 +20,17 @@ veafCombatZone = {}
 veafCombatZone.Id = "COMBATZONE"
 
 --- Version.
-veafCombatZone.Version = "1.17.0"
+veafCombatZone.Version = "1.18.0"
 
 -- trace level, specific to this module
 --veafCombatZone.LogLevel = "trace"
 
 veaf.loggers.new(veafCombatZone.Id, veafCombatZone.LogLevel)
+
+--- if true, the spawned group names will not contain the zone name
+veafCombatZone.HideZoneNameFromGroupNames = true
+veafCombatZone.GroupNameTemplateWithZoneName = "%s - %s - %s"
+veafCombatZone.GroupNameTemplateWithoutZoneName = "%s - %s"
 
 --- Number of seconds between each check of the zone watchdog function
 veafCombatZone.SecondsBetweenWatchdogChecks = 60
@@ -462,9 +467,18 @@ function VeafCombatZone:getRadioGroupName()
     return self.radioGroupName
 end
 
-function VeafCombatZone:getNextGroupName()
+function VeafCombatZone:getNextGroupNameForElement(zoneElement)
     self.identifier = (self.identifier or 0) + 1
-    local name = string.format("%s-#%04d",self.missionEditorZoneName, self.identifier)
+    local coaStr = "neutral"
+    if zoneElement:getCoalition() == coalition.side.RED then
+        coaStr = "red"
+    elseif zoneElement:getCoalition() == coalition.side.BLUE then
+        coaStr = "blue"
+    end
+    local name = string.format(veafCombatZone.GroupNameTemplateWithZoneName, self:getMissionEditorZoneName(), coaStr, self.identifier)
+    if veafCombatZone.HideZoneNameFromGroupNames then
+        name = string.format(veafCombatZone.GroupNameTemplateWithoutZoneName, coaStr, self.identifier)
+    end
     return name
 end
 
@@ -933,8 +947,8 @@ function VeafCombatZone:spawnElement(zoneElement, now)
             local vars = {}
             vars.gpName = zoneElement:getName()
             vars.name = zoneElement:getName()
-            vars.newGroupName = self:getNextGroupName()
-            vars.route = mist.getGroupRoute(vars.gpName, 'task')
+            vars.newGroupName = self:getNextGroupNameForElement(zoneElement)
+            vars.route = zoneElement:getRoute()
             vars.action = 'respawn'
             vars.point = position
             vars.renameUnitsSequentially = true
@@ -947,7 +961,7 @@ function VeafCombatZone:spawnElement(zoneElement, now)
                 veaf.loggers.get(veafCombatZone.Id):trace(string.format("[%s]:activate() - mist.teleportToPoint([%s]) failed", self:getMissionEditorZoneName(), zoneElement:getName()))
             end
         elseif zoneElement:getVeafCommand() then
-            veaf.loggers.get(veafCombatZone.Id):trace(string.format("executing command [%s] at position [%s]",zoneElement:getName(), veaf.vecToString(position)))
+            veaf.loggers.get(veafCombatZone.Id):trace(string.format("executing command [%s] at position [%s]",zoneElement:getVeafCommand(), veaf.vecToString(position)))
             local spawnedGroups = {}
             veafInterpreter.execute(zoneElement:getVeafCommand(), position, zoneElement:getCoalition(), nil, spawnedGroups)
             for _, newGroup in pairs(spawnedGroups) do

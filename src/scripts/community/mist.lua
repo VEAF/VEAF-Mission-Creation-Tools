@@ -4387,6 +4387,12 @@ do -- group functions scope
 			elseif string.lower(action) == 'respawn' then
 				newGroupData = mist.getGroupData(gpName)
 				dbData = true
+				if vars.newGroupName then
+					-- Zip, VEAF, 2025.04.29: added vars.newGroupName to rename the new group
+					newGroupData.groupName = vars.newGroupName
+					newGroupData.name = vars.newGroupName
+					newGroupData.gpName = vars.newGroupName
+				end
 			elseif string.lower(action) == 'clone' then
 				newGroupData = mist.getGroupData(gpName)
 				newGroupData.clone = 'order66'

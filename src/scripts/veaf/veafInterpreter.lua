@@ -23,7 +23,7 @@ veafInterpreter = {}
 veafInterpreter.Id = "INTERPRETER"
 
 --- Version.
-veafInterpreter.Version = "1.6.1"
+veafInterpreter.Version = "1.6.2"
 
 -- trace level, specific to this module
 --veafInterpreter.LogLevel = "trace"
@@ -72,7 +72,7 @@ function veafInterpreter.execute(command, position, coalition, route, spawnedGro
 
     if command == nil then return end
     if position == nil then return end
-    veaf.loggers.get(veafInterpreter.Id):trace(string.format("veafInterpreter.execute([%s],[%s])", command, veaf.vecToString(position)))
+    veaf.loggers.get(veafInterpreter.Id):trace("veafInterpreter.execute([%s],[%s])", command, position)
 
     local commandExecuted = false
     spawnedGroups = spawnedGroups or {}

@@ -19,7 +19,7 @@ veafShortcuts = {}
 veafShortcuts.Id = "SHORTCUTS"
 
 --- Version.
-veafShortcuts.Version = "1.38.0"
+veafShortcuts.Version = "1.38.1"
 
 -- trace level, specific to this module
 --veafShortcuts.LogLevel = "trace"
@@ -578,7 +578,7 @@ function veafShortcuts.onEventMarkChange(eventPos, event)
 end
 
 function veafShortcuts.executeCommand(eventPos, eventText, eventCoalition, markId, bypassSecurity, spawnedGroups, route)
-    veaf.loggers.get(veafShortcuts.Id):debug(string.format("veafShortcuts.executeCommand(eventText=[%s])", eventText))
+    veaf.loggers.get(veafShortcuts.Id):debug("veafShortcuts.executeCommand(eventText=[%s])", eventText)
 
     -- Check if marker has a text and contains an alias
     if eventText ~= nil then
@@ -590,27 +590,27 @@ function veafShortcuts.executeCommand(eventPos, eventText, eventCoalition, markI
             local position = nil
 
             if coords and #coords > 0 then
-                veaf.loggers.get(veafShortcuts.Id):trace(string.format("checking coords [%s]", veaf.p(coords)))
+                veaf.loggers.get(veafShortcuts.Id):trace("checking coords [%s]", coords)
                 -- check for a known name (named point or trigger zone)
                 local namedPoint = veafNamedPoints.getPoint(coords)
                 if namedPoint then
-                    veaf.loggers.get(veafShortcuts.Id):trace(string.format("found named point [%s]", veaf.p(coords)))
+                    veaf.loggers.get(veafShortcuts.Id):trace("found named point [%s]", coords)
                     position = namedPoint
                 end
                 -- check for a known zone (trigger zone)
                 local triggerZone = veaf.getTriggerZone(coords)
                 if triggerZone then
-                    veaf.loggers.get(veafShortcuts.Id):trace(string.format("found trigger zone [%s]", veaf.p(coords)))
+                    veaf.loggers.get(veafShortcuts.Id):trace("found trigger zone [%s]", coords)
                     position = { x =triggerZone.x, z = triggerZone.y }
                 end
                 if not position then
-                    veaf.loggers.get(veafShortcuts.Id):trace(string.format("coords [%s] is not a known named point or trigger zone", veaf.p(coords)))
+                    veaf.loggers.get(veafShortcuts.Id):trace("coords [%s] is not a known named point or trigger zone", coords)
                     local _lat, _lon = veaf.computeLLFromString(coords)
-                    veaf.loggers.get(veafShortcuts.Id):trace(string.format("_lat=%s",veaf.p(_lat)))
-                    veaf.loggers.get(veafShortcuts.Id):trace(string.format("_lon=%s",veaf.p(_lon)))
+                    veaf.loggers.get(veafShortcuts.Id):trace("_lat=%s",_lat)
+                    veaf.loggers.get(veafShortcuts.Id):trace("_lon=%s",_lon)
                     if _lat and _lon then 
                         position = coord.LLtoLO(_lat, _lon)
-                        veaf.loggers.get(veafShortcuts.Id):trace(string.format("position=%s",veaf.p(position)))
+                        veaf.loggers.get(veafShortcuts.Id):trace("position=%s",position)
                     else
                         local _msg = string.format("unable to decode coordinates [%s]", veaf.p(coords))
                         veaf.loggers.get(veafShortcuts.Id):warn(_msg)
@@ -618,6 +618,9 @@ function veafShortcuts.executeCommand(eventPos, eventText, eventCoalition, markI
                         return
                     end
                 end
+            else
+                veaf.loggers.get(veafShortcuts.Id):trace("no coords found, using eventPos [%s]", eventPos)
+                position = eventPos
             end
 
             -- do the magic

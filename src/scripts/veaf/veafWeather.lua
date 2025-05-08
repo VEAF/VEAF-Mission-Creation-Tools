@@ -17,7 +17,7 @@ veafWeather = {}
 veafWeather.Id = "WEATHER"
 
 --- Version.
-veafWeather.Version = "1.5.0"
+veafWeather.Version = "1.5.1"
 
 -- trace level, specific to this module
 --veafWeather.LogLevel = "trace"
@@ -403,8 +403,8 @@ function veafWeatherData:create(vec3, iAbsTime, iAltitudeMeters)
     local _, nQfePa = atmosphere.getTemperatureAndPressure({ x = vec3.x, y = iAltitudeMeters, z = vec3.z })
     local nTemperatureKelvin, nQnhPa = atmosphere.getTemperatureAndPressure({ x = vec3.x, y = 0, z = vec3.z })
     local nTemperatureCelcius = nTemperatureKelvin + _nKelvinToCelciusOffset
-
-    local nHumidity = _computeHumidity(vec3, clouds.BaseMeters, iVisibilityMeters, bPrecipitation, iAbsTime)
+    local nBaseMeters = clouds and clouds.BaseMeters or 99999
+    local nHumidity = _computeHumidity(vec3, nBaseMeters, iVisibilityMeters, bPrecipitation, iAbsTime)
     local nDewPointCelcius = _computeDewpoint(nTemperatureCelcius, nQnhPa, nHumidity)
 
     -- Fog FG or mist BR: fog is less than 1000 meters visibility. Mist BR or haze HZ: if the humidity is more than 80% it is mist.

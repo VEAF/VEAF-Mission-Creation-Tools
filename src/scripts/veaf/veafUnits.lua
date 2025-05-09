@@ -19,7 +19,7 @@ veafUnits = {}
 veafUnits.Id = "UNITS"
 
 --- Version.
-veafUnits.Version = "1.14.0"
+veafUnits.Version = "1.14.1"
 
 -- trace level, specific to this module
 --veafUnits.LogLevel = "trace"
@@ -416,7 +416,12 @@ end
 
 --- Adds a placement point to every unit of the group, centering the whole group around the spawnPoint, and adding an optional spacing
 function veafUnits.placeGroup(group, spawnPoint, spacing, hdg, hasDest)
-    veaf.loggers.get(veafUnits.Id):trace(string.format("group = %s",veaf.p(group)))
+    veaf.loggers.get(veafUnits.Id):trace("group = %s",group)
+    veaf.loggers.get(veafUnits.Id):trace("spawnPoint = %s", spawnPoint)
+    veaf.loggers.get(veafUnits.Id):trace("spacing = %s", spacing)
+    veaf.loggers.get(veafUnits.Id):trace("hdg = %s", hdg)
+    veaf.loggers.get(veafUnits.Id):trace("hasDest = %s", hasDest)
+
     if not(hdg) then
         hdg = 0 -- default north
     end
@@ -2112,10 +2117,10 @@ veafUnits.GroupsDatabase = {
         group = {
             disposition = { h= 1, w= 4},
             units = {
-                {"M978 HEMTT Tanker", cell = 1, fitToUnit},
-                {"M1043 HMMWV Armament", cell = 2, fitToUnit},
-                {"Truck M939 Heavy", cell = 3, fitToUnit},
-                {"Diesel Power Station 5I57A", cell = 4, fitToUnit},
+                {"M978 HEMTT Tanker", cell = 1, fitToUnit = true},
+                {"M1043 HMMWV Armament", cell = 2, fitToUnit = true},
+                {"Truck M939 Heavy", cell = 3, fitToUnit = true},
+                {"Diesel Power Station 5I57A", cell = 4, fitToUnit = true},
             },
             description = "US refuel group",
             groupName = "US refuel group"

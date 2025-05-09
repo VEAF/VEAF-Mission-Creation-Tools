@@ -19,7 +19,7 @@ veafShortcuts = {}
 veafShortcuts.Id = "SHORTCUTS"
 
 --- Version.
-veafShortcuts.Version = "1.38.2"
+veafShortcuts.Version = "1.39.0"
 
 -- trace level, specific to this module
 --veafShortcuts.LogLevel = "trace"
@@ -856,6 +856,13 @@ function veafShortcuts.buildDefaultList()
             :setDescription("mutiple SA-18S manpad soldier peppered in a wide radius")
             :setVeafCommand("_spawn unit, name SA-18 Igla-S manpad, radius 5000")
             :addRandomParameter("multiplier", 3, 6)
+            :setBypassSecurity(false)
+    )
+    veafShortcuts.AddAlias(
+        VeafAlias:new()
+            :setName("-rapier")
+            :setDescription("Rapier battery with Radar (US by default)")
+            :setVeafCommand("_spawn group, name rapier_radar, country USA, skynet true")
             :setBypassSecurity(false)
     )
     veafShortcuts.AddAlias(

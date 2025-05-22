@@ -20,7 +20,7 @@ veafCombatZone = {}
 veafCombatZone.Id = "COMBATZONE"
 
 --- Version.
-veafCombatZone.Version = "1.18.0"
+veafCombatZone.Version = "1.18.2"
 
 -- trace level, specific to this module
 --veafCombatZone.LogLevel = "trace"
@@ -62,6 +62,7 @@ veafCombatZone.EventMessages = {
     UseFlareRequest = "Copy illumination flare requested on %s !",
     CombatOperationComplete = "Operation %s is over. Congratulations !"
 }
+
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Do not change anything below unless you know what you are doing!
@@ -468,16 +469,16 @@ function VeafCombatZone:getRadioGroupName()
 end
 
 function VeafCombatZone:getNextGroupNameForElement(zoneElement)
-    self.identifier = (self.identifier or 0) + 1
+    VeafCombatZone.identifier = (VeafCombatZone.identifier or 0) + 1
     local coaStr = "neutral"
     if zoneElement:getCoalition() == coalition.side.RED then
         coaStr = "red"
     elseif zoneElement:getCoalition() == coalition.side.BLUE then
         coaStr = "blue"
     end
-    local name = string.format(veafCombatZone.GroupNameTemplateWithZoneName, self:getMissionEditorZoneName(), coaStr, self.identifier)
+    local name = string.format(veafCombatZone.GroupNameTemplateWithZoneName, self:getMissionEditorZoneName(), coaStr, VeafCombatZone.identifier)
     if veafCombatZone.HideZoneNameFromGroupNames then
-        name = string.format(veafCombatZone.GroupNameTemplateWithoutZoneName, coaStr, self.identifier)
+        name = string.format(veafCombatZone.GroupNameTemplateWithoutZoneName, coaStr, VeafCombatZone.identifier)
     end
     return name
 end

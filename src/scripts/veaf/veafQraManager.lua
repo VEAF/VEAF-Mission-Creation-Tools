@@ -21,7 +21,7 @@ veafQraManager = {}
 veafQraManager.Id = "QRA"
 
 --- Version.
-veafQraManager.Version = "1.2.2"
+veafQraManager.Version = "1.2.3"
 
 -- trace level, specific to this module
 --veafQraManager.LogLevel = "trace"
@@ -95,7 +95,7 @@ function VeafQRA.init(object)
     -- coalition for the QRA
     object.coalition = nil
     -- coalitions the QRA is defending against
-    object.ennemyCoalitions = {}
+    object.enemyCoalitions = {}
     -- message when the QRA is started
     object.messageStart = veafQraManager.DEFAULT_MESSAGE_START
     -- event when the QRA is started
@@ -285,13 +285,13 @@ end
 
 function VeafQRA:addEnnemyCoalition(value)
     veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:addEnnemyCoalition(%s)", veaf.p(self.name), veaf.p(value))
-    self.ennemyCoalitions[value] = value
+    self.enemyCoalitions[value] = value
     return self
 end
 
 function VeafQRA:getEnnemyCoalition()
     local result = nil
-    for coalition, _ in pairs(self.ennemyCoalitions) do
+    for coalition, _ in pairs(self.enemyCoalitions) do
       result = coalition
       break
     end
@@ -550,6 +550,36 @@ function VeafQRA:getMaximumAltitudeInMeters()
   return self.maximumAltitude
 end
 
+function VeafQRA:humanBornEvent(unit)
+    veaf.loggers.get(veafQraManager.Id):trace("VeafQRA[%s]:humanBornEvent(%s)", self.name, unit)
+
+    if not self._enemyHumanUnits then
+        return -- do this later ^^
+    end
+
+    local coalitionId = 0
+    if unit.unitCoalition then
+        coalitionId = unit.unitCoalition
+    end
+    if self.enemyCoalitions[coalitionId] then
+        veaf.loggers.get(veafQraManager.Id):trace("VeafQRA[%s]:humanBornEvent() - unit being born is an enemy (coalition %s)", self.name, coalitionId)
+        if unit.unitCategory then
+            if     (unit.unitCategory == Unit.Category.AIRPLANE)
+                or (unit.unitCategory == Unit.Category.HELICOPTER and self.reactOnHelicopters)
+            then
+                -- check if the unit is already in the list
+                for _, unitName in pairs(self._enemyHumanUnits) do
+                    if unitName == unit.unitName then
+                        return
+                    end
+                end
+                veaf.loggers.get(veafQraManager.Id):trace("adding unit to enemy human units for QRA")
+                table.insert(self._enemyHumanUnits, unit.unitName)
+            end
+        end
+    end
+end
+
 function VeafQRA:_getEnemyHumanUnits()
     if not self._enemyHumanUnits then
         veaf.loggers.get(veafQraManager.Id):trace("VeafQRA[%s]:_getEnemyHumanUnits() - computing", veaf.p(self.name))
@@ -563,7 +593,7 @@ function VeafQRA:_getEnemyHumanUnits()
                     coalitionId = coalition.side.BLUE
                 end
             end
-            if self.ennemyCoalitions[coalitionId] then
+            if self.enemyCoalitions[coalitionId] then
                 if unit.category then
                     if     (unit.category == "plane")
                         or (unit.category == "helicopter" and self.reactOnHelicopters)
@@ -614,7 +644,7 @@ function VeafQRA:check()
                 if (not veaf.isNullOrEmpty(self.triggerZoneName) and triggerZone == nil) then
                     veaf.loggers.get(veafQraManager.Id):error("QRA has a non-existant zone: " .. self.triggerZoneName)
                 end
-
+                unitsInZone = {}
                 if triggerZone then
                     if triggerZone.type == 0 then -- circular
                         unitsInZone = mist.getUnitsInZones(unitNames, {self.triggerZoneName})
@@ -624,6 +654,7 @@ function VeafQRA:check()
                 else
                     unitsInZone = veaf.findUnitsInCircle(self.zoneCenter, self.zoneRadius, false, unitNames)
                 end
+                veaf.loggers.get(veafQraManager.Id):trace("unitsInZone=%s", unitsInZone)
                 local nbUnitsInZone = 0
                 for _, unit in pairs(unitsInZone) do
                     -- check the unit altitude against the ceiling and floor
@@ -634,8 +665,9 @@ function VeafQRA:check()
                         end
                     end
                 end
+                veaf.loggers.get(veafQraManager.Id):trace("nbUnitsInZone=%s", nbUnitsInZone)
                 if (self.state == veafQraManager.STATUS_READY) and (unitsInZone and nbUnitsInZone > 0) then
-                    veaf.loggers.get(veafQraManager.Id):debug(string.format("self.state set to veafQraManager.STATUS_READY_WAITINGFORMORE at timer.getTime()=%s", veaf.p(timer.getTime())))
+                    veaf.loggers.get(veafQraManager.Id):debug("self.state set to veafQraManager.STATUS_READY_WAITINGFORMORE at timer.getTime()=%s", timer.getTime())
                     self.state = veafQraManager.STATUS_READY_WAITINGFORMORE
                     self.timeSinceReady = timer.getTime()
                 elseif (self.state == veafQraManager.STATUS_READY_WAITINGFORMORE) and (unitsInZone and nbUnitsInZone > 0) and (timer.getTime() - self.timeSinceReady > self.delayBeforeActivating) then
@@ -747,7 +779,7 @@ function VeafQRA:checkAirport()
         self:setScheduledState(veafQraManager.STATUS_NOAIRBASE)
         if not self.silent and not self.noAB_announced then
             local msg = string.format(self.messageAirbaseDown, self:getDescription())
-            for coalition, _ in pairs(self.ennemyCoalitions) do
+            for coalition, _ in pairs(self.enemyCoalitions) do
                 trigger.action.outTextForCoalition(coalition, msg, 15)
             end
         end
@@ -760,7 +792,7 @@ function VeafQRA:checkAirport()
         veaf.loggers.get(veafQraManager.Id):trace("QRA has it's airbase %s", veaf.p(QRA_airportObject:getName()))
         if not self.silent then
             local msg = string.format(self.messageAirbaseUp, self:getDescription())
-            for coalition, _ in pairs(self.ennemyCoalitions) do
+            for coalition, _ in pairs(self.enemyCoalitions) do
                 trigger.action.outTextForCoalition(coalition, msg, 15)
             end
         end
@@ -827,7 +859,7 @@ function VeafQRA:checkWarehousing()
         veaf.loggers.get(veafQraManager.Id):trace("QRA is out of aircraft groups")
         if not self.silent and not self.outAnnounced then
             local msg = string.format(self.messageOut, self:getDescription())
-            for coalition, _ in pairs(self.ennemyCoalitions) do
+            for coalition, _ in pairs(self.enemyCoalitions) do
                 trigger.action.outTextForCoalition(coalition, msg, 15)
             end
             self.outAnnounced = true
@@ -863,7 +895,7 @@ function VeafQRA:resupply(resupplyAmount)
                 veaf.loggers.get(veafQraManager.Id):trace("QRA now has at least one aircraft group ready for action, resuming service...")
                 if not self.silent then
                     local msg = string.format(self.messageResupplied, self:getDescription())
-                    for coalition, _ in pairs(self.ennemyCoalitions) do
+                    for coalition, _ in pairs(self.enemyCoalitions) do
                         trigger.action.outTextForCoalition(coalition, msg, 15)
                     end
                 end
@@ -921,7 +953,7 @@ function VeafQRA:deploy(nbUnitsInZone)
 
     if not self.silent then
         local msg = string.format(self.messageDeploy, self:getDescription())
-        for coalition, _ in pairs(self.ennemyCoalitions) do
+        for coalition, _ in pairs(self.enemyCoalitions) do
             trigger.action.outTextForCoalition(coalition, msg, 15)
         end
     end
@@ -1009,7 +1041,7 @@ function VeafQRA:destroyed()
     veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:destroyed()", veaf.p(self.name))
     if not self.silent then
         local msg = string.format(self.messageDestroyed, self:getDescription())
-        for coalition, _ in pairs(self.ennemyCoalitions) do
+        for coalition, _ in pairs(self.enemyCoalitions) do
             trigger.action.outTextForCoalition(coalition, msg, 15)
         end
     end
@@ -1028,7 +1060,7 @@ function VeafQRA:rearm(silent)
     veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:rearm()", veaf.p(self.name))
     if not self.silent and not silent then
         local msg = string.format(self.messageReady, self:getDescription())
-        for coalition, _ in pairs(self.ennemyCoalitions) do
+        for coalition, _ in pairs(self.enemyCoalitions) do
             trigger.action.outTextForCoalition(coalition, msg, 15)
         end
     end
@@ -1071,7 +1103,7 @@ function VeafQRA:start()
 
     if not self.silent then
         local msg = string.format(self.messageStart, self:getDescription())
-        for coalition, _ in pairs(self.ennemyCoalitions) do
+        for coalition, _ in pairs(self.enemyCoalitions) do
             trigger.action.outTextForCoalition(coalition, msg, 15)
         end
     end
@@ -1106,7 +1138,7 @@ function VeafQRA:stop(silent)
 
     if not self.silent and not silent then
         local msg = string.format(self.messageStop, self:getDescription())
-        for coalition, _ in pairs(self.ennemyCoalitions) do
+        for coalition, _ in pairs(self.enemyCoalitions) do
             trigger.action.outTextForCoalition(coalition, msg, 15)
         end
     end
@@ -1131,4 +1163,29 @@ function veafQraManager.get(aNameString)
   return veafQraManager.qras[aNameString]
 end
 
-veaf.loggers.get(veafQraManager.Id):info(string.format("Loading version %s", veafQraManager.Version))
+---
+--- called from veafEventHandler when a unit is created
+function veafQraManager.eventHandler(event)
+    -- find the originator unit
+    local unitName = event.initiator and event.initiator.unitName
+    if not unitName then
+        return
+    end
+
+    if mist.DBs.humansByName[unitName] then -- it's a human unit
+        local unit = event.initiator
+        if unit ~= nil then
+            -- handle the event on all QRAs
+            for _, qra in pairs(veafQraManager.qras) do
+                qra:humanBornEvent(unit)
+            end
+        end
+    end
+end
+
+function veafQraManager.initialize()
+    veaf.loggers.get(veafQraManager.Id):debug("veafQraManager.initialize()")
+    veafEventHandler.addCallback("veafQraManager.eventHandler", {"S_EVENT_BIRTH", "S_EVENT_PLAYER_ENTER_UNIT"}, veafQraManager.eventHandler)
+end
+
+veaf.loggers.get(veafQraManager.Id):info("Loading version %s", veafQraManager.Version)

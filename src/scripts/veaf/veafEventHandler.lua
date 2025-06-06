@@ -21,7 +21,7 @@ veafEventHandler = {}
 veafEventHandler.Id = "EVENTS - "
 
 --- Version.
-veafEventHandler.Version = "1.4.0"
+veafEventHandler.Version = "1.5.0"
 
 -- trace level, specific to this module
 --veafEventHandler.LogLevel = "trace"
@@ -51,6 +51,8 @@ function veafEventHandler.completeUnitFromName(unitName)
     local unitLife = 0
     local unitCoalition = coalition.side.NEUTRAL
     local unitCategory = nil
+    local unitGroupName = nil
+    local unitGroupId = nil
     local unit = Unit.getByName(unitName)
     if unit then
       if unit.getTypeName then
@@ -73,6 +75,11 @@ function veafEventHandler.completeUnitFromName(unitName)
       if unit.getCategory then
         unitCategory = unit:getCategory()
       end
+      if unit.getGroup then
+        local group = unit:getGroup()
+        unitGroupName = group:getName()
+        unitGroupId = group:getID()
+      end
     end
     local unitPilotName = nil
     local unitPilotUcid = nil
@@ -82,9 +89,19 @@ function veafEventHandler.completeUnitFromName(unitName)
       unitPilotName = unitPilot.name
       unitPilotUcid = unitPilot.ucid
     end
+    local unitCallsign = unitPilotName
+    if not unitCallsign and unit.getCallsign then
+      unitCallsign = unit:getCallsign()
+      if type(unitCallsign) == "table" then unitCallsign = unitCallsign["name"] end
+      if type(unitCallsign) == "number" then unitCallsign = "" .. unitCallsign end
+    end
+
     return {
       unitName = unitName,
+      unitCallsign = unitCallsign,
       unitType = unitType,
+      unitGroupName = unitGroupName,
+      unitGroupId = unitGroupId,
       unitCoalition = unitCoalition,
       unitCategory = unitCategory,
       unitPilotName = unitPilotName,

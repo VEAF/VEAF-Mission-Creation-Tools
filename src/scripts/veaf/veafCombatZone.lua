@@ -20,7 +20,7 @@ veafCombatZone = {}
 veafCombatZone.Id = "COMBATZONE"
 
 --- Version.
-veafCombatZone.Version = "1.18.2"
+veafCombatZone.Version = "1.19.0"
 
 -- trace level, specific to this module
 --veafCombatZone.LogLevel = "trace"
@@ -29,6 +29,7 @@ veaf.loggers.new(veafCombatZone.Id, veafCombatZone.LogLevel)
 
 --- if true, the spawned group names will not contain the zone name
 veafCombatZone.HideZoneNameFromGroupNames = true
+veafCombatZone.HideZoneElementNameFromGroupNames = true
 veafCombatZone.GroupNameTemplateWithZoneName = "%s - %s - %s"
 veafCombatZone.GroupNameTemplateWithoutZoneName = "%s - %s"
 
@@ -476,9 +477,13 @@ function VeafCombatZone:getNextGroupNameForElement(zoneElement)
     elseif zoneElement:getCoalition() == coalition.side.BLUE then
         coaStr = "blue"
     end
-    local name = string.format(veafCombatZone.GroupNameTemplateWithZoneName, self:getMissionEditorZoneName(), coaStr, VeafCombatZone.identifier)
+    local groupName = zoneElement:getName()
+    if veafCombatZone.HideZoneElementNameFromGroupNames then
+        groupName = VeafCombatZone.identifier
+    end
+    local name = string.format(veafCombatZone.GroupNameTemplateWithZoneName, self:getMissionEditorZoneName(), coaStr, groupName)
     if veafCombatZone.HideZoneNameFromGroupNames then
-        name = string.format(veafCombatZone.GroupNameTemplateWithoutZoneName, coaStr, VeafCombatZone.identifier)
+        name = string.format(veafCombatZone.GroupNameTemplateWithoutZoneName, coaStr, groupName)
     end
     return name
 end

@@ -21,7 +21,7 @@ veafTransportMission = {}
 veafTransportMission.Id = "TRANSPORTMISSION"
 
 --- Version.
-veafTransportMission.Version = "1.7.0"
+veafTransportMission.Version = "1.8.0"
 
 -- trace level, specific to this module
 --veafTransportMission.LogLevel = "trace"
@@ -244,7 +244,7 @@ function veafTransportMission.doRadioTransmission(groupName)
 end
 
 function veafTransportMission.generateFriendlyGroup(groupPosition)
-    veafSpawn.doSpawnGroup(groupPosition, 0, "US infgroup", "USA", 0, 0, 0, veafTransportMission.BlueGroupName, true, false, true, true)
+    veafSpawn.doSpawnGroup(groupPosition, 0, "US infgroup", nil, "USA", 0, 0, 0, veafTransportMission.BlueGroupName, true, false, true, true)
 
     if veafTransportMission.DoRadioTransmission then
         veafTransportMission.doRadioTransmission(veafTransportMission.BlueGroupName)
@@ -312,7 +312,7 @@ function veafTransportMission.generateEnemyDefenseGroup(groupPosition, groupName
     end
 
     groupDefinition = veafUnits.processGroup(groupDefinition)
-    veafSpawn.doSpawnGroup(groupPosition, 0, groupDefinition, "RUSSIA", 0, math.random(359), math.random(3,6), groupName, true, false, true, true)
+    veafSpawn.doSpawnGroup(groupPosition, 0, groupDefinition, nil, "RUSSIA", 0, math.random(359), math.random(3,6), groupName, true, false, true, true)
 end
 
 

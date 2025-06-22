@@ -20,7 +20,7 @@ veafCombatZone = {}
 veafCombatZone.Id = "COMBATZONE"
 
 --- Version.
-veafCombatZone.Version = "1.20.0"
+veafCombatZone.Version = "1.21.0"
 
 -- trace level, specific to this module
 --veafCombatZone.LogLevel = "trace"
@@ -680,6 +680,7 @@ function VeafCombatZone:initialize()
         if command then
             -- it's a fake unit transporting a VEAF command
             veaf.loggers.get(veafCombatZone.Id):trace(string.format("command = [%s]", command))
+            command = command .. ", czName " .. self:getMissionEditorZoneName() -- add the combat zone name to the command
             zoneElement:setVeafCommand(command)
             local groupName = unit:getGroup():getName()
             zoneElement:setName(groupName)
@@ -927,7 +928,7 @@ function VeafCombatZone:spawnElement(zoneElement, now)
             local vars = {}
             vars.gpName = zoneElement:getName()
             vars.name = zoneElement:getName()
-            vars.newGroupName = veaf.getGroupNameForSpawn(zoneElement:getCoalition(), zoneElement:getName(), self:getMissionEditorZoneName())
+            vars.newGroupName = veaf.getNameForSpawnedGroup(zoneElement:getCoalition(), zoneElement:getName(), self:getMissionEditorZoneName())
             vars.route = zoneElement:getRoute()
             vars.action = 'respawn'
             vars.point = position

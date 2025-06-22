@@ -20,18 +20,12 @@ veafCombatZone = {}
 veafCombatZone.Id = "COMBATZONE"
 
 --- Version.
-veafCombatZone.Version = "1.19.0"
+veafCombatZone.Version = "1.20.0"
 
 -- trace level, specific to this module
 --veafCombatZone.LogLevel = "trace"
 
 veaf.loggers.new(veafCombatZone.Id, veafCombatZone.LogLevel)
-
---- if true, the spawned group names will not contain the zone name
-veafCombatZone.HideZoneNameFromGroupNames = true
-veafCombatZone.HideZoneElementNameFromGroupNames = true
-veafCombatZone.GroupNameTemplateWithZoneName = "%s - %s - %s"
-veafCombatZone.GroupNameTemplateWithoutZoneName = "%s - %s"
 
 --- Number of seconds between each check of the zone watchdog function
 veafCombatZone.SecondsBetweenWatchdogChecks = 60
@@ -468,26 +462,6 @@ end
 function VeafCombatZone:getRadioGroupName()
     return self.radioGroupName
 end
-
-function VeafCombatZone:getNextGroupNameForElement(zoneElement)
-    VeafCombatZone.identifier = (VeafCombatZone.identifier or 0) + 1
-    local coaStr = "neutral"
-    if zoneElement:getCoalition() == coalition.side.RED then
-        coaStr = "red"
-    elseif zoneElement:getCoalition() == coalition.side.BLUE then
-        coaStr = "blue"
-    end
-    local groupName = zoneElement:getName()
-    if veafCombatZone.HideZoneElementNameFromGroupNames then
-        groupName = VeafCombatZone.identifier
-    end
-    local name = string.format(veafCombatZone.GroupNameTemplateWithZoneName, self:getMissionEditorZoneName(), coaStr, groupName)
-    if veafCombatZone.HideZoneNameFromGroupNames then
-        name = string.format(veafCombatZone.GroupNameTemplateWithoutZoneName, coaStr, groupName)
-    end
-    return name
-end
-
 
 function VeafCombatZone:addSpawnedGroup(groupOrName)
     local groupName = groupOrName
@@ -953,7 +927,7 @@ function VeafCombatZone:spawnElement(zoneElement, now)
             local vars = {}
             vars.gpName = zoneElement:getName()
             vars.name = zoneElement:getName()
-            vars.newGroupName = self:getNextGroupNameForElement(zoneElement)
+            vars.newGroupName = veaf.getGroupNameForSpawn(zoneElement:getCoalition(), zoneElement:getName(), self:getMissionEditorZoneName())
             vars.route = zoneElement:getRoute()
             vars.action = 'respawn'
             vars.point = position

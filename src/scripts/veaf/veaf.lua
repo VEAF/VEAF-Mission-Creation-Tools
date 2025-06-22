@@ -3530,6 +3530,29 @@ function veaf.getUniqueIdentifier()
     return veaf.UNIQUE_ID
 end
 
+function veaf.getGroupNameForSpawn(coa, groupName, combatZoneNane)
+    local coaStr = "[n]"
+    if coa == coalition.side.RED then
+        coaStr = "[r]"
+    elseif coa == coalition.side.BLUE then
+        coaStr = "[b]"
+    end
+    local template = ""
+    if veaf.HideNamesFromSpawnedGroups then
+        template = string.format(veaf.GroupNameTemplateWithoutNames, coaStr, "%s")
+    else
+        template = string.format(veaf.GroupNameTemplateWithNames, combatZoneNane, coaStr, "%s")
+    end
+    local name = ""
+    if veafCombatZone.HideNames then
+        name = string.format(template, veaf.getUniqueIdentifier())
+    else
+        name = string.format(template, groupName)
+    end
+    return name
+
+    end
+
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- lines and figures on the map
 -------------------------------------------------------------------------------------------------------------------------------------------------------------

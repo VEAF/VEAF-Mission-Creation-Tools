@@ -34,7 +34,7 @@ veafSpecificServerHook.serverName = "SERVER"
 veafSpecificServerHook.Id = "VEAFSPECIFICHOOK - "
 
 --- Version.
-veafSpecificServerHook.Version = "1.0.1"
+veafSpecificServerHook.Version = "1.1.0"
 
 -- trace level, specific to this module
 veafSpecificServerHook.Trace = false
@@ -123,4 +123,4 @@ local _status, _retValue = pcall(net.dostring_in, 'mission', 'return a_do_script
     end
 end
 
-DCS.setUserCallbacks(veafSpecificServerHook)
+Sim.setUserCallbacks(veafSpecificServerHook)

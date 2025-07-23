@@ -38,7 +38,7 @@ VEAF_PILOTS_FILE = "veaf-pilots.txt"
 veafServerHook.Id = "VEAFHOOK - "
 
 --- Version.
-veafServerHook.Version = "2.4.1"
+veafServerHook.Version = "2.5.0"
 
 -- trace level, specific to this module
 veafServerHook.Trace = false
@@ -193,7 +193,7 @@ function veafServerHook.onSimulationStop()
     veafServerHook.logDebug(string.format("veafServerHook.onSimulationStop()"))
     if veafServerHook.closeServerAtMissionStop then
         veafServerHook.logInfo(string.format("veafServerHook.onSimulationStop() - stopping the server"))
-        DCS.exitProcess()
+        Sim.exitProcess()
     end
 end
 
@@ -236,7 +236,7 @@ function veafServerHook.onPlayerChangeSlot(id)
             slot = string.sub(slot, 1, string.find(slot, "_", 1, true)-1)
         end
         veafServerHook.logTrace(string.format("slot=%s",veafServerHook.p(slot)))
-        unitName = DCS.getUnitProperty(slot, DCS.UNIT_NAME)
+        unitName = Sim.getUnitProperty(slot, Sim.UNIT_NAME)
     end
     veafServerHook.logTrace(string.format("playerName=%s",veafServerHook.p(playerName)))
     veafServerHook.logTrace(string.format("ucid=%s",veafServerHook.p(ucid)))
@@ -271,7 +271,7 @@ function veafServerHook.onChatMessage(message, from)
                     slot = string.sub(slot, 1, string.find(slot, "_", 1, true)-1)
                 end
                 veafServerHook.logTrace(string.format("slot=%s",veafServerHook.p(slot)))
-                unitName = DCS.getUnitProperty(slot, DCS.UNIT_NAME)
+                unitName = Sim.getUnitProperty(slot, Sim.UNIT_NAME)
             end
 
             veafServerHook.logTrace(string.format("playerName=%s",veafServerHook.p(playerName)))
@@ -297,7 +297,7 @@ end
 function veafServerHook.onSimulationFrame()
     --veafServerHook.logTrace(string.format("veafServerHook.onSimulationFrame()"))
 
-    local _now = DCS.getRealTime()
+    local _now = Sim.getRealTime()
 
     if _now > veafServerHook.lastServerUptimeCheckFrameTime + veafServerHook.FRAME_CHECK_FREQUENCY_IN_SECONDS then
         veafServerHook.lastServerUptimeCheckFrameTime = _now
@@ -317,15 +317,15 @@ end
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 function veafServerHook.sendData(timestamp)
-    local _now = DCS.getRealTime()
+    local _now = Sim.getRealTime()
 
     local data_package = { timestamp = _now}
 
     veafServerHook.logTrace(string.format("get basic server information"))
     data_package.serverData = {
         frameTime = _now,
-        mission = DCS.getMissionFilename(),
-        missionTimeInSeconds = DCS.getModelTime(),
+        mission = Sim.getMissionFilename(),
+        missionTimeInSeconds = Sim.getModelTime(),
         missionMaxTimeInSeconds = veafServerHook.maxMissionDuration * 60,
         serverMaxUptimeInSeconds = veafServerHook.maxServerUptime * 60,
         numberOfPlayers = #net.get_player_list() - 1,
@@ -456,7 +456,7 @@ function veafServerHook.parse(pilot, playerName, ucid, unitName, message)
     elseif _module and _module:lower() == "pause" then
         -- only level >= 10 can pause and unpause the server
         if pilot.level >= 10 then
-            local pause = DCS.getPause()
+            local pause = Sim.getPause()
             local onoff = "on"
             if pause then
                 onoff = "off"
@@ -464,7 +464,7 @@ function veafServerHook.parse(pilot, playerName, ucid, unitName, message)
             local _message = string.format("[%s] is setting the server %s pause",veafServerHook.p(playerName), onoff)
             veafServerHook.logInfo(_message)
             veafServerHook.sendMessage(_message, 10)
-            DCS.setPause(not pause)
+            Sim.setPause(not pause)
             return true
         end
     else
@@ -480,9 +480,9 @@ end
 
 function veafServerHook.stopMissionIfNeeded()
     veafServerHook.logTrace(string.format("veafServerHook.stopMissionIfNeeded()"))
-    local _modelTimeInSeconds = DCS.getModelTime()
+    local _modelTimeInSeconds = Sim.getModelTime()
     veafServerHook.logTrace(string.format("_modelTimeInSeconds=%s",veafServerHook.p(_modelTimeInSeconds)))
-    local _realTimeInSeconds = DCS.getRealTime()
+    local _realTimeInSeconds = Sim.getRealTime()
     veafServerHook.logTrace(string.format("_realTimeInSeconds=%s",veafServerHook.p(_realTimeInSeconds)))
     if (_modelTimeInSeconds >= veafServerHook.maxMissionDuration * 60) or (_realTimeInSeconds >= veafServerHook.maxServerUptime * 60) then
         -- check if no one is connected (triggered on last disconnect)
@@ -495,11 +495,11 @@ function veafServerHook.stopMissionIfNeeded()
             veafServerHook.logInfo(string.format("veafServerHook.stopMissionIfNeeded() - stopping the mission"))
             if veafServerHook.closeServerAtLastDisconnect then
                 veafServerHook.closeServerAtMissionStop = true
-                DCS.stopMission()
+                Sim.stopMission()
             else
                 -- just restart the mission
                 veafServerHook.closeServerAtMissionStop = false
-                local _missionFilename = DCS.getMissionFilename()
+                local _missionFilename = Sim.getMissionFilename()
                 veafServerHook.logInfo(string.format("reloading mission [%s]", _missionFilename))
                 net.load_mission(_missionFilename)
             end
@@ -561,4 +561,4 @@ if veafServerHook.config.activate then
 end
 
 veafServerHook.logDebug(string.format("registering DCS callbacks"))
-DCS.setUserCallbacks(veafServerHook)
+Sim.setUserCallbacks(veafServerHook)

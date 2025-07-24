@@ -21,7 +21,7 @@ veafEventHandler = {}
 veafEventHandler.Id = "EVENTS - "
 
 --- Version.
-veafEventHandler.Version = "1.5.1"
+veafEventHandler.Version = "1.5.2"
 
 -- trace level, specific to this module
 --veafEventHandler.LogLevel = "trace"
@@ -78,8 +78,10 @@ function veafEventHandler.completeUnitFromName(unitName)
       end
       if unit.getGroup then
         local group = unit:getGroup()
-        unitGroupName = group:getName()
-        unitGroupId = group:getID()
+        if group then
+          unitGroupName = group:getName()
+          unitGroupId = group:getID()
+        end
       end
       if unit.getCallsign then
         unitCallsign = unit:getCallsign()

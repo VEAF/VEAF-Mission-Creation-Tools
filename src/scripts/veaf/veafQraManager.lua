@@ -21,7 +21,7 @@ veafQraManager = {}
 veafQraManager.Id = "QRA"
 
 --- Version.
-veafQraManager.Version = "1.2.3"
+veafQraManager.Version = "1.2.4"
 
 -- trace level, specific to this module
 --veafQraManager.LogLevel = "trace"
@@ -651,8 +651,11 @@ function VeafQRA:check()
                     elseif triggerZone.type == 2 then -- quad point
                         unitsInZone = mist.getUnitsInPolygon(unitNames, triggerZone.verticies)
                     end
-                else
+                elseif self.zoneCenter then
                     unitsInZone = veaf.findUnitsInCircle(self.zoneCenter, self.zoneRadius, false, unitNames)
+                else
+                    veaf.loggers.get(veafQraManager.Id):error("QRA [%s] has no zone defined, cannot check for units in zone", self.name)
+                    return
                 end
                 veaf.loggers.get(veafQraManager.Id):trace("unitsInZone=%s", unitsInZone)
                 local nbUnitsInZone = 0

@@ -28,13 +28,16 @@ os = require('os')
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 --- The server name
-veafSpecificServerHook.serverName = "SERVER"
+veafSpecificServerHook.serverName = nil
+
+--- The server bot channel
+veafSpecificServerHook.serverBotChannel = nil
 
 --- Identifier. All output in the log will start with this.
 veafSpecificServerHook.Id = "VEAFSPECIFICHOOK - "
 
 --- Version.
-veafSpecificServerHook.Version = "1.1.0"
+veafSpecificServerHook.Version = "1.2.0"
 
 -- trace level, specific to this module
 veafSpecificServerHook.Trace = false
@@ -112,15 +115,29 @@ end
 
 function veafSpecificServerHook.onSimulationStart()
     veafSpecificServerHook.logDebug(string.format("veafSpecificServerHook.onSimulationStart()"))
-    -- set the server name in the mission
-    veafSpecificServerHook.logDebug(string.format("set the server name in the mission"))
-    local _maxDuration = nil
-local _status, _retValue = pcall(net.dostring_in, 'mission', 'return a_do_script(' .. '[===[ if veaf and veaf.setServerName then return veaf.setServerName("'.. veafSpecificServerHook.serverName ..'") else return nil end ]===]' .. ')')
-    veafSpecificServerHook.logTrace(string.format("_status=%s",p(_status)))
-    veafSpecificServerHook.logTrace(string.format("_retValue=%s",p(_retValue)))
-    if not _status then
-        veafSpecificServerHook.logWarning(string.format("Code injection failed for veaf.setServerName()"))
+
+    if veafSpecificServerHook.serverName then
+        -- set the server name in the mission
+        veafSpecificServerHook.logDebug(string.format("set the server name in the mission"))
+        local _status, _retValue = pcall(net.dostring_in, 'mission', 'return a_do_script(' .. '[===[ if veaf and veaf.setServerName then return veaf.setServerName("'.. veafSpecificServerHook.serverName ..'") else return nil end ]===]' .. ')')
+        veafSpecificServerHook.logTrace(string.format("_status=%s",p(_status)))
+        veafSpecificServerHook.logTrace(string.format("_retValue=%s",p(_retValue)))
+        if not _status then
+            veafSpecificServerHook.logWarning(string.format("Code injection failed for veaf.setServerName()"))
+        end
     end
+
+    if veafSpecificServerHook.serverBotChannel then
+        -- set the server bot channel in the mission
+        veafSpecificServerHook.logDebug(string.format("set the server bot channel in the mission"))
+        local _status, _retValue = pcall(net.dostring_in, 'mission', 'return a_do_script(' .. '[===[ if veaf and veaf.setServerBotChannel then return veaf.setServerBotChannel("'.. veafSpecificServerHook.serverBotChannel ..'") else return nil end ]===]' .. ')')
+        veafSpecificServerHook.logTrace(string.format("_status=%s",p(_status)))
+        veafSpecificServerHook.logTrace(string.format("_retValue=%s",p(_retValue)))
+        if not _status then
+            veafSpecificServerHook.logWarning(string.format("Code injection failed for veaf.setServerBotChannel()"))
+        end
+    end
+
 end
 
 Sim.setUserCallbacks(veafSpecificServerHook)

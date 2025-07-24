@@ -2854,6 +2854,10 @@ function veaf.setServerName(value)
     veaf.config.SERVER_NAME = value
 end
 
+function veaf.setServerBotChannel(value)
+    veaf.config.DCS_SERVER_BOT_CHANNEL = value
+end
+
 function veaf.getPolygonFromUnits(unitNames)
 
     veaf.loggers.get(veaf.Id):debug(string.format("veaf.getPolygonFromUnits()"))
@@ -3069,7 +3073,7 @@ function veaf.Logger.formatText(text, ...)
     end
 end
 
-function veaf.Logger:print(level, text)
+function veaf.Logger:print(level, text, logWithDcsServerBot)
     local texts = veaf.Logger.splitText(text)
     local levelChar = 'E'
     local logFunction = env.error
@@ -3088,9 +3092,18 @@ function veaf.Logger:print(level, text)
     end
     for i = 1, #texts do
         if i == 1 then
-            logFunction(self.name .. '|' .. levelChar .. '|' .. texts[i])
+            local theText = self.name .. '|' .. levelChar .. '|' .. texts[i]
+            logFunction(theText)
+            if logWithDcsServerBot and dcsbot and veaf.config.DCS_SERVER_BOT_CHANNEL then
+			    local current_mission = Sim.getMissionName()
+		        dcsbot.sendBotMessage(veaf.config.SERVER_NAME .. ' | ' .. current_mission .. ' | ' .. theText, veaf.config.DCS_SERVER_BOT_CHANNEL)
+            end
         else
-            logFunction(texts[i])
+            local theText = texts[i]
+            logFunction(theText)
+            if logWithDcsServerBot and dcsbot and veaf.config.DCS_SERVER_BOT_CHANNEL then
+                dcsbot.sendBotMessage(theText, veaf.config.DCS_SERVER_BOT_CHANNEL)
+            end
         end
     end
 end
@@ -3102,7 +3115,7 @@ function veaf.Logger:error(text, ...)
 		if debug and debug.traceback then
 			mText = mText .. "\n" .. debug.traceback()
 		end
-        self:print(1, mText)
+        self:print(1, mText, true)
     end
 end
 

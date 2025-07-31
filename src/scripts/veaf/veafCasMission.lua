@@ -907,33 +907,15 @@ function veafCasMission.reportTargetInformation(unitName)
     -- generate information dispatch
     local nbVehicles, nbInfantry = veafUnits.countInfantryAndVehicles(veafCasMission.casGroupName)
 
-    local message = "TARGET: Group of " .. nbVehicles .. " vehicles and " .. nbInfantry .. " soldiers.\n"
+    local message = "TARGET: Group of " .. nbVehicles .. " vehicles and " .. nbInfantry .. " soldiers."
 
     if veafCasMission.afacName then
-        message = message .. "AFAC on station: " .. veafCasMission.afacName .. "\n"
+        message = message .. "\nAFAC on station: " .. veafCasMission.afacName
     end
 
-    message = message .. "\n"
-
-    -- add coordinates and position from bullseye
     local averageGroupPosition = veaf.getAveragePosition(veafCasMission.casGroupName)
-    local lat, lon = coord.LOtoLL(averageGroupPosition)
-    local mgrsString = mist.tostringMGRS(coord.LLtoMGRS(lat, lon), 3)
-    local bullseye = mist.utils.makeVec3(mist.DBs.missionData.bullseye.blue, 0)
-    local vec = {x = averageGroupPosition.x - bullseye.x, y = averageGroupPosition.y - bullseye.y, z = averageGroupPosition.z - bullseye.z}
-    local dir = mist.utils.round(mist.utils.toDegree(mist.utils.getDir(vec, bullseye)), 0)
-    local dist = mist.utils.get2DDist(averageGroupPosition, bullseye)
-    local distMetric = mist.utils.round(dist/1000, 0)
-    local distImperial = mist.utils.round(mist.utils.metersToNM(dist), 0)
-    local fromBullseye = string.format('%03d', dir) .. ' for ' .. distMetric .. 'km /' .. distImperial .. 'nm'
-
-    message = message .. "LAT LON (decimal): " .. mist.tostringLL(lat, lon, 2) .. ".\n"
-    message = message .. "LAT LON (DMS)    : " .. mist.tostringLL(lat, lon, 0, true) .. ".\n"
-    message = message .. "MGRS/UTM         : " .. mgrsString .. ".\n"
-    message = message .. "FROM BULLSEYE    : " .. fromBullseye .. ".\n"
-    message = message .. "\n"
-
-    message = message .. veaf.weatherReport(averageGroupPosition, nil, true)
+    message = message .. "\n\nLOCATION:\n" .. veaf.locationDesriptionString(averageGroupPosition)
+    message = message .. "\n\nWEATHER:\n" .. veafWeatherData.getWeatherString(averageGroupPosition, unitName)
 
     -- send message only for the unit
     veaf.outTextForGroup(unitName, message, 30)

@@ -20,7 +20,7 @@ veafRadio = {}
 veafRadio.Id = "RADIO"
 
 --- Version.
-veafRadio.Version = "1.2.0"
+veafRadio.Version = "1.3.0"
 
 -- trace level, specific to this module
 --veafRadio.LogLevel = "trace"
@@ -337,6 +337,13 @@ function veafRadio.refreshRadioSubmenu(parentRadioMenu, radioMenu)
   end
 
   -- create the commands in the radio menu
+  table.sort(radioMenu.commands, function(a, b)
+    if a.title and b.title then
+      return a.title < b.title
+    else
+      return false
+    end
+  end)
   for count = 1,#radioMenu.commands do
     local command = radioMenu.commands[count]
     veaf.loggers.get(veafRadio.Id):trace(string.format("command=%s",veaf.p(command)))
@@ -384,6 +391,13 @@ function veafRadio.refreshRadioSubmenu(parentRadioMenu, radioMenu)
   end
 
   -- recurse to create the submenus in the radio menu
+  table.sort(radioMenu.subMenus, function(a, b)
+    if a.title and b.title then
+      return a.title < b.title
+    else
+      return false
+    end
+  end)
   for count = 1,#radioMenu.subMenus do
     local subMenu = radioMenu.subMenus[count]
     veafRadio.refreshRadioSubmenu(radioMenu, subMenu)

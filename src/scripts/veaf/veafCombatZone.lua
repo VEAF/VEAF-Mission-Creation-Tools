@@ -20,7 +20,7 @@ veafCombatZone = {}
 veafCombatZone.Id = "COMBATZONE"
 
 --- Version.
-veafCombatZone.Version = "1.21.0"
+veafCombatZone.Version = "1.22.0"
 
 -- trace level, specific to this module
 --veafCombatZone.LogLevel = "trace"
@@ -297,6 +297,7 @@ function VeafCombatZone:new(objectToCopy)
     objectToCreate.chainedCombatZonesDelay = nil
     --- Radio menus
     objectToCreate.radioGroupName = nil
+    objectToCreate.radioMenuPrefix = nil
     objectToCreate.radioParentPath = nil
     objectToCreate.radioMarkersPath = nil
     objectToCreate.radioTargetInfoPath = nil
@@ -358,9 +359,12 @@ function VeafCombatZone:getRadioMenuName(asActive)
     if asActive then
         active = "* "
     end
-    return active .. self:getFriendlyName()
+    local prefix = ""
+    if self:getRadioMenuPrefix() then
+        prefix = self:getRadioMenuPrefix() .. " "
+    end
+    return prefix .. active .. self:getFriendlyName()
 end
-
 function VeafCombatZone:setFriendlyName(value)
     self.friendlyName = value
     return self
@@ -368,6 +372,15 @@ end
 
 function VeafCombatZone:getFriendlyName()
     return self.friendlyName
+end
+
+function VeafCombatZone:getRadioMenuPrefix()
+    return self.radioMenuPrefix
+end
+
+function VeafCombatZone:setRadioMenuPrefix(value)
+    self.radioMenuPrefix = value
+    return self
 end
 
 function VeafCombatZone:setBriefing(value)
@@ -527,6 +540,26 @@ function VeafCombatZone:addZoneElement(element)
     table.insert(elementGroup.elements, element)
     return self
 end
+
+function VeafCombatZone:addZoneElementsFromZoneNamed(zoneName)
+    veaf.loggers.get(veafCombatZone.Id):trace(string.format("VeafCombatZone[%s]:addZoneElementsFromZoneNamed(%s)",veaf.p(self.missionEditorZoneName), veaf.p(zoneName)))
+    if not zoneName then
+        return self
+    end
+    local zone = veafCombatZone.GetZone(zoneName)
+    if not zone then
+        return self
+    end
+    local elements = zone:getZoneElements()
+    if not elements then
+        return self
+    end
+    for _, element in pairs(elements) do
+        self:addZoneElement(element)
+    end
+    return self
+end
+
 
 function VeafCombatZone:getZoneElements()
     veaf.loggers.get(veafCombatZone.Id):trace(string.format("VeafCombatZone[%s]:getZoneElement()",veaf.p(self.missionEditorZoneName)))
@@ -1895,19 +1928,21 @@ function veafCombatZone.buildRadioMenu()
 
     for _, zoneName in pairs(names) do
         local zone = veafCombatZone.GetZone(zoneName)
-        if zone:getRadioGroupName() then
-            local radioGroup = veafCombatZone.radioGroupsDict[zone:getRadioGroupName()]
-            if not radioGroup then
-                -- create the radio group menu
-                radioGroup = veafRadio.addSubMenu(zone:getRadioGroupName(), veafCombatZone.combatZoneRootPath)
-                veaf.loggers.get(veafCombatZone.Id):debug("created radio group %s", zone:getRadioGroupName())
-                veafCombatZone.radioGroupsDict[zone:getRadioGroupName()] = radioGroup
+        if zone then
+            if zone:getRadioGroupName() then
+                local radioGroup = veafCombatZone.radioGroupsDict[zone:getRadioGroupName()]
+                if not radioGroup then
+                    -- create the radio group menu
+                    radioGroup = veafRadio.addSubMenu(zone:getRadioGroupName(), veafCombatZone.combatZoneRootPath)
+                    veaf.loggers.get(veafCombatZone.Id):debug("created radio group %s", zone:getRadioGroupName())
+                    veafCombatZone.radioGroupsDict[zone:getRadioGroupName()] = radioGroup
+                end
+                zone:setRadioParentPath(radioGroup)
+            else
+                zone:setRadioParentPath(veafCombatZone.combatZoneRootPath)
             end
-            zone:setRadioParentPath(radioGroup)
-        else
-            zone:setRadioParentPath(veafCombatZone.combatZoneRootPath)
+            zone:updateRadioMenu(true)
         end
-        zone:updateRadioMenu(true)
     end
 
     veafRadio.refreshRadioMenu()

@@ -503,6 +503,10 @@ function veafSkynet.OnDynamicSpawn(event)
 
     local coalition = dcsGroup:getCoalition()
     local networkName = veafSkynet.defaultIADS[tostring(coalition)]
+    if not networkName then
+        veaf.loggers.get(veafSkynet.Id):error("No default IADS network for coalition " .. coalition)
+        return
+    end
 
     veaf.loggers.get(veafSkynet.Id):debug("DYNAMIC SPAWN adding spawned group [" .. dcsGroup:getName() .. "] [id=" .. dcsGroup:getID() .. "] to IADS network [" .. networkName .. "]")
     if (veafSkynet.addGroupToNetwork(networkName, dcsGroup, false, false)) then

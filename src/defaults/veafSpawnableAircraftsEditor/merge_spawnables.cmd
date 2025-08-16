@@ -43,7 +43,7 @@ set LUA=lua
 echo current value is "%LUA%"
 
 echo.
-echo extracting spawnable groups from template.miz to settings.lua
+echo Adding or replacing spawnable groups (named "veafSpawn-XXX") from spawnables.miz to settings.lua
 
 echo.
 echo prepare the folders
@@ -53,12 +53,14 @@ mkdir .\build >nul 2>&1
 rem extracting MIZ files
 echo extracting MIZ files
 set MISSION_PATH=%cd%\src\mission
-"%SEVENZIP%" x -y template.miz -o".\build\"
+"%SEVENZIP%" x -y spawnables.miz -o".\build\"
 
 rem -- run the spawnable aircrafts editor
-pushd ..\..\scripts\veaf
-"%LUA%" veafSpawnableAircraftsEditor.lua ..\..\defaults\veafSpawnableAircraftsEditor\build ..\..\defaults\veafSpawnableAircraftsEditor\settings.lua -import %LUA_SCRIPTS_DEBUG_PARAMETER%
+pushd ..\..\\scripts\veaf
+"%LUA%" veafSpawnableAircraftsEditor.lua ..\..\defaults\veafSpawnableAircraftsEditor\build ..\..\defaults\veafSpawnableAircraftsEditor\settings.lua %LUA_SCRIPTS_DEBUG_PARAMETER% -import -namefilter "veafSpawn-.+"
 popd
+
+rd /s /q .\build >nul 2>&1
 
 echo.
 echo ----------------------------------------

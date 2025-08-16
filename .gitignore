@@ -11,3 +11,7 @@ mission.lua
 mission-2.lua
 SpawnablePlanesList*.json
 .npmrc
+src/defaults/veafSpawnableAircraftsEditor/settings-spawnables.lua
+src/defaults/veafSpawnableAircraftsEditor/settings-templates.lua
+src/defaults/veafSpawnableAircraftsEditor/templates.miz
+src/defaults/veafSpawnableAircraftsEditor/spawnables.miz

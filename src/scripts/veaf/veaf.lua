@@ -47,7 +47,7 @@ veaf.triggerZones = {}
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Global constants
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
-veaf.theatreName = 
+veaf.theatreName =
 {
     Caucasus = "Caucasus",
     Nevada = "Nevada",
@@ -633,10 +633,10 @@ function veaf.tableContains(table, element)
     if (table == nil or element == nil) then
         return false
     end
-    
+
     for _, e in pairs(table) do
-        if (e == element) then 
-            return true 
+        if (e == element) then
+            return true
         end
     end
     return false
@@ -882,22 +882,22 @@ function veaf.findDcsAirbase(name)
         s = s:gsub("[%s%p]", "")
         return s
     end
-        
+
     name = normalize(name)
-    
+
     local airBases = world.getAirbases()
     for i = 1, #airBases do
         dcsAirbase = airBases[i]
         local sAirbaseName = dcsAirbase:getName()
         -- Normalize each list item
         sAirbaseName = normalize(sAirbaseName)
-        
+
         -- Compare normalized strings
         if (sAirbaseName == name) then
             return dcsAirbase
         end
     end
-        
+
     return nil
 end
 
@@ -1034,7 +1034,7 @@ function veaf.getMagneticDeclination()
     elseif (sTheatre == "afghanistan") then
         nDeclination = 3
     end
-  
+
     return nDeclination
 end
 
@@ -3339,14 +3339,14 @@ function veaf.generateMilitaryGroupName()
     -- Different naming patterns
     local patterns = {
         "adjective_animal",
-        "adjective_weapon", 
+        "adjective_weapon",
         "number_adjective_noun",
         "callsign_squad",
         "geographic_unit",
         "mythological",
         "tactical_designation"
     }
-    
+
     -- Word lists
     local adjectives = {
         "Iron", "Steel", "Thunder", "Lightning", "Storm", "Fire", "Ice", "Shadow",
@@ -3354,82 +3354,82 @@ function veaf.generateMilitaryGroupName()
         "Golden", "Black", "Red", "Blue", "Elite", "Special", "Heavy", "Swift",
         "Silent", "Deadly", "Fierce", "Savage", "Wild", "Noble", "Brave", "Bold"
     }
-    
+
     local animals = {
         "Wolf", "Eagle", "Hawk", "Lion", "Tiger", "Bear", "Viper", "Cobra",
         "Falcon", "Raven", "Panther", "Jaguar", "Shark", "Scorpion", "Spider",
         "Rhino", "Buffalo", "Stallion", "Hound", "Fox", "Lynx", "Wolverine"
     }
-    
+
     local weapons = {
         "Sword", "Blade", "Lance", "Spear", "Arrow", "Bolt", "Hammer", "Axe",
         "Dagger", "Rifle", "Cannon", "Missile", "Torpedo", "Sabre", "Javelin"
     }
-    
+
     local nouns = {
         "Battalion", "Regiment", "Division", "Brigade", "Company", "Platoon",
         "Squad", "Unit", "Force", "Guard", "Rangers", "Commandos", "Marines",
         "Troopers", "Warriors", "Fighters", "Soldiers", "Knights", "Legion"
     }
-    
+
     local callsigns = {
         "Alpha", "Bravo", "Charlie", "Delta", "Echo", "Foxtrot", "Golf", "Hotel",
         "India", "Juliet", "Kilo", "Lima", "Mike", "November", "Oscar", "Papa",
         "Quebec", "Romeo", "Sierra", "Tango", "Uniform", "Victor", "Whiskey", "X-ray"
     }
-    
+
     local geographic = {
         "Mountain", "Desert", "Forest", "Arctic", "Coastal", "Highland", "Valley",
         "Ridge", "Peak", "Storm", "Frost", "Dune", "Mesa", "Canyon", "River"
     }
-    
+
     local mythological = {
         "Phoenix", "Dragon", "Griffin", "Hydra", "Kraken", "Valkyrie", "Titan",
         "Cerberus", "Pegasus", "Chimera", "Minotaur", "Cyclops", "Banshee"
     }
-    
+
     local tactical = {
         "Recon", "Assault", "Strike", "Support", "Heavy", "Light", "Stealth",
         "Rapid", "Mobile", "Shock", "Elite", "Special", "Advanced", "Combat"
     }
-    
+
     -- Helper function to get random element from table
     local function getRandomElement(tbl)
         return tbl[math.random(#tbl)]
     end
-    
+
     -- Select random pattern
     local pattern = getRandomElement(patterns)
     local name = ""
-    
+
     if pattern == "adjective_animal" then
         name = getRandomElement(adjectives) .. " " .. getRandomElement(animals)
-        
+
     elseif pattern == "adjective_weapon" then
         name = getRandomElement(adjectives) .. " " .. getRandomElement(weapons)
-        
+
     elseif pattern == "number_adjective_noun" then
         local number = math.random(1, 99)
         local suffix = "th"
         if number % 10 == 1 and number ~= 11 then suffix = "st"
-        elseif number % 10 == 2 and number ~= 12 then suffix = "nd"  
+        elseif number % 10 == 2 and number ~= 12 then suffix = "nd"
         elseif number % 10 == 3 and number ~= 13 then suffix = "rd"
         end
         name = number .. suffix .. " " .. getRandomElement(adjectives) .. " " .. getRandomElement(nouns)
-        
+
     elseif pattern == "callsign_squad" then
         name = getRandomElement(callsigns) .. " " .. getRandomElement(nouns)
-        
+
     elseif pattern == "geographic_unit" then
         name = getRandomElement(geographic) .. " " .. getRandomElement(nouns)
-        
+
     elseif pattern == "mythological" then
         name = getRandomElement(mythological) .. " " .. getRandomElement(nouns)
-        
+
     elseif pattern == "tactical_designation" then
         name = getRandomElement(tactical) .. " " .. getRandomElement(adjectives) .. " " .. getRandomElement(nouns)
     end
-    
+
     return name
 end
 
@@ -3954,7 +3954,7 @@ function veaf.ctld_initialize_replacement(configurationCallback)
         ctld.loadCrateFromMenu = true -- if set to true, you can load crates with the F10 menu OR hovering, in case of using choppers and planes for example.
         ctld.slingLoad = true -- if false, crates can be used WITHOUT slingloading, by hovering above the crate, simulating slingloading but not the weight...
         ctld.crateWaitTime = 0 -- time in seconds to wait before you can spawn another crate
-        
+
         -- Simulated Sling load configuration
         ctld.minimumHoverHeight = 5.0 -- Lowest allowable height for crate hover
         ctld.maximumHoverHeight = 15.0 -- Highest allowable height for crate hover
@@ -4140,7 +4140,7 @@ function veaf.csar_initialize_replacement(configurationCallback)
         csar.enableAllslots = true
         csar.useprefix = false
         csar.radioSound = "csar-beacon.ogg"
-        
+
         if configurationCallback and type(configurationCallback) == "function" then
             -- a configuration callback has been set, call it
             veaf.loggers.get(csar.Id):info("calling the configuration callback")
@@ -4161,6 +4161,109 @@ if csar then
     veaf.loggers.get(veaf.Id):info(string.format("replacing CSAR.initialize()"))
     veaf.csar_initialize = csar.initialize -- used to call the vanilla csar.initialize from the VEAF replacement
     csar.initialize = veaf.csar_initialize_replacement -- replace the csar.initialize with the VEAF wrapper function
+end
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- These functions were inspired by (or blatantly stolen from) Agar's own DCSExtension library (see TheUniversalMission repository)
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+-------------------------------------
+-- Sets the health of an unit
+-------------------------------------
+-- @param unitID ID of the unit
+-- @param life Life percentage
+-------------------------------------
+function veaf.setUnitLifePercent(unitID, life)
+    net.dostring_in("mission", string.format("a_unit_set_life_percentage(%d, %f)", unitID, life))
+end
+
+function veaf.destroySceneryInZone(zone, destructionPercent)
+    destructionPercent = destructionPercent or 0
+    net.dostring_in("mission", string.format("a_scenery_destruction_zone(%d, %f)", zone.zoneId, destructionPercent))
+end
+
+function veaf.highlightUnit(unitID, enabled)
+    if enabled then
+        enabled = "true"
+    else
+        enabled = "false"
+    end
+
+    net.dostring_in("mission", string.format("a_unit_highlight(%d, %s)", unitID, enabled))
+end
+
+function veaf.shellingZone(zone, tnt, shellsCount)
+    net.dostring_in("mission", string.format("a_shelling_zone(%d, %f, %d)", zone.zoneId, tnt, shellsCount))
+end
+
+-------------------------------------
+-- Converts a vec2 to a vec3
+-- @param vec2 A vec2
+-- @param y (Optional) A value for the vec3's y component or "land" to use land height
+-- @return A vec3 where v3.x=v2.x, v3.y=y and v3.z=v2.y
+-------------------------------------
+function DCSEx.math.vec2ToVec3(vec2, y)
+    -- Value was already a vec3
+    if vec2.z then
+        return {x = vec2.x, y = vec2.y, z = vec2.z}
+    end
+
+    y = y or 0
+    if y == "land" then y = land.getHeight(vec2) end
+
+    return {x = vec2.x, y = y, z = vec2.y}
+end
+
+function veaf.collidesWithScenery(vec2, radius)
+    local foundOne = false
+    radius = radius or 8
+
+    local volS = {
+        id = world.VolumeType.SPHERE,
+        params = {
+        point = DCSEx.math.vec2ToVec3(vec2, "land"),
+        radius = radius
+        }
+    }
+
+    local ifFound = function(foundItem, val)
+        foundOne = true
+        return true
+    end
+
+    world.searchObjects(Object.Category.SCENERY, volS, ifFound)
+
+    return foundOne
+end
+function veaf.findSpawnPoint(vec2, minRadius, maxRadius, surfaceType, radiusWithoutScenery, expandSearch)
+    expandSearch = expandSearch or true
+
+    for _=0,16 do
+        for _=0,16 do
+            local spawnPoint = nil
+
+            spawnPoint = DCSEx.math.randomPointInCircle(
+            vec2,
+            DCSEx.converter.nmToMeters(maxRadius),
+            DCSEx.converter.nmToMeters(minRadius),
+            surfaceType)
+
+            if spawnPoint and radiusWithoutScenery then
+                if veaf.collidesWithScenery(spawnPoint, radiusWithoutScenery) then
+                    spawnPoint = nil
+                end
+            end
+
+            if spawnPoint then return spawnPoint end
+        end
+
+        if not expandSearch then return nil end
+
+        minRadius = minRadius * 0.9
+        maxRadius = maxRadius * 1.2
+    end
+
+    return nil
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------

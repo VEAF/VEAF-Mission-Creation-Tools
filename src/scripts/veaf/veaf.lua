@@ -28,7 +28,7 @@ veaf.SecurityDisabled = false
 -- trace level, specific to this module
 --veaf.LogLevel = "debug"
 --veaf.LogLevel = "trace"
---veaf.ForcedLogLevel = "trace"
+--veaf.ForcedLogLevel = "debug"
 
 -- log level, limiting all the modules
 veaf.BaseLogLevel = 5 --trace

@@ -4,6 +4,8 @@ param (
     [string] $VersionTag,
     [switch] $DevelopmentVersion = $false,
     [switch] $KeepLogging = $false,
+    [switch] $ForceDebugLogging = $false,
+    [switch] $ForceTraceLogging = $false,
     [switch] $DisableSecurity = $false,
     [switch] $Quiet = $false
 )
@@ -12,6 +14,8 @@ Write-Host "ArtefactName: $ArtefactName"
 Write-Host "VersionTag: $VersionTag"
 Write-Host "DevelopmentVersion: $($DevelopmentVersion.IsPresent)"
 Write-Host "KeepLogging: $($KeepLogging.IsPresent)"
+Write-Host "ForceDebugLogging: $($ForceDebugLogging.IsPresent)"
+Write-Host "ForceTraceLogging: $($ForceTraceLogging.IsPresent)"
 Write-Host "DisableSecurity: $($DisableSecurity.IsPresent)"
 Write-Host "Quiet: $($Quiet.IsPresent)"
 
@@ -80,6 +84,18 @@ if (-not $DevelopmentVersion -and -not $KeepLogging) {
   Get-ChildItem -Path .\build -Recurse -Filter *.lua | Foreach-Object {
      (Get-Content $_.FullName) -creplace "(^\s*)(.*veaf\.loggers.get\(.*\):(trace|debug|marker|cleanupMarkers))", "-- LOGGING DISABLED WHEN COMPILING" | 
      Set-Content -Path $_.FullName
+  }
+}
+
+# set the logging according to the options
+if ($ForceDebugLogging -or $ForceTraceLogging) {
+  $loglevel = "debug"
+  if ($ForceTraceLogging) {
+    $loglevel = "trace"
+  }
+  if(-not $Quiet) { Write-Output "force all the logging to $loglevel" }
+  Get-ChildItem -Path .\build -Recurse -Filter veaf.lua | Foreach-Object {
+     (Get-Content $_.FullName) -creplace "(^\s*)(--veaf.ForcedLogLevel = ""(trace|debug))", "veaf.ForcedLogLevel = ""$logLevel" |  Set-Content -Path $_.FullName
   }
 }
 

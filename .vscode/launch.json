@@ -1,106 +1,14 @@
 {
-    // Use IntelliSense to learn about possible attributes.
-    // Hover to view descriptions of existing attributes.
-    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
-
-    {
-        "arg": [],
-        "name": "test.lua",
-        "program": "${workspaceFolder}/test/test.lua",
-        "request": "launch",
-        "stopOnEntry": true,
-        "type": "lua"
-    },
         {
-            "name": "veafSpawnableAircraftsEditor",
-            "program": "veafSpawnableAircraftsEditor.lua",
-            "arg": ["${workspaceFolder}/test", "${workspaceFolder}/src/defaults/veafSpawnableAircraftsEditor/settings.lua", "-debug"],
-            //"arg": ["${workspaceFolder}/test", "${workspaceFolder}/src/defaults/veafSpawnableAircraftsEditor/settings.lua", "-debug", "-dontclean"],
-            //"arg": ["${workspaceFolder}/test", "${workspaceFolder}/src/defaults/veafSpawnableAircraftsEditor/settings.lua", "-trace", "-namefilter", "\".* EASY .*\""],
-            //"arg": ["${workspaceFolder}/test", "${workspaceFolder}/src/defaults/veafSpawnableAircraftsEditor/settings.lua", "-trace", "-import"],
-            //"arg": ["${workspaceFolder}/test", "${workspaceFolder}/src/defaults/veafSpawnableAircraftsEditor/settings.lua", "-trace", "-import", "-namefilter", "\".* EASY .*\""],
+            "name": "Python Debugger: Current File",
+            "type": "debugpy",
             "request": "launch",
-            "stopOnEntry": true,
-            "type": "lua",
-            "cwd": "${workspaceFolder}/src/scripts/veaf",
-        },
-        {
-            "name": "veafMissionFlightPlanEditor",
-            "program": "veafMissionFlightPlanEditor.lua",
-            "arg": ["${workspaceFolder}/test", "${workspaceFolder}/src/defaults/veafMissionFlightPlanEditor/waypointsSettings.lua", "-trace"],
-            "request": "launch",
-            "stopOnEntry": true,
-            "type": "lua",
-            "cwd": "${workspaceFolder}/src/scripts/veaf",
-        },
-        {
-            "name": "veafMissionRadioPresetsEditor",
-            "program": "veafMissionRadioPresetsEditor.lua",
-            "arg": ["${workspaceFolder}/test", "${workspaceFolder}/src/defaults/veafMissionRadioPresetsEditor/radioSettings.lua", "-trace"],
-            "request": "launch",
-            "stopOnEntry": true,
-            "type": "lua",
-            "cwd": "${workspaceFolder}/src/scripts/veaf",
-        },
-        {
-            "name": "compile.ps1",
-            "type": "PowerShell",
-            "request": "launch",
-            "script": "${workspaceFolder}/compile.ps1",
-            "cwd": "${cwd}",
-            //"args": ["-ArtefactName veaf-scripts", "-VersionTag '-PROD'" ],
-            "args": [
-                "-ArtefactName veaf-scripts",
-                "-DevelopmentVersion"
-            ],
-        },
-        {
-            "type": "node",
-            "request": "launch",
-            "name": "veaf-tools",
-            "program": "${workspaceFolder}/src/nodejs/app.js",
-            "cwd": "${workspaceFolder}/test",
-            //"args": ["inject", "test.miz", "test-target.miz", "--verbose", "--variable=METAR",  "-s 19800", "-r", "--nocache"],
-            //"args": ["inject", "test.miz", "test-target.miz", "--verbose", "--variable=METAR",  "-s 19800", "-r", "--clearsky", "--nocache"],
-            //"args": ["inject", "test.miz", "test-target.miz", "--verbose", "--variable=METAR",  "-s 19800", "-m UGAM 261400Z AUTO VRB02KT //// ////// 18/12 Q1018"],
-            //"args": ["inject", "test.miz", "test-target.miz", "--verbose", "--variable=METAR",  "-s 19800", "-m UG27 221130Z 04515KT +SHRA BKN008 OVC024 Q1006 NOSIG", "--clearsky", "--nocache"],
-            // "args": ["inject", "test.miz", "test-target.miz", "--verbose", "--variable=METAR",  "-s 19800", "-m URMN 151400Z 09002MPS 9999 FEW/// BKN/// 18/02 Q1015 R24/010070 NOSIG RMK QFE725"],
-            // "args": ["inject", "test.miz", "test-target.miz", "--verbose", "--variable=METAR",  "-s 19800", "-m KIKK 151355Z AUTO 34010KT 10SM -SHRA BKN008 OVC024 06/00 A3007 RMK AO2 T00550004 TSNO"],
-            // "args": ["inject", "test.miz", "test-target.miz", "--verbose", "--variable=METAR",  "-s 19800", "-m URMN 130900Z 09002MPS 9999 -SHRA BKN008 BKN017CB 09/07 Q1021 R24/210155 NOSIG RMK MT OBSC QFE729"],
-            // "args": ["inject", "test.miz", "test-target.miz", "--verbose", "--variable=METAR",  "-s 19800", "-m UGKO 180600Z 09009KTG16KT 060V130 SCT040 29/17 Q1004 NOSIG"],
-            // "args": ["inject", "test.miz", "test-target.miz","--variable=METAR",  "-s 19800", "-m KQND 150856Z AUTO VRB04G11KT 9999 CLR 39/05 A2989 RMK AO2 SLP103 WND DATA ESTMD T03900045 50007"],
-            //"args": ["injectall", "ofs-a10c-all-in-one-v001a.miz", "ofs-a10c-all-in-one-v001a-${version}.miz", "weatherAndTime/versions.json","--nocache"],
-            //"args": ["injectall", "--verbose", "test.miz", "test-${version}.miz", "weatherAndTime/versions.json"],
-            //"args": ["inject", "-v", "test.miz", "-s", "34000", "-m" ,"KLSV 150856Z AUTO VRB04G11KT FG SCT010 OVC050  39/05 A2979 RMK AO2 SLP103 WND DATA ESTMD T03900045 50007", "test\test-out.miz"],
-            "args": ["inject", "-v", "test.miz", "-s", "34000", "--clearsky", "-m" ,"KLSV 150856Z AUTO VRB04G11KT FG SCT010 OVC050  39/05 A2979 RMK AO2 SLP103 WND DATA ESTMD T03900045 50007", "test\test-out.miz"],
-            //"args": ["inject", "-v", "test.miz", "--date", "202301260635", "-m", "KLSV 150856Z AUTO VRB04G11KT FG SCT010 SCT050  OVC 100  39/05 A2979 RMK AO2 SLP103 WND DATA ESTMD T03900045 50007", "test-out.miz" ],
-            //"args": ["select-mission", "missionSelector/serverSettings-example-default.lua", "missionSelector/serverSettings.lua", "missionSelector/serverCron-example_generated.json"],
-            //"args": ["select-mission", "missionSelector/serverSettings-example-default.lua", "missionSelector/serverSettings.lua", "missionSelector/serverCron-example.json"],
-            //"args": ["select-mission", "missionSelector/serverSettings-default.lua", "missionSelector/serverSettings.lua", "missionSelector/serverCron.json"],
-            "skipFiles": [
-                "<node_internals>/**"
-            ]
-        },
-        {
-            "type": "node",
-            "request": "launch",
-            "name": "Weather injection - Syria test",
-            "program": "${workspaceFolder}/src/nodejs/app.js",
-            "cwd": "${workspaceFolder}/test/VEAF_OpenTraining-Syria",
-            "args": ["injectall", "VEAF_OpenTraining_Syria.miz", "out\\VEAF_OpenTraining_Syria-${version}.miz", "weatherAndTime\\versions.json"],
-            //"args": ["injectall", "VEAF_OpenTraining_Syria.miz", "out\\VEAF_OpenTraining_Syria-${version}.miz", "weatherAndTime\\versions.json","--nocache"],
-            "skipFiles": [
-                "<node_internals>/**"
-            ]
-        },
-        {
-            "name": "PowerShell: Launch Script",
-            "type": "PowerShell",
-            "request": "launch",
-            "script": "./buildMission.cmd",
-            "cwd": "${workspaceFolder}"
+            "program": "${file}",
+            "cwd": "${workspaceFolder}\\test\\veaf-tools",
+            "args": ["inject-presets", "--verbose", "--config-file", "presets.yaml", "test.miz", "test-out.miz"],
+            "console": "integratedTerminal"
         }
     ]
 }

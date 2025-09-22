@@ -1,0 +1,186 @@
+from operator import truediv
+from xmlrpc.client import Boolean
+import luadata
+from pathlib import Path
+from rich.console import Console
+from rich.progress import Progress
+import typer
+from typing import List, Optional, Dict, Any
+import logging
+from pathlib import Path
+from datetime import datetime
+import typer
+from rich.console import Console
+from rich.progress import Progress
+from yaml import load, dump, Loader, Dumper
+import yaml
+from lupa.lua51 import LuaRuntime, lua_type
+import zipfile
+import io
+import pprint
+import json
+
+VERSION:str = "0.1.0"
+
+class Logger:
+    """Logging and console print system."""
+    
+    def __init__(self, verbose: bool = False):
+        self.verbose = verbose
+        # Configure logging with better format
+        logging.basicConfig(
+            filename="veaf-tools.log",
+            level=logging.DEBUG if self.verbose else logging.INFO,
+            format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+        )
+        self.logger = logging.getLogger("veaf-tools")
+
+    def error(self, message: str, raise_exception: Boolean = False) -> None:
+        """Log and display error message."""
+        self.logger.error(message)
+        console.print(message, style="red")
+        if raise_exception:
+            raise typer.Abort(message)
+
+    def warning(self, message: str) -> None:
+        """Log and display warning message."""
+        self.logger.warning(message)
+        console.print(message, style="yellow")
+
+
+    def info(self, message: str) -> None:
+        """Log and display info message."""
+        self.logger.info(message)
+        console.print(message, style="blue")
+
+
+    def debug(self, message: str) -> None:
+        """Log debug message."""
+        self.logger.debug(message)
+        if self.verbose:
+            console.print(message, style="grey")
+    
+app = typer.Typer()
+console = Console()
+logger : Logger = Logger()  # Will be initialized in main()
+
+class PresetsInjector:
+    """Injects radio presets in aircraft groups."""
+    
+    def __init__(self, config_file: Path, input_mission: Path, output_mission: Path):
+        self.config_file = config_file
+        self.config = self.load_config()
+        self.input_mission = input_mission
+        self.output_mission = output_mission
+
+    def load_config(self) -> Any:
+        """Load configuration from Lua file."""
+        try:
+            with open(self.config_file, 'r') as file:
+                return yaml.load(file, Loader=Loader)
+        except Exception as e:
+            logger.error(f"Failed to load config file {self.config_file}: {str(e)}", raise_exception=True)
+
+    def work(self) -> None:
+        # startup lua
+        lua = LuaRuntime(unpack_returned_tuples=False, encoding="utf-8", max_memory=0) # type: ignore
+
+        # load the mission from the .miz (unzip it)
+        with zipfile.ZipFile(self.input_mission, 'r') as miz:
+            with miz.open('mission') as mission:
+                lua_mission = luadata.unserialize(io.TextIOWrapper(mission, encoding='utf-8').read(), 'utf-8')
+                # TODO debug code, remove when done
+                with open(".\\mission.json", "wt", encoding="utf-8") as file:
+                    json.dump(lua_mission, ensure_ascii=False, fp=file)
+
+
+@app.command()
+def inject_aircrafts(
+    input_mission: Optional[str] = typer.Argument(None, help="Mission file to edit; defaults to local 'mission.miz' file."),
+    output_mission: Optional[str] = typer.Argument(None, help="Mission file to save; defaults to the same as 'input_mission'."),
+    verbose: bool = typer.Option(False, help="If set, the script will output a lot of debug information.")
+) -> None:
+    """
+    """
+
+    # Set the title and version
+    console.print(f"Starting [bold green]veaf-tools Aircraft Groups Injector v{VERSION}[/bold green]\n")
+
+    logger = Logger(verbose)
+
+    # Resolve input mission
+    if not input_mission:
+        p_input_mission = Path.cwd() / "mission.miz"
+    else:
+        p_input_mission = Path(input_mission)
+    
+    if not p_input_mission.exists():
+        logger.error(f"Input mission {p_input_mission} does not exist!")
+        raise typer.Abort()
+    p_input_mission = p_input_mission.resolve()
+
+    # Resolve output mission
+    if not output_mission:
+        p_output_mission = p_input_mission
+    else:
+        p_output_mission = Path(output_mission)
+    
+    p_output_mission = p_output_mission.resolve()
+    
+    console.print(f"Quitting [bold green]veaf-tools Aircraft Groups Injector v{VERSION}[/bold green]\n")
+    input("Press Enter to exit...")
+
+@app.command()
+def inject_presets(
+    input_mission: Optional[str] = typer.Argument("mission.miz", help="Mission file to edit."),
+    output_mission: Optional[str] = typer.Argument(None, help="Mission file to save; defaults to the same as 'input_mission'."),
+    verbose: bool = typer.Option(False, help="If set, the script will output a lot of debug information."),
+    config_file: str = typer.Option("presets.yaml", help="Configuration file containing the presets."),
+) -> None:
+    """
+    """
+
+    # Set the title and version
+    console.print(f"Starting [bold green]veaf-tools Radio Presets Injector v{VERSION}[/bold green]\n")
+
+    logger = Logger(verbose)
+
+    # Resolve input mission
+    if not input_mission:
+        p_input_mission = Path.cwd() / "mission.miz"
+    else:
+        p_input_mission = Path(input_mission)
+    
+    if not p_input_mission.exists():
+        logger.error(f"Input mission {p_input_mission} does not exist!")
+        raise typer.Abort()
+    p_input_mission = p_input_mission.resolve()
+
+    # Resolve output mission
+    if not output_mission:
+        p_output_mission = p_input_mission
+    else:
+        p_output_mission = Path(output_mission)
+    
+    p_output_mission = p_output_mission.resolve()
+    
+    # Resolve input mission
+    if not config_file:
+        p_config_file = Path.cwd() / "presets.yaml"
+    else:
+        p_config_file = Path(config_file)
+    
+    if not p_config_file.exists():
+        logger.error(f"Configuration file {p_config_file} does not exist!")
+        raise typer.Abort()
+    p_config_file = p_config_file.resolve()
+    
+    # Call the worker class
+    presets_injector = PresetsInjector(config_file=p_config_file, input_mission=p_input_mission, output_mission=p_output_mission)
+    presets_injector.work()
+
+    console.print(f"Quitting [bold green]veaf-tools Radio Presets Injector v{VERSION}[/bold green]\n")
+    # input("Press Enter to exit...")
+
+if __name__ == "__main__":
+    app()

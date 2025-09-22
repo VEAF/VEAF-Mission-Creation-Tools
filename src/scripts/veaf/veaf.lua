@@ -19,7 +19,7 @@ veaf = {}
 veaf.Id = "VEAF"
 
 --- Version.
-veaf.Version = "1.56.0"
+veaf.Version = "1.56.1"
 
 --- Development version ?
 veaf.Development = false
@@ -3052,9 +3052,13 @@ function veaf.Logger.formatText(text, ...)
             for i=1,args.n do
                 pArgs[i] = veaf.p(args[i])
             end
-                text = text:format(unpack(pArgs))
+            -- add a few empty strings for safety
+            for i = 1, 20 do
+                table.insert(pArgs, "[nil]")
             end
+            text = text:format(unpack(pArgs))
         end
+    end
     local fName = nil
     local cLine = nil
     if debug and debug.getinfo then

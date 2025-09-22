@@ -14,6 +14,11 @@
 - add JTACs to the DCS Jtac menu
 - find a way to spawn convoys on the road to speed up convoy setup
 - progression en liant les combatzones l'une après l'autre
+- menu radio de contrôle des QRA
+  - activation/désactivation
+  - informations (état, dessin des zones, groupes actifs)
+  - changement de mode (training: il faut sortir de la zone pour réarmer la QRA; mission: plusieurs groupes se succèdent de loin avant de devoir réarmer la QRA)
+- move AWACS comme TANKER
 
 ### RFC - needs to be done
 

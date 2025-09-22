@@ -64,6 +64,10 @@ app = typer.Typer()
 console = Console()
 logger : Logger = Logger()  # Will be initialized in main()
 
+class AircratfGroupType:
+    HELICOPTER = 1
+    PLANE = 2
+
 class PresetsInjector:
     """Injects radio presets in aircraft groups."""
     
@@ -72,6 +76,7 @@ class PresetsInjector:
         self.config = self.load_config()
         self.input_mission = input_mission
         self.output_mission = output_mission
+        self.groups = {}
 
     def load_config(self) -> Any:
         """Load configuration from Lua file."""
@@ -81,17 +86,86 @@ class PresetsInjector:
         except Exception as e:
             logger.error(f"Failed to load config file {self.config_file}: {str(e)}", raise_exception=True)
 
+    def add_group(self, group_dict: Dict, type: int, country: str, coalition: str) -> None:
+        group_struct = {
+            "group_dcs": group_dict,
+            "type": type,
+            "country": country,
+            "coalition": coalition
+        }
+        name = group_dict.get("name")
+        if name:
+            group_struct["name"] = name
+            units_list = group_dict.get("units")
+            if units_list:
+                first_unit_dict = units_list[0] if len(units_list) > 0 else None
+                if first_unit_dict:
+                    first_unit_type = first_unit_dict.get("type")
+                    if first_unit_type:
+                        group_struct["unit_type"] = first_unit_type
+            self.groups[name] = group_struct
+
     def work(self) -> None:
         # startup lua
-        lua = LuaRuntime(unpack_returned_tuples=False, encoding="utf-8", max_memory=0) # type: ignore
+        #lua = LuaRuntime(unpack_returned_tuples=False, encoding="utf-8", max_memory=0) # type: ignore
 
         # load the mission from the .miz (unzip it)
+        logger.info("Reading mission file")
         with zipfile.ZipFile(self.input_mission, 'r') as miz:
             with miz.open('mission') as mission:
                 lua_mission = luadata.unserialize(io.TextIOWrapper(mission, encoding='utf-8').read(), 'utf-8')
+
+                # Find all the aircraft groups
+                logger.debug("Searching for all aircraft groups")
+                coalitions_dict = lua_mission.get("coalition")
+                if coalitions_dict:
+                    # Browse coalitions
+                    for coalition_name in coalitions_dict.keys():
+                        # Browse countries
+                        logger.debug(f"Browsing countries in coalition {coalition_name}")
+                        countries_list = coalitions_dict[coalition_name].get("country")
+                        if countries_list:
+                            for country_dict in countries_list:
+                                country_name = country_dict.get("name")
+                                if country_name:
+                                    logger.debug(f"Browsing helicopter groups in country {country_name}")
+                                    helicopters_dict = country_dict.get("helicopter")
+                                    if helicopters_dict:
+                                        groups_list = helicopters_dict.get("group")
+                                        if groups_list:
+                                            for group in groups_list:
+                                                self.add_group(group, type=AircratfGroupType.HELICOPTER, country=country_name, coalition=coalition_name)
+                                        else:
+                                            logger.error(f"cannot file key 'group' in /coalition/{coalition_name}/country/{country_name}/helicopter in file {self.input_mission}", True)        
+                                    else:
+                                        logger.debug(f"no key 'helicopter' in /coalition/{coalition_name}/country/{country_name} in file {self.input_mission}")        
+
+                                    logger.debug(f"Browsing plane groups in country {country_name}")
+                                    planes_dict = country_dict.get("plane")
+                                    if planes_dict:
+                                        groups_list = planes_dict.get("group")
+                                        if groups_list:
+                                            for group in groups_list:
+                                                self.add_group(group, type=AircratfGroupType.PLANE, country=country_name, coalition=coalition_name)
+                                        else:
+                                            logger.error(f"cannot file key 'group' in /coalition/{coalition_name}/country/{country_name}/plane in file {self.input_mission}", True)        
+                                    else:
+                                        logger.debug(f"no key 'plane' in /coalition/{coalition_name}/country/{country_name} in file {self.input_mission}")        
+
+                                    logger.debug(f"Browsing plane groups in country {country_name}")
+                                else:
+                                    logger.error(f"cannot file key 'name' in /coalition/{coalition_name}/country in file {self.input_mission}", True)        
+                        else:
+                            logger.error(f"cannot file key 'country' in /coalition/{coalition_name} in file {self.input_mission}", True)
+                        print(coalition_name)
+                else:
+                    logger.error(f"cannot file key 'coalition' in file {self.input_mission}", True)
+                 
                 # TODO debug code, remove when done
-                with open(".\\mission.json", "wt", encoding="utf-8") as file:
-                    json.dump(lua_mission, ensure_ascii=False, fp=file)
+                #with open(".\\mission.json", "wt", encoding="utf-8") as file:
+                #    json.dump(lua_mission, ensure_ascii=False, fp=file)
+                with open(".\\groups.json", "wt", encoding="utf-8") as file:
+                    json.dump(self.groups, ensure_ascii=False, fp=file)
 
 
 @app.command()

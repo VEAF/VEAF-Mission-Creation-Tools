@@ -18,3 +18,4 @@ src/defaults/veafSpawnableAircraftsEditor/spawnables.miz
 __pycache__/
 test/veaf-tools/mission.json
 test/veaf-tools/veaf-tools.log
+test/veaf-tools/groups.json

@@ -1,9 +1,9 @@
 build/
 node_modules/
 cache/
+published/
 
 configuration.json
-veaf-scripts.lua
 compile-*.cmd
 test/test-out.miz
 .gitignore

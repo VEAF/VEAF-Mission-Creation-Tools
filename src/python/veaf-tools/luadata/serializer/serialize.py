@@ -6,7 +6,7 @@ KEY_WORDS = [
 ]
 
 
-def __serialize(var, encoding, indent, level):
+def __serialize(var, encoding, indent, level, always_provide_keyname=False):
     parts = []
     var_type = type(var)
     if var is None:
@@ -49,7 +49,7 @@ def __serialize(var, encoding, indent, level):
                 parts.append("\n")
 
         # prepare for iterator
-        nohash = True
+        nohash = not always_provide_keyname
         lastkey = None
         lastval = None
         hasval = False
@@ -81,11 +81,11 @@ def __serialize(var, encoding, indent, level):
                 parts.append(s_tab_equ)
             else:  # [10010] = val # [".start with or contains special char"] = val
                 parts.append("[")
-                parts.append(__serialize(key, encoding, indent, level + 1))
+                parts.append(__serialize(key, encoding, indent, level + 1, always_provide_keyname=always_provide_keyname))
                 parts.append("]")
                 parts.append(s_tab_equ)
             # insert value
-            parts.append(__serialize(val, encoding, indent, level + 1))
+            parts.append(__serialize(val, encoding, indent, level + 1, always_provide_keyname=always_provide_keyname))
             parts.append(",")
             if indent is not None:
                 parts.append("\n")
@@ -105,7 +105,7 @@ def __serialize(var, encoding, indent, level):
     return "".join(parts)
 
 
-def serialize(var, encoding="utf-8", indent=None, indent_level=0):
+def serialize(var, encoding="utf-8", indent=None, indent_level=0, always_provide_keyname=False):
     """Serialize variable to lua formatted data string.
 
     Args:
@@ -120,9 +120,9 @@ def serialize(var, encoding="utf-8", indent=None, indent_level=0):
     if isinstance(var, tuple):
         res = []
         for item in var:
-            res.append(__serialize(item, encoding, indent, indent_level))
+            res.append(__serialize(item, encoding, indent, indent_level, always_provide_keyname=always_provide_keyname))
         spliter = ","
         if indent is not None:
             spliter = spliter + "\n" + indent * indent_level
         return spliter.join(res)
-    return __serialize(var, encoding, indent, indent_level)
+    return __serialize(var, encoding, indent, indent_level, always_provide_keyname=always_provide_keyname)

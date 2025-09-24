@@ -1,6 +1,6 @@
 presets_definition: # Lists all the presets collections
   modern_blue: # one of the presets collections
-    title: Blue coalition # name of the presets collection; used in the exported kneeboard PNG
+    title: Blue coalition planes and helicopters # name of the presets collection; used in the exported kneeboard PNG
     radios:
       radio_1: # defines a specific radio configuration; the _1 at the end will be the [1] in the ["Radio"] collection of the DCS "Mission" file
         title: UHF/Primary # name of the radio; used in the exported kneeboard PNG

@@ -535,7 +535,7 @@ class PresetsManager:
                 self.presets_assignment = PresetAssignment(assignments={})
 
             # Generate images for presets
-            self.generate_presets_images()
+            self.generate_presets_images(width=1200, height=None)
 
         except FileNotFoundError as e:
             raise FileNotFoundError(f"YAML file not found: {file_path}") from e
@@ -622,14 +622,15 @@ class PresetsManager:
         
         return True
     
-    def generate_presets_images(self) -> None:
+    def generate_presets_images(self, width: int = 1200, height: int = None) -> None:
         """
         Generate a PNG image showing the radio presets in the preset_manager as three arrays
         displayed side by side, with the name and frequency columns in each, and the radio
         name as the title of each.
         
         Args:
-            output_path: Path to save the image. If None, saves as 'presets.png' in current directory.
+            width: Width of the generated image in pixels (default: 1200)
+            height: Height of the generated image in pixels (default: automatically calculated)
         """
 
         if not self.presets_definition or not self.presets_definition.collections:
@@ -647,7 +648,7 @@ class PresetsManager:
                 
                 # Calculate dimensions based on content
                 row_height = 30
-                header_height = 40
+                header_height = 55
                 margin_between_tables = 30  # Margin between tables
                 side_margin = 50  # Margin on sides
                 top_margin = 80  # Space for collection title
@@ -656,30 +657,34 @@ class PresetsManager:
                 # Find the radio with the most channels to determine image height
                 max_channels = max(len(radio.channels) for _, radio in radios_list)
                 image_height = top_margin + header_height + max_channels * row_height + bottom_margin
+                image_height = height if height is not None else image_height
                 
                 # Calculate table widths and positions with margins
-                available_width = 1200 - 2 * side_margin - (radio_count - 1) * margin_between_tables
+                image_width = width
+                available_width = image_width - 2 * side_margin - (radio_count - 1) * margin_between_tables
                 table_width = available_width // radio_count if radio_count > 0 else 400
                 
                 # Create image with light yellow background (like old paper)
-                image = Image.new('RGB', (1200, image_height), color=(255, 255, 224))  # Light yellow
+                image = Image.new('RGB', (image_width, image_height), color=(255, 255, 224))  # Light yellow
                 draw = ImageDraw.Draw(image)
 
                 # Try to use a better font, fallback to default if not available
                 try:
-                    font = ImageFont.truetype("arial.ttf", 16)
+                    font = ImageFont.truetype("arial.ttf", 18)
                     title_font = ImageFont.truetype("arial.ttf", 30)
+                    collection_title_font = ImageFont.truetype("arial.ttf", 40)
                 except Exception:
                     font = ImageFont.load_default()
                     title_font = ImageFont.load_default()
+                    collection_title_font = ImageFont.load_default()
 
                 # Draw collection title
                 collection_title = preset_collection.title or preset_collection.name
                 # Get text dimensions for centering
-                title_bbox = draw.textbbox((0, 0), collection_title, font=title_font)
+                title_bbox = draw.textbbox((0, 0), collection_title, font=collection_title_font)
                 title_width = title_bbox[2] - title_bbox[0]
-                title_x = (1200 - title_width) // 2
-                draw.text((title_x, 20), collection_title, fill='black', font=title_font)
+                title_x = (image_width - title_width) // 2
+                draw.text((title_x, 20), collection_title, fill='black', font=collection_title_font)
 
                 # Draw each radio as a table
                 for i, (_, radio) in enumerate(radios_list):

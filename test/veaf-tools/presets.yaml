@@ -1,194 +1,199 @@
 presets_definition: # Lists all the presets collections
   modern_blue: # one of the presets collections
-    radio_1: # defines a specific radio configuration; the _1 at the end will be the [1] in the ["Radio"] collection of the DCS "Mission" file
-      channels: # the list of channels defined on this radio
-        channel_01: # the first channel; the _1 at the end will be the [1] in the ["channels"] collection of the DCS "Mission" file
-          freq: 243.000 # frequency to set on this channel; mandatory
-          name: Guard # name of the channel; defaukts to empty (used in the DCS "Mission" file and in the exported kneeboard PNG)
-          mod: 0 # the modulation of this channel; defaults to 0 (["modulations"] collection in the DCS "mission" file)
-        channel_02:
-          freq: 260.000
-          name: Batumi / 16X
-        channel_03:
-          freq: 270.000
-          name: Beslan
-        channel_04:
-          freq: 259.000
-          name: Gudauta
-        channel_05:
-          freq: 263.000
-          name: Kutaisi / 44X
-        channel_06:
-          freq: 256.000
-          name: Sochi-Adler
-        channel_07:
-          freq: 258.000
-          name: Sukhumi
-        channel_08:
-          freq: 267.000
-          name: Tbilisi / 25X
-        channel_09:
-          freq: 269.000
-          name: Vaziani / 22X
-        channel_10:
-          freq: 225.000
-          name: Stennis / 10X
-        channel_11:
-          freq: 226.000
-          name: Tarawa / 11X
-        channel_12:
-          freq: 227.000
-          name: Roosevelt / 12X
-        channel_13:
-          freq: 228.000
-          name: Forrestal / 13X
-        channel_14:
-          freq: 282.200
-          name: Magic
-        channel_15:
-          freq: 291.000
-          name: Package 01
-        channel_16:
-          freq: 305.100
-          name: Range KOBULETI
-        channel_17:
-          freq: 290.100
-          name: Texaco-1/BS/60Y
-        channel_18:
-          freq: 290.300
-          name: Shell-1/BS/62Y
-        channel_19:
-          freq: 290.400
-          name: Shell-2/BM/63Y
-        channel_20:
-          freq: 290.500
-          name: Arco-1/BM/64Y
+    title: Blue coalition # name of the presets collection; used in the exported kneeboard PNG
+    radios:
+      radio_1: # defines a specific radio configuration; the _1 at the end will be the [1] in the ["Radio"] collection of the DCS "Mission" file
+        title: UHF/Primary # name of the radio; used in the exported kneeboard PNG
+        channels: # the list of channels defined on this radio
+          channel_01: # the first channel; the _1 at the end will be the [1] in the ["channels"] collection of the DCS "Mission" file
+            freq: 243.000 # frequency to set on this channel; mandatory
+            name: Guard # name of the channel; defaukts to empty (used in the DCS "Mission" file and in the exported kneeboard PNG)
+            mod: 0 # the modulation of this channel; defaults to 0 (["modulations"] collection in the DCS "mission" file)
+          channel_02:
+            freq: 260.000
+            name: Batumi / 16X
+          channel_03:
+            freq: 270.000
+            name: Beslan
+          channel_04:
+            freq: 259.000
+            name: Gudauta
+          channel_05:
+            freq: 263.000
+            name: Kutaisi / 44X
+          channel_06:
+            freq: 256.000
+            name: Sochi-Adler
+          channel_07:
+            freq: 258.000
+            name: Sukhumi
+          channel_08:
+            freq: 267.000
+            name: Tbilisi / 25X
+          channel_09:
+            freq: 269.000
+            name: Vaziani / 22X
+          channel_10:
+            freq: 225.000
+            name: Stennis / 10X
+          channel_11:
+            freq: 226.000
+            name: Tarawa / 11X
+          channel_12:
+            freq: 227.000
+            name: Roosevelt / 12X
+          channel_13:
+            freq: 228.000
+            name: Forrestal / 13X
+          channel_14:
+            freq: 282.200
+            name: Magic
+          channel_15:
+            freq: 291.000
+            name: Package 01
+          channel_16:
+            freq: 305.100
+            name: Range KOBULETI
+          channel_17:
+            freq: 290.100
+            name: Texaco-1/BS/60Y
+          channel_18:
+            freq: 290.300
+            name: Shell-1/BS/62Y
+          channel_19:
+            freq: 290.400
+            name: Shell-2/BM/63Y
+          channel_20:
+            freq: 290.500
+            name: Arco-1/BM/64Y
 
-    radio_2:
-      channels:
-        channel_01:
-          freq: 121.500
-          name: Guard
-        channel_02:
-          freq: 120.000
-          name: Archer
-        channel_03:
-          freq: 120.100
-          name: Arctic
-        channel_04:
-          freq: 120.200
-          name: Astro
-        channel_05:
-          freq: 120.300
-          name: Nickel
-        channel_06:
-          freq: 120.400
-          name: Nitro
-        channel_07:
-          freq: 120.500
-          name: Ninja
-        channel_08:
-          freq: 120.600
-          name: Pinder
-        channel_09:
-          freq: 120.700
-          name: Bengal
-        channel_10:
-          freq: 120.800
-          name: Blade
-        channel_11:
-          freq: 120.900
-          name: Gordon
-        channel_12:
-          freq: 121.100
-          name: Gypsy
-        channel_13:
-          freq: 121.200
-          name: Gunstar
-        channel_14:
-          freq: 121.300
-          name: Leica
-        channel_15:
-          freq: 121.400
-          name: Lucid
-        channel_16:
-          freq: 121.600
-          name: Lusty
-        channel_17:
-          freq: 121.700
-          name: Lion
-        channel_18:
-          freq: 118.800
-          name: AFAC Bizmuth/Colt
-        channel_19:
-          freq: 118.900
-          name: AFAC Agate/Dodge
-        channel_20:
-          freq: 118.850
-          name: JTAC 3
+      radio_2:
+        title: VHF/Secondary # name of the radio; used in the exported kneeboard PNG
+        channels:
+          channel_01:
+            freq: 121.500
+            name: Guard
+          channel_02:
+            freq: 120.000
+            name: Archer
+          channel_03:
+            freq: 120.100
+            name: Arctic
+          channel_04:
+            freq: 120.200
+            name: Astro
+          channel_05:
+            freq: 120.300
+            name: Nickel
+          channel_06:
+            freq: 120.400
+            name: Nitro
+          channel_07:
+            freq: 120.500
+            name: Ninja
+          channel_08:
+            freq: 120.600
+            name: Pinder
+          channel_09:
+            freq: 120.700
+            name: Bengal
+          channel_10:
+            freq: 120.800
+            name: Blade
+          channel_11:
+            freq: 120.900
+            name: Gordon
+          channel_12:
+            freq: 121.100
+            name: Gypsy
+          channel_13:
+            freq: 121.200
+            name: Gunstar
+          channel_14:
+            freq: 121.300
+            name: Leica
+          channel_15:
+            freq: 121.400
+            name: Lucid
+          channel_16:
+            freq: 121.600
+            name: Lusty
+          channel_17:
+            freq: 121.700
+            name: Lion
+          channel_18:
+            freq: 118.800
+            name: AFAC Bizmuth/Colt
+          channel_19:
+            freq: 118.900
+            name: AFAC Agate/Dodge
+          channel_20:
+            freq: 118.850
+            name: JTAC 3
 
-    radio_3:
-      channels:
-        channel_01:
-          freq: 30.000
-        channel_02:
-          freq: 31.000
-        channel_03:
-          freq: 32.000
-        channel_04:
-          freq: 33.000
-        channel_05:
-          freq: 34.000
-        channel_06:
-          freq: 35.000
-        channel_07:
-          freq: 36.000
-        channel_08:
-          freq: 37.000
-        channel_09:
-          freq: 38.000
-        channel_10:
-          freq: 39.000
-        channel_11:
-          freq: 40.000
-        channel_12:
-          freq: 41.000
-        channel_13:
-          freq: 42.000
-        channel_14:
-          freq: 43.000
-        channel_15:
-          freq: 44.000
-        channel_16:
-          freq: 45.000
-        channel_17:
-          freq: 46.000
-        channel_18:
-          freq: 47.000
-        channel_19:
-          freq: 48.000
-        channel_20:
-          freq: 49.000
-        channel_21:
-          freq: 50.000
-        channel_22:
-          freq: 51.000
-        channel_23:
-          freq: 52.000
-        channel_24:
-          freq: 53.000
-        channel_25:
-          freq: 54.000
-        channel_26:
-          freq: 55.000
-        channel_27:
-          freq: 56.000
-        channel_28:
-          freq: 57.000
-        channel_29:
-          freq: 58.000
-        channel_30:
-          freq: 59.000
+      radio_3:
+        title: FM/Ground # name of the radio; used in the exported kneeboard PNG
+        channels:
+          channel_01:
+            freq: 30.000
+          channel_02:
+            freq: 31.000
+          channel_03:
+            freq: 32.000
+          channel_04:
+            freq: 33.000
+          channel_05:
+            freq: 34.000
+          channel_06:
+            freq: 35.000
+          channel_07:
+            freq: 36.000
+          channel_08:
+            freq: 37.000
+          channel_09:
+            freq: 38.000
+          channel_10:
+            freq: 39.000
+          channel_11:
+            freq: 40.000
+          channel_12:
+            freq: 41.000
+          channel_13:
+            freq: 42.000
+          channel_14:
+            freq: 43.000
+          channel_15:
+            freq: 44.000
+          channel_16:
+            freq: 45.000
+          channel_17:
+            freq: 46.000
+          channel_18:
+            freq: 47.000
+          channel_19:
+            freq: 48.000
+          channel_20:
+            freq: 49.000
+          channel_21:
+            freq: 50.000
+          channel_22:
+            freq: 51.000
+          channel_23:
+            freq: 52.000
+          channel_24:
+            freq: 53.000
+          channel_25:
+            freq: 54.000
+          channel_26:
+            freq: 55.000
+          channel_27:
+            freq: 56.000
+          channel_28:
+            freq: 57.000
+          channel_29:
+            freq: 58.000
+          channel_30:
+            freq: 59.000
 
 presets_assignments:
   coalition:

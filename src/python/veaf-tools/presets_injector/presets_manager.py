@@ -1,9 +1,12 @@
 """
 Classes for managing radio presets data from YAML files.
 """
+from ast import List
 from dataclasses import dataclass
+import io
 from typing import Optional, Union, Dict, Any
 import yaml
+from PIL import Image, ImageDraw, ImageFont
 
 
 @dataclass
@@ -97,6 +100,7 @@ class Radio:
     Represents a radio with multiple channels.
     """
     name: str
+    title: str
     channels: Dict[str, RadioChannel]
     
     def __post_init__(self):
@@ -191,13 +195,14 @@ class Radio:
         Returns:
             Radio: New instance
         """
+        title = data["title"] or "Unnamed Radio"
         if "channels" not in data:
             raise ValueError("Radio data must contain 'channels' key")
 
         channels = {
             channel_name: RadioChannel.from_dict(channel_data) for channel_name, channel_data in data["channels"].items()
         }
-        return cls(name=name, channels=channels)
+        return cls(name=name, title=title, channels=channels)
 
 
 @dataclass
@@ -206,6 +211,7 @@ class PresetCollection:
     Represents a collection of radios (a preset collection).
     """
     name: str
+    title: str
     radios: Dict[str, Radio]
     
     def __post_init__(self):
@@ -291,11 +297,12 @@ class PresetCollection:
         Returns:
             PresetCollection: New instance
         """
+        title = data["title"] or "Unnamed preset collection"
         radios = {
             radio_name: Radio.from_dict(radio_name, radio_data)
-            for radio_name, radio_data in data.items()
+            for radio_name, radio_data in data["radios"].items()
         }
-        return cls(name=name, radios=radios)
+        return cls(name=name, title=title, radios=radios)
 
 
 @dataclass
@@ -490,6 +497,7 @@ class PresetsManager:
     """
     presets_definition: Optional[PresetsDefinition] = None
     presets_assignment: Optional[PresetAssignment] = None
+    presets_images: Optional[Dict[str, io.BytesIO]] = None
     
     def __post_init__(self):
         """Initialize the presets manager."""
@@ -526,6 +534,9 @@ class PresetsManager:
                 self.presets_assignment = PresetAssignment.from_dict(data["presets_assignments"])
             else:
                 self.presets_assignment = PresetAssignment(assignments={})
+
+            # Generate images for presets
+            self.generate_presets_images()
 
         except FileNotFoundError as e:
             raise FileNotFoundError(f"YAML file not found: {file_path}") from e
@@ -611,3 +622,81 @@ class PresetsManager:
                         return False
         
         return True
+    
+    def generate_presets_images(self) -> None:
+        """
+        Generate a PNG image showing the radio presets in the preset_manager as three arrays
+        displayed side by side, with the name and frequency columns in each, and the radio
+        name as the title of each.
+        
+        Args:
+            output_path: Path to save the image. If None, saves as 'presets.png' in current directory.
+        """
+
+        if not self.presets_definition or not self.presets_definition.collections:
+            return
+
+        # Browse the preset collection and generate an image for each
+        for preset_collection in self.presets_definition.collections.values():
+
+            # Create image
+            width, height = 1200, 800
+            image = Image.new('RGB', (width, height), color='white')
+            draw = ImageDraw.Draw(image)
+
+            # Try to use a better font, fallback to default if not available
+            try:
+                font = ImageFont.truetype("arial.ttf", 16)
+                title_font = ImageFont.truetype("arial.ttf", 20)
+            except Exception:
+                font = ImageFont.load_default()
+                title_font = ImageFont.load_default()
+
+            # Calculate layout
+            radio_count = len(preset_collection.radios)
+            if radio_count > 0:
+
+                column_width = width // radio_count
+                y_offset = 50
+
+                # Draw title
+                title = preset_collection.title or preset_collection.name
+                draw.text((20, 10), title, fill='black', font=title_font)
+
+                # Draw each radio
+                for i, (_, radio) in enumerate(preset_collection.radios.items()):
+                    x_offset = i * column_width + 20
+
+                    # Draw radio name as title
+                    title = radio.title or radio.name
+                    draw.text((x_offset, y_offset), title, fill='black', font=title_font)
+
+                    # Draw column headers
+                    header_y = y_offset + 40
+                    draw.text((x_offset, header_y), "Name", fill='black', font=font)
+                    draw.text((x_offset + 150, header_y), "Frequency", fill='black', font=font)
+
+                    # Draw channels
+                    channel_y = header_y + 30
+                    for _, channel in radio.channels.items():
+                        # Draw channel name
+                        name_text = channel.name or ""
+                        draw.text((x_offset, channel_y), name_text, fill='black', font=font)
+
+                        # Draw frequency
+                        freq_text = f"{channel.freq:.3f}"
+                        draw.text((x_offset + 150, channel_y), freq_text, fill='black', font=font)
+
+                        channel_y += 25
+
+                        # Check if we need to move to next column
+                        if channel_y > height - 50:
+                            break
+            # Store the image in the dictionary with the preset collection name as key
+            if self.presets_images is None:
+                self.presets_images = {}
+
+            img_buffer = io.BytesIO()
+            image.save(img_buffer, format='PNG')
+            img_buffer.seek(0)
+            self.presets_images[preset_collection.name] = img_buffer

@@ -9,14 +9,10 @@ import io
 from logging import Logger
 import os
 from pathlib import Path
-import shutil
-import tempfile
 from typing import Any, Dict, Optional
 import zipfile
 import luadata
 from .presets_manager import PresetsManager
-from rich.console import Console
-from rich.progress import Progress
 
 @dataclass
 class Group:
@@ -51,6 +47,7 @@ class PresetsInjectorWorker:
         self.output_mission = output_mission
         self.groups = {}
         self.presets_manager = self.load_config()
+        self.lua_mission = None
 
     def load_config(self) -> Any:
         """Load configuration from Lua file."""
@@ -165,8 +162,13 @@ class PresetsInjectorWorker:
                         # Replace with new content
                         zip_write.writestr(file_name, f"mission = \n{luadata.serialize(self.lua_mission, indent='\t', indent_level=0, always_provide_keyname=True)}")
 
+                # Save kneeboard pages if generated
+                if self.presets_manager.presets_images:
+                    for preset_collection_name, image in self.presets_manager.presets_images.items():
+                        zip_write.writestr(f"/KNEEBOARD/IMAGES/presets-{preset_collection_name}.png", image.getvalue())
+                self.logger.info(f"Added presets {len(self.presets_manager.presets_images)} kneeboard page to mission")
+
         # Replace original ZIP with the modified one
-        import os
         os.replace(temp_zip_path, self.output_mission)
 
     def work(self) -> None:
@@ -180,3 +182,4 @@ class PresetsInjectorWorker:
 
         # Write the mission file
         self.write_mission()
+

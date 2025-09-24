@@ -19,9 +19,14 @@ class Logger:
         logging.basicConfig(
             filename="veaf-tools.log",
             level=logging.DEBUG if self.verbose else logging.INFO,
-            format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+            format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+            filemode='w'  # Overwrite log file on each run
         )
         self.logger = logging.getLogger("veaf-tools")
+
+    def set_verbose(self, verbose: bool):
+        self.verbose = verbose
+        self.set_level(logging.DEBUG if self.verbose else logging.INFO)
 
     def set_level(self, level):
         self.logger.setLevel(level=level)
@@ -49,8 +54,14 @@ class Logger:
         """Log debug message."""
         self.logger.debug(message)
         if self.verbose:
-            console.print(message, style="grey")
+            console.print(message, style="grey69")
     
+    def debugwarn(self, message: str) -> None:
+        """Log debug message."""
+        self.logger.debug(message)
+        if self.verbose:
+            console.print(message, style="dark_khaki")
+
 app = typer.Typer()
 console = Console()
 logger: Logger = Logger()  # Will be initialized in main()
@@ -72,19 +83,19 @@ def inject_aircrafts(
 
 @app.command()
 def inject_presets(
+    verbose: bool = typer.Option(False, help="If set, the script will output a lot of debug information."),
     input_mission: Optional[str] = typer.Argument("mission.miz", help="Mission file to edit."),
     output_mission: Optional[str] = typer.Argument(None, help="Mission file to save; defaults to the same as 'input_mission'."),
-    verbose: bool = typer.Option(False, help="If set, the script will output a lot of debug information."),
-    config_file: str = typer.Option("presets.yaml", help="Configuration file containing the presets."),
+    presets_file: str = typer.Option("presets.yaml", help="Configuration file containing the presets."),
 ) -> None:
     """
     Injects radio presets read from a configuration file into aircraft groups from a DCS mission
     """
 
     # Set the title and version
-    console.print(f"Starting [bold green]veaf-tools Radio Presets Injector v{VERSION}[/bold green]\n")
+    console.print(f"[bold green]veaf-tools Radio Presets Injector v{VERSION}[/bold green]")
 
-    logger.set_level(logging.DEBUG if verbose else logging.INFO)
+    logger.set_verbose(verbose)
 
     # Resolve input mission
     if not input_mission:
@@ -102,21 +113,21 @@ def inject_presets(
     p_output_mission = p_output_mission.resolve()
 
     # Resolve input mission
-    if not config_file:
-        p_config_file = Path.cwd() / "presets.yaml"
+    if not presets_file:
+        p_presets_file = Path.cwd() / "presets.yaml"
     else:
-        p_config_file = Path(config_file)
+        p_presets_file = Path(presets_file)
 
-    if not p_config_file.exists():
-        logger.error(f"Configuration file {p_config_file} does not exist!")
+    if not p_presets_file.exists():
+        logger.error(f"Configuration file {p_presets_file} does not exist!")
         raise typer.Abort()
-    p_config_file = p_config_file.resolve()
+    p_presets_file = p_presets_file.resolve()
 
     # Call the worker class
-    worker = presets_injector.PresetsInjectorWorker(logger=logger, config_file=p_config_file, input_mission=p_input_mission, output_mission=p_output_mission)
+    worker = presets_injector.PresetsInjectorWorker(logger=logger, presets_file=p_presets_file, input_mission=p_input_mission, output_mission=p_output_mission)
     worker.work()
 
-    console.print(f"Quitting [bold green]veaf-tools Radio Presets Injector v{VERSION}[/bold green]\n")
+    console.print("[bold blue]Work done![/bold blue]")
     # input("Press Enter to exit...")
 
 if __name__ == "__main__":

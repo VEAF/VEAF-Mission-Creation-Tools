@@ -89,6 +89,11 @@ powershell -file compile.ps1 -ArtefactName "veaf-scripts-debug" -VersionTag "/de
 rem compile the trace script
 powershell -file compile.ps1 -ArtefactName "veaf-scripts-trace" -VersionTag "/trace" -DevelopmentVersion -KeepLogging -ForceTraceLogging
 
+rem compile the veaf-tools program
+call .\.venv\Scripts\activate.bat
+pyinstaller --onefile --name veaf-tools --distpath .\published src\python\veaf-tools\veaf-tools.py
+call .\.venv\Scripts\deactivate.bat
+
 IF [%NOPAUSE%] == [true] GOTO EndOfFile
 pause
 :EndOfFile

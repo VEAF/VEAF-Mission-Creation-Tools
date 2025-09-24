@@ -14,6 +14,7 @@ class RadioChannel:
     Represents a radio channel preset with frequency, name, and modulation.
     """
     freq: float
+    number: Optional[int] = None
     name: Optional[str] = None
     mod: Optional[int] = 0
     
@@ -85,10 +86,12 @@ class RadioChannel:
         """
         if "freq" not in data:
             raise ValueError("Frequency is mandatory in channel data")
-        
+
+        number = int(channel_name) if channel_name.isdigit() else int(channel_name.split('_')[-1])
         return cls(
             freq=float(data["freq"]),
-            name=data.get("name", channel_name.replace("channel_", "Channel ")),
+            name=data.get("name", f"Channel {number}"),
+            number=number,
             mod=int(data.get("mod", 0))
         )
 
@@ -212,7 +215,8 @@ class PresetCollection:
     name: str
     title: str
     radios: Dict[str, Radio]
-    
+    used_in_mission: bool = False  # Indicates if this collection is used in the mission
+
     def __post_init__(self):
         """Validate the preset collection data after initialization."""
         if not isinstance(self.name, str):
@@ -534,9 +538,6 @@ class PresetsManager:
             else:
                 self.presets_assignment = PresetAssignment(assignments={})
 
-            # Generate images for presets
-            self.generate_presets_images(width=1200, height=None)
-
         except FileNotFoundError as e:
             raise FileNotFoundError(f"YAML file not found: {file_path}") from e
         except yaml.YAMLError as e:
@@ -642,7 +643,7 @@ class PresetsManager:
             radios_list = list(preset_collection.radios.items())
             radio_count = len(radios_list)
             
-            if radio_count > 0:
+            if radio_count > 0 and preset_collection.used_in_mission:
                 # Define background colors for each radio table
                 radio_colors = [(255, 0, 0), (0, 128, 0), (255, 165, 0)]  # Red, Green, Orange
                 
@@ -654,8 +655,14 @@ class PresetsManager:
                 top_margin = 80  # Space for collection title
                 bottom_margin = 50  # Margin at bottom
                 
+                # Compute the highest channel across all radios
+                max_channels = 0
+                for _, radio in radios_list:
+                    for channel in radio.channels.values():
+                        if channel.number and channel.number > max_channels:
+                            max_channels = channel.number
+
                 # Find the radio with the most channels to determine image height
-                max_channels = max(len(radio.channels) for _, radio in radios_list)
                 image_height = top_margin + header_height + max_channels * row_height + bottom_margin
                 image_height = height if height is not None else image_height
                 
@@ -727,7 +734,19 @@ class PresetsManager:
                     
                     # Draw channels with alternating backgrounds
                     channel_list = list(radio.channels.items())
-                    for j, (_, channel) in enumerate(channel_list):
+                    for j in range(max_channels):
+                        # Skip empty rows if radio has fewer channels
+                        channel_index = 0
+                        while True:
+                            channel_tuple = channel_list[channel_index] if channel_index < len(channel_list) else None
+                            channel_index += 1
+                            if not channel_tuple or channel_tuple[1].number == j+1:
+                                break
+                        channel = channel_tuple[1] if channel_tuple else None
+                        channel_number = f"{j+1:02d}"
+                        channel_name = channel.name if channel is not None else ""
+                        channel_frequency = f"{channel.freq:.2f}" if channel is not None else ""
+
                         row_y = header_y + row_height + j * row_height
                         
                         # Alternate background colors (light gray and white)
@@ -739,16 +758,13 @@ class PresetsManager:
                         draw.line([table_x + column_width_channel + column_width_name, row_y, table_x + column_width_channel + column_width_name, row_y + row_height], fill='black')
                         
                         # Draw channel number
-                        channel_number = f"{j+1:02d}"
                         draw.text((table_x + 10, row_y + 5), channel_number, fill='black', font=font)
                         
                         # Draw channel name
-                        name_text = channel.name or f"Channel {j+1:02d}"
-                        draw.text((table_x + column_width_channel + 10, row_y + 5), name_text, fill='black', font=font)
+                        draw.text((table_x + column_width_channel + 10, row_y + 5), channel_name, fill='black', font=font)
                         
                         # Draw frequency
-                        freq_text = f"{channel.freq:.2f}"
-                        draw.text((table_x + column_width_channel + column_width_name + 10, row_y + 5), freq_text, fill='black', font=font)
+                        draw.text((table_x + column_width_channel + column_width_name + 10, row_y + 5), channel_frequency, fill='black', font=font)
                         
                         # Draw horizontal line at bottom of row
                         draw.line([table_x, row_y + row_height, table_x + table_width, row_y + row_height], fill='black')

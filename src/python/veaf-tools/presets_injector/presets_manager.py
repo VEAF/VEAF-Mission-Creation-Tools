@@ -696,8 +696,8 @@ class PresetsManager:
                     table_y = top_margin  # Space for collection title
                     
                     # Define column widths
-                    column_width_name = table_width * 0.6
-                    column_width_freq = table_width * 0.4
+                    column_width_channel = table_width * 0.13
+                    column_width_name = table_width * 0.67
                     
                     # Draw table background (optional, for better visibility)
                     table_height = header_height + len(radio.channels) * row_height + 10
@@ -718,9 +718,11 @@ class PresetsManager:
                     # Draw column headers
                     header_y = table_y + header_height
                     draw.rectangle([table_x, header_y, table_x + table_width, header_y + row_height], fill=(200, 200, 200))  # Gray header
-                    draw.line([table_x + column_width_name, header_y, table_x + column_width_name, header_y + row_height], fill='black')  # Vertical line
-                    draw.text((table_x + 10, header_y + 5), "Name", fill='black', font=font)
-                    draw.text((table_x + column_width_name + 10, header_y + 5), "Frequency", fill='black', font=font)
+                    draw.line([table_x + column_width_channel, header_y, table_x + column_width_channel, header_y + row_height], fill='black')  # Vertical line
+                    draw.line([table_x + column_width_channel + column_width_name, header_y, table_x + column_width_channel + column_width_name, header_y + row_height], fill='black')  # Vertical line
+                    draw.text((table_x + 10, header_y + 5), "CH", fill='black', font=font)
+                    draw.text((table_x + column_width_channel + 10, header_y + 5), "Name", fill='black', font=font)
+                    draw.text((table_x + column_width_channel + column_width_name + 10, header_y + 5), "Freq.", fill='black', font=font)
                     draw.line([table_x, header_y + row_height, table_x + table_width, header_y + row_height], fill='black')  # Bottom line
                     
                     # Draw channels with alternating backgrounds
@@ -732,16 +734,21 @@ class PresetsManager:
                         bg_color = (240, 240, 240) if j % 2 == 0 else (255, 255, 255)  # Light gray and white
                         draw.rectangle([table_x, row_y, table_x + table_width, row_y + row_height], fill=bg_color)
                         
-                        # Draw vertical line between columns
-                        draw.line([table_x + column_width_name, row_y, table_x + column_width_name, row_y + row_height], fill='black')
+                        # Draw vertical lines between columns
+                        draw.line([table_x + column_width_channel, row_y, table_x + column_width_channel, row_y + row_height], fill='black')
+                        draw.line([table_x + column_width_channel + column_width_name, row_y, table_x + column_width_channel + column_width_name, row_y + row_height], fill='black')
+                        
+                        # Draw channel number
+                        channel_number = f"{j+1:02d}"
+                        draw.text((table_x + 10, row_y + 5), channel_number, fill='black', font=font)
                         
                         # Draw channel name
-                        name_text = channel.name or ""
-                        draw.text((table_x + 10, row_y + 5), name_text, fill='black', font=font)
+                        name_text = channel.name or f"Channel {j+1:02d}"
+                        draw.text((table_x + column_width_channel + 10, row_y + 5), name_text, fill='black', font=font)
                         
                         # Draw frequency
-                        freq_text = f"{channel.freq:.3f}"
-                        draw.text((table_x + column_width_name + 10, row_y + 5), freq_text, fill='black', font=font)
+                        freq_text = f"{channel.freq:.2f}"
+                        draw.text((table_x + column_width_channel + column_width_name + 10, row_y + 5), freq_text, fill='black', font=font)
                         
                         # Draw horizontal line at bottom of row
                         draw.line([table_x, row_y + row_height, table_x + table_width, row_y + row_height], fill='black')

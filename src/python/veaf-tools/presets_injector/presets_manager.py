@@ -1,10 +1,9 @@
 """
 Classes for managing radio presets data from YAML files.
 """
-from ast import List
 from dataclasses import dataclass
 import io
-from typing import Optional, Union, Dict, Any
+from typing import Optional, Dict, Any
 import yaml
 from PIL import Image, ImageDraw, ImageFont
 
@@ -195,7 +194,7 @@ class Radio:
         Returns:
             Radio: New instance
         """
-        title = data["title"] or "Unnamed Radio"
+        title = data.get("title", "Unnamed Radio")
         if "channels" not in data:
             raise ValueError("Radio data must contain 'channels' key")
 
@@ -297,7 +296,7 @@ class PresetCollection:
         Returns:
             PresetCollection: New instance
         """
-        title = data["title"] or "Unnamed preset collection"
+        title = data.get("title", "Unnamed preset collection")
         radios = {
             radio_name: Radio.from_dict(radio_name, radio_data)
             for radio_name, radio_data in data["radios"].items()
@@ -446,7 +445,7 @@ class PresetAssignment:
         Returns:
             str: The preset name if found, None otherwise
         """
-        return self.assignments.get("coalition", {}).get(coalition, {}).get(aircraft_type, {}).get(group_type)
+        return self.assignments.get("coalitions", {}).get(coalition, {}).get(aircraft_type, {}).get(group_type)
     
     def remove_assignment(self, coalition: str, aircraft_type: str, group_type: str) -> bool:
         """

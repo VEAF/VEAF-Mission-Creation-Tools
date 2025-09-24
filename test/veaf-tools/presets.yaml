@@ -196,7 +196,7 @@ presets_definition: # Lists all the presets collections
             freq: 59.000
 
 presets_assignments:
-  coalition:
+  coalitions: # defines which presets collection to use for each coalition
     blue:
       plane: 
         all: modern_blue

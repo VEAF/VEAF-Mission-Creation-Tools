@@ -70,7 +70,7 @@ class RadioChannel:
         return result
     
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'RadioChannel':
+    def from_dict(cls, channel_name, data: Dict[str, Any]) -> 'RadioChannel':
         """
         Create a RadioChannel instance from a dictionary.
         
@@ -88,7 +88,7 @@ class RadioChannel:
         
         return cls(
             freq=float(data["freq"]),
-            name=data.get("name"),
+            name=data.get("name", channel_name.replace("channel_", "Channel ")),
             mod=int(data.get("mod", 0))
         )
 
@@ -199,7 +199,7 @@ class Radio:
             raise ValueError("Radio data must contain 'channels' key")
 
         channels = {
-            channel_name: RadioChannel.from_dict(channel_data) for channel_name, channel_data in data["channels"].items()
+            channel_name: RadioChannel.from_dict(channel_name, channel_data) for channel_name, channel_data in data["channels"].items()
         }
         return cls(name=name, title=title, channels=channels)
 
@@ -668,7 +668,7 @@ class PresetsManager:
                 # Try to use a better font, fallback to default if not available
                 try:
                     font = ImageFont.truetype("arial.ttf", 16)
-                    title_font = ImageFont.truetype("arial.ttf", 20)
+                    title_font = ImageFont.truetype("arial.ttf", 30)
                 except Exception:
                     font = ImageFont.load_default()
                     title_font = ImageFont.load_default()

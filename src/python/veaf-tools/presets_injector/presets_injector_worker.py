@@ -4,15 +4,15 @@ API module for the VEAF Presets Injector Package.
 This module provides a class that publishes an API with a single "work" function.
 """
 
+from .presets_manager import PresetsManager
 from dataclasses import dataclass
-import io
 from logging import Logger
-import os
 from pathlib import Path
 from typing import Any, Dict, Optional
-import zipfile
+import io
 import luadata
-from .presets_manager import PresetsManager
+import os
+import zipfile
 
 @dataclass
 class Group:

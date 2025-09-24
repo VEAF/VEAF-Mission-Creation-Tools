@@ -1,12 +1,29 @@
-from typing import Optional
+"""
+This program provides a command-line interface (CLI) tool for managing DCS missions.
+
+Features:
+- Provides a CLI interface.
+- Logs the details of the operation in the 'veaf-tools.log' file.
+
+Usage:
+- Run the script with 'veaf-tools.exe' to access the CLI.
+- Use the 'about' command to learn about the VEAF and this program.
+- Use the 'inject_presets' command to inject radio presets into a mission file.
+
+Example:
+- To inject presets into a mission file:
+      'python veaf-tools.py inject-presets --verbose --presets-file my_presets.yaml my_mission.miz my_output.miz'
+"""
+
 from pathlib import Path
 from rich.console import Console
 from typing import Optional
+from typing import Optional
 from xmlrpc.client import Boolean
 import logging
-import typer
-import typer
 import presets_injector
+import typer
+import typer
 
 VERSION:str = "0.1.0"
 
@@ -62,24 +79,23 @@ class Logger:
         if self.verbose:
             console.print(message, style="dark_khaki")
 
-app = typer.Typer()
+app = typer.Typer(no_args_is_help=True)
 console = Console()
 logger: Logger = Logger()  # Will be initialized in main()
 
 @app.command()
-def inject_aircrafts(
-    input_mission: Optional[str] = typer.Argument("mission.miz", help="Mission file to edit."),
-    output_mission: Optional[str] = typer.Argument(None, help="Mission file to save; defaults to the same as 'input_mission'."),
-    verbose: bool = typer.Option(False, help="If set, the script will output a lot of debug information."),
-    config_file: str = typer.Option("presets.yaml", help="Configuration file containing the presets."),
+def about(
 ) -> None:
     """
-    Injects aircraft groups read from a configuration file into a DCS mission
+    Shows information about the veaf-tools program
     """
-
-    pass
-
-
+    url = "https://www.veaf.org"
+    console.print(__doc__)
+    console.print("[bold green]The VEAF - Virtual European Air Force[/bold green]")
+    console.print("The VEAF is a community of virtual pilots dedicated to creating and flying high-quality missions in DCS World.")
+    console.print(f"Website: {url}", style="blue")
+    if typer.confirm("Do you want to open the VEAF website in your browser?"):
+        typer.launch(url)
 
 @app.command()
 def inject_presets(

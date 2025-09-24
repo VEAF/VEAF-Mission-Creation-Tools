@@ -1,11 +1,12 @@
 """
 Classes for managing radio presets data from YAML files.
 """
+
 from dataclasses import dataclass
-import io
-from typing import Optional, Dict, Any, List
-import yaml
 from PIL import Image, ImageDraw, ImageFont
+from typing import Optional, Dict, Any, List
+import io
+import yaml
 
 
 @dataclass

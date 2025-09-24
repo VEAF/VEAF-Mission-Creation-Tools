@@ -13,6 +13,7 @@ from .presets_manager import (
     PresetsManager
 )
 from .presets_injector_worker import PresetsInjectorWorker
+from .presets_injector_README import README
 
 __all__ = [
     "RadioChannel",

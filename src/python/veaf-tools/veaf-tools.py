@@ -17,15 +17,27 @@ Example:
 
 from pathlib import Path
 from rich.console import Console
+from rich.markdown import Markdown
 from typing import Optional
 from typing import Optional
 from xmlrpc.client import Boolean
 import logging
+import os
 import presets_injector
-import typer
+import sys
 import typer
 
 VERSION:str = "0.1.0"
+
+def resource_path(relative_path):
+    """ Get absolute path to resource, works for dev and for PyInstaller """
+    try:
+        # PyInstaller creates a temp folder and stores path in _MEIPASS
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+    
+    return os.path.join(base_path, relative_path)
 
 class Logger:
     """Logging and console print system."""
@@ -99,6 +111,7 @@ def about(
 
 @app.command()
 def inject_presets(
+    readme: bool = typer.Option(False, help="Provide access to the README file."),
     verbose: bool = typer.Option(False, help="If set, the script will output a lot of debug information."),
     input_mission: Optional[str] = typer.Argument("mission.miz", help="Mission file to edit."),
     output_mission: Optional[str] = typer.Argument(None, help="Mission file to save; defaults to the same as 'input_mission'."),
@@ -112,6 +125,13 @@ def inject_presets(
     console.print(f"[bold green]veaf-tools Radio Presets Injector v{VERSION}[/bold green]")
 
     logger.set_verbose(verbose)
+
+    if readme:
+        if typer.confirm("Do you want to display the documentation?"):
+            md_render = Markdown(presets_injector.README)
+            console.print(md_render)
+        raise typer.Exit()
+
 
     # Resolve input mission
     if not input_mission:

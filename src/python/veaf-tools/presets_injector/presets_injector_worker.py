@@ -12,6 +12,7 @@ from typing import Any, Dict, Optional
 import io
 import luadata
 import os
+import sys
 import zipfile
 
 @dataclass
@@ -192,4 +193,3 @@ class PresetsInjectorWorker:
 
         # Write the mission file
         self.write_mission()
-

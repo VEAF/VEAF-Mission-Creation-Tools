@@ -3,7 +3,7 @@ Classes for managing radio presets data from YAML files.
 """
 from dataclasses import dataclass
 import io
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 import yaml
 from PIL import Image, ImageDraw, ImageFont
 
@@ -637,65 +637,115 @@ class PresetsManager:
 
         # Browse the preset collection and generate an image for each
         for preset_collection in self.presets_definition.collections.values():
-
-            # Create image
-            width, height = 1200, 800
-            image = Image.new('RGB', (width, height), color='white')
-            draw = ImageDraw.Draw(image)
-
-            # Try to use a better font, fallback to default if not available
-            try:
-                font = ImageFont.truetype("arial.ttf", 16)
-                title_font = ImageFont.truetype("arial.ttf", 20)
-            except Exception:
-                font = ImageFont.load_default()
-                title_font = ImageFont.load_default()
-
-            # Calculate layout
-            radio_count = len(preset_collection.radios)
+            # Convert radios to a list to maintain order and allow indexing
+            radios_list = list(preset_collection.radios.items())
+            radio_count = len(radios_list)
+            
             if radio_count > 0:
+                # Define background colors for each radio table
+                radio_colors = [(255, 0, 0), (0, 128, 0), (255, 165, 0)]  # Red, Green, Orange
+                
+                # Calculate dimensions based on content
+                row_height = 30
+                header_height = 40
+                margin_between_tables = 30  # Margin between tables
+                side_margin = 50  # Margin on sides
+                top_margin = 80  # Space for collection title
+                bottom_margin = 50  # Margin at bottom
+                
+                # Find the radio with the most channels to determine image height
+                max_channels = max(len(radio.channels) for _, radio in radios_list)
+                image_height = top_margin + header_height + max_channels * row_height + bottom_margin
+                
+                # Calculate table widths and positions with margins
+                available_width = 1200 - 2 * side_margin - (radio_count - 1) * margin_between_tables
+                table_width = available_width // radio_count if radio_count > 0 else 400
+                
+                # Create image with light yellow background (like old paper)
+                image = Image.new('RGB', (1200, image_height), color=(255, 255, 224))  # Light yellow
+                draw = ImageDraw.Draw(image)
 
-                column_width = width // radio_count
-                y_offset = 50
+                # Try to use a better font, fallback to default if not available
+                try:
+                    font = ImageFont.truetype("arial.ttf", 16)
+                    title_font = ImageFont.truetype("arial.ttf", 20)
+                except Exception:
+                    font = ImageFont.load_default()
+                    title_font = ImageFont.load_default()
 
-                # Draw title
-                title = preset_collection.title or preset_collection.name
-                draw.text((20, 10), title, fill='black', font=title_font)
+                # Draw collection title
+                collection_title = preset_collection.title or preset_collection.name
+                # Get text dimensions for centering
+                title_bbox = draw.textbbox((0, 0), collection_title, font=title_font)
+                title_width = title_bbox[2] - title_bbox[0]
+                title_x = (1200 - title_width) // 2
+                draw.text((title_x, 20), collection_title, fill='black', font=title_font)
 
-                # Draw each radio
-                for i, (_, radio) in enumerate(preset_collection.radios.items()):
-                    x_offset = i * column_width + 20
-
-                    # Draw radio name as title
-                    title = radio.title or radio.name
-                    draw.text((x_offset, y_offset), title, fill='black', font=title_font)
-
+                # Draw each radio as a table
+                for i, (_, radio) in enumerate(radios_list):
+                    if i >= 3:  # Only draw up to 3 radios
+                        break
+                        
+                    # Calculate table position with margins
+                    table_x = side_margin + i * (table_width + margin_between_tables)
+                    table_y = top_margin  # Space for collection title
+                    
+                    # Define column widths
+                    column_width_name = table_width * 0.6
+                    column_width_freq = table_width * 0.4
+                    
+                    # Draw table background (optional, for better visibility)
+                    table_height = header_height + len(radio.channels) * row_height + 10
+                    draw.rectangle([table_x, table_y, table_x + table_width, table_y + table_height], outline='black')
+                    
+                    # Draw title row with specific background color
+                    title_color = radio_colors[i] if i < len(radio_colors) else (200, 200, 200)  # Default gray
+                    draw.rectangle([table_x, table_y, table_x + table_width, table_y + header_height], fill=title_color)
+                    
+                    # Draw radio title (merged columns)
+                    radio_title = radio.title or radio.name
+                    title_bbox = draw.textbbox((0, 0), radio_title, font=title_font)
+                    title_width = title_bbox[2] - title_bbox[0]
+                    title_x_pos = table_x + (table_width - title_width) // 2
+                    title_y_pos = table_y + (header_height - (title_bbox[3] - title_bbox[1])) // 2
+                    draw.text((title_x_pos, title_y_pos), radio_title, fill='white', font=title_font)
+                    
                     # Draw column headers
-                    header_y = y_offset + 40
-                    draw.text((x_offset, header_y), "Name", fill='black', font=font)
-                    draw.text((x_offset + 150, header_y), "Frequency", fill='black', font=font)
-
-                    # Draw channels
-                    channel_y = header_y + 30
-                    for _, channel in radio.channels.items():
+                    header_y = table_y + header_height
+                    draw.rectangle([table_x, header_y, table_x + table_width, header_y + row_height], fill=(200, 200, 200))  # Gray header
+                    draw.line([table_x + column_width_name, header_y, table_x + column_width_name, header_y + row_height], fill='black')  # Vertical line
+                    draw.text((table_x + 10, header_y + 5), "Name", fill='black', font=font)
+                    draw.text((table_x + column_width_name + 10, header_y + 5), "Frequency", fill='black', font=font)
+                    draw.line([table_x, header_y + row_height, table_x + table_width, header_y + row_height], fill='black')  # Bottom line
+                    
+                    # Draw channels with alternating backgrounds
+                    channel_list = list(radio.channels.items())
+                    for j, (_, channel) in enumerate(channel_list):
+                        row_y = header_y + row_height + j * row_height
+                        
+                        # Alternate background colors (light gray and white)
+                        bg_color = (240, 240, 240) if j % 2 == 0 else (255, 255, 255)  # Light gray and white
+                        draw.rectangle([table_x, row_y, table_x + table_width, row_y + row_height], fill=bg_color)
+                        
+                        # Draw vertical line between columns
+                        draw.line([table_x + column_width_name, row_y, table_x + column_width_name, row_y + row_height], fill='black')
+                        
                         # Draw channel name
                         name_text = channel.name or ""
-                        draw.text((x_offset, channel_y), name_text, fill='black', font=font)
-
+                        draw.text((table_x + 10, row_y + 5), name_text, fill='black', font=font)
+                        
                         # Draw frequency
                         freq_text = f"{channel.freq:.3f}"
-                        draw.text((x_offset + 150, channel_y), freq_text, fill='black', font=font)
+                        draw.text((table_x + column_width_name + 10, row_y + 5), freq_text, fill='black', font=font)
+                        
+                        # Draw horizontal line at bottom of row
+                        draw.line([table_x, row_y + row_height, table_x + table_width, row_y + row_height], fill='black')
 
-                        channel_y += 25
+                # Store the image in the dictionary with the preset collection name as key
+                if self.presets_images is None:
+                    self.presets_images = {}
 
-                        # Check if we need to move to next column
-                        if channel_y > height - 50:
-                            break
-            # Store the image in the dictionary with the preset collection name as key
-            if self.presets_images is None:
-                self.presets_images = {}
-
-            img_buffer = io.BytesIO()
-            image.save(img_buffer, format='PNG')
-            img_buffer.seek(0)
-            self.presets_images[preset_collection.name] = img_buffer
+                img_buffer = io.BytesIO()
+                image.save(img_buffer, format='PNG')
+                img_buffer.seek(0)
+                self.presets_images[preset_collection.name] = img_buffer

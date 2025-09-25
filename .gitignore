@@ -19,5 +19,5 @@ __pycache__/
 test/veaf-tools/mission.json
 veaf-tools.log
 test/veaf-tools/groups.json
-test/veaf-tools/test-out.miz
+test/veaf-tools/*.miz
 dist/

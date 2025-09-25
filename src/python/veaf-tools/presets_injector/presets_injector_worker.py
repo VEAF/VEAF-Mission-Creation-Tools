@@ -82,7 +82,7 @@ class PresetsInjectorWorker:
                 for group in groups_list:
                     self.add_group(group, aircraft_type=aircraft_type, country=country_name, coalition=coalition_name)
             else:
-                self.logger.error(f"cannot find key 'group' in /coalition/{coalition_name}/country/{country_name}/{aircraft_type}", True)
+                self.logger.warning(f"cannot find key 'group' in /coalition/{coalition_name}/country/{country_name}/{aircraft_type}")
         else:
             self.logger.debugwarn(f"no key '{aircraft_type}' in /coalition/{coalition_name}/country/{country_name}")
 

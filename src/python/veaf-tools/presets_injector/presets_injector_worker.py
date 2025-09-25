@@ -2,15 +2,14 @@
 Worker module for the VEAF Presets Injector Package.
 """
 
-from .presets_manager import PresetsManager
 from dataclasses import dataclass
-from logging import Logger
 from pathlib import Path
 from typing import Any, Dict, Optional
-import io
-import luadata
-import os
-import zipfile
+
+from miz_tools import DcsMission, read_miz, update_miz
+
+from .presets_manager import PresetsManager
+from veaf_logger import VeafLogger
 
 @dataclass
 class Group:
@@ -27,7 +26,7 @@ class PresetsInjectorWorker:
     Worker class that provides presets injection features.
     """
     
-    def __init__(self, logger: Optional[Logger] = None, presets_file: Optional[Path] = None, input_mission: Optional[Path] = None, output_mission: Optional[Path] = None):
+    def __init__(self, logger: Optional[VeafLogger] = None, presets_file: Optional[Path] = None, input_mission: Optional[Path] = None, output_mission: Optional[Path] = None):
         """
         Initialize the worker with optional parameters for both use cases.
         
@@ -37,13 +36,13 @@ class PresetsInjectorWorker:
             input_mission: Path to the input mission file
             output_mission: Path to the output mission file
         """
-        self.logger = logger
+        self.logger: VeafLogger = logger
         self.presets_file = presets_file
         self.input_mission = input_mission
         self.output_mission = output_mission
         self.groups = {}
         self.presets_manager = self.load_config()
-        self.lua_mission = None
+        self.dcs_mission: DcsMission = None
 
     def load_config(self) -> Any:
         """Load configuration from Lua file."""
@@ -70,51 +69,61 @@ class PresetsInjectorWorker:
                         group.unit_type = first_unit_type
             self.groups[name] = group
 
-    def _process_groups(self, aircraft_type: str, country_dict: Dict, country_name: str, coalition_name: str) -> None:
-        """Process groups for a country."""
-        if dict := country_dict.get(aircraft_type):
-            if groups_list := dict.get("group"):
-                for group in groups_list:
-                    self.add_group(group, aircraft_type=aircraft_type, country=country_name, coalition=coalition_name)
-            else:
-                self.logger.warning(f"cannot find key 'group' in /coalition/{coalition_name}/country/{country_name}/{aircraft_type}")
-        else:
-            self.logger.debugwarn(f"no key '{aircraft_type}' in /coalition/{coalition_name}/country/{country_name}")
-
-    def _process_country(self, country_dict: Dict, coalition_name: str) -> None:
-        """Process a country's aircraft groups."""
-        if country_name := country_dict.get("name"):
-            self.logger.debug(f"Browsing country {country_name}")
-            self._process_groups(aircraft_type="helicopter", country_dict=country_dict, country_name=country_name, coalition_name=coalition_name)
-            self._process_groups(aircraft_type="plane", country_dict=country_dict, country_name=country_name, coalition_name=coalition_name)
-        else:
-            self.logger.error(f"cannot find key 'name' in /coalition/{coalition_name}/country", True)
-
-    def _process_coalition(self, coalition_name: str, coalitions_dict: Dict) -> None:
-        """Process all countries in a coalition."""
-        self.logger.debug(f"Browsing countries in coalition {coalition_name}")
-        if countries_list := coalitions_dict[coalition_name].get("country"):
-            for country_dict in countries_list:
-                self._process_country(country_dict, coalition_name)
-        else:
-            self.logger.debugwarn(f"no key 'country' in /coalition/{coalition_name}")
-
     def read_mission(self) -> None:
         """Load the mission from the .miz file (unzip it) and process aircraft groups."""
 
         self.logger.info(f"Reading mission file {self.input_mission}")
-        with zipfile.ZipFile(self.input_mission, 'r') as miz:
-            with miz.open('mission') as mission:
-                self.lua_mission = luadata.unserialize(io.TextIOWrapper(mission, encoding='utf-8').read())
+        self.dcs_mission = read_miz(self.input_mission)
 
-                # Find and store all the aircraft groups
-                self.logger.debug("Searching for all aircraft groups")
-                if coalitions_dict := self.lua_mission.get("coalition"):
-                    # Browse coalitions
-                    for coalition_name in coalitions_dict.keys():
-                        self._process_coalition(coalition_name, coalitions_dict)
-                else:
-                    self.logger.error("cannot find key 'coalition'", True)
+        self.logger.debug("Searching for all aircraft groups")
+        
+        coalitions_dict = self.dcs_mission.mission_lua.get("coalition")
+        if not coalitions_dict:
+            self.logger.error("cannot find key 'coalition'", True)
+            return
+            
+        for coalition_name in coalitions_dict.keys():
+            self._process_coalition(coalition_name, coalitions_dict[coalition_name])
+
+    def _process_coalition(self, coalition_name: str, coalition_data: Dict) -> None:
+        """Process all countries in a coalition."""
+        self.logger.debug(f"Browsing countries in coalition {coalition_name}")
+        
+        countries_list = coalition_data.get("country")
+        if not countries_list:
+            self.logger.debugwarn(f"no key 'country' in /coalition/{coalition_name}")
+            return
+            
+        for country_dict in countries_list:
+            self._process_country(country_dict, coalition_name)
+
+    def _process_country(self, country_dict: Dict, coalition_name: str) -> None:
+        """Process a country's aircraft groups."""
+        country_name = country_dict.get("name")
+        if not country_name:
+            self.logger.error(f"cannot find key 'name' in /coalition/{coalition_name}/country", True)
+            return
+            
+        self.logger.debug(f"Browsing country {country_name}")
+        
+        # Process both helicopter and plane groups
+        for aircraft_type in ["helicopter", "plane"]:
+            self._process_aircraft_type(country_dict, aircraft_type, country_name, coalition_name)
+
+    def _process_aircraft_type(self, country_dict: Dict, aircraft_type: str, country_name: str, coalition_name: str) -> None:
+        """Process groups for a specific aircraft type (helicopter or plane)."""
+        aircraft_data = country_dict.get(aircraft_type)
+        if not aircraft_data:
+            self.logger.debugwarn(f"no key '{aircraft_type}' in /coalition/{coalition_name}/country/{country_name}")
+            return
+            
+        groups_list = aircraft_data.get("group")
+        if not groups_list:
+            self.logger.warning(f"cannot find key 'group' in /coalition/{coalition_name}/country/{country_name}/{aircraft_type}")
+            return
+            
+        for group in groups_list:
+            self.add_group(group, aircraft_type=aircraft_type, country=country_name, coalition=coalition_name)
 
     def process_groups(self) -> None:  
         """Process all the aircraft groups."""
@@ -146,33 +155,16 @@ class PresetsInjectorWorker:
 
         self.logger.info("Writing mission file")
 
-        # Read all files from the original mission file
-        with zipfile.ZipFile(self.input_mission, 'r') as zip_read:
-            # Get list of all files in the ZIP
-            file_list = zip_read.namelist()
+        # Prepare saving kneeboard pages if generated
+        additional_files = {}
+        if self.presets_manager.presets_images:
+            for preset_collection_name, image in self.presets_manager.presets_images.items():
+                additional_files[f"/KNEEBOARD/IMAGES/presets-{preset_collection_name}.png"] = image.getvalue()
+        nb_kneeboard_images = len(self.presets_manager.presets_images)
+        self.logger.info(f"Added {nb_kneeboard_images} kneeboard page{"s" if nb_kneeboard_images > 1 else ""} to mission")
 
-            # Create a new ZIP file (temporary)
-            temp_zip_path = f'{self.input_mission}.tmp'
-
-            with zipfile.ZipFile(temp_zip_path, 'w', zipfile.ZIP_DEFLATED) as zip_write:
-                # Copy all files except the one we want to replace
-                for file_name in file_list:
-                    if file_name != "mission":
-                        # Copy existing file as-is
-                        zip_write.writestr(file_name, zip_read.read(file_name))
-                    else:
-                        # Replace with new content
-                        zip_write.writestr(file_name, f"mission = \n{luadata.serialize(self.lua_mission, indent='\t', indent_level=0, always_provide_keyname=True)}")
-
-                # Save kneeboard pages if generated
-                if self.presets_manager.presets_images:
-                    for preset_collection_name, image in self.presets_manager.presets_images.items():
-                        zip_write.writestr(f"/KNEEBOARD/IMAGES/presets-{preset_collection_name}.png", image.getvalue())
-                nb_kneeboard_images = len(self.presets_manager.presets_images)
-                self.logger.info(f"Added {nb_kneeboard_images} kneeboard page{"s" if nb_kneeboard_images > 1 else ""} to mission")
-
-        # Replace original ZIP with the modified one
-        os.replace(temp_zip_path, self.output_mission)
+        # Save the mission
+        update_miz(mission=self.dcs_mission, file_path=self.output_mission, additional_files=additional_files)
 
     def work(self) -> None:
         """Main work function."""

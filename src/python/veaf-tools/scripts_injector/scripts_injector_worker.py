@@ -2,18 +2,11 @@
 Worker module for the VEAF Presets Injector Package.
 """
 
-from rich.console import Console
-from dataclasses import dataclass
 from logging import Logger
 from pathlib import Path
-from typing import Any, Dict, Optional
-import io
-import luadata
-import os
-import sys
-import zipfile
+from typing import Optional
 from miz_tools import read_miz, update_miz, DcsMission
-
+from veaf_logger import VeafLogger
 
 class ScriptsInjectorWorker:
     """
@@ -31,13 +24,14 @@ class ScriptsInjectorWorker:
             input_mission: Path to the input mission file
             output_mission: Path to the output mission file
         """
-        self.logger = logger
+        self.logger: VeafLogger = logger
         self.development_mode = development_mode
         self.development_path = development_path
         self.input_mission = input_mission
         self.output_mission = output_mission
         self.dcs_mission: DcsMission = None
         self.scripts = {}
+        self.__post_init__()
 
     def __post_init__(self):
         """Initialize the object and validates its state."""

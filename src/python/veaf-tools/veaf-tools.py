@@ -22,8 +22,7 @@ from pathlib import Path
 from rich.console import Console
 from rich.markdown import Markdown
 from typing import Optional
-from typing import Optional
-from xmlrpc.client import Boolean
+from veaf_logger import VeafLogger
 import logging
 import os
 import presets_injector
@@ -43,61 +42,9 @@ def resource_path(relative_path):
     
     return os.path.join(base_path, relative_path)
 
-class Logger:
-    """Logging and console print system."""
-    
-    def __init__(self, verbose: bool = False):
-        self.verbose = verbose
-        # Configure logging with better format
-        logging.basicConfig(
-            filename="veaf-tools.log",
-            level=logging.DEBUG if self.verbose else logging.INFO,
-            format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-            filemode='w'  # Overwrite log file on each run
-        )
-        self.logger = logging.getLogger("veaf-tools")
-
-    def set_verbose(self, verbose: bool):
-        self.verbose = verbose
-        self.set_level(logging.DEBUG if self.verbose else logging.INFO)
-
-    def set_level(self, level):
-        self.logger.setLevel(level=level)
-
-    def error(self, message: str, raise_exception: Boolean = False) -> None:
-        """Log and display error message."""
-        self.logger.error(message)
-        console.print(message, style="red")
-        if raise_exception:
-            raise typer.Abort(message)
-
-    def warning(self, message: str) -> None:
-        """Log and display warning message."""
-        self.logger.warning(message)
-        console.print(message, style="yellow")
-
-
-    def info(self, message: str) -> None:
-        """Log and display info message."""
-        self.logger.info(message)
-        console.print(message, style="blue")
-
-
-    def debug(self, message: str) -> None:
-        """Log debug message."""
-        self.logger.debug(message)
-        if self.verbose:
-            console.print(message, style="grey69")
-    
-    def debugwarn(self, message: str) -> None:
-        """Log debug message."""
-        self.logger.debug(message)
-        if self.verbose:
-            console.print(message, style="dark_khaki")
-
 app = typer.Typer(no_args_is_help=True)
 console = Console()
-logger: Logger = Logger()  # Will be initialized in main()
+logger: VeafLogger = None  # Will be initialized in main
 
 @app.command()
 def about(
@@ -128,7 +75,7 @@ def inject_presets(
     # Set the title and version
     console.print(f"[bold green]veaf-tools Radio Presets Injector v{VERSION}[/bold green]")
 
-    logger.set_verbose(verbose)
+    logger = VeafLogger(logger_name="veaf-tools-presets-injector", console=console).set_verbose(verbose)
 
     if readme:
         if typer.confirm("Do you want to display the documentation?"):
@@ -186,7 +133,7 @@ def inject_scripts(
     # Set the title and version
     console.print(f"[bold green]veaf-tools VEAF scripts injector v{VERSION}[/bold green]")
 
-    logger.set_verbose(verbose)
+    logger = VeafLogger(logger_name="veaf-tools-scripts-injector", console=console).set_verbose(verbose)
 
     if readme:
         if typer.confirm("Do you want to display the documentation?"):

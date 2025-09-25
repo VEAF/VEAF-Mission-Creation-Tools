@@ -24,7 +24,8 @@ def read_miz(file_path: Path) -> DcsMission:
     """Load the mission from the .miz file (unzip it)."""
     
     def unserialize(file: str) -> Dict:
-        return luadata.unserialize(io.TextIOWrapper(file, encoding='utf-8').read())
+        with io.TextIOWrapper(file, encoding='utf-8') as wrapper:
+            return luadata.unserialize(wrapper.read())
 
     result = DcsMission(file_path=file_path)
 

@@ -21,3 +21,4 @@ veaf-tools.log
 test/veaf-tools/groups.json
 test/veaf-tools/*.miz
 dist/
+*.log

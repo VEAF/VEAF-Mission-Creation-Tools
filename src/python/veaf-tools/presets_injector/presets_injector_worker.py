@@ -1,7 +1,5 @@
 """
-API module for the VEAF Presets Injector Package.
-
-This module provides a class that publishes an API with a single "work" function.
+Worker module for the VEAF Presets Injector Package.
 """
 
 from .presets_manager import PresetsManager
@@ -12,7 +10,6 @@ from typing import Any, Dict, Optional
 import io
 import luadata
 import os
-import sys
 import zipfile
 
 @dataclass
@@ -30,18 +27,16 @@ class PresetsInjectorWorker:
     Worker class that provides presets injection features.
     """
     
-    def __init__(self, logger: Optional[Logger] = None, presets_file: Optional[Path] = None, input_mission: Optional[Path] = None, output_mission: Optional[Path] = None, presets_manager: Optional[PresetsManager] = None):
+    def __init__(self, logger: Optional[Logger] = None, presets_file: Optional[Path] = None, input_mission: Optional[Path] = None, output_mission: Optional[Path] = None):
         """
-        Initialize the API with optional parameters for both use cases.
+        Initialize the worker with optional parameters for both use cases.
         
         Args:
             logger: Logger instance for logging messages
             config_file: Path to the configuration file
             input_mission: Path to the input mission file
             output_mission: Path to the output mission file
-            presets_manager: An optional PresetsManager instance
         """
-        self.presets_manager = presets_manager or PresetsManager()
         self.logger = logger
         self.presets_file = presets_file
         self.input_mission = input_mission

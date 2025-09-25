@@ -94,6 +94,9 @@ call .\.venv\Scripts\activate.bat
 pyinstaller --onefile --name veaf-tools --distpath .\published src\python\veaf-tools\veaf-tools.py
 call .\.venv\Scripts\deactivate.bat
 
+rem publish the build scripts
+xcopy /Y /E /S src\build-scripts published\build-scripts
+
 IF [%NOPAUSE%] == [true] GOTO EndOfFile
 pause
 :EndOfFile

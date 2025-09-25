@@ -2,13 +2,23 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Python Debugger: Current File",
+            "name": "veaf-tools radio presets injection",
             "type": "debugpy",
             "request": "launch",
             "program": "${workspaceFolder}/src/python/veaf-tools/veaf-tools.py",
             "cwd": "${workspaceFolder}\\test\\veaf-tools",
             "args": ["inject-presets", "--verbose", "test2.miz", "test2-out.miz"],
             "console": "integratedTerminal"
+        },
+        {
+            "name": "veaf-tools scripts injection",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/python/veaf-tools/veaf-tools.py",
+            "cwd": "${workspaceFolder}\\test\\veaf-tools\\scripts-injector\\build",
+            "args": ["inject-scripts", "--verbose", "--development-mode", "test.miz", "test-out.miz"],
+            "console": "integratedTerminal"
         }
+
     ]
 }

@@ -38,19 +38,28 @@ app = typer.Typer(no_args_is_help=True)
 console = Console()
 logger: VeafLogger = None  # Will be initialized in main
 
-def resolve_path(path: str, default_path: str = None, shouldExist: bool = False, createIfNotExist: bool = False) -> Path:
-    result: Optional[Path] = None
-    if not path and shouldExist:
-        if default_path:
-            result = default_path
-    else:
+def resolve_path(path: str, default_path: str = None, should_exist: bool = False, create_if_not_exist: bool = False) -> Path:
+    
+    """Resolve and validate a file path."""
+    if not path and default_path:
+        result = Path(default_path)
+    elif path:
         result = Path(path)
-
-    if createIfNotExist and not result.exists():
-        pass
-
-    if result: result = result.resolve()
+    else:
+        raise ValueError("Either path or default_path must be provided")
+    
+    result = result.resolve()
+    
+    if create_if_not_exist and not result.exists():
+        result.parent.mkdir(parents=True, exist_ok=True)
+        if not result.suffix:  # It's a directory
+            result.mkdir(exist_ok=True)
+    
+    if should_exist and not result.exists():
+        raise FileNotFoundError(f"Path does not exist: {result}")
+    
     return result
+
 
 
 @app.command()
@@ -92,7 +101,7 @@ def inject_presets(
 
 
     # Resolve input mission
-    p_input_mission = resolve_path(path=input_mission, default_path=Path.cwd() / "mission.miz", shouldExist=True)
+    p_input_mission = resolve_path(path=input_mission, default_path=Path.cwd() / "mission.miz", should_exist=True)
     if not p_input_mission.exists():
         logger.error(f"Input mission {p_input_mission} does not exist!", raise_exception=True)
 
@@ -100,7 +109,7 @@ def inject_presets(
     p_output_mission = resolve_path(output_mission, default_path=p_input_mission)
 
     # Resolve presets configuration file
-    p_presets_file = resolve_path(path=presets_file, default_path=Path.cwd() / "presets.yaml", shouldExist=True)
+    p_presets_file = resolve_path(path=presets_file, default_path=Path.cwd() / "presets.yaml", should_exist=True)
     if not p_presets_file.exists():
         logger.error(f"Configuration file {p_presets_file} does not exist!", raise_exception=True)
 
@@ -137,7 +146,7 @@ def inject_scripts(
 
 
     # Resolve input mission
-    p_input_mission = resolve_path(path=input_mission, default_path=Path.cwd() / "mission.miz", shouldExist=True)
+    p_input_mission = resolve_path(path=input_mission, default_path=Path.cwd() / "mission.miz", should_exist=True)
     if not p_input_mission.exists():
         logger.error(f"Input mission {p_input_mission} does not exist!", raise_exception=True)
 

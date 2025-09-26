@@ -4,11 +4,18 @@ Classes for managing radio presets data from YAML files.
 
 from dataclasses import dataclass
 from PIL import Image, ImageDraw, ImageFont
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any
+from typing_extensions import Self
 import io
 import yaml
 
 
+@dataclass
+class Fonts:
+      preset: ImageFont.FreeTypeFont
+      title: ImageFont.FreeTypeFont
+      collection_title: ImageFont.FreeTypeFont
+    
 @dataclass
 class RadioChannel:
     """
@@ -501,8 +508,9 @@ class PresetsManager:
     """
     presets_definition: Optional[PresetsDefinition] = None
     presets_assignment: Optional[PresetAssignment] = None
-    presets_images: Optional[Dict[str, io.BytesIO]] = None
-    
+    presets_images: Optional[Dict[str, io.BytesIO]] = None 
+    _cached_fonts: Optional['Fonts'] = None
+
     def __post_init__(self):
         """Initialize the presets manager."""
         if self.presets_definition is None:
@@ -624,6 +632,21 @@ class PresetsManager:
         
         return True
     
+    def get_fonts(self) -> Self:
+        if self._cached_fonts is None:
+            try:
+                preset_font = ImageFont.truetype("arial.ttf", 18)
+                title_font = ImageFont.truetype("arial.ttf", 30)
+                collection_title_font = ImageFont.truetype("arial.ttf", 40)
+            except Exception:
+                preset_font = ImageFont.load_default()
+                title_font = ImageFont.load_default()
+                collection_title_font = ImageFont.load_default()
+
+            self._cached_fonts = Fonts(preset_font, title_font, collection_title_font)
+
+        return self._cached_fonts
+
     def generate_presets_images(self, width: int = 1200, height: int = None) -> None:
         """
         Generate a PNG image showing the radio presets in the preset_manager as three arrays
@@ -675,24 +698,16 @@ class PresetsManager:
                 # Create image with light yellow background (like old paper)
                 image = Image.new('RGB', (image_width, image_height), color=(255, 255, 224))  # Light yellow
                 draw = ImageDraw.Draw(image)
-
-                # Try to use a better font, fallback to default if not available
-                try:
-                    font = ImageFont.truetype("arial.ttf", 18)
-                    title_font = ImageFont.truetype("arial.ttf", 30)
-                    collection_title_font = ImageFont.truetype("arial.ttf", 40)
-                except Exception:
-                    font = ImageFont.load_default()
-                    title_font = ImageFont.load_default()
-                    collection_title_font = ImageFont.load_default()
+                
+                fonts: Fonts = self.get_fonts()
 
                 # Draw collection title
                 collection_title = preset_collection.title or preset_collection.name
                 # Get text dimensions for centering
-                title_bbox = draw.textbbox((0, 0), collection_title, font=collection_title_font)
+                title_bbox = draw.textbbox((0, 0), collection_title, font=fonts.collection_title)
                 title_width = title_bbox[2] - title_bbox[0]
                 title_x = (image_width - title_width) // 2
-                draw.text((title_x, 20), collection_title, fill='black', font=collection_title_font)
+                draw.text((title_x, 20), collection_title, fill='black', font=fonts.collection_title)
 
                 # Draw each radio as a table
                 for i, (_, radio) in enumerate(radios_list):
@@ -717,20 +732,20 @@ class PresetsManager:
                     
                     # Draw radio title (merged columns)
                     radio_title = radio.title or radio.name
-                    title_bbox = draw.textbbox((0, 0), radio_title, font=title_font)
+                    title_bbox = draw.textbbox((0, 0), radio_title, font=fonts.title)
                     title_width = title_bbox[2] - title_bbox[0]
                     title_x_pos = table_x + (table_width - title_width) // 2
                     title_y_pos = table_y + (header_height - (title_bbox[3] - title_bbox[1])) // 2
-                    draw.text((title_x_pos, title_y_pos), radio_title, fill='white', font=title_font)
+                    draw.text((title_x_pos, title_y_pos), radio_title, fill='white', font=fonts.title)
                     
                     # Draw column headers
                     header_y = table_y + header_height
                     draw.rectangle([table_x, header_y, table_x + table_width, header_y + row_height], fill=(200, 200, 200))  # Gray header
                     draw.line([table_x + column_width_channel, header_y, table_x + column_width_channel, header_y + row_height], fill='black')  # Vertical line
                     draw.line([table_x + column_width_channel + column_width_name, header_y, table_x + column_width_channel + column_width_name, header_y + row_height], fill='black')  # Vertical line
-                    draw.text((table_x + 10, header_y + 5), "CH", fill='black', font=font)
-                    draw.text((table_x + column_width_channel + 10, header_y + 5), "Name", fill='black', font=font)
-                    draw.text((table_x + column_width_channel + column_width_name + 10, header_y + 5), "Freq.", fill='black', font=font)
+                    draw.text((table_x + 10, header_y + 5), "CH", fill='black', font=fonts.preset)
+                    draw.text((table_x + column_width_channel + 10, header_y + 5), "Name", fill='black', font=fonts.preset)
+                    draw.text((table_x + column_width_channel + column_width_name + 10, header_y + 5), "Freq.", fill='black', font=fonts.preset)
                     draw.line([table_x, header_y + row_height, table_x + table_width, header_y + row_height], fill='black')  # Bottom line
                     
                     # Draw channels with alternating backgrounds
@@ -759,13 +774,13 @@ class PresetsManager:
                         draw.line([table_x + column_width_channel + column_width_name, row_y, table_x + column_width_channel + column_width_name, row_y + row_height], fill='black')
                         
                         # Draw channel number
-                        draw.text((table_x + 10, row_y + 5), channel_number, fill='black', font=font)
+                        draw.text((table_x + 10, row_y + 5), channel_number, fill='black', font=fonts.preset)
                         
                         # Draw channel name
-                        draw.text((table_x + column_width_channel + 10, row_y + 5), channel_name, fill='black', font=font)
+                        draw.text((table_x + column_width_channel + 10, row_y + 5), channel_name, fill='black', font=fonts.preset)
                         
                         # Draw frequency
-                        draw.text((table_x + column_width_channel + column_width_name + 10, row_y + 5), channel_frequency, fill='black', font=font)
+                        draw.text((table_x + column_width_channel + column_width_name + 10, row_y + 5), channel_frequency, fill='black', font=fonts.preset)
                         
                         # Draw horizontal line at bottom of row
                         draw.line([table_x, row_y + row_height, table_x + table_width, row_y + row_height], fill='black')
@@ -775,6 +790,6 @@ class PresetsManager:
                     self.presets_images = {}
 
                 img_buffer = io.BytesIO()
-                image.save(img_buffer, format='PNG')
+                image.save(img_buffer, format="PNG", optimize=True) # Use PNG with optimization for line art/text
                 img_buffer.seek(0)
                 self.presets_images[preset_collection.name] = img_buffer

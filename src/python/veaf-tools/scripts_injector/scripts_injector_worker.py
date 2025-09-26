@@ -1,11 +1,57 @@
 """
-Worker module for the VEAF Presets Injector Package.
+Worker module for the VEAF Scripts Injector Package.
 """
 
 from pathlib import Path
-from typing import Optional
+from typing import List, Optional
 from miz_tools import read_miz, update_miz, DcsMission
 from veaf_logger import VeafLogger
+
+def get_required_scripts() -> List[str]:
+    """Get list of required scripts from configuration or scanning directory."""
+    # Could read from a config file or scan directories dynamically
+    return [
+            "src/scripts/veaf/veaf.lua",
+            "src/scripts/veaf/veafTime.lua",
+            "src/scripts/veaf/veafAirbases.lua",
+            "src/scripts/veaf/veafWeather.lua",
+            "src/scripts/veaf/veafAssets.lua",
+            "src/scripts/veaf/veafCarrierOperations.lua",
+            "src/scripts/veaf/veafCasMission.lua",
+            "src/scripts/veaf/veafCombatMission.lua",
+            "src/scripts/veaf/veafCombatZone.lua",
+            "src/scripts/veaf/veafGrass.lua",
+            "src/scripts/veaf/veafInterpreter.lua",
+            "src/scripts/veaf/veafMarkers.lua",
+            "src/scripts/veaf/veafMove.lua",
+            "src/scripts/veaf/veafNamedPoints.lua",
+            "src/scripts/veaf/veafRadio.lua",
+            "src/scripts/veaf/veafSecurity.lua",
+            "src/scripts/veaf/veafShortcuts.lua",
+            "src/scripts/veaf/veafSpawn.lua",
+            "src/scripts/veaf/veafTransportMission.lua",
+            "src/scripts/veaf/dcsUnits.lua",
+            "src/scripts/veaf/veafUnits.lua",
+            "src/scripts/veaf/veafRemote.lua",
+            "src/scripts/veaf/veafSkynetIadsHelper.lua",
+            "src/scripts/veaf/veafSkynetIadsMonitor.lua",
+            "src/scripts/veaf/veafSanctuary.lua",
+            "src/scripts/veaf/veafHoundElintHelper.lua",
+            "src/scripts/veaf/veafQraManager.lua",
+            "src/scripts/veaf/veafAirwaves.lua",
+            "src/scripts/veaf/veafEventHandler.lua",
+            "src/scripts/veaf/veafCacheManager.lua",
+            "src/scripts/veaf/veafGroundAI.lua",
+            "src/scripts/community/AIEN.lua",
+            "src/scripts/community/CSAR.lua",
+            "src/scripts/community/CTLD.lua",
+            "src/scripts/community/DCS-SimpleTextToSpeech.lua",
+            "src/scripts/community/Hercules_Cargo.lua",
+            "src/scripts/community/mist.lua",
+            "src/scripts/community/skynet-iads-compiled.lua",
+            "src/scripts/community/TheUniversalMission.lua",
+            "src/scripts/community/WeatherMark.lua"
+    ]
 
 class ScriptsInjectorWorker:
     """
@@ -135,48 +181,7 @@ class ScriptsInjectorWorker:
         self.logger.debug(f"Using base scripts path: {base_scripts_path}")
 
         # Search for all the scripts
-        scripts_to_inject = [
-            "src/scripts/veaf/veaf.lua",
-            "src/scripts/veaf/veafTime.lua",
-            "src/scripts/veaf/veafAirbases.lua",
-            "src/scripts/veaf/veafWeather.lua",
-            "src/scripts/veaf/veafAssets.lua",
-            "src/scripts/veaf/veafCarrierOperations.lua",
-            "src/scripts/veaf/veafCasMission.lua",
-            "src/scripts/veaf/veafCombatMission.lua",
-            "src/scripts/veaf/veafCombatZone.lua",
-            "src/scripts/veaf/veafGrass.lua",
-            "src/scripts/veaf/veafInterpreter.lua",
-            "src/scripts/veaf/veafMarkers.lua",
-            "src/scripts/veaf/veafMove.lua",
-            "src/scripts/veaf/veafNamedPoints.lua",
-            "src/scripts/veaf/veafRadio.lua",
-            "src/scripts/veaf/veafSecurity.lua",
-            "src/scripts/veaf/veafShortcuts.lua",
-            "src/scripts/veaf/veafSpawn.lua",
-            "src/scripts/veaf/veafTransportMission.lua",
-            "src/scripts/veaf/dcsUnits.lua",
-            "src/scripts/veaf/veafUnits.lua",
-            "src/scripts/veaf/veafRemote.lua",
-            "src/scripts/veaf/veafSkynetIadsHelper.lua",
-            "src/scripts/veaf/veafSkynetIadsMonitor.lua",
-            "src/scripts/veaf/veafSanctuary.lua",
-            "src/scripts/veaf/veafHoundElintHelper.lua",
-            "src/scripts/veaf/veafQraManager.lua",
-            "src/scripts/veaf/veafAirwaves.lua",
-            "src/scripts/veaf/veafEventHandler.lua",
-            "src/scripts/veaf/veafCacheManager.lua",
-            "src/scripts/veaf/veafGroundAI.lua",
-            "src/scripts/community/AIEN.lua",
-            "src/scripts/community/CSAR.lua",
-            "src/scripts/community/CTLD.lua",
-            "src/scripts/community/DCS-SimpleTextToSpeech.lua",
-            "src/scripts/community/Hercules_Cargo.lua",
-            "src/scripts/community/mist.lua",
-            "src/scripts/community/skynet-iads-compiled.lua",
-            "src/scripts/community/TheUniversalMission.lua",
-            "src/scripts/community/WeatherMark.lua",
-        ]
+        scripts_to_inject = get_required_scripts()
         self.logger.info(f"Processing {len(scripts_to_inject)} script{'s' if len(scripts_to_inject) > 1 else ''}")
         for script_relative_path in scripts_to_inject:
             script_path = base_scripts_path / script_relative_path

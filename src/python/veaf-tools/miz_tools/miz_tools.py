@@ -2,12 +2,15 @@
 This module provides classes for reading and writing missions to and from .miz files.
 """
 
+
+import contextlib
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, Optional
 import io
 import luadata
 import os
+import shutil
 import zipfile
 
 @dataclass
@@ -43,74 +46,91 @@ def read_miz(file_path: Path) -> DcsMission:
 
     return result
 
+import tempfile
+import zipfile
+import os
+from pathlib import Path
+from typing import Optional, Dict
+
 def update_miz(mission: DcsMission, file_path: Optional[Path], additional_files: Optional[Dict]) -> DcsMission:
     """Update an existing mission in a .miz file with new data (zip it)."""
-
+    
     def serialize(zip_file: zipfile.ZipFile, content: str, file_name: str, variable_name: Optional[str] = None) -> None:
         lua_content = luadata.serialize(content, indent='\t', indent_level=0, always_provide_keyname=True)
         zip_file.writestr(file_name, f"{variable_name} = \n{lua_content}" if variable_name else lua_content)
 
-    if not file_path: file_path = mission.file_path
-    
+    if not file_path: 
+        file_path = mission.file_path
+
     # Normalize additional_files to avoid None errors
     additional_files = additional_files or {}
 
-    # Create a new ZIP file (temporary)
-    temp_zip_path = f'{file_path}.tmp'
+    # Use NamedTemporaryFile for automatic cleanup
+    temp_zip_path: Optional[str] = None
+    with tempfile.NamedTemporaryFile(
+            suffix='.miz',          # Proper extension
+            prefix='veaf_mission_', # Identifiable prefix
+            delete=False,           # Keep file after context manager exits
+            dir=file_path.parent    # Same directory as target (for atomic moves)
+        ) as temp_file:
+        temp_zip_path = temp_file.name
 
-    # Read all files from the original mission file
-    with zipfile.ZipFile(mission.file_path, 'r') as zip_read:
-        # Get list of all files in the ZIP
-        file_list = zip_read.namelist()
+        try:
+            # Read all files from the original mission file
+            with zipfile.ZipFile(mission.file_path, 'r') as zip_read:
+                file_list = zip_read.namelist()
 
-        # Copy all files except the one present in the mission object
-        with zipfile.ZipFile(temp_zip_path, 'w', zipfile.ZIP_DEFLATED) as zip_write:
-            for file_name in file_list:
-                if file_name == "mission":
-                    if mission.mission_lua:
-                        # Replace with new content
-                        serialize(zip_file=zip_write, content=mission.mission_lua, file_name="mission", variable_name="mission")
-                    else:
-                        # Copy existing file as-is
-                        zip_write.writestr(file_name, zip_read.read(file_name))
-                elif file_name == "options":
-                    if mission.options_lua:
-                        # Replace with new content
-                        serialize(zip_file=zip_write, content=mission.options_lua, file_name="options", variable_name="options")
-                    else:
-                        # Copy existing file as-is
-                        zip_write.writestr(file_name, zip_read.read(file_name))
-                elif file_name == "theatre":
-                    if mission.theatre:
-                        # Replace with new content
-                        zip_write.writestr("theatre", mission.theatre)
-                    else:
-                        # Copy existing file as-is
-                        zip_write.writestr(file_name, zip_read.read(file_name))
-                elif file_name == "warehouses":
-                    if mission.warehouses_lua:
-                        # Replace with new content
-                        serialize(zip_file=zip_write, content=mission.warehouses_lua, file_name="warehouses", variable_name="warehouses")
-                    else:
-                        # Copy existing file as-is
-                        zip_write.writestr(file_name, zip_read.read(file_name))
-                elif file_name == "l10n/DEFAULT/dictionary":
-                    if mission.dictionary_lua:
-                        # Replace with new content
-                        serialize(zip_file=zip_write, content=mission.dictionary_lua, file_name="l10n/DEFAULT/dictionary", variable_name="dictionary")
-                    else:
-                        # Copy existing file as-is
-                        zip_write.writestr(file_name, zip_read.read(file_name))
-                elif file_name in additional_files:
-                    # Skip it!
-                    pass
-                else:
-                    # Copy existing file as-is
-                    zip_write.writestr(file_name, zip_read.read(file_name))
+                # Copy all files except the ones we're updating
+                with zipfile.ZipFile(temp_zip_path, 'w', zipfile.ZIP_DEFLATED) as zip_write:
+                    for file_name in file_list:
+                        if file_name == "mission":
+                            if mission.mission_lua:
+                                serialize(zip_file=zip_write, content=mission.mission_lua, 
+                                       file_name="mission", variable_name="mission")
+                            else:
+                                zip_write.writestr(file_name, zip_read.read(file_name))
+                        elif file_name == "options":
+                            if mission.options_lua:
+                                serialize(zip_file=zip_write, content=mission.options_lua, 
+                                       file_name="options", variable_name="options")
+                            else:
+                                zip_write.writestr(file_name, zip_read.read(file_name))
+                        elif file_name == "theatre":
+                            if mission.theatre:
+                                zip_write.writestr("theatre", mission.theatre)
+                            else:
+                                zip_write.writestr(file_name, zip_read.read(file_name))
+                        elif file_name == "warehouses":
+                            if mission.warehouses_lua:
+                                serialize(zip_file=zip_write, content=mission.warehouses_lua, 
+                                       file_name="warehouses", variable_name="warehouses")
+                            else:
+                                zip_write.writestr(file_name, zip_read.read(file_name))
+                        elif file_name == "l10n/DEFAULT/dictionary":
+                            if mission.dictionary_lua:
+                                serialize(zip_file=zip_write, content=mission.dictionary_lua, 
+                                       file_name="l10n/DEFAULT/dictionary", variable_name="dictionary")
+                            else:
+                                zip_write.writestr(file_name, zip_read.read(file_name))
+                        elif file_name in additional_files:
+                            # Skip it - will be added from additional_files
+                            pass
+                        else:
+                            # Copy existing file as-is
+                            zip_write.writestr(file_name, zip_read.read(file_name))
 
-            # Add the additional files
-            for additional_file_name, additional_file_content in additional_files.items():
-                zip_write.writestr(additional_file_name, additional_file_content)
+                    # Add the additional files
+                    for additional_file_name, additional_file_content in additional_files.items():
+                        zip_write.writestr(additional_file_name, additional_file_content)
 
-    # Replace original ZIP with the modified one
-    os.replace(temp_zip_path, file_path)
+        except Exception as e:
+            # Clean up temp file on error
+            with contextlib.suppress(OSError):
+                os.unlink(temp_zip_path)
+            raise e
+
+    # Move temp file to final location
+    if temp_zip_path:
+        os.replace(temp_zip_path, file_path)
+
+    return mission

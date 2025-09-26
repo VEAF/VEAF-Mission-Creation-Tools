@@ -6,7 +6,7 @@
             "type": "debugpy",
             "request": "launch",
             "program": "${workspaceFolder}/src/python/veaf-tools/veaf-tools.py",
-            "cwd": "${workspaceFolder}\\test\\veaf-tools",
+            "cwd": "${workspaceFolder}\\test\\veaf-tools\\presets-injector",
             "args": ["inject-presets", "--verbose", "test.miz", "test-out.miz"],
             "console": "integratedTerminal"
         },

@@ -8,16 +8,20 @@ class VeafLogger:
     """Logging and console print system."""
 
     def __init__(self, logger_name: str, verbose: bool = False, console:Optional[Console] = None):
-        self.verbose = verbose
-        # Configure logging with better format
-        logging.basicConfig(
-            filename=f"{logger_name}.log",
-            level=logging.DEBUG if self.verbose else logging.INFO,
-            format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-            filemode='w'  # Overwrite log file on each run
-        )
+        # Create a specific logger instance
         self.logger = logging.getLogger(logger_name)
-        self.console: Console = console
+        self.logger.setLevel(logging.DEBUG if verbose else logging.INFO)
+        
+        # Only add handlers if they don't exist
+        if not self.logger.handlers:
+            # File handler
+            file_handler = logging.FileHandler(f"{logger_name}.log", mode='w')
+            file_handler.setFormatter(
+                logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+            )
+            self.logger.addHandler(file_handler)
+
+        self.console = console
 
     def set_verbose(self, verbose: bool) -> Self:
         self.verbose = verbose
@@ -43,7 +47,6 @@ class VeafLogger:
         if self.console:
             self.console.print(message, style="yellow")
         return self
-
 
     def info(self, message: str) -> Self:
         """Log and display info message."""

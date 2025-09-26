@@ -2,7 +2,6 @@
 Worker module for the VEAF Presets Injector Package.
 """
 
-from logging import Logger
 from pathlib import Path
 from typing import Optional
 from miz_tools import read_miz, update_miz, DcsMission
@@ -13,7 +12,7 @@ class ScriptsInjectorWorker:
     Worker class that provides scripts injection features.
     """
     
-    def __init__(self, logger: Optional[Logger] = None, development_mode: Optional[bool] = False, development_path: Optional[Path] = None, input_mission: Optional[Path] = None, output_mission: Optional[Path] = None):
+    def __init__(self, logger: Optional[VeafLogger] = None, development_mode: Optional[bool] = False, development_path: Optional[Path] = None, input_mission: Optional[Path] = None, output_mission: Optional[Path] = None):
         """
         Initialize the worker with optional parameters for both use cases.
         
@@ -31,11 +30,6 @@ class ScriptsInjectorWorker:
         self.output_mission = output_mission
         self.dcs_mission: DcsMission = None
         self.scripts = {}
-        self.__post_init__()
-
-    def __post_init__(self):
-        """Initialize the object and validates its state."""
-
         if self.input_mission and (
             not self.input_mission.is_file() or self.input_mission.suffix != ".miz"
         ):
@@ -81,7 +75,7 @@ class ScriptsInjectorWorker:
         if self.dcs_mission and self.dcs_mission.mission_lua:
             self.logger.debug("Set the variables in the mission")
             # Process the 'trig' part
-            dcs_actions = self.dcs_mission.mission_lua.get("trig", {}).get("actions", {})
+            dcs_actions = self.dcs_mission.mission_lua.get("trig", {}).get("actions", [])
             if not dcs_actions:
                 self.logger.error("The 'mission' file does not contain 'trig.actions'", raise_exception=True)
             for action_index, action in enumerate(dcs_actions):
@@ -99,11 +93,11 @@ class ScriptsInjectorWorker:
 
             # Process the 'trigrules' part
             # TODO dynamically set the actions that load the scripts to the scripts list
-            dcs_rules = self.dcs_mission.mission_lua.get("trigrules", {})
+            dcs_rules = self.dcs_mission.mission_lua.get("trigrules", [])
             if not dcs_rules:
                 self.logger.error("The 'mission' file does not contain 'trigrules'", raise_exception=True)
             for rule in dcs_rules:
-                rule_actions = rule.get("actions", {})
+                rule_actions = rule.get("actions", [])
                 for action_index, action in enumerate(rule_actions):
                     action_text = action.get("text", "")
                     self.logger.debug(f"Processing action {action_index}: {action}")

@@ -1,5 +1,6 @@
 import logging
-from typing import Optional, Self
+from typing import Optional
+from typing_extensions import Self
 from rich.console import Console
 import typer
 
@@ -30,7 +31,8 @@ class VeafLogger:
     def error(self, message: str, raise_exception: bool = False) -> Self:
         """Log and display error message."""
         self.logger.error(message)
-        self.console.print(message, style="red")
+        if self.console:
+            self.console.print(message, style="red")
         if raise_exception:
             raise typer.Abort(message)
         return self
@@ -38,26 +40,28 @@ class VeafLogger:
     def warning(self, message: str) -> Self:
         """Log and display warning message."""
         self.logger.warning(message)
-        self.console.print(message, style="yellow")
+        if self.console:
+            self.console.print(message, style="yellow")
         return self
 
 
     def info(self, message: str) -> Self:
         """Log and display info message."""
         self.logger.info(message)
-        self.console.print(message, style="blue")
+        if self.console:
+            self.console.print(message, style="blue")
         return self
 
     def debug(self, message: str) -> Self:
         """Log debug message."""
         self.logger.debug(message)
-        if self.verbose:
+        if self.verbose and self.console:
             self.console.print(message, style="grey69")
         return self
     
     def debugwarn(self, message: str) -> Self:
         """Log debug message."""
         self.logger.debug(message)
-        if self.verbose:
+        if self.verbose and self.console:
             self.console.print(message, style="dark_khaki")
         return self

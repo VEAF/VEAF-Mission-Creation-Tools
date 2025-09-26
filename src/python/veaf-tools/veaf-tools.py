@@ -25,26 +25,33 @@ from typing import Optional
 from veaf_logger import VeafLogger
 import logging
 import os
-import presets_injector
-import scripts_injector
+from presets_injector.presets_injector_worker import PresetsInjectorWorker
+from scripts_injector.scripts_injector_worker import ScriptsInjectorWorker
+from presets_injector.presets_injector_README import PresetsInjectorREADME
+from scripts_injector.scripts_injector_README import ScriptsInjectorREADME
 import sys
 import typer
 
 VERSION:str = "0.1.0"
 
-def resource_path(relative_path):
-    """ Get absolute path to resource, works for dev and for PyInstaller """
-    try:
-        # PyInstaller creates a temp folder and stores path in _MEIPASS
-        base_path = sys._MEIPASS
-    except Exception:
-        base_path = os.path.abspath(".")
-    
-    return os.path.join(base_path, relative_path)
-
 app = typer.Typer(no_args_is_help=True)
 console = Console()
 logger: VeafLogger = None  # Will be initialized in main
+
+def resolve_path(path: str, default_path: str = None, shouldExist: bool = False, createIfNotExist: bool = False) -> Path:
+    result: Optional[Path] = None
+    if not path and shouldExist:
+        if default_path:
+            result = default_path
+    else:
+        result = Path(path)
+
+    if createIfNotExist and not result.exists():
+        pass
+
+    if result: result = result.resolve()
+    return result
+
 
 @app.command()
 def about(
@@ -79,39 +86,26 @@ def inject_presets(
 
     if readme:
         if typer.confirm("Do you want to display the documentation?"):
-            md_render = Markdown(presets_injector.README)
+            md_render = Markdown(PresetsInjectorREADME)
             console.print(md_render)
         raise typer.Exit()
 
 
     # Resolve input mission
-    if not input_mission:
-        p_input_mission = Path.cwd() / "mission.miz"
-    else:
-        p_input_mission = Path(input_mission)
-
+    p_input_mission = resolve_path(path=input_mission, default_path=Path.cwd() / "mission.miz", shouldExist=True)
     if not p_input_mission.exists():
-        logger.error(f"Input mission {p_input_mission} does not exist!")
-        raise typer.Abort()
-    p_input_mission = p_input_mission.resolve()
+        logger.error(f"Input mission {p_input_mission} does not exist!", raise_exception=True)
 
     # Resolve output mission
-    p_output_mission = Path(output_mission) if output_mission else p_input_mission
-    p_output_mission = p_output_mission.resolve()
+    p_output_mission = resolve_path(output_mission, default_path=p_input_mission)
 
-    # Resolve input mission
-    if not presets_file:
-        p_presets_file = Path.cwd() / "presets.yaml"
-    else:
-        p_presets_file = Path(presets_file)
-
+    # Resolve presets configuration file
+    p_presets_file = resolve_path(path=presets_file, default_path=Path.cwd() / "presets.yaml", shouldExist=True)
     if not p_presets_file.exists():
-        logger.error(f"Configuration file {p_presets_file} does not exist!")
-        raise typer.Abort()
-    p_presets_file = p_presets_file.resolve()
+        logger.error(f"Configuration file {p_presets_file} does not exist!", raise_exception=True)
 
     # Call the worker class
-    worker = presets_injector.PresetsInjectorWorker(logger=logger, presets_file=p_presets_file, input_mission=p_input_mission, output_mission=p_output_mission)
+    worker = PresetsInjectorWorker(logger=logger, presets_file=p_presets_file, input_mission=p_input_mission, output_mission=p_output_mission)
     worker.work()
 
     console.print("[bold blue]Work done![/bold blue]")
@@ -137,31 +131,29 @@ def inject_scripts(
 
     if readme:
         if typer.confirm("Do you want to display the documentation?"):
-            md_render = Markdown(scripts_injector.README)
+            md_render = Markdown(ScriptsInjectorREADME)
             console.print(md_render)
         raise typer.Exit()
 
 
     # Resolve input mission
-    if not input_mission:
-        p_input_mission = Path.cwd() / "mission.miz"
-    else:
-        p_input_mission = Path(input_mission)
-
+    p_input_mission = resolve_path(path=input_mission, default_path=Path.cwd() / "mission.miz", shouldExist=True)
     if not p_input_mission.exists():
-        logger.error(f"Input mission {p_input_mission} does not exist!")
-        raise typer.Abort()
-    p_input_mission = p_input_mission.resolve()
+        logger.error(f"Input mission {p_input_mission} does not exist!", raise_exception=True)
 
     # Resolve output mission
-    p_output_mission = Path(output_mission) if output_mission else p_input_mission
-    p_output_mission = p_output_mission.resolve()
+    p_output_mission = resolve_path(output_mission, default_path=p_input_mission)
 
     # Resolve development path
-    p_development_path = Path(development_path) if development_path else None
+    if development_path:
+        p_development_path = resolve_path(path=development_path, shouldExist=True)
+        if not p_development_path.exists():
+            logger.error(f"Input mission {p_development_path} does not exist!", raise_exception=True)
+    else:
+        p_development_path = None
 
     # Call the worker class
-    worker = scripts_injector.ScriptsInjectorWorker(logger=logger, development_mode=development_mode, development_path=p_development_path, input_mission=p_input_mission, output_mission=p_output_mission)
+    worker = ScriptsInjectorWorker(logger=logger, development_mode=development_mode, development_path=p_development_path, input_mission=p_input_mission, output_mission=p_output_mission)
     worker.work()
 
     console.print("[bold blue]Work done![/bold blue]")

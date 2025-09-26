@@ -1,4 +1,4 @@
-README="""
+ScriptsInjectorREADME="""
 # VEAF Scripts Injector
 
 The VEAF Scripts Injector is a tool that allows you to inject VEAF scripting framework into DCS mission files. This tool automatically injects all required VEAF Lua scripts and community scripts into your mission, enabling advanced mission functionality and features.

@@ -1,4 +1,4 @@
-README="""
+PresetsInjectorREADME="""
 # VEAF Radio Presets Injector
 
 The VEAF Radio Presets Injector is a tool that allows you to inject radio presets into DCS mission files programmatically. This tool reads radio preset configurations from a YAML file and applies them to aircraft groups in your mission.

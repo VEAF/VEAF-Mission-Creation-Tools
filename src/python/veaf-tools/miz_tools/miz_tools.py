@@ -51,6 +51,9 @@ def update_miz(mission: DcsMission, file_path: Optional[Path], additional_files:
         zip_file.writestr(file_name, f"{variable_name} = \n{lua_content}" if variable_name else lua_content)
 
     if not file_path: file_path = mission.file_path
+    
+    # Normalize additional_files to avoid None errors
+    additional_files = additional_files or {}
 
     # Create a new ZIP file (temporary)
     temp_zip_path = f'{file_path}.tmp'
@@ -98,7 +101,7 @@ def update_miz(mission: DcsMission, file_path: Optional[Path], additional_files:
                     else:
                         # Copy existing file as-is
                         zip_write.writestr(file_name, zip_read.read(file_name))
-                elif file_name in list(additional_files.keys()):
+                elif file_name in additional_files:
                     # Skip it!
                     pass
                 else:
@@ -106,7 +109,7 @@ def update_miz(mission: DcsMission, file_path: Optional[Path], additional_files:
                     zip_write.writestr(file_name, zip_read.read(file_name))
 
             # Add the additional files
-            for additional_file_name, additional_file_content in (additional_files or {}).items():
+            for additional_file_name, additional_file_content in additional_files.items():
                 zip_write.writestr(additional_file_name, additional_file_content)
 
     # Replace original ZIP with the modified one

@@ -141,7 +141,7 @@ class PresetsInjectorWorker:
                     preset_collection.used_in_mission = True
                     self.logger.debug(f"Injecting preset '{preset}' into group '{group.name}' (type: {group.unit_type}, aircraft: {group.aircraft_type}, country: {group.country}, coalition: {group.coalition})")
                     group.group_dcs["radioSet"] = True
-                    if units := group.group_dcs["units"]:
+                    if units := group.group_dcs.get("units", {}):
                         for unit in units:
                             unit["Radio"] = {
                                 int(radio_name) if radio_name.isdigit() else int(radio_name.split('_')[-1]): radio.to_dict() for radio_name, radio in preset_collection.radios.items()
@@ -159,8 +159,8 @@ class PresetsInjectorWorker:
         additional_files = {}
         if self.presets_manager.presets_images:
             for preset_collection_name, image in self.presets_manager.presets_images.items():
-                additional_files[f"/KNEEBOARD/IMAGES/presets-{preset_collection_name}.png"] = image.getvalue()
-        nb_kneeboard_images = len(self.presets_manager.presets_images)
+                additional_files[f"KNEEBOARD/IMAGES/presets-{preset_collection_name}.png"] = image.getvalue()
+        nb_kneeboard_images = len(self.presets_manager.presets_images or {})
         self.logger.info(f"Added {nb_kneeboard_images} kneeboard page{"s" if nb_kneeboard_images > 1 else ""} to mission")
 
         # Save the mission

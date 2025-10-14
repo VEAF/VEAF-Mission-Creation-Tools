@@ -35,7 +35,7 @@ VERBOSE_HELP: str = "If set, the script will output a lot of debug information."
 
 # String constants
 DEFAULT_MISSION_FILE = "mission.miz"
-DEFAULT_PRESETS_FILE = "presets.yaml"
+DEFAULT_PRESETS_FILE = "./src/presets.yaml"
 CONFIRM_DISPLAY_DOC = "Do you want to display the documentation?"
 WORK_DONE_MESSAGE = "[bold blue]Work done![/bold blue]"
 
@@ -83,7 +83,7 @@ def about(
 def inject_presets(
     readme: bool = typer.Option(False, help=README_HELP),
     verbose: bool = typer.Option(False, help=VERBOSE_HELP),
-    input_mission: Optional[str] = typer.Argument(DEFAULT_MISSION_FILE, help="Mission file to edit."),
+    input_mission_name_or_file: Optional[str] = typer.Argument(DEFAULT_MISSION_FILE, help="Mission name; will inject in the mission with this name (most recent .miz file); can be set to a .miz file."),
     output_mission: Optional[str] = typer.Argument(None, help="Mission file to save; defaults to the same as 'input_mission'."),
     presets_file: str = typer.Option(DEFAULT_PRESETS_FILE, help="Configuration file containing the presets."),
 ) -> None:
@@ -102,17 +102,18 @@ def inject_presets(
             console.print(md_render)
         raise typer.Exit()
 
-
     # Resolve input mission
-    p_input_mission = resolve_path(logger=logger, path=input_mission, default_path=Path.cwd() / DEFAULT_MISSION_FILE, should_exist=True)
-    if not p_input_mission.exists():
-        logger.error(f"Input mission {p_input_mission} does not exist!", raise_exception=True)
+    p_input_mission = input_mission_name_or_file
+    if not input_mission_name_or_file.lower().endswith(".miz"):
+        if files := list(Path.cwd().glob(f"{input_mission_name_or_file}*.miz")):
+            p_input_mission = max(files, key=lambda f: f.stat().st_mtime)
+    p_input_mission = resolve_path(logger=logger, path=p_input_mission, should_exist=True)
 
     # Resolve output mission
     p_output_mission = resolve_path(logger=logger, path=output_mission, default_path=p_input_mission)
 
     # Resolve presets configuration file
-    p_presets_file = resolve_path(logger=logger, path=presets_file, default_path=Path.cwd() / "presets.yaml", should_exist=True)
+    p_presets_file = resolve_path(logger=logger, path=presets_file, should_exist=True)
     if not p_presets_file.exists():
         logger.error(f"Configuration file {p_presets_file} does not exist!", raise_exception=True)
 

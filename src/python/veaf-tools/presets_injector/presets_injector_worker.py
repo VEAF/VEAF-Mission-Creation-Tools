@@ -18,8 +18,8 @@ class Group:
     aircraft_type: str
     country: str
     coalition: str
-    name: str
-    unit_type: str
+    name: Optional[str] = None
+    unit_type: Optional[str] = None
 
 class PresetsInjectorWorker:
     """

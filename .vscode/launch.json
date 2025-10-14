@@ -113,12 +113,22 @@
         },
         {
             // build
-            "name": "veaf-tools - demo mission - build - STATIC with DEV scripts ",
+            "name": "veaf-tools - demo mission - build - STATIC with DEV scripts",
             "type": "debugpy",
             "request": "launch",
             "program": "${workspaceFolder}/src/python/veaf-tools/veaf-tools.py",
             "cwd": "${workspaceFolder}/test/veaf-tools/demo-mission",
             "args": ["build-mission", "--scripts-path", "${workspaceFolder}", "${workspaceFolder}/test/veaf-tools/demo-mission", "veaf-demo-mission"],
+            "console": "integratedTerminal"
+        },
+        {
+            // inject radio presets
+            "name": "veaf-tools - demo mission - inject radio presets",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/python/veaf-tools/veaf-tools.py",
+            "cwd": "${workspaceFolder}/test/veaf-tools/demo-mission",
+            "args": ["inject-presets", "veaf-demo-mission"],
             "console": "integratedTerminal"
         }
     ]

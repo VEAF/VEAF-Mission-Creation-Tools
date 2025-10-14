@@ -5,7 +5,7 @@ Worker module for the VEAF Mission Extractor Package.
 from pathlib import Path
 import shutil
 from typing import Optional
-from mission_tools import read_miz, write_miz, extract_miz, get_community_script_files, get_mission_data_files, get_mission_script_files, get_veaf_script_files, DEFAULT_SCRIPTS_LOCATION, get_mission_files_to_cleanup_on_extract, MissionNormalizer, get_legacy_script_files
+from mission_tools import read_miz, write_miz, extract_miz, get_community_script_files, get_mission_data_files, get_mission_script_files, get_veaf_script_files, DEFAULT_SCRIPTS_LOCATION, get_mission_files_to_cleanup_on_extract, get_legacy_script_files
 from veaf_logger import VeafLogger
 import tempfile
 
@@ -49,17 +49,9 @@ class MissionExtractorWorker:
         with tempfile.TemporaryDirectory() as temp_dir_name:
             temp_dir: Path = Path(temp_dir_name)
 
-            # Read the mission, normalize it and write it back
-            dcs_mission = read_miz(miz_file_path=self.input_mission_path)
-            normalizer = MissionNormalizer(dcs_mission=dcs_mission)
-            dcs_mission = normalizer.normalize_mission()
-            temp_mission_file: Path = temp_dir / "temp_mission.miz"
-            write_miz(dcs_mission, temp_mission_file)
-
             # Extract the mission .miz file
             self.logger.debug(f"Extracting the mission file {self.input_mission_path} to the folder {temp_dir}")
-            extract_miz(miz_file_path=temp_mission_file, extracted_folder_path=temp_dir)
-            temp_mission_file.unlink()
+            extract_miz(miz_file_path=self.input_mission_path, extracted_folder_path=temp_dir)
 
             # Remove the VEAF, community, legacy VEAF and mission script files
             for file_in_mission in [Path(f[1]) / Path(f[0]).name for f in get_veaf_script_files() + get_community_script_files() + get_mission_script_files() + get_legacy_script_files() ]:

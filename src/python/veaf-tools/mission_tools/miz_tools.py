@@ -71,7 +71,7 @@ def write_miz(mission: DcsMission, miz_file_path: Optional[Path], additional_fil
     """Update an existing mission in a .miz file with new data (zip it)."""
     
     def serialize(zip_file: zipfile.ZipFile, content: str, file_name: str, variable_name: Optional[str] = None) -> None:
-        lua_content = luadata.serialize(content, indent='  ', indent_level=0, always_provide_keyname=True)
+        lua_content = luadata.serialize(content, indent='  ', indent_level=0, always_provide_keyname=True, sort=True)
         zip_file.writestr(file_name, f"{variable_name} = \n{lua_content}" if variable_name else lua_content)
 
     if not miz_file_path: 

@@ -5,10 +5,35 @@ KEY_WORDS = [
     "if", "in", "local", "nil", "not", "or", "repeat", "return", "then", "true", "until", "while"
 ]
 
+def _sort(list_to_sort: list):
+    # check that the parameter is indeed a list
+    if not isinstance(list_to_sort, list): return list_to_sort
 
-def __serialize(var, encoding, indent, level, always_provide_keyname=False):
+    # check that all the elements in the list are of the same type
+    first_type = type(list_to_sort[0])
+    if not all(isinstance(item, first_type) for item in list_to_sort): return list_to_sort
+
+    return sorted(list_to_sort)
+
+def _sort_by_id(list_to_sort: list):
+
+    def _key_by_id(item):
+        if not isinstance(item, dict): return item
+        if item.get("id", ""): return item["id"]
+
+    # check that the parameter is indeed a list
+    if not isinstance(list_to_sort, list): return list_to_sort
+
+    # check that all the elements in the list are dictionaries with an "id" key
+    first_type = type(list_to_sort[0])
+    if first_type != dict: return list_to_sort
+    if not all(isinstance(item, first_type) for item in list_to_sort): return list_to_sort
+
+    # sort the list by the "id" value of each of its entries
+    return sorted(list_to_sort, key=_key_by_id)
+
+def __serialize(var, encoding, indent, level, always_provide_keyname=False, sort=False, parent_key=None):
     parts = []
-    var_type = type(var)
     if var is None:
         parts.append("nil")
     elif isinstance(var, bool):
@@ -19,25 +44,25 @@ def __serialize(var, encoding, indent, level, always_provide_keyname=False):
     elif isinstance(var, (int, float)):
         parts.append(str(var))
     elif isinstance(var, str):
-        parts.append('"')
-        parts.append(
-            var.encode(encoding)
-            .replace(b"\\", b"\\\\")
-            .replace(b'"', b'\\"')
-            .replace(b"\n", b"\\\n")
-            .decode(encoding)
+        parts.extend(
+            (
+                '"',
+                var.encode(encoding).replace(b"\\", b"\\\\").replace(b'"', b'\\"').replace(b"\n", b"\\\n").decode(encoding),
+                '"',
+            )
         )
-        parts.append('"')
     elif isinstance(var, (list, dict)):
         # calc lua table entries
         entries = []
         if isinstance(var, list):
-            for i in range(len(var)):
-                entries.append([i + 1, var[i]])
+            if parent_key in ["country"]:
+                sorted_var = _sort_by_id(var)
+                entries.extend([i + 1, sorted_var[i]] for i in range(len(sorted_var)))
+            else:
+                entries.extend([i + 1, var[i]] for i in range(len(var)))
         elif isinstance(var, dict):
-            for k in var:
-                entries.append([k, var[k]])
-
+            sorted_keys = _sort(list_to_sort=list(var.keys())) if sort else var.keys()
+            entries.extend([k, var[k]] for k in sorted_keys)
         # build lua table parts
         parts.append("{")
         s_tab_equ = "="
@@ -45,7 +70,7 @@ def __serialize(var, encoding, indent, level, always_provide_keyname=False):
         # process indent
         if indent is not None:
             s_tab_equ = " = "
-            if len(entries) != 0:
+            if entries:
                 parts.append("\n")
 
         # prepare for iterator
@@ -76,17 +101,28 @@ def __serialize(var, encoding, indent, level, always_provide_keyname=False):
                 pass
             elif isinstance(key, str) and key not in KEY_WORDS and re.match(
                 r"^[a-zA-Z_][a-zA-Z0-9_]*$", key
-            ):  # a = val
-                parts.append(key)
-                parts.append(s_tab_equ)
-            else:  # [10010] = val # [".start with or contains special char"] = val
-                parts.append("[")
-                parts.append(__serialize(key, encoding, indent, level + 1, always_provide_keyname=always_provide_keyname))
-                parts.append("]")
-                parts.append(s_tab_equ)
-            # insert value
-            parts.append(__serialize(val, encoding, indent, level + 1, always_provide_keyname=always_provide_keyname))
-            parts.append(",")
+            ):  # -> a = val
+                parts.extend(
+                    (
+                        key, 
+                        s_tab_equ
+                    )
+                )
+            else:  # -> [10010] = val # [".start with or contains special char"] = val
+                parts.extend(
+                    (
+                        "[",
+                        __serialize(key, encoding, indent, level + 1, always_provide_keyname=always_provide_keyname, sort=sort),
+                        "]",
+                        s_tab_equ,
+                    )
+                )
+            parts.extend(
+                (
+                    __serialize(val, encoding, indent, level + 1, always_provide_keyname=always_provide_keyname,sort=sort, parent_key=key),
+                    ",",
+                )
+            )
             if indent is not None:
                 parts.append("\n")
             lastkey = key
@@ -98,14 +134,14 @@ def __serialize(var, encoding, indent, level, always_provide_keyname=False):
             parts.pop()
 
         # insert `}` with indent
-        if indent is not None and len(entries) != 0:
+        if indent is not None and entries:
             parts.append(indent * level)
         parts.append("}")
 
     return "".join(parts)
 
 
-def serialize(var, encoding="utf-8", indent=None, indent_level=0, always_provide_keyname=False):
+def serialize(var, encoding="utf-8", indent=None, indent_level=0, always_provide_keyname=False, sort=False):
     """Serialize variable to lua formatted data string.
 
     Args:
@@ -119,10 +155,9 @@ def serialize(var, encoding="utf-8", indent=None, indent_level=0, always_provide
     """
     if isinstance(var, tuple):
         res = []
-        for item in var:
-            res.append(__serialize(item, encoding, indent, indent_level, always_provide_keyname=always_provide_keyname))
+        res.extend(__serialize(item,encoding,indent,indent_level,always_provide_keyname=always_provide_keyname,sort=sort) for item in var)
         spliter = ","
         if indent is not None:
             spliter = spliter + "\n" + indent * indent_level
         return spliter.join(res)
-    return __serialize(var, encoding, indent, indent_level, always_provide_keyname=always_provide_keyname)
+    return __serialize(var, encoding, indent, indent_level, always_provide_keyname=always_provide_keyname, sort=sort)

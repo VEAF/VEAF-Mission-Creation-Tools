@@ -41,9 +41,8 @@ WORK_DONE_MESSAGE = "[bold blue]Work done![/bold blue]"
 
 app = typer.Typer(no_args_is_help=True)
 console = Console()
-logger: VeafLogger = None  # Will be initialized in main
 
-def resolve_path(path: str, default_path: str = None, should_exist: bool = False, create_if_not_exist: bool = False) -> Path:
+def resolve_path(logger:VeafLogger, path: str, default_path: str = None, should_exist: bool = False, create_if_not_exist: bool = False) -> Path:
     
     """Resolve and validate a file path."""
     if not path and default_path:
@@ -61,11 +60,10 @@ def resolve_path(path: str, default_path: str = None, should_exist: bool = False
             result.mkdir(exist_ok=True)
     
     if should_exist and not result.exists():
-        raise FileNotFoundError(f"Path does not exist: {result}")
+        logger.error(f"Path does not exist: {result}")
+        exit(-1)
     
     return result
-
-
 
 @app.command()
 def about(
@@ -106,15 +104,15 @@ def inject_presets(
 
 
     # Resolve input mission
-    p_input_mission = resolve_path(path=input_mission, default_path=Path.cwd() / DEFAULT_MISSION_FILE, should_exist=True)
+    p_input_mission = resolve_path(logger=logger, path=input_mission, default_path=Path.cwd() / DEFAULT_MISSION_FILE, should_exist=True)
     if not p_input_mission.exists():
         logger.error(f"Input mission {p_input_mission} does not exist!", raise_exception=True)
 
     # Resolve output mission
-    p_output_mission = resolve_path(output_mission, default_path=p_input_mission)
+    p_output_mission = resolve_path(logger=logger, path=output_mission, default_path=p_input_mission)
 
     # Resolve presets configuration file
-    p_presets_file = resolve_path(path=presets_file, default_path=Path.cwd() / "presets.yaml", should_exist=True)
+    p_presets_file = resolve_path(logger=logger, path=presets_file, default_path=Path.cwd() / "presets.yaml", should_exist=True)
     if not p_presets_file.exists():
         logger.error(f"Configuration file {p_presets_file} does not exist!", raise_exception=True)
 
@@ -152,12 +150,12 @@ def build_mission(
 
 
     # Resolve input mission folder
-    p_mission_folder = resolve_path(path=mission_folder, default_path=Path.cwd(), should_exist=True)
+    p_mission_folder = resolve_path(logger=logger, path=mission_folder, default_path=Path.cwd(), should_exist=True)
     if not p_mission_folder.exists():
         logger.error(f"Mission folder {p_mission_folder} does not exist!", raise_exception=True)
 
     # Resolve output mission
-    p_output_mission = resolve_path(mission_name_or_file)
+    p_output_mission = resolve_path(logger=logger, path=mission_name_or_file)
     if p_output_mission.suffix.lower() != ".miz":
         # Compute a file name from the mission name
         p_output_mission = Path(f"{mission_name_or_file}_{datetime.now().strftime('%Y%m%d')}.miz")
@@ -167,7 +165,7 @@ def build_mission(
         # default value is the "/node_modules/veaf-mission-creation-tools" subfolder of the mission folder
         scripts_path = p_mission_folder / "node_modules" / "veaf-mission-creation-tools"
     if scripts_path:
-        p_scripts_path = resolve_path(path=scripts_path, should_exist=True)
+        p_scripts_path = resolve_path(logger=logger, path=scripts_path, should_exist=True)
         if not p_scripts_path.exists():
             logger.error(f"Development folder {p_scripts_path} does not exist!", raise_exception=True)
     else:
@@ -203,17 +201,16 @@ def extract_mission(
         raise typer.Exit()
 
     # Resolve output mission folder
-    p_mission_folder = resolve_path(path=mission_folder, default_path=Path.cwd(), create_if_not_exist=True)
+    p_mission_folder = resolve_path(logger=logger, path=mission_folder, default_path=Path.cwd(), create_if_not_exist=True)
     if not p_mission_folder.exists():
         logger.error(f"Mission folder {p_mission_folder} does not exist!", raise_exception=True)
 
     # Resolve input mission
+    p_input_mission = mission_name_or_file
     if not mission_name_or_file.lower().endswith(".miz"):
-        if files := list(
-            p_mission_folder.glob(f"{mission_name_or_file}*.miz")
-        ):
+        if files := list(p_mission_folder.glob(f"{mission_name_or_file}*.miz")):
             p_input_mission = max(files, key=lambda f: f.stat().st_mtime)
-    p_input_mission = resolve_path(p_input_mission, should_exist=True)
+    p_input_mission = resolve_path(logger=logger, path=p_input_mission, should_exist=True)
     
     # Call the worker class
     worker = MissionExtractorWorker(logger=logger, mission_folder=p_mission_folder, input_mission_path=p_input_mission)

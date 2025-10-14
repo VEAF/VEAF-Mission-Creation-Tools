@@ -2,6 +2,9 @@ warehouses =
 {
   airports = {
     [12] = {
+      OperatingLevel_Air = 10,
+      OperatingLevel_Eqp = 10,
+      OperatingLevel_Fuel = 10,
       aircrafts = {},
       allowHotStart = false,
       coalition = "NEUTRAL",
@@ -19,9 +22,6 @@ warehouses =
       methanol_mixture = {
         InitFuel = 100,
       },
-      OperatingLevel_Air = 10,
-      OperatingLevel_Eqp = 10,
-      OperatingLevel_Fuel = 10,
       periodicity = 30,
       size = 100,
       speed = 16.666666,
@@ -32,6 +32,9 @@ warehouses =
       weapons = {},
     },
     [13] = {
+      OperatingLevel_Air = 10,
+      OperatingLevel_Eqp = 10,
+      OperatingLevel_Fuel = 10,
       aircrafts = {},
       allowHotStart = false,
       coalition = "NEUTRAL",
@@ -49,9 +52,6 @@ warehouses =
       methanol_mixture = {
         InitFuel = 100,
       },
-      OperatingLevel_Air = 10,
-      OperatingLevel_Eqp = 10,
-      OperatingLevel_Fuel = 10,
       periodicity = 30,
       size = 100,
       speed = 16.666666,
@@ -62,6 +62,9 @@ warehouses =
       weapons = {},
     },
     [14] = {
+      OperatingLevel_Air = 10,
+      OperatingLevel_Eqp = 10,
+      OperatingLevel_Fuel = 10,
       aircrafts = {},
       allowHotStart = false,
       coalition = "NEUTRAL",
@@ -79,9 +82,6 @@ warehouses =
       methanol_mixture = {
         InitFuel = 100,
       },
-      OperatingLevel_Air = 10,
-      OperatingLevel_Eqp = 10,
-      OperatingLevel_Fuel = 10,
       periodicity = 30,
       size = 100,
       speed = 16.666666,
@@ -92,6 +92,9 @@ warehouses =
       weapons = {},
     },
     [15] = {
+      OperatingLevel_Air = 10,
+      OperatingLevel_Eqp = 10,
+      OperatingLevel_Fuel = 10,
       aircrafts = {},
       allowHotStart = false,
       coalition = "NEUTRAL",
@@ -109,9 +112,6 @@ warehouses =
       methanol_mixture = {
         InitFuel = 100,
       },
-      OperatingLevel_Air = 10,
-      OperatingLevel_Eqp = 10,
-      OperatingLevel_Fuel = 10,
       periodicity = 30,
       size = 100,
       speed = 16.666666,
@@ -122,6 +122,9 @@ warehouses =
       weapons = {},
     },
     [16] = {
+      OperatingLevel_Air = 10,
+      OperatingLevel_Eqp = 10,
+      OperatingLevel_Fuel = 10,
       aircrafts = {},
       allowHotStart = false,
       coalition = "NEUTRAL",
@@ -139,9 +142,6 @@ warehouses =
       methanol_mixture = {
         InitFuel = 100,
       },
-      OperatingLevel_Air = 10,
-      OperatingLevel_Eqp = 10,
-      OperatingLevel_Fuel = 10,
       periodicity = 30,
       size = 100,
       speed = 16.666666,
@@ -152,6 +152,9 @@ warehouses =
       weapons = {},
     },
     [17] = {
+      OperatingLevel_Air = 10,
+      OperatingLevel_Eqp = 10,
+      OperatingLevel_Fuel = 10,
       aircrafts = {},
       allowHotStart = false,
       coalition = "NEUTRAL",
@@ -169,9 +172,6 @@ warehouses =
       methanol_mixture = {
         InitFuel = 100,
       },
-      OperatingLevel_Air = 10,
-      OperatingLevel_Eqp = 10,
-      OperatingLevel_Fuel = 10,
       periodicity = 30,
       size = 100,
       speed = 16.666666,
@@ -182,6 +182,9 @@ warehouses =
       weapons = {},
     },
     [18] = {
+      OperatingLevel_Air = 10,
+      OperatingLevel_Eqp = 10,
+      OperatingLevel_Fuel = 10,
       aircrafts = {},
       allowHotStart = false,
       coalition = "NEUTRAL",
@@ -199,9 +202,6 @@ warehouses =
       methanol_mixture = {
         InitFuel = 100,
       },
-      OperatingLevel_Air = 10,
-      OperatingLevel_Eqp = 10,
-      OperatingLevel_Fuel = 10,
       periodicity = 30,
       size = 100,
       speed = 16.666666,
@@ -212,6 +212,9 @@ warehouses =
       weapons = {},
     },
     [19] = {
+      OperatingLevel_Air = 10,
+      OperatingLevel_Eqp = 10,
+      OperatingLevel_Fuel = 10,
       aircrafts = {},
       allowHotStart = false,
       coalition = "NEUTRAL",
@@ -229,9 +232,6 @@ warehouses =
       methanol_mixture = {
         InitFuel = 100,
       },
-      OperatingLevel_Air = 10,
-      OperatingLevel_Eqp = 10,
-      OperatingLevel_Fuel = 10,
       periodicity = 30,
       size = 100,
       speed = 16.666666,
@@ -242,6 +242,9 @@ warehouses =
       weapons = {},
     },
     [20] = {
+      OperatingLevel_Air = 10,
+      OperatingLevel_Eqp = 10,
+      OperatingLevel_Fuel = 10,
       aircrafts = {},
       allowHotStart = false,
       coalition = "BLUE",
@@ -259,9 +262,6 @@ warehouses =
       methanol_mixture = {
         InitFuel = 100,
       },
-      OperatingLevel_Air = 10,
-      OperatingLevel_Eqp = 10,
-      OperatingLevel_Fuel = 10,
       periodicity = 30,
       size = 100,
       speed = 16.666666,
@@ -272,6 +272,9 @@ warehouses =
       weapons = {},
     },
     [21] = {
+      OperatingLevel_Air = 10,
+      OperatingLevel_Eqp = 10,
+      OperatingLevel_Fuel = 10,
       aircrafts = {},
       allowHotStart = false,
       coalition = "NEUTRAL",
@@ -289,9 +292,6 @@ warehouses =
       methanol_mixture = {
         InitFuel = 100,
       },
-      OperatingLevel_Air = 10,
-      OperatingLevel_Eqp = 10,
-      OperatingLevel_Fuel = 10,
       periodicity = 30,
       size = 100,
       speed = 16.666666,
@@ -302,6 +302,9 @@ warehouses =
       weapons = {},
     },
     [22] = {
+      OperatingLevel_Air = 10,
+      OperatingLevel_Eqp = 10,
+      OperatingLevel_Fuel = 10,
       aircrafts = {},
       allowHotStart = false,
       coalition = "RED",
@@ -319,9 +322,6 @@ warehouses =
       methanol_mixture = {
         InitFuel = 100,
       },
-      OperatingLevel_Air = 10,
-      OperatingLevel_Eqp = 10,
-      OperatingLevel_Fuel = 10,
       periodicity = 30,
       size = 100,
       speed = 16.666666,
@@ -332,6 +332,9 @@ warehouses =
       weapons = {},
     },
     [23] = {
+      OperatingLevel_Air = 10,
+      OperatingLevel_Eqp = 10,
+      OperatingLevel_Fuel = 10,
       aircrafts = {
         helicopters = {
           ["AH-1W"] = {
@@ -671,6 +674,16 @@ warehouses =
               [4] = 265,
             },
           },
+          AV8BNA = {
+            initialAmount = 100,
+            unlimited = false,
+            wsType = {
+              [1] = 1,
+              [2] = 1,
+              [3] = 1,
+              [4] = 266,
+            },
+          },
           ["An-26B"] = {
             initialAmount = 100,
             unlimited = false,
@@ -689,16 +702,6 @@ warehouses =
               [2] = 1,
               [3] = 5,
               [4] = 40,
-            },
-          },
-          AV8BNA = {
-            initialAmount = 100,
-            unlimited = false,
-            wsType = {
-              [1] = 1,
-              [2] = 1,
-              [3] = 1,
-              [4] = 266,
             },
           },
           ["B-17G"] = {
@@ -1052,17 +1055,6 @@ warehouses =
               [4] = 280,
             },
           },
-          Falcon_Gyrocopter = {
-            initialAmount = 100,
-            linkDynTempl = 0,
-            unlimited = false,
-            wsType = {
-              [1] = 1,
-              [2] = 1,
-              [3] = 6,
-              [4] = 330,
-            },
-          },
           ["FW-190A8"] = {
             initialAmount = 100,
             unlimited = false,
@@ -1081,6 +1073,17 @@ warehouses =
               [2] = 1,
               [3] = 1,
               [4] = 255,
+            },
+          },
+          Falcon_Gyrocopter = {
+            initialAmount = 100,
+            linkDynTempl = 0,
+            unlimited = false,
+            wsType = {
+              [1] = 1,
+              [2] = 1,
+              [3] = 6,
+              [4] = 330,
             },
           },
           ["H-6J"] = {
@@ -1273,6 +1276,16 @@ warehouses =
               [2] = 1,
               [3] = 1,
               [4] = 325,
+            },
+          },
+          ["MQ-9 Reaper"] = {
+            initialAmount = 100,
+            unlimited = false,
+            wsType = {
+              [1] = 1,
+              [2] = 1,
+              [3] = 1,
+              [4] = 285,
             },
           },
           ["MiG-15bis"] = {
@@ -1667,16 +1680,6 @@ warehouses =
               [4] = 297,
             },
           },
-          ["MQ-9 Reaper"] = {
-            initialAmount = 100,
-            unlimited = false,
-            wsType = {
-              [1] = 1,
-              [2] = 1,
-              [3] = 1,
-              [4] = 285,
-            },
-          },
           ["P-47D-30"] = {
             initialAmount = 100,
             unlimited = false,
@@ -1995,9 +1998,6 @@ warehouses =
       methanol_mixture = {
         InitFuel = 100,
       },
-      OperatingLevel_Air = 10,
-      OperatingLevel_Eqp = 10,
-      OperatingLevel_Fuel = 10,
       periodicity = 30,
       size = 100,
       speed = 16.666666,
@@ -2008,6 +2008,9 @@ warehouses =
       weapons = {},
     },
     [24] = {
+      OperatingLevel_Air = 10,
+      OperatingLevel_Eqp = 10,
+      OperatingLevel_Fuel = 10,
       aircrafts = {
         helicopters = {
           ["AH-1W"] = {
@@ -2345,6 +2348,16 @@ warehouses =
               [4] = 265,
             },
           },
+          AV8BNA = {
+            initialAmount = 100,
+            unlimited = false,
+            wsType = {
+              [1] = 1,
+              [2] = 1,
+              [3] = 1,
+              [4] = 266,
+            },
+          },
           ["An-26B"] = {
             initialAmount = 100,
             unlimited = false,
@@ -2363,16 +2376,6 @@ warehouses =
               [2] = 1,
               [3] = 5,
               [4] = 40,
-            },
-          },
-          AV8BNA = {
-            initialAmount = 100,
-            unlimited = false,
-            wsType = {
-              [1] = 1,
-              [2] = 1,
-              [3] = 1,
-              [4] = 266,
             },
           },
           ["B-17G"] = {
@@ -2726,17 +2729,6 @@ warehouses =
               [4] = 280,
             },
           },
-          Falcon_Gyrocopter = {
-            initialAmount = 100,
-            linkDynTempl = 0,
-            unlimited = false,
-            wsType = {
-              [1] = 1,
-              [2] = 1,
-              [3] = 6,
-              [4] = 330,
-            },
-          },
           ["FW-190A8"] = {
             initialAmount = 100,
             unlimited = false,
@@ -2755,6 +2747,17 @@ warehouses =
               [2] = 1,
               [3] = 1,
               [4] = 255,
+            },
+          },
+          Falcon_Gyrocopter = {
+            initialAmount = 100,
+            linkDynTempl = 0,
+            unlimited = false,
+            wsType = {
+              [1] = 1,
+              [2] = 1,
+              [3] = 6,
+              [4] = 330,
             },
           },
           ["H-6J"] = {
@@ -2947,6 +2950,16 @@ warehouses =
               [2] = 1,
               [3] = 1,
               [4] = 325,
+            },
+          },
+          ["MQ-9 Reaper"] = {
+            initialAmount = 100,
+            unlimited = false,
+            wsType = {
+              [1] = 1,
+              [2] = 1,
+              [3] = 1,
+              [4] = 285,
             },
           },
           ["MiG-15bis"] = {
@@ -3341,16 +3354,6 @@ warehouses =
               [4] = 297,
             },
           },
-          ["MQ-9 Reaper"] = {
-            initialAmount = 100,
-            unlimited = false,
-            wsType = {
-              [1] = 1,
-              [2] = 1,
-              [3] = 1,
-              [4] = 285,
-            },
-          },
           ["P-47D-30"] = {
             initialAmount = 100,
             unlimited = false,
@@ -3669,9 +3672,6 @@ warehouses =
       methanol_mixture = {
         InitFuel = 100,
       },
-      OperatingLevel_Air = 10,
-      OperatingLevel_Eqp = 10,
-      OperatingLevel_Fuel = 10,
       periodicity = 30,
       size = 100,
       speed = 16.666666,
@@ -3687,6 +3687,9 @@ warehouses =
       weapons = {},
     },
     [25] = {
+      OperatingLevel_Air = 10,
+      OperatingLevel_Eqp = 10,
+      OperatingLevel_Fuel = 10,
       aircrafts = {},
       allowHotStart = false,
       coalition = "RED",
@@ -3704,9 +3707,6 @@ warehouses =
       methanol_mixture = {
         InitFuel = 100,
       },
-      OperatingLevel_Air = 10,
-      OperatingLevel_Eqp = 10,
-      OperatingLevel_Fuel = 10,
       periodicity = 30,
       size = 100,
       speed = 16.666666,
@@ -3717,6 +3717,9 @@ warehouses =
       weapons = {},
     },
     [26] = {
+      OperatingLevel_Air = 10,
+      OperatingLevel_Eqp = 10,
+      OperatingLevel_Fuel = 10,
       aircrafts = {},
       allowHotStart = false,
       coalition = "NEUTRAL",
@@ -3734,9 +3737,6 @@ warehouses =
       methanol_mixture = {
         InitFuel = 100,
       },
-      OperatingLevel_Air = 10,
-      OperatingLevel_Eqp = 10,
-      OperatingLevel_Fuel = 10,
       periodicity = 30,
       size = 100,
       speed = 16.666666,
@@ -3747,6 +3747,9 @@ warehouses =
       weapons = {},
     },
     [27] = {
+      OperatingLevel_Air = 10,
+      OperatingLevel_Eqp = 10,
+      OperatingLevel_Fuel = 10,
       aircrafts = {},
       allowHotStart = false,
       coalition = "NEUTRAL",
@@ -3764,9 +3767,6 @@ warehouses =
       methanol_mixture = {
         InitFuel = 100,
       },
-      OperatingLevel_Air = 10,
-      OperatingLevel_Eqp = 10,
-      OperatingLevel_Fuel = 10,
       periodicity = 30,
       size = 100,
       speed = 16.666666,
@@ -3777,6 +3777,9 @@ warehouses =
       weapons = {},
     },
     [28] = {
+      OperatingLevel_Air = 10,
+      OperatingLevel_Eqp = 10,
+      OperatingLevel_Fuel = 10,
       aircrafts = {},
       allowHotStart = false,
       coalition = "NEUTRAL",
@@ -3794,9 +3797,6 @@ warehouses =
       methanol_mixture = {
         InitFuel = 100,
       },
-      OperatingLevel_Air = 10,
-      OperatingLevel_Eqp = 10,
-      OperatingLevel_Fuel = 10,
       periodicity = 30,
       size = 100,
       speed = 16.666666,
@@ -3807,6 +3807,9 @@ warehouses =
       weapons = {},
     },
     [29] = {
+      OperatingLevel_Air = 10,
+      OperatingLevel_Eqp = 10,
+      OperatingLevel_Fuel = 10,
       aircrafts = {},
       allowHotStart = false,
       coalition = "BLUE",
@@ -3824,9 +3827,6 @@ warehouses =
       methanol_mixture = {
         InitFuel = 100,
       },
-      OperatingLevel_Air = 10,
-      OperatingLevel_Eqp = 10,
-      OperatingLevel_Fuel = 10,
       periodicity = 30,
       size = 100,
       speed = 16.666666,
@@ -3837,6 +3837,9 @@ warehouses =
       weapons = {},
     },
     [30] = {
+      OperatingLevel_Air = 10,
+      OperatingLevel_Eqp = 10,
+      OperatingLevel_Fuel = 10,
       aircrafts = {},
       allowHotStart = false,
       coalition = "NEUTRAL",
@@ -3854,9 +3857,6 @@ warehouses =
       methanol_mixture = {
         InitFuel = 100,
       },
-      OperatingLevel_Air = 10,
-      OperatingLevel_Eqp = 10,
-      OperatingLevel_Fuel = 10,
       periodicity = 30,
       size = 100,
       speed = 16.666666,
@@ -3867,6 +3867,9 @@ warehouses =
       weapons = {},
     },
     [31] = {
+      OperatingLevel_Air = 10,
+      OperatingLevel_Eqp = 10,
+      OperatingLevel_Fuel = 10,
       aircrafts = {},
       allowHotStart = false,
       coalition = "NEUTRAL",
@@ -3884,9 +3887,6 @@ warehouses =
       methanol_mixture = {
         InitFuel = 100,
       },
-      OperatingLevel_Air = 10,
-      OperatingLevel_Eqp = 10,
-      OperatingLevel_Fuel = 10,
       periodicity = 30,
       size = 100,
       speed = 16.666666,
@@ -3897,6 +3897,9 @@ warehouses =
       weapons = {},
     },
     [32] = {
+      OperatingLevel_Air = 10,
+      OperatingLevel_Eqp = 10,
+      OperatingLevel_Fuel = 10,
       aircrafts = {},
       allowHotStart = false,
       coalition = "NEUTRAL",
@@ -3914,9 +3917,6 @@ warehouses =
       methanol_mixture = {
         InitFuel = 100,
       },
-      OperatingLevel_Air = 10,
-      OperatingLevel_Eqp = 10,
-      OperatingLevel_Fuel = 10,
       periodicity = 30,
       size = 100,
       speed = 16.666666,
@@ -3929,6 +3929,9 @@ warehouses =
   },
   warehouses = {
     [45] = {
+      OperatingLevel_Air = 10,
+      OperatingLevel_Eqp = 10,
+      OperatingLevel_Fuel = 10,
       aircrafts = {},
       allowHotStart = false,
       coalition = "blue",
@@ -3946,9 +3949,6 @@ warehouses =
       methanol_mixture = {
         InitFuel = 100,
       },
-      OperatingLevel_Air = 10,
-      OperatingLevel_Eqp = 10,
-      OperatingLevel_Fuel = 10,
       periodicity = 30,
       size = 100,
       speed = 16.666666,
@@ -3959,6 +3959,9 @@ warehouses =
       weapons = {},
     },
     [46] = {
+      OperatingLevel_Air = 10,
+      OperatingLevel_Eqp = 10,
+      OperatingLevel_Fuel = 10,
       aircrafts = {},
       allowHotStart = false,
       coalition = "blue",
@@ -3976,9 +3979,6 @@ warehouses =
       methanol_mixture = {
         InitFuel = 100,
       },
-      OperatingLevel_Air = 10,
-      OperatingLevel_Eqp = 10,
-      OperatingLevel_Fuel = 10,
       periodicity = 30,
       size = 100,
       speed = 16.666666,
@@ -3989,6 +3989,9 @@ warehouses =
       weapons = {},
     },
     [47] = {
+      OperatingLevel_Air = 10,
+      OperatingLevel_Eqp = 10,
+      OperatingLevel_Fuel = 10,
       aircrafts = {},
       allowHotStart = false,
       coalition = "blue",
@@ -4006,9 +4009,6 @@ warehouses =
       methanol_mixture = {
         InitFuel = 100,
       },
-      OperatingLevel_Air = 10,
-      OperatingLevel_Eqp = 10,
-      OperatingLevel_Fuel = 10,
       periodicity = 30,
       size = 100,
       speed = 16.666666,
@@ -4019,6 +4019,9 @@ warehouses =
       weapons = {},
     },
     [48] = {
+      OperatingLevel_Air = 10,
+      OperatingLevel_Eqp = 10,
+      OperatingLevel_Fuel = 10,
       aircrafts = {},
       allowHotStart = false,
       coalition = "blue",
@@ -4036,9 +4039,6 @@ warehouses =
       methanol_mixture = {
         InitFuel = 100,
       },
-      OperatingLevel_Air = 10,
-      OperatingLevel_Eqp = 10,
-      OperatingLevel_Fuel = 10,
       periodicity = 30,
       size = 100,
       speed = 16.666666,
@@ -4049,6 +4049,9 @@ warehouses =
       weapons = {},
     },
     [4324] = {
+      OperatingLevel_Air = 10,
+      OperatingLevel_Eqp = 0,
+      OperatingLevel_Fuel = 0,
       aircrafts = {},
       allowHotStart = false,
       coalition = "blue",
@@ -4066,9 +4069,6 @@ warehouses =
       methanol_mixture = {
         InitFuel = 0,
       },
-      OperatingLevel_Air = 10,
-      OperatingLevel_Eqp = 0,
-      OperatingLevel_Fuel = 0,
       periodicity = 30,
       size = 100,
       speed = 16.666666,
@@ -4078,6839 +4078,6842 @@ warehouses =
       unlimitedMunitions = false,
       weapons = {
         [1] = {
+          initialAmount = 0,
           wsType = {
             [1] = 1,
             [2] = 3,
             [3] = 43,
             [4] = 10,
           },
-          initialAmount = 0,
         },
         [2] = {
+          initialAmount = 0,
           wsType = {
             [1] = 1,
             [2] = 3,
             [3] = 43,
             [4] = 103,
           },
-          initialAmount = 0,
         },
         [3] = {
+          initialAmount = 0,
           wsType = {
             [1] = 1,
             [2] = 3,
             [3] = 43,
             [4] = 1056,
           },
-          initialAmount = 0,
         },
         [4] = {
+          initialAmount = 0,
           wsType = {
             [1] = 1,
             [2] = 3,
             [3] = 43,
             [4] = 107,
           },
-          initialAmount = 0,
         },
         [5] = {
+          initialAmount = 0,
           wsType = {
             [1] = 1,
             [2] = 3,
             [3] = 43,
             [4] = 11,
           },
-          initialAmount = 0,
         },
         [6] = {
+          initialAmount = 0,
           wsType = {
             [1] = 1,
             [2] = 3,
             [3] = 43,
             [4] = 12,
           },
-          initialAmount = 0,
         },
         [7] = {
+          initialAmount = 0,
           wsType = {
             [1] = 1,
             [2] = 3,
             [3] = 43,
             [4] = 13,
           },
-          initialAmount = 0,
         },
         [8] = {
+          initialAmount = 0,
           wsType = {
             [1] = 1,
             [2] = 3,
             [3] = 43,
             [4] = 14,
           },
-          initialAmount = 0,
         },
         [9] = {
+          initialAmount = 0,
           wsType = {
             [1] = 1,
             [2] = 3,
             [3] = 43,
             [4] = 1469,
           },
-          initialAmount = 0,
         },
         [10] = {
+          initialAmount = 0,
           wsType = {
             [1] = 1,
             [2] = 3,
             [3] = 43,
             [4] = 1470,
           },
-          initialAmount = 0,
         },
         [11] = {
+          initialAmount = 0,
           wsType = {
             [1] = 1,
             [2] = 3,
             [3] = 43,
             [4] = 15,
           },
-          initialAmount = 0,
         },
         [12] = {
+          initialAmount = 0,
           wsType = {
             [1] = 1,
             [2] = 3,
             [3] = 43,
             [4] = 152,
           },
-          initialAmount = 0,
         },
         [13] = {
+          initialAmount = 0,
           wsType = {
             [1] = 1,
             [2] = 3,
             [3] = 43,
             [4] = 1551,
           },
-          initialAmount = 0,
         },
         [14] = {
+          initialAmount = 0,
           wsType = {
             [1] = 1,
             [2] = 3,
             [3] = 43,
             [4] = 1552,
           },
-          initialAmount = 0,
         },
         [15] = {
+          initialAmount = 0,
           wsType = {
             [1] = 1,
             [2] = 3,
             [3] = 43,
             [4] = 1553,
           },
-          initialAmount = 0,
         },
         [16] = {
+          initialAmount = 0,
           wsType = {
             [1] = 1,
             [2] = 3,
             [3] = 43,
             [4] = 1554,
           },
-          initialAmount = 0,
         },
         [17] = {
+          initialAmount = 0,
           wsType = {
             [1] = 1,
             [2] = 3,
             [3] = 43,
             [4] = 1555,
           },
-          initialAmount = 0,
         },
         [18] = {
+          initialAmount = 0,
           wsType = {
             [1] = 1,
             [2] = 3,
             [3] = 43,
             [4] = 1556,
           },
-          initialAmount = 0,
         },
         [19] = {
+          initialAmount = 0,
           wsType = {
             [1] = 1,
             [2] = 3,
             [3] = 43,
             [4] = 1572,
           },
-          initialAmount = 0,
         },
         [20] = {
+          initialAmount = 0,
           wsType = {
             [1] = 1,
             [2] = 3,
             [3] = 43,
             [4] = 1573,
           },
-          initialAmount = 0,
         },
         [21] = {
+          initialAmount = 0,
           wsType = {
             [1] = 1,
             [2] = 3,
             [3] = 43,
             [4] = 16,
           },
-          initialAmount = 0,
         },
         [22] = {
+          initialAmount = 0,
           wsType = {
             [1] = 1,
             [2] = 3,
             [3] = 43,
             [4] = 1640,
           },
-          initialAmount = 0,
         },
         [23] = {
+          initialAmount = 0,
           wsType = {
             [1] = 1,
             [2] = 3,
             [3] = 43,
             [4] = 1641,
           },
-          initialAmount = 0,
         },
         [24] = {
+          initialAmount = 0,
           wsType = {
             [1] = 1,
             [2] = 3,
             [3] = 43,
             [4] = 1642,
           },
-          initialAmount = 0,
         },
         [25] = {
+          initialAmount = 0,
           wsType = {
             [1] = 1,
             [2] = 3,
             [3] = 43,
             [4] = 17,
           },
-          initialAmount = 0,
         },
         [26] = {
+          initialAmount = 0,
           wsType = {
             [1] = 1,
             [2] = 3,
             [3] = 43,
             [4] = 1700,
           },
-          initialAmount = 0,
         },
         [27] = {
+          initialAmount = 0,
           wsType = {
             [1] = 1,
             [2] = 3,
             [3] = 43,
             [4] = 1715,
           },
-          initialAmount = 0,
         },
         [28] = {
+          initialAmount = 0,
           wsType = {
             [1] = 1,
             [2] = 3,
             [3] = 43,
             [4] = 1716,
           },
-          initialAmount = 0,
         },
         [29] = {
+          initialAmount = 0,
           wsType = {
             [1] = 1,
             [2] = 3,
             [3] = 43,
             [4] = 2144,
           },
-          initialAmount = 0,
         },
         [30] = {
+          initialAmount = 0,
           wsType = {
             [1] = 1,
             [2] = 3,
             [3] = 43,
             [4] = 2145,
           },
-          initialAmount = 0,
         },
         [31] = {
+          initialAmount = 0,
           wsType = {
             [1] = 1,
             [2] = 3,
             [3] = 43,
             [4] = 2146,
           },
-          initialAmount = 0,
         },
         [32] = {
+          initialAmount = 0,
           wsType = {
             [1] = 1,
             [2] = 3,
             [3] = 43,
             [4] = 2380,
           },
-          initialAmount = 0,
         },
         [33] = {
+          initialAmount = 0,
           wsType = {
             [1] = 1,
             [2] = 3,
             [3] = 43,
             [4] = 2381,
           },
-          initialAmount = 0,
         },
         [34] = {
+          initialAmount = 0,
           wsType = {
             [1] = 1,
             [2] = 3,
             [3] = 43,
             [4] = 2382,
           },
-          initialAmount = 0,
         },
         [35] = {
+          initialAmount = 0,
           wsType = {
             [1] = 1,
             [2] = 3,
             [3] = 43,
             [4] = 2383,
           },
-          initialAmount = 0,
         },
         [36] = {
+          initialAmount = 0,
           wsType = {
             [1] = 1,
             [2] = 3,
             [3] = 43,
             [4] = 263,
           },
-          initialAmount = 0,
         },
         [37] = {
+          initialAmount = 0,
           wsType = {
             [1] = 1,
             [2] = 3,
             [3] = 43,
             [4] = 264,
           },
-          initialAmount = 0,
         },
         [38] = {
+          initialAmount = 0,
           wsType = {
             [1] = 1,
             [2] = 3,
             [3] = 43,
             [4] = 265,
           },
-          initialAmount = 0,
         },
         [39] = {
+          initialAmount = 0,
           wsType = {
             [1] = 1,
             [2] = 3,
             [3] = 43,
             [4] = 266,
           },
-          initialAmount = 0,
         },
         [40] = {
+          initialAmount = 0,
           wsType = {
             [1] = 1,
             [2] = 3,
             [3] = 43,
             [4] = 267,
           },
-          initialAmount = 0,
         },
         [41] = {
+          initialAmount = 0,
           wsType = {
             [1] = 1,
             [2] = 3,
             [3] = 43,
             [4] = 2738,
           },
-          initialAmount = 0,
         },
         [42] = {
+          initialAmount = 0,
           wsType = {
             [1] = 1,
             [2] = 3,
             [3] = 43,
             [4] = 2739,
           },
-          initialAmount = 0,
         },
         [43] = {
+          initialAmount = 0,
           wsType = {
             [1] = 1,
             [2] = 3,
             [3] = 43,
             [4] = 274,
           },
-          initialAmount = 0,
         },
         [44] = {
+          initialAmount = 0,
           wsType = {
             [1] = 1,
             [2] = 3,
             [3] = 43,
             [4] = 2740,
           },
-          initialAmount = 0,
         },
         [45] = {
+          initialAmount = 0,
           wsType = {
             [1] = 1,
             [2] = 3,
             [3] = 43,
             [4] = 2741,
           },
-          initialAmount = 0,
         },
         [46] = {
+          initialAmount = 0,
           wsType = {
             [1] = 1,
             [2] = 3,
             [3] = 43,
             [4] = 275,
           },
-          initialAmount = 0,
         },
         [47] = {
+          initialAmount = 0,
           wsType = {
             [1] = 1,
             [2] = 3,
             [3] = 43,
             [4] = 2831,
           },
-          initialAmount = 0,
         },
         [48] = {
+          initialAmount = 0,
           wsType = {
             [1] = 1,
             [2] = 3,
             [3] = 43,
             [4] = 2836,
           },
-          initialAmount = 0,
         },
         [49] = {
+          initialAmount = 0,
           wsType = {
             [1] = 1,
             [2] = 3,
             [3] = 43,
             [4] = 2839,
           },
-          initialAmount = 0,
         },
         [50] = {
+          initialAmount = 0,
           wsType = {
             [1] = 1,
             [2] = 3,
             [3] = 43,
             [4] = 2843,
           },
-          initialAmount = 0,
         },
         [51] = {
+          initialAmount = 0,
           wsType = {
             [1] = 1,
             [2] = 3,
             [3] = 43,
             [4] = 2844,
           },
-          initialAmount = 0,
         },
         [52] = {
+          initialAmount = 0,
           wsType = {
             [1] = 1,
             [2] = 3,
             [3] = 43,
             [4] = 2845,
           },
-          initialAmount = 0,
         },
         [53] = {
+          initialAmount = 0,
           wsType = {
             [1] = 1,
             [2] = 3,
             [3] = 43,
             [4] = 2846,
           },
-          initialAmount = 0,
         },
         [54] = {
+          initialAmount = 0,
           wsType = {
             [1] = 1,
             [2] = 3,
             [3] = 43,
             [4] = 2847,
           },
-          initialAmount = 0,
         },
         [55] = {
+          initialAmount = 0,
           wsType = {
             [1] = 1,
             [2] = 3,
             [3] = 43,
             [4] = 294,
           },
-          initialAmount = 0,
         },
         [56] = {
+          initialAmount = 0,
           wsType = {
             [1] = 1,
             [2] = 3,
             [3] = 43,
             [4] = 36,
           },
-          initialAmount = 0,
         },
         [57] = {
+          initialAmount = 0,
           wsType = {
             [1] = 1,
             [2] = 3,
             [3] = 43,
             [4] = 38,
           },
-          initialAmount = 0,
         },
         [58] = {
+          initialAmount = 0,
           wsType = {
             [1] = 1,
             [2] = 3,
             [3] = 43,
             [4] = 39,
           },
-          initialAmount = 0,
         },
         [59] = {
+          initialAmount = 0,
           wsType = {
             [1] = 1,
             [2] = 3,
             [3] = 43,
             [4] = 41,
           },
-          initialAmount = 0,
         },
         [60] = {
+          initialAmount = 0,
           wsType = {
             [1] = 1,
             [2] = 3,
             [3] = 43,
             [4] = 42,
           },
-          initialAmount = 0,
         },
         [61] = {
+          initialAmount = 0,
           wsType = {
             [1] = 1,
             [2] = 3,
             [3] = 43,
             [4] = 465,
           },
-          initialAmount = 0,
         },
         [62] = {
+          initialAmount = 0,
           wsType = {
             [1] = 1,
             [2] = 3,
             [3] = 43,
             [4] = 466,
           },
-          initialAmount = 0,
         },
         [63] = {
+          initialAmount = 0,
           wsType = {
             [1] = 1,
             [2] = 3,
             [3] = 43,
             [4] = 468,
           },
-          initialAmount = 0,
         },
         [64] = {
+          initialAmount = 0,
           wsType = {
             [1] = 1,
             [2] = 3,
             [3] = 43,
             [4] = 469,
           },
-          initialAmount = 0,
         },
         [65] = {
+          initialAmount = 0,
           wsType = {
             [1] = 1,
             [2] = 3,
             [3] = 43,
             [4] = 484,
           },
-          initialAmount = 0,
         },
         [66] = {
+          initialAmount = 0,
           wsType = {
             [1] = 1,
             [2] = 3,
             [3] = 43,
             [4] = 485,
           },
-          initialAmount = 0,
         },
         [67] = {
+          initialAmount = 0,
           wsType = {
             [1] = 1,
             [2] = 3,
             [3] = 43,
             [4] = 5,
           },
-          initialAmount = 0,
         },
         [68] = {
+          initialAmount = 0,
           wsType = {
             [1] = 1,
             [2] = 3,
             [3] = 43,
             [4] = 53,
           },
-          initialAmount = 0,
         },
         [69] = {
+          initialAmount = 0,
           wsType = {
             [1] = 1,
             [2] = 3,
             [3] = 43,
             [4] = 54,
           },
-          initialAmount = 0,
         },
         [70] = {
+          initialAmount = 0,
           wsType = {
             [1] = 1,
             [2] = 3,
             [3] = 43,
             [4] = 55,
           },
-          initialAmount = 0,
         },
         [71] = {
+          initialAmount = 0,
           wsType = {
             [1] = 1,
             [2] = 3,
             [3] = 43,
             [4] = 56,
           },
-          initialAmount = 0,
         },
         [72] = {
+          initialAmount = 0,
           wsType = {
             [1] = 1,
             [2] = 3,
             [3] = 43,
             [4] = 587,
           },
-          initialAmount = 0,
         },
         [73] = {
+          initialAmount = 0,
           wsType = {
             [1] = 1,
             [2] = 3,
             [3] = 43,
             [4] = 589,
           },
-          initialAmount = 0,
         },
         [74] = {
+          initialAmount = 0,
           wsType = {
             [1] = 1,
             [2] = 3,
             [3] = 43,
             [4] = 590,
           },
-          initialAmount = 0,
         },
         [75] = {
+          initialAmount = 0,
           wsType = {
             [1] = 1,
             [2] = 3,
             [3] = 43,
             [4] = 593,
           },
-          initialAmount = 0,
         },
         [76] = {
+          initialAmount = 0,
           wsType = {
             [1] = 1,
             [2] = 3,
             [3] = 43,
             [4] = 603,
           },
-          initialAmount = 0,
         },
         [77] = {
+          initialAmount = 0,
           wsType = {
             [1] = 1,
             [2] = 3,
             [3] = 43,
             [4] = 604,
           },
-          initialAmount = 0,
         },
         [78] = {
+          initialAmount = 0,
           wsType = {
             [1] = 1,
             [2] = 3,
             [3] = 43,
             [4] = 605,
           },
-          initialAmount = 0,
         },
         [79] = {
+          initialAmount = 0,
           wsType = {
             [1] = 1,
             [2] = 3,
             [3] = 43,
             [4] = 609,
           },
-          initialAmount = 0,
         },
         [80] = {
+          initialAmount = 0,
           wsType = {
             [1] = 1,
             [2] = 3,
             [3] = 43,
             [4] = 61,
           },
-          initialAmount = 0,
         },
         [81] = {
+          initialAmount = 0,
           wsType = {
             [1] = 1,
             [2] = 3,
             [3] = 43,
             [4] = 610,
           },
-          initialAmount = 0,
         },
         [82] = {
+          initialAmount = 0,
           wsType = {
             [1] = 1,
             [2] = 3,
             [3] = 43,
             [4] = 611,
           },
-          initialAmount = 0,
         },
         [83] = {
+          initialAmount = 0,
           wsType = {
             [1] = 1,
             [2] = 3,
             [3] = 43,
             [4] = 616,
           },
-          initialAmount = 0,
         },
         [84] = {
+          initialAmount = 0,
           wsType = {
             [1] = 1,
             [2] = 3,
             [3] = 43,
             [4] = 617,
           },
-          initialAmount = 0,
         },
         [85] = {
+          initialAmount = 0,
           wsType = {
             [1] = 1,
             [2] = 3,
             [3] = 43,
             [4] = 662,
           },
-          initialAmount = 0,
         },
         [86] = {
+          initialAmount = 0,
           wsType = {
             [1] = 1,
             [2] = 3,
             [3] = 43,
             [4] = 663,
           },
-          initialAmount = 0,
         },
         [87] = {
+          initialAmount = 0,
           wsType = {
             [1] = 1,
             [2] = 3,
             [3] = 43,
             [4] = 664,
           },
-          initialAmount = 0,
         },
         [88] = {
+          initialAmount = 0,
           wsType = {
             [1] = 1,
             [2] = 3,
             [3] = 43,
             [4] = 782,
           },
-          initialAmount = 0,
         },
         [89] = {
+          initialAmount = 0,
           wsType = {
             [1] = 1,
             [2] = 3,
             [3] = 43,
             [4] = 783,
           },
-          initialAmount = 0,
         },
         [90] = {
+          initialAmount = 0,
           wsType = {
             [1] = 1,
             [2] = 3,
             [3] = 43,
             [4] = 855,
           },
-          initialAmount = 0,
         },
         [91] = {
+          initialAmount = 0,
           wsType = {
             [1] = 1,
             [2] = 3,
             [3] = 43,
             [4] = 928,
           },
-          initialAmount = 0,
         },
         [92] = {
+          initialAmount = 0,
           wsType = {
             [1] = 1,
             [2] = 3,
             [3] = 43,
             [4] = 929,
           },
-          initialAmount = 0,
         },
         [93] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 44,
             [4] = 101,
           },
-          initialAmount = 0,
         },
         [94] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 44,
             [4] = 1548,
           },
-          initialAmount = 0,
         },
         [95] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 44,
             [4] = 1717,
           },
-          initialAmount = 0,
         },
         [96] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 44,
             [4] = 1718,
           },
-          initialAmount = 0,
         },
         [97] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 44,
             [4] = 1719,
           },
-          initialAmount = 0,
         },
         [98] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 44,
             [4] = 1720,
           },
-          initialAmount = 0,
         },
         [99] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 44,
             [4] = 1721,
           },
-          initialAmount = 0,
         },
         [100] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 44,
             [4] = 19,
           },
-          initialAmount = 0,
         },
         [101] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 44,
             [4] = 2114,
           },
-          initialAmount = 0,
         },
         [102] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 44,
             [4] = 2138,
           },
-          initialAmount = 0,
         },
         [103] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 44,
             [4] = 2139,
           },
-          initialAmount = 0,
         },
         [104] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 44,
             [4] = 2140,
           },
-          initialAmount = 0,
         },
         [105] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 44,
             [4] = 2141,
           },
-          initialAmount = 0,
         },
         [106] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 44,
             [4] = 2142,
           },
-          initialAmount = 0,
         },
         [107] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 44,
             [4] = 2148,
           },
-          initialAmount = 0,
         },
         [108] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 44,
             [4] = 2149,
           },
-          initialAmount = 0,
         },
         [109] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 44,
             [4] = 2286,
           },
-          initialAmount = 0,
         },
         [110] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 44,
             [4] = 2287,
           },
-          initialAmount = 0,
         },
         [111] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 44,
             [4] = 2487,
           },
-          initialAmount = 0,
         },
         [112] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 44,
             [4] = 26,
           },
-          initialAmount = 0,
         },
         [113] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 44,
             [4] = 2677,
           },
-          initialAmount = 0,
         },
         [114] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 44,
             [4] = 28,
           },
-          initialAmount = 0,
         },
         [115] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 44,
             [4] = 2837,
           },
-          initialAmount = 0,
         },
         [116] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 44,
             [4] = 2838,
           },
-          initialAmount = 0,
         },
         [117] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 44,
             [4] = 424,
           },
-          initialAmount = 0,
         },
         [118] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 44,
             [4] = 425,
           },
-          initialAmount = 0,
         },
         [119] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 44,
             [4] = 426,
           },
-          initialAmount = 0,
         },
         [120] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 44,
             [4] = 461,
           },
-          initialAmount = 0,
         },
         [121] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 44,
             [4] = 463,
           },
-          initialAmount = 0,
         },
         [122] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 44,
             [4] = 486,
           },
-          initialAmount = 0,
         },
         [123] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 44,
             [4] = 59,
           },
-          initialAmount = 0,
         },
         [124] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 44,
             [4] = 62,
           },
-          initialAmount = 0,
         },
         [125] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 44,
             [4] = 63,
           },
-          initialAmount = 0,
         },
         [126] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 44,
             [4] = 64,
           },
-          initialAmount = 0,
         },
         [127] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 44,
             [4] = 65,
           },
-          initialAmount = 0,
         },
         [128] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 44,
             [4] = 74,
           },
-          initialAmount = 0,
         },
         [129] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 44,
             [4] = 78,
           },
-          initialAmount = 0,
         },
         [130] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 44,
             [4] = 808,
           },
-          initialAmount = 0,
         },
         [131] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 44,
             [4] = 95,
           },
-          initialAmount = 0,
         },
         [132] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 45,
             [4] = 142,
           },
-          initialAmount = 0,
         },
         [133] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 45,
             [4] = 173,
           },
-          initialAmount = 0,
         },
         [134] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 45,
             [4] = 1762,
           },
-          initialAmount = 0,
         },
         [135] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 45,
             [4] = 1763,
           },
-          initialAmount = 0,
         },
         [136] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 45,
             [4] = 2288,
           },
-          initialAmount = 0,
         },
         [137] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 45,
             [4] = 25,
           },
-          initialAmount = 0,
         },
         [138] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 45,
             [4] = 29,
           },
-          initialAmount = 0,
         },
         [139] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 45,
             [4] = 295,
           },
-          initialAmount = 0,
         },
         [140] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 45,
             [4] = 296,
           },
-          initialAmount = 0,
         },
         [141] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 45,
             [4] = 30,
           },
-          initialAmount = 0,
         },
         [142] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 45,
             [4] = 301,
           },
-          initialAmount = 0,
         },
         [143] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 45,
             [4] = 37,
           },
-          initialAmount = 0,
         },
         [144] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 45,
             [4] = 462,
           },
-          initialAmount = 0,
         },
         [145] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 45,
             [4] = 464,
           },
-          initialAmount = 0,
         },
         [146] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 45,
             [4] = 665,
           },
-          initialAmount = 0,
         },
         [147] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 45,
             [4] = 681,
           },
-          initialAmount = 0,
         },
         [148] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 45,
             [4] = 94,
           },
-          initialAmount = 0,
         },
         [149] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 45,
             [4] = 968,
           },
-          initialAmount = 0,
         },
         [150] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 46,
             [4] = 1057,
           },
-          initialAmount = 0,
         },
         [151] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 46,
             [4] = 1294,
           },
-          initialAmount = 0,
         },
         [152] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 46,
             [4] = 1295,
           },
-          initialAmount = 0,
         },
         [153] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 46,
             [4] = 145,
           },
-          initialAmount = 0,
         },
         [154] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 46,
             [4] = 1544,
           },
-          initialAmount = 0,
         },
         [155] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 46,
             [4] = 1545,
           },
-          initialAmount = 0,
         },
         [156] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 46,
             [4] = 1546,
           },
-          initialAmount = 0,
         },
         [157] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 46,
             [4] = 1547,
           },
-          initialAmount = 0,
         },
         [158] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 46,
             [4] = 160,
           },
-          initialAmount = 0,
         },
         [159] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 46,
             [4] = 161,
           },
-          initialAmount = 0,
         },
         [160] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 46,
             [4] = 170,
           },
-          initialAmount = 0,
         },
         [161] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 46,
             [4] = 171,
           },
-          initialAmount = 0,
         },
         [162] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 46,
             [4] = 174,
           },
-          initialAmount = 0,
         },
         [163] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 46,
             [4] = 175,
           },
-          initialAmount = 0,
         },
         [164] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 46,
             [4] = 176,
           },
-          initialAmount = 0,
         },
         [165] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 46,
             [4] = 1764,
           },
-          initialAmount = 0,
         },
         [166] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 46,
             [4] = 1765,
           },
-          initialAmount = 0,
         },
         [167] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 46,
             [4] = 1766,
           },
-          initialAmount = 0,
         },
         [168] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 46,
             [4] = 1767,
           },
-          initialAmount = 0,
         },
         [169] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 46,
             [4] = 1768,
           },
-          initialAmount = 0,
         },
         [170] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 46,
             [4] = 1769,
           },
-          initialAmount = 0,
         },
         [171] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 46,
             [4] = 177,
           },
-          initialAmount = 0,
         },
         [172] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 46,
             [4] = 1770,
           },
-          initialAmount = 0,
         },
         [173] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 46,
             [4] = 1771,
           },
-          initialAmount = 0,
         },
         [174] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 46,
             [4] = 18,
           },
-          initialAmount = 0,
         },
         [175] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 46,
             [4] = 1813,
           },
-          initialAmount = 0,
         },
         [176] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 46,
             [4] = 183,
           },
-          initialAmount = 0,
         },
         [177] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 46,
             [4] = 184,
           },
-          initialAmount = 0,
         },
         [178] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 46,
             [4] = 1919,
           },
-          initialAmount = 0,
         },
         [179] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 46,
             [4] = 20,
           },
-          initialAmount = 0,
         },
         [180] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 46,
             [4] = 2143,
           },
-          initialAmount = 0,
         },
         [181] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 46,
             [4] = 2488,
           },
-          initialAmount = 0,
         },
         [182] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 46,
             [4] = 2489,
           },
-          initialAmount = 0,
         },
         [183] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 46,
             [4] = 2490,
           },
-          initialAmount = 0,
         },
         [184] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 46,
             [4] = 2491,
           },
-          initialAmount = 0,
         },
         [185] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 46,
             [4] = 2492,
           },
-          initialAmount = 0,
         },
         [186] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 46,
             [4] = 2493,
           },
-          initialAmount = 0,
         },
         [187] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 46,
             [4] = 2494,
           },
-          initialAmount = 0,
         },
         [188] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 46,
             [4] = 2495,
           },
-          initialAmount = 0,
         },
         [189] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 46,
             [4] = 2496,
           },
-          initialAmount = 0,
         },
         [190] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 46,
             [4] = 2607,
           },
-          initialAmount = 0,
         },
         [191] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 46,
             [4] = 2608,
           },
-          initialAmount = 0,
         },
         [192] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 46,
             [4] = 2609,
           },
-          initialAmount = 0,
         },
         [193] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 46,
             [4] = 2610,
           },
-          initialAmount = 0,
         },
         [194] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 46,
             [4] = 2611,
           },
-          initialAmount = 0,
         },
         [195] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 46,
             [4] = 2742,
           },
-          initialAmount = 0,
         },
         [196] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 46,
             [4] = 2832,
           },
-          initialAmount = 0,
         },
         [197] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 46,
             [4] = 2840,
           },
-          initialAmount = 0,
         },
         [198] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 46,
             [4] = 2841,
           },
-          initialAmount = 0,
         },
         [199] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 46,
             [4] = 2842,
           },
-          initialAmount = 0,
         },
         [200] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 46,
             [4] = 286,
           },
-          initialAmount = 0,
         },
         [201] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 46,
             [4] = 300,
           },
-          initialAmount = 0,
         },
         [202] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 46,
             [4] = 428,
           },
-          initialAmount = 0,
         },
         [203] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 46,
             [4] = 429,
           },
-          initialAmount = 0,
         },
         [204] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 46,
             [4] = 588,
           },
-          initialAmount = 0,
         },
         [205] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 46,
             [4] = 596,
           },
-          initialAmount = 0,
         },
         [206] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 46,
             [4] = 824,
           },
-          initialAmount = 0,
         },
         [207] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 46,
             [4] = 825,
           },
-          initialAmount = 0,
         },
         [208] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 47,
             [4] = 104,
           },
-          initialAmount = 0,
         },
         [209] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 47,
             [4] = 108,
           },
-          initialAmount = 0,
         },
         [210] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 47,
             [4] = 1100,
           },
-          initialAmount = 0,
         },
         [211] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 47,
             [4] = 1549,
           },
-          initialAmount = 0,
         },
         [212] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 47,
             [4] = 21048,
           },
-          initialAmount = 0,
         },
         [213] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 47,
             [4] = 4,
           },
-          initialAmount = 0,
         },
         [214] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 47,
             [4] = 679,
           },
-          initialAmount = 0,
         },
         [215] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 47,
             [4] = 680,
           },
-          initialAmount = 0,
         },
         [216] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 48,
             [4] = 1168,
           },
-          initialAmount = 0,
         },
         [217] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 48,
             [4] = 1169,
           },
-          initialAmount = 0,
         },
         [218] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 48,
             [4] = 1170,
           },
-          initialAmount = 0,
         },
         [219] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 48,
             [4] = 1171,
           },
-          initialAmount = 0,
         },
         [220] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 48,
             [4] = 1172,
           },
-          initialAmount = 0,
         },
         [221] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 48,
             [4] = 1173,
           },
-          initialAmount = 0,
         },
         [222] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 48,
             [4] = 1174,
           },
-          initialAmount = 0,
         },
         [223] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 48,
             [4] = 297,
           },
-          initialAmount = 0,
         },
         [224] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 48,
             [4] = 58,
           },
-          initialAmount = 0,
         },
         [225] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 48,
             [4] = 608,
           },
-          initialAmount = 0,
         },
         [226] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 48,
             [4] = 666,
           },
-          initialAmount = 0,
         },
         [227] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 48,
             [4] = 765,
           },
-          initialAmount = 0,
         },
         [228] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 48,
             [4] = 766,
           },
-          initialAmount = 0,
         },
         [229] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 50,
             [4] = 1550,
           },
-          initialAmount = 0,
         },
         [230] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 50,
             [4] = 172,
           },
-          initialAmount = 0,
         },
         [231] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 50,
             [4] = 268,
           },
-          initialAmount = 0,
         },
         [232] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 50,
             [4] = 269,
           },
-          initialAmount = 0,
         },
         [233] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 50,
             [4] = 270,
           },
-          initialAmount = 0,
         },
         [234] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 50,
             [4] = 271,
           },
-          initialAmount = 0,
         },
         [235] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 50,
             [4] = 272,
           },
-          initialAmount = 0,
         },
         [236] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 50,
             [4] = 273,
           },
-          initialAmount = 0,
         },
         [237] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 50,
             [4] = 2834,
           },
-          initialAmount = 0,
         },
         [238] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 50,
             [4] = 298,
           },
-          initialAmount = 0,
         },
         [239] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 50,
             [4] = 427,
           },
-          initialAmount = 0,
         },
         [240] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 50,
             [4] = 467,
           },
-          initialAmount = 0,
         },
         [241] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 50,
             [4] = 470,
           },
-          initialAmount = 0,
         },
         [242] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 50,
             [4] = 66,
           },
-          initialAmount = 0,
         },
         [243] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 50,
             [4] = 667,
           },
-          initialAmount = 0,
         },
         [244] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 50,
             [4] = 668,
           },
-          initialAmount = 0,
         },
         [245] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 50,
             [4] = 67,
           },
-          initialAmount = 0,
         },
         [246] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 50,
             [4] = 82,
           },
-          initialAmount = 0,
         },
         [247] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 50,
             [4] = 83,
           },
-          initialAmount = 0,
         },
         [248] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 50,
             [4] = 84,
           },
-          initialAmount = 0,
         },
         [249] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 50,
             [4] = 85,
           },
-          initialAmount = 0,
         },
         [250] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 50,
             [4] = 86,
           },
-          initialAmount = 0,
         },
         [251] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 50,
             [4] = 87,
           },
-          initialAmount = 0,
         },
         [252] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 50,
             [4] = 88,
           },
-          initialAmount = 0,
         },
         [253] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 50,
             [4] = 89,
           },
-          initialAmount = 0,
         },
         [254] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 50,
             [4] = 90,
           },
-          initialAmount = 0,
         },
         [255] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 50,
             [4] = 91,
           },
-          initialAmount = 0,
         },
         [256] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 15,
             [3] = 51,
             [4] = 446,
           },
-          initialAmount = 0,
         },
         [257] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 100,
             [4] = 143,
           },
-          initialAmount = 0,
         },
         [258] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 101,
             [4] = 140,
           },
-          initialAmount = 0,
         },
         [259] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 101,
             [4] = 141,
           },
-          initialAmount = 0,
         },
         [260] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 101,
             [4] = 142,
           },
-          initialAmount = 0,
         },
         [261] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 101,
             [4] = 154,
           },
-          initialAmount = 0,
         },
         [262] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 32,
             [4] = 719,
           },
-          initialAmount = 0,
         },
         [263] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 32,
             [4] = 849,
           },
-          initialAmount = 0,
         },
         [264] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 34,
             [4] = 291,
           },
-          initialAmount = 0,
         },
         [265] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 34,
             [4] = 91,
           },
-          initialAmount = 0,
         },
         [266] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 7,
             [4] = 1,
           },
-          initialAmount = 0,
         },
         [267] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 7,
             [4] = 10,
           },
-          initialAmount = 0,
         },
         [268] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 7,
             [4] = 106,
           },
-          initialAmount = 0,
         },
         [269] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 7,
             [4] = 11,
           },
-          initialAmount = 0,
         },
         [270] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 7,
             [4] = 11037,
           },
-          initialAmount = 0,
         },
         [271] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 7,
             [4] = 11038,
           },
-          initialAmount = 0,
         },
         [272] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 7,
             [4] = 11039,
           },
-          initialAmount = 0,
         },
         [273] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 7,
             [4] = 13,
           },
-          initialAmount = 0,
         },
         [274] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 7,
             [4] = 135,
           },
-          initialAmount = 0,
         },
         [275] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 7,
             [4] = 136,
           },
-          initialAmount = 0,
         },
         [276] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 7,
             [4] = 14,
           },
-          initialAmount = 0,
         },
         [277] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 7,
             [4] = 15,
           },
-          initialAmount = 0,
         },
         [278] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 7,
             [4] = 16,
           },
-          initialAmount = 0,
         },
         [279] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 7,
             [4] = 18,
           },
-          initialAmount = 0,
         },
         [280] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 7,
             [4] = 19,
           },
-          initialAmount = 0,
         },
         [281] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 7,
             [4] = 2,
           },
-          initialAmount = 0,
         },
         [282] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 7,
             [4] = 21,
           },
-          initialAmount = 0,
         },
         [283] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 7,
             [4] = 22,
           },
-          initialAmount = 0,
         },
         [284] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 7,
             [4] = 23,
           },
-          initialAmount = 0,
         },
         [285] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 7,
             [4] = 24,
           },
-          initialAmount = 0,
         },
         [286] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 7,
             [4] = 26,
           },
-          initialAmount = 0,
         },
         [287] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 7,
             [4] = 265,
           },
-          initialAmount = 0,
         },
         [288] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 7,
             [4] = 266,
           },
-          initialAmount = 0,
         },
         [289] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 7,
             [4] = 267,
           },
-          initialAmount = 0,
         },
         [290] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 7,
             [4] = 268,
           },
-          initialAmount = 0,
         },
         [291] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 7,
             [4] = 269,
           },
-          initialAmount = 0,
         },
         [292] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 7,
             [4] = 27,
           },
-          initialAmount = 0,
         },
         [293] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 7,
             [4] = 270,
           },
-          initialAmount = 0,
         },
         [294] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 7,
             [4] = 3,
           },
-          initialAmount = 0,
         },
         [295] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 7,
             [4] = 306,
           },
-          initialAmount = 0,
         },
         [296] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 7,
             [4] = 307,
           },
-          initialAmount = 0,
         },
         [297] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 7,
             [4] = 308,
           },
-          initialAmount = 0,
         },
         [298] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 7,
             [4] = 309,
           },
-          initialAmount = 0,
         },
         [299] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 7,
             [4] = 310,
           },
-          initialAmount = 0,
         },
         [300] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 7,
             [4] = 320,
           },
-          initialAmount = 0,
         },
         [301] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 7,
             [4] = 321,
           },
-          initialAmount = 0,
         },
         [302] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 7,
             [4] = 322,
           },
-          initialAmount = 0,
         },
         [303] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 7,
             [4] = 327,
           },
-          initialAmount = 0,
         },
         [304] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 7,
             [4] = 333,
           },
-          initialAmount = 0,
         },
         [305] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 7,
             [4] = 334,
           },
-          initialAmount = 0,
         },
         [306] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 7,
             [4] = 335,
           },
-          initialAmount = 0,
         },
         [307] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 7,
             [4] = 336,
           },
-          initialAmount = 0,
         },
         [308] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 7,
             [4] = 337,
           },
-          initialAmount = 0,
         },
         [309] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 7,
             [4] = 338,
           },
-          initialAmount = 0,
         },
         [310] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 7,
             [4] = 339,
           },
-          initialAmount = 0,
         },
         [311] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 7,
             [4] = 368,
           },
-          initialAmount = 0,
         },
         [312] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 7,
             [4] = 371,
           },
-          initialAmount = 0,
         },
         [313] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 7,
             [4] = 372,
           },
-          initialAmount = 0,
         },
         [314] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 7,
             [4] = 395,
           },
-          initialAmount = 0,
         },
         [315] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 7,
             [4] = 396,
           },
-          initialAmount = 0,
         },
         [316] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 7,
             [4] = 397,
           },
-          initialAmount = 0,
         },
         [317] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 7,
             [4] = 4,
           },
-          initialAmount = 0,
         },
         [318] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 7,
             [4] = 403,
           },
-          initialAmount = 0,
         },
         [319] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 7,
             [4] = 405,
           },
-          initialAmount = 0,
         },
         [320] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 7,
             [4] = 409,
           },
-          initialAmount = 0,
         },
         [321] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 7,
             [4] = 410,
           },
-          initialAmount = 0,
         },
         [322] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 7,
             [4] = 412,
           },
-          initialAmount = 0,
         },
         [323] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 7,
             [4] = 425,
           },
-          initialAmount = 0,
         },
         [324] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 7,
             [4] = 426,
           },
-          initialAmount = 0,
         },
         [325] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 7,
             [4] = 429,
           },
-          initialAmount = 0,
         },
         [326] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 7,
             [4] = 449,
           },
-          initialAmount = 0,
         },
         [327] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 7,
             [4] = 7,
           },
-          initialAmount = 0,
         },
         [328] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 7,
             [4] = 9,
           },
-          initialAmount = 0,
         },
         [329] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 8,
             [4] = 11031,
           },
-          initialAmount = 0,
         },
         [330] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 8,
             [4] = 11035,
           },
-          initialAmount = 0,
         },
         [331] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 8,
             [4] = 11040,
           },
-          initialAmount = 0,
         },
         [332] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 8,
             [4] = 11050,
           },
-          initialAmount = 0,
         },
         [333] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 8,
             [4] = 11051,
           },
-          initialAmount = 0,
         },
         [334] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 8,
             [4] = 11052,
           },
-          initialAmount = 0,
         },
         [335] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 8,
             [4] = 11053,
           },
-          initialAmount = 0,
         },
         [336] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 8,
             [4] = 11054,
           },
-          initialAmount = 0,
         },
         [337] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 8,
             [4] = 11092,
           },
-          initialAmount = 0,
         },
         [338] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 8,
             [4] = 11093,
           },
-          initialAmount = 0,
         },
         [339] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 8,
             [4] = 130,
           },
-          initialAmount = 0,
         },
         [340] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 8,
             [4] = 132,
           },
-          initialAmount = 0,
         },
         [341] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 8,
             [4] = 133,
           },
-          initialAmount = 0,
         },
         [342] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 8,
             [4] = 138,
           },
-          initialAmount = 0,
         },
         [343] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 8,
             [4] = 139,
           },
-          initialAmount = 0,
         },
         [344] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 8,
             [4] = 263,
           },
-          initialAmount = 0,
         },
         [345] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 8,
             [4] = 264,
           },
-          initialAmount = 0,
         },
         [346] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 8,
             [4] = 271,
           },
-          initialAmount = 0,
         },
         [347] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 8,
             [4] = 272,
           },
-          initialAmount = 0,
         },
         [348] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 8,
             [4] = 273,
           },
-          initialAmount = 0,
         },
         [349] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 8,
             [4] = 274,
           },
-          initialAmount = 0,
         },
         [350] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 8,
             [4] = 278,
           },
-          initialAmount = 0,
         },
         [351] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 8,
             [4] = 279,
           },
-          initialAmount = 0,
         },
         [352] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 8,
             [4] = 280,
           },
-          initialAmount = 0,
         },
         [353] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 8,
             [4] = 281,
           },
-          initialAmount = 0,
         },
         [354] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 8,
             [4] = 282,
           },
-          initialAmount = 0,
         },
         [355] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 8,
             [4] = 283,
           },
-          initialAmount = 0,
         },
         [356] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 8,
             [4] = 284,
           },
-          initialAmount = 0,
         },
         [357] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 8,
             [4] = 287,
           },
-          initialAmount = 0,
         },
         [358] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 8,
             [4] = 289,
           },
-          initialAmount = 0,
         },
         [359] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 8,
             [4] = 290,
           },
-          initialAmount = 0,
         },
         [360] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 8,
             [4] = 292,
           },
-          initialAmount = 0,
         },
         [361] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 8,
             [4] = 293,
           },
-          initialAmount = 0,
         },
         [362] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 8,
             [4] = 295,
           },
-          initialAmount = 0,
         },
         [363] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 8,
             [4] = 296,
           },
-          initialAmount = 0,
         },
         [364] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 8,
             [4] = 297,
           },
-          initialAmount = 0,
         },
         [365] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 8,
             [4] = 298,
           },
-          initialAmount = 0,
         },
         [366] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 8,
             [4] = 303,
           },
-          initialAmount = 0,
         },
         [367] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 8,
             [4] = 304,
           },
-          initialAmount = 0,
         },
         [368] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 8,
             [4] = 305,
           },
-          initialAmount = 0,
         },
         [369] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 8,
             [4] = 311,
           },
-          initialAmount = 0,
         },
         [370] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 8,
             [4] = 315,
           },
-          initialAmount = 0,
         },
         [371] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 8,
             [4] = 332,
           },
-          initialAmount = 0,
         },
         [372] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 8,
             [4] = 352,
           },
-          initialAmount = 0,
         },
         [373] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 8,
             [4] = 353,
           },
-          initialAmount = 0,
         },
         [374] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 8,
             [4] = 354,
           },
-          initialAmount = 0,
         },
         [375] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 8,
             [4] = 355,
           },
-          initialAmount = 0,
         },
         [376] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 8,
             [4] = 362,
           },
-          initialAmount = 0,
         },
         [377] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 8,
             [4] = 363,
           },
-          initialAmount = 0,
         },
         [378] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 8,
             [4] = 373,
           },
-          initialAmount = 0,
         },
         [379] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 8,
             [4] = 39,
           },
-          initialAmount = 0,
         },
         [380] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 8,
             [4] = 40,
           },
-          initialAmount = 0,
         },
         [381] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 8,
             [4] = 407,
           },
-          initialAmount = 0,
         },
         [382] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 8,
             [4] = 41,
           },
-          initialAmount = 0,
         },
         [383] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 8,
             [4] = 415,
           },
-          initialAmount = 0,
         },
         [384] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 8,
             [4] = 416,
           },
-          initialAmount = 0,
         },
         [385] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 8,
             [4] = 422,
           },
-          initialAmount = 0,
         },
         [386] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 8,
             [4] = 423,
           },
-          initialAmount = 0,
         },
         [387] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 8,
             [4] = 430,
           },
-          initialAmount = 0,
         },
         [388] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 8,
             [4] = 431,
           },
-          initialAmount = 0,
         },
         [389] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 8,
             [4] = 432,
           },
-          initialAmount = 0,
         },
         [390] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 8,
             [4] = 433,
           },
-          initialAmount = 0,
         },
         [391] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 8,
             [4] = 434,
           },
-          initialAmount = 0,
         },
         [392] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 8,
             [4] = 435,
           },
-          initialAmount = 0,
         },
         [393] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 8,
             [4] = 436,
           },
-          initialAmount = 0,
         },
         [394] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 8,
             [4] = 437,
           },
-          initialAmount = 0,
         },
         [395] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 8,
             [4] = 44,
           },
-          initialAmount = 0,
         },
         [396] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 8,
             [4] = 443,
           },
-          initialAmount = 0,
         },
         [397] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 8,
             [4] = 445,
           },
-          initialAmount = 0,
         },
         [398] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 8,
             [4] = 447,
           },
-          initialAmount = 0,
         },
         [399] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 8,
             [4] = 448,
           },
-          initialAmount = 0,
         },
         [400] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 8,
             [4] = 45,
           },
-          initialAmount = 0,
         },
         [401] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 8,
             [4] = 450,
           },
-          initialAmount = 0,
         },
         [402] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 8,
             [4] = 46,
           },
-          initialAmount = 0,
         },
         [403] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 8,
             [4] = 47,
           },
-          initialAmount = 0,
         },
         [404] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 8,
             [4] = 48,
           },
-          initialAmount = 0,
         },
         [405] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 8,
             [4] = 49,
           },
-          initialAmount = 0,
         },
         [406] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 8,
             [4] = 51,
           },
-          initialAmount = 0,
         },
         [407] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 8,
             [4] = 53,
           },
-          initialAmount = 0,
         },
         [408] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 8,
             [4] = 54,
           },
-          initialAmount = 0,
         },
         [409] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 8,
             [4] = 55,
           },
-          initialAmount = 0,
         },
         [410] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 8,
             [4] = 56,
           },
-          initialAmount = 0,
         },
         [411] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 8,
             [4] = 58,
           },
-          initialAmount = 0,
         },
         [412] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 8,
             [4] = 59,
           },
-          initialAmount = 0,
         },
         [413] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 8,
             [4] = 60,
           },
-          initialAmount = 0,
         },
         [414] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 8,
             [4] = 61,
           },
-          initialAmount = 0,
         },
         [415] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 8,
             [4] = 62,
           },
-          initialAmount = 0,
         },
         [416] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 8,
             [4] = 63,
           },
-          initialAmount = 0,
         },
         [417] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 8,
             [4] = 64,
           },
-          initialAmount = 0,
         },
         [418] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 8,
             [4] = 65,
           },
-          initialAmount = 0,
         },
         [419] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 8,
             [4] = 66,
           },
-          initialAmount = 0,
         },
         [420] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 8,
             [4] = 68,
           },
-          initialAmount = 0,
         },
         [421] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 8,
             [4] = 70,
           },
-          initialAmount = 0,
         },
         [422] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 8,
             [4] = 71,
           },
-          initialAmount = 0,
         },
         [423] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 8,
             [4] = 72,
           },
-          initialAmount = 0,
         },
         [424] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 8,
             [4] = 73,
           },
-          initialAmount = 0,
         },
         [425] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 8,
             [4] = 74,
           },
-          initialAmount = 0,
         },
         [426] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 8,
             [4] = 75,
           },
-          initialAmount = 0,
         },
         [427] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 8,
             [4] = 76,
           },
-          initialAmount = 0,
         },
         [428] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 8,
             [4] = 77,
           },
-          initialAmount = 0,
         },
         [429] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 4,
             [3] = 8,
             [4] = 78,
           },
-          initialAmount = 0,
         },
         [430] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 32,
             [4] = 1000,
           },
-          initialAmount = 0,
         },
         [431] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 32,
             [4] = 1002,
           },
-          initialAmount = 0,
         },
         [432] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 32,
             [4] = 1003,
           },
-          initialAmount = 0,
         },
         [433] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 32,
             [4] = 1004,
           },
-          initialAmount = 0,
         },
         [434] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 32,
             [4] = 1005,
           },
-          initialAmount = 0,
         },
         [435] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 32,
             [4] = 1006,
           },
-          initialAmount = 0,
         },
         [436] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 32,
             [4] = 1007,
           },
-          initialAmount = 0,
         },
         [437] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 32,
             [4] = 1009,
           },
-          initialAmount = 0,
         },
         [438] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 32,
             [4] = 2591,
           },
-          initialAmount = 0,
         },
         [439] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 32,
             [4] = 2592,
           },
-          initialAmount = 0,
         },
         [440] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 32,
             [4] = 2593,
           },
-          initialAmount = 0,
         },
         [441] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 32,
             [4] = 2594,
           },
-          initialAmount = 0,
         },
         [442] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 32,
             [4] = 2595,
           },
-          initialAmount = 0,
         },
         [443] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 32,
             [4] = 2596,
           },
-          initialAmount = 0,
         },
         [444] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 32,
             [4] = 2743,
           },
-          initialAmount = 0,
         },
         [445] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 32,
             [4] = 2744,
           },
-          initialAmount = 0,
         },
         [446] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 32,
             [4] = 31,
           },
-          initialAmount = 0,
         },
         [447] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 32,
             [4] = 837,
           },
-          initialAmount = 0,
         },
         [448] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 32,
             [4] = 839,
           },
-          initialAmount = 0,
         },
         [449] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 32,
             [4] = 94,
           },
-          initialAmount = 0,
         },
         [450] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 32,
             [4] = 95,
           },
-          initialAmount = 0,
         },
         [451] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 32,
             [4] = 999,
           },
-          initialAmount = 0,
         },
         [452] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 36,
             [4] = 11,
           },
-          initialAmount = 0,
         },
         [453] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 36,
             [4] = 12,
           },
-          initialAmount = 0,
         },
         [454] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 36,
             [4] = 14,
           },
-          initialAmount = 0,
         },
         [455] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 36,
             [4] = 287,
           },
-          initialAmount = 0,
         },
         [456] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 36,
             [4] = 288,
           },
-          initialAmount = 0,
         },
         [457] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 36,
             [4] = 289,
           },
-          initialAmount = 0,
         },
         [458] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 36,
             [4] = 290,
           },
-          initialAmount = 0,
         },
         [459] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 36,
             [4] = 291,
           },
-          initialAmount = 0,
         },
         [460] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 36,
             [4] = 292,
           },
-          initialAmount = 0,
         },
         [461] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 36,
             [4] = 293,
           },
-          initialAmount = 0,
         },
         [462] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 36,
             [4] = 351,
           },
-          initialAmount = 0,
         },
         [463] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 36,
             [4] = 36,
           },
-          initialAmount = 0,
         },
         [464] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 36,
             [4] = 38,
           },
-          initialAmount = 0,
         },
         [465] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 36,
             [4] = 39,
           },
-          initialAmount = 0,
         },
         [466] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 36,
             [4] = 41,
           },
-          initialAmount = 0,
         },
         [467] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 36,
             [4] = 42,
           },
-          initialAmount = 0,
         },
         [468] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 36,
             [4] = 43,
           },
-          initialAmount = 0,
         },
         [469] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 36,
             [4] = 459,
           },
-          initialAmount = 0,
         },
         [470] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 36,
             [4] = 469,
           },
-          initialAmount = 0,
         },
         [471] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 36,
             [4] = 47,
           },
-          initialAmount = 0,
         },
         [472] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 36,
             [4] = 478,
           },
-          initialAmount = 0,
         },
         [473] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 36,
             [4] = 479,
           },
-          initialAmount = 0,
         },
         [474] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 36,
             [4] = 48,
           },
-          initialAmount = 0,
         },
         [475] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 36,
             [4] = 480,
           },
-          initialAmount = 0,
         },
         [476] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 36,
             [4] = 72,
           },
-          initialAmount = 0,
         },
         [477] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 36,
             [4] = 85,
           },
-          initialAmount = 0,
         },
         [478] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 36,
             [4] = 86,
           },
-          initialAmount = 0,
         },
         [479] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 36,
             [4] = 92,
           },
-          initialAmount = 0,
         },
         [480] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 37,
             [4] = 3,
           },
-          initialAmount = 0,
         },
         [481] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 37,
             [4] = 330,
           },
-          initialAmount = 0,
         },
         [482] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 37,
             [4] = 347,
           },
-          initialAmount = 0,
         },
         [483] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 37,
             [4] = 384,
           },
-          initialAmount = 0,
         },
         [484] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 37,
             [4] = 4,
           },
-          initialAmount = 0,
         },
         [485] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 37,
             [4] = 437,
           },
-          initialAmount = 0,
         },
         [486] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 37,
             [4] = 62,
           },
-          initialAmount = 0,
         },
         [487] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 38,
             [4] = 18,
           },
-          initialAmount = 0,
         },
         [488] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 38,
             [4] = 20,
           },
-          initialAmount = 0,
         },
         [489] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 38,
             [4] = 23,
           },
-          initialAmount = 0,
         },
         [490] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 38,
             [4] = 263,
           },
-          initialAmount = 0,
         },
         [491] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 38,
             [4] = 265,
           },
-          initialAmount = 0,
         },
         [492] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 38,
             [4] = 267,
           },
-          initialAmount = 0,
         },
         [493] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 38,
             [4] = 295,
           },
-          initialAmount = 0,
         },
         [494] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 38,
             [4] = 299,
           },
-          initialAmount = 0,
         },
         [495] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 38,
             [4] = 301,
           },
-          initialAmount = 0,
         },
         [496] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 38,
             [4] = 302,
           },
-          initialAmount = 0,
         },
         [497] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 38,
             [4] = 324,
           },
-          initialAmount = 0,
         },
         [498] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 38,
             [4] = 35,
           },
-          initialAmount = 0,
         },
         [499] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 38,
             [4] = 45,
           },
-          initialAmount = 0,
         },
         [500] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 38,
             [4] = 472,
           },
-          initialAmount = 0,
         },
         [501] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 38,
             [4] = 484,
           },
-          initialAmount = 0,
         },
         [502] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 38,
             [4] = 485,
           },
-          initialAmount = 0,
         },
         [503] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 38,
             [4] = 486,
           },
-          initialAmount = 0,
         },
         [504] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 38,
             [4] = 514,
           },
-          initialAmount = 0,
         },
         [505] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 38,
             [4] = 515,
           },
-          initialAmount = 0,
         },
         [506] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 38,
             [4] = 518,
           },
-          initialAmount = 0,
         },
         [507] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 38,
             [4] = 519,
           },
-          initialAmount = 0,
         },
         [508] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 38,
             [4] = 77,
           },
-          initialAmount = 0,
         },
         [509] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 38,
             [4] = 87,
           },
-          initialAmount = 0,
         },
         [510] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 38,
             [4] = 88,
           },
-          initialAmount = 0,
         },
         [511] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 38,
             [4] = 91,
           },
-          initialAmount = 0,
         },
         [512] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 38,
             [4] = 93,
           },
-          initialAmount = 0,
         },
         [513] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 41,
             [4] = 508,
           },
-          initialAmount = 0,
         },
         [514] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 41,
             [4] = 509,
           },
-          initialAmount = 0,
         },
         [515] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 49,
             [4] = 11086,
           },
-          initialAmount = 0,
         },
         [516] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 49,
             [4] = 11087,
           },
-          initialAmount = 0,
         },
         [517] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 49,
             [4] = 11088,
           },
-          initialAmount = 0,
         },
         [518] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 49,
             [4] = 11089,
           },
-          initialAmount = 0,
         },
         [519] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 49,
             [4] = 427,
           },
-          initialAmount = 0,
         },
         [520] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 49,
             [4] = 520,
           },
-          initialAmount = 0,
         },
         [521] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 49,
             [4] = 521,
           },
-          initialAmount = 0,
         },
         [522] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 49,
             [4] = 522,
           },
-          initialAmount = 0,
         },
         [523] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 49,
             [4] = 523,
           },
-          initialAmount = 0,
         },
         [524] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 49,
             [4] = 524,
           },
-          initialAmount = 0,
         },
         [525] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 49,
             [4] = 525,
           },
-          initialAmount = 0,
         },
         [526] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 49,
             [4] = 526,
           },
-          initialAmount = 0,
         },
         [527] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 49,
             [4] = 527,
           },
-          initialAmount = 0,
         },
         [528] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 49,
             [4] = 528,
           },
-          initialAmount = 0,
         },
         [529] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 49,
             [4] = 529,
           },
-          initialAmount = 0,
         },
         [530] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 49,
             [4] = 530,
           },
-          initialAmount = 0,
         },
         [531] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 49,
             [4] = 531,
           },
-          initialAmount = 0,
         },
         [532] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 49,
             [4] = 532,
           },
-          initialAmount = 0,
         },
         [533] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 49,
             [4] = 533,
           },
-          initialAmount = 0,
         },
         [534] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 49,
             [4] = 534,
           },
-          initialAmount = 0,
         },
         [535] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 49,
             [4] = 535,
           },
-          initialAmount = 0,
         },
         [536] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 49,
             [4] = 536,
           },
-          initialAmount = 0,
         },
         [537] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 49,
             [4] = 537,
           },
-          initialAmount = 0,
         },
         [538] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 49,
             [4] = 538,
           },
-          initialAmount = 0,
         },
         [539] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 49,
             [4] = 539,
           },
-          initialAmount = 0,
         },
         [540] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 49,
             [4] = 540,
           },
-          initialAmount = 0,
         },
         [541] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 49,
             [4] = 541,
           },
-          initialAmount = 0,
         },
         [542] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 49,
             [4] = 542,
           },
-          initialAmount = 0,
         },
         [543] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 49,
             [4] = 543,
           },
-          initialAmount = 0,
         },
         [544] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 49,
             [4] = 544,
           },
-          initialAmount = 0,
         },
         [545] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 49,
             [4] = 545,
           },
-          initialAmount = 0,
         },
         [546] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 49,
             [4] = 546,
           },
-          initialAmount = 0,
         },
         [547] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 49,
             [4] = 547,
           },
-          initialAmount = 0,
         },
         [548] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 49,
             [4] = 548,
           },
-          initialAmount = 0,
         },
         [549] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 49,
             [4] = 549,
           },
-          initialAmount = 0,
         },
         [550] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 49,
             [4] = 550,
           },
-          initialAmount = 0,
         },
         [551] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 49,
             [4] = 551,
           },
-          initialAmount = 0,
         },
         [552] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 49,
             [4] = 552,
           },
-          initialAmount = 0,
         },
         [553] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 49,
             [4] = 553,
           },
-          initialAmount = 0,
         },
         [554] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 49,
             [4] = 554,
           },
-          initialAmount = 0,
         },
         [555] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 49,
             [4] = 555,
           },
-          initialAmount = 0,
         },
         [556] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 49,
             [4] = 556,
           },
-          initialAmount = 0,
         },
         [557] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 49,
             [4] = 557,
           },
-          initialAmount = 0,
         },
         [558] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 49,
             [4] = 558,
           },
-          initialAmount = 0,
         },
         [559] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 49,
             [4] = 559,
           },
-          initialAmount = 0,
         },
         [560] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 49,
             [4] = 560,
           },
-          initialAmount = 0,
         },
         [561] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 49,
             [4] = 561,
           },
-          initialAmount = 0,
         },
         [562] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 49,
             [4] = 562,
           },
-          initialAmount = 0,
         },
         [563] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 49,
             [4] = 563,
           },
-          initialAmount = 0,
         },
         [564] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 49,
             [4] = 564,
           },
-          initialAmount = 0,
         },
         [565] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 49,
             [4] = 565,
           },
-          initialAmount = 0,
         },
         [566] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 49,
             [4] = 566,
           },
-          initialAmount = 0,
         },
         [567] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 49,
             [4] = 567,
           },
-          initialAmount = 0,
         },
         [568] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 49,
             [4] = 568,
           },
-          initialAmount = 0,
         },
         [569] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 49,
             [4] = 569,
           },
-          initialAmount = 0,
         },
         [570] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 49,
             [4] = 570,
           },
-          initialAmount = 0,
         },
         [571] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 49,
             [4] = 571,
           },
-          initialAmount = 0,
         },
         [572] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 49,
             [4] = 572,
           },
-          initialAmount = 0,
         },
         [573] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 49,
             [4] = 573,
           },
-          initialAmount = 0,
         },
         [574] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 49,
             [4] = 574,
           },
-          initialAmount = 0,
         },
         [575] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 49,
             [4] = 575,
           },
-          initialAmount = 0,
         },
         [576] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 49,
             [4] = 576,
           },
-          initialAmount = 0,
         },
         [577] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 49,
             [4] = 577,
           },
-          initialAmount = 0,
         },
         [578] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 49,
             [4] = 578,
           },
-          initialAmount = 0,
         },
         [579] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 49,
             [4] = 579,
           },
-          initialAmount = 0,
         },
         [580] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 49,
             [4] = 580,
           },
-          initialAmount = 0,
         },
         [581] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 49,
             [4] = 581,
           },
-          initialAmount = 0,
         },
         [582] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 49,
             [4] = 582,
           },
-          initialAmount = 0,
         },
         [583] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 49,
             [4] = 63,
           },
-          initialAmount = 0,
         },
         [584] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 49,
             [4] = 64,
           },
-          initialAmount = 0,
         },
         [585] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 9,
             [4] = 11033,
           },
-          initialAmount = 0,
         },
         [586] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 9,
             [4] = 11034,
           },
-          initialAmount = 0,
         },
         [587] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 9,
             [4] = 255,
           },
-          initialAmount = 0,
         },
         [588] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 9,
             [4] = 256,
           },
-          initialAmount = 0,
         },
         [589] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 9,
             [4] = 257,
           },
-          initialAmount = 0,
         },
         [590] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 9,
             [4] = 258,
           },
-          initialAmount = 0,
         },
         [591] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 9,
             [4] = 259,
           },
-          initialAmount = 0,
         },
         [592] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 9,
             [4] = 260,
           },
-          initialAmount = 0,
         },
         [593] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 9,
             [4] = 261,
           },
-          initialAmount = 0,
         },
         [594] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 9,
             [4] = 268,
           },
-          initialAmount = 0,
         },
         [595] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 9,
             [4] = 269,
           },
-          initialAmount = 0,
         },
         [596] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 9,
             [4] = 270,
           },
-          initialAmount = 0,
         },
         [597] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 9,
             [4] = 271,
           },
-          initialAmount = 0,
         },
         [598] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 9,
             [4] = 272,
           },
-          initialAmount = 0,
         },
         [599] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 9,
             [4] = 273,
           },
-          initialAmount = 0,
         },
         [600] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 9,
             [4] = 274,
           },
-          initialAmount = 0,
         },
         [601] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 9,
             [4] = 275,
           },
-          initialAmount = 0,
         },
         [602] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 9,
             [4] = 276,
           },
-          initialAmount = 0,
         },
         [603] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 9,
             [4] = 277,
           },
-          initialAmount = 0,
         },
         [604] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 9,
             [4] = 278,
           },
-          initialAmount = 0,
         },
         [605] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 9,
             [4] = 279,
           },
-          initialAmount = 0,
         },
         [606] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 9,
             [4] = 280,
           },
-          initialAmount = 0,
         },
         [607] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 9,
             [4] = 281,
           },
-          initialAmount = 0,
         },
         [608] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 9,
             [4] = 282,
           },
-          initialAmount = 0,
         },
         [609] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 9,
             [4] = 283,
           },
-          initialAmount = 0,
         },
         [610] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 9,
             [4] = 284,
           },
-          initialAmount = 0,
         },
         [611] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 9,
             [4] = 285,
           },
-          initialAmount = 0,
         },
         [612] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 9,
             [4] = 30,
           },
-          initialAmount = 0,
         },
         [613] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 9,
             [4] = 31,
           },
-          initialAmount = 0,
         },
         [614] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 9,
             [4] = 312,
           },
-          initialAmount = 0,
         },
         [615] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 9,
             [4] = 313,
           },
-          initialAmount = 0,
         },
         [616] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 9,
             [4] = 314,
           },
-          initialAmount = 0,
         },
         [617] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 9,
             [4] = 315,
           },
-          initialAmount = 0,
         },
         [618] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 9,
             [4] = 316,
           },
-          initialAmount = 0,
         },
         [619] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 9,
             [4] = 317,
           },
-          initialAmount = 0,
         },
         [620] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 9,
             [4] = 318,
           },
-          initialAmount = 0,
         },
         [621] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 9,
             [4] = 32,
           },
-          initialAmount = 0,
         },
         [622] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 9,
             [4] = 321,
           },
-          initialAmount = 0,
         },
         [623] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 9,
             [4] = 322,
           },
-          initialAmount = 0,
         },
         [624] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 9,
             [4] = 323,
           },
-          initialAmount = 0,
         },
         [625] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 9,
             [4] = 325,
           },
-          initialAmount = 0,
         },
         [626] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 9,
             [4] = 326,
           },
-          initialAmount = 0,
         },
         [627] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 9,
             [4] = 327,
           },
-          initialAmount = 0,
         },
         [628] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 9,
             [4] = 328,
           },
-          initialAmount = 0,
         },
         [629] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 9,
             [4] = 329,
           },
-          initialAmount = 0,
         },
         [630] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 9,
             [4] = 33,
           },
-          initialAmount = 0,
         },
         [631] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 9,
             [4] = 331,
           },
-          initialAmount = 0,
         },
         [632] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 9,
             [4] = 332,
           },
-          initialAmount = 0,
         },
         [633] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 9,
             [4] = 333,
           },
-          initialAmount = 0,
         },
         [634] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 9,
             [4] = 334,
           },
-          initialAmount = 0,
         },
         [635] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 9,
             [4] = 335,
           },
-          initialAmount = 0,
         },
         [636] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 9,
             [4] = 336,
           },
-          initialAmount = 0,
         },
         [637] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 9,
             [4] = 337,
           },
-          initialAmount = 0,
         },
         [638] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 9,
             [4] = 338,
           },
-          initialAmount = 0,
         },
         [639] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 9,
             [4] = 339,
           },
-          initialAmount = 0,
         },
         [640] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 9,
             [4] = 34,
           },
-          initialAmount = 0,
         },
         [641] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 9,
             [4] = 363,
           },
-          initialAmount = 0,
         },
         [642] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 9,
             [4] = 364,
           },
-          initialAmount = 0,
         },
         [643] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 9,
             [4] = 374,
           },
-          initialAmount = 0,
         },
         [644] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 9,
             [4] = 385,
           },
-          initialAmount = 0,
         },
         [645] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 9,
             [4] = 386,
           },
-          initialAmount = 0,
         },
         [646] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 9,
             [4] = 387,
           },
-          initialAmount = 0,
         },
         [647] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 9,
             [4] = 388,
           },
-          initialAmount = 0,
         },
         [648] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 9,
             [4] = 389,
           },
-          initialAmount = 0,
         },
         [649] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 9,
             [4] = 390,
           },
-          initialAmount = 0,
         },
         [650] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 9,
             [4] = 391,
           },
-          initialAmount = 0,
         },
         [651] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 9,
             [4] = 392,
           },
-          initialAmount = 0,
         },
         [652] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 9,
             [4] = 412,
           },
-          initialAmount = 0,
         },
         [653] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 9,
             [4] = 413,
           },
-          initialAmount = 0,
         },
         [654] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 9,
             [4] = 449,
           },
-          initialAmount = 0,
         },
         [655] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 9,
             [4] = 487,
           },
-          initialAmount = 0,
         },
         [656] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 9,
             [4] = 488,
           },
-          initialAmount = 0,
         },
         [657] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 9,
             [4] = 489,
           },
-          initialAmount = 0,
         },
         [658] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 9,
             [4] = 490,
           },
-          initialAmount = 0,
         },
         [659] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 9,
             [4] = 491,
           },
-          initialAmount = 0,
         },
         [660] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 9,
             [4] = 492,
           },
-          initialAmount = 0,
         },
         [661] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 9,
             [4] = 5,
           },
-          initialAmount = 0,
         },
         [662] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 9,
             [4] = 510,
           },
-          initialAmount = 0,
         },
         [663] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 9,
             [4] = 511,
           },
-          initialAmount = 0,
         },
         [664] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 9,
             [4] = 512,
           },
-          initialAmount = 0,
         },
         [665] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 9,
             [4] = 513,
           },
-          initialAmount = 0,
         },
         [666] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 9,
             [4] = 583,
           },
-          initialAmount = 0,
         },
         [667] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 9,
             [4] = 6,
           },
-          initialAmount = 0,
         },
         [668] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 9,
             [4] = 69,
           },
-          initialAmount = 0,
         },
         [669] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 9,
             [4] = 7,
           },
-          initialAmount = 0,
         },
         [670] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 9,
             [4] = 70,
           },
-          initialAmount = 0,
         },
         [671] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 9,
             [4] = 71,
           },
-          initialAmount = 0,
         },
         [672] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 9,
             [4] = 72,
           },
-          initialAmount = 0,
         },
         [673] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 9,
             [4] = 75,
           },
-          initialAmount = 0,
         },
         [674] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 9,
             [4] = 79,
           },
-          initialAmount = 0,
         },
         [675] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 9,
             [4] = 9,
           },
-          initialAmount = 0,
         },
         [676] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 5,
             [3] = 9,
             [4] = 90,
           },
-          initialAmount = 0,
         },
         [677] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 7,
             [3] = 32,
             [4] = 11048,
           },
-          initialAmount = 0,
         },
         [678] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 7,
             [3] = 32,
             [4] = 11056,
           },
-          initialAmount = 0,
         },
         [679] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 7,
             [3] = 32,
             [4] = 11090,
           },
-          initialAmount = 0,
         },
         [680] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 7,
             [3] = 32,
             [4] = 659,
           },
-          initialAmount = 0,
         },
         [681] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 7,
             [3] = 32,
             [4] = 661,
           },
-          initialAmount = 0,
         },
         [682] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 7,
             [3] = 33,
             [4] = 11044,
           },
-          initialAmount = 0,
         },
         [683] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 7,
             [3] = 33,
             [4] = 11049,
           },
-          initialAmount = 0,
         },
         [684] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 7,
             [3] = 33,
             [4] = 11091,
           },
-          initialAmount = 0,
         },
         [685] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 7,
             [3] = 33,
             [4] = 144,
           },
-          initialAmount = 0,
         },
         [686] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 7,
             [3] = 33,
             [4] = 145,
           },
-          initialAmount = 0,
         },
         [687] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 7,
             [3] = 33,
             [4] = 146,
           },
-          initialAmount = 0,
         },
         [688] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 7,
             [3] = 33,
             [4] = 147,
           },
-          initialAmount = 0,
         },
         [689] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 7,
             [3] = 33,
             [4] = 148,
           },
-          initialAmount = 0,
         },
         [690] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 7,
             [3] = 33,
             [4] = 149,
           },
-          initialAmount = 0,
         },
         [691] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 7,
             [3] = 33,
             [4] = 150,
           },
-          initialAmount = 0,
         },
         [692] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 7,
             [3] = 33,
             [4] = 151,
           },
-          initialAmount = 0,
         },
         [693] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 7,
             [3] = 33,
             [4] = 155,
           },
-          initialAmount = 0,
         },
         [694] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 7,
             [3] = 33,
             [4] = 158,
           },
-          initialAmount = 0,
         },
         [695] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 7,
             [3] = 33,
             [4] = 159,
           },
-          initialAmount = 0,
         },
         [696] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 7,
             [3] = 33,
             [4] = 181,
           },
-          initialAmount = 0,
         },
         [697] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 7,
             [3] = 33,
             [4] = 182,
           },
-          initialAmount = 0,
         },
         [698] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 7,
             [3] = 33,
             [4] = 183,
           },
-          initialAmount = 0,
         },
         [699] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 7,
             [3] = 33,
             [4] = 184,
           },
-          initialAmount = 0,
         },
         [700] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 7,
             [3] = 33,
             [4] = 185,
           },
-          initialAmount = 0,
         },
         [701] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 7,
             [3] = 33,
             [4] = 186,
           },
-          initialAmount = 0,
         },
         [702] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 7,
             [3] = 33,
             [4] = 256,
           },
-          initialAmount = 0,
         },
         [703] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 7,
             [3] = 33,
             [4] = 257,
           },
-          initialAmount = 0,
         },
         [704] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 7,
             [3] = 33,
             [4] = 258,
           },
-          initialAmount = 0,
         },
         [705] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 7,
             [3] = 33,
             [4] = 275,
           },
-          initialAmount = 0,
         },
         [706] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 7,
             [3] = 33,
             [4] = 276,
           },
-          initialAmount = 0,
         },
         [707] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 7,
             [3] = 33,
             [4] = 277,
           },
-          initialAmount = 0,
         },
         [708] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 7,
             [3] = 33,
             [4] = 299,
           },
-          initialAmount = 0,
         },
         [709] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 7,
             [3] = 33,
             [4] = 30,
           },
-          initialAmount = 0,
         },
         [710] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 7,
             [3] = 33,
             [4] = 31,
           },
-          initialAmount = 0,
         },
         [711] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 7,
             [3] = 33,
             [4] = 32,
           },
-          initialAmount = 0,
         },
         [712] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 7,
             [3] = 33,
             [4] = 326,
           },
-          initialAmount = 0,
         },
         [713] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 7,
             [3] = 33,
             [4] = 329,
           },
-          initialAmount = 0,
         },
         [714] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 7,
             [3] = 33,
             [4] = 33,
           },
-          initialAmount = 0,
         },
         [715] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 7,
             [3] = 33,
             [4] = 330,
           },
-          initialAmount = 0,
         },
         [716] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 7,
             [3] = 33,
             [4] = 34,
           },
-          initialAmount = 0,
         },
         [717] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 7,
             [3] = 33,
             [4] = 340,
           },
-          initialAmount = 0,
         },
         [718] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 7,
             [3] = 33,
             [4] = 341,
           },
-          initialAmount = 0,
         },
         [719] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 7,
             [3] = 33,
             [4] = 342,
           },
-          initialAmount = 0,
         },
         [720] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 7,
             [3] = 33,
             [4] = 35,
           },
-          initialAmount = 0,
         },
         [721] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 7,
             [3] = 33,
             [4] = 350,
           },
-          initialAmount = 0,
         },
         [722] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 7,
             [3] = 33,
             [4] = 359,
           },
-          initialAmount = 0,
         },
         [723] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 7,
             [3] = 33,
             [4] = 360,
           },
-          initialAmount = 0,
         },
         [724] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 7,
             [3] = 33,
             [4] = 361,
           },
-          initialAmount = 0,
         },
         [725] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 7,
             [3] = 33,
             [4] = 364,
           },
-          initialAmount = 0,
         },
         [726] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 7,
             [3] = 33,
             [4] = 365,
           },
-          initialAmount = 0,
         },
         [727] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 7,
             [3] = 33,
             [4] = 366,
           },
-          initialAmount = 0,
         },
         [728] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 7,
             [3] = 33,
             [4] = 367,
           },
-          initialAmount = 0,
         },
         [729] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 7,
             [3] = 33,
             [4] = 37,
           },
-          initialAmount = 0,
         },
         [730] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 7,
             [3] = 33,
             [4] = 374,
           },
-          initialAmount = 0,
         },
         [731] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 7,
             [3] = 33,
             [4] = 375,
           },
-          initialAmount = 0,
         },
         [732] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 7,
             [3] = 33,
             [4] = 376,
           },
-          initialAmount = 0,
         },
         [733] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 7,
             [3] = 33,
             [4] = 377,
           },
-          initialAmount = 0,
         },
         [734] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 7,
             [3] = 33,
             [4] = 378,
           },
-          initialAmount = 0,
         },
         [735] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 7,
             [3] = 33,
             [4] = 379,
           },
-          initialAmount = 0,
         },
         [736] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 7,
             [3] = 33,
             [4] = 380,
           },
-          initialAmount = 0,
         },
         [737] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 7,
             [3] = 33,
             [4] = 381,
           },
-          initialAmount = 0,
         },
         [738] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 7,
             [3] = 33,
             [4] = 382,
           },
-          initialAmount = 0,
         },
         [739] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 7,
             [3] = 33,
             [4] = 383,
           },
-          initialAmount = 0,
         },
         [740] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 7,
             [3] = 33,
             [4] = 384,
           },
-          initialAmount = 0,
         },
         [741] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 7,
             [3] = 33,
             [4] = 385,
           },
-          initialAmount = 0,
         },
         [742] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 7,
             [3] = 33,
             [4] = 386,
           },
-          initialAmount = 0,
         },
         [743] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 7,
             [3] = 33,
             [4] = 387,
           },
-          initialAmount = 0,
         },
         [744] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 7,
             [3] = 33,
             [4] = 388,
           },
-          initialAmount = 0,
         },
         [745] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 7,
             [3] = 33,
             [4] = 389,
           },
-          initialAmount = 0,
         },
         [746] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 7,
             [3] = 33,
             [4] = 390,
           },
-          initialAmount = 0,
         },
         [747] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 7,
             [3] = 33,
             [4] = 391,
           },
-          initialAmount = 0,
         },
         [748] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 7,
             [3] = 33,
             [4] = 392,
           },
-          initialAmount = 0,
         },
         [749] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 7,
             [3] = 33,
             [4] = 393,
           },
-          initialAmount = 0,
         },
         [750] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 7,
             [3] = 33,
             [4] = 401,
           },
-          initialAmount = 0,
         },
         [751] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 7,
             [3] = 33,
             [4] = 402,
           },
-          initialAmount = 0,
         },
         [752] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 7,
             [3] = 33,
             [4] = 440,
           },
-          initialAmount = 0,
         },
         [753] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 7,
             [3] = 33,
             [4] = 441,
           },
-          initialAmount = 0,
         },
         [754] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 7,
             [3] = 33,
             [4] = 442,
           },
-          initialAmount = 0,
         },
         [755] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 8,
             [3] = 10,
             [4] = 255,
           },
-          initialAmount = 0,
         },
         [756] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 8,
             [3] = 10,
             [4] = 406,
           },
-          initialAmount = 0,
         },
         [757] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 8,
             [3] = 11,
             [4] = 319,
           },
-          initialAmount = 0,
         },
         [758] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 8,
             [3] = 11,
             [4] = 347,
           },
-          initialAmount = 0,
         },
         [759] = {
+          initialAmount = 0,
           wsType = {
             [1] = 4,
             [2] = 8,
             [3] = 11,
             [4] = 398,
           },
-          initialAmount = 0,
         },
       },
     },
     [4329] = {
+      OperatingLevel_Air = 10,
+      OperatingLevel_Eqp = 10,
+      OperatingLevel_Fuel = 10,
       aircrafts = {},
       allowHotStart = false,
       coalition = "red",
@@ -10928,9 +10931,6 @@ warehouses =
       methanol_mixture = {
         InitFuel = 100,
       },
-      OperatingLevel_Air = 10,
-      OperatingLevel_Eqp = 10,
-      OperatingLevel_Fuel = 10,
       periodicity = 30,
       size = 100,
       speed = 16.666666,

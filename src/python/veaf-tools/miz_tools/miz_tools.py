@@ -10,18 +10,24 @@ from typing import Any, Dict, Optional
 import io
 import luadata
 import os
-import shutil
 import zipfile
+import tempfile
+import zipfile
+import os
+from pathlib import Path
+from typing import Optional, Dict
+
 
 @dataclass
 class DcsMission:
     """Class representing a DCS mission."""
     file_path: Path
-    mission_lua: Dict = None
-    options_lua: Dict = None
-    theatre: str = None
-    warehouses_lua: Dict = None
-    dictionary_lua: Dict[str, str] = None
+    mission_content: dict = None
+    options_content: dict = None
+    theatre_content: str = ""
+    warehouses_content: dict = None
+    dictionary_content: dict[str, str] = None
+    map_resource_content: dict[str, str] = None
 
 def read_miz(file_path: Path) -> DcsMission:
     """Load the mission from the .miz file (unzip it)."""
@@ -34,25 +40,34 @@ def read_miz(file_path: Path) -> DcsMission:
 
     with zipfile.ZipFile(file_path, 'r') as miz:
         with miz.open('mission') as file:
-            result.mission_lua = unserialize(file)
+            result.mission_content = unserialize(file)
         with miz.open('options') as file:
-            result.options_lua = unserialize(file)
+            result.options_content = unserialize(file)
         with miz.open('theatre') as file:
-            result.theatre = file.read().decode('utf-8')
+            result.theatre_content = file.read().decode('utf-8')
         with miz.open('warehouses') as file:
-            result.warehouses_lua = unserialize(file)
+            result.warehouses_content = unserialize(file)
         with miz.open('l10n/DEFAULT/dictionary') as file:
-            result.dictionary_lua = unserialize(file)
+            result.dictionary_content = unserialize(file)
+        with miz.open('l10n/DEFAULT/mapResource') as file:
+            result.map_resource_content = unserialize(file)
 
     return result
 
-import tempfile
-import zipfile
-import os
-from pathlib import Path
-from typing import Optional, Dict
+def create_miz(file_path: Path, files: Dict[str, bytes]) -> Path:
+    """Create an mission in a .miz file with new data (zip it)."""
 
-def update_miz(mission: DcsMission, file_path: Optional[Path], additional_files: Optional[Dict]) -> DcsMission:
+    # Normalize files to avoid None errors
+    files = files or {}
+
+    if file_path:
+        with zipfile.ZipFile(file_path, 'w') as zip_write:
+            for file_name, file_content in files.items():
+                zip_write.writestr(zinfo_or_arcname=str(file_name), data=file_content)
+
+    return file_path
+
+def update_miz(mission: DcsMission, file_path: Optional[Path], additional_files: Optional[Dict] = None) -> DcsMission:
     """Update an existing mission in a .miz file with new data (zip it)."""
     
     def serialize(zip_file: zipfile.ZipFile, content: str, file_name: str, variable_name: Optional[str] = None) -> None:
@@ -84,34 +99,40 @@ def update_miz(mission: DcsMission, file_path: Optional[Path], additional_files:
                 with zipfile.ZipFile(temp_zip_path, 'w', zipfile.ZIP_DEFLATED) as zip_write:
                     for file_name in file_list:
                         if file_name == "mission":
-                            if mission.mission_lua:
-                                serialize(zip_file=zip_write, content=mission.mission_lua, 
+                            if mission.mission_content:
+                                serialize(zip_file=zip_write, content=mission.mission_content, 
                                        file_name="mission", variable_name="mission")
                             else:
                                 zip_write.writestr(file_name, zip_read.read(file_name))
                         elif file_name == "options":
-                            if mission.options_lua:
-                                serialize(zip_file=zip_write, content=mission.options_lua, 
+                            if mission.options_content:
+                                serialize(zip_file=zip_write, content=mission.options_content, 
                                        file_name="options", variable_name="options")
                             else:
                                 zip_write.writestr(file_name, zip_read.read(file_name))
                         elif file_name == "theatre":
-                            if mission.theatre:
-                                zip_write.writestr("theatre", mission.theatre)
+                            if mission.theatre_content:
+                                zip_write.writestr("theatre", mission.theatre_content)
                             else:
                                 zip_write.writestr(file_name, zip_read.read(file_name))
                         elif file_name == "warehouses":
-                            if mission.warehouses_lua:
-                                serialize(zip_file=zip_write, content=mission.warehouses_lua, 
+                            if mission.warehouses_content:
+                                serialize(zip_file=zip_write, content=mission.warehouses_content, 
                                        file_name="warehouses", variable_name="warehouses")
                             else:
                                 zip_write.writestr(file_name, zip_read.read(file_name))
                         elif file_name == "l10n/DEFAULT/dictionary":
-                            if mission.dictionary_lua:
-                                serialize(zip_file=zip_write, content=mission.dictionary_lua, 
+                            if mission.dictionary_content:
+                                serialize(zip_file=zip_write, content=mission.dictionary_content, 
                                        file_name="l10n/DEFAULT/dictionary", variable_name="dictionary")
                             else:
                                 zip_write.writestr(file_name, zip_read.read(file_name))
+                        elif file_name == "l10n/DEFAULT/mapResource":
+                            if mission.map_resource_content:
+                                serialize(zip_file=zip_write, content=mission.map_resource_content, 
+                                       file_name="l10n/DEFAULT/mapResource", variable_name="mapResource")
+                            else:
+                                zip_write.writestr(file_name, zip_read.read(file_name))                        
                         elif file_name in additional_files:
                             # Skip it - will be added from additional_files
                             pass

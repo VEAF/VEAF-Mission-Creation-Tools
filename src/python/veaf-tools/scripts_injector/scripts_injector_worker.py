@@ -36,7 +36,6 @@ def get_required_scripts() -> List[str]:
             "src/scripts/veaf/veafSkynetIadsHelper.lua",
             "src/scripts/veaf/veafSkynetIadsMonitor.lua",
             "src/scripts/veaf/veafSanctuary.lua",
-            "src/scripts/veaf/veafHoundElintHelper.lua",
             "src/scripts/veaf/veafQraManager.lua",
             "src/scripts/veaf/veafAirwaves.lua",
             "src/scripts/veaf/veafEventHandler.lua",
@@ -93,35 +92,35 @@ class ScriptsInjectorWorker:
         self.logger.info("Setting mission variables")
 
         # Set the variables in the dictionary
-        if self.dcs_mission and self.dcs_mission.dictionary_lua:
+        if self.dcs_mission and self.dcs_mission.dictionary_content:
             self.logger.debug("Set the variables in the dictionary")
-            for key, value in self.dcs_mission.dictionary_lua.items():
+            for key, value in self.dcs_mission.dictionary_content.items():
                 self.logger.debug(f"Processing key {key}: {value}")
 
                 # search for mission config loading mode
                 if value.endswith(" -- config"):
                     if self.development_mode:
                         self.logger.debug("Setting mission config loading to dynamic")
-                        self.dcs_mission.dictionary_lua[key] = "return true -- config"
+                        self.dcs_mission.dictionary_content[key] = "return true -- config"
                     else:
                         self.logger.debug("Setting mission config loading to static")
-                        self.dcs_mission.dictionary_lua[key] = "return false -- config"
+                        self.dcs_mission.dictionary_content[key] = "return false -- config"
                 # search for mission scripts loading mode
                 if value.endswith(" -- scripts"):
                     if self.development_mode:
                         self.logger.debug("Setting mission scripts loading to dynamic")
-                        self.dcs_mission.dictionary_lua[key] = "return true -- scripts"
+                        self.dcs_mission.dictionary_content[key] = "return true -- scripts"
                     else:
                         self.logger.debug("Setting mission scripts loading to static")
-                        self.dcs_mission.dictionary_lua[key] = "return false -- scripts"
+                        self.dcs_mission.dictionary_content[key] = "return false -- scripts"
         else:
             self.logger.error("The mission file does not contain 'dictionary'", raise_exception=True)
 
         # Set the variables in the mission
-        if self.dcs_mission and self.dcs_mission.mission_lua:
+        if self.dcs_mission and self.dcs_mission.mission_content:
             self.logger.debug("Set the variables in the mission")
             # Process the 'trig' part
-            dcs_actions = self.dcs_mission.mission_lua.get("trig", {}).get("actions", [])
+            dcs_actions = self.dcs_mission.mission_content.get("trig", {}).get("actions", [])
             if not dcs_actions:
                 self.logger.error("The 'mission' file does not contain 'trig.actions'", raise_exception=True)
             for action_index, action in enumerate(dcs_actions):
@@ -139,7 +138,7 @@ class ScriptsInjectorWorker:
 
             # Process the 'trigrules' part
             # TODO dynamically set the actions that load the scripts to the scripts list
-            dcs_rules = self.dcs_mission.mission_lua.get("trigrules", [])
+            dcs_rules = self.dcs_mission.mission_content.get("trigrules", [])
             if not dcs_rules:
                 self.logger.error("The 'mission' file does not contain 'trigrules'", raise_exception=True)
             for rule in dcs_rules:

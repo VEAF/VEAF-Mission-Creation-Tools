@@ -8,5 +8,6 @@ from .scripts_injector_worker import ScriptsInjectorWorker
 from .scripts_injector_README import ScriptsInjectorREADME
 
 __all__ = [
-    "ScriptsInjectorWorker"
+    "ScriptsInjectorWorker",
+    "ScriptsInjectorREADME"
 ]

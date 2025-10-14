@@ -77,7 +77,7 @@ class PresetsInjectorWorker:
 
         self.logger.debug("Searching for all aircraft groups")
         
-        coalitions_dict = self.dcs_mission.mission_lua.get("coalition")
+        coalitions_dict = self.dcs_mission.mission_content.get("coalition")
         if not coalitions_dict:
             self.logger.error("cannot find key 'coalition'", True)
             return

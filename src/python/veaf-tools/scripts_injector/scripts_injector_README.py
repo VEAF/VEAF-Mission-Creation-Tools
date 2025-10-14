@@ -96,7 +96,6 @@ The tool automatically injects the following scripts into your mission:
 - `veafSkynetIadsHelper.lua` - Skynet IADS integration
 - `veafSkynetIadsMonitor.lua` - Skynet IADS monitoring
 - `veafSanctuary.lua` - Sanctuary management
-- `veafHoundElintHelper.lua` - Hound ELINT integration
 - `veafQraManager.lua` - Quick Reaction Alert management
 - `veafAirwaves.lua` - Communications management
 - `veafEventHandler.lua` - Event handling

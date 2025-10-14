@@ -23,13 +23,9 @@ from rich.console import Console
 from rich.markdown import Markdown
 from typing import Optional
 from veaf_logger import VeafLogger
-import logging
-import os
-from presets_injector.presets_injector_worker import PresetsInjectorWorker
-from scripts_injector.scripts_injector_worker import ScriptsInjectorWorker
-from presets_injector.presets_injector_README import PresetsInjectorREADME
-from scripts_injector.scripts_injector_README import ScriptsInjectorREADME
-import sys
+from scripts_injector import ScriptsInjectorWorker, ScriptsInjectorREADME
+from presets_injector import PresetsInjectorWorker, PresetsInjectorREADME
+from mission_builder import MissionBuilderWorker, MissionBuilderREADME
 import typer
 
 VERSION:str = "0.1.0"
@@ -155,7 +151,7 @@ def inject_scripts(
 
     # Resolve development path
     if development_path:
-        p_development_path = resolve_path(path=development_path, shouldExist=True)
+        p_development_path = resolve_path(path=development_path, should_exist=True)
         if not p_development_path.exists():
             logger.error(f"Input mission {p_development_path} does not exist!", raise_exception=True)
     else:
@@ -168,6 +164,56 @@ def inject_scripts(
     console.print("[bold blue]Work done![/bold blue]")
     # input("Press Enter to exit...")
 
+@app.command()
+def build_mission(
+    readme: bool = typer.Option(False, help="Provide access to the README file."),
+    verbose: bool = typer.Option(False, help="If set, the script will output a lot of debug information."),
+    development_mode: bool = typer.Option(False, help="If set, the mission will dynamically load the scripts from the provided location (via --development-path or in the local node_modules and src/scripts folders)."),
+    development_path: str = typer.Option(None, help="Path to the development version of the VEAF scripts."),
+    mission_folder: Optional[str] = typer.Argument(".", help="Folder with the mission files."),
+    output_mission: Optional[str] = typer.Argument("mission.miz", help="Mission file to save."),
+) -> None:
+    """
+    Builds a DCS mission based on a mission folder.
+    """
+
+    # Set the title and version
+    console.print(f"[bold green]veaf-tools VEAF mission builder v{VERSION}[/bold green]")
+
+    logger = VeafLogger(logger_name="veaf-tools-mission-builder", console=console).set_verbose(verbose)
+
+    if readme:
+        if typer.confirm("Do you want to display the documentation?"):
+            md_render = Markdown(ScriptsInjectorREADME)
+            console.print(md_render)
+        raise typer.Exit()
+
+
+    # Resolve input mission
+    p_mission_folder = resolve_path(path=mission_folder, default_path=Path.cwd(), should_exist=True)
+    if not p_mission_folder.exists():
+        logger.error(f"Mission folder {p_mission_folder} does not exist!", raise_exception=True)
+
+    # Resolve output mission
+    p_output_mission = resolve_path(output_mission, default_path=p_mission_folder)
+
+    # Resolve development path
+    if not development_path and development_mode:
+        # default value is the "/node_modules/veaf-mission-creation-tools" subfolder of the mission folder
+        development_path = p_mission_folder / "node_modules" / "veaf-mission-creation-tools"
+    if development_path:
+        p_development_path = resolve_path(path=development_path, should_exist=True)
+        if not p_development_path.exists():
+            logger.error(f"Development folder {p_development_path} does not exist!", raise_exception=True)
+    else:
+        p_development_path = None
+
+    # Call the worker class
+    worker = MissionBuilderWorker(logger=logger, development_mode=development_mode, development_path=p_development_path, mission_folder=p_mission_folder, output_mission=p_output_mission)
+    worker.work()
+
+    console.print("[bold blue]Work done![/bold blue]")
+    # input("Press Enter to exit...")
 
 if __name__ == "__main__":
     app()

@@ -1,0 +1,16 @@
+{
+ "VEAF_MapKey_ActionText_10206": "WeatherMark.lua",
+ "VEAF_MapKey_ActionText_10202": "mist.lua",
+ "VEAF_MapKey_ActionText_10209": "HoundElint.lua",
+ "VEAF_MapKey_ActionText_10207": "skynet-iads-compiled.lua",
+ "DictKey_ActionText_10402": "beacon.ogg",
+ "VEAF_MapKey_ActionText_10208": "Hercules_Cargo.lua",
+ "VEAF_MapKey_ActionText_10210": "AIEN.lua",
+ "VEAF_MapKey_ActionText_10203": "DCS-SimpleTextToSpeech.lua",
+ "VEAF_MapKey_ActionText_10205": "CSAR.lua",
+ "VEAF_MapKey_ActionText_10204": "CTLD.lua",
+ "DictKey_ActionText_10401": "beaconsilent.ogg",
+ "VEAF_MapKey_ActionText_10309": "missionConfig.lua",
+ "DictKey_ActionText_10403": "csar-beacon.ogg",
+ "VEAF_MapKey_ActionText_10308": "veaf-scripts.lua"
+}

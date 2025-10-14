@@ -22,3 +22,72 @@ test/veaf-tools/groups.json
 test/veaf-tools/*.miz
 dist/
 *.log
+test/veaf-tools/mission-builder/test.miz
+test/veaf-tools/mission-builder/built/mission
+test/veaf-tools/mission-builder/built/options
+test/veaf-tools/mission-builder/built/theatre
+test/veaf-tools/mission-builder/built/warehouses
+test/veaf-tools/mission-builder/built/KNEEBOARD/A-10A/IMAGES/this folder contains the images (jpg) that will go in the kneeboard of this particular aircraft
+test/veaf-tools/mission-builder/built/KNEEBOARD/A-10C/IMAGES/this folder contains the images (jpg) that will go in the kneeboard of this particular aircraft
+test/veaf-tools/mission-builder/built/KNEEBOARD/AJS37/IMAGES/this folder contains the images (jpg) that will go in the kneeboard of this particular aircraft
+test/veaf-tools/mission-builder/built/KNEEBOARD/AV8BNA/IMAGES/this folder contains the images (jpg) that will go in the kneeboard of this particular aircraft
+test/veaf-tools/mission-builder/built/KNEEBOARD/C-101EB/IMAGES/this folder contains the images (jpg) that will go in the kneeboard of this particular aircraft
+test/veaf-tools/mission-builder/built/KNEEBOARD/F-14B/IMAGES/this folder contains the images (jpg) that will go in the kneeboard of this particular aircraft
+test/veaf-tools/mission-builder/built/KNEEBOARD/F-15C/IMAGES/this folder contains the images (jpg) that will go in the kneeboard of this particular aircraft
+test/veaf-tools/mission-builder/built/KNEEBOARD/F-16C_50/IMAGES/this folder contains the images (jpg) that will go in the kneeboard of this particular aircraft
+test/veaf-tools/mission-builder/built/KNEEBOARD/F-5E-3/IMAGES/this folder contains the images (jpg) that will go in the kneeboard of this particular aircraft
+test/veaf-tools/mission-builder/built/KNEEBOARD/F-86F Sabre/IMAGES/this folder contains the images (jpg) that will go in the kneeboard of this particular aircraft
+test/veaf-tools/mission-builder/built/KNEEBOARD/FA-18C_hornet/IMAGES/this folder contains the images (jpg) that will go in the kneeboard of this particular aircraft
+test/veaf-tools/mission-builder/built/KNEEBOARD/Hawk/IMAGES/this folder contains the images (jpg) that will go in the kneeboard of this particular aircraft
+test/veaf-tools/mission-builder/built/KNEEBOARD/IMAGES/this folder contains the images (jpg) that will go in the kneeboard of all planes
+test/veaf-tools/mission-builder/built/KNEEBOARD/J-11A/IMAGES/this folder contains the images (jpg) that will go in the kneeboard of this particular aircraft
+test/veaf-tools/mission-builder/built/KNEEBOARD/Ka-50/IMAGES/this folder contains the images (jpg) that will go in the kneeboard of this particular aircraft
+test/veaf-tools/mission-builder/built/KNEEBOARD/L-39C/IMAGES/this folder contains the images (jpg) that will go in the kneeboard of this particular aircraft
+test/veaf-tools/mission-builder/built/KNEEBOARD/L-39ZA/IMAGES/this folder contains the images (jpg) that will go in the kneeboard of this particular aircraft
+test/veaf-tools/mission-builder/built/KNEEBOARD/M-2000C/IMAGES/this folder contains the images (jpg) that will go in the kneeboard of this particular aircraft
+test/veaf-tools/mission-builder/built/KNEEBOARD/Mi-8MT/IMAGES/this folder contains the images (jpg) that will go in the kneeboard of this particular aircraft
+test/veaf-tools/mission-builder/built/KNEEBOARD/MiG-15bis/IMAGES/this folder contains the images (jpg) that will go in the kneeboard of this particular aircraft
+test/veaf-tools/mission-builder/built/KNEEBOARD/MiG-21bis/IMAGES/this folder contains the images (jpg) that will go in the kneeboard of this particular aircraft
+test/veaf-tools/mission-builder/built/KNEEBOARD/MiG-23UB/IMAGES/this folder contains the images (jpg) that will go in the kneeboard of this particular aircraft
+test/veaf-tools/mission-builder/built/KNEEBOARD/MiG-29/IMAGES/this folder contains the images (jpg) that will go in the kneeboard of this particular aircraft
+test/veaf-tools/mission-builder/built/KNEEBOARD/MiG-29A/IMAGES/this folder contains the images (jpg) that will go in the kneeboard of this particular aircraft
+test/veaf-tools/mission-builder/built/KNEEBOARD/MiG-29G/IMAGES/this folder contains the images (jpg) that will go in the kneeboard of this particular aircraft
+test/veaf-tools/mission-builder/built/KNEEBOARD/MiG-29S/IMAGES/this folder contains the images (jpg) that will go in the kneeboard of this particular aircraft
+test/veaf-tools/mission-builder/built/KNEEBOARD/MiG-29c/IMAGES/this folder contains the images (jpg) that will go in the kneeboard of this particular aircraft
+test/veaf-tools/mission-builder/built/KNEEBOARD/P-51D/IMAGES/this folder contains the images (jpg) that will go in the kneeboard of this particular aircraft
+test/veaf-tools/mission-builder/built/KNEEBOARD/P-51D-30-NA/IMAGES/this folder contains the images (jpg) that will go in the kneeboard of this particular aircraft
+test/veaf-tools/mission-builder/built/KNEEBOARD/SA342L/IMAGES/this folder contains the images (jpg) that will go in the kneeboard of this particular aircraft
+test/veaf-tools/mission-builder/built/KNEEBOARD/SA342M/IMAGES/this folder contains the images (jpg) that will go in the kneeboard of this particular aircraft
+test/veaf-tools/mission-builder/built/KNEEBOARD/SA342Minigun/IMAGES/this folder contains the images (jpg) that will go in the kneeboard of this particular aircraft
+test/veaf-tools/mission-builder/built/KNEEBOARD/SA342Mistral/IMAGES/this folder contains the images (jpg) that will go in the kneeboard of this particular aircraft
+test/veaf-tools/mission-builder/built/KNEEBOARD/SpitfireLFMkIX/IMAGES/this folder contains the images (jpg) that will go in the kneeboard of this particular aircraft
+test/veaf-tools/mission-builder/built/KNEEBOARD/Su-25/IMAGES/this folder contains the images (jpg) that will go in the kneeboard of this particular aircraft
+test/veaf-tools/mission-builder/built/KNEEBOARD/Su-25T/IMAGES/this folder contains the images (jpg) that will go in the kneeboard of this particular aircraft
+test/veaf-tools/mission-builder/built/KNEEBOARD/Su-27/IMAGES/this folder contains the images (jpg) that will go in the kneeboard of this particular aircraft
+test/veaf-tools/mission-builder/built/KNEEBOARD/Su-33/IMAGES/this folder contains the images (jpg) that will go in the kneeboard of this particular aircraft
+test/veaf-tools/mission-builder/built/KNEEBOARD/TF-51D/IMAGES/this folder contains the images (jpg) that will go in the kneeboard of this particular aircraft
+test/veaf-tools/mission-builder/built/KNEEBOARD/UH-1H/IMAGES/this folder contains the images (jpg) that will go in the kneeboard of this particular aircraft
+test/veaf-tools/mission-builder/built/KNEEBOARD/Yak-52/IMAGES/this folder contains the images (jpg) that will go in the kneeboard of this particular aircraft
+test/veaf-tools/mission-builder/built/UHF_RADIO/SETTINGS.lua
+test/veaf-tools/mission-builder/built/VHF_AM_RADIO/SETTINGS.lua
+test/veaf-tools/mission-builder/built/VHF_FM_RADIO/SETTINGS.lua
+test/veaf-tools/mission-builder/built/l10n/default/AIEN.lua
+test/veaf-tools/mission-builder/built/l10n/default/beacon.ogg
+test/veaf-tools/mission-builder/built/l10n/default/beaconsilent.ogg
+test/veaf-tools/mission-builder/built/l10n/default/csar-beacon.ogg
+test/veaf-tools/mission-builder/built/l10n/default/CSAR.lua
+test/veaf-tools/mission-builder/built/l10n/default/CTLD.lua
+test/veaf-tools/mission-builder/built/l10n/default/DCS-SimpleTextToSpeech.lua
+test/veaf-tools/mission-builder/built/l10n/default/dictionary
+test/veaf-tools/mission-builder/built/l10n/default/Hercules_Cargo.lua
+test/veaf-tools/mission-builder/built/l10n/default/mapResource
+test/veaf-tools/mission-builder/built/l10n/default/missionConfig.lua
+test/veaf-tools/mission-builder/built/l10n/default/mist.lua
+test/veaf-tools/mission-builder/built/l10n/default/skynet-iads-compiled.lua
+test/veaf-tools/mission-builder/built/l10n/default/TheUniversalMission.lua
+test/veaf-tools/mission-builder/built/l10n/default/veaf-scripts.lua
+test/veaf-tools/mission-builder/built/l10n/default/veafDynamicConfig.lua
+test/veaf-tools/mission-builder/built/l10n/default/WeatherMark.lua
+test/Untitled-1.json
+test/Untitled-2.json
+test/Untitled-3.json

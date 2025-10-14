@@ -39,7 +39,6 @@ Write-Host "Quiet: $($Quiet.IsPresent)"
 "veafCombatMission.lua",
 "veafCombatZone.lua",
 "veafGrass.lua",
-"veafHoundElintHelper.lua",
 "veafMissileGuardian.lua",
 "veafMove.lua",
 "veafNamedPoints.lua",

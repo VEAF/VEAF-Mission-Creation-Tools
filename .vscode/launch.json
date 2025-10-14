@@ -18,7 +18,42 @@
             "cwd": "${workspaceFolder}\\test\\veaf-tools\\scripts-injector\\build",
             "args": ["inject-scripts", "--verbose", "--development-mode", "test.miz", "test-out.miz"],
             "console": "integratedTerminal"
+        },
+        {
+            "name": "veaf-tools mission builder DEV with local scripts",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/python/veaf-tools/veaf-tools.py",
+            "cwd": "${workspaceFolder}\\test\\veaf-tools\\mission-builder",
+            "args": ["build-mission", "--verbose", "--development-mode", "D:/dev/_VEAF/VEAF-Mission-Creation-Tools/test/veaf-tools/mission-builder", "test.miz"],
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "veaf-tools mission builder DEV with DEV scripts",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/python/veaf-tools/veaf-tools.py",
+            "cwd": "${workspaceFolder}\\test\\veaf-tools\\mission-builder",
+            "args": ["build-mission", "--verbose", "--development-mode", "--development-path", "d:/dev/_VEAF/VEAF-Mission-Creation-Tools", "D:/dev/_VEAF/VEAF-Mission-Creation-Tools/test/veaf-tools/mission-builder", "test.miz"],
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "veaf-tools mission builder static with DEV scripts",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/python/veaf-tools/veaf-tools.py",
+            "cwd": "${workspaceFolder}\\test\\veaf-tools\\mission-builder",
+            "args": ["build-mission", "--verbose", "--development-path", "d:/dev/_VEAF/VEAF-Mission-Creation-Tools", "D:/dev/_VEAF/VEAF-Mission-Creation-Tools/test/veaf-tools/mission-builder", "test.miz"],
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "veaf-tools mission builder DEPLOY",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/python/veaf-tools/veaf-tools.py",
+            "cwd": "${workspaceFolder}\\test\\veaf-tools\\mission-builder",
+            "args": ["build-mission", "--verbose", "D:/dev/_VEAF/VEAF-Mission-Creation-Tools/test/veaf-tools/mission-builder", "test.miz"],
+            "console": "integratedTerminal"
         }
-
     ]
 }

@@ -1,0 +1,12 @@
+dictionary = {
+    ["VEAF_DictKey_ActionText_10501"] = "return false -- scripts",
+    ["VEAF_DictKey_ActionText_10502"] = "return false -- config",
+    ["VEAF_DictKey_ActionText_10601"] = "return VEAF_DYNAMIC_PATH~=nil",
+    ["VEAF_DictKey_ActionText_10701"] = "return VEAF_DYNAMIC_PATH==nil",
+    ["VEAF_DictKey_ActionText_10801"] = "return VEAF_DYNAMIC_MISSIONPATH~=nil",
+    ["VEAF_DictKey_ActionText_10901"] = "return VEAF_DYNAMIC_MISSIONPATH==nil",
+    ["DictKey_descriptionBlueTask_86"] = "",
+    ["DictKey_descriptionRedTask_85"] = "",
+    ["DictKey_descriptionText_84"] = "",
+    ["DictKey_sortie_87"] = "",
+} -- end of dictionary

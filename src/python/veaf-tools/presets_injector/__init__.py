@@ -22,5 +22,6 @@ __all__ = [
     "PresetsDefinition",
     "PresetAssignment",
     "PresetsManager",
-    "PresetsInjectorWorker"
+    "PresetsInjectorWorker",
+    "PresetsInjectorREADME"
 ]

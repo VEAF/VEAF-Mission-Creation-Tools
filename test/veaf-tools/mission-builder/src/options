@@ -1,0 +1,14 @@
+options = {
+    ["difficulty"] = {
+        ["easyCommunication"] = false,
+        ["easyFlight"] = false,
+        ["easyRadar"] = false,
+        ["fuel"] = false,
+        ["geffect"] = "realistic",
+        ["immortal"] = false,
+        ["optionsView"] = "optview_onlyallies",
+        ["permitCrash"] = false,
+        ["unrestrictedSATNAV"] = true,
+        ["userMarks"] = true,
+    }, -- end of ["difficulty"]
+} -- end of options

@@ -1,0 +1,19 @@
+dictionary = 
+{
+  DictKey_ActionText_786 = "alpha -> ON",
+  DictKey_ActionText_787 = "alpha -> OFF",
+  DictKey_ActionText_788 = "127 < 5",
+  DictKey_ActionText_789 = "127 > 5",
+  DictKey_descriptionBlueTask_3 = "",
+  DictKey_descriptionNeutralsTask_4 = "",
+  DictKey_descriptionRedTask_2 = "",
+  DictKey_descriptionText_1 = "Demonstration mission for VEAF-Mission-Creation-Tools\
+METAR: UGKO 171130Z 15005KT 4000 SN BR SCT003 BKN019 OVC030 01/M00 Q1030 NOSIG",
+  DictKey_sortie_5 = "",
+  VEAF_DictKey_ActionText_12001 = "return false -- scripts",
+  VEAF_DictKey_ActionText_12002 = "return false -- config",
+  VEAF_DictKey_ActionText_12003 = "return VEAF_DYNAMIC_PATH~=nil",
+  VEAF_DictKey_ActionText_12004 = "return VEAF_DYNAMIC_PATH==nil",
+  VEAF_DictKey_ActionText_12005 = "return VEAF_DYNAMIC_MISSIONPATH~=nil",
+  VEAF_DictKey_ActionText_12006 = "return VEAF_DYNAMIC_MISSIONPATH==nil",
+}

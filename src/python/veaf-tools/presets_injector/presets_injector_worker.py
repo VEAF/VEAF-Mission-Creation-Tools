@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-from miz_tools import DcsMission, read_miz, update_miz
+from mission_tools import DcsMission, read_miz, write_miz
 
 from .presets_manager import PresetsManager
 from veaf_logger import VeafLogger
@@ -18,15 +18,15 @@ class Group:
     aircraft_type: str
     country: str
     coalition: str
-    name: str = None
-    unit_type: str = None
+    name: str
+    unit_type: str
 
 class PresetsInjectorWorker:
     """
     Worker class that provides presets injection features.
     """
     
-    def __init__(self, logger: Optional[VeafLogger] = None, presets_file: Optional[Path] = None, input_mission: Optional[Path] = None, output_mission: Optional[Path] = None):
+    def __init__(self, logger: Optional[VeafLogger], presets_file: Optional[Path], input_mission: Optional[Path], output_mission: Optional[Path]):
         """
         Initialize the worker with optional parameters for both use cases.
         
@@ -41,7 +41,7 @@ class PresetsInjectorWorker:
         self.input_mission = input_mission
         self.output_mission = output_mission
         self.groups = {}
-        self.presets_manager = self.load_config()
+        self.presets_manager:PresetsManager = self.load_config()
         self.dcs_mission: DcsMission = None
 
     def load_config(self) -> Any:
@@ -125,7 +125,7 @@ class PresetsInjectorWorker:
         for group in groups_list:
             self.add_group(group, aircraft_type=aircraft_type, country=country_name, coalition=coalition_name)
 
-    def process_groups(self) -> None:  
+    def process_groups(self) -> None:
         """Process all the aircraft groups."""
         nb_groups_to_process = len(self.groups)
         self.logger.info(f"Processing {nb_groups_to_process} aircraft group{'s' if nb_groups_to_process > 1 else ''}")
@@ -133,10 +133,8 @@ class PresetsInjectorWorker:
         nb_groups_processed = 0
         for group_name in self.groups.keys(): # "Inject radio presets in all aircraft groups"
             group: Group = self.groups[group_name]
-            preset = self.presets_manager.get_preset_assignment(coalition=group.coalition, aircraft_type=group.aircraft_type, group_type=group.unit_type) or self.presets_manager.get_preset_assignment(coalition=group.coalition, aircraft_type=group.aircraft_type) # sourcery skip: use-named-expression
-            if preset:
-                preset_collection = self.presets_manager.get_preset_collection(preset)
-                if preset_collection:
+            if preset := self.presets_manager.get_preset_assignment(coalition=group.coalition, aircraft_type=group.aircraft_type, group_type=group.unit_type) or self.presets_manager.get_preset_assignment(coalition=group.coalition, aircraft_type=group.aircraft_type):
+                if preset_collection := self.presets_manager.get_preset_collection(preset):
                     nb_groups_processed += 1
                     preset_collection.used_in_mission = True
                     self.logger.debug(f"Injecting preset '{preset}' into group '{group.name}' (type: {group.unit_type}, aircraft: {group.aircraft_type}, country: {group.country}, coalition: {group.coalition})")
@@ -164,7 +162,7 @@ class PresetsInjectorWorker:
         self.logger.info(f"Added {nb_kneeboard_images} kneeboard page{"s" if nb_kneeboard_images > 1 else ""} to mission")
 
         # Save the mission
-        update_miz(mission=self.dcs_mission, file_path=self.output_mission, additional_files=additional_files)
+        write_miz(mission=self.dcs_mission, miz_file_path=self.output_mission, additional_files=additional_files)
 
     def work(self) -> None:
         """Main work function."""

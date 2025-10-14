@@ -1,0 +1,146 @@
+{
+  "variableForMetar": "METAR",
+  "position": 
+    {
+      "lat": 42.355691,
+      "lon": 43.323853,
+      "tz": "Asia/Tbilisi"
+    },
+  "moments": 
+    {
+      "night" : "02:00",
+      "beforedawn" : "sunrise-90*60",
+      "dawn" : "sunrise-15*60",
+      "morning" : "sunrise+45*60",
+      "day" : "15:00",
+      "beforesunset" : "sunset-90*60",
+      "sunset" : "sunset+15*60"
+    },
+  "targets": [
+    {
+      "version": "night-real",
+      "realweather": true,
+      "moment": "night"
+    },
+    {
+      "version": "beforedawn-scattered",
+      "weatherfile": "scattered-1.lua",
+      "moment": "beforedawn"
+    },
+    {
+      "version": "dawn-real",
+      "realweather": true,
+      "moment": "dawn"
+    },
+    {
+      "version": "sunset-real",
+      "realweather": true,
+      "moment": "sunset"
+    },
+    {
+      "version": "dawn-scattered",
+      "weatherfile": "scattered-1.lua",
+      "moment": "dawn"
+    },
+    {
+      "version": "dawn-broken",
+      "weatherfile": "broken-1.lua",
+      "moment": "dawn"
+    },
+    {
+      "version": "dawn-overcast",
+      "weatherfile": "overcast-1.lua",
+      "moment": "dawn"
+    },
+    {
+      "version": "dawn-overcast-rain",
+      "weatherfile": "overcast-rain-1.lua",
+      "moment": "dawn"
+    },
+    {
+      "version": "morning-real",
+      "realweather": true,
+      "moment": "morning"
+    },
+    {
+      "version": "morning-scattered",
+      "weatherfile": "scattered-1.lua",
+      "moment": "morning"
+    },
+    {
+      "version": "morning-broken",
+      "weatherfile": "broken-1.lua",
+      "moment": "morning"
+    },
+    {
+      "version": "morning-overcast",
+      "weatherfile": "overcast-1.lua",
+      "moment": "morning"
+    },
+    {
+      "version": "morning-overcast-rain",
+      "weatherfile": "overcast-rain-1.lua",
+      "moment": "morning"
+    },
+    {
+      "version": "dawn-crosswind-vaziani",
+      "weather": "UG27 221130Z 04515KT CAVOK Q1020 NOSIG",
+      "moment": "dawn"
+    },
+    {
+      "version": "dawn-crosswind-rain-vaziani",
+      "weather": "UG27 221130Z 04515KT +SHRA BKN008 OVC024 Q1006 NOSIG",
+      "moment": "dawn"
+    },
+    {
+      "version": "day-real",
+      "realweather": true,
+      "moment": "day"
+    },
+    {
+      "version": "day-scattered",
+      "weatherfile": "scattered-1.lua",
+      "moment": "day"
+    },
+    {
+      "version": "day-broken",
+      "weatherfile": "broken-1.lua",
+      "moment": "day"
+    },
+    {
+      "version": "day-overcast",
+      "weatherfile": "overcast-1.lua",
+      "moment": "day"
+    },
+    {
+      "version": "day-overcast-rain",
+      "weatherfile": "overcast-rain-1.lua",
+      "moment": "day"
+    },
+    {
+      "version": "evening-real",
+      "realweather": true,
+      "moment": "beforesunset"
+    },
+    {
+      "version": "evening-scattered",
+      "weatherfile": "scattered-1.lua",
+      "moment": "beforesunset"
+    },
+    {
+      "version": "evening-broken",
+      "weatherfile": "broken-1.lua",
+      "moment": "beforesunset"
+    },
+    {
+      "version": "evening-overcast",
+      "weatherfile": "overcast-1.lua",
+      "moment": "beforesunset"
+    },
+    {
+      "version": "evening-overcast-rain",
+      "weatherfile": "overcast-rain-1.lua",
+      "moment": "beforesunset"
+    }
+  ]
+}

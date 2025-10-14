@@ -25,7 +25,7 @@ class VeafLogger:
 
     def set_verbose(self, verbose: bool) -> Self:
         self.verbose = verbose
-        self.set_level(logging.DEBUG if self.verbose else logging.INFO)
+        self.set_level(logging.DEBUG)
         return self
 
     def set_level(self, level):

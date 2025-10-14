@@ -49,9 +49,18 @@ class MissionExtractorWorker:
         with tempfile.TemporaryDirectory() as temp_dir_name:
             temp_dir: Path = Path(temp_dir_name)
 
+            # Normalize the mission to a temporary file
+            temp_mission_file = temp_dir / "temp_mission.miz"
+            self.logger.debug(f"Normalizing the mission file {self.input_mission_path} to a temporary file {temp_mission_file}")
+            dcs_mission = read_miz(self.input_mission_path)
+            write_miz(dcs_mission, temp_mission_file)
+
             # Extract the mission .miz file
-            self.logger.debug(f"Extracting the mission file {self.input_mission_path} to the folder {temp_dir}")
-            extract_miz(miz_file_path=self.input_mission_path, extracted_folder_path=temp_dir)
+            self.logger.debug(f"Extracting the mission file {temp_mission_file} to the folder {temp_dir}")
+            extract_miz(miz_file_path=temp_mission_file, extracted_folder_path=temp_dir)
+
+            # Delete the temporary mission file
+            temp_mission_file.unlink()
 
             # Remove the VEAF, community, legacy VEAF and mission script files
             for file_in_mission in [Path(f[1]) / Path(f[0]).name for f in get_veaf_script_files() + get_community_script_files() + get_mission_script_files() + get_legacy_script_files() ]:

@@ -273,8 +273,8 @@ class MissionBuilderWorker:
         veaf_mission_config_map_key = new_map_resource_key_by_file.get("l10n/default/missionConfig.lua", "")
 
         new_dictionary = {
-            "VEAF_DictKey_ActionText_12001": f"return {"true" if self.dynamic_mode else "false"} -- scripts",
-            "VEAF_DictKey_ActionText_12002": f"return {"true" if self.dynamic_mode else "false"} -- config",
+            "VEAF_DictKey_ActionText_12001": f"return {"true" if self.dynamic_mode else "false"} -- scripts loading (false = static, true = dynamic)",
+            "VEAF_DictKey_ActionText_12002": f"return {"true" if self.dynamic_mode else "false"} -- config loading (false = static, true = dynamic)",
             "VEAF_DictKey_ActionText_12003": "return VEAF_DYNAMIC_PATH~=nil",
             "VEAF_DictKey_ActionText_12004": "return VEAF_DYNAMIC_PATH==nil",
             "VEAF_DictKey_ActionText_12005": "return VEAF_DYNAMIC_MISSIONPATH~=nil",
@@ -286,19 +286,19 @@ class MissionBuilderWorker:
             for new_dict_key in new_dictionary
         ]
 
-        dynamic_script_loading_trigger = "a_do_script(\"env.info(\\\"DYNAMIC SCRIPTS LOADING\\\")\");"
+        dynamic_script_loading_trigger = "a_do_script(\"env.info(\\\"DYNAMIC VEAF scripts loading\\\")\");"
         for file in get_community_script_files():
             dynamic_script_loading_trigger += f";a_do_script(\"assert(loadfile(VEAF_DYNAMIC_PATH .. \\\"{file[0]}\\\"))()\")"
 
-        static_script_loading_trigger = "a_do_script(\"env.info(\\\"STATIC SCRIPTS LOADING\\\")\");"
+        static_script_loading_trigger = "a_do_script(\"env.info(\\\"STATIC VEAF scripts loading\\\")\");"
         for map_resource_key in new_map_resource_script_files:
             static_script_loading_trigger += f";a_do_script_file(getValueResourceByKey(\"{map_resource_key}\"))"
 
-        dynamic_mission_loading_trigger = "a_do_script(\"env.info(\\\"DYNAMIC MISSION LOADING\\\")\");"
+        dynamic_mission_loading_trigger = "a_do_script(\"env.info(\\\"DYNAMIC Mission scripts loading\\\")\");"
         for file in new_map_resource_mission_script_files.values():
             dynamic_mission_loading_trigger += f";a_do_script(\"assert(loadfile(VEAF_DYNAMIC_PATH .. \\\"{file}\\\"))()\")"
 
-        static_mission_loading_trigger = "a_do_script(\"env.info(\\\"STATIC MISSION LOADING\\\")\");"
+        static_mission_loading_trigger = "a_do_script(\"env.info(\\\"STATIC Mission scripts loading\\\")\");"
         for map_resource_key in new_map_resource_mission_script_files:
             static_mission_loading_trigger += f";a_do_script_file(getValueResourceByKey(\"{map_resource_key}\"))"
 
@@ -337,7 +337,7 @@ class MissionBuilderWorker:
         static_script_loading_actions = [
             {
                 "predicate": "a_do_script",
-                "text": "env.info(\"STATIC SCRIPTS LOADING\")"
+                "text": "env.info(\"STATIC VEAF scripts loading\")"
             }
         ]
         static_script_loading_actions.extend(
@@ -352,7 +352,7 @@ class MissionBuilderWorker:
         dynamic_script_loading_actions = [
             {
                 "predicate": "a_do_script",
-                "text": "env.info(\"DYNAMIC SCRIPTS LOADING\")"
+                "text": "env.info(\"DYNAMIC VEAF scripts loading\")"
             }
         ]
         dynamic_script_loading_actions.extend(
@@ -379,7 +379,7 @@ class MissionBuilderWorker:
                         "predicate": "c_predicate"
                     }
                 ],
-                "comment": "choose scripts loading method (false = static, true = dynamic)",
+                "comment": "VEAF scripts loading method",
                 "predicate": "triggerStart",
                 "eventlist": "",
                 "actions": [
@@ -399,7 +399,7 @@ class MissionBuilderWorker:
                         "predicate": "c_predicate"
                     }
                 ],
-                "comment": "choose config loading method (false = static, true = dynamic)",
+                "comment": "Mission scripts loading method",
                 "predicate": "triggerStart",
                 "eventlist": "",
                 "actions": [
@@ -418,7 +418,7 @@ class MissionBuilderWorker:
                         "predicate": "c_predicate"
                     }
                 ],
-                "comment": "mission start - dynamic",
+                "comment": "VEAF scripts loading - dynamic",
                 "predicate": "triggerStart",
                 "eventlist": "",
                 "actions": dynamic_script_loading_actions,
@@ -432,7 +432,7 @@ class MissionBuilderWorker:
                         "predicate": "c_predicate"
                     }
                 ],
-                "comment": "mission start - static",
+                "comment": "VEAF scripts loading - static",
                 "predicate": "triggerStart",
                 "eventlist": "",
                 "actions": static_script_loading_actions,
@@ -446,12 +446,12 @@ class MissionBuilderWorker:
                         "predicate": "c_predicate"
                     }
                 ],
-                "comment": "mission config - dynamic",
+                "comment": "Mission scripts loading - dynamic",
                 "predicate": "triggerStart",
                 "eventlist": "",
                 "actions": [
                     {
-                        "text": "env.info(\"DYNAMIC CONFIG LOADING\")",
+                        "text": "env.info(\"DYNAMIC Mission scripts loading\")",
                         "meters": 1000,
                         "predicate": "a_do_script",
                         "zone": 184
@@ -471,12 +471,12 @@ class MissionBuilderWorker:
                         "predicate": "c_predicate"
                     }
                 ],
-                "comment": "mission config - static",
+                "comment": "Mission scripts loading - static",
                 "predicate": "triggerStart",
                 "eventlist": "",
                 "actions": [
                     {
-                        "text": "env.info(\"STATIC CONFIG LOADING\")",
+                        "text": "env.info(\"STATIC Mission scripts loading\")",
                         "meters": 1000,
                         "predicate": "a_do_script",
                         "zone": 184

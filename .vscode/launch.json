@@ -130,6 +130,17 @@
             "cwd": "${workspaceFolder}/test/veaf-tools/demo-mission",
             "args": ["inject-presets", "veaf-demo-mission"],
             "console": "integratedTerminal"
-        }
+        },
+        // TESTS
+        {
+            // build
+            "name": "veaf-tools - TESTS - build",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/python/veaf-tools/veaf-tools.py",
+            "cwd": "${workspaceFolder}/test/veaf-tools/demo-mission",
+            "args": ["build-mission", "--scripts-path", "${workspaceFolder}", "c:/tmp/a/src",  "c:/tmp/a/veaf-demo-mission.miz"],
+            "console": "integratedTerminal"
+        },
     ]
 }

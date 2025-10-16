@@ -2,9 +2,6 @@ warehouses =
 {
   airports = {
     [12] = {
-      OperatingLevel_Air = 10,
-      OperatingLevel_Eqp = 10,
-      OperatingLevel_Fuel = 10,
       aircrafts = {},
       allowHotStart = false,
       coalition = "NEUTRAL",
@@ -22,6 +19,9 @@ warehouses =
       methanol_mixture = {
         InitFuel = 100,
       },
+      OperatingLevel_Air = 10,
+      OperatingLevel_Eqp = 10,
+      OperatingLevel_Fuel = 10,
       periodicity = 30,
       size = 100,
       speed = 16.666666,
@@ -32,9 +32,6 @@ warehouses =
       weapons = {},
     },
     [13] = {
-      OperatingLevel_Air = 10,
-      OperatingLevel_Eqp = 10,
-      OperatingLevel_Fuel = 10,
       aircrafts = {},
       allowHotStart = false,
       coalition = "NEUTRAL",
@@ -52,6 +49,9 @@ warehouses =
       methanol_mixture = {
         InitFuel = 100,
       },
+      OperatingLevel_Air = 10,
+      OperatingLevel_Eqp = 10,
+      OperatingLevel_Fuel = 10,
       periodicity = 30,
       size = 100,
       speed = 16.666666,
@@ -62,9 +62,6 @@ warehouses =
       weapons = {},
     },
     [14] = {
-      OperatingLevel_Air = 10,
-      OperatingLevel_Eqp = 10,
-      OperatingLevel_Fuel = 10,
       aircrafts = {},
       allowHotStart = false,
       coalition = "NEUTRAL",
@@ -82,6 +79,9 @@ warehouses =
       methanol_mixture = {
         InitFuel = 100,
       },
+      OperatingLevel_Air = 10,
+      OperatingLevel_Eqp = 10,
+      OperatingLevel_Fuel = 10,
       periodicity = 30,
       size = 100,
       speed = 16.666666,
@@ -92,9 +92,6 @@ warehouses =
       weapons = {},
     },
     [15] = {
-      OperatingLevel_Air = 10,
-      OperatingLevel_Eqp = 10,
-      OperatingLevel_Fuel = 10,
       aircrafts = {},
       allowHotStart = false,
       coalition = "NEUTRAL",
@@ -112,6 +109,9 @@ warehouses =
       methanol_mixture = {
         InitFuel = 100,
       },
+      OperatingLevel_Air = 10,
+      OperatingLevel_Eqp = 10,
+      OperatingLevel_Fuel = 10,
       periodicity = 30,
       size = 100,
       speed = 16.666666,
@@ -122,9 +122,6 @@ warehouses =
       weapons = {},
     },
     [16] = {
-      OperatingLevel_Air = 10,
-      OperatingLevel_Eqp = 10,
-      OperatingLevel_Fuel = 10,
       aircrafts = {},
       allowHotStart = false,
       coalition = "NEUTRAL",
@@ -142,6 +139,9 @@ warehouses =
       methanol_mixture = {
         InitFuel = 100,
       },
+      OperatingLevel_Air = 10,
+      OperatingLevel_Eqp = 10,
+      OperatingLevel_Fuel = 10,
       periodicity = 30,
       size = 100,
       speed = 16.666666,
@@ -152,9 +152,6 @@ warehouses =
       weapons = {},
     },
     [17] = {
-      OperatingLevel_Air = 10,
-      OperatingLevel_Eqp = 10,
-      OperatingLevel_Fuel = 10,
       aircrafts = {},
       allowHotStart = false,
       coalition = "NEUTRAL",
@@ -172,6 +169,9 @@ warehouses =
       methanol_mixture = {
         InitFuel = 100,
       },
+      OperatingLevel_Air = 10,
+      OperatingLevel_Eqp = 10,
+      OperatingLevel_Fuel = 10,
       periodicity = 30,
       size = 100,
       speed = 16.666666,
@@ -182,9 +182,6 @@ warehouses =
       weapons = {},
     },
     [18] = {
-      OperatingLevel_Air = 10,
-      OperatingLevel_Eqp = 10,
-      OperatingLevel_Fuel = 10,
       aircrafts = {},
       allowHotStart = false,
       coalition = "NEUTRAL",
@@ -202,6 +199,9 @@ warehouses =
       methanol_mixture = {
         InitFuel = 100,
       },
+      OperatingLevel_Air = 10,
+      OperatingLevel_Eqp = 10,
+      OperatingLevel_Fuel = 10,
       periodicity = 30,
       size = 100,
       speed = 16.666666,
@@ -212,9 +212,6 @@ warehouses =
       weapons = {},
     },
     [19] = {
-      OperatingLevel_Air = 10,
-      OperatingLevel_Eqp = 10,
-      OperatingLevel_Fuel = 10,
       aircrafts = {},
       allowHotStart = false,
       coalition = "NEUTRAL",
@@ -232,6 +229,9 @@ warehouses =
       methanol_mixture = {
         InitFuel = 100,
       },
+      OperatingLevel_Air = 10,
+      OperatingLevel_Eqp = 10,
+      OperatingLevel_Fuel = 10,
       periodicity = 30,
       size = 100,
       speed = 16.666666,
@@ -242,9 +242,6 @@ warehouses =
       weapons = {},
     },
     [20] = {
-      OperatingLevel_Air = 10,
-      OperatingLevel_Eqp = 10,
-      OperatingLevel_Fuel = 10,
       aircrafts = {},
       allowHotStart = false,
       coalition = "BLUE",
@@ -262,6 +259,9 @@ warehouses =
       methanol_mixture = {
         InitFuel = 100,
       },
+      OperatingLevel_Air = 10,
+      OperatingLevel_Eqp = 10,
+      OperatingLevel_Fuel = 10,
       periodicity = 30,
       size = 100,
       speed = 16.666666,
@@ -272,9 +272,6 @@ warehouses =
       weapons = {},
     },
     [21] = {
-      OperatingLevel_Air = 10,
-      OperatingLevel_Eqp = 10,
-      OperatingLevel_Fuel = 10,
       aircrafts = {},
       allowHotStart = false,
       coalition = "NEUTRAL",
@@ -292,6 +289,9 @@ warehouses =
       methanol_mixture = {
         InitFuel = 100,
       },
+      OperatingLevel_Air = 10,
+      OperatingLevel_Eqp = 10,
+      OperatingLevel_Fuel = 10,
       periodicity = 30,
       size = 100,
       speed = 16.666666,
@@ -302,9 +302,6 @@ warehouses =
       weapons = {},
     },
     [22] = {
-      OperatingLevel_Air = 10,
-      OperatingLevel_Eqp = 10,
-      OperatingLevel_Fuel = 10,
       aircrafts = {},
       allowHotStart = false,
       coalition = "RED",
@@ -322,6 +319,9 @@ warehouses =
       methanol_mixture = {
         InitFuel = 100,
       },
+      OperatingLevel_Air = 10,
+      OperatingLevel_Eqp = 10,
+      OperatingLevel_Fuel = 10,
       periodicity = 30,
       size = 100,
       speed = 16.666666,
@@ -332,9 +332,6 @@ warehouses =
       weapons = {},
     },
     [23] = {
-      OperatingLevel_Air = 10,
-      OperatingLevel_Eqp = 10,
-      OperatingLevel_Fuel = 10,
       aircrafts = {
         helicopters = {
           ["AH-1W"] = {
@@ -652,16 +649,6 @@ warehouses =
               [4] = 265,
             },
           },
-          AV8BNA = {
-            initialAmount = 100,
-            unlimited = false,
-            wsType = {
-              [1] = 1,
-              [2] = 1,
-              [3] = 1,
-              [4] = 266,
-            },
-          },
           ["An-26B"] = {
             initialAmount = 100,
             unlimited = false,
@@ -680,6 +667,16 @@ warehouses =
               [2] = 1,
               [3] = 5,
               [4] = 40,
+            },
+          },
+          AV8BNA = {
+            initialAmount = 100,
+            unlimited = false,
+            wsType = {
+              [1] = 1,
+              [2] = 1,
+              [3] = 1,
+              [4] = 266,
             },
           },
           ["B-17G"] = {
@@ -1044,6 +1041,17 @@ warehouses =
               [4] = 280,
             },
           },
+          Falcon_Gyrocopter = {
+            initialAmount = 100,
+            linkDynTempl = 0,
+            unlimited = false,
+            wsType = {
+              [1] = 1,
+              [2] = 1,
+              [3] = 6,
+              [4] = 330,
+            },
+          },
           ["FW-190A8"] = {
             initialAmount = 100,
             unlimited = false,
@@ -1062,17 +1070,6 @@ warehouses =
               [2] = 1,
               [3] = 1,
               [4] = 255,
-            },
-          },
-          Falcon_Gyrocopter = {
-            initialAmount = 100,
-            linkDynTempl = 0,
-            unlimited = false,
-            wsType = {
-              [1] = 1,
-              [2] = 1,
-              [3] = 6,
-              [4] = 330,
             },
           },
           ["H-6J"] = {
@@ -1243,16 +1240,6 @@ warehouses =
               [2] = 1,
               [3] = 1,
               [4] = 325,
-            },
-          },
-          ["MQ-9 Reaper"] = {
-            initialAmount = 100,
-            unlimited = false,
-            wsType = {
-              [1] = 1,
-              [2] = 1,
-              [3] = 1,
-              [4] = 285,
             },
           },
           ["MiG-15bis"] = {
@@ -1658,6 +1645,16 @@ warehouses =
               [4] = 297,
             },
           },
+          ["MQ-9 Reaper"] = {
+            initialAmount = 100,
+            unlimited = false,
+            wsType = {
+              [1] = 1,
+              [2] = 1,
+              [3] = 1,
+              [4] = 285,
+            },
+          },
           ["P-47D-30"] = {
             initialAmount = 100,
             unlimited = false,
@@ -1976,6 +1973,9 @@ warehouses =
       methanol_mixture = {
         InitFuel = 100,
       },
+      OperatingLevel_Air = 10,
+      OperatingLevel_Eqp = 10,
+      OperatingLevel_Fuel = 10,
       periodicity = 30,
       size = 100,
       speed = 16.666666,
@@ -1986,9 +1986,6 @@ warehouses =
       weapons = {},
     },
     [24] = {
-      OperatingLevel_Air = 10,
-      OperatingLevel_Eqp = 10,
-      OperatingLevel_Fuel = 10,
       aircrafts = {
         helicopters = {
           ["AH-1W"] = {
@@ -2304,16 +2301,6 @@ warehouses =
               [4] = 265,
             },
           },
-          AV8BNA = {
-            initialAmount = 100,
-            unlimited = false,
-            wsType = {
-              [1] = 1,
-              [2] = 1,
-              [3] = 1,
-              [4] = 266,
-            },
-          },
           ["An-26B"] = {
             initialAmount = 100,
             unlimited = false,
@@ -2332,6 +2319,16 @@ warehouses =
               [2] = 1,
               [3] = 5,
               [4] = 40,
+            },
+          },
+          AV8BNA = {
+            initialAmount = 100,
+            unlimited = false,
+            wsType = {
+              [1] = 1,
+              [2] = 1,
+              [3] = 1,
+              [4] = 266,
             },
           },
           ["B-17G"] = {
@@ -2696,6 +2693,17 @@ warehouses =
               [4] = 280,
             },
           },
+          Falcon_Gyrocopter = {
+            initialAmount = 100,
+            linkDynTempl = 0,
+            unlimited = false,
+            wsType = {
+              [1] = 1,
+              [2] = 1,
+              [3] = 6,
+              [4] = 330,
+            },
+          },
           ["FW-190A8"] = {
             initialAmount = 100,
             unlimited = false,
@@ -2714,17 +2722,6 @@ warehouses =
               [2] = 1,
               [3] = 1,
               [4] = 255,
-            },
-          },
-          Falcon_Gyrocopter = {
-            initialAmount = 100,
-            linkDynTempl = 0,
-            unlimited = false,
-            wsType = {
-              [1] = 1,
-              [2] = 1,
-              [3] = 6,
-              [4] = 330,
             },
           },
           ["H-6J"] = {
@@ -2895,16 +2892,6 @@ warehouses =
               [2] = 1,
               [3] = 1,
               [4] = 325,
-            },
-          },
-          ["MQ-9 Reaper"] = {
-            initialAmount = 100,
-            unlimited = false,
-            wsType = {
-              [1] = 1,
-              [2] = 1,
-              [3] = 1,
-              [4] = 285,
             },
           },
           ["MiG-15bis"] = {
@@ -3310,6 +3297,16 @@ warehouses =
               [4] = 297,
             },
           },
+          ["MQ-9 Reaper"] = {
+            initialAmount = 100,
+            unlimited = false,
+            wsType = {
+              [1] = 1,
+              [2] = 1,
+              [3] = 1,
+              [4] = 285,
+            },
+          },
           ["P-47D-30"] = {
             initialAmount = 100,
             unlimited = false,
@@ -3628,6 +3625,9 @@ warehouses =
       methanol_mixture = {
         InitFuel = 100,
       },
+      OperatingLevel_Air = 10,
+      OperatingLevel_Eqp = 10,
+      OperatingLevel_Fuel = 10,
       periodicity = 30,
       size = 100,
       speed = 16.666666,
@@ -3643,9 +3643,6 @@ warehouses =
       weapons = {},
     },
     [25] = {
-      OperatingLevel_Air = 10,
-      OperatingLevel_Eqp = 10,
-      OperatingLevel_Fuel = 10,
       aircrafts = {},
       allowHotStart = false,
       coalition = "RED",
@@ -3663,6 +3660,9 @@ warehouses =
       methanol_mixture = {
         InitFuel = 100,
       },
+      OperatingLevel_Air = 10,
+      OperatingLevel_Eqp = 10,
+      OperatingLevel_Fuel = 10,
       periodicity = 30,
       size = 100,
       speed = 16.666666,
@@ -3673,9 +3673,6 @@ warehouses =
       weapons = {},
     },
     [26] = {
-      OperatingLevel_Air = 10,
-      OperatingLevel_Eqp = 10,
-      OperatingLevel_Fuel = 10,
       aircrafts = {},
       allowHotStart = false,
       coalition = "NEUTRAL",
@@ -3693,6 +3690,9 @@ warehouses =
       methanol_mixture = {
         InitFuel = 100,
       },
+      OperatingLevel_Air = 10,
+      OperatingLevel_Eqp = 10,
+      OperatingLevel_Fuel = 10,
       periodicity = 30,
       size = 100,
       speed = 16.666666,
@@ -3703,9 +3703,6 @@ warehouses =
       weapons = {},
     },
     [27] = {
-      OperatingLevel_Air = 10,
-      OperatingLevel_Eqp = 10,
-      OperatingLevel_Fuel = 10,
       aircrafts = {},
       allowHotStart = false,
       coalition = "NEUTRAL",
@@ -3723,6 +3720,9 @@ warehouses =
       methanol_mixture = {
         InitFuel = 100,
       },
+      OperatingLevel_Air = 10,
+      OperatingLevel_Eqp = 10,
+      OperatingLevel_Fuel = 10,
       periodicity = 30,
       size = 100,
       speed = 16.666666,
@@ -3733,9 +3733,6 @@ warehouses =
       weapons = {},
     },
     [28] = {
-      OperatingLevel_Air = 10,
-      OperatingLevel_Eqp = 10,
-      OperatingLevel_Fuel = 10,
       aircrafts = {},
       allowHotStart = false,
       coalition = "NEUTRAL",
@@ -3753,6 +3750,9 @@ warehouses =
       methanol_mixture = {
         InitFuel = 100,
       },
+      OperatingLevel_Air = 10,
+      OperatingLevel_Eqp = 10,
+      OperatingLevel_Fuel = 10,
       periodicity = 30,
       size = 100,
       speed = 16.666666,
@@ -3763,9 +3763,6 @@ warehouses =
       weapons = {},
     },
     [29] = {
-      OperatingLevel_Air = 10,
-      OperatingLevel_Eqp = 10,
-      OperatingLevel_Fuel = 10,
       aircrafts = {},
       allowHotStart = false,
       coalition = "BLUE",
@@ -3783,6 +3780,9 @@ warehouses =
       methanol_mixture = {
         InitFuel = 100,
       },
+      OperatingLevel_Air = 10,
+      OperatingLevel_Eqp = 10,
+      OperatingLevel_Fuel = 10,
       periodicity = 30,
       size = 100,
       speed = 16.666666,
@@ -3793,9 +3793,6 @@ warehouses =
       weapons = {},
     },
     [30] = {
-      OperatingLevel_Air = 10,
-      OperatingLevel_Eqp = 10,
-      OperatingLevel_Fuel = 10,
       aircrafts = {},
       allowHotStart = false,
       coalition = "NEUTRAL",
@@ -3813,6 +3810,9 @@ warehouses =
       methanol_mixture = {
         InitFuel = 100,
       },
+      OperatingLevel_Air = 10,
+      OperatingLevel_Eqp = 10,
+      OperatingLevel_Fuel = 10,
       periodicity = 30,
       size = 100,
       speed = 16.666666,
@@ -3823,9 +3823,6 @@ warehouses =
       weapons = {},
     },
     [31] = {
-      OperatingLevel_Air = 10,
-      OperatingLevel_Eqp = 10,
-      OperatingLevel_Fuel = 10,
       aircrafts = {},
       allowHotStart = false,
       coalition = "NEUTRAL",
@@ -3843,6 +3840,9 @@ warehouses =
       methanol_mixture = {
         InitFuel = 100,
       },
+      OperatingLevel_Air = 10,
+      OperatingLevel_Eqp = 10,
+      OperatingLevel_Fuel = 10,
       periodicity = 30,
       size = 100,
       speed = 16.666666,
@@ -3853,9 +3853,6 @@ warehouses =
       weapons = {},
     },
     [32] = {
-      OperatingLevel_Air = 10,
-      OperatingLevel_Eqp = 10,
-      OperatingLevel_Fuel = 10,
       aircrafts = {},
       allowHotStart = false,
       coalition = "NEUTRAL",
@@ -3873,6 +3870,9 @@ warehouses =
       methanol_mixture = {
         InitFuel = 100,
       },
+      OperatingLevel_Air = 10,
+      OperatingLevel_Eqp = 10,
+      OperatingLevel_Fuel = 10,
       periodicity = 30,
       size = 100,
       speed = 16.666666,
@@ -3885,9 +3885,6 @@ warehouses =
   },
   warehouses = {
     [45] = {
-      OperatingLevel_Air = 10,
-      OperatingLevel_Eqp = 10,
-      OperatingLevel_Fuel = 10,
       aircrafts = {},
       allowHotStart = false,
       coalition = "blue",
@@ -3905,6 +3902,9 @@ warehouses =
       methanol_mixture = {
         InitFuel = 100,
       },
+      OperatingLevel_Air = 10,
+      OperatingLevel_Eqp = 10,
+      OperatingLevel_Fuel = 10,
       periodicity = 30,
       size = 100,
       speed = 16.666666,
@@ -3915,9 +3915,6 @@ warehouses =
       weapons = {},
     },
     [46] = {
-      OperatingLevel_Air = 10,
-      OperatingLevel_Eqp = 10,
-      OperatingLevel_Fuel = 10,
       aircrafts = {},
       allowHotStart = false,
       coalition = "blue",
@@ -3935,6 +3932,9 @@ warehouses =
       methanol_mixture = {
         InitFuel = 100,
       },
+      OperatingLevel_Air = 10,
+      OperatingLevel_Eqp = 10,
+      OperatingLevel_Fuel = 10,
       periodicity = 30,
       size = 100,
       speed = 16.666666,
@@ -3945,9 +3945,6 @@ warehouses =
       weapons = {},
     },
     [47] = {
-      OperatingLevel_Air = 10,
-      OperatingLevel_Eqp = 10,
-      OperatingLevel_Fuel = 10,
       aircrafts = {},
       allowHotStart = false,
       coalition = "blue",
@@ -3965,6 +3962,9 @@ warehouses =
       methanol_mixture = {
         InitFuel = 100,
       },
+      OperatingLevel_Air = 10,
+      OperatingLevel_Eqp = 10,
+      OperatingLevel_Fuel = 10,
       periodicity = 30,
       size = 100,
       speed = 16.666666,
@@ -3975,9 +3975,6 @@ warehouses =
       weapons = {},
     },
     [48] = {
-      OperatingLevel_Air = 10,
-      OperatingLevel_Eqp = 10,
-      OperatingLevel_Fuel = 10,
       aircrafts = {},
       allowHotStart = false,
       coalition = "blue",
@@ -3995,6 +3992,9 @@ warehouses =
       methanol_mixture = {
         InitFuel = 100,
       },
+      OperatingLevel_Air = 10,
+      OperatingLevel_Eqp = 10,
+      OperatingLevel_Fuel = 10,
       periodicity = 30,
       size = 100,
       speed = 16.666666,
@@ -4005,9 +4005,6 @@ warehouses =
       weapons = {},
     },
     [4324] = {
-      OperatingLevel_Air = 10,
-      OperatingLevel_Eqp = 0,
-      OperatingLevel_Fuel = 0,
       aircrafts = {},
       allowHotStart = false,
       coalition = "blue",
@@ -4025,6 +4022,9 @@ warehouses =
       methanol_mixture = {
         InitFuel = 0,
       },
+      OperatingLevel_Air = 10,
+      OperatingLevel_Eqp = 0,
+      OperatingLevel_Fuel = 0,
       periodicity = 30,
       size = 100,
       speed = 16.666666,
@@ -10084,9 +10084,6 @@ warehouses =
       },
     },
     [4329] = {
-      OperatingLevel_Air = 10,
-      OperatingLevel_Eqp = 10,
-      OperatingLevel_Fuel = 10,
       aircrafts = {},
       allowHotStart = false,
       coalition = "red",
@@ -10104,6 +10101,9 @@ warehouses =
       methanol_mixture = {
         InitFuel = 100,
       },
+      OperatingLevel_Air = 10,
+      OperatingLevel_Eqp = 10,
+      OperatingLevel_Fuel = 10,
       periodicity = 30,
       size = 100,
       speed = 16.666666,

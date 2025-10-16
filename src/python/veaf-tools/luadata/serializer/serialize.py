@@ -5,15 +5,32 @@ KEY_WORDS = [
     "if", "in", "local", "nil", "not", "or", "repeat", "return", "then", "true", "until", "while"
 ]
 
-def _sort(list_to_sort: list):
+# Create a dictionary for the order of priority keys
+PRIORITY: dict[str, int] = {key.lower(): idx for idx, key in enumerate(["id", "groupId", "unitId", "zoneId", "name", "type", "skill", "task"])}
+
+def _sort(list_to_sort: list[str]) -> list[str]:
+    """
+    Sorts a list of strings:
+    - Alphabetically ignoring case for elements not present in PRIORITY
+    - Elements present in PRIORITY are placed according to their position in this list
+    
+    Args:
+        list_to_sort: List to sort
+    
+    Returns:
+        Sorted list according to the criteria
+    """
+    
+    def sort_key(item) -> tuple:
+        _item = item.lower() if isinstance(item, str) else item
+
+        # If the element is in keys_sort_order, use its priority
+        return (0, PRIORITY[_item], _item) if _item in PRIORITY else (1, 0, _item)
+
     # check that the parameter is indeed a list
     if not isinstance(list_to_sort, list): return list_to_sort
 
-    # check that all the elements in the list are of the same type
-    first_type = type(list_to_sort[0])
-    if not all(isinstance(item, first_type) for item in list_to_sort): return list_to_sort
-
-    return sorted(list_to_sort)
+    return sorted(list_to_sort, key=sort_key)
 
 def _sort_by_id(list_to_sort: list):
 
@@ -55,7 +72,7 @@ def __serialize(var, encoding, indent, level, always_provide_keyname=False, sort
         # calc lua table entries
         entries = []
         if isinstance(var, list):
-            if parent_key in ["country"]:
+            if parent_key in ["country"] and sort:
                 sorted_var = _sort_by_id(var)
                 entries.extend([i + 1, sorted_var[i]] for i in range(len(sorted_var)))
             else:

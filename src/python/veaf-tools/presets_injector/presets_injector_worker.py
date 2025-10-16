@@ -18,6 +18,7 @@ class Group:
     aircraft_type: str
     country: str
     coalition: str
+    human_pilot: bool = False
     name: Optional[str] = None
     unit_type: Optional[str] = None
 
@@ -63,10 +64,15 @@ class PresetsInjectorWorker:
         if name := group_dict.get("name"):
             group.name = name
             if units_list := group_dict.get("units"):
-                first_unit_dict = units_list[0] if len(units_list) > 0 else None
-                if first_unit_dict:
-                    if first_unit_type := first_unit_dict.get("type"):
-                        group.unit_type = first_unit_type
+                for unit in units_list:
+                    if unit_type := unit.get("type", ""):
+                        group.unit_type = unit_type
+                    unit_skill = unit.get("skill", "")
+                    if unit_skill in ["Client", "Player"]:
+                        group.human_pilot = True
+                        self.logger.debug(f"Adding group {group.name} to the list of presets injection targets")
+                        break
+
             self.groups[name] = group
 
     def read_mission(self) -> None:
@@ -130,23 +136,21 @@ class PresetsInjectorWorker:
         nb_groups_to_process = len(self.groups)
         self.logger.info(f"Processing {nb_groups_to_process} aircraft group{'s' if nb_groups_to_process > 1 else ''}")
 
-        nb_groups_processed = 0
-        for group_name in self.groups.keys(): # "Inject radio presets in all aircraft groups"
-            group: Group = self.groups[group_name]
+        nb_units_processed = 0
+        for group in [g for g in self.groups.values() if g.human_pilot]: # Inject radio presets in all aircraft groups with at least one human pilot
             if preset := self.presets_manager.get_preset_assignment(coalition=group.coalition, aircraft_type=group.aircraft_type, group_type=group.unit_type) or self.presets_manager.get_preset_assignment(coalition=group.coalition, aircraft_type=group.aircraft_type):
                 if preset_collection := self.presets_manager.get_preset_collection(preset):
-                    nb_groups_processed += 1
                     preset_collection.used_in_mission = True
                     self.logger.debug(f"Injecting preset '{preset}' into group '{group.name}' (type: {group.unit_type}, aircraft: {group.aircraft_type}, country: {group.country}, coalition: {group.coalition})")
                     group.group_dcs["radioSet"] = True
                     if units := group.group_dcs.get("units", {}):
-                        for unit in units:
+                        for unit in [u for u in units if u.get("skill", "") in ["Client", "Player"]]:
+                            nb_units_processed += 1
                             unit["Radio"] = {
                                 int(radio_name) if radio_name.isdigit() else int(radio_name.split('_')[-1]): radio.to_dict() for radio_name, radio in preset_collection.radios.items()
                             }
 
-        self.logger.info(f"Injected presets into {nb_groups_processed} aircraft group{'s' if nb_groups_processed > 1 else ''}")
-
+        self.logger.info(f"Injected presets into {nb_units_processed} aircraft{'s' if nb_units_processed > 1 else ''}")
                     
     def write_mission(self) -> None:
         """Write the mission file."""

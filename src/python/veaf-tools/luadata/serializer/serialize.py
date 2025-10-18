@@ -30,6 +30,9 @@ def _sort(list_to_sort: list[str]) -> list[str]:
     # check that the parameter is indeed a list
     if not isinstance(list_to_sort, list): return list_to_sort
 
+    # don't sort if the list is empty
+    if not list_to_sort: return list_to_sort
+
     return sorted(list_to_sort, key=sort_key)
 
 def _sort_by_id(list_to_sort: list):
@@ -40,6 +43,9 @@ def _sort_by_id(list_to_sort: list):
 
     # check that the parameter is indeed a list
     if not isinstance(list_to_sort, list): return list_to_sort
+
+    # don't sort if the list is empty
+    if not list_to_sort: return list_to_sort
 
     # check that all the elements in the list are dictionaries with an "id" key
     first_type = type(list_to_sort[0])

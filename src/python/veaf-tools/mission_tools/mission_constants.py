@@ -6,9 +6,12 @@ def get_legacy_script_files() -> list[(str, str)]:
     return [
             # The community scripts
             ("src/scripts/community/HoundElint.lua", DEFAULT_SCRIPTS_LOCATION),
+            ("src/scripts/community/NIOD.lua", DEFAULT_SCRIPTS_LOCATION),
 
             # The VEAF scripts
             ("src/scripts/veaf/veafHoundElintHelper.lua", DEFAULT_SCRIPTS_LOCATION),
+            ("src/scripts/veaf/veaf-scripts-debug.lua", DEFAULT_SCRIPTS_LOCATION),
+            ("src/scripts/veaf/veaf-scripts-trace.lua", DEFAULT_SCRIPTS_LOCATION),
     ]
 def get_community_script_files() -> list[(str, str)]:
     """Get list of community LUA files. Those can be in node_modules/veaf-mission-creation-tools or in the scripts folder, depending on the --dynamic-mode option"""
@@ -42,6 +45,7 @@ def get_mission_script_files() -> list[(str, str)]:
     return [
             # The mission scripts
             ("src/scripts/missionConfig.lua", DEFAULT_SCRIPTS_LOCATION),
+            ("src/scripts/veafDynamicConfig.lua", DEFAULT_SCRIPTS_LOCATION),
     ]
 
 def get_mission_data_files() -> list[(str, str)]:

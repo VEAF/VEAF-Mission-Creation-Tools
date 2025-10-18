@@ -32,15 +32,15 @@ class DcsMission:
 def read_miz(miz_file_path: Path) -> DcsMission:
     """Load the mission from the .miz file (unzip it and parse the lua files)."""
     
-    def unserialize(file: str) -> Dict:
+    def unserialize(file: str, keep_as_dict:list=None, all_is_dict:bool=False) -> Dict:
         with io.TextIOWrapper(file, encoding='utf-8') as wrapper:
-            return luadata.unserialize(wrapper.read())
+            return luadata.unserialize(wrapper.read(), keep_as_dict=keep_as_dict, all_is_dict=all_is_dict)
 
     result = DcsMission(file_path=miz_file_path)
 
     with zipfile.ZipFile(miz_file_path, 'r') as miz:
         with miz.open('mission') as file:
-            result.mission_content = unserialize(file)
+            result.mission_content = unserialize(file, keep_as_dict=["trig", "trigrules"])
         with miz.open('options') as file:
             result.options_content = unserialize(file)
         with miz.open('theatre') as file:

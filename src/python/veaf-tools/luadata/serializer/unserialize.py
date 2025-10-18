@@ -351,32 +351,33 @@ def _unserialize(raw, encoding="utf-8", multival=False, verbose=False):
     return res[0]
 
 
-def _lua_table_to_dict(lua_table):
+def _lua_table_to_dict(lua_table, keep_as_dict:list=None, all_is_dict:bool=False):
     # Check if a Lua table is a list
     def is_lua_list(table):
         keys = list(table.keys())
         return all(isinstance(key, int) for key in keys) and sorted(keys) == list(range(1, len(keys) + 1))
 
     # Handle conversion
-    if is_lua_list(lua_table):
+    if not(all_is_dict) and is_lua_list(lua_table):
         # Convert to Python list
         return [lua_table[i] if lua_type(lua_table[i]) != "table" else _lua_table_to_dict(lua_table[i])
                 for i in range(1, len(lua_table) + 1)]
-    else:
-        # Convert to Python dict
-        py_dict = {}
-        for key, value in lua_table.items():
-            if lua_type(value) == "table":
-                # Recursively convert nested Lua tables
-                value = _lua_table_to_dict(value)
-            py_dict[key] = value
-        return py_dict
+
+    # Convert to Python dict
+    py_dict = {}
+    for key, value in lua_table.items():
+        if lua_type(value) == "table":
+            # Recursively convert nested Lua tables
+            value = _lua_table_to_dict(value, keep_as_dict=keep_as_dict, all_is_dict=True if (keep_as_dict and key in keep_as_dict) else all_is_dict)
+        py_dict[key] = value
+
+    return py_dict
 
 
-def unserialize(raw, encoding="utf-8", multival=False, verbose=False):
+def unserialize(raw, encoding="utf-8", multival=False, keep_as_dict:list=None, all_is_dict:bool=False):
     # noinspection PyArgumentList
     lua = LuaRuntime(unpack_returned_tuples=multival, encoding=encoding, max_memory=0)
     lua.execute(raw)
     variable = raw.split("=")[0].strip()
     lua_table = lua.globals()[variable]
-    return _lua_table_to_dict(lua_table)
+    return _lua_table_to_dict(lua_table,keep_as_dict=keep_as_dict, all_is_dict=all_is_dict)

@@ -133,13 +133,43 @@
         },
         // TESTS
         {
-            // build
-            "name": "veaf-tools - TESTS - build",
+            // build A
+            "name": "veaf-tools - TESTS - build A",
             "type": "debugpy",
             "request": "launch",
             "program": "${workspaceFolder}/src/python/veaf-tools/veaf-tools.py",
-            "cwd": "${workspaceFolder}/test/veaf-tools/demo-mission",
-            "args": ["build-mission", "--scripts-path", "${workspaceFolder}", "c:/tmp/a/src",  "c:/tmp/a/veaf-demo-mission.miz"],
+            "cwd": "c:/tmp/a",
+            "args": ["build-mission", "--scripts-path", "${workspaceFolder}", ".",  "veaf-demo-mission"],
+            "console": "integratedTerminal"
+        },
+        {
+            // extract A
+            "name": "veaf-tools - TESTS - extract A",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/python/veaf-tools/veaf-tools.py",
+            "cwd": "c:/tmp/a",
+            "args": ["extract-mission",  "veaf-demo-mission", "."],
+            "console": "integratedTerminal"
+        },
+        {
+            // extract D
+            "name": "veaf-tools - TESTS - extract D",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/python/veaf-tools/veaf-tools.py",
+            "cwd": "c:/tmp/d",
+            "args": ["extract-mission",  "veaf-demo-mission", "."],
+            "console": "integratedTerminal"
+        },
+        {
+            // build E
+            "name": "veaf-tools - TESTS - build E",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/python/veaf-tools/veaf-tools.py",
+            "cwd": "c:/tmp/e",
+            "args": ["build-mission", "--scripts-path", "${workspaceFolder}", ".",  "veaf-demo-mission"],
             "console": "integratedTerminal"
         },
     ]

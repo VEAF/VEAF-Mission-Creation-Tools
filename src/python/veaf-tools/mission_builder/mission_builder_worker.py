@@ -3,6 +3,7 @@ Worker module for the VEAF Mission Builder Package.
 """
 
 from pathlib import Path
+import re
 from typing import List, Optional, Dict
 from mission_tools import read_miz, write_miz, create_miz, DcsMission, get_community_script_files, get_mission_data_files, get_mission_script_files, get_veaf_script_files
 from veaf_logger import VeafLogger
@@ -205,54 +206,73 @@ class MissionBuilderWorker:
 
             mission_triggers:dict = self.dcs_mission.mission_content.get("trig", {})
             trigger_indexes_to_remove = []
-            for trigger_category_list in mission_triggers.values():
-                trigger_indexes_to_remove.extend(
-                    [
-                        trigger_index
-                        for trigger_index, value in enumerate(trigger_category_list)
-                        if any(s in str(value) for s in veaf_dict_keys_to_remove)
-                    ]
-                )
+            for trigger_category_value in mission_triggers.values():
+                if isinstance(trigger_category_value, list):
+                    trigger_indexes_to_remove.extend(
+                        [
+                            trigger_index
+                            for trigger_index, value in enumerate(trigger_category_value)
+                            if any(s in str(value) for s in veaf_dict_keys_to_remove)
+                        ]
+                    )
+                elif isinstance(trigger_category_value, dict):
+                    trigger_indexes_to_remove.extend(
+                        [
+                            trigger_key
+                            for trigger_key, value in trigger_category_value.items()
+                            if any(s in str(value) for s in veaf_dict_keys_to_remove)
+                        ]
+                    )
 
             # remove duplicates
             trigger_indexes_to_remove = list(set(trigger_indexes_to_remove))
 
-            # make a copy of the triggers, omitting the indexes in trigger_indexes_to_remove
-            self.logger.debug("Removing VEAF triggers from the mission triggers")
-            new_triggers = {
-                trigger_category_key: [
-                    value
-                    for index, value in enumerate(trigger_category_list)
-                    if index not in trigger_indexes_to_remove
-                ]
-                for trigger_category_key, trigger_category_list in mission_triggers.items()
-            }
-            # rebuild the special funcStartup trigger category
-            self.logger.debug("Rebuilding the special funcStartup trigger category")
-            new_triggers["funcStartup"] = []
-            for i in range(1, len(new_triggers["conditions"])+1):
-                new_triggers["funcStartup"].append(f"['if mission.trig.conditions[{i}]() then mission.trig.actions[{i}]() end']")
+            # and now remove the triggers
+            for trigger_category_index, trigger_category_value in mission_triggers.items():
+                for trigger_index in trigger_indexes_to_remove:
+                    if trigger_category_value.get(trigger_index): 
+                        del trigger_category_value[trigger_index]                       
 
-            self.dcs_mission.mission_content["trig"] = new_triggers
-                                                 
-            # make a copy of the trigger rules, omitting  the indexes in trigger_indexes_to_remove
-            self.logger.debug("Removing VEAF rules from the mission triggers rules")
-            mission_triggers_rules:dict = self.dcs_mission.mission_content.get("trigrules", {})
-            new_trigrules = []
-            new_trigrules.extend(
-                value
-                for index, value in enumerate(mission_triggers_rules)
-                if index not in trigger_indexes_to_remove
-            )
-            self.dcs_mission.mission_content["trigrules"] = new_trigrules
+            # and now remove the trigrules
+            for trigger_index in trigger_indexes_to_remove:
+                if self.dcs_mission.mission_content["trigrules"].get(trigger_index): del self.dcs_mission.mission_content["trigrules"][trigger_index]
 
-    def create_veaf_triggers(self) -> None:
+    def insert_all_veaf_triggers(self) -> None:
         """
-        Create all the VEAF triggers in the missin
+        Create all the VEAF triggers in the mission.
+        First, we'll update the dictionary.
+        Then we'll add 6 triggers, all Mission Start with the right actions, conditions and funcStartup sub-categories.
+        All existing triggers (all their items within the sub-categories) will be shifted 6 ranks up, changing the indexes in the LUA code.
+        We'll also add 6 corresponding trigrules, shifting the existing ones accordingly
         """
-        
-        veaf_dynamic_scripts_path = f"[[{self.scripts_path.resolve().as_posix()}/]]" if self.scripts_path else f"[[{(self.output_mission.parent / "node_modules/veaf-mission-creation-tools").resolve().as_posix()}/]]" 
-        veaf_dynamic_mission_path = f"[[{(self.output_mission.parent).resolve().as_posix()}/]]"
+        new_dictionary = self.update_dictionary_with_veaf_entries()
+        new_map_resource_script_files, new_map_resource_mission_script_files, new_map_resource_key_by_file = self.update_map_resource_with_veaf_entries()
+        self.insert_veaf_triggers(new_dictionary, new_map_resource_script_files, new_map_resource_mission_script_files)
+        self.insert_veaf_trigrules(new_map_resource_key_by_file)
+
+    def update_dictionary_with_veaf_entries(self) -> dict:
+        """
+        Update the dictionary for all the VEAF triggers in the mission.
+        """
+
+        new_dictionary = {
+            "VEAF_DictKey_ActionText_12001": f"return {"true" if self.dynamic_mode else "false"} -- VEAF scripts loading mode (false = static, true = dynamic)",
+            "VEAF_DictKey_ActionText_12002": f"return {"true" if self.dynamic_mode else "false"} -- Mission scripts loading mode (false = static, true = dynamic)",
+            "VEAF_DictKey_ActionText_12003": "return VEAF_DYNAMIC_SCRIPTSPATH~=nil",
+            "VEAF_DictKey_ActionText_12004": "return VEAF_DYNAMIC_SCRIPTSPATH==nil",
+            "VEAF_DictKey_ActionText_12005": "return VEAF_DYNAMIC_MISSIONPATH~=nil",
+            "VEAF_DictKey_ActionText_12006": "return VEAF_DYNAMIC_MISSIONPATH==nil"
+        }
+
+        # merge the new dictionary with the mission dictionary
+        self.dcs_mission.dictionary_content = new_dictionary | self.dcs_mission.dictionary_content
+
+        return new_dictionary
+
+    def update_map_resource_with_veaf_entries(self) -> tuple[dict, dict, dict]:
+        """
+        Update the map resource for all the VEAF triggers in the mission.
+        """
 
         new_map_resource_key_by_file = {}
         new_map_resource_script_files = {}
@@ -261,78 +281,162 @@ class MissionBuilderWorker:
             new_map_resource_key_by_file[script_file_name.as_posix()] = map_resource_key
             new_map_resource_script_files[map_resource_key] = Path(script_file_name).name
 
-        veaf_community_scripts_map_keys = [new_map_resource_key_by_file.get(script_file_name.as_posix(), "") for script_file_name in self.get_collected_community_script_files()]
-        veaf_scripts_map_keys = [new_map_resource_key_by_file.get(script_file_name.as_posix(), "") for script_file_name in self.get_collected_veaf_script_files()]
-
         new_map_resource_mission_script_files = {}
         for map_resource_key_index, script_file_name in enumerate(self.get_collected_mission_script_files()):
             map_resource_key =  f"VEAF_MapKey_ActionText_11{map_resource_key_index:03}"
             new_map_resource_key_by_file[script_file_name.as_posix()] = map_resource_key
             new_map_resource_mission_script_files[map_resource_key] = Path(script_file_name).name
 
-        veaf_mission_config_map_key = new_map_resource_key_by_file.get("l10n/default/missionConfig.lua", "")
+        # merge the new mapResource with the mission mapResource
+        self.dcs_mission.map_resource_content = new_map_resource_script_files | new_map_resource_mission_script_files | self.dcs_mission.map_resource_content
 
-        new_dictionary = {
-            "VEAF_DictKey_ActionText_12001": f"return {"true" if self.dynamic_mode else "false"} -- scripts loading (false = static, true = dynamic)",
-            "VEAF_DictKey_ActionText_12002": f"return {"true" if self.dynamic_mode else "false"} -- config loading (false = static, true = dynamic)",
-            "VEAF_DictKey_ActionText_12003": "return VEAF_DYNAMIC_PATH~=nil",
-            "VEAF_DictKey_ActionText_12004": "return VEAF_DYNAMIC_PATH==nil",
-            "VEAF_DictKey_ActionText_12005": "return VEAF_DYNAMIC_MISSIONPATH~=nil",
-            "VEAF_DictKey_ActionText_12006": "return VEAF_DYNAMIC_MISSIONPATH==nil"
+        return new_map_resource_script_files, new_map_resource_mission_script_files, new_map_resource_key_by_file
+
+    def insert_veaf_triggers(self, new_dictionary:dict, new_map_resource_script_files:dict, new_map_resource_mission_script_files:dict) -> None:
+        """
+        Create all the VEAF triggers in the mission.
+        We'll add 6 triggers, all Mission Start with the right actions, conditions and funcStartup sub-categories.
+        All existing triggers (all their items within the sub-categories) will be shifted 6 ranks up, changing the indexes in the LUA code.
+        """
+
+        def transform_triggers_dcs_structure_to_new_structure(triggers) -> dict:
+            """
+            Converts DCS triggers structure to our new triggers structure
+            DCS triggers structure is a bit weird: it has different categories (actions, conditions, custom, customStartup, events, flag. funcStartup. funcStartup).
+            Each of these categories is a LUA table with all the data for each trigger about this category.
+            To properly insert our VEAF triggers to the mission triggers, we need to make sure that we move (shift) all the keys in each category in a coherent fashion.
+            """
+            # Let's create a better structure: a list of triggers which all have the corresponding categories.
+            category_names = triggers.keys()
+            result = {}
+            action_keys = sorted(triggers["actions"].keys()) # this is the most complete category, it always contains all the triggers; this is important later
+            for category_name in category_names:
+                if category_data := triggers[category_name]:
+                    for trigger_key in action_keys:
+                        if trigger_key in category_data:
+                            if trigger_key not in result:
+                                # create the new trigger in the new structure
+                                result[trigger_key] = {}
+                            # update the new trigger in the new structure
+                            result[trigger_key][category_name] = category_data[trigger_key]        
+            return result
+
+        def transform_triggers_new_structure_to_dcs_structure(triggers) -> dict:
+            """
+            Converts our new triggers structure back to DCS triggers structure
+            DCS triggers structure is a bit weird: it has different categories (actions, conditions, custom, customStartup, events, flag. funcStartup. funcStartup).
+            Each of these categories is a LUA table with all the data for each trigger about this category.
+            """
+
+            result = {}
+            for trigger_key, trigger_data in triggers.items():
+                for category_name, category_data in trigger_data.items():
+                    if category_name not in result:
+                        result[category_name] = {}
+                    result[category_name][trigger_key] = category_data
+
+            return result
+
+        conditions_trigger = {
+            idx + 1: f"return(c_predicate(getValueDictByKey(\"{new_dict_key}\")) )"
+            for idx, new_dict_key in enumerate(new_dictionary)
         }
-
-        conditions_trigger = [
-            f"return(c_predicate(getValueDictByKey(\"{new_dict_key}\")) )"
-            for new_dict_key in new_dictionary
-        ]
 
         dynamic_script_loading_trigger = "a_do_script(\"env.info(\\\"DYNAMIC VEAF scripts loading\\\")\");"
         for file in get_community_script_files():
-            dynamic_script_loading_trigger += f";a_do_script(\"assert(loadfile(VEAF_DYNAMIC_PATH .. \\\"{file[0]}\\\"))()\")"
+            dynamic_script_loading_trigger += f"a_do_script(\"assert(loadfile(VEAF_DYNAMIC_SCRIPTSPATH .. \\\"{file[0]}\\\"))()\");"
+        dynamic_script_loading_trigger += "a_do_script(\"assert(loadfile(VEAF_DYNAMIC_SCRIPTSPATH .. \\\"/src/scripts/VeafDynamicLoader.lua\\\"))()\");"
 
         static_script_loading_trigger = "a_do_script(\"env.info(\\\"STATIC VEAF scripts loading\\\")\");"
         for map_resource_key in new_map_resource_script_files:
-            static_script_loading_trigger += f";a_do_script_file(getValueResourceByKey(\"{map_resource_key}\"))"
+            static_script_loading_trigger += f"a_do_script_file(getValueResourceByKey(\"{map_resource_key}\"));"
 
-        dynamic_mission_loading_trigger = "a_do_script(\"env.info(\\\"DYNAMIC Mission scripts loading\\\")\");"
-        for file in new_map_resource_mission_script_files.values():
-            dynamic_mission_loading_trigger += f";a_do_script(\"assert(loadfile(VEAF_DYNAMIC_PATH .. \\\"{file}\\\"))()\")"
+        dynamic_mission_loading_trigger = "a_do_script(\"env.info(\\\"DYNAMIC Mission scripts loading\\\")\");a_do_script(\"assert(loadfile(VEAF_DYNAMIC_MISSIONPATH .. \"/src/scripts/veafDynamicConfig.lua\"))()\");"
 
         static_mission_loading_trigger = "a_do_script(\"env.info(\\\"STATIC Mission scripts loading\\\")\");"
         for map_resource_key in new_map_resource_mission_script_files:
-            static_mission_loading_trigger += f";a_do_script_file(getValueResourceByKey(\"{map_resource_key}\"))"
+            static_mission_loading_trigger += f"a_do_script_file(getValueResourceByKey(\"{map_resource_key}\"));"
 
-        new_triggers = {
-            "customStartup": [],
-            "func": [],
-            "custom": [],
-            "events": [],
-            "flag": [
-                True,
-                True,
-                True,
-                True,
-                True,
-                True
-            ],
+        VEAF_DYNAMIC_SCRIPTSPATH = f"[[{self.scripts_path.resolve().as_posix()}/]]" if self.scripts_path else f"[[{(self.output_mission.parent / "node_modules/veaf-mission-creation-tools").resolve().as_posix()}/]]"
+        veaf_dynamic_mission_path = f"[[{(self.output_mission.parent).resolve().as_posix()}/]]"
+
+        veaf_triggers = {
+            "customStartup": {},
+            "func": {},
+            "custom": {},
+            "events": {},
+            "flag": {
+                1: True,
+                2: True,
+                3: True,
+                4: True,
+                5: True,
+                6: True
+            },
             "conditions": conditions_trigger,
-            "actions": [
-                f"a_do_script(\"VEAF_DYNAMIC_PATH = {veaf_dynamic_scripts_path}\");",
-                f"a_do_script(\"VEAF_DYNAMIC_MISSIONPATH = {veaf_dynamic_mission_path}\");",
-                f"{dynamic_script_loading_trigger};",
-                f"{static_script_loading_trigger}",
-                f"{dynamic_mission_loading_trigger};",
-                f"{static_mission_loading_trigger}",
-            ],
-            "funcStartup": [
-                "if mission.trig.conditions[1]() then mission.trig.actions[1]() end",
-                "if mission.trig.conditions[2]() then mission.trig.actions[2]() end",
-                "if mission.trig.conditions[3]() then mission.trig.actions[3]() end",
-                "if mission.trig.conditions[4]() then mission.trig.actions[4]() end",
-                "if mission.trig.conditions[5]() then mission.trig.actions[5]() end",
-                "if mission.trig.conditions[6]() then mission.trig.actions[6]() end",
-            ]
+            "actions": {
+                1: f"a_do_script(\"VEAF_DYNAMIC_SCRIPTSPATH = {VEAF_DYNAMIC_SCRIPTSPATH}\");",
+                2: f"a_do_script(\"VEAF_DYNAMIC_MISSIONPATH = {veaf_dynamic_mission_path}\");",
+                3: f"{dynamic_script_loading_trigger}",
+                4: f"{static_script_loading_trigger}",
+                5: f"{dynamic_mission_loading_trigger}",
+                6: f"{static_mission_loading_trigger}",
+            },
+            "funcStartup": {
+                1: "if mission.trig.conditions[1]() then mission.trig.actions[1]() end",
+                2: "if mission.trig.conditions[2]() then mission.trig.actions[2]() end",
+                3: "if mission.trig.conditions[3]() then mission.trig.actions[3]() end",
+                4: "if mission.trig.conditions[4]() then mission.trig.actions[4]() end",
+                5: "if mission.trig.conditions[5]() then mission.trig.actions[5]() end",
+                6: "if mission.trig.conditions[6]() then mission.trig.actions[6]() end",
+            }
         }
+        
+        mission_triggers = self.dcs_mission.mission_content["trig"]
+        # DCS triggers structure is a bit weird: it has different categories (actions, conditions, custom, customStartup, events, flag. funcStartup. funcStartup).
+        # Each of these categories is a LUA table with all the data for each trigger about this category.
+        # To properly insert our VEAF triggers to the mission triggers, we need to make sure that we move (shift) all the keys in each category in a coherent fashion.
+
+        # Let's create a better structure: a list of triggers which all have the corresponding categories.
+        mission_triggers_new_structure = transform_triggers_dcs_structure_to_new_structure(mission_triggers)
+
+        # Now let's transform our new triggers structure, too
+        veaf_triggers_new_structure = transform_triggers_dcs_structure_to_new_structure(veaf_triggers)
+
+        # Shift all the triggers up and update the LUA code if needed (whenever it contains "mission.trig.conditions[xx]" with xx the original trigger key)
+        result_triggers_new_structure = {}
+        nb_new_triggers = len(veaf_triggers_new_structure)
+        for new_key, old_key in enumerate(sorted(mission_triggers_new_structure.keys()), start=nb_new_triggers+1):
+            result_trigger_new_structure = result_triggers_new_structure[new_key] = mission_triggers_new_structure[old_key].copy()
+            if new_key != old_key:
+                for category_name, category_value in result_trigger_new_structure.items():
+                    new_category_value = category_value # default value, if there is no need for updating the LUA
+                    if isinstance(category_value, str):
+                        # update the LUA code to reflect the shift
+                        new_category_value = re.sub(f"\\[{old_key}\\]", f"[{new_key}]", category_value)
+                    result_trigger_new_structure[category_name] = new_category_value
+
+        # Insert the new VEAF triggers at the beginning of our new structure
+        for new_trigger_key, new_trigger_data in veaf_triggers_new_structure.items():
+            result_triggers_new_structure[new_trigger_key] = new_trigger_data
+        
+        # Convert the new structure back to a valid DCS structure
+        self.dcs_mission.mission_content["trig"] = transform_triggers_new_structure_to_dcs_structure(result_triggers_new_structure)
+
+    def insert_veaf_trigrules(self, new_map_resource_key_by_file:dict) -> None:
+        """
+        Create all the VEAF trigrules in the mission.
+        We'll add 6 trigrules corresponding to the 6 new triggers.
+        All existing trigrules will be shifted 6 ranks up, changing the indexes in the LUA code.
+        """
+        
+        VEAF_DYNAMIC_SCRIPTSPATH = f"[[{self.scripts_path.resolve().as_posix()}/]]" if self.scripts_path else f"[[{(self.output_mission.parent / "node_modules/veaf-mission-creation-tools").resolve().as_posix()}/]]"
+        veaf_dynamic_mission_path = f"[[{(self.output_mission.parent).resolve().as_posix()}/]]"
+
+        veaf_community_scripts_map_keys = [new_map_resource_key_by_file.get(script_file_name.as_posix(), "") for script_file_name in self.get_collected_community_script_files()]
+        veaf_scripts_map_keys = [new_map_resource_key_by_file.get(script_file_name.as_posix(), "") for script_file_name in self.get_collected_veaf_script_files()]
+
+        veaf_mission_config_map_key = new_map_resource_key_by_file.get("l10n/default/missionConfig.lua", "")
 
         static_script_loading_actions = [
             {
@@ -358,18 +462,18 @@ class MissionBuilderWorker:
         dynamic_script_loading_actions.extend(
             {
                 "predicate": "a_do_script",
-                "text": f"assert(loadfile(VEAF_DYNAMIC_PATH .. \"{file[0]}\"))()",
+                "text": f"assert(loadfile(VEAF_DYNAMIC_SCRIPTSPATH .. \"{file[0]}\"))()",
             }
             for file in get_community_script_files()
         )
         dynamic_script_loading_actions.append(
             {
                 "predicate": "a_do_script",
-                "text": "assert(loadfile(VEAF_DYNAMIC_PATH .. \"/src/scripts/VeafDynamicLoader.lua\"))()"
+                "text": "assert(loadfile(VEAF_DYNAMIC_SCRIPTSPATH .. \"/src/scripts/VeafDynamicLoader.lua\"))()"
             }
         )
 
-        new_trigrules = [
+        new_trigrules_list = [
             {
                 "rules": [
                     {
@@ -385,7 +489,7 @@ class MissionBuilderWorker:
                 "actions": [
                     {
                         "predicate": "a_do_script",
-                        "text": f"VEAF_DYNAMIC_PATH = {veaf_dynamic_scripts_path}"
+                        "text": f"VEAF_DYNAMIC_SCRIPTSPATH = {VEAF_DYNAMIC_SCRIPTSPATH}"
                     }
                 ],
                 "colorItem": "0x00ffffff"
@@ -490,27 +594,22 @@ class MissionBuilderWorker:
             }
         ]
 
-        # merge the new dictionary with the mission dictionary
-        self.dcs_mission.dictionary_content = new_dictionary | self.dcs_mission.dictionary_content
-
-        # merge the new mapResource with the mission mapResource
-        self.dcs_mission.map_resource_content = new_map_resource_script_files | new_map_resource_mission_script_files | self.dcs_mission.map_resource_content
-
-        # merge the new triggers with the mission triggers
-        for trigger_category in self.dcs_mission.mission_content["trig"]:
-            category = new_triggers.get(trigger_category, {})
-            category.extend(self.dcs_mission.mission_content["trig"][trigger_category])
-            self.dcs_mission.mission_content["trig"][trigger_category] = category
-
-        # rebuild the special funcStartup trigger category
-        self.logger.debug("Rebuilding the special funcStartup trigger category")
-        self.dcs_mission.mission_content.get("trig", {})["funcStartup"] = []
-        for i in range(1, len(self.dcs_mission.mission_content.get("trig", {})["conditions"])+1):
-            self.dcs_mission.mission_content.get("trig", {})["funcStartup"].append(f"['if mission.trig.conditions[{i}]() then mission.trig.actions[{i}]() end']")
-
-        # merge the new trigrules with the mission trigrules
-        self.dcs_mission.mission_content["trigrules"] = new_trigrules + self.dcs_mission.mission_content.get("trigrules", {})
-                    
+        # compress the dictionary keyset, leaving space for the VEAF trigrules
+        trigrules = self.dcs_mission.mission_content["trigrules"]
+        new_trigrules = dict(enumerate(new_trigrules_list, start=1))
+        nb_new_trigrules = len(new_trigrules)
+        result_trigrules = {
+            new_key: trigrules[old_key]
+            for new_key, old_key in enumerate(
+                sorted(trigrules.keys()), start=nb_new_trigrules + 1
+            )
+        }
+        # insert the new elements
+        for new_index, new_item in new_trigrules.items():
+            result_trigrules[new_index] = new_item
+        # set the new dictionary
+        self.dcs_mission.mission_content["trigrules"] = result_trigrules
+        
     def write_mission(self) -> None:
         """Write the mission file."""
 
@@ -531,7 +630,7 @@ class MissionBuilderWorker:
         self.clear_veaf_triggers()
 
         # Then, add all the VEAF triggers we need
-        self.create_veaf_triggers()
+        self.insert_all_veaf_triggers()
 
         # Write the mission file
         self.write_mission()

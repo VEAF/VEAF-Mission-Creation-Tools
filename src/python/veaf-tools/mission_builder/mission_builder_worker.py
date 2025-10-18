@@ -311,14 +311,18 @@ class MissionBuilderWorker:
             result = {}
             action_keys = sorted(triggers["actions"].keys()) # this is the most complete category, it always contains all the triggers; this is important later
             for category_name in category_names:
-                if category_data := triggers[category_name]:
-                    for trigger_key in action_keys:
-                        if trigger_key in category_data:
-                            if trigger_key not in result:
-                                # create the new trigger in the new structure
-                                result[trigger_key] = {}
-                            # update the new trigger in the new structure
-                            result[trigger_key][category_name] = category_data[trigger_key]        
+                category_data = triggers[category_name]
+                for trigger_key in action_keys:
+                    if trigger_key not in result:
+                        # create the new trigger in the new structure
+                        result[trigger_key] = {}
+                    if trigger_key in category_data:
+                        # update the new trigger in the new structure to the category value
+                        result[trigger_key][category_name] = category_data[trigger_key]        
+                    else:
+                        # update the new trigger in the new structure to an empty value
+                        result[trigger_key][category_name] = None
+
             return result
 
         def transform_triggers_new_structure_to_dcs_structure(triggers) -> dict:
@@ -333,7 +337,8 @@ class MissionBuilderWorker:
                 for category_name, category_data in trigger_data.items():
                     if category_name not in result:
                         result[category_name] = {}
-                    result[category_name][trigger_key] = category_data
+                    if category_data:
+                        result[category_name][trigger_key] = category_data
 
             return result
 
@@ -351,7 +356,7 @@ class MissionBuilderWorker:
         for map_resource_key in new_map_resource_script_files:
             static_script_loading_trigger += f"a_do_script_file(getValueResourceByKey(\"{map_resource_key}\"));"
 
-        dynamic_mission_loading_trigger = "a_do_script(\"env.info(\\\"DYNAMIC Mission scripts loading\\\")\");a_do_script(\"assert(loadfile(VEAF_DYNAMIC_MISSIONPATH .. \"/src/scripts/veafDynamicConfig.lua\"))()\");"
+        dynamic_mission_loading_trigger = "a_do_script(\"env.info(\\\"DYNAMIC Mission scripts loading\\\")\");a_do_script(\"assert(loadfile(VEAF_DYNAMIC_MISSIONPATH .. \\\"/src/scripts/veafDynamicConfig.lua\\\"))()\");"
 
         static_mission_loading_trigger = "a_do_script(\"env.info(\\\"STATIC Mission scripts loading\\\")\");"
         for map_resource_key in new_map_resource_mission_script_files:

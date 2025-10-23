@@ -142,6 +142,7 @@ class PresetsInjectorWorker:
                     preset_collection.used_in_mission = True
                     self.logger.debug(f"Injecting preset '{preset}' into group '{group.name}' (type: {group.unit_type}, aircraft: {group.aircraft_type}, country: {group.country}, coalition: {group.coalition})")
                     group.group_dcs["radioSet"] = True
+                    group.group_dcs["communication"] = False
                     if units := group.group_dcs.get("units", {}):
                         for unit in [u for u in units if u.get("skill", "") in ["Client", "Player"]]:
                             nb_units_processed += 1
@@ -149,6 +150,12 @@ class PresetsInjectorWorker:
                             unit["Radio"] = {
                                 int(radio_name) if radio_name.isdigit() else int(radio_name.split('_')[-1]): radio.to_dict() for radio_name, radio in resolved_radios.items()
                             }
+                            # DCS forces the first channel of the first radio to the "frequency" of the group, even when "communication" is False... thanks ED!
+                            # We need to get this frequency and set it to the group's frequency
+                            if resolved_radios:
+                                if first_radio := next(iter(resolved_radios.values())):
+                                    if first_channel := next(iter(first_radio.channels.values())):
+                                        group.group_dcs["frequency"] = first_channel.freq
 
         if not silent: self.logger.info(f"Injected presets into {nb_units_processed} aircraft{'s' if nb_units_processed > 1 else ''}")
                     

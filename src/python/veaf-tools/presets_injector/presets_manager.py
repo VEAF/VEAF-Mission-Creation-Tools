@@ -233,9 +233,25 @@ class Radio:
                 channel_data = channels_definition.get_channel_data(channel_alias_or_data)
                 if channel_data is None:
                     raise ValueError(f"Channel alias '{channel_alias_or_data}' not found in channels definition")
+            elif isinstance(channel_alias_or_data, dict):
+                if "channel" in channel_alias_or_data:
+                    # Override mode: base on alias with overrides
+                    alias = channel_alias_or_data["channel"]
+                    if channels_definition is None:
+                        raise ValueError(f"Channels definition is required to resolve alias '{alias}' for channel '{channel_name}'")
+                    base_data = channels_definition.get_channel_data(alias)
+                    if base_data is None:
+                        raise ValueError(f"Channel alias '{alias}' not found in channels definition")
+                    # Merge base data with overrides
+                    channel_data = base_data.copy()
+                    for key, value in channel_alias_or_data.items():
+                        if key != "channel":
+                            channel_data[key] = value
+                else:
+                    # Complete channel definition
+                    channel_data = channel_alias_or_data
             else:
-                # It's direct data
-                channel_data = channel_alias_or_data
+                raise ValueError(f"Invalid channel definition for '{channel_name}': must be string or dict")
             channels[channel_name] = RadioChannel.from_dict(channel_name, channel_data, radio_type)
         return cls(name=name, title=title, channels=channels)
 

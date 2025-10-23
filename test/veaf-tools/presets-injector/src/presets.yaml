@@ -258,7 +258,9 @@ radios_definition: # Lists all the radios definitions
     title: UHF/Primary # name of the radio; used in the exported kneeboard PNG
     type: uhf # will condition the frequency picked up in the channels directory
     channels: # the list of channels defined on this radio
-      channel_01: Guard # the first channel; the _1 at the end will be the [1] in the ["channels"] collection of the DCS "Mission" file
+      channel_01:  # the first channel; the _1 at the end will be the [1] in the ["channels"] collection of the DCS "Mission" file
+        title: Guard/UHF
+        channel: Guard
       channel_02: Batumi
       channel_03: Beslan
       channel_04: Gudauta
@@ -283,7 +285,9 @@ radios_definition: # Lists all the radios definitions
     title: VHF/Secondary # name of the radio; used in the exported kneeboard PNG
     type: vhf
     channels:
-      channel_01: Guard
+      channel_01:
+        channel: Guard
+        title: Guard/VHF
       channel_02: Archer
       channel_03: Arctic
       channel_04: Astro

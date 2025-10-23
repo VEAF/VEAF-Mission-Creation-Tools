@@ -79,12 +79,14 @@ class RadioChannel:
         return result
     
     @classmethod
-    def from_dict(cls, channel_name, data: Dict[str, Any]) -> 'RadioChannel':
+    def from_dict(cls, channel_name, data: Dict[str, Any], radio_type: Optional[str] = None) -> 'RadioChannel':
         """
         Create a RadioChannel instance from a dictionary.
         
         Args:
+            channel_name: The name of the channel
             data: Dictionary containing channel data
+            radio_type: The type of the radio (e.g., 'uhf', 'vhf', 'fm') to select the appropriate frequency
             
         Returns:
             RadioChannel: New instance
@@ -92,13 +94,24 @@ class RadioChannel:
         Raises:
             ValueError: If frequency is missing from data
         """
-        if "freq" not in data:
+        freq = None
+        if "freq" in data:
+            freq = float(data["freq"])
+        elif "freqs" in data:
+            if radio_type is None:
+                raise ValueError(f"Radio type is required to select frequency from freqs: {data}")
+            freqs = data["freqs"]
+            if radio_type in freqs:
+                freq = float(freqs[radio_type])
+            else:
+                raise ValueError(f"Frequency for radio type '{radio_type}' not found in freqs: {freqs}")
+        else:
             raise ValueError(f"Frequency is mandatory in channel data: {data}")
 
         number = int(channel_name) if channel_name.isdigit() else int(channel_name.split('_')[-1])
         return cls(
-            freq=float(data["freq"]),
-            name=data.get("name", f"Channel {number}"),
+            freq=freq,
+            name=data.get("title", f"Channel {number}"),
             number=number,
             mod=int(data.get("mod", 0))
         )
@@ -194,25 +207,98 @@ class Radio:
     
     
     @classmethod
-    def from_dict(cls, name: str, data: Dict[str, Any]) -> 'Radio':
+    def from_dict(cls, name: str, data: Dict[str, Any], channels_definition: Optional['ChannelsDefinition'] = None) -> 'Radio':
         """
         Create a Radio instance from a dictionary.
         
         Args:
             name: The name of the radio
             data: Dictionary containing radio data
+            channels_definition: Optional ChannelsDefinition for resolving aliases
             
         Returns:
             Radio: New instance
         """
         title = data.get("title", "Unnamed Radio")
+        radio_type = data.get("type")
         if "channels" not in data:
             raise ValueError(f"Radio data must contain 'channels' key : {data}")
 
-        channels = {
-            channel_name: RadioChannel.from_dict(channel_name, channel_data) for channel_name, channel_data in data["channels"].items()
-        }
+        channels = {}
+        for channel_name, channel_alias_or_data in data["channels"].items():
+            if isinstance(channel_alias_or_data, str):
+                # It's an alias, resolve it
+                if channels_definition is None:
+                    raise ValueError(f"Channels definition is required to resolve alias '{channel_alias_or_data}' for channel '{channel_name}'")
+                channel_data = channels_definition.get_channel_data(channel_alias_or_data)
+                if channel_data is None:
+                    raise ValueError(f"Channel alias '{channel_alias_or_data}' not found in channels definition")
+            else:
+                # It's direct data
+                channel_data = channel_alias_or_data
+            channels[channel_name] = RadioChannel.from_dict(channel_name, channel_data, radio_type)
         return cls(name=name, title=title, channels=channels)
+
+
+@dataclass
+class ChannelsDefinition:
+    """
+    Manages all channel definitions.
+    """
+    channels: Dict[str, Dict[str, Any]]
+
+    def __post_init__(self):
+        """Validate the channels definition data after initialization."""
+        if not isinstance(self.channels, dict):
+            raise TypeError("Channels must be a dictionary")
+
+        for channel_name, channel_data in self.channels.items():
+            if not isinstance(channel_name, str):
+                raise TypeError("Channel names must be strings")
+            if not isinstance(channel_data, dict):
+                raise TypeError(f"Channel data for '{channel_name}' must be a dictionary")
+
+    def get_channel_data(self, alias: str) -> Optional[Dict[str, Any]]:
+        """
+        Get channel data by alias or title.
+
+        Args:
+            alias: The alias of the channel
+            
+        Returns:
+            Dict: The channel data if found, None otherwise
+        """
+        # First try by alias
+        if alias in self.channels:
+            return self.channels[alias]
+        # Then try by title
+        for channel_data in self.channels.values():
+            if channel_data.get("title") == alias:
+                return channel_data
+        return None
+
+    def to_dict(self) -> Dict[str, Any]:
+        """
+        Convert the channels definition to a dictionary representation.
+        
+        Returns:
+            dict: Dictionary representation of the channels definition
+        """
+        return {"channels": self.channels}
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> 'ChannelsDefinition':
+        """
+        Create a ChannelsDefinition instance from a dictionary.
+        
+        Args:
+            data: Dictionary containing channels definition data
+            
+        Returns:
+            ChannelsDefinition: New instance
+        """
+        channels = data.get("channels", {})
+        return cls(channels=channels)
 
 
 @dataclass
@@ -291,18 +377,19 @@ class RadiosDefinition:
         }
     
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'RadiosDefinition':
+    def from_dict(cls, data: Dict[str, Any], channels_definition: Optional['ChannelsDefinition'] = None) -> 'RadiosDefinition':
         """
         Create a RadiosDefinition instance from a dictionary.
         
         Args:
             data: Dictionary containing radios definition data
+            channels_definition: Optional ChannelsDefinition for resolving aliases
             
         Returns:
             RadiosDefinition: New instance
         """
         radios = {
-            radio_name: Radio.from_dict(radio_name, radio_data)
+            radio_name: Radio.from_dict(radio_name, radio_data, channels_definition)
             for radio_name, radio_data in data.items()
         }
         return cls(radios=radios)
@@ -617,6 +704,7 @@ class PresetsManager:
     """
     Main interface for loading and managing presets data.
     """
+    channels_definition: Optional[ChannelsDefinition] = None
     radios_definition: Optional[RadiosDefinition] = None
     presets_definition: Optional[PresetsDefinition] = None
     presets_assignment: Optional[PresetAssignment] = None
@@ -625,6 +713,8 @@ class PresetsManager:
 
     def __post_init__(self):
         """Initialize the presets manager."""
+        if self.channels_definition is None:
+            self.channels_definition = ChannelsDefinition(channels={})
         if self.radios_definition is None:
             self.radios_definition = RadiosDefinition(radios={})
         if self.presets_definition is None:
@@ -634,10 +724,11 @@ class PresetsManager:
     
     def __str__(self) -> str:
         """Return a human-readable string representation of the presets manager."""
+        channel_count = len(self.channels_definition.channels) if self.channels_definition else 0
         radio_count = len(self.radios_definition.radios) if self.radios_definition else 0
         collection_count = len(self.presets_definition.collections) if self.presets_definition else 0
         coalition_count = len(self.presets_assignment.assignments) if self.presets_assignment else 0
-        return f"PresetsManager(radios={radio_count}, collections={collection_count}, coalitions={coalition_count})"
+        return f"PresetsManager(channels={channel_count}, radios={radio_count}, collections={collection_count}, coalitions={coalition_count})"
     
     def load_from_yaml(self, file_path: str) -> None:
         """
@@ -650,9 +741,15 @@ class PresetsManager:
             with open(file_path, 'r') as file:
                 data = yaml.safe_load(file)
 
+            # Load channels definition
+            if "channels_definition" in data:
+                self.channels_definition = ChannelsDefinition.from_dict(data["channels_definition"])
+            else:
+                self.channels_definition = ChannelsDefinition(channels={})
+
             # Load radios definition
             if "radios_definition" in data:
-                self.radios_definition = RadiosDefinition.from_dict(data["radios_definition"])
+                self.radios_definition = RadiosDefinition.from_dict(data["radios_definition"], self.channels_definition)
             else:
                 self.radios_definition = RadiosDefinition(radios={})
 
@@ -684,6 +781,10 @@ class PresetsManager:
         """
         try:
             data = {}
+            
+            # Save channels definition
+            if self.channels_definition:
+                data["channels_definition"] = self.channels_definition.to_dict()
             
             # Save radios definition
             if self.radios_definition:

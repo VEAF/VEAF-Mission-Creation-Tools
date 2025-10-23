@@ -1,196 +1,343 @@
+channels_definition: # Lists all the radio channels available on the map
+    channels: # the list of channels  available on this map
+      Guard: # a channel ; this is its alias (used later in the radio definitions)
+        freqs: # frequencies to set on this channel; mandatory
+          uhf: 243.000
+          vhf: 121.500
+        title: Guard # title of the channel; defaults to empty (used in the DCS "Mission" file and in the exported kneeboard PNG)
+        mod: 0 # the modulation of this channel; defaults to 0 (["modulations"] collection in the DCS "mission" file)
+      Batumi:
+        title: Batumi / 16X
+        freqs: 
+          uhf: 260.000
+          vhf: 131.000
+          fm:  40.400
+      Beslan:
+        title: Beslan
+        freqs: 
+          uhf: 270.000
+          vhf: 141.000
+          fm:  42.400
+      Gudauta:
+        title: Gudauta
+        freqs: 
+          uhf: 259.000
+      Kutaisi:
+        title: Kutaisi / 44X
+        freqs: 
+          uhf: 263.000
+      Sochi:
+        title: Sochi-Adler
+        freqs: 
+          uhf: 256.000
+      Sukhumi:
+        title: Sukhumi
+        freqs: 
+          uhf: 258.000
+      Tbilisi:
+        title: Tbilisi / 25X
+        freqs: 
+          uhf: 267.000
+      Vaziani:
+        title: Vaziani / 22X
+        freqs: 
+          uhf: 269.000
+      Stennis:
+        title: Stennis / 10X
+        freqs: 
+          uhf: 225.000
+      Tarawa:
+        title: Tarawa / 11X
+        freqs: 
+          uhf: 226.000
+      Roosevelt:
+        title: Roosevelt / 12X
+        freqs: 
+          uhf: 227.000
+      Forrestal:
+        title: Forrestal / 13X
+        freqs: 
+          uhf: 228.000
+      Magic:
+        title: Magic
+        freqs: 
+          uhf: 282.200
+      Package01:
+        title: Package 01
+        freqs: 
+          uhf: 291.000
+      Range-KOBULETI:
+        title: Range KOBULETI
+        freqs: 
+          uhf: 305.100
+      Texaco-1:
+        title: Texaco-1/BS/60Y
+        freqs: 
+          uhf: 290.100
+      Shell-1:
+        title: Shell-1/BS/62Y
+        freqs: 
+          uhf: 290.300
+      Shell-2:
+        title: Shell-2/BM/63Y
+        freqs: 
+          uhf: 290.400
+      Arco-1:
+        title: Arco-1/BM/64Y  
+        freqs: 
+          uhf: 290.500
+      Archer:
+        title: Archer
+        freqs: 
+          vhf: 120.000
+      Arctic:
+        title: Arctic
+        freqs: 
+          vhf: 120.100
+      Astro:
+        title: Astro
+        freqs: 
+          vhf: 120.200
+      Nickel:
+        title: Nickel
+        freqs: 
+          vhf: 120.300
+      Nitro:
+        title: Nitro
+        freqs: 
+          vhf: 120.400
+      Ninja:
+        title: Ninja
+        freqs: 
+          vhf: 120.500
+      Pinder:
+        title: Pinder
+        freqs: 
+          vhf: 120.600
+      Bengal:
+        title: Bengal
+        freqs: 
+          vhf: 120.700
+      Blade:
+        title: Blade
+        freqs: 
+          vhf: 120.800
+      Gordon:
+        title: Gordon
+        freqs: 
+          vhf: 120.900
+      Gypsy:
+        title: Gypsy
+        freqs: 
+          vhf: 121.100
+      Gunstar:
+        title: Gunstar
+        freqs: 
+          vhf: 121.200
+      Leica:
+        title: Leica
+        freqs: 
+          vhf: 121.300
+      Lucid:
+        title: Lucid
+        freqs: 
+          vhf: 121.400
+      Lusty:
+        title: Lusty
+        freqs: 
+          vhf: 121.600
+      Lion:
+        title: Lion
+        freqs: 
+          vhf: 121.700
+      AFAC-Bizmuth-Colt:
+        title: AFAC Bizmuth/Colt
+        freqs: 
+          vhf: 118.800
+      AFAC-Agate-Dodge:
+        title: AFAC Agate/Dodge
+        freqs: 
+          vhf: 118.900
+      JTAC3:
+        title: JTAC 3
+        freqs: 
+          vhf: 118.850
+      channel_01:
+        freqs: 
+          fm: 30.000
+      channel_02:
+        freqs: 
+          fm: 31.000
+      channel_03:
+        freqs: 
+          fm: 32.000
+      channel_04:
+        freqs: 
+          fm: 33.000
+      channel_05:
+        freqs: 
+          fm: 34.000
+      channel_06:
+        freqs: 
+          fm: 35.000
+      channel_07:
+        freqs: 
+          fm: 36.000
+      channel_08:
+        freqs: 
+          fm: 37.000
+      channel_09:
+        freqs: 
+          fm: 38.000
+      channel_10:
+        freqs: 
+          fm: 39.000
+      channel_11:
+        freqs: 
+          fm: 40.000
+      channel_12:
+        freqs: 
+          fm: 41.000
+      channel_13:
+        freqs: 
+          fm: 42.000
+      channel_14:
+        freqs: 
+          fm: 43.000
+      channel_15:
+        freqs: 
+          fm: 44.000
+      channel_16:
+        freqs: 
+          fm: 45.000
+      channel_17:
+        freqs: 
+          fm: 46.000
+      channel_18:
+        freqs: 
+          fm: 47.000
+      channel_19:
+        freqs: 
+          fm: 48.000
+      channel_20:
+        freqs: 
+          fm: 49.000
+      channel_21:
+        freqs: 
+          fm: 50.000
+      channel_22:
+        freqs: 
+          fm: 51.000
+      channel_23:
+        freqs: 
+          fm: 52.000
+      channel_24:
+        freqs: 
+          fm: 53.000
+      channel_25:
+        freqs: 
+          fm: 54.000
+      channel_26:
+        freqs: 
+          fm: 55.000
+      channel_27:
+        freqs: 
+          fm: 56.000
+      channel_28:
+        freqs: 
+          fm: 57.000
+      channel_29:
+        freqs: 
+          fm: 58.000
+      channel_30:
+        freqs: 
+          fm: 59.000
+
 radios_definition: # Lists all the radios definitions
   radio_uhf: # defines a specific radio configuration
     title: UHF/Primary # name of the radio; used in the exported kneeboard PNG
+    type: uhf # will condition the frequency picked up in the channels directory
     channels: # the list of channels defined on this radio
-      channel_01: # the first channel; the _1 at the end will be the [1] in the ["channels"] collection of the DCS "Mission" file
-        freq: 243.000 # frequency to set on this channel; mandatory
-        name: Guard # name of the channel; defaukts to empty (used in the DCS "Mission" file and in the exported kneeboard PNG)
-        mod: 0 # the modulation of this channel; defaults to 0 (["modulations"] collection in the DCS "mission" file)
-      channel_02:
-        freq: 260.000
-        name: Batumi / 16X
-      channel_03:
-        freq: 270.000
-        name: Beslan
-      channel_04:
-        freq: 259.000
-        name: Gudauta
-      channel_05:
-        freq: 263.000
-        name: Kutaisi / 44X
-      channel_06:
-        freq: 256.000
-        name: Sochi-Adler
-      channel_07:
-        freq: 258.000
-        name: Sukhumi
-      channel_08:
-        freq: 267.000
-        name: Tbilisi / 25X
-      channel_09:
-        freq: 269.000
-        name: Vaziani / 22X
-      channel_10:
-        freq: 225.000
-        name: Stennis / 10X
-      channel_11:
-        freq: 226.000
-        name: Tarawa / 11X
-      channel_12:
-        freq: 227.000
-        name: Roosevelt / 12X
-      channel_13:
-        freq: 228.000
-        name: Forrestal / 13X
-      channel_14:
-        freq: 282.200
-        name: Magic
-      channel_15:
-        freq: 291.000
-        name: Package 01
-      channel_16:
-        freq: 305.100
-        name: Range KOBULETI
-      channel_17:
-        freq: 290.100
-        name: Texaco-1/BS/60Y
-      channel_18:
-        freq: 290.300
-        name: Shell-1/BS/62Y
-      channel_19:
-        freq: 290.400
-        name: Shell-2/BM/63Y
-      channel_20:
-        freq: 290.500
-        name: Arco-1/BM/64Y
+      channel_01: Guard # the first channel; the _1 at the end will be the [1] in the ["channels"] collection of the DCS "Mission" file
+      channel_02: Batumi
+      channel_03: Beslan
+      channel_04: Gudauta
+      channel_05: Kutaisi
+      channel_06: Sochi-Adler
+      channel_07: Sukhumi
+      channel_08: Tbilisi
+      channel_09: Vaziani
+      channel_10: Stennis
+      channel_11: Tarawa
+      channel_12: Roosevelt
+      channel_13: Forrestal
+      channel_14: Magic
+      channel_15: Package01
+      channel_16: Range-KOBULETI
+      channel_17: Texaco-1
+      channel_18: Shell-1
+      channel_19: Shell-2
+      channel_20: Arco-1
 
   radio_vhf:
     title: VHF/Secondary # name of the radio; used in the exported kneeboard PNG
+    type: vhf
     channels:
-      channel_01:
-        freq: 121.500
-        name: Guard
-      channel_02:
-        freq: 120.000
-        name: Archer
-      channel_03:
-        freq: 120.100
-        name: Arctic
-      channel_04:
-        freq: 120.200
-        name: Astro
-      channel_05:
-        freq: 120.300
-        name: Nickel
-      channel_06:
-        freq: 120.400
-        name: Nitro
-      channel_07:
-        freq: 120.500
-        name: Ninja
-      channel_08:
-        freq: 120.600
-        name: Pinder
-      channel_09:
-        freq: 120.700
-        name: Bengal
-      channel_10:
-        freq: 120.800
-        name: Blade
-      channel_11:
-        freq: 120.900
-        name: Gordon
-      channel_12:
-        freq: 121.100
-        name: Gypsy
-      channel_13:
-        freq: 121.200
-        name: Gunstar
-      channel_14:
-        freq: 121.300
-        name: Leica
-      channel_15:
-        freq: 121.400
-        name: Lucid
-      channel_16:
-        freq: 121.600
-        name: Lusty
-      channel_17:
-        freq: 121.700
-        name: Lion
-      channel_18:
-        freq: 118.800
-        name: AFAC Bizmuth/Colt
-      channel_19:
-        freq: 118.900
-        name: AFAC Agate/Dodge
-      channel_20:
-        freq: 118.850
-        name: JTAC 3
+      channel_01: Guard
+      channel_02: Archer
+      channel_03: Arctic
+      channel_04: Astro
+      channel_05: Nickel
+      channel_06: Nitro
+      channel_07: Ninja
+      channel_08: Pinder
+      channel_09: Bengal
+      channel_10: Blade
+      channel_11: Gordon
+      channel_12: Gypsy
+      channel_13: Gunstar
+      channel_14: Leica
+      channel_15: Lucid
+      channel_16: Lusty
+      channel_17: Lion
+      channel_18: AFAC-Bizmuth-Colt
+      channel_19: AFAC-Agate-Dodge
+      channel_20: JTAC3
 
   radio_fm:
     title: FM/Ground # name of the radio; used in the exported kneeboard PNG
+    type: fm
     channels:
-      channel_01:
-        freq: 30.000
-      channel_02:
-        freq: 31.000
-      channel_03:
-        freq: 32.000
-      channel_04:
-        freq: 33.000
-      channel_05:
-        freq: 34.000
-      channel_06:
-        freq: 35.000
-      channel_07:
-        freq: 36.000
-      channel_08:
-        freq: 37.000
-      channel_09:
-        freq: 38.000
-      channel_10:
-        freq: 39.000
-      channel_11:
-        freq: 40.000
-      channel_12:
-        freq: 41.000
-      channel_13:
-        freq: 42.000
-      channel_14:
-        freq: 43.000
-      channel_15:
-        freq: 44.000
-      channel_16:
-        freq: 45.000
-      channel_17:
-        freq: 46.000
-      channel_18:
-        freq: 47.000
-      channel_19:
-        freq: 48.000
-      channel_20:
-        freq: 49.000
-      channel_21:
-        freq: 50.000
-      channel_22:
-        freq: 51.000
-      channel_23:
-        freq: 52.000
-      channel_24:
-        freq: 53.000
-      channel_25:
-        freq: 54.000
-      channel_26:
-        freq: 55.000
-      channel_27:
-        freq: 56.000
-      channel_28:
-        freq: 57.000
-      channel_29:
-        freq: 58.000
-      channel_30:
-        freq: 59.000
+      channel_01: channel_01
+      channel_02: channel_02
+      channel_03: channel_03
+      channel_04: channel_04
+      channel_05: channel_05
+      channel_06: channel_06
+      channel_07: channel_07
+      channel_08: channel_08
+      channel_09: channel_09
+      channel_10: channel_10
+      channel_11: channel_11
+      channel_12: channel_12
+      channel_13: channel_13
+      channel_14: channel_14
+      channel_15: channel_15
+      channel_16: channel_16
+      channel_17: channel_17
+      channel_18: channel_18
+      channel_19: channel_19
+      channel_20: channel_20
+      channel_21: channel_21
+      channel_22: channel_22
+      channel_23: channel_23
+      channel_24: channel_24
+      channel_25: channel_25
+      channel_26: channel_26
+      channel_27: channel_27
+      channel_28: channel_28
+      channel_29: channel_29
+      channel_30: channel_30
 
 presets_definition: # Lists all the presets collections
   modern_blue_uhf_vhf_fm: # one of the presets collections

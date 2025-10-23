@@ -3096,7 +3096,11 @@ function veaf.Logger:print(level, text, logWithDcsServerBot)
     end
     for i = 1, #texts do
         if i == 1 then
-            local theText = self.name .. '|' .. levelChar .. '|' .. texts[i]
+            local name = self.name
+            if not(name == veaf.Id) then
+                name = veaf.Id .. "-" .. name
+            end
+            local theText = name .. '|' .. levelChar .. '|' .. texts[i]
             logFunction(theText)
             if logWithDcsServerBot and dcsbot and veaf.config.DCS_SERVER_BOT_CHANNEL then
 			    local current_mission = Sim.getMissionName()

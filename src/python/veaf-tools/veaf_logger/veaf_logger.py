@@ -32,39 +32,39 @@ class VeafLogger:
         self.logger.setLevel(level=level)
         return self
 
-    def error(self, message: str, raise_exception: bool = False) -> Self:
+    def error(self, message: str, no_console: bool = False, raise_exception: bool = False) -> Self:
         """Log and display error message."""
         self.logger.error(message)
-        if self.console:
+        if self.console and not no_console:
             self.console.print(message, style="red")
         if raise_exception:
             raise typer.Abort(message)
         return self
 
-    def warning(self, message: str) -> Self:
+    def warning(self, message: str, no_console: bool = False) -> Self:
         """Log and display warning message."""
         self.logger.warning(message)
-        if self.console:
+        if self.console and not no_console:
             self.console.print(message, style="yellow")
         return self
 
-    def info(self, message: str) -> Self:
+    def info(self, message: str, no_console: bool = False) -> Self:
         """Log and display info message."""
         self.logger.info(message)
-        if self.console:
-            self.console.print(message, style="blue")
+        if self.console and not no_console:
+            self.console.print(message, style="cyan")
         return self
 
-    def debug(self, message: str) -> Self:
+    def debug(self, message: str, no_console: bool = False) -> Self:
         """Log debug message."""
-        self.logger.debug(message)
-        if self.verbose and self.console:
-            self.console.print(message, style="grey69")
-        return self
+        return self._do_debug(message, no_console, "grey69")
     
-    def debugwarn(self, message: str) -> Self:
+    def debugwarn(self, message: str, no_console: bool = False) -> Self:
         """Log debug message."""
+        return self._do_debug(message, no_console, "dark_khaki")
+
+    def _do_debug(self, message, no_console, style):
         self.logger.debug(message)
-        if self.verbose and self.console:
-            self.console.print(message, style="dark_khaki")
+        if self.verbose and self.console and not no_console:
+            self.console.print(message, style=style)
         return self

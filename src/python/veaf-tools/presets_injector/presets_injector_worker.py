@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-from mission_tools import DcsMission, read_miz, write_miz
+from mission_tools import DcsMission, read_miz, write_miz, spinner_context
 
 from .presets_manager import PresetsManager
 from veaf_logger import VeafLogger
@@ -75,10 +75,10 @@ class PresetsInjectorWorker:
 
             self.groups[name] = group
 
-    def read_mission(self) -> None:
+    def read_mission(self, silent:bool=False) -> None:
         """Load the mission from the .miz file (unzip it) and process aircraft groups."""
 
-        self.logger.info(f"Reading mission file {self.input_mission}")
+        if not silent: self.logger.info(f"Reading mission file {self.input_mission}")
         self.dcs_mission = read_miz(self.input_mission)
 
         self.logger.debug("Searching for all aircraft groups")
@@ -131,10 +131,9 @@ class PresetsInjectorWorker:
         for group in groups_list:
             self.add_group(group, aircraft_type=aircraft_type, country=country_name, coalition=coalition_name)
 
-    def process_groups(self) -> None:
+    def process_groups(self, silent:bool=False) -> None:
         """Process all the aircraft groups."""
-        nb_groups_to_process = len(self.groups)
-        self.logger.info(f"Processing {nb_groups_to_process} aircraft group{'s' if nb_groups_to_process > 1 else ''}")
+        if not silent: self.logger.info(f"Processing {len(self.groups)} aircraft group{'s' if len(self.groups) > 1 else ''}")
 
         nb_units_processed = 0
         for group in [g for g in self.groups.values() if g.human_pilot]: # Inject radio presets in all aircraft groups with at least one human pilot
@@ -150,35 +149,39 @@ class PresetsInjectorWorker:
                                 int(radio_name) if radio_name.isdigit() else int(radio_name.split('_')[-1]): radio.to_dict() for radio_name, radio in preset_collection.radios.items()
                             }
 
-        self.logger.info(f"Injected presets into {nb_units_processed} aircraft{'s' if nb_units_processed > 1 else ''}")
+        if not silent: self.logger.info(f"Injected presets into {nb_units_processed} aircraft{'s' if nb_units_processed > 1 else ''}")
                     
-    def write_mission(self) -> None:
+    def write_mission(self, silent:bool=False) -> None:
         """Write the mission file."""
 
-        self.logger.info("Writing mission file")
+        if not silent: self.logger.info("Writing mission file")
 
         # Prepare saving kneeboard pages if generated
         additional_files = {}
         if self.presets_manager.presets_images:
             for preset_collection_name, image in self.presets_manager.presets_images.items():
                 additional_files[f"KNEEBOARD/IMAGES/presets-{preset_collection_name}.png"] = image.getvalue()
-        nb_kneeboard_images = len(self.presets_manager.presets_images or {})
-        self.logger.info(f"Added {nb_kneeboard_images} kneeboard page{"s" if nb_kneeboard_images > 1 else ""} to mission")
+            if not silent: self.logger.info(f"Added {len(self.presets_manager.presets_images)} kneeboard page{"s" if len(self.presets_manager.presets_images) > 1 else ""} to mission")
 
         # Save the mission
         write_miz(mission=self.dcs_mission, miz_file_path=self.output_mission, additional_files=additional_files)
 
-    def work(self) -> None:
+    def work(self, silent:bool=False) -> None:
         """Main work function."""
-       
+
         # Load the mission from the .miz file (unzip it) and process aircraft groups
-        self.read_mission()
+        with spinner_context(f"Reading {self.input_mission}...", logger=self.logger, silent=silent):
+            self.read_mission(silent)
+       
 
         # Process all the aircraft groups
-        self.process_groups()
+        with spinner_context("Processing groups...", logger=self.logger, silent=silent):
+            self.process_groups(silent)
 
         # Generate kneeboard pages if needed
-        self.presets_manager.generate_presets_images(width=1200, height=None)
+        with spinner_context("Generating preset images...", logger=self.logger, silent=silent):
+            self.presets_manager.generate_presets_images(width=1200, height=None)
 
         # Write the mission file
-        self.write_mission()
+        with spinner_context("Writing mission...", logger=self.logger, silent=silent):
+            self.write_mission(silent)

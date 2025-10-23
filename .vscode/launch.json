@@ -133,13 +133,33 @@
         },
         // TESTS
         {
+            // convert A
+            "name": "veaf-tools - TESTS - convert A",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/python/veaf-tools/veaf-tools.py",
+            "cwd": "c:/tmp/a",
+            "args": ["convert-mission", "test.miz",  "veaf-foothold-syria", "--inject-presets"],
+            "console": "integratedTerminal"
+        },
+        {
             // build A
             "name": "veaf-tools - TESTS - build A",
             "type": "debugpy",
             "request": "launch",
             "program": "${workspaceFolder}/src/python/veaf-tools/veaf-tools.py",
             "cwd": "c:/tmp/a",
-            "args": ["build-mission", "--scripts-path", "${workspaceFolder}", ".",  "veaf-demo-mission"],
+            "args": ["build-mission", ".",  "test"],
+            "console": "integratedTerminal"
+        },
+        {
+            // build A
+            "name": "veaf-tools - TESTS - build A - from DEV",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/python/veaf-tools/veaf-tools.py",
+            "cwd": "c:/tmp/a",
+            "args": ["build-mission", "--scripts-path", "${workspaceFolder}", ".",  "test"],
             "console": "integratedTerminal"
         },
         {
@@ -149,7 +169,7 @@
             "request": "launch",
             "program": "${workspaceFolder}/src/python/veaf-tools/veaf-tools.py",
             "cwd": "c:/tmp/a",
-            "args": ["extract-mission",  "veaf-demo-mission", "."],
+            "args": ["extract-mission",  "test", "."],
             "console": "integratedTerminal"
         },
         {
@@ -159,7 +179,7 @@
             "request": "launch",
             "program": "${workspaceFolder}/src/python/veaf-tools/veaf-tools.py",
             "cwd": "c:/tmp/d",
-            "args": ["extract-mission",  "veaf-demo-mission", "."],
+            "args": ["extract-mission",  "test", "."],
             "console": "integratedTerminal"
         },
         {
@@ -169,7 +189,7 @@
             "request": "launch",
             "program": "${workspaceFolder}/src/python/veaf-tools/veaf-tools.py",
             "cwd": "c:/tmp/e",
-            "args": ["build-mission", "--scripts-path", "${workspaceFolder}", ".",  "veaf-demo-mission"],
+            "args": ["build-mission", "--scripts-path", "${workspaceFolder}", ".",  "test"],
             "console": "integratedTerminal"
         },
     ]

@@ -26,6 +26,7 @@ from veaf_logger import VeafLogger
 from presets_injector import PresetsInjectorWorker, PresetsInjectorREADME
 from mission_builder import MissionBuilderWorker, MissionBuilderREADME
 from mission_extractor import MissionExtractorWorker, MissionExtractorREADME
+from mission_converter import MissionConverterWorker, MissionConverterREADME
 import typer
 from datetime import datetime
 
@@ -215,6 +216,71 @@ def extract_mission(
     
     # Call the worker class
     worker = MissionExtractorWorker(logger=logger, mission_folder=p_mission_folder, input_mission_path=p_input_mission)
+    worker.work()
+
+    console.print(WORK_DONE_MESSAGE)
+    # input("Press Enter to exit...")
+
+@app.command()
+def convert_mission(
+    readme: bool = typer.Option(False, help=README_HELP),
+    verbose: bool = typer.Option(False, help=VERBOSE_HELP),
+    dynamic_mode: bool = typer.Option(False, help="If set, the mission will dynamically load the scripts from the provided location (via --scripts-path or in the local node_modules and src/scripts folders)."),
+    scripts_path: str = typer.Option(None, help="Path to the VEAF and community scripts."),
+    mission_name: str = typer.Argument(help="Mission name; will extract from the mission with this name (most recent .miz file)"),
+    mission_folder: Optional[str] = typer.Argument(".", help="Folder with the mission files."),
+    inject_presets: bool = typer.Option(False, help="If set, presets will be injected into the mission from the presets.yaml file."),
+    presets_file: str = typer.Option(None, help="Configuration file containing the presets; defaults to the presets.yaml file in the VEAF defaults folder."),
+) -> None:
+    """
+    Converts a DCS mission to a VEAF mission folder.
+    """
+
+    # Set the title and version
+    console.print(f"[bold green]veaf-tools VEAF mission converter v{VERSION}[/bold green]")
+
+    logger = VeafLogger(logger_name="veaf-tools-mission-converter", console=console).set_verbose(verbose)
+
+    if readme:
+        if typer.confirm("Do you want to display the documentation?"):
+            md_render = Markdown(MissionConverterREADME)
+            console.print(md_render)
+        raise typer.Exit()
+
+
+    # Resolve output mission folder
+    p_mission_folder = resolve_path(logger=logger, path=mission_folder, default_path=Path.cwd(), should_exist=True)
+    if not p_mission_folder.exists():
+        logger.error(f"Mission folder {p_mission_folder} does not exist!", raise_exception=True)
+
+    # Resolve input mission
+    p_input_mission = mission_name
+    if files := list(p_mission_folder.glob(f"{mission_name}*.miz")):
+        p_input_mission = max(files, key=lambda f: f.stat().st_mtime)
+    p_input_mission = resolve_path(logger=logger, path=p_input_mission, should_exist=True)
+    
+    # Compute a file name from the mission name
+    p_output_mission = Path(f"{mission_name}_{datetime.now().strftime('%Y%m%d')}.miz")
+
+    # Resolve development path
+    if not scripts_path and dynamic_mode:
+        # default value is the "/node_modules/veaf-mission-creation-tools" subfolder of the mission folder
+        scripts_path = p_mission_folder / "node_modules" / "veaf-mission-creation-tools"
+    if scripts_path:
+        p_scripts_path = resolve_path(logger=logger, path=scripts_path, should_exist=True)
+        if not p_scripts_path.exists():
+            logger.error(f"Development folder {p_scripts_path} does not exist!", raise_exception=True)
+    else:
+        p_scripts_path = None
+
+    # Resolve presets configuration file
+    if p_presets_file := presets_file:
+        p_presets_file = resolve_path(logger=logger, path=presets_file, should_exist=True)
+        if not p_presets_file.exists():
+            logger.error(f"Configuration file {p_presets_file} does not exist!", raise_exception=True)
+
+    # Call the worker class
+    worker = MissionConverterWorker(mission_folder=p_mission_folder, input_mission=p_input_mission, output_mission=p_output_mission, mission_name=mission_name, logger=logger, dynamic_mode=dynamic_mode, scripts_path=p_scripts_path, inject_presets=inject_presets, presets_file=p_presets_file)
     worker.work()
 
     console.print(WORK_DONE_MESSAGE)

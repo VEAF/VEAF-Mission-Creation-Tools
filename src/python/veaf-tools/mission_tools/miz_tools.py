@@ -4,7 +4,7 @@ This module provides classes for reading and writing missions to and from .miz f
 
 
 import contextlib
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, Optional
 import io
@@ -17,7 +17,6 @@ import os
 from pathlib import Path
 from typing import Optional, Dict
 
-
 @dataclass
 class DcsMission:
     """Class representing a DCS mission."""
@@ -28,6 +27,7 @@ class DcsMission:
     warehouses_content: Optional[dict] = None
     dictionary_content: Optional[dict[str, str]] = None
     map_resource_content: Optional[dict[str, str]] = None
+    missing_components: list = field(default_factory=list)
 
 def read_miz(miz_file_path: Path) -> DcsMission:
     """Load the mission from the .miz file (unzip it and parse the lua files)."""
@@ -36,21 +36,25 @@ def read_miz(miz_file_path: Path) -> DcsMission:
         with io.TextIOWrapper(file, encoding='utf-8') as wrapper:
             return luadata.unserialize(wrapper.read(), keep_as_dict=keep_as_dict, all_is_dict=all_is_dict)
 
+    def read_file_in_archive(zip_file: zipfile.ZipFile, file_name: str, missing_components: list[str], keep_as_dict: list[str] = [], not_lua: bool = False) -> dict:
+        if file_name in zip_file.namelist():
+            with zip_file.open(file_name) as file:
+                if not_lua:
+                    return file.read().decode('utf-8')
+                else:
+                    return unserialize(file, keep_as_dict=keep_as_dict)
+        else:
+            return missing_components.append(file_name)
+
     result = DcsMission(file_path=miz_file_path)
 
     with zipfile.ZipFile(miz_file_path, 'r') as miz:
-        with miz.open('mission') as file:
-            result.mission_content = unserialize(file, keep_as_dict=["trig", "trigrules"])
-        with miz.open('options') as file:
-            result.options_content = unserialize(file)
-        with miz.open('theatre') as file:
-            result.theatre_content = file.read().decode('utf-8')
-        with miz.open('warehouses') as file:
-            result.warehouses_content = unserialize(file)
-        with miz.open('l10n/DEFAULT/dictionary') as file:
-            result.dictionary_content = unserialize(file)
-        with miz.open('l10n/DEFAULT/mapResource') as file:
-            result.map_resource_content = unserialize(file)
+        result.mission_content = read_file_in_archive(miz, 'mission', result.missing_components, keep_as_dict=["trig", "trigrules"])
+        result.options_content = read_file_in_archive(miz, 'options', result.missing_components)
+        result.theatre_content = read_file_in_archive(miz, 'theatre', result.missing_components, not_lua=True)
+        result.warehouses_content = read_file_in_archive(miz, 'warehouses', result.missing_components)
+        result.dictionary_content = read_file_in_archive(miz, 'l10n/DEFAULT/dictionary', result.missing_components)
+        result.map_resource_content = read_file_in_archive(miz, 'l10n/DEFAULT/mapResource', result.missing_components)
 
     return result
 

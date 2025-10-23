@@ -39,7 +39,7 @@ def _sort_by_id(list_to_sort: list):
 
     def _key_by_id(item):
         if not isinstance(item, dict): return item
-        if item.get("id", ""): return item["id"]
+        return item["id"] if item.get("id", "") else 0
 
     # check that the parameter is indeed a list
     if not isinstance(list_to_sort, list): return list_to_sort

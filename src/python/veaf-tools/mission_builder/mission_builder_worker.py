@@ -4,8 +4,9 @@ Worker module for the VEAF Mission Builder Package.
 
 from pathlib import Path
 import re
-from typing import List, Optional, Dict
-from mission_tools import read_miz, write_miz, create_miz, DcsMission, get_community_script_files, get_mission_data_files, get_mission_script_files, get_veaf_script_files
+import shutil
+from typing import Optional
+from mission_tools import read_miz, write_miz, create_miz, DcsMission, get_community_script_files, get_mission_data_files, get_mission_script_files, get_veaf_script_files, collect_files_from_globs, spinner_context
 from veaf_logger import VeafLogger
 
 class MissionBuilderWorker:
@@ -38,7 +39,10 @@ class MissionBuilderWorker:
 
         # Preprocess the veaf script files
         scripts_folder: Path = self.scripts_path or (self.mission_folder / "node_modules" / "veaf-mission-creation-tools")
-        self.collected_veaf_script_files = self.collect_files_from_globs(base_folder=scripts_folder, file_patterns=get_veaf_script_files())
+        self.collected_veaf_script_files = collect_files_from_globs(base_folder=scripts_folder, file_patterns=get_veaf_script_files(), logger=self.logger)
+        missing_files_nb = len(get_veaf_script_files()) - len(self.collected_veaf_script_files)
+        if missing_files_nb > 0:
+            self._signal_missing_required_files_after_collection(missing_files_nb, scripts_folder)
         return self.collected_veaf_script_files
     
     def get_collected_community_script_files(self) -> dict[str, bytes]:
@@ -46,85 +50,44 @@ class MissionBuilderWorker:
 
         # Preprocess the community script files
         scripts_folder: Path = self.scripts_path or (self.mission_folder / "node_modules" / "veaf-mission-creation-tools")
-        self.collected_community_script_files = self.collect_files_from_globs(base_folder=scripts_folder, file_patterns=get_community_script_files())
+        self.collected_community_script_files = collect_files_from_globs(base_folder=scripts_folder, file_patterns=get_community_script_files(), logger=self.logger)
+        missing_files_nb = len(get_community_script_files()) - len(self.collected_community_script_files)
+        if missing_files_nb > 0:
+            self._signal_missing_required_files_after_collection(missing_files_nb, scripts_folder)
         return self.collected_community_script_files
+
+    def _signal_missing_required_files_after_collection(self, missing_files_nb, scripts_folder):
+        message = f'Error: {missing_files_nb} file{"s" if missing_files_nb > 1 else ""} are missing from {scripts_folder}'
+        self.logger.error(message)
+        raise RuntimeError(message)
     
     def get_collected_mission_script_files(self) -> dict[str, bytes]:
         if self.collected_mission_script_files: return self.collected_mission_script_files
 
         # Preprocess the mission files
-        self.collected_mission_script_files = self.collect_files_from_globs(base_folder=self.mission_folder, file_patterns=get_mission_script_files())
+        defaults_folder: Path = (self.scripts_path or (self.mission_folder / "node_modules" / "veaf-mission-creation-tools")) / "src" / "defaults" / "mission-folder"
+        self.collected_mission_script_files = collect_files_from_globs(base_folder=self.mission_folder, file_patterns=get_mission_script_files(), alternative_folder=defaults_folder, logger=self.logger)
         return self.collected_mission_script_files
 
     def get_collected_mission_data_files(self) -> dict[str, bytes]:
         if self.collected_mission_data_files: return self.collected_mission_data_files
 
         # Preprocess the mission files
-        self.collected_mission_data_files = self.collect_files_from_globs(base_folder=self.mission_folder, file_patterns=get_mission_data_files())
+        defaults_folder: Path = (self.scripts_path or (self.mission_folder / "node_modules" / "veaf-mission-creation-tools")) / "src" / "defaults" / "mission-folder"
+        self.collected_mission_data_files = collect_files_from_globs(base_folder=self.mission_folder, file_patterns=get_mission_data_files(), alternative_folder=defaults_folder, logger=self.logger)
         return self.collected_mission_data_files
+       
+    def complete_src_folder_with_defaults(self) -> None:
+        defaults_folder: Path = (self.scripts_path or (self.mission_folder / "node_modules" / "veaf-mission-creation-tools")) / "src" / "defaults" / "mission-folder"
+        for f in defaults_folder.rglob("*"):
+            if f.is_file():
+                relative_path = f.relative_to(defaults_folder).parent.as_posix()
+                relative_path = self.mission_folder / relative_path / f.name
+                if not relative_path.exists():
+                    relative_path.parent.mkdir(parents=True, exist_ok=True)
+                    self.logger.warning(f"Copied required file '{relative_path}' from default folder '{defaults_folder}'")
+                    shutil.copy(f, relative_path)
 
-    def collect_files_from_globs(self, base_folder: Path, file_patterns: List[tuple[str, str]]) -> Dict[str, bytes]:
-        """
-        Collect files from a base folder using file paths and glob patterns.
-
-        Args:
-            base_folder: The base directory to search from
-            file_patterns: List of file paths or glob patterns (e.g., "src/scripts/*.lua", "src/mission/*")
-
-        Returns:
-            Dictionary with:
-                - key: relative file path from base_folder (with subfolders)
-                - value: file contents as bytes
-
-        Example:
-            >>> base = Path("/project")
-            >>> patterns = ["src/*.py", "config/settings.json"]
-            >>> files = collect_files_from_globs(base, patterns)
-            >>> # Returns: {"src/main.py": b"...", "src/utils.py": b"...", "config/settings.json": b"..."}
-        """
-        
-        def _add_file_to_result_list(file_path:Path) -> None:
-            relative_path = file_path.relative_to(folder).parent.as_posix()
-            relative_path = dest_location / relative_path / file_path.name
-            self.logger.debug(f"Processing file {relative_path}")
-            files_dict[relative_path] = file_path.read_bytes()
-
-        files_dict: Dict[str, bytes] = {}
-
-        for file_info in file_patterns:
-            pattern = file_info[0]
-            dest_location = Path(file_info[1])
-
-            # Convert pattern to Path and split into folder and glob parts
-            pattern_path = base_folder / pattern
-            folder = pattern_path.parent
-            glob_pattern = pattern_path.name
-
-            # Skip if the folder doesn't exist
-            if not folder.exists():
-                continue
-
-            # Use rglob for recursive matching if pattern contains **
-            if "**" in pattern:
-                # For recursive globs, search from the appropriate parent
-                parts = Path(pattern).parts
-                if "**" in parts:
-                    # Find the ** position and adjust folder accordingly
-                    glob_start_index = parts.index("**")
-                    search_folder = base_folder / Path(*parts[:glob_start_index]) if glob_start_index > 0 else base_folder
-                    remaining_pattern = str(Path(*parts[glob_start_index:]))
-                    if search_folder.exists():
-                        for file_path in search_folder.rglob(remaining_pattern):
-                            if file_path.is_file():
-                                _add_file_to_result_list(file_path=file_path)
-            else:
-                # Use regular glob for non-recursive patterns
-                for file_path in folder.glob(glob_pattern):
-                    if file_path.is_file():
-                        _add_file_to_result_list(file_path=file_path)
-
-        return files_dict
-        
     def create_mission(self) -> None:
         """Creates the initial mission file from the mission folder."""
 
@@ -141,7 +104,18 @@ class MissionBuilderWorker:
         """Load the mission from the .miz file (unzip it) and process aircraft groups."""
 
         self.logger.debug(f"Reading mission file {self.output_mission}")
-        self.dcs_mission = read_miz(self.output_mission)
+        try:
+            self.dcs_mission = read_miz(self.output_mission)
+            if self.dcs_mission.missing_components and 'options' in self.dcs_mission.missing_components:
+                self.logger.warning(f"The 'options' file is missing from {self.mission_folder / "src"}; it's a useful item of your source tree!")
+                self.dcs_mission.missing_components.remove('options') # we've handled that one
+            if self.dcs_mission.missing_components:
+                message = f"These components are missing from '{self.mission_folder / "src"}': {', '.join([f"'{item}'" for item in self.dcs_mission.missing_components])}; they are mandatory in a DCS mission!"
+                self.logger.error(message=message)
+                raise RuntimeError(message)
+        except KeyError:
+            self.logger.error(f"An error occured while reading the {self.output_mission} file; is this a valid DCS mission?")
+            raise
   
     def clear_veaf_triggers(self) -> None:
         """
@@ -347,7 +321,7 @@ class MissionBuilderWorker:
             for idx, new_dict_key in enumerate(new_dictionary)
         }
 
-        dynamic_script_loading_trigger = "a_do_script(\"env.info(\\\"DYNAMIC VEAF scripts loading\\\")\");"
+        dynamic_script_loading_trigger = "a_do_script(\"env.info(\\\"DYNAMIC VEAF scripts loading from \\\"..VEAF_DYNAMIC_SCRIPTSPATH)\");"
         for file in get_community_script_files():
             dynamic_script_loading_trigger += f"a_do_script(\"assert(loadfile(VEAF_DYNAMIC_SCRIPTSPATH .. \\\"{file[0]}\\\"))()\");"
         dynamic_script_loading_trigger += "a_do_script(\"assert(loadfile(VEAF_DYNAMIC_SCRIPTSPATH .. \\\"/src/scripts/VeafDynamicLoader.lua\\\"))()\");"
@@ -356,7 +330,7 @@ class MissionBuilderWorker:
         for map_resource_key in new_map_resource_script_files:
             static_script_loading_trigger += f"a_do_script_file(getValueResourceByKey(\"{map_resource_key}\"));"
 
-        dynamic_mission_loading_trigger = "a_do_script(\"env.info(\\\"DYNAMIC Mission scripts loading\\\")\");a_do_script(\"assert(loadfile(VEAF_DYNAMIC_MISSIONPATH .. \\\"/src/scripts/veafDynamicConfig.lua\\\"))()\");"
+        dynamic_mission_loading_trigger = "a_do_script(\"env.info(\\\"DYNAMIC Mission scripts loading from \\\"..VEAF_DYNAMIC_MISSIONPATH)\");a_do_script(\"assert(loadfile(VEAF_DYNAMIC_MISSIONPATH .. \\\"/src/scripts/veafDynamicConfig.lua\\\"))()\");"
 
         static_mission_loading_trigger = "a_do_script(\"env.info(\\\"STATIC Mission scripts loading\\\")\");"
         for map_resource_key in new_map_resource_mission_script_files:
@@ -461,7 +435,7 @@ class MissionBuilderWorker:
         dynamic_script_loading_actions = [
             {
                 "predicate": "a_do_script",
-                "text": "env.info(\"DYNAMIC VEAF scripts loading\")"
+                "text": "env.info(\"DYNAMIC VEAF scripts loading from \"..VEAF_DYNAMIC_SCRIPTSPATH)"
             }
         ]
         dynamic_script_loading_actions.extend(
@@ -560,7 +534,7 @@ class MissionBuilderWorker:
                 "eventlist": "",
                 "actions": [
                     {
-                        "text": "env.info(\"DYNAMIC Mission scripts loading\")",
+                        "text": "env.info(\"DYNAMIC Mission scripts loading from \"..VEAF_DYNAMIC_MISSIONPATH)",
                         "meters": 1000,
                         "predicate": "a_do_script",
                         "zone": 184
@@ -622,22 +596,33 @@ class MissionBuilderWorker:
         write_miz(mission=self.dcs_mission, miz_file_path=self.output_mission)
         self.logger.debug("Writing mission file done")
 
-    def work(self) -> None:
+    def work(self, silent:bool=False) -> Path:
         """Main work function."""
 
+        # Complete the src folder with default files if they don't exist
+        with spinner_context(f"Completing folder {self.mission_folder} with defaults...", logger=self.logger, silent=silent):
+            self.complete_src_folder_with_defaults()
+
         # Create the initial mission file
-        self.create_mission()
+        with spinner_context(f"Creating mission {self.output_mission}...", logger=self.logger, silent=silent):
+            self.create_mission()
 
         # Load the mission from the .miz file (unzip it) and process aircraft groups
-        self.read_mission()
+        with spinner_context(f"Reading mission {self.output_mission}...", logger=self.logger, silent=silent):
+            self.read_mission()
 
         # First, remove all the VEAF triggers
-        self.clear_veaf_triggers()
+        with spinner_context("Clearing the existing VEAF triggers...", logger=self.logger, silent=silent):
+            self.clear_veaf_triggers()
 
         # Then, add all the VEAF triggers we need
-        self.insert_all_veaf_triggers()
+        with spinner_context("Creating the new VEAF triggers...", logger=self.logger, silent=silent):
+            self.insert_all_veaf_triggers()
 
         # Write the mission file
-        self.write_mission()
+        with spinner_context(f"Writing final mission {self.output_mission}...", logger=self.logger, silent=silent):
+            self.write_mission()
 
-        self.logger.info(f"Mission file '{self.output_mission}' built from folder '{self.mission_folder}'.")
+        if not silent: self.logger.info(f"Mission file '{self.output_mission}' built from folder '{self.mission_folder}'.")
+
+        return self.output_mission

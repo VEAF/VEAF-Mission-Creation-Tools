@@ -145,8 +145,9 @@ class PresetsInjectorWorker:
                     if units := group.group_dcs.get("units", {}):
                         for unit in [u for u in units if u.get("skill", "") in ["Client", "Player"]]:
                             nb_units_processed += 1
+                            resolved_radios = preset_collection.get_resolved_radios(self.presets_manager.radios_definition)
                             unit["Radio"] = {
-                                int(radio_name) if radio_name.isdigit() else int(radio_name.split('_')[-1]): radio.to_dict() for radio_name, radio in preset_collection.radios.items()
+                                int(radio_name) if radio_name.isdigit() else int(radio_name.split('_')[-1]): radio.to_dict() for radio_name, radio in resolved_radios.items()
                             }
 
         if not silent: self.logger.info(f"Injected presets into {nb_units_processed} aircraft{'s' if nb_units_processed > 1 else ''}")

@@ -93,7 +93,7 @@ class RadioChannel:
             ValueError: If frequency is missing from data
         """
         if "freq" not in data:
-            raise ValueError("Frequency is mandatory in channel data")
+            raise ValueError(f"Frequency is mandatory in channel data: {data}")
 
         number = int(channel_name) if channel_name.isdigit() else int(channel_name.split('_')[-1])
         return cls(
@@ -207,7 +207,7 @@ class Radio:
         """
         title = data.get("title", "Unnamed Radio")
         if "channels" not in data:
-            raise ValueError("Radio data must contain 'channels' key")
+            raise ValueError(f"Radio data must contain 'channels' key : {data}")
 
         channels = {
             channel_name: RadioChannel.from_dict(channel_name, channel_data) for channel_name, channel_data in data["channels"].items()
@@ -216,20 +216,14 @@ class Radio:
 
 
 @dataclass
-class PresetCollection:
+class RadiosDefinition:
     """
-    Represents a collection of radios (a preset collection).
+    Manages all radio definitions.
     """
-    name: str
-    title: str
     radios: Dict[str, Radio]
-    used_in_mission: bool = False  # Indicates if this collection is used in the mission
-
+    
     def __post_init__(self):
-        """Validate the preset collection data after initialization."""
-        if not isinstance(self.name, str):
-            raise TypeError("Preset collection name must be a string")
-        
+        """Validate the radios definition data after initialization."""
         if not isinstance(self.radios, dict):
             raise TypeError("Radios must be a dictionary")
         
@@ -240,12 +234,12 @@ class PresetCollection:
                 raise TypeError(f"Radio '{radio_name}' must be a Radio instance")
     
     def __str__(self) -> str:
-        """Return a human-readable string representation of the preset collection."""
-        return f"PresetCollection(name='{self.name}', radios={len(self.radios)} radios)"
+        """Return a human-readable string representation of the radios definition."""
+        return f"RadiosDefinition(radios={len(self.radios)} radios)"
     
     def add_radio(self, name: str, radio: Radio) -> None:
         """
-        Add a radio to the preset collection.
+        Add a radio definition.
         
         Args:
             name: The name of the radio
@@ -287,32 +281,148 @@ class PresetCollection:
     
     def to_dict(self) -> Dict[str, Any]:
         """
-        Convert the preset collection to a dictionary representation.
+        Convert the radios definition to a dictionary representation.
         
         Returns:
-            dict: Dictionary representation of the preset collection
+            dict: Dictionary representation of the radios definition
         """
         return {
             name: radio.to_dict() for name, radio in self.radios.items()
         }
     
     @classmethod
-    def from_dict(cls, name: str, data: Dict[str, Any]) -> 'PresetCollection':
+    def from_dict(cls, data: Dict[str, Any]) -> 'RadiosDefinition':
+        """
+        Create a RadiosDefinition instance from a dictionary.
+        
+        Args:
+            data: Dictionary containing radios definition data
+            
+        Returns:
+            RadiosDefinition: New instance
+        """
+        radios = {
+            radio_name: Radio.from_dict(radio_name, radio_data)
+            for radio_name, radio_data in data.items()
+        }
+        return cls(radios=radios)
+
+
+@dataclass
+class PresetCollection:
+    """
+    Represents a collection of radio aliases (a preset collection).
+    """
+    name: str
+    title: str
+    radios: Dict[str, str]  # radio_name -> radio_alias
+    used_in_mission: bool = False  # Indicates if this collection is used in the mission
+
+    def __post_init__(self):
+        """Validate the preset collection data after initialization."""
+        if not isinstance(self.name, str):
+            raise TypeError("Preset collection name must be a string")
+        
+        if not isinstance(self.radios, dict):
+            raise TypeError("Radios must be a dictionary")
+        
+        for radio_name, radio_alias in self.radios.items():
+            if not isinstance(radio_name, str):
+                raise TypeError("Radio names must be strings")
+            if not isinstance(radio_alias, str):
+                raise TypeError(f"Radio alias for '{radio_name}' must be a string")
+    
+    def __str__(self) -> str:
+        """Return a human-readable string representation of the preset collection."""
+        return f"PresetCollection(name='{self.name}', radios={len(self.radios)} radios)"
+    
+    def add_radio(self, name: str, radio_alias: str) -> None:
+        """
+        Add a radio alias to the preset collection.
+        
+        Args:
+            name: The name of the radio slot
+            radio_alias: The alias of the radio definition
+        """
+        if not isinstance(name, str):
+            raise TypeError("Radio name must be a string")
+        if not isinstance(radio_alias, str):
+            raise TypeError("Radio alias must be a string")
+        
+        self.radios[name] = radio_alias
+    
+    def get_radio_alias(self, name: str) -> Optional[str]:
+        """
+        Get a radio alias by name.
+        
+        Args:
+            name: The name of the radio slot
+            
+        Returns:
+            str: The radio alias if found, None otherwise
+        """
+        return self.radios.get(name)
+    
+    def remove_radio(self, name: str) -> bool:
+        """
+        Remove a radio by name.
+        
+        Args:
+            name: The name of the radio slot
+            
+        Returns:
+            bool: True if the radio was removed, False if it didn't exist
+        """
+        if name in self.radios:
+            del self.radios[name]
+            return True
+        return False
+    
+    def get_resolved_radios(self, radios_definition: 'RadiosDefinition') -> Dict[str, Radio]:
+        """
+        Get the resolved radios by looking up aliases in radios_definition.
+        
+        Args:
+            radios_definition: The RadiosDefinition instance
+            
+        Returns:
+            Dict[str, Radio]: Dictionary of radio slot name to Radio instance
+        """
+        resolved = {}
+        for slot_name, alias in self.radios.items():
+            radio = radios_definition.get_radio(alias)
+            if radio is None:
+                raise ValueError(f"Radio alias '{alias}' not found in radios definition for slot '{slot_name}'")
+            resolved[slot_name] = radio
+        return resolved
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """
+        Convert the preset collection to a dictionary representation.
+        
+        Returns:
+            dict: Dictionary representation of the preset collection
+        """
+        return {
+            "title": self.title,
+            "radios": self.radios
+        }
+    
+    @classmethod
+    def from_dict(cls, name: str, data: Dict[str, Any], radios_definition: Optional['RadiosDefinition'] = None) -> 'PresetCollection':
         """
         Create a PresetCollection instance from a dictionary.
         
         Args:
             name: The name of the preset collection
             data: Dictionary containing preset collection data
+            radios_definition: Optional RadiosDefinition for validation (not used in creation)
             
         Returns:
             PresetCollection: New instance
         """
         title = data.get("title", "Unnamed preset collection")
-        radios = {
-            radio_name: Radio.from_dict(radio_name, radio_data)
-            for radio_name, radio_data in data["radios"].items()
-        }
+        radios = data.get("radios", {})
         return cls(name=name, title=title, radios=radios)
 
 
@@ -392,19 +502,20 @@ class PresetsDefinition:
         }
     
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'PresetsDefinition':
+    def from_dict(cls, data: Dict[str, Any], radios_definition: Optional['RadiosDefinition'] = None) -> 'PresetsDefinition':
         """
         Create a PresetsDefinition instance from a dictionary.
         
         Args:
             data: Dictionary containing presets definition data
+            radios_definition: Optional RadiosDefinition for resolving aliases
             
         Returns:
             PresetsDefinition: New instance
         """
         collections = {
             collection_name: PresetCollection.from_dict(
-                collection_name, collection_data
+                collection_name, collection_data, radios_definition
             )
             for collection_name, collection_data in data.items()
         }
@@ -457,7 +568,7 @@ class PresetAssignment:
         Returns:
             str: The preset name if found, None otherwise
         """
-        return self.assignments.get("coalitions", {}).get(coalition, {}).get(aircraft_type, {}).get(group_type)
+        return self.assignments.get(coalition, {}).get(aircraft_type, {}).get(group_type)
     
     def remove_assignment(self, coalition: str, aircraft_type: str, group_type: str) -> bool:
         """
@@ -506,13 +617,16 @@ class PresetsManager:
     """
     Main interface for loading and managing presets data.
     """
+    radios_definition: Optional[RadiosDefinition] = None
     presets_definition: Optional[PresetsDefinition] = None
     presets_assignment: Optional[PresetAssignment] = None
-    presets_images: Optional[Dict[str, io.BytesIO]] = None 
+    presets_images: Optional[Dict[str, io.BytesIO]] = None
     _cached_fonts: Optional['Fonts'] = None
 
     def __post_init__(self):
         """Initialize the presets manager."""
+        if self.radios_definition is None:
+            self.radios_definition = RadiosDefinition(radios={})
         if self.presets_definition is None:
             self.presets_definition = PresetsDefinition(collections={})
         if self.presets_assignment is None:
@@ -520,9 +634,10 @@ class PresetsManager:
     
     def __str__(self) -> str:
         """Return a human-readable string representation of the presets manager."""
+        radio_count = len(self.radios_definition.radios) if self.radios_definition else 0
         collection_count = len(self.presets_definition.collections) if self.presets_definition else 0
         coalition_count = len(self.presets_assignment.assignments) if self.presets_assignment else 0
-        return f"PresetsManager(collections={collection_count}, coalitions={coalition_count})"
+        return f"PresetsManager(radios={radio_count}, collections={collection_count}, coalitions={coalition_count})"
     
     def load_from_yaml(self, file_path: str) -> None:
         """
@@ -535,9 +650,15 @@ class PresetsManager:
             with open(file_path, 'r') as file:
                 data = yaml.safe_load(file)
 
+            # Load radios definition
+            if "radios_definition" in data:
+                self.radios_definition = RadiosDefinition.from_dict(data["radios_definition"])
+            else:
+                self.radios_definition = RadiosDefinition(radios={})
+
             # Load presets definition
             if "presets_definition" in data:
-                self.presets_definition = PresetsDefinition.from_dict(data["presets_definition"])
+                self.presets_definition = PresetsDefinition.from_dict(data["presets_definition"], self.radios_definition)
             else:
                 self.presets_definition = PresetsDefinition(collections={})
 
@@ -563,6 +684,10 @@ class PresetsManager:
         """
         try:
             data = {}
+            
+            # Save radios definition
+            if self.radios_definition:
+                data["radios_definition"] = self.radios_definition.to_dict()
             
             # Save presets definition
             if self.presets_definition:
@@ -663,8 +788,9 @@ class PresetsManager:
 
         # Browse the preset collection and generate an image for each
         for preset_collection in self.presets_definition.collections.values():
-            # Convert radios to a list to maintain order and allow indexing
-            radios_list = list(preset_collection.radios.items())
+            # Get resolved radios
+            resolved_radios = preset_collection.get_resolved_radios(self.radios_definition)
+            radios_list = list(resolved_radios.items())
             radio_count = len(radios_list)
             
             if radio_count > 0 and preset_collection.used_in_mission:

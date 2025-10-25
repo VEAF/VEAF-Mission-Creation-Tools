@@ -49,7 +49,7 @@ class PresetsInjectorWorker:
         """Load configuration from Lua file."""
         presets_manager = PresetsManager()
         try:
-            presets_manager.load_from_yaml(self.presets_file)        
+            presets_manager.read_yaml(self.presets_file)        
             return presets_manager
         except Exception as e:
             self.logger.error(f"Failed to load config file {self.presets_file}: {str(e)}", raise_exception=True)
@@ -137,26 +137,17 @@ class PresetsInjectorWorker:
 
         nb_units_processed = 0
         for group in [g for g in self.groups.values() if g.human_pilot]: # Inject radio presets in all aircraft groups with at least one human pilot
-            if preset := self.presets_manager.get_preset_assignment(coalition=group.coalition, aircraft_type=group.aircraft_type, group_type=group.unit_type) or self.presets_manager.get_preset_assignment(coalition=group.coalition, aircraft_type=group.aircraft_type):
-                if preset_collection := self.presets_manager.get_preset_collection(preset):
-                    preset_collection.used_in_mission = True
-                    self.logger.debug(f"Injecting preset '{preset}' into group '{group.name}' (type: {group.unit_type}, aircraft: {group.aircraft_type}, country: {group.country}, coalition: {group.coalition})")
-                    group.group_dcs["radioSet"] = True
-                    group.group_dcs["communication"] = False
-                    if units := group.group_dcs.get("units", {}):
-                        for unit in [u for u in units if u.get("skill", "") in ["Client", "Player"]]:
-                            nb_units_processed += 1
-                            resolved_radios = preset_collection.get_resolved_radios(self.presets_manager.radios_definition)
-                            unit["Radio"] = {
-                                int(radio_name) if radio_name.isdigit() else int(radio_name.split('_')[-1]): radio.to_dict() for radio_name, radio in resolved_radios.items()
-                            }
-                            # DCS forces the first channel of the first radio to the "frequency" of the group, even when "communication" is False... thanks ED!
-                            # We need to get this frequency and set it to the group's frequency
-                            if resolved_radios:
-                                if first_radio := next(iter(resolved_radios.values())):
-                                    if first_channel := next(iter(first_radio.channels.values())):
-                                        group.group_dcs["frequency"] = first_channel.freq
-
+            if preset_definition := self.presets_manager.get_radios_for(coalition=group.coalition, aircraft_type=group.aircraft_type, unit_type=group.unit_type):
+                preset_definition.used_in_mission = True
+                self.logger.debug(f"Injecting preset '{preset_definition}' into group '{group.name}' (type: {group.unit_type}, aircraft: {group.aircraft_type}, country: {group.country}, coalition: {group.coalition})")
+                group.group_dcs["radioSet"] = True
+                group.group_dcs["communication"] = False
+                if units := group.group_dcs.get("units", {}):
+                    for unit in [u for u in units if u.get("skill", "") in ["Client", "Player"]]:
+                        nb_units_processed += 1
+                        unit["Radio"] = preset_definition.to_dict()
+                        if first_freq := preset_definition.get_freq_of_first_channel_of_first_radio():
+                            group.group_dcs["frequency"] = first_freq
         if not silent: self.logger.info(f"Injected presets into {nb_units_processed} aircraft{'s' if nb_units_processed > 1 else ''}")
                     
     def write_mission(self, silent:bool=False) -> None:
@@ -167,8 +158,8 @@ class PresetsInjectorWorker:
         # Prepare saving kneeboard pages if generated
         additional_files = {}
         if self.presets_manager.presets_images:
-            for preset_collection_name, image in self.presets_manager.presets_images.items():
-                additional_files[f"KNEEBOARD/IMAGES/presets-{preset_collection_name}.png"] = image.getvalue()
+            for preset_name, image in self.presets_manager.presets_images.items():
+                additional_files[f"KNEEBOARD/IMAGES/presets-{preset_name}.png"] = image.getvalue()
             if not silent: self.logger.info(f"Added {len(self.presets_manager.presets_images)} kneeboard page{"s" if len(self.presets_manager.presets_images) > 1 else ""} to mission")
 
         # Save the mission

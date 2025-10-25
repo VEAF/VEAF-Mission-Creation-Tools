@@ -2,6 +2,15 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "veaf-tools radio presets manager unit tests",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/python/veaf-tools/presets_injector/test_presets.py",
+            "cwd": "${workspaceFolder}",
+            "args": [],
+            "console": "integratedTerminal"
+        },       
+        {
             "name": "veaf-tools radio presets injection",
             "type": "debugpy",
             "request": "launch",

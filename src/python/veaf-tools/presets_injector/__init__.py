@@ -5,22 +5,30 @@ This package provides classes for managing radio presets data from YAML files.
 """
 
 from .presets_manager import (
-    RadioChannel,
-    Radio,
+    Channel,
+    ChannelDefinition,
+    ChannelCollection,
+    RadioDefinition,
+    RadioCollection,
+    PresetDefinition,
     PresetCollection,
-    PresetsDefinition,
     PresetAssignment,
+    PresetAssignmentCollection,
     PresetsManager
 )
 from .presets_injector_worker import PresetsInjectorWorker
 from .presets_injector_README import PresetsInjectorREADME
 
 __all__ = [
-    "RadioChannel",
-    "Radio",
+    "Channel",
+    "ChannelDefinition",
+    "ChannelCollection",
+    "RadioDefinition",
+    "RadioCollection",
+    "PresetDefinition",
     "PresetCollection",
-    "PresetsDefinition",
     "PresetAssignment",
+    "PresetAssignmentCollection",
     "PresetsManager",
     "PresetsInjectorWorker",
     "PresetsInjectorREADME"

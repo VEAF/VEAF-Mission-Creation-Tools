@@ -80,6 +80,10 @@ if "%VERBOSE_FLAG%"=="true" set VERBOSE_PARAM=-KeepLogging
 set SECURITY_DISABLED_PARAM=
 if "%SECURITY_DISABLED_FLAG%"=="true" set SECURITY_DISABLED_PARAM=-DisableSecurity
 
+rem empty the 'published' folder first
+rmdir /s /q published
+mkdir published
+
 rem compile the standard script
 powershell -file compile.ps1 -ArtefactName "%ARTEFACT_NAME%" -VersionTag "%VERSION_TAG%" -DevelopmentVersion %DEVELOPMENT_VERSION_PARAM% -KeepLogging %VERBOSE_PARAM% -DisableSecurity %SECURITY_DISABLED_PARAM% -Quiet %QUIET_PARAM%
 
@@ -94,8 +98,15 @@ call .\.venv\Scripts\activate.bat
 pyinstaller --onefile --name veaf-tools --distpath .\published src\python\veaf-tools\veaf-tools.py
 call .\.venv\Scripts\deactivate.bat
 
+rem publish the default configuration files
+xcopy /Y /E /S /I src\defaults published\defaults
+
+rem publish the source files
+xcopy /Y /E /S /I src\scripts\community published\src\scripts\community
+xcopy /Y /E /S /I src\scripts\veaf published\src\scripts\veaf
+
 rem publish the build scripts
-xcopy /Y /E /S src\build-scripts published\build-scripts
+xcopy /Y /E /S /I src\build-scripts published\build-scripts
 
 IF [%NOPAUSE%] == [true] GOTO EndOfFile
 pause

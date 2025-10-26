@@ -6,13 +6,12 @@ This module provides classes for reading and writing missions to and from .miz f
 import contextlib
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Dict, Optional
 import io
 import luadata
 import os
 import zipfile
 import tempfile
-import zipfile
 import os
 from pathlib import Path
 from typing import Optional, Dict

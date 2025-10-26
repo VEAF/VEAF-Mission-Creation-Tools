@@ -11,7 +11,7 @@ import tempfile
 
 class MissionExtractorWorker:
     """
-    Worker class that extracts a .miz mission fole to a VEAF mission folder.
+    Worker class that extracts a .miz mission file to a VEAF mission folder.
     """
     
     def __init__(self, mission_folder: Path, input_mission_path: Path, logger: Optional[VeafLogger]):

@@ -122,14 +122,14 @@ class TestPresets(unittest.TestCase):
         self.assertEqual(cc.channel_definitions["channel1"].frequencies["uhf"], 225.0)
 
     def test_radio_definition_init(self):
-        rd = RadioDefinition(name="test_radio", type="uhf", title="Test Radio")
+        rd = RadioDefinition(name="test_radio", radio_type="uhf", title="Test Radio")
         self.assertEqual(rd.name, "test_radio")
-        self.assertEqual(rd.type, "uhf")
+        self.assertEqual(rd.radio_type, "uhf")
         self.assertEqual(rd.title, "Test Radio")
         self.assertEqual(rd.channels, [])
 
     def test_radio_definition_add_channel(self):
-        rd = RadioDefinition(name="test_radio", type="uhf")
+        rd = RadioDefinition(name="test_radio", radio_type="uhf")
         channel = Channel(name_or_number="channel_01", freq=225.0)
         self.assertEqual(channel.number, 1)
         rd.add_channel(channel)
@@ -141,7 +141,7 @@ class TestPresets(unittest.TestCase):
             rd.add_channel(None)
 
     def test_radio_definition_to_dict(self):
-        rd = RadioDefinition(name="test_radio", type="uhf")
+        rd = RadioDefinition(name="test_radio", radio_type="uhf")
         channel1 = Channel(name_or_number="01", title="Test1", freq=225.0)
         channel2 = Channel(name_or_number="02", title="Test2", freq=243.0)
         rd.add_channel(channel1)
@@ -172,7 +172,7 @@ class TestPresets(unittest.TestCase):
         rd = RadioDefinition.from_dict("test_radio", data, channel_collections)
         self.assertEqual(rd.name, "test_radio")
         self.assertEqual(rd.title, "Test Radio")
-        self.assertEqual(rd.type, "uhf")
+        self.assertEqual(rd.radio_type, "uhf")
         self.assertEqual(len(rd.channels), 2)
         self.assertEqual(rd.channels[0].number, 1)
         self.assertEqual(rd.channels[0].freq, 243.0)
@@ -211,7 +211,7 @@ class TestPresets(unittest.TestCase):
 
     def test_radio_collection_add_radio_definition(self):
         rc = RadioCollection(name="test_rc")
-        rd = RadioDefinition(name="test_radio", type="uhf")
+        rd = RadioDefinition(name="test_radio", radio_type="uhf")
         rc.add_radio_definition(rd)
         self.assertEqual(rc.radio_definitions["test_radio"], rd)
         self.assertEqual(rd.collection_name, "test_rc")
@@ -220,7 +220,7 @@ class TestPresets(unittest.TestCase):
         with self.assertRaises(ValueError):
             rc.add_radio_definition(None)
 
-        rd_no_name = RadioDefinition(name="", type="uhf")
+        rd_no_name = RadioDefinition(name="", radio_type="uhf")
         with self.assertRaises(ValueError):
             rc.add_radio_definition(rd_no_name)
 
@@ -236,19 +236,19 @@ class TestPresets(unittest.TestCase):
         self.assertIsInstance(rc, RadioCollection)
         self.assertEqual(rc.name, "test_rc")
         self.assertIn("radio1", rc.radio_definitions)
-        self.assertEqual(rc.radio_definitions["radio1"].type, "uhf")
+        self.assertEqual(rc.radio_definitions["radio1"].radio_type, "uhf")
 
     def test_preset_definition_init(self):
         pd = PresetDefinition(name="test_preset")
         self.assertEqual(pd.name, "test_preset")
-        self.assertEqual(pd.radios, [])
+        self.assertEqual(pd.radios, {})
 
     def test_preset_definition_add_radio(self):
         pd = PresetDefinition(name="test_preset")
-        rd = RadioDefinition(name="test_radio", type="uhf")
+        rd = RadioDefinition(name="test_radio", radio_type="uhf")
         pd.add_radio(rd)
         self.assertEqual(len(pd.radios), 1)
-        self.assertEqual(pd.radios[0], rd)
+        self.assertEqual(pd.radios["test_radio"], rd)
 
         # Test invalid radio
         with self.assertRaises(ValueError):
@@ -256,8 +256,8 @@ class TestPresets(unittest.TestCase):
 
     def test_preset_definition_to_dict(self):
         pd = PresetDefinition(name="test_preset")
-        rd1 = RadioDefinition(name="radio1", type="uhf")
-        rd2 = RadioDefinition(name="radio2", type="vhf")
+        rd1 = RadioDefinition(name="radio1", radio_type="uhf")
+        rd2 = RadioDefinition(name="radio2", radio_type="vhf")
         pd.radios = {"1": rd1, "2": rd2}
         result = pd.to_dict()
         expected = {
@@ -282,7 +282,7 @@ class TestPresets(unittest.TestCase):
         pd = PresetDefinition.from_dict("test_preset", data, radio_collections)
         self.assertEqual(pd.name, "test_preset")
         self.assertEqual(len(pd.radios), 1)
-        self.assertEqual(pd.radios[0].name, "radio1")
+        self.assertEqual(pd.radios["radio1"].name, "radio1")
 
         # Test missing radios
         data_no_radios = {}

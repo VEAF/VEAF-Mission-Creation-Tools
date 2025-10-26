@@ -201,5 +201,13 @@
             "args": ["build-mission", "--scripts-path", "${workspaceFolder}", ".",  "test"],
             "console": "integratedTerminal"
         },
-    ]
+        {
+            "name": "veaf-tools - radio presets injection - Foothold Syria",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/python/veaf-tools/veaf-tools.py",
+            "cwd": "d:/dev/_VEAF/VEAF-Foothold-Syria",
+            "args": ["inject-presets", "MA_Foothold_SY_2.3.7_Modern_ICAO_OLBA"],
+            "console": "integratedTerminal"
+        },    ]
 }

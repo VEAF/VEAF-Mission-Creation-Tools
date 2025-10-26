@@ -8,7 +8,7 @@ from typing import Any, Dict, Optional
 
 from mission_tools import DcsMission, read_miz, write_miz, spinner_context
 
-from .presets_manager import PresetsManager
+from .presets_manager import PresetDefinition, PresetsManager
 from veaf_logger import VeafLogger
 
 @dataclass
@@ -131,6 +131,18 @@ class PresetsInjectorWorker:
         for group in groups_list:
             self.add_group(group, aircraft_type=aircraft_type, country=country_name, coalition=coalition_name)
 
+    def process_units(self, group: Group, preset_definition: PresetDefinition) -> int:
+        nb_units_processed = 0
+        if units := group.group_dcs.get("units", {}):
+            for unit in [u for u in units if u.get("skill", "") in ["Client", "Player"]]:
+                nb_units_processed += 1
+                unit["Radio"] = preset_definition.to_dict()
+                if preset_definition == PresetDefinition.EMPTY:
+                    if "frequency" in group.group_dcs: del group.group_dcs["frequency"]
+                elif first_freq := preset_definition.get_freq_of_first_channel_of_first_radio():
+                        group.group_dcs["frequency"] = first_freq
+        return nb_units_processed
+
     def process_groups(self, silent:bool=False) -> None:
         """Process all the aircraft groups."""
         if not silent: self.logger.info(f"Processing {len(self.groups)} aircraft group{'s' if len(self.groups) > 1 else ''}")
@@ -140,14 +152,10 @@ class PresetsInjectorWorker:
             if preset_definition := self.presets_manager.get_radios_for(coalition=group.coalition, aircraft_type=group.aircraft_type, unit_type=group.unit_type):
                 preset_definition.used_in_mission = True
                 self.logger.debug(f"Injecting preset '{preset_definition}' into group '{group.name}' (type: {group.unit_type}, aircraft: {group.aircraft_type}, country: {group.country}, coalition: {group.coalition})")
-                group.group_dcs["radioSet"] = True
+                group.group_dcs["radioSet"] = preset_definition != PresetDefinition.EMPTY
                 group.group_dcs["communication"] = False
-                if units := group.group_dcs.get("units", {}):
-                    for unit in [u for u in units if u.get("skill", "") in ["Client", "Player"]]:
-                        nb_units_processed += 1
-                        unit["Radio"] = preset_definition.to_dict()
-                        if first_freq := preset_definition.get_freq_of_first_channel_of_first_radio():
-                            group.group_dcs["frequency"] = first_freq
+                nb_units_processed = nb_units_processed + self.process_units(group, preset_definition)
+                
         if not silent: self.logger.info(f"Injected presets into {nb_units_processed} aircraft{'s' if nb_units_processed > 1 else ''}")
                     
     def write_mission(self, silent:bool=False) -> None:

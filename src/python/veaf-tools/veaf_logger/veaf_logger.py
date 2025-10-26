@@ -15,7 +15,7 @@ class VeafLogger:
         # Only add handlers if they don't exist
         if not self.logger.handlers:
             # File handler
-            file_handler = logging.FileHandler(f"{logger_name}.log", mode='w')
+            file_handler = logging.FileHandler(f"{logger_name}.log", mode='a')
             file_handler.setFormatter(
                 logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
             )

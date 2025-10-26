@@ -29,7 +29,7 @@ from mission_converter import MissionConverterWorker, MissionConverterREADME
 import typer
 from datetime import datetime
 
-VERSION:str = "0.2.0"
+VERSION:str = "0.3.0"
 README_HELP: str = "Provide access to the README file."
 VERBOSE_HELP: str = "If set, the script will output a lot of debug information."
 

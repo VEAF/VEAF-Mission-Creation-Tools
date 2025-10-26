@@ -1,137 +1,140 @@
 PresetsInjectorREADME="""
-# VEAF Radio Presets Injector
+# VEAF Tools - Radio Presets Injector User Guide
 
-The VEAF Radio Presets Injector is a tool that allows you to inject radio presets into DCS mission files programmatically. This tool reads radio preset configurations from a YAML file and applies them to aircraft groups in your mission.
+The Radio Presets Injector is a tool that automatically injects radio frequency presets into DCS World mission files (.miz) for aircraft groups with human pilots. This simplifies mission setup by pre-configuring radio channels with realistic frequencies for airports, tactical communications, and flight callsigns.
 
-## Command Line Usage
+## Overview
+
+The injector works by:
+1. Reading a YAML configuration file that defines radio presets, channels, and assignments
+2. Scanning the mission file for aircraft groups containing human pilots
+3. Injecting the appropriate radio presets based on coalition, aircraft type, and unit type
+4. Optionally generating kneeboard images showing the preset configurations
+
+## Prerequisites
+
+- A DCS World mission file (.miz)
+- A presets configuration file (typically `presets.yaml`)
+- Python environment with veaf-tools installed
+
+## Usage
+
+### Command Line
 
 ```bash
-python veaf-tools.py inject-presets [OPTIONS] [INPUT_MISSION] [OUTPUT_MISSION]
+python veaf-tools.py inject-presets [OPTIONS] INPUT_MISSION [OUTPUT_MISSION]
 ```
 
-### Arguments
+#### Parameters
 
-- `INPUT_MISSION`: The DCS mission file (.miz) to edit. Defaults to "mission.miz" if not specified.
-- `OUTPUT_MISSION`: The DCS mission file (.miz) to save. Defaults to the same as INPUT_MISSION if not specified.
+- `INPUT_MISSION`: Path to the input .miz mission file, or mission name (will find the most recent matching .miz file)
+- `OUTPUT_MISSION`: (Optional) Path for the output mission file. Defaults to overwriting the input file.
 
-### Options
+#### Options
 
-- `--verbose`: If set, the script will output detailed debug information.
-- `--presets-file TEXT`: Configuration file containing the presets. Defaults to "presets.yaml" if not specified.
+- `--presets-file PATH`: Path to the presets YAML configuration file (default: `./src/presets.yaml`)
+- `--verbose`: Enable detailed logging output
+- `--readme`: Display the README documentation
 
-### Examples
+#### Examples
 
 ```bash
-# Basic usage with default files
-python veaf-tools.py inject-presets
+# Inject presets using default configuration
+python veaf-tools.py inject-presets my_mission.miz
 
-# Specify input and output mission files
-python veaf-tools.py inject-presets my_mission.miz output_mission.miz
+# Inject presets with custom configuration and output file
+python veaf-tools.py inject-presets --presets-file custom_presets.yaml input.miz output.miz
 
-# Use a custom presets file
-python veaf-tools.py inject-presets --presets-file custom_presets.yaml
-
-# Enable verbose output
-python veaf-tools.py inject-presets --verbose
-
-# Combine options
-python veaf-tools.py inject-presets --verbose --presets-file my_presets.yaml input.miz output.miz
+# Verbose mode for debugging
+python veaf-tools.py inject-presets --verbose my_mission.miz
 ```
 
-## Presets Configuration File
+## Configuration File Format
 
-The presets configuration file is a YAML file that defines radio presets and their assignments. It has two main sections:
+The presets are defined in a YAML file with the following structure:
 
-### presets_definition
+### Channels Collection
 
-This section defines collections of radio presets that can be assigned to aircraft.
+Defines available radio channels with frequencies for different radio types (UHF, VHF, FM):
 
 ```yaml
-presets_definition:
-  modern_blue:  # Name of the preset collection
-    title: Blue coalition planes and helicopters  # Display name for kneeboard
-    radios:
-      radio_1:  # First radio (will be [1] in DCS mission file)
-        title: UHF/Primary  # Display name for kneeboard
-        channels:  # Channel definitions
-          channel_01:  # First channel (will be [1] in DCS mission file)
-            freq: 243.000  # Frequency in MHz (mandatory)
-            name: Guard    # Channel name (optional)
-            mod: 0         # Modulation (0=AM, 1=FM, 2=VHF AM, 3=UHF) (optional, defaults to 0)
-          channel_02:
-            freq: 260.000
-            name: Batumi / 16X
-          # ... more channels
-      radio_2:  # Second radio (will be [2] in DCS mission file)
-        title: VHF/Secondary
-        channels:
-          # ... channel definitions
-      # ... more radios
-  modern_red:  # Another preset collection
-    # ... similar structure
+channels_collection:
+  airports-caucasus:
+    Batumi:
+      title: Batumi / 16X
+      freqs:
+        uhf: 260
+        vhf: 131
+        fm: 40.4
 ```
 
-### presets_assignments
+### Radios Collection
 
-This section defines which preset collections are assigned to which coalitions and aircraft types.
+Defines radio configurations that reference channels:
+
+```yaml
+radios_collection:
+  blue_radios:
+    radio_uhf_30:
+      title: UHF
+      type: uhf
+      channels:
+        01: Guard
+        02: Archer
+        10: Stennis
+```
+
+### Presets Collection
+
+Groups radios into named presets:
+
+```yaml
+presets_collection:
+  blue_presets:
+    modern_blue_uhf_vhf_fm:
+      title: Blue coalition - classic UHF/VHF/FM
+      radios:
+        radio_1: radio_uhf_30
+        radio_2: radio_vhf_30
+        radio_3: radio_fm_30
+```
+
+### Presets Assignments
+
+Assigns presets to specific aircraft types and coalitions:
 
 ```yaml
 presets_assignments:
-  coalitions:
-    blue:  # Blue coalition
-      plane:  # For fixed-wing aircraft
-        all: modern_blue    # All planes use modern_blue presets
-      helicopter:  # For rotary-wing aircraft
-        Mi-8MT: none        # Mi-8MT helicopters use no presets
-        all: modern_blue    # All other helicopters use modern_blue presets
-    red:  # Red coalition
-      plane:
-        all: modern_red     # All planes use modern_red presets
-      helicopter:
-        all: none           # All helicopters use no presets
+  blue:
+    plane:
+      all: modern_blue_uhf_vhf_fm
+      A-10C_2: modern_blue_vhf_uhf_fm
+    helicopter:
+      all: modern_blue_uhf_vhf_fm
+      CH-47Fbl1: modern_blue_fm_uhf
 ```
 
 ## How It Works
 
-1. The tool reads the specified DCS mission file (.miz), which is essentially a ZIP archive containing mission data.
-2. It parses the mission data to identify all aircraft groups in the mission.
-3. For each aircraft group, it determines the coalition (blue/red), aircraft type (plane/helicopter), and specific unit type.
-4. Based on the presets assignments in the configuration file, it selects the appropriate preset collection for each group.
-5. It injects the radio presets into the aircraft group data in the mission file.
-6. It generates kneeboard images showing the radio presets for each used collection.
-7. It saves the modified mission file, including the new kneeboard images.
+1. **Mission Scanning**: The tool unzips and parses the .miz file to find all aircraft groups
+2. **Pilot Detection**: Identifies groups with human pilots (Client/Player skill levels)
+3. **Preset Matching**: Matches each group to the appropriate preset based on coalition, aircraft type, and unit type
+4. **Injection**: Updates the mission's radio configuration for each matching group
+5. **Kneeboard Generation**: Creates PNG images of the preset tables for pilots' reference
 
-## Kneeboard Generation
+## Output
 
-When presets are injected into a mission, the tool automatically generates kneeboard images showing the radio presets for each preset collection that was used. These images are added to the mission file and can be accessed in-game by pilots.
+- Modified .miz file with injected radio presets
+- Kneeboard images (if presets are used) saved as `KNEEBOARD/IMAGES/presets-{preset_name}.png` within the mission file
+- Console output showing processing progress and number of units updated
 
-The kneeboard images display:
-- The preset collection title
-- Each radio with its title
-- Channel numbers, names, and frequencies in a tabular format
+## Troubleshooting
 
-## Supported Radio Types
+- **No presets injected**: Check that aircraft groups have human pilots and match the assignment criteria
+- **Configuration errors**: Validate YAML syntax and ensure all referenced channels/radios exist
+- **File not found**: Verify paths to mission and presets files are correct
 
-The tool supports up to 3 radios per aircraft:
-- `radio_1`: Primary radio (typically UHF)
-- `radio_2`: Secondary radio (typically VHF)
-- `radio_3`: Ground communication radio (typically FM)
+## Integration
 
-## Supported Modulations
-
-- `0`: AM (Amplitude Modulation)
-- `1`: FM (Frequency Modulation)
-- `2`: VHF AM
-- `3`: UHF
-
-## Error Handling
-
-The tool performs validation on:
-- Input mission file existence
-- Presets configuration file existence and validity
-- Frequency ranges (0-100000 MHz)
-- Modulation values (0-3)
-- Proper structure of the presets configuration file
-
-If any validation fails, the tool will display an error message and abort the operation.
+The presets injector can be used standalone or as part of the mission conversion workflow via the `convert-mission` command with the `--inject-presets` flag.
 """

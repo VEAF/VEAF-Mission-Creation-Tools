@@ -28,8 +28,9 @@ from mission_extractor import MissionExtractorWorker, MissionExtractorREADME
 from mission_converter import MissionConverterWorker, MissionConverterREADME
 import typer
 from datetime import datetime
+from github import Github
 
-VERSION:str = "0.3.0"
+VERSION:str = "6.0.0"
 README_HELP: str = "Provide access to the README file."
 VERBOSE_HELP: str = "If set, the script will output a lot of debug information."
 
@@ -150,12 +151,12 @@ def build_mission(
 
 
     # Resolve input mission folder
-    p_mission_folder = resolve_path(logger=logger, path=mission_folder, default_path=Path.cwd(), should_exist=True)
+    p_mission_folder = resolve_path(path=mission_folder, default_path=Path.cwd(), should_exist=True)
     if not p_mission_folder.exists():
         logger.error(f"Mission folder {p_mission_folder} does not exist!", exception_type=FileNotFoundError)
 
     # Resolve output mission
-    p_output_mission = resolve_path(logger=logger, path=mission_name_or_file)
+    p_output_mission = resolve_path(path=mission_name_or_file)
     if p_output_mission.suffix.lower() != ".miz":
         # Compute a file name from the mission name
         p_output_mission = Path(f"{mission_name_or_file}_{datetime.now().strftime('%Y%m%d')}.miz")
@@ -165,14 +166,14 @@ def build_mission(
         # default value is the "/node_modules/veaf-mission-creation-tools" subfolder of the mission folder
         scripts_path = p_mission_folder / "node_modules" / "veaf-mission-creation-tools"
     if scripts_path:
-        p_scripts_path = resolve_path(logger=logger, path=scripts_path, should_exist=True)
+        p_scripts_path = resolve_path(path=scripts_path, should_exist=True)
         if not p_scripts_path.exists():
             logger.error(f"Development folder {p_scripts_path} does not exist!", exception_type=FileNotFoundError)
     else:
         p_scripts_path = None
 
     # Call the worker class
-    worker = MissionBuilderWorker(logger=logger, dynamic_mode=dynamic_mode, scripts_path=p_scripts_path, mission_folder=p_mission_folder, output_mission=p_output_mission, migrate_from_v5=migrate_from_v5)
+    worker = MissionBuilderWorker(dynamic_mode=dynamic_mode, scripts_path=p_scripts_path, mission_folder=p_mission_folder, output_mission=p_output_mission, migrate_from_v5=migrate_from_v5)
     worker.work()
 
     console.print(WORK_DONE_MESSAGE)
@@ -201,7 +202,7 @@ def extract_mission(
         exit()
 
     # Resolve output mission folder
-    p_mission_folder = resolve_path(logger=logger, path=mission_folder, default_path=Path.cwd(), create_if_not_exist=True)
+    p_mission_folder = resolve_path(path=mission_folder, default_path=Path.cwd(), create_if_not_exist=True)
     if not p_mission_folder.exists():
         logger.error(f"Mission folder {p_mission_folder} does not exist!", exception_type=FileNotFoundError)
 
@@ -210,10 +211,10 @@ def extract_mission(
     if not mission_name_or_file.lower().endswith(".miz"):
         if files := list(p_mission_folder.glob(f"{mission_name_or_file}*.miz")):
             p_input_mission = max(files, key=lambda f: f.stat().st_mtime)
-    p_input_mission = resolve_path(logger=logger, path=p_input_mission, should_exist=True)
+    p_input_mission = resolve_path(path=p_input_mission, should_exist=True)
     
     # Call the worker class
-    worker = MissionExtractorWorker(logger=logger, mission_folder=p_mission_folder, input_mission_path=p_input_mission)
+    worker = MissionExtractorWorker(mission_folder=p_mission_folder, input_mission_path=p_input_mission)
     worker.work()
 
     console.print(WORK_DONE_MESSAGE)
@@ -247,7 +248,7 @@ def convert_mission(
 
 
     # Resolve output mission folder
-    p_mission_folder = resolve_path(logger=logger, path=mission_folder, default_path=Path.cwd(), should_exist=True)
+    p_mission_folder = resolve_path(path=mission_folder, default_path=Path.cwd(), should_exist=True)
     if not p_mission_folder.exists():
         logger.error(f"Mission folder {p_mission_folder} does not exist!", exception_type=FileNotFoundError)
 
@@ -255,7 +256,7 @@ def convert_mission(
     p_input_mission = mission_name
     if files := list(p_mission_folder.glob(f"{mission_name}*.miz")):
         p_input_mission = max(files, key=lambda f: f.stat().st_mtime)
-    p_input_mission = resolve_path(logger=logger, path=p_input_mission, should_exist=True)
+    p_input_mission = resolve_path(path=p_input_mission, should_exist=True)
     
     # Compute a file name from the mission name
     p_output_mission = Path(f"{mission_name}_{datetime.now().strftime('%Y%m%d')}.miz")
@@ -265,7 +266,7 @@ def convert_mission(
         # default value is the "/node_modules/veaf-mission-creation-tools" subfolder of the mission folder
         scripts_path = p_mission_folder / "node_modules" / "veaf-mission-creation-tools"
     if scripts_path:
-        p_scripts_path = resolve_path(logger=logger, path=scripts_path, should_exist=True)
+        p_scripts_path = resolve_path(path=scripts_path, should_exist=True)
         if not p_scripts_path.exists():
             logger.error(f"Development folder {p_scripts_path} does not exist!", exception_type=FileNotFoundError)
     else:
@@ -273,16 +274,47 @@ def convert_mission(
 
     # Resolve presets configuration file
     if p_presets_file := presets_file:
-        p_presets_file = resolve_path(logger=logger, path=presets_file, should_exist=True)
+        p_presets_file = resolve_path(path=presets_file, should_exist=True)
         if not p_presets_file.exists():
             logger.error(f"Configuration file {p_presets_file} does not exist!", exception_type=FileNotFoundError)
 
     # Call the worker class
-    worker = MissionConverterWorker(mission_folder=p_mission_folder, input_mission=p_input_mission, output_mission=p_output_mission, mission_name=mission_name, logger=logger, dynamic_mode=dynamic_mode, scripts_path=p_scripts_path, inject_presets=inject_presets, presets_file=p_presets_file)
+    worker = MissionConverterWorker(mission_folder=p_mission_folder, input_mission=p_input_mission, output_mission=p_output_mission, mission_name=mission_name, dynamic_mode=dynamic_mode, scripts_path=p_scripts_path, inject_presets=inject_presets, presets_file=p_presets_file)
     worker.work()
 
     console.print(WORK_DONE_MESSAGE)
     # input("Press Enter to exit...")
+
+@app.command()
+def update(
+    verbose: bool = typer.Option(False, help=VERBOSE_HELP),
+    tag: Optional[str] = typer.Option("releases/v6-latest", help="Tag that will be used to fetch files from Github"),
+    mission_folder: Optional[str] = typer.Argument(".", help="Folder with the mission files.")
+) -> None:
+    """
+    Gets the latest VEAF Tools files from GitHub.
+    """
+
+    logger.set_verbose(verbose)
+
+    # Set the title and version
+    console.print(f"[bold green]veaf-tools updated v{VERSION}[/bold green]")
+
+    # Resolve output mission folder
+    p_mission_folder = resolve_path(path=mission_folder, default_path=Path.cwd(), should_exist=True)
+    if not p_mission_folder.exists():
+        logger.error(f"Mission folder {p_mission_folder} does not exist!", exception_type=FileNotFoundError)
+
+    # Get github data
+    github = Github()
+    repository = github.get_repo("VEAF/VEAF-Mission-Creation-Tools")
+    folder = repository.get_contents(path="./src", ref="releases/v6-latest")
+    print(folder)
+
+
+    console.print(WORK_DONE_MESSAGE)
+    # input("Press Enter to exit...")
+
 
 if __name__ == "__main__":
     app()

@@ -176,18 +176,18 @@ class PresetsInjectorWorker:
         """Main work function."""
 
         # Load the mission from the .miz file (unzip it) and process aircraft groups
-        with spinner_context(f"Reading {self.input_mission}...", logger=logger, silent=silent):
+        with spinner_context(f"Reading {self.input_mission}...", silent=silent):
             self.read_mission(silent)
        
 
         # Process all the aircraft groups
-        with spinner_context("Processing groups...", logger=logger, silent=silent):
+        with spinner_context("Processing groups...", silent=silent):
             self.process_groups(silent)
 
         # Generate kneeboard pages if needed
-        with spinner_context("Generating preset images...", logger=logger, silent=silent):
+        with spinner_context("Generating preset images...", silent=silent):
             self.presets_manager.generate_presets_images(width=1200, height=None)
 
         # Write the mission file
-        with spinner_context("Writing mission...", logger=logger, silent=silent):
+        with spinner_context("Writing mission...", silent=silent):
             self.write_mission(silent)

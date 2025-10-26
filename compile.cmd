@@ -102,11 +102,20 @@ rem publish the default configuration files
 xcopy /Y /E /S /I src\defaults published\defaults
 
 rem publish the source files
-xcopy /Y /E /S /I src\scripts\community published\src\scripts\community
-xcopy /Y /E /S /I src\scripts\veaf published\src\scripts\veaf
+rem xcopy /Y /E /S /I src\scripts\community published\src\scripts\community
+rem xcopy /Y /E /S /I src\scripts\veaf published\src\scripts\veaf
 
 rem publish the build scripts
 xcopy /Y /E /S /I src\build-scripts published\build-scripts
+
+rem publish the package.json file
+xcopy /Y package.json published\
+
+rem zip the published files
+7z a published.zip .\published
+
+rem delete the published folder
+rmdir /s /q published
 
 IF [%NOPAUSE%] == [true] GOTO EndOfFile
 pause

@@ -25,3 +25,6 @@ test/veaf-tools/mission-builder/built
 test/veaf-tools/mission-extractor/extracted
 test/veaf-tools/demo-mission/veaf-demo-mission_*.miz
 test/veaf-tools/presets-injector/test-out.miz
+test/veaf-tools/update/*
+published/
+

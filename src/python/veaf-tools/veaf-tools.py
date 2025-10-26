@@ -18,17 +18,27 @@ Example:
 All the commands feature both `--help` and `--readme` options that display online help.
 """
 
+from io import BytesIO
+import json
 from pathlib import Path
+import re
+import shutil
+import tempfile
+import zipfile
 from rich.markdown import Markdown
 from typing import Optional
+
+import urllib
 from veaf_logger import logger, console
 from presets_injector import PresetsInjectorWorker, PresetsInjectorREADME
 from mission_builder import MissionBuilderWorker, MissionBuilderREADME
 from mission_extractor import MissionExtractorWorker, MissionExtractorREADME
 from mission_converter import MissionConverterWorker, MissionConverterREADME
+from mission_tools import spinner_context
 import typer
 from datetime import datetime
-from github import Github
+from github import Github, Repository
+import requests
 
 VERSION:str = "6.0.0"
 README_HELP: str = "Provide access to the README file."
@@ -285,10 +295,41 @@ def convert_mission(
     console.print(WORK_DONE_MESSAGE)
     # input("Press Enter to exit...")
 
+def download_folder(repo: Repository, folder_path, tag, local_path):
+    """Recursively download a folder from GitHub"""
+    local_path = Path(local_path)
+    
+    def download_recursive(contents, local_dir):
+        for content in contents:
+            if content.type == "dir":
+                new_dir = local_dir / content.name
+                new_dir.mkdir(parents=True, exist_ok=True)
+                download_recursive(repo.get_contents(content.path, ref=tag), new_dir)
+            else:
+                file_path = local_dir / content.name
+                file_content = repo.get_contents(content.path, ref=tag)
+                
+                # Use download_url instead of decoded_content
+                download_url = file_content.download_url
+                urllib.request.urlretrieve(download_url, file_path)
+
+    
+    local_path.mkdir(parents=True, exist_ok=True)
+    contents = repo.get_contents(folder_path, ref=tag)
+    download_recursive(contents, local_path)
+
+def check_github_response(response: requests.Response, action: str):
+    if response.status_code == 403 and response.reason == "rate limit exceeded":
+        logger.warning("\nGitHub API has reached its rate limit. You should wait for a moment (suggesting an hour) and retry...")
+        logger.error(f'{action} failed: {response.reason} ({response.status_code})')
+    elif response.status_code != 200:
+        logger.error(f'\n{action} failed: {response.reason} ({response.status_code})')
+
 @app.command()
 def update(
     verbose: bool = typer.Option(False, help=VERBOSE_HELP),
-    tag: Optional[str] = typer.Option("releases/v6-latest", help="Tag that will be used to fetch files from Github"),
+    force: bool = typer.Option(False, help="If set, no check will be done and the files will be downloaded from GitHub"),
+    tag: Optional[str] = typer.Option("latest", help="Tag that will be used to fetch files from GitHub"),
     mission_folder: Optional[str] = typer.Argument(".", help="Folder with the mission files.")
 ) -> None:
     """
@@ -298,23 +339,68 @@ def update(
     logger.set_verbose(verbose)
 
     # Set the title and version
-    console.print(f"[bold green]veaf-tools updated v{VERSION}[/bold green]")
+    console.print(f"[bold green]veaf-tools updater v{VERSION}[/bold green]")
 
     # Resolve output mission folder
     p_mission_folder = resolve_path(path=mission_folder, default_path=Path.cwd(), should_exist=True)
     if not p_mission_folder.exists():
         logger.error(f"Mission folder {p_mission_folder} does not exist!", exception_type=FileNotFoundError)
 
-    # Get github data
-    github = Github()
-    repository = github.get_repo("VEAF/VEAF-Mission-Creation-Tools")
-    folder = repository.get_contents(path="./src", ref="releases/v6-latest")
-    print(folder)
+    #token = ""
+    #headers = {
+    #    "Authorization": f"token {token}",
+    #    "Accept": "application/vnd.github.v3+json"
+    #}
 
+    with spinner_context(f"Getting release '{tag}' from Github"):
+        response = requests.get(f"https://api.github.com/repos/VEAF/VEAF-Mission-Creation-Tools/releases/tags/{tag}", headers=headers)
+        if response.status_code == 404: # tag does not exist
+            tag = "latest"
+            response = requests.get("https://api.github.com/repos/VEAF/VEAF-Mission-Creation-Tools/releases/latest", headers=headers)
+        check_github_response(response=response, action=f"Getting release '{tag}' from Github")
+    
+    with spinner_context(f"Checking release '{tag}' from Github"):
+        release_payload = response.json()
+        release_tag = release_payload.get("tag_name")
+        release_version = re.sub('^v', '', release_tag)
+        update = True
+        if not force:
+            package_json_path = p_mission_folder / "published" / "package.json"
+            if package_json_path.exists():
+                # Read the installed package.json file
+                with open(package_json_path, 'r') as f:
+                    package_payload = json.load(f)
+                    if installed_version := package_payload.get("version"):
+                        if installed_version >= release_version:
+                            update = False
+    if update:
+        with spinner_context(f"Downloading release tag:'{tag}' version:{release_version} from Github"):
+            if published_file_urls := [
+                e.get("url")
+                for e in release_payload.get("assets", [])
+                if e.get("name") == "published.zip"
+            ]:
+                published_file_url = published_file_urls[0]
+                response = requests.get(published_file_url, headers=headers)
+                check_github_response(response=response, action=f"Getting detailed info about release tag:'{tag}' version:{release_version} from Github")
+                published_file_payload = response.json()
+                if published_file_download_url := published_file_payload.get("browser_download_url"):
+                    response = requests.get(published_file_download_url, headers=headers)
+                    check_github_response(response=response, action=f"Downloading 'published.zip' from release {tag} from Github")
+                    zip_file = zipfile.ZipFile(BytesIO(response.content))
+                    zip_file.extractall(p_mission_folder)
+                    published_veaftools_exe_path = p_mission_folder / "published" / "veaf-tools.exe"
+                    shutil.copy2(published_veaftools_exe_path, Path.cwd())
+                    published_build_scripts_path = p_mission_folder / "published" / "build-scripts"
+                    for file in published_build_scripts_path.glob("*.cmd"):
+                        shutil.copy2(file, Path.cwd() / file.name)
+        logger.info(f"Release tag:'{tag}' version:{release_version} has been downloaded from Github")
+        logger.info(f"Extracted release tag:'{tag}' version:{release_version} to {p_mission_folder}")
+    else:
+        logger.info(f"No need to update, release version:{release_version} is not newer than installed version:{installed_version}!")
 
     console.print(WORK_DONE_MESSAGE)
     # input("Press Enter to exit...")
-
 
 if __name__ == "__main__":
     app()

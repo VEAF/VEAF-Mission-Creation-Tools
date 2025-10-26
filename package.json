@@ -1,48 +1,15 @@
 {
   "name": "veaf-mission-creation-tools",
-  "version": "6.0.2",
+  "version": "6.0.0",
   "description": "A set of tools that help set up a and run dynamic missions",
-  "main": "src/nodejs/app.js",
-  "bin": {
-    "veaf-tools": "src/nodejs/app.js"
-  },
-  "directories": {
-    "doc": "doc"
-  },
-  "scripts": {
-    "start": "node ./src/nodejs/app.js",
-    "bda": "node ./src/nodejs/bda.js"
-  },
-  "files": [
-    "src/nodejs",
-    "src/scripts",
-    "src/build-scripts",
-    "published",
-    "README.md"
-  ],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/VEAF/VEAF-Mission-Creation-Tools.git"
   },
-  "keywords": [
-    "dcs",
-    "mission-editor",
-    "script",
-    "lua"
-  ],
-  "author": "Mitch, Zip, Rex, Dup",
+  "author": "VEAF - https://www.veaf.org",
   "license": "ISC",
   "bugs": {
     "url": "https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues"
   },
-  "homepage": "https://github.com/VEAF/VEAF-Mission-Creation-Tools#readme",
-  "dependencies": {
-    "got": "^11.1.4",
-    "graceful-fs": "^4.1.6",
-    "jszip": "^3.7.1",
-    "solar-calc": "^1.1.0",
-    "universalify": "^2.0.0",
-    "y18n": "~4.0.1",
-    "yargs": "~15.3.1"
-  }
+  "homepage": "https://github.com/VEAF/VEAF-Mission-Creation-Tools#readme"
 }

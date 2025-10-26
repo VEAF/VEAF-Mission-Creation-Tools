@@ -23,12 +23,17 @@ def spinner_context(message: str, done_message: str = None, silent: bool = False
             refresh_per_second=12.5
         )
         live.start()
+        show_done = True
         try:
             yield live
+        except Exception:
+            show_done = False
+            raise
         finally:
-            if not done_message: 
-                done_message = "✓ Done " + message.removesuffix("...")[0].lower() + message.removesuffix("...")[1:] + "!"
-                if logger: logger.info(message, no_console=True)
-            styled_done = Text(done_message, style=done_color)
-            live.update(Spinner("dots", text=styled_done, style=spinner_color))
-            live.stop()
+            if show_done:            
+                if not done_message: 
+                    done_message = "✓ Done " + message.removesuffix("...")[0].lower() + message.removesuffix("...")[1:] + "!"
+                    if logger: logger.info(message, no_console=True)
+                styled_done = Text(done_message, style=done_color)
+                live.update(Spinner("dots", text=styled_done, style=spinner_color))
+                live.stop()

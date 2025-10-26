@@ -2,6 +2,15 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "veaf-tools update",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/python/veaf-tools/veaf-tools.py",
+            "cwd": "${workspaceFolder}\\test\\veaf-tools\\update",
+            "args": ["update", "--force"],
+            "console": "integratedTerminal"
+        },       
+        {
             "name": "veaf-tools radio presets manager unit tests",
             "type": "debugpy",
             "request": "launch",

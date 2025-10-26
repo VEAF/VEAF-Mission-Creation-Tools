@@ -24,10 +24,10 @@ class MissionExtractorWorker:
         self.mission_folder = mission_folder
 
         if not (self.input_mission_path and self.input_mission_path.is_file()):
-            self.logger.error(f"The input mission '{self.input_mission_path}' does not exist or is not a file", raise_exception=True)
-        
+            self.logger.error(f"The input mission '{self.input_mission_path}' does not exist or is not a file", exception_type=FileNotFoundError)
+
         if self.mission_folder and not self.mission_folder.is_dir():
-            self.logger.error(f"The output mission folder '{self.mission_folder}' does not exist or is not a folder", raise_exception=True)
+            self.logger.error(f"The output mission folder '{self.mission_folder}' does not exist or is not a folder", exception_type=FileNotFoundError)
 
     def extract_mission(self) -> None:
         """Extract the files from the .miz mission to the VEAF mission folder"""

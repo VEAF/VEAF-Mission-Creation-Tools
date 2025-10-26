@@ -16,6 +16,7 @@ import zipfile
 import os
 from pathlib import Path
 from typing import Optional, Dict
+from veaf_logger import logger
 
 @dataclass
 class DcsMission:
@@ -152,7 +153,7 @@ def write_miz(mission: DcsMission, miz_file_path: Optional[Path], additional_fil
             # Clean up temp file on error
             with contextlib.suppress(OSError):
                 os.unlink(temp_zip_path)
-            raise e
+            logger.exception(e)
 
     # Move temp file to final location
     if temp_zip_path:

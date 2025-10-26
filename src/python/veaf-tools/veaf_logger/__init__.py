@@ -4,8 +4,10 @@ VEAF Logger Package
 This package provides classes for logging.
 """
 
-from .veaf_logger import VeafLogger
+from .veaf_logger import VeafLogger, logger, console
 
 __all__ = [
-    "VeafLogger"
+    "VeafLogger",
+    logger,
+    console
 ]

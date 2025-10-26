@@ -23,6 +23,7 @@ from pathlib import Path
 from typing import Any, Optional
 from PIL import Image, ImageDraw, ImageFont
 from PIL.ImageFont import FreeTypeFont
+from veaf_logger import logger
 
 import yaml
 
@@ -57,10 +58,10 @@ class ChannelDefinition:
         self.frequencies: dict[str, float] = {}
 
     def add_freq(self, mode: str, freq: float|str):
-        if not mode: raise ValueError("mode is mandatory")
-        if not freq: raise ValueError("freq is mandatory")
+        if not mode: logger.error(message="mode is mandatory", exception_type=ValueError)
+        if not freq: logger.error(message="freq is mandatory", exception_type=ValueError)
         f_freq = freq if isinstance(freq, float) else float(freq)
-        if not f_freq: raise ValueError("freq should be a float or a str representation of a float")
+        if not f_freq: logger.error(message="freq should be a float or a str representation of a float", exception_type=ValueError)
         self.frequencies[mode] = f_freq
 
     @classmethod
@@ -77,7 +78,7 @@ class ChannelDefinition:
         title = data.get("title")
         misc_data = data.get("data")
         freqs = data.get("freqs")
-        if not freqs: raise ValueError(f"'freqs' is mandatory for ChannelDefinition {name}")
+        if not freqs: logger.error(message=f"'freqs' is mandatory for ChannelDefinition {name}", exception_type=ValueError)
         result = ChannelDefinition(name=name, title=title, misc_data=misc_data)
         for freq_mode, freq_value in freqs.items():
             result.add_freq(mode=freq_mode, freq=freq_value)
@@ -93,8 +94,8 @@ class ChannelCollection:
         self.channel_definitions: dict[str, ChannelDefinition] = {}
 
     def add_channel_definition(self, channel: ChannelDefinition):
-        if not channel: raise ValueError("channel is mandatory")
-        if not channel.name: raise ValueError("channel has no 'name' attribute")
+        if not channel: logger.error(message="channel is mandatory", exception_type=ValueError)
+        if not channel.name: logger.error(message="channel has no 'name' attribute", exception_type=ValueError)
         channel.collection_name = self.name
         self.channel_definitions[channel.name] = channel
 
@@ -129,7 +130,7 @@ class RadioDefinition:
         self.collection_name: Optional[str] = None
        
     def add_channel(self, channel: Channel):
-        if not channel: raise ValueError("channel is mandatory")
+        if not channel: logger.error(message="channel is mandatory", exception_type=ValueError)
         self.channels.append(channel)
 
     def to_dict(self) -> dict[str, Any]:
@@ -176,14 +177,14 @@ class RadioDefinition:
                     channel_definition = channel_collection.channel_definitions[channel_alias]
                     channel_title = channel_definition.title
                     if self.radio_type not in channel_definition.frequencies:
-                        raise ValueError(f"'freq' not defined and 'channel_alias' {channel_alias} in RadioDefinition {self.name} does not contain any frequency of type {self.radio_type}")
+                        logger.error(message=f"'freq' not defined and 'channel_alias' {channel_alias} in RadioDefinition {self.name} does not contain any frequency of type {self.radio_type}", exception_type=ValueError)
                     else:
                         channel_freq = channel_definition.frequencies[self.radio_type]
                     break
             else:
-                raise ValueError(f"'channel_alias' {channel_alias} in RadioDefinition {self.name} was not found in any ChannelCollection")
+                logger.error(message=f"'channel_alias' {channel_alias} in RadioDefinition {self.name} was not found in any ChannelCollection", exception_type=ValueError)
         if not channel_freq:
-            raise ValueError(f"'freq' is mandatory for RadioDefinition {self.name}")
+            logger.error(message=f"'freq' is mandatory for RadioDefinition {self.name}", exception_type=ValueError)
         self.add_channel(Channel(name_or_number=channel_name, freq=channel_freq, title=channel_title))
 
     @classmethod
@@ -201,8 +202,8 @@ class RadioDefinition:
         title = data.get("title")
         radio_type = data.get("type")
         channels = data.get("channels")
-        if not radio_type: raise ValueError(f"'type' is mandatory for RadioDefinition {name}")
-        if not channels: raise ValueError(f"'channels' is mandatory for RadioDefinition {name}")
+        if not radio_type: logger.error(message=f"'type' is mandatory for RadioDefinition {name}", exception_type=ValueError)
+        if not channels: logger.error(message=f"'channels' is mandatory for RadioDefinition {name}", exception_type=ValueError)
         result = RadioDefinition(name=name, radio_type=radio_type, title=title)
         for channel_name, channel_data in channels.items():
             result.add_channel_from_dict(channel_name, channel_data, channel_collections)
@@ -218,8 +219,8 @@ class RadioCollection:
         self.radio_definitions: dict[str, RadioDefinition] = {}
 
     def add_radio_definition(self, radio: RadioDefinition):
-        if not radio: raise ValueError("radio is mandatory")
-        if not radio.name: raise ValueError("radio has no 'name' attribute")
+        if not radio: logger.error(message="radio is mandatory", exception_type=ValueError)
+        if not radio.name: logger.error(message="radio has no 'name' attribute", exception_type=ValueError)
         radio.collection_name = self.name
         self.radio_definitions[radio.name] = radio
 
@@ -255,7 +256,7 @@ class PresetDefinition:
         self.title = title
 
     def add_radio(self, radio: RadioDefinition):
-        if not radio: raise ValueError("radio_alias is mandatory")
+        if not radio: logger.error(message="radio_alias is mandatory", exception_type=ValueError)
         self.radios[radio.name] = radio
 
     def to_dict(self) -> dict:
@@ -281,7 +282,7 @@ class PresetDefinition:
             PresetDefinition: New instance
         """
         radios = data.get("radios")
-        if not radios: raise ValueError(f"'radios' is mandatory for PresetDefinition {name}")
+        if not radios: logger.error(message=f"'radios' is mandatory for PresetDefinition {name}", exception_type=ValueError)
         result = PresetDefinition(name=name, title=data.get("title"))
         for radio_name, radio_alias in radios.items():
             for radio_collection in radio_collections.values():
@@ -289,7 +290,7 @@ class PresetDefinition:
                     radio_definition = radio_collection.radio_definitions[radio_alias]
                     break
             else:
-                raise ValueError(f"'radio_alias' {radio_alias} in class PresetDefinition {name} was not found in any RadioCollection")
+                logger.error(message=f"'radio_alias' {radio_alias} in class PresetDefinition {name} was not found in any RadioCollection", exception_type=ValueError)
             result.add_radio(radio_definition)
         return result
 
@@ -305,8 +306,8 @@ class PresetCollection:
         self.preset_definitions: dict[str, PresetDefinition] = {}
 
     def add_preset_definition(self, preset: PresetDefinition):
-        if not preset: raise ValueError("preset is mandatory")
-        if not preset.name: raise ValueError("preset has no 'name' attribute")
+        if not preset: logger.error(message="preset is mandatory", exception_type=ValueError)
+        if not preset.name: logger.error(message="preset has no 'name' attribute", exception_type=ValueError)
         preset.collection_name = self.name
         self.preset_definitions[preset.name] = preset
     
@@ -375,7 +376,7 @@ class PresetAssignmentCollection:
                                 preset_definition = preset_collection.preset_definitions[preset_definition_name]
                                 break
                         else:
-                            raise ValueError(f"preset name {preset_definition_name} in PresetAssignmentCollection was not found in any PresetCollection")
+                            logger.error(message=f"preset name {preset_definition_name} in PresetAssignmentCollection was not found in any PresetCollection", exception_type=ValueError)
                     preset_assignment = PresetAssignment(coalition=coalition, aircraft_type=aircraft_type, unit_type=unit_type, preset_definition=preset_definition)
                     if not result.preset_assignments_dict.get(coalition, {}):
                         result.preset_assignments_dict[coalition] = {}
@@ -438,11 +439,11 @@ class PresetsManager:
                 self.preset_assignments = PresetAssignmentCollection.from_dict(data=collection, presets_collections=self.preset_collections)
 
         except FileNotFoundError as e:
-            raise FileNotFoundError(f"YAML file not found: {yaml_path}") from e
+            logger.error(message=f"YAML file not found: {yaml_path}", exception_type=FileNotFoundError)
         except yaml.YAMLError as e:
-            raise ValueError(f"Error parsing YAML file {yaml_path}: {str(e)}") from e
+            logger.error(message=f"Error parsing YAML file {yaml_path}: {str(e)}", exception_type=ValueError)
         except Exception as e:
-            raise RuntimeError(f"Error loading presets from {yaml_path}: {str(e)}") from e
+            logger.error(message=f"Error loading presets from {yaml_path}: {str(e)}", exception_type=RuntimeError)
     
     def write_yaml(self, yaml_path: Path):
         # TODO do this later when implementing the GUI editor
@@ -453,12 +454,17 @@ class PresetsManager:
         return preset_assignment.preset_definition if preset_assignment else None
 
 
+    def generate_presets_images(self, width: int = 1200, height: int = None):
+        generator = RadioPresetsImageGenerator(self.preset_collections, width=width, height=height)
+        self.presets_images = generator.generate_presets_images()
+
 class RadioPresetsImageGenerator:
 
     def __init__(self, preset_collections: dict[str, PresetCollection], width: int = 1200, height: int = None):
         self.width = width
         self.height = height
         self.preset_collections = preset_collections
+        self._cached_fonts: tuple[FreeTypeFont, FreeTypeFont, FreeTypeFont] | None = None
 
     def get_fonts(self) -> tuple[FreeTypeFont, FreeTypeFont, FreeTypeFont]:
         if not self._cached_fonts:
@@ -603,7 +609,7 @@ class RadioPresetsImageGenerator:
         title_x = (image_width - title_width) // 2
         self.draw.text((title_x, 20), preset_definition.title, fill='black', font=self.get_collection_title_font())
 
-    def generate_presets_images(self) -> None:
+    def generate_presets_images(self) -> dict[str, io.BytesIO]:
         """
         Generate a PNG image showing the radio presets in the preset_manager as three arrays
         displayed side by side, with the name and frequency columns in each, and the radio
@@ -613,6 +619,8 @@ class RadioPresetsImageGenerator:
             width: Width of the generated image in pixels (default: 1200)
             height: Height of the generated image in pixels (default: automatically calculated)
         """
+        
+        presets_images = {}
 
         # Browse the preset collection and generate an image for each
         for preset_collection in self.preset_collections.values():
@@ -626,10 +634,9 @@ class RadioPresetsImageGenerator:
                     self.draw_radios_in_preset_image(preset_definition)
 
                     # Store the image in the dictionary with the preset collection name as key
-                    if self.presets_images is None:
-                        self.presets_images = {}
-
                     img_buffer = io.BytesIO()
                     self.image.save(img_buffer, format="PNG", optimize=True) # Use PNG with optimization for line art/text
                     img_buffer.seek(0)
-                    self.presets_images[preset_name] = img_buffer
+                    presets_images[preset_name] = img_buffer
+        
+        return presets_images

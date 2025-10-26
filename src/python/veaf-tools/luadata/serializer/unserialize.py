@@ -1,9 +1,9 @@
 import math
 
 from lupa.lua51 import LuaRuntime, lua_type
+from veaf_logger import logger
 
-
-def _unserialize(raw, encoding="utf-8", multival=False, verbose=False):
+def _unserialize(raw: str, encoding: str = "utf-8", multival: bool = False, verbose: bool = False) -> tuple:
     """Unserialize stringified lua data to python data
 
     Args:
@@ -341,7 +341,7 @@ def _unserialize(raw, encoding="utf-8", multival=False, verbose=False):
         end_pos = min(pos + 10, slen)
         err_parts = sbins[start_pos:end_pos].decode(encoding)
         err_indent = " " * (pos - start_pos)
-        raise Exception(f"Unserialize luadata failed on pos {pos}:\n    {err_parts}\n    {err_indent}^\n    {errmsg}")
+        logger.error(message=f"Unserialize luadata failed on pos {pos}:\n    {err_parts}\n    {err_indent}^\n    {errmsg}", exception_type=ValueError)
 
     res = []
     for kv in root["entries"]:
@@ -351,7 +351,7 @@ def _unserialize(raw, encoding="utf-8", multival=False, verbose=False):
     return res[0]
 
 
-def _lua_table_to_dict(lua_table, keep_as_dict:list=None, all_is_dict:bool=False):
+def _lua_table_to_dict(lua_table, keep_as_dict: list[str] | None = None, all_is_dict: bool = False) -> dict | list:
     # Check if a Lua table is a list
     def is_lua_list(table):
         keys = list(table.keys())
@@ -374,7 +374,7 @@ def _lua_table_to_dict(lua_table, keep_as_dict:list=None, all_is_dict:bool=False
     return py_dict
 
 
-def unserialize(raw, encoding="utf-8", multival=False, keep_as_dict:list=None, all_is_dict:bool=False):
+def unserialize(raw: str, encoding: str = "utf-8", multival: bool = False, keep_as_dict: list[str] | None = None, all_is_dict: bool = False) -> dict | list:
     # noinspection PyArgumentList
     lua = LuaRuntime(unpack_returned_tuples=multival, encoding=encoding, max_memory=0)
     lua.execute(raw)

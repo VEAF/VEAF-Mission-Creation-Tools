@@ -36,10 +36,10 @@ class MissionConverterWorker:
         self.presets_file = presets_file or self.mission_folder / "src" / "presets.yaml"
 
         if not (self.input_mission and self.input_mission.is_file()):
-            self.logger.error(f"The input mission '{self.input_mission}' does not exist or is not a file", raise_exception=True)
-        
+            self.logger.error(f"The input mission '{self.input_mission}' does not exist or is not a file", exception_type=FileNotFoundError)
+
         if self.mission_folder and not self.mission_folder.is_dir():
-            self.logger.error(f"The output mission folder '{self.mission_folder}' does not exist or is not a folder", raise_exception=True)
+            self.logger.error(f"The output mission folder '{self.mission_folder}' does not exist or is not a folder", exception_type=FileNotFoundError)
 
     def work(self) -> None:
         """Main work function."""

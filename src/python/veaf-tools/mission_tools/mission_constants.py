@@ -76,7 +76,7 @@ def get_mission_files_to_cleanup_on_extract() -> list[tuple[str, bool]]:
             ("mission/track_data", False)
     ]
 
-def collect_files_from_globs(base_folder: Path, file_patterns: list[tuple[str, str]], alternative_folder: Path = None, logger = None) -> dict[str, bytes]:
+def collect_files_from_globs(base_folder: Path, file_patterns: list[tuple[str, str]], alternative_folder: Path | None = None, logger = None) -> dict[str, bytes]:
     """
     Collect files from a base folder using file paths and glob patterns.
     Falls back to alternative_folder if files cannot be found in base_folder.
@@ -92,7 +92,7 @@ def collect_files_from_globs(base_folder: Path, file_patterns: list[tuple[str, s
             - value: file contents as bytes
     """
 
-    def _add_file_to_results(results:dict[str, bytes], file_path:Path, base_folder: Path):
+    def _add_file_to_results(results: dict[str, bytes], file_path: Path, base_folder: Path) -> None:
         relative_path = file_path.relative_to(base_folder).parent.as_posix()
         relative_path = dest_location / relative_path / file_path.name
         if logger: logger.debug(f"Processing file {relative_path}")

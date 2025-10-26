@@ -32,7 +32,7 @@ class MissionBuilderWorker:
         self.collected_mission_data_files: Optional[dict[str, bytes]] = None
         
         if self.mission_folder and not self.mission_folder.is_dir():
-            self.logger.error(f"The input mission folder '{self.mission_folder}' does not exist or is not a folder", raise_exception=True)
+            self.logger.error(f"The input mission folder '{self.mission_folder}' does not exist or is not a folder", exception_type=FileNotFoundError)
 
     def get_collected_veaf_script_files(self) -> dict[str, bytes]:
         if self.collected_veaf_script_files: return self.collected_veaf_script_files
@@ -58,8 +58,7 @@ class MissionBuilderWorker:
 
     def _signal_missing_required_files_after_collection(self, missing_files_nb, scripts_folder):
         message = f'Error: {missing_files_nb} file{"s" if missing_files_nb > 1 else ""} are missing from {scripts_folder}'
-        self.logger.error(message)
-        raise RuntimeError(message)
+        self.logger.error(message=message, exception_type=RuntimeError)
     
     def get_collected_mission_script_files(self) -> dict[str, bytes]:
         if self.collected_mission_script_files: return self.collected_mission_script_files
@@ -111,8 +110,7 @@ class MissionBuilderWorker:
                 self.dcs_mission.missing_components.remove('options') # we've handled that one
             if self.dcs_mission.missing_components:
                 message = f"These components are missing from '{self.mission_folder / "src"}': {', '.join([f"'{item}'" for item in self.dcs_mission.missing_components])}; they are mandatory in a DCS mission!"
-                self.logger.error(message=message)
-                raise RuntimeError(message)
+                self.logger.error(message=message, exception_type=RuntimeError)
         except KeyError:
             self.logger.error(f"An error occured while reading the {self.output_mission} file; is this a valid DCS mission?")
             raise

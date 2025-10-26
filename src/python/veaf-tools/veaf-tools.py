@@ -19,10 +19,9 @@ All the commands feature both `--help` and `--readme` options that display onlin
 """
 
 from pathlib import Path
-from rich.console import Console
 from rich.markdown import Markdown
 from typing import Optional
-from veaf_logger import VeafLogger
+from veaf_logger import logger, console
 from presets_injector import PresetsInjectorWorker, PresetsInjectorREADME
 from mission_builder import MissionBuilderWorker, MissionBuilderREADME
 from mission_extractor import MissionExtractorWorker, MissionExtractorREADME
@@ -41,9 +40,8 @@ CONFIRM_DISPLAY_DOC = "Do you want to display the documentation?"
 WORK_DONE_MESSAGE = "[bold blue]Work done![/bold blue]"
 
 app = typer.Typer(no_args_is_help=True)
-console = Console()
 
-def resolve_path(logger:VeafLogger, path: str, default_path: str = None, should_exist: bool = False, create_if_not_exist: bool = False) -> Path:
+def resolve_path(path: str, default_path: str = None, should_exist: bool = False, create_if_not_exist: bool = False) -> Path:
     
     """Resolve and validate a file path."""
     if not path and default_path:
@@ -51,7 +49,7 @@ def resolve_path(logger:VeafLogger, path: str, default_path: str = None, should_
     elif path:
         result = Path(path)
     else:
-        raise ValueError("Either path or default_path must be provided")
+        logger.error(message="Either path or default_path must be provided", exception_type=ValueError)
     
     result = result.resolve()
     
@@ -91,35 +89,35 @@ def inject_presets(
     """
     Injects radio presets read from a configuration file into aircraft groups from a DCS mission
     """
+    
+    logger.set_verbose(verbose)
 
     # Set the title and version
     console.print(f"[bold green]veaf-tools Radio Presets Injector v{VERSION}[/bold green]")
-
-    logger = VeafLogger(logger_name="veaf-tools-presets-injector", console=console).set_verbose(verbose)
 
     if readme:
         if typer.confirm(CONFIRM_DISPLAY_DOC):
             md_render = Markdown(PresetsInjectorREADME)
             console.print(md_render)
-        raise typer.Exit()
+        exit()
 
     # Resolve input mission
     p_input_mission = input_mission_name_or_file
     if not input_mission_name_or_file.lower().endswith(".miz"):
         if files := list(Path.cwd().glob(f"{input_mission_name_or_file}*.miz")):
             p_input_mission = max(files, key=lambda f: f.stat().st_mtime)
-    p_input_mission = resolve_path(logger=logger, path=p_input_mission, should_exist=True)
+    p_input_mission = resolve_path(path=p_input_mission, should_exist=True)
 
     # Resolve output mission
-    p_output_mission = resolve_path(logger=logger, path=output_mission, default_path=p_input_mission)
+    p_output_mission = resolve_path(path=output_mission, default_path=p_input_mission)
 
     # Resolve presets configuration file
-    p_presets_file = resolve_path(logger=logger, path=presets_file, should_exist=True)
+    p_presets_file = resolve_path(path=presets_file, should_exist=True)
     if not p_presets_file.exists():
-        logger.error(f"Configuration file {p_presets_file} does not exist!", raise_exception=True)
+        logger.error(f"Configuration file {p_presets_file} does not exist!", exception_type=FileNotFoundError)
 
     # Call the worker class
-    worker = PresetsInjectorWorker(logger=logger, presets_file=p_presets_file, input_mission=p_input_mission, output_mission=p_output_mission)
+    worker = PresetsInjectorWorker(presets_file=p_presets_file, input_mission=p_input_mission, output_mission=p_output_mission)
     worker.work()
 
     console.print(WORK_DONE_MESSAGE)
@@ -139,22 +137,22 @@ def build_mission(
     Builds a DCS mission based on a mission folder.
     """
 
+    logger.set_verbose(verbose)
+
     # Set the title and version
     console.print(f"[bold green]veaf-tools VEAF mission builder v{VERSION}[/bold green]")
 
-    logger = VeafLogger(logger_name="veaf-tools-mission-builder", console=console).set_verbose(verbose)
-
     if readme:
-        if typer.confirm("Do you want to display the documentation?"):
+        if typer.confirm(CONFIRM_DISPLAY_DOC):
             md_render = Markdown(MissionBuilderREADME)
             console.print(md_render)
-        raise typer.Exit()
+        exit()
 
 
     # Resolve input mission folder
     p_mission_folder = resolve_path(logger=logger, path=mission_folder, default_path=Path.cwd(), should_exist=True)
     if not p_mission_folder.exists():
-        logger.error(f"Mission folder {p_mission_folder} does not exist!", raise_exception=True)
+        logger.error(f"Mission folder {p_mission_folder} does not exist!", exception_type=FileNotFoundError)
 
     # Resolve output mission
     p_output_mission = resolve_path(logger=logger, path=mission_name_or_file)
@@ -169,7 +167,7 @@ def build_mission(
     if scripts_path:
         p_scripts_path = resolve_path(logger=logger, path=scripts_path, should_exist=True)
         if not p_scripts_path.exists():
-            logger.error(f"Development folder {p_scripts_path} does not exist!", raise_exception=True)
+            logger.error(f"Development folder {p_scripts_path} does not exist!", exception_type=FileNotFoundError)
     else:
         p_scripts_path = None
 
@@ -191,21 +189,21 @@ def extract_mission(
     Extracts a DCS mission .miz file to a VEAF mission folder.
     """
 
+    logger.set_verbose(verbose)
+
     # Set the title and version
     console.print(f"[bold green]veaf-tools VEAF mission extractor v{VERSION}[/bold green]")
 
-    logger = VeafLogger(logger_name="veaf-tools-mission-extractor", console=console).set_verbose(verbose)
-
     if readme:
-        if typer.confirm("Do you want to display the documentation?"):
+        if typer.confirm(CONFIRM_DISPLAY_DOC):
             md_render = Markdown(MissionExtractorREADME)
             console.print(md_render)
-        raise typer.Exit()
+        exit()
 
     # Resolve output mission folder
     p_mission_folder = resolve_path(logger=logger, path=mission_folder, default_path=Path.cwd(), create_if_not_exist=True)
     if not p_mission_folder.exists():
-        logger.error(f"Mission folder {p_mission_folder} does not exist!", raise_exception=True)
+        logger.error(f"Mission folder {p_mission_folder} does not exist!", exception_type=FileNotFoundError)
 
     # Resolve input mission
     p_input_mission = mission_name_or_file
@@ -236,22 +234,22 @@ def convert_mission(
     Converts a DCS mission to a VEAF mission folder.
     """
 
+    logger.set_verbose(verbose)
+
     # Set the title and version
     console.print(f"[bold green]veaf-tools VEAF mission converter v{VERSION}[/bold green]")
 
-    logger = VeafLogger(logger_name="veaf-tools-mission-converter", console=console).set_verbose(verbose)
-
     if readme:
-        if typer.confirm("Do you want to display the documentation?"):
+        if typer.confirm(CONFIRM_DISPLAY_DOC):
             md_render = Markdown(MissionConverterREADME)
             console.print(md_render)
-        raise typer.Exit()
+        exit()
 
 
     # Resolve output mission folder
     p_mission_folder = resolve_path(logger=logger, path=mission_folder, default_path=Path.cwd(), should_exist=True)
     if not p_mission_folder.exists():
-        logger.error(f"Mission folder {p_mission_folder} does not exist!", raise_exception=True)
+        logger.error(f"Mission folder {p_mission_folder} does not exist!", exception_type=FileNotFoundError)
 
     # Resolve input mission
     p_input_mission = mission_name
@@ -269,7 +267,7 @@ def convert_mission(
     if scripts_path:
         p_scripts_path = resolve_path(logger=logger, path=scripts_path, should_exist=True)
         if not p_scripts_path.exists():
-            logger.error(f"Development folder {p_scripts_path} does not exist!", raise_exception=True)
+            logger.error(f"Development folder {p_scripts_path} does not exist!", exception_type=FileNotFoundError)
     else:
         p_scripts_path = None
 
@@ -277,7 +275,7 @@ def convert_mission(
     if p_presets_file := presets_file:
         p_presets_file = resolve_path(logger=logger, path=presets_file, should_exist=True)
         if not p_presets_file.exists():
-            logger.error(f"Configuration file {p_presets_file} does not exist!", raise_exception=True)
+            logger.error(f"Configuration file {p_presets_file} does not exist!", exception_type=FileNotFoundError)
 
     # Call the worker class
     worker = MissionConverterWorker(mission_folder=p_mission_folder, input_mission=p_input_mission, output_mission=p_output_mission, mission_name=mission_name, logger=logger, dynamic_mode=dynamic_mode, scripts_path=p_scripts_path, inject_presets=inject_presets, presets_file=p_presets_file)

@@ -32,13 +32,16 @@ class VeafLogger:
         self.logger.setLevel(level=level)
         return self
 
-    def error(self, message: str, no_console: bool = False, raise_exception: bool = False) -> Self:
+    def exception(self, e: Exception) -> Self:
+        self.error(e, exception_type=type(e))
+
+    def error(self, message: str, no_console: bool = False, raise_exception: bool = False, exception_type: type = typer.Abort) -> Self:
         """Log and display error message."""
         self.logger.error(message)
         if self.console and not no_console:
             self.console.print(message, style="red")
-        if raise_exception:
-            raise typer.Abort(message)
+        if raise_exception or exception_type:
+            raise exception_type(message)
         return self
 
     def warning(self, message: str, no_console: bool = False) -> Self:
@@ -68,3 +71,6 @@ class VeafLogger:
         if self.verbose and self.console and not no_console:
             self.console.print(message, style=style)
         return self
+    
+console: Console = Console()
+logger: VeafLogger = VeafLogger(logger_name="veaf-tools", console=console)

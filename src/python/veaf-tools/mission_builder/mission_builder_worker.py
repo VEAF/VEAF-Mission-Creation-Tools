@@ -7,39 +7,39 @@ import re
 import shutil
 from typing import Optional
 from mission_tools import read_miz, write_miz, create_miz, DcsMission, get_community_script_files, get_mission_data_files, get_mission_script_files, get_veaf_script_files, collect_files_from_globs, spinner_context
-from veaf_logger import VeafLogger
+from veaf_logger import logger
 
 class MissionBuilderWorker:
     """
     Worker class that builds a mission, based on a folder containing the mission files, and on the VEAF Mission Creation Tools package.
     """
     
-    def __init__(self,mission_folder: Path, output_mission: Path, logger: Optional[VeafLogger], dynamic_mode: Optional[bool] , scripts_path: Optional[Path], migrate_from_v5:bool = True):
+    def __init__(self,mission_folder: Path, output_mission: Path, dynamic_mode: Optional[bool] , scripts_path: Optional[Path], migrate_from_v5:bool = True, no_veaf_triggers: bool = False):
         """
         Initialize the worker with parameters for both use cases.
         """
         
-        self.logger: VeafLogger = logger
         self.output_mission = output_mission
         self.mission_folder = mission_folder
         self.dynamic_mode = dynamic_mode
         self.scripts_path = scripts_path
         self.dcs_mission: DcsMission = None
-        self.migrate_from_v5:bool = migrate_from_v5
+        self.migrate_from_v5: bool = migrate_from_v5
+        self.no_veaf_triggers: bool = no_veaf_triggers
         self.collected_community_script_files: Optional[dict[str, bytes]] = None
         self.collected_veaf_script_files: Optional[dict[str, bytes]] = None
         self.collected_mission_script_files: Optional[dict[str, bytes]] = None
         self.collected_mission_data_files: Optional[dict[str, bytes]] = None
         
         if self.mission_folder and not self.mission_folder.is_dir():
-            self.logger.error(f"The input mission folder '{self.mission_folder}' does not exist or is not a folder", exception_type=FileNotFoundError)
+            logger.error(f"The input mission folder '{self.mission_folder}' does not exist or is not a folder", exception_type=FileNotFoundError)
 
     def get_collected_veaf_script_files(self) -> dict[str, bytes]:
         if self.collected_veaf_script_files: return self.collected_veaf_script_files
 
         # Preprocess the veaf script files
-        scripts_folder: Path = self.scripts_path or (self.mission_folder / "node_modules" / "veaf-mission-creation-tools")
-        self.collected_veaf_script_files = collect_files_from_globs(base_folder=scripts_folder, file_patterns=get_veaf_script_files(), logger=self.logger)
+        scripts_folder: Path = self.scripts_path or (self.mission_folder / "published")
+        self.collected_veaf_script_files = collect_files_from_globs(base_folder=scripts_folder, file_patterns=get_veaf_script_files())
         missing_files_nb = len(get_veaf_script_files()) - len(self.collected_veaf_script_files)
         if missing_files_nb > 0:
             self._signal_missing_required_files_after_collection(missing_files_nb, scripts_folder)
@@ -49,8 +49,8 @@ class MissionBuilderWorker:
         if self.collected_community_script_files: return self.collected_community_script_files
 
         # Preprocess the community script files
-        scripts_folder: Path = self.scripts_path or (self.mission_folder / "node_modules" / "veaf-mission-creation-tools")
-        self.collected_community_script_files = collect_files_from_globs(base_folder=scripts_folder, file_patterns=get_community_script_files(), logger=self.logger)
+        scripts_folder: Path = self.scripts_path or (self.mission_folder / "published")
+        self.collected_community_script_files = collect_files_from_globs(base_folder=scripts_folder, file_patterns=get_community_script_files())
         missing_files_nb = len(get_community_script_files()) - len(self.collected_community_script_files)
         if missing_files_nb > 0:
             self._signal_missing_required_files_after_collection(missing_files_nb, scripts_folder)
@@ -58,61 +58,61 @@ class MissionBuilderWorker:
 
     def _signal_missing_required_files_after_collection(self, missing_files_nb, scripts_folder):
         message = f'Error: {missing_files_nb} file{"s" if missing_files_nb > 1 else ""} are missing from {scripts_folder}'
-        self.logger.error(message=message, exception_type=RuntimeError)
+        logger.error(message=message, exception_type=RuntimeError)
     
     def get_collected_mission_script_files(self) -> dict[str, bytes]:
         if self.collected_mission_script_files: return self.collected_mission_script_files
 
         # Preprocess the mission files
-        defaults_folder: Path = (self.scripts_path or (self.mission_folder / "node_modules" / "veaf-mission-creation-tools")) / "src" / "defaults" / "mission-folder"
-        self.collected_mission_script_files = collect_files_from_globs(base_folder=self.mission_folder, file_patterns=get_mission_script_files(), alternative_folder=defaults_folder, logger=self.logger)
+        defaults_folder: Path = (self.scripts_path or (self.mission_folder / "published")) / "src" / "defaults" / "mission-folder"
+        self.collected_mission_script_files = collect_files_from_globs(base_folder=self.mission_folder, file_patterns=get_mission_script_files(), alternative_folder=defaults_folder)
         return self.collected_mission_script_files
 
     def get_collected_mission_data_files(self) -> dict[str, bytes]:
         if self.collected_mission_data_files: return self.collected_mission_data_files
 
         # Preprocess the mission files
-        defaults_folder: Path = (self.scripts_path or (self.mission_folder / "node_modules" / "veaf-mission-creation-tools")) / "src" / "defaults" / "mission-folder"
-        self.collected_mission_data_files = collect_files_from_globs(base_folder=self.mission_folder, file_patterns=get_mission_data_files(), alternative_folder=defaults_folder, logger=self.logger)
+        defaults_folder: Path = (self.scripts_path or (self.mission_folder / "published")) / "src" / "defaults" / "mission-folder"
+        self.collected_mission_data_files = collect_files_from_globs(base_folder=self.mission_folder, file_patterns=get_mission_data_files(), alternative_folder=defaults_folder)
         return self.collected_mission_data_files
        
     def complete_src_folder_with_defaults(self) -> None:
-        defaults_folder: Path = (self.scripts_path or (self.mission_folder / "node_modules" / "veaf-mission-creation-tools")) / "src" / "defaults" / "mission-folder"
+        defaults_folder: Path = (self.scripts_path or (self.mission_folder / "published")) / "src" / "defaults" / "mission-folder"
         for f in defaults_folder.rglob("*"):
             if f.is_file():
                 relative_path = f.relative_to(defaults_folder).parent.as_posix()
                 relative_path = self.mission_folder / relative_path / f.name
                 if not relative_path.exists():
                     relative_path.parent.mkdir(parents=True, exist_ok=True)
-                    self.logger.warning(f"Copied required file '{relative_path}' from default folder '{defaults_folder}'")
+                    logger.warning(f"Copied required file '{relative_path}' from default folder '{defaults_folder}'")
                     shutil.copy(f, relative_path)
 
     def create_mission(self) -> None:
         """Creates the initial mission file from the mission folder."""
 
-        self.logger.debug("Create the initial mission file from the mission folder")
+        logger.debug("Create the initial mission file from the mission folder")
         
         files = self.get_collected_community_script_files() | self.get_collected_veaf_script_files() | self.get_collected_mission_script_files() | self.get_collected_mission_data_files()
-        self.logger.debug(f"Preprocessed {len(files)} files")
+        logger.debug(f"Preprocessed {len(files)} files")
 
-        self.logger.debug("Creating the mission file")
+        logger.debug("Creating the mission file")
         self.output_mission = create_miz(self.output_mission, files)
-        self.logger.debug(f"Mission file created at {self.output_mission}")
+        logger.debug(f"Mission file created at {self.output_mission}")
 
     def read_mission(self) -> None:
         """Load the mission from the .miz file (unzip it) and process aircraft groups."""
 
-        self.logger.debug(f"Reading mission file {self.output_mission}")
+        logger.debug(f"Reading mission file {self.output_mission}")
         try:
             self.dcs_mission = read_miz(self.output_mission)
             if self.dcs_mission.missing_components and 'options' in self.dcs_mission.missing_components:
-                self.logger.warning(f"The 'options' file is missing from {self.mission_folder / "src"}; it's a useful item of your source tree!")
+                logger.warning(f"The 'options' file is missing from {self.mission_folder / "src"}; it's a useful item of your source tree!")
                 self.dcs_mission.missing_components.remove('options') # we've handled that one
             if self.dcs_mission.missing_components:
                 message = f"These components are missing from '{self.mission_folder / "src"}': {', '.join([f"'{item}'" for item in self.dcs_mission.missing_components])}; they are mandatory in a DCS mission!"
-                self.logger.error(message=message, exception_type=RuntimeError)
+                logger.error(message=message, exception_type=RuntimeError)
         except KeyError:
-            self.logger.error(f"An error occured while reading the {self.output_mission} file; is this a valid DCS mission?")
+            logger.error(f"An error occured while reading the {self.output_mission} file; is this a valid DCS mission?")
             raise
   
     def clear_veaf_triggers(self) -> None:
@@ -124,11 +124,11 @@ class MissionBuilderWorker:
             veaf_dict_keys_to_remove = []
             # Find the VEAF triggers in the dictionary
             if self.dcs_mission and self.dcs_mission.dictionary_content:
-                self.logger.debug("Find the VEAF triggers in the dictionary")
+                logger.debug("Find the VEAF triggers in the dictionary")
                 for map_key, map_value in self.dcs_mission.dictionary_content.items():
                     if map_key.startswith("VEAF_DictKey"):
                         # this is a VEAF trigger, remove it
-                        self.logger.debug(f"Removing VEAF dictionary key {map_key}={map_value}")
+                        logger.debug(f"Removing VEAF dictionary key {map_key}={map_value}")
                         veaf_dict_keys_to_remove.append(map_key)
                     if self.migrate_from_v5 and map_value in [
                                                 "return false -- scripts",
@@ -141,16 +141,16 @@ class MissionBuilderWorker:
                                                 "return VEAF_DYNAMIC_MISSIONPATH==nil",
                                             ]:
                         # this is a legacy VEAF trigger, remove it
-                        self.logger.debug(f"Removing legacy VEAF v5 dictionary key {map_key}={map_value}")
+                        logger.debug(f"Removing legacy VEAF v5 dictionary key {map_key}={map_value}")
                         veaf_dict_keys_to_remove.append(map_key)
 
             # Find the VEAF triggers in the mapResource
             if self.dcs_mission and self.dcs_mission.map_resource_content:
-                self.logger.debug("Find the VEAF triggers in the mapResource")
+                logger.debug("Find the VEAF triggers in the mapResource")
                 for map_key, map_value in self.dcs_mission.map_resource_content.items():
                     if map_key.startswith("VEAF_MapKey"):
                         # this is a VEAF trigger, remove it
-                        self.logger.debug(f"Removing VEAF map key {map_key}={map_value}")
+                        logger.debug(f"Removing VEAF map key {map_key}={map_value}")
                         veaf_dict_keys_to_remove.append(map_key)
         
             return veaf_dict_keys_to_remove
@@ -159,18 +159,18 @@ class MissionBuilderWorker:
 
         # Remove all these keys from the dictionary
         if self.dcs_mission and self.dcs_mission.dictionary_content:
-            self.logger.debug("Clear the VEAF triggers from the dictionary")
+            logger.debug("Clear the VEAF triggers from the dictionary")
             for dict_key in veaf_dict_keys_to_remove:
                 if self.dcs_mission.dictionary_content.get(dict_key):
-                    self.logger.debug(f"Removing key {dict_key} from the dictionary")
+                    logger.debug(f"Removing key {dict_key} from the dictionary")
                     del self.dcs_mission.dictionary_content[dict_key]
 
         # Remove all these keys from the mapResource
         if self.dcs_mission and self.dcs_mission.map_resource_content:
-            self.logger.debug("Clear the VEAF triggers from the mapResource")
+            logger.debug("Clear the VEAF triggers from the mapResource")
             for dict_key in veaf_dict_keys_to_remove:
                 if self.dcs_mission.map_resource_content.get(dict_key):
-                    self.logger.debug(f"Removing key {dict_key} from the mapResource")
+                    logger.debug(f"Removing key {dict_key} from the mapResource")
                     del self.dcs_mission.map_resource_content[dict_key]
 
         # Remove all the triggers referencing these dictionary keys from the mission
@@ -334,7 +334,7 @@ class MissionBuilderWorker:
         for map_resource_key in new_map_resource_mission_script_files:
             static_mission_loading_trigger += f"a_do_script_file(getValueResourceByKey(\"{map_resource_key}\"));"
 
-        VEAF_DYNAMIC_SCRIPTSPATH = f"[[{self.scripts_path.resolve().as_posix()}/]]" if self.scripts_path else f"[[{(self.output_mission.parent / "node_modules/veaf-mission-creation-tools").resolve().as_posix()}/]]"
+        VEAF_DYNAMIC_SCRIPTSPATH = f"[[{self.scripts_path.resolve().as_posix()}/]]" if self.scripts_path else f"[[{(self.output_mission.parent / "published").resolve().as_posix()}/]]"
         veaf_dynamic_mission_path = f"[[{(self.output_mission.parent).resolve().as_posix()}/]]"
 
         veaf_triggers = {
@@ -407,7 +407,7 @@ class MissionBuilderWorker:
         All existing trigrules will be shifted 6 ranks up, changing the indexes in the LUA code.
         """
         
-        VEAF_DYNAMIC_SCRIPTSPATH = f"[[{self.scripts_path.resolve().as_posix()}/]]" if self.scripts_path else f"[[{(self.output_mission.parent / "node_modules/veaf-mission-creation-tools").resolve().as_posix()}/]]"
+        VEAF_DYNAMIC_SCRIPTSPATH = f"[[{self.scripts_path.resolve().as_posix()}/]]" if self.scripts_path else f"[[{(self.output_mission.parent / "published").resolve().as_posix()}/]]"
         veaf_dynamic_mission_path = f"[[{(self.output_mission.parent).resolve().as_posix()}/]]"
 
         veaf_community_scripts_map_keys = [new_map_resource_key_by_file.get(script_file_name.as_posix(), "") for script_file_name in self.get_collected_community_script_files()]
@@ -590,37 +590,40 @@ class MissionBuilderWorker:
     def write_mission(self) -> None:
         """Write the mission file."""
 
-        self.logger.debug("Writing mission file")
+        logger.debug("Writing mission file")
         write_miz(mission=self.dcs_mission, miz_file_path=self.output_mission)
-        self.logger.debug("Writing mission file done")
+        logger.debug("Writing mission file done")
 
-    def work(self, silent:bool=False) -> Path:
+    def work(self, silent: bool = False) -> Path:
         """Main work function."""
 
         # Complete the src folder with default files if they don't exist
-        with spinner_context(f"Completing folder {self.mission_folder} with defaults...", logger=self.logger, silent=silent):
+        with spinner_context(f"Completing folder {self.mission_folder} with defaults...", silent=silent):
             self.complete_src_folder_with_defaults()
 
         # Create the initial mission file
-        with spinner_context(f"Creating mission {self.output_mission}...", logger=self.logger, silent=silent):
+        with spinner_context(f"Creating mission {self.output_mission}...", silent=silent):
             self.create_mission()
 
         # Load the mission from the .miz file (unzip it) and process aircraft groups
-        with spinner_context(f"Reading mission {self.output_mission}...", logger=self.logger, silent=silent):
+        with spinner_context(f"Reading mission {self.output_mission}...", silent=silent):
             self.read_mission()
 
         # First, remove all the VEAF triggers
-        with spinner_context("Clearing the existing VEAF triggers...", logger=self.logger, silent=silent):
+        with spinner_context("Clearing the existing VEAF triggers...", silent=silent):
             self.clear_veaf_triggers()
 
         # Then, add all the VEAF triggers we need
-        with spinner_context("Creating the new VEAF triggers...", logger=self.logger, silent=silent):
-            self.insert_all_veaf_triggers()
+        if not self.no_veaf_triggers:
+            with spinner_context("Creating the new VEAF triggers...", silent=silent):
+                self.insert_all_veaf_triggers()
+        elif not silent: 
+            logger.info("Skipping VEAF triggers because option '--no-veaf-triggers' was set...")
 
         # Write the mission file
-        with spinner_context(f"Writing final mission {self.output_mission}...", logger=self.logger, silent=silent):
+        with spinner_context(f"Writing final mission {self.output_mission}...", silent=silent):
             self.write_mission()
 
-        if not silent: self.logger.info(f"Mission file '{self.output_mission}' built from folder '{self.mission_folder}'.")
+        if not silent: logger.info(f"Mission file '{self.output_mission}' built from folder '{self.mission_folder}'.")
 
         return self.output_mission

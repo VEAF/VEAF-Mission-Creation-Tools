@@ -96,14 +96,15 @@ powershell -file compile.ps1 -ArtefactName "veaf-scripts-trace" -VersionTag "/tr
 rem compile the veaf-tools program
 call .\.venv\Scripts\activate.bat
 pyinstaller --onefile --name veaf-tools --distpath .\published src\python\veaf-tools\veaf-tools.py
+pyinstaller --onefile --name veaf-tools-updater --distpath .\published src\python\veaf-tools\veaf-tools-updater.py
 call .\.venv\Scripts\deactivate.bat
 
 rem publish the default configuration files
 xcopy /Y /E /S /I src\defaults published\defaults
 
 rem publish the source files
-rem xcopy /Y /E /S /I src\scripts\community published\src\scripts\community
-rem xcopy /Y /E /S /I src\scripts\veaf published\src\scripts\veaf
+xcopy /Y /E /S /I src\scripts\community published\src\scripts\community
+xcopy /Y /E /S /I src\scripts\veaf published\src\scripts\veaf
 
 rem publish the build scripts
 xcopy /Y /E /S /I src\build-scripts published\build-scripts
@@ -116,7 +117,3 @@ rem zip the published files
 
 rem delete the published folder
 rmdir /s /q published
-
-IF [%NOPAUSE%] == [true] GOTO EndOfFile
-pause
-:EndOfFile

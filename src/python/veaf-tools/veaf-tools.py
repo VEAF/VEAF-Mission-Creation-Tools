@@ -18,17 +18,10 @@ Example:
 All the commands feature both `--help` and `--readme` options that display online help.
 """
 
-from io import BytesIO
-import json
 from pathlib import Path
-import re
-import shutil
-import tempfile
-import zipfile
 from rich.markdown import Markdown
 from typing import Optional
 
-import urllib
 from veaf_logger import logger, console
 from presets_injector import PresetsInjectorWorker, PresetsInjectorREADME
 from mission_builder import MissionBuilderWorker, MissionBuilderREADME
@@ -37,13 +30,12 @@ from mission_converter import MissionConverterWorker, MissionConverterREADME
 from mission_tools import spinner_context
 import typer
 from datetime import datetime
-from github import Github, Repository
-import requests
 
-VERSION:str = "6.0.0"
+VERSION:str = "6.0.1"
 README_HELP: str = "Provide access to the README file."
 PAUSE_HELP: str = "If set, the script will pause when finished and wait for the user to press a key."
 VERBOSE_HELP: str = "If set, the script will output a lot of debug information."
+PAUSE_MESSAGE: str = "Press Enter to exit..."
 
 # String constants
 DEFAULT_MISSION_FILE = "mission.miz"
@@ -76,7 +68,7 @@ def resolve_path(path: str, default_path: str = None, should_exist: bool = False
     
     return result
 
-@app.command()
+@app.command(no_args_is_help=True)
 def about(
 ) -> None:
     """
@@ -90,7 +82,7 @@ def about(
     if typer.confirm("Do you want to open the VEAF website in your browser?"):
         typer.launch(url)
 
-@app.command()
+@app.command(no_args_is_help=True)
 def inject_presets(
     readme: bool = typer.Option(False, help=README_HELP),
     verbose: bool = typer.Option(False, help=VERBOSE_HELP),
@@ -134,17 +126,18 @@ def inject_presets(
     worker.work()
 
     console.print(WORK_DONE_MESSAGE)
-    if pause: input("Press Enter to exit...")
+    if pause: input(PAUSE_MESSAGE)
 
-@app.command()
-def build_mission(
+@app.command(no_args_is_help=True)
+def build(
     readme: bool = typer.Option(False, help=README_HELP),
     verbose: bool = typer.Option(False, help=VERBOSE_HELP),
-    dynamic_mode: bool = typer.Option(False, help="If set, the mission will dynamically load the scripts from the provided location (via --scripts-path or in the local node_modules and src/scripts folders)."),
+    no_veaf_triggers: bool = typer.Option(False, help="If set, the VEAF triggers will not be injected in the resulting mission."),
+    dynamic_mode: bool = typer.Option(False, help="If set, the mission will dynamically load the scripts from the provided location (via --scripts-path or in the local published and src/scripts folders)."),
     scripts_path: str = typer.Option(None, help="Path to the VEAF and community scripts."),
     migrate_from_v5: bool = typer.Option(True, help="If set, the builder will parse the mission for old v5 triggers and remove them."),
-    mission_folder: Optional[str] = typer.Argument(".", help="Folder with the mission files."),
     mission_name_or_file: Optional[str] = typer.Argument(DEFAULT_MISSION_FILE, help="Mission name; will build the mission with this name and the current date; can be set to a .miz file."),
+    mission_folder: Optional[str] = typer.Argument(".", help="Folder with the mission files."),
     pause: bool = typer.Option(False, help=PAUSE_HELP),
 ) -> None:
     """
@@ -176,8 +169,8 @@ def build_mission(
 
     # Resolve development path
     if not scripts_path and dynamic_mode:
-        # default value is the "/node_modules/veaf-mission-creation-tools" subfolder of the mission folder
-        scripts_path = p_mission_folder / "node_modules" / "veaf-mission-creation-tools"
+        # default value is the "published" subfolder of the mission folder
+        scripts_path = p_mission_folder / "published"
     if scripts_path:
         p_scripts_path = resolve_path(path=scripts_path, should_exist=True)
         if not p_scripts_path.exists():
@@ -186,14 +179,14 @@ def build_mission(
         p_scripts_path = None
 
     # Call the worker class
-    worker = MissionBuilderWorker(dynamic_mode=dynamic_mode, scripts_path=p_scripts_path, mission_folder=p_mission_folder, output_mission=p_output_mission, migrate_from_v5=migrate_from_v5)
+    worker = MissionBuilderWorker(dynamic_mode=dynamic_mode, scripts_path=p_scripts_path, mission_folder=p_mission_folder, output_mission=p_output_mission, migrate_from_v5=migrate_from_v5, no_veaf_triggers=no_veaf_triggers)
     worker.work()
 
     console.print(WORK_DONE_MESSAGE)
-    if pause: input("Press Enter to exit...")
+    if pause: input(PAUSE_MESSAGE)
 
-@app.command()
-def extract_mission(
+@app.command(no_args_is_help=True)
+def extract(
     readme: bool = typer.Option(False, help=README_HELP),
     verbose: bool = typer.Option(False, help=VERBOSE_HELP),
     mission_name_or_file: Optional[str] = typer.Argument(DEFAULT_MISSION_FILE, help="Mission name; will extract from the mission with this name (most recent .miz file); can be set to a .miz file."),
@@ -232,13 +225,13 @@ def extract_mission(
     worker.work()
 
     console.print(WORK_DONE_MESSAGE)
-    if pause: input("Press Enter to exit...")
+    if pause: input(PAUSE_MESSAGE)
 
-@app.command()
-def convert_mission(
+@app.command(no_args_is_help=True)
+def convert(
     readme: bool = typer.Option(False, help=README_HELP),
     verbose: bool = typer.Option(False, help=VERBOSE_HELP),
-    dynamic_mode: bool = typer.Option(False, help="If set, the mission will dynamically load the scripts from the provided location (via --scripts-path or in the local node_modules and src/scripts folders)."),
+    dynamic_mode: bool = typer.Option(False, help="If set, the mission will dynamically load the scripts from the provided location (via --scripts-path or in the local published and src/scripts folders)."),
     scripts_path: str = typer.Option(None, help="Path to the VEAF and community scripts."),
     mission_name: str = typer.Argument(help="Mission name; will extract from the mission with this name (most recent .miz file)"),
     mission_folder: Optional[str] = typer.Argument(".", help="Folder with the mission files."),
@@ -278,8 +271,8 @@ def convert_mission(
 
     # Resolve development path
     if not scripts_path and dynamic_mode:
-        # default value is the "/node_modules/veaf-mission-creation-tools" subfolder of the mission folder
-        scripts_path = p_mission_folder / "node_modules" / "veaf-mission-creation-tools"
+        # default value is the "published" subfolder of the mission folder
+        scripts_path = p_mission_folder / "published"
     if scripts_path:
         p_scripts_path = resolve_path(path=scripts_path, should_exist=True)
         if not p_scripts_path.exists():
@@ -298,131 +291,7 @@ def convert_mission(
     worker.work()
 
     console.print(WORK_DONE_MESSAGE)
-    if pause: input("Press Enter to exit...")
-
-def download_folder(repo: Repository, folder_path, tag, local_path):
-    """Recursively download a folder from GitHub"""
-    local_path = Path(local_path)
-    
-    def download_recursive(contents, local_dir):
-        for content in contents:
-            if content.type == "dir":
-                new_dir = local_dir / content.name
-                new_dir.mkdir(parents=True, exist_ok=True)
-                download_recursive(repo.get_contents(content.path, ref=tag), new_dir)
-            else:
-                file_path = local_dir / content.name
-                file_content = repo.get_contents(content.path, ref=tag)
-                
-                # Use download_url instead of decoded_content
-                download_url = file_content.download_url
-                urllib.request.urlretrieve(download_url, file_path)
-
-    
-    local_path.mkdir(parents=True, exist_ok=True)
-    contents = repo.get_contents(folder_path, ref=tag)
-    download_recursive(contents, local_path)
-
-@app.command()
-def update(
-    verbose: bool = typer.Option(False, help=VERBOSE_HELP),
-    force: bool = typer.Option(False, help="If set, no check will be done and the files will be downloaded from GitHub"),
-    tag: Optional[str] = typer.Option("latest", help="Tag that will be used to fetch files from GitHub"),
-    token: Optional[str] = typer.Option(None, help="GitHub Personal Access Token - optional, may help with rate limiting"),
-    mission_folder: Optional[str] = typer.Argument(".", help="Folder with the mission files."),
-    pause: bool = typer.Option(False, help=PAUSE_HELP),
-    confirm: bool = typer.Option(True, help="If set, the script will ask for confirmation before updating if a new version is found."),
-) -> None:
-    """
-    Gets the latest VEAF Tools files from GitHub.
-    """
-
-    def check_github_response(response: requests.Response, action: str):
-        if response.status_code == 403 and response.reason == "rate limit exceeded":
-            logger.warning("\nGitHub API has reached its rate limit. You should wait for a moment (suggesting an hour) and retry...")
-            logger.error(f'{action} failed: {response.reason} ({response.status_code})')
-        elif response.status_code != 200:
-            logger.error(f'\n{action} failed: {response.reason} ({response.status_code})')    
-    
-    def get_releases(tag: str):
-        response = requests.get(f"https://api.github.com/repos/VEAF/VEAF-Mission-Creation-Tools/releases/tags/{tag}", headers=headers)
-        if response.status_code == 404: # tag does not exist
-            tag = "latest"
-            response = requests.get("https://api.github.com/repos/VEAF/VEAF-Mission-Creation-Tools/releases/latest", headers=headers)
-        check_github_response(response=response, action=f"Getting release '{tag}' from Github")
-        return response.json()
-    
-    def check_last_release(release_payload) -> tuple[bool, str, str]:
-        release_tag = release_payload.get("tag_name")
-        release_version = re.sub('^v', '', release_tag)
-        update = True
-        installed_version = None
-        if not force:
-            package_json_path = p_mission_folder / "published" / "package.json"
-            if package_json_path.exists():
-                # Read the installed package.json file
-                with open(package_json_path, 'r') as f:
-                    package_payload = json.load(f)
-                    if installed_version := package_payload.get("version"):
-                        if installed_version >= release_version:
-                            update = False
-        return (update, installed_version, release_version)
-    
-    def install_update(tag: str, release_version: str):
-        with spinner_context(f"Downloading release tag:'{tag}' version:{release_version} from Github"):
-            if published_file_urls := [
-                e.get("url")
-                for e in release_payload.get("assets", [])
-                if e.get("name") == "published.zip"
-            ]:
-                published_file_url = published_file_urls[0]
-                response = requests.get(published_file_url, headers=headers)
-                check_github_response(response=response, action=f"Getting detailed info about release tag:'{tag}' version:{release_version} from Github")
-                published_file_payload = response.json()
-                if published_file_download_url := published_file_payload.get("browser_download_url"):
-                    response = requests.get(published_file_download_url, headers=headers)
-                    check_github_response(response=response, action=f"Downloading 'published.zip' from release {tag} from Github")
-                    zip_file = zipfile.ZipFile(BytesIO(response.content))
-                    zip_file.extractall(p_mission_folder)
-                    published_veaftools_exe_path = p_mission_folder / "published" / "veaf-tools.exe"
-                    shutil.copy2(published_veaftools_exe_path, Path.cwd())
-                    published_build_scripts_path = p_mission_folder / "published" / "build-scripts"
-                    for file in published_build_scripts_path.glob("*.cmd"):
-                        shutil.copy2(file, Path.cwd() / file.name)
-        logger.info(f"Release tag:'{tag}' version:{release_version} has been downloaded from Github")
-        logger.info(f"Extracted release tag:'{tag}' version:{release_version} to {p_mission_folder}")
-
-    logger.set_verbose(verbose)
-
-    # Set the title and version
-    console.print(f"[bold green]veaf-tools updater v{VERSION}[/bold green]")
-
-    # Resolve output mission folder
-    p_mission_folder = resolve_path(path=mission_folder, default_path=Path.cwd(), should_exist=True)
-    if not p_mission_folder.exists():
-        logger.error(f"Mission folder {p_mission_folder} does not exist!", exception_type=FileNotFoundError)
-
-    headers = {
-        "Authorization": f"token {token}",
-        "Accept": "application/vnd.github.v3+json"
-    } if token else None
-
-    with spinner_context(f"Getting release '{tag}' from Github"):
-        release_payload = get_releases(tag)
-    
-    with spinner_context(f"Checking release '{tag}' from Github"):
-        update, installed_version, release_version = check_last_release(release_payload)
-
-    if update:
-        if confirm and update:
-            answer = input(f"Found version:{release_version} which is newer than installed version:{installed_version}; update? [N|y]")
-            if (answer and answer.lower() == "y"):
-                install_update(tag, release_version)
-    else:
-        logger.info(f"No need to update, release version:{release_version} is not newer than installed version:{installed_version}!")
-
-    console.print(WORK_DONE_MESSAGE)
-    if pause: input("Press Enter to exit...")
+    if pause: input(PAUSE_MESSAGE)
 
 if __name__ == "__main__":
     app()

@@ -17,7 +17,7 @@ def get_legacy_script_files() -> list[(str, str)]:
             ("src/scripts/veaf/veaf-scripts-trace.lua", DEFAULT_SCRIPTS_LOCATION),
     ]
 def get_community_script_files() -> list[(str, str)]:
-    """Get list of community LUA files. Those can be in node_modules/veaf-mission-creation-tools or in the scripts folder, depending on the --dynamic-mode option"""
+    """Get list of community LUA files. Those can be in published or in the scripts folder, depending on the --dynamic-mode option"""
 
 
     return [
@@ -34,12 +34,12 @@ def get_community_script_files() -> list[(str, str)]:
     ]
 
 def get_veaf_script_files() -> list[(str, str)]:
-    """Get list of VEAF script files.Those can be in node_modules/veaf-mission-creation-tools or in the scripts folder, depending on the --dynamic-mode option"""
+    """Get list of VEAF script files.Those can be in published or in the scripts folder, depending on the --dynamic-mode option"""
 
 
     return [
             # The main VEAF scripts
-            ("published/veaf-scripts.lua", DEFAULT_SCRIPTS_LOCATION)
+            ("veaf-scripts.lua", DEFAULT_SCRIPTS_LOCATION)
     ]
 
 def get_mission_script_files() -> list[(str, str)]:

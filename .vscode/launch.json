@@ -29,21 +29,12 @@
             "console": "integratedTerminal"
         },
         {
-            "name": "veaf-tools scripts injection",
-            "type": "debugpy",
-            "request": "launch",
-            "program": "${workspaceFolder}/src/python/veaf-tools/veaf-tools.py",
-            "cwd": "${workspaceFolder}\\test\\veaf-tools\\scripts-injector\\build",
-            "args": ["inject-scripts", "--development-mode", "test.miz", "test-out.miz"],
-            "console": "integratedTerminal"
-        },
-        {
             "name": "veaf-tools mission builder TEST mission STATIC with local (node-modules) scripts",
             "type": "debugpy",
             "request": "launch",
             "program": "${workspaceFolder}/src/python/veaf-tools/veaf-tools.py",
             "cwd": "${workspaceFolder}\\test\\veaf-tools\\mission-builder",
-            "args": ["build-mission", "${workspaceFolder}/test/veaf-tools/mission-builder", "test.miz"],
+            "args": ["build", "${workspaceFolder}/test/veaf-tools/mission-builder", "test.miz"],
             "console": "integratedTerminal"
         },
         {
@@ -52,7 +43,7 @@
             "request": "launch",
             "program": "${workspaceFolder}/src/python/veaf-tools/veaf-tools.py",
             "cwd": "${workspaceFolder}\\test\\veaf-tools\\mission-builder",
-            "args": ["build-mission", "--scripts-path", "${workspaceFolder}", "${workspaceFolder}/test/veaf-tools/mission-builder", "test.miz"],
+            "args": ["build", "--scripts-path", "${workspaceFolder}", "${workspaceFolder}/test/veaf-tools/mission-builder", "test.miz"],
             "console": "integratedTerminal"
         },
         {
@@ -61,7 +52,7 @@
             "request": "launch",
             "program": "${workspaceFolder}/src/python/veaf-tools/veaf-tools.py",
             "cwd": "${workspaceFolder}\\test\\veaf-tools\\mission-builder",
-            "args": ["build-mission", "--dynamic-mode", "${workspaceFolder}/test/veaf-tools/mission-builder", "test.miz"],
+            "args": ["build", "--dynamic-mode", "${workspaceFolder}/test/veaf-tools/mission-builder", "test.miz"],
             "console": "integratedTerminal"
         },
         {
@@ -70,7 +61,7 @@
             "request": "launch",
             "program": "${workspaceFolder}/src/python/veaf-tools/veaf-tools.py",
             "cwd": "${workspaceFolder}\\test\\veaf-tools\\mission-builder",
-            "args": ["build-mission", "--dynamic-mode", "--scripts-path", "${workspaceFolder}", "${workspaceFolder}/test/veaf-tools/mission-builder", "test.miz"],
+            "args": ["build", "--dynamic-mode", "--scripts-path", "${workspaceFolder}", "${workspaceFolder}/test/veaf-tools/mission-builder", "test.miz"],
             "console": "integratedTerminal"
         },
         {
@@ -79,7 +70,7 @@
             "request": "launch",
             "program": "${workspaceFolder}/src/python/veaf-tools/veaf-tools.py",
             "cwd": "d:/dev/_VEAF/VEAF-Demo-Mission",
-            "args": ["build-mission", "d:/dev/_VEAF/VEAF-Demo-Mission", "test.miz"],
+            "args": ["build", "d:/dev/_VEAF/VEAF-Demo-Mission", "test.miz"],
             "console": "integratedTerminal"
         },
         {
@@ -88,7 +79,7 @@
             "request": "launch",
             "program": "${workspaceFolder}/src/python/veaf-tools/veaf-tools.py",
             "cwd": "d:/dev/_VEAF/VEAF-Demo-Mission",
-            "args": ["build-mission", "--scripts-path", "${workspaceFolder}", "d:/dev/_VEAF/VEAF-Demo-Mission", "test.miz"],
+            "args": ["build", "--scripts-path", "${workspaceFolder}", "d:/dev/_VEAF/VEAF-Demo-Mission", "test.miz"],
             "console": "integratedTerminal"
         },
         {
@@ -97,7 +88,7 @@
             "request": "launch",
             "program": "${workspaceFolder}/src/python/veaf-tools/veaf-tools.py",
             "cwd": "d:/dev/_VEAF/VEAF-Demo-Mission",
-            "args": ["build-mission", "--dynamic-mode", "d:/dev/_VEAF/VEAF-Demo-Mission", "test.miz"],
+            "args": ["build", "--dynamic-mode", "d:/dev/_VEAF/VEAF-Demo-Mission", "test.miz"],
             "console": "integratedTerminal"
         },
         {
@@ -106,7 +97,7 @@
             "request": "launch",
             "program": "${workspaceFolder}/src/python/veaf-tools/veaf-tools.py",
             "cwd": "d:/dev/_VEAF/VEAF-Demo-Mission",
-            "args": ["build-mission", "--dynamic-mode", "--scripts-path", "${workspaceFolder}", "d:/dev/_VEAF/VEAF-Demo-Mission", "test.miz"],
+            "args": ["build", "--dynamic-mode", "--scripts-path", "${workspaceFolder}", "d:/dev/_VEAF/VEAF-Demo-Mission", "test.miz"],
             "console": "integratedTerminal"
         },
         {
@@ -115,7 +106,7 @@
             "request": "launch",
             "program": "${workspaceFolder}/src/python/veaf-tools/veaf-tools.py",
             "cwd": "${workspaceFolder}\\test\\veaf-tools\\mission-extractor",
-            "args": ["extract-mission", "test.miz", "extracted"],
+            "args": ["extract", "test.miz", "extracted"],
             "console": "integratedTerminal"
         },
         // Demo mission: all tools
@@ -126,7 +117,7 @@
             "request": "launch",
             "program": "${workspaceFolder}/src/python/veaf-tools/veaf-tools.py",
             "cwd": "${workspaceFolder}/test/veaf-tools/demo-mission",
-            "args": ["extract-mission", "veaf-demo-mission", "${workspaceFolder}/test/veaf-tools/demo-mission"],
+            "args": ["extract", "veaf-demo-mission", "${workspaceFolder}/test/veaf-tools/demo-mission"],
             "console": "integratedTerminal"
         },
         {
@@ -136,7 +127,7 @@
             "request": "launch",
             "program": "${workspaceFolder}/src/python/veaf-tools/veaf-tools.py",
             "cwd": "${workspaceFolder}/test/veaf-tools/demo-mission",
-            "args": ["build-mission", "--scripts-path", "${workspaceFolder}", "${workspaceFolder}/test/veaf-tools/demo-mission", "veaf-demo-mission"],
+            "args": ["build", "--scripts-path", "${workspaceFolder}", "${workspaceFolder}/test/veaf-tools/demo-mission", "veaf-demo-mission"],
             "console": "integratedTerminal"
         },
         {
@@ -149,6 +140,16 @@
             "args": ["inject-presets", "veaf-demo-mission"],
             "console": "integratedTerminal"
         },
+        {
+            // build veaf-foothold-syria
+            "name": "veaf-tools - build veaf-foothold-syria",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/python/veaf-tools/veaf-tools.py",
+            "cwd": "d:/dev/_VEAF/VEAF-Foothold-Syria",
+            "args": ["build", "--no-veaf-triggers", "veaf-foothold-syria_ICAO_OLBA"],
+            "console": "integratedTerminal"
+        },
         // TESTS
         {
             // convert A
@@ -157,7 +158,7 @@
             "request": "launch",
             "program": "${workspaceFolder}/src/python/veaf-tools/veaf-tools.py",
             "cwd": "c:/tmp/a",
-            "args": ["convert-mission", "test.miz",  "veaf-foothold-syria", "--inject-presets"],
+            "args": ["convert", "test.miz",  "test", "--inject-presets"],
             "console": "integratedTerminal"
         },
         {
@@ -167,7 +168,7 @@
             "request": "launch",
             "program": "${workspaceFolder}/src/python/veaf-tools/veaf-tools.py",
             "cwd": "c:/tmp/a",
-            "args": ["build-mission", ".",  "test"],
+            "args": ["build", ".",  "test"],
             "console": "integratedTerminal"
         },
         {
@@ -177,7 +178,7 @@
             "request": "launch",
             "program": "${workspaceFolder}/src/python/veaf-tools/veaf-tools.py",
             "cwd": "c:/tmp/a",
-            "args": ["build-mission", "--scripts-path", "${workspaceFolder}", ".",  "test"],
+            "args": ["build", "--scripts-path", "${workspaceFolder}", ".",  "test"],
             "console": "integratedTerminal"
         },
         {
@@ -187,7 +188,7 @@
             "request": "launch",
             "program": "${workspaceFolder}/src/python/veaf-tools/veaf-tools.py",
             "cwd": "c:/tmp/a",
-            "args": ["extract-mission",  "test", "."],
+            "args": ["extract",  "test", "."],
             "console": "integratedTerminal"
         },
         {
@@ -197,7 +198,7 @@
             "request": "launch",
             "program": "${workspaceFolder}/src/python/veaf-tools/veaf-tools.py",
             "cwd": "c:/tmp/d",
-            "args": ["extract-mission",  "test", "."],
+            "args": ["extract",  "test", "."],
             "console": "integratedTerminal"
         },
         {
@@ -207,7 +208,7 @@
             "request": "launch",
             "program": "${workspaceFolder}/src/python/veaf-tools/veaf-tools.py",
             "cwd": "c:/tmp/e",
-            "args": ["build-mission", "--scripts-path", "${workspaceFolder}", ".",  "test"],
+            "args": ["build", "--scripts-path", "${workspaceFolder}", ".",  "test"],
             "console": "integratedTerminal"
         },
         {

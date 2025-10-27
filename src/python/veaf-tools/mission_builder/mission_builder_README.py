@@ -10,7 +10,7 @@ The builder takes a structured mission folder and creates a complete .miz file w
 ## Prerequisites
 
 - A properly structured VEAF mission folder
-- Access to VEAF and community scripts (local or via node_modules)
+- Access to VEAF and community scripts (local or via published)
 - Python environment with veaf-tools installed
 
 ## Usage
@@ -62,7 +62,7 @@ mission_folder/
 │   │   ├── missionConfig.lua
 │   │   └── [custom scripts]
 │   └── [other files]
-└── node_modules/veaf-mission-creation-tools/ (optional)
+└── published/ (automatically fetched with veaf-tools-updater)
 ```
 
 ## Processing Steps

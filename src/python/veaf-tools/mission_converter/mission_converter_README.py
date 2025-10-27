@@ -80,7 +80,7 @@ mission_folder/
 │   │   ├── missionConfig.lua (updated with mission name)
 │   │   └── [other scripts]
 │   └── presets.yaml (if presets were injected)
-├── node_modules/veaf-mission-creation-tools/ (if dynamic mode)
+├── published/ (automatically fetched with veaf-tools-updater)
 └── [output .miz file]
 ```
 

@@ -6,7 +6,7 @@ from pathlib import Path
 import shutil
 from typing import Optional
 from mission_tools import read_miz, write_miz, extract_miz, get_community_script_files, get_veaf_script_files, get_mission_files_to_cleanup_on_extract, get_legacy_script_files, spinner_context
-from veaf_logger import VeafLogger
+from veaf_logger import logger
 import tempfile
 
 class MissionExtractorWorker:
@@ -14,20 +14,19 @@ class MissionExtractorWorker:
     Worker class that extracts a .miz mission file to a VEAF mission folder.
     """
     
-    def __init__(self, mission_folder: Path, input_mission_path: Path, logger: Optional[VeafLogger]):
+    def __init__(self, mission_folder: Path, input_mission_path: Path):
         """
         Initialize the worker with parameters for both use cases.
         """
         
-        self.logger: VeafLogger = logger
         self.input_mission_path = input_mission_path
         self.mission_folder = mission_folder
 
         if not (self.input_mission_path and self.input_mission_path.is_file()):
-            self.logger.error(f"The input mission '{self.input_mission_path}' does not exist or is not a file", exception_type=FileNotFoundError)
+            logger.error(f"The input mission '{self.input_mission_path}' does not exist or is not a file", exception_type=FileNotFoundError)
 
         if self.mission_folder and not self.mission_folder.is_dir():
-            self.logger.error(f"The output mission folder '{self.mission_folder}' does not exist or is not a folder", exception_type=FileNotFoundError)
+            logger.error(f"The output mission folder '{self.mission_folder}' does not exist or is not a folder", exception_type=FileNotFoundError)
 
     def extract_mission(self) -> None:
         """Extract the files from the .miz mission to the VEAF mission folder"""
@@ -63,12 +62,12 @@ class MissionExtractorWorker:
 
             # Normalize the mission to a temporary file
             temp_mission_file = temp_dir / "temp_mission.miz"
-            self.logger.debug(f"Normalizing the mission file {self.input_mission_path} to a temporary file {temp_mission_file}")
+            logger.debug(f"Normalizing the mission file {self.input_mission_path} to a temporary file {temp_mission_file}")
             dcs_mission = read_miz(self.input_mission_path)
             write_miz(dcs_mission, temp_mission_file)
 
             # Extract the mission .miz file
-            self.logger.debug(f"Extracting the mission file {temp_mission_file} to the folder {temp_dir}")
+            logger.debug(f"Extracting the mission file {temp_mission_file} to the folder {temp_dir}")
             extract_miz(miz_file_path=temp_mission_file, extracted_folder_path=temp_dir)
 
             # Delete the temporary mission file
@@ -115,5 +114,5 @@ class MissionExtractorWorker:
         """Main work function."""
 
         # Extract the mission
-        with spinner_context(f"Extracting mission {self.input_mission_path}...", done_message=f"Mission file '{self.input_mission_path}' extracted to '{self.mission_folder}'.", logger=self.logger, silent=silent):
+        with spinner_context(f"Extracting mission {self.input_mission_path}...", done_message=f"Mission file '{self.input_mission_path}' extracted to '{self.mission_folder}'.", silent=silent):
             self.extract_mission()

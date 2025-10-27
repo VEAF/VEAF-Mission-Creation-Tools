@@ -58,7 +58,9 @@ class MissionBuilderWorker:
 
     def _signal_missing_required_files_after_collection(self, missing_files_nb, scripts_folder):
         message = f'Error: {missing_files_nb} file{"s" if missing_files_nb > 1 else ""} are missing from {scripts_folder}'
-        logger.error(message=message, exception_type=RuntimeError)
+        message = message + "\nTry updating the veaf-tools package using veaf-tools-updater.exe!"
+        logger.error(message=message, raise_exception=False)
+        exit()
     
     def get_collected_mission_script_files(self) -> dict[str, bytes]:
         if self.collected_mission_script_files: return self.collected_mission_script_files
@@ -77,7 +79,7 @@ class MissionBuilderWorker:
         return self.collected_mission_data_files
        
     def complete_src_folder_with_defaults(self) -> None:
-        defaults_folder: Path = (self.scripts_path or (self.mission_folder / "published")) / "src" / "defaults" / "mission-folder"
+        defaults_folder: Path = (self.scripts_path or (self.mission_folder / "published")) / "defaults" / "mission-folder"
         for f in defaults_folder.rglob("*"):
             if f.is_file():
                 relative_path = f.relative_to(defaults_folder).parent.as_posix()

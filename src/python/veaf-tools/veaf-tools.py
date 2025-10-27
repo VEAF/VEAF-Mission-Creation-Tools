@@ -31,7 +31,7 @@ from mission_tools import spinner_context
 import typer
 from datetime import datetime
 
-VERSION:str = "6.0.1"
+VERSION:str = "6.0.0"
 README_HELP: str = "Provide access to the README file."
 PAUSE_HELP: str = "If set, the script will pause when finished and wait for the user to press a key."
 VERBOSE_HELP: str = "If set, the script will output a lot of debug information."
@@ -68,7 +68,7 @@ def resolve_path(path: str, default_path: str = None, should_exist: bool = False
     
     return result
 
-@app.command(no_args_is_help=True)
+@app.command()
 def about(
 ) -> None:
     """

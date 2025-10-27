@@ -165,7 +165,7 @@ def update(
 
     if update:
         if confirm:
-            if typer.confirm("Do you want to open the VEAF website in your browser?"):
+            if typer.confirm(f"Do you want to update your folder to version:{release_version}?"):
                 install_update(tag, release_version)
     else:
         logger.info(f"No need to update, release version:{release_version} is not newer than installed version:{installed_version}!")

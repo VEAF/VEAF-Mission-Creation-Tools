@@ -111,6 +111,16 @@
         },
         // Demo mission: all tools
         {
+            // convert
+            "name": "veaf-tools - demo mission - convert ",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/python/veaf-tools/veaf-tools.py",
+            "cwd": "${workspaceFolder}/test/veaf-tools/mission-converter",
+            "args": ["convert", "--inject-presets", "test.miz"],
+            "console": "integratedTerminal"
+        },
+        {
             // extract
             "name": "veaf-tools - demo mission - extract ",
             "type": "debugpy",
@@ -217,7 +227,7 @@
             "request": "launch",
             "program": "${workspaceFolder}/src/python/veaf-tools/veaf-tools.py",
             "cwd": "d:/dev/_VEAF/VEAF-Foothold-Syria",
-            "args": ["inject-presets", "MA_Foothold_SY_2.3.7_Modern_ICAO_OLBA"],
+            "args": ["inject-presets", "MA_Foothold_SY_extended_2.4.0_Modern_ICAO_OLBA.miz"],
             "console": "integratedTerminal"
         },    ]
 }

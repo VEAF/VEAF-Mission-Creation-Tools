@@ -261,7 +261,7 @@ class PresetDefinition:
 
     def to_dict(self) -> dict:
         return {
-            int(radio_name) if radio_name.isdigit() else int(radio_name.split('_')[-1]): radio.to_dict() for radio_name, radio in self.radios.items()
+            radio_number+1: radio.to_dict() for radio_number, radio in enumerate(self.radios.values())
         }
 
     def get_freq_of_first_channel_of_first_radio(self) -> float:

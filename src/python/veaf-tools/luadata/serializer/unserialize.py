@@ -355,7 +355,7 @@ def _lua_table_to_dict(lua_table, keep_as_dict: list[str] | None = None, all_is_
     # Check if a Lua table is a list
     def is_lua_list(table):
         keys = list(table.keys())
-        return all(isinstance(key, int) for key in keys) and sorted(keys) == list(range(1, len(keys) + 1))
+        return keys and all(isinstance(key, int) for key in keys) and sorted(keys) == list(range(1, len(keys) + 1))
 
     # Handle conversion
     if not(all_is_dict) and is_lua_list(lua_table):

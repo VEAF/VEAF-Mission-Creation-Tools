@@ -29,3 +29,8 @@ test/veaf-tools/update/*
 published/
 
 published.zip
+test/veaf-tools/mission-converter/src
+test/veaf-tools/mission-converter/build.cmd
+test/veaf-tools/mission-converter/test.miz_20251027.miz
+test/veaf-tools/mission-converter/veaf-tools-updater.exe
+test/veaf-tools/mission-converter/veaf-tools.exe

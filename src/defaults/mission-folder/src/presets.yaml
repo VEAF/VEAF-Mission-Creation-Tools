@@ -152,6 +152,140 @@ presets_assignments: # defines which presets collection to use for each coalitio
       all: none
 
 channels_collection: # Lists all the radio channels available on the map
+
+    tactical:
+      Guard: 
+        title: Guard
+        freqs:
+          uhf: 243
+          vhf: 121.5
+      Stennis:
+        title: Stennis / 10X
+        freqs: 
+          uhf: 225
+      Tarawa:
+        title: Tarawa / 11X
+        freqs: 
+          uhf: 226
+      Roosevelt:
+        title: Roosevelt / 12X
+        freqs: 
+          uhf: 227
+      Forrestal:
+        title: Forrestal / 13X
+        freqs: 
+          uhf: 228
+      Magic:
+        title: Magic
+        freqs: 
+          uhf: 282.2
+      Package01:
+        title: Package 01
+        freqs: 
+          uhf: 291
+      Texaco-1:
+        title: Texaco-1/BS/60Y
+        freqs: 
+          uhf: 290.1
+      Shell-1:
+        title: Shell-1/BS/62Y
+        freqs: 
+          uhf: 290.3
+      Shell-2:
+        title: Shell-2/BM/63Y
+        freqs: 
+          uhf: 290.4
+      Arco-1:
+        title: Arco-1/BM/64Y  
+        freqs: 
+          uhf: 290.5
+      Range-KOBULETI:
+        title: Range KOBULETI
+        freqs: 
+          uhf: 305.1
+
+    flights:  
+      Archer:
+        title: Archer
+        freqs: 
+          vhf: 120
+          uhf: 390
+      Arctic:
+        title: Arctic
+        freqs: 
+          vhf: 120.1
+          uhf: 390.1
+      Astro:
+        title: Astro
+        freqs: 
+          vhf: 120.2
+          uhf: 390.2
+      Nickel:
+        title: Nickel
+        freqs: 
+          vhf: 120.3
+          uhf: 390.3
+      Nitro:
+        title: Nitro
+        freqs: 
+          vhf: 120.4
+          uhf: 390.4
+      Ninja:
+        title: Ninja
+        freqs: 
+          vhf: 120.5
+          uhf: 390.5
+      Pinder:
+        title: Pinder
+        freqs: 
+          vhf: 120.6
+          uhf: 390.6
+      Bengal:
+        title: Bengal
+        freqs: 
+          vhf: 120.7
+          uhf: 390.7
+      Blade:
+        title: Blade
+        freqs: 
+          vhf: 120.8
+          uhf: 390.8
+      Gordon:
+        title: Gordon
+        freqs: 
+          vhf: 120.9
+          uhf: 390.9
+      Gypsy:
+        title: Gypsy
+        freqs: 
+          vhf: 121.1
+          uhf: 391.1
+      Gunstar:
+        title: Gunstar
+        freqs: 
+          vhf: 121.2
+          uhf: 391.2
+      Leica:
+        title: Leica
+        freqs: 
+          vhf: 121.3
+          uhf: 391.3
+      Lucid:
+        title: Lucid
+        freqs: 
+          vhf: 121.4
+          uhf: 391.4
+      Lusty:
+        title: Lusty
+        freqs: 
+          vhf: 121.6
+          uhf: 391.6
+      Lion:
+        title: Lion
+        freqs: 
+          vhf: 121.7
+          uhf: 391.7
+
     airports-caucasus: # name of the collection
       Batumi: # a channel ; this is its alias (used later in the radio definitions)
         title: Batumi / 16X  # title of the channel; defaults to empty (used in the DCS "Mission" file and in the exported kneeboard PNG)
@@ -564,135 +698,207 @@ channels_collection: # Lists all the radio channels available on the map
             vhf: 120.5
             fm:  40.3
 
-    tactical:
-      Guard: 
-        title: Guard
-        freqs:
-          uhf: 243
-          vhf: 121.5
-      Stennis:
-        title: Stennis / 10X
-        freqs: 
-          uhf: 225
-      Tarawa:
-        title: Tarawa / 11X
-        freqs: 
-          uhf: 226
-      Roosevelt:
-        title: Roosevelt / 12X
-        freqs: 
-          uhf: 227
-      Forrestal:
-        title: Forrestal / 13X
-        freqs: 
-          uhf: 228
-      Magic:
-        title: Magic
-        freqs: 
-          uhf: 282.2
-      Package01:
-        title: Package 01
-        freqs: 
-          uhf: 291
-      Texaco-1:
-        title: Texaco-1/BS/60Y
-        freqs: 
-          uhf: 290.1
-      Shell-1:
-        title: Shell-1/BS/62Y
-        freqs: 
-          uhf: 290.3
-      Shell-2:
-        title: Shell-2/BM/63Y
-        freqs: 
-          uhf: 290.4
-      Arco-1:
-        title: Arco-1/BM/64Y  
-        freqs: 
-          uhf: 290.5
-      Range-KOBULETI:
-        title: Range KOBULETI
-        freqs: 
-          uhf: 305.1
+    airports-persian-gulf:
+      Abu Dhabi Intl:
+          title: Abu Dhabi Intl
+          freqs:
+            uhf: 250.550
+            vhf: 119.200
+            fm:  39.000
 
-    flights:  
-      Archer:
-        title: Archer
-        freqs: 
-          vhf: 120
-          uhf: 390
-      Arctic:
-        title: Arctic
-        freqs: 
-          vhf: 120.1
-          uhf: 390.1
-      Astro:
-        title: Astro
-        freqs: 
-          vhf: 120.2
-          uhf: 390.2
-      Nickel:
-        title: Nickel
-        freqs: 
-          vhf: 120.3
-          uhf: 390.3
-      Nitro:
-        title: Nitro
-        freqs: 
-          vhf: 120.4
-          uhf: 390.4
-      Ninja:
-        title: Ninja
-        freqs: 
-          vhf: 120.5
-          uhf: 390.5
-      Pinder:
-        title: Pinder
-        freqs: 
-          vhf: 120.6
-          uhf: 390.6
-      Bengal:
-        title: Bengal
-        freqs: 
-          vhf: 120.7
-          uhf: 390.7
-      Blade:
-        title: Blade
-        freqs: 
-          vhf: 120.8
-          uhf: 390.8
-      Gordon:
-        title: Gordon
-        freqs: 
-          vhf: 120.9
-          uhf: 390.9
-      Gypsy:
-        title: Gypsy
-        freqs: 
-          vhf: 121.1
-          uhf: 391.1
-      Gunstar:
-        title: Gunstar
-        freqs: 
-          vhf: 121.2
-          uhf: 391.2
-      Leica:
-        title: Leica
-        freqs: 
-          vhf: 121.3
-          uhf: 391.3
-      Lucid:
-        title: Lucid
-        freqs: 
-          vhf: 121.4
-          uhf: 391.4
-      Lusty:
-        title: Lusty
-        freqs: 
-          vhf: 121.6
-          uhf: 391.6
-      Lion:
-        title: Lion
-        freqs: 
-          vhf: 121.7
-          uhf: 391.7
+      Abu Musa Island:
+          title: Abu Musa Island
+          freqs:
+            uhf: 250.400
+            vhf: 122.900
+            fm:  38.850
+
+      Al Ain Intl:
+          title: Al Ain Intl
+          freqs:
+            uhf: 250.700
+            vhf: 119.850
+            fm:  39.150
+
+      Al Dhafra AFB:
+          title: Al Dhafra AFB / 96X
+          freqs:
+            uhf: 251.100
+            vhf: 126.500
+            fm:  39.500
+
+      Al Maktoum Intl:
+          title: Al Maktoum Intl
+          freqs:
+            uhf: 251.200
+            vhf: 118.600
+            fm:  39.600
+
+      Al Minhad AFB:
+          title: Al Minhad AFB / 99X
+          freqs:
+            uhf: 250.100
+            vhf: 118.550
+            fm:  38.500
+
+      Al-Bateen:
+          title: Al-Bateen
+          freqs:
+            uhf: 250.600
+            vhf: 119.900
+            fm:  39.050
+
+      Bandar Abbas Intl:
+          title: Bandar Abbas Intl / 78X
+          freqs:
+            uhf: 251.000
+            vhf: 118.100
+            fm:  39.400
+
+      Bandar Lengeh:
+          title: Bandar Lengeh
+          freqs:
+            uhf: 251.050
+            vhf: 121.700
+            fm:  39.450
+
+      Bandar-e-Jask:
+          title: Bandar-e-Jask / 110X
+          freqs:
+            uhf: 250.050
+            vhf: 118.150
+            fm:  38.950
+
+      Dubai Intl:
+          title: Dubai Intl
+          freqs:
+            uhf: 251.150
+            vhf: 118.750
+            fm:  39.550
+
+      Fujairah Intl:
+          title: Fujairah Intl
+          freqs:
+            uhf: 251.250
+            vhf: 124.600
+            fm:  39.650
+
+      Havadarya:
+          title: Havadarya / 47X
+          freqs:
+            uhf: 251.300
+            vhf: 123.150
+            fm:  39.700
+
+      Jiroft:
+          title: Jiroft
+          freqs:
+            uhf: 250.850
+            vhf: 136.000
+            fm:  39.250
+
+      Kerman:
+          title: Kerman / 97X
+          freqs:
+            uhf: 250.300
+            vhf: 118.250
+            fm:  38.750
+
+      Khasab:
+          title: Khasab
+          freqs:
+            uhf: 250.000
+            vhf: 124.350
+            fm:  38.400
+
+      Kish Intl:
+          title: Kish Intl / 112X
+          freqs:
+            uhf: 250.650
+            vhf: 121.650
+            fm:  39.100
+
+      Lar:
+          title: Lar
+          freqs:
+            uhf: 250.050
+            vhf: 127.350
+            fm:  38.450
+
+      Lavan Island:
+          title: Lavan Island
+          freqs:
+            uhf: 250.750
+            vhf: 128.550
+            fm:  39.200
+
+      Liwa AFB:
+          title: Liwa AFB / 121X
+          freqs:
+            uhf: 250.950
+            vhf: 119.300
+            fm:  39.350
+
+      Qeshm Island:
+          title: Qeshm Island
+          freqs:
+            uhf: 250.150
+            vhf: 118.050
+            fm:  38.550
+
+      Ras Al Khaimah Intl:
+          title: Ras Al Khaimah Intl
+          freqs:
+            uhf: 250.900
+            vhf: 121.600
+            fm:  39.300
+
+      Sas Al Nakheel:
+          title: Sas Al Nakheel
+          freqs:
+            uhf: 250.450
+            vhf: 128.900
+            fm:  38.900
+
+      Sharjah Intl:
+          title: Sharjah Intl
+          freqs:
+            uhf: 250.200
+            vhf: 118.600
+            fm:  38.600
+
+      Shiraz Intl:
+          title: Shiraz Intl / 94X
+          freqs:
+            uhf: 250.350
+            vhf: 121.900
+            fm:  38.800
+
+      Sir Abu Nuayr:
+          title: Sir Abu Nuayr
+          freqs:
+            uhf: 250.800
+            vhf: 118.000
+            fm:  38.700
+
+      Sirri Island:
+          title: Sirri Island
+          freqs:
+            uhf: 250.250
+            vhf: 135.050
+            fm:  38.650
+
+      Tunb Island AFB:
+          title: Tunb Island AFB
+          freqs:
+            uhf: 
+            vhf: 
+            fm:  
+
+      Tunb Kochak:
+          title: Tunb Kochak / 89X
+          freqs:
+            uhf: 
+            vhf: 
+            fm:  
+

@@ -164,7 +164,7 @@ class RadioDefinition:
         channel_title = None
         if isinstance(channel_data, str): # shortcut to only set the channel alias
             channel_alias = channel_data
-        elif isinstance(channel_data, int): # shortcut to only set the channel frequency
+        elif isinstance(channel_data, float|int): # shortcut to only set the channel frequency
             channel_freq = channel_data
         else:
             channel_title = channel_data.get("title")

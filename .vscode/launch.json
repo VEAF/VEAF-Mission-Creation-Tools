@@ -227,7 +227,7 @@
             "request": "launch",
             "program": "${workspaceFolder}/src/python/veaf-tools/veaf-tools.py",
             "cwd": "d:/dev/_VEAF/VEAF-Foothold-Syria",
-            "args": ["inject-presets", "MA_Foothold_SY_extended_2.4.0_Modern_ICAO_OLBA.miz"],
+            "args": ["inject-presets", "MA_Foothold_SY_extended_2.4.2_Modern_ICAO_OLBA.miz"],
             "console": "integratedTerminal"
         },    ]
 }

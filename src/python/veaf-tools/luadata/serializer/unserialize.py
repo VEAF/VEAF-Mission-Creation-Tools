@@ -1,7 +1,7 @@
 import math
 
 from lupa.lua51 import LuaRuntime, lua_type
-from veaf_logger import logger
+from veaf_libs.logger import logger
 
 def _unserialize(raw: str, encoding: str = "utf-8", multival: bool = False, verbose: bool = False) -> tuple:
     """Unserialize stringified lua data to python data

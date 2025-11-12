@@ -6,8 +6,9 @@ from pathlib import Path
 import re
 import shutil
 from typing import Optional
-from mission_tools import read_miz, write_miz, create_miz, DcsMission, get_community_script_files, get_mission_data_files, get_mission_script_files, get_veaf_script_files, collect_files_from_globs, spinner_context
-from veaf_logger import logger
+from mission_tools import read_miz, write_miz, create_miz, DcsMission, get_community_script_files, get_mission_data_files, get_mission_script_files, get_veaf_script_files, collect_files_from_globs
+from veaf_libs.logger import logger
+from veaf_libs.progress import spinner_context, progress_context
 
 class MissionBuilderWorker:
     """

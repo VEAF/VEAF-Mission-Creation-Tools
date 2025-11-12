@@ -15,7 +15,7 @@ import tempfile
 import os
 from pathlib import Path
 from typing import Optional, Dict
-from veaf_logger import logger
+from veaf_libs.logger import logger
 
 @dataclass
 class DcsMission:

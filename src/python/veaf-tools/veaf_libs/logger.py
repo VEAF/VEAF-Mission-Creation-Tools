@@ -4,7 +4,7 @@ from typing_extensions import Self
 from rich.console import Console
 import typer
 
-class VeafLogger:
+class Logger:
     """Logging and console print system."""
 
     def __init__(self, logger_name: str, verbose: bool = False, console:Optional[Console] = None):
@@ -32,8 +32,8 @@ class VeafLogger:
         self.logger.setLevel(level=level)
         return self
 
-    def exception(self, e: Exception) -> Self:
-        self.error(e, exception_type=type(e))
+    def exception(self, e: Exception):
+        self.error(str(e), exception_type=type(e))
 
     def error(self, message: str, no_console: bool = False, raise_exception: bool = False, exception_type: type = typer.Abort) -> Self:
         """Log and display error message."""
@@ -73,4 +73,4 @@ class VeafLogger:
         return self
     
 console: Console = Console()
-logger: VeafLogger = VeafLogger(logger_name="veaf-tools", console=console)
+logger: Logger = Logger(logger_name="veaf-tools", console=console)

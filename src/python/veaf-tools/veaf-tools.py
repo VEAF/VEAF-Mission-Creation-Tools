@@ -22,14 +22,15 @@ from pathlib import Path
 from rich.markdown import Markdown
 from typing import Optional
 
-from veaf_logger import logger, console
 from presets_injector import PresetsInjectorWorker, PresetsInjectorREADME
 from mission_builder import MissionBuilderWorker, MissionBuilderREADME
 from mission_extractor import MissionExtractorWorker, MissionExtractorREADME
 from mission_converter import MissionConverterWorker, MissionConverterREADME
-from mission_tools import spinner_context
 import typer
 from datetime import datetime
+
+from veaf_libs.logger import logger, console
+from veaf_libs.progress import spinner_context, progress_context
 
 VERSION:str = "6.0.0"
 README_HELP: str = "Provide access to the README file."

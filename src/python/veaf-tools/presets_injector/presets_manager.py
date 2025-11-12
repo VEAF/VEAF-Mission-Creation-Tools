@@ -23,7 +23,8 @@ from pathlib import Path
 from typing import Any, Optional
 from PIL import Image, ImageDraw, ImageFont
 from PIL.ImageFont import FreeTypeFont
-from veaf_logger import logger
+from veaf_libs.logger import logger
+from veaf_libs.progress import spinner_context, progress_context
 
 import yaml
 

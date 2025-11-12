@@ -6,10 +6,11 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-from mission_tools import DcsMission, read_miz, write_miz, spinner_context
+from mission_tools import DcsMission, read_miz, write_miz
 
 from .presets_manager import PresetDefinition, PresetsManager
-from veaf_logger import logger
+from veaf_libs.logger import logger
+from veaf_libs.progress import spinner_context, progress_context
 
 @dataclass
 class Group:

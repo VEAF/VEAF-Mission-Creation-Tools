@@ -18,10 +18,11 @@ import zipfile
 from rich.markdown import Markdown
 from typing import Optional
 
-from veaf_logger import logger, console
-from mission_tools import spinner_context
 import typer
 import requests
+
+from veaf_libs.logger import logger
+from veaf_libs.progress import spinner_context, progress_context
 
 VERSION:str = "6.0.1"
 README_HELP: str = "Provide access to the README file."

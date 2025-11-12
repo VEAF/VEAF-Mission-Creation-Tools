@@ -5,9 +5,10 @@ Worker module for the VEAF Mission Extractor Package.
 from pathlib import Path
 import shutil
 from typing import Optional
-from mission_tools import read_miz, write_miz, extract_miz, get_community_script_files, get_veaf_script_files, get_mission_files_to_cleanup_on_extract, get_legacy_script_files, spinner_context
-from veaf_logger import logger
+from mission_tools import read_miz, write_miz, extract_miz, get_community_script_files, get_veaf_script_files, get_mission_files_to_cleanup_on_extract, get_legacy_script_files
 import tempfile
+from veaf_libs.logger import logger
+from veaf_libs.progress import spinner_context, progress_context
 
 class MissionExtractorWorker:
     """

@@ -105,5 +105,6 @@
         "xutility": "cpp"
     },
     "Lua.workspace.checkThirdParty": false,
-    "Lua.diagnostics.workspaceDelay": 30000
+    "Lua.diagnostics.workspaceDelay": 30000,
+    "python-envs.pythonProjects": []
 }

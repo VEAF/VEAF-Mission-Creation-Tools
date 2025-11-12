@@ -4,15 +4,15 @@ Worker module for the VEAF Mission Converter Package.
 
 from pathlib import Path
 from typing import Optional
-from veaf_logger import logger
 from mission_builder.mission_builder_worker import MissionBuilderWorker
 from mission_extractor.mission_extractor_worker import MissionExtractorWorker
 from presets_injector import PresetsInjectorWorker
-from mission_tools import spinner_context
 from rich.console import Console
 from rich.spinner import Spinner
 from rich.live import Live
 from rich.text import Text
+from veaf_libs.logger import logger
+from veaf_libs.progress import spinner_context, progress_context
 
 class MissionConverterWorker:
     """

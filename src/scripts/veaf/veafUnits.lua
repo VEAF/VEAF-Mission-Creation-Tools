@@ -19,7 +19,7 @@ veafUnits = {}
 veafUnits.Id = "UNITS"
 
 --- Version.
-veafUnits.Version = "1.14.1"
+veafUnits.Version = "1.15.0"
 
 -- trace level, specific to this module
 --veafUnits.LogLevel = "trace"
@@ -1093,6 +1093,15 @@ veafUnits.GroupsDatabase = {
             units = {{"Tor 9A331", random = true}, {"GAZ-66", random=true}},
             description = "Sa-15 SAM site",
             groupName = "SA15"
+        },
+    },
+    {
+        aliases = {"sa22_squad"},
+        group = {
+            disposition = { h= 4, w= 4},
+            units = {{"CHAP_PantsirS1", random = true}, {"GAZ-66", random=true}},
+            description = "SA-22 SAM site",
+            groupName = "SA22"
         },
     },
     {

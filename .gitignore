@@ -1,7 +1,6 @@
 build/
 node_modules/
 cache/
-published/
 
 configuration.json
 compile-*.cmd
@@ -15,3 +14,23 @@ src/defaults/veafSpawnableAircraftsEditor/settings-spawnables.lua
 src/defaults/veafSpawnableAircraftsEditor/settings-templates.lua
 src/defaults/veafSpawnableAircraftsEditor/templates.miz
 src/defaults/veafSpawnableAircraftsEditor/spawnables.miz
+__pycache__/
+test/veaf-tools/mission.json
+veaf-tools.log
+test/veaf-tools/groups.json
+test/veaf-tools/*.miz
+dist/
+*.log
+test/veaf-tools/mission-builder/built
+test/veaf-tools/mission-extractor/extracted
+test/veaf-tools/demo-mission/veaf-demo-mission_*.miz
+test/veaf-tools/presets-injector/test-out.miz
+test/veaf-tools/update/*
+published/
+
+published.zip
+test/veaf-tools/mission-converter/src
+test/veaf-tools/mission-converter/build.cmd
+test/veaf-tools/mission-converter/test.miz_20251027.miz
+test/veaf-tools/mission-converter/veaf-tools-updater.exe
+test/veaf-tools/mission-converter/veaf-tools.exe

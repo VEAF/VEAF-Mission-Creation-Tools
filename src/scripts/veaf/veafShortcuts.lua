@@ -810,6 +810,13 @@ function veafShortcuts.buildDefaultList()
     )
     veafShortcuts.AddAlias(
         VeafAlias:new()
+            :setName("-sa15m2")
+            :setDescription("SA-15M2 Gauntlet (9K330 TorM2) sam vehicle")
+            :setVeafCommand("_spawn group, name sa15m2_squad, skynet true, spacing 1, radius 0")
+            :setBypassSecurity(false)
+    )
+    veafShortcuts.AddAlias(
+        VeafAlias:new()
             :setName("-sa22")
             :setDescription("SA-22 Greyhound (Pantsir-S1) sam vehicle")
             :setVeafCommand("_spawn group, name sa22_squad, skynet true, spacing 1, radius 0")

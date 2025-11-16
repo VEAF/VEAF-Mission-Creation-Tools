@@ -1096,6 +1096,15 @@ veafUnits.GroupsDatabase = {
         },
     },
     {
+        aliases = {"sa15m2_squad"},
+        group = {
+            disposition = { h= 4, w= 4},
+            units = {{"CHAP_TorM2", random = true}, {"GAZ-66", random=true}},
+            description = "Sa-15M2 SAM site",
+            groupName = "SA15"
+        },
+    },
+    {
         aliases = {"sa22_squad"},
         group = {
             disposition = { h= 4, w= 4},

@@ -26,6 +26,10 @@ from presets_injector import PresetsInjectorWorker, PresetsInjectorREADME
 from mission_builder import MissionBuilderWorker, MissionBuilderREADME
 from mission_extractor import MissionExtractorWorker, MissionExtractorREADME
 from mission_converter import MissionConverterWorker, MissionConverterREADME
+from aircrafts_injector import (
+    AircraftGroupsExtractorWorker, AircraftGroupsExtractorREADME,
+    AircraftGroupsYAMLValidator, AircraftGroupsInjectorWorker
+)
 import typer
 from datetime import datetime
 
@@ -290,6 +294,139 @@ def convert(
     # Call the worker class
     worker = MissionConverterWorker(mission_folder=p_mission_folder, input_mission=p_input_mission, output_mission=p_output_mission, mission_name=mission_name, dynamic_mode=dynamic_mode, scripts_path=p_scripts_path, inject_presets=inject_presets, presets_file=p_presets_file)
     worker.work()
+
+    console.print(WORK_DONE_MESSAGE)
+    if pause: input(PAUSE_MESSAGE)
+
+@app.command(no_args_is_help=True)
+def extract_aircraft_groups(
+    readme: bool = typer.Option(False, help=README_HELP),
+    verbose: bool = typer.Option(False, help=VERBOSE_HELP),
+    interactive: bool = typer.Option(False, help="Interactive mode: select which groups to include."),
+    mission_name_or_file: Optional[str] = typer.Argument(DEFAULT_MISSION_FILE, help="Mission name; will extract from the mission with this name (most recent .miz file); can be set to a .miz file."),
+    output_yaml: Optional[str] = typer.Argument("aircraft-templates.yaml", help="Output YAML file path."),
+    group_name_pattern: str = typer.Option(".*", help="Regular expression pattern to match aircraft group names."),
+    mission_folder: Optional[str] = typer.Argument(".", help="Folder with the mission files."),
+    pause: bool = typer.Option(False, help=PAUSE_HELP),
+) -> None:
+    """
+    Extracts aircraft groups matching a pattern from a DCS mission and writes them to a YAML file.
+    """
+
+    logger.set_verbose(verbose)
+
+    # Set the title and version
+    console.print(f"[bold green]veaf-tools Aircraft Groups Extractor v{VERSION}[/bold green]")
+
+    if readme:
+        if typer.confirm(CONFIRM_DISPLAY_DOC):
+            md_render = Markdown(AircraftGroupsExtractorREADME)
+            console.print(md_render)
+        exit()
+
+    # Resolve input mission folder
+    p_mission_folder = resolve_path(path=mission_folder, default_path=Path.cwd(), should_exist=True)
+    if not p_mission_folder.exists():
+        logger.error(f"Mission folder {p_mission_folder} does not exist!", exception_type=FileNotFoundError)
+
+    # Resolve input mission
+    p_input_mission = mission_name_or_file
+    if not mission_name_or_file.lower().endswith(".miz"):
+        if files := list(p_mission_folder.glob(f"{mission_name_or_file}*.miz")):
+            p_input_mission = max(files, key=lambda f: f.stat().st_mtime)
+    p_input_mission = resolve_path(path=p_input_mission, should_exist=True)
+
+    # Resolve output YAML file
+    p_output_yaml = resolve_path(path=output_yaml, default_path=p_mission_folder / output_yaml, create_if_not_exist=True)
+
+    # Call the worker
+    worker = AircraftGroupsExtractorWorker(
+        input_mission=p_input_mission,
+        output_yaml=p_output_yaml,
+        group_name_pattern=group_name_pattern
+    )
+    worker.extract(interactive=interactive)
+
+    console.print(WORK_DONE_MESSAGE)
+    if pause: input(PAUSE_MESSAGE)
+
+@app.command(no_args_is_help=True)
+def inject_aircraft_groups(
+    readme: bool = typer.Option(False, help=README_HELP),
+    verbose: bool = typer.Option(False, help=VERBOSE_HELP),
+    mode: str = typer.Option("add", help="Injection mode: 'add' (add new groups) or 'replace' (replace existing groups)."),
+    template_file: str = typer.Option("aircraft-templates.yaml", help="Path to the YAML file containing aircraft groups."),
+    mission_name_or_file: Optional[str] = typer.Argument(DEFAULT_MISSION_FILE, help="Mission name; will inject into the mission with this name (most recent .miz file); can be set to a .miz file."),
+    output_mission: Optional[str] = typer.Argument(None, help="Mission file to save; defaults to the same as 'input_mission'."),
+    mission_folder: Optional[str] = typer.Argument(".", help="Folder with the mission files."),
+    pause: bool = typer.Option(False, help=PAUSE_HELP),
+) -> None:
+    """
+    Injects aircraft groups from a YAML file into a DCS mission.
+    Validates the YAML file before injection and stops if validation fails.
+    """
+
+    logger.set_verbose(verbose)
+
+    # Set the title and version
+    console.print(f"[bold green]veaf-tools Aircraft Groups Injector v{VERSION}[/bold green]")
+
+    # Validate mode
+    if mode not in ("add", "replace"):
+        logger.error(f"Invalid mode '{mode}'. Must be 'add' or 'replace'.", exception_type=ValueError)
+
+    # Resolve mission folder
+    p_mission_folder = resolve_path(path=mission_folder, default_path=Path.cwd(), should_exist=True)
+    if not p_mission_folder.exists():
+        logger.error(f"Mission folder {p_mission_folder} does not exist!", exception_type=FileNotFoundError)
+
+    # Resolve input mission
+    p_input_mission = mission_name_or_file
+    if not mission_name_or_file.lower().endswith(".miz"):
+        if files := list(p_mission_folder.glob(f"{mission_name_or_file}*.miz")):
+            p_input_mission = max(files, key=lambda f: f.stat().st_mtime)
+    p_input_mission = resolve_path(path=p_input_mission, should_exist=True)
+
+    # Resolve output mission
+    p_output_mission = resolve_path(path=output_mission, default_path=p_input_mission)
+
+    # Resolve template YAML file
+    p_template_file = resolve_path(path=template_file, should_exist=True)
+    if not p_template_file.exists():
+        logger.error(f"Template file {p_template_file} does not exist!", exception_type=FileNotFoundError)
+
+    # STEP 1: Validate the YAML file (MANDATORY)
+    logger.info("Step 1: Validating YAML file...")
+    validator = AircraftGroupsYAMLValidator(p_template_file)
+    is_valid, _ = validator.validate()
+    
+    # Display validation report
+    console.print("\n" + validator.get_report())
+    
+    # If validation fails, stop here
+    if not is_valid:
+        console.print("[bold red]✗ YAML validation failed. Please fix the errors before injection.[/bold red]")
+        if pause: input(PAUSE_MESSAGE)
+        exit(1)
+    
+    console.print("[bold green]✓ YAML validation successful![/bold green]\n")
+
+    # STEP 2: Inject aircraft groups
+    logger.info(f"Step 2: Injecting aircraft groups using '{mode}' mode...")
+    injector = AircraftGroupsInjectorWorker(
+        input_yaml=p_template_file,
+        target_mission=p_input_mission,
+        output_mission=p_output_mission
+    )
+    result = injector.inject(mode=mode, silent=False)
+
+    # Display injection results
+    injector.display_results(result, verbose=verbose)
+
+    if result.success:
+        console.print(f"[bold green]✓ Successfully injected {result.groups_injected} group(s) into the mission![/bold green]")
+    else:
+        console.print(f"[bold yellow]⚠ Injection completed: {result.message}[/bold yellow]")
 
     console.print(WORK_DONE_MESSAGE)
     if pause: input(PAUSE_MESSAGE)

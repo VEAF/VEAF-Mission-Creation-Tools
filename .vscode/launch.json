@@ -229,5 +229,14 @@
             "cwd": "d:/dev/_VEAF/VEAF-Foothold-Syria",
             "args": ["inject-presets", "MA_Foothold_SY_extended_2.4.2_Modern_ICAO_OLBA.miz"],
             "console": "integratedTerminal"
+        },
+        {
+            "name": "veaf-tools extract-aircraft-groups",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/python/veaf-tools/veaf-tools.py",
+            "cwd": "${workspaceFolder}\\test\\veaf-tools\\aircrafts-injector",
+            "args": ["extract-aircraft-groups", "--verbose", "--group-name-pattern", "veafSpawn-.*", "test-import.miz", "extracted-aircraft.yaml"],
+            "console": "integratedTerminal"
         },    ]
 }

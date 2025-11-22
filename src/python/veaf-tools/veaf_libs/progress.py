@@ -10,6 +10,19 @@ from .logger import logger, console
 from rich.live import Live
 from rich.progress import Progress, SpinnerColumn, BarColumn, TextColumn, TimeRemainingColumn
 from rich.highlighter import ReprHighlighter
+import sys
+import io
+
+# Ensure UTF-8 output on Windows and other platforms
+if sys.platform == "win32":
+    # On Windows, reconfigure stdout to use UTF-8 if possible
+    if sys.stdout and not sys.stdout.encoding or sys.stdout.encoding.lower() not in ("utf-8", "utf8"):
+        try:
+            # Try to use UTF-8 for console output
+            sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+            sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
+        except Exception:
+            pass  # Fall back to default if reconfiguration fails
 
 highlighter = ReprHighlighter()
 

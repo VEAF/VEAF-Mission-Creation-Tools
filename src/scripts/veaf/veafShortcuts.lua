@@ -19,7 +19,7 @@ veafShortcuts = {}
 veafShortcuts.Id = "SHORTCUTS"
 
 --- Version.
-veafShortcuts.Version = "1.40.0"
+veafShortcuts.Version = "1.41.0"
 
 -- trace level, specific to this module
 --veafShortcuts.LogLevel = "trace"
@@ -806,6 +806,20 @@ function veafShortcuts.buildDefaultList()
             :setName("-sa15")
             :setDescription("SA-15 Gauntlet (9K330 Tor) sam vehicle")
             :setVeafCommand("_spawn group, name sa15_squad, skynet true, spacing 1, radius 0")
+            :setBypassSecurity(false)
+    )
+    veafShortcuts.AddAlias(
+        VeafAlias:new()
+            :setName("-sa15m2")
+            :setDescription("SA-15M2 Gauntlet (9K330 TorM2) sam vehicle")
+            :setVeafCommand("_spawn group, name sa15m2_squad, skynet true, spacing 1, radius 0")
+            :setBypassSecurity(false)
+    )
+    veafShortcuts.AddAlias(
+        VeafAlias:new()
+            :setName("-sa22")
+            :setDescription("SA-22 Greyhound (Pantsir-S1) sam vehicle")
+            :setVeafCommand("_spawn group, name sa22_squad, skynet true, spacing 1, radius 0")
             :setBypassSecurity(false)
     )
     veafShortcuts.AddAlias(

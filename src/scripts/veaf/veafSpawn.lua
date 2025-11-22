@@ -23,7 +23,7 @@ veafSpawn = {}
 veafSpawn.Id = "SPAWN"
 
 --- Version.
-veafSpawn.Version = "1.58.0"
+veafSpawn.Version = "1.59.0"
 
 -- trace level, specific to this module
 --veafSpawn.LogLevel = "trace"
@@ -1347,7 +1347,12 @@ function veafSpawn.spawnFarp(spawnSpot, radius, name, country, farptype, side, h
         ["country"] = country,
         ["coalition"] = side,
         ["dead"] = false,
-        ["dynamicSpawn"] = true
+        ["dynamicCargo"] = true,
+        ["dynamicSpawn"] = true,
+        ["allowHotStart"] = true,
+        --["unlimitedAircrafts"] = true,
+        ["unlimitedFuel"] = true,
+        ["unlimitedMunitions"] = true,
     }
     mist.dynAddStatic(_farpStatic)
     local _spawnedFARP = StaticObject.getByName(name)

@@ -19,7 +19,7 @@ veafGrass = {}
 veafGrass.Id = "GRASS"
 
 --- Version.
-veafGrass.Version = "2.8.0"
+veafGrass.Version = "2.9.0"
 
 -- trace level, specific to this module
 --veafGrass.LogLevel = "trace"
@@ -29,6 +29,28 @@ veaf.loggers.new(veafGrass.Id, veafGrass.LogLevel)
 veafGrass.DelayForStartup = 2
 
 veafGrass.RadiusAroundFarp = 2000
+
+-- these units will be placed in spawned FARPs warehouses and available for the dynamic slot mechanism
+veafGrass.helicoptersOnFARPs = {
+	"SA342Mistral",
+	"SA342Minigun",
+	"SA342L",
+	"SA342M",
+	"UH-1H",
+	"Mi-8MTV2",
+	"Mi-8MT",
+	"Mi-24P",
+	"Mi-24V",
+	"Bell-47",
+	"UH-60L",
+	"UH-60L_DAP",
+	"AH-64D_BLK_II",
+	"Bronco-OV-10A",
+	"MH-60R",
+	"OH-6A",
+	"OH58D",
+	"CH-47Fbl1"
+}
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Utility methods
@@ -232,6 +254,7 @@ veafGrass.WAREHOUSE_ITEMS={[1]={["wsType"]={[1]=1,[2]=3,[3]=43,[4]=10},["initial
 ---Add everything to the FARP warehouse; since 2.8.x, the FARPs spawn empty, hence making it impossible to rearm or refuel (even with all the necessary vehicles)
 ---@param farp any the FARP to be filled
 function veafGrass.fillFarpWarehouse(farp)
+
 	veaf.loggers.get(veafGrass.Id):debug("veafGrass.fillFarpWarehouse()")
 	veaf.loggers.get(veafGrass.Id):trace("farp=[%s]", veaf.p(farp))
 	local farpName = farp.name
@@ -260,6 +283,9 @@ function veafGrass.fillFarpWarehouse(farp)
 				for i = 0, 3 do
 					veaf.loggers.get(veafGrass.Id):trace("getLiquidAmount(%s) = %s", i, veaf.p(farpWarehouse:getLiquidAmount(i)))
 				end
+				for _, aircraft_type in pairs(veafGrass.helicoptersOnFARPs) do
+					farpWarehouse:addItem(aircraft_type, 999)
+				end
 			else
 				veaf.loggers.get(veafGrass.Id):error("Airbase.getByName([%s]):getWarehouse() returned null", veaf.p(farpName))
 			end
@@ -275,14 +301,14 @@ end
 -- @param unit farp : the FARP unit
 ------------------------------------------------------------------------------
 function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD, noFarpMarkers, code, freq, mod)
-	veaf.loggers.get(veafGrass.Id):debug(string.format("buildFarpUnits()"))
-	veaf.loggers.get(veafGrass.Id):trace(string.format("farp=%s",veaf.p(farp)))
-	veaf.loggers.get(veafGrass.Id):trace(string.format("grassRunwayUnits=%s",veaf.p(grassRunwayUnits)))
-	veaf.loggers.get(veafGrass.Id):trace(string.format("hiddenOnMFD=%s",veaf.p(hiddenOnMFD)))
-	veaf.loggers.get(veafGrass.Id):trace(string.format("noFarpMarkers=%s",veaf.p(noFarpMarkers)))
-	veaf.loggers.get(veafGrass.Id):trace(string.format("code=%s",veaf.p(code)))
-	veaf.loggers.get(veafGrass.Id):trace(string.format("freq=%s",veaf.p(freq)))
-	veaf.loggers.get(veafGrass.Id):trace(string.format("mod=%s",veaf.p(mod)))
+	veaf.loggers.get(veafGrass.Id):debug("buildFarpUnits()")
+	veaf.loggers.get(veafGrass.Id):trace("farp=%s",farp)
+	veaf.loggers.get(veafGrass.Id):trace("grassRunwayUnits=%s",grassRunwayUnits)
+	veaf.loggers.get(veafGrass.Id):trace("hiddenOnMFD=%s",hiddenOnMFD)
+	veaf.loggers.get(veafGrass.Id):trace("noFarpMarkers=%s",noFarpMarkers)
+	veaf.loggers.get(veafGrass.Id):trace("code=%s",code)
+	veaf.loggers.get(veafGrass.Id):trace("freq=%s",freq)
+	veaf.loggers.get(veafGrass.Id):trace("mod=%s",mod)
 
 	local freq = freq or math.random(90)+100
 	local mod = mod or "X"

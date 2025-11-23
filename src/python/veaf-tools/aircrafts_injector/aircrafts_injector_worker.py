@@ -849,7 +849,7 @@ class AircraftGroupsExtractorWorker:
         'Radio'    # Radio configuration (uppercase variant)
     }
     
-    def __init__(self, input_mission: Path = None, output_yaml: Path = None, group_name_pattern: str = None, input_lua: Path = None):
+    def __init__(self, input_mission: Path = None, output_yaml: Path = None, group_name_pattern: str = None, input_lua: Path = None, aircraft_type: Optional[str] = None):
         """
         Initialize the extractor.
         
@@ -858,15 +858,21 @@ class AircraftGroupsExtractorWorker:
             output_yaml: Path to the output YAML file
             group_name_pattern: Regular expression pattern to match group names
             input_lua: Path to input Lua file with settings table (mutually exclusive with input_mission)
+            aircraft_type: Filter by aircraft type: 'airplanes', 'helicopters', or None for both
         """
         # Validate that either mission or lua is provided, not both
         if (input_mission is None and input_lua is None) or (input_mission is not None and input_lua is not None):
             raise ValueError("Must provide exactly one of: input_mission or input_lua")
         
+        # Validate aircraft_type if provided
+        if aircraft_type and aircraft_type not in ('airplanes', 'helicopters'):
+            raise ValueError(f"Invalid aircraft_type: {aircraft_type}. Must be 'airplanes', 'helicopters', or None")
+        
         self.input_mission = input_mission
         self.input_lua = input_lua
         self.output_yaml = output_yaml
         self.group_name_pattern = re.compile(group_name_pattern) if group_name_pattern else None
+        self.aircraft_type = aircraft_type  # Filter by aircraft type
         self.dcs_mission: Optional[DcsMission] = None
         self.lua_data: Optional[Dict] = None  # Store parsed Lua data
         self.extracted_templates = {
@@ -1020,29 +1026,31 @@ class AircraftGroupsExtractorWorker:
                 country_name = country_dict.get("name", "Unknown")
                 
                 # Process plane groups
-                if plane_data := country_dict.get("plane", {}):
-                    groups_list = plane_data.get("group", [])
-                    for group in groups_list:
-                        group_name = group.get("name", "")
-                        
-                        # Check if group name matches pattern
-                        if self.group_name_pattern.search(group_name):
-                            matched_count += 1
-                            logger.debug(f"Matched plane group: {group_name}")
-                            group_key = f"{coalition_name}/{country_name}/airplanes/{group_name}"
-                            self.matched_groups[group_key] = {
-                                "group": group,
-                                "aircraft_category": "airplanes",
-                                "coalition_name": coalition_name,
-                                "country_name": country_name,
-                                "group_name": group_name
-                            }
+                if self.aircraft_type is None or self.aircraft_type == "airplanes":
+                    if plane_data := country_dict.get("plane", {}):
+                        groups_list = plane_data.get("group", [])
+                        for group in groups_list:
+                            group_name = group.get("name", "")
+                            
+                            # Check if group name matches pattern
+                            if self.group_name_pattern.search(group_name):
+                                matched_count += 1
+                                logger.debug(f"Matched plane group: {group_name}")
+                                group_key = f"{coalition_name}/{country_name}/airplanes/{group_name}"
+                                self.matched_groups[group_key] = {
+                                    "group": group,
+                                    "aircraft_category": "airplanes",
+                                    "coalition_name": coalition_name,
+                                    "country_name": country_name,
+                                    "group_name": group_name
+                                }
                 
                 # Process helicopter groups
-                if helo_data := country_dict.get("helicopter", {}):
-                    groups_list = helo_data.get("group", [])
-                    for group in groups_list:
-                        group_name = group.get("name", "")
+                if self.aircraft_type is None or self.aircraft_type == "helicopters":
+                    if helo_data := country_dict.get("helicopter", {}):
+                        groups_list = helo_data.get("group", [])
+                        for group in groups_list:
+                            group_name = group.get("name", "")
                         
                         # Check if group name matches pattern
                         if self.group_name_pattern.search(group_name):
@@ -1078,8 +1086,12 @@ class AircraftGroupsExtractorWorker:
         
         group_list = list(self.matched_groups.keys())
         selected_groups: Dict[str, Dict] = {}
+        skip_all = False
         
         for idx, group_key in enumerate(group_list, 1):
+            if skip_all:
+                break
+                
             group_info = self.matched_groups[group_key]
             coalition = group_info["coalition_name"]
             country = group_info["country_name"]
@@ -1111,17 +1123,18 @@ class AircraftGroupsExtractorWorker:
                 console.print(f"  [bright_magenta]📋 Types:[/bright_magenta] [white]{types_text}[/white]")
             
             # Ask user for confirmation using standard input
-            console.print("  [bold bright_cyan]❓ Include this group?[/bold bright_cyan] (y/n/skip) [[bright_yellow]skip[/bright_yellow]]: ", end="")
+            console.print("  [bold bright_cyan]❓ Include this group?[/bold bright_cyan] (y/n/end) [[bright_yellow]n[/bright_yellow]]: ", end="")
             response = input().strip().lower()
             
             if response in ("y", "yes"):
                 selected_groups[group_key] = group_info
                 console.print("  [bold bright_green]✅ Included[/bold bright_green]\n")
-            elif response in ("", "skip",):
-                console.print("  [dim bright_black]⊘ Skipped[/dim bright_black]\n")
-                # Continue to next group
+            elif response in ("end",):
+                console.print("  [dim bright_black]⊘ Skipping all remaining[/dim bright_black]\n")
+                skip_all = True
             else:
-                console.print("  [bold bright_red]❌ Excluded[/bold bright_red]\n")
+                # Default: skip (n, empty string, or any other input)
+                console.print("  [dim bright_black]⊘ Skipped[/dim bright_black]\n")
         
         # Add selected groups to templates
         for group_info in selected_groups.values():

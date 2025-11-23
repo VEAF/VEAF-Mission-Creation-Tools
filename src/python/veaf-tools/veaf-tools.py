@@ -30,6 +30,10 @@ from aircrafts_injector import (
     AircraftGroupsExtractorWorker, AircraftGroupsExtractorREADME,
     AircraftGroupsYAMLValidator, AircraftGroupsInjectorWorker
 )
+from waypoints_injector import (
+    WaypointsInjectorWorker, WaypointsExtractorWorker,
+    WaypointsInjectorREADME, WaypointsExtractorREADME
+)
 import typer
 from datetime import datetime
 
@@ -86,52 +90,6 @@ def about(
     console.print(f"Website: {url}", style="blue")
     if typer.confirm("Do you want to open the VEAF website in your browser?"):
         typer.launch(url)
-
-@app.command(no_args_is_help=True)
-def inject_presets(
-    readme: bool = typer.Option(False, help=README_HELP),
-    verbose: bool = typer.Option(False, help=VERBOSE_HELP),
-    input_mission_name_or_file: Optional[str] = typer.Argument(DEFAULT_MISSION_FILE, help="Mission name; will inject in the mission with this name (most recent .miz file); can be set to a .miz file."),
-    output_mission: Optional[str] = typer.Argument(None, help="Mission file to save; defaults to the same as 'input_mission'."),
-    presets_file: str = typer.Option(DEFAULT_PRESETS_FILE, help="Configuration file containing the presets."),
-    pause: bool = typer.Option(False, help=PAUSE_HELP),
-) -> None:
-    """
-    Injects radio presets read from a configuration file into aircraft groups from a DCS mission
-    """
-    
-    logger.set_verbose(verbose)
-
-    # Set the title and version
-    console.print(f"[bold green]veaf-tools Radio Presets Injector v{VERSION}[/bold green]")
-
-    if readme:
-        if typer.confirm(CONFIRM_DISPLAY_DOC):
-            md_render = Markdown(PresetsInjectorREADME)
-            console.print(md_render)
-        exit()
-
-    # Resolve input mission
-    p_input_mission = input_mission_name_or_file
-    if not input_mission_name_or_file.lower().endswith(".miz"):
-        if files := list(Path.cwd().glob(f"{input_mission_name_or_file}*.miz")):
-            p_input_mission = max(files, key=lambda f: f.stat().st_mtime)
-    p_input_mission = resolve_path(path=p_input_mission, should_exist=True)
-
-    # Resolve output mission
-    p_output_mission = resolve_path(path=output_mission, default_path=p_input_mission)
-
-    # Resolve presets configuration file
-    p_presets_file = resolve_path(path=presets_file, should_exist=True)
-    if not p_presets_file.exists():
-        logger.error(f"Configuration file {p_presets_file} does not exist!", exception_type=FileNotFoundError)
-
-    # Call the worker class
-    worker = PresetsInjectorWorker(presets_file=p_presets_file, input_mission=p_input_mission, output_mission=p_output_mission)
-    worker.work()
-
-    console.print(WORK_DONE_MESSAGE)
-    if pause: input(PAUSE_MESSAGE)
 
 @app.command(no_args_is_help=True)
 def build(
@@ -299,6 +257,52 @@ def convert(
     if pause: input(PAUSE_MESSAGE)
 
 @app.command(no_args_is_help=True)
+def inject_presets(
+    readme: bool = typer.Option(False, help=README_HELP),
+    verbose: bool = typer.Option(False, help=VERBOSE_HELP),
+    input_mission_name_or_file: Optional[str] = typer.Argument(DEFAULT_MISSION_FILE, help="Mission name; will inject in the mission with this name (most recent .miz file); can be set to a .miz file."),
+    output_mission: Optional[str] = typer.Argument(None, help="Mission file to save; defaults to the same as 'input_mission'."),
+    presets_file: str = typer.Option(DEFAULT_PRESETS_FILE, help="Configuration file containing the presets."),
+    pause: bool = typer.Option(False, help=PAUSE_HELP),
+) -> None:
+    """
+    Injects radio presets read from a configuration file into aircraft groups from a DCS mission
+    """
+    
+    logger.set_verbose(verbose)
+
+    # Set the title and version
+    console.print(f"[bold green]veaf-tools Radio Presets Injector v{VERSION}[/bold green]")
+
+    if readme:
+        if typer.confirm(CONFIRM_DISPLAY_DOC):
+            md_render = Markdown(PresetsInjectorREADME)
+            console.print(md_render)
+        exit()
+
+    # Resolve input mission
+    p_input_mission = input_mission_name_or_file
+    if not input_mission_name_or_file.lower().endswith(".miz"):
+        if files := list(Path.cwd().glob(f"{input_mission_name_or_file}*.miz")):
+            p_input_mission = max(files, key=lambda f: f.stat().st_mtime)
+    p_input_mission = resolve_path(path=p_input_mission, should_exist=True)
+
+    # Resolve output mission
+    p_output_mission = resolve_path(path=output_mission, default_path=p_input_mission)
+
+    # Resolve presets configuration file
+    p_presets_file = resolve_path(path=presets_file, should_exist=True)
+    if not p_presets_file.exists():
+        logger.error(f"Configuration file {p_presets_file} does not exist!", exception_type=FileNotFoundError)
+
+    # Call the worker class
+    worker = PresetsInjectorWorker(presets_file=p_presets_file, input_mission=p_input_mission, output_mission=p_output_mission)
+    worker.work()
+
+    console.print(WORK_DONE_MESSAGE)
+    if pause: input(PAUSE_MESSAGE)
+
+@app.command(no_args_is_help=True)
 def extract_aircraft_groups(
     readme: bool = typer.Option(False, help=README_HELP),
     verbose: bool = typer.Option(False, help=VERBOSE_HELP),
@@ -306,6 +310,8 @@ def extract_aircraft_groups(
     mission_name_or_file: Optional[str] = typer.Argument(DEFAULT_MISSION_FILE, help="Mission name; will extract from the mission with this name (most recent .miz file); can be set to a .miz file."),
     output_yaml: str = typer.Option("aircraft-templates.yaml", help="Output YAML file path."),
     group_name_pattern: str = typer.Option(".*", help="Regular expression pattern to match aircraft group names."),
+    only_airplanes: bool = typer.Option(False, help="Extract only airplanes."),
+    only_helicopters: bool = typer.Option(False, help="Extract only helicopters."),
     mission_folder: Optional[str] = typer.Argument(".", help="Folder with the mission files."),
     lua_input: Optional[str] = typer.Option(None, help="Path to a Lua file (e.g., settings-templates.lua) to extract from instead of a .miz mission."),
     pause: bool = typer.Option(False, help=PAUSE_HELP),
@@ -315,6 +321,13 @@ def extract_aircraft_groups(
     """
 
     logger.set_verbose(verbose)
+    
+    # Validate exclusive options
+    if only_airplanes and only_helicopters:
+        logger.error("Cannot use both --only-airplanes and --only-helicopters simultaneously.", exception_type=ValueError)
+    
+    # Convert boolean options to aircraft_type
+    aircraft_type = "airplanes" if only_airplanes else ("helicopters" if only_helicopters else None)
 
     # Set the title and version
     console.print(f"[bold green]veaf-tools Aircraft Groups Extractor v{VERSION}[/bold green]")
@@ -336,7 +349,8 @@ def extract_aircraft_groups(
         worker = AircraftGroupsExtractorWorker(
             input_lua=p_lua_input,
             output_yaml=p_output_yaml,
-            group_name_pattern=group_name_pattern
+            group_name_pattern=group_name_pattern,
+            aircraft_type=aircraft_type
         )
     else:
         # Extract from mission file (original behavior)
@@ -354,7 +368,8 @@ def extract_aircraft_groups(
         worker = AircraftGroupsExtractorWorker(
             input_mission=p_input_mission,
             output_yaml=p_output_yaml,
-            group_name_pattern=group_name_pattern
+            group_name_pattern=group_name_pattern,
+            aircraft_type=aircraft_type
         )
     
     worker.extract(interactive=interactive)
@@ -439,6 +454,138 @@ def inject_aircraft_groups(
         console.print(f"[bold green]✓ Successfully injected {result.groups_injected} group(s) into the mission![/bold green]")
     else:
         console.print(f"[bold yellow]⚠ Injection completed: {result.message}[/bold yellow]")
+
+    console.print(WORK_DONE_MESSAGE)
+    if pause: input(PAUSE_MESSAGE)
+
+@app.command(no_args_is_help=True)
+def extract_waypoints(
+    readme: bool = typer.Option(False, help=README_HELP),
+    verbose: bool = typer.Option(False, help=VERBOSE_HELP),
+    interactive: bool = typer.Option(False, help="Interactive mode: select which groups to extract."),
+    mission_name_or_file: Optional[str] = typer.Argument(DEFAULT_MISSION_FILE, help="Mission name; will extract from the mission with this name (most recent .miz file); can be set to a .miz file."),
+    output_yaml: str = typer.Option("waypoints.yaml", help="Output YAML file path."),
+    group_name_pattern: str = typer.Option(".*", help="Regular expression pattern to match waypoint/group names."),
+    only_airplanes: bool = typer.Option(False, help="Extract only airplanes."),
+    only_helicopters: bool = typer.Option(False, help="Extract only helicopters."),
+    mission_folder: Optional[str] = typer.Argument(".", help="Folder with the mission files."),
+    lua_input: Optional[str] = typer.Option(None, help="Path to a Lua file (e.g., settings-waypoints.lua) to extract from instead of a .miz mission."),
+    pause: bool = typer.Option(False, help=PAUSE_HELP),
+) -> None:
+    """
+    Extracts waypoints matching a pattern from a DCS mission or Lua settings file and writes them to a YAML file.
+    """
+
+    logger.set_verbose(verbose)
+    
+    # Validate exclusive options
+    if only_airplanes and only_helicopters:
+        logger.error("Cannot use both --only-airplanes and --only-helicopters simultaneously.", exception_type=ValueError)
+    
+    # Convert boolean options to aircraft_type (using 'plane'/'helicopter' naming for waypoints)
+    aircraft_type = "plane" if only_airplanes else ("helicopter" if only_helicopters else None)
+
+    # Set the title and version
+    console.print(f"[bold green]veaf-tools Waypoints Extractor v{VERSION}[/bold green]")
+
+    if readme:
+        if typer.confirm(CONFIRM_DISPLAY_DOC):
+            md_render = Markdown(WaypointsExtractorREADME)
+            console.print(md_render)
+        exit()
+
+    # Resolve mission folder and output YAML file
+    p_mission_folder = resolve_path(path=mission_folder, default_path=Path.cwd(), should_exist=True)
+    p_output_yaml = resolve_path(path=output_yaml, default_path=p_mission_folder / output_yaml, create_if_not_exist=True)
+
+    # Handle Lua input or mission input
+    if lua_input:
+        # Extract from Lua file
+        p_lua_input = resolve_path(path=lua_input, should_exist=True)
+        worker = WaypointsExtractorWorker(
+            input_lua=p_lua_input,
+            output_yaml=p_output_yaml,
+            group_name_pattern=group_name_pattern,
+            aircraft_type=aircraft_type
+        )
+    else:
+        # Extract from mission file
+        if not p_mission_folder.exists():
+            logger.error(f"Mission folder {p_mission_folder} does not exist!", exception_type=FileNotFoundError)
+
+        # Resolve input mission
+        p_input_mission = mission_name_or_file
+        if not mission_name_or_file.lower().endswith(".miz"):
+            if files := list(p_mission_folder.glob(f"{mission_name_or_file}*.miz")):
+                p_input_mission = max(files, key=lambda f: f.stat().st_mtime)
+        p_input_mission = resolve_path(path=p_input_mission, should_exist=True)
+
+        # Call the worker
+        worker = WaypointsExtractorWorker(
+            input_mission=p_input_mission,
+            output_yaml=p_output_yaml,
+            group_name_pattern=group_name_pattern,
+            aircraft_type=aircraft_type
+        )
+    
+    worker.extract(interactive=interactive)
+
+    console.print(WORK_DONE_MESSAGE)
+    if pause: input(PAUSE_MESSAGE)
+
+@app.command(no_args_is_help=True)
+def inject_waypoints(
+    readme: bool = typer.Option(False, help=README_HELP),
+    verbose: bool = typer.Option(False, help=VERBOSE_HELP),
+    mission_name_or_file: Optional[str] = typer.Argument(DEFAULT_MISSION_FILE, help="Mission name; will inject into the mission with this name (most recent .miz file); can be set to a .miz file."),
+    output_mission: Optional[str] = typer.Argument(None, help="Mission file to save; defaults to the same as 'input_mission'."),
+    waypoints_file: str = typer.Option("waypoints.yaml", help="Path to the YAML file containing waypoint definitions."),
+    mission_folder: Optional[str] = typer.Argument(".", help="Folder with the mission files."),
+    pause: bool = typer.Option(False, help=PAUSE_HELP),
+) -> None:
+    """
+    Injects waypoints from a YAML file into a DCS mission.
+    Only human-piloted aircraft groups will receive waypoints.
+    """
+
+    logger.set_verbose(verbose)
+
+    # Set the title and version
+    console.print(f"[bold green]veaf-tools Waypoints Injector v{VERSION}[/bold green]")
+
+    if readme:
+        if typer.confirm(CONFIRM_DISPLAY_DOC):
+            md_render = Markdown(WaypointsInjectorREADME)
+            console.print(md_render)
+        exit()
+
+    # Resolve mission folder
+    p_mission_folder = resolve_path(path=mission_folder, default_path=Path.cwd(), should_exist=True)
+    if not p_mission_folder.exists():
+        logger.error(f"Mission folder {p_mission_folder} does not exist!", exception_type=FileNotFoundError)
+
+    # Resolve input mission
+    p_input_mission = mission_name_or_file
+    if not mission_name_or_file.lower().endswith(".miz"):
+        if files := list(p_mission_folder.glob(f"{mission_name_or_file}*.miz")):
+            p_input_mission = max(files, key=lambda f: f.stat().st_mtime)
+    p_input_mission = resolve_path(path=p_input_mission, should_exist=True)
+
+    # Resolve output mission
+    p_output_mission = resolve_path(path=output_mission, default_path=p_input_mission)
+
+    # Resolve waypoints YAML file
+    p_waypoints_file = resolve_path(path=waypoints_file, should_exist=True)
+    if not p_waypoints_file.exists():
+        logger.error(f"Waypoints file {p_waypoints_file} does not exist!", exception_type=FileNotFoundError)
+
+    # Call the worker class
+    worker = WaypointsInjectorWorker(
+        waypoints_file=p_waypoints_file,
+        input_mission=p_input_mission,
+        output_mission=p_output_mission
+    )
+    worker.work()
 
     console.print(WORK_DONE_MESSAGE)
     if pause: input(PAUSE_MESSAGE)

@@ -9,6 +9,8 @@ from typing import Any, Dict, List, Optional, Tuple
 import re
 import yaml
 import copy
+import io
+import luadata
 
 from mission_tools import DcsMission, read_miz, write_miz
 from rich.console import Console
@@ -847,33 +849,152 @@ class AircraftGroupsExtractorWorker:
         'Radio'    # Radio configuration (uppercase variant)
     }
     
-    def __init__(self, input_mission: Path, output_yaml: Path, group_name_pattern: str):
+    def __init__(self, input_mission: Path = None, output_yaml: Path = None, group_name_pattern: str = None, input_lua: Path = None):
         """
         Initialize the extractor.
         
         Args:
-            input_mission: Path to the input .miz mission file
+            input_mission: Path to the input .miz mission file (mutually exclusive with input_lua)
             output_yaml: Path to the output YAML file
             group_name_pattern: Regular expression pattern to match group names
+            input_lua: Path to input Lua file with settings table (mutually exclusive with input_mission)
         """
+        # Validate that either mission or lua is provided, not both
+        if (input_mission is None and input_lua is None) or (input_mission is not None and input_lua is not None):
+            raise ValueError("Must provide exactly one of: input_mission or input_lua")
+        
         self.input_mission = input_mission
+        self.input_lua = input_lua
         self.output_yaml = output_yaml
-        self.group_name_pattern = re.compile(group_name_pattern)
+        self.group_name_pattern = re.compile(group_name_pattern) if group_name_pattern else None
         self.dcs_mission: Optional[DcsMission] = None
+        self.lua_data: Optional[Dict] = None  # Store parsed Lua data
         self.extracted_templates = {
             "airplanes": {"coalitions": {}},
             "helicopters": {"coalitions": {}}
         }
         self.matched_groups: Dict[str, Dict] = {}  # Store matched groups for interactive selection
     
-    def read_mission(self, silent: bool = False) -> None:
-        """Load the mission from the .miz file."""
-        if not silent:
-            logger.info(f"Reading mission file {self.input_mission}")
-        self.dcs_mission = read_miz(self.input_mission)
+    def read_lua_file(self, silent: bool = False) -> None:
+        """Load and parse aircraft groups from a Lua settings file."""
+        if not self.input_lua:
+            logger.error("No Lua file specified", exception_type=ValueError)
+            return
         
-        if not self.dcs_mission.mission_content:
-            logger.error("Failed to read mission content", exception_type=ValueError)
+        if not silent:
+            logger.info(f"Reading Lua file {self.input_lua}")
+        
+        try:
+            # Read and parse the Lua file
+            with open(self.input_lua, 'r', encoding='utf-8') as f:
+                lua_content = f.read()
+            
+            # Parse the Lua table structure using luadata
+            self.lua_data = luadata.unserialize(lua_content, all_is_dict=True)
+            
+            if not self.lua_data:
+                logger.error("Failed to parse Lua file content", exception_type=ValueError)
+                return
+            
+            if not silent:
+                logger.info(f"Successfully parsed Lua file {self.input_lua}")
+        except Exception as e:
+            logger.error(f"Failed to read Lua file: {str(e)}", exception_type=IOError)
+    
+    def _convert_lua_to_mission_structure(self) -> None:
+        """
+        Convert Lua settings structure to DCS mission structure.
+        
+        Lua format: settings.categories[category_type].coalitions[coalition].countries[country].groups[group_name]
+        DCS format: coalition[name].country[0].plane/helicopter.group[]
+        
+        Note: luadata.unserialize() returns the contents of the settings variable directly,
+        so lua_data already contains 'categories' at the top level.
+        """
+        if not self.lua_data:
+            logger.error("No Lua data loaded", exception_type=RuntimeError)
+            return
+        
+        # Create a mock DCS mission structure from Lua data
+        self.dcs_mission = DcsMission(file_path=self.input_lua or Path("lua-input"))
+        self.dcs_mission.mission_content = {
+            "coalition": {}
+        }
+        
+        # The lua_data directly contains 'categories' (the contents of the settings variable)
+        # since luadata.unserialize() extracts the assigned value
+        categories = self.lua_data.get("categories", {})
+        if not categories:
+            logger.error("No 'categories' found in Lua data", exception_type=ValueError)
+            return
+        
+        for category_type, category_data in categories.items():
+            # Determine aircraft type (plane or helicopter)
+            aircraft_type = "plane" if category_type == "airplane" else "helicopter"
+            
+            coalitions = category_data.get("coalitions", {})
+            if not coalitions:
+                logger.debug(f"No coalitions in category {category_type}")
+                continue
+            
+            for coalition_name, coalition_data in coalitions.items():
+                # Initialize coalition if not exists
+                if coalition_name not in self.dcs_mission.mission_content["coalition"]:
+                    self.dcs_mission.mission_content["coalition"][coalition_name] = {
+                        "country": []
+                    }
+                
+                countries = coalition_data.get("countries", {})
+                if not countries:
+                    logger.debug(f"No countries in {category_type}/{coalition_name}")
+                    continue
+                
+                for country_name, country_data in countries.items():
+                    # Find or create country entry
+                    country_entry = None
+                    for country in self.dcs_mission.mission_content["coalition"][coalition_name]["country"]:
+                        if country.get("name") == country_name:
+                            country_entry = country
+                            break
+                    
+                    if not country_entry:
+                        country_entry = {
+                            "name": country_name,
+                            "plane": {"group": []},
+                            "helicopter": {"group": []}
+                        }
+                        self.dcs_mission.mission_content["coalition"][coalition_name]["country"].append(country_entry)
+                    
+                    # Ensure aircraft type container exists
+                    if aircraft_type not in country_entry:
+                        country_entry[aircraft_type] = {"group": []}
+                    if "group" not in country_entry[aircraft_type]:
+                        country_entry[aircraft_type]["group"] = []
+                    
+                    # Add groups
+                    groups = country_data.get("groups", {})
+                    for group_name, group_data in groups.items():
+                        # Create a copy and ensure it has a name field
+                        group_copy = copy.deepcopy(group_data)
+                        if "name" not in group_copy:
+                            group_copy["name"] = group_name
+                        
+                        country_entry[aircraft_type]["group"].append(group_copy)
+    
+    def read_mission(self, silent: bool = False) -> None:
+        """Load the mission from either a .miz file or a Lua file."""
+        if self.input_lua:
+            self.read_lua_file(silent)
+            if self.lua_data:
+                self._convert_lua_to_mission_structure()
+        else:
+            # Original .miz file reading logic
+            if not silent:
+                logger.info(f"Reading mission file {self.input_mission}")
+            self.dcs_mission = read_miz(self.input_mission)
+            
+            if not self.dcs_mission.mission_content:
+                logger.error("Failed to read mission content", exception_type=ValueError)
     
     def find_matching_groups(self, silent: bool = False) -> None:
         """Find all plane groups matching the pattern and store them for selection."""
@@ -1123,7 +1244,8 @@ class AircraftGroupsExtractorWorker:
             silent: If True, suppress output messages
             interactive: If True, allow user to select which groups to include
         """
-        with spinner_context(f"Reading {self.input_mission}...", silent=silent):
+        input_file = self.input_lua or self.input_mission
+        with spinner_context(f"Reading {input_file}...", silent=silent):
             self.read_mission(silent)
         
         with spinner_context("Finding matching groups...", silent=silent):

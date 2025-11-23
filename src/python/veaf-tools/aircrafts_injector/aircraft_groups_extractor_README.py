@@ -7,36 +7,60 @@ AircraftGroupsExtractorREADME = r"""
 
 ## Overview
 
-The Aircraft Groups Extractor is a tool that extracts aircraft groups from DCS World mission files (.miz) 
-based on a regular expression pattern. The extracted groups are written to a YAML file in the 
-`aircraft-templates.yaml` format, making it easy to create templates for aircraft group definitions.
+The Aircraft Groups Extractor is a tool that extracts aircraft groups from:
+- **DCS World mission files (.miz)** - Extract templates directly from missions
+- **Lua settings files** - Extract from configuration files like `settings-templates.lua`
+
+Extracted groups are written to a YAML file in the `aircraft-templates.yaml` format, 
+making it easy to create templates for aircraft group definitions.
 
 ## Features
 
+- **Dual Input Support**:
+  - Extract from DCS mission files (.miz)
+  - Extract from Lua settings files (e.g., settings-templates.lua)
 - **Pattern Matching**: Extract groups by matching their names against a regular expression
 - **Aircraft Types**: Supports both airplanes and helicopters
 - **Coalition Organization**: Automatically organizes groups by coalition (blue/red) and country
 - **Unit Type Extraction**: Identifies and lists all unit types within each group
 - **YAML Output**: Generates well-formatted YAML output compatible with aircraft-templates.yaml
 - **Interactive Selection**: Optional interactive mode to select which groups to include
+- **Property Filtering**: Automatically excludes mission-specific properties (like radio configs)
 
 ## Usage
 
+### Command Line
+
+#### Extract from a DCS mission file:
+
 ```bash
-python veaf-tools.py extract-aircraft-groups [OPTIONS] [MISSION_FILE] [OUTPUT_FILE]
+python veaf-tools.py extract-aircraft-groups [MISSION_FILE] [OPTIONS]
+```
+
+#### Extract from a Lua settings file:
+
+```bash
+python veaf-tools.py extract-aircraft-groups --lua-input settings-templates.lua --output-yaml output.yaml [OPTIONS]
 ```
 
 ## Arguments
 
-- `MISSION_FILE`: The DCS mission file (.miz) to extract from
+- `MISSION_FILE`: (Optional, positional) The DCS mission file (.miz) to extract from (when not using --lua-input)
   - Can be a mission name (will find the most recent .miz file matching the pattern)
   - Can be a full path to a .miz file
   - Defaults to `mission.miz`
-
-- `OUTPUT_FILE`: Path where the extracted templates YAML will be saved
-  - Defaults to `aircraft-templates.yaml`
+  - Not used when `--lua-input` is specified
 
 ## Options
+
+- `--output-yaml FILE`: Path where the extracted templates YAML will be saved
+  - Default: `aircraft-templates.yaml`
+  - Example: `--output-yaml templates.yaml`
+
+- `--lua-input FILE`: Path to a Lua settings file to extract from instead of a mission file
+  - Example: `--lua-input settings-templates.lua`
+  - Mutually exclusive with MISSION_FILE
+  - Expected format: `settings = { categories = { ... } }`
 
 - `--group-name-pattern PATTERN`: Regular expression pattern to match group names
   - Default: `.*` (matches all groups)
@@ -44,13 +68,14 @@ python veaf-tools.py extract-aircraft-groups [OPTIONS] [MISSION_FILE] [OUTPUT_FI
     - `^F-16` - Groups starting with "F-16"
     - `Training` - Groups containing "Training"
     - `^(F-16|F-18)` - Groups starting with either "F-16" or "F-18"
+    - `.*[tT]emplate.*` - Groups with "template" in the name (case-insensitive)
 
 - `--interactive`: Enable interactive mode to select which groups to include
   - When enabled, displays all matching groups and asks the user to confirm each one
   - Allows selective extraction of specific groups without modifying the pattern
   - Default: disabled (all matching groups are extracted)
 
-- `--mission-folder FOLDER`: Folder containing mission files
+- `--mission-folder FOLDER`: Folder containing mission files (for mission extraction only)
   - Default: current directory
 
 - `--verbose`: Enable detailed debug output
@@ -58,6 +83,36 @@ python veaf-tools.py extract-aircraft-groups [OPTIONS] [MISSION_FILE] [OUTPUT_FI
 - `--readme`: Display this help documentation
 
 - `--pause`: Pause and wait for user input when finished
+
+## Lua File Format
+
+For Lua file input, the file must contain a `settings` table with the following structure:
+
+```lua
+settings = {
+    ["categories"] = {
+        ["airplane"] = {
+            ["coalitions"] = {
+                ["blue"] = {
+                    ["countries"] = {
+                        ["CountryName"] = {
+                            ["groups"] = {
+                                ["GroupName"] = {
+                                    ["name"] = "GroupName",
+                                    ["units"] = { ... },
+                                    -- ... other properties
+                                },
+                            },
+                        },
+                    },
+                },
+                ["red"] = { ... },
+            },
+        },
+        ["helicopter"] = { ... },
+    },
+}
+```
 
 ## Output Format
 
@@ -93,25 +148,43 @@ helicopters:
 ### Extract all groups from a mission
 
 ```bash
-python veaf-tools.py extract-aircraft-groups mission.miz output.yaml
+python veaf-tools.py extract-aircraft-groups mission.miz --output-yaml output.yaml
+```
+
+### Extract template groups from a Lua file
+
+```bash
+python veaf-tools.py extract-aircraft-groups \
+  --lua-input settings-templates.lua \
+  --output-yaml templates.yaml \
+  --group-name-pattern ".*[tT]emplate.*"
 ```
 
 ### Extract only F-16 groups with verbose output
 
 ```bash
-python veaf-tools.py extract-aircraft-groups --verbose --group-name-pattern "^F-16" mission.miz f16-groups.yaml
+python veaf-tools.py extract-aircraft-groups mission.miz \
+  --verbose \
+  --output-yaml f16-groups.yaml \
+  --group-name-pattern "^F-16"
 ```
 
 ### Extract training groups from a specific folder
 
 ```bash
-python veaf-tools.py extract-aircraft-groups --group-name-pattern "Training" --mission-folder ./missions mission.miz training-groups.yaml
+python veaf-tools.py extract-aircraft-groups mission.miz \
+  --mission-folder ./missions \
+  --output-yaml training-groups.yaml \
+  --group-name-pattern "Training"
 ```
 
 ### Extract groups interactively
 
 ```bash
-python veaf-tools.py extract-aircraft-groups --interactive --group-name-pattern "spawn" mission.miz spawn-groups.yaml
+python veaf-tools.py extract-aircraft-groups mission.miz \
+  --interactive \
+  --output-yaml spawn-groups.yaml \
+  --group-name-pattern "spawn"
 ```
 
 In interactive mode, the tool will:

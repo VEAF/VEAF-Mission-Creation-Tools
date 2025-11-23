@@ -27,20 +27,20 @@ It automatically validates YAML before injection and stops if validation fails.
 ## Usage
 
 ```bash
-python veaf-tools.py inject-aircraft-groups [OPTIONS] [MISSION_NAME_OR_FILE] [OUTPUT_MISSION] [MISSION_FOLDER]
+python veaf-tools.py inject-aircraft-groups [MISSION_NAME_OR_FILE] [OUTPUT_MISSION] [MISSION_FOLDER] [OPTIONS]
 ```
 
 ## Arguments
 
-- `MISSION_NAME_OR_FILE`: Mission name or file path
+- `MISSION_NAME_OR_FILE`: (Optional, positional) Mission name or file path
   - Can be a mission name (will find the most recent .miz file matching the pattern)
   - Can be a full path to a .miz file
   - Defaults to `mission.miz`
 
-- `OUTPUT_MISSION`: Path where to save the modified mission
+- `OUTPUT_MISSION`: (Optional, positional) Path where to save the modified mission
   - Defaults to the same as input mission
 
-- `MISSION_FOLDER`: Folder containing mission files
+- `MISSION_FOLDER`: (Optional, positional) Folder containing mission files
   - Defaults to current directory (`.`)
 
 ## Options
@@ -195,10 +195,8 @@ All errors must be fixed before injection can proceed.
 ### Basic Injection (Add Mode)
 
 ```bash
-python veaf-tools.py inject-aircraft-groups \
-    --template-file aircraft-templates.yaml \
-    mission.miz \
-    mission-modified.miz
+python veaf-tools.py inject-aircraft-groups mission.miz mission-modified.miz \
+  --template-file aircraft-templates.yaml
 ```
 
 Result: All groups from YAML are added to the mission
@@ -206,11 +204,9 @@ Result: All groups from YAML are added to the mission
 ### Replace Mode (Update Existing Groups)
 
 ```bash
-python veaf-tools.py inject-aircraft-groups \
-    --template-file aircraft-templates.yaml \
-    --mode replace \
-    mission.miz \
-    mission-modified.miz
+python veaf-tools.py inject-aircraft-groups mission.miz mission-modified.miz \
+  --template-file aircraft-templates.yaml \
+  --mode replace
 ```
 
 Result: Groups with matching names are replaced; others are preserved
@@ -218,10 +214,9 @@ Result: Groups with matching names are replaced; others are preserved
 ### With Verbose Output
 
 ```bash
-python veaf-tools.py inject-aircraft-groups \
-    --template-file aircraft-templates.yaml \
-    --verbose \
-    mission.miz
+python veaf-tools.py inject-aircraft-groups mission.miz \
+  --template-file aircraft-templates.yaml \
+  --verbose
 ```
 
 Result: Shows detailed injection log for each group

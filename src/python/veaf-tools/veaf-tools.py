@@ -304,13 +304,14 @@ def extract_aircraft_groups(
     verbose: bool = typer.Option(False, help=VERBOSE_HELP),
     interactive: bool = typer.Option(False, help="Interactive mode: select which groups to include."),
     mission_name_or_file: Optional[str] = typer.Argument(DEFAULT_MISSION_FILE, help="Mission name; will extract from the mission with this name (most recent .miz file); can be set to a .miz file."),
-    output_yaml: Optional[str] = typer.Argument("aircraft-templates.yaml", help="Output YAML file path."),
+    output_yaml: str = typer.Option("aircraft-templates.yaml", help="Output YAML file path."),
     group_name_pattern: str = typer.Option(".*", help="Regular expression pattern to match aircraft group names."),
     mission_folder: Optional[str] = typer.Argument(".", help="Folder with the mission files."),
+    lua_input: Optional[str] = typer.Option(None, help="Path to a Lua file (e.g., settings-templates.lua) to extract from instead of a .miz mission."),
     pause: bool = typer.Option(False, help=PAUSE_HELP),
 ) -> None:
     """
-    Extracts aircraft groups matching a pattern from a DCS mission and writes them to a YAML file.
+    Extracts aircraft groups matching a pattern from a DCS mission or Lua settings file and writes them to a YAML file.
     """
 
     logger.set_verbose(verbose)
@@ -324,27 +325,38 @@ def extract_aircraft_groups(
             console.print(md_render)
         exit()
 
-    # Resolve input mission folder
-    p_mission_folder = resolve_path(path=mission_folder, default_path=Path.cwd(), should_exist=True)
-    if not p_mission_folder.exists():
-        logger.error(f"Mission folder {p_mission_folder} does not exist!", exception_type=FileNotFoundError)
-
-    # Resolve input mission
-    p_input_mission = mission_name_or_file
-    if not mission_name_or_file.lower().endswith(".miz"):
-        if files := list(p_mission_folder.glob(f"{mission_name_or_file}*.miz")):
-            p_input_mission = max(files, key=lambda f: f.stat().st_mtime)
-    p_input_mission = resolve_path(path=p_input_mission, should_exist=True)
-
     # Resolve output YAML file
+    p_mission_folder = resolve_path(path=mission_folder, default_path=Path.cwd(), should_exist=True)
     p_output_yaml = resolve_path(path=output_yaml, default_path=p_mission_folder / output_yaml, create_if_not_exist=True)
 
-    # Call the worker
-    worker = AircraftGroupsExtractorWorker(
-        input_mission=p_input_mission,
-        output_yaml=p_output_yaml,
-        group_name_pattern=group_name_pattern
-    )
+    # Handle Lua input or mission input
+    if lua_input:
+        # Extract from Lua file
+        p_lua_input = resolve_path(path=lua_input, should_exist=True)
+        worker = AircraftGroupsExtractorWorker(
+            input_lua=p_lua_input,
+            output_yaml=p_output_yaml,
+            group_name_pattern=group_name_pattern
+        )
+    else:
+        # Extract from mission file (original behavior)
+        if not p_mission_folder.exists():
+            logger.error(f"Mission folder {p_mission_folder} does not exist!", exception_type=FileNotFoundError)
+
+        # Resolve input mission
+        p_input_mission = mission_name_or_file
+        if not mission_name_or_file.lower().endswith(".miz"):
+            if files := list(p_mission_folder.glob(f"{mission_name_or_file}*.miz")):
+                p_input_mission = max(files, key=lambda f: f.stat().st_mtime)
+        p_input_mission = resolve_path(path=p_input_mission, should_exist=True)
+
+        # Call the worker
+        worker = AircraftGroupsExtractorWorker(
+            input_mission=p_input_mission,
+            output_yaml=p_output_yaml,
+            group_name_pattern=group_name_pattern
+        )
+    
     worker.extract(interactive=interactive)
 
     console.print(WORK_DONE_MESSAGE)

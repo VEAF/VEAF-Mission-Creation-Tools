@@ -238,5 +238,15 @@
             "cwd": "${workspaceFolder}\\test\\veaf-tools\\aircrafts-injector",
             "args": ["extract-aircraft-groups", "--verbose", "--group-name-pattern", "veafSpawn-.*", "test-import.miz", "extracted-aircraft.yaml"],
             "console": "integratedTerminal"
-        },    ]
+        },    
+        {
+            "name": "veaf-tools extract-aircraft-groups from lua",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/python/veaf-tools/veaf-tools.py",
+            "cwd": "${workspaceFolder}\\test\\veaf-tools\\aircrafts-injector",
+            "args": ["extract-aircraft-groups",  "templates.yaml", "--lua-input", "../../defaults/veafSpawnableAircraftsEditor/settings-templates.lua", "--group-name-pattern", ".*[tT]emplate.*"],
+            "console": "integratedTerminal"
+        },    
+    ]
 }

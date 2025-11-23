@@ -14,6 +14,18 @@ The Aircraft Groups Extractor is a tool that extracts aircraft groups from:
 Extracted groups are written to a YAML file in the `aircraft-templates.yaml` format, 
 making it easy to create templates for aircraft group definitions.
 
+### Use Cases
+
+**Spawnable Aircraft**: Extract aircraft groups from a mission to use as spawnable templates with the `_spawn` command:
+- Extracted groups are organized by difficulty (EASY, NORMAL, HARD)
+- Group names include configuration details (e.g., "F-16 - FOX3 - Radar ON - ECM ON - HARD X2")
+- Used with `-cap` shortcut to dynamically spawn aircraft during mission play
+
+**Template Aircraft**: Extract aircraft groups to use as dynamic slot templates:
+- Aircraft can be selected as templates in the Warehouse dialog in the mission editor
+- Provides standardized group configurations for various aircraft types
+- Useful for mission design and aircraft library documentation
+
 ## Features
 
 - **Dual Input Support**:
@@ -209,6 +221,41 @@ The extracted YAML can be used as input for the Aircraft Groups Injector to:
 - Document mission structure
 - Generate configuration templates
 - Analyze aircraft compositions in existing missions
+
+## Complete Workflow
+
+### Extract-Merge Workflow
+
+1. **Extract from mission**: Use `extract-aircraft-groups` with a pattern to find matching groups
+   ```bash
+   python veaf-tools.py extract-aircraft-groups mission.miz \
+     --output-yaml extracted-groups.yaml \
+     --group-name-pattern ".*EASY.*"
+   ```
+
+2. **Review extracted YAML**: Check the output file and manually edit if needed
+
+3. **Inject into mission**: Use `inject-aircraft-groups` to add/replace groups
+   ```bash
+   python veaf-tools.py inject-aircraft-groups mission.miz merged-mission.miz \
+     --template-file extracted-groups.yaml \
+     --mode add
+   ```
+
+### Recommended Extraction Patterns
+
+**Extract Spawnable Aircraft**: Use patterns that match naming conventions
+- `veafSpawn-.*` - All spawnable groups
+- `.*EASY.*` - Easy difficulty spawns
+- `.*NORMAL.*` - Normal difficulty spawns
+- `.*HARD.*` - Hard difficulty spawns
+- `.*X2` - Two-ship formations
+- `.*X1` - Single aircraft
+
+**Extract Templates**: Use patterns for template groups
+- `.*[tT]emplate.*` - Groups with "template" in name
+- `^[A-Z]-.*` - Aircraft starting with single letter designation
+- `.*Template.*EASY.*` - Template groups of specific difficulty
 
 ## Notes
 

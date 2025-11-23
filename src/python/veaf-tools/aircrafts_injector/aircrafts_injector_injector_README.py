@@ -11,6 +11,23 @@ AircraftGroupsInjectorREADME = r"""
 The Aircraft Groups Injector injects validated aircraft groups from YAML files into DCS missions. 
 It automatically validates YAML before injection and stops if validation fails.
 
+### Use Cases
+
+**Spawn Configuration**: Inject spawnable aircraft groups into mission Lua settings
+- Add new spawnable groups to existing mission configurations
+- Replace outdated group definitions with updated versions
+- Merge aircraft from multiple sources into a single configuration
+
+**Template Management**: Inject aircraft templates for dynamic slot selection
+- Create standardized templates across multiple missions
+- Update template definitions without manual editing
+- Organize templates by aircraft type, coalition, and country
+
+**Mission Building**: Add pre-configured aircraft groups to missions
+- Inject complete group definitions with proper routing and configurations
+- Maintain consistent coalition/country organization
+- Preserve all mission data while adding new aircraft
+
 ## Features
 
 - **Automatic Validation**: Validates YAML before injection (stops if validation fails)
@@ -321,6 +338,57 @@ The Aircraft Groups Injector works seamlessly with the Extractor:
 2. Use `inject-aircraft-groups` to inject them into other missions
 3. Both commands use the same YAML format for compatibility
 
+## Complete Workflow
+
+### Extract-Merge Workflow (Spawnables)
+
+```bash
+# Step 1: Extract spawnable groups from a mission
+python veaf-tools.py extract-aircraft-groups spawnables.miz \
+  --output-yaml spawnables-extracted.yaml \
+  --group-name-pattern "veafSpawn-.*"
+
+# Step 2: Inject extracted groups into main mission
+python veaf-tools.py inject-aircraft-groups mission.miz mission-with-spawns.miz \
+  --template-file spawnables-extracted.yaml \
+  --mode add
+```
+
+### Extract-Merge Workflow (Templates)
+
+```bash
+# Step 1: Extract template groups from a mission
+python veaf-tools.py extract-aircraft-groups templates.miz \
+  --output-yaml templates-extracted.yaml \
+  --group-name-pattern ".*[tT]emplate.*"
+
+# Step 2: Inject templates into another mission
+python veaf-tools.py inject-aircraft-groups target-mission.miz \
+  --template-file templates-extracted.yaml \
+  --mode replace
+```
+
+### Group Naming Conventions
+
+When creating spawnable groups, use descriptive names that include configuration details:
+
+**Format**: `[AircraftType] - [MissileType] - [Radar] - [ECM] - [Difficulty] [Formation]`
+
+**Examples**:
+- `F-16 - FOX3 - Radar ON - ECM ON - HARD X2` (Two-ship hard formation)
+- `MIG29S - FOX2 - Radar OFF - ECM OFF - EASY X1` (Single easy fighter)
+- `F/A18C - FOX1 - Radar ON - ECM OFF - NORMAL X2` (Pair of normal fighters)
+
+**Difficulty Levels**:
+- `EASY`: Well-configured groups for novice pilots
+- `NORMAL`: Standard configurations for intermediate pilots
+- `HARD`: Advanced configurations with all sensors enabled
+
+**Formation Indicators**:
+- `X1`: Single aircraft
+- `X2`: Two-aircraft formation (pair)
+- `X4` or higher: Larger formations
+
 ## Notes
 
 - The injector creates missing coalition/country structures automatically
@@ -329,4 +397,27 @@ The Aircraft Groups Injector works seamlessly with the Extractor:
 - The injector works with the mission structure format used by DCS
 - Validation happens automatically - you cannot bypass it
 - If validation fails, detailed error messages guide you to the issue
+
+## Integration with Lua Settings Files
+
+When injecting into Lua configuration files (e.g., `settings.lua`):
+
+1. The injector works with the mission object structure
+2. Groups are organized under `coalitions[coalition][country][groupname]`
+3. Both aircraft types (`airplanes` and `helicopters`) are supported
+4. The complete group data (units, routing, tasks, etc.) is preserved
+
+## Related Tools
+
+**Aircraft Groups Extractor** (`extract-aircraft-groups`)
+- Extract groups from missions or Lua files
+- Supports pattern-based filtering
+- Interactive selection mode available
+- Outputs compatible YAML for injection
+
+**Aircraft Groups YAML Validator** (called automatically)
+- Validates YAML structure and content
+- Checks for required fields and proper types
+- Prevents invalid data from being injected
+- Provides detailed error reports
 """

@@ -3,3 +3,6 @@ rich
 typer
 pyyaml
 Pillow
+astral
+pydantic
+avwx-engine

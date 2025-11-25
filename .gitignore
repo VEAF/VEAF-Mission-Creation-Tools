@@ -34,3 +34,6 @@ test/veaf-tools/mission-converter/build.cmd
 test/veaf-tools/mission-converter/test.miz_20251027.miz
 test/veaf-tools/mission-converter/veaf-tools-updater.exe
 test/veaf-tools/mission-converter/veaf-tools.exe
+
+test/veaf-tools/weather-injector/*.miz
+!test/veaf-tools/weather-injector/test.miz

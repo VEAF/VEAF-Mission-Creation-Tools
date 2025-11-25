@@ -1,0 +1,84 @@
+# Weather and Time Versions Configuration
+# Create multiple versions of a DCS mission with different weather and start times
+
+# Geographic position for solar calculations (sunrise/sunset)
+# If not specified, time expressions cannot use "sunrise" or "sunset"
+position:
+  latitude: 33.5
+  longitude: 35.5
+  timezone: Asia/Damascus
+
+# Base date for all versions (optional, defaults to today)
+# Format: YYYY-MM-DD or "today", "tomorrow", "+1", etc.
+base_date: "2024-03-15"
+
+# Mission variants to create
+versions:
+  # Version 1: Weather from METAR string
+  # Priority: metar > airport_icao > weather > defaults
+  - name: dawn
+    time: "sunrise+30*60"        # Time expression: 30 minutes after sunrise
+    metar: "METAR OSDI 151420Z 27015G25KT 9999 SKC 15/10 Q1018"
+
+  # Version 2: Manual weather parameters
+  - name: noon
+    time: "12:00"                # Absolute time: 12:00 (noon)
+    weather:
+      temperature: 25.0          # Celsius
+      wind_speed: 8.0            # m/s
+      wind_direction: 270.0      # degrees (0=North, 90=East, 180=South, 270=West)
+      visibility: 15000.0        # meters
+      cloud_type: clear          # clear, few, scattered, broken, overcast
+      cloud_height: 2000.0       # meters
+
+  # Version 3: Fetch live weather from airport ICAO code using avwx-engine
+  - name: dusk
+    time: "sunset-10*60"         # 10 minutes before sunset
+    date: "+0"                   # Same day as base_date
+    airport_icao: "OSDI"         # Fetch live METAR from Damascus airport via avwx
+
+  # Version 4: Night with relative date
+  - name: night
+    time: "22:30"                # 10:30 PM
+    date: "+1"                   # 1 day after base_date
+    weather:
+      temperature: 10.0
+      wind_speed: 3.0
+      wind_direction: 180.0
+      cloud_type: overcast
+
+# Weather Input Methods (in order of priority)
+# 1. metar: "STATION DATE TIME WIND VIS CLOUD TEMP PRESSURE"
+#    - Parsed with regex, doesn't require avwx
+#    - Example: "OSDI 151420Z 27015G25KT 9999 SKC 15/10 Q1018"
+#
+# 2. airport_icao: "ICAO_CODE"
+#    - Fetches live METAR from avwx-engine
+#    - Requires avwx package installed
+#    - Example: "OSDI", "KJFK", "LFPG"
+#
+# 3. weather: {...manual parameters...}
+#    - Explicit weather values, overrides everything
+#
+# 4. Defaults: 15°C, 5 m/s wind, clear skies, 10km visibility
+
+# Time Expression Formats
+# - Absolute time: "HH:MM" → "02:00" = 2 AM
+# - Solar keywords: "sunrise", "sunset" (requires position)
+# - Expressions: "sunrise+30*60" = 30 minutes after sunrise
+# - Direct seconds: 54000 = 15:00 (3 PM)
+
+# Date Expression Formats
+# - ISO format: "2024-03-15"
+# - Keywords: "today", "tomorrow", "yesterday"
+# - Relative: "+1" (1 day from base), "-2" (2 days ago)
+# - None: uses base_date from config
+
+# Weather Parameters (for weather object)
+# temperature: -50 to 50 °C
+# wind_speed: 0+ m/s
+# wind_direction: 0-359 degrees
+# visibility: 0+ meters
+# cloud_type: clear, few, scattered, broken, overcast
+# cloud_height: 0+ meters
+# fog_enabled: true/false (optional)

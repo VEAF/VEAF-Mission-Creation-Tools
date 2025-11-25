@@ -248,5 +248,13 @@
             "args": ["extract-aircraft-groups",  "templates.yaml", "--lua-input", "../../defaults/veafSpawnableAircraftsEditor/settings-templates.lua", "--group-name-pattern", ".*[tT]emplate.*"],
             "console": "integratedTerminal"
         },    
-    ]
+        {
+            "name": "veaf-tools inject-weather",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/python/veaf-tools/veaf-tools.py",
+            "cwd": "${workspaceFolder}\\test\\veaf-tools\\weather-injector",
+            "args": ["inject-weather",  "test.miz", "--config-file", "config.yaml"],
+            "console": "integratedTerminal"
+        },        ]
 }

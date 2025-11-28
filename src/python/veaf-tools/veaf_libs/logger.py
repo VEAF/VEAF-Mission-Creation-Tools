@@ -3,6 +3,7 @@ from typing import Optional
 from typing_extensions import Self
 from rich.console import Console
 import typer
+import sys
 
 class Logger:
     """Logging and console print system."""
@@ -14,8 +15,8 @@ class Logger:
         
         # Only add handlers if they don't exist
         if not self.logger.handlers:
-            # File handler
-            file_handler = logging.FileHandler(f"{logger_name}.log", mode='a')
+            # File handler with UTF-8 encoding
+            file_handler = logging.FileHandler(f"{logger_name}.log", mode='a', encoding='utf-8')
             file_handler.setFormatter(
                 logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
             )

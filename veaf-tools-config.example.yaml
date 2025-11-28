@@ -1,0 +1,48 @@
+# VEAF Tools Configuration File
+# 
+# Copy this file to veaf-tools-config.yaml and fill in your values.
+# The veaf-tools-config.yaml file should NOT be committed to git.
+# Add it to .gitignore to prevent accidental commits.
+
+github:
+  # Your GitHub Personal Access Token (required for publish command)
+  # Get it from: https://github.com/settings/tokens
+  # Scope: repo (full control of private/public repositories)
+  # KEEP THIS SECRET - Never commit or share this token!
+  token: "ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+  
+  # Repository owner (usually "VEAF")
+  owner: "VEAF"
+  
+  # Repository name (usually "VEAF-Mission-Creation-Tools")
+  repo: "VEAF-Mission-Creation-Tools"
+  
+  # Asset name for the release zip file (default: "published.zip")
+  releaseAssetName: "published.zip"
+  
+  # Asset name for the metadata file containing checksums (default: "published-metadata.json")
+  metadataAssetName: "published-metadata.json"
+
+# Update-specific settings (optional)
+update:
+  # Mission folder path where to install the tools (optional)
+  # If null/not set, uses current directory
+  missionFolder: null
+  
+  # Verify SHA256 checksum when downloading (default: true)
+  # Highly recommended to keep this enabled for security
+  verifyChecksum: true
+  
+  # Skip confirmation prompts (default: false)
+  autoConfirm: false
+
+# Publish-specific settings (optional)
+publish:
+  # Create release as draft (not visible to users) (default: false)
+  draft: false
+  
+  # Mark release as pre-release (default: false)
+  prerelease: false
+  
+  # Skip git tag creation (not recommended) (default: false)
+  skipTag: false

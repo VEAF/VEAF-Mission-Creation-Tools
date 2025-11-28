@@ -37,3 +37,7 @@ test/veaf-tools/mission-converter/veaf-tools.exe
 
 test/veaf-tools/weather-injector/*.miz
 !test/veaf-tools/weather-injector/test.miz
+
+# VEAF Tools configuration file - contains sensitive data (GitHub token)
+veaf-tools-config.yaml
+RELEASE_NOTES.md

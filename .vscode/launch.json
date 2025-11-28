@@ -256,5 +256,24 @@
             "cwd": "${workspaceFolder}\\test\\veaf-tools\\weather-injector",
             "args": ["inject-weather",  "test.miz", "--config-file", "config.yaml"],
             "console": "integratedTerminal"
-        },        ]
+        },        
+        {
+            "name": "veaf-tools build tools",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/build-and-release.py",
+            "cwd": "${workspaceFolder}",
+            "args": ["build"],
+            "console": "integratedTerminal"
+        },        
+        {
+            "name": "veaf-tools publish tools",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/build-and-release.py",
+            "cwd": "${workspaceFolder}",
+            "args": ["publish"],
+            "console": "integratedTerminal"
+        },        
+    ]
 }

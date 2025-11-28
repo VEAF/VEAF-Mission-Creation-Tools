@@ -477,7 +477,7 @@ class BuildAndReleaseWorker:
                                 logger.debug(f"Added {exe_name} to ZIP")
                     
                     # Add documentation files
-                    doc_files = ["README.md", "BUILD_WORKFLOW.md", "DETAILED_MANUAL.md"]
+                    doc_files = ["README.md"]
                     for doc_file in doc_files:
                         doc_path = Path.cwd() / doc_file
                         if doc_path.exists():
@@ -493,6 +493,20 @@ class BuildAndReleaseWorker:
         with spinner_context("Calculating SHA256 checksum..."):
             file_hash = self._calculate_sha256(output_file)
             logger.info(f"SHA256: {file_hash}")
+
+        # Create metadata file with checksum for integrity verification
+        metadata = {
+            "published_zip_sha256": file_hash,
+            "version": self.version,
+            "created_at": datetime.now().isoformat(),
+        }
+        metadata_file = self.output_path / "published-metadata.json"
+        try:
+            with open(metadata_file, "w", encoding="utf-8") as f:
+                json.dump(metadata, f, indent=2)
+            logger.debug(f"Metadata file created: {metadata_file}")
+        except Exception as e:
+            logger.warning(f"Failed to create metadata file: {e}")
 
         return {
             "path": output_file,
@@ -601,6 +615,7 @@ class BuildAndReleaseWorker:
 
         try:
             tag_name = f"published-v{self.version}"
+            latest_tag_name = "published-latest"
 
             # Prepare environment with GitHub token
             env = os.environ.copy()
@@ -624,7 +639,7 @@ class BuildAndReleaseWorker:
             if release_notes_path.exists():
                 notes_arg = ["--notes-file", str(release_notes_path)]
 
-            # Create GitHub release
+            # Create GitHub release for versioned tag
             release_cmd = ["gh", "release", "create", tag_name, "--latest", "-t", f"VEAF Tools v{self.version}"]
             release_cmd.extend(notes_arg)
             
@@ -667,6 +682,18 @@ class BuildAndReleaseWorker:
                 logger.error(f"GitHub asset upload failed: {result.stderr}")
                 return
 
+            # Upload metadata file for checksum verification
+            metadata_file = self.output_path / "published-metadata.json"
+            if metadata_file.exists():
+                subprocess.run(
+                    ["gh", "release", "upload", tag_name, str(metadata_file)],
+                    cwd=str(self.script_root),
+                    env=env,
+                    capture_output=True,
+                    text=True,
+                )
+                logger.debug(f"Uploaded published-metadata.json to release")
+
             # Delete auto-generated source archives
             for source_asset in ["Source code (zip)", "Source code (tar.gz)"]:
                 delete_result = subprocess.run(
@@ -681,6 +708,63 @@ class BuildAndReleaseWorker:
                 # Ignore errors if asset doesn't exist
 
             logger.debug(f"GitHub release created and assets uploaded for {tag_name}", no_console=True)
+
+            # Create or update the "latest" release pointing to the same assets
+            # Delete old latest release if it exists
+            delete_latest_result = subprocess.run(
+                ["gh", "release", "delete", latest_tag_name, "--yes"],
+                cwd=str(self.script_root),
+                env=env,
+                capture_output=True,
+                text=True,
+            )
+            # Ignore errors if release doesn't exist
+
+            # Create new latest release
+            latest_release_cmd = ["gh", "release", "create", latest_tag_name, "--latest", "-t", f"VEAF Tools Latest (v{self.version})"]
+            latest_release_cmd.extend(notes_arg)
+            
+            result = subprocess.run(
+                latest_release_cmd,
+                cwd=str(self.script_root),
+                env=env,
+                capture_output=True,
+                text=True,
+            )
+            if result.returncode != 0:
+                logger.warning(f"GitHub latest release creation failed: {result.stderr}")
+            else:
+                # Upload assets to latest release
+                if updater_exe.exists():
+                    subprocess.run(
+                        ["gh", "release", "upload", latest_tag_name, str(updater_exe)],
+                        cwd=str(self.script_root),
+                        env=env,
+                        capture_output=True,
+                        text=True,
+                    )
+                
+                subprocess.run(
+                    ["gh", "release", "upload", latest_tag_name, str(package_path)],
+                    cwd=str(self.script_root),
+                    env=env,
+                    capture_output=True,
+                    text=True,
+                )
+
+                # Upload metadata file for checksum verification
+                metadata_file = self.output_path / "published-metadata.json"
+                if metadata_file.exists():
+                    subprocess.run(
+                        ["gh", "release", "upload", latest_tag_name, str(metadata_file)],
+                        cwd=str(self.script_root),
+                        env=env,
+                        capture_output=True,
+                        text=True,
+                    )
+                    logger.debug(f"Uploaded published-metadata.json to latest release")
+                
+                logger.debug(f"GitHub latest release created and assets uploaded for {latest_tag_name}", no_console=True)
 
         except Exception as e:
             logger.error(f"GitHub CLI operation failed: {e}")

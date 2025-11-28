@@ -1,31 +1,25 @@
 """
-VEAF Tools - Update and Publish Management System
+VEAF Tools - Update Management System
 
-This program provides a unified CLI for managing VEAF Tools releases:
-- Update: Download and install the latest compiled tools from GitHub
-- Publish: Automate the release process (create tags, upload assets, manage versions)
+This program provides a CLI for updating VEAF Tools from GitHub releases.
 
 Features:
 - Git tag-based versioning (published-latest, published-vX.Y.Z)
 - SHA256 checksum verification for integrity
 - Semantic version comparison
-- Automated release publishing to GitHub
 - Detailed logging and error handling
 
 Usage:
-- Run with 'veaf-tools-updater.exe update' to update installed tools
-- Run with 'veaf-tools-updater.exe publish' to publish a new release
-- Run with 'veaf-tools-updater.exe --help' for full command reference
+- Run with 'veaf-tools-updater.exe' to update installed tools
+- Run with 'veaf-tools-updater.exe --help' for command reference
 """
 
 from io import BytesIO
 import hashlib
 import json
 from pathlib import Path
-from datetime import datetime
 import re
 import shutil
-import subprocess
 import zipfile
 from typing import Optional, Dict, Any
 
@@ -34,18 +28,17 @@ import requests
 import yaml
 
 from veaf_libs.logger import logger, console
-from veaf_libs.progress import spinner_context, progress_context
+from veaf_libs.progress import spinner_context
 
 VERSION: str = "6.0.1"
 README_HELP: str = "Provide access to the README file."
+VERSION: str = "6.0.1"
 VERBOSE_HELP: str = "If set, the script will output a lot of debug information."
 PAUSE_HELP: str = "If set, the script will pause when finished and wait for the user to press a key."
+PAUSE_MESSAGE: str = "Press Enter to continue..."
 
 # String constants
-CONFIRM_DISPLAY_DOC: str = "Do you want to display the documentation?"
 WORK_DONE_MESSAGE: str = "[bold blue]Work done![/bold blue]"
-
-# GitHub configuration
 GITHUB_REPO_OWNER = "VEAF"
 GITHUB_REPO_NAME = "VEAF-Mission-Creation-Tools"
 GITHUB_API_BASE = "https://api.github.com"
@@ -58,10 +51,8 @@ PUBLISHED_DIR = "published"
 VEAF_TOOLS_EXE = "veaf-tools-updater.exe"
 BUILD_SCRIPTS_DIR = "build-scripts"
 PACKAGE_JSON_FILE = "package.json"
+PACKAGE_JSON_FILE = "package.json"
 CONFIG_FILE = "veaf-tools-config.yaml"
-
-app = typer.Typer(no_args_is_help=True)
-
 
 def load_config() -> Dict[str, Any]:
     """Load configuration from veaf-tools-config.yaml if it exists."""
@@ -282,6 +273,21 @@ class UpdateWorker:
         # Extract version from release
         release_tag = release_payload.get("tag_name", self.tag)
         release_version = re.sub(r'^v', '', release_tag)
+        
+        # For "published-latest" tag, extract actual version from release name or body
+        if release_version == "published-latest":
+            release_name = release_payload.get("name", "")
+            # Try to extract version from title like "VEAF Tools Latest (v6.0.3)"
+            version_match = re.search(r'\(v?([\d.]+)\)', release_name)
+            if version_match:
+                release_version = version_match.group(1)
+            else:
+                # Try to extract from body if available
+                release_body = release_payload.get("body", "")
+                version_match = re.search(r'v?([\d.]+)', release_body)
+                if version_match:
+                    release_version = version_match.group(1)
+        
         logger.info(f"Found release version: {release_version}")
 
         # Check if update is needed
@@ -354,199 +360,12 @@ class UpdateWorker:
             return False
 
 
-class PublishWorker:
-    """Worker class for managing releases."""
-
-    def __init__(
-        self,
-        version: str,
-        published_zip: str,
-        token: Optional[str] = None,
-        repo_path: str = ".",
-        release_notes: Optional[str] = None,
-        draft: bool = False,
-        prerelease: bool = False,
-        skip_tag: bool = False,
-        verbose: bool = False,
-    ):
-        """Initialize the publish worker."""
-        self.version = re.sub(r'^v', '', version)
-        self.published_zip = Path(published_zip)
-        self.token = token
-        self.repo_path = Path(repo_path)
-        self.release_notes = release_notes
-        self.draft = draft
-        self.prerelease = prerelease
-        self.skip_tag = skip_tag
-        self.verbose = verbose
-
-        logger.set_verbose(verbose)
-
-        # Setup GitHub API headers
-        self.headers = {}
-        if token:
-            self.headers["Authorization"] = f"token {token}"
-        self.headers["Accept"] = "application/vnd.github.v3+json"
-
-    def validate_inputs(self) -> bool:
-        """Validate inputs before publishing."""
-        with spinner_context("Validating inputs..."):
-            if not self.published_zip.exists():
-                logger.error(f"published.zip not found: {self.published_zip}")
-                return False
-
-            if not (self.repo_path / ".git").exists():
-                logger.error(f"Not a git repository: {self.repo_path}")
-                return False
-
-        return True
-
-    def create_git_tag(self) -> bool:
-        """Create git tags for the release."""
-        try:
-            tag_name = f"published-v{self.version}"
-            latest_tag_name = "published-latest"
-
-            with spinner_context(f"Creating git tags for version {self.version}..."):
-                # Delete old tags if they exist
-                subprocess.run(
-                    ["git", "tag", "-d", tag_name],
-                    cwd=str(self.repo_path),
-                    capture_output=True,
-                )
-                subprocess.run(
-                    ["git", "tag", "-d", latest_tag_name],
-                    cwd=str(self.repo_path),
-                    capture_output=True,
-                )
-
-                # Create new tags
-                subprocess.run(
-                    ["git", "tag", tag_name],
-                    cwd=str(self.repo_path),
-                    check=True,
-                )
-                subprocess.run(
-                    ["git", "tag", latest_tag_name],
-                    cwd=str(self.repo_path),
-                    check=True,
-                )
-
-                # Push tags
-                subprocess.run(
-                    ["git", "push", "origin", tag_name],
-                    cwd=str(self.repo_path),
-                    check=True,
-                )
-                subprocess.run(
-                    ["git", "push", "origin", "-f", latest_tag_name],
-                    cwd=str(self.repo_path),
-                    check=True,
-                )
-
-            logger.info(f"Git tags created and pushed: {tag_name}, {latest_tag_name}")
-            return True
-
-        except subprocess.CalledProcessError as e:
-            logger.error(f"Git operation failed: {e}")
-            return False
-
-    def publish_with_gh_cli(self) -> bool:
-        """Publish release using GitHub CLI."""
-        try:
-            # Check if gh CLI is available
-            subprocess.run(
-                ["gh", "--version"],
-                capture_output=True,
-                check=True,
-            )
-        except (subprocess.CalledProcessError, FileNotFoundError):
-            logger.warning("GitHub CLI (gh) not found. Install from: https://cli.github.com/")
-            return False
-
-        try:
-            tag_name = f"published-v{self.version}"
-
-            with spinner_context(f"Creating GitHub release for version {self.version}..."):
-                release_args = ["gh", "release", "create", tag_name]
-
-                if not self.draft and not self.prerelease:
-                    release_args.append("--latest")
-
-                if self.draft:
-                    release_args.append("--draft")
-
-                if self.prerelease:
-                    release_args.append("--prerelease")
-
-                release_args.extend(["-t", f"VEAF Tools v{self.version}"])
-
-                if self.release_notes:
-                    release_args.extend(["-n", self.release_notes])
-
-                subprocess.run(
-                    release_args,
-                    cwd=str(self.repo_path),
-                    check=True,
-                )
-
-            logger.info(f"GitHub release created for {tag_name}")
-
-            # Upload release assets
-            with spinner_context(f"Uploading release assets..."):
-                subprocess.run(
-                    ["gh", "release", "upload", tag_name, str(self.published_zip)],
-                    cwd=str(self.repo_path),
-                    check=True,
-                )
-
-            logger.info(f"Release assets uploaded for {tag_name}")
-            return True
-
-        except subprocess.CalledProcessError as e:
-            logger.error(f"GitHub CLI operation failed: {e}")
-            return False
-
-    def run(self) -> bool:
-        """Execute the publish process."""
-        console.print(f"[bold green]VEAF Tools Publisher v{VERSION}[/bold green]")
-        console.print(f"Repository: {GITHUB_REPO_OWNER}/{GITHUB_REPO_NAME}")
-        console.print(f"Version: {self.version}\n")
-
-        if not self.validate_inputs():
-            return False
-
-        if not self.skip_tag:
-            if not self.create_git_tag():
-                return False
-
-        if self.token or self.headers.get("Authorization"):
-            if not self.publish_with_gh_cli():
-                logger.warning("GitHub CLI publishing failed, but git tags were created")
-
-        console.print(WORK_DONE_MESSAGE)
-        return True
-
-
 # ============================================================================
-# Typer Commands
+# Main Entry Point
 # ============================================================================
 
 
-@app.command()
-def about() -> None:
-    """Shows information about the veaf-tools-updater program"""
-    url = "https://www.veaf.org"
-    console.print(__doc__)
-    console.print("[bold green]The VEAF - Virtual European Air Force[/bold green]")
-    console.print("The VEAF is a community of virtual pilots dedicated to creating and flying high-quality missions in DCS World.")
-    console.print(f"Website: {url}", style="blue")
-    if typer.confirm("Do you want to open the VEAF website in your browser?"):
-        typer.launch(url)
-
-
-@app.command(no_args_is_help=True)
-def update(
+def main(
     verbose: bool = typer.Option(False, help=VERBOSE_HELP),
     force: bool = typer.Option(False, help="Ignore version check and install anyway"),
     tag: Optional[str] = typer.Option(None, help="Tag name to fetch (default: published-latest)"),
@@ -593,58 +412,7 @@ def update(
         raise typer.Exit(code=1)
 
 
-@app.command(no_args_is_help=True)
-def publish(
-    version: str = typer.Argument(..., help="Version number (e.g., '6.0.1')"),
-    published_zip: str = typer.Argument(..., help="Path to published.zip"),
-    token: Optional[str] = typer.Option(None, help="GitHub Personal Access Token (overrides config file)"),
-    repo_path: Optional[str] = typer.Option(".", help="Repository path"),
-    release_notes: Optional[str] = typer.Option(None, help="Release notes text"),
-    draft: bool = typer.Option(False, help="Create as draft release"),
-    prerelease: bool = typer.Option(False, help="Mark as pre-release"),
-    skip_tag: bool = typer.Option(False, help="Skip git tag creation"),
-    verbose: bool = typer.Option(False, help=VERBOSE_HELP),
-    pause: bool = typer.Option(False, help=PAUSE_HELP),
-) -> None:
-    """
-    Publish a release to GitHub with Git tags and assets.
-
-    Creates version tags, pushes to GitHub, and uploads release assets using GitHub CLI.
-    """
-    logger.set_verbose(verbose)
-
-    # Load configuration from file
-    config = load_config()
-
-    # Apply config file settings, allow CLI arguments to override
-    if token is None:
-        token = config.get("github", {}).get("token")
-
-    worker = PublishWorker(
-        version=version,
-        published_zip=published_zip,
-        token=token,
-        repo_path=repo_path,
-        release_notes=release_notes,
-        draft=draft,
-        prerelease=prerelease,
-        skip_tag=skip_tag,
-        verbose=verbose,
-    )
-
-    success = worker.run()
-
-    if pause:
-        input(PAUSE_MESSAGE)
-
-    if not success:
-        raise typer.Exit(code=1)
-
-
-def main():
-    """Main entry point."""
-    app()
-
-
 if __name__ == "__main__":
-    main()
+    typer.run(main)
+
+

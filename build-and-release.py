@@ -356,19 +356,30 @@ class BuildAndReleaseWorker:
                 shutil.rmtree(self.dist_dir)
             self.dist_dir.mkdir(exist_ok=True)
 
-        # Build veaf-tools executable
-        with spinner_context("Building veaf-tools executable..."):
-            self._build_pyinstaller_executable(
-                "veaf-tools",
-                self.src_dir / "python" / "veaf-tools" / "veaf-tools.py",
-            )
+        # Store original file contents for restoration
+        original_contents = {}
+        
+        try:
+            # Temporarily inject version into source files
+            original_contents = self._inject_version_into_python_files_temporarily()
 
-        # Build veaf-tools-updater executable
-        with spinner_context("Building veaf-tools-updater executable..."):
-            self._build_pyinstaller_executable(
-                "veaf-tools-updater",
-                self.src_dir / "python" / "veaf-tools" / "veaf-tools-updater.py",
-            )
+            # Build veaf-tools executable
+            with spinner_context("Building veaf-tools executable..."):
+                self._build_pyinstaller_executable(
+                    "veaf-tools",
+                    self.src_dir / "python" / "veaf-tools" / "veaf-tools.py",
+                )
+
+            # Build veaf-tools-updater executable
+            with spinner_context("Building veaf-tools-updater executable..."):
+                self._build_pyinstaller_executable(
+                    "veaf-tools-updater",
+                    self.src_dir / "python" / "veaf-tools" / "veaf-tools-updater.py",
+                )
+        finally:
+            # Restore original file contents
+            if original_contents:
+                self._restore_python_files(original_contents)
 
     def _build_pyinstaller_executable(self, name: str, entry_point: Path):
         """Build a single PyInstaller executable."""
@@ -414,6 +425,71 @@ class BuildAndReleaseWorker:
 
         except subprocess.CalledProcessError as e:
             logger.error(f"PyInstaller build failed for {name}: {e}")
+
+    def _inject_version_into_python_files_temporarily(self) -> Dict[str, str]:
+        """
+        Temporarily inject version into Python source files for compilation.
+        
+        Returns a dict mapping file paths to their original contents so they can
+        be restored later (keeping git working tree clean).
+        """
+        with spinner_context("Injecting version into source files..."):
+            original_contents = {}
+            try:
+                # Python files to inject version into
+                python_files = [
+                    self.src_dir / "python" / "veaf-tools" / "veaf-tools.py",
+                    self.src_dir / "python" / "veaf-tools" / "veaf-tools-updater.py",
+                ]
+
+                for file_path in python_files:
+                    if not file_path.exists():
+                        logger.warning(f"Source file not found: {file_path}")
+                        continue
+
+                    # Read and save original content
+                    original_content = file_path.read_text(encoding="utf-8")
+                    original_contents[str(file_path)] = original_content
+
+                    # Replace VERSION line with the current version
+                    # Match patterns like: VERSION: str = "6.0.0" or VERSION:str = "6.0.0"
+                    # Capture the exact format so we can restore it later
+                    pattern = r'(VERSION\s*:\s*str\s*=\s*)"[^"]+"'
+                    match = re.search(pattern, original_content)
+                    
+                    if match:
+                        # Use the exact format from the original file for injection
+                        prefix = match.group(1)
+                        replacement = f'{prefix}"{self.version}"'
+                        new_content = re.sub(pattern, replacement, original_content, count=1)
+                        
+                        # Write modified content
+                        file_path.write_text(new_content, encoding="utf-8")
+                        logger.debug(f"Injected version {self.version} into {file_path.name}")
+                    else:
+                        logger.warning(f"Could not find VERSION pattern in {file_path.name}")
+                        # Still save it in case of other patterns
+                        original_contents[str(file_path)] = original_content
+
+            except Exception as e:
+                logger.error(f"Failed to inject version into Python files: {e}")
+                # Restore on error
+                for file_path, content in original_contents.items():
+                    Path(file_path).write_text(content, encoding="utf-8")
+                original_contents.clear()
+
+            return original_contents
+
+    def _restore_python_files(self, original_contents: Dict[str, str]):
+        """Restore Python files to their original contents."""
+        with spinner_context("Restoring source files..."):
+            try:
+                for file_path_str, original_content in original_contents.items():
+                    file_path = Path(file_path_str)
+                    file_path.write_text(original_content, encoding="utf-8")
+                    logger.debug(f"Restored {file_path.name} to original state")
+            except Exception as e:
+                logger.warning(f"Failed to restore source files: {e}")
 
     def copy_build_artifacts(self):
         """Copy build artifacts to published directory."""

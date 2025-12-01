@@ -1,6 +1,6 @@
 {
   "name": "veaf-mission-creation-tools",
-  "version": "6.0.3",
+  "version": "6.0.4",
   "description": "A set of tools that help set up a and run dynamic missions",
   "repository": {
     "type": "git",

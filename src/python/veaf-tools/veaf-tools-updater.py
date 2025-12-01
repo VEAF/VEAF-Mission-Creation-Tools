@@ -20,6 +20,7 @@ import json
 from pathlib import Path
 import re
 import shutil
+import subprocess
 import zipfile
 from typing import Optional, Dict, Any
 
@@ -30,9 +31,8 @@ import yaml
 from veaf_libs.logger import logger, console
 from veaf_libs.progress import spinner_context
 
-VERSION: str = "6.0.1"
+VERSION: str = "6.x.x"
 README_HELP: str = "Provide access to the README file."
-VERSION: str = "6.0.1"
 VERBOSE_HELP: str = "If set, the script will output a lot of debug information."
 PAUSE_HELP: str = "If set, the script will pause when finished and wait for the user to press a key."
 PAUSE_MESSAGE: str = "Press Enter to continue..."
@@ -51,8 +51,8 @@ PUBLISHED_DIR = "published"
 VEAF_TOOLS_EXE = "veaf-tools-updater.exe"
 BUILD_SCRIPTS_DIR = "build-scripts"
 PACKAGE_JSON_FILE = "package.json"
-PACKAGE_JSON_FILE = "package.json"
 CONFIG_FILE = "veaf-tools-config.yaml"
+UPDATE_PENDING_DIR = ".veaf-update-pending"
 
 def load_config() -> Dict[str, Any]:
     """Load configuration from veaf-tools-config.yaml if it exists."""
@@ -223,6 +223,65 @@ class UpdateWorker:
 
         return response.content
 
+    def _launch_deferred_update(self, pending_dir: Path, pending_exe: Path) -> None:
+        """
+        Launch a deferred update script that will replace the updater executable.
+        
+        This avoids file locking issues by:
+        1. Copying the new exe to a pending directory
+        2. Creating a batch script that will execute after this process exits
+        3. The batch script waits, then replaces the old exe with the new one
+        """
+        try:
+            # Create the update script
+            update_script = pending_dir / "apply-update.cmd"
+            
+            script_content = f"""@echo off
+REM Auto-generated update script for veaf-tools-updater.exe
+REM This script is run after the updater process exits to avoid file locking issues
+
+setlocal enabledelayedexpansion
+timeout /t 2 /nobreak
+
+REM Remove old backup if it exists
+if exist "veaf-tools-updater.exe.old" (
+    del /f /q "veaf-tools-updater.exe.old" 2>nul
+)
+
+REM Replace the executable
+if exist "{pending_exe.name}" (
+    REM Rename current executable to .old
+    ren "veaf-tools-updater.exe" "veaf-tools-updater.exe.old" 2>nul
+    
+    REM Rename pending exe to active name
+    ren "{pending_exe.name}" "veaf-tools-updater.exe"
+    
+    REM Remove backup
+    del /f /q "veaf-tools-updater.exe.old" 2>nul
+    
+    REM Clean up pending directory
+    rmdir /s /q "{UPDATE_PENDING_DIR}" 2>nul
+)
+"""
+            
+            update_script.write_text(script_content)
+            logger.debug(f"Created update script: {update_script}")
+            
+            # Launch the script in background
+            import os
+            subprocess.Popen(
+                str(update_script),
+                shell=True,
+                creationflags=subprocess.CREATE_NEW_PROCESS_GROUP if os.name == 'nt' else 0,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+            logger.info("Deferred update script launched successfully")
+            
+        except Exception as e:
+            logger.warning(f"Failed to launch deferred update: {e}")
+            logger.warning("Update of updater executable will be deferred to next run")
+
     def extract_and_install(self, zip_content: bytes, release_version: str, mission_folder: Path) -> bool:
         """Extract the published.zip file and install it to the mission folder."""
         try:
@@ -236,8 +295,17 @@ class UpdateWorker:
             with spinner_context("Installing tools to current directory..."):
                 exe_source = mission_folder / PUBLISHED_DIR / VEAF_TOOLS_EXE
                 if exe_source.exists():
-                    shutil.copy2(exe_source, Path.cwd() / VEAF_TOOLS_EXE)
-                    logger.info(f"Copied {VEAF_TOOLS_EXE} to current directory")
+                    # Instead of directly copying (which would lock the file if running),
+                    # copy to a pending directory and launch a deferred update script
+                    pending_dir = Path.cwd() / UPDATE_PENDING_DIR
+                    pending_dir.mkdir(exist_ok=True)
+                    
+                    pending_exe = pending_dir / f"{VEAF_TOOLS_EXE}.new"
+                    shutil.copy2(exe_source, pending_exe)
+                    logger.info(f"Prepared {VEAF_TOOLS_EXE} for deferred update")
+                    
+                    # Launch the deferred update script
+                    self._launch_deferred_update(pending_dir, pending_exe)
 
                 scripts_dir = mission_folder / PUBLISHED_DIR / BUILD_SCRIPTS_DIR
                 if scripts_dir.exists():

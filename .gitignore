@@ -3,6 +3,7 @@ node_modules/
 cache/
 
 configuration.json
+dist/
 compile-*.cmd
 test/test-out.miz
 .gitignore
@@ -42,3 +43,4 @@ test/veaf-tools/weather-injector/*.miz
 veaf-tools-config.yaml
 RELEASE_NOTES.md
 test/veaf-tools-updater/*
+published-metadata.json

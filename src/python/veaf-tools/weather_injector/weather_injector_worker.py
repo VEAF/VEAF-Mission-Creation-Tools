@@ -18,7 +18,7 @@ class WeatherInjectorWorker:
     Create multiple versions of a DCS mission with different weather and times.
     
     Workflow:
-    1. Load configuration from JSON file
+    1. Load configuration from YAML file
     2. For each version config:
        a. Load base mission
        b. Calculate solar times if position specified
@@ -32,7 +32,7 @@ class WeatherInjectorWorker:
         Initialize worker.
         
         Args:
-            config_file: Path to YAML configuration file
+            config_file: Path to YAML configuration file (versions.yaml)
             mission_file: Path to base mission .miz file
             output_dir: Output directory for mission files (defaults to config directory)
         """

@@ -1,0 +1,64 @@
+# Weather and Time Versions Configuration Example
+# This file demonstrates all available options for creating mission variants
+
+# Geographic position for automatic solar calculations (sunrise, sunset)
+position:
+  latitude: 33.5
+  longitude: 35.5
+  timezone: "Asia/Damascus"
+
+# Base date for all versions (optional, defaults to today)
+base_date: "2024-03-15"
+
+# List of mission variants to create
+versions:
+  # Example 1: Using solar time expressions
+  - name: dawn-auto
+    time: "sunrise"                 # Automatic sunrise calculation
+    date: "2024-03-15"
+
+  # Example 2: Offset from solar event
+  - name: morning-plus-two-hours
+    time: "sunrise+120*60"          # 2 hours after sunrise
+    metar: "METAR OSDI 151420Z 27015G25KT 9999 SKC 15/10 Q1018"
+
+  # Example 3: Manual weather parameters
+  - name: noon-clear
+    time: "12:00"
+    weather:
+      temperature: 25.0
+      wind_speed: 8.0
+      wind_direction: 270.0
+      visibility: 10000.0
+      cloud_type: "clear"
+      fog_enabled: false
+
+  # Example 4: Using relative dates
+  - name: tomorrow-sunset
+    time: "sunset-10*60"            # 10 minutes before sunset
+    date: "+1"                      # Tomorrow
+
+  # Example 5: METAR string (real weather data)
+  - name: with-metar
+    time: "14:00"
+    metar: "METAR OSDI 151420Z 27015G25KT 9999 BKN025 18/12 Q1018 NOSIG"
+
+  # Example 6: Just date change, no time/weather
+  - name: next-week
+    date: "+7"
+
+  # Example 7: Multiple offsets combined
+  - name: evening-plus-rain
+    time: "sunset-30*60"            # 30 minutes before sunset
+    date: "today"
+    weather:
+      temperature: 18.0
+      wind_speed: 12.0
+      wind_direction: 180.0
+      cloud_type: "broken"
+      cloud_height: 800.0
+
+# Note: Each version creates a separate .miz file
+# If position is not specified, time expressions like "sunrise" won't work
+# Times can be: "HH:MM" format, solar expressions, or direct seconds (0-86400)
+# Dates can be: "YYYY-MM-DD", "today", "tomorrow", "+N" days, "-N" days

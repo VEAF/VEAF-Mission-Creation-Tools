@@ -1,0 +1,27 @@
+# Test weather and time versions configuration
+# Example with various time and date specifications
+
+position:
+  latitude: 42.355691
+  longitude: 43.323853
+  timezone: "Europe/Moscow"
+
+base_date: "2023-01-26"
+
+versions:
+  - name: beforedawn-real-clear
+    time: "05:00"
+    weather:
+      clearsky: true
+  
+  - name: beforesunrise-real
+    time: "sunrise-60*60"
+    date: "2023-01-26"
+  
+  - name: dawn-broken
+    time: "sunrise"
+    date: "2023-01-26"
+  
+  - name: dawn-crosswind-vaziani
+    time: "05:43"
+    metar: "UG27 221130Z 04515KT CAVOK Q1020 NOSIG"

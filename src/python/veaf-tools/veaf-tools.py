@@ -44,7 +44,7 @@ from datetime import datetime
 from veaf_libs.logger import logger, console
 from veaf_libs.progress import spinner_context, progress_context
 
-VERSION:str = "6.x.x"
+VERSION:str = "6.0.4"
 README_HELP: str = "Provide access to the README file."
 PAUSE_HELP: str = "If set, the script will pause when finished and wait for the user to press a key."
 VERBOSE_HELP: str = "If set, the script will output a lot of debug information."

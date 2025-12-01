@@ -45,13 +45,12 @@ sys.path.insert(0, str(Path(__file__).parent / "src" / "python" / "veaf-tools"))
 from veaf_libs.logger import logger, console
 from veaf_libs.progress import spinner_context, progress_context
 
-VERSION: str = "6.0.3"
 README_HELP: str = "Provide access to the README file."
 VERBOSE_HELP: str = "If set, the script will output a lot of debug information."
 PAUSE_MESSAGE: str = "Press Enter to exit..."
 CONFIG_FILE: str = "veaf-tools-config.yaml"
 
-app = typer.Typer(no_args_is_help=True)
+app = typer.Typer()
 
 
 def load_config() -> Dict[str, Any]:
@@ -659,7 +658,7 @@ class BuildAndReleaseWorker:
 
             # Push tags
             subprocess.run(
-                ["git", "push", "origin", tag_name],
+                ["git", "push", "origin", "-f", tag_name],
                 cwd=str(self.script_root),
                 capture_output=True,
                 check=True,
@@ -961,6 +960,16 @@ See git history for detailed changes.
             self.version = self.get_version_from_file()
             logger.info(f"Version not specified, using from package.json: {self.version}")
 
+        # Check if RELEASE_NOTES.md exists and ask before overwriting
+        release_notes_path = self.script_root / "RELEASE_NOTES.md"
+        should_create_release_notes = True
+        if release_notes_path.exists():
+            response = typer.confirm(
+                f"RELEASE_NOTES.md already exists. Overwrite it?",
+                default=False
+            )
+            should_create_release_notes = response
+
         # Print configuration
         table = Table(title="Build Configuration")
         table.add_column("Setting", style="cyan")
@@ -992,8 +1001,9 @@ See git history for detailed changes.
             # Create release package
             package_info = self.create_release_package()
 
-            # Create release notes
-            self.create_release_notes_template()
+            # Create release notes if needed
+            if should_create_release_notes:
+                self.create_release_notes_template()
 
             # Publish to GitHub if requested
             if self.publish_to_github:
@@ -1033,6 +1043,147 @@ See git history for detailed changes.
 # ============================================================================
 
 
+@app.callback(invoke_without_command=True)
+def callback(ctx: typer.Context) -> None:
+    """VEAF Tools Build and Release Script"""
+    # If no command is invoked, execute build_and_publish as default
+    if ctx.invoked_subcommand is None:
+        # Execute build_and_publish with default arguments
+        _execute_build_and_publish()
+
+
+def _execute_build_and_publish(
+    version: Optional[str] = None,
+    token: Optional[str] = None,
+    skip_lua: bool = False,
+    skip_python: bool = False,
+    dev: bool = False,
+    output: str = ".",
+    verbose: bool = False,
+) -> None:
+    """Internal function to execute build and publish"""
+    logger.set_verbose(verbose)
+    console.print("[bold green]VEAF Tools Build & Publish[/bold green]")
+
+    config = load_config()
+
+    if not version:
+        version_file = Path("package.json")
+        if version_file.exists():
+            with open(version_file, "r") as f:
+                version = json.load(f).get("version")
+        else:
+            logger.error("Version not specified and package.json not found")
+            sys.exit(1)
+
+    # Determine GitHub token with fallback: CLI arg > config file > env var
+    github_config = config.get("github", {})
+    effective_token = token or github_config.get("token") or os.getenv("GITHUB_TOKEN")
+
+    if not effective_token:
+        logger.error("GitHub token not provided. Use --token, set GITHUB_TOKEN env var, or add to veaf-tools-config.yaml")
+        sys.exit(1)
+
+    try:
+        # Step 1: Build
+        console.print("\n[bold cyan]Step 1: Building...[/bold cyan]")
+        worker = BuildAndReleaseWorker(
+            version=version,
+            skip_lua=skip_lua,
+            skip_python=skip_python,
+            development_build=dev,
+            output_path=Path(output),
+            verbose=verbose,
+            config=config,
+        )
+        worker.run()
+
+        # Step 2: Pause for editing release notes
+        release_notes_path = Path("RELEASE_NOTES.md")
+        console.print("\n[bold yellow]⏸️  Pause: Edit RELEASE_NOTES.md and press Enter to continue publishing...[/bold yellow]")
+        console.print(f"File location: {release_notes_path.resolve()}")
+        input(PAUSE_MESSAGE)
+
+        # Step 3: Publish
+        console.print("\n[bold cyan]Step 2: Publishing to GitHub...[/bold cyan]")
+        
+        # Verify that published.zip exists
+        published_zip = Path("published.zip")
+        if not published_zip.exists():
+            logger.error(f"Release package not found at {published_zip}")
+            sys.exit(1)
+
+        # Calculate SHA256
+        with spinner_context("Calculating SHA256..."):
+            with open(published_zip, "rb") as f:
+                package_hash = sha256(f.read()).hexdigest()
+
+        # Publish to GitHub
+        with spinner_context("Publishing to GitHub..."):
+            publish_worker = BuildAndReleaseWorker(
+                version=version,
+                github_token=effective_token,
+                verbose=verbose,
+                config=config,
+            )
+            publish_worker._do_publish_to_github(published_zip, package_hash, force=False)
+
+        # Display release information
+        release_url = f"https://github.com/{publish_worker.github_owner}/{publish_worker.github_repo}/releases/tag/published-v{version}"
+
+        from rich.table import Table
+        table = Table(title=f"[bold green]Release v{version} Published[/bold green]")
+        table.add_column("Property", style="cyan")
+        table.add_column("Value", style="green")
+        table.add_row("Version", f"v{version}")
+        table.add_row("Package", published_zip.name)
+        table.add_row("SHA256", package_hash[:16] + "...")
+        table.add_row("Size", f"{published_zip.stat().st_size / (1024*1024):.1f} MB")
+        table.add_row("URL", release_url)
+        console.print("")
+        console.print(table)
+        console.print("")
+
+    except Exception as e:
+        logger.error(f"Build and publish failed: {e}")
+        sys.exit(1)
+
+
+@app.command()
+def build_and_publish(
+    version: Optional[str] = typer.Option(
+        None,
+        help="Semantic version for the release (e.g., '6.0.2'). If not specified, reads from package.json",
+    ),
+    token: Optional[str] = typer.Option(
+        None,
+        help="GitHub Personal Access Token with 'repo' scope (or use GITHUB_TOKEN env var)",
+    ),
+    skip_lua: bool = typer.Option(False, help="Skip Lua script build"),
+    skip_python: bool = typer.Option(False, help="Skip Python executable build"),
+    dev: bool = typer.Option(False, "--dev", help="Build in development mode"),
+    output: str = typer.Option(
+        ".", help="Output directory for release package"
+    ),
+    verbose: bool = typer.Option(False, help=VERBOSE_HELP),
+) -> None:
+    """
+    Build VEAF Tools and publish to GitHub (default command).
+    
+    This command builds everything and then pauses to let you edit RELEASE_NOTES.md
+    before publishing to GitHub.
+    """
+    _execute_build_and_publish(
+        version=version,
+        token=token,
+        skip_lua=skip_lua,
+        skip_python=skip_python,
+        dev=dev,
+        output=output,
+        verbose=verbose,
+    )
+
+
 @app.command()
 def build(
     version: Optional[str] = typer.Option(
@@ -1052,8 +1203,7 @@ def build(
     Build VEAF Tools without publishing to GitHub.
     """
     logger.set_verbose(verbose)
-    console.print(f"[bold green]VEAF Tools Build v{VERSION}[/bold green]")
-
+    console.print("[bold green]VEAF Tools Build[/bold green]")
     config = load_config()
 
     worker = BuildAndReleaseWorker(
@@ -1095,8 +1245,7 @@ def publish(
     It will publish the already-compiled artifacts to GitHub.
     """
     logger.set_verbose(verbose)
-    console.print(f"[bold green]VEAF Tools Publish v{VERSION}[/bold green]")
-
+    console.print("[bold green]VEAF Tools Publish[/bold green]")
     config = load_config()
 
     if not version:

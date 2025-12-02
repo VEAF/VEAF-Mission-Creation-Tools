@@ -551,6 +551,24 @@ class BuildAndReleaseWorker:
                                 zf.write(exe_file, exe_name)
                                 logger.debug(f"Added {exe_name} to ZIP")
                     
+                    # Add defaults directory
+                    defaults_dir = self.src_dir / "defaults"
+                    if defaults_dir.exists():
+                        for file_path in defaults_dir.rglob("*"):
+                            if file_path.is_file():
+                                arcname = file_path.relative_to(self.src_dir.parent)
+                                zf.write(file_path, arcname)
+                                logger.debug(f"Added {arcname} to ZIP")
+                    
+                    # Add build-scripts directory
+                    build_scripts_dir = self.script_root / "build-scripts"
+                    if build_scripts_dir.exists():
+                        for file_path in build_scripts_dir.rglob("*"):
+                            if file_path.is_file():
+                                arcname = file_path.relative_to(self.script_root)
+                                zf.write(file_path, arcname)
+                                logger.debug(f"Added {arcname} to ZIP")
+                    
                     # Add documentation files
                     doc_files = ["README.md"]
                     for doc_file in doc_files:

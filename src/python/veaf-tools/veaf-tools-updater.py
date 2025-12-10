@@ -320,6 +320,10 @@ exit /b 0
             current_exe = Path.cwd() / VEAF_TOOLS_EXE
             has_locked_exe = current_exe.exists()
             
+            # Step 1: Extract ALL content of published.zip to the "published" folder
+            published_dir = mission_folder / PUBLISHED_DIR
+            published_dir.mkdir(exist_ok=True)
+            
             if has_locked_exe:
                 # Extract to a temporary location first to avoid file locking issues
                 with spinner_context(f"Extracting published.zip (version {release_version})..."):
@@ -329,78 +333,62 @@ exit /b 0
                     zip_file = zipfile.ZipFile(BytesIO(zip_content))
                     zip_file.extractall(temp_extract_dir)
                     
-                    # Move extracted files to actual location, handling locked files
-                    published_temp = temp_extract_dir / PUBLISHED_DIR
-                    published_actual = mission_folder / PUBLISHED_DIR
-                    
-                    if published_temp.exists():
-                        published_actual.mkdir(exist_ok=True)
+                    # Move ALL extracted files to the published directory
+                    # The zip content structure is: published/* which becomes the root after extraction
+                    for item in temp_extract_dir.iterdir():
+                        dest = published_dir / item.name
                         
-                        # Move all files except the locked exe
-                        for item in published_temp.iterdir():
-                            dest = published_actual / item.name
-                            
-                            # Skip the locked exe, we'll handle it separately
-                            if item.name == VEAF_TOOLS_EXE:
-                                continue
-                            
-                            # Remove destination if it exists
-                            if dest.exists():
-                                if dest.is_dir():
-                                    shutil.rmtree(dest)
-                                else:
-                                    dest.unlink()
-                            
-                            shutil.move(str(item), str(dest))
+                        # Remove destination if it exists
+                        if dest.exists():
+                            if dest.is_dir():
+                                shutil.rmtree(dest)
+                            else:
+                                dest.unlink()
                         
-                        # Handle the locked exe file separately using deferred update
-                        locked_exe_temp = published_temp / VEAF_TOOLS_EXE
-                        if locked_exe_temp.exists():
-                            pending_dir = Path.cwd() / UPDATE_PENDING_DIR
-                            pending_dir.mkdir(exist_ok=True)
-                            
-                            pending_exe = pending_dir / f"{VEAF_TOOLS_EXE}.new"
-                            shutil.copy2(locked_exe_temp, pending_exe)
-                            logger.info(f"Prepared {VEAF_TOOLS_EXE} for deferred update")
-                            
-                            # Launch the deferred update script
-                            self._launch_deferred_update(pending_dir, pending_exe)
+                        shutil.move(str(item), str(dest))
                     
                     # Clean up temporary extraction directory
                     shutil.rmtree(temp_extract_dir, ignore_errors=True)
             else:
-                # No locked exe, extract directly
+                # No locked exe, extract directly to published directory
                 with spinner_context(f"Extracting published.zip (version {release_version})..."):
                     zip_file = zipfile.ZipFile(BytesIO(zip_content))
-                    zip_file.extractall(mission_folder)
+                    zip_file.extractall(published_dir)
 
-            logger.info(f"Successfully extracted release version {release_version}")
+            logger.info(f"Successfully extracted release version {release_version} to '{PUBLISHED_DIR}' folder")
 
-            # Copy key files to current directory (only non-exe files if exe is locked)
+            # Step 2: Move key files from published folder to current directory
             with spinner_context("Installing tools to current directory..."):
-                published_dir = mission_folder / PUBLISHED_DIR
+                files_to_move = ["veaf-tools.exe", "README.md"]
                 
-                # Copy veaf-tools.exe (main executable)
-                main_exe = published_dir / "veaf-tools.exe"
-                if main_exe.exists():
-                    dest_exe = Path.cwd() / "veaf-tools.exe"
-                    shutil.copy2(main_exe, dest_exe)
-                    logger.info("Copied veaf-tools.exe to current directory")
+                for filename in files_to_move:
+                    source_file = published_dir / filename
+                    if source_file.exists():
+                        dest_file = Path.cwd() / filename
+                        shutil.move(str(source_file), str(dest_file))
+                        logger.info(f"Moved {filename} to current directory")
+                    else:
+                        logger.warning(f"File not found in published folder: {filename}")
                 
-                # Copy README.md if it exists
-                readme = published_dir / "README.md"
-                if readme.exists():
-                    dest_readme = Path.cwd() / "README.md"
-                    shutil.copy2(readme, dest_readme)
-                    logger.info("Copied README.md to current directory")
-                
-                # Copy build scripts
-                scripts_dir = published_dir / BUILD_SCRIPTS_DIR
-                if scripts_dir.exists():
-                    for script_file in scripts_dir.glob("*.cmd"):
-                        dest_script = Path.cwd() / script_file.name
-                        shutil.copy2(script_file, dest_script)
-                    logger.info("Copied build scripts to current directory")
+                # Handle veaf-tools-updater.exe with deferred update mechanism
+                updater_exe = published_dir / "veaf-tools-updater.exe"
+                if updater_exe.exists():
+                    if has_locked_exe:
+                        # Use deferred update mechanism to avoid file locking
+                        pending_dir = Path.cwd() / UPDATE_PENDING_DIR
+                        pending_dir.mkdir(exist_ok=True)
+                        
+                        pending_exe = pending_dir / f"{VEAF_TOOLS_EXE}.new"
+                        shutil.move(str(updater_exe), str(pending_exe))
+                        logger.info(f"Prepared {VEAF_TOOLS_EXE} for deferred update")
+                        
+                        # Launch the deferred update script
+                        self._launch_deferred_update(pending_dir, pending_exe)
+                    else:
+                        # No file locking issue, move directly
+                        dest_updater = Path.cwd() / VEAF_TOOLS_EXE
+                        shutil.move(str(updater_exe), str(dest_updater))
+                        logger.info(f"Moved {VEAF_TOOLS_EXE} to current directory")
 
             return True
         except zipfile.BadZipFile as e:

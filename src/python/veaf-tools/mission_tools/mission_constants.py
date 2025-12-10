@@ -39,7 +39,7 @@ def get_veaf_script_files() -> list[(str, str)]:
 
     return [
             # The main VEAF scripts
-            ("veaf-scripts.lua", DEFAULT_SCRIPTS_LOCATION)
+            ("src/scripts/veaf/veaf-scripts.lua", DEFAULT_SCRIPTS_LOCATION)
     ]
 
 def get_mission_script_files() -> list[(str, str)]:

@@ -503,13 +503,13 @@ class BuildAndReleaseWorker:
 
             try:
                 with zipfile.ZipFile(output_file, "w", zipfile.ZIP_DEFLATED) as zf:
-                    # Add Lua scripts to src/scripts directory
+                    # Add Lua scripts to src/scripts/veaf directory
                     if veaf_scripts_path.exists():
-                        arcname = "src/scripts/veaf-scripts.lua"
+                        arcname = "src/scripts/veaf/veaf-scripts.lua"
                         zf.write(veaf_scripts_path, arcname)
                         logger.debug(f"Added {arcname} to ZIP")
                     
-                    # Add both executables from dist directory
+                    # Add both executables at root level
                     if self.dist_dir.exists():
                         for exe_name in ["veaf-tools.exe", "veaf-tools-updater.exe"]:
                             exe_file = self.dist_dir / exe_name
@@ -535,12 +535,14 @@ class BuildAndReleaseWorker:
                                 zf.write(file_path, arcname)
                                 logger.debug(f"Added {arcname} to ZIP")
                     
-                    # Add community scripts directory to src/scripts
+                    # Add community scripts directory to src/scripts/community
                     community_dir = self.src_dir / "scripts" / "community"
                     if community_dir.exists():
                         for file_path in community_dir.rglob("*"):
                             if file_path.is_file():
-                                arcname = f"src/scripts/{file_path.name}"
+                                # Preserve relative path structure within community folder
+                                rel_path = file_path.relative_to(community_dir)
+                                arcname = f"src/scripts/community/{rel_path}"
                                 zf.write(file_path, arcname)
                                 logger.debug(f"Added {arcname} to ZIP")
                     

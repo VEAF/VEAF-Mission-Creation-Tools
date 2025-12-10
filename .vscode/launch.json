@@ -276,13 +276,22 @@
             "console": "integratedTerminal"
         },
         {
+            "name": "veaf-tools TEST-v6 update",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/python/veaf-tools/veaf-tools-updater.py",
+            "cwd": "d:/dev/_VEAF/test-tools-v6",
+            "args": ["--zip-file", "d:/dev/_VEAF/VEAF-Mission-Creation-Tools/published.zip"],
+            "console": "integratedTerminal"
+        },
+        {
             "name": "veaf-tools TEST-v6 convert",
             "type": "debugpy",
             "request": "launch",
             "program": "${workspaceFolder}/src/python/veaf-tools/veaf-tools.py",
             "cwd": "d:/dev/_VEAF/test-tools-v6",
-            "args": ["convert", "test.miz"],
+            "args": ["convert", "test"],
             "console": "integratedTerminal"
         },
-    ]
+ ]
 }

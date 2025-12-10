@@ -41,9 +41,8 @@ class MissionBuilderWorker:
         # Preprocess the veaf script files
         scripts_folder: Path = self.scripts_path or (self.mission_folder / "published")
         self.collected_veaf_script_files = collect_files_from_globs(base_folder=scripts_folder, file_patterns=get_veaf_script_files())
-        missing_files_nb = len(get_veaf_script_files()) - len(self.collected_veaf_script_files)
-        if missing_files_nb > 0:
-            self._signal_missing_required_files_after_collection(missing_files_nb, scripts_folder)
+        if len(self.collected_veaf_script_files) < len(get_veaf_script_files()):
+            self.signal_missing_required_files_after_collection(get_veaf_script_files(), self.collected_veaf_script_files, scripts_folder)
         return self.collected_veaf_script_files
     
     def get_collected_community_script_files(self) -> dict[str, bytes]:
@@ -52,14 +51,20 @@ class MissionBuilderWorker:
         # Preprocess the community script files
         scripts_folder: Path = self.scripts_path or (self.mission_folder / "published")
         self.collected_community_script_files = collect_files_from_globs(base_folder=scripts_folder, file_patterns=get_community_script_files())
-        missing_files_nb = len(get_community_script_files()) - len(self.collected_community_script_files)
-        if missing_files_nb > 0:
-            self._signal_missing_required_files_after_collection(missing_files_nb, scripts_folder)
+        if len(self.collected_community_script_files) < len(get_community_script_files()):
+            self.signal_missing_required_files_after_collection(get_community_script_files(), self.collected_community_script_files, scripts_folder)
         return self.collected_community_script_files
 
-    def _signal_missing_required_files_after_collection(self, missing_files_nb, scripts_folder):
-        message = f'Error: {missing_files_nb} file{"s" if missing_files_nb > 1 else ""} are missing from {scripts_folder}'
-        message = message + "\nTry updating the veaf-tools package using veaf-tools-updater.exe!"
+    def signal_missing_required_files_after_collection(self, expected_files: list[tuple[str, str]], collected_files: dict[str, bytes], scripts_folder: Path):
+        """Signal missing files after collection with detailed information."""
+        collected_file_paths = {Path(path).name for path in collected_files}
+        missing_files = [Path(file_pattern[0]).name for file_pattern in expected_files if Path(file_pattern[0]).name not in collected_file_paths]
+
+        message = f"Error: missing files from {scripts_folder}:\n"
+        for missing_file in sorted(missing_files):
+            message += f"  - {missing_file}\n"
+        message = message.rstrip("\n")
+        message += "\nTry updating the veaf-tools package using veaf-tools-updater.exe!"
         logger.error(message=message, raise_exception=False)
         exit()
     

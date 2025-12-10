@@ -53,7 +53,7 @@ class MissionBuilderWorker:
         # Build file patterns for collect_files_from_globs
         # We need to use the variant name in the glob pattern
         variant_patterns = [
-            (f"src/scripts/veaf/{script_filename}", "l10n/DEFAULT")
+            (f"src/scripts/veaf/{script_filename}", DEFAULT_SCRIPTS_LOCATION)
         ]
         
         self.collected_veaf_script_files = collect_files_from_globs(base_folder=scripts_folder, file_patterns=variant_patterns)
@@ -61,7 +61,7 @@ class MissionBuilderWorker:
         # If the variant file is not found, fallback to standard (but log a warning)
         if len(self.collected_veaf_script_files) == 0 and self.scripts_variant != "standard":
             logger.warning(f"Scripts variant '{self.scripts_variant}' not found, falling back to 'standard'")
-            self.collected_veaf_script_files = collect_files_from_globs(base_folder=scripts_folder, file_patterns=[("src/scripts/veaf/veaf-scripts.lua", "l10n/DEFAULT")])
+            self.collected_veaf_script_files = collect_files_from_globs(base_folder=scripts_folder, file_patterns=[("src/scripts/veaf/veaf-scripts.lua", DEFAULT_SCRIPTS_LOCATION)])
         
         if len(self.collected_veaf_script_files) < 1:
             logger.error(f"VEAF scripts file not found at {scripts_folder}/src/scripts/veaf/{script_filename}")
@@ -444,7 +444,7 @@ class MissionBuilderWorker:
         veaf_community_scripts_map_keys = [new_map_resource_key_by_file.get(script_file_name.as_posix(), "") for script_file_name in self.get_collected_community_script_files()]
         veaf_scripts_map_keys = [new_map_resource_key_by_file.get(script_file_name.as_posix(), "") for script_file_name in self.get_collected_veaf_script_files()]
 
-        veaf_mission_config_map_key = new_map_resource_key_by_file.get("l10n/default/missionConfig.lua", "")
+        veaf_mission_config_map_key = new_map_resource_key_by_file.get(f"{DEFAULT_SCRIPTS_LOCATION}/missionConfig.lua", "")
 
         static_script_loading_actions = [
             {

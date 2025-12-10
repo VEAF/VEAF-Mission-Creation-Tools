@@ -16,6 +16,7 @@ import os
 from pathlib import Path
 from typing import Optional, Dict
 from veaf_libs.logger import logger
+from .mission_constants import DEFAULT_SCRIPTS_LOCATION
 
 @dataclass
 class DcsMission:
@@ -53,8 +54,8 @@ def read_miz(miz_file_path: Path) -> DcsMission:
         result.options_content = read_file_in_archive(miz, 'options', result.missing_components)
         result.theatre_content = read_file_in_archive(miz, 'theatre', result.missing_components, not_lua=True)
         result.warehouses_content = read_file_in_archive(miz, 'warehouses', result.missing_components)
-        result.dictionary_content = read_file_in_archive(miz, 'l10n/DEFAULT/dictionary', result.missing_components)
-        result.map_resource_content = read_file_in_archive(miz, 'l10n/DEFAULT/mapResource', result.missing_components)
+        result.dictionary_content = read_file_in_archive(miz, f'{DEFAULT_SCRIPTS_LOCATION}/dictionary', result.missing_components)
+        result.map_resource_content = read_file_in_archive(miz, f'{DEFAULT_SCRIPTS_LOCATION}/mapResource', result.missing_components)
 
     return result
 
@@ -125,16 +126,16 @@ def write_miz(mission: DcsMission, miz_file_path: Optional[Path], additional_fil
                                        file_name="warehouses", variable_name="warehouses")
                             else:
                                 zip_write.writestr(file_name, zip_read.read(file_name))
-                        elif file_name == "l10n/DEFAULT/dictionary":
+                        elif file_name == f"{DEFAULT_SCRIPTS_LOCATION}/dictionary":
                             if mission.dictionary_content:
                                 serialize(zip_file=zip_write, content=mission.dictionary_content, 
-                                       file_name="l10n/DEFAULT/dictionary", variable_name="dictionary")
+                                       file_name=f"{DEFAULT_SCRIPTS_LOCATION}/dictionary", variable_name="dictionary")
                             else:
                                 zip_write.writestr(file_name, zip_read.read(file_name))
-                        elif file_name == "l10n/DEFAULT/mapResource":
+                        elif file_name == f"{DEFAULT_SCRIPTS_LOCATION}/mapResource":
                             if mission.map_resource_content:
                                 serialize(zip_file=zip_write, content=mission.map_resource_content, 
-                                       file_name="l10n/DEFAULT/mapResource", variable_name="mapResource")
+                                       file_name=f"{DEFAULT_SCRIPTS_LOCATION}/mapResource", variable_name="mapResource")
                             else:
                                 zip_write.writestr(file_name, zip_read.read(file_name))                        
                         elif file_name in additional_files:

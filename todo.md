@@ -24,6 +24,7 @@
 
 - bouger les escortes avec les tankers
 - gérer la sécurité en venant d'une commande chat pour _tous_ les modules (fait uniquement pour shortcuts)
+[ ] injecter les countries (pour ne pas avoir à mettre au moins une unité pour chaque coalitiom dans une mission)
 
 ### Bug - needs to be corrected
 

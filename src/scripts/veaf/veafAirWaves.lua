@@ -20,7 +20,7 @@ veafAirWaves = {}
 veafAirWaves.Id = "AIRWAVES - "
 
 --- Version.
-veafAirWaves.Version = "1.7.7"
+veafAirWaves.Version = "1.7.8"
 
 -- trace level, specific to this module
 --veafAirWaves.LogLevel = "trace"
@@ -1329,4 +1329,4 @@ function veafAirWaves.get(aNameString)
   return veafAirWaves.zones[aNameString]
 end
 
-veaf.loggers.get(veafAirWaves.Id):info(string.format("Loading version %s", veafAirWaves.Version))
+veaf.loggers.get(veafAirWaves.Id):info(veaf.loggers.get(veafAirWaves.Id):getVersionInfo(veafAirWaves.Version))

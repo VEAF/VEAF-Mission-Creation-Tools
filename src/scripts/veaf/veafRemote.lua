@@ -19,7 +19,7 @@ veafRemote = {}
 veafRemote.Id = "REMOTE"
 
 --- Version.
-veafRemote.Version = "2.3.0"
+veafRemote.Version = "2.3.1"
 
 -- trace level, specific to this module
 --veafRemote.LogLevel = "trace"
@@ -364,4 +364,4 @@ function veafRemote.initialize()
     veafMarkers.registerEventHandler(veafMarkers.MarkerChange, veafRemote.onEventMarkChange)
 end
 
-veaf.loggers.get(veafRemote.Id):info(string.format("Loading version %s", veafRemote.Version))
+veaf.loggers.get(veafRemote.Id):info(veaf.loggers.get(veafRemote.Id):getVersionInfo(veafRemote.Version))

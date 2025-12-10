@@ -20,7 +20,7 @@ veafGroundAI = {}
 veafGroundAI.Id = "GROUNDAI - "
 
 --- Version.
-veafGroundAI.Version = "1.0.0"
+veafGroundAI.Version = "1.0.1"
 
 -- trace level, specific to this module
 --veafGroundAI.LogLevel = "trace"
@@ -778,6 +778,7 @@ function veafGroundAI.get(handlerName)
 end
 
 function veafGroundAI.initialize()
+  veaf.loggers.get(veafGroundAI.Id):info(veaf.loggers.get(veafGroundAI.Id):getVersionInfo(veafGroundAI.Version))
   veaf.loggers.get(veafGroundAI.Id):info("Initializing module")
   veafMarkers.registerEventHandler(veafMarkers.MarkerChange, veafGroundAI.onEventMarkChange)
 end

@@ -23,7 +23,7 @@ veafInterpreter = {}
 veafInterpreter.Id = "INTERPRETER"
 
 --- Version.
-veafInterpreter.Version = "1.6.2"
+veafInterpreter.Version = "1.6.3"
 
 -- trace level, specific to this module
 --veafInterpreter.LogLevel = "trace"
@@ -163,6 +163,6 @@ function veafInterpreter._initialize()
     end
 end
 
-veaf.loggers.get(veafInterpreter.Id):info(string.format("Loading version %s", veafInterpreter.Version))
+veaf.loggers.get(veafInterpreter.Id):info(veaf.loggers.get(veafInterpreter.Id):getVersionInfo(veafInterpreter.Version))
 
 

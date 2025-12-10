@@ -20,7 +20,7 @@ veafSanctuary = {}
 veafSanctuary.Id = "SANCTUARY"
 
 --- Version.
-veafSanctuary.Version = "1.6.2"
+veafSanctuary.Version = "1.6.3"
 
 -- trace level, specific to this module
 --veafSanctuary.LogLevel = "trace"
@@ -766,4 +766,4 @@ function veafSanctuary.initialize()
     veaf.loggers.get(veafSanctuary.Id):info(string.format("Sanctuary system has been initialized"))
 end
 
-veaf.loggers.get(veafSanctuary.Id):info(string.format("Loading version %s", veafSanctuary.Version))
+veaf.loggers.get(veafSanctuary.Id):info(veaf.loggers.get(veafSanctuary.Id):getVersionInfo(veafSanctuary.Version))

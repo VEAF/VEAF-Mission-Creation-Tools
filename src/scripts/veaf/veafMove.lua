@@ -23,7 +23,7 @@ veafMove = {}
 veafMove.Id = "MOVE"
 
 --- Version.
-veafMove.Version = "1.10.0"
+veafMove.Version = "1.10.1"
 
 -- trace level, specific to this module
 --veafMove.LogLevel = "trace"
@@ -1003,4 +1003,4 @@ function veafMove.initialize()
     veafMarkers.registerEventHandler(veafMarkers.MarkerChange, veafMove.onEventMarkChange)
 end
 
-veaf.loggers.get(veafMove.Id):info(string.format("Loading version %s", veafMove.Version))
+veaf.loggers.get(veafMove.Id):info(veaf.loggers.get(veafMove.Id):getVersionInfo(veafMove.Version))

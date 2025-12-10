@@ -19,7 +19,7 @@ veaf = {}
 veaf.Id = "VEAF"
 
 --- Version.
-veaf.Version = "1.56.1"
+veaf.Version = "1.56.2"
 
 --- Development version ?
 veaf.Development = false
@@ -2990,6 +2990,25 @@ veaf.Logger.LEVEL = {
     ["trace"]=5,
 }
 
+veaf.Logger.LEVEL_INV = {
+    [1]="error",
+    [2]="warning",
+    [3]="info",
+    [4]="debug",
+    [5]="trace",
+}
+
+--- Convert a log level (int or string) to a string
+function veaf.Logger.levelToString(level)
+    if type(level) == "string" then
+        return level:lower()
+    elseif type(level) == "number" then
+        return veaf.Logger.LEVEL_INV[level] or "unknown"
+    else
+        return "unknown"
+    end
+end
+
 function veaf.Logger:new(name, level)
     local self = setmetatable({}, veaf.Logger)
     self:setName(name)
@@ -3026,6 +3045,14 @@ end
 
 function veaf.Logger:getLevel()
     return self.level
+end
+
+function veaf.Logger:getEffectiveLevel()
+    local level = self.level
+    if veaf.ForcedLogLevel then
+        level = veaf.ForcedLogLevel
+    end
+    return level
 end
 
 function veaf.Logger.splitText(text)
@@ -3169,6 +3196,13 @@ end
 
 function veaf.Logger:wouldLogTrace()
     return self.level >= 5
+end
+
+--- Format version info with logging levels
+function veaf.Logger:getVersionInfo(version)
+    local moduleLevel = veaf.Logger.levelToString(self:getLevel())
+    local effectiveLevel = veaf.Logger.levelToString(self:getEffectiveLevel())
+    return string.format("Loading version %s [%s/%s]", version, moduleLevel, string.upper(effectiveLevel))
 end
 
 function veaf.Logger:marker(id, header, message, position, markersTable, radius, fillColor)
@@ -3830,7 +3864,7 @@ if l_os and l_os.time and math.randomseed then math.randomseed(l_os.time()) end
 --- Enable/Disable error boxes displayed on screen.
 env.setErrorMessageBoxEnabled(false)
 
-veaf.loggers.get(veaf.Id):info("Loading version %s", veaf.Version)
+veaf.loggers.get(veaf.Id):info(veaf.loggers.get(veaf.Id):getVersionInfo(veaf.Version))
 veaf.loggers.get(veaf.Id):info("veaf.Development=%s", veaf.Development)
 veaf.loggers.get(veaf.Id):info("veaf.SecurityDisabled=%s", veaf.SecurityDisabled)
 veaf.loggers.get(veaf.Id):info("veaf.LogLevel=%s", veaf.LogLevel)

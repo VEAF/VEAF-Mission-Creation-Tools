@@ -19,13 +19,16 @@ dcsUnits = {}
 dcsUnits.Id = "DCSUNITS - "
 
 --- Version.
-dcsUnits.Version = "2025.11.16"
+dcsUnits.Version = "2025.11.17"
 
 -- trace level, specific to this module
 --dcsUnits.LogLevel = "trace"
 --dcsUnits.LogLevel = "debug"
 
 dcsUnits.logger = veaf.loggers.new(dcsUnits.Id, dcsUnits.LogLevel)
+
+-- Log version at loading time
+veaf.loggers.get(dcsUnits.Id):info(veaf.loggers.get(dcsUnits.Id):getVersionInfo(dcsUnits.Version))
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Do not change anything below unless you know what you are doing!

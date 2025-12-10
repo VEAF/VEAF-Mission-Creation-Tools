@@ -21,7 +21,7 @@ veafTransportMission = {}
 veafTransportMission.Id = "TRANSPORTMISSION"
 
 --- Version.
-veafTransportMission.Version = "1.8.0"
+veafTransportMission.Version = "1.8.1"
 
 -- trace level, specific to this module
 --veafTransportMission.LogLevel = "trace"
@@ -695,7 +695,7 @@ function veafTransportMission.initialize()
     veafMarkers.registerEventHandler(veafMarkers.MarkerChange, veafTransportMission.onEventMarkChange)
 end
 
-veaf.loggers.get(veafTransportMission.Id):info(string.format("Loading version %s", veafTransportMission.Version))
+veaf.loggers.get(veafTransportMission.Id):info(veaf.loggers.get(veafTransportMission.Id):getVersionInfo(veafTransportMission.Version))
 
 --- Enable/Disable error boxes displayed on screen.
 env.setErrorMessageBoxEnabled(false)

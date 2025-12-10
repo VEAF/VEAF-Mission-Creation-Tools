@@ -21,7 +21,7 @@ veafQraManager = {}
 veafQraManager.Id = "QRA"
 
 --- Version.
-veafQraManager.Version = "1.2.4"
+veafQraManager.Version = "1.2.5"
 
 -- trace level, specific to this module
 --veafQraManager.LogLevel = "trace"
@@ -1191,4 +1191,4 @@ function veafQraManager.initialize()
     veafEventHandler.addCallback("veafQraManager.eventHandler", {"S_EVENT_BIRTH", "S_EVENT_PLAYER_ENTER_UNIT"}, veafQraManager.eventHandler)
 end
 
-veaf.loggers.get(veafQraManager.Id):info("Loading version %s", veafQraManager.Version)
+veaf.loggers.get(veafQraManager.Id):info(veaf.loggers.get(veafQraManager.Id):getVersionInfo(veafQraManager.Version))

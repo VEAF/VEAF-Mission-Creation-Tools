@@ -21,7 +21,7 @@ veafCombatMission = {}
 veafCombatMission.Id = "COMBATMISSION"
 
 --- Version.
-veafCombatMission.Version = "2.2.0"
+veafCombatMission.Version = "2.2.1"
 
 -- trace level, specific to this module
 --veafCombatMission.LogLevel = "trace"
@@ -1484,5 +1484,5 @@ function veafCombatMission.initialize()
     veafCombatMission.dumpMissionsList(veaf.config.MISSION_EXPORT_PATH)
 end
 
-veaf.loggers.get(veafCombatMission.Id):info(string.format("Loading version %s", veafCombatMission.Version))
+veaf.loggers.get(veafCombatMission.Id):info(veaf.loggers.get(veafCombatMission.Id):getVersionInfo(veafCombatMission.Version))
 

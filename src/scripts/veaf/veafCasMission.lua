@@ -20,7 +20,7 @@ veafCasMission = {}
 veafCasMission.Id = "CASMISSION"
 
 --- Version.
-veafCasMission.Version = "1.15.2"
+veafCasMission.Version = "1.15.3"
 
 -- trace level, specific to this module
 --veafCasMission.LogLevel = "trace"
@@ -1069,7 +1069,7 @@ function veafCasMission.initialize()
     veafMarkers.registerEventHandler(veafMarkers.MarkerChange, veafCasMission.onEventMarkChange)
 end
 
-veaf.loggers.get(veafCasMission.Id):info(string.format("Loading version %s", veafCasMission.Version))
+veaf.loggers.get(veafCasMission.Id):info(veaf.loggers.get(veafCasMission.Id):getVersionInfo(veafCasMission.Version))
 
 --- Enable/Disable error boxes displayed on screen.
 env.setErrorMessageBoxEnabled(false)

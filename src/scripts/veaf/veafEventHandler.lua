@@ -21,7 +21,7 @@ veafEventHandler = {}
 veafEventHandler.Id = "EVENTS - "
 
 --- Version.
-veafEventHandler.Version = "1.5.2"
+veafEventHandler.Version = "1.5.3"
 
 -- trace level, specific to this module
 --veafEventHandler.LogLevel = "trace"
@@ -583,20 +583,16 @@ end
 
 function veafEventHandler.initialize()
   veaf.loggers.get(veafEventHandler.Id):debug("veafEventHandler.initialize()")
+  veaf.loggers.get(veafEventHandler.Id):info(veaf.loggers.get(veafEventHandler.Id):getVersionInfo(veafEventHandler.Version))
 
   -- copy the events maps (add events by name) and add the events by id to the veafEventHandler.knownEventsNames table
   veafEventHandler.knownEventsNames = {}
   veafEventHandler.knownEvents = {}
   for eventId, event in pairs(veafEventHandler.EVENTS) do
-    veaf.loggers.get(veafEventHandler.Id):trace("eventId=%s, event=%s", eventId, event)
     veafEventHandler.knownEvents[event.name] = event
     veafEventHandler.knownEvents[eventId] = event
     veafEventHandler.knownEventsNames[eventId] = event.name
   end
-
-  veaf.loggers.get(veafEventHandler.Id):trace("veafEventHandler.knownEvents=%s", veafEventHandler.knownEvents)
-
-  veaf.loggers.get(veafEventHandler.Id):trace("veafEventHandler.knownEventsNames=%s", veafEventHandler.knownEventsNames)
 
   -- Add event handler.
   world.addEventHandler(veafEventHandler.eventHandler)

@@ -19,7 +19,7 @@ veafSecurity = {}
 veafSecurity.Id = "SECURITY"
 
 --- Version.
-veafSecurity.Version = "1.3.3"
+veafSecurity.Version = "1.3.4"
 
 -- trace level, specific to this module
 --veafSecurity.LogLevel = "trace"
@@ -669,5 +669,5 @@ function veafSecurity.initialize()
   veafSecurity.authenticated = veaf.SecurityDisabled
 end
 
-veaf.loggers.get(veafSecurity.Id):info(string.format("Loading version %s", veafSecurity.Version))
+veaf.loggers.get(veafSecurity.Id):info(veaf.loggers.get(veafSecurity.Id):getVersionInfo(veafSecurity.Version))
 

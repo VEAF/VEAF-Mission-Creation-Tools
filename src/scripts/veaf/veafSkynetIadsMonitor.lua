@@ -19,7 +19,7 @@ veafSkynetMonitor = {}
 veafSkynetMonitor.Id = "SKYNET_MONITOR"
 
 --- Version.
-veafSkynetMonitor.Version = "1.1.1"
+veafSkynetMonitor.Version = "1.1.2"
 
 -- trace level, specific to this module
 --veafSkynetMonitor.LogLevel = "trace"
@@ -647,4 +647,4 @@ end
 ---------------------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------
 
-veaf.loggers.get(veafSkynetMonitor.Id):info(string.format("Loading version %s", veafSkynetMonitor.Version))
+veaf.loggers.get(veafSkynetMonitor.Id):info(veaf.loggers.get(veafSkynetMonitor.Id):getVersionInfo(veafSkynetMonitor.Version))

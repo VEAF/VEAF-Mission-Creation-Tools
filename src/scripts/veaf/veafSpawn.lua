@@ -23,7 +23,7 @@ veafSpawn = {}
 veafSpawn.Id = "SPAWN"
 
 --- Version.
-veafSpawn.Version = "1.59.0"
+veafSpawn.Version = "1.59.1"
 
 -- trace level, specific to this module
 --veafSpawn.LogLevel = "trace"
@@ -3797,4 +3797,4 @@ function veafSpawn.initialize()
     veafSpawn.dumpSpawnablePlanesList()
 end
 
-veaf.loggers.get(veafSpawn.Id):info(string.format("Loading version %s", veafSpawn.Version))
+veaf.loggers.get(veafSpawn.Id):info(veaf.loggers.get(veafSpawn.Id):getVersionInfo(veafSpawn.Version))

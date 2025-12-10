@@ -19,7 +19,7 @@ veafCarrierOperations = {}
 veafCarrierOperations.Id = "CARRIER"
 
 --- Version.
-veafCarrierOperations.Version = "1.12.2"
+veafCarrierOperations.Version = "1.12.3"
 
 -- trace level, specific to this module
 --veafCarrierOperations.LogLevel = "trace"
@@ -1064,7 +1064,7 @@ function veafCarrierOperations.initialize()
     veafCarrierOperations.operationsScheduler()
 end
 
-veaf.loggers.get(veafCarrierOperations.Id):info(string.format("Loading version %s", veafCarrierOperations.Version))
+veaf.loggers.get(veafCarrierOperations.Id):info(veaf.loggers.get(veafCarrierOperations.Id):getVersionInfo(veafCarrierOperations.Version))
 
 --- Enable/Disable error boxes displayed on screen.
 env.setErrorMessageBoxEnabled(false)

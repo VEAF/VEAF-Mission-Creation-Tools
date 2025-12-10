@@ -19,7 +19,7 @@ veafAssets = {}
 veafAssets.Id = "ASSETS"
 
 --- Version.
-veafAssets.Version = "1.8.2"
+veafAssets.Version = "1.8.3"
 
 -- trace level, specific to this module
 --veafAssets.LogLevel = "trace"
@@ -203,7 +203,7 @@ function veafAssets.initialize()
     end
 end
 
-veaf.loggers.get(veafAssets.Id):info(string.format("Loading version %s", veafAssets.Version))
+veaf.loggers.get(veafAssets.Id):info(veaf.loggers.get(veafAssets.Id):getVersionInfo(veafAssets.Version))
 
 --- Enable/Disable error boxes displayed on screen.
 env.setErrorMessageBoxEnabled(false)

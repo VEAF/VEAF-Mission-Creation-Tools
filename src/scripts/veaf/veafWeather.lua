@@ -17,7 +17,7 @@ veafWeather = {}
 veafWeather.Id = "WEATHER"
 
 --- Version.
-veafWeather.Version = "1.5.1"
+veafWeather.Version = "1.5.2"
 
 -- trace level, specific to this module
 --veafWeather.LogLevel = "trace"
@@ -1568,7 +1568,7 @@ function veafWeather.initialize()
     veafAirbases.initialize()
 end
 
-veaf.loggers.get(veafWeather.Id):info(string.format("Loading version %s", veafWeather.Version))
+veaf.loggers.get(veafWeather.Id):info(veaf.loggers.get(veafWeather.Id):getVersionInfo(veafWeather.Version))
 
 ---------------------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------

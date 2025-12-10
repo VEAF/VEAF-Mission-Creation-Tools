@@ -20,7 +20,7 @@ veafRadio = {}
 veafRadio.Id = "RADIO"
 
 --- Version.
-veafRadio.Version = "1.4.0"
+veafRadio.Version = "1.4.1"
 
 -- trace level, specific to this module
 --veafRadio.LogLevel = "trace"
@@ -873,5 +873,5 @@ function veafRadio.initialize(skipHelpMenus, dontCreateMenus)
   veafRadio._runBeacons()
 end
 
-veaf.loggers.get(veafRadio.Id):info(string.format("Loading version %s", veafRadio.Version))
+veaf.loggers.get(veafRadio.Id):info(veaf.loggers.get(veafRadio.Id):getVersionInfo(veafRadio.Version))
 

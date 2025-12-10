@@ -19,7 +19,7 @@ veafTime = {}
 veafTime.Id = "TIME"
 
 --- Version.
-veafTime.Version = "1.1.3"
+veafTime.Version = "1.1.4"
 
 -- trace level, specific to this module
 --veafTime.LogLevel = "trace"
@@ -720,3 +720,5 @@ elseif (sTheatre == "afghanistan") then
     sLoc = ""
 end
 ]]
+
+veaf.loggers.get(veafTime.Id):info(veaf.loggers.get(veafTime.Id):getVersionInfo(veafTime.Version))

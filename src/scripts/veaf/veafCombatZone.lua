@@ -20,7 +20,7 @@ veafCombatZone = {}
 veafCombatZone.Id = "COMBATZONE"
 
 --- Version.
-veafCombatZone.Version = "1.22.0"
+veafCombatZone.Version = "1.22.1"
 
 -- trace level, specific to this module
 --veafCombatZone.LogLevel = "trace"
@@ -1967,4 +1967,4 @@ function veafCombatZone.initialize()
     veafCombatZone.buildRadioMenu()
 end
 
-veaf.loggers.get(veafCombatZone.Id):info(string.format("Loading version %s", veafCombatZone.Version))
+veaf.loggers.get(veafCombatZone.Id):info(veaf.loggers.get(veafCombatZone.Id):getVersionInfo(veafCombatZone.Version))

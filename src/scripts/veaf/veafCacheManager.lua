@@ -18,7 +18,7 @@ veafCacheManager = {}
 veafCacheManager.Id = "CACHE - "
 
 --- Version.
-veafCacheManager.Version = "0.0.1"
+veafCacheManager.Version = "0.0.2"
 
 -- trace level, specific to this module
 veafCacheManager.LogLevel = "trace"
@@ -123,3 +123,5 @@ function VeafCache:getCachedData(key)
   end
   return nil
 end
+
+veaf.loggers.get(veafCacheManager.Id):info(veaf.loggers.get(veafCacheManager.Id):getVersionInfo(veafCacheManager.Version))

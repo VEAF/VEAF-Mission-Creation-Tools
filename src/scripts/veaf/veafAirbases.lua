@@ -16,7 +16,7 @@ veafAirbases = {}
 veafAirbases.Id = "AIRBASES"
 
 --- Version.
-veafAirbases.Version = "1.1.0"
+veafAirbases.Version = "1.1.1"
 
 -- trace level, specific to this module
 --veafAirbases.LogLevel = "trace"
@@ -79,6 +79,7 @@ function veafAirbases.initialize(bReset)
         end
     end
     veaf.loggers.get(veafAirbases.Id):trace("Airbases and runways initialized for theater " .. env.mission.theatre)
+    veaf.loggers.get(veafAirbases.Id):info(veaf.loggers.get(veafAirbases.Id):getVersionInfo(veafAirbases.Version))
 end
 
 function veafAirbases.getAirbaseByName(sAirbaseName)

@@ -19,7 +19,7 @@ veafNamedPoints = {}
 veafNamedPoints.Id = "NAMED POINTS"
 
 --- Version.
-veafNamedPoints.Version = "1.16.1"
+veafNamedPoints.Version = "1.16.2"
 
 -- trace level, specific to this module
 --veafNamedPoints.LogLevel = "trace"
@@ -5682,7 +5682,7 @@ veafNamedPoints._citiesFalklands =
 ---  Module loading log
 ---------------------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------
-veaf.loggers.get(veafNamedPoints.Id):info(string.format("Loading version %s", veafNamedPoints.Version))
+veaf.loggers.get(veafNamedPoints.Id):info(veaf.loggers.get(veafNamedPoints.Id):getVersionInfo(veafNamedPoints.Version))
 
 ---------------------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------

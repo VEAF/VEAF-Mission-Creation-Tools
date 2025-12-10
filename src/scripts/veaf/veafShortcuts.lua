@@ -19,7 +19,7 @@ veafShortcuts = {}
 veafShortcuts.Id = "SHORTCUTS"
 
 --- Version.
-veafShortcuts.Version = "1.41.0"
+veafShortcuts.Version = "1.41.1"
 
 -- trace level, specific to this module
 --veafShortcuts.LogLevel = "trace"
@@ -1726,5 +1726,5 @@ function veafShortcuts.initialize()
     veafShortcuts.dumpAliasesList()
 end
 
-veaf.loggers.get(veafShortcuts.Id):info(string.format("Loading version %s", veafShortcuts.Version))
+veaf.loggers.get(veafShortcuts.Id):info(veaf.loggers.get(veafShortcuts.Id):getVersionInfo(veafShortcuts.Version))
 

@@ -19,7 +19,7 @@ class MissionConverterWorker:
     Worker class that converts a DCS mission to a VEAF folder containing the mission files.
     """
     
-    def __init__(self, mission_folder: Path, input_mission: Path, output_mission: Path, mission_name: str, dynamic_mode: Optional[bool] , scripts_path: Optional[Path], inject_presets: bool=False, presets_file: Path = None):
+    def __init__(self, mission_folder: Path, input_mission: Path, output_mission: Path, mission_name: str, dynamic_mode: Optional[bool] , scripts_path: Optional[Path], inject_presets: bool=False, presets_file: Path = None, scripts_variant: str = "standard"):
         """
         Initialize the worker with parameters for both use cases.
         """
@@ -33,6 +33,7 @@ class MissionConverterWorker:
         self.mission_folder = mission_folder
         self.inject_presets = inject_presets
         self.presets_file = presets_file or self.mission_folder / "src" / "presets.yaml"
+        self.scripts_variant = scripts_variant
 
         if not (self.input_mission and self.input_mission.is_file()):
             logger.error(f"The input mission '{self.input_mission}' does not exist or is not a file", exception_type=FileNotFoundError)
@@ -50,7 +51,7 @@ class MissionConverterWorker:
 
         # build the newly extracted mission
         with spinner_context(f"Temporarily building {self.output_mission}..."):
-            builder = MissionBuilderWorker(mission_folder=self.mission_folder, output_mission=self.output_mission, dynamic_mode=self.dynamic_mode, scripts_path=self.scripts_path)
+            builder = MissionBuilderWorker(mission_folder=self.mission_folder, output_mission=self.output_mission, dynamic_mode=self.dynamic_mode, scripts_path=self.scripts_path, scripts_variant=self.scripts_variant)
             new_mission_path = builder.work(silent=True)
 
         # inject presets

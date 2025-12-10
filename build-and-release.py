@@ -337,8 +337,162 @@ class BuildAndReleaseWorker:
 
                 logger.debug(f"Scripts main file created: {output_filename}")
 
+                # Create debug and trace versions
+                self._create_lua_variant_files(
+                    lua_scripts, 
+                    version_marker,
+                    self.development_build
+                )
+
+                # Copy all variant files to published directory
+                self._copy_lua_files_to_published()
+
             except Exception as e:
                 logger.error(f"Lua build failed: {e}")
+
+    def _create_lua_variant_files(self, lua_scripts, version_marker, development_build):
+        """Create debug and trace variants of the Lua scripts."""
+        variants = [
+            {
+                "name": "veaf-scripts-debug",
+                "log_level": "debug",
+                "disable_logging": False,
+                "events_trace": False,
+            },
+            {
+                "name": "veaf-scripts-trace",
+                "log_level": "trace",
+                "disable_logging": False,
+                "events_trace": False,
+            },
+            {
+                "name": "veaf-scripts-trace-with-events",
+                "log_level": "trace",
+                "disable_logging": False,
+                "events_trace": True,
+            },
+        ]
+
+        for variant in variants:
+            try:
+                output_filename = f"{variant['name']}.lua"
+                # Output to the build directory (same as the main veaf-scripts.lua)
+                output_path = self.build_dir / output_filename
+
+                # Prepare variant marker
+                variant_marker = f"{version_marker}/{variant['name'].replace('veaf-scripts', '').lstrip('-')}"
+
+                # Write header
+                header = (
+                    "\n"
+                    + "-" * 85 + "\n"
+                    + f"-- Veaf scripts {variant_marker}\n"
+                    + "-" * 85 + "\n"
+                    + "\n"
+                )
+
+                with open(output_path, "w", encoding="utf-8") as out_file:
+                    out_file.write(header)
+
+                    # Process veaf.lua with forced log level
+                    veaf_path = self.build_dir / "veaf.lua"
+                    if veaf_path.exists():
+                        out_file.write("\n")
+                        out_file.write("--" + "-" * 75 + "\n")
+                        out_file.write("-- START script veaf.lua\n")
+                        out_file.write("--" + "-" * 75 + "\n")
+                        out_file.write("\n")
+                        
+                        # Read and modify veaf.lua to enable forced logging
+                        veaf_content = veaf_path.read_text(encoding="utf-8")
+                        # Uncomment and set the ForcedLogLevel
+                        veaf_content = re.sub(
+                            r"--veaf\.ForcedLogLevel = \"(trace|debug)\"",
+                            f'veaf.ForcedLogLevel = "{variant["log_level"]}"',
+                            veaf_content,
+                        )
+                        # Also handle case where it's not there
+                        if 'veaf.ForcedLogLevel' not in veaf_content:
+                            # Find the line with BaseLogLevel and add ForcedLogLevel after it
+                            veaf_content = re.sub(
+                                r"(veaf\.BaseLogLevel = 5 --trace)",
+                                f'veaf.BaseLogLevel = 5 --trace\nveaf.ForcedLogLevel = "{variant["log_level"]}"',
+                                veaf_content,
+                            )
+                        
+                        out_file.write(veaf_content)
+                        out_file.write("\n")
+                        out_file.write("--" + "-" * 75 + "\n")
+                        out_file.write("-- END script veaf.lua\n")
+                        out_file.write("--" + "-" * 75 + "\n")
+                        out_file.write("\n")
+
+                    # Add other scripts with logging enabled (not commented)
+                    for script_name in lua_scripts:
+                        script_path = self.build_dir / script_name
+                        if script_path.exists():
+                            out_file.write("\n")
+                            out_file.write("--" + "-" * 75 + "\n")
+                            out_file.write(f"-- START script {script_name}\n")
+                            out_file.write("--" + "-" * 75 + "\n")
+                            out_file.write("\n")
+                            # Read the original source (not the commented version from build)
+                            # to get the uncommented logging statements
+                            src_scripts_dir = self.script_root / "src" / "scripts" / "veaf"
+                            src_file = src_scripts_dir / script_name
+                            if src_file.exists():
+                                script_content = src_file.read_text(encoding="utf-8")
+                            else:
+                                script_content = script_path.read_text(encoding="utf-8")
+                            
+                            # Special handling for veafEventHandler.lua in trace variant
+                            # When events_trace is False (regular trace), limit veafEventHandler to info level
+                            if script_name == "veafEventHandler.lua" and variant["log_level"] == "trace" and not variant["events_trace"]:
+                                # Comment out trace and debug logging in veafEventHandler for regular trace variant
+                                script_content = re.sub(
+                                    r"(^\s*)(.*veaf\.loggers\.get\(.*\):(trace|debug))",
+                                    r"\1-- EVENTS LOGGING LIMITED TO INFO LEVEL\n\1-- \2",
+                                    script_content,
+                                    flags=re.MULTILINE,
+                                )
+                            
+                            out_file.write(script_content)
+                            out_file.write("\n")
+                            out_file.write("--" + "-" * 75 + "\n")
+                            out_file.write(f"-- END script {script_name}\n")
+                            out_file.write("--" + "-" * 75 + "\n")
+                            out_file.write("\n")
+
+                    # Add footer
+                    footer = (
+                        "\n"
+                        + "\n"
+                        + "\n"
+                        + "-" * 85 + "\n"
+                        + f"-- END OF Veaf scripts {variant_marker}\n"
+                        + "-" * 85 + "\n"
+                        + "\n"
+                    )
+                    out_file.write(footer)
+
+                logger.debug(f"Created variant file: {output_filename}")
+
+            except Exception as e:
+                logger.error(f"Failed to create {variant['name']}: {e}")
+
+    def _copy_lua_files_to_published(self):
+        """Copy Lua script files to the published directory."""
+        try:
+            published_dir = self.script_root / "published"
+            published_dir.mkdir(exist_ok=True)
+            
+            # Copy all veaf-scripts*.lua files from build to published
+            for lua_file in self.build_dir.glob("veaf-scripts*.lua"):
+                dest = published_dir / lua_file.name
+                shutil.copy2(lua_file, dest)
+                logger.debug(f"Copied {lua_file.name} to published directory")
+        except Exception as e:
+            logger.warning(f"Failed to copy Lua files to published directory: {e}")
 
     def build_python_executables(self):
         """Build Python executables using PyInstaller."""
@@ -508,6 +662,14 @@ class BuildAndReleaseWorker:
                         arcname = "src/scripts/veaf/veaf-scripts.lua"
                         zf.write(veaf_scripts_path, arcname)
                         logger.debug(f"Added {arcname} to ZIP")
+                    
+                    # Add debug and trace variants
+                    for variant_name in ["veaf-scripts-debug.lua", "veaf-scripts-trace.lua"]:
+                        variant_path = self.build_dir / variant_name
+                        if variant_path.exists():
+                            arcname = f"src/scripts/veaf/{variant_name}"
+                            zf.write(variant_path, arcname)
+                            logger.debug(f"Added {arcname} to ZIP")
                     
                     # Add both executables at root level
                     if self.dist_dir.exists():

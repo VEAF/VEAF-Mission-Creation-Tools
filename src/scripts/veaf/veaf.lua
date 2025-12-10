@@ -2991,11 +2991,11 @@ veaf.Logger.LEVEL = {
 }
 
 veaf.Logger.LEVEL_INV = {
-    [1]="error",
-    [2]="warning",
-    [3]="info",
-    [4]="debug",
-    [5]="trace",
+    [1]="ERROR",
+    [2]="WARNING",
+    [3]="INFO",
+    [4]="DEBUG",
+    [5]="TRACE",
 }
 
 --- Convert a log level (int or string) to a string
@@ -3201,8 +3201,7 @@ end
 --- Format version info with logging levels
 function veaf.Logger:getVersionInfo(version)
     local moduleLevel = veaf.Logger.levelToString(self:getLevel())
-    local effectiveLevel = veaf.Logger.levelToString(self:getEffectiveLevel())
-    return string.format("Loading version %s [%s/%s]", version, moduleLevel, string.upper(effectiveLevel))
+    return string.format("Loading version %s /%s", version, moduleLevel)
 end
 
 function veaf.Logger:marker(id, header, message, position, markersTable, radius, fillColor)

@@ -248,6 +248,7 @@ def build(
     dynamic_mode: bool = typer.Option(False, help="If set, the mission will dynamically load the scripts from the provided location (via --scripts-path or in the local published and src/scripts folders)."),
     scripts_path: str = typer.Option(None, help="Path to the VEAF and community scripts."),
     migrate_from_v5: bool = typer.Option(True, help="If set, the builder will parse the mission for old v5 triggers and remove them."),
+    scripts_variant: str = typer.Option("standard", help="Scripts variant to use: 'standard' (default), 'debug', 'trace', or 'trace-with-events'."),
     mission_name_or_file: Optional[str] = typer.Argument(DEFAULT_MISSION_FILE, help="Mission name; will build the mission with this name and the current date; can be set to a .miz file."),
     mission_folder: Optional[str] = typer.Argument(".", help="Folder with the mission files."),
     pause: bool = typer.Option(False, help=PAUSE_HELP),
@@ -267,6 +268,9 @@ def build(
             console.print(md_render)
         exit()
 
+    # Validate scripts_variant
+    if scripts_variant not in ("standard", "debug", "trace", "trace-with-events"):
+        logger.error(f"Invalid scripts variant: {scripts_variant}. Must be 'standard', 'debug', 'trace', or 'trace-with-events'.", exception_type=ValueError)
 
     # Resolve input mission folder
     p_mission_folder = resolve_path(path=mission_folder, default_path=Path.cwd(), should_exist=True)
@@ -277,7 +281,9 @@ def build(
     p_output_mission = resolve_path(path=mission_name_or_file)
     if p_output_mission.suffix.lower() != ".miz":
         # Compute a file name from the mission name
-        p_output_mission = Path(f"{mission_name_or_file}_{datetime.now().strftime('%Y%m%d')}.miz")
+        # Add variant suffix if not standard
+        variant_suffix = f"_{scripts_variant}" if scripts_variant != "standard" else ""
+        p_output_mission = Path(f"{mission_name_or_file}{variant_suffix}_{datetime.now().strftime('%Y%m%d')}.miz")
 
     # Resolve development path
     if not scripts_path and dynamic_mode:
@@ -291,7 +297,7 @@ def build(
         p_scripts_path = None
 
     # Call the worker class
-    worker = MissionBuilderWorker(dynamic_mode=dynamic_mode, scripts_path=p_scripts_path, mission_folder=p_mission_folder, output_mission=p_output_mission, migrate_from_v5=migrate_from_v5, no_veaf_triggers=no_veaf_triggers)
+    worker = MissionBuilderWorker(dynamic_mode=dynamic_mode, scripts_path=p_scripts_path, mission_folder=p_mission_folder, output_mission=p_output_mission, migrate_from_v5=migrate_from_v5, no_veaf_triggers=no_veaf_triggers, scripts_variant=scripts_variant)
     worker.work()
 
     console.print(WORK_DONE_MESSAGE)
@@ -345,6 +351,7 @@ def convert(
     verbose: bool = typer.Option(False, help=VERBOSE_HELP),
     dynamic_mode: bool = typer.Option(False, help="If set, the mission will dynamically load the scripts from the provided location (via --scripts-path or in the local published and src/scripts folders)."),
     scripts_path: str = typer.Option(None, help="Path to the VEAF and community scripts."),
+    scripts_variant: str = typer.Option("standard", help="Scripts variant to use: 'standard' (default), 'debug', 'trace', or 'trace-with-events'."),
     mission_name: str = typer.Argument(help="Mission name; will extract from the mission with this name (most recent .miz file)"),
     mission_folder: Optional[str] = typer.Argument(".", help="Folder with the mission files."),
     pause: bool = typer.Option(False, help=PAUSE_HELP),
@@ -364,6 +371,9 @@ def convert(
             console.print(md_render)
         exit()
 
+    # Validate scripts_variant
+    if scripts_variant not in ("standard", "debug", "trace", "trace-with-events"):
+        logger.error(f"Invalid scripts variant: {scripts_variant}. Must be 'standard', 'debug', 'trace', or 'trace-with-events'.", exception_type=ValueError)
 
     # Resolve output mission folder
     p_mission_folder = resolve_path(path=mission_folder, default_path=Path.cwd(), should_exist=True)
@@ -377,7 +387,9 @@ def convert(
     p_input_mission = resolve_path(path=p_input_mission, should_exist=True)
     
     # Compute a file name from the mission name
-    p_output_mission = Path(f"{mission_name}_{datetime.now().strftime('%Y%m%d')}.miz")
+    # Add variant suffix if not standard
+    variant_suffix = f"_{scripts_variant}" if scripts_variant != "standard" else ""
+    p_output_mission = Path(f"{mission_name}{variant_suffix}_{datetime.now().strftime('%Y%m%d')}.miz")
 
     # Resolve development path
     if not scripts_path and dynamic_mode:
@@ -391,7 +403,7 @@ def convert(
         p_scripts_path = None
 
     # Call the worker class
-    worker = MissionConverterWorker(mission_folder=p_mission_folder, input_mission=p_input_mission, output_mission=p_output_mission, mission_name=mission_name, dynamic_mode=dynamic_mode, scripts_path=p_scripts_path, inject_presets=False, presets_file=None)
+    worker = MissionConverterWorker(mission_folder=p_mission_folder, input_mission=p_input_mission, output_mission=p_output_mission, mission_name=mission_name, dynamic_mode=dynamic_mode, scripts_path=p_scripts_path, inject_presets=False, presets_file=None, scripts_variant=scripts_variant)
     worker.work()
 
     console.print(WORK_DONE_MESSAGE)

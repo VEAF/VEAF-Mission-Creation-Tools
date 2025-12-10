@@ -6,7 +6,7 @@ from pathlib import Path
 import re
 import shutil
 from typing import Optional
-from mission_tools import read_miz, write_miz, create_miz, DcsMission, get_community_script_files, get_mission_data_files, get_mission_script_files, get_veaf_script_files, collect_files_from_globs
+from mission_tools import read_miz, write_miz, create_miz, DcsMission, get_community_script_files, get_mission_data_files, get_mission_script_files, get_veaf_script_files, collect_files_from_globs, DEFAULT_SCRIPTS_LOCATION
 from veaf_libs.logger import logger
 from veaf_libs.progress import spinner_context, progress_context
 
@@ -15,7 +15,7 @@ class MissionBuilderWorker:
     Worker class that builds a mission, based on a folder containing the mission files, and on the VEAF Mission Creation Tools package.
     """
     
-    def __init__(self,mission_folder: Path, output_mission: Path, dynamic_mode: Optional[bool] , scripts_path: Optional[Path], migrate_from_v5:bool = True, no_veaf_triggers: bool = False):
+    def __init__(self,mission_folder: Path, output_mission: Path, dynamic_mode: Optional[bool] , scripts_path: Optional[Path], migrate_from_v5:bool = True, no_veaf_triggers: bool = False, scripts_variant: str = "standard"):
         """
         Initialize the worker with parameters for both use cases.
         """
@@ -27,6 +27,7 @@ class MissionBuilderWorker:
         self.dcs_mission: DcsMission = None
         self.migrate_from_v5: bool = migrate_from_v5
         self.no_veaf_triggers: bool = no_veaf_triggers
+        self.scripts_variant: str = scripts_variant
         self.collected_community_script_files: Optional[dict[str, bytes]] = None
         self.collected_veaf_script_files: Optional[dict[str, bytes]] = None
         self.collected_mission_script_files: Optional[dict[str, bytes]] = None
@@ -40,9 +41,31 @@ class MissionBuilderWorker:
 
         # Preprocess the veaf script files
         scripts_folder: Path = self.scripts_path or (self.mission_folder / "published")
-        self.collected_veaf_script_files = collect_files_from_globs(base_folder=scripts_folder, file_patterns=get_veaf_script_files())
-        if len(self.collected_veaf_script_files) < len(get_veaf_script_files()):
-            self.signal_missing_required_files_after_collection(get_veaf_script_files(), self.collected_veaf_script_files, scripts_folder)
+        
+        # Select the appropriate script variant
+        if self.scripts_variant == "debug":
+            script_filename = "veaf-scripts-debug.lua"
+        elif self.scripts_variant == "trace":
+            script_filename = "veaf-scripts-trace.lua"
+        else:  # "standard" or default
+            script_filename = "veaf-scripts.lua"
+        
+        # Build file patterns for collect_files_from_globs
+        # We need to use the variant name in the glob pattern
+        variant_patterns = [
+            (f"src/scripts/veaf/{script_filename}", "l10n/DEFAULT")
+        ]
+        
+        self.collected_veaf_script_files = collect_files_from_globs(base_folder=scripts_folder, file_patterns=variant_patterns)
+        
+        # If the variant file is not found, fallback to standard (but log a warning)
+        if len(self.collected_veaf_script_files) == 0 and self.scripts_variant != "standard":
+            logger.warning(f"Scripts variant '{self.scripts_variant}' not found, falling back to 'standard'")
+            self.collected_veaf_script_files = collect_files_from_globs(base_folder=scripts_folder, file_patterns=[("src/scripts/veaf/veaf-scripts.lua", "l10n/DEFAULT")])
+        
+        if len(self.collected_veaf_script_files) < 1:
+            logger.error(f"VEAF scripts file not found at {scripts_folder}/src/scripts/veaf/{script_filename}")
+        
         return self.collected_veaf_script_files
     
     def get_collected_community_script_files(self) -> dict[str, bytes]:

@@ -20,7 +20,7 @@ veafRadio = {}
 veafRadio.Id = "RADIO"
 
 --- Version.
-veafRadio.Version = "1.3.0"
+veafRadio.Version = "1.4.0"
 
 -- trace level, specific to this module
 --veafRadio.LogLevel = "trace"
@@ -273,20 +273,21 @@ end
 --- actually refresh the radio menu, based on stored information
 function veafRadio._refreshRadioMenu()
   veaf.loggers.get(veafRadio.Id):debug(string.format("veafRadio._refreshRadioMenu()"))
-  veafRadio.refreshRadioMenuDelayedScheduling = nil
+  if not veafRadio.dontCreateMenus then
+    veafRadio.refreshRadioMenuDelayedScheduling = nil
 
-  -- completely delete the dcs radio menu
-  veaf.loggers.get(veafRadio.Id):trace("completely delete the dcs radio menu")
-  if veafRadio.radioMenu.dcsRadioMenu then
-    missionCommands.removeItem(veafRadio.radioMenu.dcsRadioMenu)
-  else
-    veaf.loggers.get(veafRadio.Id):info("_refreshRadioMenu() first time : no DCS radio menu yet")
+    -- completely delete the dcs radio menu
+    veaf.loggers.get(veafRadio.Id):trace("completely delete the dcs radio menu")
+    if veafRadio.radioMenu.dcsRadioMenu then
+      missionCommands.removeItem(veafRadio.radioMenu.dcsRadioMenu)
+    else
+      veaf.loggers.get(veafRadio.Id):info("_refreshRadioMenu() first time : no DCS radio menu yet")
+    end
+
+    -- create all the commands and submenus in the dcs radio menu
+    veaf.loggers.get(veafRadio.Id):trace("create all the commands and submenus in the dcs radio menu")
+    veafRadio.refreshRadioSubmenu(nil, veafRadio.radioMenu)
   end
-
-  -- create all the commands and submenus in the dcs radio menu
-  veaf.loggers.get(veafRadio.Id):trace("create all the commands and submenus in the dcs radio menu")
-  veafRadio.refreshRadioSubmenu(nil, veafRadio.radioMenu)
-
 end
 
 function veafRadio._addCommand(groupId, title, menu, command, parameters)
@@ -820,7 +821,7 @@ end
 -- initialisation
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-function veafRadio.initialize(skipHelpMenus)
+function veafRadio.initialize(skipHelpMenus, dontCreateMenus)
   -- Find the path of the SRS radio configuration script
   -- We're going to need it to define :
   --  STTS.DIRECTORY
@@ -856,6 +857,7 @@ function veafRadio.initialize(skipHelpMenus)
   end
 
   veafRadio.skipHelpMenus = skipHelpMenus or false
+  veafRadio.dontCreateMenus = dontCreateMenus or false
 
   -- Build the initial radio menu
   veafRadio.refreshRadioMenu(false)

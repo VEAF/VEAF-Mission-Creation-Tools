@@ -19,7 +19,7 @@ veafSkynetMonitor = {}
 veafSkynetMonitor.Id = "SKYNET_MONITOR"
 
 --- Version.
-veafSkynetMonitor.Version = "1.1.0"
+veafSkynetMonitor.Version = "1.1.1"
 
 -- trace level, specific to this module
 --veafSkynetMonitor.LogLevel = "trace"
@@ -448,7 +448,9 @@ end
 ---------------------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------
 VeafSkynetMonitorTaskContacts = {}
-VeafSkynetMonitorTaskContacts = inheritsFrom(VeafSkynetMonitorTask) -- oop functions are from Skynet
+if SkynetIADS then
+    VeafSkynetMonitorTaskContacts = inheritsFrom(VeafSkynetMonitorTask) -- oop functions are from Skynet
+end
 ---------------------------------------------------------------------------------------------------
 ---  CTOR
 function VeafSkynetMonitorTaskContacts:Create(sName, iads, unitsToMonitor, onDetectedAction, onLostAction)
@@ -523,7 +525,9 @@ end
 ---------------------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------
 VeafSkynetMonitorTaskDescriptor = {}
-VeafSkynetMonitorTaskDescriptor = inheritsFrom(VeafSkynetMonitorTask) -- oop functions are from Skynet
+if SkynetIADS then
+    VeafSkynetMonitorTaskDescriptor = inheritsFrom(VeafSkynetMonitorTask) -- oop functions are from Skynet
+end
 
 VeafSkynetMonitorTaskDescriptor.OutputDcsTextRecipients = { All = "*All*", Coalition = "*Coalition*" }
 ---------------------------------------------------------------------------------------------------

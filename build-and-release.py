@@ -103,7 +103,6 @@ class BuildAndReleaseWorker:
         
         self.script_root = Path(__file__).parent.resolve()
         self.build_dir = self.script_root / "build"
-        self.published_dir = self.script_root / "published"
         self.src_dir = self.script_root / "src"
         self.dist_dir = self.script_root / "dist"
         self.version_file = self.script_root / "package.json"
@@ -336,11 +335,6 @@ class BuildAndReleaseWorker:
                     )
                     out_file.write(footer)
 
-                # Step 6: Copy output to published directory
-                self.published_dir.mkdir(exist_ok=True)
-                published_path = self.published_dir / output_filename
-                shutil.copy2(output_path, published_path)
-
                 logger.debug(f"Scripts main file created: {output_filename}")
 
             except Exception as e:
@@ -490,37 +484,7 @@ class BuildAndReleaseWorker:
             except Exception as e:
                 logger.warning(f"Failed to restore source files: {e}")
 
-    def copy_build_artifacts(self):
-        """Copy build artifacts to published directory."""
-        with spinner_context("Copying build artifacts..."):
-            try:
-                # Create published directory
-                self.published_dir.mkdir(exist_ok=True)
 
-                # Copy executables from dist
-                if self.dist_dir.exists():
-                    for exe_file in self.dist_dir.glob("*.exe"):
-                        dest = self.published_dir / exe_file.name
-                        shutil.copy2(exe_file, dest)
-                        logger.debug(f"Copied {exe_file.name} to published/")
-
-                # Copy build scripts
-                build_scripts_src = self.script_root / "build-scripts"
-                build_scripts_dest = self.published_dir / "build-scripts"
-                if build_scripts_src.exists():
-                    if build_scripts_dest.exists():
-                        shutil.rmtree(build_scripts_dest)
-                    shutil.copytree(build_scripts_src, build_scripts_dest)
-                    logger.debug("Copied build-scripts/ to published/")
-
-                # Copy key files to published
-                for file_name in ["package.json", "README.md", "LICENSE.md"]:
-                    src_file = self.script_root / file_name
-                    if src_file.exists():
-                        shutil.copy2(src_file, self.published_dir / file_name)
-
-            except Exception as e:
-                logger.error(f"Failed to copy build artifacts: {e}")
 
     # ========================================================================
     # Release Package
@@ -529,19 +493,21 @@ class BuildAndReleaseWorker:
     def create_release_package(self) -> Dict[str, any]:
         """Create a release package (ZIP file)."""
         with spinner_context("Creating release package..."):
-            if not self.published_dir.exists() or not list(self.published_dir.glob("*")):
-                logger.error("Published directory is empty. Run build first.")
+            # Verify that build artifacts exist
+            veaf_scripts_path = self.build_dir / "veaf-scripts.lua"
+            if not veaf_scripts_path.exists():
+                logger.error("Lua scripts not found. Run build first.")
 
-            output_file = self.output_path / f"published.zip"
+            output_file = self.output_path / "published.zip"
             output_file.parent.mkdir(parents=True, exist_ok=True)
 
             try:
                 with zipfile.ZipFile(output_file, "w", zipfile.ZIP_DEFLATED) as zf:
-                    # Add files from published directory
-                    for file_path in self.published_dir.rglob("*"):
-                        if file_path.is_file():
-                            arcname = file_path.relative_to(self.published_dir.parent)
-                            zf.write(file_path, arcname)
+                    # Add Lua scripts to src/scripts directory
+                    if veaf_scripts_path.exists():
+                        arcname = "src/scripts/veaf-scripts.lua"
+                        zf.write(veaf_scripts_path, arcname)
+                        logger.debug(f"Added {arcname} to ZIP")
                     
                     # Add both executables from dist directory
                     if self.dist_dir.exists():
@@ -561,16 +527,25 @@ class BuildAndReleaseWorker:
                                 logger.debug(f"Added {arcname} to ZIP")
                     
                     # Add build-scripts directory
-                    build_scripts_dir = self.script_root / "build-scripts"
+                    build_scripts_dir = self.src_dir / "build-scripts"
                     if build_scripts_dir.exists():
                         for file_path in build_scripts_dir.rglob("*"):
                             if file_path.is_file():
-                                arcname = file_path.relative_to(self.script_root)
+                                arcname = file_path.relative_to(self.src_dir)
+                                zf.write(file_path, arcname)
+                                logger.debug(f"Added {arcname} to ZIP")
+                    
+                    # Add community scripts directory to src/scripts
+                    community_dir = self.src_dir / "scripts" / "community"
+                    if community_dir.exists():
+                        for file_path in community_dir.rglob("*"):
+                            if file_path.is_file():
+                                arcname = f"src/scripts/{file_path.name}"
                                 zf.write(file_path, arcname)
                                 logger.debug(f"Added {arcname} to ZIP")
                     
                     # Add documentation files
-                    doc_files = ["README.md"]
+                    doc_files = ["README.md", "package.json"]
                     for doc_file in doc_files:
                         doc_path = Path.cwd() / doc_file
                         if doc_path.exists():
@@ -862,10 +837,43 @@ class BuildAndReleaseWorker:
         except Exception as e:
             logger.error(f"GitHub CLI operation failed: {e}")
 
-    def create_release_notes_template(self):
-        """Create release notes template."""
+    def prepare_release_notes(self) -> Path:
+        """
+        Prepare release notes for publishing.
+        
+        If RELEASE_NOTES.md exists, ask the user whether to use it or overwrite with template.
+        If it doesn't exist, create it from template.
+        
+        Returns:
+            Path to the release notes file
+        """
         release_notes_path = self.script_root / "RELEASE_NOTES.md"
+        
+        if release_notes_path.exists():
+            # File exists, ask user what to do
+            console.print(f"\n[bold yellow]RELEASE_NOTES.md already exists[/bold yellow]")
+            console.print(f"Location: {release_notes_path}")
+            
+            response = typer.confirm(
+                "Do you want to overwrite it with a fresh template?",
+                default=False
+            )
+            
+            if response:
+                # Overwrite with template
+                self._create_release_notes_template(release_notes_path)
+                console.print("[bold green]✓[/bold green] New release notes template created")
+            else:
+                console.print("[bold green]✓[/bold green] Using existing release notes")
+        else:
+            # File doesn't exist, create from template
+            self._create_release_notes_template(release_notes_path)
+            console.print("[bold green]✓[/bold green] Release notes template created")
+        
+        return release_notes_path
 
+    def _create_release_notes_template(self, release_notes_path: Path):
+        """Create release notes template file."""
         template = f"""# VEAF Tools Release v{self.version}
 
 **Release Date:** {datetime.now().strftime('%Y-%m-%d')}
@@ -978,16 +986,6 @@ See git history for detailed changes.
             self.version = self.get_version_from_file()
             logger.info(f"Version not specified, using from package.json: {self.version}")
 
-        # Check if RELEASE_NOTES.md exists and ask before overwriting
-        release_notes_path = self.script_root / "RELEASE_NOTES.md"
-        should_create_release_notes = True
-        if release_notes_path.exists():
-            response = typer.confirm(
-                f"RELEASE_NOTES.md already exists. Overwrite it?",
-                default=False
-            )
-            should_create_release_notes = response
-
         # Print configuration
         table = Table(title="Build Configuration")
         table.add_column("Setting", style="cyan")
@@ -1012,16 +1010,11 @@ See git history for detailed changes.
             # Build Python executables
             if not self.skip_python:
                 self.build_python_executables()
-                self.copy_build_artifacts()
             else:
                 logger.warning("Skipping Python build")
 
             # Create release package
             package_info = self.create_release_package()
-
-            # Create release notes if needed
-            if should_create_release_notes:
-                self.create_release_notes_template()
 
             # Publish to GitHub if requested
             if self.publish_to_github:
@@ -1116,14 +1109,17 @@ def _execute_build_and_publish(
         )
         worker.run()
 
-        # Step 2: Pause for editing release notes
-        release_notes_path = Path("RELEASE_NOTES.md")
+        # Step 2: Prepare release notes
+        console.print("\n[bold cyan]Step 2: Preparing release notes...[/bold cyan]")
+        release_notes_path = worker.prepare_release_notes()
+
+        # Step 3: Pause for editing release notes
         console.print("\n[bold yellow]⏸️  Pause: Edit RELEASE_NOTES.md and press Enter to continue publishing...[/bold yellow]")
         console.print(f"File location: {release_notes_path.resolve()}")
         input(PAUSE_MESSAGE)
 
-        # Step 3: Publish
-        console.print("\n[bold cyan]Step 2: Publishing to GitHub...[/bold cyan]")
+        # Step 4: Publish
+        console.print("\n[bold cyan]Step 3: Publishing to GitHub...[/bold cyan]")
         
         # Verify that published.zip exists
         published_zip = Path("published.zip")
@@ -1290,11 +1286,21 @@ def publish(
         logger.error(f"Release package not found at {published_zip}. Run 'build' first.")
         sys.exit(1)
     
-    # Read release notes
-    release_notes_path = Path("RELEASE_NOTES.md")
-    if not release_notes_path.exists():
-        logger.error(f"Release notes not found at {release_notes_path}")
-        sys.exit(1)
+    # Prepare release notes (create or ask about overwriting)
+    console.print("\n[bold cyan]Preparing release notes...[/bold cyan]")
+    with spinner_context("Loading release notes handler..."):
+        worker = BuildAndReleaseWorker(
+            version=version,
+            verbose=verbose,
+            config=config,
+        )
+    
+    release_notes_path = worker.prepare_release_notes()
+    
+    # Pause for editing release notes
+    console.print("\n[bold yellow]⏸️  Pause: Edit RELEASE_NOTES.md and press Enter to continue publishing...[/bold yellow]")
+    console.print(f"File location: {release_notes_path.resolve()}")
+    input(PAUSE_MESSAGE)
     
     try:
         # Calculate SHA256

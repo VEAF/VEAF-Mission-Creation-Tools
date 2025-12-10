@@ -28,8 +28,11 @@ import typer
 import requests
 import yaml
 
-from veaf_libs.logger import logger, console
+from veaf_libs.logger import Logger, console
 from veaf_libs.progress import spinner_context
+
+# Create a logger specific to this updater script
+logger: Logger = Logger(logger_name="veaf-tools-updater", console=console)
 
 VERSION: str = "6.0.4"
 README_HELP: str = "Provide access to the README file."
@@ -107,6 +110,7 @@ class UpdateWorker:
         force: bool = False,
         verify_checksum: bool = True,
         verbose: bool = False,
+        zip_file_path: Optional[str] = None,
     ):
         """Initialize the update worker."""
         self.mission_folder = mission_folder
@@ -115,6 +119,7 @@ class UpdateWorker:
         self.force = force
         self.verify_checksum = verify_checksum
         self.verbose = verbose
+        self.zip_file_path = zip_file_path
 
         logger.set_verbose(verbose)
 
@@ -409,12 +414,45 @@ exit /b 0
         """Execute the update process."""
         console.print(f"[bold green]VEAF Tools Updater v{VERSION}[/bold green]")
         console.print(f"Repository: {GITHUB_REPO_OWNER}/{GITHUB_REPO_NAME}")
-        console.print(f"Requested tag: {self.tag}\n")
-
+        
         # Resolve mission folder
         p_mission_folder = resolve_path(path=self.mission_folder, default_path=str(Path.cwd()), should_exist=True)
 
-        # Fetch release information
+        # If zip file path is provided, load from local file instead of GitHub
+        if self.zip_file_path:
+            console.print(f"[bold cyan]Using local ZIP file: {self.zip_file_path}[/bold cyan]\n")
+            zip_path = Path(self.zip_file_path)
+            
+            if not zip_path.exists():
+                logger.error(f"ZIP file not found: {zip_path}")
+                return False
+            
+            try:
+                zip_content = zip_path.read_bytes()
+            except IOError as e:
+                logger.error(f"Failed to read ZIP file: {e}")
+                return False
+            
+            # Extract version from zip file path or use a default
+            # e.g., "published.zip" → "local"
+            import os
+            release_version = os.path.splitext(os.path.basename(self.zip_file_path))[0]
+            if release_version == "published":
+                release_version = "local"
+            
+            logger.info(f"Loaded ZIP file with version label: {release_version}")
+            
+            # Extract and install directly
+            if self.extract_and_install(zip_content, release_version, p_mission_folder):
+                logger.info(f"Successfully installed from local ZIP")
+                console.print(WORK_DONE_MESSAGE)
+                return True
+            else:
+                logger.error("Installation failed")
+                return False
+
+        # Fetch release information from GitHub
+        console.print(f"Requested tag: {self.tag}\n")
         with spinner_context(f"Fetching release information for '{self.tag}'..."):
             release_payload = self.get_release_by_tag(self.tag)
 
@@ -525,12 +563,15 @@ def main(
     mission_folder: Optional[str] = typer.Argument(None, help="Mission folder path (overrides config file)"),
     pause: bool = typer.Option(False, help=PAUSE_HELP),
     no_verify_checksum: bool = typer.Option(False, help="Skip checksum verification (not recommended)"),
+    zip_file: Optional[str] = typer.Option(None, help="Path to local published.zip file (for testing, skips GitHub)"),
 ) -> None:
     """
     Downloads the latest VEAF Tools files from GitHub using Git tags.
 
     This command fetches compiled tools and scripts from GitHub releases.
     By default, it uses the 'published-latest' tag which always points to the most recent version.
+    
+    For testing, use --zip-file to install from a local published.zip file instead of GitHub.
     """
     logger.set_verbose(verbose)
 
@@ -553,6 +594,7 @@ def main(
         force=force,
         verify_checksum=verify_checksum,
         verbose=verbose,
+        zip_file_path=zip_file,
     )
 
     success = worker.run()

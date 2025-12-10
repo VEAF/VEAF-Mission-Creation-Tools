@@ -263,7 +263,7 @@
             "request": "launch",
             "program": "${workspaceFolder}/build-and-release.py",
             "cwd": "${workspaceFolder}",
-            "args": ["build"],
+            "args": ["build", "--skip-python"],
             "console": "integratedTerminal"
         },        
         {
@@ -274,6 +274,15 @@
             "cwd": "${workspaceFolder}",
             "args": ["publish"],
             "console": "integratedTerminal"
-        },        
+        },
+        {
+            "name": "veaf-tools TEST-v6 convert",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/python/veaf-tools/veaf-tools.py",
+            "cwd": "d:/dev/_VEAF/test-tools-v6",
+            "args": ["convert", "test.miz"],
+            "console": "integratedTerminal"
+        },
     ]
 }

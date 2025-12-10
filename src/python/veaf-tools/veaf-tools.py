@@ -347,8 +347,6 @@ def convert(
     scripts_path: str = typer.Option(None, help="Path to the VEAF and community scripts."),
     mission_name: str = typer.Argument(help="Mission name; will extract from the mission with this name (most recent .miz file)"),
     mission_folder: Optional[str] = typer.Argument(".", help="Folder with the mission files."),
-    inject_presets: bool = typer.Option(False, help="If set, presets will be injected into the mission from the presets.yaml file."),
-    presets_file: str = typer.Option(None, help="Configuration file containing the presets; defaults to the presets.yaml file in the VEAF defaults folder."),
     pause: bool = typer.Option(False, help=PAUSE_HELP),
 ) -> None:
     """
@@ -392,14 +390,8 @@ def convert(
     else:
         p_scripts_path = None
 
-    # Resolve presets configuration file
-    if p_presets_file := presets_file:
-        p_presets_file = resolve_path(path=presets_file, should_exist=True)
-        if not p_presets_file.exists():
-            logger.error(f"Configuration file {p_presets_file} does not exist!", exception_type=FileNotFoundError)
-
     # Call the worker class
-    worker = MissionConverterWorker(mission_folder=p_mission_folder, input_mission=p_input_mission, output_mission=p_output_mission, mission_name=mission_name, dynamic_mode=dynamic_mode, scripts_path=p_scripts_path, inject_presets=inject_presets, presets_file=p_presets_file)
+    worker = MissionConverterWorker(mission_folder=p_mission_folder, input_mission=p_input_mission, output_mission=p_output_mission, mission_name=mission_name, dynamic_mode=dynamic_mode, scripts_path=p_scripts_path, inject_presets=False, presets_file=None)
     worker.work()
 
     console.print(WORK_DONE_MESSAGE)

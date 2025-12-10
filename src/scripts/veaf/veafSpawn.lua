@@ -23,7 +23,7 @@ veafSpawn = {}
 veafSpawn.Id = "SPAWN"
 
 --- Version.
-veafSpawn.Version = "1.59.1"
+veafSpawn.Version = "1.59.2"
 
 -- trace level, specific to this module
 veafSpawn.LogLevel = "trace"
@@ -1515,7 +1515,7 @@ function veafSpawn._createDcsUnits(country, units, groupName, hiddenOnMFD, hasDe
                     ["heading"] = hdg
             }
 
-            veaf.loggers.get(veafSpawn.Id):trace(string.format("toInsert x=%.1f y=%.1f, alt=%.1f, type=%s, name=%s, speed=%d, heading=%d, skill=%s, country=%s", toInsert.x, toInsert.y, toInsert.alt, toInsert.type, toInsert.name, toInsert.speed, toInsert.heading, toInsert.skill, country ))
+            veaf.loggers.get(veafSpawn.Id):trace("toInsert x=%.1f y=%.1f, alt=%.1f, type=%s, name=%s, speed=%d, heading=%d, skill=%s, country=%s", toInsert.x, toInsert.y, toInsert.alt, toInsert.type, toInsert.name, toInsert.speed, toInsert.heading, toInsert.skill, country)
             table.insert(dcsUnits, toInsert)
         end
     end

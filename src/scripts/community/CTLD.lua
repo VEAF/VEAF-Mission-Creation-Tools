@@ -852,9 +852,8 @@ ctld.i18n["ko"]["ENABLE "] = "활성화 "
 ctld.i18n["ko"]["REQUEST "] = "요청 "
 ctld.i18n["ko"]["Reset TGT Selection"] = "TGT 선택 초기화"
 --========================================================================================================================
+--[[ ! IMPORTANT : You must must use the version of MIST supplied in the CTLD pack to correctly manage dynamic spwans
 
-
---[[
         Combat Troop and Logistics Drop
 
         Allows Huey, Mi-8 and C130 to transport troops internally and Helicopters to transport Logistic / Vehicle units to the field via sling-loads
@@ -867,6 +866,9 @@ ctld.i18n["ko"]["Reset TGT Selection"] = "TGT 선택 초기화"
         See https://github.com/ciribob/DCS-CTLD for a user manual and the latest version
 
         Contributors:
+                - FullGas1 - https://github.com/FullGas1 (i18n concept, FR and SP translations)
+                - Rex (VEAF) - https://github.com/RexAttaque (code, testing, JTAC)
+                - Zip (VEAF) - https://github.com/davidp57 (project management, code, testing)
                 - Steggles - https://github.com/Bob7heBuilder
                 - mvee - https://github.com/mvee
                 - jmontleon - https://github.com/jmontleon
@@ -876,7 +878,6 @@ ctld.i18n["ko"]["Reset TGT Selection"] = "TGT 선택 초기화"
                 - Proxy404 - https://github.com/Proxy404
                 - atcz - https://github.com/atcz
                 - marcos2221- https://github.com/marcos2221
-                - FullGas1 - https://github.com/FullGas1 (i18n concept, FR and SP translations)
 
         Add [issues](https://github.com/ciribob/DCS-CTLD/issues) to the GitHub repository if you want to report a bug or suggest a new feature.
 
@@ -896,7 +897,7 @@ end
 ctld.Id = "CTLD - "
 
 --- Version.
-ctld.Version = "1.5.2"
+ctld.Version = "1.6.1"
 
 -- To add debugging messages to dcs.log, change the following log levels to `true`; `Debug` is less detailed than `Trace`
 ctld.Debug = false
@@ -1467,6 +1468,7 @@ ctld.aircraftTypeTable = {
     --"Mirage-F1DDA",
     --"Su-25T",
     --"Yak-52",
+    "C-130J-30",
 
     --%%%%% WARBIRDS %%%%%
     --"Bf-109K-4",
@@ -1664,6 +1666,7 @@ ctld.logisticUnits = {
 ctld.vehicleTransportEnabled = {
     "76MD",     -- the il-76 mod doesnt use a normal - sign so il-76md wont match... !!!! GRR
     "Hercules",
+    "C-130J-30",
     --"CH-47Fbl1",
 }
 
@@ -1674,6 +1677,9 @@ ctld.vehicleTransportEnabled = {
 ctld.dynamicCargoUnits = {
    "CH-47Fbl1",
    --"UH-1H",
+   "Mi-8MT",
+   "Mi-24P",
+   "C-130J-30"
 }
 
 -- ************** Maximum Units SETUP for UNITS ******************
@@ -1722,6 +1728,7 @@ ctld.unitLoadLimits = {
     --["Mirage-F1DDA"] = 1,
     --["Su-25T"] = 1,
     --["Yak-52"] = 1,
+    ["C-130J-30"] = 80
 
     --%%%%% WARBIRDS %%%%%
     --["Bf-109K-4"] = 1,
@@ -1744,6 +1751,7 @@ ctld.internalCargoLimits = {
     -- Remove the -- below to turn on options
     ["Mi-8MT"] = 2,
     ["CH-47Fbl1"] = 8,
+    ["C-130J-30"] = 20
 }
 
 
@@ -1772,6 +1780,7 @@ ctld.unitActions = {
     ["Hercules"] = { crates = true, troops = true },
     ["SK-60"] = { crates = true, troops = true },
     ["UH-60L"] = { crates = true, troops = true },
+    ["C-130J-30"] = { crates = true, troops = true },
     --["T-45"] = {crates=true, troops=true},
 
     --%%%%% CHOPPERS %%%%%
@@ -2780,19 +2789,24 @@ function ctld.spawnCrateAtPoint(_side, _weight, _point, _hdg)
 end
 
 -- ***************************************************************
-function ctld.getSecureDistanceFromUnit(_unitName)	-- return a distance between the center of unitName, to be sure not touch the unitName
-    local rotorDiameter = 0 --19    -- meters  -- õk for UH & CH47
-    if Unit.getByName(_unitName) then
-        local unitUserBox = Unit.getByName(_unitName):getDesc().box
-        local SecureDistanceFromUnit = 0
+function ctld.getSecureDistanceFromUnit(_unitOrName)	-- return a distance between the center of unitName, to be sure not touch the unitName
+    local rotorDiameter = 19    -- meters  -- ok for UH & CH47
+    local unit = _unitOrName
+    if type(unit) == "string" then
+        unit = Unit.getByName(_unitOrName)
+    end
+    local secureDistanceFromUnit = rotorDiameter
+    if unit then
+        local unitUserBox = unit:getDesc().box
+        if unitUserBox then
         if math.abs(unitUserBox.max.x) >= math.abs(unitUserBox.min.x) then
-            SecureDistanceFromUnit = math.abs(unitUserBox.max.x) + (rotorDiameter/2)
+                secureDistanceFromUnit = math.abs(unitUserBox.max.x) + (rotorDiameter/2)
         else
-            SecureDistanceFromUnit = math.abs(unitUserBox.min.x) + (rotorDiameter/2)
+                secureDistanceFromUnit = math.abs(unitUserBox.min.x) + (rotorDiameter/2)
         end
-		return SecureDistanceFromUnit
 	end
-	return nil
+	end
+    return secureDistanceFromUnit
 end
 
 -- ***************************************************************
@@ -3459,7 +3473,7 @@ function ctld.spawnCrate(_arguments, bypassCrateWaitTime)
 
             if ctld.unitDynamicCargoCapable(_heli) then
                 _model_type = "dynamic"
-                _point = ctld.getPointAt6Oclock(_heli, 15)
+                _point = ctld.getPointAt6Oclock(_heli, ctld.getSecureDistanceFromUnit(_heli))
                 _position = "6"
             end
 
@@ -3473,10 +3487,19 @@ function ctld.spawnCrate(_arguments, bypassCrateWaitTime)
 
             -- add to move table
             ctld.crateMove[_name] = _name
+                
+            local refPoint = _heli:getPoint()
+            local refLat, refLon = coord.LOtoLL(refPoint)
+            local unitPos = _heli:getPosition()
+   			local refHeading = math.deg(math.atan2(unitPos.x.z, unitPos.x.x))
+ 
+            local destLat, destLon, destAlt = coord.LOtoLL(_point)	
 
+            local relativePos, forma = ctld.tools.getRelativeBearing(refLat, refLon, refHeading, destLat, destLon, 'clock')
+                
             ctld.displayMessageToGroup(_heli,
                 ctld.i18n_translate("A %1 crate weighing %2 kg has been brought out and is at your %3 o'clock ",
-                    _crateType.desc, _crateType.weight, _position), 20)
+                    _crateType.desc, _crateType.weight, relativePos), 20)
         else
             env.info("Couldn't find crate item to spawn")
         end
@@ -4750,7 +4773,7 @@ function ctld.getClosestCrate(_heli, _crates, _type)
     local _shortestDistance = -1
     local _distance = 0
     local _minimumDistance = 5     -- prevents dynamic cargo crates from unpacking while in cargo hold
-    local _maxDistance     = 20    -- prevents onboard dynamic cargo crates from unpacking requested by other helo
+    local _maxDistance     = 75    -- prevents onboard dynamic cargo crates from unpacking requested by other helo
     for _, _crate in pairs(_crates) do
         if (_crate.details.unit == _type or _type == nil) then
             _distance = _crate.dist
@@ -5075,12 +5098,11 @@ function ctld.dropSlingCrate(_args)
                 local _position = "12"
                 if ctld.unitDynamicCargoCapable(_heli) then
                     _model_type = "dynamic"
-                    _point = ctld.getPointAt6Oclock(_heli, 15)
+                    _point = ctld.getPointAt6Oclock(_heli, ctld.getSecureDistanceFromUnit(_heli))
                     _position = "6"
                 end
                 ctld.displayMessageToGroup(_heli,
-                    ctld.i18n_translate("%1 crate has been safely unhooked and is at your %2 o'clock", _crate.desc,
-                        _position), 10)
+                    ctld.i18n_translate("%1 crate has been safely unhooked and is at your %2 o'clock", _crate.desc, _position), 10)
             elseif _heightDiff > 7.5 and _heightDiff <= 40.0 then
                 ctld.displayMessageToGroup(_heli,
                     ctld.i18n_translate("%1 crate has been safely dropped below you", _crate.desc), 10)
@@ -6602,7 +6624,7 @@ function ctld.unitDynamicCargoCapable(_unit)
         --ctld.logDebug("ctld.unitDynamicCargoCapable(_type=[%s])", ctld.p(_type))
         for _, _name in ipairs(ctld.dynamicCargoUnits) do
             local _nameLower = string.lower(_name)
-            if string.find(_type, _nameLower, 1, true) then             --string.match does not work with patterns containing '-' as it is a magic character
+            if string.find(_type, _nameLower, 1, true) then    --string.match does not work with patterns containing '-' as it is a magic character
                 result = true
                 break
             end
@@ -6785,7 +6807,6 @@ function ctld.addTransportF10MenuOptions(_unitName)
                 end
 
                 if ctld.enableCrates and _unitActions.crates then
-                    if ctld.unitCanCarryVehicles(_unit) == false then
                         -- sort the crate categories alphabetically
                         local crateCategories = {}
                         for category, _ in pairs(ctld.spawnableCrates) do
@@ -6847,7 +6868,6 @@ function ctld.addTransportF10MenuOptions(_unitName)
                                 end
                                 missionCommands.addCommandForGroup(_groupId, _menu.text, _subMenuPath,
                                     ctld.spawnCrate, { _unitName, _menu.crate.weight })
-                            end
                         end
                     end
                 end
@@ -9396,7 +9416,7 @@ function ctld.eventHandler:onEvent(event)
                     for _, aircraftType in pairs(ctld.aircraftTypeTable) do
                         if aircraftType == playerTypeName then
                             ctld.logTrace("adding by aircraft type, unitName = %s", ctld.p(unitName))
-                            if ctld.isValueInIpairTable(ctld.transportPilotNames, unitName) == false then
+                            if ctld.tools.isValueInIpairTable(ctld.transportPilotNames, unitName) == false then
                                 table.insert(ctld.transportPilotNames, unitName)  -- add transport unit to the list
                             end
                             if ctld.addedTo[tostring(_groupId)] == nil then  -- only if menu not already set up
@@ -9474,7 +9494,8 @@ function ctld.RandomReal(mini, maxi)
 end
 
 -- Tools
-function ctld.isValueInIpairTable(tab, value)
+ctld.tools = {}
+function ctld.tools.isValueInIpairTable(tab, value)
     for i, v in ipairs(tab) do
       if v == value then
         return true -- La valeur existe
@@ -9482,6 +9503,58 @@ function ctld.isValueInIpairTable(tab, value)
     end
     return false -- La valeur n'existe pas
   end
+------------------------------------------------------------------------------------
+--- Calculates the orientation of an end point relative to a reference point.
+--- The calculation takes into account the current orientation of the reference point.
+---
+--- @param refLat number Latitude of the reference point in degrees.
+--- @param refLon number Longitude of the reference point in degrees.
+--- @param refHeading number Current orientation of the reference point in degrees (0 = North, 90 = East).
+--- @param destLat number Latitude of the arrival point in degrees.
+--- @param destLon number Longitude of the arrival point in degrees.
+--- @param resultFormat string The desired output format: "radian", "degree" or "clock".
+--- @return number The relative orientation in the specified resultFormat.
+function ctld.tools.getRelativeBearing(refLat, refLon, refHeading, destLat, destLon, resultFormat)
+  -- Converting degrees to radians for geometric calculations
+  local radrefLat = math.rad(refLat)
+  local raddestLat = math.rad(destLat)
+  local radrefLon = math.rad(refLon)
+  local raddestLon = math.rad(destLon)
+  local radrefHeading = math.rad(refHeading)
+
+  -- Calculating the longitude difference between the two points
+  local deltaLon = raddestLon - radrefLon
+
+  -- Using the great circle formula for azimuth (bearing)
+  -- This formula is based on spherical trigonometry and uses atan2
+  -- to correctly handle all quadrants.
+  local y = math.sin(deltaLon) * math.cos(raddestLat)
+  local x = math.cos(radrefLat) * math.sin(raddestLat) - math.sin(radrefLat) * math.cos(raddestLat) * math.cos(deltaLon)
+  local absoluteBearingRad = math.atan2(y, x)
+
+  -- Calculate relative orientation by subtracting the reference refHeading
+  local relativeBearingRad = absoluteBearingRad - radrefHeading
+
+  -- Normalizes the angle to be in the range [-pi, pi]
+  -- This ensures a consistent angle, whether positive or negative.
+  local normalizedRad = (relativeBearingRad + math.pi) % (2 * math.pi) - math.pi
+
+  -- Returns the value in the requested resultFormat
+  if resultFormat == "radian" then
+    return normalizedRad, resultFormat
+  elseif resultFormat == "clock" then
+    -- Convert to clock position (12h = front, 3h = right, 6h = back, etc..)
+    local bearingDeg = math.deg(normalizedRad)
+    local clockPosition = ((bearingDeg + 360) % 360) / 30
+    clockPosition =  clockPosition >= 0 and math.floor(clockPosition + 0.5) or math.ceil(clockPosition - 0.5), resultFormat		-- rounded clockPosition
+    if clockPosition == 0 then clockPosition = 12 end
+    return clockPosition, resultFormat
+  else -- By default, the resultFormat is "degree"
+    resultFormat = "degree"
+    local bearingDeg = math.deg(normalizedRad)
+    return (bearingDeg + 360) % 360, resultFormat
+  end
+end
 
 --- Enable/Disable error boxes displayed on screen.
 env.setErrorMessageBoxEnabled(false)

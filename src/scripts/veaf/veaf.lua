@@ -19,7 +19,7 @@ veaf = {}
 veaf.Id = "VEAF"
 
 --- Version.
-veaf.Version = "1.56.1"
+veaf.Version = "1.56.2"
 
 --- Development version ?
 veaf.Development = false
@@ -3968,7 +3968,6 @@ function veaf.ctld_initialize_replacement(configurationCallback)
         -- ************** Maximum Units SETUP for UNITS ******************
 
         ctld.unitLoadLimits["UH-1H"] = 10
-        ctld.unitLoadLimits["Mi-24P"] = 10
         ctld.unitLoadLimits["Mi-8MT"] = 20
         ctld.unitLoadLimits["UH-60L"] = 20
         ctld.unitLoadLimits["Yak-52"] = 1
@@ -3982,21 +3981,23 @@ function veaf.ctld_initialize_replacement(configurationCallback)
         ctld.internalCargoLimits["CH-47Fbl1"] = 4
 
         -- ************** Allowable actions for UNIT TYPES ******************
-        ctld.aircraftTypeTable = {
+        -- Add VEAF-specific aircraft types to the existing table
+        local veafAircraftTypes = {
                 "Hercules",
                 "UH-60L",
                 "Ka-50",
                 "Ka-50_3",
-                "Mi-8MT",
-                "Mi-24P",
                 "SA342L",
                 "SA342M",
                 "SA342Mistral",
                 "SA342Minigun",
-                "UH-1H",
-                "CH-47Fbl1",
                 "Yak-52",
         }
+        for _, aircraftType in ipairs(veafAircraftTypes) do
+            if not veaf.arrayContains(ctld.aircraftTypeTable, aircraftType) then
+                table.insert(ctld.aircraftTypeTable, aircraftType)
+            end
+        end
 
         ctld.unitActions["Yak-52"] = {crates=false, troops=true}
         ctld.unitActions["UH-60L"] = {crates=true, troops=true}

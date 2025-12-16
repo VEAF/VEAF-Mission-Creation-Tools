@@ -3994,7 +3994,7 @@ function veaf.ctld_initialize_replacement(configurationCallback)
                 "Yak-52",
         }
         for _, aircraftType in ipairs(veafAircraftTypes) do
-            if not veaf.arrayContains(ctld.aircraftTypeTable, aircraftType) then
+            if not veaf.tableContains(ctld.aircraftTypeTable, aircraftType) then
                 table.insert(ctld.aircraftTypeTable, aircraftType)
             end
         end

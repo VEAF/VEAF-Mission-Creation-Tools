@@ -693,7 +693,7 @@ function veafCarrierOperations.getAtcForCarrierOperations(groupName, skipNavigat
         end
     end
 
-    result = result .. "\n"..veaf.weatherReport(startPosition)
+    result = result .. "\nWEATHER:\n" .. veafWeatherData.getWeatherString(startPosition, nil, veafWeatherUnitSystem.Systems.FaaNavy, 20) -- typical carrier deck height
 
     return result
 end

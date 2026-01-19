@@ -17,7 +17,7 @@ veafWeather = {}
 veafWeather.Id = "WEATHER"
 
 --- Version.
-veafWeather.Version = "1.5.1"
+veafWeather.Version = "1.5.2"
 
 -- trace level, specific to this module
 --veafWeather.LogLevel = "trace"

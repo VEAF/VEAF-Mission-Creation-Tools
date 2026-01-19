@@ -16,7 +16,7 @@ veafAirbases = {}
 veafAirbases.Id = "AIRBASES"
 
 --- Version.
-veafAirbases.Version = "1.1.0"
+veafAirbases.Version = "1.1.1"
 
 -- trace level, specific to this module
 --veafAirbases.LogLevel = "trace"

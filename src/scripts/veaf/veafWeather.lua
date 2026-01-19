@@ -993,6 +993,10 @@ veafWeatherAtis.ListInEffect = {}
 ---------------------------------------------------------------------------------------------------
 ---  CTORS
 function veafWeatherAtis:Create(veafAirbase, dateTimeZulu)
+    if (veafAirbase == nil or veafAirbase.DcsAirbase == nil or not veafAirbase.DcsAirbase:isExist()) then
+        return nil
+    end
+
     local iHoursSinceMidnight = dateTimeZulu.hour
     local sLetter = string.char(math.floor(iHoursSinceMidnight) + string.byte("A"))
 
@@ -1087,7 +1091,12 @@ function veafWeatherAtis.getAtis(veafAirbase)
 
     if (atisInEffect == nil) then
         atisInEffect = veafWeatherAtis:Create(veafAirbase, dateTimeZulu)
-        veaf.loggers.get(veafWeather.Id):trace(string.format("New ATIS in effect for airbase %s: %s %s", veafAirbase.Name, atisInEffect.Letter, veafTime.toStringTime(atisInEffect.DateTimeZulu, false)))  
+        
+        if (atisInEffect == nil) then
+            veaf.loggers.get(veafWeather.Id):trace(string.format("Failed to create ATIS for airbase %s", veafAirbase.Name))
+        else
+            veaf.loggers.get(veafWeather.Id):trace(string.format("New ATIS in effect for airbase %s: %s %s", veafAirbase.Name, atisInEffect.Letter, veafTime.toStringTime(atisInEffect.DateTimeZulu, false)))      
+        
         veafWeatherAtis.ListInEffect[veafAirbase.Name] = atisInEffect
     end
 
@@ -1096,7 +1105,11 @@ end
 
 function veafWeatherAtis.getAtisString(veafAirbase)
     local atisInEffect = veafWeatherAtis.getAtis(veafAirbase)
-    return atisInEffect.Message
+
+    if (atisInEffect == nil) then
+        return "No ATIS message for airbase " .. veafAirbase.Name
+    else
+        return atisInEffect.Message
 end
 
 function veafWeatherAtis.getAtisStringFromVeafPoint(sPointName, iAbsTime)

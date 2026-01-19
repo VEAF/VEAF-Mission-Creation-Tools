@@ -1096,6 +1096,7 @@ function veafWeatherAtis.getAtis(veafAirbase)
             veaf.loggers.get(veafWeather.Id):trace(string.format("Failed to create ATIS for airbase %s", veafAirbase.Name))
         else
             veaf.loggers.get(veafWeather.Id):trace(string.format("New ATIS in effect for airbase %s: %s %s", veafAirbase.Name, atisInEffect.Letter, veafTime.toStringTime(atisInEffect.DateTimeZulu, false)))      
+        end
         
         veafWeatherAtis.ListInEffect[veafAirbase.Name] = atisInEffect
     end
@@ -1110,6 +1111,7 @@ function veafWeatherAtis.getAtisString(veafAirbase)
         return "No ATIS message for airbase " .. veafAirbase.Name
     else
         return atisInEffect.Message
+    end
 end
 
 function veafWeatherAtis.getAtisStringFromVeafPoint(sPointName, iAbsTime)

@@ -780,7 +780,7 @@ function veaf.invertHeading(heading)
 end
 
 function veaf.compute2dAzimuth(vec3)
-    local iAngleRadian = math.atan2(vec3.z, vec3.x) -- get angle in radian, inverting x(->east) and z(->north) to account for the reference rotation and inversion
+    local iAngleRadian = math.atan2(vec3.z, vec3.x) -- get azimuth angle in radians from the vector (x=north, z=east in DCS coordinates)
     local iAngleDegrees = math.deg(iAngleRadian)
 
     if (iAngleDegrees < 0) then
@@ -2233,7 +2233,7 @@ function veaf.outTextForGroup(unitName, message, duration)
     return veaf.outTextForUnit(unitName, message, duration, true)
 end
 
-function veaf.locationDesriptionString(vec3)
+function veaf.locationDescriptionString(vec3)
     local lat, lon = coord.LOtoLL(vec3)
     local mgrsString = mist.tostringMGRS(coord.LLtoMGRS(lat, lon), 3)
     local bullseye = mist.utils.makeVec3(mist.DBs.missionData.bullseye.blue, 0)

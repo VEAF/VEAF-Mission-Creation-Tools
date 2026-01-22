@@ -914,7 +914,7 @@ function veafCasMission.reportTargetInformation(unitName)
     end
 
     local averageGroupPosition = veaf.getAveragePosition(veafCasMission.casGroupName)
-    message = message .. "\n\nLOCATION:\n" .. veaf.locationDesriptionString(averageGroupPosition)
+    message = message .. "\n\nLOCATION:\n" .. veaf.locationDescriptionString(averageGroupPosition)
     message = message .. "\n\nWEATHER:\n" .. veafWeatherData.getWeatherString(averageGroupPosition, unitName)
 
     -- send message only for the unit

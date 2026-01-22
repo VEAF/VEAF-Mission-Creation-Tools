@@ -37,7 +37,7 @@ veafMissionFlightPlanEditor = {}
 veafMissionFlightPlanEditor.Id = "FPL_EDITOR - "
 
 --- Version.
-veafMissionFlightPlanEditor.Version = "1.0.2"
+veafMissionFlightPlanEditor.Version = "1.0.3"
 
 -- trace level, specific to this module
 veafMissionFlightPlanEditor.Trace = false
@@ -240,7 +240,7 @@ function veafMissionFlightPlanEditor.editGroup(coa_name, country_name, category_
                 end
                 
                 veafMissionFlightPlanEditor.logTrace(string.format("    setting_t[\"waypoints\"]=%s",p(setting_t["waypoints"])))
-                for _, waypoint in pairs(setting_t["waypoints"]) do
+                for _, waypoint in ipairs(setting_t["waypoints"]) do
                   local newPoint = nil
                   veafMissionFlightPlanEditor.logTrace(string.format("    waypoint=%s",p(waypoint)))
                   if type(waypoint) == "string" then

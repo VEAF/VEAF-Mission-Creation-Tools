@@ -19,7 +19,7 @@ veafShortcuts = {}
 veafShortcuts.Id = "SHORTCUTS"
 
 --- Version.
-veafShortcuts.Version = "1.37.0"
+veafShortcuts.Version = "1.41.0"
 
 -- trace level, specific to this module
 --veafShortcuts.LogLevel = "trace"
@@ -578,7 +578,7 @@ function veafShortcuts.onEventMarkChange(eventPos, event)
 end
 
 function veafShortcuts.executeCommand(eventPos, eventText, eventCoalition, markId, bypassSecurity, spawnedGroups, route)
-    veaf.loggers.get(veafShortcuts.Id):debug(string.format("veafShortcuts.executeCommand(eventText=[%s])", eventText))
+    veaf.loggers.get(veafShortcuts.Id):debug("veafShortcuts.executeCommand(eventText=[%s])", eventText)
 
     -- Check if marker has a text and contains an alias
     if eventText ~= nil then
@@ -587,23 +587,42 @@ function veafShortcuts.executeCommand(eventPos, eventText, eventCoalition, markI
         local alias, coords, delay, remainder = veafShortcuts.markTextAnalysis(eventText)
 
         if alias then
-            local position = eventPos
+            local position = nil
 
             if coords and #coords > 0 then
-                local _lat, _lon = veaf.computeLLFromString(coords)
-                veaf.loggers.get(veafShortcuts.Id):trace(string.format("_lat=%s",veaf.p(_lat)))
-                veaf.loggers.get(veafShortcuts.Id):trace(string.format("_lon=%s",veaf.p(_lon)))
-                if _lat and _lon then 
-                    position = coord.LLtoLO(_lat, _lon)
-                    veaf.loggers.get(veafShortcuts.Id):trace(string.format("position=%s",veaf.p(position)))
-                else
-                    local _msg = string.format("unable to decode coordinates [%s]", veaf.p(coords))
-                    veaf.loggers.get(veafShortcuts.Id):warn(_msg)
-                    trigger.action.outText(_msg, 5)
-                    return
+                veaf.loggers.get(veafShortcuts.Id):trace("checking coords [%s]", coords)
+                -- check for a known name (named point or trigger zone)
+                local namedPoint = veafNamedPoints.getPoint(coords)
+                if namedPoint then
+                    veaf.loggers.get(veafShortcuts.Id):trace("found named point [%s]", coords)
+                    position = namedPoint
                 end
+                -- check for a known zone (trigger zone)
+                local triggerZone = veaf.getTriggerZone(coords)
+                if triggerZone then
+                    veaf.loggers.get(veafShortcuts.Id):trace("found trigger zone [%s]=%s", coords, triggerZone)
+                    position = triggerZone
+                end
+                if not position then
+                    veaf.loggers.get(veafShortcuts.Id):trace("coords [%s] is not a known named point or trigger zone", coords)
+                    local _lat, _lon = veaf.computeLLFromString(coords)
+                    veaf.loggers.get(veafShortcuts.Id):trace("_lat=%s",_lat)
+                    veaf.loggers.get(veafShortcuts.Id):trace("_lon=%s",_lon)
+                    if _lat and _lon then 
+                        position = coord.LLtoLO(_lat, _lon)
+                        veaf.loggers.get(veafShortcuts.Id):trace("position=%s",position)
+                    else
+                        local _msg = string.format("unable to decode coordinates [%s]", veaf.p(coords))
+                        veaf.loggers.get(veafShortcuts.Id):warn(_msg)
+                        trigger.action.outText(_msg, 5)
+                        return
+                    end
+                end
+            else
+                veaf.loggers.get(veafShortcuts.Id):trace("no coords found, using eventPos [%s]", eventPos)
+                position = eventPos
             end
-    
+
             -- do the magic
             return veafShortcuts.ExecuteAlias(alias, delay, remainder, position, eventCoalition, markId, bypassSecurity, spawnedGroups, route)
         end
@@ -650,7 +669,7 @@ function veafShortcuts.buildDefaultList()
         VeafAlias:new()
             :setName("-samLR")
             :setDescription("Random long range SAM battery")
-            :setVeafCommand("_spawn samgroup, skynet true")
+            :setVeafCommand("_spawn samgroup, skynet true, spacing 1, radius 0")
             :addRandomParameter("defense", 4, 5)
             :setBypassSecurity(false)
     )
@@ -658,7 +677,7 @@ function veafShortcuts.buildDefaultList()
         VeafAlias:new()
             :setName("-samSR")
             :setDescription("Random short range SAM battery")
-            :setVeafCommand("_spawn samgroup, skynet true")
+            :setVeafCommand("_spawn samgroup, skynet true, spacing 1, radius 0")
             :addRandomParameter("defense", 2, 3)
             :setBypassSecurity(false)
     )
@@ -667,77 +686,77 @@ function veafShortcuts.buildDefaultList()
         VeafAlias:new()
             :setName("-hq7")
             :setDescription("HQ-7 (Red Banner) battery")
-            :setVeafCommand("_spawn group, name hq7, skynet true")
+            :setVeafCommand("_spawn group, name hq7, skynet true, spacing 1, radius 0")
             :setBypassSecurity(false)
     )
     veafShortcuts.AddAlias(
         VeafAlias:new()
             :setName("-hq7_single")
             :setDescription("HQ-7 (Red Banner) launcher")
-            :setVeafCommand("_spawn group, name hq7_single, skynet true")
+            :setVeafCommand("_spawn group, name hq7_single, skynet true, spacing 1, radius 0")
             :setBypassSecurity(false)
     )
     veafShortcuts.AddAlias(
         VeafAlias:new()
             :setName("-hq7noew")
             :setDescription("HQ-7 (Red Banner) battery without EWR")
-            :setVeafCommand("_spawn group, name hq7-noew, skynet true")
+            :setVeafCommand("_spawn group, name hq7-noew, skynet true, spacing 1, radius 0")
             :setBypassSecurity(false)
     )
     veafShortcuts.AddAlias(
         VeafAlias:new()
             :setName("-hq7eo")
             :setDescription("HQ-7EO (Red Banner) battery")
-            :setVeafCommand("_spawn group, name hq7eo, skynet true")
+            :setVeafCommand("_spawn group, name hq7eo, skynet true, spacing 1, radius 0")
             :setBypassSecurity(false)
     )
     veafShortcuts.AddAlias(
         VeafAlias:new()
             :setName("-hq7eo_single")
             :setDescription("HQ-7EO (Red Banner) launcher")
-            :setVeafCommand("_spawn group, name hq7eo_single, skynet true")
+            :setVeafCommand("_spawn group, name hq7eo_single, skynet true, spacing 1, radius 0")
             :setBypassSecurity(false)
     )
     veafShortcuts.AddAlias(
         VeafAlias:new()
             :setName("-hq7eo_noew")
             :setDescription("HQ-7EO (Red Banner) battery without EWR")
-            :setVeafCommand("_spawn group, name hq7eo-noew, skynet true")
+            :setVeafCommand("_spawn group, name hq7eo-noew, skynet true, spacing 1, radius 0")
             :setBypassSecurity(false)
     )
     veafShortcuts.AddAlias(
         VeafAlias:new()
             :setName("-sa2")
             :setDescription("SA-2 Guideline (S-75 Dvina) battery")
-            :setVeafCommand("_spawn group, name sa2, skynet true")
+            :setVeafCommand("_spawn group, name sa2, skynet true, spacing 1, radius 0")
             :setBypassSecurity(false)
     )
     veafShortcuts.AddAlias(
         VeafAlias:new()
             :setName("-sa5")
             :setDescription("SA-5 Gammon (S-200 Dubna) battery")
-            :setVeafCommand("_spawn group, name sa5, skynet true")
+            :setVeafCommand("_spawn group, name sa5, skynet true, spacing 1, radius 0")
             :setBypassSecurity(false)
     )
     veafShortcuts.AddAlias(
         VeafAlias:new()
             :setName("-sa3")
             :setDescription("SA-3 Goa (S-125 Neva/Pechora) battery")
-            :setVeafCommand("_spawn group, name sa3, skynet true")
+            :setVeafCommand("_spawn group, name sa3, skynet true, spacing 1, radius 0")
             :setBypassSecurity(false)
     )
     veafShortcuts.AddAlias(
         VeafAlias:new()
             :setName("-sa6")
             :setDescription("SA-6 Gainful (2K12 Kub) battery")
-            :setVeafCommand("_spawn group, name sa6, skynet true")
+            :setVeafCommand("_spawn group, name sa6, skynet true, spacing 1, radius 0")
             :setBypassSecurity(false)
     )
     veafShortcuts.AddAlias(
         VeafAlias:new()
             :setName("-sa8")
             :setDescription("SA-8 Osa (9K33 Osa) sam vehicle")
-            :setVeafCommand("_spawn group, name sa8_squad, skynet true")
+            :setVeafCommand("_spawn group, name sa8_squad, skynet true, spacing 1, radius 0")
             :setBypassSecurity(false)
     )
     veafShortcuts.AddAlias(
@@ -751,21 +770,21 @@ function veafShortcuts.buildDefaultList()
         VeafAlias:new()
             :setName("-sa9_squad")
             :setDescription("SA-9 Strela-1 (9K31 Strela-1) sam vehicle and logistic")
-            :setVeafCommand("_spawn group, name sa9_squad")
+            :setVeafCommand("_spawn group, name sa9_squad, spacing 1, radius 0")
             :setBypassSecurity(false)
     )
     veafShortcuts.AddAlias(
         VeafAlias:new()
             :setName("-sa10")
             :setDescription("SA-10 Grumble (S-300) battery")
-            :setVeafCommand("_spawn group, name sa10, skynet true")
+            :setVeafCommand("_spawn group, name sa10, skynet true, spacing 1, radius 0")
             :setBypassSecurity(false)
     )
     veafShortcuts.AddAlias(
         VeafAlias:new()
             :setName("-sa11")
             :setDescription("SA-11 Gadfly (9K37 Buk) battery")
-            :setVeafCommand("_spawn group, name sa11, skynet true")
+            :setVeafCommand("_spawn group, name sa11, skynet true, spacing 1, radius 0")
             :setBypassSecurity(false)
     )
     veafShortcuts.AddAlias(
@@ -779,14 +798,28 @@ function veafShortcuts.buildDefaultList()
         VeafAlias:new()
             :setName("-sa13_squad")
             :setDescription("SA-13 Strela (9A35M3) sam vehicle and logistic")
-            :setVeafCommand("_spawn group, name sa13_squad")
+            :setVeafCommand("_spawn group, name sa13_squad, spacing 1, radius 0")
             :setBypassSecurity(false)
     )
     veafShortcuts.AddAlias(
         VeafAlias:new()
             :setName("-sa15")
             :setDescription("SA-15 Gauntlet (9K330 Tor) sam vehicle")
-            :setVeafCommand("_spawn group, name sa15_squad, skynet true")
+            :setVeafCommand("_spawn group, name sa15_squad, skynet true, spacing 1, radius 0")
+            :setBypassSecurity(false)
+    )
+    veafShortcuts.AddAlias(
+        VeafAlias:new()
+            :setName("-sa15m2")
+            :setDescription("SA-15M2 Gauntlet (9K330 TorM2) sam vehicle")
+            :setVeafCommand("_spawn group, name sa15m2_squad, skynet true, spacing 1, radius 0")
+            :setBypassSecurity(false)
+    )
+    veafShortcuts.AddAlias(
+        VeafAlias:new()
+            :setName("-sa22")
+            :setDescription("SA-22 Greyhound (Pantsir-S1) sam vehicle")
+            :setVeafCommand("_spawn group, name sa22_squad, skynet true, spacing 1, radius 0")
             :setBypassSecurity(false)
     )
     veafShortcuts.AddAlias(
@@ -841,51 +874,58 @@ function veafShortcuts.buildDefaultList()
     )
     veafShortcuts.AddAlias(
         VeafAlias:new()
+            :setName("-rapier")
+            :setDescription("Rapier battery with Radar (US by default)")
+            :setVeafCommand("_spawn group, name rapier_radar, country USA, skynet true, spacing 1, radius 0")
+            :setBypassSecurity(false)
+    )
+    veafShortcuts.AddAlias(
+        VeafAlias:new()
             :setName("-roland")
             :setDescription("Roland battery with EWR (US by default)")
-            :setVeafCommand("_spawn group, name roland, country USA, skynet true")
+            :setVeafCommand("_spawn group, name roland, country USA, skynet true, spacing 1, radius 0")
             :setBypassSecurity(false)
     )
     veafShortcuts.AddAlias(
         VeafAlias:new()
             :setName("-rolandnoew")
             :setDescription("Roland battery without EWR (US by default)")
-            :setVeafCommand("_spawn group, name roland-noew, country USA, skynet true")
+            :setVeafCommand("_spawn group, name roland-noew, country USA, skynet true, spacing 1, radius 0")
             :setBypassSecurity(false)
     )
     veafShortcuts.AddAlias(
         VeafAlias:new()
             :setName("-nasams")
             :setDescription("NASAMS battery with 120C (US by default)")
-            :setVeafCommand("_spawn group, name nasams_c, country USA, skynet true")
+            :setVeafCommand("_spawn group, name nasams_c, country USA, skynet true, spacing 1, radius 0")
             :setBypassSecurity(false)
     )
     veafShortcuts.AddAlias(
         VeafAlias:new()
             :setName("-nasams_b")
             :setDescription("NASAMS battery with 120B (US by default)")
-            :setVeafCommand("_spawn group, name nasams_b, country USA, skynet true")
+            :setVeafCommand("_spawn group, name nasams_b, country USA, skynet true, spacing 1, radius 0")
             :setBypassSecurity(false)
     )
     veafShortcuts.AddAlias(
         VeafAlias:new()
             :setName("-hawk")
             :setDescription("Hawk battery (US by default)")
-            :setVeafCommand("_spawn group, name hawk, country USA, skynet true")
+            :setVeafCommand("_spawn group, name hawk, country USA, skynet true, spacing 1, radius 0")
             :setBypassSecurity(false)
     )
     veafShortcuts.AddAlias(
         VeafAlias:new()
             :setName("-patriot")
             :setDescription("Patriot battery (US by default)")
-            :setVeafCommand("_spawn group, name patriot, country USA, skynet true")
+            :setVeafCommand("_spawn group, name patriot, country USA, skynet true, spacing 1, radius 0")
             :setBypassSecurity(false)
     )
     veafShortcuts.AddAlias(
         VeafAlias:new()
             :setName("-stinger")
             :setDescription("Stinger manpad squad (US by default)")
-            :setVeafCommand("_spawn group, name stinger_squad, country USA")
+            :setVeafCommand("_spawn group, name stinger_squad, country USA, spacing 1, radius 0")
             :setBypassSecurity(false)
     )
     veafShortcuts.AddAlias(
@@ -899,7 +939,7 @@ function veafShortcuts.buildDefaultList()
         VeafAlias:new()
             :setName("-avenger_squad")
             :setDescription("Avenger SAM (US by default) and logistic")
-            :setVeafCommand("_spawn group, name avenger_squad, country USA")
+            :setVeafCommand("_spawn group, name avenger_squad, country USA, spacing 1, radius 0")
             :setBypassSecurity(false)
     )
     veafShortcuts.AddAlias(
@@ -913,14 +953,14 @@ function veafShortcuts.buildDefaultList()
         VeafAlias:new()
             :setName("-blue_ewr")
             :setDescription("F-117 Domed EWR (US by default)")
-            :setVeafCommand("_spawn group, name blue_ewr, country USA, skynet true")
+            :setVeafCommand("_spawn group, name blue_ewr, country USA, skynet true, spacing 1, radius 0")
             :setBypassSecurity(false)
     )
     veafShortcuts.AddAlias(
         VeafAlias:new()
             :setName("-ewr")
             :setDescription("55G6 Mast EWR")
-            :setVeafCommand("_spawn group, name ewr, skynet true")
+            :setVeafCommand("_spawn group, name ewr, skynet true, spacing 1, radius 0")
             :setBypassSecurity(false)
     )
     veafShortcuts.AddAlias(
@@ -1119,7 +1159,7 @@ function veafShortcuts.buildDefaultList()
         VeafAlias:new()
             :setName("-sam")
             :setDescription("Random SAM battery")
-            :setVeafCommand("_spawn samgroup, skynet true")
+            :setVeafCommand("_spawn samgroup, skynet true, spacing 1, radius 0")
             :addRandomParameter("defense", 1, 5)
             :setBypassSecurity(false)
     )
@@ -1127,7 +1167,7 @@ function veafShortcuts.buildDefaultList()
         VeafAlias:new()
             :setName("-aaa")
             :setDescription("Random AAA battery")
-            :setVeafCommand("_spawn samgroup, skynet true, spacing 1")
+            :setVeafCommand("_spawn samgroup, skynet true, spacing 1, radius 0")
             :addRandomParameter("defense", 1, 2)
             :setBypassSecurity(false)
     )

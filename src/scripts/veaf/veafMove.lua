@@ -23,7 +23,7 @@ veafMove = {}
 veafMove.Id = "MOVE"
 
 --- Version.
-veafMove.Version = "1.9.4"
+veafMove.Version = "1.10.0"
 
 -- trace level, specific to this module
 --veafMove.LogLevel = "trace"
@@ -49,6 +49,7 @@ veafMove.tankerMissionParameters = {
     ["F-16C bl.50"] = {speed=400, alt=22000},
     ["F-16C bl.52d"] = {speed=400, alt=22000},
     ["F-16C_50"] = {speed=400, alt=22000},
+    ["F-4E"] = {speed=300, alt=18000},
     ["F/A-18A"] = {speed=400, alt=22000},
     ["F/A-18C"] = {speed=400, alt=22000},
     ["FA-18C_hornet"] = {speed=400, alt=22000},

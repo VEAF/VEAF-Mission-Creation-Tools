@@ -35,7 +35,7 @@ mist = {}
 -- don't change these
 mist.majorVersion = 4
 mist.minorVersion = 5
-mist.build = "128-DYNSLOTS-01-VEAF"
+mist.build = "128-DYNSLOTS-02-VEAF"
 
 -- forward declaration of log shorthand
 local log
@@ -1495,7 +1495,7 @@ do -- the main scope
 						tempSpawnGroupsCounter = tempSpawnGroupsCounter + 1
 					end
 				else
-					log:error('Group not accessible by unit in event handler. This is a DCS bug')
+					--log:error('Group not accessible by unit in event handler. This is a DCS bug')
 				end
 			elseif Object.getCategory(event.initiator) == 3 or Object.getCategory(event.initiator) == 6 then
 				--log:info('staticSpawnEvent')
@@ -4387,6 +4387,12 @@ do -- group functions scope
 			elseif string.lower(action) == 'respawn' then
 				newGroupData = mist.getGroupData(gpName)
 				dbData = true
+				if vars.newGroupName then
+					-- Zip, VEAF, 2025.04.29: added vars.newGroupName to rename the new group
+					newGroupData.groupName = vars.newGroupName
+					newGroupData.name = vars.newGroupName
+					newGroupData.gpName = vars.newGroupName
+				end
 			elseif string.lower(action) == 'clone' then
 				newGroupData = mist.getGroupData(gpName)
 				newGroupData.clone = 'order66'
@@ -4400,9 +4406,16 @@ do -- group functions scope
 			newGroupData = vars.groupData
 		end
         
-        if vars.newGroupName then
-            newGroupData.groupName = vars.newGroupName
-        end
+		if not newGroupData then
+			return
+		end
+
+		-- Zip, VEAF, 2025.01.30: added vars.renameUnitsSequentially to rename units sequentially
+		if vars.renameUnitsSequentially then
+			for _, unitData in pairs(newGroupData.units) do
+				unitData.unitName = string.format('%s #%d', newGroupData.groupName, unitData.unitId) -- rename units sequentially
+			end
+		end
 		
         if #newGroupData.units == 0 then
             log:warn('$1 has no units in group table', gpName)

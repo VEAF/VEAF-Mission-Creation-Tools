@@ -689,7 +689,10 @@ function veafSanctuary.eventHandler:onEvent(event)
             eventId = veaf.EVENTMETA[event.id].Text
         end
 
-        local _unitname = event.initiator:getName()
+        local _unitname = nil
+        if event and event.initiator and event.initiator.getName then
+            _unitname = event.initiator:getName()
+        end
         --veaf.loggers.get(veafSanctuary.Id):trace(string.format("event initiator unit  = %s", veaf.p(_unitname)))
         if event.id == world.event.S_EVENT_PLAYER_ENTER_UNIT
         or event.id == world.event.S_EVENT_BIRTH and _unitname and veafSanctuary.humanUnits[_unitname]
@@ -698,7 +701,7 @@ function veafSanctuary.eventHandler:onEvent(event)
             if (not veafSanctuary.humanUnitsToFollow[_unitname]) then
                 -- register the human unit in the follow-up list when the human gets in the unit
                 veafSanctuary.recordTrace(string.format("registering human unit to follow: %s", veaf.p(_unitname)))
-                veafSanctuary.humanUnitsToFollow[_unitname] = { firstInZone = -1}
+                veafSanctuary.humanUnitsToFollow[_unitname or ""] = { firstInZone = -1}
             end
         elseif event.id == world.event.S_EVENT_PLAYER_LEAVE_UNIT
         or     event.id == world.event.S_EVENT_DEAD and _unitname and veafSanctuary.humanUnits[_unitname]
@@ -707,7 +710,7 @@ function veafSanctuary.eventHandler:onEvent(event)
             if (veafSanctuary.humanUnitsToFollow[_unitname]) then
                 -- unregister the human unit from the follow-up list when the human gets in the unit
                 veafSanctuary.recordTrace(string.format("deregistering human unit to follow: %s", veaf.p(_unitname)))
-                veafSanctuary.humanUnitsToFollow[_unitname] = nil
+                veafSanctuary.humanUnitsToFollow[_unitname or ""] = nil
             end
         end
     end

@@ -1,8 +1,10 @@
-# Spawnable aircrafts library
+# Spawnable aircrafts and templates library
 
 This folder contains default collections for the VEAF Spawnable Aircrafts Editor.
 
 This can be used as the default configuration for your next mission.
+
+## Spawnable aircrafts
 
 These collections of planes can then be spawned in the missions using the `_spawn cap` command or the `-cap` shortcut.
 
@@ -18,11 +20,53 @@ They are not case sensitive.
 
 The planes are grouped in collections that represent the relative difficulty to defeat them : EASY, NORMAL, HARD; some of them are fighter pairs (they end with X2) and the other are single ships (they end with X1)
 
-# List of aircrafts
+## Template aircrafts
+
+These aircrafts can be used as templates for dynamic slots configuration.
+
+You simply have to select them as templates in the Warehouse dialog in the mission editor.
+
+# Tools
+
+I've built two scripts to easily extract aircrafts from a .miz file.
+
+To use them, do as described below.
+
+## Spawnable aircrafts
+
+### Extract 
+
+Run `extract_spawnables.cmd` in this folder. 
+It'll parse the `spawnables.miz` file for aircraft groups with names starting with "veafSpawn-" and add them to the `settings-spawnables.lua` file.
+
+You'll have to manually add them from the `settings-spawnables.lua` file into the main `settings.lua` file.
+
+### Merge
+
+Additionnaly, you can run `merge_spawnables.cmd` in this folder.
+It'll parse the `spawnables.miz` file for aircraft groups with names starting with "veafSpawn-" and add or replace them in the `settings.lua` file.
+
+## Aircraft templates
+
+### Extract 
+
+Run `extract_templates.cmd` in this folder. 
+It'll parse the `templates.miz` file for aircraft groups with names starting with "veafSpawn-" and add them to the `settings-templates.lua` file.
+
+You'll have to manually add them from the `settings-templates.lua` file into the main `settings.lua` file.
+
+### Merge
+
+Additionnaly, you can run `merge_templates.cmd` in this folder.
+It'll parse the `templates.miz` file for aircraft groups with names starting with "veafSpawn-" and add or replace them in the `settings.lua` file.
+
+# List of spawnable aircrafts
 
 The following spawns have been crafted by Sharko.
 
 They're well configured, are grouped by difficulty (easy / normal / hard) and their name contains all their options.
+
+This list is up-to-date as of 2025.08.16
 
 ## Easy
 

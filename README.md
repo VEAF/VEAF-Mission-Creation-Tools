@@ -16,6 +16,8 @@ Speaking of work in progress, the [documentation repository][documentation-repo]
 
 If you want to program with us, you can start by looking at the code, specially the `exampleObjectOrientedProgramming.lua` example
 
+And if you like these tools, you can [buy me a coffee][Zip on coff.ee]!
+
 ## What is this ? Is it like Moose ?
 
 A bit like that, and not.
@@ -64,6 +66,7 @@ If you need help or you want to suggest something, you can:
 [VEAF-logo]: https://veaf.github.io/documentation/images/logo.png
 [VEAF Discord]: https://www.veaf.org/discord
 [Zip on Github]: https://github.com/davidp57
+[Zip on coff.ee]: https://coff.ee/veaf_zip
 [VEAF website]: https://www.veaf.org
 [VEAF forum]: https://www.veaf.org/forum
 

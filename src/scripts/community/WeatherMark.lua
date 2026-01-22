@@ -77,7 +77,7 @@ weathermark.Debug=false
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 --- Version.
-weathermark.version="1.1"
+weathermark.version="1.1.1"
 
 --- Identifier. All output in DCS.log will start with this.
 weathermark.id="WeatherMark "
@@ -416,7 +416,7 @@ function weathermark._GetWind(vec3, height)
   
   -- Get wind velocity vector.
   local windvec3  = atmosphere.getWind(point)
-  local direction = math.deg(math.atan(windvec3.z, windvec3.x))
+  local direction = math.deg(math.atan2(windvec3.z, windvec3.x))
   
   if direction < 0 then
     direction = direction + 360

@@ -19,7 +19,7 @@ veaf = {}
 veaf.Id = "VEAF"
 
 --- Version.
-veaf.Version = "1.53.1"
+veaf.Version = "1.56.2"
 
 --- Development version ?
 veaf.Development = false
@@ -28,12 +28,15 @@ veaf.SecurityDisabled = false
 -- trace level, specific to this module
 --veaf.LogLevel = "debug"
 --veaf.LogLevel = "trace"
---veaf.ForcedLogLevel = "trace"
+--veaf.ForcedLogLevel = "debug"
 
 -- log level, limiting all the modules
 veaf.BaseLogLevel = 5 --trace
 
 veaf.DEFAULT_GROUND_SPEED_KPH = 30
+
+--- if true, the spawned group names will not contain any information pertaining to their type
+veaf.HideNamesFromSpawnedGroups = true
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Do not change anything below unless you know what you are doing!
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -58,6 +61,14 @@ veaf.theatreName =
     Kola = "Kola",
     Afghanistan = "Afghanistan",
 }
+
+veaf.ERA = {
+    WW2 = "WW2",
+    COLD_WAR = "COLD_WAR",
+    MODERN = "MODERN",
+}
+
+veaf.config.era = veaf.ERA.MODERN -- default era
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Utility methods
@@ -849,17 +860,19 @@ function veaf.computeLLFromString(value)
         elseif _firstChar == "n" or _firstChar == "s" or _firstChar == "e" or _firstChar == "w" then
             -- LL coordinates
             local _signLat, _digitsLat, _signLon, _digitsLon = _value:match([[([news])([%d:\.-]+)([news])([%d:\.-]+)]])
-            local _multLat = 1
-            if _signLat == "s" then
-                _multLat = -1
+            if _digitsLat and _digitsLon then
+                local _multLat = 1
+                if _signLat == "s" then
+                    _multLat = -1
+                end
+                local _multLon = 1
+                if _signLon == "w" then
+                    _multLon = -1
+                end
+                local _lat = _multLat * _computeLLValueFromString(_digitsLat)
+                local _lon = _multLon * _computeLLValueFromString(_digitsLon)
+                return _lat, _lon
             end
-            local _multLon = 1
-            if _signLon == "w" then
-                _multLon = -1
-            end
-            local _lat = _multLat * _computeLLValueFromString(_digitsLat)
-            local _lon = _multLon * _computeLLValueFromString(_digitsLon)
-            return _lat, _lon
         end
     end
     -- unrecognized format
@@ -2639,7 +2652,7 @@ function veaf.endMissionAt(endTimeHour, endTimeMinute, checkIntervalInSeconds, c
     veaf._checkForEndMission(endTimeInSeconds, checkIntervalInSeconds, checkMessage, delay1, message1, delay2, message2, delay3, message3)
 end
 
-function veaf.randomlyChooseFrom(aTable, bias)   
+function veaf.randomlyChooseFrom(aTable, bias)
     veaf.loggers.get(veaf.Id):trace(string.format("randomlyChooseFrom(%d):%s",bias or 0, veaf.p(aTable)))
     if aTable == nil or #aTable == 0 then
         return nil
@@ -2691,217 +2704,6 @@ function veaf.getRandomizableNumeric_random(val)
             veaf.loggers.get(veaf.Id):trace("nVal=%s", veaf.p(nVal))
         end
     end
-        --[[ 
-
-        if val == "0-1" then nVal = math.random(0,1) end
-        if val == "0-2" then nVal = math.random(0,2) end
-        if val == "0-3" then nVal = math.random(0,3) end
-        if val == "0-4" then nVal = math.random(0,4) end
-        if val == "0-5" then nVal = math.random(0,5) end
-        if val == "0-6" then nVal = math.random(0,6) end
-        if val == "0-7" then nVal = math.random(0,7) end
-        if val == "0-8" then nVal = math.random(0,8) end
-        if val == "0-9" then nVal = math.random(0,9) end
-        if val == "0-10" then nVal = math.random(0,10) end
-        if val == "0-11" then nVal = math.random(0,11) end
-        if val == "0-12" then nVal = math.random(0,12) end
-        if val == "0-13" then nVal = math.random(0,13) end
-        if val == "0-14" then nVal = math.random(0,14) end
-        if val == "0-15" then nVal = math.random(0,15) end
-        if val == "0-16" then nVal = math.random(0,16) end
-        if val == "0-17" then nVal = math.random(0,17) end
-        if val == "0-18" then nVal = math.random(0,18) end
-        if val == "0-19" then nVal = math.random(0,19) end
-
-        if val == "1-2" then nVal = math.random(1,2) end
-        if val == "1-3" then nVal = math.random(1,3) end
-        if val == "1-4" then nVal = math.random(1,4) end
-        if val == "1-5" then nVal = math.random(1,5) end
-        if val == "1-6" then nVal = math.random(1,6) end
-        if val == "1-7" then nVal = math.random(1,7) end
-        if val == "1-8" then nVal = math.random(1,8) end
-        if val == "1-9" then nVal = math.random(1,9) end
-        if val == "1-10" then nVal = math.random(1,10) end
-        if val == "1-11" then nVal = math.random(1,11) end
-        if val == "1-12" then nVal = math.random(1,12) end
-        if val == "1-13" then nVal = math.random(1,13) end
-        if val == "1-14" then nVal = math.random(1,14) end
-        if val == "1-15" then nVal = math.random(1,15) end
-        if val == "1-16" then nVal = math.random(1,16) end
-        if val == "1-17" then nVal = math.random(1,17) end
-        if val == "1-18" then nVal = math.random(1,18) end
-        if val == "1-19" then nVal = math.random(1,19) end
-
-        if val == "2-3" then nVal = math.random(2,3) end
-        if val == "2-4" then nVal = math.random(2,4) end
-        if val == "2-5" then nVal = math.random(2,5) end
-        if val == "2-6" then nVal = math.random(2,6) end
-        if val == "2-7" then nVal = math.random(2,7) end
-        if val == "2-8" then nVal = math.random(2,8) end
-        if val == "2-9" then nVal = math.random(2,9) end
-        if val == "2-10" then nVal = math.random(2,10) end
-        if val == "2-11" then nVal = math.random(2,11) end
-        if val == "2-12" then nVal = math.random(2,12) end
-        if val == "2-13" then nVal = math.random(2,13) end
-        if val == "2-14" then nVal = math.random(2,14) end
-        if val == "2-15" then nVal = math.random(2,15) end
-        if val == "2-16" then nVal = math.random(2,16) end
-        if val == "2-17" then nVal = math.random(2,17) end
-        if val == "2-18" then nVal = math.random(2,18) end
-        if val == "2-19" then nVal = math.random(2,19) end
-
-        if val == "3-4" then nVal = math.random(3,4) end
-        if val == "3-5" then nVal = math.random(3,5) end
-        if val == "3-6" then nVal = math.random(3,6) end
-        if val == "3-7" then nVal = math.random(3,7) end
-        if val == "3-8" then nVal = math.random(3,8) end
-        if val == "3-9" then nVal = math.random(3,9) end
-        if val == "3-10" then nVal = math.random(3,10) end
-        if val == "3-11" then nVal = math.random(3,11) end
-        if val == "3-12" then nVal = math.random(3,12) end
-        if val == "3-13" then nVal = math.random(3,13) end
-        if val == "3-14" then nVal = math.random(3,14) end
-        if val == "3-15" then nVal = math.random(3,15) end
-        if val == "3-16" then nVal = math.random(3,16) end
-        if val == "3-17" then nVal = math.random(3,17) end
-        if val == "3-18" then nVal = math.random(3,18) end
-        if val == "3-19" then nVal = math.random(3,19) end
-
-        if val == "4-5" then nVal = math.random(4,5) end
-        if val == "4-6" then nVal = math.random(4,6) end
-        if val == "4-7" then nVal = math.random(4,7) end
-        if val == "4-8" then nVal = math.random(4,8) end
-        if val == "4-9" then nVal = math.random(4,9) end
-        if val == "4-10" then nVal = math.random(4,10) end
-        if val == "4-11" then nVal = math.random(4,11) end
-        if val == "4-12" then nVal = math.random(4,12) end
-        if val == "4-13" then nVal = math.random(4,13) end
-        if val == "4-14" then nVal = math.random(4,14) end
-        if val == "4-15" then nVal = math.random(4,15) end
-        if val == "4-16" then nVal = math.random(4,16) end
-        if val == "4-17" then nVal = math.random(4,17) end
-        if val == "4-18" then nVal = math.random(4,18) end
-        if val == "4-19" then nVal = math.random(4,19) end
-
-        if val == "5-6" then nVal = math.random(5,6) end
-        if val == "5-7" then nVal = math.random(5,7) end
-        if val == "5-8" then nVal = math.random(5,8) end
-        if val == "5-9" then nVal = math.random(5,9) end
-        if val == "5-10" then nVal = math.random(5,10) end
-        if val == "5-11" then nVal = math.random(5,11) end
-        if val == "5-12" then nVal = math.random(5,12) end
-        if val == "5-13" then nVal = math.random(5,13) end
-        if val == "5-14" then nVal = math.random(5,14) end
-        if val == "5-15" then nVal = math.random(5,15) end
-        if val == "5-16" then nVal = math.random(5,16) end
-        if val == "5-17" then nVal = math.random(5,17) end
-        if val == "5-18" then nVal = math.random(5,18) end
-        if val == "5-19" then nVal = math.random(5,19) end
-
-        if val == "6-7" then nVal = math.random(6,7) end
-        if val == "6-8" then nVal = math.random(6,8) end
-        if val == "6-9" then nVal = math.random(6,9) end
-        if val == "6-10" then nVal = math.random(6,10) end
-        if val == "6-11" then nVal = math.random(6,11) end
-        if val == "6-12" then nVal = math.random(6,12) end
-        if val == "6-13" then nVal = math.random(6,13) end
-        if val == "6-14" then nVal = math.random(6,14) end
-        if val == "6-15" then nVal = math.random(6,15) end
-        if val == "6-16" then nVal = math.random(6,16) end
-        if val == "6-17" then nVal = math.random(6,17) end
-        if val == "6-18" then nVal = math.random(6,18) end
-        if val == "6-19" then nVal = math.random(6,19) end
-
-        if val == "7-8" then nVal = math.random(7,8) end
-        if val == "7-9" then nVal = math.random(7,9) end
-        if val == "7-10" then nVal = math.random(7,10) end
-        if val == "7-11" then nVal = math.random(7,11) end
-        if val == "7-12" then nVal = math.random(7,12) end
-        if val == "7-13" then nVal = math.random(7,13) end
-        if val == "7-14" then nVal = math.random(7,14) end
-        if val == "7-15" then nVal = math.random(7,15) end
-        if val == "7-16" then nVal = math.random(7,16) end
-        if val == "7-17" then nVal = math.random(7,17) end
-        if val == "7-18" then nVal = math.random(7,18) end
-        if val == "7-19" then nVal = math.random(7,19) end
-
-        if val == "8-9" then nVal = math.random(8,9) end
-        if val == "8-10" then nVal = math.random(8,10) end
-        if val == "8-11" then nVal = math.random(8,11) end
-        if val == "8-12" then nVal = math.random(8,12) end
-        if val == "8-13" then nVal = math.random(8,13) end
-        if val == "8-14" then nVal = math.random(8,14) end
-        if val == "8-15" then nVal = math.random(8,15) end
-        if val == "8-16" then nVal = math.random(8,16) end
-        if val == "8-17" then nVal = math.random(8,17) end
-        if val == "8-18" then nVal = math.random(8,18) end
-        if val == "8-19" then nVal = math.random(8,19) end
-
-        if val == "9-10" then nVal = math.random(9,10) end
-        if val == "9-11" then nVal = math.random(9,11) end
-        if val == "9-12" then nVal = math.random(9,12) end
-        if val == "9-13" then nVal = math.random(9,13) end
-        if val == "9-14" then nVal = math.random(9,14) end
-        if val == "9-15" then nVal = math.random(9,15) end
-        if val == "9-16" then nVal = math.random(9,16) end
-        if val == "9-17" then nVal = math.random(9,17) end
-        if val == "9-18" then nVal = math.random(9,18) end
-        if val == "9-19" then nVal = math.random(9,19) end
-
-        if val == "10-11" then nVal = math.random(10,11) end
-        if val == "10-12" then nVal = math.random(10,12) end
-        if val == "10-13" then nVal = math.random(10,13) end
-        if val == "10-14" then nVal = math.random(10,14) end
-        if val == "10-15" then nVal = math.random(10,15) end
-        if val == "10-16" then nVal = math.random(10,16) end
-        if val == "10-17" then nVal = math.random(10,17) end
-        if val == "10-18" then nVal = math.random(10,18) end
-        if val == "10-19" then nVal = math.random(10,19) end
-
-        if val == "11-12" then nVal = math.random(11,12) end
-        if val == "11-13" then nVal = math.random(11,13) end
-        if val == "11-14" then nVal = math.random(11,14) end
-        if val == "11-15" then nVal = math.random(11,15) end
-        if val == "11-16" then nVal = math.random(11,16) end
-        if val == "11-17" then nVal = math.random(11,17) end
-        if val == "11-18" then nVal = math.random(11,18) end
-        if val == "11-19" then nVal = math.random(11,19) end
-
-        if val == "12-13" then nVal = math.random(12,13) end
-        if val == "12-14" then nVal = math.random(12,14) end
-        if val == "12-15" then nVal = math.random(12,15) end
-        if val == "12-16" then nVal = math.random(12,16) end
-        if val == "12-17" then nVal = math.random(12,17) end
-        if val == "12-18" then nVal = math.random(12,18) end
-        if val == "12-19" then nVal = math.random(12,19) end
-
-        if val == "13-14" then nVal = math.random(13,14) end
-        if val == "13-15" then nVal = math.random(13,15) end
-        if val == "13-16" then nVal = math.random(13,16) end
-        if val == "13-17" then nVal = math.random(13,17) end
-        if val == "13-18" then nVal = math.random(13,18) end
-        if val == "13-19" then nVal = math.random(13,19) end
-
-        if val == "14-15" then nVal = math.random(14,15) end
-        if val == "14-16" then nVal = math.random(14,16) end
-        if val == "14-17" then nVal = math.random(14,17) end
-        if val == "14-18" then nVal = math.random(14,18) end
-        if val == "14-19" then nVal = math.random(14,19) end
-
-        if val == "15-16" then nVal = math.random(15,16) end
-        if val == "15-17" then nVal = math.random(15,17) end
-        if val == "15-18" then nVal = math.random(15,18) end
-        if val == "15-19" then nVal = math.random(15,19) end
-
-        if val == "16-17" then nVal = math.random(16,17) end
-        if val == "16-18" then nVal = math.random(16,18) end
-        if val == "16-19" then nVal = math.random(16,19) end
-
-        if val == "17-18" then nVal = math.random(17,18) end
-        if val == "17-19" then nVal = math.random(17,19) end
-
-        if val == "18-19" then nVal = math.random(18,19) end
-        ]]
 
     veaf.loggers.get(veaf.Id):trace(string.format("nVal=%s", tostring(nVal)))
     return nVal
@@ -3088,6 +2890,10 @@ end
 
 function veaf.setServerName(value)
     veaf.config.SERVER_NAME = value
+end
+
+function veaf.setServerBotChannel(value)
+    veaf.config.DCS_SERVER_BOT_CHANNEL = value
 end
 
 function veaf.getPolygonFromUnits(unitNames)
@@ -3284,9 +3090,13 @@ function veaf.Logger.formatText(text, ...)
             for i=1,args.n do
                 pArgs[i] = veaf.p(args[i])
             end
-                text = text:format(unpack(pArgs))
+            -- add a few empty strings for safety
+            for i = 1, 20 do
+                table.insert(pArgs, "[nil]")
             end
+            text = text:format(unpack(pArgs))
         end
+    end
     local fName = nil
     local cLine = nil
     if debug and debug.getinfo then
@@ -3305,7 +3115,7 @@ function veaf.Logger.formatText(text, ...)
     end
 end
 
-function veaf.Logger:print(level, text)
+function veaf.Logger:print(level, text, logWithDcsServerBot)
     local texts = veaf.Logger.splitText(text)
     local levelChar = 'E'
     local logFunction = env.error
@@ -3324,9 +3134,18 @@ function veaf.Logger:print(level, text)
     end
     for i = 1, #texts do
         if i == 1 then
-            logFunction(self.name .. '|' .. levelChar .. '|' .. texts[i])
+            local theText = self.name .. '|' .. levelChar .. '|' .. texts[i]
+            logFunction(theText)
+            if logWithDcsServerBot and dcsbot and veaf.config.DCS_SERVER_BOT_CHANNEL then
+			    local current_mission = Sim.getMissionName()
+		        dcsbot.sendBotMessage(veaf.config.SERVER_NAME .. ' | ' .. current_mission .. ' | ' .. theText, veaf.config.DCS_SERVER_BOT_CHANNEL)
+            end
         else
-            logFunction(texts[i])
+            local theText = texts[i]
+            logFunction(theText)
+            if logWithDcsServerBot and dcsbot and veaf.config.DCS_SERVER_BOT_CHANNEL then
+                dcsbot.sendBotMessage(theText, veaf.config.DCS_SERVER_BOT_CHANNEL)
+            end
         end
     end
 end
@@ -3338,7 +3157,7 @@ function veaf.Logger:error(text, ...)
 		if debug and debug.traceback then
 			mText = mText .. "\n" .. debug.traceback()
 		end
-        self:print(1, mText)
+        self:print(1, mText, true)
     end
 end
 
@@ -3556,6 +3375,129 @@ veaf.UNIQUE_ID = 10000 + math.random(50,500)
 function veaf.getUniqueIdentifier()
     veaf.UNIQUE_ID = veaf.UNIQUE_ID + 1
     return veaf.UNIQUE_ID
+end
+
+function veaf.generateMilitaryGroupName()
+    -- Different naming patterns
+    local patterns = {
+        "adjective_animal",
+        "adjective_weapon", 
+        "number_adjective_noun",
+        "callsign_squad",
+        "geographic_unit",
+        "mythological",
+        "tactical_designation"
+    }
+    
+    -- Word lists
+    local adjectives = {
+        "Iron", "Steel", "Thunder", "Lightning", "Storm", "Fire", "Ice", "Shadow",
+        "Ghost", "Viper", "Wolf", "Eagle", "Hawk", "Razor", "Crimson", "Silver",
+        "Golden", "Black", "Red", "Blue", "Elite", "Special", "Heavy", "Swift",
+        "Silent", "Deadly", "Fierce", "Savage", "Wild", "Noble", "Brave", "Bold"
+    }
+    
+    local animals = {
+        "Wolf", "Eagle", "Hawk", "Lion", "Tiger", "Bear", "Viper", "Cobra",
+        "Falcon", "Raven", "Panther", "Jaguar", "Shark", "Scorpion", "Spider",
+        "Rhino", "Buffalo", "Stallion", "Hound", "Fox", "Lynx", "Wolverine"
+    }
+    
+    local weapons = {
+        "Sword", "Blade", "Lance", "Spear", "Arrow", "Bolt", "Hammer", "Axe",
+        "Dagger", "Rifle", "Cannon", "Missile", "Torpedo", "Sabre", "Javelin"
+    }
+    
+    local nouns = {
+        "Battalion", "Regiment", "Division", "Brigade", "Company", "Platoon",
+        "Squad", "Unit", "Force", "Guard", "Rangers", "Commandos", "Marines",
+        "Troopers", "Warriors", "Fighters", "Soldiers", "Knights", "Legion"
+    }
+    
+    local callsigns = {
+        "Alpha", "Bravo", "Charlie", "Delta", "Echo", "Foxtrot", "Golf", "Hotel",
+        "India", "Juliet", "Kilo", "Lima", "Mike", "November", "Oscar", "Papa",
+        "Quebec", "Romeo", "Sierra", "Tango", "Uniform", "Victor", "Whiskey", "X-ray"
+    }
+    
+    local geographic = {
+        "Mountain", "Desert", "Forest", "Arctic", "Coastal", "Highland", "Valley",
+        "Ridge", "Peak", "Storm", "Frost", "Dune", "Mesa", "Canyon", "River"
+    }
+    
+    local mythological = {
+        "Phoenix", "Dragon", "Griffin", "Hydra", "Kraken", "Valkyrie", "Titan",
+        "Cerberus", "Pegasus", "Chimera", "Minotaur", "Cyclops", "Banshee"
+    }
+    
+    local tactical = {
+        "Recon", "Assault", "Strike", "Support", "Heavy", "Light", "Stealth",
+        "Rapid", "Mobile", "Shock", "Elite", "Special", "Advanced", "Combat"
+    }
+    
+    -- Helper function to get random element from table
+    local function getRandomElement(tbl)
+        return tbl[math.random(#tbl)]
+    end
+    
+    -- Select random pattern
+    local pattern = getRandomElement(patterns)
+    local name = ""
+    
+    if pattern == "adjective_animal" then
+        name = getRandomElement(adjectives) .. " " .. getRandomElement(animals)
+        
+    elseif pattern == "adjective_weapon" then
+        name = getRandomElement(adjectives) .. " " .. getRandomElement(weapons)
+        
+    elseif pattern == "number_adjective_noun" then
+        local number = math.random(1, 99)
+        local suffix = "th"
+        if number % 10 == 1 and number ~= 11 then suffix = "st"
+        elseif number % 10 == 2 and number ~= 12 then suffix = "nd"  
+        elseif number % 10 == 3 and number ~= 13 then suffix = "rd"
+        end
+        name = number .. suffix .. " " .. getRandomElement(adjectives) .. " " .. getRandomElement(nouns)
+        
+    elseif pattern == "callsign_squad" then
+        name = getRandomElement(callsigns) .. " " .. getRandomElement(nouns)
+        
+    elseif pattern == "geographic_unit" then
+        name = getRandomElement(geographic) .. " " .. getRandomElement(nouns)
+        
+    elseif pattern == "mythological" then
+        name = getRandomElement(mythological) .. " " .. getRandomElement(nouns)
+        
+    elseif pattern == "tactical_designation" then
+        name = getRandomElement(tactical) .. " " .. getRandomElement(adjectives) .. " " .. getRandomElement(nouns)
+    end
+    
+    return name
+end
+
+function veaf.getNameForSpawnedGroup(pCoalition, pBaseName, pCombatZoneName)
+    local groupNameTemplate = "%s%s-%s#%s"
+
+    local coaStr = "[n]"
+    if pCoalition == coalition.side.RED then
+        coaStr = "[r]"
+    elseif pCoalition == coalition.side.BLUE then
+        coaStr = "[b]"
+    end
+
+    local baseName = pBaseName
+    local combatZoneName = pCombatZoneName
+    if veaf.HideNamesFromSpawnedGroups or not baseName or baseName == "" then
+        baseName = veaf.generateMilitaryGroupName()
+    end
+    if veaf.HideNamesFromSpawnedGroups or not combatZoneName then
+        combatZoneName = nil
+    end
+    if combatZoneName then
+        return string.format("%s %s %s#%s", combatZoneName, coaStr, baseName, veaf.getUniqueIdentifier())
+    else
+        return string.format("%s-%s#%s", coaStr, baseName, veaf.getUniqueIdentifier())
+    end
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -3912,6 +3854,12 @@ end
 
 -- initialize the random number generator to make it almost random
 math.random(); math.random(); math.random()
+local l_os = os
+if not l_os and SERVER_CONFIG and SERVER_CONFIG.getModule then
+    l_os = SERVER_CONFIG.getModule("os")
+end
+if l_os and l_os.time and math.randomseed then math.randomseed(l_os.time()) end
+
 
 --- Enable/Disable error boxes displayed on screen.
 env.setErrorMessageBoxEnabled(false)
@@ -3927,6 +3875,74 @@ veaf._discoverTriggerZones()
 
 --store maximum airbase lifes
 veaf.loadAirbasesLife0()
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- changes to AIEN 
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- Our AIEN_xcl_tag (VEAF version) does not autoinitialize. It's also set to log messages using the VEAF logging functions
+-- Instead, we count on the mission makers to call AIEN.performPhaseCycle() from the missionConfig.lua file (since v5.0)
+-- Here, we're upgrading the vanilla AIEN configuration to adapt it to our preferred defaults
+
+if AIEN then
+    AIEN.Id = "AIEN"
+    --AIEN.LogLevel = "info"
+    AIEN.LogLevel = "debug"
+    --AIEN.LogLevel = "trace"
+    AIEN.logger = veaf.loggers.new(AIEN.Id, AIEN.LogLevel)
+    AIEN.loggers = veaf.loggers -- replace AIEN loggers with ours
+
+    -- coalition affected by the script
+    AIEN.config.blueAI                        = true        -- true/false. If true, the AI enhancement will be applied to the blue coalition ground groups, else, no script effect will take place
+    AIEN.config.redAI                         = true        -- true/false. If true, the AI enhancement will be applied to the red  coalition ground groups, else, no script effect will take place
+
+    -- Action sets allowed.
+    AIEN.config.suppression                   = true        -- true/false. If true, once a group take fire from arty or air and it's not armoured, it will be suppressed for 15-45 seconds and won't return fire. Require reactions to be set as 'true'
+    AIEN.config.firemissions                  = true        -- true/false. If true, each artillery in the coalition will fire automatically at available targets provided by other ground units and drones
+    AIEN.config.reactions                     = true        -- true/false. If true, when a mover group gets an hit, it will react accordingly to its skills and to its situational awareness, not staying there taking hits without doing nothing
+    AIEN.config.dismount                      = true        -- true/false. //BEWARE: CAN AFFECT PERFORMANCES ON LOW END SYSTEMS // Thanks to MBot's original script, if true AI ground units with infantry transport capabilities (mainly APC/IFV/Trucks) will dismount soldiers with rifle, rpg and sometimes mandpads when appropriate
+
+    -- User advanced customization
+    AIEN.config.AIEN_xcl_tag                  = "XCL"       -- string, global, case sensitive. Can be dynamically changed by other script or triggers, since it's a global variable. used as a text format without spaces or special characters. only letters and numbers allowed. Any ground group with this 'tag' in its group name won't get AI enhancement behaviour, regardless of its coalition
+    AIEN.config.AIEN_zoneFilter               = ""          -- string, global, case sensitive. Can be dynamically changed by other script or triggers, since it's a global variable. used as a text format without spaces or special characters. only letters and numbers allowed, i.e. "AIEN" will fit. If left nil, or void string like "", won't be used. Only groups inside the named trigger zone will be affected by AIEN script behaviors of reaction, dismount and suppression, and vice versa. If no trigger zone with the specific name is in the mission, then all the groups will use AIEN features.
+    AIEN.config.message_feed                  = true        -- true/false. If true, each relevant AI action starting will also create a trigger message feedback for its coalition
+    AIEN.config.mark_on_f10_map               = true        -- true/false. If true, when an artillery fire mission is ongoing, a markpoint will appear on the map of the allied coalition to show the expected impact point
+    AIEN.config.skill_action_const            = false       -- true/false. If true, AI available reactions types will be limited by the group average skill. If not, almost 2/3 of all available actions will be always be available regardless of the group skills
+
+    -- User bug report: prior to report a bug, please try reproducing it with this variable set to "true"
+    AIEN.config.AIEN_debugProcessDetail       = true
+
+    -- movement variables
+    AIEN.config.outRoadSpeed                  = 8           -- do *3.6 for km/h, cause DCS thinks in m/s
+    AIEN.config.inRoadSpeed                   = 15          -- do *3.6 for km/h, cause DCS thinks in m/s
+    AIEN.config.infantrySpeed                 = 2           -- do *3.6 for km/h, cause DCS thinks in m/s
+    AIEN.config.repositionDistance            = 500         -- meters, radius to a specific destination point that will be randomized between 90% and 110% of this value. Used when a group is moved upon another group position: the other group position will be the destination.
+    AIEN.config.rndFleeDistance               = 2000        -- meters, reposition distance given to a group when a destination is not defined. The direction also will be totally random. Used, i.e., for "panic" reaction
+
+    -- dismounted troops variables
+    AIEN.config.droppedReposition             = 80          -- if no enemy is identified, this is the distance where dismount group will reposition themselves
+    AIEN.config.remountTime                   = 600         -- time after which dismounted troops will try to go back to their original vehicle for remount, if commanded
+    AIEN.config.infantryExtractDist           = 200         -- max distance from vehicle to troops to allow a group extraction
+    AIEN.config.infantrySearchDist            = 2000        -- max distance from vehicle to troops to allow a dismount group to run toward the enemies
+
+    -- informative calls variables
+    AIEN.config.outAmmoLowLevel               = 0.5         -- factor on total amount
+
+    -- reactions and tasking variables
+    AIEN.config.intelDbTimeout                = 1200        -- seconds. Used to cancel intelDb entries for units (not static!), when the time of the contact gathering is more than this value
+    AIEN.config.artyFireLastContactThereshold = 300         -- seconds, max amount of time since last contact to consider an arty target ok
+    AIEN.config.taskTimeout                   = 480         -- seconds after which a tasked group is removed from the database
+    AIEN.config.targetedTimeout               = 240         -- seconds after which a targeted variable in inteldb is removed from database
+    AIEN.config.disperseActionTime            = 120         -- seconds
+    AIEN.config.counterBatteryRadarRange      = 50000       -- m, capable distance for a radar to perform counter battery calculations
+    AIEN.config.counterBatteryPlanDelay       = 240         -- s, will be also randomized on +-35%. Used to define the delay of the planned counter battery fire if available
+    AIEN.config.smoke_source_num              = 5           -- number, between 4 and 9. Generated smokes for each unit when smoke reaction is called in. Any number below 4 or above 9 will be converted in the nearest threshold
+
+    -- SA evaluation variables
+    AIEN.config.proxyBuildingDistance         = 4000        -- m, if buildings are within this distance value, they are considered "close"
+    AIEN.config.proxyUnitsDistance            = 5000        -- m, if units are within this distance value, they are considered "close"
+    AIEN.config.supportDistance               = 8000        -- m, maximum distance for evaluating support or cover movements when under attack
+    AIEN.config.withrawDist                   = 15000       -- m, maximum distance for withdraw manoeuvre nearby a friendly support unit
+end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- changes to CTLD 
@@ -3990,7 +4006,6 @@ function veaf.ctld_initialize_replacement(configurationCallback)
         -- ************** Maximum Units SETUP for UNITS ******************
 
         ctld.unitLoadLimits["UH-1H"] = 10
-        ctld.unitLoadLimits["Mi-24P"] = 10
         ctld.unitLoadLimits["Mi-8MT"] = 20
         ctld.unitLoadLimits["UH-60L"] = 20
         ctld.unitLoadLimits["Yak-52"] = 1
@@ -4004,21 +4019,23 @@ function veaf.ctld_initialize_replacement(configurationCallback)
         ctld.internalCargoLimits["CH-47Fbl1"] = 4
 
         -- ************** Allowable actions for UNIT TYPES ******************
-        ctld.aircraftTypeTable = {
+        -- Add VEAF-specific aircraft types to the existing table
+        local veafAircraftTypes = {
                 "Hercules",
                 "UH-60L",
                 "Ka-50",
                 "Ka-50_3",
-                "Mi-8MT",
-                "Mi-24P",
                 "SA342L",
                 "SA342M",
                 "SA342Mistral",
                 "SA342Minigun",
-                "UH-1H",
-                "CH-47Fbl1",
                 "Yak-52",
         }
+        for _, aircraftType in ipairs(veafAircraftTypes) do
+            if not veaf.tableContains(ctld.aircraftTypeTable, aircraftType) then
+                table.insert(ctld.aircraftTypeTable, aircraftType)
+            end
+        end
 
         ctld.unitActions["Yak-52"] = {crates=false, troops=true}
         ctld.unitActions["UH-60L"] = {crates=true, troops=true}

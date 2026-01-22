@@ -23,7 +23,7 @@
 -- * -debug if set, the script will output some information ; useful to find out which units were edited
 -- * -trace if set, the script will output a lot of information : useful to understand what went wrong
 -- * -import if set, the script will import data from the .miz file (the exploded mission folder) instead of injecting data. Useful to update the settings file
--- * -dontclean, if set, the script will not delete all the groups starting with "veafSpawn-" from the mission
+-- * -dontclean, if set, the script will not delete all the injected groups (starting with "veafSpawn-" or matching ".*[tT]emplate.*") from the mission
 -- * -nameFilter, a regex that will be used to filter the groups that are processed (in either direction) by matching their names. Default to nil, all groups processed
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -40,11 +40,10 @@ veafSpawnableAircraftsEditor = {}
 veafSpawnableAircraftsEditor.Id = "SPAWN_AC - "
 
 --- Version.
-veafSpawnableAircraftsEditor.Version = "1.2.2"
+veafSpawnableAircraftsEditor.Version = "1.3.0"
 
 -- trace level, specific to this module
 veafSpawnableAircraftsEditor.Trace = false
---veafSpawnableAircraftsEditor.Trace = true
 veafSpawnableAircraftsEditor.Debug = false
 
 -- default position for all flights that are processed (imported from .miz to the configuration file) in meters, DCS model
@@ -365,9 +364,6 @@ local function processGroup(group)
   local rGroup = nil
   if group ~= nil then
     rGroup = deepcopy(group)
-    if rGroup.name and not startsWith(rGroup.name, "veafSpawn-", false) then
-      rGroup.name = "veafSpawn-" .. rGroup.name
-    end
     rGroup.hidden = true
     rGroup.lateActivation = true
     rGroup.x = DEFAULT_POSITION_X
@@ -486,7 +482,7 @@ function veafSpawnableAircraftsEditor.retrieveFromMission(missionPath, settingsP
   local rSettings = { categories = {}}
   local rCategories = rSettings.categories
   for _, groupData in pairs(veafSpawnableAircrafts) do
-    local rGroupData = processGroup(groupData)
+    local rGroupData = processGroup(groupData) or {}
     local categoryName = rGroupData.veafSpawnableAircraftsEditorData.categoryName:lower()
     if not rCategories[categoryName] then
       rCategories[categoryName] = { coalitions = {}}
@@ -642,7 +638,7 @@ function veafSpawnableAircraftsEditor.injectInMission(filePath, settingsPath, na
                 for _, missionGroup_t in pairs(missionCategoryGroup_t) do
                   local groupName = missionGroup_t.name
                   if groupName then
-                    if not startsWith(groupName, "veafSpawn-", false) then
+                    if not (startsWith(groupName, "veafSpawn-", false) or groupName:match(".*[tT]emplate.*")) then -- skip spawnable groups and template groups (i.e. re-add the groups that are not managed by this script)
                       table.insert(newMissionCategoryGroup_t, missionGroup_t)
                     else
                       veafSpawnableAircraftsEditor.logDebug(string.format("removing existing group from mission: [%s]",groupName))
@@ -767,18 +763,19 @@ if #arg < 2 then
     return
 end
 
-veafSpawnableAircraftsEditor.debug = false
-veafSpawnableAircraftsEditor.trace = false
+local debug = veafSpawnableAircraftsEditor.Debug or false
+local trace = veafSpawnableAircraftsEditor.Trace or false
 local import = false
 local nameFilter = nil
 local filePath = arg[1]
 local settingsPath = arg[2]
 for i = 3, #arg, 1 do
   -- processing an argument
+  veafSpawnableAircraftsEditor.logDebug(string.format("arg[%s]:lower()=%s", i, arg[i]:lower()))
   if arg[i]:lower() == "-debug" then
-    veafSpawnableAircraftsEditor.debug = true
+    debug = true
   elseif arg[i]:lower() == "-trace" then
-    veafSpawnableAircraftsEditor.trace = true
+    trace = true
   elseif arg[i]:lower() == "-import" then
     import = true
   elseif arg[i]:lower() == "-namefilter" then
@@ -787,10 +784,10 @@ for i = 3, #arg, 1 do
     veafSpawnableAircraftsEditor.leaveExistingGroupsInPlace = true
   end
 end
-if veafSpawnableAircraftsEditor.debug or veafSpawnableAircraftsEditor.trace then
+if debug or trace then
   veafSpawnableAircraftsEditor.Debug = true
   veafMissionEditor.Debug = true
-  if veafSpawnableAircraftsEditor.trace then
+  if trace then
     veafSpawnableAircraftsEditor.Trace = true
     veafMissionEditor.Trace = true
   end
@@ -800,6 +797,8 @@ else
   veafSpawnableAircraftsEditor.Trace = false
   veafMissionEditor.Trace = false
 end
+
+veafSpawnableAircraftsEditor.logDebug(string.format("nameFilter=%s", nameFilter or ""))
 
 if import then
   veafSpawnableAircraftsEditor.logInfo("Importing data from the mission and/or reprocessing the settings file)")

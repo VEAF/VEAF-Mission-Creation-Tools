@@ -909,7 +909,7 @@ function VeafCombatZone:getInformation()
         if self:isShowZonePositionInfo() then
             local zoneCenter = self:getCenter()
             message = message .. "\n\nLOCATION:\n" .. veaf.locationDescriptionString(zoneCenter)
-            message = message .. "\n\nWEATHER:\n" .. veafWeatherData.getWeatherString(zoneCenter)
+            message = message .. "\n\nWEATHER:\n" .. veafWeatherData.getWeatherString(zoneCenter, nil, veafWeatherUnitSystem.Systems.Full)
         end
     else
         message = message .. "zone is not yet active."

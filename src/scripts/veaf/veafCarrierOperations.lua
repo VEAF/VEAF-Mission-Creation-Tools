@@ -693,7 +693,15 @@ function veafCarrierOperations.getAtcForCarrierOperations(groupName, skipNavigat
         end
     end
 
-    result = result .. "\nWEATHER:\n" .. veafWeatherData.getWeatherString(startPosition, nil, veafWeatherUnitSystem.Systems.FaaNavy, 20) -- typical carrier deck height
+    -- determine the correct unit system based on carrier type
+    local weatherUnitSystem = veafWeatherUnitSystem.Systems.FaaNavy -- default for US carriers
+    if (carrierUnit) then
+        local carrierType = carrierUnit:getDesc()["typeName"]
+        if (carrierType == "KUZNECOW" or carrierType == "CV_1143_5") then
+            weatherUnitSystem = veafWeatherUnitSystem.Systems.MetricEastern -- for Russian carriers
+        end
+    end
+    result = result .. "\nWEATHER:\n" .. veafWeatherData.getWeatherString(startPosition, nil, weatherUnitSystem, 20) -- typical carrier deck height
 
     return result
 end

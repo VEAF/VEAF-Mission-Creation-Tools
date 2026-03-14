@@ -1,0 +1,18 @@
+# Normalize line endings: store LF in git, use LF everywhere (including Windows)
+* text=auto eol=lf
+
+# Lua sources: always LF (required by StyLua Unix mode)
+*.lua text eol=lf
+
+# Windows scripts: keep CRLF
+*.cmd text eol=crlf
+*.bat text eol=crlf
+*.ps1 text eol=crlf
+
+# Binary files: no conversion
+*.png binary
+*.jpg binary
+*.gif binary
+*.zip binary
+*.exe binary
+*.miz binary

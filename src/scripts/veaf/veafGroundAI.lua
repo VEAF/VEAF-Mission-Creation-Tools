@@ -80,9 +80,15 @@ function GroundUnitHandler.init(object)
 end
 
 function GroundUnitHandler.statusToString(status)
-  if status == GroundUnitHandler.STATUS_READY then return "STATUS_READY" end
-  if status == GroundUnitHandler.STATUS_ACTIVE then return "STATUS_ACTIVE" end
-  if status == GroundUnitHandler.STATUS_OVER then return "STATUS_OVER" end
+  if status == GroundUnitHandler.STATUS_READY then
+    return "STATUS_READY"
+  end
+  if status == GroundUnitHandler.STATUS_ACTIVE then
+    return "STATUS_ACTIVE"
+  end
+  if status == GroundUnitHandler.STATUS_OVER then
+    return "STATUS_OVER"
+  end
   return ""
 end
 
@@ -252,7 +258,7 @@ end
 -- METHODS
 
 function GroundUnitHandler:handleOrder(order)
-  veaf.loggers.get(veafGroundAI.Id):debug(self.CLASS_NAME .. "[%s]:handleOrder(%s)", veaf.p(self:getName()),veaf.p(order))
+  veaf.loggers.get(veafGroundAI.Id):debug(self.CLASS_NAME .. "[%s]:handleOrder(%s)", veaf.p(self:getName()), veaf.p(order))
   -- do nothing clever, all is done in the inheriting classes
   self:completeOrder()
 end
@@ -268,8 +274,7 @@ function GroundUnitHandler:check()
   end
 
   -- reschedule the check function
-  self:setCheckFunctionSchedule(mist.scheduleFunction(GroundUnitHandler.check, { self },
-    timer.getTime() + veafGroundAI.WATCHDOG_DELAY))
+  self:setCheckFunctionSchedule(mist.scheduleFunction(GroundUnitHandler.check, { self }, timer.getTime() + veafGroundAI.WATCHDOG_DELAY))
 end
 
 function GroundUnitHandler:start()
@@ -430,7 +435,9 @@ function ArtilleryUnitHandler:fireForAim(coordinates, shells, radius)
   if not radius then
     radius = ArtilleryUnitHandler.FIREFORAIM_RADIUS
   end
-  veaf.loggers.get(veafGroundAI.Id):debug(self.CLASS_NAME .. "[%s]:fireForAim(%s, %s, %s)", veaf.p(self:getName()), veaf.p(coordinates), veaf.p(shells), veaf.p(radius))
+  veaf.loggers
+    .get(veafGroundAI.Id)
+    :debug(self.CLASS_NAME .. "[%s]:fireForAim(%s, %s, %s)", veaf.p(self:getName()), veaf.p(coordinates), veaf.p(shells), veaf.p(radius))
   -- check the parameters
   if not coordinates then
     veaf.loggers.get(veafGroundAI.Id):warn(self.CLASS_NAME .. "[%s]:fireForAim() : no target coordinates", veaf.p(self:getName()))
@@ -454,11 +461,16 @@ function ArtilleryUnitHandler:fireForEffect(coordinates, shells, radius)
   if not coordinates then
     coordinates = self._lastTarget
   end
-  veaf.loggers.get(veafGroundAI.Id):debug(self.CLASS_NAME .. "[%s]:fireForEffect(%s, %s)", veaf.p(self:getName()), veaf.p(shells), veaf.p(radius))
+  veaf.loggers
+    .get(veafGroundAI.Id)
+    :debug(self.CLASS_NAME .. "[%s]:fireForEffect(%s, %s)", veaf.p(self:getName()), veaf.p(shells), veaf.p(radius))
   if not coordinates then
-    veaf.loggers.get(veafGroundAI.Id):warn(self.CLASS_NAME .. "[%s]:fireForEffect() : no previous target - cannot fire for effect", veaf.p(self:getName()))
+    veaf.loggers
+      .get(veafGroundAI.Id)
+      :warn(self.CLASS_NAME .. "[%s]:fireForEffect() : no previous target - cannot fire for effect", veaf.p(self:getName()))
     if not self.silent then
-      local message = string.format("%s cannot fire for effect, no target coordinates provided and no previous target exist", veaf.p(self:getName()))
+      local message =
+        string.format("%s cannot fire for effect, no target coordinates provided and no previous target exist", veaf.p(self:getName()))
       trigger.action.outText(message, 10)
     end
     return
@@ -468,7 +480,13 @@ end
 
 -- give the artillery unit a fire order
 function ArtilleryUnitHandler:fireAtCoordinates(coordinates, shells, radius)
-  veaf.loggers.get(veafGroundAI.Id):debug(self.CLASS_NAME .. "[%s]:fireAtCoordinates(%d, %s, %s)", veaf.p(self:getName()), veaf.p(shells), veaf.p(coordinates), veaf.p(radius))
+  veaf.loggers.get(veafGroundAI.Id):debug(
+    self.CLASS_NAME .. "[%s]:fireAtCoordinates(%d, %s, %s)",
+    veaf.p(self:getName()),
+    veaf.p(shells),
+    veaf.p(coordinates),
+    veaf.p(radius)
+  )
   -- check the parameters
   if not shells then
     veaf.loggers.get(veafGroundAI.Id):warn(self.CLASS_NAME .. "[%s]:fireAtCoordinates() : shells is nil", veaf.p(self:getName()))
@@ -492,7 +510,9 @@ function ArtilleryUnitHandler:fireAtCoordinates(coordinates, shells, radius)
     if _lat and _lon then
       target = coord.LLtoLO(_lat, _lon)
     else
-      veaf.loggers.get(veafGroundAI.Id):warn(self.CLASS_NAME .. "[%s]:fireAtCoordinates() : coordinates are not valid: %s", veaf.p(self:getName()), veaf.p(coordinates))
+      veaf.loggers
+        .get(veafGroundAI.Id)
+        :warn(self.CLASS_NAME .. "[%s]:fireAtCoordinates() : coordinates are not valid: %s", veaf.p(self:getName()), veaf.p(coordinates))
     end
   end
   local order = { verb = ArtilleryUnitHandler.ORDER_FIRE, parameters = { shells = shells, target = target, radius = radius } }
@@ -512,10 +532,22 @@ function ArtilleryUnitHandler:handleOrder(order)
       -- convert the target coordinates to UTM for the message
       local lat, lon, _ = coord.LOtoLL(target)
       local grid = coord.LLtoMGRS(lat, lon)
-      local coordinates = grid.UTMZone .. ' ' .. grid.MGRSDigraph .. ' ' .. grid.Easting .. ' ' .. grid.Northing
-      local message = string.format("%s is firing %d shells at %s with a %s m dispersion", veaf.p(self:getName()), veaf.p(shells), veaf.p(coordinates), veaf.p(radius))
+      local coordinates = grid.UTMZone .. " " .. grid.MGRSDigraph .. " " .. grid.Easting .. " " .. grid.Northing
+      local message = string.format(
+        "%s is firing %d shells at %s with a %s m dispersion",
+        veaf.p(self:getName()),
+        veaf.p(shells),
+        veaf.p(coordinates),
+        veaf.p(radius)
+      )
       trigger.action.outText(message, 10)
-      veaf.loggers.get(veafGroundAI.Id):trace("ArtilleryUnitHandler[%s]:handleOrder() : firing %d shells at %s with a %s m dispersion", veaf.p(self:getName()), veaf.p(shells), veaf.p(coordinates), veaf.p(radius))
+      veaf.loggers.get(veafGroundAI.Id):trace(
+        "ArtilleryUnitHandler[%s]:handleOrder() : firing %d shells at %s with a %s m dispersion",
+        veaf.p(self:getName()),
+        veaf.p(shells),
+        veaf.p(coordinates),
+        veaf.p(radius)
+      )
       -- fire the shells
       local fireParams = {
         x = target.x,
@@ -525,7 +557,7 @@ function ArtilleryUnitHandler:handleOrder(order)
         expendQtyEnabled = true,
         counterbattaryRadius = 500,
       }
-      local fire = { id = 'FireAtPoint', params = fireParams }
+      local fire = { id = "FireAtPoint", params = fireParams }
       self:getDcsGroup():getController():pushTask(fire)
       self._lastTarget = target
     end
@@ -669,9 +701,9 @@ function veafGroundAI.markTextAnalysis(eventPos, eventCoalition, text)
   -- Option parameters extracted from the mark text.
   local options = {}
   options.verb = veafGroundAI.VERB_SET -- can be "set", "unset", "order", "start", "stop", "status"
-  options.group = nil                  -- the DCS group that is concerned by "set" and "unset" verbs
-  options.order = nil                  -- the order that is given by "order" verb
-  options.name = nil                   -- the name of the handler that is concerned by all verbs
+  options.group = nil -- the DCS group that is concerned by "set" and "unset" verbs
+  options.order = nil -- the order that is given by "order" verb
+  options.name = nil -- the name of the handler that is concerned by all verbs
 
   -- Check for correct keywords.
   if text:lower():find(veafGroundAI.MarkerKeyphrase .. " set") then
@@ -722,10 +754,12 @@ function veafGroundAI.markTextAnalysis(eventPos, eventCoalition, text)
   end
 
   -- check mandatory parameter "name" for all commands
-  if not (options.name) then return nil end
+  if not options.name then
+    return nil
+  end
 
   -- check mandatory parameter "groupname" for commands "set" and "unset"
-  if ((options.verb == veafGroundAI.VERB_SET or options.verb == veafGroundAI.VERB_UNSET) and not (options.group)) then
+  if (options.verb == veafGroundAI.VERB_SET or options.verb == veafGroundAI.VERB_UNSET) and not options.group then
     -- search for the nearest allied group
     local minDist = 999999
     local closestUnit = nil

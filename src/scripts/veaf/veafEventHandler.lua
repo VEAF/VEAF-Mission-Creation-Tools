@@ -85,8 +85,12 @@ function veafEventHandler.completeUnitFromName(unitName)
       end
       if unit.getCallsign then
         unitCallsign = unit:getCallsign()
-        if type(unitCallsign) == "table" then unitCallsign = unitCallsign["name"] end
-        if type(unitCallsign) == "number" then unitCallsign = "" .. unitCallsign end
+        if type(unitCallsign) == "table" then
+          unitCallsign = unitCallsign["name"]
+        end
+        if type(unitCallsign) == "number" then
+          unitCallsign = "" .. unitCallsign
+        end
       end
     end
     local unitPilotName = nil
@@ -97,7 +101,7 @@ function veafEventHandler.completeUnitFromName(unitName)
       unitPilotName = unitPilot.name
       unitPilotUcid = unitPilot.ucid
     end
-    if unitPilotName then 
+    if unitPilotName then
       unitCallsign = unitPilotName
     end
 
@@ -111,7 +115,7 @@ function veafEventHandler.completeUnitFromName(unitName)
       unitCategory = unitCategory,
       unitPilotName = unitPilotName,
       unitPilotUcid = unitPilotUcid,
-      unitLifePercent = unitLifePercent
+      unitLifePercent = unitLifePercent,
     }
   else
     return nil
@@ -136,12 +140,12 @@ function veafEventHandler.addCallback(name, events, callback)
   if events ~= nil then
     -- validate all event types
     for _, eventNameOrId in pairs(events) do
-      if not(veafEventHandler.checkEventKnown(eventNameOrId)) then
+      if not (veafEventHandler.checkEventKnown(eventNameOrId)) then
         return false
       end
     end
   end
-  table.insert(veafEventHandler.callbacks, {name=name, events=events, call=callback})
+  table.insert(veafEventHandler.callbacks, { name = name, events = events, call = callback })
   return true
 end
 
@@ -162,7 +166,7 @@ local function transformEvent(event)
     target = veafEventHandler.completeUnit(event.target),
     weapon = event.weapon,
     weaponName = event.weapon_name,
-    comment = event.comment
+    comment = event.comment,
   }
   return _event
 end
@@ -176,317 +180,317 @@ veafEventHandler.eventHandler = {}
 
 veafEventHandler.EVENTS = {
   [0] = {
-      name = "S_EVENT_INVALID",
-      id = 0,
-      enabled = false
-    },
+    name = "S_EVENT_INVALID",
+    id = 0,
+    enabled = false,
+  },
   [1] = {
-      name = "S_EVENT_SHOT",
-      id = 1,
-      enabled = true
-    },
+    name = "S_EVENT_SHOT",
+    id = 1,
+    enabled = true,
+  },
   [2] = {
-      name = "S_EVENT_HIT",
-      id = 2,
-      enabled = true
-    },
+    name = "S_EVENT_HIT",
+    id = 2,
+    enabled = true,
+  },
   [3] = {
-      name = "S_EVENT_TAKEOFF",
-      id = 3,
-      enabled = true
-    },
+    name = "S_EVENT_TAKEOFF",
+    id = 3,
+    enabled = true,
+  },
   [4] = {
-      name = "S_EVENT_LAND",
-      id = 4,
-      enabled = true
-    },
+    name = "S_EVENT_LAND",
+    id = 4,
+    enabled = true,
+  },
   [5] = {
-      name = "S_EVENT_CRASH",
-      id = 5,
-      enabled = true
-    },
+    name = "S_EVENT_CRASH",
+    id = 5,
+    enabled = true,
+  },
   [6] = {
-      name = "S_EVENT_EJECTION",
-      id = 6,
-      enabled = true
-    },
+    name = "S_EVENT_EJECTION",
+    id = 6,
+    enabled = true,
+  },
   [7] = {
-      name = "S_EVENT_REFUELING",
-      id = 7,
-      enabled = true
-    },
+    name = "S_EVENT_REFUELING",
+    id = 7,
+    enabled = true,
+  },
   [8] = {
-      name = "S_EVENT_DEAD",
-      id = 8,
-      enabled = true
-    },
+    name = "S_EVENT_DEAD",
+    id = 8,
+    enabled = true,
+  },
   [9] = {
-      name = "S_EVENT_PILOT_DEAD",
-      id = 9,
-      enabled = true
-    },
+    name = "S_EVENT_PILOT_DEAD",
+    id = 9,
+    enabled = true,
+  },
   [10] = {
-      name = "S_EVENT_BASE_CAPTURED",
-      id = 10,
-      enabled = true
-    },
+    name = "S_EVENT_BASE_CAPTURED",
+    id = 10,
+    enabled = true,
+  },
   [11] = {
-      name = "S_EVENT_MISSION_START",
-      id = 11,
-      enabled = true
-    },
+    name = "S_EVENT_MISSION_START",
+    id = 11,
+    enabled = true,
+  },
   [12] = {
-      name = "S_EVENT_MISSION_END",
-      id = 12,
-      enabled = true
-    },
+    name = "S_EVENT_MISSION_END",
+    id = 12,
+    enabled = true,
+  },
   [13] = {
-      name = "S_EVENT_TOOK_CONTROL",
-      id = 13,
-      enabled = true
-    },
+    name = "S_EVENT_TOOK_CONTROL",
+    id = 13,
+    enabled = true,
+  },
   [14] = {
-      name = "S_EVENT_REFUELING_STOP",
-      id = 14,
-      enabled = true
-    },
+    name = "S_EVENT_REFUELING_STOP",
+    id = 14,
+    enabled = true,
+  },
   [15] = {
-      name = "S_EVENT_BIRTH",
-      id = 15,
-      enabled = true,
-      delaycallback = true
-    },
+    name = "S_EVENT_BIRTH",
+    id = 15,
+    enabled = true,
+    delaycallback = true,
+  },
   [16] = {
-      name = "S_EVENT_HUMAN_FAILURE",
-      id = 16,
-      enabled = true
-    },
+    name = "S_EVENT_HUMAN_FAILURE",
+    id = 16,
+    enabled = true,
+  },
   [17] = {
-      name = "S_EVENT_DETAILED_FAILURE",
-      id = 17,
-      enabled = true
-    },
+    name = "S_EVENT_DETAILED_FAILURE",
+    id = 17,
+    enabled = true,
+  },
   [18] = {
-      name = "S_EVENT_ENGINE_STARTUP",
-      id = 18,
-      enabled = true
-    },
+    name = "S_EVENT_ENGINE_STARTUP",
+    id = 18,
+    enabled = true,
+  },
   [19] = {
-      name = "S_EVENT_ENGINE_SHUTDOWN",
-      id = 19,
-      enabled = true
-    },
+    name = "S_EVENT_ENGINE_SHUTDOWN",
+    id = 19,
+    enabled = true,
+  },
   [20] = {
-      name = "S_EVENT_PLAYER_ENTER_UNIT",
-      id = 20,
-      enabled = true,
-      delaycallback = true
-    },
+    name = "S_EVENT_PLAYER_ENTER_UNIT",
+    id = 20,
+    enabled = true,
+    delaycallback = true,
+  },
   [21] = {
-      name = "S_EVENT_PLAYER_LEAVE_UNIT",
-      id = 21,
-      enabled = true
-    },
+    name = "S_EVENT_PLAYER_LEAVE_UNIT",
+    id = 21,
+    enabled = true,
+  },
   [22] = {
-      name = "S_EVENT_PLAYER_COMMENT",
-      id = 22,
-      enabled = true
-    },
+    name = "S_EVENT_PLAYER_COMMENT",
+    id = 22,
+    enabled = true,
+  },
   [23] = {
-      name = "S_EVENT_SHOOTING_START",
-      id = 23,
-      enabled = true
-    },
+    name = "S_EVENT_SHOOTING_START",
+    id = 23,
+    enabled = true,
+  },
   [24] = {
-      name = "S_EVENT_SHOOTING_END",
-      id = 24,
-      enabled = true
-    },
+    name = "S_EVENT_SHOOTING_END",
+    id = 24,
+    enabled = true,
+  },
   [25] = {
-      name = "S_EVENT_MARK_ADDED",
-      id = 25,
-      enabled = true
-    },
+    name = "S_EVENT_MARK_ADDED",
+    id = 25,
+    enabled = true,
+  },
   [26] = {
-      name = "S_EVENT_MARK_CHANGE",
-      id = 26,
-      enabled = true
-    },
+    name = "S_EVENT_MARK_CHANGE",
+    id = 26,
+    enabled = true,
+  },
   [27] = {
-      name = "S_EVENT_MARK_REMOVED",
-      id = 27,
-      enabled = true
-    },
+    name = "S_EVENT_MARK_REMOVED",
+    id = 27,
+    enabled = true,
+  },
   [28] = {
-      name = "S_EVENT_KILL",
-      id = 28,
-      enabled = true
-    },
+    name = "S_EVENT_KILL",
+    id = 28,
+    enabled = true,
+  },
   [29] = {
-      name = "S_EVENT_SCORE",
-      id = 29,
-      enabled = true
-    },
+    name = "S_EVENT_SCORE",
+    id = 29,
+    enabled = true,
+  },
   [30] = {
-      name = "S_EVENT_UNIT_LOST",
-      id = 30,
-      enabled = true
-    },
+    name = "S_EVENT_UNIT_LOST",
+    id = 30,
+    enabled = true,
+  },
   [31] = {
-      name = "S_EVENT_LANDING_AFTER_EJECTION",
-      id = 31,
-      enabled = true
-    },
+    name = "S_EVENT_LANDING_AFTER_EJECTION",
+    id = 31,
+    enabled = true,
+  },
   [32] = {
-      name = "S_EVENT_PARATROOPER_LENDING",
-      id = 32,
-      enabled = true
-    },
+    name = "S_EVENT_PARATROOPER_LENDING",
+    id = 32,
+    enabled = true,
+  },
   [33] = {
-      name = "S_EVENT_DISCARD_CHAIR_AFTER_EJECTION",
-      id = 33,
-      enabled = true
-    },
+    name = "S_EVENT_DISCARD_CHAIR_AFTER_EJECTION",
+    id = 33,
+    enabled = true,
+  },
   [34] = {
-      name = "S_EVENT_WEAPON_ADD",
-      id = 34,
-      enabled = true
-    },
+    name = "S_EVENT_WEAPON_ADD",
+    id = 34,
+    enabled = true,
+  },
   [35] = {
-      name = "S_EVENT_TRIGGER_ZONE",
-      id = 35,
-      enabled = true
-    },
+    name = "S_EVENT_TRIGGER_ZONE",
+    id = 35,
+    enabled = true,
+  },
   [36] = {
-      name = "S_EVENT_LANDING_QUALITY_MARK",
-      id = 36,
-      enabled = true
-    },
+    name = "S_EVENT_LANDING_QUALITY_MARK",
+    id = 36,
+    enabled = true,
+  },
   [37] = {
-      name = "S_EVENT_BDA",
-      id = 37,
-      enabled = true
-    },
+    name = "S_EVENT_BDA",
+    id = 37,
+    enabled = true,
+  },
   [38] = {
-      name = "S_EVENT_AI_ABORT_MISSION",
-      id = 38,
-      enabled = true
-    },
+    name = "S_EVENT_AI_ABORT_MISSION",
+    id = 38,
+    enabled = true,
+  },
   [39] = {
-      name = "S_EVENT_DAYNIGHT",
-      id = 39,
-      enabled = true
-    },
+    name = "S_EVENT_DAYNIGHT",
+    id = 39,
+    enabled = true,
+  },
   [40] = {
-      name = "S_EVENT_FLIGHT_TIME",
-      id = 40,
-      enabled = true
-    },
+    name = "S_EVENT_FLIGHT_TIME",
+    id = 40,
+    enabled = true,
+  },
   [41] = {
-      name = "S_EVENT_PLAYER_SELF_KILL_PILOT",
-      id = 41,
-      enabled = true
-    },
+    name = "S_EVENT_PLAYER_SELF_KILL_PILOT",
+    id = 41,
+    enabled = true,
+  },
   [42] = {
-      name = "S_EVENT_PLAYER_CAPTURE_AIRFIELD",
-      id = 42,
-      enabled = true
-    },
+    name = "S_EVENT_PLAYER_CAPTURE_AIRFIELD",
+    id = 42,
+    enabled = true,
+  },
   [43] = {
-      name = "S_EVENT_EMERGENCY_LANDING",
-      id = 43,
-      enabled = true
-    },
+    name = "S_EVENT_EMERGENCY_LANDING",
+    id = 43,
+    enabled = true,
+  },
   [44] = {
-      name = "S_EVENT_UNIT_CREATE_TASK",
-      id = 44,
-      enabled = true
-    },
+    name = "S_EVENT_UNIT_CREATE_TASK",
+    id = 44,
+    enabled = true,
+  },
   [45] = {
-      name = "S_EVENT_UNIT_DELETE_TASK",
-      id = 45,
-      enabled = true
-    },
+    name = "S_EVENT_UNIT_DELETE_TASK",
+    id = 45,
+    enabled = true,
+  },
   [46] = {
-      name = "S_EVENT_SIMULATION_START",
-      id = 46,
-      enabled = true
-    },
+    name = "S_EVENT_SIMULATION_START",
+    id = 46,
+    enabled = true,
+  },
   [47] = {
-      name = "S_EVENT_WEAPON_REARM",
-      id = 47,
-      enabled = true
-    },
+    name = "S_EVENT_WEAPON_REARM",
+    id = 47,
+    enabled = true,
+  },
   [48] = {
-      name = "S_EVENT_WEAPON_DROP",
-      id = 48,
-      enabled = true
-    },
+    name = "S_EVENT_WEAPON_DROP",
+    id = 48,
+    enabled = true,
+  },
   [49] = {
-      name = "S_EVENT_UNIT_TASK_COMPLETE",
-      id = 49,
-      enabled = true
-    },
+    name = "S_EVENT_UNIT_TASK_COMPLETE",
+    id = 49,
+    enabled = true,
+  },
   [50] = {
-      name = "S_EVENT_UNIT_TASK_STAGE",
-      id = 50,
-      enabled = true
-    },
+    name = "S_EVENT_UNIT_TASK_STAGE",
+    id = 50,
+    enabled = true,
+  },
   [51] = {
-      name = "S_EVENT_MAC_EXTRA_SCORE",
-      id = 51,
-      enabled = true
-    },
+    name = "S_EVENT_MAC_EXTRA_SCORE",
+    id = 51,
+    enabled = true,
+  },
   [52] = {
-      name = "S_EVENT_MISSION_RESTART",
-      id = 52,
-      enabled = true
-    },
+    name = "S_EVENT_MISSION_RESTART",
+    id = 52,
+    enabled = true,
+  },
   [53] = {
-      name = "S_EVENT_MISSION_WINNER",
-      id = 53,
-      enabled = true
-    },
+    name = "S_EVENT_MISSION_WINNER",
+    id = 53,
+    enabled = true,
+  },
   [54] = {
-      name = "S_EVENT_RUNWAY_TAKEOFF",
-      id = 54,
-      enabled = true
-    },
+    name = "S_EVENT_RUNWAY_TAKEOFF",
+    id = 54,
+    enabled = true,
+  },
   [55] = {
-      name = "S_EVENT_RUNWAY_TOUCH",
-      id = 55,
-      enabled = true
-    },
+    name = "S_EVENT_RUNWAY_TOUCH",
+    id = 55,
+    enabled = true,
+  },
   [56] = {
-      name = "S_EVENT_MAC_LMS_RESTART",
-      id = 56,
-      enabled = true
-    },
+    name = "S_EVENT_MAC_LMS_RESTART",
+    id = 56,
+    enabled = true,
+  },
   [57] = {
-      name = "S_EVENT_SIMULATION_FREEZE",
-      id = 57,
-      enabled = true
-    },
+    name = "S_EVENT_SIMULATION_FREEZE",
+    id = 57,
+    enabled = true,
+  },
   [58] = {
-      name = "S_EVENT_SIMULATION_UNFREEZE",
-      id = 58,
-      enabled = true
-    },
+    name = "S_EVENT_SIMULATION_UNFREEZE",
+    id = 58,
+    enabled = true,
+  },
   [59] = {
-      name = "S_EVENT_HUMAN_AIRCRAFT_REPAIR_START",
-      id = 59,
-      enabled = true
-    },
+    name = "S_EVENT_HUMAN_AIRCRAFT_REPAIR_START",
+    id = 59,
+    enabled = true,
+  },
   [60] = {
-      name = "S_EVENT_HUMAN_AIRCRAFT_REPAIR_FINISH",
-      id = 60,
-      enabled = true
-    },
+    name = "S_EVENT_HUMAN_AIRCRAFT_REPAIR_FINISH",
+    id = 60,
+    enabled = true,
+  },
   [61] = {
-      name = "S_EVENT_MAX",
-      id = 61,
-      enabled = false
-    }
+    name = "S_EVENT_MAX",
+    id = 61,
+    enabled = false,
+  },
 }
 
 veafEventHandler.unknownEvents = {} -- will be used to remember already signaled unknown events
@@ -528,20 +532,19 @@ end
 
 --- Handle world events.
 function veafEventHandler.eventHandler:onEvent(event)
-
   if event == nil then
     veaf.loggers.get(veafEventHandler.Id):error("Event handler was called with a nil event!")
     return
   end
 
   -- check that we know the event
-  if not(veafEventHandler.checkEventKnown(event.id, true)) then
+  if not (veafEventHandler.checkEventKnown(event.id, true)) then
     return
   end
 
   -- skip disabled events
-  if not(veafEventHandler.isEventEnabled(event.id)) then
-      return true
+  if not (veafEventHandler.isEventEnabled(event.id)) then
+    return true
   end
 
   local _event = transformEvent(event)

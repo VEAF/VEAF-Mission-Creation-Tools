@@ -88,7 +88,6 @@ function VeafCache:getDefaultTimeToLive()
   return self.defaultTTL
 end
 
-
 -- remove cached data
 function VeafCache:delCachedData(key)
   if self.cache then
@@ -106,7 +105,7 @@ function VeafCache:setCachedData(key, value, timetolive)
     end
     cachedData = {
       data = value,
-      endoflife = _endoflife
+      endoflife = _endoflife,
     }
     self.cache[key] = cachedData
   end
@@ -117,8 +116,10 @@ end
 function VeafCache:getCachedData(key)
   if self.cache then
     local cachedData = self.cache[key]
-    if cachedData and cachedData.endoflife < timer.getTime() then
-      return cachedData
+    if cachedData then
+      if cachedData.endoflife == VeafCache.LIVE_FOREVER or cachedData.endoflife >= timer.getTime() then
+        return cachedData
+      end
     end
   end
   return nil

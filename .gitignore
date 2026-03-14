@@ -2,6 +2,9 @@ build/
 node_modules/
 cache/
 
+# LuaLS third-party addons (cloned locally, not committed)
+.lua-addons/
+
 configuration.json
 dist/
 compile-*.cmd

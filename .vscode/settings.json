@@ -1,52 +1,4 @@
 {
-    "Lua.diagnostics.globals": [
-        "AIRBOSS",
-        "lfs",
-        "trigger",
-        "land",
-        "timer",
-        "env",
-        "Unit",
-        "Group",
-        "StaticObject",
-        "coord",
-        "AI",
-        "coalition",
-        "missionCommands",
-        "Controller",
-        "Spot",
-        "atmosphere",
-        "world",
-        "Object",
-        "Weapon",
-        "Airbase",
-        "SERVER_CONFIG",
-        "log",
-        "net",
-        "DCS",
-        "db",
-        "settings",
-        "waypoints",
-        "radioSettings",
-        "veafServerHook",
-        "base",
-        "veaf",
-        "veafInterpreter",
-        "veafMissileGuardian",
-        "veafNamedPoints",
-        "veafRadio",
-        "veafAirWaves",
-        "veafSpawn",
-        "veafRecorder",
-        "veafEventHandler",
-        "veafGrass",
-        "veafCombatZone",
-        "veafQraManager",
-        "veafRemote",
-        "veafSpawnableAircraftsEditor",
-        "veafCombatMission",
-        "Sim"
-    ],
     "cmake.sourceDirectory": "${workspaceFolder}/src/c/buffering_socket",
     "files.associations": {
         "xstring": "cpp",
@@ -106,5 +58,14 @@
     },
     "Lua.workspace.checkThirdParty": false,
     "Lua.diagnostics.workspaceDelay": 30000,
-    "python-envs.pythonProjects": []
+    "[lua]": {
+        "editor.defaultFormatter": "JohnnyMorganz.stylua",
+        "editor.formatOnSave": true
+    },
+    "stylua.styluaPath": "${env:USERPROFILE}\\.local\\bin\\stylua.exe",
+    "python-envs.pythonProjects": [],
+    "chat.tools.terminal.autoApprove": {
+        "ForEach-Object": true,
+        "stylua": true
+    }
 }

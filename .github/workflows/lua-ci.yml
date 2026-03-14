@@ -1,0 +1,56 @@
+name: Lua CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: ["**"]
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Lua 5.1 unit tests (luaunit)
+  # ---------------------------------------------------------------------------
+  lua-unit-tests:
+    name: Lua Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Lua 5.1
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y lua5.1
+
+      - name: Run test suite
+        run: |
+          FAILED=0
+          for f in $(ls test/lua/test_*.lua | sort); do
+            echo ""
+            echo "--- $(basename "$f") ---"
+            lua5.1 "$f" || FAILED=1
+          done
+          echo ""
+          if [ "$FAILED" -eq 0 ]; then
+            echo "All tests passed."
+          else
+            echo "One or more test suites failed."
+            exit 1
+          fi
+
+  # ---------------------------------------------------------------------------
+  # StyLua formatting check
+  # ---------------------------------------------------------------------------
+  stylua-check:
+    name: StyLua Formatting
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check formatting with StyLua
+        uses: JohnnyMorganz/stylua-action@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          version: "2.4.0"
+          args: --check src/scripts/veaf/

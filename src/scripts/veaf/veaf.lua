@@ -642,7 +642,7 @@ function veaf.tableContains(table, element)
     return false
 end
 
-function veaf.p(o, level, skip, includeMeta, dontRecurse)
+function veaf.p(o, level, skip, includeMeta, dontRecurse, visited)
     if o and type(o) == "table" and (o.x and o.z and o.y and #o == 3) then
         return string.format("{x=%s, z=%s, y=%s}", veaf.p(o.x), veaf.p(o.z), veaf.p(o.y))
     elseif o and type(o) == "table" and (o.x and o.y and #o == 2)  then
@@ -654,12 +654,14 @@ function veaf.p(o, level, skip, includeMeta, dontRecurse)
             skip[value]=true
         end
     end
-    return veaf._p(o, level, skip, includeMeta, dontRecurse)
+    if visited == nil then visited = {} end
+    return veaf._p(o, level, skip, includeMeta, dontRecurse, visited)
 end
 
-function veaf._p(o, level, skip, includeMeta, dontRecurse)
+function veaf._p(o, level, skip, includeMeta, dontRecurse, visited)
     local MAX_LEVEL = 20
     if level == nil then level = 0 end
+    if visited == nil then visited = {} end
     if level > MAX_LEVEL then
         veaf.loggers.get(veaf.Id):error("max depth reached in veaf.p : "..tostring(MAX_LEVEL))
         return ""
@@ -668,6 +670,10 @@ function veaf._p(o, level, skip, includeMeta, dontRecurse)
     if o == nil then
         text = "[nil]"
     elseif (type(o) == "table") and not(dontRecurse) then
+        if visited[o] then
+            return "[circular ref]"
+        end
+        visited[o] = true
         text = "\n"
         local keys = {}
         local values = {}
@@ -683,7 +689,7 @@ function veaf._p(o, level, skip, includeMeta, dontRecurse)
                 text = text .. " "
             end
             if not (skip and skip[key]) then
-                text = text .. ".".. key.."="..veaf.p(value, level+1, skip, includeMeta, dontRecurse) .. "\n"
+                text = text .. ".".. key.."="..veaf.p(value, level+1, skip, includeMeta, dontRecurse, visited) .. "\n"
             else
                 text = text .. ".".. key.."= [[SKIPPED]]\n"
             end
@@ -715,7 +721,7 @@ function veaf._p(o, level, skip, includeMeta, dontRecurse)
                         elseif key == "getDesc" then
                             value = o:getDesc()
                         end
-                        text = text .. "[META].".. key.."="..veaf.p(value, level+1, skip, includeMeta, true) .. "\n"
+                        text = text .. "[META].".. key.."="..veaf.p(value, level+1, skip, includeMeta, true, visited) .. "\n"
                     else
                         text = text .. "[META].".. key.."= [[SKIPPED]]\n"
                     end

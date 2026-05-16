@@ -295,16 +295,21 @@ function veafMove._getTankerRouteData(groupName)
     point1 = points[#points - 2],
     point2 = points[#points - 1],
     point3 = points[#points],
-  }, nil
+  },
+    nil
 end
 
 --- Find the Orbit task in a waypoint's task list.
 --- Returns the task table or nil if not found.
 function veafMove._findOrbitTaskInPoint(point)
   local task1 = veaf.findInTable(point, "task")
-  if not task1 then return nil end
+  if not task1 then
+    return nil
+  end
   local tasks = task1.params and task1.params.tasks
-  if not tasks then return nil end
+  if not tasks then
+    return nil
+  end
   for _, task in pairs(tasks) do
     if task.id and task.id == "Orbit" and task.params then
       return task
@@ -460,138 +465,138 @@ function veafMove.moveTanker(eventPos, groupName, speed, alt, hdg, distance, tel
   veaf.loggers.get(veafMove.Id):trace(string.format("point2=%s", veaf.p(point2)))
   veaf.loggers.get(veafMove.Id):trace(string.format("point3=%s", veaf.p(point3)))
 
-    -- if distance is not set, compute distance between point2 and point3
-    local distance = distance
-    if distance == nil then
-      distance = math.sqrt((point3.x - point2.x) ^ 2 + (point3.y - point2.y) ^ 2)
-    else
-      -- convert distance to meters
-      distance = distance * 1852 -- meters
-    end
+  -- if distance is not set, compute distance between point2 and point3
+  local distance = distance
+  if distance == nil then
+    distance = math.sqrt((point3.x - point2.x) ^ 2 + (point3.y - point2.y) ^ 2)
+  else
+    -- convert distance to meters
+    distance = distance * 1852 -- meters
+  end
 
-    -- if hdg is not set, compute heading between point2 and point3
-    local hdg = hdg
-    if hdg == nil then
-      hdg = veaf.headingBetweenPoints(point2, point3)
-    else
-      hdg = hdg * math.pi / 180
-    end
+  -- if hdg is not set, compute heading between point2 and point3
+  local hdg = hdg
+  if hdg == nil then
+    hdg = veaf.headingBetweenPoints(point2, point3)
+  else
+    hdg = hdg * math.pi / 180
+  end
 
-    -- if speed is not set, use point2 speed
-    local speed = speed
-    if speed == nil or speed < 0 then
-      speed = point2.speed
-    else
-      -- convert speed to m/s
-      speed = speed / 1.94384
-    end
+  -- if speed is not set, use point2 speed
+  local speed = speed
+  if speed == nil or speed < 0 then
+    speed = point2.speed
+  else
+    -- convert speed to m/s
+    speed = speed / 1.94384
+  end
 
-    -- if alt is not set, use point2 altitude
-    local alt = alt
-    if alt == nil or alt < 0 then
-      alt = point2.alt
-    else
-      -- convert altitude to meters
-      alt = alt * 0.3048 -- meters
-    end
+  -- if alt is not set, use point2 altitude
+  local alt = alt
+  if alt == nil or alt < 0 then
+    alt = point2.alt
+  else
+    -- convert altitude to meters
+    alt = alt * 0.3048 -- meters
+  end
 
-    veaf.loggers.get(veafMove.Id):trace(string.format("distance=%s", veaf.p(distance)))
-    veaf.loggers.get(veafMove.Id):trace(string.format("hdg=%s", veaf.p(hdg)))
-    veaf.loggers.get(veafMove.Id):trace(string.format("speed=%s", veaf.p(speed)))
-    veaf.loggers.get(veafMove.Id):trace(string.format("alt=%s", veaf.p(alt)))
+  veaf.loggers.get(veafMove.Id):trace(string.format("distance=%s", veaf.p(distance)))
+  veaf.loggers.get(veafMove.Id):trace(string.format("hdg=%s", veaf.p(hdg)))
+  veaf.loggers.get(veafMove.Id):trace(string.format("speed=%s", veaf.p(speed)))
+  veaf.loggers.get(veafMove.Id):trace(string.format("alt=%s", veaf.p(alt)))
 
-    -- the first point in the refuel leg is based on the marker position
-    local startLegPoint = { x = eventPos.x, y = eventPos.z, alt = alt, speed = speed }
-    veaf.loggers.get(veafMove.Id):trace(string.format("startLegPoint=%s", veaf.p(startLegPoint)))
-    if veafNamedPoints and not silent then
-      veafNamedPoints.namePoint(
-        { x = startLegPoint.x, y = startLegPoint.alt, z = startLegPoint.y },
-        groupName .. " refuel start",
-        unitGroup:getCoalition(),
-        true
-      )
-    end
+  -- the first point in the refuel leg is based on the marker position
+  local startLegPoint = { x = eventPos.x, y = eventPos.z, alt = alt, speed = speed }
+  veaf.loggers.get(veafMove.Id):trace(string.format("startLegPoint=%s", veaf.p(startLegPoint)))
+  if veafNamedPoints and not silent then
+    veafNamedPoints.namePoint(
+      { x = startLegPoint.x, y = startLegPoint.alt, z = startLegPoint.y },
+      groupName .. " refuel start",
+      unitGroup:getCoalition(),
+      true
+    )
+  end
 
-    -- compute the second point in the refuel leg based on desired heading and distance
-    local endLegPoint = { x = startLegPoint.x, y = startLegPoint.y, alt = alt, speed = speed }
-    veaf.loggers.get(veafMove.Id):trace(string.format("distance=%s", veaf.p(distance)))
-    veaf.loggers.get(veafMove.Id):trace(string.format("hdg=%s", veaf.p(hdg)))
-    endLegPoint.x = startLegPoint.x + distance * math.cos(hdg)
-    endLegPoint.y = startLegPoint.y + distance * math.sin(hdg)
-    veaf.loggers.get(veafMove.Id):trace(string.format("endLegPoint=%s", veaf.p(endLegPoint)))
-    if veafNamedPoints and not silent then
-      veafNamedPoints.namePoint(
-        { x = endLegPoint.x, y = endLegPoint.alt, z = endLegPoint.y },
-        groupName .. " refuel end",
-        unitGroup:getCoalition(),
-        true
-      )
-    end
+  -- compute the second point in the refuel leg based on desired heading and distance
+  local endLegPoint = { x = startLegPoint.x, y = startLegPoint.y, alt = alt, speed = speed }
+  veaf.loggers.get(veafMove.Id):trace(string.format("distance=%s", veaf.p(distance)))
+  veaf.loggers.get(veafMove.Id):trace(string.format("hdg=%s", veaf.p(hdg)))
+  endLegPoint.x = startLegPoint.x + distance * math.cos(hdg)
+  endLegPoint.y = startLegPoint.y + distance * math.sin(hdg)
+  veaf.loggers.get(veafMove.Id):trace(string.format("endLegPoint=%s", veaf.p(endLegPoint)))
+  if veafNamedPoints and not silent then
+    veafNamedPoints.namePoint(
+      { x = endLegPoint.x, y = endLegPoint.alt, z = endLegPoint.y },
+      groupName .. " refuel end",
+      unitGroup:getCoalition(),
+      true
+    )
+  end
 
-    -- compute the point where the tanker should move in the opposite direction from the desired heading, at a standard distance
-    local movePoint = { x = startLegPoint.x, y = startLegPoint.y, alt = alt, speed = speed }
-    local teleportPoint = { x = startLegPoint.x, y = startLegPoint.y, alt = alt, speed = speed }
-    local reverseHdg = hdg - math.pi
-    if reverseHdg < 0 then
-      reverseHdg = reverseHdg + math.pi * 2
-    end
-    veaf.loggers.get(veafMove.Id):trace(string.format("reverseHdg=%s", veaf.p(reverseHdg)))
-    movePoint.x = startLegPoint.x + 1.5 * speed * FIRSTPOINT_DISTANCE_SECONDS * math.cos(reverseHdg)
-    movePoint.y = startLegPoint.y + 1.5 * speed * FIRSTPOINT_DISTANCE_SECONDS * math.sin(reverseHdg)
-    teleportPoint.x = startLegPoint.x + 3 * speed * FIRSTPOINT_DISTANCE_SECONDS * math.cos(reverseHdg)
-    teleportPoint.y = startLegPoint.y + 3 * speed * FIRSTPOINT_DISTANCE_SECONDS * math.sin(reverseHdg)
-    veaf.loggers.get(veafMove.Id):trace(string.format("movePoint=%s", veaf.p(movePoint)))
+  -- compute the point where the tanker should move in the opposite direction from the desired heading, at a standard distance
+  local movePoint = { x = startLegPoint.x, y = startLegPoint.y, alt = alt, speed = speed }
+  local teleportPoint = { x = startLegPoint.x, y = startLegPoint.y, alt = alt, speed = speed }
+  local reverseHdg = hdg - math.pi
+  if reverseHdg < 0 then
+    reverseHdg = reverseHdg + math.pi * 2
+  end
+  veaf.loggers.get(veafMove.Id):trace(string.format("reverseHdg=%s", veaf.p(reverseHdg)))
+  movePoint.x = startLegPoint.x + 1.5 * speed * FIRSTPOINT_DISTANCE_SECONDS * math.cos(reverseHdg)
+  movePoint.y = startLegPoint.y + 1.5 * speed * FIRSTPOINT_DISTANCE_SECONDS * math.sin(reverseHdg)
+  teleportPoint.x = startLegPoint.x + 3 * speed * FIRSTPOINT_DISTANCE_SECONDS * math.cos(reverseHdg)
+  teleportPoint.y = startLegPoint.y + 3 * speed * FIRSTPOINT_DISTANCE_SECONDS * math.sin(reverseHdg)
+  veaf.loggers.get(veafMove.Id):trace(string.format("movePoint=%s", veaf.p(movePoint)))
 
-    -- set point1 to the computed movePoint
-    point1.x = movePoint.x
-    point1.y = movePoint.y
-    point1.alt = movePoint.alt
-    point1.speed = movePoint.speed
-    veaf.loggers.get(veafMove.Id):trace(string.format("newPoint1=%s", veaf.p(point1)))
+  -- set point1 to the computed movePoint
+  point1.x = movePoint.x
+  point1.y = movePoint.y
+  point1.alt = movePoint.alt
+  point1.speed = movePoint.speed
+  veaf.loggers.get(veafMove.Id):trace(string.format("newPoint1=%s", veaf.p(point1)))
 
-    -- set point2 to the start of the tanking Orbit (startLegPoint)
-    local orbitTask = veafMove._findOrbitTaskInPoint(point2)
-    if not orbitTask then
-      local text = "Cannot move tanker " .. groupName .. " because it has no ORBIT task defined"
-      veaf.loggers.get(veafMove.Id):info(text)
-      trigger.action.outText(text, 10)
-      return false
-    end
-    veaf.loggers.get(veafMove.Id):debug("Found a ORBIT task for tanker " .. groupName)
-    orbitTask.params.speed = speed
-    orbitTask.params.altitude = alt
-    point2.x = startLegPoint.x
-    point2.y = startLegPoint.y
-    point2.alt = startLegPoint.alt
-    point2.speed = startLegPoint.speed
-    veaf.loggers.get(veafMove.Id):trace(string.format("newPoint2=%s", veaf.p(point2)))
+  -- set point2 to the start of the tanking Orbit (startLegPoint)
+  local orbitTask = veafMove._findOrbitTaskInPoint(point2)
+  if not orbitTask then
+    local text = "Cannot move tanker " .. groupName .. " because it has no ORBIT task defined"
+    veaf.loggers.get(veafMove.Id):info(text)
+    trigger.action.outText(text, 10)
+    return false
+  end
+  veaf.loggers.get(veafMove.Id):debug("Found a ORBIT task for tanker " .. groupName)
+  orbitTask.params.speed = speed
+  orbitTask.params.altitude = alt
+  point2.x = startLegPoint.x
+  point2.y = startLegPoint.y
+  point2.alt = startLegPoint.alt
+  point2.speed = startLegPoint.speed
+  veaf.loggers.get(veafMove.Id):trace(string.format("newPoint2=%s", veaf.p(point2)))
 
-    -- set point2 to the end of the tanking Orbit (endLegPoint)
-    point3.x = endLegPoint.x
-    point3.y = endLegPoint.y
-    point3.alt = endLegPoint.alt
-    point3.speed = endLegPoint.speed
-    veaf.loggers.get(veafMove.Id):trace("newpoint3=" .. veaf.p(point3))
+  -- set point2 to the end of the tanking Orbit (endLegPoint)
+  point3.x = endLegPoint.x
+  point3.y = endLegPoint.y
+  point3.alt = endLegPoint.alt
+  point3.speed = endLegPoint.speed
+  veaf.loggers.get(veafMove.Id):trace("newpoint3=" .. veaf.p(point3))
 
-    --actually move the group
-    local delay = 0
+  --actually move the group
+  local delay = 0
 
-    -- teleport if the option is set
-    if teleport then
-      veaf.loggers.get(veafMove.Id):debug("Teleport the tanker")
-      local vars = { groupName = groupName, point = teleportPoint, action = "teleport" }
-      local grp = mist.teleportToPoint(vars)
-      unitGroup = Group.getByName(groupName)
+  -- teleport if the option is set
+  if teleport then
+    veaf.loggers.get(veafMove.Id):debug("Teleport the tanker")
+    local vars = { groupName = groupName, point = teleportPoint, action = "teleport" }
+    local grp = mist.teleportToPoint(vars)
+    unitGroup = Group.getByName(groupName)
 
-      veafMove.teleportEscort(groupName, movePoint, teleportPoint)
+    veafMove.teleportEscort(groupName, movePoint, teleportPoint)
 
-      delay = 1
-    end
+    delay = 1
+  end
 
-    veaf.loggers.get(veafMove.Id):debug(string.format("Resetting moved tanker mission in %d seconds", delay))
-    veafMove.replaceMission(unitGroup, tankerData, delay)
+  veaf.loggers.get(veafMove.Id):debug(string.format("Resetting moved tanker mission in %d seconds", delay))
+  veafMove.replaceMission(unitGroup, tankerData, delay)
 
-    return true
+  return true
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------

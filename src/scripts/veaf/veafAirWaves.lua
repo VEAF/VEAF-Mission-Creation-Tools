@@ -282,8 +282,8 @@ end
 ---   :addWave({ groups="group1", number = 2})
 ---returns self
 function AirWaveZone:addWave(...)
-  local args = {...}
-  local nArgs = select('#', ...)
+  local args = { ... }
+  local nArgs = select("#", ...)
   veaf.loggers.get(veafAirWaves.Id):debug(string.format("AirWaveZone[%s]:addWave() : %s", veaf.p(self.name), veaf.p(args)))
   if nArgs > 0 then
     local groups = {}

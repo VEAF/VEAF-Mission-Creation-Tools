@@ -32,7 +32,8 @@ types-PyYAML = ">=6.0"
 
 [tool.poetry.group.build.dependencies]
 # Build tools — not needed for the quality gate, only for creating the .exe
-pyinstaller = ">=6.0"
+# python = "<3.15": pyinstaller doesn't support Python 3.15+ yet
+pyinstaller = { version = ">=6.0", python = "<3.15" }
 
 # ---------------------------------------------------------------------------
 # Ruff — lint + format

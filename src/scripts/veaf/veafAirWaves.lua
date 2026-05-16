@@ -756,6 +756,7 @@ function AirWaveZone:getPlayerUnitsNames()
   self.playerHumanUnitsNames = {}
 
   -- Static slot players from mist DB
+  local seenUnits = {}
   for _, unit in pairs(mist.DBs.humansByName) do
     local coalitionId = 0
     if unit.coalition then
@@ -768,6 +769,7 @@ function AirWaveZone:getPlayerUnitsNames()
     if self.playerCoalitions[coalitionId] then
       if unit.category then
         if unit.category == "plane" then
+          seenUnits[unit.unitName] = true
           table.insert(self.playerHumanUnitsNames, unit.unitName)
         end
       end
@@ -786,14 +788,8 @@ function AirWaveZone:getPlayerUnitsNames()
               if dcsUnit:getPlayerName() then
                 local dynamicUnitName = dcsUnit:getName()
                 -- Only add if not already present from mist DB
-                local alreadyAdded = false
-                for _, existingName in pairs(self.playerHumanUnitsNames) do
-                  if existingName == dynamicUnitName then
-                    alreadyAdded = true
-                    break
-                  end
-                end
-                if not alreadyAdded then
+                if not seenUnits[dynamicUnitName] then
+                  seenUnits[dynamicUnitName] = true
                   table.insert(self.playerHumanUnitsNames, dynamicUnitName)
                 end
               end

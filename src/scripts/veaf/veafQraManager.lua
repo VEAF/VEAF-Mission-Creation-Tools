@@ -1260,7 +1260,7 @@ function veafQraManager.eventHandler(event)
     return
   end
 
-  local isHumanUnit = mist.DBs.humansByName[unitName] ~= nil or event.id == world.event.S_EVENT_PLAYER_ENTER_UNIT
+  local isHumanUnit = mist.DBs.humansByName[unitName] ~= nil or (event.type and event.type.id == world.event.S_EVENT_PLAYER_ENTER_UNIT)
   if isHumanUnit then -- it's a human unit
     local unit = event.initiator
     if unit ~= nil then

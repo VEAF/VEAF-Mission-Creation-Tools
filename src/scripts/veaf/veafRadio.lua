@@ -84,7 +84,7 @@ function veafRadio.onBirthEvent(event)
     return
   end
   veaf.loggers.get(veafRadio.Id):trace("unitName=%s", unitName)
-  local isHumanUnit = mist.DBs.humansByName[unitName] ~= nil or event.id == world.event.S_EVENT_PLAYER_ENTER_UNIT
+  local isHumanUnit = mist.DBs.humansByName[unitName] ~= nil or (event.type and event.type.id == world.event.S_EVENT_PLAYER_ENTER_UNIT)
   if isHumanUnit then -- it's a human unit
     veaf.loggers.get(veafRadio.Id):trace("veafRadio.humanUnits=%s", veafRadio.humanUnits)
     veaf.loggers.get(veafRadio.Id):trace("unitName %s is a human unit", unitName)
@@ -94,7 +94,10 @@ function veafRadio.onBirthEvent(event)
       local groupId = event and event.initiator and event.initiator.unitGroupId
       if not groupId and event and event.initiator and event.initiator.getGroup then
         -- dynamic slot: get group ID via DCS API
-        groupId = event.initiator:getGroup():getID()
+        local grp = event.initiator:getGroup()
+        if grp then
+          groupId = grp:getID()
+        end
       end
       local callsign = event and event.initiator and event.initiator.unitPilotName
       if not callsign then

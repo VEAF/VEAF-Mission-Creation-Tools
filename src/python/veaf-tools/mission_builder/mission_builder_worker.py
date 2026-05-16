@@ -680,8 +680,11 @@ class MissionBuilderWorker:
                         "zone": 184,
                     },
                     # LUA-005: load veaf-modules-config.lua before missionConfig.lua (if present)
-                    *([{"predicate": "a_do_script_file", "file": f"{veaf_modules_config_map_key}"}]
-                      if veaf_modules_config_map_key else []),
+                    *(
+                        [{"predicate": "a_do_script_file", "file": f"{veaf_modules_config_map_key}"}]
+                        if veaf_modules_config_map_key
+                        else []
+                    ),
                     {"predicate": "a_do_script_file", "file": f"{veaf_mission_config_map_key}"},
                 ],
                 "colorItem": "0x8080ffff",

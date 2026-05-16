@@ -15,20 +15,27 @@ Choose the guide that matches your role:
 
 | Role | Guide | Description |
 |------|-------|-------------|
-| **Player** | [User Guide](doc/USER_GUIDE.md) | F10 menus, marker commands, in-mission features |
-| **Mission Maker** | [Mission Maker Guide](doc/MISSION_MAKER_GUIDE.md) | Set up a mission, configure modules, build & deploy |
-| **Developer** | [Developer Guide](doc/DEVELOPER_GUIDE.md) | Architecture, build pipeline, Python tools, contributing |
-| **Lua API** | [Lua API Reference](doc/LUA_API_REFERENCE.md) | Full API for all 32 Lua runtime modules |
-| **Tools CLI** | [Tools Reference](doc/TOOLS_REFERENCE.md) | `veaf-tools.exe` and `veaf-tools-updater.exe` command reference |
-| **Testing** | [Testing Guide](doc/TESTING.md) | Lua unit test suite, CI/CD pipeline |
+| **Player / Pilot** | [Pilot Guide](doc/pilot/README.md) | F10 menus, marker commands, assets, combat zones |
+| **Mission Maker** | [Mission Maker Guide](doc/mission-maker/README.md) | Install, configure, build — all scripts documented |
+| **Developer** | [Developer Guide](doc/developer/README.md) | Architecture, build pipeline, quality gates, contributing |
+
+### Detailed References
+
+| Reference | Description |
+|-----------|-------------|
+| [User Guide](doc/USER_GUIDE.md) | Extended pilot reference |
+| [Lua API Reference](doc/LUA_API_REFERENCE.md) | Full API for all 32 Lua runtime modules |
+| [Tools CLI Reference](doc/TOOLS_REFERENCE.md) | `veaf-tools.exe` and `veaf-tools-updater.exe` |
+| [Testing Guide](doc/TESTING.md) | Lua unit test suite, CI/CD pipeline |
+| [Roadmap](doc/ROADMAP.md) | Planned features and known limitations |
 
 ---
 
 ## Quick Start
 
-### Players
+### Players and Pilots
 
-You're in a mission that uses VEAF scripts. Open the F10 map, place a marker, and type a command (e.g. `_spawn unit T-80` or `_cas`). See the [User Guide](doc/USER_GUIDE.md) for all available commands.
+You're in a mission that uses VEAF scripts. Open the F10 map, place a marker, and type a command (e.g. `_spawn unit T-80` or `_cas`). See the [Pilot Guide](doc/pilot/README.md) for all available commands.
 
 ### Mission Makers
 
@@ -41,7 +48,7 @@ You're in a mission that uses VEAF scripts. Open the F10 map, place a marker, an
 # 3. Configure modules in missionconfig.lua
 ```
 
-Full workflow: [Mission Maker Guide](doc/MISSION_MAKER_GUIDE.md)
+Full workflow: [Mission Maker Guide](doc/mission-maker/README.md)
 
 ### Developers
 
@@ -60,7 +67,7 @@ python build-and-release.py build --version 6.0.5
 python build-and-release.py publish --version 6.0.5
 ```
 
-Full reference: [Developer Guide](doc/DEVELOPER_GUIDE.md)
+Full reference: [Developer Guide](doc/developer/README.md)
 
 ---
 

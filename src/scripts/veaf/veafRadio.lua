@@ -637,7 +637,7 @@ function veafRadio.getHumanUnitOrWingman(unitName)
     local unitData = veafRadio.humanUnits[unitName]
     veaf.loggers.get(veafRadio.Id):trace(string.format("unitData=%s", veaf.p(unitData)))
     if unitData and unitData.groupId then
-      local mistGroup = mist.DBs.groupsById[unitData.groupId]
+      local mistGroup = veaf.mist.getGroupById(unitData.groupId)
       veaf.loggers.get(veafRadio.Id):trace(string.format("mistGroup=%s", veaf.p(mistGroup)))
       if mistGroup then
         local group = Group.getByName(mistGroup.groupName)

@@ -132,7 +132,8 @@ veaf.config.era = veaf.ERA.MODERN -- default era
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Mist database wrappers
--- Centralizes all access to mist.DBs to isolate modules from internal mist changes.
+-- Centralizes the main access points to mist.DBs to isolate modules from internal mist changes.
+-- Note: direct mist.DBs access may still exist in some low-level or legacy code paths.
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 veaf.mist = {}
@@ -165,6 +166,11 @@ end
 --- Return the full humansByName table (for iteration).
 function veaf.mist.getAllHumanUnitData()
   return mist.DBs.humansByName
+end
+
+--- Return the group data table for a given group id (from mist.DBs.groupsById).
+function veaf.mist.getGroupById(groupId)
+  return mist.DBs.groupsById[groupId]
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------

@@ -19,6 +19,9 @@ src/defaults/veafSpawnableAircraftsEditor/settings-templates.lua
 src/defaults/veafSpawnableAircraftsEditor/templates.miz
 src/defaults/veafSpawnableAircraftsEditor/spawnables.miz
 __pycache__/
+.mypy_cache/
+.ruff_cache/
+.venv/
 test/veaf-tools/mission.json
 veaf-tools.log
 test/veaf-tools/groups.json

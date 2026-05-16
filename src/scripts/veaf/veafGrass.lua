@@ -197,7 +197,7 @@ end
 function veafGrass.buildFarpsUnits(hiddenOnMFD)
   local farpUnits = {}
   local grassRunwayUnits = {}
-  for name, unit in pairs(mist.DBs.unitsByName) do
+  for name, unit in pairs(veaf.mist.getAllUnitData()) do
     --veaf.loggers.get(veafGrass.Id):trace("buildFarpsUnits: testing " .. unit.type .. " " .. name)
     if name:upper():find("GRASS_RUNWAY") then
       grassRunwayUnits[name] = unit
@@ -1375,7 +1375,7 @@ function veafGrass.onBirth(event)
     return
   end
 
-  local isHumanUnit = mist.DBs.humansByName[unitName] ~= nil or (event.type and event.type.id == world.event.S_EVENT_PLAYER_ENTER_UNIT)
+  local isHumanUnit = veaf.mist.isHumanUnit(unitName) or (event.type and event.type.id == world.event.S_EVENT_PLAYER_ENTER_UNIT)
   if isHumanUnit then -- it's a human unit
     veaf.loggers.get(veafGrass.Id):debug("caught event BIRTH for human unit [%s]", veaf.p(unitName))
     local _unit = event.initiator

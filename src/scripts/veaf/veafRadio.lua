@@ -84,7 +84,7 @@ function veafRadio.onBirthEvent(event)
     return
   end
   veaf.loggers.get(veafRadio.Id):trace("unitName=%s", unitName)
-  local isHumanUnit = mist.DBs.humansByName[unitName] ~= nil or (event.type and event.type.id == world.event.S_EVENT_PLAYER_ENTER_UNIT)
+  local isHumanUnit = veaf.mist.isHumanUnit(unitName) or (event.type and event.type.id == world.event.S_EVENT_PLAYER_ENTER_UNIT)
   if isHumanUnit then -- it's a human unit
     veaf.loggers.get(veafRadio.Id):trace("veafRadio.humanUnits=%s", veafRadio.humanUnits)
     veaf.loggers.get(veafRadio.Id):trace("unitName %s is a human unit", unitName)

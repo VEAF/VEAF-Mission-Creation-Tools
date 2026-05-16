@@ -131,6 +131,43 @@ veaf.ERA = {
 veaf.config.era = veaf.ERA.MODERN -- default era
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- Mist database wrappers
+-- Centralizes all access to mist.DBs to isolate modules from internal mist changes.
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+veaf.mist = {}
+
+--- Return the unit data table for a given unit name (from mist.DBs.unitsByName).
+function veaf.mist.getUnitData(unitName)
+  return mist.DBs.unitsByName[unitName]
+end
+
+--- Return the group data table for a given group name (from mist.DBs.groupsByName).
+function veaf.mist.getGroupData(groupName)
+  return mist.DBs.groupsByName[groupName]
+end
+
+--- Return true if the given unit name belongs to a human player (from mist.DBs.humansByName).
+function veaf.mist.isHumanUnit(unitName)
+  return mist.DBs.humansByName[unitName] ~= nil
+end
+
+--- Return the full unitsByName table (for iteration).
+function veaf.mist.getAllUnitData()
+  return mist.DBs.unitsByName
+end
+
+--- Return the full groupsByName table (for iteration).
+function veaf.mist.getAllGroupData()
+  return mist.DBs.groupsByName
+end
+
+--- Return the full humansByName table (for iteration).
+function veaf.mist.getAllHumanUnitData()
+  return mist.DBs.humansByName
+end
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Utility methods
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -4425,7 +4462,7 @@ function veaf.ctld_initialize_replacement(configurationCallback)
       local LogisticTypeNames = { "LHA_Tarawa", "Stennis", "CVN_71", "KUZNECOW", "FARP Ammo Storage", "FARP Ammo Dump Coating" }
       veaf.loggers.get(ctld.Id):info("autoInitializeAllLogistic()")
       ctld.logisticUnits = {}
-      local units = mist.DBs.unitsByName -- local copy for faster execution
+      local units = veaf.mist.getAllUnitData() -- local copy for faster execution
       for name, unit in pairs(units) do
         veaf.loggers.get(ctld.Id):trace(string.format("name=%s, unit.type=%s", veaf.p(name), veaf.p(unit.type)))
         if unit then

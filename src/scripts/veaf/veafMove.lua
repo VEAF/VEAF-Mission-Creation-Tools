@@ -274,6 +274,46 @@ function veafMove.moveGroup(eventPos, groupName, speed, altitude)
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- Tanker route helpers (shared by changeTanker and moveTanker)
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+--- Extract the last 3 waypoints and tankerData for a named tanker group.
+--- Returns a table {tankerData, points, point1, point2, point3} or nil + error message.
+function veafMove._getTankerRouteData(groupName)
+  local tankerData = veaf.getGroupData(groupName)
+  if not tankerData then
+    return nil, "Cannot find group data for tanker " .. groupName
+  end
+  local route = veaf.findInTable(tankerData, "route")
+  local points = veaf.findInTable(route, "points")
+  if not points or #points < 3 then
+    return nil, "Cannot find a valid route (need at least 3 waypoints) for tanker " .. groupName
+  end
+  return {
+    tankerData = tankerData,
+    points = points,
+    point1 = points[#points - 2],
+    point2 = points[#points - 1],
+    point3 = points[#points],
+  }, nil
+end
+
+--- Find the Orbit task in a waypoint's task list.
+--- Returns the task table or nil if not found.
+function veafMove._findOrbitTaskInPoint(point)
+  local task1 = veaf.findInTable(point, "task")
+  if not task1 then return nil end
+  local tasks = task1.params and task1.params.tasks
+  if not tasks then return nil end
+  for _, task in pairs(tasks) do
+    if task.id and task.id == "Orbit" and task.params then
+      return task
+    end
+  end
+  return nil
+end
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Change tanker mission parameters
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -305,106 +345,77 @@ function veafMove.changeTanker(eventPos, speed, alt)
   local tankerGroup = tankerUnit:getGroup()
   local tankerGroupName = tankerGroup:getName()
 
-  local tankerData = veaf.getGroupData(tankerGroupName)
-  if not tankerData then
-    local text = "Cannot move tanker " .. tankerGroupName .. " ; cannot find group data"
+  local routeData, errMsg = veafMove._getTankerRouteData(tankerGroupName)
+  if not routeData then
+    veaf.loggers.get(veafMove.Id):info(errMsg)
+    trigger.action.outText(errMsg)
+    return
+  end
+  local tankerData, points = routeData.tankerData, routeData.points
+  local point1, point2, point3 = routeData.point1, routeData.point2, routeData.point3
+
+  veaf.loggers.get(veafMove.Id):trace("found a " .. #points .. "-points route for tanker " .. tankerGroupName)
+
+  -- point1 is the point where the tanker mission starts ; we'll change the speed and altitude
+  veaf.loggers.get(veafMove.Id):trace("found point1")
+  -- set speed
+  if speed > -1 then
+    point1.speed = speed / 1.94384 -- in m/s
+  else
+    speed = point1.speed * 1.94384 -- in knots
+  end
+  -- set altitude
+  if alt > -1 then
+    point1.alt = alt * 0.3048 -- in meters
+  else
+    alt = point1.alt / 0.3048 -- in feet
+  end
+  veaf.loggers.get(veafMove.Id):trace(string.format("newPoint1=%s", veaf.p(point1)))
+
+  -- point 2 is the start of the tanking Orbit ; we'll change the speed and altitude
+  veaf.loggers.get(veafMove.Id):trace("found point2")
+  local orbitTask = veafMove._findOrbitTaskInPoint(point2)
+  if not orbitTask then
+    local text = "Cannot set tanker " .. tankerGroupName .. " parameters because it has no ORBIT task defined"
     veaf.loggers.get(veafMove.Id):info(text)
     trigger.action.outText(text)
     return
   end
-
-  local route = veaf.findInTable(tankerData, "route")
-  local points = veaf.findInTable(route, "points")
-  if points then
-    veaf.loggers.get(veafMove.Id):trace("found a " .. #points .. "-points route for tanker " .. tankerGroupName)
-    -- modify the last 3 points
-    local idxPoint1 = #points - 2
-    local idxPoint2 = #points - 1
-    local idxPoint3 = #points
-
-    -- point1 is the point where the tanker mission starts ; we'll change the speed and altitude
-    local point1 = points[idxPoint1]
-    veaf.loggers.get(veafMove.Id):trace("found point1")
-    -- set speed
-    if speed > -1 then
-      point1.speed = speed / 1.94384 -- in m/s
-    else
-      speed = point1.speed * 1.94384 -- in knots
-    end
-    -- set altitude
-    if alt > -1 then
-      point1.alt = alt * 0.3048 -- in meters
-    else
-      alt = point1.alt / 0.3048 -- in feet
-    end
-    veaf.loggers.get(veafMove.Id):trace(string.format("newPoint1=%s", veaf.p(point1)))
-
-    -- point 2 is the start of the tanking Orbit ; we'll change the speed and altitude
-    local point2 = points[idxPoint2]
-    veaf.loggers.get(veafMove.Id):trace("found point2")
-    local foundOrbit = false
-    local task1 = veaf.findInTable(point2, "task")
-    if task1 then
-      local tasks = task1.params.tasks
-      if tasks then
-        veaf.loggers.get(veafMove.Id):trace("found %s tasks", veaf.p(#tasks))
-        for j, task in pairs(tasks) do
-          veaf.loggers.get(veafMove.Id):trace("found task #%s", veaf.p(j))
-          if task.params then
-            veaf.loggers.get(veafMove.Id):trace("has .params")
-            if task.id and task.id == "Orbit" then
-              veaf.loggers.get(veafMove.Id):debug("Found a ORBIT task for tanker " .. tankerGroupName)
-              foundOrbit = true
-              if speed > -1 then
-                task.params.speed = speed / 1.94384 -- in m/s
-                point2.speed = speed / 1.94384 -- in m/s
-              end
-              if alt > -1 then
-                task.params.altitude = alt * 0.3048 -- in meters
-                point2.alt = alt * 0.3048 -- in meters
-              end
-            end
-          end
-        end
-      end
-    end
-    if not foundOrbit then
-      local text = "Cannot set tanker " .. tankerGroupName .. " parameters because it has no ORBIT task defined"
-      veaf.loggers.get(veafMove.Id):info(text)
-      trigger.action.outText(text)
-      return
-    end
-
-    -- point 3 is the end of the tanking Orbit ; we'll change the speed and altitude
-    local point3 = points[idxPoint3]
-    veaf.loggers.get(veafMove.Id):trace("found point3")
-    -- change speed
-    if speed > -1 then
-      point3.speed = speed / 1.94384 -- in m/s
-    end
-    -- change altitude
-    if alt > -1 then
-      point3.alt = alt * 0.3048 -- in meters
-    end
-    veaf.loggers.get(veafMove.Id):trace("newpoint3=" .. veaf.p(point3))
-
-    -- replace whole mission
-    veaf.loggers.get(veafMove.Id):debug("Resetting changed tanker mission")
-    -- replace the mission
-    local mission = {
-      id = "Mission",
-      params = tankerData,
-    }
-    local controller = tankerGroup:getController()
-    controller:setTask(mission)
-
-    local msg = string.format("Set tanker %s to %d kn (ground) at %d ft", tankerGroupName, speed, alt)
-    veaf.loggers.get(veafMove.Id):info(msg)
-    trigger.action.outText(msg, 10)
-    return true
-  else
-    return false
+  veaf.loggers.get(veafMove.Id):debug("Found a ORBIT task for tanker " .. tankerGroupName)
+  if speed > -1 then
+    orbitTask.params.speed = speed / 1.94384 -- in m/s
+    point2.speed = speed / 1.94384 -- in m/s
   end
+  if alt > -1 then
+    orbitTask.params.altitude = alt * 0.3048 -- in meters
+    point2.alt = alt * 0.3048 -- in meters
+  end
+
+  -- point 3 is the end of the tanking Orbit ; we'll change the speed and altitude
+  veaf.loggers.get(veafMove.Id):trace("found point3")
+  -- change speed
+  if speed > -1 then
+    point3.speed = speed / 1.94384 -- in m/s
+  end
+  -- change altitude
+  if alt > -1 then
+    point3.alt = alt * 0.3048 -- in meters
+  end
+  veaf.loggers.get(veafMove.Id):trace("newpoint3=" .. veaf.p(point3))
+
+  -- replace whole mission
+  veaf.loggers.get(veafMove.Id):debug("Resetting changed tanker mission")
+  local mission = {
+    id = "Mission",
+    params = tankerData,
+  }
+  local controller = tankerGroup:getController()
+  controller:setTask(mission)
+
+  local msg = string.format("Set tanker %s to %d kn (ground) at %d ft", tankerGroupName, speed, alt)
+  veaf.loggers.get(veafMove.Id):info(msg)
+  trigger.action.outText(msg, 10)
+  return true
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -435,32 +446,19 @@ function veafMove.moveTanker(eventPos, groupName, speed, alt, hdg, distance, tel
     return false
   end
 
-  local tankerData = veaf.getGroupData(groupName)
-  if not tankerData then
-    local text = "Cannot move tanker " .. groupName .. " ; no group data"
-    veaf.loggers.get(veafMove.Id):info(text)
-    trigger.action.outText(text)
+  local routeData, errMsg = veafMove._getTankerRouteData(groupName)
+  if not routeData then
+    veaf.loggers.get(veafMove.Id):info(errMsg)
+    trigger.action.outText(errMsg)
     return false
   end
+  local tankerData, points = routeData.tankerData, routeData.points
+  local point1, point2, point3 = routeData.point1, routeData.point2, routeData.point3
   veaf.loggers.get(veafMove.Id):trace("tankerData : %s", veaf.p(tankerData))
-
-  local route = veaf.findInTable(tankerData, "route")
-  local points = veaf.findInTable(route, "points")
-  if points then
-    veaf.loggers.get(veafMove.Id):trace("found a " .. #points .. "-points route for tanker " .. groupName)
-    -- modify the last 3 points
-    local idxPoint1 = #points - 2
-    local idxPoint2 = #points - 1
-    local idxPoint3 = #points
-
-    local point1 = points[idxPoint1]
-    veaf.loggers.get(veafMove.Id):trace(string.format("point1=%s", veaf.p(point1)))
-
-    local point2 = points[idxPoint2]
-    veaf.loggers.get(veafMove.Id):trace(string.format("point2=%s", veaf.p(point2)))
-
-    local point3 = points[idxPoint3]
-    veaf.loggers.get(veafMove.Id):trace(string.format("point3=%s", veaf.p(point3)))
+  veaf.loggers.get(veafMove.Id):trace("found a " .. #points .. "-points route for tanker " .. groupName)
+  veaf.loggers.get(veafMove.Id):trace(string.format("point1=%s", veaf.p(point1)))
+  veaf.loggers.get(veafMove.Id):trace(string.format("point2=%s", veaf.p(point2)))
+  veaf.loggers.get(veafMove.Id):trace(string.format("point3=%s", veaf.p(point3)))
 
     -- if distance is not set, compute distance between point2 and point3
     local distance = distance
@@ -552,32 +550,16 @@ function veafMove.moveTanker(eventPos, groupName, speed, alt, hdg, distance, tel
     veaf.loggers.get(veafMove.Id):trace(string.format("newPoint1=%s", veaf.p(point1)))
 
     -- set point2 to the start of the tanking Orbit (startLegPoint)
-    local foundOrbit = false
-    local task1 = veaf.findInTable(point2, "task")
-    if task1 then
-      local tasks = task1.params.tasks
-      if tasks then
-        veaf.loggers.get(veafMove.Id):trace("found " .. #tasks .. " tasks")
-        for j, task in pairs(tasks) do
-          veaf.loggers.get(veafMove.Id):trace(string.format("found task #%s", veaf.p(j)))
-          if task.params then
-            veaf.loggers.get(veafMove.Id):trace("has .params")
-            if task.id and task.id == "Orbit" then
-              veaf.loggers.get(veafMove.Id):debug("Found a ORBIT task for tanker " .. groupName)
-              foundOrbit = true
-              task.params.speed = speed
-              task.params.altitude = alt
-            end
-          end
-        end
-      end
-    end
-    if not foundOrbit then
+    local orbitTask = veafMove._findOrbitTaskInPoint(point2)
+    if not orbitTask then
       local text = "Cannot move tanker " .. groupName .. " because it has no ORBIT task defined"
       veaf.loggers.get(veafMove.Id):info(text)
       trigger.action.outText(text, 10)
       return false
     end
+    veaf.loggers.get(veafMove.Id):debug("Found a ORBIT task for tanker " .. groupName)
+    orbitTask.params.speed = speed
+    orbitTask.params.altitude = alt
     point2.x = startLegPoint.x
     point2.y = startLegPoint.y
     point2.alt = startLegPoint.alt
@@ -610,9 +592,6 @@ function veafMove.moveTanker(eventPos, groupName, speed, alt, hdg, distance, tel
     veafMove.replaceMission(unitGroup, tankerData, delay)
 
     return true
-  else
-    return false
-  end
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -930,7 +909,7 @@ function veafMove.findAllTankers()
   local TankerTypeNames = { "KC130", "KC-135", "KC135MPRS", "KJ-2000", "IL-78M" }
   veaf.loggers.get(veafMove.Id):trace(string.format("findAllTankers()"))
   local result = {}
-  local units = mist.DBs.unitsByName -- local copy for faster execution
+  local units = veaf.mist.getAllUnitData() -- local copy for faster execution
   for name, unit in pairs(units) do
     veaf.loggers.get(veafMove.Id):trace(string.format("name=%s, unit.type=%s", veaf.p(name), veaf.p(unit.type)))
     --veaf.loggers.get(veafMove.Id):trace(string.format("unit=%s", veaf.p(unit)))

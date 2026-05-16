@@ -339,11 +339,11 @@ No structural breakage — each ticket is isolated and low-risk.
 
 | # | Ticket | File(s) | Type | Effort | Status |
 |---|--------|---------|------|--------|--------|
-| LUAQ-001 | Ajouter `unit:isExist()` guards dans `VeafQRA.check()` avant appels DCS | `veafQraManager.lua` | fix | 30 min | [ ] |
-| LUAQ-002 | Remplacer le pattern `arg`/`arg.n` (Lua 5.1 deprecated) par `{...}`/`select` dans `AirWaveZone:addWave()` | `veafAirWaves.lua` | chore | 20 min | [ ] |
-| LUAQ-003 | Wrapper `veaf.mist` pour centraliser les accès à `mist.DBs` (getUnitByName, getGroupByName, isHumanUnit) | `veaf.lua` + modules | chore | 60 min | [ ] |
-| LUAQ-004 | Factoriser la logique convoy dupliquée dans veafSpawn (`stop/move/markRoute`) | `veafSpawn.lua` | chore | 45 min | [ ] |
-| LUAQ-005 | Factoriser `moveTanker`/`changeTanker` (logique route commune ~40% dupliquée) | `veafMove.lua` | chore | 30 min | [ ] |
+| LUAQ-001 | Ajouter `unit:isExist()` guards dans `VeafQRA.check()` avant appels DCS | `veafQraManager.lua` | fix | 30 min | [x] |
+| LUAQ-002 | Remplacer le pattern `arg`/`arg.n` (Lua 5.1 deprecated) par `{...}`/`select` dans `AirWaveZone:addWave()` | `veafAirWaves.lua` | chore | 20 min | [x] |
+| LUAQ-003 | Wrapper `veaf.mist` pour centraliser les accès à `mist.DBs` (getUnitByName, getGroupByName, isHumanUnit) | `veaf.lua` + modules | chore | 60 min | [x] |
+| LUAQ-004 | Factoriser la logique convoy dupliquée dans veafSpawn (`stop/move/markRoute`) | `veafSpawn.lua` | chore | 45 min | [x] |
+| LUAQ-005 | Factoriser `moveTanker`/`changeTanker` (logique route commune ~40% dupliquée) | `veafMove.lua` | chore | 30 min | [x] |
 
 **Raw total: 185 min → estimated (×1.15): ~215 min (~3h35)**
 
@@ -459,7 +459,7 @@ Isole la complexité de l'arbre DCS et facilite le test unitaire.
 | Lot 5 — RELEASE | ~1h30 | [ ] |
 | Lot 6 — BONUS | ~3h30 | [ ] |
 | Lot 7 — LUA FIXES | ~5h45 | [x] |
-| Lot 8 — LUA-QUALITY | ~3h35 | [ ] |
+| Lot 8 — LUA-QUALITY | ~3h35 | [x] |
 | Lot 9 — LUA-REFACTOR | ~11h30 | [ ] |
 | **Total** | **~44h** | |
 

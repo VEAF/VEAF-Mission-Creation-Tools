@@ -6,7 +6,6 @@ import re
 import shutil
 from pathlib import Path
 
-import yaml
 from mission_tools import (
     DEFAULT_SCRIPTS_LOCATION,
     DcsMission,

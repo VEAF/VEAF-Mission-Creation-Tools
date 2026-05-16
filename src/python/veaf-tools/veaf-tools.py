@@ -37,7 +37,7 @@ from presets_injector import PresetsInjectorREADME, PresetsInjectorWorker
 from rich.markdown import Markdown
 from rich.table import Table
 from veaf_libs.logger import console, logger
-from veaf_libs.lua_module_scanner import find_lua_scripts_dir, generate_modules_config_lua, get_modules, scan_module_configs
+from veaf_libs.lua_module_scanner import find_lua_scripts_dir, get_modules, scan_module_configs
 from veaf_libs.tui import run_wizard
 from veaf_libs.update_checker import check_for_updates
 from waypoints_injector import (

@@ -57,9 +57,11 @@ class TestCommandMap:
 
 class TestRunWizard:
     def test_returns_empty_list_when_not_tty(self) -> None:
+        # run_wizard() checks isatty() itself — must return [] immediately
         with patch.object(sys.stdout, "isatty", return_value=False):
-            # No InquirerPy interaction should happen — must return []
-            result = run_wizard()
+            with patch("InquirerPy.inquirer.select") as mock_select:
+                result = run_wizard()
+                mock_select.assert_not_called()  # wizard must not even try to display
         assert result == []
 
     def test_returns_empty_list_on_keyboard_interrupt(self) -> None:

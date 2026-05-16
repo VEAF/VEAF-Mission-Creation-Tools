@@ -156,9 +156,16 @@ _COMMAND_MAP: dict[str, CommandSpec] = {cmd.cli_name: cmd for cmd in COMMANDS}
 def run_wizard() -> list[str]:
     """Run the interactive wizard and return a list of CLI arguments for Typer.
 
-    Returns an empty list if the user cancels or an error occurs, which will
-    cause Typer to print the help screen.
+    Returns an empty list when the terminal is not interactive or the user
+    cancels.  Unexpected errors are logged and re-raised so they are visible
+    to the user rather than silently swallowed.
     """
+    import sys
+
+    # Only meaningful in an interactive terminal
+    if not sys.stdout.isatty():
+        return []
+
     try:
         from InquirerPy import inquirer
         from InquirerPy.base.control import Choice
@@ -211,17 +218,20 @@ def run_wizard() -> list[str]:
         options: list[str] = []
 
         for prompt in spec.prompts:
-            val = str(collected.get(prompt.key, ""))
-            if not val:
-                continue
+            raw = collected.get(prompt.key)
             if prompt.is_option:
                 if prompt.is_flag:
-                    if val.lower() in ("true", "1", "yes"):
+                    # raw is already a bool from inquirer.confirm
+                    if raw:
                         options.append(prompt.cli_flag)
                 else:
-                    options.extend([prompt.cli_flag, val])
+                    val = str(raw) if raw is not None else ""
+                    if val:
+                        options.extend([prompt.cli_flag, val])
             else:
-                positional.append(val)
+                # Positional: preserve order — always append even if empty so
+                # subsequent positionals don't shift into the wrong slot.
+                positional.append(str(raw) if raw is not None else "")
 
         cli_args += positional + options
 
@@ -229,7 +239,12 @@ def run_wizard() -> list[str]:
         return cli_args
 
     except (KeyboardInterrupt, EOFError):
-        # User pressed Ctrl-C or Ctrl-D
+        # User pressed Ctrl-C or Ctrl-D — normal cancellation, not an error
         return []
     except Exception:
+        # Unexpected error: log it so the user sees what went wrong, then
+        # fall back gracefully to the Typer help screen.
+        from veaf_libs.logger import logger
+
+        logger.warning("TUI wizard encountered an unexpected error")
         return []

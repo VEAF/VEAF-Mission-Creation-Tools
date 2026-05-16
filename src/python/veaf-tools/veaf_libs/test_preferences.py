@@ -52,6 +52,11 @@ class TestGetLastCommand:
         with patch(_PATCH_HOME, return_value=tmp_path):
             assert get_last_command() == ""
 
+    def test_returns_empty_string_on_corrupt_file(self, tmp_path: Path) -> None:
+        (tmp_path / "preferences.json").write_text("not json", encoding="utf-8")
+        with patch(_PATCH_HOME, return_value=tmp_path):
+            assert get_last_command() == ""
+
     def test_returns_saved_command(self, tmp_path: Path) -> None:
         (tmp_path / "preferences.json").write_text(json.dumps({"last_command": "build"}), encoding="utf-8")
         with patch(_PATCH_HOME, return_value=tmp_path):
@@ -60,6 +65,11 @@ class TestGetLastCommand:
 
 class TestGetLastArgs:
     def test_returns_empty_dict_when_no_prefs(self, tmp_path: Path) -> None:
+        with patch(_PATCH_HOME, return_value=tmp_path):
+            assert get_last_args("build") == {}
+
+    def test_returns_empty_dict_on_corrupt_file(self, tmp_path: Path) -> None:
+        (tmp_path / "preferences.json").write_text("not json", encoding="utf-8")
         with patch(_PATCH_HOME, return_value=tmp_path):
             assert get_last_args("build") == {}
 

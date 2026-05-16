@@ -23,6 +23,23 @@
 - Test cross-platform compatibility when possible
 - Remove old/unused scripts when replacing them
 
+### Quality Gate — Lua Scripts
+
+Before committing any change to `src/scripts/veaf/`, run StyLua to check (and fix) formatting:
+
+```powershell
+# Check only (CI equivalent)
+stylua --check src/scripts/veaf/
+
+# Auto-fix
+stylua src/scripts/veaf/
+```
+
+- StyLua version used by CI: **2.4.0** (installed at `~/.local/bin/stylua.exe`)
+- Config: `.stylua.toml` at workspace root (if present), otherwise StyLua defaults
+- This check is enforced by the **StyLua Formatting** CI job on every PR
+- Never commit Lua files with formatting violations — the CI will block the merge
+
 ---
 
 ## Project Overview

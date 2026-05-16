@@ -1,24 +1,24 @@
+import os
+import sys
 import unittest
 from pathlib import Path
-import sys
-import os
+
 sys.path.insert(0, os.path.dirname(__file__))
 from presets_manager import (
     Channel,
-    ChannelDefinition,
     ChannelCollection,
-    RadioDefinition,
-    RadioCollection,
-    PresetDefinition,
-    PresetCollection,
+    ChannelDefinition,
     PresetAssignment,
     PresetAssignmentCollection,
+    PresetCollection,
+    PresetDefinition,
     PresetsManager,
+    RadioCollection,
+    RadioDefinition,
 )
 
 
 class TestPresets(unittest.TestCase):
-
     def test_channel(self):
         # Test Channel dataclass
         channel = Channel(name_or_number="01", freq=123.456, title="Test Title")
@@ -64,14 +64,7 @@ class TestPresets(unittest.TestCase):
             cd.add_freq("uhf", "invalid")
 
     def test_channel_definition_from_dict(self):
-        data = {
-            "title": "Test Channel",
-            "data": "misc data",
-            "freqs": {
-                "uhf": 225.0,
-                "vhf": 131.0
-            }
-        }
+        data = {"title": "Test Channel", "data": "misc data", "freqs": {"uhf": 225.0, "vhf": 131.0}}
         cd = ChannelDefinition.from_dict("test_channel", data)
         self.assertEqual(cd.name, "test_channel")
         self.assertEqual(cd.title, "Test Channel")
@@ -106,14 +99,8 @@ class TestPresets(unittest.TestCase):
 
     def test_channel_collection_from_dict(self):
         data = {
-            "channel1": {
-                "title": "Channel 1",
-                "freqs": {"uhf": 225.0}
-            },
-            "channel2": {
-                "title": "Channel 2",
-                "freqs": {"vhf": 131.0}
-            }
+            "channel1": {"title": "Channel 1", "freqs": {"uhf": 225.0}},
+            "channel2": {"title": "Channel 2", "freqs": {"vhf": 131.0}},
         }
         cc = ChannelCollection.from_dict("test_cc", data)
         self.assertEqual(cc.name, "test_cc")
@@ -147,16 +134,11 @@ class TestPresets(unittest.TestCase):
         rd.add_channel(channel1)
         rd.add_channel(channel2)
         result = rd.to_dict()
-        expected = {
-            "channelsNames": {1: "Test1", 2: "Test2"},
-            "channels": {1: 225.0, 2: 243.0}
-        }
+        expected = {"channelsNames": {1: "Test1", 2: "Test2"}, "channels": {1: 225.0, 2: 243.0}}
         self.assertEqual(result, expected)
 
     def test_radio_definition_from_dict(self):
-        channel_collections = {
-            "test_coll": ChannelCollection("test_coll")
-        }
+        channel_collections = {"test_coll": ChannelCollection("test_coll")}
         cd = ChannelDefinition(name="guard", title="Guard")
         cd.add_freq("uhf", 243.0)
         channel_collections["test_coll"].add_channel_definition(cd)
@@ -164,10 +146,7 @@ class TestPresets(unittest.TestCase):
         data = {
             "title": "Test Radio",
             "type": "uhf",
-            "channels": {
-                "01": {"channel": "guard", "title": "Guard/UHF"},
-                "02": {"freq": 225.0}
-            }
+            "channels": {"01": {"channel": "guard", "title": "Guard/UHF"}, "02": {"freq": 225.0}},
         }
         rd = RadioDefinition.from_dict("test_radio", data, channel_collections)
         self.assertEqual(rd.name, "test_radio")
@@ -226,12 +205,7 @@ class TestPresets(unittest.TestCase):
 
     def test_radio_collection_from_dict(self):
         channel_collections = {}
-        data = {
-            "radio1": {
-                "type": "uhf",
-                "channels": {"01": {"freq": 225.0}}
-            }
-        }
+        data = {"radio1": {"type": "uhf", "channels": {"01": {"freq": 225.0}}}}
         rc = RadioCollection.from_dict("test_rc", data, channel_collections)
         self.assertIsInstance(rc, RadioCollection)
         self.assertEqual(rc.name, "test_rc")
@@ -260,10 +234,7 @@ class TestPresets(unittest.TestCase):
         rd2 = RadioDefinition(name="radio2", radio_type="vhf")
         pd.radios = {"1": rd1, "2": rd2}
         result = pd.to_dict()
-        expected = {
-            1: {"channelsNames": {}, "channels": {}},
-            2: {"channelsNames": {}, "channels": {}}
-        }
+        expected = {1: {"channelsNames": {}, "channels": {}}, 2: {"channelsNames": {}, "channels": {}}}
         self.assertEqual(result, expected)
 
     def test_preset_definition_from_dict(self):
@@ -274,11 +245,7 @@ class TestPresets(unittest.TestCase):
         rc.add_radio_definition(rd)
         radio_collections["test_rc"] = rc
 
-        data = {
-            "radios": {
-                "radio1": "radio1"
-            }
-        }
+        data = {"radios": {"radio1": "radio1"}}
         pd = PresetDefinition.from_dict("test_preset", data, radio_collections)
         self.assertEqual(pd.name, "test_preset")
         self.assertEqual(len(pd.radios), 1)
@@ -317,13 +284,7 @@ class TestPresets(unittest.TestCase):
         rc.add_radio_definition(rd)
         radio_collections["test_rc"] = rc
 
-        data = {
-            "preset1": {
-                "radios": {
-                    "radio1": "radio1"
-                }
-            }
-        }
+        data = {"preset1": {"radios": {"radio1": "radio1"}}}
         pc = PresetCollection.from_dict("test_pc", data, radio_collections)
         self.assertIsInstance(pc, PresetCollection)
         self.assertEqual(pc.name, "test_pc")
@@ -356,14 +317,7 @@ class TestPresets(unittest.TestCase):
         pc.add_preset_definition(pd2)
         preset_collections["test_pc"] = pc
 
-        data = {
-            "blue": {
-                "plane": {
-                    "all": "modern_blue_uhf_vhf_fm",
-                    "F-16": "modern_blue_vhf_uhf_fm"
-                }
-            }
-        }
+        data = {"blue": {"plane": {"all": "modern_blue_uhf_vhf_fm", "F-16": "modern_blue_vhf_uhf_fm"}}}
         pac = PresetAssignmentCollection.from_dict(data, preset_collections)
         self.assertIsInstance(pac, PresetAssignmentCollection)
         # Test get_preset_for
@@ -413,5 +367,5 @@ class TestPresets(unittest.TestCase):
         self.assertFalse(yaml_path.exists())
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

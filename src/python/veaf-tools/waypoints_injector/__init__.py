@@ -5,19 +5,9 @@ This package provides classes for managing waypoint data and injecting/extractin
 waypoints from DCS missions.
 """
 
-from .waypoints_manager import (
-    WaypointDefinition,
-    FlightPlanDefinition,
-    WaypointsManager
-)
-from .waypoints_injector_worker import (
-    WaypointsInjectorWorker,
-    WaypointsExtractorWorker
-)
-from .waypoints_injector_README import (
-    WaypointsInjectorREADME,
-    WaypointsExtractorREADME
-)
+from .waypoints_injector_README import WaypointsExtractorREADME, WaypointsInjectorREADME
+from .waypoints_injector_worker import WaypointsExtractorWorker, WaypointsInjectorWorker
+from .waypoints_manager import FlightPlanDefinition, WaypointDefinition, WaypointsManager
 
 __all__ = [
     "WaypointDefinition",
@@ -26,5 +16,5 @@ __all__ = [
     "WaypointsInjectorWorker",
     "WaypointsExtractorWorker",
     "WaypointsInjectorREADME",
-    "WaypointsExtractorREADME"
+    "WaypointsExtractorREADME",
 ]

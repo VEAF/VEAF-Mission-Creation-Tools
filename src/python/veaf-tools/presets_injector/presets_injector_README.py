@@ -1,4 +1,4 @@
-PresetsInjectorREADME="""
+PresetsInjectorREADME = """
 # VEAF Tools - Radio Presets Injector User Guide
 
 The Radio Presets Injector is a tool that automatically injects radio frequency presets into DCS World mission files (.miz) for aircraft groups with human pilots. This simplifies mission setup by pre-configuring radio channels with realistic frequencies for airports, tactical communications, and flight callsigns.

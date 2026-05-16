@@ -4,20 +4,20 @@ VEAF Presets Injector Package
 This package provides classes for managing radio presets data from YAML files.
 """
 
+from .presets_injector_README import PresetsInjectorREADME
+from .presets_injector_worker import PresetsInjectorWorker
 from .presets_manager import (
     Channel,
-    ChannelDefinition,
     ChannelCollection,
-    RadioDefinition,
-    RadioCollection,
-    PresetDefinition,
-    PresetCollection,
+    ChannelDefinition,
     PresetAssignment,
     PresetAssignmentCollection,
-    PresetsManager
+    PresetCollection,
+    PresetDefinition,
+    PresetsManager,
+    RadioCollection,
+    RadioDefinition,
 )
-from .presets_injector_worker import PresetsInjectorWorker
-from .presets_injector_README import PresetsInjectorREADME
 
 __all__ = [
     "Channel",
@@ -31,5 +31,5 @@ __all__ = [
     "PresetAssignmentCollection",
     "PresetsManager",
     "PresetsInjectorWorker",
-    "PresetsInjectorREADME"
+    "PresetsInjectorREADME",
 ]

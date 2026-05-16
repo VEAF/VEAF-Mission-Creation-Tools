@@ -11,7 +11,7 @@ The Aircraft Groups Extractor is a tool that extracts aircraft groups from:
 - **DCS World mission files (.miz)** - Extract templates directly from missions
 - **Lua settings files** - Extract from configuration files like `settings-templates.lua`
 
-Extracted groups are written to a YAML file in the `aircraft-templates.yaml` format, 
+Extracted groups are written to a YAML file in the `aircraft-templates.yaml` format,
 making it easy to create templates for aircraft group definitions.
 
 ### Use Cases

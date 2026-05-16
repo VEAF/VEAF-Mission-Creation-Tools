@@ -1,6 +1,11 @@
 import math
 
-from lupa.lua51 import LuaRuntime, lua_type
+try:
+    from lupa.lua51 import LuaRuntime, lua_type
+except ImportError:
+    LuaRuntime = None  # type: ignore[assignment,misc]
+    lua_type = None  # type: ignore[assignment]
+
 from veaf_libs.logger import logger
 
 def _unserialize(raw: str, encoding: str = "utf-8", multival: bool = False, verbose: bool = False) -> tuple:

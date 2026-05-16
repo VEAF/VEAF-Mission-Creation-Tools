@@ -14,20 +14,19 @@ Usage:
 - Run with 'veaf-tools-updater.exe --help' for command reference
 """
 
-from io import BytesIO
 import hashlib
 import json
-from pathlib import Path
 import re
 import shutil
 import subprocess
 import zipfile
-from typing import Optional, Dict, Any
+from io import BytesIO
+from pathlib import Path
+from typing import Any
 
-import typer
 import requests
+import typer
 import yaml
-
 from veaf_libs.logger import Logger, console
 from veaf_libs.progress import spinner_context
 
@@ -57,7 +56,8 @@ PACKAGE_JSON_FILE = "package.json"
 CONFIG_FILE = "veaf-tools-config.yaml"
 UPDATE_PENDING_DIR = ".veaf-update-pending"
 
-def load_config() -> Dict[str, Any]:
+
+def load_config() -> dict[str, Any]:
     """Load configuration from veaf-tools-config.yaml if it exists."""
     config_path = Path.cwd() / CONFIG_FILE
 
@@ -65,7 +65,7 @@ def load_config() -> Dict[str, Any]:
         return {}
 
     try:
-        with open(config_path, 'r') as f:
+        with open(config_path) as f:
             config = yaml.safe_load(f)
             if config is None:
                 return {}
@@ -76,7 +76,9 @@ def load_config() -> Dict[str, Any]:
         return {}
 
 
-def resolve_path(path: str, default_path: str = None, should_exist: bool = False, create_if_not_exist: bool = False) -> Path:
+def resolve_path(
+    path: str, default_path: str = None, should_exist: bool = False, create_if_not_exist: bool = False
+) -> Path:
     """Resolve and validate a file path."""
     if not path and default_path:
         result = Path(default_path)
@@ -105,12 +107,12 @@ class UpdateWorker:
     def __init__(
         self,
         mission_folder: str = ".",
-        tag: Optional[str] = None,
-        token: Optional[str] = None,
+        tag: str | None = None,
+        token: str | None = None,
         force: bool = False,
         verify_checksum: bool = True,
         verbose: bool = False,
-        zip_file_path: Optional[str] = None,
+        zip_file_path: str | None = None,
     ):
         """Initialize the update worker."""
         self.mission_folder = mission_folder
@@ -140,7 +142,7 @@ class UpdateWorker:
             return False
         return True
 
-    def get_release_by_tag(self, tag_name: str) -> Optional[dict]:
+    def get_release_by_tag(self, tag_name: str) -> dict | None:
         """Retrieve Release information associated with a Git tag."""
         url = f"{GITHUB_API_BASE}/repos/{GITHUB_REPO_OWNER}/{GITHUB_REPO_NAME}/releases/tags/{tag_name}"
         response = requests.get(url, headers=self.headers)
@@ -174,17 +176,17 @@ class UpdateWorker:
         logger.info(f"Checksum verified for {file_path.name}")
         return True
 
-    def get_installed_version(self, mission_folder: Path) -> Optional[str]:
+    def get_installed_version(self, mission_folder: Path) -> str | None:
         """Retrieve the currently installed version from package.json."""
         package_json_path = mission_folder / PUBLISHED_DIR / PACKAGE_JSON_FILE
         if not package_json_path.exists():
             return None
 
         try:
-            with open(package_json_path, 'r') as f:
+            with open(package_json_path) as f:
                 package_data = json.load(f)
                 return package_data.get("version")
-        except (json.JSONDecodeError, IOError) as e:
+        except (OSError, json.JSONDecodeError) as e:
             logger.warning(f"Failed to read installed version: {e}")
             return None
 
@@ -200,8 +202,8 @@ class UpdateWorker:
 
         # Simple version comparison (assumes semantic versioning)
         try:
-            installed_parts = [int(x) for x in installed_version.split('.')]
-            release_parts = [int(x) for x in release_version.split('.')]
+            installed_parts = [int(x) for x in installed_version.split(".")]
+            release_parts = [int(x) for x in release_version.split(".")]
 
             # Pad with zeros for comparison
             max_len = max(len(installed_parts), len(release_parts))
@@ -218,7 +220,7 @@ class UpdateWorker:
             logger.warning(f"Could not compare versions: {installed_version} vs {release_version}")
             return True
 
-    def download_asset(self, asset_url: str, asset_name: str) -> Optional[bytes]:
+    def download_asset(self, asset_url: str, asset_name: str) -> bytes | None:
         """Download an asset from a GitHub release."""
         with spinner_context(f"Downloading {asset_name} from GitHub..."):
             response = requests.get(asset_url, headers=self.headers)
@@ -231,7 +233,7 @@ class UpdateWorker:
     def _launch_deferred_update(self, pending_dir: Path, pending_exe: Path) -> None:
         """
         Launch a deferred update script that will replace the updater executable.
-        
+
         This avoids file locking issues by:
         1. Copying the new exe to a pending directory
         2. Creating a batch script that will execute after this process exits
@@ -240,13 +242,13 @@ class UpdateWorker:
         try:
             # Create the update script
             update_script = pending_dir / "apply-update.cmd"
-            
+
             # Get absolute paths for the script
             current_dir = Path.cwd()
-            old_exe_path = current_dir / VEAF_TOOLS_EXE
+            current_dir / VEAF_TOOLS_EXE
             new_exe_path = pending_exe.resolve()
             backup_exe_path = current_dir / f"{VEAF_TOOLS_EXE}.old"
-            
+
             script_content = f"""@echo off
 REM Auto-generated update script for veaf-tools-updater.exe
 REM This script is run after the updater process exits to avoid file locking issues
@@ -266,11 +268,11 @@ REM Replace the executable
 if exist "{new_exe_path.name}" (
     REM Rename current executable to .old
     ren "{VEAF_TOOLS_EXE}" "{backup_exe_path.name}" 2>nul
-    
+
     if !errorlevel! equ 0 (
         REM Rename pending exe to active name
         ren "{new_exe_path.name}" "{VEAF_TOOLS_EXE}" 2>nul
-        
+
         if !errorlevel! equ 0 (
             echo Update successful: veaf-tools-updater.exe has been updated
             REM Clean up backup
@@ -292,23 +294,24 @@ if exist ".\\{UPDATE_PENDING_DIR}" (
 
 exit /b 0
 """
-            
+
             update_script.write_text(script_content)
             logger.debug(f"Created update script: {update_script}")
-            
+
             # Launch the script in background
             import os
+
             subprocess.Popen(
                 str(update_script),
                 shell=True,
-                creationflags=subprocess.CREATE_NEW_PROCESS_GROUP if os.name == 'nt' else 0,
+                creationflags=subprocess.CREATE_NEW_PROCESS_GROUP if os.name == "nt" else 0,
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
                 cwd=str(current_dir),
             )
             logger.info("Deferred update script launched successfully")
             logger.info("The updater executable will be updated in a few seconds")
-            
+
         except Exception as e:
             logger.warning(f"Failed to launch deferred update: {e}")
             logger.warning("Update of updater executable will be deferred to next run")
@@ -319,34 +322,34 @@ exit /b 0
             # Check if the updater exe is currently running (in current directory)
             current_exe = Path.cwd() / VEAF_TOOLS_EXE
             has_locked_exe = current_exe.exists()
-            
+
             # Step 1: Extract ALL content of published.zip to the "published" folder
             published_dir = mission_folder / PUBLISHED_DIR
             published_dir.mkdir(exist_ok=True)
-            
+
             if has_locked_exe:
                 # Extract to a temporary location first to avoid file locking issues
                 with spinner_context(f"Extracting published.zip (version {release_version})..."):
                     temp_extract_dir = mission_folder / ".extract-temp"
                     temp_extract_dir.mkdir(exist_ok=True)
-                    
+
                     zip_file = zipfile.ZipFile(BytesIO(zip_content))
                     zip_file.extractall(temp_extract_dir)
-                    
+
                     # Move ALL extracted files to the published directory
                     # The zip content structure is: published/* which becomes the root after extraction
                     for item in temp_extract_dir.iterdir():
                         dest = published_dir / item.name
-                        
+
                         # Remove destination if it exists
                         if dest.exists():
                             if dest.is_dir():
                                 shutil.rmtree(dest)
                             else:
                                 dest.unlink()
-                        
+
                         shutil.move(str(item), str(dest))
-                    
+
                     # Clean up temporary extraction directory
                     shutil.rmtree(temp_extract_dir, ignore_errors=True)
             else:
@@ -360,7 +363,7 @@ exit /b 0
             # Step 2: Move key files from published folder to current directory
             with spinner_context("Installing tools to current directory..."):
                 files_to_move = ["veaf-tools.exe", "README.md"]
-                
+
                 for filename in files_to_move:
                     source_file = published_dir / filename
                     if source_file.exists():
@@ -369,7 +372,7 @@ exit /b 0
                         logger.info(f"Moved {filename} to current directory")
                     else:
                         logger.warning(f"File not found in published folder: {filename}")
-                
+
                 # Handle veaf-tools-updater.exe with deferred update mechanism
                 updater_exe = published_dir / "veaf-tools-updater.exe"
                 if updater_exe.exists():
@@ -377,11 +380,11 @@ exit /b 0
                         # Use deferred update mechanism to avoid file locking
                         pending_dir = Path.cwd() / UPDATE_PENDING_DIR
                         pending_dir.mkdir(exist_ok=True)
-                        
+
                         pending_exe = pending_dir / f"{VEAF_TOOLS_EXE}.new"
                         shutil.move(str(updater_exe), str(pending_exe))
                         logger.info(f"Prepared {VEAF_TOOLS_EXE} for deferred update")
-                        
+
                         # Launch the deferred update script
                         self._launch_deferred_update(pending_dir, pending_exe)
                     else:
@@ -394,7 +397,7 @@ exit /b 0
         except zipfile.BadZipFile as e:
             logger.error(f"Failed to extract zip file: {e}")
             return False
-        except IOError as e:
+        except OSError as e:
             logger.error(f"Failed to install files: {e}")
             return False
 
@@ -402,7 +405,7 @@ exit /b 0
         """Execute the update process."""
         console.print(f"[bold green]VEAF Tools Updater v{VERSION}[/bold green]")
         console.print(f"Repository: {GITHUB_REPO_OWNER}/{GITHUB_REPO_NAME}")
-        
+
         # Resolve mission folder
         p_mission_folder = resolve_path(path=self.mission_folder, default_path=str(Path.cwd()), should_exist=True)
 
@@ -410,29 +413,30 @@ exit /b 0
         if self.zip_file_path:
             console.print(f"[bold cyan]Using local ZIP file: {self.zip_file_path}[/bold cyan]\n")
             zip_path = Path(self.zip_file_path)
-            
+
             if not zip_path.exists():
                 logger.error(f"ZIP file not found: {zip_path}")
                 return False
-            
+
             try:
                 zip_content = zip_path.read_bytes()
-            except IOError as e:
+            except OSError as e:
                 logger.error(f"Failed to read ZIP file: {e}")
                 return False
-            
+
             # Extract version from zip file path or use a default
             # e.g., "published.zip" → "local"
             import os
+
             release_version = os.path.splitext(os.path.basename(self.zip_file_path))[0]
             if release_version == "published":
                 release_version = "local"
-            
+
             logger.info(f"Loaded ZIP file with version label: {release_version}")
-            
+
             # Extract and install directly
             if self.extract_and_install(zip_content, release_version, p_mission_folder):
-                logger.info(f"Successfully installed from local ZIP")
+                logger.info("Successfully installed from local ZIP")
                 console.print(WORK_DONE_MESSAGE)
                 return True
             else:
@@ -450,22 +454,22 @@ exit /b 0
 
         # Extract version from release
         release_tag = release_payload.get("tag_name", self.tag)
-        release_version = re.sub(r'^v', '', release_tag)
-        
+        release_version = re.sub(r"^v", "", release_tag)
+
         # For "published-latest" tag, extract actual version from release name or body
         if release_version == "published-latest":
             release_name = release_payload.get("name", "")
             # Try to extract version from title like "VEAF Tools Latest (v6.0.3)"
-            version_match = re.search(r'\(v?([\d.]+)\)', release_name)
+            version_match = re.search(r"\(v?([\d.]+)\)", release_name)
             if version_match:
                 release_version = version_match.group(1)
             else:
                 # Try to extract from body if available
                 release_body = release_payload.get("body", "")
-                version_match = re.search(r'v?([\d.]+)', release_body)
+                version_match = re.search(r"v?([\d.]+)", release_body)
                 if version_match:
                     release_version = version_match.group(1)
-        
+
         logger.info(f"Found release version: {release_version}")
 
         # Check if update is needed
@@ -488,10 +492,7 @@ exit /b 0
             return False
 
         # Download the zip file
-        zip_content = self.download_asset(
-            published_asset.get("browser_download_url"),
-            PUBLISHED_ZIP_ASSET_NAME
-        )
+        zip_content = self.download_asset(published_asset.get("browser_download_url"), PUBLISHED_ZIP_ASSET_NAME)
         if not zip_content:
             logger.error("Failed to download published.zip")
             return False
@@ -507,8 +508,7 @@ exit /b 0
 
                 if metadata_asset:
                     metadata_content = self.download_asset(
-                        metadata_asset.get("browser_download_url"),
-                        PUBLISHED_METADATA_ASSET_NAME
+                        metadata_asset.get("browser_download_url"), PUBLISHED_METADATA_ASSET_NAME
                     )
                     if metadata_content:
                         try:
@@ -546,19 +546,19 @@ exit /b 0
 def main(
     verbose: bool = typer.Option(False, help=VERBOSE_HELP),
     force: bool = typer.Option(False, help="Ignore version check and install anyway"),
-    tag: Optional[str] = typer.Option(None, help="Tag name to fetch (default: published-latest)"),
-    token: Optional[str] = typer.Option(None, help="GitHub Personal Access Token (overrides config file)"),
-    mission_folder: Optional[str] = typer.Argument(None, help="Mission folder path (overrides config file)"),
+    tag: str | None = typer.Option(None, help="Tag name to fetch (default: published-latest)"),
+    token: str | None = typer.Option(None, help="GitHub Personal Access Token (overrides config file)"),
+    mission_folder: str | None = typer.Argument(None, help="Mission folder path (overrides config file)"),
     pause: bool = typer.Option(False, help=PAUSE_HELP),
     no_verify_checksum: bool = typer.Option(False, help="Skip checksum verification (not recommended)"),
-    zip_file: Optional[str] = typer.Option(None, help="Path to local published.zip file (for testing, skips GitHub)"),
+    zip_file: str | None = typer.Option(None, help="Path to local published.zip file (for testing, skips GitHub)"),
 ) -> None:
     """
     Downloads the latest VEAF Tools files from GitHub using Git tags.
 
     This command fetches compiled tools and scripts from GitHub releases.
     By default, it uses the 'published-latest' tag which always points to the most recent version.
-    
+
     For testing, use --zip-file to install from a local published.zip file instead of GitHub.
     """
     logger.set_verbose(verbose)
@@ -596,5 +596,3 @@ def main(
 
 if __name__ == "__main__":
     typer.run(main)
-
-

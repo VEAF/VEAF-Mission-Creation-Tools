@@ -1,9 +1,9 @@
 """Models for weather and time versions configuration."""
 
 from .configuration import (
+    MissionConfig,
     Position,
     VersionConfig,
-    MissionConfig,
 )
 
 __all__ = [

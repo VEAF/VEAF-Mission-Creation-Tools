@@ -1,0 +1,115 @@
+[tool.poetry]
+name = "veaf-tools"
+version = "6.0.5"
+description = "A set of tools that help set up and run dynamic DCS World missions"
+authors = ["VEAF <https://www.veaf.org>"]
+license = "ISC"
+readme = "README.md"
+homepage = "https://github.com/VEAF/VEAF-Mission-Creation-Tools"
+repository = "https://github.com/VEAF/VEAF-Mission-Creation-Tools"
+package-mode = false
+
+[tool.poetry.dependencies]
+python = "^3.11"
+rich = ">=13.0"
+typer = ">=0.9"
+pyyaml = ">=6.0"
+Pillow = ">=10.0"
+astral = ">=3.0"
+pydantic = ">=2.0"
+avwx-engine = ">=1.8"
+lupa = { version = ">=2.0", optional = true }
+
+[tool.poetry.extras]
+lua = ["lupa"]
+
+[tool.poetry.group.dev.dependencies]
+ruff = ">=0.4"
+mypy = ">=1.8"
+pytest = ">=8.0"
+pytest-cov = ">=5.0"
+types-PyYAML = ">=6.0"
+pyinstaller = ">=6.0"
+
+# ---------------------------------------------------------------------------
+# Ruff — lint + format
+# ---------------------------------------------------------------------------
+[tool.ruff]
+line-length = 120
+target-version = "py313"
+exclude = [
+    "src/python/veaf-tools/luadata",
+    ".venv",
+    "dist",
+    "build",
+]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP"]
+ignore = [
+    "E501",   # line too long — handled by formatter
+    "UP007",  # use X | Y for type union — keep Optional[] for clarity
+]
+
+[tool.ruff.lint.per-file-ignores]
+"**/test_*.py" = ["F401"]   # unused imports OK in test files
+
+# ---------------------------------------------------------------------------
+# Mypy — type checking
+# ---------------------------------------------------------------------------
+[tool.mypy]
+python_version = "3.13"
+files = ["src/python/veaf-tools"]
+exclude = [
+    # Third-party bundled library — not our code
+    "luadata",
+    # Entry-point scripts (hyphenated names — not importable as modules)
+    "veaf-tools\\.py",
+    "veaf-tools-updater\\.py",
+]
+ignore_missing_imports = true
+warn_unused_ignores = false
+warn_return_any = false
+# Not strict yet — incrementally tighten after fixing initial violations
+check_untyped_defs = true
+disallow_untyped_defs = false
+
+[[tool.mypy.overrides]]
+module = ["lupa.*", "avwx.*"]
+ignore_missing_imports = true
+
+# ---------------------------------------------------------------------------
+# Mypy overrides — existing files with known type errors (technical debt).
+# Remove entries as each file is cleaned up.
+# ---------------------------------------------------------------------------
+[[tool.mypy.overrides]]
+module = [
+    # Third-party bundled library
+    "luadata",
+    "luadata.*",
+    # Existing application files with known type errors
+    "aircrafts_injector.aircrafts_injector_worker",
+    "mission_builder.mission_builder_worker",
+    "mission_converter.mission_converter_worker",
+    "mission_extractor.mission_extractor_worker",
+    "mission_tools.mission_constants",
+    "mission_tools.miz_tools",
+    "presets_injector.presets_injector_worker",
+    "presets_injector.presets_manager",
+    "presets_injector.test_presets",
+    "veaf_libs.logger",
+    "waypoints_injector.waypoints_injector_worker",
+    "waypoints_injector.waypoints_manager",
+    "weather_injector.utils.lua_converter",
+    "weather_injector.weather_injector_worker",
+]
+ignore_errors = true
+
+# ---------------------------------------------------------------------------
+# Pytest
+# ---------------------------------------------------------------------------
+[tool.pytest.ini_options]
+testpaths = ["src/python/veaf-tools"]
+pythonpath = ["src/python/veaf-tools"]
+python_files = ["test_*.py", "*_test.py"]
+addopts = "--tb=short -q --import-mode=importlib"

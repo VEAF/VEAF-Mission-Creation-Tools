@@ -34,7 +34,10 @@ from mission_converter import MissionConverterREADME, MissionConverterWorker
 from mission_extractor import MissionExtractorREADME, MissionExtractorWorker
 from presets_injector import PresetsInjectorREADME, PresetsInjectorWorker
 from rich.markdown import Markdown
+from rich.table import Table
 from veaf_libs.logger import console, logger
+from veaf_libs.lua_module_scanner import get_modules
+from veaf_libs.update_checker import check_for_updates
 from waypoints_injector import (
     WaypointsExtractorREADME,
     WaypointsExtractorWorker,
@@ -56,6 +59,12 @@ CONFIRM_DISPLAY_DOC = "Do you want to display the documentation?"
 WORK_DONE_MESSAGE = "[bold blue]Work done![/bold blue]"
 
 app = typer.Typer(no_args_is_help=True)
+
+
+@app.callback()
+def main_callback() -> None:
+    """VEAF Tools — DCS World mission management CLI."""
+    check_for_updates(VERSION, console)
 
 
 def resolve_path(
@@ -226,11 +235,29 @@ def prepare(
         exit(1)
 
 
-@app.command(no_args_is_help=True)
-def about() -> None:
+@app.command()
+def about(
+    modules: bool = typer.Option(False, "--modules", help="Show the list of embedded VEAF Lua modules."),
+) -> None:
     """
-    Shows information about the veaf-tools program
+    Shows information about the veaf-tools program.
     """
+    if modules:
+        mod_list = get_modules()
+        if not mod_list:
+            console.print(
+                "[yellow]No module information available (run from a full repo checkout or built exe).[/yellow]"
+            )
+            return
+        table = Table(title=f"VEAF Lua Modules ({len(mod_list)} total)")
+        table.add_column("ID", style="cyan", no_wrap=True)
+        table.add_column("Version", style="green")
+        table.add_column("File", style="dim")
+        for mod in mod_list:
+            table.add_row(mod["id"], mod["version"], mod["filename"])
+        console.print(table)
+        return
+
     url = "https://www.veaf.org"
     console.print(__doc__)
     console.print("[bold green]The VEAF - Virtual European Air Force[/bold green]")

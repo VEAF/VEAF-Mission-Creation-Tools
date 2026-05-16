@@ -1,4 +1,5 @@
 import logging
+from pathlib import Path
 from typing import Self
 
 import typer
@@ -15,8 +16,16 @@ class Logger:
 
         # Only add handlers if they don't exist
         if not self.logger.handlers:
+            # Resolve log file path: prefer VEAF_HOME, fall back to CWD
+            try:
+                from veaf_libs.veaf_home import get_veaf_home
+
+                log_path: Path = get_veaf_home() / f"{logger_name}.log"
+            except Exception:
+                log_path = Path(f"{logger_name}.log")
+
             # File handler with UTF-8 encoding
-            file_handler = logging.FileHandler(f"{logger_name}.log", mode="a", encoding="utf-8")
+            file_handler = logging.FileHandler(log_path, mode="a", encoding="utf-8")
             file_handler.setFormatter(logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s"))
             self.logger.addHandler(file_handler)
 

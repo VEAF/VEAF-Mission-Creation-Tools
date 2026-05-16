@@ -105,6 +105,7 @@ module = [
     "waypoints_injector.waypoints_injector_worker",
     "waypoints_injector.waypoints_manager",
     "weather_injector.utils.lua_converter",
+    "weather_injector.weather.dcs_weather_converter",
     "weather_injector.weather_injector_worker",
 ]
 ignore_errors = true

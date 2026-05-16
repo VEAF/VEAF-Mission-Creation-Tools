@@ -1044,7 +1044,9 @@ veafWeatherAtis.ListInEffect = {}
 ---  CTORS
 function veafWeatherAtis:Create(veafAirbase, dateTimeZulu)
   if not veafAirbase.DcsAirbase or not veafAirbase.DcsAirbase:isExist() then
-    veaf.loggers.get(veafWeather.Id):debug("veafWeatherAtis:Create - airbase [%s] DCS object no longer exists, skipping ATIS", veafAirbase.Name)
+    veaf.loggers
+      .get(veafWeather.Id)
+      :debug("veafWeatherAtis:Create - airbase [%s] DCS object no longer exists, skipping ATIS", veafAirbase.Name)
     return nil
   end
   local iHoursSinceMidnight = dateTimeZulu.hour

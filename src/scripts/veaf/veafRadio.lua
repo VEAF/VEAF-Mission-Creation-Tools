@@ -935,3 +935,8 @@ function veafRadio.initialize(skipHelpMenus, dontCreateMenus)
 end
 
 veaf.loggers.get(veafRadio.Id):info(veaf.loggers.get(veafRadio.Id):getVersionInfo(veafRadio.Version))
+
+veaf.registerModule(veafRadio.Id, function()
+  local cfg = veaf.getConfig(veafRadio.Id)
+  veafRadio.initialize(cfg.skipHelpMenus, cfg.dontCreateMenus)
+end, { enable = true, skipHelpMenus = false, dontCreateMenus = false }, 30)

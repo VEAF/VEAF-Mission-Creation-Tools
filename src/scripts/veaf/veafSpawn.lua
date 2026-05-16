@@ -4514,3 +4514,5 @@ function veafSpawn.initialize()
 end
 
 veaf.loggers.get(veafSpawn.Id):info(veaf.loggers.get(veafSpawn.Id):getVersionInfo(veafSpawn.Version))
+
+veaf.registerModule(veafSpawn.Id, veafSpawn.initialize, { enable = true }, 70)

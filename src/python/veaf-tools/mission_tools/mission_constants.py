@@ -47,6 +47,8 @@ def get_mission_script_files() -> list[tuple[str, str]]:
     """Get list of the mission files. Those are either in the mission folder or in the VEAF defaults folder"""
 
     return [
+        # Optional generated module config (LUA-005); loaded BEFORE missionConfig.lua
+        ("src/scripts/veaf-modules-config.lua", DEFAULT_SCRIPTS_LOCATION),
         # The mission scripts
         ("src/scripts/missionConfig.lua", DEFAULT_SCRIPTS_LOCATION),
         ("src/scripts/veafDynamicConfig.lua", DEFAULT_SCRIPTS_LOCATION),

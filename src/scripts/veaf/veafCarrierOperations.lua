@@ -1175,3 +1175,5 @@ veaf.loggers.get(veafCarrierOperations.Id):info(veaf.loggers.get(veafCarrierOper
 
 --- Enable/Disable error boxes displayed on screen.
 env.setErrorMessageBoxEnabled(false)
+
+veaf.registerModule(veafCarrierOperations.Id, veafCarrierOperations.initialize, { enable = true }, 80)

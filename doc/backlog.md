@@ -230,11 +230,11 @@ On interactive mode launch, read `preferences.json` and inject the last-used val
 
 | # | Ticket | Type | Effort | Depends on | Status |
 |---|--------|------|--------|------------|--------|
-| LUA-001 | `veaf.config` per module + `enable=true` option in `veaf.lua` | feat | 90 min | — | [ ] |
-| LUA-002 | Load and apply `missionconfig.lua` | feat | 60 min | LUA-001 | [ ] |
-| LUA-003 | Deferred module initialization after missionconfig load | feat | 60 min | LUA-002 | [ ] |
-| LUA-004 | `veaf-tools generate-config` command → `missionconfig.lua` template | feat | 45 min | LUA-001, TOOL-003 | [ ] |
-| LUA-005 | Module selection + options via mission YAML (`veaf-tools build`) | feat | 60 min | LUA-004 | [ ] |
+| LUA-001 | `veaf.config` per module + `enable=true` option in `veaf.lua` | feat | 90 min | — | [x] |
+| LUA-002 | Load and apply `missionconfig.lua` | feat | 60 min | LUA-001 | [x] |
+| LUA-003 | Deferred module initialization after missionconfig load | feat | 60 min | LUA-002 | [x] |
+| LUA-004 | `veaf-tools generate-config` command → `missionconfig.lua` template | feat | 45 min | LUA-001, TOOL-003 | [x] |
+| LUA-005 | Module selection + options via mission YAML (`veaf-tools build`) | feat | 60 min | LUA-004 | [x] |
 
 **Raw total: 315 min → estimated (×1.15): ~360 min (~6h)**
 ⚠️ Highest-risk lot — impacts Lua runtime of all existing missions. Require Lua test coverage before merge.

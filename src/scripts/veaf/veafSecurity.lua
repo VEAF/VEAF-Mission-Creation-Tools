@@ -671,3 +671,5 @@ function veafSecurity.initialize()
 end
 
 veaf.loggers.get(veafSecurity.Id):info(veaf.loggers.get(veafSecurity.Id):getVersionInfo(veafSecurity.Version))
+
+veaf.registerModule(veafSecurity.Id, veafSecurity.initialize, { enable = true }, 20)

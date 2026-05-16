@@ -44,6 +44,67 @@ veaf.HideNamesFromSpawnedGroups = true
 veaf.config = {}
 veaf.triggerZones = {}
 
+--- Registry of modules that can be initialized via veaf.initialize().
+--- Each entry: { initFn = function, order = number }
+veaf.modules = {}
+
+--- Flag set once veaf.initialize() has been called.
+veaf._initialized = false
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- Module configuration API
+-- These functions are available immediately at load time (no loggers required).
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+--- Return the configuration table for a module (empty table if none registered).
+function veaf.getConfig(moduleId)
+  return veaf.config[moduleId] or {}
+end
+
+--- Set a single configuration key for a module.
+function veaf.setConfig(moduleId, key, value)
+  if not veaf.config[moduleId] then
+    veaf.config[moduleId] = {}
+  end
+  veaf.config[moduleId][key] = value
+end
+
+--- Return true if the module is enabled (default: true when no config exists).
+function veaf.isEnabled(moduleId)
+  local cfg = veaf.config[moduleId]
+  if cfg == nil or cfg.enable == nil then
+    return true
+  end
+  return cfg.enable
+end
+
+--- Register a module so that veaf.initialize() can initialize it.
+--- @param id         string   — module identifier (e.g. veafSpawn.Id)
+--- @param initFn     function — zero-argument wrapper calling the module's initialize()
+--- @param defaults   table    — default config values merged into veaf.config[id]
+--- @param order      number   — initialization order (lower = earlier, default 100)
+function veaf.registerModule(id, initFn, defaults, order)
+  -- Merge defaults into veaf.config[id], keeping values already set (e.g. by missionconfig.lua).
+  if defaults then
+    if not veaf.config[id] then
+      veaf.config[id] = {}
+    end
+    for k, v in pairs(defaults) do
+      if veaf.config[id][k] == nil then
+        veaf.config[id][k] = v
+      end
+    end
+  end
+  -- Guarantee the enable key exists.
+  if not veaf.config[id] then
+    veaf.config[id] = {}
+  end
+  if veaf.config[id].enable == nil then
+    veaf.config[id].enable = true
+  end
+  veaf.modules[id] = { initFn = initFn, order = order or 100 }
+end
+
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Global constants
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -4537,4 +4598,76 @@ if STTS then
     STTS.io = SERVER_CONFIG.getModule("io")
     veaf.loggers.get(veaf.Id):info(string.format("Done setting up STTS"))
   end
+end
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- Mission configuration loader (LUA-002)
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+--- Try to load "missionconfig.lua" from the DCS mission scripts directory.
+--- If the file does not exist the call is silently skipped (full backward compatibility).
+--- The file should contain veaf.setConfig() calls to override module defaults.
+function veaf.loadMissionConfig()
+  local configFile = "missionconfig.lua"
+  local f = loadfile(configFile)
+  if f then
+    veaf.loggers.get(veaf.Id):info("Loading mission configuration from missionconfig.lua")
+    local ok, err = pcall(f)
+    if ok then
+      veaf.loggers.get(veaf.Id):info("Mission configuration loaded successfully")
+    else
+      veaf.loggers.get(veaf.Id):error(string.format("Error loading missionconfig.lua: %s", tostring(err)))
+    end
+  else
+    veaf.loggers.get(veaf.Id):info("No missionconfig.lua found - using default module configuration")
+  end
+end
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- VEAF framework initializer (LUA-003)
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+--- Initialize all registered, enabled VEAF modules in registration order.
+--- Optionally loads "missionconfig.lua" first to allow per-mission overrides.
+---
+--- This is the NEW entry point for mission makers who want a single call:
+---   veaf.initialize()
+---
+--- Legacy missions that call each module's initialize() individually are
+--- fully backward-compatible: veaf.registerModule() registrations are
+--- simply ignored if veaf.initialize() is never called.
+function veaf.initialize()
+  if veaf._initialized then
+    veaf.loggers.get(veaf.Id):warn("veaf.initialize() called more than once - ignoring")
+    return
+  end
+  veaf._initialized = true
+  veaf.loggers.get(veaf.Id):info("VEAF framework initialization starting")
+
+  -- Load optional per-mission configuration before any module is initialized.
+  veaf.loadMissionConfig()
+
+  -- Sort registered modules by their declared order.
+  local orderedModules = {}
+  for id, module in pairs(veaf.modules) do
+    table.insert(orderedModules, { id = id, initFn = module.initFn, order = module.order })
+  end
+  table.sort(orderedModules, function(a, b)
+    return a.order < b.order
+  end)
+
+  -- Initialize each enabled module.
+  for _, module in ipairs(orderedModules) do
+    if veaf.isEnabled(module.id) then
+      veaf.loggers.get(veaf.Id):info(string.format("Initializing module [%s]", module.id))
+      local ok, err = pcall(module.initFn)
+      if not ok then
+        veaf.loggers.get(veaf.Id):error(string.format("Error initializing module [%s]: %s", module.id, tostring(err)))
+      end
+    else
+      veaf.loggers.get(veaf.Id):info(string.format("Module [%s] is disabled - skipping initialization", module.id))
+    end
+  end
+
+  veaf.loggers.get(veaf.Id):info("VEAF framework initialization complete")
 end

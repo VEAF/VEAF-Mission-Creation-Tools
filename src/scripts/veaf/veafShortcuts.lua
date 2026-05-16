@@ -1743,3 +1743,5 @@ function veafShortcuts.initialize()
 end
 
 veaf.loggers.get(veafShortcuts.Id):info(veaf.loggers.get(veafShortcuts.Id):getVersionInfo(veafShortcuts.Version))
+
+veaf.registerModule(veafShortcuts.Id, veafShortcuts.initialize, { enable = true }, 40)

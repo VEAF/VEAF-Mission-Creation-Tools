@@ -5686,6 +5686,11 @@ veafNamedPoints._citiesFalklands = {
 ---------------------------------------------------------------------------------------------------
 veaf.loggers.get(veafNamedPoints.Id):info(veaf.loggers.get(veafNamedPoints.Id):getVersionInfo(veafNamedPoints.Version))
 
+veaf.registerModule(veafNamedPoints.Id, function()
+  local cfg = veaf.getConfig(veafNamedPoints.Id)
+  veafNamedPoints.initialize(cfg.customPoints)
+end, { enable = true }, 50)
+
 ---------------------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------
 ---  MODULE TESTS

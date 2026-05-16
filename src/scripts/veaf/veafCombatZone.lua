@@ -2120,3 +2120,5 @@ function veafCombatZone.initialize()
 end
 
 veaf.loggers.get(veafCombatZone.Id):info(veaf.loggers.get(veafCombatZone.Id):getVersionInfo(veafCombatZone.Version))
+
+veaf.registerModule(veafCombatZone.Id, veafCombatZone.initialize, { enable = true }, 110)

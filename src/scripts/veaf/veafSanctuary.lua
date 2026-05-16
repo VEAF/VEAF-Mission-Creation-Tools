@@ -864,3 +864,5 @@ function veafSanctuary.initialize()
 end
 
 veaf.loggers.get(veafSanctuary.Id):info(veaf.loggers.get(veafSanctuary.Id):getVersionInfo(veafSanctuary.Version))
+
+veaf.registerModule(veafSanctuary.Id, veafSanctuary.initialize, { enable = true }, 140)

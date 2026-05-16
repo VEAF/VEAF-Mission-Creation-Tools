@@ -1773,6 +1773,8 @@ end
 
 veaf.loggers.get(veafWeather.Id):info(veaf.loggers.get(veafWeather.Id):getVersionInfo(veafWeather.Version))
 
+veaf.registerModule(veafWeather.Id, veafWeather.initialize, { enable = true }, 210)
+
 ---------------------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------
 -------------------- TEST STUFF--------------------------------------------------------------------

@@ -602,3 +602,5 @@ function veafEventHandler.initialize()
 end
 
 veafEventHandler.initialize()
+
+veaf.registerModule(veafEventHandler.Id, veafEventHandler.initialize, { enable = true }, 10)

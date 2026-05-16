@@ -622,3 +622,5 @@ function veafMissileGuardian.initialize()
 end
 
 veaf.loggers.get(veafMissileGuardian.Id):info(veaf.loggers.get(veafMissileGuardian.Id):getVersionInfo(veafMissileGuardian.Version))
+
+veaf.registerModule(veafMissileGuardian.Id, veafMissileGuardian.initialize, { enable = true }, 180)

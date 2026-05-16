@@ -1303,3 +1303,5 @@ veaf.loggers.get(veafCasMission.Id):info(veaf.loggers.get(veafCasMission.Id):get
 
 --- Enable/Disable error boxes displayed on screen.
 env.setErrorMessageBoxEnabled(false)
+
+veaf.registerModule(veafCasMission.Id, veafCasMission.initialize, { enable = true }, 90)

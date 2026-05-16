@@ -1035,3 +1035,5 @@ function veafMove.initialize()
 end
 
 veaf.loggers.get(veafMove.Id):info(veaf.loggers.get(veafMove.Id):getVersionInfo(veafMove.Version))
+
+veaf.registerModule(veafMove.Id, veafMove.initialize, { enable = true }, 60)

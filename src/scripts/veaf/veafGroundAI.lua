@@ -816,3 +816,5 @@ function veafGroundAI.initialize()
   veaf.loggers.get(veafGroundAI.Id):info("Initializing module")
   veafMarkers.registerEventHandler(veafMarkers.MarkerChange, veafGroundAI.onEventMarkChange)
 end
+
+veaf.registerModule(veafGroundAI.Id, veafGroundAI.initialize, { enable = true }, 190)

@@ -37,6 +37,7 @@ from rich.markdown import Markdown
 from rich.table import Table
 from veaf_libs.logger import console, logger
 from veaf_libs.lua_module_scanner import get_modules
+from veaf_libs.tui import run_wizard
 from veaf_libs.update_checker import check_for_updates
 from waypoints_injector import (
     WaypointsExtractorREADME,
@@ -939,4 +940,12 @@ def inject_weather(
 
 
 if __name__ == "__main__":
+    import sys
+
+    # When launched with no arguments in an interactive terminal, run the wizard.
+    if len(sys.argv) == 1 and sys.stdout.isatty():
+        wizard_args = run_wizard()
+        if wizard_args:
+            sys.argv = sys.argv[:1] + wizard_args
+
     app()

@@ -19,6 +19,7 @@ astral = ">=3.0"
 pydantic = ">=2.0"
 avwx-engine = ">=1.8"
 lupa = { version = ">=2.0", optional = true }
+InquirerPy = ">=0.3"
 
 [tool.poetry.extras]
 lua = ["lupa"]

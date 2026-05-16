@@ -362,6 +362,9 @@ function veafNamedPoints.addAirbases()
 
   for _, veafAirbase in pairs(veafAirbases.Airbases) do
     if veafAirbase.Category == Airbase.Category.AIRDROME then
+      if not veafAirbase.DcsAirbase or not veafAirbase.DcsAirbase:isExist() then
+        -- skip stale/destroyed airbase references (e.g. sunk carriers)
+      else
       veaf.loggers.get(veafNamedPoints.Id):trace("processing airbase name=[%s]", veafAirbase.DisplayName)
       local vec3 = veafAirbase.DcsAirbase:getPoint()
       local runways = {}
@@ -375,6 +378,7 @@ function veafNamedPoints.addAirbases()
       local namedPoint = { x = vec3.x, y = 0, z = vec3.z, runways = runways } --{name="AIRBASE Batumi",  point={x=-356437,y=0,z=618211, atc=true, tower="V131, U260", tacan="16X BTM", runways={{name="13", hdg=125, ils="110.30"}, {name="31", hdg=305}}}},
       namedPoint.hidden = true
       veafNamedPoints.addPoint(string.format("AIRBASE %s", veafAirbase.DisplayName), namedPoint)
+      end -- end of isExist() guard
     end
   end
 

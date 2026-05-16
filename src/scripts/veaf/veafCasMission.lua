@@ -1145,7 +1145,12 @@ function veafCasMission.reportTargetInformation(unitName)
   local averageGroupPosition = veaf.getAveragePosition(veafCasMission.casGroupName)
   local lat, lon = coord.LOtoLL(averageGroupPosition)
   local mgrsString = mist.tostringMGRS(coord.LLtoMGRS(lat, lon), 3)
-  local bullseye = mist.utils.makeVec3(mist.DBs.missionData.bullseye.blue, 0)
+  local bullseyeData = mist.DBs.missionData.bullseye.blue -- default to blue
+  local requestingUnit = Unit.getByName(unitName)
+  if requestingUnit and requestingUnit:getCoalition() == coalition.side.RED then
+    bullseyeData = mist.DBs.missionData.bullseye.red
+  end
+  local bullseye = mist.utils.makeVec3(bullseyeData, 0)
   local vec = { x = averageGroupPosition.x - bullseye.x, y = averageGroupPosition.y - bullseye.y, z = averageGroupPosition.z - bullseye.z }
   local dir = mist.utils.round(mist.utils.toDegree(mist.utils.getDir(vec, bullseye)), 0)
   local dist = mist.utils.get2DDist(averageGroupPosition, bullseye)

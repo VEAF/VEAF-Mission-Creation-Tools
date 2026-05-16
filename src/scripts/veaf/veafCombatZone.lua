@@ -809,7 +809,7 @@ function VeafCombatZone:initialize()
   return self
 end
 
-function VeafCombatZone:getInformation()
+function VeafCombatZone:getInformation(unitName)
   veaf.loggers.get(veafCombatZone.Id):trace(string.format("VeafCombatZone[%s]:getInformation()", veaf.p(self.missionEditorZoneName)))
   local message = "COMBAT ZONE " .. self:getFriendlyName() .. " \n\n"
   if self:getBriefing() then
@@ -941,7 +941,14 @@ function VeafCombatZone:getInformation()
       local zoneCenter = self:getCenter()
       local lat, lon = coord.LOtoLL(zoneCenter)
       local mgrsString = mist.tostringMGRS(coord.LLtoMGRS(lat, lon), 3)
-      local bullseye = mist.utils.makeVec3(mist.DBs.missionData.bullseye.blue, 0)
+      local bullseyeData = mist.DBs.missionData.bullseye.blue -- default to blue
+      if unitName then
+        local requestingUnit = Unit.getByName(unitName)
+        if requestingUnit and requestingUnit:getCoalition() == coalition.side.RED then
+          bullseyeData = mist.DBs.missionData.bullseye.red
+        end
+      end
+      local bullseye = mist.utils.makeVec3(bullseyeData, 0)
       local vec = { x = zoneCenter.x - bullseye.x, y = zoneCenter.y - bullseye.y, z = zoneCenter.z - bullseye.z }
       local dir = mist.utils.round(mist.utils.toDegree(mist.utils.getDir(vec, bullseye)), 0)
       local dist = mist.utils.get2DDist(zoneCenter, bullseye)
@@ -1942,7 +1949,7 @@ function veafCombatZone.GetInformationOnZone(parameters)
   local zoneName, unitName = veaf.safeUnpack(parameters)
   local zone = veafCombatZone.GetZone(zoneName)
   if zone then
-    local text = zone:getInformation()
+    local text = zone:getInformation(unitName)
     if unitName then
       veaf.outTextForGroup(unitName, text, 30)
     else

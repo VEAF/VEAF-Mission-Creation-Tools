@@ -81,9 +81,10 @@ def _is_meaningful_attribute(attr: str) -> bool:
 # ---------------------------------------------------------------------------
 
 _RE_ENTRY_START = re.compile(r"^\[\d+\]\s*=$")
-_RE_ENTRY_END = re.compile(r"^\}, -- end of \[\d+\]$")
-_RE_ATTR_END = re.compile(r'^\}, -- end of \["attribute"\]$')
-_RE_ALIAS_END = re.compile(r'^\}, -- end of \["aliases"\]$')
+# Closing-brace pattern: matches `}`, `},`, or `}, -- any comment`.
+# The state machine knows which block we are in, so a single loose pattern
+# serves for entry ends, attribute sub-table ends, and aliases sub-table ends.
+_RE_CLOSE = re.compile(r"^\},?\s*(--.*)?$")
 _RE_ATTR_OPEN = re.compile(r'^\["attribute"\]\s*=$')
 _RE_ALIAS_OPEN = re.compile(r'^\["aliases"\]\s*=$')
 _RE_STRING_FLAG = re.compile(r'^\["([^"]+)"\]\s*=\s*true\s*,?$')
@@ -117,7 +118,7 @@ def _parse_units(content: str) -> list[DcsUnit]:
 
         # ── inside an attribute sub-table ────────────────────────────────────
         if in_attribute:
-            if _RE_ATTR_END.match(line):
+            if _RE_CLOSE.match(line):
                 in_attribute = False
             elif m := _RE_STRING_FLAG.match(line):
                 attrs.append(m.group(1))
@@ -125,7 +126,7 @@ def _parse_units(content: str) -> list[DcsUnit]:
 
         # ── inside an aliases sub-table ──────────────────────────────────────
         if in_aliases:
-            if _RE_ALIAS_END.match(line):
+            if _RE_CLOSE.match(line):
                 in_aliases = False
             elif m := _RE_ALIAS_VALUE.match(line):
                 aliases.append(m.group(1))
@@ -140,7 +141,7 @@ def _parse_units(content: str) -> list[DcsUnit]:
             continue
 
         # ── inside an entry ──────────────────────────────────────────────────
-        if _RE_ENTRY_END.match(line):
+        if _RE_CLOSE.match(line):
             units.append(
                 DcsUnit(
                     type_id=current.get("type", ""),

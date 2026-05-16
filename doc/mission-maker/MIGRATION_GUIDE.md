@@ -1,0 +1,362 @@
+# Migrating a Mission to VEAF v6
+
+This guide covers two scenarios:
+
+1. **[From VEAF v5.xx](#migrating-from-veaf-v5xx)** — your mission already uses VEAF scripts but predates the v6 toolchain
+2. **[From a vanilla DCS mission](#integrating-veaf-into-a-vanilla-dcs-mission)** — your mission has no VEAF scripts at all
+
+In both cases the end result is a **VEAF v6 mission folder** that you manage with `veaf-tools.exe`.
+
+---
+
+## Before You Start
+
+### Terminology
+
+| Term | Meaning |
+|------|---------|
+| **Mission folder** | The directory managed by `veaf-tools` — contains source files, config, and the `.miz` |
+| **`.miz` file** | The DCS mission file (a ZIP archive); the output of the build step |
+| **`published/`** | Where `veaf-tools-updater.exe` installs the VEAF scripts |
+| **`src/`** | Your mission-specific source files (scripts, data) |
+
+### Prerequisites
+
+1. Install `veaf-tools-updater.exe` — download from the [latest GitHub release](https://github.com/VEAF/VEAF-Mission-Creation-Tools/releases/tag/published-latest)
+2. Run the updater once to install `veaf-tools.exe` and all VEAF scripts:
+
+```powershell
+.\veaf-tools-updater.exe update
+```
+
+3. Have your original `.miz` file on hand
+
+---
+
+## Migrating from VEAF v5.xx
+
+### What Changed in v6
+
+| v5 | v6 |
+|----|-----|
+| Manual `DO SCRIPT FILE` trigger (pointing at individual Lua files) | Single trigger injected automatically by `veaf-tools build` |
+| Scripts delivered as individual `.lua` files | All modules concatenated into `veaf-scripts.lua` |
+| No build toolchain | `veaf-tools.exe build` command builds the `.miz` |
+| Configuration scattered in mission triggers or inline scripts | `src/scripts/missionConfig.lua` |
+| No version management | `veaf-tools-updater.exe update` |
+
+### Step-by-step Migration
+
+#### 1. Create the mission folder
+
+Create an empty folder for your mission project:
+
+```powershell
+mkdir my-mission
+cd my-mission
+```
+
+#### 2. Install VEAF v6
+
+Copy `veaf-tools-updater.exe` into the folder and run:
+
+```powershell
+.\veaf-tools-updater.exe update
+```
+
+This creates the `published/` directory with all scripts and tools.
+
+#### 3. Extract the v5 mission
+
+Use `veaf-tools.exe` to unpack the `.miz` into the folder structure:
+
+```powershell
+.\published\veaf-tools.exe extract "C:\path\to\your-mission-v5.miz" .
+```
+
+This creates:
+```
+my-mission/
+├── src/
+│   ├── mission/          ← raw DCS mission data
+│   │   ├── mission       ← main Lua dictionary
+│   │   ├── options
+│   │   └── warehouses
+│   └── scripts/
+│       └── missionConfig.lua   ← auto-created from defaults
+└── published/
+    └── veaf-scripts.lua
+```
+
+#### 4. Build once to remove old v5 triggers
+
+The `build` command automatically detects and removes old v5 `DO SCRIPT FILE` triggers (enabled by default via `--migrate-from-v5`):
+
+```powershell
+.\published\veaf-tools.exe build my-mission .
+```
+
+The output `.miz` will have:
+- All old v5 trigger actions removed
+- A fresh v6 trigger injected that loads `veaf-scripts.lua`
+
+> If you need to keep the old triggers for inspection first, pass `--no-migrate-from-v5`.
+
+#### 5. Port your configuration to missionConfig.lua
+
+Your v5 mission likely had module initialization calls either in inline trigger scripts or in a separate Lua file. Move all of them into `src/scripts/missionConfig.lua`.
+
+**v5 pattern (inline trigger or separate file):**
+```lua
+-- Somewhere in a DCS trigger "DO SCRIPT":
+veaf.initialize()
+veafSpawn.initialize()
+veafRadio.initialize(true)
+veafAssets.initialize()
+-- ... asset definitions inline ...
+veafAssets.Assets = {
+    { ... }
+}
+```
+
+**v6 pattern in `src/scripts/missionConfig.lua`:**
+```lua
+veaf.config.MISSION_NAME = "My Mission"
+
+-- Initialize only the modules you use
+if veafRadio then
+    veafRadio.initialize(true)
+end
+if veafSpawn then
+    veafSpawn.initialize()
+end
+if veafAssets then
+    veafAssets.initialize()
+    veafAssets.Assets = {
+        { ... }
+    }
+end
+```
+
+The `if veafXxx then ... end` guard makes the config robust: if a module is not available (e.g. you switch to a minimal script variant), no error is thrown.
+
+#### 6. Check removed v5 patterns
+
+Some v5 constructs no longer exist or have been renamed:
+
+| v5 | v6 |
+|----|-----|
+| `veaf.SecurityDisabled = true` | `veafSecurity.SecurityDisabled = true` |
+| `veafSpawn.Keyphrase` set at top-level | Still `veafSpawn.Keyphrase` — unchanged |
+| `veafAssets.Assets` inline table | Same table format — unchanged |
+| Loading individual `.lua` files via `DO SCRIPT FILE` | Automatic — do not add these triggers manually |
+| `IADS` scripts loaded manually | Load them via `src/scripts/` — they are picked up automatically |
+
+#### 7. Verify with a test build
+
+```powershell
+.\published\veaf-tools.exe build my-mission .
+```
+
+Open the resulting `.miz` in DCS, load the mission, and confirm:
+- No duplicate `DO SCRIPT FILE` triggers in the trigger editor
+- The v6 VEAF loader trigger is present (named something like `VEAF scripts loader`)
+- Radio menus and marker commands work as expected
+
+#### 8. Set up version control
+
+```powershell
+git init
+git add src/ .gitignore
+git commit -m "feat: migrate my-mission to VEAF v6"
+```
+
+Add `published/` and `*.miz` to `.gitignore` — they are build artifacts.
+
+---
+
+## Integrating VEAF into a Vanilla DCS Mission
+
+A **vanilla** mission has no VEAF scripts, no special triggers, and was built entirely with the DCS Mission Editor.
+
+### Step-by-step Integration
+
+#### 1. Create the mission folder
+
+```powershell
+mkdir my-mission
+cd my-mission
+```
+
+#### 2. Install VEAF v6
+
+```powershell
+.\veaf-tools-updater.exe update
+```
+
+#### 3. Convert the vanilla .miz
+
+The `convert-mission` command does everything in one step: extract, inject VEAF scripts, rebuild.
+
+```powershell
+.\published\veaf-tools.exe convert-mission "C:\path\to\vanilla.miz" .
+```
+
+This:
+1. Extracts `vanilla.miz` into `src/mission/`
+2. Copies the default `src/scripts/missionConfig.lua`
+3. Injects the v6 VEAF loader trigger
+4. Rebuilds a new `.miz` next to the folder
+
+#### 4. Optionally: prepare the folder with defaults only
+
+If you want to set up the folder structure without converting a mission yet, use `prepare`:
+
+```powershell
+.\published\veaf-tools.exe prepare .
+```
+
+Then copy your `.miz` as `mission.miz` and run:
+
+```powershell
+.\published\veaf-tools.exe extract mission.miz .
+.\published\veaf-tools.exe build mission .
+```
+
+#### 5. Configure which modules to enable
+
+Open `src/scripts/missionConfig.lua`. By default, only the essential modules (markers, spawn, radio) are enabled. Uncomment the modules you want:
+
+```lua
+veaf.config.MISSION_NAME = "My Vanilla Mission"
+
+if veafRadio then
+    veafRadio.initialize(true)
+end
+if veafSpawn then
+    veafSpawn.initialize()
+end
+
+-- Uncomment to enable CAS missions:
+-- if veafCasMission then
+--     veafCasMission.initialize()
+-- end
+
+-- Uncomment to enable carrier ops:
+-- if veafCarrierOperations then
+--     veafCarrierOperations.initialize()
+-- end
+```
+
+See [missionConfig.lua reference](#missionconfiglua-reference) below and the individual script guides in [scripts/](scripts/) for all options.
+
+#### 6. Keep your existing mission content
+
+Everything you built in the DCS Mission Editor (units, triggers, waypoints, zones) is preserved. VEAF does not remove or overwrite mission content — it only:
+- Adds a single loader trigger at mission start
+- Adds F10 radio menu entries at runtime
+- Responds to F10 map marker commands
+
+Your custom triggers, statics, and groups are untouched.
+
+#### 7. Test and iterate
+
+```powershell
+# Rebuild after every config change
+.\published\veaf-tools.exe build mission .
+```
+
+Each build produces a dated `.miz` file (e.g. `mission_20260516.miz`). Open it in DCS and test.
+
+---
+
+## Mission Folder Reference
+
+After migration, your folder should look like this:
+
+```
+my-mission/
+├── src/
+│   ├── mission/                ← extracted DCS mission data (commit this)
+│   │   ├── mission             ← main mission Lua dictionary
+│   │   ├── options
+│   │   └── warehouses
+│   ├── scripts/
+│   │   ├── missionConfig.lua   ← your module config (commit this)
+│   │   └── veafDynamicConfig.lua   ← optional dynamic slots config
+│   ├── presets.yaml            ← radio presets config (optional)
+│   ├── spawnables.yaml         ← custom spawnable groups (optional)
+│   └── waypoints.yaml          ← custom waypoints (optional)
+├── published/                  ← installed by veaf-tools-updater (do NOT commit)
+│   ├── veaf-scripts.lua
+│   ├── veaf-tools.exe
+│   └── ...
+├── veaf-tools-updater.exe      ← commit this
+└── mission_20260516.miz        ← build output (do NOT commit)
+```
+
+### Recommended .gitignore
+
+```gitignore
+published/
+*.miz
+*.log
+__pycache__/
+```
+
+---
+
+## missionConfig.lua Reference
+
+The minimal working `missionConfig.lua`:
+
+```lua
+veaf.config.MISSION_NAME = "My Mission"   -- shown in logs
+
+-- Radio module (required for all F10 menus)
+if veafRadio then
+    veafRadio.initialize(true)
+end
+
+-- Spawn module (required for marker commands)
+if veafSpawn then
+    veafSpawn.initialize()
+end
+
+-- Shortcuts (required for aliases)
+if veafShortcuts then
+    veafShortcuts.initialize()
+end
+```
+
+For each additional module, see the corresponding guide in [scripts/](scripts/).
+
+---
+
+## Common Issues
+
+### "VEAF scripts loader" trigger appears twice
+
+You have both an old manual `DO SCRIPT FILE` trigger and the v6 auto-injected one. Remove the manual trigger from the DCS Mission Editor (open the `.miz`, edit triggers, delete the old one, save), then re-extract and rebuild.
+
+Alternatively, use `--migrate-from-v5` on the build to have the old triggers removed automatically (this is the default).
+
+### Radio menus don't appear
+
+Confirm `veafRadio.initialize(true)` is in `missionConfig.lua` and is not commented out.
+
+### Marker commands don't work
+
+Confirm `veafSpawn.initialize()` is called. Check the DCS log (Saved Games\DCS\Logs\dcs.log) for VEAF errors.
+
+### Build fails with "VEAF scripts file not found"
+
+Run `veaf-tools-updater.exe update` first — the `published/` folder is missing or outdated.
+
+---
+
+## See Also
+
+- [Mission Maker Guide](README.md) — general mission making workflow
+- [Scripts Reference](scripts/README.md) — all available modules
+- [Tools Reference](../TOOLS_REFERENCE.md) — full `veaf-tools.exe` CLI reference

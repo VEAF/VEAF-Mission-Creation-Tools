@@ -18,6 +18,8 @@ This guide is for DCS World mission designers who want to integrate the VEAF fra
 10. [Configuration Examples](#configuration-examples)
 11. [Resources](#resources)
 
+> **Migrating an existing mission?** See the [Migration Guide](MIGRATION_GUIDE.md) — covers both VEAF v5 → v6 and vanilla DCS → VEAF.
+
 ---
 
 ## What You Get

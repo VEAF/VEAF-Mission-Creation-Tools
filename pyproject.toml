@@ -29,6 +29,9 @@ mypy = ">=1.8"
 pytest = ">=8.0"
 pytest-cov = ">=5.0"
 types-PyYAML = ">=6.0"
+
+[tool.poetry.group.build.dependencies]
+# Build tools — not needed for the quality gate, only for creating the .exe
 pyinstaller = ">=6.0"
 
 # ---------------------------------------------------------------------------

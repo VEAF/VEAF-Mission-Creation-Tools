@@ -26,6 +26,7 @@ jobs:
         run: pip install poetry
 
       - name: Install dev dependencies
+        # 'build' group (pyinstaller) intentionally excluded: not needed for quality checks
         run: poetry install --only dev
 
       - name: Lint (ruff check)

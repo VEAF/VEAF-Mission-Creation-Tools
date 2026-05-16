@@ -504,20 +504,20 @@ class BuildAndReleaseWorker:
             self.dist_dir.mkdir(exist_ok=True)
 
         # Generate Lua modules list JSON (bundled with the exe via --add-data)
-        modules_json_path: Path | None = (
-            self.src_dir / "python" / "veaf-tools" / "veaf_libs" / "veaf_modules_list.json"
-        )
+        # Only set modules_json_path if the file is successfully written.
+        modules_json_path: Path | None = None
         with spinner_context("Scanning Lua modules..."):
             try:
                 sys.path.insert(0, str(self.src_dir / "python" / "veaf-tools"))
                 from veaf_libs.lua_module_scanner import generate_modules_json
 
                 lua_dir = self.src_dir / "scripts" / "veaf"
-                count = generate_modules_json(modules_json_path, lua_dir)
+                candidate = self.src_dir / "python" / "veaf-tools" / "veaf_libs" / "veaf_modules_list.json"
+                count = generate_modules_json(candidate, lua_dir)
+                modules_json_path = candidate  # assign only after successful write
                 logger.debug(f"Generated modules list: {count} modules → {modules_json_path}")
             except Exception as e:
                 logger.warning(f"Could not generate Lua modules list: {e}")
-                modules_json_path = None
 
         # Store original file contents for restoration
         original_contents = {}
@@ -545,7 +545,9 @@ class BuildAndReleaseWorker:
             if original_contents:
                 self._restore_python_files(original_contents)
 
-    def _build_pyinstaller_executable(self, name: str, entry_point: Path, extra_data: list | None = None):
+    def _build_pyinstaller_executable(
+        self, name: str, entry_point: Path, extra_data: list[tuple[Path, str]] | None = None
+    ):
         """Build a single PyInstaller executable."""
         if not entry_point.exists():
             logger.error(f"Entry point not found: {entry_point}")

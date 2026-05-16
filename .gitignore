@@ -22,6 +22,7 @@ __pycache__/
 .mypy_cache/
 .ruff_cache/
 .venv/
+src/python/veaf-tools/veaf_libs/veaf_modules_list.json
 test/veaf-tools/mission.json
 veaf-tools.log
 test/veaf-tools/groups.json

@@ -503,18 +503,35 @@ class BuildAndReleaseWorker:
                 shutil.rmtree(self.dist_dir)
             self.dist_dir.mkdir(exist_ok=True)
 
+        # Generate Lua modules list JSON (bundled with the exe via --add-data)
+        modules_json_path: Path | None = (
+            self.src_dir / "python" / "veaf-tools" / "veaf_libs" / "veaf_modules_list.json"
+        )
+        with spinner_context("Scanning Lua modules..."):
+            try:
+                sys.path.insert(0, str(self.src_dir / "python" / "veaf-tools"))
+                from veaf_libs.lua_module_scanner import generate_modules_json
+
+                lua_dir = self.src_dir / "scripts" / "veaf"
+                count = generate_modules_json(modules_json_path, lua_dir)
+                logger.debug(f"Generated modules list: {count} modules → {modules_json_path}")
+            except Exception as e:
+                logger.warning(f"Could not generate Lua modules list: {e}")
+                modules_json_path = None
+
         # Store original file contents for restoration
         original_contents = {}
-        
+
         try:
             # Temporarily inject version into source files
             original_contents = self._inject_version_into_python_files_temporarily()
 
-            # Build veaf-tools executable
+            # Build veaf-tools executable (include modules JSON if available)
             with spinner_context("Building veaf-tools executable..."):
                 self._build_pyinstaller_executable(
                     "veaf-tools",
                     self.src_dir / "python" / "veaf-tools" / "veaf-tools.py",
+                    extra_data=[(modules_json_path, ".")] if modules_json_path else [],
                 )
 
             # Build veaf-tools-updater executable
@@ -528,7 +545,7 @@ class BuildAndReleaseWorker:
             if original_contents:
                 self._restore_python_files(original_contents)
 
-    def _build_pyinstaller_executable(self, name: str, entry_point: Path):
+    def _build_pyinstaller_executable(self, name: str, entry_point: Path, extra_data: list | None = None):
         """Build a single PyInstaller executable."""
         if not entry_point.exists():
             logger.error(f"Entry point not found: {entry_point}")
@@ -545,8 +562,10 @@ class BuildAndReleaseWorker:
                 str(self.dist_dir / "build"),
                 "--workpath",
                 str(self.dist_dir / "build"),
-                str(entry_point),
             ]
+            for src, dest in (extra_data or []):
+                cmd += ["--add-data", f"{src}{os.pathsep}{dest}"]
+            cmd.append(str(entry_point))
 
             logger.debug(f"Running PyInstaller: {' '.join(cmd)}")
             

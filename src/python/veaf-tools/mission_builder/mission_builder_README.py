@@ -1,4 +1,4 @@
-MissionBuilderREADME="""
+MissionBuilderREADME = """
 # VEAF Tools - Mission Builder User Guide
 
 The Mission Builder compiles a VEAF mission folder into a DCS World mission file (.miz), integrating scripts, configuration, and assets into a deployable package.

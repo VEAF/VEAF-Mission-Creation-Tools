@@ -1,4 +1,4 @@
-MissionExtractorREADME="""
+MissionExtractorREADME = """
 # VEAF Tools - Mission Extractor User Guide
 
 The Mission Extractor converts a DCS World mission file (.miz) into a VEAF mission folder structure, making it easier to edit and manage mission components.

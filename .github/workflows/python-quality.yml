@@ -1,0 +1,43 @@
+name: Python Quality
+
+on:
+  push:
+    paths:
+      - "src/python/**"
+      - "pyproject.toml"
+      - ".github/workflows/python-quality.yml"
+  pull_request:
+    paths:
+      - "src/python/**"
+      - "pyproject.toml"
+      - ".github/workflows/python-quality.yml"
+
+jobs:
+  python-quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install Poetry
+        run: pip install poetry
+
+      - name: Install dependencies
+        # Install runtime + dev deps; exclude only the 'build' group (pyinstaller)
+        # --only dev would skip runtime deps (typer, rich, …) needed to import the code
+        run: poetry install --without build
+
+      - name: Lint (ruff check)
+        run: poetry run ruff check src/python/veaf-tools
+
+      - name: Format check (ruff format)
+        run: poetry run ruff format --check src/python/veaf-tools
+
+      - name: Type check (mypy)
+        run: poetry run mypy src/python/veaf-tools
+
+      - name: Tests (pytest)
+        run: poetry run pytest

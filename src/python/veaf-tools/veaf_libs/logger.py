@@ -1,25 +1,23 @@
 import logging
-from typing import Optional
-from typing_extensions import Self
-from rich.console import Console
+from typing import Self
+
 import typer
-import sys
+from rich.console import Console
+
 
 class Logger:
     """Logging and console print system."""
 
-    def __init__(self, logger_name: str, verbose: bool = False, console:Optional[Console] = None):
+    def __init__(self, logger_name: str, verbose: bool = False, console: Console | None = None):
         # Create a specific logger instance
         self.logger = logging.getLogger(logger_name)
         self.logger.setLevel(logging.DEBUG if verbose else logging.INFO)
-        
+
         # Only add handlers if they don't exist
         if not self.logger.handlers:
             # File handler with UTF-8 encoding
-            file_handler = logging.FileHandler(f"{logger_name}.log", mode='a', encoding='utf-8')
-            file_handler.setFormatter(
-                logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-            )
+            file_handler = logging.FileHandler(f"{logger_name}.log", mode="a", encoding="utf-8")
+            file_handler.setFormatter(logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s"))
             self.logger.addHandler(file_handler)
 
         self.console = console
@@ -36,7 +34,9 @@ class Logger:
     def exception(self, e: Exception):
         self.error(str(e), exception_type=type(e))
 
-    def error(self, message: str, no_console: bool = False, raise_exception: bool = False, exception_type: type = typer.Abort) -> Self:
+    def error(
+        self, message: str, no_console: bool = False, raise_exception: bool = False, exception_type: type = typer.Abort
+    ) -> Self:
         """Log and display error message."""
         self.logger.error(message)
         if self.console and not no_console:
@@ -62,7 +62,7 @@ class Logger:
     def debug(self, message: str, no_console: bool = False) -> Self:
         """Log debug message."""
         return self._do_debug(message, no_console, "grey69")
-    
+
     def debugwarn(self, message: str, no_console: bool = False) -> Self:
         """Log debug message."""
         return self._do_debug(message, no_console, "dark_khaki")
@@ -72,6 +72,7 @@ class Logger:
         if self.verbose and self.console and not no_console:
             self.console.print(message, style=style)
         return self
-    
+
+
 console: Console = Console()
 logger: Logger = Logger(logger_name="veaf-tools", console=console)

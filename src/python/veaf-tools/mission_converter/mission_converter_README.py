@@ -1,4 +1,4 @@
-MissionConverterREADME="""
+MissionConverterREADME = """
 # VEAF Tools - Mission Converter User Guide
 
 The Mission Converter combines extraction, building, and optional preset injection into a single streamlined workflow for converting DCS missions to the VEAF format.

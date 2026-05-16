@@ -8,7 +8,7 @@ AircraftGroupsInjectorREADME = r"""
 
 ## Overview
 
-The Aircraft Groups Injector injects validated aircraft groups from YAML files into DCS missions. 
+The Aircraft Groups Injector injects validated aircraft groups from YAML files into DCS missions.
 It automatically validates YAML before injection and stops if validation fails.
 
 ### Use Cases

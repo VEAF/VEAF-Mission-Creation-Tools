@@ -18,34 +18,32 @@ Example:
 All the commands feature both `--help` and `--readme` options that display online help.
 """
 
-from pathlib import Path
-from rich.markdown import Markdown
-from typing import Optional
 import shutil
-
-from presets_injector import PresetsInjectorWorker, PresetsInjectorREADME
-from mission_builder import MissionBuilderWorker, MissionBuilderREADME
-from mission_extractor import MissionExtractorWorker, MissionExtractorREADME
-from mission_converter import MissionConverterWorker, MissionConverterREADME
-from aircrafts_injector import (
-    AircraftGroupsExtractorWorker, AircraftGroupsExtractorREADME,
-    AircraftGroupsYAMLValidator, AircraftGroupsInjectorWorker
-)
-from waypoints_injector import (
-    WaypointsInjectorWorker, WaypointsExtractorWorker,
-    WaypointsInjectorREADME, WaypointsExtractorREADME
-)
-from weather_injector import (
-    WeatherInjectorWorker, WheatherInjectorREADME, 
-    LuaToYamlConverter
-)
-import typer
 from datetime import datetime
+from pathlib import Path
 
-from veaf_libs.logger import logger, console
-from veaf_libs.progress import spinner_context, progress_context
+import typer
+from aircrafts_injector import (
+    AircraftGroupsExtractorREADME,
+    AircraftGroupsExtractorWorker,
+    AircraftGroupsInjectorWorker,
+    AircraftGroupsYAMLValidator,
+)
+from mission_builder import MissionBuilderREADME, MissionBuilderWorker
+from mission_converter import MissionConverterREADME, MissionConverterWorker
+from mission_extractor import MissionExtractorREADME, MissionExtractorWorker
+from presets_injector import PresetsInjectorREADME, PresetsInjectorWorker
+from rich.markdown import Markdown
+from veaf_libs.logger import console, logger
+from waypoints_injector import (
+    WaypointsExtractorREADME,
+    WaypointsExtractorWorker,
+    WaypointsInjectorREADME,
+    WaypointsInjectorWorker,
+)
+from weather_injector import LuaToYamlConverter, WeatherInjectorWorker, WheatherInjectorREADME
 
-VERSION:str = "6.0.4"
+VERSION: str = "6.0.4"
 README_HELP: str = "Provide access to the README file."
 PAUSE_HELP: str = "If set, the script will pause when finished and wait for the user to press a key."
 VERBOSE_HELP: str = "If set, the script will output a lot of debug information."
@@ -59,8 +57,10 @@ WORK_DONE_MESSAGE = "[bold blue]Work done![/bold blue]"
 
 app = typer.Typer(no_args_is_help=True)
 
-def resolve_path(path: str, default_path: str = None, should_exist: bool = False, create_if_not_exist: bool = False) -> Path:
-    
+
+def resolve_path(
+    path: str, default_path: str = None, should_exist: bool = False, create_if_not_exist: bool = False
+) -> Path:
     """Resolve and validate a file path."""
     if not path and default_path:
         result = Path(default_path)
@@ -68,23 +68,25 @@ def resolve_path(path: str, default_path: str = None, should_exist: bool = False
         result = Path(path)
     else:
         logger.error(message="Either path or default_path must be provided", exception_type=ValueError)
-    
+
     result = result.resolve()
-    
+
     if create_if_not_exist and not result.exists():
         result.parent.mkdir(parents=True, exist_ok=True)
-        if not result.suffix:  # It's a directory
+        if not result.suffix:
+            # It's a directory
             result.mkdir(exist_ok=True)
-    
+
     if should_exist and not result.exists():
         logger.error(f"Path does not exist: {result}")
         exit(-1)
-    
+
     return result
+
 
 @app.command()
 def prepare(
-    mission_folder: Optional[str] = typer.Argument(".", help="Folder to initialize as a VEAF mission folder."),
+    mission_folder: str | None = typer.Argument(".", help="Folder to initialize as a VEAF mission folder."),
     readme: bool = typer.Option(False, help=README_HELP),
     verbose: bool = typer.Option(False, help=VERBOSE_HELP),
     force: bool = typer.Option(False, help="Do not ask before replacing existing files."),
@@ -92,7 +94,7 @@ def prepare(
     """
     Prepares a mission folder by copying default files and build scripts.
     """
-    
+
     logger.set_verbose(verbose)
 
     # Set the title and version
@@ -109,40 +111,40 @@ def prepare(
     try:
         # Resolve mission folder
         p_mission_folder = resolve_path(path=mission_folder, default_path=Path.cwd(), create_if_not_exist=True)
-        
+
         logger.info(f"Initializing mission folder: {p_mission_folder}")
-        
+
         # Get the installation source directory (where veaf-tools is running from)
         # This could be from published/ or from src/python/veaf-tools/
         install_source = Path(__file__).parent
-        
+
         # Try to find src/defaults relative to the script location
         # First, check if we're in a published installation
         defaults_source = install_source.parent.parent.parent / "src" / "defaults" / "mission-folder" / "src"
-        
+
         # If not found, check parent directories (for development installations)
         if not defaults_source.exists():
             # Try one more level up (if running from veaf-tools/ subdirectory)
             defaults_source = install_source.parent.parent.parent.parent / "src" / "defaults" / "mission-folder" / "src"
-        
+
         # If still not found, look in a common relative location
         if not defaults_source.exists():
             # Try from current working directory
             defaults_source = Path.cwd().parent / "src" / "defaults" / "mission-folder" / "src"
-        
+
         if not defaults_source.exists():
             logger.warning(f"Default files not found at: {defaults_source}")
             logger.warning("Attempting to continue with build scripts only...")
             defaults_source = None
-        
+
         # Get build scripts source
         build_scripts_source = install_source.parent.parent.parent / "src" / "build-scripts"
         if not build_scripts_source.exists():
             build_scripts_source = install_source.parent.parent.parent.parent / "src" / "build-scripts"
-        
+
         if not build_scripts_source.exists():
             build_scripts_source = Path.cwd().parent / "src" / "build-scripts"
-        
+
         if not build_scripts_source.exists():
             logger.warning(f"Build scripts not found at: {build_scripts_source}")
             build_scripts_source = None
@@ -157,19 +159,18 @@ def prepare(
                 if source_file.is_file():
                     relative_path = source_file.relative_to(defaults_source)
                     dest_file = p_mission_folder / relative_path
-                    
+
                     # Create destination directory if needed
                     dest_file.parent.mkdir(parents=True, exist_ok=True)
-                    
+
                     # Check if file already exists
                     if dest_file.exists():
                         should_replace = force
                         if not force:
                             should_replace = typer.confirm(
-                                f"File already exists: {relative_path}\nReplace it?",
-                                default=False
+                                f"File already exists: {relative_path}\nReplace it?", default=False
                             )
-                        
+
                         if should_replace:
                             shutil.copy2(source_file, dest_file)
                             logger.debug(f"Replaced: {relative_path}")
@@ -189,19 +190,18 @@ def prepare(
                 if source_file.is_file():
                     relative_path = source_file.relative_to(build_scripts_source)
                     dest_file = p_mission_folder / relative_path
-                    
+
                     # Create destination directory if needed
                     dest_file.parent.mkdir(parents=True, exist_ok=True)
-                    
+
                     # Check if file already exists
                     if dest_file.exists():
                         should_replace = force
                         if not force:
                             should_replace = typer.confirm(
-                                f"File already exists: {relative_path}\nReplace it?",
-                                default=False
+                                f"File already exists: {relative_path}\nReplace it?", default=False
                             )
-                        
+
                         if should_replace:
                             shutil.copy2(source_file, dest_file)
                             logger.debug(f"Replaced: {relative_path}")
@@ -215,7 +215,7 @@ def prepare(
                         files_installed += 1
 
         # Print summary
-        console.print(f"\n[bold green]Preparation completed![/bold green]")
+        console.print("\n[bold green]Preparation completed![/bold green]")
         console.print(f"  Files installed: [cyan]{files_installed}[/cyan]")
         if files_skipped > 0:
             console.print(f"  Files skipped: [yellow]{files_skipped}[/yellow]")
@@ -227,30 +227,44 @@ def prepare(
 
 
 @app.command(no_args_is_help=True)
-def about(
-) -> None:
+def about() -> None:
     """
     Shows information about the veaf-tools program
     """
     url = "https://www.veaf.org"
     console.print(__doc__)
     console.print("[bold green]The VEAF - Virtual European Air Force[/bold green]")
-    console.print("The VEAF is a community of virtual pilots dedicated to creating and flying high-quality missions in DCS World.")
+    console.print(
+        "The VEAF is a community of virtual pilots dedicated to creating and flying high-quality missions in DCS World."
+    )
     console.print(f"Website: {url}", style="blue")
     if typer.confirm("Do you want to open the VEAF website in your browser?"):
         typer.launch(url)
+
 
 @app.command(no_args_is_help=True)
 def build(
     readme: bool = typer.Option(False, help=README_HELP),
     verbose: bool = typer.Option(False, help=VERBOSE_HELP),
-    no_veaf_triggers: bool = typer.Option(False, help="If set, the VEAF triggers will not be injected in the resulting mission."),
-    dynamic_mode: bool = typer.Option(False, help="If set, the mission will dynamically load the scripts from the provided location (via --scripts-path or in the local published and src/scripts folders)."),
+    no_veaf_triggers: bool = typer.Option(
+        False, help="If set, the VEAF triggers will not be injected in the resulting mission."
+    ),
+    dynamic_mode: bool = typer.Option(
+        False,
+        help="If set, the mission will dynamically load the scripts from the provided location (via --scripts-path or in the local published and src/scripts folders).",
+    ),
     scripts_path: str = typer.Option(None, help="Path to the VEAF and community scripts."),
-    migrate_from_v5: bool = typer.Option(True, help="If set, the builder will parse the mission for old v5 triggers and remove them."),
-    scripts_variant: str = typer.Option("standard", help="Scripts variant to use: 'standard' (default), 'debug', 'trace', or 'trace-with-events'."),
-    mission_name_or_file: Optional[str] = typer.Argument(DEFAULT_MISSION_FILE, help="Mission name; will build the mission with this name and the current date; can be set to a .miz file."),
-    mission_folder: Optional[str] = typer.Argument(".", help="Folder with the mission files."),
+    migrate_from_v5: bool = typer.Option(
+        True, help="If set, the builder will parse the mission for old v5 triggers and remove them."
+    ),
+    scripts_variant: str = typer.Option(
+        "standard", help="Scripts variant to use: 'standard' (default), 'debug', 'trace', or 'trace-with-events'."
+    ),
+    mission_name_or_file: str | None = typer.Argument(
+        DEFAULT_MISSION_FILE,
+        help="Mission name; will build the mission with this name and the current date; can be set to a .miz file.",
+    ),
+    mission_folder: str | None = typer.Argument(".", help="Folder with the mission files."),
     pause: bool = typer.Option(False, help=PAUSE_HELP),
 ) -> None:
     """
@@ -270,7 +284,10 @@ def build(
 
     # Validate scripts_variant
     if scripts_variant not in ("standard", "debug", "trace", "trace-with-events"):
-        logger.error(f"Invalid scripts variant: {scripts_variant}. Must be 'standard', 'debug', 'trace', or 'trace-with-events'.", exception_type=ValueError)
+        logger.error(
+            f"Invalid scripts variant: {scripts_variant}. Must be 'standard', 'debug', 'trace', or 'trace-with-events'.",
+            exception_type=ValueError,
+        )
 
     # Resolve input mission folder
     p_mission_folder = resolve_path(path=mission_folder, default_path=Path.cwd(), should_exist=True)
@@ -297,18 +314,31 @@ def build(
         p_scripts_path = None
 
     # Call the worker class
-    worker = MissionBuilderWorker(dynamic_mode=dynamic_mode, scripts_path=p_scripts_path, mission_folder=p_mission_folder, output_mission=p_output_mission, migrate_from_v5=migrate_from_v5, no_veaf_triggers=no_veaf_triggers, scripts_variant=scripts_variant)
+    worker = MissionBuilderWorker(
+        dynamic_mode=dynamic_mode,
+        scripts_path=p_scripts_path,
+        mission_folder=p_mission_folder,
+        output_mission=p_output_mission,
+        migrate_from_v5=migrate_from_v5,
+        no_veaf_triggers=no_veaf_triggers,
+        scripts_variant=scripts_variant,
+    )
     worker.work()
 
     console.print(WORK_DONE_MESSAGE)
-    if pause: input(PAUSE_MESSAGE)
+    if pause:
+        input(PAUSE_MESSAGE)
+
 
 @app.command(no_args_is_help=True)
 def extract(
     readme: bool = typer.Option(False, help=README_HELP),
     verbose: bool = typer.Option(False, help=VERBOSE_HELP),
-    mission_name_or_file: Optional[str] = typer.Argument(DEFAULT_MISSION_FILE, help="Mission name; will extract from the mission with this name (most recent .miz file); can be set to a .miz file."),
-    mission_folder: Optional[str] = typer.Argument(".", help="Folder where the mission files will be extracted."),
+    mission_name_or_file: str | None = typer.Argument(
+        DEFAULT_MISSION_FILE,
+        help="Mission name; will extract from the mission with this name (most recent .miz file); can be set to a .miz file.",
+    ),
+    mission_folder: str | None = typer.Argument(".", help="Folder where the mission files will be extracted."),
     pause: bool = typer.Option(False, help=PAUSE_HELP),
 ) -> None:
     """
@@ -337,23 +367,32 @@ def extract(
         if files := list(p_mission_folder.glob(f"{mission_name_or_file}*.miz")):
             p_input_mission = max(files, key=lambda f: f.stat().st_mtime)
     p_input_mission = resolve_path(path=p_input_mission, should_exist=True)
-    
+
     # Call the worker class
     worker = MissionExtractorWorker(mission_folder=p_mission_folder, input_mission_path=p_input_mission)
     worker.work()
 
     console.print(WORK_DONE_MESSAGE)
-    if pause: input(PAUSE_MESSAGE)
+    if pause:
+        input(PAUSE_MESSAGE)
+
 
 @app.command(no_args_is_help=True)
 def convert(
     readme: bool = typer.Option(False, help=README_HELP),
     verbose: bool = typer.Option(False, help=VERBOSE_HELP),
-    dynamic_mode: bool = typer.Option(False, help="If set, the mission will dynamically load the scripts from the provided location (via --scripts-path or in the local published and src/scripts folders)."),
+    dynamic_mode: bool = typer.Option(
+        False,
+        help="If set, the mission will dynamically load the scripts from the provided location (via --scripts-path or in the local published and src/scripts folders).",
+    ),
     scripts_path: str = typer.Option(None, help="Path to the VEAF and community scripts."),
-    scripts_variant: str = typer.Option("standard", help="Scripts variant to use: 'standard' (default), 'debug', 'trace', or 'trace-with-events'."),
-    mission_name: str = typer.Argument(help="Mission name; will extract from the mission with this name (most recent .miz file)"),
-    mission_folder: Optional[str] = typer.Argument(".", help="Folder with the mission files."),
+    scripts_variant: str = typer.Option(
+        "standard", help="Scripts variant to use: 'standard' (default), 'debug', 'trace', or 'trace-with-events'."
+    ),
+    mission_name: str = typer.Argument(
+        help="Mission name; will extract from the mission with this name (most recent .miz file)"
+    ),
+    mission_folder: str | None = typer.Argument(".", help="Folder with the mission files."),
     pause: bool = typer.Option(False, help=PAUSE_HELP),
 ) -> None:
     """
@@ -373,7 +412,10 @@ def convert(
 
     # Validate scripts_variant
     if scripts_variant not in ("standard", "debug", "trace", "trace-with-events"):
-        logger.error(f"Invalid scripts variant: {scripts_variant}. Must be 'standard', 'debug', 'trace', or 'trace-with-events'.", exception_type=ValueError)
+        logger.error(
+            f"Invalid scripts variant: {scripts_variant}. Must be 'standard', 'debug', 'trace', or 'trace-with-events'.",
+            exception_type=ValueError,
+        )
 
     # Resolve output mission folder
     p_mission_folder = resolve_path(path=mission_folder, default_path=Path.cwd(), should_exist=True)
@@ -385,7 +427,7 @@ def convert(
     if files := list(p_mission_folder.glob(f"{mission_name}*.miz")):
         p_input_mission = max(files, key=lambda f: f.stat().st_mtime)
     p_input_mission = resolve_path(path=p_input_mission, should_exist=True)
-    
+
     # Compute a file name from the mission name
     # Add variant suffix if not standard
     variant_suffix = f"_{scripts_variant}" if scripts_variant != "standard" else ""
@@ -403,25 +445,42 @@ def convert(
         p_scripts_path = None
 
     # Call the worker class
-    worker = MissionConverterWorker(mission_folder=p_mission_folder, input_mission=p_input_mission, output_mission=p_output_mission, mission_name=mission_name, dynamic_mode=dynamic_mode, scripts_path=p_scripts_path, inject_presets=False, presets_file=None, scripts_variant=scripts_variant)
+    worker = MissionConverterWorker(
+        mission_folder=p_mission_folder,
+        input_mission=p_input_mission,
+        output_mission=p_output_mission,
+        mission_name=mission_name,
+        dynamic_mode=dynamic_mode,
+        scripts_path=p_scripts_path,
+        inject_presets=False,
+        presets_file=None,
+        scripts_variant=scripts_variant,
+    )
     worker.work()
 
     console.print(WORK_DONE_MESSAGE)
-    if pause: input(PAUSE_MESSAGE)
+    if pause:
+        input(PAUSE_MESSAGE)
+
 
 @app.command(no_args_is_help=True)
 def inject_presets(
     readme: bool = typer.Option(False, help=README_HELP),
     verbose: bool = typer.Option(False, help=VERBOSE_HELP),
-    input_mission_name_or_file: Optional[str] = typer.Argument(DEFAULT_MISSION_FILE, help="Mission name; will inject in the mission with this name (most recent .miz file); can be set to a .miz file."),
-    output_mission: Optional[str] = typer.Argument(None, help="Mission file to save; defaults to the same as 'input_mission'."),
+    input_mission_name_or_file: str | None = typer.Argument(
+        DEFAULT_MISSION_FILE,
+        help="Mission name; will inject in the mission with this name (most recent .miz file); can be set to a .miz file.",
+    ),
+    output_mission: str | None = typer.Argument(
+        None, help="Mission file to save; defaults to the same as 'input_mission'."
+    ),
     presets_file: str = typer.Option(DEFAULT_PRESETS_FILE, help="Configuration file containing the presets."),
     pause: bool = typer.Option(False, help=PAUSE_HELP),
 ) -> None:
     """
     Injects radio presets read from a configuration file into aircraft groups from a DCS mission
     """
-    
+
     logger.set_verbose(verbose)
 
     # Set the title and version
@@ -449,24 +508,33 @@ def inject_presets(
         logger.error(f"Configuration file {p_presets_file} does not exist!", exception_type=FileNotFoundError)
 
     # Call the worker class
-    worker = PresetsInjectorWorker(presets_file=p_presets_file, input_mission=p_input_mission, output_mission=p_output_mission)
+    worker = PresetsInjectorWorker(
+        presets_file=p_presets_file, input_mission=p_input_mission, output_mission=p_output_mission
+    )
     worker.work()
 
     console.print(WORK_DONE_MESSAGE)
-    if pause: input(PAUSE_MESSAGE)
+    if pause:
+        input(PAUSE_MESSAGE)
+
 
 @app.command(no_args_is_help=True)
 def extract_aircraft_groups(
     readme: bool = typer.Option(False, help=README_HELP),
     verbose: bool = typer.Option(False, help=VERBOSE_HELP),
     interactive: bool = typer.Option(False, help="Interactive mode: select which groups to include."),
-    mission_name_or_file: Optional[str] = typer.Argument(DEFAULT_MISSION_FILE, help="Mission name; will extract from the mission with this name (most recent .miz file); can be set to a .miz file."),
+    mission_name_or_file: str | None = typer.Argument(
+        DEFAULT_MISSION_FILE,
+        help="Mission name; will extract from the mission with this name (most recent .miz file); can be set to a .miz file.",
+    ),
     output_yaml: str = typer.Option("aircraft-templates.yaml", help="Output YAML file path."),
     group_name_pattern: str = typer.Option(".*", help="Regular expression pattern to match aircraft group names."),
     only_airplanes: bool = typer.Option(False, help="Extract only airplanes."),
     only_helicopters: bool = typer.Option(False, help="Extract only helicopters."),
-    mission_folder: Optional[str] = typer.Argument(".", help="Folder with the mission files."),
-    lua_input: Optional[str] = typer.Option(None, help="Path to a Lua file (e.g., settings-templates.lua) to extract from instead of a .miz mission."),
+    mission_folder: str | None = typer.Argument(".", help="Folder with the mission files."),
+    lua_input: str | None = typer.Option(
+        None, help="Path to a Lua file (e.g., settings-templates.lua) to extract from instead of a .miz mission."
+    ),
     pause: bool = typer.Option(False, help=PAUSE_HELP),
 ) -> None:
     """
@@ -474,11 +542,13 @@ def extract_aircraft_groups(
     """
 
     logger.set_verbose(verbose)
-    
+
     # Validate exclusive options
     if only_airplanes and only_helicopters:
-        logger.error("Cannot use both --only-airplanes and --only-helicopters simultaneously.", exception_type=ValueError)
-    
+        logger.error(
+            "Cannot use both --only-airplanes and --only-helicopters simultaneously.", exception_type=ValueError
+        )
+
     # Convert boolean options to aircraft_type
     aircraft_type = "airplanes" if only_airplanes else ("helicopters" if only_helicopters else None)
 
@@ -493,7 +563,9 @@ def extract_aircraft_groups(
 
     # Resolve output YAML file
     p_mission_folder = resolve_path(path=mission_folder, default_path=Path.cwd(), should_exist=True)
-    p_output_yaml = resolve_path(path=output_yaml, default_path=p_mission_folder / output_yaml, create_if_not_exist=True)
+    p_output_yaml = resolve_path(
+        path=output_yaml, default_path=p_mission_folder / output_yaml, create_if_not_exist=True
+    )
 
     # Handle Lua input or mission input
     if lua_input:
@@ -503,7 +575,7 @@ def extract_aircraft_groups(
             input_lua=p_lua_input,
             output_yaml=p_output_yaml,
             group_name_pattern=group_name_pattern,
-            aircraft_type=aircraft_type
+            aircraft_type=aircraft_type,
         )
     else:
         # Extract from mission file (original behavior)
@@ -522,23 +594,34 @@ def extract_aircraft_groups(
             input_mission=p_input_mission,
             output_yaml=p_output_yaml,
             group_name_pattern=group_name_pattern,
-            aircraft_type=aircraft_type
+            aircraft_type=aircraft_type,
         )
-    
+
     worker.extract(interactive=interactive)
 
     console.print(WORK_DONE_MESSAGE)
-    if pause: input(PAUSE_MESSAGE)
+    if pause:
+        input(PAUSE_MESSAGE)
+
 
 @app.command(no_args_is_help=True)
 def inject_aircraft_groups(
     readme: bool = typer.Option(False, help=README_HELP),
     verbose: bool = typer.Option(False, help=VERBOSE_HELP),
-    mode: str = typer.Option("add", help="Injection mode: 'add' (add new groups) or 'replace' (replace existing groups)."),
-    template_file: str = typer.Option("aircraft-templates.yaml", help="Path to the YAML file containing aircraft groups."),
-    mission_name_or_file: Optional[str] = typer.Argument(DEFAULT_MISSION_FILE, help="Mission name; will inject into the mission with this name (most recent .miz file); can be set to a .miz file."),
-    output_mission: Optional[str] = typer.Argument(None, help="Mission file to save; defaults to the same as 'input_mission'."),
-    mission_folder: Optional[str] = typer.Argument(".", help="Folder with the mission files."),
+    mode: str = typer.Option(
+        "add", help="Injection mode: 'add' (add new groups) or 'replace' (replace existing groups)."
+    ),
+    template_file: str = typer.Option(
+        "aircraft-templates.yaml", help="Path to the YAML file containing aircraft groups."
+    ),
+    mission_name_or_file: str | None = typer.Argument(
+        DEFAULT_MISSION_FILE,
+        help="Mission name; will inject into the mission with this name (most recent .miz file); can be set to a .miz file.",
+    ),
+    output_mission: str | None = typer.Argument(
+        None, help="Mission file to save; defaults to the same as 'input_mission'."
+    ),
+    mission_folder: str | None = typer.Argument(".", help="Folder with the mission files."),
     pause: bool = typer.Option(False, help=PAUSE_HELP),
 ) -> None:
     """
@@ -579,24 +662,23 @@ def inject_aircraft_groups(
     logger.info("Step 1: Validating YAML file...")
     validator = AircraftGroupsYAMLValidator(p_template_file)
     is_valid, _ = validator.validate()
-    
+
     # Display validation report
     console.print("\n" + validator.get_report())
-    
+
     # If validation fails, stop here
     if not is_valid:
         console.print("[bold red]✗ YAML validation failed. Please fix the errors before injection.[/bold red]")
-        if pause: input(PAUSE_MESSAGE)
+        if pause:
+            input(PAUSE_MESSAGE)
         exit(1)
-    
+
     console.print("[bold green]✓ YAML validation successful![/bold green]\n")
 
     # STEP 2: Inject aircraft groups
     logger.info(f"Step 2: Injecting aircraft groups using '{mode}' mode...")
     injector = AircraftGroupsInjectorWorker(
-        input_yaml=p_template_file,
-        target_mission=p_input_mission,
-        output_mission=p_output_mission
+        input_yaml=p_template_file, target_mission=p_input_mission, output_mission=p_output_mission
     )
     result = injector.inject(mode=mode, silent=False)
 
@@ -604,25 +686,34 @@ def inject_aircraft_groups(
     injector.display_results(result, verbose=verbose)
 
     if result.success:
-        console.print(f"[bold green]✓ Successfully injected {result.groups_injected} group(s) into the mission![/bold green]")
+        console.print(
+            f"[bold green]✓ Successfully injected {result.groups_injected} group(s) into the mission![/bold green]"
+        )
     else:
         console.print(f"[bold yellow]⚠ Injection completed: {result.message}[/bold yellow]")
 
     console.print(WORK_DONE_MESSAGE)
-    if pause: input(PAUSE_MESSAGE)
+    if pause:
+        input(PAUSE_MESSAGE)
+
 
 @app.command(no_args_is_help=True)
 def extract_waypoints(
     readme: bool = typer.Option(False, help=README_HELP),
     verbose: bool = typer.Option(False, help=VERBOSE_HELP),
     interactive: bool = typer.Option(False, help="Interactive mode: select which groups to extract."),
-    mission_name_or_file: Optional[str] = typer.Argument(DEFAULT_MISSION_FILE, help="Mission name; will extract from the mission with this name (most recent .miz file); can be set to a .miz file."),
+    mission_name_or_file: str | None = typer.Argument(
+        DEFAULT_MISSION_FILE,
+        help="Mission name; will extract from the mission with this name (most recent .miz file); can be set to a .miz file.",
+    ),
     output_yaml: str = typer.Option("waypoints.yaml", help="Output YAML file path."),
     group_name_pattern: str = typer.Option(".*", help="Regular expression pattern to match waypoint/group names."),
     only_airplanes: bool = typer.Option(False, help="Extract only airplanes."),
     only_helicopters: bool = typer.Option(False, help="Extract only helicopters."),
-    mission_folder: Optional[str] = typer.Argument(".", help="Folder with the mission files."),
-    lua_input: Optional[str] = typer.Option(None, help="Path to a Lua file (e.g., settings-waypoints.lua) to extract from instead of a .miz mission."),
+    mission_folder: str | None = typer.Argument(".", help="Folder with the mission files."),
+    lua_input: str | None = typer.Option(
+        None, help="Path to a Lua file (e.g., settings-waypoints.lua) to extract from instead of a .miz mission."
+    ),
     pause: bool = typer.Option(False, help=PAUSE_HELP),
 ) -> None:
     """
@@ -630,11 +721,13 @@ def extract_waypoints(
     """
 
     logger.set_verbose(verbose)
-    
+
     # Validate exclusive options
     if only_airplanes and only_helicopters:
-        logger.error("Cannot use both --only-airplanes and --only-helicopters simultaneously.", exception_type=ValueError)
-    
+        logger.error(
+            "Cannot use both --only-airplanes and --only-helicopters simultaneously.", exception_type=ValueError
+        )
+
     # Convert boolean options to aircraft_type (using 'plane'/'helicopter' naming for waypoints)
     aircraft_type = "plane" if only_airplanes else ("helicopter" if only_helicopters else None)
 
@@ -649,7 +742,9 @@ def extract_waypoints(
 
     # Resolve mission folder and output YAML file
     p_mission_folder = resolve_path(path=mission_folder, default_path=Path.cwd(), should_exist=True)
-    p_output_yaml = resolve_path(path=output_yaml, default_path=p_mission_folder / output_yaml, create_if_not_exist=True)
+    p_output_yaml = resolve_path(
+        path=output_yaml, default_path=p_mission_folder / output_yaml, create_if_not_exist=True
+    )
 
     # Handle Lua input or mission input
     if lua_input:
@@ -659,7 +754,7 @@ def extract_waypoints(
             input_lua=p_lua_input,
             output_yaml=p_output_yaml,
             group_name_pattern=group_name_pattern,
-            aircraft_type=aircraft_type
+            aircraft_type=aircraft_type,
         )
     else:
         # Extract from mission file
@@ -678,22 +773,29 @@ def extract_waypoints(
             input_mission=p_input_mission,
             output_yaml=p_output_yaml,
             group_name_pattern=group_name_pattern,
-            aircraft_type=aircraft_type
+            aircraft_type=aircraft_type,
         )
-    
+
     worker.extract(interactive=interactive)
 
     console.print(WORK_DONE_MESSAGE)
-    if pause: input(PAUSE_MESSAGE)
+    if pause:
+        input(PAUSE_MESSAGE)
+
 
 @app.command(no_args_is_help=True)
 def inject_waypoints(
     readme: bool = typer.Option(False, help=README_HELP),
     verbose: bool = typer.Option(False, help=VERBOSE_HELP),
-    mission_name_or_file: Optional[str] = typer.Argument(DEFAULT_MISSION_FILE, help="Mission name; will inject into the mission with this name (most recent .miz file); can be set to a .miz file."),
-    output_mission: Optional[str] = typer.Argument(None, help="Mission file to save; defaults to the same as 'input_mission'."),
+    mission_name_or_file: str | None = typer.Argument(
+        DEFAULT_MISSION_FILE,
+        help="Mission name; will inject into the mission with this name (most recent .miz file); can be set to a .miz file.",
+    ),
+    output_mission: str | None = typer.Argument(
+        None, help="Mission file to save; defaults to the same as 'input_mission'."
+    ),
     waypoints_file: str = typer.Option("waypoints.yaml", help="Path to the YAML file containing waypoint definitions."),
-    mission_folder: Optional[str] = typer.Argument(".", help="Folder with the mission files."),
+    mission_folder: str | None = typer.Argument(".", help="Folder with the mission files."),
     pause: bool = typer.Option(False, help=PAUSE_HELP),
 ) -> None:
     """
@@ -734,20 +836,22 @@ def inject_waypoints(
 
     # Call the worker class
     worker = WaypointsInjectorWorker(
-        waypoints_file=p_waypoints_file,
-        input_mission=p_input_mission,
-        output_mission=p_output_mission
+        waypoints_file=p_waypoints_file, input_mission=p_input_mission, output_mission=p_output_mission
     )
     worker.work()
 
     console.print(WORK_DONE_MESSAGE)
-    if pause: input(PAUSE_MESSAGE)
+    if pause:
+        input(PAUSE_MESSAGE)
+
 
 @app.command(no_args_is_help=True)
 def inject_weather(
     readme: bool = typer.Option(False, help=README_HELP),
     verbose: bool = typer.Option(False, help=VERBOSE_HELP),
-    mission_name_or_file: Optional[str] = typer.Argument(DEFAULT_MISSION_FILE, help="Mission name or .miz file to use as base for creating weather/time variants."),
+    mission_name_or_file: str | None = typer.Argument(
+        DEFAULT_MISSION_FILE, help="Mission name or .miz file to use as base for creating weather/time variants."
+    ),
     config_file: str = typer.Option("missions.yaml", help="Path to YAML configuration file (or Lua file to convert)."),
     convert_lua: bool = typer.Option(False, "--convert-lua", help="Convert legacy Lua configuration to YAML and exit"),
     pause: bool = typer.Option(False, help=PAUSE_HELP),
@@ -770,7 +874,7 @@ def inject_weather(
         exit()
 
     p_config_file = resolve_path(path=config_file, should_exist=True)
-    
+
     # Handle Lua conversion
     if convert_lua or p_config_file.suffix.lower() == ".lua":
         logger.info(f"Converting Lua configuration: {p_config_file}")
@@ -780,11 +884,13 @@ def inject_weather(
             if typer.confirm("Do you want to create missions from this configuration?"):
                 p_config_file = yaml_file
             else:
-                if pause: input(PAUSE_MESSAGE)
+                if pause:
+                    input(PAUSE_MESSAGE)
                 return
         else:
             logger.error("Failed to convert Lua configuration")
-            if pause: input(PAUSE_MESSAGE)
+            if pause:
+                input(PAUSE_MESSAGE)
             return
 
     if not p_config_file.exists():
@@ -792,19 +898,18 @@ def inject_weather(
 
     # Resolve mission file path
     p_mission_file = resolve_path(path=mission_name_or_file, should_exist=True)
-    
+
     # Call the worker class
-    worker = WeatherInjectorWorker(
-        config_file=p_config_file,
-        mission_file=p_mission_file
-    )
+    worker = WeatherInjectorWorker(config_file=p_config_file, mission_file=p_mission_file)
     if created_files := worker.work():
         console.print(f"[bold green]Created {len(created_files)} mission files[/bold green]")
         for file_path in created_files:
             console.print(f"  - {file_path.name}")
 
     console.print(WORK_DONE_MESSAGE)
-    if pause: input(PAUSE_MESSAGE)
+    if pause:
+        input(PAUSE_MESSAGE)
+
 
 if __name__ == "__main__":
     app()

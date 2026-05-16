@@ -162,9 +162,9 @@ New file `.github/workflows/python-ci.yml` (or extra job in `lua-ci.yml`). Steps
 
 | # | Ticket | Type | Effort | Depends on | Status |
 |---|--------|------|--------|------------|--------|
-| TOOL-001 | Version check on startup + update prompt | feat | 45 min | — | [ ] |
-| TOOL-002 | Centralized `~/.veaf/` directory (VEAF_HOME) | feat | 30 min | — | [ ] |
-| TOOL-003 | Build embeds Lua module list in the exe | feat | 60 min | — | [ ] |
+| TOOL-001 | Version check on startup + update prompt | feat | 45 min | — | [x] |
+| TOOL-002 | Centralized `~/.veaf/` directory (VEAF_HOME) | feat | 30 min | — | [x] |
+| TOOL-003 | Build embeds Lua module list in the exe | feat | 60 min | — | [x] |
 
 **Raw total: 135 min → estimated (×1.15): ~155 min (~2h35)**
 

@@ -76,20 +76,36 @@ function veafRadio.onBirthEvent(event)
 
   -- find the originator unit
   local unitName = event and event.initiator and event.initiator.unitName
+  if not unitName and event and event.initiator and event.initiator.getName then
+    -- dynamic slot units are DCS objects without mist table properties
+    unitName = event.initiator:getName()
+  end
   if not unitName then
     return
   end
   veaf.loggers.get(veafRadio.Id):trace("unitName=%s", unitName)
-  if mist.DBs.humansByName[unitName] then -- it's a human unit
+  local isHumanUnit = mist.DBs.humansByName[unitName] ~= nil or (event.type and event.type.id == world.event.S_EVENT_PLAYER_ENTER_UNIT)
+  if isHumanUnit then -- it's a human unit
     veaf.loggers.get(veafRadio.Id):trace("veafRadio.humanUnits=%s", veafRadio.humanUnits)
     veaf.loggers.get(veafRadio.Id):trace("unitName %s is a human unit", unitName)
     if not veafRadio.humanUnits[unitName] then
       -- add the unit to the human units list and rebuild the radio menu
       veaf.loggers.get(veafRadio.Id):trace("Adding human unit %s", unitName)
       local groupId = event and event.initiator and event.initiator.unitGroupId
+      if not groupId and event and event.initiator and event.initiator.getGroup then
+        -- dynamic slot: get group ID via DCS API
+        local grp = event.initiator:getGroup()
+        if grp then
+          groupId = grp:getID()
+        end
+      end
       local callsign = event and event.initiator and event.initiator.unitPilotName
       if not callsign then
         callsign = event and event.initiator and event.initiator.unitCallsign
+      end
+      if not callsign and event and event.initiator and event.initiator.getPlayerName then
+        -- dynamic slot: get player name via DCS API
+        callsign = event.initiator:getPlayerName()
       end
       local unitObject = { name = unitName, spawned = true, groupId = groupId, callsign = callsign }
       veafRadio.humanUnits[unitName] = {}

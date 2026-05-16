@@ -1365,13 +1365,18 @@ function veafGrass.onBirth(event)
   local unitName = nil
   if event.initiator ~= nil then
     unitName = event.initiator.unitName
+    if not unitName and event.initiator.getName then
+      -- dynamic slot units are DCS objects without mist table properties
+      unitName = event.initiator:getName()
+    end
   end
   if not unitName then
     veaf.loggers.get(veafGrass.Id):warn("no unitname found in event %s", veaf.p(event))
     return
   end
 
-  if mist.DBs.humansByName[unitName] then -- it's a human unit
+  local isHumanUnit = mist.DBs.humansByName[unitName] ~= nil or (event.type and event.type.id == world.event.S_EVENT_PLAYER_ENTER_UNIT)
+  if isHumanUnit then -- it's a human unit
     veaf.loggers.get(veafGrass.Id):debug("caught event BIRTH for human unit [%s]", veaf.p(unitName))
     local _unit = event.initiator
     if _unit ~= nil then

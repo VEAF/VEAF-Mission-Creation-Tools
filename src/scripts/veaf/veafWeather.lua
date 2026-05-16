@@ -1043,6 +1043,12 @@ veafWeatherAtis.ListInEffect = {}
 ---------------------------------------------------------------------------------------------------
 ---  CTORS
 function veafWeatherAtis:Create(veafAirbase, dateTimeZulu)
+  if not veafAirbase.DcsAirbase or not veafAirbase.DcsAirbase:isExist() then
+    veaf.loggers
+      .get(veafWeather.Id)
+      :debug("veafWeatherAtis:Create - airbase [%s] DCS object no longer exists, skipping ATIS", veafAirbase.Name)
+    return nil
+  end
   local iHoursSinceMidnight = dateTimeZulu.hour
   local sLetter = string.char(math.floor(iHoursSinceMidnight) + string.byte("A"))
 
@@ -1147,6 +1153,9 @@ function veafWeatherAtis.getAtis(veafAirbase)
 
   if atisInEffect == nil then
     atisInEffect = veafWeatherAtis:Create(veafAirbase, dateTimeZulu)
+    if not atisInEffect then
+      return nil
+    end
     veaf.loggers.get(veafWeather.Id):trace(
       string.format(
         "New ATIS in effect for airbase %s: %s %s",
@@ -1163,6 +1172,9 @@ end
 
 function veafWeatherAtis.getAtisString(veafAirbase)
   local atisInEffect = veafWeatherAtis.getAtis(veafAirbase)
+  if not atisInEffect then
+    return nil
+  end
   return atisInEffect.Message
 end
 
@@ -1788,7 +1800,9 @@ veaf.registerModule(veafWeather.Id, veafWeather.initialize, { enable = true }, 2
 veafAirbases.initialize()
 for _, veafAirbase in pairs(veafAirbases.Airbases) do
     veaf.loggers.get(veafWeather.Id):trace(veafWeatherAtis.getAtisString(veafAirbase))
-    veaf.loggers.get(veafWeather.Id):trace(veafWeatherData.getWeatherString(veafAirbase.DcsAirbase:getPoint()))
+    if veafAirbase.DcsAirbase and veafAirbase.DcsAirbase:isExist() then
+      veaf.loggers.get(veafWeather.Id):trace(veafWeatherData.getWeatherString(veafAirbase.DcsAirbase:getPoint()))
+    end
 end
 veaf.loggers.get(veafWeather.Id):trace(veaf.p(env.mission.weather.enable_fog))
 veaf.loggers.get(veafWeather.Id):trace(veaf.p(world.weather.getFogVisibilityDistance()))

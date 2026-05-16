@@ -585,21 +585,34 @@ function VeafQRA:humanBornEvent(unit)
   local coalitionId = 0
   if unit.unitCoalition then
     coalitionId = unit.unitCoalition
+  elseif unit.getCoalition then
+    -- dynamic slot: unit is a DCS object, use API
+    coalitionId = unit:getCoalition()
   end
   if self.enemyCoalitions[coalitionId] then
     veaf.loggers
       .get(veafQraManager.Id)
       :trace("VeafQRA[%s]:humanBornEvent() - unit being born is an enemy (coalition %s)", self.name, coalitionId)
-    if unit.unitCategory then
-      if (unit.unitCategory == Unit.Category.AIRPLANE) or (unit.unitCategory == Unit.Category.HELICOPTER and self.reactOnHelicopters) then
+    local unitCategory = unit.unitCategory
+    if unitCategory == nil and unit.getCategory then
+      -- dynamic slot: unit is a DCS object, use API
+      unitCategory = unit:getCategory()
+    end
+    if unitCategory then
+      if (unitCategory == Unit.Category.AIRPLANE) or (unitCategory == Unit.Category.HELICOPTER and self.reactOnHelicopters) then
+        local unitNameToCheck = unit.unitName
+        if unitNameToCheck == nil and unit.getName then
+          -- dynamic slot: unit is a DCS object, use API
+          unitNameToCheck = unit:getName()
+        end
         -- check if the unit is already in the list
-        for _, unitName in pairs(self._enemyHumanUnits) do
-          if unitName == unit.unitName then
+        for _, existingUnitName in pairs(self._enemyHumanUnits) do
+          if existingUnitName == unitNameToCheck then
             return
           end
         end
         veaf.loggers.get(veafQraManager.Id):trace("adding unit to enemy human units for QRA")
-        table.insert(self._enemyHumanUnits, unit.unitName)
+        table.insert(self._enemyHumanUnits, unitNameToCheck)
       end
     end
   end
@@ -1239,11 +1252,16 @@ end
 function veafQraManager.eventHandler(event)
   -- find the originator unit
   local unitName = event.initiator and event.initiator.unitName
+  if not unitName and event.initiator and event.initiator.getName then
+    -- dynamic slot units are DCS objects without mist table properties
+    unitName = event.initiator:getName()
+  end
   if not unitName then
     return
   end
 
-  if mist.DBs.humansByName[unitName] then -- it's a human unit
+  local isHumanUnit = mist.DBs.humansByName[unitName] ~= nil or (event.type and event.type.id == world.event.S_EVENT_PLAYER_ENTER_UNIT)
+  if isHumanUnit then -- it's a human unit
     local unit = event.initiator
     if unit ~= nil then
       -- handle the event on all QRAs

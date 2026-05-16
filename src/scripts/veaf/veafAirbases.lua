@@ -122,33 +122,37 @@ function veafAirbases.getNearestAirbaseList(dcsUnit, iCount)
   end
 
   for _, veafAirbase in pairs(veafAirbases.Airbases) do
-    local vec3Airbase = veafAirbase.DcsAirbase:getPoint()
-    local iDistance = mist.utils.get2DDist(vec3Unit, vec3Airbase)
-    local bAdded = false
+    if not veafAirbase.DcsAirbase or not veafAirbase.DcsAirbase:isExist() then
+      -- skip stale/destroyed airbase references (e.g. sunk carriers)
+    else
+      local vec3Airbase = veafAirbase.DcsAirbase:getPoint()
+      local iDistance = mist.utils.get2DDist(vec3Unit, vec3Airbase)
+      local bAdded = false
 
-    -- first fill all the nil positions
-    for i = 1, iCount, 1 do
-      if nearestList[i] == nil then
-        nearestList[i] = { veafAirbase, iDistance }
-        bAdded = true
-        break
-      end
-    end
-
-    if not bAdded then
-      -- then, replace the farthest one if the current one is closer
-      for i = iCount, 1, -1 do
-        if iDistance < nearestList[i][2] then
+      -- first fill all the nil positions
+      for i = 1, iCount, 1 do
+        if nearestList[i] == nil then
           nearestList[i] = { veafAirbase, iDistance }
           bAdded = true
           break
         end
       end
-    end
 
-    if bAdded then
-      table.sort(nearestList, Sort)
-    end
+      if not bAdded then
+        -- then, replace the farthest one if the current one is closer
+        for i = iCount, 1, -1 do
+          if iDistance < nearestList[i][2] then
+            nearestList[i] = { veafAirbase, iDistance }
+            bAdded = true
+            break
+          end
+        end
+      end
+
+      if bAdded then
+        table.sort(nearestList, Sort)
+      end
+    end -- end of isExist() guard
   end
 
   return nearestList

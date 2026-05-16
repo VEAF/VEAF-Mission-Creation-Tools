@@ -331,6 +331,122 @@ In `build-and-release.py`, before publish: parse `src/scripts/veaf/dcsUnits.lua`
 
 ---
 
+## Lot 8 — LUA-QUALITY: Code quality quick wins
+
+**Goal**: Targeted fixes for identified bugs and recurring anti-patterns in the Lua codebase.
+No structural breakage — each ticket is isolated and low-risk.
+**Branch**: `fix/lua-quality` → PR → `develop-v6`
+
+| # | Ticket | File(s) | Type | Effort | Status |
+|---|--------|---------|------|--------|--------|
+| LUAQ-001 | Ajouter `unit:isExist()` guards dans `VeafQRA.check()` avant appels DCS | `veafQraManager.lua` | fix | 30 min | [ ] |
+| LUAQ-002 | Remplacer le pattern `arg`/`arg.n` (Lua 5.1 deprecated) par `{...}`/`select` dans `AirWaveZone:addWave()` | `veafAirWaves.lua` | chore | 20 min | [ ] |
+| LUAQ-003 | Wrapper `veaf.mist` pour centraliser les accès à `mist.DBs` (getUnitByName, getGroupByName, isHumanUnit) | `veaf.lua` + modules | chore | 60 min | [ ] |
+| LUAQ-004 | Factoriser la logique convoy dupliquée dans veafSpawn (`stop/move/markRoute`) | `veafSpawn.lua` | chore | 45 min | [ ] |
+| LUAQ-005 | Factoriser `moveTanker`/`changeTanker` (logique route commune ~40% dupliquée) | `veafMove.lua` | chore | 30 min | [ ] |
+
+**Raw total: 185 min → estimated (×1.15): ~215 min (~3h35)**
+
+<details>
+<summary>Ticket details</summary>
+
+**LUAQ-001 — isExist() guards dans VeafQRA.check()**
+Dans `VeafQRA.check()`, le watchdog tourne toutes les 5 secondes (`veafQraManager.WATCHDOG_DELAY = 5`). Les objets DCS retournés par `group:getUnits()` peuvent devenir des références stales si l'unité est détruite entre deux ticks. Même avec `if unit then`, un objet DCS mort peut lever une exception sur `:getLife()` ou `:inAir()`.
+Correction : ajouter `if unit:isExist() then` avant chaque appel de méthode DCS sur une unité. Pattern à appliquer aussi dans `VeafQRA.rearm()` et `VeafQRA.resupply()`.
+
+**LUAQ-002 — Varargs propres dans addWave()**
+`addWave(...)` utilise la table implicite `arg` (Lua 5.1 legacy). Ce pattern génère du bruit `---@diagnostic disable-next-line: undefined-field` et est fragile dans certains contextes DCS.
+Correction : remplacer par `local args = {...}` + `local nArgs = select('#', ...)`, supprimer la directive `@diagnostic disable`.
+
+**LUAQ-003 — Wrapper veaf.mist**
+Accès directs à `mist.DBs.unitsByName`, `mist.DBs.groupsByName`, `mist.DBs.humansByName` éparpillés dans veafSpawn, veafRadio, veafGrass, veafQraManager, veafInterpreter. Si mist change ses internals, tous ces modules cassent.
+Proposition :
+```lua
+-- Dans veaf.lua
+veaf.mist = {}
+function veaf.mist.getUnitData(unitName) return mist.DBs.unitsByName[unitName] end
+function veaf.mist.getGroupData(groupName) return mist.DBs.groupsByName[groupName] end
+function veaf.mist.isHumanUnit(unitName) return mist.DBs.humansByName[unitName] ~= nil end
+```
+Remplacer tous les accès directs par ces wrappers.
+
+**LUAQ-004 — Convoy helpers dans veafSpawn**
+`_findClosestConvoy`, `_commandConvoy`, `stopClosestConvoy`, `moveClosestConvoy`, `_markClosestConvoyWithSmoke`, `markClosestConvoyWithSmoke`, `markClosestConvoyRouteWithSmoke` contiennent des blocs de validation quasi-identiques (~30 lignes chacun). Extraire `veafSpawn._getConvoyOrWarn(unitName)` qui centralise la recherche et le message d'erreur.
+
+**LUAQ-005 — Tanker route helpers dans veafMove**
+`moveTanker()` et `changeTanker()` partagent ~40% de logique identique (récupération du groupe tanker, validation des waypoints, construction de la route DCS). Extraire `veafMove._buildTankerRoute(group, waypoints)` utilisé par les deux.
+
+</details>
+
+---
+
+## Lot 9 — LUA-REFACTOR: Refactoring structurel des modules majeurs
+
+**Goal**: Réduire la complexité des modules les plus chargés du codebase Lua.
+Chaque ticket est indépendant mais risqué — à traiter un par un avec tests en mission réelle.
+**Branch**: une branche par ticket `refactor/lua-xxx` → PR → `develop-v6`
+⚠️ Impact fort sur les missions existantes : chaque PR doit être testée en mission avant merge.
+
+| # | Ticket | File(s) | Type | Effort | Status |
+|---|--------|---------|------|--------|--------|
+| LUAR-001 | Scinder `veafSpawn.lua` (3200+ lignes) en 4 modules thématiques | `veafSpawn*.lua` | feat | 240 min | [ ] |
+| LUAR-002 | Machine d'état explicite (FSM) pour `AirWaveZone` | `veafAirWaves.lua` | feat | 120 min | [ ] |
+| LUAR-003 | Scinder `VeafQRA` (1200+ lignes) en `VeafQRACore` + `VeafQRALogistics` | `veafQraManager.lua` | feat | 150 min | [ ] |
+| LUAR-004 | `RadioMenuBuilder` — abstraction de la construction des menus dans veafRadio | `veafRadio.lua` | feat | 90 min | [ ] |
+
+**Raw total: 600 min → estimated (×1.15): ~690 min (~11h30)**
+
+<details>
+<summary>Ticket details</summary>
+
+**LUAR-001 — Split veafSpawn.lua**
+3200+ lignes, 35+ fonctions publiques avec 5 responsabilités distinctes. Proposition de découpage :
+- `veafSpawnCore.lua` — `executeCommand`, parsing de markers, `doSpawnGroup`, `_createDcsUnits`, dessin (addPointToDrawing, drawCircle, drawSquare, eraseDrawing)
+- `veafSpawnGround.lua` — `spawnGroup`, `spawnInfantryGroup`, `spawnArmoredPlatoon`, `spawnAirDefenseBattery`, `spawnTransportCompany`, `spawnFullCombatGroup`, `spawnConvoy`, `spawnFarp`, `spawnFob`
+- `veafSpawnAircraft.lua` — `spawnUnit` (avions/hélicos), `spawnCombatAirPatrol`, JTAC/lasing
+- `veafSpawnEffects.lua` — `spawnBomb`, `spawnSmoke`, `spawnSignalFlare`, `spawnIlluminationFlare`, `spawnCargo`, `spawnLogistic`, `destroy`, `teleport`
+
+`veafSpawn.lua` devient un proxy qui charge les 4 sous-modules et ré-exporte les fonctions publiques pour backward compatibility.
+
+**LUAR-002 — FSM AirWaveZone**
+`AirWaveZone` gère 7+ états (`READY`, `WAITING_FOR_HUMANS`, `ACTIVE`, `WAITING_FOR_NEXTWAVE`, `CLEANUP`, `DONE`, `PAUSED`) via des variables booléennes et des `if/elseif` chaînés dans `check()`.
+Refactorer en FSM explicite :
+```lua
+AirWaveZone.FSM = {
+  READY = { enter = AirWaveZone._onEnterReady, transitions = { WAITING_FOR_HUMANS = AirWaveZone._canWaitForHumans } },
+  ACTIVE = { enter = AirWaveZone._onEnterActive, transitions = { WAITING_FOR_NEXTWAVE = AirWaveZone._waveEnded } },
+  ...
+}
+```
+Bénéfice : `check()` devient une boucle sur `FSM[self.state].transitions`, pas de if imbriqués, états clairement documentés.
+
+**LUAR-003 — Split VeafQRA**
+`VeafQRA` fait 1200+ lignes avec 3 responsabilités :
+1. **Détection + spawn** : `check()`, `humanBornEvent()`, `spawnQra()`, `despawnQra()`
+2. **Logistique** : `rearm()`, `resupply()`, `refuel()`, délais de ravitaillement
+3. **Communication** : messages radio, marqueurs carte, `getInformation()`
+
+Proposition :
+- `VeafQRACore` — état, détection, spawn/despawn
+- `VeafQRALogistics` — rearm/resupply/refuel (classe séparée, référencée depuis Core)
+- Laisser les messages dans Core mais extraire `VeafQRA:buildStatusMessage()` en helpers
+
+**LUAR-004 — RadioMenuBuilder**
+`veafRadio.lua` construit les menus DCS missionCommands via des appels `missionCommands.addSubMenu` / `addCommand` entrelacés avec la logique de rebuild. Créer `RadioMenuBuilder` :
+```lua
+local RadioMenuBuilder = {}
+function RadioMenuBuilder:new(root) ... end
+function RadioMenuBuilder:addMenu(label, parent) ... end
+function RadioMenuBuilder:addCommand(label, parent, fn, args) ... end
+function RadioMenuBuilder:build() ... end
+function RadioMenuBuilder:rebuild() ... end  -- clear + rebuild
+```
+Isole la complexité de l'arbre DCS et facilite le test unitaire.
+
+</details>
+
+---
+
 ## Summary
 
 | Lot | Estimate | Status |
@@ -343,6 +459,8 @@ In `build-and-release.py`, before publish: parse `src/scripts/veaf/dcsUnits.lua`
 | Lot 5 — RELEASE | ~1h30 | [ ] |
 | Lot 6 — BONUS | ~3h30 | [ ] |
 | Lot 7 — LUA FIXES | ~5h45 | [x] |
-| **Total** | **~29h** | |
+| Lot 8 — LUA-QUALITY | ~3h35 | [ ] |
+| Lot 9 — LUA-REFACTOR | ~11h30 | [ ] |
+| **Total** | **~44h** | |
 
 *Initial calibration factor: 1.15 — recalculate after each completed lot.*

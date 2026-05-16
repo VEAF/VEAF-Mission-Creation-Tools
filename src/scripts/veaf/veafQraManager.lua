@@ -622,7 +622,7 @@ function VeafQRA:_getEnemyHumanUnits()
   if not self._enemyHumanUnits then
     veaf.loggers.get(veafQraManager.Id):trace("VeafQRA[%s]:_getEnemyHumanUnits() - computing", veaf.p(self.name))
     self._enemyHumanUnits = {}
-    for _, unit in pairs(mist.DBs.humansByName) do
+    for _, unit in pairs(veaf.mist.getAllHumanUnitData()) do
       local coalitionId = 0
       if unit.coalition then
         if unit.coalition:lower() == "red" then
@@ -695,7 +695,7 @@ function VeafQRA:check()
         local nbUnitsInZone = 0
         for _, unit in pairs(unitsInZone) do
           -- check the unit altitude against the ceiling and floor
-          if unit:inAir() then -- never count a landed aircraft
+          if unit:isExist() and unit:inAir() then -- never count a landed aircraft
             local alt = unit:getPoint().y
             if alt >= self:getMinimumAltitudeInMeters() and alt <= self:getMaximumAltitudeInMeters() then
               nbUnitsInZone = nbUnitsInZone + 1
@@ -739,7 +739,7 @@ function VeafQRA:check()
               local units = group:getUnits()
               if units then
                 for _, unit in pairs(units) do
-                  if unit then
+                  if unit and unit:isExist() then
                     local unitLife = unit:getLife()
                     local unitLife0 = 0
                     if unit.getLife0 then -- statics have no life0
@@ -1260,7 +1260,7 @@ function veafQraManager.eventHandler(event)
     return
   end
 
-  local isHumanUnit = mist.DBs.humansByName[unitName] ~= nil or (event.type and event.type.id == world.event.S_EVENT_PLAYER_ENTER_UNIT)
+  local isHumanUnit = veaf.mist.isHumanUnit(unitName) or (event.type and event.type.id == world.event.S_EVENT_PLAYER_ENTER_UNIT)
   if isHumanUnit then -- it's a human unit
     local unit = event.initiator
     if unit ~= nil then

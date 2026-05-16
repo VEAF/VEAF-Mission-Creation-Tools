@@ -336,7 +336,7 @@ function veafCarrierOperations.continueCarrierOperations(groupName, userUnitName
     veaf.loggers.get(veafCarrierOperations.Id):trace("carrier.speed = " .. carrier.speed .. " kn")
 
     -- check if a Pedro group exists for this carrier
-    if not mist.DBs.groupsByName[carrier.pedroUnitName] then
+    if not veaf.mist.getGroupData(carrier.pedroUnitName) then
       veaf.loggers.get(veafCarrierOperations.Id):warn("No Pedro group named " .. carrier.pedroUnitName)
     else
       -- prepare or correct the Pedro route (SH-60B, 250ft high, 1nm to the starboard side of the carrier, riding along at the same speed and heading)
@@ -481,7 +481,7 @@ function veafCarrierOperations.continueCarrierOperations(groupName, userUnitName
     end
 
     -- check if a S3B-Tanker group exists for this carrier
-    if not mist.DBs.groupsByName[carrier.tankerUnitName] then
+    if not veaf.mist.getGroupData(carrier.tankerUnitName) then
       veaf.loggers.get(veafCarrierOperations.Id):warn("No Tanker group named " .. carrier.tankerUnitName)
     else
       local routeTanker = (carrierDistanceFromInitialPosition > 18520)
@@ -944,7 +944,7 @@ end
 
 function veafCarrierOperations.initializeCarrierGroups()
   -- find the carriers and add them to the veafCarrierOperations.carriers table, store its initial location and create the menus
-  for name, group in pairs(mist.DBs.groupsByName) do
+  for name, group in pairs(veaf.mist.getAllGroupData()) do
     veaf.loggers.get(veafCarrierOperations.Id):trace("found group " .. name)
     -- search groups with a carrier unit in the group
     local carrier = nil

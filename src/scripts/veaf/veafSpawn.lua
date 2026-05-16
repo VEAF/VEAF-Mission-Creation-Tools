@@ -3138,9 +3138,20 @@ function veafSpawn._commandConvoy(convoyName, stop)
   end
 end
 
+--- Find the closest convoy to unitName and warn if none found.
+--- Returns the convoy name, or nil (with "No convoy found" message) if not found.
+function veafSpawn._getConvoyOrWarn(unitName)
+  local convoyName = veafSpawn._findClosestConvoy(unitName)
+  if not convoyName then
+    veaf.outTextForUnit(unitName, "No convoy found", 10)
+    return nil
+  end
+  return convoyName
+end
+
 function veafSpawn.stopClosestConvoy(unitName)
   veaf.loggers.get(veafSpawn.Id):debug(string.format("veafSpawn.stopClosestConvoy(unitName=%s)", unitName))
-  local convoyName = veafSpawn._findClosestConvoy(unitName)
+  local convoyName = veafSpawn._getConvoyOrWarn(unitName)
   if convoyName then
     return veafSpawn._commandConvoy(convoyName, true)
   end
@@ -3148,7 +3159,7 @@ end
 
 function veafSpawn.moveClosestConvoy(unitName)
   veaf.loggers.get(veafSpawn.Id):debug(string.format("veafSpawn.moveClosestConvoy(unitName=%s)", unitName))
-  local convoyName = veafSpawn._findClosestConvoy(unitName)
+  local convoyName = veafSpawn._getConvoyOrWarn(unitName)
   if convoyName then
     return veafSpawn._commandConvoy(convoyName, false)
   end
@@ -3156,7 +3167,7 @@ end
 
 function veafSpawn._markClosestConvoyWithSmoke(unitName, markRoute)
   veaf.loggers.get(veafSpawn.Id):debug(string.format("veafSpawn.markClosestConvoyWithSmoke(unitName=%s)", unitName))
-  local closestConvoyName = veafSpawn._findClosestConvoy(unitName)
+  local closestConvoyName = veafSpawn._getConvoyOrWarn(unitName)
   if closestConvoyName then
     if markRoute then
       local route = veafSpawn.spawnedConvoys[closestConvoyName].route
@@ -3170,8 +3181,6 @@ function veafSpawn._markClosestConvoyWithSmoke(unitName, markRoute)
       trigger.action.smoke(averageGroupPosition, trigger.smokeColor.White)
       veaf.outTextForUnit(unitName, closestConvoyName .. " marked with white smoke", 10)
     end
-  else
-    veaf.outTextForUnit(unitName, "No convoy found", 10)
   end
 end
 

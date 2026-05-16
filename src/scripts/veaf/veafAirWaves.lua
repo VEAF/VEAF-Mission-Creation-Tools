@@ -282,16 +282,16 @@ end
 ---   :addWave({ groups="group1", number = 2})
 ---returns self
 function AirWaveZone:addWave(...)
-  veaf.loggers.get(veafAirWaves.Id):debug(string.format("AirWaveZone[%s]:addWave() : %s", veaf.p(self.name), veaf.p(arg)))
-  ---@diagnostic disable-next-line: undefined-field this is a field defined in the vararg api
-  local nArgs = arg.n or 0
-  if arg and nArgs > 0 then
+  local args = { ... }
+  local nArgs = select("#", ...)
+  veaf.loggers.get(veafAirWaves.Id):debug(string.format("AirWaveZone[%s]:addWave() : %s", veaf.p(self.name), veaf.p(args)))
+  if nArgs > 0 then
     local groups = {}
     local number = 1
     local bias = 0
     local delay = nil
     for i = 1, nArgs, 1 do
-      local parameter = arg[i]
+      local parameter = args[i]
       if type(parameter) == "string" then
         table.insert(groups, parameter)
       elseif type(parameter) == "table" then
@@ -757,7 +757,7 @@ function AirWaveZone:getPlayerUnitsNames()
 
   -- Static slot players from mist DB
   local seenUnits = {}
-  for _, unit in pairs(mist.DBs.humansByName) do
+  for _, unit in pairs(veaf.mist.getAllHumanUnitData()) do
     local coalitionId = 0
     if unit.coalition then
       if unit.coalition:lower() == "red" then

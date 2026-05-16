@@ -192,9 +192,9 @@ In `build-and-release.py`: scan `src/scripts/veaf/veaf*.lua`, extract ID and ver
 
 | # | Ticket | Type | Effort | Depends on | Status |
 |---|--------|------|--------|------------|--------|
-| FEAT-001 | InquirerPy interactive mode when no argument is given | feat | 60 min | — | [ ] |
-| FEAT-002 | Persist preferences in `~/.veaf/preferences.json` | feat | 30 min | TOOL-002 | [ ] |
-| FEAT-003 | Pre-fill prompts from saved preferences | feat | 30 min | FEAT-002 | [ ] |
+| FEAT-001 | InquirerPy interactive mode when no argument is given | feat | 60 min | — | [x] |
+| FEAT-002 | Persist preferences in `~/.veaf/preferences.json` | feat | 30 min | TOOL-002 | [x] |
+| FEAT-003 | Pre-fill prompts from saved preferences | feat | 30 min | FEAT-002 | [x] |
 
 **Raw total: 120 min → estimated (×1.15): ~140 min (~2h20)**
 

@@ -347,6 +347,9 @@ class BuildAndReleaseWorker:
                 # Copy all variant files to published directory
                 self._copy_lua_files_to_published()
 
+                # Generate DCS units reference document
+                self._generate_dcs_units_doc()
+
             except Exception as e:
                 logger.error(f"Lua build failed: {e}")
 
@@ -493,6 +496,23 @@ class BuildAndReleaseWorker:
                 logger.debug(f"Copied {lua_file.name} to published directory")
         except Exception as e:
             logger.warning(f"Failed to copy Lua files to published directory: {e}")
+
+    def _generate_dcs_units_doc(self) -> None:
+        """Parse dcsUnits.lua and write a Markdown reference to the build directory."""
+        with spinner_context("Generating DCS units reference..."):
+            try:
+                from veaf_libs.dcs_units_parser import generate_dcs_units_doc
+
+                lua_path = self.build_dir / "dcsUnits.lua"
+                if not lua_path.exists():
+                    logger.warning("dcsUnits.lua not found in build dir; skipping reference doc")
+                    return
+
+                out_path = self.build_dir / "dcs-units-reference.md"
+                count = generate_dcs_units_doc(out_path, lua_path)
+                logger.debug(f"DCS units reference written: {count} units → {out_path}")
+            except Exception as e:
+                logger.warning(f"Could not generate DCS units reference: {e}")
 
     def build_python_executables(self):
         """Build Python executables using PyInstaller."""
@@ -736,6 +756,12 @@ class BuildAndReleaseWorker:
                         if doc_path.exists():
                             zf.write(doc_path, doc_file)
                             logger.debug(f"Added {doc_file} to ZIP")
+
+                    # Add generated DCS units reference (produced by build_lua_scripts)
+                    units_ref = self.build_dir / "dcs-units-reference.md"
+                    if units_ref.exists():
+                        zf.write(units_ref, "docs/dcs-units-reference.md")
+                        logger.debug("Added docs/dcs-units-reference.md to ZIP")
 
                 logger.debug(f"Release package created: {output_file}")
 

@@ -1203,3 +1203,8 @@ end
 -- Load module
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 veaf.loggers.get(veafSkynet.Id):info(veaf.loggers.get(veafSkynet.Id):getVersionInfo(veafSkynet.Version))
+
+veaf.registerModule(veafSkynet.Id, function()
+  local cfg = veaf.getConfig(veafSkynet.Id)
+  veafSkynet.initialize(cfg.includeRedInRadio, cfg.debugRed, cfg.includeBlueInRadio, cfg.debugBlue)
+end, { enable = true, includeRedInRadio = true, debugRed = false, includeBlueInRadio = true, debugBlue = false }, 220)

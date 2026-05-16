@@ -1602,3 +1602,5 @@ function veafCombatMission.initialize()
 end
 
 veaf.loggers.get(veafCombatMission.Id):info(veaf.loggers.get(veafCombatMission.Id):getVersionInfo(veafCombatMission.Version))
+
+veaf.registerModule(veafCombatMission.Id, veafCombatMission.initialize, { enable = true }, 100)

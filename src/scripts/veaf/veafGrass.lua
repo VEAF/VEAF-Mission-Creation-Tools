@@ -1395,3 +1395,5 @@ function veafGrass.initialize()
 end
 
 veaf.loggers.get(veafGrass.Id):info(veaf.loggers.get(veafGrass.Id):getVersionInfo(veafGrass.Version))
+
+veaf.registerModule(veafGrass.Id, veafGrass.initialize, { enable = true }, 150)

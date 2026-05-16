@@ -18,6 +18,7 @@ from mission_tools import (
     write_miz,
 )
 from veaf_libs.logger import logger
+from veaf_libs.lua_module_scanner import generate_modules_config_lua
 from veaf_libs.progress import spinner_context
 
 
@@ -35,6 +36,7 @@ class MissionBuilderWorker:
         migrate_from_v5: bool = True,
         no_veaf_triggers: bool = False,
         scripts_variant: str = "standard",
+        lua_modules: dict | None = None,
     ):
         """
         Initialize the worker with parameters for both use cases.
@@ -48,6 +50,7 @@ class MissionBuilderWorker:
         self.migrate_from_v5: bool = migrate_from_v5
         self.no_veaf_triggers: bool = no_veaf_triggers
         self.scripts_variant: str = scripts_variant
+        self.lua_modules: dict | None = lua_modules
         self.collected_community_script_files: dict[str, bytes] | None = None
         self.collected_veaf_script_files: dict[str, bytes] | None = None
         self.collected_mission_script_files: dict[str, bytes] | None = None
@@ -535,6 +538,10 @@ class MissionBuilderWorker:
         veaf_mission_config_map_key = new_map_resource_key_by_file.get(
             f"{DEFAULT_SCRIPTS_LOCATION}/missionConfig.lua", ""
         )
+        # LUA-005: optional generated module config, loaded before missionConfig.lua
+        veaf_modules_config_map_key = new_map_resource_key_by_file.get(
+            f"{DEFAULT_SCRIPTS_LOCATION}/veaf-modules-config.lua", ""
+        )
 
         static_script_loading_actions = [
             {"predicate": "a_do_script", "text": 'env.info("STATIC VEAF scripts loading")'}
@@ -672,6 +679,12 @@ class MissionBuilderWorker:
                         "predicate": "a_do_script",
                         "zone": 184,
                     },
+                    # LUA-005: load veaf-modules-config.lua before missionConfig.lua (if present)
+                    *(
+                        [{"predicate": "a_do_script_file", "file": f"{veaf_modules_config_map_key}"}]
+                        if veaf_modules_config_map_key
+                        else []
+                    ),
                     {"predicate": "a_do_script_file", "file": f"{veaf_mission_config_map_key}"},
                 ],
                 "colorItem": "0x8080ffff",
@@ -699,12 +712,32 @@ class MissionBuilderWorker:
         write_miz(mission=self.dcs_mission, miz_file_path=self.output_mission)
         logger.debug("Writing mission file done")
 
+    def write_lua_modules_config(self) -> None:
+        """If lua_modules was provided, write veaf-modules-config.lua to the mission src/scripts folder."""
+        if not self.lua_modules:
+            return
+        scripts_dir = self.mission_folder / "src" / "scripts"
+        scripts_dir.mkdir(parents=True, exist_ok=True)
+        config_file = scripts_dir / "veaf-modules-config.lua"
+        config_file.write_text(
+            generate_modules_config_lua(self.lua_modules),
+            encoding="utf-8",
+        )
+        logger.info(f"Generated '{config_file}' from mission.yaml lua_modules section")
+
     def work(self, silent: bool = False) -> Path:
         """Main work function."""
 
         # Complete the src folder with default files if they don't exist
         with spinner_context(f"Completing folder {self.mission_folder} with defaults...", silent=silent):
             self.complete_src_folder_with_defaults()
+
+        # Generate veaf-modules-config.lua from lua_modules if provided (LUA-005)
+        if self.lua_modules:
+            with spinner_context("Generating veaf-modules-config.lua from mission.yaml...", silent=silent):
+                self.write_lua_modules_config()
+            # Invalidate cached mission script files so the new file is picked up
+            self.collected_mission_script_files = None
 
         # Create the initial mission file
         with spinner_context(f"Creating mission {self.output_mission}...", silent=silent):

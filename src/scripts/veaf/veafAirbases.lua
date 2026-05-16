@@ -433,6 +433,8 @@ function veafAirbaseRunway:toString()
   return string.format("RWY %02d(%.2fT) / %02d(%.2fT)", self[1].Number, self[1].Heading, self[2].Number, self[2].Heading)
 end
 
+veaf.registerModule(veafAirbases.Id, veafAirbases.initialize, { enable = true }, 200)
+
 ---------------------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------
 ---  MODULE TESTS

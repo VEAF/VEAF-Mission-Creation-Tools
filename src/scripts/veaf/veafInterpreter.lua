@@ -172,3 +172,5 @@ function veafInterpreter._initialize()
 end
 
 veaf.loggers.get(veafInterpreter.Id):info(veaf.loggers.get(veafInterpreter.Id):getVersionInfo(veafInterpreter.Version))
+
+veaf.registerModule(veafInterpreter.Id, veafInterpreter.initialize, { enable = true }, 170)

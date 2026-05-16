@@ -382,3 +382,5 @@ function veafRemote.initialize()
 end
 
 veaf.loggers.get(veafRemote.Id):info(veaf.loggers.get(veafRemote.Id):getVersionInfo(veafRemote.Version))
+
+veaf.registerModule(veafRemote.Id, veafRemote.initialize, { enable = true }, 230)

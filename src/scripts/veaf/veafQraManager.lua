@@ -1260,3 +1260,5 @@ function veafQraManager.initialize()
 end
 
 veaf.loggers.get(veafQraManager.Id):info(veaf.loggers.get(veafQraManager.Id):getVersionInfo(veafQraManager.Version))
+
+veaf.registerModule(veafQraManager.Id, veafQraManager.initialize, { enable = true }, 130)

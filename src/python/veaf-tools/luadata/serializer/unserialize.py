@@ -380,6 +380,11 @@ def _lua_table_to_dict(lua_table, keep_as_dict: list[str] | None = None, all_is_
 
 
 def unserialize(raw: str, encoding: str = "utf-8", multival: bool = False, keep_as_dict: list[str] | None = None, all_is_dict: bool = False) -> dict | list:
+    if LuaRuntime is None:
+        raise ImportError(
+            "lupa is required to deserialize Lua data. "
+            "Install it with: pip install lupa  or: poetry install --extras lua"
+        )
     # noinspection PyArgumentList
     lua = LuaRuntime(unpack_returned_tuples=multival, encoding=encoding, max_memory=0)
     lua.execute(raw)

@@ -3,7 +3,7 @@ from pathlib import Path
 DEFAULT_SCRIPTS_LOCATION: str = "l10n/DEFAULT"
 
 
-def get_legacy_script_files() -> list[(str, str)]:
+def get_legacy_script_files() -> list[tuple[str, str]]:
     """Get list of files that should be removed from any newly extracted mission; they are old VEAF files that are not used anymore"""
 
     return [
@@ -17,7 +17,7 @@ def get_legacy_script_files() -> list[(str, str)]:
     ]
 
 
-def get_community_script_files() -> list[(str, str)]:
+def get_community_script_files() -> list[tuple[str, str]]:
     """Get list of community LUA files. Those can be in published or in the scripts folder, depending on the --dynamic-mode option"""
 
     return [
@@ -34,7 +34,7 @@ def get_community_script_files() -> list[(str, str)]:
     ]
 
 
-def get_veaf_script_files() -> list[(str, str)]:
+def get_veaf_script_files() -> list[tuple[str, str]]:
     """Get list of VEAF script files.Those can be in published or in the scripts folder, depending on the --dynamic-mode option"""
 
     return [
@@ -43,7 +43,7 @@ def get_veaf_script_files() -> list[(str, str)]:
     ]
 
 
-def get_mission_script_files() -> list[(str, str)]:
+def get_mission_script_files() -> list[tuple[str, str]]:
     """Get list of the mission files. Those are either in the mission folder or in the VEAF defaults folder"""
 
     return [
@@ -54,7 +54,7 @@ def get_mission_script_files() -> list[(str, str)]:
     ]
 
 
-def get_mission_data_files() -> list[(str, str)]:
+def get_mission_data_files() -> list[tuple[str, str]]:
     """Get list of the mission files. Those are either in the mission folder or in the VEAF defaults folder"""
 
     return [

@@ -41,9 +41,9 @@ def read_miz(miz_file_path: Path) -> DcsMission:
         zip_file: zipfile.ZipFile,
         file_name: str,
         missing_components: list[str],
-        keep_as_dict: list[str] = [],
+        keep_as_dict: list[str] | None = None,
         not_lua: bool = False,
-    ) -> dict:
+    ) -> dict | None:
         if file_name in zip_file.namelist():
             with zip_file.open(file_name) as file:
                 if not_lua:
@@ -51,7 +51,8 @@ def read_miz(miz_file_path: Path) -> DcsMission:
                 else:
                     return unserialize(file, keep_as_dict=keep_as_dict)
         else:
-            return missing_components.append(file_name)
+            missing_components.append(file_name)
+            return None
 
     result = DcsMission(file_path=miz_file_path)
 

@@ -245,7 +245,6 @@ class UpdateWorker:
 
             # Get absolute paths for the script
             current_dir = Path.cwd()
-            current_dir / VEAF_TOOLS_EXE
             new_exe_path = pending_exe.resolve()
             backup_exe_path = current_dir / f"{VEAF_TOOLS_EXE}.old"
 

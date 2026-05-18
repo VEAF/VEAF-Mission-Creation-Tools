@@ -110,7 +110,7 @@ end
 
 -- technical name (GroundUnitHandler instance name)
 function GroundUnitHandler:setName(value)
-  veaf.loggers.get(veafGroundAI.Id):debug(self.CLASS_NAME .. "[]:setName(%s)", veaf.p(value))
+  veaf.loggers.get(veafGroundAI.Id):debug(self.CLASS_NAME .. "[]:setName(%s)", veaf.lp(value))
   self.name = value
   return veafGroundAI.add(self) -- add the handler to the list as soon as a name is available to index it
 end
@@ -131,7 +131,7 @@ end
 
 -- draw the position and orders of the unit on screen
 function GroundUnitHandler:setDraw(value)
-  veaf.loggers.get(veafGroundAI.Id):debug(self.CLASS_NAME .. "[%s]:setDraw(%s)", veaf.p(self:getName()), veaf.p(value))
+  veaf.loggers.get(veafGroundAI.Id):debug(self.CLASS_NAME .. "[%s]:setDraw(%s)", veaf.lp(self:getName()), veaf.lp(value))
   self.draw = value
   return self
 end
@@ -143,14 +143,14 @@ end
 
 -- coalitions of the players (only human units from these coalitions will be monitored)
 function GroundUnitHandler:setPlayerCoalitions(value)
-  veaf.loggers.get(veafGroundAI.Id):debug(self.CLASS_NAME .. "[%s]:setPlayerCoalitions(%s)", veaf.p(self:getName()), veaf.p(value))
+  veaf.loggers.get(veafGroundAI.Id):debug(self.CLASS_NAME .. "[%s]:setPlayerCoalitions(%s)", veaf.lp(self:getName()), veaf.lp(value))
   self.playerCoalitions = value
   return self
 end
 
 -- player units (only they are concerned by the messages)
 function GroundUnitHandler:setPlayerUnitsNames(value)
-  veaf.loggers.get(veafGroundAI.Id):debug(self.CLASS_NAME .. "[%s]:setPlayerUnitsNames(%s)", veaf.p(self:getName()), veaf.p(value))
+  veaf.loggers.get(veafGroundAI.Id):debug(self.CLASS_NAME .. "[%s]:setPlayerUnitsNames(%s)", veaf.lp(self:getName()), veaf.lp(value))
   self.playerUnitsNames = value
   return self
 end
@@ -162,7 +162,7 @@ end
 
 -- DCS group
 function GroundUnitHandler:setDcsGroup(value)
-  veaf.loggers.get(veafGroundAI.Id):debug(self.CLASS_NAME .. "[%s]:setDcsGroup(%s)", veaf.p(self:getName()), veaf.p(value))
+  veaf.loggers.get(veafGroundAI.Id):debug(self.CLASS_NAME .. "[%s]:setDcsGroup(%s)", veaf.lp(self:getName()), veaf.lp(value))
   self.dcsGroup = value
   return self
 end
@@ -174,14 +174,14 @@ end
 
 -- current orders for the ground unit
 function GroundUnitHandler:setOrders(value)
-  veaf.loggers.get(veafGroundAI.Id):debug(self.CLASS_NAME .. "[%s]:setOrders(%s)", veaf.p(self:getName()), veaf.p(value))
+  veaf.loggers.get(veafGroundAI.Id):debug(self.CLASS_NAME .. "[%s]:setOrders(%s)", veaf.lp(self:getName()), veaf.lp(value))
   self.orders = value
   return self
 end
 
 -- orders for the ground unit
 function GroundUnitHandler:addOrder(value)
-  veaf.loggers.get(veafGroundAI.Id):debug(self.CLASS_NAME .. "[%s]:addOrder(%s)", veaf.p(self:getName()), veaf.p(value))
+  veaf.loggers.get(veafGroundAI.Id):debug(self.CLASS_NAME .. "[%s]:addOrder(%s)", veaf.lp(self:getName()), veaf.lp(value))
   if value then
     table.insert(self.orders, value)
   end
@@ -195,7 +195,7 @@ end
 
 -- orders for the ground unit
 function GroundUnitHandler:clearOrders()
-  veaf.loggers.get(veafGroundAI.Id):debug(self.CLASS_NAME .. "[%s]:clearOrders()", veaf.p(self:getName()))
+  veaf.loggers.get(veafGroundAI.Id):debug(self.CLASS_NAME .. "[%s]:clearOrders()", veaf.lp(self:getName()))
   self.orders = {}
   return self
 end
@@ -211,7 +211,7 @@ end
 
 -- complete an order (pop it from the start of the list)
 function GroundUnitHandler:completeOrder()
-  veaf.loggers.get(veafGroundAI.Id):debug(self.CLASS_NAME .. "[%s]:completeOrder()", veaf.p(self:getName()))
+  veaf.loggers.get(veafGroundAI.Id):debug(self.CLASS_NAME .. "[%s]:completeOrder()", veaf.lp(self:getName()))
   if self.orders and #self.orders > 0 then
     table.remove(self.orders, 1)
   end
@@ -220,7 +220,7 @@ end
 
 -- silent means no message is emitted
 function GroundUnitHandler:setSilent(value)
-  veaf.loggers.get(veafGroundAI.Id):debug(self.CLASS_NAME .. "[%s]:setSilent(%s)", veaf.p(self:getName()), veaf.p(value))
+  veaf.loggers.get(veafGroundAI.Id):debug(self.CLASS_NAME .. "[%s]:setSilent(%s)", veaf.lp(self:getName()), veaf.lp(value))
   self.silent = value
   return self
 end
@@ -232,7 +232,7 @@ end
 
 -- the drawing objects that has been used to draw the situation
 function GroundUnitHandler:setZoneDrawings(value)
-  veaf.loggers.get(veafGroundAI.Id):debug(self.CLASS_NAME .. "[%s]:setZoneDrawings(%s)", veaf.p(self:getName()), veaf.p(value))
+  veaf.loggers.get(veafGroundAI.Id):debug(self.CLASS_NAME .. "[%s]:setZoneDrawings(%s)", veaf.lp(self:getName()), veaf.lp(value))
   self.zoneDrawings = value
   return self
 end
@@ -258,7 +258,7 @@ end
 -- METHODS
 
 function GroundUnitHandler:handleOrder(order)
-  veaf.loggers.get(veafGroundAI.Id):debug(self.CLASS_NAME .. "[%s]:handleOrder(%s)", veaf.p(self:getName()), veaf.p(order))
+  veaf.loggers.get(veafGroundAI.Id):debug(self.CLASS_NAME .. "[%s]:handleOrder(%s)", veaf.lp(self:getName()), veaf.lp(order))
   -- do nothing clever, all is done in the inheriting classes
   self:completeOrder()
 end
@@ -278,7 +278,7 @@ function GroundUnitHandler:check()
 end
 
 function GroundUnitHandler:start()
-  veaf.loggers.get(veafGroundAI.Id):debug(self.CLASS_NAME .. "[%s]:start()", veaf.p(self:getName()))
+  veaf.loggers.get(veafGroundAI.Id):debug(self.CLASS_NAME .. "[%s]:start()", veaf.lp(self:getName()))
   self.status = GroundUnitHandler.STATUS_ACTIVE
   if not self.silent then
     trigger.action.outText(string.format(self.messageStart, self:getName()), 10)
@@ -290,7 +290,7 @@ function GroundUnitHandler:start()
 end
 
 function GroundUnitHandler:stop()
-  veaf.loggers.get(veafGroundAI.Id):debug(self.CLASS_NAME .. "[%s]:stop()", veaf.p(self:getName()))
+  veaf.loggers.get(veafGroundAI.Id):debug(self.CLASS_NAME .. "[%s]:stop()", veaf.lp(self:getName()))
   self.status = GroundUnitHandler.STATUS_READY
   if not self.silent then
     trigger.action.outText(string.format(self.messageStop, self:getName()), 10)
@@ -309,7 +309,7 @@ function GroundUnitHandler:stop()
 end
 
 function GroundUnitHandler:orderTextAnalysis(value)
-  veaf.loggers.get(veafGroundAI.Id):debug(self.CLASS_NAME .. "[%s]:orderTextAnalysis(%s)", veaf.p(self:getName()), veaf.p(value))
+  veaf.loggers.get(veafGroundAI.Id):debug(self.CLASS_NAME .. "[%s]:orderTextAnalysis(%s)", veaf.lp(self:getName()), veaf.lp(value))
   -- do nothing clever, all is done in the inheriting classes
 end
 
@@ -362,7 +362,7 @@ end
 -- METHODS
 
 function ArtilleryUnitHandler:orderTextAnalysis(text)
-  veaf.loggers.get(veafGroundAI.Id):debug(self.CLASS_NAME .. "[%s]:orderTextAnalysis(%s)", veaf.p(self:getName()), veaf.p(text))
+  veaf.loggers.get(veafGroundAI.Id):debug(self.CLASS_NAME .. "[%s]:orderTextAnalysis(%s)", veaf.lp(self:getName()), veaf.lp(text))
 
   -- analyze the string for an acceptable order
   ArtilleryUnitHandler.VERB_FIRE_FORAIM = 1
@@ -395,7 +395,7 @@ function ArtilleryUnitHandler:orderTextAnalysis(text)
 
     if key:lower() == "target" then
       -- Set the target
-      veaf.loggers.get(veafGroundAI.Id):trace("Keyword target = %s", veaf.p(val))
+      veaf.loggers.get(veafGroundAI.Id):trace("Keyword target = %s", veaf.lp(val))
       if veaf.computeLLFromString(val) then -- check target string validity
         options.target = val
       end
@@ -403,17 +403,17 @@ function ArtilleryUnitHandler:orderTextAnalysis(text)
 
     if key:lower() == "shells" then
       -- Set the number of shells
-      veaf.loggers.get(veafGroundAI.Id):trace("Keyword shells = %s", veaf.p(val))
+      veaf.loggers.get(veafGroundAI.Id):trace("Keyword shells = %s", veaf.lp(val))
       local nVal = veaf.getRandomizableNumeric(val)
-      veaf.loggers.get(veafGroundAI.Id):trace("shells = %s", veaf.p(nVal))
+      veaf.loggers.get(veafGroundAI.Id):trace("shells = %s", veaf.lp(nVal))
       options.shells = nVal
     end
 
     if key:lower() == "radius" then
       -- Set the radius of the shelling
-      veaf.loggers.get(veafGroundAI.Id):trace("Keyword radius = %s", veaf.p(val))
+      veaf.loggers.get(veafGroundAI.Id):trace("Keyword radius = %s", veaf.lp(val))
       local nVal = veaf.getRandomizableNumeric(val)
-      veaf.loggers.get(veafGroundAI.Id):trace("radius = %s", veaf.p(nVal))
+      veaf.loggers.get(veafGroundAI.Id):trace("radius = %s", veaf.lp(nVal))
       options.radius = nVal
     end
   end
@@ -437,7 +437,13 @@ function ArtilleryUnitHandler:fireForAim(coordinates, shells, radius)
   end
   veaf.loggers
     .get(veafGroundAI.Id)
-    :debug(self.CLASS_NAME .. "[%s]:fireForAim(%s, %s, %s)", veaf.p(self:getName()), veaf.p(coordinates), veaf.p(shells), veaf.p(radius))
+    :debug(
+      self.CLASS_NAME .. "[%s]:fireForAim(%s, %s, %s)",
+      veaf.lp(self:getName()),
+      veaf.lp(coordinates),
+      veaf.lp(shells),
+      veaf.lp(radius)
+    )
   -- check the parameters
   if not coordinates then
     veaf.loggers.get(veafGroundAI.Id):warn(self.CLASS_NAME .. "[%s]:fireForAim() : no target coordinates", veaf.p(self:getName()))
@@ -463,7 +469,7 @@ function ArtilleryUnitHandler:fireForEffect(coordinates, shells, radius)
   end
   veaf.loggers
     .get(veafGroundAI.Id)
-    :debug(self.CLASS_NAME .. "[%s]:fireForEffect(%s, %s)", veaf.p(self:getName()), veaf.p(shells), veaf.p(radius))
+    :debug(self.CLASS_NAME .. "[%s]:fireForEffect(%s, %s)", veaf.lp(self:getName()), veaf.lp(shells), veaf.lp(radius))
   if not coordinates then
     veaf.loggers
       .get(veafGroundAI.Id)
@@ -482,10 +488,10 @@ end
 function ArtilleryUnitHandler:fireAtCoordinates(coordinates, shells, radius)
   veaf.loggers.get(veafGroundAI.Id):debug(
     self.CLASS_NAME .. "[%s]:fireAtCoordinates(%d, %s, %s)",
-    veaf.p(self:getName()),
-    veaf.p(shells),
-    veaf.p(coordinates),
-    veaf.p(radius)
+    veaf.lp(self:getName()),
+    veaf.lp(shells),
+    veaf.lp(coordinates),
+    veaf.lp(radius)
   )
   -- check the parameters
   if not shells then
@@ -505,8 +511,8 @@ function ArtilleryUnitHandler:fireAtCoordinates(coordinates, shells, radius)
     target = coordinates
   elseif type(coordinates) == "string" then
     local _lat, _lon = veaf.computeLLFromString(coordinates)
-    veaf.loggers.get(veafGroundAI.Id):trace(string.format("_lat=%s", veaf.p(_lat)))
-    veaf.loggers.get(veafGroundAI.Id):trace(string.format("_lon=%s", veaf.p(_lon)))
+    veaf.loggers.get(veafGroundAI.Id):trace(string.format("_lat=%s", veaf.lp(_lat)))
+    veaf.loggers.get(veafGroundAI.Id):trace(string.format("_lon=%s", veaf.lp(_lon)))
     if _lat and _lon then
       target = coord.LLtoLO(_lat, _lon)
     else
@@ -520,7 +526,7 @@ function ArtilleryUnitHandler:fireAtCoordinates(coordinates, shells, radius)
 end
 
 function ArtilleryUnitHandler:handleOrder(order)
-  veaf.loggers.get(veafGroundAI.Id):debug(self.CLASS_NAME .. "[%s]:handleOrder(%s)", veaf.p(self:getName()), veaf.p(order))
+  veaf.loggers.get(veafGroundAI.Id):debug(self.CLASS_NAME .. "[%s]:handleOrder(%s)", veaf.lp(self:getName()), veaf.lp(order))
   if order.verb == ArtilleryUnitHandler.ORDER_FIRE then
     -- fire at the target
     local shells = order.parameters.shells
@@ -535,18 +541,18 @@ function ArtilleryUnitHandler:handleOrder(order)
       local coordinates = grid.UTMZone .. " " .. grid.MGRSDigraph .. " " .. grid.Easting .. " " .. grid.Northing
       local message = string.format(
         "%s is firing %d shells at %s with a %s m dispersion",
-        veaf.p(self:getName()),
-        veaf.p(shells),
-        veaf.p(coordinates),
-        veaf.p(radius)
+        veaf.lp(self:getName()),
+        veaf.lp(shells),
+        veaf.lp(coordinates),
+        veaf.lp(radius)
       )
       trigger.action.outText(message, 10)
       veaf.loggers.get(veafGroundAI.Id):trace(
         "ArtilleryUnitHandler[%s]:handleOrder() : firing %d shells at %s with a %s m dispersion",
-        veaf.p(self:getName()),
-        veaf.p(shells),
-        veaf.p(coordinates),
-        veaf.p(radius)
+        veaf.lp(self:getName()),
+        veaf.lp(shells),
+        veaf.lp(coordinates),
+        veaf.lp(radius)
       )
       -- fire the shells
       local fireParams = {
@@ -566,14 +572,14 @@ function ArtilleryUnitHandler:handleOrder(order)
 end
 
 function ArtilleryUnitHandler:stop()
-  veaf.loggers.get(veafGroundAI.Id):debug(self.CLASS_NAME .. "[%s]:stop()", veaf.p(self:getName()))
+  veaf.loggers.get(veafGroundAI.Id):debug(self.CLASS_NAME .. "[%s]:stop()", veaf.lp(self:getName()))
   -- clear the group's orders queue
   self:getDcsGroup():getController():resetTask()
   return GroundUnitHandler.stop(self)
 end
 
 function ArtilleryUnitHandler:clearOrders()
-  veaf.loggers.get(veafGroundAI.Id):debug(self.CLASS_NAME .. "[%s]:clearOrders()", veaf.p(self:getName()))
+  veaf.loggers.get(veafGroundAI.Id):debug(self.CLASS_NAME .. "[%s]:clearOrders()", veaf.lp(self:getName()))
   -- clear the group's orders queue
   self:getDcsGroup():getController():resetTask()
   return GroundUnitHandler.clearOrders(self)
@@ -591,7 +597,7 @@ function veafGroundAI.onEventMarkChange(eventPos, event)
     coa = coalition.side.RED
   end
 
-  veaf.loggers.get(veafGroundAI.Id):trace(string.format("event.idx  = %s", veaf.p(event.idx)))
+  veaf.loggers.get(veafGroundAI.Id):trace(string.format("event.idx  = %s", veaf.lp(event.idx)))
 
   if veafGroundAI.executeCommand(eventPos, event.text, coa, event.idx) then
     -- Delete old mark.
@@ -607,7 +613,7 @@ function veafGroundAI.executeCommand(eventPos, eventText, eventCoalition, markId
   if eventText ~= nil then
     -- Analyse the mark point text and extract the keywords.
     local options = veafGroundAI.markTextAnalysis(eventPos, eventCoalition, eventText)
-    veaf.loggers.get(veafGroundAI.Id):trace(string.format("options = %s", veaf.p(options)))
+    veaf.loggers.get(veafGroundAI.Id):trace(string.format("options = %s", veaf.lp(options)))
 
     if options then
       -- do the magic
@@ -616,7 +622,7 @@ function veafGroundAI.executeCommand(eventPos, eventText, eventCoalition, markId
         local handlerName = options.name
         local group = options.group
         if group and handlerName then
-          veaf.loggers.get(veafGroundAI.Id):trace("group = %s", veaf.p(group))
+          veaf.loggers.get(veafGroundAI.Id):trace("group = %s", veaf.lp(group))
           local handler = veafGroundAI.get(handlerName)
           if not handler then
             handler = ArtilleryUnitHandler:new():setName(handlerName)
@@ -688,7 +694,7 @@ end
 
 --- Extract keywords from mark text.
 function veafGroundAI.markTextAnalysis(eventPos, eventCoalition, text)
-  veaf.loggers.get(veafGroundAI.Id):trace("veafGroundAI.markTextAnalysis(text=%s)", veaf.p(text))
+  veaf.loggers.get(veafGroundAI.Id):trace("veafGroundAI.markTextAnalysis(text=%s)", veaf.lp(text))
 
   veafGroundAI.VERB_SET = 1
   veafGroundAI.VERB_UNSET = 2
@@ -735,20 +741,20 @@ function veafGroundAI.markTextAnalysis(eventPos, eventCoalition, text)
 
     if key:lower() == "groupname" then
       -- Set dcs group name.
-      veaf.loggers.get(veafGroundAI.Id):trace("Keyword groupname = %s", veaf.p(val))
+      veaf.loggers.get(veafGroundAI.Id):trace("Keyword groupname = %s", veaf.lp(val))
       -- search for the DCS group
       options.group = Group.getByName(val)
     end
 
     if key:lower() == "name" then
       -- Set AI handler name.
-      veaf.loggers.get(veafGroundAI.Id):trace("Keyword name = %s", veaf.p(val))
+      veaf.loggers.get(veafGroundAI.Id):trace("Keyword name = %s", veaf.lp(val))
       options.name = val
     end
 
     if key:lower() == "order" then
       -- Set order
-      veaf.loggers.get(veafGroundAI.Id):trace("Keyword order = %s", veaf.p(val))
+      veaf.loggers.get(veafGroundAI.Id):trace("Keyword order = %s", veaf.lp(val))
       options.order = val
     end
   end
@@ -768,7 +774,7 @@ function veafGroundAI.markTextAnalysis(eventPos, eventCoalition, text)
       if pos then
         local name = unit:getName()
         local distanceFromCenter = ((pos.x - eventPos.x) ^ 2 + (pos.z - eventPos.z) ^ 2) ^ 0.5
-        veaf.loggers.get(veaf.Id):trace("name=%s; distanceFromCenter=%s", veaf.p(name), veaf.p(distanceFromCenter))
+        veaf.loggers.get(veaf.Id):trace("name=%s; distanceFromCenter=%s", veaf.lp(name), veaf.lp(distanceFromCenter))
         if distanceFromCenter <= 250 then
           if distanceFromCenter < minDist then
             minDist = distanceFromCenter
@@ -792,21 +798,21 @@ end
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 function veafGroundAI.add(handler)
-  veaf.loggers.get(veafGroundAI.Id):debug("veafGroundAI.add([%s])", veaf.p(handler:getName()))
+  veaf.loggers.get(veafGroundAI.Id):debug("veafGroundAI.add([%s])", veaf.lp(handler:getName()))
   veafGroundAI.handlers[handler:getName():lower()] = handler
   return handler
 end
 
 function veafGroundAI.remove(handler)
-  veaf.loggers.get(veafGroundAI.Id):debug("veafGroundAI.remove([%s])", veaf.p(handler:getName()))
+  veaf.loggers.get(veafGroundAI.Id):debug("veafGroundAI.remove([%s])", veaf.lp(handler:getName()))
   veafGroundAI.handlers[handler:getName():lower()] = nil
 end
 
 function veafGroundAI.get(handlerName)
-  veaf.loggers.get(veafGroundAI.Id):debug("veafGroundAI.get([%s])", veaf.p(handlerName))
+  veaf.loggers.get(veafGroundAI.Id):debug("veafGroundAI.get([%s])", veaf.lp(handlerName))
   local handler = veafGroundAI.handlers[handlerName:lower()]
   if handler then
-    veaf.loggers.get(veafGroundAI.Id):trace("handler found: %s", veaf.p(handler))
+    veaf.loggers.get(veafGroundAI.Id):trace("handler found: %s", veaf.lp(handler))
   end
   return handler
 end

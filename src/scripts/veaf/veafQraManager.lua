@@ -215,38 +215,38 @@ function VeafQRA:new(objectToCopy)
 end
 
 function VeafQRA:setName(value)
-  veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[]:setName(%s)", veaf.p(value))
+  veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[]:setName(%s)", veaf.lp(value))
   self.name = value
   return veafQraManager.add(self) -- add the QRA to the QRA list as soon as a name is available to index it
 end
 
 function VeafQRA:setTriggerZone(value)
-  veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:setTriggerZone(%s)", veaf.p(self.name), veaf.p(value))
+  veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:setTriggerZone(%s)", veaf.lp(self.name), veaf.lp(value))
   self.triggerZoneName = value
   return self
 end
 
 function VeafQRA:setZoneCenter(value)
-  veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:setZoneCenter(%s)", veaf.p(self.name), veaf.p(value))
+  veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:setZoneCenter(%s)", veaf.lp(self.name), veaf.lp(value))
   self.zoneCenter = value
   return self
 end
 
 function VeafQRA:setZoneCenterFromCoordinates(value)
-  veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:setZoneCenterFromCoordinates(%s)", veaf.p(self.name), veaf.p(value))
+  veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:setZoneCenterFromCoordinates(%s)", veaf.lp(self.name), veaf.lp(value))
   local _lat, _lon = veaf.computeLLFromString(value)
   local vec3 = coord.LLtoLO(_lat, _lon)
   return self:setZoneCenter(vec3)
 end
 
 function VeafQRA:setZoneRadius(value)
-  veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:setZoneRadius(%s)", veaf.p(self.name), veaf.p(value))
+  veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:setZoneRadius(%s)", veaf.lp(self.name), veaf.lp(value))
   self.zoneRadius = value
   return self
 end
 
 function VeafQRA:setDescription(value)
-  veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:setDescription(%s)", veaf.p(self.name), veaf.p(value))
+  veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:setDescription(%s)", veaf.lp(self.name), veaf.lp(value))
   self.description = value
   return veafQraManager.add(self) -- add the QRA to the QRA list as soon as a name is available to index it
 end
@@ -260,7 +260,7 @@ function VeafQRA:getName()
 end
 
 function VeafQRA:addGroup(value)
-  veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:addGroup(%s)", veaf.p(self.name), veaf.p(value))
+  veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:addGroup(%s)", veaf.lp(self.name), veaf.lp(value))
   if not self.groupsToDeployByEnemyQuantity[1] then
     self.groupsToDeployByEnemyQuantity[1] = {}
   end
@@ -271,14 +271,14 @@ end
 function VeafQRA:addRandomGroup(groups, number, bias)
   veaf.loggers
     .get(veafQraManager.Id)
-    :debug("VeafQRA[%s]:addRandomGroup(%s, %s, %s)", veaf.p(self.name), veaf.p(groups), veaf.p(number), veaf.p(bias))
+    :debug("VeafQRA[%s]:addRandomGroup(%s, %s, %s)", veaf.lp(self.name), veaf.lp(groups), veaf.lp(number), veaf.lp(bias))
   return self:addGroup({ groups, number or 1, bias or 0 })
 end
 
 function VeafQRA:setGroupsToDeployByEnemyQuantity(enemyNb, groupsToDeploy)
   veaf.loggers
     .get(veafQraManager.Id)
-    :debug("VeafQRA[%s]:setGroupsToDeployByEnemyQuantity(%s) -> %s", veaf.p(self.name), veaf.p(enemyNb), veaf.p(groupsToDeploy))
+    :debug("VeafQRA[%s]:setGroupsToDeployByEnemyQuantity(%s) -> %s", veaf.lp(self.name), veaf.lp(enemyNb), veaf.lp(groupsToDeploy))
   self.groupsToDeployByEnemyQuantity[enemyNb] = groupsToDeploy
   if self.minimumNbEnemyPlanes == -1 or self.minimumNbEnemyPlanes > enemyNb then
     self.minimumNbEnemyPlanes = enemyNb
@@ -289,23 +289,23 @@ end
 function VeafQRA:setRandomGroupsToDeployByEnemyQuantity(enemyNb, groups, number, bias)
   veaf.loggers.get(veafQraManager.Id):debug(
     "VeafQRA[%s]:setRandomGroupsToDeployByEnemyQuantity(%s, %s, %s, %s)",
-    veaf.p(self.name),
-    veaf.p(enemyNb),
-    veaf.p(groups),
-    veaf.p(number),
-    veaf.p(bias)
+    veaf.lp(self.name),
+    veaf.lp(enemyNb),
+    veaf.lp(groups),
+    veaf.lp(number),
+    veaf.lp(bias)
   )
   return self:setGroupsToDeployByEnemyQuantity(enemyNb, { groups, number or 1, bias or 0 })
 end
 
 function VeafQRA:setCoalition(value)
-  veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:setCoalition(%s)", veaf.p(self.name), veaf.p(value))
+  veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:setCoalition(%s)", veaf.lp(self.name), veaf.lp(value))
   self.coalition = value
   return self
 end
 
 function VeafQRA:addEnnemyCoalition(value)
-  veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:addEnnemyCoalition(%s)", veaf.p(self.name), veaf.p(value))
+  veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:addEnnemyCoalition(%s)", veaf.lp(self.name), veaf.lp(value))
   self.enemyCoalitions[value] = value
   return self
 end
@@ -320,128 +320,128 @@ function VeafQRA:getEnnemyCoalition()
 end
 
 function VeafQRA:setMessageStart(value)
-  veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:setMessageStart(%s)", veaf.p(self.name), veaf.p(value))
+  veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:setMessageStart(%s)", veaf.lp(self.name), veaf.lp(value))
   self.messageStart = value
   return self
 end
 
 function VeafQRA:setOnStart(value)
-  veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:setOnStart()", veaf.p(self.name))
+  veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:setOnStart()", veaf.lp(self.name))
   self.onStart = value
   return self
 end
 
 function VeafQRA:setMessageDeploy(value)
-  veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:setMessageDeploy(%s)", veaf.p(self.name), veaf.p(value))
+  veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:setMessageDeploy(%s)", veaf.lp(self.name), veaf.lp(value))
   self.messageDeploy = value
   return self
 end
 
 function VeafQRA:setOnDeploy(value)
-  veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:setOnDeploy()", veaf.p(self.name))
+  veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:setOnDeploy()", veaf.lp(self.name))
   self.onDeploy = value
   return self
 end
 
 function VeafQRA:setMessageDestroyed(value)
-  veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:setMessageDestroyed(%s)", veaf.p(self.name), veaf.p(value))
+  veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:setMessageDestroyed(%s)", veaf.lp(self.name), veaf.lp(value))
   self.messageDestroyed = value
   return self
 end
 
 function VeafQRA:setOnDestroyed(value)
-  veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:setOnDestroyed()", veaf.p(self.name))
+  veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:setOnDestroyed()", veaf.lp(self.name))
   self.onDestroyed = value
   return self
 end
 
 function VeafQRA:setMessageReady(value)
-  veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:setMessageReady(%s)", veaf.p(self.name), veaf.p(value))
+  veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:setMessageReady(%s)", veaf.lp(self.name), veaf.lp(value))
   self.messageReady = value
   return self
 end
 
 function VeafQRA:setOnReady(value)
-  veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:setOnReady()", veaf.p(self.name))
+  veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:setOnReady()", veaf.lp(self.name))
   self.onReady = value
   return self
 end
 
 function VeafQRA:setMessageOut(value)
-  veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:setMessageOut(%s)", veaf.p(self.name), veaf.p(value))
+  veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:setMessageOut(%s)", veaf.lp(self.name), veaf.lp(value))
   self.messageOut = value
   return self
 end
 
 function VeafQRA:setOnOut(value)
-  veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:setOnOut()", veaf.p(self.name))
+  veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:setOnOut()", veaf.lp(self.name))
   self.onOut = value
   return self
 end
 
 function VeafQRA:setMessageResupplied(value)
-  veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:setMessageResupplied(%s)", veaf.p(self.name), veaf.p(value))
+  veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:setMessageResupplied(%s)", veaf.lp(self.name), veaf.lp(value))
   self.messageResupplied = value
   return self
 end
 
 function VeafQRA:setOnResupplied(value)
-  veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:setOnResupplied()", veaf.p(self.name))
+  veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:setOnResupplied()", veaf.lp(self.name))
   self.onResupplied = value
   return self
 end
 
 function VeafQRA:setMessageAirbaseDown(value)
-  veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:setMessageAirbaseDown(%s)", veaf.p(self.name), veaf.p(value))
+  veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:setMessageAirbaseDown(%s)", veaf.lp(self.name), veaf.lp(value))
   self.messageAirbaseDown = value
   return self
 end
 
 function VeafQRA:setOnAirbaseDown(value)
-  veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:setOnAirbaseDown()", veaf.p(self.name))
+  veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:setOnAirbaseDown()", veaf.lp(self.name))
   self.onAirbaseDown = value
   return self
 end
 
 function VeafQRA:setMessageAirbaseUp(value)
-  veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:setMessageAirbaseUp(%s)", veaf.p(self.name), veaf.p(value))
+  veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:setMessageAirbaseUp(%s)", veaf.lp(self.name), veaf.lp(value))
   self.messageAirbaseUp = value
   return self
 end
 
 function VeafQRA:setOnAirbaseUp(value)
-  veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:setOnAirbaseUp()", veaf.p(self.name))
+  veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:setOnAirbaseUp()", veaf.lp(self.name))
   self.onAirbaseUp = value
   return self
 end
 
 function VeafQRA:setMessageStop(value)
-  veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:setMessageStop(%s)", veaf.p(self.name), veaf.p(value))
+  veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:setMessageStop(%s)", veaf.lp(self.name), veaf.lp(value))
   self.messageStop = value
   return self
 end
 
 function VeafQRA:setOnStop(value)
-  veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:setOnStop()", veaf.p(self.name))
+  veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:setOnStop()", veaf.lp(self.name))
   self.onStop = value
   return self
 end
 
 function VeafQRA:setSilent(value)
-  veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:setSilent(%s)", veaf.p(self.name), veaf.p(value))
+  veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:setSilent(%s)", veaf.lp(self.name), veaf.lp(value))
   self.silent = value or false
   return self
 end
 
 function VeafQRA:setDrawZone(value)
-  veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:setDrawZone(%s)", veaf.p(self.name), veaf.p(value))
+  veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:setDrawZone(%s)", veaf.lp(self.name), veaf.lp(value))
   self.drawZone = value or false
   return self
 end
 
 --TODO, warehousing for each group within a QRA and not just the whole QRA
 function VeafQRA:setQRAcount(count)
-  veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:setQRAcount(%s)", veaf.p(self.name), veaf.p(count))
+  veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:setQRAcount(%s)", veaf.lp(self.name), veaf.lp(count))
   if count and type(count) == "number" and count >= -1 then
     self.QRAcount = count
   end
@@ -449,7 +449,7 @@ function VeafQRA:setQRAcount(count)
 end
 
 function VeafQRA:setQRAmaxCount(maxCount)
-  veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:setQRAmaxCount(%s)", veaf.p(self.name), veaf.p(maxCount))
+  veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:setQRAmaxCount(%s)", veaf.lp(self.name), veaf.lp(maxCount))
   if maxCount and type(maxCount) == "number" and maxCount >= -1 then
     self.QRAmaxCount = maxCount
   end
@@ -457,7 +457,7 @@ function VeafQRA:setQRAmaxCount(maxCount)
 end
 
 function VeafQRA:setQRAresupplyDelay(resupplyDelay)
-  veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:setQRAresupplyDelay(%s)", veaf.p(self.name), veaf.p(resupplyDelay))
+  veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:setQRAresupplyDelay(%s)", veaf.lp(self.name), veaf.lp(resupplyDelay))
   if resupplyDelay and type(resupplyDelay) == "number" and resupplyDelay >= 0 then
     self.delayBeforeQRAresupply = resupplyDelay
   end
@@ -465,7 +465,7 @@ function VeafQRA:setQRAresupplyDelay(resupplyDelay)
 end
 
 function VeafQRA:setQRAmaxResupplyCount(maxResupplyCount)
-  veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:setQRAmaxResupplyCount(%s)", veaf.p(self.name), veaf.p(maxResupplyCount))
+  veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:setQRAmaxResupplyCount(%s)", veaf.lp(self.name), veaf.lp(maxResupplyCount))
   if maxResupplyCount and type(maxResupplyCount) == "number" and maxResupplyCount >= -1 then
     self.QRAresupplyMax = maxResupplyCount
   end
@@ -473,7 +473,7 @@ function VeafQRA:setQRAmaxResupplyCount(maxResupplyCount)
 end
 
 function VeafQRA:setQRAminCountforResupply(minCountforResupply)
-  veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:setQRAminCountforResupply(%s)", veaf.p(self.name), veaf.p(minCountforResupply))
+  veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:setQRAminCountforResupply(%s)", veaf.lp(self.name), veaf.lp(minCountforResupply))
   if minCountforResupply and type(minCountforResupply) == "number" and minCountforResupply >= -1 and minCountforResupply ~= 0 then
     self.QRAminCountforResupply = minCountforResupply
   end
@@ -481,7 +481,7 @@ function VeafQRA:setQRAminCountforResupply(minCountforResupply)
 end
 
 function VeafQRA:setResupplyAmount(resupplyAmount)
-  veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:setResupplyAmount(%s)", veaf.p(self.name), veaf.p(resupplyAmount))
+  veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:setResupplyAmount(%s)", veaf.lp(self.name), veaf.lp(resupplyAmount))
   if resupplyAmount and type(resupplyAmount) == "number" and resupplyAmount >= 1 then
     self.resupplyAmount = resupplyAmount
   end
@@ -489,7 +489,7 @@ function VeafQRA:setResupplyAmount(resupplyAmount)
 end
 
 function VeafQRA:setAirportLink(airport_name)
-  veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:setAirportLink(%s)", veaf.p(self.name), veaf.p(airport_name))
+  veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:setAirportLink(%s)", veaf.lp(self.name), veaf.lp(airport_name))
   if airport_name and type(airport_name) == "string" and Airbase.getByName(airport_name) then
     self.airportLink = airport_name
   end
@@ -497,7 +497,7 @@ function VeafQRA:setAirportLink(airport_name)
 end
 
 function VeafQRA:setAirportMinLifePercent(value)
-  veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:setAirportMinLifePercent(%s)", veaf.p(self.name), veaf.p(value))
+  veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:setAirportMinLifePercent(%s)", veaf.lp(self.name), veaf.lp(value))
   if value and value >= 0 and value <= 1 then
     self.airportMinLifePercent = value
   end
@@ -505,7 +505,7 @@ function VeafQRA:setAirportMinLifePercent(value)
 end
 
 function VeafQRA:setReactOnHelicopters()
-  veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:setReactOnHelicopters()", veaf.p(self.name))
+  veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:setReactOnHelicopters()", veaf.lp(self.name))
   self.reactOnHelicopters = true
   return self
 end
@@ -517,13 +517,18 @@ end
 function VeafQRA:setRespawnDefaultOffset(defaultOffsetLatitude, defaultOffsetLongitude)
   veaf.loggers
     .get(veafQraManager.Id)
-    :debug("VeafQRA[%s]:setRespawnDefaultOffset(%s, %s)", veaf.p(self.name), veaf.p(defaultOffsetLatitude), veaf.p(defaultOffsetLongitude))
+    :debug(
+      "VeafQRA[%s]:setRespawnDefaultOffset(%s, %s)",
+      veaf.lp(self.name),
+      veaf.lp(defaultOffsetLatitude),
+      veaf.lp(defaultOffsetLongitude)
+    )
   self.respawnDefaultOffset = { latDelta = defaultOffsetLatitude, lonDelta = defaultOffsetLongitude }
   return self
 end
 
 function VeafQRA:setRespawnRadius(value)
-  veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:setRespawnRadius(%s)", veaf.p(self.name), veaf.p(value))
+  veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:setRespawnRadius(%s)", veaf.lp(self.name), veaf.lp(value))
   self.respawnRadius = value
   if self.respawnRadius < 250 then
     self.respawnRadius = 250
@@ -532,31 +537,31 @@ function VeafQRA:setRespawnRadius(value)
 end
 
 function VeafQRA:setDelayBeforeRearming(value)
-  veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:setDelayBeforeRearming(%s)", veaf.p(self.name), veaf.p(value))
+  veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:setDelayBeforeRearming(%s)", veaf.lp(self.name), veaf.lp(value))
   self.delayBeforeRearming = value
   return self
 end
 
 function VeafQRA:setNoNeedToLeaveZoneBeforeRearming()
-  veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:setNoNeedToLeaveZoneBeforeRearming()", veaf.p(self.name))
+  veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:setNoNeedToLeaveZoneBeforeRearming()", veaf.lp(self.name))
   self.noNeedToLeaveZoneBeforeRearming = true
   return self
 end
 
 function VeafQRA:setResetWhenLeavingZone()
-  veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:setResetWhenLeavingZone()", veaf.p(self.name))
+  veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:setResetWhenLeavingZone()", veaf.lp(self.name))
   self.resetWhenLeavingZone = true
   return self
 end
 
 function VeafQRA:setDelayBeforeActivating(value)
-  veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:setDelayBeforeActivating(%s)", veaf.p(self.name), veaf.p(value))
+  veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:setDelayBeforeActivating(%s)", veaf.lp(self.name), veaf.lp(value))
   self.delayBeforeActivating = value
   return self
 end
 
 function VeafQRA:setMinimumAltitudeInFeet(value)
-  veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:setMinimumAltitudeInFeet(%s)", veaf.p(self.name), veaf.p(value))
+  veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:setMinimumAltitudeInFeet(%s)", veaf.lp(self.name), veaf.lp(value))
   self.minimumAltitude = value * 0.3048 -- convert from feet
   return self
 end
@@ -566,7 +571,7 @@ function VeafQRA:getMinimumAltitudeInMeters()
 end
 
 function VeafQRA:setMaximumAltitudeInFeet(value)
-  veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:setMaximumAltitudeInFeet(%s)", veaf.p(self.name), veaf.p(value))
+  veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:setMaximumAltitudeInFeet(%s)", veaf.lp(self.name), veaf.lp(value))
   self.maximumAltitude = value * 0.3048 -- convert from feet
   return self
 end
@@ -620,7 +625,7 @@ end
 
 function VeafQRA:_getEnemyHumanUnits()
   if not self._enemyHumanUnits then
-    veaf.loggers.get(veafQraManager.Id):trace("VeafQRA[%s]:_getEnemyHumanUnits() - computing", veaf.p(self.name))
+    veaf.loggers.get(veafQraManager.Id):trace("VeafQRA[%s]:_getEnemyHumanUnits() - computing", veaf.lp(self.name))
     self._enemyHumanUnits = {}
     for _, unit in pairs(veaf.mist.getAllHumanUnitData()) do
       local coalitionId = 0
@@ -645,9 +650,9 @@ function VeafQRA:_getEnemyHumanUnits()
 end
 
 function VeafQRA:check()
-  veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:check()", veaf.p(self.name))
-  veaf.loggers.get(veafQraManager.Id):debug("self.state=%s", veaf.p(veafQraManager.statusToString(self.state)))
-  veaf.loggers.get(veafQraManager.Id):trace("timer.getTime()=%s", veaf.p(timer.getTime()))
+  veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:check()", veaf.lp(self.name))
+  veaf.loggers.get(veafQraManager.Id):debug("self.state=%s", veaf.lp(veafQraManager.statusToString(self.state)))
+  veaf.loggers.get(veafQraManager.Id):trace("timer.getTime()=%s", veaf.lp(timer.getTime()))
 
   --scheduled state application is attempted regardless of airportlink checks etc. to take into account user requested states which go through scheduled_states as well
   --Stop scheduled is checked before even running the check function as it has the highest priority
@@ -656,7 +661,7 @@ function VeafQRA:check()
   if self.state ~= veafQraManager.STATUS_STOP then
     --if the QRA is linked to an airbase. Airport is checked before even trying to deploy a group and check warehousing which has a lower priority
     if self.airportLink then
-      veaf.loggers.get(veafQraManager.Id):trace("Checking Airport link : %s", veaf.p(self.airportLink))
+      veaf.loggers.get(veafQraManager.Id):trace("Checking Airport link : %s", veaf.lp(self.airportLink))
       self:checkAirport()
       self:applyScheduledState()
     end
@@ -665,7 +670,7 @@ function VeafQRA:check()
       --if warehousing is activated. Warehousing is checked before even trying to deploy a group
       if self.QRAcount ~= -1 then
         veaf.loggers.get(veafQraManager.Id):trace("Checking Warehousing...")
-        veaf.loggers.get(veafQraManager.Id):trace("QRACount : %s", veaf.p(self.QRAcount))
+        veaf.loggers.get(veafQraManager.Id):trace("QRACount : %s", veaf.lp(self.QRAcount))
         self:checkWarehousing()
         self:applyScheduledState()
       end
@@ -769,8 +774,8 @@ function VeafQRA:check()
               end
               qraAlive = qraAlive or groupAtLeastOneUnitAlive
               qraInAir = qraInAir or groupAtLeastOneUnitInAir
-              veaf.loggers.get(veafQraManager.Id):trace("qraAlive=%s", veaf.p(qraAlive))
-              veaf.loggers.get(veafQraManager.Id):trace("qraInAir=%s", veaf.p(qraInAir))
+              veaf.loggers.get(veafQraManager.Id):trace("qraAlive=%s", veaf.lp(qraAlive))
+              veaf.loggers.get(veafQraManager.Id):trace("qraInAir=%s", veaf.lp(qraInAir))
             end
           end
           if not qraAlive then
@@ -790,7 +795,7 @@ end
 
 function VeafQRA:setScheduledState(scheduledState)
   --priority level 1
-  veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:setScheduledState(%s)", veaf.p(self.name), veaf.p(scheduledState))
+  veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:setScheduledState(%s)", veaf.lp(self.name), veaf.lp(scheduledState))
   if scheduledState == veafQraManager.STATUS_STOP then
     self.scheduled_state = veafQraManager.STATUS_STOP
     veaf.loggers.get(veafQraManager.Id):debug("QRA STOP scheduled")
@@ -812,7 +817,7 @@ end
 
 function VeafQRA:applyScheduledState()
   if self.scheduled_state and self.state ~= veafQraManager.STATUS_ACTIVE then
-    veaf.loggers.get(veafQraManager.Id):debug("QRA taking scheduled status : %s", veaf.p(self.scheduled_state))
+    veaf.loggers.get(veafQraManager.Id):debug("QRA taking scheduled status : %s", veaf.lp(self.scheduled_state))
     self.state = self.scheduled_state
   end
 end
@@ -824,7 +829,7 @@ function VeafQRA:checkAirport()
     airport_life_percent = veaf.getAirbaseLife(self.airportLink, true)
   end
 
-  veaf.loggers.get(veafQraManager.Id):trace("VeafQRA[%s] is linked to airbase %s", veaf.p(self.name), veaf.p(self.airportLink))
+  veaf.loggers.get(veafQraManager.Id):trace("VeafQRA[%s] is linked to airbase %s", veaf.lp(self.name), veaf.lp(self.airportLink))
 
   if not QRA_airportObject or airport_life_percent < self.airportMinLifePercent then
     veaf.loggers.get(veafQraManager.Id):trace("QRA lost it's airbase")
@@ -840,7 +845,7 @@ function VeafQRA:checkAirport()
     end
     self.noAB_announced = true
   elseif self.state == veafQraManager.STATUS_NOAIRBASE then
-    veaf.loggers.get(veafQraManager.Id):trace("QRA has it's airbase %s", veaf.p(QRA_airportObject:getName()))
+    veaf.loggers.get(veafQraManager.Id):trace("QRA has it's airbase %s", veaf.lp(QRA_airportObject:getName()))
     if not self.silent then
       local msg = string.format(self.messageAirbaseUp, self:getDescription())
       for coalition, _ in pairs(self.enemyCoalitions) do
@@ -875,7 +880,7 @@ end
 --isResupplying = false
 
 function VeafQRA:checkWarehousing()
-  veaf.loggers.get(veafQraManager.Id):trace("VeafQRA[%s] resupply state is %s", veaf.p(self.name), veaf.p(self.isResupplying))
+  veaf.loggers.get(veafQraManager.Id):trace("VeafQRA[%s] resupply state is %s", veaf.lp(self.name), veaf.lp(self.isResupplying))
 
   --if a resupply is not already on the way and if there are aircrafts in stock and if the available aircraft count is below the threshold or if an aircraft was just lost and the resupply mode indicates to resupply whenever an aircraft is lost
   if
@@ -887,31 +892,31 @@ function VeafQRA:checkWarehousing()
         and self.QRAminCountforResupply == -1
     )
   then
-    veaf.loggers.get(veafQraManager.Id):trace("QRA has %s/%s aircraft groups available", veaf.p(self.QRAcount), veaf.p(self.QRAmaxCount))
+    veaf.loggers.get(veafQraManager.Id):trace("QRA has %s/%s aircraft groups available", veaf.lp(self.QRAcount), veaf.lp(self.QRAmaxCount))
     veaf.loggers
       .get(veafQraManager.Id)
-      :trace("QRA has %s aircraft groups ready for resupply (-1 for infinite)", veaf.p(self.QRAresupplyMax))
-    veaf.loggers.get(veafQraManager.Id):trace("QRA resupply asks for %s aircraft groups", veaf.p(self.resupplyAmount))
+      :trace("QRA has %s aircraft groups ready for resupply (-1 for infinite)", veaf.lp(self.QRAresupplyMax))
+    veaf.loggers.get(veafQraManager.Id):trace("QRA resupply asks for %s aircraft groups", veaf.lp(self.resupplyAmount))
     local resupplyAmount = self.resupplyAmount
     --take into account the maximum number of QRA groups as to not oversupply it
     if self.QRAmaxCount ~= -1 and resupplyAmount > self.QRAmaxCount - self.QRAcount then
       resupplyAmount = self.QRAmaxCount - self.QRAcount
       veaf.loggers
         .get(veafQraManager.Id)
-        :trace("There are only %s available aircraft group slots for this QRA", veaf.p(self.QRAmaxCount - self.QRAcount))
+        :trace("There are only %s available aircraft group slots for this QRA", veaf.lp(self.QRAmaxCount - self.QRAcount))
     end
 
     --take into account the maximum number of QRA groups that can be supplied by the stock
     if self.QRAresupplyMax ~= -1 and resupplyAmount > self.QRAresupplyMax then
       resupplyAmount = self.QRAresupplyMax
-      veaf.loggers.get(veafQraManager.Id):trace("QRA can only be resupplied by %s aircraft groups", veaf.p(self.QRAresupplyMax))
+      veaf.loggers.get(veafQraManager.Id):trace("QRA can only be resupplied by %s aircraft groups", veaf.lp(self.QRAresupplyMax))
     end
 
-    veaf.loggers.get(veafQraManager.Id):trace("%s aircraft groups will be handled for resupply", veaf.p(resupplyAmount))
+    veaf.loggers.get(veafQraManager.Id):trace("%s aircraft groups will be handled for resupply", veaf.lp(resupplyAmount))
     if resupplyAmount > 0 then
       self.isResupplying = true
       if self.delayBeforeQRAresupply > 0 then
-        veaf.loggers.get(veafQraManager.Id):trace("QRA will be resupplied in %s seconds", veaf.p(self.delayBeforeQRAresupply))
+        veaf.loggers.get(veafQraManager.Id):trace("QRA will be resupplied in %s seconds", veaf.lp(self.delayBeforeQRAresupply))
         mist.scheduleFunction(VeafQRA.resupply, { self, resupplyAmount }, timer.getTime() + self.delayBeforeQRAresupply)
       else
         veaf.loggers.get(veafQraManager.Id):trace("QRA is being resupplied...")
@@ -938,18 +943,18 @@ function VeafQRA:checkWarehousing()
 end
 
 function VeafQRA:resupply(resupplyAmount)
-  veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:resupply(%s)", veaf.p(self.name), veaf.p(resupplyAmount))
+  veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:resupply(%s)", veaf.lp(self.name), veaf.lp(resupplyAmount))
 
   --if the QRA can still operate, then execute the resupply, the list would need to be expanded if new scheduled status blocking operations were added
   if self.scheduled_state ~= veafQraManager.STATUS_NOAIRBASE and self.scheduled_state ~= veafQraManager.STATUS_STOP then
     if resupplyAmount and type(resupplyAmount) == "number" and resupplyAmount > 0 then
-      veaf.loggers.get(veafQraManager.Id):trace("QRA is going to be resupplied, old count is : %s", veaf.p(self.QRAcount))
+      veaf.loggers.get(veafQraManager.Id):trace("QRA is going to be resupplied, old count is : %s", veaf.lp(self.QRAcount))
       self.QRAcount = self.QRAcount + resupplyAmount
-      veaf.loggers.get(veafQraManager.Id):trace("QRA was resupplied, new count is : %s", veaf.p(self.QRAcount))
+      veaf.loggers.get(veafQraManager.Id):trace("QRA was resupplied, new count is : %s", veaf.lp(self.QRAcount))
 
       veaf.loggers
         .get(veafQraManager.Id)
-        :trace("QRA previously had %s aircraft groups ready for resupply (-1 for infinite)", veaf.p(self.QRAresupplyMax))
+        :trace("QRA previously had %s aircraft groups ready for resupply (-1 for infinite)", veaf.lp(self.QRAresupplyMax))
       if self.QRAresupplyMax ~= -1 then
         self.QRAresupplyMax = self.QRAresupplyMax - resupplyAmount
         if self.QRAresupplyMax < 0 then
@@ -958,7 +963,7 @@ function VeafQRA:resupply(resupplyAmount)
       end
       veaf.loggers
         .get(veafQraManager.Id)
-        :trace("QRA now only has %s aircraft groups ready for resupply (-1 for infinite)", veaf.p(self.QRAresupplyMax))
+        :trace("QRA now only has %s aircraft groups ready for resupply (-1 for infinite)", veaf.lp(self.QRAresupplyMax))
 
       if self.state == veafQraManager.STATUS_OUT then
         veaf.loggers.get(veafQraManager.Id):trace("QRA now has at least one aircraft group ready for action, resuming service...")
@@ -987,7 +992,7 @@ function VeafQRA:resupply(resupplyAmount)
 end
 
 function VeafQRA:chooseGroupsToDeploy(nbUnitsInZone)
-  veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:chooseGroupsToDeploy(%s)", veaf.p(self.name), veaf.p(nbUnitsInZone))
+  veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:chooseGroupsToDeploy(%s)", veaf.lp(self.name), veaf.lp(nbUnitsInZone))
   local biggestNumberLowerThanUnitsInZone = -1
   local groupsToDeploy = nil
   for enemyNb, groups in pairs(self.groupsToDeployByEnemyQuantity) do
@@ -1012,7 +1017,7 @@ function VeafQRA:chooseGroupsToDeploy(nbUnitsInZone)
       local result = {}
       for _ = 1, numberOfGroups do
         local group = veaf.randomlyChooseFrom(groupsToChooseFrom, bias)
-        veaf.loggers.get(veafQraManager.Id):trace("group=%s", veaf.p(group))
+        veaf.loggers.get(veafQraManager.Id):trace("group=%s", veaf.lp(group))
         table.insert(result, group)
       end
       groupsToDeploy = result
@@ -1022,10 +1027,10 @@ function VeafQRA:chooseGroupsToDeploy(nbUnitsInZone)
 end
 
 function VeafQRA:deploy(nbUnitsInZone)
-  veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:deploy()", veaf.p(self.name))
-  veaf.loggers.get(veafQraManager.Id):trace("nbUnitsInZone=[%s]", veaf.p(nbUnitsInZone))
+  veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:deploy()", veaf.lp(self.name))
+  veaf.loggers.get(veafQraManager.Id):trace("nbUnitsInZone=[%s]", veaf.lp(nbUnitsInZone))
   if self.minimumNbEnemyPlanes ~= -1 and self.minimumNbEnemyPlanes > nbUnitsInZone then
-    veaf.loggers.get(veafQraManager.Id):trace("not enough enemies in zone, min=%s", veaf.p(self.minimumNbEnemyPlanes))
+    veaf.loggers.get(veafQraManager.Id):trace("not enough enemies in zone, min=%s", veaf.lp(self.minimumNbEnemyPlanes))
     return
   end
 
@@ -1058,15 +1063,15 @@ function VeafQRA:deploy(nbUnitsInZone)
           -- extract relative coordinates and the actual command
           local coords
           coords, command = groupNameOrCommand:match("%[(.*)%](.*)")
-          veaf.loggers.get(veafQraManager.Id):trace("coords=%s", veaf.p(coords))
-          veaf.loggers.get(veafQraManager.Id):trace("command=%s", veaf.p(command))
+          veaf.loggers.get(veafQraManager.Id):trace("coords=%s", veaf.lp(coords))
+          veaf.loggers.get(veafQraManager.Id):trace("command=%s", veaf.lp(command))
           if coords then
             latDelta, lonDelta = coords:match("([%+-%d]+),%s*([%+-%d]+)")
           end
         end
-        veaf.loggers.get(veafQraManager.Id):debug("running command [%s]", veaf.p(command))
-        veaf.loggers.get(veafQraManager.Id):trace("latDelta = [%s]", veaf.p(latDelta))
-        veaf.loggers.get(veafQraManager.Id):trace("lonDelta = [%s]", veaf.p(lonDelta))
+        veaf.loggers.get(veafQraManager.Id):debug("running command [%s]", veaf.lp(command))
+        veaf.loggers.get(veafQraManager.Id):trace("latDelta = [%s]", veaf.lp(latDelta))
+        veaf.loggers.get(veafQraManager.Id):trace("lonDelta = [%s]", veaf.lp(lonDelta))
         local position = { x = zoneCenter.x - lonDelta, y = zoneCenter.y, z = zoneCenter.z + latDelta }
         local randomPosition = mist.getRandPointInCircle(position, self.respawnRadius)
         local spawnedGroupsNames = {}
@@ -1077,13 +1082,13 @@ function VeafQRA:deploy(nbUnitsInZone)
       else
         -- this is a DCS group
         local groupName = groupNameOrCommand
-        veaf.loggers.get(veafQraManager.Id):debug("spawning group [%s]", veaf.p(groupName))
+        veaf.loggers.get(veafQraManager.Id):debug("spawning group [%s]", veaf.lp(groupName))
         local group = Group.getByName(groupName)
         if not group then
           veaf.loggers.get(veafQraManager.Id):error("group [%s] does not exist in the mission!", veaf.p(groupName))
         else
-          veaf.loggers.get(veafQraManager.Id):debug("group=%s", veaf.p(group))
-          veaf.loggers.get(veafQraManager.Id):debug("group:getUnits()=%s", veaf.p(group:getUnits()))
+          veaf.loggers.get(veafQraManager.Id):debug("group=%s", veaf.lp(group))
+          veaf.loggers.get(veafQraManager.Id):debug("group:getUnits()=%s", veaf.lp(group:getUnits()))
           local spawnSpot = {
             x = zoneCenter.x - self.respawnDefaultOffset.lonDelta,
             y = zoneCenter.y,
@@ -1111,7 +1116,7 @@ function VeafQRA:deploy(nbUnitsInZone)
         end
       end
     end
-    veaf.loggers.get(veafQraManager.Id):trace("self.spawnedGroups=%s", veaf.p(self.spawnedGroupsNames))
+    veaf.loggers.get(veafQraManager.Id):trace("self.spawnedGroups=%s", veaf.lp(self.spawnedGroupsNames))
     self.state = veafQraManager.STATUS_ACTIVE
   end
   if self.onDeploy then
@@ -1120,7 +1125,7 @@ function VeafQRA:deploy(nbUnitsInZone)
 end
 
 function VeafQRA:destroyed()
-  veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:destroyed()", veaf.p(self.name))
+  veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:destroyed()", veaf.lp(self.name))
   if not self.silent then
     local msg = string.format(self.messageDestroyed, self:getDescription())
     for coalition, _ in pairs(self.enemyCoalitions) do
@@ -1139,7 +1144,7 @@ function VeafQRA:destroyed()
 end
 
 function VeafQRA:rearm(silent)
-  veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:rearm()", veaf.p(self.name))
+  veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:rearm()", veaf.lp(self.name))
   if not self.silent and not silent then
     local msg = string.format(self.messageReady, self:getDescription())
     for coalition, _ in pairs(self.enemyCoalitions) do
@@ -1161,7 +1166,7 @@ function VeafQRA:rearm(silent)
 end
 
 function VeafQRA:start()
-  veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:start()", veaf.p(self.name))
+  veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:start()", veaf.lp(self.name))
   self.scheduled_state = nil --make sure you reset the scheduled state if you are within the bounds of this method
   self:rearm()
   self:check()
@@ -1197,7 +1202,7 @@ function VeafQRA:start()
 end
 
 function VeafQRA:stop(silent)
-  veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:stop()", veaf.p(self.name))
+  veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:stop()", veaf.lp(self.name))
   self:setScheduledState(veafQraManager.STATUS_STOP)
 
   -- just in case, despawn the spawned groups

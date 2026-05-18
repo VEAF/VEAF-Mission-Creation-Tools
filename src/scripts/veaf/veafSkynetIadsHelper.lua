@@ -230,15 +230,15 @@ end
 
 -- calling SkynetIADS:activate() after a delay, to avoid calling it at each time a group is added to the IADS
 function veafSkynet.delayedActivate(networkName)
-  veaf.loggers.get(veafSkynet.Id):debug("veafSkynet.delayedActivate(%s)", veaf.p(networkName))
+  veaf.loggers.get(veafSkynet.Id):debug("veafSkynet.delayedActivate(%s)", veaf.lp(networkName))
   local network = veafSkynet.structure[networkName]
   if network then
     if network.delayedActivation then
-      veaf.loggers.get(veafSkynet.Id):trace(string.format("IADS %s already has a delayed activation", veaf.p(networkName)))
+      veaf.loggers.get(veafSkynet.Id):trace(string.format("IADS %s already has a delayed activation", veaf.lp(networkName)))
     else
       veaf.loggers
         .get(veafSkynet.Id)
-        :trace(string.format("IADS %s will be activated in %d seconds", veaf.p(networkName), veafSkynet.DelayForRestart))
+        :trace(string.format("IADS %s will be activated in %d seconds", veaf.lp(networkName), veafSkynet.DelayForRestart))
       network.delayedActivation =
         mist.scheduleFunction(veafSkynet._activateIADS, { networkName }, timer.getTime() + veafSkynet.DelayForRestart)
     end
@@ -246,7 +246,7 @@ function veafSkynet.delayedActivate(networkName)
 end
 
 function veafSkynet._activateIADS(networkName)
-  veaf.loggers.get(veafSkynet.Id):debug("veafSkynet._activateIADS(%s)", veaf.p(networkName))
+  veaf.loggers.get(veafSkynet.Id):debug("veafSkynet._activateIADS(%s)", veaf.lp(networkName))
 
   local network = veafSkynet.structure[networkName]
   if network then
@@ -274,7 +274,7 @@ function veafSkynet.getNearestIADSSite(networkName, dcsGroup)
   end
 
   local coa = dcsGroup:getCoalition()
-  veaf.loggers.get(veafSkynet.Id):trace(string.format("Ref coalition : %s", veaf.p(coa)))
+  veaf.loggers.get(veafSkynet.Id):trace(string.format("Ref coalition : %s", veaf.lp(coa)))
 
   local iads = veafSkynet.getIadsOfCoalition(networkName, coa)
   if not iads then
@@ -285,9 +285,9 @@ function veafSkynet.getNearestIADSSite(networkName, dcsGroup)
   end
 
   local currentGroup = dcsGroup:getName()
-  veaf.loggers.get(veafSkynet.Id):trace(string.format("networkName : %s", veaf.p(networkName)))
+  veaf.loggers.get(veafSkynet.Id):trace(string.format("networkName : %s", veaf.lp(networkName)))
   local groupPos = veaf.getAveragePosition(dcsGroup)
-  veaf.loggers.get(veafSkynet.Id):debug(string.format("Ref Position : %s", veaf.p(groupPos)))
+  veaf.loggers.get(veafSkynet.Id):debug(string.format("Ref Position : %s", veaf.lp(groupPos)))
 
   local nearestEWRname = nil
   local minEWRDistance = veafSkynet.MaxPointDefenseDistanceFromSite
@@ -302,7 +302,9 @@ function veafSkynet.getNearestIADSSite(networkName, dcsGroup)
 
     for site, site_info in pairs(CoalitionSites) do
       local site_name = site_info.dcsName -- For EWRs it looks like this gives the unit's name which would need to be reversed to the group to get position data
-      veaf.loggers.get(veafSkynet.Id):trace(string.format("Checked Site groupName : %s and isEWR : %s", veaf.p(site_name), veaf.p(ewrFlag)))
+      veaf.loggers
+        .get(veafSkynet.Id)
+        :trace(string.format("Checked Site groupName : %s and isEWR : %s", veaf.lp(site_name), veaf.lp(ewrFlag)))
 
       if site_name and currentGroupName ~= site_name then
         if ewrFlag then
@@ -310,14 +312,14 @@ function veafSkynet.getNearestIADSSite(networkName, dcsGroup)
           local group = Unit.getGroup(unit)
           site_name = Group.getName(group)
         end
-        veaf.loggers.get(veafSkynet.Id):trace(string.format("Checked Site groupName : %s", veaf.p(site_name)))
+        veaf.loggers.get(veafSkynet.Id):trace(string.format("Checked Site groupName : %s", veaf.lp(site_name)))
 
         local groupAvgPosition = veaf.getAveragePosition(site_name)
-        veaf.loggers.get(veafSkynet.Id):debug(string.format("Checked Site groupAvgPosition : %s", veaf.p(groupAvgPosition)))
+        veaf.loggers.get(veafSkynet.Id):debug(string.format("Checked Site groupAvgPosition : %s", veaf.lp(groupAvgPosition)))
 
         if groupAvgPosition then
           local distance = math.sqrt((pos.x - groupAvgPosition.x) ^ 2 + (pos.z - groupAvgPosition.z) ^ 2)
-          veaf.loggers.get(veafSkynet.Id):trace(string.format("Distance between checked site and pointDefense : %s", veaf.p(distance)))
+          veaf.loggers.get(veafSkynet.Id):trace(string.format("Distance between checked site and pointDefense : %s", veaf.lp(distance)))
 
           if distance <= minDistance then
             veaf.loggers.get(veafSkynet.Id):trace("This site is closer")
@@ -602,7 +604,7 @@ function veafSkynet.addGroupToNetwork(networkName, dcsGroup, forceEwr, pointDefe
   if not iads then
     veaf.loggers
       .get(veafSkynet.Id)
-      :debug(string.format("IADS named %s for the coalition of the group %s does not exist", veaf.p(networkName), tostring(groupName)))
+      :debug(string.format("IADS named %s for the coalition of the group %s does not exist", veaf.lp(networkName), tostring(groupName)))
     return false
   end
   local didSomething = false
@@ -632,7 +634,7 @@ function veafSkynet.addGroupToNetwork(networkName, dcsGroup, forceEwr, pointDefe
         local defended_pos = veaf.getAvgGroupPos(defended_name)
         local dcsGroup_pos = veaf.getAvgGroupPos(groupName)
         local distance = math.sqrt((dcsGroup_pos.x - defended_pos.x) ^ 2 + (dcsGroup_pos.z - defended_pos.z) ^ 2)
-        veaf.loggers.get(veafSkynet.Id):trace(string.format("Distance between requested site and pointDefense : %s", veaf.p(distance)))
+        veaf.loggers.get(veafSkynet.Id):trace(string.format("Distance between requested site and pointDefense : %s", veaf.lp(distance)))
 
         if distance > veafSkynet.MaxPointDefenseDistanceFromSite then
           defended_name = nil
@@ -785,7 +787,9 @@ end
 local function initializeIADS(networkName, coa, inRadio, debug)
   local iads = veafSkynet.getIadsOfCoalition(networkName, coa)
   if not iads then
-    veaf.loggers.get(veafSkynet.Id):trace(string.format("IADS named %s for coalition %s does not exist", veaf.p(networkName), veaf.p(coa)))
+    veaf.loggers
+      .get(veafSkynet.Id)
+      :trace(string.format("IADS named %s for coalition %s does not exist", veaf.lp(networkName), veaf.lp(coa)))
     return false
   end
   veaf.loggers.get(veafSkynet.Id):trace(string.format("initializeIADS %s", tostring(iads:getCoalitionString())))
@@ -874,10 +878,10 @@ local function createNetwork(networkName, coa, loadUnits, UserAdd)
     veaf.loggers.get(veafSkynet.Id):error("Coalition specified is of invalid format")
     return false
   end
-  veaf.loggers.get(veafSkynet.Id):trace("networkName= %s", veaf.p(networkName))
-  veaf.loggers.get(veafSkynet.Id):trace("CoalitionID= %s", veaf.p(coa))
-  veaf.loggers.get(veafSkynet.Id):trace("loadUnits= %s", veaf.p(loadUnits))
-  veaf.loggers.get(veafSkynet.Id):trace("UserAdd= %s", veaf.p(UserAdd))
+  veaf.loggers.get(veafSkynet.Id):trace("networkName= %s", veaf.lp(networkName))
+  veaf.loggers.get(veafSkynet.Id):trace("CoalitionID= %s", veaf.lp(coa))
+  veaf.loggers.get(veafSkynet.Id):trace("loadUnits= %s", veaf.lp(loadUnits))
+  veaf.loggers.get(veafSkynet.Id):trace("UserAdd= %s", veaf.lp(UserAdd))
 
   if networkName and coa then
     if (UserAdd and not veafSkynet.structure[networkName]) or not UserAdd then
@@ -904,17 +908,17 @@ local function createNetwork(networkName, coa, loadUnits, UserAdd)
         veafSkynet.structure[networkName].iads = iads
 
         if veaf.loggers.get(veafSkynet.Id):wouldLogTrace() then
-          veaf.loggers.get(veafSkynet.Id):trace("Stored structure for network named %s :", veaf.p(networkName))
+          veaf.loggers.get(veafSkynet.Id):trace("Stored structure for network named %s :", veaf.lp(networkName))
           for index, _ in pairs(veafSkynet.structure[networkName]) do
-            veaf.loggers.get(veafSkynet.Id):trace("-> %s", veaf.p(index))
+            veaf.loggers.get(veafSkynet.Id):trace("-> %s", veaf.lp(index))
           end
-          veaf.loggers.get(veafSkynet.Id):trace("Stored IADS structure for network named %s :", veaf.p(networkName))
+          veaf.loggers.get(veafSkynet.Id):trace("Stored IADS structure for network named %s :", veaf.lp(networkName))
           for index, _ in pairs(veafSkynet.structure[networkName].iads) do
-            veaf.loggers.get(veafSkynet.Id):trace("-> %s", veaf.p(index))
+            veaf.loggers.get(veafSkynet.Id):trace("-> %s", veaf.lp(index))
           end
-          veaf.loggers.get(veafSkynet.Id):trace("CoalitionID for network named %s :", veaf.p(networkName))
-          veaf.loggers.get(veafSkynet.Id):trace("-> %s", veaf.p(veafSkynet.structure[networkName].iads.coalitionID))
-          veaf.loggers.get(veafSkynet.Id):trace("-> %s", veaf.p(veafSkynet.structure[networkName].iads:getCoalitionString()))
+          veaf.loggers.get(veafSkynet.Id):trace("CoalitionID for network named %s :", veaf.lp(networkName))
+          veaf.loggers.get(veafSkynet.Id):trace("-> %s", veaf.lp(veafSkynet.structure[networkName].iads.coalitionID))
+          veaf.loggers.get(veafSkynet.Id):trace("-> %s", veaf.lp(veafSkynet.structure[networkName].iads:getCoalitionString()))
         end
 
         if loadUnits then
@@ -939,7 +943,7 @@ function veafSkynet.reinitializeNetwork(networkName)
   if networkName and veafSkynet.structure[networkName] then
     local networkStructure = veafSkynet.structure[networkName]
     if networkStructure.iads then
-      veaf.loggers.get(veafSkynet.Id):trace("Stored structure for network named %s has IADS, deactivating", veaf.p(networkName))
+      veaf.loggers.get(veafSkynet.Id):trace("Stored structure for network named %s has IADS, deactivating", veaf.lp(networkName))
       if networkStructure.includeInRadio then
         veaf.loggers.get(veafSkynet.Id):trace("Removing radio menu...")
         networkStructure.iads:removeRadioMenu()
@@ -978,10 +982,10 @@ function veafSkynet._initialize(includeRedInRadio, debugRed, includeBlueInRadio,
 
   veaf.loggers.get(veafSkynet.Id):info("Initializing module")
 
-  veaf.loggers.get(veafSkynet.Id):debug(string.format("includeRedInRadio=%s", veaf.p(includeRedInRadio)))
-  veaf.loggers.get(veafSkynet.Id):debug(string.format("debugRed=%s", veaf.p(debugRed)))
-  veaf.loggers.get(veafSkynet.Id):debug(string.format("includeBlueInRadio=%s", veaf.p(includeBlueInRadio)))
-  veaf.loggers.get(veafSkynet.Id):debug(string.format("debugBlue=%s", veaf.p(debugBlue)))
+  veaf.loggers.get(veafSkynet.Id):debug(string.format("includeRedInRadio=%s", veaf.lp(includeRedInRadio)))
+  veaf.loggers.get(veafSkynet.Id):debug(string.format("debugRed=%s", veaf.lp(debugRed)))
+  veaf.loggers.get(veafSkynet.Id):debug(string.format("includeBlueInRadio=%s", veaf.lp(includeBlueInRadio)))
+  veaf.loggers.get(veafSkynet.Id):debug(string.format("debugBlue=%s", veaf.lp(debugBlue)))
 
   -- prepare the list of units supported by Skynet IADS
   for _, groupData in pairs(SkynetIADS.database) do
@@ -997,14 +1001,14 @@ function veafSkynet._initialize(includeRedInRadio, debugRed, includeBlueInRadio,
       end
     end
   end
-  veaf.loggers.get(veafSkynet.Id):trace(string.format("veafSkynet.iadsSamUnitsTypes=%s", veaf.p(veafSkynet.iadsSamUnitsTypes)))
+  veaf.loggers.get(veafSkynet.Id):trace(string.format("veafSkynet.iadsSamUnitsTypes=%s", veaf.lp(veafSkynet.iadsSamUnitsTypes)))
 
   -- add EWR-capable units
   for _, unit in pairs(dcsUnits.DcsUnitsDatabase) do
     if unit then
-      veaf.loggers.get(veafSkynet.Id):trace(string.format("testing unit %s", veaf.p(unit.type)))
+      veaf.loggers.get(veafSkynet.Id):trace(string.format("testing unit %s", veaf.lp(unit.type)))
       if unit.attribute then
-        veaf.loggers.get(veafSkynet.Id):trace(string.format("unit.attribute = %s", veaf.p(unit.attribute)))
+        veaf.loggers.get(veafSkynet.Id):trace(string.format("unit.attribute = %s", veaf.lp(unit.attribute)))
         if unit.attribute["SAM SR"] then
           veafSkynet.iadsEwrUnitsTypes[unit.type] = true
           veaf.loggers.get(veafSkynet.Id):trace(string.format("-> EWR"))
@@ -1018,7 +1022,7 @@ function veafSkynet._initialize(includeRedInRadio, debugRed, includeBlueInRadio,
       end
     end
   end
-  veaf.loggers.get(veafSkynet.Id):trace(string.format("veafSkynet.iadsEwrUnitsTypes=%s", veaf.p(veafSkynet.iadsEwrUnitsTypes)))
+  veaf.loggers.get(veafSkynet.Id):trace(string.format("veafSkynet.iadsEwrUnitsTypes=%s", veaf.lp(veafSkynet.iadsEwrUnitsTypes)))
 
   veaf.loggers.get(veafSkynet.Id):info("Creating IADS for BLUE")
   createNetwork(veafSkynet.defaultIADS[tostring(coalition.side.BLUE)], coalition.side.BLUE, true)

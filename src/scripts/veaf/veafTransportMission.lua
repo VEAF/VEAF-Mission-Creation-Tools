@@ -344,12 +344,12 @@ end
 function veafTransportMission.generateTransportMission(targetSpot, size, defense, blocade, from)
   veaf.loggers.get(veafTransportMission.Id):debug(
     "generateTransportMission(size = %s, defense=%s, blocade=%d, from=%s)",
-    veaf.p(size),
-    veaf.p(defense),
-    veaf.p(blocade),
-    veaf.p(from)
+    veaf.lp(size),
+    veaf.lp(defense),
+    veaf.lp(blocade),
+    veaf.lp(from)
   )
-  veaf.loggers.get(veafTransportMission.Id):debug("generateTransportMission: targetSpot ", veaf.p(targetSpot))
+  veaf.loggers.get(veafTransportMission.Id):debug("generateTransportMission: targetSpot ", veaf.lp(targetSpot))
 
   if veafTransportMission.friendlyGroupAliveCheckTaskID ~= "none" then
     trigger.action.outText("A transport mission already exists !", 5)

@@ -44,7 +44,7 @@ function veafEventHandler.completeUnit(unit)
 end
 
 function veafEventHandler.completeUnitFromName(unitName)
-  veaf.loggers.get(veafEventHandler.Id):trace("veafEventHandler.completeUnitFromName(unitName=%s)", veaf.p(unitName))
+  veaf.loggers.get(veafEventHandler.Id):trace("veafEventHandler.completeUnitFromName(unitName=%s)", veaf.lp(unitName))
   if unitName ~= nil then
     local unitType = nil
     local unitLifePercent = nil
@@ -97,7 +97,7 @@ function veafEventHandler.completeUnitFromName(unitName)
     local unitPilotUcid = nil
     local unitPilot = veafRemote.getRemoteUserFromUnit(unitName)
     if unitPilot then
-      veaf.loggers.get(veafEventHandler.Id):trace("unitPilot=%s", veaf.p(unitPilot))
+      veaf.loggers.get(veafEventHandler.Id):trace("unitPilot=%s", veaf.lp(unitPilot))
       unitPilotName = unitPilot.name
       unitPilotUcid = unitPilot.ucid
     end
@@ -551,8 +551,8 @@ function veafEventHandler.eventHandler:onEvent(event)
 
   -- Debug output.
   if veaf.loggers.get(veafEventHandler.Id):wouldLogTrace() then
-    veaf.loggers.get(veafEventHandler.Id):trace("event = %s", veaf.p(event))
-    veaf.loggers.get(veafEventHandler.Id):trace("_event = %s", veaf.p(_event))
+    veaf.loggers.get(veafEventHandler.Id):trace("event = %s", veaf.lp(event))
+    veaf.loggers.get(veafEventHandler.Id):trace("_event = %s", veaf.lp(_event))
   end
 
   -- process event
@@ -570,10 +570,10 @@ function veafEventHandler.eventHandler:onEvent(event)
     end
     if callIt then
       if veafEventHandler.isEventDelayedCallback(_event.type.id) then
-        veaf.loggers.get(veafEventHandler.Id):debug("delayed callback %s", veaf.p(callback.name))
+        veaf.loggers.get(veafEventHandler.Id):debug("delayed callback %s", veaf.lp(callback.name))
         timer.scheduleFunction(callback.call, _event, timer.getTime() + veafEventHandler.CALLBACK_DELAY)
       else
-        veaf.loggers.get(veafEventHandler.Id):debug("calling callback %s", veaf.p(callback.name))
+        veaf.loggers.get(veafEventHandler.Id):debug("calling callback %s", veaf.lp(callback.name))
         callback.call(_event)
       end
     end

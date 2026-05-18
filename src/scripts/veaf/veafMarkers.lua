@@ -99,8 +99,8 @@ end
 --- Function executed when a marker event occurs.
 function veafMarkers.onEvent(event, eventHandlersTable)
   veaf.loggers.get(veafMarkers.Id):debug("veafMarkers.onEvent()")
-  veaf.loggers.get(veafMarkers.Id):trace("event=%s", veaf.p(event))
-  veaf.loggers.get(veafMarkers.Id):trace("eventHandlersTable=%s", veaf.p(eventHandlersTable))
+  veaf.loggers.get(veafMarkers.Id):trace("event=%s", veaf.lp(event))
+  veaf.loggers.get(veafMarkers.Id):trace("eventHandlersTable=%s", veaf.lp(eventHandlersTable))
   local vec3 = nil
 
   -- Check if marker has a text and the veafMarkers.keyphrase keyphrase.

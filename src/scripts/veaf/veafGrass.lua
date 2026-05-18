@@ -64,8 +64,8 @@ veafGrass.helicoptersOnFARPs = {
 ------------------------------------------------------------------------------
 function veafGrass.buildGrassRunway(grassRunwayUnit, hiddenOnMFD)
   veaf.loggers.get(veafGrass.Id):debug(string.format("veafGrass.buildGrassRunway()"))
-  veaf.loggers.get(veafGrass.Id):trace(string.format("grassRunwayUnit=%s", veaf.p(grassRunwayUnit)))
-  veaf.loggers.get(veafGrass.Id):trace(string.format("hiddenOnMFD=%s", veaf.p(hiddenOnMFD)))
+  veaf.loggers.get(veafGrass.Id):trace(string.format("grassRunwayUnit=%s", veaf.lp(grassRunwayUnit)))
+  veaf.loggers.get(veafGrass.Id):trace(string.format("hiddenOnMFD=%s", veaf.lp(hiddenOnMFD)))
 
   if not grassRunwayUnit then
     return nil
@@ -201,7 +201,7 @@ function veafGrass.buildFarpsUnits(hiddenOnMFD)
     --veaf.loggers.get(veafGrass.Id):trace("buildFarpsUnits: testing " .. unit.type .. " " .. name)
     if name:upper():find("GRASS_RUNWAY") then
       grassRunwayUnits[name] = unit
-      veaf.loggers.get(veafGrass.Id):trace(string.format("found grassRunwayUnits[%s]= %s", name, veaf.p(unit)))
+      veaf.loggers.get(veafGrass.Id):trace(string.format("found grassRunwayUnits[%s]= %s", name, veaf.lp(unit)))
     end
     --first two types should represent the same object depending on if you're on the MIST side or DCS side, as a safety added both
     if
@@ -214,11 +214,11 @@ function veafGrass.buildFarpsUnits(hiddenOnMFD)
       ) and name:upper():sub(1, 5) == "FARP "
     then
       farpUnits[name] = unit
-      veaf.loggers.get(veafGrass.Id):trace(string.format("found farpUnits[%s]= %s", name, veaf.p(unit)))
+      veaf.loggers.get(veafGrass.Id):trace(string.format("found farpUnits[%s]= %s", name, veaf.lp(unit)))
     end
   end
-  veaf.loggers.get(veafGrass.Id):trace(string.format("farpUnits=%s", veaf.p(farpUnits)))
-  veaf.loggers.get(veafGrass.Id):trace(string.format("grassRunwayUnits=%s", veaf.p(grassRunwayUnits)))
+  veaf.loggers.get(veafGrass.Id):trace(string.format("farpUnits=%s", veaf.lp(farpUnits)))
+  veaf.loggers.get(veafGrass.Id):trace(string.format("grassRunwayUnits=%s", veaf.lp(grassRunwayUnits)))
   for name, unit in pairs(farpUnits) do
     veaf.loggers.get(veafGrass.Id):trace(string.format("calling buildFarpsUnits(%s)", name))
     veafGrass.buildFarpUnits(unit, grassRunwayUnits, nil, hiddenOnMFD)
@@ -233,17 +233,17 @@ function veafGrass.fillAllFarpWarehouses()
   local bases = world.getAirbases()
   for _, base in pairs(bases) do
     local name = base:getName()
-    veaf.loggers.get(veafGrass.Id):trace("fillAllFarpWarehouse: testing %s", veaf.p(name))
+    veaf.loggers.get(veafGrass.Id):trace("fillAllFarpWarehouse: testing %s", veaf.lp(name))
     local status, typeName = pcall(base.getTypeName, base) -- test cautiously if the base is a valid airbase, since DCS will either fail the getTypeName call or even crash when the airbase has been "moved" (e.g., by creating a new FARP with the same name)
     if status then
       if name:upper():find("GRASS_RUNWAY") then
         grassBases[name] = base
-        veaf.loggers.get(veafGrass.Id):trace("found grassBase [%s]", veaf.p(name))
+        veaf.loggers.get(veafGrass.Id):trace("found grassBase [%s]", veaf.lp(name))
       end
       --first two types should represent the same object depending on if you're on the MIST side or DCS side, as a safety added both
       if typeName == "SINGLE_HELIPAD" or typeName == "FARP_SINGLE_01" or typeName == "FARP" or typeName == "Invisible FARP" then
         farpBases[name] = base
-        veaf.loggers.get(veafGrass.Id):trace("found farpBase [%s]", veaf.p(name))
+        veaf.loggers.get(veafGrass.Id):trace("found farpBase [%s]", veaf.lp(name))
       end
     else
       veaf.loggers.get(veafGrass.Id):warn("Airbase is not a valid object - getTypeName crashed - [%s]", veaf.p(name))
@@ -928,22 +928,22 @@ veafGrass.WAREHOUSE_ITEMS = {
 ---@param farp any the FARP to be filled
 function veafGrass.fillFarpWarehouse(farp)
   veaf.loggers.get(veafGrass.Id):debug("veafGrass.fillFarpWarehouse()")
-  veaf.loggers.get(veafGrass.Id):trace("farp=[%s]", veaf.p(farp))
+  veaf.loggers.get(veafGrass.Id):trace("farp=[%s]", veaf.lp(farp))
   local farpName = farp.name
-  veaf.loggers.get(veafGrass.Id):trace("farpName=[%s]", veaf.p(farpName))
+  veaf.loggers.get(veafGrass.Id):trace("farpName=[%s]", veaf.lp(farpName))
   local result = farpName ~= nil
   if not result then
     result, farpName = pcall(Unit.getUnitName, farp)
   end
-  veaf.loggers.get(veafGrass.Id):trace("farpName=[%s]", veaf.p(farpName))
+  veaf.loggers.get(veafGrass.Id):trace("farpName=[%s]", veaf.lp(farpName))
   if not result then
     result, farpName = pcall(Group.getGroupName, farp)
   end
-  veaf.loggers.get(veafGrass.Id):trace("farpName=[%s]", veaf.p(farpName))
+  veaf.loggers.get(veafGrass.Id):trace("farpName=[%s]", veaf.lp(farpName))
   if not result then
     result, farpName = pcall(Object.getName, farp)
   end
-  veaf.loggers.get(veafGrass.Id):trace("farpName=[%s]", veaf.p(farpName))
+  veaf.loggers.get(veafGrass.Id):trace("farpName=[%s]", veaf.lp(farpName))
   if farpName then
     local farpAirbase = Airbase.getByName(farpName)
     if farpAirbase then
@@ -959,7 +959,7 @@ function veafGrass.fillFarpWarehouse(farp)
           farpWarehouse:setLiquidAmount(i, 50000 + rnd)
         end
         for i = 0, 3 do
-          veaf.loggers.get(veafGrass.Id):trace("getLiquidAmount(%s) = %s", i, veaf.p(farpWarehouse:getLiquidAmount(i)))
+          veaf.loggers.get(veafGrass.Id):trace("getLiquidAmount(%s) = %s", i, veaf.lp(farpWarehouse:getLiquidAmount(i)))
         end
         for _, aircraft_type in pairs(veafGrass.helicoptersOnFARPs) do
           farpWarehouse:addItem(aircraft_type, 999)
@@ -970,7 +970,7 @@ function veafGrass.fillFarpWarehouse(farp)
     else
       veaf.loggers.get(veafGrass.Id):error("Airbase.getByName([%s]) returned null", veaf.p(farpName))
     end
-    veaf.loggers.get(veafGrass.Id):debug("FARP [%s] successfully replenished", veaf.p(farpName))
+    veaf.loggers.get(veafGrass.Id):debug("FARP [%s] successfully replenished", veaf.lp(farpName))
   end
 end
 
@@ -1297,7 +1297,7 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD
         modeChannel = mod,
       },
     }
-    veaf.loggers.get(veafGrass.Id):trace(string.format("setting %s", veaf.p(command)))
+    veaf.loggers.get(veafGrass.Id):trace(string.format("setting %s", veaf.lp(command)))
     local spawnedGroup = ctld.spawnRadioBeaconUnit(beaconPoint, farp.country, tacanGroupName, tacanGroupName)
     local controller = spawnedGroup:getController()
     controller:setCommand(command)
@@ -1312,7 +1312,7 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD
         _beaconInfo.fm / 1000000,
         tacanGroupName
       )
-      veaf.loggers.get(veafGrass.Id):trace(string.format("farpNamedPoint.tacan=%s", veaf.p(farpNamedPoint.tacan)))
+      veaf.loggers.get(veafGrass.Id):trace(string.format("farpNamedPoint.tacan=%s", veaf.lp(farpNamedPoint.tacan)))
     end
   end
 
@@ -1328,7 +1328,7 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD
         local pos = unit:getPosition().p
         if pos then -- you never know O.o
           local distanceFromCenter = ((pos.x - farp.x) ^ 2 + (pos.z - farp.y) ^ 2) ^ 0.5
-          veaf.loggers.get(veafGrass.Id):trace(string.format("name=%s; distanceFromCenter=%s", tostring(name), veaf.p(distanceFromCenter)))
+          veaf.loggers.get(veafGrass.Id):trace(string.format("name=%s; distanceFromCenter=%s", tostring(name), veaf.lp(distanceFromCenter)))
           if distanceFromCenter <= veafGrass.RadiusAroundFarp then
             grassRunwayUnit = unitDef
             break
@@ -1337,7 +1337,7 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD
       end
     end
     if grassRunwayUnit then
-      veaf.loggers.get(veafGrass.Id):trace(string.format("found grassRunwayUnit %s", veaf.p(grassRunwayUnit)))
+      veaf.loggers.get(veafGrass.Id):trace(string.format("found grassRunwayUnit %s", veaf.lp(grassRunwayUnit)))
       local grassNamedPoint = veafGrass.buildGrassRunway(grassRunwayUnit, hiddenOnMFD)
       if grassNamedPoint then
         farpNamedPoint.x = grassNamedPoint.x
@@ -1348,7 +1348,7 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD
       end
     end
   end
-  veaf.loggers.get(veafGrass.Id):trace(string.format("farpNamedPoint=%s", veaf.p(farpNamedPoint)))
+  veaf.loggers.get(veafGrass.Id):trace(string.format("farpNamedPoint=%s", veaf.lp(farpNamedPoint)))
 
   veafNamedPoints.addPoint(farp.unitName or farp.name, farpNamedPoint)
 
@@ -1377,7 +1377,7 @@ function veafGrass.onBirth(event)
 
   local isHumanUnit = veaf.mist.isHumanUnit(unitName) or (event.type and event.type.id == world.event.S_EVENT_PLAYER_ENTER_UNIT)
   if isHumanUnit then -- it's a human unit
-    veaf.loggers.get(veafGrass.Id):debug("caught event BIRTH for human unit [%s]", veaf.p(unitName))
+    veaf.loggers.get(veafGrass.Id):debug("caught event BIRTH for human unit [%s]", veaf.lp(unitName))
     local _unit = event.initiator
     if _unit ~= nil then
       -- refill all farp warehouses, to work around a DCS bug where the warehouses are spawned empty and their content is not synced over the network

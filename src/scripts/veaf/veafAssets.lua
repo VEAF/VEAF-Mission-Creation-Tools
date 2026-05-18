@@ -156,7 +156,7 @@ function veafAssets.respawn(name)
   if theAsset then
     mist.respawnGroup(name, true)
     if theAsset.linked then
-      veaf.loggers.get(veafAssets.Id):trace(string.format("veafAssets[%s].linked=%s", name, veaf.p(theAsset.linked)))
+      veaf.loggers.get(veafAssets.Id):trace(string.format("veafAssets[%s].linked=%s", name, veaf.lp(theAsset.linked)))
       -- there are linked groups to respawn
       if type(theAsset.linked) == "string" then
         theAsset.linked = { theAsset.linked }

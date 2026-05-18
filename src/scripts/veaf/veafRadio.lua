@@ -155,7 +155,7 @@ function veafRadio.executeCommand(eventPos, eventText, eventCoalition, bypassSec
     local options = veafRadio.markTextAnalysis(eventText)
 
     if options then
-      veaf.loggers.get(veafRadio.Id):trace(string.format("options.path=%s", veaf.p(options.path)))
+      veaf.loggers.get(veafRadio.Id):trace(string.format("options.path=%s", veaf.lp(options.path)))
       -- Check options commands
       if options.transmit and options.message and options.frequencies and options.name then
         -- transmit a radio message via SRS
@@ -263,10 +263,10 @@ end
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 function veafRadio._proxyMethod(parameters)
-  veaf.loggers.get(veafRadio.Id):trace("parameters=" .. veaf.p(parameters))
+  veaf.loggers.get(veafRadio.Id):trace("parameters=" .. veaf.lp(parameters))
   local realMethod, realParameters = veaf.safeUnpack(parameters)
-  veaf.loggers.get(veafRadio.Id):trace("realMethod=" .. veaf.p(realMethod))
-  veaf.loggers.get(veafRadio.Id):trace("realParameters=" .. veaf.p(realParameters))
+  veaf.loggers.get(veafRadio.Id):trace("realMethod=" .. veaf.lp(realMethod))
+  veaf.loggers.get(veafRadio.Id):trace("realParameters=" .. veaf.lp(realParameters))
   if veafSecurity.isAuthenticated() then
     realMethod(realParameters)
   else
@@ -331,8 +331,8 @@ function veafRadio._addCommand(groupId, title, menu, command, parameters)
     end
   end
 
-  veaf.loggers.get(veafRadio.Id):trace("_title=%s", veaf.p(_title))
-  veaf.loggers.get(veafRadio.Id):trace("_parameters=%s", veaf.p(_parameters))
+  veaf.loggers.get(veafRadio.Id):trace("_title=%s", veaf.lp(_title))
+  veaf.loggers.get(veafRadio.Id):trace("_parameters=%s", veaf.lp(_parameters))
 
   if groupId then
     veaf.loggers.get(veafRadio.Id):trace("adding for group %s command %s", groupId or "", _title or "")
@@ -344,7 +344,7 @@ function veafRadio._addCommand(groupId, title, menu, command, parameters)
 end
 
 function veafRadio.refreshRadioSubmenu(parentRadioMenu, radioMenu)
-  veaf.loggers.get(veafRadio.Id):debug("veafRadio.refreshRadioSubmenu %s", veaf.p(veaf.ifnn(radioMenu, "title")))
+  veaf.loggers.get(veafRadio.Id):debug("veafRadio.refreshRadioSubmenu %s", veaf.lp(veaf.ifnn(radioMenu, "title")))
 
   if not radioMenu or not radioMenu.title then
     return
@@ -367,7 +367,7 @@ function veafRadio.refreshRadioSubmenu(parentRadioMenu, radioMenu)
   end)
   for count = 1, #radioMenu.commands do
     local command = radioMenu.commands[count]
-    veaf.loggers.get(veafRadio.Id):trace(string.format("command=%s", veaf.p(command)))
+    veaf.loggers.get(veafRadio.Id):trace(string.format("command=%s", veaf.lp(command)))
 
     if not command.usage then
       command.usage = veafRadio.USAGE_ForAll
@@ -376,16 +376,16 @@ function veafRadio.refreshRadioSubmenu(parentRadioMenu, radioMenu)
       -- build menu for each player group
       local alreadyDoneGroups = {}
       for groupId, groupData in pairs(veafRadio.humanGroups) do
-        veaf.loggers.get(veafRadio.Id):trace(string.format("groupId=%s", veaf.p(groupId)))
+        veaf.loggers.get(veafRadio.Id):trace(string.format("groupId=%s", veaf.lp(groupId)))
         for _, callsign in pairs(groupData.callsigns) do
-          veaf.loggers.get(veafRadio.Id):trace(string.format("callsign=%s", veaf.p(callsign)))
+          veaf.loggers.get(veafRadio.Id):trace(string.format("callsign=%s", veaf.lp(callsign)))
           local unitData = groupData.units[callsign]
           local unitName = unitData.name
-          veaf.loggers.get(veafRadio.Id):trace(string.format("unitName=%s", veaf.p(unitName)))
+          veaf.loggers.get(veafRadio.Id):trace(string.format("unitName=%s", veaf.lp(unitName)))
           local humanUnit = veafRadio.humanUnits[unitName]
-          veaf.loggers.get(veafRadio.Id):trace(string.format("humanUnit=%s", veaf.p(humanUnit)))
+          veaf.loggers.get(veafRadio.Id):trace(string.format("humanUnit=%s", veaf.lp(humanUnit)))
           if humanUnit and humanUnit.spawned then
-            veaf.loggers.get(veafRadio.Id):debug(string.format("add radio command for player unit %s", veaf.p(unitName)))
+            veaf.loggers.get(veafRadio.Id):debug(string.format("add radio command for player unit %s", veaf.lp(unitName)))
             -- add radio command by player unit or group
             local parameters = command.parameters
             if parameters == nil then
@@ -445,7 +445,7 @@ function veafRadio.addSecuredCommandToSubmenu(title, radioMenu, method, paramete
 end
 
 function veafRadio._addCommandToSubmenu(title, radioMenu, method, parameters, usage, isSecured)
-  veaf.loggers.get(veafRadio.Id):debug(string.format("_addCommandToSubmenu(%s)", veaf.p(title)))
+  veaf.loggers.get(veafRadio.Id):debug(string.format("_addCommandToSubmenu(%s)", veaf.lp(title)))
   local command = {}
   command.title = title
   command.method = method
@@ -569,7 +569,7 @@ end
 
 -- build a paginated submenu (main method)
 function veafRadio.addPaginatedRadioElements(radioMenu, addCommandToSubmenuMethod, elements, titleAttribute, sortAttribute)
-  veaf.loggers.get(veafRadio.Id):trace(string.format("veafRadio.addPaginatedRadioElements() : elements=%s", veaf.p(elements)))
+  veaf.loggers.get(veafRadio.Id):trace(string.format("veafRadio.addPaginatedRadioElements() : elements=%s", veaf.lp(elements)))
 
   if not addCommandToSubmenuMethod then
     veaf.loggers.get(veafRadio.Id):error("veafRadio.addPaginatedRadioMenu : addCommandToSubmenuMethod is mandatory !")
@@ -616,7 +616,7 @@ function veafRadio.addPaginatedRadioElements(radioMenu, addCommandToSubmenuMetho
     table.insert(sortedTitles, title)
     elementsByTitle[title] = sortedElements[i].element
   end
-  veaf.loggers.get(veafRadio.Id):trace("sortedTitles=" .. veaf.p(sortedTitles))
+  veaf.loggers.get(veafRadio.Id):trace("sortedTitles=" .. veaf.lp(sortedTitles))
 
   _buildRadioMenuPage(radioMenu, sortedTitles, elementsByTitle, addCommandToSubmenuMethod, pageSize, 1)
   --veafRadio.refreshRadioMenu()
@@ -635,15 +635,15 @@ function veafRadio.getHumanUnitOrWingman(unitName)
   local result = Unit.getByName(unitName)
   if not result then
     local unitData = veafRadio.humanUnits[unitName]
-    veaf.loggers.get(veafRadio.Id):trace(string.format("unitData=%s", veaf.p(unitData)))
+    veaf.loggers.get(veafRadio.Id):trace(string.format("unitData=%s", veaf.lp(unitData)))
     if unitData and unitData.groupId then
       local mistGroup = veaf.mist.getGroupById(unitData.groupId)
-      veaf.loggers.get(veafRadio.Id):trace(string.format("mistGroup=%s", veaf.p(mistGroup)))
+      veaf.loggers.get(veafRadio.Id):trace(string.format("mistGroup=%s", veaf.lp(mistGroup)))
       if mistGroup then
         local group = Group.getByName(mistGroup.groupName)
         if group then
-          veaf.loggers.get(veafRadio.Id):trace(string.format("group=%s", veaf.p(group)))
-          veaf.loggers.get(veafRadio.Id):trace(string.format("group:getUnits()=%s", veaf.p(group:getUnits())))
+          veaf.loggers.get(veafRadio.Id):trace(string.format("group=%s", veaf.lp(group)))
+          veaf.loggers.get(veafRadio.Id):trace(string.format("group:getUnits()=%s", veaf.lp(group:getUnits())))
           for _, groupUnit in pairs(group:getUnits()) do
             if not result then
               result = groupUnit
@@ -654,8 +654,8 @@ function veafRadio.getHumanUnitOrWingman(unitName)
     end
   end
   if result then
-    veaf.loggers.get(veafRadio.Id):trace(string.format("result=%s", veaf.p(result)))
-    veaf.loggers.get(veafRadio.Id):trace(string.format("result:getName()=%s", veaf.p(result:getName())))
+    veaf.loggers.get(veafRadio.Id):trace(string.format("result=%s", veaf.lp(result)))
+    veaf.loggers.get(veafRadio.Id):trace(string.format("result:getName()=%s", veaf.lp(result:getName())))
   end
   return result
 end
@@ -667,14 +667,14 @@ end
 function veafRadio.startBeacon(name, firstRunDelay, secondsBetweenRepeats, frequencies, modulations, message, mp3, coalition)
   veaf.loggers.get(veafRadio.Id):debug(
     "startBeacon(name=%s, firstRunDelay=%s, secondsBetweenRepeats=%s, coalition=%s, frequencies=%s, modulations=%s, message=%s, mp3=%s)",
-    veaf.p(name),
-    veaf.p(firstRunDelay),
-    veaf.p(secondsBetweenRepeats),
-    veaf.p(coalition),
-    veaf.p(frequencies),
-    veaf.p(modulations),
-    veaf.p(message),
-    veaf.p(mp3)
+    veaf.lp(name),
+    veaf.lp(firstRunDelay),
+    veaf.lp(secondsBetweenRepeats),
+    veaf.lp(coalition),
+    veaf.lp(frequencies),
+    veaf.lp(modulations),
+    veaf.lp(message),
+    veaf.lp(mp3)
   )
 
   local beacon = veafRadio.beacons[name:lower()]
@@ -723,16 +723,16 @@ end
 function veafRadio._transmitViaSRS(message, file, frequencies, modulations, name, coalition, eventPos)
   veaf.loggers.get(veafRadio.Id):debug(
     "transmitMessage(name=%s, coalition=%s, frequencies=%s, modulations=%s, message=%s, file=%s)",
-    veaf.p(name),
-    veaf.p(coalition),
-    veaf.p(frequencies),
-    veaf.p(modulations),
-    veaf.p(message),
-    veaf.p(file)
+    veaf.lp(name),
+    veaf.lp(coalition),
+    veaf.lp(frequencies),
+    veaf.lp(modulations),
+    veaf.lp(message),
+    veaf.lp(file)
   )
   local posOption = ""
   if eventPos then
-    veaf.loggers.get(veafRadio.Id):trace(string.format("eventPos=%s", veaf.p(eventPos)))
+    veaf.loggers.get(veafRadio.Id):trace(string.format("eventPos=%s", veaf.lp(eventPos)))
     local lat, lon, alt = coord.LOtoLL(eventPos)
     posOption = string.format("-L %d -O %d -A %d", lat, lon, alt)
   end
@@ -779,14 +779,14 @@ end
 function veafRadio.transmitMessage(message, frequencies, modulations, name, coalition, eventPos, quiet)
   veaf.loggers.get(veafRadio.Id):debug(
     "transmitMessage(name=%s, coalition=%s, frequencies=%s, modulations=%s, message=%s)",
-    veaf.p(name),
-    veaf.p(coalition),
-    veaf.p(frequencies),
-    veaf.p(modulations),
-    veaf.p(message)
+    veaf.lp(name),
+    veaf.lp(coalition),
+    veaf.lp(frequencies),
+    veaf.lp(modulations),
+    veaf.lp(message)
   )
   if eventPos then
-    veaf.loggers.get(veafRadio.Id):trace(string.format("eventPos=%s", veaf.p(eventPos)))
+    veaf.loggers.get(veafRadio.Id):trace(string.format("eventPos=%s", veaf.lp(eventPos)))
   end
 
   veafRadio._transmitViaSRS(message, nil, frequencies, modulations, name, coalition, eventPos)
@@ -800,14 +800,14 @@ end
 function veafRadio.playToRadio(pathToMP3, frequencies, modulations, name, coalition, eventPos, quiet)
   veaf.loggers.get(veafRadio.Id):debug(
     "playToRadio(name=%s, coalition=%s, frequencies=%s, modulations=%s, pathToMP3=%s)",
-    veaf.p(name),
-    veaf.p(coalition),
-    veaf.p(frequencies),
-    veaf.p(modulations),
-    veaf.p(pathToMP3)
+    veaf.lp(name),
+    veaf.lp(coalition),
+    veaf.lp(frequencies),
+    veaf.lp(modulations),
+    veaf.lp(pathToMP3)
   )
   if eventPos then
-    veaf.loggers.get(veafRadio.Id):trace(string.format("eventPos=%s", veaf.p(eventPos)))
+    veaf.loggers.get(veafRadio.Id):trace(string.format("eventPos=%s", veaf.lp(eventPos)))
   end
 
   veafRadio._transmitViaSRS(nil, pathToMP3, frequencies, modulations, name, coalition, eventPos)
@@ -822,25 +822,25 @@ end
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 function veafRadio.createUserMenu(configuration, groupId)
-  veaf.loggers.get(veafRadio.Id):debug("veafRadio.createUserMenu(groupId=%s, configuration=%s)", veaf.p(groupId), veaf.p(configuration))
+  veaf.loggers.get(veafRadio.Id):debug("veafRadio.createUserMenu(groupId=%s, configuration=%s)", veaf.lp(groupId), veaf.lp(configuration))
 
   local function _recursivelyCreateMenu(configuration, parentMenu)
     veaf.loggers
       .get(veafRadio.Id)
-      :trace("_recursivelyCreateMenu(configuration=%s, parentMenu=%s)", veaf.p(configuration), veaf.p(parentMenu))
+      :trace("_recursivelyCreateMenu(configuration=%s, parentMenu=%s)", veaf.lp(configuration), veaf.lp(parentMenu))
     local result
 
     for _, item in pairs(configuration) do
       local itemType = item[1]
-      veaf.loggers.get(veafRadio.Id):trace("itemType = [%s]", veaf.p(itemType))
+      veaf.loggers.get(veafRadio.Id):trace("itemType = [%s]", veaf.lp(itemType))
       local name = item[2]
-      veaf.loggers.get(veafRadio.Id):trace("name = [%s]", veaf.p(name))
+      veaf.loggers.get(veafRadio.Id):trace("name = [%s]", veaf.lp(name))
       if itemType == "menu" then
         -- this is a menu with a content
         local content = item[3]
-        veaf.loggers.get(veafRadio.Id):trace("content = [%s]", veaf.p(content))
+        veaf.loggers.get(veafRadio.Id):trace("content = [%s]", veaf.lp(content))
 
-        veaf.loggers.get(veafRadio.Id):trace("creating menu name=%s", veaf.p(name))
+        veaf.loggers.get(veafRadio.Id):trace("creating menu name=%s", veaf.lp(name))
         if groupId ~= nil then
           result = missionCommands.addSubMenuForGroup(groupId, name, parentMenu)
         else
@@ -853,11 +853,11 @@ function veafRadio.createUserMenu(configuration, groupId)
       else
         -- this is a command with a function
         local aFunction = item[3]
-        veaf.loggers.get(veafRadio.Id):trace("aFunction = [%s]", veaf.p(aFunction))
+        veaf.loggers.get(veafRadio.Id):trace("aFunction = [%s]", veaf.lp(aFunction))
         local parameters = item[4]
-        veaf.loggers.get(veafRadio.Id):trace("parameters = [%s]", veaf.p(parameters))
+        veaf.loggers.get(veafRadio.Id):trace("parameters = [%s]", veaf.lp(parameters))
 
-        veaf.loggers.get(veafRadio.Id):trace("creating command name=%s", veaf.p(name))
+        veaf.loggers.get(veafRadio.Id):trace("creating command name=%s", veaf.lp(name))
         if groupId ~= nil then
           missionCommands.addCommandForGroup(groupId, name, parentMenu, aFunction, parameters)
         else

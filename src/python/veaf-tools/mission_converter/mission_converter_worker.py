@@ -26,7 +26,6 @@ class MissionConverterWorker:
         scripts_path: Path | None,
         inject_presets: bool = False,
         presets_file: Path = None,
-        scripts_variant: str = "standard",
     ):
         """
         Initialize the worker with parameters for both use cases.
@@ -41,7 +40,6 @@ class MissionConverterWorker:
         self.mission_folder = mission_folder
         self.inject_presets = inject_presets
         self.presets_file = presets_file or self.mission_folder / "src" / "presets.yaml"
-        self.scripts_variant = scripts_variant
 
         if not (self.input_mission and self.input_mission.is_file()):
             logger.error(
@@ -72,7 +70,6 @@ class MissionConverterWorker:
                 output_mission=self.output_mission,
                 dynamic_mode=self.dynamic_mode,
                 scripts_path=self.scripts_path,
-                scripts_variant=self.scripts_variant,
             )
             new_mission_path = builder.work(silent=True)
 

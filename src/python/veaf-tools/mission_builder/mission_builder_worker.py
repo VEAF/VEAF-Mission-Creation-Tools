@@ -35,8 +35,8 @@ class MissionBuilderWorker:
         scripts_path: Path | None,
         migrate_from_v5: bool = True,
         no_veaf_triggers: bool = False,
-        scripts_variant: str = "standard",
         lua_modules: dict | None = None,
+        global_log_level: str | None = None,
     ):
         """
         Initialize the worker with parameters for both use cases.
@@ -49,8 +49,8 @@ class MissionBuilderWorker:
         self.dcs_mission: DcsMission = None
         self.migrate_from_v5: bool = migrate_from_v5
         self.no_veaf_triggers: bool = no_veaf_triggers
-        self.scripts_variant: str = scripts_variant
         self.lua_modules: dict | None = lua_modules
+        self.global_log_level: str | None = global_log_level
         self.collected_community_script_files: dict[str, bytes] | None = None
         self.collected_veaf_script_files: dict[str, bytes] | None = None
         self.collected_mission_script_files: dict[str, bytes] | None = None
@@ -69,32 +69,13 @@ class MissionBuilderWorker:
         # Preprocess the veaf script files
         scripts_folder: Path = self.scripts_path or (self.mission_folder / "published")
 
-        # Select the appropriate script variant
-        if self.scripts_variant == "debug":
-            script_filename = "veaf-scripts-debug.lua"
-        elif self.scripts_variant == "trace":
-            script_filename = "veaf-scripts-trace.lua"
-        else:  # "standard" or default
-            script_filename = "veaf-scripts.lua"
-
-        # Build file patterns for collect_files_from_globs
-        # We need to use the variant name in the glob pattern
-        variant_patterns = [(f"src/scripts/veaf/{script_filename}", DEFAULT_SCRIPTS_LOCATION)]
-
         self.collected_veaf_script_files = collect_files_from_globs(
-            base_folder=scripts_folder, file_patterns=variant_patterns
+            base_folder=scripts_folder,
+            file_patterns=[("src/scripts/veaf/veaf-scripts.lua", DEFAULT_SCRIPTS_LOCATION)],
         )
 
-        # If the variant file is not found, fallback to standard (but log a warning)
-        if len(self.collected_veaf_script_files) == 0 and self.scripts_variant != "standard":
-            logger.warning(f"Scripts variant '{self.scripts_variant}' not found, falling back to 'standard'")
-            self.collected_veaf_script_files = collect_files_from_globs(
-                base_folder=scripts_folder,
-                file_patterns=[("src/scripts/veaf/veaf-scripts.lua", DEFAULT_SCRIPTS_LOCATION)],
-            )
-
         if len(self.collected_veaf_script_files) < 1:
-            logger.error(f"VEAF scripts file not found at {scripts_folder}/src/scripts/veaf/{script_filename}")
+            logger.error(f"VEAF scripts file not found at {scripts_folder}/src/scripts/veaf/veaf-scripts.lua")
 
         return self.collected_veaf_script_files
 
@@ -713,17 +694,21 @@ class MissionBuilderWorker:
         logger.debug("Writing mission file done")
 
     def write_lua_modules_config(self) -> None:
-        """If lua_modules was provided, write veaf-modules-config.lua to the mission src/scripts folder."""
-        if not self.lua_modules:
+        """Write veaf-modules-config.lua: global log level (if set) then per-module overrides."""
+        if not self.lua_modules and not self.global_log_level:
             return
         scripts_dir = self.mission_folder / "src" / "scripts"
         scripts_dir.mkdir(parents=True, exist_ok=True)
         config_file = scripts_dir / "veaf-modules-config.lua"
-        config_file.write_text(
-            generate_modules_config_lua(self.lua_modules),
-            encoding="utf-8",
-        )
-        logger.info(f"Generated '{config_file}' from mission.yaml lua_modules section")
+        content = generate_modules_config_lua(self.lua_modules or {})
+        if self.global_log_level:
+            # Prepend a ForcedLogLevel assignment so ALL loggers use this level at runtime
+            prefix = (
+                f'-- global_log_level from mission.yaml (LUA-007)\nveaf.ForcedLogLevel = "{self.global_log_level}"\n\n'
+            )
+            content = prefix + content
+        config_file.write_text(content, encoding="utf-8")
+        logger.info(f"Generated '{config_file}' from mission.yaml")
 
     def work(self, silent: bool = False) -> Path:
         """Main work function."""
@@ -732,8 +717,8 @@ class MissionBuilderWorker:
         with spinner_context(f"Completing folder {self.mission_folder} with defaults...", silent=silent):
             self.complete_src_folder_with_defaults()
 
-        # Generate veaf-modules-config.lua from lua_modules if provided (LUA-005)
-        if self.lua_modules:
+        # Generate veaf-modules-config.lua from lua_modules / global_log_level if provided (LUA-005/LUA-007)
+        if self.lua_modules or self.global_log_level:
             with spinner_context("Generating veaf-modules-config.lua from mission.yaml...", silent=silent):
                 self.write_lua_modules_config()
             # Invalidate cached mission script files so the new file is picked up

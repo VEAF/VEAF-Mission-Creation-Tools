@@ -1066,7 +1066,7 @@ function veafWeatherAtis:Create(veafAirbase, dateTimeZulu)
     --[[
         local dcsShip = dcsAirbase:getUnit()
         local dcsShipType = dcsShip:getTypeName()
-        veaf.loggers.get(veafWeather.Id):trace(veaf.p(dcsShipType))
+        veaf.loggers.get(veafWeather.Id):trace(veaf.lp(dcsShipType))
         ]]
 
     iAltitude = 20
@@ -1194,13 +1194,13 @@ function veafWeatherAtis.getAtisStringFromVeafPoint(sPointName, iAbsTime)
 
   veaf.loggers
     .get(veafWeather.Id)
-    :trace("Airbase found from veaf point named %s: %s", veaf.p(sPointName), veaf.p(veaf.ifnn(dcsAirbase, "getName")))
+    :trace("Airbase found from veaf point named %s: %s", veaf.lp(sPointName), veaf.lp(veaf.ifnn(dcsAirbase, "getName")))
 
   return veafWeatherAtis.getAtisString(veafAirbase, iAbsTime)
 end
 
 function veafWeather.messageWeatherAtClosestPoint(unitName, forUnit)
-  veaf.loggers.get(veafWeather.Id):debug("veafWeather.messageWeatherAtClosestPoint(unitName=%s)", veaf.p(unitName))
+  veaf.loggers.get(veafWeather.Id):debug("veafWeather.messageWeatherAtClosestPoint(unitName=%s)", veaf.lp(unitName))
   local closestPoint = veafNamedPoints.getNearestPoint(unitName)
   if closestPoint then
     local BR = veafNamedPoints.getPointBearing({ closestPoint.name, unitName })
@@ -1282,25 +1282,25 @@ function VeafFog:new(objectToCopy)
 end
 
 function VeafFog:activate()
-  veaf.loggers.get(veafWeather.Id):debug("VeafFog[%s]:activate()", veaf.p(self.name))
+  veaf.loggers.get(veafWeather.Id):debug("VeafFog[%s]:activate()", veaf.lp(self.name))
   veafWeather.setAndActivateFog(self)
 end
 
 function VeafFog:enable()
-  veaf.loggers.get(veafWeather.Id):debug("VeafFog[%s]:enable()", veaf.p(self.name))
+  veaf.loggers.get(veafWeather.Id):debug("VeafFog[%s]:enable()", veaf.lp(self.name))
 
   self.enabled = true
 
   -- store the existing fog parameters
   veaf.loggers.get(veafWeather.Id):trace("store the existing fog parameters")
-  veaf.loggers.get(veafWeather.Id):trace("world.weather.getFogVisibilityDistance()=[%s]", veaf.p(world.weather.getFogVisibilityDistance()))
-  veaf.loggers.get(veafWeather.Id):trace("world.weather.getFogThickness()=[%s]", veaf.p(world.weather.getFogThickness()))
+  veaf.loggers.get(veafWeather.Id):trace("world.weather.getFogVisibilityDistance()=[%s]", veaf.lp(world.weather.getFogVisibilityDistance()))
+  veaf.loggers.get(veafWeather.Id):trace("world.weather.getFogThickness()=[%s]", veaf.lp(world.weather.getFogThickness()))
   self.fogSavedStaticData = { visibility = world.weather.getFogVisibilityDistance(), thickness = world.weather.getFogThickness() }
 
   -- set the fog to the programmed parameters
   veaf.loggers.get(veafWeather.Id):trace("set the fog to the programmed parameters")
   if self.forAnimationData then
-    veaf.loggers.get(veafWeather.Id):trace("self.forAnimationData=[%s]", veaf.p(self.forAnimationData))
+    veaf.loggers.get(veafWeather.Id):trace("self.forAnimationData=[%s]", veaf.lp(self.forAnimationData))
     -- create an animation
     local animation = {
       self.forAnimationData,
@@ -1311,12 +1311,12 @@ function VeafFog:enable()
     veaf.loggers.get(veafWeather.Id):trace("store the existing fog parameters")
     veaf.loggers
       .get(veafWeather.Id)
-      :trace("world.weather.getFogVisibilityDistance()=[%s]", veaf.p(world.weather.getFogVisibilityDistance()))
-    veaf.loggers.get(veafWeather.Id):trace("world.weather.getFogThickness()=[%s]", veaf.p(world.weather.getFogThickness()))
+      :trace("world.weather.getFogVisibilityDistance()=[%s]", veaf.lp(world.weather.getFogVisibilityDistance()))
+    veaf.loggers.get(veafWeather.Id):trace("world.weather.getFogThickness()=[%s]", veaf.lp(world.weather.getFogThickness()))
     -- set the new fog animation
     world.weather.setFogAnimation(animation)
   elseif self.fogStaticData then
-    veaf.loggers.get(veafWeather.Id):trace("self.fogStaticData=[%s]", veaf.p(self.fogStaticData))
+    veaf.loggers.get(veafWeather.Id):trace("self.fogStaticData=[%s]", veaf.lp(self.fogStaticData))
     world.weather.setFogThickness(self.fogStaticData.thickness)
     world.weather.setFogVisibilityDistance(self.fogStaticData.visibility)
   end
@@ -1329,7 +1329,7 @@ function VeafFog:enable()
 end
 
 function VeafFog:disable(dontRestore)
-  veaf.loggers.get(veafWeather.Id):debug("VeafFog[%s]:disable()", veaf.p(self.name))
+  veaf.loggers.get(veafWeather.Id):debug("VeafFog[%s]:disable()", veaf.lp(self.name))
 
   -- disable the scheduler
   if self.dynamicCheckFunctionScheduled then
@@ -1353,17 +1353,17 @@ function VeafFog:disable(dontRestore)
 end
 
 function VeafFog:dynamicCheck()
-  veaf.loggers.get(veafWeather.Id):debug("VeafFog[%s]:dynamicCheck()", veaf.p(self.name))
+  veaf.loggers.get(veafWeather.Id):debug("VeafFog[%s]:dynamicCheck()", veaf.lp(self.name))
   if self.dynamicFogBaseFactor then
     local position = { x = 0, y = 0, z = 0 } -- somewhere in the map ^^
 
     -- compute the fog that should be set at this moment in time
     local date = veafTime.getMissionDateTime()
-    veaf.loggers.get(veafWeather.Id):trace("date=[%s]", veaf.p(date))
+    veaf.loggers.get(veafWeather.Id):trace("date=[%s]", veaf.lp(date))
 
     -- Seasonal adjustment based on latitude and time of year
     local latitude, _, _ = coord.LOtoLL(position)
-    veaf.loggers.get(veafWeather.Id):trace("latitude=[%s]", veaf.p(latitude))
+    veaf.loggers.get(veafWeather.Id):trace("latitude=[%s]", veaf.lp(latitude))
     local month = date.month
     local seasonal_peaks = { [3] = 0.8, [4] = 0.9, [5] = 0.7, [9] = 0.8, [10] = 0.9, [11] = 0.7 }
     local season_factor = seasonal_peaks[month] or 0.5
@@ -1394,24 +1394,26 @@ function VeafFog:dynamicCheck()
 
     veaf.loggers
       .get(veafWeather.Id)
-      :trace("sunrise_time=[%s:%s]", veaf.p(math.floor(sunrise_time / 60)), veaf.p(math.fmod(sunrise_time, 60)))
+      :trace("sunrise_time=[%s:%s]", veaf.lp(math.floor(sunrise_time / 60)), veaf.lp(math.fmod(sunrise_time, 60)))
     veaf.loggers
       .get(veafWeather.Id)
-      :trace("morningPeak_time=[%s:%s]", veaf.p(math.floor(morningPeak_time / 60)), veaf.p(math.fmod(morningPeak_time, 60)))
+      :trace("morningPeak_time=[%s:%s]", veaf.lp(math.floor(morningPeak_time / 60)), veaf.lp(math.fmod(morningPeak_time, 60)))
     veaf.loggers
       .get(veafWeather.Id)
-      :trace("morningEnd_time=[%s:%s]", veaf.p(math.floor(morningEnd_time / 60)), veaf.p(math.fmod(morningEnd_time, 60)))
+      :trace("morningEnd_time=[%s:%s]", veaf.lp(math.floor(morningEnd_time / 60)), veaf.lp(math.fmod(morningEnd_time, 60)))
     veaf.loggers
       .get(veafWeather.Id)
-      :trace("eveningStart_time=[%s:%s]", veaf.p(math.floor(eveningStart_time / 60)), veaf.p(math.fmod(eveningStart_time, 60)))
+      :trace("eveningStart_time=[%s:%s]", veaf.lp(math.floor(eveningStart_time / 60)), veaf.lp(math.fmod(eveningStart_time, 60)))
     veaf.loggers
       .get(veafWeather.Id)
-      :trace("eveningPeak_time=[%s:%s]", veaf.p(math.floor(eveningPeak_time / 60)), veaf.p(math.fmod(eveningPeak_time, 60)))
-    veaf.loggers.get(veafWeather.Id):trace("sunset_time=[%s:%s]", veaf.p(math.floor(sunset_time / 60)), veaf.p(math.fmod(sunset_time, 60)))
-    veaf.loggers.get(veafWeather.Id):trace("daylight_duration=[%s]", veaf.p(daylight_duration))
+      :trace("eveningPeak_time=[%s:%s]", veaf.lp(math.floor(eveningPeak_time / 60)), veaf.lp(math.fmod(eveningPeak_time, 60)))
     veaf.loggers
       .get(veafWeather.Id)
-      :trace("current_time=[%s:%s]", veaf.p(math.floor(current_time / 60)), veaf.p(math.fmod(current_time, 60)))
+      :trace("sunset_time=[%s:%s]", veaf.lp(math.floor(sunset_time / 60)), veaf.lp(math.fmod(sunset_time, 60)))
+    veaf.loggers.get(veafWeather.Id):trace("daylight_duration=[%s]", veaf.lp(daylight_duration))
+    veaf.loggers
+      .get(veafWeather.Id)
+      :trace("current_time=[%s:%s]", veaf.lp(math.floor(current_time / 60)), veaf.lp(math.fmod(current_time, 60)))
 
     if current_time >= sunrise_time and current_time < morningPeak_time then
       -- Phase 1: From sunrise to middle of the morning (raise)
@@ -1438,12 +1440,12 @@ function VeafFog:dynamicCheck()
     -- Base fog probability calculation
     local base_prob = math.max(0, math.min(1, 1 - (temp_diff / 10) - (weatherData.WindSpeedMps / 10)))
     local fog_probability = base_prob * season_factor * diurnal_factor
-    veaf.loggers.get(veafWeather.Id):trace("weatherData.WindSpeedMps=[%s]", veaf.p(weatherData.WindSpeedMps))
-    veaf.loggers.get(veafWeather.Id):trace("temp_diff=[%s]", veaf.p(temp_diff))
-    veaf.loggers.get(veafWeather.Id):trace("base_prob=[%s]", veaf.p(base_prob))
-    veaf.loggers.get(veafWeather.Id):trace("season_factor=[%s]", veaf.p(season_factor))
-    veaf.loggers.get(veafWeather.Id):trace("diurnal_factor=[%s]", veaf.p(diurnal_factor))
-    veaf.loggers.get(veafWeather.Id):trace("fog_probability=[%s]", veaf.p(fog_probability))
+    veaf.loggers.get(veafWeather.Id):trace("weatherData.WindSpeedMps=[%s]", veaf.lp(weatherData.WindSpeedMps))
+    veaf.loggers.get(veafWeather.Id):trace("temp_diff=[%s]", veaf.lp(temp_diff))
+    veaf.loggers.get(veafWeather.Id):trace("base_prob=[%s]", veaf.lp(base_prob))
+    veaf.loggers.get(veafWeather.Id):trace("season_factor=[%s]", veaf.lp(season_factor))
+    veaf.loggers.get(veafWeather.Id):trace("diurnal_factor=[%s]", veaf.lp(diurnal_factor))
+    veaf.loggers.get(veafWeather.Id):trace("fog_probability=[%s]", veaf.lp(fog_probability))
 
     -- Compute visibility and thickness based on fog_probability with smooth transitions
     local visibility, thickness
@@ -1458,10 +1460,10 @@ function VeafFog:dynamicCheck()
       local maxVisibility = 5000 * (1 - self.dynamicFogBaseFactor)
       local minThickness = 100 * self.dynamicFogBaseFactor
       local maxThickness = 500 * self.dynamicFogBaseFactor
-      veaf.loggers.get(veafWeather.Id):trace("minVisibility=[%s]", veaf.p(minVisibility))
-      veaf.loggers.get(veafWeather.Id):trace("maxVisibility=[%s]", veaf.p(maxVisibility))
-      veaf.loggers.get(veafWeather.Id):trace("minThickness=[%s]", veaf.p(minThickness))
-      veaf.loggers.get(veafWeather.Id):trace("maxThickness=[%s]", veaf.p(maxThickness))
+      veaf.loggers.get(veafWeather.Id):trace("minVisibility=[%s]", veaf.lp(minVisibility))
+      veaf.loggers.get(veafWeather.Id):trace("maxVisibility=[%s]", veaf.lp(maxVisibility))
+      veaf.loggers.get(veafWeather.Id):trace("minThickness=[%s]", veaf.lp(minThickness))
+      veaf.loggers.get(veafWeather.Id):trace("maxThickness=[%s]", veaf.lp(maxThickness))
 
       -- Calculate visibility (decreasing from 5000 to 100)
       visibility = maxVisibility - ((maxVisibility - minVisibility) * normalizedFactor)
@@ -1472,18 +1474,18 @@ function VeafFog:dynamicCheck()
 
     visibility = math.floor(visibility)
     thickness = math.floor(thickness)
-    veaf.loggers.get(veafWeather.Id):trace("thickness=[%s]", veaf.p(thickness))
-    veaf.loggers.get(veafWeather.Id):trace("visibility=[%s]", veaf.p(visibility))
+    veaf.loggers.get(veafWeather.Id):trace("thickness=[%s]", veaf.lp(thickness))
+    veaf.loggers.get(veafWeather.Id):trace("visibility=[%s]", veaf.lp(visibility))
 
     if self.dynamicFogIsAnimated then
       -- create an animation
-      veaf.loggers.get(veafWeather.Id):trace("thickness=[%s]", veaf.p(thickness))
+      veaf.loggers.get(veafWeather.Id):trace("thickness=[%s]", veaf.lp(thickness))
       local animation = {
         VeafFog.DELAY_BETWEEN_DYNAMIC_CHECKS - VeafFog.DELAY_BETWEEN_DYNAMIC_CHECKS * 0.1,
         visibility,
         thickness,
       }
-      veaf.loggers.get(veafWeather.Id):trace("animation=[%s]", veaf.p(animation))
+      veaf.loggers.get(veafWeather.Id):trace("animation=[%s]", veaf.lp(animation))
 
       -- first reset fog animation
       world.weather.setFogAnimation({})
@@ -1523,12 +1525,12 @@ function veafWeather.createAnimatedFog(name, minutes, thickness, visibility)
 end
 
 function veafWeather.setAndActivateFog(fogObject)
-  veaf.loggers.get(veafWeather.Id):trace("fogObject=[%s]", veaf.p(fogObject))
+  veaf.loggers.get(veafWeather.Id):trace("fogObject=[%s]", veaf.lp(fogObject))
 
   -- disable the existing fog object if any
   if veafWeather.existingFog ~= nil then
     veaf.loggers.get(veafWeather.Id):trace("disable the existing fog object if any")
-    veaf.loggers.get(veafWeather.Id):trace("veafWeather.existingFog=[%s]", veaf.p(veafWeather.existingFog))
+    veaf.loggers.get(veafWeather.Id):trace("veafWeather.existingFog=[%s]", veaf.lp(veafWeather.existingFog))
     veafWeather.existingFog:disable(true)
   end
 
@@ -1727,12 +1729,12 @@ end
 -- execute command from the remote interface
 function veafWeather.executeCommandFromRemote(parameters)
   veaf.loggers.get(veafWeather.Id):debug(string.format("veafWeather.executeCommandFromRemote()"))
-  veaf.loggers.get(veafWeather.Id):trace(string.format("parameters= %s", veaf.p(parameters)))
+  veaf.loggers.get(veafWeather.Id):trace(string.format("parameters= %s", veaf.lp(parameters)))
   local _pilot, _pilotName, _unitName, _command = unpack(parameters)
-  veaf.loggers.get(veafWeather.Id):trace(string.format("_pilot= %s", veaf.p(_pilot)))
-  veaf.loggers.get(veafWeather.Id):trace(string.format("_pilotName= %s", veaf.p(_pilotName)))
-  veaf.loggers.get(veafWeather.Id):trace(string.format("_unitName= %s", veaf.p(_unitName)))
-  veaf.loggers.get(veafWeather.Id):trace(string.format("_command= %s", veaf.p(_command)))
+  veaf.loggers.get(veafWeather.Id):trace(string.format("_pilot= %s", veaf.lp(_pilot)))
+  veaf.loggers.get(veafWeather.Id):trace(string.format("_pilotName= %s", veaf.lp(_pilotName)))
+  veaf.loggers.get(veafWeather.Id):trace(string.format("_unitName= %s", veaf.lp(_unitName)))
+  veaf.loggers.get(veafWeather.Id):trace(string.format("_command= %s", veaf.lp(_command)))
   if not _pilot or not _command then
     return false
   end
@@ -1740,9 +1742,9 @@ function veafWeather.executeCommandFromRemote(parameters)
   if _command then
     -- parse the command
     local _action, _name, _parameters = _command:match(veafWeather.RemoteCommandParser)
-    veaf.loggers.get(veafWeather.Id):trace(string.format("_action=%s", veaf.p(_action)))
-    veaf.loggers.get(veafWeather.Id):trace(string.format("_name=%s", veaf.p(_name)))
-    veaf.loggers.get(veafWeather.Id):trace(string.format("_parameters=%s", veaf.p(_parameters)))
+    veaf.loggers.get(veafWeather.Id):trace(string.format("_action=%s", veaf.lp(_action)))
+    veaf.loggers.get(veafWeather.Id):trace(string.format("_name=%s", veaf.lp(_name)))
+    veaf.loggers.get(veafWeather.Id):trace(string.format("_parameters=%s", veaf.lp(_parameters)))
     if _action and _action:lower() == "weather" then
       veaf.loggers.get(veafWeather.Id):info(string.format("[%s] is requesting weather", veaf.p(_pilotName)))
       veafWeather.messageWeatherAtClosestPoint(_unitName, true)
@@ -1804,7 +1806,7 @@ for _, veafAirbase in pairs(veafAirbases.Airbases) do
       veaf.loggers.get(veafWeather.Id):trace(veafWeatherData.getWeatherString(veafAirbase.DcsAirbase:getPoint()))
     end
 end
-veaf.loggers.get(veafWeather.Id):trace(veaf.p(env.mission.weather.enable_fog))
-veaf.loggers.get(veafWeather.Id):trace(veaf.p(world.weather.getFogVisibilityDistance()))
-veaf.loggers.get(veafWeather.Id):trace(veaf.p(world.weather.getFogThickness()))
+veaf.loggers.get(veafWeather.Id):trace(veaf.lp(env.mission.weather.enable_fog))
+veaf.loggers.get(veafWeather.Id):trace(veaf.lp(world.weather.getFogVisibilityDistance()))
+veaf.loggers.get(veafWeather.Id):trace(veaf.lp(world.weather.getFogThickness()))
 ]]

@@ -10,8 +10,8 @@ from veaf_libs.tui import _COMMAND_MAP, COMMANDS, ArgPrompt, CommandSpec, run_wi
 
 class TestArgPrompt:
     def test_cli_flag_converts_snake_to_kebab(self) -> None:
-        p = ArgPrompt(key="scripts_variant", label="Variant", is_option=True)
-        assert p.cli_flag == "--scripts-variant"
+        p = ArgPrompt(key="mission_name_or_file", label="Mission", is_option=True)
+        assert p.cli_flag == "--mission-name-or-file"
 
     def test_cli_flag_simple_key(self) -> None:
         p = ArgPrompt(key="verbose", label="Verbose", is_option=True)
@@ -79,7 +79,6 @@ class TestRunWizard:
         answers = {
             "mission_name_or_file": "mission.miz",
             "mission_folder": ".",
-            "scripts_variant": "standard",
         }
 
         mock_select_instance = type("S", (), {"execute": lambda self: "build"})()
@@ -97,10 +96,7 @@ class TestRunWizard:
         assert result[0] == "build"
         assert "mission.miz" in result
         assert "." in result
-        # scripts_variant is an option — should appear as --scripts-variant standard
-        assert "--scripts-variant" in result
-        idx = result.index("--scripts-variant")
-        assert result[idx + 1] == "standard"
+        assert "--scripts-variant" not in result
 
     def test_about_command_returns_no_extra_args(self) -> None:
         """'about' has no prompts — result is just ['about']."""

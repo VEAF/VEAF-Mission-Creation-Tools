@@ -62,11 +62,6 @@ COMMANDS: list[CommandSpec] = [
         prompts=[
             ArgPrompt("mission_name_or_file", "Mission name or .miz file", default="mission.miz", is_option=False),
             ArgPrompt("mission_folder", "Mission folder", default=".", is_option=False),
-            ArgPrompt(
-                "scripts_variant",
-                "Scripts variant (standard / debug / trace / trace-with-events)",
-                default="standard",
-            ),
         ],
     ),
     CommandSpec(

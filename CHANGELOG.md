@@ -14,9 +14,19 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `doc/backlog.md` — operational backlog with ticket estimates
 - `doc/ROADMAP.md` — project roadmap
 - `CHANGELOG.md` — this file
+- `veaf.lp()` — lazy log argument proxy: arguments are only stringified when the active log level warrants it
+- `mission.yaml: global_log_level` — replaces `--scripts-variant`; writes `veaf.ForcedLogLevel` in the generated `veaf-modules-config.lua`
+- `--log-modules` option on `veaf-tools build` to selectively set log levels per module
 
 ### Changed
 - Branch renamed from `develop/v6-new-build-system` to `develop-v6`
+- `veaf.BaseLogLevel` default changed from `trace` to `info`
+- All 1233 `veaf.p(` log-argument calls migrated to `veaf.lp(` across all Lua scripts
+- Single build output (`veaf-scripts.lua`) — `veaf-scripts-debug.lua` / `veaf-scripts-trace.lua` variants removed
+- `build-and-release.py`: removed build-time comment-out step and `_create_lua_variant_files()`
+
+### Removed
+- `--scripts-variant` option from `veaf-tools build` and `veaf-tools convert`
 
 ---
 

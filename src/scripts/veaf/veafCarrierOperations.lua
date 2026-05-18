@@ -295,10 +295,10 @@ function veafCarrierOperations.continueCarrierOperations(groupName, userUnitName
 
       local msg = string.format(
         "Obstruction found at heading %s, derouting %s to heading %s",
-        veaf.lp(#obstructions),
-        veaf.lp(dir),
-        veaf.lp(groupName),
-        veaf.lp(newDir)
+        veaf.p(#obstructions),
+        veaf.p(dir),
+        veaf.p(groupName),
+        veaf.p(newDir)
       )
       veaf.loggers.get(veafCarrierOperations.Id):debug(msg)
       veaf.outTextForGroup(userUnitName, msg, 5)

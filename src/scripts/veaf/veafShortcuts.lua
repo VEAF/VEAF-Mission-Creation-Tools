@@ -487,11 +487,11 @@ function veafShortcuts.ExecuteAlias(aliasName, delay, remainingCommand, position
   veaf.loggers.get(veafShortcuts.Id):debug(
     string.format(
       "veafShortcuts.ExecuteAlias([%s],[%s],[%s],[%s],[%s])",
-      veaf.lp(aliasName),
-      veaf.lp(delay),
-      veaf.lp(remainingCommand),
-      veaf.lp(position),
-      veaf.lp(coalition)
+      veaf.p(aliasName),
+      veaf.p(delay),
+      veaf.p(remainingCommand),
+      veaf.p(position),
+      veaf.p(coalition)
     )
   )
   veaf.loggers.get(veafShortcuts.Id):trace(string.format("markId=[%s]", veaf.p(markId)))
@@ -560,10 +560,10 @@ function veafShortcuts.ExecuteBatchAliasesList(aliasBatchList, delay, coalition,
   veaf.loggers.get(veafShortcuts.Id):debug(
     string.format(
       "veafShortcuts.ExecuteBatchAliasesList([%s],[%s],[%s],[%s])",
-      veaf.lp(aliasBatchList),
-      veaf.lp(delay),
-      veaf.lp(coalition),
-      veaf.lp(silent)
+      veaf.p(aliasBatchList),
+      veaf.p(delay),
+      veaf.p(coalition),
+      veaf.p(silent)
     )
   )
   if aliasBatchList and #aliasBatchList > 0 then -- run a batch
@@ -1707,10 +1707,10 @@ function veafShortcuts.executeCommandFromRemote(parameters)
         veaf.loggers.get(veafShortcuts.Id):info(
           string.format(
             "[%s] is running an alias at position [%s] for coalition [%s] : [%s]",
-            veaf.lp(_pilot.name),
-            veaf.lp(_pos),
-            veaf.lp(_coa),
-            veaf.lp(_alias)
+            veaf.p(_pilot.name),
+            veaf.p(_pos),
+            veaf.p(_coa),
+            veaf.p(_alias)
           )
         )
         veafShortcuts.executeCommand(_pos, _alias, invertedCoalition, _pilot.name)
@@ -1719,9 +1719,9 @@ function veafShortcuts.executeCommandFromRemote(parameters)
         veaf.loggers.get(veafShortcuts.Id):info(
           string.format(
             "[%s] is running an alias with no specific position for coalition [%s] : [%s]",
-            veaf.lp(_pilot.name),
-            veaf.lp(_coa),
-            veaf.lp(_alias)
+            veaf.p(_pilot.name),
+            veaf.p(_coa),
+            veaf.p(_alias)
           )
         )
         veafShortcuts.executeCommand(nil, _alias, invertedCoalition, _pilot.name)

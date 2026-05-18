@@ -541,10 +541,10 @@ function ArtilleryUnitHandler:handleOrder(order)
       local coordinates = grid.UTMZone .. " " .. grid.MGRSDigraph .. " " .. grid.Easting .. " " .. grid.Northing
       local message = string.format(
         "%s is firing %d shells at %s with a %s m dispersion",
-        veaf.lp(self:getName()),
-        veaf.lp(shells),
-        veaf.lp(coordinates),
-        veaf.lp(radius)
+        veaf.p(self:getName()),
+        veaf.p(shells),
+        veaf.p(coordinates),
+        veaf.p(radius)
       )
       trigger.action.outText(message, 10)
       veaf.loggers.get(veafGroundAI.Id):trace(

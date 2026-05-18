@@ -218,8 +218,8 @@ function veafSpawn.executeCommand(
         veaf.loggers.get(veafSpawn.Id):trace(
           string.format(
             "using parsed repeat options to set repeatCount to %s and repeatDelay to %s",
-            veaf.lp(repeatCount),
-            veaf.lp(repeatDelay)
+            veaf.p(repeatCount),
+            veaf.p(repeatDelay)
           )
         )
       end
@@ -1381,12 +1381,12 @@ function veafSpawn.addPointToDrawing(point, name, color, fillColor, lineType, is
   veaf.loggers.get(veafSpawn.Id):debug(
     string.format(
       "addPointToDrawing(point=%s, name=%s, color=%s, fillColor=%s, lineType=%s, isArrow=%s)",
-      veaf.lp(point),
-      veaf.lp(name),
-      veaf.lp(color),
-      veaf.lp(fillColor),
-      veaf.lp(lineType),
-      veaf.lp(isArrow)
+      veaf.p(point),
+      veaf.p(name),
+      veaf.p(color),
+      veaf.p(fillColor),
+      veaf.p(lineType),
+      veaf.p(isArrow)
     )
   )
   if not name then
@@ -1427,12 +1427,12 @@ function veafSpawn.drawCircle(point, name, radius, color, fillColor, lineType)
   veaf.loggers.get(veafSpawn.Id):debug(
     string.format(
       "drawCircle(point=%s, name=%s, radius=%s, color=%s, fillColor=%s, lineType=%s)",
-      veaf.lp(point),
-      veaf.lp(name),
-      veaf.lp(radius),
-      veaf.lp(color),
-      veaf.lp(fillColor),
-      veaf.lp(lineType)
+      veaf.p(point),
+      veaf.p(name),
+      veaf.p(radius),
+      veaf.p(color),
+      veaf.p(fillColor),
+      veaf.p(lineType)
     )
   )
   if not name then
@@ -1473,12 +1473,12 @@ function veafSpawn.drawSquare(point, name, side, color, fillColor, lineType)
   veaf.loggers.get(veafSpawn.Id):debug(
     string.format(
       "drawSquare(point=%s, name=%s, side=%s, color=%s, fillColor=%s, lineType=%s)",
-      veaf.lp(point),
-      veaf.lp(name),
-      veaf.lp(side),
-      veaf.lp(color),
-      veaf.lp(fillColor),
-      veaf.lp(lineType)
+      veaf.p(point),
+      veaf.p(name),
+      veaf.p(side),
+      veaf.p(color),
+      veaf.p(fillColor),
+      veaf.p(lineType)
     )
   )
   if not name then
@@ -1638,15 +1638,15 @@ function veafSpawn.doSpawnGroup(
       veaf.loggers.get(veafSpawn.Id):trace(
         string.format(
           "toInsert x=%.1f y=%.1f, alt=%.1f, type=%s, name=%s, speed=%d, heading=%d, skill=%s, country=%s",
-          veaf.lp(toInsert.x),
-          veaf.lp(toInsert.y),
-          veaf.lp(toInsert.alt),
-          veaf.lp(toInsert.type),
-          veaf.lp(toInsert.name),
-          veaf.lp(toInsert.speed),
-          veaf.lp(mist.utils.toDegree(toInsert.heading)),
-          veaf.lp(toInsert.skill),
-          veaf.lp(country)
+          veaf.p(toInsert.x),
+          veaf.p(toInsert.y),
+          veaf.p(toInsert.alt),
+          veaf.p(toInsert.type),
+          veaf.p(toInsert.name),
+          veaf.p(toInsert.speed),
+          veaf.p(mist.utils.toDegree(toInsert.heading)),
+          veaf.p(toInsert.skill),
+          veaf.p(country)
         )
       )
       table.insert(units, toInsert)

@@ -255,9 +255,9 @@ function VeafSanctuaryZone:setPolygonFromUnitsInSequence(unitNamePrefix, markPos
   veaf.loggers.get(veafSanctuary.Id):trace(
     string.format(
       "VeafSanctuaryZone[%s]:setPolygonFromUnitsInSequence(%s, %s)",
-      veaf.lp(self.name),
-      veaf.lp(unitNamePrefix),
-      veaf.lp(markPositions)
+      veaf.p(self.name),
+      veaf.p(unitNamePrefix),
+      veaf.p(markPositions)
     )
   )
 
@@ -571,7 +571,7 @@ function VeafSanctuaryZone:handleWeapon(weapon)
     veafSanctuary.recordTraceShooting(
       string.format(
         "launcherUnit=%s",
-        veaf.lp(veaf.ifnns(launcherUnit, { "getID", "getName", "getTypeName", "getPlayerName", "getCoalition" }))
+        veaf.p(veaf.ifnns(launcherUnit, { "getID", "getName", "getTypeName", "getPlayerName", "getCoalition" }))
       )
     )
     if launcherUnit and launcherUnit:getCoalition() ~= self:getCoalition() then
@@ -588,7 +588,7 @@ function VeafSanctuaryZone:handleWeapon(weapon)
         veafSanctuary.recordTraceShooting(
           string.format(
             "targetUnit=%s",
-            veaf.lp(veaf.ifnns(targetUnit, { "getID", "getName", "getTypeName", "getPlayerName", "getCoalition" }))
+            veaf.p(veaf.ifnns(targetUnit, { "getID", "getName", "getTypeName", "getPlayerName", "getCoalition" }))
           )
         )
         if targetUnit and targetUnit:getCoalition() == self:getCoalition() then

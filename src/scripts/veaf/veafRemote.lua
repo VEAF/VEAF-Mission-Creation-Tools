@@ -249,11 +249,11 @@ function veafRemote.executeCommandFromRemote(username, level, unitName, veafModu
   veaf.loggers.get(veafRemote.Id):debug(
     string.format(
       "veafRemote.executeCommandFromRemote([%s], [%s], [%s], [%s], [%s])",
-      veaf.lp(username),
-      veaf.lp(level),
-      veaf.lp(unitName),
-      veaf.lp(veafModule),
-      veaf.lp(command)
+      veaf.p(username),
+      veaf.p(level),
+      veaf.p(unitName),
+      veaf.p(veafModule),
+      veaf.p(command)
     )
   )
   --local _user = veafRemote.getRemoteUser(username)
@@ -296,20 +296,20 @@ function veafRemote.executeCommandFromRemote(username, level, unitName, veafModu
     veaf.loggers.get(veafRemote.Id):error(
       string.format(
         "Error when [%s] tried running [%s] in module [%s]; it returned %s",
-        veaf.lp(_user.name),
-        veaf.lp(_parameters),
-        veaf.lp(veafModule),
-        veaf.lp(_retval)
+        veaf.p(_user.name),
+        veaf.p(_parameters),
+        veaf.p(veafModule),
+        veaf.p(_retval)
       )
     )
   else
     veaf.loggers.get(veafRemote.Id):info(
       string.format(
         "[%s] ran [%s] in module [%s]; it returned %s",
-        veaf.lp(_user.name),
-        veaf.lp(_parameters),
-        veaf.lp(veafModule),
-        veaf.lp(_retval)
+        veaf.p(_user.name),
+        veaf.p(_parameters),
+        veaf.p(veafModule),
+        veaf.p(_retval)
       )
     )
   end

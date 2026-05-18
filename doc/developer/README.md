@@ -145,10 +145,36 @@ end
 ```lua
 veaf.loggers.get(moduleName.Id):info("Message")
 veaf.loggers.get(moduleName.Id):debug("Debug: %s", variable)
-veaf.loggers.get(moduleName.Id):trace("Trace: %s", veaf.p(table))
+veaf.loggers.get(moduleName.Id):trace("Trace: %s", veaf.lp(table))
 ```
 
-Log levels: `error` (0) → `warn` (1) → `info` (2) → `debug` (3) → `trace` (5).
+Log levels: `error` (1) → `warning` (2) → `info` (3) → `debug` (4) → `trace` (5). Default is `info` (3).
+
+For expensive arguments, use `veaf.lp()` (lazy proxy — only stringified when the level is active).
+
+To increase verbosity for a mission at **build time** (global, baked into the `.miz`), add `global_log_level` in `mission.yaml`:
+
+```yaml
+global_log_level: debug
+```
+
+For **per-module build-time** control, use the `lua_modules` section:
+
+```yaml
+lua_modules:
+  SPAWN:
+    logLevel: debug
+  RADIO:
+    logLevel: trace
+```
+
+This generates `veaf.setConfig("MODULE_ID", "logLevel", "...")` calls in `veaf-modules-config.lua`. Or use `--log-modules SPAWN,RADIO` on the CLI to silence everything else.
+
+For **per-module runtime** control (no rebuild), use `missionconfig.lua` directly:
+
+```lua
+veaf.loggers.get("SPAWN"):setLevel("debug", true)  -- force=true bypasses BaseLogLevel cap
+```
 
 ### mist.DBs Access
 

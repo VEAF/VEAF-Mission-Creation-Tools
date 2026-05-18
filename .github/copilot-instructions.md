@@ -40,6 +40,32 @@ stylua src/scripts/veaf/
 - This check is enforced by the **StyLua Formatting** CI job on every PR
 - Never commit Lua files with formatting violations — the CI will block the merge
 
+### Quality Gate — Lua Unit Tests
+
+Before opening a PR that touches `src/scripts/veaf/`, run the Lua test suite locally:
+
+```powershell
+# Requires lua.exe (Lua 5.1) — installed at C:\Program Files (x86)\Lua\5.1\lua.exe
+$FAILED=0
+Get-ChildItem test/lua/test_*.lua | Sort-Object Name | ForEach-Object {
+    Write-Host "--- $($_.Name) ---"
+    lua $_.FullName; if ($LASTEXITCODE -ne 0) { $FAILED=1 }
+}
+if ($FAILED -eq 0) { 'All tests passed.' } else { 'FAILED'; exit 1 }
+```
+
+- CI runs on Lua 5.1 (Ubuntu, `lua5.1`). Local interpreter: `lua` (Lua 5.1 via `C:\Program Files (x86)\Lua\5.1\lua.exe`)
+- **Critical**: `veaf.lp()` (lazy proxy) returns a table. In Lua 5.1, `string.format("%s", table)` does NOT call `__tostring` and will error. Only pass `veaf.lp()` as a direct logger argument, never inside a `string.format()` call — use `veaf.p()` there instead.
+
+### Pre-PR Checklist (run in order before every PR)
+
+1. `~/.local/bin/stylua.exe src/scripts/veaf/` — auto-fix Lua formatting
+2. `~/.local/bin/stylua.exe --check src/scripts/veaf/` — verify clean
+3. Lua tests (see above) — verify all suites pass
+4. `. .venv/Scripts/Activate.ps1` then `ruff check` + `ruff format --check` + `mypy` + `pytest` — Python quality gate
+5. Update `doc/backlog.md` to reflect ticket state
+6. Only then: open PR and request Copilot review (`mcp_github_request_copilot_review`)
+
 ---
 
 ## Project Overview

@@ -5,6 +5,7 @@
 | Lot | Estimated (min) | Actual (min) | Ratio | Note |
 |-----|----------------|--------------|-------|------|
 | *(no lot completed yet)* | | | | Initial factor: 1.15 |
+| Lot 6 — BONUS | 210 | — | — | LUA-006 + TOOL-004 + LUA-007 |
 
 ## Legend
 
@@ -294,10 +295,11 @@ In `mission.yaml` (mission configuration): `lua_modules` section listing modules
 
 | # | Ticket | Type | Effort | Depends on | Status |
 |---|--------|------|--------|------------|--------|
-| LUA-006 | `--log-modules` option in `veaf-tools` to filter which modules log | feat | 90 min | LUA-001 | [ ] |
-| TOOL-004 | Parse `dcsUnits.lua` → dynamic markdown doc generated before publish | feat | 90 min | TOOL-003 | [ ] |
+| LUA-006 | `--log-modules` option in `veaf-tools` to filter which modules log | feat | 90 min | LUA-001 | [x] |
+| TOOL-004 | Parse `dcsUnits.lua` → dynamic markdown doc generated before publish | feat | 90 min | TOOL-003 | [x] |
+| LUA-007 | Lazy log args (`veaf.lp`), single build, runtime log control (`global_log_level`) | feat | 120 min | LUA-006 | [x] |
 
-**Raw total: 180 min → estimated (×1.15): ~210 min (~3h30)**
+**Raw total: 300 min → estimated (×1.15): ~345 min (~5h45)**
 
 <details>
 <summary>Ticket details</summary>
@@ -305,8 +307,14 @@ In `mission.yaml` (mission configuration): `lua_modules` section listing modules
 **LUA-006 — Logger filter**
 `--log-modules spawn,radio,assets` option on `veaf-tools build` and `veaf-tools inject-*` commands. Translates to a section in the generated `missionconfig.lua` that disables logging (or forces `logLevel = "error"`) for all unlisted modules. Useful for debugging a mission without log noise.
 
-**TOOL-004 — DCSUnits doc**
-In `build-and-release.py`, before publish: parse `src/scripts/veaf/dcsUnits.lua` (Lua data table), extract the unit list with category and type, generate `doc/DCS_UNITS.md` (markdown table sorted by category). Include in the published artifact.
+**LUA-007 — Lazy log args + single build + runtime log control**
+- `veaf.lp(value)`: lazy proxy so log arguments are only stringified if the log level is active.
+  Returns a metatable with `__tostring` → `veaf.p(value)`. Safe to use in `:trace()`/`:debug()` calls.
+- Migrate all 1233 `veaf.p(` → `veaf.lp(` calls across the Lua codebase (automated via `migrate_lazy_log.py`).
+- Remove build-time comment-out step (`--scripts-variant debug/trace/standard`) from `build-and-release.py`.
+- Remove `_create_lua_variant_files()` and the three `veaf-scripts-*.lua` variant generation steps.
+- `veaf.BaseLogLevel = 3` (info) as default; replace `--scripts-variant` with `mission.yaml: global_log_level`.
+  Writes `veaf.ForcedLogLevel = "<level>"` in the generated `veaf-modules-config.lua`.
 
 </details>
 

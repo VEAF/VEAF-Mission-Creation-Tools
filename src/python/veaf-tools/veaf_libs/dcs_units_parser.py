@@ -80,13 +80,13 @@ def _is_meaningful_attribute(attr: str) -> bool:
 # Parsing
 # ---------------------------------------------------------------------------
 
-_RE_ENTRY_START = re.compile(r"^\[\d+\]\s*=$")
+_RE_ENTRY_START = re.compile(r"^\[\d+\]\s*=\s*\{?\s*(--.*)?$")
 # Closing-brace pattern: matches `}`, `},`, or `}, -- any comment`.
 # The state machine knows which block we are in, so a single loose pattern
 # serves for entry ends, attribute sub-table ends, and aliases sub-table ends.
 _RE_CLOSE = re.compile(r"^\},?\s*(--.*)?$")
-_RE_ATTR_OPEN = re.compile(r'^\["attribute"\]\s*=$')
-_RE_ALIAS_OPEN = re.compile(r'^\["aliases"\]\s*=$')
+_RE_ATTR_OPEN = re.compile(r'^\["attribute"\]\s*=\s*\{?\s*(--.*)?$')
+_RE_ALIAS_OPEN = re.compile(r'^\["aliases"\]\s*=\s*\{?\s*(--.*)?$')
 _RE_STRING_FLAG = re.compile(r'^\["([^"]+)"\]\s*=\s*true\s*,?$')
 _RE_ALIAS_VALUE = re.compile(r'^\[\d+\]\s*=\s*"([^"]+)"\s*,?$')
 _RE_FIELD = re.compile(r'^\["([^"]+)"\]\s*=\s*"([^"]*)"\s*,?$')

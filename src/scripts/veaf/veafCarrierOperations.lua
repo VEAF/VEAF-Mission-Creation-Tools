@@ -189,7 +189,7 @@ function veafCarrierOperations.continueCarrierOperations(groupName, userUnitName
 
     --get wind info
     local wind = atmosphere.getWind(startPosition)
-    veaf.loggers.get(veafCarrierOperations.Id):trace("wind=%s", veaf.p(wind))
+    veaf.loggers.get(veafCarrierOperations.Id):trace("wind=%s", veaf.lp(wind))
     local windspeed = mist.vec.mag(wind)
     veaf.loggers.get(veafCarrierOperations.Id):trace(string.format("windspeed=%s", veaf.p(windspeed)))
 
@@ -251,19 +251,21 @@ function veafCarrierOperations.continueCarrierOperations(groupName, userUnitName
     local unitsToCheck = {}
     if carrierGroup then
       for _, unitToCheck in pairs(carrierGroup:getUnits()) do
-        veaf.loggers.get(veafCarrierOperations.Id):trace("checking %s %s", veaf.p(unitToCheck:getTypeName()), veaf.p(unitToCheck:getName()))
+        veaf.loggers
+          .get(veafCarrierOperations.Id)
+          :trace("checking %s %s", veaf.lp(unitToCheck:getTypeName()), veaf.lp(unitToCheck:getName()))
         if not carrierUnit or unitToCheck:getID() ~= carrierUnit:getID() then
           table.insert(unitsToCheck, unitToCheck)
         end
       end
     end
-    veaf.loggers.get(veafCarrierOperations.Id):trace("unitsToCheck=%s", veaf.p(unitsToCheck))
+    veaf.loggers.get(veafCarrierOperations.Id):trace("unitsToCheck=%s", veaf.lp(unitsToCheck))
     local pointA = veaf.computeCoordinatesOffsetFromRoute(startPosition, newWaypoint, 500, 500)
     local pointB = veaf.computeCoordinatesOffsetFromRoute(startPosition, newWaypoint, 500, -500)
     local pointC = veaf.computeCoordinatesOffsetFromRoute(startPosition, newWaypoint, 2000, -500)
     local pointD = veaf.computeCoordinatesOffsetFromRoute(startPosition, newWaypoint, 2000, 500)
     local polygon = { pointA, pointB, pointC, pointD }
-    veaf.loggers.get(veafCarrierOperations.Id):trace("polygon=%s", veaf.p(polygon))
+    veaf.loggers.get(veafCarrierOperations.Id):trace("polygon=%s", veaf.lp(polygon))
     veafCarrierOperations.traceMarkerId = veaf.loggers.get(veafCarrierOperations.Id):markerQuad(
       veafCarrierOperations.traceMarkerId,
       "CARRIER",
@@ -277,13 +279,13 @@ function veafCarrierOperations.continueCarrierOperations(groupName, userUnitName
     local obstructions = {}
     for i = 1, #unitsToCheck do
       local lUnit = unitsToCheck[i]
-      veaf.loggers.get(veafCarrierOperations.Id):trace("lUnit:getName()=%s", veaf.p(lUnit:getName()))
+      veaf.loggers.get(veafCarrierOperations.Id):trace("lUnit:getName()=%s", veaf.lp(lUnit:getName()))
       if mist.pointInPolygon(lUnit:getPosition().p, polygon) then
         obstructions[#obstructions + 1] = lUnit
       end
     end
 
-    veaf.loggers.get(veafCarrierOperations.Id):trace("obstructions=%s", veaf.p(obstructions))
+    veaf.loggers.get(veafCarrierOperations.Id):trace("obstructions=%s", veaf.lp(obstructions))
     if #obstructions > 0 then
       -- obstructions found, derouting
       local newDir = dir + 90
@@ -293,10 +295,10 @@ function veafCarrierOperations.continueCarrierOperations(groupName, userUnitName
 
       local msg = string.format(
         "Obstruction found at heading %s, derouting %s to heading %s",
-        veaf.p(#obstructions),
-        veaf.p(dir),
-        veaf.p(groupName),
-        veaf.p(newDir)
+        veaf.lp(#obstructions),
+        veaf.lp(dir),
+        veaf.lp(groupName),
+        veaf.lp(newDir)
       )
       veaf.loggers.get(veafCarrierOperations.Id):debug(msg)
       veaf.outTextForGroup(userUnitName, msg, 5)
@@ -996,7 +998,7 @@ function veafCarrierOperations.initializeCarrierGroups()
       if carrier then
         -- take note of the carrier route
         carrier.missionRoute = mist.getGroupRoute(name, "task")
-        veaf.loggers.get(veafCarrierOperations.Id):trace("carrier.missionRoute=%s", veaf.p(carrier.missionRoute))
+        veaf.loggers.get(veafCarrierOperations.Id):trace("carrier.missionRoute=%s", veaf.lp(carrier.missionRoute))
         if veafCarrierOperations.Trace then
           for num, point in pairs(carrier.missionRoute) do
             veafCarrierOperations.traceMarkerId =
@@ -1040,7 +1042,7 @@ function veafCarrierOperations.doOperations()
       -- reset the carrier group route to its original route (set in the mission)
       if carrier.missionRoute then
         veaf.loggers.get(veafCarrierOperations.Id):debug(string.format("resetting carrier %s route", name))
-        veaf.loggers.get(veafCarrierOperations.Id):trace("carrier.missionRoute=" .. veaf.p(carrier.missionRoute))
+        veaf.loggers.get(veafCarrierOperations.Id):trace("carrier.missionRoute=" .. veaf.lp(carrier.missionRoute))
         local result = mist.goRoute(name, carrier.missionRoute)
       end
     else

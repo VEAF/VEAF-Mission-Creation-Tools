@@ -67,7 +67,7 @@ end
 
 -- technical name (VeafCache instance name)
 function VeafCache:setName(value)
-  veaf.loggers.get(veafCacheManager.Id):debug("VeafCache[]:setName(%s)", veaf.p(value))
+  veaf.loggers.get(veafCacheManager.Id):debug("VeafCache[]:setName(%s)", veaf.lp(value))
   self.name = value
 end
 
@@ -79,7 +79,7 @@ end
 -- default time to live
 function VeafCache:setDefaultTimeToLive(value)
   self.defaultTTL = value
-  veaf.loggers.get(veafCacheManager.Id):debug("VeafCache[%s]:setDefaultTimeToLive(%s)", veaf.p(self:getName()), veaf.p(value))
+  veaf.loggers.get(veafCacheManager.Id):debug("VeafCache[%s]:setDefaultTimeToLive(%s)", veaf.lp(self:getName()), veaf.lp(value))
   return self
 end
 

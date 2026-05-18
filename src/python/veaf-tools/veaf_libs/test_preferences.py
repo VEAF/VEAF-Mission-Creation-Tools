@@ -89,9 +89,9 @@ class TestGetLastArgs:
 class TestSaveInvocation:
     def test_saves_command_and_args(self, tmp_path: Path) -> None:
         with patch(_PATCH_HOME, return_value=tmp_path):
-            save_invocation("build", {"mission_folder": ".", "scripts_variant": "standard"})
+            save_invocation("build", {"mission_folder": "."})
             assert get_last_command() == "build"
-            assert get_last_args("build") == {"mission_folder": ".", "scripts_variant": "standard"}
+            assert get_last_args("build") == {"mission_folder": "."}
 
     def test_preserves_other_commands_args(self, tmp_path: Path) -> None:
         with patch(_PATCH_HOME, return_value=tmp_path):

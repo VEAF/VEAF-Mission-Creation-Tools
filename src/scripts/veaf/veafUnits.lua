@@ -186,7 +186,7 @@ function veafUnits.processGroup(group)
   result.description = group.description
   result.groupName = group.groupName
   result.units = {}
-  veaf.loggers.get(veafUnits.Id):trace("group=" .. veaf.p(group))
+  veaf.loggers.get(veafUnits.Id):trace("group=" .. veaf.lp(group))
   local unitNumber = 1
   -- replace all units with a simplified structure made from the DCS unit metadata structure
   for i = 1, #group.units do
@@ -198,7 +198,7 @@ function veafUnits.processGroup(group)
     local random = false
     local fitToUnit = false
     local u = group.units[i]
-    veaf.loggers.get(veafUnits.Id):trace("u=" .. veaf.p(u))
+    veaf.loggers.get(veafUnits.Id):trace("u=" .. veaf.lp(u))
     if type(u) == "string" then
       -- information was skipped using simplified syntax
       unitType = u
@@ -207,7 +207,7 @@ function veafUnits.processGroup(group)
       if not unitType then
         unitType = u[1]
       end
-      veaf.loggers.get(veafUnits.Id):trace("unitType=" .. veaf.p(unitType))
+      veaf.loggers.get(veafUnits.Id):trace("unitType=" .. veaf.lp(unitType))
       cell = u.cell
       number = u.number
       size = u.size
@@ -272,7 +272,7 @@ function veafUnits.processGroup(group)
     end
   end
 
-  veaf.loggers.get(veafUnits.Id):trace("result=" .. veaf.p(result))
+  veaf.loggers.get(veafUnits.Id):trace("result=" .. veaf.lp(result))
 
   return result
 end

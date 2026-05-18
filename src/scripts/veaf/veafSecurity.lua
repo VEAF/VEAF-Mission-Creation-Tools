@@ -595,7 +595,7 @@ function veafSecurity.getMarkerSecurityLevel(markId)
   veaf.loggers.get(veafSecurity.Id):trace(string.format("veafSecurity.getMarkerSecurityLevel([%s])", veaf.p(markId)))
   local _author = nil
   for _, panel in pairs(world.getMarkPanels()) do
-    veaf.loggers.get(veafSecurity.Id):trace("panel=%s", veaf.p(panel))
+    veaf.loggers.get(veafSecurity.Id):trace("panel=%s", veaf.lp(panel))
     if panel.idx == markId then
       _author = panel.author
     end

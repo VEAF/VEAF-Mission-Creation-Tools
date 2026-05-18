@@ -218,8 +218,8 @@ function veafSpawn.executeCommand(
         veaf.loggers.get(veafSpawn.Id):trace(
           string.format(
             "using parsed repeat options to set repeatCount to %s and repeatDelay to %s",
-            veaf.p(repeatCount),
-            veaf.p(repeatDelay)
+            veaf.lp(repeatCount),
+            veaf.lp(repeatDelay)
           )
         )
       end
@@ -672,7 +672,7 @@ function veafSpawn.executeCommand(
           end
           veaf.loggers
             .get(veafSpawn.Id)
-            :trace("got groupObject (isStatic=%s) to add group to other platforms : %s", veaf.p(isStatic), veaf.p(groupObject))
+            :trace("got groupObject (isStatic=%s) to add group to other platforms : %s", veaf.lp(isStatic), veaf.lp(groupObject))
           if groupObject then
             if not isStatic then
               --stuff below does not support statics
@@ -696,11 +696,11 @@ function veafSpawn.executeCommand(
               end
               -- add the group to the IADS, if there is one
               if veafSkynet and not veafSkynet.DynamicSpawn and options.skynet then -- only add static stuff like sam groups and sam batteries, not mobile groups and convoys -- and do not do that if DynamicSpawn is active in VeafSkynet
-                veaf.loggers.get(veafSpawn.Id):trace("options.skynet= %s", veaf.p(options.skynet))
+                veaf.loggers.get(veafSpawn.Id):trace("options.skynet= %s", veaf.lp(options.skynet))
                 if type(options.skynet) == "boolean" then --it means options.skynet is true
                   options.skynet = veafSkynet.defaultIADS[tostring(options.side)]
                 end
-                veaf.loggers.get(veafSpawn.Id):trace("Adding spawned group to skynet, networkName= %s", veaf.p(options.skynet))
+                veaf.loggers.get(veafSpawn.Id):trace("Adding spawned group to skynet, networkName= %s", veaf.lp(options.skynet))
                 local networkName = options.skynet
                 if veafSkynet.addGroupToNetwork(networkName, groupObject, options.forceEwr, options.pointDefense, nil, bypassSecurity) then
                   veaf.loggers.get(veafSpawn.Id):trace("Group Added to IADS network")
@@ -1377,12 +1377,12 @@ function veafSpawn.addPointToDrawing(point, name, color, fillColor, lineType, is
   veaf.loggers.get(veafSpawn.Id):debug(
     string.format(
       "addPointToDrawing(point=%s, name=%s, color=%s, fillColor=%s, lineType=%s, isArrow=%s)",
-      veaf.p(point),
-      veaf.p(name),
-      veaf.p(color),
-      veaf.p(fillColor),
-      veaf.p(lineType),
-      veaf.p(isArrow)
+      veaf.lp(point),
+      veaf.lp(name),
+      veaf.lp(color),
+      veaf.lp(fillColor),
+      veaf.lp(lineType),
+      veaf.lp(isArrow)
     )
   )
   if not name then
@@ -1423,12 +1423,12 @@ function veafSpawn.drawCircle(point, name, radius, color, fillColor, lineType)
   veaf.loggers.get(veafSpawn.Id):debug(
     string.format(
       "drawCircle(point=%s, name=%s, radius=%s, color=%s, fillColor=%s, lineType=%s)",
-      veaf.p(point),
-      veaf.p(name),
-      veaf.p(radius),
-      veaf.p(color),
-      veaf.p(fillColor),
-      veaf.p(lineType)
+      veaf.lp(point),
+      veaf.lp(name),
+      veaf.lp(radius),
+      veaf.lp(color),
+      veaf.lp(fillColor),
+      veaf.lp(lineType)
     )
   )
   if not name then
@@ -1469,12 +1469,12 @@ function veafSpawn.drawSquare(point, name, side, color, fillColor, lineType)
   veaf.loggers.get(veafSpawn.Id):debug(
     string.format(
       "drawSquare(point=%s, name=%s, side=%s, color=%s, fillColor=%s, lineType=%s)",
-      veaf.p(point),
-      veaf.p(name),
-      veaf.p(side),
-      veaf.p(color),
-      veaf.p(fillColor),
-      veaf.p(lineType)
+      veaf.lp(point),
+      veaf.lp(name),
+      veaf.lp(side),
+      veaf.lp(color),
+      veaf.lp(fillColor),
+      veaf.lp(lineType)
     )
   )
   if not name then
@@ -1634,15 +1634,15 @@ function veafSpawn.doSpawnGroup(
       veaf.loggers.get(veafSpawn.Id):trace(
         string.format(
           "toInsert x=%.1f y=%.1f, alt=%.1f, type=%s, name=%s, speed=%d, heading=%d, skill=%s, country=%s",
-          veaf.p(toInsert.x),
-          veaf.p(toInsert.y),
-          veaf.p(toInsert.alt),
-          veaf.p(toInsert.type),
-          veaf.p(toInsert.name),
-          veaf.p(toInsert.speed),
-          veaf.p(mist.utils.toDegree(toInsert.heading)),
-          veaf.p(toInsert.skill),
-          veaf.p(country)
+          veaf.lp(toInsert.x),
+          veaf.lp(toInsert.y),
+          veaf.lp(toInsert.alt),
+          veaf.lp(toInsert.type),
+          veaf.lp(toInsert.name),
+          veaf.lp(toInsert.speed),
+          veaf.lp(mist.utils.toDegree(toInsert.heading)),
+          veaf.lp(toInsert.skill),
+          veaf.lp(country)
         )
       )
       table.insert(units, toInsert)
@@ -1692,15 +1692,15 @@ function veafSpawn.spawnFarp(
 )
   veaf.loggers.get(veafSpawn.Id):debug(
     "spawnFarp(name=%s, country=%s, farptype=%s, side=%s, hdg=%s, spacing=%s, silent=%s, hiddenOnMFD=%s, noFarpMarkers=%s)",
-    veaf.p(name),
-    veaf.p(country),
-    veaf.p(farptype),
-    veaf.p(side),
-    veaf.p(hdg),
-    veaf.p(spacing),
-    veaf.p(silent),
-    veaf.p(hiddenOnMFD),
-    veaf.p(noFarpMarkers)
+    veaf.lp(name),
+    veaf.lp(country),
+    veaf.lp(farptype),
+    veaf.lp(side),
+    veaf.lp(hdg),
+    veaf.lp(spacing),
+    veaf.lp(silent),
+    veaf.lp(hiddenOnMFD),
+    veaf.lp(noFarpMarkers)
   )
 
   local radius = radius or 0
@@ -1712,13 +1712,13 @@ function veafSpawn.spawnFarp(
   local noFarpMarkers = noFarpMarkers or false
 
   local spawnPosition = veaf.placePointOnLand(mist.getRandPointInCircle(spawnSpot, radius))
-  veaf.loggers.get(veafSpawn.Id):trace("spawnPosition=%s", veaf.p(spawnPosition))
+  veaf.loggers.get(veafSpawn.Id):trace("spawnPosition=%s", veaf.lp(spawnPosition))
   if not name or name == "" then
     local _lat, _lon = coord.LOtoLL(spawnSpot)
-    veaf.loggers.get(veafSpawn.Id):trace("_lat=%s", veaf.p(_lat))
-    veaf.loggers.get(veafSpawn.Id):trace("_lon=%s", veaf.p(_lon))
+    veaf.loggers.get(veafSpawn.Id):trace("_lat=%s", veaf.lp(_lat))
+    veaf.loggers.get(veafSpawn.Id):trace("_lon=%s", veaf.lp(_lon))
     local _mgrs = coord.LLtoMGRS(_lat, _lon)
-    veaf.loggers.get(veafSpawn.Id):trace("_mgrs=%s", veaf.p(_mgrs))
+    veaf.loggers.get(veafSpawn.Id):trace("_mgrs=%s", veaf.lp(_mgrs))
     local _UTM = _mgrs.MGRSDigraph .. math.floor(_mgrs.Easting / 1000) .. math.floor(_mgrs.Northing / 1000)
     name = "FARP " .. _UTM:upper() .. "-" .. timer.getTime()
   end
@@ -1763,10 +1763,10 @@ function veafSpawn.spawnFarp(
   }
   mist.dynAddStatic(_farpStatic)
   local _spawnedFARP = StaticObject.getByName(name)
-  veaf.loggers.get(veafSpawn.Id):trace("_spawnedFARP=%s", veaf.p(_spawnedFARP))
+  veaf.loggers.get(veafSpawn.Id):trace("_spawnedFARP=%s", veaf.lp(_spawnedFARP))
 
   if _spawnedFARP then
-    veaf.loggers.get(veafSpawn.Id):debug("Spawned the FARP static %s", veaf.p(name))
+    veaf.loggers.get(veafSpawn.Id):debug("Spawned the FARP static %s", veaf.lp(name))
 
     -- populate the FARP but make the units invisible to MFDs as they are redundant (FARP already shows if wanted)
     veafGrass.buildFarpUnits(_farpStatic, nil, name, hiddenOnMFD, noFarpMarkers, code, freq, mod)
@@ -1779,14 +1779,14 @@ end
 function veafSpawn.spawnFob(spawnSpot, radius, name, country, fobtype, side, hdg, spacing, silent, hiddenOnMFD)
   veaf.loggers.get(veafSpawn.Id):debug(
     "spawnFob(name=%s, country=%s, fobtype=%s, side=%s, hdg=%s, spacing=%s, silent=%s, hiddenOnMFD=%s)",
-    veaf.p(name),
-    veaf.p(country),
-    veaf.p(fobtype),
-    veaf.p(side),
-    veaf.p(hdg),
-    veaf.p(spacing),
-    veaf.p(silent),
-    veaf.p(hiddenOnMFD)
+    veaf.lp(name),
+    veaf.lp(country),
+    veaf.lp(fobtype),
+    veaf.lp(side),
+    veaf.lp(hdg),
+    veaf.lp(spacing),
+    veaf.lp(silent),
+    veaf.lp(hiddenOnMFD)
   )
   local TOWER_DISTANCE = 20
   local BEACON_DISTANCE = 3
@@ -1804,13 +1804,13 @@ function veafSpawn.spawnFob(spawnSpot, radius, name, country, fobtype, side, hdg
   local _hdg = hdg or 0
 
   local _spawnPosition = veaf.placePointOnLand(mist.getRandPointInCircle(spawnSpot, _radius))
-  veaf.loggers.get(veafSpawn.Id):trace("spawnPosition=%s", veaf.p(_spawnPosition))
+  veaf.loggers.get(veafSpawn.Id):trace("spawnPosition=%s", veaf.lp(_spawnPosition))
   if not _fobName or _fobName == "" then
     local _lat, _lon = coord.LOtoLL(spawnSpot)
-    veaf.loggers.get(veafSpawn.Id):trace("_lat=%s", veaf.p(_lat))
-    veaf.loggers.get(veafSpawn.Id):trace("_lon=%s", veaf.p(_lon))
+    veaf.loggers.get(veafSpawn.Id):trace("_lat=%s", veaf.lp(_lat))
+    veaf.loggers.get(veafSpawn.Id):trace("_lon=%s", veaf.lp(_lon))
     local _mgrs = coord.LLtoMGRS(_lat, _lon)
-    veaf.loggers.get(veafSpawn.Id):trace("_mgrs=%s", veaf.p(_mgrs))
+    veaf.loggers.get(veafSpawn.Id):trace("_mgrs=%s", veaf.lp(_mgrs))
     local _UTM = _mgrs.MGRSDigraph .. math.floor(_mgrs.Easting / 1000) .. math.floor(_mgrs.Northing / 1000)
     _fobName = "FOB " .. _UTM:upper()
   end
@@ -1871,7 +1871,7 @@ function veafSpawn.spawnFob(spawnSpot, radius, name, country, fobtype, side, hdg
       _radioBeaconDetails.uhf / 1000000,
       _radioBeaconDetails.fm / 1000000
     )
-    veaf.loggers.get(veafSpawn.Id):trace("_namedPoint.tacan=%s", veaf.p(_namedPoint.tacan))
+    veaf.loggers.get(veafSpawn.Id):trace("_namedPoint.tacan=%s", veaf.lp(_namedPoint.tacan))
   end
   trigger.action.outTextForCoalition(
     _side,
@@ -1881,7 +1881,7 @@ function veafSpawn.spawnFob(spawnSpot, radius, name, country, fobtype, side, hdg
 
   _namedPoint.tower = "No Control"
 
-  veaf.loggers.get(veafSpawn.Id):trace("_namedPoint=%s", veaf.p(_namedPoint))
+  veaf.loggers.get(veafSpawn.Id):trace("_namedPoint=%s", veaf.lp(_namedPoint))
 
   veafNamedPoints.addPoint(_fobName, _namedPoint)
 
@@ -2885,11 +2885,11 @@ end
 
 --- add a smoke marker over the marker area
 function veafSpawn.spawnSmoke(spawnSpot, color, radius, shells)
-  veaf.loggers.get(veafSpawn.Id):debug("spawnSmoke(color=%s", veaf.p(color))
+  veaf.loggers.get(veafSpawn.Id):debug("spawnSmoke(color=%s", veaf.lp(color))
   local radius = radius or 50
   local shells = shells or 1
-  veaf.loggers.get(veafSpawn.Id):trace("radius=%s", veaf.p(radius))
-  veaf.loggers.get(veafSpawn.Id):trace("shells=%s", veaf.p(shells))
+  veaf.loggers.get(veafSpawn.Id):trace("radius=%s", veaf.lp(radius))
+  veaf.loggers.get(veafSpawn.Id):trace("shells=%s", veaf.lp(shells))
 
   local shellTime = 0
   for shell = 1, shells do
@@ -2932,13 +2932,13 @@ function veafSpawn.spawnIlluminationFlare(spawnSpot, radius, steps, power, heigh
   local height = height or 500
 
   veaf.loggers.get(veafSpawn.Id):debug("spawnIlluminationFlare()")
-  veaf.loggers.get(veafSpawn.Id):trace("spawnSpot=%s", veaf.p(spawnSpot))
-  veaf.loggers.get(veafSpawn.Id):trace("radius=%s", veaf.p(radius))
-  veaf.loggers.get(veafSpawn.Id):trace("steps=%s", veaf.p(steps))
-  veaf.loggers.get(veafSpawn.Id):trace("power=%s", veaf.p(power))
-  veaf.loggers.get(veafSpawn.Id):trace("height=%s", veaf.p(height))
-  veaf.loggers.get(veafSpawn.Id):trace("heading=%s", veaf.p(heading))
-  veaf.loggers.get(veafSpawn.Id):trace("distance=%s", veaf.p(distance))
+  veaf.loggers.get(veafSpawn.Id):trace("spawnSpot=%s", veaf.lp(spawnSpot))
+  veaf.loggers.get(veafSpawn.Id):trace("radius=%s", veaf.lp(radius))
+  veaf.loggers.get(veafSpawn.Id):trace("steps=%s", veaf.lp(steps))
+  veaf.loggers.get(veafSpawn.Id):trace("power=%s", veaf.lp(power))
+  veaf.loggers.get(veafSpawn.Id):trace("height=%s", veaf.lp(height))
+  veaf.loggers.get(veafSpawn.Id):trace("heading=%s", veaf.lp(heading))
+  veaf.loggers.get(veafSpawn.Id):trace("distance=%s", veaf.lp(distance))
 
   local cosHeading
   local sinHeading
@@ -3393,7 +3393,7 @@ function veafSpawn.dumpSpawnablePlanesList(export_path)
     table.insert(sortedSpawnablePlanesNames, _name)
   end
   table.sort(sortedSpawnablePlanesNames)
-  veaf.loggers.get(veafSpawn.Id):trace("sortedSpawnablePlanesNames=%s", veaf.p(sortedSpawnablePlanesNames))
+  veaf.loggers.get(veafSpawn.Id):trace("sortedSpawnablePlanesNames=%s", veaf.lp(sortedSpawnablePlanesNames))
 
   local _filename = "SpawnablePlanes.json"
   if veaf.config.MISSION_NAME then
@@ -3478,17 +3478,17 @@ function veafSpawn.spawnAFAC(spawnSpot, name, country, altitude, speed, hdg, fre
   --calculate DCS radio frequency based on which AFAC out of 8 this is
   local dcsFrequency = veafSpawn.AFAC.baseAFACfrequency[coalition] + (AFAC_num - 1) * 50000 -- .05 MHz increments
 
-  veaf.loggers.get(veafSpawn.Id):trace("spawnSpot=%s", veaf.p(spawnSpot))
-  veaf.loggers.get(veafSpawn.Id):trace("name=%s", veaf.p(name))
-  veaf.loggers.get(veafSpawn.Id):trace("country=%s", veaf.p(country))
-  veaf.loggers.get(veafSpawn.Id):trace("altitude (m)=%s", veaf.p(altitude))
-  veaf.loggers.get(veafSpawn.Id):trace("speed (m/s)=%s", veaf.p(speed))
-  veaf.loggers.get(veafSpawn.Id):trace("frequency=%s", veaf.p(frequency))
-  veaf.loggers.get(veafSpawn.Id):trace("dcsFrequency=%s", veaf.p(dcsFrequency))
-  veaf.loggers.get(veafSpawn.Id):trace("code=%s", veaf.p(code))
-  veaf.loggers.get(veafSpawn.Id):trace("mod=%s", veaf.p(mod))
-  veaf.loggers.get(veafSpawn.Id):trace("silent=%s", veaf.p(silent))
-  veaf.loggers.get(veafSpawn.Id):trace("hiddenOnMFD=%s", veaf.p(hiddenOnMFD))
+  veaf.loggers.get(veafSpawn.Id):trace("spawnSpot=%s", veaf.lp(spawnSpot))
+  veaf.loggers.get(veafSpawn.Id):trace("name=%s", veaf.lp(name))
+  veaf.loggers.get(veafSpawn.Id):trace("country=%s", veaf.lp(country))
+  veaf.loggers.get(veafSpawn.Id):trace("altitude (m)=%s", veaf.lp(altitude))
+  veaf.loggers.get(veafSpawn.Id):trace("speed (m/s)=%s", veaf.lp(speed))
+  veaf.loggers.get(veafSpawn.Id):trace("frequency=%s", veaf.lp(frequency))
+  veaf.loggers.get(veafSpawn.Id):trace("dcsFrequency=%s", veaf.lp(dcsFrequency))
+  veaf.loggers.get(veafSpawn.Id):trace("code=%s", veaf.lp(code))
+  veaf.loggers.get(veafSpawn.Id):trace("mod=%s", veaf.lp(mod))
+  veaf.loggers.get(veafSpawn.Id):trace("silent=%s", veaf.lp(silent))
+  veaf.loggers.get(veafSpawn.Id):trace("hiddenOnMFD=%s", veaf.lp(hiddenOnMFD))
 
   local teleportSpot = {}
   teleportSpot.x = spawnSpot.x - distanceFromTeleport * math.cos(hdg) --teleport spot is 3km south of the orbit point
@@ -3591,7 +3591,7 @@ function veafSpawn.spawnAFAC(spawnSpot, name, country, altitude, speed, hdg, fre
     newGroup.countryId = veaf.getCountryId(country)
   end
   --newGroup.task = "AFAC"
-  veaf.loggers.get(veafSpawn.Id):trace("newGroup=%s", veaf.p(newGroup, nil, { "route", "payload" }))
+  veaf.loggers.get(veafSpawn.Id):trace("newGroup=%s", veaf.lp(newGroup, nil, { "route", "payload" }))
 
   --setup of the new group
   local unit = newGroup.units[1]
@@ -3613,17 +3613,17 @@ function veafSpawn.spawnAFAC(spawnSpot, name, country, altitude, speed, hdg, fre
 
   unit.alt = teleportSpot.alt
 
-  veaf.loggers.get(veafSpawn.Id):trace("newGroup=%s", veaf.p(newGroup, nil, { "route", "payload" }))
+  veaf.loggers.get(veafSpawn.Id):trace("newGroup=%s", veaf.lp(newGroup, nil, { "route", "payload" }))
   local _spawnedGroup = mist.dynAdd(newGroup)
 
   if _spawnedGroup then
-    veaf.loggers.get(veafSpawn.Id):trace("_spawnedGroup=%s", veaf.p(_spawnedGroup, nil, { "route", "payload" }))
+    veaf.loggers.get(veafSpawn.Id):trace("_spawnedGroup=%s", veaf.lp(_spawnedGroup, nil, { "route", "payload" }))
     veaf.loggers.get(veafSpawn.Id):trace("_spawnedGroup.name=%s", _spawnedGroup.name)
     --mist.goRoute(_spawnedGroup.name, newRoute)
 
     _spawnedGroup.category = "AIRPLANE"
     _spawnedGroup.country = country
-    veaf.loggers.get(veafSpawn.Id):trace("_spawnedGroup=%s", veaf.p(_spawnedGroup))
+    veaf.loggers.get(veafSpawn.Id):trace("_spawnedGroup=%s", veaf.lp(_spawnedGroup))
     veafSpawn.AFAC.missionData[coalition][AFAC_num] = _spawnedGroup --since MIST does not store cloned group data, this is a bit of trickery to allow teleporting AFACs
 
     -- start lasing
@@ -3767,14 +3767,14 @@ function veafSpawn.findSpawnableAircraftGroupname(name)
     regexNameUpper = ".*"
   end
   local escapedNameUpper = veaf.escapeRegex(nameUpper)
-  veaf.loggers.get(veafSpawn.Id):trace("nameUpper=%s", veaf.p(nameUpper))
+  veaf.loggers.get(veafSpawn.Id):trace("nameUpper=%s", veaf.lp(nameUpper))
   local templatesNamesToChooseFrom = {}
   local chosenTemplateName = nil
   for templateNameUpper, templateData in pairs(veafSpawn.airUnitTemplates) do
-    veaf.loggers.get(veafSpawn.Id):trace("templateNameUpper=%s", veaf.p(templateNameUpper))
+    veaf.loggers.get(veafSpawn.Id):trace("templateNameUpper=%s", veaf.lp(templateNameUpper))
     if templateNameUpper:match(regexNameUpper) or templateNameUpper:match(escapedNameUpper) then
       local templateName = templateData.name
-      veaf.loggers.get(veafSpawn.Id):trace("templateName=%s", veaf.p(templateName))
+      veaf.loggers.get(veafSpawn.Id):trace("templateName=%s", veaf.lp(templateName))
       table.insert(templatesNamesToChooseFrom, templateName)
     end
   end
@@ -3786,7 +3786,7 @@ function veafSpawn.findSpawnableAircraftGroupname(name)
     trigger.action.outText(message, 15)
     return nil
   end
-  veaf.loggers.get(veafSpawn.Id):trace("templatesNamesToChooseFrom=%s", veaf.p(templatesNamesToChooseFrom))
+  veaf.loggers.get(veafSpawn.Id):trace("templatesNamesToChooseFrom=%s", veaf.lp(templatesNamesToChooseFrom))
   local chosenTemplateData = veaf.getGroupData(chosenTemplateName)
   veaf.loggers.get(veafSpawn.Id):trace("found template=%s", chosenTemplateData)
   return chosenTemplateName, chosenTemplateData
@@ -3854,22 +3854,22 @@ function veafSpawn.spawnCombatAirPatrol(
   local capRadius = (capRadius or 60) * 1852 --[[ meters ]]
   local skill = skill or "random"
 
-  veaf.loggers.get(veafSpawn.Id):trace("spawnSpot=%s", veaf.p(spawnSpot))
-  veaf.loggers.get(veafSpawn.Id):trace("radius=%s", veaf.p(radius))
-  veaf.loggers.get(veafSpawn.Id):trace("name=%s", veaf.p(name))
-  veaf.loggers.get(veafSpawn.Id):trace("country=%s", veaf.p(country))
-  veaf.loggers.get(veafSpawn.Id):trace("altitude=%s", veaf.p(altitude))
-  veaf.loggers.get(veafSpawn.Id):trace("altdelta=%s", veaf.p(altitudeDelta))
-  veaf.loggers.get(veafSpawn.Id):trace("hdg=%s", veaf.p(hdg))
-  veaf.loggers.get(veafSpawn.Id):trace("distance=%s", veaf.p(distance))
-  veaf.loggers.get(veafSpawn.Id):trace("speed0=%s", veaf.p(speed0))
-  veaf.loggers.get(veafSpawn.Id):trace("speed1=%s", veaf.p(speed1))
-  veaf.loggers.get(veafSpawn.Id):trace("speed2=%s", veaf.p(speed2))
-  veaf.loggers.get(veafSpawn.Id):trace("speed3=%s", veaf.p(speed3))
-  veaf.loggers.get(veafSpawn.Id):trace("capRadius=%s", veaf.p(capRadius))
-  veaf.loggers.get(veafSpawn.Id):trace("skill=%s", veaf.p(skill))
-  veaf.loggers.get(veafSpawn.Id):trace("silent=%s", veaf.p(silent))
-  veaf.loggers.get(veafSpawn.Id):trace("hiddenOnMFD=%s", veaf.p(hiddenOnMFD))
+  veaf.loggers.get(veafSpawn.Id):trace("spawnSpot=%s", veaf.lp(spawnSpot))
+  veaf.loggers.get(veafSpawn.Id):trace("radius=%s", veaf.lp(radius))
+  veaf.loggers.get(veafSpawn.Id):trace("name=%s", veaf.lp(name))
+  veaf.loggers.get(veafSpawn.Id):trace("country=%s", veaf.lp(country))
+  veaf.loggers.get(veafSpawn.Id):trace("altitude=%s", veaf.lp(altitude))
+  veaf.loggers.get(veafSpawn.Id):trace("altdelta=%s", veaf.lp(altitudeDelta))
+  veaf.loggers.get(veafSpawn.Id):trace("hdg=%s", veaf.lp(hdg))
+  veaf.loggers.get(veafSpawn.Id):trace("distance=%s", veaf.lp(distance))
+  veaf.loggers.get(veafSpawn.Id):trace("speed0=%s", veaf.lp(speed0))
+  veaf.loggers.get(veafSpawn.Id):trace("speed1=%s", veaf.lp(speed1))
+  veaf.loggers.get(veafSpawn.Id):trace("speed2=%s", veaf.lp(speed2))
+  veaf.loggers.get(veafSpawn.Id):trace("speed3=%s", veaf.lp(speed3))
+  veaf.loggers.get(veafSpawn.Id):trace("capRadius=%s", veaf.lp(capRadius))
+  veaf.loggers.get(veafSpawn.Id):trace("skill=%s", veaf.lp(skill))
+  veaf.loggers.get(veafSpawn.Id):trace("silent=%s", veaf.lp(silent))
+  veaf.loggers.get(veafSpawn.Id):trace("hiddenOnMFD=%s", veaf.lp(hiddenOnMFD))
 
   local getRoute = function(parameters)
     local newRoute = {
@@ -3992,7 +3992,7 @@ function veafSpawn.spawnCombatAirPatrol(
   veaf.loggers.get(veafSpawn.Id):debug("final spawn, position=%s", position)
 
   -- get the template first waypoint's options
-  veaf.loggers.get(veafSpawn.Id):trace("chosenTemplateData=%s", veaf.p(chosenTemplateData))
+  veaf.loggers.get(veafSpawn.Id):trace("chosenTemplateData=%s", veaf.lp(chosenTemplateData))
   local chosenTemplateWp1Task = {}
   if chosenTemplateData then
     local _route = chosenTemplateData.route
@@ -4081,7 +4081,7 @@ function veafSpawn.spawnCombatAirPatrol(
     newGroup.countryId = veaf.getCountryId(country)
   end
   --newGroup.task = "CAP" --needs to be set in the editor
-  veaf.loggers.get(veafSpawn.Id):trace("after preparation by MIST, newGroup=%s", veaf.p(newGroup, nil, { "route", "payload" }))
+  veaf.loggers.get(veafSpawn.Id):trace("after preparation by MIST, newGroup=%s", veaf.lp(newGroup, nil, { "route", "payload" }))
 
   newGroup.hidden = false
   newGroup.name = newGroupName
@@ -4102,19 +4102,19 @@ function veafSpawn.spawnCombatAirPatrol(
     veaf.loggers.get(veafSpawn.Id):debug("indexed spawnedUnitName=%s", spawnedUnitName)
   end
 
-  veaf.loggers.get(veafSpawn.Id):trace("before mist.dynAdd, newGroup=%s", veaf.p(newGroup, nil, { "route", "payload" }))
+  veaf.loggers.get(veafSpawn.Id):trace("before mist.dynAdd, newGroup=%s", veaf.lp(newGroup, nil, { "route", "payload" }))
   local _spawnedGroup = mist.dynAdd(newGroup)
   if not _spawnedGroup then
     veaf.loggers.get(veafSpawn.Id):error("cannot spawn group %s", veaf.p(newGroup.name))
     return nil
   end
   veaf.loggers.get(veafSpawn.Id):debug("after mist.dynAdd, _spawnedGroup.name=%s", _spawnedGroup.name)
-  veaf.loggers.get(veafSpawn.Id):trace("after mist.dynAdd, _spawnedGroup=%s", veaf.p(_spawnedGroup, nil, { "route", "payload" }))
+  veaf.loggers.get(veafSpawn.Id):trace("after mist.dynAdd, _spawnedGroup=%s", veaf.lp(_spawnedGroup, nil, { "route", "payload" }))
 
   local _dcsSpawnedGroup = Group.getByName(_spawnedGroup.name)
   veaf.loggers
     .get(veafSpawn.Id)
-    :trace("result of dcs side getByName, _dcsSpawnedGroup=%s", veaf.p(_dcsSpawnedGroup, nil, { "route", "payload" }))
+    :trace("result of dcs side getByName, _dcsSpawnedGroup=%s", veaf.lp(_dcsSpawnedGroup, nil, { "route", "payload" }))
   veaf.loggers.get(veafSpawn.Id):debug("result of dcs side getByName, _dcsSpawnedGroup.name=%s", _dcsSpawnedGroup:getName())
   for index, unit in pairs(_dcsSpawnedGroup:getUnits()) do
     veaf.loggers.get(veafSpawn.Id):debug("result of dcs side getByName, _dcsSpawnedGroup.unit[%s].name=%s", index, unit:getName())
@@ -4136,8 +4136,8 @@ function veafSpawn.spawnCombatAirPatrol(
 end
 
 function veafSpawn.startCapWatchdog(capGroupName, capCoalition, capZone, pTargetsList, pNumberOfTasksAddedByWatchdog)
-  veaf.loggers.get(veafSpawn.Id):debug("veafSpawn.startCapWatchdog(capGroupName=%s)", veaf.p(capGroupName))
-  veaf.loggers.get(veafSpawn.Id):trace("capZone=%s", veaf.p(capZone))
+  veaf.loggers.get(veafSpawn.Id):debug("veafSpawn.startCapWatchdog(capGroupName=%s)", veaf.lp(capGroupName))
+  veaf.loggers.get(veafSpawn.Id):trace("capZone=%s", veaf.lp(capZone))
 
   if capGroupName == nil then
     veaf.loggers.get(veafSpawn.Id):error("veafSpawn.startCapWatchdog; capGroupName is mandatory !")
@@ -4151,7 +4151,7 @@ function veafSpawn.startCapWatchdog(capGroupName, capCoalition, capZone, pTarget
 
   local capGroup = Group.getByName(capGroupName)
   if not capGroup then
-    veaf.loggers.get(veafSpawn.Id):debug("CAP group %s is nowhere to be found, stopping watchdog", veaf.p(capGroupName))
+    veaf.loggers.get(veafSpawn.Id):debug("CAP group %s is nowhere to be found, stopping watchdog", veaf.lp(capGroupName))
     return
   end
   local capGroupPosition = veaf.getAveragePosition(capGroup)
@@ -4164,8 +4164,8 @@ function veafSpawn.startCapWatchdog(capGroupName, capCoalition, capZone, pTarget
   local timestamp = timer.getTime()
   local targetsList = pTargetsList or {}
   local numberOfTasksAddedByWatchdog = pNumberOfTasksAddedByWatchdog or 0
-  veaf.loggers.get(veafSpawn.Id):trace("targetsList=%s", veaf.p(targetsList))
-  veaf.loggers.get(veafSpawn.Id):trace("numberOfTasksAddedByWatchdog=%s", veaf.p(numberOfTasksAddedByWatchdog))
+  veaf.loggers.get(veafSpawn.Id):trace("targetsList=%s", veaf.lp(targetsList))
+  veaf.loggers.get(veafSpawn.Id):trace("numberOfTasksAddedByWatchdog=%s", veaf.lp(numberOfTasksAddedByWatchdog))
 
   -- check CAP group for state and position
   local capLanded = true
@@ -4174,7 +4174,7 @@ function veafSpawn.startCapWatchdog(capGroupName, capCoalition, capZone, pTarget
     if unit and unit:inAir() then
       capLanded = false
       local isUnitInZone = veaf.isUnitInZone(unit, capZone)
-      veaf.loggers.get(veafSpawn.Id):trace("unitName=%s, isUnitInZone=%s", veaf.p(unit:getName()), veaf.p(isUnitInZone))
+      veaf.loggers.get(veafSpawn.Id):trace("unitName=%s, isUnitInZone=%s", veaf.lp(unit:getName()), veaf.lp(isUnitInZone))
       if isUnitInZone then
         capInZone = true
         -- unit is in the zone, and in the air, let's test the targets it can see
@@ -4187,20 +4187,18 @@ function veafSpawn.startCapWatchdog(capGroupName, capCoalition, capZone, pTarget
             local targetGroup = target:getGroup()
             local targetGroupName = targetGroup:getName()
             local targetName = target:getName()
-            veaf.loggers
-              .get(veafSpawn.Id)
-              :trace(
-                "Checking targetGroupName=%s, targetName=%s, targetId=%s",
-                veaf.p(targetGroupName),
-                veaf.p(targetName),
-                veaf.p(targetId)
-              )
+            veaf.loggers.get(veafSpawn.Id):trace(
+              "Checking targetGroupName=%s, targetName=%s, targetId=%s",
+              veaf.lp(targetGroupName),
+              veaf.lp(targetName),
+              veaf.lp(targetId)
+            )
             local targetIsAirborne = target:isActive() and target:inAir()
             local targetCoalition = target:getCoalition()
             local targetGroupCategory = targetGroup:getCategory()
-            veaf.loggers.get(veafSpawn.Id):trace("targetIsAirborne=%s", veaf.p(targetIsAirborne))
-            veaf.loggers.get(veafSpawn.Id):trace("targetCoalition=%s", veaf.p(targetCoalition))
-            veaf.loggers.get(veafSpawn.Id):trace("targetGroupCategory=%s", veaf.p(targetGroupCategory))
+            veaf.loggers.get(veafSpawn.Id):trace("targetIsAirborne=%s", veaf.lp(targetIsAirborne))
+            veaf.loggers.get(veafSpawn.Id):trace("targetCoalition=%s", veaf.lp(targetCoalition))
+            veaf.loggers.get(veafSpawn.Id):trace("targetGroupCategory=%s", veaf.lp(targetGroupCategory))
 
             if
               targetIsAirborne ~= nil
@@ -4211,17 +4209,17 @@ function veafSpawn.startCapWatchdog(capGroupName, capCoalition, capZone, pTarget
             then
               local targetPosition = target:getPosition().p
               local targetDistanceFromCapZoneCenter = mist.utils.get2DDist(targetPosition, capZone)
-              veaf.loggers.get(veafSpawn.Id):trace("targetPosition=%s", veaf.p(targetPosition))
-              veaf.loggers.get(veafSpawn.Id):trace("targetDistanceFromCapZoneCenter=%s", veaf.p(targetDistanceFromCapZoneCenter))
+              veaf.loggers.get(veafSpawn.Id):trace("targetPosition=%s", veaf.lp(targetPosition))
+              veaf.loggers.get(veafSpawn.Id):trace("targetDistanceFromCapZoneCenter=%s", veaf.lp(targetDistanceFromCapZoneCenter))
               if targetDistanceFromCapZoneCenter <= capZone.radius then
                 -- consider only the targets that are in the CAP zone
 
                 local targetAttributes = target:getDesc().attributes
                 local targetType = target:getTypeName()
                 local targetDistanceFromCapGroup = mist.utils.get2DDist(targetPosition, capGroupPosition)
-                veaf.loggers.get(veafSpawn.Id):trace("targetType=%s", veaf.p(targetType))
-                veaf.loggers.get(veafSpawn.Id):trace("targetAttributes=%s", veaf.p(targetAttributes))
-                veaf.loggers.get(veafSpawn.Id):trace("targetDistanceFromCapGroup=%s", veaf.p(targetDistanceFromCapGroup))
+                veaf.loggers.get(veafSpawn.Id):trace("targetType=%s", veaf.lp(targetType))
+                veaf.loggers.get(veafSpawn.Id):trace("targetAttributes=%s", veaf.lp(targetAttributes))
+                veaf.loggers.get(veafSpawn.Id):trace("targetDistanceFromCapGroup=%s", veaf.lp(targetDistanceFromCapGroup))
 
                 local targetPriority = nil
 
@@ -4259,30 +4257,30 @@ function veafSpawn.startCapWatchdog(capGroupName, capCoalition, capZone, pTarget
                 end
                 -- https://www.geogebra.org/calculator if you want to visualize, type in functions y=x/factor + offset and set points on each curve. y is the priority, x the distance
 
-                veaf.loggers.get(veafSpawn.Id):trace("priority=%s", veaf.p(targetPriority))
+                veaf.loggers.get(veafSpawn.Id):trace("priority=%s", veaf.lp(targetPriority))
 
                 local targetData = targetsList[targetId]
                 if targetData then
                   -- this target has already been detected; was it in the same run, by another plane from the CAP group ?
                   if targetData.seenAt == timestamp then
                     -- yes, we can only increase the priority (never decrease it)
-                    veaf.loggers.get(veafSpawn.Id):debug("redetection (same run) of targetName=%s", veaf.p(targetName))
+                    veaf.loggers.get(veafSpawn.Id):debug("redetection (same run) of targetName=%s", veaf.lp(targetName))
                     if targetData.priority < targetPriority then
                       veaf.loggers
                         .get(veafSpawn.Id)
-                        :debug("increasing priority of targetName=%s to %s", veaf.p(targetName), veaf.p(targetPriority))
+                        :debug("increasing priority of targetName=%s to %s", veaf.lp(targetName), veaf.lp(targetPriority))
                       targetData.priority = targetPriority
                     end
                   else
                     -- no, it's an old target, let's mark it as old
-                    veaf.loggers.get(veafSpawn.Id):debug("redetection (previous run) of targetName=%s", veaf.p(targetName))
+                    veaf.loggers.get(veafSpawn.Id):debug("redetection (previous run) of targetName=%s", veaf.lp(targetName))
                     targetData.isNew = false
                   end
                 else
                   -- new target! register in into the target list
                   veaf.loggers
                     .get(veafSpawn.Id)
-                    :debug("new detection of targetName=%s, priority=%s", veaf.p(targetName), veaf.p(targetPriority))
+                    :debug("new detection of targetName=%s, priority=%s", veaf.lp(targetName), veaf.lp(targetPriority))
                   targetsList[targetId] = { isNew = true, seenAt = timestamp, priority = targetPriority, targetId = targetId, unit = unit }
                 end
               end
@@ -4295,7 +4293,7 @@ function veafSpawn.startCapWatchdog(capGroupName, capCoalition, capZone, pTarget
 
   if capLanded then
     capGroup:destroy()
-    veaf.loggers.get(veafSpawn.Id):debug("CAP group %s is landed, destroying it and stopping watchdog", veaf.p(capGroupName))
+    veaf.loggers.get(veafSpawn.Id):debug("CAP group %s is landed, destroying it and stopping watchdog", veaf.lp(capGroupName))
     return
   end
 
@@ -4313,7 +4311,7 @@ function veafSpawn.startCapWatchdog(capGroupName, capCoalition, capZone, pTarget
     table.sort(targetsList, function(a, b)
       return a.priority < b.priority
     end)
-    veaf.loggers.get(veafSpawn.Id):trace("targetsList=%s", veaf.p(targetsList))
+    veaf.loggers.get(veafSpawn.Id):trace("targetsList=%s", veaf.lp(targetsList))
     local foundTargets = false
     for targetId, targetData in pairs(targetsList) do
       if not foundTargets then
@@ -4347,7 +4345,7 @@ function veafSpawn.startCapWatchdog(capGroupName, capCoalition, capZone, pTarget
       -- no targets, let's remove all the tasks we added (taking care not to remove the original task, which is to fly along the route)
       veaf.loggers.get(veafSpawn.Id):debug("Watchdog found no targets, removing all tasks and prohibiting AA for CAP")
       while controller:hasTask() and numberOfTasksAddedByWatchdog > 0 do
-        veaf.loggers.get(veafSpawn.Id):trace("numberOfTasksAddedByWatchdog=%s", veaf.p(numberOfTasksAddedByWatchdog))
+        veaf.loggers.get(veafSpawn.Id):trace("numberOfTasksAddedByWatchdog=%s", veaf.lp(numberOfTasksAddedByWatchdog))
         controller:resetTask()
         veaf.loggers.get(veafSpawn.Id):trace("resetTask() called")
         numberOfTasksAddedByWatchdog = numberOfTasksAddedByWatchdog - 1

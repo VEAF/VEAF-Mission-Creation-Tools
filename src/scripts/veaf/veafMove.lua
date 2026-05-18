@@ -406,7 +406,7 @@ function veafMove.changeTanker(eventPos, speed, alt)
   if alt > -1 then
     point3.alt = alt * 0.3048 -- in meters
   end
-  veaf.loggers.get(veafMove.Id):trace("newpoint3=" .. veaf.p(point3))
+  veaf.loggers.get(veafMove.Id):trace("newpoint3=" .. veaf.lp(point3))
 
   -- replace whole mission
   veaf.loggers.get(veafMove.Id):debug("Resetting changed tanker mission")
@@ -459,7 +459,7 @@ function veafMove.moveTanker(eventPos, groupName, speed, alt, hdg, distance, tel
   end
   local tankerData, points = routeData.tankerData, routeData.points
   local point1, point2, point3 = routeData.point1, routeData.point2, routeData.point3
-  veaf.loggers.get(veafMove.Id):trace("tankerData : %s", veaf.p(tankerData))
+  veaf.loggers.get(veafMove.Id):trace("tankerData : %s", veaf.lp(tankerData))
   veaf.loggers.get(veafMove.Id):trace("found a " .. #points .. "-points route for tanker " .. groupName)
   veaf.loggers.get(veafMove.Id):trace(string.format("point1=%s", veaf.p(point1)))
   veaf.loggers.get(veafMove.Id):trace(string.format("point2=%s", veaf.p(point2)))
@@ -576,7 +576,7 @@ function veafMove.moveTanker(eventPos, groupName, speed, alt, hdg, distance, tel
   point3.y = endLegPoint.y
   point3.alt = endLegPoint.alt
   point3.speed = endLegPoint.speed
-  veaf.loggers.get(veafMove.Id):trace("newpoint3=" .. veaf.p(point3))
+  veaf.loggers.get(veafMove.Id):trace("newpoint3=" .. veaf.lp(point3))
 
   --actually move the group
   local delay = 0
@@ -637,7 +637,7 @@ function veafMove.teleportEscort(escorted_groupName, movePoint, teleportPoint)
       local text = "Cannot move Escort " .. groupName_escort .. " ; no group data"
       veaf.loggers.get(veafMove.Id):info(text)
     else
-      veaf.loggers.get(veafMove.Id):trace("EscortData : %s", veaf.p(EscortData))
+      veaf.loggers.get(veafMove.Id):trace("EscortData : %s", veaf.lp(EscortData))
       route_escort = veaf.findInTable(EscortData, "route")
       points_escort = veaf.findInTable(route_escort, "points")
 

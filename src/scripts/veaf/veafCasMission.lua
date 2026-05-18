@@ -603,10 +603,10 @@ local function _addDefenseForGroups(group, side, defense, multiple, forInfantry)
   veaf.loggers.get(veafCasMission.Id):trace(
     string.format(
       "_addDefenseForGroups(defense=[%s], side=[%s], multiple=[%s], forInfantry=[%s])",
-      veaf.p(defense),
-      veaf.p(side),
-      veaf.p(multiple),
-      veaf.p(forInfantry)
+      veaf.lp(defense),
+      veaf.lp(side),
+      veaf.lp(multiple),
+      veaf.lp(forInfantry)
     )
   )
   local _actualDefense = defense

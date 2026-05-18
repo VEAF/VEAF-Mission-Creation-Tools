@@ -230,7 +230,7 @@ end
 
 -- calling SkynetIADS:activate() after a delay, to avoid calling it at each time a group is added to the IADS
 function veafSkynet.delayedActivate(networkName)
-  veaf.loggers.get(veafSkynet.Id):debug("veafSkynet.delayedActivate(%s)", veaf.p(networkName))
+  veaf.loggers.get(veafSkynet.Id):debug("veafSkynet.delayedActivate(%s)", veaf.lp(networkName))
   local network = veafSkynet.structure[networkName]
   if network then
     if network.delayedActivation then
@@ -246,7 +246,7 @@ function veafSkynet.delayedActivate(networkName)
 end
 
 function veafSkynet._activateIADS(networkName)
-  veaf.loggers.get(veafSkynet.Id):debug("veafSkynet._activateIADS(%s)", veaf.p(networkName))
+  veaf.loggers.get(veafSkynet.Id):debug("veafSkynet._activateIADS(%s)", veaf.lp(networkName))
 
   local network = veafSkynet.structure[networkName]
   if network then
@@ -874,10 +874,10 @@ local function createNetwork(networkName, coa, loadUnits, UserAdd)
     veaf.loggers.get(veafSkynet.Id):error("Coalition specified is of invalid format")
     return false
   end
-  veaf.loggers.get(veafSkynet.Id):trace("networkName= %s", veaf.p(networkName))
-  veaf.loggers.get(veafSkynet.Id):trace("CoalitionID= %s", veaf.p(coa))
-  veaf.loggers.get(veafSkynet.Id):trace("loadUnits= %s", veaf.p(loadUnits))
-  veaf.loggers.get(veafSkynet.Id):trace("UserAdd= %s", veaf.p(UserAdd))
+  veaf.loggers.get(veafSkynet.Id):trace("networkName= %s", veaf.lp(networkName))
+  veaf.loggers.get(veafSkynet.Id):trace("CoalitionID= %s", veaf.lp(coa))
+  veaf.loggers.get(veafSkynet.Id):trace("loadUnits= %s", veaf.lp(loadUnits))
+  veaf.loggers.get(veafSkynet.Id):trace("UserAdd= %s", veaf.lp(UserAdd))
 
   if networkName and coa then
     if (UserAdd and not veafSkynet.structure[networkName]) or not UserAdd then
@@ -904,17 +904,17 @@ local function createNetwork(networkName, coa, loadUnits, UserAdd)
         veafSkynet.structure[networkName].iads = iads
 
         if veaf.loggers.get(veafSkynet.Id):wouldLogTrace() then
-          veaf.loggers.get(veafSkynet.Id):trace("Stored structure for network named %s :", veaf.p(networkName))
+          veaf.loggers.get(veafSkynet.Id):trace("Stored structure for network named %s :", veaf.lp(networkName))
           for index, _ in pairs(veafSkynet.structure[networkName]) do
-            veaf.loggers.get(veafSkynet.Id):trace("-> %s", veaf.p(index))
+            veaf.loggers.get(veafSkynet.Id):trace("-> %s", veaf.lp(index))
           end
-          veaf.loggers.get(veafSkynet.Id):trace("Stored IADS structure for network named %s :", veaf.p(networkName))
+          veaf.loggers.get(veafSkynet.Id):trace("Stored IADS structure for network named %s :", veaf.lp(networkName))
           for index, _ in pairs(veafSkynet.structure[networkName].iads) do
-            veaf.loggers.get(veafSkynet.Id):trace("-> %s", veaf.p(index))
+            veaf.loggers.get(veafSkynet.Id):trace("-> %s", veaf.lp(index))
           end
-          veaf.loggers.get(veafSkynet.Id):trace("CoalitionID for network named %s :", veaf.p(networkName))
-          veaf.loggers.get(veafSkynet.Id):trace("-> %s", veaf.p(veafSkynet.structure[networkName].iads.coalitionID))
-          veaf.loggers.get(veafSkynet.Id):trace("-> %s", veaf.p(veafSkynet.structure[networkName].iads:getCoalitionString()))
+          veaf.loggers.get(veafSkynet.Id):trace("CoalitionID for network named %s :", veaf.lp(networkName))
+          veaf.loggers.get(veafSkynet.Id):trace("-> %s", veaf.lp(veafSkynet.structure[networkName].iads.coalitionID))
+          veaf.loggers.get(veafSkynet.Id):trace("-> %s", veaf.lp(veafSkynet.structure[networkName].iads:getCoalitionString()))
         end
 
         if loadUnits then
@@ -939,7 +939,7 @@ function veafSkynet.reinitializeNetwork(networkName)
   if networkName and veafSkynet.structure[networkName] then
     local networkStructure = veafSkynet.structure[networkName]
     if networkStructure.iads then
-      veaf.loggers.get(veafSkynet.Id):trace("Stored structure for network named %s has IADS, deactivating", veaf.p(networkName))
+      veaf.loggers.get(veafSkynet.Id):trace("Stored structure for network named %s has IADS, deactivating", veaf.lp(networkName))
       if networkStructure.includeInRadio then
         veaf.loggers.get(veafSkynet.Id):trace("Removing radio menu...")
         networkStructure.iads:removeRadioMenu()

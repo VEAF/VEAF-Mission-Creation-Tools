@@ -70,7 +70,7 @@ function veafAirbases.initialize(bReset)
         veaf.p(dcsAirbase:getCallsign()), veaf.p(dcsAirbase:getUnit()), veaf.p(dcsAirbase:getID()), veaf.p(dcsAirbase:getCategoryEx())
         )
         veaf.loggers.get(veafAirbases.Id):trace(s)
-        veaf.loggers.get(veafAirbases.Id):trace(veaf.p(dcsAirbase:getDesc()))
+        veaf.loggers.get(veafAirbases.Id):trace(veaf.lp(dcsAirbase:getDesc()))
 ]]
     local veafAirbase = veafAirbase:create(dcsAirbase)
     if veafAirbase then
@@ -215,7 +215,7 @@ function veafAirbase:create(dcsAirbase)
             local dcsUnitName = dcsUnit:getName()
             local dcsUnitType = dcsUnit:getTypeName()
             veaf.loggers.get(veafAirbases.Id):trace(string.format(">>>>>>> unit - %s - type=%s", dcsUnitName, dcsUnitType))
-            veaf.loggers.get(veafAirbases.Id):trace(veaf.p(dcsUnit:getDesc()))
+            veaf.loggers.get(veafAirbases.Id):trace(veaf.lp(dcsUnit:getDesc()))
             local desc = dcsUnit:getDesc()
             veaf.loggers.get(veafAirbases.Id):trace(desc.Kmax)
             veaf.loggers.get(veafAirbases.Id):trace(desc.displayName)
@@ -376,7 +376,7 @@ function veafAirbaseRunway:create(dcsAirbase, dcsRunway, iReportOrder)
     if (sAirbaseName == "Pahute Mesa") then
         veaf.loggers.get(veafAirbases.Id):trace("=======")
         veaf.loggers.get(veafAirbases.Id):trace(string.format("%d, %.2f", iDcsNumber, nDcsHeading))
-        veaf.loggers.get(veafAirbases.Id):trace(veaf.p(dcsRunway))
+        veaf.loggers.get(veafAirbases.Id):trace(veaf.lp(dcsRunway))
     end
     ]]
 

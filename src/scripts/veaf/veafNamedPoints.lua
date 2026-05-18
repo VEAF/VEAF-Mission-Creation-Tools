@@ -174,7 +174,7 @@ function veafNamedPoints.getPointBearing(parameters)
 end
 
 function veafNamedPoints.getNearestPoint(unitName)
-  veaf.loggers.get(veafNamedPoints.Id):debug("veafNamedPoints.getNearestPoint(unitName = %s)", veaf.p(unitName))
+  veaf.loggers.get(veafNamedPoints.Id):debug("veafNamedPoints.getNearestPoint(unitName = %s)", veaf.lp(unitName))
   local closestPoint = nil
   local minDistance = 99999999
   local unit = veafRadio.getHumanUnitOrWingman(unitName)
@@ -188,7 +188,7 @@ function veafNamedPoints.getNearestPoint(unitName)
       end
     end
   end
-  veaf.loggers.get(veafNamedPoints.Id):trace("closestPoint=%s", veaf.p(closestPoint))
+  veaf.loggers.get(veafNamedPoints.Id):trace("closestPoint=%s", veaf.lp(closestPoint))
   return closestPoint
 end
 
@@ -5707,7 +5707,7 @@ veafNamedPoints.addAirbases()
 veaf.loggers.get(veafNamedPoints.Id):trace(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
 for _, veafNamedPoint in pairs(veafNamedPoints.namedPoints) do
     if (veaf.startsWith(_, "AIRBASE", false)) then
-        veaf.loggers.get(veafNamedPoints.Id):trace(">>> %s", veaf.p(veafNamedPoint))    
+        veaf.loggers.get(veafNamedPoints.Id):trace(">>> %s", veaf.lp(veafNamedPoint))    
     end
     --veaf.loggers.get(veafNamedPoints.Id):trace(">>> %s", veaf.p(veafNamedPoint))
     veafNamedPoints.markid = veafNamedPoints.markid + 1

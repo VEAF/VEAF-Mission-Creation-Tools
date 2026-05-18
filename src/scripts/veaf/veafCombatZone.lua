@@ -502,7 +502,7 @@ function VeafCombatZone:clearSpawnedGroups()
 end
 
 function VeafCombatZone:addDelayedSpawner(id)
-  veaf.loggers.get(veafCombatZone.Id):trace("VeafCombatZone[%s]:addDelayedSpawner(%s)", veaf.p(self.missionEditorZoneName), veaf.p(id))
+  veaf.loggers.get(veafCombatZone.Id):trace("VeafCombatZone[%s]:addDelayedSpawner(%s)", veaf.lp(self.missionEditorZoneName), veaf.lp(id))
   if not self.delayedSpawners then
     self.delayedSpawners = {}
   end
@@ -511,7 +511,7 @@ function VeafCombatZone:addDelayedSpawner(id)
 end
 
 function VeafCombatZone:getDelayedSpawners()
-  veaf.loggers.get(veafCombatZone.Id):trace("VeafCombatZone[%s]:getDelayedSpawners()", veaf.p(self.missionEditorZoneName))
+  veaf.loggers.get(veafCombatZone.Id):trace("VeafCombatZone[%s]:getDelayedSpawners()", veaf.lp(self.missionEditorZoneName))
   veaf.loggers.get(veafCombatZone.Id):trace("self.delayedSpawners=%s", self.delayedSpawners)
   return self.delayedSpawners
 end
@@ -751,10 +751,10 @@ function VeafCombatZone:initialize()
       -- it's a group or a static unit
       local groupName = nil
       local objectCategory = Object.getCategory(unit)
-      veaf.loggers.get(veafCombatZone.Id):trace("objectCategory=%s", veaf.p(objectCategory))
+      veaf.loggers.get(veafCombatZone.Id):trace("objectCategory=%s", veaf.lp(objectCategory))
       if objectCategory == 1 then
         local unitCategory = Unit.getCategory(unit)
-        veaf.loggers.get(veafCombatZone.Id):trace("unitCategory=%s", veaf.p(unitCategory))
+        veaf.loggers.get(veafCombatZone.Id):trace("unitCategory=%s", veaf.lp(unitCategory))
       end
       if objectCategory == 3 or objectCategory == 6 then -- 3 is static objects, 6 is cargo (a kind of static object)
         groupName = unitName -- default for static objects = groups themselves
@@ -975,7 +975,7 @@ end
 function VeafCombatZone:spawnElement(zoneElement, now)
   veaf.loggers
     .get(veafCombatZone.Id)
-    :debug("VeafCombatZone[%s]:spawnElement([%s], [%s])", veaf.p(self:getFriendlyName()), veaf.p(zoneElement:getName()), veaf.p(now))
+    :debug("VeafCombatZone[%s]:spawnElement([%s], [%s])", veaf.lp(self:getFriendlyName()), veaf.lp(zoneElement:getName()), veaf.lp(now))
   veaf.loggers.get(veafCombatZone.Id):trace("zoneElement=%s", zoneElement)
   if not now and zoneElement:getSpawnDelay() and type(zoneElement:getSpawnDelay()) == "number" then
     -- self-schedule
@@ -1283,14 +1283,14 @@ function VeafCombatZone:updateRadioMenu(inBatch)
   local shouldAddSubMenu = self.enableUserActivation or self.active
   veaf.loggers.get(veafCombatZone.Id):debug(
     "User activation enabled : %s, Zone active: %s, shouldAddSubMenu: %s",
-    veaf.p(self.enableUserActivation),
-    veaf.p(self.active),
-    veaf.p(shouldAddSubMenu)
+    veaf.lp(self.enableUserActivation),
+    veaf.lp(self.active),
+    veaf.lp(shouldAddSubMenu)
   )
 
   -- reset the radio menu
   if self.radioRootPath then
-    veaf.loggers.get(veafCombatZone.Id):debug("Remove the radio submenu %s", veaf.p(self:getRadioMenuName()))
+    veaf.loggers.get(veafCombatZone.Id):debug("Remove the radio submenu %s", veaf.lp(self:getRadioMenuName()))
     veafRadio.delSubmenu(self:getRadioMenuName(), self.radioParentPath)
     veafRadio.delSubmenu(self:getRadioMenuName(true), self.radioParentPath)
     self.radioRootPath = nil
@@ -1404,16 +1404,16 @@ function VeafCombatZone:findUnitsInCombatZone()
     return self
   end
 
-  veaf.loggers.get(veafCombatZone.Id):trace("#unitsNames=%s", veaf.p(#unitsNames))
+  veaf.loggers.get(veafCombatZone.Id):trace("#unitsNames=%s", veaf.lp(#unitsNames))
 
-  veaf.loggers.get(veafCombatZone.Id):trace("triggerZone.type=%s", veaf.p(triggerZone.type))
+  veaf.loggers.get(veafCombatZone.Id):trace("triggerZone.type=%s", veaf.lp(triggerZone.type))
   if triggerZone.type == 0 then -- circular
     units = mist.getUnitsInZones(unitsNames, { self:getMissionEditorZoneName() })
   elseif triggerZone.type == 2 then -- quad point
     units = mist.getUnitsInPolygon(unitsNames, triggerZone.verticies)
   end
 
-  veaf.loggers.get(veafCombatZone.Id):trace("#units=%s", veaf.p(#units))
+  veaf.loggers.get(veafCombatZone.Id):trace("#units=%s", veaf.lp(#units))
 
   for _, unit in pairs(units) do
     local unitName = unit:getName()

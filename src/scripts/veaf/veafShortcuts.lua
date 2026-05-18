@@ -160,7 +160,7 @@ function VeafAlias:isHidden()
 end
 
 function VeafAlias:setBatchAliases(value)
-  veaf.loggers.get(veafShortcuts.Id):trace("VeafAlias[%s]:setBatchAliases([%s])", veaf.p(self.name), veaf.p(value))
+  veaf.loggers.get(veafShortcuts.Id):trace("VeafAlias[%s]:setBatchAliases([%s])", veaf.lp(self.name), veaf.lp(value))
   self.batchAliases = value
   -- by default, batches are hidden and have a L1 password
   self:setPassword(veafSecurity.PASSWORD_L1)
@@ -173,7 +173,7 @@ function VeafAlias:getBatchAliases()
 end
 
 function VeafAlias:setPassword(value)
-  veaf.loggers.get(veafShortcuts.Id):trace("VeafAlias[%s]:setPassword([%s])", veaf.p(self.name), veaf.p(value))
+  veaf.loggers.get(veafShortcuts.Id):trace("VeafAlias[%s]:setPassword([%s])", veaf.lp(self.name), veaf.lp(value))
   self.password = {}
   self.password[value] = true
   return self
@@ -264,7 +264,7 @@ setmetatable(VeafAliasForCombatMission, { __index = VeafAlias })
 ---
 
 function VeafAliasForCombatMission:execute(remainingCommand, position, coalition, markId, bypassSecurity, spawnedGroups)
-  veaf.loggers.get(veafShortcuts.Id):trace("VeafAliasForCombatMission[%s]:execute([%s])", veaf.p(self.name), veaf.p(remainingCommand))
+  veaf.loggers.get(veafShortcuts.Id):trace("VeafAliasForCombatMission[%s]:execute([%s])", veaf.lp(self.name), veaf.lp(remainingCommand))
 
   local command = self:getVeafCommand()
   for _, parameter in pairs(self:getRandomParameters()) do
@@ -281,7 +281,7 @@ function VeafAliasForCombatMission:execute(remainingCommand, position, coalition
   local _bypassSecurity = bypassSecurity or self:isBypassSecurity()
 
   local command = command .. (remainingCommand or "")
-  veaf.loggers.get(veafShortcuts.Id):trace("command=%s", veaf.p(command))
+  veaf.loggers.get(veafShortcuts.Id):trace("command=%s", veaf.lp(command))
 
   local keywords = veaf.split(command, ",")
 
@@ -307,7 +307,7 @@ function VeafAliasForCombatMission:execute(remainingCommand, position, coalition
   end
 
   if not (bypassSecurity or veafSecurity.isAuthenticated()) then
-    veaf.loggers.get(veafShortcuts.Id):trace("password=%s", veaf.p(password))
+    veaf.loggers.get(veafShortcuts.Id):trace("password=%s", veaf.lp(password))
     local hash = nil
     if password then
       hash = sha1.hex(password)
@@ -319,8 +319,8 @@ function VeafAliasForCombatMission:execute(remainingCommand, position, coalition
     end
   end
 
-  veaf.loggers.get(veafShortcuts.Id):trace("missionName=%s", veaf.p(missionName))
-  veaf.loggers.get(veafShortcuts.Id):trace("silent=%s", veaf.p(silent))
+  veaf.loggers.get(veafShortcuts.Id):trace("missionName=%s", veaf.lp(missionName))
+  veaf.loggers.get(veafShortcuts.Id):trace("silent=%s", veaf.lp(silent))
 
   if not missionName or #missionName == 0 then
     local msg = string.format("VeafAliasForCombatMission: mission name is mandatory")
@@ -370,7 +370,7 @@ end
 ---
 
 function VeafAliasForCombatZone:execute(remainingCommand, position, coalition, markId, bypassSecurity, spawnedGroups)
-  veaf.loggers.get(veafShortcuts.Id):trace("VeafAliasForCombatZone[%s]:execute([%s])", veaf.p(self.name), veaf.p(remainingCommand))
+  veaf.loggers.get(veafShortcuts.Id):trace("VeafAliasForCombatZone[%s]:execute([%s])", veaf.lp(self.name), veaf.lp(remainingCommand))
 
   local command = self:getVeafCommand()
   for _, parameter in pairs(self:getRandomParameters()) do
@@ -387,7 +387,7 @@ function VeafAliasForCombatZone:execute(remainingCommand, position, coalition, m
   local _bypassSecurity = bypassSecurity or self:isBypassSecurity()
 
   local command = command .. (remainingCommand or "")
-  veaf.loggers.get(veafShortcuts.Id):trace("command=%s", veaf.p(command))
+  veaf.loggers.get(veafShortcuts.Id):trace("command=%s", veaf.lp(command))
 
   local keywords = veaf.split(command, ",")
 
@@ -413,7 +413,7 @@ function VeafAliasForCombatZone:execute(remainingCommand, position, coalition, m
   end
 
   if not (bypassSecurity or veafSecurity.isAuthenticated()) then
-    veaf.loggers.get(veafShortcuts.Id):trace("password=%s", veaf.p(password))
+    veaf.loggers.get(veafShortcuts.Id):trace("password=%s", veaf.lp(password))
     local hash = nil
     if password then
       hash = sha1.hex(password)
@@ -425,8 +425,8 @@ function VeafAliasForCombatZone:execute(remainingCommand, position, coalition, m
     end
   end
 
-  veaf.loggers.get(veafShortcuts.Id):trace("zoneName=%s", veaf.p(zoneName))
-  veaf.loggers.get(veafShortcuts.Id):trace("silent=%s", veaf.p(silent))
+  veaf.loggers.get(veafShortcuts.Id):trace("zoneName=%s", veaf.lp(zoneName))
+  veaf.loggers.get(veafShortcuts.Id):trace("silent=%s", veaf.lp(silent))
 
   if not zoneName or #zoneName == 0 then
     local msg = string.format("VeafAliasForCombatZone: zone name is mandatory")
@@ -487,11 +487,11 @@ function veafShortcuts.ExecuteAlias(aliasName, delay, remainingCommand, position
   veaf.loggers.get(veafShortcuts.Id):debug(
     string.format(
       "veafShortcuts.ExecuteAlias([%s],[%s],[%s],[%s],[%s])",
-      veaf.p(aliasName),
-      veaf.p(delay),
-      veaf.p(remainingCommand),
-      veaf.p(position),
-      veaf.p(coalition)
+      veaf.lp(aliasName),
+      veaf.lp(delay),
+      veaf.lp(remainingCommand),
+      veaf.lp(position),
+      veaf.lp(coalition)
     )
   )
   veaf.loggers.get(veafShortcuts.Id):trace(string.format("markId=[%s]", veaf.p(markId)))
@@ -517,7 +517,7 @@ function veafShortcuts.ExecuteAlias(aliasName, delay, remainingCommand, position
       end
 
       if not (bypassSecurity or veafSecurity.isAuthenticated()) then
-        veaf.loggers.get(veafShortcuts.Id):trace("password=%s", veaf.p(password))
+        veaf.loggers.get(veafShortcuts.Id):trace("password=%s", veaf.lp(password))
         local hash = nil
         if password then
           hash = sha1.hex(password)
@@ -560,10 +560,10 @@ function veafShortcuts.ExecuteBatchAliasesList(aliasBatchList, delay, coalition,
   veaf.loggers.get(veafShortcuts.Id):debug(
     string.format(
       "veafShortcuts.ExecuteBatchAliasesList([%s],[%s],[%s],[%s])",
-      veaf.p(aliasBatchList),
-      veaf.p(delay),
-      veaf.p(coalition),
-      veaf.p(silent)
+      veaf.lp(aliasBatchList),
+      veaf.lp(delay),
+      veaf.lp(coalition),
+      veaf.lp(silent)
     )
   )
   if aliasBatchList and #aliasBatchList > 0 then -- run a batch
@@ -1676,7 +1676,7 @@ function veafShortcuts.executeCommandFromRemote(parameters)
     local _unit = Unit.getByName(_unitName)
     if _unit then
       _coa = _unit:getCoalition()
-      veaf.loggers.get(veafShortcuts.Id):trace("_coa=s", veaf.p(_coa))
+      veaf.loggers.get(veafShortcuts.Id):trace("_coa=s", veaf.lp(_coa))
     end
     -- choose by default the coalition opposing the player who triggered the event
     local invertedCoalition = 1
@@ -1707,10 +1707,10 @@ function veafShortcuts.executeCommandFromRemote(parameters)
         veaf.loggers.get(veafShortcuts.Id):info(
           string.format(
             "[%s] is running an alias at position [%s] for coalition [%s] : [%s]",
-            veaf.p(_pilot.name),
-            veaf.p(_pos),
-            veaf.p(_coa),
-            veaf.p(_alias)
+            veaf.lp(_pilot.name),
+            veaf.lp(_pos),
+            veaf.lp(_coa),
+            veaf.lp(_alias)
           )
         )
         veafShortcuts.executeCommand(_pos, _alias, invertedCoalition, _pilot.name)
@@ -1719,9 +1719,9 @@ function veafShortcuts.executeCommandFromRemote(parameters)
         veaf.loggers.get(veafShortcuts.Id):info(
           string.format(
             "[%s] is running an alias with no specific position for coalition [%s] : [%s]",
-            veaf.p(_pilot.name),
-            veaf.p(_coa),
-            veaf.p(_alias)
+            veaf.lp(_pilot.name),
+            veaf.lp(_coa),
+            veaf.lp(_alias)
           )
         )
         veafShortcuts.executeCommand(nil, _alias, invertedCoalition, _pilot.name)

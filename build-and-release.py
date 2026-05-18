@@ -26,24 +26,20 @@ import subprocess
 import sys
 import zipfile
 from datetime import datetime
-from pathlib import Path
 from hashlib import sha256
-from typing import Optional, Dict, Any
+from pathlib import Path
+from typing import Any
 
 import typer
 import yaml
-from rich.console import Console
-from rich.markdown import Markdown
 from rich.table import Table
-from rich.progress import Progress, SpinnerColumn, BarColumn, TextColumn, TimeRemainingColumn
-from rich.live import Live
 
 # Setup logging and console - must be done before imports to avoid circular dependencies
 # Note: We'll initialize logger after adding sys.path
 sys.path.insert(0, str(Path(__file__).parent / "src" / "python" / "veaf-tools"))
 
-from veaf_libs.logger import logger, console
-from veaf_libs.progress import spinner_context, progress_context
+from veaf_libs.logger import console, logger  # type: ignore[import-not-found]
+from veaf_libs.progress import spinner_context  # type: ignore[import-not-found]
 
 README_HELP: str = "Provide access to the README file."
 VERBOSE_HELP: str = "If set, the script will output a lot of debug information."
@@ -53,7 +49,7 @@ CONFIG_FILE: str = "veaf-tools-config.yaml"
 app = typer.Typer()
 
 
-def load_config() -> Dict[str, Any]:
+def load_config() -> dict[str, Any]:
     """Load configuration from veaf-tools-config.yaml if it exists."""
     config_path = Path.cwd() / CONFIG_FILE
 
@@ -61,7 +57,7 @@ def load_config() -> Dict[str, Any]:
         return {}
 
     try:
-        with open(config_path, "r", encoding="utf-8") as f:
+        with open(config_path, encoding="utf-8") as f:
             config = yaml.safe_load(f)
             if config is None:
                 return {}
@@ -77,32 +73,33 @@ class BuildAndReleaseWorker:
 
     def __init__(
         self,
-        version: Optional[str] = None,
+        version: str | None = None,
         skip_lua: bool = False,
         skip_python: bool = False,
         development_build: bool = False,
         publish_to_github: bool = False,
-        github_token: Optional[str] = None,
-        output_path: Optional[Path] = None,
+        github_token: str | None = None,
+        output_path: Path | None = None,
         verbose: bool = False,
-        config: Optional[Dict[str, Any]] = None,
+        config: dict[str, Any] | None = None,
         prerelease: bool = False,
     ):
         """Initialize the build and release worker."""
         self.config = config or {}
         self.prerelease = prerelease
-        
+
         # GitHub configuration from config file or defaults
         github_config = self.config.get("github", {})
         self.github_owner = github_config.get("owner", "VEAF")
         self.github_repo = github_config.get("repo", "VEAF-Mission-Creation-Tools")
-        
+
         # Use CLI token if provided, otherwise fall back to config file, then env var
+        self.github_token: str | None = None
         if github_token:
             self.github_token = github_token
         else:
-            self.github_token = github_config.get("token") or os.getenv("GITHUB_TOKEN")
-        
+            self.github_token = github_config.get("token") or os.getenv("GITHUB_TOKEN")  # type: ignore[assignment]
+
         self.script_root = Path(__file__).parent.resolve()
         self.build_dir = self.script_root / "build"
         self.src_dir = self.script_root / "src"
@@ -114,7 +111,6 @@ class BuildAndReleaseWorker:
         self.skip_python = skip_python
         self.development_build = development_build
         self.publish_to_github = publish_to_github
-        self.github_token = github_token
         self.output_path = output_path or self.script_root
         self.verbose = verbose
 
@@ -145,32 +141,26 @@ class BuildAndReleaseWorker:
                 "git": "Git",
             }
 
-            missing_tools = []
-            for cmd, display_name in required_tools.items():
-                if not self.check_command(cmd, display_name):
-                    missing_tools.append(display_name)
-
-            if missing_tools:
-                logger.error(
-                    f"Missing required tools: {', '.join(missing_tools)}. "
-                    f"Please install them and try again."
-                )
+            if missing_tools := [
+                display_name
+                for cmd, display_name in required_tools.items()
+                if not self.check_command(cmd, display_name)
+            ]:
+                logger.error(f"Missing required tools: {', '.join(missing_tools)}. Please install them and try again.")
 
             # Check for PyInstaller if not skipping Python build
             if not self.skip_python:
                 try:
                     import PyInstaller  # noqa: F401
                 except ImportError:
-                    logger.error(
-                        "PyInstaller is not installed. Install it with: pip install pyinstaller"
-                    )
+                    logger.error("PyInstaller is not installed. Install it with: pip install pyinstaller")
 
     def get_version_from_file(self) -> str:
         """Read version from package.json."""
         if not self.version_file.exists():
             logger.error(f"package.json not found at {self.version_file}")
 
-        with open(self.version_file, "r") as f:
+        with open(self.version_file) as f:
             data = json.load(f)
             version = data.get("version")
             if not version:
@@ -258,25 +248,19 @@ class BuildAndReleaseWorker:
                 # Step 4: Create output file with header and concatenated scripts
                 output_filename = "veaf-scripts.lua"
                 output_path = self.build_dir / output_filename
-                
+
                 # Read package.json for version
-                with open(self.version_file, "r") as f:
+                with open(self.version_file) as f:
                     package_data = json.load(f)
                     version = package_data.get("version", self.version)
-                
+
                 # Create version marker
                 datetime_str = datetime.now().strftime("%Y.%m.%d.%H.%M.%S")
                 version_tag = "-dev" if self.development_build else ""
                 version_marker = f"{version}{version_tag};{datetime_str}"
 
                 # Write header
-                header = (
-                    "\n"
-                    + "-" * 85 + "\n"
-                    + f"-- Veaf scripts {version_marker}\n"
-                    + "-" * 85 + "\n"
-                    + "\n"
-                )
+                header = "\n" + "-" * 85 + "\n" + f"-- Veaf scripts {version_marker}\n" + "-" * 85 + "\n" + "\n"
 
                 with open(output_path, "w", encoding="utf-8") as out_file:
                     out_file.write(header)
@@ -317,9 +301,11 @@ class BuildAndReleaseWorker:
                         "\n"
                         + "\n"
                         + "\n"
-                        + "-" * 85 + "\n"
+                        + "-" * 85
+                        + "\n"
                         + f"-- END OF Veaf scripts {version_marker}\n"
-                        + "-" * 85 + "\n"
+                        + "-" * 85
+                        + "\n"
                         + "\n"
                     )
                     out_file.write(footer)
@@ -355,7 +341,7 @@ class BuildAndReleaseWorker:
         """Parse dcsUnits.lua and write a Markdown reference to the build directory."""
         with spinner_context("Generating DCS units reference..."):
             try:
-                from veaf_libs.dcs_units_parser import generate_dcs_units_doc
+                from veaf_libs.dcs_units_parser import generate_dcs_units_doc  # type: ignore[import-not-found]
 
                 lua_path = self.build_dir / "dcsUnits.lua"
                 if not lua_path.exists():
@@ -383,7 +369,7 @@ class BuildAndReleaseWorker:
         with spinner_context("Scanning Lua modules..."):
             try:
                 sys.path.insert(0, str(self.src_dir / "python" / "veaf-tools"))
-                from veaf_libs.lua_module_scanner import generate_modules_json
+                from veaf_libs.lua_module_scanner import generate_modules_json  # type: ignore[import-not-found]
 
                 lua_dir = self.src_dir / "scripts" / "veaf"
                 candidate = self.src_dir / "python" / "veaf-tools" / "veaf_libs" / "veaf_modules_list.json"
@@ -439,19 +425,14 @@ class BuildAndReleaseWorker:
                 "--workpath",
                 str(self.dist_dir / "build"),
             ]
-            for src, dest in (extra_data or []):
+            for src, dest in extra_data or []:
                 cmd += ["--add-data", f"{src}{os.pathsep}{dest}"]
             cmd.append(str(entry_point))
 
             logger.debug(f"Running PyInstaller: {' '.join(cmd)}")
-            
+
             # Capture all output to log it, but keep console clean with spinner
-            result = subprocess.run(
-                cmd,
-                cwd=str(self.script_root),
-                capture_output=True,
-                text=True
-            )
+            result = subprocess.run(cmd, cwd=str(self.script_root), capture_output=True, text=True)
 
             # Log PyInstaller output regardless of success
             if result.stdout:
@@ -460,18 +441,16 @@ class BuildAndReleaseWorker:
                 logger.debug(f"PyInstaller stderr:\n{result.stderr}")
 
             if result.returncode != 0:
-                logger.error(
-                    f"PyInstaller build failed for {name} with exit code {result.returncode}"
-                )
+                logger.error(f"PyInstaller build failed for {name} with exit code {result.returncode}")
                 raise subprocess.CalledProcessError(result.returncode, cmd, result.stdout, result.stderr)
 
         except subprocess.CalledProcessError as e:
             logger.error(f"PyInstaller build failed for {name}: {e}")
 
-    def _inject_version_into_python_files_temporarily(self) -> Dict[str, str]:
+    def _inject_version_into_python_files_temporarily(self) -> dict[str, str]:
         """
         Temporarily inject version into Python source files for compilation.
-        
+
         Returns a dict mapping file paths to their original contents so they can
         be restored later (keeping git working tree clean).
         """
@@ -497,14 +476,13 @@ class BuildAndReleaseWorker:
                     # Match patterns like: VERSION: str = "6.0.0" or VERSION:str = "6.0.0"
                     # Capture the exact format so we can restore it later
                     pattern = r'(VERSION\s*:\s*str\s*=\s*)"[^"]+"'
-                    match = re.search(pattern, original_content)
-                    
-                    if match:
+
+                    if match := re.search(pattern, original_content):
                         # Use the exact format from the original file for injection
                         prefix = match.group(1)
                         replacement = f'{prefix}"{self.version}"'
                         new_content = re.sub(pattern, replacement, original_content, count=1)
-                        
+
                         # Write modified content
                         file_path.write_text(new_content, encoding="utf-8")
                         logger.debug(f"Injected version {self.version} into {file_path.name}")
@@ -516,13 +494,13 @@ class BuildAndReleaseWorker:
             except Exception as e:
                 logger.error(f"Failed to inject version into Python files: {e}")
                 # Restore on error
-                for file_path, content in original_contents.items():
-                    Path(file_path).write_text(content, encoding="utf-8")
+                for fp_str, content in original_contents.items():
+                    Path(fp_str).write_text(content, encoding="utf-8")
                 original_contents.clear()
 
             return original_contents
 
-    def _restore_python_files(self, original_contents: Dict[str, str]):
+    def _restore_python_files(self, original_contents: dict[str, str]):
         """Restore Python files to their original contents."""
         with spinner_context("Restoring source files..."):
             try:
@@ -533,13 +511,11 @@ class BuildAndReleaseWorker:
             except Exception as e:
                 logger.warning(f"Failed to restore source files: {e}")
 
-
-
     # ========================================================================
     # Release Package
     # ========================================================================
 
-    def create_release_package(self) -> Dict[str, any]:
+    def create_release_package(self) -> dict[str, Any]:
         """Create a release package (ZIP file)."""
         with spinner_context("Creating release package..."):
             # Verify that build artifacts exist
@@ -557,7 +533,7 @@ class BuildAndReleaseWorker:
                         arcname = "src/scripts/veaf/veaf-scripts.lua"
                         zf.write(veaf_scripts_path, arcname)
                         logger.debug(f"Added {arcname} to ZIP")
-                    
+
                     # Add debug and trace variants
                     for variant_name in ["veaf-scripts-debug.lua", "veaf-scripts-trace.lua"]:
                         variant_path = self.build_dir / variant_name
@@ -565,7 +541,7 @@ class BuildAndReleaseWorker:
                             arcname = f"src/scripts/veaf/{variant_name}"
                             zf.write(variant_path, arcname)
                             logger.debug(f"Added {arcname} to ZIP")
-                    
+
                     # Add both executables at root level
                     if self.dist_dir.exists():
                         for exe_name in ["veaf-tools.exe", "veaf-tools-updater.exe"]:
@@ -573,25 +549,25 @@ class BuildAndReleaseWorker:
                             if exe_file.exists():
                                 zf.write(exe_file, exe_name)
                                 logger.debug(f"Added {exe_name} to ZIP")
-                    
+
                     # Add defaults directory
                     defaults_dir = self.src_dir / "defaults"
                     if defaults_dir.exists():
                         for file_path in defaults_dir.rglob("*"):
                             if file_path.is_file():
-                                arcname = file_path.relative_to(self.src_dir.parent)
+                                arcname = str(file_path.relative_to(self.src_dir.parent))
                                 zf.write(file_path, arcname)
                                 logger.debug(f"Added {arcname} to ZIP")
-                    
+
                     # Add build-scripts directory
                     build_scripts_dir = self.src_dir / "build-scripts"
                     if build_scripts_dir.exists():
                         for file_path in build_scripts_dir.rglob("*"):
                             if file_path.is_file():
-                                arcname = file_path.relative_to(self.src_dir)
+                                arcname = str(file_path.relative_to(self.src_dir))
                                 zf.write(file_path, arcname)
                                 logger.debug(f"Added {arcname} to ZIP")
-                    
+
                     # Add community scripts directory to src/scripts/community
                     community_dir = self.src_dir / "scripts" / "community"
                     if community_dir.exists():
@@ -602,7 +578,7 @@ class BuildAndReleaseWorker:
                                 arcname = f"src/scripts/community/{rel_path}"
                                 zf.write(file_path, arcname)
                                 logger.debug(f"Added {arcname} to ZIP")
-                    
+
                     # Add documentation files
                     doc_files = ["README.md", "package.json"]
                     for doc_file in doc_files:
@@ -667,12 +643,9 @@ class BuildAndReleaseWorker:
         if not token:
             logger.warning(
                 "GitHub token not provided. Use --token parameter or set GITHUB_TOKEN environment variable",
-                no_console=True
+                no_console=True,
             )
-            logger.info(
-                "Proceeding with git tags only (release assets must be uploaded manually)",
-                no_console=True
-            )
+            logger.info("Proceeding with git tags only (release assets must be uploaded manually)", no_console=True)
 
         try:
             self._publish_with_git_tags(package_path)
@@ -785,9 +758,17 @@ class BuildAndReleaseWorker:
 
             # Create GitHub release for versioned tag
             release_type_flag = "--prerelease" if self._is_prerelease else "--latest"
-            release_cmd = ["gh", "release", "create", tag_name, release_type_flag, "-t", f"VEAF Tools v{self.version}"]
-            release_cmd.extend(notes_arg)
-            
+            release_cmd = [
+                "gh",
+                "release",
+                "create",
+                tag_name,
+                release_type_flag,
+                "-t",
+                f"VEAF Tools v{self.version}",
+                *notes_arg,
+            ]
+
             result = subprocess.run(
                 release_cmd,
                 cwd=str(self.script_root),
@@ -813,8 +794,8 @@ class BuildAndReleaseWorker:
                 if result.returncode != 0:
                     logger.warning(f"Failed to upload updater executable: {result.stderr}")
                 else:
-                    logger.debug(f"Uploaded veaf-tools-updater.exe to release")
-            
+                    logger.debug("Uploaded veaf-tools-updater.exe to release")
+
             # Then upload the main ZIP
             result = subprocess.run(
                 ["gh", "release", "upload", tag_name, str(package_path)],
@@ -837,7 +818,7 @@ class BuildAndReleaseWorker:
                     capture_output=True,
                     text=True,
                 )
-                logger.debug(f"Uploaded published-metadata.json to release")
+                logger.debug("Uploaded published-metadata.json to release")
 
             # Delete auto-generated source archives
             for source_asset in ["Source code (zip)", "Source code (tar.gz)"]:
@@ -860,7 +841,7 @@ class BuildAndReleaseWorker:
 
             # Create or update the "latest" release pointing to the same assets
             # Delete old latest release if it exists
-            delete_latest_result = subprocess.run(
+            subprocess.run(
                 ["gh", "release", "delete", latest_tag_name, "--yes"],
                 cwd=str(self.script_root),
                 env=env,
@@ -870,9 +851,17 @@ class BuildAndReleaseWorker:
             # Ignore errors if release doesn't exist
 
             # Create new latest release
-            latest_release_cmd = ["gh", "release", "create", latest_tag_name, "--latest", "-t", f"VEAF Tools Latest (v{self.version})"]
-            latest_release_cmd.extend(notes_arg)
-            
+            latest_release_cmd = [
+                "gh",
+                "release",
+                "create",
+                latest_tag_name,
+                "--latest",
+                "-t",
+                f"VEAF Tools Latest (v{self.version})",
+                *notes_arg,
+            ]
+
             result = subprocess.run(
                 latest_release_cmd,
                 cwd=str(self.script_root),
@@ -892,7 +881,7 @@ class BuildAndReleaseWorker:
                         capture_output=True,
                         text=True,
                     )
-                
+
                 subprocess.run(
                     ["gh", "release", "upload", latest_tag_name, str(package_path)],
                     cwd=str(self.script_root),
@@ -911,9 +900,11 @@ class BuildAndReleaseWorker:
                         capture_output=True,
                         text=True,
                     )
-                    logger.debug(f"Uploaded published-metadata.json to latest release")
-                
-                logger.debug(f"GitHub latest release created and assets uploaded for {latest_tag_name}", no_console=True)
+                    logger.debug("Uploaded published-metadata.json to latest release")
+
+                logger.debug(
+                    f"GitHub latest release created and assets uploaded for {latest_tag_name}", no_console=True
+                )
 
         except Exception as e:
             logger.error(f"GitHub CLI operation failed: {e}")
@@ -921,26 +912,21 @@ class BuildAndReleaseWorker:
     def prepare_release_notes(self) -> Path:
         """
         Prepare release notes for publishing.
-        
+
         If RELEASE_NOTES.md exists, ask the user whether to use it or overwrite with template.
         If it doesn't exist, create it from template.
-        
+
         Returns:
             Path to the release notes file
         """
         release_notes_path = self.script_root / "RELEASE_NOTES.md"
-        
+
         if release_notes_path.exists():
             # File exists, ask user what to do
-            console.print(f"\n[bold yellow]RELEASE_NOTES.md already exists[/bold yellow]")
+            console.print("\n[bold yellow]RELEASE_NOTES.md already exists[/bold yellow]")
             console.print(f"Location: {release_notes_path}")
-            
-            response = typer.confirm(
-                "Do you want to overwrite it with a fresh template?",
-                default=False
-            )
-            
-            if response:
+
+            if typer.confirm("Do you want to overwrite it with a fresh template?", default=False):
                 # Overwrite with template
                 self._create_release_notes_template(release_notes_path)
                 console.print("[bold green]✓[/bold green] New release notes template created")
@@ -950,14 +936,14 @@ class BuildAndReleaseWorker:
             # File doesn't exist, create from template
             self._create_release_notes_template(release_notes_path)
             console.print("[bold green]✓[/bold green] Release notes template created")
-        
+
         return release_notes_path
 
     def _create_release_notes_template(self, release_notes_path: Path):
         """Create release notes template file."""
         template = f"""# VEAF Tools Release v{self.version}
 
-**Release Date:** {datetime.now().strftime('%Y-%m-%d')}
+**Release Date:** {datetime.now().strftime("%Y-%m-%d")}
 
 ## What's New
 
@@ -1108,7 +1094,7 @@ See git history for detailed changes.
             logger.error(str(e))
             sys.exit(1)
 
-    def _print_summary(self, package_info: Dict):
+    def _print_summary(self, package_info: dict):
         """Print build summary."""
         console.print("\n[bold green]Build and release process completed![/bold green]")
 
@@ -1118,14 +1104,14 @@ See git history for detailed changes.
         summary_table.add_row("Release Package", str(package_info["path"]))
         summary_table.add_row("Release Notes", str(self.script_root / "RELEASE_NOTES.md"))
         summary_table.add_row("SHA256", package_info["hash"])
-        summary_table.add_row("Size", f"{package_info['size'] / (1024*1024):.2f} MB")
+        summary_table.add_row("Size", f"{package_info['size'] / (1024 * 1024):.2f} MB")
         console.print(summary_table)
 
         console.print("\n[bold cyan]Next Steps:[/bold cyan]")
         console.print("  1. Review release notes in RELEASE_NOTES.md")
         console.print("  2. Edit release notes with actual changes")
         if self.publish_to_github:
-            console.print(f"  3. Use GitHub CLI to create release (already done via gh CLI)")
+            console.print("  3. Use GitHub CLI to create release (already done via gh CLI)")
         else:
             console.print("  3. To publish to GitHub, run with --publish flag")
 
@@ -1145,8 +1131,8 @@ def callback(ctx: typer.Context) -> None:
 
 
 def _execute_build_and_publish(
-    version: Optional[str] = None,
-    token: Optional[str] = None,
+    version: str | None = None,
+    token: str | None = None,
     skip_lua: bool = False,
     skip_python: bool = False,
     dev: bool = False,
@@ -1162,7 +1148,7 @@ def _execute_build_and_publish(
     if not version:
         version_file = Path("package.json")
         if version_file.exists():
-            with open(version_file, "r") as f:
+            with open(version_file) as f:
                 version = json.load(f).get("version")
         else:
             logger.error("Version not specified and package.json not found")
@@ -1173,7 +1159,9 @@ def _execute_build_and_publish(
     effective_token = token or github_config.get("token") or os.getenv("GITHUB_TOKEN")
 
     if not effective_token:
-        logger.error("GitHub token not provided. Use --token, set GITHUB_TOKEN env var, or add to veaf-tools-config.yaml")
+        logger.error(
+            "GitHub token not provided. Use --token, set GITHUB_TOKEN env var, or add to veaf-tools-config.yaml"
+        )
         sys.exit(1)
 
     try:
@@ -1195,13 +1183,15 @@ def _execute_build_and_publish(
         release_notes_path = worker.prepare_release_notes()
 
         # Step 3: Pause for editing release notes
-        console.print("\n[bold yellow]⏸️  Pause: Edit RELEASE_NOTES.md and press Enter to continue publishing...[/bold yellow]")
+        console.print(
+            "\n[bold yellow]⏸️  Pause: Edit RELEASE_NOTES.md and press Enter to continue publishing...[/bold yellow]"
+        )
         console.print(f"File location: {release_notes_path.resolve()}")
         input(PAUSE_MESSAGE)
 
         # Step 4: Publish
         console.print("\n[bold cyan]Step 3: Publishing to GitHub...[/bold cyan]")
-        
+
         # Verify that published.zip exists
         published_zip = Path("published.zip")
         if not published_zip.exists():
@@ -1227,13 +1217,14 @@ def _execute_build_and_publish(
         release_url = f"https://github.com/{publish_worker.github_owner}/{publish_worker.github_repo}/releases/tag/published-v{version}"
 
         from rich.table import Table
+
         table = Table(title=f"[bold green]Release v{version} Published[/bold green]")
         table.add_column("Property", style="cyan")
         table.add_column("Value", style="green")
         table.add_row("Version", f"v{version}")
         table.add_row("Package", published_zip.name)
-        table.add_row("SHA256", package_hash[:16] + "...")
-        table.add_row("Size", f"{published_zip.stat().st_size / (1024*1024):.1f} MB")
+        table.add_row("SHA256", f"{package_hash[:16]}...")
+        table.add_row("Size", f"{published_zip.stat().st_size / (1024 * 1024):.1f} MB")
         table.add_row("URL", release_url)
         console.print("")
         console.print(table)
@@ -1246,25 +1237,23 @@ def _execute_build_and_publish(
 
 @app.command()
 def build_and_publish(
-    version: Optional[str] = typer.Option(
+    version: str | None = typer.Option(
         None,
         help="Semantic version for the release (e.g., '6.0.2'). If not specified, reads from package.json",
     ),
-    token: Optional[str] = typer.Option(
+    token: str | None = typer.Option(
         None,
         help="GitHub Personal Access Token with 'repo' scope (or use GITHUB_TOKEN env var)",
     ),
     skip_lua: bool = typer.Option(False, help="Skip Lua script build"),
     skip_python: bool = typer.Option(False, help="Skip Python executable build"),
     dev: bool = typer.Option(False, "--dev", help="Build in development mode"),
-    output: str = typer.Option(
-        ".", help="Output directory for release package"
-    ),
+    output: str = typer.Option(".", help="Output directory for release package"),
     verbose: bool = typer.Option(False, help=VERBOSE_HELP),
 ) -> None:
     """
     Build VEAF Tools and publish to GitHub (default command).
-    
+
     This command builds everything and then pauses to let you edit RELEASE_NOTES.md
     before publishing to GitHub.
     """
@@ -1281,16 +1270,14 @@ def build_and_publish(
 
 @app.command()
 def build(
-    version: Optional[str] = typer.Option(
+    version: str | None = typer.Option(
         None,
         help="Semantic version for the release (e.g., '6.0.2'). If not specified, reads from package.json",
     ),
     skip_lua: bool = typer.Option(False, help="Skip Lua script build"),
     skip_python: bool = typer.Option(False, help="Skip Python executable build"),
     dev: bool = typer.Option(False, "--dev", help="Build in development mode"),
-    output: str = typer.Option(
-        ".", help="Output directory for release package"
-    ),
+    output: str = typer.Option(".", help="Output directory for release package"),
     verbose: bool = typer.Option(False, help=VERBOSE_HELP),
     pause: bool = typer.Option(False, help="Pause when finished"),
 ) -> None:
@@ -1318,11 +1305,11 @@ def build(
 
 @app.command()
 def publish(
-    version: Optional[str] = typer.Option(
+    version: str | None = typer.Option(
         None,
         help="Semantic version for the release (e.g., '6.0.2'). If not specified, reads from package.json",
     ),
-    token: Optional[str] = typer.Option(
+    token: str | None = typer.Option(
         None,
         help="GitHub Personal Access Token with 'repo' scope (or use GITHUB_TOKEN env var)",
     ),
@@ -1339,10 +1326,10 @@ def publish(
 ) -> None:
     """
     Publish existing release to GitHub (without recompiling).
-    
+
     Use this after running 'build' and editing RELEASE_NOTES.md.
     It will publish the already-compiled artifacts to GitHub.
-    
+
     For pre-release testing without affecting production users, use --prerelease.
     The published-latest tag is left untouched; test with:
         veaf-tools-updater update --tag published-v<version>
@@ -1355,26 +1342,28 @@ def publish(
         # Read version from package.json
         version_file = Path("package.json")
         if version_file.exists():
-            with open(version_file, "r") as f:
+            with open(version_file) as f:
                 version = json.load(f).get("version")
         else:
             logger.error("Version not specified and package.json not found")
             sys.exit(1)
-    
+
     # Determine GitHub token with fallback: CLI arg > config file > env var
     github_config = config.get("github", {})
     effective_token = token or github_config.get("token") or os.getenv("GITHUB_TOKEN")
-    
+
     if not effective_token:
-        logger.error("GitHub token not provided. Use --token, set GITHUB_TOKEN env var, or add to veaf-tools-config.yaml")
+        logger.error(
+            "GitHub token not provided. Use --token, set GITHUB_TOKEN env var, or add to veaf-tools-config.yaml"
+        )
         sys.exit(1)
-    
+
     # Verify that published.zip exists
     published_zip = Path("published.zip")
     if not published_zip.exists():
         logger.error(f"Release package not found at {published_zip}. Run 'build' first.")
         sys.exit(1)
-    
+
     # Prepare release notes (create or ask about overwriting)
     console.print("\n[bold cyan]Preparing release notes...[/bold cyan]")
     with spinner_context("Loading release notes handler..."):
@@ -1383,20 +1372,22 @@ def publish(
             verbose=verbose,
             config=config,
         )
-    
+
     release_notes_path = worker.prepare_release_notes()
-    
+
     # Pause for editing release notes
-    console.print("\n[bold yellow]⏸️  Pause: Edit RELEASE_NOTES.md and press Enter to continue publishing...[/bold yellow]")
+    console.print(
+        "\n[bold yellow]⏸️  Pause: Edit RELEASE_NOTES.md and press Enter to continue publishing...[/bold yellow]"
+    )
     console.print(f"File location: {release_notes_path.resolve()}")
     input(PAUSE_MESSAGE)
-    
+
     try:
         # Calculate SHA256
         with spinner_context("Calculating SHA256..."):
             with open(published_zip, "rb") as f:
                 package_hash = sha256(f.read()).hexdigest()
-        
+
         # Publish to GitHub
         with spinner_context("Publishing to GitHub..."):
             worker = BuildAndReleaseWorker(
@@ -1407,23 +1398,24 @@ def publish(
                 prerelease=prerelease,
             )
             worker._do_publish_to_github(published_zip, package_hash, force=force)
-        
+
         # Display release information
         release_url = f"https://github.com/{worker.github_owner}/{worker.github_repo}/releases/tag/published-v{version}"
-        
+
         from rich.table import Table
+
         table = Table(title=f"[bold green]Release v{version} Published[/bold green]")
         table.add_column("Property", style="cyan")
         table.add_column("Value", style="green")
         table.add_row("Version", f"v{version}")
         table.add_row("Package", published_zip.name)
-        table.add_row("SHA256", package_hash[:16] + "...")
-        table.add_row("Size", f"{published_zip.stat().st_size / (1024*1024):.1f} MB")
+        table.add_row("SHA256", f"{package_hash[:16]}...")
+        table.add_row("Size", f"{published_zip.stat().st_size / (1024 * 1024):.1f} MB")
         table.add_row("URL", release_url)
         console.print("")
         console.print(table)
         console.print("")
-        
+
     except Exception as e:
         logger.error(f"Publishing failed: {e}")
         sys.exit(1)

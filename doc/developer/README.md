@@ -152,13 +152,17 @@ Log levels: `error` (1) → `warn` (2) → `info` (3) → `debug` (4) → `trace
 
 For expensive arguments, use `veaf.lp()` (lazy proxy — only stringified when the level is active).
 
-To increase verbosity for a mission, add `global_log_level` in `mission.yaml`:
+To increase verbosity for a mission at **build time** (global, baked into the `.miz`), add `global_log_level` in `mission.yaml`:
 
 ```yaml
 global_log_level: debug
 ```
 
-This writes `veaf.ForcedLogLevel = "debug"` into the generated `veaf-modules-config.lua`, overriding all per-module log levels at runtime.
+For **per-module or runtime** control, use `missionconfig.lua` directly:
+
+```lua
+veaf.loggers.get("SPAWN"):setLevel("debug", true)  -- force=true bypasses BaseLogLevel cap
+```
 
 ### mist.DBs Access
 

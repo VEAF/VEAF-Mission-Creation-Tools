@@ -283,15 +283,33 @@ local myQra = VeafQRA:new()
   :initialize()
 ```
 
-### Global Log Level (Debugging)
+### Log Level Control
 
-To increase Lua verbosity for a mission without touching source code, add `global_log_level` to your `mission.yaml`:
+#### Global level at build time
+
+To set the log verbosity for the whole mission, add `global_log_level` in `mission.yaml`:
 
 ```yaml
 global_log_level: debug   # error | warn | info | debug | trace
 ```
 
-During `veaf-tools build`, this is written as `veaf.ForcedLogLevel = "debug"` into the generated `veaf-modules-config.lua`, which overrides the log level of every module at runtime. Remove or comment it out before publishing to players.
+`veaf-tools build` writes `veaf.ForcedLogLevel = "debug"` into the generated `veaf-modules-config.lua`, which overrides the log level of every module. This is baked into the `.miz` — changing it requires a rebuild.
+
+> Remove this line (or set it to `info`) before deploying to players.
+
+#### Per-module level at runtime
+
+For finer control — or when editing the `.miz` is not practical (live server) — set levels directly in your `missionconfig.lua`:
+
+```lua
+-- Override individual module log levels (force=true bypasses BaseLogLevel cap)
+veaf.loggers.get("SPAWN"):setLevel("debug", true)
+veaf.loggers.get("RADIO"):setLevel("trace", true)
+```
+
+If your mission loads scripts from the filesystem (`dofile(lfs.writedir() .. "...")`) rather than from inside the `.miz`, editing `missionconfig.lua` on the server and reloading the mission is sufficient — no rebuild needed.
+
+Log levels: `error` (1) → `warn` (2) → `info` (3, default) → `debug` (4) → `trace` (5).
 
 ### Security Levels
 

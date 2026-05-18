@@ -28,7 +28,7 @@ The project has two completely separate layers:
 │                                                          │
 │  veaf-tools.exe  ──────────────── .miz manipulation      │
 │  veaf-tools-updater.exe ──────── release management      │
-│  build-and-release.py ─────────── build pipeline         │
+│  veaf-build  (poetry run veaf-build) ─ build pipeline         │
 └──────────────────────────────────────────────────────────┘
                         ↓ produces
                   published.zip
@@ -50,7 +50,8 @@ The project has two completely separate layers:
 
 ```
 VEAF-Mission-Creation-Tools/
-├── build-and-release.py          # Main build orchestrator
+├── veaf_build/                   # veaf-build CLI (build & publish orchestrator)
+├── build-and-release.py          # Backward-compat shim (use veaf-build instead)
 ├── src/
 │   ├── scripts/veaf/             # Lua runtime modules (32 files)
 │   └── python/veaf-tools/        # Python CLI source
@@ -88,13 +89,13 @@ VEAF-Mission-Creation-Tools/
 git clone https://github.com/VEAF/VEAF-Mission-Creation-Tools.git
 cd VEAF-Mission-Creation-Tools
 
-# Create virtual environment and activate (always do this first!)
-python -m venv .venv
-. .\.venv\Scripts\Activate.ps1
-
-# Install dependencies
-pip install -r requirements.txt
+# Install dependencies (Poetry manages its own virtual environment)
+poetry install              # quality gate + veaf-tools
+poetry install --with build # add PyInstaller (needed to compile .exe)
 ```
+
+> Use `poetry run <cmd>` to execute any Python command inside Poetry's environment,
+> or `poetry shell` to open an interactive session.
 
 ### Python Dependencies
 
@@ -229,11 +230,8 @@ logger.error("Failed", raise_exception=True)
 ### Local Build
 
 ```powershell
-# Activate venv first
-. .\.venv\Scripts\Activate.ps1
-
 # Build (compiles Lua + builds .exe)
-python build-and-release.py build --version 6.0.5
+poetry run veaf-build build --version 6.0.5
 ```
 
 What it does:
@@ -246,7 +244,7 @@ What it does:
 
 ```powershell
 # Requires GITHUB_TOKEN environment variable
-python build-and-release.py publish --version 6.0.5
+poetry run veaf-build publish --version 6.0.5
 ```
 
 This creates a Git tag, a GitHub Release, and uploads `published.zip` with the SHA256 file.
@@ -254,7 +252,7 @@ This creates a Git tag, a GitHub Release, and uploads `published.zip` with the S
 ### Security Model
 
 ```
-build-and-release.py computes SHA256 of published.zip
+veaf-build computes SHA256 of published.zip
     ↓
 SHA256 stored alongside ZIP in GitHub Release
     ↓

@@ -25,7 +25,13 @@ _CACHE_FILE = "update_check_cache.json"
 
 
 def _version_tuple(v: str) -> tuple[int, ...]:
-    """Convert a dotted version string to a comparable integer tuple."""
+    """Convert a dotted version string to a comparable integer tuple.
+
+    Pre-release suffixes (e.g. ``-rc1``, ``-alpha``, ``-beta``) are stripped
+    before parsing so that ``6.1.0-rc1`` compares as ``(6, 1, 0)``.
+    """
+    # Strip pre-release / build-metadata suffixes: "6.1.0-rc1" → "6.1.0"
+    v = v.split("-")[0].split("+")[0]
     try:
         return tuple(int(x) for x in v.split("."))
     except ValueError:
@@ -92,6 +98,6 @@ def check_for_updates(current_version: str, console: "Console") -> None:
                 f"[yellow]⚠ A newer version of veaf-tools is available: "
                 f"[bold]{latest}[/bold] (you have {current_version})[/yellow]"
             )
-            console.print("[yellow]  Run [bold]veaf-tools-updater update[/bold] to update.[/yellow]")
+            console.print("[yellow]  Run [bold]veaf-tools-updater[/bold] to update.[/yellow]")
     except Exception:
         pass  # Offline, timeout, rate-limited, or cache error — silently skip

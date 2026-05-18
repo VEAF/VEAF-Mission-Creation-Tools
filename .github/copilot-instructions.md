@@ -17,7 +17,8 @@
 - Standards: `README.md`, `QUICKSTART.md`, `ARCHITECTURE.md` ✅
 
 ### Code Quality
-- **Always activate venv first:** `. .\.venv\Scripts\Activate.ps1` (PowerShell) or `source .venv/bin/activate` (Bash)
+- **Use Poetry for all Python commands:** `poetry run python`, `poetry run ruff`, `poetry run mypy`, `poetry run pytest`
+- For interactive sessions: `poetry shell` opens a shell with Poetry's venv active
 - Type hints on all functions, docstrings for public methods
 - Follow existing code style, include error handling
 - Test cross-platform compatibility when possible
@@ -62,7 +63,7 @@ if ($FAILED -eq 0) { 'All tests passed.' } else { 'FAILED'; exit 1 }
 1. `~/.local/bin/stylua.exe src/scripts/veaf/` — auto-fix Lua formatting
 2. `~/.local/bin/stylua.exe --check src/scripts/veaf/` — verify clean
 3. Lua tests (see above) — verify all suites pass
-4. `. .venv/Scripts/Activate.ps1` then `ruff check` + `ruff format --check` + `mypy` + `pytest` — Python quality gate
+4. `poetry run ruff check src/python` + `poetry run ruff format --check src/python` + `poetry run mypy src/python` + `poetry run pytest` — Python quality gate
 5. Update `doc/backlog.md` to reflect ticket state
 6. Only then: open PR and request Copilot review (`mcp_github_request_copilot_review`)
 
@@ -157,19 +158,21 @@ class MissionConfig:
 
 ## Build & Release Workflow
 
-### Key Script: `build-and-release.py`
+### Key Script: `veaf-build` (Poetry entry point)
 
-Main orchestrator for the entire build pipeline:
+Main orchestrator for the entire build pipeline.
+Source: `veaf_build/` package (`cli.py`, `worker.py`, `github.py`).
 
-```bash
-# Activate venv first (critical!)
-. .\.venv\Scripts\Activate.ps1
+```powershell
+# Install dependencies (Poetry manages its own virtual environment)
+poetry install              # runtime + dev (no PyInstaller)
+poetry install --with build # full setup including PyInstaller
 
 # Build
-python build-and-release.py build --version 6.0.4
+poetry run veaf-build build --version 6.0.4
 
 # Publish to GitHub (requires GITHUB_TOKEN)
-python build-and-release.py publish --version 6.0.4
+poetry run veaf-build publish --version 6.0.4
 ```
 
 **What it does:**
@@ -246,7 +249,7 @@ Lua modules follow a strict loading order (see `src/scripts/veaf/`):
 - **pydantic** - Data validation (newer code)
 
 ### GitHub Integration
-- Automated via `build-and-release.py` using GitHub REST API
+- Automated via `veaf-build` using GitHub REST API
 - Requires `GITHUB_TOKEN` environment variable
 - Creates tags, releases, uploads artifacts automatically
 
@@ -260,15 +263,12 @@ Lua modules follow a strict loading order (see `src/scripts/veaf/`):
 ## Testing & Validation
 
 ### Running Tools Locally
-```bash
-# Activate venv
-. .\.venv\Scripts\Activate.ps1
-
+```powershell
 # Run a tool directly
-python -m veaf_tools weather-inject --mission test/test.miz --output test/test-out.miz
+poetry run python -m veaf_tools weather-inject --mission test/test.miz --output test/test-out.miz
 
-# Run tests (if available)
-python -m pytest test/
+# Run tests
+poetry run pytest
 ```
 
 ### Mission Validation

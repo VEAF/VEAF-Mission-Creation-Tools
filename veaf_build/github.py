@@ -1,0 +1,298 @@
+"""GitHub release publishing logic."""
+
+import os
+import subprocess
+from pathlib import Path
+
+from veaf_libs.logger import logger  # type: ignore[import-not-found]
+from veaf_libs.progress import spinner_context  # type: ignore[import-not-found]
+
+
+class GitHubPublisher:
+    """Handles creating git tags and GitHub releases."""
+
+    def __init__(
+        self,
+        owner: str,
+        repo: str,
+        token: str | None,
+        version: str,
+        script_root: Path,
+        dist_dir: Path,
+        output_path: Path,
+        prerelease: bool = False,
+        verbose: bool = False,
+    ) -> None:
+        self.owner = owner
+        self.repo = repo
+        self.token = token
+        self.version = version
+        self.script_root = script_root
+        self.dist_dir = dist_dir
+        self.output_path = output_path
+        self.prerelease = prerelease
+        self.verbose = verbose
+
+    @property
+    def _is_prerelease(self) -> bool:
+        return self.prerelease
+
+    def publish(self, package_path: Path, package_hash: str, force: bool = False) -> None:
+        """Publish release to GitHub using git tags and gh CLI."""
+        if not self.token:
+            logger.warning(
+                "GitHub token not provided. Use --token parameter or set GITHUB_TOKEN environment variable",
+                no_console=True,
+            )
+            logger.info("Proceeding with git tags only (release assets must be uploaded manually)", no_console=True)
+
+        try:
+            self._publish_with_git_tags(package_path)
+            if self.token:
+                self._publish_with_gh_cli(package_path, package_hash, force=force)
+        except subprocess.CalledProcessError as e:
+            logger.error(f"GitHub publishing failed: {e}")
+
+    def _publish_with_git_tags(self, package_path: Path) -> None:  # sourcery skip: extract-duplicate-method
+        """Create and push versioned and latest git tags."""
+        try:
+            tag_name = f"published-v{self.version}"
+            latest_tag_name = "published-latest"
+
+            # Delete old versioned tag if it exists
+            subprocess.run(
+                ["git", "tag", "-d", tag_name],
+                cwd=str(self.script_root),
+                capture_output=True,
+            )
+
+            # Create new versioned tag
+            subprocess.run(
+                ["git", "tag", tag_name],
+                cwd=str(self.script_root),
+                capture_output=True,
+                check=True,
+            )
+
+            # Push versioned tag
+            subprocess.run(
+                ["git", "push", "origin", "-f", tag_name],
+                cwd=str(self.script_root),
+                capture_output=True,
+                check=True,
+            )
+
+            if self._is_prerelease:
+                logger.debug(f"Pre-release: skipping {latest_tag_name} tag update", no_console=True)
+                logger.debug(f"Git tag created and pushed: {tag_name}", no_console=True)
+                return
+
+            # For full releases: also move the published-latest tag
+            subprocess.run(
+                ["git", "tag", "-d", latest_tag_name],
+                cwd=str(self.script_root),
+                capture_output=True,
+            )
+            subprocess.run(
+                ["git", "tag", latest_tag_name],
+                cwd=str(self.script_root),
+                capture_output=True,
+                check=True,
+            )
+            subprocess.run(
+                ["git", "push", "origin", "-f", latest_tag_name],
+                cwd=str(self.script_root),
+                capture_output=True,
+                check=True,
+            )
+
+            logger.debug(f"Git tags created and pushed: {tag_name}, {latest_tag_name}", no_console=True)
+
+        except subprocess.CalledProcessError as e:
+            logger.error(f"Git operation failed: {e}")
+
+    def _publish_with_gh_cli(  # sourcery skip: extract-duplicate-method
+        self, package_path: Path, package_hash: str, force: bool = False
+    ) -> None:
+        """Publish release to GitHub using gh CLI."""
+        try:
+            # Check if gh CLI is available
+            subprocess.run(
+                ["gh", "--version"],
+                capture_output=True,
+                check=True,
+            )
+        except (subprocess.CalledProcessError, FileNotFoundError):
+            logger.warning("GitHub CLI (gh) not found. Install from: https://cli.github.com/")
+            return
+
+        try:
+            tag_name = f"published-v{self.version}"
+            latest_tag_name = "published-latest"
+
+            # Prepare environment with GitHub token
+            env = os.environ.copy()
+            if self.token:
+                env["GH_TOKEN"] = self.token
+
+            # Delete existing release if force is enabled
+            if force:
+                subprocess.run(
+                    ["gh", "release", "delete", tag_name, "--yes"],
+                    cwd=str(self.script_root),
+                    env=env,
+                    capture_output=True,
+                    text=True,
+                )
+                # Ignore errors if release doesn't exist
+
+            # Create release notes
+            release_notes_path = self.script_root / "RELEASE_NOTES.md"
+            notes_arg = []
+            if release_notes_path.exists():
+                notes_arg = ["--notes-file", str(release_notes_path)]
+
+            # Create GitHub release for versioned tag
+            release_type_flag = "--prerelease" if self._is_prerelease else "--latest"
+            release_cmd = [
+                "gh",
+                "release",
+                "create",
+                tag_name,
+                release_type_flag,
+                "-t",
+                f"VEAF Tools v{self.version}",
+                *notes_arg,
+            ]
+
+            result = subprocess.run(
+                release_cmd,
+                cwd=str(self.script_root),
+                env=env,
+                capture_output=True,
+                text=True,
+            )
+            if result.returncode != 0:
+                logger.error(f"GitHub release creation failed: {result.stderr}")
+                return
+
+            # Upload release assets: updater first, then main zip
+            updater_exe = self.dist_dir / "veaf-tools-updater.exe"
+            if updater_exe.exists():
+                result = subprocess.run(
+                    ["gh", "release", "upload", tag_name, str(updater_exe)],
+                    cwd=str(self.script_root),
+                    env=env,
+                    capture_output=True,
+                    text=True,
+                )
+                if result.returncode != 0:
+                    logger.warning(f"Failed to upload updater executable: {result.stderr}")
+                else:
+                    logger.debug("Uploaded veaf-tools-updater.exe to release")
+
+            result = subprocess.run(
+                ["gh", "release", "upload", tag_name, str(package_path)],
+                cwd=str(self.script_root),
+                env=env,
+                capture_output=True,
+                text=True,
+            )
+            if result.returncode != 0:
+                logger.error(f"GitHub asset upload failed: {result.stderr}")
+                return
+
+            # Upload metadata file for checksum verification
+            metadata_file = self.output_path / "published-metadata.json"
+            if metadata_file.exists():
+                subprocess.run(
+                    ["gh", "release", "upload", tag_name, str(metadata_file)],
+                    cwd=str(self.script_root),
+                    env=env,
+                    capture_output=True,
+                    text=True,
+                )
+                logger.debug("Uploaded published-metadata.json to release")
+
+            # Delete auto-generated source archives
+            for source_asset in ["Source code (zip)", "Source code (tar.gz)"]:
+                subprocess.run(
+                    ["gh", "release", "delete-asset", tag_name, source_asset, "--yes"],
+                    cwd=str(self.script_root),
+                    env=env,
+                    capture_output=True,
+                    text=True,
+                )
+                # Ignore errors if asset doesn't exist
+
+            logger.debug(f"GitHub release created and assets uploaded for {tag_name}", no_console=True)
+
+            if self._is_prerelease:
+                logger.debug(f"Pre-release: skipping {latest_tag_name} release update", no_console=True)
+                return
+
+            # Create or update the "latest" release pointing to the same assets
+            subprocess.run(
+                ["gh", "release", "delete", latest_tag_name, "--yes"],
+                cwd=str(self.script_root),
+                env=env,
+                capture_output=True,
+                text=True,
+            )
+            # Ignore errors if release doesn't exist
+
+            latest_release_cmd = [
+                "gh",
+                "release",
+                "create",
+                latest_tag_name,
+                "--latest",
+                "-t",
+                f"VEAF Tools Latest (v{self.version})",
+                *notes_arg,
+            ]
+
+            result = subprocess.run(
+                latest_release_cmd,
+                cwd=str(self.script_root),
+                env=env,
+                capture_output=True,
+                text=True,
+            )
+            if result.returncode != 0:
+                logger.warning(f"GitHub latest release creation failed: {result.stderr}")
+                return
+
+            if updater_exe.exists():
+                subprocess.run(
+                    ["gh", "release", "upload", latest_tag_name, str(updater_exe)],
+                    cwd=str(self.script_root),
+                    env=env,
+                    capture_output=True,
+                    text=True,
+                )
+
+            subprocess.run(
+                ["gh", "release", "upload", latest_tag_name, str(package_path)],
+                cwd=str(self.script_root),
+                env=env,
+                capture_output=True,
+                text=True,
+            )
+
+            if metadata_file.exists():
+                subprocess.run(
+                    ["gh", "release", "upload", latest_tag_name, str(metadata_file)],
+                    cwd=str(self.script_root),
+                    env=env,
+                    capture_output=True,
+                    text=True,
+                )
+                logger.debug("Uploaded published-metadata.json to latest release")
+
+            logger.debug(
+                f"GitHub latest release created and assets uploaded for {latest_tag_name}", no_console=True
+            )
+
+        except Exception as e:
+            logger.error(f"GitHub CLI operation failed: {e}")

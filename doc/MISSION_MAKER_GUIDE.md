@@ -46,7 +46,7 @@ A VEAF mission is a standard DCS World `.miz` file that loads the VEAF Lua frame
 Download `veaf-tools-updater.exe` from the [latest GitHub release](https://github.com/VEAF/VEAF-Mission-Creation-Tools/releases/tag/published-latest), place it in your mission folder, then run:
 
 ```powershell
-.\veaf-tools-updater.exe update
+.\veaf-tools-updater.exe
 ```
 
 This downloads `published.zip`, verifies the SHA256 checksum, and extracts all scripts into your mission folder.
@@ -56,13 +56,13 @@ This downloads `published.zip`, verifies the SHA256 checksum, and extracts all s
 Run the same command any time a new VEAF release is available:
 
 ```powershell
-.\veaf-tools-updater.exe update
+.\veaf-tools-updater.exe
 ```
 
 For a specific version:
 
 ```powershell
-.\veaf-tools-updater.exe update --version 6.0.5
+.\veaf-tools-updater.exe --tag published-v6.0.5
 ```
 
 See [TOOLS_REFERENCE.md](TOOLS_REFERENCE.md) for the full `veaf-tools-updater.exe` and `veaf-tools.exe` command reference.
@@ -82,7 +82,7 @@ The fastest way to start is to fork [VEAF-Demo-Mission](https://github.com/VEAF/
 ```powershell
 git clone https://github.com/VEAF/VEAF-Demo-Mission.git my-mission
 cd my-mission
-.\veaf-tools-updater.exe update
+.\veaf-tools-updater.exe
 ```
 
 ### From Scratch
@@ -91,7 +91,7 @@ If you start from an existing mission file:
 
 1. Create a folder for your mission project (this is your Git repository)
 2. Copy your `.miz` file there
-3. Run `veaf-tools-updater.exe update` to get all VEAF scripts
+3. Run `veaf-tools-updater.exe` to get all VEAF scripts
 4. Add the script loader trigger (see [Loading Scripts in DCS](#loading-scripts-in-dcs))
 5. Create a `missionconfig.lua` for your module configuration
 
@@ -213,13 +213,14 @@ veafRadio.initialize()
 
 | Command | What it does |
 |---------|-------------|
-| `normalize` | Standardizes the mission file for clean diffs |
-| `radio-presets` | Injects frequency plans for all human groups |
-| `weather-inject` | Inserts real or configured weather |
-| `aircraft-groups-inject` | Injects aircraft group templates |
-| `aircraft-groups-extract` | Extracts aircraft groups from a mission |
-| `waypoints-inject` | Injects waypoints (bullseye, etc.) for human groups |
-| `waypoints-extract` | Extracts waypoints from a mission |
+| `build` | Builds the mission from `src\mission\` and `src\scripts\` — outputs a dated `.miz` |
+| `extract` | Extracts a `.miz` to a source folder (run once to initialise your repo) |
+| `inject-presets` | Injects radio frequency plans for all human groups |
+| `inject-weather` | Inserts real or configured weather |
+| `inject-aircraft-groups` | Injects aircraft group templates |
+| `extract-aircraft-groups` | Extracts aircraft groups from a mission |
+| `inject-waypoints` | Injects waypoints (bullseye, etc.) for human groups |
+| `extract-waypoints` | Extracts waypoints from a mission |
 
 Full command reference: [TOOLS_REFERENCE.md](TOOLS_REFERENCE.md)
 
@@ -233,28 +234,27 @@ Most VEAF-based mission repositories follow this pattern (e.g., `build.cmd`):
 
 ```batch
 @echo off
-REM 1. Normalize the source mission
-veaf-tools.exe normalize --mission src\mission.miz --output build\mission.miz
+set MISSION_NAME=mission
 
-REM 2. Inject radio presets
-veaf-tools.exe radio-presets --mission build\mission.miz --config src\presets.yaml
+REM 1. Build the mission (reads src\mission\ + src\scripts\ → mission_YYYYMMDD.miz)
+veaf-tools.exe build %MISSION_NAME% .
 
-REM 3. Inject waypoints
-veaf-tools.exe waypoints-inject --mission build\mission.miz --config src\waypoints.yaml
+REM 2. Inject radio presets (optional)
+REM veaf-tools.exe inject-presets %MISSION_NAME% --presets-file src\presets.yaml
 
-REM 4. Inject weather (optional)
-veaf-tools.exe weather-inject --mission build\mission.miz --config src\weather.yaml
+REM 3. Inject waypoints (optional)
+REM veaf-tools.exe inject-waypoints %MISSION_NAME% --waypoints-file src\waypoints.yaml
 
-REM 5. Output is the playable mission
-copy build\mission.miz output\MyMission.miz
+REM 4. Inject weather variants (optional)
+REM veaf-tools.exe inject-weather %MISSION_NAME% --config-file src\missions.yaml
 ```
 
-### Normalizing for Clean Diffs
+### Clean Git Diffs
 
-Always normalize before committing your `.miz` to Git. This standardizes field order inside the mission Lua tables and eliminates noisy diffs caused by DCS's internal serialization.
+The `build` command reads from `src\mission\` (a folder of plain-text Lua files) rather than a binary `.miz`. Commit the contents of `src\mission\` to Git — not the `.miz` itself — for readable diffs. Use `extract` once to bootstrap the folder from an existing mission:
 
-```powershell
-veaf-tools.exe normalize --mission my-mission.miz
+```batch
+veaf-tools.exe extract my-mission.miz src
 ```
 
 ---
@@ -277,17 +277,19 @@ end
 -- Example: configure a QRA
 local myQra = VeafQRA:new()
   :setName("QRA-Blue-North")
-  :setZone("ZONE-QRA-NORTH")
+  :setTriggerZone("ZONE-QRA-NORTH")
   :setCoalition(coalition.side.BLUE)
-  :setGroups({"F-15C QRA"})
-  :initialize()
+  :addGroup("F-15C QRA")
+  :start()
 ```
 
 ### Log Level Control
 
 #### Global level at build time
 
-To set the log verbosity for the whole mission, add `global_log_level` in `mission.yaml`:
+`mission.yaml` is an optional file you create manually at the **root of your mission folder** (next to `build.cmd` and `veaf-tools-updater.exe`). It is read by `veaf-tools build` — if it does not exist, the build works without it.
+
+To set the log verbosity for the whole mission, create `mission.yaml` with:
 
 ```yaml
 global_log_level: debug   # error | warning | info | debug | trace
@@ -299,7 +301,7 @@ global_log_level: debug   # error | warning | info | debug | trace
 
 #### Per-module level at build time
 
-For finer control, configure individual modules via the `lua_modules` section in `mission.yaml`:
+For finer control, configure individual modules via the `lua_modules` section in the same `mission.yaml`:
 
 ```yaml
 lua_modules:

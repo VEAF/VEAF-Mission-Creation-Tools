@@ -54,7 +54,7 @@ A VEAF mission is a standard DCS `.miz` file that loads the VEAF Lua framework a
 Download `veaf-tools-updater.exe` from the [latest GitHub release](https://github.com/VEAF/VEAF-Mission-Creation-Tools/releases/tag/published-latest) and place it in your mission project folder, then run:
 
 ```powershell
-.\veaf-tools-updater.exe update
+.\veaf-tools-updater.exe
 ```
 
 This downloads `published.zip`, verifies the SHA256 checksum, and extracts all scripts and tools into your mission folder.
@@ -64,19 +64,19 @@ This downloads `published.zip`, verifies the SHA256 checksum, and extracts all s
 Run the same command whenever a new release is available:
 
 ```powershell
-.\veaf-tools-updater.exe update
+.\veaf-tools-updater.exe
 ```
 
 Only updates if the remote version is newer. To force a reinstall:
 
 ```powershell
-.\veaf-tools-updater.exe update --force
+.\veaf-tools-updater.exe --force
 ```
 
 To pin to a specific version:
 
 ```powershell
-.\veaf-tools-updater.exe update --tag published-v6.0.5
+.\veaf-tools-updater.exe --tag published-v6.0.5
 ```
 
 Full CLI reference: [Tools Reference](../TOOLS_REFERENCE.md)
@@ -92,14 +92,14 @@ The fastest way to start is to fork [VEAF-Demo-Mission](https://github.com/VEAF/
 ```powershell
 git clone https://github.com/VEAF/VEAF-Demo-Mission.git my-mission
 cd my-mission
-.\veaf-tools-updater.exe update
+.\veaf-tools-updater.exe
 ```
 
 ### From Scratch
 
 1. Create a folder for your mission project (this is your Git repository)
 2. Copy your existing `.miz` file there
-3. Run `veaf-tools-updater.exe update` to fetch all VEAF scripts
+3. Run `veaf-tools-updater.exe` to fetch all VEAF scripts
 4. Add the script loader trigger in DCS Mission Editor (see below)
 5. Create a `missionconfig.lua` for your module configuration
 
@@ -229,13 +229,14 @@ veafSecurity.password_L9[sha1("yourpassword")] = true
 
 | Command | What it does |
 |---------|-------------|
-| `normalize` | Standardises the mission file for clean Git diffs |
-| `radio-presets` | Injects radio frequency plans for all human cockpits |
-| `weather-inject` | Inserts real or configured weather data |
-| `aircraft-groups-inject` | Injects aircraft group templates |
-| `aircraft-groups-extract` | Extracts aircraft groups from a mission |
-| `waypoints-inject` | Injects waypoints (bullseye, nav points) for human groups |
-| `waypoints-extract` | Extracts waypoints from a mission |
+| `build` | Builds the mission from `src\mission\` and `src\scripts\` — outputs a dated `.miz` |
+| `extract` | Extracts a `.miz` to a source folder (run once to initialise your repo) |
+| `inject-presets` | Injects radio frequency plans for all human cockpits |
+| `inject-weather` | Inserts real or configured weather data |
+| `inject-aircraft-groups` | Injects aircraft group templates |
+| `extract-aircraft-groups` | Extracts aircraft groups from a mission |
+| `inject-waypoints` | Injects waypoints (bullseye, nav points) for human groups |
+| `extract-waypoints` | Extracts waypoints from a mission |
 
 Full reference: [Tools Reference](../TOOLS_REFERENCE.md)
 
@@ -245,24 +246,26 @@ Full reference: [Tools Reference](../TOOLS_REFERENCE.md)
 
 ```batch
 @echo off
+set MISSION_NAME=mission
 
-REM 1. Normalize source mission (clean Git diffs)
-veaf-tools.exe normalize --mission src\mission.miz --output build\mission.miz
+REM 1. Build the mission (reads src\mission\ + src\scripts\ → mission_YYYYMMDD.miz)
+veaf-tools.exe build %MISSION_NAME% .
 
-REM 2. Inject radio presets from YAML config
-veaf-tools.exe radio-presets --mission build\mission.miz --config src\presets.yaml
+REM 2. Inject radio presets from YAML config (optional)
+REM veaf-tools.exe inject-presets %MISSION_NAME% --presets-file src\presets.yaml
 
-REM 3. Inject bullseye and nav waypoints
-veaf-tools.exe waypoints-inject --mission build\mission.miz --config src\waypoints.yaml
+REM 3. Inject bullseye and nav waypoints (optional)
+REM veaf-tools.exe inject-waypoints %MISSION_NAME% --waypoints-file src\waypoints.yaml
 
-REM 4. Inject weather (optional)
-veaf-tools.exe weather-inject --mission build\mission.miz --config src\weather.yaml
-
-REM 5. Copy finished mission to output
-copy build\mission.miz output\MyMission_v1.0.miz
+REM 4. Inject weather variants (optional)
+REM veaf-tools.exe inject-weather %MISSION_NAME% --config-file src\missions.yaml
 ```
 
-Always normalize before committing to Git. This eliminates noisy diffs caused by DCS's internal serialisation order.
+Commit the contents of `src\mission\` to Git — not the `.miz` itself. Use `extract` once to bootstrap the folder from an existing mission:
+
+```batch
+veaf-tools.exe extract my-mission.miz src
+```
 
 ---
 

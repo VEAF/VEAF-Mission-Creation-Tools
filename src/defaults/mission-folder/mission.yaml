@@ -1,0 +1,28 @@
+# mission.yaml — optional build-time configuration for veaf-tools
+#
+# Place this file at the root of your mission folder (next to build.cmd and
+# veaf-tools-updater.exe). If absent, veaf-tools build works with default settings.
+#
+# See: https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/master/doc/MISSION_MAKER_GUIDE.md
+
+# ── Global log level ─────────────────────────────────────────────────────────
+# Forces veaf.ForcedLogLevel in the built mission. Applies to every module.
+# Values: error | warning | info | debug | trace
+# Remove or set to "info" before deploying to players.
+#
+# global_log_level: debug
+
+# ── Per-module log levels ─────────────────────────────────────────────────────
+# Fine-grained control: override log levels for specific modules.
+# All other modules keep their default level.
+# Module IDs: VEAF, SPAWN, RADIO, ASSETS, QRA, CAS, TRANSPORT, CARRIER,
+#             COMBAT, ZONE, SHORTCUTS, NAMEDPOINTS, SECURITY, MOVE, GRASS,
+#             SANCTUARY, SKYNET, REMOTE, INTERPRETER, WEATHER
+#
+# lua_modules:
+#   SPAWN:
+#     logLevel: debug
+#   RADIO:
+#     logLevel: trace
+#   ASSETS:
+#     logLevel: info

@@ -26,7 +26,7 @@ In both cases the end result is a **VEAF v6 mission folder** that you manage wit
 2. Run the updater once to install `veaf-tools.exe` and all VEAF scripts:
 
 ```powershell
-.\veaf-tools-updater.exe update
+.\veaf-tools-updater.exe
 ```
 
 3. Have your original `.miz` file on hand
@@ -43,7 +43,7 @@ In both cases the end result is a **VEAF v6 mission folder** that you manage wit
 | Scripts delivered as individual `.lua` files | All modules concatenated into `veaf-scripts.lua` |
 | No build toolchain | `veaf-tools.exe build` command builds the `.miz` |
 | Configuration scattered in mission triggers or inline scripts | `src/scripts/missionConfig.lua` |
-| No version management | `veaf-tools-updater.exe update` |
+| No version management | `veaf-tools-updater.exe` |
 
 ### Step-by-step Migration
 
@@ -61,7 +61,7 @@ cd my-mission
 Copy `veaf-tools-updater.exe` into the folder and run:
 
 ```powershell
-.\veaf-tools-updater.exe update
+.\veaf-tools-updater.exe
 ```
 
 This creates the `published/` directory with all scripts and tools.
@@ -71,7 +71,7 @@ This creates the `published/` directory with all scripts and tools.
 Use `veaf-tools.exe` to unpack the `.miz` into the folder structure:
 
 ```powershell
-.\published\veaf-tools.exe extract "C:\path\to\your-mission-v5.miz" .
+.\veaf-tools.exe extract "C:\path\to\your-mission-v5.miz" .
 ```
 
 This creates:
@@ -93,7 +93,7 @@ my-mission/
 The `build` command automatically detects and removes old v5 `DO SCRIPT FILE` triggers (enabled by default via `--migrate-from-v5`):
 
 ```powershell
-.\published\veaf-tools.exe build my-mission .
+.\veaf-tools.exe build my-mission .
 ```
 
 The output `.miz` will have:
@@ -155,7 +155,7 @@ Some v5 constructs no longer exist or have been renamed:
 #### 7. Verify with a test build
 
 ```powershell
-.\published\veaf-tools.exe build my-mission .
+.\veaf-tools.exe build my-mission .
 ```
 
 Open the resulting `.miz` in DCS, load the mission, and confirm:
@@ -191,7 +191,7 @@ cd my-mission
 #### 2. Install VEAF v6
 
 ```powershell
-.\veaf-tools-updater.exe update
+.\veaf-tools-updater.exe
 ```
 
 #### 3. Convert the vanilla .miz
@@ -199,7 +199,7 @@ cd my-mission
 The `convert-mission` command does everything in one step: extract, inject VEAF scripts, rebuild.
 
 ```powershell
-.\published\veaf-tools.exe convert-mission "C:\path\to\vanilla.miz" .
+.\veaf-tools.exe convert-mission "C:\path\to\vanilla.miz" .
 ```
 
 This:
@@ -213,14 +213,14 @@ This:
 If you want to set up the folder structure without converting a mission yet, use `prepare`:
 
 ```powershell
-.\published\veaf-tools.exe prepare .
+.\veaf-tools.exe prepare .
 ```
 
 Then copy your `.miz` as `mission.miz` and run:
 
 ```powershell
-.\published\veaf-tools.exe extract mission.miz .
-.\published\veaf-tools.exe build mission .
+.\veaf-tools.exe extract mission.miz .
+.\veaf-tools.exe build mission .
 ```
 
 #### 5. Configure which modules to enable
@@ -263,7 +263,7 @@ Your custom triggers, statics, and groups are untouched.
 
 ```powershell
 # Rebuild after every config change
-.\published\veaf-tools.exe build mission .
+.\veaf-tools.exe build mission .
 ```
 
 Each build produces a dated `.miz` file (e.g. `mission_20260516.miz`). Open it in DCS and test.
@@ -289,8 +289,8 @@ my-mission/
 │   └── waypoints.yaml          ← custom waypoints (optional)
 ├── published/                  ← installed by veaf-tools-updater (do NOT commit)
 │   ├── veaf-scripts.lua
-│   ├── veaf-tools.exe
 │   └── ...
+├── veaf-tools.exe              ← installed by veaf-tools-updater (do NOT commit)
 ├── veaf-tools-updater.exe      ← commit this
 └── mission_20260516.miz        ← build output (do NOT commit)
 ```
@@ -351,7 +351,7 @@ Confirm `veafSpawn.initialize()` is called. Check the DCS log (Saved Games\DCS\L
 
 ### Build fails with "VEAF scripts file not found"
 
-Run `veaf-tools-updater.exe update` first — the `published/` folder is missing or outdated.
+Run `veaf-tools-updater.exe` first — the `published/` folder is missing or outdated.
 
 ---
 

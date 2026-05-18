@@ -98,12 +98,59 @@ def resolve_path(
     return result
 
 
+def _read_single_char() -> str:
+    """Read one character from the console without waiting for Enter (Windows/Unix)."""
+    try:
+        import msvcrt
+
+        ch = msvcrt.getwch()
+        if ch in ("\x00", "\xe0"):
+            msvcrt.getwch()  # consume second byte of special key
+            return ""
+        if ch == "\x03":  # Ctrl-C
+            raise KeyboardInterrupt
+        return ch
+    except ImportError:
+        # Unix fallback (not expected in production, but keeps tests runnable)
+        import termios
+        import tty
+
+        fd = sys.stdin.fileno()
+        old = termios.tcgetattr(fd)
+        try:
+            tty.setraw(fd)
+            return sys.stdin.read(1)
+        finally:
+            termios.tcsetattr(fd, termios.TCSADRAIN, old)
+
+
+def _ask_replace(relative_path: Path) -> tuple[bool, bool]:
+    """Prompt to replace an existing file. Returns (should_replace, yes_to_all)."""
+    sys.stdout.write(f"File already exists: {relative_path}\n")
+    while True:
+        sys.stdout.write("Replace it? [y/N/A] ")
+        sys.stdout.flush()
+        try:
+            ch = _read_single_char().lower()
+        except KeyboardInterrupt:
+            sys.stdout.write("\n")
+            return False, False
+        sys.stdout.write(ch + "\n")
+        if ch == "a":
+            return True, True
+        if ch == "y":
+            return True, False
+        if ch in ("n", "\r", "\n", ""):
+            return False, False
+        sys.stdout.write("  y = yes, n = no (default), A = yes to all remaining\n")
+
+
 @app.command()
 def prepare(
     mission_folder: str | None = typer.Argument(".", help="Folder to initialize as a VEAF mission folder."),
     readme: bool = typer.Option(False, help=README_HELP),
     verbose: bool = typer.Option(False, help=VERBOSE_HELP),
-    force: bool = typer.Option(False, help="Do not ask before replacing existing files."),
+    force: bool = typer.Option(False, help="Do not ask before replacing existing files (same as pressing A)."),
 ) -> None:
     """
     Prepares a mission folder by copying default files and build scripts.
@@ -117,7 +164,7 @@ def prepare(
     if readme:
         console.print("[bold cyan]Prepare Command[/bold cyan]")
         console.print("This command initializes a mission folder with default files and build scripts.")
-        console.print("\nDefault files are copied from: src/defaults/mission-folder/src")
+        console.print("\nDefault files are copied from: src/defaults/mission-folder")
         console.print("Build scripts are copied from: src/build-scripts")
         console.print("\nIf files already exist, you will be asked to confirm replacement (unless --force is used).")
         exit()
@@ -134,17 +181,17 @@ def prepare(
 
         # Try to find src/defaults relative to the script location
         # First, check if we're in a published installation
-        defaults_source = install_source.parent.parent.parent / "src" / "defaults" / "mission-folder" / "src"
+        defaults_source = install_source.parent.parent.parent / "src" / "defaults" / "mission-folder"
 
         # If not found, check parent directories (for development installations)
         if not defaults_source.exists():
             # Try one more level up (if running from veaf-tools/ subdirectory)
-            defaults_source = install_source.parent.parent.parent.parent / "src" / "defaults" / "mission-folder" / "src"
+            defaults_source = install_source.parent.parent.parent.parent / "src" / "defaults" / "mission-folder"
 
         # If still not found, look in a common relative location
         if not defaults_source.exists():
             # Try from current working directory
-            defaults_source = Path.cwd().parent / "src" / "defaults" / "mission-folder" / "src"
+            defaults_source = Path.cwd().parent / "src" / "defaults" / "mission-folder"
 
         if not defaults_source.exists():
             logger.warning(f"Default files not found at: {defaults_source}")
@@ -165,8 +212,9 @@ def prepare(
 
         files_installed = 0
         files_skipped = 0
+        yes_to_all = force
 
-        # Copy default files from src/defaults/mission-folder/src
+        # Copy default files from src/defaults/mission-folder
         if defaults_source and defaults_source.exists():
             logger.info(f"Copying default files from {defaults_source}")
             for source_file in defaults_source.rglob("*"):
@@ -179,11 +227,10 @@ def prepare(
 
                     # Check if file already exists
                     if dest_file.exists():
-                        should_replace = force
-                        if not force:
-                            should_replace = typer.confirm(
-                                f"File already exists: {relative_path}\nReplace it?", default=False
-                            )
+                        if not yes_to_all:
+                            should_replace, yes_to_all = _ask_replace(relative_path)
+                        else:
+                            should_replace = True
 
                         if should_replace:
                             shutil.copy2(source_file, dest_file)
@@ -210,11 +257,10 @@ def prepare(
 
                     # Check if file already exists
                     if dest_file.exists():
-                        should_replace = force
-                        if not force:
-                            should_replace = typer.confirm(
-                                f"File already exists: {relative_path}\nReplace it?", default=False
-                            )
+                        if not yes_to_all:
+                            should_replace, yes_to_all = _ask_replace(relative_path)
+                        else:
+                            should_replace = True
 
                         if should_replace:
                             shutil.copy2(source_file, dest_file)

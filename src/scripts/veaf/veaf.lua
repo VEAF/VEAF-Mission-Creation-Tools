@@ -2656,12 +2656,10 @@ end
 --Beware that, some airbases do not posses a life or a life0 to calculate a percentage. This method will return -1 if so.
 function veaf.getAirbaseLife(airbase_name, percentage, loading)
   veaf.loggers.get(veaf.Id):trace(
-    string.format(
-      "veaf.getAirbaseLife(airbase_name = %s, percentage = %s, loading = %s)",
-      veaf.lp(airbase_name),
-      veaf.lp(percentage),
-      veaf.lp(loading)
-    )
+    "veaf.getAirbaseLife(airbase_name = %s, percentage = %s, loading = %s)",
+    veaf.lp(airbase_name),
+    veaf.lp(percentage),
+    veaf.lp(loading)
   )
 
   local airbase_life = -1
@@ -2780,15 +2778,13 @@ end
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 function veaf._endMission(delay1, message1, delay2, message2, delay3, message3)
   veaf.loggers.get(veaf.Id):trace(
-    string.format(
-      "veaf._endMission(delay1=%s, message1=%s, delay2=%s, message2=%s, delay3=%s, message3=%s)",
-      veaf.lp(delay1),
-      veaf.lp(message1),
-      veaf.lp(delay2),
-      veaf.lp(message2),
-      veaf.lp(delay3),
-      veaf.lp(message3)
-    )
+    "veaf._endMission(delay1=%s, message1=%s, delay2=%s, message2=%s, delay3=%s, message3=%s)",
+    veaf.lp(delay1),
+    veaf.lp(message1),
+    veaf.lp(delay2),
+    veaf.lp(message2),
+    veaf.lp(delay3),
+    veaf.lp(message3)
   )
 
   if not delay1 then
@@ -2817,18 +2813,16 @@ function veaf._checkForEndMission(
   message3
 )
   veaf.loggers.get(veaf.Id):trace(
-    string.format(
-      "veaf._checkForEndMission(endTimeInSeconds=%s, checkIntervalInSeconds=%s, checkMessage=%s, delay1=%s, message1=%s, delay2=%s, message2=%s, delay3=%s, message3=%s)",
-      veaf.lp(endTimeInSeconds),
-      veaf.lp(checkIntervalInSeconds),
-      veaf.lp(checkMessage),
-      veaf.lp(delay1),
-      veaf.lp(message1),
-      veaf.lp(delay2),
-      veaf.lp(message2),
-      veaf.lp(delay3),
-      veaf.lp(message3)
-    )
+    "veaf._checkForEndMission(endTimeInSeconds=%s, checkIntervalInSeconds=%s, checkMessage=%s, delay1=%s, message1=%s, delay2=%s, message2=%s, delay3=%s, message3=%s)",
+    veaf.lp(endTimeInSeconds),
+    veaf.lp(checkIntervalInSeconds),
+    veaf.lp(checkMessage),
+    veaf.lp(delay1),
+    veaf.lp(message1),
+    veaf.lp(delay2),
+    veaf.lp(message2),
+    veaf.lp(delay3),
+    veaf.lp(message3)
   )
 
   veaf.loggers.get(veaf.Id):trace(string.format("timer.getAbsTime()=%d", timer.getAbsTime()))
@@ -2864,19 +2858,17 @@ function veaf.endMissionAt(
   message3
 )
   veaf.loggers.get(veaf.Id):trace(
-    string.format(
-      "veaf.endMissionAt(endTimeHour=%s, endTimeMinute=%s, checkIntervalInSeconds=%s, checkMessage=%s, delay1=%s, message1=%s, delay2=%s, message2=%s, delay3=%s, message3=%s)",
-      veaf.lp(endTimeHour),
-      veaf.lp(endTimeMinute),
-      veaf.lp(checkIntervalInSeconds),
-      veaf.lp(checkMessage),
-      veaf.lp(delay1),
-      veaf.lp(message1),
-      veaf.lp(delay2),
-      veaf.lp(message2),
-      veaf.lp(delay3),
-      veaf.lp(message3)
-    )
+    "veaf.endMissionAt(endTimeHour=%s, endTimeMinute=%s, checkIntervalInSeconds=%s, checkMessage=%s, delay1=%s, message1=%s, delay2=%s, message2=%s, delay3=%s, message3=%s)",
+    veaf.lp(endTimeHour),
+    veaf.lp(endTimeMinute),
+    veaf.lp(checkIntervalInSeconds),
+    veaf.lp(checkMessage),
+    veaf.lp(delay1),
+    veaf.lp(message1),
+    veaf.lp(delay2),
+    veaf.lp(message2),
+    veaf.lp(delay3),
+    veaf.lp(message3)
   )
 
   local endTimeInSeconds = endTimeHour * 3600 + endTimeMinute * 60
@@ -3353,7 +3345,13 @@ end
 function veaf.Logger:getEffectiveLevel()
   local level = self.level
   if veaf.ForcedLogLevel then
-    level = veaf.ForcedLogLevel
+    local forced = veaf.ForcedLogLevel
+    if type(forced) == "string" then
+      forced = veaf.Logger.LEVEL[forced:lower()]
+    end
+    if forced then
+      level = forced
+    end
   end
   return level
 end
@@ -3447,7 +3445,7 @@ function veaf.Logger:print(level, text, logWithDcsServerBot)
 end
 
 function veaf.Logger:error(text, ...)
-  if self.level >= 1 then
+  if self:getEffectiveLevel() >= 1 then
     text = veaf.Logger.formatText(text, arg)
     local mText = text
     if debug and debug.traceback then
@@ -3458,47 +3456,47 @@ function veaf.Logger:error(text, ...)
 end
 
 function veaf.Logger:warn(text, ...)
-  if self.level >= 2 then
+  if self:getEffectiveLevel() >= 2 then
     text = veaf.Logger.formatText(text, arg)
     self:print(2, text)
   end
 end
 
 function veaf.Logger:info(text, ...)
-  if self.level >= 3 then
+  if self:getEffectiveLevel() >= 3 then
     text = veaf.Logger.formatText(text, arg)
     self:print(3, text)
   end
 end
 
 function veaf.Logger:debug(text, ...)
-  if self.level >= 4 then
+  if self:getEffectiveLevel() >= 4 then
     text = veaf.Logger.formatText(text, arg)
     self:print(4, text)
   end
 end
 
 function veaf.Logger:trace(text, ...)
-  if self.level >= 5 then
+  if self:getEffectiveLevel() >= 5 then
     text = veaf.Logger.formatText(text, arg)
     self:print(5, text)
   end
 end
 
 function veaf.Logger:wouldLogWarn()
-  return self.level >= 2
+  return self:getEffectiveLevel() >= 2
 end
 
 function veaf.Logger:wouldLogInfo()
-  return self.level >= 3
+  return self:getEffectiveLevel() >= 3
 end
 
 function veaf.Logger:wouldLogDebug()
-  return self.level >= 4
+  return self:getEffectiveLevel() >= 4
 end
 
 function veaf.Logger:wouldLogTrace()
-  return self.level >= 5
+  return self:getEffectiveLevel() >= 5
 end
 
 --- Format version info with logging levels
@@ -3511,7 +3509,7 @@ function veaf.Logger:marker(id, header, message, position, markersTable, radius,
   if not id then
     id = 99999
   end
-  if self.level >= 5 then
+  if self:getEffectiveLevel() >= 5 then
     local correctedPos = {}
     correctedPos.x = position.x
     if not position.z then
@@ -3546,7 +3544,7 @@ function veaf.Logger:markerArrow(id, header, message, positionStart, positionEnd
   if not id then
     id = 99999
   end
-  if self.level >= 5 then
+  if self:getEffectiveLevel() >= 5 then
     local points = { positionStart, positionEnd }
     for _, point in ipairs(points) do
       local correctedPos = {}
@@ -3588,7 +3586,7 @@ function veaf.Logger:markerQuad(id, header, message, points, markersTable, lineT
   if not id then
     id = 99999
   end
-  if self.level >= 5 then
+  if self:getEffectiveLevel() >= 5 then
     local points = points
     for _, point in ipairs(points) do
       local correctedPos = {}

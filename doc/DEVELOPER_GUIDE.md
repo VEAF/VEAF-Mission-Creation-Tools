@@ -23,7 +23,7 @@ The project separates **runtime Lua scripting** (executed inside DCS World) from
 ┌──────────────────────────────────────────────────────────────────┐
 │                    DEVELOPERS / ADMINISTRATORS                    │
 │                                                                   │
-│  build-and-release.py                                            │
+│  veaf-build (poetry run veaf-build ...)                          │
 │  ├── Compile Lua scripts (src/scripts/veaf/ → published/)        │
 │  ├── Build Python executables (PyInstaller)                      │
 │  ├── Create release package (published.zip + SHA256)             │
@@ -38,7 +38,7 @@ The project separates **runtime Lua scripting** (executed inside DCS World) from
 ┌──────────────────────────────────────────────────────────────────┐
 │                   MISSION MAKERS / USERS                          │
 │                                                                   │
-│  veaf-tools-updater.exe update                                   │
+│  veaf-tools-updater.exe                                          │
 │  ├── Fetch latest release from GitHub                            │
 │  ├── Download published.zip                                      │
 │  ├── Verify SHA256 checksum                                      │
@@ -50,7 +50,8 @@ The project separates **runtime Lua scripting** (executed inside DCS World) from
 
 ```
 VEAF-Mission-Creation-Tools/
-├── build-and-release.py          # Build & publish orchestrator
+├── veaf_build/                   # veaf-build CLI (build & publish orchestrator)
+├── build-and-release.py          # Backward-compat shim (use veaf-build instead)
 ├── src/
 │   ├── scripts/veaf/             # Lua runtime modules (32 files)
 │   └── python/veaf-tools/        # Python CLI source code
@@ -68,7 +69,7 @@ VEAF-Mission-Creation-Tools/
 ```
 Developer creates release
     ↓
-build-and-release.py calculates SHA256
+veaf-build calculates SHA256
     ↓
 SHA256 stored alongside ZIP on GitHub Release
     ↓
@@ -96,13 +97,13 @@ Checksum verified before extraction
 # Clone the repository
 git clone https://github.com/VEAF/VEAF-Mission-Creation-Tools.git
 
-# Create and activate virtual environment (always do this first!)
-python -m venv .venv
-. .\.venv\Scripts\Activate.ps1
-
 # Install dependencies
-pip install -r requirements.txt
+poetry install              # quality gate + veaf-tools (no PyInstaller)
+poetry install --with build # full setup including PyInstaller
 ```
+
+> Poetry manages its own virtual environment. Use `poetry run <cmd>` to execute any
+> command inside it, or `poetry shell` to open an interactive session.
 
 ### Python Dependencies
 
@@ -159,7 +160,7 @@ All runtime scripts live in `src/scripts/veaf/` and are loaded into DCS missions
 
 ### Module Loading Pattern
 
-Modules follow a strict load order (see `build_lua_scripts()` in `build-and-release.py`). Each module uses local scope and registers itself on a global table:
+Modules follow a strict load order (see `build_lua_scripts()` in `veaf_build/worker.py`). Each module uses local scope and registers itself on a global table:
 
 ```lua
 veafMyModule = {}
@@ -188,21 +189,22 @@ These scripts are not shipped in `published/veaf-scripts.lua` but are used by th
 
 ## Python Tools
 
-### build-and-release.py
+### veaf-build
 
 Main orchestrator for the complete release pipeline.
+Registered as a Poetry script (`[tool.poetry.scripts]`); source lives in `veaf_build/`.
 
 **Commands:**
 
 ```powershell
 # Build (compile Lua + Python executables + package)
-python build-and-release.py build --version 6.0.4
+poetry run veaf-build build --version 6.0.4
 
 # Publish (create GitHub release + upload artifacts)
-python build-and-release.py publish --version 6.0.4
+poetry run veaf-build publish --version 6.0.4
 
 # Force overwrite an existing release
-python build-and-release.py publish --version 6.0.4 --force
+poetry run veaf-build publish --version 6.0.4 --force
 ```
 
 **Build options:**
@@ -232,8 +234,8 @@ python build-and-release.py publish --version 6.0.4 --force
 Utility for end users to download and install a release into a mission folder.
 
 ```powershell
-veaf-tools-updater.exe update
-veaf-tools-updater.exe update --mission-folder C:\path\to\mission
+veaf-tools-updater.exe
+veaf-tools-updater.exe "C:\path\to\mission"
 ```
 
 Workflow: discover latest release on GitHub → download `published.zip` → verify SHA256 → extract to mission folder.
@@ -245,17 +247,17 @@ Workflow: discover latest release on GitHub → download `published.zip` → ver
 ### Full Release Workflow
 
 ```powershell
-# 1. Activate virtual environment
-. .\.venv\Scripts\Activate.ps1
+# 1. Install dependencies (including PyInstaller)
+poetry install --with build
 
 # 2. Build artifacts
-python build-and-release.py build --version 6.0.5
+poetry run veaf-build build --version 6.0.5
 
 # 3. Edit release notes
 notepad RELEASE_NOTES.md
 
 # 4. Publish to GitHub
-python build-and-release.py publish --version 6.0.5
+poetry run veaf-build publish --version 6.0.5
 ```
 
 ### Pre-release Testing Workflow
@@ -265,13 +267,13 @@ Use this to validate a build in real conditions (updater downloading from GitHub
 
 ```powershell
 # 1. Build with a release-candidate version
-python build-and-release.py build --version 6.1.0-rc1
+poetry run veaf-build build --version 6.1.0-rc1
 
 # 2. Publish as pre-release — published-latest is NOT moved
-python build-and-release.py publish --version 6.1.0-rc1 --prerelease
+poetry run veaf-build publish --version 6.1.0-rc1 --prerelease
 
 # 3. Test the updater by pointing it at the RC tag explicitly
-veaf-tools-updater.exe update --tag published-v6.1.0-rc1 --mission-folder C:\path\to\mission
+veaf-tools-updater.exe --tag published-v6.1.0-rc1 "C:\path\to\mission"
 ```
 
 What this guarantees:
@@ -283,8 +285,8 @@ What this guarantees:
 Once testing passes, promote to a real release:
 
 ```powershell
-python build-and-release.py build --version 6.1.0
-python build-and-release.py publish --version 6.1.0
+poetry run veaf-build build --version 6.1.0
+poetry run veaf-build publish --version 6.1.0
 ```
 
 ### Configuration File
@@ -335,15 +337,23 @@ GitHub Release: published-v6.0.5
 
 ```powershell
 # Lua changed only
-python build-and-release.py build --skip-python --version 6.0.5
+poetry run veaf-build build --skip-python --version 6.0.5
 
 # Python changed only
-python build-and-release.py build --skip-lua --version 6.0.5
+poetry run veaf-build build --skip-lua --version 6.0.5
 ```
 
 ---
 
 ## Technical Reference
+
+### veaf_build Package Structure
+
+| Module | Responsibility |
+|--------|----------------|
+| `veaf_build/cli.py` | Typer CLI commands (`build`, `publish`, `build-and-publish`, `about`) |
+| `veaf_build/worker.py` | `BuildAndReleaseWorker` — Lua build, Python exe build, release packaging |
+| `veaf_build/github.py` | `GitHubPublisher` — git tag creation, `gh` CLI calls, asset uploads |
 
 ### BuildAndReleaseWorker Class
 
@@ -443,22 +453,41 @@ GitHub Actions runs on every push and pull request (`.github/workflows/lua-ci.ym
 ## Troubleshooting
 
 ### "PyInstaller is not installed"
+PyInstaller is in the optional `build` group — install it with:
 ```powershell
-. .\.venv\Scripts\Activate.ps1
-pip install pyinstaller
+poetry install --with build
 ```
+Then use `poetry run veaf-build ...` to ensure Poetry's environment is used.
 
 ### "Release package not found"
 Run `build` before `publish`:
 ```powershell
-python build-and-release.py build --version 6.0.5
+poetry run veaf-build build --version 6.0.5
 ```
 
 ### "HTTP 422: Release.tag_name already exists"
 Use `--force` to overwrite:
 ```powershell
-python build-and-release.py publish --version 6.0.5 --force
+poetry run veaf-build publish --version 6.0.5 --force
 ```
+
+### "401 Unauthorized / Bad credentials" during publish
+The GitHub token in `veaf-tools-config.yaml` is expired or revoked.
+
+1. Generate a new token at https://github.com/settings/tokens  
+   Required scopes: **`repo`** (classic) or **Contents: Read & Write** scoped to `VEAF/VEAF-Mission-Creation-Tools` (fine-grained).
+2. Either update `veaf-tools-config.yaml`:
+   ```yaml
+   github:
+     token: "ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+   ```
+   Or set it for the current session only:
+   ```powershell
+   $env:GITHUB_TOKEN = "ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+   ```
+   Token resolution order: `--token` CLI flag > `veaf-tools-config.yaml` > `GITHUB_TOKEN` env var.
+
+> **Never commit `veaf-tools-config.yaml`** — it is in `.gitignore`. If you accidentally expose a token, revoke it immediately at https://github.com/settings/tokens.
 
 ### "gh not found"
 Install GitHub CLI from https://cli.github.com/ and authenticate:
@@ -468,8 +497,8 @@ gh auth login
 
 ### Missing Python dependencies
 ```powershell
-. .\.venv\Scripts\Activate.ps1
-pip install -r requirements.txt
+poetry install              # runtime + dev dependencies
+poetry install --with build # add PyInstaller (needed to compile .exe)
 ```
 
 ### Lua encoding errors

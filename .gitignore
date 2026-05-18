@@ -51,3 +51,6 @@ veaf-tools-config.yaml
 RELEASE_NOTES.md
 test/veaf-tools-updater/*
 published-metadata.json
+
+# test folder for VEAF Tools v6 development, can be deleted after v6 release
+test-tools-v6/

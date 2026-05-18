@@ -41,7 +41,7 @@ You're in a mission that uses VEAF scripts. Open the F10 map, place a marker, an
 
 ```powershell
 # 1. Download the updater from the GitHub release page, then:
-.\veaf-tools-updater.exe update
+.\veaf-tools-updater.exe
 
 # 2. Add veaf-scripts.lua to your DCS mission triggers (DO SCRIPT FILE)
 
@@ -54,17 +54,16 @@ Full workflow: [Mission Maker Guide](doc/mission-maker/README.md)
 
 ```powershell
 # Setup
-python -m venv .venv ; . .\.venv\Scripts\Activate.ps1
-pip install -r requirements.txt
+poetry install --with build
 
 # Build
-python build-and-release.py build --version 6.0.5
+poetry run veaf-build build --version 6.0.5
 
 # Test
 .\test\lua\run_tests.ps1
 
 # Publish
-python build-and-release.py publish --version 6.0.5
+poetry run veaf-build publish --version 6.0.5
 ```
 
 Full reference: [Developer Guide](doc/developer/README.md)
@@ -77,7 +76,7 @@ VEAF Mission Creation Tools is a hybrid **Lua + Python** system:
 
 - **Runtime** (`src/scripts/veaf/`) — 32 Lua modules loaded inside DCS missions, providing spawning, asset management, mission types, radio menus, and more
 - **Design-time** (`src/python/veaf-tools/`) — Python CLI (`veaf-tools.exe`) for manipulating `.miz` files: normalizing, injecting weather/waypoints/radio presets/aircraft groups
-- **Release pipeline** (`build-and-release.py`) — compiles Lua, builds EXE files, publishes to GitHub
+- **Release pipeline** (`veaf-build` CLI) — compiles Lua, builds EXE files, publishes to GitHub
 
 ---
 

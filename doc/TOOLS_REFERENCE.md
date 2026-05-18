@@ -60,7 +60,7 @@ Once configured, all tools will automatically use these settings.
 To update your VEAF Tools to the latest version:
 
 ```bash
-veaf-tools-updater.exe update
+veaf-tools-updater.exe
 ```
 
 This will:
@@ -79,7 +79,7 @@ This will:
 If you need a previous version or want to be explicit:
 
 ```bash
-veaf-tools-updater.exe update --tag published-v6.0.0
+veaf-tools-updater.exe --tag published-v6.0.0
 ```
 
 Available version tags appear on GitHub:
@@ -92,7 +92,7 @@ Available version tags appear on GitHub:
 To reinstall the same version or force update:
 
 ```bash
-veaf-tools-updater.exe update --force
+veaf-tools-updater.exe --force
 ```
 
 This skips the "is it newer?" check and installs anyway. Useful for:
@@ -113,12 +113,12 @@ github:
 
 Then run:
 ```bash
-veaf-tools-updater.exe update
+veaf-tools-updater.exe
 ```
 
 **Option 2: Command line (if no config file)**
 ```bash
-veaf-tools-updater.exe update --token ghp_xxxxxxxxxxxx
+veaf-tools-updater.exe --token ghp_xxxxxxxxxxxx
 ```
 
 Benefits:
@@ -135,7 +135,7 @@ Benefits:
 ### Skip Checksum Verification (Not Recommended)
 
 ```bash
-veaf-tools-updater.exe update --no-verify-checksum
+veaf-tools-updater.exe --no-verify-checksum
 ```
 
 ⚠️ **Not recommended** - Checksums protect against:
@@ -150,7 +150,7 @@ Only use if absolutely necessary.
 For detailed troubleshooting:
 
 ```bash
-veaf-tools-updater.exe update --verbose
+veaf-tools-updater.exe --verbose
 ```
 
 Shows:
@@ -162,7 +162,7 @@ Shows:
 ### All Options Combined
 
 ```bash
-veaf-tools-updater.exe update \
+veaf-tools-updater.exe \
   --tag published-v6.0.1 \
   --token ghp_xxxxxxxxxxxx \
   --verbose \
@@ -172,7 +172,7 @@ veaf-tools-updater.exe update \
 ### Getting Help
 
 ```bash
-veaf-tools-updater.exe update --help
+veaf-tools-updater.exe --help
 ```
 
 Shows all available options and their descriptions.
@@ -410,7 +410,7 @@ Check:
 
 Tell users they can update:
 ```bash
-veaf-tools-updater.exe update
+veaf-tools-updater.exe
 ```
 
 ---
@@ -539,7 +539,7 @@ git push origin refs/tags/published-v6.0.1
 **Solution:**
 ```bash
 # Try again (usually fixes it)
-veaf-tools-updater.exe update
+veaf-tools-updater.exe
 
 # If persists, check GitHub release:
 # https://github.com/VEAF/VEAF-Mission-Creation-Tools/releases
@@ -554,7 +554,7 @@ veaf-tools-updater.exe update
 # Option 1: Wait 1 hour (rate limit resets)
 
 # Option 2: Use Personal Access Token (better limits)
-veaf-tools-updater.exe update --token ghp_xxxxxxxxxxxx
+veaf-tools-updater.exe --token ghp_xxxxxxxxxxxx
 
 # Get token from: https://github.com/settings/tokens
 # Scope: repo (full control)
@@ -567,8 +567,8 @@ veaf-tools-updater.exe update --token ghp_xxxxxxxxxxxx
 **Solution:**
 ```bash
 # Run as Administrator (Windows)
-# Or specify different directory:
-veaf-tools-updater.exe update --mission-folder "C:\alternative\path"
+# Or specify a different directory as a positional argument:
+veaf-tools-updater.exe "C:\alternative\path"
 ```
 
 ### Problem: File Not Found When Publishing
@@ -645,7 +645,7 @@ For detailed debug info:
 
 ```bash
 # Show verbose output
-veaf-tools-updater.exe update --verbose
+veaf-tools-updater.exe --verbose
 
 # Or for publish
 veaf-tools-updater.exe publish 6.0.1 ./published.zip --token ghp_xxx --verbose
@@ -660,13 +660,14 @@ Check the `veaf-tools.log` file in current directory for detailed logs.
 ### Update Command
 
 ```bash
-veaf-tools-updater.exe update [OPTIONS]
+veaf-tools-updater.exe [MISSION_FOLDER] [OPTIONS]
+
+Arguments:
+  MISSION_FOLDER                 Mission folder path (default: current directory)
 
 Options:
   --tag TEXT                     Version tag to fetch (default: published-latest)
   --token TEXT                   GitHub token (optional, overrides config file)
-  --mission-folder TEXT          Mission folder path (optional, overrides config file)
-  --no-confirm                   Skip confirmation prompts
   --force                        Ignore version check, install anyway
   --no-verify-checksum           Skip checksum verification (not recommended)
   --verbose                      Show detailed debug output
@@ -678,10 +679,10 @@ Options:
 
 **Examples:**
 ```bash
-veaf-tools-updater.exe update
-veaf-tools-updater.exe update --tag published-v6.0.0
-veaf-tools-updater.exe update --token ghp_xxx --verbose
-veaf-tools-updater.exe update --force --no-confirm
+veaf-tools-updater.exe
+veaf-tools-updater.exe --tag published-v6.0.0
+veaf-tools-updater.exe --token ghp_xxx --verbose
+veaf-tools-updater.exe --force
 ```
 
 ### Publish Command

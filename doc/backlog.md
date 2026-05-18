@@ -179,7 +179,7 @@ On `veaf-tools` startup, before running the command: compare the current version
 Define `~/.veaf/` as the centralized directory for: installed Lua scripts, preferences, logs. Resolution priority: `VEAF_HOME` env var > default `~/.veaf/`. Auto-create the directory if it does not exist. Migrate all `veaf_libs` paths that currently reference user-specific locations.
 
 **TOOL-003 — Embed module list**
-In `build-and-release.py`: scan `src/scripts/veaf/veaf*.lua`, extract ID and version via regex (`veafXxx.Id`, `veafXxx.Version`). Embed in the exe as a Python constant or bundled JSON file (PyInstaller `--add-data`). Expose via `veaf-tools about --modules` (Rich table).
+In `veaf_build/worker.py`: scan `src/scripts/veaf/veaf*.lua`, extract ID and version via regex (`veafXxx.Id`, `veafXxx.Version`). Embed in the exe as a Python constant or bundled JSON file (PyInstaller `--add-data`). Expose via `veaf-tools about --modules` (Rich table).
 
 </details>
 
@@ -271,6 +271,33 @@ In `mission.yaml` (mission configuration): `lua_modules` section listing modules
 
 ---
 
+## Lot RC — v6.1.0 RC bug fixes
+
+**Goal**: Fix bugs discovered during RC testing before the final release.
+**Branch**: `develop-v6` (direct commits — RC hotfixes)
+
+| # | Ticket | Type | Effort | Status |
+|---|--------|------|--------|--------|
+| RC-001 | Fix `.\published\veaf-tools.exe` → `.\veaf-tools.exe` in `doc/mission-maker/MIGRATION_GUIDE.md` | fix | 10 min | [x] |
+| RC-002 | Bundle lupa in exe (`pyproject.toml` non-optional + `hiddenimports` in `.spec`) | fix | 20 min | [x] |
+| RC-003 | Fix version comparison (`5.103.3 > 6.1.0-rc1`) — strip pre-release suffix in `_version_tuple` | fix | 15 min | [x] |
+| RC-004 | Fix `No such command 'normalize'` — rewrite `src/build-scripts/build.cmd` with real command names | fix | 20 min | [x] |
+| RC-005 | Sync `published/build-scripts/build.cmd` to match `src/build-scripts/build.cmd` | fix | 10 min | [x] |
+| RC-006 | Fix wrong command names in `doc/MISSION_MAKER_GUIDE.md` and `doc/mission-maker/README.md` | fix | 20 min | [x] |
+| RC-007 | Fix `string.format("%s", veaf.lp(...))` crash in `veaf.lua` (4 occurrences in `getAirbaseLife`, `_endMission`, `_checkForEndMission`, `endMissionAt`) | fix | 20 min | [x] |
+| RC-008 | Fix `prepare` command distributing files from wrong root (`defaults/mission-folder/src/` → `defaults/mission-folder/`) | fix | 15 min | [x] |
+| RC-009 | Fix `complete_src_folder_with_defaults` looking at `published/defaults/` instead of `published/src/defaults/` | fix | 20 min | [x] |
+| RC-010 | Move default `mission.yaml` from `src/defaults/mission-folder/src/` to `src/defaults/mission-folder/` (root) so it lands at `<mission_folder>/mission.yaml` | fix | 10 min | [x] |
+| RC-011 | Fix `veaf-modules-config.lua` not loaded in dynamic mode — add conditional `loadfile` in "Mission scripts loading - dynamic" trigger | fix | 20 min | [x] |
+| RC-012 | `prepare` command: replace `typer.confirm` with `_ask_replace()` using `sys.stdin` (fix terminal blocking + add "A" yes-to-all option) | fix | 15 min | [x] |
+| RC-013 | `veaf-tools-updater` `_install_defaults`: add `mission.yaml` copy (root of `mission-folder/`) — missing from first-install bootstrap | fix | 10 min | [x] |
+| RC-014 | `prepare` command: replace `sys.stdin.readline()` with `msvcrt.getwch()` (single-char, no Enter required) — fix terminal blocking on Windows/ConPTY | fix | 15 min | [x] |
+| RC-015 | `veaf.Logger`: `getEffectiveLevel()` retournait une string, les méthodes de log comparaient `self.level` (number figé) → `ForcedLogLevel` ignoré à l'exécution. Fix: `getEffectiveLevel()` retourne un number, toutes les méthodes utilisent `self:getEffectiveLevel()` | fix | 20 min | [x] |
+
+**Estimated total: ~160 min**
+
+---
+
 ## Lot 5 — RELEASE: v6.1.0
 
 **Goal**: Merge v6 to master and publish the official release.
@@ -281,7 +308,7 @@ In `mission.yaml` (mission configuration): `lua_modules` section listing modules
 | REL-001 | Finalize `CHANGELOG.md` for v6.1.0 | chore | 20 min | Lots 1–4 | [ ] |
 | REL-002 | Write `RELEASE_NOTES.md` for v6.1.0 | chore | 20 min | REL-001 | [ ] |
 | REL-003 | Squash merge `develop-v6` → `master` | chore | 15 min | REL-002 | [ ] |
-| REL-004 | Tag `v6.1.0` + publish GitHub (`build-and-release.py publish`) | chore | 30 min | REL-003 | [ ] |
+| REL-004 | Tag `v6.1.0` + publish GitHub (`veaf-build publish`) | chore | 30 min | REL-003 | [ ] |
 
 **Estimated total: ~85 min (~1h30)**
 
@@ -311,7 +338,7 @@ In `mission.yaml` (mission configuration): `lua_modules` section listing modules
 - `veaf.lp(value)`: lazy proxy so log arguments are only stringified if the log level is active.
   Returns a metatable with `__tostring` → `veaf.p(value)`. Safe to use in `:trace()`/`:debug()` calls.
 - Migrate all 1233 `veaf.p(` → `veaf.lp(` calls across the Lua codebase (automated via `migrate_lazy_log.py`).
-- Remove build-time comment-out step (`--scripts-variant debug/trace/standard`) from `build-and-release.py`.
+- Remove build-time comment-out step (`--scripts-variant debug/trace/standard`) from `veaf_build/worker.py`.
 - Remove `_create_lua_variant_files()` and the three `veaf-scripts-*.lua` variant generation steps.
 - `veaf.BaseLogLevel = 3` (info) as default; replace `--scripts-variant` with `mission.yaml: global_log_level`.
   Writes `veaf.ForcedLogLevel = "<level>"` in the generated `veaf-modules-config.lua`.
@@ -460,14 +487,16 @@ Isole la complexité de l'arbre DCS et facilite le test unitaire.
 | Lot | Estimate | Status |
 |-----|----------|--------|
 | Phase 0 — Restart | ~3h | [x] |
-| Lot 1 — INFRA | ~4h15 | [ ] |
-| Lot 2 — CLI | ~2h35 | [ ] |
-| Lot 3 — TUI | ~2h20 | [ ] |
-| Lot 4 — LUA-CONFIG | ~6h | [ ] |
+| Phase 0b — GitHub cleanup | ~25 min | [ ] |
+| Lot 1 — INFRA | ~4h15 | [x] |
+| Lot 2 — CLI | ~2h35 | [x] |
+| Lot 3 — TUI | ~2h20 | [x] |
+| Lot 4 — LUA-CONFIG | ~6h | [x] |
 | Lot 5 — RELEASE | ~1h30 | [ ] |
-| Lot 6 — BONUS | ~3h30 | [ ] |
+| Lot 6 — BONUS | ~3h30 | [x] |
 | Lot 7 — LUA FIXES | ~5h45 | [x] |
 | Lot 8 — LUA-QUALITY | ~3h35 | [x] |
+| Lot RC — v6.1.0 RC fixes | ~1h35 | [x] |
 | Lot 9 — LUA-REFACTOR | ~11h30 | [ ] |
 | **Total** | **~44h** | |
 

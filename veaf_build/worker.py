@@ -1,0 +1,795 @@
+"""Build and release worker — core build logic."""
+
+import json
+import os
+import re
+import shutil
+import subprocess
+import sys
+import zipfile
+from datetime import datetime
+from hashlib import sha256
+from pathlib import Path
+from typing import Any
+
+import typer
+from rich.table import Table
+
+from veaf_libs.logger import console, logger  # type: ignore[import-not-found]
+from veaf_libs.progress import spinner_context  # type: ignore[import-not-found]
+
+# Project root: two levels up from this file (veaf_build/ → project root)
+_PROJECT_ROOT = Path(__file__).parent.parent.resolve()
+
+VERBOSE_HELP: str = "If set, the script will output a lot of debug information."
+PAUSE_MESSAGE: str = "Press Enter to exit..."
+
+
+class BuildAndReleaseWorker:
+    """Worker class for build and release operations."""
+
+    def __init__(
+        self,
+        version: str | None = None,
+        skip_lua: bool = False,
+        skip_python: bool = False,
+        development_build: bool = False,
+        publish_to_github: bool = False,
+        github_token: str | None = None,
+        output_path: Path | None = None,
+        verbose: bool = False,
+        config: dict[str, Any] | None = None,
+        prerelease: bool = False,
+    ) -> None:
+        """Initialize the build and release worker."""
+        self.config = config or {}
+        self.prerelease = prerelease
+
+        # GitHub configuration from config file or defaults
+        github_config = self.config.get("github", {})
+        self.github_owner = github_config.get("owner", "VEAF")
+        self.github_repo = github_config.get("repo", "VEAF-Mission-Creation-Tools")
+
+        # Use CLI token if provided, otherwise fall back to config file, then env var
+        self.github_token: str | None = None
+        if github_token:
+            self.github_token = github_token
+        else:
+            self.github_token = github_config.get("token") or os.getenv("GITHUB_TOKEN")  # type: ignore[assignment]
+
+        self.script_root = _PROJECT_ROOT
+        self.build_dir = self.script_root / "build"
+        self.src_dir = self.script_root / "src"
+        self.dist_dir = self.script_root / "dist"
+        self.version_file = self.script_root / "package.json"
+
+        self.version = version
+        self.skip_lua = skip_lua
+        self.skip_python = skip_python
+        self.development_build = development_build
+        self.publish_to_github = publish_to_github
+        self.output_path = output_path or self.script_root
+        self.verbose = verbose
+
+        logger.set_verbose(verbose)
+
+    # ========================================================================
+    # Validation
+    # ========================================================================
+
+    def check_command(self, command: str, display_name: str) -> bool:
+        """Check if a command is available."""
+        try:
+            result = subprocess.run(
+                [command, "--version"],
+                capture_output=True,
+                text=True,
+                timeout=5,
+            )
+            return result.returncode == 0
+        except (subprocess.TimeoutExpired, FileNotFoundError):
+            return False
+
+    def validate_prerequisites(self) -> None:
+        """Validate that all required tools are available."""
+        with spinner_context("Checking prerequisites..."):
+            required_tools = {
+                "python": "Python",
+                "git": "Git",
+            }
+
+            if missing_tools := [
+                display_name
+                for cmd, display_name in required_tools.items()
+                if not self.check_command(cmd, display_name)
+            ]:
+                logger.error(f"Missing required tools: {', '.join(missing_tools)}. Please install them and try again.")
+
+            # Check for PyInstaller if not skipping Python build
+            if not self.skip_python:
+                try:
+                    import PyInstaller  # noqa: F401
+                except ImportError:
+                    logger.error("PyInstaller is not installed. Install it with: poetry install --with build")
+
+    def get_version_from_file(self) -> str:
+        """Read version from package.json."""
+        if not self.version_file.exists():
+            logger.error(f"package.json not found at {self.version_file}")
+
+        with open(self.version_file) as f:
+            data = json.load(f)
+            version = data.get("version")
+            if not version:
+                logger.error("'version' field not found in package.json")
+            return version
+
+    # ========================================================================
+    # Build Functions
+    # ========================================================================
+
+    def build_lua_scripts(self) -> None:  # sourcery skip: extract-method, extract-duplicate-method
+        """Build Lua scripts artifact by concatenating all Lua files."""
+        with spinner_context("Building Lua scripts..."):
+            try:
+                # Define the list of scripts to concatenate (order matters!)
+                lua_scripts = [
+                    "dcsUnits.lua",
+                    "veafCacheManager.lua",
+                    "veafEventHandler.lua",
+                    "veafMarkers.lua",
+                    "veafInterpreter.lua",
+                    "veafRadio.lua",
+                    "veafRemote.lua",
+                    "veafSpawn.lua",
+                    "veafSecurity.lua",
+                    "veafShortcuts.lua",
+                    "veafAirbases.lua",
+                    "veafAirWaves.lua",
+                    "veafAssets.lua",
+                    "veafCarrierOperations.lua",
+                    "veafCasMission.lua",
+                    "veafCombatMission.lua",
+                    "veafCombatZone.lua",
+                    "veafGrass.lua",
+                    "veafMissileGuardian.lua",
+                    "veafMove.lua",
+                    "veafNamedPoints.lua",
+                    "veafQraManager.lua",
+                    "veafSanctuary.lua",
+                    "veafSkynetIadsHelper.lua",
+                    "veafSkynetIadsMonitor.lua",
+                    "veafTime.lua",
+                    "veafTransportMission.lua",
+                    "veafUnits.lua",
+                    "veafGroundAI.lua",
+                    "veafWeather.lua",
+                ]
+
+                # Step 1: Clean and recreate build directory
+                if self.build_dir.exists():
+                    shutil.rmtree(self.build_dir)
+                self.build_dir.mkdir(exist_ok=True)
+
+                # Step 2: Copy all Lua scripts from src/scripts/veaf to build directory
+                src_scripts_dir = self.script_root / "src" / "scripts" / "veaf"
+                if not src_scripts_dir.exists():
+                    logger.error(f"Source scripts directory not found: {src_scripts_dir}")
+
+                for lua_file in src_scripts_dir.rglob("*.lua"):
+                    dest = self.build_dir / lua_file.name
+                    shutil.copy2(lua_file, dest)
+
+                # Step 3: Modify veaf.lua based on options
+                veaf_lua_path = self.build_dir / "veaf.lua"
+                if veaf_lua_path.exists():
+                    content = veaf_lua_path.read_text(encoding="utf-8")
+
+                    # Set development version flag
+                    dev_flag = "true" if self.development_build else "false"
+                    content = re.sub(
+                        r"veaf\.Development = (true|false)",
+                        f"veaf.Development = {dev_flag}",
+                        content,
+                    )
+
+                    # Security flag (always disabled in this context)
+                    content = re.sub(
+                        r"veaf\.SecurityDisabled = (true|false)",
+                        "veaf.SecurityDisabled = false",
+                        content,
+                    )
+
+                    veaf_lua_path.write_text(content, encoding="utf-8")
+
+                # Step 4: Create output file with header and concatenated scripts
+                output_filename = "veaf-scripts.lua"
+                output_path = self.build_dir / output_filename
+
+                # Read package.json for version
+                with open(self.version_file) as f:
+                    package_data = json.load(f)
+                    version = package_data.get("version", self.version)
+
+                # Create version marker
+                datetime_str = datetime.now().strftime("%Y.%m.%d.%H.%M.%S")
+                version_tag = "-dev" if self.development_build else ""
+                version_marker = f"{version}{version_tag};{datetime_str}"
+
+                # Write header
+                header = "\n" + "-" * 85 + "\n" + f"-- Veaf scripts {version_marker}\n" + "-" * 85 + "\n" + "\n"
+
+                with open(output_path, "w", encoding="utf-8") as out_file:
+                    out_file.write(header)
+
+                    # Add veaf.lua first
+                    veaf_path = self.build_dir / "veaf.lua"
+                    if veaf_path.exists():
+                        out_file.write("\n")
+                        out_file.write("--" + "-" * 75 + "\n")
+                        out_file.write("-- START script veaf.lua\n")
+                        out_file.write("--" + "-" * 75 + "\n")
+                        out_file.write("\n")
+                        out_file.write(veaf_path.read_text(encoding="utf-8"))
+                        out_file.write("\n")
+                        out_file.write("--" + "-" * 75 + "\n")
+                        out_file.write("-- END script veaf.lua\n")
+                        out_file.write("--" + "-" * 75 + "\n")
+                        out_file.write("\n")
+
+                    # Add other scripts in order
+                    for script_name in lua_scripts:
+                        script_path = self.build_dir / script_name
+                        if script_path.exists():
+                            out_file.write("\n")
+                            out_file.write("--" + "-" * 75 + "\n")
+                            out_file.write(f"-- START script {script_name}\n")
+                            out_file.write("--" + "-" * 75 + "\n")
+                            out_file.write("\n")
+                            out_file.write(script_path.read_text(encoding="utf-8"))
+                            out_file.write("\n")
+                            out_file.write("--" + "-" * 75 + "\n")
+                            out_file.write(f"-- END script {script_name}\n")
+                            out_file.write("--" + "-" * 75 + "\n")
+                            out_file.write("\n")
+
+                    # Add footer
+                    footer = (
+                        "\n"
+                        + "\n"
+                        + "\n"
+                        + "-" * 85
+                        + "\n"
+                        + f"-- END OF Veaf scripts {version_marker}\n"
+                        + "-" * 85
+                        + "\n"
+                        + "\n"
+                    )
+                    out_file.write(footer)
+
+                logger.debug(f"Scripts main file created: {output_filename}")
+
+                # Copy Lua files to published directory
+                self._copy_lua_files_to_published()
+
+                # Generate DCS units reference document
+                self._generate_dcs_units_doc()
+
+            except Exception as e:
+                logger.error(f"Lua build failed: {e}")
+
+    def _copy_lua_files_to_published(self) -> None:
+        """Copy the main Lua script file to the published directory."""
+        try:
+            published_dir = self.script_root / "published"
+            published_dir.mkdir(exist_ok=True)
+
+            # Copy only the single veaf-scripts.lua (variants removed in favour of runtime log level)
+            lua_file = self.build_dir / "veaf-scripts.lua"
+            if lua_file.exists():
+                dest = published_dir / lua_file.name
+                shutil.copy2(lua_file, dest)
+                logger.debug(f"Copied {lua_file.name} to published directory")
+        except Exception as e:
+            logger.warning(f"Failed to copy Lua files to published directory: {e}")
+
+    def _generate_dcs_units_doc(self) -> None:
+        """Parse dcsUnits.lua and write a Markdown reference to the build directory."""
+        with spinner_context("Generating DCS units reference..."):
+            try:
+                from veaf_libs.dcs_units_parser import generate_dcs_units_doc  # type: ignore[import-not-found]
+
+                lua_path = self.build_dir / "dcsUnits.lua"
+                if not lua_path.exists():
+                    logger.warning("dcsUnits.lua not found in build dir; skipping reference doc")
+                    return
+
+                out_path = self.build_dir / "dcs-units-reference.md"
+                count = generate_dcs_units_doc(out_path, lua_path)
+                logger.debug(f"DCS units reference written: {count} units → {out_path}")
+            except Exception as e:
+                logger.warning(f"Could not generate DCS units reference: {e}")
+
+    def build_python_executables(self) -> None:
+        """Build Python executables using PyInstaller."""
+        # Clean dist directory
+        with spinner_context("Preparing build environment..."):
+            if self.dist_dir.exists():
+                logger.debug("Removing previous dist directory...")
+                shutil.rmtree(self.dist_dir)
+            self.dist_dir.mkdir(exist_ok=True)
+
+        # Generate Lua modules list JSON (bundled with the exe via --add-data)
+        modules_json_path: Path | None = None
+        with spinner_context("Scanning Lua modules..."):
+            try:
+                sys.path.insert(0, str(self.src_dir / "python" / "veaf-tools"))
+                from veaf_libs.lua_module_scanner import generate_modules_json  # type: ignore[import-not-found]
+
+                lua_dir = self.src_dir / "scripts" / "veaf"
+                candidate = self.src_dir / "python" / "veaf-tools" / "veaf_libs" / "veaf_modules_list.json"
+                count = generate_modules_json(candidate, lua_dir)
+                modules_json_path = candidate
+                logger.debug(f"Generated modules list: {count} modules → {modules_json_path}")
+            except Exception as e:
+                logger.warning(f"Could not generate Lua modules list: {e}")
+
+        # Store original file contents for restoration
+        original_contents = {}
+
+        try:
+            # Temporarily inject version into source files
+            original_contents = self._inject_version_into_python_files_temporarily()
+
+            # Build veaf-tools executable
+            with spinner_context("Building veaf-tools executable..."):
+                self._build_pyinstaller_executable(
+                    "veaf-tools",
+                    self.src_dir / "python" / "veaf-tools" / "veaf-tools.py",
+                    extra_data=[(modules_json_path, ".")] if modules_json_path else [],
+                )
+
+            # Build veaf-tools-updater executable
+            with spinner_context("Building veaf-tools-updater executable..."):
+                self._build_pyinstaller_executable(
+                    "veaf-tools-updater",
+                    self.src_dir / "python" / "veaf-tools" / "veaf-tools-updater.py",
+                )
+        finally:
+            # Restore original file contents
+            if original_contents:
+                self._restore_python_files(original_contents)
+
+    def _build_pyinstaller_executable(  # sourcery skip: extract-method
+        self, name: str, entry_point: Path, extra_data: list[tuple[Path, str]] | None = None
+    ) -> None:
+        """Build a single PyInstaller executable."""
+        if not entry_point.exists():
+            logger.error(f"Entry point not found: {entry_point}")
+
+        try:
+            cmd = [
+                "pyinstaller",
+                "--onefile",
+                "--name",
+                name,
+                "--distpath",
+                str(self.dist_dir),
+                "--specpath",
+                str(self.dist_dir / "build"),
+                "--workpath",
+                str(self.dist_dir / "build"),
+            ]
+            for src, dest in extra_data or []:
+                cmd += ["--add-data", f"{src}{os.pathsep}{dest}"]
+            cmd.append(str(entry_point))
+
+            logger.debug(f"Running PyInstaller: {' '.join(cmd)}")
+
+            result = subprocess.run(cmd, cwd=str(self.script_root), capture_output=True, text=True)
+
+            if result.stdout:
+                logger.debug(f"PyInstaller stdout:\n{result.stdout}")
+            if result.stderr:
+                logger.debug(f"PyInstaller stderr:\n{result.stderr}")
+
+            if result.returncode != 0:
+                logger.error(f"PyInstaller build failed for {name} with exit code {result.returncode}")
+                raise subprocess.CalledProcessError(result.returncode, cmd, result.stdout, result.stderr)
+
+        except subprocess.CalledProcessError as e:
+            logger.error(f"PyInstaller build failed for {name}: {e}")
+
+    def _inject_version_into_python_files_temporarily(self) -> dict[str, str]:
+        """
+        Temporarily inject version into Python source files for compilation.
+
+        Returns a dict mapping file paths to their original contents so they can
+        be restored later (keeping the git working tree clean).
+        """
+        with spinner_context("Injecting version into source files..."):
+            original_contents: dict[str, str] = {}
+            try:
+                python_files = [
+                    self.src_dir / "python" / "veaf-tools" / "veaf-tools.py",
+                    self.src_dir / "python" / "veaf-tools" / "veaf-tools-updater.py",
+                ]
+
+                for file_path in python_files:
+                    if not file_path.exists():
+                        logger.warning(f"Source file not found: {file_path}")
+                        continue
+
+                    original_content = file_path.read_text(encoding="utf-8")
+                    original_contents[str(file_path)] = original_content
+
+                    # Match patterns like: VERSION: str = "6.0.0"
+                    pattern = r'(VERSION\s*:\s*str\s*=\s*)"[^"]+"'
+
+                    if match := re.search(pattern, original_content):
+                        prefix = match.group(1)
+                        replacement = f'{prefix}"{self.version}"'
+                        new_content = re.sub(pattern, replacement, original_content, count=1)
+                        file_path.write_text(new_content, encoding="utf-8")
+                        logger.debug(f"Injected version {self.version} into {file_path.name}")
+                    else:
+                        logger.warning(f"Could not find VERSION pattern in {file_path.name}")
+
+            except Exception as e:
+                logger.error(f"Failed to inject version into Python files: {e}")
+                for fp_str, content in original_contents.items():
+                    Path(fp_str).write_text(content, encoding="utf-8")
+                original_contents.clear()
+
+            return original_contents
+
+    def _restore_python_files(self, original_contents: dict[str, str]) -> None:
+        """Restore Python files to their original contents."""
+        with spinner_context("Restoring source files..."):
+            try:
+                for file_path_str, original_content in original_contents.items():
+                    file_path = Path(file_path_str)
+                    file_path.write_text(original_content, encoding="utf-8")
+                    logger.debug(f"Restored {file_path.name} to original state")
+            except Exception as e:
+                logger.warning(f"Failed to restore source files: {e}")
+
+    # ========================================================================
+    # Release Package
+    # ========================================================================
+
+    def create_release_package(self) -> dict[str, Any]:  # sourcery skip: extract-method
+        """Create a release package (ZIP file)."""
+        with spinner_context("Creating release package..."):
+            veaf_scripts_path = self.build_dir / "veaf-scripts.lua"
+            if not veaf_scripts_path.exists():
+                logger.error("Lua scripts not found. Run build first.")
+
+            output_file = self.output_path / "published.zip"
+            output_file.parent.mkdir(parents=True, exist_ok=True)
+
+            try:
+                with zipfile.ZipFile(output_file, "w", zipfile.ZIP_DEFLATED) as zf:
+                    # Add Lua scripts
+                    if veaf_scripts_path.exists():
+                        arcname = "src/scripts/veaf/veaf-scripts.lua"
+                        zf.write(veaf_scripts_path, arcname)
+                        logger.debug(f"Added {arcname} to ZIP")
+
+                    # Add debug and trace variants
+                    for variant_name in ["veaf-scripts-debug.lua", "veaf-scripts-trace.lua"]:
+                        variant_path = self.build_dir / variant_name
+                        if variant_path.exists():
+                            arcname = f"src/scripts/veaf/{variant_name}"
+                            zf.write(variant_path, arcname)
+                            logger.debug(f"Added {arcname} to ZIP")
+
+                    # Add both executables at root level
+                    if self.dist_dir.exists():
+                        for exe_name in ["veaf-tools.exe", "veaf-tools-updater.exe"]:
+                            exe_file = self.dist_dir / exe_name
+                            if exe_file.exists():
+                                zf.write(exe_file, exe_name)
+                                logger.debug(f"Added {exe_name} to ZIP")
+
+                    # Add defaults directory
+                    defaults_dir = self.src_dir / "defaults"
+                    if defaults_dir.exists():
+                        for file_path in defaults_dir.rglob("*"):
+                            if file_path.is_file():
+                                arcname = str(file_path.relative_to(self.src_dir.parent))
+                                zf.write(file_path, arcname)
+                                logger.debug(f"Added {arcname} to ZIP")
+
+                    # Add build-scripts directory
+                    build_scripts_dir = self.src_dir / "build-scripts"
+                    if build_scripts_dir.exists():
+                        for file_path in build_scripts_dir.rglob("*"):
+                            if file_path.is_file():
+                                arcname = str(file_path.relative_to(self.src_dir))
+                                zf.write(file_path, arcname)
+                                logger.debug(f"Added {arcname} to ZIP")
+
+                    # Add community scripts directory
+                    community_dir = self.src_dir / "scripts" / "community"
+                    if community_dir.exists():
+                        for file_path in community_dir.rglob("*"):
+                            if file_path.is_file():
+                                rel_path = file_path.relative_to(community_dir)
+                                arcname = f"src/scripts/community/{rel_path}"
+                                zf.write(file_path, arcname)
+                                logger.debug(f"Added {arcname} to ZIP")
+
+                    # Add documentation files
+                    for doc_file in ["README.md", "package.json"]:
+                        doc_path = self.script_root / doc_file
+                        if doc_path.exists():
+                            zf.write(doc_path, doc_file)
+                            logger.debug(f"Added {doc_file} to ZIP")
+
+                    # Add generated DCS units reference
+                    units_ref = self.build_dir / "dcs-units-reference.md"
+                    if units_ref.exists():
+                        zf.write(units_ref, "docs/dcs-units-reference.md")
+                        logger.debug("Added docs/dcs-units-reference.md to ZIP")
+
+                logger.debug(f"Release package created: {output_file}")
+
+            except Exception as e:
+                logger.error(f"Failed to create release package: {e}")
+
+        # Calculate SHA256
+        with spinner_context("Calculating SHA256 checksum..."):
+            file_hash = self._calculate_sha256(output_file)
+            logger.info(f"SHA256: {file_hash}")
+
+        # Create metadata file with checksum for integrity verification
+        metadata = {
+            "published_zip_sha256": file_hash,
+            "version": self.version,
+            "created_at": datetime.now().isoformat(),
+        }
+        metadata_file = self.output_path / "published-metadata.json"
+        try:
+            with open(metadata_file, "w", encoding="utf-8") as f:
+                json.dump(metadata, f, indent=2)
+            logger.debug(f"Metadata file created: {metadata_file}")
+        except Exception as e:
+            logger.warning(f"Failed to create metadata file: {e}")
+
+        return {
+            "path": output_file,
+            "hash": file_hash,
+            "size": output_file.stat().st_size,
+            "version": self.version,
+        }
+
+    @staticmethod
+    def _calculate_sha256(file_path: Path) -> str:
+        """Calculate SHA256 hash of a file."""
+        sha256_hash = sha256()
+        with open(file_path, "rb") as f:
+            for byte_block in iter(lambda: f.read(4096), b""):
+                sha256_hash.update(byte_block)
+        return sha256_hash.hexdigest()
+
+    # ========================================================================
+    # GitHub Publishing (delegates to GitHubPublisher)
+    # ========================================================================
+
+    def _do_publish_to_github(self, package_path: Path, package_hash: str, force: bool = False) -> None:
+        """Publish release to GitHub (delegates to GitHubPublisher)."""
+        from veaf_build.github import GitHubPublisher
+
+        publisher = GitHubPublisher(
+            owner=self.github_owner,
+            repo=self.github_repo,
+            token=self.github_token,
+            version=self.version,  # type: ignore[arg-type]
+            script_root=self.script_root,
+            dist_dir=self.dist_dir,
+            output_path=self.output_path,
+            prerelease=self.prerelease,
+            verbose=self.verbose,
+        )
+        publisher.publish(package_path, package_hash, force=force)
+
+    # ========================================================================
+    # Release Notes
+    # ========================================================================
+
+    def prepare_release_notes(self) -> Path:
+        """
+        Prepare release notes for publishing.
+
+        If RELEASE_NOTES.md exists, ask the user whether to use it or overwrite with template.
+        If it doesn't exist, create it from template.
+
+        Returns:
+            Path to the release notes file
+        """
+        release_notes_path = self.script_root / "RELEASE_NOTES.md"
+
+        if release_notes_path.exists():
+            console.print("\n[bold yellow]RELEASE_NOTES.md already exists[/bold yellow]")
+            console.print(f"Location: {release_notes_path}")
+
+            if typer.confirm("Do you want to overwrite it with a fresh template?", default=False):
+                self._create_release_notes_template(release_notes_path)
+                console.print("[bold green]✓[/bold green] New release notes template created")
+            else:
+                console.print("[bold green]✓[/bold green] Using existing release notes")
+        else:
+            self._create_release_notes_template(release_notes_path)
+            console.print("[bold green]✓[/bold green] Release notes template created")
+
+        return release_notes_path
+
+    def _create_release_notes_template(self, release_notes_path: Path) -> None:
+        """Create release notes template file."""
+        template = f"""# VEAF Tools Release v{self.version}
+
+**Release Date:** {datetime.now().strftime("%Y-%m-%d")}
+
+## What's New
+
+[Edit this section with actual features and changes]
+
+## Bug Fixes
+
+[Edit this section with bug fixes]
+
+## Breaking Changes
+
+[Edit this section if there are any breaking changes, or write "None" if not applicable]
+
+## Installation
+
+### Quick Start
+
+The easiest way to get started:
+
+1. **Download `veaf-tools-updater.exe`** from this release
+2. **Run it** - it will automatically download and install everything else:
+   ```bash
+   veaf-tools-updater.exe
+   ```
+
+That's it! The updater will:
+- Create the necessary directories
+- Download and extract the VEAF tools to your mission folder
+- Set up your configuration
+
+### Manual Installation
+
+If you prefer to install manually:
+
+1. Download `published.zip` from this release
+2. Extract it to your VEAF mission folder
+3. Run `veaf-tools.exe` to start using the tools
+
+### Updating Existing Installation
+
+If you already have VEAF tools installed:
+
+```bash
+veaf-tools-updater.exe
+```
+
+This will download and install the latest version.
+
+---
+
+## Installation 🇫🇷
+
+### Démarrage Rapide
+
+Le moyen le plus simple de commencer :
+
+1. **Téléchargez `veaf-tools-updater.exe`** depuis cette release
+2. **Exécutez-le** - il téléchargera et installera automatiquement tout le reste :
+   ```bash
+   veaf-tools-updater.exe
+   ```
+
+C'est tout ! L'updater va :
+- Créer les répertoires nécessaires
+- Télécharger et extraire les outils VEAF dans votre dossier de mission
+- Configurer votre environnement
+
+### Installation Manuelle
+
+Si vous préférez installer manuellement :
+
+1. Téléchargez `published.zip` depuis cette release
+2. Extrayez-le dans votre dossier VEAF mission
+3. Exécutez `veaf-tools.exe` pour commencer à utiliser les outils
+
+### Mise à Jour d'une Installation Existante
+
+Si vous avez déjà VEAF tools installé :
+
+```bash
+veaf-tools-updater.exe
+```
+
+Cela téléchargera et installera la dernière version.
+
+---
+
+## Changelog
+
+See git history for detailed changes.
+
+---
+**Generated by veaf-build**
+"""
+
+        release_notes_path.write_text(template, encoding="utf-8")
+        logger.debug(f"Release notes template created: {release_notes_path}")
+
+    # ========================================================================
+    # Main Process
+    # ========================================================================
+
+    def run(self) -> None:  # sourcery skip: extract-method, extract-duplicate-method
+        """Execute the build and release process."""
+        if not self.version:
+            self.version = self.get_version_from_file()
+            logger.info(f"Version not specified, using from package.json: {self.version}")
+
+        # Print configuration
+        table = Table(title="Build Configuration")
+        table.add_column("Setting", style="cyan")
+        table.add_column("Value", style="magenta")
+        table.add_row("Release Version", self.version)
+        table.add_row("Development Build", str(self.development_build))
+        table.add_row("Skip Lua Build", str(self.skip_lua))
+        table.add_row("Skip Python Build", str(self.skip_python))
+        table.add_row("Publish to GitHub", str(self.publish_to_github))
+        console.print(table)
+
+        try:
+            self.validate_prerequisites()
+
+            if not self.skip_lua:
+                self.build_lua_scripts()
+            else:
+                logger.warning("Skipping Lua build")
+
+            if not self.skip_python:
+                self.build_python_executables()
+            else:
+                logger.warning("Skipping Python build")
+
+            package_info = self.create_release_package()
+
+            if self.publish_to_github:
+                self._do_publish_to_github(package_info["path"], package_info["hash"])
+
+            self._print_summary(package_info)
+
+        except Exception as e:
+            logger.error(str(e))
+            sys.exit(1)
+
+    def _print_summary(self, package_info: dict[str, Any]) -> None:
+        """Print build summary."""
+        console.print("\n[bold green]Build and release process completed![/bold green]")
+
+        summary_table = Table(title="Deliverables")
+        summary_table.add_column("Item", style="cyan")
+        summary_table.add_column("Path/Value", style="magenta")
+        summary_table.add_row("Release Package", str(package_info["path"]))
+        summary_table.add_row("Release Notes", str(self.script_root / "RELEASE_NOTES.md"))
+        summary_table.add_row("SHA256", package_info["hash"])
+        summary_table.add_row("Size", f"{package_info['size'] / (1024 * 1024):.2f} MB")
+        console.print(summary_table)
+
+        console.print("\n[bold cyan]Next Steps:[/bold cyan]")
+        console.print("  1. Review release notes in RELEASE_NOTES.md")
+        console.print("  2. Edit release notes with actual changes")
+        if self.publish_to_github:
+            console.print("  3. Use GitHub CLI to create release (already done via gh CLI)")
+        else:
+            console.print("  3. To publish to GitHub, run: veaf-build publish")

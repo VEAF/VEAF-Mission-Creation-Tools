@@ -155,7 +155,7 @@ class MissionBuilderWorker:
 
     def complete_src_folder_with_defaults(self) -> None:
         defaults_folder: Path = (
-            (self.scripts_path or (self.mission_folder / "published")) / "defaults" / "mission-folder"
+            (self.scripts_path or (self.mission_folder / "published" / "src")) / "defaults" / "mission-folder"
         )
         for f in defaults_folder.rglob("*"):
             if f.is_file():
@@ -646,6 +646,11 @@ class MissionBuilderWorker:
                         "meters": 1000,
                         "predicate": "a_do_script",
                         "zone": 184,
+                    },
+                    # LUA-005/LUA-007: load veaf-modules-config.lua before missionConfig.lua (if present)
+                    {
+                        "predicate": "a_do_script",
+                        "text": 'local _f = loadfile(VEAF_DYNAMIC_MISSIONPATH .. "/src/scripts/veaf-modules-config.lua"); if _f then _f() end',
                     },
                     {
                         "predicate": "a_do_script",

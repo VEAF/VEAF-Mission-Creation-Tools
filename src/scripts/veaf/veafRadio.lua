@@ -263,10 +263,10 @@ end
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 function veafRadio._proxyMethod(parameters)
-  veaf.loggers.get(veafRadio.Id):trace("parameters=" .. veaf.lp(parameters))
+  veaf.loggers.get(veafRadio.Id):trace("parameters=%s", veaf.lp(parameters))
   local realMethod, realParameters = veaf.safeUnpack(parameters)
-  veaf.loggers.get(veafRadio.Id):trace("realMethod=" .. veaf.lp(realMethod))
-  veaf.loggers.get(veafRadio.Id):trace("realParameters=" .. veaf.lp(realParameters))
+  veaf.loggers.get(veafRadio.Id):trace("realMethod=%s", veaf.lp(realMethod))
+  veaf.loggers.get(veafRadio.Id):trace("realParameters=%s", veaf.lp(realParameters))
   if veafSecurity.isAuthenticated() then
     realMethod(realParameters)
   else
@@ -616,7 +616,7 @@ function veafRadio.addPaginatedRadioElements(radioMenu, addCommandToSubmenuMetho
     table.insert(sortedTitles, title)
     elementsByTitle[title] = sortedElements[i].element
   end
-  veaf.loggers.get(veafRadio.Id):trace("sortedTitles=" .. veaf.lp(sortedTitles))
+  veaf.loggers.get(veafRadio.Id):trace("sortedTitles=%s", veaf.lp(sortedTitles))
 
   _buildRadioMenuPage(radioMenu, sortedTitles, elementsByTitle, addCommandToSubmenuMethod, pageSize, 1)
   --veafRadio.refreshRadioMenu()

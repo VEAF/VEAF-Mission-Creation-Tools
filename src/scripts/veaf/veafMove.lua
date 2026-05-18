@@ -406,7 +406,7 @@ function veafMove.changeTanker(eventPos, speed, alt)
   if alt > -1 then
     point3.alt = alt * 0.3048 -- in meters
   end
-  veaf.loggers.get(veafMove.Id):trace("newpoint3=" .. veaf.lp(point3))
+  veaf.loggers.get(veafMove.Id):trace("newpoint3=%s", veaf.lp(point3))
 
   -- replace whole mission
   veaf.loggers.get(veafMove.Id):debug("Resetting changed tanker mission")
@@ -576,7 +576,7 @@ function veafMove.moveTanker(eventPos, groupName, speed, alt, hdg, distance, tel
   point3.y = endLegPoint.y
   point3.alt = endLegPoint.alt
   point3.speed = endLegPoint.speed
-  veaf.loggers.get(veafMove.Id):trace("newpoint3=" .. veaf.lp(point3))
+  veaf.loggers.get(veafMove.Id):trace("newpoint3=%s", veaf.lp(point3))
 
   --actually move the group
   local delay = 0

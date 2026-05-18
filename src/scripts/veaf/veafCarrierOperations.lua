@@ -1044,7 +1044,7 @@ function veafCarrierOperations.doOperations()
       -- reset the carrier group route to its original route (set in the mission)
       if carrier.missionRoute then
         veaf.loggers.get(veafCarrierOperations.Id):debug(string.format("resetting carrier %s route", name))
-        veaf.loggers.get(veafCarrierOperations.Id):trace("carrier.missionRoute=" .. veaf.lp(carrier.missionRoute))
+        veaf.loggers.get(veafCarrierOperations.Id):trace("carrier.missionRoute=%s", veaf.lp(carrier.missionRoute))
         local result = mist.goRoute(name, carrier.missionRoute)
       end
     else

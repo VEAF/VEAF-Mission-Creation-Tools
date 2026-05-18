@@ -70,7 +70,10 @@ def main_callback() -> None:
 
 
 def resolve_path(
-    path: str, default_path: str = None, should_exist: bool = False, create_if_not_exist: bool = False
+    path: str | Path | None = None,
+    default_path: str | Path | None = None,
+    should_exist: bool = False,
+    create_if_not_exist: bool = False,
 ) -> Path:
     """Resolve and validate a file path."""
     if not path and default_path:
@@ -146,7 +149,7 @@ def prepare(
         if not defaults_source.exists():
             logger.warning(f"Default files not found at: {defaults_source}")
             logger.warning("Attempting to continue with build scripts only...")
-            defaults_source = None
+            defaults_source = None  # type: ignore[assignment]
 
         # Get build scripts source
         build_scripts_source = install_source.parent.parent.parent / "src" / "build-scripts"
@@ -158,7 +161,7 @@ def prepare(
 
         if not build_scripts_source.exists():
             logger.warning(f"Build scripts not found at: {build_scripts_source}")
-            build_scripts_source = None
+            build_scripts_source = None  # type: ignore[assignment]
 
         files_installed = 0
         files_skipped = 0
@@ -327,11 +330,12 @@ def build(
         p_output_mission = Path(f"{mission_name_or_file}_{datetime.now().strftime('%Y%m%d')}.miz")
 
     # Resolve development path
+    effective_scripts_path: str | Path | None = scripts_path
     if not scripts_path and dynamic_mode:
         # default value is the "published" subfolder of the mission folder
-        scripts_path = p_mission_folder / "published"
-    if scripts_path:
-        p_scripts_path = resolve_path(path=scripts_path, should_exist=True)
+        effective_scripts_path = p_mission_folder / "published"
+    if effective_scripts_path:
+        p_scripts_path = resolve_path(path=effective_scripts_path, should_exist=True)
         if not p_scripts_path.exists():
             logger.error(f"Development folder {p_scripts_path} does not exist!", exception_type=FileNotFoundError)
     else:
@@ -419,7 +423,8 @@ def extract(
         logger.error(f"Mission folder {p_mission_folder} does not exist!", exception_type=FileNotFoundError)
 
     # Resolve input mission
-    p_input_mission = mission_name_or_file
+    assert mission_name_or_file is not None
+    p_input_mission: str | Path | None = mission_name_or_file
     if not mission_name_or_file.lower().endswith(".miz"):
         if files := list(p_mission_folder.glob(f"{mission_name_or_file}*.miz")):
             p_input_mission = max(files, key=lambda f: f.stat().st_mtime)
@@ -473,17 +478,18 @@ def convert(
         logger.error(f"Mission folder {p_mission_folder} does not exist!", exception_type=FileNotFoundError)
 
     # Resolve input mission
-    p_input_mission = mission_name
+    p_input_mission: str | Path = mission_name
     if files := list(p_mission_folder.glob(f"{mission_name}*.miz")):
         p_input_mission = max(files, key=lambda f: f.stat().st_mtime)
     p_input_mission = resolve_path(path=p_input_mission, should_exist=True)
 
     # Resolve development path
+    effective_scripts_path: str | Path | None = scripts_path
     if not scripts_path and dynamic_mode:
         # default value is the "published" subfolder of the mission folder
-        scripts_path = p_mission_folder / "published"
-    if scripts_path:
-        p_scripts_path = resolve_path(path=scripts_path, should_exist=True)
+        effective_scripts_path = p_mission_folder / "published"
+    if effective_scripts_path:
+        p_scripts_path = resolve_path(path=effective_scripts_path, should_exist=True)
         if not p_scripts_path.exists():
             logger.error(f"Development folder {p_scripts_path} does not exist!", exception_type=FileNotFoundError)
     else:
@@ -537,7 +543,8 @@ def inject_presets(
         exit()
 
     # Resolve input mission
-    p_input_mission = input_mission_name_or_file
+    assert input_mission_name_or_file is not None
+    p_input_mission: str | Path | None = input_mission_name_or_file
     if not input_mission_name_or_file.lower().endswith(".miz"):
         if files := list(Path.cwd().glob(f"{input_mission_name_or_file}*.miz")):
             p_input_mission = max(files, key=lambda f: f.stat().st_mtime)
@@ -627,7 +634,8 @@ def extract_aircraft_groups(
             logger.error(f"Mission folder {p_mission_folder} does not exist!", exception_type=FileNotFoundError)
 
         # Resolve input mission
-        p_input_mission = mission_name_or_file
+        assert mission_name_or_file is not None
+        p_input_mission: str | Path | None = mission_name_or_file
         if not mission_name_or_file.lower().endswith(".miz"):
             if files := list(p_mission_folder.glob(f"{mission_name_or_file}*.miz")):
                 p_input_mission = max(files, key=lambda f: f.stat().st_mtime)
@@ -688,7 +696,8 @@ def inject_aircraft_groups(
         logger.error(f"Mission folder {p_mission_folder} does not exist!", exception_type=FileNotFoundError)
 
     # Resolve input mission
-    p_input_mission = mission_name_or_file
+    assert mission_name_or_file is not None
+    p_input_mission: str | Path | None = mission_name_or_file
     if not mission_name_or_file.lower().endswith(".miz"):
         if files := list(p_mission_folder.glob(f"{mission_name_or_file}*.miz")):
             p_input_mission = max(files, key=lambda f: f.stat().st_mtime)
@@ -806,7 +815,8 @@ def extract_waypoints(
             logger.error(f"Mission folder {p_mission_folder} does not exist!", exception_type=FileNotFoundError)
 
         # Resolve input mission
-        p_input_mission = mission_name_or_file
+        assert mission_name_or_file is not None
+        p_input_mission: str | Path | None = mission_name_or_file
         if not mission_name_or_file.lower().endswith(".miz"):
             if files := list(p_mission_folder.glob(f"{mission_name_or_file}*.miz")):
                 p_input_mission = max(files, key=lambda f: f.stat().st_mtime)
@@ -864,7 +874,8 @@ def inject_waypoints(
         logger.error(f"Mission folder {p_mission_folder} does not exist!", exception_type=FileNotFoundError)
 
     # Resolve input mission
-    p_input_mission = mission_name_or_file
+    assert mission_name_or_file is not None
+    p_input_mission: str | Path | None = mission_name_or_file
     if not mission_name_or_file.lower().endswith(".miz"):
         if files := list(p_mission_folder.glob(f"{mission_name_or_file}*.miz")):
             p_input_mission = max(files, key=lambda f: f.stat().st_mtime)

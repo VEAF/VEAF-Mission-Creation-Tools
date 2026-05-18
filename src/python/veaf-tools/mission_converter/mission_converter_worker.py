@@ -25,7 +25,7 @@ class MissionConverterWorker:
         dynamic_mode: bool | None,
         scripts_path: Path | None,
         inject_presets: bool = False,
-        presets_file: Path = None,
+        presets_file: Path | None = None,
     ):
         """
         Initialize the worker with parameters for both use cases.

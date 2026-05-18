@@ -1729,12 +1729,12 @@ end
 -- execute command from the remote interface
 function veafWeather.executeCommandFromRemote(parameters)
   veaf.loggers.get(veafWeather.Id):debug(string.format("veafWeather.executeCommandFromRemote()"))
-  veaf.loggers.get(veafWeather.Id):trace(string.format("parameters= %s", veaf.lp(parameters)))
+  veaf.loggers.get(veafWeather.Id):trace(string.format("parameters= %s", veaf.p(parameters)))
   local _pilot, _pilotName, _unitName, _command = unpack(parameters)
-  veaf.loggers.get(veafWeather.Id):trace(string.format("_pilot= %s", veaf.lp(_pilot)))
-  veaf.loggers.get(veafWeather.Id):trace(string.format("_pilotName= %s", veaf.lp(_pilotName)))
-  veaf.loggers.get(veafWeather.Id):trace(string.format("_unitName= %s", veaf.lp(_unitName)))
-  veaf.loggers.get(veafWeather.Id):trace(string.format("_command= %s", veaf.lp(_command)))
+  veaf.loggers.get(veafWeather.Id):trace(string.format("_pilot= %s", veaf.p(_pilot)))
+  veaf.loggers.get(veafWeather.Id):trace(string.format("_pilotName= %s", veaf.p(_pilotName)))
+  veaf.loggers.get(veafWeather.Id):trace(string.format("_unitName= %s", veaf.p(_unitName)))
+  veaf.loggers.get(veafWeather.Id):trace(string.format("_command= %s", veaf.p(_command)))
   if not _pilot or not _command then
     return false
   end
@@ -1742,9 +1742,9 @@ function veafWeather.executeCommandFromRemote(parameters)
   if _command then
     -- parse the command
     local _action, _name, _parameters = _command:match(veafWeather.RemoteCommandParser)
-    veaf.loggers.get(veafWeather.Id):trace(string.format("_action=%s", veaf.lp(_action)))
-    veaf.loggers.get(veafWeather.Id):trace(string.format("_name=%s", veaf.lp(_name)))
-    veaf.loggers.get(veafWeather.Id):trace(string.format("_parameters=%s", veaf.lp(_parameters)))
+    veaf.loggers.get(veafWeather.Id):trace(string.format("_action=%s", veaf.p(_action)))
+    veaf.loggers.get(veafWeather.Id):trace(string.format("_name=%s", veaf.p(_name)))
+    veaf.loggers.get(veafWeather.Id):trace(string.format("_parameters=%s", veaf.p(_parameters)))
     if _action and _action:lower() == "weather" then
       veaf.loggers.get(veafWeather.Id):info(string.format("[%s] is requesting weather", veaf.p(_pilotName)))
       veafWeather.messageWeatherAtClosestPoint(_unitName, true)

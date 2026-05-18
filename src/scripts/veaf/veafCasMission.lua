@@ -412,7 +412,7 @@ veafCasMission.SIDE_BLUE = coalition.side.BLUE
 
 --- Function executed when a mark has changed. This happens when text is entered or changed.
 function veafCasMission.onEventMarkChange(eventPos, event)
-  veaf.loggers.get(veafCasMission.Id):trace(string.format("event  = %s", veaf.lp(event)))
+  veaf.loggers.get(veafCasMission.Id):trace(string.format("event  = %s", veaf.p(event)))
 
   -- choose by default the coalition opposing the player who triggered the event
   local invertedCoalition = 1
@@ -420,7 +420,7 @@ function veafCasMission.onEventMarkChange(eventPos, event)
     invertedCoalition = 2
   end
 
-  veaf.loggers.get(veafCasMission.Id):trace(string.format("event.idx  = %s", veaf.lp(event.idx)))
+  veaf.loggers.get(veafCasMission.Id):trace(string.format("event.idx  = %s", veaf.p(event.idx)))
 
   if veafCasMission.executeCommand(eventPos, event.text, invertedCoalition, event.idx) then
     -- Delete old mark.
@@ -431,9 +431,9 @@ end
 
 function veafCasMission.executeCommand(eventPos, eventText, coalition, markId, bypassSecurity)
   veaf.loggers.get(veafCasMission.Id):debug(string.format("veafCasMission.executeCommand(eventText=[%s])", eventText))
-  veaf.loggers.get(veafCasMission.Id):trace(string.format("coalition=%s", veaf.lp(coalition)))
-  veaf.loggers.get(veafCasMission.Id):trace(string.format("markId=%s", veaf.lp(markId)))
-  veaf.loggers.get(veafCasMission.Id):trace(string.format("bypassSecurity=%s", veaf.lp(bypassSecurity)))
+  veaf.loggers.get(veafCasMission.Id):trace(string.format("coalition=%s", veaf.p(coalition)))
+  veaf.loggers.get(veafCasMission.Id):trace(string.format("markId=%s", veaf.p(markId)))
+  veaf.loggers.get(veafCasMission.Id):trace(string.format("bypassSecurity=%s", veaf.p(bypassSecurity)))
 
   -- Check if marker has a text and the veafCasMission.keyphrase keyphrase.
   if eventText ~= nil and eventText:lower():find(veafCasMission.Keyphrase) then
@@ -976,7 +976,7 @@ function veafCasMission.generateCasGroup(casGroupName, spawnSpot, size, defense,
     local groupPosition = veaf.findPointInZone(spawnSpot, zoneRadius, false)
     veaf.loggers
       .get(veafCasMission.Id)
-      :trace(string.format("infantry group #%s position : %s", veaf.lp(infantryGroupNumber), veaf.lp(groupPosition)))
+      :trace(string.format("infantry group #%s position : %s", veaf.p(infantryGroupNumber), veaf.p(groupPosition)))
     local group = veafCasMission.generateInfantryGroup(groupName, defense, armor, side)
     veafCasMission.placeGroup(group, groupPosition, spacing, units)
   end
@@ -990,7 +990,7 @@ function veafCasMission.generateCasGroup(casGroupName, spawnSpot, size, defense,
       local groupPosition = veaf.findPointInZone(spawnSpot, zoneRadius, false)
       veaf.loggers
         .get(veafCasMission.Id)
-        :trace(string.format("armor group #%s position : %s", veaf.lp(armorGroupNumber), veaf.lp(groupPosition)))
+        :trace(string.format("armor group #%s position : %s", veaf.p(armorGroupNumber), veaf.p(groupPosition)))
       local group = veafCasMission.generateArmorPlatoon(groupName, defense, armor, side)
       veafCasMission.placeGroup(group, groupPosition, spacing, units)
     end
@@ -1008,7 +1008,7 @@ function veafCasMission.generateCasGroup(casGroupName, spawnSpot, size, defense,
       local groupPosition = veaf.findPointInZone(spawnSpot, zoneRadius, false)
       veaf.loggers
         .get(veafCasMission.Id)
-        :trace(string.format("air defense group #%s position : %s", veaf.lp(airDefenseGroupNumber), veaf.lp(groupPosition)))
+        :trace(string.format("air defense group #%s position : %s", veaf.p(airDefenseGroupNumber), veaf.p(groupPosition)))
       local group = veafCasMission.generateAirDefenseGroup(groupName, defense, side)
       veafCasMission.placeGroup(group, groupPosition, spacing, units)
     end
@@ -1022,7 +1022,7 @@ function veafCasMission.generateCasGroup(casGroupName, spawnSpot, size, defense,
     local groupPosition = veaf.findPointInZone(spawnSpot, zoneRadius, false)
     veaf.loggers
       .get(veafCasMission.Id)
-      :trace(string.format("transport group #%s position : %s", veaf.lp(transportCompanyGroupNumber), veaf.lp(groupPosition)))
+      :trace(string.format("transport group #%s position : %s", veaf.p(transportCompanyGroupNumber), veaf.p(groupPosition)))
     local group = veafCasMission.generateTransportCompany(groupName, defense, side)
     veafCasMission.placeGroup(group, groupPosition, spacing, units)
   end

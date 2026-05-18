@@ -409,12 +409,12 @@ end
 -- execute command from the remote interface
 function veafSecurity.executeCommandFromRemote(parameters)
   veaf.loggers.get(veafSecurity.Id):debug(string.format("veafSecurity.executeCommandFromRemote()"))
-  veaf.loggers.get(veafSecurity.Id):trace(string.format("parameters= %s", veaf.lp(parameters)))
+  veaf.loggers.get(veafSecurity.Id):trace(string.format("parameters= %s", veaf.p(parameters)))
   local _pilot, _pilotName, _unitName, _command = unpack(parameters)
-  veaf.loggers.get(veafSecurity.Id):trace(string.format("_pilot= %s", veaf.lp(_pilot)))
-  veaf.loggers.get(veafSecurity.Id):trace(string.format("_pilotName= %s", veaf.lp(_pilotName)))
-  veaf.loggers.get(veafSecurity.Id):trace(string.format("_unitName= %s", veaf.lp(_unitName)))
-  veaf.loggers.get(veafSecurity.Id):trace(string.format("_command= %s", veaf.lp(_command)))
+  veaf.loggers.get(veafSecurity.Id):trace(string.format("_pilot= %s", veaf.p(_pilot)))
+  veaf.loggers.get(veafSecurity.Id):trace(string.format("_pilotName= %s", veaf.p(_pilotName)))
+  veaf.loggers.get(veafSecurity.Id):trace(string.format("_unitName= %s", veaf.p(_unitName)))
+  veaf.loggers.get(veafSecurity.Id):trace(string.format("_command= %s", veaf.p(_command)))
   if not _pilot or not _command then
     return false
   end
@@ -422,8 +422,8 @@ function veafSecurity.executeCommandFromRemote(parameters)
   if _command then
     -- parse the command
     local _action, _parameters = _command:match(veafSecurity.RemoteCommandParser)
-    veaf.loggers.get(veafSecurity.Id):trace(string.format("_action=%s", veaf.lp(_action)))
-    veaf.loggers.get(veafSecurity.Id):trace(string.format("_parameters=%s", veaf.lp(_parameters)))
+    veaf.loggers.get(veafSecurity.Id):trace(string.format("_action=%s", veaf.p(_action)))
+    veaf.loggers.get(veafSecurity.Id):trace(string.format("_parameters=%s", veaf.p(_parameters)))
     if _action and _action:lower() == "login" then
       if _pilot.level >= veafSecurity.LEVEL_L1 then
         veaf.loggers.get(veafSecurity.Id):info(string.format("[%s] is unlocking the mission", veaf.p(_pilotName)))
@@ -592,7 +592,7 @@ function veafSecurity.checkPassword_MM(password)
 end
 
 function veafSecurity.getMarkerSecurityLevel(markId)
-  veaf.loggers.get(veafSecurity.Id):trace(string.format("veafSecurity.getMarkerSecurityLevel([%s])", veaf.lp(markId)))
+  veaf.loggers.get(veafSecurity.Id):trace(string.format("veafSecurity.getMarkerSecurityLevel([%s])", veaf.p(markId)))
   local _author = nil
   for _, panel in pairs(world.getMarkPanels()) do
     veaf.loggers.get(veafSecurity.Id):trace("panel=%s", veaf.lp(panel))
@@ -606,7 +606,7 @@ function veafSecurity.getMarkerSecurityLevel(markId)
   end
   veaf.loggers.get(veafSecurity.Id):trace("_author=%s", _author)
   local _user = veafRemote.getRemoteUser(_author)
-  veaf.loggers.get(veafSecurity.Id):trace(string.format("_user = [%s]", veaf.lp(_user)))
+  veaf.loggers.get(veafSecurity.Id):trace(string.format("_user = [%s]", veaf.p(_user)))
   if _user then
     return _user.level
   end

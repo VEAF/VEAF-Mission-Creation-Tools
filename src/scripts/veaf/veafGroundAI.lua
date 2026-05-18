@@ -511,8 +511,8 @@ function ArtilleryUnitHandler:fireAtCoordinates(coordinates, shells, radius)
     target = coordinates
   elseif type(coordinates) == "string" then
     local _lat, _lon = veaf.computeLLFromString(coordinates)
-    veaf.loggers.get(veafGroundAI.Id):trace(string.format("_lat=%s", veaf.lp(_lat)))
-    veaf.loggers.get(veafGroundAI.Id):trace(string.format("_lon=%s", veaf.lp(_lon)))
+    veaf.loggers.get(veafGroundAI.Id):trace(string.format("_lat=%s", veaf.p(_lat)))
+    veaf.loggers.get(veafGroundAI.Id):trace(string.format("_lon=%s", veaf.p(_lon)))
     if _lat and _lon then
       target = coord.LLtoLO(_lat, _lon)
     else
@@ -597,7 +597,7 @@ function veafGroundAI.onEventMarkChange(eventPos, event)
     coa = coalition.side.RED
   end
 
-  veaf.loggers.get(veafGroundAI.Id):trace(string.format("event.idx  = %s", veaf.lp(event.idx)))
+  veaf.loggers.get(veafGroundAI.Id):trace(string.format("event.idx  = %s", veaf.p(event.idx)))
 
   if veafGroundAI.executeCommand(eventPos, event.text, coa, event.idx) then
     -- Delete old mark.
@@ -613,7 +613,7 @@ function veafGroundAI.executeCommand(eventPos, eventText, eventCoalition, markId
   if eventText ~= nil then
     -- Analyse the mark point text and extract the keywords.
     local options = veafGroundAI.markTextAnalysis(eventPos, eventCoalition, eventText)
-    veaf.loggers.get(veafGroundAI.Id):trace(string.format("options = %s", veaf.lp(options)))
+    veaf.loggers.get(veafGroundAI.Id):trace(string.format("options = %s", veaf.p(options)))
 
     if options then
       -- do the magic

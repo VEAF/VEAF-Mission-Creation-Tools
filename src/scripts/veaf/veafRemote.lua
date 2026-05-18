@@ -58,13 +58,13 @@ function veafRemote.addNiodCallback(name, parameters, code)
     niod.functions[name] = function(payload)
       -- start of inline function
 
-      veaf.loggers.get(veafRemote.Id):debug(string.format("niod callback [%s] was called with payload %s", veaf.lp(name), veaf.lp(payload)))
+      veaf.loggers.get(veafRemote.Id):debug(string.format("niod callback [%s] was called with payload %s", veaf.p(name), veaf.p(payload)))
 
       local errors = {}
 
       -- check mandatory parameters presence
       for parameterName, parameterData in pairs(parameters) do
-        veaf.loggers.get(veafRemote.Id):trace(string.format("checking if parameter [%s] is mandatory", veaf.lp(parameterName)))
+        veaf.loggers.get(veafRemote.Id):trace(string.format("checking if parameter [%s] is mandatory", veaf.p(parameterName)))
         if parameterData and parameterData.mandatory then
           if not (payload and payload[parameterName]) then
             local text = "missing mandatory parameter " .. parameterName
@@ -99,8 +99,8 @@ function veafRemote.addNiodCallback(name, parameters, code)
           :error(string.format("niod callback [%s] was called with incorrect parameters :", veaf.p(name), errorMessage))
         return errorMessage
       else
-        veaf.loggers.get(veafRemote.Id):trace(string.format("payload = %s", veaf.lp(payload)))
-        veaf.loggers.get(veafRemote.Id):trace(string.format("unpacked payload = %s", veaf.lp(veaf.safeUnpack(payload))))
+        veaf.loggers.get(veafRemote.Id):trace(string.format("payload = %s", veaf.p(payload)))
+        veaf.loggers.get(veafRemote.Id):trace(string.format("unpacked payload = %s", veaf.p(veaf.safeUnpack(payload))))
         local status, retval = pcall(code, veaf.safeUnpack(payload))
         if status then
           return retval
@@ -124,9 +124,7 @@ function veafRemote.addNiodCommand(name, command)
   }, function(parameters, x, y, z, silent)
     veaf.loggers
       .get(veafRemote.Id)
-      :debug(
-        string.format("niod->command %s (%s, %s, %s, %s, %s)", veaf.lp(parameters), veaf.lp(x), veaf.lp(y), veaf.lp(z), veaf.lp(silent))
-      )
+      :debug(string.format("niod->command %s (%s, %s, %s, %s, %s)", veaf.p(parameters), veaf.p(x), veaf.p(y), veaf.p(z), veaf.p(silent)))
     return veafRemote.executeCommand({ x = x or 0, y = y or 0, z = z or 0 }, command .. parameters)
   end)
 end
@@ -155,7 +153,7 @@ function veafRemote.buildDefaultList()
       timeout = { mandatory = false, type = "number" },
       silent = { mandatory = false, type = "boolean" },
     }, function(password, timeout, silent)
-      veaf.loggers.get(veafRemote.Id):debug(string.format("niod.login(%s, %s, %s)", veaf.lp(password), veaf.lp(timeout), veaf.lp(silent))) -- TODO remove password from log
+      veaf.loggers.get(veafRemote.Id):debug(string.format("niod.login(%s, %s, %s)", veaf.p(password), veaf.p(timeout), veaf.p(silent))) -- TODO remove password from log
       if veafSecurity.checkPassword_L1(password) then
         veafSecurity.authenticate(timeout)
         return "Mission is unlocked"
@@ -292,8 +290,8 @@ function veafRemote.executeCommandFromRemote(username, level, unitName, veafModu
     veaf.loggers.get(veafRemote.Id):error(string.format("Module not found : [%s]", veaf.p(veafModule)))
     return false
   end
-  veaf.loggers.get(veafRemote.Id):trace(string.format("_status = [%s]", veaf.lp(_status)))
-  veaf.loggers.get(veafRemote.Id):trace(string.format("_retval = [%s]", veaf.lp(_retval)))
+  veaf.loggers.get(veafRemote.Id):trace(string.format("_status = [%s]", veaf.p(_status)))
+  veaf.loggers.get(veafRemote.Id):trace(string.format("_retval = [%s]", veaf.p(_retval)))
   if not _status then
     veaf.loggers.get(veafRemote.Id):error(
       string.format(
@@ -322,7 +320,7 @@ end
 function veafRemote.registerUser(username, userpower, ucid)
   veaf.loggers
     .get(veafRemote.Id)
-    :debug(string.format("veafRemote.registerUser([%s], [%s], [%s])", veaf.lp(username), veaf.lp(userpower), veaf.lp(ucid)))
+    :debug(string.format("veafRemote.registerUser([%s], [%s], [%s])", veaf.p(username), veaf.p(userpower), veaf.p(ucid)))
   if not username or not ucid then
     return false
   end
@@ -333,7 +331,7 @@ end
 function veafRemote.registerUserSlot(username, ucid, unitName)
   veaf.loggers
     .get(veafRemote.Id)
-    :debug(string.format("veafRemote.registerUserSlot([%s], [%s], [%s])", veaf.lp(username), veaf.lp(ucid), veaf.lp(unitName)))
+    :debug(string.format("veafRemote.registerUserSlot([%s], [%s], [%s])", veaf.p(username), veaf.p(ucid), veaf.p(unitName)))
   if not username or not unitName then
     return false
   end
@@ -355,8 +353,8 @@ end
 
 -- return a user from the server table
 function veafRemote.getRemoteUser(username)
-  veaf.loggers.get(veafRemote.Id):debug(string.format("veafRemote.getRemoteUser([%s])", veaf.lp(username)))
-  veaf.loggers.get(veafRemote.Id):trace(string.format("veafRemote.remoteUsers = [%s]", veaf.lp(veafRemote.remoteUsers)))
+  veaf.loggers.get(veafRemote.Id):debug(string.format("veafRemote.getRemoteUser([%s])", veaf.p(username)))
+  veaf.loggers.get(veafRemote.Id):trace(string.format("veafRemote.remoteUsers = [%s]", veaf.p(veafRemote.remoteUsers)))
   if not username then
     return nil
   end
@@ -365,8 +363,8 @@ end
 
 -- return a user from the server units table
 function veafRemote.getRemoteUserFromUnit(unitName)
-  veaf.loggers.get(veafRemote.Id):debug(string.format("veafRemote.getRemoteUserFromUnit([%s])", veaf.lp(unitName)))
-  veaf.loggers.get(veafRemote.Id):trace(string.format("veafRemote.remoteUnitsPilots = [%s]", veaf.lp(veafRemote.remoteUnitsPilots)))
+  veaf.loggers.get(veafRemote.Id):debug(string.format("veafRemote.getRemoteUserFromUnit([%s])", veaf.p(unitName)))
+  veaf.loggers.get(veafRemote.Id):trace(string.format("veafRemote.remoteUnitsPilots = [%s]", veaf.p(veafRemote.remoteUnitsPilots)))
   if not unitName then
     return nil
   end

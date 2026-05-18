@@ -140,7 +140,7 @@ veafSpawn.traceMarkerId = 3727
 
 --- Function executed when a mark has changed. This happens when text is entered or changed.
 function veafSpawn.onEventMarkChange(eventPos, event)
-  veaf.loggers.get(veafSpawn.Id):trace(string.format("event  = %s", veaf.lp(event)))
+  veaf.loggers.get(veafSpawn.Id):trace(string.format("event  = %s", veaf.p(event)))
 
   -- choose by default the coalition opposing the player who triggered the event
   local invertedCoalition = 1
@@ -148,7 +148,7 @@ function veafSpawn.onEventMarkChange(eventPos, event)
     invertedCoalition = 2
   end
 
-  veaf.loggers.get(veafSpawn.Id):trace(string.format("event.idx  = %s", veaf.lp(event.idx)))
+  veaf.loggers.get(veafSpawn.Id):trace(string.format("event.idx  = %s", veaf.p(event.idx)))
 
   if veafSpawn.executeCommand(eventPos, event.text, invertedCoalition, event.idx, nil, nil, nil, nil, nil, true) then
     -- Delete old mark.
@@ -202,7 +202,7 @@ function veafSpawn.executeCommand(
       if allowStartDelay and startDelay and startDelay > 0 then
         veaf.loggers
           .get(veafSpawn.Id)
-          :trace(string.format("scheduling veafSpawn.executeCommand for a delayed start in %s seconds", veaf.lp(startDelay)))
+          :trace(string.format("scheduling veafSpawn.executeCommand for a delayed start in %s seconds", veaf.p(startDelay)))
         mist.scheduleFunction(
           veafSpawn.executeCommand,
           { eventPos, eventText, coalition, markId, bypassSecurity, spawnedGroups, nil, nil, route, false },
@@ -1512,7 +1512,7 @@ end
 
 --- Erase drawing from the map
 function veafSpawn.eraseDrawing(name)
-  veaf.loggers.get(veafSpawn.Id):debug(string.format("eraseDrawing(name=%s)", veaf.lp(name)))
+  veaf.loggers.get(veafSpawn.Id):debug(string.format("eraseDrawing(name=%s)", veaf.p(name)))
   if not name then
     veaf.loggers.get(veafSpawn.Id):warn("Name is mandatory for drawing commands")
     return
@@ -2257,11 +2257,11 @@ function veafSpawn.spawnConvoy(
   end
   if not point then
     local _lat, _lon = veaf.computeLLFromString(destination)
-    veaf.loggers.get(veafSpawn.Id):trace(string.format("_lat=%s", veaf.lp(_lat)))
-    veaf.loggers.get(veafSpawn.Id):trace(string.format("_lon=%s", veaf.lp(_lon)))
+    veaf.loggers.get(veafSpawn.Id):trace(string.format("_lat=%s", veaf.p(_lat)))
+    veaf.loggers.get(veafSpawn.Id):trace(string.format("_lon=%s", veaf.p(_lon)))
     if _lat and _lon then
       point = coord.LLtoLO(_lat, _lon)
-      veaf.loggers.get(veafSpawn.Id):trace(string.format("point=%s", veaf.lp(point)))
+      veaf.loggers.get(veafSpawn.Id):trace(string.format("point=%s", veaf.p(point)))
     end
   end
   if not point then
@@ -2504,7 +2504,7 @@ function veafSpawn.spawnUnit(
     table.insert(units, toInsert)
   end
 
-  veaf.loggers.get(veafSpawn.Id):trace(string.format("unitData = %s", veaf.lp(units)))
+  veaf.loggers.get(veafSpawn.Id):trace(string.format("unitData = %s", veaf.p(units)))
 
   -- actually spawn the unit
   if unit.static or static then --if the unit was forced to spawn as a static it could still be an air or a naval unit so this check goes first
@@ -2576,7 +2576,7 @@ function veafSpawn.spawnUnit(
       },
     }
 
-    veaf.loggers.get(veafSpawn.Id):trace(string.format("setting %s", veaf.lp(command)))
+    veaf.loggers.get(veafSpawn.Id):trace(string.format("setting %s", veaf.p(command)))
     local spawnedGroup = Group.getByName(groupName)
     local controller = spawnedGroup:getController()
     controller:setCommand(command)
@@ -2689,7 +2689,7 @@ function veafSpawn.doSpawnCargo(spawnSpot, radius, cargoType, country, weightBia
       return
     end
 
-    veaf.loggers.get(veafSpawn.Id):debug(string.format("weightBias=%s", veaf.lp(weightBias)))
+    veaf.loggers.get(veafSpawn.Id):debug(string.format("weightBias=%s", veaf.p(weightBias)))
     if unit.desc and unit.desc.minMass and unit.desc.maxMass then
       local weightScaleRange = veafSpawn.cargoWeightBiasRange + 1
       local massDelta = unit.desc.maxMass - unit.desc.minMass
@@ -2701,7 +2701,7 @@ function veafSpawn.doSpawnCargo(spawnSpot, radius, cargoType, country, weightBia
       end
       local minMass = unit.desc.minMass + weightBias * massDelta / weightScaleRange
       local maxMass = unit.desc.minMass + (weightBias + 1) * massDelta / weightScaleRange
-      veaf.loggers.get(veafSpawn.Id):debug(string.format("cargo minMass=%s, cargo maxMass=%s", veaf.lp(minMass), veaf.lp(maxMass)))
+      veaf.loggers.get(veafSpawn.Id):debug(string.format("cargo minMass=%s, cargo maxMass=%s", veaf.p(minMass), veaf.p(maxMass)))
       cargoWeight = math.random(minMass, maxMass)
     elseif unit.defaultMass then
       local BiasOffset = -math.floor(veafSpawn.cargoWeightBiasRange / 2)
@@ -2712,14 +2712,14 @@ function veafSpawn.doSpawnCargo(spawnSpot, radius, cargoType, country, weightBia
       local weightBiasMin = weightBiasCentered
 
       cargoWeight = unit.defaultMass
-      veaf.loggers.get(veafSpawn.Id):debug(string.format("cargo defaultMass=%s", veaf.lp(cargoWeight)))
+      veaf.loggers.get(veafSpawn.Id):debug(string.format("cargo defaultMass=%s", veaf.p(cargoWeight)))
       local minMass = cargoWeight + weightBiasMin * cargoWeight / (2 * cargoWeightBiasScaleMax)
       local maxMass = cargoWeight + weightBiasMax * cargoWeight / (2 * cargoWeightBiasScaleMax)
-      veaf.loggers.get(veafSpawn.Id):debug(string.format("cargo minMass=%s, cargo maxMass=%s", veaf.lp(minMass), veaf.lp(maxMass)))
+      veaf.loggers.get(veafSpawn.Id):debug(string.format("cargo minMass=%s, cargo maxMass=%s", veaf.p(minMass), veaf.p(maxMass)))
       cargoWeight = math.random(minMass, maxMass)
     end
     if cargoWeight then
-      veaf.loggers.get(veafSpawn.Id):debug(string.format("cargo mass=%s", veaf.lp(cargoWeight)))
+      veaf.loggers.get(veafSpawn.Id):debug(string.format("cargo mass=%s", veaf.p(cargoWeight)))
 
       if not unitName then
         veafSpawn.spawnedUnitsCounter = veafSpawn.spawnedUnitsCounter + 1
@@ -2992,8 +2992,8 @@ veafSpawn.DEFAULT_FLAK_FIRE_DELAY = 0.1
 function veafSpawn.destroyObjectWithFlak(object, power, density)
   veaf.loggers
     .get(veafSpawn.Id)
-    :debug(string.format("veafSpawn.destroyObjectWithFlak(%s, %s, %s)", veaf.lp(power), veaf.lp(power), veaf.lp(density)))
-  veaf.loggers.get(veafSpawn.Id):trace(string.format("object=%s", veaf.lp(object)))
+    :debug(string.format("veafSpawn.destroyObjectWithFlak(%s, %s, %s)", veaf.p(power), veaf.p(power), veaf.p(density)))
+  veaf.loggers.get(veafSpawn.Id):trace(string.format("object=%s", veaf.p(object)))
   local _power = power or veafSpawn.DEFAULT_FLAK_POWER
   local _density = density or 1
 
@@ -3025,7 +3025,7 @@ end
 --- destroy unit(s)
 function veafSpawn.destroy(spawnSpot, radius, unitName)
   veaf.loggers.get(veafSpawn.Id):debug(string.format("destroy(radius=%s, unitName=%s)", tostring(radius), tostring(unitName)))
-  veaf.loggers.get(veafSpawn.Id):trace(string.format("spawnSpot=%s", veaf.lp(spawnSpot)))
+  veaf.loggers.get(veafSpawn.Id):trace(string.format("spawnSpot=%s", veaf.p(spawnSpot)))
   if unitName then
     -- destroy a specific unit
     local c = Unit.getByName(unitName)
@@ -3051,7 +3051,7 @@ function veafSpawn.destroy(spawnSpot, radius, unitName)
     -- radius based destruction
     veaf.loggers.get(veafSpawn.Id):trace("radius based destruction")
     local units = veaf.findUnitsInCircle(spawnSpot, radius or 150, true)
-    veaf.loggers.get(veafSpawn.Id):trace(string.format("units=%s", veaf.lp(units)))
+    veaf.loggers.get(veafSpawn.Id):trace(string.format("units=%s", veaf.p(units)))
     if units then
       for name, _ in pairs(units) do
         -- try and find a  unit
@@ -3244,9 +3244,9 @@ function veafSpawn.JTACAutoLase(groupName, laserCode, radioData)
   veaf.loggers.get(veafSpawn.Id):debug("veafSpawn.JTACAutoLase()")
   veaf.loggers.get(veafSpawn.Id):trace(string.format("groupName=%s", tostring(groupName)))
   veaf.loggers.get(veafSpawn.Id):trace(string.format("laserCode=%s", tostring(laserCode)))
-  veaf.loggers.get(veafSpawn.Id):trace(string.format("radioData=%s\n", veaf.lp(radioData)))
+  veaf.loggers.get(veafSpawn.Id):trace(string.format("radioData=%s\n", veaf.p(radioData)))
   local _radio = radioData or {}
-  veaf.loggers.get(veafSpawn.Id):trace(string.format("_radio=%s\n", veaf.lp(_radio)))
+  veaf.loggers.get(veafSpawn.Id):trace(string.format("_radio=%s\n", veaf.p(_radio)))
   veaf.loggers.get(veafSpawn.Id):trace(string.format("calling CTLD"))
   ctld.JTACAutoLase(groupName, laserCode, false, "all", nil, _radio)
   veaf.loggers.get(veafSpawn.Id):trace(string.format("CTLD called"))
@@ -3378,7 +3378,7 @@ function veafSpawn.dumpSpawnablePlanesList(export_path)
   veaf.loggers.get(veafSpawn.Id):debug("veafSpawn.dumpSpawnablePlanesList(export_path=%s)", export_path)
 
   local jsonify = function(key, value)
-    veaf.loggers.get(veafSpawn.Id):trace(string.format("jsonify(%s)", veaf.lp(value)))
+    veaf.loggers.get(veafSpawn.Id):trace(string.format("jsonify(%s)", veaf.p(value)))
     if veaf.json then
       return veaf.json.stringify(value)
     else
@@ -3718,11 +3718,11 @@ function veafSpawn.afacWatchdog(afacGroupName, AFAC_num, coalition, markName)
     veaf.loggers
       .get(veafSpawn.Id)
       :info(string.format("AFAC named=%s is KIA, removing mark (if it exists) and allowing it to be spawned again", veaf.p(afacGroupName)))
-    veaf.loggers.get(veafSpawn.Id):trace(string.format("markName=%s", veaf.lp(markName)))
+    veaf.loggers.get(veafSpawn.Id):trace(string.format("markName=%s", veaf.p(markName)))
 
     if veafNamedPoints and markName then
       local existingPoint = veafNamedPoints.getPoint(markName)
-      veaf.loggers.get(veafSpawn.Id):trace(string.format("existingPoint=%s", veaf.lp(existingPoint)))
+      veaf.loggers.get(veafSpawn.Id):trace(string.format("existingPoint=%s", veaf.p(existingPoint)))
       if existingPoint and existingPoint.markerId then
         -- delete the existing point
         trigger.action.removeMark(existingPoint.markerId)
@@ -3730,25 +3730,25 @@ function veafSpawn.afacWatchdog(afacGroupName, AFAC_num, coalition, markName)
     end
 
     --Make the callsign index available again for spawn
-    veaf.loggers.get(veafSpawn.Id):trace(string.format("AFAC_num=%s", veaf.lp(AFAC_num)))
+    veaf.loggers.get(veafSpawn.Id):trace(string.format("AFAC_num=%s", veaf.p(AFAC_num)))
     veafSpawn.AFAC.callsigns[coalition][AFAC_num].taken = false
     veafSpawn.AFAC.numberSpawned[coalition] = veafSpawn.AFAC.numberSpawned[coalition] - 1
     mist.DBs.unitsByName[afacGroupName] = nil --MIST does not do it on it's own, I highly recommend looking for an alternative, this is to spawn the AFAC once again with the unit name equal to the group name
     mist.DBs.groupsByName[afacGroupName] = nil
     veafSpawn.AFAC.missionData[coalition][AFAC_num] = nil
   else
-    veaf.loggers.get(veafSpawn.Id):trace(string.format("AFAC named=%s is alive", veaf.lp(afacGroupName)))
+    veaf.loggers.get(veafSpawn.Id):trace(string.format("AFAC named=%s is alive", veaf.p(afacGroupName)))
 
     --update the mark if the AFAC moves
     if veafNamedPoints and markName then
       local existingPoint = veafNamedPoints.getPoint(markName)
-      veaf.loggers.get(veafSpawn.Id):trace(string.format("existingAFACmarker=%s", veaf.lp(existingPoint)))
+      veaf.loggers.get(veafSpawn.Id):trace(string.format("existingAFACmarker=%s", veaf.p(existingPoint)))
       if existingPoint and existingPoint.markerId then
         local AFAC_points = veafSpawn.AFAC.missionData[coalition][AFAC_num].route.points
         local orbitPoint = AFAC_points[#AFAC_points]
         if existingPoint.x ~= orbitPoint.x and existingPoint.z ~= orbitPoint.y then
           -- delete the existing point
-          veaf.loggers.get(veafSpawn.Id):trace(string.format("Marker needs updating, AFAC moved, newAFACmarker=%s", veaf.lp(orbitPoint)))
+          veaf.loggers.get(veafSpawn.Id):trace(string.format("Marker needs updating, AFAC moved, newAFACmarker=%s", veaf.p(orbitPoint)))
           trigger.action.removeMark(existingPoint.markerId)
           veafNamedPoints.namePoint({ x = orbitPoint.x, y = orbitPoint.alt, z = orbitPoint.y }, markName, coalition, true)
         end
@@ -4485,7 +4485,7 @@ end
 
 --- Build the initial radio menu
 function veafSpawn.buildRadioMenu()
-  veaf.loggers.get(veafSpawn.Id):debug(string.format("veafSpawn.buildRadioMenu() hideMenu%s", veaf.lp(veafSpawn.HideRadioMenu)))
+  veaf.loggers.get(veafSpawn.Id):debug(string.format("veafSpawn.buildRadioMenu() hideMenu%s", veaf.p(veafSpawn.HideRadioMenu)))
   if not veafSpawn.HideRadioMenu then
     veafSpawn.rootPath = veafRadio.addSubMenu(veafSpawn.RadioMenuName)
     veafRadio.addCommandToSubmenu("Available Aircraft spawns", veafSpawn.rootPath, veafSpawn.listAllCAP, nil, veafRadio.USAGE_ForAll)

@@ -113,7 +113,7 @@ function veafNamedPoints.namePoint(targetSpot, name, coalition, silent)
 
   -- find an existing point with the same name
   local existingPoint = veafNamedPoints.getPoint(name)
-  veaf.loggers.get(veafNamedPoints.Id):trace(string.format("existingPoint=%s", veaf.lp(existingPoint)))
+  veaf.loggers.get(veafNamedPoints.Id):trace(string.format("existingPoint=%s", veaf.p(existingPoint)))
   if existingPoint and existingPoint.markerId then
     -- delete the existing point
     trigger.action.removeMark(existingPoint.markerId)
@@ -131,7 +131,7 @@ function veafNamedPoints.namePoint(targetSpot, name, coalition, silent)
   veafNamedPoints.markid = veafNamedPoints.markid + 1
   point.markerId = veafNamedPoints.markid
   trigger.action.markToCoalition(veafNamedPoints.markid, "VEAF - Point named " .. name, point, coalition, true, message)
-  veaf.loggers.get(veafNamedPoints.Id):trace(string.format("created point %s", veaf.lp(point)))
+  veaf.loggers.get(veafNamedPoints.Id):trace(string.format("created point %s", veaf.p(point)))
 end
 
 function veafNamedPoints.addPoint(name, point)
@@ -193,11 +193,11 @@ function veafNamedPoints.getNearestPoint(unitName)
 end
 
 function veafNamedPoints.pointFromString(coordinatesString)
-  veaf.loggers.get(veafNamedPoints.Id):debug(string.format("pointFromString(coordinatesString = %s)", veaf.lp(coordinatesString)))
+  veaf.loggers.get(veafNamedPoints.Id):debug(string.format("pointFromString(coordinatesString = %s)", veaf.p(coordinatesString)))
   local _result = nil
   local _lat, _lon = veaf.computeLLFromString(coordinatesString)
-  veaf.loggers.get(veafNamedPoints.Id):trace(string.format("_lat=%s", veaf.lp(_lat)))
-  veaf.loggers.get(veafNamedPoints.Id):trace(string.format("_lon=%s", veaf.lp(_lon)))
+  veaf.loggers.get(veafNamedPoints.Id):trace(string.format("_lat=%s", veaf.p(_lat)))
+  veaf.loggers.get(veafNamedPoints.Id):trace(string.format("_lon=%s", veaf.p(_lon)))
   if _lat and _lon then
     _result = veafNamedPoints.pointFromLL(_lat, _lon)
   end
@@ -205,7 +205,7 @@ function veafNamedPoints.pointFromString(coordinatesString)
 end
 
 function veafNamedPoints.pointFromLL(lat, long)
-  veaf.loggers.get(veafNamedPoints.Id):debug(string.format("pointFromLL(lat = %s, long = %s)", veaf.lp(lat), veaf.lp(long)))
+  veaf.loggers.get(veafNamedPoints.Id):debug(string.format("pointFromLL(lat = %s, long = %s)", veaf.p(lat), veaf.p(long)))
   return coord.LLtoLO(lat, long)
 end
 
@@ -262,12 +262,12 @@ end
 -- execute command from the remote interface
 function veafNamedPoints.executeCommandFromRemote(parameters)
   veaf.loggers.get(veafNamedPoints.Id):debug(string.format("veafNamedPoints.executeCommandFromRemote()"))
-  veaf.loggers.get(veafNamedPoints.Id):trace(string.format("parameters= %s", veaf.lp(parameters)))
+  veaf.loggers.get(veafNamedPoints.Id):trace(string.format("parameters= %s", veaf.p(parameters)))
   local _pilot, _pilotName, _unitName, _command = unpack(parameters)
-  veaf.loggers.get(veafNamedPoints.Id):trace(string.format("_pilot= %s", veaf.lp(_pilot)))
-  veaf.loggers.get(veafNamedPoints.Id):trace(string.format("_pilotName= %s", veaf.lp(_pilotName)))
-  veaf.loggers.get(veafNamedPoints.Id):trace(string.format("_unitName= %s", veaf.lp(_unitName)))
-  veaf.loggers.get(veafNamedPoints.Id):trace(string.format("_command= %s", veaf.lp(_command)))
+  veaf.loggers.get(veafNamedPoints.Id):trace(string.format("_pilot= %s", veaf.p(_pilot)))
+  veaf.loggers.get(veafNamedPoints.Id):trace(string.format("_pilotName= %s", veaf.p(_pilotName)))
+  veaf.loggers.get(veafNamedPoints.Id):trace(string.format("_unitName= %s", veaf.p(_unitName)))
+  veaf.loggers.get(veafNamedPoints.Id):trace(string.format("_command= %s", veaf.p(_command)))
   if not _pilot or not _command then
     return false
   end
@@ -278,9 +278,9 @@ function veafNamedPoints.executeCommandFromRemote(parameters)
     if _command then
         -- parse the command
         local _action, _pointName, _parameters = _command:match(veafNamedPoints.RemoteCommandParser)
-        veaf.loggers.get(veafNamedPoints.Id):trace(string.format("_action=%s",veaf.lp(_action)))
-        veaf.loggers.get(veafNamedPoints.Id):trace(string.format("_pointName=%s",veaf.lp(_pointName)))
-        veaf.loggers.get(veafNamedPoints.Id):trace(string.format("_parameters=%s",veaf.lp(_parameters)))
+        veaf.loggers.get(veafNamedPoints.Id):trace(string.format("_action=%s",veaf.p(_action)))
+        veaf.loggers.get(veafNamedPoints.Id):trace(string.format("_pointName=%s",veaf.p(_pointName)))
+        veaf.loggers.get(veafNamedPoints.Id):trace(string.format("_parameters=%s",veaf.p(_parameters)))
         if _action and _action:lower() == "weather" then
             veaf.loggers.get(veafNamedPoints.Id):info(string.format("[%s] is requesting weather at his position",veaf.p(_pilotName)))
             veafNamedPoints.getWeatherAtClosestPoint(_unitName, true)

@@ -252,18 +252,18 @@ end
 function VeafMG_Guardian:onEvent(event)
   -- only react to S_EVENT_SHOT events
   if event and event.id == world.event.S_EVENT_SHOT then
-    veaf.loggers.get(veafMissileGuardian.Id):trace(string.format("VeafMG_Protector:onEvent(S_EVENT_SHOT) : %s", veaf.lp(event)))
+    veaf.loggers.get(veafMissileGuardian.Id):trace(string.format("VeafMG_Protector:onEvent(S_EVENT_SHOT) : %s", veaf.p(event)))
 
     if event.weapon then
       -- check if the target is one of the protected units
       local _target = event.weapon:getTarget()
       if _target then
         local _targetName = _target:getName()
-        veaf.loggers.get(veafMissileGuardian.Id):trace(string.format("_targetName = %s", veaf.lp(_targetName)))
+        veaf.loggers.get(veafMissileGuardian.Id):trace(string.format("_targetName = %s", veaf.p(_targetName)))
         if self.protectedUnits[_targetName] then
           -- check if the target is in the protected zone
           local _inZone = mist.pointInPolygon(_target:getPoint(), self.protectedZone)
-          veaf.loggers.get(veafMissileGuardian.Id):trace(string.format("_inZone = %s", veaf.lp(_inZone)))
+          veaf.loggers.get(veafMissileGuardian.Id):trace(string.format("_inZone = %s", veaf.p(_inZone)))
           if _inZone then
             -- encapsulate the event weapon
             local _weapon = VeafMG_Weapon:new():setDcsWeapon(event.weapon)
@@ -272,7 +272,7 @@ function VeafMG_Guardian:onEvent(event)
             local _groupId = _target:getGroup():getID()
             local _playername = _target:getPlayerName()
             if _playername then
-              veaf.loggers.get(veafMissileGuardian.Id):debug(string.format("Issuing a warning to unit %s", veaf.lp(_playername)))
+              veaf.loggers.get(veafMissileGuardian.Id):debug(string.format("Issuing a warning to unit %s", veaf.p(_playername)))
               trigger.action.outTextForGroup(
                 _groupId,
                 string.format(VeafMG_Guardian.WARNING_MESSAGE, _playername, _weapon:getShooterName()),
@@ -473,7 +473,7 @@ function veafMissileGuardian._buildMissionRadioMenu(menu, title, element)
       skills[skill][scale] = mission
     end
 
-    veaf.loggers.get(veafMissileGuardian.Id):trace(string.format("skills=%s", veaf.lp(skills)))
+    veaf.loggers.get(veafMissileGuardian.Id):trace(string.format("skills=%s", veaf.p(skills)))
 
     -- create the radio menus
     local title = title
@@ -573,12 +573,12 @@ end
 -- execute command from the remote interface
 function veafMissileGuardian.executeCommandFromRemote(parameters)
   veaf.loggers.get(veafMissileGuardian.Id):debug(string.format("veafMissileGuardian.executeCommandFromRemote()"))
-  veaf.loggers.get(veafMissileGuardian.Id):trace(string.format("parameters= %s", veaf.lp(parameters)))
+  veaf.loggers.get(veafMissileGuardian.Id):trace(string.format("parameters= %s", veaf.p(parameters)))
   local _pilot, _pilotName, _unitName, _command = unpack(parameters)
-  veaf.loggers.get(veafMissileGuardian.Id):trace(string.format("_pilot= %s", veaf.lp(_pilot)))
-  veaf.loggers.get(veafMissileGuardian.Id):trace(string.format("_pilotName= %s", veaf.lp(_pilotName)))
-  veaf.loggers.get(veafMissileGuardian.Id):trace(string.format("_unitName= %s", veaf.lp(_unitName)))
-  veaf.loggers.get(veafMissileGuardian.Id):trace(string.format("_command= %s", veaf.lp(_command)))
+  veaf.loggers.get(veafMissileGuardian.Id):trace(string.format("_pilot= %s", veaf.p(_pilot)))
+  veaf.loggers.get(veafMissileGuardian.Id):trace(string.format("_pilotName= %s", veaf.p(_pilotName)))
+  veaf.loggers.get(veafMissileGuardian.Id):trace(string.format("_unitName= %s", veaf.p(_unitName)))
+  veaf.loggers.get(veafMissileGuardian.Id):trace(string.format("_command= %s", veaf.p(_command)))
   if not _pilot or not _command then
     return false
   end
@@ -586,9 +586,9 @@ function veafMissileGuardian.executeCommandFromRemote(parameters)
   if _command then
     -- parse the command
     local _action, _missionName, _parameters = _command:match(veafMissileGuardian.RemoteCommandParser)
-    veaf.loggers.get(veafMissileGuardian.Id):trace(string.format("_action=%s", veaf.lp(_action)))
-    veaf.loggers.get(veafMissileGuardian.Id):trace(string.format("_guardianName=%s", veaf.lp(_missionName)))
-    veaf.loggers.get(veafMissileGuardian.Id):trace(string.format("_parameters=%s", veaf.lp(_parameters)))
+    veaf.loggers.get(veafMissileGuardian.Id):trace(string.format("_action=%s", veaf.p(_action)))
+    veaf.loggers.get(veafMissileGuardian.Id):trace(string.format("_guardianName=%s", veaf.p(_missionName)))
+    veaf.loggers.get(veafMissileGuardian.Id):trace(string.format("_parameters=%s", veaf.p(_parameters)))
     if _action and _action:lower() == "list" then
       veaf.loggers.get(veafMissileGuardian.Id):info(string.format("[%s] is listing air missions)", veaf.p(_pilot.name)))
       veafMissileGuardian.listAvailableMissions()

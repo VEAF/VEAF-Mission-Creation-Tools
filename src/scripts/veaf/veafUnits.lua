@@ -431,7 +431,7 @@ function veafUnits.placeGroup(group, spawnPoint, spacing, hdg, hasDest)
   end
 
   local hasDest = false or hasDest
-  veaf.loggers.get(veafUnits.Id):trace(string.format("hasDest = %s", veaf.lp(hasDest)))
+  veaf.loggers.get(veafUnits.Id):trace(string.format("hasDest = %s", veaf.p(hasDest)))
 
   if not group.disposition then
     -- default disposition is a square
@@ -633,7 +633,7 @@ function veafUnits.placeGroup(group, spawnPoint, spacing, hdg, hasDest)
 
   -- randomly place the units
   for _, cell in pairs(cells) do
-    veaf.loggers.get(veafUnits.Id):trace(string.format("cell = %s", veaf.lp(cell)))
+    veaf.loggers.get(veafUnits.Id):trace(string.format("cell = %s", veaf.p(cell)))
     local unit = cell.unit
     if unit then
       unit.spawnPoint = {}

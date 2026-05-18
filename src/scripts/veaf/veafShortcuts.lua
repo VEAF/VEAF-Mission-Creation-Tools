@@ -82,7 +82,7 @@ end
 ---
 
 function VeafAlias:setName(value)
-  veaf.loggers.get(veafShortcuts.Id):trace(string.format("VeafAlias[%s]:setName([%s])", veaf.lp(self.name) or "", value or ""))
+  veaf.loggers.get(veafShortcuts.Id):trace(string.format("VeafAlias[%s]:setName([%s])", veaf.p(self.name) or "", value or ""))
   self.name = value
   return self
 end
@@ -92,7 +92,7 @@ function VeafAlias:getName()
 end
 
 function VeafAlias:setVeafCommand(value)
-  veaf.loggers.get(veafShortcuts.Id):trace(string.format("VeafAlias[%s]:setVeafCommand([%s])", veaf.lp(self.name), value or ""))
+  veaf.loggers.get(veafShortcuts.Id):trace(string.format("VeafAlias[%s]:setVeafCommand([%s])", veaf.p(self.name), value or ""))
   self.veafCommand = value
   return self
 end
@@ -102,7 +102,7 @@ function VeafAlias:getVeafCommand()
 end
 
 function VeafAlias:setEndsWithComma(value)
-  veaf.loggers.get(veafShortcuts.Id):trace(string.format("VeafAlias[%s]:setEndsWithComma([%s])", veaf.lp(self.name), tostring(value)))
+  veaf.loggers.get(veafShortcuts.Id):trace(string.format("VeafAlias[%s]:setEndsWithComma([%s])", veaf.p(self.name), tostring(value)))
   self.endsWithComma = value
   return self
 end
@@ -114,7 +114,7 @@ end
 function VeafAlias:addRandomParameter(name, low, high)
   veaf.loggers
     .get(veafShortcuts.Id)
-    :trace(string.format("VeafAlias[%s]:addRandomParameter([%s], %s, %s)", veaf.lp(self.name), name or "", low or "", high or ""))
+    :trace(string.format("VeafAlias[%s]:addRandomParameter([%s], %s, %s)", veaf.p(self.name), name or "", low or "", high or ""))
   table.insert(self.randomParameters, { name = name, low = low or 1, high = high or 6 })
   return self
 end
@@ -124,13 +124,13 @@ function VeafAlias:getRandomParameters()
 end
 
 function VeafAlias:dontEndWithComma()
-  veaf.loggers.get(veafShortcuts.Id):trace(string.format("VeafAlias[%s]:dontEndWithComma()", veaf.lp(self.name)))
+  veaf.loggers.get(veafShortcuts.Id):trace(string.format("VeafAlias[%s]:dontEndWithComma()", veaf.p(self.name)))
   self:setEndsWithComma(false)
   return self
 end
 
 function VeafAlias:setDescription(value)
-  veaf.loggers.get(veafShortcuts.Id):trace(string.format("VeafAlias[%s]:setDescription([%s])", veaf.lp(self.name), value or ""))
+  veaf.loggers.get(veafShortcuts.Id):trace(string.format("VeafAlias[%s]:setDescription([%s])", veaf.p(self.name), value or ""))
   self.description = value
   return self
 end
@@ -140,9 +140,7 @@ function VeafAlias:getDescription()
 end
 
 function VeafAlias:setBypassSecurity(value)
-  veaf.loggers
-    .get(veafShortcuts.Id)
-    :trace(string.format("VeafAlias[%s]:setBypassSecurity([%s])", veaf.lp(self.name), tostring(value) or ""))
+  veaf.loggers.get(veafShortcuts.Id):trace(string.format("VeafAlias[%s]:setBypassSecurity([%s])", veaf.p(self.name), tostring(value) or ""))
   self.bypassSecurity = value
   return self
 end
@@ -152,7 +150,7 @@ function VeafAlias:isBypassSecurity()
 end
 
 function VeafAlias:setHidden(value)
-  veaf.loggers.get(veafShortcuts.Id):trace(string.format("VeafAlias[%s]:setHidden([%s])", veaf.lp(self.name), tostring(value) or ""))
+  veaf.loggers.get(veafShortcuts.Id):trace(string.format("VeafAlias[%s]:setHidden([%s])", veaf.p(self.name), tostring(value) or ""))
   self.hidden = value
   return self
 end
@@ -191,7 +189,7 @@ function VeafAlias:execute(remainingCommand, position, coalition, markId, bypass
     return true
   end
 
-  veaf.loggers.get(veafShortcuts.Id):trace(string.format("markId=[%s]", veaf.lp(markId)))
+  veaf.loggers.get(veafShortcuts.Id):trace(string.format("markId=[%s]", veaf.p(markId)))
 
   local command = self:getVeafCommand()
   for _, parameter in pairs(self:getRandomParameters()) do
@@ -496,9 +494,9 @@ function veafShortcuts.ExecuteAlias(aliasName, delay, remainingCommand, position
       veaf.lp(coalition)
     )
   )
-  veaf.loggers.get(veafShortcuts.Id):trace(string.format("markId=[%s]", veaf.lp(markId)))
-  veaf.loggers.get(veafShortcuts.Id):trace(string.format("bypassSecurity=[%s]", veaf.lp(bypassSecurity)))
-  veaf.loggers.get(veafShortcuts.Id):trace(string.format("route=[%s]", veaf.lp(route)))
+  veaf.loggers.get(veafShortcuts.Id):trace(string.format("markId=[%s]", veaf.p(markId)))
+  veaf.loggers.get(veafShortcuts.Id):trace(string.format("bypassSecurity=[%s]", veaf.p(bypassSecurity)))
+  veaf.loggers.get(veafShortcuts.Id):trace(string.format("route=[%s]", veaf.p(route)))
 
   local alias = veafShortcuts.GetAlias(aliasName)
   if alias then
@@ -598,7 +596,7 @@ function veafShortcuts.onEventMarkChange(eventPos, event)
     invertedCoalition = 2
   end
 
-  veaf.loggers.get(veafShortcuts.Id):trace(string.format("event.idx  = %s", veaf.lp(event.idx)))
+  veaf.loggers.get(veafShortcuts.Id):trace(string.format("event.idx  = %s", veaf.p(event.idx)))
 
   if veafShortcuts.executeCommand(eventPos, event.text, invertedCoalition, event.idx) then
     -- Delete old mark.
@@ -673,10 +671,10 @@ function veafShortcuts.markTextAnalysis(text)
 
       -- extract alias and remainder
       local alias, coords, delay, remainder = text:match("(-[^#^!^ ^,]+)#?([^!^,^%s]*)!?(%d*)(.*)")
-      veaf.loggers.get(veafShortcuts.Id):trace(string.format("alias=[%s]", veaf.lp(alias)))
-      veaf.loggers.get(veafShortcuts.Id):trace(string.format("coords=[%s]", veaf.lp(coords)))
-      veaf.loggers.get(veafShortcuts.Id):trace(string.format("delay=[%s]", veaf.lp(delay)))
-      veaf.loggers.get(veafShortcuts.Id):trace(string.format("remainder=[%s]", veaf.lp(remainder)))
+      veaf.loggers.get(veafShortcuts.Id):trace(string.format("alias=[%s]", veaf.p(alias)))
+      veaf.loggers.get(veafShortcuts.Id):trace(string.format("coords=[%s]", veaf.p(coords)))
+      veaf.loggers.get(veafShortcuts.Id):trace(string.format("delay=[%s]", veaf.p(delay)))
+      veaf.loggers.get(veafShortcuts.Id):trace(string.format("remainder=[%s]", veaf.p(remainder)))
       if alias then
         veaf.loggers.get(veafShortcuts.Id):trace(string.format("alias = [%s]", alias))
         return alias, coords, delay, remainder
@@ -1630,7 +1628,7 @@ end
 
 function veafShortcuts.dumpAliasesList(export_path)
   local jsonify = function(key, value)
-    veaf.loggers.get(veafShortcuts.Id):trace(string.format("jsonify(%s)", veaf.lp(value)))
+    veaf.loggers.get(veafShortcuts.Id):trace(string.format("jsonify(%s)", veaf.p(value)))
     if veaf.json then
       return veaf.json.stringify(veafShortcuts.GetAlias(value))
     else
@@ -1644,7 +1642,7 @@ function veafShortcuts.dumpAliasesList(export_path)
     table.insert(sortedAliases, alias:getName())
   end
   table.sort(sortedAliases)
-  veaf.loggers.get(veafShortcuts.Id):trace(string.format("sortedAliases=%s", veaf.lp(sortedAliases)))
+  veaf.loggers.get(veafShortcuts.Id):trace(string.format("sortedAliases=%s", veaf.p(sortedAliases)))
 
   local _filename = "AliasesList.json"
   if veaf.config.MISSION_NAME then
@@ -1662,12 +1660,12 @@ end
 -- execute command from the remote interface
 function veafShortcuts.executeCommandFromRemote(parameters)
   veaf.loggers.get(veafShortcuts.Id):debug(string.format("veafShortcuts.executeCommandFromRemote()"))
-  veaf.loggers.get(veafShortcuts.Id):trace(string.format("parameters= %s", veaf.lp(parameters)))
+  veaf.loggers.get(veafShortcuts.Id):trace(string.format("parameters= %s", veaf.p(parameters)))
   local _pilot, _pilotName, _unitName, _command = unpack(parameters)
-  veaf.loggers.get(veafShortcuts.Id):trace(string.format("_pilot= %s", veaf.lp(_pilot)))
-  veaf.loggers.get(veafShortcuts.Id):trace(string.format("_pilotName= %s", veaf.lp(_pilotName)))
-  veaf.loggers.get(veafShortcuts.Id):trace(string.format("_unitName= %s", veaf.lp(_unitName)))
-  veaf.loggers.get(veafShortcuts.Id):trace(string.format("_command= %s", veaf.lp(_command)))
+  veaf.loggers.get(veafShortcuts.Id):trace(string.format("_pilot= %s", veaf.p(_pilot)))
+  veaf.loggers.get(veafShortcuts.Id):trace(string.format("_pilotName= %s", veaf.p(_pilotName)))
+  veaf.loggers.get(veafShortcuts.Id):trace(string.format("_unitName= %s", veaf.p(_unitName)))
+  veaf.loggers.get(veafShortcuts.Id):trace(string.format("_command= %s", veaf.p(_command)))
   if not _pilot or not _command then
     return false
   end
@@ -1688,24 +1686,24 @@ function veafShortcuts.executeCommandFromRemote(parameters)
     if _command:sub(1, 1) == veafShortcuts.AliasStarter or _command:sub(2, 2) == veafShortcuts.AliasStarter then
       -- there is only the command
       _alias = _command
-      veaf.loggers.get(veafShortcuts.Id):trace(string.format("_alias=%s", veaf.lp(_alias)))
+      veaf.loggers.get(veafShortcuts.Id):trace(string.format("_alias=%s", veaf.p(_alias)))
     else
       -- parse the command
       local _coords, __alias = _command:match(veafShortcuts.RemoteCommandParser)
       _alias = __alias
-      veaf.loggers.get(veafShortcuts.Id):trace(string.format("_coords=%s", veaf.lp(_coords)))
-      veaf.loggers.get(veafShortcuts.Id):trace(string.format("_alias=%s", veaf.lp(_alias)))
+      veaf.loggers.get(veafShortcuts.Id):trace(string.format("_coords=%s", veaf.p(_coords)))
+      veaf.loggers.get(veafShortcuts.Id):trace(string.format("_alias=%s", veaf.p(_alias)))
       if _coords then
         _lat, _lon = veaf.computeLLFromString(_coords)
-        veaf.loggers.get(veafShortcuts.Id):trace(string.format("_lat=%s", veaf.lp(_lat)))
-        veaf.loggers.get(veafShortcuts.Id):trace(string.format("_lon=%s", veaf.lp(_lon)))
+        veaf.loggers.get(veafShortcuts.Id):trace(string.format("_lat=%s", veaf.p(_lat)))
+        veaf.loggers.get(veafShortcuts.Id):trace(string.format("_lon=%s", veaf.p(_lon)))
       end
     end
     if _alias then
       if _lat and _lon then
         local _pos = coord.LLtoLO(_lat, _lon)
-        veaf.loggers.get(veafShortcuts.Id):trace(string.format("_pos=%s", veaf.lp(_pos)))
-        veaf.loggers.get(veafShortcuts.Id):trace(string.format("_coa=%s", veaf.lp(_coa)))
+        veaf.loggers.get(veafShortcuts.Id):trace(string.format("_pos=%s", veaf.p(_pos)))
+        veaf.loggers.get(veafShortcuts.Id):trace(string.format("_coa=%s", veaf.p(_coa)))
         veaf.loggers.get(veafShortcuts.Id):info(
           string.format(
             "[%s] is running an alias at position [%s] for coalition [%s] : [%s]",

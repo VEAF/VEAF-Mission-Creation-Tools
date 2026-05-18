@@ -353,8 +353,8 @@ function veafMove.changeTanker(eventPos, speed, alt)
   local routeData, errMsg = veafMove._getTankerRouteData(tankerGroupName)
   if not routeData then
     veaf.loggers.get(veafMove.Id):info(errMsg)
-    trigger.action.outText(errMsg)
-    return
+    trigger.action.outText(errMsg or "", 10)
+    return false
   end
   local tankerData, points = routeData.tankerData, routeData.points
   local point1, point2, point3 = routeData.point1, routeData.point2, routeData.point3
@@ -383,8 +383,8 @@ function veafMove.changeTanker(eventPos, speed, alt)
   if not orbitTask then
     local text = "Cannot set tanker " .. tankerGroupName .. " parameters because it has no ORBIT task defined"
     veaf.loggers.get(veafMove.Id):info(text)
-    trigger.action.outText(text)
-    return
+    trigger.action.outText(text, 10)
+    return false
   end
   veaf.loggers.get(veafMove.Id):debug("Found a ORBIT task for tanker " .. tankerGroupName)
   if speed > -1 then
@@ -454,7 +454,7 @@ function veafMove.moveTanker(eventPos, groupName, speed, alt, hdg, distance, tel
   local routeData, errMsg = veafMove._getTankerRouteData(groupName)
   if not routeData then
     veaf.loggers.get(veafMove.Id):info(errMsg)
-    trigger.action.outText(errMsg)
+    trigger.action.outText(errMsg or "", 10)
     return false
   end
   local tankerData, points = routeData.tankerData, routeData.points
@@ -648,7 +648,7 @@ function veafMove.teleportEscort(escorted_groupName, movePoint, teleportPoint)
         point1_escort = points_escort[idxPoint1_escort]
         point2_escort = points_escort[idxPoint2_escort]
         task2_escort = veaf.findInTable(point2_escort, "task")
-        if task2_escort.params.tasks then
+        if task2_escort and task2_escort.params and task2_escort.params.tasks then
           veaf.loggers.get(veafMove.Id):debug("Last escort WP has tasks")
           tasks_escort = task2_escort.params.tasks
           for k, task in pairs(tasks_escort) do
@@ -941,6 +941,7 @@ function veafMove.moveTankerToMe(parameters)
   veaf.loggers
     .get(veafMove.Id)
     :debug(string.format("veafMove.moveTankerToMe(tankerName=%s, unitName=%s, direction=%d)", tankerName, unitName, direction))
+  ---@diagnostic disable-next-line: param-type-mismatch
   local unit = Unit.getByName(unitName)
   if unit then
     local unitType = unit:getDesc()["typeName"]

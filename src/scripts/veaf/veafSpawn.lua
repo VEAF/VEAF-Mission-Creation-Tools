@@ -296,13 +296,13 @@ function veafSpawn.executeCommand(
           if not (bypassSecurity or veafSecurity.checkSecurity_L9(options.password, markId)) then
             return
           end
+          ---@type string|number|nil
           local code = options.laserCode
+          ---@type string|number|nil
           local channel = options.freq
           local band = options.mod
           if options.role == "tacan" then
-            ---@diagnostic disable-next-line: assign-type-mismatch
             channel = options.tacanChannel or 99
-            ---@diagnostic disable-next-line: assign-type-mismatch
             code = options.tacanCode or ("T" .. tostring(channel))
             band = options.tacanBand or "X"
           end
@@ -665,12 +665,12 @@ function veafSpawn.executeCommand(
           veafSpawn.missionMasterRun(options.name)
         end
         if spawnedGroup then
+          ---@type Group|StaticObject|nil
           local groupObject = Group.getByName(spawnedGroup)
           local isStatic = false
           --group might not have been found because it was a static
           if not groupObject then
             isStatic = true
-            ---@diagnostic disable-next-line: assign-type-mismatch
             groupObject = StaticObject.getByName(spawnedGroup)
           end
           veaf.loggers
@@ -678,6 +678,7 @@ function veafSpawn.executeCommand(
             :trace("got groupObject (isStatic=%s) to add group to other platforms : %s", veaf.lp(isStatic), veaf.lp(groupObject))
           if groupObject then
             if not isStatic then
+              ---@cast groupObject Group
               --stuff below does not support statics
               -- make the group combat ready ! well except if the user said otherwise, tweak the AlarmState for some scenarios
               --veaf.loggers.get(veafSpawn.Id):trace("options.disperse=%s", veaf.p(options.disperse))
@@ -3028,26 +3029,24 @@ function veafSpawn.destroy(spawnSpot, radius, unitName)
   veaf.loggers.get(veafSpawn.Id):trace(string.format("spawnSpot=%s", veaf.p(spawnSpot)))
   if unitName then
     -- destroy a specific unit
-    local c = Unit.getByName(unitName)
-    if c then
+    local cu = Unit.getByName(unitName)
+    if cu then
       veaf.loggers.get(veafSpawn.Id):trace("destroy a specific unit")
-      Unit.destroy(c)
+      Unit.destroy(cu)
     end
 
     -- or a specific static
-    ---@diagnostic disable-next-line: assign-type-mismatch
-    c = StaticObject.getByName(unitName)
-    if c then
+    local cs = StaticObject.getByName(unitName)
+    if cs then
       veaf.loggers.get(veafSpawn.Id):trace("destroy a specific static")
-      StaticObject.destroy(c)
+      StaticObject.destroy(cs)
     end
 
     -- or a specific group
-    ---@diagnostic disable-next-line: assign-type-mismatch
-    c = Group.getByName(unitName)
-    if c then
+    local cg = Group.getByName(unitName)
+    if cg then
       veaf.loggers.get(veafSpawn.Id):trace("destroy a specific group")
-      Group.destroy(c)
+      Group.destroy(cg)
     end
   else
     -- radius based destruction
@@ -3061,10 +3060,9 @@ function veafSpawn.destroy(spawnSpot, radius, unitName)
         if unit then
           Unit.destroy(unit)
         else
-          ---@diagnostic disable-next-line: assign-type-mismatch
-          unit = StaticObject.getByName(name)
-          if unit then
-            StaticObject.destroy(unit)
+          local staticUnit = StaticObject.getByName(name)
+          if staticUnit then
+            StaticObject.destroy(staticUnit)
           end
         end
       end

@@ -239,6 +239,7 @@ end
 function AirWaveZone:setZoneCenterFromCoordinates(value)
   veaf.loggers.get(veafAirWaves.Id):debug("AirWaveZone[%s]:setZoneCenterFromCoordinates(%s)", veaf.lp(self.name), veaf.lp(value))
   local _lat, _lon = veaf.computeLLFromString(value)
+  ---@diagnostic disable-next-line: param-type-mismatch
   local vec3 = coord.LLtoLO(_lat, _lon)
   return self:setZoneCenter(vec3)
 end
@@ -827,7 +828,7 @@ function AirWaveZone:check()
     else
       veaf.loggers.get(veafAirWaves.Id):error("No triggerzone, and no zone center/radius defined!")
     end
-    for _, unit in pairs(humanUnits) do
+    for _, unit in pairs(humanUnits or {}) do
       -- check the unit altitude against the ceiling and floor
       if unit:inAir() then -- never count a landed aircraft
         local alt = unit:getPoint().y

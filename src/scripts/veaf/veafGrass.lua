@@ -1320,6 +1320,7 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD
   if grassRunwayUnits then
     local grassRunwayUnit = nil
     for name, unitDef in pairs(grassRunwayUnits) do
+      ---@type Unit|StaticObject|nil
       local unit = Unit.getByName(name)
       if not unit then
         unit = StaticObject.getByName(name)

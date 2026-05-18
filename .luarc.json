@@ -108,7 +108,8 @@
     "TestVeafCacheManager",
     "TestVeafInterpreter",
     "STTS",
-    "veafHoundElint"
+    "veafHoundElint",
+    "AIEN"
   ],
   "Lua.diagnostics.disable": [
     "lowercase-global"

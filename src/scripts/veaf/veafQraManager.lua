@@ -235,6 +235,7 @@ end
 function VeafQRA:setZoneCenterFromCoordinates(value)
   veaf.loggers.get(veafQraManager.Id):debug("VeafQRA[%s]:setZoneCenterFromCoordinates(%s)", veaf.lp(self.name), veaf.lp(value))
   local _lat, _lon = veaf.computeLLFromString(value)
+  ---@diagnostic disable-next-line: param-type-mismatch
   local vec3 = coord.LLtoLO(_lat, _lon)
   return self:setZoneCenter(vec3)
 end

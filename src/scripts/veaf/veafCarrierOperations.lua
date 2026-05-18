@@ -342,6 +342,7 @@ function veafCarrierOperations.continueCarrierOperations(groupName, userUnitName
       veaf.loggers.get(veafCarrierOperations.Id):warn("No Pedro group named " .. carrier.pedroUnitName)
     else
       -- prepare or correct the Pedro route (SH-60B, 250ft high, 1nm to the starboard side of the carrier, riding along at the same speed and heading)
+      ---@type Unit|nil
       local pedroUnit = Unit.getByName(carrier.pedroUnitName)
       if pedroUnit then
         veaf.loggers.get(veafCarrierOperations.Id):debug("found Pedro unit")
@@ -370,7 +371,7 @@ function veafCarrierOperations.continueCarrierOperations(groupName, userUnitName
 
         pedroUnit = Unit.getByName(carrier.pedroUnitName)
         if not pedroUnit then
-          pedroUnit = pedroGroup:getUnits(1)
+          pedroUnit = pedroGroup:getUnit(1)
         end
         veaf.loggers.get(veafCarrierOperations.Id):debug(string.format("pedroUnit=%s", veaf.p(pedroUnit)))
 
@@ -490,6 +491,7 @@ function veafCarrierOperations.continueCarrierOperations(groupName, userUnitName
       carrier.tankerRouteSet = carrier.tankerRouteSet + 1
       if carrier.tankerRouteSet <= 2 then
         -- prepare or correct the Tanker route (8000ft high, 10nm aft and 4nm to the starboard side of the carrier, refueling on BRC)
+        ---@type Unit|nil
         local tankerUnit = Unit.getByName(carrier.tankerUnitName)
         if tankerUnit then
           veaf.loggers.get(veafCarrierOperations.Id):debug("found Tanker unit")
@@ -1124,9 +1126,10 @@ function veafCarrierOperations.executeCommandFromRemote(parameters)
       veafCarrierOperations.listAvailableCarriers(_groupId)
       return true
     elseif _action and _action:lower() == "start" and _carrierName then
+      ---@type number
       local _duration = 45
       if _parameters and type(_parameters) == "number" then
-        _duration = tonumber(parameters)
+        _duration = tonumber(parameters) or 45
       end
       local _carrier = findCarrier(_carrierName)
       veaf.loggers.get(veafCarrierOperations.Id):trace(string.format("_duration=%s", veaf.p(_duration)))
@@ -1149,9 +1152,9 @@ function veafCarrierOperations.executeCommandFromRemote(parameters)
         :info(string.format("[%s] is requesting atc on carrier [%s])", veaf.p(_pilot.name), veaf.p(_carrier)))
       local text = veafCarrierOperations.getAtcForCarrierOperations(_carrier)
       if _groupId then
-        trigger.action.outTextForGroup(_groupId, text, 15)
+        trigger.action.outTextForGroup(_groupId, text or "", 15)
       else
-        trigger.action.outText(text, 15)
+        trigger.action.outText(text or "", 15)
       end
       return true
     end

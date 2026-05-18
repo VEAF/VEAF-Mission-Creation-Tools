@@ -127,10 +127,11 @@ coalition = {
   getStaticObjects = function(side) return {} end,
   getAirbases = function(side) return {} end,
   addGroup = function(...) end,
-  getCountries = function(side)
-    if side == 1 then return { 0 } end  -- RED: Russia
-    if side == 2 then return { 2 } end  -- BLUE: USA
-    return {}
+  getCountryCoalition = function(countryId)
+    -- Russia (0) → RED, USA (2) → BLUE
+    if countryId == 0 then return 1 end  -- coalition.side.RED
+    if countryId == 2 then return 2 end  -- coalition.side.BLUE
+    return 0  -- NEUTRAL
   end,
 }
 

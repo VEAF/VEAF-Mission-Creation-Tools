@@ -2506,25 +2506,27 @@ local function _initializeCountriesAndCoalitions()
     end
   end
 
-  -- Supplement from DCS coalition API so that coalitions without any pre-placed
-  -- units (common in dynamic-spawn missions) still have usable country entries.
-  -- 'coalition' and 'country' here are the DCS global API objects.
-  local dcsCoalitionSides = {
-    { name = "red", side = coalition.side.RED },
-    { name = "blue", side = coalition.side.BLUE },
-    { name = "neutral", side = coalition.side.NEUTRAL },
-  }
-  for _, entry in ipairs(dcsCoalitionSides) do
-    if not veaf.countriesByCoalition[entry.name] then
-      veaf.countriesByCoalition[entry.name] = {}
-    end
-    for _, countryId in ipairs(coalition.getCountries(entry.side)) do
-      local countryName = country.name[countryId]
-      if countryName then
-        countryName = countryName:lower()
-        if not veaf.coalitionByCountry[countryName] then
-          table.insert(veaf.countriesByCoalition[entry.name], countryName)
-          veaf.coalitionByCountry[countryName] = entry.name
+  -- Supplement from DCS country/coalition APIs so that coalitions without any
+  -- pre-placed units (common in dynamic-spawn missions) still have usable entries.
+  -- country.id: UPPERCASE_NAME -> id (int)
+  -- coalition.getCountryCoalition(id): id -> coalition.side (0/1/2)
+  if country and country.id and coalition and coalition.getCountryCoalition then
+    local sideToName = {
+      [coalition.side.RED] = "red",
+      [coalition.side.BLUE] = "blue",
+      [coalition.side.NEUTRAL] = "neutral",
+    }
+    for countryUpperName, countryId in pairs(country.id) do
+      local side = coalition.getCountryCoalition(countryId)
+      local coalitionName = sideToName[side]
+      if coalitionName then
+        if not veaf.countriesByCoalition[coalitionName] then
+          veaf.countriesByCoalition[coalitionName] = {}
+        end
+        local lowerName = countryUpperName:lower()
+        if not veaf.coalitionByCountry[lowerName] then
+          table.insert(veaf.countriesByCoalition[coalitionName], lowerName)
+          veaf.coalitionByCountry[lowerName] = coalitionName
         end
       end
     end

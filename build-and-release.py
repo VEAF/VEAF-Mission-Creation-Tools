@@ -86,9 +86,11 @@ class BuildAndReleaseWorker:
         output_path: Optional[Path] = None,
         verbose: bool = False,
         config: Optional[Dict[str, Any]] = None,
+        prerelease: bool = False,
     ):
         """Initialize the build and release worker."""
         self.config = config or {}
+        self.prerelease = prerelease
         
         # GitHub configuration from config file or defaults
         github_config = self.config.get("github", {})
@@ -680,41 +682,52 @@ class BuildAndReleaseWorker:
         except subprocess.CalledProcessError as e:
             logger.error(f"GitHub publishing failed: {e}")
 
+    @property
+    def _is_prerelease(self) -> bool:
+        return self.prerelease
+
     def _publish_with_git_tags(self, package_path: Path):
         """Publish using git tags."""
         try:
             tag_name = f"published-v{self.version}"
             latest_tag_name = "published-latest"
 
-            # Delete old tags if they exist
+            # Delete old versioned tag if it exists
             subprocess.run(
                 ["git", "tag", "-d", tag_name],
                 cwd=str(self.script_root),
                 capture_output=True,
             )
-            subprocess.run(
-                ["git", "tag", "-d", latest_tag_name],
-                cwd=str(self.script_root),
-                capture_output=True,
-            )
 
-            # Create new tags
+            # Create new versioned tag
             subprocess.run(
                 ["git", "tag", tag_name],
                 cwd=str(self.script_root),
                 capture_output=True,
                 check=True,
             )
+
+            # Push versioned tag
             subprocess.run(
-                ["git", "tag", latest_tag_name],
+                ["git", "push", "origin", "-f", tag_name],
                 cwd=str(self.script_root),
                 capture_output=True,
                 check=True,
             )
 
-            # Push tags
+            if self._is_prerelease:
+                logger.debug(f"Pre-release: skipping {latest_tag_name} tag update", no_console=True)
+                logger.debug(f"Git tag created and pushed: {tag_name}", no_console=True)
+                return
+
+            # For full releases: also move the published-latest tag
             subprocess.run(
-                ["git", "push", "origin", "-f", tag_name],
+                ["git", "tag", "-d", latest_tag_name],
+                cwd=str(self.script_root),
+                capture_output=True,
+            )
+            subprocess.run(
+                ["git", "tag", latest_tag_name],
                 cwd=str(self.script_root),
                 capture_output=True,
                 check=True,
@@ -771,7 +784,8 @@ class BuildAndReleaseWorker:
                 notes_arg = ["--notes-file", str(release_notes_path)]
 
             # Create GitHub release for versioned tag
-            release_cmd = ["gh", "release", "create", tag_name, "--latest", "-t", f"VEAF Tools v{self.version}"]
+            release_type_flag = "--prerelease" if self._is_prerelease else "--latest"
+            release_cmd = ["gh", "release", "create", tag_name, release_type_flag, "-t", f"VEAF Tools v{self.version}"]
             release_cmd.extend(notes_arg)
             
             result = subprocess.run(
@@ -839,6 +853,10 @@ class BuildAndReleaseWorker:
                 # Ignore errors if asset doesn't exist
 
             logger.debug(f"GitHub release created and assets uploaded for {tag_name}", no_console=True)
+
+            if self._is_prerelease:
+                logger.debug(f"Pre-release: skipping {latest_tag_name} release update", no_console=True)
+                return
 
             # Create or update the "latest" release pointing to the same assets
             # Delete old latest release if it exists
@@ -1312,6 +1330,10 @@ def publish(
         False,
         help="Force publish even if release already exists (overwrites with --clobber)",
     ),
+    prerelease: bool = typer.Option(
+        False,
+        help="Mark as pre-release (e.g. RC). Does NOT update published-latest. Test with: veaf-tools-updater update --tag published-v<version>",
+    ),
     verbose: bool = typer.Option(False, help=VERBOSE_HELP),
     pause: bool = typer.Option(False, help="Pause when finished"),
 ) -> None:
@@ -1320,6 +1342,10 @@ def publish(
     
     Use this after running 'build' and editing RELEASE_NOTES.md.
     It will publish the already-compiled artifacts to GitHub.
+    
+    For pre-release testing without affecting production users, use --prerelease.
+    The published-latest tag is left untouched; test with:
+        veaf-tools-updater update --tag published-v<version>
     """
     logger.set_verbose(verbose)
     console.print("[bold green]VEAF Tools Publish[/bold green]")
@@ -1378,6 +1404,7 @@ def publish(
                 github_token=effective_token,
                 verbose=verbose,
                 config=config,
+                prerelease=prerelease,
             )
             worker._do_publish_to_github(published_zip, package_hash, force=force)
         

@@ -387,9 +387,10 @@ def build(
     else:
         p_scripts_path = None
 
-    # Read mission.yaml: lua_modules (LUA-005) and global_log_level (LUA-007)
+    # Read mission.yaml: lua_modules (LUA-005), global_log_level (LUA-007), pipeline (TOOL-pipeline)
     lua_modules: dict | None = None
     global_log_level: str | None = None
+    pipeline_cfg: dict = {}
     mission_yaml_path = p_mission_folder / "mission.yaml"
     if mission_yaml_path.exists():
         with mission_yaml_path.open("r", encoding="utf-8") as fh:
@@ -400,6 +401,7 @@ def build(
         global_log_level = mission_yaml.get("global_log_level") or None
         if global_log_level:
             logger.info(f"Found global_log_level={global_log_level!r} in {mission_yaml_path}")
+        pipeline_cfg = mission_yaml.get("pipeline") or {}
 
     # Apply --log-modules filter: silence all modules not in the keep list (LUA-006)
     if log_modules is not None:
@@ -430,6 +432,83 @@ def build(
         global_log_level=global_log_level,
     )
     worker.work()
+
+    # ── Auto-pipeline: run optional injection steps ───────────────────────────
+    # Each step is auto-enabled when its config file is found in src/.
+    # Override in mission.yaml under the `pipeline:` key.
+    #   pipeline:
+    #     presets: false              # disable even if src/presets.yaml exists
+    #     waypoints:
+    #       file: custom/wp.yaml     # use a non-default path
+    #     aircraft_groups:
+    #       mode: replace            # add (default) or replace
+    #     weather: false
+
+    def _step_file(key: str, *candidates: str) -> Path | None:
+        """Return the resolved file for a pipeline step, or None to skip."""
+        step_cfg = pipeline_cfg.get(key)
+        if step_cfg is False or (isinstance(step_cfg, dict) and step_cfg.get("enabled") is False):
+            return None
+        if isinstance(step_cfg, dict) and "file" in step_cfg:
+            p = p_mission_folder / step_cfg["file"]
+            return p if p.exists() else None
+        for candidate in candidates:
+            p = p_mission_folder / candidate
+            if p.exists():
+                return p
+        return None
+
+    presets_path = _step_file("presets", "src/presets.yaml")
+    if presets_path:
+        logger.info(f"Pipeline: injecting radio presets from {presets_path}")
+        console.print(f"[bold blue]Pipeline: radio presets ({presets_path.name})[/bold blue]")
+        PresetsInjectorWorker(
+            presets_file=presets_path,
+            input_mission=p_output_mission,
+            output_mission=p_output_mission,
+        ).work()
+
+    waypoints_path = _step_file("waypoints", "src/waypoints.yaml", "waypoints.yaml")
+    if waypoints_path:
+        logger.info(f"Pipeline: injecting waypoints from {waypoints_path}")
+        console.print(f"[bold blue]Pipeline: waypoints ({waypoints_path.name})[/bold blue]")
+        WaypointsInjectorWorker(
+            waypoints_file=waypoints_path,
+            input_mission=p_output_mission,
+            output_mission=p_output_mission,
+        ).work()
+
+    aircraft_path = _step_file(
+        "aircraft_groups", "src/aircraft-templates.yaml", "src/templates.yaml", "aircraft-templates.yaml"
+    )
+    if aircraft_path:
+        aircraft_mode = "add"
+        step_cfg = pipeline_cfg.get("aircraft_groups")
+        if isinstance(step_cfg, dict):
+            aircraft_mode = step_cfg.get("mode", "add")
+        validator = AircraftGroupsYAMLValidator(aircraft_path)
+        is_valid, _ = validator.validate()
+        if is_valid:
+            logger.info(f"Pipeline: injecting aircraft groups from {aircraft_path} (mode={aircraft_mode})")
+            console.print(
+                f"[bold blue]Pipeline: aircraft groups ({aircraft_path.name}, mode={aircraft_mode})[/bold blue]"
+            )
+            AircraftGroupsInjectorWorker(
+                input_yaml=aircraft_path,
+                target_mission=p_output_mission,
+                output_mission=p_output_mission,
+            ).inject(mode=aircraft_mode, silent=True)
+        else:
+            logger.warning(f"Pipeline: aircraft groups YAML validation failed — skipping ({aircraft_path})")
+            console.print("[bold yellow]Pipeline: aircraft groups validation failed, skipping[/bold yellow]")
+
+    weather_path = _step_file("weather", "src/missions.yaml", "src/versions.yaml", "missions.yaml")
+    if weather_path:
+        logger.info(f"Pipeline: injecting weather variants from {weather_path}")
+        console.print(f"[bold blue]Pipeline: weather variants ({weather_path.name})[/bold blue]")
+        weather_worker = WeatherInjectorWorker(config_file=weather_path, mission_file=p_output_mission)
+        if created_files := weather_worker.work():
+            console.print(f"[bold green]Pipeline: created {len(created_files)} weather variant(s)[/bold green]")
 
     console.print(WORK_DONE_MESSAGE)
     if pause:

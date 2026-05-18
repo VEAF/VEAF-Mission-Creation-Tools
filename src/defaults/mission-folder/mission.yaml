@@ -1,7 +1,7 @@
 # mission.yaml — optional build-time configuration for veaf-tools
 #
-# Place this file at the root of your mission folder (next to build.cmd and
-# veaf-tools-updater.exe). If absent, veaf-tools build works with default settings.
+# Place this file at the root of your mission folder (next to veaf-tools-updater.exe).
+# If absent, veaf-tools build works with default settings.
 #
 # See: https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/master/doc/MISSION_MAKER_GUIDE.md
 
@@ -26,3 +26,25 @@
 #     logLevel: trace
 #   ASSETS:
 #     logLevel: info
+
+# ── Build pipeline ────────────────────────────────────────────────────────────
+# Controls which optional injection steps run after the base build.
+# By default each step is auto-detected: it runs if its config file is found.
+#
+# Default file locations checked automatically (relative to this folder):
+#   presets       → src/presets.yaml
+#   waypoints     → src/waypoints.yaml
+#   aircraft_groups → src/aircraft-templates.yaml  (also: src/templates.yaml)
+#   weather       → src/missions.yaml              (also: src/versions.yaml)
+#
+# Set a step to false to disable it even when its file exists.
+# Use a `file:` key to point to a non-default location.
+# For aircraft_groups, `mode` controls injection behaviour (add | replace).
+#
+# pipeline:
+#   presets: false                       # skip even if src/presets.yaml exists
+#   waypoints: true                      # always run (file must exist)
+#   aircraft_groups:
+#     file: src/my-aircraft.yaml        # non-default path
+#     mode: replace                     # add (default) or replace
+#   weather: false                       # skip weather variants

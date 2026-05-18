@@ -2,19 +2,23 @@
 setlocal
 
 rem ---------------------------------------------------------------------------
-rem  VEAF Mission Build Script — adapt to your mission
+rem  VEAF Mission Build Script
 rem
 rem  Place this file at the root of your mission folder, next to:
 rem    veaf-tools-updater.exe   (downloaded from the VEAF release)
 rem    veaf-tools.exe           (downloaded by the updater at run time)
+rem    mission.yaml             (optional build configuration)
 rem    src\                     (your source files)
 rem      mission\               (DCS mission data extracted from the .miz)
-rem      scripts\               (your Lua scripts, e.g. missionConfig.lua)
-rem      presets.yaml           (radio preset configuration, optional)
-rem      waypoints.yaml         (waypoint configuration, optional)
-rem      aircraft-templates.yaml (aircraft group templates, optional)
-rem      missions.yaml          (weather/time variant configuration, optional)
+rem      scripts\               (your Lua scripts: missionConfig.lua, etc.)
 rem
+rem  Optional injection steps are auto-detected from src\ by veaf-tools:
+rem    src\presets.yaml          → radio presets injection
+rem    src\waypoints.yaml        → waypoints injection
+rem    src\aircraft-templates.yaml → aircraft groups injection
+rem    src\missions.yaml         → weather/time variants
+rem
+rem  To disable or customize a step, add a `pipeline:` section to mission.yaml.
 rem  Output: <MISSION_NAME>_YYYYMMDD.miz  (in the current folder)
 rem ---------------------------------------------------------------------------
 
@@ -27,36 +31,11 @@ veaf-tools-updater.exe
 if errorlevel 1 goto :error
 
 rem ---------------------------------------------------------------------------
-rem 2. Build the mission
-rem    Reads from src\mission\ and src\scripts\ — outputs %MISSION_NAME%_YYYYMMDD.miz
+rem 2. Build the mission — optional injection steps run automatically
+rem    based on files found in src\ (see header above)
 rem ---------------------------------------------------------------------------
 veaf-tools.exe build %MISSION_NAME% .
 if errorlevel 1 goto :error
-
-rem ---------------------------------------------------------------------------
-rem 3. Inject radio presets (uncomment if you have a presets.yaml)
-rem ---------------------------------------------------------------------------
-rem veaf-tools.exe inject-presets %MISSION_NAME% --presets-file src\presets.yaml
-rem if errorlevel 1 goto :error
-
-rem ---------------------------------------------------------------------------
-rem 4. Inject waypoints (uncomment if you have a waypoints.yaml)
-rem ---------------------------------------------------------------------------
-rem veaf-tools.exe inject-waypoints %MISSION_NAME% --waypoints-file src\waypoints.yaml
-rem if errorlevel 1 goto :error
-
-rem ---------------------------------------------------------------------------
-rem 5. Inject aircraft groups (uncomment if you have aircraft-templates.yaml)
-rem ---------------------------------------------------------------------------
-rem veaf-tools.exe inject-aircraft-groups %MISSION_NAME% --template-file src\aircraft-templates.yaml
-rem if errorlevel 1 goto :error
-
-rem ---------------------------------------------------------------------------
-rem 6. Inject weather variants (uncomment if you have missions.yaml)
-rem    Note: this creates additional .miz files, one per variant defined in the config
-rem ---------------------------------------------------------------------------
-rem veaf-tools.exe inject-weather %MISSION_NAME% --config-file src\missions.yaml
-rem if errorlevel 1 goto :error
 
 echo.
 echo Build successful.

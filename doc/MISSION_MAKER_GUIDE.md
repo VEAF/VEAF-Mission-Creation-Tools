@@ -293,21 +293,43 @@ To set the log verbosity for the whole mission, add `global_log_level` in `missi
 global_log_level: debug   # error | warn | info | debug | trace
 ```
 
-`veaf-tools build` writes `veaf.ForcedLogLevel = "debug"` into the generated `veaf-modules-config.lua`, which overrides the log level of every module. This is baked into the `.miz` — changing it requires a rebuild.
+`veaf-tools build` writes `veaf.ForcedLogLevel = "debug"` into the generated `veaf-modules-config.lua`, which overrides every module's log level. This is baked into the `.miz` — changing it requires a rebuild.
 
 > Remove this line (or set it to `info`) before deploying to players.
 
-#### Per-module level at runtime
+#### Per-module level at build time
 
-For finer control — or when editing the `.miz` is not practical (live server) — set levels directly in your `missionconfig.lua`:
+For finer control, configure individual modules via the `lua_modules` section in `mission.yaml`:
+
+```yaml
+lua_modules:
+  SPAWN:
+    logLevel: debug
+  RADIO:
+    logLevel: trace
+  ASSETS:
+    logLevel: info
+```
+
+This generates `veaf.setConfig("SPAWN", "logLevel", "debug")` calls in `veaf-modules-config.lua`. All other modules keep their default level.
+
+Alternatively, use `--log-modules` on the CLI to keep full logging for a set of modules and silence everything else:
+
+```powershell
+veaf-tools.exe build mission --log-modules "SPAWN,RADIO"
+```
+
+#### Per-module level at runtime (live server)
+
+For changes without a rebuild, set levels directly in your `missionconfig.lua`:
 
 ```lua
--- Override individual module log levels (force=true bypasses BaseLogLevel cap)
+-- force=true bypasses the BaseLogLevel cap
 veaf.loggers.get("SPAWN"):setLevel("debug", true)
 veaf.loggers.get("RADIO"):setLevel("trace", true)
 ```
 
-If your mission loads scripts from the filesystem (`dofile(lfs.writedir() .. "...")`) rather than from inside the `.miz`, editing `missionconfig.lua` on the server and reloading the mission is sufficient — no rebuild needed.
+If your mission loads scripts from the filesystem (`dofile(lfs.writedir() .. "...")`) rather than from inside the `.miz`, editing `missionconfig.lua` on the server and reloading the mission is sufficient.
 
 Log levels: `error` (1) → `warn` (2) → `info` (3, default) → `debug` (4) → `trace` (5).
 

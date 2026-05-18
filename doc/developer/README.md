@@ -158,7 +158,19 @@ To increase verbosity for a mission at **build time** (global, baked into the `.
 global_log_level: debug
 ```
 
-For **per-module or runtime** control, use `missionconfig.lua` directly:
+For **per-module build-time** control, use the `lua_modules` section:
+
+```yaml
+lua_modules:
+  SPAWN:
+    logLevel: debug
+  RADIO:
+    logLevel: trace
+```
+
+This generates `veaf.setConfig("MODULE_ID", "logLevel", "...")` calls in `veaf-modules-config.lua`. Or use `--log-modules SPAWN,RADIO` on the CLI to silence everything else.
+
+For **per-module runtime** control (no rebuild), use `missionconfig.lua` directly:
 
 ```lua
 veaf.loggers.get("SPAWN"):setLevel("debug", true)  -- force=true bypasses BaseLogLevel cap

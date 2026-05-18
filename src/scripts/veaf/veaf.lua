@@ -2479,12 +2479,15 @@ local function _initializeCountriesAndCoalitions()
 
   local function _sortByImportance(c1, c2)
     local importantCountries = { ["usa"] = true, ["russia"] = true }
-    if c1 then
-      return importantCountries[c1:lower()]
+    local imp1 = c1 and importantCountries[c1:lower()] or false
+    local imp2 = c2 and importantCountries[c2:lower()] or false
+    if imp1 ~= imp2 then
+      return imp1
     end
-    return string.lower(c1) < string.lower(c2)
+    return (c1 or "") < (c2 or "")
   end
 
+  -- Populate from mist.DBs.units (countries that have pre-placed unit groups)
   for coalitionName, countries in pairs(mist.DBs.units) do
     coalitionName = coalitionName:lower()
     veaf.loggers.get(veaf.Id):trace("coalitionName=%s", veaf.lp(coalitionName))
@@ -2493,16 +2496,43 @@ local function _initializeCountriesAndCoalitions()
       veaf.countriesByCoalition[coalitionName] = {}
     end
     veaf.loggers.get(veaf.Id):trace("countries=%s", veaf.lp(countries))
-    for countryName, country in pairs(countries) do
-      veaf.loggers.get(veaf.Id):trace("country=%s", veaf.lp(country))
+    for countryName, countryData in pairs(countries) do
+      veaf.loggers.get(veaf.Id):trace("country=%s", veaf.lp(countryData))
       countryName = countryName:lower()
       table.insert(veaf.countriesByCoalition[coalitionName], countryName)
       veaf.coalitionByCountry[countryName] = coalitionName:lower()
-      veaf.countriesByName[countryName] = country
-      veaf.countriesNamesById[country.countryId] = countryName
+      veaf.countriesByName[countryName] = countryData
+      veaf.countriesNamesById[countryData.countryId] = countryName
     end
+  end
 
-    table.sort(veaf.countriesByCoalition[coalitionName], _sortByImportance)
+  -- Supplement from DCS coalition API so that coalitions without any pre-placed
+  -- units (common in dynamic-spawn missions) still have usable country entries.
+  -- 'coalition' and 'country' here are the DCS global API objects.
+  local dcsCoalitionSides = {
+    { name = "red", side = coalition.side.RED },
+    { name = "blue", side = coalition.side.BLUE },
+    { name = "neutral", side = coalition.side.NEUTRAL },
+  }
+  for _, entry in ipairs(dcsCoalitionSides) do
+    if not veaf.countriesByCoalition[entry.name] then
+      veaf.countriesByCoalition[entry.name] = {}
+    end
+    for _, countryId in ipairs(coalition.getCountries(entry.side)) do
+      local countryName = country.name[countryId]
+      if countryName then
+        countryName = countryName:lower()
+        if not veaf.coalitionByCountry[countryName] then
+          table.insert(veaf.countriesByCoalition[entry.name], countryName)
+          veaf.coalitionByCountry[countryName] = entry.name
+        end
+      end
+    end
+  end
+
+  -- Sort each coalition's country list with important countries first
+  for _, countries in pairs(veaf.countriesByCoalition) do
+    table.sort(countries, _sortByImportance)
   end
 
   veaf.loggers.get(veaf.Id):trace("veaf.countriesByCoalition=%s", veaf.lp(veaf.countriesByCoalition))

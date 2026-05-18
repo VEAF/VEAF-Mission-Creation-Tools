@@ -797,6 +797,7 @@ function VeafCombatZone:initialize()
   if groupNames then
     for _, groupName in pairs(groupNames) do
       veaf.loggers.get(veafCombatZone.Id):trace(string.format("destroying group [%s]", groupName))
+      ---@type Group|StaticObject|nil
       local group = Group.getByName(groupName)
       if not group then
         group = StaticObject.getByName(groupName)
@@ -1129,6 +1130,7 @@ function VeafCombatZone:desactivate()
 
   for _, groupName in pairs(self:getSpawnedGroups()) do
     veaf.loggers.get(veafCombatZone.Id):trace(string.format("trying to destroy group [%s]", groupName))
+    ---@type Group|StaticObject|nil
     local group = Group.getByName(groupName)
     if not group then
       group = StaticObject.getByName(groupName)
@@ -1617,6 +1619,7 @@ function VeafCombatOperation:updatePrimaryTasks()
         local requiredCombatZone = veafCombatZone.GetZone(requiredCombatZoneName)
 
         -- if any of required tasking order is active, then tasking order is not eligible
+        ---@diagnostic disable-next-line: need-check-nil
         if requiredCombatZone:isActive() then
           requirementFulfilled = false
           break

@@ -202,6 +202,7 @@ function veafSkynet.removeSkynetElement(skynetElement, veafSkynetNetwork)
   veaf.loggers.get(veafSkynet.Id):trace("Sam sites count: " .. #list) -- not removed here
 
   local dcsGroup = veafSkynet.getDcsGroupFromSkynetElement(skynetElement)
+  ---@diagnostic disable-next-line: need-check-nil
   veafSkynetNetwork.groups[dcsGroup:getName()] = nil
 end
 
@@ -1051,6 +1052,7 @@ veafSkynet.CommandCentersPreinitialize = {} -- this is to memorize the command c
 function veafSkynet.addCommandCenter(veafSkynetNetwork, sCommandCenterName)
   local iads = veafSkynetNetwork.iads
 
+  ---@type StaticObject|Unit|nil
   local dcsCommandCenterObject = StaticObject.getByName(sCommandCenterName)
   if not dcsCommandCenterObject then
     dcsCommandCenterObject = Unit.getByName(sCommandCenterName)

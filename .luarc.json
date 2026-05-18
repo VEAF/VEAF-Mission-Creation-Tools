@@ -114,7 +114,9 @@
     "dcsbot",
     "VEAF_DYNAMIC_MISSIONPATH",
     "niod",
-    "logError"
+    "logError",
+    "inheritsFrom",
+    "SkynetIADSAbstractRadarElement"
   ],
   "Lua.diagnostics.disable": [
     "lowercase-global"

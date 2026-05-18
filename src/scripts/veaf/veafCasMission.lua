@@ -788,6 +788,7 @@ function veafCasMission.generateAirDefenseGroup(groupName, defense, side)
   group.description = groupName
   group.groupName = groupName
 
+  ---@diagnostic disable-next-line: need-check-nil
   veaf.loggers.get(veafCasMission.Id):trace("#group.units = " .. #group.units)
   return group
 end
@@ -1143,6 +1144,7 @@ function veafCasMission.reportTargetInformation(unitName)
 
   -- add coordinates and position from bullseye
   local averageGroupPosition = veaf.getAveragePosition(veafCasMission.casGroupName)
+  ---@cast averageGroupPosition vec3
   local lat, lon = coord.LOtoLL(averageGroupPosition)
   local mgrsString = mist.tostringMGRS(coord.LLtoMGRS(lat, lon), 3)
   local bullseyeData = mist.DBs.missionData.bullseye.blue -- default to blue
@@ -1151,6 +1153,7 @@ function veafCasMission.reportTargetInformation(unitName)
     bullseyeData = mist.DBs.missionData.bullseye.red
   end
   local bullseye = mist.utils.makeVec3(bullseyeData, 0)
+  ---@diagnostic disable-next-line: need-check-nil
   local vec = { x = averageGroupPosition.x - bullseye.x, y = averageGroupPosition.y - bullseye.y, z = averageGroupPosition.z - bullseye.z }
   local dir = mist.utils.round(mist.utils.toDegree(mist.utils.getDir(vec, bullseye)), 0)
   local dist = mist.utils.get2DDist(averageGroupPosition, bullseye)

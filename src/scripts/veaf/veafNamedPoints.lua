@@ -340,6 +340,7 @@ function veafNamedPoints.addCitiesFromList(cities)
     veaf.loggers.get(veafNamedPoints.Id):trace(string.format("processing city name=[%s]", name or ""))
     local point = coord.LLtoLO(data.latitude, data.longitude)
     --veaf.loggers.get(veafNamedPoints.Id):trace(string.format("point=[%s]",veaf.p(point)))
+    ---@diagnostic disable-next-line: inject-field
     point.hidden = true
     local name = data.display_name
     --veaf.loggers.get(veafNamedPoints.Id):trace(string.format("name=[%s]",name or ""))

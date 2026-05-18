@@ -743,6 +743,7 @@ function veafSanctuary.addZoneFromTriggerZone(triggerZoneName)
   veaf.loggers.get(veafSanctuary.Id):trace(string.format("addZoneFromTriggerZone(%s)", veaf.p(triggerZoneName)))
   local triggerZone = trigger.misc.getZone(triggerZoneName)
   if triggerZoneName then
+    ---@diagnostic disable-next-line: need-check-nil
     local zone = VeafSanctuaryZone:new():setName(triggerZoneName):setRadius(triggerZone.radius):setPosition(triggerZone.point)
     return veafSanctuary.addZone(zone)
   end

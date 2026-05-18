@@ -281,6 +281,7 @@ function VeafMG_Guardian:onEvent(event)
             end
 
             -- pass the weapon to the large-scale protector
+            ---@diagnostic disable-next-line: undefined-field
             veafMissileGuardian.getLargeScaleProtector():setWeapon(_weapon)
           end
         end

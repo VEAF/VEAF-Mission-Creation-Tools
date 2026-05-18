@@ -236,7 +236,9 @@ function veafTransportMission.doRadioTransmission(groupName)
   if group then
     veaf.loggers.get(veafTransportMission.Id):trace("Group is transmitting")
     local averageGroupPosition = veaf.getAveragePosition(groupName)
+    ---@cast averageGroupPosition vec3
     veaf.loggers.get(veafTransportMission.Id):trace("averageGroupPosition=" .. veaf.vecToString(averageGroupPosition))
+    ---@diagnostic disable-next-line: param-type-mismatch
     trigger.action.radioTransmission(
       veafTransportMission.AdfRadioSound,
       averageGroupPosition,
@@ -522,6 +524,7 @@ function veafTransportMission.reportTargetInformation(unitName)
 
   -- add coordinates and position from bullseye
   local averageGroupPosition = veaf.getAveragePosition(veafTransportMission.BlueGroupName)
+  ---@cast averageGroupPosition vec3
   local lat, lon = coord.LOtoLL(averageGroupPosition)
   local mgrsString = mist.tostringMGRS(coord.LLtoMGRS(lat, lon), 3)
   local bullseye = mist.utils.makeVec3(mist.DBs.missionData.bullseye.blue, 0)

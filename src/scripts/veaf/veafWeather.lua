@@ -1196,7 +1196,7 @@ function veafWeatherAtis.getAtisStringFromVeafPoint(sPointName, iAbsTime)
     .get(veafWeather.Id)
     :trace("Airbase found from veaf point named %s: %s", veaf.lp(sPointName), veaf.lp(veaf.ifnn(dcsAirbase, "getName")))
 
-  return veafWeatherAtis.getAtisString(veafAirbase, iAbsTime)
+  return veafWeatherAtis.getAtisString(veafAirbase)
 end
 
 function veafWeather.messageWeatherAtClosestPoint(unitName, forUnit)

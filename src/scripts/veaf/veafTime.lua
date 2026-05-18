@@ -232,7 +232,7 @@ end
 
 function veafTime.absTimeToStringDateTime(iAbsTime)
   local dateTime = veafTime.absTimeToDateTime(iAbsTime)
-  return veafTime.toStringDateTime(dateTime, bWithSeconds)
+  return veafTime.toStringDateTime(dateTime)
 end
 
 -- Helper function to determine season based on latitude and month

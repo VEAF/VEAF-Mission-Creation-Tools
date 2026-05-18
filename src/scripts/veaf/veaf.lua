@@ -786,10 +786,10 @@ function veaf.tableContains(table, element)
   return false
 end
 
-function veaf.lp(value)
-  return setmetatable({ _v = value }, {
+function veaf.lp(value, level, skip, includeMeta, dontRecurse)
+  return setmetatable({ _v = value, _level = level, _skip = skip, _includeMeta = includeMeta, _dontRecurse = dontRecurse }, {
     __tostring = function(self)
-      return veaf.p(self._v)
+      return veaf.p(self._v, self._level, self._skip, self._includeMeta, self._dontRecurse)
     end,
   })
 end

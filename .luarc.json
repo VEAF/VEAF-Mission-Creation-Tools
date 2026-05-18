@@ -106,7 +106,9 @@
     "dcs_mocks",
     "_VEAF_SCRIPT_DIR",
     "TestVeafCacheManager",
-    "TestVeafInterpreter"
+    "TestVeafInterpreter",
+    "STTS",
+    "veafHoundElint"
   ],
   "Lua.diagnostics.disable": [
     "lowercase-global"

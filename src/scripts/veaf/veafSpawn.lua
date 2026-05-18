@@ -300,7 +300,9 @@ function veafSpawn.executeCommand(
           local channel = options.freq
           local band = options.mod
           if options.role == "tacan" then
+            ---@diagnostic disable-next-line: assign-type-mismatch
             channel = options.tacanChannel or 99
+            ---@diagnostic disable-next-line: assign-type-mismatch
             code = options.tacanCode or ("T" .. tostring(channel))
             band = options.tacanBand or "X"
           end
@@ -668,6 +670,7 @@ function veafSpawn.executeCommand(
           --group might not have been found because it was a static
           if not groupObject then
             isStatic = true
+            ---@diagnostic disable-next-line: assign-type-mismatch
             groupObject = StaticObject.getByName(spawnedGroup)
           end
           veaf.loggers
@@ -853,7 +856,7 @@ function veafSpawn.markTextAnalysis(text)
   options.power = 100
 
   -- smoke color
-  options.smokeColor = trigger.smokeColor.Red
+  options.smokeColor = trigger.smokeColor.RED
 
   -- optional cargo smoke
   options.cargoSmoke = false
@@ -1208,15 +1211,15 @@ function veafSpawn.markTextAnalysis(text)
       options.drawColor = val
       -- Set smoke color.
       if val:lower() == "red" then
-        options.smokeColor = trigger.smokeColor.Red
+        options.smokeColor = trigger.smokeColor.RED
       elseif val:lower() == "green" then
-        options.smokeColor = trigger.smokeColor.Green
+        options.smokeColor = trigger.smokeColor.GREEN
       elseif val:lower() == "orange" then
-        options.smokeColor = trigger.smokeColor.Orange
+        options.smokeColor = trigger.smokeColor.ORANGE
       elseif val:lower() == "blue" then
-        options.smokeColor = trigger.smokeColor.Blue
+        options.smokeColor = trigger.smokeColor.BLUE
       elseif val:lower() == "white" then
-        options.smokeColor = trigger.smokeColor.White
+        options.smokeColor = trigger.smokeColor.WHITE
       end
     end
 
@@ -2069,15 +2072,13 @@ end
 --- Spawns a dynamic air defense battery
 function veafSpawn.spawnAirDefenseBattery(spawnSpot, radius, czName, country, side, heading, spacing, defense, silent, hasDest, hiddenOnMFD)
   veaf.loggers.get(veafSpawn.Id):debug(
-    "spawnAirDefenseBattery(czName=%s, country=%s, side=%s, heading=%s, spacing=%s, defense=%s, armor=%s, size=%s, silent=%s, hiddenOnMFD=%s)",
+    "spawnAirDefenseBattery(czName=%s, country=%s, side=%s, heading=%s, spacing=%s, defense=%s, silent=%s, hiddenOnMFD=%s)",
     czName,
     country,
     side,
     heading,
     spacing,
     defense,
-    armor,
-    size,
     silent,
     hiddenOnMFD
   )
@@ -2122,14 +2123,13 @@ function veafSpawn.spawnTransportCompany(
   hiddenOnMFD
 )
   veaf.loggers.get(veafSpawn.Id):debug(
-    "spawnTransportCompany(czName=%s, country=%s, side=%s, heading=%s, spacing=%s, defense=%s, armor=%s, size=%s, silent=%s, hiddenOnMFD=%s)",
+    "spawnTransportCompany(czName=%s, country=%s, side=%s, heading=%s, spacing=%s, defense=%s, size=%s, silent=%s, hiddenOnMFD=%s)",
     czName,
     country,
     side,
     heading,
     spacing,
     defense,
-    armor,
     size,
     silent,
     hiddenOnMFD
@@ -2749,10 +2749,10 @@ function veafSpawn.doSpawnCargo(spawnSpot, radius, cargoType, country, weightBia
         veaf.loggers
           .get(veafSpawn.Id)
           :trace(string.format("spawnCargo: smokePosition  x=%.1f y=%.1f z=%.1f", smokePosition.x, smokePosition.y, smokePosition.z))
-        veafSpawn.spawnSmoke(smokePosition, trigger.smokeColor.Green)
+        veafSpawn.spawnSmoke(smokePosition, trigger.smokeColor.GREEN)
         for i = 1, 10 do
           veaf.loggers.get(veafSpawn.Id):trace("Signal flare 1 at " .. timer.getTime() + i * 7)
-          mist.scheduleFunction(veafSpawn.spawnSignalFlare, { smokePosition, nil, nil, trigger.flareColor.Red }, timer.getTime() + i * 3)
+          mist.scheduleFunction(veafSpawn.spawnSignalFlare, { smokePosition, nil, nil, trigger.flareColor.RED }, timer.getTime() + i * 3)
         end
       end
 
@@ -2826,10 +2826,10 @@ function veafSpawn.doSpawnStatic(spawnSpot, radius, staticCategory, staticType, 
       veaf.loggers
         .get(veafSpawn.Id)
         :trace(string.format("doSpawnStatic: smokePosition  x=%.1f y=%.1f z=%.1f", smokePosition.x, smokePosition.y, smokePosition.z))
-      veafSpawn.spawnSmoke(smokePosition, trigger.smokeColor.Green)
+      veafSpawn.spawnSmoke(smokePosition, trigger.smokeColor.GREEN)
       for i = 1, 10 do
         veaf.loggers.get(veafSpawn.Id):trace("Signal flare 1 at " .. timer.getTime() + i * 7)
-        mist.scheduleFunction(veafSpawn.spawnSignalFlare, { smokePosition, nil, nil, trigger.flareColor.Red }, timer.getTime() + i * 3)
+        mist.scheduleFunction(veafSpawn.spawnSignalFlare, { smokePosition, nil, nil, trigger.flareColor.RED }, timer.getTime() + i * 3)
       end
     end
 
@@ -3035,6 +3035,7 @@ function veafSpawn.destroy(spawnSpot, radius, unitName)
     end
 
     -- or a specific static
+    ---@diagnostic disable-next-line: assign-type-mismatch
     c = StaticObject.getByName(unitName)
     if c then
       veaf.loggers.get(veafSpawn.Id):trace("destroy a specific static")
@@ -3042,6 +3043,7 @@ function veafSpawn.destroy(spawnSpot, radius, unitName)
     end
 
     -- or a specific group
+    ---@diagnostic disable-next-line: assign-type-mismatch
     c = Group.getByName(unitName)
     if c then
       veaf.loggers.get(veafSpawn.Id):trace("destroy a specific group")
@@ -3059,6 +3061,7 @@ function veafSpawn.destroy(spawnSpot, radius, unitName)
         if unit then
           Unit.destroy(unit)
         else
+          ---@diagnostic disable-next-line: assign-type-mismatch
           unit = StaticObject.getByName(name)
           if unit then
             StaticObject.destroy(unit)
@@ -3173,12 +3176,13 @@ function veafSpawn._markClosestConvoyWithSmoke(unitName, markRoute)
       local route = veafSpawn.spawnedConvoys[closestConvoyName].route
       local startPoint = veaf.placePointOnLand({ x = route[1].x, y = 0, z = route[1].y })
       local endPoint = veaf.placePointOnLand({ x = route[2].x, y = 0, z = route[2].y })
-      trigger.action.smoke(startPoint, trigger.smokeColor.Green)
-      trigger.action.smoke(endPoint, trigger.smokeColor.Red)
+      trigger.action.smoke(startPoint, trigger.smokeColor.GREEN)
+      trigger.action.smoke(endPoint, trigger.smokeColor.RED)
       veaf.outTextForUnit(unitName, closestConvoyName .. " is going from green to red smoke", 10)
     else
       local averageGroupPosition = veaf.getAveragePosition(closestConvoyName)
-      trigger.action.smoke(averageGroupPosition, trigger.smokeColor.White)
+      ---@diagnostic disable-next-line: param-type-mismatch
+      trigger.action.smoke(averageGroupPosition, trigger.smokeColor.WHITE)
       veaf.outTextForUnit(unitName, closestConvoyName .. " marked with white smoke", 10)
     end
   end
@@ -3199,6 +3203,7 @@ function veafSpawn.infoOnAllConvoys(unitName)
     local nbVehicles, nbInfantry = veafUnits.countInfantryAndVehicles(name)
     if nbVehicles > 0 then
       local averageGroupPosition = veaf.getAveragePosition(name)
+      ---@diagnostic disable-next-line: param-type-mismatch
       local lat, lon = coord.LOtoLL(averageGroupPosition)
       local llString = mist.tostringLL(lat, lon, 0, true)
       text = text .. " - " .. name .. ", " .. nbVehicles .. " vehicles : " .. llString

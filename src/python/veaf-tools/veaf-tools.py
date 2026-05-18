@@ -289,6 +289,14 @@ def build(
     scripts_variant: str = typer.Option(
         "standard", help="Scripts variant to use: 'standard' (default), 'debug', 'trace', or 'trace-with-events'."
     ),
+    log_modules: str | None = typer.Option(
+        None,
+        help=(
+            "Comma-separated list of module IDs to keep at full log level. "
+            "All other modules are silenced to 'error' level. "
+            "Example: --log-modules 'SPAWN - ,RADIO - '"
+        ),
+    ),
     mission_name_or_file: str | None = typer.Argument(
         DEFAULT_MISSION_FILE,
         help="Mission name; will build the mission with this name and the current date; can be set to a .miz file.",
@@ -351,6 +359,21 @@ def build(
         lua_modules = mission_yaml.get("lua_modules") or None
         if lua_modules:
             logger.info(f"Found lua_modules section in {mission_yaml_path}; will generate veaf-modules-config.lua")
+
+    # Apply --log-modules filter: silence all modules not in the keep list (LUA-006)
+    if log_modules is not None:
+        keep_modules = {m.strip() for m in log_modules.split(",") if m.strip()}
+        all_module_ids = [m["id"] for m in get_modules()]
+        lua_modules = lua_modules or {}
+        for mod_id in all_module_ids:
+            if mod_id not in keep_modules:
+                if mod_id not in lua_modules:
+                    lua_modules[mod_id] = {}
+                lua_modules[mod_id].setdefault("logLevel", "error")
+        logger.info(
+            f"--log-modules: keeping full logging for {sorted(keep_modules) or 'none'}, "
+            f"silencing {len(all_module_ids) - len(keep_modules)} other module(s)"
+        )
 
     # Call the worker class
     worker = MissionBuilderWorker(

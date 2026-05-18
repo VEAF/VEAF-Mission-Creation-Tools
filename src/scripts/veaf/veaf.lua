@@ -4690,6 +4690,18 @@ function veaf.initialize()
   -- Load optional per-mission configuration before any module is initialized.
   veaf.loadMissionConfig()
 
+  -- Apply per-module logLevel overrides from config (set via veaf.setConfig or missionconfig.lua).
+  for id, _ in pairs(veaf.modules) do
+    local cfg = veaf.config[id]
+    if cfg and cfg.logLevel then
+      local moduleLogger = veaf.loggers.get(id)
+      if moduleLogger then
+        moduleLogger:setLevel(cfg.logLevel)
+        veaf.loggers.get(veaf.Id):debug(string.format("Module [%s] log level forced to [%s]", id, cfg.logLevel))
+      end
+    end
+  end
+
   -- Sort registered modules by their declared order.
   local orderedModules = {}
   for id, module in pairs(veaf.modules) do

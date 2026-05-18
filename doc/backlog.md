@@ -5,6 +5,7 @@
 | Lot | Estimated (min) | Actual (min) | Ratio | Note |
 |-----|----------------|--------------|-------|------|
 | *(no lot completed yet)* | | | | Initial factor: 1.15 |
+| Lot 6 — BONUS | 210 | — | — | LUA-006 + TOOL-004 |
 
 ## Legend
 
@@ -294,8 +295,8 @@ In `mission.yaml` (mission configuration): `lua_modules` section listing modules
 
 | # | Ticket | Type | Effort | Depends on | Status |
 |---|--------|------|--------|------------|--------|
-| LUA-006 | `--log-modules` option in `veaf-tools` to filter which modules log | feat | 90 min | LUA-001 | [ ] |
-| TOOL-004 | Parse `dcsUnits.lua` → dynamic markdown doc generated before publish | feat | 90 min | TOOL-003 | [ ] |
+| LUA-006 | `--log-modules` option in `veaf-tools` to filter which modules log | feat | 90 min | LUA-001 | [x] |
+| TOOL-004 | Parse `dcsUnits.lua` → dynamic markdown doc generated before publish | feat | 90 min | TOOL-003 | [x] |
 
 **Raw total: 180 min → estimated (×1.15): ~210 min (~3h30)**
 

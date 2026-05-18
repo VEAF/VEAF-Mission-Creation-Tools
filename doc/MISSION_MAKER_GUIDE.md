@@ -290,7 +290,7 @@ local myQra = VeafQRA:new()
 To set the log verbosity for the whole mission, add `global_log_level` in `mission.yaml`:
 
 ```yaml
-global_log_level: debug   # error | warn | info | debug | trace
+global_log_level: debug   # error | warning | info | debug | trace
 ```
 
 `veaf-tools build` writes `veaf.ForcedLogLevel = "debug"` into the generated `veaf-modules-config.lua`, which overrides every module's log level. This is baked into the `.miz` — changing it requires a rebuild.
@@ -331,7 +331,7 @@ veaf.loggers.get("RADIO"):setLevel("trace", true)
 
 If your mission loads scripts from the filesystem (`dofile(lfs.writedir() .. "...")`) rather than from inside the `.miz`, editing `missionconfig.lua` on the server and reloading the mission is sufficient.
 
-Log levels: `error` (1) → `warn` (2) → `info` (3, default) → `debug` (4) → `trace` (5).
+Log levels: `error` (1) → `warning` (2) → `info` (3, default) → `debug` (4) → `trace` (5).
 
 ### Security Levels
 

@@ -126,10 +126,10 @@ All modules use standardized logging:
 
 | Level | Value | Usage |
 |-------|-------|-------|
-| `error` | 0 | Critical errors only |
-| `warn` | 1 | Warnings and errors |
-| `info` | 2 | Normal operations (default) |
-| `debug` | 3 | Detailed debugging |
+| `error` | 1 | Critical errors only |
+| `warning` | 2 | Warnings and errors |
+| `info` | 3 | Normal operations (default) |
+| `debug` | 4 | Detailed debugging |
 | `trace` | 5 | Very verbose tracing |
 
 **Setting Log Levels:**
@@ -1071,12 +1071,12 @@ Set logger name.
 Set logging level.
 
 **Parameters:**
-- `value` (string or number) - Level: "error", "warn", "info", "debug", "trace"
+- `value` (string or number) - Level: "error", "warning", "info", "debug", "trace"
 - `force` (boolean, optional) - Force override base level
 
 **`logger:error(text, ...)`**
 
-Log error message (level 0).
+Log error message (level 1).
 
 **Parameters:**
 - `text` (string) - Message with format placeholders
@@ -1089,15 +1089,15 @@ logger:error("Failed to spawn %s at position %s", groupName, veaf.vecToString(po
 
 **`logger:warn(text, ...)`**
 
-Log warning message (level 1).
+Log warning message (level 2).
 
 **`logger:info(text, ...)`**
 
-Log info message (level 2).
+Log info message (level 3).
 
 **`logger:debug(text, ...)`**
 
-Log debug message (level 3).
+Log debug message (level 4).
 
 **`logger:trace(text, ...)`**
 

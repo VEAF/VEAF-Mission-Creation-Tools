@@ -50,6 +50,18 @@ class MissionBuilderWorker:
         self.migrate_from_v5: bool = migrate_from_v5
         self.no_veaf_triggers: bool = no_veaf_triggers
         self.lua_modules: dict | None = lua_modules
+        _valid_levels = {"error", "warning", "info", "debug", "trace"}
+        if global_log_level is not None:
+            normalized = global_log_level.lower().strip()
+            if normalized == "warn":
+                normalized = "warning"
+            if normalized not in _valid_levels:
+                logger.warning(
+                    f"global_log_level={global_log_level!r} is not a valid Lua log level "
+                    f"(accepted: {sorted(_valid_levels)}); falling back to 'info'"
+                )
+                normalized = "info"
+            global_log_level = normalized
         self.global_log_level: str | None = global_log_level
         self.collected_community_script_files: dict[str, bytes] | None = None
         self.collected_veaf_script_files: dict[str, bytes] | None = None

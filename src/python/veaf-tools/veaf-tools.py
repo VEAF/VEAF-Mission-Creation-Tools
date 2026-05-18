@@ -354,7 +354,10 @@ def build(
     # Apply --log-modules filter: silence all modules not in the keep list (LUA-006)
     if log_modules is not None:
         keep_modules = {m.strip() for m in log_modules.split(",") if m.strip()}
-        all_module_ids = [m["id"] for m in get_modules()]
+        all_module_ids = {m["id"] for m in get_modules()}
+        unknown = keep_modules - all_module_ids
+        if unknown:
+            logger.warning(f"--log-modules: unknown module ID(s): {sorted(unknown)} — check spelling")
         lua_modules = lua_modules or {}
         for mod_id in all_module_ids:
             if mod_id not in keep_modules:

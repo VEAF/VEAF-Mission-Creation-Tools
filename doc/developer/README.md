@@ -148,7 +148,7 @@ veaf.loggers.get(moduleName.Id):debug("Debug: %s", variable)
 veaf.loggers.get(moduleName.Id):trace("Trace: %s", veaf.lp(table))
 ```
 
-Log levels: `error` (1) → `warn` (2) → `info` (3) → `debug` (4) → `trace` (5). Default is `info` (3).
+Log levels: `error` (1) → `warning` (2) → `info` (3) → `debug` (4) → `trace` (5). Default is `info` (3).
 
 For expensive arguments, use `veaf.lp()` (lazy proxy — only stringified when the level is active).
 

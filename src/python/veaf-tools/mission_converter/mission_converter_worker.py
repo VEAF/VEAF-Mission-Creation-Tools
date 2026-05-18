@@ -53,7 +53,7 @@ class MissionConverterWorker:
                 exception_type=FileNotFoundError,
             )
 
-    def work(self) -> None:
+    def work(self) -> None:  # sourcery skip: extract-method
         """Main work function."""
 
         # extract the DCS mission to the mission folder

@@ -359,8 +359,7 @@ def build(
     if log_modules is not None:
         keep_modules = {m.strip() for m in log_modules.split(",") if m.strip()}
         all_module_ids = {m["id"] for m in get_modules()}
-        unknown = keep_modules - all_module_ids
-        if unknown:
+        if unknown := keep_modules - all_module_ids:
             logger.warning(f"--log-modules: unknown module ID(s): {sorted(unknown)} — check spelling")
         lua_modules = lua_modules or {}
         for mod_id in all_module_ids:
@@ -1029,8 +1028,7 @@ if __name__ == "__main__":
 
     # When launched with no arguments in an interactive terminal, run the wizard.
     if len(sys.argv) == 1 and sys.stdout.isatty():
-        wizard_args = run_wizard()
-        if wizard_args:
+        if wizard_args := run_wizard():
             sys.argv = sys.argv[:1] + wizard_args
 
     app()

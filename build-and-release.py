@@ -171,7 +171,7 @@ class BuildAndReleaseWorker:
     # Build Functions
     # ========================================================================
 
-    def build_lua_scripts(self):
+    def build_lua_scripts(self):  # sourcery skip: extract-method, extract-duplicate-method
         """Build Lua scripts artifact by concatenating all Lua files."""
         with spinner_context("Building Lua scripts..."):
             try:
@@ -405,7 +405,7 @@ class BuildAndReleaseWorker:
             if original_contents:
                 self._restore_python_files(original_contents)
 
-    def _build_pyinstaller_executable(
+    def _build_pyinstaller_executable(  # sourcery skip: extract-method
         self, name: str, entry_point: Path, extra_data: list[tuple[Path, str]] | None = None
     ):
         """Build a single PyInstaller executable."""
@@ -515,7 +515,7 @@ class BuildAndReleaseWorker:
     # Release Package
     # ========================================================================
 
-    def create_release_package(self) -> dict[str, Any]:
+    def create_release_package(self) -> dict[str, Any]:  # sourcery skip: extract-method
         """Create a release package (ZIP file)."""
         with spinner_context("Creating release package..."):
             # Verify that build artifacts exist
@@ -659,7 +659,7 @@ class BuildAndReleaseWorker:
     def _is_prerelease(self) -> bool:
         return self.prerelease
 
-    def _publish_with_git_tags(self, package_path: Path):
+    def _publish_with_git_tags(self, package_path: Path):  # sourcery skip: extract-method, extract-duplicate-method
         """Publish using git tags."""
         try:
             tag_name = f"published-v{self.version}"
@@ -1046,7 +1046,7 @@ See git history for detailed changes.
     # Main Process
     # ========================================================================
 
-    def run(self):
+    def run(self):  # sourcery skip: extract-method, extract-duplicate-method
         """Execute the build and release process."""
         # Get version if not provided
         if not self.version:

@@ -222,6 +222,7 @@ python build-and-release.py publish --version 6.0.4 --force
 | `--version` | package.json | Version to publish |
 | `--token` | config/env | GitHub Personal Access Token |
 | `--force` | false | Delete and re-create existing release |
+| `--prerelease` | false | Mark as pre-release; does not update `published-latest` |
 | `--verbose` | false | Detailed debug output |
 
 **GitHub token precedence:** CLI `--token` > `veaf-tools-config.yaml` > `GITHUB_TOKEN` env var
@@ -255,6 +256,35 @@ notepad RELEASE_NOTES.md
 
 # 4. Publish to GitHub
 python build-and-release.py publish --version 6.0.5
+```
+
+### Pre-release Testing Workflow
+
+Use this to validate a build in real conditions (updater downloading from GitHub, actual
+`published.zip` installed into a mission folder) **without affecting production users**.
+
+```powershell
+# 1. Build with a release-candidate version
+python build-and-release.py build --version 6.1.0-rc1
+
+# 2. Publish as pre-release — published-latest is NOT moved
+python build-and-release.py publish --version 6.1.0-rc1 --prerelease
+
+# 3. Test the updater by pointing it at the RC tag explicitly
+veaf-tools-updater.exe update --tag published-v6.1.0-rc1 --mission-folder C:\path\to\mission
+```
+
+What this guarantees:
+- GitHub shows `published-v6.1.0-rc1` as a pre-release (not "Latest")
+- `published-latest` stays on the previous production release
+- End users running `veaf-tools-updater update` without `--tag` are unaffected
+- The version-check-on-startup in `veaf-tools` ignores pre-releases
+
+Once testing passes, promote to a real release:
+
+```powershell
+python build-and-release.py build --version 6.1.0
+python build-and-release.py publish --version 6.1.0
 ```
 
 ### Configuration File

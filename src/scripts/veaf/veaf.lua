@@ -1837,6 +1837,7 @@ function veaf.moveGroupAt(groupName, leadUnitName, heading, speed, timeInSeconds
   local headingRad = mist.utils.toRadian(heading)
   veaf.loggers.get(veaf.Id):trace("headingRad=" .. headingRad)
   local fromPosition = leadUnit:getPosition().p
+  ---@diagnostic disable-next-line: missing-fields
   fromPosition = { x = fromPosition.x, y = fromPosition.z }
   veaf.loggers.get(veaf.Id):trace("fromPosition=" .. veaf.vecToString(fromPosition))
 
@@ -4546,6 +4547,7 @@ function veaf.ctld_initialize_replacement(configurationCallback)
     end
 
     -- call the actual CTLD.initialize
+    ---@diagnostic disable-next-line: param-type-mismatch
     veaf.ctld_initialize(true)
     veaf.ctld_initialized = true
     veaf.loggers.get(ctld.Id):info(string.format("Done setting up CTLD"))
@@ -4622,6 +4624,7 @@ function veaf.csar_initialize_replacement(configurationCallback)
     end
 
     -- call the actual CSAR.initialize
+    ---@diagnostic disable-next-line: param-type-mismatch
     veaf.csar_initialize(true)
     veaf.csar_initialized = true
     veaf.loggers.get(csar.Id):info(string.format("Done setting up CSAR"))

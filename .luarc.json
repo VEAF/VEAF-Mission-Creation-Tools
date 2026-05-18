@@ -109,7 +109,12 @@
     "TestVeafInterpreter",
     "STTS",
     "veafHoundElint",
-    "AIEN"
+    "AIEN",
+    "weathermark",
+    "dcsbot",
+    "VEAF_DYNAMIC_MISSIONPATH",
+    "niod",
+    "logError"
   ],
   "Lua.diagnostics.disable": [
     "lowercase-global"

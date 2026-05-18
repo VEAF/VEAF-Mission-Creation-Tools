@@ -1,4 +1,5 @@
 -- START OF VEAF CHANGES
+---@diagnostic disable -- third-party file; suppress all LuaLS diagnostics
 --[[
     VEAF: Changes to the original script: added a way to find out the sanitized modules from the server config
 ]]

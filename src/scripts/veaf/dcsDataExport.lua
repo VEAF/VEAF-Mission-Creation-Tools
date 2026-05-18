@@ -423,6 +423,7 @@ function DcsDataExport.serialize(name, value, level)
         table.insert(var_str_tbl, level .. "}, -- end of " .. name .. "\n")
       end
     else
+      ---@diagnostic disable-next-line: param-type-mismatch
       log:error("Cannot serialize a $1", type(value))
     end
     return var_str_tbl

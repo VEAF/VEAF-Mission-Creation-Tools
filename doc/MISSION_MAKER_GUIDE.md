@@ -283,6 +283,16 @@ local myQra = VeafQRA:new()
   :initialize()
 ```
 
+### Global Log Level (Debugging)
+
+To increase Lua verbosity for a mission without touching source code, add `global_log_level` to your `mission.yaml`:
+
+```yaml
+global_log_level: debug   # error | warn | info | debug | trace
+```
+
+During `veaf-tools build`, this is written as `veaf.ForcedLogLevel = "debug"` into the generated `veaf-modules-config.lua`, which overrides the log level of every module at runtime. Remove or comment it out before publishing to players.
+
 ### Security Levels
 
 VEAF Security restricts commands to players with appropriate roles:

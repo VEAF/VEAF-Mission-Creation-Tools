@@ -145,10 +145,20 @@ end
 ```lua
 veaf.loggers.get(moduleName.Id):info("Message")
 veaf.loggers.get(moduleName.Id):debug("Debug: %s", variable)
-veaf.loggers.get(moduleName.Id):trace("Trace: %s", veaf.p(table))
+veaf.loggers.get(moduleName.Id):trace("Trace: %s", veaf.lp(table))
 ```
 
-Log levels: `error` (0) → `warn` (1) → `info` (2) → `debug` (3) → `trace` (5).
+Log levels: `error` (1) → `warn` (2) → `info` (3) → `debug` (4) → `trace` (5). Default is `info` (3).
+
+For expensive arguments, use `veaf.lp()` (lazy proxy — only stringified when the level is active).
+
+To increase verbosity for a mission, add `global_log_level` in `mission.yaml`:
+
+```yaml
+global_log_level: debug
+```
+
+This writes `veaf.ForcedLogLevel = "debug"` into the generated `veaf-modules-config.lua`, overriding all per-module log levels at runtime.
 
 ### mist.DBs Access
 

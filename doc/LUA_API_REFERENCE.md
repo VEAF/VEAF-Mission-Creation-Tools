@@ -154,7 +154,7 @@ veaf.loggers.setBaseLevel("info")  -- Global default
 veaf.Version = "1.56.2"
 veaf.Development = false  -- Enable development features
 veaf.HideNamesFromSpawnedGroups = false
-veaf.BaseLogLevel = 5  -- Default trace level
+veaf.BaseLogLevel = 3  -- Default log level (info); acts as a cap for module log levels
 veaf.DEFAULT_GROUND_SPEED_KPH = 30
 veaf.DEFAULT_GROUND_SPEED_KTS = 16.2
 veaf.DEFAULT_SPEED_KTS = 350

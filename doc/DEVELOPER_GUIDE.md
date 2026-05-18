@@ -210,7 +210,7 @@ python build-and-release.py publish --version 6.0.4 --force
 | Option | Default | Description |
 |--------|---------|-------------|
 | `--version` | package.json | Semantic version string |
-| `--dev` | false | Development build (enables trace logging) |
+| `--dev` | false | Development build (unlocks internal dev flags) |
 | `--skip-lua` | false | Skip Lua compilation |
 | `--skip-python` | false | Skip Python executable compilation |
 | `--verbose` | false | Detailed debug output |
@@ -284,7 +284,6 @@ publish:
 | File | Description |
 |------|-------------|
 | `published/veaf-scripts.lua` | All runtime Lua modules concatenated |
-| `published/veaf-scripts-trace.lua` | Same, with trace logging enabled |
 | `dist/veaf-tools.exe` | Main CLI tool |
 | `dist/veaf-tools-updater.exe` | Updater utility |
 | `published.zip` | All of the above in a single package |
@@ -345,9 +344,8 @@ BuildAndReleaseWorker(
 1. Clean `build/` directory
 2. Copy Lua files from `src/scripts/veaf/`
 3. Patch `veaf.lua` flags (dev mode, security flags)
-4. Remove trace/debug logging lines (non-dev builds)
-5. Concatenate in dependency order with version markers
-6. Write UTF-8 output to `published/veaf-scripts.lua`
+4. Concatenate in dependency order with version markers
+5. Write UTF-8 output to `published/veaf-scripts.lua`
 
 ### Python Executable Building
 

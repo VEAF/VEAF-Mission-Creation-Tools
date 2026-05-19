@@ -89,6 +89,59 @@ VEAF Mission Creation Tools is a hybrid **Lua + Python** system:
 
 ---
 
+# [![VEAF-logo]][VEAF website] Outils de création de missions
+
+> 🇫🇷 **Français** | 🇬🇧 [English](#-mission-creation-tools)
+
+Ensemble complet d'outils pour créer des missions [DCS World][DCS] dynamiques avec les scripts Lua VEAF.
+
+---
+
+## Documentation
+
+| Rôle | Guide |
+|------|-------|
+| **Joueur / Pilote** | [Guide du pilote](doc/pilot/README.md) |
+| **Créateur de missions** | [Guide créateur de missions](doc/mission-maker/README.md) |
+| **Développeur** | [Guide du développeur](doc/developer/README.md) |
+
+Références : [Référence API Lua](doc/LUA_API_REFERENCE.md) · [Référence CLI](doc/TOOLS_REFERENCE.md) · [Feuille de route](doc/ROADMAP.md)
+
+---
+
+## Démarrage rapide
+
+**Joueurs et pilotes** — Ouvrez la carte F10, placez un marqueur, tapez une commande (ex : `_spawn unit T-80`). Voir le [Guide du pilote](doc/pilot/fr/GUIDE.md).
+
+**Créateurs de missions** :
+
+```powershell
+.\veaf-tools-updater.exe          # installe les outils et scripts VEAF
+.\veaf-tools.exe build mission .  # construit le .miz
+```
+
+Guide complet : [Guide créateur de missions](doc/mission-maker/fr/GUIDE.md)
+
+**Développeurs** :
+
+```powershell
+poetry install --with build
+poetry run veaf-build build --version 6.0.5
+```
+
+Référence complète : [Guide du développeur](doc/developer/fr/GUIDE.md)
+
+---
+
+## Communauté & Support
+
+- [VEAF Discord][VEAF Discord] — aide en temps réel
+- [Site VEAF][VEAF website]
+- [Issues GitHub][GitHub] — signalement de bugs
+- [Soutenir le projet][Zip on coff.ee]
+
+---
+
 [Badge-Discord]: https://img.shields.io/discord/471061487662792715?label=VEAF%20Discord&style=for-the-badge
 [Badge-Wakatime]: https://wakatime.com/badge/github/VEAF/VEAF-Mission-Creation-Tools.svg
 [VEAF-logo]: https://veaf.github.io/documentation/images/logo.png

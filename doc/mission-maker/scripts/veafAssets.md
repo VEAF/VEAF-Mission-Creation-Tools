@@ -1,5 +1,7 @@
 # veafAssets — Tankers, AWACS, and Carriers
 
+> 🇫🇷 [Version française](../fr/scripts/veafAssets.md)
+
 **Module ID:** `ASSETS` | **Version:** 1.8.x | **File:** `veafAssets.lua`
 
 ---

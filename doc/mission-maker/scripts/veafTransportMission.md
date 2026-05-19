@@ -1,5 +1,7 @@
 # veafTransportMission — Transport and Logistics Missions
 
+> 🇫🇷 [Version française](../fr/scripts/veafTransportMission.md)
+
 **Module ID:** `TRANSPORT` | **Version:** — | **File:** `veafTransportMission.lua`
 
 ---

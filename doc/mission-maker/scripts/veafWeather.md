@@ -1,5 +1,7 @@
 # veafWeather — Dynamic Weather and ATC Conditions
 
+> 🇫🇷 [Version française](../fr/scripts/veafWeather.md)
+
 **Module ID:** `WEATHER` | **Version:** — | **File:** `veafWeather.lua`
 
 ---

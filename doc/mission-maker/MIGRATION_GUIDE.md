@@ -1,5 +1,7 @@
 # Migrating a Mission to VEAF v6
 
+> 🇫🇷 [Lire ce guide en français](fr/MIGRATION_GUIDE.md)
+
 This guide covers two scenarios:
 
 1. **[From VEAF v5.xx](#migrating-from-veaf-v5xx)** — your mission already uses VEAF scripts but predates the v6 toolchain

@@ -1,5 +1,7 @@
 # veafSecurity — Role-Based Permissions
 
+> 🇫🇷 [Version française](../fr/scripts/veafSecurity.md)
+
 **Module ID:** `SECURITY` | **Version:** 1.3.x | **File:** `veafSecurity.lua`
 
 ---

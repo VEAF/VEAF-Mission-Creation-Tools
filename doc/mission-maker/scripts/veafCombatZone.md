@@ -1,5 +1,7 @@
 # veafCombatZone — Activatable Combat Zones
 
+> 🇫🇷 [Version française](../fr/scripts/veafCombatZone.md)
+
 **Module ID:** `COMBATZONE` | **Version:** 1.22.x | **File:** `veafCombatZone.lua`
 
 ---

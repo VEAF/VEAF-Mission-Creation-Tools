@@ -769,7 +769,7 @@ class MissionBuilderWorker:
             self.create_mission()
 
         # Load the mission from the .miz file (unzip it) and process aircraft groups
-        with spinner_context(f"Reading mission {self.output_mission}...", silent=silent):
+        with spinner_context(t("builder.reading_mission", output=self.output_mission), silent=silent):
             self.read_mission()
 
         # First, remove all the VEAF triggers
@@ -781,10 +781,10 @@ class MissionBuilderWorker:
             with spinner_context(t("builder.updating_triggers"), silent=silent):
                 self.insert_all_veaf_triggers()
         elif not silent:
-            logger.info("Skipping VEAF triggers because option '--no-veaf-triggers' was set...")
+            logger.info(t("builder.skip_veaf_triggers"))
 
         # Write the mission file
-        with spinner_context(f"Writing final mission {self.output_mission}...", silent=silent):
+        with spinner_context(t("builder.writing_mission", output=self.output_mission), silent=silent):
             self.write_mission()
 
         if not silent:

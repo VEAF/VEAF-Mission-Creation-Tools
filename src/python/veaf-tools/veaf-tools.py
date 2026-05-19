@@ -61,13 +61,10 @@ VERSION: str = "6.0.4"
 README_HELP: str = t("help.readme")
 PAUSE_HELP: str = t("help.pause")
 VERBOSE_HELP: str = t("help.verbose")
-PAUSE_MESSAGE: str = t("help.pause_msg")
 
 # String constants
 DEFAULT_MISSION_FILE = "mission.miz"
 DEFAULT_PRESETS_FILE = "./src/presets.yaml"
-CONFIRM_DISPLAY_DOC = t("help.confirm_doc")
-WORK_DONE_MESSAGE = t("msg.work_done")
 
 app = typer.Typer(no_args_is_help=True)
 
@@ -149,9 +146,9 @@ def _ask_replace(relative_path: Path) -> tuple[bool, bool]:
             sys.stdout.write("\n")
             return False, False
         sys.stdout.write(ch + "\n")
-        if ch == "a":
+        if ch in ("a", "t"):  # 'a' (EN) or 't' for "tous" (FR)
             return True, True
-        if ch == "y":
+        if ch in ("y", "o"):  # 'y' (EN) or 'o' for "oui" (FR)
             return True, False
         if ch in ("n", "\r", "\n", ""):
             return False, False
@@ -418,7 +415,7 @@ def build(
     console.print(f"[bold green]veaf-tools VEAF mission builder v{VERSION}[/bold green]")
 
     if readme:
-        if typer.confirm(CONFIRM_DISPLAY_DOC):
+        if typer.confirm(t("help.confirm_doc")):
             md_render = Markdown(MissionBuilderREADME)
             console.print(md_render)
         exit()
@@ -594,9 +591,9 @@ def build(
         if created_files := weather_worker.work():
             console.print(f"[bold green]Pipeline: created {len(created_files)} weather variant(s)[/bold green]")
 
-    console.print(WORK_DONE_MESSAGE)
+    console.print(t("msg.work_done"))
     if pause:
-        input(PAUSE_MESSAGE)
+        input(t("help.pause_msg"))
 
 
 @app.command(no_args_is_help=True)
@@ -620,7 +617,7 @@ def extract(
     console.print(f"[bold green]veaf-tools VEAF mission extractor v{VERSION}[/bold green]")
 
     if readme:
-        if typer.confirm(CONFIRM_DISPLAY_DOC):
+        if typer.confirm(t("help.confirm_doc")):
             md_render = Markdown(MissionExtractorREADME)
             console.print(md_render)
         exit()
@@ -642,9 +639,9 @@ def extract(
     worker = MissionExtractorWorker(mission_folder=p_mission_folder, input_mission_path=p_input_mission)
     worker.work()
 
-    console.print(WORK_DONE_MESSAGE)
+    console.print(t("msg.work_done"))
     if pause:
-        input(PAUSE_MESSAGE)
+        input(t("help.pause_msg"))
 
 
 @app.command(no_args_is_help=True)
@@ -672,7 +669,7 @@ def convert(
     console.print(f"[bold green]veaf-tools VEAF mission converter v{VERSION}[/bold green]")
 
     if readme:
-        if typer.confirm(CONFIRM_DISPLAY_DOC):
+        if typer.confirm(t("help.confirm_doc")):
             md_render = Markdown(MissionConverterREADME)
             console.print(md_render)
         exit()
@@ -716,9 +713,9 @@ def convert(
     )
     worker.work()
 
-    console.print(WORK_DONE_MESSAGE)
+    console.print(t("msg.work_done"))
     if pause:
-        input(PAUSE_MESSAGE)
+        input(t("help.pause_msg"))
 
 
 @app.command(no_args_is_help=True)
@@ -745,7 +742,7 @@ def inject_presets(
     console.print(f"[bold green]veaf-tools Radio Presets Injector v{VERSION}[/bold green]")
 
     if readme:
-        if typer.confirm(CONFIRM_DISPLAY_DOC):
+        if typer.confirm(t("help.confirm_doc")):
             md_render = Markdown(PresetsInjectorREADME)
             console.print(md_render)
         exit()
@@ -772,9 +769,9 @@ def inject_presets(
     )
     worker.work()
 
-    console.print(WORK_DONE_MESSAGE)
+    console.print(t("msg.work_done"))
     if pause:
-        input(PAUSE_MESSAGE)
+        input(t("help.pause_msg"))
 
 
 @app.command(no_args_is_help=True)
@@ -815,7 +812,7 @@ def extract_aircraft_groups(
     console.print(f"[bold green]veaf-tools Aircraft Groups Extractor v{VERSION}[/bold green]")
 
     if readme:
-        if typer.confirm(CONFIRM_DISPLAY_DOC):
+        if typer.confirm(t("help.confirm_doc")):
             md_render = Markdown(AircraftGroupsExtractorREADME)
             console.print(md_render)
         exit()
@@ -859,9 +856,9 @@ def extract_aircraft_groups(
 
     worker.extract(interactive=interactive)
 
-    console.print(WORK_DONE_MESSAGE)
+    console.print(t("msg.work_done"))
     if pause:
-        input(PAUSE_MESSAGE)
+        input(t("help.pause_msg"))
 
 
 @app.command(no_args_is_help=True)
@@ -931,7 +928,7 @@ def inject_aircraft_groups(
     if not is_valid:
         console.print("[bold red]✗ YAML validation failed. Please fix the errors before injection.[/bold red]")
         if pause:
-            input(PAUSE_MESSAGE)
+            input(t("help.pause_msg"))
         exit(1)
 
     console.print("[bold green]✓ YAML validation successful![/bold green]\n")
@@ -953,9 +950,9 @@ def inject_aircraft_groups(
     else:
         console.print(f"[bold yellow]⚠ Injection completed: {result.message}[/bold yellow]")
 
-    console.print(WORK_DONE_MESSAGE)
+    console.print(t("msg.work_done"))
     if pause:
-        input(PAUSE_MESSAGE)
+        input(t("help.pause_msg"))
 
 
 @app.command(no_args_is_help=True)
@@ -996,7 +993,7 @@ def extract_waypoints(
     console.print(f"[bold green]veaf-tools Waypoints Extractor v{VERSION}[/bold green]")
 
     if readme:
-        if typer.confirm(CONFIRM_DISPLAY_DOC):
+        if typer.confirm(t("help.confirm_doc")):
             md_render = Markdown(WaypointsExtractorREADME)
             console.print(md_render)
         exit()
@@ -1040,9 +1037,9 @@ def extract_waypoints(
 
     worker.extract(interactive=interactive)
 
-    console.print(WORK_DONE_MESSAGE)
+    console.print(t("msg.work_done"))
     if pause:
-        input(PAUSE_MESSAGE)
+        input(t("help.pause_msg"))
 
 
 @app.command(no_args_is_help=True)
@@ -1071,7 +1068,7 @@ def inject_waypoints(
     console.print(f"[bold green]veaf-tools Waypoints Injector v{VERSION}[/bold green]")
 
     if readme:
-        if typer.confirm(CONFIRM_DISPLAY_DOC):
+        if typer.confirm(t("help.confirm_doc")):
             md_render = Markdown(WaypointsInjectorREADME)
             console.print(md_render)
         exit()
@@ -1103,9 +1100,9 @@ def inject_waypoints(
     )
     worker.work()
 
-    console.print(WORK_DONE_MESSAGE)
+    console.print(t("msg.work_done"))
     if pause:
-        input(PAUSE_MESSAGE)
+        input(t("help.pause_msg"))
 
 
 @app.command(no_args_is_help=True)
@@ -1131,7 +1128,7 @@ def inject_weather(
     console.print(f"[bold green]veaf-tools Weather and Time Versions v{VERSION}[/bold green]")
 
     if readme:
-        if typer.confirm(CONFIRM_DISPLAY_DOC):
+        if typer.confirm(t("help.confirm_doc")):
             md_render = Markdown(WheatherInjectorREADME)
             console.print(md_render)
         exit()
@@ -1148,12 +1145,12 @@ def inject_weather(
                 p_config_file = yaml_file
             else:
                 if pause:
-                    input(PAUSE_MESSAGE)
+                    input(t("help.pause_msg"))
                 return
         else:
             logger.error("Failed to convert Lua configuration")
             if pause:
-                input(PAUSE_MESSAGE)
+                input(t("help.pause_msg"))
             return
 
     if not p_config_file.exists():
@@ -1169,9 +1166,9 @@ def inject_weather(
         for file_path in created_files:
             console.print(f"  - {file_path.name}")
 
-    console.print(WORK_DONE_MESSAGE)
+    console.print(t("msg.work_done"))
     if pause:
-        input(PAUSE_MESSAGE)
+        input(t("help.pause_msg"))
 
 
 @app.command()
@@ -1203,9 +1200,9 @@ def generate_config(
     output_file.write_text(content, encoding="utf-8")
     console.print(f"[bold green]Generated:[/bold green] {output_file}")
 
-    console.print(WORK_DONE_MESSAGE)
+    console.print(t("msg.work_done"))
     if pause:
-        input(PAUSE_MESSAGE)
+        input(t("help.pause_msg"))
 
 
 @app.command(no_args_is_help=True)
@@ -1295,9 +1292,9 @@ def migrate_config(
         console.print("\n[bold cyan]lua_modules YAML snippet (paste into mission.yaml):[/bold cyan]")
         console.print(result.yaml_snippet)
 
-    console.print(WORK_DONE_MESSAGE)
+    console.print(t("msg.work_done"))
     if pause:
-        input(PAUSE_MESSAGE)
+        input(t("help.pause_msg"))
 
 
 @app.command(no_args_is_help=True)
@@ -1516,9 +1513,9 @@ def convert_v5(
     p_report.write_text(markdown_report, encoding="utf-8")
     console.print(f"[bold green]Conversion report saved:[/bold green] {p_report}")
 
-    console.print(WORK_DONE_MESSAGE)
+    console.print(t("msg.work_done"))
     if pause:
-        input(PAUSE_MESSAGE)
+        input(t("help.pause_msg"))
 
 
 if __name__ == "__main__":

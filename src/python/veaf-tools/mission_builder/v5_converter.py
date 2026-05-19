@@ -310,13 +310,13 @@ class ConversionReport:
             all_count = len(get_modules())
             disabled_count = all_count - enabled_count
             lines += [
-                f"### 2. `{t('report.mission_yaml.generated')}`",
+                f"### 2. `mission.yaml` \u2014 {t('report.mission_yaml.generated')}",
                 "",
                 f"**File**: `{rel_yaml}`",
                 "",
-                "The file was created with:",
-                f"- `global_log_level: debug` — {t('report.mission_yaml.log_level_warn')}",
-                f"- `lua_modules:` — {enabled_count} module(s) enabled, {disabled_count} disabled",
+                t("report.mission_yaml.created_with"),
+                f"- `global_log_level: debug` \u2014 {t('report.mission_yaml.log_level_warn')}",
+                f"- `lua_modules:` \u2014 {t('report.mission_yaml.modules_count', enabled=enabled_count, disabled=disabled_count)}",
             ]
             if self.pipeline_files:
                 ready = [pf for pf in self.pipeline_files if not pf.needs_conversion]
@@ -334,14 +334,14 @@ class ConversionReport:
             lines.append("")
         elif self.mission_yaml_existed:
             lines += [
-                f"### 2. `{t('report.mission_yaml.skipped')}`",
+                f"### 2. `mission.yaml` \u2014 {t('report.mission_yaml.skipped')}",
                 "",
                 f"*{self.mission_yaml_skipped_reason}*",
                 "",
             ]
         else:
             lines += [
-                f"### 2. `{t('report.mission_yaml.not_generated')}`",
+                f"### 2. `mission.yaml` \u2014 {t('report.mission_yaml.not_generated')}",
                 "",
                 f"*{self.mission_yaml_skipped_reason or 'Unknown reason.'}*",
                 "",
@@ -377,7 +377,7 @@ class ConversionReport:
         lines += [
             f"### 🗑️ {t('report.cleanup.title')}",
             "",
-            "Once the mission builds and runs correctly in DCS, you can:",
+            t("report.cleanup.intro"),
             "",
         ]
         cleanup_items: list[str] = []

@@ -47,9 +47,8 @@ def _detect_lang() -> str:
     if env:
         return env[:2].lower()
     # Try OS locale; avoid the deprecated getdefaultlocale() (removed in 3.15).
+    # Do NOT call locale.setlocale here — it has process-wide side effects.
     try:
-        # Initialize locale from the environment, then read it.
-        locale.setlocale(locale.LC_CTYPE, "")
         loc = locale.getlocale(locale.LC_CTYPE)[0]
         if loc:
             return loc[:2].lower()
@@ -65,10 +64,16 @@ def _detect_lang() -> str:
 
 def _load_catalog(lang: str) -> dict[str, str]:
     path = _LOCALES_DIR / f"{lang}.json"
-    if path.exists():
+    if not path.exists():
+        return {}
+    try:
         with path.open(encoding="utf-8") as fh:
             return json.load(fh)
-    return {}
+    except json.JSONDecodeError:
+        import logging
+
+        logging.getLogger(__name__).warning("Failed to load locale catalog '%s': invalid JSON", path)
+        return {}
 
 
 def _init() -> None:

@@ -97,7 +97,7 @@ class WeatherInjectorWorker:
             logger.error(t("weather.error.invalid_yaml", path=self.config_file))
             return None
         except Exception as e:
-            logger.error(t("weather.error.load_config") + f": {e}")
+            logger.error(t("weather.error.load_config", error=e))
             return None
 
     def _calculate_solar_times(self) -> None:

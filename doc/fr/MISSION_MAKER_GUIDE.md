@@ -150,7 +150,7 @@ Tous ces modules sont disponibles une fois `veaf-scripts.lua` chargé.
 
 | Module | Rôle |
 |--------|------|
-| `veafSpawn` | Spawner avions, unités terrestres, fumée, JTAC, cargo, FARP via marqueurs |
+| `veafSpawn` | Spawner des avions, unités terrestres, fumée, JTAC, cargo, FARP via marqueurs |
 | `veafUnits` | Définitions de templates d'unités (groupes, coalitions, catégories) |
 | `veafMove` | Déplacer/téléporter des unités existantes |
 | `veafGroundAI` | Comportement IA amélioré pour les unités terrestres |
@@ -162,7 +162,7 @@ Tous ces modules sont disponibles une fois `veaf-scripts.lua` chargé.
 | `veafCombatMission` | Classe de base pour tous les types de missions |
 | `veafCombatZone` | Zones de combat activables/désactivables avec scoring |
 | `veafCasMission` | Missions CAS générées avec packages de menaces |
-| `veafTransportMission` | Missions d'enlèvement et de livraison hélicoptère/transport |
+| `veafTransportMission` | Missions d'enlèvement et de livraison en hélicoptère/transport |
 | `veafCarrierOperations` | Récupération sur carrier (BRC, TACAN, gestion ICLS) |
 | `veafAirWaves` | Vagues d'attaque aériennes répétées avec suivi des vagues |
 | `veafQraManager` | Avions en alerte avec machine d'état |
@@ -262,7 +262,7 @@ set MISSION_NAME=mission
 REM 1. Mettre à jour veaf-tools vers la dernière release
 veaf-tools-updater.exe
 
-REM 2. Construire la mission — exécute aussi les étapes inject configurées dans mission.yaml
+REM 2. Construire la mission — exécute aussi les étapes d'injection configurées dans mission.yaml
 veaf-tools.exe build %MISSION_NAME% .
 ```
 

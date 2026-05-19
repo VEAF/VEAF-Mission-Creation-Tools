@@ -215,11 +215,15 @@ class WeatherInjectorWorker:
             _CLEARSKY_MAX_WIND_MPS = 7.72  # 15 kn
             if version.clearsky and "atmosphere" in weather:
                 atm = weather["atmosphere"]
-                if atm["clouds"]["type"] > DCSWeatherConverter.CLOUD_TYPES["few"]:
-                    atm["clouds"]["type"] = DCSWeatherConverter.CLOUD_TYPES["few"]
-                if atm["wind"]["speed_mps"] > _CLEARSKY_MAX_WIND_MPS:
-                    atm["wind"]["speed_mps"] = _CLEARSKY_MAX_WIND_MPS
-                if atm["visibility_meters"] < 9999.0:
+                clouds = atm.get("clouds")
+                if isinstance(clouds, dict) and "type" in clouds:
+                    if clouds["type"] > DCSWeatherConverter.CLOUD_TYPES["few"]:
+                        clouds["type"] = DCSWeatherConverter.CLOUD_TYPES["few"]
+                wind = atm.get("wind")
+                if isinstance(wind, dict) and "speed_mps" in wind:
+                    if wind["speed_mps"] > _CLEARSKY_MAX_WIND_MPS:
+                        wind["speed_mps"] = _CLEARSKY_MAX_WIND_MPS
+                if atm.get("visibility_meters", 9999.0) < 9999.0:
                     atm["visibility_meters"] = 9999.0
 
             self._set_mission_weather(weather)

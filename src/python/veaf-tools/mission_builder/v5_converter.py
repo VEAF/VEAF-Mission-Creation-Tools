@@ -778,9 +778,26 @@ class V5Converter:
                 # For ASSETS, inject the extracted asset list directly under the module entry
                 if mid == "ASSETS" and mr and mr.assets_extracted:
                     lines.append("    assets:")
+                    _ASSET_STR_KEYS = (
+                        "name",
+                        "description",
+                        "information",
+                        "jtac",
+                        "freq",
+                        "linked",
+                        "mod",
+                    )
                     for asset in mr.assets_extracted:
-                        lines.append(f"    - sort: {asset.get('sort', 0)}")
-                        lines.append(f'      name: "{asset.get("name", "")}"')
+                        first = True
+                        for k, v in asset.items():
+                            prefix = "    - " if first else "      "
+                            first = False
+                            if isinstance(v, bool):
+                                lines.append(f"{prefix}{k}: {'true' if v else 'false'}")
+                            elif isinstance(v, str):
+                                lines.append(f'{prefix}{k}: "{v}"')
+                            else:
+                                lines.append(f"{prefix}{k}: {v}")
 
         lines.append("")
 

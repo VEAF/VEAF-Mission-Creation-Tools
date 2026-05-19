@@ -505,7 +505,7 @@ Isole la complexité de l'arbre DCS et facilite le test unitaire.
 | Lot RC — v6.1.0 RC fixes | ~1h35 | [x] |
 | Lot 9 — LUA-REFACTOR | ~11h30 | [ ] |
 | Lot 10 — YAML-CONFIG | ~14h | [x] |
-| Lot 11 — I18N | ~7h10 | [ ] |
+| Lot 11 — I18N | ~7h10 | [x] |
 | **Total** | **~65h** | |
 
 *Initial calibration factor: 1.15 — recalculate after each completed lot.*
@@ -731,13 +731,14 @@ Extend `test_config_migrator.py` (or `test_v5_converter.py`) with cases for the 
 
 | # | Ticket | Type | Effort | Depends on | Status |
 |---|--------|------|--------|------------|--------|
-| I18N-001 | i18n infrastructure: OS locale auto-detection + `--lang` CLI override, translation catalog loader (`veaf_libs/i18n.py`), `t()` helper | feat | 60 min | — | [ ] |
-| I18N-002 | Translate all user-visible CLI messages (typer help strings, Rich output, logger messages) — EN catalog first, FR translation | feat | 120 min | I18N-001 | [ ] |
-| I18N-003 | Translate comments in generated files (`veaf-config.lua`, `mission.yaml` template, `mission-script.lua` stub, `generate-config` output) | feat | 60 min | I18N-001, Lot 10 | [ ] |
-| I18N-004 | Translate `MISSION_MAKER_GUIDE.md` → `doc/fr/MISSION_MAKER_GUIDE.md` (FR version maintained alongside EN) | chore | 90 min | — | [ ] |
-| I18N-005 | `convert-v5` report output in detected language (scan table headers, action descriptions, warning messages) | feat | 45 min | I18N-002 | [ ] |
+| I18N-001 | i18n infrastructure: OS locale auto-detection + `--lang` CLI override, translation catalog loader (`veaf_libs/i18n.py`), `t()` helper | feat | 60 min | — | [x] |
+| I18N-002 | Translate all user-visible CLI messages (typer help strings, Rich output, logger messages) — EN catalog first, FR translation | feat | 120 min | I18N-001 | [x] |
+| I18N-003 | Translate comments in generated files (`veaf-config.lua`, `mission.yaml` template, `mission-script.lua` stub, `generate-config` output) | feat | 60 min | I18N-001, Lot 10 | [x] |
+| I18N-004 | Translate `MISSION_MAKER_GUIDE.md` → `doc/fr/MISSION_MAKER_GUIDE.md` (FR version maintained alongside EN) | chore | 90 min | — | [x] |
+| I18N-005 | `convert-v5` report output in detected language (scan table headers, action descriptions, warning messages) | feat | 45 min | I18N-002 | [x] |
+| I18N-006 | `mission.yaml` `language:` field → emit `veaf.config.language` in Lua; translate `generate-config` YAML template comments | feat | 45 min | I18N-001, I18N-003 | [ ] |
 
-**Raw total: 375 min → estimated (×1.15): ~430 min (~7h10)**
+**Raw total: 420 min → estimated (×1.15): ~483 min (~8h05)**
 
 <details>
 <summary>Ticket details</summary>
@@ -761,7 +762,7 @@ Scope: section headers and field description comments in `veaf-config.lua`; ever
 **I18N-004 — FR documentation**
 Create `doc/fr/MISSION_MAKER_GUIDE.md` as a full FR translation of `doc/MISSION_MAKER_GUIDE.md`. Maintain both files — a note at the top of each links to the other language. No automated sync: manual update on structural changes.
 
-**I18N-005 — convert-v5 report**
-The Rich scan table (column headers, status labels) and the actions/warnings summary printed at the end of `convert-v5` are extracted to the catalog. The saved Markdown report uses the same language as the CLI output.
+**I18N-006 — mission.yaml `language:` field + Lua emit**
+Add `language: en|fr` (optional) to `mission.yaml`. `generate_config_lua()` emits `veaf.config.language = "fr"` when set so the Lua runtime can read it. Also translate every `#` comment line in the `generate_mission_yaml()` YAML template output using `t()`.
 
 </details>

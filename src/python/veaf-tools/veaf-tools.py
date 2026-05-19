@@ -30,7 +30,15 @@ from aircrafts_injector import (
     AircraftGroupsInjectorWorker,
     AircraftGroupsYAMLValidator,
 )
-from mission_builder import MissionBuilderREADME, MissionBuilderWorker
+from mission_builder import (
+    PIPELINE_CANDIDATES,
+    ConfigMigrator,
+    ConversionReport,
+    MigrationResult,
+    MissionBuilderREADME,
+    MissionBuilderWorker,
+    V5Converter,
+)
 from mission_converter import MissionConverterREADME, MissionConverterWorker
 from mission_extractor import MissionExtractorREADME, MissionExtractorWorker
 from presets_injector import PresetsInjectorREADME, PresetsInjectorWorker
@@ -1142,6 +1150,319 @@ def generate_config(
     output_file = p_output / "missionconfig.lua"
     output_file.write_text("\n".join(lines), encoding="utf-8")
     console.print(f"[bold green]Generated:[/bold green] {output_file}")
+
+    console.print(WORK_DONE_MESSAGE)
+    if pause:
+        input(PAUSE_MESSAGE)
+
+
+@app.command(no_args_is_help=True)
+def migrate_config(
+    input_file: str = typer.Argument(..., help="Path to the missionConfig.lua to migrate (v5 → v6)."),
+    output: str | None = typer.Option(
+        None,
+        help="Output path for the migrated file. Defaults to <input>_v6.lua next to the input.",
+    ),
+    yaml_output: str | None = typer.Option(
+        None,
+        "--yaml-output",
+        help="Write the lua_modules YAML snippet to this file instead of printing it.",
+    ),
+    verbose: bool = typer.Option(False, help=VERBOSE_HELP),
+    pause: bool = typer.Option(False, help=PAUSE_HELP),
+) -> None:
+    """
+    Migrate a v5-style missionConfig.lua to the v6 format.
+
+    Transformations applied:
+
+    - ``doFile(...)`` calls loading VEAF scripts are commented out; the v6
+      builder injects all scripts automatically via ``veaf-scripts.lua``.
+
+    - Bare ``veafXxx.initialize(...)`` calls at the top level (outside an
+      ``if veafXxx then … end`` guard) are wrapped in the guard.
+
+    The command also outputs a ``lua_modules:`` YAML snippet that you can paste
+    into your ``mission.yaml`` to document (and later fine-tune) which modules
+    are enabled.
+    """
+    logger.set_verbose(verbose)
+    console.print(f"[bold green]veaf-tools Migrate Config v{VERSION}[/bold green]")
+
+    p_input = resolve_path(path=input_file, should_exist=True)
+    if not p_input.exists():
+        logger.error(f"Input file not found: {p_input}", exception_type=FileNotFoundError)
+        return
+
+    # Default output path: <stem>_v6.lua in the same directory.
+    if output is None:
+        p_output = p_input.parent / f"{p_input.stem}_v6{p_input.suffix}"
+    else:
+        p_output = resolve_path(path=output)
+
+    console.print(f"Input : {p_input}")
+    console.print(f"Output: {p_output}")
+
+    content = p_input.read_text(encoding="utf-8")
+    migrator = ConfigMigrator()
+    result: MigrationResult = migrator.migrate(content)
+
+    # Write the migrated Lua file.
+    p_output.write_text(result.new_content, encoding="utf-8")
+
+    # Report changes.
+    if result.removed_dofiles:
+        console.print(f"\n[yellow]Commented out {len(result.removed_dofiles)} doFile() call(s):[/yellow]")
+        for item in result.removed_dofiles:
+            console.print(f"  • {item}")
+
+    if result.wrapped_calls:
+        console.print(f"\n[yellow]Wrapped {len(result.wrapped_calls)} bare initialize() call(s):[/yellow]")
+        for item in result.wrapped_calls:
+            console.print(f"  • {item}")
+
+    if result.warnings:
+        console.print("\n[bold yellow]Warnings (manual review needed):[/bold yellow]")
+        for w in result.warnings:
+            console.print(f"  ⚠  {w}")
+
+    if result.enabled_modules:
+        console.print(
+            f"\n[bold cyan]Modules found ({len(result.enabled_modules)}):[/bold cyan] "
+            + ", ".join(result.enabled_modules)
+        )
+    else:
+        console.print("\n[yellow]No VEAF module initialize() calls found.[/yellow]")
+
+    # YAML snippet.
+    if yaml_output:
+        p_yaml = resolve_path(path=yaml_output)
+        p_yaml.write_text(result.yaml_snippet, encoding="utf-8")
+        console.print(f"\n[bold cyan]lua_modules YAML snippet written to:[/bold cyan] {p_yaml}")
+    else:
+        console.print("\n[bold cyan]lua_modules YAML snippet (paste into mission.yaml):[/bold cyan]")
+        console.print(result.yaml_snippet)
+
+    console.print(WORK_DONE_MESSAGE)
+    if pause:
+        input(PAUSE_MESSAGE)
+
+
+@app.command(no_args_is_help=True)
+def convert_v5(
+    mission_folder: str = typer.Argument(
+        ".",
+        help="Path to the VEAF mission folder to convert (where mission.yaml should be created).",
+    ),
+    force: bool = typer.Option(
+        False,
+        "--force",
+        help="Overwrite existing mission.yaml without asking.",
+    ),
+    no_backup: bool = typer.Option(
+        False,
+        "--no-backup",
+        help="Do not create a .bak copy of missionConfig.lua before migrating it.",
+    ),
+    no_convert_pipeline: bool = typer.Option(
+        False,
+        "--no-convert-pipeline",
+        help=(
+            "Skip automatic conversion of v5 pipeline config files "
+            "(presets, waypoints, weather, aircraft groups). "
+            "Files will be listed as needing manual conversion instead."
+        ),
+    ),
+    report_file: str | None = typer.Option(
+        None,
+        "--report-file",
+        help=("Save the conversion report to a Markdown file. Defaults to <mission_folder>/convert-v5-report.md."),
+    ),
+    verbose: bool = typer.Option(False, help=VERBOSE_HELP),
+    pause: bool = typer.Option(False, help=PAUSE_HELP),
+) -> None:
+    """
+    Convert a v5-style VEAF mission folder to v6 format.
+
+    Runs all migration steps in a single pass:
+
+    \\b
+    1. Scans the mission folder for v5 artifacts (missionConfig.lua, pipeline
+       config files such as presets.yaml, waypoints.yaml, …).
+    2. Migrates missionConfig.lua in-place: comments out doFile() calls that
+       load VEAF scripts (the v6 builder injects them automatically), and wraps
+       bare veafXxx.initialize() calls in ``if veafXxx then … end`` guards.
+    3. Generates mission.yaml with the correct lua_modules: and pipeline:
+       sections derived from the analysis in steps 1 and 2.
+    4. Prints a detailed conversion report and optionally saves it as Markdown.
+
+    DCS trigger conversion (v5 → v6) is handled automatically by
+    ``veaf-tools build`` — no manual action is required for that part.
+    """
+    logger.set_verbose(verbose)
+    console.print(f"[bold green]veaf-tools Convert v5 Mission v{VERSION}[/bold green]")
+
+    p_folder = resolve_path(path=mission_folder, default_path=Path.cwd(), should_exist=True)
+    if not p_folder.is_dir():
+        logger.error(f"Mission folder does not exist: {p_folder}", exception_type=FileNotFoundError)
+
+    # If mission.yaml exists and --force was not given, ask interactively.
+    mission_yaml = p_folder / "mission.yaml"
+    overwrite_yaml = force
+    if mission_yaml.exists() and not force:
+        console.print(
+            f"\n[yellow]mission.yaml already exists:[/yellow] {mission_yaml}\n"
+            "  Use [bold]--force[/bold] to overwrite, or continue to skip generation."
+        )
+        if typer.confirm("  Overwrite existing mission.yaml?", default=False):
+            overwrite_yaml = True
+
+    # Run the converter
+    converter = V5Converter(version=VERSION)
+
+    # Build ICAO callback for realweather steps (lazy prompt, asked at most once)
+    _icao_cache: list[str] = []
+
+    def icao_cb(version_name: str) -> str:
+        if not _icao_cache:
+            console.print(f"\n[yellow]Weather version '[bold]{version_name}[/bold]' uses realweather.[/yellow]")
+            icao = (
+                typer.prompt(
+                    "  Enter ICAO airport code (e.g. UGGG), or leave empty to fill in later",
+                    default="",
+                )
+                .strip()
+                .upper()
+            )
+            _icao_cache.append(icao)
+        return _icao_cache[0]
+
+    report: ConversionReport = converter.convert(
+        mission_folder=p_folder,
+        overwrite_mission_yaml=overwrite_yaml,
+        backup=not no_backup,
+        convert_pipeline=not no_convert_pipeline,
+        icao_callback=icao_cb if not no_convert_pipeline else None,
+    )
+
+    # ── Console output ────────────────────────────────────────────────────────
+    console.print(f"\n[bold cyan]Mission folder:[/bold cyan] {p_folder}")
+    console.print("")
+
+    # Scan summary table
+    scan_table = Table(title="Scan Results", show_header=True)
+    scan_table.add_column("Item", style="cyan")
+    scan_table.add_column("Status")
+
+    if report.missionconfig_path:
+        rel = report.missionconfig_path.relative_to(p_folder)
+        scan_table.add_row(str(rel), "[green]✓ Found — migrated[/green]")
+    else:
+        scan_table.add_row("src/scripts/missionConfig.lua", "[yellow]✗ Not found — skipped[/yellow]")
+
+    if report.mission_yaml_existed and not report.mission_yaml_generated:
+        scan_table.add_row("mission.yaml", "[yellow]⚠ Already exists — not overwritten[/yellow]")
+    elif report.mission_yaml_generated:
+        scan_table.add_row("mission.yaml", "[green]✓ Generated[/green]")
+    else:
+        scan_table.add_row("mission.yaml", "[red]✗ Not generated[/red]")
+
+    for step, v6_candidates in PIPELINE_CANDIDATES.items():
+        if any(pf.step == step for pf in report.pipeline_files):
+            pf = next(pf for pf in report.pipeline_files if pf.step == step)
+            if pf.converted:
+                scan_table.add_row(
+                    pf.v5_source or pf.v6_target,
+                    f"[green]✓ Converted → {pf.v6_target}[/green]",
+                )
+            elif pf.needs_conversion:
+                scan_table.add_row(
+                    pf.relative,
+                    f"[yellow]⚠ v5 format — needs conversion to {pf.v6_target}[/yellow]",
+                )
+            else:
+                scan_table.add_row(pf.relative, f"[green]✓ Found — added to pipeline:[/green] {step}")
+        else:
+            scan_table.add_row(v6_candidates[0], f"[dim]✗ Not found — {step} step will be skipped[/dim]")
+
+    console.print(scan_table)
+    console.print("")
+
+    # Actions
+    if report.actions:
+        console.print("[bold cyan]Actions taken:[/bold cyan]")
+        for action in report.actions:
+            console.print(f"  [green]✓[/green] {action}")
+        console.print("")
+
+    # missionConfig detail
+    if report.migration_result:
+        mr = report.migration_result
+        if mr.removed_dofiles:
+            console.print(f"[yellow]Commented out {len(mr.removed_dofiles)} doFile() call(s):[/yellow]")
+            for item in mr.removed_dofiles:
+                console.print(f"  • {item}")
+            console.print("")
+        if mr.wrapped_calls:
+            console.print(f"[yellow]Wrapped {len(mr.wrapped_calls)} bare initialize() call(s):[/yellow]")
+            for item in mr.wrapped_calls:
+                console.print(f"  • {item}")
+            console.print("")
+        if mr.enabled_modules:
+            console.print(
+                f"[bold cyan]Enabled modules ({len(mr.enabled_modules)}):[/bold cyan] " + ", ".join(mr.enabled_modules)
+            )
+            console.print("")
+
+    # Warnings
+    if report.warnings:
+        console.print(f"[bold yellow]⚠  Warnings ({len(report.warnings)}):[/bold yellow]")
+        for w in report.warnings:
+            console.print(f"  [yellow]•[/yellow] {w}")
+        console.print("")
+
+    # Manual review
+    if report.manual_review:
+        console.print("[bold yellow]Manual review required:[/bold yellow]")
+        for item in report.manual_review:
+            console.print(f"  [yellow]→[/yellow] {item}")
+        console.print("")
+
+    # Next steps
+    converted_files = [pf for pf in report.pipeline_files if pf.converted]
+    needs_conversion = [pf for pf in report.pipeline_files if pf.needs_conversion]
+    console.print("[bold cyan]Next steps:[/bold cyan]")
+    step_num = 1
+    console.print(f"  {step_num}. Review [cyan]mission.yaml[/cyan] and adjust module settings as needed.")
+    step_num += 1
+    if converted_files:
+        console.print(
+            f"  {step_num}. Review the {len(converted_files)} converted config file(s) in your mission folder."
+        )
+        step_num += 1
+    if needs_conversion:
+        console.print(
+            f"  {step_num}. Manually convert the {len(needs_conversion)} v5 config file(s) listed above "
+            "(or re-run without [bold]--no-convert-pipeline[/bold])."
+        )
+        step_num += 1
+    console.print(f"  {step_num}. Run [cyan]veaf-tools build[/cyan] — DCS trigger conversion runs automatically.")
+    step_num += 1
+    console.print(f"  {step_num}. Test the mission in DCS.")
+    step_num += 1
+    if report.manual_review:
+        console.print(f"  {step_num}. Clean up the items listed above once everything works.")
+    console.print("")
+
+    # ── Save report file ──────────────────────────────────────────────────────
+    if report_file is not None:
+        p_report = resolve_path(path=report_file)
+    else:
+        p_report = p_folder / "convert-v5-report.md"
+
+    markdown_report = report.to_markdown()
+    p_report.write_text(markdown_report, encoding="utf-8")
+    console.print(f"[bold green]Conversion report saved:[/bold green] {p_report}")
 
     console.print(WORK_DONE_MESSAGE)
     if pause:

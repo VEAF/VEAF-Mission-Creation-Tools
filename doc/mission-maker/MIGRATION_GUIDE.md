@@ -37,13 +37,22 @@ In both cases the end result is a **VEAF v6 mission folder** that you manage wit
 
 ### What Changed in v6
 
-| v5 | v6 |
-|----|-----|
-| Manual `DO SCRIPT FILE` trigger (pointing at individual Lua files) | Single trigger injected automatically by `veaf-tools build` |
-| Scripts delivered as individual `.lua` files | All modules concatenated into `veaf-scripts.lua` |
-| No build toolchain | `veaf-tools.exe build` command builds the `.miz` |
-| Configuration scattered in mission triggers or inline scripts | `src/scripts/missionConfig.lua` |
-| No version management | `veaf-tools-updater.exe` |
+| Area | v5 | v6 |
+|------|----|----|
+| **Script delivery** | Individual `.lua` files delivered per mission, updated manually | All modules concatenated into a single `veaf-scripts.lua` managed centrally |
+| **DCS trigger** | Manual `DO SCRIPT FILE` triggers pointing at each `.lua` file | Single trigger injected automatically by `veaf-tools build`; no manual trigger work |
+| **Build toolchain** | No build step — scripts loaded directly from disk at mission start | `veaf-tools.exe build` assembles the `.miz` from `src/mission/` + `src/scripts/` |
+| **Build script** | Complex `build.cmd` with one line per inject command | Two lines only: `veaf-tools-updater.exe` then `veaf-tools.exe build` — inject steps auto-detected |
+| **Auto-inject pipeline** | Each inject command (`inject-presets`, `inject-waypoints`, etc.) had to be added manually to `build.cmd` | `veaf-tools build` auto-detects and runs each step when the matching file is present in `src/` — no changes to `build.cmd` needed |
+| **Tool updates** | Manual download and replacement of script files | `veaf-tools-updater.exe` — downloads and verifies the latest release in one command |
+| **Build-time config** | No build-time config file | `mission.yaml` — controls log levels, module enable/disable, pipeline step overrides |
+| **Module enable/disable** | Edit `missionConfig.lua` (or simply omit the `initialize()` call) | `mission.yaml` → `lua_modules:` section; generates `veaf-modules-config.lua` automatically |
+| **Module configuration** | Direct assignment: `veafSpawn.SpawnKeyphrase = "_spawn"` in `missionConfig.lua` | Same direct assignment still works; or `veaf.setConfig("MODULE_ID", "key", value)` for config-driven overrides |
+| **Module init pattern** | Bare `veafXxx.initialize()` calls | `if veafXxx then veafXxx.initialize() end` guard (tolerates missing modules) |
+| **Config location** | Initialization scattered in DCS trigger scripts or a separate Lua file | Centralised in `src/scripts/missionConfig.lua` |
+| **Config migration** | Manual rewrite | `veaf-tools.exe migrate-config` automates the common fixes |
+| **Module log levels** | Set per-module by assigning `veafXxx.LogLevel` before init | `mission.yaml` → `lua_modules: → MODULE_ID: logLevel:` or `--log-modules` CLI flag |
+| **Version control** | Binary `.miz` committed to Git | Source files (`src/`) committed; `.miz` is a build artifact |
 
 ### Step-by-step Migration
 
@@ -105,6 +114,19 @@ The output `.miz` will have:
 #### 5. Port your configuration to missionConfig.lua
 
 Your v5 mission likely had module initialization calls either in inline trigger scripts or in a separate Lua file. Move all of them into `src/scripts/missionConfig.lua`.
+
+If you already have a `missionConfig.lua` from a previous VEAF version, run the migration helper to automate the most common fixes:
+
+```batch
+veaf-tools.exe migrate-config src\scripts\missionConfig.lua
+```
+
+This will:
+- Comment out any `doFile(...)` calls loading VEAF scripts (the builder injects them automatically now).
+- Wrap bare `veafXxx.initialize()` calls in `if veafXxx then … end` guards.
+- Print a `lua_modules:` YAML snippet you can paste into `mission.yaml` to document (or fine-tune) which modules are enabled.
+
+The migrated file is written as `<name>_v6.lua` next to the original; review it, then replace the original once satisfied.
 
 **v5 pattern (inline trigger or separate file):**
 ```lua

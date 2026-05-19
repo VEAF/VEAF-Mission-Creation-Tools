@@ -213,7 +213,7 @@ veafRadio.initialize()
 
 | Command | What it does |
 |---------|-------------|
-| `build` | Builds the mission from `src\mission\` and `src\scripts\` — outputs a dated `.miz` |
+| `build` | Builds the mission from `src\mission\` and `src\scripts\` — outputs a dated `.miz`; also auto-runs any inject steps configured via `pipeline:` in `mission.yaml` |
 | `extract` | Extracts a `.miz` to a source folder (run once to initialise your repo) |
 | `inject-presets` | Injects radio frequency plans for all human groups |
 | `inject-weather` | Inserts real or configured weather |
@@ -221,6 +221,8 @@ veafRadio.initialize()
 | `extract-aircraft-groups` | Extracts aircraft groups from a mission |
 | `inject-waypoints` | Injects waypoints (bullseye, etc.) for human groups |
 | `extract-waypoints` | Extracts waypoints from a mission |
+| `generate-config` | Generates a `veaf-modules-config.lua` template with all module config keys and their defaults |
+| `migrate-config` | Migrates a v5-style `missionConfig.lua` to the v6 format (removes `doFile` calls, adds `if module then` guards, outputs a `lua_modules:` YAML snippet) |
 
 Full command reference: [TOOLS_REFERENCE.md](TOOLS_REFERENCE.md)
 
@@ -230,24 +232,29 @@ Full command reference: [TOOLS_REFERENCE.md](TOOLS_REFERENCE.md)
 
 ### Typical Build Script
 
-Most VEAF-based mission repositories follow this pattern (e.g., `build.cmd`):
+Most VEAF-based mission repositories follow this minimal pattern (e.g., `build.cmd`):
 
 ```batch
 @echo off
 set MISSION_NAME=mission
 
-REM 1. Build the mission (reads src\mission\ + src\scripts\ → mission_YYYYMMDD.miz)
+REM 1. Update veaf-tools to the latest release
+veaf-tools-updater.exe
+
+REM 2. Build the mission — also auto-runs inject steps from pipeline: in mission.yaml
 veaf-tools.exe build %MISSION_NAME% .
-
-REM 2. Inject radio presets (optional)
-REM veaf-tools.exe inject-presets %MISSION_NAME% --presets-file src\presets.yaml
-
-REM 3. Inject waypoints (optional)
-REM veaf-tools.exe inject-waypoints %MISSION_NAME% --waypoints-file src\waypoints.yaml
-
-REM 4. Inject weather variants (optional)
-REM veaf-tools.exe inject-weather %MISSION_NAME% --config-file src\missions.yaml
 ```
+
+The `build` command auto-detects and runs optional injection steps based on files present in `src\`:
+
+| File present in `src\` | Step automatically run |
+|------------------------|----------------------|
+| `src\presets.yaml` | `inject-presets` |
+| `src\waypoints.yaml` | `inject-waypoints` |
+| `src\aircraft-templates.yaml` or `src\templates.yaml` | `inject-aircraft-groups` |
+| `src\missions.yaml` or `src\versions.yaml` | `inject-weather` |
+
+To disable or customise a step, add a `pipeline:` section to `mission.yaml` (see [Pipeline Configuration](#pipeline-configuration)).
 
 ### Clean Git Diffs
 
@@ -298,6 +305,22 @@ global_log_level: debug   # error | warning | info | debug | trace
 `veaf-tools build` writes `veaf.ForcedLogLevel = "debug"` into the generated `veaf-modules-config.lua`, which overrides every module's log level. This is baked into the `.miz` — changing it requires a rebuild.
 
 > Remove this line (or set it to `info`) before deploying to players.
+
+#### Pipeline configuration
+
+Use the `pipeline:` section in `mission.yaml` to disable auto-detected inject steps or point them at non-default file paths:
+
+```yaml
+pipeline:
+  presets:
+    enabled: false           # disable this step entirely
+  waypoints:
+    file: src/custom-wp.yaml # override the default file path
+  aircraft: {}               # keep defaults (auto-detect src/aircraft-templates.yaml)
+  weather: {}                # keep defaults (auto-detect src/missions.yaml)
+```
+
+Omitting the `pipeline:` section (or a specific key) leaves auto-detection active.
 
 #### Per-module level at build time
 

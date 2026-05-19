@@ -4,7 +4,31 @@ VEAF Mission Builder Package
 This package provides classes for building mission files with the VEAF scripts.
 """
 
+from .config_migrator import ConfigMigrator, MigrationResult
 from .mission_builder_README import MissionBuilderREADME
 from .mission_builder_worker import MissionBuilderWorker
+from .v5_converter import (
+    PIPELINE_CANDIDATES,
+    V5_MIGRATION_NOTES,
+    V5_PIPELINE_CANDIDATES,
+    V6_PIPELINE_CANDIDATES,
+    ConversionReport,
+    PipelineFile,
+    V5Converter,
+)
+from .v5_pipeline_converters import convert_pipeline_file
 
-__all__ = ["MissionBuilderWorker", "MissionBuilderREADME"]
+__all__ = [
+    "MissionBuilderWorker",
+    "MissionBuilderREADME",
+    "ConfigMigrator",
+    "MigrationResult",
+    "V5Converter",
+    "ConversionReport",
+    "PipelineFile",
+    "PIPELINE_CANDIDATES",
+    "V5_PIPELINE_CANDIDATES",
+    "V6_PIPELINE_CANDIDATES",
+    "V5_MIGRATION_NOTES",
+    "convert_pipeline_file",
+]

@@ -14,7 +14,6 @@ from typing import Any
 
 import typer
 from rich.table import Table
-
 from veaf_libs.logger import console, logger  # type: ignore[import-not-found]
 from veaf_libs.progress import spinner_context  # type: ignore[import-not-found]
 

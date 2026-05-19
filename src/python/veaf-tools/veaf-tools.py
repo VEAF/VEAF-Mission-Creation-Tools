@@ -45,7 +45,7 @@ from presets_injector import PresetsInjectorREADME, PresetsInjectorWorker
 from rich.markdown import Markdown
 from rich.table import Table
 from veaf_libs.logger import console, logger
-from veaf_libs.lua_module_scanner import find_lua_scripts_dir, get_modules, scan_module_configs
+from veaf_libs.lua_module_scanner import get_modules
 from veaf_libs.tui import run_wizard
 from veaf_libs.update_checker import check_for_updates
 from waypoints_injector import (
@@ -328,7 +328,40 @@ def about(
         typer.launch(url)
 
 
-@app.command(no_args_is_help=True)
+# ── Build-config persistence helpers ─────────────────────────────────────────
+
+_BUILD_CONFIG_MARKER = "# ── Build configuration"
+
+
+def _update_build_config_in_yaml(yaml_path: Path, dev_mode: bool, scripts_path: Path | None) -> None:
+    """Update (or append) the ``build:`` section in *mission.yaml*.
+
+    Uses a text-based replacement so all other comments in the file are preserved.
+    The section is identified by the ``_BUILD_CONFIG_MARKER`` header line.
+    """
+    lines: list[str] = [
+        "",
+        "# ── Build configuration ─────────────────────────────────────────────────────",
+        "# Persisted build settings — set via --dev-mode / --scripts-path CLI flags.",
+        "# Note: scripts_path is usually machine-specific.",
+        "#",
+        "build:",
+        f"  dev_mode: {'true' if dev_mode else 'false'}",
+    ]
+    if scripts_path:
+        lines.append(f'  scripts_path: "{scripts_path.as_posix()}"')
+    new_section = "\n".join(lines) + "\n"
+
+    content = yaml_path.read_text(encoding="utf-8")
+    # Replace existing build: section if present (identified by the marker), or append
+    idx = content.find("\n" + _BUILD_CONFIG_MARKER)
+    if idx >= 0:
+        content = content[:idx]
+    content = content.rstrip("\n") + "\n" + new_section
+    yaml_path.write_text(content, encoding="utf-8")
+
+
+@app.command()
 def build(
     readme: bool = typer.Option(False, help=README_HELP),
     verbose: bool = typer.Option(False, help=VERBOSE_HELP),
@@ -339,7 +372,19 @@ def build(
         False,
         help="If set, the mission will dynamically load the scripts from the provided location (via --scripts-path or in the local published and src/scripts folders).",
     ),
-    scripts_path: str = typer.Option(None, help="Path to the VEAF and community scripts."),
+    dev_mode: bool | None = typer.Option(
+        None,
+        "--dev-mode/--no-dev-mode",
+        help=(
+            "Resolve VEAF scripts from a local dev repo (build/veaf-scripts.lua) instead of published/. "
+            "Requires --scripts-path pointing to the VEAF-Mission-Creation-Tools repo root. "
+            "This setting is persisted in mission.yaml (build.dev_mode)."
+        ),
+    ),
+    scripts_path: str = typer.Option(
+        None,
+        help="Path to the VEAF and community scripts. Persisted in mission.yaml (build.scripts_path).",
+    ),
     migrate_from_v5: bool = typer.Option(
         True, help="If set, the builder will parse the mission for old v5 triggers and remove them."
     ),
@@ -383,33 +428,57 @@ def build(
     if p_output_mission.suffix.lower() != ".miz":
         p_output_mission = Path(f"{mission_name_or_file}_{datetime.now().strftime('%Y%m%d')}.miz")
 
-    # Resolve development path
-    effective_scripts_path: str | Path | None = scripts_path
-    if not scripts_path and dynamic_mode:
-        # default value is the "published" subfolder of the mission folder
-        effective_scripts_path = p_mission_folder / "published"
-    if effective_scripts_path:
-        p_scripts_path = resolve_path(path=effective_scripts_path, should_exist=True)
-        if not p_scripts_path.exists():
-            logger.error(f"Development folder {p_scripts_path} does not exist!", exception_type=FileNotFoundError)
-    else:
-        p_scripts_path = None
-
-    # Read mission.yaml: lua_modules (LUA-005), global_log_level (LUA-007), pipeline (TOOL-pipeline)
+    # Read mission.yaml: lua_modules (LUA-005), global_log_level (LUA-007), pipeline (TOOL-pipeline), build
     lua_modules: dict | None = None
     global_log_level: str | None = None
     pipeline_cfg: dict = {}
+    build_cfg: dict = {}
+    mission_yaml: dict = {}
     mission_yaml_path = p_mission_folder / "mission.yaml"
     if mission_yaml_path.exists():
         with mission_yaml_path.open("r", encoding="utf-8") as fh:
             mission_yaml = yaml.safe_load(fh) or {}
         lua_modules = mission_yaml.get("lua_modules") or None
         if lua_modules:
-            logger.info(f"Found lua_modules section in {mission_yaml_path}; will generate veaf-modules-config.lua")
+            logger.info(f"Found lua_modules section in {mission_yaml_path}; will generate veaf-config.lua")
         global_log_level = mission_yaml.get("global_log_level") or None
         if global_log_level:
             logger.info(f"Found global_log_level={global_log_level!r} in {mission_yaml_path}")
         pipeline_cfg = mission_yaml.get("pipeline") or {}
+        build_cfg = mission_yaml.get("build") or {}
+
+    # Resolve dev_mode and scripts_path: CLI flags > mission.yaml defaults > code defaults
+    effective_dev_mode: bool = dev_mode if dev_mode is not None else bool(build_cfg.get("dev_mode", False))
+    if effective_dev_mode:
+        logger.info("Dev mode: VEAF scripts resolved from local dev repo (build/veaf-scripts.lua)")
+
+    effective_scripts_path_str: str | None = scripts_path or build_cfg.get("scripts_path") or None
+    effective_scripts_input: str | Path | None = effective_scripts_path_str
+    if not effective_scripts_input and dynamic_mode:
+        # default value is the "published" subfolder of the mission folder
+        effective_scripts_input = p_mission_folder / "published"
+    if effective_scripts_input:
+        p_scripts_path = resolve_path(path=effective_scripts_input, should_exist=True)
+        if not p_scripts_path.exists():
+            logger.error(f"Scripts folder {p_scripts_path} does not exist!", exception_type=FileNotFoundError)
+    else:
+        p_scripts_path = None
+
+    if effective_dev_mode and not p_scripts_path:
+        logger.error(
+            "--dev-mode requires a scripts path. "
+            "Pass --scripts-path <repo_root> or set build.scripts_path in mission.yaml.",
+            exception_type=ValueError,
+        )
+
+    # Persist build settings to mission.yaml when relevant CLI flags were explicitly given
+    if mission_yaml_path.exists() and (dev_mode is not None or scripts_path is not None):
+        _update_build_config_in_yaml(
+            mission_yaml_path,
+            dev_mode=effective_dev_mode,
+            scripts_path=p_scripts_path,
+        )
+        logger.info(f"Build settings persisted to {mission_yaml_path}")
 
     # Apply --log-modules filter: silence all modules not in the keep list (LUA-006)
     if log_modules is not None:
@@ -432,12 +501,14 @@ def build(
     worker = MissionBuilderWorker(
         dynamic_mode=dynamic_mode,
         scripts_path=p_scripts_path,
+        dev_mode=effective_dev_mode,
         mission_folder=p_mission_folder,
         output_mission=p_output_mission,
         migrate_from_v5=migrate_from_v5,
         no_veaf_triggers=no_veaf_triggers,
         lua_modules=lua_modules,
         global_log_level=global_log_level,
+        mission_yaml=mission_yaml if mission_yaml_path.exists() else None,
     )
     worker.work()
 
@@ -1100,16 +1171,15 @@ def inject_weather(
 
 @app.command()
 def generate_config(
-    output: str = typer.Option(".", help="Output directory for the generated missionconfig.lua template."),
+    output: str = typer.Option(".", help="Output directory for the generated mission.yaml template."),
     verbose: bool = typer.Option(False, help=VERBOSE_HELP),
     pause: bool = typer.Option(False, help=PAUSE_HELP),
 ) -> None:
     """
-    Generates a missionconfig.lua template with all available module configuration options and their defaults.
+    Generates a mission.yaml template with all available module configuration options.
 
-    Place the generated file in your mission's src/scripts/ folder, rename it to veaf-modules-config.lua,
-    then uncomment and adjust any entries you want to change from the defaults.
-    Add veaf.initialize() at the end of your missionConfig.lua to activate the new config system.
+    The generated file can be placed at the root of your mission folder and renamed to
+    ``mission.yaml``. Uncomment and adjust any section you want to configure.
     """
     logger.set_verbose(verbose)
     console.print(f"[bold green]veaf-tools Generate Config v{VERSION}[/bold green]")
@@ -1117,38 +1187,15 @@ def generate_config(
     p_output = resolve_path(path=output, create_if_not_exist=True)
 
     modules = get_modules()
-    lua_dir = find_lua_scripts_dir()
-    configs = scan_module_configs(lua_dir) if lua_dir else {}
-
     if not modules:
         logger.error("No VEAF Lua module information available. Run from a full repo checkout.")
         return
 
-    lines = [
-        "-------------------------------------------------------------------------------------------------------------------------------------------------------------",
-        "-- VEAF Module Configuration File - Template",
-        "-- Generated by: veaf-tools generate-config",
-        "--",
-        "-- How to use:",
-        "--   1. Copy this file to your mission's src/scripts/ folder as 'veaf-modules-config.lua'",
-        "--   2. Uncomment and adjust any entries you want to change from the defaults",
-        "--   3. To disable a module, set its 'enable' key to false",
-        "--   4. Add veaf.initialize() at the end of your missionConfig.lua",
-        "-------------------------------------------------------------------------------------------------------------------------------------------------------------",
-        "",
-    ]
+    from veaf_libs.lua_config_generator import generate_mission_yaml_template
 
-    for module in modules:
-        mid = module["id"]
-        defaults = configs.get(mid, {"enable": True})
-        lines.append(f"-- === {mid} ===")
-        for key, value in defaults.items():
-            lua_val = "true" if value else "false"
-            lines.append(f'-- veaf.setConfig("{mid}", "{key}", {lua_val})')
-        lines.append("")
-
-    output_file = p_output / "missionconfig.lua"
-    output_file.write_text("\n".join(lines), encoding="utf-8")
+    content = generate_mission_yaml_template(modules=modules)
+    output_file = p_output / "mission.yaml"
+    output_file.write_text(content, encoding="utf-8")
     console.print(f"[bold green]Generated:[/bold green] {output_file}")
 
     console.print(WORK_DONE_MESSAGE)

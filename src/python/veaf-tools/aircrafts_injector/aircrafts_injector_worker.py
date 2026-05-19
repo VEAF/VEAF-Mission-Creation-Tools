@@ -92,8 +92,9 @@ class AircraftGroupsYAMLValidator:
         self.yaml_file = yaml_file
         self.data: dict | None = None
         self.errors: list[ValidationError] = []
-        self.required_aircraft_fields = {"name", "type", "units"}
-        self.required_unit_fields = {"type"}  # Minimal requirement
+        # The injector works with raw DCS group dicts; no specific fields are required at group level.
+        self.required_aircraft_fields: set[str] = set()
+        self.required_unit_fields: set[str] = set()
 
     def load_yaml(self) -> bool:
         """
@@ -271,19 +272,31 @@ class AircraftGroupsYAMLValidator:
         self._check_group_structure(path, group_data)
 
     def _validate_units(self, path: str, units: Any) -> None:
-        """Validate the units list."""
-        if not isinstance(units, list):
+        """Validate the units collection.
+
+        Accepts both list format (simplified) and dict format (DCS raw, keyed by number).
+        """
+        if isinstance(units, dict):
+            # DCS raw format: units is a dict keyed by integer index
+            unit_items: list[Any] = list(units.values())
+        elif isinstance(units, list):
+            unit_items = units
+        else:
             self.errors.append(
-                ValidationError("error", f"{path}.units", f"Units must be a list, got {type(units).__name__}")
+                ValidationError(
+                    "error",
+                    f"{path}.units",
+                    f"Units must be a list or dict, got {type(units).__name__}",
+                )
             )
             return
 
-        if len(units) == 0:
+        if len(unit_items) == 0:
             self.errors.append(ValidationError("error", f"{path}.units", "Group must have at least one unit"))
             return
 
         # Validate each unit
-        for idx, unit in enumerate(units):
+        for idx, unit in enumerate(unit_items):
             self._validate_unit(f"{path}.units[{idx}]", unit)
 
     def _validate_unit(self, path: str, unit: Any) -> None:
@@ -305,6 +318,7 @@ class AircraftGroupsYAMLValidator:
     def _check_group_structure(self, path: str, group: dict) -> None:
         """Check for potential structural issues in a group."""
         common_group_keys = {
+            # Simplified format keys
             "name",
             "type",
             "units",
@@ -316,6 +330,19 @@ class AircraftGroupsYAMLValidator:
             "alt",
             "speed",
             "on_ground",
+            # DCS raw format keys (produced by the extractor)
+            "lateActivation",
+            "tasks",
+            "radioSet",
+            "task",
+            "taskSelected",
+            "groupId",
+            "hidden",
+            "communication",
+            "frequency",
+            "modulation",
+            "visible",
+            "start_time",
         }
 
         for key in group.keys():

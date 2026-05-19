@@ -16,7 +16,7 @@ veafNamedPoints = {}
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 --- Identifier. All output in DCS.log will start with this.
-veafNamedPoints.Id = "NAMED POINTS"
+veafNamedPoints.Id = "NAMEDPOINTS"
 
 --- Version.
 veafNamedPoints.Version = "1.16.2"

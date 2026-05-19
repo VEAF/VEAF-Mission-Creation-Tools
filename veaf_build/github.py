@@ -5,7 +5,6 @@ import subprocess
 from pathlib import Path
 
 from veaf_libs.logger import logger  # type: ignore[import-not-found]
-from veaf_libs.progress import spinner_context  # type: ignore[import-not-found]
 
 
 class GitHubPublisher:
@@ -290,9 +289,7 @@ class GitHubPublisher:
                 )
                 logger.debug("Uploaded published-metadata.json to latest release")
 
-            logger.debug(
-                f"GitHub latest release created and assets uploaded for {latest_tag_name}", no_console=True
-            )
+            logger.debug(f"GitHub latest release created and assets uploaded for {latest_tag_name}", no_console=True)
 
         except Exception as e:
             logger.error(f"GitHub CLI operation failed: {e}")

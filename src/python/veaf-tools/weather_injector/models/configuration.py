@@ -23,6 +23,7 @@ class VersionConfig:
     metar: str | None = None  # METAR weather string (provided manually)
     airport_icao: str | None = None  # Airport ICAO code to fetch live METAR from avwx
     weather: dict[str, Any] | None = None  # Manual weather parameters
+    clearsky: bool = False  # VFR-friendly conditions: clouds ≤ FEW (2 oktas), wind < 15 kn, vis CAVOK
 
 
 @dataclass
@@ -56,6 +57,7 @@ class MissionConfig:
                 metar=version_data.get("metar"),
                 airport_icao=version_data.get("airport_icao"),
                 weather=version_data.get("weather"),
+                clearsky=bool(version_data.get("clearsky", False)),
             )
             versions.append(version_config)
 

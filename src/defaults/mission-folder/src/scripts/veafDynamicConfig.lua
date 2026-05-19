@@ -1,10 +1,10 @@
 local scriptsToLoad =
 {
-    -- load BEFORE missionConfig.lua
+    -- load BEFORE mission-script.lua
     --
-    -- missionConfig.lua
-    "missionConfig.lua",
-    -- load AFTER missionConfig.lua
+    -- mission-script.lua
+    "mission-script.lua",
+    -- load AFTER mission-script.lua
     --
 }
 

@@ -12,20 +12,97 @@
 #
 # global_log_level: debug
 
-# ── Per-module log levels ─────────────────────────────────────────────────────
-# Fine-grained control: override log levels for specific modules.
-# All other modules keep their default level.
-# Module IDs: VEAF, SPAWN, RADIO, ASSETS, QRA, CAS, TRANSPORT, CARRIER,
-#             COMBAT, ZONE, SHORTCUTS, NAMEDPOINTS, SECURITY, MOVE, GRASS,
-#             SANCTUARY, SKYNET, REMOTE, INTERPRETER, WEATHER
+# ── Mission identity ─────────────────────────────────────────────────────────
+# mission:
+#   name: "My-Mission"          # shown in radio menus and log messages
+#   export_path: null           # null = default DCS Saved Games path
+#   era: MODERN                 # MODERN | COLD_WAR | WW2
+
+# ── Security ─────────────────────────────────────────────────────────────────
+# security:
+#   disabled: true              # true = no password required (default)
+#   password_hashes:            # SHA-256 hashes to restrict JTF/admin access
+#     - "<SHA-256 hash>"
+
+# ── Per-module configuration ──────────────────────────────────────────────────
+# Enable, disable, or override the log level of individual VEAF Lua modules.
+# Modules not listed here are enabled with their default settings.
+# Module IDs: SECURITY, RADIO, SHORTCUTS, NAMEDPOINTS, SPAWN, CARRIER,
+#             CASMISSION, TRANSPORTMISSION, COMBATMISSION, COMBATZONE, QRA,
+#             GRASS, ASSETS, MOVE, SANCTUARY, WEATHER, REMOTE, INTERPRETER, …
 #
 # lua_modules:
+#   RADIO:
+#     enable: true
+#     init:
+#       help_menus: true
 #   SPAWN:
 #     logLevel: debug
-#   RADIO:
-#     logLevel: trace
 #   ASSETS:
-#     logLevel: info
+#     enable: true
+#     assets:
+#       - sort: 1
+#         name: "T1-Arco-1"
+#         description: "Arco-1 (KC-135)"
+#         information: "Tacan 64Y\nU290.50 (20)"
+#   NAMEDPOINTS:
+#     enable: true
+#     custom_points:
+#       # - name: "Battle Area Alpha"
+#       #   lat: "41.123456"
+#       #   lon: "44.987654"
+
+# ── External modules ─────────────────────────────────────────────────────────
+# external_modules:
+#   skynet:
+#     enabled: false
+#     include_red_in_radio: false
+#     debug_red: false
+#     include_blue_in_radio: false
+#     debug_blue: false
+#   ctld:
+#     enabled: false
+#     # ctld.xxx = value pairs go here (e.g. hoverPickup: true)
+
+# ── QRA (Quick Reaction Alert) ────────────────────────────────────────────────
+# Requires QRA module enabled in lua_modules above.
+# qra:
+#   silence_all: false
+#   definitions:
+#     - name: "Base QRA"
+#       coalition: RED
+#       enemy_coalitions: [BLUE]
+#       trigger_zone: "QRA zone"
+#       zone_radius: 30000
+#       groups_by_enemy_count:
+#         - enemy_count: 1
+#           groups: ["Group1", "Group2"]
+#           random_pick: 1
+#       delay_before_rearming: 30
+#       delay_before_activating: 30
+
+# ── CAP missions ──────────────────────────────────────────────────────────────
+# Requires COMBATMISSION module enabled in lua_modules above.
+# cap_missions:
+#   - group_name: "CAP Group"
+#     menu_name: "CAP"
+#     briefing: "CAP mission briefing"
+#     default: false
+#     activated: true
+
+# ── Combat missions ───────────────────────────────────────────────────────────
+# Requires COMBATMISSION module enabled in lua_modules above.
+# combat_missions:
+#   - name: "Mission Name"
+#     friendly_name: "Display Name"
+#     secured: false
+#     radio_menu_enabled: true
+#     briefing: |
+#       Multi-line briefing text here.
+#     elements:
+#       - name: "Element Name"
+#         groups: ["Group1", "Group2"]
+#         scalable: true
 
 # ── Build pipeline ────────────────────────────────────────────────────────────
 # Controls which optional injection steps run after the base build.

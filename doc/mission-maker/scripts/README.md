@@ -1,5 +1,7 @@
 # Scripts Reference — VEAF Lua Modules
 
+> 🇬🇧 English · 🇫🇷 [Français](../fr/scripts/README.md)
+
 All modules are bundled in `veaf-scripts.lua` and loaded at mission start. This page lists every module with its purpose, whether it needs explicit configuration, and links to the detailed guide.
 
 ---

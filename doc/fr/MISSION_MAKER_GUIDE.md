@@ -243,6 +243,8 @@ end
 | `migrate-config` | Migre un `missionConfig.lua` v5 : supprime les appels `doFile`, entoure les appels `initialize()` nus de gardes, produit un extrait YAML `lua_modules:` |
 | `convert-v5` | Conversion complète d'un dossier v5 → v6 : migre `missionConfig.lua` → `mission-script.lua`, extrait les patterns reconnus dans `mission.yaml`, convertit les fichiers de configuration pipeline |
 
+> **Option globale :** `--lang en|fr` force la langue pour toutes les sorties CLI et les commentaires des fichiers générés, en remplaçant la détection automatique depuis la locale de l'OS.
+
 Référence complète des commandes : [TOOLS_REFERENCE.md](../TOOLS_REFERENCE.md)
 
 ---
@@ -300,6 +302,7 @@ mission:
   name: "OpenTraining_Caucasus"
   era: MODERN            # MODERN | WWII | KOREA | VIETNAM
   export_path: null      # optionnel : chemin pour l'export de données
+  language: fr           # en | fr — langue pour les fichiers générés et le CLI (défaut : locale de l'OS)
 ```
 
 #### Sécurité

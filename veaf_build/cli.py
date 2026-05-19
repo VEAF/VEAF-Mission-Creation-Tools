@@ -26,10 +26,10 @@ from typing import Any
 
 import typer
 import yaml
-
 from veaf_libs.logger import console, logger  # type: ignore[import-not-found]
 from veaf_libs.progress import spinner_context  # type: ignore[import-not-found]
-from veaf_build.worker import BuildAndReleaseWorker, PAUSE_MESSAGE, VERBOSE_HELP
+
+from veaf_build.worker import PAUSE_MESSAGE, VERBOSE_HELP, BuildAndReleaseWorker
 
 CONFIG_FILE: str = "veaf-tools-config.yaml"
 

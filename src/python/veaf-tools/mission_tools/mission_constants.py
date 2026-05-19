@@ -47,10 +47,10 @@ def get_mission_script_files() -> list[tuple[str, str]]:
     """Get list of the mission files. Those are either in the mission folder or in the VEAF defaults folder"""
 
     return [
-        # Optional generated module config (LUA-005); loaded BEFORE missionConfig.lua
-        ("src/scripts/veaf-modules-config.lua", DEFAULT_SCRIPTS_LOCATION),
+        # Optional generated module config; loaded BEFORE mission-script.lua
+        ("src/scripts/veaf-config.lua", DEFAULT_SCRIPTS_LOCATION),
         # The mission scripts
-        ("src/scripts/missionConfig.lua", DEFAULT_SCRIPTS_LOCATION),
+        ("src/scripts/mission-script.lua", DEFAULT_SCRIPTS_LOCATION),
         ("src/scripts/veafDynamicConfig.lua", DEFAULT_SCRIPTS_LOCATION),
         ("src/scripts/*.lua", DEFAULT_SCRIPTS_LOCATION),
     ]
@@ -71,7 +71,7 @@ def get_mission_files_to_cleanup_on_extract() -> list[tuple[str, bool]]:
     """Get list of the mission files that need to be cleaned up when extracting a mission file."""
 
     return [
-        (f"{DEFAULT_SCRIPTS_LOCATION}/missionConfig.lua", True),
+        (f"{DEFAULT_SCRIPTS_LOCATION}/mission-script.lua", True),
         (f"{DEFAULT_SCRIPTS_LOCATION}/veafDynamicConfig.lua", True),
         ("options", False),
         ("mission/Config", False),

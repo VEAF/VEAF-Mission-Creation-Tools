@@ -1,0 +1,18 @@
+-- mission-script.lua
+-- Mission-specific Lua code that cannot be generated from mission.yaml.
+--
+-- This file is loaded AFTER veaf-config.lua (which is generated automatically
+-- from mission.yaml by the veaf-tools build command).
+--
+-- Put here:
+--   - Custom shortcuts / aliases  (VeafAlias:new():...)
+--   - Custom Lua helper functions
+--   - Third-party script setup (CTLD, CSAR, …) that requires Lua code
+--
+-- Do NOT put here:
+--   - Module initialization calls  → use mission.yaml (lua_modules:)
+--   - Mission identity             → use mission.yaml (mission:)
+--   - QRA definitions              → use mission.yaml (qra:)
+--   - Combat/CAP missions          → use mission.yaml (combat_missions: / cap_missions:)
+--   - Assets lists                 → use mission.yaml (lua_modules.ASSETS.assets:)
+

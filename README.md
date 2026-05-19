@@ -1,5 +1,7 @@
 # [![VEAF-logo]][VEAF website] Mission Creation Tools
 
+> 🇫🇷 [Lire ce document en français](#fr)
+
 [![Badge-Discord]][VEAF Discord]
 ![Badge-Wakatime]
 

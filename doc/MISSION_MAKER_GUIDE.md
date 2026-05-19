@@ -2,6 +2,8 @@
 
 Guide for creating and managing DCS World missions with VEAF scripts.
 
+> 🌐 [Version française](fr/MISSION_MAKER_GUIDE.md)
+
 ## Table of Contents
 
 - [What is a VEAF Mission?](#what-is-a-veaf-mission)
@@ -241,6 +243,8 @@ end
 | `migrate-config` | Migrates a v5-style `missionConfig.lua`: removes `doFile` calls, wraps bare `initialize()` calls in guards, outputs a `lua_modules:` YAML snippet |
 | `convert-v5` | Full v5 → v6 folder conversion: migrates `missionConfig.lua` → `mission-script.lua`, extracts recognized patterns (QRA, assets, CAP/combat missions, identity) into `mission.yaml`, converts pipeline config files |
 
+> **Global option:** `--lang en|fr` forces the language for all CLI output and generated file comments, overriding the OS locale auto-detection.
+
 Full command reference: [TOOLS_REFERENCE.md](TOOLS_REFERENCE.md)
 
 ---
@@ -298,6 +302,7 @@ mission:
   name: "OpenTraining_Caucasus"
   era: MODERN            # MODERN | WWII | KOREA | VIETNAM
   export_path: null      # optional: path for data export
+  language: en           # en | fr — language for generated files and CLI (default: OS locale)
 ```
 
 #### Security

@@ -44,6 +44,7 @@ from mission_extractor import MissionExtractorREADME, MissionExtractorWorker
 from presets_injector import PresetsInjectorREADME, PresetsInjectorWorker
 from rich.markdown import Markdown
 from rich.table import Table
+from veaf_libs.i18n import set_language, t
 from veaf_libs.logger import console, logger
 from veaf_libs.lua_module_scanner import get_modules
 from veaf_libs.tui import run_wizard
@@ -57,23 +58,24 @@ from waypoints_injector import (
 from weather_injector import LuaToYamlConverter, WeatherInjectorWorker, WheatherInjectorREADME
 
 VERSION: str = "6.0.4"
-README_HELP: str = "Provide access to the README file."
-PAUSE_HELP: str = "If set, the script will pause when finished and wait for the user to press a key."
-VERBOSE_HELP: str = "If set, the script will output a lot of debug information."
-PAUSE_MESSAGE: str = "Press Enter to exit..."
+README_HELP: str = t("help.readme")
+PAUSE_HELP: str = t("help.pause")
+VERBOSE_HELP: str = t("help.verbose")
 
 # String constants
 DEFAULT_MISSION_FILE = "mission.miz"
 DEFAULT_PRESETS_FILE = "./src/presets.yaml"
-CONFIRM_DISPLAY_DOC = "Do you want to display the documentation?"
-WORK_DONE_MESSAGE = "[bold blue]Work done![/bold blue]"
 
 app = typer.Typer(no_args_is_help=True)
 
 
 @app.callback()
-def main_callback() -> None:
+def main_callback(
+    lang: str | None = typer.Option(None, "--lang", help=t("help.lang")),
+) -> None:
     """VEAF Tools — DCS World mission management CLI."""
+    if lang:
+        set_language(lang)
     check_for_updates(VERSION, console)
 
 
@@ -134,9 +136,9 @@ def _read_single_char() -> str:
 
 def _ask_replace(relative_path: Path) -> tuple[bool, bool]:
     """Prompt to replace an existing file. Returns (should_replace, yes_to_all)."""
-    sys.stdout.write(f"File already exists: {relative_path}\n")
+    sys.stdout.write(t("file.already_exists", path=relative_path) + "\n")
     while True:
-        sys.stdout.write("Replace it? [y/N/A] ")
+        sys.stdout.write(t("file.replace_prompt"))
         sys.stdout.flush()
         try:
             ch = _read_single_char().lower()
@@ -144,13 +146,13 @@ def _ask_replace(relative_path: Path) -> tuple[bool, bool]:
             sys.stdout.write("\n")
             return False, False
         sys.stdout.write(ch + "\n")
-        if ch == "a":
+        if ch in ("a", "t"):  # 'a' (EN) or 't' for "tous" (FR)
             return True, True
-        if ch == "y":
+        if ch in ("y", "o"):  # 'y' (EN) or 'o' for "oui" (FR)
             return True, False
         if ch in ("n", "\r", "\n", ""):
             return False, False
-        sys.stdout.write("  y = yes, n = no (default), A = yes to all remaining\n")
+        sys.stdout.write(t("file.replace_hint") + "\n")
 
 
 @app.command()
@@ -413,7 +415,7 @@ def build(
     console.print(f"[bold green]veaf-tools VEAF mission builder v{VERSION}[/bold green]")
 
     if readme:
-        if typer.confirm(CONFIRM_DISPLAY_DOC):
+        if typer.confirm(t("help.confirm_doc")):
             md_render = Markdown(MissionBuilderREADME)
             console.print(md_render)
         exit()
@@ -589,9 +591,9 @@ def build(
         if created_files := weather_worker.work():
             console.print(f"[bold green]Pipeline: created {len(created_files)} weather variant(s)[/bold green]")
 
-    console.print(WORK_DONE_MESSAGE)
+    console.print(t("msg.work_done"))
     if pause:
-        input(PAUSE_MESSAGE)
+        input(t("help.pause_msg"))
 
 
 @app.command(no_args_is_help=True)
@@ -615,7 +617,7 @@ def extract(
     console.print(f"[bold green]veaf-tools VEAF mission extractor v{VERSION}[/bold green]")
 
     if readme:
-        if typer.confirm(CONFIRM_DISPLAY_DOC):
+        if typer.confirm(t("help.confirm_doc")):
             md_render = Markdown(MissionExtractorREADME)
             console.print(md_render)
         exit()
@@ -637,9 +639,9 @@ def extract(
     worker = MissionExtractorWorker(mission_folder=p_mission_folder, input_mission_path=p_input_mission)
     worker.work()
 
-    console.print(WORK_DONE_MESSAGE)
+    console.print(t("msg.work_done"))
     if pause:
-        input(PAUSE_MESSAGE)
+        input(t("help.pause_msg"))
 
 
 @app.command(no_args_is_help=True)
@@ -667,7 +669,7 @@ def convert(
     console.print(f"[bold green]veaf-tools VEAF mission converter v{VERSION}[/bold green]")
 
     if readme:
-        if typer.confirm(CONFIRM_DISPLAY_DOC):
+        if typer.confirm(t("help.confirm_doc")):
             md_render = Markdown(MissionConverterREADME)
             console.print(md_render)
         exit()
@@ -711,9 +713,9 @@ def convert(
     )
     worker.work()
 
-    console.print(WORK_DONE_MESSAGE)
+    console.print(t("msg.work_done"))
     if pause:
-        input(PAUSE_MESSAGE)
+        input(t("help.pause_msg"))
 
 
 @app.command(no_args_is_help=True)
@@ -740,7 +742,7 @@ def inject_presets(
     console.print(f"[bold green]veaf-tools Radio Presets Injector v{VERSION}[/bold green]")
 
     if readme:
-        if typer.confirm(CONFIRM_DISPLAY_DOC):
+        if typer.confirm(t("help.confirm_doc")):
             md_render = Markdown(PresetsInjectorREADME)
             console.print(md_render)
         exit()
@@ -767,9 +769,9 @@ def inject_presets(
     )
     worker.work()
 
-    console.print(WORK_DONE_MESSAGE)
+    console.print(t("msg.work_done"))
     if pause:
-        input(PAUSE_MESSAGE)
+        input(t("help.pause_msg"))
 
 
 @app.command(no_args_is_help=True)
@@ -810,7 +812,7 @@ def extract_aircraft_groups(
     console.print(f"[bold green]veaf-tools Aircraft Groups Extractor v{VERSION}[/bold green]")
 
     if readme:
-        if typer.confirm(CONFIRM_DISPLAY_DOC):
+        if typer.confirm(t("help.confirm_doc")):
             md_render = Markdown(AircraftGroupsExtractorREADME)
             console.print(md_render)
         exit()
@@ -854,9 +856,9 @@ def extract_aircraft_groups(
 
     worker.extract(interactive=interactive)
 
-    console.print(WORK_DONE_MESSAGE)
+    console.print(t("msg.work_done"))
     if pause:
-        input(PAUSE_MESSAGE)
+        input(t("help.pause_msg"))
 
 
 @app.command(no_args_is_help=True)
@@ -926,7 +928,7 @@ def inject_aircraft_groups(
     if not is_valid:
         console.print("[bold red]✗ YAML validation failed. Please fix the errors before injection.[/bold red]")
         if pause:
-            input(PAUSE_MESSAGE)
+            input(t("help.pause_msg"))
         exit(1)
 
     console.print("[bold green]✓ YAML validation successful![/bold green]\n")
@@ -948,9 +950,9 @@ def inject_aircraft_groups(
     else:
         console.print(f"[bold yellow]⚠ Injection completed: {result.message}[/bold yellow]")
 
-    console.print(WORK_DONE_MESSAGE)
+    console.print(t("msg.work_done"))
     if pause:
-        input(PAUSE_MESSAGE)
+        input(t("help.pause_msg"))
 
 
 @app.command(no_args_is_help=True)
@@ -991,7 +993,7 @@ def extract_waypoints(
     console.print(f"[bold green]veaf-tools Waypoints Extractor v{VERSION}[/bold green]")
 
     if readme:
-        if typer.confirm(CONFIRM_DISPLAY_DOC):
+        if typer.confirm(t("help.confirm_doc")):
             md_render = Markdown(WaypointsExtractorREADME)
             console.print(md_render)
         exit()
@@ -1035,9 +1037,9 @@ def extract_waypoints(
 
     worker.extract(interactive=interactive)
 
-    console.print(WORK_DONE_MESSAGE)
+    console.print(t("msg.work_done"))
     if pause:
-        input(PAUSE_MESSAGE)
+        input(t("help.pause_msg"))
 
 
 @app.command(no_args_is_help=True)
@@ -1066,7 +1068,7 @@ def inject_waypoints(
     console.print(f"[bold green]veaf-tools Waypoints Injector v{VERSION}[/bold green]")
 
     if readme:
-        if typer.confirm(CONFIRM_DISPLAY_DOC):
+        if typer.confirm(t("help.confirm_doc")):
             md_render = Markdown(WaypointsInjectorREADME)
             console.print(md_render)
         exit()
@@ -1098,9 +1100,9 @@ def inject_waypoints(
     )
     worker.work()
 
-    console.print(WORK_DONE_MESSAGE)
+    console.print(t("msg.work_done"))
     if pause:
-        input(PAUSE_MESSAGE)
+        input(t("help.pause_msg"))
 
 
 @app.command(no_args_is_help=True)
@@ -1126,7 +1128,7 @@ def inject_weather(
     console.print(f"[bold green]veaf-tools Weather and Time Versions v{VERSION}[/bold green]")
 
     if readme:
-        if typer.confirm(CONFIRM_DISPLAY_DOC):
+        if typer.confirm(t("help.confirm_doc")):
             md_render = Markdown(WheatherInjectorREADME)
             console.print(md_render)
         exit()
@@ -1143,12 +1145,12 @@ def inject_weather(
                 p_config_file = yaml_file
             else:
                 if pause:
-                    input(PAUSE_MESSAGE)
+                    input(t("help.pause_msg"))
                 return
         else:
             logger.error("Failed to convert Lua configuration")
             if pause:
-                input(PAUSE_MESSAGE)
+                input(t("help.pause_msg"))
             return
 
     if not p_config_file.exists():
@@ -1164,9 +1166,9 @@ def inject_weather(
         for file_path in created_files:
             console.print(f"  - {file_path.name}")
 
-    console.print(WORK_DONE_MESSAGE)
+    console.print(t("msg.work_done"))
     if pause:
-        input(PAUSE_MESSAGE)
+        input(t("help.pause_msg"))
 
 
 @app.command()
@@ -1198,9 +1200,9 @@ def generate_config(
     output_file.write_text(content, encoding="utf-8")
     console.print(f"[bold green]Generated:[/bold green] {output_file}")
 
-    console.print(WORK_DONE_MESSAGE)
+    console.print(t("msg.work_done"))
     if pause:
-        input(PAUSE_MESSAGE)
+        input(t("help.pause_msg"))
 
 
 @app.command(no_args_is_help=True)
@@ -1290,9 +1292,9 @@ def migrate_config(
         console.print("\n[bold cyan]lua_modules YAML snippet (paste into mission.yaml):[/bold cyan]")
         console.print(result.yaml_snippet)
 
-    console.print(WORK_DONE_MESSAGE)
+    console.print(t("msg.work_done"))
     if pause:
-        input(PAUSE_MESSAGE)
+        input(t("help.pause_msg"))
 
 
 @app.command(no_args_is_help=True)
@@ -1511,9 +1513,9 @@ def convert_v5(
     p_report.write_text(markdown_report, encoding="utf-8")
     console.print(f"[bold green]Conversion report saved:[/bold green] {p_report}")
 
-    console.print(WORK_DONE_MESSAGE)
+    console.print(t("msg.work_done"))
     if pause:
-        input(PAUSE_MESSAGE)
+        input(t("help.pause_msg"))
 
 
 if __name__ == "__main__":

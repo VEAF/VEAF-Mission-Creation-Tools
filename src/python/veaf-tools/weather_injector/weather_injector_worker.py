@@ -7,6 +7,7 @@ from typing import Any
 
 import yaml
 from mission_tools import read_miz, write_miz
+from veaf_libs.i18n import t
 from veaf_libs.logger import logger
 
 from .models import MissionConfig, VersionConfig
@@ -53,14 +54,14 @@ class WeatherInjectorWorker:
         Returns:
             List of created mission file paths
         """
-        logger.info(f"Loading configuration from {self.config_file}")
+        logger.info(t("weather.loading_config", path=self.config_file))
         self.config = self._load_configuration()
 
         if not self.config:
-            logger.error("Failed to load configuration")
+            logger.error(t("weather.error.load_config"))
             return []
 
-        logger.info(f"Configuration loaded: {len(self.config.versions)} versions to create")
+        logger.info(t("weather.config_loaded", count=len(self.config.versions)))
 
         # Calculate solar times if position specified
         if self.config.position:
@@ -70,15 +71,15 @@ class WeatherInjectorWorker:
         created_files = []
         for i, version in enumerate(self.config.versions, 1):
             try:
-                logger.info(f"[{i}/{len(self.config.versions)}] Creating version: {version.name}")
+                logger.info(t("weather.creating_version", index=i, total=len(self.config.versions), name=version.name))
                 output_path = self._create_mission_version(version)
                 created_files.append(output_path)
-                logger.info(f"Created: {output_path}")
+                logger.info(t("weather.created", path=output_path))
             except Exception as e:
-                logger.error(f"Failed to create version '{version.name}': {e}")
+                logger.error(t("weather.error.version_failed", name=version.name, error=e))
                 continue
 
-        logger.info(f"Created {len(created_files)} mission files")
+        logger.info(t("weather.done", count=len(created_files)))
         return created_files
 
     def _load_configuration(self) -> MissionConfig | None:
@@ -90,13 +91,13 @@ class WeatherInjectorWorker:
             return MissionConfig.from_dict(config_dict)
 
         except FileNotFoundError:
-            logger.error(f"Configuration file not found: {self.config_file}")
+            logger.error(t("weather.error.config_not_found", path=self.config_file))
             return None
-        except yaml.YAMLError as e:
-            logger.error(f"Invalid YAML in configuration file: {e}")
+        except yaml.YAMLError:
+            logger.error(t("weather.error.invalid_yaml", path=self.config_file))
             return None
         except Exception as e:
-            logger.error(f"Failed to load configuration: {e}")
+            logger.error(t("weather.error.load_config", error=e))
             return None
 
     def _calculate_solar_times(self) -> None:
@@ -225,6 +226,7 @@ class WeatherInjectorWorker:
                         wind["speed_mps"] = _CLEARSKY_MAX_WIND_MPS
                 if atm.get("visibility_meters", 9999.0) < 9999.0:
                     atm["visibility_meters"] = 9999.0
+                logger.debug(t("weather.clearsky_applied"))
 
             self._set_mission_weather(weather)
             logger.debug("Weather injected")

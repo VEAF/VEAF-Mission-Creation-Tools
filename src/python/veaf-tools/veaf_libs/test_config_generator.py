@@ -16,6 +16,10 @@ class TestMissionIdentity(unittest.TestCase):
         lua = generate_config_lua({"mission": {"era": "MODERN"}})
         self.assertIn("veaf.config.era = veaf.ERA.MODERN", lua)
 
+    def test_mission_language(self) -> None:
+        lua = generate_config_lua({"mission": {"language": "fr"}})
+        self.assertIn('veaf.config.language = "fr"', lua)
+
     def test_no_mission_section_emits_nothing(self) -> None:
         lua = generate_config_lua({})
         self.assertNotIn("MISSION_NAME", lua)

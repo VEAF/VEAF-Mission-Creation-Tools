@@ -17,6 +17,7 @@ from mission_tools import (
     read_miz,
     write_miz,
 )
+from veaf_libs.i18n import t
 from veaf_libs.logger import logger
 from veaf_libs.lua_config_generator import generate_config_lua
 from veaf_libs.progress import spinner_context
@@ -753,40 +754,40 @@ class MissionBuilderWorker:
         """Main work function."""
 
         # Complete the src folder with default files if they don't exist
-        with spinner_context(f"Completing folder {self.mission_folder} with defaults...", silent=silent):
+        with spinner_context(t("builder.completing_defaults", folder=self.mission_folder), silent=silent):
             self.complete_src_folder_with_defaults()
 
         # Generate veaf-config.lua from mission_yaml / lua_modules / global_log_level if provided
         if self.mission_yaml or self.lua_modules or self.global_log_level:
-            with spinner_context("Generating veaf-config.lua from mission.yaml...", silent=silent):
+            with spinner_context(t("builder.generating_config"), silent=silent):
                 self.write_config_lua()
             # Invalidate cached mission script files so the new file is picked up
             self.collected_mission_script_files = None
 
         # Create the initial mission file
-        with spinner_context(f"Creating mission {self.output_mission}...", silent=silent):
+        with spinner_context(t("builder.creating_mission", output=self.output_mission), silent=silent):
             self.create_mission()
 
         # Load the mission from the .miz file (unzip it) and process aircraft groups
-        with spinner_context(f"Reading mission {self.output_mission}...", silent=silent):
+        with spinner_context(t("builder.reading_mission", output=self.output_mission), silent=silent):
             self.read_mission()
 
         # First, remove all the VEAF triggers
-        with spinner_context("Clearing the existing VEAF triggers...", silent=silent):
+        with spinner_context(t("builder.clearing_triggers"), silent=silent):
             self.clear_veaf_triggers()
 
         # Then, add all the VEAF triggers we need
         if not self.no_veaf_triggers:
-            with spinner_context("Creating the new VEAF triggers...", silent=silent):
+            with spinner_context(t("builder.updating_triggers"), silent=silent):
                 self.insert_all_veaf_triggers()
         elif not silent:
-            logger.info("Skipping VEAF triggers because option '--no-veaf-triggers' was set...")
+            logger.info(t("builder.skip_veaf_triggers"))
 
         # Write the mission file
-        with spinner_context(f"Writing final mission {self.output_mission}...", silent=silent):
+        with spinner_context(t("builder.writing_mission", output=self.output_mission), silent=silent):
             self.write_mission()
 
         if not silent:
-            logger.info(f"Mission file '{self.output_mission}' built from folder '{self.mission_folder}'.")
+            logger.info(t("builder.built", output=self.output_mission, folder=self.mission_folder))
 
         return self.output_mission

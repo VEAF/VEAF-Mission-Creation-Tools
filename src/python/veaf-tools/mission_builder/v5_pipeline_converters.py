@@ -111,19 +111,17 @@ def convert_waypoints(v5_path: Path, v6_path: Path) -> list[str]:
     """
     warnings: list[str] = []
     content = v5_path.read_text(encoding="utf-8")
-    try:
-        data = luadata.unserialize(content, keep_as_dict=["waypoints", "settings"])
-    except Exception as exc:
-        warnings.append(f"Could not parse {v5_path.name}: {exc}")
-        return warnings
 
-    if not isinstance(data, dict):
-        warnings.append(f"{v5_path.name}: unexpected parse result — no output written")
+    waypoints_data = _parse_lua_table(content, "waypoints")
+    settings_data = _parse_lua_table(content, "settings")
+
+    if waypoints_data is None and settings_data is None:
+        warnings.append(f"Could not parse {v5_path.name}: no 'waypoints' or 'settings' tables found")
         return warnings
 
     # ── Waypoints ─────────────────────────────────────────────────────────────
     v6_wps: dict[str, Any] = {}
-    for name, wp in (data.get("waypoints") or {}).items():
+    for name, wp in (waypoints_data or {}).items():
         if not isinstance(wp, dict):
             continue
         v6_wp: dict[str, Any] = {}
@@ -139,7 +137,7 @@ def convert_waypoints(v5_path: Path, v6_path: Path) -> list[str]:
 
     # ── Settings ──────────────────────────────────────────────────────────────
     v6_settings: dict[str, Any] = {}
-    for name, setting in (data.get("settings") or {}).items():
+    for name, setting in (settings_data or {}).items():
         if not isinstance(setting, dict):
             continue
         v6_s: dict[str, Any] = {}
@@ -381,11 +379,7 @@ def convert_weather(
                     f"replace 'TODO' with the actual ICAO code in {v6_path.name}"
                 )
             if target.get("clearsky"):
-                warnings.append(
-                    f"Version '{ver['name']}': clearsky=true has no direct v6 equivalent. "
-                    "The live METAR already reflects current sky conditions; if you need a "
-                    "forced-clear sky, remove airport_icao and set a manual weather block."
-                )
+                ver["clearsky"] = True
         elif weatherfile := target.get("weatherfile"):
             lua_file = v5_path.parent / str(weatherfile)
             weather_params, lua_warns = _parse_dcs_weather_lua(lua_file)

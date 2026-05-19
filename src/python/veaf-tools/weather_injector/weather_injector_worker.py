@@ -208,6 +208,20 @@ class WeatherInjectorWorker:
                     fog_enabled=version.weather.get("fog_enabled", False) if version.weather else False,
                 )
 
+            # Clear sky override: cap to VFR-friendly conditions
+            #   - clouds: max 2 oktas (FEW, type 1) — keep real-weather coverage if lower
+            #   - wind: < 15 kn (7.72 m/s)
+            #   - visibility: CAVOK (>= 9999 m)
+            _CLEARSKY_MAX_WIND_MPS = 7.72  # 15 kn
+            if version.clearsky and "atmosphere" in weather:
+                atm = weather["atmosphere"]
+                if atm["clouds"]["type"] > DCSWeatherConverter.CLOUD_TYPES["few"]:
+                    atm["clouds"]["type"] = DCSWeatherConverter.CLOUD_TYPES["few"]
+                if atm["wind"]["speed_mps"] > _CLEARSKY_MAX_WIND_MPS:
+                    atm["wind"]["speed_mps"] = _CLEARSKY_MAX_WIND_MPS
+                if atm["visibility_meters"] < 9999.0:
+                    atm["visibility_meters"] = 9999.0
+
             self._set_mission_weather(weather)
             logger.debug("Weather injected")
 

@@ -24,6 +24,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 
+from veaf_libs.i18n import t
 from veaf_libs.lua_module_scanner import get_modules
 
 from mission_builder.config_migrator import ConfigMigrator, MigrationResult
@@ -185,13 +186,13 @@ class ConversionReport:
         lines: list[str] = []
 
         lines += [
-            "# VEAF Mission v5 → v6 Conversion Report",
+            f"# {t('report.title')}",
             "",
-            f"*Generated: {self.timestamp} by veaf-tools convert-v5 v{self.version}*",
+            f"*{t('report.generated_by', timestamp=self.timestamp, version=self.version)}*",
             "",
             "---",
             "",
-            "## Mission Folder",
+            f"## {t('report.section.folder')}",
             "",
             f"`{self.mission_folder}`",
             "",
@@ -232,7 +233,7 @@ class ConversionReport:
         lines += ["", "---", ""]
 
         # ── Actions taken ─────────────────────────────────────────────────
-        lines += ["## Actions Taken", ""]
+        lines += [f"## {t('report.section.actions')}", ""]
 
         # missionConfig.lua
         if self.migration_result is not None:
@@ -281,9 +282,9 @@ class ConversionReport:
                 lines.append("")
             else:
                 lines += [
-                    "#### Bare `initialize()` calls",
+                    f"#### {t('report.missionconfig.init_title')}",
                     "",
-                    "*None found — all calls are already inside guards.*",
+                    f"*{t('report.missionconfig.init_none')}*",
                     "",
                 ]
 
@@ -296,9 +297,9 @@ class ConversionReport:
                 ]
         else:
             lines += [
-                "### 1. missionConfig.lua — Skipped",
+                f"### 1. {t('report.missionconfig.skipped')}",
                 "",
-                "*File not found — no Lua config migration was performed.*",
+                f"*{t('report.missionconfig.not_found')}*",
                 "",
             ]
 
@@ -309,12 +310,12 @@ class ConversionReport:
             all_count = len(get_modules())
             disabled_count = all_count - enabled_count
             lines += [
-                "### 2. `mission.yaml` — Generated",
+                f"### 2. `{t('report.mission_yaml.generated')}`",
                 "",
                 f"**File**: `{rel_yaml}`",
                 "",
                 "The file was created with:",
-                "- `global_log_level: debug` — change to `info` or remove before deploying to players",
+                f"- `global_log_level: debug` — {t('report.mission_yaml.log_level_warn')}",
                 f"- `lua_modules:` — {enabled_count} module(s) enabled, {disabled_count} disabled",
             ]
             if self.pipeline_files:
@@ -324,23 +325,23 @@ class ConversionReport:
                     pipeline_summary = ", ".join(f"`{pf.step}: true` ({pf.relative})" for pf in ready)
                     lines.append(f"- `pipeline:` — {pipeline_summary}")
                 else:
-                    lines.append("- `pipeline:` — no v6-ready files detected")
+                    lines.append(f"- `pipeline:` — {t('report.mission_yaml.pipeline_none')}")
                 if needs_conv:
                     conv_summary = ", ".join(f"`{pf.step}` ({pf.relative} → `{pf.v6_target}`)" for pf in needs_conv)
-                    lines.append(f"- ⚠️ Steps with v5 files (need conversion): {conv_summary}")
+                    lines.append(f"- ⚠️ {t('report.mission_yaml.pipeline_v5_warn', steps=conv_summary)}")
             else:
-                lines.append("- `pipeline:` — no pipeline config files detected in `src/`")
+                lines.append(f"- `pipeline:` — {t('report.mission_yaml.pipeline_none')}")
             lines.append("")
         elif self.mission_yaml_existed:
             lines += [
-                "### 2. `mission.yaml` — Skipped",
+                f"### 2. `{t('report.mission_yaml.skipped')}`",
                 "",
                 f"*{self.mission_yaml_skipped_reason}*",
                 "",
             ]
         else:
             lines += [
-                "### 2. `mission.yaml` — Not Generated",
+                f"### 2. `{t('report.mission_yaml.not_generated')}`",
                 "",
                 f"*{self.mission_yaml_skipped_reason or 'Unknown reason.'}*",
                 "",
@@ -348,34 +349,33 @@ class ConversionReport:
 
         # DCS triggers
         lines += [
-            "### 3. DCS Mission Triggers — Automatic",
+            f"### 3. {t('report.section.triggers')}",
             "",
-            "Removal of v5 DCS triggers and injection of v6 triggers happens automatically during",
-            "`veaf-tools build` (`migrate_from_v5` is `True` by default). No action needed here.",
+            t("report.triggers.auto"),
             "",
             "---",
             "",
         ]
 
         # ── Manual review ─────────────────────────────────────────────────
-        lines += ["## What Needs Manual Review", ""]
+        lines += [f"## {t('report.section.review')}", ""]
 
         if self.warnings:
-            lines += [f"### ⚠️ Conversion Warnings ({len(self.warnings)})", ""]
+            lines += [f"### ⚠️ {t('report.warnings.title')} ({len(self.warnings)})", ""]
             for w in self.warnings:
                 lines.append(f"- {w}")
             lines.append("")
         else:
             lines += [
-                "### ⚠️ Conversion Warnings",
+                f"### ⚠️ {t('report.warnings.title')}",
                 "",
-                "*None — the migration completed without warnings.*",
+                f"*{t('report.warnings.none')}*",
                 "",
             ]
 
         # Always include cleanup advice
         lines += [
-            "### 🗑️ v5 Leftovers to Clean Up After Testing",
+            f"### 🗑️ {t('report.cleanup.title')}",
             "",
             "Once the mission builds and runs correctly in DCS, you can:",
             "",
@@ -383,19 +383,14 @@ class ConversionReport:
         cleanup_items: list[str] = []
         if self.missionconfig_backup:
             rel_bak = self.missionconfig_backup.relative_to(self.mission_folder)
-            cleanup_items.append(f"Delete the backup file `{rel_bak}` (once you've verified the migration).")
+            cleanup_items.append(t("report.cleanup.delete_bak", path=rel_bak))
         if self.migration_result and self.migration_result.removed_dofiles:
-            cleanup_items.append(
-                "Remove the commented-out `doFile()` lines from `missionConfig.lua` "
-                "(lines prefixed with `-- [v6 migration]`)."
-            )
+            cleanup_items.append(t("report.cleanup.remove_dofiles"))
         if self.backup_v5_sources:
             backed = ", ".join(f"`backup_v5/{s}`" for s in self.backup_v5_sources)
-            cleanup_items.append(
-                f"Delete the `backup_v5/` folder ({backed}) once the mission is verified working in DCS."
-            )
+            cleanup_items.append(t("report.cleanup.delete_backup_v5", files=backed))
         if not cleanup_items:
-            lines.append("*Nothing to clean up — the migration left no v5 leftovers.*")
+            lines.append(f"*{t('report.cleanup.none')}*")
         else:
             for i, item in enumerate(cleanup_items, 1):
                 lines.append(f"{i}. {item}")
@@ -403,19 +398,19 @@ class ConversionReport:
 
         # ── Next steps ────────────────────────────────────────────────────
         lines += [
-            "## Next Steps",
+            f"## {t('report.section.next_steps')}",
             "",
-            "1. **Review `mission.yaml`** — check that the right modules are enabled and adjust as needed.",
-            "2. **Run `veaf-tools build`** — DCS trigger conversion (v5 → v6) runs automatically.",
-            "3. **Test the mission in DCS** — verify all modules initialize correctly.",
-            "4. **Clean up** — remove the items listed in the section above once everything works.",
+            f"1. {t('report.next_steps.review_yaml')}",
+            f"2. {t('report.next_steps.build')}",
+            f"3. {t('report.next_steps.test')}",
+            f"4. {t('report.next_steps.cleanup')}",
             "",
             "---",
             "",
         ]
 
         # ── Documentation ─────────────────────────────────────────────────
-        lines += ["## Documentation", ""]
+        lines += [f"## {t('report.section.docs')}", ""]
         for title, url in DOC_LINKS.items():
             lines.append(f"- [{title}]({url})")
         lines.append("")

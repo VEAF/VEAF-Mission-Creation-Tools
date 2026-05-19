@@ -22,6 +22,7 @@ from typing import Any
 
 import luadata
 import yaml
+from veaf_libs.i18n import t
 from veaf_libs.logger import logger
 
 # ---------------------------------------------------------------------------
@@ -161,7 +162,7 @@ def convert_waypoints(v5_path: Path, v6_path: Path) -> list[str]:
         return warnings
 
     _yaml_dump(output, v6_path)
-    logger.info(f"Waypoints: {v5_path.name} → {v6_path.name}")
+    logger.info(t("v5convert.waypoints_done", source=v5_path.name, target=v6_path.name))
     return warnings
 
 
@@ -393,7 +394,7 @@ def convert_weather(
     output["versions"] = v6_versions
 
     _yaml_dump(output, v6_path)
-    logger.info(f"Weather: {v5_path.name} → {v6_path.name}")
+    logger.info(t("v5convert.weather_done", source=v5_path.name, target=v6_path.name))
     return warnings
 
 
@@ -565,7 +566,7 @@ def convert_presets(v5_path: Path, v6_path: Path) -> list[str]:
         "presets_assignments": presets_assignments,
     }
     _yaml_dump(output, v6_path)
-    logger.info(f"Presets: {v5_path.name} → {v6_path.name}")
+    logger.info(t("v5convert.presets_done", source=v5_path.name, target=v6_path.name))
     warnings.append(
         f"Review {v6_path.name}: only standard UHF/VHF/FM presets generated. "
         "Warbirds and other special aircraft may need manual presets_assignments entries."
@@ -635,7 +636,7 @@ def convert_aircraft_groups(v5_path: Path, v6_path: Path) -> list[str]:
                 output[v6_cat]["coalitions"][str(coalition)] = v6_coalition
 
     _yaml_dump(output, v6_path)
-    logger.info(f"Aircraft groups: {v5_path.name} → {v6_path.name}")
+    logger.info(t("v5convert.aircraft_done", source=v5_path.name, target=v6_path.name))
     warnings.append(
         f"Aircraft groups structurally converted from {v5_path.name}. "
         "Review the generated YAML: DCS group/unit IDs (groupId, unitId) "

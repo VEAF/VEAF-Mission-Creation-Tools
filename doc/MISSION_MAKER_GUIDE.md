@@ -2,6 +2,8 @@
 
 Guide for creating and managing DCS World missions with VEAF scripts.
 
+> 🌐 [Version française](fr/MISSION_MAKER_GUIDE.md)
+
 ## Table of Contents
 
 - [What is a VEAF Mission?](#what-is-a-veaf-mission)

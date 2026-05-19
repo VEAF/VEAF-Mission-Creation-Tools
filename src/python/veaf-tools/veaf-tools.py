@@ -44,6 +44,7 @@ from mission_extractor import MissionExtractorREADME, MissionExtractorWorker
 from presets_injector import PresetsInjectorREADME, PresetsInjectorWorker
 from rich.markdown import Markdown
 from rich.table import Table
+from veaf_libs.i18n import set_language, t
 from veaf_libs.logger import console, logger
 from veaf_libs.lua_module_scanner import get_modules
 from veaf_libs.tui import run_wizard
@@ -57,23 +58,27 @@ from waypoints_injector import (
 from weather_injector import LuaToYamlConverter, WeatherInjectorWorker, WheatherInjectorREADME
 
 VERSION: str = "6.0.4"
-README_HELP: str = "Provide access to the README file."
-PAUSE_HELP: str = "If set, the script will pause when finished and wait for the user to press a key."
-VERBOSE_HELP: str = "If set, the script will output a lot of debug information."
-PAUSE_MESSAGE: str = "Press Enter to exit..."
+README_HELP: str = t("help.readme")
+PAUSE_HELP: str = t("help.pause")
+VERBOSE_HELP: str = t("help.verbose")
+PAUSE_MESSAGE: str = t("help.pause_msg")
 
 # String constants
 DEFAULT_MISSION_FILE = "mission.miz"
 DEFAULT_PRESETS_FILE = "./src/presets.yaml"
-CONFIRM_DISPLAY_DOC = "Do you want to display the documentation?"
-WORK_DONE_MESSAGE = "[bold blue]Work done![/bold blue]"
+CONFIRM_DISPLAY_DOC = t("help.confirm_doc")
+WORK_DONE_MESSAGE = t("msg.work_done")
 
 app = typer.Typer(no_args_is_help=True)
 
 
 @app.callback()
-def main_callback() -> None:
+def main_callback(
+    lang: str | None = typer.Option(None, "--lang", help=t("help.lang")),
+) -> None:
     """VEAF Tools — DCS World mission management CLI."""
+    if lang:
+        set_language(lang)
     check_for_updates(VERSION, console)
 
 
@@ -134,9 +139,9 @@ def _read_single_char() -> str:
 
 def _ask_replace(relative_path: Path) -> tuple[bool, bool]:
     """Prompt to replace an existing file. Returns (should_replace, yes_to_all)."""
-    sys.stdout.write(f"File already exists: {relative_path}\n")
+    sys.stdout.write(t("file.already_exists", path=relative_path) + "\n")
     while True:
-        sys.stdout.write("Replace it? [y/N/A] ")
+        sys.stdout.write(t("file.replace_prompt"))
         sys.stdout.flush()
         try:
             ch = _read_single_char().lower()
@@ -150,7 +155,7 @@ def _ask_replace(relative_path: Path) -> tuple[bool, bool]:
             return True, False
         if ch in ("n", "\r", "\n", ""):
             return False, False
-        sys.stdout.write("  y = yes, n = no (default), A = yes to all remaining\n")
+        sys.stdout.write(t("file.replace_hint") + "\n")
 
 
 @app.command()

@@ -19,6 +19,7 @@ All the commands feature both `--help` and `--readme` options that display onlin
 """
 
 import shutil
+import sys
 from datetime import datetime
 from pathlib import Path
 
@@ -56,6 +57,16 @@ from waypoints_injector import (
     WaypointsInjectorWorker,
 )
 from weather_injector import LuaToYamlConverter, WeatherInjectorWorker, WheatherInjectorREADME
+
+# Parse --lang early from sys.argv so that --help is also rendered in the
+# requested language (Typer's --help is eager and fires before main_callback).
+for _i, _a in enumerate(sys.argv[1:]):
+    if _a == "--lang" and _i + 1 < len(sys.argv) - 1:
+        set_language(sys.argv[_i + 2])
+        break
+    if _a.startswith("--lang="):
+        set_language(_a.split("=", 1)[1])
+        break
 
 VERSION: str = "6.0.4"
 README_HELP: str = t("help.readme")

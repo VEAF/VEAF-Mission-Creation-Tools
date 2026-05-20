@@ -26,10 +26,6 @@ requests = ">=2.28,<3"
 [tool.poetry.scripts]
 veaf-build = "veaf_build:main"
 
-[tool.poetry.extras]
-# lua extra kept for backward compatibility with existing pyproject.toml references
-lua = ["lupa"]
-
 [tool.poetry.group.dev.dependencies]
 ruff = ">=0.4"
 mypy = ">=1.8"

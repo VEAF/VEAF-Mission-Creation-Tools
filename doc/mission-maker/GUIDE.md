@@ -1,6 +1,6 @@
 # Mission Maker Guide — VEAF Mission Creation Tools
 
-> 🇫🇷 [Lire ce guide en français](fr/GUIDE.md)
+> 🇫🇷 [Lire ce guide en français](GUIDE.md)
 
 This guide is for DCS World mission designers who want to integrate the VEAF framework into their missions.
 

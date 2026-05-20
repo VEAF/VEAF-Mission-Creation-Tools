@@ -358,4 +358,4 @@ Oui, ajouter `side blue` à n'importe quelle commande de spawn.
 
 ---
 
-*Voir aussi : [Guide du créateur de mission](../../mission-maker/fr/GUIDE.md) pour la référence complète du créateur.*
+*Voir aussi : [Guide du créateur de mission](../mission-maker/GUIDE.md) pour la référence complète du créateur.*

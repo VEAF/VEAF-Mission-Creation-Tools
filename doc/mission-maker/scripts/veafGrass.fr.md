@@ -56,4 +56,4 @@ VeafGrassRunway:new()
 ## Voir aussi
 
 - [veafAssets](veafAssets.md) — pour les ravitailleurs et AWACS gérés aux bases régulières
-- [Référence API Lua](../../../LUA_API_REFERENCE.md) — API complète de `veafGrass`
+- [Référence API Lua](../../LUA_API_REFERENCE.md) — API complète de `veafGrass`

@@ -78,4 +78,4 @@ veafMove.moveTanker("KC-135 Texaco", startPoint, endPoint, 7000, 430)
 ## Voir aussi
 
 - [veafSpawn](veafSpawn.md) — faire apparaître de nouvelles unités
-- [Référence API Lua](../../../LUA_API_REFERENCE.md) — API complète de `veafMove`
+- [Référence API Lua](../../LUA_API_REFERENCE.md) — API complète de `veafMove`

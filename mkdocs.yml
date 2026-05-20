@@ -30,6 +30,37 @@ theme:
     - search.suggest
     - content.code.copy
 
+plugins:
+  - search:
+      lang:
+        - en
+        - fr
+  - i18n:
+      docs_structure: suffix
+      languages:
+        - locale: en
+          default: true
+          name: English
+          build: true
+        - locale: fr
+          name: Français
+          build: true
+          nav_translations:
+            Home: Accueil
+            Pilot Guide: Guide Pilote
+            Overview: Aperçu
+            Guide: Guide
+            Mission Maker: Créateur de Mission
+            Migration Guide: Guide de Migration
+            Scripts: Scripts
+            Developer: Développeur
+            References: Références
+            Tools Reference: Référence des outils
+            Lua API Reference: Référence de l'API Lua
+            User Guide: Guide utilisateur
+            Roadmap: Feuille de route
+            Testing: Tests
+
 extra:
   version:
     provider: mike
@@ -40,12 +71,10 @@ nav:
   - Pilot Guide:
     - Overview: pilot/README.md
     - Guide: pilot/GUIDE.md
-    - "Guide (Français)": pilot/fr/GUIDE.md
   - Mission Maker:
     - Overview: mission-maker/README.md
     - Guide: mission-maker/GUIDE.md
     - Migration Guide: mission-maker/MIGRATION_GUIDE.md
-    - "Guide (Français)": mission-maker/fr/GUIDE.md
     - Scripts:
       - Overview: mission-maker/scripts/README.md
       - veafAirWaves: mission-maker/scripts/veafAirWaves.md
@@ -66,30 +95,9 @@ nav:
       - veafSpawn: mission-maker/scripts/veafSpawn.md
       - veafTransportMission: mission-maker/scripts/veafTransportMission.md
       - veafWeather: mission-maker/scripts/veafWeather.md
-    - "Scripts (Français)":
-      - Overview: mission-maker/fr/scripts/README.md
-      - veafAirWaves: mission-maker/fr/scripts/veafAirWaves.md
-      - veafAirbases: mission-maker/fr/scripts/veafAirbases.md
-      - veafAssets: mission-maker/fr/scripts/veafAssets.md
-      - veafCarrierOperations: mission-maker/fr/scripts/veafCarrierOperations.md
-      - veafCasMission: mission-maker/fr/scripts/veafCasMission.md
-      - veafCombatZone: mission-maker/fr/scripts/veafCombatZone.md
-      - veafGrass: mission-maker/fr/scripts/veafGrass.md
-      - veafHoundElintHelper: mission-maker/fr/scripts/veafHoundElintHelper.md
-      - veafMissileGuardian: mission-maker/fr/scripts/veafMissileGuardian.md
-      - veafMove: mission-maker/fr/scripts/veafMove.md
-      - veafNamedPoints: mission-maker/fr/scripts/veafNamedPoints.md
-      - veafQraManager: mission-maker/fr/scripts/veafQraManager.md
-      - veafSanctuary: mission-maker/fr/scripts/veafSanctuary.md
-      - veafSecurity: mission-maker/fr/scripts/veafSecurity.md
-      - veafSkynetIadsHelper: mission-maker/fr/scripts/veafSkynetIadsHelper.md
-      - veafSpawn: mission-maker/fr/scripts/veafSpawn.md
-      - veafTransportMission: mission-maker/fr/scripts/veafTransportMission.md
-      - veafWeather: mission-maker/fr/scripts/veafWeather.md
   - Developer:
     - Overview: developer/README.md
     - Guide: developer/GUIDE.md
-    - "Guide (Français)": developer/fr/GUIDE.md
   - References:
     - Tools Reference: TOOLS_REFERENCE.md
     - Lua API Reference: LUA_API_REFERENCE.md

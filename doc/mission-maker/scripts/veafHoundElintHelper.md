@@ -1,6 +1,6 @@
 # veafHoundElintHelper — Hound ELINT Integration
 
-> 🇫🇷 [Version française](../fr/scripts/veafHoundElintHelper.md)
+> 🇫🇷 [Version française](veafHoundElintHelper.md)
 
 **Module ID:** — | **File:** `veafHoundElintHelper.lua`
 

@@ -162,4 +162,4 @@ groups:
 ## Voir aussi
 
 - [veafMove](veafMove.md) — déplacer des groupes existants
-- [Référence API Lua](../../../LUA_API_REFERENCE.md) — API complète de `veafSpawn`
+- [Référence API Lua](../../LUA_API_REFERENCE.md) — API complète de `veafSpawn`

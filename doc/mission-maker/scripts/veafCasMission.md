@@ -1,6 +1,6 @@
 # veafCasMission — CAS Training Generator
 
-> 🇫🇷 [Version française](../fr/scripts/veafCasMission.md)
+> 🇫🇷 [Version française](veafCasMission.md)
 
 **Module ID:** `CASMISSION` | **Version:** 1.15.x | **File:** `veafCasMission.lua`
 

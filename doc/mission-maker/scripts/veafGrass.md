@@ -1,6 +1,6 @@
 # veafGrass — Grass Airstrip Configuration
 
-> 🇫🇷 [Version française](../fr/scripts/veafGrass.md)
+> 🇫🇷 [Version française](veafGrass.md)
 
 **Module ID:** — | **File:** `veafGrass.lua`
 

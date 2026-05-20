@@ -79,4 +79,4 @@ local transportMission = VeafTransportMission:new()
 ## Voir aussi
 
 - [veafCombatZone](veafCombatZone.md) — pour les zones d'objectif de combat
-- [Référence API Lua](../../../LUA_API_REFERENCE.md) — API complète de `veafTransportMission`
+- [Référence API Lua](../../LUA_API_REFERENCE.md) — API complète de `veafTransportMission`

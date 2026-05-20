@@ -1,6 +1,6 @@
 # veafMove — Unit Movement and Tanker Route Management
 
-> 🇫🇷 [Version française](../fr/scripts/veafMove.md)
+> 🇫🇷 [Version française](veafMove.md)
 
 **Module ID:** `MOVE` | **Version:** — | **File:** `veafMove.lua`
 

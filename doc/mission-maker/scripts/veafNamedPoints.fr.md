@@ -80,4 +80,4 @@ _spawn convoy, dest Alpha, speed 40
 ## Voir aussi
 
 - [veafSpawn](veafSpawn.md) — utilise les points nommés pour les destinations de convois
-- [Référence API Lua](../../../LUA_API_REFERENCE.md) — API complète de `veafNamedPoints`
+- [Référence API Lua](../../LUA_API_REFERENCE.md) — API complète de `veafNamedPoints`

@@ -97,4 +97,4 @@ AirWaveZone:new()
 
 - [veafQraManager](veafQraManager.md) — système de scramble défensif
 - [veafCombatZone](veafCombatZone.md) — zones de combat terrestres
-- [Référence API Lua](../../../LUA_API_REFERENCE.md) — API complète de `veafAirWaves`
+- [Référence API Lua](../../LUA_API_REFERENCE.md) — API complète de `veafAirWaves`

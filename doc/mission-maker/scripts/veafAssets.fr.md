@@ -99,4 +99,4 @@ Pour chaque ressource, un sous-menu est créé sous **F10 → Ressources** :
 ## Voir aussi
 
 - [veafCarrierOperations](veafCarrierOperations.md) — gestion des récupérations sur porte-avions
-- [Référence API Lua](../../../LUA_API_REFERENCE.md) — API complète de `veafAssets`
+- [Référence API Lua](../../LUA_API_REFERENCE.md) — API complète de `veafAssets`

@@ -114,4 +114,4 @@ VeafCombatOperation:new()
 ## Voir aussi
 
 - [veafCasMission](veafCasMission.md) — zones CAS générées (sans groupes pré-placés)
-- [Référence API Lua](../../../LUA_API_REFERENCE.md) — API complète de `veafCombatZone`
+- [Référence API Lua](../../LUA_API_REFERENCE.md) — API complète de `veafCombatZone`

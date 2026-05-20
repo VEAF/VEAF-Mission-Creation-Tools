@@ -89,4 +89,4 @@ Options :
 ## Voir aussi
 
 - [veafCombatZone](veafCombatZone.md) — pour des zones persistantes et rejouables
-- [Référence API Lua](../../../LUA_API_REFERENCE.md) — API complète de `veafCasMission`
+- [Référence API Lua](../../LUA_API_REFERENCE.md) — API complète de `veafCasMission`

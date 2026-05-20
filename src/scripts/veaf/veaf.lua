@@ -786,6 +786,15 @@ function veaf.tableContains(table, element)
   return false
 end
 
+--- Convert a numeric enum value to its string name using a mapping table.
+-- @param value the numeric value to convert
+-- @param mapping a table of { [numericValue] = "STRING_NAME" }
+-- @return the string name, or an empty string if not found
+function veaf.enumToString(value, mapping)
+  if value == nil or mapping == nil then return "" end
+  return mapping[value] or ""
+end
+
 function veaf.lp(value, level, skip, includeMeta, dontRecurse)
   return setmetatable({ _v = value, _level = level, _skip = skip, _includeMeta = includeMeta, _dontRecurse = dontRecurse }, {
     __tostring = function(self)
@@ -1652,19 +1661,6 @@ function veaf.generateVehiclesRoute(startPoint, destination, onRoad, speed, patr
         ["id"] = "ComboTask",
         ["params"] = {
           ["tasks"] = {
-            --sounds good ! doesn't work, pathfinding goes dumb if done this way
-            --[1] =
-            --{
-            --    ["enabled"] = true,
-            --    ["auto"] = false,
-            --    ["id"] = "GoToWaypoint",
-            --    ["number"] = 1,
-            --    ["params"] =
-            --    {
-            --        ["fromWaypointIndex"] = 4,
-            --        ["nWaypointIndx"] = 2,
-            --    }, -- end of ["params"]
-            --}, -- end of [1]
           }, -- end of ["tasks"]
         }, -- end of ["params"]
       }, -- end of ["task"]
@@ -2568,22 +2564,22 @@ end
 
 function veaf.getCountryForCoalition(coalition)
   veaf.loggers.get(veaf.Id):trace("veaf.getCountryForCoalition(coalition=%s)", tostring(coalition))
-  local coalition = coalition
-  if not coalition then
-    coalition = 1
+  local coalitionId = coalition
+  if not coalitionId then
+    coalitionId = 1
   end
 
   local coalitionName = nil
-  if type(coalition) == "number" then
-    if coalition == 1 then
+  if type(coalitionId) == "number" then
+    if coalitionId == 1 then
       coalitionName = "red"
-    elseif coalition == 2 then
+    elseif coalitionId == 2 then
       coalitionName = "blue"
     else
       coalitionName = "neutral"
     end
   else
-    coalitionName = tostring(coalition)
+    coalitionName = tostring(coalitionId)
   end
 
   if coalitionName then
@@ -2934,6 +2930,19 @@ function veaf.safeUnpack(package)
   end
 end
 
+--- Safely call a function with pcall, logging any error.
+-- @param fn the function to call
+-- @param ... arguments to pass to the function
+-- @return the return values of fn, or nil if an error occurred
+function veaf.safeCall(fn, ...)
+  local ok, result = pcall(fn, ...)
+  if not ok then
+    veaf.loggers.get(veaf.Id):error("safeCall caught error: %s", tostring(result))
+    return nil
+  end
+  return result
+end
+
 function veaf.getRandomizableNumeric_random(val)
   veaf.loggers.get(veaf.Id):trace(string.format("getRandomizableNumeric_random(%s)", tostring(val)))
   local MIN = 0
@@ -2972,48 +2981,11 @@ end
 function veaf.getRandomizableNumeric_norandom(val)
   veaf.loggers.get(veaf.Id):trace(string.format("getRandomizableNumeric_norandom(%s)", tostring(val)))
   local nVal = tonumber(val)
-  veaf.loggers.get(veaf.Id):trace(string.format("nVal=%s", tostring(nVal)))
   if nVal == nil then
-    if val == "1-2" then
-      nVal = 2
-    end
-    if val == "1-3" then
-      nVal = 3
-    end
-    if val == "1-4" then
-      nVal = 3
-    end
-    if val == "1-5" then
-      nVal = 3
-    end
-
-    if val == "2-3" then
-      nVal = 2
-    end
-    if val == "2-4" then
-      nVal = 3
-    end
-    if val == "2-5" then
-      nVal = 3
-    end
-
-    if val == "3-4" then
-      nVal = 3
-    end
-    if val == "3-5" then
-      nVal = 4
-    end
-
-    if val == "4-5" then
-      nVal = 4
-    end
-
-    if val == "5-10" then
-      nVal = 7
-    end
-
-    if val == "10-15" then
-      nVal = 12
+    -- Parse "lower-upper" range and return the midpoint (floor)
+    local lower, upper = tostring(val):match("^(%d+)%-(%d+)$")
+    if lower and upper then
+      nVal = math.floor((tonumber(lower) + tonumber(upper)) / 2)
     end
   end
   veaf.loggers.get(veaf.Id):trace(string.format("nVal=%s", tostring(nVal)))

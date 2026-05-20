@@ -1,6 +1,6 @@
 """README content for weather_and_time_versions module."""
 
-WheatherInjectorREADME = """
+WeatherInjectorREADME = """
 # Weather and Time Versions
 
 Create multiple versions of a DCS mission with different weather conditions and start times using a YAML configuration file.

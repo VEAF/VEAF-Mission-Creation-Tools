@@ -17,7 +17,7 @@
 veafGroundAI = {}
 
 --- Identifier. All output in the log will start with this.
-veafGroundAI.Id = "GROUNDAI - "
+veafGroundAI.Id = "GROUNDAI"
 
 --- Version.
 veafGroundAI.Version = "1.0.1"
@@ -80,16 +80,11 @@ function GroundUnitHandler.init(object)
 end
 
 function GroundUnitHandler.statusToString(status)
-  if status == GroundUnitHandler.STATUS_READY then
-    return "STATUS_READY"
-  end
-  if status == GroundUnitHandler.STATUS_ACTIVE then
-    return "STATUS_ACTIVE"
-  end
-  if status == GroundUnitHandler.STATUS_OVER then
-    return "STATUS_OVER"
-  end
-  return ""
+  return veaf.enumToString(status, {
+    [GroundUnitHandler.STATUS_READY] = "STATUS_READY",
+    [GroundUnitHandler.STATUS_ACTIVE] = "STATUS_ACTIVE",
+    [GroundUnitHandler.STATUS_OVER] = "STATUS_OVER",
+  })
 end
 
 GroundUnitHandler.STATUS_READY = 1
@@ -274,7 +269,7 @@ function GroundUnitHandler:check()
   end
 
   -- reschedule the check function
-  self:setCheckFunctionSchedule(mist.scheduleFunction(GroundUnitHandler.check, { self }, timer.getTime() + veafGroundAI.WATCHDOG_DELAY))
+  self:setCheckFunctionSchedule(mist.scheduleFunction(function(handler) veaf.safeCall(GroundUnitHandler.check, handler) end, { self }, timer.getTime() + veafGroundAI.WATCHDOG_DELAY))
 end
 
 function GroundUnitHandler:start()

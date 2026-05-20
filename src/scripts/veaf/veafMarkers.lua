@@ -24,8 +24,8 @@ veafMarkers.Version = "1.1.1"
 --- DCS bug regarding wrong marker vector components was fixed. If so, set to true!
 veafMarkers.DCSbugfixed = true
 
--- trace level, specific to this module
-veafMarkers.LogLevel = "trace"
+-- trace level, specific to this module (uncomment for debugging)
+--veafMarkers.LogLevel = "trace"
 
 veaf.loggers.new(veafMarkers.Id, veafMarkers.LogLevel)
 

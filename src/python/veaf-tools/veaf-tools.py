@@ -21,6 +21,8 @@ All the commands feature both `--help` and `--readme` options that display onlin
 import shutil
 import sys
 from datetime import datetime
+from importlib.metadata import PackageNotFoundError
+from importlib.metadata import version as _pkg_version
 from pathlib import Path
 
 import typer
@@ -47,6 +49,7 @@ from rich.markdown import Markdown
 from rich.table import Table
 from veaf_libs.i18n import set_language, t
 from veaf_libs.logger import console, logger
+from veaf_libs.paths import resolve_path
 from veaf_libs.lua_module_scanner import get_modules
 from veaf_libs.tui import run_wizard
 from veaf_libs.update_checker import check_for_updates
@@ -56,7 +59,7 @@ from waypoints_injector import (
     WaypointsInjectorREADME,
     WaypointsInjectorWorker,
 )
-from weather_injector import LuaToYamlConverter, WeatherInjectorWorker, WheatherInjectorREADME
+from weather_injector import LuaToYamlConverter, WeatherInjectorWorker, WeatherInjectorREADME
 
 # Parse --lang early from sys.argv so that --help is also rendered in the
 # requested language (Typer's --help is eager and fires before main_callback).
@@ -68,7 +71,10 @@ for _i, _a in enumerate(sys.argv[1:]):
         set_language(_a.split("=", 1)[1])
         break
 
-VERSION: str = "6.0.4"
+try:
+    VERSION: str = _pkg_version("veaf-tools")
+except PackageNotFoundError:
+    VERSION: str = "6.0.5"  # Fallback; overwritten by the build process at compile time.
 README_HELP: str = t("help.readme")
 PAUSE_HELP: str = t("help.pause")
 VERBOSE_HELP: str = t("help.verbose")
@@ -88,35 +94,6 @@ def main_callback(
     if lang:
         set_language(lang)
     check_for_updates(VERSION, console)
-
-
-def resolve_path(
-    path: str | Path | None = None,
-    default_path: str | Path | None = None,
-    should_exist: bool = False,
-    create_if_not_exist: bool = False,
-) -> Path:
-    """Resolve and validate a file path."""
-    if not path and default_path:
-        result = Path(default_path)
-    elif path:
-        result = Path(path)
-    else:
-        logger.error(message="Either path or default_path must be provided", exception_type=ValueError)
-
-    result = result.resolve()
-
-    if create_if_not_exist and not result.exists():
-        result.parent.mkdir(parents=True, exist_ok=True)
-        if not result.suffix:
-            # It's a directory
-            result.mkdir(exist_ok=True)
-
-    if should_exist and not result.exists():
-        logger.error(f"Path does not exist: {result}")
-        exit(-1)
-
-    return result
 
 
 def _read_single_char() -> str:
@@ -1140,7 +1117,7 @@ def inject_weather(
 
     if readme:
         if typer.confirm(t("help.confirm_doc")):
-            md_render = Markdown(WheatherInjectorREADME)
+            md_render = Markdown(WeatherInjectorREADME)
             console.print(md_render)
         exit()
 

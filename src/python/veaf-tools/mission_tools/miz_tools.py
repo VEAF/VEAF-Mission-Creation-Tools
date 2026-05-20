@@ -189,8 +189,9 @@ def write_miz(mission: DcsMission, miz_file_path: Path | None, additional_files:
             with contextlib.suppress(OSError):
                 os.unlink(temp_zip_path)
             logger.exception(e)
+            temp_zip_path = None  # Prevent replacing the original with a broken temp file
 
-    # Move temp file to final location
+    # Move temp file to final location (only if write succeeded)
     if temp_zip_path:
         os.replace(temp_zip_path, miz_file_path)
 

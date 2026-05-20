@@ -7,7 +7,7 @@
 
 Complete toolkit for creating dynamic [DCS World][DCS] missions using VEAF Lua scripts and automation tools.
 
-**License:** [MIT](LICENSE.md) | **Version:** see [RELEASE_NOTES.md](RELEASE_NOTES.md)
+**License:** [MIT](LICENSE.md) | **Version:** see [CHANGELOG.md](CHANGELOG.md)
 
 ---
 

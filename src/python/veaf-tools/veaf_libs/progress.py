@@ -16,7 +16,7 @@ from .logger import console, logger
 # Ensure UTF-8 output on Windows and other platforms
 if sys.platform == "win32":
     # On Windows, reconfigure stdout to use UTF-8 if possible
-    if sys.stdout and not sys.stdout.encoding or sys.stdout.encoding.lower() not in ("utf-8", "utf8"):
+    if sys.stdout and (not sys.stdout.encoding or sys.stdout.encoding.lower() not in ("utf-8", "utf8")):
         try:
             # Try to use UTF-8 for console output
             sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")

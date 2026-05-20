@@ -965,6 +965,11 @@ Cela débloque les tests unitaires des state machines (QRA, AirWaves).
 - **Contre** : Complexifie le workflow (GPG keys), freine les contributeurs occasionnels
 - **Recommandation** : Au minimum, signer les tags de release (pas tous les commits)
 
+**DISC-012 — Branch protection rules**
+- **Pour** : Empêche les push directs sur `develop-v6` et `main`, garantit que le CI passe avant tout merge. Standard pour tout projet collaboratif.
+- **Contre** : Peut bloquer des hotfixes urgents si le CI est cassé pour une raison externe
+- **Recommandation** : Activer sur `develop-v6` et `main` — require 1 review + CI vert. Garder un escape hatch admin pour les urgences.
+
 **DISC-013 — Changelog automation**
 - **Pour** : Plus d'oublis, changelog toujours à jour
 - **Contre** : Impose conventional commits (`feat:`, `fix:`, `chore:`) — changement d'habitude
@@ -975,9 +980,26 @@ Cela débloque les tests unitaires des state machines (QRA, AirWaves).
 - **Contre** : Complexité GitHub Pages, maintenance de branches docs
 - **Recommandation** : Reporter — pertinent quand il y aura des breaking changes entre versions
 
+**DISC-015 — SBOM**
+- **Pour** : Le projet distribue un `.exe` PyInstaller qui embarque des dizaines de bibliothèques tierces. Un SBOM (`cyclonedx-bom` ou `syft`) permet d'auditer les licences et de détecter des CVEs dans les dépendances embarquées. Standard dans la communauté open-source depuis le décret US 2021.
+- **Contre** : Peu d'utilisateurs VEAF ne vont pas auditer le SBOM. Overhead de génération et de publication.
+- **Recommandation** : Générer le SBOM en artifact CI sans le publier obligatoirement — coût quasi-nul, utilisable si besoin.
+
 **DISC-016 — Deprecation warnings Lua**
 - **Pour** : Migration douce quand des fonctions sont renommées/supprimées
 - **Contre** : Overhead (wrapper chaque fonction deprecated)
 - **Recommandation** : Utile surtout pour LUAR-001 (split veafSpawn) — implémenter quand le refactoring commence
+
+**DISC-017 — Secret scanning**
+- **Pour** : Détecte les API keys, tokens, mots de passe accidentellement commités. GitHub secret scanning est gratuit sur les repos publics et couvre des centaines de patterns (AWS, GCP, GitHub tokens, etc.). `gitleaks` en CI ajoute une couche pour les secrets maison.
+- **Contre** : Faux positifs possibles (ex : clés DCS dans les fichiers de mission). Configuration du `.gitleaksignore` nécessaire.
+- **Recommandation** : Activer GitHub secret scanning (zéro coût, zéro configuration). `gitleaks` en CI est optionnel — à voir si les faux positifs sont gérables.
+
+**DISC-018 — Monorepo workspace Poetry**
+- **Situation actuelle** : `veaf_build` est inclus comme sous-package dans `veaf-tools` via `packages = [{include = "veaf_build"}]`. Les deux partagent le même `pyproject.toml` et le même environnement virtuel, alors qu'ils ont des rôles distincts (outil mission vs toolchain de build/release).
+- **Ce que proposerait DISC-018** : Utiliser le support workspace de Poetry 2.x pour créer deux packages indépendants — `veaf-tools` (CLI mission) et `veaf-build` (toolchain) — avec leurs propres dépendances. `pyinstaller` quitterait le groupe `build` pour devenir une vraie dépendance de `veaf-build` uniquement.
+- **Pour** : Séparation des responsabilités, dépendances distinctes, versioning indépendant possible.
+- **Contre** : Refactoring non trivial des imports, Poetry workspace est une fonctionnalité récente (2.0+) dont la maturité reste à confirmer.
+- **Recommandation** : Reporter après stabilisation — le gain est réel mais le coût est élevé pour un projet sans contributeurs multiples sur les deux packages simultanément.
 
 </details>

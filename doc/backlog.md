@@ -876,8 +876,8 @@ Cela débloque les tests unitaires des state machines (QRA, AirWaves).
 ## Lot 13 — DISCUSS: Standards industrie — à évaluer et décider
 
 **Goal**: Évaluer les standards industrie manquants et décider lesquels adopter. Chaque ticket est un point de discussion/décision avant implémentation éventuelle.
-**Branch**: `feature/disc-wave2` (PR #319 mergée)
-**Statut**: 🟢 DISC-003/004/005/006/007/009/010/012/017 implémentés — autres tickets encore à discuter
+**Branch**: `feature/disc-wave3` (PR #320 mergée)
+**Statut**: 🟢 DISC-001/002/003/004/005/006/007/009/010/011/012/013/015/017 implémentés — DISC-008/014/016/018 encore à décider
 
 | # | Ticket | Sujet | Type | Effort si adopté | Status |
 |---|--------|-------|------|-----------------|--------|

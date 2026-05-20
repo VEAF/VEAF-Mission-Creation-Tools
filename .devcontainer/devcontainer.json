@@ -1,0 +1,47 @@
+{
+  "name": "VEAF Mission Creation Tools",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": ".."
+  },
+
+  // Poetry creates the venv inside the project → VS Code auto-detects .venv/bin/python
+  "containerEnv": {
+    "POETRY_VIRTUALENVS_IN_PROJECT": "true"
+  },
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        // Python
+        "ms-python.python",
+        "ms-python.pylance",
+        "charliermarsh.ruff",
+        // Lua
+        "sumneko.lua",
+        "JohnnyMorganz.stylua"
+      ],
+      "settings": {
+        // Pick up the venv created by `poetry install`
+        "python.defaultInterpreterPath": "/workspace/.venv/bin/python",
+        "[python]": {
+          "editor.defaultFormatter": "charliermarsh.ruff",
+          "editor.formatOnSave": true
+        },
+        "[lua]": {
+          "editor.defaultFormatter": "JohnnyMorganz.stylua",
+          "editor.formatOnSave": true
+        },
+        // Point StyLua extension to the binary installed in the container
+        "stylua.styluaPath": "/usr/local/bin/stylua"
+      }
+    }
+  },
+
+  // Install all Python dependencies after the container is created
+  // --without build: skip pyinstaller (only needed to produce the .exe)
+  // --all-extras: install lupa (needed by luadata / miz_tools tests)
+  "postCreateCommand": "poetry install --without build --all-extras",
+
+  "remoteUser": "vscode"
+}

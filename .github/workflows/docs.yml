@@ -43,19 +43,17 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
       - name: Configure external docs remote
-        # GitHub Actions sets an http.extraheader with GITHUB_TOKEN for all github.com
-        # requests, which overrides credentials embedded in remote URLs. We scope the
-        # PAT as an extraheader specifically for the external repo URL to ensure it is
-        # used instead of GITHUB_TOKEN when mike pushes to the docs repo.
+        # actions/checkout injects GITHUB_TOKEN as a global http.extraheader for
+        # all github.com URLs. Git accumulates multiple matching extraheaders, so
+        # both the GITHUB_TOKEN and our PAT would be sent — and GITHUB_TOKEN wins.
+        # Solution: unset the global header first, then use PAT in the remote URL.
         env:
           DOCS_DEPLOY_TOKEN: ${{ secrets.DOCS_DEPLOY_TOKEN }}
         run: |
-          ENCODED=$(echo -n "x-access-token:${DOCS_DEPLOY_TOKEN}" | base64 -w0)
-          git config --local \
-            "http.https://github.com/VEAF/VEAF-Mission-Creation-Tools-v6.git.extraheader" \
-            "AUTHORIZATION: basic ${ENCODED}"
+          git config --global --unset-all \
+            "http.https://github.com/.extraheader" || true
           git remote add ext-docs \
-            "https://github.com/VEAF/VEAF-Mission-Creation-Tools-v6.git"
+            "https://x-access-token:${DOCS_DEPLOY_TOKEN}@github.com/VEAF/VEAF-Mission-Creation-Tools-v6.git"
           git fetch ext-docs gh-pages --depth=1 || true
 
       - name: Deploy docs (develop-v6 → alias "dev")

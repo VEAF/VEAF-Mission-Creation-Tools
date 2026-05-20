@@ -347,6 +347,29 @@ StyLua version: **2.4.0** (enforced by the `StyLua Formatting` CI job).
 
 Both CI jobs must be green before a PR can be merged.
 
+### Releasing a new version
+
+Release tags **must be GPG-signed** to guarantee supply-chain integrity (the tag drives the exe build and GitHub Release).
+
+```bash
+# 1. Configure Git to sign all tags by default (one-time setup)
+git config --global tag.gpgSign true
+git config --global user.signingKey <YOUR_GPG_KEY_ID>
+
+# 2. Create a signed tag
+git tag -s v6.1.0 -m "Release v6.1.0"
+
+# 3. Push the tag
+git push origin v6.1.0
+```
+
+To verify a tag signature:
+```bash
+git tag -v v6.1.0
+```
+
+> If you don't have a GPG key yet, see [GitHub's guide](https://docs.github.com/en/authentication/managing-commit-signature-verification/generating-a-new-gpg-key).
+
 ---
 
 ## Contributing

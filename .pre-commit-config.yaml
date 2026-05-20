@@ -1,0 +1,42 @@
+repos:
+  # ── Python: ruff (lint + format) ────────────────────────────────────────────
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.11.12
+    hooks:
+      - id: ruff
+        args: [--fix]
+        files: ^src/python/
+      - id: ruff-format
+        files: ^src/python/
+
+  # ── Lua: StyLua formatting ────────────────────────────────────────────────────
+  # Requires StyLua 2.4.0 to be installed: https://github.com/JohnnyMorganz/StyLua/releases
+  - repo: local
+    hooks:
+      - id: stylua
+        name: StyLua
+        language: system
+        entry: stylua
+        args: [--check]
+        files: ^src/scripts/veaf/.*\.lua$
+        types: [file]
+
+  # ── Lua: luacheck (static analysis) ──────────────────────────────────────────
+  # Requires luacheck: sudo apt-get install luacheck  or  luarocks install luacheck
+  - repo: local
+    hooks:
+      - id: luacheck
+        name: luacheck
+        language: system
+        entry: luacheck
+        args: [--config, .luacheckrc]
+        files: ^src/scripts/veaf/.*\.lua$
+        types: [file]
+
+  # ── Security: secret detection ───────────────────────────────────────────────
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.5.0
+    hooks:
+      - id: detect-secrets
+        args: [--baseline, .secrets.baseline]
+        exclude: poetry\.lock

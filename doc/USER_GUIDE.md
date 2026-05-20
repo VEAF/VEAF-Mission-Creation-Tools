@@ -1376,10 +1376,10 @@ When requesting help, include:
 
 ### Documentation
 
-- **[LUA_API_REFERENCE.md](LUA_API_REFERENCE.md)** - Complete technical manual
-- **[developer/GUIDE.md](developer/GUIDE.md)** - Detailed build workflow
-- **[developer/GUIDE.md](developer/GUIDE.md)** - System architecture
-- **[LUA_API_REFERENCE.md](LUA_API_REFERENCE.md)** - Complete API reference
+- **[developer/GUIDE.md](developer/GUIDE.md)** - Complete technical manual, build workflow and system architecture
+- **[LUA_API_REFERENCE.md](LUA_API_REFERENCE.md)** - Complete Lua API reference
+- **[TOOLS_REFERENCE.md](TOOLS_REFERENCE.md)** - CLI tools reference
+- **[TESTING.md](TESTING.md)** - Testing infrastructure
 
 ---
 

@@ -264,12 +264,33 @@ Ce que cela fait :
 
 ### Publier une version
 
+#### Automatisé (recommandé)
+
+Pousser un tag versionné — GitHub Actions fait tout :
+
+```bash
+git tag published-v6.0.6
+git push origin published-v6.0.6
+```
+
+Le workflow CI `release` va :
+1. Générer les notes de release depuis les commits conventionnels (git-cliff)
+2. Construire `veaf-tools.exe`, `veaf-tools-updater.exe` et `published.zip`
+3. Créer la GitHub Release et uploader tous les artefacts
+4. Déplacer le tag flottant `published-latest`
+
+Les notes de release sont auto-générées depuis les messages de commit. Elles sont éditables sur GitHub après la release.
+
+#### Manuel (mode de secours)
+
 ```powershell
+# Build d'abord
+poetry run veaf-build build --version 6.0.5
+
+# Puis publication (interactif — demande RELEASE_NOTES.md)
 # Nécessite la variable d'environnement GITHUB_TOKEN
 poetry run veaf-build publish --version 6.0.5
 ```
-
-Crée un tag Git, une GitHub Release et uploade `published.zip` avec le fichier SHA256.
 
 ### Modèle de sécurité
 
@@ -347,6 +368,7 @@ Luacheck est imposé par le job CI `Luacheck`.
 | `Luacheck` | Aucune variable globale non définie, variable inutilisée ni shadowing dans `src/scripts/veaf/` |
 | `StyLua Formatting` | Aucune violation de formatage dans `src/scripts/veaf/` |
 | `python-quality` | ruff lint + format, mypy types, pytest |
+| `Release` | Déclenché sur push de tag `published-v*` — build et publication sur GitHub |
 
 Tous les jobs CI doivent être verts avant qu'une PR puisse être mergée.
 
@@ -354,26 +376,12 @@ Tous les jobs CI doivent être verts avant qu'une PR puisse être mergée.
 
 ### Publier une nouvelle version
 
-Les tags de release **doivent être signés GPG** pour garantir l'intégrité de la chaîne d'approvisionnement (le tag déclenche la build exe et la GitHub Release).
+Pousser un tag `published-v*` — le workflow CI `Release` fait tout automatiquement :
 
 ```bash
-# 1. Configurer Git pour signer tous les tags par défaut (configuration initiale unique)
-git config --global tag.gpgSign true
-git config --global user.signingKey <VOTRE_ID_CLÉ_GPG>
-
-# 2. Créer un tag signé
-git tag -s v6.1.0 -m "Release v6.1.0"
-
-# 3. Pousser le tag
-git push origin v6.1.0
+git tag published-v6.1.0
+git push origin published-v6.1.0
 ```
-
-Pour vérifier la signature d'un tag :
-```bash
-git tag -v v6.1.0
-```
-
-> Si vous n'avez pas encore de clé GPG, consultez le [guide GitHub](https://docs.github.com/fr/authentication/managing-commit-signature-verification/generating-a-new-gpg-key).
 
 ---
 

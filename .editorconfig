@@ -1,0 +1,49 @@
+# EditorConfig — https://editorconfig.org
+# Enforces consistent coding style across all editors and IDEs.
+root = true
+
+# ── Defaults (all files) ────────────────────────────────────────────────────
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+# ── Python ───────────────────────────────────────────────────────────────────
+# PEP 8 + ruff (line-length = 120 in pyproject.toml)
+[*.py]
+indent_style = space
+indent_size = 4
+
+# ── Lua ──────────────────────────────────────────────────────────────────────
+# .stylua.toml: indent_width = 2, indent_type = Spaces, line_endings = Unix
+[*.lua]
+indent_style = space
+indent_size = 2
+
+# ── Data / config formats ─────────────────────────────────────────────────────
+[*.{json,jsonc}]
+indent_style = space
+indent_size = 2
+
+[*.{yaml,yml}]
+indent_style = space
+indent_size = 2
+
+[*.toml]
+indent_style = space
+indent_size = 4
+
+# ── Markdown ──────────────────────────────────────────────────────────────────
+# Trailing spaces are significant in Markdown (line break = two spaces)
+[*.md]
+trim_trailing_whitespace = false
+
+# ── Shell / PowerShell ────────────────────────────────────────────────────────
+[*.{sh,bash}]
+indent_style = space
+indent_size = 2
+
+[*.{ps1,psm1,psd1}]
+indent_style = space
+indent_size = 4

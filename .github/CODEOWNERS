@@ -1,0 +1,30 @@
+# CODEOWNERS — https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+#
+# Each line is a file pattern followed by one or more owners.
+# The last matching pattern takes precedence.
+# Owners are automatically requested for review when a PR touches their paths.
+
+# ── Global fallback ───────────────────────────────────────────────────────────
+* @davidp57
+
+# ── Lua runtime scripts ───────────────────────────────────────────────────────
+# Primary: davidp57  |  Active contributors: RexAttaque, Flogas, GDuparquet
+/src/scripts/           @davidp57 @RexAttaque
+
+# ── Python tools ─────────────────────────────────────────────────────────────
+/src/python/            @davidp57
+/veaf_build/            @davidp57
+/pyproject.toml         @davidp57
+/poetry.lock            @davidp57
+
+# ── CI/CD ─────────────────────────────────────────────────────────────────────
+/.github/workflows/     @davidp57
+
+# ── DevContainer ──────────────────────────────────────────────────────────────
+/.devcontainer/         @davidp57
+
+# ── Documentation ─────────────────────────────────────────────────────────────
+/doc/                   @davidp57
+
+# ── Security policy ──────────────────────────────────────────────────────────
+/SECURITY.md            @davidp57

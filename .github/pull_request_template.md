@@ -21,8 +21,9 @@ Closes #
 
 ### Python changes
 - [ ] `poetry run ruff check src/python/veaf-tools` passes
+- [ ] `poetry run ruff format --check src/python/veaf-tools` passes
 - [ ] `poetry run mypy src/python/veaf-tools` passes
-- [ ] `poetry run pytest` passes
+- [ ] `poetry run pytest` passes (includes coverage check)
 
 ### All changes
 - [ ] `CHANGELOG.md` updated (if user-visible)

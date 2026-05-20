@@ -117,4 +117,30 @@ ignore_errors = true
 testpaths = ["src/python/veaf-tools"]
 pythonpath = ["src/python/veaf-tools"]
 python_files = ["test_*.py", "*_test.py"]
-addopts = "--tb=short -q --import-mode=importlib"
+addopts = [
+    "--tb=short",
+    "-q",
+    "--import-mode=importlib",
+    "--cov=src/python/veaf-tools",
+    "--cov-report=xml",
+    "--cov-report=term-missing:skip-covered",
+    "--cov-fail-under=15",
+]
+
+# ---------------------------------------------------------------------------
+# Coverage
+# ---------------------------------------------------------------------------
+[tool.coverage.run]
+source = ["src/python/veaf-tools"]
+omit = [
+    "*/luadata/*",        # third-party bundled library
+    "*/test_*.py",
+    "*/*_test.py",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+]

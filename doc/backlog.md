@@ -172,10 +172,10 @@ Isole la complexité de l'arbre DCS et facilite le test unitaire.
 | # | Ticket | Type | Effort si adopté | Status |
 |---|--------|------|-----------------|--------|
 | DISC-008 | Release automation complète — GitHub Actions workflow sur tag push (build + publish, zéro intervention manuelle) | feat | 120 min | ⬜ |
-| DISC-014 | Documentation versionnée — lier les docs à une release (GitHub Pages tags ou dossiers versionnés) | feat | 90 min | ⬜ |
+| DISC-014 | Documentation versionnée — lier les docs à une release (GitHub Pages tags ou dossiers versionnés) | feat | 90 min | ✅ |
 | DISC-016 | API deprecation warnings — système de warnings Lua quand des fonctions legacy sont appelées | feat | 45 min | ⬜ |
 | DISC-018 | Monorepo workspace Poetry — structurer `veaf-tools` + `veaf_build` comme un vrai workspace avec dépendances explicites | chore | 60 min | ⬜ |
-| DISC-019 | GitHub Pages — publier la documentation (`doc/`) sur `https://veaf.github.io/VEAF-Mission-Creation-Tools/` via GitHub Actions (déclenchement sur push `develop-v6` et tags) | feat | 60 min | ⬜ |
+| DISC-019 | GitHub Pages — publier la documentation (`doc/`) sur `https://veaf.github.io/VEAF-Mission-Creation-Tools-v6/` via GitHub Actions (déclenchement sur merge PR vers `develop-v6` / `main`) | feat | 60 min | ✅ |
 | DISC-001 | Pre-commit hooks (`pre-commit` framework) : ruff + stylua + luacheck + detect-secrets | chore | 45 min | ✅ |
 | DISC-002 | Ajouter `luacheck` au CI (lint statique Lua — undefined globals, unused vars, shadowing) | chore | 60 min | ✅ |
 | DISC-003 | Coverage reporting en CI (Codecov ou Coveralls) + badge README + seuil `--cov-fail-under` | chore | 30 min | ✅ |

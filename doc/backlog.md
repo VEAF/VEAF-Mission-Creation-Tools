@@ -507,8 +507,8 @@ Isole la complexité de l'arbre DCS et facilite le test unitaire.
 | Lot 10 — YAML-CONFIG | ~14h | [x] |
 | Lot 11 — I18N | ~7h10 | [x] |
 | Lot 12 — QUALITY | ~16h35 | [x] |
-| Lot 13 — DISCUSS | ~12h50 | [ ] |
-| **Total** | **~94h** | |
+| Lot 13 — DISCUSS | ~13h50 | [ ] |
+| **Total** | **~95h** | |
 
 *Initial calibration factor: 1.15 — recalculate after each completed lot.*
 
@@ -899,8 +899,9 @@ Cela débloque les tests unitaires des state machines (QRA, AirWaves).
 | DISC-016 | API deprecation warnings — système de warnings Lua quand des fonctions legacy sont appelées | feat | 45 min | [ ] |
 | DISC-017 | Secret scanning — activer GitHub secret scanning ou intégrer `gitleaks` en CI | chore | 15 min | [x] |
 | DISC-018 | Monorepo workspace Poetry — structurer `veaf-tools` + `veaf_build` comme un vrai workspace avec dépendances explicites | chore | 60 min | [ ] |
+| DISC-019 | GitHub Pages — publier la documentation (`doc/`) sur `https://veaf.github.io/VEAF-Mission-Creation-Tools/` via GitHub Actions (déclenchement sur push `develop-v6` et tags) | feat | 60 min | [ ] |
 
-**Effort total si tout adopté: ~770 min (~12h50)**
+**Effort total si tout adopté: ~830 min (~13h50)**
 ⚠️ Chaque ticket doit être discuté individuellement — certains seront adoptés, d'autres rejetés ou reportés.
 
 <details>
@@ -1016,5 +1017,12 @@ Cela débloque les tests unitaires des state machines (QRA, AirWaves).
 - **Pour** : Séparation des responsabilités, dépendances distinctes, versioning indépendant possible.
 - **Contre** : Refactoring non trivial des imports, Poetry workspace est une fonctionnalité récente (2.0+) dont la maturité reste à confirmer.
 - **Recommandation** : Reporter après stabilisation — le gain est réel mais le coût est élevé pour un projet sans contributeurs multiples sur les deux packages simultanément.
+
+**DISC-019 — GitHub Pages**
+- **Situation actuelle** : La documentation (`doc/`) existe uniquement dans le repo Git — pas de site web navigable, pas d'URL publique stable.
+- **Ce que proposerait DISC-019** : Publier automatiquement `doc/` sur GitHub Pages (`https://veaf.github.io/VEAF-Mission-Creation-Tools/`) via un workflow GitHub Actions déclenché sur push `develop-v6` et sur chaque tag. Utiliser [MkDocs](https://www.mkdocs.org/) (Material theme) ou simplement servir les Markdown via GitHub Pages natif. Lien DISC-014 (docs versionnées) — DISC-019 est le prérequis.
+- **Pour** : URL stable et partageable pour les utilisateurs, navigabilité entre les pages, moteur de recherche intégré (MkDocs Material), nul coût d'hébergement.
+- **Contre** : Nécessite de choisir et configurer un générateur de site statique. MkDocs ajoute une dépendance Python (groupe `docs`).
+- **Recommandation** : Adopter — c'est la norme pour les projets open-source. MkDocs Material est le choix le plus rapide à mettre en place.
 
 </details>

@@ -43,14 +43,13 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
       - name: Configure external docs remote
-        # actions/checkout injects GITHUB_TOKEN as a global http.extraheader for
-        # all github.com URLs. Git accumulates multiple matching extraheaders, so
-        # both the GITHUB_TOKEN and our PAT would be sent — and GITHUB_TOKEN wins.
-        # Solution: unset the global header first, then use PAT in the remote URL.
+        # actions/checkout injects GITHUB_TOKEN as a LOCAL http.extraheader in
+        # .git/config (not global). Unset it at local scope so the PAT embedded
+        # in the remote URL is used when mike pushes to the external docs repo.
         env:
           DOCS_DEPLOY_TOKEN: ${{ secrets.DOCS_DEPLOY_TOKEN }}
         run: |
-          git config --global --unset-all \
+          git config --local --unset-all \
             "http.https://github.com/.extraheader" || true
           git remote add ext-docs \
             "https://x-access-token:${DOCS_DEPLOY_TOKEN}@github.com/VEAF/VEAF-Mission-Creation-Tools-v6.git"

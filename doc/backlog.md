@@ -876,18 +876,18 @@ Cela débloque les tests unitaires des state machines (QRA, AirWaves).
 ## Lot 13 — DISCUSS: Standards industrie — à évaluer et décider
 
 **Goal**: Évaluer les standards industrie manquants et décider lesquels adopter. Chaque ticket est un point de discussion/décision avant implémentation éventuelle.
-**Branch**: `feature/disc-hygiene` (PR #318 mergée)
-**Statut**: 🟢 DISC-005/006/009/010/012 implémentés — autres tickets encore à discuter
+**Branch**: `feature/disc-wave2` (en cours — DISC-003, 004, 007, 017)
+**Statut**: 🟢 DISC-005/006/009/010/012 implémentés — 004/003/007/017 en cours
 
 | # | Ticket | Sujet | Type | Effort si adopté | Status |
 |---|--------|-------|------|-----------------|--------|
 | DISC-001 | Pre-commit hooks (`pre-commit` framework) : ruff + stylua + luacheck + detect-secrets | chore | 45 min | [ ] |
 | DISC-002 | Ajouter `luacheck` au CI (lint statique Lua — undefined globals, unused vars, shadowing) | chore | 60 min | [ ] |
-| DISC-003 | Coverage reporting en CI (Codecov ou Coveralls) + badge README + seuil `--cov-fail-under` | chore | 30 min | [ ] |
-| DISC-004 | `CONTRIBUTING.md` + PR template + issue templates (bug report / feature request) | chore | 45 min | [ ] |
+| DISC-003 | Coverage reporting en CI (Codecov ou Coveralls) + badge README + seuil `--cov-fail-under` | chore | 30 min | [x] |
+| DISC-004 | `CONTRIBUTING.md` + PR template + issue templates (bug report / feature request) | chore | 45 min | [x] |
 | DISC-005 | `SECURITY.md` — politique de disclosure des vulnérabilités | chore | 15 min | [x] |
 | DISC-006 | `CODEOWNERS` — auto-assign reviewers par path (`src/scripts/` → Lua team, `src/python/` → Python team) | chore | 10 min | [x] |
-| DISC-007 | Dependabot ou Renovate — auto-update des dépendances Python + GitHub Actions | chore | 20 min | [ ] |
+| DISC-007 | Dependabot ou Renovate — auto-update des dépendances Python + GitHub Actions | chore | 20 min | [x] |
 | DISC-008 | Release automation complète — GitHub Actions workflow sur tag push (build + publish, zéro intervention manuelle) | feat | 120 min | [ ] |
 | DISC-009 | `.editorconfig` — uniformité des settings IDE (indentation, EOL, trim trailing whitespace) | chore | 10 min | [x] |
 | DISC-010 | DevContainer / Docker — environnement dev reproductible (Python 3.13 + Lua 5.1 + outils) | feat | 90 min | [x] |
@@ -897,7 +897,7 @@ Cela débloque les tests unitaires des state machines (QRA, AirWaves).
 | DISC-014 | Documentation versionnée — lier les docs à une release (GitHub Pages tags ou dossiers versionnés) | feat | 90 min | [ ] |
 | DISC-015 | SBOM (Software Bill of Materials) — traçabilité des dépendances embarquées dans l'exe | chore | 30 min | [ ] |
 | DISC-016 | API deprecation warnings — système de warnings Lua quand des fonctions legacy sont appelées | feat | 45 min | [ ] |
-| DISC-017 | Secret scanning — activer GitHub secret scanning ou intégrer `gitleaks` en CI | chore | 15 min | [ ] |
+| DISC-017 | Secret scanning — activer GitHub secret scanning ou intégrer `gitleaks` en CI | chore | 15 min | [x] |
 | DISC-018 | Monorepo workspace Poetry — structurer `veaf-tools` + `veaf_build` comme un vrai workspace avec dépendances explicites | chore | 60 min | [ ] |
 
 **Effort total si tout adopté: ~770 min (~12h50)**

@@ -1,0 +1,10 @@
+title = "VEAF Mission Creation Tools — gitleaks config"
+
+[allowlist]
+  description = "Known non-secret patterns"
+  paths = [
+    # poetry.lock contains SHA256 content-hashes — not credentials
+    '''^poetry\.lock$''',
+    # Dockerfile contains SHA256 checksums for binary integrity verification
+    '''^\.devcontainer/Dockerfile$''',
+  ]

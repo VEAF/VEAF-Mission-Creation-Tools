@@ -1,0 +1,64 @@
+name: Bug Report
+description: Report a reproducible bug
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a bug! Please fill in as much detail as possible.
+        For **security vulnerabilities**, use [SECURITY.md](../SECURITY.md) instead.
+
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Which version of veaf-tools / veaf-scripts are you using?
+      placeholder: "e.g. 6.0.5"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      options:
+        - veaf-tools.exe (Python CLI)
+        - veaf-tools-updater.exe
+        - Lua runtime scripts (in-mission)
+        - veaf-build (build pipeline)
+        - Documentation
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: Clear description of the bug.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect?
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Run `veaf-tools.exe ...`
+        2. Open mission ...
+        3. See error ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Logs, screenshots, config files, DCS version, OS…

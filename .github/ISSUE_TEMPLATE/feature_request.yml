@@ -1,0 +1,51 @@
+name: Feature Request
+description: Suggest a new feature or improvement
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Have an idea? Great! Check [existing issues](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues)
+        first to avoid duplicates.
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      options:
+        - Lua runtime scripts (in-mission)
+        - veaf-tools.exe (Python CLI)
+        - veaf-build (build pipeline)
+        - Documentation
+        - DevContainer / tooling
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve?
+      description: Describe the use case or pain point.
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed solution
+      description: What would you like to happen?
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Any other approaches you thought about?
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Examples, mockups, links to related work…

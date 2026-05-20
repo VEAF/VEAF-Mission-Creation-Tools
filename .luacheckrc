@@ -11,11 +11,29 @@ std = "lua51"
 max_line_length = false
 
 -- Warnings to ignore globally
--- 211: unused variable (too noisy in DCS scripts)
+-- 211: unused variable
 -- 212: unused argument
 -- 213: unused loop variable
--- 542: empty if branch (pattern used intentionally)
-ignore = { "211", "212", "213", "542" }
+-- 231: local variable shadowed by loop variable
+-- 311: value assigned to variable is overwritten before use (noisy in complex closures)
+-- 312: value assigned to argument is overwritten before use
+-- 314: value assigned to field is overwritten before use (veafNamedPoints data tables)
+-- 321: accessing uninitialized local (nil-then-accumulate pattern, e.g. veafWeather)
+-- 331: value assigned is mutated but never accessed
+-- 411: variable is already defined (redefinition in same scope)
+-- 412: variable is already defined as an argument (local self = self OOP pattern)
+-- 413: variable already defined as loop variable
+-- 421: shadowing definition of local variable
+-- 422: shadowing definition of argument
+-- 431: shadowing upvalue
+-- 432: shadowing upvalue argument
+-- 512: loop is executed at most once (intentional early-return pattern)
+-- 542: empty if branch
+-- 581: 'not (x == y)' style suggestion
+-- 611: line contains only whitespace
+-- 612: line contains trailing whitespace
+-- 614: trailing whitespace in a comment
+ignore = { "211", "212", "213", "231", "311", "312", "314", "321", "331", "411", "412", "413", "421", "422", "431", "432", "512", "542", "581", "611", "612", "614" }
 
 -- ── DCS World API globals ────────────────────────────────────────────────────
 globals = {

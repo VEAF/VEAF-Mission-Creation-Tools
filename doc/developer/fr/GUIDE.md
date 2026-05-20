@@ -78,7 +78,7 @@ Deux options de setup sont disponibles. Le DevContainer est recommandé pour les
 
 ### Option A — DevContainer (recommandé)
 
-Le dépôt inclut une configuration `.devcontainer/` qui fournit un environnement pré-configuré, sans installation manuelle : Python 3.13, Lua 5.1, StyLua 2.4.0, Poetry et toutes les extensions VS Code sont déjà installés.
+Le dépôt inclut une configuration `.devcontainer/` qui fournit un environnement pré-configuré, sans installation manuelle : Python 3.13, Lua 5.1, StyLua 2.4.0, Poetry et toutes les extensions VS Code sont déjà installées.
 
 **VS Code Dev Containers** (Docker local) :
 

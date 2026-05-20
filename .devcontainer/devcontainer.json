@@ -5,6 +5,11 @@
     "context": ".."
   },
 
+  // Force the workspace to be mounted at /workspace (instead of Codespaces default
+  // /workspaces/<repo>) so the WORKDIR, venv path and interpreter path all stay consistent.
+  "workspaceFolder": "/workspace",
+  "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind",
+
   // Poetry creates the venv inside the project → VS Code auto-detects .venv/bin/python
   "containerEnv": {
     "POETRY_VIRTUALENVS_IN_PROJECT": "true"
@@ -23,7 +28,7 @@
       ],
       "settings": {
         // Pick up the venv created by `poetry install`
-        "python.defaultInterpreterPath": "/workspace/.venv/bin/python",
+        "python.defaultInterpreterPath": "${containerWorkspaceFolder}/.venv/bin/python",
         "[python]": {
           "editor.defaultFormatter": "charliermarsh.ruff",
           "editor.formatOnSave": true
@@ -38,9 +43,9 @@
     }
   },
 
-  // Install all Python dependencies after the container is created
+  // Install all Python dependencies after the container is created.
   // --without build: skip pyinstaller (only needed to produce the .exe)
-  // --all-extras: install lupa (needed by luadata / miz_tools tests)
+  // --all-extras: mirrors the CI invocation in python-quality.yml
   "postCreateCommand": "poetry install --without build --all-extras",
 
   "remoteUser": "vscode"

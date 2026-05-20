@@ -877,7 +877,7 @@ Cela débloque les tests unitaires des state machines (QRA, AirWaves).
 
 **Goal**: Évaluer les standards industrie manquants et décider lesquels adopter. Chaque ticket est un point de discussion/décision avant implémentation éventuelle.
 **Branch**: `feature/disc-010-devcontainer` (PR #317 ouverte)
-**Statut**: 🟡 À discuter — pas d'implémentation avant validation
+**Statut**: 🟢 DISC-010 implémenté — autres tickets encore à discuter
 
 | # | Ticket | Sujet | Type | Effort si adopté | Status |
 |---|--------|-------|------|-----------------|--------|

@@ -72,5 +72,5 @@ Si activé, fournit un sous-menu **Météo** où les joueurs peuvent demander de
 
 ## Voir aussi
 
-- [Référence des outils](../../../TOOLS_REFERENCE.md) — référence complète de `veaf-tools.exe weather-inject`
-- [Référence API Lua](../../../LUA_API_REFERENCE.md) — API complète de `veafWeather`
+- [Référence des outils](../../TOOLS_REFERENCE.md) — référence complète de `veaf-tools.exe weather-inject`
+- [Référence API Lua](../../LUA_API_REFERENCE.md) — API complète de `veafWeather`

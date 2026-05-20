@@ -1,6 +1,6 @@
 # veafSanctuary — Protected Zones
 
-> 🇫🇷 [Version française](../fr/scripts/veafSanctuary.md)
+> 🇫🇷 [Version française](veafSanctuary.md)
 
 **Module ID:** — | **File:** `veafSanctuary.lua`
 

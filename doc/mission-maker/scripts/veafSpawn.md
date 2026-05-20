@@ -1,6 +1,6 @@
 # veafSpawn — Dynamic Unit Spawning
 
-> 🇫🇷 [Version française](../fr/scripts/veafSpawn.md)
+> 🇫🇷 [Version française](veafSpawn.md)
 
 **Module ID:** `SPAWN` | **Version:** 1.59.x | **File:** `veafSpawn.lua`
 

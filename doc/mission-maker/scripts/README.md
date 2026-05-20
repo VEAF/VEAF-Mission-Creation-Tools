@@ -1,6 +1,6 @@
 # Scripts Reference — VEAF Lua Modules
 
-> 🇬🇧 English · 🇫🇷 [Français](../fr/scripts/README.md)
+> 🇬🇧 English · 🇫🇷 [Français](README.md)
 
 All modules are bundled in `veaf-scripts.lua` and loaded at mission start. This page lists every module with its purpose, whether it needs explicit configuration, and links to the detailed guide.
 
@@ -135,4 +135,4 @@ These are pure data files — no initialisation needed.
 
 ## Complete API Reference
 
-For the full public API of every module (functions, parameters, return values, examples), see the [Lua API Reference](../LUA_API_REFERENCE.md).
+For the full public API of every module (functions, parameters, return values, examples), see the [Lua API Reference](../../LUA_API_REFERENCE.md).

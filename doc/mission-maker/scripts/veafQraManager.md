@@ -1,6 +1,6 @@
 # veafQraManager — Quick Reaction Alert
 
-> 🇫🇷 [Version française](../fr/scripts/veafQraManager.md)
+> 🇫🇷 [Version française](veafQraManager.md)
 
 **Module ID:** `QRA` | **Version:** 1.2.x | **File:** `veafQraManager.lua`
 

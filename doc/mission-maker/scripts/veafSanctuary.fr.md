@@ -60,4 +60,4 @@ VeafSanctuary:new()
 ## Voir aussi
 
 - [veafMissileGuardian](veafMissileGuardian.md) — système d'interception de missiles
-- [Référence API Lua](../../../LUA_API_REFERENCE.md) — API complète de `veafSanctuary`
+- [Référence API Lua](../../LUA_API_REFERENCE.md) — API complète de `veafSanctuary`

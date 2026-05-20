@@ -93,4 +93,4 @@ veafAssets.initialize()
 ## Voir aussi
 
 - [veafAssets](veafAssets.md) — gestion des ressources et intégration menu radio
-- [Référence API Lua](../../../LUA_API_REFERENCE.md) — API complète de `veafCarrierOperations`
+- [Référence API Lua](../../LUA_API_REFERENCE.md) — API complète de `veafCarrierOperations`

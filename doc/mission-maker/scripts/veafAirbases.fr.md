@@ -49,4 +49,4 @@ veafAirbases.setAirbaseData("Senaki-Kolkhi", {
 
 - [veafNamedPoints](veafNamedPoints.md) — utilise les données de base pour les points nommés
 - [veafCarrierOperations](veafCarrierOperations.md) — ATC spécifique aux porte-avions
-- [Référence API Lua](../../../LUA_API_REFERENCE.md) — API complète de `veafAirbases`
+- [Référence API Lua](../../LUA_API_REFERENCE.md) — API complète de `veafAirbases`

@@ -79,7 +79,7 @@ Pour épingler une version spécifique :
 .\veaf-tools-updater.exe --tag published-v6.0.5
 ```
 
-Référence CLI complète : [Référence des outils](../../TOOLS_REFERENCE.md)
+Référence CLI complète : [Référence des outils](../TOOLS_REFERENCE.md)
 
 ---
 
@@ -238,7 +238,7 @@ veafSecurity.password_L9[sha1("votremotdepasse")] = true
 | `inject-waypoints` | Injecte des waypoints (bullseye, points de navigation) pour les groupes humains |
 | `extract-waypoints` | Extrait les waypoints d'une mission |
 
-Référence complète : [Référence des outils](../../TOOLS_REFERENCE.md)
+Référence complète : [Référence des outils](../TOOLS_REFERENCE.md)
 
 ---
 
@@ -271,17 +271,17 @@ veaf-tools.exe extract my-mission.miz src
 
 ## Référence des scripts
 
-Tous les modules Lua VEAF sont disponibles une fois `veaf-scripts.lua` chargé. Voir [scripts/README.md](../scripts/README.md) pour la liste complète avec les guides de configuration.
+Tous les modules Lua VEAF sont disponibles une fois `veaf-scripts.lua` chargé. Voir [scripts/README.md](scripts/README.md) pour la liste complète avec les guides de configuration.
 
 **Navigation rapide par catégorie :**
 
 | Catégorie | Modules |
 |-----------|---------|
-| Cœur | [veafSpawn](../scripts/veafSpawn.md), [veafMove](../scripts/veafMove.md), [veafSecurity](../scripts/veafSecurity.md), [veafNamedPoints](../scripts/veafNamedPoints.md) |
-| Types de missions | [veafCasMission](../scripts/veafCasMission.md), [veafCombatZone](../scripts/veafCombatZone.md), [veafTransportMission](../scripts/veafTransportMission.md), [veafQraManager](../scripts/veafQraManager.md), [veafAirWaves](../scripts/veafAirWaves.md) |
-| Actifs | [veafAssets](../scripts/veafAssets.md), [veafCarrierOperations](../scripts/veafCarrierOperations.md), [veafGrass](../scripts/veafGrass.md), [veafWeather](../scripts/veafWeather.md) |
-| Protection | [veafSanctuary](../scripts/veafSanctuary.md), [veafMissileGuardian](../scripts/veafMissileGuardian.md) |
-| Intégrations | [veafSkynetIadsHelper](../scripts/veafSkynetIadsHelper.md), [veafHoundElintHelper](../scripts/veafHoundElintHelper.md) |
+| Cœur | [veafSpawn](scripts/veafSpawn.md), [veafMove](scripts/veafMove.md), [veafSecurity](scripts/veafSecurity.md), [veafNamedPoints](scripts/veafNamedPoints.md) |
+| Types de missions | [veafCasMission](scripts/veafCasMission.md), [veafCombatZone](scripts/veafCombatZone.md), [veafTransportMission](scripts/veafTransportMission.md), [veafQraManager](scripts/veafQraManager.md), [veafAirWaves](scripts/veafAirWaves.md) |
+| Actifs | [veafAssets](scripts/veafAssets.md), [veafCarrierOperations](scripts/veafCarrierOperations.md), [veafGrass](scripts/veafGrass.md), [veafWeather](scripts/veafWeather.md) |
+| Protection | [veafSanctuary](scripts/veafSanctuary.md), [veafMissileGuardian](scripts/veafMissileGuardian.md) |
+| Intégrations | [veafSkynetIadsHelper](scripts/veafSkynetIadsHelper.md), [veafHoundElintHelper](scripts/veafHoundElintHelper.md) |
 
 ---
 
@@ -329,8 +329,8 @@ local defenseZone = AirWaveZone:new()
 
 ## Ressources
 
-- [Référence des scripts](../scripts/README.md) — tous les scripts avec les détails de configuration
-- [Référence des outils](../../TOOLS_REFERENCE.md) — référence CLI complète de `veaf-tools.exe`
-- [Référence API Lua](../../LUA_API_REFERENCE.md) — documentation complète de l'API Lua
+- [Référence des scripts](scripts/README.md) — tous les scripts avec les détails de configuration
+- [Référence des outils](../TOOLS_REFERENCE.md) — référence CLI complète de `veaf-tools.exe`
+- [Référence API Lua](../LUA_API_REFERENCE.md) — documentation complète de l'API Lua
 - [VEAF Demo Mission](https://github.com/VEAF/VEAF-Demo-Mission) — mission d'exemple fonctionnelle
 - [Discord VEAF](https://www.veaf.org/discord) — aide communautaire

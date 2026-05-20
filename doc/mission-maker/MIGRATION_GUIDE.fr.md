@@ -270,7 +270,7 @@ end
 -- end
 ```
 
-Consultez la [référence missionConfig.lua](#référence-missionconfiglua) ci-dessous et les guides de scripts individuels dans [scripts/](../scripts/) pour toutes les options.
+Consultez la [référence missionConfig.lua](#référence-missionconfiglua) ci-dessous et les guides de scripts individuels dans [scripts/](scripts/) pour toutes les options.
 
 #### 6. Conserver votre contenu de mission existant
 
@@ -351,7 +351,7 @@ if veafShortcuts then
 end
 ```
 
-Pour chaque module supplémentaire, consultez le guide correspondant dans [scripts/](../scripts/).
+Pour chaque module supplémentaire, consultez le guide correspondant dans [scripts/](scripts/).
 
 ---
 
@@ -380,5 +380,5 @@ Exécutez `veaf-tools-updater.exe` d'abord — le dossier `published/` est manqu
 ## Voir aussi
 
 - [Guide du créateur de missions](GUIDE.md) — workflow général de création de missions
-- [Référence des scripts](../scripts/README.md) — tous les modules disponibles
-- [Référence des outils](../../TOOLS_REFERENCE.md) — référence CLI complète de `veaf-tools.exe`
+- [Référence des scripts](scripts/README.md) — tous les modules disponibles
+- [Référence des outils](../TOOLS_REFERENCE.md) — référence CLI complète de `veaf-tools.exe`

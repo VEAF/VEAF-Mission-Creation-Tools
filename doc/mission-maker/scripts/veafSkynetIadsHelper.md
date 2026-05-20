@@ -1,6 +1,6 @@
 # veafSkynetIadsHelper — Skynet IADS Integration
 
-> 🇫🇷 [Version française](../fr/scripts/veafSkynetIadsHelper.md)
+> 🇫🇷 [Version française](veafSkynetIadsHelper.md)
 
 **Module ID:** — | **File:** `veafSkynetIadsHelper.lua`
 

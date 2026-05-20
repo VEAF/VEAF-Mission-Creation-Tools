@@ -50,4 +50,4 @@ Augmenter cette valeur si Hound signale des unités introuvables immédiatement 
 ## Voir aussi
 
 - [veafSkynetIadsHelper](veafSkynetIadsHelper.md) — intégration Skynet IADS
-- [Référence API Lua](../../../LUA_API_REFERENCE.md) — API complète de `veafHoundElintHelper`
+- [Référence API Lua](../../LUA_API_REFERENCE.md) — API complète de `veafHoundElintHelper`

@@ -66,4 +66,4 @@ veafSkynetIadsHelper.autoRegisterSpawnedUnits = true
 ## Voir aussi
 
 - [veafHoundElintHelper](veafHoundElintHelper.md) — intégration Hound ELINT
-- [Référence API Lua](../../../LUA_API_REFERENCE.md) — API complète de `veafSkynetIadsHelper`
+- [Référence API Lua](../../LUA_API_REFERENCE.md) — API complète de `veafSkynetIadsHelper`

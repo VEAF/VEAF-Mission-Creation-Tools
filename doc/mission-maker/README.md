@@ -2,7 +2,7 @@
 
 > 🇬🇧 [Full Guide](GUIDE.md) · [Migration Guide](MIGRATION_GUIDE.md) · [Scripts Reference](scripts/README.md)
 
-> 🇫🇷 [Guide complet](fr/GUIDE.md) · [Guide de migration](fr/MIGRATION_GUIDE.md) · [Référence des scripts](fr/scripts/README.md)
+> 🇫🇷 [Guide complet](GUIDE.md) · [Guide de migration](MIGRATION_GUIDE.md) · [Référence des scripts](scripts/README.md)
 
 ---
 
@@ -10,5 +10,5 @@
 
 > 🇬🇧 [English Guide](GUIDE.md)
 
-> 🇫🇷 [Guide complet](fr/GUIDE.md) · [Guide de migration](fr/MIGRATION_GUIDE.md) · [Référence des scripts](fr/scripts/README.md)
+> 🇫🇷 [Guide complet](GUIDE.md) · [Guide de migration](MIGRATION_GUIDE.md) · [Référence des scripts](scripts/README.md)
 

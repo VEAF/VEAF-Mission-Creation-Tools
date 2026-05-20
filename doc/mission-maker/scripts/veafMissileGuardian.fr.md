@@ -61,4 +61,4 @@ VeafMissileGuardian:new()
 ## Voir aussi
 
 - [veafSanctuary](veafSanctuary.md) — protection contre les intrusions d'unités
-- [Référence API Lua](../../../LUA_API_REFERENCE.md) — API complète de `veafMissileGuardian`
+- [Référence API Lua](../../LUA_API_REFERENCE.md) — API complète de `veafMissileGuardian`

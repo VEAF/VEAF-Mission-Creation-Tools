@@ -6,9 +6,9 @@ Three audiences, three guides:
 
 | Audience | Guide |
 |----------|-------|
-| Players | [Pilot Guide](pilot/README.md) / [Guide pilote](pilot/fr/GUIDE.md) |
-| Mission makers | [Mission Maker Guide](mission-maker/README.md) / [Guide créateur](mission-maker/fr/GUIDE.md) |
-| Developers / contributors | [Developer Guide](developer/README.md) / [Guide développeur](developer/fr/GUIDE.md) |
+| Players | [Pilot Guide](pilot/README.md) / [Guide pilote](pilot/GUIDE.md) |
+| Mission makers | [Mission Maker Guide](mission-maker/README.md) / [Guide créateur](mission-maker/GUIDE.md) |
+| Developers / contributors | [Developer Guide](developer/README.md) / [Guide développeur](developer/GUIDE.md) |
 
 Other references:
 [Tools Reference](TOOLS_REFERENCE.md) ·
@@ -26,9 +26,9 @@ Trois audiences, trois guides :
 
 | Public | Guide |
 |--------|-------|
-| Joueurs | [Guide pilote](pilot/fr/GUIDE.md) / [Pilot Guide](pilot/README.md) |
-| Créateurs de missions | [Guide créateur](mission-maker/fr/GUIDE.md) / [Mission Maker Guide](mission-maker/README.md) |
-| Développeurs / contributeurs | [Guide développeur](developer/fr/GUIDE.md) / [Developer Guide](developer/README.md) |
+| Joueurs | [Guide pilote](pilot/GUIDE.md) / [Pilot Guide](pilot/README.md) |
+| Créateurs de missions | [Guide créateur](mission-maker/GUIDE.md) / [Mission Maker Guide](mission-maker/README.md) |
+| Développeurs / contributeurs | [Guide développeur](developer/GUIDE.md) / [Developer Guide](developer/README.md) |
 
 Autres références :
 [Référence des outils](TOOLS_REFERENCE.md) ·

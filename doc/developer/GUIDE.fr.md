@@ -338,7 +338,7 @@ lua test\lua\test_veafSpawn.lua
 - **Chargeur de modules :** `test/lua/veaf_loader.lua`
 - Aucune installation DCS requise
 
-Référence complète des tests : [Guide de tests](../../TESTING.md)
+Référence complète des tests : [Guide de tests](../TESTING.md)
 
 ---
 
@@ -419,7 +419,7 @@ Types : `feat`, `fix`, `chore`, `docs`, `test`, `refactor`, `style`.
 
 ## Pour aller plus loin
 
-- [Référence API Lua](../../LUA_API_REFERENCE.md) — API publique complète des 32 modules
-- [Guide de tests](../../TESTING.md) — détails de l'infrastructure de test
-- [Référence des outils](../../TOOLS_REFERENCE.md) — CLI `veaf-tools.exe`
-- [Feuille de route](../../ROADMAP.md) — travaux planifiés
+- [Référence API Lua](../LUA_API_REFERENCE.md) — API publique complète des 32 modules
+- [Guide de tests](../TESTING.md) — détails de l'infrastructure de test
+- [Référence des outils](../TOOLS_REFERENCE.md) — CLI `veaf-tools.exe`
+- [Feuille de route](../ROADMAP.md) — travaux planifiés

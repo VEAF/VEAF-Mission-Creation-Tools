@@ -1376,10 +1376,10 @@ When requesting help, include:
 
 ### Documentation
 
-- **[DETAILED_MANUAL.md](DETAILED_MANUAL.md)** - Complete technical manual
-- **[BUILD_WORKFLOW.md](BUILD_WORKFLOW.md)** - Detailed build workflow
-- **[ARCHITECTURE.md](ARCHITECTURE.md)** - System architecture
-- **[VEAF_LUA_API_REFERENCE.md](VEAF_LUA_API_REFERENCE.md)** - Complete API reference
+- **[LUA_API_REFERENCE.md](LUA_API_REFERENCE.md)** - Complete technical manual
+- **[developer/GUIDE.md](developer/GUIDE.md)** - Detailed build workflow
+- **[developer/GUIDE.md](developer/GUIDE.md)** - System architecture
+- **[LUA_API_REFERENCE.md](LUA_API_REFERENCE.md)** - Complete API reference
 
 ---
 

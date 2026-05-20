@@ -2,7 +2,7 @@
 
 > 🇬🇧 [Full Guide](GUIDE.md)
 
-> 🇫🇷 [Guide complet](fr/GUIDE.md)
+> 🇫🇷 [Guide complet](GUIDE.md)
 
 ---
 
@@ -10,4 +10,4 @@
 
 > 🇬🇧 [English Guide](GUIDE.md)
 
-> 🇫🇷 [Guide complet](fr/GUIDE.md)
+> 🇫🇷 [Guide complet](GUIDE.md)

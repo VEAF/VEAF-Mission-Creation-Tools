@@ -266,12 +266,33 @@ What it does:
 
 ### Publishing a Release
 
+#### Automated (recommended)
+
+Push a versioned tag — GitHub Actions handles everything:
+
+```bash
+git tag published-v6.0.6
+git push origin published-v6.0.6
+```
+
+The `release` CI workflow will:
+1. Generate release notes from conventional commits (git-cliff)
+2. Build `veaf-tools.exe`, `veaf-tools-updater.exe`, and `published.zip`
+3. Create the GitHub Release and upload all assets
+4. Move the `published-latest` floating tag
+
+Release notes are auto-generated from commit messages. You can edit them on GitHub afterwards.
+
+#### Manual (local fallback)
+
 ```powershell
+# Build first
+poetry run veaf-build build --version 6.0.5
+
+# Then publish (interactive — prompts for RELEASE_NOTES.md)
 # Requires GITHUB_TOKEN environment variable
 poetry run veaf-build publish --version 6.0.5
 ```
-
-This creates a Git tag, a GitHub Release, and uploads `published.zip` with the SHA256 file.
 
 ### Security Model
 
@@ -349,31 +370,18 @@ Luacheck is enforced by the `Luacheck` CI job.
 | `Luacheck` | No undefined globals, unused vars, or shadowing in `src/scripts/veaf/` |
 | `StyLua Formatting` | No formatting violations in `src/scripts/veaf/` |
 | `python-quality` | ruff lint + format, mypy types, pytest |
+| `Release` | Triggered on `published-v*` tag push — builds and publishes to GitHub |
 
 All CI jobs must be green before a PR can be merged.
 
 ### Releasing a new version
 
-Release tags **must be GPG-signed** to guarantee supply-chain integrity (the tag drives the exe build and GitHub Release).
+Push a `published-v*` tag — the `Release` CI workflow does everything automatically:
 
 ```bash
-# 1. Configure Git to sign all tags by default (one-time setup)
-git config --global tag.gpgSign true
-git config --global user.signingKey <YOUR_GPG_KEY_ID>
-
-# 2. Create a signed tag
-git tag -s v6.1.0 -m "Release v6.1.0"
-
-# 3. Push the tag
-git push origin v6.1.0
+git tag published-v6.1.0
+git push origin published-v6.1.0
 ```
-
-To verify a tag signature:
-```bash
-git tag -v v6.1.0
-```
-
-> If you don't have a GPG key yet, see [GitHub's guide](https://docs.github.com/en/authentication/managing-commit-signature-verification/generating-a-new-gpg-key).
 
 ---
 

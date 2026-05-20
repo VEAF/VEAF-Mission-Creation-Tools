@@ -17,6 +17,8 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `veaf.lp()` — lazy log argument proxy: arguments are only stringified when the active log level warrants it
 - `mission.yaml: global_log_level` — replaces `--scripts-variant`; writes `veaf.ForcedLogLevel` in the generated `veaf-modules-config.lua`
 - `--log-modules` option on `veaf-tools build` to selectively set log levels per module
+- `.github/workflows/release.yml` — automated release on `published-v*` tag push (build + publish via GitHub Actions, zero manual intervention)
+- `--ci` flag on `veaf-build publish` and `veaf-build build-and-publish` for non-interactive CI mode
 
 ### Changed
 - Branch renamed from `develop/v6-new-build-system` to `develop-v6`
@@ -24,9 +26,11 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - All 1233 `veaf.p(` log-argument calls migrated to `veaf.lp(` across all Lua scripts
 - Single build output (`veaf-scripts.lua`) — `veaf-scripts-debug.lua` / `veaf-scripts-trace.lua` variants removed
 - `build-and-release.py`: removed build-time comment-out step and `_create_lua_variant_files()`
+- `cliff.toml`: `tag_pattern` now matches both `published-v*` and `v*` tags
 
 ### Removed
 - `--scripts-variant` option from `veaf-tools build` and `veaf-tools convert`
+- `.github/workflows/changelog.yml` — superseded by `release.yml`
 
 ---
 

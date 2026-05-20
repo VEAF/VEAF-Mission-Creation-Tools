@@ -167,11 +167,11 @@ Isole la complexité de l'arbre DCS et facilite le test unitaire.
 
 **Goal**: Évaluer les standards industrie manquants et décider lesquels adopter. Chaque ticket est un point de discussion/décision avant implémentation éventuelle.
 **Branch**: `feature/disc-wave3` (PR #320 mergée)
-**Statut**: 🟢 DISC-001/002/003/004/005/006/007/009/010/011/012/013/015/017 implémentés — DISC-008/014/016/018 encore à décider
+**Statut**: 🟢 DISC-001/002/003/004/005/006/007/008/009/010/011/012/013/015/017 implémentés — DISC-014/016/018 encore à décider
 
 | # | Ticket | Type | Effort si adopté | Status |
 |---|--------|------|-----------------|--------|
-| DISC-008 | Release automation complète — GitHub Actions workflow sur tag push (build + publish, zéro intervention manuelle) | feat | 120 min | ⬜ |
+| DISC-008 | Release automation complète — GitHub Actions workflow sur tag push (build + publish, zéro intervention manuelle) | feat | 120 min | ✅ |
 | DISC-014 | Documentation versionnée — lier les docs à une release (GitHub Pages tags ou dossiers versionnés) | feat | 90 min | ✅ |
 | DISC-016 | API deprecation warnings — système de warnings Lua quand des fonctions legacy sont appelées | feat | 45 min | ⬜ |
 | DISC-018 | Monorepo workspace Poetry — structurer `veaf-tools` + `veaf_build` comme un vrai workspace avec dépendances explicites | chore | 60 min | ⬜ |
@@ -234,11 +234,10 @@ Isole la complexité de l'arbre DCS et facilite le test unitaire.
 - **Contre** : Bruit (PRs fréquentes), risque de casser PyInstaller si pas de bornes
 - **Recommandation** : Adopter Dependabot avec `open-pull-requests-limit: 5` et grouping
 
-**DISC-008 — Release automation**
-- **Pour** : Zéro intervention manuelle → zéro risque d'erreur, reproductible
-- **Contre** : Le process actuel (CLI `veaf-build`) fonctionne et permet une pause pour éditer les release notes
-- **Question** : Veut-on garder la pause manuelle (release notes) ou passer en full-auto (changelog auto-généré) ?
-- **Recommandation** : Hybrid — tag push déclenche le build + upload, mais les release notes restent manuelles (pré-écrites dans CHANGELOG.md avant le tag)
+**DISC-008 — Release automation** ✅
+- **Décision** : Full-auto — tag push `published-v*` déclenche build + publish via GitHub Actions
+- **Notes** : git-cliff génère les release notes depuis les commits conventionnels ; le dev peut enrichir/traduire sur GitHub après la release
+- **Implémenté dans** : `feature/disc-008-release-automation` — `.github/workflows/release.yml`, `--ci` flag sur `veaf-build publish`
 
 **DISC-009 — .editorconfig**
 - **Pour** : Fonctionne avec tous les IDE, pas de dépendance à VS Code settings

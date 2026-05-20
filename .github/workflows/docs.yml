@@ -43,11 +43,19 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
       - name: Configure external docs remote
-        # mike pushes the versioned gh-pages branch to the external docs repo.
-        # Using a PAT-authenticated remote URL keeps credentials out of logs.
+        # GitHub Actions sets an http.extraheader with GITHUB_TOKEN for all github.com
+        # requests, which overrides credentials embedded in remote URLs. We scope the
+        # PAT as an extraheader specifically for the external repo URL to ensure it is
+        # used instead of GITHUB_TOKEN when mike pushes to the docs repo.
+        env:
+          DOCS_DEPLOY_TOKEN: ${{ secrets.DOCS_DEPLOY_TOKEN }}
         run: |
+          ENCODED=$(echo -n "x-access-token:${DOCS_DEPLOY_TOKEN}" | base64 -w0)
+          git config --local \
+            "http.https://github.com/VEAF/VEAF-Mission-Creation-Tools-v6.git.extraheader" \
+            "AUTHORIZATION: basic ${ENCODED}"
           git remote add ext-docs \
-            "https://x-access-token:${{ secrets.DOCS_DEPLOY_TOKEN }}@github.com/VEAF/VEAF-Mission-Creation-Tools-v6.git"
+            "https://github.com/VEAF/VEAF-Mission-Creation-Tools-v6.git"
           git fetch ext-docs gh-pages --depth=1 || true
 
       - name: Deploy docs (develop-v6 → alias "dev")

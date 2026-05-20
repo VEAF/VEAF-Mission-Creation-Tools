@@ -38,6 +38,10 @@ types-PyYAML = ">=6.0"
 # python = "<3.15": pyinstaller doesn't support Python 3.15+ yet
 pyinstaller = { version = ">=6.0", python = "<3.15" }
 
+[tool.poetry.group.docs.dependencies]
+mkdocs-material = ">=9.5,<10"
+mike = ">=2.0,<3"
+
 # ---------------------------------------------------------------------------
 # Ruff — lint + format
 # ---------------------------------------------------------------------------

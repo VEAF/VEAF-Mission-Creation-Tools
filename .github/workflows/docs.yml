@@ -12,6 +12,7 @@ jobs:
   deploy-docs:
     name: Build and deploy MkDocs
     runs-on: ubuntu-latest
+    if: github.repository == 'VEAF/VEAF-Mission-Creation-Tools'
     permissions:
       contents: read
 

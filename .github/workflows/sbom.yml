@@ -7,8 +7,7 @@ name: SBOM
 on:
   push:
     branches: [develop-v6, main]
-    tags: ["v*"]
-  pull_request:
+    tags: ["published-v*"]
 
 jobs:
   sbom:

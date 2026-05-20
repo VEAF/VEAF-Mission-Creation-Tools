@@ -347,6 +347,31 @@ Les deux jobs CI doivent être verts avant qu'une PR puisse être mergée.
 
 ---
 
+### Publier une nouvelle version
+
+Les tags de release **doivent être signés GPG** pour garantir l'intégrité de la chaîne d'approvisionnement (le tag déclenche la build exe et la GitHub Release).
+
+```bash
+# 1. Configurer Git pour signer tous les tags par défaut (configuration initiale unique)
+git config --global tag.gpgSign true
+git config --global user.signingKey <VOTRE_ID_CLÉ_GPG>
+
+# 2. Créer un tag signé
+git tag -s v6.1.0 -m "Release v6.1.0"
+
+# 3. Pousser le tag
+git push origin v6.1.0
+```
+
+Pour vérifier la signature d'un tag :
+```bash
+git tag -v v6.1.0
+```
+
+> Si vous n'avez pas encore de clé GPG, consultez le [guide GitHub](https://docs.github.com/fr/authentication/managing-commit-signature-verification/generating-a-new-gpg-key).
+
+---
+
 ## Contribuer
 
 ### Git Flow

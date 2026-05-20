@@ -881,8 +881,8 @@ Cela débloque les tests unitaires des state machines (QRA, AirWaves).
 
 | # | Ticket | Sujet | Type | Effort si adopté | Status |
 |---|--------|-------|------|-----------------|--------|
-| DISC-001 | Pre-commit hooks (`pre-commit` framework) : ruff + stylua + luacheck + detect-secrets | chore | 45 min | [ ] |
-| DISC-002 | Ajouter `luacheck` au CI (lint statique Lua — undefined globals, unused vars, shadowing) | chore | 60 min | [ ] |
+| DISC-001 | Pre-commit hooks (`pre-commit` framework) : ruff + stylua + luacheck + detect-secrets | chore | 45 min | [x] |
+| DISC-002 | Ajouter `luacheck` au CI (lint statique Lua — undefined globals, unused vars, shadowing) | chore | 60 min | [x] |
 | DISC-003 | Coverage reporting en CI (Codecov ou Coveralls) + badge README + seuil `--cov-fail-under` | chore | 30 min | [x] |
 | DISC-004 | `CONTRIBUTING.md` + PR template + issue templates (bug report / feature request) | chore | 45 min | [x] |
 | DISC-005 | `SECURITY.md` — politique de disclosure des vulnérabilités | chore | 15 min | [x] |
@@ -891,11 +891,11 @@ Cela débloque les tests unitaires des state machines (QRA, AirWaves).
 | DISC-008 | Release automation complète — GitHub Actions workflow sur tag push (build + publish, zéro intervention manuelle) | feat | 120 min | [ ] |
 | DISC-009 | `.editorconfig` — uniformité des settings IDE (indentation, EOL, trim trailing whitespace) | chore | 10 min | [x] |
 | DISC-010 | DevContainer / Docker — environnement dev reproductible (Python 3.13 + Lua 5.1 + outils) | feat | 90 min | [x] |
-| DISC-011 | Signed commits / tag signing — intégrité supply chain | chore | 15 min | [ ] |
+| DISC-011 | Signed commits / tag signing — intégrité supply chain | chore | 15 min | [x] |
 | DISC-012 | Branch protection rules — require CI pass + review avant merge | chore | 10 min | [x] |
-| DISC-013 | Changelog automation (`git-cliff` ou `release-please` + conventional commits) | feat | 60 min | [ ] |
+| DISC-013 | Changelog automation (`git-cliff` ou `release-please` + conventional commits) | feat | 60 min | [x] |
 | DISC-014 | Documentation versionnée — lier les docs à une release (GitHub Pages tags ou dossiers versionnés) | feat | 90 min | [ ] |
-| DISC-015 | SBOM (Software Bill of Materials) — traçabilité des dépendances embarquées dans l'exe | chore | 30 min | [ ] |
+| DISC-015 | SBOM (Software Bill of Materials) — traçabilité des dépendances embarquées dans l'exe | chore | 30 min | [x] |
 | DISC-016 | API deprecation warnings — système de warnings Lua quand des fonctions legacy sont appelées | feat | 45 min | [ ] |
 | DISC-017 | Secret scanning — activer GitHub secret scanning ou intégrer `gitleaks` en CI | chore | 15 min | [x] |
 | DISC-018 | Monorepo workspace Poetry — structurer `veaf-tools` + `veaf_build` comme un vrai workspace avec dépendances explicites | chore | 60 min | [ ] |

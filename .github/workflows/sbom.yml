@@ -1,0 +1,51 @@
+name: SBOM
+
+# Generates a Software Bill of Materials (CycloneDX JSON format) for the
+# Python dependencies embedded in the published veaf-tools.exe / veaf-tools-updater.exe.
+# The SBOM is attached to the GitHub Release on tag push, and uploaded as an
+# artifact on develop-v6 / main pushes.
+on:
+  push:
+    branches: [develop-v6, main]
+    tags: ["v*"]
+  pull_request:
+
+jobs:
+  sbom:
+    name: Generate SBOM
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   # needed to upload to GitHub Release
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install Poetry
+        run: pip install poetry
+
+      - name: Install dependencies
+        run: poetry install --without build --all-extras
+
+      - name: Generate CycloneDX SBOM
+        run: |
+          poetry run pip install cyclonedx-bom
+          poetry run cyclonedx-py poetry --of JSON -o sbom.cyclonedx.json
+          echo "Generated SBOM:"
+          python -c "import json,sys; d=json.load(open('sbom.cyclonedx.json')); print(f'  {len(d[\"components\"])} components')"
+
+      - name: Upload SBOM as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-${{ github.ref_name }}
+          path: sbom.cyclonedx.json
+          retention-days: 90
+
+      - name: Attach SBOM to GitHub Release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: sbom.cyclonedx.json

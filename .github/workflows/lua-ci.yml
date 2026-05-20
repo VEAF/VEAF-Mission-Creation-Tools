@@ -38,7 +38,23 @@ jobs:
           fi
 
   # ---------------------------------------------------------------------------
-  # StyLua formatting check
+  # Luacheck — static analysis (undefined globals, unused vars, shadowing)
+  # ---------------------------------------------------------------------------
+  luacheck:
+    name: Luacheck
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Lua 5.1 + luacheck
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y lua5.1 luacheck
+
+      - name: Run luacheck
+        run: luacheck src/scripts/veaf/ --config .luacheckrc
+
   # ---------------------------------------------------------------------------
   stylua-check:
     name: StyLua Formatting

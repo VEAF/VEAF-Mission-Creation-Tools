@@ -1,0 +1,44 @@
+name: Changelog
+
+# Runs on every version tag push — generates the changelog section for the new
+# release and attaches it as a CI artifact. Maintainers paste it into CHANGELOG.md
+# before publishing the GitHub Release.
+on:
+  push:
+    tags: ["v*"]
+
+jobs:
+  changelog:
+    name: Generate Changelog
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   # needed to upload release notes to the GitHub Release
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # full history required by git-cliff
+
+      - name: Generate changelog (latest release section)
+        uses: orhun/git-cliff-action@v4
+        id: cliff
+        with:
+          config: cliff.toml
+          args: --latest --strip header
+        env:
+          OUTPUT: CHANGELOG_LATEST.md
+          GITHUB_REPO: ${{ github.repository }}
+
+      - name: Upload changelog as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: changelog-${{ github.ref_name }}
+          path: CHANGELOG_LATEST.md
+          retention-days: 90
+
+      - name: Append to GitHub Release notes
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          body_path: CHANGELOG_LATEST.md
+          append_body: true

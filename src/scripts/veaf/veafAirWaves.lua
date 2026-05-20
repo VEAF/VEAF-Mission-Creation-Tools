@@ -17,7 +17,7 @@
 veafAirWaves = {}
 
 --- Identifier. All output in the log will start with this.
-veafAirWaves.Id = "AIRWAVES - "
+veafAirWaves.Id = "AIRWAVES"
 
 --- Version.
 veafAirWaves.Version = "1.7.8"
@@ -150,25 +150,14 @@ function AirWaveZone.init(object)
 end
 
 function veafAirWaves.statusToString(status)
-  if status == veafAirWaves.STATUS_READY then
-    return "STATUS_READY"
-  end
-  if status == veafAirWaves.STATUS_WAITING_FOR_MORE_HUMANS then
-    return "STATUS_WAITING_FOR_MORE_HUMANS"
-  end
-  if status == veafAirWaves.STATUS_ACTIVE then
-    return "STATUS_ACTIVE"
-  end
-  if status == veafAirWaves.STATUS_WAITING_FOR_NEXTWAVE then
-    return "STATUS_WAITING_FOR_NEXTWAVE"
-  end
-  if status == veafAirWaves.STATUS_NEXTWAVE then
-    return "STATUS_NEXTWAVE"
-  end
-  if status == veafAirWaves.STATUS_OVER then
-    return "STATUS_OVER"
-  end
-  return ""
+  return veaf.enumToString(status, {
+    [veafAirWaves.STATUS_READY] = "STATUS_READY",
+    [veafAirWaves.STATUS_WAITING_FOR_MORE_HUMANS] = "STATUS_WAITING_FOR_MORE_HUMANS",
+    [veafAirWaves.STATUS_ACTIVE] = "STATUS_ACTIVE",
+    [veafAirWaves.STATUS_WAITING_FOR_NEXTWAVE] = "STATUS_WAITING_FOR_NEXTWAVE",
+    [veafAirWaves.STATUS_NEXTWAVE] = "STATUS_NEXTWAVE",
+    [veafAirWaves.STATUS_OVER] = "STATUS_OVER",
+  })
 end
 veafAirWaves.STATUS_READY = 1
 veafAirWaves.STATUS_WAITING_FOR_MORE_HUMANS = 1.5
@@ -1031,8 +1020,9 @@ function AirWaveZone:check()
     mist.removeFunction(self.checkFunctionSchedule)
     self.checkFunctionSchedule = nil
   end
-  self.checkFunctionSchedule =
-    mist.scheduleFunction(AirWaveZone.check, { self }, timer.getTime() + veafAirWaves.WATCHDOG_DELAY + math.random(0, 2)) -- randomize reschedules so not all zones are working at the same time
+  self.checkFunctionSchedule = mist.scheduleFunction(function(zone)
+    veaf.safeCall(AirWaveZone.check, zone)
+  end, { self }, timer.getTime() + veafAirWaves.WATCHDOG_DELAY + math.random(0, 2)) -- randomize reschedules so not all zones are working at the same time
 end
 
 function AirWaveZone:chooseGroupsToDeploy()

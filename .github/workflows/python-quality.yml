@@ -27,8 +27,8 @@ jobs:
 
       - name: Install dependencies
         # Install runtime + dev deps; exclude only the 'build' group (pyinstaller)
-        # --only dev would skip runtime deps (typer, rich, …) needed to import the code
-        run: poetry install --without build
+        # --all-extras installs lupa (lua extra) needed by miz_tools / luadata
+        run: poetry install --without build --all-extras
 
       - name: Lint (ruff check)
         run: poetry run ruff check src/python/veaf-tools

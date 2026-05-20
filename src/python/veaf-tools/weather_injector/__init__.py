@@ -3,7 +3,7 @@
 from .models import MissionConfig, Position, VersionConfig
 from .utils import LuaToYamlConverter, SolarCalculator, TimeExpressionParser
 from .weather import DCSWeatherConverter
-from .weather_injector_README import WheatherInjectorREADME
+from .weather_injector_README import WeatherInjectorREADME
 from .weather_injector_worker import WeatherInjectorWorker
 
 __version__ = "1.0.0"
@@ -16,5 +16,5 @@ __all__ = [
     "LuaToYamlConverter",
     "DCSWeatherConverter",
     "WeatherInjectorWorker",
-    "WheatherInjectorREADME",
+    "WeatherInjectorREADME",
 ]

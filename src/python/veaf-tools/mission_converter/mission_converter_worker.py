@@ -7,11 +7,12 @@ from pathlib import Path
 from mission_builder.mission_builder_worker import MissionBuilderWorker
 from mission_extractor.mission_extractor_worker import MissionExtractorWorker
 from presets_injector import PresetsInjectorWorker
+from veaf_libs.base_worker import BaseWorker
 from veaf_libs.logger import logger
 from veaf_libs.progress import spinner_context
 
 
-class MissionConverterWorker:
+class MissionConverterWorker(BaseWorker):
     """
     Worker class that converts a DCS mission to a VEAF folder containing the mission files.
     """

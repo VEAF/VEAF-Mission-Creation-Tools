@@ -1,5 +1,6 @@
 import os
 import sys
+import textwrap
 import unittest
 from pathlib import Path
 
@@ -341,21 +342,74 @@ class TestPresets(unittest.TestCase):
         self.assertIsInstance(pm.preset_assignments, PresetAssignmentCollection)
 
     def test_presets_manager_read_yaml(self):
-        # Test loading the provided YAML file
-        pm = PresetsManager()
-        yaml_path = Path("./src/defaults/mission-folder/src/presets.yaml")
+        # Unit test using a self-contained YAML fixture — no external file dependency.
+        _YAML = textwrap.dedent("""\
+            channels_collection:
+              tactical:
+                Guard:
+                  title: Guard
+                  freqs:
+                    uhf: 243
+                    vhf: 121.5
+              flights:
+                Archer:
+                  title: Archer
+                  freqs:
+                    uhf: 390
+                    vhf: 120
+
+            radios_collection:
+              blue_radios:
+                radio_uhf_5:
+                  title: UHF
+                  type: uhf
+                  channels:
+                    01:
+                      title: Guard/UHF
+                      channel: Guard
+                    02: Archer
+                radio_vhf_5:
+                  title: VHF
+                  type: vhf
+                  channels:
+                    01:
+                      channel: Guard
+                      title: Guard/VHF
+                    02: Archer
+
+            presets_collection:
+              blue_presets:
+                blue_uhf_vhf:
+                  title: Blue UHF/VHF
+                  radios:
+                    radio_1: radio_uhf_5
+                    radio_2: radio_vhf_5
+
+            presets_assignments:
+              blue:
+                plane:
+                  all: blue_uhf_vhf
+              red:
+                plane:
+                  all: none
+        """)
+        import tempfile
+
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
+            f.write(_YAML)
+            yaml_path = Path(f.name)
         try:
+            pm = PresetsManager()
             pm.read_yaml(yaml_path)
-            # Check that collections are populated
             self.assertGreater(len(pm.channel_collections), 0)
             self.assertGreater(len(pm.radio_collections), 0)
             self.assertGreater(len(pm.preset_collections), 0)
-            # Test get_radios_for
             preset = pm.get_radios_for("blue", "plane", "all")
             self.assertIsNotNone(preset)
         except Exception as e:
-            # Skip this test if the YAML file has issues
             self.fail(f"YAML loading failed: {e}")
+        finally:
+            yaml_path.unlink(missing_ok=True)
 
     def test_presets_manager_write_yaml(self):
         # Test write_yaml (currently not implemented)

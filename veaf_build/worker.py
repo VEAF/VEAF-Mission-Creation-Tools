@@ -6,6 +6,7 @@ import re
 import shutil
 import subprocess
 import sys
+import tomllib
 import zipfile
 from datetime import datetime
 from hashlib import sha256
@@ -60,7 +61,7 @@ class BuildAndReleaseWorker:
         self.build_dir = self.script_root / "build"
         self.src_dir = self.script_root / "src"
         self.dist_dir = self.script_root / "dist"
-        self.version_file = self.script_root / "package.json"
+        self.version_file = self.script_root / "pyproject.toml"
 
         self.version = version
         self.skip_lua = skip_lua
@@ -112,15 +113,15 @@ class BuildAndReleaseWorker:
                     logger.error("PyInstaller is not installed. Install it with: poetry install --with build")
 
     def get_version_from_file(self) -> str:
-        """Read version from package.json."""
+        """Read version from pyproject.toml."""
         if not self.version_file.exists():
-            logger.error(f"package.json not found at {self.version_file}")
+            logger.error(f"pyproject.toml not found at {self.version_file}")
 
-        with open(self.version_file) as f:
-            data = json.load(f)
-            version = data.get("version")
+        with open(self.version_file, "rb") as f:
+            data = tomllib.load(f)
+            version = data.get("tool", {}).get("poetry", {}).get("version")
             if not version:
-                logger.error("'version' field not found in package.json")
+                logger.error("'tool.poetry.version' field not found in pyproject.toml")
             return version
 
     # ========================================================================
@@ -205,10 +206,8 @@ class BuildAndReleaseWorker:
                 output_filename = "veaf-scripts.lua"
                 output_path = self.build_dir / output_filename
 
-                # Read package.json for version
-                with open(self.version_file) as f:
-                    package_data = json.load(f)
-                    version = package_data.get("version", self.version)
+                # Use the already-resolved version
+                version = self.version
 
                 # Create version marker
                 datetime_str = datetime.now().strftime("%Y.%m.%d.%H.%M.%S")
@@ -519,12 +518,23 @@ class BuildAndReleaseWorker:
                                 zf.write(file_path, arcname)
                                 logger.debug(f"Added {arcname} to ZIP")
 
-                    # Add documentation files
-                    for doc_file in ["README.md", "package.json"]:
-                        doc_path = self.script_root / doc_file
-                        if doc_path.exists():
-                            zf.write(doc_path, doc_file)
-                            logger.debug(f"Added {doc_file} to ZIP")
+                    # Add README
+                    readme_path = self.script_root / "README.md"
+                    if readme_path.exists():
+                        zf.write(readme_path, "README.md")
+                        logger.debug("Added README.md to ZIP")
+
+                    # Add veaf-version.json (canonical version marker, replaces package.json)
+                    version_data = json.dumps({"version": self.version}, indent=2).encode()
+                    zf.writestr("veaf-version.json", version_data)
+                    logger.debug("Added veaf-version.json to ZIP")
+
+                    # Add package.json for backward compatibility with older updater installs
+                    package_json_data = json.dumps(
+                        {"name": "veaf-mission-creation-tools", "version": self.version}, indent=2
+                    ).encode()
+                    zf.writestr("package.json", package_json_data)
+                    logger.debug("Added package.json (backward-compat) to ZIP")
 
                     # Add generated DCS units reference
                     units_ref = self.build_dir / "dcs-units-reference.md"
@@ -735,7 +745,7 @@ See git history for detailed changes.
         """Execute the build and release process."""
         if not self.version:
             self.version = self.get_version_from_file()
-            logger.info(f"Version not specified, using from package.json: {self.version}")
+            logger.info(f"Version not specified, using from pyproject.toml: {self.version}")
 
         # Print configuration
         table = Table(title="Build Configuration")

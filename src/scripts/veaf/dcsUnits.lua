@@ -16,7 +16,7 @@ dcsUnits = {}
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 --- Identifier. All output in DCS.log will start with this.
-dcsUnits.Id = "DCSUNITS - "
+dcsUnits.Id = "DCSUNITS"
 
 --- Version.
 dcsUnits.Version = "2025.11.17"

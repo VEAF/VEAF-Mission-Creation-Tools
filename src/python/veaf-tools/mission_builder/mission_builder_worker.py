@@ -17,13 +17,14 @@ from mission_tools import (
     read_miz,
     write_miz,
 )
+from veaf_libs.base_worker import BaseWorker
 from veaf_libs.i18n import t
 from veaf_libs.logger import logger
 from veaf_libs.lua_config_generator import generate_config_lua
 from veaf_libs.progress import spinner_context
 
 
-class MissionBuilderWorker:
+class MissionBuilderWorker(BaseWorker):
     """
     Worker class that builds a mission, based on a folder containing the mission files, and on the VEAF Mission Creation Tools package.
     """

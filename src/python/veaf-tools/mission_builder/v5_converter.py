@@ -746,7 +746,7 @@ class V5Converter:
         # ── Module configuration ───────────────────────────────────────────
         # Base infrastructure modules that must always be explicitly enabled.
         # Without them in lua_modules, their initialize() would not be called.
-        _BASE_ALWAYS_ON: frozenset[str] = frozenset({"AIRBASES", "MARKERS", "TIME", "UNITS", "EVENTS - ", "CACHE - "})
+        _BASE_ALWAYS_ON: frozenset[str] = frozenset({"AIRBASES", "MARKERS", "TIME", "UNITS", "EVENTS", "CACHE"})
 
         lines += [
             "# ── Module configuration ─────────────────────────────────────────────────────",

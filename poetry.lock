@@ -683,7 +683,6 @@ description = "Python wrapper around Lua and LuaJIT"
 optional = false
 python-versions = ">=3.8"
 groups = ["main"]
-markers = "extra == \"lua\""
 files = [
     {file = "lupa-2.8-cp310-abi3-win32.whl", hash = "sha256:c2a5fd15dc62374e1661a55f01744c9ec1c56f291ba4a0749d3af2174556e78f"},
     {file = "lupa-2.8-cp310-abi3-win_arm64.whl", hash = "sha256:9e304fb1c50cf23fd8882afbe1aa87525ef8a72667bcab3b37b2bbb2bc542269"},
@@ -1694,9 +1693,8 @@ files = [
 test = ["pytest", "pytest-cov"]
 
 [extras]
-lua = ["lupa"]
 
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.11"
-content-hash = "4715545c58e5335d12550ea33172557ebc9ee7ec35b2babad54cc011c86db3f0"
+content-hash = "c7fb81426faee8bf17b24e9b59fb19af0fd357bdb72ff493246ec119dd0e2263"

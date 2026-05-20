@@ -3,8 +3,14 @@ import math
 try:
     from lupa.lua51 import LuaRuntime, lua_type
 except ImportError:
-    LuaRuntime = None  # type: ignore[assignment,misc]
-    lua_type = None  # type: ignore[assignment]
+    try:
+        from lupa.lua54 import LuaRuntime, lua_type  # type: ignore[assignment]
+    except ImportError:
+        try:
+            from lupa import LuaRuntime, lua_type  # type: ignore[assignment]  # lupa 1.x
+        except ImportError:
+            LuaRuntime = None  # type: ignore[assignment,misc]
+            lua_type = None  # type: ignore[assignment]
 
 from veaf_libs.logger import logger
 

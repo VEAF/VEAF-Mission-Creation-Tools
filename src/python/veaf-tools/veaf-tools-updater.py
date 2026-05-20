@@ -20,6 +20,8 @@ import re
 import shutil
 import subprocess
 import zipfile
+from importlib.metadata import PackageNotFoundError
+from importlib.metadata import version as _pkg_version
 from io import BytesIO
 from pathlib import Path
 from typing import Any
@@ -28,12 +30,16 @@ import requests
 import typer
 import yaml
 from veaf_libs.logger import Logger, console
+from veaf_libs.paths import resolve_path
 from veaf_libs.progress import spinner_context
 
 # Create a logger specific to this updater script
 logger: Logger = Logger(logger_name="veaf-tools-updater", console=console)
 
-VERSION: str = "6.0.4"
+try:
+    VERSION: str = _pkg_version("veaf-tools")
+except PackageNotFoundError:
+    VERSION: str = "6.0.5"  # Fallback; overwritten by the build process at compile time.
 README_HELP: str = "Provide access to the README file."
 VERBOSE_HELP: str = "If set, the script will output a lot of debug information."
 PAUSE_HELP: str = "If set, the script will pause when finished and wait for the user to press a key."
@@ -74,31 +80,6 @@ def load_config() -> dict[str, Any]:
     except Exception as e:
         logger.warning(f"Failed to load configuration file: {e}")
         return {}
-
-
-def resolve_path(
-    path: str, default_path: str = None, should_exist: bool = False, create_if_not_exist: bool = False
-) -> Path:
-    """Resolve and validate a file path."""
-    if not path and default_path:
-        result = Path(default_path)
-    elif path:
-        result = Path(path)
-    else:
-        logger.error("Either path or default_path must be provided", exception_type=ValueError)
-
-    result = result.resolve()
-
-    if create_if_not_exist and not result.exists():
-        result.parent.mkdir(parents=True, exist_ok=True)
-        if not result.suffix:
-            result.mkdir(exist_ok=True)
-
-    if should_exist and not result.exists():
-        logger.error(f"Path does not exist: {result}")
-        exit(-1)
-
-    return result
 
 
 class UpdateWorker:

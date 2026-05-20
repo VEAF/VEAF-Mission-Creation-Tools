@@ -15,6 +15,7 @@ from mission_tools import DcsMission, read_miz, write_miz
 from rich.console import Console
 from rich.panel import Panel
 from rich.text import Text
+from veaf_libs.base_worker import BaseWorker
 from veaf_libs.logger import logger
 from veaf_libs.progress import spinner_context
 
@@ -423,7 +424,7 @@ class AircraftGroupsYAMLValidator:
         return report
 
 
-class AircraftGroupsInjectorWorker:
+class AircraftGroupsInjectorWorker(BaseWorker):
     """
     Worker class that injects aircraft groups from YAML into a DCS mission.
     Automatically validates YAML before injection.
@@ -600,6 +601,10 @@ class AircraftGroupsInjectorWorker:
             country[category]["group"] = []
 
         return country[category]["group"]
+
+    def work(self) -> InjectionResult:
+        """Implement BaseWorker: delegates to inject() with default parameters."""
+        return self.inject()
 
     def inject_groups(self, mode: str = "add", silent: bool = False) -> InjectionResult:
         """
@@ -830,7 +835,7 @@ class AircraftGroupsInjectorWorker:
                 console.print(f"  {log_entry}")
 
 
-class AircraftGroupsExtractorWorker:
+class AircraftGroupsExtractorWorker(BaseWorker):
     """
     Worker class that extracts aircraft groups matching a regexp from a DCS mission
     and writes them to a YAML file in aircraft-templates.yaml format.
@@ -1148,6 +1153,10 @@ class AircraftGroupsExtractorWorker:
         console.print(Panel(summary_text, border_style="yellow", padding=(1, 2)))
 
         return len(selected_groups)
+
+    def work(self) -> None:
+        """Implement BaseWorker: delegates to extract() with default parameters."""
+        self.extract()
 
     def extract_plane_groups(self, silent: bool = False) -> None:
         """Extract plane groups matching the pattern (non-interactive mode)."""

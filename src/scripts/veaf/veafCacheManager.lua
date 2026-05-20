@@ -15,13 +15,13 @@
 veafCacheManager = {}
 
 --- Identifier. All output in the log will start with this.
-veafCacheManager.Id = "CACHE - "
+veafCacheManager.Id = "CACHE"
 
 --- Version.
 veafCacheManager.Version = "0.0.2"
 
--- trace level, specific to this module
-veafCacheManager.LogLevel = "trace"
+-- trace level, specific to this module (uncomment for debugging)
+--veafCacheManager.LogLevel = "trace"
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Do not change anything below unless you know what you are doing!

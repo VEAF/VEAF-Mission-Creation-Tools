@@ -18,7 +18,7 @@
 veafEventHandler = {}
 
 --- Identifier. All output in the log will start with this.
-veafEventHandler.Id = "EVENTS - "
+veafEventHandler.Id = "EVENTS"
 
 --- Version.
 veafEventHandler.Version = "1.5.3"

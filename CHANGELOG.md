@@ -53,7 +53,7 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
-## [6.0.2] — 2025-11-??
+## [6.0.2] — 2025-11-12
 
 ### Added
 - Centralized `veaf_libs` module for logging and progress management (shared across all tools)

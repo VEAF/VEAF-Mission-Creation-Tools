@@ -321,11 +321,66 @@ function dcs_mocks.advanceTime(seconds)
   dcs_mocks.currentTime = dcs_mocks.currentTime + seconds
 end
 
---- Reset the mock clock and log capture.
+--- Reset the mock clock, log capture, and unit/group registries.
 function dcs_mocks.reset()
   dcs_mocks.currentTime = 0
   dcs_mocks.logs = {}
+  dcs_mocks.clearUnitsAndGroups()
 end
+
+-- ---------------------------------------------------------------------------
+-- Configurable unit / group registry
+-- ---------------------------------------------------------------------------
+
+local _unit_registry  = {}  -- name → mock unit table
+local _group_registry = {}  -- name → mock group table
+
+--- Register a mock unit so that Unit.getByName(name) returns it.
+-- @param name  Unit name string
+-- @param data  Table with unit attributes (coalition, point, …).
+--              Attributes like isExist/inAir must be functions: { isExist = function() return true end }.
+--              Methods not explicitly provided default to sensible stubs.
+function dcs_mocks.addUnit(name, data)
+  local u = data or {}
+  u.name = name
+  u.isExist  = u.isExist  ~= nil and u.isExist  or function() return true  end
+  u.inAir    = u.inAir    ~= nil and u.inAir    or function() return false end
+  u.getPoint = u.getPoint or function() return { x = 0, y = 0, z = 0 }    end
+  u.getCoalition = u.getCoalition or function() return coalition.side.BLUE end
+  u.getName  = u.getName  or function() return name end
+  u.getGroup = u.getGroup or function() return nil  end
+  u.destroy  = u.destroy  or function() end
+  _unit_registry[name] = u
+end
+
+--- Register a mock group so that Group.getByName(name) returns it.
+-- @param name  Group name string
+-- @param data  Table with group attributes.
+function dcs_mocks.addGroup(name, data)
+  local g = data or {}
+  g.name = name
+  g.isExist   = g.isExist   ~= nil and g.isExist   or function() return true  end
+  g.getName   = g.getName   or function() return name end
+  g.getUnits  = g.getUnits  or function() return {}   end
+  g.destroy   = g.destroy   or function() end
+  _group_registry[name] = g
+end
+
+--- Remove a unit from the registry (simulates unit death / despawn).
+function dcs_mocks.removeUnit(name) _unit_registry[name] = nil end
+
+--- Remove a group from the registry.
+function dcs_mocks.removeGroup(name) _group_registry[name] = nil end
+
+--- Clear all registered units and groups.
+function dcs_mocks.clearUnitsAndGroups()
+  _unit_registry  = {}
+  _group_registry = {}
+end
+
+-- Wire up the DCS API stubs to the registries.
+Unit.getByName   = function(name) return _unit_registry[name]  end
+Group.getByName  = function(name) return _group_registry[name] end
 
 --- Return all captured log lines matching a pattern.
 function dcs_mocks.findLog(pattern)

@@ -167,4 +167,125 @@ function TestVeafQraOOP:test_setQRAmaxCount()
   luaunit.assertEquals(q.QRAmaxCount, 3)
 end
 
+-- ---------------------------------------------------------------------------
+-- TestVeafQraLifecycle — state-machine transitions
+-- ---------------------------------------------------------------------------
+TestVeafQraLifecycle = {}
+
+function TestVeafQraLifecycle:setUp()
+  dcs_mocks.reset()
+end
+
+local function _newSilentQRA()
+  local q = VeafQRA:new()
+  q:setSilent(true)           -- suppress outText calls
+  q:addEnnemyCoalition(coalition.side.BLUE)
+  -- provide a minimal zone so check() doesn't error
+  q.zoneCenter = { x = 0, y = 0, z = 0 }
+  q.zoneRadius = 10000
+  return q
+end
+
+function TestVeafQraLifecycle:test_start_sets_state_ready()
+  local q = _newSilentQRA()
+  q:start()
+  luaunit.assertEquals(q.state, veafQraManager.STATUS_READY)
+end
+
+function TestVeafQraLifecycle:test_rearm_after_dead_sets_state_ready()
+  local q = _newSilentQRA()
+  q.state = veafQraManager.STATUS_DEAD
+  q:rearm()
+  luaunit.assertEquals(q.state, veafQraManager.STATUS_READY)
+end
+
+function TestVeafQraLifecycle:test_destroyed_sets_state_dead()
+  local q = _newSilentQRA()
+  q.state = veafQraManager.STATUS_ACTIVE
+  q:destroyed()
+  luaunit.assertEquals(q.state, veafQraManager.STATUS_DEAD)
+end
+
+function TestVeafQraLifecycle:test_stop_schedules_stop_state()
+  local q = _newSilentQRA()
+  q:start()
+  q:stop(true)  -- silent=true
+  luaunit.assertEquals(q.scheduled_state, veafQraManager.STATUS_STOP)
+end
+
+function TestVeafQraLifecycle:test_destroyed_decrements_QRAcount()
+  local q = _newSilentQRA()
+  q.QRAcount = 2
+  q:destroyed()
+  luaunit.assertEquals(q.QRAcount, 1)
+end
+
+function TestVeafQraLifecycle:test_destroyed_QRAcount_not_below_zero()
+  local q = _newSilentQRA()
+  q.QRAcount = 0
+  q:destroyed()
+  luaunit.assertEquals(q.QRAcount, 0)
+end
+
+function TestVeafQraLifecycle:test_onStart_callback_called()
+  local called = false
+  local q = _newSilentQRA()
+  q:setOnStart(function() called = true end)
+  q:start()
+  luaunit.assertTrue(called)
+end
+
+function TestVeafQraLifecycle:test_onReady_callback_called()
+  local called = false
+  local q = _newSilentQRA()
+  q:setOnReady(function() called = true end)
+  q:rearm()
+  luaunit.assertTrue(called)
+end
+
+function TestVeafQraLifecycle:test_onDestroyed_callback_called()
+  local called = false
+  local q = _newSilentQRA()
+  q:setOnDestroyed(function() called = true end)
+  q:destroyed()
+  luaunit.assertTrue(called)
+end
+
+-- ---------------------------------------------------------------------------
+-- TestVeafQraUnit — Unit.getByName via dcs_mocks.addUnit
+-- ---------------------------------------------------------------------------
+TestVeafQraUnit = {}
+
+function TestVeafQraUnit:setUp()
+  dcs_mocks.reset()
+end
+
+function TestVeafQraUnit:test_addUnit_returns_mock()
+  dcs_mocks.addUnit("F-16_01", { coalition = coalition.side.BLUE })
+  local u = Unit.getByName("F-16_01")
+  luaunit.assertNotNil(u)
+  luaunit.assertEquals(u.name, "F-16_01")
+end
+
+function TestVeafQraUnit:test_addGroup_returns_mock()
+  dcs_mocks.addGroup("Blue_CAP_1")
+  local g = Group.getByName("Blue_CAP_1")
+  luaunit.assertNotNil(g)
+  luaunit.assertEquals(g.name, "Blue_CAP_1")
+end
+
+function TestVeafQraUnit:test_removeUnit_returns_nil()
+  dcs_mocks.addUnit("F-16_02")
+  dcs_mocks.removeUnit("F-16_02")
+  luaunit.assertNil(Unit.getByName("F-16_02"))
+end
+
+function TestVeafQraUnit:test_reset_clears_registries()
+  dcs_mocks.addUnit("F-16_03")
+  dcs_mocks.addGroup("Blue_CAP_2")
+  dcs_mocks.reset()
+  luaunit.assertNil(Unit.getByName("F-16_03"))
+  luaunit.assertNil(Group.getByName("Blue_CAP_2"))
+end
+
 os.exit(luaunit.LuaUnit.run())

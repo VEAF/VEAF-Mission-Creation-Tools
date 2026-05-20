@@ -1,10 +1,10 @@
 name: Release
 
 # Triggered when a versioned release tag is pushed.
-# The developer creates and pushes the tag locally:
+# The developer creates and pushes the tag locally (lightweight or annotated):
 #   git tag published-v6.0.6
 #   git push origin published-v6.0.6
-#
+# GPG signing is optional — build integrity is verified by GitHub Actions.
 # This workflow then:
 #   1. Generates release notes from conventional commits (git-cliff)
 #   2. Builds the executables and release package
@@ -28,7 +28,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          # Use a PAT so the published-latest tag push is not blocked by branch protection
+          # GITHUB_TOKEN has contents: write — sufficient to create releases and push tags
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Extract version from tag

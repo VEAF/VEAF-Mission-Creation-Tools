@@ -1,6 +1,5 @@
 # Migrating a Mission to VEAF v6
 
-> 🇫🇷 [Lire ce guide en français](MIGRATION_GUIDE.md)
 
 This guide covers two scenarios:
 

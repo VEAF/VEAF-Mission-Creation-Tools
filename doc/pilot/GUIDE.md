@@ -1,6 +1,5 @@
 # Pilot Guide — VEAF Mission Creation Tools
 
-> 🇫🇷 [Lire ce guide en français](GUIDE.md)
 
 This guide is for players flying missions that use the VEAF script framework. No technical knowledge required.
 

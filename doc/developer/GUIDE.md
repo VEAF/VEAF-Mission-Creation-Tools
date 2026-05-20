@@ -1,6 +1,5 @@
 # Developer Guide — VEAF Mission Creation Tools
 
-> 🇫🇷 [Lire ce guide en français](GUIDE.md)
 
 This guide is for developers who want to contribute to the VEAF Mission Creation Tools source code, build new releases, or extend the framework.
 

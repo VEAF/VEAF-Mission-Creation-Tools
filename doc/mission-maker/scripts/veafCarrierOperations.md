@@ -1,6 +1,5 @@
 # veafCarrierOperations — Carrier Recovery Management
 
-> 🇫🇷 [Version française](veafCarrierOperations.md)
 
 **Module ID:** `CARRIER` | **Version:** 1.12.x | **File:** `veafCarrierOperations.lua`
 

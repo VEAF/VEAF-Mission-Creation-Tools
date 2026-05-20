@@ -1,6 +1,5 @@
 # veafAirWaves — Wave-Based Air Attacks
 
-> 🇫🇷 [Version française](veafAirWaves.md)
 
 **Module ID:** `AIRWAVES` | **Version:** 1.7.x | **File:** `veafAirWaves.lua`
 

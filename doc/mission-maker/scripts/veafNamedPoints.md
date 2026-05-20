@@ -1,6 +1,5 @@
 # veafNamedPoints — Named Map Positions
 
-> 🇫🇷 [Version française](veafNamedPoints.md)
 
 **Module ID:** `NAMED POINTS` | **Version:** 1.16.x | **File:** `veafNamedPoints.lua`
 

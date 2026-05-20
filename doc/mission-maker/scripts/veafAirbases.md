@@ -1,6 +1,5 @@
 # veafAirbases — Airbase Data and ATC
 
-> 🇫🇷 [Version française](veafAirbases.md)
 
 **Module ID:** — | **File:** `veafAirbases.lua`
 

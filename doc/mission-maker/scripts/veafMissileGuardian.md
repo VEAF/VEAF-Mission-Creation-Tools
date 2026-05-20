@@ -1,6 +1,5 @@
 # veafMissileGuardian — Missile Interception
 
-> 🇫🇷 [Version française](veafMissileGuardian.md)
 
 **Module ID:** — | **File:** `veafMissileGuardian.lua`
 

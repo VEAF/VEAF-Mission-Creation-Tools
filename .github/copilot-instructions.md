@@ -58,6 +58,15 @@ if ($FAILED -eq 0) { 'All tests passed.' } else { 'FAILED'; exit 1 }
 - CI runs on Lua 5.1 (Ubuntu, `lua5.1`). Local interpreter: `lua` (Lua 5.1 via `C:\Program Files (x86)\Lua\5.1\lua.exe`)
 - **Critical**: `veaf.lp()` (lazy proxy) returns a table. In Lua 5.1, `string.format("%s", table)` does NOT call `__tostring` and will error. Only pass `veaf.lp()` as a direct logger argument, never inside a `string.format()` call — use `veaf.p()` there instead.
 
+### Post-merge Hygiene
+
+After every PR merge and branch deletion:
+
+1. `git fetch origin-ssh --prune` — remove deleted remote branches from local cache
+2. `git checkout develop-v6 && git pull origin-ssh develop-v6 --ff-only` — sync local `develop-v6` with the merged state
+
+Always do this before starting any new work.
+
 ### Pre-PR Checklist (run in order before every PR)
 
 1. `~/.local/bin/stylua.exe src/scripts/veaf/` — auto-fix Lua formatting

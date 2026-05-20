@@ -17,6 +17,32 @@
 
 ---
 
+## Summary
+
+| Lot | Estimate | Status |
+|-----|----------|--------|
+| Phase 0 — Restart | ~3h | [archived](backlog-archive.md) |
+| Phase 0b — GitHub cleanup | ~25 min | [ ] |
+| Lot 1 — INFRA | ~4h15 | [archived](backlog-archive.md) |
+| Lot 2 — CLI | ~2h35 | [archived](backlog-archive.md) |
+| Lot 3 — TUI | ~2h20 | [archived](backlog-archive.md) |
+| Lot 4 — LUA-CONFIG | ~6h | [archived](backlog-archive.md) |
+| Lot 5 — RELEASE | ~1h30 | [ ] |
+| Lot 6 — BONUS | ~3h30 | [x] |
+| Lot 7 — LUA FIXES | ~5h45 | [archived](backlog-archive.md) |
+| Lot 8 — LUA-QUALITY | ~3h35 | [archived](backlog-archive.md) |
+| Lot RC — v6.1.0 RC fixes | ~1h35 | [x] |
+| Lot 9 — LUA-REFACTOR | ~11h30 | [ ] |
+| Lot 10 — YAML-CONFIG | ~14h | [x] |
+| Lot 11 — I18N | ~7h10 | [x] |
+| Lot 12 — QUALITY | ~16h35 | [x] |
+| Lot 13 — DISCUSS | ~13h50 | [ ] |
+| **Total** | **~95h** | |
+
+*Initial calibration factor: 1.15 — recalculate after each completed lot.*
+
+---
+
 ## Phase 0b — GitHub cleanup
 
 Close issues identified during triage. **Verify each one before closing.**
@@ -54,39 +80,6 @@ Direct commits on `develop-v6` (no feature branch needed — no code change).
 
 ---
 
-## Lot RC — v6.1.0 RC bug fixes
-
-**Goal**: Fix bugs discovered during RC testing before the final release.
-**Branch**: `develop-v6` (direct commits — RC hotfixes)
-
-| # | Ticket | Type | Effort | Status |
-|---|--------|------|--------|--------|
-| RC-001 | Fix `.\published\veaf-tools.exe` → `.\veaf-tools.exe` in `doc/mission-maker/MIGRATION_GUIDE.md` | fix | 10 min | [x] |
-| RC-002 | Bundle lupa in exe (`pyproject.toml` non-optional + `hiddenimports` in `.spec`) | fix | 20 min | [x] |
-| RC-003 | Fix version comparison (`5.103.3 > 6.1.0-rc1`) — strip pre-release suffix in `_version_tuple` | fix | 15 min | [x] |
-| RC-004 | Fix `No such command 'normalize'` — rewrite `src/build-scripts/build.cmd` with real command names | fix | 20 min | [x] |
-| RC-005 | Sync `published/build-scripts/build.cmd` to match `src/build-scripts/build.cmd` | fix | 10 min | [x] |
-| RC-006 | Fix wrong command names in `doc/MISSION_MAKER_GUIDE.md` and `doc/mission-maker/README.md` | fix | 20 min | [x] |
-| RC-007 | Fix `string.format("%s", veaf.lp(...))` crash in `veaf.lua` (4 occurrences in `getAirbaseLife`, `_endMission`, `_checkForEndMission`, `endMissionAt`) | fix | 20 min | [x] |
-| RC-008 | Fix `prepare` command distributing files from wrong root (`defaults/mission-folder/src/` → `defaults/mission-folder/`) | fix | 15 min | [x] |
-| RC-009 | Fix `complete_src_folder_with_defaults` looking at `published/defaults/` instead of `published/src/defaults/` | fix | 20 min | [x] |
-| RC-010 | Move default `mission.yaml` from `src/defaults/mission-folder/src/` to `src/defaults/mission-folder/` (root) so it lands at `<mission_folder>/mission.yaml` | fix | 10 min | [x] |
-| RC-011 | Fix `veaf-modules-config.lua` not loaded in dynamic mode — add conditional `loadfile` in "Mission scripts loading - dynamic" trigger | fix | 20 min | [x] |
-| RC-012 | `prepare` command: replace `typer.confirm` with `_ask_replace()` using `sys.stdin` (fix terminal blocking + add "A" yes-to-all option) | fix | 15 min | [x] |
-| RC-013 | `veaf-tools-updater` `_install_defaults`: add `mission.yaml` copy (root of `mission-folder/`) — missing from first-install bootstrap | fix | 10 min | [x] |
-| RC-014 | `prepare` command: replace `sys.stdin.readline()` with `msvcrt.getwch()` (single-char, no Enter required) — fix terminal blocking on Windows/ConPTY | fix | 15 min | [x] |
-| RC-015 | `veaf.Logger`: `getEffectiveLevel()` retournait une string, les méthodes de log comparaient `self.level` (number figé) → `ForcedLogLevel` ignoré à l'exécution. Fix: `getEffectiveLevel()` retourne un number, toutes les méthodes utilisent `self:getEffectiveLevel()` | fix | 20 min | [x] |
-| RC-016 | `veaf.lp()` inside `string.format()` crashes Lua 5.1 unconditionally — arguments are evaluated before the logger level guard runs. `veaf.lp()` returns a table; Lua 5.1 `string.format("%s", table)` does not call `__tostring`. Fix: replaced `veaf.lp()` with `veaf.p()` in all `string.format()` calls across 7 files (`veafCarrierOperations`, `veafCasMission`, `veafGroundAI`, `veafRemote`, `veafSanctuary`, `veafShortcuts`, `veafSpawn`) | fix | 30 min | [x] |
-| RC-017 | `veaf.lp()` used with `..` concatenation crashes Lua 5.1 unconditionally — same root cause as RC-016. Lua 5.1 does not call `__tostring` on `..` operands, so `"text=" .. veaf.lp(x)` throws *"attempt to concatenate a table value"*. Fix: converted 11 call sites in 4 files (`veafCarrierOperations`, `veafMove`, `veafRadio`, `veafUnits`) from `"label=" .. veaf.lp(x)` to `"label=%s", veaf.lp(x)` | fix | 20 min | [x] |
-| RC-018 | `veaf.getCountryForCoalition` returned nil for coalitions with no pre-placed units — `_initializeCountriesAndCoalitions` only read `mist.DBs.units` (pre-placed groups). Dynamic test missions have no RED pre-placed units → `countriesByCoalition["red"]` empty → nil passed to `mist.dynAdd` → *"Country not found: $1"* (MIST format placeholder for nil) → group not spawned → `Group.getByName():getController()` crashes. Fix: supplement with `country.id` + `coalition.getCountryCoalition()` DCS API (first attempt used `coalition.getCountries` which does not exist in DCS). Also fixed broken `_sortByImportance` comparator (returned nil instead of false). | fix | 35 min | [x] |
-| RC-019 | Pipeline auto-detection in `veaf-tools build`: after the base build, auto-detect and run optional injection steps based on file presence (`src/presets.yaml`, `src/waypoints.yaml`, `src/aircraft-templates.yaml`, `src/missions.yaml`). Configurable via new `pipeline:` section in `mission.yaml`. `build.cmd` template simplified to 2 commands (updater + build). | feat | 45 min | [x] |
-| RC-020 | `veaf-tools migrate-config` command: parses an existing `missionConfig.lua`, comments out `doFile()` calls for VEAF scripts (now injected by the builder), wraps bare `veafXxx.initialize()` calls in `if veafXxx then … end` guards, and outputs a `lua_modules:` YAML snippet showing which modules were found enabled. Implementation: `mission_builder/config_migrator.py` (`ConfigMigrator`, `MigrationResult`), exported from `mission_builder/__init__.py`, CLI command in `veaf-tools.py`. | feat | 40 min | [x] |
-| RC-021 | `veaf-tools convert-v5` command: single-pass v5→v6 mission folder conversion. (1) Scans for `missionConfig.lua` and pipeline config files (`presets.yaml`, `waypoints.yaml`, `aircraft-templates.yaml`, `missions.yaml`). (2) Migrates `missionConfig.lua` in-place via `ConfigMigrator` (creates `.bak` backup). (3) **Automatically converts v5 pipeline config files** to v6 YAML: `radioSettings.lua` → `presets.yaml` (channels + warbird), `weatherAndTime/` → `weather-config.yaml` (all versions incl. `realweather`), `wp.lua` → `waypoints.yaml`, aircraft JSON → `aircraft-templates.yaml`. ICAO code prompted once if a realweather version is detected. `--no-convert-pipeline` flag skips auto-conversion. (4) Generates `mission.yaml` with `lua_modules:` and `pipeline:` sections. (5) Prints Rich scan table + actions summary, saves full Markdown report. Implementation: `mission_builder/v5_pipeline_converters.py` (4 converters), `mission_builder/v5_converter.py` (`V5Converter`, `ConversionReport`, `PipelineFile` with `converted` field), CLI in `veaf-tools.py`. | feat | 120 min | [x] |
-
-**Estimated total: ~390 min**
-
----
-
 ## Lot 5 — RELEASE: v6.1.0
 
 **Goal**: Merge v6 to master and publish the official release.
@@ -100,39 +93,6 @@ Direct commits on `develop-v6` (no feature branch needed — no code change).
 | REL-004 | Tag `v6.1.0` + publish GitHub (`veaf-build publish`) | chore | 30 min | REL-003 | [ ] |
 
 **Estimated total: ~85 min (~1h30)**
-
----
-
-## Lot 6 — BONUS: Logger filter + DCSUnits doc
-
-**Goal**: Quality-of-life improvements after the priority lots.
-**Branch**: `feature/bonus-logger-doc` → PR → `develop-v6`
-**Depends on**: Lot 4 (LUA-001), Lot 2 (TOOL-003)
-
-| # | Ticket | Type | Effort | Depends on | Status |
-|---|--------|------|--------|------------|--------|
-| LUA-006 | `--log-modules` option in `veaf-tools` to filter which modules log | feat | 90 min | LUA-001 | [x] |
-| TOOL-004 | Parse `dcsUnits.lua` → dynamic markdown doc generated before publish | feat | 90 min | TOOL-003 | [x] |
-| LUA-007 | Lazy log args (`veaf.lp`), single build, runtime log control (`global_log_level`) | feat | 120 min | LUA-006 | [x] |
-
-**Raw total: 300 min → estimated (×1.15): ~345 min (~5h45)**
-
-<details>
-<summary>Ticket details</summary>
-
-**LUA-006 — Logger filter**
-`--log-modules spawn,radio,assets` option on `veaf-tools build` and `veaf-tools inject-*` commands. Translates to a section in the generated `missionconfig.lua` that disables logging (or forces `logLevel = "error"`) for all unlisted modules. Useful for debugging a mission without log noise.
-
-**LUA-007 — Lazy log args + single build + runtime log control**
-- `veaf.lp(value)`: lazy proxy so log arguments are only stringified if the log level is active.
-  Returns a metatable with `__tostring` → `veaf.p(value)`. Safe to use in `:trace()`/`:debug()` calls.
-- Migrate all 1233 `veaf.p(` → `veaf.lp(` calls across the Lua codebase (automated via `migrate_lazy_log.py`).
-- Remove build-time comment-out step (`--scripts-variant debug/trace/standard`) from `veaf_build/worker.py`.
-- Remove `_create_lua_variant_files()` and the three `veaf-scripts-*.lua` variant generation steps.
-- `veaf.BaseLogLevel = 3` (info) as default; replace `--scripts-variant` with `mission.yaml: global_log_level`.
-  Writes `veaf.ForcedLogLevel = "<level>"` in the generated `veaf-modules-config.lua`.
-
-</details>
 
 ---
 
@@ -203,29 +163,229 @@ Isole la complexité de l'arbre DCS et facilite le test unitaire.
 
 ---
 
-## Summary
+## Lot 13 — DISCUSS: Standards industrie — à évaluer et décider
 
-| Lot | Estimate | Status |
-|-----|----------|--------|
-| Phase 0 — Restart | ~3h | [archived](backlog-archive.md) |
-| Phase 0b — GitHub cleanup | ~25 min | [ ] |
-| Lot 1 — INFRA | ~4h15 | [archived](backlog-archive.md) |
-| Lot 2 — CLI | ~2h35 | [archived](backlog-archive.md) |
-| Lot 3 — TUI | ~2h20 | [archived](backlog-archive.md) |
-| Lot 4 — LUA-CONFIG | ~6h | [archived](backlog-archive.md) |
-| Lot 5 — RELEASE | ~1h30 | [ ] |
-| Lot 6 — BONUS | ~3h30 | [x] |
-| Lot 7 — LUA FIXES | ~5h45 | [archived](backlog-archive.md) |
-| Lot 8 — LUA-QUALITY | ~3h35 | [archived](backlog-archive.md) |
-| Lot RC — v6.1.0 RC fixes | ~1h35 | [x] |
-| Lot 9 — LUA-REFACTOR | ~11h30 | [ ] |
-| Lot 10 — YAML-CONFIG | ~14h | [x] |
-| Lot 11 — I18N | ~7h10 | [x] |
-| Lot 12 — QUALITY | ~16h35 | [x] |
-| Lot 13 — DISCUSS | ~13h50 | [ ] |
-| **Total** | **~95h** | |
+**Goal**: Évaluer les standards industrie manquants et décider lesquels adopter. Chaque ticket est un point de discussion/décision avant implémentation éventuelle.
+**Branch**: `feature/disc-wave3` (PR #320 mergée)
+**Statut**: 🟢 DISC-001/002/003/004/005/006/007/009/010/011/012/013/015/017 implémentés — DISC-008/014/016/018 encore à décider
 
-*Initial calibration factor: 1.15 — recalculate after each completed lot.*
+| # | Ticket | Sujet | Type | Effort si adopté | Status |
+|---|--------|-------|------|-----------------|--------|
+| DISC-008 | Release automation complète — GitHub Actions workflow sur tag push (build + publish, zéro intervention manuelle) | feat | 120 min | [ ] |
+| DISC-014 | Documentation versionnée — lier les docs à une release (GitHub Pages tags ou dossiers versionnés) | feat | 90 min | [ ] |
+| DISC-016 | API deprecation warnings — système de warnings Lua quand des fonctions legacy sont appelées | feat | 45 min | [ ] |
+| DISC-018 | Monorepo workspace Poetry — structurer `veaf-tools` + `veaf_build` comme un vrai workspace avec dépendances explicites | chore | 60 min | [ ] |
+| DISC-019 | GitHub Pages — publier la documentation (`doc/`) sur `https://veaf.github.io/VEAF-Mission-Creation-Tools/` via GitHub Actions (déclenchement sur push `develop-v6` et tags) | feat | 60 min | [ ] |
+| DISC-001 | Pre-commit hooks (`pre-commit` framework) : ruff + stylua + luacheck + detect-secrets | chore | 45 min | [x] |
+| DISC-002 | Ajouter `luacheck` au CI (lint statique Lua — undefined globals, unused vars, shadowing) | chore | 60 min | [x] |
+| DISC-003 | Coverage reporting en CI (Codecov ou Coveralls) + badge README + seuil `--cov-fail-under` | chore | 30 min | [x] |
+| DISC-004 | `CONTRIBUTING.md` + PR template + issue templates (bug report / feature request) | chore | 45 min | [x] |
+| DISC-005 | `SECURITY.md` — politique de disclosure des vulnérabilités | chore | 15 min | [x] |
+| DISC-006 | `CODEOWNERS` — auto-assign reviewers par path (`src/scripts/` → Lua team, `src/python/` → Python team) | chore | 10 min | [x] |
+| DISC-007 | Dependabot ou Renovate — auto-update des dépendances Python + GitHub Actions | chore | 20 min | [x] |
+| DISC-009 | `.editorconfig` — uniformité des settings IDE (indentation, EOL, trim trailing whitespace) | chore | 10 min | [x] |
+| DISC-010 | DevContainer / Docker — environnement dev reproductible (Python 3.13 + Lua 5.1 + outils) | feat | 90 min | [x] |
+| DISC-011 | Signed commits / tag signing — intégrité supply chain | chore | 15 min | [x] |
+| DISC-012 | Branch protection rules — require CI pass + review avant merge | chore | 10 min | [x] |
+| DISC-013 | Changelog automation (`git-cliff` ou `release-please` + conventional commits) | feat | 60 min | [x] |
+| DISC-015 | SBOM (Software Bill of Materials) — traçabilité des dépendances embarquées dans l'exe | chore | 30 min | [x] |
+| DISC-017 | Secret scanning — activer GitHub secret scanning ou intégrer `gitleaks` en CI | chore | 15 min | [x] |
+
+**Effort total si tout adopté: ~830 min (~13h50)**
+⚠️ Chaque ticket doit être discuté individuellement — certains seront adoptés, d'autres rejetés ou reportés.
+
+<details>
+<summary>Points de discussion par ticket</summary>
+
+**DISC-001 — Pre-commit hooks**
+- **Pour** : Catch les erreurs avant le push, impossible d'oublier de formatter
+- **Contre** : Friction pour les contributeurs occasionnels, complexifie le setup
+- **Question** : Est-ce que les contributeurs sont suffisamment techniques pour installer `pre-commit` ? Ou suffit-il de compter sur la CI ?
+
+**DISC-002 — Luacheck**
+- **Pour** : Détecte des vrais bugs (undefined globals, unused vars, variable shadowing comme `local coalition = coalition`). StyLua ne vérifie que le formatage.
+- **Contre** : Configuration initiale complexe (beaucoup de globals DCS à déclarer), bruit potentiel
+- **Question** : Le `.luarc.json` remplit déjà partiellement ce rôle. Luacheck en CI apporte-t-il un gain suffisant ?
+- **Recommandation** : Oui, fort gain. La liste de globals est déjà dans `.luarc.json` — convertible en `.luacheckrc`.
+
+**DISC-003 — Coverage CI**
+- **Pour** : Visibilité, empêche les régressions, motive l'écriture de tests
+- **Contre** : Seuil bas (15%) est symbolique ; seuil haut inatteignable à court terme
+- **Question** : Quel seuil initial ? Monter graduellement (15% → 30% → 50%) ?
+- **Recommandation** : Commencer à 15%, monter de 5% par lot.
+
+**DISC-004 — CONTRIBUTING.md**
+- **Pour** : Standard OSS, onboarde les nouveaux contributeurs
+- **Contre** : Overhead de maintenance si peu de contributeurs externes
+- **Question** : Le projet a-t-il des contributeurs externes réguliers ou est-ce principalement l'équipe VEAF ?
+
+**DISC-005 — SECURITY.md**
+- **Pour** : GitHub affiche un avertissement si absent, standard pour tout projet public
+- **Contre** : Quasi-gratuit à créer (template GitHub)
+- **Recommandation** : Adopter (5 min de travail réel)
+
+**DISC-006 — CODEOWNERS**
+- **Pour** : Auto-assign les bons reviewers, protège les chemins critiques
+- **Contre** : Nécessite de définir les responsabilités formellement
+- **Question** : Qui sont les reviewers Lua vs Python ?
+
+**DISC-007 — Dependabot/Renovate**
+- **Pour** : Alerte sur les vulnérabilités, PR automatiques pour updates
+- **Contre** : Bruit (PRs fréquentes), risque de casser PyInstaller si pas de bornes
+- **Recommandation** : Adopter Dependabot avec `open-pull-requests-limit: 5` et grouping
+
+**DISC-008 — Release automation**
+- **Pour** : Zéro intervention manuelle → zéro risque d'erreur, reproductible
+- **Contre** : Le process actuel (CLI `veaf-build`) fonctionne et permet une pause pour éditer les release notes
+- **Question** : Veut-on garder la pause manuelle (release notes) ou passer en full-auto (changelog auto-généré) ?
+- **Recommandation** : Hybrid — tag push déclenche le build + upload, mais les release notes restent manuelles (pré-écrites dans CHANGELOG.md avant le tag)
+
+**DISC-009 — .editorconfig**
+- **Pour** : Fonctionne avec tous les IDE, pas de dépendance à VS Code settings
+- **Contre** : Quasi-gratuit, pas de raison de ne pas le faire
+- **Recommandation** : Adopter immédiatement (5 min)
+
+**DISC-010 — DevContainer**
+- **Pour** : Zéro-config pour les nouveaux développeurs, environnement identique pour tous
+- **Contre** : Docker requis, overhead pour dev habitués à leur propre env
+- **Question** : Les contributeurs sont-ils sous Windows (DCS = Windows only) ? Un devcontainer Linux est-il pertinent pour un projet DCS ?
+- **Recommandation** : Utile surtout pour la CI reproductible. En dev local, documenter le setup Windows suffit peut-être.
+
+**DISC-011 — Signed commits**
+- **Pour** : Intégrité supply chain (important pour un .exe distribué à la communauté)
+- **Contre** : Complexifie le workflow (GPG keys), freine les contributeurs occasionnels
+- **Recommandation** : Au minimum, signer les tags de release (pas tous les commits)
+
+**DISC-012 — Branch protection rules**
+- **Pour** : Empêche les push directs sur `develop-v6` et `main`, garantit que le CI passe avant tout merge. Standard pour tout projet collaboratif.
+- **Contre** : Peut bloquer des hotfixes urgents si le CI est cassé pour une raison externe
+- **Statut** : ✅ Implémenté — settings à appliquer dans GitHub Settings (action admin requise)
+
+**Settings à appliquer** sur `develop-v6` et `main` :
+
+*GitHub → Settings → Branches → Add branch protection rule*
+
+| Setting | Valeur recommandée |
+|---------|-------------------|
+| Require a pull request before merging | ✅ (1 approval required) |
+| Require status checks to pass | ✅ |
+| — Status checks : `Lua Unit Tests` | ✅ |
+| — Status checks : `StyLua Formatting` | ✅ |
+| — Status checks : `python-quality` | ✅ |
+| Require branches to be up to date | ✅ |
+| Do not allow bypassing the above settings | ❌ (laisser l'escape hatch admin) |
+| Restrict who can push to matching branches | Optionnel |
+
+**DISC-013 — Changelog automation**
+- **Pour** : Plus d'oublis, changelog toujours à jour
+- **Contre** : Impose conventional commits (`feat:`, `fix:`, `chore:`) — changement d'habitude
+- **Question** : L'équipe est-elle prête à adopter conventional commits ?
+
+**DISC-014 — Documentation versionnée**
+- **Pour** : Un utilisateur en v6.0.3 voit les docs correspondantes, pas les docs de develop
+- **Contre** : Complexité GitHub Pages, maintenance de branches docs
+- **Recommandation** : Reporter — pertinent quand il y aura des breaking changes entre versions
+
+**DISC-015 — SBOM**
+- **Pour** : Le projet distribue un `.exe` PyInstaller qui embarque des dizaines de bibliothèques tierces. Un SBOM (`cyclonedx-bom` ou `syft`) permet d'auditer les licences et de détecter des CVEs dans les dépendances embarquées. Standard dans la communauté open-source depuis le décret US 2021.
+- **Contre** : Peu d'utilisateurs VEAF ne vont pas auditer le SBOM. Overhead de génération et de publication.
+- **Recommandation** : Générer le SBOM en artifact CI sans le publier obligatoirement — coût quasi-nul, utilisable si besoin.
+
+**DISC-016 — Deprecation warnings Lua**
+- **Pour** : Migration douce quand des fonctions sont renommées/supprimées
+- **Contre** : Overhead (wrapper chaque fonction deprecated)
+- **Recommandation** : Utile surtout pour LUAR-001 (split veafSpawn) — implémenter quand le refactoring commence
+
+**DISC-017 — Secret scanning**
+- **Pour** : Détecte les API keys, tokens, mots de passe accidentellement commités. GitHub secret scanning est gratuit sur les repos publics et couvre des centaines de patterns (AWS, GCP, GitHub tokens, etc.). `gitleaks` en CI ajoute une couche pour les secrets maison.
+- **Contre** : Faux positifs possibles (ex : clés DCS dans les fichiers de mission). Configuration du `.gitleaksignore` nécessaire.
+- **Recommandation** : Activer GitHub secret scanning (zéro coût, zéro configuration). `gitleaks` en CI est optionnel — à voir si les faux positifs sont gérables.
+
+**DISC-018 — Monorepo workspace Poetry**
+- **Situation actuelle** : `veaf_build` est inclus comme sous-package dans `veaf-tools` via `packages = [{include = "veaf_build"}]`. Les deux partagent le même `pyproject.toml` et le même environnement virtuel, alors qu'ils ont des rôles distincts (outil mission vs toolchain de build/release).
+- **Ce que proposerait DISC-018** : Utiliser le support workspace de Poetry 2.x pour créer deux packages indépendants — `veaf-tools` (CLI mission) et `veaf-build` (toolchain) — avec leurs propres dépendances. `pyinstaller` quitterait le groupe `build` pour devenir une vraie dépendance de `veaf-build` uniquement.
+- **Pour** : Séparation des responsabilités, dépendances distinctes, versioning indépendant possible.
+- **Contre** : Refactoring non trivial des imports, Poetry workspace est une fonctionnalité récente (2.0+) dont la maturité reste à confirmer.
+- **Recommandation** : Reporter après stabilisation — le gain est réel mais le coût est élevé pour un projet sans contributeurs multiples sur les deux packages simultanément.
+
+**DISC-019 — GitHub Pages**
+- **Situation actuelle** : La documentation (`doc/`) existe uniquement dans le repo Git — pas de site web navigable, pas d'URL publique stable.
+- **Ce que proposerait DISC-019** : Publier automatiquement `doc/` sur GitHub Pages (`https://veaf.github.io/VEAF-Mission-Creation-Tools/`) via un workflow GitHub Actions déclenché sur push `develop-v6` et sur chaque tag. Utiliser [MkDocs](https://www.mkdocs.org/) (Material theme) ou simplement servir les Markdown via GitHub Pages natif. Lien DISC-014 (docs versionnées) — DISC-019 est le prérequis.
+- **Pour** : URL stable et partageable pour les utilisateurs, navigabilité entre les pages, moteur de recherche intégré (MkDocs Material), nul coût d'hébergement.
+- **Contre** : Nécessite de choisir et configurer un générateur de site statique. MkDocs ajoute une dépendance Python (groupe `docs`).
+- **Recommandation** : Adopter — c'est la norme pour les projets open-source. MkDocs Material est le choix le plus rapide à mettre en place.
+
+</details>
+
+
+---
+
+<details>
+<summary>✅ Lots terminés récemment (archivés dans <a href="backlog-archive.md">backlog-archive.md</a> après 3 jours)</summary>
+
+## Lot RC — v6.1.0 RC bug fixes
+
+**Goal**: Fix bugs discovered during RC testing before the final release.
+**Branch**: `develop-v6` (direct commits — RC hotfixes)
+
+| # | Ticket | Type | Effort | Status |
+|---|--------|------|--------|--------|
+| RC-001 | Fix `.\published\veaf-tools.exe` → `.\veaf-tools.exe` in `doc/mission-maker/MIGRATION_GUIDE.md` | fix | 10 min | [x] |
+| RC-002 | Bundle lupa in exe (`pyproject.toml` non-optional + `hiddenimports` in `.spec`) | fix | 20 min | [x] |
+| RC-003 | Fix version comparison (`5.103.3 > 6.1.0-rc1`) — strip pre-release suffix in `_version_tuple` | fix | 15 min | [x] |
+| RC-004 | Fix `No such command 'normalize'` — rewrite `src/build-scripts/build.cmd` with real command names | fix | 20 min | [x] |
+| RC-005 | Sync `published/build-scripts/build.cmd` to match `src/build-scripts/build.cmd` | fix | 10 min | [x] |
+| RC-006 | Fix wrong command names in `doc/MISSION_MAKER_GUIDE.md` and `doc/mission-maker/README.md` | fix | 20 min | [x] |
+| RC-007 | Fix `string.format("%s", veaf.lp(...))` crash in `veaf.lua` (4 occurrences in `getAirbaseLife`, `_endMission`, `_checkForEndMission`, `endMissionAt`) | fix | 20 min | [x] |
+| RC-008 | Fix `prepare` command distributing files from wrong root (`defaults/mission-folder/src/` → `defaults/mission-folder/`) | fix | 15 min | [x] |
+| RC-009 | Fix `complete_src_folder_with_defaults` looking at `published/defaults/` instead of `published/src/defaults/` | fix | 20 min | [x] |
+| RC-010 | Move default `mission.yaml` from `src/defaults/mission-folder/src/` to `src/defaults/mission-folder/` (root) so it lands at `<mission_folder>/mission.yaml` | fix | 10 min | [x] |
+| RC-011 | Fix `veaf-modules-config.lua` not loaded in dynamic mode — add conditional `loadfile` in "Mission scripts loading - dynamic" trigger | fix | 20 min | [x] |
+| RC-012 | `prepare` command: replace `typer.confirm` with `_ask_replace()` using `sys.stdin` (fix terminal blocking + add "A" yes-to-all option) | fix | 15 min | [x] |
+| RC-013 | `veaf-tools-updater` `_install_defaults`: add `mission.yaml` copy (root of `mission-folder/`) — missing from first-install bootstrap | fix | 10 min | [x] |
+| RC-014 | `prepare` command: replace `sys.stdin.readline()` with `msvcrt.getwch()` (single-char, no Enter required) — fix terminal blocking on Windows/ConPTY | fix | 15 min | [x] |
+| RC-015 | `veaf.Logger`: `getEffectiveLevel()` retournait une string, les méthodes de log comparaient `self.level` (number figé) → `ForcedLogLevel` ignoré à l'exécution. Fix: `getEffectiveLevel()` retourne un number, toutes les méthodes utilisent `self:getEffectiveLevel()` | fix | 20 min | [x] |
+| RC-016 | `veaf.lp()` inside `string.format()` crashes Lua 5.1 unconditionally — arguments are evaluated before the logger level guard runs. `veaf.lp()` returns a table; Lua 5.1 `string.format("%s", table)` does not call `__tostring`. Fix: replaced `veaf.lp()` with `veaf.p()` in all `string.format()` calls across 7 files (`veafCarrierOperations`, `veafCasMission`, `veafGroundAI`, `veafRemote`, `veafSanctuary`, `veafShortcuts`, `veafSpawn`) | fix | 30 min | [x] |
+| RC-017 | `veaf.lp()` used with `..` concatenation crashes Lua 5.1 unconditionally — same root cause as RC-016. Lua 5.1 does not call `__tostring` on `..` operands, so `"text=" .. veaf.lp(x)` throws *"attempt to concatenate a table value"*. Fix: converted 11 call sites in 4 files (`veafCarrierOperations`, `veafMove`, `veafRadio`, `veafUnits`) from `"label=" .. veaf.lp(x)` to `"label=%s", veaf.lp(x)` | fix | 20 min | [x] |
+| RC-018 | `veaf.getCountryForCoalition` returned nil for coalitions with no pre-placed units — `_initializeCountriesAndCoalitions` only read `mist.DBs.units` (pre-placed groups). Dynamic test missions have no RED pre-placed units → `countriesByCoalition["red"]` empty → nil passed to `mist.dynAdd` → *"Country not found: $1"* (MIST format placeholder for nil) → group not spawned → `Group.getByName():getController()` crashes. Fix: supplement with `country.id` + `coalition.getCountryCoalition()` DCS API (first attempt used `coalition.getCountries` which does not exist in DCS). Also fixed broken `_sortByImportance` comparator (returned nil instead of false). | fix | 35 min | [x] |
+| RC-019 | Pipeline auto-detection in `veaf-tools build`: after the base build, auto-detect and run optional injection steps based on file presence (`src/presets.yaml`, `src/waypoints.yaml`, `src/aircraft-templates.yaml`, `src/missions.yaml`). Configurable via new `pipeline:` section in `mission.yaml`. `build.cmd` template simplified to 2 commands (updater + build). | feat | 45 min | [x] |
+| RC-020 | `veaf-tools migrate-config` command: parses an existing `missionConfig.lua`, comments out `doFile()` calls for VEAF scripts (now injected by the builder), wraps bare `veafXxx.initialize()` calls in `if veafXxx then … end` guards, and outputs a `lua_modules:` YAML snippet showing which modules were found enabled. Implementation: `mission_builder/config_migrator.py` (`ConfigMigrator`, `MigrationResult`), exported from `mission_builder/__init__.py`, CLI command in `veaf-tools.py`. | feat | 40 min | [x] |
+| RC-021 | `veaf-tools convert-v5` command: single-pass v5→v6 mission folder conversion. (1) Scans for `missionConfig.lua` and pipeline config files (`presets.yaml`, `waypoints.yaml`, `aircraft-templates.yaml`, `missions.yaml`). (2) Migrates `missionConfig.lua` in-place via `ConfigMigrator` (creates `.bak` backup). (3) **Automatically converts v5 pipeline config files** to v6 YAML: `radioSettings.lua` → `presets.yaml` (channels + warbird), `weatherAndTime/` → `weather-config.yaml` (all versions incl. `realweather`), `wp.lua` → `waypoints.yaml`, aircraft JSON → `aircraft-templates.yaml`. ICAO code prompted once if a realweather version is detected. `--no-convert-pipeline` flag skips auto-conversion. (4) Generates `mission.yaml` with `lua_modules:` and `pipeline:` sections. (5) Prints Rich scan table + actions summary, saves full Markdown report. Implementation: `mission_builder/v5_pipeline_converters.py` (4 converters), `mission_builder/v5_converter.py` (`V5Converter`, `ConversionReport`, `PipelineFile` with `converted` field), CLI in `veaf-tools.py`. | feat | 120 min | [x] |
+
+**Estimated total: ~390 min**
+
+---
+
+## Lot 6 — BONUS: Logger filter + DCSUnits doc
+
+**Goal**: Quality-of-life improvements after the priority lots.
+**Branch**: `feature/bonus-logger-doc` → PR → `develop-v6`
+**Depends on**: Lot 4 (LUA-001), Lot 2 (TOOL-003)
+
+| # | Ticket | Type | Effort | Depends on | Status |
+|---|--------|------|--------|------------|--------|
+| LUA-006 | `--log-modules` option in `veaf-tools` to filter which modules log | feat | 90 min | LUA-001 | [x] |
+| TOOL-004 | Parse `dcsUnits.lua` → dynamic markdown doc generated before publish | feat | 90 min | TOOL-003 | [x] |
+| LUA-007 | Lazy log args (`veaf.lp`), single build, runtime log control (`global_log_level`) | feat | 120 min | LUA-006 | [x] |
+
+**Raw total: 300 min → estimated (×1.15): ~345 min (~5h45)**
+
+<details>
+<summary>Ticket details</summary>
+
+**LUA-006 — Logger filter**
+`--log-modules spawn,radio,assets` option on `veaf-tools build` and `veaf-tools inject-*` commands. Translates to a section in the generated `missionconfig.lua` that disables logging (or forces `logLevel = "error"`) for all unlisted modules. Useful for debugging a mission without log noise.
+
+**LUA-007 — Lazy log args + single build + runtime log control**
+- `veaf.lp(value)`: lazy proxy so log arguments are only stringified if the log level is active.
+  Returns a metatable with `__tostring` → `veaf.p(value)`. Safe to use in `:trace()`/`:debug()` calls.
+- Migrate all 1233 `veaf.p(` → `veaf.lp(` calls across the Lua codebase (automated via `migrate_lazy_log.py`).
+- Remove build-time comment-out step (`--scripts-variant debug/trace/standard`) from `veaf_build/worker.py`.
+- Remove `_create_lua_variant_files()` and the three `veaf-scripts-*.lua` variant generation steps.
+- `veaf.BaseLogLevel = 3` (info) as default; replace `--scripts-variant` with `mission.yaml: global_log_level`.
+  Writes `veaf.ForcedLogLevel = "<level>"` in the generated `veaf-modules-config.lua`.
+
+</details>
 
 ---
 
@@ -585,159 +745,5 @@ Ajouter à `dcs_mocks.lua` :
 Cela débloque les tests unitaires des state machines (QRA, AirWaves).
 
 </details>
-
----
-
-## Lot 13 — DISCUSS: Standards industrie — à évaluer et décider
-
-**Goal**: Évaluer les standards industrie manquants et décider lesquels adopter. Chaque ticket est un point de discussion/décision avant implémentation éventuelle.
-**Branch**: `feature/disc-wave3` (PR #320 mergée)
-**Statut**: 🟢 DISC-001/002/003/004/005/006/007/009/010/011/012/013/015/017 implémentés — DISC-008/014/016/018 encore à décider
-
-| # | Ticket | Sujet | Type | Effort si adopté | Status |
-|---|--------|-------|------|-----------------|--------|
-| DISC-001 | Pre-commit hooks (`pre-commit` framework) : ruff + stylua + luacheck + detect-secrets | chore | 45 min | [x] |
-| DISC-002 | Ajouter `luacheck` au CI (lint statique Lua — undefined globals, unused vars, shadowing) | chore | 60 min | [x] |
-| DISC-003 | Coverage reporting en CI (Codecov ou Coveralls) + badge README + seuil `--cov-fail-under` | chore | 30 min | [x] |
-| DISC-004 | `CONTRIBUTING.md` + PR template + issue templates (bug report / feature request) | chore | 45 min | [x] |
-| DISC-005 | `SECURITY.md` — politique de disclosure des vulnérabilités | chore | 15 min | [x] |
-| DISC-006 | `CODEOWNERS` — auto-assign reviewers par path (`src/scripts/` → Lua team, `src/python/` → Python team) | chore | 10 min | [x] |
-| DISC-007 | Dependabot ou Renovate — auto-update des dépendances Python + GitHub Actions | chore | 20 min | [x] |
-| DISC-008 | Release automation complète — GitHub Actions workflow sur tag push (build + publish, zéro intervention manuelle) | feat | 120 min | [ ] |
-| DISC-009 | `.editorconfig` — uniformité des settings IDE (indentation, EOL, trim trailing whitespace) | chore | 10 min | [x] |
-| DISC-010 | DevContainer / Docker — environnement dev reproductible (Python 3.13 + Lua 5.1 + outils) | feat | 90 min | [x] |
-| DISC-011 | Signed commits / tag signing — intégrité supply chain | chore | 15 min | [x] |
-| DISC-012 | Branch protection rules — require CI pass + review avant merge | chore | 10 min | [x] |
-| DISC-013 | Changelog automation (`git-cliff` ou `release-please` + conventional commits) | feat | 60 min | [x] |
-| DISC-014 | Documentation versionnée — lier les docs à une release (GitHub Pages tags ou dossiers versionnés) | feat | 90 min | [ ] |
-| DISC-015 | SBOM (Software Bill of Materials) — traçabilité des dépendances embarquées dans l'exe | chore | 30 min | [x] |
-| DISC-016 | API deprecation warnings — système de warnings Lua quand des fonctions legacy sont appelées | feat | 45 min | [ ] |
-| DISC-017 | Secret scanning — activer GitHub secret scanning ou intégrer `gitleaks` en CI | chore | 15 min | [x] |
-| DISC-018 | Monorepo workspace Poetry — structurer `veaf-tools` + `veaf_build` comme un vrai workspace avec dépendances explicites | chore | 60 min | [ ] |
-| DISC-019 | GitHub Pages — publier la documentation (`doc/`) sur `https://veaf.github.io/VEAF-Mission-Creation-Tools/` via GitHub Actions (déclenchement sur push `develop-v6` et tags) | feat | 60 min | [ ] |
-
-**Effort total si tout adopté: ~830 min (~13h50)**
-⚠️ Chaque ticket doit être discuté individuellement — certains seront adoptés, d'autres rejetés ou reportés.
-
-<details>
-<summary>Points de discussion par ticket</summary>
-
-**DISC-001 — Pre-commit hooks**
-- **Pour** : Catch les erreurs avant le push, impossible d'oublier de formatter
-- **Contre** : Friction pour les contributeurs occasionnels, complexifie le setup
-- **Question** : Est-ce que les contributeurs sont suffisamment techniques pour installer `pre-commit` ? Ou suffit-il de compter sur la CI ?
-
-**DISC-002 — Luacheck**
-- **Pour** : Détecte des vrais bugs (undefined globals, unused vars, variable shadowing comme `local coalition = coalition`). StyLua ne vérifie que le formatage.
-- **Contre** : Configuration initiale complexe (beaucoup de globals DCS à déclarer), bruit potentiel
-- **Question** : Le `.luarc.json` remplit déjà partiellement ce rôle. Luacheck en CI apporte-t-il un gain suffisant ?
-- **Recommandation** : Oui, fort gain. La liste de globals est déjà dans `.luarc.json` — convertible en `.luacheckrc`.
-
-**DISC-003 — Coverage CI**
-- **Pour** : Visibilité, empêche les régressions, motive l'écriture de tests
-- **Contre** : Seuil bas (15%) est symbolique ; seuil haut inatteignable à court terme
-- **Question** : Quel seuil initial ? Monter graduellement (15% → 30% → 50%) ?
-- **Recommandation** : Commencer à 15%, monter de 5% par lot.
-
-**DISC-004 — CONTRIBUTING.md**
-- **Pour** : Standard OSS, onboarde les nouveaux contributeurs
-- **Contre** : Overhead de maintenance si peu de contributeurs externes
-- **Question** : Le projet a-t-il des contributeurs externes réguliers ou est-ce principalement l'équipe VEAF ?
-
-**DISC-005 — SECURITY.md**
-- **Pour** : GitHub affiche un avertissement si absent, standard pour tout projet public
-- **Contre** : Quasi-gratuit à créer (template GitHub)
-- **Recommandation** : Adopter (5 min de travail réel)
-
-**DISC-006 — CODEOWNERS**
-- **Pour** : Auto-assign les bons reviewers, protège les chemins critiques
-- **Contre** : Nécessite de définir les responsabilités formellement
-- **Question** : Qui sont les reviewers Lua vs Python ?
-
-**DISC-007 — Dependabot/Renovate**
-- **Pour** : Alerte sur les vulnérabilités, PR automatiques pour updates
-- **Contre** : Bruit (PRs fréquentes), risque de casser PyInstaller si pas de bornes
-- **Recommandation** : Adopter Dependabot avec `open-pull-requests-limit: 5` et grouping
-
-**DISC-008 — Release automation**
-- **Pour** : Zéro intervention manuelle → zéro risque d'erreur, reproductible
-- **Contre** : Le process actuel (CLI `veaf-build`) fonctionne et permet une pause pour éditer les release notes
-- **Question** : Veut-on garder la pause manuelle (release notes) ou passer en full-auto (changelog auto-généré) ?
-- **Recommandation** : Hybrid — tag push déclenche le build + upload, mais les release notes restent manuelles (pré-écrites dans CHANGELOG.md avant le tag)
-
-**DISC-009 — .editorconfig**
-- **Pour** : Fonctionne avec tous les IDE, pas de dépendance à VS Code settings
-- **Contre** : Quasi-gratuit, pas de raison de ne pas le faire
-- **Recommandation** : Adopter immédiatement (5 min)
-
-**DISC-010 — DevContainer**
-- **Pour** : Zéro-config pour les nouveaux développeurs, environnement identique pour tous
-- **Contre** : Docker requis, overhead pour dev habitués à leur propre env
-- **Question** : Les contributeurs sont-ils sous Windows (DCS = Windows only) ? Un devcontainer Linux est-il pertinent pour un projet DCS ?
-- **Recommandation** : Utile surtout pour la CI reproductible. En dev local, documenter le setup Windows suffit peut-être.
-
-**DISC-011 — Signed commits**
-- **Pour** : Intégrité supply chain (important pour un .exe distribué à la communauté)
-- **Contre** : Complexifie le workflow (GPG keys), freine les contributeurs occasionnels
-- **Recommandation** : Au minimum, signer les tags de release (pas tous les commits)
-
-**DISC-012 — Branch protection rules**
-- **Pour** : Empêche les push directs sur `develop-v6` et `main`, garantit que le CI passe avant tout merge. Standard pour tout projet collaboratif.
-- **Contre** : Peut bloquer des hotfixes urgents si le CI est cassé pour une raison externe
-- **Statut** : ✅ Implémenté — settings à appliquer dans GitHub Settings (action admin requise)
-
-**Settings à appliquer** sur `develop-v6` et `main` :
-
-*GitHub → Settings → Branches → Add branch protection rule*
-
-| Setting | Valeur recommandée |
-|---------|-------------------|
-| Require a pull request before merging | ✅ (1 approval required) |
-| Require status checks to pass | ✅ |
-| — Status checks : `Lua Unit Tests` | ✅ |
-| — Status checks : `StyLua Formatting` | ✅ |
-| — Status checks : `python-quality` | ✅ |
-| Require branches to be up to date | ✅ |
-| Do not allow bypassing the above settings | ❌ (laisser l'escape hatch admin) |
-| Restrict who can push to matching branches | Optionnel |
-
-**DISC-013 — Changelog automation**
-- **Pour** : Plus d'oublis, changelog toujours à jour
-- **Contre** : Impose conventional commits (`feat:`, `fix:`, `chore:`) — changement d'habitude
-- **Question** : L'équipe est-elle prête à adopter conventional commits ?
-
-**DISC-014 — Documentation versionnée**
-- **Pour** : Un utilisateur en v6.0.3 voit les docs correspondantes, pas les docs de develop
-- **Contre** : Complexité GitHub Pages, maintenance de branches docs
-- **Recommandation** : Reporter — pertinent quand il y aura des breaking changes entre versions
-
-**DISC-015 — SBOM**
-- **Pour** : Le projet distribue un `.exe` PyInstaller qui embarque des dizaines de bibliothèques tierces. Un SBOM (`cyclonedx-bom` ou `syft`) permet d'auditer les licences et de détecter des CVEs dans les dépendances embarquées. Standard dans la communauté open-source depuis le décret US 2021.
-- **Contre** : Peu d'utilisateurs VEAF ne vont pas auditer le SBOM. Overhead de génération et de publication.
-- **Recommandation** : Générer le SBOM en artifact CI sans le publier obligatoirement — coût quasi-nul, utilisable si besoin.
-
-**DISC-016 — Deprecation warnings Lua**
-- **Pour** : Migration douce quand des fonctions sont renommées/supprimées
-- **Contre** : Overhead (wrapper chaque fonction deprecated)
-- **Recommandation** : Utile surtout pour LUAR-001 (split veafSpawn) — implémenter quand le refactoring commence
-
-**DISC-017 — Secret scanning**
-- **Pour** : Détecte les API keys, tokens, mots de passe accidentellement commités. GitHub secret scanning est gratuit sur les repos publics et couvre des centaines de patterns (AWS, GCP, GitHub tokens, etc.). `gitleaks` en CI ajoute une couche pour les secrets maison.
-- **Contre** : Faux positifs possibles (ex : clés DCS dans les fichiers de mission). Configuration du `.gitleaksignore` nécessaire.
-- **Recommandation** : Activer GitHub secret scanning (zéro coût, zéro configuration). `gitleaks` en CI est optionnel — à voir si les faux positifs sont gérables.
-
-**DISC-018 — Monorepo workspace Poetry**
-- **Situation actuelle** : `veaf_build` est inclus comme sous-package dans `veaf-tools` via `packages = [{include = "veaf_build"}]`. Les deux partagent le même `pyproject.toml` et le même environnement virtuel, alors qu'ils ont des rôles distincts (outil mission vs toolchain de build/release).
-- **Ce que proposerait DISC-018** : Utiliser le support workspace de Poetry 2.x pour créer deux packages indépendants — `veaf-tools` (CLI mission) et `veaf-build` (toolchain) — avec leurs propres dépendances. `pyinstaller` quitterait le groupe `build` pour devenir une vraie dépendance de `veaf-build` uniquement.
-- **Pour** : Séparation des responsabilités, dépendances distinctes, versioning indépendant possible.
-- **Contre** : Refactoring non trivial des imports, Poetry workspace est une fonctionnalité récente (2.0+) dont la maturité reste à confirmer.
-- **Recommandation** : Reporter après stabilisation — le gain est réel mais le coût est élevé pour un projet sans contributeurs multiples sur les deux packages simultanément.
-
-**DISC-019 — GitHub Pages**
-- **Situation actuelle** : La documentation (`doc/`) existe uniquement dans le repo Git — pas de site web navigable, pas d'URL publique stable.
-- **Ce que proposerait DISC-019** : Publier automatiquement `doc/` sur GitHub Pages (`https://veaf.github.io/VEAF-Mission-Creation-Tools/`) via un workflow GitHub Actions déclenché sur push `develop-v6` et sur chaque tag. Utiliser [MkDocs](https://www.mkdocs.org/) (Material theme) ou simplement servir les Markdown via GitHub Pages natif. Lien DISC-014 (docs versionnées) — DISC-019 est le prérequis.
-- **Pour** : URL stable et partageable pour les utilisateurs, navigabilité entre les pages, moteur de recherche intégré (MkDocs Material), nul coût d'hébergement.
-- **Contre** : Nécessite de choisir et configurer un générateur de site statique. MkDocs ajoute une dépendance Python (groupe `docs`).
-- **Recommandation** : Adopter — c'est la norme pour les projets open-source. MkDocs Material est le choix le plus rapide à mettre en place.
 
 </details>

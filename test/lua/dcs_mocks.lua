@@ -321,6 +321,13 @@ function dcs_mocks.advanceTime(seconds)
   dcs_mocks.currentTime = dcs_mocks.currentTime + seconds
 end
 
+--- Reset the mock clock, log capture, and unit/group registries.
+function dcs_mocks.reset()
+  dcs_mocks.currentTime = 0
+  dcs_mocks.logs = {}
+  dcs_mocks.clearUnitsAndGroups()
+end
+
 -- ---------------------------------------------------------------------------
 -- Configurable unit / group registry
 -- ---------------------------------------------------------------------------
@@ -374,13 +381,6 @@ end
 -- Wire up the DCS API stubs to the registries.
 Unit.getByName   = function(name) return _unit_registry[name]  end
 Group.getByName  = function(name) return _group_registry[name] end
-
--- Extend reset() to also clear unit/group registries.
-local _orig_reset = dcs_mocks.reset
-function dcs_mocks.reset()
-  _orig_reset()
-  dcs_mocks.clearUnitsAndGroups()
-end
 
 --- Return all captured log lines matching a pattern.
 function dcs_mocks.findLog(pattern)

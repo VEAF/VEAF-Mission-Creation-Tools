@@ -2981,11 +2981,20 @@ end
 function veaf.getRandomizableNumeric_norandom(val)
   veaf.loggers.get(veaf.Id):trace(string.format("getRandomizableNumeric_norandom(%s)", tostring(val)))
   local nVal = tonumber(val)
+  veaf.loggers.get(veaf.Id):trace(string.format("nVal=%s", tostring(nVal)))
   if nVal == nil then
-    -- Parse "lower-upper" range and return the midpoint (floor)
-    local lower, upper = tostring(val):match("^(%d+)%-(%d+)$")
-    if lower and upper then
-      nVal = math.floor((tonumber(lower) + tonumber(upper)) / 2)
+    if val == "1-2" then nVal = 2
+    elseif val == "1-3" then nVal = 3
+    elseif val == "1-4" then nVal = 3
+    elseif val == "1-5" then nVal = 3
+    elseif val == "2-3" then nVal = 2
+    elseif val == "2-4" then nVal = 3
+    elseif val == "2-5" then nVal = 3
+    elseif val == "3-4" then nVal = 3
+    elseif val == "3-5" then nVal = 4
+    elseif val == "4-5" then nVal = 4
+    elseif val == "5-10" then nVal = 7
+    elseif val == "10-15" then nVal = 12
     end
   end
   veaf.loggers.get(veaf.Id):trace(string.format("nVal=%s", tostring(nVal)))

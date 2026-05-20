@@ -719,7 +719,9 @@ function VeafQRA:check()
         then
           -- rearm the QRA after a delay (if set)
           if self.delayBeforeRearming > 0 then
-            mist.scheduleFunction(function(qra) veaf.safeCall(VeafQRA.rearm, qra) end, { self }, timer.getTime() + self.delayBeforeRearming)
+            mist.scheduleFunction(function(qra)
+              veaf.safeCall(VeafQRA.rearm, qra)
+            end, { self }, timer.getTime() + self.delayBeforeRearming)
             self.state = veafQraManager.STATUS_WILLREARM
           else
             self:rearm()
@@ -781,7 +783,9 @@ function VeafQRA:check()
       end
     end
 
-    mist.scheduleFunction(function(qra) veaf.safeCall(VeafQRA.check, qra) end, { self }, timer.getTime() + veafQraManager.WATCHDOG_DELAY)
+    mist.scheduleFunction(function(qra)
+      veaf.safeCall(VeafQRA.check, qra)
+    end, { self }, timer.getTime() + veafQraManager.WATCHDOG_DELAY)
   end
 end
 
@@ -909,7 +913,9 @@ function VeafQRA:checkWarehousing()
       self.isResupplying = true
       if self.delayBeforeQRAresupply > 0 then
         veaf.loggers.get(veafQraManager.Id):trace("QRA will be resupplied in %s seconds", veaf.lp(self.delayBeforeQRAresupply))
-        mist.scheduleFunction(function(args) veaf.safeCall(VeafQRA.resupply, args[1], args[2]) end, { { self, resupplyAmount } }, timer.getTime() + self.delayBeforeQRAresupply)
+        mist.scheduleFunction(function(args)
+          veaf.safeCall(VeafQRA.resupply, args[1], args[2])
+        end, { { self, resupplyAmount } }, timer.getTime() + self.delayBeforeQRAresupply)
       else
         veaf.loggers.get(veafQraManager.Id):trace("QRA is being resupplied...")
         self:resupply(resupplyAmount)

@@ -1,3 +1,3 @@
-# todo.md — Archivé
+# todo.md — Archived
 
-Ce fichier est remplacé par [doc/backlog.md](doc/backlog.md) et [doc/ROADMAP.md](doc/ROADMAP.md).
+This file has been superseded by [doc/backlog.md](doc/backlog.md) and [doc/ROADMAP.md](doc/ROADMAP.md).

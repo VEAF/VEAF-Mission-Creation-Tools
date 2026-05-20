@@ -12,7 +12,7 @@ from mission_tools.miz_tools import DcsMission, create_miz, read_miz, write_miz
 # Fixtures
 # ---------------------------------------------------------------------------
 
-MINIMAL_MISSION_LUA = b"mission = {\n  [\"name\"] = \"TestMission\",\n}\n"
+MINIMAL_MISSION_LUA = b'mission = {\n  ["name"] = "TestMission",\n}\n'
 MINIMAL_OPTIONS_LUA = b"options = {\n}\n"
 MINIMAL_WAREHOUSES_LUA = b"warehouses = {\n}\n"
 
@@ -152,7 +152,6 @@ class TestWriteMiz:
     def test_write_without_explicit_path_uses_original(self, tmp_path: Path) -> None:
         original = _make_minimal_miz(tmp_path)
         mission = read_miz(original)
-        original_mtime = original.stat().st_mtime
         write_miz(mission, None)
         # File should have been updated
         assert original.exists()

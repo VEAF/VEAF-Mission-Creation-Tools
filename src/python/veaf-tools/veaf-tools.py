@@ -12,9 +12,10 @@ for _i, _a in enumerate(sys.argv[1:]):
         set_language(_a.split("=", 1)[1])
         break
 
-import veaf_tools.commands  # noqa: F401  — side effect: registers all commands
-from veaf_tools.app import app
-from veaf_libs.tui import run_wizard
+# These imports must come after the lang-setup block above.
+import veaf_tools.commands  # noqa: E402, F401  — side effect: registers all commands
+from veaf_libs.tui import run_wizard  # noqa: E402
+from veaf_tools.app import app  # noqa: E402
 
 if __name__ == "__main__":
     # When launched with no arguments in an interactive terminal, run the wizard.

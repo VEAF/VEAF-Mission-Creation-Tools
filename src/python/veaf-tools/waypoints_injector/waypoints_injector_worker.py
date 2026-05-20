@@ -540,6 +540,10 @@ class WaypointsExtractorWorker(BaseWorker):
 
         return len(selected_groups)
 
+    def work(self) -> None:
+        """Implement BaseWorker: delegates to extract() with default parameters."""
+        self.extract()
+
     def extract(self, interactive: bool = False, silent: bool = False) -> None:
         """
         Main extraction workflow.

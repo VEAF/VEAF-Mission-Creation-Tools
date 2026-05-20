@@ -58,7 +58,7 @@ def build(
         help=(
             "Comma-separated list of module IDs to keep at full log level. "
             "All other modules are silenced to 'error' level. "
-            "Example: --log-modules 'SPAWN - ,RADIO - '"
+            "Example: --log-modules 'SPAWN,RADIO'"
         ),
     ),
     mission_name_or_file: str | None = typer.Argument(
@@ -237,7 +237,7 @@ def build(
             console.print(
                 f"[bold blue]Pipeline: aircraft groups ({aircraft_path.name}, mode={aircraft_mode})[/bold blue]"
             )
-            AircraftGroupsInjectorWorker(  # type: ignore[abstract]
+            AircraftGroupsInjectorWorker(
                 input_yaml=aircraft_path,
                 target_mission=p_output_mission,
                 output_mission=p_output_mission,

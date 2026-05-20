@@ -1,5 +1,3 @@
-from pathlib import Path
-
 import typer
 from rich.markdown import Markdown
 from veaf_libs.paths import resolve_path

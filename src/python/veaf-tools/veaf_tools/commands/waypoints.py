@@ -76,7 +76,7 @@ def extract_waypoints(
     if lua_input:
         # Extract from Lua file
         p_lua_input = resolve_path(path=lua_input, should_exist=True)
-        worker = WaypointsExtractorWorker(  # type: ignore[abstract]
+        worker = WaypointsExtractorWorker(
             input_lua=p_lua_input,
             output_yaml=p_output_yaml,
             group_name_pattern=group_name_pattern,
@@ -96,7 +96,7 @@ def extract_waypoints(
         p_input_mission = resolve_path(path=p_input_mission, should_exist=True)
 
         # Call the worker
-        worker = WaypointsExtractorWorker(  # type: ignore[abstract]
+        worker = WaypointsExtractorWorker(
             input_mission=p_input_mission,
             output_yaml=p_output_yaml,
             group_name_pattern=group_name_pattern,

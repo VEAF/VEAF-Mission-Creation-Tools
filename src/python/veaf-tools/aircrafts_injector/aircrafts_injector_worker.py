@@ -602,6 +602,10 @@ class AircraftGroupsInjectorWorker(BaseWorker):
 
         return country[category]["group"]
 
+    def work(self) -> InjectionResult:
+        """Implement BaseWorker: delegates to inject() with default parameters."""
+        return self.inject()
+
     def inject_groups(self, mode: str = "add", silent: bool = False) -> InjectionResult:
         """
         Inject aircraft groups from YAML into the mission.
@@ -1149,6 +1153,10 @@ class AircraftGroupsExtractorWorker(BaseWorker):
         console.print(Panel(summary_text, border_style="yellow", padding=(1, 2)))
 
         return len(selected_groups)
+
+    def work(self) -> None:
+        """Implement BaseWorker: delegates to extract() with default parameters."""
+        self.extract()
 
     def extract_plane_groups(self, silent: bool = False) -> None:
         """Extract plane groups matching the pattern (non-interactive mode)."""

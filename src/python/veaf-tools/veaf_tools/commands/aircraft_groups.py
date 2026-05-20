@@ -76,7 +76,7 @@ def extract_aircraft_groups(
     if lua_input:
         # Extract from Lua file
         p_lua_input = resolve_path(path=lua_input, should_exist=True)
-        worker = AircraftGroupsExtractorWorker(  # type: ignore[abstract]
+        worker = AircraftGroupsExtractorWorker(
             input_lua=p_lua_input,
             output_yaml=p_output_yaml,
             group_name_pattern=group_name_pattern,
@@ -96,7 +96,7 @@ def extract_aircraft_groups(
         p_input_mission = resolve_path(path=p_input_mission, should_exist=True)
 
         # Call the worker
-        worker = AircraftGroupsExtractorWorker(  # type: ignore[abstract]
+        worker = AircraftGroupsExtractorWorker(
             input_mission=p_input_mission,
             output_yaml=p_output_yaml,
             group_name_pattern=group_name_pattern,
@@ -184,7 +184,7 @@ def inject_aircraft_groups(
 
     # STEP 2: Inject aircraft groups
     logger.info(f"Step 2: Injecting aircraft groups using '{mode}' mode...")
-    injector = AircraftGroupsInjectorWorker(  # type: ignore[abstract]
+    injector = AircraftGroupsInjectorWorker(
         input_yaml=p_template_file, target_mission=p_input_mission, output_mission=p_output_mission
     )
     result = injector.inject(mode=mode, silent=False)

@@ -338,7 +338,7 @@ local _group_registry = {}  -- name → mock group table
 --- Register a mock unit so that Unit.getByName(name) returns it.
 -- @param name  Unit name string
 -- @param data  Table with unit attributes (coalition, point, …).
---              At minimum provide: { isExist = true, inAir = false }.
+--              Attributes like isExist/inAir must be functions: { isExist = function() return true end }.
 --              Methods not explicitly provided default to sensible stubs.
 function dcs_mocks.addUnit(name, data)
   local u = data or {}

@@ -791,7 +791,9 @@ end
 -- @param mapping a table of { [numericValue] = "STRING_NAME" }
 -- @return the string name, or an empty string if not found
 function veaf.enumToString(value, mapping)
-  if value == nil or mapping == nil then return "" end
+  if value == nil or mapping == nil then
+    return ""
+  end
   return mapping[value] or ""
 end
 
@@ -1660,8 +1662,7 @@ function veaf.generateVehiclesRoute(startPoint, destination, onRoad, speed, patr
       ["task"] = {
         ["id"] = "ComboTask",
         ["params"] = {
-          ["tasks"] = {
-          }, -- end of ["tasks"]
+          ["tasks"] = {}, -- end of ["tasks"]
         }, -- end of ["params"]
       }, -- end of ["task"]
       ["speed_locked"] = true,
@@ -2935,12 +2936,12 @@ end
 -- @param ... arguments to pass to the function
 -- @return the return values of fn, or nil if an error occurred
 function veaf.safeCall(fn, ...)
-  local ok, result = pcall(fn, ...)
-  if not ok then
-    veaf.loggers.get(veaf.Id):error("safeCall caught error: %s", tostring(result))
+  local results = { pcall(fn, ...) }
+  if not results[1] then
+    veaf.loggers.get(veaf.Id):error("safeCall caught error: %s", tostring(results[2]))
     return nil
   end
-  return result
+  return unpack(results, 2)
 end
 
 function veaf.getRandomizableNumeric_random(val)
@@ -2983,18 +2984,30 @@ function veaf.getRandomizableNumeric_norandom(val)
   local nVal = tonumber(val)
   veaf.loggers.get(veaf.Id):trace(string.format("nVal=%s", tostring(nVal)))
   if nVal == nil then
-    if val == "1-2" then nVal = 2
-    elseif val == "1-3" then nVal = 3
-    elseif val == "1-4" then nVal = 3
-    elseif val == "1-5" then nVal = 3
-    elseif val == "2-3" then nVal = 2
-    elseif val == "2-4" then nVal = 3
-    elseif val == "2-5" then nVal = 3
-    elseif val == "3-4" then nVal = 3
-    elseif val == "3-5" then nVal = 4
-    elseif val == "4-5" then nVal = 4
-    elseif val == "5-10" then nVal = 7
-    elseif val == "10-15" then nVal = 12
+    if val == "1-2" then
+      nVal = 2
+    elseif val == "1-3" then
+      nVal = 3
+    elseif val == "1-4" then
+      nVal = 3
+    elseif val == "1-5" then
+      nVal = 3
+    elseif val == "2-3" then
+      nVal = 2
+    elseif val == "2-4" then
+      nVal = 3
+    elseif val == "2-5" then
+      nVal = 3
+    elseif val == "3-4" then
+      nVal = 3
+    elseif val == "3-5" then
+      nVal = 4
+    elseif val == "4-5" then
+      nVal = 4
+    elseif val == "5-10" then
+      nVal = 7
+    elseif val == "10-15" then
+      nVal = 12
     end
   end
   veaf.loggers.get(veaf.Id):trace(string.format("nVal=%s", tostring(nVal)))

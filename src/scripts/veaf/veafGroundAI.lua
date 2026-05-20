@@ -269,7 +269,9 @@ function GroundUnitHandler:check()
   end
 
   -- reschedule the check function
-  self:setCheckFunctionSchedule(mist.scheduleFunction(function(handler) veaf.safeCall(GroundUnitHandler.check, handler) end, { self }, timer.getTime() + veafGroundAI.WATCHDOG_DELAY))
+  self:setCheckFunctionSchedule(mist.scheduleFunction(function(handler)
+    veaf.safeCall(GroundUnitHandler.check, handler)
+  end, { self }, timer.getTime() + veafGroundAI.WATCHDOG_DELAY))
 end
 
 function GroundUnitHandler:start()

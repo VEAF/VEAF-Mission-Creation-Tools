@@ -1,5 +1,3 @@
-from pathlib import Path
-
 import typer
 from mission_builder import ConfigMigrator, MigrationResult
 from veaf_libs.lua_module_scanner import get_modules

@@ -394,6 +394,7 @@ class TestPresets(unittest.TestCase):
                   all: none
         """)
         import tempfile
+
         with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
             f.write(_YAML)
             yaml_path = Path(f.name)

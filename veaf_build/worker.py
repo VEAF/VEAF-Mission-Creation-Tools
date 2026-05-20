@@ -586,7 +586,9 @@ class BuildAndReleaseWorker:
     # GitHub Publishing (delegates to GitHubPublisher)
     # ========================================================================
 
-    def _do_publish_to_github(self, package_path: Path, package_hash: str, force: bool = False) -> None:
+    def _do_publish_to_github(
+        self, package_path: Path, package_hash: str, force: bool = False, skip_git_tags: bool = False
+    ) -> None:
         """Publish release to GitHub (delegates to GitHubPublisher)."""
         from veaf_build.github import GitHubPublisher
 
@@ -600,6 +602,7 @@ class BuildAndReleaseWorker:
             output_path=self.output_path,
             prerelease=self.prerelease,
             verbose=self.verbose,
+            skip_git_tags=skip_git_tags,
         )
         publisher.publish(package_path, package_hash, force=force)
 

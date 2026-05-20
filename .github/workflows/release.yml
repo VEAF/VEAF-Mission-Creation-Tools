@@ -1,0 +1,77 @@
+name: Release
+
+# Triggered when a versioned release tag is pushed.
+# The developer creates and pushes the tag locally:
+#   git tag published-v6.0.6
+#   git push origin published-v6.0.6
+#
+# This workflow then:
+#   1. Generates release notes from conventional commits (git-cliff)
+#   2. Builds the executables and release package
+#   3. Creates the GitHub Release and uploads assets
+#   4. Moves the published-latest floating tag
+on:
+  push:
+    tags:
+      - "published-v*"
+
+jobs:
+  release:
+    name: Build & Publish Release
+    runs-on: windows-latest  # required: PyInstaller must produce Windows .exe
+
+    permissions:
+      contents: write  # needed to create releases, push tags
+
+    steps:
+      - name: Checkout (full history for git-cliff)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          # Use a PAT so the published-latest tag push is not blocked by branch protection
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract version from tag
+        id: version
+        shell: bash
+        run: |
+          TAG="${GITHUB_REF_NAME}"          # e.g. published-v6.0.6
+          VERSION="${TAG#published-v}"      # e.g. 6.0.6
+          echo "tag=$TAG"         >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Generate release notes (git-cliff)
+        uses: orhun/git-cliff-action@v4
+        id: cliff
+        with:
+          config: cliff.toml
+          args: --latest --strip header
+        env:
+          OUTPUT: RELEASE_NOTES.md
+          GITHUB_REPO: ${{ github.repository }}
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install Poetry
+        run: pip install poetry
+
+      - name: Install dependencies (including PyInstaller)
+        run: poetry install --with build --all-extras
+
+      - name: Build release package
+        run: poetry run veaf-build build --version ${{ steps.version.outputs.version }}
+
+      - name: Publish to GitHub
+        run: poetry run veaf-build publish --version ${{ steps.version.outputs.version }} --ci
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Move published-latest tag
+        shell: bash
+        run: |
+          TAG="${{ steps.version.outputs.tag }}"
+          git tag -f published-latest "$TAG"
+          git push origin -f published-latest

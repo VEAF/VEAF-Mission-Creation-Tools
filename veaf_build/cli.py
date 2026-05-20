@@ -140,6 +140,11 @@ def publish(
         help="Mark as pre-release (e.g. RC). Does NOT update published-latest. "
         "Test with: veaf-tools-updater update --tag published-v<version>",
     ),
+    ci: bool = typer.Option(
+        False,
+        "--ci",
+        help="Non-interactive CI mode: skip all prompts and use RELEASE_NOTES.md as-is.",
+    ),
     verbose: bool = typer.Option(False, help=VERBOSE_HELP),
     pause: bool = typer.Option(False, help="Pause when finished"),
 ) -> None:
@@ -166,19 +171,20 @@ def publish(
         logger.error(f"Release package not found at {published_zip}. Run 'veaf-build build' first.")
         sys.exit(1)
 
-    # Prepare release notes
-    console.print("\n[bold cyan]Preparing release notes...[/bold cyan]")
-    with spinner_context("Loading release notes handler..."):
-        worker = BuildAndReleaseWorker(version=version, verbose=verbose, config=config)
+    if not ci:
+        # Prepare release notes (interactive — ask to overwrite if exists)
+        console.print("\n[bold cyan]Preparing release notes...[/bold cyan]")
+        with spinner_context("Loading release notes handler..."):
+            worker = BuildAndReleaseWorker(version=version, verbose=verbose, config=config)
 
-    release_notes_path = worker.prepare_release_notes()
+        release_notes_path = worker.prepare_release_notes()
 
-    # Pause for editing release notes
-    console.print(
-        "\n[bold yellow]⏸️  Pause: Edit RELEASE_NOTES.md and press Enter to continue publishing...[/bold yellow]"
-    )
-    console.print(f"File location: {release_notes_path.resolve()}")
-    input(PAUSE_MESSAGE)
+        # Pause for editing release notes
+        console.print(
+            "\n[bold yellow]⏸️  Pause: Edit RELEASE_NOTES.md and press Enter to continue publishing...[/bold yellow]"
+        )
+        console.print(f"File location: {release_notes_path.resolve()}")
+        input(PAUSE_MESSAGE)
 
     try:
         # Calculate SHA256
@@ -195,7 +201,7 @@ def publish(
                 config=config,
                 prerelease=prerelease,
             )
-            publisher_worker._do_publish_to_github(published_zip, package_hash, force=force)
+            publisher_worker._do_publish_to_github(published_zip, package_hash, force=force, skip_git_tags=ci)
 
         # Display release information
         from rich.table import Table
@@ -235,6 +241,11 @@ def build_and_publish(
     skip_python: bool = typer.Option(False, help="Skip Python executable build"),
     dev: bool = typer.Option(False, "--dev", help="Build in development mode"),
     output: str = typer.Option(".", help="Output directory for release package"),
+    ci: bool = typer.Option(
+        False,
+        "--ci",
+        help="Non-interactive CI mode: skip all prompts and use RELEASE_NOTES.md as-is.",
+    ),
     verbose: bool = typer.Option(False, help=VERBOSE_HELP),
 ) -> None:
     """
@@ -264,19 +275,21 @@ def build_and_publish(
         )
         worker.run()
 
-        # Step 2: Prepare release notes
-        console.print("\n[bold cyan]Step 2: Preparing release notes...[/bold cyan]")
-        release_notes_path = worker.prepare_release_notes()
+        if not ci:
+            # Step 2: Prepare release notes (interactive)
+            console.print("\n[bold cyan]Step 2: Preparing release notes...[/bold cyan]")
+            release_notes_path = worker.prepare_release_notes()
 
-        # Step 3: Pause for editing release notes
-        console.print(
-            "\n[bold yellow]⏸️  Pause: Edit RELEASE_NOTES.md and press Enter to continue publishing...[/bold yellow]"
-        )
-        console.print(f"File location: {release_notes_path.resolve()}")
-        input(PAUSE_MESSAGE)
+            # Step 3: Pause for editing release notes
+            console.print(
+                "\n[bold yellow]⏸️  Pause: Edit RELEASE_NOTES.md and press Enter to continue publishing...[/bold yellow]"
+            )
+            console.print(f"File location: {release_notes_path.resolve()}")
+            input(PAUSE_MESSAGE)
 
         # Step 4: Publish
-        console.print("\n[bold cyan]Step 3: Publishing to GitHub...[/bold cyan]")
+        step_num = 3 if not ci else 2
+        console.print(f"\n[bold cyan]Step {step_num}: Publishing to GitHub...[/bold cyan]")
         published_zip = Path(output) / "published.zip"
         if not published_zip.exists():
             logger.error(f"Release package not found at {published_zip}")
@@ -293,7 +306,7 @@ def build_and_publish(
                 verbose=verbose,
                 config=config,
             )
-            publish_worker._do_publish_to_github(published_zip, package_hash, force=False)
+            publish_worker._do_publish_to_github(published_zip, package_hash, force=False, skip_git_tags=ci)
 
         from rich.table import Table
 

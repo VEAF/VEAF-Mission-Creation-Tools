@@ -21,6 +21,7 @@ class GitHubPublisher:
         output_path: Path,
         prerelease: bool = False,
         verbose: bool = False,
+        skip_git_tags: bool = False,
     ) -> None:
         self.owner = owner
         self.repo = repo
@@ -31,6 +32,7 @@ class GitHubPublisher:
         self.output_path = output_path
         self.prerelease = prerelease
         self.verbose = verbose
+        self.skip_git_tags = skip_git_tags
 
     @property
     def _is_prerelease(self) -> bool:
@@ -46,7 +48,8 @@ class GitHubPublisher:
             logger.info("Proceeding with git tags only (release assets must be uploaded manually)", no_console=True)
 
         try:
-            self._publish_with_git_tags(package_path)
+            if not self.skip_git_tags:
+                self._publish_with_git_tags(package_path)
             if self.token:
                 self._publish_with_gh_cli(package_path, package_hash, force=force)
         except subprocess.CalledProcessError as e:

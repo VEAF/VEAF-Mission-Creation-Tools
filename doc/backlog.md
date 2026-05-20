@@ -169,8 +169,8 @@ Isole la complexité de l'arbre DCS et facilite le test unitaire.
 **Branch**: `feature/disc-wave3` (PR #320 mergée)
 **Statut**: 🟢 DISC-001/002/003/004/005/006/007/009/010/011/012/013/015/017 implémentés — DISC-008/014/016/018 encore à décider
 
-| # | Ticket | Sujet | Type | Effort si adopté | Status |
-|---|--------|-------|------|-----------------|--------|
+| # | Ticket | Type | Effort si adopté | Status |
+|---|--------|------|-----------------|--------|
 | DISC-008 | Release automation complète — GitHub Actions workflow sur tag push (build + publish, zéro intervention manuelle) | feat | 120 min | ⬜ |
 | DISC-014 | Documentation versionnée — lier les docs à une release (GitHub Pages tags ou dossiers versionnés) | feat | 90 min | ⬜ |
 | DISC-016 | API deprecation warnings — système de warnings Lua quand des fonctions legacy sont appelées | feat | 45 min | ⬜ |

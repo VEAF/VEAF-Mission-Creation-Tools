@@ -333,19 +333,24 @@ Full testing reference: [Testing Guide](../TESTING.md)
 
 # Auto-fix
 ~/.local/bin/stylua.exe src/scripts/veaf/
+
+# Static analysis
+luacheck src/scripts/veaf/ --config .luacheckrc
 ```
 
 StyLua version: **2.4.0** (enforced by the `StyLua Formatting` CI job).
+Luacheck is enforced by the `Luacheck` CI job.
 
 ### CI Jobs
 
 | Job | What it checks |
 |-----|---------------|
 | `Lua Unit Tests` | All 31 test suites pass |
+| `Luacheck` | No undefined globals, unused vars, or shadowing in `src/scripts/veaf/` |
 | `StyLua Formatting` | No formatting violations in `src/scripts/veaf/` |
-| `Sourcery` | Code smell / complexity review |
+| `python-quality` | ruff lint + format, mypy types, pytest |
 
-Both CI jobs must be green before a PR can be merged.
+All CI jobs must be green before a PR can be merged.
 
 ### Releasing a new version
 

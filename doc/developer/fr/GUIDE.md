@@ -331,19 +331,24 @@ Référence complète des tests : [Guide de tests](../../TESTING.md)
 
 # Corriger automatiquement
 ~/.local/bin/stylua.exe src/scripts/veaf/
+
+# Analyse statique
+luacheck src/scripts/veaf/ --config .luacheckrc
 ```
 
 Version StyLua : **2.4.0** (imposée par le job CI `StyLua Formatting`).
+Luacheck est imposé par le job CI `Luacheck`.
 
 ### Jobs CI
 
 | Job | Ce qu'il vérifie |
 |-----|-----------------|
 | `Lua Unit Tests` | Les 31 suites de tests passent |
+| `Luacheck` | Aucune variable globale non définie, variable inutilisée ni shadowing dans `src/scripts/veaf/` |
 | `StyLua Formatting` | Aucune violation de formatage dans `src/scripts/veaf/` |
-| `Sourcery` | Revue de complexité / qualité du code |
+| `python-quality` | ruff lint + format, mypy types, pytest |
 
-Les deux jobs CI doivent être verts avant qu'une PR puisse être mergée.
+Tous les jobs CI doivent être verts avant qu'une PR puisse être mergée.
 
 ---
 

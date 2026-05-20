@@ -26,20 +26,24 @@
 
 ### Quality Gate — Lua Scripts
 
-Before committing any change to `src/scripts/veaf/`, run StyLua to check (and fix) formatting:
+Before committing any change to `src/scripts/veaf/`, run StyLua and luacheck:
 
 ```powershell
-# Check only (CI equivalent)
-stylua --check src/scripts/veaf/
+# StyLua — check only (CI equivalent)
+~/.local/bin/stylua.exe --check src/scripts/veaf/
 
-# Auto-fix
-stylua src/scripts/veaf/
+# StyLua — auto-fix
+~/.local/bin/stylua.exe src/scripts/veaf/
+
+# luacheck — static analysis (undefined globals, unused vars, shadowing)
+luacheck src/scripts/veaf/ --config .luacheckrc
 ```
 
 - StyLua version used by CI: **2.4.0** (installed at `~/.local/bin/stylua.exe`)
 - Config: `.stylua.toml` at workspace root (if present), otherwise StyLua defaults
 - This check is enforced by the **StyLua Formatting** CI job on every PR
 - Never commit Lua files with formatting violations — the CI will block the merge
+- luacheck is enforced by the **Luacheck** CI job on every PR
 
 ### Quality Gate — Lua Unit Tests
 
@@ -71,10 +75,11 @@ Always do this before starting any new work.
 
 1. `~/.local/bin/stylua.exe src/scripts/veaf/` — auto-fix Lua formatting
 2. `~/.local/bin/stylua.exe --check src/scripts/veaf/` — verify clean
-3. Lua tests (see above) — verify all suites pass
-4. `poetry run ruff check src/python` + `poetry run ruff format --check src/python` + `poetry run mypy src/python` + `poetry run pytest` — Python quality gate
-5. Update `doc/backlog.md` to reflect ticket state
-6. Only then: open PR and request Copilot review (`mcp_github_request_copilot_review`)
+3. `luacheck src/scripts/veaf/ --config .luacheckrc` — static analysis
+4. Lua tests (see above) — verify all suites pass
+5. `poetry run ruff check src/python` + `poetry run ruff format --check src/python` + `poetry run mypy src/python` + `poetry run pytest` — Python quality gate
+6. Update `doc/backlog.md` to reflect ticket state
+7. Only then: open PR and request Copilot review (`mcp_github_request_copilot_review`)
 
 ---
 
@@ -97,7 +102,7 @@ VEAF Mission Creation Tools is a hybrid **Lua + Python** system for designing an
    - `options` - Graphics and gameplay options
    - `theatre` - Map information
    - `warehouses` - Supply configurations
-   - Uses [luadata](https://github.com/toml-lang/toml-py) library for Lua serialization
+   - Uses a local `luadata` package (`src/python/veaf-tools/luadata/`) for Lua serialization
 
 2. **Worker Pattern** - Each tool follows consistent design:
    - `*_worker.py` classes with `run()` method entry point
@@ -240,7 +245,10 @@ Lua modules follow a strict loading order (see `src/scripts/veaf/`):
 - **Never silently swallow errors** - visibility is critical for mission makers
 
 ### Documentation
-- User guides in `DETAILED_MANUAL.md` (reference), `BUILD_WORKFLOW.md` (procedures)
+- User-facing documentation lives in `doc/` (split by audience):
+  - `doc/mission-maker/GUIDE.md` — mission maker reference
+  - `doc/developer/GUIDE.md` — build pipeline, quality gates, contributing
+  - `doc/LUA_API_REFERENCE.md` — full Lua public API
 - API docs in source code docstrings (Python)
 - Lua comments inline (no separate documentation needed)
 
@@ -253,7 +261,7 @@ Lua modules follow a strict loading order (see `src/scripts/veaf/`):
 - **pyyaml** - Config file loading (YAML format)
 - **rich** - Terminal UI (progress bars, colored output, tables)
 - **luadata** - Lua serialization/deserialization
-- **lupa** - Python ↔ Lua bridging (for dynamic features)
+- **lupa** — Python ↔ Lua bridging (optional extra; needed for `miz_tools`)
 - **Pillow** - Image processing (weather icon generation)
 - **pydantic** - Data validation (newer code)
 
@@ -305,8 +313,8 @@ poetry run pytest
 - [ ] Configuration via YAML (not hardcoded)
 - [ ] Error messages are user-friendly and actionable
 - [ ] Tested against actual `.miz` files (not mocked)
-- [ ] Updated `DETAILED_MANUAL.md` if user-facing
+- [ ] Updated documentation in `doc/` if user-facing (see `doc/mission-maker/GUIDE.md`, `doc/LUA_API_REFERENCE.md`)
 
 ---
 
-**Note:** Communication preferences (language, tone, documentation standards) are in [`.copilot-instructions.md`](../.copilot-instructions.md) at the repository root. This file focuses on technical architecture and code patterns.
+**Note:** This file is `.github/copilot-instructions.md` — it provides technical architecture and code patterns for AI agents. Communication preferences (language, tone) are at the top of this same file.

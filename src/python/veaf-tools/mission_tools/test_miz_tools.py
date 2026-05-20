@@ -126,6 +126,7 @@ class TestWriteMiz:
         mission = read_miz(original)
         # Modify mission content and write back to a new path
         output = tmp_path / "output.miz"
+        assert mission.mission_content is not None
         mission.mission_content["modified"] = True
         write_miz(mission, output)
         assert output.exists()

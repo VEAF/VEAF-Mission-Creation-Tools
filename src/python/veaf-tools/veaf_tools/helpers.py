@@ -11,9 +11,9 @@ def _read_single_char() -> str:
     try:
         import msvcrt
 
-        ch = msvcrt.getwch()
+        ch = msvcrt.getwch()  # type: ignore[attr-defined]
         if ch in ("\x00", "\xe0"):
-            msvcrt.getwch()  # consume second byte of special key
+            msvcrt.getwch()  # type: ignore[attr-defined]  # consume second byte of special key
             return ""
         if ch == "\x03":  # Ctrl-C
             raise KeyboardInterrupt

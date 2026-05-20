@@ -2,11 +2,12 @@
 
 ## Supported Versions
 
-Only the latest release on the `main` branch receives security fixes.
+Only the **latest 6.x release** receives security fixes. Older minor versions and pre-v6 releases are not maintained.
 
 | Version | Supported |
 |---------|-----------|
-| 6.x (latest) | ✅ |
+| 6.x (latest release) | ✅ |
+| 6.x (older releases) | ❌ |
 | < 6.0 | ❌ |
 
 ## Reporting a Vulnerability

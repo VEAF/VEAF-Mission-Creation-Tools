@@ -341,9 +341,10 @@ class TestPresets(unittest.TestCase):
         self.assertIsInstance(pm.preset_assignments, PresetAssignmentCollection)
 
     def test_presets_manager_read_yaml(self):
-        # Test loading the provided YAML file
+        # Test loading the provided YAML file (path anchored relative to repo root)
         pm = PresetsManager()
-        yaml_path = Path("./src/defaults/mission-folder/src/presets.yaml")
+        _repo_root = Path(__file__).parents[4]
+        yaml_path = _repo_root / "src" / "defaults" / "mission-folder" / "src" / "presets.yaml"
         try:
             pm.read_yaml(yaml_path)
             # Check that collections are populated

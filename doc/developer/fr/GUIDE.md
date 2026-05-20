@@ -74,6 +74,28 @@ VEAF-Mission-Creation-Tools/
 
 ## Environnement de développement
 
+Deux options de setup sont disponibles. Le DevContainer est recommandé pour les nouveaux contributeurs : il garantit un environnement identique à la CI.
+
+### Option A — DevContainer (recommandé)
+
+Le dépôt inclut une configuration `.devcontainer/` qui fournit un environnement pré-configuré, sans installation manuelle : Python 3.13, Lua 5.1, StyLua 2.4.0, Poetry et toutes les extensions VS Code sont déjà installés.
+
+**VS Code Dev Containers** (Docker local) :
+
+1. Installer [Docker Desktop](https://www.docker.com/products/docker-desktop/) et l'extension [Dev Containers](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers)
+2. Ouvrir le dossier du dépôt dans VS Code
+3. Appuyer sur `Ctrl+Shift+P` → *Dev Containers: Reopen in Container*
+4. Attendre la construction du conteneur et la fin de `poetry install` — l'environnement est prêt
+
+**GitHub Codespaces** (navigateur, sans installation locale) :
+
+1. Sur la page du dépôt, cliquer sur **Code** → **Codespaces** → **New codespace**
+2. L'environnement se construit automatiquement — ouvrir un terminal et commencer à travailler
+
+Dans les deux cas, `poetry install --without build --all-extras` s'exécute automatiquement à la première ouverture.
+
+### Option B — Setup manuel (Windows)
+
 ### Prérequis
 
 - Python 3.9+ (3.13 recommandé)

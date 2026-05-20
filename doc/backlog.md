@@ -876,8 +876,8 @@ Cela débloque les tests unitaires des state machines (QRA, AirWaves).
 ## Lot 13 — DISCUSS: Standards industrie — à évaluer et décider
 
 **Goal**: Évaluer les standards industrie manquants et décider lesquels adopter. Chaque ticket est un point de discussion/décision avant implémentation éventuelle.
-**Branch**: `feature/disc-010-devcontainer` (PR #317 ouverte)
-**Statut**: 🟢 DISC-010 implémenté — autres tickets encore à discuter
+**Branch**: `feature/disc-hygiene` (en cours — DISC-005, 006, 009, 012)
+**Statut**: 🟢 DISC-005/006/009/010/012 implémentés — autres tickets encore à discuter
 
 | # | Ticket | Sujet | Type | Effort si adopté | Status |
 |---|--------|-------|------|-----------------|--------|
@@ -885,14 +885,14 @@ Cela débloque les tests unitaires des state machines (QRA, AirWaves).
 | DISC-002 | Ajouter `luacheck` au CI (lint statique Lua — undefined globals, unused vars, shadowing) | chore | 60 min | [ ] |
 | DISC-003 | Coverage reporting en CI (Codecov ou Coveralls) + badge README + seuil `--cov-fail-under` | chore | 30 min | [ ] |
 | DISC-004 | `CONTRIBUTING.md` + PR template + issue templates (bug report / feature request) | chore | 45 min | [ ] |
-| DISC-005 | `SECURITY.md` — politique de disclosure des vulnérabilités | chore | 15 min | [ ] |
-| DISC-006 | `CODEOWNERS` — auto-assign reviewers par path (`src/scripts/` → Lua team, `src/python/` → Python team) | chore | 10 min | [ ] |
+| DISC-005 | `SECURITY.md` — politique de disclosure des vulnérabilités | chore | 15 min | [x] |
+| DISC-006 | `CODEOWNERS` — auto-assign reviewers par path (`src/scripts/` → Lua team, `src/python/` → Python team) | chore | 10 min | [x] |
 | DISC-007 | Dependabot ou Renovate — auto-update des dépendances Python + GitHub Actions | chore | 20 min | [ ] |
 | DISC-008 | Release automation complète — GitHub Actions workflow sur tag push (build + publish, zéro intervention manuelle) | feat | 120 min | [ ] |
-| DISC-009 | `.editorconfig` — uniformité des settings IDE (indentation, EOL, trim trailing whitespace) | chore | 10 min | [ ] |
+| DISC-009 | `.editorconfig` — uniformité des settings IDE (indentation, EOL, trim trailing whitespace) | chore | 10 min | [x] |
 | DISC-010 | DevContainer / Docker — environnement dev reproductible (Python 3.13 + Lua 5.1 + outils) | feat | 90 min | [x] |
 | DISC-011 | Signed commits / tag signing — intégrité supply chain | chore | 15 min | [ ] |
-| DISC-012 | Branch protection rules — require CI pass + review avant merge | chore | 10 min | [ ] |
+| DISC-012 | Branch protection rules — require CI pass + review avant merge | chore | 10 min | [x] |
 | DISC-013 | Changelog automation (`git-cliff` ou `release-please` + conventional commits) | feat | 60 min | [ ] |
 | DISC-014 | Documentation versionnée — lier les docs à une release (GitHub Pages tags ou dossiers versionnés) | feat | 90 min | [ ] |
 | DISC-015 | SBOM (Software Bill of Materials) — traçabilité des dépendances embarquées dans l'exe | chore | 30 min | [ ] |
@@ -968,7 +968,22 @@ Cela débloque les tests unitaires des state machines (QRA, AirWaves).
 **DISC-012 — Branch protection rules**
 - **Pour** : Empêche les push directs sur `develop-v6` et `main`, garantit que le CI passe avant tout merge. Standard pour tout projet collaboratif.
 - **Contre** : Peut bloquer des hotfixes urgents si le CI est cassé pour une raison externe
-- **Recommandation** : Activer sur `develop-v6` et `main` — require 1 review + CI vert. Garder un escape hatch admin pour les urgences.
+- **Statut** : ✅ Implémenté — settings à appliquer dans GitHub Settings (action admin requise)
+
+**Settings à appliquer** sur `develop-v6` et `main` :
+
+*GitHub → Settings → Branches → Add branch protection rule*
+
+| Setting | Valeur recommandée |
+|---------|-------------------|
+| Require a pull request before merging | ✅ (1 approval required) |
+| Require status checks to pass | ✅ |
+| — Status checks : `Lua Unit Tests` | ✅ |
+| — Status checks : `StyLua Formatting` | ✅ |
+| — Status checks : `python-quality` | ✅ |
+| Require branches to be up to date | ✅ |
+| Do not allow bypassing the above settings | ❌ (laisser l'escape hatch admin) |
+| Restrict who can push to matching branches | Optionnel |
 
 **DISC-013 — Changelog automation**
 - **Pour** : Plus d'oublis, changelog toujours à jour

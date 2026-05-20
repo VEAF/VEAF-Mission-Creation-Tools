@@ -7,6 +7,7 @@ from typing import Any
 
 import yaml
 from mission_tools import read_miz, write_miz
+from veaf_libs.base_worker import BaseWorker
 from veaf_libs.i18n import t
 from veaf_libs.logger import logger
 
@@ -15,7 +16,7 @@ from .utils import SolarCalculator, TimeExpressionParser
 from .weather import DCSWeatherConverter
 
 
-class WeatherInjectorWorker:
+class WeatherInjectorWorker(BaseWorker):
     """
     Create multiple versions of a DCS mission with different weather and times.
 

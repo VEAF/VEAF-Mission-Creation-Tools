@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from mission_tools import DcsMission, read_miz, write_miz
+from veaf_libs.base_worker import BaseWorker
 from veaf_libs.logger import logger
 from veaf_libs.progress import spinner_context
 
@@ -26,7 +27,7 @@ class Group:
     unit_type: str | None = None
 
 
-class PresetsInjectorWorker:
+class PresetsInjectorWorker(BaseWorker):
     """
     Worker class that provides presets injection features.
     """

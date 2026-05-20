@@ -16,6 +16,7 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
+from veaf_libs.base_worker import BaseWorker
 from veaf_libs.logger import logger
 from veaf_libs.progress import spinner_context
 
@@ -38,7 +39,7 @@ class Group:
     unit_type: str | None = None
 
 
-class WaypointsInjectorWorker:
+class WaypointsInjectorWorker(BaseWorker):
     """
     Worker class that injects waypoints into aircraft groups from a YAML file.
     """
@@ -218,7 +219,7 @@ class WaypointsInjectorWorker:
             self.write_mission(silent)
 
 
-class WaypointsExtractorWorker:
+class WaypointsExtractorWorker(BaseWorker):
     """
     Worker class that extracts waypoints from DCS missions or Lua settings files.
     """

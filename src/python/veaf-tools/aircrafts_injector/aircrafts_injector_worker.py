@@ -15,6 +15,7 @@ from mission_tools import DcsMission, read_miz, write_miz
 from rich.console import Console
 from rich.panel import Panel
 from rich.text import Text
+from veaf_libs.base_worker import BaseWorker
 from veaf_libs.logger import logger
 from veaf_libs.progress import spinner_context
 
@@ -423,7 +424,7 @@ class AircraftGroupsYAMLValidator:
         return report
 
 
-class AircraftGroupsInjectorWorker:
+class AircraftGroupsInjectorWorker(BaseWorker):
     """
     Worker class that injects aircraft groups from YAML into a DCS mission.
     Automatically validates YAML before injection.
@@ -830,7 +831,7 @@ class AircraftGroupsInjectorWorker:
                 console.print(f"  {log_entry}")
 
 
-class AircraftGroupsExtractorWorker:
+class AircraftGroupsExtractorWorker(BaseWorker):
     """
     Worker class that extracts aircraft groups matching a regexp from a DCS mission
     and writes them to a YAML file in aircraft-templates.yaml format.

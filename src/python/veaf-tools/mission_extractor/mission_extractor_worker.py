@@ -15,11 +15,12 @@ from mission_tools import (
     read_miz,
     write_miz,
 )
+from veaf_libs.base_worker import BaseWorker
 from veaf_libs.logger import logger
 from veaf_libs.progress import spinner_context
 
 
-class MissionExtractorWorker:
+class MissionExtractorWorker(BaseWorker):
     """
     Worker class that extracts a .miz mission file to a VEAF mission folder.
     """

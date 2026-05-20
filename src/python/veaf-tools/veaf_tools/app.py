@@ -1,0 +1,31 @@
+from importlib.metadata import PackageNotFoundError
+from importlib.metadata import version as _pkg_version
+
+import typer
+from veaf_libs.i18n import set_language, t
+from veaf_libs.logger import console, logger
+from veaf_libs.update_checker import check_for_updates
+
+try:
+    VERSION: str = _pkg_version("veaf-tools")
+except PackageNotFoundError:
+    VERSION = "6.0.5"  # Fallback; overwritten by the build process at compile time.
+
+README_HELP: str = t("help.readme")
+PAUSE_HELP: str = t("help.pause")
+VERBOSE_HELP: str = t("help.verbose")
+
+DEFAULT_MISSION_FILE = "mission.miz"
+DEFAULT_PRESETS_FILE = "./src/presets.yaml"
+
+app = typer.Typer(no_args_is_help=True)
+
+
+@app.callback()
+def main_callback(
+    lang: str | None = typer.Option(None, "--lang", help=t("help.lang")),
+) -> None:
+    """VEAF Tools — DCS World mission management CLI."""
+    if lang:
+        set_language(lang)
+    check_for_updates(VERSION, console)

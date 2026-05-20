@@ -9,6 +9,7 @@ import tempfile
 import zipfile
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import IO, Any
 
 import luadata
 from veaf_libs.logger import logger
@@ -33,9 +34,9 @@ class DcsMission:
 def read_miz(miz_file_path: Path) -> DcsMission:
     """Load the mission from the .miz file (unzip it and parse the lua files)."""
 
-    def unserialize(file: str, keep_as_dict: list = None, all_is_dict: bool = False) -> dict:
-        with io.TextIOWrapper(file, encoding="utf-8") as wrapper:
-            return luadata.unserialize(wrapper.read(), keep_as_dict=keep_as_dict, all_is_dict=all_is_dict)
+    def unserialize(file: IO[bytes], keep_as_dict: list[str] | None = None, all_is_dict: bool = False) -> dict[str, Any]:
+        with io.TextIOWrapper(file, encoding="utf-8") as wrapper:  # type: ignore[arg-type]
+            return luadata.unserialize(wrapper.read(), keep_as_dict=keep_as_dict, all_is_dict=all_is_dict)  # type: ignore[return-value]
 
     def read_file_in_archive(
         zip_file: zipfile.ZipFile,
@@ -43,7 +44,7 @@ def read_miz(miz_file_path: Path) -> DcsMission:
         missing_components: list[str],
         keep_as_dict: list[str] | None = None,
         not_lua: bool = False,
-    ) -> dict | None:
+    ) -> dict[str, Any] | str | None:
         if file_name in zip_file.namelist():
             with zip_file.open(file_name) as file:
                 if not_lua:
@@ -57,16 +58,22 @@ def read_miz(miz_file_path: Path) -> DcsMission:
     result = DcsMission(file_path=miz_file_path)
 
     with zipfile.ZipFile(miz_file_path, "r") as miz:
-        result.mission_content = read_file_in_archive(
+        result.mission_content = read_file_in_archive(  # type: ignore[assignment]
             miz, "mission", result.missing_components, keep_as_dict=["trig", "trigrules"]
         )
-        result.options_content = read_file_in_archive(miz, "options", result.missing_components)
-        result.theatre_content = read_file_in_archive(miz, "theatre", result.missing_components, not_lua=True)
-        result.warehouses_content = read_file_in_archive(miz, "warehouses", result.missing_components)
-        result.dictionary_content = read_file_in_archive(
+        result.options_content = read_file_in_archive(  # type: ignore[assignment]
+            miz, "options", result.missing_components
+        )
+        result.theatre_content = read_file_in_archive(  # type: ignore[assignment]
+            miz, "theatre", result.missing_components, not_lua=True
+        )
+        result.warehouses_content = read_file_in_archive(  # type: ignore[assignment]
+            miz, "warehouses", result.missing_components
+        )
+        result.dictionary_content = read_file_in_archive(  # type: ignore[assignment]
             miz, f"{DEFAULT_SCRIPTS_LOCATION}/dictionary", result.missing_components
         )
-        result.map_resource_content = read_file_in_archive(
+        result.map_resource_content = read_file_in_archive(  # type: ignore[assignment]
             miz, f"{DEFAULT_SCRIPTS_LOCATION}/mapResource", result.missing_components
         )
 
@@ -90,8 +97,8 @@ def create_miz(miz_file_path: Path, files: dict[str, bytes]) -> Path:
 def write_miz(mission: DcsMission, miz_file_path: Path | None, additional_files: dict | None = None) -> DcsMission:
     """Update an existing mission in a .miz file with new data (zip it)."""
 
-    def serialize(zip_file: zipfile.ZipFile, content: str, file_name: str, variable_name: str | None = None) -> None:
-        lua_content = luadata.serialize(content, indent="  ", indent_level=0, always_provide_keyname=True, sort=True)
+    def serialize(zip_file: zipfile.ZipFile, content: Any, file_name: str, variable_name: str | None = None) -> None:
+        lua_content = luadata.serialize(content, indent="  ", indent_level=0, always_provide_keyname=True, sort=True)  # type: ignore[arg-type]
         zip_file.writestr(file_name, f"{variable_name} = \n{lua_content}" if variable_name else lua_content)
 
     if not miz_file_path:

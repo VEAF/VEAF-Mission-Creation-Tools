@@ -101,10 +101,10 @@ def collect_files_from_globs(
 
     def _add_file_to_results(results: dict[str, bytes], file_path: Path, base_folder: Path) -> None:
         relative_path = file_path.relative_to(base_folder).parent.as_posix()
-        relative_path = dest_location / relative_path / file_path.name
+        key = (dest_location / relative_path / file_path.name).as_posix()
         if logger:
-            logger.debug(f"Processing file {relative_path}")
-        results[relative_path] = file_path.read_bytes()
+            logger.debug(f"Processing file {key}")
+        results[key] = file_path.read_bytes()
 
     def _search_pattern_in_folder(search_folder: Path, pattern: str) -> dict[str, bytes]:
         """Search for files matching pattern in the given folder."""
@@ -118,7 +118,7 @@ def collect_files_from_globs(
         if not folder.exists():
             return {}
 
-        matched_files = {}
+        matched_files: dict[str, bytes] = {}
 
         if "**" in pattern:
             parts = Path(pattern).parts

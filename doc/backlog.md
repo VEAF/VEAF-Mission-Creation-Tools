@@ -876,7 +876,7 @@ Cela débloque les tests unitaires des state machines (QRA, AirWaves).
 ## Lot 13 — DISCUSS: Standards industrie — à évaluer et décider
 
 **Goal**: Évaluer les standards industrie manquants et décider lesquels adopter. Chaque ticket est un point de discussion/décision avant implémentation éventuelle.
-**Branch**: décision d'abord, implémentation dans un lot futur
+**Branch**: `feature/disc-010-devcontainer` (PR #317 ouverte)
 **Statut**: 🟡 À discuter — pas d'implémentation avant validation
 
 | # | Ticket | Sujet | Type | Effort si adopté | Status |
@@ -890,7 +890,7 @@ Cela débloque les tests unitaires des state machines (QRA, AirWaves).
 | DISC-007 | Dependabot ou Renovate — auto-update des dépendances Python + GitHub Actions | chore | 20 min | [ ] |
 | DISC-008 | Release automation complète — GitHub Actions workflow sur tag push (build + publish, zéro intervention manuelle) | feat | 120 min | [ ] |
 | DISC-009 | `.editorconfig` — uniformité des settings IDE (indentation, EOL, trim trailing whitespace) | chore | 10 min | [ ] |
-| DISC-010 | DevContainer / Docker — environnement dev reproductible (Python 3.13 + Lua 5.1 + outils) | feat | 90 min | [ ] |
+| DISC-010 | DevContainer / Docker — environnement dev reproductible (Python 3.13 + Lua 5.1 + outils) | feat | 90 min | [x] |
 | DISC-011 | Signed commits / tag signing — intégrité supply chain | chore | 15 min | [ ] |
 | DISC-012 | Branch protection rules — require CI pass + review avant merge | chore | 10 min | [ ] |
 | DISC-013 | Changelog automation (`git-cliff` ou `release-please` + conventional commits) | feat | 60 min | [ ] |

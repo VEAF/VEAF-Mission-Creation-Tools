@@ -2,9 +2,8 @@ name: Lua CI
 
 on:
   push:
-    branches: ["**"]
+    branches: [develop-v6, main]
   pull_request:
-    branches: ["**"]
 
 jobs:
   # ---------------------------------------------------------------------------

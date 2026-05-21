@@ -14,9 +14,11 @@
    - [veaf.lua](#veaflua) - Core utilities and logger
    - [veafEventHandler.lua](#veafeventhandlerlua) - Event management
    - [veafMarkers.lua](#veafmarkerslua) - Map marker system
+   - [veafCommands.lua](#veafcommandslua) - Central command dispatcher
    - [veafInterpreter.lua](#veafinterpreterlua) - Command parsing
 4. [Unit & Group Management](#unit--group-management)
    - [veafSpawn.lua](#veafspawnlua) - Dynamic spawning
+   - [veafSpawnParser.lua](#veafspawnparserlua) - Spawn command text parser
    - [veafUnits.lua](#veafunitslua) - Unit definitions
    - [veafAssets.lua](#veafassetslua) - Asset tracking
    - [veafMove.lua](#veafmovelua) - Movement control
@@ -56,7 +58,7 @@ The VEAF (Virtual European Air Force) Lua modules provide a comprehensive framew
 
 ### Key Features
 
-- **31+ Lua modules** providing runtime functionality
+- **33+ Lua modules** providing runtime functionality
 - **Event-driven architecture** using DCS World event system
 - **Modular design** allowing selective module usage
 - **Extensive logging** with configurable log levels
@@ -1547,19 +1549,21 @@ Marker events received by handlers contain:
 
 **Command Pattern:**
 
-Most VEAF modules use markers for commands:
+Modules register a handler with `veafCommands` which routes all F10 marker commands centrally:
 ```lua
-veafMarkers.registerEventHandler(veafMarkers.MarkerChange, function(pos, event)
+-- In a module's initialize() function:
+veafCommands.registerCommandHandler(function(pos, event, bypass, fromMarker, groups, route)
   local text = event.text or ""
-
-  -- Check for command keyword
-  if text:lower():match("^_spawn") then
-    veafSpawn.onEventMarkChange(pos, event)
-  elseif text:lower():match("^_cas") then
-    veafCasMission.onEventMarkChange(pos, event)
+  if not text:lower():match("^_mycommand") then
+    return false  -- not our command
   end
-end)
+  -- handle the command...
+  return true   -- consumed
+end, veafCommands.PRIORITY_SPAWN)
 ```
+
+All handlers are called in priority order until one returns `true`.
+The central dispatcher (`veafCommands.dispatchMarker`) handles the mark removal automatically.
 
 **Security Pattern:**
 
@@ -1586,6 +1590,58 @@ veafMarkers.registerEventHandler(veafMarkers.MarkerChange, function(pos, event)
   end
 end)
 ```
+
+---
+
+### veafCommands.lua
+
+**Module ID:** `COMMANDS`
+**Init order:** 15 (after veafMarkers, before all command modules)
+**Purpose:** Central registry and dispatcher for all text commands (F10 markers and interpreter)
+
+#### Constants
+
+```lua
+veafCommands.PRIORITY_SHORTCUTS    = 10
+veafCommands.PRIORITY_SPAWN        = 20
+veafCommands.PRIORITY_NAMEDPOINTS  = 30
+veafCommands.PRIORITY_CASMISSION   = 40
+veafCommands.PRIORITY_SECURITY     = 50
+veafCommands.PRIORITY_MOVE         = 60
+veafCommands.PRIORITY_RADIO        = 70
+veafCommands.PRIORITY_REMOTE       = 80
+```
+
+#### Functions
+
+##### `veafCommands.registerCommandHandler(fn, priority)`
+
+Register a command handler function. Handlers are called in ascending priority order.
+
+**Parameters:**
+- `fn` (function) - Handler with signature `(pos, event, bypass, fromMarker, groups, route) → boolean`
+- `priority` (number) - Execution order (lower = earlier); use the `PRIORITY_*` constants
+
+##### `veafCommands.execute(pos, text, coalition, groups, route)`
+
+Execute a command from the interpreter path (unit names). The coalition is used as-is.
+
+**Parameters:**
+- `pos` (vec3) - Execution position
+- `text` (string) - Command text
+- `coalition` (number) - Coalition number
+- `groups` (table, optional) - Table to receive spawned group names
+- `route` (table, optional) - Route definition
+
+**Returns:** `boolean` — true if a handler consumed the command
+
+##### `veafCommands.dispatchMarker(eventPos, event)`
+
+Handle a marker change event. Inverts coalition (marker events report the placer's side, not the target's), calls all registered handlers in priority order, and removes the mark on success.
+
+**Parameters:**
+- `eventPos` (vec3) - Marker position
+- `event` (table) - Marker event object
 
 ---
 
@@ -1623,7 +1679,7 @@ local command = veafInterpreter.interpret(unitName)
 
 ##### `veafInterpreter.execute(command, position, coalition, route, spawnedGroups)`
 
-Execute VEAF command.
+Execute VEAF command. Delegates to `veafCommands.execute()` — all registered handlers are tried in priority order.
 
 **Parameters:**
 - `command` (string) - Command string
@@ -1634,15 +1690,7 @@ Execute VEAF command.
 
 **Returns:** `boolean` - True if command executed successfully
 
-**Supported Commands:**
-- Shortcut commands (via veafShortcuts)
-- Spawn commands (via veafSpawn)
-- Named points (via veafNamedPoints)
-- CAS missions (via veafCasMission)
-- Security commands (via veafSecurity)
-- Move commands (via veafMove)
-- Radio commands (via veafRadio)
-- Remote commands (via veafRemote)
+**Note:** Command routing is handled by `veafCommands`. Modules register themselves via `veafCommands.registerCommandHandler()`.
 
 **Example:**
 ```lua
@@ -1730,6 +1778,32 @@ Unit name: #veafInterpreter["_spawn, convoy, name convoy1, dest marker1, speed 5
 ---
 
 ## Unit & Group Management
+
+### veafSpawnParser.lua
+
+**Purpose:** Parse spawn command text into options tables. Extracted sub-module of `veafSpawn`.
+
+#### Functions
+
+##### `veafSpawn.markTextAnalysis(text)`
+
+Parse marker text for spawn parameters. Defined in `veafSpawnParser.lua`, available on the `veafSpawn` table.
+
+**Parameters:**
+- `text` (string) - Marker text to parse
+
+**Returns:** `table` — options table with parsed key/value pairs
+
+##### `veafSpawn.convertLaserToFreq(laser)`
+
+Convert a laser code to a TACAN/radio frequency string.
+
+**Parameters:**
+- `laser` (number) - Laser code (1111–1788)
+
+**Returns:** `string` — frequency label, or nil if not found
+
+---
 
 ### veafSpawn.lua
 

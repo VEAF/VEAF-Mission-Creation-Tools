@@ -37,7 +37,7 @@
 | Lot 11 — I18N | ~7h10 | ✅ |
 | Lot 12 — QUALITY | ~16h35 | ✅ |
 | Lot 13 — DISCUSS | ~13h50 | ✅ |
-| Lot 14 — ARCH-COMMANDS | ~7h30 | ⬜ |
+| Lot 14 — ARCH-COMMANDS | ~7h30 | ✅ |
 | **Total** | **~103h** | |
 
 *Initial calibration factor: 1.15 — recalculate after each completed lot.*

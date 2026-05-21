@@ -613,17 +613,17 @@ function veafSpawn.markTextAnalysis(text)
   end
 
   -- check mandatory parameter "name" for command "group"
-  if options.group and not options.name then
+  if options.group and (not options.name or options.name == "") then
     return nil
   end
 
   -- check mandatory parameter "name" for command "unit"
-  if options.unit and not options.name then
+  if options.unit and (not options.name or options.name == "") then
     return nil
   end
 
   -- check mandatory parameter "name" for all mission master commands
-  if (options.mmFlagOff or options.mmFlagOn or options.mmRun) and not options.name then
+  if (options.mmFlagOff or options.mmFlagOn or options.mmRun) and (not options.name or options.name == "") then
     return nil
   end
 

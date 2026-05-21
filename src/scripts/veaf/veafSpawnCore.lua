@@ -131,7 +131,7 @@ veafSpawn.AFAC.missionData[coalition.side.RED] = {}
 veafSpawn.traceMarkerId = 3727
 
 -- Registry mapping option-key strings to handler functions registered by sub-modules.
-veafSpawn.commandHandlers = {}
+veafSpawn.commandHandlers = {} -- ordered list: { {key=string, fn=function}, ... }
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Utility methods
@@ -141,7 +141,7 @@ veafSpawn.commandHandlers = {}
 -- @param key   options field name that activates this handler (e.g. "unit", "farp")
 -- @param fn    function(eventPos, options, coalition, markId, bypassSecurity) -> spawnedGroup, routeDone, abort
 function veafSpawn.registerCommandHandler(key, fn)
-  veafSpawn.commandHandlers[key] = fn
+  table.insert(veafSpawn.commandHandlers, { key = key, fn = fn })
 end
 
 function veafSpawn.executeCommand(
@@ -277,11 +277,11 @@ function veafSpawn.executeCommand(
           hasDest = true
         end
 
-        -- Dispatch to registered command handler
+        -- Dispatch to registered command handler (ordered list, first match wins)
         local _handler = nil
-        for _key, _fn in pairs(veafSpawn.commandHandlers) do
-          if options[_key] then
-            _handler = _fn
+        for _, _entry in ipairs(veafSpawn.commandHandlers) do
+          if options[_entry.key] then
+            _handler = _entry.fn
             break
           end
         end

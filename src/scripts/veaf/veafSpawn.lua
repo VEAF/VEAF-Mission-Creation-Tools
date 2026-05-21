@@ -16,16 +16,21 @@
 --   veafSpawnGround.lua   (FARP, FOB, infantry, armored, air defense, convoy)
 --   veafSpawnAircraft.lua (aircraft, CAP, AFAC, JTAC)
 --   veafSpawnEffects.lua  (cargo, bomb, smoke, flares, destroy, teleport)
+--
+-- In the concatenated build (veaf-scripts.lua) the sub-modules are already
+-- inlined before this file, so the dofile calls are skipped.
 ------------------------------------------------------------------
 
-local _dir = ""
-if debug and debug.getinfo then
-  local _info = debug.getinfo(1, "S")
-  if _info and _info.source and _info.source:sub(1, 1) == "@" then
-    _dir = _info.source:sub(2):match("^(.+[\\/])") or ""
+if not veafSpawn or not veafSpawn.Id then
+  local _dir = ""
+  if debug and debug.getinfo then
+    local _info = debug.getinfo(1, "S")
+    if _info and _info.source and _info.source:sub(1, 1) == "@" then
+      _dir = _info.source:sub(2):match("^(.+[\\/])") or ""
+    end
   end
+  dofile(_dir .. "veafSpawnCore.lua")
+  dofile(_dir .. "veafSpawnGround.lua")
+  dofile(_dir .. "veafSpawnAircraft.lua")
+  dofile(_dir .. "veafSpawnEffects.lua")
 end
-dofile(_dir .. "veafSpawnCore.lua")
-dofile(_dir .. "veafSpawnGround.lua")
-dofile(_dir .. "veafSpawnAircraft.lua")
-dofile(_dir .. "veafSpawnEffects.lua")

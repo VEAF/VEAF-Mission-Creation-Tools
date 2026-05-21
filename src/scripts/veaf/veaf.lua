@@ -2925,7 +2925,7 @@ end
 
 function veaf.safeUnpack(package)
   if type(package) == "table" then
-    return (unpack or table.unpack)(package)
+    return (unpack or table.unpack)(package) -- luacheck: ignore 143
   else
     return package
   end

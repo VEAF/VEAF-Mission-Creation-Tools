@@ -70,7 +70,7 @@ globals = {
   "VeafCombatZone", "VeafCombatZoneElement", "VeafDrawingOnMap",
   "VeafFog",
   "VeafMG_Guardian", "VeafMG_Protector", "VeafMG_Weapon",
-  "VeafQRA", "VeafSanctuaryZone", "VeafSquareOnMap",
+  "VeafQRA", "VeafQRACore", "VeafQRALogistics", "VeafSanctuaryZone", "VeafSquareOnMap",
   "VeafSkynetMonitorDescriptor", "VeafSkynetMonitorTask",
   "VeafSkynetMonitorTaskContacts", "VeafSkynetMonitorTaskDescriptor",
   "VeafDynamicLoader",

@@ -164,7 +164,7 @@ end
 function TestVeafQraOOP:test_setQRAmaxCount()
   local q = VeafQRA:new()
   q:setQRAmaxCount(3)
-  luaunit.assertEquals(q.QRAmaxCount, 3)
+  luaunit.assertEquals(q.logistics.QRAmaxCount, 3)
 end
 
 -- ---------------------------------------------------------------------------
@@ -215,16 +215,16 @@ end
 
 function TestVeafQraLifecycle:test_destroyed_decrements_QRAcount()
   local q = _newSilentQRA()
-  q.QRAcount = 2
+  q:setQRAcount(2)
   q:destroyed()
-  luaunit.assertEquals(q.QRAcount, 1)
+  luaunit.assertEquals(q.logistics.QRAcount, 1)
 end
 
 function TestVeafQraLifecycle:test_destroyed_QRAcount_not_below_zero()
   local q = _newSilentQRA()
-  q.QRAcount = 0
+  q:setQRAcount(0)
   q:destroyed()
-  luaunit.assertEquals(q.QRAcount, 0)
+  luaunit.assertEquals(q.logistics.QRAcount, 0)
 end
 
 function TestVeafQraLifecycle:test_onStart_callback_called()

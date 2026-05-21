@@ -1524,7 +1524,7 @@ function veafSpawn.eraseDrawing(name)
   local drawing = veafSpawn.drawings[name:lower()]
   if not drawing then
     local message = string.format("Could not find a drawing named %s", veaf.p(name))
-    veaf.loggers.getSpawn(veaf.Id):warn(message)
+    veaf.loggers.get(veafSpawn.Id):warn(message)
     trigger.action.outText(message, 5)
     return
   end

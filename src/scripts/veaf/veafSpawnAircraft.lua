@@ -920,7 +920,7 @@ function veafSpawn.spawnCombatAirPatrol(
           ["properties"] = {
             ["addopt"] = {}, -- end of ["addopt"]
           }, -- end of ["properties"]
-          ["task"] = parameters.chosenTemplateWp1Task,
+          ["task"] = parameters.wp1Options,
           ["type"] = "Turning Point",
           ["ETA"] = 10000,
           ["ETA_locked"] = false,
@@ -1031,7 +1031,7 @@ function veafSpawn.spawnCombatAirPatrol(
 
   -- get the template first waypoint's options
   veaf.loggers.get(veafSpawn.Id):trace("chosenTemplateData=%s", veaf.lp(chosenTemplateData))
-  local chosenTemplateWp1Task = {}
+  local chosenTemplateWp1Task = nil
   if chosenTemplateData then
     local _route = chosenTemplateData.route
     --veaf.loggers.get(veafSpawn.Id):trace("_route=%s", veaf.p(_route))
@@ -1053,7 +1053,7 @@ function veafSpawn.spawnCombatAirPatrol(
               if _tasks then
                 for _, _taskData in pairs(_tasks) do
                   if "WrappedAction" == _taskData.id then
-                    table.insert(chosenTemplateWp1Task, mist.utils.deepCopy(_task)) -- if we found a WrappedAction task then we're on the right way, clone the whole task package
+                    chosenTemplateWp1Task = mist.utils.deepCopy(_task) -- if we found a WrappedAction task then we're on the right way, clone the whole task package
                     break
                   end
                 end

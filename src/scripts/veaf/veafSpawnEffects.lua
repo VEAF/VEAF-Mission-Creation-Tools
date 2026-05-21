@@ -8,21 +8,12 @@
 
 function veafSpawn.spawnCargo(spawnSpot, radius, cargoType, country, weightBias, cargoSmoke, unitName, silent, hiddenOnMFD)
   veaf.loggers.get(veafSpawn.Id):debug("spawnCargo(cargoType = " .. cargoType .. ")")
-
-  local spawnSpot = veaf.placePointOnLand(mist.getRandPointInCircle(spawnSpot, radius))
-  veaf.loggers.get(veafSpawn.Id):trace(string.format("spawnCargo: spawnSpot  x=%.1f y=%.1f, z=%.1f", spawnSpot.x, spawnSpot.y, spawnSpot.z))
-
   return veafSpawn.doSpawnCargo(spawnSpot, radius, cargoType, country, weightBias, unitName, cargoSmoke, silent, hiddenOnMFD)
 end
 
 --- Spawn a logistic unit for CTLD at a specific spot
 function veafSpawn.spawnLogistic(spawnSpot, radius, country, silent, hiddenOnMFD)
   veaf.loggers.get(veafSpawn.Id):debug("spawnLogistic()")
-
-  local spawnSpot = veaf.placePointOnLand(mist.getRandPointInCircle(spawnSpot, radius))
-  veaf.loggers
-    .get(veafSpawn.Id)
-    :trace(string.format("spawnLogistic: spawnSpot  x=%.1f y=%.1f, z=%.1f", spawnSpot.x, spawnSpot.y, spawnSpot.z))
 
   local unitName = veafSpawn.doSpawnStatic(
     spawnSpot,
@@ -161,7 +152,7 @@ function veafSpawn.doSpawnCargo(spawnSpot, radius, cargoType, country, weightBia
       end
 
       -- message the unit spawning
-      local message = "Cargo " .. unitName .. " weighting " .. cargoWeight .. " kg has been spawned"
+      local message = "Cargo " .. unitName .. " weighing " .. cargoWeight .. " kg has been spawned"
       if cargoSmoke then
         message = message .. ". It's marked with green smoke and red flares"
       end
@@ -282,7 +273,7 @@ function veafSpawn.spawnBomb(spawnSpot, radius, shells, power, altitude, altitud
     veaf.loggers
       .get(veafSpawn.Id)
       :trace(string.format("shell #%d : shellTime=%d, shellDelay=%d, power=%d", shell, shellTime, shellDelay, shellPower))
-    mist.scheduleFunction(trigger.action.explosion, { spawnSpot, power }, timer.getTime() + shellTime)
+    mist.scheduleFunction(trigger.action.explosion, { spawnSpot, shellPower }, timer.getTime() + shellTime)
     shellTime = shellTime + shellDelay
   end
 end
@@ -314,6 +305,8 @@ end
 --- add a signal flare over the marker area
 function veafSpawn.spawnSignalFlare(spawnSpot, radius, shells, color)
   veaf.loggers.get(veafSpawn.Id):debug("spawnSignalFlare(color = " .. color .. ")")
+  local radius = radius or 50
+  local shells = shells or 1
 
   local shellTime = 0
   for shell = 1, shells do
@@ -396,7 +389,7 @@ veafSpawn.DEFAULT_FLAK_FIRE_DELAY = 0.1
 function veafSpawn.destroyObjectWithFlak(object, power, density)
   veaf.loggers
     .get(veafSpawn.Id)
-    :debug(string.format("veafSpawn.destroyObjectWithFlak(%s, %s, %s)", veaf.p(power), veaf.p(power), veaf.p(density)))
+    :debug(string.format("veafSpawn.destroyObjectWithFlak(%s, %s, %s)", veaf.p(object), veaf.p(power), veaf.p(density)))
   veaf.loggers.get(veafSpawn.Id):trace(string.format("object=%s", veaf.p(object)))
   local _power = power or veafSpawn.DEFAULT_FLAK_POWER
   local _density = density or 1
@@ -420,7 +413,7 @@ function veafSpawn.destroyObjectWithFlak(object, power, density)
     veaf.loggers.get(veafSpawn.Id):trace(string.format("reschedule to check if the object is destroyed"))
     mist.scheduleFunction(
       veafSpawn.destroyObjectWithFlak,
-      { object, power, power, density },
+      { object, power, density },
       timer.getTime() + veafSpawn.DEFAULT_FLAK_REPEAT_DELAY
     )
   end

@@ -173,7 +173,7 @@ function veafSpawn.spawnFob(spawnSpot, radius, name, country, fobtype, side, hdg
     name = _fobName .. " Watchtower #002",
     category = "Fortifications",
     canCargo = false,
-    heading = mist.utils.toRadian(hdg),
+    heading = mist.utils.toRadian(_hdg),
     country = _country,
   }
   mist.dynAddStatic(_tower)
@@ -554,7 +554,7 @@ function veafSpawn.spawnConvoy(
   hiddenOnMFD
 )
   veaf.loggers.get(veafSpawn.Id):debug(
-    "spawnConvoy(spawnSpot=[%s], name=[%s], radius=[%s], country=[%s], side=[%s], speed=[%s], patrol=[%s], offroad=[%s], destination=[%s], defense=[%s], size=[%s], armor=[%s], silent=[%s], hiddenOnMFD=[%s])",
+    "spawnConvoy(czName=[%s], spawnSpot=[%s], name=[%s], radius=[%s], country=[%s], side=[%s], speed=[%s], patrol=[%s], offroad=[%s], destination=[%s], defense=[%s], size=[%s], armor=[%s], silent=[%s], hiddenOnMFD=[%s])",
     czName,
     spawnSpot,
     name,
@@ -573,7 +573,7 @@ function veafSpawn.spawnConvoy(
   )
 
   if not destination then
-    trigger.action.outText("No destination enterred !", 5)
+    trigger.action.outText("No destination entered!", 5)
     return false
   end
 
@@ -786,7 +786,7 @@ function veafSpawn.infoOnAllConvoys(unitName)
         text = text .. ", stopped"
       end
     else
-      text = text .. " - " .. name .. "has been destroyed"
+      text = text .. " - " .. name .. " has been destroyed"
       -- convoy has been dispatched, remove it from the convoys list
       veafSpawn.spawnedConvoys[name] = nil
     end

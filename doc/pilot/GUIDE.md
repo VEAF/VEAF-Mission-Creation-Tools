@@ -49,43 +49,27 @@ All VEAF features are accessible via **F10 → Other → VEAF**.
 
 ### Typical Menu Structure
 
-```mermaid
-mindmap
-  root((F10 → Other → VEAF))
-    Assets
-      Tankers
-        [Tanker name]
-          Info
-          Respawn
-      AWACS
-        [AWACS name]
-          Info
-          Respawn
-      Carriers
-        [Carrier name]
-          Info
-          Start Recovery
-          Stop Recovery
-    CAS Mission
-      Generate
-      Smoke
-      Flare
-      Skip
-      Info
-      Cleanup
-    Combat Zones
-      [Zone name]
-        Activate
-        Deactivate
-        Info
-        Smoke
-        Flare
-    Missions
-      [Mission name]
-        Activate
-        Deactivate
-        Info
-    Help
+```
+F10 → Other → VEAF
+├── Assets
+│   ├── Tankers
+│   │   └── [Tanker name] → Info / Respawn
+│   ├── AWACS
+│   │   └── [AWACS name] → Info / Respawn
+│   └── Carriers
+│       └── [Carrier name] → Info / Start Recovery / Stop Recovery
+├── CAS Mission
+│   ├── Generate
+│   ├── Smoke
+│   ├── Flare
+│   ├── Skip
+│   ├── Info
+│   └── Cleanup
+├── Combat Zones
+│   └── [Zone name] → Activate / Deactivate / Info / Smoke / Flare
+├── Missions
+│   └── [Mission name] → Activate / Deactivate / Info
+└── Help
 ```
 
 The exact structure depends on what the mission maker has enabled.

@@ -48,43 +48,27 @@ Toutes les fonctionnalités VEAF sont accessibles via **F10 → Autre → VEAF**
 
 ### Structure typique du menu
 
-```mermaid
-mindmap
-  root((F10 → Autre → VEAF))
-    Ressources
-      Ravitailleurs
-        [Nom du ravitailleur]
-          Infos
-          Réapparition
-      AWACS
-        [Nom de l'AWACS]
-          Infos
-          Réapparition
-      Porte-avions
-        [Nom du porte-avions]
-          Infos
-          Commencer récupération
-          Arrêter récupération
-    Mission CAS
-      Générer
-      Fumée
-      Fusée éclairante
-      Passer
-      Infos
-      Nettoyer
-    Zones de combat
-      [Nom de la zone]
-        Activer
-        Désactiver
-        Infos
-        Fumée
-        Fusée éclairante
-    Missions
-      [Nom de la mission]
-        Activer
-        Désactiver
-        Infos
-    Aide
+```
+F10 → Autre → VEAF
+├── Ressources
+│   ├── Ravitailleurs
+│   │   └── [Nom du ravitailleur] → Infos / Réapparition
+│   ├── AWACS
+│   │   └── [Nom de l'AWACS] → Infos / Réapparition
+│   └── Porte-avions
+│       └── [Nom du porte-avions] → Infos / Commencer récupération / Arrêter récupération
+├── Mission CAS
+│   ├── Générer
+│   ├── Fumée
+│   ├── Fusée éclairante
+│   ├── Passer
+│   ├── Infos
+│   └── Nettoyer
+├── Zones de combat
+│   └── [Nom de la zone] → Activer / Désactiver / Infos / Fumée / Fusée éclairante
+├── Missions
+│   └── [Nom de la mission] → Activer / Désactiver / Infos
+└── Aide
 ```
 
 La structure exacte dépend de ce que le créateur de mission a activé.

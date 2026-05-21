@@ -25,7 +25,7 @@ function VeafQRALogistics.init(object)
   object.QRAmaxCount = -1
   -- number of groups of aircrafts that can be spawned for this QRA in total, -1 indicates infinite
   object.QRAcount = -1
-  -- delay in minutes before the QRA counter is increased by one, simulating a logistic chain
+  -- delay in seconds before the QRA counter is increased by one, simulating a logistic chain
   object.delayBeforeQRAresupply = 0
   -- maximum number of resupplies at a given time, -1 indicates infinite; decremented on each resupply; 0 = no resupply
   object.QRAresupplyMax = -1

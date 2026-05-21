@@ -1062,7 +1062,7 @@ end
 function VeafQRACore:start()
   veaf.loggers.get(veafQraManager.Id):debug("VeafQRACore[%s]:start()", veaf.lp(self.name))
   self.scheduled_state = nil --make sure you reset the scheduled state if you are within the bounds of this method
-  self:rearm(true)
+  self:rearm()
   self:check()
 
   -- draw the zone

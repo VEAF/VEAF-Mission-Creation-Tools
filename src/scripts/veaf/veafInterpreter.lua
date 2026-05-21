@@ -65,46 +65,12 @@ function veafInterpreter.interpret(text)
 end
 
 function veafInterpreter.execute(command, position, coalition, route, spawnedGroups)
-  local function logDebug(message)
-    veaf.loggers.get(veafInterpreter.Id):debug(message)
-    return true
-  end
-
-  if command == nil then
-    return
-  end
-  if position == nil then
+  if command == nil or position == nil then
     return
   end
   veaf.loggers.get(veafInterpreter.Id):trace("veafInterpreter.execute([%s],[%s])", command, position)
-
-  local commandExecuted = false
   spawnedGroups = spawnedGroups or {}
-
-  if
-    logDebug("checking in veafShortcuts") and veafShortcuts.executeCommand(position, command, coalition, nil, true, spawnedGroups, route)
-  then
-    return true
-  elseif
-    logDebug("checking in veafSpawn")
-    and veafSpawn.executeCommand(position, command, coalition, nil, true, spawnedGroups, nil, nil, route, true)
-  then
-    return true
-  elseif logDebug("checking in veafNamedPoints") and veafNamedPoints.executeCommand(position, { text = command, coalition = -1 }, true) then
-    return true
-  elseif logDebug("checking in veafCasMission") and veafCasMission.executeCommand(position, command, coalition, true) then
-    return true
-  elseif logDebug("checking in veafSecurity") and veafSecurity.executeCommand(position, command, true) then
-    return true
-  elseif logDebug("checking in veafMove") and veafMove.executeCommand(position, command, true) then
-    return true
-  elseif logDebug("checking in veafRadio") and veafRadio.executeCommand(position, command, coalition, true) then
-    return true
-  elseif logDebug("checking in veafRemote") and veafRemote.executeCommand(position, command) then
-    return true
-  else
-    return false
-  end
+  return veafCommands.execute(position, command, coalition, spawnedGroups, route)
 end
 
 function veafInterpreter.executeCommandOnUnit(unitName, command)

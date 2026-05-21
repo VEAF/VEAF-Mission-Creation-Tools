@@ -588,23 +588,6 @@ end
 -- Event handler functions.
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
---- Function executed when a mark has changed. This happens when text is entered or changed.
-function veafShortcuts.onEventMarkChange(eventPos, event)
-  -- choose by default the coalition opposing the player who triggered the event
-  local invertedCoalition = 1
-  if event.coalition == 1 then
-    invertedCoalition = 2
-  end
-
-  veaf.loggers.get(veafShortcuts.Id):trace(string.format("event.idx  = %s", veaf.p(event.idx)))
-
-  if veafShortcuts.executeCommand(eventPos, event.text, invertedCoalition, event.idx) then
-    -- Delete old mark.
-    veaf.loggers.get(veafShortcuts.Id):trace(string.format("Removing mark # %d.", event.idx))
-    trigger.action.removeMark(event.idx)
-  end
-end
-
 function veafShortcuts.executeCommand(eventPos, eventText, eventCoalition, markId, bypassSecurity, spawnedGroups, route)
   veaf.loggers.get(veafShortcuts.Id):debug("veafShortcuts.executeCommand(eventText=[%s])", eventText)
 
@@ -1738,7 +1721,11 @@ end
 function veafShortcuts.initialize()
   veaf.loggers.get(veafShortcuts.Id):info("Initializing module")
   veafShortcuts.buildDefaultList()
-  veafMarkers.registerEventHandler(veafMarkers.MarkerChange, veafShortcuts.onEventMarkChange)
+  veafCommands.registerCommandHandler(function(pos, event, bypass, fromMarker, groups, route)
+    local coal = fromMarker and ((event.coalition == 1) and 2 or 1) or event.coalition
+    return veafShortcuts.executeCommand(pos, event.text, coal, event.idx, bypass, groups, route)
+  end, veafCommands.PRIORITY_SHORTCUTS)
+  veafRemote.registerRemoteModule("alias", veafShortcuts.executeCommandFromRemote)
   veafShortcuts.dumpAliasesList()
 end
 

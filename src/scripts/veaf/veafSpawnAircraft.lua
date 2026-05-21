@@ -1405,3 +1405,82 @@ function veafSpawn.startCapWatchdog(capGroupName, capCoalition, capZone, pTarget
     timer.getTime() + veafSpawn.CAP_WATCHDOG_DELAY
   )
 end
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- Aircraft spawn command handlers
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+veafSpawn.registerCommandHandler("unit", function(eventPos, options, coalition, markId, bypassSecurity)
+  if not (bypassSecurity or veafSecurity.checkSecurity_L9(options.password, markId)) then
+    return nil, nil, true
+  end
+  local code = options.laserCode
+  local channel = options.freq
+  local band = options.mod
+  if options.role == "tacan" then
+    channel = options.tacanChannel or 99
+    code = options.tacanCode or ("T" .. tostring(channel))
+    band = options.tacanBand or "X"
+  end
+  local g = veafSpawn.spawnUnit(
+    eventPos,
+    options.radius,
+    options.name,
+    options.czName,
+    options.country,
+    options.altitude,
+    options.heading,
+    options.unitName,
+    options.role,
+    options.forceStatic,
+    code,
+    channel,
+    band,
+    bypassSecurity,
+    not options.showMFD
+  )
+  return g, nil, false
+end)
+
+veafSpawn.registerCommandHandler("afac", function(eventPos, options, coalition, markId, bypassSecurity)
+  if not (bypassSecurity or veafSecurity.checkSecurity_L9(options.password, markId)) then
+    return nil, nil, true
+  end
+  local g = veafSpawn.spawnAFAC(
+    eventPos,
+    options.name,
+    options.country,
+    options.altitude,
+    options.speed,
+    options.heading,
+    options.freq,
+    options.mod,
+    options.laserCode,
+    options.immortal,
+    false,
+    options.showMFD
+  )
+  return g, nil, false
+end)
+
+veafSpawn.registerCommandHandler("cap", function(eventPos, options, coalition, markId, bypassSecurity)
+  if not (bypassSecurity or veafSecurity.checkSecurity_L9(options.password, markId)) then
+    return nil, nil, true
+  end
+  local g = veafSpawn.spawnCombatAirPatrol(
+    eventPos,
+    options.radius,
+    options.name,
+    options.country,
+    options.altitude,
+    options.altitudedelta,
+    options.heading,
+    options.distance,
+    options.speed,
+    options.capradius,
+    options.skill,
+    bypassSecurity,
+    options.showMFD
+  )
+  return g, nil, false
+end)

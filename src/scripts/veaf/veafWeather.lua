@@ -1781,8 +1781,10 @@ end
 function veafWeather.initialize()
   veaf.loggers.get(veafWeather.Id):debug("veafWeather.initialize()")
   veafWeather.buildRadioMenu()
-  -- TODO veafMarkers.registerEventHandler(veafMarkers.MarkerChange, veafWeather.onEventMarkChange)
   veafAirbases.initialize()
+  veafRemote.registerRemoteModule("atis", veafWeather.executeCommandFromRemote)
+  veafRemote.registerRemoteModule("atc", veafWeather.executeCommandFromRemote)
+  veafRemote.registerRemoteModule("weather", veafWeather.executeCommandFromRemote)
 end
 
 veaf.loggers.get(veafWeather.Id):info(veaf.loggers.get(veafWeather.Id):getVersionInfo(veafWeather.Version))

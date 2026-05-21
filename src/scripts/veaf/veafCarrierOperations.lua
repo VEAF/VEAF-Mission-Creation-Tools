@@ -1174,6 +1174,7 @@ function veafCarrierOperations.initialize()
   veafCarrierOperations.initializeCarrierGroups()
   veafCarrierOperations.buildRadioMenu()
   veafCarrierOperations.operationsScheduler()
+  veafRemote.registerRemoteModule("carrier", veafCarrierOperations.executeCommandFromRemote)
 end
 
 veaf.loggers.get(veafCarrierOperations.Id):info(veaf.loggers.get(veafCarrierOperations.Id):getVersionInfo(veafCarrierOperations.Version))

@@ -452,15 +452,6 @@ end
 -- Event handler functions.
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
---- Function executed when a mark has changed. This happens when text is entered or changed.
-function veafSecurity.onEventMarkChange(eventPos, event)
-  if veafSecurity.executeCommand(eventPos, event.text) then
-    -- Delete old mark.
-    veaf.loggers.get(veafSecurity.Id):trace(string.format("Removing mark # %d.", event.idx))
-    trigger.action.removeMark(event.idx)
-  end
-end
-
 function veafSecurity.executeCommand(eventPos, eventText, bypassSecurity)
   -- Check if marker has a text and the veafCasMission.keyphrase keyphrase.
   if eventText ~= nil and eventText:lower():find(veafSecurity.Keyphrase) then
@@ -666,7 +657,10 @@ function veafSecurity.isAuthenticated()
 end
 
 function veafSecurity.initialize()
-  veafMarkers.registerEventHandler(veafMarkers.MarkerChange, veafSecurity.onEventMarkChange)
+  veafCommands.registerCommandHandler(function(pos, event, bypass, fromMarker, groups, route)
+    return veafSecurity.executeCommand(pos, event.text, bypass)
+  end, veafCommands.PRIORITY_SECURITY)
+  veafRemote.registerRemoteModule("secu", veafSecurity.executeCommandFromRemote)
   veafSecurity.authenticated = veaf.SecurityDisabled
 end
 

@@ -43,10 +43,22 @@ veafRemote.MIN_LEVEL_FOR_MARKER = 10
 veafRemote.monitoredCommands = {}
 veafRemote.remoteUsers = {}
 veafRemote.remoteUnitsPilots = {}
+-- Registry for executeCommandFromRemote() — maps lowercase module name to handler function.
+-- Modules register via veafRemote.registerRemoteModule(name, fn).
+veafRemote.remoteModuleRegistry = {}
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Utility methods
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+--- Register a remote module handler for executeCommandFromRemote().
+-- @param name  lowercase module key (e.g. "air", "point"); may be called multiple times for aliases
+-- @param fn    function(parameters) to dispatch to
+function veafRemote.registerRemoteModule(name, fn)
+  assert(type(name) == "string", "veafRemote.registerRemoteModule: name must be a string")
+  assert(type(fn) == "function", "veafRemote.registerRemoteModule: fn must be a function")
+  veafRemote.remoteModuleRegistry[name:lower()] = fn
+end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- NIOD callbacks
@@ -168,15 +180,6 @@ end
 -- Event handler functions.
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
---- Function executed when a mark has changed. This happens when text is entered or changed.
-function veafRemote.onEventMarkChange(eventPos, event)
-  if veafRemote.executeCommand(eventPos, event.text) then
-    -- Delete old mark.
-    veaf.loggers.get(veafRemote.Id):trace(string.format("Removing mark # %d.", event.idx))
-    trigger.action.removeMark(event.idx)
-  end
-end
-
 function veafRemote.executeCommand(eventPos, eventText)
   veaf.loggers.get(veafRemote.Id):debug(string.format("veafRemote.executeCommand(eventText=[%s])", tostring(eventText)))
 
@@ -268,28 +271,13 @@ function veafRemote.executeCommandFromRemote(username, level, unitName, veafModu
   local _parameters = { _user, username, unitName, command }
   local _status, _retval
   local _module = veafModule:lower()
-  if _module == "air" then
-    veaf.loggers.get(veafRemote.Id):debug(string.format("running veafCombatMission.executeCommandFromRemote"))
-    _status, _retval = pcall(veafCombatMission.executeCommandFromRemote, _parameters)
-  elseif _module == "point" then
-    veaf.loggers.get(veafRemote.Id):debug(string.format("running veafNamedPoints.executeCommandFromRemote"))
-    _status, _retval = pcall(veafNamedPoints.executeCommandFromRemote, _parameters)
-  elseif _module == "atis" or _module == "atc" or _module == "weather" then
-    veaf.loggers.get(veafRemote.Id):debug(string.format("running veafWeather.executeCommandFromRemote"))
-    _status, _retval = pcall(veafWeather.executeCommandFromRemote, _parameters)
-  elseif _module == "alias" then
-    veaf.loggers.get(veafRemote.Id):debug(string.format("running veafShortcuts.executeCommandFromRemote"))
-    _status, _retval = pcall(veafShortcuts.executeCommandFromRemote, _parameters)
-  elseif _module == "carrier" then
-    veaf.loggers.get(veafRemote.Id):debug(string.format("running veafShortcuts.executeCommandFromRemote"))
-    _status, _retval = pcall(veafCarrierOperations.executeCommandFromRemote, _parameters)
-  elseif _module == "secu" then
-    veaf.loggers.get(veafRemote.Id):debug(string.format("running veafSecurity.executeCommandFromRemote"))
-    _status, _retval = pcall(veafSecurity.executeCommandFromRemote, _parameters)
-  else
+  local handler = veafRemote.remoteModuleRegistry[_module]
+  if not handler then
     veaf.loggers.get(veafRemote.Id):error(string.format("Module not found : [%s]", veaf.p(veafModule)))
     return false
   end
+  veaf.loggers.get(veafRemote.Id):debug(string.format("running remote module [%s]", _module))
+  _status, _retval = pcall(handler, _parameters)
   veaf.loggers.get(veafRemote.Id):trace(string.format("_status = [%s]", veaf.p(_status)))
   veaf.loggers.get(veafRemote.Id):trace(string.format("_retval = [%s]", veaf.p(_retval)))
   if not _status then
@@ -378,7 +366,9 @@ end
 function veafRemote.initialize()
   veaf.loggers.get(veafRemote.Id):info("Initializing module")
   veafRemote.buildDefaultList()
-  veafMarkers.registerEventHandler(veafMarkers.MarkerChange, veafRemote.onEventMarkChange)
+  veafCommands.registerCommandHandler(function(pos, event, bypass, fromMarker, groups, route)
+    return veafRemote.executeCommand(pos, event.text)
+  end, veafCommands.PRIORITY_REMOTE)
 end
 
 veaf.loggers.get(veafRemote.Id):info(veaf.loggers.get(veafRemote.Id):getVersionInfo(veafRemote.Version))

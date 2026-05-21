@@ -10,6 +10,9 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased] — develop-v6
 
 ### Added
+- `veafCommands.lua` — central priority-ordered command dispatcher for F10 markers and interpreter path; exposes `registerCommandHandler(fn, priority)` and priority constants (`PRIORITY_SHORTCUTS`…`PRIORITY_REMOTE`)
+- `veafSpawnParser.lua` — spawn command text parser extracted from `veafSpawnCore.lua` (`convertLaserToFreq`, `markTextAnalysis`)
+- `veafRemote.registerRemoteModule(name, fn)` — registry for hook-server remote commands (replaces hardcoded if/elseif in `executeCommandFromRemote`)
 - `plan-2026.05.16.md` — v6 restart plan and technical decisions
 - `doc/backlog.md` — operational backlog with ticket estimates
 - `doc/ROADMAP.md` — project roadmap
@@ -21,6 +24,11 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `--ci` flag on `veaf-build publish` and `veaf-build build-and-publish` for non-interactive CI mode
 
 ### Changed
+- All 8 command modules (Shortcuts, Spawn, NamedPoints, CasMission, Security, Move, Radio, Remote) self-register via `veafCommands.registerCommandHandler()` — per-module `onEventMarkChange` functions removed
+- `veafInterpreter.execute()` delegates to `veafCommands.execute()` — hardcoded 8-branch if/elseif removed
+- `veafSpawnCore.lua` reduced from ~1834 to ~900 lines: parser extracted; 25-branch if/elseif replaced by handler dispatch loop
+- `veafSpawnGround`, `veafSpawnAircraft`, `veafSpawnEffects` sub-modules self-register their spawn handlers via `veafSpawn.registerCommandHandler()`
+- 7 remote modules self-register via `veafRemote.registerRemoteModule()` — hardcoded switch in `executeCommandFromRemote` removed
 - Branch renamed from `develop/v6-new-build-system` to `develop-v6`
 - `veaf.BaseLogLevel` default changed from `trace` to `info`
 - All 1233 `veaf.p(` log-argument calls migrated to `veaf.lp(` across all Lua scripts
@@ -29,6 +37,10 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `cliff.toml`: `tag_pattern` now matches both `published-v*` and `v*` tags
 
 ### Removed
+- `module.onEventMarkChange()` functions from all 8 command modules (routing now handled by `veafCommands`)
+- Hardcoded 8-branch command dispatch in `veafInterpreter.execute()`
+- Hardcoded 25-branch if/elseif in `veafSpawnCore.executeCommand()`
+- Hardcoded module switch in `veafRemote.executeCommandFromRemote()`
 - `--scripts-variant` option from `veaf-tools build` and `veaf-tools convert`
 - `.github/workflows/changelog.yml` — superseded by `release.yml`
 

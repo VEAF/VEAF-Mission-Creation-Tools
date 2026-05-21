@@ -137,15 +137,6 @@ function veafRadio.onBirthEvent(event)
   end
 end
 
---- Function executed when a mark has changed. This happens when text is entered or changed.
-function veafRadio.onEventMarkChange(eventPos, event)
-  if veafRadio.executeCommand(eventPos, event.text, event.coalition) then
-    -- Delete old mark.
-    veaf.loggers.get(veafRadio.Id):trace(string.format("Removing mark # %d.", event.idx))
-    trigger.action.removeMark(event.idx)
-  end
-end
-
 function veafRadio.executeCommand(eventPos, eventText, eventCoalition, bypassSecurity)
   veaf.loggers.get(veafRadio.Id):trace(string.format("veafRadio.executeCommand(%s)", eventText))
 
@@ -952,7 +943,10 @@ function veafRadio.initialize(skipHelpMenus, dontCreateMenus)
   --mist.scheduleFunction(veafRadio._refreshRadioMenu,{},timer.getTime()+15) --TODO check if this is still needed (commented out when added the BIRTH event handler)
 
   -- add marker change event handler
-  veafMarkers.registerEventHandler(veafMarkers.MarkerChange, veafRadio.onEventMarkChange)
+  veafCommands.registerCommandHandler(function(pos, event, bypass, fromMarker, groups, route)
+    -- veafRadio uses raw (non-inverted) coalition — pass event.coalition directly
+    return veafRadio.executeCommand(pos, event.text, event.coalition, bypass)
+  end, veafCommands.PRIORITY_RADIO)
 
   -- add human birth event handler
   veafEventHandler.addCallback("veafRadio.eventHandler", { "S_EVENT_BIRTH", "S_EVENT_PLAYER_ENTER_UNIT" }, veafRadio.onBirthEvent)

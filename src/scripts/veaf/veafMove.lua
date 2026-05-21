@@ -85,15 +85,6 @@ veafMove.Tankers = {}
 -- Event handler functions.
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
---- Function executed when a mark has changed. This happens when text is entered or changed.
-function veafMove.onEventMarkChange(eventPos, event)
-  if veafMove.executeCommand(eventPos, event.text) then
-    -- Delete old mark.
-    veaf.loggers.get(veafMove.Id):trace(string.format("Removing mark # %d.", event.idx))
-    trigger.action.removeMark(event.idx)
-  end
-end
-
 function veafMove.executeCommand(eventPos, eventText, bypassSecurity)
   -- Check if marker has a text and the veafMove.keyphrase keyphrase.
   if eventText ~= nil and eventText:lower():find(veafMove.Keyphrase) then
@@ -1016,7 +1007,9 @@ function veafMove.initialize()
     veafMove.Tankers = veafMove.findAllTankers()
   end
   veafMove.buildRadioMenu()
-  veafMarkers.registerEventHandler(veafMarkers.MarkerChange, veafMove.onEventMarkChange)
+  veafCommands.registerCommandHandler(function(pos, event, bypass, fromMarker, groups, route)
+    return veafMove.executeCommand(pos, event.text, bypass)
+  end, veafCommands.PRIORITY_MOVE)
 end
 
 veaf.loggers.get(veafMove.Id):info(veaf.loggers.get(veafMove.Id):getVersionInfo(veafMove.Version))

@@ -37,12 +37,12 @@ The project has two completely separate layers:
 ┌──────────────────────────────────────────────────────────┐
 │  RUNTIME (Lua, inside DCS World)                         │
 │                                                          │
-│  veaf-scripts.lua  ────── all 32 modules concatenated   │
+│  veaf-scripts.lua  ────── all 34 modules concatenated   │
 │  missionconfig.lua ────── mission-specific config        │
 └──────────────────────────────────────────────────────────┘
 ```
 
-- **Runtime** (`src/scripts/veaf/`) — 32 Lua modules loaded inside DCS missions
+- **Runtime** (`src/scripts/veaf/`) — 34 Lua modules loaded inside DCS missions
 - **Design-time** (`src/python/veaf-tools/`) — Python CLI tools for `.miz` file manipulation
 
 ---
@@ -54,7 +54,7 @@ VEAF-Mission-Creation-Tools/
 ├── veaf_build/                   # veaf-build CLI (build & publish orchestrator)
 ├── build-and-release.py          # Backward-compat shim (use veaf-build instead)
 ├── src/
-│   ├── scripts/veaf/             # Lua runtime modules (32 files)
+│   ├── scripts/veaf/             # Lua runtime modules (34 files)
 │   └── python/veaf-tools/        # Python CLI source
 │       ├── veaf-tools.py         # Entry point
 │       ├── veaf_libs/            # Shared utilities (logger, progress, miz)
@@ -418,7 +418,7 @@ Types: `feat`, `fix`, `chore`, `docs`, `test`, `refactor`, `style`.
 
 ## Further Reading
 
-- [Lua API Reference](../LUA_API_REFERENCE.md) — full public API for all 32 modules
+- [Lua API Reference](../LUA_API_REFERENCE.md) — full public API for all 34 modules
 - [Testing Guide](../TESTING.md) — test infrastructure details
 - [Tools Reference](../TOOLS_REFERENCE.md) — `veaf-tools.exe` CLI
 - [Roadmap](../ROADMAP.md) — planned work

@@ -37,7 +37,7 @@
 | Lot 11 — I18N | ~7h10 | ✅ |
 | Lot 12 — QUALITY | ~16h35 | ✅ |
 | Lot 13 — DISCUSS | ~13h50 | ✅ |
-| Lot 14 — ARCH-COMMANDS | ~7h30 | ⬜ |
+| Lot 14 — ARCH-COMMANDS | ~7h30 | ✅ |
 | **Total** | **~103h** | |
 
 *Initial calibration factor: 1.15 — recalculate after each completed lot.*
@@ -175,11 +175,11 @@ Chaque ticket est indépendant — ordre recommandé : ARCH-001 → ARCH-002 →
 
 | # | Ticket | File(s) | Type | Effort | Status |
 |---|--------|---------|------|--------|--------|
-| ARCH-001 | Registre de modules dans `veafInterpreter.execute` — remplacer le if/elseif de 8 modules par un tableau ordonné ; chaque module s'auto-enregistre dans `initialize()` | `veafInterpreter.lua` + 8 modules | chore | 60 min | ⬜ |
-| ARCH-002 | Registre de modules dans `veafRemote.executeCommandFromRemote` — `veafRemote.registerRemoteModule(name, fn)` ; remplace le switch string sur 7 modules | `veafRemote.lua` + 7 modules | chore | 60 min | ⬜ |
-| ARCH-003 | Factoriser le boilerplate `onEventMarkChange` — helper `veafMarkers.makeMarkHandler(fn)` qui génère la fonction standard (invertedCoalition + executeCommand + removeMark) ; remplace 8 fonctions quasi-identiques | `veafMarkers.lua` + 8 modules | chore | 90 min | ⬜ |
-| ARCH-004 | Extraire `veafSpawnParser.lua` — isoler `markTextAnalysis` + `convertLaserToFreq` hors de `veafSpawnCore.lua` ; le parseur devient testable indépendamment (portage LUAR-005 pt.1) | `veafSpawnCore.lua` → `veafSpawnParser.lua`, `veafSpawn.lua` | feat | 60 min | ⬜ |
-| ARCH-005 | Système de handlers dans `veafSpawnCore.executeCommand` — `veafSpawn.registerCommandHandler(key, fn)` ; les 4 sous-modules s'enregistrent ; Core < 300 lignes (portage LUAR-005 pt.2) | `veafSpawnCore.lua`, `veafSpawnGround.lua`, `veafSpawnAircraft.lua`, `veafSpawnEffects.lua` | feat | 120 min | ⬜ |
+| ARCH-001 | Registre de modules dans `veafInterpreter.execute` — remplacer le if/elseif de 8 modules par un tableau ordonné ; chaque module s'auto-enregistre dans `initialize()` | `veafInterpreter.lua` + 8 modules | chore | 60 min | ✅ |
+| ARCH-002 | Registre de modules dans `veafRemote.executeCommandFromRemote` — `veafRemote.registerRemoteModule(name, fn)` ; remplace le switch string sur 7 modules | `veafRemote.lua` + 7 modules | chore | 60 min | ✅ |
+| ARCH-003 | Factoriser le boilerplate `onEventMarkChange` — helper `veafMarkers.makeMarkHandler(fn)` qui génère la fonction standard (invertedCoalition + executeCommand + removeMark) ; remplace 8 fonctions quasi-identiques | `veafMarkers.lua` + 8 modules | chore | 90 min | ✅ |
+| ARCH-004 | Extraire `veafSpawnParser.lua` — isoler `markTextAnalysis` + `convertLaserToFreq` hors de `veafSpawnCore.lua` ; le parseur devient testable indépendamment (portage LUAR-005 pt.1) | `veafSpawnCore.lua` → `veafSpawnParser.lua`, `veafSpawn.lua` | feat | 60 min | ✅ |
+| ARCH-005 | Système de handlers dans `veafSpawnCore.executeCommand` — `veafSpawn.registerCommandHandler(key, fn)` ; les 4 sous-modules s'enregistrent ; Core < 300 lignes (portage LUAR-005 pt.2) | `veafSpawnCore.lua`, `veafSpawnGround.lua`, `veafSpawnAircraft.lua`, `veafSpawnEffects.lua` | feat | 120 min | ✅ |
 
 **Raw total: 390 min → estimated (×1.15): ~449 min (~7h30)**
 

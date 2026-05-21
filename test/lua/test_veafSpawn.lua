@@ -152,19 +152,31 @@ function TestVeafSpawnMarkTextAnalysis:test_spawn_alone_returns_nil()
   luaunit.assertNil(r)
 end
 
-function TestVeafSpawnMarkTextAnalysis:test_spawn_unit_returns_table()
+function TestVeafSpawnMarkTextAnalysis:test_spawn_unit_returns_nil_without_name()
+  -- "unit" requires a "name" parameter — empty name must be rejected
   local r = veafSpawn.markTextAnalysis("_spawn unit")
+  luaunit.assertNil(r)
+end
+
+function TestVeafSpawnMarkTextAnalysis:test_spawn_unit_returns_table_with_name()
+  local r = veafSpawn.markTextAnalysis("_spawn unit, name F-16C")
   luaunit.assertIsTable(r)
 end
 
 function TestVeafSpawnMarkTextAnalysis:test_spawn_unit_sets_flag()
-  local r = veafSpawn.markTextAnalysis("_spawn unit")
+  local r = veafSpawn.markTextAnalysis("_spawn unit, name F-16C")
   luaunit.assertNotNil(r)
   luaunit.assertTrue(r.unit)
 end
 
-function TestVeafSpawnMarkTextAnalysis:test_spawn_group_sets_flag()
+function TestVeafSpawnMarkTextAnalysis:test_spawn_group_returns_nil_without_name()
+  -- "group" requires a "name" parameter — empty name must be rejected
   local r = veafSpawn.markTextAnalysis("_spawn group")
+  luaunit.assertNil(r)
+end
+
+function TestVeafSpawnMarkTextAnalysis:test_spawn_group_sets_flag()
+  local r = veafSpawn.markTextAnalysis("_spawn group, name MyGroup")
   luaunit.assertNotNil(r)
   luaunit.assertTrue(r.group)
 end

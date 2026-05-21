@@ -26,7 +26,7 @@ Choose the guide that matches your role:
 | Reference | Description |
 |-----------|-------------|
 | [User Guide](doc/USER_GUIDE.md) | Extended pilot reference |
-| [Lua API Reference](doc/LUA_API_REFERENCE.md) | Full API for all 32 Lua runtime modules |
+| [Lua API Reference](doc/LUA_API_REFERENCE.md) | Full API for all 34 Lua runtime modules |
 | [Tools CLI Reference](doc/TOOLS_REFERENCE.md) | `veaf-tools.exe` and `veaf-tools-updater.exe` |
 | [Testing Guide](doc/TESTING.md) | Lua unit test suite, CI/CD pipeline |
 | [Roadmap](doc/ROADMAP.md) | Planned features and known limitations |
@@ -76,7 +76,7 @@ Full reference: [Developer Guide](doc/developer/README.md)
 
 VEAF Mission Creation Tools is a hybrid **Lua + Python** system:
 
-- **Runtime** (`src/scripts/veaf/`) — 32 Lua modules loaded inside DCS missions, providing spawning, asset management, mission types, radio menus, and more
+- **Runtime** (`src/scripts/veaf/`) — 34 Lua modules loaded inside DCS missions, providing spawning, asset management, mission types, radio menus, and more
 - **Design-time** (`src/python/veaf-tools/`) — Python CLI (`veaf-tools.exe`) for manipulating `.miz` files: normalizing, injecting weather/waypoints/radio presets/aircraft groups
 - **Release pipeline** (`veaf-build` CLI) — compiles Lua, builds EXE files, publishes to GitHub
 

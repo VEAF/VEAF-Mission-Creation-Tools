@@ -819,3 +819,208 @@ function veafSpawn.cleanupAllConvoys()
     trigger.action.outText("No convoy found", 10)
   end
 end
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- Ground spawn command handlers
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+veafSpawn.registerCommandHandler("farp", function(eventPos, options, coalition, markId, bypassSecurity)
+  if not (bypassSecurity or veafSecurity.checkSecurity_L9(options.password, markId)) then
+    return nil, nil, true
+  end
+  if not options.type then
+    options.type = "invisible"
+  end
+  local g = veafSpawn.spawnFarp(
+    eventPos,
+    options.radius,
+    options.name,
+    options.country,
+    options.type,
+    options.side,
+    options.heading,
+    options.spacing,
+    bypassSecurity,
+    not options.showMFD,
+    options.noFarpMarkers,
+    options.tacanCode,
+    options.tacanChannel,
+    options.tacanBand
+  )
+  return g, nil, false
+end)
+
+veafSpawn.registerCommandHandler("fob", function(eventPos, options, coalition, markId, bypassSecurity)
+  if not (bypassSecurity or veafSecurity.checkSecurity_L9(options.password, markId)) then
+    return nil, nil, true
+  end
+  local g = veafSpawn.spawnFob(
+    eventPos,
+    options.radius,
+    options.name,
+    options.country,
+    options.type,
+    options.side,
+    options.heading,
+    options.spacing,
+    bypassSecurity,
+    not options.showMFD
+  )
+  return g, nil, false
+end)
+
+veafSpawn.registerCommandHandler("group", function(eventPos, options, coalition, markId, bypassSecurity)
+  if not (bypassSecurity or veafSecurity.checkSecurity_L9(options.password, markId)) then
+    return nil, nil, true
+  end
+  local hasDest = options.destination ~= nil
+  local g = veafSpawn.spawnGroup(
+    eventPos,
+    options.radius,
+    options.name,
+    options.czName,
+    options.country,
+    options.altitude,
+    options.heading,
+    options.spacing,
+    options.unitName,
+    bypassSecurity,
+    hasDest,
+    not options.showMFD
+  )
+  return g, nil, false
+end)
+
+veafSpawn.registerCommandHandler("infantryGroup", function(eventPos, options, coalition, markId, bypassSecurity)
+  if not (bypassSecurity or veafSecurity.checkSecurity_L9(options.password, markId)) then
+    return nil, nil, true
+  end
+  local g = veafSpawn.spawnInfantryGroup(
+    eventPos,
+    options.radius,
+    options.czName,
+    options.country,
+    options.side,
+    options.heading,
+    options.spacing,
+    options.defense,
+    options.armor,
+    options.size,
+    bypassSecurity,
+    not options.showMFD
+  )
+  return g, nil, false
+end)
+
+veafSpawn.registerCommandHandler("armoredPlatoon", function(eventPos, options, coalition, markId, bypassSecurity)
+  if not (bypassSecurity or veafSecurity.checkSecurity_L9(options.password, markId)) then
+    return nil, nil, true
+  end
+  local hasDest = options.destination ~= nil
+  local g = veafSpawn.spawnArmoredPlatoon(
+    eventPos,
+    options.radius,
+    options.czName,
+    options.country,
+    options.side,
+    options.heading,
+    options.spacing,
+    options.defense,
+    options.armor,
+    options.size,
+    bypassSecurity,
+    hasDest,
+    not options.showMFD
+  )
+  return g, nil, false
+end)
+
+veafSpawn.registerCommandHandler("airDefenseBattery", function(eventPos, options, coalition, markId, bypassSecurity)
+  if not (bypassSecurity or veafSecurity.checkSecurity_L9(options.password, markId)) then
+    return nil, nil, true
+  end
+  local hasDest = options.destination ~= nil
+  local g = veafSpawn.spawnAirDefenseBattery(
+    eventPos,
+    options.radius,
+    options.czName,
+    options.country,
+    options.side,
+    options.heading,
+    options.spacing,
+    options.defense,
+    bypassSecurity,
+    hasDest,
+    not options.showMFD
+  )
+  return g, nil, false
+end)
+
+veafSpawn.registerCommandHandler("transportCompany", function(eventPos, options, coalition, markId, bypassSecurity)
+  if not (bypassSecurity or veafSecurity.checkSecurity_L9(options.password, markId)) then
+    return nil, nil, true
+  end
+  local hasDest = options.destination ~= nil
+  local g = veafSpawn.spawnTransportCompany(
+    eventPos,
+    options.radius,
+    options.czName,
+    options.country,
+    options.side,
+    options.heading,
+    options.spacing,
+    options.defense,
+    options.size,
+    bypassSecurity,
+    hasDest,
+    not options.showMFD
+  )
+  return g, nil, false
+end)
+
+veafSpawn.registerCommandHandler("fullCombatGroup", function(eventPos, options, coalition, markId, bypassSecurity)
+  if not (bypassSecurity or veafSecurity.checkSecurity_L9(options.password, markId)) then
+    return nil, nil, true
+  end
+  local g = veafSpawn.spawnFullCombatGroup(
+    eventPos,
+    options.radius,
+    options.czName,
+    options.country,
+    options.side,
+    options.heading,
+    options.spacing,
+    options.defense,
+    options.armor,
+    options.size,
+    bypassSecurity,
+    not options.showMFD
+  )
+  return g, nil, false
+end)
+
+veafSpawn.registerCommandHandler("convoy", function(eventPos, options, coalition, markId, bypassSecurity)
+  if not (bypassSecurity or veafSecurity.checkSecurity_L9(options.password, markId)) then
+    return nil, nil, true
+  end
+  local g = veafSpawn.spawnConvoy(
+    eventPos,
+    options.name,
+    options.czName,
+    options.radius,
+    options.country,
+    options.side,
+    options.heading,
+    options.spacing,
+    options.speed,
+    options.patrol,
+    options.offroad,
+    options.destination,
+    options.defense,
+    options.size,
+    options.armor,
+    bypassSecurity,
+    not options.showMFD
+  )
+  return g, true, false
+end)

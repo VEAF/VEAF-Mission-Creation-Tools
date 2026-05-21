@@ -410,25 +410,6 @@ veafCasMission.SIDE_BLUE = coalition.side.BLUE
 -- Event handler functions.
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
---- Function executed when a mark has changed. This happens when text is entered or changed.
-function veafCasMission.onEventMarkChange(eventPos, event)
-  veaf.loggers.get(veafCasMission.Id):trace(string.format("event  = %s", veaf.p(event)))
-
-  -- choose by default the coalition opposing the player who triggered the event
-  local invertedCoalition = 1
-  if event.coalition == 1 then
-    invertedCoalition = 2
-  end
-
-  veaf.loggers.get(veafCasMission.Id):trace(string.format("event.idx  = %s", veaf.p(event.idx)))
-
-  if veafCasMission.executeCommand(eventPos, event.text, invertedCoalition, event.idx) then
-    -- Delete old mark.
-    veaf.loggers.get(veafCasMission.Id):trace(string.format("Removing mark # %d.", event.idx))
-    trigger.action.removeMark(event.idx)
-  end
-end
-
 function veafCasMission.executeCommand(eventPos, eventText, coalition, markId, bypassSecurity)
   veaf.loggers.get(veafCasMission.Id):debug(string.format("veafCasMission.executeCommand(eventText=[%s])", eventText))
   veaf.loggers.get(veafCasMission.Id):trace(string.format("coalition=%s", veaf.p(coalition)))
@@ -1304,7 +1285,10 @@ end
 
 function veafCasMission.initialize()
   veafCasMission.buildRadioMenu()
-  veafMarkers.registerEventHandler(veafMarkers.MarkerChange, veafCasMission.onEventMarkChange)
+  veafCommands.registerCommandHandler(function(pos, event, bypass, fromMarker, groups, route)
+    local coal = fromMarker and ((event.coalition == 1) and 2 or 1) or event.coalition
+    return veafCasMission.executeCommand(pos, event.text, coal, event.idx, bypass)
+  end, veafCommands.PRIORITY_CASMISSION)
 end
 
 veaf.loggers.get(veafCasMission.Id):info(veaf.loggers.get(veafCasMission.Id):getVersionInfo(veafCasMission.Version))

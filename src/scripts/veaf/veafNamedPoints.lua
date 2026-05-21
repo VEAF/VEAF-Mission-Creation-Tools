@@ -46,15 +46,6 @@ veafNamedPoints.markid = 1270000 --- Initial Marker id.
 -- Event handler functions.
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
---- Function executed when a mark has changed. This happens when text is entered or changed.
-function veafNamedPoints.onEventMarkChange(eventPos, event)
-  if veafNamedPoints.executeCommand(eventPos, event) then
-    -- Delete old mark.
-    veaf.loggers.get(veafNamedPoints.Id):trace(string.format("Removing mark # %d.", event.idx))
-    trigger.action.removeMark(event.idx)
-  end
-end
-
 function veafNamedPoints.executeCommand(eventPos, event, bypassSecurity)
   -- Check if marker has a text and the veafNamedPoints.keyphrase keyphrase.
   if event.text ~= nil and event.text:lower():find(veafNamedPoints.Keyphrase) then
@@ -307,7 +298,13 @@ function veafNamedPoints.initialize(customPoints)
   veafNamedPoints.addCustomPoints(customPoints)
 
   veafNamedPoints.buildRadioMenu()
-  veafMarkers.registerEventHandler(veafMarkers.MarkerChange, veafNamedPoints.onEventMarkChange)
+  veafCommands.registerCommandHandler(function(pos, event, bypass, fromMarker, groups, route)
+    -- From the interpreter (fromMarker=false), preserve legacy coalition=-1 so named
+    -- points created via unit names are visible to all coalitions (same as before).
+    local effectiveEvent = fromMarker and event or { text = event.text, coalition = -1, idx = nil }
+    return veafNamedPoints.executeCommand(pos, effectiveEvent, bypass)
+  end, veafCommands.PRIORITY_NAMEDPOINTS)
+  veafRemote.registerRemoteModule("point", veafNamedPoints.executeCommandFromRemote)
 end
 
 function veafNamedPoints.addCities()

@@ -1599,6 +1599,7 @@ function veafCombatMission.initialize()
   veaf.loggers.get(veafCombatMission.Id):info("Initializing module")
   veafCombatMission.buildRadioMenu()
   veafCombatMission.dumpMissionsList(veaf.config.MISSION_EXPORT_PATH)
+  veafRemote.registerRemoteModule("air", veafCombatMission.executeCommandFromRemote)
 end
 
 veaf.loggers.get(veafCombatMission.Id):info(veaf.loggers.get(veafCombatMission.Id):getVersionInfo(veafCombatMission.Version))

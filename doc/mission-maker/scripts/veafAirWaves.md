@@ -1,7 +1,7 @@
 # veafAirWaves — Wave-Based Air Attacks
 
 
-**Module ID:** `AIRWAVES` | **Version:** 1.7.x | **File:** `veafAirWaves.lua`
+**Module ID:** `AIRWAVES` | **Version:** 1.8.x | **File:** `veafAirWaves.lua`
 
 ---
 
@@ -91,6 +91,44 @@ AirWaveZone:new()
   end)
   :initialize()
 ```
+
+---
+
+## Zone lifecycle (state machine)
+
+Each `AirWaveZone` progresses through a set of named states. Understanding them helps when reading logs or writing callbacks.
+
+```
+STOP ──start()──► READY
+                    │  player(s) enter zone
+                    ▼
+         WAITING_FOR_MORE_HUMANS
+                    │  activation delay elapsed
+                    ▼
+              ┌── NEXTWAVE ──┐
+              │               │
+         last wave        more waves
+              │               │
+              ▼               ▼
+            OVER    WAITING_FOR_NEXTWAVE
+                            │  inter-wave delay elapsed
+                            ▼
+                          ACTIVE
+                            │  wave destroyed
+                            └──► NEXTWAVE  (loops until OVER)
+```
+
+| State | Meaning |
+|-------|---------|
+| `STOP` | Zone inactive — `stop()` was called or the zone has never been started. |
+| `READY` | Zone started, watching for players to enter. |
+| `WAITING_FOR_MORE_HUMANS` | At least one player is in the zone; the activation timer is running. |
+| `NEXTWAVE` | Transient routing state: immediately decides between `OVER` and `WAITING_FOR_NEXTWAVE`. |
+| `WAITING_FOR_NEXTWAVE` | Wave slot available; the inter-wave delay is counting down. |
+| `ACTIVE` | Current wave is spawned and alive. |
+| `OVER` | All waves have been destroyed — the zone is finished. |
+
+`NEXTWAVE` is a transient state that the zone crosses in a single `check()` cycle: it never lingers there. Callbacks such as `setOnWaveDestroyed` fire on the `ACTIVE → NEXTWAVE` exit, and `setOnCompleted` fires on the `NEXTWAVE → OVER` entry.
 
 ---
 

@@ -105,12 +105,13 @@ Chaque ticket est indépendant mais risqué — à traiter un par un avec tests 
 
 | # | Ticket | File(s) | Type | Effort | Status |
 |---|--------|---------|------|--------|--------|
-| LUAR-001 | Scinder `veafSpawn.lua` (3200+ lignes) en 4 modules thématiques — `veafSpawn.lua` devient un proxy de backward compatibility | `veafSpawn*.lua` | feat | 240 min | ⬜ |
+| LUAR-001 | Scinder `veafSpawn.lua` (3200+ lignes) en 4 modules thématiques — `veafSpawn.lua` devient un proxy de backward compatibility | `veafSpawn*.lua` | feat | 240 min | ✅ |
 | LUAR-002 | Machine d'état explicite (FSM) pour `AirWaveZone` | `veafAirWaves.lua` | feat | 120 min | ⬜ |
 | LUAR-003 | Scinder `VeafQRA` (1200+ lignes) en `VeafQRACore` + `VeafQRALogistics` | `veafQraManager.lua` | feat | 150 min | ⬜ |
 | LUAR-004 | `RadioMenuBuilder` — abstraction de la construction des menus dans veafRadio | `veafRadio.lua` | feat | 90 min | ⬜ |
+| LUAR-005 | Refactoriser `markTextAnalysis` + `executeCommand` — splitter la gestion markers/commandes entre les sous-modules (`veafSpawnParser.lua` ou équivalent) | `veafSpawnCore.lua` | feat | 120 min | ⬜ |
 
-**Raw total: 600 min → estimated (×1.15): ~690 min (~11h30)**
+**Raw total: 720 min → estimated (×1.15): ~828 min (~13h48)**
 
 <details>
 <summary>Ticket details</summary>
@@ -123,6 +124,12 @@ Chaque ticket est indépendant mais risqué — à traiter un par un avec tests 
 - `veafSpawnEffects.lua` — `spawnBomb`, `spawnSmoke`, `spawnSignalFlare`, `spawnIlluminationFlare`, `spawnCargo`, `spawnLogistic`, `destroy`, `teleport`
 
 **Décision (2026-05-21)** : `veafSpawn.lua` devient un **proxy** qui charge les 4 sous-modules et ré-exporte les fonctions publiques — les missions existantes n'ont rien à changer. Pas de deprecation warnings (DISC-016 rejeté) : le proxy est transparent et silencieux, les missions continueront de fonctionner indéfiniment.
+
+**LUAR-005 — Refactoriser markTextAnalysis + executeCommand**
+`veafSpawnCore.lua` reste volumineux (~1879 lignes) car `markTextAnalysis` (612 lignes) et `executeCommand` (591 lignes) concentrent toute la logique de parsing et de dispatch des commandes marker. Discussion à mener :
+- Créer `veafSpawnParser.lua` pour isoler `markTextAnalysis` + `convertLaserToFreq`
+- Réduire `executeCommand` en délégant les branches (`if options.unit then`, `if options.farp then`, etc.) aux sous-modules concernés via des fonctions de handler enregistrées
+- Bénéfice : Core < 700 lignes, parseur testable indépendamment
 
 **LUAR-002 — FSM AirWaveZone**
 `AirWaveZone` gère 7+ états (`READY`, `WAITING_FOR_HUMANS`, `ACTIVE`, `WAITING_FOR_NEXTWAVE`, `CLEANUP`, `DONE`, `PAUSED`) via des variables booléennes et des `if/elseif` chaînés dans `check()`.

@@ -621,8 +621,8 @@ function veafWeatherData:toStringWind(unitSystem, iDirection, nSpeedMps, bMagnet
   end
 
   local iDirection = self:getNormalizedWindDirection(iDirection, bMagnetic)
-  local sSpeedKts = string.format("%dkts", mist.utils.mpsToKnots(nSpeedMps))
-  local sSpeedMps = string.format("%dm/s", nSpeedMps)
+  local sSpeedKts = string.format("%dkts", math.floor(mist.utils.mpsToKnots(nSpeedMps)))
+  local sSpeedMps = string.format("%dm/s", math.floor(nSpeedMps))
   local sSpeed
   if veaf.tableContains(unitSystem.WindSpeeds, veafWeatherUnitSystem.Units.Kts) then
     sSpeed = veafWeatherData:appendString(sSpeed, sSpeedKts)

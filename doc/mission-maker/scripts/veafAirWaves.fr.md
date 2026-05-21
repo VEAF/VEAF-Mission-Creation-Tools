@@ -1,6 +1,6 @@
 # veafAirWaves — Attaques aériennes par vagues
 
-**Module ID:** `AIRWAVES` | **Version:** 1.7.x | **Fichier:** `veafAirWaves.lua`
+**Module ID:** `AIRWAVES` | **Version:** 1.8.x | **Fichier:** `veafAirWaves.lua`
 
 ---
 
@@ -90,6 +90,44 @@ AirWaveZone:new()
   end)
   :initialize()
 ```
+
+---
+
+## Cycle de vie de la zone (machine d'états)
+
+Chaque `AirWaveZone` progresse à travers un ensemble d'états nommés. Les connaître aide à lire les logs ou à écrire des callbacks.
+
+```
+STOP ──start()──► READY
+                    │  joueur(s) entrent dans la zone
+                    ▼
+         WAITING_FOR_MORE_HUMANS
+                    │  délai d'activation écoulé
+                    ▼
+              ┌── NEXTWAVE ──┐
+              │               │
+         dernière vague   autres vagues
+              │               │
+              ▼               ▼
+            OVER    WAITING_FOR_NEXTWAVE
+                            │  délai entre vagues écoulé
+                            ▼
+                          ACTIVE
+                            │  vague détruite
+                            └──► NEXTWAVE  (boucle jusqu'à OVER)
+```
+
+| État | Signification |
+|------|---------------|
+| `STOP` | Zone inactive — `stop()` a été appelé ou la zone n'a jamais démarré. |
+| `READY` | Zone démarrée, en attente de joueurs. |
+| `WAITING_FOR_MORE_HUMANS` | Au moins un joueur est dans la zone ; le minuteur d'activation tourne. |
+| `NEXTWAVE` | État de routage transitoire : décide immédiatement entre `OVER` et `WAITING_FOR_NEXTWAVE`. |
+| `WAITING_FOR_NEXTWAVE` | Prochain slot de vague disponible ; le délai entre vagues décompte. |
+| `ACTIVE` | La vague courante est spawnée et vivante. |
+| `OVER` | Toutes les vagues ont été détruites — la zone est terminée. |
+
+`NEXTWAVE` est un état transitoire que la zone traverse en un seul cycle de `check()` : elle n'y reste jamais. Les callbacks comme `setOnWaveDestroyed` se déclenchent à la sortie de `ACTIVE → NEXTWAVE`, et `setOnCompleted` à l'entrée de `NEXTWAVE → OVER`.
 
 ---
 

@@ -36,7 +36,7 @@
 | Lot 10 — YAML-CONFIG | ~14h | ✅ |
 | Lot 11 — I18N | ~7h10 | ✅ |
 | Lot 12 — QUALITY | ~16h35 | ✅ |
-| Lot 13 — DISCUSS | ~13h50 | ⬜ |
+| Lot 13 — DISCUSS | ~13h50 | ✅ |
 | **Total** | **~95h** | |
 
 *Initial calibration factor: 1.15 — recalculate after each completed lot.*
@@ -105,7 +105,7 @@ Chaque ticket est indépendant mais risqué — à traiter un par un avec tests 
 
 | # | Ticket | File(s) | Type | Effort | Status |
 |---|--------|---------|------|--------|--------|
-| LUAR-001 | Scinder `veafSpawn.lua` (3200+ lignes) en 4 modules thématiques | `veafSpawn*.lua` | feat | 240 min | ⬜ |
+| LUAR-001 | Scinder `veafSpawn.lua` (3200+ lignes) en 4 modules thématiques — `veafSpawn.lua` devient un proxy de backward compatibility | `veafSpawn*.lua` | feat | 240 min | ⬜ |
 | LUAR-002 | Machine d'état explicite (FSM) pour `AirWaveZone` | `veafAirWaves.lua` | feat | 120 min | ⬜ |
 | LUAR-003 | Scinder `VeafQRA` (1200+ lignes) en `VeafQRACore` + `VeafQRALogistics` | `veafQraManager.lua` | feat | 150 min | ⬜ |
 | LUAR-004 | `RadioMenuBuilder` — abstraction de la construction des menus dans veafRadio | `veafRadio.lua` | feat | 90 min | ⬜ |
@@ -122,7 +122,7 @@ Chaque ticket est indépendant mais risqué — à traiter un par un avec tests 
 - `veafSpawnAircraft.lua` — `spawnUnit` (avions/hélicos), `spawnCombatAirPatrol`, JTAC/lasing
 - `veafSpawnEffects.lua` — `spawnBomb`, `spawnSmoke`, `spawnSignalFlare`, `spawnIlluminationFlare`, `spawnCargo`, `spawnLogistic`, `destroy`, `teleport`
 
-`veafSpawn.lua` devient un proxy qui charge les 4 sous-modules et ré-exporte les fonctions publiques pour backward compatibility.
+**Décision (2026-05-21)** : `veafSpawn.lua` devient un **proxy** qui charge les 4 sous-modules et ré-exporte les fonctions publiques — les missions existantes n'ont rien à changer. Pas de deprecation warnings (DISC-016 rejeté) : le proxy est transparent et silencieux, les missions continueront de fonctionner indéfiniment.
 
 **LUAR-002 — FSM AirWaveZone**
 `AirWaveZone` gère 7+ états (`READY`, `WAITING_FOR_HUMANS`, `ACTIVE`, `WAITING_FOR_NEXTWAVE`, `CLEANUP`, `DONE`, `PAUSED`) via des variables booléennes et des `if/elseif` chaînés dans `check()`.
@@ -167,14 +167,14 @@ Isole la complexité de l'arbre DCS et facilite le test unitaire.
 
 **Goal**: Évaluer les standards industrie manquants et décider lesquels adopter. Chaque ticket est un point de discussion/décision avant implémentation éventuelle.
 **Branch**: `feature/disc-wave3` (PR #320 mergée)
-**Statut**: 🟢 DISC-001/002/003/004/005/006/007/008/009/010/011/012/013/015/017 implémentés — DISC-014/016/018 encore à décider
+**Statut**: ✅ Lot terminé — DISC-001/002/003/004/005/006/007/008/009/010/011/012/013/014/015/017/019 implémentés — DISC-016 rejeté (proxy silencieux dans LUAR-001) — DISC-018 rejeté (sur-ingénierie)
 
 | # | Ticket | Type | Effort si adopté | Status |
 |---|--------|------|-----------------|--------|
 | DISC-008 | Release automation complète — GitHub Actions workflow sur tag push (build + publish, zéro intervention manuelle) | feat | 120 min | ✅ |
 | DISC-014 | Documentation versionnée — lier les docs à une release (GitHub Pages tags ou dossiers versionnés) | feat | 90 min | ✅ |
-| DISC-016 | API deprecation warnings — système de warnings Lua quand des fonctions legacy sont appelées | feat | 45 min | ⬜ |
-| DISC-018 | Monorepo workspace Poetry — structurer `veaf-tools` + `veaf_build` comme un vrai workspace avec dépendances explicites | chore | 60 min | ⬜ |
+| DISC-016 | API deprecation warnings — système de warnings Lua quand des fonctions legacy sont appelées | feat | 45 min | ❌ |
+| DISC-018 | Monorepo workspace Poetry — structurer `veaf-tools` + `veaf_build` comme un vrai workspace avec dépendances explicites | chore | 60 min | ❌ |
 | DISC-019 | GitHub Pages — publier la documentation (`doc/`) sur `https://veaf.github.io/VEAF-Mission-Creation-Tools-v6/` via GitHub Actions (déclenchement sur merge PR vers `develop-v6` / `main`) | feat | 60 min | ✅ |
 | DISC-001 | Pre-commit hooks (`pre-commit` framework) : ruff + stylua + luacheck + detect-secrets | chore | 45 min | ✅ |
 | DISC-002 | Ajouter `luacheck` au CI (lint statique Lua — undefined globals, unused vars, shadowing) | chore | 60 min | ✅ |
@@ -290,22 +290,16 @@ Isole la complexité de l'arbre DCS et facilite le test unitaire.
 - **Contre** : Peu d'utilisateurs VEAF ne vont pas auditer le SBOM. Overhead de génération et de publication.
 - **Recommandation** : Générer le SBOM en artifact CI sans le publier obligatoirement — coût quasi-nul, utilisable si besoin.
 
-**DISC-016 — Deprecation warnings Lua**
-- **Pour** : Migration douce quand des fonctions sont renommées/supprimées
-- **Contre** : Overhead (wrapper chaque fonction deprecated)
-- **Recommandation** : Utile surtout pour LUAR-001 (split veafSpawn) — implémenter quand le refactoring commence
+**DISC-016 — Deprecation warnings Lua** ❌ Rejeté (2026-05-21)
+- **Décision** : Rejeté. LUAR-001 utilise un proxy **silencieux et transparent** — `veafSpawn.lua` ré-exporte les fonctions publiques sans warning. Les missions existantes continuent de fonctionner indéfiniment sans modification, et sans bruit dans les logs DCS. Les deprecation warnings ajouteraient de l'overhead (un wrapper par fonction) pour un bénéfice nul : l'API publique de `veafSpawn` ne sera pas supprimée.
 
 **DISC-017 — Secret scanning**
 - **Pour** : Détecte les API keys, tokens, mots de passe accidentellement commités. GitHub secret scanning est gratuit sur les repos publics et couvre des centaines de patterns (AWS, GCP, GitHub tokens, etc.). `gitleaks` en CI ajoute une couche pour les secrets maison.
 - **Contre** : Faux positifs possibles (ex : clés DCS dans les fichiers de mission). Configuration du `.gitleaksignore` nécessaire.
 - **Recommandation** : Activer GitHub secret scanning (zéro coût, zéro configuration). `gitleaks` en CI est optionnel — à voir si les faux positifs sont gérables.
 
-**DISC-018 — Monorepo workspace Poetry**
-- **Situation actuelle** : `veaf_build` est inclus comme sous-package dans `veaf-tools` via `packages = [{include = "veaf_build"}]`. Les deux partagent le même `pyproject.toml` et le même environnement virtuel, alors qu'ils ont des rôles distincts (outil mission vs toolchain de build/release).
-- **Ce que proposerait DISC-018** : Utiliser le support workspace de Poetry 2.x pour créer deux packages indépendants — `veaf-tools` (CLI mission) et `veaf-build` (toolchain) — avec leurs propres dépendances. `pyinstaller` quitterait le groupe `build` pour devenir une vraie dépendance de `veaf-build` uniquement.
-- **Pour** : Séparation des responsabilités, dépendances distinctes, versioning indépendant possible.
-- **Contre** : Refactoring non trivial des imports, Poetry workspace est une fonctionnalité récente (2.0+) dont la maturité reste à confirmer.
-- **Recommandation** : Reporter après stabilisation — le gain est réel mais le coût est élevé pour un projet sans contributeurs multiples sur les deux packages simultanément.
+**DISC-018 — Monorepo workspace Poetry** ❌ Rejeté (2026-05-21)
+- **Décision** : Rejeté. La situation actuelle (un seul `pyproject.toml`, `veaf_build` embarqué via `packages`) fonctionne correctement. Poetry workspace 2.x est une fonctionnalité récente dont la maturité sur Windows reste à confirmer, le refactoring des imports serait non trivial, et le gain est marginal pour un projet sans équipes séparées sur les deux packages. Pas assez intéressant pour le coût.
 
 **DISC-019 — GitHub Pages**
 - **Situation actuelle** : La documentation (`doc/`) existe uniquement dans le repo Git — pas de site web navigable, pas d'URL publique stable.

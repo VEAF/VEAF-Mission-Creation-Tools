@@ -20,7 +20,7 @@ veafAirWaves = {}
 veafAirWaves.Id = "AIRWAVES"
 
 --- Version.
-veafAirWaves.Version = "1.7.8"
+veafAirWaves.Version = "1.8.0"
 
 -- trace level, specific to this module
 --veafAirWaves.LogLevel = "trace"
@@ -149,8 +149,17 @@ function AirWaveZone.init(object)
   object.timestampsOutOfZone = {}
 end
 
+veafAirWaves.STATUS_STOP = 0
+veafAirWaves.STATUS_READY = 1
+veafAirWaves.STATUS_WAITING_FOR_MORE_HUMANS = 1.5
+veafAirWaves.STATUS_ACTIVE = 2
+veafAirWaves.STATUS_WAITING_FOR_NEXTWAVE = 2.5
+veafAirWaves.STATUS_NEXTWAVE = 3
+veafAirWaves.STATUS_OVER = 4
+
 function veafAirWaves.statusToString(status)
   return veaf.enumToString(status, {
+    [veafAirWaves.STATUS_STOP] = "STATUS_STOP",
     [veafAirWaves.STATUS_READY] = "STATUS_READY",
     [veafAirWaves.STATUS_WAITING_FOR_MORE_HUMANS] = "STATUS_WAITING_FOR_MORE_HUMANS",
     [veafAirWaves.STATUS_ACTIVE] = "STATUS_ACTIVE",
@@ -159,12 +168,6 @@ function veafAirWaves.statusToString(status)
     [veafAirWaves.STATUS_OVER] = "STATUS_OVER",
   })
 end
-veafAirWaves.STATUS_READY = 1
-veafAirWaves.STATUS_WAITING_FOR_MORE_HUMANS = 1.5
-veafAirWaves.STATUS_ACTIVE = 2
-veafAirWaves.STATUS_WAITING_FOR_NEXTWAVE = 2.5
-veafAirWaves.STATUS_NEXTWAVE = 3
-veafAirWaves.STATUS_OVER = 4
 
 veafAirWaves.MINIMUM_LIFE_FOR_AI_IN_PERCENT = 0
 
@@ -886,135 +889,41 @@ function AirWaveZone:check()
         self:signalLost()
       end
       if self.resetWhenDying then
-        -- reset the zone
+        -- reset the zone; start() calls check() which handles rescheduling
         self:stop()
         self:start()
+        return
       end
     end
   end
 
-  if self.state == veafAirWaves.STATUS_READY then
-    if humansInZone and #humansInZone > 0 then
-      -- store the human units that we're going to monitor
-      self.unitsInZone = humansInZone
-      self.playerUnitsNames = humansInZoneNames
-      self:_setState(veafAirWaves.STATUS_WAITING_FOR_MORE_HUMANS)
-      if self.delayBeforeActivation and self.delayBeforeActivation > 0 then
-        self:signalWaitForHumans()
-      end
-      self.timeOfActivation = timer.getTime() + self.delayBeforeActivation
-      veaf.loggers.get(veafAirWaves.Id):debug("waiting %s seconds before activation", veaf.lp(self.delayBeforeActivation))
-      veaf.loggers.get(veafAirWaves.Id):trace("self.timeOfActivation=%s", veaf.lp(self.timeOfActivation))
-      veaf.loggers.get(veafAirWaves.Id):debug("restart the check immediately")
-      -- restart the check immediately (we don't want to wait for the next state to be processed)
-      self:check()
+  -- FSM: iterate transitions until the state stabilises in one check() tick
+  local transitioned = true
+  while transitioned do
+    transitioned = false
+    local fsmDef = AirWaveZone.FSM[self.state]
+    if not fsmDef then
+      break
     end
-  elseif self.state == veafAirWaves.STATUS_WAITING_FOR_MORE_HUMANS then
-    -- wait until the delay has passed
-    if self.timeOfActivation and timer.getTime() >= self.timeOfActivation then
-      -- zone is ready, check for players entering
-      local humansInZone, humanInZoneNames = getHumansInZone()
-      if humansInZone and #humansInZone > 0 then
-        -- store the human units that we're going to monitor
-        self.unitsInZone = humansInZone
-        self.playerUnitsNames = humanInZoneNames
-        -- reset wave index
-        self.currentWaveIndex = 0
-        self:_setState(veafAirWaves.STATUS_NEXTWAVE)
-        -- restart the check immediately (we don't want to wait for the next state to be processed)
-        self:check()
-      end
+    if fsmDef.tick then
+      fsmDef.tick(self)
     end
-  elseif self.state == veafAirWaves.STATUS_NEXTWAVE then
-    -- wave has been destroyed, or it's the first time a wave has to be deployed; check if there is a next one and deploy it
-    if self.currentWaveIndex < #self.waves then
-      if not self.delayBeforeNextWave then
-        self.delayBeforeNextWave = self.delayBetweenWaves
-      end
-      self:_setState(veafAirWaves.STATUS_WAITING_FOR_NEXTWAVE)
-      if self.delayBeforeNextWave and self.delayBeforeNextWave > 0 then
-        self:signalWaitToDeploy()
-      end
-      self.timeOfNextWave = timer.getTime() + self.delayBeforeNextWave
-      veaf.loggers.get(veafAirWaves.Id):debug("waiting %s seconds before spawning next wave(s)", veaf.lp(self.delayBeforeNextWave))
-      veaf.loggers.get(veafAirWaves.Id):trace("self.timeOfNextWave=%s", veaf.lp(self.timeOfNextWave))
-      -- restart the check immediately (we don't want to wait for the next state to be processed)
-      self:check()
-    else
-      self:signalWon()
-      self:_setState(veafAirWaves.STATUS_OVER)
-    end
-  elseif self.state == veafAirWaves.STATUS_WAITING_FOR_NEXTWAVE then
-    -- wait until the delay has passed
-    if self.timeOfNextWave and timer.getTime() >= self.timeOfNextWave then
-      -- deploy the next wave
-      local spawnedGroups, delayBeforeNextWave = self:deployWaves()
-      if spawnedGroups then
-        self.delayBeforeNextWave = delayBeforeNextWave or self.delayBetweenWaves
-        self:_setState(veafAirWaves.STATUS_ACTIVE)
-      end
-    end
-  elseif self.state == veafAirWaves.STATUS_ACTIVE then
-    -- zone is active
-
-    -- check if the current wave is still alive
-    local waveIsDead = self.isEnemyWaveDeadCallback(self, self.currentWaveIndex, self.spawnedGroupsNames)
-    if waveIsDead then
-      -- clean up any eventual remaining group of the wave
-      self:destroyCurrentWave()
-      -- signal that wave has been destroyed
-      self:signalDestroyed()
-      -- prepare next wave
-      self:_setState(veafAirWaves.STATUS_NEXTWAVE)
-      -- restart the check immediately (we don't want to wait for the next state to be processed)
-      self:check()
-    else
-      -- check if any IA wandered out of the zone for longer than it should have (maxSecondsOutsideOfZoneIA)
-      local triggerZone = veaf.getTriggerZone(self.triggerZoneName)
-      for _, groupName in pairs(self.spawnedGroupsNames) do
-        local group = Group.getByName(groupName)
-        if group then
-          local units = group:getUnits()
-          if units then
-            for _, unit in pairs(units) do
-              local unitName = unit:getName()
-              local outOfZone = false
-              if self.maxSecondsOutsideOfZoneIA then -- no need to check if feature is disabled
-                if triggerZone then
-                  outOfZone = not (veaf.isUnitInZone(unit, triggerZone))
-                else
-                  local pos = unit:getPosition().p
-                  if pos then -- you never know O.o
-                    local distanceFromCenter = ((pos.x - self.zoneCenter.x) ^ 2 + (pos.z - self.zoneCenter.z) ^ 2) ^ 0.5
-                    outOfZone = (distanceFromCenter > self.zoneRadius)
-                  end
-                end
-                if outOfZone then
-                  local timestampOutOfZone = timer.getTime()
-                  if self.timestampsOutOfZone[unitName] then
-                    timestampOutOfZone = self.timestampsOutOfZone[unitName]
-                  else
-                    self.timestampsOutOfZone[unitName] = timestampOutOfZone
-                  end
-                  local seconds = timer.getTime() - timestampOutOfZone
-                  local secondsOffend = seconds - self.maxSecondsOutsideOfZoneIA
-                  if secondsOffend > 0 then
-                    -- destroy the IA
-                    veaf.loggers.get(veafAirWaves.Id):debug("destroy out of zone AI unitName=%s", veaf.lp(unitName))
-                    unit:destroy()
-                  end
-                else
-                  self.timestampsOutOfZone[unitName] = nil
-                end
-              end
-            end
-          end
+    for targetState, guardFn in pairs(fsmDef.transitions) do
+      if guardFn(self, humansInZone, humansInZoneNames) then
+        if fsmDef.exit then
+          fsmDef.exit(self, humansInZone, humansInZoneNames)
         end
+        self:_setState(targetState)
+        local newFsmDef = AirWaveZone.FSM[targetState]
+        if newFsmDef and newFsmDef.enter then
+          newFsmDef.enter(self, humansInZone, humansInZoneNames)
+        end
+        transitioned = true
+        break
       end
     end
-  elseif self.state == veafAirWaves.STATUS_OVER then
-    -- zone has still to be reset to restart
   end
+
   if self.checkFunctionSchedule then
     -- deschedule if needed
     mist.removeFunction(self.checkFunctionSchedule)
@@ -1380,7 +1289,178 @@ function AirWaveZone:destroyCurrentWave()
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
--- Utility methods
+-- FSM callbacks
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+-- READY → WAITING_FOR_MORE_HUMANS
+function AirWaveZone._canEnterWaitForMoreHumans(self, humansInZone)
+  return humansInZone ~= nil and #humansInZone > 0
+end
+
+-- enter WAITING_FOR_MORE_HUMANS: record who entered and start activation timer
+function AirWaveZone._onEnterWaitForMoreHumans(self, humansInZone, humansInZoneNames)
+  self.unitsInZone = humansInZone
+  self.playerUnitsNames = humansInZoneNames
+  if self.delayBeforeActivation and self.delayBeforeActivation > 0 then
+    self:signalWaitForHumans()
+  end
+  self.timeOfActivation = timer.getTime() + self.delayBeforeActivation
+  veaf.loggers.get(veafAirWaves.Id):debug("waiting %s seconds before activation", veaf.lp(self.delayBeforeActivation))
+  veaf.loggers.get(veafAirWaves.Id):trace("self.timeOfActivation=%s", veaf.lp(self.timeOfActivation))
+end
+
+-- WAITING_FOR_MORE_HUMANS → NEXTWAVE
+function AirWaveZone._canEnterNextWave(self, humansInZone)
+  return self.timeOfActivation ~= nil and timer.getTime() >= self.timeOfActivation and humansInZone ~= nil and #humansInZone > 0
+end
+
+-- exit WAITING_FOR_MORE_HUMANS: refresh tracked humans and reset wave counter
+function AirWaveZone._onExitWaitForMoreHumans(self, humansInZone, humansInZoneNames)
+  self.unitsInZone = humansInZone
+  self.playerUnitsNames = humansInZoneNames
+  self.currentWaveIndex = 0
+end
+
+-- NEXTWAVE → OVER (no more waves to deploy)
+function AirWaveZone._canEnterOver(self)
+  return self.currentWaveIndex >= #self.waves
+end
+
+-- NEXTWAVE → WAITING_FOR_NEXTWAVE (more waves remain)
+function AirWaveZone._canEnterWaitForNextWave(self)
+  return self.currentWaveIndex < #self.waves
+end
+
+-- enter WAITING_FOR_NEXTWAVE: set inter-wave timer and notify players
+function AirWaveZone._onEnterWaitForNextWave(self)
+  if not self.delayBeforeNextWave then
+    self.delayBeforeNextWave = self.delayBetweenWaves
+  end
+  self.timeOfNextWave = timer.getTime() + self.delayBeforeNextWave
+  if self.delayBeforeNextWave and self.delayBeforeNextWave > 0 then
+    self:signalWaitToDeploy()
+  end
+  veaf.loggers.get(veafAirWaves.Id):debug("waiting %s seconds before spawning next wave(s)", veaf.lp(self.delayBeforeNextWave))
+  veaf.loggers.get(veafAirWaves.Id):trace("self.timeOfNextWave=%s", veaf.lp(self.timeOfNextWave))
+end
+
+-- WAITING_FOR_NEXTWAVE → ACTIVE
+function AirWaveZone._canEnterActive(self)
+  return self.timeOfNextWave ~= nil and timer.getTime() >= self.timeOfNextWave
+end
+
+-- enter ACTIVE: deploy the next batch of enemy groups
+function AirWaveZone._onEnterActive(self)
+  local spawnedGroups, delayBeforeNextWave = self:deployWaves()
+  if spawnedGroups then
+    self.delayBeforeNextWave = delayBeforeNextWave or self.delayBetweenWaves
+  end
+end
+
+-- ACTIVE tick: destroy AI units that have left the zone for too long
+function AirWaveZone._tickActive(self)
+  if not self.maxSecondsOutsideOfZoneIA then
+    return
+  end
+  local triggerZone = veaf.getTriggerZone(self.triggerZoneName)
+  for _, groupName in pairs(self.spawnedGroupsNames) do
+    local group = Group.getByName(groupName)
+    if group then
+      local units = group:getUnits()
+      if units then
+        for _, unit in pairs(units) do
+          local unitName = unit:getName()
+          local outOfZone = false
+          if triggerZone then
+            outOfZone = not (veaf.isUnitInZone(unit, triggerZone))
+          else
+            local pos = unit:getPosition().p
+            if pos then
+              local distanceFromCenter = ((pos.x - self.zoneCenter.x) ^ 2 + (pos.z - self.zoneCenter.z) ^ 2) ^ 0.5
+              outOfZone = (distanceFromCenter > self.zoneRadius)
+            end
+          end
+          if outOfZone then
+            local timestampOutOfZone = timer.getTime()
+            if self.timestampsOutOfZone[unitName] then
+              timestampOutOfZone = self.timestampsOutOfZone[unitName]
+            else
+              self.timestampsOutOfZone[unitName] = timestampOutOfZone
+            end
+            local seconds = timer.getTime() - timestampOutOfZone
+            local secondsOffend = seconds - self.maxSecondsOutsideOfZoneIA
+            if secondsOffend > 0 then
+              veaf.loggers.get(veafAirWaves.Id):debug("destroy out of zone AI unitName=%s", veaf.lp(unitName))
+              unit:destroy()
+            end
+          else
+            self.timestampsOutOfZone[unitName] = nil
+          end
+        end
+      end
+    end
+  end
+end
+
+-- ACTIVE → NEXTWAVE
+function AirWaveZone._canExitActive(self)
+  return self.isEnemyWaveDeadCallback(self, self.currentWaveIndex, self.spawnedGroupsNames)
+end
+
+-- exit ACTIVE: clean up surviving enemies and announce wave completion
+function AirWaveZone._onExitActive(self)
+  self:destroyCurrentWave()
+  self:signalDestroyed()
+end
+
+-- enter OVER: announce victory
+function AirWaveZone._onEnterOver(self)
+  self:signalWon()
+end
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- FSM definition
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+AirWaveZone.FSM = {
+  [veafAirWaves.STATUS_READY] = {
+    transitions = {
+      [veafAirWaves.STATUS_WAITING_FOR_MORE_HUMANS] = AirWaveZone._canEnterWaitForMoreHumans,
+    },
+  },
+  [veafAirWaves.STATUS_WAITING_FOR_MORE_HUMANS] = {
+    enter = AirWaveZone._onEnterWaitForMoreHumans,
+    exit = AirWaveZone._onExitWaitForMoreHumans,
+    transitions = {
+      [veafAirWaves.STATUS_NEXTWAVE] = AirWaveZone._canEnterNextWave,
+    },
+  },
+  [veafAirWaves.STATUS_NEXTWAVE] = {
+    transitions = {
+      [veafAirWaves.STATUS_OVER] = AirWaveZone._canEnterOver,
+      [veafAirWaves.STATUS_WAITING_FOR_NEXTWAVE] = AirWaveZone._canEnterWaitForNextWave,
+    },
+  },
+  [veafAirWaves.STATUS_WAITING_FOR_NEXTWAVE] = {
+    enter = AirWaveZone._onEnterWaitForNextWave,
+    transitions = {
+      [veafAirWaves.STATUS_ACTIVE] = AirWaveZone._canEnterActive,
+    },
+  },
+  [veafAirWaves.STATUS_ACTIVE] = {
+    enter = AirWaveZone._onEnterActive,
+    tick = AirWaveZone._tickActive,
+    exit = AirWaveZone._onExitActive,
+    transitions = {
+      [veafAirWaves.STATUS_NEXTWAVE] = AirWaveZone._canExitActive,
+    },
+  },
+  [veafAirWaves.STATUS_OVER] = {
+    enter = AirWaveZone._onEnterOver,
+    transitions = {},
+  },
+}
+
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 function veafAirWaves.add(aWaveZone, aName)

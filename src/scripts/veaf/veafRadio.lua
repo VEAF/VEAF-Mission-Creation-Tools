@@ -275,6 +275,168 @@ function veafRadio._proxyMethod(parameters)
   end
 end
 
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- RadioMenuBuilder — encapsulates DCS missionCommands tree building
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+veafRadio.RadioMenuBuilder = {}
+veafRadio.RadioMenuBuilder.__index = veafRadio.RadioMenuBuilder
+
+--- Creates a new RadioMenuBuilder bound to the given root node.
+--- @param root table  root menu node (must have .title, .subMenus, .commands)
+function veafRadio.RadioMenuBuilder:new(root)
+  local instance = setmetatable({}, self)
+  instance._root = root
+  return instance
+end
+
+--- Creates a submenu node under parent (or root when nil) and returns it.
+function veafRadio.RadioMenuBuilder:addMenu(label, parent)
+  local subMenu = {
+    title = label,
+    dcsRadioMenu = nil,
+    subMenus = {},
+    commands = {},
+  }
+  local menu = parent or self._root
+  table.insert(menu.subMenus, subMenu)
+  return subMenu
+end
+
+--- Creates a command node under parent (or root when nil) and returns it.
+function veafRadio.RadioMenuBuilder:addCommand(label, parent, method, parameters, usage, isSecured)
+  local command = {
+    title = label,
+    method = method,
+    parameters = parameters,
+    isSecured = isSecured or false,
+    usage = usage or veafRadio.USAGE_ForAll,
+  }
+  local menu = parent or self._root
+  table.insert(menu.commands, command)
+  return command
+end
+
+--- Removes the root DCS menu entry and rebuilds the entire tree from scratch.
+function veafRadio.RadioMenuBuilder:rebuild()
+  if self._root.dcsRadioMenu then
+    missionCommands.removeItem(self._root.dcsRadioMenu)
+  else
+    veaf.loggers.get(veafRadio.Id):info("RadioMenuBuilder:rebuild() first time — no DCS radio menu yet")
+  end
+  self:build()
+end
+
+--- Builds the DCS menu tree from the root node without clearing first.
+function veafRadio.RadioMenuBuilder:build()
+  self:_buildSubtree(nil, self._root)
+end
+
+--- (internal) Recursively builds DCS submenus and commands for a node.
+function veafRadio.RadioMenuBuilder:_buildSubtree(parentNode, node)
+  veaf.loggers.get(veafRadio.Id):debug("RadioMenuBuilder:_buildSubtree %s", veaf.lp(veaf.ifnn(node, "title")))
+
+  if not node or not node.title then
+    return
+  end
+
+  if parentNode then
+    node.dcsRadioMenu = missionCommands.addSubMenu(node.title, parentNode.dcsRadioMenu)
+  else
+    node.dcsRadioMenu = missionCommands.addSubMenu(node.title)
+  end
+
+  table.sort(node.commands, function(a, b)
+    if a.title and b.title then
+      return a.title < b.title
+    else
+      return false
+    end
+  end)
+  for _, command in ipairs(node.commands) do
+    veaf.loggers.get(veafRadio.Id):trace(string.format("command=%s", veaf.p(command)))
+    if not command.usage then
+      command.usage = veafRadio.USAGE_ForAll
+    end
+    if command.usage ~= veafRadio.USAGE_ForAll then
+      local alreadyDoneGroups = {}
+      for groupId, groupData in pairs(veafRadio.humanGroups) do
+        veaf.loggers.get(veafRadio.Id):trace(string.format("groupId=%s", veaf.p(groupId)))
+        for _, callsign in pairs(groupData.callsigns) do
+          veaf.loggers.get(veafRadio.Id):trace(string.format("callsign=%s", veaf.p(callsign)))
+          local unitData = groupData.units[callsign]
+          local unitName = unitData.name
+          veaf.loggers.get(veafRadio.Id):trace(string.format("unitName=%s", veaf.p(unitName)))
+          local humanUnit = veafRadio.humanUnits[unitName]
+          veaf.loggers.get(veafRadio.Id):trace(string.format("humanUnit=%s", veaf.p(humanUnit)))
+          if humanUnit and humanUnit.spawned then
+            veaf.loggers.get(veafRadio.Id):debug(string.format("add radio command for player unit %s", veaf.p(unitName)))
+            local parameters = command.parameters
+            if parameters == nil then
+              parameters = unitName
+            else
+              parameters = { command.parameters }
+              table.insert(parameters, unitName)
+            end
+            local _title = command.title
+            if command.usage == veafRadio.USAGE_ForUnit then
+              _title = callsign .. " - " .. command.title
+            end
+            if alreadyDoneGroups[groupId] == nil or command.usage == veafRadio.USAGE_ForUnit then
+              self:_addDcsCommand(groupId, _title, node.dcsRadioMenu, command, parameters)
+            end
+            alreadyDoneGroups[groupId] = true
+          end
+        end
+      end
+    else
+      self:_addDcsCommand(nil, command.title, node.dcsRadioMenu, command, command.parameters)
+    end
+  end
+
+  table.sort(node.subMenus, function(a, b)
+    if a.title and b.title then
+      return a.title < b.title
+    else
+      return false
+    end
+  end)
+  for _, subMenu in ipairs(node.subMenus) do
+    self:_buildSubtree(node, subMenu)
+  end
+end
+
+--- (internal) Adds a single DCS command, handling secured and per-group dispatch.
+function veafRadio.RadioMenuBuilder:_addDcsCommand(groupId, title, dcsParent, command, parameters)
+  if not command.method then
+    veaf.loggers.get(veafRadio.Id):error("ERROR - missing method for command " .. title)
+  end
+  local _title = title
+  local _method = command.method
+  local _parameters = parameters
+  if command.isSecured then
+    veaf.loggers.get(veafRadio.Id):trace("adding secured command")
+    _method = veafRadio._proxyMethod
+    _parameters = { command.method, _parameters }
+    if veafSecurity.isAuthenticated() then
+      _title = "-" .. title
+    else
+      _title = "+" .. title
+    end
+  end
+  veaf.loggers.get(veafRadio.Id):trace("_title=%s", veaf.lp(_title))
+  veaf.loggers.get(veafRadio.Id):trace("_parameters=%s", veaf.lp(_parameters))
+  if groupId then
+    veaf.loggers.get(veafRadio.Id):trace("adding for group %s command %s", groupId or "", _title or "")
+    missionCommands.addCommandForGroup(groupId, _title, dcsParent, _method, _parameters)
+  else
+    veaf.loggers.get(veafRadio.Id):trace("adding for all command %s", _title or "")
+    missionCommands.addCommand(_title, dcsParent, _method, _parameters)
+  end
+end
+
+veafRadio._builder = veafRadio.RadioMenuBuilder:new(veafRadio.radioMenu)
+
 --- Refresh the radio menu, based on stored information
 --- This is called from another method that has first changed the radio menu information by adding or removing elements
 function veafRadio.refreshRadioMenu(dontDelay)
@@ -296,132 +458,12 @@ function veafRadio._refreshRadioMenu()
   veaf.loggers.get(veafRadio.Id):debug(string.format("veafRadio._refreshRadioMenu()"))
   if not veafRadio.dontCreateMenus then
     veafRadio.refreshRadioMenuDelayedScheduling = nil
-
-    -- completely delete the dcs radio menu
-    veaf.loggers.get(veafRadio.Id):trace("completely delete the dcs radio menu")
-    if veafRadio.radioMenu.dcsRadioMenu then
-      missionCommands.removeItem(veafRadio.radioMenu.dcsRadioMenu)
-    else
-      veaf.loggers.get(veafRadio.Id):info("_refreshRadioMenu() first time : no DCS radio menu yet")
-    end
-
-    -- create all the commands and submenus in the dcs radio menu
-    veaf.loggers.get(veafRadio.Id):trace("create all the commands and submenus in the dcs radio menu")
-    veafRadio.refreshRadioSubmenu(nil, veafRadio.radioMenu)
-  end
-end
-
-function veafRadio._addCommand(groupId, title, menu, command, parameters)
-  if not command.method then
-    veaf.loggers.get(veafRadio.Id):error("ERROR - missing method for command " .. title)
-  end
-  local _title = title
-  local _method = command.method
-  local _parameters = parameters
-  if command.isSecured then
-    veaf.loggers.get(veafRadio.Id):trace("adding secured command")
-
-    _method = veafRadio._proxyMethod
-    _parameters = { command.method, _parameters }
-
-    if veafSecurity.isAuthenticated() then
-      _title = "-" .. title
-    else
-      _title = "+" .. title
-    end
-  end
-
-  veaf.loggers.get(veafRadio.Id):trace("_title=%s", veaf.lp(_title))
-  veaf.loggers.get(veafRadio.Id):trace("_parameters=%s", veaf.lp(_parameters))
-
-  if groupId then
-    veaf.loggers.get(veafRadio.Id):trace("adding for group %s command %s", groupId or "", _title or "")
-    missionCommands.addCommandForGroup(groupId, _title, menu, _method, _parameters)
-  else
-    veaf.loggers.get(veafRadio.Id):trace("adding for all command %s", _title or "")
-    missionCommands.addCommand(_title, menu, _method, _parameters)
+    veafRadio._builder:rebuild()
   end
 end
 
 function veafRadio.refreshRadioSubmenu(parentRadioMenu, radioMenu)
-  veaf.loggers.get(veafRadio.Id):debug("veafRadio.refreshRadioSubmenu %s", veaf.lp(veaf.ifnn(radioMenu, "title")))
-
-  if not radioMenu or not radioMenu.title then
-    return
-  end
-
-  -- create the radio menu in DCS
-  if parentRadioMenu then
-    radioMenu.dcsRadioMenu = missionCommands.addSubMenu(radioMenu.title, parentRadioMenu.dcsRadioMenu)
-  else
-    radioMenu.dcsRadioMenu = missionCommands.addSubMenu(radioMenu.title)
-  end
-
-  -- create the commands in the radio menu
-  table.sort(radioMenu.commands, function(a, b)
-    if a.title and b.title then
-      return a.title < b.title
-    else
-      return false
-    end
-  end)
-  for count = 1, #radioMenu.commands do
-    local command = radioMenu.commands[count]
-    veaf.loggers.get(veafRadio.Id):trace(string.format("command=%s", veaf.p(command)))
-
-    if not command.usage then
-      command.usage = veafRadio.USAGE_ForAll
-    end
-    if command.usage ~= veafRadio.USAGE_ForAll then
-      -- build menu for each player group
-      local alreadyDoneGroups = {}
-      for groupId, groupData in pairs(veafRadio.humanGroups) do
-        veaf.loggers.get(veafRadio.Id):trace(string.format("groupId=%s", veaf.p(groupId)))
-        for _, callsign in pairs(groupData.callsigns) do
-          veaf.loggers.get(veafRadio.Id):trace(string.format("callsign=%s", veaf.p(callsign)))
-          local unitData = groupData.units[callsign]
-          local unitName = unitData.name
-          veaf.loggers.get(veafRadio.Id):trace(string.format("unitName=%s", veaf.p(unitName)))
-          local humanUnit = veafRadio.humanUnits[unitName]
-          veaf.loggers.get(veafRadio.Id):trace(string.format("humanUnit=%s", veaf.p(humanUnit)))
-          if humanUnit and humanUnit.spawned then
-            veaf.loggers.get(veafRadio.Id):debug(string.format("add radio command for player unit %s", veaf.p(unitName)))
-            -- add radio command by player unit or group
-            local parameters = command.parameters
-            if parameters == nil then
-              parameters = unitName
-            else
-              parameters = { command.parameters }
-              table.insert(parameters, unitName)
-            end
-            local _title = command.title
-            if command.usage == veafRadio.USAGE_ForUnit then
-              _title = callsign .. " - " .. command.title
-            end
-            if alreadyDoneGroups[groupId] == nil or command.usage == veafRadio.USAGE_ForUnit then
-              veafRadio._addCommand(groupId, _title, radioMenu.dcsRadioMenu, command, parameters)
-            end
-            alreadyDoneGroups[groupId] = true
-          end
-        end
-      end
-    else
-      veafRadio._addCommand(nil, command.title, radioMenu.dcsRadioMenu, command, command.parameters)
-    end
-  end
-
-  -- recurse to create the submenus in the radio menu
-  table.sort(radioMenu.subMenus, function(a, b)
-    if a.title and b.title then
-      return a.title < b.title
-    else
-      return false
-    end
-  end)
-  for count = 1, #radioMenu.subMenus do
-    local subMenu = radioMenu.subMenus[count]
-    veafRadio.refreshRadioSubmenu(radioMenu, subMenu)
-  end
+  veafRadio._builder:_buildSubtree(parentRadioMenu, radioMenu)
 end
 
 function veafRadio.addCommandToMainMenu(title, method)
@@ -446,24 +488,7 @@ end
 
 function veafRadio._addCommandToSubmenu(title, radioMenu, method, parameters, usage, isSecured)
   veaf.loggers.get(veafRadio.Id):debug(string.format("_addCommandToSubmenu(%s)", veaf.p(title)))
-  local command = {}
-  command.title = title
-  command.method = method
-  command.parameters = parameters
-  command.isSecured = isSecured
-  command.usage = usage
-  if command.usage == nil then
-    command.usage = veafRadio.USAGE_ForAll
-  end
-  local menu = veafRadio.radioMenu
-  if radioMenu then
-    menu = radioMenu
-  end
-
-  -- add command to menu
-  table.insert(menu.commands, command)
-
-  return command
+  return veafRadio._builder:addCommand(title, radioMenu, method, parameters, usage, isSecured)
 end
 
 function veafRadio.delCommand(radioMenu, title)
@@ -483,21 +508,7 @@ function veafRadio.addMenu(title)
 end
 
 function veafRadio.addSubMenu(title, radioMenu)
-  local subMenu = {}
-  subMenu.title = title
-  subMenu.dcsRadioMenu = nil
-  subMenu.subMenus = {}
-  subMenu.commands = {}
-
-  local menu = veafRadio.radioMenu
-  if radioMenu then
-    menu = radioMenu
-  end
-
-  -- add subMenu to menu
-  table.insert(menu.subMenus, subMenu)
-
-  return subMenu
+  return veafRadio._builder:addMenu(title, radioMenu)
 end
 
 function veafRadio.clearSubmenu(subMenu)

@@ -137,4 +137,115 @@ function TestVeafRadioMarkTextAnalysis:test_path_for_play()
   luaunit.assertEquals(r.path, "sounds/msg.ogg")
 end
 
+-- ---------------------------------------------------------------------------
+-- TestVeafRadioBuilder
+-- ---------------------------------------------------------------------------
+TestVeafRadioBuilder = {}
+
+function TestVeafRadioBuilder:setUp()
+  local root = { title = "TestRoot", dcsRadioMenu = nil, subMenus = {}, commands = {} }
+  self.builder = veafRadio.RadioMenuBuilder:new(root)
+end
+
+function TestVeafRadioBuilder:test_new_creates_builder_with_root()
+  luaunit.assertNotNil(self.builder)
+  luaunit.assertNotNil(self.builder._root)
+  luaunit.assertEquals(self.builder._root.title, "TestRoot")
+end
+
+function TestVeafRadioBuilder:test_addMenu_adds_to_root()
+  local sub = self.builder:addMenu("MySub")
+  luaunit.assertNotNil(sub)
+  luaunit.assertEquals(sub.title, "MySub")
+  luaunit.assertEquals(#self.builder._root.subMenus, 1)
+  luaunit.assertEquals(self.builder._root.subMenus[1].title, "MySub")
+end
+
+function TestVeafRadioBuilder:test_addMenu_nil_parent_uses_root()
+  local sub = self.builder:addMenu("MySub", nil)
+  luaunit.assertEquals(self.builder._root.subMenus[1].title, "MySub")
+end
+
+function TestVeafRadioBuilder:test_addMenu_with_explicit_parent()
+  local parent = self.builder:addMenu("Parent")
+  local child = self.builder:addMenu("Child", parent)
+  luaunit.assertEquals(#parent.subMenus, 1)
+  luaunit.assertEquals(parent.subMenus[1].title, "Child")
+end
+
+function TestVeafRadioBuilder:test_addMenu_returns_node_with_empty_children()
+  local sub = self.builder:addMenu("Sub")
+  luaunit.assertEquals(#sub.subMenus, 0)
+  luaunit.assertEquals(#sub.commands, 0)
+  luaunit.assertNil(sub.dcsRadioMenu)
+end
+
+function TestVeafRadioBuilder:test_addCommand_adds_to_root()
+  local cmd = self.builder:addCommand("Fire", nil, function() end, nil, veafRadio.USAGE_ForAll, false)
+  luaunit.assertNotNil(cmd)
+  luaunit.assertEquals(cmd.title, "Fire")
+  luaunit.assertEquals(#self.builder._root.commands, 1)
+end
+
+function TestVeafRadioBuilder:test_addCommand_to_submenu()
+  local sub = self.builder:addMenu("Sub")
+  self.builder:addCommand("Fire", sub, function() end, nil, veafRadio.USAGE_ForAll, false)
+  luaunit.assertEquals(#sub.commands, 1)
+  luaunit.assertEquals(sub.commands[1].title, "Fire")
+  luaunit.assertEquals(#self.builder._root.commands, 0)
+end
+
+function TestVeafRadioBuilder:test_addCommand_defaults_usage_ForAll()
+  local cmd = self.builder:addCommand("Fire", nil, function() end, nil, nil, false)
+  luaunit.assertEquals(cmd.usage, veafRadio.USAGE_ForAll)
+end
+
+function TestVeafRadioBuilder:test_addCommand_defaults_isSecured_false()
+  local cmd = self.builder:addCommand("Fire", nil, function() end)
+  luaunit.assertFalse(cmd.isSecured)
+end
+
+function TestVeafRadioBuilder:test_addCommand_stores_parameters()
+  local params = { x = 1, y = 2 }
+  local cmd = self.builder:addCommand("Move", nil, function() end, params)
+  luaunit.assertEquals(cmd.parameters, params)
+end
+
+function TestVeafRadioBuilder:test_build_sets_dcs_handle_on_root()
+  self.builder:build()
+  luaunit.assertNotNil(self.builder._root.dcsRadioMenu)
+end
+
+function TestVeafRadioBuilder:test_build_sets_dcs_handle_on_submenus()
+  self.builder:addMenu("A")
+  self.builder:addMenu("B")
+  self.builder:build()
+  luaunit.assertNotNil(self.builder._root.subMenus[1].dcsRadioMenu)
+  luaunit.assertNotNil(self.builder._root.subMenus[2].dcsRadioMenu)
+end
+
+function TestVeafRadioBuilder:test_rebuild_restores_dcs_handle()
+  self.builder:build()
+  self.builder:rebuild()
+  luaunit.assertNotNil(self.builder._root.dcsRadioMenu)
+end
+
+function TestVeafRadioBuilder:test_build_sorts_submenus_alphabetically()
+  self.builder:addMenu("Zulu")
+  self.builder:addMenu("Alpha")
+  self.builder:addMenu("Mike")
+  self.builder:build()
+  luaunit.assertEquals(self.builder._root.subMenus[1].title, "Alpha")
+  luaunit.assertEquals(self.builder._root.subMenus[2].title, "Mike")
+  luaunit.assertEquals(self.builder._root.subMenus[3].title, "Zulu")
+end
+
+function TestVeafRadioBuilder:test_build_sorts_commands_alphabetically()
+  self.builder:addCommand("Zulu", nil, function() end)
+  self.builder:addCommand("Alpha", nil, function() end)
+  self.builder:build()
+  luaunit.assertEquals(self.builder._root.commands[1].title, "Alpha")
+  luaunit.assertEquals(self.builder._root.commands[2].title, "Zulu")
+end
+
 os.exit(luaunit.LuaUnit.run())

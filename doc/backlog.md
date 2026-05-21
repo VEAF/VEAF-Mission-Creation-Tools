@@ -108,7 +108,7 @@ Chaque ticket est indépendant mais risqué — à traiter un par un avec tests 
 | LUAR-001 | Scinder `veafSpawn.lua` (3200+ lignes) en 4 modules thématiques — `veafSpawn.lua` devient un proxy de backward compatibility | `veafSpawn*.lua` | feat | 240 min | ✅ |
 | LUAR-002 | Machine d'état explicite (FSM) pour `AirWaveZone` | `veafAirWaves.lua` | feat | 120 min | ⬜ |
 | LUAR-003 | Scinder `VeafQRA` (1200+ lignes) en `VeafQRACore` + `VeafQRALogistics` | `veafQraManager.lua` | feat | 150 min | ⬜ |
-| LUAR-004 | `RadioMenuBuilder` — abstraction de la construction des menus dans veafRadio | `veafRadio.lua` | feat | 90 min | ⬜ |
+| LUAR-004 | `RadioMenuBuilder` — abstraction de la construction des menus dans veafRadio | `veafRadio.lua` | feat | 90 min | ✅ |
 | LUAR-005 | Refactoriser `markTextAnalysis` + `executeCommand` — splitter la gestion markers/commandes entre les sous-modules (`veafSpawnParser.lua` ou équivalent) | `veafSpawnCore.lua` | feat | 120 min | ⬜ |
 
 **Raw total: 720 min → estimated (×1.15): ~828 min (~13h48)**

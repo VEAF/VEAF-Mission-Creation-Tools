@@ -189,7 +189,9 @@ atmosphere = {
 -- ---------------------------------------------------------------------------
 missionCommands = {
   addCommand = function(...) return {} end,
+  addCommandForGroup = function(...) return {} end,
   addSubMenu = function(...) return {} end,
+  addSubMenuForGroup = function(...) return {} end,
   removeItem = function(item) end,
 }
 

@@ -23,23 +23,19 @@ This guide is for developers who want to contribute to the VEAF Mission Creation
 
 The project has two completely separate layers:
 
-```
-┌──────────────────────────────────────────────────────────┐
-│  DESIGN-TIME (Python)                                    │
-│                                                          │
-│  veaf-tools.exe  ──────────────── .miz manipulation      │
-│  veaf-tools-updater.exe ──────── release management      │
-│  veaf-build  (poetry run veaf-build) ─ build pipeline         │
-└──────────────────────────────────────────────────────────┘
-                        ↓ produces
-                  published.zip
-                        ↓ consumed by
-┌──────────────────────────────────────────────────────────┐
-│  RUNTIME (Lua, inside DCS World)                         │
-│                                                          │
-│  veaf-scripts.lua  ────── all 34 modules concatenated   │
-│  missionconfig.lua ────── mission-specific config        │
-└──────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    subgraph DT["DESIGN-TIME — Python"]
+        tools["veaf-tools.exe<br/>— .miz manipulation"]
+        updater["veaf-tools-updater.exe<br/>— release management"]
+        build["veaf-build<br/>— build pipeline"]
+    end
+    DT -->|produces| zip(["published.zip"])
+    zip -->|consumed by| RT
+    subgraph RT["RUNTIME — Lua inside DCS World"]
+        scripts["veaf-scripts.lua<br/>— all 34 modules concatenated"]
+        config["missionconfig.lua<br/>— mission-specific config"]
+    end
 ```
 
 - **Runtime** (`src/scripts/veaf/`) — 34 Lua modules loaded inside DCS missions

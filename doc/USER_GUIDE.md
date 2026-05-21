@@ -83,15 +83,20 @@ When you load a VEAF mission, you'll see:
 
 ### VEAF Menu Structure
 
-```
-F10 - Radio Menu
-├── VEAF (main menu)
-│   ├── Assets (tankers, AWACS, carriers)
-│   ├── Missions (activatable missions)
-│   ├── CAS Mission (CAS generator)
-│   ├── Spawn (if enabled)
-│   ├── Weather (weather)
-│   └── Help (help)
+```mermaid
+mindmap
+  root((F10 Radio Menu))
+    VEAF
+      Assets
+        tankers, AWACS, carriers
+      Missions
+        activatable missions
+      CAS Mission
+        CAS generator
+      Spawn
+        if enabled
+      Weather
+      Help
 ```
 
 ### Navigation

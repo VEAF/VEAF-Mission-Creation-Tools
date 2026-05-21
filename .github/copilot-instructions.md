@@ -117,12 +117,10 @@ VEAF Mission Creation Tools is a hybrid **Lua + Python** system for designing an
 
 ### Data Flow
 
-```
-Mission (.miz) → Read/Parse
-    ↓
-Python Tool (modify Lua structures)
-    ↓
-Write/Serialize → Mission (.miz)
+```mermaid
+flowchart LR
+    A["Mission (.miz)"] -->|Read / Parse| B["Python Tool\nmodify Lua structures"]
+    B -->|Write / Serialize| C["Mission (.miz)"]
 ```
 
 ---

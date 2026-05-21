@@ -159,6 +159,8 @@ class BuildAndReleaseWorker:
                     "veafMissileGuardian.lua",
                     "veafMove.lua",
                     "veafNamedPoints.lua",
+                    "veafQraLogistics.lua",
+                    "veafQraCore.lua",
                     "veafQraManager.lua",
                     "veafSanctuary.lua",
                     "veafSkynetIadsHelper.lua",

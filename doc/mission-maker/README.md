@@ -22,22 +22,22 @@ Create a standard `.miz` mission (place your own units, waypoints, weather, etc.
 ### 3. Extract the mission
 
 ```powershell
-veaf-tools.exe mission-extract --source my-mission.miz --dest src/
+veaf-tools.exe extract my-mission.miz
 ```
 
-This extracts the `.miz` into a `src/` folder structure that you can version-control and configure.
+This extracts the `.miz` into a mission folder structure (current directory by default) that you can version-control and configure.
 
 ### 4. Configure modules
 
-Edit `src/scripts/missionConfig.lua` to declare which VEAF modules are active and configure assets, combat zones, shortcuts, security, etc.
+Edit `mission.yaml` at the root of your mission folder to declare which VEAF modules are active and configure assets, combat zones, shortcuts, security, etc.
 
 ### 5. Build
 
 ```powershell
-veaf-tools.exe mission-build --source src/ --output my-mission-veaf.miz
+veaf-tools.exe build my-mission.miz
 ```
 
-The build tool **automatically injects** the VEAF loader trigger into the `.miz`. The output is ready to fly with full VEAF MCT functionality.
+The build tool reads the mission folder, **automatically injects** the VEAF loader trigger, and produces a `.miz` ready to fly with full VEAF MCT functionality.
 
 ---
 

@@ -17,20 +17,27 @@ Ceci télécharge `veaf-tools.exe` et les scripts Lua VEAF dans votre répertoir
 
 ### 2. Créer une mission dans l'éditeur DCS
 
-- Créez une mission `.miz` standard (placez vos unités, triggers, etc.)
-- Ajoutez un trigger **DO SCRIPT FILE** au démarrage de la mission qui charge `veaf-scripts.lua`
+Créez une mission `.miz` standard (placez vos unités, waypoints, météo, etc.). Pas besoin d'ajouter de trigger VEAF — l'outil de build s'en charge.
 
-### 3. Configurer les modules
-
-Créez un fichier `veaf-mission.yaml` pour déclarer quels modules VEAF sont actifs et configurer les assets, zones de combat, sécurité, etc.
-
-### 4. Construire
+### 3. Extraire la mission
 
 ```powershell
-veaf-tools.exe mission-build --source ma-mission.miz --output ma-mission-veaf.miz
+veaf-tools.exe mission-extract --source ma-mission.miz --dest src/
 ```
 
-Le `.miz` de sortie est prêt à voler avec toutes les fonctionnalités VEAF MCT.
+Ceci extrait le `.miz` dans une arborescence `src/` que vous pouvez versionner et configurer.
+
+### 4. Configurer les modules
+
+Éditez `src/scripts/missionConfig.lua` pour déclarer quels modules VEAF sont actifs et configurer les assets, zones de combat, raccourcis, sécurité, etc.
+
+### 5. Construire
+
+```powershell
+veaf-tools.exe mission-build --source src/ --output ma-mission-veaf.miz
+```
+
+L'outil de build **injecte automatiquement** le trigger chargeur VEAF dans le `.miz`. La sortie est prête à voler avec toutes les fonctionnalités VEAF MCT.
 
 ---
 

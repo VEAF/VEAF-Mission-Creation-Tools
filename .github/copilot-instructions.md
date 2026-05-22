@@ -12,6 +12,12 @@
 - **Reuse:** Existing solutions first; ask before proposing alternatives
 - **Avoid:** Meta-documentation ("What was done", "Implementation summary", etc.)
 
+### Documentation Workflow
+- **Source of truth:** Always base documentation on the actual source code — never invent CLI flags, file names, or workflows
+- **Bilingual:** Produce both EN (`.md`) and FR (`.fr.md`) versions; use FR stubs with admonition redirect when full translation is not available
+- **Links:** Verify all internal links work (`mkdocs build --strict` must pass with zero warnings)
+- **User experience first:** Prioritize clarity for the reader — show the simplest path, hide advanced details behind dedicated sections
+
 ### File Naming Conventions
 - Be specific: `BUILD_AND_RELEASE_GUIDE.md` ✅, not `IMPLEMENTATION_SUMMARY.md` ❌
 - Standards: `README.md`, `QUICKSTART.md`, `ARCHITECTURE.md` ✅

@@ -250,7 +250,7 @@ logger.error("Failed", raise_exception=True)
 
 ```powershell
 # Build (compiles Lua + builds .exe)
-poetry run veaf-build build --version 6.0.5
+poetry run veaf-build build --version 6.1.0
 ```
 
 What it does:
@@ -282,11 +282,11 @@ Release notes are auto-generated from commit messages. You can edit them on GitH
 
 ```powershell
 # Build first
-poetry run veaf-build build --version 6.0.5
+poetry run veaf-build build --version 6.1.0
 
 # Then publish (interactive — prompts for RELEASE_NOTES.md)
 # Requires GITHUB_TOKEN environment variable
-poetry run veaf-build publish --version 6.0.5
+poetry run veaf-build publish --version 6.1.0
 ```
 
 ### Security Model

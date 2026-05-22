@@ -1,7 +1,7 @@
 # VEAF Lua Modules - Complete API Reference
 
-**Version:** 6.0.5
-**Last Updated:** December 16, 2025
+**Version:** 6.1.0
+**Last Updated:** May 2026
 **Project:** VEAF Mission Creation Tools
 
 ---
@@ -4020,5 +4020,5 @@ end, {unitName = "Viper 1-1"}, veafRadio.USAGE_ForAll)
 ---
 
 **Document Version:** 1.0
-**Last Updated:** December 16, 2025
-**Generated for:** VEAF Mission Creation Tools v6.0.5
+**Last Updated:** May 2026
+**Generated for:** VEAF Mission Creation Tools v6.1.0

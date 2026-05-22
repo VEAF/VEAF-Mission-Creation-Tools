@@ -77,7 +77,7 @@ Only updates if the remote version is newer. To force a reinstall:
 To pin to a specific version:
 
 ```powershell
-.\veaf-tools-updater.exe --tag published-v6.0.5
+.\veaf-tools-updater.exe --tag published-v6.1.0
 ```
 
 Full CLI reference: [Tools Reference](../TOOLS_REFERENCE.md)

@@ -76,7 +76,7 @@ La mise à jour n'est effectuée que si la version distante est plus récente. P
 Pour épingler une version spécifique :
 
 ```powershell
-.\veaf-tools-updater.exe --tag published-v6.0.5
+.\veaf-tools-updater.exe --tag published-v6.1.0
 ```
 
 Référence CLI complète : [Référence des outils](../TOOLS_REFERENCE.md)

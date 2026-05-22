@@ -77,18 +77,60 @@ La structure exacte dépend de ce que le créateur de mission a activé.
 
 ## Commandes de marqueur
 
-Placer un marqueur sur la carte F10 (clic droit → Ajouter marqueur), saisir une commande dans le champ texte, puis confirmer. VEAF intercepte le marqueur, exécute la commande et supprime le marqueur.
+Placer un marqueur sur la carte F10 (clic droit → Ajouter marqueur), saisir une commande dans le champ texte, puis confirmer. VEAF MCT intercepte le marqueur, exécute la commande et supprime le marqueur.
 
 > Sur les serveurs multijoueurs, certaines commandes nécessitent un mot de passe. Voir [Sécurité](#sécurité-et-permissions).
 
-### Commandes de spawn
+### Aliases (raccourcis) — La méthode recommandée
+
+Les aliases commencent par `-` et sont le moyen le plus simple de faire apparaître des unités. Ils sont prédéfinis par le créateur de mission et correspondent à des commandes complètes en arrière-plan.
+
+#### Aliases de défense aérienne courants
+
+| Alias | Ce qui apparaît |
+|-------|-----------------|
+| `-sa2` | Batterie SA-2 Guideline (S-75) |
+| `-sa6` | Batterie SA-6 Gainful (2K12 Kub) |
+| `-sa10` | Batterie SA-10 Grumble (S-300) |
+| `-sa11` | Batterie SA-11 Gadfly (9K37 Buk) |
+| `-sa15` | Véhicule SA-15 Gauntlet (Tor) |
+| `-sa22` | Véhicule SA-22 Greyhound (Pantsir-S1) |
+| `-shilka` | AAA ZSU-23-4 Shilka |
+| `-manpads` | Escouade MANPAD |
+| `-samLR` | Batterie SAM longue portée aléatoire |
+| `-samSR` | Batterie SAM courte portée aléatoire |
+
+#### Aliases de véhicules/navires courants
+
+| Alias | Ce qui apparaît |
+|-------|-----------------|
+| `-burke` | Destroyer USS Arleigh Burke IIa |
+| `-ticonderoga` | Croiseur Ticonderoga |
+| `-mortar` | Équipe de mortiers |
+| `-arty` | Batterie d'artillerie M-109 |
+| `-mlrs` | Batterie de roquettes MLRS |
+| `-attack_convoy_red` | Convoi d'attaque rouge |
+
+#### Aliases utilitaires
+
+| Alias | Ce que ça fait |
+|-------|----------------|
+| `-point Nom` | Nomme un point sur la carte |
+| `-destroy` | Détruit les unités dans un rayon de 100 m |
+| `-login MOT_DE_PASSE` | S'authentifie pour les commandes restreintes |
+| `-logout` | Verrouille le système |
+
+> **Astuce :** Les créateurs de missions peuvent définir des aliases personnalisés. Demandez à l'administrateur de votre serveur la liste complète.
+
+### Commandes brutes (avancé)
+
+Pour tout ce qui n'est pas couvert par un alias, vous pouvez utiliser la syntaxe complète des commandes VEAF. Ces commandes commencent par `_`.
 
 #### Faire apparaître une unité : `_spawn unit`
 
 ```
 _spawn unit, name F-16C
 _spawn unit, name T-80, group 4, hdg 270
-_spawn unit, name MiG-29S, alt 20000, speed 500, hdg 090
 _spawn unit, name SA-6
 ```
 
@@ -102,7 +144,6 @@ Options courantes :
 | `alt [FT]` | Altitude en pieds (aéronefs) | `alt 15000` |
 | `speed [KT]` | Vitesse en nœuds | `speed 450` |
 | `side [blue/red]` | Coalition imposée | `side red` |
-| `country [NOM]` | Pays imposé | `country Russia` |
 
 #### Faire apparaître un groupe prédéfini : `_spawn group`
 
@@ -111,56 +152,19 @@ _spawn group, name CAP-2
 _spawn group, name RED-SAM-SITE, hdg 180
 ```
 
-Les groupes doivent être définis dans le fichier `spawnables.yaml` de la mission par le créateur.
+Les groupes doivent être définis dans la configuration de la mission par le créateur.
 
 #### Faire apparaître une patrouille CAP : `_spawn cap`
 
 ```
 _spawn cap, name Su-27, alt 25000, capradius 20000
-_spawn cap, name F-15C, group 2, alt 30000, capradius 25000
 ```
 
-Options supplémentaires : `capradius [M]` (rayon d'orbite en mètres), `distance [M]`.
-
-#### Faire apparaître un convoi : `_spawn convoy`
-
-Placer deux marqueurs : un à la position de départ (avec la commande), un à la destination.
-
-```
-Marqueur au départ :
-_spawn convoy, dest [NOM_MARQUEUR_DESTINATION], speed 50, defense 2, armor 2
-
-Marqueur à la destination :
-(vide ou juste un nom)
-```
-
-Options : `dest [NOM]`, `speed [KMH]`, `defense [0-5]`, `armor [0-5]`, `size [0-5]`, `patrol`, `offroad`.
-
-#### Faire apparaître un AFAC/JTAC : `_spawn afac`
-
-```
-_spawn afac, name A-10C, alt 15000, freq 133.0, mod AM, code 1688
-_spawn afac, name L-39ZA, freq 135.0, code 1584, immortal
-```
-
-#### Faire apparaître de la fumée : `_spawn smoke`
+#### Fumée / fusées éclairantes / explosions
 
 ```
 _spawn smoke, color red
-_spawn smoke, color green, shells 5
-```
-
-Couleurs disponibles : `red`, `green`, `blue`, `white`, `orange`.
-
-#### Faire apparaître des fusées éclairantes : `_spawn flare`
-
-```
 _spawn flare, power 1000000, shells 5
-```
-
-#### Faire apparaître des explosions : `_spawn bomb`
-
-```
 _spawn bomb, power 500, shells 3
 ```
 
@@ -173,28 +177,13 @@ _cas, size 3, defense 2, armor 3
 
 Options : `size [0-5]`, `defense [0-5]`, `armor [0-5]`, `side [blue/red]`.
 
-### Commande de téléportation
-
-```
-_teleport, name Viper Flight
-```
-
-Téléporte le groupe nommé à la position du marqueur.
-
-### Commande de destruction
-
-```
-_destroy, radius 500
-_destroy, name Tank-1
-```
-
 ### Authentification de sécurité
 
 ```
-_auth [MOT_DE_PASSE]
+-login [MOT_DE_PASSE]
 ```
 
-Accorde des permissions élevées temporaires. Requis sur certains serveurs avant d'utiliser les commandes de spawn avancées.
+Accorde des permissions élevées temporaires. Requis sur certains serveurs avant d'utiliser les commandes de spawn avancées. Utilisez `-logout` pour verrouiller à nouveau.
 
 ---
 

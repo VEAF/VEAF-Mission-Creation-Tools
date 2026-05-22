@@ -8,7 +8,7 @@ You're flying a DCS mission that uses VEAF scripts. This section covers everythi
 
 1. **Press F10** → look for the **VEAF** submenu under **Other**
 2. **Explore submenus**: Assets (tankers, AWACS, carriers), Missions, CAS, Spawn
-3. **Place a marker** on the F10 map, type `_spawn unit, name T-80` and confirm — a tank appears
+3. **Place a marker** on the F10 map, type `-sa6` and confirm — a SAM battery appears
 
 That's it. You're using VEAF Mission Creation Tools.
 

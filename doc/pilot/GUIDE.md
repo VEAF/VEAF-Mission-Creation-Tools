@@ -78,18 +78,60 @@ The exact structure depends on what the mission maker has enabled.
 
 ## Marker Commands
 
-Place a marker on the F10 map (right-click → Add marker), type a command in the text field, then confirm. VEAF intercepts the marker, executes the command, and removes the marker.
+Place a marker on the F10 map (right-click → Add marker), type a command in the text field, then confirm. VEAF MCT intercepts the marker, executes the command, and removes the marker.
 
 > On multiplayer servers some commands require a password. See [Security](#security-and-permissions).
 
-### Spawn Commands
+### Aliases (Shortcuts) — The Preferred Way
+
+Aliases start with `-` and are the easiest way to spawn units. They are predefined by the mission maker and map to full spawn commands behind the scenes.
+
+#### Common air-defense aliases
+
+| Alias | What spawns |
+|-------|-------------|
+| `-sa2` | SA-2 Guideline (S-75) battery |
+| `-sa6` | SA-6 Gainful (2K12 Kub) battery |
+| `-sa10` | SA-10 Grumble (S-300) battery |
+| `-sa11` | SA-11 Gadfly (9K37 Buk) battery |
+| `-sa15` | SA-15 Gauntlet (Tor) vehicle |
+| `-sa22` | SA-22 Greyhound (Pantsir-S1) vehicle |
+| `-shilka` | ZSU-23-4 Shilka AAA |
+| `-manpads` | MANPAD squad |
+| `-samLR` | Random long-range SAM battery |
+| `-samSR` | Random short-range SAM battery |
+
+#### Common vehicle/ship aliases
+
+| Alias | What spawns |
+|-------|-------------|
+| `-burke` | USS Arleigh Burke IIa destroyer |
+| `-ticonderoga` | Ticonderoga cruiser |
+| `-mortar` | Mortar team |
+| `-arty` | M-109 artillery battery |
+| `-mlrs` | MLRS rocket battery |
+| `-attack_convoy_red` | Red attack convoy |
+
+#### Utility aliases
+
+| Alias | What it does |
+|-------|--------------|
+| `-point Name` | Names a map point |
+| `-destroy` | Destroys units within 100 m |
+| `-login PASSWORD` | Authenticates for restricted commands |
+| `-logout` | Locks the system again |
+
+> **Tip:** Mission makers can define custom aliases. Ask your server admin for the full list.
+
+### Raw Commands (Advanced)
+
+For anything not covered by an alias, you can use the full VEAF command syntax directly. These commands start with `_`.
 
 #### Spawn a unit: `_spawn unit`
 
 ```
 _spawn unit, name F-16C
 _spawn unit, name T-80, group 4, hdg 270
-_spawn unit, name MiG-29S, alt 20000, speed 500, hdg 090
 _spawn unit, name SA-6
 ```
 
@@ -103,7 +145,6 @@ Common options:
 | `alt [FT]` | Altitude in feet (aircraft) | `alt 15000` |
 | `speed [KT]` | Speed in knots | `speed 450` |
 | `side [blue/red]` | Coalition override | `side red` |
-| `country [NAME]` | Country override | `country Russia` |
 
 #### Spawn a predefined group: `_spawn group`
 
@@ -112,56 +153,19 @@ _spawn group, name CAP-2
 _spawn group, name RED-SAM-SITE, hdg 180
 ```
 
-Groups must be defined in the mission's `spawnables.yaml` file by the mission maker.
+Groups must be defined in the mission's configuration by the mission maker.
 
 #### Spawn a CAP patrol: `_spawn cap`
 
 ```
 _spawn cap, name Su-27, alt 25000, capradius 20000
-_spawn cap, name F-15C, group 2, alt 30000, capradius 25000
 ```
 
-Additional options: `capradius [M]` (orbit radius in metres), `distance [M]`.
-
-#### Spawn a convoy: `_spawn convoy`
-
-Place two markers: one at the start position (with the command), one at the destination.
-
-```
-Marker at start:
-_spawn convoy, dest [DESTINATION_MARKER_NAME], speed 50, defense 2, armor 2
-
-Marker at destination:
-(empty or just a name)
-```
-
-Options: `dest [NAME]`, `speed [KMH]`, `defense [0-5]`, `armor [0-5]`, `size [0-5]`, `patrol`, `offroad`.
-
-#### Spawn an AFAC/JTAC: `_spawn afac`
-
-```
-_spawn afac, name A-10C, alt 15000, freq 133.0, mod AM, code 1688
-_spawn afac, name L-39ZA, freq 135.0, code 1584, immortal
-```
-
-#### Spawn smoke: `_spawn smoke`
+#### Spawn smoke / flares / explosions
 
 ```
 _spawn smoke, color red
-_spawn smoke, color green, shells 5
-```
-
-Available colors: `red`, `green`, `blue`, `white`, `orange`.
-
-#### Spawn illumination flares: `_spawn flare`
-
-```
 _spawn flare, power 1000000, shells 5
-```
-
-#### Spawn explosions: `_spawn bomb`
-
-```
 _spawn bomb, power 500, shells 3
 ```
 
@@ -174,28 +178,13 @@ _cas, size 3, defense 2, armor 3
 
 Options: `size [0-5]`, `defense [0-5]`, `armor [0-5]`, `side [blue/red]`.
 
-### Teleport Command
-
-```
-_teleport, name Viper Flight
-```
-
-Teleports the named group to the marker position.
-
-### Destroy Command
-
-```
-_destroy, radius 500
-_destroy, name Tank-1
-```
-
 ### Security Authentication
 
 ```
-_auth [PASSWORD]
+-login [PASSWORD]
 ```
 
-Grants temporary elevated permissions. Required on some servers before using advanced spawn commands.
+Grants temporary elevated permissions. Required on some servers before using advanced spawn commands. Use `-logout` to lock again.
 
 ---
 

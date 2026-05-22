@@ -104,6 +104,7 @@ nav:
       - veafQraManager: mission-maker/scripts/veafQraManager.md
       - veafSanctuary: mission-maker/scripts/veafSanctuary.md
       - veafSecurity: mission-maker/scripts/veafSecurity.md
+      - veafShortcuts: mission-maker/scripts/veafShortcuts.md
       - veafSkynetIadsHelper: mission-maker/scripts/veafSkynetIadsHelper.md
       - veafSpawn: mission-maker/scripts/veafSpawn.md
       - veafTransportMission: mission-maker/scripts/veafTransportMission.md

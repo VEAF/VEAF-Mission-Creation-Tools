@@ -101,7 +101,7 @@ These are pure data files — no initialisation needed.
 
 | Module | File | What it does |
 |--------|------|--------------|
-| `veafShortcuts.lua` | — | Defines short aliases for common marker commands |
+| [veafShortcuts](veafShortcuts.md) | `veafShortcuts.lua` | Defines short aliases (`-sa6`, `-shilka`, `-destroy`, etc.) for common marker commands — [see full list](veafShortcuts.md#default-aliases-reference) |
 | `veafTime.lua` | — | Mission time utilities |
 
 ---

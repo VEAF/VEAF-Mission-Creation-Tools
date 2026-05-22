@@ -94,6 +94,15 @@ Les modules qui ne sont pas initialisés (`initialize()`) ne consomment aucune r
 
 ---
 
+## Raccourcis (Aliases)
+
+| Module | Fichier | Description |
+|--------|---------|-------------|
+| [veafShortcuts](veafShortcuts.md) | `veafShortcuts.lua` | Aliases courts (`-sa6`, `-shilka`, `-destroy`, etc.) pour les commandes marqueur — [voir la liste complète](veafShortcuts.md#default-aliases-reference) |
+| `veafTime.lua` | — | Utilitaires de temps mission |
+
+---
+
 ## Modules de données
 
 Ce sont des fichiers de données pures — aucune initialisation nécessaire.

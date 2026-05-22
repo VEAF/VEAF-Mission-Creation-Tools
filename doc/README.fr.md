@@ -46,4 +46,4 @@ flowchart LR
 
 - **Source** : [github.com/VEAF/VEAF-Mission-Creation-Tools](https://github.com/VEAF/VEAF-Mission-Creation-Tools)
 - **Communauté** : [Discord VEAF](https://www.veaf.org/discord)
-- **Licence** : [MIT](../LICENSE.md)
+- **Licence** : [MIT](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop-v6/LICENSE.md)

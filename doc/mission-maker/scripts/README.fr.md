@@ -98,7 +98,7 @@ Les modules qui ne sont pas initialisés (`initialize()`) ne consomment aucune r
 
 | Module | Fichier | Description |
 |--------|---------|-------------|
-| [veafShortcuts](veafShortcuts.md) | `veafShortcuts.lua` | Aliases courts (`-sa6`, `-shilka`, `-destroy`, etc.) pour les commandes marqueur — [voir la liste complète](veafShortcuts.md#default-aliases-reference) |
+| [veafShortcuts](veafShortcuts.md) | `veafShortcuts.lua` | Aliases courts (`-sa6`, `-shilka`, `-destroy`, etc.) pour les commandes marqueur — [voir la liste complète](veafShortcuts.md) |
 | `veafTime.lua` | — | Utilitaires de temps mission |
 
 ---

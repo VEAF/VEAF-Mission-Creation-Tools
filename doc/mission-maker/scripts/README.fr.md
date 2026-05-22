@@ -1,6 +1,51 @@
 # Référence des scripts — Modules Lua VEAF
 
-Tous les modules sont regroupés dans `veaf-scripts.lua` et chargés au démarrage de la mission. Cette page liste chaque module avec son objectif, si une configuration explicite est nécessaire, et des liens vers le guide détaillé.
+Tous les modules sont regroupés dans `veaf-scripts.lua` et chargés au démarrage de la mission. Cette page vous aide à trouver le bon module pour vos besoins.
+
+---
+
+## Trouver un module
+
+### Par étape du workflow mission-maker
+
+Que construisez-vous ? Choisissez l'étape qui correspond.
+
+| Étape | Modules | Objectif |
+|-------|---------|----------|
+| **Fondation** | `veaf.lua`, `veafMarkers`, `veafRadio`, `veafInterpreter`, `veafEventHandler`, `veafCacheManager` | Infrastructure de base (toujours chargée) |
+| **Mise en place** | [veafSecurity](veafSecurity.md), [veafNamedPoints](veafNamedPoints.md), [veafAirbases](veafAirbases.md) | Contrôle d'accès, positions carte, données de bases |
+| **Spawning** | [veafSpawn](veafSpawn.md), [veafMove](veafMove.md) | Permettre aux joueurs de créer et déplacer des unités |
+| **Types de mission** | [veafCasMission](veafCasMission.md), [veafCombatZone](veafCombatZone.md), [veafTransportMission](veafTransportMission.md), [veafQraManager](veafQraManager.md), [veafAirWaves](veafAirWaves.md) | Scénarios de gameplay structurés |
+| **Assets & services** | [veafAssets](veafAssets.md), [veafCarrierOperations](veafCarrierOperations.md), [veafGrass](veafGrass.md), [veafWeather](veafWeather.md) | Ravitailleurs/AWACS/porte-avions gérés, météo |
+| **Protection** | [veafMissileGuardian](veafMissileGuardian.md), [veafSanctuary](veafSanctuary.md) | Défense anti-missiles, zones sûres |
+| **Intégrations** | [veafSkynetIadsHelper](veafSkynetIadsHelper.md), [veafHoundElintHelper](veafHoundElintHelper.md) | Systèmes IADS et ELINT tiers |
+
+### Par interaction joueur
+
+Que vivront vos joueurs ?
+
+| Action joueur | Module | Ce qui se passe |
+|---------------|--------|-----------------|
+| Place un marqueur avec `_spawn ...` | [veafSpawn](veafSpawn.md) | Des unités apparaissent à la position du marqueur |
+| Ouvre F10 → CAS Mission → Generate | [veafCasMission](veafCasMission.md) | Zone de cibles aléatoire générée |
+| Ouvre F10 → Combat Zones → Activate | [veafCombatZone](veafCombatZone.md) | Zone de combat pré-construite activée |
+| Ouvre F10 → Missions → Activate | [veafAirWaves](veafAirWaves.md) | Combat aérien par vagues lancé |
+| Ouvre F10 → Assets → Tanker/AWACS | [veafAssets](veafAssets.md) | Info, respawn, recovery porte-avions |
+| Ouvre F10 → Carrier → Start Recovery | [veafCarrierOperations](veafCarrierOperations.md) | Le porte-avions se met face au vent |
+| Entre dans une zone protégée | [veafQraManager](veafQraManager.md) | Intercepteurs IA décollent |
+| Tape `_auth [mot_de_passe]` | [veafSecurity](veafSecurity.md) | Permissions élevées accordées |
+| Vole dans une zone sanctuaire | [veafSanctuary](veafSanctuary.md) | Missiles hostiles neutralisés |
+
+### Par fréquence d'utilisation
+
+Quelle est la fréquence d'utilisation de ce module ?
+
+| Fréquence | Modules |
+|-----------|---------|
+| **Essentiel** (quasi toute mission) | [veafSpawn](veafSpawn.md), [veafAssets](veafAssets.md), [veafNamedPoints](veafNamedPoints.md), [veafSecurity](veafSecurity.md) |
+| **Courant** (la plupart des missions de combat) | [veafCasMission](veafCasMission.md), [veafCombatZone](veafCombatZone.md), [veafAirWaves](veafAirWaves.md), [veafCarrierOperations](veafCarrierOperations.md) |
+| **Situationnel** (scénarios spécifiques) | [veafQraManager](veafQraManager.md), [veafTransportMission](veafTransportMission.md), [veafMove](veafMove.md), [veafGrass](veafGrass.md), [veafWeather](veafWeather.md), [veafAirbases](veafAirbases.md) |
+| **Spécialisé** (configurations avancées) | [veafMissileGuardian](veafMissileGuardian.md), [veafSanctuary](veafSanctuary.md), [veafSkynetIadsHelper](veafSkynetIadsHelper.md), [veafHoundElintHelper](veafHoundElintHelper.md) |
 
 ---
 
@@ -20,68 +65,6 @@ veafModuleName.start()
 ```
 
 Les modules qui ne sont pas initialisés (`initialize()`) ne consomment aucune ressource et ne créent aucun menu radio.
-
----
-
-## Modules de base
-
-Ces modules doivent toujours être chargés. Ils fournissent l'infrastructure utilisée par tous les autres modules.
-
-| Module | Version | Rôle | Config. requise |
-|--------|---------|------|----------------|
-| `veaf.lua` | 1.56+ | Framework de base — journalisation, utilitaires, wrappers mist | Non |
-| `veafEventHandler.lua` | — | Écouteur et dispatcher d'événements DCS | Non |
-| `veafMarkers.lua` | — | Intercepte le texte des marqueurs F10 et dispatche les commandes | Minimale |
-| `veafInterpreter.lua` | — | Analyse le texte des commandes de marqueur en options structurées | Non |
-| `veafRadio.lua` | — | Construit et rafraîchit le menu radio F10 dynamique | Minimale |
-| `veafCacheManager.lua` | — | Met en cache les calculs coûteux | Non |
-
-Initialisation minimale :
-
-```lua
-veafMarkers.initialize()
-veafRadio.initialize()
-veafRadio.refreshRadioMenu()
-```
-
----
-
-## Spawn et déplacement
-
-| Module | Fichier | Rôle |
-|--------|---------|------|
-| [veafSpawn](veafSpawn.md) | `veafSpawn.lua` | Faire apparaître des aéronefs, unités terrestres, fumée, JTAC, cargo, convois, FARP via marqueurs |
-| [veafMove](veafMove.md) | `veafMove.lua` | Déplacer ou téléporter des groupes existants ; gérer les routes de ravitailleurs |
-| `veafUnits.lua` | — | Définitions de modèles d'unités (groupes, compositions, support d'ère) |
-| `veafGroundAI.lua` | — | Comportement IA amélioré pour les unités terrestres |
-
----
-
-## Types de mission
-
-| Module | Fichier | Rôle |
-|--------|---------|------|
-| [veafCasMission](veafCasMission.md) | `veafCasMission.lua` | Zones d'entraînement CAS générées avec packages de menaces configurables |
-| [veafCombatZone](veafCombatZone.md) | `veafCombatZone.lua` | Zones de combat activables/désactivables avec suivi d'objectifs |
-| [veafTransportMission](veafTransportMission.md) | `veafTransportMission.lua` | Missions hélicoptère de pickup et livraison |
-| [veafQraManager](veafQraManager.md) | `veafQraManager.lua` | QRA (Quick Reaction Alert) — intercepteurs IA déclenchés par des intrus |
-| [veafAirWaves](veafAirWaves.md) | `veafAirWaves.lua` | Vagues récurrentes d'attaquants IA avec suivi d'état |
-| `veafCombatMission.lua` | — | Classe de base pour les types de mission (pas d'utilisation directe) |
-
----
-
-## Ressources et infrastructure
-
-| Module | Fichier | Rôle |
-|--------|---------|------|
-| [veafAssets](veafAssets.md) | `veafAssets.lua` | Ravitailleurs, AWACS, porte-avions — suivi d'état et menus radio |
-| [veafCarrierOperations](veafCarrierOperations.md) | `veafCarrierOperations.lua` | Gestion des récupérations sur porte-avions (BRC, TACAN, ICLS, alignement vent) |
-| [veafGrass](veafGrass.md) | `veafGrass.lua` | Configuration de pistes en herbe non préparées |
-| [veafWeather](veafWeather.md) | `veafWeather.lua` | Météo dynamique et conditions ATC |
-| [veafAirbases](veafAirbases.md) | `veafAirbases.lua` | Données de bases aériennes et services ATC |
-| [veafNamedPoints](veafNamedPoints.md) | `veafNamedPoints.lua` | Positions nommées sur la carte avec ATC/TACAN optionnel |
-
----
 
 ## Contrôle d'accès
 

@@ -399,7 +399,7 @@ After authentication you have elevated rights for the configured duration (defau
 ### Fighters (F-16C, F/A-18C, F-15C, Su-27…)
 
 - Use AWACS for threat vectors before engaging
-- Spawn an enemy CAP with `_spawn cap` for a realistic intercept scenario
+- Spawn an enemy CAP with `-cap Su-27` for a realistic intercept scenario
 - Activate a predefined intercept mission via the F10 menu
 
 ### Attack Aircraft (A-10C, Su-25, F/A-18C…)
@@ -416,7 +416,7 @@ After authentication you have elevated rights for the configured duration (defau
 
 ### Transports (C-130, Mi-8, UH-1H…)
 
-- Spawn a FARP as a destination: `_spawn farp, name FARP Alpha, side blue`
+- Spawn a FARP as a destination: `-farp FARP Alpha`
 - Use CTLD integration (if enabled) for troop/cargo missions
 
 ---

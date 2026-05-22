@@ -295,7 +295,7 @@ Après authentification, les droits élevés sont valables pendant la durée con
 ### Chasseurs (F-16C, F/A-18C, F-15C, Su-27…)
 
 - Utiliser l'AWACS pour obtenir des vecteurs de menace avant d'engager
-- Faire apparaître une CAP ennemie avec `_spawn cap` pour un scénario d'interception réaliste
+- Faire apparaître une CAP ennemie avec `-cap Su-27` pour un scénario d'interception réaliste
 - Activer une mission d'interception prédéfinie via le menu F10
 
 ### Avions d'attaque (A-10C, Su-25, F/A-18C…)
@@ -312,7 +312,7 @@ Après authentification, les droits élevés sont valables pendant la durée con
 
 ### Transports (C-130, Mi-8, UH-1H…)
 
-- Faire apparaître un FARP comme destination : `_spawn farp, name FARP Alpha, side blue`
+- Faire apparaître un FARP comme destination : `-farp FARP Alpha`
 - Utiliser l'intégration CTLD (si activée) pour des missions de transport de troupes/cargo
 
 ---

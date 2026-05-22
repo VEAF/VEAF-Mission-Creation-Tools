@@ -18,7 +18,7 @@ That's it. You're using VEAF Mission Creation Tools.
 
 | Feature | How | Description |
 |---------|-----|-------------|
-| **Spawn units** | F10 marker: `_spawn unit, name [TYPE]` | Create any DCS unit at marker position |
+| **Spawn units** | F10 marker: `-alias` (e.g. `-sa6`, `-armor`, `-farp`) | Create units at marker position — see [shortcuts list](../mission-maker/scripts/veafShortcuts.md) |
 | **CAS training** | F10 menu → CAS Mission → Generate | Random ground targets with configurable difficulty |
 | **Activate missions** | F10 menu → Missions → [Name] → Activate | Pre-built combat scenarios (CAP, strike, SEAD…) |
 | **Combat zones** | F10 menu → Combat Zones → [Zone] → Activate | Persistent combat areas with objectives |

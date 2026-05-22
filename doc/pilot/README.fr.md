@@ -18,7 +18,7 @@ C'est tout. Vous utilisez les VEAF Mission Creation Tools.
 
 | Fonctionnalité | Comment | Description |
 |----------------|---------|-------------|
-| **Spawner des unités** | Marqueur F10 : `_spawn unit, name [TYPE]` | Créer n'importe quelle unité DCS à la position du marqueur |
+| **Spawner des unités** | Marqueur F10 : `-alias` (ex : `-sa6`, `-armor`, `-farp`) | Créer des unités à la position du marqueur — voir [liste des raccourcis](../mission-maker/scripts/veafShortcuts.md) |
 | **Entraînement CAS** | Menu F10 → CAS Mission → Generate | Cibles au sol aléatoires avec difficulté configurable |
 | **Activer des missions** | Menu F10 → Missions → [Nom] → Activate | Scénarios de combat pré-construits (CAP, strike, SEAD…) |
 | **Zones de combat** | Menu F10 → Combat Zones → [Zone] → Activate | Zones de combat persistantes avec objectifs |

@@ -6,11 +6,62 @@
 - **Tone:** Treat the developer as an equal (direct, practical, no obsequiousness)
 - **Style:** Brief explanations in chat, let code/docs speak for themselves
 
+---
+
+## Coding Discipline
+
+### Think Before Coding
+
+- State assumptions explicitly. If uncertain, ask.
+- If multiple interpretations exist, present them — don't pick silently.
+- If a simpler approach exists, say so. Push back when warranted.
+- If something is unclear, stop. Name what's confusing. Ask.
+
+### Simplicity First
+
+- No features beyond what was asked.
+- No abstractions for single-use code.
+- No "flexibility" or "configurability" that wasn't requested.
+- No error handling for impossible scenarios. Only validate at system boundaries.
+- If 200 lines can be 50, rewrite it.
+
+### Surgical Changes
+
+When editing existing code:
+- Don't "improve" adjacent code, comments, or formatting.
+- Don't refactor things that aren't broken.
+- Match existing style, even if you'd do it differently.
+- If you notice unrelated dead code, mention it — don't delete it.
+
+When your changes create orphans:
+- Remove imports/variables/functions that YOUR changes made unused.
+- Don't remove pre-existing dead code unless asked.
+
+**The test:** every changed line should trace directly to the user's request.
+
+### Goal-Driven Execution
+
+Transform tasks into verifiable goals. For multi-step tasks, state a brief plan:
+```
+1. [Step] → verify: [check]
+2. [Step] → verify: [check]
+```
+
+Strong success criteria let you loop independently. Weak criteria ("make it work") require clarification first.
+
+---
+
 ### Documentation Standards
 - **English only:** All source code, comments, and documentation files
 - **Harmonize:** Match existing patterns, conventions, and tone in the repository
 - **Reuse:** Existing solutions first; ask before proposing alternatives
 - **Avoid:** Meta-documentation ("What was done", "Implementation summary", etc.)
+
+### Documentation Workflow
+- **Source of truth:** Always base documentation on the actual source code — never invent CLI flags, file names, or workflows
+- **Bilingual:** Produce both EN (`.md`) and FR (`.fr.md`) versions; use FR stubs with admonition redirect when full translation is not available
+- **Links:** Verify all internal links work (`mkdocs build --strict` must pass with zero warnings)
+- **User experience first:** Prioritize clarity for the reader — show the simplest path, hide advanced details behind dedicated sections
 
 ### File Naming Conventions
 - Be specific: `BUILD_AND_RELEASE_GUIDE.md` ✅, not `IMPLEMENTATION_SUMMARY.md` ❌

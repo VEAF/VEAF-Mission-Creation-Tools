@@ -1,7 +1,51 @@
 # Scripts Reference — VEAF Lua Modules
 
+All modules are bundled in `veaf-scripts.lua` and loaded at mission start. This page helps you find the right module for your needs.
 
-All modules are bundled in `veaf-scripts.lua` and loaded at mission start. This page lists every module with its purpose, whether it needs explicit configuration, and links to the detailed guide.
+---
+
+## Find a Module
+
+### By mission-maker workflow
+
+What are you building? Pick the step that matches.
+
+| Step | Modules | Purpose |
+|------|---------|---------|
+| **Foundation** | `veaf.lua`, `veafMarkers`, `veafRadio`, `veafInterpreter`, `veafEventHandler`, `veafCacheManager` | Core infrastructure (always loaded) |
+| **Setup** | [veafSecurity](veafSecurity.md), [veafNamedPoints](veafNamedPoints.md), [veafAirbases](veafAirbases.md) | Access control, map positions, airbase data |
+| **Spawning** | [veafSpawn](veafSpawn.md), [veafMove](veafMove.md) | Let players create and move units |
+| **Mission types** | [veafCasMission](veafCasMission.md), [veafCombatZone](veafCombatZone.md), [veafTransportMission](veafTransportMission.md), [veafQraManager](veafQraManager.md), [veafAirWaves](veafAirWaves.md) | Structured gameplay scenarios |
+| **Assets & services** | [veafAssets](veafAssets.md), [veafCarrierOperations](veafCarrierOperations.md), [veafGrass](veafGrass.md), [veafWeather](veafWeather.md) | Managed tankers/AWACS/carriers, weather |
+| **Protection** | [veafMissileGuardian](veafMissileGuardian.md), [veafSanctuary](veafSanctuary.md) | Missile defense, safe zones |
+| **Integrations** | [veafSkynetIadsHelper](veafSkynetIadsHelper.md), [veafHoundElintHelper](veafHoundElintHelper.md) | Third-party IADS and ELINT systems |
+
+### By player interaction
+
+What will your players experience?
+
+| Player action | Module | What happens |
+|---------------|--------|--------------|
+| Places a marker with `_spawn ...` | [veafSpawn](veafSpawn.md) | Units appear at marker position |
+| Opens F10 → CAS Mission → Generate | [veafCasMission](veafCasMission.md) | Random target zone generated |
+| Opens F10 → Combat Zones → Activate | [veafCombatZone](veafCombatZone.md) | Pre-built combat area activates |
+| Opens F10 → Missions → Activate | [veafAirWaves](veafAirWaves.md) | Wave-based air combat starts |
+| Opens F10 → Assets → Tanker/AWACS | [veafAssets](veafAssets.md) | Info, respawn, carrier recovery |
+| Opens F10 → Carrier → Start Recovery | [veafCarrierOperations](veafCarrierOperations.md) | Carrier turns into wind |
+| Enters a protected zone | [veafQraManager](veafQraManager.md) | AI interceptors scramble |
+| Types `_auth [password]` | [veafSecurity](veafSecurity.md) | Elevated permissions granted |
+| Flies in a sanctuary area | [veafSanctuary](veafSanctuary.md) | Hostile missiles neutralized |
+
+### By frequency of use
+
+How commonly is this module used?
+
+| Frequency | Modules |
+|-----------|---------|
+| **Essential** (almost every mission) | [veafSpawn](veafSpawn.md), [veafAssets](veafAssets.md), [veafNamedPoints](veafNamedPoints.md), [veafSecurity](veafSecurity.md) |
+| **Common** (most combat missions) | [veafCasMission](veafCasMission.md), [veafCombatZone](veafCombatZone.md), [veafAirWaves](veafAirWaves.md), [veafCarrierOperations](veafCarrierOperations.md) |
+| **Situational** (specific scenarios) | [veafQraManager](veafQraManager.md), [veafTransportMission](veafTransportMission.md), [veafMove](veafMove.md), [veafGrass](veafGrass.md), [veafWeather](veafWeather.md), [veafAirbases](veafAirbases.md) |
+| **Specialized** (advanced setups) | [veafMissileGuardian](veafMissileGuardian.md), [veafSanctuary](veafSanctuary.md), [veafSkynetIadsHelper](veafSkynetIadsHelper.md), [veafHoundElintHelper](veafHoundElintHelper.md) |
 
 ---
 
@@ -21,76 +65,6 @@ veafModuleName.start()
 ```
 
 Modules that are not `initialize()`d consume no resources and create no radio menus.
-
----
-
-## Core Modules
-
-These modules must always be loaded. They provide infrastructure used by all other modules.
-
-| Module | Version | What it does | Config needed |
-|--------|---------|--------------|---------------|
-| `veaf.lua` | 1.56+ | Core framework — logging, utilities, mist wrappers | No |
-| `veafEventHandler.lua` | — | DCS event listener and dispatcher | No |
-| `veafMarkers.lua` | — | Intercepts F10 map marker text and dispatches commands | Minimal |
-| `veafInterpreter.lua` | — | Parses marker command text into structured options | No |
-| `veafRadio.lua` | — | Builds and refreshes the F10 dynamic radio menu | Minimal |
-| `veafCacheManager.lua` | — | Caches expensive computations | No |
-
-Minimal initialisation:
-
-```lua
-veafMarkers.initialize()
-veafRadio.initialize()
-veafRadio.refreshRadioMenu()
-```
-
----
-
-## Spawning and Movement
-
-| Module | File | What it does |
-|--------|------|--------------|
-| [veafSpawn](veafSpawn.md) | `veafSpawn.lua` | Spawn aircraft, ground units, smoke, JTAC, cargo, convoys, FARPs via markers |
-| [veafMove](veafMove.md) | `veafMove.lua` | Move or teleport existing groups; manage tanker routes |
-| `veafUnits.lua` | — | Unit template definitions (groups, compositions, era support) |
-| `veafGroundAI.lua` | — | Enhanced ground unit AI behaviour |
-
----
-
-## Mission Types
-
-| Module | File | What it does |
-|--------|------|--------------|
-| [veafCasMission](veafCasMission.md) | `veafCasMission.lua` | Generated CAS training zones with configurable threat packages |
-| [veafCombatZone](veafCombatZone.md) | `veafCombatZone.lua` | Activatable/deactivatable combat zones with objective tracking |
-| [veafTransportMission](veafTransportMission.md) | `veafTransportMission.lua` | Helicopter pickup-and-delivery missions |
-| [veafQraManager](veafQraManager.md) | `veafQraManager.lua` | Quick Reaction Alert — AI interceptors triggered by intruders |
-| [veafAirWaves](veafAirWaves.md) | `veafAirWaves.lua` | Recurring waves of AI attackers with state tracking |
-| `veafCombatMission.lua` | — | Base class for mission types (not used directly) |
-
----
-
-## Assets and Infrastructure
-
-| Module | File | What it does |
-|--------|------|--------------|
-| [veafAssets](veafAssets.md) | `veafAssets.lua` | Tankers, AWACS, carriers — state tracking and radio menus |
-| [veafCarrierOperations](veafCarrierOperations.md) | `veafCarrierOperations.lua` | Carrier recovery management (BRC, TACAN, ICLS, wind alignment) |
-| [veafGrass](veafGrass.md) | `veafGrass.lua` | Unprepared grass airstrip configuration |
-| [veafWeather](veafWeather.md) | `veafWeather.lua` | Dynamic weather and ATC conditions |
-| [veafAirbases](veafAirbases.md) | `veafAirbases.lua` | Airbase data and ATC services |
-| [veafNamedPoints](veafNamedPoints.md) | `veafNamedPoints.lua` | Named map positions with optional ATC/TACAN |
-
----
-
-## Access Control
-
-| Module | File | What it does |
-|--------|------|--------------|
-| [veafSecurity](veafSecurity.md) | `veafSecurity.lua` | Role-based permission system (passwords, levels) |
-
----
 
 ## Protection Modules
 
@@ -127,7 +101,7 @@ These are pure data files — no initialisation needed.
 
 | Module | File | What it does |
 |--------|------|--------------|
-| `veafShortcuts.lua` | — | Defines short aliases for common marker commands |
+| [veafShortcuts](veafShortcuts.md) | `veafShortcuts.lua` | Defines short aliases (`-sa6`, `-shilka`, `-destroy`, etc.) for common marker commands — [see full list](veafShortcuts.md#default-aliases-reference) |
 | `veafTime.lua` | — | Mission time utilities |
 
 ---

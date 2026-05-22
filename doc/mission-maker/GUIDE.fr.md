@@ -10,7 +10,7 @@ Ce guide s'adresse aux concepteurs de missions DCS World qui souhaitent intégre
 2. [Prérequis](#prérequis)
 3. [Installation et mises à jour](#installation-et-mises-à-jour)
 4. [Créer une nouvelle mission](#créer-une-nouvelle-mission)
-5. [Charger les scripts dans DCS](#charger-les-scripts-dans-dcs)
+5. [Comment les scripts sont chargés](#comment-les-scripts-sont-chargés)
 6. [Configurer les modules](#configurer-les-modules)
 7. [Outils de conception](#outils-de-conception)
 8. [Workflow de build typique](#workflow-de-build-typique)
@@ -18,7 +18,7 @@ Ce guide s'adresse aux concepteurs de missions DCS World qui souhaitent intégre
 10. [Exemples de configuration](#exemples-de-configuration)
 11. [Ressources](#ressources)
 
-> **Migration d'une mission existante ?** Consultez le [Guide de migration](MIGRATION_GUIDE.md) — couvre à la fois VEAF v5 → v6 et DCS vanilla → VEAF.
+> **Migration d'une mission existante ?** Consultez le [Guide de migration](MIGRATION_GUIDE.md) — couvre à la fois VEAF MCT v5 → v6 et DCS vanilla → VEAF MCT.
 
 ---
 
@@ -41,7 +41,7 @@ Une mission VEAF est un fichier DCS `.miz` standard qui charge le framework Lua 
 |-------|------|-------------|
 | DCS World | Le simulateur | Oui |
 | Git | Contrôle de version pour votre projet de mission | Recommandé |
-| `veaf-tools-updater.exe` | Télécharge et installe la dernière release VEAF | Oui |
+| `veaf-tools-updater.exe` | Télécharge et installe la dernière release VEAF MCT | Oui |
 | `veaf-tools.exe` | CLI de manipulation de `.miz` au moment du build | Oui (pour le pipeline de build) |
 | VS Code ou similaire | Édition des fichiers Lua/YAML de configuration | Recommandé |
 
@@ -76,7 +76,7 @@ La mise à jour n'est effectuée que si la version distante est plus récente. P
 Pour épingler une version spécifique :
 
 ```powershell
-.\veaf-tools-updater.exe --tag published-v6.0.5
+.\veaf-tools-updater.exe --tag published-v6.1.0
 ```
 
 Référence CLI complète : [Référence des outils](../TOOLS_REFERENCE.md)
@@ -87,7 +87,7 @@ Référence CLI complète : [Référence des outils](../TOOLS_REFERENCE.md)
 
 ### Recommandé : forker la mission de démonstration
 
-La façon la plus rapide de démarrer est de forker [VEAF-Demo-Mission](https://github.com/VEAF/VEAF-Demo-Mission), qui dispose déjà de la structure de dossiers correcte, d'un trigger de chargement de scripts fonctionnel, de configurations d'exemple et de scripts de build.
+La façon la plus rapide de démarrer est de forker [VEAF-Demo-Mission](https://github.com/VEAF/VEAF-Demo-Mission), qui dispose déjà de la structure de dossiers correcte, de configurations d'exemple et de scripts de build.
 
 ```powershell
 git clone https://github.com/VEAF/VEAF-Demo-Mission.git my-mission
@@ -100,22 +100,22 @@ cd my-mission
 1. Créez un dossier pour votre projet de mission (c'est votre dépôt Git)
 2. Copiez votre fichier `.miz` existant dedans
 3. Exécutez `veaf-tools-updater.exe` pour récupérer tous les scripts VEAF
-4. Ajoutez le trigger de chargement de scripts dans l'éditeur de missions DCS (voir ci-dessous)
-5. Créez un `missionconfig.lua` pour la configuration de vos modules
+4. Extrayez votre mission : `veaf-tools.exe extract ma-mission.miz`
+5. Configurez les modules dans `mission.yaml` et éventuellement `src/scripts/missionConfig.lua`
 
 Structure de projet recommandée :
 
 ```
 MyMission/
 ├── src/
-│   ├── mission.miz               # Source .miz (non buildée)
+│   ├── mission/                  # Données DCS extraites (via extract)
 │   ├── scripts/
-│   │   └── missionconfig.lua     # Configuration de vos modules
-│   ├── presets.yaml              # Préréglages de fréquences radio
-│   ├── spawnables.yaml           # Groupes spawnable prédéfinis
-│   └── waypoints.yaml            # Bullseye / points de navigation
-├── build-scripts/                # Scripts de build VEAF (auto-installés)
-├── veaf-scripts/                 # Scripts Lua VEAF (auto-installés)
+│   │   └── missionConfig.lua    # Configuration Lua runtime (optionnel)
+│   ├── presets.yaml             # Préréglages de fréquences radio
+│   ├── spawnables.yaml          # Groupes spawnable prédéfinis
+│   └── waypoints.yaml           # Bullseye / points de navigation
+├── published/                    # Scripts & outils VEAF (auto-installés)
+├── mission.yaml                  # Configuration de build
 ├── veaf-tools.exe                # Outil CLI (auto-installé)
 ├── veaf-tools-updater.exe
 └── build.cmd                     # Votre script de build
@@ -123,38 +123,51 @@ MyMission/
 
 ---
 
-## Charger les scripts dans DCS
+## Comment les scripts sont chargés
 
-Les scripts VEAF sont chargés via un trigger `DO SCRIPT FILE` dans l'éditeur de missions DCS.
+La commande `build` **injecte automatiquement** un trigger `DO SCRIPT FILE` au démarrage de la mission qui charge tous les scripts VEAF. Vous n'avez **pas** besoin d'ajouter manuellement un trigger dans l'éditeur de missions DCS.
 
-### Configuration minimale
+Si vous avez un `src/scripts/missionConfig.lua` personnalisé, il est aussi injecté automatiquement par le builder.
 
-Dans l'éditeur de missions DCS :
+### Ce que fait le builder
 
-1. Ouvrez **Triggers**
-2. Ajoutez un trigger `MISSION START`
-3. Ajoutez une action `DO SCRIPT FILE` pointant vers `veaf-scripts.lua` dans votre dossier de mission
-4. Ajoutez optionnellement une deuxième action `DO SCRIPT FILE` pour votre `missionconfig.lua`
-
-### Avancé : chargeur inline
-
-Pour un contrôle total de l'ordre de chargement, utilisez une action `DO SCRIPT` avec du Lua inline :
-
-```lua
-local basePath = lfs.writedir() .. "Missions\\MyMission\\"
-dofile(basePath .. "veaf-scripts.lua")
-dofile(basePath .. "scripts\\missionconfig.lua")
-```
-
-`veaf-scripts.lua` contient tous les modules VEAF concaténés dans l'ordre de dépendances. Votre `missionconfig.lua` est chargé après, ce qui vous permet de configurer et d'initialiser les modules.
+1. Lit `src/mission/` (les données DCS extraites)
+2. Supprime tous les triggers VEAF existants
+3. Injecte de nouveaux triggers `DO SCRIPT FILE` pour tous les scripts VEAF + vos scripts personnalisés
+4. Écrit le `.miz` final
 
 ---
 
 ## Configurer les modules
 
-Chaque module VEAF expose des constantes de configuration que vous pouvez définir avant d'appeler `initialize()`. C'est dans votre `missionconfig.lua` que vous faites cela.
+VEAF MCT a deux niveaux de configuration :
 
-### Configuration minimale
+- **`mission.yaml`** (à la racine du projet) — configuration de build : quels modules activer/désactiver, niveaux de log, sécurité, déclarations d'assets
+- **`src/scripts/missionConfig.lua`** (optionnel) — code Lua runtime exécuté au démarrage de la mission, pour les configurations avancées comme les alias personnalisés, zones QRA, zones de combat, etc.
+
+Pour la plupart des missions, `mission.yaml` suffit. N'utilisez `missionConfig.lua` que lorsque vous avez besoin de contrôle au niveau Lua.
+
+### Exemple mission.yaml
+
+```yaml
+mission:
+  name: "My-Mission"
+
+lua_modules:
+  SECURITY:
+    enable: true
+  SPAWN:
+    logLevel: debug
+  ASSETS:
+    enable: true
+    assets:
+      - sort: 1
+        name: "T1-Arco-1"
+        description: "Arco-1 (KC-135)"
+        information: "Tacan 64Y\nU290.50 (20)"
+```
+
+### Exemple missionConfig.lua (avancé)
 
 ```lua
 -- Activer les marqueurs et le spawn de base
@@ -218,7 +231,7 @@ veafRadio.refreshRadioMenu()
 Définissez les mots de passe (hachages SHA-1) dans `missionconfig.lua` :
 
 ```lua
-veafSecurity.password_L9[sha1("votremotdepasse")] = true
+veafSecurity.password_L9[sha1.hex("votremotdepasse")] = true
 ```
 
 ---
@@ -229,14 +242,16 @@ veafSecurity.password_L9[sha1("votremotdepasse")] = true
 
 | Commande | Ce qu'elle fait |
 |----------|----------------|
-| `build` | Construit la mission depuis `src\mission\` et `src\scripts\` — génère un `.miz` daté |
+| `build` | Construit la mission depuis `src/` — injecte les triggers VEAF, produit un `.miz` |
 | `extract` | Extrait un `.miz` vers un dossier source (à exécuter une fois pour initialiser votre dépôt) |
 | `inject-presets` | Injecte des plans de fréquences radio pour tous les cockpits humains |
-| `inject-weather` | Insère des données météo réelles ou configurées |
+| `inject-weather` | Crée des variantes météo/heure depuis une config YAML |
 | `inject-aircraft-groups` | Injecte des templates de groupes d'aéronefs |
 | `extract-aircraft-groups` | Extrait les groupes d'aéronefs d'une mission |
 | `inject-waypoints` | Injecte des waypoints (bullseye, points de navigation) pour les groupes humains |
 | `extract-waypoints` | Extrait les waypoints d'une mission |
+| `convert` | Convertit une mission vanilla au format VEAF MCT |
+| `convert-v5` | Migre un dossier mission v5 vers le format v6 |
 
 Référence complète : [Référence des outils](../TOOLS_REFERENCE.md)
 
@@ -244,27 +259,24 @@ Référence complète : [Référence des outils](../TOOLS_REFERENCE.md)
 
 ## Workflow de build typique
 
-```batch
-@echo off
-set MISSION_NAME=mission
+```powershell
+# 1. Construire la mission (lit src/, injecte les triggers VEAF → .miz de sortie)
+veaf-tools.exe build ma-mission.miz
 
-REM 1. Construire la mission (lit src\mission\ + src\scripts\ → mission_YYYYMMDD.miz)
-veaf-tools.exe build %MISSION_NAME% .
+# 2. Injecter les préréglages radio depuis la config YAML (optionnel, opère sur le .miz construit)
+veaf-tools.exe inject-presets ma-mission.miz --presets-file src/presets.yaml
 
-REM 2. Injecter les préréglages radio depuis la config YAML (optionnel)
-REM veaf-tools.exe inject-presets %MISSION_NAME% --presets-file src\presets.yaml
+# 3. Injecter les waypoints bullseye et de navigation (optionnel)
+veaf-tools.exe inject-waypoints ma-mission.miz --waypoints-file src/waypoints.yaml
 
-REM 3. Injecter les waypoints bullseye et de navigation (optionnel)
-REM veaf-tools.exe inject-waypoints %MISSION_NAME% --waypoints-file src\waypoints.yaml
-
-REM 4. Injecter des variantes météo (optionnel)
-REM veaf-tools.exe inject-weather %MISSION_NAME% --config-file src\missions.yaml
+# 4. Créer des variantes météo/heure (optionnel)
+veaf-tools.exe inject-weather ma-mission.miz --config-file missions.yaml
 ```
 
-Commitez le contenu de `src\mission\` dans Git — pas le `.miz` lui-même. Utilisez `extract` une fois pour initialiser le dossier depuis une mission existante :
+Commitez le contenu de `src/` dans Git — pas le `.miz` construit. Utilisez `extract` une fois pour initialiser le dossier source depuis une mission existante :
 
-```batch
-veaf-tools.exe extract my-mission.miz src
+```powershell
+veaf-tools.exe extract ma-mission.miz
 ```
 
 ---

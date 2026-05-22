@@ -249,7 +249,7 @@ logger.error("Échec", raise_exception=True)
 
 ```powershell
 # Build (compile Lua + construit les .exe)
-poetry run veaf-build build --version 6.0.5
+poetry run veaf-build build --version 6.1.0
 ```
 
 Ce que cela fait :
@@ -281,11 +281,11 @@ Les notes de release sont auto-générées depuis les messages de commit. Elles 
 
 ```powershell
 # Build d'abord
-poetry run veaf-build build --version 6.0.5
+poetry run veaf-build build --version 6.1.0
 
 # Puis publication (interactif — demande RELEASE_NOTES.md)
 # Nécessite la variable d'environnement GITHUB_TOKEN
-poetry run veaf-build publish --version 6.0.5
+poetry run veaf-build publish --version 6.1.0
 ```
 
 ### Modèle de sécurité

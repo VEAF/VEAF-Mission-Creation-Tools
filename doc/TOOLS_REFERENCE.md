@@ -11,8 +11,8 @@
 
 ## Table of Contents
 
-1. [For End Users - Updating](#for-end-users---updating)
-2. [For Administrators - Publishing](#for-administrators---publishing)
+1. [For End Users: Updating](#for-end-users-updating)
+2. [For Administrators: Publishing](#for-administrators-publishing)
 3. [System Architecture](#system-architecture)
 4. [Troubleshooting](#troubleshooting)
 
@@ -53,7 +53,7 @@ Once configured, all tools will automatically use these settings.
 
 ---
 
-## For End Users - Updating
+## For End Users: Updating
 
 ### Basic Update (Recommended)
 
@@ -179,7 +179,7 @@ Shows all available options and their descriptions.
 
 ---
 
-## For Administrators - Publishing
+## For Administrators: Publishing
 
 ### Prerequisites
 

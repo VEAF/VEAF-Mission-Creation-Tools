@@ -31,6 +31,12 @@ theme:
     - content.code.copy
 
 markdown_extensions:
+  - toc:
+      slugify: !!python/object/apply:pymdownx.slugs.slugify
+        kwds:
+          case: lower
+      permalink: true
+  - admonition
   - pymdownx.superfences:
       custom_fences:
         - name: mermaid
@@ -57,16 +63,17 @@ plugins:
             Pilot Guide: Guide Pilote
             Overview: Aperçu
             Guide: Guide
+            Full Guide: Guide complet
             Mission Maker: Créateur de Mission
             Migration Guide: Guide de Migration
             Scripts: Scripts
             Developer: Développeur
             References: Références
-            Tools Reference: Référence des outils
+            Tools CLI Reference: Référence CLI des outils
             Lua API Reference: Référence de l'API Lua
-            User Guide: Guide utilisateur
             Roadmap: Feuille de route
             Testing: Tests
+            Aliases: Alias
 
 extra:
   version:
@@ -78,10 +85,12 @@ nav:
   - Pilot Guide:
     - Overview: pilot/README.md
     - Guide: pilot/GUIDE.md
+    - Aliases: ALIASES.md
   - Mission Maker:
     - Overview: mission-maker/README.md
     - Guide: mission-maker/GUIDE.md
     - Migration Guide: mission-maker/MIGRATION_GUIDE.md
+    - Aliases: ALIASES.md
     - Scripts:
       - Overview: mission-maker/scripts/README.md
       - veafAirWaves: mission-maker/scripts/veafAirWaves.md
@@ -98,6 +107,7 @@ nav:
       - veafQraManager: mission-maker/scripts/veafQraManager.md
       - veafSanctuary: mission-maker/scripts/veafSanctuary.md
       - veafSecurity: mission-maker/scripts/veafSecurity.md
+      - veafShortcuts: mission-maker/scripts/veafShortcuts.md
       - veafSkynetIadsHelper: mission-maker/scripts/veafSkynetIadsHelper.md
       - veafSpawn: mission-maker/scripts/veafSpawn.md
       - veafTransportMission: mission-maker/scripts/veafTransportMission.md
@@ -105,9 +115,8 @@ nav:
   - Developer:
     - Overview: developer/README.md
     - Guide: developer/GUIDE.md
-  - References:
-    - Tools Reference: TOOLS_REFERENCE.md
-    - Lua API Reference: LUA_API_REFERENCE.md
-    - User Guide: USER_GUIDE.md
-    - Roadmap: ROADMAP.md
     - Testing: TESTING.md
+  - References:
+    - Lua API Reference: LUA_API_REFERENCE.md
+    - Tools CLI Reference: TOOLS_REFERENCE.md
+    - Roadmap: ROADMAP.md

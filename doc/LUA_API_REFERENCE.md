@@ -1,7 +1,7 @@
 # VEAF Lua Modules - Complete API Reference
 
-**Version:** 6.0.5
-**Last Updated:** December 16, 2025
+**Version:** 6.1.0
+**Last Updated:** May 2026
 **Project:** VEAF Mission Creation Tools
 
 ---
@@ -17,38 +17,25 @@
    - [veafCommands.lua](#veafcommandslua) - Central command dispatcher
    - [veafInterpreter.lua](#veafinterpreterlua) - Command parsing
 4. [Unit & Group Management](#unit--group-management)
-   - [veafSpawn.lua](#veafspawnlua) - Dynamic spawning
    - [veafSpawnParser.lua](#veafspawnparserlua) - Spawn command text parser
+   - [veafSpawn.lua](#veafspawnlua) - Dynamic spawning
    - [veafUnits.lua](#veafunitslua) - Unit definitions
    - [veafAssets.lua](#veafassetslua) - Asset tracking
-   - [veafMove.lua](#veafmovelua) - Movement control
 5. [Mission Systems](#mission-systems)
    - [veafCombatMission.lua](#veafcombatmissionlua) - Combat missions
    - [veafCasMission.lua](#veafcasmissionlua) - CAS missions
-   - [veafCombatZone.lua](#veafcombatzonelua) - Combat zones
-   - [veafTransportMission.lua](#veaftransportmissionlua) - Transport missions
 6. [Infrastructure & Services](#infrastructure--services)
    - [veafAirbases.lua](#veafairbaseslua) - Airbase data
    - [veafCarrierOperations.lua](#veafcarrieroperationslua) - Carrier ops
-   - [veafGrass.lua](#veafgrasslua) - Grass runways
-   - [veafNamedPoints.lua](#veafnamedpointslua) - Named positions
 7. [Communication & Control](#communication--control)
    - [veafRadio.lua](#veafradiolua) - Radio menus
-   - [veafAirwaves.lua](#veafairwaveslua) - Radio frequencies
-   - [veafRemote.lua](#veafremotelua) - Remote control
-   - [veafSecurity.lua](#veafsecuritylua) - Access control
 8. [Support Systems](#support-systems)
    - [veafWeather.lua](#veafweatherlua) - Weather system
    - [veafTime.lua](#veaftimelua) - Time management
-   - [veafGroundAI.lua](#veafgroundailua) - Ground AI
-   - [veafQraManager.lua](#veafqramanagerlua) - QRA system
-9. [Specialized Modules](#specialized-modules)
-   - [veafSkynetIadsHelper.lua](#veafskynetiadshelper) - IADS integration
-   - [veafMissileGuardian.lua](#veafmissileguardianlua) - Missile defense
-   - [veafCacheManager.lua](#veafcachemanagerlua) - Caching
-10. [Data & Database](#data--database)
-    - [dcsUnits.lua](#dcsunitslua) - DCS unit database
-    - [dcsDataExport.lua](#dcsdataexportlua) - Data export
+9. [Data & Database](#data--database)
+   - [dcsUnits.lua](#dcsunitslua) - DCS unit database
+   - [dcsDataExport.lua](#dcsdataexportlua) - Data export
+10. [Appendix](#appendix)
 
 ---
 
@@ -4020,5 +4007,5 @@ end, {unitName = "Viper 1-1"}, veafRadio.USAGE_ForAll)
 ---
 
 **Document Version:** 1.0
-**Last Updated:** December 16, 2025
-**Generated for:** VEAF Mission Creation Tools v6.0.5
+**Last Updated:** May 2026
+**Generated for:** VEAF Mission Creation Tools v6.1.0

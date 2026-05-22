@@ -22,13 +22,13 @@ Framework de scripts Lua et outils CLI Python pour créer des missions [DCS Worl
 
 ```mermaid
 flowchart LR
-    A["Votre mission .miz"] -->|veaf-tools inject| B["Mission + scripts VEAF"]
+    A["Dossier src/<br/>(scripts, config, éléments mission)"] -->|veaf-tools build| B[".miz prêt à voler"]
     B -->|DCS charge| C["34 modules Lua actifs en jeu"]
     C -->|Les joueurs utilisent| D["Marqueurs F10 · Menus radio"]
 ```
 
-1. **Design time** — Vous configurez les modules à charger dans `veaf-mission.yaml` et construisez avec `veaf-tools.exe`
-2. **Runtime** — DCS exécute le framework Lua VEAF ; les joueurs interagissent via F10
+1. **Design time** — Votre mission vit sous forme de fichiers source éclatés dans `src/`. `veaf-tools.exe` les assemble (scripts, triggers, config) en un `.miz` final
+2. **Runtime** — DCS charge le `.miz` et exécute le framework Lua VEAF ; les joueurs interagissent via F10
 
 ---
 

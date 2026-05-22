@@ -243,6 +243,109 @@ Pre-built areas the mission maker has defined. You activate them on demand.
 
 When a zone is activated, enemy units spawn. When all enemies are destroyed, the zone completes and can be replayed.
 
+---
+
+## CAS Training
+
+Generate procedural CAS targets via **F10 → VEAF → CAS Mission**.
+
+| Action | Menu |
+|--------|------|
+| Create a new target zone | CAS Mission → Generate |
+| Mark with smoke | CAS Mission → Smoke |
+| Mark with flares | CAS Mission → Flare |
+| Skip current target | CAS Mission → Skip |
+| Get target info | CAS Mission → Info |
+| Remove all units | CAS Mission → Cleanup |
+
+Smoke/flare has a 3-minute cooldown between uses.
+
+### Difficulty Levels
+
+| Level | Size | Defense | Armour | Description |
+|-------|------|---------|--------|-------------|
+| 0 | Very small | None | Infantry | Beginner |
+| 1 | Small | Light | Light vehicles | Easy |
+| 2 | Medium | Moderate | APCs | Intermediate |
+| 3 | Medium-Large | Medium AA | IFVs + light tanks | Advanced |
+| 4 | Large | Heavy AA | Medium tanks | Difficult |
+| 5 | Very large | SAM | Heavy tanks | Expert |
+
+Set difficulty via marker: `_cas, size 3, defense 2, armor 3`
+
+---
+
+## Carrier Operations
+
+### Recovery Procedure
+
+1. **Request recovery** (10–15 min before approach):
+   F10 → VEAF → Assets → Carriers → [Name] → Start Recovery
+
+2. **Check info**:
+   F10 → VEAF → Assets → Carriers → [Name] → Info
+   - BRC (Base Recovery Course)
+   - TACAN channel (e.g. 73X)
+   - ICLS channel (e.g. 13)
+   - ATC frequency
+
+3. **Approach and land** using TACAN for navigation and ICLS for glideslope (F/A-18C, F-14).
+
+4. **After landing**:
+   F10 → VEAF → Assets → Carriers → [Name] → Stop Recovery
+
+Recovery automatically times out after 45 minutes. The carrier turns into the wind to provide ~30 kt relative wind over deck.
+
+---
+
+## Security and Permissions
+
+On multiplayer servers, some commands are restricted. Authenticate with:
+
+```
+_auth [PASSWORD]
+```
+
+Ask the server administrator for the password. Authentication persists for your session.
+
+Permission levels:
+
+| Level | Typical access |
+|-------|----------------|
+| Guest | View info, basic spawning (if allowed) |
+| Authenticated | Full spawn commands, CAS, missions |
+| Admin | Server management commands |
+
+---
+
+## FAQ
+
+**Q: How do I know if a mission uses VEAF?**
+A: Press F10 — if you see a "VEAF" submenu under "Other", it's a VEAF mission.
+
+**Q: My marker commands don't work?**
+A: Check syntax (starts with `_`), check you're authenticated on multiplayer, and verify the server allows marker commands.
+
+**Q: What unit names can I use with `_spawn unit`?**
+A: Use standard DCS type names: `F-16C`, `Su-27`, `T-80`, `SA-6`, `M1 Abrams`, etc.
+
+**Q: Spawned units disappear?**
+A: DCS AI units can be cleaned up if you fly too far away. Stay within ~40–50 NM.
+
+**Q: How to reset a CAS mission?**
+A: F10 → CAS Mission → Cleanup, then Generate again.
+
+**Q: Can I spawn friendly units?**
+A: Yes — add `side blue` to your spawn command.
+
+---
+
+## Community and Support
+
+- **VEAF Discord**: [veaf.org/discord](https://www.veaf.org/discord) — #support channel for help
+- **GitHub**: [github.com/VEAF/VEAF-Mission-Creation-Tools](https://github.com/VEAF/VEAF-Mission-Creation-Tools)
+- **Website**: [veaf.org](https://www.veaf.org)
+
 ### Scripted Missions
 
 More complex scenarios with objectives and tracking.

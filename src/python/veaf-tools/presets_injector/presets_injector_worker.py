@@ -47,13 +47,14 @@ class PresetsInjectorWorker(BaseWorker):
         self.output_mission = output_mission
         self.groups = {}
         self.presets_manager: PresetsManager = self.load_config()
-        self.dcs_mission: DcsMission = None
+        self.dcs_mission: DcsMission | None = None
 
     def load_config(self) -> Any:
         """Load configuration from Lua file."""
         presets_manager = PresetsManager()
         try:
-            presets_manager.read_yaml(self.presets_file)
+            if self.presets_file:
+                presets_manager.read_yaml(self.presets_file)
             return presets_manager
         except Exception as e:
             logger.error(f"Failed to load config file {self.presets_file}: {str(e)}", exception_type=RuntimeError)
@@ -79,11 +80,12 @@ class PresetsInjectorWorker(BaseWorker):
 
         if not silent:
             logger.info(f"Reading mission file {self.input_mission}")
+        assert self.input_mission is not None
         self.dcs_mission = read_miz(self.input_mission)
 
         logger.debug("Searching for all aircraft groups")
 
-        coalitions_dict = self.dcs_mission.mission_content.get("coalition")
+        coalitions_dict = self.dcs_mission.mission_content.get("coalition") if self.dcs_mission.mission_content else None
         if not coalitions_dict:
             logger.error("cannot find key 'coalition'", True)
             return
@@ -188,6 +190,7 @@ class PresetsInjectorWorker(BaseWorker):
                 )
 
         # Save the mission
+        assert self.dcs_mission is not None
         write_miz(mission=self.dcs_mission, miz_file_path=self.output_mission, additional_files=additional_files)
 
     def work(self, silent: bool = False) -> None:

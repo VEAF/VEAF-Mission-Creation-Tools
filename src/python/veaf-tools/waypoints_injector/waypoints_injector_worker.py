@@ -57,14 +57,15 @@ class WaypointsInjectorWorker(BaseWorker):
         self.input_mission = input_mission
         self.output_mission = output_mission
         self.groups: dict[str, Group] = {}
-        self.waypoints_manager: WaypointsManager = self.load_config()
-        self.dcs_mission: DcsMission = None
+        self.waypoints_manager: WaypointsManager | None = self.load_config()
+        self.dcs_mission: DcsMission | None = None
 
-    def load_config(self) -> WaypointsManager:
+    def load_config(self) -> WaypointsManager | None:
         """Load waypoint configuration from YAML file."""
         waypoints_manager = WaypointsManager()
         try:
-            waypoints_manager.read_yaml(self.waypoints_file)
+            if self.waypoints_file:
+                waypoints_manager.read_yaml(self.waypoints_file)
             return waypoints_manager
         except Exception as e:
             logger.error(f"Failed to load waypoints file {self.waypoints_file}: {str(e)}", exception_type=RuntimeError)
@@ -94,11 +95,12 @@ class WaypointsInjectorWorker(BaseWorker):
         """Load the mission from the .miz file and process aircraft groups."""
         if not silent:
             logger.info(f"Reading mission file {self.input_mission}")
+        assert self.input_mission is not None
         self.dcs_mission = read_miz(self.input_mission)
 
         logger.debug("Searching for all aircraft groups")
 
-        coalitions_dict = self.dcs_mission.mission_content.get("coalition")
+        coalitions_dict = self.dcs_mission.mission_content.get("coalition") if self.dcs_mission.mission_content else None
         if not coalitions_dict:
             logger.error("Cannot find key 'coalition'", True)
             return
@@ -162,6 +164,9 @@ class WaypointsInjectorWorker(BaseWorker):
             logger.info(f"Processing {len(self.groups)} aircraft group{'s' if len(self.groups) > 1 else ''}")
 
         nb_groups_processed = 0
+        if not self.waypoints_manager:
+            logger.warning("No waypoints manager loaded; skipping group processing")
+            return
         for group in [g for g in self.groups.values() if g.human_pilot]:
             # Try to find a flight plan for this group
             flight_plan = self.waypoints_manager.get_flight_plan_for(
@@ -202,6 +207,7 @@ class WaypointsInjectorWorker(BaseWorker):
         if not silent:
             logger.info("Writing mission file")
 
+        assert self.dcs_mission is not None
         write_miz(mission=self.dcs_mission, miz_file_path=self.output_mission)
 
     def work(self, silent: bool = False) -> None:
@@ -278,10 +284,10 @@ class WaypointsExtractorWorker(BaseWorker):
 
             # Try to parse the Lua file
             # Note: Some Lua files with comments or complex syntax may not parse correctly
-            self.lua_data = luadata.unserialize(content, keep_as_dict=["waypoints", "settings"])
+            self.lua_data = luadata.unserialize(content, keep_as_dict=["waypoints", "settings"])  # type: ignore[assignment]
 
             if not self.lua_data:
-                logger.warning("Parsed Lua file is empty", exception_type=ValueError)
+                logger.warning("Parsed Lua file is empty")
                 return False
 
             if not silent:
@@ -301,6 +307,7 @@ class WaypointsExtractorWorker(BaseWorker):
         if not silent:
             logger.info(f"Reading mission file {self.input_mission}")
 
+        assert self.input_mission is not None
         self.dcs_mission = read_miz(self.input_mission)
 
         if not silent:
@@ -312,7 +319,7 @@ class WaypointsExtractorWorker(BaseWorker):
             logger.error("Mission not loaded", exception_type=ValueError)
             return
 
-        coalitions_dict = self.dcs_mission.mission_content.get("coalition", {})
+        coalitions_dict = self.dcs_mission.mission_content.get("coalition", {}) if self.dcs_mission.mission_content else {}
 
         for coalition_name, coalition_data in coalitions_dict.items():
             countries_list = coalition_data.get("country", [])
@@ -413,6 +420,7 @@ class WaypointsExtractorWorker(BaseWorker):
                 )
 
         try:
+            assert self.output_yaml is not None
             with open(self.output_yaml, "w", encoding="utf-8") as f:
                 yaml.dump(output_data, f, default_flow_style=False, allow_unicode=True)
 

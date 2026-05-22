@@ -20,7 +20,7 @@ This module provides classes to manage radio presets.
 import io
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, ClassVar
 
 import yaml
 from PIL import Image, ImageDraw, ImageFont
@@ -34,9 +34,9 @@ class Channel:
     Can be either created from a RadioDefinition channel (when data is directly set on a radio channel) or read from a ChannelDefinition object in a ChannelCollection (when the RadioDefinition channel references an alias), or both (RadioDefinition channel sets an alias and overrides values for specific attributes)
     """
 
-    def __init__(self, name_or_number: int | str, freq: float, title: str = None):
+    def __init__(self, name_or_number: int | str, freq: float, title: str | None = None):
         self.freq: float = freq
-        self.title: str = title
+        self.title: str | None = title
 
         if isinstance(name_or_number, str):
             if name_or_number.lower().startswith("channel_"):
@@ -52,11 +52,11 @@ class ChannelDefinition:
     A radio channel definition, composed of information about the channel (name, title etc.) and about the radio (frequencies, modulations)
     """
 
-    def __init__(self, name: str, title: str = None, misc_data: str = None, collection_name: str = None):
+    def __init__(self, name: str, title: str | None = None, misc_data: str | None = None, collection_name: str | None = None):
         self.name: str = name
-        self.title: str = title
-        self.misc_data: str = misc_data
-        self.collection_name: str = collection_name
+        self.title: str | None = title
+        self.misc_data: str | None = misc_data
+        self.collection_name: str | None = collection_name
         self.frequencies: dict[str, float] = {}
 
     def add_freq(self, mode: str, freq: float | str):
@@ -85,6 +85,7 @@ class ChannelDefinition:
         freqs = data.get("freqs")
         if not freqs:
             logger.error(message=f"'freqs' is mandatory for ChannelDefinition {name}", exception_type=ValueError)
+            return ChannelDefinition(name=name, title=title, misc_data=misc_data)
         result = ChannelDefinition(name=name, title=title, misc_data=misc_data)
         for freq_mode, freq_value in freqs.items():
             if freq_value is not None:  # skip intentionally undefined frequencies
@@ -133,10 +134,10 @@ class RadioDefinition:
     A set of channels that will end up as a radio in the .miz file
     """
 
-    def __init__(self, name: str, radio_type: str, title: str = None):
+    def __init__(self, name: str, radio_type: str | None = None, title: str | None = None):
         self.name: str = name
-        self.radio_type: str = radio_type
-        self.title: str = title
+        self.radio_type: str | None = radio_type
+        self.title: str | None = title
         self.channels: list[Channel] = []
         self.collection_name: str | None = None
 
@@ -163,10 +164,11 @@ class RadioDefinition:
             "channels": {int(channel.number): channel.freq for channel in self.channels},
         }
 
-    def get_freq_of_first_channel(self) -> float:
+    def get_freq_of_first_channel(self) -> float | None:
         if self.channels:
             if first_channel := next(iter(self.channels)):
                 return first_channel.freq
+        return None
 
     def add_channel_from_dict(
         self, channel_name: str, channel_data: dict[str, Any], channel_collections: dict[str, ChannelCollection]
@@ -206,7 +208,7 @@ class RadioDefinition:
                 )
         if not channel_freq:
             logger.error(message=f"'freq' is mandatory for RadioDefinition {self.name}", exception_type=ValueError)
-        self.add_channel(Channel(name_or_number=channel_name, freq=channel_freq, title=channel_title))
+        self.add_channel(Channel(name_or_number=channel_name, freq=channel_freq, title=channel_title))  # type: ignore[arg-type]
 
     @classmethod
     def from_dict(
@@ -229,6 +231,7 @@ class RadioDefinition:
             logger.error(message=f"'type' is mandatory for RadioDefinition {name}", exception_type=ValueError)
         if not channels:
             logger.error(message=f"'channels' is mandatory for RadioDefinition {name}", exception_type=ValueError)
+            return RadioDefinition(name=name, radio_type=radio_type, title=title)
         result = RadioDefinition(name=name, radio_type=radio_type, title=title)
         for channel_name, channel_data in channels.items():
             result.add_channel_from_dict(channel_name, channel_data, channel_collections)
@@ -281,11 +284,13 @@ class PresetDefinition:
     A named set of radios defining a preset definition for a specific aircraft or a group of aircrafts
     """
 
+    EMPTY: ClassVar["PresetDefinition"]
+
     def __init__(self, name: str, title: str = ""):
         self.name = name
         self.radios: dict[str, RadioDefinition] = {}
         self.used_in_mission: bool = False
-        self.collection_name = None
+        self.collection_name: str | None = None
         self.title = title
 
     def add_radio(self, radio: RadioDefinition):
@@ -296,10 +301,11 @@ class PresetDefinition:
     def to_dict(self) -> dict:
         return {radio_number + 1: radio.to_dict() for radio_number, radio in enumerate(self.radios.values())}
 
-    def get_freq_of_first_channel_of_first_radio(self) -> float:
+    def get_freq_of_first_channel_of_first_radio(self) -> float | None:
         if self.radios:
             if first_radio := next(iter(self.radios.values())):
                 return first_radio.get_freq_of_first_channel()
+        return None
 
     @classmethod
     def from_dict(
@@ -318,7 +324,8 @@ class PresetDefinition:
         radios = data.get("radios")
         if not radios:
             logger.error(message=f"'radios' is mandatory for PresetDefinition {name}", exception_type=ValueError)
-        result = PresetDefinition(name=name, title=data.get("title"))
+            return PresetDefinition(name=name)
+        result = PresetDefinition(name=name, title=data.get("title") or "")
         for radio_name, radio_alias in radios.items():
             for radio_collection in radio_collections.values():
                 if radio_alias in radio_collection.radio_definitions:
@@ -381,7 +388,7 @@ class PresetAssignment:
     A link between an aircraft (at minimum) or a group of aircrafts, and a preset. The group of aircraft can be defined with its coalition, aircraft type (plane or helo) and unit type
     """
 
-    preset_definition: PresetDefinition
+    preset_definition: PresetDefinition | None
     coalition: str = "all"
     aircraft_type: str = "all"
     unit_type: str = "all"
@@ -445,7 +452,7 @@ class PresetAssignmentCollection:
 
     def get_preset_for(
         self, coalition: str = "all", aircraft_type: str = "all", unit_type: str = "all"
-    ) -> PresetAssignment:
+    ) -> PresetAssignment | None:
         return (
             self.preset_assignments_dict.get(coalition, {}).get(aircraft_type, {}).get(unit_type)
             or self.preset_assignments_dict.get(coalition, {}).get(aircraft_type, {}).get("all")
@@ -467,8 +474,8 @@ class PresetsManager:
         self.radio_collections: dict[str, RadioCollection] = {}
         self.preset_collections: dict[str, PresetCollection] = {}
         self.preset_assignments: PresetAssignmentCollection = PresetAssignmentCollection()
-        self.presets_images: dict[str, io.BytesIO] = None
-        self._cached_fonts: tuple[FreeTypeFont, FreeTypeFont, FreeTypeFont] = ()
+        self.presets_images: dict[str, io.BytesIO] | None = None
+        self._cached_fonts: tuple[FreeTypeFont, FreeTypeFont, FreeTypeFont] | None = None
 
     def read_yaml(self, yaml_path: Path):
         try:
@@ -521,13 +528,13 @@ class PresetsManager:
         )
         return preset_assignment.preset_definition if preset_assignment else None
 
-    def generate_presets_images(self, width: int = 1200, height: int = None):
+    def generate_presets_images(self, width: int = 1200, height: int | None = None):
         generator = RadioPresetsImageGenerator(self.preset_collections, width=width, height=height)
         self.presets_images = generator.generate_presets_images()
 
 
 class RadioPresetsImageGenerator:
-    def __init__(self, preset_collections: dict[str, PresetCollection], width: int = 1200, height: int = None):
+    def __init__(self, preset_collections: dict[str, PresetCollection], width: int = 1200, height: int | None = None):
         self.width = width
         self.height = height
         self.preset_collections = preset_collections
@@ -545,8 +552,9 @@ class RadioPresetsImageGenerator:
                 title_font = ImageFont.load_default()
                 collection_title_font = ImageFont.load_default()
 
-            self._cached_fonts = (preset_font, title_font, collection_title_font)
+            self._cached_fonts = (preset_font, title_font, collection_title_font)  # type: ignore[assignment]
 
+        assert self._cached_fonts is not None
         return self._cached_fonts
 
     def get_preset_font(self) -> FreeTypeFont:

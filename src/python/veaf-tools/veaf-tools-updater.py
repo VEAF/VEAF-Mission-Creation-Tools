@@ -87,7 +87,7 @@ class UpdateWorker:
 
     def __init__(
         self,
-        mission_folder: str = ".",
+        mission_folder: str | None = ".",
         tag: str | None = None,
         token: str | None = None,
         force: bool = False,

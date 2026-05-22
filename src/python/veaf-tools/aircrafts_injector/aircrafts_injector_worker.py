@@ -65,7 +65,7 @@ class InjectionResult:
     success: bool
     groups_injected: int
     message: str
-    details: dict[str, Any] = None
+    details: dict[str, Any] | None = None
 
     def __post_init__(self):
         if self.details is None:
@@ -542,6 +542,9 @@ class AircraftGroupsInjectorWorker(BaseWorker):
         Returns:
             The coalition dictionary
         """
+        assert self.dcs_mission is not None
+        if self.dcs_mission.mission_content is None:
+            self.dcs_mission.mission_content = {}
         if "coalition" not in self.dcs_mission.mission_content:
             self.dcs_mission.mission_content["coalition"] = {}
 
@@ -849,10 +852,10 @@ class AircraftGroupsExtractorWorker(BaseWorker):
 
     def __init__(
         self,
-        input_mission: Path = None,
-        output_yaml: Path = None,
-        group_name_pattern: str = None,
-        input_lua: Path = None,
+        input_mission: Path | None = None,
+        output_yaml: Path | None = None,
+        group_name_pattern: str | None = None,
+        input_lua: Path | None = None,
         aircraft_type: str | None = None,
     ):
         """
@@ -898,7 +901,8 @@ class AircraftGroupsExtractorWorker(BaseWorker):
                 lua_content = f.read()
 
             # Parse the Lua table structure using luadata
-            self.lua_data = luadata.unserialize(lua_content, all_is_dict=True)
+            result = luadata.unserialize(lua_content, all_is_dict=True)
+            self.lua_data = result if isinstance(result, dict) else None
 
             if not self.lua_data:
                 logger.error("Failed to parse Lua file content", exception_type=ValueError)
@@ -991,6 +995,7 @@ class AircraftGroupsExtractorWorker(BaseWorker):
             # Original .miz file reading logic
             if not silent:
                 logger.info(f"Reading mission file {self.input_mission}")
+            assert self.input_mission is not None
             self.dcs_mission = read_miz(self.input_mission)
 
             if not self.dcs_mission.mission_content:
@@ -1000,6 +1005,10 @@ class AircraftGroupsExtractorWorker(BaseWorker):
         """Find all plane groups matching the pattern and store them for selection."""
         if not self.dcs_mission:
             logger.error("Mission not loaded. Call read_mission() first.", exception_type=RuntimeError)
+            return
+
+        if not self.dcs_mission.mission_content:
+            logger.warning("No mission content loaded")
             return
 
         coalitions_dict = self.dcs_mission.mission_content.get("coalition")
@@ -1027,7 +1036,7 @@ class AircraftGroupsExtractorWorker(BaseWorker):
                             group_name = group.get("name", "")
 
                             # Check if group name matches pattern
-                            if self.group_name_pattern.search(group_name):
+                            if self.group_name_pattern is None or self.group_name_pattern.search(group_name):
                                 matched_count += 1
                                 logger.debug(f"Matched plane group: {group_name}")
                                 group_key = f"{coalition_name}/{country_name}/airplanes/{group_name}"
@@ -1047,7 +1056,7 @@ class AircraftGroupsExtractorWorker(BaseWorker):
                             group_name = group.get("name", "")
 
                         # Check if group name matches pattern
-                        if self.group_name_pattern.search(group_name):
+                        if self.group_name_pattern is None or self.group_name_pattern.search(group_name):
                             matched_count += 1
                             logger.debug(f"Matched helicopter group: {group_name}")
                             group_key = f"{coalition_name}/{country_name}/helicopters/{group_name}"
@@ -1233,6 +1242,7 @@ class AircraftGroupsExtractorWorker(BaseWorker):
 
     def write_yaml(self, silent: bool = False) -> None:
         """Write the extracted templates to a YAML file."""
+        assert self.output_yaml is not None
         if not silent:
             logger.info(f"Writing extracted templates to {self.output_yaml}")
 

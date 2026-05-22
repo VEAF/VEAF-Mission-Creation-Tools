@@ -108,7 +108,7 @@ class BuildAndReleaseWorker:
             # Check for PyInstaller if not skipping Python build
             if not self.skip_python:
                 try:
-                    import PyInstaller  # noqa: F401
+                    import PyInstaller  # noqa: F401  # type: ignore[import-untyped]
                 except ImportError:
                     logger.error("PyInstaller is not installed. Install it with: poetry install --with build")
 

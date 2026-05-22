@@ -92,7 +92,7 @@ class TestPresets(unittest.TestCase):
 
         # Test invalid channel
         with self.assertRaises(ValueError):
-            cc.add_channel_definition(None)
+            cc.add_channel_definition(None)  # type: ignore[arg-type]
 
         cd_no_name = ChannelDefinition(name="")
         with self.assertRaises(ValueError):
@@ -126,7 +126,7 @@ class TestPresets(unittest.TestCase):
 
         # Test invalid channel
         with self.assertRaises(ValueError):
-            rd.add_channel(None)
+            rd.add_channel(None)  # type: ignore[arg-type]
 
     def test_radio_definition_to_dict(self):
         rd = RadioDefinition(name="test_radio", radio_type="uhf")
@@ -198,7 +198,7 @@ class TestPresets(unittest.TestCase):
 
         # Test invalid radio
         with self.assertRaises(ValueError):
-            rc.add_radio_definition(None)
+            rc.add_radio_definition(None)  # type: ignore[arg-type]
 
         rd_no_name = RadioDefinition(name="", radio_type="uhf")
         with self.assertRaises(ValueError):
@@ -227,7 +227,7 @@ class TestPresets(unittest.TestCase):
 
         # Test invalid radio
         with self.assertRaises(ValueError):
-            pd.add_radio(None)
+            pd.add_radio(None)  # type: ignore[arg-type]
 
     def test_preset_definition_to_dict(self):
         pd = PresetDefinition(name="test_preset")
@@ -271,7 +271,7 @@ class TestPresets(unittest.TestCase):
 
         # Test invalid preset
         with self.assertRaises(ValueError):
-            pc.add_preset_definition(None)
+            pc.add_preset_definition(None)  # type: ignore[arg-type]
 
         pd_no_name = PresetDefinition(name="")
         with self.assertRaises(ValueError):
@@ -299,6 +299,7 @@ class TestPresets(unittest.TestCase):
         self.assertEqual(pa.coalition, "blue")
         self.assertEqual(pa.aircraft_type, "plane")
         self.assertEqual(pa.unit_type, "F-16")
+        assert pa.preset_definition is not None
         self.assertEqual(pa.preset_definition.name, "test_preset")
 
         # Test defaults
@@ -306,6 +307,7 @@ class TestPresets(unittest.TestCase):
         self.assertEqual(pa_default.coalition, "all")
         self.assertEqual(pa_default.aircraft_type, "all")
         self.assertEqual(pa_default.unit_type, "all")
+        assert pa_default.preset_definition is not None
         self.assertEqual(pa_default.preset_definition.name, "test_preset")
 
     def test_preset_assignment_collection_from_dict(self):
@@ -323,12 +325,18 @@ class TestPresets(unittest.TestCase):
         self.assertIsInstance(pac, PresetAssignmentCollection)
         # Test get_preset_for
         preset = pac.get_preset_for("blue", "plane", "all")
+        assert preset is not None
+        assert preset.preset_definition is not None
         self.assertEqual(preset.preset_definition.name, "modern_blue_uhf_vhf_fm")
 
         preset_specific = pac.get_preset_for("blue", "plane", "F-16")
+        assert preset_specific is not None
+        assert preset_specific.preset_definition is not None
         self.assertEqual(preset_specific.preset_definition.name, "modern_blue_vhf_uhf_fm")
 
         preset_fallback = pac.get_preset_for("blue", "plane", "unknown")
+        assert preset_fallback is not None
+        assert preset_fallback.preset_definition is not None
         self.assertEqual(preset_fallback.preset_definition.name, "modern_blue_uhf_vhf_fm")
 
         preset_none = pac.get_preset_for("red", "plane", "all")

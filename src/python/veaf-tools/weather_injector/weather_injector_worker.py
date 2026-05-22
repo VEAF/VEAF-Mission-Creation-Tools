@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any
 
 import yaml
-from mission_tools import read_miz, write_miz
+from mission_tools import DcsMission, read_miz, write_miz
 from veaf_libs.base_worker import BaseWorker
 from veaf_libs.i18n import t
 from veaf_libs.logger import logger
@@ -45,7 +45,7 @@ class WeatherInjectorWorker(BaseWorker):
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
         self.config: MissionConfig | None = None
-        self.mission_data: dict[str, Any] | None = None
+        self.mission_data: DcsMission | None = None
         self.solar_times: dict[str, int] = {}
 
     def work(self) -> list[Path]:
@@ -137,10 +137,10 @@ class WeatherInjectorWorker(BaseWorker):
             raise FileNotFoundError(f"Base mission not found: {base_mission_path}")
 
         logger.debug(f"Loading base mission: {base_mission_path}")
-        self.mission_data = read_miz(str(base_mission_path))
+        self.mission_data = read_miz(base_mission_path)
 
         # Debug: Log the structure of start_time
-        st = self.mission_data.mission_content.get("start_time")
+        st = self.mission_data.mission_content.get("start_time") if self.mission_data.mission_content else None
         logger.debug(f"start_time type: {type(st)}, value: {st}")
 
         # Apply modifications
@@ -153,7 +153,7 @@ class WeatherInjectorWorker(BaseWorker):
         # Write output
         output_path = self.output_dir / f"{version.name}.miz"
         logger.debug(f"Writing mission to: {output_path}")
-        write_miz(mission=self.mission_data, miz_file_path=output_path)
+        write_miz(mission=self.mission_data, miz_file_path=output_path)  # type: ignore[arg-type]
 
         return output_path
 
@@ -247,6 +247,8 @@ class WeatherInjectorWorker(BaseWorker):
             return
 
         mission_content = self.mission_data.mission_content
+        if not mission_content:
+            return
         mission_content["start_time"] = seconds
         logger.debug(f"Set mission start time to {seconds}s ({seconds // 3600:02d}:{(seconds % 3600) // 60:02d})")
 
@@ -261,6 +263,8 @@ class WeatherInjectorWorker(BaseWorker):
             return
 
         mission_content = self.mission_data.mission_content
+        if not mission_content:
+            return
         if "date" not in mission_content:
             mission_content["date"] = {}
 
@@ -281,6 +285,8 @@ class WeatherInjectorWorker(BaseWorker):
             return
 
         mission_content = self.mission_data.mission_content
+        if not mission_content:
+            return
         if "weather" not in mission_content:
             mission_content["weather"] = {}
 

@@ -53,7 +53,7 @@ class LuaToYamlConverter:
             return output_file
 
         except Exception as e:
-            logger.error(f"Failed to convert Lua configuration: {e}", exc_info=True)
+            logger.error(f"Failed to convert Lua configuration: {e}")
             return None
 
     @staticmethod
@@ -116,7 +116,7 @@ class LuaToYamlConverter:
             if targets:
                 config["versions"] = []
                 for target in targets:
-                    version = {"name": LuaToYamlConverter._get_string(target, "version")}
+                    version: dict[str, Any] = {"name": LuaToYamlConverter._get_string(target, "version")}
 
                     # Add optional fields
                     if moment := LuaToYamlConverter._get_string(target, "moment"):

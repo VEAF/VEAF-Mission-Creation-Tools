@@ -7,7 +7,7 @@ from typing import Any
 from veaf_libs.logger import logger
 
 try:
-    from avwx import Metar
+    from avwx.current.metar import Metar
 
     AVWX_AVAILABLE = True
 except ImportError:
@@ -149,22 +149,22 @@ def _fetch_live_metar(airport_icao: str) -> dict[str, Any]:
         logger.debug(f"Fetching live METAR for airport {airport_icao} from avwx-engine")
         metar = Metar(airport_icao)
 
-        if metar.temperature and metar.temperature.value is not None:
-            result["temperature"] = metar.temperature.value
+        if metar.temperature and metar.temperature.value is not None:  # type: ignore[attr-defined]
+            result["temperature"] = metar.temperature.value  # type: ignore[attr-defined]
 
-        if metar.wind_speed and metar.wind_speed.value is not None:
+        if metar.wind_speed and metar.wind_speed.value is not None:  # type: ignore[attr-defined]
             # avwx returns knots, convert to m/s
-            result["wind_speed"] = metar.wind_speed.value / 1.944
+            result["wind_speed"] = metar.wind_speed.value / 1.944  # type: ignore[attr-defined]
 
-        if metar.wind_direction and metar.wind_direction.value is not None:
-            result["wind_direction"] = float(metar.wind_direction.value)
+        if metar.wind_direction and metar.wind_direction.value is not None:  # type: ignore[attr-defined]
+            result["wind_direction"] = float(metar.wind_direction.value)  # type: ignore[attr-defined]
 
-        if metar.visibility and metar.visibility[0].value is not None:
-            result["visibility"] = metar.visibility[0].value
+        if metar.visibility and metar.visibility[0].value is not None:  # type: ignore[attr-defined]
+            result["visibility"] = metar.visibility[0].value  # type: ignore[attr-defined]
 
         # Process clouds
-        if metar.clouds:
-            for cloud in metar.clouds:
+        if metar.clouds:  # type: ignore[attr-defined]
+            for cloud in metar.clouds:  # type: ignore[attr-defined]
                 if cloud[0]:
                     cloud_coverage = cloud[0].lower()
                     if cloud_coverage in ["skc", "clr"]:

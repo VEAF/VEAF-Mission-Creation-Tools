@@ -51,7 +51,7 @@ class MissionBuilderWorker(BaseWorker):
         self.dynamic_mode = dynamic_mode
         self.scripts_path = scripts_path
         self.dev_mode = dev_mode
-        self.dcs_mission: DcsMission = None
+        self.dcs_mission: DcsMission | None = None
         self.migrate_from_v5: bool = migrate_from_v5
         self.no_veaf_triggers: bool = no_veaf_triggers
         self.lua_modules: dict | None = lua_modules
@@ -339,7 +339,8 @@ class MissionBuilderWorker(BaseWorker):
         }
 
         # merge the new dictionary with the mission dictionary
-        self.dcs_mission.dictionary_content = new_dictionary | self.dcs_mission.dictionary_content
+        assert self.dcs_mission is not None
+        self.dcs_mission.dictionary_content = new_dictionary | (self.dcs_mission.dictionary_content or {})
 
         return new_dictionary
 
@@ -354,20 +355,21 @@ class MissionBuilderWorker(BaseWorker):
             self.get_collected_community_script_files() | self.get_collected_veaf_script_files()
         ):
             map_resource_key = f"VEAF_MapKey_ActionText_10{map_resource_key_index:03}"
-            new_map_resource_key_by_file[script_file_name.as_posix()] = map_resource_key
+            new_map_resource_key_by_file[script_file_name] = map_resource_key
             new_map_resource_script_files[map_resource_key] = Path(script_file_name).name
 
         new_map_resource_mission_script_files = {}
         for map_resource_key_index, script_file_name in enumerate(self.get_collected_mission_script_files()):
             map_resource_key = f"VEAF_MapKey_ActionText_11{map_resource_key_index:03}"
-            new_map_resource_key_by_file[script_file_name.as_posix()] = map_resource_key
+            new_map_resource_key_by_file[script_file_name] = map_resource_key
             new_map_resource_mission_script_files[map_resource_key] = Path(script_file_name).name
 
         # merge the new mapResource with the mission mapResource
+        assert self.dcs_mission is not None
         self.dcs_mission.map_resource_content = (
             new_map_resource_script_files
             | new_map_resource_mission_script_files
-            | self.dcs_mission.map_resource_content
+            | (self.dcs_mission.map_resource_content or {})
         )
 
         return new_map_resource_script_files, new_map_resource_mission_script_files, new_map_resource_key_by_file
@@ -484,7 +486,7 @@ class MissionBuilderWorker(BaseWorker):
             },
         }
 
-        mission_triggers = self.dcs_mission.mission_content["trig"]
+        mission_triggers = self.dcs_mission.mission_content["trig"]  # type: ignore[index]
         # DCS triggers structure is a bit weird: it has different categories (actions, conditions, custom, customStartup, events, flag. funcStartup. funcStartup).
         # Each of these categories is a LUA table with all the data for each trigger about this category.
         # To properly insert our VEAF triggers to the mission triggers, we need to make sure that we move (shift) all the keys in each category in a coherent fashion.
@@ -515,7 +517,7 @@ class MissionBuilderWorker(BaseWorker):
             result_triggers_new_structure[new_trigger_key] = new_trigger_data
 
         # Convert the new structure back to a valid DCS structure
-        self.dcs_mission.mission_content["trig"] = transform_triggers_new_structure_to_dcs_structure(
+        self.dcs_mission.mission_content["trig"] = transform_triggers_new_structure_to_dcs_structure(  # type: ignore[index]
             result_triggers_new_structure
         )
 
@@ -534,11 +536,11 @@ class MissionBuilderWorker(BaseWorker):
         veaf_dynamic_mission_path = f"[[{(self.output_mission.parent).resolve().as_posix()}/]]"
 
         veaf_community_scripts_map_keys = [
-            new_map_resource_key_by_file.get(script_file_name.as_posix(), "")
+            new_map_resource_key_by_file.get(script_file_name, "")
             for script_file_name in self.get_collected_community_script_files()
         ]
         veaf_scripts_map_keys = [
-            new_map_resource_key_by_file.get(script_file_name.as_posix(), "")
+            new_map_resource_key_by_file.get(script_file_name, "")
             for script_file_name in self.get_collected_veaf_script_files()
         ]
 
@@ -704,7 +706,7 @@ class MissionBuilderWorker(BaseWorker):
         ]
 
         # compress the dictionary keyset, leaving space for the VEAF trigrules
-        trigrules = self.dcs_mission.mission_content["trigrules"]
+        trigrules = self.dcs_mission.mission_content["trigrules"]  # type: ignore[index]
         new_trigrules = dict(enumerate(new_trigrules_list, start=1))
         nb_new_trigrules = len(new_trigrules)
         result_trigrules = {
@@ -715,12 +717,13 @@ class MissionBuilderWorker(BaseWorker):
         for new_index, new_item in new_trigrules.items():
             result_trigrules[new_index] = new_item
         # set the new dictionary
-        self.dcs_mission.mission_content["trigrules"] = result_trigrules
+        self.dcs_mission.mission_content["trigrules"] = result_trigrules  # type: ignore[index]
 
     def write_mission(self) -> None:
         """Write the mission file."""
 
         logger.debug("Writing mission file")
+        assert self.dcs_mission is not None
         write_miz(mission=self.dcs_mission, miz_file_path=self.output_mission)
         logger.debug("Writing mission file done")
 

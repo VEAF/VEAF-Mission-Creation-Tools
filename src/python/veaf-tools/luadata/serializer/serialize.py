@@ -111,7 +111,7 @@ def __serialize(var, encoding, indent, level, always_provide_keyname=False, sort
                     lastval is None and key != 1
                 )  # first loop and index is not 1 : hash table
                 or (
-                    lastkey is not None and lastkey + 1 != key
+                    lastkey is not None and lastkey + 1 != key  # type: ignore[operator]
                 )  # key is not continuously
             ):
                 nohash = False

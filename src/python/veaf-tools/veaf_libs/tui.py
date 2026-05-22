@@ -176,7 +176,7 @@ def run_wizard() -> list[str]:
         choices = [Choice(value=cmd.cli_name, name=f"{cmd.cli_name:<35s}{cmd.description}") for cmd in COMMANDS]
         default_choice = last_command if last_command in _COMMAND_MAP else COMMANDS[0].cli_name
 
-        selected: str = inquirer.select(
+        selected: str = inquirer.select(  # type: ignore[attr-defined]
             message="Select a command",
             choices=choices,
             default=default_choice,
@@ -196,12 +196,12 @@ def run_wizard() -> list[str]:
         for prompt in spec.prompts:
             saved = last_args.get(prompt.key, prompt.default)
             if prompt.is_flag:
-                value: Any = inquirer.confirm(
+                value: Any = inquirer.confirm(  # type: ignore[attr-defined]
                     message=prompt.label,
                     default=bool(saved),
                 ).execute()
             else:
-                value = inquirer.text(
+                value = inquirer.text(  # type: ignore[attr-defined]
                     message=prompt.label,
                     default=str(saved) if saved else prompt.default,
                 ).execute()

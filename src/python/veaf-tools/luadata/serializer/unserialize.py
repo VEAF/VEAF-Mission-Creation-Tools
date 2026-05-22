@@ -303,9 +303,9 @@ def _unserialize(raw: str, encoding: str = "utf-8", multival: bool = False, verb
                 break
         elif state == "KEY_SIMPLE":
             if not (
-                (b"A" <= byte_current <= b"Z")
-                or (b"a" <= byte_current <= b"z")
-                or (b"0" <= byte_current <= b"9")
+                (b"A" <= byte_current <= b"Z")  # type: ignore[operator]
+                or (b"a" <= byte_current <= b"z")  # type: ignore[operator]
+                or (b"0" <= byte_current <= b"9")  # type: ignore[operator]
                 or byte_current == b"_"
             ):
                 key = sbins[pos1:pos].decode(encoding)
@@ -371,13 +371,13 @@ def _lua_table_to_dict(lua_table, keep_as_dict: list[str] | None = None, all_is_
     # Handle conversion
     if not(all_is_dict) and is_lua_list(lua_table):
         # Convert to Python list
-        return [lua_table[i] if lua_type(lua_table[i]) != "table" else _lua_table_to_dict(lua_table[i])
+        return [lua_table[i] if lua_type(lua_table[i]) != "table" else _lua_table_to_dict(lua_table[i])  # type: ignore[misc]
                 for i in range(1, len(lua_table) + 1)]
 
     # Convert to Python dict
     py_dict = {}
     for key, value in lua_table.items():
-        if lua_type(value) == "table":
+        if lua_type(value) == "table":  # type: ignore[misc]
             # Recursively convert nested Lua tables
             value = _lua_table_to_dict(value, keep_as_dict=keep_as_dict, all_is_dict=True if (keep_as_dict and key in keep_as_dict) else all_is_dict)
         py_dict[key] = value
@@ -392,7 +392,7 @@ def unserialize(raw: str, encoding: str = "utf-8", multival: bool = False, keep_
             "Install it with: pip install lupa  or: poetry install --extras lua"
         )
     # noinspection PyArgumentList
-    lua = LuaRuntime(unpack_returned_tuples=multival, encoding=encoding, max_memory=0)
+    lua = LuaRuntime(unpack_returned_tuples=multival, encoding=encoding, max_memory=0)  # type: ignore[call-arg]
     lua.execute(raw)
     variable = raw.split("=")[0].strip()
     lua_table = lua.globals()[variable]

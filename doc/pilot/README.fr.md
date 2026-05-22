@@ -10,7 +10,7 @@ Vous volez dans une mission DCS qui utilise les scripts VEAF. Cette section couv
 2. **Explorez les sous-menus** : Assets (ravitailleurs, AWACS, porte-avions), Missions, CAS, Spawn
 3. **Placez un marqueur** sur la carte F10, tapez `_spawn unit, name T-80` et validez — un char apparaît
 
-C'est tout. Vous utilisez VEAF.
+C'est tout. Vous utilisez les VEAF Mission Creation Tools.
 
 ---
 

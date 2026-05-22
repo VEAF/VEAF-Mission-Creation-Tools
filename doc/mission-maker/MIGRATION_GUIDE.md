@@ -3,8 +3,8 @@
 
 This guide covers two scenarios:
 
-1. **[From VEAF MCT v5.xx](#migrating-from-veaf-v5xx)** — your mission already uses VEAF MCT scripts but predates the v6 toolchain
-2. **[From a vanilla DCS mission](#integrating-veaf-into-a-vanilla-dcs-mission)** — your mission has no VEAF MCT scripts at all
+1. **[From VEAF MCT v5.xx](#migrating-from-veaf-mct-v5xx)** — your mission already uses VEAF MCT scripts but predates the v6 toolchain
+2. **[From a vanilla DCS mission](#integrating-veaf-mct-into-a-vanilla-dcs-mission)** — your mission has no VEAF MCT scripts at all
 
 In both cases the end result is a **VEAF MCT v6 mission folder** that you manage with `veaf-tools.exe`.
 
@@ -271,7 +271,7 @@ end
 -- end
 ```
 
-See [missionConfig.lua reference](#missionconfiglua-reference) below and the individual script guides in [scripts/](scripts/) for all options.
+See [missionConfig.lua reference](#missionconfiglua-reference) below and the individual script guides in [scripts/](scripts/README.md) for all options.
 
 #### 6. Keep your existing mission content
 
@@ -352,7 +352,7 @@ if veafShortcuts then
 end
 ```
 
-For each additional module, see the corresponding guide in [scripts/](scripts/).
+For each additional module, see the corresponding guide in [scripts/](scripts/README.md).
 
 ---
 

@@ -6,7 +6,7 @@ Ce guide s'adresse aux joueurs qui volent dans des missions utilisant le framewo
 
 ## Table des matières
 
-1. [Qu'est-ce que VEAF ?](#quest-ce-que-veaf)
+1. [Qu'est-ce que VEAF MCT ?](#quest-ce-que-veaf-mct)
 2. [Reconnaître une mission VEAF](#reconnaître-une-mission-veaf)
 3. [Menu radio F10](#menu-radio-f10)
 4. [Commandes de marqueur](#commandes-de-marqueur)
@@ -20,7 +20,7 @@ Ce guide s'adresse aux joueurs qui volent dans des missions utilisant le framewo
 
 ---
 
-## Qu'est-ce que VEAF ?
+## Qu'est-ce que VEAF MCT
 
 VEAF Mission Creation Tools est un framework de scripts Lua qui rend les missions DCS World dynamiques et interactives. Au lieu d'un scénario statique, il est possible de :
 

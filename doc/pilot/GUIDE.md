@@ -7,7 +7,7 @@ This guide is for players flying missions that use the VEAF script framework. No
 
 ## Table of Contents
 
-1. [What is VEAF?](#what-is-veaf)
+1. [What is VEAF MCT?](#what-is-veaf-mct)
 2. [Recognising a VEAF Mission](#recognising-a-veaf-mission)
 3. [F10 Radio Menu](#f10-radio-menu)
 4. [Marker Commands](#marker-commands)
@@ -21,7 +21,7 @@ This guide is for players flying missions that use the VEAF script framework. No
 
 ---
 
-## What is VEAF?
+## What is VEAF MCT?
 
 VEAF Mission Creation Tools is a Lua script framework that makes DCS World missions dynamic and interactive. Instead of a static scenario, you can:
 

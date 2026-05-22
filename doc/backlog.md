@@ -38,7 +38,7 @@
 | Lot 12 — QUALITY | ~16h35 | ✅ |
 | Lot 13 — DISCUSS | ~13h50 | ✅ |
 | Lot 14 — ARCH-COMMANDS | ~7h30 | ✅ |
-| Lot 15 — DOC | ~6h | 🔄 |
+| Lot 15 — DOC | ~6h | ✅ |
 | **Total** | **~109h** | |
 
 *Initial calibration factor: 1.15 — recalculate after each completed lot.*
@@ -702,16 +702,16 @@ Extend `test_config_migrator.py` (or `test_v5_converter.py`) with cases for the 
 
 | # | Ticket | Type | Effort | Depends on | Status |
 |---|--------|------|--------|------------|--------|
-| DOC-001 | Nouvelle nav mkdocs (retirer USER_GUIDE, déplacer Testing sous Developer) | chore | 10 min | — | ⬜ |
-| DOC-002 | Réécrire Home (`doc/README.md` + `.fr.md`) — accroche, Getting Started global, quick links | feat | 30 min | DOC-001 | ⬜ |
-| DOC-003 | Enrichir `pilot/README.md` + `.fr.md` — landing page + Quick Start pilote | feat | 25 min | DOC-001 | ⬜ |
-| DOC-004 | Enrichir `mission-maker/README.md` + `.fr.md` — landing page + Quick Start mission-maker | feat | 30 min | DOC-001 | ⬜ |
-| DOC-005 | Enrichir `developer/README.md` + `.fr.md` — landing page + Quick Start dev | feat | 25 min | DOC-001 | ⬜ |
-| DOC-006 | Réécrire `mission-maker/scripts/README.md` + `.fr.md` — hub multi-index (workflow / interaction / fréquence) | feat | 40 min | DOC-004 | ⬜ |
-| DOC-007 | Mettre à jour versions (6.0.5 → 6.1.0) dans tous les fichiers doc | chore | 15 min | — | ⬜ |
-| DOC-008 | Redistribuer contenu unique de USER_GUIDE.md dans pilot/GUIDE.md | feat | 30 min | DOC-003 | ⬜ |
-| DOC-009 | Supprimer USER_GUIDE.md + USER_GUIDE.fr.md | chore | 5 min | DOC-008 | ⬜ |
-| DOC-010 | Fixer erreur 404, badge GitHub, liens morts | fix | 20 min | DOC-001 | ⬜ |
+| DOC-001 | Nouvelle nav mkdocs (retirer USER_GUIDE, déplacer Testing sous Developer) | chore | 10 min | — | ✅ |
+| DOC-002 | Réécrire Home (`doc/README.md` + `.fr.md`) — accroche, Getting Started global, quick links | feat | 30 min | DOC-001 | ✅ |
+| DOC-003 | Enrichir `pilot/README.md` + `.fr.md` — landing page + Quick Start pilote | feat | 25 min | DOC-001 | ✅ |
+| DOC-004 | Enrichir `mission-maker/README.md` + `.fr.md` — landing page + Quick Start mission-maker | feat | 30 min | DOC-001 | ✅ |
+| DOC-005 | Enrichir `developer/README.md` + `.fr.md` — landing page + Quick Start dev | feat | 25 min | DOC-001 | ✅ |
+| DOC-006 | Réécrire `mission-maker/scripts/README.md` + `.fr.md` — hub multi-index (workflow / interaction / fréquence) | feat | 40 min | DOC-004 | ✅ |
+| DOC-007 | Mettre à jour versions (6.0.5 → 6.1.0) dans tous les fichiers doc | chore | 15 min | — | ✅ |
+| DOC-008 | Redistribuer contenu unique de USER_GUIDE.md dans pilot/GUIDE.md | feat | 30 min | DOC-003 | ✅ |
+| DOC-009 | Supprimer USER_GUIDE.md | chore | 5 min | DOC-008 | ✅ |
+| DOC-010 | Fixer liens morts vers USER_GUIDE.md | fix | 20 min | DOC-009 | ✅ |
 
 **Raw total: 230 min → estimated (×1.15): ~265 min (~4h25)**
 

@@ -30,7 +30,7 @@ Créez un fichier `veaf-mission.yaml` pour déclarer quels modules VEAF sont act
 veaf-tools.exe mission-build --source ma-mission.miz --output ma-mission-veaf.miz
 ```
 
-Le `.miz` de sortie est prêt à voler avec toutes les fonctionnalités VEAF.
+Le `.miz` de sortie est prêt à voler avec toutes les fonctionnalités VEAF MCT.
 
 ---
 
@@ -56,5 +56,5 @@ Voir le [catalogue complet des scripts](scripts/README.md) pour les 17+ modules.
 | Document | Quand le lire |
 |----------|---------------|
 | [Guide complet](GUIDE.md) | Setup détaillé, configuration, et workflow de build |
-| [Guide de migration](MIGRATION_GUIDE.md) | Conversion depuis VEAF v5 ou ajout de VEAF à une mission existante |
+| [Guide de migration](MIGRATION_GUIDE.md) | Conversion depuis VEAF MCT v5 ou ajout de VEAF MCT à une mission existante |
 | [Référence des scripts](scripts/README.md) | Documentation par module avec commandes et exemples de config |

@@ -12,9 +12,9 @@ A Lua script framework and Python CLI toolkit for building dynamic, interactive 
 
 | I am a… | I want to… | Start here |
 |---------|-----------|------------|
-| **Player / Pilot** | Use VEAF features in flight (spawn, CAS, assets) | [Pilot Guide](pilot/README.md) |
-| **Mission Maker** | Integrate VEAF into my DCS missions | [Mission Maker Guide](mission-maker/README.md) |
-| **Developer** | Contribute to the VEAF source code | [Developer Guide](developer/README.md) |
+| **Player / Pilot** | Use VEAF MCT features in flight (spawn, CAS, assets) | [Pilot Guide](pilot/README.md) |
+| **Mission Maker** | Integrate VEAF MCT into my DCS missions | [Mission Maker Guide](mission-maker/README.md) |
+| **Developer** | Contribute to the VEAF MCT source code | [Developer Guide](developer/README.md) |
 
 ---
 

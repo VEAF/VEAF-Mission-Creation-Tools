@@ -45,7 +45,7 @@ When a mission uses VEAF scripts you will see:
 
 ## F10 Radio Menu
 
-All VEAF features are accessible via **F10 → Other → VEAF**.
+All VEAF MCT features are accessible via **F10 → Other → VEAF**.
 
 ### Typical Menu Structure
 

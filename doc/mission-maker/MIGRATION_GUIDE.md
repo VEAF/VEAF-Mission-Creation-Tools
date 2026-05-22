@@ -1,12 +1,12 @@
-# Migrating a Mission to VEAF v6
+# Migrating a Mission to VEAF MCT v6
 
 
 This guide covers two scenarios:
 
-1. **[From VEAF v5.xx](#migrating-from-veaf-v5xx)** — your mission already uses VEAF scripts but predates the v6 toolchain
-2. **[From a vanilla DCS mission](#integrating-veaf-into-a-vanilla-dcs-mission)** — your mission has no VEAF scripts at all
+1. **[From VEAF MCT v5.xx](#migrating-from-veaf-v5xx)** — your mission already uses VEAF MCT scripts but predates the v6 toolchain
+2. **[From a vanilla DCS mission](#integrating-veaf-into-a-vanilla-dcs-mission)** — your mission has no VEAF MCT scripts at all
 
-In both cases the end result is a **VEAF v6 mission folder** that you manage with `veaf-tools.exe`.
+In both cases the end result is a **VEAF MCT v6 mission folder** that you manage with `veaf-tools.exe`.
 
 ---
 
@@ -34,7 +34,7 @@ In both cases the end result is a **VEAF v6 mission folder** that you manage wit
 
 ---
 
-## Migrating from VEAF v5.xx
+## Migrating from VEAF MCT v5.xx
 
 ### What Changed in v6
 
@@ -66,7 +66,7 @@ mkdir my-mission
 cd my-mission
 ```
 
-#### 2. Install VEAF v6
+#### 2. Install VEAF MCT v6
 
 Copy `veaf-tools-updater.exe` into the folder and run:
 
@@ -183,7 +183,7 @@ Some v5 constructs no longer exist or have been renamed:
 
 Open the resulting `.miz` in DCS, load the mission, and confirm:
 - No duplicate `DO SCRIPT FILE` triggers in the trigger editor
-- The v6 VEAF loader trigger is present (named something like `VEAF scripts loader`)
+- The v6 VEAF MCT loader trigger is present (named something like `VEAF scripts loader`)
 - Radio menus and marker commands work as expected
 
 #### 8. Set up version control
@@ -191,16 +191,16 @@ Open the resulting `.miz` in DCS, load the mission, and confirm:
 ```powershell
 git init
 git add src/ .gitignore
-git commit -m "feat: migrate my-mission to VEAF v6"
+git commit -m "feat: migrate my-mission to VEAF MCT v6"
 ```
 
 Add `published/` and `*.miz` to `.gitignore` — they are build artifacts.
 
 ---
 
-## Integrating VEAF into a Vanilla DCS Mission
+## Integrating VEAF MCT into a Vanilla DCS Mission
 
-A **vanilla** mission has no VEAF scripts, no special triggers, and was built entirely with the DCS Mission Editor.
+A **vanilla** mission has no VEAF MCT scripts, no special triggers, and was built entirely with the DCS Mission Editor.
 
 ### Step-by-step Integration
 
@@ -211,7 +211,7 @@ mkdir my-mission
 cd my-mission
 ```
 
-#### 2. Install VEAF v6
+#### 2. Install VEAF MCT v6
 
 ```powershell
 .\veaf-tools-updater.exe

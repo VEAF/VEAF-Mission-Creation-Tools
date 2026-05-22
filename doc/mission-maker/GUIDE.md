@@ -19,7 +19,7 @@ This guide is for DCS World mission designers who want to integrate the VEAF fra
 10. [Configuration Examples](#configuration-examples)
 11. [Resources](#resources)
 
-> **Migrating an existing mission?** See the [Migration Guide](MIGRATION_GUIDE.md) — covers both VEAF v5 → v6 and vanilla DCS → VEAF.
+> **Migrating an existing mission?** See the [Migration Guide](MIGRATION_GUIDE.md) — covers both VEAF MCT v5 → v6 and vanilla DCS → VEAF MCT.
 
 ---
 
@@ -42,7 +42,7 @@ A VEAF mission is a standard DCS `.miz` file that loads the VEAF Lua framework a
 |------|---------|----------|
 | DCS World | The simulator | Yes |
 | Git | Version control for your mission project | Recommended |
-| `veaf-tools-updater.exe` | Downloads and installs the latest VEAF release | Yes |
+| `veaf-tools-updater.exe` | Downloads and installs the latest VEAF MCT release | Yes |
 | `veaf-tools.exe` | Build-time `.miz` manipulation CLI | Yes (for build pipeline) |
 | VS Code or similar | Editing Lua/YAML config files | Recommended |
 

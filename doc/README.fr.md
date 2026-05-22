@@ -12,9 +12,9 @@ Framework de scripts Lua et outils CLI Python pour créer des missions [DCS Worl
 
 | Je suis… | Je veux… | Commencer ici |
 |----------|----------|---------------|
-| **Joueur / Pilote** | Utiliser les fonctionnalités VEAF en vol (spawn, CAS, assets) | [Guide Pilote](pilot/README.md) |
-| **Créateur de missions** | Intégrer VEAF dans mes missions DCS | [Guide Créateur de missions](mission-maker/README.md) |
-| **Développeur** | Contribuer au code source VEAF | [Guide Développeur](developer/README.md) |
+| **Joueur / Pilote** | Utiliser les fonctionnalités VEAF MCT en vol (spawn, CAS, assets) | [Guide Pilote](pilot/README.md) |
+| **Créateur de missions** | Intégrer VEAF MCT dans mes missions DCS | [Guide Créateur de missions](mission-maker/README.md) |
+| **Développeur** | Contribuer au code source de VEAF MCT | [Guide Développeur](developer/README.md) |
 
 ---
 

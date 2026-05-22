@@ -1,3 +1,32 @@
-# Guide du pilote — VEAF Mission Creation Tools
+# Guide du pilote
 
-> [Guide complet](GUIDE.md)
+Vous volez dans une mission DCS qui utilise les scripts VEAF. Cette section couvre tout ce que vous pouvez faire en jeu.
+
+---
+
+## Démarrage rapide — 2 minutes
+
+1. **Appuyez sur F10** → cherchez le sous-menu **VEAF** sous **Other**
+2. **Explorez les sous-menus** : Assets (ravitailleurs, AWACS, porte-avions), Missions, CAS, Spawn
+3. **Placez un marqueur** sur la carte F10, tapez `_spawn unit, name T-80` et validez — un char apparaît
+
+C'est tout. Vous utilisez VEAF.
+
+---
+
+## Que pouvez-vous faire ?
+
+| Fonctionnalité | Comment | Description |
+|----------------|---------|-------------|
+| **Spawner des unités** | Marqueur F10 : `_spawn unit, name [TYPE]` | Créer n'importe quelle unité DCS à la position du marqueur |
+| **Entraînement CAS** | Menu F10 → CAS Mission → Generate | Cibles au sol aléatoires avec difficulté configurable |
+| **Activer des missions** | Menu F10 → Missions → [Nom] → Activate | Scénarios de combat pré-construits (CAP, strike, SEAD…) |
+| **Zones de combat** | Menu F10 → Combat Zones → [Zone] → Activate | Zones de combat persistantes avec objectifs |
+| **Gérer les assets** | Menu F10 → Assets | Info ravitailleur/AWACS, recovery porte-avions, respawn |
+| **S'authentifier** | Marqueur F10 : `_auth [MOT_DE_PASSE]` | Débloquer les commandes restreintes en multijoueur |
+
+---
+
+## Référence complète
+
+Le [guide pilote complet](GUIDE.md) couvre toutes les commandes, options, menus radio, et conseils par rôle d'appareil.

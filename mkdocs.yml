@@ -73,6 +73,7 @@ plugins:
             Lua API Reference: Référence de l'API Lua
             Roadmap: Feuille de route
             Testing: Tests
+            Aliases: Alias
 
 extra:
   version:
@@ -84,10 +85,12 @@ nav:
   - Pilot Guide:
     - Overview: pilot/README.md
     - Guide: pilot/GUIDE.md
+    - Aliases: ALIASES.md
   - Mission Maker:
     - Overview: mission-maker/README.md
     - Guide: mission-maker/GUIDE.md
     - Migration Guide: mission-maker/MIGRATION_GUIDE.md
+    - Aliases: ALIASES.md
     - Scripts:
       - Overview: mission-maker/scripts/README.md
       - veafAirWaves: mission-maker/scripts/veafAirWaves.md

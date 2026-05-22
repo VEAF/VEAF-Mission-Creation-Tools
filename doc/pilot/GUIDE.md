@@ -462,4 +462,3 @@ Yes, add `side blue` to any spawn command.
 
 ---
 
-*See also: [Full User Guide](../USER_GUIDE.md) for the extended reference.*

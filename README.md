@@ -25,7 +25,6 @@ Choose the guide that matches your role:
 
 | Reference | Description |
 |-----------|-------------|
-| [User Guide](doc/USER_GUIDE.md) | Extended pilot reference |
 | [Lua API Reference](doc/LUA_API_REFERENCE.md) | Full API for all 34 Lua runtime modules |
 | [Tools CLI Reference](doc/TOOLS_REFERENCE.md) | `veaf-tools.exe` and `veaf-tools-updater.exe` |
 | [Testing Guide](doc/TESTING.md) | Lua unit test suite, CI/CD pipeline |

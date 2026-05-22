@@ -57,14 +57,14 @@ plugins:
             Pilot Guide: Guide Pilote
             Overview: Aperçu
             Guide: Guide
+            Full Guide: Guide complet
             Mission Maker: Créateur de Mission
             Migration Guide: Guide de Migration
             Scripts: Scripts
             Developer: Développeur
             References: Références
-            Tools Reference: Référence des outils
+            Tools CLI Reference: Référence CLI des outils
             Lua API Reference: Référence de l'API Lua
-            User Guide: Guide utilisateur
             Roadmap: Feuille de route
             Testing: Tests
 
@@ -105,9 +105,8 @@ nav:
   - Developer:
     - Overview: developer/README.md
     - Guide: developer/GUIDE.md
-  - References:
-    - Tools Reference: TOOLS_REFERENCE.md
-    - Lua API Reference: LUA_API_REFERENCE.md
-    - User Guide: USER_GUIDE.md
-    - Roadmap: ROADMAP.md
     - Testing: TESTING.md
+  - References:
+    - Lua API Reference: LUA_API_REFERENCE.md
+    - Tools CLI Reference: TOOLS_REFERENCE.md
+    - Roadmap: ROADMAP.md

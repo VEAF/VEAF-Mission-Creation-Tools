@@ -66,8 +66,8 @@ if ($FAILED -eq 0) { 'All tests passed.' } else { 'FAILED'; exit 1 }
 
 After every PR merge and branch deletion:
 
-1. `git fetch origin-ssh --prune` — remove deleted remote branches from local cache
-2. `git checkout develop-v6 && git pull origin-ssh develop-v6 --ff-only` — sync local `develop-v6` with the merged state
+1. `git fetch origin --prune` — remove deleted remote branches from local cache
+2. `git checkout develop-v6 && git pull origin develop-v6 --ff-only` — sync local `develop-v6` with the merged state
 
 Always do this before starting any new work.
 

@@ -302,4 +302,156 @@ function TestVeafShortcuts:test_markTextAnalysis_comma_in_remainder()
 end
 
 -- ============================================================================
+-- ---------------------------------------------------------------------------
+-- TestVeafAliasBatchAndCombat — setBatchAliases, getBatchAliases,
+--                               VeafAliasForCombatMission:new,
+--                               VeafAliasForCombatZone:new
+-- ---------------------------------------------------------------------------
+TestVeafAliasBatchAndCombat = {}
+
+function TestVeafAliasBatchAndCombat:test_setBatchAliases_stores_value()
+  local a = VeafAlias:new()
+  a:setName("-test-batch"):setBatchAliases("a,b,c")
+  luaunit.assertEquals(a:getBatchAliases(), "a,b,c")
+end
+
+function TestVeafAliasBatchAndCombat:test_setBatchAliases_sets_hidden()
+  local a = VeafAlias:new()
+  a:setName("-hbatch"):setBatchAliases("x,y")
+  luaunit.assertTrue(a:isHidden())
+end
+
+function TestVeafAliasBatchAndCombat:test_setBatchAliases_sets_password_L1()
+  local a = VeafAlias:new()
+  a:setName("-pbatch"):setBatchAliases("x")
+  luaunit.assertTrue(a:hasPassword(veafSecurity.PASSWORD_L1))
+end
+
+function TestVeafAliasBatchAndCombat:test_setBatchAliases_returns_self()
+  local a = VeafAlias:new()
+  a:setName("-selfbatch")
+  local ret = a:setBatchAliases("x")
+  luaunit.assertEquals(ret, a)
+end
+
+function TestVeafAliasBatchAndCombat:test_getBatchAliases_nil_default()
+  local a = VeafAlias:new()
+  a:setName("-nobatch")
+  luaunit.assertNil(a:getBatchAliases())
+end
+
+function TestVeafAliasBatchAndCombat:test_VeafAliasForCombatMission_new_creates_instance()
+  local a = VeafAliasForCombatMission:new()
+  luaunit.assertNotNil(a)
+end
+
+function TestVeafAliasBatchAndCombat:test_VeafAliasForCombatMission_new_is_hidden()
+  local a = VeafAliasForCombatMission:new()
+  luaunit.assertTrue(a:isHidden())
+end
+
+function TestVeafAliasBatchAndCombat:test_VeafAliasForCombatMission_new_has_password_L1()
+  local a = VeafAliasForCombatMission:new()
+  luaunit.assertTrue(a:hasPassword(veafSecurity.PASSWORD_L1))
+end
+
+function TestVeafAliasBatchAndCombat:test_VeafAliasForCombatMission_new_can_set_name()
+  local a = VeafAliasForCombatMission:new():setName("-airstart")
+  luaunit.assertEquals(a:getName(), "-airstart")
+end
+
+function TestVeafAliasBatchAndCombat:test_VeafAliasForCombatZone_new_creates_instance()
+  local a = VeafAliasForCombatZone:new()
+  luaunit.assertNotNil(a)
+end
+
+function TestVeafAliasBatchAndCombat:test_VeafAliasForCombatZone_new_has_password_L1()
+  local a = VeafAliasForCombatZone:new()
+  luaunit.assertTrue(a:hasPassword(veafSecurity.PASSWORD_L1))
+end
+
+function TestVeafAliasBatchAndCombat:test_VeafAliasForCombatZone_new_can_set_name()
+  local a = VeafAliasForCombatZone:new():setName("-zonestart")
+  luaunit.assertEquals(a:getName(), "-zonestart")
+end
+
+-- ---------------------------------------------------------------------------
+-- TestVeafShortcutsDefaultList — buildDefaultList covers ~600 executable lines
+-- ---------------------------------------------------------------------------
+TestVeafShortcutsDefaultList = {}
+
+function TestVeafShortcutsDefaultList:test_buildDefaultList_runs_without_error()
+  veafShortcuts.buildDefaultList()
+  luaunit.assertTrue(true)
+end
+
+function TestVeafShortcutsDefaultList:test_buildDefaultList_registers_samLR()
+  veafShortcuts.buildDefaultList()
+  local a = veafShortcuts.GetAlias("-samLR")
+  luaunit.assertNotNil(a)
+end
+
+function TestVeafShortcutsDefaultList:test_buildDefaultList_registers_sa6()
+  veafShortcuts.buildDefaultList()
+  local a = veafShortcuts.GetAlias("-sa6")
+  luaunit.assertNotNil(a)
+end
+
+function TestVeafShortcutsDefaultList:test_buildDefaultList_registers_airstart_hidden()
+  veafShortcuts.buildDefaultList()
+  local a = veafShortcuts.GetAlias("-airstart")
+  luaunit.assertNotNil(a)
+  luaunit.assertTrue(a:isHidden())
+end
+
+function TestVeafShortcutsDefaultList:test_buildDefaultList_registers_zonestart()
+  veafShortcuts.buildDefaultList()
+  local a = veafShortcuts.GetAlias("-zonestart")
+  luaunit.assertNotNil(a)
+end
+
+function TestVeafShortcutsDefaultList:test_buildDefaultList_populates_many_aliases()
+  veafShortcuts.buildDefaultList()
+  local count = 0
+  for _ in pairs(veafShortcuts.aliases) do
+    count = count + 1
+  end
+  luaunit.assertTrue(count > 30)
+end
+
+-- ---------------------------------------------------------------------------
+-- TestVeafShortcutsExecute — executeCommand, ExecuteBatchAliasesList
+-- ---------------------------------------------------------------------------
+TestVeafShortcutsExecute = {}
+
+function TestVeafShortcutsExecute:test_executeCommand_nil_text_returns_false()
+  luaunit.assertFalse(veafShortcuts.executeCommand(nil, nil, nil, false))
+end
+
+function TestVeafShortcutsExecute:test_executeCommand_non_alias_text_returns_false()
+  luaunit.assertFalse(veafShortcuts.executeCommand(nil, "hello world", nil, false))
+end
+
+function TestVeafShortcutsExecute:test_executeCommand_unknown_alias_returns_false()
+  -- "-nonexistent" starts with '-' so markTextAnalysis returns it, but GetAlias returns nil
+  luaunit.assertFalse(veafShortcuts.executeCommand(nil, "-nonexistent", nil, false))
+end
+
+function TestVeafShortcutsExecute:test_ExecuteBatchAliasesList_nil_returns_false()
+  luaunit.assertFalse(veafShortcuts.ExecuteBatchAliasesList(nil))
+end
+
+function TestVeafShortcutsExecute:test_ExecuteBatchAliasesList_empty_returns_false()
+  luaunit.assertFalse(veafShortcuts.ExecuteBatchAliasesList({}))
+end
+
+function TestVeafShortcutsExecute:test_ExecuteBatchAliasesList_non_alias_text_returns_true()
+  -- table of non-alias texts: each fails silently, function still returns true
+  luaunit.assertTrue(veafShortcuts.ExecuteBatchAliasesList({ "hello", "world" }))
+end
+
+function TestVeafShortcutsExecute:test_ExecuteBatchAliasesList_silent_true()
+  luaunit.assertTrue(veafShortcuts.ExecuteBatchAliasesList({ "hello" }, nil, nil, true))
+end
+
 os.exit(luaunit.LuaUnit.run())

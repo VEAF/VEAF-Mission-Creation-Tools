@@ -49,6 +49,7 @@ trigger = {
     outText = function(text, duration) end,
     outTextForGroup = function(groupId, text, duration) end,
     outTextForUnit = function(unitId, text, duration) end,
+    outTextForCoalition = function(side, text, duration) end,
     markToAll = function(...) end,
     markToCoalition = function(...) end,
     removeMark = function(id) end,
@@ -62,6 +63,7 @@ trigger = {
     smoke = function(...) end,
     signalFlare = function(...) end,
     illuminationBomb = function(...) end,
+    explosion = function(...) end,
   },
   misc = {
     getUserFlag = function(flag) return 0 end,
@@ -178,6 +180,7 @@ coord = {
   LOtoLL = function(vec3) return 0, 0, 0 end,
   LOtoMGRS = function(vec3) return { UTMZone = "", Easting = 0, Northing = 0 } end,
   MGRStoLL = function(mgrs) return 0, 0 end,
+  LLtoMGRS = function(lat, lon) return { MGRSDigraph = "XX", Easting = 100000, Northing = 200000 } end,
 }
 atmosphere = {
   getWind = function(point) return { x = 0, y = 0, z = 0 } end,
@@ -218,15 +221,18 @@ Sim = {
 -- ---------------------------------------------------------------------------
 -- mist (minimal stub — only the parts used by veaf.lua core)
 -- ---------------------------------------------------------------------------
-local function _deepCopy(orig)
+local function _deepCopy(orig, seen)
+  seen = seen or {}
   local orig_type = type(orig)
   local copy
   if orig_type == "table" then
+    if seen[orig] then return seen[orig] end
     copy = {}
+    seen[orig] = copy
     for k, v in pairs(orig) do
-      copy[_deepCopy(k)] = _deepCopy(v)
+      copy[_deepCopy(k, seen)] = _deepCopy(v, seen)
     end
-    setmetatable(copy, _deepCopy(getmetatable(orig)))
+    setmetatable(copy, _deepCopy(getmetatable(orig), seen))
   else
     copy = orig
   end
@@ -245,6 +251,7 @@ mist = {
     units            = {},
     unitsByName      = {},
     humansByName     = {},
+    groupsByName     = {},
   },
   getGroupRoute = function(groupName) return nil end,
   vec = {
@@ -256,6 +263,12 @@ mist = {
     end,
     dp = function(v1, v2)
       return (v1.x or 0)*(v2.x or 0) + (v1.y or 0)*(v2.y or 0) + (v1.z or 0)*(v2.z or 0)
+    end,
+    add = function(v1, v2)
+      return { x = (v1.x or 0) + (v2.x or 0), y = (v1.y or 0) + (v2.y or 0), z = (v1.z or 0) + (v2.z or 0) }
+    end,
+    scalarMult = function(v, s)
+      return { x = (v.x or 0) * s, y = (v.y or 0) * s, z = (v.z or 0) * s }
     end,
   },
   utils = {
@@ -299,6 +312,17 @@ Object.getCategory = function(obj) return Object.Category.UNIT end
 -- ---------------------------------------------------------------------------
 Unit.getGroup = function(unit) return nil end
 Unit.destroy  = function(unit) end
+StaticObject.destroy = function(obj) end
+Group.destroy = function(obj) end
+
+-- Additional mist stubs needed by veafSpawn sub-modules
+mist.getRandPointInCircle = function(spot, r)
+  return { x = spot.x or 0, y = spot.y or 0, z = spot.z or 0 }
+end
+mist.getNextUnitId = function() return 999 end
+mist.teleportToPoint = function(vars) return nil end
+mist.dynAdd = function(template) end
+mist.goRoute = function(group, route) end
 
 -- ---------------------------------------------------------------------------
 -- world.weather  (used by veafWeather module)

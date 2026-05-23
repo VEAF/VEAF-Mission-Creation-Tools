@@ -143,7 +143,7 @@ class TestYamlSnippet(unittest.TestCase):
         self.assertIsNotNone(radio_line, "RADIO should appear without a leading # comment")
 
     def test_disabled_module_commented_out(self) -> None:
-        # RADIO is not in this content so it should be commented
+        # MOVE is not in this content so it should appear commented out in the snippet
         snippet = self._migrate("if veafRadio then\n  veafRadio.initialize()\nend\n")
         lines = snippet.splitlines()
         move_commented = any(ln.strip().startswith("#") and "MOVE" in ln for ln in lines)

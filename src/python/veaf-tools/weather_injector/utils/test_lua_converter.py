@@ -6,6 +6,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
+import typer
+
 from weather_injector.utils.lua_converter import LuaToYamlConverter
 
 
@@ -176,14 +178,9 @@ weatherAndTime = {
         result = LuaToYamlConverter._parse_lua_config("-- empty")
         self.assertIsNone(result)
 
-    def test_convert_file_missing_returns_none(self) -> None:
-        # File doesn't exist — the logger raises internally, caught by convert_file
-        # The function should return None gracefully
-        try:
-            result = LuaToYamlConverter.convert_file(Path("/nonexistent/file.lua"))
-            self.assertIsNone(result)
-        except Exception:
-            pass  # acceptable — the function may raise instead of returning None
+    def test_convert_file_missing_raises(self) -> None:
+        with self.assertRaises((typer.Abort, SystemExit, FileNotFoundError, OSError)):
+            LuaToYamlConverter.convert_file(Path("/nonexistent/file.lua"))
 
     def test_convert_file_valid(self) -> None:
         with tempfile.TemporaryDirectory() as td:

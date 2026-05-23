@@ -271,7 +271,11 @@ class TestParseCustomPresetTable(unittest.TestCase):
 
 class TestConvertPresets(unittest.TestCase):
     def setUp(self) -> None:
-        self.tmp = Path(tempfile.mkdtemp())
+        self._tmp_dir = tempfile.TemporaryDirectory()
+        self.tmp = Path(self._tmp_dir.name)
+
+    def tearDown(self) -> None:
+        self._tmp_dir.cleanup()
 
     def _write_lua(self, content: str) -> Path:
         p = self.tmp / "radioSettings.lua"
@@ -324,7 +328,11 @@ class TestConvertPresets(unittest.TestCase):
 
 class TestConvertAircraftGroups(unittest.TestCase):
     def setUp(self) -> None:
-        self.tmp = Path(tempfile.mkdtemp())
+        self._tmp_dir = tempfile.TemporaryDirectory()
+        self.tmp = Path(self._tmp_dir.name)
+
+    def tearDown(self) -> None:
+        self._tmp_dir.cleanup()
 
     _SETTINGS_LUA = """
 settings = {

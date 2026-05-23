@@ -150,8 +150,8 @@ class TestFetchLiveMetar(unittest.TestCase):
         self.assertEqual(result["temperature"], 15.0)
         self.assertEqual(result["wind_speed"], 5.0)
 
-    def test_no_avwx_returns_defaults(self) -> None:
-        # avwx is not installed in test env
+    def test_unavailable_icao_returns_defaults(self) -> None:
+        # With no network (CI) or invalid ICAO, _fetch_live_metar should return safe defaults
         result = _fetch_live_metar("OSDI")
         self.assertIn("temperature", result)
         self.assertIn("wind_speed", result)

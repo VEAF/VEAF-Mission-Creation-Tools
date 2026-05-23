@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+import tempfile
 import unittest
 from datetime import date as dt_date
 from datetime import timedelta
 from pathlib import Path
 from typing import Any
 
+import typer
 import yaml
 
 from weather_injector.models import MissionConfig, Position, VersionConfig
@@ -154,36 +156,21 @@ class TestLoadConfiguration(unittest.TestCase):
             self.assertEqual(len(config.versions), 2)
             self.assertEqual(config.versions[0].name, "day")
 
-    def test_missing_file_returns_none(self) -> None:
-        import tempfile
-
-        import typer
-
+    def test_missing_file_raises(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)
             worker = _make_worker(tmp_path)
-            # Point to a non-existent file
             worker.config_file = tmp_path / "nonexistent.yaml"
-            try:
-                config = worker._load_configuration()
-                self.assertIsNone(config)
-            except (typer.Abort, SystemExit):
-                pass  # logger.error() raises by default
+            with self.assertRaises((typer.Abort, SystemExit)):
+                worker._load_configuration()
 
-    def test_invalid_yaml_returns_none(self) -> None:
-        import tempfile
-
-        import typer
-
+    def test_invalid_yaml_raises(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)
             worker = _make_worker(tmp_path)
             worker.config_file.write_text("invalid: yaml: [[[", encoding="utf-8")
-            try:
-                config = worker._load_configuration()
-                self.assertIsNone(config)
-            except (typer.Abort, SystemExit):
-                pass  # logger.error() raises by default
+            with self.assertRaises((typer.Abort, SystemExit)):
+                worker._load_configuration()
 
 
 # ---------------------------------------------------------------------------
@@ -197,8 +184,9 @@ class TestSetMissionTime(unittest.TestCase):
 
         from mission_tools import DcsMission
 
-        tmp = tempfile.mkdtemp()
-        tmp_path = Path(tmp)
+        tmp_dir = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp_dir.cleanup)
+        tmp_path = Path(tmp_dir.name)
         worker = _make_worker(tmp_path)
         worker.mission_data = DcsMission(file_path=tmp_path / "test.miz", mission_content=content)
         return worker
@@ -236,8 +224,9 @@ class TestSetMissionDate(unittest.TestCase):
 
         from mission_tools import DcsMission
 
-        tmp = tempfile.mkdtemp()
-        tmp_path = Path(tmp)
+        tmp_dir = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp_dir.cleanup)
+        tmp_path = Path(tmp_dir.name)
         worker = _make_worker(tmp_path)
         worker.mission_data = DcsMission(file_path=tmp_path / "test.miz", mission_content=content)
         return worker
@@ -271,8 +260,9 @@ class TestSetMissionWeather(unittest.TestCase):
 
         from mission_tools import DcsMission
 
-        tmp = tempfile.mkdtemp()
-        tmp_path = Path(tmp)
+        tmp_dir = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp_dir.cleanup)
+        tmp_path = Path(tmp_dir.name)
         worker = _make_worker(tmp_path)
         worker.mission_data = DcsMission(file_path=tmp_path / "test.miz", mission_content=content)
         return worker
@@ -494,8 +484,9 @@ class TestUpdateMissionTimeAndDate(unittest.TestCase):
 
         from mission_tools import DcsMission
 
-        tmp = tempfile.mkdtemp()
-        tmp_path = Path(tmp)
+        tmp_dir = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp_dir.cleanup)
+        tmp_path = Path(tmp_dir.name)
         worker = _make_worker(tmp_path)
         worker.config = MissionConfig(versions=[])
         worker.mission_data = DcsMission(
@@ -565,8 +556,9 @@ class TestInjectWeather(unittest.TestCase):
 
         from mission_tools import DcsMission
 
-        tmp = tempfile.mkdtemp()
-        tmp_path = Path(tmp)
+        tmp_dir = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp_dir.cleanup)
+        tmp_path = Path(tmp_dir.name)
         worker = _make_worker(tmp_path)
         worker.config = MissionConfig(versions=[])
         worker.mission_data = DcsMission(

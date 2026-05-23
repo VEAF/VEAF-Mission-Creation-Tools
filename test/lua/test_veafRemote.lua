@@ -6,6 +6,12 @@ local src = _base .. "/../../src/scripts/veaf"
 dofile(src .. "/veaf.lua")
 dofile(src .. "/veafRemote.lua")
 
+-- Stub veafSecurity (required by executeRemoteCommand password check)
+veafSecurity = {
+  checkPassword_L1 = function() return true end,
+  checkSecurity_L9 = function() return true end,
+}
+
 -- ---------------------------------------------------------------------------
 -- TestVeafRemoteConstants
 -- ---------------------------------------------------------------------------
@@ -180,6 +186,88 @@ function TestVeafRemoteUserSlot:test_slot_reassignment()
   luaunit.assertNotNil(u)
   -- Should return the last registered pilot
   luaunit.assertEquals(u.name, "Pilot2")
+end
+
+-- ============================================================================
+-- TestVeafRemoteBuildDefaultList
+-- ============================================================================
+TestVeafRemoteBuildDefaultList = {}
+
+function TestVeafRemoteBuildDefaultList:test_buildDefaultList_no_crash()
+  -- TEST=false branch → function is essentially a no-op
+  veafRemote.buildDefaultList()
+  luaunit.assertTrue(true)
+end
+
+-- ============================================================================
+-- TestVeafRemoteModuleRegistry
+-- ============================================================================
+TestVeafRemoteModuleRegistry = {}
+
+function TestVeafRemoteModuleRegistry:setUp()
+  veafRemote.remoteModuleRegistry = {}
+end
+
+function TestVeafRemoteModuleRegistry:test_registerRemoteModule_stores_handler()
+  local called = false
+  local function handler(unitName, args) called = true; return true end
+  veafRemote.registerRemoteModule("testmod", handler)
+  luaunit.assertNotNil(veafRemote.remoteModuleRegistry["testmod"])
+end
+
+function TestVeafRemoteModuleRegistry:test_executeCommandFromRemote_with_registered_handler()
+  local function handler(unitName, args) return true end
+  veafRemote.registerRemoteModule("mymod", handler)
+  -- executeCommandFromRemote(unitName, coalition, posUnit, module, command, args)
+  local result = veafRemote.executeCommandFromRemote("pilot", 2, nil, "mymod", "cmd", {})
+  luaunit.assertTrue(result)
+end
+
+-- ============================================================================
+-- TestVeafRemoteExecuteCommand
+-- ============================================================================
+TestVeafRemoteExecuteCommand = {}
+
+function TestVeafRemoteExecuteCommand:test_no_remote_prefix_returns_nil()
+  -- Text without "_remote" prefix → executeCommand returns nil
+  local result = veafRemote.executeCommand(nil, "plain text")
+  luaunit.assertNil(result)
+end
+
+function TestVeafRemoteExecuteCommand:test_remote_prefix_no_command_returns_nil()
+  -- "_remote " with nothing after → returns nil
+  local result = veafRemote.executeCommand(nil, "_remote ")
+  luaunit.assertNil(result)
+end
+
+-- ============================================================================
+-- TestVeafRemoteExecuteRemoteCommand
+-- ============================================================================
+TestVeafRemoteExecuteRemoteCommand = {}
+
+function TestVeafRemoteExecuteRemoteCommand:test_unknown_command_returns_false()
+  -- password check passes (stubbed), but command not in registry → returns false
+  local result = veafRemote.executeRemoteCommand("unknown-cmd-xyz", "")
+  luaunit.assertFalse(result)
+end
+
+-- ============================================================================
+-- TestVeafRemoteExecuteCommandFromRemote
+-- ============================================================================
+TestVeafRemoteExecuteCommandFromRemote = {}
+
+function TestVeafRemoteExecuteCommandFromRemote:setUp()
+  veafRemote.remoteModules = {}
+end
+
+function TestVeafRemoteExecuteCommandFromRemote:test_nil_args_returns_false()
+  local result = veafRemote.executeCommandFromRemote(nil, nil, nil, nil, nil, nil)
+  luaunit.assertFalse(result)
+end
+
+function TestVeafRemoteExecuteCommandFromRemote:test_no_handler_returns_false()
+  local result = veafRemote.executeCommandFromRemote("pilot", 2, nil, "nomodule", "cmd", {})
+  luaunit.assertFalse(result)
 end
 
 os.exit(luaunit.LuaUnit.run())

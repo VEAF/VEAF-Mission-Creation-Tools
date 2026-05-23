@@ -100,6 +100,29 @@ function TestVeafInterpreter:test_firstMatchWins()
   luaunit.assertEquals(result, "first")
 end
 
+-- ============================================================================
+-- TestVeafInterpreterExecuteCommand
+-- ============================================================================
+TestVeafInterpreterExecuteCommand = {}
+
+function TestVeafInterpreterExecuteCommand:test_processObject_no_tag()
+  -- unitName with no interpreter tag → interpret() returns nil → executeCommandOnUnit is a no-op
+  veafInterpreter.processObject("plain_unit_name_no_tag")
+  luaunit.assertTrue(true)
+end
+
+function TestVeafInterpreterExecuteCommand:test_executeCommandOnUnit_nil_command()
+  -- nil command → if command then branch not taken → immediate return
+  veafInterpreter.executeCommandOnUnit("some_unit", nil)
+  luaunit.assertTrue(true)
+end
+
+function TestVeafInterpreterExecuteCommand:test_executeCommandOnUnit_command_no_unit_no_static()
+  -- command present, but Unit.getByName and StaticObject.getByName both return nil
+  veafInterpreter.executeCommandOnUnit("nonexistent_unit", "spawn, sam")
+  luaunit.assertTrue(true)
+end
+
 -- ---------------------------------------------------------------------------
 -- Run
 -- ---------------------------------------------------------------------------

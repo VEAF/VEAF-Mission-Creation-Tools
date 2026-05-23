@@ -309,23 +309,33 @@ Checksum verified before extraction
 
 ### Run All Tests
 
-```powershell
-.\test\lua\run_tests.ps1
+```shell
+poetry run test-lua
 ```
 
 Exit code `0` = all pass, `1` = failures.
 
+Works on Windows, Linux, and inside the DevContainer (auto-detects `lua5.1` / `lua` / Windows fallback path).
+
 ### Filtered Run
 
-```powershell
-.\test\lua\run_tests.ps1 -Filter spawn
-.\test\lua\run_tests.ps1 -Filter combat
+```shell
+poetry run test-lua --filter spawn
+poetry run test-lua --filter combat
 ```
+
+### Coverage
+
+```shell
+poetry run test-lua --coverage
+```
+
+Prints a per-file line coverage table. Requires `luarocks install luacov` (pre-installed in the DevContainer). See [TESTING.md](../TESTING.md#coverage) for details.
 
 ### Single Suite
 
-```powershell
-lua test\lua\test_veafSpawn.lua
+```shell
+lua test/lua/test_veafSpawn.lua
 ```
 
 ### Infrastructure
@@ -405,7 +415,7 @@ Types: `feat`, `fix`, `chore`, `docs`, `test`, `refactor`, `style`.
 ### Pull Request Checklist
 
 - [ ] All Lua changes pass `stylua --check`
-- [ ] All unit tests pass (`run_tests.ps1`)
+- [ ] All unit tests pass (`poetry run test-lua`)
 - [ ] New functionality has tests in `test/lua/`
 - [ ] Public API changes documented in `doc/LUA_API_REFERENCE.md`
 - [ ] `CHANGELOG.md` updated for user-visible changes

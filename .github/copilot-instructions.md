@@ -100,14 +100,14 @@ luacheck src/scripts/veaf/ --config .luacheckrc
 
 Before opening a PR that touches `src/scripts/veaf/`, run the Lua test suite locally:
 
-```powershell
-# Requires lua.exe (Lua 5.1) — installed at C:\Program Files (x86)\Lua\5.1\lua.exe
-$FAILED=0
-Get-ChildItem test/lua/test_*.lua | Sort-Object Name | ForEach-Object {
-    Write-Host "--- $($_.Name) ---"
-    lua $_.FullName; if ($LASTEXITCODE -ne 0) { $FAILED=1 }
-}
-if ($FAILED -eq 0) { 'All tests passed.' } else { 'FAILED'; exit 1 }
+```shell
+poetry run test-lua
+```
+
+Or with a filter:
+
+```shell
+poetry run test-lua --filter spawn
 ```
 
 - CI runs on Lua 5.1 (Ubuntu, `lua5.1`). Local interpreter: `lua` (Lua 5.1 via `C:\Program Files (x86)\Lua\5.1\lua.exe`)
@@ -127,7 +127,7 @@ Always do this before starting any new work.
 1. `~/.local/bin/stylua.exe src/scripts/veaf/` — auto-fix Lua formatting
 2. `~/.local/bin/stylua.exe --check src/scripts/veaf/` — verify clean
 3. `luacheck src/scripts/veaf/ --config .luacheckrc` — static analysis
-4. Lua tests (see above) — verify all suites pass
+4. `poetry run test-lua` — verify all Lua suites pass
 5. `poetry run ruff check src/python` + `poetry run ruff format --check src/python` + `poetry run mypy src/python` + `poetry run pytest` — Python quality gate
 6. Update `doc/backlog.md` to reflect ticket state
 7. Only then: open PR and request Copilot review (`mcp_github_request_copilot_review`)

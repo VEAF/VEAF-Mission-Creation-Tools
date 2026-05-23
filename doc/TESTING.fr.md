@@ -6,6 +6,7 @@ Documentation de la suite de tests unitaires Lua VEAF et du pipeline CI/CD.
 
 - [Vue d'ensemble](#vue-densemble)
 - [Exécuter les tests](#executer-les-tests)
+- [Couverture](#couverture)
 - [Infrastructure](#infrastructure)
 - [Suite de tests](#suite-de-tests)
 - [Écrire des tests](#ecrire-des-tests)
@@ -23,30 +24,62 @@ Le projet compte 31 suites de tests Lua couvrant tous les modules runtime, total
 
 ### Tous les tests
 
-```powershell
-.\test\lua\run_tests.ps1
+```shell
+poetry run test-lua
 ```
 
 Code de sortie `0` si toutes les suites passent, `1` si un test échoue.
 
 ### Exécution filtrée
 
-```powershell
-# Exécuter les suites dont le nom de fichier correspond à une sous-chaîne
-.\test\lua\run_tests.ps1 -Filter spawn
-.\test\lua\run_tests.ps1 -Filter combat
+```shell
+poetry run test-lua --filter spawn
+poetry run test-lua --filter combat
 ```
 
 ### Fichier unique
 
-```powershell
-lua test\lua\test_veafSpawn.lua
+```shell
+lua test/lua/test_veafSpawn.lua
 ```
 
 ### Prérequis
 
-- Lua 5.1 dans le PATH, ou installé à `c:\program files (x86)\lua\5.1\lua.exe`
+- `poetry install` doit avoir été exécuté une fois
+- Lua 5.1 dans le PATH (`lua5.1` sous Linux/DevContainer, `lua` ou `C:\Program Files (x86)\Lua\5.1\lua.exe` sous Windows)
 - Aucune autre dépendance (luaunit est embarqué dans `test/lua/luaunit.lua`)
+
+---
+
+## Couverture
+
+Générez un rapport de couverture ligne par ligne avec [luacov](https://github.com/lunarmodules/luacov) :
+
+```shell
+poetry run test-lua --coverage
+# ou forme courte :
+poetry run test-lua -c
+```
+
+Après l'exécution, un tableau est affiché avec le nombre de lignes couvertes, manquées et le pourcentage de couverture par module. Le rapport est également écrit dans `luacov.report.out` à la racine du dépôt.
+
+### Prérequis
+
+luacov doit être installé via luarocks :
+
+```shell
+# Linux / DevContainer (luarocks est pré-installé)
+luarocks install luacov
+
+# Windows (peut nécessiter un shell élevé)
+luarocks install luacov
+```
+
+Dans le DevContainer, luacov est installé automatiquement — aucune étape supplémentaire requise.
+
+### Configuration
+
+La couverture est collectée uniquement pour les modules sous `src/scripts/veaf/` (les helpers de test et luaunit sont exclus). Le fichier `.luacov` à la racine du dépôt contrôle ce comportement.
 
 ---
 
@@ -59,7 +92,6 @@ test/lua/
 ├── luaunit.lua         # Framework de test (embarqué)
 ├── dcs_mocks.lua       # Stubs de l'API DCS
 ├── veaf_loader.lua     # Chargeur de modules pour src/scripts/veaf/
-├── run_tests.ps1       # Lanceur de tests (PowerShell)
 └── test_*.lua          # Un fichier par module (31 fichiers)
 ```
 

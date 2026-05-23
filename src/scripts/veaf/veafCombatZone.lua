@@ -964,7 +964,7 @@ function VeafCombatZone:getInformation(unitName)
       message = message .. "\n"
 
       -- get altitude, qfe and wind information
-      message = message .. veaf.weatherReport(zoneCenter, nil, true)
+      message = message .. "\n\nWEATHER:\n" .. veafWeatherData.getWeatherString(zoneCenter, nil, veafWeatherUnitSystem.Systems.Full)
     end
   else
     message = message .. "zone is not yet active."

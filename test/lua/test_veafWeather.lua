@@ -413,6 +413,92 @@ function TestVeafWeatherCarrierCase:test_day_no_clouds_case1()
 end
 
 -- ============================================================================
+-- TestVeafWeatherGetWind
+-- ============================================================================
+TestVeafWeatherGetWind = {}
+
+function TestVeafWeatherGetWind:setUp()
+  dcs_mocks.reset()
+end
+
+-- Helper: override atmosphere.getWind to return a fixed vector
+local function setWind(x, z)
+  atmosphere.getWind = function(_) return { x = x, y = 0, z = z } end
+  atmosphere.getWindWithTurbulence = function(_) return { x = x, y = 0, z = z } end
+end
+
+-- No wind → direction 0 (calm), speed 0
+function TestVeafWeatherGetWind:test_calm_wind()
+  setWind(0, 0)
+  local dir, spd = veafWeather.getWind({ x = 0, y = 0, z = 0 }, 0)
+  luaunit.assertEquals(spd, 0)
+  -- direction is undefined for calm wind; just check it's an integer in [1,360]
+  luaunit.assertTrue(dir >= 1 and dir <= 360)
+end
+
+-- Wind blowing toward north (x=1, z=0) → "from" direction should be south = 180
+function TestVeafWeatherGetWind:test_wind_toward_north_from_south()
+  setWind(1, 0)
+  local dir, _ = veafWeather.getWind({ x = 0, y = 0, z = 0 }, 0)
+  luaunit.assertEquals(dir, 180)
+end
+
+-- Wind blowing toward east (x=0, z=1) → "from" direction should be west = 270
+function TestVeafWeatherGetWind:test_wind_toward_east_from_west()
+  setWind(0, 1)
+  local dir, _ = veafWeather.getWind({ x = 0, y = 0, z = 0 }, 0)
+  luaunit.assertEquals(dir, 270)
+end
+
+-- Wind blowing toward south (x=-1, z=0) → "from" direction should be north = 360
+function TestVeafWeatherGetWind:test_wind_toward_south_from_north()
+  setWind(-1, 0)
+  local dir, _ = veafWeather.getWind({ x = 0, y = 0, z = 0 }, 0)
+  luaunit.assertEquals(dir, 360)
+end
+
+-- Wind blowing toward west (x=0, z=-1) → "from" direction should be east = 90
+function TestVeafWeatherGetWind:test_wind_toward_west_from_east()
+  setWind(0, -1)
+  local dir, _ = veafWeather.getWind({ x = 0, y = 0, z = 0 }, 0)
+  luaunit.assertEquals(dir, 90)
+end
+
+-- Result direction must be integer in [1, 360]
+function TestVeafWeatherGetWind:test_direction_is_integer_in_range()
+  setWind(1, 1)
+  local dir, _ = veafWeather.getWind({ x = 0, y = 0, z = 0 }, 0)
+  luaunit.assertEquals(dir, math.floor(dir)) -- integer
+  luaunit.assertTrue(dir >= 1 and dir <= 360)
+end
+
+-- Speed matches the 2D magnitude of the wind vector
+function TestVeafWeatherGetWind:test_speed_matches_magnitude()
+  setWind(3, 4)
+  local _, spd = veafWeather.getWind({ x = 0, y = 0, z = 0 }, 0)
+  luaunit.assertAlmostEquals(spd, 5.0, 1e-6) -- sqrt(9+16)
+end
+
+-- bTurbulence flag routes to getWindWithTurbulence
+function TestVeafWeatherGetWind:test_turbulence_flag()
+  local called = false
+  atmosphere.getWindWithTurbulence = function(_)
+    called = true
+    return { x = 1, y = 0, z = 0 }
+  end
+  atmosphere.getWind = function(_) return { x = 0, y = 0, z = 0 } end
+  veafWeather.getWind({ x = 0, y = 0, z = 0 }, 0, true)
+  luaunit.assertTrue(called)
+end
+
+-- nil vec3 guard → returns 0, 0 without error
+function TestVeafWeatherGetWind:test_nil_vec3_returns_zero()
+  local dir, spd = veafWeather.getWind(nil, 0)
+  luaunit.assertEquals(dir, 0)
+  luaunit.assertEquals(spd, 0)
+end
+
+-- ============================================================================
 -- Run
 -- ============================================================================
 os.exit(luaunit.LuaUnit.run())

@@ -415,7 +415,7 @@ class BuildAndReleaseWorker:
             original_contents: dict[str, str] = {}
             try:
                 python_files = [
-                    self.src_dir / "python" / "veaf-tools" / "veaf-tools.py",
+                    self.src_dir / "python" / "veaf-tools" / "veaf_tools" / "app.py",
                     self.src_dir / "python" / "veaf-tools" / "veaf-tools-updater.py",
                 ]
 

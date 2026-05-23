@@ -65,7 +65,7 @@ jobs:
         run: poetry run veaf-build build --version ${{ steps.version.outputs.version }}
 
       - name: Publish to GitHub
-        run: poetry run veaf-build publish --version ${{ steps.version.outputs.version }} --ci
+        run: poetry run veaf-build publish --version ${{ steps.version.outputs.version }} --ci --force
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

@@ -204,28 +204,66 @@ class TestDetectLangLocaleRaises(unittest.TestCase):
 
     def test_locale_raises_falls_back_to_en(self) -> None:
         import locale
+        import sys
         from unittest.mock import patch
 
         os.environ.pop("VEAF_LANG", None)
         for var in ("LC_ALL", "LC_CTYPE", "LANG"):
             os.environ.pop(var, None)
 
-        with patch.object(locale, "getlocale", side_effect=Exception("locale error")):
+        # Force the non-Windows path so winreg is never reached.
+        with (
+            patch.object(locale, "getlocale", side_effect=Exception("locale error")),
+            patch.object(sys, "platform", "linux"),
+        ):
             lang = _detect_lang()
         self.assertEqual(lang, "en")
 
     def test_locale_raises_uses_lc_all_env(self) -> None:
         import locale
+        import sys
         from unittest.mock import patch
 
         os.environ.pop("VEAF_LANG", None)
         os.environ["LC_ALL"] = "fr_FR.UTF-8"
         try:
-            with patch.object(locale, "getlocale", side_effect=Exception("locale error")):
+            # Force the non-Windows path so winreg is never reached.
+            with (
+                patch.object(locale, "getlocale", side_effect=Exception("locale error")),
+                patch.object(sys, "platform", "linux"),
+            ):
                 lang = _detect_lang()
             self.assertEqual(lang, "fr")
         finally:
             os.environ.pop("LC_ALL", None)
+
+    def test_winreg_used_when_locale_returns_none(self) -> None:
+        """On Windows, winreg is consulted when locale.getlocale returns None."""
+        import locale
+        import sys
+        import types
+        from unittest.mock import MagicMock, patch
+
+        os.environ.pop("VEAF_LANG", None)
+        for var in ("LC_ALL", "LC_CTYPE", "LANG"):
+            os.environ.pop(var, None)
+
+        # Simulate locale.getlocale returning None (typical on Windows before setlocale).
+        fake_winreg: object = types.ModuleType("winreg")
+        fake_key = MagicMock()
+        fake_key.__enter__ = lambda s: s
+        fake_key.__exit__ = MagicMock(return_value=False)
+        setattr(fake_winreg, "HKEY_CURRENT_USER", 0)
+        setattr(fake_winreg, "OpenKey", MagicMock(return_value=fake_key))
+        setattr(fake_winreg, "QueryValueEx", MagicMock(return_value=("fr-FR", 1)))
+
+        with (
+            patch.object(locale, "getlocale", return_value=(None, None)),
+            patch.object(sys, "platform", "win32"),
+            patch.dict("sys.modules", {"winreg": fake_winreg}),
+        ):
+            lang = _detect_lang()
+        self.assertEqual(lang, "fr")
 
 
 if __name__ == "__main__":

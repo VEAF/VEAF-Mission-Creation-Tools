@@ -79,7 +79,19 @@ def _detect_lang() -> str:
             return loc[:2].lower()
     except Exception:
         pass
-    # Last resort: parse LANG / LC_ALL env vars directly.
+    # On Windows, locale.getlocale() returns None until setlocale() is called.
+    # Use winreg to read the user's locale from the registry instead.
+    if sys.platform == "win32":
+        try:
+            import winreg  # noqa: PLC0415
+
+            with winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Control Panel\International") as key:
+                locale_name = winreg.QueryValueEx(key, "LocaleName")[0]  # e.g. "fr-FR"
+                if locale_name:
+                    return locale_name[:2].lower()
+        except Exception:
+            pass
+    # Last resort: parse LANG / LC_ALL env vars directly (Linux/macOS).
     for var in ("LC_ALL", "LC_CTYPE", "LANG"):
         val = os.environ.get(var, "").strip()
         if val and val != "C" and val != "POSIX":

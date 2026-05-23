@@ -44,7 +44,7 @@ class TimeExpressionParser:
                 logger.debug(f"Parsed time expression '{expr}' = {result}s")
                 return result
             except (ValueError, IndexError) as e:
-                logger.error(f"Failed to parse time expression '{expr}': {e}")
+                logger.error(f"Failed to parse time expression '{expr}': {e}", exception_type=None)
                 raise ValueError(f"Invalid time format '{expr}': {e}")
 
         # Replace solar references
@@ -74,5 +74,5 @@ class TimeExpressionParser:
             return result
 
         except Exception as e:
-            logger.error(f"Failed to evaluate time expression '{expression}': {e}")
+            logger.error(f"Failed to evaluate time expression '{expression}': {e}", exception_type=None)
             raise ValueError(f"Invalid time expression '{expression}': {e}")

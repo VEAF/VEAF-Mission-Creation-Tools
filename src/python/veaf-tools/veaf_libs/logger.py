@@ -11,6 +11,7 @@ class Logger:
 
     def __init__(self, logger_name: str, verbose: bool = False, console: Console | None = None):
         # Create a specific logger instance
+        self.verbose = verbose
         self.logger = logging.getLogger(logger_name)
         self.logger.setLevel(logging.DEBUG if verbose else logging.INFO)
 
@@ -44,14 +45,18 @@ class Logger:
         self.error(str(e), exception_type=type(e))
 
     def error(
-        self, message: str, no_console: bool = False, raise_exception: bool = False, exception_type: type = typer.Abort
+        self,
+        message: str,
+        no_console: bool = False,
+        raise_exception: bool = False,
+        exception_type: type | None = typer.Abort,
     ) -> Self:
         """Log and display error message."""
         self.logger.error(message)
         if self.console and not no_console:
             self.console.print(message, style="red")
         if raise_exception or exception_type:
-            raise exception_type(message)
+            raise (exception_type or typer.Abort)(message)
         return self
 
     def warning(self, message: str, no_console: bool = False) -> Self:

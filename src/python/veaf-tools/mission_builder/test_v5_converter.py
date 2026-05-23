@@ -6,7 +6,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from veaf_libs.i18n import current_language, set_language
+from veaf_libs.i18n import current_language, set_language, t
 
 from mission_builder.config_migrator import MigrationResult
 from mission_builder.v5_converter import ConversionReport, PipelineFile, V5Converter
@@ -101,6 +101,13 @@ class TestConversionReportToMarkdownWithMigration(unittest.TestCase):
             wrapped_calls=["line2: veafRadio.initialize()"],
             enabled_modules=["RADIO", "SPAWN"],
         )
+        pf = PipelineFile(
+            step="presets",
+            path=folder / "src" / "radioSettings.lua",
+            relative="src/presets.yaml",
+            converted=True,
+            v5_source="src/radioSettings.lua",
+        )
         return ConversionReport(
             mission_folder=folder,
             timestamp="2024-01-01 12:00",
@@ -109,7 +116,21 @@ class TestConversionReportToMarkdownWithMigration(unittest.TestCase):
             missionconfig_backup=bak_path,
             missionconfig_output=mc_path,
             migration_result=mr,
+            pipeline_files=[pf],
         )
+
+    def test_markdown_uses_localized_scan_headers(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            md = self._rich_report(Path(td)).to_markdown()
+            self.assertIn(t("report.section.scan"), md)
+            self.assertIn(t("report.scan.col.item"), md)
+            self.assertIn(t("report.scan.col.status"), md)
+
+    def test_markdown_uses_localized_pipeline_scan_status(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            md = self._rich_report(Path(td)).to_markdown()
+            # Converted pipeline file shows localized status in scan table
+            self.assertIn(t("report.scan.pipeline.converted"), md)
 
     def test_removed_dofiles_listed(self) -> None:
         with tempfile.TemporaryDirectory() as td:

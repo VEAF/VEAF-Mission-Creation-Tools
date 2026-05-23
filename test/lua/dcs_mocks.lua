@@ -177,6 +177,7 @@ coord = {
   LLtoLO = function(lat, lon, alt) return { x = 0, y = 0, z = 0 } end,
   LOtoLL = function(vec3) return 0, 0, 0 end,
   LOtoMGRS = function(vec3) return { UTMZone = "", Easting = 0, Northing = 0 } end,
+  MGRStoLL = function(mgrs) return 0, 0 end,
 }
 atmosphere = {
   getWind = function(point) return { x = 0, y = 0, z = 0 } end,

@@ -108,7 +108,7 @@ Couverture initiale (2026-05-23) : 48,35 % global, mais 26 modules en dessous du
 
 | # | Ticket | Modules ciblés (couverture actuelle) | Type | Effort | Status |
 |---|--------|--------------------------------------|------|--------|--------|
-| COV-001 | `veaf.lua` → 50 % (31 %) — utilitaires core : `veaf.p`, `veaf.safeCall`, timers, loggers, `getCountryForCoalition`, `getClosestAirbase` | `veaf.lua` | chore | 90 min | ⬜ |
+| COV-001 | `veaf.lua` → 50 % (31 %) — utilitaires core : `veaf.p`, `veaf.safeCall`, timers, loggers, `getCountryForCoalition`, `getClosestAirbase` | `veaf.lua` | chore | 90 min | ✅ |
 | COV-002 | `veafSpawn` sub-modules → 50 % chacun — Core (19 %), Ground (6 %), Aircraft (3 %), Effects (7 %) ; nécessite mock `mist.dynAdd` et `trigger.action.*` | `veafSpawnCore`, `veafSpawnGround`, `veafSpawnAircraft`, `veafSpawnEffects` | chore | 180 min | ⬜ |
 | COV-003 | `veafCombatMission` (32 %) + `veafCombatZone` (26 %) → 50 % chacun — logique d'état de zone, spawn de vagues, victoire | `veafCombatMission.lua`, `veafCombatZone.lua` | chore | 120 min | ⬜ |
 | COV-004 | `veafAirWaves` (34 %) + `veafCarrierOperations` (9 %) → 50 % chacun — FSM AirWave, helpers carrier | `veafAirWaves.lua`, `veafCarrierOperations.lua` | chore | 120 min | ⬜ |

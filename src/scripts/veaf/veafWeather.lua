@@ -497,7 +497,7 @@ end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Static methods
-function veafWeatherData.getWeatherString(vec3, dcsElementName, unitSystem)
+function veafWeatherData.getWeatherString(vec3, dcsElementName, unitSystem, iSurfaceAltitudeMeters)
   local bWithLaste = false
 
   local sTypeName = veaf.getDcsTypeName(dcsElementName)
@@ -510,7 +510,7 @@ function veafWeatherData.getWeatherString(vec3, dcsElementName, unitSystem)
     bWithLaste = true
   end
 
-  local weatherData = veafWeatherData:create(vec3)
+  local weatherData = veafWeatherData:create(vec3, nil, iSurfaceAltitudeMeters)
   return weatherData:toString(unitSystem, bWithLaste)
 end
 
@@ -1200,6 +1200,9 @@ function veafWeatherAtis.getAtisStringFromVeafPoint(sPointName, iAbsTime)
 end
 
 function veafWeather.getWind(vec3, iAltitudeMeters, bTurbulence)
+  if vec3 == nil then
+    return 0, 0
+  end
   bTurbulence = bTurbulence or false
 
   local vec3AtAltitude = { x = vec3.x, y = iAltitudeMeters, z = vec3.z }
@@ -1220,10 +1223,19 @@ function veafWeather.getWind(vec3, iAltitudeMeters, bTurbulence)
     iDirection = iDirection + 180
   end
 
+  -- round to integer degrees and wrap to [1, 360]
+  iDirection = math.floor(iDirection + 0.5)
+  if iDirection > 360 then
+    iDirection = iDirection - 360
+  end
+  if iDirection <= 0 then
+    iDirection = iDirection + 360
+  end
+
   local iSpeed = veaf.compute2dMagnitude(vec3Wind)
 
   veaf.loggers.get(veafWeather.Id):trace(
-    "Wind vec3 alt [ %d ]: [ z(east)=%f, x(north)=%f ] -- direction [ %f ], strength [ %f ]",
+    "Wind vec3 alt [ %d ]: [ z(east)=%f, x(north)=%f ] -- direction [ %d ], strength [ %f ]",
     iAltitudeMeters,
     vec3Wind.z,
     vec3Wind.x,

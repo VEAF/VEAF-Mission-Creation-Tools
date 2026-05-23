@@ -951,6 +951,9 @@ function veaf.invertHeading(heading)
 end
 
 function veaf.compute2dAzimuth(vec3)
+  if vec3 == nil or (vec3.x == 0 and vec3.z == 0) then
+    return 0
+  end
   local iAngleRadian = math.atan2(vec3.z, vec3.x) -- get azimuth angle in radians from the vector (x=north, z=east in DCS coordinates)
   local iAngleDegrees = math.deg(iAngleRadian)
   if iAngleDegrees < 0 then
@@ -960,6 +963,9 @@ function veaf.compute2dAzimuth(vec3)
 end
 
 function veaf.compute2dMagnitude(vec3)
+  if vec3 == nil then
+    return 0
+  end
   return math.sqrt(vec3.x ^ 2 + vec3.z ^ 2)
 end
 

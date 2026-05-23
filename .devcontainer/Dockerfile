@@ -9,7 +9,7 @@ RUN apt-get update -q \
         unzip \
         git \
         sudo \
-    && luarocks install luacov \
+    && luarocks install luacov 0.15.0-1 \
     && rm -rf /var/lib/apt/lists/*
 
 # StyLua 2.4.0 — exact version required by CI (.github/workflows/lua-ci.yml)

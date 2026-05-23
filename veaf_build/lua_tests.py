@@ -55,8 +55,13 @@ def _luacov_module_available(lua: str) -> bool:
 def _run_luacov_reporter(lua: str) -> bool:
     """Generate luacov.report.out from luacov.stats.out. Returns True on success."""
     if shutil.which("luacov"):
-        # Use shell=True so .bat wrappers (luarocks on Windows) are executed correctly.
-        result = subprocess.run("luacov", cwd=_PROJECT_ROOT, capture_output=True, shell=True)
+        # shell=True required on Windows so .bat wrappers (luarocks) are executed correctly.
+        result = subprocess.run(
+            "luacov" if sys.platform == "win32" else ["luacov"],
+            cwd=_PROJECT_ROOT,
+            capture_output=True,
+            shell=sys.platform == "win32",
+        )
         return result.returncode == 0
     # luacov CLI not on PATH — invoke the reporter via the Lua module directly
     result = subprocess.run(
@@ -139,7 +144,7 @@ def _display_coverage_report() -> None:
 
 @app.command()
 def run(
-    filter: Optional[str] = typer.Option(None, "--filter", "-f", help="Run only suites whose filename contains this string."),
+    suite_filter: Optional[str] = typer.Option(None, "--filter", "-f", help="Run only suites whose filename contains this string."),
     coverage: bool = typer.Option(False, "--coverage", "-c", help="Collect and display Lua line coverage via luacov (requires: luarocks install luacov)."),
 ) -> None:
     """Run the Lua unit test suite (test/lua/test_*.lua)."""
@@ -154,11 +159,11 @@ def run(
         raise typer.Exit(1)
 
     test_files = sorted(_TEST_DIR.glob("test_*.lua"))
-    if filter:
-        test_files = [f for f in test_files if filter in f.name]
+    if suite_filter:
+        test_files = [f for f in test_files if suite_filter in f.name]
 
     if not test_files:
-        console.print(f"[yellow]No test files found (filter={filter!r}).[/yellow]")
+        console.print(f"[yellow]No test files found (filter={suite_filter!r}).[/yellow]")
         raise typer.Exit(0)
 
     if coverage:

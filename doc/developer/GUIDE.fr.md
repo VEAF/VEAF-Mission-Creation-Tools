@@ -329,7 +329,7 @@ poetry run test-lua --filter combat
 poetry run test-lua --coverage
 ```
 
-Affiche un tableau de couverture ligne par ligne. Nécessite `luarocks install luacov` (pré-installé dans le DevContainer). Voir [TESTING.fr.md](../TESTING.fr.md#couverture) pour plus de détails.
+Affiche un tableau de couverture ligne par ligne. Nécessite `luarocks install luacov` (pré-installé dans le DevContainer). Voir [TESTING.md](../TESTING.md#couverture) pour plus de détails.
 
 ### Suite unique
 

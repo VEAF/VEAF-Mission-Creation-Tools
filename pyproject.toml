@@ -25,6 +25,7 @@ requests = ">=2.28,<3"
 
 [tool.poetry.scripts]
 veaf-build = "veaf_build:main"
+test-lua = "veaf_build.lua_tests:main"
 
 [tool.poetry.group.dev.dependencies]
 ruff = ">=0.4"

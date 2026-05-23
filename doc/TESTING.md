@@ -6,6 +6,7 @@ Documentation for the VEAF Lua unit test suite and CI/CD pipeline.
 
 - [Overview](#overview)
 - [Running Tests](#running-tests)
+- [Coverage](#coverage)
 - [Infrastructure](#infrastructure)
 - [Test Suite](#test-suite)
 - [Writing Tests](#writing-tests)
@@ -23,30 +24,62 @@ The project has 31 Lua test suites covering all runtime modules, totalling ~915 
 
 ### All Tests
 
-```powershell
-.\test\lua\run_tests.ps1
+```shell
+poetry run test-lua
 ```
 
 Exit code `0` if all suites pass, `1` if any fail.
 
 ### Filtered Run
 
-```powershell
-# Run suites whose filename matches a substring
-.\test\lua\run_tests.ps1 -Filter spawn
-.\test\lua\run_tests.ps1 -Filter combat
+```shell
+poetry run test-lua --filter spawn
+poetry run test-lua --filter combat
 ```
 
 ### Single File
 
-```powershell
-lua test\lua\test_veafSpawn.lua
+```shell
+lua test/lua/test_veafSpawn.lua
 ```
 
 ### Requirements
 
-- Lua 5.1 on PATH, or installed at `c:\program files (x86)\lua\5.1\lua.exe`
+- `poetry install` must have been run once
+- Lua 5.1 on PATH (`lua5.1` on Linux/DevContainer, `lua` or `C:\Program Files (x86)\Lua\5.1\lua.exe` on Windows)
 - No other dependencies (luaunit is bundled in `test/lua/luaunit.lua`)
+
+---
+
+## Coverage
+
+Generate a per-file line coverage report using [luacov](https://github.com/lunarmodules/luacov):
+
+```shell
+poetry run test-lua --coverage
+# or short form:
+poetry run test-lua -c
+```
+
+After the test run a rich table is printed showing hits, missed lines, and coverage percentage per module. The report file is also written to `luacov.report.out` in the repository root for manual inspection.
+
+### Requirements
+
+luacov must be installed via luarocks:
+
+```shell
+# Linux / DevContainer (luarocks is pre-installed)
+luarocks install luacov
+
+# Windows (may need an elevated shell)
+luarocks install luacov
+```
+
+In the DevContainer, luacov is installed automatically — no extra steps needed.
+
+### Configuration
+
+Coverage is collected only for modules under `src/scripts/veaf/` (test helpers and luaunit are excluded). The `.luacov` file at the repository root controls this.
 
 ---
 
@@ -59,7 +92,6 @@ test/lua/
 ├── luaunit.lua         # Test framework (bundled)
 ├── dcs_mocks.lua       # DCS API stubs
 ├── veaf_loader.lua     # Module loader for src/scripts/veaf/
-├── run_tests.ps1       # Test runner (PowerShell)
 └── test_*.lua          # One file per module (31 files)
 ```
 

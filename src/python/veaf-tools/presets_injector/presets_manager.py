@@ -52,7 +52,9 @@ class ChannelDefinition:
     A radio channel definition, composed of information about the channel (name, title etc.) and about the radio (frequencies, modulations)
     """
 
-    def __init__(self, name: str, title: str | None = None, misc_data: str | None = None, collection_name: str | None = None):
+    def __init__(
+        self, name: str, title: str | None = None, misc_data: str | None = None, collection_name: str | None = None
+    ):
         self.name: str = name
         self.title: str | None = title
         self.misc_data: str | None = misc_data

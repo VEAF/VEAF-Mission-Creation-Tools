@@ -3,6 +3,10 @@ site/
 node_modules/
 cache/
 
+# luacov coverage artefacts
+luacov.stats.out
+luacov.report.out
+
 # LuaLS third-party addons (cloned locally, not committed)
 .lua-addons/
 

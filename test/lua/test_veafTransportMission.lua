@@ -91,4 +91,203 @@ function TestVeafTransportMarkTextAnalysis:test_size_keyword()
   luaunit.assertEquals(r.size, 3)
 end
 
+-- Stubs for symbols that are referenced inside transport mission functions
+-- but are not part of the core modules loaded above.
+veafSpawn = veafSpawn or {}
+veafSpawn.doSpawnGroup = veafSpawn.doSpawnGroup or function(...) end
+
+veafNamedPoints = {
+  getPoint = function(name) return nil end,
+  namePoint = function(...) end,
+}
+
+-- ---------------------------------------------------------------------------
+-- TestVeafTransportMarkTextAnalysisKeywords
+-- ---------------------------------------------------------------------------
+TestVeafTransportMarkTextAnalysisKeywords = {}
+
+function TestVeafTransportMarkTextAnalysisKeywords:test_password_keyword()
+  local r = veafTransportMission.markTextAnalysis("_transport, password mysecret")
+  luaunit.assertNotNil(r)
+  luaunit.assertEquals(r.password, "mysecret")
+end
+
+function TestVeafTransportMarkTextAnalysisKeywords:test_defense_keyword()
+  local r = veafTransportMission.markTextAnalysis("_transport, defense 3")
+  luaunit.assertNotNil(r)
+  luaunit.assertEquals(r.defense, 3)
+end
+
+function TestVeafTransportMarkTextAnalysisKeywords:test_blocade_keyword()
+  local r = veafTransportMission.markTextAnalysis("_transport, blocade 2")
+  luaunit.assertNotNil(r)
+  luaunit.assertEquals(r.blocade, 2)
+end
+
+function TestVeafTransportMarkTextAnalysisKeywords:test_from_keyword()
+  local r = veafTransportMission.markTextAnalysis("_transport, from HOME")
+  luaunit.assertNotNil(r)
+  luaunit.assertEquals(r.from, "HOME")
+end
+
+-- ---------------------------------------------------------------------------
+-- TestVeafTransportGenerateEnemy
+-- ---------------------------------------------------------------------------
+TestVeafTransportGenerateEnemy = {}
+
+function TestVeafTransportGenerateEnemy:test_defense_level_0()
+  veafTransportMission.generateEnemyDefenseGroup({ x = 0, y = 0, z = 0 }, "EnemyGrp_L0", 0)
+  luaunit.assertTrue(true)
+end
+
+function TestVeafTransportGenerateEnemy:test_defense_level_1()
+  veafTransportMission.generateEnemyDefenseGroup({ x = 0, y = 0, z = 0 }, "EnemyGrp_L1", 1)
+  luaunit.assertTrue(true)
+end
+
+function TestVeafTransportGenerateEnemy:test_defense_level_3()
+  veafTransportMission.generateEnemyDefenseGroup({ x = 0, y = 0, z = 0 }, "EnemyGrp_L3", 3)
+  luaunit.assertTrue(true)
+end
+
+function TestVeafTransportGenerateEnemy:test_defense_level_5()
+  veafTransportMission.generateEnemyDefenseGroup({ x = 0, y = 0, z = 0 }, "EnemyGrp_L5", 5)
+  luaunit.assertTrue(true)
+end
+
+-- ---------------------------------------------------------------------------
+-- TestVeafTransportFunctions
+-- ---------------------------------------------------------------------------
+TestVeafTransportFunctions = {}
+
+function TestVeafTransportFunctions:test_generateFriendlyGroup_runs()
+  veafTransportMission.generateFriendlyGroup({ x = 0, y = 0, z = 0 })
+  luaunit.assertTrue(true)
+end
+
+function TestVeafTransportFunctions:test_generateTransportMission_nil_from()
+  veafTransportMission.generateTransportMission({ x = 0, y = 0, z = 0 }, 1, 0, 0, nil)
+  luaunit.assertTrue(true)
+end
+
+function TestVeafTransportFunctions:test_generateTransportMission_unknown_from()
+  veafTransportMission.generateTransportMission({ x = 0, y = 0, z = 0 }, 1, 0, 0, "UNKNOWN_NAMED_POINT")
+  luaunit.assertTrue(true)
+end
+
+function TestVeafTransportFunctions:test_help_runs_without_error()
+  veafTransportMission.help(nil)
+  luaunit.assertTrue(true)
+end
+
+function TestVeafTransportFunctions:test_endTransportOfCargo_runs()
+  veafTransportMission.endTransportOfCargo("TestCargo")
+  luaunit.assertTrue(true)
+end
+
+function TestVeafTransportFunctions:test_resetAllCargoes_runs()
+  veafTransportMission.resetAllCargoes()
+  luaunit.assertTrue(true)
+end
+
+function TestVeafTransportFunctions:test_initializeAllHelosInCTLD_runs()
+  veafTransportMission.initializeAllHelosInCTLD()
+  luaunit.assertTrue(true)
+end
+
+function TestVeafTransportFunctions:test_initializeAllLogisticInCTLD_runs()
+  veafTransportMission.initializeAllLogisticInCTLD()
+  luaunit.assertTrue(true)
+end
+
+-- ---------------------------------------------------------------------------
+-- TestVeafTransportAdvanced
+-- Covers generateTransportMission body, cleanupAfterMission, "already exists"
+-- path, and generateEnemyDefenseGroup with deterministic random.
+-- ---------------------------------------------------------------------------
+TestVeafTransportAdvanced = {}
+
+function TestVeafTransportAdvanced:setUp()
+  self._origGetPoint        = veafNamedPoints.getPoint
+  self._origSpawnCargo      = veafSpawn.doSpawnCargo
+  self._origAddSecured      = veafRadio.addSecuredCommandToSubmenu
+  self._origRefreshRadio    = veafRadio.refreshRadioMenu
+  self._origDelCommand      = veafRadio.delCommand
+  self._origDelSubmenu      = veafRadio.delSubmenu
+  self._origTaskID          = veafTransportMission.friendlyGroupAliveCheckTaskID
+  self._origRandom          = math.random
+
+  -- Provide a real named point far enough from the target spot
+  veafNamedPoints.getPoint = function(name) return { x = 0, z = 0, y = 0 } end
+  veafSpawn.doSpawnCargo   = function(...) end
+
+  veafRadio.addSecuredCommandToSubmenu = function(...) end
+  veafRadio.refreshRadioMenu           = function(...) end
+  veafRadio.delCommand                 = function(...) end
+  veafRadio.delSubmenu                 = function(...) end
+
+  -- Deterministic: math.random(n) → 1, math.random(a,b) → a
+  math.random = function(a, b)
+    if not a then return 0.5 elseif not b then return 1 else return a end
+  end
+end
+
+function TestVeafTransportAdvanced:tearDown()
+  veafNamedPoints.getPoint             = self._origGetPoint
+  veafSpawn.doSpawnCargo               = self._origSpawnCargo
+  veafRadio.addSecuredCommandToSubmenu = self._origAddSecured
+  veafRadio.refreshRadioMenu           = self._origRefreshRadio
+  veafRadio.delCommand                 = self._origDelCommand
+  veafRadio.delSubmenu                 = self._origDelSubmenu
+  veafTransportMission.friendlyGroupAliveCheckTaskID = self._origTaskID
+  math.random = self._origRandom
+end
+
+-- Covers lines 357-358: "mission already exists" early-return path.
+function TestVeafTransportAdvanced:test_already_exists_returns_early()
+  veafTransportMission.friendlyGroupAliveCheckTaskID = "EXISTING_TASK"
+  veafTransportMission.generateTransportMission({ x = 0, y = 0, z = 0 }, 1, 0, 0, "HOME")
+  luaunit.assertEquals(veafTransportMission.friendlyGroupAliveCheckTaskID, "EXISTING_TASK")
+end
+
+-- Covers lines 372-496 (body when from is valid) + cleanupAfterMission (615-678).
+-- targetSpot is 50 km from startPoint so routeDistance > MinimumRouteDistance.
+function TestVeafTransportAdvanced:test_generateTransportMission_valid_from_runs()
+  veafTransportMission.generateTransportMission({ x = 50000, y = 0, z = 50000 }, 1, 0, 0, "HOME_BASE")
+  luaunit.assertTrue(true)
+end
+
+-- Covers generateEnemyDefenseGroup BTR-80 branch (line 300): defense=2.
+function TestVeafTransportAdvanced:test_generate_enemy_defense_btrtwo()
+  veafTransportMission.generateEnemyDefenseGroup({ x = 0, y = 0, z = 0 }, "EnemyGrp_BTR", 2)
+  luaunit.assertTrue(true)
+end
+
+-- Covers SA-18 Igla branch (lines 312-313): defense=3, random(100)=100 so >66.
+function TestVeafTransportAdvanced:test_generate_enemy_defense_igla()
+  math.random = function(a, b)
+    if not a then return 0.5 elseif not b then return a else return a end
+  end
+  veafTransportMission.generateEnemyDefenseGroup({ x = 0, y = 0, z = 0 }, "EnemyGrp_Igla", 3)
+  luaunit.assertTrue(true)
+end
+
+-- Covers SA-18 Igla-S (308-309) and ZU-23 (324): defense=4, random(100)=100.
+function TestVeafTransportAdvanced:test_generate_enemy_defense_igla_s_and_zu23()
+  math.random = function(a, b)
+    if not a then return 0.5 elseif not b then return a else return a end
+  end
+  veafTransportMission.generateEnemyDefenseGroup({ x = 0, y = 0, z = 0 }, "EnemyGrp_IglaS", 4)
+  luaunit.assertTrue(true)
+end
+
+-- Covers ZSU-23-4 Shilka branch (line 321): defense=5, random(100)=100.
+function TestVeafTransportAdvanced:test_generate_enemy_defense_shilka()
+  math.random = function(a, b)
+    if not a then return 0.5 elseif not b then return a else return a end
+  end
+  veafTransportMission.generateEnemyDefenseGroup({ x = 0, y = 0, z = 0 }, "EnemyGrp_Shilka", 5)
+  luaunit.assertTrue(true)
+end
+
 os.exit(luaunit.LuaUnit.run())

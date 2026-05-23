@@ -18,20 +18,17 @@ from veaf_tools.app import (
 )
 
 
-@app.command(no_args_is_help=True)
+@app.command(no_args_is_help=True, help=t("cmd.extract.help"))
 def extract(
     readme: bool = typer.Option(False, help=README_HELP),
     verbose: bool = typer.Option(False, help=VERBOSE_HELP),
     mission_name_or_file: str | None = typer.Argument(
         DEFAULT_MISSION_FILE,
-        help="Mission name; will extract from the mission with this name (most recent .miz file); can be set to a .miz file.",
+        help=t("cmd.extract.opt.mission"),
     ),
-    mission_folder: str | None = typer.Argument(".", help="Folder where the mission files will be extracted."),
+    mission_folder: str | None = typer.Argument(".", help=t("cmd.extract.opt.mission_folder")),
     pause: bool = typer.Option(False, help=PAUSE_HELP),
 ) -> None:
-    """
-    Extracts a DCS mission .miz file to a VEAF mission folder.
-    """
 
     logger.set_verbose(verbose)
 

@@ -26,51 +26,36 @@ from veaf_tools.app import (
 from veaf_tools.helpers import _update_build_config_in_yaml
 
 
-@app.command()
+@app.command(help=t("cmd.build.help"))
 def build(
     readme: bool = typer.Option(False, help=README_HELP),
     verbose: bool = typer.Option(False, help=VERBOSE_HELP),
-    no_veaf_triggers: bool = typer.Option(
-        False, help="If set, the VEAF triggers will not be injected in the resulting mission."
-    ),
+    no_veaf_triggers: bool = typer.Option(False, help=t("cmd.build.opt.no_veaf_triggers")),
     dynamic_mode: bool = typer.Option(
         False,
-        help="If set, the mission will dynamically load the scripts from the provided location (via --scripts-path or in the local published and src/scripts folders).",
+        help=t("cmd.build.opt.dynamic_mode"),
     ),
     dev_mode: bool | None = typer.Option(
         None,
         "--dev-mode/--no-dev-mode",
-        help=(
-            "Resolve VEAF scripts from a local dev repo (build/veaf-scripts.lua) instead of published/. "
-            "Requires --scripts-path pointing to the VEAF-Mission-Creation-Tools repo root. "
-            "This setting is persisted in mission.yaml (build.dev_mode)."
-        ),
+        help=t("cmd.build.opt.dev_mode"),
     ),
     scripts_path: str = typer.Option(
         None,
-        help="Path to the VEAF and community scripts. Persisted in mission.yaml (build.scripts_path).",
+        help=t("cmd.build.opt.scripts_path"),
     ),
-    migrate_from_v5: bool = typer.Option(
-        True, help="If set, the builder will parse the mission for old v5 triggers and remove them."
-    ),
+    migrate_from_v5: bool = typer.Option(True, help=t("cmd.build.opt.migrate_from_v5")),
     log_modules: str | None = typer.Option(
         None,
-        help=(
-            "Comma-separated list of module IDs to keep at full log level. "
-            "All other modules are silenced to 'error' level. "
-            "Example: --log-modules 'SPAWN,RADIO'"
-        ),
+        help=t("cmd.build.opt.log_modules_detail"),
     ),
     mission_name_or_file: str | None = typer.Argument(
         DEFAULT_MISSION_FILE,
-        help="Mission name; will build the mission with this name and the current date; can be set to a .miz file.",
+        help=t("cmd.build.opt.mission_name_or_file"),
     ),
-    mission_folder: str | None = typer.Argument(".", help="Folder with the mission files."),
+    mission_folder: str | None = typer.Argument(".", help=t("cmd.build.opt.folder")),
     pause: bool = typer.Option(False, help=PAUSE_HELP),
 ) -> None:
-    """
-    Builds a DCS mission based on a mission folder.
-    """
 
     logger.set_verbose(verbose)
 

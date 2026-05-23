@@ -22,16 +22,13 @@ import typer
 from rich.table import Table
 from veaf_libs.lua_module_scanner import get_modules
 
-from veaf_tools.app import app, console
+from veaf_tools.app import app, console, t
 
 
-@app.command()
+@app.command(help=t("cmd.about.help"))
 def about(
-    modules: bool = typer.Option(False, "--modules", help="Show the list of embedded VEAF Lua modules."),
+    modules: bool = typer.Option(False, "--modules", help=t("cmd.about.opt.modules")),
 ) -> None:
-    """
-    Shows information about the veaf-tools program.
-    """
     if modules:
         mod_list = get_modules()
         if not mod_list:

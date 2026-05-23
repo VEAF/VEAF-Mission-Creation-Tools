@@ -51,10 +51,26 @@ _en_catalog: dict[str, str] = {}
 
 
 def _detect_lang() -> str:
-    """Detect the active language from env var or OS locale."""
+    """Detect the active language.
+
+    Resolution order:
+    1. ``VEAF_LANG`` environment variable
+    2. ``~/veafmct.yaml`` (or ``~/.veaf/config.yaml``) ``lang:`` key
+    3. OS locale
+    4. ``"en"`` fallback
+    """
     env = os.environ.get("VEAF_LANG", "").strip()
     if env:
         return env[:2].lower()
+    # User global config — lazy import to avoid circular dependency at init time.
+    try:
+        from veaf_libs.user_config import get_lang as _get_user_lang  # noqa: PLC0415
+
+        user_lang = _get_user_lang()
+        if user_lang:
+            return user_lang
+    except Exception:
+        pass
     # Try OS locale; avoid the deprecated getdefaultlocale() (removed in 3.15).
     # Do NOT call locale.setlocale here — it has process-wide side effects.
     try:

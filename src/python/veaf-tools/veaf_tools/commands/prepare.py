@@ -4,23 +4,17 @@ from pathlib import Path
 import typer
 from veaf_libs.paths import resolve_path
 
-from veaf_tools.app import README_HELP, VERBOSE_HELP, VERSION, app, console, logger
+from veaf_tools.app import README_HELP, VERBOSE_HELP, VERSION, app, console, logger, t
 from veaf_tools.helpers import _ask_replace
 
 
-@app.command()
+@app.command(help=t("cmd.prepare.help"))
 def prepare(
     mission_folder: str | None = typer.Argument(".", help="Folder to initialize as a VEAF mission folder."),
     readme: bool = typer.Option(False, help=README_HELP),
     verbose: bool = typer.Option(False, help=VERBOSE_HELP),
-    force: bool = typer.Option(False, help="Do not ask before replacing existing files (same as pressing A)."),
+    force: bool = typer.Option(False, help=t("cmd.prepare.opt.force")),
 ) -> None:
-    """
-    Initializes a mission folder with default files (mission.yaml, src/ templates).
-
-    Run this once after installing veaf-tools-updater to set up a new mission folder.
-    For v5 migrations, do NOT run prepare — use convert-v5 directly on your existing v5 folder.
-    """
 
     logger.set_verbose(verbose)
 

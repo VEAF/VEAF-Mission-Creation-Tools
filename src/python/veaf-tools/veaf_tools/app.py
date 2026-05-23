@@ -28,4 +28,7 @@ def main_callback(
     """VEAF Tools — DCS World mission management CLI."""
     if lang:
         set_language(lang)
-    check_for_updates(VERSION, console)
+    from veaf_libs.user_config import get_check_updates
+
+    if get_check_updates():
+        check_for_updates(VERSION, console)

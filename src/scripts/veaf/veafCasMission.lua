@@ -1148,7 +1148,7 @@ function veafCasMission.reportTargetInformation(unitName)
   message = message .. "FROM BULLSEYE    : " .. fromBullseye .. ".\n"
   message = message .. "\n"
 
-  message = message .. veaf.weatherReport(averageGroupPosition, nil, true)
+  message = message .. "\n\nWEATHER:\n" .. veafWeatherData.getWeatherString(averageGroupPosition, unitName)
 
   -- send message only for the unit
   veaf.outTextForGroup(unitName, message, 30)

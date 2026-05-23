@@ -532,6 +532,8 @@ class V5Converter:
                 continue
             v5_abs_path = pf.path  # save before we overwrite pf.path below
             v6_path = report.mission_folder / pf.v6_target
+            _lk = f"pipeline.label.{pf.step}"
+            label = t(_lk) if t(_lk) != _lk else pf.step
             try:
                 warnings = convert_pipeline_file(
                     pf.step,
@@ -545,14 +547,11 @@ class V5Converter:
                 pf.path = v6_path
                 pf.relative = pf.v6_target
                 for w in warnings:
-                    report.warnings.append(f"{t(f'pipeline.label.{pf.step}')}: {w}")
-                report.actions.append(f"{t(f'pipeline.label.{pf.step}')}: converted to {pf.v6_target}")
+                    report.warnings.append(f"{label}: {w}")
+                report.actions.append(f"{label}: converted to {pf.v6_target}")
                 self._backup_and_delete_v5(pf.step, v5_abs_path, report)
             except Exception as exc:
-                report.warnings.append(
-                    f"{t(f'pipeline.label.{pf.step}')}: conversion failed — {exc}. "
-                    "Convert manually (see migration guide)."
-                )
+                report.warnings.append(f"{label}: conversion failed — {exc}. Convert manually (see migration guide).")
 
     def _scan(self, report: ConversionReport) -> None:
         """Detect missionConfig.lua, existing mission.yaml, and pipeline files."""
@@ -940,5 +939,6 @@ class V5Converter:
             if pf.needs_conversion:
                 note_template = V5_MIGRATION_NOTES.get(pf.step, "Convert `{v5}` to v6 format (see migration guide).")
                 note = note_template.format(v5=pf.relative)
-                label = t(f"pipeline.label.{pf.step}")
+                _lk = f"pipeline.label.{pf.step}"
+                label = t(_lk) if t(_lk) != _lk else pf.step
                 report.manual_review.append(f"**{label}**: {note}")

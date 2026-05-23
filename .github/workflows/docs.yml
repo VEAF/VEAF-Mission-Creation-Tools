@@ -69,3 +69,17 @@ jobs:
           VERSION="${GITHUB_REF#refs/tags/v}"
           poetry run mike deploy --update-aliases --push --remote ext-docs "$VERSION" latest
           poetry run mike set-default --push --remote ext-docs latest
+
+      - name: Deploy landing page to docs root
+        run: |
+          git fetch ext-docs gh-pages
+          git worktree add /tmp/gh-pages FETCH_HEAD
+          cp src/docs-landing/index.html /tmp/gh-pages/index.html
+          cd /tmp/gh-pages
+          git add index.html
+          if ! git diff --staged --quiet; then
+            git commit -m "chore: update landing page [skip ci]"
+            git push ext-docs HEAD:gh-pages
+          fi
+          cd "$GITHUB_WORKSPACE"
+          git worktree remove /tmp/gh-pages --force

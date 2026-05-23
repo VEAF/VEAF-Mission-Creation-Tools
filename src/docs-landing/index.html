@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VEAF Mission Creation Tools</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: #fafafa;
+      color: #222;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Header ───────────────────────────────────────────────────────── */
+    header {
+      background: #3f51b5;
+      color: #fff;
+      padding: 3rem 1.5rem 2.5rem;
+      text-align: center;
+    }
+    header h1 {
+      font-size: 2.2rem;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+    header p {
+      margin-top: 0.6rem;
+      font-size: 1.1rem;
+      opacity: 0.88;
+    }
+    header .gh-link {
+      display: inline-block;
+      margin-top: 1.2rem;
+      color: #fff;
+      opacity: 0.85;
+      font-size: 0.9rem;
+      text-decoration: none;
+      border: 1px solid rgba(255,255,255,0.5);
+      border-radius: 4px;
+      padding: 0.3rem 0.8rem;
+    }
+    header .gh-link:hover { opacity: 1; background: rgba(255,255,255,0.12); }
+
+    /* ── Main ─────────────────────────────────────────────────────────── */
+    main {
+      flex: 1;
+      max-width: 1000px;
+      width: 100%;
+      margin: 2.5rem auto;
+      padding: 0 1.5rem;
+    }
+
+    /* ── About card ───────────────────────────────────────────────────── */
+    .card {
+      background: #fff;
+      border-radius: 6px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+      padding: 1.5rem 1.75rem;
+      margin-bottom: 2rem;
+    }
+    .card h2 {
+      font-size: 1.15rem;
+      color: #3f51b5;
+      margin-bottom: 0.75rem;
+      font-weight: 600;
+    }
+    .card p { line-height: 1.65; }
+    .card ul { margin: 0.6rem 0 0 1.3rem; line-height: 1.65; }
+    .card a { color: #3f51b5; text-decoration: none; }
+    .card a:hover { text-decoration: underline; }
+
+    /* ── Versions section ─────────────────────────────────────────────── */
+    .versions-title {
+      font-size: 1.15rem;
+      font-weight: 600;
+      color: #3f51b5;
+      margin-bottom: 1rem;
+    }
+
+    .version-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+      gap: 1rem;
+    }
+
+    .version-card {
+      display: block;
+      background: #fff;
+      border-radius: 6px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+      padding: 1.1rem 1.25rem;
+      text-decoration: none;
+      color: inherit;
+      border-left: 4px solid #9fa8da;
+      transition: box-shadow 0.18s, transform 0.18s;
+    }
+    .version-card:hover {
+      box-shadow: 0 4px 16px rgba(63,81,181,0.22);
+      transform: translateY(-2px);
+    }
+    .version-card.featured { border-left-color: #00897b; }
+    .version-card.edge     { border-left-color: #f57c00; }
+
+    .vc-name {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: #3f51b5;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      flex-wrap: wrap;
+    }
+    .version-card.featured .vc-name { color: #00897b; }
+    .version-card.edge     .vc-name { color: #e65100; }
+
+    .vc-meta {
+      font-size: 0.8rem;
+      color: #888;
+      margin-top: 0.3rem;
+    }
+
+    .badge {
+      display: inline-block;
+      font-size: 0.65rem;
+      font-weight: 700;
+      padding: 1px 7px;
+      border-radius: 10px;
+      background: #e8eaf6;
+      color: #3f51b5;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .badge.latest { background: #e0f2f1; color: #00897b; }
+    .badge.dev    { background: #fff3e0; color: #e65100; }
+
+    .loading { color: #888; font-style: italic; padding: 0.5rem 0; }
+
+    /* ── Footer ───────────────────────────────────────────────────────── */
+    footer {
+      text-align: center;
+      font-size: 0.82rem;
+      color: #999;
+      padding: 2rem 1rem;
+      margin-top: auto;
+    }
+    footer a { color: #3f51b5; text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>VEAF Mission Creation Tools</h1>
+    <p>Dynamic DCS World mission scripting &amp; tooling</p>
+    <a class="gh-link" href="https://github.com/VEAF/VEAF-Mission-Creation-Tools" target="_blank" rel="noopener">
+      ⭐ GitHub
+    </a>
+  </header>
+
+  <main>
+    <div class="card">
+      <h2>About</h2>
+      <p>
+        VEAF Mission Creation Tools is a hybrid <strong>Lua + Python</strong> system for designing and running
+        dynamic <a href="https://www.digitalcombatsimulator.com/" target="_blank" rel="noopener">DCS World</a> missions.
+      </p>
+      <ul>
+        <li><strong>Runtime Lua scripts</strong> — spawning, asset management, radio menus, AI combat zones, QRA, and more</li>
+        <li><strong>Python CLI tools</strong> — weather injection, waypoints, aircraft loadouts, mission file manipulation</li>
+        <li><strong>Open-source</strong> — MIT-licensed, contributions welcome</li>
+      </ul>
+    </div>
+
+    <p class="versions-title">Documentation versions</p>
+    <div class="version-grid" id="version-grid">
+      <p class="loading">Loading available versions…</p>
+    </div>
+  </main>
+
+  <footer>
+    <a href="https://github.com/VEAF/VEAF-Mission-Creation-Tools" target="_blank" rel="noopener">GitHub</a>
+    &nbsp;·&nbsp;
+    <a href="https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/main/LICENSE.md" target="_blank" rel="noopener">License</a>
+    &nbsp;·&nbsp;
+    VEAF — Virtual European Air Force
+  </footer>
+
+  <script>
+    // Named aliases that appear first in the list, in this order
+    const ALIAS_ORDER = ['latest', 'dev'];
+
+    function versionSort(a, b) {
+      const ai = ALIAS_ORDER.indexOf(a.version);
+      const bi = ALIAS_ORDER.indexOf(b.version);
+      if (ai !== -1 && bi !== -1) return ai - bi;
+      if (ai !== -1) return -1;
+      if (bi !== -1) return 1;
+      // semver-ish descending for real version numbers
+      return b.version.localeCompare(a.version, undefined, { numeric: true, sensitivity: 'base' });
+    }
+
+    function renderVersions(versions) {
+      const grid = document.getElementById('version-grid');
+
+      if (!versions || !versions.length) {
+        grid.innerHTML = '<p class="loading">No versions available.</p>';
+        return;
+      }
+
+      const sorted = [...versions].sort(versionSort);
+      grid.innerHTML = '';
+
+      sorted.forEach(entry => {
+        const isLatest = entry.version === 'latest' ||
+                         (entry.aliases && entry.aliases.includes('latest'));
+        const isDev    = entry.version === 'dev';
+
+        const card = document.createElement('a');
+        card.href = `./${entry.version}/`;
+        card.className = 'version-card' + (isLatest ? ' featured' : isDev ? ' edge' : '');
+
+        // Build badges
+        let badges = '';
+        if (isLatest && entry.version !== 'latest') {
+          badges += '<span class="badge latest">latest</span>';
+        } else if (isDev) {
+          badges += '<span class="badge dev">dev</span>';
+        }
+        if (entry.aliases) {
+          entry.aliases
+            .filter(a => a !== 'latest')
+            .forEach(a => { badges += `<span class="badge">${a}</span>`; });
+        }
+
+        const meta = (entry.title && entry.title !== entry.version)
+          ? entry.title
+          : (isDev ? 'Development branch (develop-v6)' : isLatest ? 'Latest stable release' : '');
+
+        card.innerHTML = `
+          <div class="vc-name">${entry.version}${badges}</div>
+          ${meta ? `<div class="vc-meta">${meta}</div>` : ''}
+        `;
+        grid.appendChild(card);
+      });
+    }
+
+    fetch('./versions.json')
+      .then(r => { if (!r.ok) throw new Error('not found'); return r.json(); })
+      .then(renderVersions)
+      .catch(() => {
+        // Static fallback when versions.json is not accessible
+        renderVersions([
+          { version: 'latest', title: 'Latest stable release', aliases: [] },
+          { version: 'dev',    title: 'Development branch (develop-v6)', aliases: [] }
+        ]);
+      });
+  </script>
+</body>
+</html>

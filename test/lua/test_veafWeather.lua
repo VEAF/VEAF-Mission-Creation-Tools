@@ -499,6 +499,306 @@ function TestVeafWeatherGetWind:test_nil_vec3_returns_zero()
 end
 
 -- ============================================================================
+-- TestVeafWeatherCloudBase
+-- ============================================================================
+TestVeafWeatherCloudBase = {}
+
+function TestVeafWeatherCloudBase:setUp()
+  dcs_mocks.reset()
+  env.mission.date    = { Day = 1, Month = 1, Year = 2024 }
+  env.mission.theatre = "Caucasus"
+end
+
+function TestVeafWeatherCloudBase:test_nil_clouds_returns_nil()
+  local w = weatherInstance({ Clouds = nil, AltitudeMeter = 0 })
+  luaunit.assertNil(w:getNormalizedCloudBaseMeters(false))
+end
+
+function TestVeafWeatherCloudBase:test_zero_density_returns_nil()
+  local w = weatherInstance({ Clouds = { Density = 0, BaseMeters = 2000 }, AltitudeMeter = 0 })
+  luaunit.assertNil(w:getNormalizedCloudBaseMeters(false))
+end
+
+function TestVeafWeatherCloudBase:test_with_clouds_returns_base()
+  local w = weatherInstance({ Clouds = { Density = 3, BaseMeters = 2000 }, AltitudeMeter = 0 })
+  local base = w:getNormalizedCloudBaseMeters(false)
+  luaunit.assertNotNil(base)
+  luaunit.assertTrue(base > 0)
+end
+
+function TestVeafWeatherCloudBase:test_height_mode_subtracts_altitude()
+  local w = weatherInstance({ Clouds = { Density = 3, BaseMeters = 2000 }, AltitudeMeter = 500 })
+  local asl = w:getNormalizedCloudBaseMeters(false)
+  local agl = w:getNormalizedCloudBaseMeters(true)
+  luaunit.assertEquals(agl, asl - 500)
+end
+
+-- ============================================================================
+-- TestVeafWeatherCloudDensity
+-- ============================================================================
+TestVeafWeatherCloudDensity = {}
+
+function TestVeafWeatherCloudDensity:setUp()
+  dcs_mocks.reset()
+end
+
+function TestVeafWeatherCloudDensity:test_nil_clouds_returns_zero()
+  local w = weatherInstance({ Clouds = nil })
+  luaunit.assertEquals(w:getNormalizedCloudsDensity(), 0)
+end
+
+function TestVeafWeatherCloudDensity:test_zero_density_returns_zero()
+  local w = weatherInstance({ Clouds = { Density = 0, BaseMeters = 2000 } })
+  luaunit.assertEquals(w:getNormalizedCloudsDensity(), 0)
+end
+
+function TestVeafWeatherCloudDensity:test_density3_maps_to_scattered()
+  -- DCS density 3 → _cloudDensityOktas maps to Scattered (2)
+  local w = weatherInstance({ Clouds = { Density = 3, BaseMeters = 2000 } })
+  luaunit.assertEquals(w:getNormalizedCloudsDensity(), 2)
+end
+
+-- ============================================================================
+-- TestVeafWeatherCloudsString
+-- ============================================================================
+TestVeafWeatherCloudsString = {}
+
+function TestVeafWeatherCloudsString:setUp()
+  dcs_mocks.reset()
+end
+
+function TestVeafWeatherCloudsString:test_clear_clouds()
+  local w = weatherInstance({ Clouds = { Density = 0, BaseMeters = 0 }, AltitudeMeter = 0 })
+  luaunit.assertStrContains(w:toStringClouds(veafWeatherUnitSystem.Systems.Faa, false), "No clouds")
+end
+
+function TestVeafWeatherCloudsString:test_scattered_clouds_asl()
+  -- DCS density=3 → Scattered, base=2000m
+  local w = weatherInstance({ Clouds = { Density = 3, BaseMeters = 2000 }, AltitudeMeter = 0 })
+  local s = w:toStringClouds(veafWeatherUnitSystem.Systems.Faa, false)
+  luaunit.assertStrContains(s, "Scattered")
+  luaunit.assertStrContains(s, "ASL")
+end
+
+function TestVeafWeatherCloudsString:test_broken_clouds()
+  -- DCS density=5 → _cloudDensityOktas maps to Broken (3)
+  local w = weatherInstance({ Clouds = { Density = 5, BaseMeters = 2000 }, AltitudeMeter = 0 })
+  luaunit.assertStrContains(w:toStringClouds(veafWeatherUnitSystem.Systems.Faa, false), "Broken")
+end
+
+function TestVeafWeatherCloudsString:test_overcast_clouds()
+  -- DCS density=7 → Overcast (4)
+  local w = weatherInstance({ Clouds = { Density = 7, BaseMeters = 2000 }, AltitudeMeter = 0 })
+  luaunit.assertStrContains(w:toStringClouds(veafWeatherUnitSystem.Systems.Faa, false), "Overcast")
+end
+
+function TestVeafWeatherCloudsString:test_few_clouds()
+  -- DCS density=1 → Few (1)
+  local w = weatherInstance({ Clouds = { Density = 1, BaseMeters = 2000 }, AltitudeMeter = 0 })
+  luaunit.assertStrContains(w:toStringClouds(veafWeatherUnitSystem.Systems.Faa, false), "Few")
+end
+
+function TestVeafWeatherCloudsString:test_height_mode_shows_agl()
+  local w = weatherInstance({ Clouds = { Density = 3, BaseMeters = 2000 }, AltitudeMeter = 0 })
+  luaunit.assertStrContains(w:toStringClouds(veafWeatherUnitSystem.Systems.Faa, true), "AGL")
+end
+
+-- ============================================================================
+-- TestVeafWeatherVisibility
+-- ============================================================================
+TestVeafWeatherVisibility = {}
+
+function TestVeafWeatherVisibility:setUp()
+  dcs_mocks.reset()
+end
+
+function TestVeafWeatherVisibility:test_high_visibility_non_empty()
+  local w = weatherInstance({ VisibilityMeters = 15000, VisibilityAffect = 0, Dust = false, Precipitation = false })
+  local s = w:toStringVisibility(veafWeatherUnitSystem.Systems.Faa)
+  luaunit.assertTrue(#s > 0)
+end
+
+function TestVeafWeatherVisibility:test_fog_suffix()
+  -- VisibilityAffect=1 → Fog
+  local w = weatherInstance({ VisibilityMeters = 1000, VisibilityAffect = 1, Dust = false, Precipitation = false })
+  luaunit.assertStrContains(w:toStringVisibility(veafWeatherUnitSystem.Systems.Faa), "fog")
+end
+
+function TestVeafWeatherVisibility:test_haze_suffix()
+  -- VisibilityAffect=3 → Haze
+  local w = weatherInstance({ VisibilityMeters = 5000, VisibilityAffect = 3, Dust = false, Precipitation = false })
+  luaunit.assertStrContains(w:toStringVisibility(veafWeatherUnitSystem.Systems.Faa), "haze")
+end
+
+function TestVeafWeatherVisibility:test_mist_suffix()
+  -- VisibilityAffect=2 → Mist
+  local w = weatherInstance({ VisibilityMeters = 3000, VisibilityAffect = 2, Dust = false, Precipitation = false })
+  luaunit.assertStrContains(w:toStringVisibility(veafWeatherUnitSystem.Systems.Faa), "mist")
+end
+
+function TestVeafWeatherVisibility:test_dust_suffix()
+  local w = weatherInstance({ VisibilityMeters = 2000, VisibilityAffect = 0, Dust = true, Precipitation = false })
+  luaunit.assertStrContains(w:toStringVisibility(veafWeatherUnitSystem.Systems.Faa), "dust")
+end
+
+function TestVeafWeatherVisibility:test_precipitation_suffix()
+  local w = weatherInstance({ VisibilityMeters = 5000, VisibilityAffect = 0, Dust = false, Precipitation = true })
+  luaunit.assertStrContains(w:toStringVisibility(veafWeatherUnitSystem.Systems.Faa), "precipitations")
+end
+
+-- ============================================================================
+-- TestVeafWeatherSunTime
+-- ============================================================================
+TestVeafWeatherSunTime = {}
+
+function TestVeafWeatherSunTime:setUp()
+  dcs_mocks.reset()
+  env.mission.date    = { Day = 1, Month = 1, Year = 2024 }
+  env.mission.theatre = "Caucasus"
+end
+
+function TestVeafWeatherSunTime:test_bZulu_only()
+  local w = weatherInstance({})
+  local dt = { hour = 6, min = 30, sec = 0, day = 1, month = 1, year = 2024, yday = 1 }
+  local s = w:toStringSunTime(dt, true, false)
+  luaunit.assertStrContains(s, "06:30Z")
+end
+
+function TestVeafWeatherSunTime:test_neither_flag_returns_empty()
+  local w = weatherInstance({})
+  local dt = { hour = 6, min = 30, sec = 0, day = 1, month = 1, year = 2024, yday = 1 }
+  local s = w:toStringSunTime(dt, false, false)
+  luaunit.assertEquals(s, "")
+end
+
+function TestVeafWeatherSunTime:test_bZulu_and_bLocal()
+  local w = weatherInstance({})
+  local dt = { hour = 6, min = 30, sec = 0, day = 1, month = 1, year = 2024, yday = 1 }
+  local s = w:toStringSunTime(dt, true, true)
+  -- both flags: format is "<zulu>Z - <local>L"
+  luaunit.assertStrContains(s, "Z")
+  luaunit.assertStrContains(s, "L")
+end
+
+-- ============================================================================
+-- TestVeafWeatherSlice
+-- ============================================================================
+TestVeafWeatherSlice = {}
+
+function TestVeafWeatherSlice:setUp()
+  dcs_mocks.reset()
+end
+
+function TestVeafWeatherSlice:test_toStringSlice_returns_nonempty()
+  local w = weatherInstance({ MagneticDeclination = 0 })
+  local slice = {
+    AltitudeMeters   = 3000,
+    WindDirection    = 270,
+    WindSpeedMps     = 12,
+    TemperatureCelcius = 5,
+    PressureHpa      = 900,
+  }
+  local s = w:toStringSlice(slice, veafWeatherUnitSystem.Systems.Faa, false)
+  luaunit.assertTrue(#s > 0)
+end
+
+-- ============================================================================
+-- TestVeafWeatherToString
+-- ============================================================================
+TestVeafWeatherToString = {}
+
+function TestVeafWeatherToString:setUp()
+  dcs_mocks.reset()
+  env.mission.date    = { Day = 1, Month = 1, Year = 2024 }
+  env.mission.theatre = "Caucasus"
+end
+
+function TestVeafWeatherToString:test_toString_returns_nonempty()
+  local w = weatherInstance({
+    WindDirection       = 270,
+    WindSpeedMps        = 5,
+    VisibilityMeters    = 10000,
+    VisibilityAffect    = 0,
+    Dust                = false,
+    Precipitation       = false,
+    Clouds              = { Density = 3, BaseMeters = 2000 },
+    AltitudeMeter       = 0,
+    TemperatureCelcius  = 15,
+    DewPointCelcius     = 8,
+    QnhHpa              = 1013,
+    QfeHpa              = 1010,
+    SunriseZulu         = { hour = 5, min = 30, sec = 0, day = 1, month = 1, year = 2024, yday = 1 },
+    SunsetZulu          = { hour = 17, min = 30, sec = 0, day = 1, month = 1, year = 2024, yday = 1 },
+    WeatherSlices       = {},
+    MagneticDeclination = 0,
+  })
+  local s = w:toString(veafWeatherUnitSystem.Systems.Faa, false)
+  luaunit.assertTrue(#s > 0)
+  luaunit.assertStrContains(s, "Wind")
+  luaunit.assertStrContains(s, "Sunrise")
+end
+
+-- ============================================================================
+-- TestVeafWeatherToStringAtis
+-- ============================================================================
+TestVeafWeatherToStringAtis = {}
+
+function TestVeafWeatherToStringAtis:setUp()
+  dcs_mocks.reset()
+  env.mission.date    = { Day = 1, Month = 1, Year = 2024 }
+  env.mission.theatre = "Caucasus"
+end
+
+function TestVeafWeatherToStringAtis:test_cavok_path()
+  -- CAVOK: visibility ≥ 10000m, no precipitation, no dust, cloud base ≥ 1524m (≥ 5000ft)
+  local w = weatherInstance({
+    WindDirection       = 090,
+    WindSpeedMps        = 8,
+    VisibilityMeters    = 15000,
+    VisibilityAffect    = 0,
+    Dust                = false,
+    Precipitation       = false,
+    Clouds              = { Density = 3, BaseMeters = 2000 },
+    AltitudeMeter       = 0,
+    TemperatureCelcius  = 20,
+    DewPointCelcius     = 10,
+    QnhHpa              = 1013,
+    SunriseZulu         = { hour = 5, min = 30, sec = 0, day = 1, month = 1, year = 2024, yday = 1 },
+    SunsetZulu          = { hour = 17, min = 30, sec = 0, day = 1, month = 1, year = 2024, yday = 1 },
+    Vec3                = { x = 0, y = 0, z = 0 },
+    AbsTime             = 43200,
+    MagneticDeclination = 0,
+  })
+  local s = w:toStringAtis(veafWeatherUnitSystem.Systems.Faa)
+  luaunit.assertStrContains(s, "CAVOK")
+end
+
+function TestVeafWeatherToStringAtis:test_non_cavok_path()
+  -- Non-CAVOK: low cloud base (1000m ≈ 3280ft < 5000ft)
+  local w = weatherInstance({
+    WindDirection       = 180,
+    WindSpeedMps        = 3,
+    VisibilityMeters    = 3000,
+    VisibilityAffect    = 0,
+    Dust                = false,
+    Precipitation       = false,
+    Clouds              = { Density = 3, BaseMeters = 1000 },
+    AltitudeMeter       = 0,
+    TemperatureCelcius  = 10,
+    DewPointCelcius     = 8,
+    QnhHpa              = 1005,
+    SunriseZulu         = { hour = 5, min = 30, sec = 0, day = 1, month = 1, year = 2024, yday = 1 },
+    SunsetZulu          = { hour = 17, min = 30, sec = 0, day = 1, month = 1, year = 2024, yday = 1 },
+    Vec3                = { x = 0, y = 0, z = 0 },
+    AbsTime             = 43200,
+    MagneticDeclination = 0,
+  })
+  local s = w:toStringAtis(veafWeatherUnitSystem.Systems.Faa)
+  luaunit.assertNotStrContains(s, "CAVOK")
+  luaunit.assertStrContains(s, "Wind")
+end
+
+-- ============================================================================
 -- Run
 -- ============================================================================
 os.exit(luaunit.LuaUnit.run())

@@ -6,6 +6,11 @@ local src = _base .. "/../../src/scripts/veaf"
 dofile(src .. "/veaf.lua")
 dofile(src .. "/veafSanctuary.lua")
 
+-- Stub VeafDrawingOnMap (accessed at setPolygonFromUnits entry, before any guard)
+if not VeafDrawingOnMap then
+  VeafDrawingOnMap = { LINE_TYPE = { twodashes = 1 } }
+end
+
 -- ---------------------------------------------------------------------------
 -- TestVeafSanctuaryConstants
 -- ---------------------------------------------------------------------------
@@ -121,6 +126,176 @@ function TestVeafSanctuaryZoneOOP:test_addSpawnedGroups()
   luaunit.assertIsTable(sg)
   luaunit.assertNotNil(sg["group1"])
   luaunit.assertNotNil(sg["group2"])
+end
+
+-- ============================================================================
+-- TestVeafSanctuaryRecord
+-- ============================================================================
+TestVeafSanctuaryRecord = {}
+
+function TestVeafSanctuaryRecord:setUp()
+  veafSanctuary.RecordAction = false
+  veafSanctuary.RecordTrace = false
+  veafSanctuary.RecordTraceShooting = false
+  veafSanctuary.RecordTraceTrespassing = false
+end
+
+function TestVeafSanctuaryRecord:test_recordAction_nil_message()
+  -- nil message → outer "if message then" is false → no-op
+  veafSanctuary.recordAction(nil)
+  luaunit.assertTrue(true)
+end
+
+function TestVeafSanctuaryRecord:test_recordAction_message_record_disabled()
+  -- RecordAction=false → _recordAction is a no-op
+  veafSanctuary.recordAction("test message")
+  luaunit.assertTrue(true)
+end
+
+function TestVeafSanctuaryRecord:test_recordTrace_disabled()
+  veafSanctuary.recordTrace("trace msg")
+  luaunit.assertTrue(true)
+end
+
+function TestVeafSanctuaryRecord:test_recordTrace_enabled()
+  veafSanctuary.RecordTrace = true
+  -- RecordAction=false means _recordAction is still a no-op
+  veafSanctuary.recordTrace("trace msg enabled")
+  luaunit.assertTrue(true)
+end
+
+function TestVeafSanctuaryRecord:test_recordTraceShooting_disabled()
+  veafSanctuary.recordTraceShooting("shot msg")
+  luaunit.assertTrue(true)
+end
+
+function TestVeafSanctuaryRecord:test_recordTraceShooting_enabled()
+  veafSanctuary.RecordTraceShooting = true
+  veafSanctuary.recordTraceShooting("shot msg enabled")
+  luaunit.assertTrue(true)
+end
+
+function TestVeafSanctuaryRecord:test_recordTraceTrespassing_disabled()
+  veafSanctuary.recordTraceTrespassing("trespass msg")
+  luaunit.assertTrue(true)
+end
+
+function TestVeafSanctuaryRecord:test_recordTraceTrespassing_enabled()
+  veafSanctuary.RecordTraceTrespassing = true
+  veafSanctuary.recordTraceTrespassing("trespass msg enabled")
+  luaunit.assertTrue(true)
+end
+
+function TestVeafSanctuaryRecord:test_recordAction_record_enabled()
+  -- stub writeLineToTextFile to avoid real I/O
+  local origWrite = veaf.writeLineToTextFile
+  veaf.writeLineToTextFile = function() end
+  veafSanctuary.RecordAction = true
+  veafSanctuary.recordAction("enabled record test")
+  veafSanctuary.RecordAction = false
+  veaf.writeLineToTextFile = origWrite
+  luaunit.assertTrue(true)
+end
+
+-- ============================================================================
+-- TestVeafSanctuaryZoneExtra
+-- ============================================================================
+TestVeafSanctuaryZoneExtra = {}
+
+function TestVeafSanctuaryZoneExtra:test_setProtectFromMissiles()
+  local s = VeafSanctuaryZone:new()
+  s:setProtectFromMissiles()
+  luaunit.assertTrue(s.protectFromMissiles)
+end
+
+function TestVeafSanctuaryZoneExtra:test_setPosition_getPosition()
+  local s = VeafSanctuaryZone:new()
+  local pos = { x = 100, y = 0, z = 200 }
+  s:setPosition(pos)
+  luaunit.assertEquals(s:getPosition(), pos)
+end
+
+function TestVeafSanctuaryZoneExtra:test_setPolygon_getPolygon()
+  local s = VeafSanctuaryZone:new()
+  local poly = { { x = 0, y = 0, z = 0 } }
+  s:setPolygon(poly)
+  luaunit.assertEquals(s:getPolygon(), poly)
+end
+
+function TestVeafSanctuaryZoneExtra:test_forgive_sets_offenses_to_zero()
+  local s = VeafSanctuaryZone:new()
+  s.offensesByOffender["Pilot1"] = 3
+  s:forgive("Pilot1")
+  luaunit.assertEquals(s.offensesByOffender["Pilot1"], 0)
+end
+
+function TestVeafSanctuaryZoneExtra:test_isPositionInZone_circle_inside()
+  local s = VeafSanctuaryZone:new()
+  s:setPosition({ x = 0, y = 0, z = 0 }):setRadius(1000)
+  luaunit.assertTrue(s:isPositionInZone({ x = 100, y = 0, z = 100 }))
+end
+
+function TestVeafSanctuaryZoneExtra:test_isPositionInZone_circle_outside()
+  local s = VeafSanctuaryZone:new()
+  s:setPosition({ x = 0, y = 0, z = 0 }):setRadius(10)
+  luaunit.assertFalse(s:isPositionInZone({ x = 5000, y = 0, z = 5000 }))
+end
+
+function TestVeafSanctuaryZoneExtra:test_isPositionInZone_no_position()
+  -- no polygon, no position → inZone stays false
+  local s = VeafSanctuaryZone:new()
+  luaunit.assertFalse(s:isPositionInZone({ x = 0, y = 0, z = 0 }))
+end
+
+function TestVeafSanctuaryZoneExtra:test_setPolygonFromUnitsInSequence_no_units()
+  -- unitNamePrefix with no matching units → veaf.getPolygonFromUnits returns nil/empty → no crash
+  local s = VeafSanctuaryZone:new():setName("TestZone")
+  s:setPolygonFromUnitsInSequence("nonexistent-prefix-xyz", false)
+  luaunit.assertTrue(true)
+end
+
+-- ============================================================================
+-- TestVeafSanctuaryModule
+-- ============================================================================
+TestVeafSanctuaryModule = {}
+
+function TestVeafSanctuaryModule:setUp()
+  veafSanctuary.RecordAction = false
+  veafSanctuary.zonesList = {}
+  veafSanctuary.humanUnitsToFollow = {}
+  veafSanctuary.initialized = false
+end
+
+function TestVeafSanctuaryModule:test_addZone_inserts_into_list()
+  local z = VeafSanctuaryZone:new():setName("Zone1")
+  veafSanctuary.addZone(z)
+  luaunit.assertEquals(#veafSanctuary.zonesList, 1)
+end
+
+function TestVeafSanctuaryModule:test_initialize_sets_initialized()
+  veafSanctuary.initialize()
+  luaunit.assertTrue(veafSanctuary.initialized)
+end
+
+function TestVeafSanctuaryModule:test_eventHandler_nil_event()
+  veafSanctuary.eventHandler:onEvent(nil)
+  luaunit.assertTrue(true)
+end
+
+function TestVeafSanctuaryModule:test_eventHandler_nil_id()
+  veafSanctuary.eventHandler:onEvent({ id = nil })
+  luaunit.assertTrue(true)
+end
+
+function TestVeafSanctuaryModule:test_eventHandler_irrelevant_id()
+  veafSanctuary.eventHandler:onEvent({ id = 999 })
+  luaunit.assertTrue(true)
+end
+
+function TestVeafSanctuaryModule:test_eventHandler_shot_nil_weapon()
+  -- S_EVENT_SHOT with no weapon and empty zonesList → loops over nothing
+  veafSanctuary.eventHandler:onEvent({ id = world.event.S_EVENT_SHOT, weapon = nil })
+  luaunit.assertTrue(true)
 end
 
 os.exit(luaunit.LuaUnit.run())

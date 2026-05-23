@@ -131,4 +131,65 @@ function TestVeafAssetsModuleFunctions:test_buildRadioMenu_is_function()
   luaunit.assertIsFunction(veafAssets.buildRadioMenu)
 end
 
+-- ============================================================================
+-- TestVeafAssetsOps - exercises info / dispose / respawn / buildRadioMenu
+-- ============================================================================
+TestVeafAssetsOps = {}
+
+function TestVeafAssetsOps:setUp()
+  -- Populate Assets with a single tanker entry and build the lookup table
+  veafAssets.Assets = {
+    { name = "testTanker", description = "KC-135T", unitType = "KC-135 MPRS", side = 1 },
+  }
+  veafAssets.assets = {}
+  veafAssets.buildAssetsDatabase()
+end
+
+function TestVeafAssetsOps:test_help_nil()
+  -- help(nil) logs text; no crash expected
+  veafAssets.help(nil)
+  luaunit.assertTrue(true)
+end
+
+function TestVeafAssetsOps:test_info_found_no_group()
+  -- asset exists but Group.getByName returns nil → formats "not active" message
+  veafAssets.info({ "testTanker", nil })
+  luaunit.assertTrue(true)
+end
+
+function TestVeafAssetsOps:test_info_not_found()
+  -- asset not in database → early return with "not found" message
+  veafAssets.info({ "NONEXISTENT", nil })
+  luaunit.assertTrue(true)
+end
+
+function TestVeafAssetsOps:test_dispose_found_no_group()
+  -- asset exists; Group.getByName returns nil → nothing to destroy
+  veafAssets.dispose("testTanker")
+  luaunit.assertTrue(true)
+end
+
+function TestVeafAssetsOps:test_dispose_not_found()
+  veafAssets.dispose("NONEXISTENT")
+  luaunit.assertTrue(true)
+end
+
+function TestVeafAssetsOps:test_respawn_found()
+  -- mist.respawnGroup is mocked as a no-op
+  veafAssets.respawn("testTanker")
+  luaunit.assertTrue(true)
+end
+
+function TestVeafAssetsOps:test_respawn_not_found()
+  veafAssets.respawn("NONEXISTENT")
+  luaunit.assertTrue(true)
+end
+
+function TestVeafAssetsOps:test_buildRadioMenu_empty_assets()
+  -- empty assets table → early-return guard prevents veafRadio calls
+  veafAssets.assets = {}
+  veafAssets.buildRadioMenu()
+  luaunit.assertTrue(true)
+end
+
 os.exit(luaunit.LuaUnit.run())

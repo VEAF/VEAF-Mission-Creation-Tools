@@ -290,5 +290,619 @@ function TestVeafAirWavesFSM:test_on_enter_wait_for_next_wave_sets_timer()
   luaunit.assertNotNil(z.timeOfNextWave)
 end
 
+-- ---------------------------------------------------------------------------
+-- TestAirWaveZoneSetters
+-- ---------------------------------------------------------------------------
+TestAirWaveZoneSetters = {}
+
+function TestAirWaveZoneSetters:test_setZoneCenter()
+  local z = AirWaveZone:new()
+  z:setZoneCenter({ x = 1, y = 2 })
+  luaunit.assertEquals(z.zoneCenter, { x = 1, y = 2 })
+end
+
+function TestAirWaveZoneSetters:test_setDrawZone_true()
+  local z = AirWaveZone:new()
+  z:setDrawZone(true)
+  luaunit.assertTrue(z.drawZone)
+end
+
+function TestAirWaveZoneSetters:test_setDrawZone_false()
+  local z = AirWaveZone:new()
+  z:setDrawZone(false)
+  luaunit.assertFalse(z.drawZone)
+end
+
+function TestAirWaveZoneSetters:test_setMessageWaitForHumans()
+  local z = AirWaveZone:new()
+  z:setMessageWaitForHumans("waiting...")
+  luaunit.assertEquals(z.messageWaitForHumans, "waiting...")
+end
+
+function TestAirWaveZoneSetters:test_setOnStart_stored()
+  local z = AirWaveZone:new()
+  local cb = function() end
+  z:setOnStart(cb)
+  luaunit.assertEquals(z.onStart, cb)
+end
+
+function TestAirWaveZoneSetters:test_setOnStart_returns_self()
+  local z = AirWaveZone:new()
+  local result = z:setOnStart(function() end)
+  luaunit.assertEquals(result, z)
+end
+
+function TestAirWaveZoneSetters:test_setOnWaitForHumans()
+  local z = AirWaveZone:new()
+  local cb = function() end
+  z:setOnWaitForHumans(cb)
+  luaunit.assertEquals(z.onWaitForHumans, cb)
+end
+
+function TestAirWaveZoneSetters:test_setMessageWaitToDeploy()
+  local z = AirWaveZone:new()
+  z:setMessageWaitToDeploy("deploying soon")
+  luaunit.assertEquals(z.messageWaitToDeploy, "deploying soon")
+end
+
+function TestAirWaveZoneSetters:test_setOnWaitToDeploy()
+  local z = AirWaveZone:new()
+  local cb = function() end
+  z:setOnWaitToDeploy(cb)
+  luaunit.assertEquals(z.onWaitToDeploy, cb)
+end
+
+function TestAirWaveZoneSetters:test_setMessageDeploy()
+  local z = AirWaveZone:new()
+  z:setMessageDeploy("deploying %s")
+  luaunit.assertEquals(z.messageDeploy, "deploying %s")
+end
+
+function TestAirWaveZoneSetters:test_setMessageDeployPlayers()
+  local z = AirWaveZone:new()
+  z:setMessageDeployPlayers("wave %s")
+  luaunit.assertEquals(z.messageDeployPlayers, "wave %s")
+end
+
+function TestAirWaveZoneSetters:test_setOnDeploy()
+  local z = AirWaveZone:new()
+  local cb = function() end
+  z:setOnDeploy(cb)
+  luaunit.assertEquals(z.onDeploy, cb)
+end
+
+function TestAirWaveZoneSetters:test_setMessageDestroyed()
+  local z = AirWaveZone:new()
+  z:setMessageDestroyed("destroyed!")
+  luaunit.assertEquals(z.messageDestroyed, "destroyed!")
+end
+
+function TestAirWaveZoneSetters:test_setOnDestroyed()
+  local z = AirWaveZone:new()
+  local cb = function() end
+  z:setOnDestroyed(cb)
+  luaunit.assertEquals(z.onDestroyed, cb)
+end
+
+function TestAirWaveZoneSetters:test_setMessageOutsideOfZone()
+  local z = AirWaveZone:new()
+  z:setMessageOutsideOfZone("you're out!")
+  luaunit.assertEquals(z.messageOutsideOfZone, "you're out!")
+end
+
+function TestAirWaveZoneSetters:test_setOnOutsideOfZone()
+  local z = AirWaveZone:new()
+  local cb = function() end
+  z:setOnOutsideOfZone(cb)
+  luaunit.assertEquals(z.onOutsideOfZone, cb)
+end
+
+function TestAirWaveZoneSetters:test_setOnWon()
+  local z = AirWaveZone:new()
+  local cb = function() end
+  z:setOnWon(cb)
+  luaunit.assertEquals(z.onWon, cb)
+end
+
+function TestAirWaveZoneSetters:test_setOnLost()
+  local z = AirWaveZone:new()
+  local cb = function() end
+  z:setOnLost(cb)
+  luaunit.assertEquals(z.onLost, cb)
+end
+
+function TestAirWaveZoneSetters:test_setMessageStop()
+  local z = AirWaveZone:new()
+  z:setMessageStop("offline")
+  luaunit.assertEquals(z.messageStop, "offline")
+end
+
+function TestAirWaveZoneSetters:test_setOnStop()
+  local z = AirWaveZone:new()
+  local cb = function() end
+  z:setOnStop(cb)
+  luaunit.assertEquals(z.onStop, cb)
+end
+
+function TestAirWaveZoneSetters:test_setRespawnRadius_normal()
+  local z = AirWaveZone:new()
+  z:setRespawnRadius(1000)
+  luaunit.assertEquals(z.respawnRadius, 1000)
+end
+
+function TestAirWaveZoneSetters:test_setRespawnRadius_clamped_below_250()
+  local z = AirWaveZone:new()
+  z:setRespawnRadius(100)
+  luaunit.assertEquals(z.respawnRadius, 250)
+end
+
+function TestAirWaveZoneSetters:test_setRespawnDefaultOffset()
+  local z = AirWaveZone:new()
+  z:setRespawnDefaultOffset(500, 300)
+  luaunit.assertEquals(z.respawnDefaultOffset.latDelta, 500)
+  luaunit.assertEquals(z.respawnDefaultOffset.lonDelta, 300)
+end
+
+function TestAirWaveZoneSetters:test_addPlayerCoalition()
+  local z = AirWaveZone:new()
+  z:addPlayerCoalition(coalition.side.BLUE)
+  luaunit.assertEquals(z.playerCoalitions[coalition.side.BLUE], coalition.side.BLUE)
+end
+
+function TestAirWaveZoneSetters:test_getPlayerCoalition_empty()
+  local z = AirWaveZone:new()
+  luaunit.assertNil(z:getPlayerCoalition())
+end
+
+function TestAirWaveZoneSetters:test_getPlayerCoalition_with_coalition()
+  local z = AirWaveZone:new()
+  z:addPlayerCoalition(coalition.side.RED)
+  luaunit.assertEquals(z:getPlayerCoalition(), coalition.side.RED)
+end
+
+function TestAirWaveZoneSetters:test_setMinimumAltitudeInFeet_converts()
+  local z = AirWaveZone:new()
+  z:setMinimumAltitudeInFeet(1000)
+  luaunit.assertAlmostEquals(z.minimumAltitude, 1000 * 0.3048, 0.001)
+end
+
+function TestAirWaveZoneSetters:test_setMaximumAltitudeInFeet_converts()
+  local z = AirWaveZone:new()
+  z:setMaximumAltitudeInFeet(2000)
+  luaunit.assertAlmostEquals(z.maximumAltitude, 2000 * 0.3048, 0.001)
+end
+
+function TestAirWaveZoneSetters:test_setMaxSecondsOutsideOfZoneIA()
+  local z = AirWaveZone:new()
+  z:setMaxSecondsOutsideOfZoneIA(60)
+  luaunit.assertEquals(z.maxSecondsOutsideOfZoneIA, 60)
+end
+
+function TestAirWaveZoneSetters:test_disableOutsideOfZoneIA()
+  local z = AirWaveZone:new()
+  z:disableOutsideOfZoneIA()
+  luaunit.assertNil(z.maxSecondsOutsideOfZoneIA)
+end
+
+function TestAirWaveZoneSetters:test_setMaxSecondsOutsideOfZonePlayers()
+  local z = AirWaveZone:new()
+  z:setMaxSecondsOutsideOfZonePlayers(45)
+  luaunit.assertEquals(z.maxSecondsOutsideOfZonePlayers, 45)
+end
+
+function TestAirWaveZoneSetters:test_disableOutsideOfZonePlayers()
+  local z = AirWaveZone:new()
+  z:setMaxSecondsOutsideOfZonePlayers(45)
+  z:disableOutsideOfZonePlayers()
+  luaunit.assertNil(z.maxSecondsOutsideOfZonePlayers)
+end
+
+function TestAirWaveZoneSetters:test_setMinimumLifeForAiInPercent()
+  local z = AirWaveZone:new()
+  z:setMinimumLifeForAiInPercent(20)
+  luaunit.assertEquals(z.minimumLifeForAiInPercent, 20)
+end
+
+function TestAirWaveZoneSetters:test_setIsEnemyWaveDeadCallback()
+  local z = AirWaveZone:new()
+  local cb = function() return true end
+  z:setIsEnemyWaveDeadCallback(cb)
+  luaunit.assertEquals(z.isEnemyWaveDeadCallback, cb)
+end
+
+function TestAirWaveZoneSetters:test_setIsEnemyGroupDeadCallback()
+  local z = AirWaveZone:new()
+  local cb = function() return true end
+  z:setIsEnemyGroupDeadCallback(cb)
+  luaunit.assertEquals(z.isEnemyGroupDeadCallback, cb)
+end
+
+function TestAirWaveZoneSetters:test_setHandleCrippledEnemyUnitCallback()
+  local z = AirWaveZone:new()
+  local cb = function() end
+  z:setHandleCrippledEnemyUnitCallback(cb)
+  luaunit.assertEquals(z.handleCrippledEnemyUnitCallback, cb)
+end
+
+function TestAirWaveZoneSetters:test_setState()
+  local z = AirWaveZone:new()
+  z:_setState(veafAirWaves.STATUS_ACTIVE)
+  luaunit.assertEquals(z.state, veafAirWaves.STATUS_ACTIVE)
+end
+
+-- ---------------------------------------------------------------------------
+-- TestAirWaveZoneAddWave
+-- ---------------------------------------------------------------------------
+TestAirWaveZoneAddWave = {}
+
+function TestAirWaveZoneAddWave:test_addWave_single_string()
+  local z = AirWaveZone:new()
+  z:addWave("group1")
+  luaunit.assertEquals(#z.waves, 1)
+  luaunit.assertEquals(z.waves[1].groups[1], "group1")
+end
+
+function TestAirWaveZoneAddWave:test_addWave_two_strings()
+  local z = AirWaveZone:new()
+  z:addWave("group1", "group2")
+  luaunit.assertEquals(#z.waves, 1)
+  luaunit.assertEquals(#z.waves[1].groups, 2)
+end
+
+function TestAirWaveZoneAddWave:test_addWave_table_with_groups_string()
+  local z = AirWaveZone:new()
+  z:addWave({ groups = "group1", number = 2, bias = 0 })
+  luaunit.assertEquals(z.waves[1].groups[1], "group1")
+  luaunit.assertEquals(z.waves[1].number, 2)
+end
+
+function TestAirWaveZoneAddWave:test_addWave_table_with_groups_array()
+  local z = AirWaveZone:new()
+  z:addWave({ groups = { "g1", "g2" }, number = 3, bias = 1, delay = 10 })
+  luaunit.assertEquals(z.waves[1].groups, { "g1", "g2" })
+  luaunit.assertEquals(z.waves[1].number, 3)
+  luaunit.assertEquals(z.waves[1].delay, 10)
+end
+
+function TestAirWaveZoneAddWave:test_addWave_no_args_does_nothing()
+  local z = AirWaveZone:new()
+  z:addWave()
+  luaunit.assertEquals(#z.waves, 0)
+end
+
+function TestAirWaveZoneAddWave:test_addWave_returns_self()
+  local z = AirWaveZone:new()
+  local result = z:addWave("g1")
+  luaunit.assertEquals(result, z)
+end
+
+function TestAirWaveZoneAddWave:test_resetWaves_clears_table()
+  local z = AirWaveZone:new()
+  z:addWave("g1"):addWave("g2")
+  luaunit.assertEquals(#z.waves, 2)
+  z:resetWaves()
+  luaunit.assertEquals(#z.waves, 0)
+end
+
+-- ---------------------------------------------------------------------------
+-- TestAirWaveZoneSignals
+-- ---------------------------------------------------------------------------
+TestAirWaveZoneSignals = {}
+
+function TestAirWaveZoneSignals:test_signalToPlayers_empty_units()
+  local z = AirWaveZone:new()
+  -- unitsInZone = {} by default; should not crash
+  z:signalToPlayers("hello")
+end
+
+function TestAirWaveZoneSignals:test_signalStart_silent()
+  local z = AirWaveZone:new()
+  z:setSilent(true)
+  z.name = "TestZone"
+  z:signalStart()
+end
+
+function TestAirWaveZoneSignals:test_signalStart_non_silent_empty_coalitions()
+  local z = AirWaveZone:new()
+  z.name = "TestZone"
+  -- playerCoalitions = {} → no trigger.action calls
+  z:signalStart()
+end
+
+function TestAirWaveZoneSignals:test_signalStart_callback_fires()
+  local z = AirWaveZone:new()
+  z:setSilent(true)
+  z.name = "TestZone"
+  local fired = false
+  z:setOnStart(function() fired = true end)
+  z:signalStart()
+  luaunit.assertTrue(fired)
+end
+
+function TestAirWaveZoneSignals:test_signalWaitForHumans_silent()
+  local z = AirWaveZone:new()
+  z:setSilent(true)
+  z.name = "TestZone"
+  z:signalWaitForHumans()
+end
+
+function TestAirWaveZoneSignals:test_signalWaitForHumans_callback_fires()
+  local z = AirWaveZone:new()
+  z:setSilent(true)
+  z.name = "TestZone"
+  local fired = false
+  z:setOnWaitForHumans(function() fired = true end)
+  z:signalWaitForHumans()
+  luaunit.assertTrue(fired)
+end
+
+function TestAirWaveZoneSignals:test_signalWaitToDeploy_silent()
+  local z = AirWaveZone:new()
+  z:setSilent(true)
+  z.name = "TestZone"
+  z.delayBeforeNextWave = 10
+  z:signalWaitToDeploy()
+end
+
+function TestAirWaveZoneSignals:test_signalWaitToDeploy_callback_fires()
+  local z = AirWaveZone:new()
+  z:setSilent(true)
+  z.name = "TestZone"
+  z.delayBeforeNextWave = 10
+  local fired = false
+  z:setOnWaitToDeploy(function() fired = true end)
+  z:signalWaitToDeploy()
+  luaunit.assertTrue(fired)
+end
+
+function TestAirWaveZoneSignals:test_signalDeploy_silent()
+  local z = AirWaveZone:new()
+  z:setSilent(true)
+  z.name = "TestZone"
+  z:signalDeploy()
+end
+
+function TestAirWaveZoneSignals:test_signalDeploy_non_silent_empty_coalitions()
+  -- playerCoalitions = {} → for loop runs 0 times, no crash
+  -- unitsInZone = {} → inner loop runs 0 times, no crash
+  -- spawnedGroupsNames = {} → BRAA loop runs 0 times, no crash
+  local z = AirWaveZone:new()
+  z.name = "TestZone"
+  z:signalDeploy()
+end
+
+function TestAirWaveZoneSignals:test_signalDeploy_callback_fires()
+  local z = AirWaveZone:new()
+  z:setSilent(true)
+  z.name = "TestZone"
+  local fired = false
+  z:setOnDeploy(function() fired = true end)
+  z:signalDeploy()
+  luaunit.assertTrue(fired)
+end
+
+function TestAirWaveZoneSignals:test_signalDestroyed_silent()
+  local z = AirWaveZone:new()
+  z:setSilent(true)
+  z.name = "TestZone"
+  z:signalDestroyed()
+end
+
+function TestAirWaveZoneSignals:test_signalDestroyed_callback_fires()
+  local z = AirWaveZone:new()
+  z:setSilent(true)
+  z.name = "TestZone"
+  local fired = false
+  z:setOnDestroyed(function() fired = true end)
+  z:signalDestroyed()
+  luaunit.assertTrue(fired)
+end
+
+function TestAirWaveZoneSignals:test_signalOutsideOfZone_silent()
+  local z = AirWaveZone:new()
+  z:setSilent(true)
+  z.name = "TestZone"
+  z:signalOutsideOfZone("unit1", 10)
+end
+
+function TestAirWaveZoneSignals:test_signalOutsideOfZone_callback_fires()
+  local z = AirWaveZone:new()
+  z:setSilent(true)
+  z.name = "TestZone"
+  local firedUnit, firedSecs
+  z:setOnOutsideOfZone(function(_, unit, secs) firedUnit = unit; firedSecs = secs end)
+  z:signalOutsideOfZone("unit1", 10)
+  luaunit.assertEquals(firedUnit, "unit1")
+  luaunit.assertEquals(firedSecs, 10)
+end
+
+function TestAirWaveZoneSignals:test_signalWon_silent()
+  local z = AirWaveZone:new()
+  z:setSilent(true)
+  z.name = "TestZone"
+  z:signalWon()
+end
+
+function TestAirWaveZoneSignals:test_signalWon_non_silent()
+  local z = AirWaveZone:new()
+  z.name = "TestZone"
+  -- playerCoalitions = {} → 0 iterations in the for loop
+  -- signalToPlayers with empty unitsInZone → 0 iterations
+  z:signalWon()
+end
+
+function TestAirWaveZoneSignals:test_signalWon_callback_fires()
+  local z = AirWaveZone:new()
+  z:setSilent(true)
+  z.name = "TestZone"
+  local fired = false
+  z:setOnWon(function() fired = true end)
+  z:signalWon()
+  luaunit.assertTrue(fired)
+end
+
+function TestAirWaveZoneSignals:test_signalLost_silent()
+  local z = AirWaveZone:new()
+  z:setSilent(true)
+  z.name = "TestZone"
+  z:signalLost()
+end
+
+function TestAirWaveZoneSignals:test_signalLost_callback_fires()
+  local z = AirWaveZone:new()
+  z:setSilent(true)
+  z.name = "TestZone"
+  local fired = false
+  z:setOnLost(function() fired = true end)
+  z:signalLost()
+  luaunit.assertTrue(fired)
+end
+
+function TestAirWaveZoneSignals:test_signalStop_silent()
+  local z = AirWaveZone:new()
+  z:setSilent(true)
+  z.name = "TestZone"
+  z:signalStop()
+end
+
+function TestAirWaveZoneSignals:test_signalStop_callback_fires()
+  local z = AirWaveZone:new()
+  z:setSilent(true)
+  z.name = "TestZone"
+  local fired = false
+  z:setOnStop(function() fired = true end)
+  z:signalStop()
+  luaunit.assertTrue(fired)
+end
+
+-- ---------------------------------------------------------------------------
+-- TestAirWaveZoneReset
+-- ---------------------------------------------------------------------------
+TestAirWaveZoneReset = {}
+
+function TestAirWaveZoneReset:test_destroyCurrentWave_empty_spawned_groups()
+  local z = AirWaveZone:new()
+  -- spawnedGroupsNames = {} by default
+  z:destroyCurrentWave()
+  luaunit.assertEquals(z.spawnedGroupsNames, {})
+end
+
+function TestAirWaveZoneReset:test_destroyCurrentWave_with_unknown_group()
+  local z = AirWaveZone:new()
+  z.spawnedGroupsNames = { "no_such_group" }
+  -- Group.getByName returns nil for unknown groups → no crash
+  z:destroyCurrentWave()
+  luaunit.assertEquals(z.spawnedGroupsNames, {})
+end
+
+function TestAirWaveZoneReset:test_reset_clears_state_fields()
+  local z = AirWaveZone:new()
+  z.currentWaveIndex = 5
+  z.timeOfActivation = 999
+  z.delayBeforeNextWave = 30
+  z:reset()
+  luaunit.assertEquals(z.currentWaveIndex, 0)
+  luaunit.assertNil(z.timeOfActivation)
+  luaunit.assertNil(z.delayBeforeNextWave)
+end
+
+function TestAirWaveZoneReset:test_reset_clears_spawned_groups()
+  local z = AirWaveZone:new()
+  z.spawnedGroupsNames = { "g1", "g2" }
+  z:reset()
+  luaunit.assertEquals(z.spawnedGroupsNames, {})
+end
+
+function TestAirWaveZoneReset:test_reset_removes_check_function_schedule()
+  local z = AirWaveZone:new()
+  -- mist.removeFunction is a no-op mock; just verify no crash
+  z.checkFunctionSchedule = 42
+  z:reset()
+  luaunit.assertNil(z.checkFunctionSchedule)
+end
+
+-- ---------------------------------------------------------------------------
+-- TestAirWaveZoneFSMExtended
+-- ---------------------------------------------------------------------------
+TestAirWaveZoneFSMExtended = {}
+
+function TestAirWaveZoneFSMExtended:test_canEnterNextWave_false_future_activation()
+  local z = AirWaveZone:new()
+  z.timeOfActivation = timer.getTime() + 100
+  luaunit.assertFalse(AirWaveZone._canEnterNextWave(z, { {} }))
+end
+
+function TestAirWaveZoneFSMExtended:test_canEnterNextWave_false_nil_activation()
+  local z = AirWaveZone:new()
+  z.timeOfActivation = nil
+  luaunit.assertFalse(AirWaveZone._canEnterNextWave(z, { {} }))
+end
+
+function TestAirWaveZoneFSMExtended:test_canEnterNextWave_true()
+  local z = AirWaveZone:new()
+  z.timeOfActivation = timer.getTime() - 1
+  luaunit.assertTrue(AirWaveZone._canEnterNextWave(z, { {} }))
+end
+
+function TestAirWaveZoneFSMExtended:test_tickActive_early_return_when_ia_disabled()
+  local z = AirWaveZone:new()
+  z:disableOutsideOfZoneIA()
+  -- spawnedGroupsNames has a group but IA check disabled → no Group.getByName call
+  z.spawnedGroupsNames = { "some_group" }
+  AirWaveZone._tickActive(z) -- should return immediately without crashing
+end
+
+function TestAirWaveZoneFSMExtended:test_onExitActive_destroys_and_signals_destroyed()
+  local z = AirWaveZone:new()
+  z:setSilent(true)
+  z.name = "TestZone"
+  local destroyed_cb_fired = false
+  z:setOnDestroyed(function() destroyed_cb_fired = true end)
+  AirWaveZone._onExitActive(z)
+  luaunit.assertTrue(destroyed_cb_fired)
+end
+
+function TestAirWaveZoneFSMExtended:test_onEnterOver_fires_won()
+  local z = AirWaveZone:new()
+  z:setSilent(true)
+  z.name = "TestZone"
+  local won_fired = false
+  z:setOnWon(function() won_fired = true end)
+  AirWaveZone._onEnterOver(z)
+  luaunit.assertTrue(won_fired)
+end
+
+function TestAirWaveZoneFSMExtended:test_onEnterWaitForNextWave_preset_delay_not_overwritten()
+  local z = AirWaveZone:new()
+  z:setSilent(true)
+  z.name = "TestZone"
+  z.delayBeforeNextWave = 15 -- already set
+  AirWaveZone._onEnterWaitForNextWave(z)
+  luaunit.assertEquals(z.delayBeforeNextWave, 15)
+end
+
+-- ---------------------------------------------------------------------------
+-- TestAirWavesModuleFunctions
+-- ---------------------------------------------------------------------------
+TestAirWavesModuleFunctions = {}
+
+function TestAirWavesModuleFunctions:test_add_and_get_by_zone_name()
+  local z = AirWaveZone:new()
+  z.name = "moduleTestZone"
+  veafAirWaves.add(z)
+  luaunit.assertEquals(veafAirWaves.get("moduleTestZone"), z)
+end
+
+function TestAirWavesModuleFunctions:test_add_with_explicit_name()
+  local z = AirWaveZone:new()
+  z.name = "originalName"
+  veafAirWaves.add(z, "explicitName")
+  luaunit.assertEquals(veafAirWaves.get("explicitName"), z)
+end
+
+function TestAirWavesModuleFunctions:test_get_nonexistent_returns_nil()
+  luaunit.assertNil(veafAirWaves.get("no_such_zone_xyzzy"))
+end
+
 os.exit(luaunit.LuaUnit.run())
 

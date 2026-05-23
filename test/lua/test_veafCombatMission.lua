@@ -361,6 +361,342 @@ function TestVeafCombatMissionRegistry:test_initialize_sets_friendlyName_from_na
 end
 
 -- ============================================================================
+-- TestVeafCombatMissionObjectiveCopy
+-- ============================================================================
+TestVeafCombatMissionObjectiveCopy = {}
+
+function TestVeafCombatMissionObjectiveCopy:setUp()
+  self.obj = VeafCombatMissionObjective:new()
+  self.obj:setName("orig"):setDescription("Desc"):setParameters({ k = "v" })
+  local fn = function() return VeafCombatMissionObjective.SUCCESS end
+  self.obj:setOnCheck(fn)
+  self.copy = self.obj:copy()
+end
+
+function TestVeafCombatMissionObjectiveCopy:test_copy_is_distinct_object()
+  luaunit.assertNotIs(self.copy, self.obj)
+end
+
+function TestVeafCombatMissionObjectiveCopy:test_copy_preserves_name()
+  luaunit.assertEquals(self.copy:getName(), "orig")
+end
+
+function TestVeafCombatMissionObjectiveCopy:test_copy_preserves_description()
+  luaunit.assertEquals(self.copy:getDescription(), "Desc")
+end
+
+function TestVeafCombatMissionObjectiveCopy:test_copy_preserves_onCheck()
+  luaunit.assertEquals(self.copy:getOnCheck(), self.obj:getOnCheck())
+end
+
+function TestVeafCombatMissionObjectiveCopy:test_copy_parameters_deep_copied()
+  self.copy:getParameters().k = "modified"
+  luaunit.assertEquals(self.obj:getParameters().k, "v")
+end
+
+-- ============================================================================
+-- TestVeafCombatMissionObjectiveBehavior
+-- ============================================================================
+TestVeafCombatMissionObjectiveBehavior = {}
+
+function TestVeafCombatMissionObjectiveBehavior:setUp()
+  self.obj = VeafCombatMissionObjective:new():setName("test")
+  self.fakeMission = { getName = function() return "FakeMission" end }
+end
+
+function TestVeafCombatMissionObjectiveBehavior:test_onCheck_without_function_returns_NOTHING()
+  local result = self.obj:onCheck(self.fakeMission)
+  luaunit.assertEquals(result, VeafCombatMissionObjective.NOTHING)
+end
+
+function TestVeafCombatMissionObjectiveBehavior:test_onCheck_with_function_calls_it()
+  local called = false
+  self.obj:setOnCheck(function(m, p) called = true; return VeafCombatMissionObjective.SUCCESS end)
+  self.obj:onCheck(self.fakeMission)
+  luaunit.assertTrue(called)
+end
+
+function TestVeafCombatMissionObjectiveBehavior:test_onCheck_returns_function_result()
+  self.obj:setOnCheck(function(m, p) return VeafCombatMissionObjective.FAILED end)
+  local result = self.obj:onCheck(self.fakeMission)
+  luaunit.assertEquals(result, VeafCombatMissionObjective.FAILED)
+end
+
+function TestVeafCombatMissionObjectiveBehavior:test_onStartup_without_function_no_error()
+  self.obj:onStartup(self.fakeMission)
+  luaunit.assertTrue(true)
+end
+
+function TestVeafCombatMissionObjectiveBehavior:test_onStartup_with_function_calls_it()
+  local called = false
+  self.obj:setOnStartup(function(params) called = true end)
+  self.obj:onStartup(self.fakeMission)
+  luaunit.assertTrue(called)
+end
+
+-- ============================================================================
+-- TestVeafCombatMissionObjectiveTimedBehavior
+-- ============================================================================
+TestVeafCombatMissionObjectiveTimedBehavior = {}
+
+function TestVeafCombatMissionObjectiveTimedBehavior:setUp()
+  dcs_mocks.currentTime = 0
+  self.obj = VeafCombatMissionObjective:new():setName("timed"):configureAsTimedObjective(60)
+  self.fakeMission = { getName = function() return "FM" end }
+end
+
+function TestVeafCombatMissionObjectiveTimedBehavior:test_onStartup_sets_startTime_in_parameters()
+  self.obj:onStartup(self.fakeMission)
+  luaunit.assertNotNil(self.obj:getParameters().startTime)
+end
+
+function TestVeafCombatMissionObjectiveTimedBehavior:test_onCheck_before_timeout_returns_NOTHING()
+  self.obj:onStartup(self.fakeMission)   -- startTime = 0
+  dcs_mocks.currentTime = 30             -- 30 < 0 + 60 → NOTHING
+  local result = self.obj:onCheck(self.fakeMission)
+  luaunit.assertEquals(result, VeafCombatMissionObjective.NOTHING)
+end
+
+function TestVeafCombatMissionObjectiveTimedBehavior:test_onCheck_after_timeout_returns_FAILED()
+  self.obj:onStartup(self.fakeMission)   -- startTime = 0
+  dcs_mocks.currentTime = 100            -- 100 > 0 + 60 → FAILED
+  local result = self.obj:onCheck(self.fakeMission)
+  luaunit.assertEquals(result, VeafCombatMissionObjective.FAILED)
+end
+
+-- ============================================================================
+-- TestVeafCombatMissionElementCopy
+-- ============================================================================
+TestVeafCombatMissionElementCopy = {}
+
+function TestVeafCombatMissionElementCopy:setUp()
+  self.elem = VeafCombatMissionElement:new()
+  self.elem:setName("e"):setSkill("Good"):setScale(2):setSpawnRadius(100):setSpawnChance(80)
+  self.elem:setGroups({})  -- initialises self.spawnPoints = {}
+  self.copy = self.elem:copy()
+end
+
+function TestVeafCombatMissionElementCopy:test_copy_is_distinct_object()
+  luaunit.assertNotIs(self.copy, self.elem)
+end
+
+function TestVeafCombatMissionElementCopy:test_copy_preserves_name()
+  luaunit.assertEquals(self.copy:getName(), "e")
+end
+
+function TestVeafCombatMissionElementCopy:test_copy_preserves_skill()
+  luaunit.assertEquals(self.copy:getSkill(), "Good")
+end
+
+function TestVeafCombatMissionElementCopy:test_copy_preserves_scale()
+  luaunit.assertEquals(self.copy:getScale(), 2)
+end
+
+function TestVeafCombatMissionElementCopy:test_copy_preserves_spawnRadius()
+  luaunit.assertEquals(self.copy:getSpawnRadius(), 100)
+end
+
+function TestVeafCombatMissionElementCopy:test_copy_preserves_spawnChance()
+  luaunit.assertEquals(self.copy:getSpawnChance(), 80)
+end
+
+function TestVeafCombatMissionElementCopy:test_copy_groups_is_new_table()
+  luaunit.assertNotIs(self.copy.groups, self.elem.groups)
+end
+
+-- ============================================================================
+-- TestVeafCombatMissionElementGetters
+-- ============================================================================
+TestVeafCombatMissionElementGetters = {}
+
+function TestVeafCombatMissionElementGetters:setUp()
+  self.elem = VeafCombatMissionElement:new():setName("e")
+end
+
+function TestVeafCombatMissionElementGetters:test_getGroups_after_setGroups_empty()
+  self.elem:setGroups({})
+  luaunit.assertEquals(#self.elem:getGroups(), 0)
+end
+
+function TestVeafCombatMissionElementGetters:test_getSkill_default_is_Random()
+  luaunit.assertEquals(self.elem:getSkill(), "Random")
+end
+
+function TestVeafCombatMissionElementGetters:test_getScale_default_is_1()
+  luaunit.assertEquals(self.elem:getScale(), 1)
+end
+
+function TestVeafCombatMissionElementGetters:test_setGroups_with_known_group_stores_spawnPoint()
+  dcs_mocks.addGroup("g1", {
+    getUnit = function(i) return { getPoint = function() return { x = 1, y = 2, z = 3 } end } end,
+  })
+  self.elem:setGroups({ "g1" })
+  luaunit.assertEquals(self.elem:getGroups()[1], "g1")
+  luaunit.assertNotNil(self.elem.spawnPoints["g1"])
+  dcs_mocks.removeGroup("g1")
+end
+
+-- ============================================================================
+-- TestVeafCombatMissionBehavior
+-- ============================================================================
+TestVeafCombatMissionBehavior = {}
+
+function TestVeafCombatMissionBehavior:setUp()
+  self.mission = VeafCombatMission:new():setName("m"):setFriendlyName("Mission Alpha"):setBriefing("Do stuff")
+end
+
+function TestVeafCombatMissionBehavior:test_copy_preserves_name()
+  local c = self.mission:copy()
+  luaunit.assertEquals(c:getName(), "m")
+end
+
+function TestVeafCombatMissionBehavior:test_copy_preserves_briefing()
+  local c = self.mission:copy()
+  luaunit.assertEquals(c:getBriefing(), "Do stuff")
+end
+
+function TestVeafCombatMissionBehavior:test_copy_with_skill_and_scale()
+  local elem = VeafCombatMissionElement:new():setName("e"):setGroups({})
+  self.mission:addElement(elem)
+  local c = self.mission:copy("Good", 2)
+  luaunit.assertEquals(#c.elements, 1)
+  luaunit.assertEquals(c.elements[1]:getSkill(), "Good")
+  luaunit.assertEquals(c.elements[1]:getScale(), 2)
+end
+
+function TestVeafCombatMissionBehavior:test_copy_with_objectives()
+  local obj = VeafCombatMissionObjective:new():setName("obj1")
+  self.mission:addObjective(obj)
+  local c = self.mission:copy()
+  luaunit.assertEquals(#c.objectives, 1)
+  luaunit.assertEquals(c.objectives[1]:getName(), "obj1")
+end
+
+function TestVeafCombatMissionBehavior:test_getRadioMenuName_returns_friendlyName()
+  luaunit.assertEquals(self.mission:getRadioMenuName(), "Mission Alpha")
+end
+
+function TestVeafCombatMissionBehavior:test_clearSpawnedGroups_leaves_empty()
+  self.mission.spawnedGroups = { "fakeGroup" }
+  self.mission:clearSpawnedGroups()
+  luaunit.assertEquals(#self.mission.spawnedGroups, 0)
+end
+
+function TestVeafCombatMissionBehavior:test_getRemainingEnemies_no_groups()
+  local live, damaged, dead = self.mission:getRemainingEnemies()
+  luaunit.assertEquals(live, 0)
+  luaunit.assertEquals(damaged, 0)
+  luaunit.assertEquals(dead, 0)
+end
+
+function TestVeafCombatMissionBehavior:test_getRemainingEnemiesString_when_empty()
+  local s = self.mission:getRemainingEnemiesString()
+  luaunit.assertIsString(s)
+  luaunit.assertTrue(s:find("0 alive") ~= nil)
+end
+
+function TestVeafCombatMissionBehavior:test_getInformation_inactive_no_briefing()
+  self.mission:setBriefing(nil)
+  local info = self.mission:getInformation()
+  luaunit.assertTrue(info:find("Mission Alpha") ~= nil)
+  luaunit.assertTrue(info:find("not yet active") ~= nil)
+end
+
+function TestVeafCombatMissionBehavior:test_getInformation_inactive_with_briefing()
+  local info = self.mission:getInformation()
+  luaunit.assertTrue(info:find("BRIEFING") ~= nil)
+  luaunit.assertTrue(info:find("Do stuff") ~= nil)
+  luaunit.assertTrue(info:find("not yet active") ~= nil)
+end
+
+function TestVeafCombatMissionBehavior:test_getInformation_inactive_with_objectives()
+  local obj = VeafCombatMissionObjective:new():setName("o1"):setDescription("Kill all tanks")
+  self.mission:addObjective(obj)
+  local info = self.mission:getInformation()
+  luaunit.assertTrue(info:find("OBJECTIVES") ~= nil)
+  luaunit.assertTrue(info:find("Kill all tanks") ~= nil)
+end
+
+function TestVeafCombatMissionBehavior:test_addDefaultObjectives_returns_self()
+  local result = self.mission:addDefaultObjectives()
+  luaunit.assertEquals(result, self.mission)
+end
+
+function TestVeafCombatMissionBehavior:test_unscheduleWatchdogFunction_nil_safe()
+  self.mission:unscheduleWatchdogFunction()
+  luaunit.assertTrue(true)
+end
+
+function TestVeafCombatMissionBehavior:test_scheduleWatchdogFunction_no_error()
+  self.mission:scheduleWatchdogFunction()
+  luaunit.assertTrue(true)
+end
+
+function TestVeafCombatMissionBehavior:test_unscheduleWatchdogFunction_with_id_clears_it()
+  self.mission.watchdogFunctionId = 42
+  self.mission:unscheduleWatchdogFunction()
+  luaunit.assertNil(self.mission.watchdogFunctionId)
+end
+
+function TestVeafCombatMissionBehavior:test_initialize_nil_name_returns_self()
+  local m = VeafCombatMission:new()
+  local result = m:initialize()
+  luaunit.assertEquals(result, m)
+end
+
+-- ============================================================================
+-- TestVeafCombatMissionModuleFunctions
+-- ============================================================================
+TestVeafCombatMissionModuleFunctions = {}
+
+function TestVeafCombatMissionModuleFunctions:setUp()
+  veafCombatMission.missionsList = {}
+  veafCombatMission.missionsDict = {}
+end
+
+function TestVeafCombatMissionModuleFunctions:test_AddMissionsWithSkillAndScale_creates_copies()
+  local m = VeafCombatMission:new():setName("alpha"):setFriendlyName("Alpha Op")
+  veafCombatMission.AddMissionsWithSkillAndScale(m, false, { "Good" }, { 1, 2 })
+  luaunit.assertEquals(#veafCombatMission.missionsList, 2)
+end
+
+function TestVeafCombatMissionModuleFunctions:test_AddMissionsWithSkillAndScale_names_formatted()
+  local m = VeafCombatMission:new():setName("bravo"):setFriendlyName("Bravo Op")
+  veafCombatMission.AddMissionsWithSkillAndScale(m, false, { "High" }, { 3 })
+  luaunit.assertNotNil(veafCombatMission.GetMission("bravo/High/3"))
+end
+
+function TestVeafCombatMissionModuleFunctions:test_listActiveMissions_no_active_missions()
+  veafCombatMission.AddMission(VeafCombatMission:new():setName("delta"))
+  veafCombatMission.listActiveMissions()
+  luaunit.assertTrue(true)
+end
+
+function TestVeafCombatMissionModuleFunctions:test_listActiveMissions_with_active_mission()
+  local m = VeafCombatMission:new():setName("echo"):setFriendlyName("Echo Op")
+  veafCombatMission.AddMission(m)
+  m:setActive(true)
+  veafCombatMission.listActiveMissions()
+  luaunit.assertTrue(true)
+end
+
+function TestVeafCombatMissionModuleFunctions:test_listAvailableMissions_no_radio_missions()
+  veafCombatMission.AddMission(VeafCombatMission:new():setName("foxtrot"))
+  veafCombatMission.listAvailableMissions(nil)
+  luaunit.assertTrue(true)
+end
+
+function TestVeafCombatMissionModuleFunctions:test_help_no_error()
+  veafCombatMission.help(nil)
+  luaunit.assertTrue(true)
+end
+
+function TestVeafCombatMissionModuleFunctions:test_help_with_unit_name()
+  veafCombatMission.help("someUnit")
+  luaunit.assertTrue(true)
+end
+
+-- ============================================================================
 -- Run
 -- ============================================================================
 os.exit(luaunit.LuaUnit.run())

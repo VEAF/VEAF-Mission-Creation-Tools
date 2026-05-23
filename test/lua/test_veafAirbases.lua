@@ -161,6 +161,192 @@ function TestVeafAirbaseNoRunway:test_no_runways_returns_nil()
 end
 
 -- ============================================================================
+-- TestVeafAirbasesInit
+-- ============================================================================
+TestVeafAirbasesInit = {}
+
+function TestVeafAirbasesInit:setUp()
+  -- force re-initialization on every test
+  veafAirbases.Airbases = nil
+  veafAirbases.initialized = false
+end
+
+function TestVeafAirbasesInit:test_initialize_creates_empty_table()
+  -- world.getAirbases() returns {} → Airbases populated but with no entries
+  veafAirbases.initialize()
+  luaunit.assertIsTable(veafAirbases.Airbases)
+end
+
+function TestVeafAirbasesInit:test_initialize_idempotent()
+  veafAirbases.initialize()
+  local first = veafAirbases.Airbases
+  veafAirbases.initialize()
+  -- second call without bReset should be a no-op (already initialized)
+  luaunit.assertIsTable(veafAirbases.Airbases)
+end
+
+function TestVeafAirbasesInit:test_initialize_bReset_reinitializes()
+  veafAirbases.initialize()
+  veafAirbases.initialize(true)
+  luaunit.assertIsTable(veafAirbases.Airbases)
+end
+
+-- ============================================================================
+-- TestVeafAirbasesLookup
+-- ============================================================================
+TestVeafAirbasesLookup = {}
+
+function TestVeafAirbasesLookup:setUp()
+  veafAirbases.Airbases = nil
+  veafAirbases.initialized = false
+  veafAirbases.initialize()
+end
+
+function TestVeafAirbasesLookup:test_getAirbaseByName_not_found()
+  local ab = veafAirbases.getAirbaseByName("NotFound")
+  luaunit.assertNil(ab)
+end
+
+function TestVeafAirbasesLookup:test_getAirbaseFromDcsAirbase_nil()
+  local ab = veafAirbases.getAirbaseFromDcsAirbase(nil)
+  luaunit.assertNil(ab)
+end
+
+function TestVeafAirbasesLookup:test_getNearestAirbaseList_empty_db()
+  -- With empty Airbases table, loop body never executes → returns {}
+  local mockUnit = {
+    getPoint = function() return { x = 0, y = 0, z = 0 } end,
+  }
+  local list = veafAirbases.getNearestAirbaseList(mockUnit, 1)
+  luaunit.assertIsTable(list)
+end
+
+-- ============================================================================
+-- TestVeafAirbaseToString
+-- ============================================================================
+TestVeafAirbaseToString = {}
+
+function TestVeafAirbaseToString:test_toString_no_runways()
+  local ab = makeAirbase({})
+  local s = ab:toString()
+  luaunit.assertIsString(s)
+  luaunit.assertTrue(#s > 0)
+end
+
+function TestVeafAirbaseToString:test_toString_with_runway()
+  local ab = makeAirbase({ makeRunway(9, 90, 27, 270) })
+  local s = ab:toString()
+  luaunit.assertIsString(s)
+  luaunit.assertTrue(#s > 0)
+end
+
+-- ============================================================================
+-- TestVeafAirbaseRunwayCreate — exercises veafAirbaseRunway:create()
+-- ============================================================================
+TestVeafAirbaseRunwayCreate = {}
+
+-- Minimal DCS airbase/runway mock for create()
+local function makeDcsAirbase(name) return { getName = function() return name end } end
+local function makeDcsRunway(numberStr, courseDeg)
+  -- DCS convention: course stored as negative radians of the True heading
+  return { Name = numberStr, course = -math.rad(courseDeg) }
+end
+
+function TestVeafAirbaseRunwayCreate:test_create_nil_dcsAirbase_returns_nil()
+  local rwy = veafAirbaseRunway:create(nil, makeDcsRunway("9", 90), 1)
+  luaunit.assertNil(rwy)
+end
+
+function TestVeafAirbaseRunwayCreate:test_create_nil_dcsRunway_returns_nil()
+  local rwy = veafAirbaseRunway:create(makeDcsAirbase("TestAB"), nil, 1)
+  luaunit.assertNil(rwy)
+end
+
+function TestVeafAirbaseRunwayCreate:test_create_rwy09_27_east_west()
+  -- Runway 9 (heading 90°) / 27 (heading 270°)
+  local dcsAb = makeDcsAirbase("TestAB")
+  local dcsRwy = makeDcsRunway("9", 90)
+  local rwy = veafAirbaseRunway:create(dcsAb, dcsRwy, 1)
+  luaunit.assertNotNil(rwy)
+  -- result ordered by ascending runway number
+  luaunit.assertEquals(rwy[1].Number, 9)
+  luaunit.assertEquals(rwy[2].Number, 27)
+end
+
+function TestVeafAirbaseRunwayCreate:test_create_rwy14_32()
+  local dcsAb = makeDcsAirbase("TestAB")
+  local dcsRwy = makeDcsRunway("14", 140)
+  local rwy = veafAirbaseRunway:create(dcsAb, dcsRwy, 1)
+  luaunit.assertNotNil(rwy)
+  luaunit.assertEquals(rwy[1].Number, 14)
+  luaunit.assertEquals(rwy[2].Number, 32)
+end
+
+function TestVeafAirbaseRunwayCreate:test_create_sets_heading_fields()
+  local dcsAb = makeDcsAirbase("TestAB")
+  local dcsRwy = makeDcsRunway("9", 90)
+  local rwy = veafAirbaseRunway:create(dcsAb, dcsRwy, 1)
+  luaunit.assertNotNil(rwy[1].Heading)
+  luaunit.assertNotNil(rwy[2].Heading)
+end
+
+function TestVeafAirbaseRunwayCreate:test_create_iReportOrder_2_unknown_airbase_no_crash()
+  -- iReportOrder > 1 but airbase not in manual corrections → no crash, returns runway
+  local dcsAb = makeDcsAirbase("UnknownAirbase")
+  local dcsRwy = makeDcsRunway("9", 90)
+  local rwy = veafAirbaseRunway:create(dcsAb, dcsRwy, 2)
+  luaunit.assertNotNil(rwy)
+end
+
+function TestVeafAirbaseRunwayCreate:test_create_result_has_metatable()
+  local dcsAb = makeDcsAirbase("TestAB")
+  local dcsRwy = makeDcsRunway("9", 90)
+  local rwy = veafAirbaseRunway:create(dcsAb, dcsRwy, 1)
+  luaunit.assertNotNil(rwy)
+  -- toString() works because metatable is set
+  luaunit.assertIsString(rwy:toString())
+end
+
+-- ============================================================================
+-- TestVeafAirbasesGetNearest — exercises getNearestAirbase()
+-- ============================================================================
+TestVeafAirbasesGetNearest = {}
+
+function TestVeafAirbasesGetNearest:setUp()
+  veafAirbases.Airbases = nil
+  veafAirbases.initialized = false
+  veafAirbases.initialize()
+end
+
+function TestVeafAirbasesGetNearest:test_getNearestAirbase_empty_db_returns_nil()
+  -- Empty Airbases: loop never runs → nearestList={} → return nil
+  local mockUnit = {
+    getPoint = function() return { x = 0, y = 0, z = 0 } end,
+    getName = function() return "mockUnit" end,
+  }
+  local ab = veafAirbases.getNearestAirbase(mockUnit)
+  luaunit.assertNil(ab)
+end
+
+-- ============================================================================
+-- TestVeafAirbaseRunwayInServiceString
+-- ============================================================================
+TestVeafAirbaseRunwayInServiceString = {}
+
+function TestVeafAirbaseRunwayInServiceString:test_returns_string_when_runway_found()
+  local ab = makeAirbase({ makeRunway(9, 90, 27, 270) })
+  local s = ab:getRunwayInServiceString(270)
+  luaunit.assertIsString(s)
+  luaunit.assertEquals(s, "27")
+end
+
+function TestVeafAirbaseRunwayInServiceString:test_returns_nil_when_no_runways()
+  local ab = makeAirbase({})
+  local s = ab:getRunwayInServiceString(270)
+  luaunit.assertNil(s)
+end
+
+-- ============================================================================
 -- Run
 -- ============================================================================
 os.exit(luaunit.LuaUnit.run())

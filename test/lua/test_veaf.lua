@@ -604,6 +604,856 @@ function TestVeafIfnns:test_missingFieldsAreOmitted()
   luaunit.assertNil(result.missing)
 end
 
+-- ===========================================================================
+-- veaf.getConfig / veaf.setConfig / veaf.isEnabled
+-- ===========================================================================
+TestVeafModuleConfig = {}
+
+function TestVeafModuleConfig:setUp()
+  veaf.config["__test_module__"] = nil
+end
+
+function TestVeafModuleConfig:test_getConfigReturnsEmptyTableForUnknown()
+  local cfg = veaf.getConfig("__test_module__")
+  luaunit.assertNotNil(cfg)
+  luaunit.assertEquals(veaf.length(cfg), 0)
+end
+
+function TestVeafModuleConfig:test_setConfigStoresValue()
+  veaf.setConfig("__test_module__", "someKey", 42)
+  luaunit.assertEquals(veaf.getConfig("__test_module__").someKey, 42)
+end
+
+function TestVeafModuleConfig:test_isEnabledTrueByDefault()
+  luaunit.assertTrue(veaf.isEnabled("__test_module__"))
+end
+
+function TestVeafModuleConfig:test_isEnabledFalseWhenDisabled()
+  veaf.setConfig("__test_module__", "enable", false)
+  luaunit.assertFalse(veaf.isEnabled("__test_module__"))
+end
+
+function TestVeafModuleConfig:tearDown()
+  veaf.config["__test_module__"] = nil
+end
+
+-- ===========================================================================
+-- veaf.registerModule
+-- ===========================================================================
+TestVeafRegisterModule = {}
+
+function TestVeafRegisterModule:setUp()
+  veaf.config["__test_reg__"] = nil
+  veaf.modules["__test_reg__"] = nil
+end
+
+function TestVeafRegisterModule:test_registersModuleWithDefaults()
+  veaf.registerModule("__test_reg__", function() end, { speed = 200 })
+  luaunit.assertNotNil(veaf.modules["__test_reg__"])
+  luaunit.assertEquals(veaf.getConfig("__test_reg__").speed, 200)
+end
+
+function TestVeafRegisterModule:test_existingConfigNotOverwritten()
+  veaf.setConfig("__test_reg__", "speed", 300)
+  veaf.registerModule("__test_reg__", function() end, { speed = 200 })
+  luaunit.assertEquals(veaf.getConfig("__test_reg__").speed, 300)
+end
+
+function TestVeafRegisterModule:test_enableDefaultsToTrue()
+  veaf.registerModule("__test_reg__", function() end)
+  luaunit.assertTrue(veaf.getConfig("__test_reg__").enable)
+end
+
+function TestVeafRegisterModule:test_orderStoredInModule()
+  veaf.registerModule("__test_reg__", function() end, nil, 50)
+  luaunit.assertEquals(veaf.modules["__test_reg__"].order, 50)
+end
+
+function TestVeafRegisterModule:test_defaultOrderIs100()
+  veaf.registerModule("__test_reg__", function() end)
+  luaunit.assertEquals(veaf.modules["__test_reg__"].order, 100)
+end
+
+function TestVeafRegisterModule:tearDown()
+  veaf.config["__test_reg__"] = nil
+  veaf.modules["__test_reg__"] = nil
+end
+
+-- ===========================================================================
+-- veaf.enumToString
+-- ===========================================================================
+TestVeafEnumToString = {}
+
+function TestVeafEnumToString:test_knownValue()
+  local mapping = { [1] = "ONE", [2] = "TWO", [3] = "THREE" }
+  luaunit.assertEquals(veaf.enumToString(1, mapping), "ONE")
+  luaunit.assertEquals(veaf.enumToString(3, mapping), "THREE")
+end
+
+function TestVeafEnumToString:test_unknownValueReturnsEmpty()
+  local mapping = { [1] = "ONE" }
+  luaunit.assertEquals(veaf.enumToString(99, mapping), "")
+end
+
+function TestVeafEnumToString:test_nilValueReturnsEmpty()
+  luaunit.assertEquals(veaf.enumToString(nil, { [1] = "A" }), "")
+end
+
+function TestVeafEnumToString:test_nilMappingReturnsEmpty()
+  luaunit.assertEquals(veaf.enumToString(1, nil), "")
+end
+
+-- ===========================================================================
+-- veaf.p / veaf._p / veaf.lp
+-- ===========================================================================
+TestVeafP = {}
+
+function TestVeafP:test_nil()
+  luaunit.assertEquals(veaf.p(nil), "[nil]")
+end
+
+function TestVeafP:test_number()
+  luaunit.assertEquals(veaf.p(42), "42")
+  luaunit.assertEquals(veaf.p(0), "0")
+end
+
+function TestVeafP:test_boolTrue()
+  luaunit.assertEquals(veaf.p(true), "[true]")
+end
+
+function TestVeafP:test_boolFalse()
+  luaunit.assertEquals(veaf.p(false), "[false]")
+end
+
+function TestVeafP:test_function()
+  luaunit.assertEquals(veaf.p(function() end), "[function]")
+end
+
+function TestVeafP:test_tableContainsKeyAndValue()
+  local s = veaf.p({ hello = "world" })
+  luaunit.assertStrContains(s, "hello")
+  luaunit.assertStrContains(s, "world")
+end
+
+function TestVeafP:test_customTostring()
+  local t = setmetatable({}, {
+    __tostring = function()
+      return "custom_repr"
+    end,
+  })
+  luaunit.assertEquals(veaf.p(t), "custom_repr")
+end
+
+function TestVeafP:test_nestedTable()
+  local s = veaf.p({ outer = { inner = 99 } })
+  luaunit.assertStrContains(s, "outer")
+end
+
+TestVeafLp = {}
+
+function TestVeafLp:test_lpReturnsProxyTable()
+  local proxy = veaf.lp(42)
+  luaunit.assertEquals(type(proxy), "table")
+  luaunit.assertEquals(tostring(proxy), "42")
+end
+
+function TestVeafLp:test_lpNil()
+  local proxy = veaf.lp(nil)
+  luaunit.assertEquals(tostring(proxy), "[nil]")
+end
+
+function TestVeafLp:test_lpBoolTrue()
+  local proxy = veaf.lp(true)
+  luaunit.assertEquals(tostring(proxy), "[true]")
+end
+
+-- ===========================================================================
+-- veaf.shuffle
+-- ===========================================================================
+TestVeafShuffle = {}
+
+function TestVeafShuffle:test_preservesLength()
+  local t = { 1, 2, 3, 4, 5 }
+  veaf.shuffle(t)
+  luaunit.assertEquals(#t, 5)
+end
+
+function TestVeafShuffle:test_containsSameElements()
+  local original = { 10, 20, 30, 40, 50 }
+  local copy = { 10, 20, 30, 40, 50 }
+  veaf.shuffle(copy)
+  for _, v in ipairs(original) do
+    luaunit.assertTrue(veaf.tableContains(copy, v))
+  end
+end
+
+function TestVeafShuffle:test_emptyTableDoesNotError()
+  local t = {}
+  veaf.shuffle(t)
+  luaunit.assertEquals(#t, 0)
+end
+
+-- ===========================================================================
+-- veaf.safeCall
+-- ===========================================================================
+TestVeafSafeCall = {}
+
+function TestVeafSafeCall:test_successReturnsValue()
+  local result = veaf.safeCall(function(a, b) return a + b end, 3, 4)
+  luaunit.assertEquals(result, 7)
+end
+
+function TestVeafSafeCall:test_errorReturnsNil()
+  local result = veaf.safeCall(function() error("boom") end)
+  luaunit.assertNil(result)
+end
+
+function TestVeafSafeCall:test_multipleReturnValues()
+  local a, b = veaf.safeCall(function() return 1, 2 end)
+  luaunit.assertEquals(a, 1)
+  luaunit.assertEquals(b, 2)
+end
+
+-- ===========================================================================
+-- veaf.serialize
+-- ===========================================================================
+TestVeafSerialize = {}
+
+function TestVeafSerialize:test_number()
+  local s = veaf.serialize("x", 42)
+  luaunit.assertStrContains(s, "x")
+  luaunit.assertStrContains(s, "42")
+end
+
+function TestVeafSerialize:test_string()
+  local s = veaf.serialize("name", "hello")
+  luaunit.assertStrContains(s, "name")
+  luaunit.assertStrContains(s, "hello")
+end
+
+function TestVeafSerialize:test_boolean()
+  local s = veaf.serialize("flag", true)
+  luaunit.assertStrContains(s, "flag")
+  luaunit.assertStrContains(s, "true")
+end
+
+function TestVeafSerialize:test_table()
+  local s = veaf.serialize("t", { alpha = 99 })
+  luaunit.assertStrContains(s, "t")
+  luaunit.assertStrContains(s, "alpha")
+  luaunit.assertStrContains(s, "99")
+end
+
+function TestVeafSerialize:test_nilValueSerializesAsEmptyString()
+  local s = veaf.serialize("v", nil)
+  luaunit.assertStrContains(s, "v")
+end
+
+-- ===========================================================================
+-- veaf.json.stringify / veaf.json.parse
+-- ===========================================================================
+TestVeafJson = {}
+
+function TestVeafJson:test_stringifyString()
+  luaunit.assertEquals(veaf.json.stringify("hello"), '"hello"')
+end
+
+function TestVeafJson:test_stringifyNumber()
+  luaunit.assertEquals(veaf.json.stringify(42), "42")
+end
+
+function TestVeafJson:test_stringifyBoolTrue()
+  luaunit.assertEquals(veaf.json.stringify(true), "true")
+end
+
+function TestVeafJson:test_stringifyBoolFalse()
+  luaunit.assertEquals(veaf.json.stringify(false), "false")
+end
+
+function TestVeafJson:test_stringifyNil()
+  luaunit.assertEquals(veaf.json.stringify(nil), "null")
+end
+
+function TestVeafJson:test_stringifyArray()
+  local s = veaf.json.stringify({ 1, 2, 3 })
+  luaunit.assertEquals(s:sub(1, 1), "[")
+  luaunit.assertEquals(s:sub(-1), "]")
+  luaunit.assertStrContains(s, "1")
+  luaunit.assertStrContains(s, "2")
+  luaunit.assertStrContains(s, "3")
+end
+
+function TestVeafJson:test_stringifyObject()
+  local s = veaf.json.stringify({ name = "test" })
+  luaunit.assertStrContains(s, '"name"')
+  luaunit.assertStrContains(s, '"test"')
+  luaunit.assertStrContains(s, ":")
+end
+
+function TestVeafJson:test_parseString()
+  luaunit.assertEquals(veaf.json.parse('"hello"'), "hello")
+end
+
+function TestVeafJson:test_parseNumber()
+  luaunit.assertEquals(veaf.json.parse("42"), 42)
+end
+
+function TestVeafJson:test_parseNegativeNumber()
+  luaunit.assertEquals(veaf.json.parse("-7"), -7)
+end
+
+function TestVeafJson:test_parseBoolTrue()
+  luaunit.assertEquals(veaf.json.parse("true"), true)
+end
+
+function TestVeafJson:test_parseBoolFalse()
+  luaunit.assertEquals(veaf.json.parse("false"), false)
+end
+
+function TestVeafJson:test_parseNull()
+  local result = veaf.json.parse("null")
+  luaunit.assertEquals(result, veaf.json.null)
+end
+
+function TestVeafJson:test_parseArray()
+  local arr = veaf.json.parse("[10, 20, 30]")
+  luaunit.assertEquals(arr[1], 10)
+  luaunit.assertEquals(arr[2], 20)
+  luaunit.assertEquals(arr[3], 30)
+end
+
+function TestVeafJson:test_parseObject()
+  local obj = veaf.json.parse('{"city":"Paris","pop":2000}')
+  luaunit.assertEquals(obj.city, "Paris")
+  luaunit.assertEquals(obj.pop, 2000)
+end
+
+function TestVeafJson:test_arrayRoundtrip()
+  local original = { 10, 20, 30 }
+  local parsed = veaf.json.parse(veaf.json.stringify(original))
+  luaunit.assertEquals(parsed[1], 10)
+  luaunit.assertEquals(parsed[2], 20)
+  luaunit.assertEquals(parsed[3], 30)
+end
+
+function TestVeafJson:test_stringEscaping()
+  -- backslash and quote are escaped
+  local s = veaf.json.stringify('say "hi"')
+  luaunit.assertStrContains(s, '\\"')
+end
+
+-- ===========================================================================
+-- veaf.computeLLFromString
+-- ===========================================================================
+TestVeafComputeLLFromString = {}
+
+function TestVeafComputeLLFromString:test_llDecimal()
+  local lat, lon = veaf.computeLLFromString("N10.5E020.5")
+  luaunit.assertAlmostEquals(lat, 10.5, 0.001)
+  luaunit.assertAlmostEquals(lon, 20.5, 0.001)
+end
+
+function TestVeafComputeLLFromString:test_llSouthWest()
+  local lat, lon = veaf.computeLLFromString("S10.5W020.5")
+  luaunit.assertAlmostEquals(lat, -10.5, 0.001)
+  luaunit.assertAlmostEquals(lon, -20.5, 0.001)
+end
+
+function TestVeafComputeLLFromString:test_llDMS()
+  -- N42:23:45E044:12:00
+  local lat, lon = veaf.computeLLFromString("N42:23:45E044:12:00")
+  luaunit.assertNotNil(lat)
+  luaunit.assertNotNil(lon)
+  -- 42° 23' 45" ≈ 42.396 (function has ~1 arcsec offset by design)
+  luaunit.assertTrue(lat > 42.39 and lat < 42.40)
+  luaunit.assertTrue(lon > 44.19 and lon < 44.21)
+end
+
+function TestVeafComputeLLFromString:test_llDMDecimal()
+  -- N42-23.5E044-12.5
+  local lat, lon = veaf.computeLLFromString("N42-23.5E044-12.5")
+  luaunit.assertNotNil(lat)
+  luaunit.assertNotNil(lon)
+  luaunit.assertTrue(lat > 42 and lat < 43)
+  luaunit.assertTrue(lon > 44 and lon < 45)
+end
+
+function TestVeafComputeLLFromString:test_utm()
+  -- Calls coord.MGRStoLL which is stubbed to return 0, 0
+  local lat, lon = veaf.computeLLFromString("U38TMP12345678")
+  luaunit.assertNotNil(lat)
+  luaunit.assertNotNil(lon)
+end
+
+function TestVeafComputeLLFromString:test_unknownFormatReturnsNil()
+  luaunit.assertNil(veaf.computeLLFromString("invalid"))
+end
+
+function TestVeafComputeLLFromString:test_nilReturnsNil()
+  luaunit.assertNil(veaf.computeLLFromString(nil))
+end
+
+-- ===========================================================================
+-- veaf.compute2dAzimuth / veaf.compute2dMagnitude
+-- ===========================================================================
+TestVeafCompute2d = {}
+
+function TestVeafCompute2d:test_azimuthNorth()
+  -- x=north, z=east in DCS; x=1,z=0 → atan2(0,1) = 0°
+  luaunit.assertAlmostEquals(veaf.compute2dAzimuth({ x = 1, z = 0 }), 0, 0.01)
+end
+
+function TestVeafCompute2d:test_azimuthEast()
+  luaunit.assertAlmostEquals(veaf.compute2dAzimuth({ x = 0, z = 1 }), 90, 0.01)
+end
+
+function TestVeafCompute2d:test_azimuthSouth()
+  luaunit.assertAlmostEquals(veaf.compute2dAzimuth({ x = -1, z = 0 }), 180, 0.01)
+end
+
+function TestVeafCompute2d:test_azimuthWest()
+  luaunit.assertAlmostEquals(veaf.compute2dAzimuth({ x = 0, z = -1 }), 270, 0.01)
+end
+
+function TestVeafCompute2d:test_azimuthZeroVecReturns0()
+  luaunit.assertEquals(veaf.compute2dAzimuth({ x = 0, z = 0 }), 0)
+end
+
+function TestVeafCompute2d:test_azimuthNilReturns0()
+  luaunit.assertEquals(veaf.compute2dAzimuth(nil), 0)
+end
+
+function TestVeafCompute2d:test_magnitude345()
+  luaunit.assertAlmostEquals(veaf.compute2dMagnitude({ x = 3, z = 4 }), 5, 0.001)
+end
+
+function TestVeafCompute2d:test_magnitudeZero()
+  luaunit.assertEquals(veaf.compute2dMagnitude({ x = 0, z = 0 }), 0)
+end
+
+function TestVeafCompute2d:test_magnitudeNilReturns0()
+  luaunit.assertEquals(veaf.compute2dMagnitude(nil), 0)
+end
+
+-- ===========================================================================
+-- veaf.convertSpeeds / wrappers
+-- ===========================================================================
+TestVeafConvertSpeeds = {}
+
+function TestVeafConvertSpeeds:test_fromMachSeaLevel()
+  -- Mach 0.5 at sea level: TAS ≈ IAS (same pressure altitude)
+  local r = veaf.convertSpeeds(0.5, nil, nil, 0)
+  luaunit.assertAlmostEquals(r.Mach, 0.5, 0.001)
+  luaunit.assertTrue(r.KTAS > 0)
+  luaunit.assertTrue(r.KIAS > 0)
+  luaunit.assertAlmostEquals(r.KTAS, r.KIAS, 1)
+end
+
+function TestVeafConvertSpeeds:test_fromMachAtAltitudeTasGreaterThanIas()
+  -- At cruise altitude, TAS > IAS
+  local r = veaf.convertSpeeds(0.8, nil, nil, 10668)
+  luaunit.assertAlmostEquals(r.Mach, 0.8, 0.001)
+  luaunit.assertTrue(r.KTAS > r.KIAS)
+  luaunit.assertTrue(r.KTAS > 400)
+end
+
+function TestVeafConvertSpeeds:test_fromKiasRoundtrip()
+  local r = veaf.convertSpeeds(nil, 250, nil, 0)
+  luaunit.assertAlmostEquals(r.KIAS, 250, 0.1)
+  luaunit.assertTrue(r.Mach > 0)
+  luaunit.assertTrue(r.KTAS > 0)
+end
+
+function TestVeafConvertSpeeds:test_fromKtasRoundtrip()
+  local r = veaf.convertSpeeds(nil, nil, 300, 0)
+  luaunit.assertAlmostEquals(r.KTAS, 300, 0.1)
+  luaunit.assertTrue(r.Mach > 0)
+  luaunit.assertTrue(r.KIAS > 0)
+end
+
+function TestVeafConvertSpeeds:test_convertMachSpeedWrapper()
+  local r = veaf.convertMachSpeed(0.6, 5000)
+  luaunit.assertAlmostEquals(r.Mach, 0.6, 0.001)
+end
+
+function TestVeafConvertSpeeds:test_convertIndicatedAirSpeedWrapper()
+  local r = veaf.convertIndicatedAirSpeed(200, 5000)
+  luaunit.assertAlmostEquals(r.KIAS, 200, 0.1)
+end
+
+function TestVeafConvertSpeeds:test_convertTrueAirSpeedWrapper()
+  local r = veaf.convertTrueAirSpeed(300, 5000)
+  luaunit.assertAlmostEquals(r.KTAS, 300, 0.1)
+end
+
+function TestVeafConvertSpeeds:test_supersonic()
+  -- Mach 1.5 at altitude: should trigger Rayleigh path; KTAS > KIAS in altitude
+  local r = veaf.convertSpeeds(1.5, nil, nil, 10668)
+  luaunit.assertAlmostEquals(r.Mach, 1.5, 0.001)
+  luaunit.assertTrue(r.KTAS > r.KIAS)
+end
+
+-- ===========================================================================
+-- veaf.getMagneticDeclination (theatres not covered by the existing tests)
+-- ===========================================================================
+TestVeafMagneticDeclinationExtra = {}
+
+function TestVeafMagneticDeclinationExtra:test_theChannel()
+  env.mission.theatre = "TheChannel"
+  luaunit.assertEquals(veaf.getMagneticDeclination(), -10)
+end
+
+function TestVeafMagneticDeclinationExtra:test_syria()
+  env.mission.theatre = "Syria"
+  luaunit.assertEquals(veaf.getMagneticDeclination(), 5)
+end
+
+function TestVeafMagneticDeclinationExtra:test_marianaIslands()
+  env.mission.theatre = "MarianaIslands"
+  luaunit.assertEquals(veaf.getMagneticDeclination(), 2)
+end
+
+function TestVeafMagneticDeclinationExtra:test_falklands()
+  env.mission.theatre = "Falklands"
+  luaunit.assertEquals(veaf.getMagneticDeclination(), 12)
+end
+
+function TestVeafMagneticDeclinationExtra:test_sinaiMap()
+  env.mission.theatre = "SinaiMap"
+  luaunit.assertAlmostEquals(veaf.getMagneticDeclination(), 4.8, 0.01)
+end
+
+function TestVeafMagneticDeclinationExtra:test_kola()
+  env.mission.theatre = "Kola"
+  luaunit.assertEquals(veaf.getMagneticDeclination(), 15)
+end
+
+function TestVeafMagneticDeclinationExtra:test_afghanistan()
+  env.mission.theatre = "Afghanistan"
+  luaunit.assertEquals(veaf.getMagneticDeclination(), 3)
+end
+
+function TestVeafMagneticDeclinationExtra:tearDown()
+  env.mission.theatre = "Caucasus"
+end
+
+-- ===========================================================================
+-- veaf.getCountryForCoalition / veaf.getCoalitionForCountry
+-- ===========================================================================
+TestVeafCountryCoalition = {}
+
+function TestVeafCountryCoalition:setUp()
+  -- Reset lazy-initialized tables to force re-initialization in each test.
+  veaf.countriesByCoalition = nil
+  veaf.coalitionByCountry = nil
+  veaf.countriesByName = nil
+  veaf.countriesNamesById = nil
+end
+
+function TestVeafCountryCoalition:test_redCoalitionReturnsRussian()
+  -- Mock: country.id.RUSSIA=0 → coalition.side.RED(=1)
+  local c = veaf.getCountryForCoalition(1)
+  luaunit.assertNotNil(c)
+  luaunit.assertEquals(c:lower(), "russia")
+end
+
+function TestVeafCountryCoalition:test_blueCoalitionReturnsUSA()
+  local c = veaf.getCountryForCoalition(2)
+  luaunit.assertNotNil(c)
+  luaunit.assertEquals(c:lower(), "usa")
+end
+
+function TestVeafCountryCoalition:test_stringCoalitionName()
+  local c = veaf.getCountryForCoalition("red")
+  luaunit.assertNotNil(c)
+  luaunit.assertEquals(c:lower(), "russia")
+end
+
+function TestVeafCountryCoalition:test_coalitionForCountryRed()
+  local coa = veaf.getCoalitionForCountry("russia", false)
+  luaunit.assertEquals(coa, "red")
+end
+
+function TestVeafCountryCoalition:test_coalitionForCountryBlue()
+  local coa = veaf.getCoalitionForCountry("usa", false)
+  luaunit.assertEquals(coa, "blue")
+end
+
+function TestVeafCountryCoalition:test_coalitionForCountryAsNumber()
+  local coa = veaf.getCoalitionForCountry("russia", true)
+  luaunit.assertEquals(coa, 1)
+end
+
+function TestVeafCountryCoalition:test_coalitionForCountryUSAAsNumber()
+  local coa = veaf.getCoalitionForCountry("usa", true)
+  luaunit.assertEquals(coa, 2)
+end
+
+function TestVeafCountryCoalition:test_coalitionForCountryNilReturnsNil()
+  local coa = veaf.getCoalitionForCountry(nil, false)
+  luaunit.assertNil(coa)
+end
+
+-- ===========================================================================
+-- veaf.Logger
+-- ===========================================================================
+TestVeafLogger = {}
+
+function TestVeafLogger:test_newLogger()
+  local log = veaf.Logger:new("TestLogger", "info")
+  luaunit.assertNotNil(log)
+  -- Logger:new does not uppercase; loggers.new does
+  luaunit.assertEquals(log.name, "TestLogger")
+end
+
+function TestVeafLogger:test_setLevelByString()
+  local log = veaf.Logger:new("TL", "info")
+  -- force=true to bypass BaseLogLevel cap
+  log:setLevel("debug", true)
+  luaunit.assertEquals(log:getLevel(), veaf.Logger.LEVEL["debug"])
+end
+
+function TestVeafLogger:test_setLevelByNumber()
+  local log = veaf.Logger:new("TL", 2)
+  luaunit.assertEquals(log:getLevel(), 2)
+end
+
+function TestVeafLogger:test_setLevelNilDefaultsToInfo()
+  local log = veaf.Logger:new("TL", nil)
+  luaunit.assertEquals(log:getLevel(), veaf.Logger.LEVEL["info"])
+end
+
+function TestVeafLogger:test_getEffectiveLevel()
+  local log = veaf.Logger:new("TL", "info")
+  luaunit.assertEquals(log:getEffectiveLevel(), veaf.Logger.LEVEL["info"])
+end
+
+function TestVeafLogger:test_wouldLogInfo()
+  local log = veaf.Logger:new("TL", "info")
+  luaunit.assertTrue(log:wouldLogInfo())
+  luaunit.assertFalse(log:wouldLogDebug())
+  luaunit.assertFalse(log:wouldLogTrace())
+end
+
+function TestVeafLogger:test_wouldLogWarn()
+  local log = veaf.Logger:new("TL", "warning")
+  luaunit.assertTrue(log:wouldLogWarn())
+  luaunit.assertFalse(log:wouldLogInfo())
+end
+
+function TestVeafLogger:test_wouldLogDebug()
+  local log = veaf.Logger:new("TL", "info")
+  log:setLevel("debug", true)
+  luaunit.assertTrue(log:wouldLogInfo())
+  luaunit.assertTrue(log:wouldLogDebug())
+  luaunit.assertFalse(log:wouldLogTrace())
+end
+
+function TestVeafLogger:test_levelToStringFromString()
+  luaunit.assertEquals(veaf.Logger.levelToString("INFO"), "info")
+  luaunit.assertEquals(veaf.Logger.levelToString("debug"), "debug")
+end
+
+function TestVeafLogger:test_levelToStringFromNumber()
+  luaunit.assertEquals(veaf.Logger.levelToString(1), "ERROR")
+  luaunit.assertEquals(veaf.Logger.levelToString(3), "INFO")
+end
+
+function TestVeafLogger:test_levelToStringUnknown()
+  luaunit.assertEquals(veaf.Logger.levelToString(nil), "unknown")
+  luaunit.assertEquals(veaf.Logger.levelToString(99), "unknown")
+end
+
+function TestVeafLogger:test_getVersionInfo()
+  local log = veaf.Logger:new("TL", "info")
+  local info = log:getVersionInfo("1.2.3")
+  luaunit.assertStrContains(info, "1.2.3")
+  -- levelToString from number returns uppercase "INFO"
+  luaunit.assertStrContains(info, "INFO")
+end
+
+function TestVeafLogger:test_splitTextShort()
+  local tbl = veaf.Logger.splitText("short text")
+  luaunit.assertEquals(#tbl, 1)
+  luaunit.assertEquals(tbl[1], "short text")
+end
+
+function TestVeafLogger:test_splitTextLong()
+  local long = string.rep("x", 8001)
+  local tbl = veaf.Logger.splitText(long)
+  luaunit.assertEquals(#tbl, 3)
+end
+
+function TestVeafLogger:test_formatTextNil()
+  luaunit.assertEquals(veaf.Logger.formatText(nil), "")
+end
+
+function TestVeafLogger:test_formatTextPlain()
+  local s = veaf.Logger.formatText("hello world")
+  luaunit.assertStrContains(s, "hello world")
+end
+
+function TestVeafLogger:test_logDoesNotError()
+  local log = veaf.Logger:new("TL", "trace")
+  -- These should run without error (env.* is mocked)
+  log:info("test info message")
+  log:warn("test warn message")
+  log:debug("test debug message")
+  log:trace("test trace message")
+  luaunit.assertTrue(true)
+end
+
+function TestVeafLogger:test_errorDoesNotError()
+  local log = veaf.Logger:new("TL", "trace")
+  log:error("test error message")
+  luaunit.assertTrue(true)
+end
+
+-- ===========================================================================
+-- veaf.loggers.new / veaf.loggers.get / veaf.loggers.setBaseLevel
+-- ===========================================================================
+TestVeafLoggers = {}
+
+function TestVeafLoggers:test_newAndGet()
+  local log = veaf.loggers.new("__testlogger__", "info")
+  luaunit.assertNotNil(log)
+  local got = veaf.loggers.get("__testlogger__")
+  luaunit.assertNotNil(got)
+  luaunit.assertEquals(got.name, "__TESTLOGGER__")
+end
+
+function TestVeafLoggers:test_getUnknownFallsBackToVeaf()
+  local result = veaf.loggers.get("__nonexistent_xyz__")
+  luaunit.assertNotNil(result)
+end
+
+function TestVeafLoggers:test_newNilReturnsNil()
+  local result = veaf.loggers.new(nil, "info")
+  luaunit.assertNil(result)
+end
+
+function TestVeafLoggers:test_newEmptyReturnsNil()
+  local result = veaf.loggers.new("", "info")
+  luaunit.assertNil(result)
+end
+
+function TestVeafLoggers:test_setBaseLevelUpdatesExistingLoggers()
+  local log = veaf.loggers.new("__tbl__", "trace")
+  local savedBase = veaf.BaseLogLevel
+  veaf.loggers.setBaseLevel(2)
+  -- After setBaseLevel, trace logger should be capped to 2
+  luaunit.assertEquals(log:getLevel(), 2)
+  veaf.loggers.setBaseLevel(savedBase)
+end
+
+function TestVeafLoggers:tearDown()
+  veaf.loggers.dict["__testlogger__"] = nil
+  veaf.loggers.dict["__tbl__"] = nil
+end
+
+-- ===========================================================================
+-- veaf.getUniqueIdentifier / veaf.generateMilitaryGroupName
+-- ===========================================================================
+TestVeafMisc = {}
+
+function TestVeafMisc:test_uniqueIdentifierIncreases()
+  local a = veaf.getUniqueIdentifier()
+  local b = veaf.getUniqueIdentifier()
+  luaunit.assertEquals(b, a + 1)
+end
+
+function TestVeafMisc:test_uniqueIdentifierIsNumber()
+  local id = veaf.getUniqueIdentifier()
+  luaunit.assertEquals(type(id), "number")
+end
+
+function TestVeafMisc:test_generateMilitaryGroupNameIsString()
+  local name = veaf.generateMilitaryGroupName()
+  luaunit.assertEquals(type(name), "string")
+  luaunit.assertTrue(#name > 0)
+end
+
+function TestVeafMisc:test_generateMilitaryGroupNameVaried()
+  local names = {}
+  for i = 1, 20 do
+    names[i] = veaf.generateMilitaryGroupName()
+  end
+  local unique = {}
+  for _, n in ipairs(names) do
+    unique[n] = true
+  end
+  -- With 20 samples, should get at least 3 unique names
+  local count = 0
+  for _ in pairs(unique) do
+    count = count + 1
+  end
+  luaunit.assertTrue(count > 1)
+end
+
+-- ===========================================================================
+-- veaf.p — additional edge cases
+-- ===========================================================================
+TestVeafPExtra = {}
+
+function TestVeafPExtra:test_emptyString()
+  luaunit.assertEquals(veaf.p(""), "")
+end
+
+function TestVeafPExtra:test_dontRecurse()
+  local t = { a = 1, b = { c = 2 } }
+  local s = veaf.p(t, nil, nil, nil, true)
+  luaunit.assertStrContains(s, "a")
+end
+
+function TestVeafPExtra:test_skipKey()
+  local t = { visible = "yes", secret = "no" }
+  local s = veaf.p(t, nil, { "secret" })
+  luaunit.assertStrContains(s, "visible")
+  luaunit.assertStrContains(s, "SKIPPED")
+end
+
+-- ===========================================================================
+-- veaf.json — kind_of edge cases
+-- ===========================================================================
+TestVeafJsonKindOf = {}
+
+function TestVeafJsonKindOf:test_sparseTableStringifiesAsObject()
+  -- A table with non-consecutive keys is treated as object (kind_of = "table")
+  local t = { [1] = "a", [3] = "c" }
+  local s = veaf.json.stringify(t)
+  -- Result is an object (starts with '{') not an array
+  luaunit.assertEquals(s:sub(1, 1), "{")
+end
+
+function TestVeafJsonKindOf:test_nonNumericKeyIsObject()
+  local t = { foo = "bar", baz = 99 }
+  local s = veaf.json.stringify(t)
+  luaunit.assertStrContains(s, '"foo"')
+end
+
+function TestVeafJsonKindOf:test_parseStringWithEscapeSequences()
+  local result = veaf.json.parse('"line1\\nline2"')
+  luaunit.assertEquals(result, "line1\nline2")
+end
+
+function TestVeafJsonKindOf:test_parseStringWithEscapedQuote()
+  local result = veaf.json.parse('"say \\"hi\\""')
+  luaunit.assertEquals(result, 'say "hi"')
+end
+
+function TestVeafJsonKindOf:test_nestedObjectRoundtrip()
+  local obj = { level1 = { level2 = { value = 42 } } }
+  local parsed = veaf.json.parse(veaf.json.stringify(obj))
+  luaunit.assertEquals(parsed.level1.level2.value, 42)
+end
+
+function TestVeafJsonKindOf:test_nestedArrayRoundtrip()
+  local arr = { { 1, 2 }, { 3, 4 } }
+  local parsed = veaf.json.parse(veaf.json.stringify(arr))
+  luaunit.assertEquals(parsed[1][1], 1)
+  luaunit.assertEquals(parsed[2][2], 4)
+end
+
 -- ---------------------------------------------------------------------------
 -- Run
 -- ---------------------------------------------------------------------------

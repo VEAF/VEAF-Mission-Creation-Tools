@@ -87,4 +87,57 @@ function TestVeafCasMarkTextAnalysis:test_cas_field_set()
   luaunit.assertTrue(r.casmission)
 end
 
+-- ---------------------------------------------------------------------------
+-- TestVeafCasMarkTextAnalysisKeywords
+-- ---------------------------------------------------------------------------
+TestVeafCasMarkTextAnalysisKeywords = {}
+
+function TestVeafCasMarkTextAnalysisKeywords:test_password_keyword()
+  local r = veafCasMission.markTextAnalysis("_cas, password secret")
+  luaunit.assertNotNil(r)
+  luaunit.assertEquals(r.password, "secret")
+end
+
+function TestVeafCasMarkTextAnalysisKeywords:test_size_keyword()
+  local r = veafCasMission.markTextAnalysis("_cas, size 3")
+  luaunit.assertNotNil(r)
+  luaunit.assertEquals(r.size, 3)
+end
+
+function TestVeafCasMarkTextAnalysisKeywords:test_defense_keyword()
+  local r = veafCasMission.markTextAnalysis("_cas, defense 2")
+  luaunit.assertNotNil(r)
+  luaunit.assertEquals(r.defense, 2)
+end
+
+function TestVeafCasMarkTextAnalysisKeywords:test_armor_keyword()
+  local r = veafCasMission.markTextAnalysis("_cas, armor 4")
+  luaunit.assertNotNil(r)
+  luaunit.assertEquals(r.armor, 4)
+end
+
+function TestVeafCasMarkTextAnalysisKeywords:test_spacing_keyword()
+  local r = veafCasMission.markTextAnalysis("_cas, spacing 2")
+  luaunit.assertNotNil(r)
+  luaunit.assertEquals(r.spacing, 2)
+end
+
+function TestVeafCasMarkTextAnalysisKeywords:test_side_blue()
+  local r = veafCasMission.markTextAnalysis("_cas, side BLUE")
+  luaunit.assertNotNil(r)
+  luaunit.assertEquals(r.side, veafCasMission.SIDE_BLUE)
+end
+
+function TestVeafCasMarkTextAnalysisKeywords:test_side_non_blue_is_red()
+  local r = veafCasMission.markTextAnalysis("_cas, side RED")
+  luaunit.assertNotNil(r)
+  luaunit.assertEquals(r.side, veafCasMission.SIDE_RED)
+end
+
+function TestVeafCasMarkTextAnalysisKeywords:test_disperse_with_value()
+  local r = veafCasMission.markTextAnalysis("_cas, disperse 30")
+  luaunit.assertNotNil(r)
+  luaunit.assertEquals(r.disperseOnAttack, 30)
+end
+
 os.exit(luaunit.LuaUnit.run())

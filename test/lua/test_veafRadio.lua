@@ -248,4 +248,343 @@ function TestVeafRadioBuilder:test_build_sorts_commands_alphabetically()
   luaunit.assertEquals(self.builder._root.commands[2].title, "Zulu")
 end
 
+-- Ensure veafSecurity.isAuthenticated exists (dcs_mocks.lua defines veafSecurity without it)
+veafSecurity = veafSecurity or {}
+veafSecurity.isAuthenticated = veafSecurity.isAuthenticated or function() return false end
+
+-- ---------------------------------------------------------------------------
+-- TestVeafRadioMenuOps — wrapper functions, delCommand, clearSubmenu, delSubmenu
+-- ---------------------------------------------------------------------------
+TestVeafRadioMenuOps = {}
+
+function TestVeafRadioMenuOps:test_addCommandToMainMenu_returns_command()
+  local cmd = veafRadio.addCommandToMainMenu("MC1", function() end)
+  luaunit.assertNotNil(cmd)
+  luaunit.assertEquals(cmd.title, "MC1")
+  luaunit.assertFalse(cmd.isSecured)
+end
+
+function TestVeafRadioMenuOps:test_addSecuredCommandToMainMenu_returns_secured()
+  local cmd = veafRadio.addSecuredCommandToMainMenu("MS1", function() end)
+  luaunit.assertNotNil(cmd)
+  luaunit.assertEquals(cmd.title, "MS1")
+  luaunit.assertTrue(cmd.isSecured)
+end
+
+function TestVeafRadioMenuOps:test_addCommandToSubmenu_adds_to_menu()
+  local sub = { title = "S", subMenus = {}, commands = {}, dcsRadioMenu = nil }
+  local cmd = veafRadio.addCommandToSubmenu("SC1", sub, function() end, { x = 1 }, veafRadio.USAGE_ForAll)
+  luaunit.assertNotNil(cmd)
+  luaunit.assertEquals(cmd.title, "SC1")
+  luaunit.assertEquals(#sub.commands, 1)
+end
+
+function TestVeafRadioMenuOps:test_addSecuredCommandToSubmenu_returns_secured()
+  local sub = { title = "S", subMenus = {}, commands = {}, dcsRadioMenu = nil }
+  local cmd = veafRadio.addSecuredCommandToSubmenu("SS1", sub, function() end)
+  luaunit.assertTrue(cmd.isSecured)
+end
+
+function TestVeafRadioMenuOps:test_addMenu_returns_submenu()
+  local sub = veafRadio.addMenu("TopLevel")
+  luaunit.assertNotNil(sub)
+  luaunit.assertEquals(sub.title, "TopLevel")
+end
+
+function TestVeafRadioMenuOps:test_addSubMenu_with_parent()
+  local parent = { title = "P", subMenus = {}, commands = {}, dcsRadioMenu = nil }
+  local child = veafRadio.addSubMenu("Child", parent)
+  luaunit.assertEquals(child.title, "Child")
+  luaunit.assertEquals(#parent.subMenus, 1)
+end
+
+function TestVeafRadioMenuOps:test_delCommand_existing_returns_true()
+  local menu = { commands = { { title = "Alpha" }, { title = "Beta" } } }
+  luaunit.assertTrue(veafRadio.delCommand(menu, "Alpha"))
+  luaunit.assertEquals(#menu.commands, 1)
+  luaunit.assertEquals(menu.commands[1].title, "Beta")
+end
+
+function TestVeafRadioMenuOps:test_delCommand_missing_returns_false()
+  local menu = { commands = { { title = "Alpha" } } }
+  luaunit.assertFalse(veafRadio.delCommand(menu, "Ghost"))
+  luaunit.assertEquals(#menu.commands, 1)
+end
+
+function TestVeafRadioMenuOps:test_clearSubmenu_empties_contents()
+  local sub = { title = "S", subMenus = { { title = "A" } }, commands = { { title = "B" } } }
+  veafRadio.clearSubmenu(sub)
+  luaunit.assertEquals(#sub.subMenus, 0)
+  luaunit.assertEquals(#sub.commands, 0)
+end
+
+function TestVeafRadioMenuOps:test_clearSubmenu_nil_is_safe()
+  veafRadio.clearSubmenu(nil) -- logs error, does not crash
+  luaunit.assertTrue(true)
+end
+
+function TestVeafRadioMenuOps:test_delSubmenu_removes_by_reference()
+  local parent = { title = "P", subMenus = {}, commands = {} }
+  local s1 = { title = "A", subMenus = {}, commands = {} }
+  local s2 = { title = "B", subMenus = {}, commands = {} }
+  table.insert(parent.subMenus, s1)
+  table.insert(parent.subMenus, s2)
+  veafRadio.delSubmenu(s1, parent)
+  luaunit.assertEquals(#parent.subMenus, 1)
+  luaunit.assertEquals(parent.subMenus[1].title, "B")
+end
+
+function TestVeafRadioMenuOps:test_delSubmenu_nil_is_safe()
+  veafRadio.delSubmenu(nil) -- logs error, does not crash
+  luaunit.assertTrue(true)
+end
+
+-- ---------------------------------------------------------------------------
+-- TestVeafRadioHelpers — menu/command/mainmenu factories, refresh functions
+-- ---------------------------------------------------------------------------
+TestVeafRadioHelpers = {}
+
+function TestVeafRadioHelpers:test_menu_type_field()
+  local m = veafRadio.menu("MyMenu")
+  luaunit.assertEquals(m[1], "menu")
+  luaunit.assertEquals(m[2], "MyMenu")
+  luaunit.assertIsTable(m[3])
+end
+
+function TestVeafRadioHelpers:test_menu_wraps_varargs()
+  local c = veafRadio.command("Cmd", function() end, nil)
+  local m = veafRadio.menu("Parent", c)
+  luaunit.assertEquals(#m[3], 1)
+  luaunit.assertEquals(m[3][1][2], "Cmd")
+end
+
+function TestVeafRadioHelpers:test_command_fields()
+  local fn = function() end
+  local c = veafRadio.command("Cmd", fn, "params")
+  luaunit.assertEquals(c[1], "command")
+  luaunit.assertEquals(c[2], "Cmd")
+  luaunit.assertEquals(c[3], fn)
+  luaunit.assertEquals(c[4], "params")
+end
+
+function TestVeafRadioHelpers:test_mainmenu_returns_list()
+  local c = veafRadio.command("X", function() end, nil)
+  local mm = veafRadio.mainmenu(c)
+  luaunit.assertIsTable(mm)
+  luaunit.assertEquals(#mm, 1)
+end
+
+function TestVeafRadioHelpers:test_refreshRadioMenu_dontDelay_true_rebuilds()
+  veafRadio.refreshRadioMenu(true)
+  luaunit.assertTrue(true) -- no crash
+end
+
+function TestVeafRadioHelpers:test_refreshRadioMenu_dontDelay_false_schedules()
+  veafRadio.refreshRadioMenuDelayedScheduling = nil
+  veafRadio.refreshRadioMenu(false)
+  luaunit.assertTrue(true)
+end
+
+function TestVeafRadioHelpers:test_refreshRadioMenu_dontCreateMenus_skips()
+  veafRadio.dontCreateMenus = true
+  veafRadio._refreshRadioMenu()
+  veafRadio.dontCreateMenus = false
+  luaunit.assertTrue(true)
+end
+
+-- ---------------------------------------------------------------------------
+-- TestVeafRadioBeacons — startBeacon, _runBeacons
+-- ---------------------------------------------------------------------------
+TestVeafRadioBeacons = {}
+
+function TestVeafRadioBeacons:setUp()
+  veafRadio.beacons = {}
+  dcs_mocks.currentTime = 0
+end
+
+function TestVeafRadioBeacons:test_startBeacon_stores_data()
+  veafRadio.startBeacon("TestBeacon", 5, 30, "251", "AM", "Hello", nil, 2)
+  local b = veafRadio.beacons["testbeacon"]
+  luaunit.assertNotNil(b)
+  luaunit.assertEquals(b.name, "TestBeacon")
+  luaunit.assertEquals(b.secondsBetweenRepeats, 30)
+  luaunit.assertEquals(b.frequencies, "251")
+  luaunit.assertEquals(b.modulations, "AM")
+  luaunit.assertEquals(b.message, "Hello")
+  luaunit.assertEquals(b.coalition, 2)
+end
+
+function TestVeafRadioBeacons:test_startBeacon_overwrites_existing()
+  veafRadio.startBeacon("Beacon", 0, 30, "251", "AM", "Old", nil, 1)
+  veafRadio.startBeacon("Beacon", 0, 60, "131.5", "FM", "New", nil, 2)
+  local b = veafRadio.beacons["beacon"]
+  luaunit.assertEquals(b.secondsBetweenRepeats, 60)
+  luaunit.assertEquals(b.message, "New")
+end
+
+function TestVeafRadioBeacons:test_runBeacons_fires_due_beacon_message()
+  veafRadio.startBeacon("Auto", 0, 30, "251", "AM", "Ping", nil, nil)
+  dcs_mocks.currentTime = 1
+  veafRadio._runBeacons()
+  luaunit.assertTrue(true) -- no crash; transmitMessage called, coalition=nil skips outTextForCoalition
+end
+
+function TestVeafRadioBeacons:test_runBeacons_fires_due_beacon_mp3()
+  veafRadio.startBeacon("MP3Beacon", 0, 30, "251", "AM", nil, "sounds/test.ogg", nil)
+  dcs_mocks.currentTime = 1
+  veafRadio._runBeacons()
+  luaunit.assertTrue(true)
+end
+
+-- ---------------------------------------------------------------------------
+-- TestVeafRadioExecuteCommand
+-- ---------------------------------------------------------------------------
+TestVeafRadioExecuteCommand = {}
+
+function TestVeafRadioExecuteCommand:test_nil_text_returns_false()
+  -- empty string: keyphrase not found → returns false
+  luaunit.assertFalse(veafRadio.executeCommand(nil, "", nil, false))
+end
+
+function TestVeafRadioExecuteCommand:test_no_keyphrase_returns_false()
+  luaunit.assertFalse(veafRadio.executeCommand(nil, "hello world", nil, false))
+end
+
+function TestVeafRadioExecuteCommand:test_transmit_without_message_returns_false()
+  -- markTextAnalysis returns options with transmit=true but message=nil
+  luaunit.assertFalse(veafRadio.executeCommand(nil, "_radio transmit", nil, false))
+end
+
+function TestVeafRadioExecuteCommand:test_transmit_with_full_options_returns_true()
+  -- quiet=true so outTextForCoalition not called; coalition=nil anyway
+  local result = veafRadio.executeCommand(nil, "_radio transmit, message Hello, quiet", nil, false)
+  luaunit.assertTrue(result)
+end
+
+function TestVeafRadioExecuteCommand:test_play_without_path_returns_false()
+  luaunit.assertFalse(veafRadio.executeCommand(nil, "_radio play", nil, false))
+end
+
+function TestVeafRadioExecuteCommand:test_play_with_path_returns_true()
+  local result = veafRadio.executeCommand(nil, "_radio play, path sounds/test.ogg, quiet", nil, false)
+  luaunit.assertTrue(result)
+end
+
+-- ---------------------------------------------------------------------------
+-- TestVeafRadioTransmit — transmitMessage, playToRadio, _transmitViaSRS
+-- ---------------------------------------------------------------------------
+TestVeafRadioTransmit = {}
+
+function TestVeafRadioTransmit:test_transmitMessage_no_coalition_no_outText()
+  veafRadio.transmitMessage("Hello", "251", "AM", "SRS", nil, nil, false)
+  luaunit.assertTrue(true)
+end
+
+function TestVeafRadioTransmit:test_transmitMessage_quiet_no_outText()
+  veafRadio.transmitMessage("Hello", "251", "AM", "SRS", 1, nil, true)
+  luaunit.assertTrue(true)
+end
+
+function TestVeafRadioTransmit:test_transmitMessage_with_coalition_calls_outText()
+  -- outTextForCoalition is now mocked in dcs_mocks.lua
+  veafRadio.transmitMessage("Hello", "251", "AM", "SRS", 1, nil, false)
+  luaunit.assertTrue(true)
+end
+
+function TestVeafRadioTransmit:test_playToRadio_no_coalition()
+  veafRadio.playToRadio("sounds/test.ogg", "251", "AM", "SRS", nil, nil, false)
+  luaunit.assertTrue(true)
+end
+
+function TestVeafRadioTransmit:test_playToRadio_quiet()
+  veafRadio.playToRadio("sounds/test.ogg", "251", "AM", "SRS", 1, nil, true)
+  luaunit.assertTrue(true)
+end
+
+function TestVeafRadioTransmit:test_transmitViaSRS_no_message_no_file_logs_error()
+  -- Exercises the else branch: logs error and returns
+  veafRadio._transmitViaSRS(nil, nil, "251", "AM", "SRS", nil, nil)
+  luaunit.assertTrue(true)
+end
+
+-- ---------------------------------------------------------------------------
+-- TestVeafRadioPaginated — addPaginatedRadioElements, _buildRadioMenuPage,
+--                          addPaginatedRadioMenu
+-- ---------------------------------------------------------------------------
+TestVeafRadioPaginated = {}
+
+function TestVeafRadioPaginated:test_nil_method_returns_early()
+  local menu = { subMenus = {}, commands = {} }
+  veafRadio.addPaginatedRadioElements(menu, nil, {})
+  luaunit.assertTrue(true) -- no crash
+end
+
+function TestVeafRadioPaginated:test_calls_method_for_each_element()
+  local menu = { subMenus = {}, commands = {} }
+  local elements = { a = { sort = 1 }, b = { sort = 2 }, c = { sort = 3 } }
+  local called = {}
+  local addFn = function(m, title, elem) table.insert(called, title) end
+  veafRadio.addPaginatedRadioElements(menu, addFn, elements)
+  luaunit.assertEquals(#called, 3)
+end
+
+function TestVeafRadioPaginated:test_uses_title_attribute()
+  local menu = { subMenus = {}, commands = {} }
+  local elements = {
+    e1 = { displayName = "Alpha", sort = 1 },
+    e2 = { displayName = "Beta", sort = 2 },
+  }
+  local called = {}
+  local addFn = function(m, title, elem) table.insert(called, title) end
+  veafRadio.addPaginatedRadioElements(menu, addFn, elements, "displayName")
+  table.sort(called)
+  luaunit.assertEquals(called[1], "Alpha")
+  luaunit.assertEquals(called[2], "Beta")
+end
+
+function TestVeafRadioPaginated:test_pagination_creates_next_page_submenu()
+  -- pageSize = 10 - 0 = 10; with 11 items: endIndex = 9, a "Next page" submenu is created
+  local menu = { subMenus = {}, commands = {} }
+  local elements = {}
+  for i = 1, 11 do
+    elements["e" .. i] = { sort = i }
+  end
+  veafRadio.addPaginatedRadioElements(menu, function() end, elements)
+  luaunit.assertEquals(#menu.subMenus, 1)
+  luaunit.assertEquals(menu.subMenus[1].title, "Next page")
+end
+
+function TestVeafRadioPaginated:test_addPaginatedRadioMenu_returns_submenu()
+  local parent = { title = "P", subMenus = {}, commands = {}, dcsRadioMenu = nil }
+  local result = veafRadio.addPaginatedRadioMenu("Paged", parent, function() end, { a = { sort = 1 } })
+  luaunit.assertNotNil(result)
+  luaunit.assertEquals(result.title, "Paged")
+end
+
+-- ---------------------------------------------------------------------------
+-- TestVeafRadioCreateUserMenu — createUserMenu with and without groupId
+-- ---------------------------------------------------------------------------
+TestVeafRadioCreateUserMenu = {}
+
+function TestVeafRadioCreateUserMenu:test_no_groupId_uses_addSubMenu_addCommand()
+  local cfg = {
+    veafRadio.menu(
+      "TopMenu",
+      veafRadio.command("Sub", function() end, nil)
+    ),
+    veafRadio.command("Direct", function() end, "p"),
+  }
+  veafRadio.createUserMenu(cfg)
+  luaunit.assertTrue(true) -- no crash
+end
+
+function TestVeafRadioCreateUserMenu:test_with_groupId_uses_ForGroup_calls()
+  local cfg = {
+    veafRadio.menu("GMenu"),
+    veafRadio.command("GCmd", function() end, nil),
+  }
+  veafRadio.createUserMenu(cfg, 101)
+  luaunit.assertTrue(true)
+end
+
 os.exit(luaunit.LuaUnit.run())

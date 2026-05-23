@@ -49,6 +49,7 @@ trigger = {
     outText = function(text, duration) end,
     outTextForGroup = function(groupId, text, duration) end,
     outTextForUnit = function(unitId, text, duration) end,
+    outTextForCoalition = function(side, text, duration) end,
     markToAll = function(...) end,
     markToCoalition = function(...) end,
     removeMark = function(id) end,
@@ -62,6 +63,7 @@ trigger = {
     smoke = function(...) end,
     signalFlare = function(...) end,
     illuminationBomb = function(...) end,
+    explosion = function(...) end,
   },
   misc = {
     getUserFlag = function(flag) return 0 end,
@@ -177,6 +179,8 @@ coord = {
   LLtoLO = function(lat, lon, alt) return { x = 0, y = 0, z = 0 } end,
   LOtoLL = function(vec3) return 0, 0, 0 end,
   LOtoMGRS = function(vec3) return { UTMZone = "", Easting = 0, Northing = 0 } end,
+  MGRStoLL = function(mgrs) return 0, 0 end,
+  LLtoMGRS = function(lat, lon) return { MGRSDigraph = "XX", Easting = 100000, Northing = 200000 } end,
 }
 atmosphere = {
   getWind = function(point) return { x = 0, y = 0, z = 0 } end,
@@ -217,15 +221,18 @@ Sim = {
 -- ---------------------------------------------------------------------------
 -- mist (minimal stub — only the parts used by veaf.lua core)
 -- ---------------------------------------------------------------------------
-local function _deepCopy(orig)
+local function _deepCopy(orig, seen)
+  seen = seen or {}
   local orig_type = type(orig)
   local copy
   if orig_type == "table" then
+    if seen[orig] then return seen[orig] end
     copy = {}
+    seen[orig] = copy
     for k, v in pairs(orig) do
-      copy[_deepCopy(k)] = _deepCopy(v)
+      copy[_deepCopy(k, seen)] = _deepCopy(v, seen)
     end
-    setmetatable(copy, _deepCopy(getmetatable(orig)))
+    setmetatable(copy, _deepCopy(getmetatable(orig), seen))
   else
     copy = orig
   end
@@ -244,6 +251,7 @@ mist = {
     units            = {},
     unitsByName      = {},
     humansByName     = {},
+    groupsByName     = {},
   },
   getGroupRoute = function(groupName) return nil end,
   vec = {
@@ -255,6 +263,12 @@ mist = {
     end,
     dp = function(v1, v2)
       return (v1.x or 0)*(v2.x or 0) + (v1.y or 0)*(v2.y or 0) + (v1.z or 0)*(v2.z or 0)
+    end,
+    add = function(v1, v2)
+      return { x = (v1.x or 0) + (v2.x or 0), y = (v1.y or 0) + (v2.y or 0), z = (v1.z or 0) + (v2.z or 0) }
+    end,
+    scalarMult = function(v, s)
+      return { x = (v.x or 0) * s, y = (v.y or 0) * s, z = (v.z or 0) * s }
     end,
   },
   utils = {
@@ -298,6 +312,17 @@ Object.getCategory = function(obj) return Object.Category.UNIT end
 -- ---------------------------------------------------------------------------
 Unit.getGroup = function(unit) return nil end
 Unit.destroy  = function(unit) end
+StaticObject.destroy = function(obj) end
+Group.destroy = function(obj) end
+
+-- Additional mist stubs needed by veafSpawn sub-modules
+mist.getRandPointInCircle = function(spot, r)
+  return { x = spot.x or 0, y = spot.y or 0, z = spot.z or 0 }
+end
+mist.getNextUnitId = function() return 999 end
+mist.teleportToPoint = function(vars) return nil end
+mist.dynAdd = function(template) end
+mist.goRoute = function(group, route) end
 
 -- ---------------------------------------------------------------------------
 -- world.weather  (used by veafWeather module)
@@ -394,3 +419,110 @@ function dcs_mocks.findLog(pattern)
   end
   return found
 end
+
+-- ---------------------------------------------------------------------------
+-- trigger.flareColor (used by veafSpawnEffects.spawnSignalFlare)
+-- ---------------------------------------------------------------------------
+trigger.flareColor = { RED = 0, GREEN = 1, WHITE = 2, YELLOW = 3 }
+
+-- ---------------------------------------------------------------------------
+-- Controller  (DCS unit/group controller)
+-- ---------------------------------------------------------------------------
+Controller = {
+  setCommand = function(controller, cmd) end,
+  pushTask   = function(controller, task) end,
+}
+
+-- ---------------------------------------------------------------------------
+-- ctld  (minimal stub — only the API surface used by veafSpawn sub-modules)
+-- ---------------------------------------------------------------------------
+ctld = {
+  JTACAutoLase        = function(...) end,
+  cleanupJTAC         = function(...) end,
+  addJTAC             = function(...) end,
+  logisticUnits       = {},
+  builtFOBS           = {},
+  beaconCount         = 0,
+  fobBeacons          = {},
+  createRadioBeacon   = function(...) return { vhf = 0, uhf = 0, fm = 0 } end,
+}
+
+-- ---------------------------------------------------------------------------
+-- veafNamedPoints  (named points registry stub)
+-- ---------------------------------------------------------------------------
+veafNamedPoints = {
+  addPoint  = function(name, point) end,
+  namePoint = function(pos, name, side, permanent) end,
+  getPoint  = function(name) return nil end,
+}
+
+-- ---------------------------------------------------------------------------
+-- veafSecurity  (security checks — always pass in tests)
+-- ---------------------------------------------------------------------------
+veafSecurity = {
+  checkPassword_L0 = function(...) return true end,
+  checkSecurity_L9 = function(...) return true end,
+  checkSecurity_L1 = function(...) return true end,
+}
+
+-- ---------------------------------------------------------------------------
+-- veafUnits  (unit/group database stubs)
+-- ---------------------------------------------------------------------------
+veafUnits = {
+  findUnit                 = function(name) return nil end,
+  findDcsUnit              = function(name) return nil end,
+  findGroup                = function(name) return nil end,
+  checkPositionForUnit     = function(pt, unit) return true end,
+  processGroup             = function(group, ...) return group end,
+  placeGroup               = function(group, ...) return group, {} end,
+  removePathfindingFixUnit = function(...) end,
+  delayBeforePathfindingFix = 1,
+  countInfantryAndVehicles = function(groupData) return 0, 0 end,
+  traceGroup               = function(...) end,
+}
+
+-- ---------------------------------------------------------------------------
+-- veafCasMission  (CAS group generators)
+-- ---------------------------------------------------------------------------
+veafCasMission = {
+  SIDE_BLUE               = 2,
+  SIDE_RED                = 1,
+  generateInfantryGroup   = function(...) return { units = {} } end,
+  generateArmorPlatoon    = function(...) return { units = {} } end,
+  generateAirDefenseGroup = function(...) return { units = {} } end,
+  generateTransportCompany= function(...) return { units = {} } end,
+  generateCasGroup        = function(...) return {} end,
+}
+
+-- ---------------------------------------------------------------------------
+-- veafRadio  (radio menu stubs)
+-- ---------------------------------------------------------------------------
+veafRadio = {
+  getHumanUnitOrWingman = function(name) return nil end,
+  addSubMenu            = function(...) return {} end,
+  addCommandToSubmenu   = function(...) end,
+  USAGE_ForAll          = 0,
+  USAGE_ForGroup        = 1,
+}
+
+-- ---------------------------------------------------------------------------
+-- mist.tostringLL  (used by infoOnAllConvoys with non-empty convoy data)
+-- ---------------------------------------------------------------------------
+mist.tostringLL = function(lat, lon, acc) return "0N 0E" end
+
+-- Update addGroup to include controller and category defaults
+local _original_addGroup = dcs_mocks.addGroup
+function dcs_mocks.addGroup(name, data)
+  _original_addGroup(name, data)
+  local g = _group_registry[name]  -- already set by _original_addGroup
+  if not g.getController then
+    local _ctrl = { setCommand = function() end, pushTask = function() end, getDetectedTargets = function() return {} end }
+    g.getController = function(self) return _ctrl end
+  end
+  g.getCategory  = g.getCategory  or function(self) return Group.Category.GROUND end
+  g.getCoalition = g.getCoalition or function(self) return coalition.side.BLUE  end
+  g.getUnit      = g.getUnit      or function(self, idx) return nil end
+end
+
+-- Group.getUnits(group) — delegates to the instance method so addGroup's getUnits stub is used.
+Group.getUnits = function(grp) return grp:getUnits() end

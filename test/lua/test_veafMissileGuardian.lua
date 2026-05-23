@@ -120,4 +120,118 @@ function TestVeafMGGuardian:test_copy_is_new_instance()
   luaunit.assertEquals(c.name, "Beta")
 end
 
+-- ============================================================================
+-- TestVeafMGWeaponExtra
+-- ============================================================================
+TestVeafMGWeaponExtra = {}
+
+function TestVeafMGWeaponExtra:test_setDcsWeapon_populates_shooter()
+  local fakeLauncher = { getName = function() return "F-16C-1" end }
+  local fakeWeapon = { getLauncher = function() return fakeLauncher end }
+  local w = VeafMG_Weapon:new()
+  w:setDcsWeapon(fakeWeapon)
+  luaunit.assertEquals(w:getShooter(), fakeLauncher)
+  luaunit.assertEquals(w:getShooterName(), "F-16C-1")
+end
+
+function TestVeafMGWeaponExtra:test_getCurrentPosition_nil_dcsWeapon()
+  local w = VeafMG_Weapon:new()
+  luaunit.assertNil(w:getCurrentPosition())
+end
+
+function TestVeafMGWeaponExtra:test_getCurrentTarget_nil_dcsWeapon()
+  local w = VeafMG_Weapon:new()
+  luaunit.assertNil(w:getCurrentTarget())
+end
+
+function TestVeafMGWeaponExtra:test_getCurrentEnergy_nil_dcsWeapon()
+  local w = VeafMG_Weapon:new()
+  luaunit.assertNil(w:getCurrentEnergy())
+end
+
+-- ============================================================================
+-- TestVeafMGGuardianSetters
+-- ============================================================================
+TestVeafMGGuardianSetters = {}
+
+function TestVeafMGGuardianSetters:test_setName_getName()
+  local g = VeafMG_Guardian:new()
+  g:setName("TestGuardian")
+  luaunit.assertEquals(g:getName(), "TestGuardian")
+end
+
+function TestVeafMGGuardianSetters:test_setFriendlyName_getFriendlyName()
+  local g = VeafMG_Guardian:new()
+  g:setFriendlyName("Friendly Name")
+  luaunit.assertEquals(g:getFriendlyName(), "Friendly Name")
+end
+
+function TestVeafMGGuardianSetters:test_addProtectedUnit_string()
+  local g = VeafMG_Guardian:new()
+  g:addProtectedUnit("F-16C-1")
+  luaunit.assertEquals(g.protectedUnits["F-16C-1"], "protected")
+end
+
+function TestVeafMGGuardianSetters:test_setProtectedZone()
+  local g = VeafMG_Guardian:new()
+  local zone = { x = 0, y = 0, z = 0 }
+  g:setProtectedZone(zone)
+  luaunit.assertEquals(g.protectedZone, zone)
+end
+
+function TestVeafMGGuardianSetters:test_start_stop()
+  -- world.addEventHandler / removeEventHandler are mocked as no-ops
+  local g = VeafMG_Guardian:new()
+  g:start()
+  g:stop()
+  luaunit.assertTrue(true)
+end
+
+-- ============================================================================
+-- TestVeafMGProtector
+-- ============================================================================
+TestVeafMGProtector = {}
+
+function TestVeafMGProtector:test_new_creates_instance()
+  local p = VeafMG_Protector:new()
+  luaunit.assertNotNil(p)
+  luaunit.assertNil(p.name)
+end
+
+function TestVeafMGProtector:test_setName_getName()
+  local p = VeafMG_Protector:new()
+  p:setName("Protector1")
+  luaunit.assertEquals(p:getName(), "Protector1")
+end
+
+function TestVeafMGProtector:test_setSecondsBetweenWatchdogChecks()
+  local p = VeafMG_Protector:new()
+  p:setSecondsBetweenWatchdogChecks(5.0)
+  luaunit.assertEquals(p:getSecondsBetweenWatchdogChecks(), 5.0)
+end
+
+function TestVeafMGProtector:test_setWeapon()
+  local p = VeafMG_Protector:new()
+  local w = VeafMG_Weapon:new()
+  p:setWeapon(w)
+  luaunit.assertEquals(p.weapon, w)
+end
+
+function TestVeafMGProtector:test_copy_preserves_name()
+  local p = VeafMG_Protector:new()
+  p:setName("OriginalProtector")
+  p:setSecondsBetweenWatchdogChecks(3.0)
+  local c = p:copy()
+  luaunit.assertEquals(c.name, "OriginalProtector")
+  luaunit.assertEquals(c.secondsBetweenWatchdogChecks, 3.0)
+end
+
+function TestVeafMGProtector:test_start_stop_no_crash()
+  -- start() and stop() have empty bodies
+  local p = VeafMG_Protector:new()
+  p:start()
+  p:stop()
+  luaunit.assertTrue(true)
+end
+
 os.exit(luaunit.LuaUnit.run())

@@ -1,4 +1,3 @@
-import sys
 from pathlib import Path
 
 import typer
@@ -97,17 +96,18 @@ def convert_v5(
     # Run the converter
     converter = V5Converter(version=VERSION)
 
-    # Build ICAO callback for realweather steps (lazy prompt, asked at most once)
-    _icao_cache: list[str] = [icao.strip().upper()] if icao.strip() else []
+    # Build ICAO callback for realweather steps.
+    # No interactive prompt — use --icao on the command line, or edit the generated file manually.
+    _icao_value = icao.strip().upper()
 
     def icao_cb(version_name: str) -> str:
-        if not _icao_cache:
-            console.print(f"\n[yellow]Weather version '[bold]{version_name}[/bold]' uses realweather.[/yellow]")
-            console.print("  Enter ICAO airport code (e.g. UGGG), or leave empty to fill in later []: ", end="")
-            sys.stdout.flush()
-            value = sys.stdin.readline().strip().upper()
-            _icao_cache.append(value)
-        return _icao_cache[0]
+        if not _icao_value:
+            console.print(
+                f"\n[yellow]Weather version '[bold]{version_name}[/bold]' uses realweather.[/yellow]\n"
+                "  ICAO left empty in generated config.\n"
+                "  Pass [bold]--icao UGGG[/bold] (replace with your airport code) to set it automatically."
+            )
+        return _icao_value
 
     report: ConversionReport = converter.convert(
         mission_folder=p_folder,

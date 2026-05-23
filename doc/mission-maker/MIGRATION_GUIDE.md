@@ -51,7 +51,7 @@ In both cases the end result is a **VEAF MCT v6 mission folder** that you manage
 | **Module configuration** | Direct assignment: `veafSpawn.SpawnKeyphrase = "_spawn"` in `missionConfig.lua` | Same direct assignment still works; or `veaf.setConfig("MODULE_ID", "key", value)` for config-driven overrides |
 | **Module init pattern** | Bare `veafXxx.initialize()` calls | `if veafXxx then veafXxx.initialize() end` guard (tolerates missing modules) |
 | **Config location** | Initialization scattered in DCS trigger scripts or a separate Lua file | Centralised in `src/scripts/missionConfig.lua` |
-| **Config migration** | Manual rewrite | `veaf-tools.exe migrate-config` automates the common fixes |
+| **Config migration** | Manual rewrite | `veaf-tools.exe convert-v5` — one command converts `missionConfig.lua`, pipeline files (presets, waypoints, weather, aircraft groups), and generates `mission.yaml`. Use `migrate-config` only to migrate `missionConfig.lua` alone. |
 | **Module log levels** | Set per-module by assigning `veafXxx.LogLevel` before init | `mission.yaml` → `lua_modules: → MODULE_ID: logLevel:` or `--log-modules` CLI flag |
 | **Version control** | Binary `.miz` committed to Git | Source files (`src/`) committed; `.miz` is a build artifact |
 
@@ -98,72 +98,26 @@ my-mission/
     └── veaf-scripts.lua
 ```
 
-#### 4. Build once to remove old v5 triggers
+#### 4. Convert the mission folder to v6
 
-The `build` command automatically detects and removes old v5 `DO SCRIPT FILE` triggers (enabled by default via `--migrate-from-v5`):
+Run the all-in-one converter:
 
 ```powershell
-.\veaf-tools.exe build my-mission .
+.\veaf-tools.exe convert-v5 .
 ```
 
-The output `.miz` will have:
-- All old v5 trigger actions removed
-- A fresh v6 trigger injected that loads `veaf-scripts.lua`
+This single command handles everything in one pass:
 
-> If you need to keep the old triggers for inspection first, pass `--no-migrate-from-v5`.
+- **`missionConfig.lua` migration** — comments out `doFile()` calls that load VEAF scripts (the builder injects them automatically), wraps bare `veafXxx.initialize()` calls in `if veafXxx then … end` guards.
+- **Pipeline config conversion** — converts v5 config files (radio presets, waypoints, weather, aircraft groups) from Lua to v6 YAML format.
+- **`mission.yaml` generation** — creates `mission.yaml` with the correct `lua_modules:` and `pipeline:` sections.
+- **Conversion report** — saves `convert-v5-report.md` with all actions taken and any items requiring manual review.
 
-#### 5. Port your configuration to missionConfig.lua
+Old DCS `DO SCRIPT FILE` triggers are removed automatically by `veaf-tools build` in the next step — no manual action needed.
 
-Your v5 mission likely had module initialization calls either in inline trigger scripts or in a separate Lua file. Move all of them into `src/scripts/missionConfig.lua`.
+> **If you only need to migrate `missionConfig.lua`** without converting pipeline files, use `veaf-tools.exe migrate-config src\scripts\missionConfig.lua` directly.
 
-If you already have a `missionConfig.lua` from a previous VEAF version, run the migration helper to automate the most common fixes:
-
-```batch
-veaf-tools.exe migrate-config src\scripts\missionConfig.lua
-```
-
-This will:
-- Comment out any `doFile(...)` calls loading VEAF scripts (the builder injects them automatically now).
-- Wrap bare `veafXxx.initialize()` calls in `if veafXxx then … end` guards.
-- Print a `lua_modules:` YAML snippet you can paste into `mission.yaml` to document (or fine-tune) which modules are enabled.
-
-The migrated file is written as `<name>_v6.lua` next to the original; review it, then replace the original once satisfied.
-
-**v5 pattern (inline trigger or separate file):**
-```lua
--- Somewhere in a DCS trigger "DO SCRIPT":
-veaf.initialize()
-veafSpawn.initialize()
-veafRadio.initialize(true)
-veafAssets.initialize()
--- ... asset definitions inline ...
-veafAssets.Assets = {
-    { ... }
-}
-```
-
-**v6 pattern in `src/scripts/missionConfig.lua`:**
-```lua
-veaf.config.MISSION_NAME = "My Mission"
-
--- Initialize only the modules you use
-if veafRadio then
-    veafRadio.initialize(true)
-end
-if veafSpawn then
-    veafSpawn.initialize()
-end
-if veafAssets then
-    veafAssets.initialize()
-    veafAssets.Assets = {
-        { ... }
-    }
-end
-```
-
-The `if veafXxx then ... end` guard makes the config robust: if a module is not available (e.g. you switch to a minimal script variant), no error is thrown.
-
-#### 6. Check removed v5 patterns
+#### 5. Check removed v5 patterns
 
 Some v5 constructs no longer exist or have been renamed:
 
@@ -175,7 +129,7 @@ Some v5 constructs no longer exist or have been renamed:
 | Loading individual `.lua` files via `DO SCRIPT FILE` | Automatic — do not add these triggers manually |
 | `IADS` scripts loaded manually | Load them via `src/scripts/` — they are picked up automatically |
 
-#### 7. Verify with a test build
+#### 6. Verify with a test build
 
 ```powershell
 .\veaf-tools.exe build my-mission .
@@ -186,7 +140,7 @@ Open the resulting `.miz` in DCS, load the mission, and confirm:
 - The v6 VEAF MCT loader trigger is present (named something like `VEAF scripts loader`)
 - Radio menus and marker commands work as expected
 
-#### 8. Set up version control
+#### 7. Set up version control
 
 ```powershell
 git init

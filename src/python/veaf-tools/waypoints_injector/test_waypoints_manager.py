@@ -135,9 +135,7 @@ class TestWaypointsManagerReadYaml(unittest.TestCase):
             self._write_yaml(
                 f,
                 {
-                    "waypoints": {
-                        "WP1": {"type": "Turning Point", "action": "Turning Point", "alt": 1000.0}
-                    },
+                    "waypoints": {"WP1": {"type": "Turning Point", "action": "Turning Point", "alt": 1000.0}},
                     "settings": {
                         "BluePlane": {
                             "coalition": "blue",

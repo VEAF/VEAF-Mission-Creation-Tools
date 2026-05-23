@@ -9,7 +9,6 @@ from pathlib import Path
 from mission_builder.config_migrator import MigrationResult
 from mission_builder.v5_converter import ConversionReport, PipelineFile, V5Converter
 
-
 # ---------------------------------------------------------------------------
 # ConversionReport.to_markdown() — empty / minimal state
 # ---------------------------------------------------------------------------

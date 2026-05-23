@@ -7,6 +7,7 @@ Covers:
 - convert_weather: realweather→TODO+warning, ICAO callback, metar, moment resolution,
   date normalization, position remapping
 """
+
 from __future__ import annotations
 
 import json
@@ -14,9 +15,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
-import yaml
-
 import luadata
+import yaml
 
 from mission_builder.v5_pipeline_converters import (
     _extract_lua_table_text,
@@ -172,10 +172,12 @@ class TestConvertWeather(unittest.TestCase):
         self.assertEqual(data["versions"][0]["metar"], metar)
 
     def test_moment_reference_resolved(self) -> None:
-        v5 = self._write_json({
-            "moments": {"dawn": "06:00"},
-            "targets": [{"version": "Dawn", "moment": "dawn"}],
-        })
+        v5 = self._write_json(
+            {
+                "moments": {"dawn": "06:00"},
+                "targets": [{"version": "Dawn", "moment": "dawn"}],
+            }
+        )
         v6 = self.tmp / "versions.yaml"
         convert_weather(v5, v6)
         data = yaml.safe_load(v6.read_text())
@@ -189,10 +191,12 @@ class TestConvertWeather(unittest.TestCase):
         self.assertEqual(data["versions"][0]["date"], "2022-06-29")
 
     def test_position_lat_lon_remapped(self) -> None:
-        v5 = self._write_json({
-            "position": {"lat": 41.8, "lon": 43.8, "tz": "Asia/Tbilisi"},
-            "targets": [],
-        })
+        v5 = self._write_json(
+            {
+                "position": {"lat": 41.8, "lon": 43.8, "tz": "Asia/Tbilisi"},
+                "targets": [],
+            }
+        )
         v6 = self.tmp / "versions.yaml"
         convert_weather(v5, v6)
         data = yaml.safe_load(v6.read_text())
@@ -234,12 +238,7 @@ class TestParsePresetTable(unittest.TestCase):
         self.assertEqual(result, {})
 
     def test_multiple_channels_ordered(self) -> None:
-        lua = (
-            "radioPresetsBlue = {"
-            ' ["##RADIO1_02##"] = 252.0,'
-            ' ["##RADIO1_01##"] = 251.0'
-            "}"
-        )
+        lua = 'radioPresetsBlue = { ["##RADIO1_02##"] = 252.0, ["##RADIO1_01##"] = 251.0}'
         result = _parse_preset_table(lua, "radioPresetsBlue")
         self.assertIn(1, result[1])
         self.assertIn(2, result[1])
@@ -247,12 +246,7 @@ class TestParsePresetTable(unittest.TestCase):
 
 class TestParseCustomPresetTable(unittest.TestCase):
     def test_parses_warbird_freqs(self) -> None:
-        lua = (
-            "radioPresetsWarbirdBlue = {"
-            ' ["##RADIO_FuG16_01##"] = 38.4,'
-            ' ["##RADIO_FuG16_02##"] = 40.0'
-            "}"
-        )
+        lua = 'radioPresetsWarbirdBlue = { ["##RADIO_FuG16_01##"] = 38.4, ["##RADIO_FuG16_02##"] = 40.0}'
         result = _parse_custom_preset_table(lua, "radioPresetsWarbirdBlue")
         self.assertEqual(len(result), 2)
         self.assertIn(38.4, result)
@@ -292,12 +286,7 @@ class TestConvertPresets(unittest.TestCase):
         self.assertFalse(v6.exists())
 
     def test_blue_preset_generated(self) -> None:
-        lua = (
-            "radioPresetsBlue = {"
-            ' ["##RADIO1_01##"] = 251.0,'
-            ' ["##RADIO1_02##"] = 252.0'
-            "}"
-        )
+        lua = 'radioPresetsBlue = { ["##RADIO1_01##"] = 251.0, ["##RADIO1_02##"] = 252.0}'
         v5 = self._write_lua(lua)
         v6 = self.tmp / "presets.yaml"
         convert_presets(v5, v6)
@@ -307,10 +296,7 @@ class TestConvertPresets(unittest.TestCase):
         self.assertIn("blue_radios", data["radios_collection"])
 
     def test_blue_and_red_both_generated(self) -> None:
-        lua = (
-            'radioPresetsBlue = { ["##RADIO1_01##"] = 251.0 }\n'
-            'radioPresetsRed  = { ["##RADIO1_01##"] = 250.0 }'
-        )
+        lua = 'radioPresetsBlue = { ["##RADIO1_01##"] = 251.0 }\nradioPresetsRed  = { ["##RADIO1_01##"] = 250.0 }'
         v5 = self._write_lua(lua)
         v6 = self.tmp / "presets.yaml"
         convert_presets(v5, v6)

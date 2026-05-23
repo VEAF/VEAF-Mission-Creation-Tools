@@ -355,11 +355,7 @@ class TestQraFull(unittest.TestCase):
         lua = generate_config_lua(
             {
                 "lua_modules": {"QRA": {"enable": True}},
-                "qra": {
-                    "definitions": [
-                        {"name": "E", "coalition": "RED", "simple_groups": ["Grp1", "Grp2"]}
-                    ]
-                },
+                "qra": {"definitions": [{"name": "E", "coalition": "RED", "simple_groups": ["Grp1", "Grp2"]}]},
             }
         )
         self.assertIn(':addGroup("Grp1")', lua)

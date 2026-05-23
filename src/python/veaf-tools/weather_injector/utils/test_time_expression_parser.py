@@ -10,6 +10,7 @@ Covers:
 - Invalid expressions → ValueError
 - Restricted eval: __builtins__ blocked
 """
+
 from __future__ import annotations
 
 import unittest

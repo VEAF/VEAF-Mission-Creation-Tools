@@ -12,6 +12,7 @@ Covers:
 - _extract_qra_chains silence toggle + chain definitions
 - _extract_cap_missions definition extraction
 """
+
 from __future__ import annotations
 
 import unittest
@@ -118,10 +119,7 @@ class TestGuardDetection(unittest.TestCase):
         self.assertEqual(result.enabled_modules.count("RADIO"), 1)
 
     def test_multiple_modules_all_detected(self) -> None:
-        content = (
-            "if veafSpawn then\n  veafSpawn.initialize()\nend\n"
-            "if veafRadio then\n  veafRadio.initialize()\nend\n"
-        )
+        content = "if veafSpawn then\n  veafSpawn.initialize()\nend\nif veafRadio then\n  veafRadio.initialize()\nend\n"
         result = self.m.migrate(content)
         # veafSpawn → fallback "veafSpawn"; veafRadio → "RADIO"
         self.assertIn("veafSpawn", result.enabled_modules)
@@ -220,10 +218,10 @@ class TestExtractAssets(unittest.TestCase):
 
     def test_multiple_rows_parsed(self) -> None:
         content = (
-            'veafAssets.Assets = {\n'
+            "veafAssets.Assets = {\n"
             '  {name="Unit1", coalition="blue", strength=100},\n'
             '  {name="Unit2", coalition="red", strength=50},\n'
-            '}\n'
+            "}\n"
         )
         result = MigrationResult(new_content="")
         self.m._extract_assets(content, result)
@@ -280,10 +278,7 @@ class TestExtractQraChains(unittest.TestCase):
 
     def test_qra_chain_name_and_coalition(self) -> None:
         content = (
-            'local myQra = VeafQRA:new()\n'
-            '  :setName("NorthQRA")\n'
-            '  :setCoalition(coalition.side.RED)\n'
-            '  :start()\n'
+            'local myQra = VeafQRA:new()\n  :setName("NorthQRA")\n  :setCoalition(coalition.side.RED)\n  :start()\n'
         )
         result = MigrationResult(new_content="")
         self.m._extract_qra_chains(content, result)
@@ -293,23 +288,14 @@ class TestExtractQraChains(unittest.TestCase):
         self.assertEqual(qra["coalition"], "RED")
 
     def test_qra_chain_trigger_zone(self) -> None:
-        content = (
-            'local q = VeafQRA:new()\n'
-            '  :setTriggerZone("ZoneAlpha")\n'
-            '  :start()\n'
-        )
+        content = 'local q = VeafQRA:new()\n  :setTriggerZone("ZoneAlpha")\n  :start()\n'
         result = MigrationResult(new_content="")
         self.m._extract_qra_chains(content, result)
         self.assertEqual(result.qra_definitions[0].get("trigger_zone"), "ZoneAlpha")
 
     def test_qra_chain_commented_out(self) -> None:
         # Need >1 key in the parsed QRA to pass the len(qra) > 1 guard
-        content = (
-            'local myQra = VeafQRA:new()\n'
-            '  :setName("Alpha")\n'
-            '  :setCoalition(coalition.side.RED)\n'
-            '  :start()\n'
-        )
+        content = 'local myQra = VeafQRA:new()\n  :setName("Alpha")\n  :setCoalition(coalition.side.RED)\n  :start()\n'
         result = MigrationResult(new_content="")
         new_content = self.m._extract_qra_chains(content, result)
         self.assertIn("[v6 extracted to mission.yaml]", new_content)
@@ -322,9 +308,7 @@ class TestExtractCapMissions(unittest.TestCase):
         self.m = ConfigMigrator()
 
     def test_cap_mission_all_fields(self) -> None:
-        content = (
-            'veafCombatMission.addCapMission("CAP-01", "Alpha CAP", "Intercept bandits", true, false)\n'
-        )
+        content = 'veafCombatMission.addCapMission("CAP-01", "Alpha CAP", "Intercept bandits", true, false)\n'
         result = MigrationResult(new_content="")
         self.m._extract_cap_missions(content, result)
         self.assertEqual(len(result.cap_missions_extracted), 1)

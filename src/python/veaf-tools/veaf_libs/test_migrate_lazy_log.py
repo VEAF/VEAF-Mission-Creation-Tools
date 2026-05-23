@@ -164,5 +164,42 @@ class TestMigrateFile(unittest.TestCase):
             self.assertEqual(count, 2)
 
 
+class TestMain(unittest.TestCase):
+    def test_dry_run_scans_veaf_lua_dir(self) -> None:
+        """main(["--dry-run"]) should scan src/scripts/veaf and report results."""
+        import io
+        from contextlib import redirect_stdout
+
+        from veaf_libs.migrate_lazy_log import main
+
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            main(["--dry-run"])
+        output = buf.getvalue()
+        self.assertIn("Scanning", output)
+        self.assertIn("Total replacements", output)
+
+    def test_dry_run_does_not_modify_files(self) -> None:
+        """--dry-run must not write any changes to disk."""
+        import io
+        from contextlib import redirect_stdout
+
+        from veaf_libs.migrate_lazy_log import main
+
+        # Collect mtimes before
+        lua_dir = Path(__file__).parents[3] / "scripts" / "veaf"
+        if not lua_dir.is_dir():
+            self.skipTest("Lua scripts dir not found")
+
+        mtimes_before = {f: f.stat().st_mtime for f in lua_dir.glob("*.lua")}
+
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            main(["--dry-run"])
+
+        mtimes_after = {f: f.stat().st_mtime for f in lua_dir.glob("*.lua")}
+        self.assertEqual(mtimes_before, mtimes_after)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -100,7 +100,9 @@ class WaypointsInjectorWorker(BaseWorker):
 
         logger.debug("Searching for all aircraft groups")
 
-        coalitions_dict = self.dcs_mission.mission_content.get("coalition") if self.dcs_mission.mission_content else None
+        coalitions_dict = (
+            self.dcs_mission.mission_content.get("coalition") if self.dcs_mission.mission_content else None
+        )
         if not coalitions_dict:
             logger.error("Cannot find key 'coalition'", True)
             return
@@ -319,7 +321,9 @@ class WaypointsExtractorWorker(BaseWorker):
             logger.error("Mission not loaded", exception_type=ValueError)
             return
 
-        coalitions_dict = self.dcs_mission.mission_content.get("coalition", {}) if self.dcs_mission.mission_content else {}
+        coalitions_dict = (
+            self.dcs_mission.mission_content.get("coalition", {}) if self.dcs_mission.mission_content else {}
+        )
 
         for coalition_name, coalition_data in coalitions_dict.items():
             countries_list = coalition_data.get("country", [])

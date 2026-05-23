@@ -94,7 +94,6 @@ class UpdateWorker:
         verify_checksum: bool = True,
         verbose: bool = False,
         zip_file_path: str | None = None,
-        init: bool = False,
     ):
         """Initialize the update worker."""
         self.mission_folder = mission_folder
@@ -104,7 +103,6 @@ class UpdateWorker:
         self.verify_checksum = verify_checksum
         self.verbose = verbose
         self.zip_file_path = zip_file_path
-        self.init = init
 
         logger.set_verbose(verbose)
 
@@ -306,6 +304,7 @@ exit /b 0
             has_locked_exe = current_exe.exists()
 
             # Step 1: Extract ALL content of published.zip to the "published" folder
+            is_first_install = not (mission_folder / PUBLISHED_DIR).exists()
             published_dir = mission_folder / PUBLISHED_DIR
             published_dir.mkdir(exist_ok=True)
 
@@ -375,8 +374,8 @@ exit /b 0
                         shutil.move(str(updater_exe), str(dest_updater))
                         logger.info(f"Moved {VEAF_TOOLS_EXE} to current directory")
 
-            # Step 3: Copy default config files on first install (or --init)
-            self._install_defaults(mission_folder)
+            # Step 3: Display first-install guidance
+            self._install_defaults(mission_folder, is_first_install)
 
             return True
         except zipfile.BadZipFile as e:
@@ -386,63 +385,16 @@ exit /b 0
             logger.error(f"Failed to install files: {e}")
             return False
 
-    def _install_defaults(self, mission_folder: Path) -> None:
-        """Copy default config files to the mission folder.
-
-        Runs automatically on first install (no build.cmd at root).
-        Pass --init to force-copy even when files already exist.
-        """
-        published_dir = mission_folder / PUBLISHED_DIR
-        build_cmd_dest = mission_folder / "build.cmd"
-        is_first_install = not build_cmd_dest.exists()
-
-        if not is_first_install and not self.init:
+    def _install_defaults(self, mission_folder: Path, is_first_install: bool) -> None:
+        """Display first-install guidance after a fresh install."""
+        if not is_first_install:
             return
 
-        label = "Initializing mission folder" if is_first_install else "Re-initializing mission folder (--init)"
-        with spinner_context(f"{label}..."):
-            copied: list[str] = []
-            skipped: list[str] = []
-
-            # build.cmd template
-            build_cmd_src = published_dir / "build-scripts" / "build.cmd"
-            if build_cmd_src.exists():
-                if not build_cmd_dest.exists() or self.init:
-                    shutil.copy2(str(build_cmd_src), str(build_cmd_dest))
-                    copied.append("build.cmd")
-                else:
-                    skipped.append("build.cmd")
-
-            # mission.yaml template (root of mission folder)
-            mission_yaml_src = published_dir / "src" / "defaults" / "mission-folder" / "mission.yaml"
-            mission_yaml_dest = mission_folder / "mission.yaml"
-            if mission_yaml_src.exists():
-                if not mission_yaml_dest.exists() or self.init:
-                    shutil.copy2(str(mission_yaml_src), str(mission_yaml_dest))
-                    copied.append("mission.yaml")
-                else:
-                    skipped.append("mission.yaml")
-
-            # Default src/ files
-            defaults_src = published_dir / "src" / "defaults" / "mission-folder" / "src"
-            if defaults_src.exists():
-                dest_src = mission_folder / "src"
-                dest_src.mkdir(exist_ok=True)
-                for src_file in sorted(defaults_src.rglob("*")):
-                    if src_file.is_file():
-                        rel = src_file.relative_to(defaults_src)
-                        dest_file = dest_src / rel
-                        dest_file.parent.mkdir(parents=True, exist_ok=True)
-                        if not dest_file.exists() or self.init:
-                            shutil.copy2(str(src_file), str(dest_file))
-                            copied.append(f"src/{rel}")
-                        else:
-                            skipped.append(f"src/{rel}")
-
-        if copied:
-            logger.info("Default files copied: " + ", ".join(copied))
-        if skipped:
-            logger.info("Skipped (already exist, use --init to overwrite): " + ", ".join(skipped))
+        console.print(
+            "\n[bold cyan]First install detected.[/bold cyan] "
+            "Run [bold]veaf-tools prepare .[/bold] to initialize your mission folder "
+            "with default files (mission.yaml, src/ templates, etc.)."
+        )
 
     def run(self) -> bool:
         """Execute the update process."""
@@ -595,11 +547,6 @@ def main(
     pause: bool = typer.Option(False, help=PAUSE_HELP),
     no_verify_checksum: bool = typer.Option(False, help="Skip checksum verification (not recommended)"),
     zip_file: str | None = typer.Option(None, help="Path to local published.zip file (for testing, skips GitHub)"),
-    init: bool = typer.Option(
-        False,
-        "--init",
-        help="Copy default config files to mission root (auto on first install, use --init to force on existing folder)",
-    ),
 ) -> None:
     """
     Downloads the latest VEAF Tools files from GitHub using Git tags.
@@ -631,7 +578,6 @@ def main(
         verify_checksum=verify_checksum,
         verbose=verbose,
         zip_file_path=zip_file,
-        init=init,
     )
 
     success = worker.run()

@@ -118,8 +118,7 @@ MyMission/
 ├── published/                    # VEAF scripts & tools (auto-installed)
 ├── mission.yaml                  # Build-time configuration
 ├── veaf-tools.exe                # CLI tool (auto-installed)
-├── veaf-tools-updater.exe
-└── build.cmd                     # Your build script
+└── veaf-tools-updater.exe
 ```
 
 ---

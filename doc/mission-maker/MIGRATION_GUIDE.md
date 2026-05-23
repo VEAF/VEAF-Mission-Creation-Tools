@@ -30,7 +30,7 @@ In both cases the end result is a **VEAF MCT v6 mission folder** that you manage
 .\veaf-tools-updater.exe
 ```
 
-3. Have your original `.miz` file on hand
+3. Have your v5 mission folder on hand
 
 ---
 
@@ -43,8 +43,8 @@ In both cases the end result is a **VEAF MCT v6 mission folder** that you manage
 | **Script delivery** | Individual `.lua` files delivered per mission, updated manually | All modules concatenated into a single `veaf-scripts.lua` managed centrally |
 | **DCS trigger** | Manual `DO SCRIPT FILE` triggers pointing at each `.lua` file | Single trigger injected automatically by `veaf-tools build`; no manual trigger work |
 | **Build toolchain** | No build step — scripts loaded directly from disk at mission start | `veaf-tools.exe build` assembles the `.miz` from `src/mission/` + `src/scripts/` |
-| **Build script** | Complex `build.cmd` with one line per inject command | Two lines only: `veaf-tools-updater.exe` then `veaf-tools.exe build` — inject steps auto-detected |
-| **Auto-inject pipeline** | Each inject command (`inject-presets`, `inject-waypoints`, etc.) had to be added manually to `build.cmd` | `veaf-tools build` auto-detects and runs each step when the matching file is present in `src/` — no changes to `build.cmd` needed |
+| **Build script** | Complex `build.cmd` with one line per inject command | No `build.cmd` — just run `veaf-tools-updater.exe` then `veaf-tools.exe build` |
+| **Auto-inject pipeline** | Each inject command (`inject-presets`, `inject-waypoints`, etc.) had to be added manually to `build.cmd` | `veaf-tools build` auto-detects and runs each step when the matching file is present in `src/` |
 | **Tool updates** | Manual download and replacement of script files | `veaf-tools-updater.exe` — downloads and verifies the latest release in one command |
 | **Build-time config** | No build-time config file | `mission.yaml` — controls log levels, module enable/disable, pipeline step overrides |
 | **Module enable/disable** | Edit `missionConfig.lua` (or simply omit the `initialize()` call) | `mission.yaml` → `lua_modules:` section; generates `veaf-modules-config.lua` automatically |
@@ -57,14 +57,15 @@ In both cases the end result is a **VEAF MCT v6 mission folder** that you manage
 
 ### Step-by-step Migration
 
-#### 1. Create the mission folder
+#### 1. Open your existing v5 mission folder
 
-Create an empty folder for your mission project:
+Navigate to the folder that already contains your v5 mission files — the one with `src/scripts/missionConfig.lua`, `src/radio/radioSettings.lua` (if you use presets), and similar v5 source files:
 
 ```powershell
-mkdir my-mission
-cd my-mission
+cd C:\path\to\your-v5-mission-folder
 ```
+
+> **Do not create an empty folder.** The converter reads your existing v5 source files directly.
 
 #### 2. Install VEAF MCT v6
 
@@ -74,31 +75,9 @@ Copy `veaf-tools-updater.exe` into the folder and run:
 .\veaf-tools-updater.exe
 ```
 
-This creates the `published/` directory with all scripts and tools.
+This creates the `published/` directory with all scripts and tools. Your existing `src/` files are not touched.
 
-#### 3. Extract the v5 mission
-
-Use `veaf-tools.exe` to unpack the `.miz` into the folder structure:
-
-```powershell
-.\veaf-tools.exe extract "C:\path\to\your-mission-v5.miz" .
-```
-
-This creates:
-```
-my-mission/
-├── src/
-│   ├── mission/          ← raw DCS mission data
-│   │   ├── mission       ← main Lua dictionary
-│   │   ├── options
-│   │   └── warehouses
-│   └── scripts/
-│       └── missionConfig.lua   ← auto-created from defaults
-└── published/
-    └── veaf-scripts.lua
-```
-
-#### 4. Convert the mission folder to v6
+#### 3. Convert the mission folder to v6
 
 Run the all-in-one converter:
 
@@ -117,7 +96,7 @@ Old DCS `DO SCRIPT FILE` triggers are removed automatically by `veaf-tools build
 
 > **If you only need to migrate `missionConfig.lua`** without converting pipeline files, use `veaf-tools.exe migrate-config src\scripts\missionConfig.lua` directly.
 
-#### 5. Check removed v5 patterns
+#### 4. Check removed v5 patterns
 
 Some v5 constructs no longer exist or have been renamed:
 
@@ -129,7 +108,7 @@ Some v5 constructs no longer exist or have been renamed:
 | Loading individual `.lua` files via `DO SCRIPT FILE` | Automatic — do not add these triggers manually |
 | `IADS` scripts loaded manually | Load them via `src/scripts/` — they are picked up automatically |
 
-#### 6. Verify with a test build
+#### 5. Verify with a test build
 
 ```powershell
 .\veaf-tools.exe build my-mission .
@@ -140,7 +119,7 @@ Open the resulting `.miz` in DCS, load the mission, and confirm:
 - The v6 VEAF MCT loader trigger is present (named something like `VEAF scripts loader`)
 - Radio menus and marker commands work as expected
 
-#### 7. Set up version control
+#### 6. Set up version control
 
 ```powershell
 git init

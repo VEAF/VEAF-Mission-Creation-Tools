@@ -950,6 +950,19 @@ function veaf.invertHeading(heading)
   return result
 end
 
+function veaf.compute2dAzimuth(vec3)
+  local iAngleRadian = math.atan2(vec3.z, vec3.x) -- get azimuth angle in radians from the vector (x=north, z=east in DCS coordinates)
+  local iAngleDegrees = math.deg(iAngleRadian)
+  if iAngleDegrees < 0 then
+    iAngleDegrees = iAngleDegrees + 360
+  end
+  return iAngleDegrees
+end
+
+function veaf.compute2dMagnitude(vec3)
+  return math.sqrt(vec3.x ^ 2 + vec3.z ^ 2)
+end
+
 -- get a LL position based on a string
 -- can be UTM (U38TMP334456 or u37TMP4351)
 -- can be LL with either : or - as a separator, and either DMS, DM decimal, or D decimal (N42:23:45E044-12.5 or N42.3345E044-12.5)
@@ -2394,7 +2407,10 @@ end
 
 --- Weather Report. Report pressure QFE/QNH, temperature, wind at certain location.
 --- stolen from the weatherReport script and modified to fit our usage
+--- @deprecated use veafWeatherData.getWeatherString instead
 function veaf.weatherReport(vec3, alt, withLASTE)
+  return "veaf.weatherReport is deprecated, use veafWeatherData.getWeatherString instead"
+  --[[
   -- Get Temperature [K] and Pressure [Pa] at vec3.
   local T
   local Pqfe
@@ -2466,6 +2482,7 @@ function veaf.weatherReport(vec3, alt, withLASTE)
   end
 
   return text
+  ]]
 end
 
 local function _initializeCountriesAndCoalitions()

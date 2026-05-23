@@ -347,10 +347,14 @@ class BuildAndReleaseWorker:
 
             # Build veaf-tools executable
             with spinner_context("Building veaf-tools executable..."):
+                locales_dir = self.src_dir / "python" / "veaf-tools" / "veaf_libs" / "locales"
+                extra: list[tuple[Path, str]] = [(locales_dir, "veaf_libs/locales")]
+                if modules_json_path:
+                    extra.append((modules_json_path, "."))
                 self._build_pyinstaller_executable(
                     "veaf-tools",
                     self.src_dir / "python" / "veaf-tools" / "veaf-tools.py",
-                    extra_data=[(modules_json_path, ".")] if modules_json_path else [],
+                    extra_data=extra,
                 )
 
             # Build veaf-tools-updater executable

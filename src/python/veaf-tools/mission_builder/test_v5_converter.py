@@ -38,7 +38,9 @@ class TestConversionReportToMarkdownEmpty(unittest.TestCase):
     def test_no_missionconfig_shows_not_found(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             md = self._make_report(Path(td)).to_markdown()
-            self.assertIn("Not found", md)
+            # In FR mode, the scan table shows "Introuvable" and the actions section also
+            # uses report.missionconfig.not_found → "Fichier introuvable …"
+            self.assertIn("Introuvable", md)
 
     def test_mission_yaml_not_generated_row(self) -> None:
         with tempfile.TemporaryDirectory() as td:
@@ -78,6 +80,13 @@ class TestConversionReportToMarkdownEmpty(unittest.TestCase):
 
 class TestConversionReportToMarkdownWithMigration(unittest.TestCase):
     """to_markdown() when missionConfig.lua was found and migrated."""
+
+    def setUp(self) -> None:
+        self._prev_lang = current_language()
+        set_language("en")
+
+    def tearDown(self) -> None:
+        set_language(self._prev_lang)
 
     def _rich_report(self, folder: Path) -> ConversionReport:
         scripts_dir = folder / "src" / "scripts"

@@ -49,10 +49,7 @@ def convert_v5(
     icao: str = typer.Option(
         "",
         "--icao",
-        help=(
-            "ICAO airport code to use for realweather pipeline steps "
-            "(e.g. UGGG). Skips the interactive prompt."
-        ),
+        help=("ICAO airport code to use for realweather pipeline steps (e.g. UGGG). Skips the interactive prompt."),
     ),
     verbose: bool = typer.Option(False, help=VERBOSE_HELP),
     pause: bool = typer.Option(False, help=PAUSE_HELP),

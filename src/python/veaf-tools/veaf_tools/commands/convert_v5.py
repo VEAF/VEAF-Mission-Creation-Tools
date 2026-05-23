@@ -16,62 +16,40 @@ from veaf_tools.app import (
 )
 
 
-@app.command(no_args_is_help=True)
+@app.command(no_args_is_help=True, help=t("cmd.convert_v5.help.long"))
 def convert_v5(
     mission_folder: str = typer.Argument(
         ".",
-        help="Path to the VEAF mission folder to convert (where mission.yaml should be created).",
+        help=t("cmd.convert_v5.opt.folder"),
     ),
     force: bool = typer.Option(
         False,
         "--force",
-        help="Overwrite existing mission.yaml without asking.",
+        help=t("cmd.convert_v5.opt.force"),
     ),
     no_backup: bool = typer.Option(
         False,
         "--no-backup",
-        help="Do not create a .bak copy of missionConfig.lua before migrating it.",
+        help=t("cmd.convert_v5.opt.no_backup"),
     ),
     no_convert_pipeline: bool = typer.Option(
         False,
         "--no-convert-pipeline",
-        help=(
-            "Skip automatic conversion of v5 pipeline config files "
-            "(presets, waypoints, weather, aircraft groups). "
-            "Files will be listed as needing manual conversion instead."
-        ),
+        help=t("cmd.convert_v5.opt.no_pipeline"),
     ),
     report_file: str | None = typer.Option(
         None,
         "--report-file",
-        help=("Save the conversion report to a Markdown file. Defaults to <mission_folder>/convert-v5-report.md."),
+        help=t("cmd.convert_v5.opt.report_file"),
     ),
     icao: str = typer.Option(
         "",
         "--icao",
-        help=("ICAO airport code to use for realweather pipeline steps (e.g. UGGG). Skips the interactive prompt."),
+        help=t("cmd.convert_v5.opt.icao"),
     ),
     verbose: bool = typer.Option(False, help=VERBOSE_HELP),
     pause: bool = typer.Option(False, help=PAUSE_HELP),
 ) -> None:
-    """
-    Convert a v5-style VEAF mission folder to v6 format.
-
-    Runs all migration steps in a single pass:
-
-    \\b
-    1. Scans the mission folder for v5 artifacts (missionConfig.lua, pipeline
-       config files such as presets.yaml, waypoints.yaml, …).
-    2. Migrates missionConfig.lua in-place: comments out doFile() calls that
-       load VEAF scripts (the v6 builder injects them automatically), and wraps
-       bare veafXxx.initialize() calls in ``if veafXxx then … end`` guards.
-    3. Generates mission.yaml with the correct lua_modules: and pipeline:
-       sections derived from the analysis in steps 1 and 2.
-    4. Prints a detailed conversion report and optionally saves it as Markdown.
-
-    DCS trigger conversion (v5 → v6) is handled automatically by
-    ``veaf-tools build`` — no manual action is required for that part.
-    """
     logger.set_verbose(verbose)
     console.print(f"[bold green]veaf-tools Convert v5 Mission v{VERSION}[/bold green]")
 

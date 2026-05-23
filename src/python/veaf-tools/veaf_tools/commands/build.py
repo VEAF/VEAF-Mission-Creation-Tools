@@ -7,6 +7,7 @@ from aircrafts_injector import AircraftGroupsInjectorWorker, AircraftGroupsYAMLV
 from mission_builder import MissionBuilderREADME, MissionBuilderWorker
 from presets_injector import PresetsInjectorWorker
 from rich.markdown import Markdown
+from veaf_libs import user_config as _user_config
 from veaf_libs.lua_module_scanner import get_modules
 from veaf_libs.paths import resolve_path
 from waypoints_injector import WaypointsInjectorWorker
@@ -26,51 +27,36 @@ from veaf_tools.app import (
 from veaf_tools.helpers import _update_build_config_in_yaml
 
 
-@app.command()
+@app.command(help=t("cmd.build.help"))
 def build(
     readme: bool = typer.Option(False, help=README_HELP),
     verbose: bool = typer.Option(False, help=VERBOSE_HELP),
-    no_veaf_triggers: bool = typer.Option(
-        False, help="If set, the VEAF triggers will not be injected in the resulting mission."
-    ),
+    no_veaf_triggers: bool = typer.Option(False, help=t("cmd.build.opt.no_veaf_triggers")),
     dynamic_mode: bool = typer.Option(
         False,
-        help="If set, the mission will dynamically load the scripts from the provided location (via --scripts-path or in the local published and src/scripts folders).",
+        help=t("cmd.build.opt.dynamic_mode"),
     ),
     dev_mode: bool | None = typer.Option(
         None,
         "--dev-mode/--no-dev-mode",
-        help=(
-            "Resolve VEAF scripts from a local dev repo (build/veaf-scripts.lua) instead of published/. "
-            "Requires --scripts-path pointing to the VEAF-Mission-Creation-Tools repo root. "
-            "This setting is persisted in mission.yaml (build.dev_mode)."
-        ),
+        help=t("cmd.build.opt.dev_mode"),
     ),
     scripts_path: str = typer.Option(
         None,
-        help="Path to the VEAF and community scripts. Persisted in mission.yaml (build.scripts_path).",
+        help=t("cmd.build.opt.scripts_path"),
     ),
-    migrate_from_v5: bool = typer.Option(
-        True, help="If set, the builder will parse the mission for old v5 triggers and remove them."
-    ),
+    migrate_from_v5: bool = typer.Option(True, help=t("cmd.build.opt.migrate_from_v5")),
     log_modules: str | None = typer.Option(
         None,
-        help=(
-            "Comma-separated list of module IDs to keep at full log level. "
-            "All other modules are silenced to 'error' level. "
-            "Example: --log-modules 'SPAWN,RADIO'"
-        ),
+        help=t("cmd.build.opt.log_modules_detail"),
     ),
     mission_name_or_file: str | None = typer.Argument(
         DEFAULT_MISSION_FILE,
-        help="Mission name; will build the mission with this name and the current date; can be set to a .miz file.",
+        help=t("cmd.build.opt.mission_name_or_file"),
     ),
-    mission_folder: str | None = typer.Argument(".", help="Folder with the mission files."),
+    mission_folder: str | None = typer.Argument(".", help=t("cmd.build.opt.folder")),
     pause: bool = typer.Option(False, help=PAUSE_HELP),
 ) -> None:
-    """
-    Builds a DCS mission based on a mission folder.
-    """
 
     logger.set_verbose(verbose)
 
@@ -112,12 +98,15 @@ def build(
         pipeline_cfg = mission_yaml.get("pipeline") or {}
         build_cfg = mission_yaml.get("build") or {}
 
-    # Resolve dev_mode and scripts_path: CLI flags > mission.yaml defaults > code defaults
+    # Resolve dev_mode and scripts_path: CLI flags > mission.yaml > ~/veafmct.yaml > code defaults
     effective_dev_mode: bool = dev_mode if dev_mode is not None else bool(build_cfg.get("dev_mode", False))
     if effective_dev_mode:
         logger.info("Dev mode: VEAF scripts resolved from local dev repo (build/veaf-scripts.lua)")
 
-    effective_scripts_path_str: str | None = scripts_path or build_cfg.get("scripts_path") or None
+    _uc_sp = _user_config.get_scripts_path()
+    effective_scripts_path_str: str | None = (
+        scripts_path or build_cfg.get("scripts_path") or (str(_uc_sp) if _uc_sp else None)
+    )
     effective_scripts_input: str | Path | None = effective_scripts_path_str
     if not effective_scripts_input and dynamic_mode:
         # default value is the "published" subfolder of the mission folder

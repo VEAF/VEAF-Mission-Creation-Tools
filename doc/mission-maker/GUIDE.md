@@ -10,14 +10,15 @@ This guide is for DCS World mission designers who want to integrate the VEAF fra
 1. [What You Get](#what-you-get)
 2. [Prerequisites](#prerequisites)
 3. [Installation and Updates](#installation-and-updates)
-4. [Creating a New Mission](#creating-a-new-mission)
-5. [How Scripts Are Loaded](#how-scripts-are-loaded)
-6. [Configuring Modules](#configuring-modules)
-7. [Design-Time Tools](#design-time-tools)
-8. [Typical Build Workflow](#typical-build-workflow)
-9. [Scripts Reference](#scripts-reference)
-10. [Configuration Examples](#configuration-examples)
-11. [Resources](#resources)
+4. [Global User Configuration](#global-user-configuration)
+5. [Creating a New Mission](#creating-a-new-mission)
+6. [How Scripts Are Loaded](#how-scripts-are-loaded)
+7. [Configuring Modules](#configuring-modules)
+8. [Design-Time Tools](#design-time-tools)
+9. [Typical Build Workflow](#typical-build-workflow)
+10. [Scripts Reference](#scripts-reference)
+11. [Configuration Examples](#configuration-examples)
+12. [Resources](#resources)
 
 > **Migrating an existing mission?** See the [Migration Guide](MIGRATION_GUIDE.md) — covers both VEAF MCT v5 → v6 and vanilla DCS → VEAF MCT.
 
@@ -81,6 +82,45 @@ To pin to a specific version:
 ```
 
 Full CLI reference: [Tools Reference](../TOOLS_REFERENCE.md)
+
+---
+
+## Global User Configuration
+
+Create `~/veafmct.yaml` (i.e. `C:\Users\YourName\veafmct.yaml` on Windows) to set persistent defaults that apply to **all** your VEAF projects on this machine:
+
+```yaml
+# ~/veafmct.yaml
+lang: fr                 # Tool output language: "en" (default) or "fr"
+check_updates: true      # Check for new veaf-tools releases at startup
+scripts_path: D:/dev/_VEAF/VEAF-Mission-Creation-Tools   # Local repo path (for --dev-mode)
+```
+
+All keys are optional. To initialise the file from the CLI:
+
+```powershell
+veaf-tools.exe user-config --init
+```
+
+Or inspect/edit values interactively:
+
+```powershell
+# Show effective configuration and its source
+veaf-tools.exe user-config
+
+# Set a value
+veaf-tools.exe user-config --set lang=fr
+
+# Remove a value (revert to default)
+veaf-tools.exe user-config --unset lang
+```
+
+**Language detection order** (first match wins):
+1. `--lang` CLI option
+2. `VEAF_LANG` environment variable
+3. `~/veafmct.yaml` → `lang:` key
+4. OS locale (Windows registry / system locale on Linux–macOS)
+5. `en` (built-in fallback)
 
 ---
 
@@ -252,6 +292,7 @@ veafSecurity.password_L9[sha1.hex("yourpassword")] = true
 | `extract-waypoints` | Extracts waypoints from a mission |
 | `convert` | Converts a vanilla mission to VEAF MCT format |
 | `convert-v5` | Migrates a v5 mission folder to v6 format |
+| `user-config` | Shows or edits the global user config (`~/veafmct.yaml`) |
 
 Full reference: [Tools Reference](../TOOLS_REFERENCE.md)
 

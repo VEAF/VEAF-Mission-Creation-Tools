@@ -51,10 +51,26 @@ _en_catalog: dict[str, str] = {}
 
 
 def _detect_lang() -> str:
-    """Detect the active language from env var or OS locale."""
+    """Detect the active language.
+
+    Resolution order:
+    1. ``VEAF_LANG`` environment variable
+    2. ``~/veafmct.yaml`` (or ``~/.veaf/config.yaml``) ``lang:`` key
+    3. OS locale
+    4. ``"en"`` fallback
+    """
     env = os.environ.get("VEAF_LANG", "").strip()
     if env:
         return env[:2].lower()
+    # User global config — lazy import to avoid circular dependency at init time.
+    try:
+        from veaf_libs.user_config import get_lang as _get_user_lang  # noqa: PLC0415
+
+        user_lang = _get_user_lang()
+        if user_lang:
+            return user_lang
+    except Exception:
+        pass
     # Try OS locale; avoid the deprecated getdefaultlocale() (removed in 3.15).
     # Do NOT call locale.setlocale here — it has process-wide side effects.
     try:
@@ -63,7 +79,19 @@ def _detect_lang() -> str:
             return loc[:2].lower()
     except Exception:
         pass
-    # Last resort: parse LANG / LC_ALL env vars directly.
+    # On Windows, locale.getlocale() returns None until setlocale() is called.
+    # Use winreg to read the user's locale from the registry instead.
+    if sys.platform == "win32":
+        try:
+            import winreg  # noqa: PLC0415
+
+            with winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Control Panel\International") as key:
+                locale_name = winreg.QueryValueEx(key, "LocaleName")[0]  # e.g. "fr-FR"
+                if locale_name:
+                    return locale_name[:2].lower()
+        except Exception:
+            pass
+    # Last resort: parse LANG / LC_ALL env vars directly (Linux/macOS).
     for var in ("LC_ALL", "LC_CTYPE", "LANG"):
         val = os.environ.get(var, "").strip()
         if val and val != "C" and val != "POSIX":

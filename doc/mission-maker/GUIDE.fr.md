@@ -9,14 +9,15 @@ Ce guide s'adresse aux concepteurs de missions DCS World qui souhaitent intégre
 1. [Ce que vous obtenez](#ce-que-vous-obtenez)
 2. [Prérequis](#prérequis)
 3. [Installation et mises à jour](#installation-et-mises-à-jour)
-4. [Créer une nouvelle mission](#créer-une-nouvelle-mission)
-5. [Comment les scripts sont chargés](#comment-les-scripts-sont-chargés)
-6. [Configurer les modules](#configurer-les-modules)
-7. [Outils de conception](#outils-de-conception)
-8. [Workflow de build typique](#workflow-de-build-typique)
-9. [Référence des scripts](#référence-des-scripts)
-10. [Exemples de configuration](#exemples-de-configuration)
-11. [Ressources](#ressources)
+4. [Configuration globale utilisateur](#configuration-globale-utilisateur)
+5. [Créer une nouvelle mission](#créer-une-nouvelle-mission)
+6. [Comment les scripts sont chargés](#comment-les-scripts-sont-chargés)
+7. [Configurer les modules](#configurer-les-modules)
+8. [Outils de conception](#outils-de-conception)
+9. [Workflow de build typique](#workflow-de-build-typique)
+10. [Référence des scripts](#référence-des-scripts)
+11. [Exemples de configuration](#exemples-de-configuration)
+12. [Ressources](#ressources)
 
 > **Migration d'une mission existante ?** Consultez le [Guide de migration](MIGRATION_GUIDE.md) — couvre à la fois VEAF MCT v5 → v6 et DCS vanilla → VEAF MCT.
 
@@ -80,6 +81,45 @@ Pour épingler une version spécifique :
 ```
 
 Référence CLI complète : [Référence des outils](../TOOLS_REFERENCE.md)
+
+---
+
+## Configuration globale utilisateur
+
+Créez `~/veafmct.yaml` (soit `C:\Users\VotreNom\veafmct.yaml` sous Windows) pour définir des valeurs par défaut persistantes applicables à **tous** vos projets VEAF sur cette machine :
+
+```yaml
+# ~/veafmct.yaml
+lang: fr                 # Langue des outils : "en" (défaut) ou "fr"
+check_updates: true      # Vérifier les nouvelles versions de veaf-tools au démarrage
+scripts_path: D:/dev/_VEAF/VEAF-Mission-Creation-Tools   # Chemin local du dépôt (pour --dev-mode)
+```
+
+Toutes les clés sont optionnelles. Pour initialiser le fichier depuis la CLI :
+
+```powershell
+veaf-tools.exe user-config --init
+```
+
+Ou inspecter/modifier les valeurs de manière interactive :
+
+```powershell
+# Afficher la configuration effective et sa source
+veaf-tools.exe user-config
+
+# Définir une valeur
+veaf-tools.exe user-config --set lang=fr
+
+# Supprimer une valeur (revenir au défaut)
+veaf-tools.exe user-config --unset lang
+```
+
+**Ordre de détection de la langue** (le premier qui correspond gagne) :
+1. Option CLI `--lang`
+2. Variable d'environnement `VEAF_LANG`
+3. `~/veafmct.yaml` → clé `lang:`
+4. Locale du système (registre Windows / locale système sur Linux–macOS)
+5. `en` (fallback intégré)
 
 ---
 
@@ -251,6 +291,7 @@ veafSecurity.password_L9[sha1.hex("votremotdepasse")] = true
 | `extract-waypoints` | Extrait les waypoints d'une mission |
 | `convert` | Convertit une mission vanilla au format VEAF MCT |
 | `convert-v5` | Migre un dossier mission v5 vers le format v6 |
+| `user-config` | Affiche ou modifie la configuration globale utilisateur (`~/veafmct.yaml`) |
 
 Référence complète : [Référence des outils](../TOOLS_REFERENCE.md)
 

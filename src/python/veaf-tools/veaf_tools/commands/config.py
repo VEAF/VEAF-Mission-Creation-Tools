@@ -14,18 +14,12 @@ from veaf_tools.app import (
 )
 
 
-@app.command()
+@app.command(help=t("cmd.generate_config.help"))
 def generate_config(
-    output: str = typer.Option(".", help="Output directory for the generated mission.yaml template."),
+    output: str = typer.Option(".", help=t("cmd.generate_config.opt.output")),
     verbose: bool = typer.Option(False, help=VERBOSE_HELP),
     pause: bool = typer.Option(False, help=PAUSE_HELP),
 ) -> None:
-    """
-    Generates a mission.yaml template with all available module configuration options.
-
-    The generated file can be placed at the root of your mission folder and renamed to
-    ``mission.yaml``. Uncomment and adjust any section you want to configure.
-    """
     logger.set_verbose(verbose)
     console.print(f"[bold green]veaf-tools Generate Config v{VERSION}[/bold green]")
 
@@ -48,36 +42,21 @@ def generate_config(
         input(t("help.pause_msg"))
 
 
-@app.command(no_args_is_help=True)
+@app.command(no_args_is_help=True, help=t("cmd.migrate_config.help"))
 def migrate_config(
-    input_file: str = typer.Argument(..., help="Path to the missionConfig.lua to migrate (v5 → v6)."),
+    input_file: str = typer.Argument(..., help=t("cmd.migrate_config.opt.input")),
     output: str | None = typer.Option(
         None,
-        help="Output path for the migrated file. Defaults to <input>_v6.lua next to the input.",
+        help=t("cmd.migrate_config.opt.output_file"),
     ),
     yaml_output: str | None = typer.Option(
         None,
         "--yaml-output",
-        help="Write the lua_modules YAML snippet to this file instead of printing it.",
+        help=t("cmd.migrate_config.opt.yaml_output"),
     ),
     verbose: bool = typer.Option(False, help=VERBOSE_HELP),
     pause: bool = typer.Option(False, help=PAUSE_HELP),
 ) -> None:
-    """
-    Migrate a v5-style missionConfig.lua to the v6 format.
-
-    Transformations applied:
-
-    - ``doFile(...)`` calls loading VEAF scripts are commented out; the v6
-      builder injects all scripts automatically via ``veaf-scripts.lua``.
-
-    - Bare ``veafXxx.initialize(...)`` calls at the top level (outside an
-      ``if veafXxx then … end`` guard) are wrapped in the guard.
-
-    The command also outputs a ``lua_modules:`` YAML snippet that you can paste
-    into your ``mission.yaml`` to document (and later fine-tune) which modules
-    are enabled.
-    """
     logger.set_verbose(verbose)
     console.print(f"[bold green]veaf-tools Migrate Config v{VERSION}[/bold green]")
 

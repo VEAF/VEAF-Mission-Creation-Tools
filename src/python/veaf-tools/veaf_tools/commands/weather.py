@@ -16,22 +16,15 @@ from veaf_tools.app import (
 )
 
 
-@app.command(no_args_is_help=True)
+@app.command(no_args_is_help=True, help=t("cmd.inject_weather.help"))
 def inject_weather(
     readme: bool = typer.Option(False, help=README_HELP),
     verbose: bool = typer.Option(False, help=VERBOSE_HELP),
-    mission_name_or_file: str | None = typer.Argument(
-        DEFAULT_MISSION_FILE, help="Mission name or .miz file to use as base for creating weather/time variants."
-    ),
-    config_file: str = typer.Option("missions.yaml", help="Path to YAML configuration file (or Lua file to convert)."),
-    convert_lua: bool = typer.Option(False, "--convert-lua", help="Convert legacy Lua configuration to YAML and exit"),
+    mission_name_or_file: str | None = typer.Argument(DEFAULT_MISSION_FILE, help=t("cmd.inject_weather.opt.mission")),
+    config_file: str = typer.Option("missions.yaml", help=t("cmd.inject_weather.opt.config_file")),
+    convert_lua: bool = typer.Option(False, "--convert-lua", help=t("cmd.inject_weather.opt.convert_lua")),
     pause: bool = typer.Option(False, help=PAUSE_HELP),
 ) -> None:
-    """
-    Creates multiple versions of a DCS mission with different weather conditions and start times.
-    Uses a YAML configuration file to define mission variants.
-    Can also convert legacy Lua configurations to YAML format.
-    """
 
     logger.set_verbose(verbose)
 

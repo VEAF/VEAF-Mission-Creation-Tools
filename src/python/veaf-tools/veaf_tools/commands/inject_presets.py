@@ -19,23 +19,18 @@ from veaf_tools.app import (
 )
 
 
-@app.command(no_args_is_help=True)
+@app.command(no_args_is_help=True, help=t("cmd.inject_presets.help"))
 def inject_presets(
     readme: bool = typer.Option(False, help=README_HELP),
     verbose: bool = typer.Option(False, help=VERBOSE_HELP),
     input_mission_name_or_file: str | None = typer.Argument(
         DEFAULT_MISSION_FILE,
-        help="Mission name; will inject in the mission with this name (most recent .miz file); can be set to a .miz file.",
+        help=t("cmd.inject_presets.opt.mission"),
     ),
-    output_mission: str | None = typer.Argument(
-        None, help="Mission file to save; defaults to the same as 'input_mission'."
-    ),
-    presets_file: str = typer.Option(DEFAULT_PRESETS_FILE, help="Configuration file containing the presets."),
+    output_mission: str | None = typer.Argument(None, help=t("cmd.inject_presets.opt.output_mission")),
+    presets_file: str = typer.Option(DEFAULT_PRESETS_FILE, help=t("cmd.inject_presets.opt.presets_file")),
     pause: bool = typer.Option(False, help=PAUSE_HELP),
 ) -> None:
-    """
-    Injects radio presets read from a configuration file into aircraft groups from a DCS mission
-    """
 
     logger.set_verbose(verbose)
 

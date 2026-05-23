@@ -23,28 +23,23 @@ from veaf_tools.app import (
 )
 
 
-@app.command(no_args_is_help=True)
+@app.command(no_args_is_help=True, help=t("cmd.extract_waypoints.help"))
 def extract_waypoints(
     readme: bool = typer.Option(False, help=README_HELP),
     verbose: bool = typer.Option(False, help=VERBOSE_HELP),
-    interactive: bool = typer.Option(False, help="Interactive mode: select which groups to extract."),
+    interactive: bool = typer.Option(False, help=t("cmd.extract_waypoints.opt.interactive")),
     mission_name_or_file: str | None = typer.Argument(
         DEFAULT_MISSION_FILE,
-        help="Mission name; will extract from the mission with this name (most recent .miz file); can be set to a .miz file.",
+        help=t("cmd.extract_waypoints.opt.mission"),
     ),
-    output_yaml: str = typer.Option("waypoints.yaml", help="Output YAML file path."),
-    group_name_pattern: str = typer.Option(".*", help="Regular expression pattern to match waypoint/group names."),
-    only_airplanes: bool = typer.Option(False, help="Extract only airplanes."),
-    only_helicopters: bool = typer.Option(False, help="Extract only helicopters."),
-    mission_folder: str | None = typer.Argument(".", help="Folder with the mission files."),
-    lua_input: str | None = typer.Option(
-        None, help="Path to a Lua file (e.g., settings-waypoints.lua) to extract from instead of a .miz mission."
-    ),
+    output_yaml: str = typer.Option("waypoints.yaml", help=t("cmd.extract_waypoints.opt.output_yaml")),
+    group_name_pattern: str = typer.Option(".*", help=t("cmd.extract_waypoints.opt.pattern")),
+    only_airplanes: bool = typer.Option(False, help=t("cmd.extract_waypoints.opt.only_airplanes")),
+    only_helicopters: bool = typer.Option(False, help=t("cmd.extract_waypoints.opt.only_helicopters")),
+    mission_folder: str | None = typer.Argument(".", help=t("cmd.extract_waypoints.opt.mission_folder")),
+    lua_input: str | None = typer.Option(None, help=t("cmd.extract_waypoints.opt.lua_file")),
     pause: bool = typer.Option(False, help=PAUSE_HELP),
 ) -> None:
-    """
-    Extracts waypoints matching a pattern from a DCS mission or Lua settings file and writes them to a YAML file.
-    """
 
     logger.set_verbose(verbose)
 
@@ -110,25 +105,19 @@ def extract_waypoints(
         input(t("help.pause_msg"))
 
 
-@app.command(no_args_is_help=True)
+@app.command(no_args_is_help=True, help=t("cmd.inject_waypoints.help"))
 def inject_waypoints(
     readme: bool = typer.Option(False, help=README_HELP),
     verbose: bool = typer.Option(False, help=VERBOSE_HELP),
     mission_name_or_file: str | None = typer.Argument(
         DEFAULT_MISSION_FILE,
-        help="Mission name; will inject into the mission with this name (most recent .miz file); can be set to a .miz file.",
+        help=t("cmd.inject_waypoints.opt.mission"),
     ),
-    output_mission: str | None = typer.Argument(
-        None, help="Mission file to save; defaults to the same as 'input_mission'."
-    ),
-    waypoints_file: str = typer.Option("waypoints.yaml", help="Path to the YAML file containing waypoint definitions."),
-    mission_folder: str | None = typer.Argument(".", help="Folder with the mission files."),
+    output_mission: str | None = typer.Argument(None, help=t("cmd.inject_waypoints.opt.output_mission")),
+    waypoints_file: str = typer.Option("waypoints.yaml", help=t("cmd.inject_waypoints.opt.yaml_file")),
+    mission_folder: str | None = typer.Argument(".", help=t("cmd.inject_waypoints.opt.mission_folder")),
     pause: bool = typer.Option(False, help=PAUSE_HELP),
 ) -> None:
-    """
-    Injects waypoints from a YAML file into a DCS mission.
-    Only human-piloted aircraft groups will receive waypoints.
-    """
 
     logger.set_verbose(verbose)
 

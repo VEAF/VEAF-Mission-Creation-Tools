@@ -8,6 +8,7 @@ from . import (  # noqa: F401
     extract,
     inject_presets,
     prepare,
+    user_config,
     waypoints,
     weather,
 )

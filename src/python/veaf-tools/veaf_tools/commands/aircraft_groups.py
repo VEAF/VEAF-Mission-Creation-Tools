@@ -23,28 +23,23 @@ from veaf_tools.app import (
 )
 
 
-@app.command(no_args_is_help=True)
+@app.command(no_args_is_help=True, help=t("cmd.extract_aircraft.help"))
 def extract_aircraft_groups(
     readme: bool = typer.Option(False, help=README_HELP),
     verbose: bool = typer.Option(False, help=VERBOSE_HELP),
-    interactive: bool = typer.Option(False, help="Interactive mode: select which groups to include."),
+    interactive: bool = typer.Option(False, help=t("cmd.extract_aircraft.opt.interactive")),
     mission_name_or_file: str | None = typer.Argument(
         DEFAULT_MISSION_FILE,
-        help="Mission name; will extract from the mission with this name (most recent .miz file); can be set to a .miz file.",
+        help=t("cmd.extract_aircraft.opt.mission"),
     ),
-    output_yaml: str = typer.Option("aircraft-templates.yaml", help="Output YAML file path."),
-    group_name_pattern: str = typer.Option(".*", help="Regular expression pattern to match aircraft group names."),
-    only_airplanes: bool = typer.Option(False, help="Extract only airplanes."),
-    only_helicopters: bool = typer.Option(False, help="Extract only helicopters."),
-    mission_folder: str | None = typer.Argument(".", help="Folder with the mission files."),
-    lua_input: str | None = typer.Option(
-        None, help="Path to a Lua file (e.g., settings-templates.lua) to extract from instead of a .miz mission."
-    ),
+    output_yaml: str = typer.Option("aircraft-templates.yaml", help=t("cmd.extract_aircraft.opt.output_yaml")),
+    group_name_pattern: str = typer.Option(".*", help=t("cmd.extract_aircraft.opt.pattern")),
+    only_airplanes: bool = typer.Option(False, help=t("cmd.extract_aircraft.opt.only_airplanes")),
+    only_helicopters: bool = typer.Option(False, help=t("cmd.extract_aircraft.opt.only_helicopters")),
+    mission_folder: str | None = typer.Argument(".", help=t("cmd.extract_aircraft.opt.mission_folder")),
+    lua_input: str | None = typer.Option(None, help=t("cmd.extract_aircraft.opt.lua_file")),
     pause: bool = typer.Option(False, help=PAUSE_HELP),
 ) -> None:
-    """
-    Extracts aircraft groups matching a pattern from a DCS mission or Lua settings file and writes them to a YAML file.
-    """
 
     logger.set_verbose(verbose)
 
@@ -110,30 +105,20 @@ def extract_aircraft_groups(
         input(t("help.pause_msg"))
 
 
-@app.command(no_args_is_help=True)
+@app.command(no_args_is_help=True, help=t("cmd.inject_aircraft.help"))
 def inject_aircraft_groups(
     readme: bool = typer.Option(False, help=README_HELP),
     verbose: bool = typer.Option(False, help=VERBOSE_HELP),
-    mode: str = typer.Option(
-        "add", help="Injection mode: 'add' (add new groups) or 'replace' (replace existing groups)."
-    ),
-    template_file: str = typer.Option(
-        "aircraft-templates.yaml", help="Path to the YAML file containing aircraft groups."
-    ),
+    mode: str = typer.Option("add", help=t("cmd.inject_aircraft.opt.mode")),
+    template_file: str = typer.Option("aircraft-templates.yaml", help=t("cmd.inject_aircraft.opt.yaml_file")),
     mission_name_or_file: str | None = typer.Argument(
         DEFAULT_MISSION_FILE,
-        help="Mission name; will inject into the mission with this name (most recent .miz file); can be set to a .miz file.",
+        help=t("cmd.inject_aircraft.opt.mission"),
     ),
-    output_mission: str | None = typer.Argument(
-        None, help="Mission file to save; defaults to the same as 'input_mission'."
-    ),
-    mission_folder: str | None = typer.Argument(".", help="Folder with the mission files."),
+    output_mission: str | None = typer.Argument(None, help=t("cmd.inject_aircraft.opt.output_mission")),
+    mission_folder: str | None = typer.Argument(".", help=t("cmd.inject_aircraft.opt.mission_folder")),
     pause: bool = typer.Option(False, help=PAUSE_HELP),
 ) -> None:
-    """
-    Injects aircraft groups from a YAML file into a DCS mission.
-    Validates the YAML file before injection and stops if validation fails.
-    """
 
     logger.set_verbose(verbose)
 

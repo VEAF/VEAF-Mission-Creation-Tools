@@ -18,24 +18,19 @@ from veaf_tools.app import (
 )
 
 
-@app.command(no_args_is_help=True)
+@app.command(no_args_is_help=True, help=t("cmd.convert.help"))
 def convert(
     readme: bool = typer.Option(False, help=README_HELP),
     verbose: bool = typer.Option(False, help=VERBOSE_HELP),
     dynamic_mode: bool = typer.Option(
         False,
-        help="If set, the mission will dynamically load the scripts from the provided location (via --scripts-path or in the local published and src/scripts folders).",
+        help=t("cmd.convert.opt.dynamic_mode"),
     ),
-    scripts_path: str = typer.Option(None, help="Path to the VEAF and community scripts."),
-    mission_name: str = typer.Argument(
-        help="Mission name; will extract from the mission with this name (most recent .miz file)"
-    ),
-    mission_folder: str | None = typer.Argument(".", help="Folder with the mission files."),
+    scripts_path: str = typer.Option(None, help=t("cmd.convert.opt.scripts_path")),
+    mission_name: str = typer.Argument(help=t("cmd.convert.opt.mission")),
+    mission_folder: str | None = typer.Argument(".", help=t("cmd.convert.opt.mission_folder")),
     pause: bool = typer.Option(False, help=PAUSE_HELP),
 ) -> None:
-    """
-    Converts a DCS mission to a VEAF mission folder.
-    """
 
     logger.set_verbose(verbose)
 

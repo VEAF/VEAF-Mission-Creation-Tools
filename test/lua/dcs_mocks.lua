@@ -419,3 +419,110 @@ function dcs_mocks.findLog(pattern)
   end
   return found
 end
+
+-- ---------------------------------------------------------------------------
+-- trigger.flareColor (used by veafSpawnEffects.spawnSignalFlare)
+-- ---------------------------------------------------------------------------
+trigger.flareColor = { RED = 0, GREEN = 1, WHITE = 2, YELLOW = 3 }
+
+-- ---------------------------------------------------------------------------
+-- Controller  (DCS unit/group controller)
+-- ---------------------------------------------------------------------------
+Controller = {
+  setCommand = function(controller, cmd) end,
+  pushTask   = function(controller, task) end,
+}
+
+-- ---------------------------------------------------------------------------
+-- ctld  (minimal stub — only the API surface used by veafSpawn sub-modules)
+-- ---------------------------------------------------------------------------
+ctld = {
+  JTACAutoLase        = function(...) end,
+  cleanupJTAC         = function(...) end,
+  addJTAC             = function(...) end,
+  logisticUnits       = {},
+  builtFOBS           = {},
+  beaconCount         = 0,
+  fobBeacons          = {},
+  createRadioBeacon   = function(...) return { vhf = 0, uhf = 0, fm = 0 } end,
+}
+
+-- ---------------------------------------------------------------------------
+-- veafNamedPoints  (named points registry stub)
+-- ---------------------------------------------------------------------------
+veafNamedPoints = {
+  addPoint  = function(name, point) end,
+  namePoint = function(pos, name, side, permanent) end,
+  getPoint  = function(name) return nil end,
+}
+
+-- ---------------------------------------------------------------------------
+-- veafSecurity  (security checks — always pass in tests)
+-- ---------------------------------------------------------------------------
+veafSecurity = {
+  checkPassword_L0 = function(...) return true end,
+  checkSecurity_L9 = function(...) return true end,
+  checkSecurity_L1 = function(...) return true end,
+}
+
+-- ---------------------------------------------------------------------------
+-- veafUnits  (unit/group database stubs)
+-- ---------------------------------------------------------------------------
+veafUnits = {
+  findUnit                 = function(name) return nil end,
+  findDcsUnit              = function(name) return nil end,
+  findGroup                = function(name) return nil end,
+  checkPositionForUnit     = function(pt, unit) return true end,
+  processGroup             = function(group, ...) return group end,
+  placeGroup               = function(group, ...) return group, {} end,
+  removePathfindingFixUnit = function(...) end,
+  delayBeforePathfindingFix = 1,
+  countInfantryAndVehicles = function(groupData) return 0, 0 end,
+  traceGroup               = function(...) end,
+}
+
+-- ---------------------------------------------------------------------------
+-- veafCasMission  (CAS group generators)
+-- ---------------------------------------------------------------------------
+veafCasMission = {
+  SIDE_BLUE               = 2,
+  SIDE_RED                = 1,
+  generateInfantryGroup   = function(...) return { units = {} } end,
+  generateArmorPlatoon    = function(...) return { units = {} } end,
+  generateAirDefenseGroup = function(...) return { units = {} } end,
+  generateTransportCompany= function(...) return { units = {} } end,
+  generateCasGroup        = function(...) return {} end,
+}
+
+-- ---------------------------------------------------------------------------
+-- veafRadio  (radio menu stubs)
+-- ---------------------------------------------------------------------------
+veafRadio = {
+  getHumanUnitOrWingman = function(name) return nil end,
+  addSubMenu            = function(...) return {} end,
+  addCommandToSubmenu   = function(...) end,
+  USAGE_ForAll          = 0,
+  USAGE_ForGroup        = 1,
+}
+
+-- ---------------------------------------------------------------------------
+-- mist.tostringLL  (used by infoOnAllConvoys with non-empty convoy data)
+-- ---------------------------------------------------------------------------
+mist.tostringLL = function(lat, lon, acc) return "0N 0E" end
+
+-- Update addGroup to include controller and category defaults
+local _original_addGroup = dcs_mocks.addGroup
+function dcs_mocks.addGroup(name, data)
+  _original_addGroup(name, data)
+  local g = _group_registry[name]  -- already set by _original_addGroup
+  if not g.getController then
+    local _ctrl = { setCommand = function() end, pushTask = function() end, getDetectedTargets = function() return {} end }
+    g.getController = function(self) return _ctrl end
+  end
+  g.getCategory  = g.getCategory  or function(self) return Group.Category.GROUND end
+  g.getCoalition = g.getCoalition or function(self) return coalition.side.BLUE  end
+  g.getUnit      = g.getUnit      or function(self, idx) return nil end
+end
+
+-- Group.getUnits(group) — delegates to the instance method so addGroup's getUnits stub is used.
+Group.getUnits = function(grp) return grp:getUnits() end

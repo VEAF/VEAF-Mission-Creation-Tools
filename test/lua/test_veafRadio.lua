@@ -248,10 +248,9 @@ function TestVeafRadioBuilder:test_build_sorts_commands_alphabetically()
   luaunit.assertEquals(self.builder._root.commands[2].title, "Zulu")
 end
 
--- Minimal veafSecurity stub: _addDcsCommand calls isAuthenticated for secured commands
-if not veafSecurity then
-  veafSecurity = { isAuthenticated = function() return false end }
-end
+-- Ensure veafSecurity.isAuthenticated exists (dcs_mocks.lua defines veafSecurity without it)
+veafSecurity = veafSecurity or {}
+veafSecurity.isAuthenticated = veafSecurity.isAuthenticated or function() return false end
 
 -- ---------------------------------------------------------------------------
 -- TestVeafRadioMenuOps — wrapper functions, delCommand, clearSubmenu, delSubmenu

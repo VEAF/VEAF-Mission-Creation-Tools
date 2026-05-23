@@ -96,6 +96,16 @@ end
 veafSpawn = veafSpawn or {}
 veafSpawn.doSpawnGroup = veafSpawn.doSpawnGroup or function(...) end
 
+-- Helper: return true if a unit type appears in a group definition's units list.
+local function hasUnit(groupDef, unitType)
+  for _, u in ipairs(groupDef and groupDef.units or {}) do
+    if u[1] == unitType then
+      return true
+    end
+  end
+  return false
+end
+
 veafNamedPoints = {
   getPoint = function(name) return nil end,
   namePoint = function(...) end,
@@ -135,24 +145,37 @@ end
 -- ---------------------------------------------------------------------------
 TestVeafTransportGenerateEnemy = {}
 
+function TestVeafTransportGenerateEnemy:setUp()
+  self._origDoSpawnGroup = veafSpawn.doSpawnGroup
+  self._capturedGroupDef = nil
+  veafSpawn.doSpawnGroup = function(pos, hdg, groupDef, ...)
+    self._capturedGroupDef = groupDef
+  end
+end
+
+function TestVeafTransportGenerateEnemy:tearDown()
+  veafSpawn.doSpawnGroup = self._origDoSpawnGroup
+end
+
 function TestVeafTransportGenerateEnemy:test_defense_level_0()
   veafTransportMission.generateEnemyDefenseGroup({ x = 0, y = 0, z = 0 }, "EnemyGrp_L0", 0)
-  luaunit.assertTrue(true)
+  luaunit.assertNotNil(self._capturedGroupDef)
+  luaunit.assertTrue(hasUnit(self._capturedGroupDef, "GAZ-3308"), "defense=0 must use GAZ-3308")
 end
 
 function TestVeafTransportGenerateEnemy:test_defense_level_1()
   veafTransportMission.generateEnemyDefenseGroup({ x = 0, y = 0, z = 0 }, "EnemyGrp_L1", 1)
-  luaunit.assertTrue(true)
+  luaunit.assertNotNil(self._capturedGroupDef, "doSpawnGroup must be called for defense=1")
 end
 
 function TestVeafTransportGenerateEnemy:test_defense_level_3()
   veafTransportMission.generateEnemyDefenseGroup({ x = 0, y = 0, z = 0 }, "EnemyGrp_L3", 3)
-  luaunit.assertTrue(true)
+  luaunit.assertNotNil(self._capturedGroupDef, "doSpawnGroup must be called for defense=3")
 end
 
 function TestVeafTransportGenerateEnemy:test_defense_level_5()
   veafTransportMission.generateEnemyDefenseGroup({ x = 0, y = 0, z = 0 }, "EnemyGrp_L5", 5)
-  luaunit.assertTrue(true)
+  luaunit.assertNotNil(self._capturedGroupDef, "doSpawnGroup must be called for defense=5")
 end
 
 -- ---------------------------------------------------------------------------
@@ -210,16 +233,19 @@ TestVeafTransportAdvanced = {}
 function TestVeafTransportAdvanced:setUp()
   self._origGetPoint        = veafNamedPoints.getPoint
   self._origSpawnCargo      = veafSpawn.doSpawnCargo
+  self._origDoSpawnGroup    = veafSpawn.doSpawnGroup
   self._origAddSecured      = veafRadio.addSecuredCommandToSubmenu
   self._origRefreshRadio    = veafRadio.refreshRadioMenu
   self._origDelCommand      = veafRadio.delCommand
   self._origDelSubmenu      = veafRadio.delSubmenu
   self._origTaskID          = veafTransportMission.friendlyGroupAliveCheckTaskID
   self._origRandom          = math.random
+  self._capturedGroupDef    = nil
 
   -- Provide a real named point far enough from the target spot
   veafNamedPoints.getPoint = function(name) return { x = 0, z = 0, y = 0 } end
   veafSpawn.doSpawnCargo   = function(...) end
+  veafSpawn.doSpawnGroup   = function(pos, hdg, groupDef, ...) self._capturedGroupDef = groupDef end
 
   veafRadio.addSecuredCommandToSubmenu = function(...) end
   veafRadio.refreshRadioMenu           = function(...) end
@@ -235,6 +261,7 @@ end
 function TestVeafTransportAdvanced:tearDown()
   veafNamedPoints.getPoint             = self._origGetPoint
   veafSpawn.doSpawnCargo               = self._origSpawnCargo
+  veafSpawn.doSpawnGroup               = self._origDoSpawnGroup
   veafRadio.addSecuredCommandToSubmenu = self._origAddSecured
   veafRadio.refreshRadioMenu           = self._origRefreshRadio
   veafRadio.delCommand                 = self._origDelCommand
@@ -258,9 +285,11 @@ function TestVeafTransportAdvanced:test_generateTransportMission_valid_from_runs
 end
 
 -- Covers generateEnemyDefenseGroup BTR-80 branch (line 300): defense=2.
+-- With setUp's math.random(n)→1, defenseLevel>2 is FALSE → falls to BTR-80.
 function TestVeafTransportAdvanced:test_generate_enemy_defense_btrtwo()
   veafTransportMission.generateEnemyDefenseGroup({ x = 0, y = 0, z = 0 }, "EnemyGrp_BTR", 2)
-  luaunit.assertTrue(true)
+  luaunit.assertNotNil(self._capturedGroupDef)
+  luaunit.assertTrue(hasUnit(self._capturedGroupDef, "BTR-80"), "defense=2 must include BTR-80")
 end
 
 -- Covers SA-18 Igla branch (lines 312-313): defense=3, random(100)=100 so >66.
@@ -269,7 +298,8 @@ function TestVeafTransportAdvanced:test_generate_enemy_defense_igla()
     if not a then return 0.5 elseif not b then return a else return a end
   end
   veafTransportMission.generateEnemyDefenseGroup({ x = 0, y = 0, z = 0 }, "EnemyGrp_Igla", 3)
-  luaunit.assertTrue(true)
+  luaunit.assertNotNil(self._capturedGroupDef)
+  luaunit.assertTrue(hasUnit(self._capturedGroupDef, "SA-18 Igla comm"), "defense=3 must include SA-18 Igla comm")
 end
 
 -- Covers SA-18 Igla-S (308-309) and ZU-23 (324): defense=4, random(100)=100.
@@ -278,7 +308,9 @@ function TestVeafTransportAdvanced:test_generate_enemy_defense_igla_s_and_zu23()
     if not a then return 0.5 elseif not b then return a else return a end
   end
   veafTransportMission.generateEnemyDefenseGroup({ x = 0, y = 0, z = 0 }, "EnemyGrp_IglaS", 4)
-  luaunit.assertTrue(true)
+  luaunit.assertNotNil(self._capturedGroupDef)
+  luaunit.assertTrue(hasUnit(self._capturedGroupDef, "SA-18 Igla-S comm"), "defense=4 must include SA-18 Igla-S comm")
+  luaunit.assertTrue(hasUnit(self._capturedGroupDef, "Ural-375 ZU-23"), "defense=4 must include Ural-375 ZU-23")
 end
 
 -- Covers ZSU-23-4 Shilka branch (line 321): defense=5, random(100)=100.
@@ -287,7 +319,8 @@ function TestVeafTransportAdvanced:test_generate_enemy_defense_shilka()
     if not a then return 0.5 elseif not b then return a else return a end
   end
   veafTransportMission.generateEnemyDefenseGroup({ x = 0, y = 0, z = 0 }, "EnemyGrp_Shilka", 5)
-  luaunit.assertTrue(true)
+  luaunit.assertNotNil(self._capturedGroupDef)
+  luaunit.assertTrue(hasUnit(self._capturedGroupDef, "ZSU-23-4 Shilka"), "defense=5 must include ZSU-23-4 Shilka")
 end
 
 os.exit(luaunit.LuaUnit.run())

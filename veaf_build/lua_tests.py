@@ -19,8 +19,10 @@ _TEST_DIR = _PROJECT_ROOT / "test" / "lua"
 _STATS_FILE = _PROJECT_ROOT / "luacov.stats.out"
 _REPORT_FILE = _PROJECT_ROOT / "luacov.report.out"
 
-# Matches a coverage data line: <path>  <hits>  <missed>  <pct>%
-_COVERAGE_LINE_RE = re.compile(r"^(.+?)\s{2,}(\d+)\s+(\d+)\s+([\d.]+%)\s*$")
+# Matches a coverage summary line: <path> <hits> <missed> <pct>%
+# Note: separator is 1+ spaces (short paths get only 1 space before the numbers).
+_COVERAGE_LINE_RE = re.compile(r"^(.+?)\s+(\d+)\s+(\d+)\s+([\d.]+%)\s*$")
+_VEAF_SRC = _PROJECT_ROOT / "src" / "scripts" / "veaf"
 
 
 def _find_lua() -> str:
@@ -53,7 +55,8 @@ def _luacov_module_available(lua: str) -> bool:
 def _run_luacov_reporter(lua: str) -> bool:
     """Generate luacov.report.out from luacov.stats.out. Returns True on success."""
     if shutil.which("luacov"):
-        result = subprocess.run(["luacov"], cwd=_PROJECT_ROOT, capture_output=True)
+        # Use shell=True so .bat wrappers (luarocks on Windows) are executed correctly.
+        result = subprocess.run("luacov", cwd=_PROJECT_ROOT, capture_output=True, shell=True)
         return result.returncode == 0
     # luacov CLI not on PATH — invoke the reporter via the Lua module directly
     result = subprocess.run(
@@ -85,28 +88,51 @@ def _display_coverage_report() -> None:
     table.add_column("Coverage", justify="right")
 
     rows = []
-    total_line: Optional[tuple[int, int, str]] = None
     for line in _REPORT_FILE.read_text(encoding="utf-8").splitlines():
         m = _COVERAGE_LINE_RE.match(line)
         if not m:
             continue
-        path_str, hits, missed, pct = m.group(1).strip(), int(m.group(2)), int(m.group(3)), m.group(4)
+        path_str, hits, missed = m.group(1).strip(), int(m.group(2)), int(m.group(3))
         if path_str.lower() == "total":
-            total_line = (hits, missed, pct)
-        else:
-            # Show path relative to project root when possible
-            try:
-                display = str(Path(path_str).relative_to(_PROJECT_ROOT))
-            except ValueError:
-                display = path_str
-            rows.append((display, hits, missed, pct))
+            continue  # we compute our own total from filtered rows
 
-    for display, hits, missed, pct in rows:
+        # Resolve to canonical absolute path (handles `..` in dofile-computed paths)
+        raw = Path(path_str)
+        resolved = raw.resolve() if raw.is_absolute() else (_PROJECT_ROOT / raw).resolve()
+
+        # Only show VEAF source modules (skip luaunit, dcs_mocks, test files, etc.)
+        try:
+            resolved.relative_to(_VEAF_SRC)
+        except ValueError:
+            continue
+
+        try:
+            display = str(resolved.relative_to(_PROJECT_ROOT))
+        except ValueError:
+            display = str(resolved)
+
+        rows.append((display, hits, missed))
+
+    if not rows:
+        console.print("[yellow]No coverage data found for src/scripts/veaf/.[/yellow]")
+        return
+
+    for display, hits, missed in rows:
+        total = hits + missed
+        pct = f"{100 * hits / total:.2f}%" if total > 0 else "N/A"
         table.add_row(display, str(hits), str(missed), _pct_color(pct))
 
-    if total_line:
-        hits, missed, pct = total_line
-        table.add_row("[bold]TOTAL[/bold]", f"[bold]{hits}[/bold]", f"[bold]{missed}[/bold]", _pct_color(pct))
+    total_hits = sum(r[1] for r in rows)
+    total_missed = sum(r[2] for r in rows)
+    total_lines = total_hits + total_missed
+    if total_lines > 0:
+        total_pct = f"{100 * total_hits / total_lines:.2f}%"
+        table.add_row(
+            "[bold]TOTAL[/bold]",
+            f"[bold]{total_hits}[/bold]",
+            f"[bold]{total_missed}[/bold]",
+            _pct_color(total_pct),
+        )
 
     console.print(table)
 

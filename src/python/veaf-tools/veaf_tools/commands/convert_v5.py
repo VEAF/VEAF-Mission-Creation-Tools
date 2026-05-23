@@ -1,3 +1,4 @@
+import sys
 from pathlib import Path
 
 import typer
@@ -46,6 +47,14 @@ def convert_v5(
         "--report-file",
         help=("Save the conversion report to a Markdown file. Defaults to <mission_folder>/convert-v5-report.md."),
     ),
+    icao: str = typer.Option(
+        "",
+        "--icao",
+        help=(
+            "ICAO airport code to use for realweather pipeline steps "
+            "(e.g. UGGG). Skips the interactive prompt."
+        ),
+    ),
     verbose: bool = typer.Option(False, help=VERBOSE_HELP),
     pause: bool = typer.Option(False, help=PAUSE_HELP),
 ) -> None:
@@ -89,20 +98,15 @@ def convert_v5(
     converter = V5Converter(version=VERSION)
 
     # Build ICAO callback for realweather steps (lazy prompt, asked at most once)
-    _icao_cache: list[str] = []
+    _icao_cache: list[str] = [icao.strip().upper()] if icao.strip() else []
 
     def icao_cb(version_name: str) -> str:
         if not _icao_cache:
             console.print(f"\n[yellow]Weather version '[bold]{version_name}[/bold]' uses realweather.[/yellow]")
-            icao = (
-                typer.prompt(
-                    "  Enter ICAO airport code (e.g. UGGG), or leave empty to fill in later",
-                    default="",
-                )
-                .strip()
-                .upper()
-            )
-            _icao_cache.append(icao)
+            console.print("  Enter ICAO airport code (e.g. UGGG), or leave empty to fill in later []: ", end="")
+            sys.stdout.flush()
+            value = sys.stdin.readline().strip().upper()
+            _icao_cache.append(value)
         return _icao_cache[0]
 
     report: ConversionReport = converter.convert(

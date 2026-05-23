@@ -92,6 +92,12 @@ This single command handles everything in one pass:
 - **`mission.yaml` generation** — creates `mission.yaml` with the correct `lua_modules:` and `pipeline:` sections.
 - **Conversion report** — saves `convert-v5-report.md` with all actions taken and any items requiring manual review.
 
+If your pipeline contains `realweather` weather versions, the tool will ask for the ICAO airport code to embed in the generated config. You can supply it upfront to avoid the interactive prompt:
+
+```powershell
+.\veaf-tools.exe convert-v5 . --icao UGGG
+```
+
 Old DCS `DO SCRIPT FILE` triggers are removed automatically by `veaf-tools build` in the next step — no manual action needed.
 
 > **If you only need to migrate `missionConfig.lua`** without converting pipeline files, use `veaf-tools.exe migrate-config src\scripts\missionConfig.lua` directly.

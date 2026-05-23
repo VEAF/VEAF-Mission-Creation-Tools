@@ -174,3 +174,5 @@ site_test/mission-maker/scripts/veafWeather/index.html
 site_test/pilot/index.html
 site_test/pilot/GUIDE/index.html
 site_test/search/search_index.json
+.coverage
+coverage.xml

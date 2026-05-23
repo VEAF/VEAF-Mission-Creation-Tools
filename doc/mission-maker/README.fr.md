@@ -10,7 +10,7 @@ Intégrez le framework Lua VEAF dans vos missions DCS World pour offrir à vos j
 
 ```powershell
 # Téléchargez veaf-tools-updater.exe depuis la dernière release GitHub, puis :
-.\veaf-tools-updater.exe update
+.\veaf-tools-updater.exe
 ```
 
 Ceci télécharge `veaf-tools.exe` et les scripts Lua VEAF dans votre répertoire de travail.

@@ -10,7 +10,7 @@ Integrate the VEAF Lua framework into your DCS World missions to give players dy
 
 ```powershell
 # Download veaf-tools-updater.exe from the latest GitHub release, then:
-.\veaf-tools-updater.exe update
+.\veaf-tools-updater.exe
 ```
 
 This downloads `veaf-tools.exe` and the VEAF Lua scripts to your working directory.

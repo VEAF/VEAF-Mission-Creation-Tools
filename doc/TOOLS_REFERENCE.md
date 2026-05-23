@@ -254,7 +254,7 @@ veaf-tools-updater.exe publish 6.0.1 ./published.zip --token ghp_xxxxxxxxxxxx
 6. ✅ Moves `published-latest` tag to point here
 7. ✅ Pushes everything to GitHub
 
-**Result:** Users can now update with `veaf-tools-updater update`
+**Result:** Users can now update with `veaf-tools-updater`
 
 ### Add Release Notes
 

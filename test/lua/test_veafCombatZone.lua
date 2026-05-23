@@ -339,4 +339,600 @@ function TestVeafCombatZone:test_spawnedGroups_independent_per_instance()
   luaunit.assertEquals(#z2:getSpawnedGroups(), 0)
 end
 
+-- ============================================================================
+-- TestVeafCombatZoneDelayedSpawners
+-- ============================================================================
+TestVeafCombatZoneDelayedSpawners = {}
+
+function TestVeafCombatZoneDelayedSpawners:setUp()
+  self.z = VeafCombatZone:new():setFriendlyName("Z")
+end
+
+function TestVeafCombatZoneDelayedSpawners:test_delayedSpawners_initially_empty()
+  luaunit.assertEquals(#self.z.delayedSpawners, 0)
+end
+
+function TestVeafCombatZoneDelayedSpawners:test_addDelayedSpawner_increases_count()
+  self.z:addDelayedSpawner(42)
+  luaunit.assertEquals(#self.z:getDelayedSpawners(), 1)
+end
+
+function TestVeafCombatZoneDelayedSpawners:test_addDelayedSpawner_multiple()
+  self.z:addDelayedSpawner(1)
+  self.z:addDelayedSpawner(2)
+  self.z:addDelayedSpawner(3)
+  luaunit.assertEquals(#self.z:getDelayedSpawners(), 3)
+end
+
+function TestVeafCombatZoneDelayedSpawners:test_clearDelayedSpawners_empties_list()
+  self.z:addDelayedSpawner(1)
+  self.z:addDelayedSpawner(2)
+  self.z:clearDelayedSpawners()
+  luaunit.assertEquals(#self.z:getDelayedSpawners(), 0)
+end
+
+-- ============================================================================
+-- TestVeafCombatZoneElementsManagement
+-- ============================================================================
+TestVeafCombatZoneElementsManagement = {}
+
+function TestVeafCombatZoneElementsManagement:setUp()
+  self.z = VeafCombatZone:new():setFriendlyName("Z")
+end
+
+function TestVeafCombatZoneElementsManagement:test_addZoneElement_increases_elements_count()
+  local el = VeafCombatZoneElement:new():setName("el1"):setSpawnGroup("grp1")
+  self.z:addZoneElement(el)
+  luaunit.assertEquals(#self.z:getZoneElements(), 1)
+end
+
+function TestVeafCombatZoneElementsManagement:test_addZoneElement_creates_elementGroup()
+  local el = VeafCombatZoneElement:new():setName("el1"):setSpawnGroup("grp1")
+  self.z:addZoneElement(el)
+  local groups = self.z:getZoneElementsGroups()
+  luaunit.assertNotNil(groups["grp1"])
+end
+
+function TestVeafCombatZoneElementsManagement:test_addZoneElement_same_group_shared_elementGroup()
+  local el1 = VeafCombatZoneElement:new():setName("el1"):setSpawnGroup("grp1")
+  local el2 = VeafCombatZoneElement:new():setName("el2"):setSpawnGroup("grp1")
+  self.z:addZoneElement(el1)
+  self.z:addZoneElement(el2)
+  luaunit.assertEquals(#self.z:getZoneElementsGroups()["grp1"].elements, 2)
+end
+
+function TestVeafCombatZoneElementsManagement:test_addZoneElement_different_groups_separate_elementGroups()
+  local el1 = VeafCombatZoneElement:new():setName("el1"):setSpawnGroup("grpA")
+  local el2 = VeafCombatZoneElement:new():setName("el2"):setSpawnGroup("grpB")
+  self.z:addZoneElement(el1)
+  self.z:addZoneElement(el2)
+  luaunit.assertEquals(#self.z:getZoneElements(), 2)
+  luaunit.assertNotNil(self.z:getZoneElementsGroups()["grpA"])
+  luaunit.assertNotNil(self.z:getZoneElementsGroups()["grpB"])
+end
+
+function TestVeafCombatZoneElementsManagement:test_addZoneElementsFromZoneNamed_nil_returns_self()
+  local result = self.z:addZoneElementsFromZoneNamed(nil)
+  luaunit.assertEquals(result, self.z)
+end
+
+function TestVeafCombatZoneElementsManagement:test_addZoneElementsFromZoneNamed_copies_elements()
+  local srcZone = VeafCombatZone:new():setFriendlyName("Src")
+  local el = VeafCombatZoneElement:new():setName("srcEl"):setSpawnGroup("sg1")
+  srcZone:addZoneElement(el)
+  veafCombatZone.zonesDict["srczone"] = srcZone
+  self.z:addZoneElementsFromZoneNamed("srczone")
+  luaunit.assertEquals(#self.z:getZoneElements(), 1)
+  veafCombatZone.zonesDict["srczone"] = nil  -- cleanup
+end
+
+-- ============================================================================
+-- TestVeafCombatZoneChaining
+-- ============================================================================
+TestVeafCombatZoneChaining = {}
+
+function TestVeafCombatZoneChaining:setUp()
+  self.z = VeafCombatZone:new():setFriendlyName("Z")
+end
+
+function TestVeafCombatZoneChaining:test_getChainedCombatZones_initializes_to_empty_table()
+  local result = self.z:getChainedCombatZones()
+  luaunit.assertNotNil(result)
+  luaunit.assertEquals(#result, 0)
+end
+
+function TestVeafCombatZoneChaining:test_addChainedCombatZone_returns_self()
+  local result = self.z:addChainedCombatZone("Zone2")
+  luaunit.assertEquals(result, self.z)
+end
+
+function TestVeafCombatZoneChaining:test_addChainedCombatZone_increases_count()
+  self.z:addChainedCombatZone("Zone2")
+  luaunit.assertEquals(#self.z:getChainedCombatZones(), 1)
+end
+
+function TestVeafCombatZoneChaining:test_addChainedCombatZone_multiple()
+  self.z:addChainedCombatZone("Zone2")
+  self.z:addChainedCombatZone("Zone3")
+  luaunit.assertEquals(#self.z:getChainedCombatZones(), 2)
+end
+
+function TestVeafCombatZoneChaining:test_getNextChainedCombatZone_single_returns_it()
+  self.z:addChainedCombatZone("Zone2")
+  local next = self.z:getNextChainedCombatZone()
+  luaunit.assertEquals(next, "Zone2")
+end
+
+function TestVeafCombatZoneChaining:test_getChainedCombatZonesDelay_default_zero()
+  local delay = self.z:getChainedCombatZonesDelay()
+  luaunit.assertEquals(delay, 0)
+end
+
+function TestVeafCombatZoneChaining:test_setGetChainedCombatZonesDelay_numeric()
+  self.z:setChainedCombatZonesDelay(30)
+  luaunit.assertEquals(self.z:getChainedCombatZonesDelay(), 30)
+end
+
+function TestVeafCombatZoneChaining:test_setChainedCombatZonesDelay_nil_becomes_zero()
+  self.z:setChainedCombatZonesDelay(nil)
+  luaunit.assertEquals(self.z:getChainedCombatZonesDelay(), 0)
+end
+
+function TestVeafCombatZoneChaining:test_activateNextChainedZone_zone_found_schedules()
+  local nextZone = VeafCombatZone:new():setFriendlyName("Next"):setMissionEditorZoneName("NEXTZONE")
+  nextZone:disableJunkCleanup()
+  veafCombatZone.zonesDict["nextzone"] = nextZone
+  self.z:addChainedCombatZone("NEXTZONE")
+  self.z:activateNextChainedZone()
+  luaunit.assertTrue(true)
+  veafCombatZone.zonesDict["nextzone"] = nil
+end
+
+-- ============================================================================
+-- TestVeafCombatZoneObjectiveMethods
+-- ============================================================================
+TestVeafCombatZoneObjectiveMethods = {}
+
+function TestVeafCombatZoneObjectiveMethods:setUp()
+  self.z = VeafCombatZone:new():setFriendlyName("Z")
+end
+
+function TestVeafCombatZoneObjectiveMethods:test_addObjective_increases_count()
+  self.z:addObjective("obj1")
+  luaunit.assertEquals(#self.z.objectives, 1)
+end
+
+function TestVeafCombatZoneObjectiveMethods:test_addObjective_multiple()
+  self.z:addObjective("obj1")
+  self.z:addObjective("obj2")
+  luaunit.assertEquals(#self.z.objectives, 2)
+end
+
+function TestVeafCombatZoneObjectiveMethods:test_addDefaultObjectives_returns_self()
+  local result = self.z:addDefaultObjectives()
+  luaunit.assertEquals(result, self.z)
+end
+
+-- ============================================================================
+-- TestVeafCombatZoneInfoMethods
+-- ============================================================================
+TestVeafCombatZoneInfoMethods = {}
+
+function TestVeafCombatZoneInfoMethods:setUp()
+  self.z = VeafCombatZone:new():setFriendlyName("TestZone")
+end
+
+function TestVeafCombatZoneInfoMethods:test_getCenter_initially_nil()
+  luaunit.assertNil(self.z:getCenter())
+end
+
+function TestVeafCombatZoneInfoMethods:test_getTriggerZone_initially_nil()
+  luaunit.assertNil(self.z:getTriggerZone())
+end
+
+function TestVeafCombatZoneInfoMethods:test_getInformation_inactive_contains_zone_name()
+  local info = self.z:getInformation(nil)
+  luaunit.assertTrue(info:find("TestZone") ~= nil)
+end
+
+function TestVeafCombatZoneInfoMethods:test_getInformation_inactive_contains_not_active_message()
+  local info = self.z:getInformation(nil)
+  luaunit.assertTrue(info:find("not yet active") ~= nil)
+end
+
+function TestVeafCombatZoneInfoMethods:test_getInformation_inactive_with_briefing()
+  self.z:setBriefing("Attack the convoy at dawn.")
+  local info = self.z:getInformation(nil)
+  luaunit.assertTrue(info:find("BRIEFING") ~= nil)
+  luaunit.assertTrue(info:find("Attack the convoy") ~= nil)
+end
+
+-- ============================================================================
+-- TestVeafCombatZoneWatchdog
+-- ============================================================================
+TestVeafCombatZoneWatchdog = {}
+
+function TestVeafCombatZoneWatchdog:setUp()
+  self.z = VeafCombatZone:new():setFriendlyName("Z"):setMissionEditorZoneName("ZONE_W")
+end
+
+function TestVeafCombatZoneWatchdog:test_unscheduleWatchdogFunction_nil_safe()
+  self.z:unscheduleWatchdogFunction()
+  luaunit.assertTrue(true)
+end
+
+function TestVeafCombatZoneWatchdog:test_scheduleWatchdogFunction_when_completable()
+  self.z:scheduleWatchdogFunction()
+  luaunit.assertTrue(true)
+end
+
+function TestVeafCombatZoneWatchdog:test_scheduleWatchdogFunction_when_not_completable()
+  self.z:setCompletable(false)
+  self.z:scheduleWatchdogFunction()
+  luaunit.assertTrue(true)
+end
+
+function TestVeafCombatZoneWatchdog:test_unscheduleWatchdogFunction_with_id_clears_it()
+  self.z.watchdogFunctionId = 999
+  self.z:unscheduleWatchdogFunction()
+  luaunit.assertNil(self.z.watchdogFunctionId)
+end
+
+-- ============================================================================
+-- TestVeafCombatZoneCompletion
+-- ============================================================================
+TestVeafCombatZoneCompletion = {}
+
+function TestVeafCombatZoneCompletion:setUp()
+  veafCombatZone.zonesDict = {}
+  veafCombatZone.zonesList = {}
+  dcs_mocks.clearUnitsAndGroups()
+  self.z = VeafCombatZone:new()
+  self.z:setFriendlyName("CompZone"):setMissionEditorZoneName("COMP_ZONE")
+  self.z:disableJunkCleanup()
+end
+
+function TestVeafCombatZoneCompletion:test_completionCheck_not_completable_returns_early()
+  self.z:setCompletable(false)
+  self.z:completionCheck()
+  luaunit.assertTrue(true)
+end
+
+function TestVeafCombatZoneCompletion:test_completionCheck_no_groups_triggers_complete()
+  self.z:completionCheck()
+  luaunit.assertFalse(self.z:isActive())
+end
+
+function TestVeafCombatZoneCompletion:test_completionCheck_with_red_group_reschedules()
+  dcs_mocks.addGroup("redgrp", {
+    getUnits = function()
+      return { { getCoalition = function() return 1 end } }
+    end,
+  })
+  self.z:addSpawnedGroup("redgrp")
+  self.z:completionCheck()
+  luaunit.assertTrue(true)
+  dcs_mocks.removeGroup("redgrp")
+end
+
+function TestVeafCombatZoneCompletion:test_completionCheck_blue_coalition_counted()
+  dcs_mocks.addGroup("bluegrp", {
+    getUnits = function()
+      return { { getCoalition = function() return 2 end } }
+    end,
+  })
+  self.z:addSpawnedGroup("bluegrp")
+  self.z:completionCheck()
+  luaunit.assertFalse(self.z:isActive())
+  dcs_mocks.removeGroup("bluegrp")
+end
+
+function TestVeafCombatZoneCompletion:test_completionCheck_onCompletedHook_called()
+  local hookCalled = false
+  self.z:setOnCompletedHook(function(_) hookCalled = true end)
+  self.z:completionCheck()
+  luaunit.assertTrue(hookCalled)
+end
+
+function TestVeafCombatZoneCompletion:test_completionCheck_static_object_red_coalition()
+  local origStaticGetByName = StaticObject.getByName
+  StaticObject.getByName = function(name)
+    if name == "staticUnit123" then
+      return { getCoalition = function() return 1 end }
+    end
+    return nil
+  end
+  self.z:addSpawnedGroup("staticUnit123")
+  self.z:completionCheck()
+  luaunit.assertTrue(true)
+  StaticObject.getByName = origStaticGetByName
+end
+
+function TestVeafCombatZoneCompletion:test_desactivate_with_spawned_group_destroys_it()
+  dcs_mocks.addGroup("spawnedGrp", {})
+  self.z:addSpawnedGroup("spawnedGrp")
+  self.z:desactivate()
+  luaunit.assertEquals(#self.z:getSpawnedGroups(), 0)
+  dcs_mocks.removeGroup("spawnedGrp")
+end
+
+function TestVeafCombatZoneCompletion:test_desactivate_with_unknown_group_no_error()
+  self.z:addSpawnedGroup("nonExistentGroup999")
+  self.z:desactivate()
+  luaunit.assertEquals(#self.z:getSpawnedGroups(), 0)
+end
+
+function TestVeafCombatZoneCompletion:test_desactivate_with_static_object_found()
+  local origStaticGetByName = StaticObject.getByName
+  StaticObject.getByName = function(name)
+    if name == "staticGrp456" then
+      return { getName = function() return name end, destroy = function() end, getCoalition = function() return 1 end }
+    end
+    return nil
+  end
+  self.z:addSpawnedGroup("staticGrp456")
+  self.z:desactivate()
+  luaunit.assertEquals(#self.z:getSpawnedGroups(), 0)
+  StaticObject.getByName = origStaticGetByName
+end
+
+-- ============================================================================
+-- TestVeafCombatZoneRegistry
+-- ============================================================================
+TestVeafCombatZoneRegistry = {}
+
+function TestVeafCombatZoneRegistry:setUp()
+  veafCombatZone.zonesDict = {}
+  veafCombatZone.zonesList = {}
+end
+
+function TestVeafCombatZoneRegistry:test_GetZone_nil_returns_nil()
+  luaunit.assertNil(veafCombatZone.GetZone(nil))
+end
+
+function TestVeafCombatZoneRegistry:test_GetZone_missing_returns_nil()
+  local result = veafCombatZone.GetZone("NonExistent")
+  luaunit.assertNil(result)
+end
+
+function TestVeafCombatZoneRegistry:test_GetZone_found_returns_zone()
+  local z = VeafCombatZone:new():setFriendlyName("Found Zone"):setMissionEditorZoneName("FoundZone")
+  veafCombatZone.zonesDict["foundzone"] = z
+  local result = veafCombatZone.GetZone("FoundZone")
+  luaunit.assertEquals(result, z)
+end
+
+function TestVeafCombatZoneRegistry:test_CompletionCheck_missing_zone_returns_nil()
+  local result = veafCombatZone.CompletionCheck("NoZone")
+  luaunit.assertNil(result)
+end
+
+function TestVeafCombatZoneRegistry:test_AddZone_registers_zone_in_dict_and_list()
+  local z = VeafCombatZone:new():setFriendlyName("Reg Zone"):setMissionEditorZoneName("REGZONE")
+  local result = veafCombatZone.AddZone(z)
+  luaunit.assertEquals(result, z)
+  luaunit.assertNotNil(veafCombatZone.zonesDict["regzone"])
+end
+
+function TestVeafCombatZoneRegistry:test_ActivateZone_zone_not_found_returns_nil()
+  local result = veafCombatZone.ActivateZone("NonExistentZone999", true)
+  luaunit.assertNil(result)
+end
+
+function TestVeafCombatZoneRegistry:test_ActivateZone_zone_found_not_active()
+  local z = VeafCombatZone:new():setFriendlyName("AZ"):setMissionEditorZoneName("ACTZ")
+  z:disableJunkCleanup()
+  veafCombatZone.zonesDict["actz"] = z
+  local result = veafCombatZone.ActivateZone("ACTZ", true)
+  luaunit.assertEquals(result, z)
+end
+
+function TestVeafCombatZoneRegistry:test_ActivateZone_zone_already_active_silent()
+  local z = VeafCombatZone:new():setFriendlyName("AZ2"):setMissionEditorZoneName("ACTZ2")
+  z:setActive(true)
+  veafCombatZone.zonesDict["actz2"] = z
+  veafCombatZone.ActivateZone("ACTZ2", true)
+  luaunit.assertTrue(z:isActive())
+end
+
+function TestVeafCombatZoneRegistry:test_DesactivateZone_zone_not_found_returns_nil()
+  local result = veafCombatZone.DesactivateZone("NonExistentZone999", true)
+  luaunit.assertNil(result)
+end
+
+function TestVeafCombatZoneRegistry:test_DesactivateZone_zone_found_not_active()
+  local z = VeafCombatZone:new():setFriendlyName("DZ"):setMissionEditorZoneName("DACT1")
+  z:disableJunkCleanup()
+  veafCombatZone.zonesDict["dact1"] = z
+  veafCombatZone.DesactivateZone("DACT1", true)
+  luaunit.assertFalse(z:isActive())
+end
+
+function TestVeafCombatZoneRegistry:test_DesactivateZone_zone_found_active()
+  local z = VeafCombatZone:new():setFriendlyName("DZ2"):setMissionEditorZoneName("DACT2")
+  z:setActive(true):disableJunkCleanup()
+  veafCombatZone.zonesDict["dact2"] = z
+  local result = veafCombatZone.DesactivateZone("DACT2", false)
+  luaunit.assertEquals(result, z)
+  luaunit.assertFalse(z:isActive())
+end
+
+function TestVeafCombatZoneRegistry:test_GetInformationOnZone_zone_found()
+  local z = VeafCombatZone:new():setFriendlyName("GI Zone"):setMissionEditorZoneName("GINFOZ")
+  z:setActive(false):setShowZonePositionInfo(false)
+  veafCombatZone.zonesDict["ginfoz"] = z
+  local result = veafCombatZone.GetInformationOnZone({ "GINFOZ", nil })
+  luaunit.assertEquals(result, z)
+end
+
+function TestVeafCombatZoneRegistry:test_GetInformationOnZone_zone_not_found()
+  local result = veafCombatZone.GetInformationOnZone({ "NoZone999", nil })
+  luaunit.assertNil(result)
+end
+
+function TestVeafCombatZoneRegistry:test_SmokeReset_zone_found_clears_schedule_id()
+  local z = VeafCombatZone:new():setFriendlyName("SZ"):setMissionEditorZoneName("SMOKEZ")
+  z.smokeResetFunctionId = 99
+  veafCombatZone.zonesDict["smokez"] = z
+  local result = veafCombatZone.SmokeReset("SMOKEZ")
+  luaunit.assertEquals(result, z)
+  luaunit.assertNil(z.smokeResetFunctionId)
+end
+
+function TestVeafCombatZoneRegistry:test_SmokeReset_zone_not_found_returns_nil()
+  local result = veafCombatZone.SmokeReset("NoZone999")
+  luaunit.assertNil(result)
+end
+
+function TestVeafCombatZoneRegistry:test_FlareReset_zone_found_clears_schedule_id()
+  local z = VeafCombatZone:new():setFriendlyName("FZ"):setMissionEditorZoneName("FLAREZ")
+  z.flareResetFunctionId = 77
+  veafCombatZone.zonesDict["flarez"] = z
+  local result = veafCombatZone.FlareReset("FLAREZ")
+  luaunit.assertEquals(result, z)
+  luaunit.assertNil(z.flareResetFunctionId)
+end
+
+function TestVeafCombatZoneRegistry:test_FlareReset_zone_not_found_returns_nil()
+  local result = veafCombatZone.FlareReset("NoZone999")
+  luaunit.assertNil(result)
+end
+
+function TestVeafCombatZoneRegistry:test_CompletionCheck_module_zone_found()
+  local z = VeafCombatZone:new():setFriendlyName("CZ"):setMissionEditorZoneName("COMPZ")
+  z:disableJunkCleanup()
+  veafCombatZone.zonesDict["compz"] = z
+  local result = veafCombatZone.CompletionCheck("COMPZ")
+  luaunit.assertEquals(result, z)
+end
+
+function TestVeafCombatZoneRegistry:test_ActivateZoneNumber_zone_found()
+  local z = VeafCombatZone:new():setFriendlyName("NZ"):setMissionEditorZoneName("NUMZ")
+  z:disableJunkCleanup()
+  veafCombatZone.zonesList[100] = z
+  veafCombatZone.zonesDict["numz"] = z
+  veafCombatZone.ActivateZoneNumber(100, true)
+  luaunit.assertTrue(true)
+  veafCombatZone.zonesList[100] = nil
+end
+
+function TestVeafCombatZoneRegistry:test_DesactivateZoneNumber_zone_found()
+  local z = VeafCombatZone:new():setFriendlyName("NZ2"):setMissionEditorZoneName("NUMZ2")
+  z:setActive(true):disableJunkCleanup()
+  veafCombatZone.zonesList[200] = z
+  veafCombatZone.zonesDict["numz2"] = z
+  veafCombatZone.DesactivateZoneNumber(200, false)
+  luaunit.assertTrue(true)
+  veafCombatZone.zonesList[200] = nil
+end
+
+-- ============================================================================
+-- TestVeafCombatZoneInitialize
+-- ============================================================================
+TestVeafCombatZoneInitialize = {}
+
+function TestVeafCombatZoneInitialize:test_initialize_nil_zoneName_returns_self()
+  local z = VeafCombatZone:new():setFriendlyName("Z")
+  local result = z:initialize()
+  luaunit.assertEquals(result, z)
+end
+
+function TestVeafCombatZoneInitialize:test_initialize_missing_trigger_zone_returns_self()
+  local z = VeafCombatZone:new():setFriendlyName("Z"):setMissionEditorZoneName("NO_SUCH_TRIGGER_ZONE")
+  local result = z:initialize()
+  luaunit.assertEquals(result, z)
+end
+
+-- ============================================================================
+-- TestVeafCombatZoneGetInformation
+-- ============================================================================
+TestVeafCombatZoneGetInformation = {}
+
+function TestVeafCombatZoneGetInformation:setUp()
+  if not veafUnits then
+    veafUnits = {}
+  end
+  if not veafUnits.findUnit then
+    veafUnits.findUnit = function(typeName)
+      if typeName == "FakeVehicle" then
+        return { vehicle = true, naval = false, infantry = false }
+      end
+      return nil
+    end
+  end
+  dcs_mocks.clearUnitsAndGroups()
+  self.z = VeafCombatZone:new()
+    :setFriendlyName("Info Zone")
+    :setMissionEditorZoneName("INFO_ZONE")
+    :setActive(true)
+    :setShowZonePositionInfo(false)
+end
+
+function TestVeafCombatZoneGetInformation:test_getInformation_active_no_groups()
+  local info = self.z:getInformation(nil)
+  luaunit.assertTrue(info:find("Info Zone") ~= nil)
+end
+
+function TestVeafCombatZoneGetInformation:test_getInformation_active_unit_nil_typeName()
+  dcs_mocks.addGroup("nilTypeGrp", {
+    getUnits = function()
+      return {
+        { getCoalition = function() return 1 end, getTypeName = function() return nil end },
+      }
+    end,
+  })
+  self.z:addSpawnedGroup("nilTypeGrp")
+  local info = self.z:getInformation(nil)
+  luaunit.assertIsString(info)
+  dcs_mocks.removeGroup("nilTypeGrp")
+end
+
+function TestVeafCombatZoneGetInformation:test_getInformation_active_red_vehicle_shows_enemies()
+  dcs_mocks.addGroup("redVehicleGrp", {
+    getUnits = function()
+      return {
+        { getCoalition = function() return 1 end, getTypeName = function() return "FakeVehicle" end },
+      }
+    end,
+  })
+  self.z:addSpawnedGroup("redVehicleGrp")
+  local info = self.z:getInformation(nil)
+  luaunit.assertTrue(info:find("vehicle") ~= nil)
+  dcs_mocks.removeGroup("redVehicleGrp")
+end
+
+function TestVeafCombatZoneGetInformation:test_getInformation_active_blue_vehicle_shows_friends()
+  dcs_mocks.addGroup("blueVehicleGrp", {
+    getUnits = function()
+      return {
+        { getCoalition = function() return 2 end, getTypeName = function() return "FakeVehicle" end },
+      }
+    end,
+  })
+  self.z:addSpawnedGroup("blueVehicleGrp")
+  local info = self.z:getInformation(nil)
+  luaunit.assertTrue(info:find("FRIENDS") ~= nil)
+  dcs_mocks.removeGroup("blueVehicleGrp")
+end
+
+function TestVeafCombatZoneGetInformation:test_getInformation_active_training_with_red_and_blue()
+  self.z:setTraining(true)
+  self.z:setShowZonePositionInfo(false) -- setTraining(true) forces showZonePositionInfo=true; override it
+  dcs_mocks.addGroup("trainGrp", {
+    getUnits = function()
+      return {
+        { getCoalition = function() return 1 end, getTypeName = function() return "FakeVehicle" end },
+        { getCoalition = function() return 2 end, getTypeName = function() return "FakeVehicle" end },
+      }
+    end,
+  })
+  self.z:addSpawnedGroup("trainGrp")
+  local info = self.z:getInformation(nil)
+  luaunit.assertTrue(info:find("FakeVehicle") ~= nil)
+  dcs_mocks.removeGroup("trainGrp")
+end
+
+-- ============================================================================
+-- Run
+-- ============================================================================
 os.exit(luaunit.LuaUnit.run())

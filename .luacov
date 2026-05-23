@@ -1,0 +1,9 @@
+-- luacov configuration for VEAF Mission Creation Tools
+-- Coverage is collected only for modules under src/scripts/veaf/.
+-- Pattern matching uses Lua string.find on absolute file paths.
+return {
+    include = { "veaf" },
+    exclude = { "veaf_loader" },
+    statsfile = "luacov.stats.out",
+    reportfile = "luacov.report.out",
+}

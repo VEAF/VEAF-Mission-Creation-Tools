@@ -324,6 +324,14 @@ poetry run test-lua --filter spawn
 poetry run test-lua --filter combat
 ```
 
+### Coverage
+
+```shell
+poetry run test-lua --coverage
+```
+
+Prints a per-file line coverage table. Requires `luarocks install luacov` (pre-installed in the DevContainer). See [TESTING.md](../TESTING.md#coverage) for details.
+
 ### Single Suite
 
 ```shell

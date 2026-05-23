@@ -1,13 +1,15 @@
 FROM python:3.13-slim-bookworm
 
-# System packages: Lua 5.1 (matches DCS runtime + CI), utilities
+# System packages: Lua 5.1 (matches DCS runtime + CI), luarocks (for luacov), utilities
 RUN apt-get update -q \
     && apt-get install -y --no-install-recommends \
         lua5.1 \
+        luarocks \
         curl \
         unzip \
         git \
         sudo \
+    && luarocks install luacov \
     && rm -rf /var/lib/apt/lists/*
 
 # StyLua 2.4.0 — exact version required by CI (.github/workflows/lua-ci.yml)

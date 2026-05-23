@@ -61,7 +61,7 @@ poetry install --with build
 poetry run veaf-build build --version 6.0.5
 
 # Test
-.\test\lua\run_tests.ps1
+poetry run test-lua
 
 # Publish
 poetry run veaf-build publish --version 6.0.5

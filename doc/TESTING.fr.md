@@ -23,29 +23,29 @@ Le projet compte 31 suites de tests Lua couvrant tous les modules runtime, total
 
 ### Tous les tests
 
-```powershell
-.\test\lua\run_tests.ps1
+```shell
+poetry run test-lua
 ```
 
 Code de sortie `0` si toutes les suites passent, `1` si un test échoue.
 
 ### Exécution filtrée
 
-```powershell
-# Exécuter les suites dont le nom de fichier correspond à une sous-chaîne
-.\test\lua\run_tests.ps1 -Filter spawn
-.\test\lua\run_tests.ps1 -Filter combat
+```shell
+poetry run test-lua --filter spawn
+poetry run test-lua --filter combat
 ```
 
 ### Fichier unique
 
-```powershell
-lua test\lua\test_veafSpawn.lua
+```shell
+lua test/lua/test_veafSpawn.lua
 ```
 
 ### Prérequis
 
-- Lua 5.1 dans le PATH, ou installé à `c:\program files (x86)\lua\5.1\lua.exe`
+- `poetry install` doit avoir été exécuté une fois
+- Lua 5.1 dans le PATH (`lua5.1` sous Linux/DevContainer, `lua` ou `C:\Program Files (x86)\Lua\5.1\lua.exe` sous Windows)
 - Aucune autre dépendance (luaunit est embarqué dans `test/lua/luaunit.lua`)
 
 ---
@@ -59,7 +59,6 @@ test/lua/
 ├── luaunit.lua         # Framework de test (embarqué)
 ├── dcs_mocks.lua       # Stubs de l'API DCS
 ├── veaf_loader.lua     # Chargeur de modules pour src/scripts/veaf/
-├── run_tests.ps1       # Lanceur de tests (PowerShell)
 └── test_*.lua          # Un fichier par module (31 fichiers)
 ```
 

@@ -329,13 +329,6 @@ poetry run test-lua --filter combat
 lua test/lua/test_veafSpawn.lua
 ```
 
-### Alternative (Windows sans Poetry)
-
-```powershell
-.\test\lua\run_tests.ps1
-.\test\lua\run_tests.ps1 -Filter spawn
-```
-
 ### Infrastructure
 
 - **Framework :** [luaunit](https://github.com/bluebird75/luaunit) (intégré dans `test/lua/luaunit.lua`)
@@ -415,7 +408,7 @@ Types : `feat`, `fix`, `chore`, `docs`, `test`, `refactor`, `style`.
 ### Checklist Pull Request
 
 - [ ] Tous les changements Lua passent `stylua --check`
-- [ ] Tous les tests unitaires passent (`run_tests.ps1`)
+- [ ] Tous les tests unitaires passent (`poetry run test-lua`)
 - [ ] Les nouvelles fonctionnalités ont des tests dans `test/lua/`
 - [ ] Les changements d'API publique sont documentés dans `doc/LUA_API_REFERENCE.md`
 - [ ] `CHANGELOG.md` mis à jour pour les changements visibles par les utilisateurs

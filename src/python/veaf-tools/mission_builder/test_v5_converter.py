@@ -6,6 +6,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from veaf_libs.i18n import current_language, set_language
+
 from mission_builder.config_migrator import MigrationResult
 from mission_builder.v5_converter import ConversionReport, PipelineFile, V5Converter
 
@@ -16,6 +18,13 @@ from mission_builder.v5_converter import ConversionReport, PipelineFile, V5Conve
 
 class TestConversionReportToMarkdownEmpty(unittest.TestCase):
     """to_markdown() with mostly empty report state."""
+
+    def setUp(self) -> None:
+        self._prev_lang = current_language()
+        set_language("fr")
+
+    def tearDown(self) -> None:
+        set_language(self._prev_lang)
 
     def _make_report(self, folder: Path) -> ConversionReport:
         return ConversionReport(mission_folder=folder, timestamp="2024-01-01 12:00", version="1.0.0")

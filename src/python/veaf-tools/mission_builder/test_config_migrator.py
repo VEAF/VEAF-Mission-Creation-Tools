@@ -186,6 +186,7 @@ class TestExtractSkynet(unittest.TestCase):
         self.m._extract_skynet(content, result)
         self.assertIsNotNone(result.skynet_config)
         cfg = result.skynet_config
+        assert cfg is not None
         self.assertTrue(cfg["include_red_in_radio"])
         self.assertFalse(cfg["debug_red"])
         self.assertTrue(cfg["include_blue_in_radio"])
@@ -226,22 +227,26 @@ class TestExtractAssets(unittest.TestCase):
         result = MigrationResult(new_content="")
         self.m._extract_assets(content, result)
         self.assertIsNotNone(result.assets_extracted)
-        self.assertEqual(len(result.assets_extracted), 2)
-        self.assertEqual(result.assets_extracted[0]["name"], "Unit1")
-        self.assertEqual(result.assets_extracted[0]["coalition"], "blue")
-        self.assertEqual(result.assets_extracted[0]["strength"], 100)
-        self.assertEqual(result.assets_extracted[1]["coalition"], "red")
+        assets = result.assets_extracted
+        assert assets is not None
+        self.assertEqual(len(assets), 2)
+        self.assertEqual(assets[0]["name"], "Unit1")
+        self.assertEqual(assets[0]["coalition"], "blue")
+        self.assertEqual(assets[0]["strength"], 100)
+        self.assertEqual(assets[1]["coalition"], "red")
 
     def test_boolean_value_parsed(self) -> None:
         content = 'veafAssets.Assets = {\n  {name="X", hidden=true},\n}\n'
         result = MigrationResult(new_content="")
         self.m._extract_assets(content, result)
+        assert result.assets_extracted is not None
         self.assertIs(result.assets_extracted[0]["hidden"], True)
 
     def test_float_value_parsed(self) -> None:
         content = 'veafAssets.Assets = {\n  {name="X", scale=1.5},\n}\n'
         result = MigrationResult(new_content="")
         self.m._extract_assets(content, result)
+        assert result.assets_extracted is not None
         self.assertAlmostEqual(result.assets_extracted[0]["scale"], 1.5)
 
     def test_assets_block_commented_out(self) -> None:

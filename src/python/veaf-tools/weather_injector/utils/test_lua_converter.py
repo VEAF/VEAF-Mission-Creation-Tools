@@ -36,10 +36,12 @@ class TestGetNumber(unittest.TestCase):
 
     def test_float(self) -> None:
         result = LuaToYamlConverter._get_number("lat = 33.5", "lat")
+        assert result is not None
         self.assertAlmostEqual(result, 33.5)
 
     def test_negative(self) -> None:
         result = LuaToYamlConverter._get_number("lon = -35.5", "lon")
+        assert result is not None
         self.assertAlmostEqual(result, -35.5)
 
     def test_not_found_returns_none(self) -> None:

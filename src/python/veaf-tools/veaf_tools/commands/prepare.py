@@ -10,7 +10,7 @@ from veaf_tools.helpers import _ask_replace
 
 @app.command(help=t("cmd.prepare.help"))
 def prepare(
-    mission_folder: str | None = typer.Argument(".", help="Folder to initialize as a VEAF mission folder."),
+    mission_folder: str | None = typer.Argument(".", help=t("cmd.prepare.opt.mission_folder")),
     readme: bool = typer.Option(False, help=README_HELP),
     verbose: bool = typer.Option(False, help=VERBOSE_HELP),
     force: bool = typer.Option(False, help=t("cmd.prepare.opt.force")),

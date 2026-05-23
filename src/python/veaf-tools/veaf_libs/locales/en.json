@@ -184,6 +184,9 @@
   "cmd.user_config.effective_check_updates": "Update check: {state}",
   "cmd.user_config.effective_scripts_path": "Scripts path: {path}",
   "cmd.user_config.set_invalid": "Invalid format. Use key=value (e.g. lang=fr).",
+  "cmd.user_config.set_failed": "Failed to write '{name}' to the configuration file.",
+  "cmd.user_config.state_on": "on",
+  "cmd.user_config.state_off": "off",
 
   "cmd.about.opt.modules": "Show the list of embedded VEAF Lua modules.",
 

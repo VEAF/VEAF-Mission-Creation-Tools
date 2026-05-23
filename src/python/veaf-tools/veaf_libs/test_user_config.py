@@ -38,20 +38,12 @@ def clear_cache():
 
 
 class TestFindConfigFile:
-    def test_returns_primary_if_exists(self, tmp_path: Path) -> None:
+    def test_returns_primary_if_exists(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         primary = tmp_path / "veafmct.yaml"
         primary.write_text("lang: fr\n", encoding="utf-8")
-        with (
-            patch.object(Path, "home", return_value=tmp_path),
-            patch("veaf_libs.user_config._find_config_file", wraps=user_config._find_config_file),
-        ):
-            _invalidate_cache()
-            # Direct test of the function with mocked home
-            with patch("veaf_libs.user_config.Path") as MockPath:
-                MockPath.home.return_value = tmp_path
-                MockPath.side_effect = lambda *a, **kw: Path(*a, **kw)
-                # Just verify the logic by testing get_lang with a real tmp file
-                pass
+        monkeypatch.setattr("veaf_libs.user_config.config_file_path", lambda: primary)
+        _invalidate_cache()
+        assert get_lang() == "fr"
 
     def test_returns_none_when_no_file_exists(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setattr("veaf_libs.user_config._find_config_file", lambda: None)

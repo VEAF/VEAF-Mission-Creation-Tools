@@ -7,6 +7,7 @@ from aircrafts_injector import AircraftGroupsInjectorWorker, AircraftGroupsYAMLV
 from mission_builder import MissionBuilderREADME, MissionBuilderWorker
 from presets_injector import PresetsInjectorWorker
 from rich.markdown import Markdown
+from veaf_libs import user_config as _user_config
 from veaf_libs.lua_module_scanner import get_modules
 from veaf_libs.paths import resolve_path
 from waypoints_injector import WaypointsInjectorWorker
@@ -97,12 +98,15 @@ def build(
         pipeline_cfg = mission_yaml.get("pipeline") or {}
         build_cfg = mission_yaml.get("build") or {}
 
-    # Resolve dev_mode and scripts_path: CLI flags > mission.yaml defaults > code defaults
+    # Resolve dev_mode and scripts_path: CLI flags > mission.yaml > ~/veafmct.yaml > code defaults
     effective_dev_mode: bool = dev_mode if dev_mode is not None else bool(build_cfg.get("dev_mode", False))
     if effective_dev_mode:
         logger.info("Dev mode: VEAF scripts resolved from local dev repo (build/veaf-scripts.lua)")
 
-    effective_scripts_path_str: str | None = scripts_path or build_cfg.get("scripts_path") or None
+    _uc_sp = _user_config.get_scripts_path()
+    effective_scripts_path_str: str | None = (
+        scripts_path or build_cfg.get("scripts_path") or (str(_uc_sp) if _uc_sp else None)
+    )
     effective_scripts_input: str | Path | None = effective_scripts_path_str
     if not effective_scripts_input and dynamic_mode:
         # default value is the "published" subfolder of the mission folder

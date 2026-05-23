@@ -1,4 +1,5 @@
 import os
+import sys
 
 import typer
 from veaf_libs import user_config as cfg
@@ -31,7 +32,7 @@ def user_config(
                 "scripts_path": None,
             }
             path.write_text(yaml.dump(default_data, allow_unicode=True, default_flow_style=False), encoding="utf-8")
-            cfg._invalidate_cache()
+            cfg.invalidate_cache()
             console.print(t("cmd.user_config.init_created", path=path))
         if pause:
             input(t("help.pause_msg"))
@@ -52,7 +53,9 @@ def user_config(
             parsed_value = False
         elif value.lower() in ("null", "none", ""):
             parsed_value = None
-        cfg.set_value(key, parsed_value)
+        if not cfg.set_value(key, parsed_value):
+            console.print(f"[bold red]{t('cmd.user_config.set_failed', name=key)}[/bold red]")
+            raise typer.Exit(1)
         console.print(t("cmd.user_config.key_set", name=key, value=parsed_value))
         if pause:
             input(t("help.pause_msg"))
@@ -83,18 +86,21 @@ def user_config(
 
     # Language with source
     active_lang = current_language()
-    if "--lang" in " ".join(__import__("sys").argv):
+    _argv = sys.argv[1:]
+    if any(a == "--lang" or a.startswith("--lang=") for a in _argv):
         lang_source = "--lang"
     elif os.environ.get("VEAF_LANG"):
         lang_source = "VEAF_LANG"
     elif cfg.get_lang() is not None:
-        lang_source = "~/veafmct.yaml"
+        actual_cfg_path = cfg.config_file_path()
+        lang_source = str(actual_cfg_path) if actual_cfg_path is not None else "~/veafmct.yaml"
     else:
         lang_source = "OS/default"
     console.print(t("cmd.user_config.effective_lang", lang=active_lang, source=lang_source))
 
     check_updates = cfg.get_check_updates()
-    console.print(t("cmd.user_config.effective_check_updates", state="on" if check_updates else "off"))
+    state = t("cmd.user_config.state_on") if check_updates else t("cmd.user_config.state_off")
+    console.print(t("cmd.user_config.effective_check_updates", state=state))
 
     scripts_path = cfg.get_scripts_path()
     if scripts_path is not None:

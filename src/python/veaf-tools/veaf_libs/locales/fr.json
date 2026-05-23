@@ -186,6 +186,9 @@
   "cmd.user_config.effective_check_updates": "Vérification des mises à jour : {state}",
   "cmd.user_config.effective_scripts_path": "Chemin scripts : {path}",
   "cmd.user_config.set_invalid": "Format invalide. Utilisez clé=valeur (ex. lang=fr).",
+  "cmd.user_config.set_failed": "Impossible d'écrire '{name}' dans le fichier de configuration.",
+  "cmd.user_config.state_on": "activé",
+  "cmd.user_config.state_off": "désactivé",
 
   "cmd.about.opt.modules": "Affiche la liste des modules Lua VEAF embarqués.",
 

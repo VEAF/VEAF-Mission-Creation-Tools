@@ -20,7 +20,8 @@ Supported keys
 
 ``scripts_path``
     Default path to the VEAF-Mission-Creation-Tools repository root.
-    Used when ``--dev-mode`` is active in ``veaf-tools build``.
+    Readable via ``get_scripts_path()``; used as a fallback in ``veaf-tools build``
+    when neither the CLI ``--scripts-path`` flag nor ``mission.yaml`` provides a value.
     Default: ``null`` (auto-detect).
 
 Example ``~/veafmct.yaml``::
@@ -96,6 +97,11 @@ def _invalidate_cache() -> None:
     _cache = None
 
 
+def invalidate_cache() -> None:
+    """Clear the cached configuration so the next access reloads from disk."""
+    _invalidate_cache()
+
+
 def get(key: str, default: Any = None) -> Any:
     """Return the value for *key* from the user config, or *default*."""
     return _load().get(key, default)
@@ -133,11 +139,11 @@ def default_config_path() -> Path:
     return Path.home() / _PRIMARY_CONFIG_NAME
 
 
-def set_value(key: str, value: Any) -> None:
+def set_value(key: str, value: Any) -> bool:
     """Persist *key*/*value* to the user config file.
 
     Creates ``~/veafmct.yaml`` if it does not yet exist.
-    Silently ignores write errors so that normal CLI operation is never blocked.
+    Returns ``True`` on success, ``False`` if the write failed.
     """
     try:
         import yaml  # type: ignore[import-untyped]
@@ -147,8 +153,9 @@ def set_value(key: str, value: Any) -> None:
         data[key] = value
         path.write_text(yaml.dump(data, allow_unicode=True, default_flow_style=False), encoding="utf-8")
         _invalidate_cache()
+        return True
     except Exception:
-        pass
+        return False
 
 
 def unset_value(key: str) -> bool:

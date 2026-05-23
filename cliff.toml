@@ -55,8 +55,6 @@ commit_parsers = [
 filter_commits = true
 # Match tags like published-v6.0.5 or v6.0.5
 tag_pattern = "(published-)?v[0-9]+\\.[0-9]+.*"
-# Skip pre-release tags from changelog sections
-skip_tags = "(published-)?v.*-(alpha|beta|rc).*"
 ignore_tags = ""
 topo_order = false
 sort_commits = "oldest"

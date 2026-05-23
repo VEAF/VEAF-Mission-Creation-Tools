@@ -27,9 +27,18 @@ from __future__ import annotations
 import json
 import locale
 import os
+import sys
 from pathlib import Path
 
-_LOCALES_DIR = Path(__file__).parent / "locales"
+
+def _get_locales_dir() -> Path:
+    """Return the locales directory, working both as a script and a PyInstaller bundle."""
+    if hasattr(sys, "_MEIPASS"):
+        return Path(sys._MEIPASS) / "veaf_libs" / "locales"  # type: ignore[attr-defined]
+    return Path(__file__).parent / "locales"
+
+
+_LOCALES_DIR = _get_locales_dir()
 
 _lang: str = "en"
 _catalog: dict[str, str] = {}

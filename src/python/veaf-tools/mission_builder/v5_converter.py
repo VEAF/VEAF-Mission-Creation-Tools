@@ -92,14 +92,6 @@ V5_MIGRATION_NOTES: dict[str, str] = {
 #: Backward-compatible alias — exported public symbol.
 PIPELINE_CANDIDATES = V6_PIPELINE_CANDIDATES
 
-#: Human-readable labels for each pipeline step.
-PIPELINE_LABELS: dict[str, str] = {
-    "presets": "Radio presets",
-    "waypoints": "Waypoints",
-    "aircraft_groups": "Aircraft groups",
-    "weather": "Weather variants",
-}
-
 DOC_BASE = "https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/master/doc"
 DOC_LINKS: dict[str, str] = {
     "Mission Maker Guide": f"{DOC_BASE}/MISSION_MAKER_GUIDE.md",
@@ -202,34 +194,34 @@ class ConversionReport:
 
         # ── Scan results ──────────────────────────────────────────────────
         lines += [
-            "## Scan Results",
+            f"## {t('report.section.scan')}",
             "",
-            "| Item | Status |",
+            f"| {t('report.scan.col.item')} | {t('report.scan.col.status')} |",
             "|------|--------|",
         ]
         if self.missionconfig_path:
             rel = self.missionconfig_path.relative_to(self.mission_folder)
-            lines.append(f"| `{rel}` | ✅ Found — migrated |")
+            lines.append(f"| `{rel}` | {t('report.scan.missionconfig.found')} |")
         else:
-            lines.append("| `src/scripts/missionConfig.lua` | ❌ Not found — skipped |")
+            lines.append(f"| `src/scripts/missionConfig.lua` | {t('report.scan.missionconfig.not_found')} |")
 
         if self.mission_yaml_existed:
-            lines.append("| `mission.yaml` | ⚠️ Already existed — not overwritten |")
+            lines.append(f"| `mission.yaml` | {t('report.scan.mission_yaml.existed')} |")
         elif self.mission_yaml_generated:
-            lines.append("| `mission.yaml` | ✅ Generated |")
+            lines.append(f"| `mission.yaml` | {t('report.scan.mission_yaml.generated')} |")
         else:
-            lines.append("| `mission.yaml` | ❌ Not generated |")
+            lines.append(f"| `mission.yaml` | {t('report.scan.mission_yaml.not_generated')} |")
 
         detected_steps = {pf.step for pf in self.pipeline_files}
         for step, candidates in PIPELINE_CANDIDATES.items():
             if step in detected_steps:
                 pf = next(pf for pf in self.pipeline_files if pf.step == step)
                 if pf.converted:
-                    lines.append(f"| `{pf.v5_source}` \u2192 `{pf.relative}` | \u2705 Converted from v5 (backed up) |")
+                    lines.append(f"| `{pf.v5_source}` → `{pf.relative}` | {t('report.scan.pipeline.converted')} |")
                 else:
-                    lines.append(f"| `{pf.relative}` | \u2705 Found \u2014 added to `pipeline:` |")
+                    lines.append(f"| `{pf.relative}` | {t('report.scan.pipeline.found')} |")
             else:
-                lines.append(f"| `{candidates[0]}` | ❌ Not found — `{step}` step will be skipped |")
+                lines.append(f"| `{candidates[0]}` | {t('report.scan.pipeline.not_found', step=step)} |")
         lines += ["", "---", ""]
 
         # ── Actions taken ─────────────────────────────────────────────────
@@ -240,20 +232,18 @@ class ConversionReport:
             mr = self.migration_result
             if self.missionconfig_backup:
                 rel_bak = self.missionconfig_backup.relative_to(self.mission_folder)
-                lines.append(f"### 1. missionConfig.lua — Migrated (backup: `{rel_bak}`)")
+                lines.append(f"### 1. {t('report.missionconfig.migrated', bak=rel_bak)}")
             else:
-                lines.append("### 1. missionConfig.lua — Migrated")
+                lines.append(f"### 1. {t('report.missionconfig.migrated_no_bak')}")
             lines.append("")
 
             if mr.removed_dofiles:
                 lines += [
-                    f"#### `doFile()` calls commented out ({len(mr.removed_dofiles)})",
+                    f"#### {t('report.missionconfig.dofiles_counted', n=len(mr.removed_dofiles))}",
                     "",
-                    "In v6 the builder injects all VEAF scripts automatically via `veaf-scripts.lua`.",
-                    "Explicit `doFile(...)` calls are no longer needed. They have been commented out",
-                    "with a `-- [v6 migration]` prefix — verify them before deleting permanently.",
+                    t("report.missionconfig.dofiles_intro"),
                     "",
-                    "| Location | Expression |",
+                    f"| {t('report.missionconfig.dofiles_col.location')} | {t('report.missionconfig.dofiles_col.expression')} |",
                     "|----------|-----------|",
                 ]
                 for item in mr.removed_dofiles:
@@ -261,20 +251,19 @@ class ConversionReport:
                 lines.append("")
             else:
                 lines += [
-                    "#### `doFile()` calls",
+                    f"#### {t('report.missionconfig.dofiles_none_title')}",
                     "",
-                    "*None found — file may already be v6-compatible in this regard.*",
+                    f"*{t('report.missionconfig.dofiles_none_msg')}*",
                     "",
                 ]
 
             if mr.wrapped_calls:
                 lines += [
-                    f"#### Bare `initialize()` calls wrapped ({len(mr.wrapped_calls)})",
+                    f"#### {t('report.missionconfig.wrapped_counted', n=len(mr.wrapped_calls))}",
                     "",
-                    "In v6 all module calls must be wrapped in `if veafXxx then … end` guards.",
-                    "The following bare calls were wrapped automatically:",
+                    t("report.missionconfig.wrapped_intro"),
                     "",
-                    "| Location | Expression |",
+                    f"| {t('report.missionconfig.dofiles_col.location')} | {t('report.missionconfig.dofiles_col.expression')} |",
                     "|----------|-----------|",
                 ]
                 for item in mr.wrapped_calls:
@@ -290,7 +279,7 @@ class ConversionReport:
 
             if mr.enabled_modules:
                 lines += [
-                    f"#### Enabled modules detected ({len(mr.enabled_modules)})",
+                    f"#### {t('report.missionconfig.modules_counted', n=len(mr.enabled_modules))}",
                     "",
                     ", ".join(f"`{m}`" for m in mr.enabled_modules),
                     "",
@@ -543,6 +532,8 @@ class V5Converter:
                 continue
             v5_abs_path = pf.path  # save before we overwrite pf.path below
             v6_path = report.mission_folder / pf.v6_target
+            _lk = f"pipeline.label.{pf.step}"
+            label = t(_lk) if t(_lk) != _lk else pf.step
             try:
                 warnings = convert_pipeline_file(
                     pf.step,
@@ -556,14 +547,11 @@ class V5Converter:
                 pf.path = v6_path
                 pf.relative = pf.v6_target
                 for w in warnings:
-                    report.warnings.append(f"{PIPELINE_LABELS.get(pf.step, pf.step)}: {w}")
-                report.actions.append(f"{PIPELINE_LABELS.get(pf.step, pf.step)}: converted to {pf.v6_target}")
+                    report.warnings.append(f"{label}: {w}")
+                report.actions.append(f"{label}: converted to {pf.v6_target}")
                 self._backup_and_delete_v5(pf.step, v5_abs_path, report)
             except Exception as exc:
-                report.warnings.append(
-                    f"{PIPELINE_LABELS.get(pf.step, pf.step)}: conversion failed — {exc}. "
-                    "Convert manually (see migration guide)."
-                )
+                report.warnings.append(f"{label}: conversion failed — {exc}. Convert manually (see migration guide).")
 
     def _scan(self, report: ConversionReport) -> None:
         """Detect missionConfig.lua, existing mission.yaml, and pipeline files."""
@@ -951,5 +939,6 @@ class V5Converter:
             if pf.needs_conversion:
                 note_template = V5_MIGRATION_NOTES.get(pf.step, "Convert `{v5}` to v6 format (see migration guide).")
                 note = note_template.format(v5=pf.relative)
-                label = PIPELINE_LABELS.get(pf.step, pf.step)
+                _lk = f"pipeline.label.{pf.step}"
+                label = t(_lk) if t(_lk) != _lk else pf.step
                 report.manual_review.append(f"**{label}**: {note}")

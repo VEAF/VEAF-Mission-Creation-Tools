@@ -11,6 +11,7 @@ class Logger:
 
     def __init__(self, logger_name: str, verbose: bool = False, console: Console | None = None):
         # Create a specific logger instance
+        self.verbose = verbose
         self.logger = logging.getLogger(logger_name)
         self.logger.setLevel(logging.DEBUG if verbose else logging.INFO)
 

@@ -111,8 +111,10 @@ class ConfigMigrator:
         # Remove inline comments.
         no_comment = re.sub(r"--(?!\[).*$", "", line)
         opens = len(ConfigMigrator._OPEN_KW_RE.findall(no_comment))
-        # elseif contains 'if' → subtract those; they don't open a new block.
-        opens -= len(ConfigMigrator._ELSEIF_RE.findall(no_comment))
+        # elseif contains 'if' but \bif\b already doesn't match inside it due to
+        # word boundaries.  Subtract any elseif matches that slipped through, but
+        # never go below zero (a lone elseif line has no net depth change).
+        opens = max(0, opens - len(ConfigMigrator._ELSEIF_RE.findall(no_comment)))
         closes = len(ConfigMigrator._CLOSE_KW_RE.findall(no_comment))
         return opens - closes
 

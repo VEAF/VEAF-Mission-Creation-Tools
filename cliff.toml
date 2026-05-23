@@ -50,6 +50,7 @@ commit_parsers = [
   { message = "^style",    skip = true },
   { message = "^ci",       skip = true },
   { message = "^build",    skip = true },
+  { message = ".*",        skip = true },
 ]
 filter_commits = true
 # Match tags like published-v6.0.5 or v6.0.5

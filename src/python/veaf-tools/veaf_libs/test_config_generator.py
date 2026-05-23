@@ -445,7 +445,7 @@ class TestGenerateMissionYamlTemplate(unittest.TestCase):
 
         result = generate_mission_yaml_template(enabled_module_ids={"RADIO"})
         lines = result.splitlines()
-        uncommented = [l for l in lines if not l.startswith("#") and "RADIO" in l]
+        uncommented = [line for line in lines if not line.startswith("#") and "RADIO" in line]
         self.assertTrue(len(uncommented) >= 1, "RADIO should appear uncommented")
 
     def test_disabled_module_appears_commented(self) -> None:
@@ -453,8 +453,8 @@ class TestGenerateMissionYamlTemplate(unittest.TestCase):
 
         result = generate_mission_yaml_template(enabled_module_ids=set())
         lines = result.splitlines()
-        radio_lines = [l for l in lines if "RADIO" in l]
-        self.assertTrue(all(l.lstrip().startswith("#") for l in radio_lines))
+        radio_lines = [line for line in lines if "RADIO" in line]
+        self.assertTrue(all(line.lstrip().startswith("#") for line in radio_lines))
 
 
 class TestConfigMigrator(unittest.TestCase):

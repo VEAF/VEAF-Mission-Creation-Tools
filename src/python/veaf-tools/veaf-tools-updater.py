@@ -392,7 +392,7 @@ exit /b 0
 
         console.print(
             "\n[bold cyan]First install detected.[/bold cyan] "
-            "Run [bold]veaf-tools prepare .[/bold] to initialize your mission folder "
+            "Run [bold]veaf-tools.exe prepare .[/bold] to initialize your mission folder "
             "with default files (mission.yaml, src/ templates, etc.)."
         )
 

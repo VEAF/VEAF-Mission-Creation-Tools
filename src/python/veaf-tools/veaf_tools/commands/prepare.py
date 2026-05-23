@@ -55,44 +55,48 @@ def prepare(
             defaults_source = install_source.parent.parent / "defaults" / "mission-folder"
 
         if not defaults_source.exists():
-            logger.warning(
-                f"Default files not found. Searched: {install_source.parent / 'src' / 'defaults' / 'mission-folder'}"
+            searched = [
+                str(install_source.parent / "src" / "defaults" / "mission-folder"),
+                str(install_source.parent.parent / "defaults" / "mission-folder"),
+            ]
+            logger.error(
+                "Default files not found. Searched:\n  " + "\n  ".join(searched),
+                raise_exception=True,
             )
-            defaults_source = None  # type: ignore[assignment]
 
+        defaults_source_path: Path = defaults_source
         files_installed = 0
         files_skipped = 0
         yes_to_all = force
 
         # Copy default files from defaults source
-        if defaults_source and defaults_source.exists():
-            logger.info(f"Copying default files from {defaults_source}")
-            for source_file in defaults_source.rglob("*"):
-                if source_file.is_file():
-                    relative_path = source_file.relative_to(defaults_source)
-                    dest_file = p_mission_folder / relative_path
+        logger.info(f"Copying default files from {defaults_source_path}")
+        for source_file in defaults_source_path.rglob("*"):
+            if source_file.is_file():
+                relative_path = source_file.relative_to(defaults_source_path)
+                dest_file = p_mission_folder / relative_path
 
-                    # Create destination directory if needed
-                    dest_file.parent.mkdir(parents=True, exist_ok=True)
+                # Create destination directory if needed
+                dest_file.parent.mkdir(parents=True, exist_ok=True)
 
-                    # Check if file already exists
-                    if dest_file.exists():
-                        if not yes_to_all:
-                            should_replace, yes_to_all = _ask_replace(relative_path)
-                        else:
-                            should_replace = True
-
-                        if should_replace:
-                            shutil.copy2(source_file, dest_file)
-                            logger.debug(f"Replaced: {relative_path}")
-                            files_installed += 1
-                        else:
-                            logger.debug(f"Skipped: {relative_path}")
-                            files_skipped += 1
+                # Check if file already exists
+                if dest_file.exists():
+                    if not yes_to_all:
+                        should_replace, yes_to_all = _ask_replace(relative_path)
                     else:
+                        should_replace = True
+
+                    if should_replace:
                         shutil.copy2(source_file, dest_file)
-                        logger.debug(f"Installed: {relative_path}")
+                        logger.debug(f"Replaced: {relative_path}")
                         files_installed += 1
+                    else:
+                        logger.debug(f"Skipped: {relative_path}")
+                        files_skipped += 1
+                else:
+                    shutil.copy2(source_file, dest_file)
+                    logger.debug(f"Installed: {relative_path}")
+                    files_installed += 1
 
         # Print summary
         console.print("\n[bold green]Preparation completed![/bold green]")

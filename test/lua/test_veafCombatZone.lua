@@ -849,16 +849,12 @@ end
 TestVeafCombatZoneGetInformation = {}
 
 function TestVeafCombatZoneGetInformation:setUp()
-  if not veafUnits then
-    veafUnits = {}
-  end
-  if not veafUnits.findUnit then
-    veafUnits.findUnit = function(typeName)
-      if typeName == "FakeVehicle" then
-        return { vehicle = true, naval = false, infantry = false }
-      end
-      return nil
+  self._origFindUnit = veafUnits.findUnit
+  veafUnits.findUnit = function(typeName)
+    if typeName == "FakeVehicle" then
+      return { vehicle = true, naval = false, infantry = false }
     end
+    return nil
   end
   dcs_mocks.clearUnitsAndGroups()
   self.z = VeafCombatZone:new()
@@ -866,6 +862,11 @@ function TestVeafCombatZoneGetInformation:setUp()
     :setMissionEditorZoneName("INFO_ZONE")
     :setActive(true)
     :setShowZonePositionInfo(false)
+end
+
+function TestVeafCombatZoneGetInformation:tearDown()
+  veafUnits.findUnit = self._origFindUnit
+  dcs_mocks.clearUnitsAndGroups()
 end
 
 function TestVeafCombatZoneGetInformation:test_getInformation_active_no_groups()

@@ -308,23 +308,32 @@ Somme de contrôle vérifiée avant extraction
 
 ### Lancer tous les tests
 
-```powershell
-.\test\lua\run_tests.ps1
+```shell
+poetry run test-lua
 ```
 
 Code de sortie `0` = tous passent, `1` = échecs.
 
+Fonctionne sur Windows, Linux et dans le DevContainer (détection automatique de `lua5.1` / `lua` / chemin Windows de secours).
+
 ### Exécution filtrée
 
-```powershell
-.\test\lua\run_tests.ps1 -Filter spawn
-.\test\lua\run_tests.ps1 -Filter combat
+```shell
+poetry run test-lua --filter spawn
+poetry run test-lua --filter combat
 ```
 
 ### Suite unique
 
+```shell
+lua test/lua/test_veafSpawn.lua
+```
+
+### Alternative (Windows sans Poetry)
+
 ```powershell
-lua test\lua\test_veafSpawn.lua
+.\test\lua\run_tests.ps1
+.\test\lua\run_tests.ps1 -Filter spawn
 ```
 
 ### Infrastructure

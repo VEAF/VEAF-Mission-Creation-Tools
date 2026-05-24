@@ -226,12 +226,11 @@ def _emit_module_body(
         for zone in sanctuary_zones:
             name = zone.get("name", "")
             polygon_units: list = zone.get("polygon_units") or []
-            coalition = zone.get("coalition", "BLUE")
             units_lua = "{" + ", ".join(f'"{u}"' for u in polygon_units) + "}"
             lines.append(f"    {var_name}.addZone(")
             lines.append("        VeafSanctuaryZone:new()")
             lines.append(f'        :setName("{name}")')
-            lines.append(f"        :setPolygonFromUnits({units_lua}))")
+            lines.append(f"        :setPolygonFromUnits({units_lua})")
             for setter, yaml_key in [
                 ("setCoalition", None),  # special: coalition.side.X
                 ("setDelayWarning", "delay_warning"),
@@ -240,7 +239,8 @@ def _emit_module_body(
                 ("setProtectFromMissiles", "protect_from_missiles"),
             ]:
                 if setter == "setCoalition":
-                    lines.append(f"        :setCoalition(coalition.side.{coalition})")
+                    if "coalition" in zone:
+                        lines.append(f"        :setCoalition(coalition.side.{zone['coalition']})")
                 elif yaml_key and yaml_key in zone:
                     v = zone[yaml_key]
                     lines.append(f"        :{setter}({_to_lua_scalar(v)})")

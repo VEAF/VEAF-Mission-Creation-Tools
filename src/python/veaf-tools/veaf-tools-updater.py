@@ -56,6 +56,12 @@ README_HELP: str = t("help.readme")
 VERBOSE_HELP: str = t("help.verbose")
 PAUSE_HELP: str = t("help.pause")
 PAUSE_MESSAGE: str = t("help.pause_msg")
+FORCE_HELP: str = t("updater.opt.force")
+TAG_HELP: str = t("updater.opt.tag")
+TOKEN_HELP: str = t("updater.opt.token")
+MISSION_FOLDER_HELP: str = t("updater.opt.mission_folder")
+NO_VERIFY_HELP: str = t("updater.opt.no_verify_checksum")
+ZIP_FILE_HELP: str = t("updater.opt.zip_file")
 
 # String constants
 WORK_DONE_MESSAGE: str = t("msg.work_done")
@@ -127,11 +133,11 @@ class UpdateWorker:
     def check_github_response(self, response: requests.Response, action: str) -> bool:
         """Check GitHub API response and log errors appropriately."""
         if response.status_code == 403 and "rate limit" in response.reason.lower():
-            logger.warning("GitHub API rate limit exceeded. Please wait about an hour and try again.")
-            logger.error(f"{action} failed: {response.reason} ({response.status_code})")
+            logger.warning(t("updater.warn.rate_limit"))
+            logger.error(t("updater.err.request_failed", action=action, reason=response.reason, code=response.status_code))
             return False
         elif response.status_code != 200:
-            logger.error(f"{action} failed: {response.reason} ({response.status_code})")
+            logger.error(t("updater.err.request_failed", action=action, reason=response.reason, code=response.status_code))
             return False
         return True
 
@@ -141,10 +147,10 @@ class UpdateWorker:
         response = requests.get(url, headers=self.headers)
 
         if response.status_code == 404:
-            logger.warning(f"No release found for tag '{tag_name}'")
+            logger.warning(t("updater.err.no_release", tag=tag_name))
             return None
 
-        if not self.check_github_response(response, f"Getting release for tag '{tag_name}' from GitHub"):
+        if not self.check_github_response(response, t("updater.action.get_release", tag=tag_name)):
             return None
 
         return response.json()
@@ -162,11 +168,11 @@ class UpdateWorker:
         """Verify file integrity by comparing checksums."""
         actual_checksum = self.calculate_sha256(file_path)
         if actual_checksum.lower() != expected_checksum.lower():
-            logger.error(f"Checksum mismatch for {file_path.name}")
-            logger.error(f"  Expected: {expected_checksum}")
-            logger.error(f"  Actual:   {actual_checksum}")
+            logger.error(t("updater.err.checksum_mismatch", name=file_path.name))
+            logger.error(t("updater.err.checksum_expected", checksum=expected_checksum))
+            logger.error(t("updater.err.checksum_actual", checksum=actual_checksum))
             return False
-        logger.info(f"Checksum verified for {file_path.name}")
+        logger.info(t("updater.checksum_ok", name=file_path.name))
         return True
 
     def get_installed_version(self, mission_folder: Path) -> str | None:
@@ -180,7 +186,7 @@ class UpdateWorker:
                 package_data = json.load(f)
                 return package_data.get("version")
         except (OSError, json.JSONDecodeError) as e:
-            logger.warning(f"Failed to read installed version: {e}")
+            logger.warning(t("updater.err.version_read", error=e))
             return None
 
     def should_update(self, release_version: str, mission_folder: Path) -> bool:
@@ -190,7 +196,7 @@ class UpdateWorker:
 
         installed_version = self.get_installed_version(mission_folder)
         if not installed_version:
-            logger.info("No installed version found")
+            logger.info(t("updater.no_installed"))
             return True
 
         # Simple version comparison (assumes semantic versioning)
@@ -204,13 +210,13 @@ class UpdateWorker:
             release_parts.extend([0] * (max_len - len(release_parts)))
 
             if release_parts > installed_parts:
-                logger.info(f"Newer version available: {installed_version} → {release_version}")
+                logger.info(t("updater.newer_available", installed=installed_version, release=release_version))
                 return True
             else:
-                logger.info(f"Installed version {installed_version} is already up-to-date")
+                logger.info(t("updater.up_to_date", version=installed_version))
                 return False
         except ValueError:
-            logger.warning(f"Could not compare versions: {installed_version} vs {release_version}")
+            logger.warning(t("updater.warn.compare_versions", v1=installed_version, v2=release_version))
             return True
 
     def download_asset(self, asset_url: str, asset_name: str) -> bytes | None:
@@ -218,7 +224,7 @@ class UpdateWorker:
         with spinner_context(t("updater.downloading", name=asset_name)):
             response = requests.get(asset_url, headers=self.headers)
 
-        if not self.check_github_response(response, f"Downloading {asset_name}"):
+        if not self.check_github_response(response, t("updater.action.download", name=asset_name)):
             return None
 
         return response.content
@@ -301,12 +307,12 @@ exit /b 0
                 stderr=subprocess.DEVNULL,
                 cwd=str(current_dir),
             )
-            logger.info("Deferred update script launched successfully")
-            logger.info("The updater executable will be updated in a few seconds")
+            logger.info(t("updater.deferred_launched"))
+            logger.info(t("updater.deferred_pending"))
 
         except Exception as e:
-            logger.warning(f"Failed to launch deferred update: {e}")
-            logger.warning("Update of updater executable will be deferred to next run")
+            logger.warning(t("updater.err.deferred_failed", error=e))
+            logger.warning(t("updater.err.deferred_next_run"))
 
     def extract_and_install(self, zip_content: bytes, release_version: str, mission_folder: Path) -> bool:
         """Extract the published.zip file and install it to the mission folder."""
@@ -351,7 +357,7 @@ exit /b 0
                     zip_file = zipfile.ZipFile(BytesIO(zip_content))
                     zip_file.extractall(published_dir)
 
-            logger.info(f"Successfully extracted release version {release_version} to '{PUBLISHED_DIR}' folder")
+            logger.info(t("updater.extracted", version=release_version, dir=PUBLISHED_DIR))
 
             # Step 2: Move key files from published folder to current directory
             with spinner_context(t("updater.installing")):
@@ -362,9 +368,9 @@ exit /b 0
                     if source_file.exists():
                         dest_file = Path.cwd() / filename
                         shutil.move(str(source_file), str(dest_file))
-                        logger.info(f"Moved {filename} to current directory")
+                        logger.info(t("updater.moved", name=filename))
                     else:
-                        logger.warning(f"File not found in published folder: {filename}")
+                        logger.warning(t("updater.err.file_not_found", name=filename))
 
                 # Handle veaf-tools-updater.exe with deferred update mechanism
                 updater_exe = published_dir / "veaf-tools-updater.exe"
@@ -376,7 +382,7 @@ exit /b 0
 
                         pending_exe = pending_dir / f"{VEAF_TOOLS_EXE}.new"
                         shutil.move(str(updater_exe), str(pending_exe))
-                        logger.info(f"Prepared {VEAF_TOOLS_EXE} for deferred update")
+                        logger.info(t("updater.deferred_prepared", name=VEAF_TOOLS_EXE))
 
                         # Launch the deferred update script
                         self._launch_deferred_update(pending_dir, pending_exe)
@@ -384,17 +390,17 @@ exit /b 0
                         # No file locking issue, move directly
                         dest_updater = Path.cwd() / VEAF_TOOLS_EXE
                         shutil.move(str(updater_exe), str(dest_updater))
-                        logger.info(f"Moved {VEAF_TOOLS_EXE} to current directory")
+                        logger.info(t("updater.moved", name=VEAF_TOOLS_EXE))
 
             # Step 3: Display first-install guidance
             self._install_defaults(mission_folder, is_first_install)
 
             return True
         except zipfile.BadZipFile as e:
-            logger.error(f"Failed to extract zip file: {e}")
+            logger.error(t("updater.err.extract_zip", error=e))
             return False
         except OSError as e:
-            logger.error(f"Failed to install files: {e}")
+            logger.error(t("updater.err.install", error=e))
             return False
 
     def _install_defaults(self, mission_folder: Path, is_first_install: bool) -> None:
@@ -424,13 +430,13 @@ exit /b 0
             zip_path = Path(self.zip_file_path)
 
             if not zip_path.exists():
-                logger.error(f"ZIP file not found: {zip_path}")
+                logger.error(t("updater.err.zip_not_found", path=zip_path))
                 return False
 
             try:
                 zip_content = zip_path.read_bytes()
             except OSError as e:
-                logger.error(f"Failed to read ZIP file: {e}")
+                logger.error(t("updater.err.zip_read", error=e))
                 return False
 
             # Extract version from zip file path or use a default
@@ -441,15 +447,15 @@ exit /b 0
             if release_version == "published":
                 release_version = "local"
 
-            logger.info(f"Loaded ZIP file with version label: {release_version}")
+            logger.info(t("updater.local_zip_loaded", version=release_version))
 
             # Extract and install directly
             if self.extract_and_install(zip_content, release_version, p_mission_folder):
-                logger.info("Successfully installed from local ZIP")
+                logger.info(t("updater.local_zip_installed"))
                 console.print(WORK_DONE_MESSAGE)
                 return True
             else:
-                logger.error("Installation failed")
+                logger.error(t("updater.err.install_failed"))
                 return False
 
         # Fetch release information from GitHub
@@ -458,7 +464,7 @@ exit /b 0
             release_payload = self.get_release_by_tag(self.tag)
 
         if not release_payload:
-            logger.error(f"Failed to fetch release for tag '{self.tag}'")
+            logger.error(t("updater.err.fetch_failed", tag=self.tag))
             return False
 
         # Extract version from release
@@ -479,12 +485,12 @@ exit /b 0
                 if version_match:
                     release_version = version_match.group(1)
 
-        logger.info(f"Found release version: {release_version}")
+        logger.info(t("updater.found_version", version=release_version))
 
         # Check if update is needed
         if not self.should_update(release_version, p_mission_folder):
             if self.force:
-                logger.info("Force flag set, proceeding with update anyway")
+                logger.info(t("updater.force_update"))
             else:
                 console.print(WORK_DONE_MESSAGE)
                 return True
@@ -497,13 +503,13 @@ exit /b 0
                 break
 
         if not published_asset:
-            logger.error(f"No '{PUBLISHED_ZIP_ASSET_NAME}' asset found in release")
+            logger.error(t("updater.err.no_asset", name=PUBLISHED_ZIP_ASSET_NAME))
             return False
 
         # Download the zip file
         zip_content = self.download_asset(published_asset.get("browser_download_url"), PUBLISHED_ZIP_ASSET_NAME)
         if not zip_content:
-            logger.error("Failed to download published.zip")
+            logger.error(t("updater.err.download_failed"))
             return False
 
         # Verify checksum if enabled
@@ -529,21 +535,21 @@ exit /b 0
                                 temp_zip.write_bytes(zip_content)
                                 if not self.verify_file_integrity(temp_zip, published_checksum):
                                     temp_zip.unlink()
-                                    logger.error("Checksum verification failed, aborting installation")
+                                    logger.error(t("updater.err.checksum_failed"))
                                     return False
                                 temp_zip.unlink()
                         except json.JSONDecodeError:
-                            logger.warning("Could not parse metadata file, skipping checksum verification")
+                            logger.warning(t("updater.warn.metadata_parse"))
                 else:
-                    logger.warning("No metadata asset found, skipping checksum verification")
+                    logger.warning(t("updater.warn.no_metadata"))
 
         # Extract and install
         if self.extract_and_install(zip_content, release_version, p_mission_folder):
-            logger.info(f"Successfully updated to version {release_version}")
+            logger.info(t("updater.success", version=release_version))
             console.print(WORK_DONE_MESSAGE)
             return True
         else:
-            logger.error("Installation failed")
+            logger.error(t("updater.err.install_failed"))
             return False
 
 
@@ -554,23 +560,16 @@ exit /b 0
 
 def main(
     verbose: bool = typer.Option(False, help=VERBOSE_HELP),
-    force: bool = typer.Option(False, help="Ignore version check and install anyway"),
-    tag: str | None = typer.Option(None, help="Tag name to fetch (default: published-latest)"),
-    token: str | None = typer.Option(None, help="GitHub Personal Access Token (overrides config file)"),
-    mission_folder: str | None = typer.Argument(None, help="Mission folder path (overrides config file)"),
+    force: bool = typer.Option(False, help=FORCE_HELP),
+    tag: str | None = typer.Option(None, help=TAG_HELP),
+    token: str | None = typer.Option(None, help=TOKEN_HELP),
+    mission_folder: str | None = typer.Argument(None, help=MISSION_FOLDER_HELP),
     pause: bool = typer.Option(False, help=PAUSE_HELP),
-    no_verify_checksum: bool = typer.Option(False, help="Skip checksum verification (not recommended)"),
-    zip_file: str | None = typer.Option(None, help="Path to local published.zip file (for testing, skips GitHub)"),
+    no_verify_checksum: bool = typer.Option(False, help=NO_VERIFY_HELP),
+    zip_file: str | None = typer.Option(None, help=ZIP_FILE_HELP),
     lang: str | None = typer.Option(None, help=t("help.lang")),
 ) -> None:
-    """
-    Downloads the latest VEAF Tools files from GitHub using Git tags.
-
-    This command fetches compiled tools and scripts from GitHub releases.
-    By default, it uses the 'published-latest' tag which always points to the most recent version.
-
-    For testing, use --zip-file to install from a local published.zip file instead of GitHub.
-    """
+    """placeholder"""
     logger.set_verbose(verbose)
     if lang:
         set_language(lang)
@@ -605,6 +604,8 @@ def main(
     if not success:
         raise typer.Exit(code=1)
 
+
+main.__doc__ = t("updater.cmd_help")
 
 if __name__ == "__main__":
     typer.run(main)

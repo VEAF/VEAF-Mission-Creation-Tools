@@ -1,3 +1,4 @@
+import re
 from datetime import datetime
 from pathlib import Path
 
@@ -97,6 +98,21 @@ def build(
             logger.info(f"Found global_log_level={global_log_level!r} in {mission_yaml_path}")
         pipeline_cfg = mission_yaml.get("pipeline") or {}
         build_cfg = mission_yaml.get("build") or {}
+
+    # Derive mission base name; update output path when mission.yaml defines a name and the user
+    # did not explicitly provide a different mission name on the CLI.
+    _yaml_mission_name: str | None = (mission_yaml.get("mission") or {}).get("name") if mission_yaml else None
+    if mission_name_or_file == DEFAULT_MISSION_FILE and _yaml_mission_name:
+        _safe_name = re.sub(r'[\\/:*?"<>|\x00-\x1f]', "_", _yaml_mission_name).strip(" .")
+        if not _safe_name:
+            logger.warning(
+                f"mission.name {_yaml_mission_name!r} contains only invalid filename characters; using 'mission'"
+            )
+            _safe_name = "mission"
+        p_output_mission = p_mission_folder / f"{_safe_name}_{datetime.now().strftime('%Y%m%d')}.miz"
+        mission_base_name: str = _safe_name
+    else:
+        mission_base_name = p_output_mission.stem
 
     # Resolve dev_mode and scripts_path: CLI flags > mission.yaml > ~/veafmct.yaml > code defaults
     effective_dev_mode: bool = dev_mode if dev_mode is not None else bool(build_cfg.get("dev_mode", False))
@@ -239,7 +255,12 @@ def build(
     if weather_path:
         logger.info(f"Pipeline: injecting weather variants from {weather_path}")
         console.print(f"[bold blue]Pipeline: weather variants ({weather_path.name})[/bold blue]")
-        weather_worker = WeatherInjectorWorker(config_file=weather_path, mission_file=p_output_mission)
+        weather_worker = WeatherInjectorWorker(
+            config_file=weather_path,
+            mission_file=p_output_mission,
+            output_dir=p_mission_folder / "missions",
+            mission_base_name=mission_base_name,
+        )
         if created_files := weather_worker.work():
             console.print(f"[bold green]Pipeline: created {len(created_files)} weather variant(s)[/bold green]")
 

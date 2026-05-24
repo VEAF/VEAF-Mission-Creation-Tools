@@ -626,5 +626,88 @@ class TestInjectWeather(unittest.TestCase):
             worker._inject_weather(version)  # should not raise
 
 
+# ---------------------------------------------------------------------------
+# mission_base_name — output path and sanitization
+# ---------------------------------------------------------------------------
+
+
+class TestMissionBaseNameOutput(unittest.TestCase):
+    def _patched_worker(
+        self,
+        tmp_path: Path,
+        mission_base_name: str | None,
+        version_name: str = "dawn",
+    ) -> tuple[WeatherInjectorWorker, VersionConfig]:
+        """Build a worker with read_miz/write_miz patched out."""
+        from unittest.mock import MagicMock, patch
+
+        config_data: dict[str, Any] = {"versions": [{"name": version_name}]}
+        config_file = tmp_path / "versions.yaml"
+        config_file.write_text(yaml.dump(config_data), encoding="utf-8")
+        mission_file = tmp_path / "test.miz"
+        mission_file.write_bytes(b"PK\x03\x04")
+        output_dir = tmp_path / "missions"
+
+        worker = WeatherInjectorWorker(
+            config_file=config_file,
+            mission_file=mission_file,
+            output_dir=output_dir,
+            mission_base_name=mission_base_name,
+        )
+
+        fake_mission = MagicMock()
+        fake_mission.mission_content = {"start_time": 0}
+        version = VersionConfig(name=version_name)
+
+        self._read_patcher = patch("weather_injector.weather_injector_worker.read_miz", return_value=fake_mission)
+        self._write_patcher = patch("weather_injector.weather_injector_worker.write_miz")
+        self._read_patcher.start()
+        self._write_patcher.start()
+        self.addCleanup(self._read_patcher.stop)
+        self.addCleanup(self._write_patcher.stop)
+
+        return worker, version
+
+    def test_output_prefixed_with_base_name(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            worker, version = self._patched_worker(Path(tmp), "VEAF-Demo")
+            result = worker._create_mission_version(version)
+        self.assertEqual(result.name, "VEAF-Demo_dawn.miz")
+
+    def test_output_without_base_name(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            worker, version = self._patched_worker(Path(tmp), None)
+            result = worker._create_mission_version(version)
+        self.assertEqual(result.name, "dawn.miz")
+
+    def test_base_name_stored_on_init(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            config_file = tmp_path / "v.yaml"
+            config_file.write_text(yaml.dump({"versions": []}), encoding="utf-8")
+            mission_file = tmp_path / "test.miz"
+            mission_file.write_bytes(b"PK")
+            worker = WeatherInjectorWorker(
+                config_file=config_file,
+                mission_file=mission_file,
+                mission_base_name="VEAF-Demo",
+            )
+        self.assertEqual(worker.mission_base_name, "VEAF-Demo")
+
+    def test_base_name_sanitized_on_init(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            config_file = tmp_path / "v.yaml"
+            config_file.write_text(yaml.dump({"versions": []}), encoding="utf-8")
+            mission_file = tmp_path / "test.miz"
+            mission_file.write_bytes(b"PK")
+            worker = WeatherInjectorWorker(
+                config_file=config_file,
+                mission_file=mission_file,
+                mission_base_name="My:Mission/Name*",
+            )
+        self.assertEqual(worker.mission_base_name, "My_Mission_Name_")
+
+
 if __name__ == "__main__":
     unittest.main()

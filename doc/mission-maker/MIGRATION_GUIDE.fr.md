@@ -31,6 +31,8 @@ Dans les deux cas, le résultat final est un **dossier de mission VEAF MCT v6** 
 
 3. Ayez votre dossier de mission v5 sous la main
 
+> **Conseil — configuration globale utilisateur :** Avant de commencer, créez `~/veafmct.yaml` (soit `C:\Users\VotreNom\veafmct.yaml` sous Windows) pour définir des préférences persistantes sur cette machine — notamment la langue (`lang: fr`) afin que tous les outils s'affichent en français. Voir [Configuration globale utilisateur](GUIDE.md#configuration-globale-utilisateur) pour le détail et les commandes disponibles.
+
 ---
 
 ## Migration depuis VEAF MCT v5.xx
@@ -116,7 +118,7 @@ Certaines constructions v5 n'existent plus ou ont été renommées :
 #### 5. Vérifier avec un build de test
 
 ```powershell
-.\veaf-tools.exe build ma-mission .
+.\veaf-tools.exe build
 ```
 
 Ouvrez le `.miz` résultant dans DCS, chargez la mission et confirmez :

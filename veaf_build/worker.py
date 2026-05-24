@@ -359,9 +359,11 @@ class BuildAndReleaseWorker:
 
             # Build veaf-tools-updater executable
             with spinner_context("Building veaf-tools-updater executable..."):
+                updater_extra: list[tuple[Path, str]] = [(locales_dir, "veaf_libs/locales")]
                 self._build_pyinstaller_executable(
                     "veaf-tools-updater",
                     self.src_dir / "python" / "veaf-tools" / "veaf-tools-updater.py",
+                    extra_data=updater_extra,
                 )
         finally:
             # Restore original file contents

@@ -61,8 +61,6 @@ veafSpawn.IlluminationShellingInterval = 45 -- seconds between illumination shel
 
 veafSpawn.MIN_REPEAT_DELAY = 5
 
-veafSpawn.HoundElintAddDelay = 1 --delay before attempting to add a unit to Hound Elint, required for aircrafts spawned dynamically at least
-
 veafSpawn.AirUnitTemplatesPrefix = "veafSpawn-"
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -354,15 +352,6 @@ function veafSpawn.executeCommand(
                   end
                 end
               end
-            end
-            --but houndElint for example does support statics
-            -- reset the Hound Elint system, if the module is active
-            if veafHoundElint then
-              mist.scheduleFunction(
-                veafHoundElint.addPlatformToSystem,
-                { groupObject, nil, false },
-                timer.getTime() + veafSpawn.HoundElintAddDelay
-              )
             end
             --might need to specify the if a group was static in here so that people on the other end know
             if spawnedGroups then

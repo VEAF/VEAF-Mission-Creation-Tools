@@ -59,7 +59,7 @@ class TestGetterFunctions(unittest.TestCase):
 
     def test_legacy_scripts_include_known_files(self) -> None:
         paths = [item[0] for item in get_legacy_script_files()]
-        self.assertTrue(any("HoundElint" in p for p in paths))
+        self.assertTrue(any("veaf-scripts-debug" in p for p in paths))
 
     def test_community_scripts_include_mist(self) -> None:
         paths = [item[0] for item in get_community_script_files()]

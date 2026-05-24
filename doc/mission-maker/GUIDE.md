@@ -18,7 +18,9 @@ This guide is for DCS World mission designers who want to integrate the VEAF fra
 9. [Typical Build Workflow](#typical-build-workflow)
 10. [Scripts Reference](#scripts-reference)
 11. [Configuration Examples](#configuration-examples)
-12. [Resources](#resources)
+12. [CTLD and CSAR Integration](#ctld-and-csar-integration)
+13. [Debug Logging](#debug-logging)
+14. [Resources](#resources)
 
 > **Migrating an existing mission?** See the [Migration Guide](MIGRATION_GUIDE.md) — covers both VEAF MCT v5 → v6 and vanilla DCS → VEAF MCT.
 
@@ -380,6 +382,100 @@ local defenseZone = AirWaveZone:new()
 
 ---
 
+## CTLD and CSAR Integration
+
+[CTLD](https://github.com/ciribob/DCS-CTLD) (Combat Troop Loading and Deployment) and [CSAR](https://github.com/ciribob/DCS-CSAR) (Combat Search and Rescue) are third-party scripts that VEAF supports natively. VEAF monkey-patches their `initialize()` functions at startup, so you do not need to load or initialise them separately — just call them from `missionConfig.lua` using the standard VEAF pattern.
+
+### Loading order in the DCS trigger chain
+
+CTLD/CSAR scripts must be loaded before the VEAF scripts:
+
+```
+DO SCRIPT FILE → ctld.lua         (third-party)
+DO SCRIPT FILE → csar.lua         (third-party)
+DO SCRIPT FILE → veaf-scripts.lua (VEAF — triggers missionConfig.lua at end)
+```
+
+When `veaf-scripts.lua` loads, it detects the presence of `ctld` and `csar` global tables and wraps their `initialize()` functions, applying VEAF defaults before calling the real initialiser.
+
+### Enabling CTLD in missionConfig.lua
+
+```lua
+if ctld then
+    local initializeCTLD = true
+    if initializeCTLD then
+        veaf.loggers.get(veaf.Id):info("initialize CTLD")
+        local function configurationCallback()
+            -- Configure CTLD settings before it initialises
+            -- ctld.hoverPickup = false
+            -- ctld.slingLoad   = true
+        end
+        -- Calls the VEAF-wrapped version of ctld.initialize
+        ctld.initialize(configurationCallback)
+    else
+        -- Prevent the auto-scheduled ctld.initialize from running
+        ctld.alreadyInitialized = true
+    end
+end
+```
+
+The `configurationCallback` is called immediately before the real `ctld.initialize()` — set CTLD properties there, not before.
+
+### Enabling CSAR in missionConfig.lua
+
+```lua
+if csar then
+    local initializeCSAR = true
+    if initializeCSAR then
+        veaf.loggers.get(veaf.Id):info("initialize CSAR")
+        local function configurationCallback()
+            -- Configure CSAR settings before it initialises
+            csar.enableAllslots = true
+            csar.aircraftType["UH-1H"]  = 8
+            csar.aircraftType["Mi-8MT"] = 16
+            csar.useprefix  = true
+            csar.csarPrefix = { "MEDEVAC" }
+        end
+        csar.initialize(configurationCallback)
+    else
+        csar.alreadyInitialized = true
+    end
+end
+```
+
+### VEAF automatic defaults
+
+When VEAF wraps the initialisers it applies its own defaults: logging, a standard radio menu entry, and integration with `veafAssets` for auto-lasing JTACs that coordinate with CSAR helicopters. You do not need to configure any of this manually.
+
+---
+
+## Debug Logging
+
+All VEAF scripts write to the DCS log file (`Saved Games\DCS\Logs\dcs.log`). Three log levels are available, each with its own loader script:
+
+| Script | Level | Use |
+|--------|-------|-----|
+| `veaf-scripts.lua` | Normal (info + warnings) | Production missions |
+| `veaf-scripts-trace.lua` | Trace (all messages) | Deep debugging |
+| `veaf-scripts-trace-with-events.lua` | Trace + DCS events | Event handler debugging |
+
+### Switching log levels
+
+In the DCS Mission Editor, find the `DO SCRIPT FILE` trigger that loads `veaf-scripts.lua` and change the file name:
+
+```
+DO SCRIPT FILE: published/veaf-scripts.lua       → normal
+DO SCRIPT FILE: published/veaf-scripts-trace.lua → full trace
+```
+
+Rebuild the mission after this change.
+
+### Reading the log
+
+We recommend [Klogg](https://klogg.filimonov.dev/) — a fast log viewer with regex highlighting. Load `dcs.log` and filter on `VEAF` to see only VEAF messages. The VEAF Discord shares a Klogg highlight profile that colour-codes log levels.
+
+---
+
 ## Resources
 
 - [Scripts Reference](scripts/README.md) — all scripts with configuration details
@@ -387,3 +483,4 @@ local defenseZone = AirWaveZone:new()
 - [Lua API Reference](../LUA_API_REFERENCE.md) — complete Lua API documentation
 - [VEAF Demo Mission](https://github.com/VEAF/VEAF-Demo-Mission) — working example mission
 - [VEAF Discord](https://www.veaf.org/discord) — community help
+

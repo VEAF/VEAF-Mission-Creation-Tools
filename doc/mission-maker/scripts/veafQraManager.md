@@ -132,15 +132,64 @@ By default the QRA has unlimited aircraft. Use these to simulate a finite stock 
 
 ---
 
-## QRA State Machine
+## How it works
+
+A QRA zone monitors a volume of airspace defined by a DCS trigger zone. The moment a hostile aircraft enters that space, the QRA scrambles — provided it is ready. When the QRA is shot down, the zone enters a rearming state; it will become active again once the enemies leave and the rearm timer expires.
+
+### State machine
 
 ```
-READY ──(intruder enters)──> ACTIVE ──(QRA destroyed)──> DEAD
-  ^                                                          |
-  └──────(all intruders left + rearm delay)─────────────────┘
+STOP ──start()──► READY ──(intruder enters)──► ACTIVE ──(QRA destroyed)──► DEAD
+  ▲                 ▲                                                          │
+  │                 └──────────(all intruders left + rearm delay)─────────────┘
+  │                                                     │
+  └──────────────────────────stop()────────────────────►┘
 ```
 
-Additional states: `WILLREARM`, `OUT` (no more groups), `NOAIRBASE` (airbase destroyed), `STOP` (manually disabled).
+Full states:
+
+| State | Meaning |
+|-------|---------|
+| `STOP` | Inactive — `stop()` was called or the QRA was never started |
+| `READY` | Armed and watching for intruders |
+| `READY_WAITINGFORMORE` | QRA scrambled; additional intruders triggered deployment of more groups |
+| `ACTIVE` | QRA is airborne and intercepting |
+| `DEAD` | QRA was destroyed; waiting for conditions to rearm |
+| `WILLREARM` | Rearming timer is running |
+| `OUT` | No more aircraft available (stock exhausted) |
+| `NOAIRBASE` | The linked airbase was destroyed — QRA stands down |
+
+### Setting up in the DCS Mission Editor
+
+1. **Create a trigger zone** — draw the airspace you want to protect. Name it something memorable, e.g. `ZONE-QRA-NORTH`.
+2. **Place the QRA group** — create the aircraft group that will scramble. Set it to **Late Activation** so it does not spawn at mission start (VEAF handles activation). Give the group a distinctive name, e.g. `MiG-29 QRA North`.
+3. **Wire it up in `missionConfig.lua`**:
+
+```lua
+VeafQRA:new()
+  :setName("QRA-North")
+  :setTriggerZone("ZONE-QRA-NORTH")
+  :setCoalition(coalition.side.RED)
+  :addGroup("MiG-29 QRA North")
+  :start()
+```
+
+That is all — no trigger conditions, no scheduled functions. VEAF handles detection, scramble, and rearm automatically.
+
+### Logistics chain
+
+By default a QRA has unlimited aircraft. The logistics system lets you model a finite airfield stock with optional resupply — useful for long persistent missions:
+
+| Parameter | Role |
+|-----------|------|
+| `setQRAcount(n)` | Total aircraft groups available (acts as the current stock) |
+| `setQRAmaxCount(n)` | Hard cap on simultaneous active groups |
+| `setQRAresupplyDelay(s)` | Seconds to wait before a resupply starts |
+| `setQRAminCountforResupply(n)` | Stock level that triggers a resupply |
+| `setQRAmaxResupplyCount(n)` | Maximum number of resupply cycles (`-1` = unlimited) |
+| `setResupplyAmount(n)` | Groups added per resupply cycle (default `1`) |
+
+Think of it as a warehouse: `QRAcount` is what is on the shelf, `resupplyDelay` is the truck delivery time, and `minCountforResupply` is the reorder point.
 
 ---
 

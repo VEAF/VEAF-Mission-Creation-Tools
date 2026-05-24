@@ -42,41 +42,115 @@ local defenseZone = AirWaveZone:new()
 | `:setName(name)` | Internal identifier |
 | `:setZoneName(zoneName)` | DCS trigger zone defining the interception area |
 | `:setDescription(text)` | Label for messages and logs |
-| `:addWave(groupNames)` | Add a wave (table of DCS group names) |
+| `:addWave(...)` | Add a wave — see [Wave definition](#wave-definition) |
+| `:resetWaves()` | Clear all added waves (useful after `mist.utils.deepCopy`) |
 | `:setMinimumPlayersForWave(n)` | Minimum human players needed to trigger a wave |
 | `:setPlayerCoalitions(sides)` | Which coalitions to count as players |
 | `:setPlayerUnitsNames(names)` | Specific player unit names to track |
 | `:setRespawnRadius(m)` | Spawn scatter radius (default: 250 m) |
-| `:setRespawnDefaultOffset(lat, lon)` | Offset from zone centre for spawns |
+| `:setRespawnDefaultOffset(lat, lon)` | Offset from zone centre for spawns (metres, lat/lon) |
+| `:setMaxSecondsOutsideOfZoneIA(n)` | Seconds before an AI wave group is considered lost if it leaves the zone |
+| `:setMaxSecondsOutsideOfZonePlayers(n)` | Seconds before the zone resets if all players leave |
 | `:setSilent(bool)` | Suppress all messages |
 | `:setDrawZone(bool)` | Draw zone outline on map |
-| `:setOnStart(fn)` | Callback when zone activates |
-| `:setOnWaveDestroyed(fn)` | Callback when a wave is destroyed |
-| `:setOnCompleted(fn)` | Callback when all waves done |
+| `:setOnStart(fn)` | Callback `(zoneName, playerUnits)` when zone activates |
+| `:setOnWaitForHumans(fn)` | Callback `(zoneName, waveIndex, playerUnits)` while waiting for players |
+| `:setOnWaitToDeploy(fn)` | Callback `(zoneName, waveIndex, playerUnits)` while inter-wave timer runs |
+| `:setOnWaveDestroyed(fn)` | Callback `(zoneName, waveIndex, playerUnits)` when a wave is destroyed |
+| `:setOnCompleted(fn)` | Callback `(zoneName, playerUnits)` when all waves done |
+| `:setOnMissionOver(fn)` | Callback `(zoneName, playerUnits)` when the zone ends in a loss |
 | `:setMessageStart(text)` | Custom zone-start message |
+| `:setMessageWaitForHumans(text)` | Custom "waiting for players" message |
 | `:setMessageWaitToDeploy(text)` | Custom wave-incoming message |
-| `:setMessageWaveDeployed(text)` | Custom wave-launched message |
+| `:setMessageDeploy(text)` | Custom wave-launched message |
 | `:setMessageWaveDestroyed(text)` | Custom wave-down message |
 | `:setMessageCompleted(text)` | Custom all-waves-done message |
+| `:setMessageMissionOver(text)` | Custom loss message |
 
 ---
 
-## Waves
+## Wave definition
 
-Each wave is a list of DCS group names. All groups in a wave spawn simultaneously. The next wave triggers when all groups of the current wave are destroyed.
+`addWave(...)` accepts several forms — from the simplest to the most powerful:
 
 ```lua
-:addWave({ "BanditsA", "BanditsB" })   -- wave 1: two groups spawn at once
-:addWave({ "BanditsC" })               -- wave 2: one group
-:addWave({ "BanditsD", "BanditsE", "BanditsF" })  -- wave 3
+-- A single group name
+:addWave("Bandits Alpha")
+
+-- Several group names at once
+:addWave("Bandits Alpha", "Bandits Bravo")
+
+-- A table of group names
+:addWave({ "Bandits Alpha", "Bandits Bravo", "Bandits Charlie" })
+
+-- A parameter table with full control
+:addWave({
+  groups  = { "Fighter 1", "Fighter 2", "Fighter 3", "Fighter 4", "Fighter 5" },
+  number  = "1-3",   -- pick between 1 and 3 of these groups at random
+  bias    = 2,        -- start the random pick from the 3rd group (index 2+1)
+  delay   = 30,       -- wait 30 s before spawning the next wave after this one is cleared
+})
 ```
 
----
+### `number` — controlling how many spawn
 
-## Example
+`number` sets how many groups from the list are actually spawned. It can be:
+- An integer: `number = 2` always spawns exactly 2 groups
+- A range string: `number = "2-4"` randomly spawns 2, 3, or 4 groups
+
+If `number` exceeds the list length, the same group can be picked more than once — useful for spawning multiple instances of the same threat.
+
+### `bias` — skewing towards harder variants
+
+`bias` shifts the starting index of the random selection towards the end of the list. A `bias` of 0 (default) picks from the whole list uniformly. A `bias` of 3 on a 6-group list means the first 3 entries are less likely to be chosen.
+
+The typical pattern is to order groups from easiest to hardest — early in a campaign `bias` stays at 0, and you increase it over time to make the opposition progressively more dangerous:
 
 ```lua
--- Zone that requires 2 human players and has 3 waves
+-- A wave pool ordered by difficulty. Adjust bias= dynamically in callbacks.
+:addWave({
+  groups = {
+    "Su-25 Flight",       -- 1: easy
+    "Su-25T Flight",      -- 2: medium
+    "Su-27 Flight",       -- 3: hard
+    "Su-30SM Flight",     -- 4: very hard
+  },
+  number = "1-2",
+  bias   = 0,   -- start easy; raise to 2 later in the mission
+})
+```
+
+### `delay` — simultaneous waves
+
+When `delay` is **negative**, the next wave spawns immediately after this one — without waiting for it to be destroyed. This lets you send multiple threat packages at once:
+
+```lua
+:addWave({ groups = { "Fighter Escort" }, delay = -1 })  -- launches together with...
+:addWave({ groups = { "Strike Package" } })              -- ...this wave
+```
+
+### VEAF commands as groups
+
+Instead of a DCS group name, you can use any VEAF spawn command (the same syntax as an F10 map marker). The command is executed at the spawn position, which can be adjusted with a `[latDelta,lonDelta]` prefix (in metres, relative to the zone centre):
+
+```lua
+:addWave({
+  groups = {
+    "[0,5000]-spawn su-27, country russia",           -- 5 km north of zone centre
+    "[-3000,0]-spawn su-25, alt 100, country russia", -- 3 km south, low level
+  }
+})
+```
+
+This makes it easy to set up layered threats from different directions without pre-placing groups in the DCS Mission Editor.
+
+---
+
+## Examples
+
+### Basic three-wave intercept zone
+
+```lua
 AirWaveZone:new()
   :setName("Intercept-West")
   :setZoneName("ZONE-WEST-INTERCEPT")
@@ -89,6 +163,66 @@ AirWaveZone:new()
   :setOnCompleted(function()
     trigger.action.setUserFlag("WEST_CLEAR", true)
   end)
+  :initialize()
+```
+
+### Randomised waves with escalating difficulty
+
+```lua
+AirWaveZone:new()
+  :setName("Intercept-East")
+  :setZoneName("ZONE-EAST-INTERCEPT")
+  :setDescription("Eastern threat axis — progressive difficulty")
+  -- Wave 1: pick 1 or 2 light fighters from a pool
+  :addWave({
+    groups = { "MiG-21 Flight", "MiG-23 Flight", "MiG-29 Flight", "Su-27 Flight" },
+    number = "1-2",
+    bias   = 0,
+    delay  = 120,   -- 2-minute breather before wave 2
+  })
+  -- Wave 2: medium fighters, slightly harder pool
+  :addWave({
+    groups = { "MiG-29 Flight", "Su-27 Flight", "Su-30SM Flight" },
+    number = 2,
+    bias   = 1,
+    delay  = 60,
+  })
+  -- Wave 3: heavy escort + simultaneous ground attack (negative delay)
+  :addWave({ groups = { "Su-27 Escort" }, delay = -1 })
+  :addWave({ groups = { "Su-24M Strike" } })
+  :setMinimumPlayersForWave(2)
+  :setDrawZone(true)
+  :initialize()
+```
+
+### Reusing a template zone with deep copy
+
+When several sectors share the same wave structure, define a template zone and clone it. Use `:resetWaves()` to clear the template's waves before adding sector-specific ones:
+
+```lua
+-- Define a shared template (NOT initialised yet)
+local zoneTemplate = AirWaveZone:new()
+  :setMinimumPlayersForWave(1)
+  :setDrawZone(true)
+  :addWave({ "MiG-29 Wave 1" })
+  :addWave({ "Su-27 Wave 2" })
+
+-- Clone and customise for each sector
+local zoneNorth = mist.utils.deepCopy(zoneTemplate)
+zoneNorth
+  :setName("AW-North")
+  :setZoneName("ZONE-AW-NORTH")
+  :setDescription("Northern sector")
+  :initialize()
+
+local zoneSouth = mist.utils.deepCopy(zoneTemplate)
+zoneSouth
+  :setName("AW-South")
+  :setZoneName("ZONE-AW-SOUTH")
+  :setDescription("Southern sector")
+  :resetWaves()                          -- clear template waves
+  :addWave({ "Su-25T Wave 1" })          -- add sector-specific waves
+  :addWave({ "Su-24M Wave 2", "Su-24M Wave 2b" })
   :initialize()
 ```
 

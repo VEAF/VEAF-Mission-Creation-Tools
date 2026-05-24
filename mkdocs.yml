@@ -101,10 +101,12 @@ nav:
       - veafCombatZone: mission-maker/scripts/veafCombatZone.md
       - veafGrass: mission-maker/scripts/veafGrass.md
       - veafHoundElintHelper: mission-maker/scripts/veafHoundElintHelper.md
+      - veafInterpreter: mission-maker/scripts/veafInterpreter.md
       - veafMissileGuardian: mission-maker/scripts/veafMissileGuardian.md
       - veafMove: mission-maker/scripts/veafMove.md
       - veafNamedPoints: mission-maker/scripts/veafNamedPoints.md
       - veafQraManager: mission-maker/scripts/veafQraManager.md
+      - veafRadio: mission-maker/scripts/veafRadio.md
       - veafSanctuary: mission-maker/scripts/veafSanctuary.md
       - veafSecurity: mission-maker/scripts/veafSecurity.md
       - veafShortcuts: mission-maker/scripts/veafShortcuts.md

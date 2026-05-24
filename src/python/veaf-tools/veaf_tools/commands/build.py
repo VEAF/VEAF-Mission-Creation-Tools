@@ -62,7 +62,7 @@ def build(
     logger.set_verbose(verbose)
 
     # Set the title and version
-    console.print(f"[bold green]veaf-tools VEAF mission builder v{VERSION}[/bold green]")
+    console.print(t("cmd.build.title", version=VERSION))
 
     if readme:
         if typer.confirm(t("help.confirm_doc")):
@@ -210,7 +210,7 @@ def build(
     presets_path = _step_file("presets", "src/presets.yaml")
     if presets_path:
         logger.info(f"Pipeline: injecting radio presets from {presets_path}")
-        console.print(f"[bold blue]Pipeline: radio presets ({presets_path.name})[/bold blue]")
+        console.print(t("pipeline.console.presets", file=presets_path.name))
         PresetsInjectorWorker(
             presets_file=presets_path,
             input_mission=p_output_mission,
@@ -220,7 +220,7 @@ def build(
     waypoints_path = _step_file("waypoints", "src/waypoints.yaml", "waypoints.yaml")
     if waypoints_path:
         logger.info(f"Pipeline: injecting waypoints from {waypoints_path}")
-        console.print(f"[bold blue]Pipeline: waypoints ({waypoints_path.name})[/bold blue]")
+        console.print(t("pipeline.console.waypoints", file=waypoints_path.name))
         WaypointsInjectorWorker(
             waypoints_file=waypoints_path,
             input_mission=p_output_mission,
@@ -239,9 +239,7 @@ def build(
         is_valid, _ = validator.validate()
         if is_valid:
             logger.info(f"Pipeline: injecting aircraft groups from {aircraft_path} (mode={aircraft_mode})")
-            console.print(
-                f"[bold blue]Pipeline: aircraft groups ({aircraft_path.name}, mode={aircraft_mode})[/bold blue]"
-            )
+            console.print(t("pipeline.console.aircraft", file=aircraft_path.name, mode=aircraft_mode))
             AircraftGroupsInjectorWorker(
                 input_yaml=aircraft_path,
                 target_mission=p_output_mission,
@@ -249,12 +247,12 @@ def build(
             ).inject(mode=aircraft_mode, silent=True)
         else:
             logger.warning(f"Pipeline: aircraft groups YAML validation failed — skipping ({aircraft_path})")
-            console.print("[bold yellow]Pipeline: aircraft groups validation failed, skipping[/bold yellow]")
+            console.print(t("pipeline.console.aircraft_invalid"))
 
     weather_path = _step_file("weather", "src/missions.yaml", "src/versions.yaml", "missions.yaml")
     if weather_path:
         logger.info(f"Pipeline: injecting weather variants from {weather_path}")
-        console.print(f"[bold blue]Pipeline: weather variants ({weather_path.name})[/bold blue]")
+        console.print(t("pipeline.console.weather", file=weather_path.name))
         weather_worker = WeatherInjectorWorker(
             config_file=weather_path,
             mission_file=p_output_mission,
@@ -262,7 +260,7 @@ def build(
             mission_base_name=mission_base_name,
         )
         if created_files := weather_worker.work():
-            console.print(f"[bold green]Pipeline: created {len(created_files)} weather variant(s)[/bold green]")
+            console.print(t("pipeline.console.weather_done", count=len(created_files)))
 
     console.print(t("msg.work_done"))
     if pause:

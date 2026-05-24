@@ -53,7 +53,7 @@ def extract_waypoints(
     aircraft_type = "plane" if only_airplanes else ("helicopter" if only_helicopters else None)
 
     # Set the title and version
-    console.print(f"[bold green]veaf-tools Waypoints Extractor v{VERSION}[/bold green]")
+    console.print(t("cmd.extract_waypoints.title", version=VERSION))
 
     if readme:
         if typer.confirm(t("help.confirm_doc")):
@@ -122,7 +122,7 @@ def inject_waypoints(
     logger.set_verbose(verbose)
 
     # Set the title and version
-    console.print(f"[bold green]veaf-tools Waypoints Injector v{VERSION}[/bold green]")
+    console.print(t("cmd.inject_waypoints.title", version=VERSION))
 
     if readme:
         if typer.confirm(t("help.confirm_doc")):

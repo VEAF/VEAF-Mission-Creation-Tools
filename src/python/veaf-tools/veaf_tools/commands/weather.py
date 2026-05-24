@@ -29,7 +29,7 @@ def inject_weather(
     logger.set_verbose(verbose)
 
     # Set the title and version
-    console.print(f"[bold green]veaf-tools Weather and Time Versions v{VERSION}[/bold green]")
+    console.print(t("cmd.inject_weather.title", version=VERSION))
 
     if readme:
         if typer.confirm(t("help.confirm_doc")):
@@ -43,9 +43,9 @@ def inject_weather(
     if convert_lua or p_config_file.suffix.lower() == ".lua":
         logger.info(f"Converting Lua configuration: {p_config_file}")
         if yaml_file := LuaToYamlConverter.convert_file(p_config_file):
-            console.print("[bold green]Lua configuration converted to YAML:[/bold green]")
+            console.print(t("cmd.inject_weather.lua_converted"))
             console.print(f"  {yaml_file}")
-            if typer.confirm("Do you want to create missions from this configuration?"):
+            if typer.confirm(t("cmd.inject_weather.confirm_create")):
                 p_config_file = yaml_file
             else:
                 if pause:
@@ -66,7 +66,7 @@ def inject_weather(
     # Call the worker class
     worker = WeatherInjectorWorker(config_file=p_config_file, mission_file=p_mission_file)
     if created_files := worker.work():
-        console.print(f"[bold green]Created {len(created_files)} mission files[/bold green]")
+        console.print(t("cmd.inject_weather.done", count=len(created_files)))
         for file_path in created_files:
             console.print(f"  - {file_path.name}")
 

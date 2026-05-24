@@ -21,7 +21,7 @@ def generate_config(
     pause: bool = typer.Option(False, help=PAUSE_HELP),
 ) -> None:
     logger.set_verbose(verbose)
-    console.print(f"[bold green]veaf-tools Generate Config v{VERSION}[/bold green]")
+    console.print(t("cmd.generate_config.title", version=VERSION))
 
     p_output = resolve_path(path=output, create_if_not_exist=True)
 
@@ -35,7 +35,7 @@ def generate_config(
     content = generate_mission_yaml_template(modules=modules)
     output_file = p_output / "mission.yaml"
     output_file.write_text(content, encoding="utf-8")
-    console.print(f"[bold green]Generated:[/bold green] {output_file}")
+    console.print(t("cmd.generate_config.generated", file=output_file))
 
     console.print(t("msg.work_done"))
     if pause:
@@ -58,7 +58,7 @@ def migrate_config(
     pause: bool = typer.Option(False, help=PAUSE_HELP),
 ) -> None:
     logger.set_verbose(verbose)
-    console.print(f"[bold green]veaf-tools Migrate Config v{VERSION}[/bold green]")
+    console.print(t("cmd.migrate_config.title", version=VERSION))
 
     p_input = resolve_path(path=input_file, should_exist=True)
     if not p_input.exists():
@@ -71,8 +71,8 @@ def migrate_config(
     else:
         p_output = resolve_path(path=output)
 
-    console.print(f"Input : {p_input}")
-    console.print(f"Output: {p_output}")
+    console.print(t("cmd.migrate_config.input", path=p_input))
+    console.print(t("cmd.migrate_config.output", path=p_output))
 
     content = p_input.read_text(encoding="utf-8")
     migrator = ConfigMigrator()
@@ -83,35 +83,38 @@ def migrate_config(
 
     # Report changes.
     if result.removed_dofiles:
-        console.print(f"\n[yellow]Commented out {len(result.removed_dofiles)} doFile() call(s):[/yellow]")
+        console.print(t("cmd.migrate_config.dofiles_count", count=len(result.removed_dofiles)))
         for item in result.removed_dofiles:
             console.print(f"  • {item}")
 
     if result.wrapped_calls:
-        console.print(f"\n[yellow]Wrapped {len(result.wrapped_calls)} bare initialize() call(s):[/yellow]")
+        console.print(t("cmd.migrate_config.wrapped_count", count=len(result.wrapped_calls)))
         for item in result.wrapped_calls:
             console.print(f"  • {item}")
 
     if result.warnings:
-        console.print("\n[bold yellow]Warnings (manual review needed):[/bold yellow]")
+        console.print(t("cmd.migrate_config.warnings"))
         for w in result.warnings:
             console.print(f"  ⚠  {w}")
 
     if result.enabled_modules:
         console.print(
-            f"\n[bold cyan]Modules found ({len(result.enabled_modules)}):[/bold cyan] "
-            + ", ".join(result.enabled_modules)
+            t(
+                "cmd.migrate_config.modules_found",
+                count=len(result.enabled_modules),
+                modules=", ".join(result.enabled_modules),
+            )
         )
     else:
-        console.print("\n[yellow]No VEAF module initialize() calls found.[/yellow]")
+        console.print(t("cmd.migrate_config.no_modules_found"))
 
     # YAML snippet.
     if yaml_output:
         p_yaml = resolve_path(path=yaml_output)
         p_yaml.write_text(result.yaml_snippet, encoding="utf-8")
-        console.print(f"\n[bold cyan]lua_modules YAML snippet written to:[/bold cyan] {p_yaml}")
+        console.print(t("cmd.migrate_config.yaml_written", path=p_yaml))
     else:
-        console.print("\n[bold cyan]lua_modules YAML snippet (paste into mission.yaml):[/bold cyan]")
+        console.print(t("cmd.migrate_config.yaml_inline"))
         console.print(result.yaml_snippet)
 
     console.print(t("msg.work_done"))

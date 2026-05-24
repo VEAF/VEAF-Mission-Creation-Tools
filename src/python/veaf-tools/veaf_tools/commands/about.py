@@ -32,9 +32,7 @@ def about(
     if modules:
         mod_list = get_modules()
         if not mod_list:
-            console.print(
-                "[yellow]No module information available (run from a full repo checkout or built exe).[/yellow]"
-            )
+            console.print(t("cmd.about.no_modules"))
             return
         table = Table(title=f"VEAF Lua Modules ({len(mod_list)} total)")
         table.add_column("ID", style="cyan", no_wrap=True)
@@ -46,11 +44,8 @@ def about(
         return
 
     url = "https://www.veaf.org"
-    console.print(__doc__)
-    console.print("[bold green]The VEAF - Virtual European Air Force[/bold green]")
-    console.print(
-        "The VEAF is a community of virtual pilots dedicated to creating and flying high-quality missions in DCS World."
-    )
-    console.print(f"Website: {url}", style="blue")
-    if typer.confirm("Do you want to open the VEAF website in your browser?"):
+    console.print(t("cmd.about.veaf"))
+    console.print(t("cmd.about.veaf_desc"))
+    console.print(t("cmd.about.website", url=url), style="blue")
+    if typer.confirm(t("cmd.about.open_website")):
         typer.launch(url)

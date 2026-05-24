@@ -19,14 +19,11 @@ def prepare(
     logger.set_verbose(verbose)
 
     # Set the title and version
-    console.print(f"[bold green]veaf-tools Mission Folder Preparation v{VERSION}[/bold green]")
+    console.print(t("cmd.prepare.title", version=VERSION))
 
     if readme:
-        console.print("[bold cyan]Prepare Command[/bold cyan]")
-        console.print("This command initializes a mission folder with default files.")
-        console.print("\nDefault files are copied from: published/src/defaults/mission-folder")
-        console.print("\nIf files already exist, you will be asked to confirm replacement (unless --force is used).")
-        console.print("\nFor v5 migrations, do NOT run prepare — use convert-v5 directly on your existing v5 folder.")
+        console.print(t("cmd.prepare.subtitle"))
+        console.print(t("cmd.prepare.readme.intro"))
         exit()
 
     try:
@@ -93,11 +90,11 @@ def prepare(
                     files_installed += 1
 
         # Print summary
-        console.print("\n[bold green]Preparation completed![/bold green]")
-        console.print(f"  Files installed: [cyan]{files_installed}[/cyan]")
+        console.print(t("cmd.prepare.done"))
+        console.print(t("cmd.prepare.files_installed", count=files_installed))
         if files_skipped > 0:
-            console.print(f"  Files skipped: [yellow]{files_skipped}[/yellow]")
-        console.print(f"\nMission folder ready at: [cyan]{p_mission_folder.resolve()}[/cyan]")
+            console.print(t("cmd.prepare.files_skipped", count=files_skipped))
+        console.print(t("cmd.prepare.folder_ready", path=p_mission_folder.resolve()))
 
     except Exception as e:
         logger.error(f"Preparation failed: {e}")

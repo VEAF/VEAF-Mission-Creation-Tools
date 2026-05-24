@@ -33,7 +33,7 @@ def extract(
     logger.set_verbose(verbose)
 
     # Set the title and version
-    console.print(f"[bold green]veaf-tools VEAF mission extractor v{VERSION}[/bold green]")
+    console.print(t("cmd.extract.title", version=VERSION))
 
     if readme:
         if typer.confirm(t("help.confirm_doc")):

@@ -94,10 +94,9 @@ def check_for_updates(current_version: str, console: "Console") -> None:
             _save_cache(veaf_home, latest)
 
         if latest and _version_tuple(latest) > _version_tuple(current_version):
-            console.print(
-                f"[yellow]⚠ A newer version of veaf-tools is available: "
-                f"[bold]{latest}[/bold] (you have {current_version})[/yellow]"
-            )
-            console.print("[yellow]  Run [bold]veaf-tools-updater[/bold] to update.[/yellow]")
+            from veaf_libs.i18n import t
+
+            console.print(t("update.new_version", latest=latest, current=current_version))
+            console.print(t("update.run_updater"))
     except Exception:
         pass  # Offline, timeout, rate-limited, or cache error — silently skip

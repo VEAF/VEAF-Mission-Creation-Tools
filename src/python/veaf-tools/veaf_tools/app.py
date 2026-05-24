@@ -21,11 +21,10 @@ DEFAULT_PRESETS_FILE = "./src/presets.yaml"
 app = typer.Typer(no_args_is_help=True)
 
 
-@app.callback()
+@app.callback(help=t("app.description"))
 def main_callback(
     lang: str | None = typer.Option(None, "--lang", help=t("help.lang")),
 ) -> None:
-    """VEAF Tools — DCS World mission management CLI."""
     if lang:
         set_language(lang)
     from veaf_libs.user_config import get_check_updates

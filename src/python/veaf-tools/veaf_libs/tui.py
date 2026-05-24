@@ -13,6 +13,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
+from veaf_libs.i18n import t
+
 # ---------------------------------------------------------------------------
 # Command / argument descriptors
 # ---------------------------------------------------------------------------
@@ -58,85 +60,99 @@ class CommandSpec:
 COMMANDS: list[CommandSpec] = [
     CommandSpec(
         cli_name="build",
-        description="Build a DCS mission .miz from a VEAF mission folder",
+        description=t("tui.cmd.build.description"),
         prompts=[
-            ArgPrompt("mission_name_or_file", "Mission name or .miz file", default="mission.miz", is_option=False),
-            ArgPrompt("mission_folder", "Mission folder", default=".", is_option=False),
+            ArgPrompt(
+                "mission_name_or_file", t("tui.arg.mission_name_or_file"), default="mission.miz", is_option=False
+            ),
+            ArgPrompt("mission_folder", t("tui.arg.mission_folder"), default=".", is_option=False),
         ],
     ),
     CommandSpec(
         cli_name="extract",
-        description="Extract a .miz file into a VEAF mission folder",
+        description=t("tui.cmd.extract.description"),
         prompts=[
-            ArgPrompt("mission_name_or_file", "Mission name or .miz file", default="mission.miz", is_option=False),
-            ArgPrompt("mission_folder", "Mission folder (destination)", default=".", is_option=False),
+            ArgPrompt(
+                "mission_name_or_file", t("tui.arg.mission_name_or_file"), default="mission.miz", is_option=False
+            ),
+            ArgPrompt("mission_folder", t("tui.arg.mission_folder_dest"), default=".", is_option=False),
         ],
     ),
     CommandSpec(
         cli_name="convert",
-        description="Convert an existing DCS mission into a new VEAF mission folder",
+        description=t("tui.cmd.convert.description"),
         prompts=[
-            ArgPrompt("mission_name", "Mission name (no extension)", default="mission", is_option=False),
-            ArgPrompt("mission_folder", "Mission folder", default=".", is_option=False),
+            ArgPrompt("mission_name", t("tui.arg.mission_name_no_ext"), default="mission", is_option=False),
+            ArgPrompt("mission_folder", t("tui.arg.mission_folder"), default=".", is_option=False),
         ],
     ),
     CommandSpec(
         cli_name="inject-presets",
-        description="Inject radio presets from a YAML config into a .miz file",
+        description=t("tui.cmd.inject_presets.description"),
         prompts=[
             ArgPrompt(
-                "input_mission_name_or_file", "Input mission name or .miz file", default="mission.miz", is_option=False
+                "input_mission_name_or_file", t("tui.arg.mission_name_or_file"), default="mission.miz", is_option=False
             ),
-            ArgPrompt("presets_file", "Presets YAML file", default="./src/presets.yaml"),
+            ArgPrompt("presets_file", t("tui.arg.presets_file"), default="./src/presets.yaml"),
         ],
     ),
     CommandSpec(
         cli_name="inject-weather",
-        description="Inject weather and time-of-day variants into a .miz file",
+        description=t("tui.cmd.inject_weather.description"),
         prompts=[
-            ArgPrompt("mission_name_or_file", "Mission name or .miz file", default="mission.miz", is_option=False),
+            ArgPrompt(
+                "mission_name_or_file", t("tui.arg.mission_name_or_file"), default="mission.miz", is_option=False
+            ),
         ],
     ),
     CommandSpec(
         cli_name="inject-aircraft-groups",
-        description="Inject aircraft groups from a YAML template into a .miz file",
+        description=t("tui.cmd.inject_aircraft.description"),
         prompts=[
-            ArgPrompt("mission_name_or_file", "Mission name or .miz file", default="mission.miz", is_option=False),
-            ArgPrompt("template_file", "Aircraft groups YAML file", default="aircraft-templates.yaml"),
+            ArgPrompt(
+                "mission_name_or_file", t("tui.arg.mission_name_or_file"), default="mission.miz", is_option=False
+            ),
+            ArgPrompt("template_file", t("tui.arg.template_file"), default="aircraft-templates.yaml"),
         ],
     ),
     CommandSpec(
         cli_name="extract-aircraft-groups",
-        description="Extract aircraft groups from a .miz file into a YAML template",
+        description=t("tui.cmd.extract_aircraft.description"),
         prompts=[
-            ArgPrompt("mission_name_or_file", "Mission name or .miz file", default="mission.miz", is_option=False),
-            ArgPrompt("output_yaml", "Output YAML file", default="aircraft-templates.yaml"),
+            ArgPrompt(
+                "mission_name_or_file", t("tui.arg.mission_name_or_file"), default="mission.miz", is_option=False
+            ),
+            ArgPrompt("output_yaml", t("tui.arg.output_yaml"), default="aircraft-templates.yaml"),
         ],
     ),
     CommandSpec(
         cli_name="inject-waypoints",
-        description="Inject waypoints from a YAML file into a .miz file",
+        description=t("tui.cmd.inject_waypoints.description"),
         prompts=[
-            ArgPrompt("mission_name_or_file", "Mission name or .miz file", default="mission.miz", is_option=False),
+            ArgPrompt(
+                "mission_name_or_file", t("tui.arg.mission_name_or_file"), default="mission.miz", is_option=False
+            ),
         ],
     ),
     CommandSpec(
         cli_name="extract-waypoints",
-        description="Extract waypoints from a .miz file into a YAML file",
+        description=t("tui.cmd.extract_waypoints.description"),
         prompts=[
-            ArgPrompt("mission_name_or_file", "Mission name or .miz file", default="mission.miz", is_option=False),
+            ArgPrompt(
+                "mission_name_or_file", t("tui.arg.mission_name_or_file"), default="mission.miz", is_option=False
+            ),
         ],
     ),
     CommandSpec(
         cli_name="prepare",
-        description="Initialise a new VEAF mission folder with default files",
+        description=t("tui.cmd.prepare.description"),
         prompts=[
-            ArgPrompt("mission_folder", "Mission folder to initialise", default=".", is_option=False),
+            ArgPrompt("mission_folder", t("tui.arg.mission_folder_init"), default=".", is_option=False),
         ],
     ),
     CommandSpec(
         cli_name="about",
-        description="Show information about veaf-tools",
+        description=t("tui.cmd.about.description"),
         prompts=[],
     ),
 ]
@@ -177,10 +193,10 @@ def run_wizard() -> list[str]:
         default_choice = last_command if last_command in _COMMAND_MAP else COMMANDS[0].cli_name
 
         selected: str = inquirer.select(  # type: ignore[attr-defined]
-            message="Select a command",
+            message=t("tui.select_command"),
             choices=choices,
             default=default_choice,
-            instruction="(↑↓ navigate, Enter confirm)",
+            instruction=t("tui.instruction"),
         ).execute()
 
         spec = _COMMAND_MAP[selected]

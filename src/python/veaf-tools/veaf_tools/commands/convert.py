@@ -35,7 +35,7 @@ def convert(
     logger.set_verbose(verbose)
 
     # Set the title and version
-    console.print(f"[bold green]veaf-tools VEAF mission converter v{VERSION}[/bold green]")
+    console.print(t("cmd.convert.title", version=VERSION))
 
     if readme:
         if typer.confirm(t("help.confirm_doc")):

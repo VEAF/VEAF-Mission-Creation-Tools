@@ -53,7 +53,7 @@ def extract_aircraft_groups(
     aircraft_type = "airplanes" if only_airplanes else ("helicopters" if only_helicopters else None)
 
     # Set the title and version
-    console.print(f"[bold green]veaf-tools Aircraft Groups Extractor v{VERSION}[/bold green]")
+    console.print(t("cmd.extract_aircraft.title", version=VERSION))
 
     if readme:
         if typer.confirm(t("help.confirm_doc")):
@@ -123,7 +123,7 @@ def inject_aircraft_groups(
     logger.set_verbose(verbose)
 
     # Set the title and version
-    console.print(f"[bold green]veaf-tools Aircraft Groups Injector v{VERSION}[/bold green]")
+    console.print(t("cmd.inject_aircraft.title", version=VERSION))
 
     # Validate mode
     if mode not in ("add", "replace"):
@@ -160,12 +160,12 @@ def inject_aircraft_groups(
 
     # If validation fails, stop here
     if not is_valid:
-        console.print("[bold red]✗ YAML validation failed. Please fix the errors before injection.[/bold red]")
+        console.print(t("cmd.inject_aircraft.validation_failed"))
         if pause:
             input(t("help.pause_msg"))
         exit(1)
 
-    console.print("[bold green]✓ YAML validation successful![/bold green]\n")
+    console.print(t("cmd.inject_aircraft.validation_ok") + "\n")
 
     # STEP 2: Inject aircraft groups
     logger.info(f"Step 2: Injecting aircraft groups using '{mode}' mode...")
@@ -178,11 +178,9 @@ def inject_aircraft_groups(
     injector.display_results(result, verbose=verbose)
 
     if result.success:
-        console.print(
-            f"[bold green]✓ Successfully injected {result.groups_injected} group(s) into the mission![/bold green]"
-        )
+        console.print(t("cmd.inject_aircraft.injected", count=result.groups_injected))
     else:
-        console.print(f"[bold yellow]⚠ Injection completed: {result.message}[/bold yellow]")
+        console.print(t("cmd.inject_aircraft.partial", message=result.message))
 
     console.print(t("msg.work_done"))
     if pause:

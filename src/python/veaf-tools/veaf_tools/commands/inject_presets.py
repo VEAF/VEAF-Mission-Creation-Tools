@@ -35,7 +35,7 @@ def inject_presets(
     logger.set_verbose(verbose)
 
     # Set the title and version
-    console.print(f"[bold green]veaf-tools Radio Presets Injector v{VERSION}[/bold green]")
+    console.print(t("cmd.inject_presets.title", version=VERSION))
 
     if readme:
         if typer.confirm(t("help.confirm_doc")):

@@ -5,7 +5,9 @@ a = Analysis(
     ['src\\python\\veaf-tools\\veaf-tools-updater.py'],
     pathex=[],
     binaries=[],
-    datas=[],
+    datas=[
+        ('src\\python\\veaf-tools\\veaf_libs\\locales', 'veaf_libs\\locales'),
+    ],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},

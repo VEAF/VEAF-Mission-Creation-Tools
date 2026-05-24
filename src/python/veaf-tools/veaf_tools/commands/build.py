@@ -1,3 +1,4 @@
+import re
 from datetime import datetime
 from pathlib import Path
 
@@ -102,8 +103,14 @@ def build(
     # did not explicitly provide a different mission name on the CLI.
     _yaml_mission_name: str | None = (mission_yaml.get("mission") or {}).get("name") if mission_yaml else None
     if mission_name_or_file == DEFAULT_MISSION_FILE and _yaml_mission_name:
-        p_output_mission = p_mission_folder / f"{_yaml_mission_name}_{datetime.now().strftime('%Y%m%d')}.miz"
-        mission_base_name: str = _yaml_mission_name
+        _safe_name = re.sub(r'[\\/:*?"<>|\x00-\x1f]', "_", _yaml_mission_name).strip(" .")
+        if not _safe_name:
+            logger.warning(
+                f"mission.name {_yaml_mission_name!r} contains only invalid filename characters; using 'mission'"
+            )
+            _safe_name = "mission"
+        p_output_mission = p_mission_folder / f"{_safe_name}_{datetime.now().strftime('%Y%m%d')}.miz"
+        mission_base_name: str = _safe_name
     else:
         mission_base_name = p_output_mission.stem
 

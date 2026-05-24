@@ -1,5 +1,6 @@
 """Main worker for creating mission versions with weather and time modifications."""
 
+import re
 from datetime import date as dt_date
 from datetime import timedelta
 from pathlib import Path
@@ -14,6 +15,8 @@ from veaf_libs.logger import logger
 from .models import MissionConfig, VersionConfig
 from .utils import SolarCalculator, TimeExpressionParser
 from .weather import DCSWeatherConverter
+
+_INVALID_FILENAME_CHARS = re.compile(r'[\\/:*?"<>|\x00-\x1f]')
 
 
 class WeatherInjectorWorker(BaseWorker):
@@ -51,7 +54,9 @@ class WeatherInjectorWorker(BaseWorker):
         self.mission_file = Path(mission_file)
         self.output_dir = Path(output_dir) if output_dir else self.config_file.parent
         self.output_dir.mkdir(parents=True, exist_ok=True)
-        self.mission_base_name: str | None = mission_base_name
+        self.mission_base_name: str | None = (
+            _INVALID_FILENAME_CHARS.sub("_", mission_base_name).strip(" .") if mission_base_name else None
+        )
 
         self.config: MissionConfig | None = None
         self.mission_data: DcsMission | None = None

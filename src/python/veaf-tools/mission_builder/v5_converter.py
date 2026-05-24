@@ -26,7 +26,6 @@ from pathlib import Path
 from typing import Any
 
 import yaml  # type: ignore[import-untyped]
-
 from veaf_libs.i18n import t
 from veaf_libs.lua_module_scanner import get_modules
 

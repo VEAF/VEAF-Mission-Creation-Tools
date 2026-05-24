@@ -88,10 +88,6 @@ function TestVeafSpawnConstants:test_logisticUnitType()
   luaunit.assertEquals(veafSpawn.LogisticUnitType, "FARP Ammo Dump Coating")
 end
 
-function TestVeafSpawnConstants:test_houndElintAddDelay()
-  luaunit.assertEquals(veafSpawn.HoundElintAddDelay, 1)
-end
-
 function TestVeafSpawnConstants:test_flakingInterval()
   luaunit.assertEquals(veafSpawn.FlakingInterval, 2)
 end

@@ -46,6 +46,20 @@ flowchart LR
 
 ---
 
+## Language
+
+`veaf-tools.exe` and `veaf-tools-updater.exe` display messages in your OS language automatically — no setup required. The detection order is:
+
+1. `--lang` CLI option
+2. `VEAF_LANG` environment variable
+3. `~/veafmct.yaml` → `lang:` key
+4. OS locale (Windows registry / system locale on Linux–macOS)
+5. `en` (built-in fallback)
+
+Supported languages: English (`en`), French (`fr`). See [Language Configuration](mission-maker/GUIDE.md#global-user-configuration) for full details.
+
+---
+
 ## Links
 
 - **Source**: [github.com/VEAF/VEAF-Mission-Creation-Tools](https://github.com/VEAF/VEAF-Mission-Creation-Tools)

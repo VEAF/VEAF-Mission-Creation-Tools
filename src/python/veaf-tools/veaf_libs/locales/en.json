@@ -250,5 +250,17 @@
 
   "cmd.inject_weather.opt.mission": "Mission name or .miz file to use as base for creating weather/time variants.",
   "cmd.inject_weather.opt.config_file": "Path to YAML configuration file (or Lua file to convert).",
-  "cmd.inject_weather.opt.convert_lua": "Convert legacy Lua configuration to YAML and exit."
+  "cmd.inject_weather.opt.convert_lua": "Convert legacy Lua configuration to YAML and exit.",
+
+  "updater.header": "[bold green]VEAF Tools Updater v{version}[/bold green]",
+  "updater.repository": "Repository: {owner}/{name}",
+  "updater.local_zip": "[bold cyan]Using local ZIP file: {path}[/bold cyan]",
+  "updater.requested_tag": "Requested tag: {tag}",
+  "updater.first_install": "\n[bold cyan]First install detected.[/bold cyan] Run [bold]veaf-tools.exe prepare .[/bold] to initialize your mission folder with default files (mission.yaml, src/ templates, etc.).",
+  "updater.lang_tip": "\n[dim]Tip: to configure the interface language, run [bold]veaf-tools.exe user-config --set lang=fr[/bold] (or lang=en). Full user configuration guide: {url}[/dim]",
+  "updater.downloading": "Downloading {name} from GitHub...",
+  "updater.extracting": "Extracting published.zip (version {version})...",
+  "updater.installing": "Installing tools to current directory...",
+  "updater.fetching_release": "Fetching release information for '{tag}'...",
+  "updater.verifying": "Verifying file integrity..."
 }

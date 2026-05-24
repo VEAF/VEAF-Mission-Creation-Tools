@@ -19,6 +19,7 @@ import json
 import re
 import shutil
 import subprocess
+import sys
 import zipfile
 from importlib.metadata import PackageNotFoundError
 from importlib.metadata import version as _pkg_version
@@ -29,9 +30,20 @@ from typing import Any
 import requests
 import typer
 import yaml
+from veaf_libs.i18n import set_language, t
 from veaf_libs.logger import Logger, console
 from veaf_libs.paths import resolve_path
 from veaf_libs.progress import spinner_context
+
+# Parse --lang early from sys.argv so that --help is also rendered in the
+# requested language (Typer's --help is eager and fires before main_callback).
+for _i, _a in enumerate(sys.argv[1:]):
+    if _a == "--lang" and _i + 1 < len(sys.argv) - 1:
+        set_language(sys.argv[_i + 2])
+        break
+    if _a.startswith("--lang="):
+        set_language(_a.split("=", 1)[1])
+        break
 
 # Create a logger specific to this updater script
 logger: Logger = Logger(logger_name="veaf-tools-updater", console=console)
@@ -40,13 +52,13 @@ try:
     VERSION: str = _pkg_version("veaf-tools")
 except PackageNotFoundError:
     VERSION: str = "6.0.5"  # Fallback; overwritten by the build process at compile time.
-README_HELP: str = "Provide access to the README file."
-VERBOSE_HELP: str = "If set, the script will output a lot of debug information."
-PAUSE_HELP: str = "If set, the script will pause when finished and wait for the user to press a key."
-PAUSE_MESSAGE: str = "Press Enter to continue..."
+README_HELP: str = t("help.readme")
+VERBOSE_HELP: str = t("help.verbose")
+PAUSE_HELP: str = t("help.pause")
+PAUSE_MESSAGE: str = t("help.pause_msg")
 
 # String constants
-WORK_DONE_MESSAGE: str = "[bold blue]Work done![/bold blue]"
+WORK_DONE_MESSAGE: str = t("msg.work_done")
 GITHUB_REPO_OWNER = "VEAF"
 GITHUB_REPO_NAME = "VEAF-Mission-Creation-Tools"
 GITHUB_API_BASE = "https://api.github.com"
@@ -203,7 +215,7 @@ class UpdateWorker:
 
     def download_asset(self, asset_url: str, asset_name: str) -> bytes | None:
         """Download an asset from a GitHub release."""
-        with spinner_context(f"Downloading {asset_name} from GitHub..."):
+        with spinner_context(t("updater.downloading", name=asset_name)):
             response = requests.get(asset_url, headers=self.headers)
 
         if not self.check_github_response(response, f"Downloading {asset_name}"):
@@ -310,7 +322,7 @@ exit /b 0
 
             if has_locked_exe:
                 # Extract to a temporary location first to avoid file locking issues
-                with spinner_context(f"Extracting published.zip (version {release_version})..."):
+                with spinner_context(t("updater.extracting", version=release_version)):
                     temp_extract_dir = mission_folder / ".extract-temp"
                     temp_extract_dir.mkdir(exist_ok=True)
 
@@ -335,14 +347,14 @@ exit /b 0
                     shutil.rmtree(temp_extract_dir, ignore_errors=True)
             else:
                 # No locked exe, extract directly to published directory
-                with spinner_context(f"Extracting published.zip (version {release_version})..."):
+                with spinner_context(t("updater.extracting", version=release_version)):
                     zip_file = zipfile.ZipFile(BytesIO(zip_content))
                     zip_file.extractall(published_dir)
 
             logger.info(f"Successfully extracted release version {release_version} to '{PUBLISHED_DIR}' folder")
 
             # Step 2: Move key files from published folder to current directory
-            with spinner_context("Installing tools to current directory..."):
+            with spinner_context(t("updater.installing")):
                 files_to_move = ["veaf-tools.exe", "README.md"]
 
                 for filename in files_to_move:
@@ -390,23 +402,25 @@ exit /b 0
         if not is_first_install:
             return
 
+        console.print(t("updater.first_install"))
         console.print(
-            "\n[bold cyan]First install detected.[/bold cyan] "
-            "Run [bold]veaf-tools.exe prepare .[/bold] to initialize your mission folder "
-            "with default files (mission.yaml, src/ templates, etc.)."
+            t(
+                "updater.lang_tip",
+                url="https://veaf.github.io/VEAF-Mission-Creation-Tools-v6/mission-maker/GUIDE/#global-user-configuration",
+            )
         )
 
     def run(self) -> bool:
         """Execute the update process."""
-        console.print(f"[bold green]VEAF Tools Updater v{VERSION}[/bold green]")
-        console.print(f"Repository: {GITHUB_REPO_OWNER}/{GITHUB_REPO_NAME}")
+        console.print(t("updater.header", version=VERSION))
+        console.print(t("updater.repository", owner=GITHUB_REPO_OWNER, name=GITHUB_REPO_NAME))
 
         # Resolve mission folder
         p_mission_folder = resolve_path(path=self.mission_folder, default_path=str(Path.cwd()), should_exist=True)
 
         # If zip file path is provided, load from local file instead of GitHub
         if self.zip_file_path:
-            console.print(f"[bold cyan]Using local ZIP file: {self.zip_file_path}[/bold cyan]\n")
+            console.print(t("updater.local_zip", path=self.zip_file_path))
             zip_path = Path(self.zip_file_path)
 
             if not zip_path.exists():
@@ -439,8 +453,8 @@ exit /b 0
                 return False
 
         # Fetch release information from GitHub
-        console.print(f"Requested tag: {self.tag}\n")
-        with spinner_context(f"Fetching release information for '{self.tag}'..."):
+        console.print(t("updater.requested_tag", tag=self.tag))
+        with spinner_context(t("updater.fetching_release", tag=self.tag)):
             release_payload = self.get_release_by_tag(self.tag)
 
         if not release_payload:
@@ -494,7 +508,7 @@ exit /b 0
 
         # Verify checksum if enabled
         if self.verify_checksum:
-            with spinner_context("Verifying file integrity..."):
+            with spinner_context(t("updater.verifying")):
                 metadata_asset = None
                 for asset in release_payload.get("assets", []):
                     if asset.get("name") == PUBLISHED_METADATA_ASSET_NAME:
@@ -547,6 +561,7 @@ def main(
     pause: bool = typer.Option(False, help=PAUSE_HELP),
     no_verify_checksum: bool = typer.Option(False, help="Skip checksum verification (not recommended)"),
     zip_file: str | None = typer.Option(None, help="Path to local published.zip file (for testing, skips GitHub)"),
+    lang: str | None = typer.Option(None, help=t("help.lang")),
 ) -> None:
     """
     Downloads the latest VEAF Tools files from GitHub using Git tags.
@@ -557,6 +572,8 @@ def main(
     For testing, use --zip-file to install from a local published.zip file instead of GitHub.
     """
     logger.set_verbose(verbose)
+    if lang:
+        set_language(lang)
 
     # Load configuration from file
     config = load_config()

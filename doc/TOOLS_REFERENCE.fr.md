@@ -145,6 +145,30 @@ veaf-tools-updater.exe --no-verify-checksum
 
 À n'utiliser qu'en dernier recours.
 
+### Langue de l'interface
+
+La langue des messages est détectée automatiquement — aucune configuration requise :
+
+1. Option CLI `--lang` (priorité maximale)
+2. Variable d'environnement `VEAF_LANG`
+3. `~/veafmct.yaml` → clé `lang:`
+4. Locale du système (registre Windows / locale système sur Linux–macOS)
+5. `en` (repli intégré)
+
+Pour forcer la langue sur une seule exécution :
+
+```bash
+veaf-tools-updater.exe --lang fr
+```
+
+Pour définir une préférence persistante :
+
+```bash
+veaf-tools.exe user-config --set lang=fr
+```
+
+Valeurs supportées : `en`, `fr`.
+
 ### Sortie verbeuse (débogage)
 
 Pour un dépannage détaillé :
@@ -670,6 +694,7 @@ Options :
   --token TEXT                   Token GitHub (optionnel, remplace le fichier de config)
   --force                        Ignorer la vérification de version, installer quand même
   --no-verify-checksum           Ignorer la vérification de checksum (non recommandé)
+  --lang TEXT                    Forcer la langue de l'interface (en, fr) ; remplace la locale système et ~/veafmct.yaml
   --verbose                      Afficher la sortie de débogage détaillée
   --pause                        Attendre une entrée utilisateur avant de quitter
   --help                         Afficher le message d'aide

@@ -15,6 +15,8 @@ Intégrez le framework Lua VEAF dans vos missions DCS World pour offrir à vos j
 
 Ceci télécharge `veaf-tools.exe` et les scripts Lua VEAF dans votre répertoire de travail.
 
+> **Langue :** Les messages s'affichent dans la langue du système automatiquement (anglais ou français). Pour changer la langue : `veaf-tools.exe user-config --set lang=fr`. Voir [Configuration de la langue](GUIDE.fr.md#configuration-utilisateur-globale).
+
 ### 2. Créer une mission dans l'éditeur DCS
 
 Créez une mission `.miz` standard (placez vos unités, waypoints, météo, etc.). Pas besoin d'ajouter de trigger VEAF — l'outil de build s'en charge.

@@ -725,8 +725,7 @@ class ConfigMigrator:
             result.shortcuts_extracted.insert(0, alias)
             chunk = content[start:end]
             commented = "\n".join(
-                f"-- [v6 extracted to mission.yaml] {line}" if line.strip() else line
-                for line in chunk.splitlines()
+                f"-- [v6 extracted to mission.yaml] {line}" if line.strip() else line for line in chunk.splitlines()
             ) + ("\n" if chunk.endswith("\n") else "")
             content = content[:start] + commented + content[end:]
 
@@ -783,10 +782,11 @@ class ConfigMigrator:
 
         chunk = content[block_start:block_end]
         migration_note = "-- [v6 migration] veafNamedPoints block commented out: the v5 API (veafNamedPoints.Points = {...}) is obsolete in v6.\n-- In v6, named points are loaded automatically from built-in theatre tables. Add custom points to mission.yaml under NAMEDPOINTS: custom_points:\n"
-        commented = migration_note + "\n".join(
-            f"-- [v6 migration] {line}" if line.strip() else line
-            for line in chunk.splitlines()
-        ) + ("\n" if chunk.endswith("\n") else "")
+        commented = (
+            migration_note
+            + "\n".join(f"-- [v6 migration] {line}" if line.strip() else line for line in chunk.splitlines())
+            + ("\n" if chunk.endswith("\n") else "")
+        )
         result.warnings.append(
             "veafNamedPoints block commented out: v5 API is obsolete in v6. "
             "Custom named points can be added to mission.yaml under NAMEDPOINTS: custom_points:"
@@ -823,7 +823,7 @@ class ConfigMigrator:
             # Look ahead for chained method calls (lines starting with ':')
             rest = content[close_of_addzone:]
             for chain_m in re.finditer(r"^[ \t]*:(set\w+|get\w+)\s*\([^)]*\)", rest, re.MULTILINE):
-                if chain_m.start() == 0 or rest[:chain_m.start()].strip() == "":
+                if chain_m.start() == 0 or rest[: chain_m.start()].strip() == "":
                     chain_end = close_of_addzone + chain_m.end()
                 else:
                     break
@@ -842,8 +842,7 @@ class ConfigMigrator:
             result.sanctuary_zones_extracted.insert(0, zone)
             chunk = content[start:end]
             commented = "\n".join(
-                f"-- [v6 extracted to mission.yaml] {line}" if line.strip() else line
-                for line in chunk.splitlines()
+                f"-- [v6 extracted to mission.yaml] {line}" if line.strip() else line for line in chunk.splitlines()
             ) + ("\n" if chunk.endswith("\n") else "")
             content = content[:start] + commented + content[end:]
 
@@ -889,12 +888,8 @@ class ConfigMigrator:
     # ── CombatZone settings ──────────────────────────────────────────────────
 
     _CZ_BLOCK_RE = re.compile(r"^\s*if\s+veafCombatZone\s+then\b", re.MULTILINE)
-    _CZ_EVENT_MSG_RE = re.compile(
-        r"veafCombatZone\.EventMessages\.(\w+)\s*=\s*(?:nil|\"([^\"]*)\"|'([^']*)')"
-    )
-    _CZ_SCALAR_RE = re.compile(
-        r"veafCombatZone\.(\w+)\s*=\s*(?:(\d+(?:\.\d+)?)|\"([^\"]*)\"|'([^']*)')"
-    )
+    _CZ_EVENT_MSG_RE = re.compile(r"veafCombatZone\.EventMessages\.(\w+)\s*=\s*(?:nil|\"([^\"]*)\"|'([^']*)')")
+    _CZ_SCALAR_RE = re.compile(r"veafCombatZone\.(\w+)\s*=\s*(?:(\d+(?:\.\d+)?)|\"([^\"]*)\"|'([^']*)')")
 
     def _extract_combat_zone_settings(self, content: str, result: MigrationResult) -> str:
         """Extract global veafCombatZone.Xxx = ... assignments."""
@@ -988,8 +983,7 @@ class ConfigMigrator:
             if has_callback:
                 # Extract data but leave callback hint
                 commented = "\n".join(
-                    f"-- [v6 extracted to mission.yaml] {line}" if line.strip() else line
-                    for line in chunk.splitlines()
+                    f"-- [v6 extracted to mission.yaml] {line}" if line.strip() else line for line in chunk.splitlines()
                 )
                 callback_name_m = re.search(r":setOnCompletedHook\s*\((\w+)\)", chunk)
                 zone_name = zone_def.get("zone_name", "?")
@@ -1000,8 +994,7 @@ class ConfigMigrator:
                 )
             else:
                 commented = "\n".join(
-                    f"-- [v6 extracted to mission.yaml] {line}" if line.strip() else line
-                    for line in chunk.splitlines()
+                    f"-- [v6 extracted to mission.yaml] {line}" if line.strip() else line for line in chunk.splitlines()
                 )
             content = content[:start] + commented + ("\n" if not commented.endswith("\n") else "") + content[end:]
 
@@ -1072,7 +1065,7 @@ class ConfigMigrator:
             if deps_text:
                 deps = re.findall(r'"([^"]+)"', deps_text)
                 # Also handle getMissionEditorZoneName() pattern
-                deps_vars = re.findall(r'(\w+):getMissionEditorZoneName\(\)', deps_text)
+                deps_vars = re.findall(r"(\w+):getMissionEditorZoneName\(\)", deps_text)
                 if deps:
                     order["dependencies"] = deps
                 elif deps_vars:
@@ -1104,7 +1097,7 @@ class ConfigMigrator:
                 abs_end = chain_start + len(m.group(0))
                 started = False
                 # Scan forward for chained lines
-                rest = content[chain_start + 1:]
+                rest = content[chain_start + 1 :]
                 last_chain = chain_start
                 for cm in re.finditer(r":(set\w+|add\w+|get\w+|start)\s*\(", rest):
                     last_chain = chain_start + 1 + cm.end()
@@ -1125,8 +1118,7 @@ class ConfigMigrator:
             result.airwave_zones_extracted.insert(0, zone_dict)
             chunk = content[start:end]
             commented = "\n".join(
-                f"-- [v6 extracted to mission.yaml] {line}" if line.strip() else line
-                for line in chunk.splitlines()
+                f"-- [v6 extracted to mission.yaml] {line}" if line.strip() else line for line in chunk.splitlines()
             )
             zone_name = zone_dict.get("name", "?")
             if callbacks:
@@ -1213,13 +1205,16 @@ class ConfigMigrator:
 
         # Messages
         for msg_method in [
-            "setMessageStart", "setMessageWaitForHumans", "setMessageWaveDeployed",
-            "setMessageEndZone", "setMessageEndAll"
+            "setMessageStart",
+            "setMessageWaitForHumans",
+            "setMessageWaveDeployed",
+            "setMessageEndZone",
+            "setMessageEndAll",
         ]:
             yaml_key = re.sub(r"([A-Z])", r"_\1", msg_method.replace("set", "")).lower().lstrip("_")
             m = re.search(rf':{msg_method}\s*\(\s*"([^"]+)"\s*\)', chain_text)
             if not m:
-                m = re.search(rf':{msg_method}\s*\(\s*\[\[([^\]]*(?:\][^\]])*)\]\]\s*\)', chain_text)
+                m = re.search(rf":{msg_method}\s*\(\s*\[\[([^\]]*(?:\][^\]])*)\]\]\s*\)", chain_text)
             if m:
                 zone[yaml_key] = m.group(1)
 
@@ -1263,8 +1258,13 @@ class ConfigMigrator:
         zone["start"] = started
 
         # Detect callbacks (not extractable)
-        for cb_method in [":setOnDeploy", ":setHandleCrippledEnemyUnitCallback",
-                          ":setIsEnemyGroupDeadCallback", ":setOnWaveDeployed", ":setOnZoneEnd"]:
+        for cb_method in [
+            ":setOnDeploy",
+            ":setHandleCrippledEnemyUnitCallback",
+            ":setIsEnemyGroupDeadCallback",
+            ":setOnWaveDeployed",
+            ":setOnZoneEnd",
+        ]:
             if cb_method in chain_text:
                 # Extract the callback fragment for the hint
                 cb_m = re.search(re.escape(cb_method) + r"\s*\(([^)]*)\)", chain_text)

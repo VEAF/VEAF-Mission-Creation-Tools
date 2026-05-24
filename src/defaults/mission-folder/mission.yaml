@@ -23,6 +23,8 @@
 #   disabled: true              # true = no password required (default)
 #   password_hashes:            # SHA-256 hashes to restrict JTF/admin access
 #     - "<SHA-256 hash>"
+#   password_mm_hashes:         # SHA-256 hashes to restrict Mission Master access
+#     - "<SHA-256 hash>"
 
 # ── Per-module configuration ──────────────────────────────────────────────────
 # Enable, disable, or override the log level of individual VEAF Lua modules.
@@ -51,6 +53,54 @@
 #       # - name: "Battle Area Alpha"
 #       #   lat: "41.123456"
 #       #   lon: "44.987654"
+#   SHORTCUTS:
+#     enable: true
+#     shortcuts:
+#       - name: "smoke"
+#         description: "Smoke command shortcut"
+#         command: "/_smoke"
+#         bypass_security: false
+#   SANCTUARY:
+#     enable: true
+#     sanctuary_zones:
+#       - name: "Base Alpha"
+#         polygon_units:
+#           - "Sanctuary-Unit-1"
+#           - "Sanctuary-Unit-2"
+#         coalition: BLUE
+#         delay_warning: 30
+#         delay_spawn: 60
+#   COMBATZONE:
+#     enable: true
+#     combat_zone_settings:
+#       event_message_combatzonecomplete: "Combat Zone complete!"
+#       watchdog_check_interval: 30
+#       radio_menu_name: "Combat Zones"
+#       combat_zone_menu_name: "Combat Zone Operations"
+#       operation_menu_name: "Operations"
+#     combat_zones:
+#       - type: zone
+#         zone_name: "CZ-Alpha"
+#         friendly_name: "Alpha Zone"
+#         training: false
+#       - type: operation
+#         zone_name: "CZ-Op-Alpha"
+#         tasking_orders:
+#           - zone_name: "CZ-Alpha"
+#           - zone_name: "CZ-Bravo"
+#             dependencies: ["CZ-Alpha"]
+#   AIRWAVES:
+#     enable: true
+#     airwave_zones:
+#       - name: "BVR Zone"
+#         start: true
+#         player_coalitions: [BLUE]
+#         zone_center_coordinates: "N41°00'00\" E044°00'00\""
+#         zone_radius: 50000
+#         delay_between_waves: 120
+#         waves:
+#           - groups: "su27-2ship"
+#             delay: 0
 
 # ── External modules ─────────────────────────────────────────────────────────
 # external_modules:

@@ -7,11 +7,7 @@ def get_legacy_script_files() -> list[tuple[str, str]]:
     """Get list of files that should be removed from any newly extracted mission; they are old VEAF files that are not used anymore"""
 
     return [
-        # The community scripts
-        ("src/scripts/community/HoundElint.lua", DEFAULT_SCRIPTS_LOCATION),
-        ("src/scripts/community/NIOD.lua", DEFAULT_SCRIPTS_LOCATION),
         # The VEAF scripts
-        ("src/scripts/veaf/veafHoundElintHelper.lua", DEFAULT_SCRIPTS_LOCATION),
         ("src/scripts/veaf/veaf-scripts-debug.lua", DEFAULT_SCRIPTS_LOCATION),
         ("src/scripts/veaf/veaf-scripts-trace.lua", DEFAULT_SCRIPTS_LOCATION),
     ]

@@ -23,7 +23,9 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
+from typing import Any
 
+import yaml  # type: ignore[import-untyped]
 from veaf_libs.i18n import t
 from veaf_libs.lua_module_scanner import get_modules
 
@@ -408,6 +410,25 @@ class ConversionReport:
 
 
 # ---------------------------------------------------------------------------
+# Helper utilities
+# ---------------------------------------------------------------------------
+
+
+def _yaml_list_block(items: list[Any], indent: int = 4) -> list[str]:
+    """Serialize a list of dicts to YAML lines at the given indent level."""
+    raw = yaml.dump(items, default_flow_style=False, allow_unicode=True, sort_keys=False, indent=2).rstrip("\n")
+    prefix = " " * indent
+    return [f"{prefix}{line}" for line in raw.splitlines()]
+
+
+def _yaml_dict_block(data: dict, indent: int = 6) -> list[str]:
+    """Serialize a flat dict to YAML key: value lines at the given indent level."""
+    raw = yaml.dump(data, default_flow_style=False, allow_unicode=True, sort_keys=False, indent=2).rstrip("\n")
+    prefix = " " * indent
+    return [f"{prefix}{line}" for line in raw.splitlines()]
+
+
+# ---------------------------------------------------------------------------
 # Converter
 # ---------------------------------------------------------------------------
 
@@ -725,10 +746,15 @@ class V5Converter:
             lines.append("")
 
         # ── Security ──────────────────────────────────────────────────────
-        if mr and mr.security_disabled is not None:
+        if mr and (mr.security_disabled is not None or mr.password_mm_hashes):
             lines.append("# ── Security ──────────────────────────────────────────────────────────────────")
             lines.append("security:")
-            lines.append(f"  disabled: {'true' if mr.security_disabled else 'false'}")
+            if mr.security_disabled is not None:
+                lines.append(f"  disabled: {'true' if mr.security_disabled else 'false'}")
+            if mr.password_mm_hashes:
+                lines.append("  password_mm_hashes:")
+                for h in mr.password_mm_hashes:
+                    lines.append(f'    - "{h}"')
             lines.append("")
 
         # ── Module configuration ───────────────────────────────────────────
@@ -781,6 +807,26 @@ class V5Converter:
                                 lines.append(f'{prefix}{k}: "{v}"')
                             else:
                                 lines.append(f"{prefix}{k}: {v}")
+
+                elif mid == "SHORTCUTS" and mr and mr.shortcuts_extracted:
+                    lines.append("    shortcuts:")
+                    lines.extend(_yaml_list_block(mr.shortcuts_extracted, indent=4))
+
+                elif mid == "SANCTUARY" and mr and mr.sanctuary_zones_extracted:
+                    lines.append("    sanctuary_zones:")
+                    lines.extend(_yaml_list_block(mr.sanctuary_zones_extracted, indent=4))
+
+                elif mid == "COMBATZONE" and mr:
+                    if mr.combat_zone_settings_extracted:
+                        lines.append("    combat_zone_settings:")
+                        lines.extend(_yaml_dict_block(mr.combat_zone_settings_extracted, indent=6))
+                    if mr.combat_zones_extracted:
+                        lines.append("    combat_zones:")
+                        lines.extend(_yaml_list_block(mr.combat_zones_extracted, indent=4))
+
+                elif mid == "AIRWAVES" and mr and mr.airwave_zones_extracted:
+                    lines.append("    airwave_zones:")
+                    lines.extend(_yaml_list_block(mr.airwave_zones_extracted, indent=4))
 
         lines.append("")
 

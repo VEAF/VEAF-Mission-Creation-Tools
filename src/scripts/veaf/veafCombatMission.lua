@@ -921,13 +921,6 @@ function VeafCombatMission:activate(silent)
             end
 
             self:addSpawnedGroup(_dcsSpawnedGroup)
-            -- add the group to the Hound Elint, if there is one
-            if veafHoundElint then
-              veaf.loggers
-                .get(veafCombatMission.Id)
-                :debug(string.format("veafHoundElint.addPlatformToSystem(%s)", veaf.p(_dcsSpawnedGroup:getName())))
-              veafHoundElint.addPlatformToSystem(_dcsSpawnedGroup)
-            end
           end
         end
       end

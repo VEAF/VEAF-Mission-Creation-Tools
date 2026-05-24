@@ -70,7 +70,25 @@ _MODULE_INIT_PARAMS: dict[str, list[tuple[str, object]]] = {
 }
 
 #: YAML keys that are NOT forwarded as ``veaf.setConfig()`` calls.
-_SKIP_SETCONFIG_KEYS: frozenset[str] = frozenset({"enable", "logLevel", "init", "assets", "custom_points"})
+_SKIP_SETCONFIG_KEYS: frozenset[str] = frozenset(
+    {
+        "enable",
+        "logLevel",
+        "init",
+        "assets",
+        "custom_points",
+        "shortcuts",
+        "sanctuary_zones",
+        "combat_zone_settings",
+        "combat_zones",
+        "airwave_zones",
+        "password_mm_hashes",
+    }
+)
+
+#: Module IDs that do NOT have a global ``initialize()`` function.
+#: Their data (zones, etc.) is emitted directly without an ``initialize()`` call.
+_NO_INIT_MODULES: frozenset[str] = frozenset({"AIRWAVES"})
 
 
 # ---------------------------------------------------------------------------
@@ -185,8 +203,223 @@ def _emit_module_body(
         for cm in combat_missions_data:
             lines.extend(_emit_combat_mission(cm, var_name, indent="    "))
 
-    else:
+    elif mod_id == "SHORTCUTS":
+        shortcuts: list = mod_cfg.get("shortcuts") or []
         lines.append(f"    {var_name}.initialize()")
+        for alias in shortcuts:
+            name = alias.get("name", "")
+            desc = alias.get("description", "")
+            cmd = alias.get("command", "")
+            bypass = "true" if alias.get("bypass_security", False) else "false"
+            lines.append(f"    {var_name}.AddAlias(")
+            lines.append("        VeafAlias:new()")
+            lines.append(f'        :setName("{name}")')
+            if desc:
+                lines.append(f'        :setDescription("{desc}")')
+            lines.append(f'        :setVeafCommand("{cmd}")')
+            lines.append(f"        :setBypassSecurity({bypass})")
+            lines.append("    )")
+
+    elif mod_id == "SANCTUARY":
+        sanctuary_zones: list = mod_cfg.get("sanctuary_zones") or []
+        lines.append(f"    {var_name}.initialize()")
+        for zone in sanctuary_zones:
+            name = zone.get("name", "")
+            polygon_units: list = zone.get("polygon_units") or []
+            units_lua = "{" + ", ".join(f'"{u}"' for u in polygon_units) + "}"
+            lines.append(f"    {var_name}.addZone(")
+            lines.append("        VeafSanctuaryZone:new()")
+            lines.append(f'        :setName("{name}")')
+            lines.append(f"        :setPolygonFromUnits({units_lua})")
+            for setter, yaml_key in [
+                ("setCoalition", None),  # special: coalition.side.X
+                ("setDelayWarning", "delay_warning"),
+                ("setDelaySpawn", "delay_spawn"),
+                ("setDelayInstant", "delay_instant"),
+                ("setProtectFromMissiles", "protect_from_missiles"),
+            ]:
+                if setter == "setCoalition":
+                    if "coalition" in zone:
+                        lines.append(f"        :setCoalition(coalition.side.{zone['coalition']})")
+                elif yaml_key and yaml_key in zone:
+                    v = zone[yaml_key]
+                    lines.append(f"        :{setter}({_to_lua_scalar(v)})")
+            lines.append("    )")
+
+    elif mod_id == "COMBATZONE":
+        cz_settings: dict = mod_cfg.get("combat_zone_settings") or {}
+        cz_zones: list = mod_cfg.get("combat_zones") or []
+
+        # Emit global settings
+        if ev_complete := cz_settings.get("event_message_combatzonecomplete"):
+            lines.append(f'    {var_name}.EventMessages.CombatZoneComplete = "{ev_complete}"')
+        elif (
+            "event_message_combatzonecomplete" in cz_settings
+            and cz_settings["event_message_combatzonecomplete"] is None
+        ):
+            lines.append(f"    {var_name}.EventMessages.CombatZoneComplete = nil")
+        if wci := cz_settings.get("watchdog_check_interval"):
+            lines.append(f"    {var_name}.SecondsBetweenWatchdogChecks = {wci}")
+        if rmn := cz_settings.get("radio_menu_name"):
+            lines.append(f'    {var_name}.RadioMenuName = "{rmn}"')
+        if czrmn := cz_settings.get("combat_zone_menu_name"):
+            lines.append(f'    {var_name}.CombatZoneRadioMenuName = "{czrmn}"')
+        if ormn := cz_settings.get("operation_menu_name"):
+            lines.append(f'    {var_name}.OperationRadioMenuName = "{ormn}"')
+
+        # Emit zone definitions
+        for zone_def in cz_zones:
+            zone_type = zone_def.get("type", "zone")
+            if zone_type == "operation":
+                lines.extend(_emit_combat_operation(zone_def, var_name, indent="    "))
+            else:
+                lines.extend(_emit_combat_zone_def(zone_def, var_name, indent="    "))
+
+        lines.append(f"    {var_name}.initialize()")
+
+    elif mod_id == "AIRWAVES":
+        airwave_zones: list = mod_cfg.get("airwave_zones") or []
+        for zone in airwave_zones:
+            lines.extend(_emit_airwave_zone(zone, indent="    "))
+        # No global initialize() — AirWaves is "use by construction"
+
+    else:
+        if mod_id not in _NO_INIT_MODULES:
+            lines.append(f"    {var_name}.initialize()")
+
+
+def _emit_combat_zone_def(zone_def: dict, var_name: str, indent: str = "    ") -> list[str]:
+    """Emit a VeafCombatZone:new():...:initialize() builder chain."""
+    lines: list[str] = []
+    zone_name = zone_def.get("zone_name", "")
+    lines.append(f"{indent}{var_name}.AddZone(")
+    lines.append(f"{indent}    VeafCombatZone:new()")
+    lines.append(f'{indent}    :setMissionEditorZoneName("{zone_name}")')
+    if fn := zone_def.get("friendly_name"):
+        lines.append(f'{indent}    :setFriendlyName("{fn}")')
+    if br := zone_def.get("briefing"):
+        br_lua = _lua_long_string(br.strip())
+        lines.append(f"{indent}    :setBriefing({br_lua})")
+    if zone_def.get("user_activation_disabled"):
+        lines.append(f"{indent}    :disableUserActivation()")
+    if "training" in zone_def:
+        lines.append(f"{indent}    :setTraining({'true' if zone_def['training'] else 'false'})")
+    for cz in zone_def.get("chained_zones") or []:
+        lines.append(f'{indent}    :addChainedCombatZone("{cz}")')
+    if cd := zone_def.get("chained_delay"):
+        lines.append(f"{indent}    :setChainedCombatZonesDelay({cd})")
+    lines.append(f"{indent}    :initialize()")
+    lines.append(f"{indent})")
+    if hint := zone_def.get("on_completed_hook_hint"):
+        lines.append(
+            f'{indent}-- [v6 migration] set callback: {var_name}.GetZone("{zone_name}"):setOnCompletedHook({hint})'
+        )
+    return lines
+
+
+def _emit_combat_operation(op_def: dict, var_name: str, indent: str = "    ") -> list[str]:
+    """Emit a VeafCombatOperation:new():...:initialize() builder chain."""
+    lines: list[str] = []
+    zone_name = op_def.get("zone_name", "")
+    lines.append(f"{indent}{var_name}.AddZone(")
+    lines.append(f"{indent}    VeafCombatOperation:new()")
+    lines.append(f'{indent}    :setMissionEditorZoneName("{zone_name}")')
+    if fn := op_def.get("friendly_name"):
+        lines.append(f'{indent}    :setFriendlyName("{fn}")')
+    if br := op_def.get("briefing"):
+        br_lua = _lua_long_string(br.strip())
+        lines.append(f"{indent}    :setBriefing({br_lua})")
+    for order in op_def.get("tasking_orders") or []:
+        zone_var = order.get("zone_var", "")
+        # zone_var is a local variable name from the original Lua;
+        # in the generated code we use GetZone() by the zone_name
+        # If we have resolved zone_names, use them; otherwise fall back to var name
+        resolved = order.get("zone_name", zone_var)
+        deps: list = order.get("dependencies") or []
+        deps_vars: list = order.get("dependencies_vars") or []
+        if deps:
+            deps_lua = "{" + ", ".join(f'"{d}"' for d in deps) + "}"
+            lines.append(f'{indent}    :addTaskingOrder({var_name}.GetZone("{resolved}"), {deps_lua})')
+        elif deps_vars:
+            # Can't resolve var→name statically; emit GetZone with the var as name
+            deps_lua = "{" + ", ".join(f'"{d}"' for d in deps_vars) + "}"
+            lines.append(f'{indent}    :addTaskingOrder({var_name}.GetZone("{resolved}"), {deps_lua})')
+        else:
+            lines.append(f'{indent}    :addTaskingOrder({var_name}.GetZone("{resolved}"))')
+    lines.append(f"{indent}    :initialize()")
+    lines.append(f"{indent})")
+    return lines
+
+
+def _emit_airwave_zone(zone: dict, indent: str = "    ") -> list[str]:
+    """Emit an AirWaveZone:new():...:start() builder chain."""
+    lines: list[str] = []
+    name = zone.get("name", "")
+    start_commented = not zone.get("start", False)
+
+    lines.append(f"{indent}AirWaveZone:new()")
+    lines.append(f'{indent}    :setName("{name}")')
+    if desc := zone.get("description"):
+        lines.append(f'{indent}    :setDescription("{desc}")')
+    for coalition in zone.get("player_coalitions") or []:
+        lines.append(f"{indent}    :addPlayerCoalition(coalition.side.{coalition})")
+    if coords := zone.get("zone_center_coordinates"):
+        lines.append(f'{indent}    :setZoneCenterFromCoordinates("{coords}")')
+    if tz := zone.get("trigger_zone_name"):
+        lines.append(f'{indent}    :setTriggerZone("{tz}")')
+    if zr := zone.get("zone_radius"):
+        lines.append(f"{indent}    :setZoneRadius({zr})")
+    if "draw_zone" in zone:
+        lines.append(f"{indent}    :setDrawZone({'true' if zone['draw_zone'] else 'false'})")
+    if ro := zone.get("respawn_default_offset"):
+        lines.append(f"{indent}    :setRespawnDefaultOffset({ro[0]}, {ro[1]})")
+    if rr := zone.get("respawn_radius"):
+        lines.append(f"{indent}    :setRespawnRadius({rr})")
+    if da := zone.get("delay_before_activation"):
+        lines.append(f"{indent}    :setDelayBeforeActivation({da})")
+    if dbw := zone.get("delay_between_waves"):
+        lines.append(f"{indent}    :setDelayBetweenWaves({dbw})")
+    if min_bw := zone.get("min_seconds_between_waves"):
+        lines.append(f"{indent}    :setMinimumSecondsBetweenWaves({min_bw})")
+    if max_bw := zone.get("max_seconds_between_waves"):
+        lines.append(f"{indent}    :setMaximumSecondsBetweenWaves({max_bw})")
+    if max_alt := zone.get("max_altitude_ft"):
+        lines.append(f"{indent}    :setMaximumAltitudeInFeet({max_alt})")
+    if min_alt := zone.get("min_altitude_ft"):
+        lines.append(f"{indent}    :setMinimumAltitudeInFeet({min_alt})")
+    if mso := zone.get("max_seconds_outside_ia"):
+        lines.append(f"{indent}    :setMaxSecondsOutsideOfZoneIA({mso})")
+    for msg_method, yaml_key in [
+        ("setMessageStart", "message_start"),
+        ("setMessageWaitForHumans", "message_wait_for_humans"),
+        ("setMessageWaveDeployed", "message_wave_deployed"),
+        ("setMessageEndZone", "message_end_zone"),
+        ("setMessageEndAll", "message_end_all"),
+    ]:
+        if msg := zone.get(yaml_key):
+            msg_lua = _lua_long_string(msg)
+            lines.append(f"{indent}    :{msg_method}({msg_lua})")
+    for wave in zone.get("waves") or []:
+        parts = []
+        if g := wave.get("groups"):
+            parts.append(f'groups = "{g}"')
+        if "delay" in wave:
+            parts.append(f"delay = {wave['delay']}")
+        if n := wave.get("number"):
+            parts.append(f'number = "{n}"')
+        if "bias" in wave:
+            parts.append(f"bias = {wave['bias']}")
+        wave_lua = "{" + ", ".join(parts) + "}" if parts else '""'
+        lines.append(f"{indent}    :addWave({wave_lua})")
+    if mlp := zone.get("minimum_life_percent"):
+        lines.append(f"{indent}    :setMinimumLifeForAiInPercent({mlp})")
+    if "reset_when_dying" in zone:
+        lines.append(f"{indent}    :setResetWhenDying({'true' if zone['reset_when_dying'] else 'false'})")
+    if start_commented:
+        lines.append(f"{indent}    -- :start()  -- set start: true in mission.yaml to enable")
+    else:
+        lines.append(f"{indent}    :start()")
+    return lines
 
 
 def _emit_qra_definition(qra_def: dict, indent: str = "    ") -> list[str]:
@@ -323,6 +556,11 @@ def generate_config_lua(
             lines.append(f"veaf.SecurityDisabled = {'true' if security_cfg['disabled'] else 'false'}")
         for hash_val in security_cfg.get("password_hashes") or []:
             lines.append(f'veafSecurity.password_L9["{hash_val}"] = true')
+        mm_hashes: list = security_cfg.get("password_mm_hashes") or []
+        if mm_hashes:
+            lines.append("veafSecurity.password_MM = {}")
+            for hash_val in mm_hashes:
+                lines.append(f'veafSecurity.password_MM["{hash_val}"] = true')
         lines.append("")
 
     # ── Global log level ──────────────────────────────────────────────────

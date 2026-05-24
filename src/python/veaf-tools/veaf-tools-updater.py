@@ -134,10 +134,14 @@ class UpdateWorker:
         """Check GitHub API response and log errors appropriately."""
         if response.status_code == 403 and "rate limit" in response.reason.lower():
             logger.warning(t("updater.warn.rate_limit"))
-            logger.error(t("updater.err.request_failed", action=action, reason=response.reason, code=response.status_code))
+            logger.error(
+                t("updater.err.request_failed", action=action, reason=response.reason, code=response.status_code)
+            )
             return False
         elif response.status_code != 200:
-            logger.error(t("updater.err.request_failed", action=action, reason=response.reason, code=response.status_code))
+            logger.error(
+                t("updater.err.request_failed", action=action, reason=response.reason, code=response.status_code)
+            )
             return False
         return True
 

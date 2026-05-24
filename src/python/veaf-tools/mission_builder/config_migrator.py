@@ -63,6 +63,22 @@ class MigrationResult:
     cap_missions_extracted: list[dict] = field(default_factory=list)
     combat_missions_extracted: list[dict] = field(default_factory=list)
 
+    # ── YAML-013: Shortcuts (VeafAlias) ───────────────────────────────────────
+    shortcuts_extracted: list[dict] = field(default_factory=list)
+
+    # ── YAML-014: Sanctuary zones ──────────────────────────────────────────────
+    sanctuary_zones_extracted: list[dict] = field(default_factory=list)
+
+    # ── YAML-015: CombatZone settings + zone definitions ──────────────────────
+    combat_zone_settings_extracted: dict | None = None
+    combat_zones_extracted: list[dict] = field(default_factory=list)
+
+    # ── YAML-016: AirWaves zone definitions ───────────────────────────────────
+    airwave_zones_extracted: list[dict] = field(default_factory=list)
+
+    # ── YAML-017: Security MM password hashes ─────────────────────────────────
+    password_mm_hashes: list[str] = field(default_factory=list)
+
 
 # ---------------------------------------------------------------------------
 # Migrator
@@ -140,6 +156,7 @@ class ConfigMigrator:
 
         depth = 0  # overall Lua nesting depth (0 = file top-level)
         block_comment_depth = 0  # depth of ``--[[ … ]]`` nesting
+        current_guard_var: str | None = None  # variable of the active if-guard block
 
         for lineno, raw_line in enumerate(lines, 1):
             stripped = raw_line.strip()
@@ -187,6 +204,9 @@ class ConfigMigrator:
                 mod_id = self._var_to_id.get(mod_var, mod_var)
                 if mod_id not in enabled_modules:
                     enabled_modules.append(mod_id)
+                # Track guard start (only at top level, depth==0)
+                if depth == 0:
+                    current_guard_var = mod_var
 
             # ── Bare initialize() at top level → wrap in guard ─────────────
             bare_init_m = self._BARE_INIT_RE.match(raw_line)
@@ -204,9 +224,27 @@ class ConfigMigrator:
                 depth += self._net_depth(raw_line)
                 continue
 
+            # ── Inside a guard: comment out initialize() to avoid double-init ──
+            elif current_guard_var is not None:
+                init_in_guard_m = self._BARE_INIT_RE.match(raw_line)
+                if init_in_guard_m and init_in_guard_m.group(2) == current_guard_var:
+                    output.append(
+                        f"-- [v6 migration] {raw_line.rstrip()}"
+                        "  -- removed: veaf.initialize() in veaf-config.lua calls all module init functions"
+                    )
+                    warnings.append(
+                        f"line {lineno}: {current_guard_var}.initialize() commented out (veaf-config.lua handles init)"
+                    )
+                    depth += self._net_depth(raw_line)
+                    continue
+
             # ── Default: keep the line unchanged ───────────────────────────
             output.append(raw_line)
             depth += self._net_depth(raw_line)
+
+            # Clear guard tracking when we exit back to top level
+            if current_guard_var is not None and depth == 0:
+                current_guard_var = None
 
         # ── Build YAML snippet ──────────────────────────────────────────────
         yaml_snippet = self._build_yaml_snippet(enabled_modules)
@@ -218,7 +256,7 @@ class ConfigMigrator:
             wrapped_calls=wrapped_calls,
             yaml_snippet=yaml_snippet,
             warnings=warnings,
-            # Pre-extracted fields (YAML-009 – YAML-012)
+            # Pre-extracted fields (YAML-009 – YAML-017)
             mission_name=partial.mission_name,
             mission_era=partial.mission_era,
             mission_export_path=partial.mission_export_path,
@@ -230,6 +268,12 @@ class ConfigMigrator:
             qra_definitions=partial.qra_definitions,
             cap_missions_extracted=partial.cap_missions_extracted,
             combat_missions_extracted=partial.combat_missions_extracted,
+            shortcuts_extracted=partial.shortcuts_extracted,
+            sanctuary_zones_extracted=partial.sanctuary_zones_extracted,
+            combat_zone_settings_extracted=partial.combat_zone_settings_extracted,
+            combat_zones_extracted=partial.combat_zones_extracted,
+            airwave_zones_extracted=partial.airwave_zones_extracted,
+            password_mm_hashes=partial.password_mm_hashes,
         )
 
     def _build_yaml_snippet(self, enabled_modules: list[str]) -> str:
@@ -301,6 +345,13 @@ class ConfigMigrator:
         content = self._extract_qra_chains(content, result)
         content = self._extract_cap_missions(content, result)
         content = self._extract_combat_missions(content, result)
+        content = self._extract_shortcuts(content, result)
+        content = self._extract_named_points(content, result)
+        content = self._extract_sanctuary_zones(content, result)
+        content = self._extract_combat_zone_settings(content, result)
+        content = self._extract_combat_zones(content, result)
+        content = self._extract_airwaves_zones(content, result)
+        content = self._extract_security_mm(content, result)
         return content
 
     # ── identity / security / global_log_level ──────────────────────────────
@@ -308,7 +359,7 @@ class ConfigMigrator:
     _MISSION_NAME_RE = re.compile(r'veaf\.config\.MISSION_NAME\s*=\s*"([^"]+)"')
     _ERA_RE = re.compile(r"veaf\.config\.era\s*=\s*veaf\.ERA\.(\w+)")
     _EXPORT_PATH_RE = re.compile(r'veaf\.config\.MISSION_EXPORT_PATH\s*=\s*(?:"([^"]*)"|(nil))')
-    _SECURITY_RE = re.compile(r"veaf\.SecurityDisabled\s*=\s*(true|false)")
+    _SECURITY_RE = re.compile(r"(?:veaf|veafSecurity)\.SecurityDisabled\s*=\s*(true|false)")
     _FORCED_LOG_RE = re.compile(r'veaf\.ForcedLogLevel\s*=\s*"([^"]+)"')
 
     def _extract_identity_and_security(self, content: str, result: MigrationResult) -> str:
@@ -634,3 +685,613 @@ class ConfigMigrator:
             cm["elements"] = elements
 
         return cm if "name" in cm or "elements" in cm else None
+
+    # ── Shortcuts (VeafAlias) ────────────────────────────────────────────────
+
+    _ALIAS_START_RE = re.compile(r"VeafAlias:new\(\)")
+
+    def _extract_shortcuts(self, content: str, result: MigrationResult) -> str:
+        """Extract VeafAlias builder chains from the if veafShortcuts block."""
+        replacements: list[tuple[int, int, dict]] = []
+
+        for m in list(self._ALIAS_START_RE.finditer(content)):
+            chain_start = m.start()
+            # Find veafShortcuts.AddAlias( that wraps this
+            # The alias chain ends at the last ')' of AddAlias(...)
+            # We need to find the enclosing AddAlias(  ...  )
+            add_alias_re = re.compile(r"veafShortcuts\.AddAlias\s*\(")
+            # Search backwards for the AddAlias call
+            preceding = content[max(0, chain_start - 200) : chain_start]
+            add_m = None
+            for am in add_alias_re.finditer(preceding):
+                add_m = am
+            if add_m is None:
+                continue
+            abs_add_start = max(0, chain_start - 200) + add_m.start()
+            open_pos = max(0, chain_start - 200) + add_m.end() - 1
+            close_pos = self._find_matching_close(content, open_pos, "(", ")")
+
+            chain_text = content[chain_start:close_pos]
+            alias = self._parse_alias_chain(chain_text)
+            if alias:
+                # Find line start of AddAlias
+                line_start = content.rfind("\n", 0, abs_add_start) + 1
+                line_end = content.find("\n", close_pos)
+                line_end = len(content) if line_end == -1 else line_end + 1
+                replacements.append((line_start, line_end, alias))
+
+        # Apply in reverse order
+        for start, end, alias in reversed(replacements):
+            result.shortcuts_extracted.insert(0, alias)
+            chunk = content[start:end]
+            commented = "\n".join(
+                f"-- [v6 extracted to mission.yaml] {line}" if line.strip() else line
+                for line in chunk.splitlines()
+            ) + ("\n" if chunk.endswith("\n") else "")
+            content = content[:start] + commented + content[end:]
+
+        return content
+
+    def _parse_alias_chain(self, chain_text: str) -> dict | None:
+        """Parse a VeafAlias builder chain into a dict."""
+        alias: dict = {}
+
+        m = re.search(r':setName\s*\(\s*"([^"]+)"\s*\)', chain_text)
+        if m:
+            alias["name"] = m.group(1)
+
+        m = re.search(r':setDescription\s*\(\s*"([^"]+)"\s*\)', chain_text)
+        if m:
+            alias["description"] = m.group(1)
+
+        m = re.search(r':setVeafCommand\s*\(\s*"([^"]+)"\s*\)', chain_text)
+        if m:
+            alias["command"] = m.group(1)
+
+        m = re.search(r":setBypassSecurity\s*\(\s*(true|false)\s*\)", chain_text)
+        if m:
+            alias["bypass_security"] = m.group(1) == "true"
+
+        return alias if "name" in alias else None
+
+    # ── NamedPoints (obsolete v5 block) ─────────────────────────────────────
+
+    _NAMEDPOINTS_BLOCK_RE = re.compile(r"^\s*if\s+veafNamedPoints\s+then\b", re.MULTILINE)
+
+    def _extract_named_points(self, content: str, result: MigrationResult) -> str:
+        """Comment out the entire if veafNamedPoints then block (v5 API is obsolete in v6)."""
+        m = self._NAMEDPOINTS_BLOCK_RE.search(content)
+        if not m:
+            return content
+
+        block_start = content.rfind("\n", 0, m.start()) + 1
+        # Find the matching end
+        depth = 0
+        i = m.start()
+        while i < len(content):
+            # Scan for open/close keywords
+            line_end = content.find("\n", i)
+            line_end = len(content) if line_end == -1 else line_end
+            line = content[i:line_end]
+            depth += self._net_depth(line)
+            i = line_end + 1
+            if depth == 0:
+                block_end = i
+                break
+        else:
+            block_end = len(content)
+
+        chunk = content[block_start:block_end]
+        migration_note = "-- [v6 migration] veafNamedPoints block commented out: the v5 API (veafNamedPoints.Points = {...}) is obsolete in v6.\n-- In v6, named points are loaded automatically from built-in theatre tables. Add custom points to mission.yaml under NAMEDPOINTS: custom_points:\n"
+        commented = migration_note + "\n".join(
+            f"-- [v6 migration] {line}" if line.strip() else line
+            for line in chunk.splitlines()
+        ) + ("\n" if chunk.endswith("\n") else "")
+        result.warnings.append(
+            "veafNamedPoints block commented out: v5 API is obsolete in v6. "
+            "Custom named points can be added to mission.yaml under NAMEDPOINTS: custom_points:"
+        )
+
+        return content[:block_start] + commented + content[block_end:]
+
+    # ── Sanctuary zones ──────────────────────────────────────────────────────
+
+    _SANCTUARY_ZONE_START_RE = re.compile(r"VeafSanctuaryZone:new\(\)")
+
+    def _extract_sanctuary_zones(self, content: str, result: MigrationResult) -> str:
+        """Extract VeafSanctuaryZone builder chains."""
+        replacements: list[tuple[int, int, dict]] = []
+
+        for m in list(self._SANCTUARY_ZONE_START_RE.finditer(content)):
+            # Find veafSanctuary.addZone( that wraps this
+            add_zone_re = re.compile(r"veafSanctuary\.addZone\s*\(")
+            preceding = content[max(0, m.start() - 200) : m.start()]
+            add_m = None
+            for am in add_zone_re.finditer(preceding):
+                add_m = am
+            if add_m is None:
+                continue
+            abs_add_start = max(0, m.start() - 200) + add_m.start()
+            open_pos = max(0, m.start() - 200) + add_m.end() - 1
+            # The addZone( call may close before chaining: addZone(Zone:new():...))
+            # followed by :setCoalition()... on the return value.
+            # We find the matching ')' of addZone(
+            close_of_addzone = self._find_matching_close(content, open_pos, "(", ")")
+            # Then scan for further chained calls on the same logical line(s)
+            # until we hit a non-chain line (no leading ':')
+            chain_end = close_of_addzone
+            # Look ahead for chained method calls (lines starting with ':')
+            rest = content[close_of_addzone:]
+            for chain_m in re.finditer(r"^[ \t]*:(set\w+|get\w+)\s*\([^)]*\)", rest, re.MULTILINE):
+                if chain_m.start() == 0 or rest[:chain_m.start()].strip() == "":
+                    chain_end = close_of_addzone + chain_m.end()
+                else:
+                    break
+
+            # Find end of last line
+            line_end = content.find("\n", chain_end)
+            chain_end = line_end + 1 if line_end != -1 else len(content)
+
+            chain_text = content[abs_add_start:chain_end]
+            zone = self._parse_sanctuary_zone(chain_text)
+            if zone:
+                line_start = content.rfind("\n", 0, abs_add_start) + 1
+                replacements.append((line_start, chain_end, zone))
+
+        for start, end, zone in reversed(replacements):
+            result.sanctuary_zones_extracted.insert(0, zone)
+            chunk = content[start:end]
+            commented = "\n".join(
+                f"-- [v6 extracted to mission.yaml] {line}" if line.strip() else line
+                for line in chunk.splitlines()
+            ) + ("\n" if chunk.endswith("\n") else "")
+            content = content[:start] + commented + content[end:]
+
+        return content
+
+    def _parse_sanctuary_zone(self, chain_text: str) -> dict | None:
+        """Parse a VeafSanctuaryZone builder chain into a dict."""
+        zone: dict = {}
+
+        m = re.search(r':setName\s*\(\s*"([^"]+)"\s*\)', chain_text)
+        if m:
+            zone["name"] = m.group(1)
+
+        # setPolygonFromUnits({...})
+        m = re.search(r":setPolygonFromUnits\s*\(\s*\{([^}]+)\}", chain_text)
+        if m:
+            units = re.findall(r'"([^"]+)"', m.group(1))
+            if units:
+                zone["polygon_units"] = units
+
+        m = re.search(r":setCoalition\s*\(\s*coalition\.side\.(\w+)\s*\)", chain_text)
+        if m:
+            zone["coalition"] = m.group(1)
+
+        m = re.search(r":setDelayWarning\s*\(\s*(\d+)\s*\)", chain_text)
+        if m:
+            zone["delay_warning"] = int(m.group(1))
+
+        m = re.search(r":setDelaySpawn\s*\(\s*(\d+)\s*\)", chain_text)
+        if m:
+            zone["delay_spawn"] = int(m.group(1))
+
+        m = re.search(r":setDelayInstant\s*\(\s*(\d+)\s*\)", chain_text)
+        if m:
+            zone["delay_instant"] = int(m.group(1))
+
+        m = re.search(r":setProtectFromMissiles\s*\(\s*(true|false)\s*\)", chain_text)
+        if m:
+            zone["protect_from_missiles"] = m.group(1) == "true"
+
+        return zone if "name" in zone else None
+
+    # ── CombatZone settings ──────────────────────────────────────────────────
+
+    _CZ_BLOCK_RE = re.compile(r"^\s*if\s+veafCombatZone\s+then\b", re.MULTILINE)
+    _CZ_EVENT_MSG_RE = re.compile(
+        r"veafCombatZone\.EventMessages\.(\w+)\s*=\s*(?:nil|\"([^\"]*)\"|'([^']*)')"
+    )
+    _CZ_SCALAR_RE = re.compile(
+        r"veafCombatZone\.(\w+)\s*=\s*(?:(\d+(?:\.\d+)?)|\"([^\"]*)\"|'([^']*)')"
+    )
+
+    def _extract_combat_zone_settings(self, content: str, result: MigrationResult) -> str:
+        """Extract global veafCombatZone.Xxx = ... assignments."""
+        settings: dict = {}
+        replacements: list[tuple[int, int]] = []
+
+        for m in list(self._CZ_EVENT_MSG_RE.finditer(content)):
+            key = m.group(1)
+            value = m.group(2) or m.group(3)  # None if nil
+            settings[f"event_message_{key.lower()}"] = value
+            line_start = content.rfind("\n", 0, m.start()) + 1
+            line_end = content.find("\n", m.end())
+            line_end = len(content) if line_end == -1 else line_end
+            replacements.append((line_start, line_end))
+
+        # Known scalar settings
+        _CZ_KNOWN_SCALARS = {
+            "SecondsBetweenWatchdogChecks": "watchdog_check_interval",
+            "RadioMenuName": "radio_menu_name",
+            "CombatZoneRadioMenuName": "combat_zone_menu_name",
+            "OperationRadioMenuName": "operation_menu_name",
+        }
+        for m in list(self._CZ_SCALAR_RE.finditer(content)):
+            attr = m.group(1)
+            if attr not in _CZ_KNOWN_SCALARS:
+                continue
+            yaml_key = _CZ_KNOWN_SCALARS[attr]
+            if m.group(2) is not None:
+                v = m.group(2)
+                settings[yaml_key] = int(v) if "." not in v else float(v)
+            else:
+                settings[yaml_key] = m.group(3) or m.group(4)
+            line_start = content.rfind("\n", 0, m.start()) + 1
+            line_end = content.find("\n", m.end())
+            line_end = len(content) if line_end == -1 else line_end
+            replacements.append((line_start, line_end))
+
+        if settings:
+            result.combat_zone_settings_extracted = settings
+            for start, end in sorted(set(replacements), reverse=True):
+                original_line = content[start:end]
+                commented = f"-- [v6 extracted to mission.yaml] {original_line.strip()}"
+                content = content[:start] + commented + content[end:]
+
+        return content
+
+    # ── CombatZone zone/operation definitions ────────────────────────────────
+
+    _CZ_ZONE_START_RE = re.compile(r"(?:local\s+(\w+)\s*=\s*)?veafCombatZone\.AddZone\s*\(\s*VeafCombatZone:new\(\)")
+    _CZ_OP_START_RE = re.compile(r"veafCombatZone\.AddZone\s*\(\s*VeafCombatOperation:new\(\)")
+
+    def _extract_combat_zones(self, content: str, result: MigrationResult) -> str:
+        """Extract VeafCombatZone and VeafCombatOperation definitions."""
+        replacements: list[tuple[int, int, dict]] = []
+
+        # Extract VeafCombatZone definitions
+        for m in list(self._CZ_ZONE_START_RE.finditer(content)):
+            call_start = m.start()
+            # Find the opening paren of AddZone(
+            open_idx = content.index("(", m.start())
+            close_pos = self._find_matching_close(content, open_idx, "(", ")")
+            # AddZone returns the zone; there may be chained calls on the return value
+            # Find end of line after close_pos
+            line_end = content.find("\n", close_pos)
+            chain_end = line_end + 1 if line_end != -1 else len(content)
+
+            chain_text = content[call_start:chain_end]
+            zone_def = self._parse_combat_zone(chain_text)
+            if zone_def:
+                line_start = content.rfind("\n", 0, call_start) + 1
+                replacements.append((line_start, chain_end, zone_def))
+
+        # Extract VeafCombatOperation definitions
+        for m in list(self._CZ_OP_START_RE.finditer(content)):
+            call_start = m.start()
+            open_idx = content.index("(", m.start())
+            close_pos = self._find_matching_close(content, open_idx, "(", ")")
+            line_end = content.find("\n", close_pos)
+            chain_end = line_end + 1 if line_end != -1 else len(content)
+
+            chain_text = content[call_start:chain_end]
+            op_def = self._parse_combat_operation(chain_text)
+            if op_def:
+                line_start = content.rfind("\n", 0, call_start) + 1
+                replacements.append((line_start, chain_end, op_def))
+
+        for start, end, zone_def in reversed(replacements):
+            result.combat_zones_extracted.insert(0, zone_def)
+            chunk = content[start:end]
+            has_callback = bool(re.search(r":setOnCompletedHook\s*\(", chunk))
+            if has_callback:
+                # Extract data but leave callback hint
+                commented = "\n".join(
+                    f"-- [v6 extracted to mission.yaml] {line}" if line.strip() else line
+                    for line in chunk.splitlines()
+                )
+                callback_name_m = re.search(r":setOnCompletedHook\s*\((\w+)\)", chunk)
+                zone_name = zone_def.get("zone_name", "?")
+                cb_name = callback_name_m.group(1) if callback_name_m else "callbackFn"
+                commented += (
+                    f"\n-- [v6 migration] callback not migrated: call manually after init:\n"
+                    f'-- veafCombatZone.GetZone("{zone_name}"):setOnCompletedHook({cb_name})'
+                )
+            else:
+                commented = "\n".join(
+                    f"-- [v6 extracted to mission.yaml] {line}" if line.strip() else line
+                    for line in chunk.splitlines()
+                )
+            content = content[:start] + commented + ("\n" if not commented.endswith("\n") else "") + content[end:]
+
+        return content
+
+    def _parse_combat_zone(self, chain_text: str) -> dict | None:
+        """Parse a VeafCombatZone builder chain into a dict."""
+        zone: dict = {"type": "zone"}
+
+        m = re.search(r':setMissionEditorZoneName\s*\(\s*"([^"]+)"\s*\)', chain_text)
+        if m:
+            zone["zone_name"] = m.group(1)
+
+        m = re.search(r':setFriendlyName\s*\(\s*"([^"]+)"\s*\)', chain_text)
+        if m:
+            zone["friendly_name"] = m.group(1)
+
+        # Briefing: [[...]] or "..."
+        m = re.search(r':setBriefing\s*\(\s*(?:\[\[([^\]]*(?:\][^\]])*)\]\]|"([^"]*)")', chain_text)
+        if m:
+            zone["briefing"] = (m.group(1) or m.group(2) or "").strip()
+
+        if re.search(r":disableUserActivation\s*\(\s*\)", chain_text):
+            zone["user_activation_disabled"] = True
+
+        if re.search(r":setTraining\s*\(\s*(true|false)\s*\)", chain_text):
+            m2 = re.search(r":setTraining\s*\(\s*(true|false)\s*\)", chain_text)
+            if m2:
+                zone["training"] = m2.group(1) == "true"
+
+        chained = re.findall(r':addChainedCombatZone\s*\(\s*"([^"]+)"\s*\)', chain_text)
+        if chained:
+            zone["chained_zones"] = chained
+
+        m = re.search(r":setChainedCombatZonesDelay\s*\(([^)]+)\)", chain_text)
+        if m:
+            zone["chained_delay"] = m.group(1).strip()
+
+        # setOnCompletedHook → mark it
+        m = re.search(r":setOnCompletedHook\s*\((\w+)\)", chain_text)
+        if m:
+            zone["on_completed_hook_hint"] = m.group(1)
+
+        return zone if "zone_name" in zone else None
+
+    def _parse_combat_operation(self, chain_text: str) -> dict | None:
+        """Parse a VeafCombatOperation builder chain into a dict."""
+        op: dict = {"type": "operation"}
+
+        m = re.search(r':setMissionEditorZoneName\s*\(\s*"([^"]+)"\s*\)', chain_text)
+        if m:
+            op["zone_name"] = m.group(1)
+
+        m = re.search(r':setFriendlyName\s*\(\s*"([^"]+)"\s*\)', chain_text)
+        if m:
+            op["friendly_name"] = m.group(1)
+
+        m = re.search(r':setBriefing\s*\(\s*(?:\[\[([^\]]*(?:\][^\]])*)\]\]|"([^"]*)")', chain_text)
+        if m:
+            op["briefing"] = (m.group(1) or m.group(2) or "").strip()
+
+        # addTaskingOrder(zoneVar, {deps}) — local var refs → extract as string names
+        tasking_orders = []
+        for to_m in re.finditer(r":addTaskingOrder\s*\(\s*(\w+)(?:\s*,\s*\{([^}]*)\})?\s*\)", chain_text):
+            zone_var = to_m.group(1)
+            deps_text = to_m.group(2)
+            order: dict = {"zone_var": zone_var}
+            if deps_text:
+                deps = re.findall(r'"([^"]+)"', deps_text)
+                # Also handle getMissionEditorZoneName() pattern
+                deps_vars = re.findall(r'(\w+):getMissionEditorZoneName\(\)', deps_text)
+                if deps:
+                    order["dependencies"] = deps
+                elif deps_vars:
+                    order["dependencies_vars"] = deps_vars
+            tasking_orders.append(order)
+        if tasking_orders:
+            op["tasking_orders"] = tasking_orders
+
+        return op if "zone_name" in op else None
+
+    # ── AirWaves zones ───────────────────────────────────────────────────────
+
+    _AIRWAVE_START_RE = re.compile(r"AirWaveZone:new\(\)")
+
+    def _extract_airwaves_zones(self, content: str, result: MigrationResult) -> str:
+        """Extract AirWaveZone builder chains."""
+        replacements: list[tuple[int, int, dict, list[str]]] = []
+
+        for m in list(self._AIRWAVE_START_RE.finditer(content)):
+            chain_start = m.start()
+            # Find end: :start() or end of chain (next non-chained line)
+            # The chain can span many lines; look for :start() or a line not starting with ':'
+            start_m = re.search(r":start\s*\(\s*\)", content[chain_start:])
+            if start_m:
+                abs_end = chain_start + start_m.end()
+                started = True
+            else:
+                # No :start() — find last chained method
+                abs_end = chain_start + len(m.group(0))
+                started = False
+                # Scan forward for chained lines
+                rest = content[chain_start + 1:]
+                last_chain = chain_start
+                for cm in re.finditer(r":(set\w+|add\w+|get\w+|start)\s*\(", rest):
+                    last_chain = chain_start + 1 + cm.end()
+                # Find end of that line
+                le = content.find("\n", last_chain)
+                abs_end = le + 1 if le != -1 else len(content)
+
+            line_end = content.find("\n", abs_end)
+            abs_end = line_end + 1 if line_end != -1 else len(content)
+            line_start = content.rfind("\n", 0, chain_start) + 1
+
+            chain_text = content[chain_start:abs_end]
+            zone_dict, callbacks = self._parse_airwave_zone(chain_text, started)
+            if zone_dict:
+                replacements.append((line_start, abs_end, zone_dict, callbacks))
+
+        for start, end, zone_dict, callbacks in reversed(replacements):
+            result.airwave_zones_extracted.insert(0, zone_dict)
+            chunk = content[start:end]
+            commented = "\n".join(
+                f"-- [v6 extracted to mission.yaml] {line}" if line.strip() else line
+                for line in chunk.splitlines()
+            )
+            zone_name = zone_dict.get("name", "?")
+            if callbacks:
+                commented += "\n-- [v6 migration] callbacks not migrated. Set them manually after init:"
+                for cb in callbacks:
+                    commented += f'\n-- veafAirWaves.get("{zone_name}"){cb}'
+            content = content[:start] + commented + ("\n" if not commented.endswith("\n") else "") + content[end:]
+
+        return content
+
+    def _parse_airwave_zone(self, chain_text: str, started: bool) -> tuple[dict, list[str]]:
+        """Parse an AirWaveZone builder chain. Returns (zone_dict, [callback_hints])."""
+        zone: dict = {}
+        callbacks: list[str] = []
+
+        m = re.search(r':setName\s*\(\s*"([^"]+)"\s*\)', chain_text)
+        if m:
+            zone["name"] = m.group(1)
+
+        m = re.search(r':setDescription\s*\(\s*"([^"]+)"\s*\)', chain_text)
+        if m:
+            zone["description"] = m.group(1)
+
+        # Player coalitions
+        coalitions = re.findall(r":addPlayerCoalition\s*\(\s*coalition\.side\.(\w+)\s*\)", chain_text)
+        if coalitions:
+            zone["player_coalitions"] = coalitions
+
+        # Zone center / trigger zone
+        m = re.search(r':setZoneCenterFromCoordinates\s*\(\s*"([^"]+)"\s*\)', chain_text)
+        if m:
+            zone["zone_center_coordinates"] = m.group(1)
+
+        m = re.search(r':setTriggerZone\s*\(\s*"([^"]+)"\s*\)', chain_text)
+        if m:
+            zone["trigger_zone_name"] = m.group(1)
+
+        m = re.search(r":setZoneRadius\s*\(\s*(\d+)\s*\)", chain_text)
+        if m:
+            zone["zone_radius"] = int(m.group(1))
+
+        m = re.search(r":setDrawZone\s*\(\s*(true|false)\s*\)", chain_text)
+        if m:
+            zone["draw_zone"] = m.group(1) == "true"
+
+        # Respawn
+        m = re.search(r":setRespawnDefaultOffset\s*\(\s*(-?\d+)\s*,\s*(-?\d+)\s*\)", chain_text)
+        if m:
+            zone["respawn_default_offset"] = [int(m.group(1)), int(m.group(2))]
+
+        m = re.search(r":setRespawnRadius\s*\(\s*(\d+)\s*\)", chain_text)
+        if m:
+            zone["respawn_radius"] = int(m.group(1))
+
+        # Delays
+        m = re.search(r":setDelayBeforeActivation\s*\(\s*(\d+)\s*\)", chain_text)
+        if m:
+            zone["delay_before_activation"] = int(m.group(1))
+
+        m = re.search(r":setDelayBetweenWaves\s*\(\s*(\d+)\s*\)", chain_text)
+        if m:
+            zone["delay_between_waves"] = int(m.group(1))
+
+        m = re.search(r":setMinimumSecondsBetweenWaves\s*\(\s*(\d+)\s*\)", chain_text)
+        if m:
+            zone["min_seconds_between_waves"] = int(m.group(1))
+
+        m = re.search(r":setMaximumSecondsBetweenWaves\s*\(\s*(\d+)\s*\)", chain_text)
+        if m:
+            zone["max_seconds_between_waves"] = int(m.group(1))
+
+        # Altitudes
+        m = re.search(r":setMaximumAltitudeInFeet\s*\(\s*(\d+)\s*\)", chain_text)
+        if m:
+            zone["max_altitude_ft"] = int(m.group(1))
+
+        m = re.search(r":setMinimumAltitudeInFeet\s*\(\s*(\d+)\s*\)", chain_text)
+        if m:
+            zone["min_altitude_ft"] = int(m.group(1))
+
+        m = re.search(r":setMaxSecondsOutsideOfZoneIA\s*\(\s*(\d+)\s*\)", chain_text)
+        if m:
+            zone["max_seconds_outside_ia"] = int(m.group(1))
+
+        # Messages
+        for msg_method in [
+            "setMessageStart", "setMessageWaitForHumans", "setMessageWaveDeployed",
+            "setMessageEndZone", "setMessageEndAll"
+        ]:
+            yaml_key = re.sub(r"([A-Z])", r"_\1", msg_method.replace("set", "")).lower().lstrip("_")
+            m = re.search(rf':{msg_method}\s*\(\s*"([^"]+)"\s*\)', chain_text)
+            if not m:
+                m = re.search(rf':{msg_method}\s*\(\s*\[\[([^\]]*(?:\][^\]])*)\]\]\s*\)', chain_text)
+            if m:
+                zone[yaml_key] = m.group(1)
+
+        # Waves
+        waves = []
+        for wave_m in re.finditer(r":addWave\s*\(([^)]+)\)", chain_text):
+            wave_text = wave_m.group(1).strip()
+            wave: dict = {}
+            # Try to parse table { groups = "...", delay = N, number = "...", bias = N }
+            gm = re.search(r'groups\s*=\s*"([^"]+)"', wave_text)
+            if gm:
+                wave["groups"] = gm.group(1)
+            dm = re.search(r"delay\s*=\s*(-?\d+)", wave_text)
+            if dm:
+                wave["delay"] = int(dm.group(1))
+            nm = re.search(r'number\s*=\s*"([^"]+)"', wave_text)
+            if nm:
+                wave["number"] = nm.group(1)
+            bm = re.search(r"bias\s*=\s*(\d+)", wave_text)
+            if bm:
+                wave["bias"] = int(bm.group(1))
+            if not wave:
+                # Simple string form
+                sm = re.search(r'"([^"]+)"', wave_text)
+                if sm:
+                    wave["groups"] = sm.group(1)
+            if wave:
+                waves.append(wave)
+        if waves:
+            zone["waves"] = waves
+
+        # Scalar params
+        m = re.search(r":setMinimumLifeForAiInPercent\s*\(\s*(\d+)\s*\)", chain_text)
+        if m:
+            zone["minimum_life_percent"] = int(m.group(1))
+
+        m = re.search(r":setResetWhenDying\s*\(\s*(true|false)\s*\)", chain_text)
+        if m:
+            zone["reset_when_dying"] = m.group(1) == "true"
+
+        zone["start"] = started
+
+        # Detect callbacks (not extractable)
+        for cb_method in [":setOnDeploy", ":setHandleCrippledEnemyUnitCallback",
+                          ":setIsEnemyGroupDeadCallback", ":setOnWaveDeployed", ":setOnZoneEnd"]:
+            if cb_method in chain_text:
+                # Extract the callback fragment for the hint
+                cb_m = re.search(re.escape(cb_method) + r"\s*\(([^)]*)\)", chain_text)
+                if cb_m:
+                    callbacks.append(f"{cb_method}({cb_m.group(1)})")
+
+        return (zone if "name" in zone else {}, callbacks)
+
+    # ── Security MM password hashes ──────────────────────────────────────────
+
+    _PASSWORD_MM_RE = re.compile(r'veafSecurity\.password_MM\s*\[\s*"([^"]+)"\s*\]\s*=\s*true')
+
+    def _extract_security_mm(self, content: str, result: MigrationResult) -> str:
+        """Extract veafSecurity.password_MM hash entries."""
+        replacements: list[tuple[int, int, str]] = []
+
+        for m in list(self._PASSWORD_MM_RE.finditer(content)):
+            hash_val = m.group(1)
+            line_start = content.rfind("\n", 0, m.start()) + 1
+            line_end = content.find("\n", m.end())
+            line_end = len(content) if line_end == -1 else line_end
+            replacements.append((line_start, line_end, hash_val))
+
+        for start, end, hash_val in reversed(replacements):
+            result.password_mm_hashes.insert(0, hash_val)
+            original_line = content[start:end]
+            commented = f"-- [v6 extracted to mission.yaml] {original_line.strip()}"
+            content = content[:start] + commented + content[end:]
+
+        return content

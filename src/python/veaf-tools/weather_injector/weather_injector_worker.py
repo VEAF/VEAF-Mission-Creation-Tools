@@ -30,7 +30,13 @@ class WeatherInjectorWorker(BaseWorker):
        e. Write output mission file
     """
 
-    def __init__(self, config_file: Path, mission_file: Path, output_dir: Path | None = None, mission_base_name: str | None = None):
+    def __init__(
+        self,
+        config_file: Path,
+        mission_file: Path,
+        output_dir: Path | None = None,
+        mission_base_name: str | None = None,
+    ):
         """
         Initialize worker.
 

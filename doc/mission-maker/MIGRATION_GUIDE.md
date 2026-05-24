@@ -32,6 +32,8 @@ In both cases the end result is a **VEAF MCT v6 mission folder** that you manage
 
 3. Have your v5 mission folder on hand
 
+> **Tip — Global User Configuration:** Before starting, create `~/veafmct.yaml` (i.e. `C:\Users\YourName\veafmct.yaml` on Windows) to set persistent defaults for all your VEAF projects on this machine — for example your language preference (`lang: fr`). See [Global User Configuration](GUIDE.md#global-user-configuration) for the full reference and CLI commands.
+
 ---
 
 ## Migrating from VEAF MCT v5.xx
@@ -117,7 +119,7 @@ Some v5 constructs no longer exist or have been renamed:
 #### 5. Verify with a test build
 
 ```powershell
-.\veaf-tools.exe build my-mission .
+.\veaf-tools.exe build
 ```
 
 Open the resulting `.miz` in DCS, load the mission, and confirm:

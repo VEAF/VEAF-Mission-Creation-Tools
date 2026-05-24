@@ -30,7 +30,7 @@ class WeatherInjectorWorker(BaseWorker):
        e. Write output mission file
     """
 
-    def __init__(self, config_file: Path, mission_file: Path, output_dir: Path | None = None):
+    def __init__(self, config_file: Path, mission_file: Path, output_dir: Path | None = None, mission_base_name: str | None = None):
         """
         Initialize worker.
 
@@ -38,11 +38,14 @@ class WeatherInjectorWorker(BaseWorker):
             config_file: Path to YAML configuration file (versions.yaml)
             mission_file: Path to base mission .miz file
             output_dir: Output directory for mission files (defaults to config directory)
+            mission_base_name: Base name prefix for output files (e.g. "VEAF-Demo-Mission");
+                               if provided, output files are named ``{base}_{version}.miz``
         """
         self.config_file = Path(config_file)
         self.mission_file = Path(mission_file)
         self.output_dir = Path(output_dir) if output_dir else self.config_file.parent
         self.output_dir.mkdir(parents=True, exist_ok=True)
+        self.mission_base_name: str | None = mission_base_name
 
         self.config: MissionConfig | None = None
         self.mission_data: DcsMission | None = None
@@ -151,7 +154,10 @@ class WeatherInjectorWorker(BaseWorker):
             self._inject_weather(version)
 
         # Write output
-        output_path = self.output_dir / f"{version.name}.miz"
+        if self.mission_base_name:
+            output_path = self.output_dir / f"{self.mission_base_name}_{version.name}.miz"
+        else:
+            output_path = self.output_dir / f"{version.name}.miz"
         logger.debug(f"Writing mission to: {output_path}")
         write_miz(mission=self.mission_data, miz_file_path=output_path)  # type: ignore[arg-type]
 

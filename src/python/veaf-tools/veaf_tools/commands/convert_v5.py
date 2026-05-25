@@ -205,7 +205,9 @@ def convert_v5(
     if report_file is not None:
         p_report = resolve_path(path=report_file)
     else:
-        p_report = p_folder / "convert-v5-report.md"
+        backup_v5 = p_folder / "backup_v5"
+        backup_v5.mkdir(parents=True, exist_ok=True)
+        p_report = backup_v5 / "convert-v5-report.md"
 
     markdown_report = report.to_markdown()
     p_report.write_text(markdown_report, encoding="utf-8")

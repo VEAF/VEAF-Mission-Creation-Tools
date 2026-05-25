@@ -369,6 +369,8 @@
   "pipeline.console.weather": "[bold blue]Pipeline: weather variants ({file})[/bold blue]",
   "pipeline.console.weather_done": "[bold green]Pipeline: created {count} weather variant(s)[/bold green]",
 
+  "tui.arg.convert_v5_force": "Overwrite existing mission.yaml without asking",
+  "tui.arg.convert_v5_icao": "ICAO airport code for realweather steps (e.g. UGGG)",
   "tui.arg.mission_folder": "Mission folder",
   "tui.arg.mission_folder_dest": "Mission folder (destination)",
   "tui.arg.mission_folder_init": "Mission folder to initialise",
@@ -387,6 +389,7 @@
   "tui.cmd.inject_presets.description": "Inject radio presets from a YAML config into a .miz file",
   "tui.cmd.inject_waypoints.description": "Inject waypoints from a YAML file into a .miz file",
   "tui.cmd.inject_weather.description": "Inject weather and time-of-day variants into a .miz file",
+  "tui.cmd.convert_v5.description": "Convert a v5-style VEAF mission folder to v6 format",
   "tui.cmd.prepare.description": "Initialise a new VEAF mission folder with default files",
   "tui.instruction": "(↑↓ navigate, Enter confirm)",
   "tui.select_command": "Select a command",

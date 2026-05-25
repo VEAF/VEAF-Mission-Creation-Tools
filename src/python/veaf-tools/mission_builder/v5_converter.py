@@ -428,6 +428,12 @@ def _yaml_dict_block(data: dict, indent: int = 6) -> list[str]:
     return [f"{prefix}{line}" for line in raw.splitlines()]
 
 
+def _is_v6_migration_comment(line: str) -> bool:
+    """Return True for lines that are pure v6 migration annotations (not code)."""
+    stripped = line.lstrip()
+    return stripped.startswith("-- [v6 extracted to mission.yaml]") or stripped.startswith("-- [v6 migration]")
+
+
 # ---------------------------------------------------------------------------
 # Converter
 # ---------------------------------------------------------------------------
@@ -612,39 +618,61 @@ class V5Converter:
     def _migrate_config(self, report: ConversionReport, backup: bool) -> None:
         """Run ConfigMigrator on missionConfig.lua and write the result.
 
-        If the source file is named ``missionConfig.lua``, the migrated content
-        is written to ``mission-script.lua`` (the v6 name) and the original is
-        backed up / removed.
+        File layout after migration:
+        - ``backup_v5/src/scripts/missionConfig.lua.bak``  — original unmodified copy
+        - ``backup_v5/src/scripts/missionConfig.lua``       — annotated (-- [v6 ...] comments)
+        - ``src/scripts/mission-script.lua``                — clean v6 file (migration lines removed)
         """
         src = report.missionconfig_path
         assert src is not None
 
-        content = src.read_text(encoding="utf-8")
-        result = self._migrator.migrate(content)
+        original_content = src.read_text(encoding="utf-8")
+        result = self._migrator.migrate(original_content)
         report.migration_result = result
+        annotated_content = result.new_content
 
-        # Determine output path: rename missionConfig.lua → mission-script.lua
-        if src.name == "missionConfig.lua":
-            dest = src.parent / "mission-script.lua"
-        else:
-            dest = src
+        mission_folder = report.mission_folder
 
-        # Backup before overwriting
-        if backup:
+        if backup and src.name == "missionConfig.lua":
+            # Place original .bak and annotated version under backup_v5/
+            try:
+                rel = src.relative_to(mission_folder)
+            except ValueError:
+                rel = Path(src.name)
+            backup_dir = mission_folder / "backup_v5" / rel.parent
+            backup_dir.mkdir(parents=True, exist_ok=True)
+
+            bak_path = backup_dir / (src.stem + ".lua.bak")
+            if not bak_path.exists():
+                shutil.copy2(src, bak_path)
+                report.missionconfig_backup = bak_path
+                report.actions.append(f"missionConfig.lua: original backed up → backup_v5/{rel.parent}/missionConfig.lua.bak")
+
+            annotated_path = backup_dir / src.name
+            annotated_path.write_text(annotated_content, encoding="utf-8")
+            report.actions.append(f"missionConfig.lua: annotated copy saved → backup_v5/{rel.parent}/missionConfig.lua")
+        elif backup:
+            # Fallback for non-standard filenames: .bak alongside the source
             bak = src.with_suffix(".lua.bak")
             if not bak.exists():
                 shutil.copy2(src, bak)
                 report.missionconfig_backup = bak
-                report.actions.append(f"missionConfig.lua: backup created → {bak.name}")
+                report.actions.append(f"{src.name}: backup created → {bak.name}")
 
-        # Write migrated content to destination
-        dest.write_text(result.new_content, encoding="utf-8")
+        # Generate clean mission-script.lua (strip migration/extraction comment lines)
+        clean_lines = [
+            line for line in annotated_content.splitlines()
+            if not _is_v6_migration_comment(line)
+        ]
+        clean_content = "\n".join(clean_lines)
+
+        dest = src.parent / "mission-script.lua"
+        dest.write_text(clean_content, encoding="utf-8")
         report.missionconfig_output = dest
 
-        # Remove original if renamed
-        if dest != src:
-            src.unlink()
-            report.actions.append(f"missionConfig.lua → renamed to {dest.name}")
+        # Remove the original missionConfig.lua (replaced by mission-script.lua)
+        src.unlink()
+        report.actions.append("missionConfig.lua → clean mission-script.lua generated")
 
         if not result.removed_dofiles and not result.wrapped_calls:
             report.actions.append(
@@ -880,6 +908,8 @@ class V5Converter:
                     lines.append("      react_on_helicopters: true")
                 if al := qra.get("airport_link"):
                     lines.append(f'      airport_link: "{al}"')
+                if not qra.get("start", True):
+                    lines.append("      start: false  # was commented out in v5 — set to true to activate")
             lines.append("")
 
         # ── CAP missions ──────────────────────────────────────────────────

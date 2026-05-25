@@ -227,13 +227,14 @@ class ConfigMigrator:
             # ── Inside a guard: comment out initialize() to avoid double-init ──
             elif current_guard_var is not None:
                 init_in_guard_m = self._BARE_INIT_RE.match(raw_line)
-                if init_in_guard_m and init_in_guard_m.group(2) == current_guard_var:
+                if init_in_guard_m:
                     output.append(
                         f"-- [v6 migration] {raw_line.rstrip()}"
                         "  -- removed: veaf.initialize() in veaf-config.lua calls all module init functions"
                     )
                     warnings.append(
-                        f"line {lineno}: {current_guard_var}.initialize() commented out (veaf-config.lua handles init)"
+                        f"line {lineno}: {init_in_guard_m.group(2)}.initialize() commented out"
+                        " (veaf-config.lua handles init)"
                     )
                     depth += self._net_depth(raw_line)
                     continue
@@ -483,8 +484,8 @@ class ConfigMigrator:
 
         for m in list(_START_RE.finditer(content)):
             chain_start = m.start()
-            # Find the next :start() after this point
-            start_end_m = re.search(r":start\s*\(\s*\)", content[m.end() :])
+            # Find the next :start() after this point — also match commented-out --:start()
+            start_end_m = re.search(r"(--\s*)?:start\s*\(\s*\)", content[m.end() :])
             if not start_end_m:
                 continue
             abs_start_end = m.end() + start_end_m.end()
@@ -495,6 +496,8 @@ class ConfigMigrator:
 
             qra_def = self._parse_qra_chain(chain_text, m.group(1))
             if qra_def:
+                # Record whether :start() was active or commented out
+                qra_def["start"] = start_end_m.group(1) is None  # True if not commented
                 replacements.append((chain_start, chain_end, qra_def))
 
         # Apply replacements in reverse order to preserve positions

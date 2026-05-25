@@ -666,4 +666,4 @@ def convert_pipeline_file(
         return convert_presets(v5_path, v6_path)
     if step == "aircraft_groups":
         return convert_aircraft_groups(v5_path, v6_path)
-    return [f"No converter implemented for pipeline step '{step}'"]
+    return [t("convert_v5.warning.no_converter", step=step)]

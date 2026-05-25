@@ -94,10 +94,9 @@ class TestBareInitializeWrapping(unittest.TestCase):
         self.assertNotIn("if veafSpawn then", result.new_content)
 
     def test_wrapped_call_still_registers_module(self) -> None:
-        # veafSpawn variable is not mapped to "SPAWN" (that's veafSpawnCore);
-        # the fallback stores the variable name as the module id.
+        # veafSpawn maps to "SPAWN" via var_name in the module scanner.
         result = self.m.migrate("veafSpawn.initialize()\n")
-        self.assertIn("veafSpawn", result.enabled_modules)
+        self.assertIn("SPAWN", result.enabled_modules)
 
 
 class TestGuardDetection(unittest.TestCase):
@@ -112,8 +111,6 @@ class TestGuardDetection(unittest.TestCase):
         self.assertIn("RADIO", result.enabled_modules)
 
     def test_no_duplicate_module_from_guard(self) -> None:
-        # veafSpawn → "veafSpawn" (fallback); veafRadio → "RADIO" (mapped).
-        # The important thing is no duplicates regardless of ID.
         content = "if veafRadio then\n  veafRadio.initialize()\nend\n"
         result = self.m.migrate(content)
         self.assertEqual(result.enabled_modules.count("RADIO"), 1)
@@ -121,8 +118,8 @@ class TestGuardDetection(unittest.TestCase):
     def test_multiple_modules_all_detected(self) -> None:
         content = "if veafSpawn then\n  veafSpawn.initialize()\nend\nif veafRadio then\n  veafRadio.initialize()\nend\n"
         result = self.m.migrate(content)
-        # veafSpawn → fallback "veafSpawn"; veafRadio → "RADIO"
-        self.assertIn("veafSpawn", result.enabled_modules)
+        # veafSpawn maps to "SPAWN" via var_name; veafRadio maps to "RADIO"
+        self.assertIn("SPAWN", result.enabled_modules)
         self.assertIn("RADIO", result.enabled_modules)
 
 

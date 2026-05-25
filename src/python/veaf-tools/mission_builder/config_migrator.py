@@ -15,6 +15,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 
+from veaf_libs.i18n import t
 from veaf_libs.lua_module_scanner import get_modules
 
 # ---------------------------------------------------------------------------
@@ -79,6 +80,10 @@ class MigrationResult:
     # ── YAML-017: Security MM password hashes ─────────────────────────────────
     password_mm_hashes: list[str] = field(default_factory=list)
 
+    # ── Callback hints (cannot be expressed in YAML) ───────────────────────────
+    callback_hints: list[str] = field(default_factory=list)
+    """Lua snippets for callbacks that must be set manually in mission-script.lua."""
+
 
 # ---------------------------------------------------------------------------
 # Migrator
@@ -106,11 +111,12 @@ class ConfigMigrator:
 
     def __init__(self) -> None:
         # Build {variable_name: module_id} from the module list.
-        # e.g. "veafSpawn" → "SPAWN"
+        # Use var_name (e.g. "veafQraManager") when available; fall back to the
+        # filename stem (e.g. "veafQraCore") for old bundled JSON without var_name.
         self._var_to_id: dict[str, str] = {}
         for mod in get_modules():
-            var_name = mod["filename"].removesuffix(".lua")
-            self._var_to_id[var_name] = mod["id"]
+            var = mod.get("var_name") or mod["filename"].removesuffix(".lua")  # type: ignore[call-overload]
+            self._var_to_id[var] = mod["id"]
 
     # ------------------------------------------------------------------
     # Internal helpers
@@ -233,8 +239,7 @@ class ConfigMigrator:
                         "  -- removed: veaf.initialize() in veaf-config.lua calls all module init functions"
                     )
                     warnings.append(
-                        f"line {lineno}: {init_in_guard_m.group(2)}.initialize() commented out"
-                        " (veaf-config.lua handles init)"
+                        t("convert_v5.warning.init_commented", line=lineno, var=init_in_guard_m.group(2))
                     )
                     depth += self._net_depth(raw_line)
                     continue
@@ -275,6 +280,7 @@ class ConfigMigrator:
             combat_zones_extracted=partial.combat_zones_extracted,
             airwave_zones_extracted=partial.airwave_zones_extracted,
             password_mm_hashes=partial.password_mm_hashes,
+            callback_hints=partial.callback_hints,
         )
 
     def _build_yaml_snippet(self, enabled_modules: list[str]) -> str:
@@ -984,13 +990,15 @@ class ConfigMigrator:
             chunk = content[start:end]
             has_callback = bool(re.search(r":setOnCompletedHook\s*\(", chunk))
             if has_callback:
-                # Extract data but leave callback hint
-                commented = "\n".join(
-                    f"-- [v6 extracted to mission.yaml] {line}" if line.strip() else line for line in chunk.splitlines()
-                )
                 callback_name_m = re.search(r":setOnCompletedHook\s*\((\w+)\)", chunk)
                 zone_name = zone_def.get("zone_name", "?")
                 cb_name = callback_name_m.group(1) if callback_name_m else "callbackFn"
+                result.callback_hints.append(
+                    f'veafCombatZone.GetZone("{zone_name}"):setOnCompletedHook({cb_name})'
+                )
+                commented = "\n".join(
+                    f"-- [v6 extracted to mission.yaml] {line}" if line.strip() else line for line in chunk.splitlines()
+                )
                 commented += (
                     f"\n-- [v6 migration] callback not migrated: call manually after init:\n"
                     f'-- veafCombatZone.GetZone("{zone_name}"):setOnCompletedHook({cb_name})'
@@ -1127,7 +1135,9 @@ class ConfigMigrator:
             if callbacks:
                 commented += "\n-- [v6 migration] callbacks not migrated. Set them manually after init:"
                 for cb in callbacks:
-                    commented += f'\n-- veafAirWaves.get("{zone_name}"){cb}'
+                    hint = f'veafAirWaves.get("{zone_name}"){cb}'
+                    result.callback_hints.append(hint)
+                    commented += f"\n-- {hint}"
             content = content[:start] + commented + ("\n" if not commented.endswith("\n") else "") + content[end:]
 
         return content

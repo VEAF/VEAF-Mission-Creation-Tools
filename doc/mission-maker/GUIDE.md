@@ -55,7 +55,11 @@ A VEAF mission is a standard DCS `.miz` file that loads the VEAF Lua framework a
 
 ### First Installation
 
-Download `veaf-tools-updater.exe` from the [latest GitHub release](https://github.com/VEAF/VEAF-Mission-Creation-Tools/releases/tag/published-latest) and place it in your mission project folder, then run:
+Download `veaf-tools-updater.exe` from the [latest GitHub release](https://github.com/VEAF/VEAF-Mission-Creation-Tools/releases/tag/published-latest) and place it in your mission project folder.
+
+> **Windows security:** Windows may block `.exe` files downloaded from the internet. If the file doesn't run, right-click it → **Properties** → **General** tab → check **Unblock** at the bottom → **OK**.
+
+Then run:
 
 ```powershell
 .\veaf-tools-updater.exe
@@ -144,7 +148,7 @@ cd my-mission
 2. Copy your existing `.miz` file there
 3. Run `veaf-tools-updater.exe` to fetch all VEAF scripts
 4. Extract your mission: `veaf-tools.exe extract my-mission.miz`
-5. Configure modules in `mission.yaml` and optionally `src/scripts/missionConfig.lua`
+5. Configure modules in `mission.yaml` and optionally `src/scripts/mission-script.lua`
 
 Recommended project layout:
 
@@ -153,7 +157,7 @@ MyMission/
 ├── src/
 │   ├── mission/                  # Extracted DCS mission data (from extract)
 │   ├── scripts/
-│   │   └── missionConfig.lua    # Your runtime Lua configuration (optional)
+│   │   └── mission-script.lua    # Your custom Lua code (optional)
 │   ├── presets.yaml             # Radio frequency presets
 │   ├── spawnables.yaml          # Predefined spawnable groups
 │   └── waypoints.yaml           # Bullseye / navigation points
@@ -169,7 +173,7 @@ MyMission/
 
 The `build` command **automatically injects** a `DO SCRIPT FILE` trigger at mission start that loads all VEAF scripts. You do **not** need to manually add any trigger in the DCS Mission Editor.
 
-If you have a custom `src/scripts/missionConfig.lua`, it is also injected automatically by the builder.
+If you have a custom `src/scripts/mission-script.lua`, it is also injected automatically by the builder.
 
 ### What the builder does
 
@@ -185,9 +189,9 @@ If you have a custom `src/scripts/missionConfig.lua`, it is also injected automa
 VEAF MCT has two configuration layers:
 
 - **`mission.yaml`** (at the project root) — build-time configuration: which modules to enable/disable, log levels, security settings, asset declarations
-- **`src/scripts/missionConfig.lua`** (optional) — runtime Lua code that runs at mission start, for advanced setup like custom aliases, QRA zones, combat zones, etc.
+- **`src/scripts/mission-script.lua`** (optional) — custom Lua code that runs at mission start: aliases, helper functions, third-party script setup (CTLD, CSAR). Module initialization and configuration are generated automatically from `mission.yaml`.
 
-For most missions, `mission.yaml` is sufficient. Use `missionConfig.lua` only when you need Lua-level control.
+For most missions, `mission.yaml` is sufficient. Use `mission-script.lua` only for custom Lua code that cannot be expressed in YAML.
 
 ### mission.yaml Example
 
@@ -209,57 +213,20 @@ lua_modules:
         information: "Tacan 64Y\nU290.50 (20)"
 ```
 
-### missionConfig.lua Example (advanced)
+### mission-script.lua Example
 
 ```lua
--- Enable markers and basic spawn
-veafMarkers.initialize()
-veafSpawn.initialize()
-veafRadio.initialize()
-veafRadio.refreshRadioMenu()
-```
+-- mission-script.lua — custom mission-level code
+-- Module initialization is handled automatically by veaf-config.lua (generated from mission.yaml).
+-- Put custom aliases, helper functions, and third-party script setup here.
 
-### Full Configuration Example
+-- Example: custom shortcut alias
+-- VeafAlias:new():setName("cas1"):setCommand("/_cas_start"):register()
 
-```lua
--- Security: restrict spawn commands to authenticated users
-veafSecurity.initialize()
-
--- Named points: pre-defined positions
-veafNamedPoints.initialize()
-
--- Markers: intercept F10 map marker text
-veafMarkers.initialize()
-
--- Spawn: allow players to spawn units via markers
-veafSpawn.initialize()
-
--- CAS Mission: training CAS generator
-veafCasMission.initialize()
-veafCasMission.start()
-
--- Assets: tankers, AWACS, carriers
-veafAssets.Assets = {
-  {
-    name = "Texaco",
-    description = "Texaco (KC-135)",
-    groupName = "KC-135 Texaco",
-    information = true,
-    disposable = false,
-  },
-  {
-    name = "Overlord",
-    description = "Overlord (E-3A)",
-    groupName = "E-3A Overlord",
-    information = true,
-    disposable = false,
-  },
-}
-veafAssets.initialize()
-
--- Radio menu
-veafRadio.initialize()
-veafRadio.refreshRadioMenu()
+-- Example: CTLD third-party integration (see CTLD and CSAR Integration for full details)
+-- if ctld then ctld.initialize(function()
+--     -- ctld.hoverPickup = false
+-- end) end
 ```
 
 ### Security Levels
@@ -270,10 +237,13 @@ veafRadio.refreshRadioMenu()
 | 1 (pilots) | `veafSecurity.LEVEL_L1` | Non-spectator pilots |
 | 9 (admin) | `veafSecurity.LEVEL_L9` | Authenticated admins |
 
-Set passwords (SHA-1 hashes) in `missionconfig.lua`:
+Set passwords (SHA-256 hashes) in `mission.yaml`:
 
-```lua
-veafSecurity.password_L9[sha1.hex("yourpassword")] = true
+```yaml
+security:
+  disabled: false
+  password_hashes:
+    - "<SHA-256 hash of your password>"
 ```
 
 ---
@@ -384,21 +354,23 @@ local defenseZone = AirWaveZone:new()
 
 ## CTLD and CSAR Integration
 
-[CTLD](https://github.com/ciribob/DCS-CTLD) (Combat Troop Loading and Deployment) and [CSAR](https://github.com/ciribob/DCS-CSAR) (Combat Search and Rescue) are third-party scripts that VEAF supports natively. VEAF monkey-patches their `initialize()` functions at startup, so you do not need to load or initialise them separately — just call them from `missionConfig.lua` using the standard VEAF pattern.
+[CTLD](https://github.com/ciribob/DCS-CTLD) (Combat Troop Loading and Deployment) and [CSAR](https://github.com/ciribob/DCS-CSAR) (Combat Search and Rescue) are third-party scripts that VEAF supports natively. VEAF monkey-patches their `initialize()` functions at startup, so you do not need to load or initialise them separately — just call them from `mission-script.lua` using the standard VEAF pattern.
 
 ### Loading order in the DCS trigger chain
 
 CTLD/CSAR scripts must be loaded before the VEAF scripts:
 
 ```
-DO SCRIPT FILE → ctld.lua         (third-party)
-DO SCRIPT FILE → csar.lua         (third-party)
-DO SCRIPT FILE → veaf-scripts.lua (VEAF — triggers missionConfig.lua at end)
+DO SCRIPT FILE → ctld.lua          (third-party)
+DO SCRIPT FILE → csar.lua          (third-party)
+DO SCRIPT FILE → veaf-scripts.lua  (VEAF modules)
+DO SCRIPT FILE → veaf-config.lua   (generated from mission.yaml)
+DO SCRIPT FILE → mission-script.lua (your custom code)
 ```
 
 When `veaf-scripts.lua` loads, it detects the presence of `ctld` and `csar` global tables and wraps their `initialize()` functions, applying VEAF defaults before calling the real initialiser.
 
-### Enabling CTLD in missionConfig.lua
+### Enabling CTLD in mission-script.lua
 
 ```lua
 if ctld then
@@ -421,7 +393,7 @@ end
 
 The `configurationCallback` is called immediately before the real `ctld.initialize()` — set CTLD properties there, not before.
 
-### Enabling CSAR in missionConfig.lua
+### Enabling CSAR in mission-script.lua
 
 ```lua
 if csar then

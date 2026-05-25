@@ -100,6 +100,47 @@ def load_config() -> dict[str, Any]:
         return {}
 
 
+def parse_version_parts(version: str) -> list[int]:
+    """Parse a semantic version string into a list of integers."""
+    return [int(x) for x in version.split(".")]
+
+
+def version_matches_constraint(release_version: str, constraint: str) -> bool:
+    """
+    Return True if release_version satisfies the constraint.
+
+    Supported formats:
+      "6"       — accept any 6.x.x  (prefix match on major)
+      "6.1"     — accept any 6.1.x  (prefix match on major.minor)
+      "6.1.3"   — accept exactly 6.1.3
+      "^6.1.3"  — compatible range: >=6.1.3, <7.0.0 (same major)
+      "~6.1.3"  — approximate range: >=6.1.3, <6.2.0 (same major.minor)
+    """
+    try:
+        rel = parse_version_parts(release_version)
+
+        if constraint.startswith("^"):
+            # Compatible: same major, >= constraint version
+            pin = parse_version_parts(constraint[1:])
+            pin_padded = pin + [0] * (3 - len(pin))
+            rel_padded = rel + [0] * (3 - len(rel))
+            return rel_padded[0] == pin_padded[0] and rel_padded >= pin_padded
+
+        if constraint.startswith("~"):
+            # Approximate: same major.minor, >= constraint version
+            pin = parse_version_parts(constraint[1:])
+            pin_padded = pin + [0] * (3 - len(pin))
+            rel_padded = rel + [0] * (3 - len(rel))
+            return rel_padded[0] == pin_padded[0] and rel_padded[1] == pin_padded[1] and rel_padded >= pin_padded
+
+        # Prefix match: constraint is a partial version
+        pin = parse_version_parts(constraint)
+        return rel[: len(pin)] == pin
+
+    except ValueError:
+        return False
+
+
 class UpdateWorker:
     """Worker class for managing updates."""
 
@@ -193,10 +234,35 @@ class UpdateWorker:
             logger.warning(t("updater.err.version_read", error=e))
             return None
 
+    def get_version_constraint(self, mission_folder: Path) -> str | None:
+        """Read the optional version constraint from mission.yaml (veaf_tools: version:)."""
+        mission_yaml_path = mission_folder / "mission.yaml"
+        if not mission_yaml_path.exists():
+            return None
+        try:
+            with open(mission_yaml_path) as f:
+                config = yaml.safe_load(f)
+            if not config:
+                return None
+            veaf_tools = config.get("veaf_tools")
+            if isinstance(veaf_tools, dict):
+                return veaf_tools.get("version")
+        except Exception:
+            pass
+        return None
+
     def should_update(self, release_version: str, mission_folder: Path) -> bool:
         """Determine if an update is needed by comparing versions."""
         if self.force:
             return True
+
+        # Check version constraint from mission.yaml
+        constraint = self.get_version_constraint(mission_folder)
+        if constraint:
+            logger.info(t("updater.version_constraint", constraint=constraint))
+            if not version_matches_constraint(release_version, constraint):
+                logger.info(t("updater.version_pinned", version=release_version, constraint=constraint))
+                return False
 
         installed_version = self.get_installed_version(mission_folder)
         if not installed_version:

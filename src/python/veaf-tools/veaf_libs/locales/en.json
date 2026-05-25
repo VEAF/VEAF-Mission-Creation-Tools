@@ -339,6 +339,8 @@
   "updater.no_installed": "No installed version found",
   "updater.newer_available": "Newer version available: {installed} → {release}",
   "updater.up_to_date": "Installed version {version} is already up-to-date",
+  "updater.version_pinned": "Version {version} skipped: does not match constraint '{constraint}' from mission.yaml",
+  "updater.version_constraint": "Version constraint from mission.yaml: {constraint}",
   "updater.force_update": "Force flag set, proceeding with update anyway",
   "updater.checksum_ok": "Checksum verified for {name}",
   "updater.extracted": "Successfully extracted release version {version} to '{dir}' folder",

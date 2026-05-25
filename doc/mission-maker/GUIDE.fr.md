@@ -52,7 +52,11 @@ Une mission VEAF est un fichier DCS `.miz` standard qui charge le framework Lua 
 
 ### Première installation
 
-Téléchargez `veaf-tools-updater.exe` depuis la [dernière release GitHub](https://github.com/VEAF/VEAF-Mission-Creation-Tools/releases/tag/published-latest) et placez-le dans le dossier de votre projet de mission, puis exécutez :
+Téléchargez `veaf-tools-updater.exe` depuis la [dernière release GitHub](https://github.com/VEAF/VEAF-Mission-Creation-Tools/releases/tag/published-latest) et placez-le dans le dossier de votre projet de mission.
+
+> **Sécurité Windows :** Windows peut bloquer les fichiers `.exe` téléchargés depuis Internet. Si le fichier ne s'exécute pas, cliquez droit dessus → **Propriétés** → onglet **Général** → cochez **Débloquer** en bas de la fenêtre → **OK**.
+
+Puis exécutez :
 
 ```powershell
 .\veaf-tools-updater.exe
@@ -141,7 +145,7 @@ cd my-mission
 2. Copiez votre fichier `.miz` existant dedans
 3. Exécutez `veaf-tools-updater.exe` pour récupérer tous les scripts VEAF
 4. Extrayez votre mission : `veaf-tools.exe extract ma-mission.miz`
-5. Configurez les modules dans `mission.yaml` et éventuellement `src/scripts/missionConfig.lua`
+5. Configurez les modules dans `mission.yaml` et éventuellement `src/scripts/mission-script.lua`
 
 Structure de projet recommandée :
 
@@ -150,7 +154,7 @@ MyMission/
 ├── src/
 │   ├── mission/                  # Données DCS extraites (via extract)
 │   ├── scripts/
-│   │   └── missionConfig.lua    # Configuration Lua runtime (optionnel)
+│   │   └── mission-script.lua    # Votre code Lua personnalisé (optionnel)
 │   ├── presets.yaml             # Préréglages de fréquences radio
 │   ├── spawnables.yaml          # Groupes spawnable prédéfinis
 │   └── waypoints.yaml           # Bullseye / points de navigation
@@ -166,7 +170,7 @@ MyMission/
 
 La commande `build` **injecte automatiquement** un trigger `DO SCRIPT FILE` au démarrage de la mission qui charge tous les scripts VEAF. Vous n'avez **pas** besoin d'ajouter manuellement un trigger dans l'éditeur de missions DCS.
 
-Si vous avez un `src/scripts/missionConfig.lua` personnalisé, il est aussi injecté automatiquement par le builder.
+Si vous avez un `src/scripts/mission-script.lua` personnalisé, il est aussi injecté automatiquement par le builder.
 
 ### Ce que fait le builder
 
@@ -182,9 +186,9 @@ Si vous avez un `src/scripts/missionConfig.lua` personnalisé, il est aussi inje
 VEAF MCT a deux niveaux de configuration :
 
 - **`mission.yaml`** (à la racine du projet) — configuration de build : quels modules activer/désactiver, niveaux de log, sécurité, déclarations d'assets
-- **`src/scripts/missionConfig.lua`** (optionnel) — code Lua runtime exécuté au démarrage de la mission, pour les configurations avancées comme les alias personnalisés, zones QRA, zones de combat, etc.
+- **`src/scripts/mission-script.lua`** (optionnel) — code Lua personnalisé exécuté au démarrage de la mission : alias, fonctions utilitaires, intégration de scripts tiers (CTLD, CSAR). L'initialisation et la configuration des modules sont générées automatiquement depuis `mission.yaml`.
 
-Pour la plupart des missions, `mission.yaml` suffit. N'utilisez `missionConfig.lua` que lorsque vous avez besoin de contrôle au niveau Lua.
+Pour la plupart des missions, `mission.yaml` suffit. N'utilisez `mission-script.lua` que pour du code Lua personnalisé qui ne peut pas être exprimé en YAML.
 
 ### Exemple mission.yaml
 
@@ -206,57 +210,20 @@ lua_modules:
         information: "Tacan 64Y\nU290.50 (20)"
 ```
 
-### Exemple missionConfig.lua (avancé)
+### Exemple mission-script.lua
 
 ```lua
--- Activer les marqueurs et le spawn de base
-veafMarkers.initialize()
-veafSpawn.initialize()
-veafRadio.initialize()
-veafRadio.refreshRadioMenu()
-```
+-- mission-script.lua — code Lua personnalisé au niveau mission
+-- L'initialisation des modules est gérée automatiquement par veaf-config.lua (généré depuis mission.yaml).
+-- Mettez ici vos alias, fonctions utilitaires et intégrations de scripts tiers.
 
-### Exemple de configuration complète
+-- Exemple : alias de raccourci personnalisé
+-- VeafAlias:new():setName("cas1"):setCommand("/_cas_start"):register()
 
-```lua
--- Sécurité : restreindre les commandes spawn aux utilisateurs authentifiés
-veafSecurity.initialize()
-
--- Points nommés : positions prédéfinies
-veafNamedPoints.initialize()
-
--- Marqueurs : intercepter le texte des marqueurs sur la carte F10
-veafMarkers.initialize()
-
--- Spawn : permettre aux joueurs de faire apparaître des unités via les marqueurs
-veafSpawn.initialize()
-
--- Mission CAS : générateur de CAS d'entraînement
-veafCasMission.initialize()
-veafCasMission.start()
-
--- Actifs : tankers, AWACS, carriers
-veafAssets.Assets = {
-  {
-    name = "Texaco",
-    description = "Texaco (KC-135)",
-    groupName = "KC-135 Texaco",
-    information = true,
-    disposable = false,
-  },
-  {
-    name = "Overlord",
-    description = "Overlord (E-3A)",
-    groupName = "E-3A Overlord",
-    information = true,
-    disposable = false,
-  },
-}
-veafAssets.initialize()
-
--- Menu radio
-veafRadio.initialize()
-veafRadio.refreshRadioMenu()
+-- Exemple : intégration CTLD (voir la section Intégration CTLD et CSAR pour les détails)
+-- if ctld then ctld.initialize(function()
+--     -- ctld.hoverPickup = false
+-- end) end
 ```
 
 ### Niveaux de sécurité
@@ -267,10 +234,13 @@ veafRadio.refreshRadioMenu()
 | 1 (pilotes) | `veafSecurity.LEVEL_L1` | Pilotes non-spectateurs |
 | 9 (admin) | `veafSecurity.LEVEL_L9` | Admins authentifiés |
 
-Définissez les mots de passe (hachages SHA-1) dans `missionconfig.lua` :
+Définissez les mots de passe (hachages SHA-256) dans `mission.yaml` :
 
-```lua
-veafSecurity.password_L9[sha1.hex("votremotdepasse")] = true
+```yaml
+security:
+  disabled: false
+  password_hashes:
+    - "<hachage SHA-256 de votre mot de passe>"
 ```
 
 ---

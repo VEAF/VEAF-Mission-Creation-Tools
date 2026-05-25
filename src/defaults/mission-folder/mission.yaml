@@ -175,3 +175,17 @@
 #     file: src/my-aircraft.yaml        # non-default path
 #     mode: replace                     # add (default) or replace
 #   weather: false                       # skip weather variants
+
+# ── Version pinning ──────────────────────────────────────────────────────────────────────────────
+# Declare the veaf-tools version this mission is compatible with.
+# veaf-tools-updater.exe skips releases that don’t match the constraint.
+#
+# Supported formats (NPM-style prefixes):
+#   version: "6"         # accept any 6.x.x
+#   version: "6.1"       # accept any 6.1.x
+#   version: "6.1.3"     # accept exactly 6.1.3
+#   version: "^6.1.3"    # compatible: >=6.1.3, <7.0.0 (same major)
+#   version: "~6.1.3"    # approximate: >=6.1.3, <6.2.0 (same major.minor)
+#
+# veaf_tools:
+#   version: "6"         # accept any 6.x.x

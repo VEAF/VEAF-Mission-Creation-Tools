@@ -202,7 +202,7 @@ def run_wizard() -> list[str]:
 
         # ── Step 1: select command ───────────────────────────────────────────
         choices = [
-            Choice(value=cmd.cli_name, name=f"\033[32m{cmd.cli_name:<28}\033[0m  {cmd.description}")
+            Choice(value=cmd.cli_name, name=f"{cmd.cli_name:<28}  {cmd.description}")
             for cmd in COMMANDS
         ]
         default_choice = last_command if last_command in _COMMAND_MAP else COMMANDS[0].cli_name
@@ -228,7 +228,7 @@ def run_wizard() -> list[str]:
             saved = last_args.get(prompt.key, prompt.default)
             # Show the CLI flag/name with color prefix for options
             if prompt.is_option:
-                display_label = f"\033[33m{prompt.cli_flag}\033[0m  {prompt.label}"
+                display_label = f"{prompt.cli_flag}  {prompt.label}"
             else:
                 display_label = prompt.label
             if prompt.is_flag:

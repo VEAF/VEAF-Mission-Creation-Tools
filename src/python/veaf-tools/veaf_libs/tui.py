@@ -201,10 +201,7 @@ def run_wizard() -> list[str]:
         last_command = get_last_command()
 
         # ── Step 1: select command ───────────────────────────────────────────
-        choices = [
-            Choice(value=cmd.cli_name, name=f"{cmd.cli_name:<28}  {cmd.description}")
-            for cmd in COMMANDS
-        ]
+        choices = [Choice(value=cmd.cli_name, name=f"{cmd.cli_name:<28}  {cmd.description}") for cmd in COMMANDS]
         default_choice = last_command if last_command in _COMMAND_MAP else COMMANDS[0].cli_name
 
         selected: str = inquirer.select(  # type: ignore[attr-defined]

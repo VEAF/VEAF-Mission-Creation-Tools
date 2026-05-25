@@ -238,9 +238,7 @@ class ConfigMigrator:
                         f"-- [v6 migration] {raw_line.rstrip()}"
                         "  -- removed: veaf.initialize() in veaf-config.lua calls all module init functions"
                     )
-                    warnings.append(
-                        t("convert_v5.warning.init_commented", line=lineno, var=init_in_guard_m.group(2))
-                    )
+                    warnings.append(t("convert_v5.warning.init_commented", line=lineno, var=init_in_guard_m.group(2)))
                     depth += self._net_depth(raw_line)
                     continue
 
@@ -993,9 +991,7 @@ class ConfigMigrator:
                 callback_name_m = re.search(r":setOnCompletedHook\s*\((\w+)\)", chunk)
                 zone_name = zone_def.get("zone_name", "?")
                 cb_name = callback_name_m.group(1) if callback_name_m else "callbackFn"
-                result.callback_hints.append(
-                    f'veafCombatZone.GetZone("{zone_name}"):setOnCompletedHook({cb_name})'
-                )
+                result.callback_hints.append(f'veafCombatZone.GetZone("{zone_name}"):setOnCompletedHook({cb_name})')
                 commented = "\n".join(
                     f"-- [v6 extracted to mission.yaml] {line}" if line.strip() else line for line in chunk.splitlines()
                 )

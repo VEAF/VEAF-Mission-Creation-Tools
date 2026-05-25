@@ -105,7 +105,9 @@ def convert_v5(
         rel = report.missionconfig_path.relative_to(p_folder)
         scan_table.add_row(str(rel), f"[green]{t('convert_v5.scan.missionconfig.found')}[/green]")
     else:
-        scan_table.add_row("src/scripts/missionConfig.lua", f"[yellow]{t('convert_v5.scan.missionconfig.not_found')}[/yellow]")
+        scan_table.add_row(
+            "src/scripts/missionConfig.lua", f"[yellow]{t('convert_v5.scan.missionconfig.not_found')}[/yellow]"
+        )
 
     if report.mission_yaml_existed and not report.mission_yaml_generated:
         scan_table.add_row("mission.yaml", f"[yellow]{t('convert_v5.scan.yaml.existed')}[/yellow]")

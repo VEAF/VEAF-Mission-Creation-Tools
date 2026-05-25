@@ -461,7 +461,7 @@ def _generate_mission_script(result: MigrationResult, version: str = "unknown") 
         ]
         for hint in result.callback_hints:
             lines += [
-                f"-- local function myCallback(arg)",
+                "-- local function myCallback(arg)",
                 "--   -- TODO: implement",
                 "-- end",
                 f"-- {hint}",

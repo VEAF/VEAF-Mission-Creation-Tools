@@ -58,6 +58,7 @@ class CommandSpec:
 # ---------------------------------------------------------------------------
 
 COMMANDS: list[CommandSpec] = [
+    # ── Most frequent: daily build/inject loop ──────────────────────────────
     CommandSpec(
         cli_name="build",
         description=t("tui.cmd.build.description"),
@@ -65,24 +66,6 @@ COMMANDS: list[CommandSpec] = [
             ArgPrompt(
                 "mission_name_or_file", t("tui.arg.mission_name_or_file"), default="mission.miz", is_option=False
             ),
-            ArgPrompt("mission_folder", t("tui.arg.mission_folder"), default=".", is_option=False),
-        ],
-    ),
-    CommandSpec(
-        cli_name="extract",
-        description=t("tui.cmd.extract.description"),
-        prompts=[
-            ArgPrompt(
-                "mission_name_or_file", t("tui.arg.mission_name_or_file"), default="mission.miz", is_option=False
-            ),
-            ArgPrompt("mission_folder", t("tui.arg.mission_folder_dest"), default=".", is_option=False),
-        ],
-    ),
-    CommandSpec(
-        cli_name="convert",
-        description=t("tui.cmd.convert.description"),
-        prompts=[
-            ArgPrompt("mission_name", t("tui.arg.mission_name_no_ext"), default="mission", is_option=False),
             ArgPrompt("mission_folder", t("tui.arg.mission_folder"), default=".", is_option=False),
         ],
     ),
@@ -116,6 +99,26 @@ COMMANDS: list[CommandSpec] = [
         ],
     ),
     CommandSpec(
+        cli_name="inject-waypoints",
+        description=t("tui.cmd.inject_waypoints.description"),
+        prompts=[
+            ArgPrompt(
+                "mission_name_or_file", t("tui.arg.mission_name_or_file"), default="mission.miz", is_option=False
+            ),
+        ],
+    ),
+    # ── Occasional: extraction ──────────────────────────────────────────────
+    CommandSpec(
+        cli_name="extract",
+        description=t("tui.cmd.extract.description"),
+        prompts=[
+            ArgPrompt(
+                "mission_name_or_file", t("tui.arg.mission_name_or_file"), default="mission.miz", is_option=False
+            ),
+            ArgPrompt("mission_folder", t("tui.arg.mission_folder_dest"), default=".", is_option=False),
+        ],
+    ),
+    CommandSpec(
         cli_name="extract-aircraft-groups",
         description=t("tui.cmd.extract_aircraft.description"),
         prompts=[
@@ -126,21 +129,30 @@ COMMANDS: list[CommandSpec] = [
         ],
     ),
     CommandSpec(
-        cli_name="inject-waypoints",
-        description=t("tui.cmd.inject_waypoints.description"),
-        prompts=[
-            ArgPrompt(
-                "mission_name_or_file", t("tui.arg.mission_name_or_file"), default="mission.miz", is_option=False
-            ),
-        ],
-    ),
-    CommandSpec(
         cli_name="extract-waypoints",
         description=t("tui.cmd.extract_waypoints.description"),
         prompts=[
             ArgPrompt(
                 "mission_name_or_file", t("tui.arg.mission_name_or_file"), default="mission.miz", is_option=False
             ),
+        ],
+    ),
+    # ── Rare: project setup / one-time migration ────────────────────────────
+    CommandSpec(
+        cli_name="convert",
+        description=t("tui.cmd.convert.description"),
+        prompts=[
+            ArgPrompt("mission_name", t("tui.arg.mission_name_no_ext"), default="mission", is_option=False),
+            ArgPrompt("mission_folder", t("tui.arg.mission_folder"), default=".", is_option=False),
+        ],
+    ),
+    CommandSpec(
+        cli_name="convert-v5",
+        description=t("tui.cmd.convert_v5.description"),
+        prompts=[
+            ArgPrompt("mission_folder", t("tui.arg.mission_folder_init"), default=".", is_option=False),
+            ArgPrompt("force", t("tui.arg.convert_v5_force"), default="", is_flag=True),
+            ArgPrompt("icao", t("tui.arg.convert_v5_icao"), default=""),
         ],
     ),
     CommandSpec(
@@ -189,7 +201,10 @@ def run_wizard() -> list[str]:
         last_command = get_last_command()
 
         # ── Step 1: select command ───────────────────────────────────────────
-        choices = [Choice(value=cmd.cli_name, name=f"{cmd.cli_name:<35s}{cmd.description}") for cmd in COMMANDS]
+        choices = [
+            Choice(value=cmd.cli_name, name=f"{cmd.cli_name:<28}  {cmd.description}")
+            for cmd in COMMANDS
+        ]
         default_choice = last_command if last_command in _COMMAND_MAP else COMMANDS[0].cli_name
 
         selected: str = inquirer.select(  # type: ignore[attr-defined]
@@ -211,14 +226,19 @@ def run_wizard() -> list[str]:
 
         for prompt in spec.prompts:
             saved = last_args.get(prompt.key, prompt.default)
+            # Show the CLI flag/name with color prefix for options
+            if prompt.is_option:
+                display_label = f"{prompt.cli_flag}  {prompt.label}"
+            else:
+                display_label = prompt.label
             if prompt.is_flag:
                 value: Any = inquirer.confirm(  # type: ignore[attr-defined]
-                    message=prompt.label,
+                    message=display_label,
                     default=bool(saved),
                 ).execute()
             else:
                 value = inquirer.text(  # type: ignore[attr-defined]
-                    message=prompt.label,
+                    message=display_label,
                     default=str(saved) if saved else prompt.default,
                 ).execute()
             collected[prompt.key] = value

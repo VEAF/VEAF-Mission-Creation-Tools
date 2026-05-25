@@ -51,21 +51,21 @@ def convert_v5(
     pause: bool = typer.Option(False, help=PAUSE_HELP),
 ) -> None:
     logger.set_verbose(verbose)
-    console.print(f"[bold green]veaf-tools Convert v5 Mission v{VERSION}[/bold green]")
+    console.print(f"[bold green]{t('convert_v5.command.banner', version=VERSION)}[/bold green]")
 
     p_folder = resolve_path(path=mission_folder, default_path=Path.cwd(), should_exist=True)
     if not p_folder.is_dir():
-        logger.error(f"Mission folder does not exist: {p_folder}", exception_type=FileNotFoundError)
+        logger.error(t("convert_v5.command.folder_missing", path=p_folder), exception_type=FileNotFoundError)
 
     # If mission.yaml exists and --force was not given, ask interactively.
     mission_yaml = p_folder / "mission.yaml"
     overwrite_yaml = force
     if mission_yaml.exists() and not force:
         console.print(
-            f"\n[yellow]mission.yaml already exists:[/yellow] {mission_yaml}\n"
-            "  Use [bold]--force[/bold] to overwrite, or continue to skip generation."
+            f"\n[yellow]{t('convert_v5.command.yaml_exists_notice')}[/yellow] {mission_yaml}\n"
+            f"  {t('convert_v5.command.yaml_exists_help')}"
         )
-        if typer.confirm("  Overwrite existing mission.yaml?", default=False):
+        if typer.confirm(f"  {t('convert_v5.command.yaml_exists_confirm')}", default=False):
             overwrite_yaml = True
 
     # Run the converter
@@ -78,9 +78,9 @@ def convert_v5(
     def icao_cb(version_name: str) -> str:
         if not _icao_value:
             console.print(
-                f"\n[yellow]Weather version '[bold]{version_name}[/bold]' uses realweather.[/yellow]\n"
-                "  ICAO left empty in generated config.\n"
-                "  Pass [bold]--icao UGGG[/bold] (replace with your airport code) to set it automatically."
+                f"\n[yellow]{t('convert_v5.command.realweather_notice', name=version_name)}[/yellow]\n"
+                f"  {t('convert_v5.command.realweather_empty_icao')}\n"
+                f"  {t('convert_v5.command.realweather_hint')}"
             )
         return _icao_value
 
@@ -93,26 +93,26 @@ def convert_v5(
     )
 
     # ── Console output ────────────────────────────────────────────────────────
-    console.print(f"\n[bold cyan]Mission folder:[/bold cyan] {p_folder}")
+    console.print(f"\n[bold cyan]{t('convert_v5.command.folder_label')}[/bold cyan] {p_folder}")
     console.print("")
 
     # Scan summary table
-    scan_table = Table(title="Scan Results", show_header=True)
-    scan_table.add_column("Item", style="cyan")
-    scan_table.add_column("Status")
+    scan_table = Table(title=t("convert_v5.scan.title"), show_header=True)
+    scan_table.add_column(t("convert_v5.scan.col.item"), style="cyan")
+    scan_table.add_column(t("convert_v5.scan.col.status"))
 
     if report.missionconfig_path:
         rel = report.missionconfig_path.relative_to(p_folder)
-        scan_table.add_row(str(rel), "[green]✓ Found — migrated[/green]")
+        scan_table.add_row(str(rel), f"[green]{t('convert_v5.scan.missionconfig.found')}[/green]")
     else:
-        scan_table.add_row("src/scripts/missionConfig.lua", "[yellow]✗ Not found — skipped[/yellow]")
+        scan_table.add_row("src/scripts/missionConfig.lua", f"[yellow]{t('convert_v5.scan.missionconfig.not_found')}[/yellow]")
 
     if report.mission_yaml_existed and not report.mission_yaml_generated:
-        scan_table.add_row("mission.yaml", "[yellow]⚠ Already exists — not overwritten[/yellow]")
+        scan_table.add_row("mission.yaml", f"[yellow]{t('convert_v5.scan.yaml.existed')}[/yellow]")
     elif report.mission_yaml_generated:
-        scan_table.add_row("mission.yaml", "[green]✓ Generated[/green]")
+        scan_table.add_row("mission.yaml", f"[green]{t('convert_v5.scan.yaml.generated')}[/green]")
     else:
-        scan_table.add_row("mission.yaml", "[red]✗ Not generated[/red]")
+        scan_table.add_row("mission.yaml", f"[red]{t('convert_v5.scan.yaml.not_generated')}[/red]")
 
     for step, v6_candidates in PIPELINE_CANDIDATES.items():
         if any(pf.step == step for pf in report.pipeline_files):
@@ -120,24 +120,24 @@ def convert_v5(
             if pf.converted:
                 scan_table.add_row(
                     pf.v5_source or pf.v6_target,
-                    f"[green]✓ Converted → {pf.v6_target}[/green]",
+                    f"[green]{t('convert_v5.scan.pipeline.converted', target=pf.v6_target)}[/green]",
                 )
             elif pf.needs_conversion:
                 scan_table.add_row(
                     pf.relative,
-                    f"[yellow]⚠ v5 format — needs conversion to {pf.v6_target}[/yellow]",
+                    f"[yellow]{t('convert_v5.scan.pipeline.v5_format', target=pf.v6_target)}[/yellow]",
                 )
             else:
-                scan_table.add_row(pf.relative, f"[green]✓ Found — added to pipeline:[/green] {step}")
+                scan_table.add_row(pf.relative, f"[green]{t('convert_v5.scan.pipeline.found', step=step)}[/green]")
         else:
-            scan_table.add_row(v6_candidates[0], f"[dim]✗ Not found — {step} step will be skipped[/dim]")
+            scan_table.add_row(v6_candidates[0], f"[dim]{t('convert_v5.scan.pipeline.not_found', step=step)}[/dim]")
 
     console.print(scan_table)
     console.print("")
 
     # Actions
     if report.actions:
-        console.print("[bold cyan]Actions taken:[/bold cyan]")
+        console.print(f"[bold cyan]{t('convert_v5.console.actions_taken')}[/bold cyan]")
         for action in report.actions:
             console.print(f"  [green]✓[/green] {action}")
         console.print("")
@@ -146,31 +146,32 @@ def convert_v5(
     if report.migration_result:
         mr = report.migration_result
         if mr.removed_dofiles:
-            console.print(f"[yellow]Commented out {len(mr.removed_dofiles)} doFile() call(s):[/yellow]")
+            console.print(f"[yellow]{t('convert_v5.console.dofiles_commented', n=len(mr.removed_dofiles))}[/yellow]")
             for item in mr.removed_dofiles:
                 console.print(f"  • {item}")
             console.print("")
         if mr.wrapped_calls:
-            console.print(f"[yellow]Wrapped {len(mr.wrapped_calls)} bare initialize() call(s):[/yellow]")
+            console.print(f"[yellow]{t('convert_v5.console.init_wrapped', n=len(mr.wrapped_calls))}[/yellow]")
             for item in mr.wrapped_calls:
                 console.print(f"  • {item}")
             console.print("")
         if mr.enabled_modules:
             console.print(
-                f"[bold cyan]Enabled modules ({len(mr.enabled_modules)}):[/bold cyan] " + ", ".join(mr.enabled_modules)
+                f"[bold cyan]{t('convert_v5.console.enabled_modules', n=len(mr.enabled_modules))}[/bold cyan] "
+                + ", ".join(mr.enabled_modules)
             )
             console.print("")
 
     # Warnings
     if report.warnings:
-        console.print(f"[bold yellow]⚠  Warnings ({len(report.warnings)}):[/bold yellow]")
+        console.print(f"[bold yellow]{t('convert_v5.console.warnings', n=len(report.warnings))}[/bold yellow]")
         for w in report.warnings:
             console.print(f"  [yellow]•[/yellow] {w}")
         console.print("")
 
     # Manual review
     if report.manual_review:
-        console.print("[bold yellow]Manual review required:[/bold yellow]")
+        console.print(f"[bold yellow]{t('convert_v5.console.manual_review')}[/bold yellow]")
         for item in report.manual_review:
             console.print(f"  [yellow]→[/yellow] {item}")
         console.print("")
@@ -178,38 +179,35 @@ def convert_v5(
     # Next steps
     converted_files = [pf for pf in report.pipeline_files if pf.converted]
     needs_conversion = [pf for pf in report.pipeline_files if pf.needs_conversion]
-    console.print("[bold cyan]Next steps:[/bold cyan]")
+    console.print(f"[bold cyan]{t('convert_v5.console.next_steps')}[/bold cyan]")
     step_num = 1
-    console.print(f"  {step_num}. Review [cyan]mission.yaml[/cyan] and adjust module settings as needed.")
+    console.print(f"  {step_num}. {t('convert_v5.console.next_steps.review_yaml')}")
     step_num += 1
     if converted_files:
-        console.print(
-            f"  {step_num}. Review the {len(converted_files)} converted config file(s) in your mission folder."
-        )
+        console.print(f"  {step_num}. {t('convert_v5.console.next_steps.review_converted', n=len(converted_files))}")
         step_num += 1
     if needs_conversion:
-        console.print(
-            f"  {step_num}. Manually convert the {len(needs_conversion)} v5 config file(s) listed above "
-            "(or re-run without [bold]--no-convert-pipeline[/bold])."
-        )
+        console.print(f"  {step_num}. {t('convert_v5.console.next_steps.convert_manual', n=len(needs_conversion))}")
         step_num += 1
-    console.print(f"  {step_num}. Run [cyan]veaf-tools build[/cyan] — DCS trigger conversion runs automatically.")
+    console.print(f"  {step_num}. {t('convert_v5.console.next_steps.build')}")
     step_num += 1
-    console.print(f"  {step_num}. Test the mission in DCS.")
+    console.print(f"  {step_num}. {t('convert_v5.console.next_steps.test')}")
     step_num += 1
     if report.manual_review:
-        console.print(f"  {step_num}. Clean up the items listed above once everything works.")
+        console.print(f"  {step_num}. {t('convert_v5.console.next_steps.cleanup')}")
     console.print("")
 
     # ── Save report file ──────────────────────────────────────────────────────
     if report_file is not None:
         p_report = resolve_path(path=report_file)
     else:
-        p_report = p_folder / "convert-v5-report.md"
+        backup_v5 = p_folder / "backup_v5"
+        backup_v5.mkdir(parents=True, exist_ok=True)
+        p_report = backup_v5 / "convert-v5-report.md"
 
     markdown_report = report.to_markdown()
     p_report.write_text(markdown_report, encoding="utf-8")
-    console.print(f"[bold green]Conversion report saved:[/bold green] {p_report}")
+    console.print(f"[bold green]{t('convert_v5.command.report_saved', path=p_report)}[/bold green]")
 
     console.print(t("msg.work_done"))
     if pause:

@@ -7,6 +7,7 @@ a = Analysis(
     binaries=[],
     datas=[
         ('src\\python\\veaf-tools\\veaf_libs\\locales', 'veaf_libs\\locales'),
+        ('src\\python\\veaf-tools\\veaf_libs\\veaf_modules_list.json', '.'),
     ],
     hiddenimports=['lupa', 'lupa.lua51'],
     hookspath=[],

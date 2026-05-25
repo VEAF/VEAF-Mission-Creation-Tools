@@ -27,6 +27,7 @@ class LuaModule(TypedDict):
     id: str
     version: str
     filename: str
+    var_name: str  # variable prefix from the .Id line (may differ from filename stem)
 
 
 # ---------------------------------------------------------------------------
@@ -61,8 +62,15 @@ def _find_lua_scripts_dir() -> Path | None:
 
 
 def _scan_lua_directory(lua_dir: Path) -> list[LuaModule]:
-    """Scan *lua_dir* for ``veaf*.lua`` files and extract id / version."""
-    id_re = re.compile(r'\bveaf\w+\.Id\s*=\s*"([^"]+)"')
+    """Scan *lua_dir* for ``veaf*.lua`` files and extract id / version / var_name.
+
+    ``var_name`` is the Lua variable prefix from the ``.Id`` assignment (e.g.
+    ``"veafQraManager"`` from ``veafQraManager.Id = "QRA"`` in ``veafQraCore.lua``).
+    It may differ from the filename stem when a module's public variable does not
+    match its filename.
+    """
+    # group(1) = variable prefix, group(2) = ID string
+    id_re = re.compile(r'\b(veaf\w+)\.Id\s*=\s*"([^"]+)"')
     ver_re = re.compile(r'\bveaf\w+\.Version\s*=\s*"([^"]+)"')
     modules: list[LuaModule] = []
 
@@ -76,9 +84,10 @@ def _scan_lua_directory(lua_dir: Path) -> list[LuaModule]:
         if id_match:
             modules.append(
                 LuaModule(
-                    id=id_match.group(1),
+                    id=id_match.group(2),
                     version=ver_match.group(1) if ver_match else "",
                     filename=lua_file.name,
+                    var_name=id_match.group(1),
                 )
             )
     return modules

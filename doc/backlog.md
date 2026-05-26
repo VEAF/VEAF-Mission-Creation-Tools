@@ -42,9 +42,100 @@
 | Lot UPDATER-FIX | ~65 min | ✅ |
 | Lot 16 — LUA-COVERAGE | ~17h15 | ⬜ |
 | Lot 17 — USER-CONFIG | ~3h | ✅ |
-| **Total** | **~129h15** | |
+| Lot 18 — VERSIONING | ~1h45 | ⬜ |
+| Lot 19 — MIGRATOR | ~2h30 | ⬜ |
+| **Total** | **~133h30** | |
 
 *Initial calibration factor: 1.15 — recalculate after each completed lot.*
+
+---
+
+## Lot 19 — MIGRATOR: Audit et complétion de la conversion missionConfig.lua
+
+**Goal**: Vérifier que `ConfigMigrator` gère correctement toutes les constructions Lua réelles d'un `missionConfig.lua` v5 ; combler les lacunes de tests ; corriger les régressions trouvées.
+**Context**: `ConfigMigrator` contient 12 méthodes `_extract_*` mais seulement 4 sont couvertes par des tests unitaires. Aucun test d'intégration n'existe à ce jour malgré la présence de fixtures réelles dans `test/veaf-tools/`.
+**Branch**: `fix/migrator-coverage` → PR → `develop-v6`
+
+| # | Ticket | Fichiers touchés | Type | Effort | Status |
+|---|--------|-----------------|------|--------|--------|
+| MIG-001 | Test d'intégration end-to-end — faire tourner `ConfigMigrator.migrate()` sur les fixtures réelles (`test/veaf-tools/mission-builder/src/scripts/missionConfig.lua` et `test/veaf-tools/demo-mission/src/scripts/missionConfig.lua`) et vérifier qu'aucune exception n'est levée et que les modules attendus sont bien détectés | `mission_builder/test_config_migrator.py` | chore | 30 min | ⬜ |
+| MIG-002 | Ajouter des tests unitaires pour les 8 extracteurs non couverts : `_extract_identity_and_security`, `_extract_combat_missions`, `_extract_shortcuts`, `_extract_named_points`, `_extract_sanctuary_zones`, `_extract_combat_zone_settings`, `_extract_combat_zones`, `_extract_airwaves_zones`, `_extract_security_mm` | `mission_builder/test_config_migrator.py` | chore | 60 min | ⬜ |
+| MIG-003 | Corriger les bugs trouvés lors de MIG-001/MIG-002 (régressions, patterns non couverts) | `mission_builder/config_migrator.py` | fix | 60 min | ⬜ |
+
+**Raw total: 150 min → estimated (×1.15): ~175 min (~2h30)**
+
+<details>
+<summary>Détails des tickets</summary>
+
+**MIG-001 — Test d'intégration**
+Les fixtures disponibles :
+- `test/veaf-tools/mission-builder/src/scripts/missionConfig.lua` — mission de test générique avec QRA, shortcuts, assets, radio
+- `test/veaf-tools/demo-mission/src/scripts/missionConfig.lua` — mission de démo plus complète
+
+Le test d'intégration doit vérifier :
+- Aucune exception lors de `migrate()`
+- `enabled_modules` contient les modules présents dans le fichier
+- Tous les `doFile(veaf...)` sont commentés
+- Le YAML snippet généré est un YAML valide (`yaml.safe_load` ne plante pas)
+
+**MIG-002 — Tests unitaires des extracteurs**
+Extracteurs actuellement sans test :
+- `_extract_identity_and_security` : extraction de `veaf.config.MISSION_NAME`, `MISSION_EXPORT_PATH`, `veafSecurity.disable()`, `global_log_level`
+- `_extract_combat_missions` : définitions `VeafCombatMission:new()` avec chaining
+- `_extract_shortcuts` : blocs `VeafAlias:new()` avec `setName`/`setVeafCommand`/`setBypassSecurity`
+- `_extract_named_points` : bloc `if veafNamedPoints then` → commenté avec note de migration
+- `_extract_sanctuary_zones` : blocs `VeafSanctuaryZone:new()` enveloppés dans `veafSanctuary.addZone()`
+- `_extract_combat_zone_settings` : settings globaux `veafCombatZone.xxx = yyy`
+- `_extract_combat_zones` : définitions `VeafCombatZone:new()` avec chaining
+- `_extract_airwaves_zones` : définitions `VeafAirWave:new()` avec chaining
+- `_extract_security_mm` : `veafSecurity.setMasterPassword()` hashes
+
+**MIG-003 — Corrections**
+Corrections à apporter une fois les bugs identifiés via MIG-001 et MIG-002. Exemples typiques :
+- Patterns réels non reconnus par les regex (variantes de syntaxe Lua : newlines dans les appels, espaces variables)
+- Méthodes de chaining inconnues générant des warnings au lieu d'être silencieuses
+- Blocs multi-instances mal délimités (chevauchement de `_find_matching_close`)
+
+</details>
+
+---
+
+## Lot 18 — VERSIONING: Single source of truth pour la version
+
+**Goal**: Centraliser la version dans `pyproject.toml` et la propager automatiquement partout — fallbacks dans les `.py`, métadonnées des `.exe` Windows, et affichage dans la commande `about`.
+**Branch**: `feature/versioning-sot` → PR → `develop-v6`
+
+| # | Ticket | Fichiers touchés | Type | Effort | Status |
+|---|--------|-----------------|------|--------|--------|
+| VER-001 | Supprimer les fallbacks version hardcodés dans `app.py` ("6.1.2") et `veaf-tools-updater.py` ("6.1.5") ; lire `pyproject.toml` à la compilation pour injecter la bonne valeur, ou générer un `_version.py` depuis `veaf_build/worker.py` | `veaf_tools/app.py`, `veaf-tools-updater.py`, `veaf_build/worker.py` | chore | 30 min | ⬜ |
+| VER-002 | Embarquer les métadonnées Windows (FILE_VERSION / PRODUCT_VERSION) dans les `.exe` PyInstaller — créer un `version_file.txt` généré dynamiquement au build depuis la version lue dans `pyproject.toml`, le référencer dans `veaf-tools.spec` et `veaf-tools-updater.spec` | `veaf-tools.spec`, `veaf-tools-updater.spec`, `veaf_build/worker.py` | chore | 45 min | ⬜ |
+| VER-003 | Afficher la version de l'outil dans `about` — ajouter `VERSION` à la sortie de la commande (ex : `veaf-tools v6.1.5`) | `veaf_tools/commands/about.py`, `locales/en.json`, `locales/fr.json` | feat | 15 min | ⬜ |
+
+**Raw total: 90 min → estimated (×1.15): ~105 min (~1h45)**
+
+<details>
+<summary>Détails des tickets</summary>
+
+**VER-001 — Single source of truth**
+Problème actuel : trois endroits où la version est déclarée :
+1. `pyproject.toml` → `version = "6.1.5"` (source de vérité Poetry)
+2. `veaf_tools/app.py` → fallback hardcodé `"6.1.2"` (désynchronisé !)
+3. `veaf-tools-updater.py` → fallback hardcodé `"6.1.5"`
+
+Solution recommandée : dans `veaf_build/worker.py`, lire la version depuis `pyproject.toml` (via `tomllib` stdlib Python 3.11+) et générer un fichier `veaf_tools/_version.py` à la compilation. Les deux modules importent depuis `_version.py` au lieu d'un fallback hardcodé. Au runtime (dev), `importlib.metadata` reste le mécanisme principal ; `_version.py` n'est le fallback que pour l'exe PyInstaller.
+
+**VER-002 — Métadonnées EXE Windows**
+Problème : un utilisateur qui fait clic droit → Propriétés sur `veaf-tools.exe` ne voit aucune version dans l'onglet Détails. PyInstaller supporte un fichier `version_file.txt` (format `VSVersionInfo`) référencé dans le `.spec` via `version=`. Générer ce fichier dans `worker.py` depuis la version lue en VER-001 (même code). Les quatre champs `filevers`, `prodvers`, `FileVersion`, `ProductVersion` sont remplis dynamiquement.
+
+**VER-003 — `about` affiche la version**
+La commande `about` affiche des informations sur le VEAF et les modules Lua, mais pas la version de l'outil lui-même. Ajouter une ligne `veaf-tools vX.Y.Z` en en-tête (avant l'info VEAF). Exemple :
+```
+veaf-tools v6.1.5
+VEAF — Virtual European Air Force
+...
+```
+
+</details>
 
 ---
 

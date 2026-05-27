@@ -44,7 +44,8 @@
 | Lot 17 — USER-CONFIG | ~3h | ✅ |
 | Lot 18 — VERSIONING | ~1h45 | ⬜ |
 | Lot 19 — MIGRATOR | ~2h30 | ⬜ |
-| **Total** | **~133h30** | |
+| Lot 20 — DEEPENING | ~7h | ⬜ |
+| **Total** | **~140h30** | |
 
 *Initial calibration factor: 1.15 — recalculate after each completed lot.*
 
@@ -189,6 +190,165 @@ Direct commits on `develop-v6` (no feature branch needed — no code change).
 | REL-004 | Tag `v6.1.0` + publish GitHub (`veaf-build publish`) | chore | 30 min | REL-003 | ⬜ |
 
 **Estimated total: ~85 min (~1h30)**
+
+---
+
+## Lot 20 — DEEPENING: Architecture deepening Python + Lua
+
+**Goal**: Approfondir l'architecture sur 5 axes identifiés lors de la revue de session `develop-v6`.
+- Python : enrichir `DcsMission`, abstraire le traversal coalition/country/group, base class injectors, résolution config builder
+- Lua : migrer `veafGroundAI` vers `veafCommands`, restructurer la table d'options spawn
+**Branch**: une branche par ticket `feature/deep-xxx` → PR → `develop-v6`
+
+| # | Ticket | File(s) | Type | Effort | Depends on | Status |
+|---|--------|---------|------|--------|------------|--------|
+| DEEP-001 | `Group` dataclass + `DcsMission.iter_groups()` + tests (`TestIterGroups` synthétique + smoke test sur `test.miz`) | `miz_tools.py`, `__init__.py`, `test_miz_tools.py` | feat | 60 min | — | ⬜ |
+| DEEP-002 | `DcsMission.get/set_weather()` + `get/set_options()` + migrer `_set_mission_weather()` dans `WeatherInjectorWorker` | `miz_tools.py`, `weather_injector_worker.py` | feat | 30 min | — | ⬜ |
+| DEEP-003 | Supprimer le traversal dupliqué (coalition/country/group + `human_pilot`) des 3 injectors ; utiliser `mission.iter_groups()` | `presets_injector_worker.py`, `waypoints_injector_worker.py`, `aircrafts_injector_worker.py` | chore | 60 min | DEEP-001 | ⬜ |
+| DEEP-004 | `GroupInjectorWorker` base class + normaliser `AircraftGroupsInjectorWorker.inject(mode)` → `.work()` avec `mode` dans `__init__` | `veaf_libs/` (nouveau fichier), 3 injectors, `build.py` | feat | 60 min | DEEP-001, DEEP-003 | ⬜ |
+| DEEP-005 | Migrer `veafGroundAI.onEventMarkChange` vers `veafCommands.registerCommandHandler` ; supprimer `veafMarkers.registerEventHandler(MarkerChange, ...)` direct | `veafGroundAI.lua`, `veafCommands.lua` | chore | 30 min | — | ⬜ |
+| DEEP-006 | Refactor structure `veafSpawnParser.markTextAnalysis()` — defaults communs en tête, defaults spécifiques au type dans leur bloc IF/ELSEIF ; aucun changement comportemental | `veafSpawnParser.lua` | chore | 60 min | — | ⬜ |
+| DEEP-007 | Déplacer la résolution de config (`dev_mode`, `scripts_path`, `log_modules` → `lua_modules`) dans `MissionBuilderWorker.__init__()` ; `build.py` ne fait que parser les args CLI et appeler le worker | `mission_builder_worker.py`, `build.py` | chore | 60 min | — | ⬜ |
+
+**Raw total: 360 min → estimated (×1.15): ~414 min (~6h54)**
+
+<details>
+<summary>Ticket details</summary>
+
+**DEEP-001 — `Group` dataclass + `iter_groups()`**
+
+Nouveau dataclass canonique `Group` dans `miz_tools.py` (avant `DcsMission`) :
+```python
+@dataclass
+class Group:
+    group_dcs: dict       # raw DCS Lua dict — callers mutent directement
+    aircraft_type: str    # "helicopter" | "plane"
+    country: str
+    coalition: str
+    human_pilot: bool = False
+    name: str | None = None
+    unit_type: str | None = None
+```
+
+Nouvelle méthode `DcsMission.iter_groups() -> Iterator[Group]` : générateur traversant `mission_content["coalition"] → country → {"helicopter","plane"} → group`. Peuple `human_pilot` en scannant `unit.skill in ["Client", "Player"]`, `name` depuis `group["name"]`, `unit_type` depuis le premier `unit["type"]`.
+
+Tests ajoutés dans `TestIterGroups` :
+- synthétique : `DcsMission` avec `mission_content` construit à la main → assert nombre de groups, `human_pilot`, `aircraft_type`, `coalition`
+- smoke test : charger `test/veaf-tools/test.miz` → assert ≥ 1 group retourné
+
+`Group` exporté depuis `mission_tools/__init__.py`.
+
+---
+
+**DEEP-002 — `get/set_weather()` + `get/set_options()`**
+
+Méthodes ajoutées à `DcsMission` :
+```python
+def get_weather(self) -> dict | None:
+    return self.mission_content.get("weather") if self.mission_content else None
+
+def set_weather(self, data: dict) -> None:
+    if self.mission_content is not None:
+        self.mission_content["weather"] = data
+
+def get_options(self) -> dict | None:
+    return self.options_content
+
+def set_options(self, data: dict) -> None:
+    self.options_content = data
+```
+
+`WeatherInjectorWorker._set_mission_weather()` utilise `self.mission_data.set_weather(weather)` au lieu de l'accès direct au dict.
+
+Note : `_set_mission_time()` et `_set_mission_date()` gardent leurs accès directs (hors scope DEEP-002).
+
+---
+
+**DEEP-003 — Supprimer traversal dupliqué des injectors**
+
+Dans chaque injector (`presets`, `waypoints`, `aircrafts`) :
+- Supprimer la classe `Group` locale (identique à celle de `mission_tools`)
+- Supprimer les méthodes `add_group()`, `_process_coalition()`, `_process_country()`, `_process_aircraft_type()` (ou leurs équivalents)
+- Réécrire la boucle principale pour itérer via `self.dcs_mission.iter_groups()`
+- `waypoints_injector_worker.py` : `group.category` → `group.aircraft_type` (les deux champs étaient identiques, cf. ligne 158 : `category=aircraft_type`)
+
+---
+
+**DEEP-004 — `GroupInjectorWorker` base class**
+
+Nouveau `GroupInjectorWorker(BaseWorker, ABC)` dans `veaf_libs/group_injector_worker.py` :
+```python
+class GroupInjectorWorker(BaseWorker, ABC):
+    def __init__(self, config_file: Path | None, input_mission: Path | None, output_mission: Path | None): ...
+
+    @abstractmethod
+    def load_config(self) -> Any: ...
+
+    @abstractmethod
+    def process_group(self, group: Group) -> None: ...
+
+    def work(self) -> Path:
+        """Read miz, iter_groups, process each group, write miz."""
+        ...
+```
+
+`PresetsInjectorWorker`, `WaypointsInjectorWorker`, `AircraftGroupsInjectorWorker` héritent de `GroupInjectorWorker`.
+
+`AircraftGroupsInjectorWorker.inject(mode=...)` → renommé `.work()`, `mode` passé dans `__init__`. Appel dans `build.py` mis à jour : `AircraftGroupsInjectorWorker(..., mode=aircraft_mode).work()`.
+
+Note : vérifier à l'implémentation si la logique inject-FROM-YAML de `AircraftGroupsInjectorWorker` s'intègre proprement dans le pattern `process_group` — adapter si besoin.
+
+---
+
+**DEEP-005 — `veafGroundAI` → `veafCommands`**
+
+Dans `veafCommands.lua` : ajouter `veafCommands.PRIORITY_GROUNDAI = 62` (entre MOVE=60 et RADIO=70).
+
+Dans `veafGroundAI.lua`, fonction `initialize()`, remplacer :
+```lua
+veafMarkers.registerEventHandler(veafMarkers.MarkerChange, veafGroundAI.onEventMarkChange)
+```
+par :
+```lua
+veafCommands.registerCommandHandler(function(pos, event, bypass, fromMarker, groups, route)
+    if not fromMarker then return false end
+    return veafGroundAI.onEventMarkChange(pos, event)
+end, veafCommands.PRIORITY_GROUNDAI)
+```
+
+La fonction `veafGroundAI.onEventMarkChange` reste publique. Quality gate : stylua + luacheck + test suite Lua.
+
+---
+
+**DEEP-006 — Restructurer table options spawn**
+
+Dans `veafSpawnParser.markTextAnalysis()` (lignes 33–234) :
+1. Bloc d'init en tête : garder uniquement les **champs communs** (`czName`, `name`, `unitName`, `country`, `side`, `altitude`, `altitudedelta`, `heading`, `radius`, `multiplier`, `password`, `repeatCount`, `repeatDelay`, `delayedStart`, `hiddenOnMFD`, `AlarmState`, `disperse`).
+2. Déplacer les champs spécifiques dans leur bloc IF/ELSEIF de détection, groupés par domaine (`-- ground`, `-- air`, `-- effects`, `-- drawing`, `-- mm`).
+
+Aucun changement comportemental. Quality gate : stylua + luacheck + test suite Lua.
+
+---
+
+**DEEP-007 — Config resolution dans `MissionBuilderWorker`**
+
+Déplacer de `build.py` vers `MissionBuilderWorker.__init__()` :
+- Lecture de `mission.yaml` (si `mission_folder / "mission.yaml"` existe)
+- Résolution priorité CLI > YAML > défaut : `dev_mode`, `scripts_path`
+- Transformation `log_modules` → liste de modules à silencer
+- Extraction `lua_modules`, `global_log_level`, `pipeline_cfg` depuis YAML
+
+Nouveaux paramètres du `__init__` : `dev_mode_override: bool | None = None`, `scripts_path_override: str | Path | None = None`, `log_modules_filter: str | None = None`.
+
+Reste dans `build.py` (préoccupations CLI uniquement) :
+- `_update_build_config_in_yaml()` (persistance préférences utilisateur)
+- Validation de l'existence du dossier mission
+- Résolution chemin de sortie (`p_output_mission`)
+- Orchestration pipeline (presets, waypoints, aircraft, weather)
+
+`build.py` passe de ~180 lignes à ~100 lignes.
+
+</details>
 
 ---
 

@@ -433,14 +433,15 @@ All VEAF scripts write to the DCS log file (`Saved Games\DCS\Logs\dcs.log`). Thr
 
 ### Switching log levels
 
-In the DCS Mission Editor, find the `DO SCRIPT FILE` trigger that loads `veaf-scripts.lua` and change the file name:
+Set `logLevel` per module in `mission.yaml`, then rebuild:
 
-```
-DO SCRIPT FILE: published/veaf-scripts.lua       → normal
-DO SCRIPT FILE: published/veaf-scripts-trace.lua → full trace
+```yaml
+lua_modules:
+  SPAWN:
+    logLevel: debug   # trace | debug | info | warning | error
 ```
 
-Rebuild the mission after this change.
+`veaf-tools.exe build` regenerates `veaf-config.lua` from `mission.yaml`. For a quick change without rebuilding, edit `veaf-config.lua` directly — it is a generated file so your changes will be overwritten on the next build.
 
 ### Reading the log
 

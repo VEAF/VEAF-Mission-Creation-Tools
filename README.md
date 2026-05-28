@@ -41,12 +41,23 @@ You're in a mission that uses VEAF scripts. Open the F10 map, place a marker, an
 ### Mission Makers
 
 ```powershell
-# 1. Download the updater from the GitHub release page, then:
+# 1. Download veaf-tools-updater.exe from the GitHub release page and run it:
 .\veaf-tools-updater.exe
+# → installs veaf-tools.exe and all VEAF scripts in the current folder
+```
 
-# 2. Add veaf-scripts.lua to your DCS mission triggers (DO SCRIPT FILE)
+Then, depending on your starting point:
 
-# 3. Configure modules in missionconfig.lua
+**You already have a VEAF mission folder** (or forked the [Demo Mission](https://github.com/VEAF/VEAF-Demo-Mission)):
+```powershell
+veaf-tools.exe build
+```
+
+**You only have a `.miz` file:**
+```powershell
+veaf-tools.exe extract my-mission.miz
+# → edit mission.yaml to enable the modules you want
+veaf-tools.exe build
 ```
 
 Full workflow: [Mission Maker Guide](doc/mission-maker/README.md)
@@ -166,12 +177,23 @@ Vous êtes dans une mission utilisant les scripts VEAF. Ouvrez la carte F10, pla
 ### Créateurs de missions
 
 ```powershell
-# 1. Téléchargez l'outil de mise à jour depuis la page de release GitHub, puis :
+# 1. Téléchargez veaf-tools-updater.exe depuis la page de release GitHub et lancez-le :
 .\veaf-tools-updater.exe
+# → installe veaf-tools.exe et tous les scripts VEAF dans le dossier courant
+```
 
-# 2. Ajoutez veaf-scripts.lua aux triggers de votre mission DCS (DO SCRIPT FILE)
+Ensuite, selon votre point de départ :
 
-# 3. Configurez les modules dans missionconfig.lua
+**Vous avez déjà un dossier mission VEAF** (ou vous avez forké la [mission de démonstration](https://github.com/VEAF/VEAF-Demo-Mission)) :
+```powershell
+veaf-tools.exe build
+```
+
+**Vous n'avez qu'un fichier `.miz` :**
+```powershell
+veaf-tools.exe extract ma-mission.miz
+# → éditez mission.yaml pour activer les modules souhaités
+veaf-tools.exe build
 ```
 
 Guide complet : [Guide créateur de missions](doc/mission-maker/README.fr.md)

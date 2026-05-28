@@ -52,12 +52,23 @@ You are in a mission that uses VEAF scripts. Open the F10 map, place a marker, a
 ### Mission Makers
 
 ```powershell
-# 1. Download veaf-tools-updater.exe from the GitHub release page, then:
+# 1. Download veaf-tools-updater.exe from the GitHub release page and run it:
 .\veaf-tools-updater.exe
+# → installs veaf-tools.exe and all VEAF scripts in the current folder
+```
 
-# 2. Add veaf-scripts.lua to your DCS mission triggers (DO SCRIPT FILE)
+Then, depending on your starting point:
 
-# 3. Configure active modules in missionconfig.lua
+**You already have a VEAF mission folder** (or forked the [Demo Mission](https://github.com/VEAF/VEAF-Demo-Mission)):
+```powershell
+veaf-tools.exe build
+```
+
+**You only have a `.miz` file:**
+```powershell
+veaf-tools.exe extract my-mission.miz
+# → edit mission.yaml to enable the modules you want
+veaf-tools.exe build
 ```
 
 Full workflow: [Mission Maker Guide](mission-maker/README.md)

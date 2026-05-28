@@ -52,12 +52,23 @@ Vous êtes dans une mission utilisant les scripts VEAF. Ouvrez la carte F10, pla
 ### Créateurs de missions
 
 ```powershell
-# 1. Téléchargez veaf-tools-updater.exe depuis la page de release GitHub, puis :
+# 1. Téléchargez veaf-tools-updater.exe depuis la page de release GitHub et lancez-le :
 .\veaf-tools-updater.exe
+# → installe veaf-tools.exe et tous les scripts VEAF dans le dossier courant
+```
 
-# 2. Ajoutez veaf-scripts.lua aux triggers de votre mission DCS (DO SCRIPT FILE)
+Ensuite, selon votre point de départ :
 
-# 3. Configurez les modules actifs dans missionconfig.lua
+**Vous avez déjà un dossier mission VEAF** (ou vous avez forké la [mission de démonstration](https://github.com/VEAF/VEAF-Demo-Mission)) :
+```powershell
+veaf-tools.exe build
+```
+
+**Vous n'avez qu'un fichier `.miz` :**
+```powershell
+veaf-tools.exe extract ma-mission.miz
+# → éditez mission.yaml pour activer les modules souhaités
+veaf-tools.exe build
 ```
 
 Guide complet : [Guide créateur de missions](mission-maker/README.md)

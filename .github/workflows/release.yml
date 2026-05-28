@@ -6,10 +6,9 @@ name: Release
 #   git push origin published-v6.0.6
 # GPG signing is optional — build integrity is verified by GitHub Actions.
 # This workflow then:
-#   1. Generates release notes from conventional commits (git-cliff)
-#   2. Builds the executables and release package
-#   3. Creates the GitHub Release and uploads assets
-#   4. Moves the published-latest floating tag
+#   1. Builds the executables and release package
+#   2. Creates the GitHub Release and uploads assets (using committed RELEASE_NOTES.md)
+#   3. Moves the published-latest floating tag
 on:
   push:
     tags:
@@ -24,11 +23,9 @@ jobs:
       contents: write  # needed to create releases, push tags
 
     steps:
-      - name: Checkout (full history for git-cliff)
+      - name: Checkout
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
-          # GITHUB_TOKEN has contents: write — sufficient to create releases and push tags
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Extract version from tag
@@ -39,17 +36,6 @@ jobs:
           VERSION="${TAG#published-v}"      # e.g. 6.0.6
           echo "tag=$TAG"         >> "$GITHUB_OUTPUT"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-
-      - name: Generate release notes (git-cliff)
-        uses: orhun/git-cliff-action@v4
-        id: cliff
-        with:
-          config: cliff.toml
-          args: --latest --strip header
-        env:
-          OUTPUT: RELEASE_NOTES.md
-          GITHUB_REPO: ${{ github.repository }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up Python 3.13
         uses: actions/setup-python@v5

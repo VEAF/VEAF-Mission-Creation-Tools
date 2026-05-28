@@ -1,177 +1,136 @@
-# AI Agent Instructions for VEAF Mission Creation Tools
+# Copilot Instructions — VEAF Mission Creation Tools (project-specific)
 
-## Communication & Collaboration
+> This file complements `copilot-instructions-generic.md`. Only project-specific overrides and additions are documented here.
+>
+> Start every session by reading `copilot-instructions-generic.md` and applying it as base. Then apply the overrides below.
 
-- **Language:** Français (speak to the developer in French)
-- **Tone:** Treat the developer as an equal (direct, practical, no obsequiousness)
-- **Style:** Brief explanations in chat, let code/docs speak for themselves
+## Overrides
 
----
+### Branches
+- Integration branch: `develop` (currently `develop-v6` during v6 transition — temporary)
+- Main branch: `master`
 
-## Coding Discipline
+### Package manager
+- **Poetry** — activate venv: `.\.venv\Scripts\Activate.ps1`
+- Install dependencies: `poetry install`
 
-### Think Before Coding
+### Linting commands
+- **Python**: `ruff check src/python/ --fix` then `ruff format src/python/`
+- **Lua**: `luacheck --config .luacheckrc src/scripts/veaf/` then `stylua --check src/scripts/veaf/`
+- **All at once**: `pre-commit run --all-files`
 
-- State assumptions explicitly. If uncertain, ask.
-- If multiple interpretations exist, present them — don't pick silently.
-- If a simpler approach exists, say so. Push back when warranted.
-- If something is unclear, stop. Name what's confusing. Ask.
+### Test commands
+- **Python**: `poetry run pytest`
+- **Lua**: `poetry run test-lua`
 
-### Simplicity First
+### Version location
+- `pyproject.toml` → `[tool.poetry] version`
 
-- No features beyond what was asked.
-- No abstractions for single-use code.
-- No "flexibility" or "configurability" that wasn't requested.
-- No error handling for impossible scenarios. Only validate at system boundaries.
-- If 200 lines can be 50, rewrite it.
+### Per-change steps (override)
+1. Make changes
+2. Update tests — Python: `src/python/veaf-tools/test_*.py`, Lua: `test/lua/test_<module>.lua`
+3. Run quality checks:
+   - Python changed: `ruff check src/python/ --fix` + `poetry run pytest` + `mypy src/python/veaf-tools/`
+   - Lua changed: `luacheck --config .luacheckrc src/scripts/veaf/` + `stylua --check src/scripts/veaf/` + `poetry run test-lua`
+4. Update `CHANGELOG.md` under `[Unreleased]`
+5. Bump patch version in `pyproject.toml`
+6. `poetry install`
 
-### Surgical Changes
+### mypy mode
+- **Not strict** — incremental cleanup in progress (`disallow_untyped_defs = false`)
+- New files must be fully typed (zero mypy errors)
+- Files with known errors are listed in `[[tool.mypy.overrides]]` with `ignore_errors = true` — do not add new entries; fix the errors instead
 
-When editing existing code:
-- Don't "improve" adjacent code, comments, or formatting.
-- Don't refactor things that aren't broken.
-- Match existing style, even if you'd do it differently.
-- If you notice unrelated dead code, mention it — don't delete it.
+### Coverage threshold
+- Current minimum: **15%** (transitional baseline)
+- Do not decrease coverage — new code must have tests
+- Target: **50%** (planned future milestone)
 
-When your changes create orphans:
-- Remove imports/variables/functions that YOUR changes made unused.
-- Don't remove pre-existing dead code unless asked.
+### Type hints syntax
+- Use `str | None` syntax — `UP007` enabled (see ticket TYP-001)
 
-**The test:** every changed line should trace directly to the user's request.
+### Test location
+- Python tests: `test/python/` (files matching `test_*.py`) — mirrors `test/lua/` convention (see ticket TST-001)
+- Lua tests: `test/lua/test_<module>.lua`
 
-### Goal-Driven Execution
+### TDD — applies to Python and Lua
+Generic TDD rules apply to both Python (`pytest`) and Lua (`luaunit` + DCS mocks in `test/lua/`).
+Exception: pure routing/dispatch modules where DCS mock complexity makes unit testing impractical.
 
-Transform tasks into verifiable goals. For multi-step tasks, state a brief plan:
-```
-1. [Step] → verify: [check]
-2. [Step] → verify: [check]
-```
+### CHANGELOG
+- `CHANGELOG.md` is **maintained manually by the AI agent**
+- Update `[Unreleased]` after every change (Added / Changed / Removed sections, one entry per feature/fix — not per commit)
+- Do **not** regenerate with git-cliff — git-cliff is used only locally during release consolidation
 
-Strong success criteria let you loop independently. Weak criteria ("make it work") require clarification first.
+### Release notes workflow
+Release = AI-assisted consolidation:
+1. AI reads `CHANGELOG.md` `[Unreleased]` + runs `git cliff --latest` locally for commit-level detail
+2. AI asks consolidation questions (scope, highlights, breaking changes, audience)
+3. AI writes feature-oriented `RELEASE_NOTES.md`
+4. Developer reviews and validates
+5. Commit `RELEASE_NOTES.md` + stamp `CHANGELOG.md` → tag → push → CI uses `RELEASE_NOTES.md` as-is
 
----
+### Backlog / Roadmap paths
+- `doc/backlog.md` (not root `BACKLOG.md`)
+- `doc/ROADMAP.md`
 
-### Documentation Standards
-- **English only:** All source code, comments, and documentation files
-- **Harmonize:** Match existing patterns, conventions, and tone in the repository
-- **Reuse:** Existing solutions first; ask before proposing alternatives
-- **Avoid:** Meta-documentation ("What was done", "Implementation summary", etc.)
+### Notes system
+When user says **"note"** or **"note that"**, update `.github/copilot-instructions.md` (this file).
 
-### Documentation Workflow
-- **Source of truth:** Always base documentation on the actual source code — never invent CLI flags, file names, or workflows
-- **Bilingual:** Produce both EN (`.md`) and FR (`.fr.md`) versions; use FR stubs with admonition redirect when full translation is not available
-- **Links:** Verify all internal links work (`mkdocs build --strict` must pass with zero warnings)
-- **User experience first:** Prioritize clarity for the reader — show the simplest path, hide advanced details behind dedicated sections
+### Keywords
 
-### File Naming Conventions
-- Be specific: `BUILD_AND_RELEASE_GUIDE.md` ✅, not `IMPLEMENTATION_SUMMARY.md` ❌
-- Standards: `README.md`, `QUICKSTART.md`, `ARCHITECTURE.md` ✅
-
-### Code Quality
-- **Use Poetry for all Python commands:** `poetry run python`, `poetry run ruff`, `poetry run mypy`, `poetry run pytest`
-- For interactive sessions: `poetry shell` opens a shell with Poetry's venv active
-- Type hints on all functions, docstrings for public methods
-- Follow existing code style, include error handling
-- Test cross-platform compatibility when possible
-- Remove old/unused scripts when replacing them
-
-### Quality Gate — Lua Scripts
-
-Before committing any change to `src/scripts/veaf/`, run StyLua and luacheck:
-
-```powershell
-# StyLua — check only (CI equivalent)
-~/.local/bin/stylua.exe --check src/scripts/veaf/
-
-# StyLua — auto-fix
-~/.local/bin/stylua.exe src/scripts/veaf/
-
-# luacheck — static analysis (undefined globals, unused vars, shadowing)
-luacheck src/scripts/veaf/ --config .luacheckrc
-```
-
-- StyLua version used by CI: **2.4.0** (installed at `~/.local/bin/stylua.exe`)
-- Config: `.stylua.toml` at workspace root (if present), otherwise StyLua defaults
-- This check is enforced by the **StyLua Formatting** CI job on every PR
-- Never commit Lua files with formatting violations — the CI will block the merge
-- luacheck is enforced by the **Luacheck** CI job on every PR
-
-### Quality Gate — Lua Unit Tests
-
-Before opening a PR that touches `src/scripts/veaf/`, run the Lua test suite locally:
-
-```shell
-poetry run test-lua
-```
-
-Or with a filter:
-
-```shell
-poetry run test-lua --filter spawn
-```
-
-- CI runs on Lua 5.1 (Ubuntu, `lua5.1`). Local interpreter: `lua` (Lua 5.1 via `C:\Program Files (x86)\Lua\5.1\lua.exe`)
-- **Critical**: `veaf.lp()` (lazy proxy) returns a table. In Lua 5.1, `string.format("%s", table)` does NOT call `__tostring` and will error. Only pass `veaf.lp()` as a direct logger argument, never inside a `string.format()` call — use `veaf.p()` there instead.
-
-### Post-merge Hygiene
-
-After every PR merge and branch deletion:
-
-1. `git fetch origin --prune` — remove deleted remote branches from local cache
-2. `git checkout develop-v6 && git pull origin develop-v6 --ff-only` — sync local `develop-v6` with the merged state
-
-Always do this before starting any new work.
-
-### Pre-PR Checklist (run in order before every PR)
-
-1. `~/.local/bin/stylua.exe src/scripts/veaf/` — auto-fix Lua formatting
-2. `~/.local/bin/stylua.exe --check src/scripts/veaf/` — verify clean
-3. `luacheck src/scripts/veaf/ --config .luacheckrc` — static analysis
-4. `poetry run test-lua` — verify all Lua suites pass
-5. `poetry run ruff check src/python` + `poetry run ruff format --check src/python` + `poetry run mypy src/python` + `poetry run pytest` — Python quality gate
-6. Update `doc/backlog.md` to reflect ticket state
-7. Only then: open PR and request Copilot review (`mcp_github_request_copilot_review`)
+| Keyword | Meaning |
+|---------|---------|
+| ticket  | Entry in `doc/backlog.md` |
+| build   | `poetry run veaf-build build` |
+| publish | `poetry run veaf-build publish` (creates GitHub release) |
+| module  | A VEAF Lua module in `src/scripts/veaf/` |
+| mission | A `.miz` DCS mission file |
 
 ---
 
-## Project Overview
+## Project Stack
 
-VEAF Mission Creation Tools is a hybrid **Lua + Python** system for designing and running dynamic DCS World missions. The architecture separates **runtime scripting** (Lua executing in DCS) from **design-time tools** (Python CLI for mission manipulation).
+- **Lua 5.1** runtime scripts executing inside DCS World
+- **Python 3.11+** CLI tools via Poetry (Typer + Rich)
+- **pyproject.toml** — single source of truth for version, linting, and test config
+- Pre-commit hooks: ruff + ruff-format (Python), StyLua + luacheck (Lua), detect-secrets
+
+---
+
+## Architecture
 
 ### Key Distinction
-- **Runtime** (`src/scripts/veaf/`): Lua modules that execute within DCS missions providing spawning, asset management, radio systems
-- **Design-time** (`src/python/veaf-tools/`): Python CLI tools for mission file manipulation (miz format), preprocessing, injection
+- **Runtime** (`src/scripts/veaf/`): Lua modules executing inside DCS missions — spawning, asset management, radio, command dispatch
+- **Design-time** (`src/python/veaf-tools/`, package `veaf_build`): Python CLI for mission file manipulation, preprocessing, injection
 
----
+### Mission Files (`.miz`)
+ZIP archives containing Lua dictionaries:
+- `mission` — groups, triggers, settings
+- `options` — graphics and gameplay options
+- `theatre` — map information
+- `warehouses` — supply configurations
+- Serialized/deserialized via the bundled `luadata` library (excluded from mypy and ruff)
 
-## Architecture Patterns
+### Worker Pattern
+Each Python tool follows this structure:
+- `*_worker.py` — entry point with `run()` method
+- `*_manager.py` — data transformation logic
+- `models.py` — dataclass definitions
+- `*_README.py` — help/documentation generation
 
-### Core Concepts
-
-1. **Mission Files (`.miz`)** - ZIP archives containing Lua dictionaries:
-   - `mission` - Main mission data (groups, triggers, settings)
-   - `options` - Graphics and gameplay options
-   - `theatre` - Map information
-   - `warehouses` - Supply configurations
-   - Uses a local `luadata` package (`src/python/veaf-tools/luadata/`) for Lua serialization
-
-2. **Worker Pattern** - Each tool follows consistent design:
-   - `*_worker.py` classes with `run()` method entry point
-   - Async-friendly patterns using `Path` objects
-   - Error handling via `typer.Abort` exception
-   - Logging through centralized `logger` instance
-
-3. **Plugin System** - Injector tools are modular:
-   - `weather_injector/`, `waypoints_injector/`, `aircrafts_injector/` etc.
-   - Each can extract from AND inject into missions (dual mode)
-   - Config-driven via YAML files
+### Plugin System
+Injector tools are modular (`weather_injector/`, `waypoints_injector/`, `aircrafts_injector/`, etc.):
+- Each can extract from AND inject into missions (dual mode)
+- Config-driven via YAML files
 
 ### Data Flow
-
-```mermaid
-flowchart LR
-    A["Mission (.miz)"] -->|Read / Parse| B["Python Tool\nmodify Lua structures"]
-    B -->|Write / Serialize| C["Mission (.miz)"]
+```
+Mission (.miz) → Read/Parse
+    ↓
+Python Tool (modify Lua structures)
+    ↓
+Write/Serialize → Mission (.miz)
 ```
 
 ---
@@ -179,13 +138,9 @@ flowchart LR
 ## Python Code Conventions
 
 ### Module Organization
-- **`veaf_libs/`** - Shared utilities (logger, progress, miz_tools)
-- **`mission_tools/`** - Core miz file handling (DcsMission dataclass, read_miz, write_miz)
-- **`{tool_name}_injector/`** - Specialized injectors with submodules:
-  - `*_worker.py` - Main entry point (async/CLI compatible)
-  - `*_manager.py` - Data transformation logic
-  - `models.py` - Dataclass definitions
-  - `*_README.py` - Help/documentation generation
+- **`veaf_libs/`** — shared utilities (logger, progress, miz_tools)
+- **`mission_tools/`** — core miz file handling (`DcsMission` dataclass, `read_miz`, `write_miz`)
+- **`{tool_name}_injector/`** — specialized injectors with the worker/manager/models structure above
 
 ### Logger Pattern
 ```python
@@ -196,174 +151,151 @@ logger.debug("Detailed info")
 logger.warning("Watch out")
 logger.error("Failed", raise_exception=True)
 ```
-- Logs to both file (`{module}.log`) and console (via Rich)
-- Centralized in `veaf_libs/logger.py`
+- Logs to file (`{module}.log`) and console (via Rich)
+- No `print()` statements — always use `logger`
 
 ### Dataclass Usage
 ```python
 from dataclasses import dataclass, field
-from typing import Dict, Optional
 
 @dataclass
 class MissionConfig:
     version: str
-    mappings: Dict[str, str] = field(default_factory=dict)
+    mappings: dict[str, str] = field(default_factory=dict)
 ```
-- Extensive use of `@dataclass` with `field(default_factory=...)` for mutable defaults
+- `T | None` for nullable fields
 - YAML serialization via `yaml.safe_load/dump`
 
-### Type Hints
-- Always use `Path` from `pathlib` for file operations (not strings)
-- Use `Optional[T]` for nullable fields
-- Use `Dict[str, T]`, `List[T]` for collections
+### Error Handling
+- Use `typer.Abort` for CLI errors
+- Propagate via `logger.error(..., raise_exception=True)`
+- Never silently swallow errors — visibility is critical for mission makers
 
 ---
 
-## Build & Release Workflow
+## Lua Code Conventions
 
-### Key Script: `veaf-build` (Poetry entry point)
+### Module Loading Order
+1. `veaf.lua` — core framework (logging, state management)
+2. `veaf*.lua` — feature modules (`veafSpawn`, `veafRadio`, `veafMove`, etc.)
+3. Dynamic modules via `VeafDynamicLoader.lua` at mission start
 
-Main orchestrator for the entire build pipeline.
-Source: `veaf_build/` package (`cli.py`, `worker.py`, `github.py`).
+### Quality Gates
+- **Formatting**: StyLua (`.stylua.toml`)
+- **Static analysis**: luacheck (`.luacheckrc`)
+- **Unit tests**: luaunit + DCS mocks (`test/lua/dcs_mocks.lua`) — one file per module (`test/lua/test_<module>.lua`)
 
+### Key Constraints
+- No external dependencies — pure Lua 5.1, runs in DCS environment
+- Logging via `veaf.loggers.new()` for module-scoped logging
+- State isolation — each module uses local scope patterns
+- Backward compatibility — mission files are sensitive to breaking changes
+
+### Naming
+- Files: `veafFeatureName.lua` (lowercase `veaf` prefix)
+- Module table: `veafFeatureName = {}` (camelCase)
+- Classes: `VeafFeatureName` (PascalCase)
+
+---
+
+## Build & Release
+
+### Commands
 ```powershell
-# Install dependencies (Poetry manages its own virtual environment)
-poetry install              # runtime + dev (no PyInstaller)
-poetry install --with build # full setup including PyInstaller
+.\.venv\Scripts\Activate.ps1
 
-# Build
-poetry run veaf-build build --version 6.0.4
+# Build release package (Lua scripts + Python exe)
+poetry run veaf-build build --version 6.1.5
 
-# Publish to GitHub (requires GITHUB_TOKEN)
-poetry run veaf-build publish --version 6.0.4
+# Publish to GitHub (creates release, uploads artifacts)
+poetry run veaf-build publish --version 6.1.5
+
+# CI: build + publish non-interactively
+poetry run veaf-build build-and-publish --version 6.1.5 --ci
 ```
 
-**What it does:**
+### What `veaf-build build` Does
 1. Validates prerequisites (Git, Python, PyInstaller)
 2. Compiles Lua scripts from `src/scripts/veaf/` → `build/`
-3. Runs PyInstaller on `src/python/veaf-tools/veaf-tools.py` → `dist/veaf-tools.exe`
+3. Runs PyInstaller → `dist/veaf-tools.exe`
 4. Creates `published.zip` with all artifacts
-5. Publishes to GitHub Release with SHA256 checksum
 
-**Configuration:** `veaf-tools-config.yaml` (optional)
-```yaml
-github:
-  owner: VEAF
-  repo: VEAF-Mission-Creation-Tools
-  token: ${GITHUB_TOKEN}  # or env var
-```
-
-### Development Build Tasks
-
-The workspace includes pre-configured build tasks (visible in VS Code):
-- `build Demo mission` - Builds test/Demo mission (uses sample Lua)
-- `build Helo Training mission` - Helicopter training scenario
-- `test Mission Editor` - Runs mission editor validation
-
----
-
-## Lua Runtime Scripts
-
-### Module Loading Pattern
-
-Lua modules follow a strict loading order (see `src/scripts/veaf/`):
-
-1. **veaf.lua** - Core framework (logging, state management)
-2. **veaf*.lua** - Feature modules (veafSpawn, veafRadio, veafMove, etc.)
-3. **Dynamic modules** - Via `VeafDynamicLoader.lua` at mission start
-
-### Key Points
-- **No external dependencies** - Pure Lua, runs in DCS environment
-- **Logging** - Via `veaf.loggers.new()` for module-scoped logging
-- **State isolation** - Each module uses local scope patterns
-- **Backward compatibility** - Mission files are sensitive to breaking changes
-
----
-
-## Important Conventions
-
-### File & Naming Standards
-- Python files: `snake_case.py`
-- Classes: `PascalCase` (e.g., `MissionBuilder`, `WeatherInjector`)
-- Constants: `UPPER_SNAKE_CASE`
-- Lua files: `veafFeatureName.lua` (lowercase 'veaf' prefix)
-
-### Error Handling
-- Python: Use `typer.Abort` for CLI errors
-- Propagate `logger.error(..., raise_exception=True)` up the stack
-- **Never silently swallow errors** - visibility is critical for mission makers
-
-### Documentation
-- User-facing documentation lives in `doc/` (split by audience):
-  - `doc/mission-maker/GUIDE.md` — mission maker reference
-  - `doc/developer/GUIDE.md` — build pipeline, quality gates, contributing
-  - `doc/LUA_API_REFERENCE.md` — full Lua public API
-- API docs in source code docstrings (Python)
-- Lua comments inline (no separate documentation needed)
+### Release Workflow
+1. Complete all tickets for the batch
+2. Run AI-assisted release consolidation (see Release notes workflow above)
+3. Bump version in `pyproject.toml` (`MINOR` default — confirm `MAJOR` with user)
+4. Stamp `CHANGELOG.md`: replace `[Unreleased]` with `[x.y.z] — YYYY-MM-DD`
+5. Update `doc/ROADMAP.md`: move batch → Completed
+6. Commit `RELEASE_NOTES.md`, `CHANGELOG.md`, `pyproject.toml`
+7. Open PR `release/x.y.z` → `master`
+8. After merge: `git tag published-vx.y.z` + push tag → CI builds and publishes automatically
 
 ---
 
 ## Integration Points & Dependencies
 
-### External Libraries
-- **typer** - CLI framework (argument parsing, help generation)
-- **pyyaml** - Config file loading (YAML format)
-- **rich** - Terminal UI (progress bars, colored output, tables)
-- **luadata** - Lua serialization/deserialization
-- **lupa** — Python ↔ Lua bridging (optional extra; needed for `miz_tools`)
-- **Pillow** - Image processing (weather icon generation)
-- **pydantic** - Data validation (newer code)
+### Python Libraries
+- **typer** — CLI framework
+- **pyyaml** — config file loading
+- **rich** — terminal UI (progress bars, colored output)
+- **luadata** — Lua serialization/deserialization (bundled, excluded from mypy/ruff)
+- **lupa** — Python ↔ Lua bridging
+- **Pillow** — image processing (weather icons)
+- **pydantic** — data validation
+- **avwx-engine** — METAR/aviation weather parsing
+- **astral** — sun/moon calculations
+- **InquirerPy** — interactive CLI prompts
 
-### GitHub Integration
-- Automated via `veaf-build` using GitHub REST API
-- Requires `GITHUB_TOKEN` environment variable
-- Creates tags, releases, uploads artifacts automatically
+### CI/CD
+- `python-quality.yml` — ruff + mypy + pytest on every push
+- `lua-ci.yml` — luacheck + test-lua on every push
+- `release.yml` — builds and publishes on `published-v*` tag push; reads committed `RELEASE_NOTES.md`
 
 ### DCS World Integration
 - Missions are ZIP files with Lua dictionaries
-- Scripts injected into `mission/` → `do file(...)` at mission start
-- No API calls - everything is file-based manipulation
+- Scripts injected via `do file(...)` at mission start
+- No API calls — everything is file-based
 
 ---
 
 ## Testing & Validation
 
-### Running Tools Locally
+### Python
 ```powershell
-# Run a tool directly
-poetry run python -m veaf_tools weather-inject --mission test/test.miz --output test/test-out.miz
-
-# Run tests
+.\.venv\Scripts\Activate.ps1
 poetry run pytest
 ```
+Tests live in `src/python/veaf-tools/` (files `test_*.py`). Coverage report generated automatically.
+
+### Lua
+```powershell
+poetry run test-lua
+```
+Tests in `test/lua/test_<module>.lua`, DCS API mocked via `test/lua/dcs_mocks.lua`.
 
 ### Mission Validation
-- Use `test Mission Editor` task to validate mission structure
 - Check `veaf-tools.log` for runtime errors
-- Validate Lua syntax before injecting
+- Validate Lua syntax with `luacheck` before injecting
 
 ---
 
 ## Questions to Ask Before Implementation
 
-1. **Is this runtime Lua or design-time Python?** (Different testing, deployment)
-2. **Does it modify mission files?** (Need to handle miz format, ZIP, Lua serialization)
-3. **Is this a new injector?** (Follow the `{tool_name}_injector/` pattern)
-4. **Does it integrate with DCS?** (Consider mission loading, state persistence)
+1. **Runtime Lua or design-time Python?** (Different testing, deployment paths)
+2. **Does it modify mission files?** (miz format, ZIP, Lua serialization)
+3. **New injector?** (Follow `{tool_name}_injector/` Worker/Manager pattern)
+4. **Integrates with DCS?** (Consider mission loading, state persistence, backward compatibility)
 
 ---
 
 ## Quick Checklist for New Features
 
-- [ ] Follows Worker/Manager pattern if adding new tool
-- [ ] Uses `logger` for all output (no print statements)
-- [ ] Type hints on all functions
-- [ ] Docstrings for public methods
+- [ ] Tests written first (TDD) — pytest for Python, luaunit for Lua
+- [ ] Follows Worker/Manager pattern (Python tools)
+- [ ] Uses `logger` for all output (no `print()`)
+- [ ] Type hints on all functions (`str | None` syntax), Google-style docstrings
+- [ ] New files: zero mypy errors (do not add to `ignore_errors` list)
 - [ ] Configuration via YAML (not hardcoded)
-- [ ] Error messages are user-friendly and actionable
-- [ ] Tested against actual `.miz` files (not mocked)
-- [ ] Updated documentation in `doc/` if user-facing (see `doc/mission-maker/GUIDE.md`, `doc/LUA_API_REFERENCE.md`)
-
----
-
-**Note:** This file is `.github/copilot-instructions.md` — it provides technical architecture and code patterns for AI agents. Communication preferences (language, tone) are at the top of this same file.
+- [ ] Error messages user-friendly and actionable
+- [ ] `CHANGELOG.md` `[Unreleased]` updated
+- [ ] Patch version bumped in `pyproject.toml` + `poetry install`

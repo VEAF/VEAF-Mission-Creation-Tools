@@ -45,7 +45,9 @@
 | Lot 18 — VERSIONING | ~1h45 | ⬜ |
 | Lot 19 — MIGRATOR | ~2h30 | ⬜ |
 | Lot 20 — DEEPENING | ~7h | ⬜ |
-| **Total** | **~140h30** | |
+| Lot 21 — TYPING | ~20 min | ⬜ |
+| Lot 22 — TEST-LAYOUT | ~55 min | ⬜ |
+| **Total** | **~141h45** | |
 
 *Initial calibration factor: 1.15 — recalculate after each completed lot.*
 
@@ -135,6 +137,111 @@ veaf-tools v6.1.5
 VEAF — Virtual European Air Force
 ...
 ```
+
+</details>
+
+---
+
+## Lot 21 — TYPING: Migrate `Optional[T]` to `X | Y` syntax
+
+**Goal**: Enable ruff `UP007` rule (currently ignored) and migrate the single `Optional[T]` usage to modern `X | Y` union syntax. Update the copilot-instructions override accordingly.
+**Branch**: direct commit on `develop-v6` (1-line change, no feature branch needed)
+
+| # | Ticket | File(s) | Type | Effort | Status |
+|---|--------|---------|------|--------|--------|
+| TYP-001 | Remove `UP007` from ruff ignore list + fix `lua_tests.py:147` + update copilot-instructions override | `pyproject.toml`, `veaf_build/lua_tests.py`, `.github/copilot-instructions.md` | chore | 15 min | ⬜ |
+
+**Raw total: 15 min → estimated (×1.15): ~17 min (~20 min)**
+
+<details>
+<summary>Ticket details</summary>
+
+**TYP-001 — Enable UP007 and migrate Optional[T]**
+
+Current state: ruff `UP007` is intentionally ignored in `pyproject.toml` with comment `# use X | Y for type union — keep Optional[] for clarity`. There is exactly 1 occurrence of `Optional[T]` in the codebase:
+- `veaf_build/lua_tests.py:147`: `suite_filter: Optional[str] = typer.Option(...)`
+
+Steps:
+1. In `pyproject.toml`: remove `"UP007",  # use X | Y for type union — keep Optional[] for clarity` from the `[tool.ruff.lint] ignore` list.
+2. In `veaf_build/lua_tests.py`: change `Optional[str]` to `str | None` and remove `Optional` from the `from typing import` line (or the whole import if it was the only name).
+3. In `.github/copilot-instructions.md`: remove the `Optional[T]` override from the Overrides section (or update it to say `str | None` is the standard).
+4. Run `poetry run ruff check .` to verify no remaining UP007 violations.
+
+</details>
+
+---
+
+## Lot 22 — TEST-LAYOUT: Move Python tests to `test/python/`
+
+**Goal**: Move the 28 `test_*.py` files from inside `src/python/veaf-tools/` to `test/python/`, mirroring the existing `test/lua/` convention. Tests live outside the source tree; fixtures stay in `test/veaf-tools/`.
+**Branch**: direct commit on `develop-v6` (no logic change — pure reorganization)
+
+| # | Ticket | File(s) | Type | Effort | Status |
+|---|--------|---------|------|--------|--------|
+| TST-001 | Move 28 `test_*.py` files + update `pyproject.toml` + verify CI passes | `test/python/**`, `pyproject.toml`, `.github/copilot-instructions.md` | chore | 45 min | ⬜ |
+
+**Raw total: 45 min → estimated (×1.15): ~52 min (~55 min)**
+
+<details>
+<summary>Ticket details</summary>
+
+**TST-001 — Relocate Python tests**
+
+Current state: 28 `test_*.py` files scattered throughout `src/python/veaf-tools/` (colocated with source modules). Target: `test/python/` with the same subdirectory structure, mirroring `test/lua/`.
+
+Target tree (examples):
+```
+test/python/
+  test_version_constraint.py
+  mission_builder/
+    test_config_migrator.py
+    test_v5_converter.py
+    test_v5_pipeline_converters.py
+  mission_extractor/
+    test_mission_extractor_worker.py
+  mission_tools/
+    test_mission_constants.py
+    test_miz_tools.py
+  presets_injector/
+    test_presets_injector_worker.py
+    test_presets.py
+  veaf_libs/
+    test_config_generator.py
+    test_dcs_units_parser.py
+    test_i18n.py
+    test_lua_module_scanner.py
+    test_migrate_lazy_log.py
+    test_paths.py
+    test_preferences.py
+    test_progress.py
+    test_tui.py
+    test_update_checker.py
+    test_user_config.py
+  veaf_tools/
+    test_helpers.py
+  waypoints_injector/
+    test_waypoints_injector_worker.py
+    test_waypoints_manager.py
+  weather_injector/
+    test_weather_injector_worker.py
+    utils/
+      test_lua_converter.py
+      test_solar_calculator.py
+      test_time_expression_parser.py
+    weather/
+      test_dcs_weather_converter.py
+```
+
+`pyproject.toml` changes:
+- `testpaths = ["test/python"]` (was `src/python/veaf-tools`)
+- `pythonpath = ["src/python/veaf-tools"]` — unchanged (production code imports)
+- `--cov=src/python/veaf-tools` — unchanged (coverage source)
+- `[tool.ruff.lint.per-file-ignores]` — update path if needed (`test/python/**`)
+
+Notes:
+- `--import-mode=importlib` already in use — no `__init__.py` needed in `test/python/`
+- Verify `poetry run pytest` passes after move
+- Each subdirectory of `test/python/` may need an empty `__init__.py` depending on how importlib resolves relative imports in tests — check at implementation time
 
 </details>
 

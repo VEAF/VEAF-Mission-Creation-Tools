@@ -1173,7 +1173,6 @@ nav:
       - veafCasMission: mission-maker/scripts/veafCasMission.md
       - veafCombatZone: mission-maker/scripts/veafCombatZone.md
       - veafGrass: mission-maker/scripts/veafGrass.md
-      - veafHoundElintHelper: mission-maker/scripts/veafHoundElintHelper.md
       - veafMissileGuardian: mission-maker/scripts/veafMissileGuardian.md
       - veafMove: mission-maker/scripts/veafMove.md
       - veafNamedPoints: mission-maker/scripts/veafNamedPoints.md

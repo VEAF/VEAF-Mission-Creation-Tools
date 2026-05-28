@@ -35,7 +35,7 @@ A VEAF mission is a standard DCS `.miz` file that loads the VEAF Lua framework a
 - **Pre-built mission types** — CAS, transport, carrier ops, QRA, air waves, combat zones
 - **Asset management** — tankers, AWACS, carriers with automatic state tracking and radio menus
 - **Named points** — reusable map positions with optional ATC/TACAN services
-- **Integrations** — Skynet IADS, Hound ELINT, CTLD/CSAR
+- **Integrations** — Skynet IADS, CTLD/CSAR
 
 ---
 
@@ -306,7 +306,7 @@ All VEAF Lua modules are available once `veaf-scripts.lua` is loaded. See [scrip
 | Mission types | [veafCasMission](scripts/veafCasMission.md), [veafCombatZone](scripts/veafCombatZone.md), [veafTransportMission](scripts/veafTransportMission.md), [veafQraManager](scripts/veafQraManager.md), [veafAirWaves](scripts/veafAirWaves.md) |
 | Assets | [veafAssets](scripts/veafAssets.md), [veafCarrierOperations](scripts/veafCarrierOperations.md), [veafGrass](scripts/veafGrass.md), [veafWeather](scripts/veafWeather.md) |
 | Protection | [veafSanctuary](scripts/veafSanctuary.md), [veafMissileGuardian](scripts/veafMissileGuardian.md) |
-| Integrations | [veafSkynetIadsHelper](scripts/veafSkynetIadsHelper.md), [veafHoundElintHelper](scripts/veafHoundElintHelper.md) |
+| Integrations | [veafSkynetIadsHelper](scripts/veafSkynetIadsHelper.md) |
 
 ---
 

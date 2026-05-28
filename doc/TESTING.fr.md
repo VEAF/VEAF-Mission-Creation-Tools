@@ -177,7 +177,6 @@ luaunit.assertIsTrue(ok, err)
 | `veafMissionRadioPresetsEditor.lua` | idem |
 | `veafMissionTriggerInjector.lua` | idem |
 | `veafSpawnableAircraftsEditor.lua` | idem |
-| `veafHoundElintHelper.lua` | Dépend de la bibliothèque externe Hound ELINT |
 | `dcsUnits.lua` | Fichier de données pur ; exercé indirectement via `test_veafUnits.lua` |
 | `veaf-scripts-trace.lua` | Wrapper config/include sans logique testable |
 

@@ -18,7 +18,7 @@ What are you building? Pick the step that matches.
 | **Mission types** | [veafCasMission](veafCasMission.md), [veafCombatZone](veafCombatZone.md), [veafTransportMission](veafTransportMission.md), [veafQraManager](veafQraManager.md), [veafAirWaves](veafAirWaves.md) | Structured gameplay scenarios |
 | **Assets & services** | [veafAssets](veafAssets.md), [veafCarrierOperations](veafCarrierOperations.md), [veafGrass](veafGrass.md), [veafWeather](veafWeather.md) | Managed tankers/AWACS/carriers, weather |
 | **Protection** | [veafMissileGuardian](veafMissileGuardian.md), [veafSanctuary](veafSanctuary.md) | Missile defense, safe zones |
-| **Integrations** | [veafSkynetIadsHelper](veafSkynetIadsHelper.md), [veafHoundElintHelper](veafHoundElintHelper.md) | Third-party IADS and ELINT systems |
+| **Integrations** | [veafSkynetIadsHelper](veafSkynetIadsHelper.md) | Third-party IADS systems |
 
 ### By player interaction
 
@@ -45,7 +45,7 @@ How commonly is this module used?
 | **Essential** (almost every mission) | [veafSpawn](veafSpawn.md), [veafAssets](veafAssets.md), [veafNamedPoints](veafNamedPoints.md), [veafSecurity](veafSecurity.md) |
 | **Common** (most combat missions) | [veafCasMission](veafCasMission.md), [veafCombatZone](veafCombatZone.md), [veafAirWaves](veafAirWaves.md), [veafCarrierOperations](veafCarrierOperations.md) |
 | **Situational** (specific scenarios) | [veafQraManager](veafQraManager.md), [veafTransportMission](veafTransportMission.md), [veafMove](veafMove.md), [veafGrass](veafGrass.md), [veafWeather](veafWeather.md), [veafAirbases](veafAirbases.md) |
-| **Specialized** (advanced setups) | [veafMissileGuardian](veafMissileGuardian.md), [veafSanctuary](veafSanctuary.md), [veafSkynetIadsHelper](veafSkynetIadsHelper.md), [veafHoundElintHelper](veafHoundElintHelper.md) |
+| **Specialized** (advanced setups) | [veafMissileGuardian](veafMissileGuardian.md), [veafSanctuary](veafSanctuary.md), [veafSkynetIadsHelper](veafSkynetIadsHelper.md) |
 
 ---
 
@@ -81,7 +81,6 @@ Modules that are not `initialize()`d consume no resources and create no radio me
 |--------|------|--------------|
 | [veafSkynetIadsHelper](veafSkynetIadsHelper.md) | `veafSkynetIadsHelper.lua` | Configures Skynet IADS from VEAF group data |
 | `veafSkynetIadsMonitor.lua` | — | Monitors Skynet IADS health and sends radio alerts |
-| [veafHoundElintHelper](veafHoundElintHelper.md) | `veafHoundElintHelper.lua` | Registers VEAF-spawned units with Hound ELINT |
 | `veafRemote.lua` | — | NIOD / SLMOD remote command integration |
 
 ---

@@ -2,7 +2,7 @@
 
 Thank you for contributing! This document explains how to set up your environment, submit changes, and follow the project's conventions.
 
-> 🇫🇷 Guide du développeur complet : [doc/developer/fr/GUIDE.md](doc/developer/fr/GUIDE.md)
+> 🇫🇷 Guide du développeur complet : [doc/developer/GUIDE.fr.md](doc/developer/GUIDE.fr.md)
 
 ---
 

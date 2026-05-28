@@ -193,5 +193,4 @@ veafSkynetMonitor.AddMonitoringTask({
 ## See Also
 
 - [Skynet IADS repository](https://github.com/walder/Skynet-IADS) — third-party script documentation
-- [veafHoundElintHelper](veafHoundElintHelper.md) — Hound ELINT integration
 - [Lua API Reference](../../LUA_API_REFERENCE.md) — full `veafSkynet` API

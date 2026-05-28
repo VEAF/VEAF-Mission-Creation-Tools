@@ -32,7 +32,7 @@ Une mission VEAF est un fichier DCS `.miz` standard qui charge le framework Lua 
 - **Types de missions préconstruits** — CAS, transport, opérations carrier, QRA, vagues aériennes, zones de combat
 - **Gestion des actifs** — tankers, AWACS, carriers avec suivi d'état automatique et menus radio
 - **Points nommés** — positions cartographiques réutilisables avec services ATC/TACAN optionnels
-- **Intégrations** — Skynet IADS, Hound ELINT, CTLD/CSAR
+- **Intégrations** — Skynet IADS, CTLD/CSAR
 
 ---
 
@@ -303,7 +303,7 @@ Tous les modules Lua VEAF sont disponibles une fois `veaf-scripts.lua` chargé. 
 | Types de missions | [veafCasMission](scripts/veafCasMission.md), [veafCombatZone](scripts/veafCombatZone.md), [veafTransportMission](scripts/veafTransportMission.md), [veafQraManager](scripts/veafQraManager.md), [veafAirWaves](scripts/veafAirWaves.md) |
 | Actifs | [veafAssets](scripts/veafAssets.md), [veafCarrierOperations](scripts/veafCarrierOperations.md), [veafGrass](scripts/veafGrass.md), [veafWeather](scripts/veafWeather.md) |
 | Protection | [veafSanctuary](scripts/veafSanctuary.md), [veafMissileGuardian](scripts/veafMissileGuardian.md) |
-| Intégrations | [veafSkynetIadsHelper](scripts/veafSkynetIadsHelper.md), [veafHoundElintHelper](scripts/veafHoundElintHelper.md) |
+| Intégrations | [veafSkynetIadsHelper](scripts/veafSkynetIadsHelper.md) |
 
 ---
 
@@ -346,6 +346,34 @@ local defenseZone = AirWaveZone:new()
   :setMinimumPlayersForWave(1)
   :initialize()
 ```
+
+---
+
+## Journalisation de débogage
+
+Tous les scripts VEAF écrivent dans le journal DCS (`Saved Games\DCS\Logs\dcs.log`). Trois niveaux de journalisation sont disponibles, chacun avec son propre script de chargement :
+
+| Script | Niveau | Usage |
+|--------|--------|-------|
+| `veaf-scripts.lua` | Normal (info + avertissements) | Missions en production |
+| `veaf-scripts-trace.lua` | Trace (tous les messages) | Débogage approfondi |
+| `veaf-scripts-trace-with-events.lua` | Trace + événements DCS | Débogage des handlers d'événements |
+
+### Changer le niveau de log
+
+Définissez `logLevel` par module dans `mission.yaml`, puis reconstruisez :
+
+```yaml
+lua_modules:
+  SPAWN:
+    logLevel: debug   # trace | debug | info | warning | error
+```
+
+`veaf-tools.exe build` régénère `veaf-config.lua` depuis `mission.yaml`. Pour un changement rapide sans reconstruire, éditez directement `veaf-config.lua` — c'est un fichier généré, donc vos modifications seront écrasées au prochain build.
+
+### Lire le journal
+
+Nous recommandons [Klogg](https://klogg.filimonov.dev/) — un visualiseur de logs rapide avec surligneur regex. Chargez `dcs.log` et filtrez sur `VEAF` pour ne voir que les messages VEAF. Le Discord VEAF partage un profil de surligneur Klogg qui code les niveaux de log par couleur.
 
 ---
 

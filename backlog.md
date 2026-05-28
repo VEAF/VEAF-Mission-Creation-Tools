@@ -47,7 +47,8 @@
 | Lot 20 — DEEPENING | ~7h | ⬜ |
 | Lot 21 — TYPING | ~20 min | ⬜ |
 | Lot 22 — TEST-LAYOUT | ~55 min | ⬜ |
-| **Total** | **~141h45** | |
+| Lot 23 — DOC-YAML | ~8h20 | ⬜ |
+| **Total** | **~150h05** | |
 
 *Initial calibration factor: 1.15 — recalculate after each completed lot.*
 
@@ -1077,6 +1078,145 @@ Generator: emit `veafCombatMission.initialize()`, then `addCapMission()` calls, 
 - `veafSecurity.password_L9["hash"] = true` → `security.password_hashes: [hash]`
 - `veaf.DEFAULT_GROUND_SPEED_KPH = N` → `settings.DEFAULT_GROUND_SPEED_KPH:`
 - `veafRadio.initialize(true/false)` → `lua_modules.RADIO.init.help_menus:`
+
+---
+
+## Lot 23 — DOC-YAML: Référence YAML complète
+
+**Goal**: Documenter exhaustivement toute la configuration YAML — étapes du pipeline de build et modules Lua — avec tous les champs possibles, leurs types, valeurs par défaut, et un double index (par catégorie et par fréquence d'utilisation).
+
+**Context**: Les docs de modules couvrent uniquement l'API Lua (builder chains). La configuration YAML (`mission.yaml`, `presets.yaml`, `waypoints.yaml`, etc.) n'est référencée que dans les commentaires des fichiers source et dans les strings README des injectors Python. Il n'existe aucune page de référence dédiée dans `doc/`.
+
+Source de vérité : `src/python/veaf-tools/veaf_libs/lua_config_generator.py` (générateur de `veaf-config.lua`) + `src/defaults/mission-folder/mission.yaml` (template annoté) + les `*_README.py` de chaque injector.
+
+**Branch**: `feature/doc-yaml-reference` → PR → `develop-v6`
+
+| # | Ticket | Fichiers touchés | Type | Effort | Status |
+|---|--------|-----------------|------|--------|--------|
+| DOC-001 | Créer `doc/PIPELINE_REFERENCE.md` (+ `.fr.md`) : référence complète des 4 étapes du pipeline de build (`presets`, `waypoints`, `aircraft_groups`, `weather`) avec schéma YAML complet pour chacune, et documentation de la section `pipeline:` de `mission.yaml` (activation, chemin fichier, mode add/replace) | `doc/PIPELINE_REFERENCE.md`, `doc/PIPELINE_REFERENCE.fr.md` | doc | 60 min | ⬜ |
+| DOC-002 | Créer `doc/YAML_REFERENCE.md` (+ `.fr.md`) : référence des sections top-level de `mission.yaml` (`mission:`, `global_log_level`, `security:`, `settings:`, `external_modules:`, `veaf_tools:`) + squelette du double index par catégorie et par fréquence d'utilisation | `doc/YAML_REFERENCE.md`, `doc/YAML_REFERENCE.fr.md` | doc | 45 min | ⬜ |
+| DOC-003 | Ajouter section "Configuration (`mission.yaml`)" dans les docs des modules à config simple : `veafRadio.md`, `veafShortcuts.md`, `veafNamedPoints.md`, `veafCarrierOperations.md` (+ `.fr.md` correspondants, créer si manquants). Champs : `enable`, `logLevel`, plus `init.help_menus` (RADIO), `init.include_carrier_operations_radio` (CARRIER), `custom_points[]` (NAMEDPOINTS), `shortcuts[]` (SHORTCUTS) | `doc/mission-maker/scripts/veafRadio.md`, `veafShortcuts.md`, `veafNamedPoints.md`, `veafCarrierOperations.md` (+ `.fr.md`) | doc | 60 min | ⬜ |
+| DOC-004 | Ajouter section YAML dans `veafAssets.md` et `veafSanctuary.md` (+ `.fr.md`) : `assets[]` avec tous les sous-champs (sort, name, description, information, linked, jtac, freq, mod) ; `sanctuary_zones[]` avec tous les sous-champs (polygon_units, coalition, delay_warning, delay_spawn, delay_instant, protect_from_missiles) | `doc/mission-maker/scripts/veafAssets.md`, `veafSanctuary.md` (+ `.fr.md`) | doc | 45 min | ⬜ |
+| DOC-005 | Ajouter section YAML dans `veafCombatZone.md` et `veafAirWaves.md` (+ `.fr.md`) : schémas complexes — `combat_zone_settings`, `combat_zones[]` (type zone/operation, chained_zones, tasking_orders), `airwave_zones[]` (toute la liste de champs : player_coalitions, waves[], messages, min/max altitudes, delays, etc.) | `doc/mission-maker/scripts/veafCombatZone.md`, `veafAirWaves.md` (+ `.fr.md`) | doc | 90 min | ⬜ |
+| DOC-006 | Ajouter section YAML dans `veafQraManager.md` (+ `.fr.md`) : section top-level `qra:` complète (silence_all, definitions[] avec tous les sous-champs : coalition, enemy_coalitions, trigger_zone, simple_groups, groups_by_enemy_count, delay_before_rearming, delay_before_activating, react_on_helicopters, airport_link) + documenter les sections top-level `cap_missions:` et `combat_missions:` dans `veafCasMission.md` (+ `.fr.md`) | `doc/mission-maker/scripts/veafQraManager.md`, `veafCasMission.md` (+ `.fr.md`) | doc | 60 min | ⬜ |
+| DOC-007 | Compléter `doc/YAML_REFERENCE.md` (+ `.fr.md`) avec le double index final : index par **catégorie** (Core, Security, Combat, Air Defense, Assets & Support, Build Pipeline) et par **fréquence d'utilisation** (Essentiel — toute mission / Courant — la plupart des missions / Avancé — cas spécifiques). Chaque entrée pointe vers la section de référence correspondante. | `doc/YAML_REFERENCE.md`, `doc/YAML_REFERENCE.fr.md` | doc | 30 min | ⬜ |
+| DOC-008 | **Audit global missionConfig.lua** : (1) grep tous les fichiers `doc/**/*.md` pour les références à `missionConfig.lua` — remplacer par une note "ce fichier n'existe plus en v6, voir `mission.yaml`" ; (2) convertir les exemples de configuration encore écrits en syntaxe Lua (ex: `veaf.config.XXX = yyy`, builder chains dans les docs) en équivalent YAML ; (3) vérifier qu'aucun exemple de `do file()` ou de trigger DCS Editor ne reste dans la doc comme instruction à suivre. | `doc/**/*.md` | doc | 45 min | ⬜ |
+
+**Raw total: 435 min → estimated (×1.15): ~500 min (~8h20)**
+
+<details>
+<summary>Détails des tickets</summary>
+
+**DOC-001 — Pipeline steps reference**
+
+Les 4 étapes du pipeline injectent des données dans le `.miz` au moment du build. Leurs schémas YAML vivent dans des fichiers séparés (pas dans `mission.yaml`) et sont actuellement documentés uniquement dans les `*_README.py` Python :
+
+- `presets`: `src/presets.yaml` → `radios_collection:`, `presets_collection:`, `presets_assignments:`, `channels_collection:`
+- `waypoints`: `src/waypoints.yaml` → `waypoints:` (champs : type, action, alt, alt_type, speed, speed_type, x, y) + `settings:` (matching par type/category/coalition)
+- `aircraft_groups`: `src/aircraft-templates.yaml` → `airplanes:` / `helicopters:` avec coalitions > pays > groupe > units[]
+- `weather`: `src/missions.yaml` (ou `versions.yaml`) → `position:`, `base_date:`, `versions[]` (name, time, date, metar, weather{})
+
+La section `pipeline:` de `mission.yaml` contrôle l'activation de chaque étape :
+```yaml
+pipeline:
+  presets: true               # true | false | {file: path, mode: add|replace}
+  waypoints: true
+  aircraft_groups:
+    file: src/my-aircraft.yaml
+    mode: add                 # add (default) | replace
+  weather: false
+```
+
+**DOC-002 — Top-level mission.yaml structure**
+
+Sections top-level à documenter avec tous les champs :
+
+| Section | Champs | Notes |
+|---------|--------|-------|
+| `global_log_level:` | error/warning/info/debug/trace | Override global de tous les modules |
+| `mission:` | name, export_path, era (MODERN/COLD_WAR/WW2), language | Identité de la mission |
+| `security:` | disabled, password_hashes[], password_mm_hashes[] | Hashes SHA-256 |
+| `settings:` | clés arbitraires | → `veaf.config.KEY = value` |
+| `external_modules:` | skynet.{enabled, include_red/blue_in_radio, debug_red/blue}, ctld.{enabled, ...} | Modules tiers |
+| `veaf_tools:` | version | Contrainte semver : "6", "6.1", "^6.1.3", "~6.1.3" |
+
+**DOC-003 — Modules simples**
+
+Chaque doc doit avoir une section `## Configuration (mission.yaml)` avec :
+1. Un bloc YAML montrant toutes les clés possibles avec commentaires inline
+2. Un tableau de référence des champs
+3. Un exemple minimal
+
+RADIO : `init.help_menus: bool` (défaut : true)
+CARRIER : `init.include_carrier_operations_radio: bool` (défaut : true)
+NAMEDPOINTS : `custom_points[]` avec name, lat (string), lon (string)
+SHORTCUTS : `shortcuts[]` avec name, description, command (ex: `/_smoke`), bypass_security (défaut: false)
+
+**DOC-005 — AIRWAVES (schéma complet)**
+
+Champs de `airwave_zones[]` à documenter exhaustivement :
+```yaml
+- name: string
+  description: string           # optionnel
+  start: boolean                # défaut: false
+  player_coalitions: [BLUE|RED]
+  zone_center_coordinates: string  # format "N41°00'00\" E044°00'00\""
+  trigger_zone_name: string     # OU zone_center_coordinates + zone_radius
+  zone_radius: number           # mètres
+  draw_zone: boolean
+  respawn_default_offset: [lat_delta_m, lon_delta_m]
+  respawn_radius: number
+  delay_before_activation: number
+  delay_between_waves: number
+  min_seconds_between_waves: number
+  max_seconds_between_waves: number
+  max_altitude_ft: number
+  min_altitude_ft: number
+  max_seconds_outside_ia: number
+  minimum_life_percent: number
+  reset_when_dying: boolean
+  message_start: string
+  message_wait_for_humans: string
+  message_wave_deployed: string
+  message_end_zone: string
+  message_end_all: string
+  waves:
+    - groups: string            # nom de groupe ou liste séparée par espaces
+      delay: number             # -1 = concurrent avec le suivant
+      number: string            # "1-3" = pick aléatoire entre 1 et 3
+      bias: number              # 0 = uniforme
+```
+
+**DOC-007 — Double index**
+
+Index par **catégorie** :
+- **Core** : `mission:`, `global_log_level`, `settings:`, `veaf_tools:`
+- **Security** : `security:`, module SECURITY
+- **Combat** : COMBATZONE, AIRWAVES, QRA, modules CAP/COMBATMISSION, CASMISSION, TRANSPORTMISSION
+- **Air Defense** : SKYNET, SANCTUARY, MISSILEGUARDIAN
+- **Assets & Support** : ASSETS, CARRIER, NAMEDPOINTS, RADIO, SHORTCUTS
+- **Build Pipeline** : presets, waypoints, aircraft_groups, weather
+
+Index par **fréquence d'utilisation** :
+- **Essentiel** (toute mission) : `mission:`, `security:`, `global_log_level`, RADIO, ASSETS, pipeline.presets/waypoints
+- **Courant** (la plupart des missions) : SHORTCUTS, NAMEDPOINTS, QRA, COMBATZONE, CARRIER
+- **Avancé** (cas spécifiques) : AIRWAVES, SANCTUARY, MISSILEGUARDIAN, SKYNET, `external_modules:`, `veaf_tools:`
+
+**DOC-008 — Audit global missionConfig.lua**
+
+`missionConfig.lua` était le fichier de configuration v5 (syntaxe Lua). Il a été remplacé par `mission.yaml` en v6. La doc doit refléter ce changement :
+
+1. **Grep exhaustif** — chercher dans tous les `doc/**/*.md` :
+   - `missionConfig.lua` → remplacer par note "Ce fichier n'existe plus en v6. Voir `mission.yaml`."
+   - `veaf.config.XXX = yyy` (syntaxe Lua de config) → convertir en équivalent `settings: { XXX: yyy }` YAML
+   - Exemples de builder chains dans un contexte de "configuration de mission" (vs API de développement) → convertir en YAML
+   - Instructions "ouvrir l'éditeur DCS et ajouter un trigger DO SCRIPT FILE" comme procédure de config → corriger (le build génère les triggers automatiquement)
+
+2. **Conserver** les exemples Lua dans les docs API (LUA_API_REFERENCE.md, docs de scripts) quand ils montrent l'utilisation de l'API elle-même — seuls les exemples de *configuration de mission* passent en YAML.
+
+3. **Vérifier spécifiquement** : `doc/mission-maker/GUIDE.md`, `doc/mission-maker/GUIDE.fr.md`, `doc/index.md`, `doc/index.fr.md`, `README.md`.
+
+</details>
 - `veafSkynet.initialize(a, b, c, d)` → `external_modules.skynet:` params
 `v5_converter.py`: emit these sections in the generated `mission.yaml`.
 
@@ -1173,7 +1313,6 @@ nav:
       - veafCasMission: mission-maker/scripts/veafCasMission.md
       - veafCombatZone: mission-maker/scripts/veafCombatZone.md
       - veafGrass: mission-maker/scripts/veafGrass.md
-      - veafHoundElintHelper: mission-maker/scripts/veafHoundElintHelper.md
       - veafMissileGuardian: mission-maker/scripts/veafMissileGuardian.md
       - veafMove: mission-maker/scripts/veafMove.md
       - veafNamedPoints: mission-maker/scripts/veafNamedPoints.md

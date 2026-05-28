@@ -11,10 +11,9 @@
 
 ## Table des matières
 
-1. [Pour les utilisateurs : Mise à jour](#pour-les-utilisateurs-mise-a-jour)
-2. [Pour les administrateurs : Publication](#pour-les-administrateurs-publication)
-3. [Architecture du système](#architecture-du-systeme)
-4. [Dépannage](#depannage)
+1. [Pour les utilisateurs : Mise à jour](#pour-les-utilisateurs--mise-à-jour)
+2. [Pour les administrateurs : Publication](#pour-les-administrateurs--publication)
+3. [Architecture du système](#architecture-du-système)
 
 ---
 
@@ -547,4 +546,4 @@ Tags Git :
 4. Locale du système (registre Windows / locale système sur Linux–macOS)
 5. `en` (repli intégré)
 
-Langues supportées : anglais (`en`), français (`fr`). Voir [Configuration de la langue](mission-maker/GUIDE.fr.md#configuration-utilisateur-globale) pour les détails complets.
+Langues supportées : anglais (`en`), français (`fr`). Voir [Configuration de la langue](mission-maker/GUIDE.fr.md#configuration-globale-utilisateur) pour les détails complets.

@@ -16,23 +16,23 @@
    - [veafMarkers.lua](#veafmarkerslua) — Système de marqueurs carte
    - [veafCommands.lua](#veafcommandslua) — Dispatching central des commandes
    - [veafInterpreter.lua](#veafinterpreterlua) — Parsing de commandes
-4. [Gestion des unités et groupes](#gestion-des-unites-et-groupes)
+4. [Gestion des unités et groupes](#gestion-des-unités-et-groupes)
    - [veafSpawnParser.lua](#veafspawnparserlua) — Parseur de commandes spawn
    - [veafSpawn.lua](#veafspawnlua) — Spawn dynamique
    - [veafUnits.lua](#veafunitslua) — Définitions d'unités
    - [veafAssets.lua](#veafassetslua) — Suivi des assets
-5. [Systèmes de mission](#systemes-de-mission)
+5. [Systèmes de mission](#systèmes-de-mission)
    - [veafCombatMission.lua](#veafcombatmissionlua) — Missions de combat
    - [veafCasMission.lua](#veafcasmissionlua) — Missions CAS
 6. [Infrastructure et services](#infrastructure-et-services)
    - [veafAirbases.lua](#veafairbaseslua) — Données aérodromes
    - [veafCarrierOperations.lua](#veafcarrieroperationslua) — Opérations porte-avions
-7. [Communication et contrôle](#communication-et-controle)
+7. [Communication et contrôle](#communication-et-contrôle)
    - [veafRadio.lua](#veafradiolua) — Menus radio
-8. [Systèmes de support](#systemes-de-support)
+8. [Systèmes de support](#systèmes-de-support)
    - [veafWeather.lua](#veafweatherlua) — Système météo
    - [veafTime.lua](#veaftimelua) — Gestion du temps
-9. [Données et base de données](#donnees-et-base-de-donnees)
+9. [Données et base de données](#données-et-base-de-données)
    - [dcsUnits.lua](#dcsunitslua) — Base de données d'unités DCS
    - [dcsDataExport.lua](#dcsdataexportlua) — Export de données
 10. [Annexe](#annexe)

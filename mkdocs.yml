@@ -81,7 +81,7 @@ extra:
     default: dev
 
 nav:
-  - Home: README.md
+  - Home: index.md
   - Pilot Guide:
     - Overview: pilot/README.md
     - Guide: pilot/GUIDE.md
@@ -100,7 +100,6 @@ nav:
       - veafCasMission: mission-maker/scripts/veafCasMission.md
       - veafCombatZone: mission-maker/scripts/veafCombatZone.md
       - veafGrass: mission-maker/scripts/veafGrass.md
-      - veafHoundElintHelper: mission-maker/scripts/veafHoundElintHelper.md
       - veafInterpreter: mission-maker/scripts/veafInterpreter.md
       - veafMissileGuardian: mission-maker/scripts/veafMissileGuardian.md
       - veafMove: mission-maker/scripts/veafMove.md

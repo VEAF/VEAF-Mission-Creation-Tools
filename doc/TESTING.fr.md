@@ -5,11 +5,11 @@ Documentation de la suite de tests unitaires Lua VEAF et du pipeline CI/CD.
 ## Table des matières
 
 - [Vue d'ensemble](#vue-densemble)
-- [Exécuter les tests](#executer-les-tests)
+- [Exécuter les tests](#exécuter-les-tests)
 - [Couverture](#couverture)
 - [Infrastructure](#infrastructure)
 - [Suite de tests](#suite-de-tests)
-- [Écrire des tests](#ecrire-des-tests)
+- [Écrire des tests](#écrire-des-tests)
 - [Pipeline CI/CD](#pipeline-cicd)
 
 ---

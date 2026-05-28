@@ -71,7 +71,7 @@ Release = AI-assisted consolidation:
 5. Commit `RELEASE_NOTES.md` + stamp `CHANGELOG.md` → tag → push → CI uses `RELEASE_NOTES.md` as-is
 
 ### Backlog / Roadmap paths
-- `doc/backlog.md` (not root `BACKLOG.md`)
+- `backlog.md` (root)
 - `doc/ROADMAP.md`
 
 ### Notes system
@@ -81,7 +81,7 @@ When user says **"note"** or **"note that"**, update `.github/copilot-instructio
 
 | Keyword | Meaning |
 |---------|---------|
-| ticket  | Entry in `doc/backlog.md` |
+| ticket  | Entry in `backlog.md` |
 | build   | `poetry run veaf-build build` |
 | publish | `poetry run veaf-build publish` (creates GitHub release) |
 | module  | A VEAF Lua module in `src/scripts/veaf/` |

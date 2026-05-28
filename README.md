@@ -79,6 +79,22 @@ VEAF Mission Creation Tools is a hybrid **Lua + Python** system:
 - **Design-time** (`src/python/veaf-tools/`) — Python CLI (`veaf-tools.exe`) for manipulating `.miz` files: normalizing, injecting weather/waypoints/radio presets/aircraft groups
 - **Release pipeline** (`veaf-build` CLI) — compiles Lua, builds EXE files, publishes to GitHub
 
+## How It Works
+
+```mermaid
+flowchart LR
+    A["Base .miz<br/>(DCS Editor)"] -->|veaf-tools extract| B["Mission folder<br/>(src/ + mission.yaml)"]
+    B --- C["published/<br/>(VEAF scripts)"]
+    B -->|veaf-tools build| D[".miz ready to fly"]
+    D -->|DCS loads| E["34 Lua modules active"]
+    E -->|Players use| F["F10 markers · Radio menus"]
+```
+
+1. **Extract** — Create a base mission in DCS Editor and extract it into version-controllable source files (`src/mission/`, `src/scripts/`)
+2. **Configure** — `mission.yaml` declares active modules; `published/` provides the VEAF Lua scripts
+3. **Build** — `veaf-tools build` assembles everything (mission data, VEAF scripts, triggers) into a final `.miz`
+4. **Runtime** — DCS loads the `.miz` and executes the VEAF Lua framework; players interact via F10
+
 ---
 
 ## Community & Support
@@ -94,7 +110,29 @@ VEAF Mission Creation Tools is a hybrid **Lua + Python** system:
 
 > 🇫🇷 **Français** | 🇬🇧 [English](#-mission-creation-tools)
 
+## À propos
+
 Ensemble complet d'outils pour créer des missions [DCS World][DCS] dynamiques avec les scripts Lua VEAF.
+
+- **Runtime** (`src/scripts/veaf/`) — 34 modules Lua s'exécutant dans DCS : spawning, assets, menus radio, zones de combat, météo, et plus
+- **Design-time** (`src/python/veaf-tools/`) — CLI Python (`veaf-tools.exe`) pour manipuler les fichiers `.miz`
+- **Pipeline de release** (`veaf-build` CLI) — compilation Lua, build EXE, publication GitHub
+
+## Principe de fonctionnement
+
+```mermaid
+flowchart LR
+    A[".miz de base<br/>(Éditeur DCS)"] -->|veaf-tools extract| B["Dossier mission<br/>(src/ + mission.yaml)"]
+    B --- C["published/<br/>(scripts VEAF)"]
+    B -->|veaf-tools build| D[".miz prêt à voler"]
+    D -->|DCS charge| E["34 modules Lua actifs"]
+    E -->|Les joueurs utilisent| F["Marqueurs F10 · Menus radio"]
+```
+
+1. **Extract** — Créez une mission de base dans l'éditeur DCS et extrayez-la en fichiers source versionnables (`src/mission/`, `src/scripts/`)
+2. **Configure** — `mission.yaml` déclare les modules actifs ; `published/` fournit les scripts Lua VEAF
+3. **Build** — `veaf-tools build` assemble tout (données mission, scripts VEAF, triggers) en un `.miz` final
+4. **Runtime** — DCS charge le `.miz` et exécute le framework Lua VEAF ; les joueurs interagissent via F10
 
 ---
 

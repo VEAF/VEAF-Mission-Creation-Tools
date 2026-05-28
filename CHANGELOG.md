@@ -13,8 +13,7 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `veafCommands.lua` — central priority-ordered command dispatcher for F10 markers and interpreter path; exposes `registerCommandHandler(fn, priority)` and priority constants (`PRIORITY_SHORTCUTS`…`PRIORITY_REMOTE`)
 - `veafSpawnParser.lua` — spawn command text parser extracted from `veafSpawnCore.lua` (`convertLaserToFreq`, `markTextAnalysis`)
 - `veafRemote.registerRemoteModule(name, fn)` — registry for hook-server remote commands (replaces hardcoded if/elseif in `executeCommandFromRemote`)
-- `plan-2026.05.16.md` — v6 restart plan and technical decisions
-- `doc/backlog.md` — operational backlog with ticket estimates
+- `backlog.md` — operational backlog with ticket estimates
 - `doc/ROADMAP.md` — project roadmap
 - `CHANGELOG.md` — this file
 - `veaf.lp()` — lazy log argument proxy: arguments are only stringified when the active log level warrants it

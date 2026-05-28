@@ -138,37 +138,61 @@ flowchart LR
 
 ## Documentation
 
-| Rôle | Guide |
-|------|-------|
-| **Joueur / Pilote** | [Guide du pilote](doc/pilot/README.md) |
-| **Créateur de missions** | [Guide créateur de missions](doc/mission-maker/README.md) |
-| **Développeur** | [Guide du développeur](doc/developer/README.md) |
+Choisissez le guide correspondant à votre rôle :
 
-Références : [Référence API Lua](doc/LUA_API_REFERENCE.md) · [Référence CLI](doc/TOOLS_REFERENCE.md) · [Feuille de route](doc/ROADMAP.md)
+| Rôle | Guide | Description |
+|------|-------|-------------|
+| **Joueur / Pilote** | [Guide du pilote](doc/pilot/README.fr.md) | Menus F10, commandes marqueurs, assets, zones de combat |
+| **Créateur de missions** | [Guide créateur de missions](doc/mission-maker/README.fr.md) | Installation, configuration, build — tous les scripts documentés |
+| **Développeur** | [Guide du développeur](doc/developer/README.fr.md) | Architecture, pipeline de build, qualité, contribution |
+
+### Références détaillées
+
+| Référence | Description |
+|-----------|-------------|
+| [Référence API Lua](doc/LUA_API_REFERENCE.fr.md) | API complète des 34 modules Lua runtime |
+| [Référence CLI des outils](doc/TOOLS_REFERENCE.fr.md) | `veaf-tools.exe` et `veaf-tools-updater.exe` |
+| [Guide de tests](doc/TESTING.fr.md) | Suite de tests Lua unitaires, pipeline CI/CD |
+| [Feuille de route](doc/ROADMAP.fr.md) | Fonctionnalités prévues et limitations connues |
 
 ---
 
 ## Démarrage rapide
 
-**Joueurs et pilotes** — Ouvrez la carte F10, placez un marqueur, tapez une commande (ex : `_spawn unit T-80`). Voir le [Guide du pilote](doc/pilot/fr/GUIDE.md).
+### Joueurs et pilotes
 
-**Créateurs de missions** :
+Vous êtes dans une mission utilisant les scripts VEAF. Ouvrez la carte F10, placez un marqueur et tapez une commande (ex : `_spawn unit T-80` ou `_cas`). Voir le [Guide du pilote](doc/pilot/README.fr.md) pour toutes les commandes disponibles.
+
+### Créateurs de missions
 
 ```powershell
-.\veaf-tools-updater.exe          # installe les outils et scripts VEAF
-.\veaf-tools.exe build mission .  # construit le .miz
+# 1. Téléchargez l'outil de mise à jour depuis la page de release GitHub, puis :
+.\veaf-tools-updater.exe
+
+# 2. Ajoutez veaf-scripts.lua aux triggers de votre mission DCS (DO SCRIPT FILE)
+
+# 3. Configurez les modules dans missionconfig.lua
 ```
 
-Guide complet : [Guide créateur de missions](doc/mission-maker/fr/GUIDE.md)
+Guide complet : [Guide créateur de missions](doc/mission-maker/README.fr.md)
 
-**Développeurs** :
+### Développeurs
 
 ```powershell
+# Installation
 poetry install --with build
+
+# Build
 poetry run veaf-build build --version 6.0.5
+
+# Tests
+poetry run test-lua
+
+# Publication
+poetry run veaf-build publish --version 6.0.5
 ```
 
-Référence complète : [Guide du développeur](doc/developer/fr/GUIDE.md)
+Référence complète : [Guide du développeur](doc/developer/README.fr.md)
 
 ---
 

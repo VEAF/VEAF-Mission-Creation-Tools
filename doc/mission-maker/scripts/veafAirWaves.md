@@ -35,6 +35,107 @@ local defenseZone = AirWaveZone:new()
 
 ---
 
+## Configuration (`mission.yaml`)
+
+```yaml
+lua_modules:
+  AIRWAVES:
+    enable: true          # default: true
+    logLevel: info        # optional log level override
+    airwave_zones:
+      - name: "BVR Zone"                  # REQUIRED — internal identifier
+        description: "Eastern BVR arena"  # shown in messages (optional)
+        start: true                       # true = start automatically at mission start
+        player_coalitions: [BLUE]         # BLUE | RED — which coalition's players trigger waves
+        zone_center_coordinates: "N41\u00b000'00\" E044\u00b000'00\""  # use this OR trigger_zone_name
+        trigger_zone_name: "ZONE-BVR-EAST"  # DCS trigger zone name (alternative to coordinates)
+        zone_radius: 50000               # radius in metres (when using coordinates)
+        draw_zone: true                  # draw zone boundary on the map
+        respawn_default_offset: [0, 0]   # [lat_delta_m, lon_delta_m] spawn offset from zone centre
+        respawn_radius: 1000             # scatter radius around spawn offset (metres)
+        delay_before_activation: 60      # seconds to wait after players enter before first wave
+        delay_between_waves: 120         # fixed delay between waves (ignored if min/max set)
+        min_seconds_between_waves: 60    # minimum inter-wave delay (random range)
+        max_seconds_between_waves: 180   # maximum inter-wave delay (random range)
+        max_altitude_ft: 30000          # AI units above this altitude are removed
+        min_altitude_ft: 1000           # AI units below this altitude are removed
+        max_seconds_outside_ia: 300     # seconds before an AI group is considered lost outside zone
+        minimum_life_percent: 0.1       # AI unit removed when below this life fraction (0–1)
+        reset_when_dying: false         # reset all waves when a player dies
+        message_start: "Zone active!"   # custom zone-start message (optional)
+        message_wait_for_humans: "Waiting for players..."
+        message_wave_deployed: "Wave inbound!"
+        message_end_zone: "Zone cleared!"
+        message_end_all: "All zones cleared!"
+        waves:
+          - groups: "su27-flight"       # DCS group name or space-separated list
+            delay: 0                    # seconds after this wave is cleared before the next; -1 = concurrent
+            number: "1-2"              # how many groups to pick: integer or "min-max" range
+            bias: 0                     # shift random selection towards harder groups
+          - groups: "su30sm-flight"
+            delay: 120
+```
+
+### `airwave_zones[]` common fields
+
+| Field | Type | Default | Required | Description |
+|-------|------|---------|----------|-------------|
+| `name` | string | — | Yes | Internal identifier |
+| `description` | string | — | No | Label shown in messages and logs |
+| `start` | boolean | `false` | No | Auto-start at mission launch |
+| `player_coalitions` | string[] | — | No | Coalitions whose players trigger waves (`BLUE`, `RED`) |
+
+### Zone location (use one)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `trigger_zone_name` | string | DCS trigger zone name (preferred) |
+| `zone_center_coordinates` | string | Coordinate string, e.g. `"N41°00'00\" E044°00'00\""` |
+| `zone_radius` | number | Zone radius in metres (required with coordinates) |
+
+### Timing and limits
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `delay_before_activation` | integer | `0` | Seconds before first wave after players enter |
+| `delay_between_waves` | integer | `0` | Fixed inter-wave delay (overridden by min/max) |
+| `min_seconds_between_waves` | integer | — | Random minimum inter-wave delay |
+| `max_seconds_between_waves` | integer | — | Random maximum inter-wave delay |
+| `max_altitude_ft` | integer | — | Remove AI units above this altitude |
+| `min_altitude_ft` | integer | — | Remove AI units below this altitude |
+| `max_seconds_outside_ia` | integer | — | Seconds before off-zone AI group is discarded |
+| `minimum_life_percent` | number | — | Remove AI unit when life drops below this fraction |
+
+### `waves[]` fields
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `groups` | string | — | DCS group name, space-separated list, or VEAF spawn command |
+| `delay` | integer | `0` | Seconds after wave cleared before next; `-1` = concurrent |
+| `number` | string \| integer | — | How many groups to pick: `2` or `"1-3"` range |
+| `bias` | integer | `0` | Shift random start index toward harder entries |
+
+### Minimal example
+
+```yaml
+lua_modules:
+  AIRWAVES:
+    enable: true
+    airwave_zones:
+      - name: "BVR Arena"
+        start: true
+        player_coalitions: [BLUE]
+        trigger_zone_name: "ZONE-BVR"
+        delay_between_waves: 90
+        waves:
+          - groups: "su27-2ship"
+            delay: 0
+          - groups: "su30sm-2ship"
+            delay: 60
+```
+
+---
+
 ## AirWaveZone Builder Methods
 
 | Method | Description |

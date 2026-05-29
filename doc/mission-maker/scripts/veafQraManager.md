@@ -33,6 +33,83 @@ local myQra = VeafQRA:new()
 
 ---
 
+## Configuration (`mission.yaml`)
+
+QRA definitions live in the **top-level `qra:` section** (not under `lua_modules:`). The `QRA` module must be enabled in `lua_modules:`.
+
+```yaml
+lua_modules:
+  QRA:
+    enable: true          # default: true
+    logLevel: info        # optional log level override
+
+qra:
+  silence_all: false      # true = suppress all QRA radio messages globally
+  definitions:
+    - name: "QRA-North"                 # REQUIRED — identifier and radio prefix
+      coalition: RED                    # REQUIRED — RED | BLUE
+      enemy_coalitions: [BLUE]          # coalitions that trigger a scramble
+      trigger_zone: "ZONE-QRA-NORTH"   # DCS trigger zone defining the airspace
+      zone_radius: 30000               # radius in metres (alternative to trigger_zone)
+      simple_groups:                   # DCS group names to scramble (unconditional)
+        - "MiG-29 QRA Flight"
+      groups_by_enemy_count:           # scale response to intruder count
+        - enemy_count: 1               # scramble when 1 intruder detected
+          groups: ["Pair-1", "Pair-2"] # group pool
+          random_pick: 1               # how many groups to pick from the pool
+        - enemy_count: 3
+          groups: ["Flight-1", "Flight-2"]
+          random_pick: 2
+      delay_before_rearming: 30        # seconds before zone resets after intruders leave
+      delay_before_activating: 30      # seconds after :start() before QRA goes online
+      react_on_helicopters: false      # true = also trigger on enemy helicopters
+      airport_link: "Batumi"           # QRA goes offline if this airbase is destroyed
+```
+
+### `qra:` top-level fields
+
+| Field | Type | Default | Required | Description |
+|-------|------|---------|----------|-------------|
+| `silence_all` | boolean | `false` | No | Suppress all QRA radio messages globally |
+| `definitions` | object[] | `[]` | No | List of QRA zone definitions |
+
+### `definitions[]` fields
+
+| Field | Type | Default | Required | Description |
+|-------|------|---------|----------|-------------|
+| `name` | string | — | Yes | Internal identifier and radio prefix |
+| `coalition` | string | — | Yes | Defending coalition: `RED` or `BLUE` |
+| `enemy_coalitions` | string[] | *(opposite)* | No | Coalitions that trigger a scramble |
+| `trigger_zone` | string | — | No | DCS trigger zone name |
+| `zone_radius` | integer | — | No | Zone radius in metres (when no trigger zone) |
+| `simple_groups` | string[] | `[]` | No | DCS group names to always scramble |
+| `groups_by_enemy_count` | object[] | `[]` | No | Scaled scramble rules |
+| `groups_by_enemy_count[].enemy_count` | integer | — | Yes | Number of intruders that activates this rule |
+| `groups_by_enemy_count[].groups` | string[] | — | Yes | Group name pool |
+| `groups_by_enemy_count[].random_pick` | integer | `1` | No | How many groups to pick from the pool |
+| `delay_before_rearming` | integer | `0` | No | Seconds before zone resets after intruders leave |
+| `delay_before_activating` | integer | `0` | No | Seconds after start before QRA goes online |
+| `react_on_helicopters` | boolean | `false` | No | Also trigger on enemy helicopters |
+| `airport_link` | string | — | No | Linked DCS airbase name — QRA offline when destroyed |
+
+### Minimal example
+
+```yaml
+lua_modules:
+  QRA:
+    enable: true
+
+qra:
+  definitions:
+    - name: "QRA-Sud"
+      coalition: RED
+      trigger_zone: "ZONE-QRA-SUD"
+      simple_groups:
+        - "Su-27 Intercept"
+```
+
+---
+
 ## VeafQRA Builder Methods
 
 All setters return `self` and can be chained. Call `:start()` at the end to activate.

@@ -26,7 +26,49 @@ Aliases can include **randomized parameters** (e.g. `-sam` picks a random defens
 veafShortcuts.initialize()
 ```
 
-This automatically registers the default alias list. Mission makers can add custom aliases in `missionConfig.lua`.
+This automatically registers the default alias list.
+
+---
+
+## Configuration (`mission.yaml`)
+
+```yaml
+lua_modules:
+  SHORTCUTS:
+    enable: true          # default: true
+    logLevel: info        # optional log level override
+    shortcuts:            # custom alias definitions
+      - name: "smoke"                 # alias name (used as -smoke in markers)
+        description: "Smoke shortcut" # shown in radio help
+        command: "/_smoke"            # VEAF command to execute
+        bypass_security: false        # true = always available, no /secu needed
+```
+
+| Field | Type | Default | Required | Description |
+|-------|------|---------|----------|-------------|
+| `enable` | boolean | `true` | No | Enable or disable the module |
+| `logLevel` | string | *(global)* | No | Per-module log level override |
+| `shortcuts` | object[] | `[]` | No | Additional custom aliases |
+| `shortcuts[].name` | string | — | Yes | Alias name — players type `-name` in a map marker |
+| `shortcuts[].description` | string | — | No | Description shown in radio help |
+| `shortcuts[].command` | string | — | Yes | Full VEAF command to execute (e.g. `/_smoke`) |
+| `shortcuts[].bypass_security` | boolean | `false` | No | If true, this alias ignores the security system |
+
+### Minimal example
+
+```yaml
+lua_modules:
+  SHORTCUTS:
+    enable: true
+    shortcuts:
+      - name: "cas"
+        description: "Request CAS"
+        command: "/_spawn group, name CAS-Template"
+```
+
+---
+
+Mission makers can also add custom aliases in `mission-script.lua`:
 
 ---
 

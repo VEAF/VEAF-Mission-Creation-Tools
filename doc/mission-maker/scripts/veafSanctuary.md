@@ -36,6 +36,56 @@ VeafSanctuary:new()
 
 ---
 
+## Configuration (`mission.yaml`)
+
+```yaml
+lua_modules:
+  SANCTUARY:
+    enable: true          # default: true
+    logLevel: info        # optional log level override
+    sanctuary_zones:      # list of protected zones
+      - name: "Carrier Zone"            # internal identifier
+        polygon_units:                  # DCS unit names defining the polygon boundary
+          - "Sanctuary-Unit-1"
+          - "Sanctuary-Unit-2"
+        coalition: RED                  # BLUE | RED — coalition whose units are destroyed on entry
+        delay_warning: 30              # seconds before warning message is sent (default: 0)
+        delay_spawn: 60                # seconds before the zone becomes active after mission start
+        delay_instant: 0               # seconds between repeated destruction checks (default: 0)
+        protect_from_missiles: false   # true = also intercept missiles heading into the zone
+```
+
+| Field | Type | Default | Required | Description |
+|-------|------|---------|----------|-------------|
+| `enable` | boolean | `true` | No | Enable or disable the module |
+| `logLevel` | string | *(global)* | No | Per-module log level override |
+| `sanctuary_zones` | object[] | `[]` | No | List of sanctuary zones |
+| `sanctuary_zones[].name` | string | — | Yes | Internal identifier |
+| `sanctuary_zones[].polygon_units` | string[] | — | No | DCS unit names that define the polygon boundary |
+| `sanctuary_zones[].coalition` | string | — | No | `BLUE` or `RED` — units of this coalition are destroyed on entry |
+| `sanctuary_zones[].delay_warning` | integer | `0` | No | Seconds before the warning message is sent |
+| `sanctuary_zones[].delay_spawn` | integer | `0` | No | Seconds before the zone activates after mission start |
+| `sanctuary_zones[].delay_instant` | integer | `0` | No | Seconds between repeated destruction checks |
+| `sanctuary_zones[].protect_from_missiles` | boolean | `false` | No | Also intercept missiles heading into the zone |
+
+### Minimal example
+
+```yaml
+lua_modules:
+  SANCTUARY:
+    enable: true
+    sanctuary_zones:
+      - name: "Carrier Protection"
+        polygon_units:
+          - "SANCT-NW"
+          - "SANCT-NE"
+          - "SANCT-SE"
+          - "SANCT-SW"
+        coalition: RED
+```
+
+---
+
 ## Builder Methods
 
 | Method | Description |

@@ -33,7 +33,8 @@ flowchart TD
     zip -->|consommé par| RT
     subgraph RT["RUNTIME — Lua dans DCS World"]
         scripts["veaf-scripts.lua<br/>— les 34 modules concaténés"]
-        config["missionconfig.lua<br/>— config spécifique à la mission"]
+        config["veaf-config.lua<br/>— config générée des modules (depuis mission.yaml)"]
+        custom["mission-script.lua<br/>— code Lua custom spécifique à la mission"]
     end
 ```
 
@@ -189,7 +190,7 @@ lua_modules:
 
 Cela génère des appels `veaf.setConfig("MODULE_ID", "logLevel", "...")` dans `veaf-modules-config.lua`. Ou utiliser `--log-modules SPAWN,RADIO` sur la CLI pour réduire au silence tout le reste.
 
-Pour le contrôle **par module au runtime** (sans rebuild), utiliser `missionconfig.lua` directement :
+Pour le contrôle **par module au runtime** (sans rebuild), ajouter l'appel Lua directement dans `mission-script.lua` :
 
 ```lua
 veaf.loggers.get("SPAWN"):setLevel("debug", true)  -- force=true contourne le cap BaseLogLevel

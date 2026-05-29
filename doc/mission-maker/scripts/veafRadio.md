@@ -36,6 +36,33 @@ This rebuilds the entire F10 tree. It is safe to call multiple times — it debo
 
 ---
 
+## Configuration (`mission.yaml`)
+
+```yaml
+lua_modules:
+  RADIO:
+    enable: true          # default: true
+    logLevel: info        # optional log level override
+    init:
+      help_menus: true    # show built-in "Help" entries in radio menus (default: true)
+```
+
+| Field | Type | Default | Required | Description |
+|-------|------|---------|----------|-------------|
+| `enable` | boolean | `true` | No | Enable or disable the module |
+| `logLevel` | string | *(global)* | No | Per-module log level override |
+| `init.help_menus` | boolean | `true` | No | Show built-in "Help" entries in the generated radio menus |
+
+### Minimal example
+
+```yaml
+lua_modules:
+  RADIO:
+    enable: true
+```
+
+---
+
 ## Creating a custom menu
 
 Use `veafRadio.createUserMenu()` to build a structured menu tree from a simple Lua table, using three helpers:

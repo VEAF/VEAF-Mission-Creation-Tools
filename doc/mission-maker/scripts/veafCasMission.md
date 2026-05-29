@@ -30,6 +30,87 @@ veafCasMission.start()
 
 ---
 
+## Configuration (`mission.yaml`)
+
+`veafCasMission` itself has no YAML-configurable fields. However, **CAP missions** and **Combat missions** (managed by the `COMBATMISSION` module) are declared in top-level `mission.yaml` sections.
+
+```yaml
+lua_modules:
+  CASMISSION:
+    enable: true          # default: true
+    logLevel: info        # optional log level override
+  COMBATMISSION:
+    enable: true          # required for cap_missions: and combat_missions:
+
+# ── CAP missions ──────────────────────────────────────────────────────────
+cap_missions:
+  - group_name: "CAP Group"       # REQUIRED — DCS group name to use for the CAP
+    menu_name: "CAP North"        # label in the F10 menu
+    briefing: "Patrol the northern sector and engage threats."
+    default: false                # true = starts active by default
+    activated: true               # true = immediately activated at mission start
+
+# ── Combat missions ───────────────────────────────────────────────────────
+combat_missions:
+  - name: "Strike-Alpha"          # REQUIRED — internal identifier
+    friendly_name: "Strike Alpha" # label in the F10 menu
+    secured: false                # true = requires /secu to activate
+    radio_menu_enabled: true      # show in F10 menu
+    briefing: |
+      Destroy the armoured column in grid BQ-123.
+      Expect AAA and MANPADS.
+    elements:
+      - name: "Element Alpha 1"   # internal element name
+        groups:                   # DCS group names included in this element
+          - "STRIKE-GROUP-1"
+          - "STRIKE-GROUP-2"
+        scalable: true            # true = group count scales with skill setting
+```
+
+### `cap_missions[]` fields
+
+| Field | Type | Default | Required | Description |
+|-------|------|---------|----------|-------------|
+| `group_name` | string | — | Yes | DCS group name for the CAP flight |
+| `menu_name` | string | — | No | F10 menu label |
+| `briefing` | string | — | No | Briefing text shown to players |
+| `default` | boolean | `false` | No | Start as the default active mission |
+| `activated` | boolean | `true` | No | Immediately activate at mission start |
+
+### `combat_missions[]` fields
+
+| Field | Type | Default | Required | Description |
+|-------|------|---------|----------|-------------|
+| `name` | string | — | Yes | Internal identifier |
+| `friendly_name` | string | — | No | F10 menu label |
+| `secured` | boolean | `false` | No | Requires `/secu` security token to activate |
+| `radio_menu_enabled` | boolean | `true` | No | Show this mission in the F10 menu |
+| `briefing` | string | — | No | Multi-line briefing text |
+| `elements` | object[] | `[]` | No | Mission element definitions |
+| `elements[].name` | string | — | No | Element internal name |
+| `elements[].groups` | string[] | — | No | DCS group names in this element |
+| `elements[].scalable` | boolean | `true` | No | Scale group count with difficulty |
+
+### Minimal example
+
+```yaml
+lua_modules:
+  COMBATMISSION:
+    enable: true
+
+cap_missions:
+  - group_name: "CAP-Alpha"
+    menu_name: "CAP"
+
+combat_missions:
+  - name: "Strike-North"
+    briefing: "Destroy northern targets."
+    elements:
+      - groups: ["Strike-Group-1"]
+```
+
+---
+
 ## Key Configuration Constants
 
 | Constant | Default | Description |

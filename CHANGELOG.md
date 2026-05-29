@@ -25,6 +25,11 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `about` command now prints `veaf-tools vX.Y.Z` before VEAF info (VER-003)
 - Windows PE version metadata (FILE_VERSION / PRODUCT_VERSION) embedded in `veaf-tools.exe` and `veaf-tools-updater.exe` via `VSVersionInfo` generated dynamically at build time (VER-002)
 - `ConfigMigrator` test coverage: integration tests on real fixtures (`mission-builder` and `demo-mission`) + unit tests for all 9 extractors previously untested (`_extract_identity_and_security`, `_extract_combat_missions`, `_extract_shortcuts`, `_extract_named_points`, `_extract_sanctuary_zones`, `_extract_combat_zone_settings`, `_extract_combat_zones`, `_extract_airwaves_zones`, `_extract_security_mm`) (MIG-001, MIG-002)
+- `doc/PIPELINE_REFERENCE.md` (+ `.fr.md`) — full YAML reference for all 4 pipeline steps (presets, waypoints, aircraft groups, weather/time) (DOC-001)
+- `doc/MISSION_YAML_REFERENCE.md` (+ `.fr.md`) — hub page for `mission.yaml` top-level sections; category index and module index (DOC-002)
+- `## Configuration (mission.yaml)` sections added to: `veafRadio`, `veafShortcuts`, `veafNamedPoints`, `veafCarrierOperations`, `veafAssets`, `veafSanctuary`, `veafCombatZone`, `veafAirWaves`, `veafQraManager`, `veafCasMission` (DOC-003 to DOC-006)
+- `doc/mission-maker/scripts/veafRadio.fr.md` — created (was missing) (DOC-003)
+- Module index in `MISSION_YAML_REFERENCE.md` completed with direct anchored links to every module's YAML section (DOC-007)
 
 ### Changed
 - `veaf_build/lua_tests.py`: `Optional[str]` migrated to `str | None` (UP007 now enforced)
@@ -34,6 +39,7 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `veaf_libs/paths.py`: `resolve_mission_file` glob branch now returns `.resolve()` path — fixes Windows short-path comparison
 
 ### Changed (Shortcuts, Spawn, NamedPoints, CasMission, Security, Move, Radio, Remote) self-register via `veafCommands.registerCommandHandler()` — per-module `onEventMarkChange` functions removed
+- Developer Guide (`doc/developer/GUIDE.md` + `.fr.md`) — Mermaid architecture diagram and runtime logging section updated to reference `veaf-config.lua` and `mission-script.lua` (v6) instead of the v5 `missionconfig.lua` (DOC-008)
 - `veafInterpreter.execute()` delegates to `veafCommands.execute()` — hardcoded 8-branch if/elseif removed
 - `veafSpawnCore.lua` reduced from ~1834 to ~900 lines: parser extracted; 25-branch if/elseif replaced by handler dispatch loop
 - `veafSpawnGround`, `veafSpawnAircraft`, `veafSpawnEffects` sub-modules self-register their spawn handlers via `veafSpawn.registerCommandHandler()`

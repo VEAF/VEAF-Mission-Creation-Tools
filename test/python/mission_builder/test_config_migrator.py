@@ -734,6 +734,21 @@ class TestExtractCombatZones(unittest.TestCase):
         self.assertGreater(len(result.callback_hints), 0)
         self.assertTrue(any("callbackZone" in h for h in result.callback_hints))
 
+    def test_operation_zone_name_extracted(self) -> None:
+        content = (
+            "veafCombatZone.AddZone(\n"
+            "    VeafCombatOperation:new()\n"
+            '        :setMissionEditorZoneName("myOperation")\n'
+            '        :setFriendlyName("My Operation")\n'
+            "        :initialize()\n"
+            ")\n"
+        )
+        result = MigrationResult(new_content="")
+        self.m._extract_combat_zones(content, result)
+        self.assertEqual(len(result.combat_zones_extracted), 1)
+        self.assertEqual(result.combat_zones_extracted[0]["zone_name"], "myOperation")
+        self.assertEqual(result.combat_zones_extracted[0]["type"], "operation")
+
     def test_no_zones_unchanged(self) -> None:
         content = "local x = 1\n"
         result = MigrationResult(new_content="")
@@ -831,110 +846,87 @@ class TestExtractSecurityMm(unittest.TestCase):
 # ===========================================================================
 
 
-class TestIntegrationMissionBuilder(unittest.TestCase):
-    """End-to-end migration of the mission-builder fixture must not raise and produce valid output."""
+class _IntegrationMixin:
+    """Mixin for shared integration assertions.
 
-    def setUp(self) -> None:
-        self.m = ConfigMigrator()
-        self.content = _MB_FIXTURE.read_text(encoding="utf-8")
+    Does NOT inherit from TestCase — pytest won't collect it.
+    Concrete test classes inherit (_IntegrationMixin, unittest.TestCase) so the
+    MRO wires setUpClass/assertXxx correctly.
+    setUpClass runs migrate() once per class to avoid repeated I/O and CPU.
+    """
+
+    FIXTURE: pathlib.Path  # override in subclass
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        super().setUpClass()  # type: ignore[misc]
+        cls._content: str = cls.FIXTURE.read_text(encoding="utf-8")  # type: ignore[attr-defined]
+        cls._result: MigrationResult = ConfigMigrator().migrate(cls._content)  # type: ignore[attr-defined]
 
     def test_no_exception(self) -> None:
-        self.m.migrate(self.content)
+        # setUpClass would have raised if migrate() failed — reaching here means success.
+        pass
 
     def test_enabled_modules_not_empty(self) -> None:
-        result = self.m.migrate(self.content)
-        self.assertGreater(len(result.enabled_modules), 0)
+        self.assertGreater(len(self._result.enabled_modules), 0)  # type: ignore[attr-defined]
 
     def test_yaml_snippet_is_valid_yaml(self) -> None:
-        result = self.m.migrate(self.content)
-        loaded = yaml.safe_load(result.yaml_snippet)
-        self.assertIsNotNone(loaded)
-        self.assertIn("lua_modules", loaded)
+        loaded = yaml.safe_load(self._result.yaml_snippet)  # type: ignore[attr-defined]
+        self.assertIsNotNone(loaded)  # type: ignore[attr-defined]
+        self.assertIn("lua_modules", loaded)  # type: ignore[attr-defined]
 
     def test_no_uncommented_veaf_dofile_in_output(self) -> None:
-        import re
-
-        result = self.m.migrate(self.content)
-        for line in result.new_content.splitlines():
+        for line in self._result.new_content.splitlines():  # type: ignore[attr-defined]
             stripped = line.strip()
             if stripped.startswith("--"):
                 continue
-            self.assertNotRegex(
+            self.assertNotRegex(  # type: ignore[attr-defined]
                 stripped,
                 r"doFile\s*\([^)]*veaf[^)]*\.lua",
                 f"Unguarded doFile found: {stripped!r}",
             )
 
+
+class TestIntegrationMissionBuilder(_IntegrationMixin, unittest.TestCase):
+    """End-to-end migration of the mission-builder fixture."""
+
+    FIXTURE = _MB_FIXTURE
+
     def test_known_modules_detected(self) -> None:
-        result = self.m.migrate(self.content)
-        self.assertIn("RADIO", result.enabled_modules)
-        self.assertIn("SPAWN", result.enabled_modules)
+        self.assertIn("RADIO", self._result.enabled_modules)  # type: ignore[attr-defined]
+        self.assertIn("SPAWN", self._result.enabled_modules)  # type: ignore[attr-defined]
 
 
-class TestIntegrationDemoMission(unittest.TestCase):
+class TestIntegrationDemoMission(_IntegrationMixin, unittest.TestCase):
     """End-to-end migration of the demo-mission fixture."""
 
-    def setUp(self) -> None:
-        self.m = ConfigMigrator()
-        self.content = _DEMO_FIXTURE.read_text(encoding="utf-8")
-
-    def test_no_exception(self) -> None:
-        self.m.migrate(self.content)
-
-    def test_enabled_modules_not_empty(self) -> None:
-        result = self.m.migrate(self.content)
-        self.assertGreater(len(result.enabled_modules), 0)
-
-    def test_yaml_snippet_is_valid_yaml(self) -> None:
-        result = self.m.migrate(self.content)
-        loaded = yaml.safe_load(result.yaml_snippet)
-        self.assertIsNotNone(loaded)
-        self.assertIn("lua_modules", loaded)
+    FIXTURE = _DEMO_FIXTURE
 
     def test_assets_extracted(self) -> None:
-        result = self.m.migrate(self.content)
-        self.assertIsNotNone(result.assets_extracted)
-        assert result.assets_extracted is not None
-        self.assertGreaterEqual(len(result.assets_extracted), 2)
-        names = [a["name"] for a in result.assets_extracted]
+        self.assertIsNotNone(self._result.assets_extracted)  # type: ignore[attr-defined]
+        assert self._result.assets_extracted is not None  # type: ignore[attr-defined]
+        self.assertGreaterEqual(len(self._result.assets_extracted), 2)  # type: ignore[attr-defined]
+        names = [a["name"] for a in self._result.assets_extracted]  # type: ignore[attr-defined]
         self.assertIn("Arco", names)
         self.assertIn("Petrolsky", names)
 
     def test_shortcuts_extracted(self) -> None:
-        result = self.m.migrate(self.content)
-        self.assertGreater(len(result.shortcuts_extracted), 0)
-        alias_names = [s["name"] for s in result.shortcuts_extracted]
+        self.assertGreater(len(self._result.shortcuts_extracted), 0)  # type: ignore[attr-defined]
+        alias_names = [s["name"] for s in self._result.shortcuts_extracted]  # type: ignore[attr-defined]
         self.assertIn("-b", alias_names)
 
     def test_combat_zone_settings_extracted(self) -> None:
-        result = self.m.migrate(self.content)
-        self.assertIsNotNone(result.combat_zone_settings_extracted)
+        self.assertIsNotNone(self._result.combat_zone_settings_extracted)  # type: ignore[attr-defined]
 
     def test_combat_zones_extracted(self) -> None:
-        result = self.m.migrate(self.content)
-        self.assertGreater(len(result.combat_zones_extracted), 0)
-        zone_names = [z.get("zone_name") for z in result.combat_zones_extracted]
+        self.assertGreater(len(self._result.combat_zones_extracted), 0)  # type: ignore[attr-defined]
+        zone_names = [z.get("zone_name") for z in self._result.combat_zones_extracted]  # type: ignore[attr-defined]
         self.assertIn("czCrossKobuleti-1", zone_names)
 
     def test_airwave_zones_extracted(self) -> None:
-        result = self.m.migrate(self.content)
-        self.assertGreaterEqual(len(result.airwave_zones_extracted), 1)
-        names = [z.get("name") for z in result.airwave_zones_extracted]
+        self.assertGreaterEqual(len(self._result.airwave_zones_extracted), 1)  # type: ignore[attr-defined]
+        names = [z.get("name") for z in self._result.airwave_zones_extracted]  # type: ignore[attr-defined]
         self.assertIn("Zone 01", names)
-
-    def test_no_uncommented_veaf_dofile_in_output(self) -> None:
-        import re
-
-        result = self.m.migrate(self.content)
-        for line in result.new_content.splitlines():
-            stripped = line.strip()
-            if stripped.startswith("--"):
-                continue
-            self.assertNotRegex(
-                stripped,
-                r"doFile\s*\([^)]*veaf[^)]*\.lua",
-                f"Unguarded doFile found: {stripped!r}",
-            )
 
 
 if __name__ == "__main__":

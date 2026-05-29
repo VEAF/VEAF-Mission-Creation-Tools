@@ -44,6 +44,7 @@
   "cmd.extract_aircraft.help": "Extrait les modèles de groupes aériens d'une mission .miz vers un fichier YAML.",
   "cmd.validate_aircraft.help": "Valide un fichier YAML de modèles aériens sans effectuer d'injection.",
   "cmd.about.help": "Affiche les informations sur VEAF Mission Creation Tools.",
+  "cmd.about.tool_version": "[bold cyan]veaf-tools v{version}[/bold cyan]",
   "cmd.wizard.help": "Lance l'assistant de configuration interactif.",
 
   "pipeline.injecting_presets": "Pipeline : injection des préréglages radio depuis {path}",

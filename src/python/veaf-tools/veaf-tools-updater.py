@@ -51,7 +51,12 @@ logger: Logger = Logger(logger_name="veaf-tools-updater", console=console)
 try:
     VERSION: str = _pkg_version("veaf-tools")
 except PackageNotFoundError:
-    VERSION: str = "6.1.5"  # Fallback; overwritten by the build process at compile time.
+    try:
+        from veaf_tools._version import __version__ as _fallback
+
+        VERSION = _fallback
+    except ImportError:
+        VERSION = "unknown"
 README_HELP: str = t("help.readme")
 VERBOSE_HELP: str = t("help.verbose")
 PAUSE_HELP: str = t("help.pause")

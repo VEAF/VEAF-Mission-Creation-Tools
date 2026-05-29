@@ -9,7 +9,12 @@ from veaf_libs.update_checker import check_for_updates
 try:
     VERSION: str = _pkg_version("veaf-tools")
 except PackageNotFoundError:
-    VERSION = "6.1.2"  # Fallback; overwritten by the build process at compile time.
+    try:
+        from veaf_tools._version import __version__ as _fallback
+
+        VERSION = _fallback
+    except ImportError:
+        VERSION = "unknown"
 
 README_HELP: str = t("help.readme")
 PAUSE_HELP: str = t("help.pause")

@@ -143,8 +143,15 @@ def _display_coverage_report() -> None:
 
 @app.command()
 def run(
-    suite_filter: str | None = typer.Option(None, "--filter", "-f", help="Run only suites whose filename contains this string."),
-    coverage: bool = typer.Option(False, "--coverage", "-c", help="Collect and display Lua line coverage via luacov (requires: luarocks install luacov)."),
+    suite_filter: str | None = typer.Option(
+        None, "--filter", "-f", help="Run only suites whose filename contains this string."
+    ),
+    coverage: bool = typer.Option(
+        False,
+        "--coverage",
+        "-c",
+        help="Collect and display Lua line coverage via luacov (requires: luarocks install luacov).",
+    ),
 ) -> None:
     """Run the Lua unit test suite (test/lua/test_*.lua)."""
     lua = _find_lua()

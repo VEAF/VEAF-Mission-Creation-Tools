@@ -45,7 +45,7 @@
 | Lot 18 — VERSIONING | ~1h45 | ⬜ |
 | Lot 19 — MIGRATOR | ~2h30 | ⬜ |
 | Lot 20 — DEEPENING | ~7h | ⬜ |
-| Lot 21 — TYPING | ~20 min | ⬜ |
+| Lot 21 — TYPING | ~20 min | ✅ |
 | Lot 22 — TEST-LAYOUT | ~55 min | ⬜ |
 | Lot 23 — DOC-YAML | ~8h20 | ⬜ |
 | **Total** | **~150h05** | |
@@ -150,7 +150,7 @@ VEAF — Virtual European Air Force
 
 | # | Ticket | File(s) | Type | Effort | Status |
 |---|--------|---------|------|--------|--------|
-| TYP-001 | Remove `UP007` from ruff ignore list + fix `lua_tests.py:147` + update copilot-instructions override | `pyproject.toml`, `veaf_build/lua_tests.py`, `.github/copilot-instructions.md` | chore | 15 min | ⬜ |
+| TYP-001 | Remove `UP007` from ruff ignore list + fix `lua_tests.py:147` + update copilot-instructions override | `pyproject.toml`, `veaf_build/lua_tests.py`, `.github/copilot-instructions.md` | chore | 15 min | ✅ |
 
 **Raw total: 15 min → estimated (×1.15): ~17 min (~20 min)**
 

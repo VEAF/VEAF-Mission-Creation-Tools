@@ -43,12 +43,14 @@
 | Lot 16 — LUA-COVERAGE | ~17h15 | [archived](backlog-archive.md) |
 | Lot 17 — USER-CONFIG | ~3h | [archived](backlog-archive.md) |
 | Lot 18 — VERSIONING | ~1h45 | ✅ |
-| Lot 19 — MIGRATOR | ~2h30 | ⬜ |
+| Lot 19 — MIGRATOR | ~2h30 | ✅ |
 | Lot 20 — DEEPENING | ~7h | ⬜ |
 | Lot 21 — TYPING | ~20 min | ✅ |
 | Lot 22 — TEST-LAYOUT | ~55 min | ✅ |
 | Lot 23 — DOC-YAML | ~8h20 | ⬜ |
-| **Total** | **~150h05** | |
+| Lot 24 — DOC-REVIEW | ~4h35 | ⬜ |
+| Lot 25 — EXT-YAML | ~2h | ⬜ |
+| **Total** | **~157h05** | |
 
 *Initial calibration factor: 1.15 — recalculate after each completed lot.*
 
@@ -457,6 +459,82 @@ Reste dans `build.py` (préoccupations CLI uniquement) :
 `build.py` passe de ~180 lignes à ~100 lignes.
 
 </details>
+
+---
+
+## Lot 24 — DOC-REVIEW: Corrections issues du doc-review
+
+**Goal**: Corriger les inexactitudes et lacunes identifiées lors de la revue manuelle de la documentation (`doc-review.md`) — mauvaises références v5 survivantes en v6, exemples Lua à remplacer par YAML, workflow de build simplifié, prérequis manquants, landing page.
+
+**Context**: Suite à la rédaction initiale de la doc v6, une revue manuelle a identifié plusieurs points : sections `MIGRATION_GUIDE.md` encore en v5, workflow "Typical Build" montrant 4 commandes séparées alors qu'un seul `build` suffit, exemples de configuration en Lua builder-chains au lieu de YAML, prérequis DCS editor manquants, et profil Klogg non committé dans le repo.
+
+**Branch**: `fix/doc-review` → PR → `develop-v6`
+
+| # | Ticket | Fichiers touchés | Type | Effort | Status |
+|---|--------|-----------------|------|--------|--------|
+| REV-001 | Remplacer `missions.yaml` par `versions.yaml` partout dans la doc et dans le template `mission.yaml` commenté (`lua_config_generator.py` ligne ~839) | `doc/**/*.md`, `src/python/veaf-tools/veaf_libs/lua_config_generator.py`, `src/defaults/mission-folder/mission.yaml` | fix | 20 min | ⬜ |
+| REV-002 | Committer le profil Klogg fourni par l'utilisateur dans `tools/klogg/veaf.conf` ; mettre à jour la section "Reading the log" dans `GUIDE.md` et `GUIDE.fr.md` pour pointer vers ce fichier | `tools/klogg/veaf.conf`, `doc/mission-maker/GUIDE.md`, `doc/mission-maker/GUIDE.fr.md` | chore | 20 min | ⬜ |
+| REV-003 | Corriger `MIGRATION_GUIDE.md` — "Mission Folder Reference" : remplacer l'arborescence v5 (avec `missionConfig.lua`) par l'arborescence v6 (avec `mission.yaml`) ; "missionConfig.lua Reference" → "mission.yaml Reference" avec exemple YAML minimal ; ajouter renvoi vers `GUIDE.md` pour éviter duplication | `doc/mission-maker/MIGRATION_GUIDE.md`, `doc/mission-maker/MIGRATION_GUIDE.fr.md` | fix | 30 min | ⬜ |
+| REV-004 | Corriger `MIGRATION_GUIDE.md` — section "Common Issues" : remplacer les références `missionConfig.lua` par `mission.yaml` + `mission-script.lua` selon le cas ; ajouter entrée "Reading the logs" (Klogg ou Notepad++, chemin `Saved Games\DCS\Logs\dcs.log`, filtre `VEAF`, lien vers profil Klogg committé en REV-002) | `doc/mission-maker/MIGRATION_GUIDE.md`, `doc/mission-maker/MIGRATION_GUIDE.fr.md` | fix | 20 min | ⬜ |
+| REV-005 | Corriger `MIGRATION_GUIDE.md` — section "Integrating VEAF MCT into a Vanilla DCS Mission", step 5 "Configure which modules to enable" : remplacer l'exemple `missionConfig.lua` Lua par un exemple `mission.yaml` YAML ; mettre à jour le texte d'introduction de l'étape | `doc/mission-maker/MIGRATION_GUIDE.md`, `doc/mission-maker/MIGRATION_GUIDE.fr.md` | fix | 20 min | ⬜ |
+| REV-006 | Corriger `GUIDE.md` — "Typical Build Workflow" : remplacer les 4 commandes séparées par `veaf-tools.exe build .` (le pipeline est intégré) ; déplacer les commandes `inject-*` dans une note collapsible "Advanced: running pipeline steps individually" | `doc/mission-maker/GUIDE.md`, `doc/mission-maker/GUIDE.fr.md` | fix | 20 min | ⬜ |
+| REV-007 | Corriger `doc/index.md` et `doc/index.fr.md` — phrase d'accroche (une ligne orientée nouveau venu avant le tableau role-based) ; passer le diagramme Mermaid de `flowchart LR` à `flowchart TD` | `doc/index.md`, `doc/index.fr.md` | fix | 15 min | ⬜ |
+| REV-008 | Ajouter prérequis dans `GUIDE.md` et `GUIDE.fr.md` section "Getting Started" : (1) le mission de base dans le DCS Editor **doit** contenir au moins un groupe terrestre bleu et un rouge (requis pour que les tables Lua de pays/coalitions soient complètes et que les outils d'injection fonctionnent) ; (2) éditeur texte recommandé : Notepad++ (YAML/Lua) | `doc/mission-maker/GUIDE.md`, `doc/mission-maker/GUIDE.fr.md` | fix | 20 min | ⬜ |
+| REV-009 | Corriger `GUIDE.md` — "Configuration Examples" : remplacer les trois exemples Lua builder-chains (QRA, CombatZone, AirWaves) par leurs équivalents YAML (`mission.yaml`) ; conserver les builder chains en note collapsible "Low-level Lua API" pour les cas avancés | `doc/mission-maker/GUIDE.md`, `doc/mission-maker/GUIDE.fr.md` | fix | 45 min | ⬜ |
+| REV-010 | Corriger `GUIDE.md` — section "CTLD and CSAR Integration" : (1) supprimer la phrase inventée sur l'auto-lasing JTACs dans "VEAF automatic defaults" ; (2) documenter la double approche YAML-first (`external_modules.ctld`) + Lua callback ; (3) noter explicitement que CSAR n'est pas encore configurable via YAML (renvoi vers Lot 25 — EXT-YAML) | `doc/mission-maker/GUIDE.md`, `doc/mission-maker/GUIDE.fr.md` | fix | 30 min | ⬜ |
+
+**Raw total: 240 min → estimated (×1.15): ~275 min (~4h35)**
+
+<details>
+<summary>Détails des tickets</summary>
+
+**REV-001 — versions.yaml**
+`versions.yaml` est le nom canonique v6. `missions.yaml` est un alias legacy accepté par le code (`_step_file` cherche les deux). Corriger la doc et le commentaire dans `lua_config_generator.py` (ligne ~839 : `"#   weather: true             # src/missions.yaml"`) pour utiliser `versions.yaml` partout.
+
+**REV-002 — Profil Klogg**
+L'utilisateur fournira le fichier `.conf` Klogg. Le committer dans `tools/klogg/veaf.conf`. Mettre à jour la phrase dans `GUIDE.md` section "Reading the log" : remplacer la référence au Discord par un lien direct vers le fichier committé.
+
+**REV-003 — Mission Folder Reference v6**
+Remplacer l'arborescence actuelle (qui montre `missionConfig.lua` et pas `mission.yaml`) par la structure v6 correcte, puis pointer vers `GUIDE.md` pour la référence complète (éviter duplication).
+
+**REV-004 — Common Issues + logs**
+Les entrées "Radio menus don't appear" et "Marker commands don't work" pointent vers `missionConfig.lua` → corriger vers `mission.yaml` / `mission-script.lua`. Nouvelle entrée : comment lire les logs VEAF (chemin, outil, filtre).
+
+**REV-005 — Step 5 vanilla integration**
+La section "Configure which modules" montre du Lua `missionConfig.lua` commenté → remplacer par un exemple `mission.yaml` avec `lua_modules:` décommenté et commenté.
+
+**REV-006 — Typical Build Workflow**
+Le pipeline `build` intègre déjà presets, waypoints, weather si configurés dans `mission.yaml`. Montrer uniquement `veaf-tools.exe build .`. Les commandes séparées restent disponibles pour les cas avancés (injecter la météo seule, etc.) — les documenter dans une `<details>` collapsible.
+
+**REV-007 — Landing page**
+Ajouter une phrase d'accroche avant le tableau role-based, ex. : *"VEAF MCT turns a standard DCS mission into a dynamic, player-driven sandbox — 34 Lua modules, a build pipeline, and a CLI tool that does the heavy lifting."*. Passer `flowchart LR` → `flowchart TD`.
+
+**REV-008 — Prérequis DCS Editor**
+Sans groupe bleu et rouge dans le `.miz` de base, les tables `coalition.side.BLUE` et `coalition.side.RED` sont vides en Lua, ce qui peut faire échouer silencieusement les outils d'injection (presets par coalition, waypoints filtrés, etc.). C'est un prérequis technique, pas juste une recommandation.
+
+**REV-009 — Configuration Examples YAML**
+Les builder-chains Lua sont l'API bas niveau. En v6, QRA, CombatZone et AirWaves se configurent via `mission.yaml` (`qra:`, `combat_zones:`, `airwave_zones:`). Montrer le YAML en premier ; garder le Lua en `<details>` pour les cas où `mission-script.lua` est préféré.
+
+</details>
+
+---
+
+## Lot 25 — EXT-YAML: Support YAML pour les modules externes (CTLD/CSAR)
+
+**Goal**: Étendre `lua_config_generator.py` pour générer la configuration CSAR depuis `mission.yaml`, à l'image de ce qui existe déjà pour CTLD (`external_modules.ctld`). Réduire au maximum la Lua boilerplate nécessaire dans `mission-script.lua` pour les intégrations CTLD/CSAR.
+
+**Context**: CTLD est partiellement configurable via `mission.yaml` (`external_modules.ctld: {enabled: true, hoverPickup: false, ...}`). CSAR ne l'est pas — la config reste 100 % Lua dans `mission-script.lua`. La documentation (`GUIDE.md`) a été corrigée pour refléter l'état actuel ; ce lot implémente la feature manquante puis la doc est mise à jour.
+
+**Branch**: `feature/ext-yaml` → PR → `develop-v6`
+
+| # | Ticket | Fichiers touchés | Type | Effort | Status |
+|---|--------|-----------------|------|--------|--------|
+| EXT-001 | Ajouter support `external_modules.csar` dans `lua_config_generator.py` : générer `csar.xxx = value` + `csar.initialize()` depuis YAML, symétrique à l'implémentation CTLD existante | `veaf_libs/lua_config_generator.py`, `src/defaults/mission-folder/mission.yaml` | feature | 30 min | ⬜ |
+| EXT-002 | Étendre le support CTLD : générer l'appel `ctld.initialize()` depuis YAML (actuellement seules les propriétés sont générées, l'appel `initialize` lui-même reste en Lua) | `veaf_libs/lua_config_generator.py` | feature | 20 min | ⬜ |
+| EXT-003 | Tests unitaires pour EXT-001 et EXT-002 : vérifier la génération Lua correcte depuis des configs YAML CTLD/CSAR types (enabled/disabled, propriétés, initialize call) | `test/python/veaf_libs/test_lua_config_generator.py` | test | 40 min | ⬜ |
+| EXT-004 | Mettre à jour `GUIDE.md` (+ `.fr.md`) section "CTLD and CSAR Integration" : remplacer les exemples Lua callback par des exemples YAML-first, conserver Lua comme fallback | `doc/mission-maker/GUIDE.md`, `doc/mission-maker/GUIDE.fr.md` | doc | 30 min | ⬜ |
+
+**Raw total: 120 min → estimated (×1.15): ~140 min (~2h20)**
 
 ---
 

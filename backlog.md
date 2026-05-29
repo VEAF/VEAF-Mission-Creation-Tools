@@ -42,7 +42,7 @@
 | Lot UPDATER-FIX | ~65 min | [archived](backlog-archive.md) |
 | Lot 16 — LUA-COVERAGE | ~17h15 | [archived](backlog-archive.md) |
 | Lot 17 — USER-CONFIG | ~3h | [archived](backlog-archive.md) |
-| Lot 18 — VERSIONING | ~1h45 | ⬜ |
+| Lot 18 — VERSIONING | ~1h45 | ✅ |
 | Lot 19 — MIGRATOR | ~2h30 | ⬜ |
 | Lot 20 — DEEPENING | ~7h | ⬜ |
 | Lot 21 — TYPING | ~20 min | ✅ |
@@ -111,9 +111,9 @@ Corrections à apporter une fois les bugs identifiés via MIG-001 et MIG-002. Ex
 
 | # | Ticket | Fichiers touchés | Type | Effort | Status |
 |---|--------|-----------------|------|--------|--------|
-| VER-001 | Supprimer les fallbacks version hardcodés dans `app.py` ("6.1.2") et `veaf-tools-updater.py` ("6.1.5") ; lire `pyproject.toml` à la compilation pour injecter la bonne valeur, ou générer un `_version.py` depuis `veaf_build/worker.py` | `veaf_tools/app.py`, `veaf-tools-updater.py`, `veaf_build/worker.py` | chore | 30 min | ⬜ |
-| VER-002 | Embarquer les métadonnées Windows (FILE_VERSION / PRODUCT_VERSION) dans les `.exe` PyInstaller — créer un `version_file.txt` généré dynamiquement au build depuis la version lue dans `pyproject.toml`, le référencer dans `veaf-tools.spec` et `veaf-tools-updater.spec` | `veaf-tools.spec`, `veaf-tools-updater.spec`, `veaf_build/worker.py` | chore | 45 min | ⬜ |
-| VER-003 | Afficher la version de l'outil dans `about` — ajouter `VERSION` à la sortie de la commande (ex : `veaf-tools v6.1.5`) | `veaf_tools/commands/about.py`, `locales/en.json`, `locales/fr.json` | feat | 15 min | ⬜ |
+| VER-001 | Supprimer les fallbacks version hardcodés dans `app.py` ("6.1.2") et `veaf-tools-updater.py` ("6.1.5") ; lire `pyproject.toml` à la compilation pour injecter la bonne valeur, ou générer un `_version.py` depuis `veaf_build/worker.py` | `veaf_tools/app.py`, `veaf-tools-updater.py`, `veaf_build/worker.py` | chore | 30 min | ✅ |
+| VER-002 | Embarquer les métadonnées Windows (FILE_VERSION / PRODUCT_VERSION) dans les `.exe` PyInstaller — créer un `version_file.txt` généré dynamiquement au build depuis la version lue dans `pyproject.toml`, le référencer dans `veaf-tools.spec` et `veaf-tools-updater.spec` | `veaf-tools.spec`, `veaf-tools-updater.spec`, `veaf_build/worker.py` | chore | 45 min | ✅ |
+| VER-003 | Afficher la version de l'outil dans `about` — ajouter `VERSION` à la sortie de la commande (ex : `veaf-tools v6.1.5`) | `veaf_tools/commands/about.py`, `locales/en.json`, `locales/fr.json` | feat | 15 min | ✅ |
 
 **Raw total: 90 min → estimated (×1.15): ~105 min (~1h45)**
 

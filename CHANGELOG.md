@@ -23,7 +23,10 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `--ci` flag on `veaf-build publish` and `veaf-build build-and-publish` for non-interactive CI mode
 
 ### Changed
-- All 8 command modules (Shortcuts, Spawn, NamedPoints, CasMission, Security, Move, Radio, Remote) self-register via `veafCommands.registerCommandHandler()` — per-module `onEventMarkChange` functions removed
+- `veaf_build/lua_tests.py`: `Optional[str]` migrated to `str | None` (UP007 now enforced)
+- `pyproject.toml`: `UP007` removed from ruff ignore list — `str | None` union syntax enforced across all Python files
+
+### Changed (Shortcuts, Spawn, NamedPoints, CasMission, Security, Move, Radio, Remote) self-register via `veafCommands.registerCommandHandler()` — per-module `onEventMarkChange` functions removed
 - `veafInterpreter.execute()` delegates to `veafCommands.execute()` — hardcoded 8-branch if/elseif removed
 - `veafSpawnCore.lua` reduced from ~1834 to ~900 lines: parser extracted; 25-branch if/elseif replaced by handler dispatch loop
 - `veafSpawnGround`, `veafSpawnAircraft`, `veafSpawnEffects` sub-modules self-register their spawn handlers via `veafSpawn.registerCommandHandler()`

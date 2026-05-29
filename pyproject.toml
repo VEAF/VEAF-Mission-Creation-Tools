@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "veaf-tools"
-version = "6.1.5"
+version = "6.1.6"
 description = "A set of tools that help set up and run dynamic DCS World missions"
 authors = ["VEAF <https://www.veaf.org>"]
 license = "ISC"
@@ -61,7 +61,6 @@ exclude = [
 select = ["E", "F", "W", "I", "UP"]
 ignore = [
     "E501",   # line too long — handled by formatter
-    "UP007",  # use X | Y for type union — keep Optional[] for clarity
 ]
 
 [tool.ruff.lint.per-file-ignores]

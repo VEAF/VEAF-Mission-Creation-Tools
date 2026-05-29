@@ -5,7 +5,6 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
-from typing import Optional
 
 import typer
 from rich.console import Console
@@ -144,7 +143,7 @@ def _display_coverage_report() -> None:
 
 @app.command()
 def run(
-    suite_filter: Optional[str] = typer.Option(None, "--filter", "-f", help="Run only suites whose filename contains this string."),
+    suite_filter: str | None = typer.Option(None, "--filter", "-f", help="Run only suites whose filename contains this string."),
     coverage: bool = typer.Option(False, "--coverage", "-c", help="Collect and display Lua line coverage via luacov (requires: luarocks install luacov)."),
 ) -> None:
     """Run the Lua unit test suite (test/lua/test_*.lua)."""

@@ -11,11 +11,11 @@
 - Main branch: `master`
 
 ### Package manager
-- **Poetry** — activate venv: `.\.venv\Scripts\Activate.ps1`
+- **Poetry** — activate venv: `poetry shell` (venv global, `in-project = false`)
 - Install dependencies: `poetry install`
 
 ### Linting commands
-- **Python**: `ruff check src/python/ --fix` then `ruff format src/python/`
+- **Python**: `poetry run ruff check src/python/ --fix` then `poetry run ruff format src/python/`
 - **Lua**: `luacheck --config .luacheckrc src/scripts/veaf/` then `stylua --check src/scripts/veaf/`
 - **All at once**: `pre-commit run --all-files`
 
@@ -30,7 +30,7 @@
 1. Make changes
 2. Update tests — Python: `src/python/veaf-tools/test_*.py`, Lua: `test/lua/test_<module>.lua`
 3. Run quality checks:
-   - Python changed: `ruff check src/python/ --fix` + `poetry run pytest` + `mypy src/python/veaf-tools/`
+   - Python changed: `poetry run ruff check src/python/ --fix` + `poetry run pytest` + `poetry run mypy src/python/veaf-tools/`
    - Lua changed: `luacheck --config .luacheckrc src/scripts/veaf/` + `stylua --check src/scripts/veaf/` + `poetry run test-lua`
 4. Update `CHANGELOG.md` under `[Unreleased]`
 5. Bump patch version in `pyproject.toml`
@@ -47,7 +47,7 @@
 - Target: **50%** (planned future milestone)
 
 ### Type hints syntax
-- Use `str | None` syntax — `UP007` enabled (see ticket TYP-001)
+- Use `str | None` syntax — `UP007` enabled
 
 ### Test location
 - Python tests: `test/python/` (files matching `test_*.py`) — mirrors `test/lua/` convention (see ticket TST-001)
@@ -202,8 +202,6 @@ class MissionConfig:
 
 ### Commands
 ```powershell
-.\.venv\Scripts\Activate.ps1
-
 # Build release package (Lua scripts + Python exe)
 poetry run veaf-build build --version 6.1.5
 
@@ -262,7 +260,6 @@ poetry run veaf-build build-and-publish --version 6.1.5 --ci
 
 ### Python
 ```powershell
-.\.venv\Scripts\Activate.ps1
 poetry run pytest
 ```
 Tests live in `src/python/veaf-tools/` (files `test_*.py`). Coverage report generated automatically.

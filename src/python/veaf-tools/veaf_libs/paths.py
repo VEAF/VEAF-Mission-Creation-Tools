@@ -85,7 +85,7 @@ def resolve_mission_file(
     # Stem / prefix — find the most-recent match.
     matches = list(folder.glob(f"{candidate.name}*.miz"))
     if matches:
-        return max(matches, key=lambda f: f.stat().st_mtime)
+        return max(matches, key=lambda f: f.stat().st_mtime).resolve()
 
     # Last resort: the named path (will fail downstream if actually missing).
     return resolve_path(path=folder / candidate, should_exist=True)

@@ -46,7 +46,7 @@
 | Lot 19 — MIGRATOR | ~2h30 | ⬜ |
 | Lot 20 — DEEPENING | ~7h | ⬜ |
 | Lot 21 — TYPING | ~20 min | ✅ |
-| Lot 22 — TEST-LAYOUT | ~55 min | ⬜ |
+| Lot 22 — TEST-LAYOUT | ~55 min | ✅ |
 | Lot 23 — DOC-YAML | ~8h20 | ⬜ |
 | **Total** | **~150h05** | |
 
@@ -179,7 +179,7 @@ Steps:
 
 | # | Ticket | File(s) | Type | Effort | Status |
 |---|--------|---------|------|--------|--------|
-| TST-001 | Move 28 `test_*.py` files + update `pyproject.toml` + verify CI passes | `test/python/**`, `pyproject.toml`, `.github/copilot-instructions.md` | chore | 45 min | ⬜ |
+| TST-001 | Move 28 `test_*.py` files + update `pyproject.toml` + verify CI passes | `test/python/**`, `pyproject.toml`, `.github/copilot-instructions.md` | chore | 45 min | ✅ |
 
 **Raw total: 45 min → estimated (×1.15): ~52 min (~55 min)**
 

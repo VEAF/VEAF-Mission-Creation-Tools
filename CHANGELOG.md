@@ -25,6 +25,9 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Changed
 - `veaf_build/lua_tests.py`: `Optional[str]` migrated to `str | None` (UP007 now enforced)
 - `pyproject.toml`: `UP007` removed from ruff ignore list — `str | None` union syntax enforced across all Python files
+- `pyproject.toml`: `testpaths` changed to `["test/python"]` — test discovery now targets the new location
+- 28 `test_*.py` files moved from `src/python/veaf-tools/**` to `test/python/**` — mirrors `test/lua/` convention (TST-001)
+- `veaf_libs/paths.py`: `resolve_mission_file` glob branch now returns `.resolve()` path — fixes Windows short-path comparison
 
 ### Changed (Shortcuts, Spawn, NamedPoints, CasMission, Security, Move, Radio, Remote) self-register via `veafCommands.registerCommandHandler()` — per-module `onEventMarkChange` functions removed
 - `veafInterpreter.execute()` delegates to `veafCommands.execute()` — hardcoded 8-branch if/elseif removed

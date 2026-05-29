@@ -106,7 +106,6 @@ module = [
     "mission_extractor.mission_extractor_worker",
     "presets_injector.presets_injector_worker",
     "presets_injector.presets_manager",
-    "presets_injector.test_presets",
     "waypoints_injector.waypoints_injector_worker",
     "waypoints_injector.waypoints_manager",
     "weather_injector.utils.lua_converter",
@@ -119,7 +118,7 @@ ignore_errors = true
 # Pytest
 # ---------------------------------------------------------------------------
 [tool.pytest.ini_options]
-testpaths = ["src/python/veaf-tools"]
+testpaths = ["test/python"]
 pythonpath = ["src/python/veaf-tools"]
 python_files = ["test_*.py", "*_test.py"]
 addopts = [

@@ -1,11 +1,8 @@
-import os
-import sys
 import textwrap
 import unittest
 from pathlib import Path
 
-sys.path.insert(0, os.path.dirname(__file__))
-from presets_manager import (
+from presets_injector.presets_manager import (
     Channel,
     ChannelCollection,
     ChannelDefinition,

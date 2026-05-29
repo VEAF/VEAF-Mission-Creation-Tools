@@ -24,6 +24,7 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `veaf_tools/_version.py` committed stub — version injected by `worker.py` at PyInstaller build time, restored to `"unknown"` after; `app.py` and `veaf-tools-updater.py` resolve `VERSION` via `importlib.metadata` then `_version.__version__` fallback (VER-001)
 - `about` command now prints `veaf-tools vX.Y.Z` before VEAF info (VER-003)
 - Windows PE version metadata (FILE_VERSION / PRODUCT_VERSION) embedded in `veaf-tools.exe` and `veaf-tools-updater.exe` via `VSVersionInfo` generated dynamically at build time (VER-002)
+- `ConfigMigrator` test coverage: integration tests on real fixtures (`mission-builder` and `demo-mission`) + unit tests for all 9 extractors previously untested (`_extract_identity_and_security`, `_extract_combat_missions`, `_extract_shortcuts`, `_extract_named_points`, `_extract_sanctuary_zones`, `_extract_combat_zone_settings`, `_extract_combat_zones`, `_extract_airwaves_zones`, `_extract_security_mm`) (MIG-001, MIG-002)
 
 ### Changed
 - `veaf_build/lua_tests.py`: `Optional[str]` migrated to `str | None` (UP007 now enforced)

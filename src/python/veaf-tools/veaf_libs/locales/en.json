@@ -44,6 +44,7 @@
   "cmd.extract_aircraft.help": "Extract aircraft group templates from a .miz mission to a YAML file.",
   "cmd.validate_aircraft.help": "Validate an aircraft templates YAML file without injecting.",
   "cmd.about.help": "Show information about VEAF Mission Creation Tools.",
+  "cmd.about.tool_version": "[bold cyan]veaf-tools v{version}[/bold cyan]",
   "cmd.wizard.help": "Launch the interactive setup wizard.",
 
   "pipeline.injecting_presets": "Pipeline: injecting radio presets from {path}",

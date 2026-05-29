@@ -22,7 +22,7 @@ import typer
 from rich.table import Table
 from veaf_libs.lua_module_scanner import get_modules
 
-from veaf_tools.app import app, console, t
+from veaf_tools.app import VERSION, app, console, t
 
 
 @app.command(help=t("cmd.about.help"))
@@ -43,6 +43,7 @@ def about(
         console.print(table)
         return
 
+    console.print(t("cmd.about.tool_version", version=VERSION))
     url = "https://www.veaf.org"
     console.print(t("cmd.about.veaf"))
     console.print(t("cmd.about.veaf_desc"))

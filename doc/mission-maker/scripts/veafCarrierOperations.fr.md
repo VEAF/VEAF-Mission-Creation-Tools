@@ -37,6 +37,35 @@ Ou laisser `veafAssets` gérer l'enregistrement automatiquement quand une ressou
 
 ---
 
+## Configuration (`mission.yaml`)
+
+Les opérations de porte-avions sont activées via l'ID de module `CARRIER`. Les définitions de porte-avions sont généralement déclarées via le module `ASSETS` (voir [veafAssets — Configuration](veafAssets.md#configuration-missionyaml)).
+
+```yaml
+lua_modules:
+  CARRIER:
+    enable: true          # défaut : true
+    logLevel: info        # surcharge optionnelle du niveau de log
+    init:
+      include_carrier_operations_radio: true  # ajouter le menu carrier au F10 (défaut : true)
+```
+
+| Champ | Type | Défaut | Requis | Description |
+|-------|------|--------|--------|-------------|
+| `enable` | booléen | `true` | Non | Activer ou désactiver le module |
+| `logLevel` | string | *(global)* | Non | Surcharge du niveau de log par module |
+| `init.include_carrier_operations_radio` | booléen | `true` | Non | Ajouter le menu des opérations porte-avions au menu radio F10 |
+
+### Exemple minimal
+
+```yaml
+lua_modules:
+  CARRIER:
+    enable: true
+```
+
+---
+
 ## Constantes de configuration clés
 
 | Constante | Valeur par défaut | Description |

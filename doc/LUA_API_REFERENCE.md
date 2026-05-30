@@ -64,6 +64,7 @@ Modules must be loaded in dependency order:
 ### Conventions Used
 
 **Parameter Types:**
+
 - `string` - Text string
 - `number` - Numeric value
 - `boolean` - true/false
@@ -73,6 +74,7 @@ Modules must be loaded in dependency order:
 - `coalition` - Coalition ID: 0=neutral, 1=blue, 2=red
 
 **Return Values:**
+
 - Functions return `nil` on failure unless otherwise specified
 - Boolean returns indicate success/failure
 
@@ -157,6 +159,7 @@ veaf.MIST_MARKER_ID_INITIAL_VALUE = 50000
 Convert Lua object to JSON string.
 
 **Parameters:**
+
 - `obj` (any) - Lua object to serialize
 - `as_key` (boolean, optional) - Format as JSON key
 
@@ -174,6 +177,7 @@ local json = veaf.json.stringify(data)
 Parse JSON string to Lua object.
 
 **Parameters:**
+
 - `str` (string) - JSON string
 - `pos` (number, optional) - Starting position (default: 1)
 - `end_delim` (string, optional) - End delimiter
@@ -194,6 +198,7 @@ local data = veaf.json.parse(json)
 Remove leading and trailing whitespace.
 
 **Parameters:**
+
 - `s` (string) - String to trim
 
 **Returns:** `string` - Trimmed string
@@ -209,6 +214,7 @@ local trimmed = veaf.trim("  hello  ")
 Split string by separator into array.
 
 **Parameters:**
+
 - `str` (string) - String to split
 - `sep` (string) - Separator character/string
 
@@ -225,6 +231,7 @@ local parts = veaf.split("red,blue,green", ",")
 Split string using regex pattern.
 
 **Parameters:**
+
 - `str` (string) - String to split
 - `pat` (string) - Lua pattern
 
@@ -235,6 +242,7 @@ Split string using regex pattern.
 Break string around separator (returns 2 parts).
 
 **Parameters:**
+
 - `str` (string) - String to break
 - `sep` (string) - Separator
 
@@ -251,6 +259,7 @@ local before, after = veaf.breakString("key=value", "=")
 Escape special regex characters.
 
 **Parameters:**
+
 - `stringToEscape` (string) - String to escape
 
 **Returns:** `string` - Escaped string
@@ -262,6 +271,7 @@ Escape special regex characters.
 Get table length (handles non-sequential keys).
 
 **Parameters:**
+
 - `T` (table) - Table to measure
 
 **Returns:** `number` - Number of elements
@@ -278,6 +288,7 @@ local len = veaf.length(t)
 Remove elements from array based on condition.
 
 **Parameters:**
+
 - `t` (table) - Array to filter
 - `fnKeep` (function) - Keep function: `function(element) return boolean end`
 
@@ -295,6 +306,7 @@ veaf.arrayRemoveWhen(numbers, function(n) return n > 3 end)
 Randomly shuffle array elements in place.
 
 **Parameters:**
+
 - `tbl` (table) - Array to shuffle
 
 **Returns:** `table` - Shuffled array (same reference)
@@ -304,6 +316,7 @@ Randomly shuffle array elements in place.
 Check if table contains element.
 
 **Parameters:**
+
 - `table` (table) - Table to search
 - `element` (any) - Element to find
 
@@ -314,6 +327,7 @@ Check if table contains element.
 Choose random element from table with optional bias.
 
 **Parameters:**
+
 - `aTable` (table) - Table to choose from
 - `bias` (number, optional) - Bias factor (default: 1.0)
 
@@ -332,6 +346,7 @@ local color = veaf.randomlyChooseFrom(colors)
 Convert 3D vector to human-readable string.
 
 **Parameters:**
+
 - `vec` (vec3) - Vector `{x, y, z}`
 
 **Returns:** `string` - Formatted string
@@ -348,6 +363,7 @@ local str = veaf.vecToString(pos)
 Find random spawn point within zone with dispersion.
 
 **Parameters:**
+
 - `spawnSpot` (vec3) - Center position
 - `dispersion` (number) - Radius in meters
 - `isShip` (boolean, optional) - Find water location
@@ -359,6 +375,7 @@ Find random spawn point within zone with dispersion.
 Place point on land surface (adjusts Y altitude).
 
 **Parameters:**
+
 - `vec3` (vec3) - Position to adjust
 
 **Returns:** `vec3` - Position on land surface
@@ -368,6 +385,7 @@ Place point on land surface (adjusts Y altitude).
 Get terrain height at coordinates.
 
 **Parameters:**
+
 - `vec3` (vec3) - Position
 
 **Returns:** `number` - Terrain altitude in meters
@@ -377,6 +395,7 @@ Get terrain height at coordinates.
 Calculate heading from point1 to point2.
 
 **Parameters:**
+
 - `point1` (vec3) - Starting point
 - `point2` (vec3) - Destination point
 
@@ -387,6 +406,7 @@ Calculate heading from point1 to point2.
 Calculate bearing and range between two points.
 
 **Parameters:**
+
 - `fromPoint` (vec3) - Starting point
 - `toPoint` (vec3) - Destination point
 
@@ -403,11 +423,13 @@ veaf.logger:info("Target at %d° for %.0f meters", bearing, range)
 Parse latitude/longitude from string.
 
 **Parameters:**
+
 - `value` (string) - Lat/Lon string (various formats supported)
 
 **Returns:** `table` - `{lat=number, lon=number}` or nil
 
 **Supported Formats:**
+
 - DMS: `N 43°15'30" E 005°45'20"`
 - Decimal: `43.258333, 5.755556`
 - MGRS: (via conversion)
@@ -417,6 +439,7 @@ Parse latitude/longitude from string.
 Calculate position offset from a route.
 
 **Parameters:**
+
 - `startingPoint` (vec3) - Route start
 - `destinationPoint` (vec3) - Route end
 - `distanceFromStartingPoint` (number) - Distance along route (meters)
@@ -431,6 +454,7 @@ Calculate position offset from a route.
 Add unit to group definition.
 
 **Parameters:**
+
 - `group` (table) - Group definition table
 - `spawnSpot` (vec3) - Spawn position
 - `dispersion` (number) - Dispersion radius (meters)
@@ -445,6 +469,7 @@ Add unit to group definition.
 Get center position of group.
 
 **Parameters:**
+
 - `group` (table or DCS Group) - Group object or table
 
 **Returns:** `vec3` - Average position
@@ -454,6 +479,7 @@ Get center position of group.
 Get average position of group by name.
 
 **Parameters:**
+
 - `groupName` (string) - Group name
 
 **Returns:** `vec3` - Average position or nil
@@ -463,6 +489,7 @@ Get average position of group by name.
 Move group in specific direction and speed.
 
 **Parameters:**
+
 - `groupName` (string) - Group to move
 - `leadUnitName` (string) - Lead unit name
 - `heading` (number) - Direction in degrees
@@ -478,6 +505,7 @@ Move group in specific direction and speed.
 Move group to position.
 
 **Parameters:**
+
 - `groupName` (string) - Group name
 - `pos` (vec3) - Destination
 - `speed` (number, optional) - Speed in m/s (default: 30 kph)
@@ -490,6 +518,7 @@ Move group to position.
 Prepare ground group for combat.
 
 **Parameters:**
+
 - `group` (DCS Group or string) - Group or group name
 - `alarm` (boolean, optional) - Alarm state (default: false)
 - `disperseTime` (number, optional) - Time to disperse in seconds
@@ -503,6 +532,7 @@ Prepare ground group for combat.
 Get all groups of coalition.
 
 **Parameters:**
+
 - `coa` (coalition, optional) - Coalition filter (default: all)
 
 **Returns:** `table` - Array of DCS Group objects
@@ -512,6 +542,7 @@ Get all groups of coalition.
 Get all units of coalition.
 
 **Parameters:**
+
 - `includeStatics` (boolean) - Include static objects
 - `coa` (coalition, optional) - Coalition filter
 
@@ -522,6 +553,7 @@ Get all units of coalition.
 Find units in circular area.
 
 **Parameters:**
+
 - `center` (vec3) - Circle center
 - `radius` (number) - Radius in meters
 - `includeStatics` (boolean, optional) - Include statics
@@ -541,6 +573,7 @@ veaf.logger:info("Found %d enemy units", #enemyUnits)
 Check if unit is inside trigger zone.
 
 **Parameters:**
+
 - `unitOrName` (DCS Unit or string) - Unit or unit name
 - `zoneOrName` (DCS Zone or string) - Zone or zone name
 
@@ -551,6 +584,7 @@ Check if unit is inside trigger zone.
 Check if unit is alive.
 
 **Parameters:**
+
 - `unit` (DCS Unit or string) - Unit or unit name
 
 **Returns:** `boolean` - True if alive
@@ -560,6 +594,7 @@ Check if unit is alive.
 Get unit health as percentage.
 
 **Parameters:**
+
 - `unit` (DCS Unit or string) - Unit or unit name
 
 **Returns:** `number` - Health percentage (0-100)
@@ -569,6 +604,7 @@ Get unit health as percentage.
 Convert unit names to unit objects.
 
 **Parameters:**
+
 - `unitsOrNames` (table) - Array of units or unit names
 
 **Returns:** `table` - Array of unit objects
@@ -580,6 +616,7 @@ Convert unit names to unit objects.
 Generate vehicle movement route.
 
 **Parameters:**
+
 - `startPoint` (vec3) - Starting position
 - `destination` (vec3) - Destination position
 - `onRoad` (boolean) - Use roads when possible
@@ -607,6 +644,7 @@ Generate vehicle movement route.
 Monitor patrol route and repeat.
 
 **Parameters:**
+
 - `groupName` (string) - Group name
 - `patrolRoute` (table) - Route table
 - `speed` (number) - Speed in m/s
@@ -621,6 +659,7 @@ Monitor patrol route and repeat.
 Get tanker information.
 
 **Parameters:**
+
 - `tankerGroupName` (string) - Tanker group name
 
 **Returns:** `table` - Tanker data structure
@@ -645,6 +684,7 @@ Get tanker information.
 Get carrier ATC information.
 
 **Parameters:**
+
 - `carrierGroupName` (string) - Carrier group name
 - `carrierUnitName` (string, optional) - Specific unit name
 
@@ -671,6 +711,7 @@ Get carrier ATC information.
 Get raw DCS group data.
 
 **Parameters:**
+
 - `groupIdent` (string or number) - Group name or ID
 
 **Returns:** `table` - DCS group data table
@@ -680,6 +721,7 @@ Get raw DCS group data.
 Generate weather report string.
 
 **Parameters:**
+
 - `vec3` (vec3) - Position for report
 - `alt` (number, optional) - Altitude for report (default: 0)
 - `withLASTE` (boolean, optional) - Include LASTE data
@@ -701,6 +743,7 @@ Wind: 270° at 10 kts
 Display text message to unit.
 
 **Parameters:**
+
 - `unitName` (string) - Target unit name
 - `message` (string) - Message text
 - `duration` (number, optional) - Display duration in seconds (default: 5)
@@ -718,6 +761,7 @@ veaf.outTextForUnit("Viper 1-1", "Target destroyed!", 10, true)
 Display text to entire group.
 
 **Parameters:**
+
 - `unitName` (string) - Any unit in group
 - `message` (string) - Message text
 - `duration` (number, optional) - Duration in seconds
@@ -731,6 +775,7 @@ Display text to entire group.
 Convert Mach number to true airspeed.
 
 **Parameters:**
+
 - `mach` (number) - Mach number
 - `altitude` (number) - Altitude in meters
 - `temperature` (number, optional) - Temperature offset in °C
@@ -742,6 +787,7 @@ Convert Mach number to true airspeed.
 Convert true airspeed to Mach.
 
 **Parameters:**
+
 - `ktas` (number) - True airspeed in knots
 - `altitude` (number) - Altitude in meters
 - `temperature` (number, optional) - Temperature offset
@@ -753,6 +799,7 @@ Convert true airspeed to Mach.
 Convert between speed formats.
 
 **Parameters:**
+
 - `mach` (number, optional) - Mach number
 - `kias` (number, optional) - Indicated airspeed (knots)
 - `ktas` (number, optional) - True airspeed (knots)
@@ -779,6 +826,7 @@ Get magnetic declination for current theater.
 Get wind at position.
 
 **Parameters:**
+
 - `point` (vec3) - Position
 
 **Returns:** `table` - `{direction=number, strength=number}`
@@ -790,6 +838,7 @@ Get wind at position.
 Round number to decimal places.
 
 **Parameters:**
+
 - `num` (number) - Number to round
 - `numDecimalPlaces` (number, optional) - Decimal places (default: 0)
 
@@ -800,6 +849,7 @@ Round number to decimal places.
 Parse randomizable numeric value.
 
 **Parameters:**
+
 - `val` (string or number) - Value like "2-6" or "5"
 
 **Returns:** `number` - Random value in range
@@ -815,6 +865,7 @@ local size = veaf.getRandomizableNumeric("3-7")
 Get opposite heading.
 
 **Parameters:**
+
 - `heading` (number) - Heading in degrees
 
 **Returns:** `number` - Opposite heading (0-360)
@@ -824,6 +875,7 @@ Get opposite heading.
 Convert laser code to digit.
 
 **Parameters:**
+
 - `code` (number) - Laser code (e.g., 1688)
 
 **Returns:** `number` - Digit representation
@@ -835,6 +887,7 @@ Convert laser code to digit.
 Get DCS country ID from name.
 
 **Parameters:**
+
 - `countryName` (string) - Country name (e.g., "USA", "Russia")
 
 **Returns:** `number` - Country ID or nil
@@ -844,6 +897,7 @@ Get DCS country ID from name.
 Get country name from ID.
 
 **Parameters:**
+
 - `countryId` (number) - DCS country ID
 
 **Returns:** `string` - Country name
@@ -853,11 +907,13 @@ Get country name from ID.
 Get default country for coalition.
 
 **Parameters:**
+
 - `coalition` (coalition) - Coalition ID
 
 **Returns:** `number` - Country ID
 
 **Default Mapping:**
+
 - Blue → USA (2)
 - Red → Russia (0)
 
@@ -866,6 +922,7 @@ Get default country for coalition.
 Get coalition for country.
 
 **Parameters:**
+
 - `countryName` (string) - Country name
 - `asNumber` (boolean, optional) - Return as number instead of coalition object
 
@@ -876,6 +933,7 @@ Get coalition for country.
 Get airbase object for coalition.
 
 **Parameters:**
+
 - `airbase_name` (string) - Airbase name
 - `coa` (coalition) - Coalition
 
@@ -888,6 +946,7 @@ Get airbase object for coalition.
 Find DCS airbase by name (case-insensitive).
 
 **Parameters:**
+
 - `name` (string) - Airbase name
 
 **Returns:** `DCS Airbase` - Airbase object or nil
@@ -913,6 +972,7 @@ Load airbase initial health data.
 Get airbase health/damage.
 
 **Parameters:**
+
 - `airbase_name` (string) - Airbase name
 - `percentage` (boolean, optional) - Return as percentage
 - `loading` (boolean, optional) - Loading initial data
@@ -924,6 +984,7 @@ Get airbase health/damage.
 Create polygon from unit positions.
 
 **Parameters:**
+
 - `unitNames` (table) - Array of unit names
 
 **Returns:** `table` - Array of vec3 positions
@@ -935,6 +996,7 @@ Create polygon from unit positions.
 Get trigger zone by name.
 
 **Parameters:**
+
 - `zoneName` (string) - Zone name
 
 **Returns:** `DCS Zone` - Zone object or nil
@@ -946,6 +1008,7 @@ Get trigger zone by name.
 Schedule mission end at specific time.
 
 **Parameters:**
+
 - `endTimeHour` (number) - Hour (0-23)
 - `endTimeMinute` (number) - Minute (0-59)
 - `checkIntervalInSeconds` (number) - Check frequency
@@ -965,6 +1028,7 @@ veaf.endMissionAt(14, 30, 60, "Mission ends at %s")
 Get DCS type name from element name.
 
 **Parameters:**
+
 - `dcsElementName` (string) - DCS element name
 
 **Returns:** `string` - Type name
@@ -976,6 +1040,7 @@ Get DCS type name from element name.
 Pretty-print/serialize object.
 
 **Parameters:**
+
 - `o` (any) - Object to serialize
 - `level` (number, optional) - Indentation level
 - `skip` (table, optional) - Keys to skip
@@ -1005,6 +1070,7 @@ print(str)
 Serialize value to Lua code string.
 
 **Parameters:**
+
 - `name` (string) - Variable name
 - `value` (any) - Value to serialize
 - `level` (number, optional) - Indentation level
@@ -1016,6 +1082,7 @@ Serialize value to Lua code string.
 Export data to JSON file.
 
 **Parameters:**
+
 - `data` (any) - Data to export
 - `name` (string) - Variable name
 - `jsonify` (boolean) - Convert to JSON (vs Lua)
@@ -1060,6 +1127,7 @@ Set logger name.
 Set logging level.
 
 **Parameters:**
+
 - `value` (string or number) - Level: "error", "warning", "info", "debug", "trace"
 - `force` (boolean, optional) - Force override base level
 
@@ -1068,6 +1136,7 @@ Set logging level.
 Log error message (level 1).
 
 **Parameters:**
+
 - `text` (string) - Message with format placeholders
 - `...` - Format arguments
 
@@ -1119,6 +1188,7 @@ end
 Add map marker for debugging.
 
 **Parameters:**
+
 - `id` (number) - Marker ID
 - `header` (string) - Marker header text
 - `message` (string) - Marker message
@@ -1134,6 +1204,7 @@ Add map marker for debugging.
 Add arrow marker.
 
 **Parameters:**
+
 - `id` (number) - Marker ID
 - `header` (string) - Header text
 - `message` (string) - Message
@@ -1148,6 +1219,7 @@ Add arrow marker.
 Add quadrilateral marker.
 
 **Parameters:**
+
 - `id` (number) - Marker ID
 - `header` (string) - Header
 - `message` (string) - Message
@@ -1223,6 +1295,7 @@ veafEventHandler.CALLBACK_DELAY = 0.5  -- seconds
 Register event callback function.
 
 **Parameters:**
+
 - `name` (string) - Unique callback name
 - `events` (table or nil) - Array of event IDs/names, or nil for all events
 - `callback` (function) - Callback function
@@ -1264,6 +1337,7 @@ end)
 Get complete unit information from DCS unit.
 
 **Parameters:**
+
 - `unit` (DCS Unit) - Unit object
 
 **Returns:** `table` - Unit info table
@@ -1289,6 +1363,7 @@ Get complete unit information from DCS unit.
 Get unit information from unit name.
 
 **Parameters:**
+
 - `unitName` (string) - Unit name
 
 **Returns:** `table` - Unit info table (same as completeUnit)
@@ -1307,6 +1382,7 @@ end
 Validate event is recognized by DCS.
 
 **Parameters:**
+
 - `eventNameOrId` (string or number) - Event name or ID
 - `warnOnly` (boolean, optional) - Only warn, don't error
 
@@ -1317,6 +1393,7 @@ Validate event is recognized by DCS.
 Enable or disable event processing.
 
 **Parameters:**
+
 - `eventNameOrId` (string or number) - Event to control
 - `enabled` (boolean) - Enable flag
 
@@ -1334,6 +1411,7 @@ veafEventHandler.setEventEnabled("S_EVENT_SHOOTING_END", false)
 Check if event processing is enabled.
 
 **Parameters:**
+
 - `eventNameOrId` (string or number) - Event to check
 
 **Returns:** `boolean` - True if enabled
@@ -1343,6 +1421,7 @@ Check if event processing is enabled.
 Check if event uses delayed callback.
 
 **Parameters:**
+
 - `eventNameOrId` (string or number) - Event to check
 
 **Returns:** `boolean` - True if delayed
@@ -1413,11 +1492,13 @@ Events passed to callbacks are enhanced with additional fields:
 #### Event Handling Best Practices
 
 **Performance:**
+
 - Disable unused events to reduce overhead
 - Use delayed callbacks for expensive operations
 - Filter events by type when registering callbacks
 
 **Event Timing:**
+
 - BIRTH events fire before units fully initialized
 - Use delayed callbacks for BIRTH if accessing unit properties
 - PLAYER_ENTER_UNIT fires after player fully loaded
@@ -1472,6 +1553,7 @@ veafMarkers.DCSbugfixed = true  -- DCS marker bug status
 Register handler for marker events.
 
 **Parameters:**
+
 - `eventType` (number) - Event type: `MarkerAdd`, `MarkerChange`, or `MarkerRemove`
 - `eventHandler` (function) - Handler function
 
@@ -1505,6 +1587,7 @@ local handlerId = veafMarkers.registerEventHandler(
 Remove marker event handler.
 
 **Parameters:**
+
 - `id` (number) - Handler ID from registerEventHandler
 
 **Returns:** `boolean` - True if unregistered successfully
@@ -1606,6 +1689,7 @@ veafCommands.PRIORITY_REMOTE       = 80
 Register a command handler function. Handlers are called in ascending priority order.
 
 **Parameters:**
+
 - `fn` (function) - Handler with signature `(pos, event, bypass, fromMarker, groups, route) → boolean`
 - `priority` (number) - Execution order (lower = earlier); use the `PRIORITY_*` constants
 
@@ -1614,6 +1698,7 @@ Register a command handler function. Handlers are called in ascending priority o
 Execute a command from the interpreter path (unit names). The coalition is used as-is.
 
 **Parameters:**
+
 - `pos` (vec3) - Execution position
 - `text` (string) - Command text
 - `coalition` (number) - Coalition number
@@ -1627,6 +1712,7 @@ Execute a command from the interpreter path (unit names). The coalition is used 
 Handle a marker change event. Inverts coalition (marker events report the placer's side, not the target's), calls all registered handlers in priority order, and removes the mark on success.
 
 **Parameters:**
+
 - `eventPos` (vec3) - Marker position
 - `event` (table) - Marker event object
 
@@ -1653,6 +1739,7 @@ veafInterpreter.DelayForStartup = 1              -- Startup delay (seconds)
 Extract command from text string.
 
 **Parameters:**
+
 - `text` (string) - Text containing command (unit name or marker text)
 
 **Returns:** `string` - Extracted command or nil
@@ -1669,6 +1756,7 @@ local command = veafInterpreter.interpret(unitName)
 Execute VEAF command. Delegates to `veafCommands.execute()` — all registered handlers are tried in priority order.
 
 **Parameters:**
+
 - `command` (string) - Command string
 - `position` (vec3) - Command execution position
 - `coalition` (coalition, optional) - Coalition executing command
@@ -1693,12 +1781,14 @@ end
 Execute command from unit's position.
 
 **Parameters:**
+
 - `unitName` (string) - Unit or static name
 - `command` (string) - Command to execute
 
 **Returns:** None
 
 **Description:**
+
 - Finds unit or static object by name
 - Executes command at unit's position
 - Destroys unit/static after successful execution
@@ -1718,6 +1808,7 @@ Initialize interpreter module.
 **Returns:** None
 
 **Description:**
+
 - Called automatically during VEAF initialization
 - Scans for units with interpreter commands in names
 - Executes commands after delay
@@ -1777,6 +1868,7 @@ Unit name: #veafInterpreter["_spawn, convoy, name convoy1, dest marker1, speed 5
 Parse marker text for spawn parameters. Defined in `veafSpawnParser.lua`, available on the `veafSpawn` table.
 
 **Parameters:**
+
 - `text` (string) - Marker text to parse
 
 **Returns:** `table` — options table with parsed key/value pairs
@@ -1786,6 +1878,7 @@ Parse marker text for spawn parameters. Defined in `veafSpawnParser.lua`, availa
 Convert a laser code to a TACAN/radio frequency string.
 
 **Parameters:**
+
 - `laser` (number) - Laser code (1111–1788)
 
 **Returns:** `string` — frequency label, or nil if not found
@@ -1826,6 +1919,7 @@ veafSpawn.AFAC.maximumAmount = 8   -- max simultaneous AFACs
 Execute spawn command from marker or script.
 
 **Parameters:**
+
 - `eventPos` (vec3) - Spawn position
 - `eventText` (string) - Command text
 - `coalition` (coalition, optional) - Coalition
@@ -1850,6 +1944,7 @@ veafSpawn.executeCommand(pos, "_spawn, name F-16C, group 2, hdg 270", coalition.
 Parse marker text for spawn parameters.
 
 **Parameters:**
+
 - `text` (string) - Marker text
 
 **Returns:** `table` - Parsed options
@@ -1925,6 +2020,7 @@ Parse marker text for spawn parameters.
 Spawn single unit.
 
 **Parameters:**
+
 - `spawnPosition` (vec3) - Spawn position
 - `radius` (number) - Dispersion radius (meters)
 - `name` (string) - Unit type name (DCS type or alias)
@@ -1961,6 +2057,7 @@ veafSpawn.spawnUnit(pos, 100, "KC-135", nil, nil, 25000, 270, "Texaco", nil, fal
 Spawn predefined group.
 
 **Parameters:**
+
 - `spawnSpot` (vec3) - Spawn position
 - `radius` (number) - Dispersion radius
 - `name` (string) - Group template name
@@ -1989,6 +2086,7 @@ veafSpawn.spawnGroup(pos, 100, "Soviet Armor Platoon", nil, nil, nil, 180, 50)
 Spawn infantry group with parameters.
 
 **Parameters:**
+
 - `spawnSpot` (vec3) - Spawn position
 - `radius` (number) - Dispersion radius
 - `czName` (string, optional) - Combat zone
@@ -2057,6 +2155,7 @@ Spawn combined arms group (infantry + armor + transport).
 Spawn vehicle convoy with waypoints.
 
 **Parameters:**
+
 - `spawnSpot` (vec3) - Starting position
 - `name` (string) - Convoy name
 - `czName` (string, optional) - Combat zone
@@ -2118,6 +2217,7 @@ Destroy all active convoys.
 Spawn CAP flight with patrol orbit.
 
 **Parameters:**
+
 - `spawnSpot` (vec3) - Spawn position
 - `radius` (number) - Dispersion
 - `name` (string) - Aircraft type
@@ -2135,6 +2235,7 @@ Spawn CAP flight with patrol orbit.
 **Returns:** `table` - CAP flight info
 
 **Description:**
+
 - Spawns aircraft at position
 - Creates racetrack orbit at specified location
 - Starts watchdog to monitor and engage targets
@@ -2152,6 +2253,7 @@ veafSpawn.spawnCombatAirPatrol(pos, 100, "F-15C", nil, 25000, 2000,
 Spawn Airborne Forward Air Controller (AFAC).
 
 **Parameters:**
+
 - `spawnSpot` (vec3) - Spawn position
 - `name` (string) - Aircraft type
 - `country` (number, optional) - Country
@@ -2178,6 +2280,7 @@ veafSpawn.spawnAFAC(pos, "A-10C", nil, 15000, 250, 0, 133.0, "AM", 1688, true, f
 Start CAP engagement watchdog.
 
 **Parameters:**
+
 - `capGroupName` (string) - CAP group name
 - `capCoalition` (coalition) - Coalition
 - `capZone` (table) - Zone definition
@@ -2195,6 +2298,7 @@ Start CAP engagement watchdog.
 Spawn CTLD cargo.
 
 **Parameters:**
+
 - `spawnSpot` (vec3) - Spawn position
 - `radius` (number) - Dispersion
 - `cargoType` (string) - Cargo type: "container", "barrels", "ammo", "fuel"
@@ -2226,6 +2330,7 @@ Spawn CTLD logistic unit.
 Spawn Forward Arming and Refueling Point (FARP).
 
 **Parameters:**
+
 - `spawnSpot` (vec3) - Position
 - `radius` (number) - Dispersion
 - `name` (string) - FARP name
@@ -2265,6 +2370,7 @@ Spawn Forward Operating Base (FOB).
 Create explosion effect.
 
 **Parameters:**
+
 - `spawnSpot` (vec3) - Explosion position
 - `radius` (number) - Dispersion
 - `shells` (number) - Number of explosions
@@ -2286,6 +2392,7 @@ veafSpawn.spawnBomb(pos, 50, 5, 500, 0, 0)
 Add smoke markers.
 
 **Parameters:**
+
 - `spawnSpot` (vec3) - Position
 - `color` (string) - "Green", "Red", "White", "Orange", "Blue"
 - `radius` (number) - Dispersion
@@ -2304,6 +2411,7 @@ veafSpawn.spawnSmoke(pos, "Red", 0, 1)
 Fire signal flare(s).
 
 **Parameters:**
+
 - `spawnSpot` (vec3) - Position
 - `radius` (number) - Dispersion
 - `shells` (number) - Number of flares
@@ -2316,6 +2424,7 @@ Fire signal flare(s).
 Create illumination flare pattern.
 
 **Parameters:**
+
 - `spawnSpot` (vec3) - Position
 - `radius` (number) - Dispersion
 - `steps` (number) - Number of flares in line
@@ -2340,6 +2449,7 @@ veafSpawn.spawnIlluminationFlare(pos, 0, 5, 1000000, 1000, 90, 500, 0)
 Draw circle on map.
 
 **Parameters:**
+
 - `point` (vec3) - Center position
 - `name` (string) - Drawing name
 - `radius` (number) - Circle radius (meters)
@@ -2360,6 +2470,7 @@ veafSpawn.drawCircle(pos, "Zone1", 5000, {1, 0, 0, 1}, {1, 0, 0, 0.3})
 Draw square on map.
 
 **Parameters:**
+
 - `point` (vec3) - Center
 - `name` (string) - Drawing name
 - `side` (number) - Side length (meters)
@@ -2374,6 +2485,7 @@ Draw square on map.
 Remove drawing from map.
 
 **Parameters:**
+
 - `name` (string) - Drawing name
 
 **Returns:** None
@@ -2385,6 +2497,7 @@ Remove drawing from map.
 Destroy units in area or specific unit.
 
 **Parameters:**
+
 - `spawnSpot` (vec3) - Position
 - `radius` (number) - Search radius (0 for specific unit)
 - `unitName` (string, optional) - Specific unit name
@@ -2405,6 +2518,7 @@ veafSpawn.destroy(pos, 0, "Tank-1")
 Teleport group to position.
 
 **Parameters:**
+
 - `spawnSpot` (vec3) - Destination
 - `name` (string) - Group name
 - `silent` (boolean, optional) - Suppress messages
@@ -2424,6 +2538,7 @@ veafSpawn.teleport(newPos, "Viper Flight", false)
 Setup auto-lasing JTAC.
 
 **Parameters:**
+
 - `groupName` (string) - JTAC group name
 - `laserCode` (number) - Laser code (e.g., 1688)
 - `radioData` (table, optional) - Radio configuration
@@ -2440,6 +2555,7 @@ veafSpawn.JTACAutoLase("JTAC-1", 1688, {freq=133.0, mod="AM"})
 Convert laser code to radio frequency.
 
 **Parameters:**
+
 - `laser` (number) - Laser code
 
 **Returns:** `number` - Frequency in MHz
@@ -2453,6 +2569,7 @@ Mission Master provides scriptable mission control.
 Set message output mode.
 
 **Parameters:**
+
 - `silent` (boolean) - Silent mode
 - `toGroupId` (number, optional) - Target group ID
 
@@ -2463,6 +2580,7 @@ Set message output mode.
 Output Mission Master message.
 
 **Parameters:**
+
 - `message` (string) - Message text
 
 **Returns:** None
@@ -2472,6 +2590,7 @@ Output Mission Master message.
 Add executable command.
 
 **Parameters:**
+
 - `name` (string) - Command name
 - `code` (string) - Lua code to execute
 - `parameters` (table, optional) - Parameters
@@ -2483,6 +2602,7 @@ Add executable command.
 Run Mission Master command.
 
 **Parameters:**
+
 - `name` (string) - Command name
 
 **Returns:** None
@@ -2492,6 +2612,7 @@ Run Mission Master command.
 Set Mission Master flag.
 
 **Parameters:**
+
 - `name` (string) - Flag name
 - `value` (any) - Flag value
 
@@ -2502,6 +2623,7 @@ Set Mission Master flag.
 Get flag value.
 
 **Parameters:**
+
 - `name` (string) - Flag name
 
 **Returns:** `any` - Flag value
@@ -2511,6 +2633,7 @@ Get flag value.
 Modify flag value.
 
 **Parameters:**
+
 - `name` (string) - Flag name
 - `increment` (number) - Value to add
 
@@ -2523,6 +2646,7 @@ Modify flag value.
 Display list of all active CAP flights.
 
 **Parameters:**
+
 - `unitName` (string) - Requesting unit name
 
 **Returns:** None
@@ -2532,6 +2656,7 @@ Display list of all active CAP flights.
 Export spawnable aircraft list to file.
 
 **Parameters:**
+
 - `export_path` (string, optional) - Export directory
 
 **Returns:** None
@@ -2572,6 +2697,7 @@ veafUnits.delayBeforePathfindingFix = 5  -- seconds
 Find DCS unit by type name (case-insensitive).
 
 **Parameters:**
+
 - `unitType` (string) - Unit type (e.g., "F-16C", "M-1 Abrams")
 
 **Returns:** `table` - Unit definition or nil
@@ -2589,6 +2715,7 @@ end
 Count infantry and vehicle units in group.
 
 **Parameters:**
+
 - `groupname` (string) - Group name
 
 **Returns:** `number, number` - Vehicle count, Infantry count
@@ -2598,6 +2725,7 @@ Count infantry and vehicle units in group.
 Process and validate group definition.
 
 **Parameters:**
+
 - `group` (table) - Group definition table
 
 **Returns:** `table` - Processed group
@@ -2634,11 +2762,13 @@ Process and validate group definition.
 Respawn asset group.
 
 **Parameters:**
+
 - `name` (string) - Asset name
 
 **Returns:** None
 
 **Description:**
+
 - Respawns asset group
 - Respawns all linked groups
 - Starts JTAC if configured
@@ -2653,6 +2783,7 @@ veafAssets.respawn("Tanker-1")
 Destroy asset.
 
 **Parameters:**
+
 - `name` (string) - Asset name
 
 **Returns:** None
@@ -2667,6 +2798,7 @@ veafAssets.dispose("AWACS-1")
 Get asset information.
 
 **Parameters:**
+
 - `parameters` (table) - `{name=string, unitName=string}`
 
 **Returns:** `string` - Asset info text
@@ -2682,6 +2814,7 @@ local info = veafAssets.info({name="Tanker-1", unitName="Viper 1-1"})
 Get asset definition.
 
 **Parameters:**
+
 - `assetName` (string) - Asset name
 
 **Returns:** `table` - Asset definition
@@ -2691,6 +2824,7 @@ Get asset definition.
 Display help text.
 
 **Parameters:**
+
 - `unitName` (string) - Unit to receive help
 
 **Returns:** None
@@ -2714,6 +2848,7 @@ Initialize assets module.
 **Returns:** None
 
 **Description:**
+
 - Builds asset database
 - Creates radio menus
 - Must be called after assets defined
@@ -2743,6 +2878,7 @@ veafCombatMission.MinimumSpacingBetweenClones = 300  -- meters
 Mission objective definition.
 
 **Fields:**
+
 - `name` (string) - Objective name
 - `description` (string) - Description text
 - `message` (string) - Completion message
@@ -2796,6 +2932,7 @@ end)
 Complete mission definition.
 
 **Fields:**
+
 - `name` (string) - Mission name
 - `description` (string) - Brief description
 - `briefing` (string) - Full briefing text
@@ -2857,6 +2994,7 @@ veafCombatMission.AddMission(mission)
 Register mission.
 
 **Parameters:**
+
 - `mission` (VeafCombatMission) - Mission object
 
 **Returns:** None
@@ -2866,6 +3004,7 @@ Register mission.
 Add mission variants with different skill/scale.
 
 **Parameters:**
+
 - `mission` (VeafCombatMission) - Base mission
 - `includeOriginal` (boolean) - Include original
 - `skills` (table) - Skill levels: `{"Average", "Good", "High"}`
@@ -2891,6 +3030,7 @@ veafCombatMission.AddMissionsWithSkillAndScale(
 Get mission by name.
 
 **Parameters:**
+
 - `name` (string) - Mission name
 
 **Returns:** `VeafCombatMission` - Mission object or nil
@@ -2900,6 +3040,7 @@ Get mission by name.
 Get mission by index.
 
 **Parameters:**
+
 - `number` (number) - Mission index (1-based)
 
 **Returns:** `VeafCombatMission` - Mission object
@@ -2909,6 +3050,7 @@ Get mission by index.
 Activate mission.
 
 **Parameters:**
+
 - `name` (string) - Mission name
 - `silent` (boolean, optional) - Suppress messages
 - `unitName` (string, optional) - Unit to receive messages
@@ -2916,6 +3058,7 @@ Activate mission.
 **Returns:** None
 
 **Description:**
+
 - Executes all objective startup functions
 - Spawns mission elements
 - Starts watchdog timer
@@ -2931,6 +3074,7 @@ veafCombatMission.ActivateMission("Strike Alpha", false, "Viper 1-1")
 Activate mission by index.
 
 **Parameters:**
+
 - `number` (number) - Mission index
 - `silent` (boolean, optional) - Suppress messages
 
@@ -2941,6 +3085,7 @@ Activate mission by index.
 Deactivate mission.
 
 **Parameters:**
+
 - `name` (string) - Mission name
 - `silent` (boolean, optional) - Suppress messages
 - `unitName` (string, optional) - Unit to receive messages
@@ -2948,6 +3093,7 @@ Deactivate mission.
 **Returns:** None
 
 **Description:**
+
 - Stops mission watchdog
 - Destroys spawned groups
 - Clears objectives
@@ -2963,6 +3109,7 @@ Deactivate mission by index.
 Get mission status.
 
 **Parameters:**
+
 - `parameters` (table) - `{name=string, unitName=string}`
 
 **Returns:** `string` - Mission status text
@@ -2980,6 +3127,7 @@ local status = veafCombatMission.GetInformationOnMission({
 Check mission completion status.
 
 **Parameters:**
+
 - `name` (string) - Mission name
 
 **Returns:** `number` - Status: FAILED (-1), SUCCESS (1), NOTHING (0)
@@ -2991,6 +3139,7 @@ Check mission completion status.
 Create CAP mission helper.
 
 **Parameters:**
+
 - `missionName` (string) - Mission name
 - `missionDescription` (string) - Description
 - `missionBriefing` (string) - Briefing
@@ -3009,6 +3158,7 @@ Create CAP mission helper.
 Display mission list to player.
 
 **Parameters:**
+
 - `unitName` (string) - Unit to receive list
 
 **Returns:** None
@@ -3024,6 +3174,7 @@ Show active missions.
 Display help text.
 
 **Parameters:**
+
 - `unitName` (string) - Unit to receive help
 
 **Returns:** None
@@ -3039,6 +3190,7 @@ Build missions radio menu.
 Execute command from remote API.
 
 **Parameters:**
+
 - `parameters` (table) - Remote command parameters
 
 **Returns:** None
@@ -3048,6 +3200,7 @@ Execute command from remote API.
 Export missions to file.
 
 **Parameters:**
+
 - `export_path` (string, optional) - Export directory
 
 **Returns:** None
@@ -3099,6 +3252,7 @@ DEFENSE_TYPES[coalition][era][defense] = {unit_types}
 Execute CAS mission command.
 
 **Parameters:**
+
 - `eventPos` (vec3) - Spawn position
 - `eventText` (string) - Command text
 - `coalition` (coalition, optional) - Coalition
@@ -3112,6 +3266,7 @@ Execute CAS mission command.
 Parse CAS marker text.
 
 **Parameters:**
+
 - `text` (string) - Marker text
 
 **Returns:** `table` - Parsed options
@@ -3133,6 +3288,7 @@ Parse CAS marker text.
 Generate complete CAS mission.
 
 **Parameters:**
+
 - `spawnSpot` (vec3) - Spawn position
 - `size` (number) - Size 0-5
 - `defense` (number) - Defense 0-5
@@ -3144,6 +3300,7 @@ Generate complete CAS mission.
 **Returns:** `table` - Generated group info
 
 **Description:**
+
 - Spawns infantry, armor, transport, and air defense
 - Groups react to player attacks
 - Provides smoke/flare marking
@@ -3192,6 +3349,7 @@ Skip current target group (destroy without score).
 Get CAS target info.
 
 **Parameters:**
+
 - `unitName` (string) - Unit to receive report
 
 **Returns:** None
@@ -3201,6 +3359,7 @@ Get CAS target info.
 Display CAS help text.
 
 **Parameters:**
+
 - `unitName` (string) - Unit to receive help
 
 **Returns:** None
@@ -3232,6 +3391,7 @@ Initialize CAS module.
 ##### Airbase
 
 **Properties:**
+
 - `name` (string) - Airbase name
 - `position` (vec3) - Airbase position
 - `coalition` (coalition) - Current owner
@@ -3255,6 +3415,7 @@ airbase:getNearestRunway(position)  -- Get closest runway to position
 ##### Runway
 
 **Properties:**
+
 - `heading1` (number) - First heading (degrees)
 - `heading2` (number) - Opposite heading
 - `width` (number) - Runway width (meters)
@@ -3269,6 +3430,7 @@ airbase:getNearestRunway(position)  -- Get closest runway to position
 Initialize airbase database.
 
 **Parameters:**
+
 - `bReset` (boolean, optional) - Force rebuild database
 
 **Returns:** None
@@ -3278,6 +3440,7 @@ Initialize airbase database.
 Get airbase by name.
 
 **Parameters:**
+
 - `sAirbaseName` (string) - Airbase name
 
 **Returns:** `Airbase` - Airbase object or nil
@@ -3296,6 +3459,7 @@ end
 Convert DCS airbase to Airbase object.
 
 **Parameters:**
+
 - `dcsAirbase` (DCS Airbase) - DCS airbase object
 
 **Returns:** `Airbase` - VEAF airbase object
@@ -3305,6 +3469,7 @@ Convert DCS airbase to Airbase object.
 Get nearest airbases to unit.
 
 **Parameters:**
+
 - `dcsUnit` (DCS Unit) - Unit object
 - `iCount` (number) - Number of results
 
@@ -3324,6 +3489,7 @@ end
 Get single nearest airbase.
 
 **Parameters:**
+
 - `dcsUnit` (DCS Unit) - Unit object
 
 **Returns:** `Airbase` - Nearest airbase
@@ -3351,11 +3517,13 @@ veaf.outTextForUnit("Viper 1-1",
 Start carrier recovery operations.
 
 **Parameters:**
+
 - `parameters` (table) - `{carrierGroupName=string, userUnitName=string}`
 
 **Returns:** None
 
 **Description:**
+
 - Turns carrier into wind
 - Maintains position for recovery
 - Reports wind direction and ATC info
@@ -3373,6 +3541,7 @@ veafCarrierOperations.startCarrierOperations({
 Continue carrier operations.
 
 **Parameters:**
+
 - `groupName` (string) - Carrier group name
 - `userUnitName` (string, optional) - User unit
 
@@ -3383,6 +3552,7 @@ Continue carrier operations.
 Stop carrier operations.
 
 **Parameters:**
+
 - `parameters` (table) - `{carrierGroupName=string}`
 
 **Returns:** None
@@ -3394,6 +3564,7 @@ Stop carrier operations.
 Get carrier ATC data.
 
 **Parameters:**
+
 - `groupName` (string) - Carrier group name
 - `skipNavigationData` (boolean, optional) - Skip nav info
 
@@ -3416,6 +3587,7 @@ ICLS: 13
 Get ATC for carrier (with output).
 
 **Parameters:**
+
 - `parameters` (table) - `{carrierGroupName=string, userUnitName=string}`
 
 **Returns:** None
@@ -3425,6 +3597,7 @@ Get ATC for carrier (with output).
 Display available carriers.
 
 **Parameters:**
+
 - `forGroup` (string, optional) - Group name to receive list
 
 **Returns:** None
@@ -3434,6 +3607,7 @@ Display available carriers.
 Execute from remote API.
 
 **Parameters:**
+
 - `parameters` (table) - Remote command parameters
 
 **Returns:** None
@@ -3484,6 +3658,7 @@ veafRadio.USAGE_ForUnit = 2
 Add submenu to radio.
 
 **Parameters:**
+
 - `title` (string) - Submenu title
 - `parentMenu` (menu, optional) - Parent menu (nil = root VEAF menu)
 
@@ -3500,6 +3675,7 @@ local tankersMenu = veafRadio.addSubMenu("Tankers", assetsMenu)
 Add command to submenu.
 
 **Parameters:**
+
 - `text` (string) - Command text
 - `menu` (menu) - Target menu
 - `callback` (function) - Callback function
@@ -3538,6 +3714,7 @@ Add security-protected command.
 Execute radio command from marker.
 
 **Parameters:**
+
 - `eventPos` (vec3) - Command position
 - `eventText` (string) - Command text
 - `eventCoalition` (coalition) - Coalition
@@ -3546,6 +3723,7 @@ Execute radio command from marker.
 **Returns:** `boolean` - Success flag
 
 **Supported Commands:**
+
 - `transmit` - Transmit via SRS
 - `playmp3` - Play MP3 via SRS
 
@@ -3554,6 +3732,7 @@ Execute radio command from marker.
 Parse radio marker text.
 
 **Parameters:**
+
 - `text` (string) - Marker text
 
 **Returns:** `table` - Parsed options
@@ -3577,6 +3756,7 @@ Parse radio marker text.
 Transmit message via SRS.
 
 **Parameters:**
+
 - `message` (string) - Message text (TTS)
 - `frequencies` (table) - Array of frequencies
 - `modulations` (table) - Array of modulations
@@ -3605,6 +3785,7 @@ veafRadio.transmitMessage(
 Play MP3 file via SRS.
 
 **Parameters:**
+
 - `path` (string) - MP3 file path
 - Other parameters same as `transmitMessage`
 
@@ -3636,6 +3817,7 @@ Rebuild radio menu (delayed).
 Add paginated elements to menu.
 
 **Parameters:**
+
 - `menu` (menu) - Target menu
 - `buildFunction` (function) - Function to build each element
 - `elements` (table) - Array of elements
@@ -3651,6 +3833,7 @@ Add paginated elements to menu.
 Handle unit birth (add to radio menu).
 
 **Parameters:**
+
 - `event` (table) - Birth event
 
 **Returns:** None
@@ -3680,6 +3863,7 @@ Initialize radio module.
 Set mission weather.
 
 **Parameters:**
+
 - `parameters` (table) - Weather parameters
 
 **Weather Parameters:**
@@ -3712,6 +3896,7 @@ Set mission weather.
 Get current weather at position.
 
 **Parameters:**
+
 - `position` (vec3) - Position
 
 **Returns:** `table` - Weather data
@@ -3731,6 +3916,7 @@ Get current weather at position.
 Set mission time.
 
 **Parameters:**
+
 - `hours` (number) - Hour (0-23)
 - `minutes` (number, optional) - Minute (0-59)
 
@@ -3747,6 +3933,7 @@ veafTime.setTime(14, 30)
 Set mission date.
 
 **Parameters:**
+
 - `year` (number) - Year
 - `month` (number) - Month (1-12)
 - `day` (number) - Day (1-31)
@@ -3804,6 +3991,7 @@ Each unit in database:
 Find unit by type name.
 
 **Parameters:**
+
 - `typeName` (string) - Unit type (case-insensitive)
 
 **Returns:** `table` - Unit definition or nil
@@ -3823,6 +4011,7 @@ end
 Get all units of category.
 
 **Parameters:**
+
 - `category` (string) - Category name
 
 **Returns:** `table` - Array of unit definitions
@@ -3840,6 +4029,7 @@ end
 Get units for country.
 
 **Parameters:**
+
 - `country` (string) - Country name
 
 **Returns:** `table` - Array of unit definitions
@@ -3849,6 +4039,7 @@ Get units for country.
 Get units capable of task.
 
 **Parameters:**
+
 - `task` (string) - Task name (e.g., "CAP", "CAS", "SEAD")
 
 **Returns:** `table` - Array of unit definitions
@@ -3868,6 +4059,7 @@ Get units capable of task.
 Export all DCS units to file.
 
 **Parameters:**
+
 - `path` (string, optional) - Export directory
 
 **Returns:** None
@@ -3879,6 +4071,7 @@ Export all DCS units to file.
 Export airbase data.
 
 **Parameters:**
+
 - `path` (string, optional) - Export directory
 
 **Returns:** None

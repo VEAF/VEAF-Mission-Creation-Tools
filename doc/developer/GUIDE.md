@@ -34,7 +34,8 @@ flowchart TD
     zip -->|consumed by| RT
     subgraph RT["RUNTIME — Lua inside DCS World"]
         scripts["veaf-scripts.lua<br/>— all 34 modules concatenated"]
-        config["missionconfig.lua<br/>— mission-specific config"]
+        config["veaf-config.lua<br/>— generated module config (from mission.yaml)"]
+        custom["mission-script.lua<br/>— mission-specific custom Lua code"]
     end
 ```
 
@@ -188,9 +189,9 @@ lua_modules:
     logLevel: trace
 ```
 
-This generates `veaf.setConfig("MODULE_ID", "logLevel", "...")` calls in `veaf-modules-config.lua`. Or use `--log-modules SPAWN,RADIO` on the CLI to silence everything else.
+This generates `veaf.setConfig("MODULE_ID", "logLevel", "...")` calls in `veaf-config.lua`. Or use `--log-modules SPAWN,RADIO` on the CLI to silence everything else.
 
-For **per-module runtime** control (no rebuild), use `missionconfig.lua` directly:
+For **per-module runtime** control (no rebuild), add the Lua call directly in `mission-script.lua`:
 
 ```lua
 veaf.loggers.get("SPAWN"):setLevel("debug", true)  -- force=true bypasses BaseLogLevel cap
@@ -410,7 +411,7 @@ chore(deps): update luaunit to 3.4
 docs(api): document veafMove tanker helpers
 ```
 
-Types: `feat`, `fix`, `chore`, `docs`, `test`, `refactor`, `style`.
+**Types:** `feat`, `fix`, `chore`, `docs`, `test`, `refactor`, `style`
 
 ### Pull Request Checklist
 

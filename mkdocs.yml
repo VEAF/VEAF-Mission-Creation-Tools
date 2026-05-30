@@ -74,6 +74,8 @@ plugins:
             Roadmap: Feuille de route
             Testing: Tests
             Aliases: Alias
+            mission.yaml Reference: Référence mission.yaml
+            Pipeline Reference: Référence Pipeline
 
 extra:
   version:
@@ -118,6 +120,8 @@ nav:
     - Guide: developer/GUIDE.md
     - Testing: TESTING.md
   - References:
+    - mission.yaml Reference: MISSION_YAML_REFERENCE.md
+    - Pipeline Reference: PIPELINE_REFERENCE.md
     - Lua API Reference: LUA_API_REFERENCE.md
     - Tools CLI Reference: TOOLS_REFERENCE.md
     - Roadmap: ROADMAP.md

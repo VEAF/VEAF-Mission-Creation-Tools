@@ -26,6 +26,47 @@ veafNamedPoints.initialize()
 
 ---
 
+## Configuration (`mission.yaml`)
+
+```yaml
+lua_modules:
+  NAMEDPOINTS:
+    enable: true          # default: true
+    logLevel: info        # optional log level override
+    custom_points:        # pre-defined named points
+      - name: "Battle Area Alpha"    # point name (referenced in commands)
+        lat: "41.123456"             # latitude as string (decimal degrees)
+        lon: "44.987654"             # longitude as string (decimal degrees)
+      - name: "FARP Bravo"
+        lat: "41.200000"
+        lon: "44.100000"
+```
+
+| Field | Type | Default | Required | Description |
+|-------|------|---------|----------|-------------|
+| `enable` | boolean | `true` | No | Enable or disable the module |
+| `logLevel` | string | *(global)* | No | Per-module log level override |
+| `custom_points` | object[] | `[]` | No | Pre-defined named points |
+| `custom_points[].name` | string | — | Yes | Point name — referenced in spawn commands and radio menus |
+| `custom_points[].lat` | string | — | Yes | Latitude as a decimal string (e.g. `"41.123456"`) |
+| `custom_points[].lon` | string | — | Yes | Longitude as a decimal string (e.g. `"44.987654"`) |
+
+> Coordinates are geographic (WGS84). Use decimal degrees as strings.
+
+### Minimal example
+
+```yaml
+lua_modules:
+  NAMEDPOINTS:
+    enable: true
+    custom_points:
+      - name: "BULLSEYE"
+        lat: "41.100000"
+        lon: "43.850000"
+```
+
+---
+
 ## Key Constants
 
 | Constant | Default | Description |

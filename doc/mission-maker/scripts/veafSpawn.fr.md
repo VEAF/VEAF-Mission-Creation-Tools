@@ -53,7 +53,18 @@ _spawn unit, name F-16C, group 2, hdg 180, alt 20000
 _spawn unit, name T-80, group 4, hdg 270, spacing 50
 ```
 
-Options : `name`, `group`, `hdg`, `alt`, `speed`, `side`, `country`, `skill`, `spacing`, `immortal`.
+**Options :**
+
+- `name` — type d'unité
+- `group` — nombre d'unités
+- `hdg` — cap (degrés)
+- `alt` — altitude (pieds)
+- `speed` — vitesse (nœuds)
+- `side` — coalition
+- `country` — pays
+- `skill` — niveau de compétence IA
+- `spacing` — espacement entre unités (mètres)
+- `immortal` — unités invulnérables
 
 ### Faire apparaître un groupe prédéfini
 
@@ -69,7 +80,15 @@ Le groupe doit être défini dans `spawnables.yaml`.
 _spawn cap, name Su-27, alt 25000, capradius 20000
 ```
 
-Options : `name`, `alt`, `hdg`, `speed`, `group`, `capradius`, `distance`.
+**Options :**
+
+- `name` — type d'avion
+- `alt` — altitude de patrouille (pieds)
+- `hdg` — cap initial
+- `speed` — vitesse de patrouille (nœuds)
+- `group` — nombre d'avions
+- `capradius` — rayon d'orbite CAP (mètres)
+- `distance` — distance depuis le marqueur
 
 ### Faire apparaître un AFAC/JTAC
 
@@ -77,7 +96,15 @@ Options : `name`, `alt`, `hdg`, `speed`, `group`, `capradius`, `distance`.
 _spawn afac, name A-10C, freq 133.0, mod AM, code 1688, alt 15000
 ```
 
-Options : `name`, `freq`, `mod`, `code`, `alt`, `speed`, `immortal`.
+**Options :**
+
+- `name` — type d'avion
+- `freq` — fréquence radio
+- `mod` — modulation (`AM` ou `FM`)
+- `code` — code laser
+- `alt` — altitude d'orbite (pieds)
+- `speed` — vitesse d'orbite (nœuds)
+- `immortal` — unité invulnérable
 
 ### Faire apparaître un convoi
 
@@ -87,7 +114,15 @@ Placer deux marqueurs : un avec la commande (départ), un comme destination.
 _spawn convoy, dest [NOM_MARQUEUR_DEST], speed 50, defense 2, armor 2, size 3
 ```
 
-Options : `dest`, `speed`, `defense [0-5]`, `armor [0-5]`, `size [0-5]`, `patrol`, `offroad`.
+**Options :**
+
+- `dest` — nom du marqueur de destination
+- `speed` — vitesse du convoi (km/h)
+- `defense [0-5]` — niveau de défense aérienne
+- `armor [0-5]` — niveau de blindage
+- `size [0-5]` — nombre de véhicules
+- `patrol` — retour à la position de départ
+- `offroad` — autoriser le déplacement hors route
 
 ### Faire apparaître de la fumée
 
@@ -96,7 +131,7 @@ _spawn smoke, color red
 _spawn smoke, color green, shells 5
 ```
 
-Couleurs : `red`, `green`, `blue`, `white`, `orange`.
+**Couleurs :** `red`, `green`, `blue`, `white`, `orange`
 
 ### Faire apparaître des fusées éclairantes
 

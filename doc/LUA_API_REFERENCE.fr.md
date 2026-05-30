@@ -64,6 +64,7 @@ Les modules doivent être chargés dans l'ordre de dépendance :
 ### Conventions utilisées
 
 **Types de paramètres :**
+
 - `string` — Chaîne de texte
 - `number` — Valeur numérique
 - `boolean` — true/false
@@ -73,6 +74,7 @@ Les modules doivent être chargés dans l'ordre de dépendance :
 - `coalition` — ID de coalition : 0=neutre, 1=bleu, 2=rouge
 
 **Valeurs de retour :**
+
 - Les fonctions retournent `nil` en cas d'échec sauf mention contraire
 - Les retours booléens indiquent succès/échec
 
@@ -157,6 +159,7 @@ veaf.MIST_MARKER_ID_INITIAL_VALUE = 50000
 Convertit un objet Lua en chaîne JSON.
 
 **Paramètres :**
+
 - `obj` (any) — Objet Lua à sérialiser
 - `as_key` (boolean, optionnel) — Formater comme clé JSON
 
@@ -174,6 +177,7 @@ local json = veaf.json.stringify(data)
 Parse une chaîne JSON en objet Lua.
 
 **Paramètres :**
+
 - `str` (string) — Chaîne JSON
 - `pos` (number, optionnel) — Position de départ (défaut : 1)
 - `end_delim` (string, optionnel) — Délimiteur de fin
@@ -194,6 +198,7 @@ local data = veaf.json.parse(json)
 Supprime les espaces en début et fin de chaîne.
 
 **Paramètres :**
+
 - `s` (string) — Chaîne à nettoyer
 
 **Retourne :** `string` — Chaîne nettoyée
@@ -209,6 +214,7 @@ local trimmed = veaf.trim("  hello  ")
 Découpe une chaîne par séparateur en tableau.
 
 **Paramètres :**
+
 - `str` (string) — Chaîne à découper
 - `sep` (string) — Caractère/chaîne séparateur
 
@@ -225,6 +231,7 @@ local parts = veaf.split("red,blue,green", ",")
 Découpe une chaîne en utilisant un pattern regex.
 
 **Paramètres :**
+
 - `str` (string) — Chaîne à découper
 - `pat` (string) — Pattern Lua
 
@@ -235,6 +242,7 @@ Découpe une chaîne en utilisant un pattern regex.
 Coupe une chaîne autour d'un séparateur (retourne 2 parties).
 
 **Paramètres :**
+
 - `str` (string) — Chaîne à couper
 - `sep` (string) — Séparateur
 
@@ -251,6 +259,7 @@ local before, after = veaf.breakString("key=value", "=")
 Échappe les caractères spéciaux regex.
 
 **Paramètres :**
+
 - `stringToEscape` (string) — Chaîne à échapper
 
 **Retourne :** `string` — Chaîne échappée
@@ -262,6 +271,7 @@ local before, after = veaf.breakString("key=value", "=")
 Obtient la longueur d'une table (gère les clés non-séquentielles).
 
 **Paramètres :**
+
 - `T` (table) — Table à mesurer
 
 **Retourne :** `number` — Nombre d'éléments
@@ -278,6 +288,7 @@ local len = veaf.length(t)
 Supprime les éléments d'un tableau selon une condition.
 
 **Paramètres :**
+
 - `t` (table) — Tableau à filtrer
 - `fnKeep` (function) — Fonction de conservation : `function(element) return boolean end`
 
@@ -295,6 +306,7 @@ veaf.arrayRemoveWhen(numbers, function(n) return n > 3 end)
 Mélange aléatoirement les éléments d'un tableau en place.
 
 **Paramètres :**
+
 - `tbl` (table) — Tableau à mélanger
 
 **Retourne :** `table` — Tableau mélangé (même référence)
@@ -304,6 +316,7 @@ Mélange aléatoirement les éléments d'un tableau en place.
 Vérifie si une table contient un élément.
 
 **Paramètres :**
+
 - `table` (table) — Table à chercher
 - `element` (any) — Élément à trouver
 
@@ -314,6 +327,7 @@ Vérifie si une table contient un élément.
 Choisit un élément aléatoire dans une table avec biais optionnel.
 
 **Paramètres :**
+
 - `aTable` (table) — Table source
 - `bias` (number, optionnel) — Facteur de biais (défaut : 1.0)
 
@@ -332,6 +346,7 @@ local color = veaf.randomlyChooseFrom(colors)
 Convertit un vecteur 3D en chaîne lisible.
 
 **Paramètres :**
+
 - `vec` (vec3) — Vecteur `{x, y, z}`
 
 **Retourne :** `string` — Chaîne formatée
@@ -348,6 +363,7 @@ local str = veaf.vecToString(pos)
 Trouve un point de spawn aléatoire dans une zone avec dispersion.
 
 **Paramètres :**
+
 - `spawnSpot` (vec3) — Position centrale
 - `dispersion` (number) — Rayon en mètres
 - `isShip` (boolean, optionnel) — Trouver un emplacement en eau
@@ -359,6 +375,7 @@ Trouve un point de spawn aléatoire dans une zone avec dispersion.
 Place un point sur la surface terrestre (ajuste l'altitude Y).
 
 **Paramètres :**
+
 - `vec3` (vec3) — Position à ajuster
 
 **Retourne :** `vec3` — Position sur la surface
@@ -368,6 +385,7 @@ Place un point sur la surface terrestre (ajuste l'altitude Y).
 Obtient la hauteur du terrain aux coordonnées.
 
 **Paramètres :**
+
 - `vec3` (vec3) — Position
 
 **Retourne :** `number` — Altitude du terrain en mètres
@@ -377,6 +395,7 @@ Obtient la hauteur du terrain aux coordonnées.
 Calcule le cap de point1 vers point2.
 
 **Paramètres :**
+
 - `point1` (vec3) — Point de départ
 - `point2` (vec3) — Point de destination
 
@@ -387,6 +406,7 @@ Calcule le cap de point1 vers point2.
 Calcule le relèvement et la distance entre deux points.
 
 **Paramètres :**
+
 - `fromPoint` (vec3) — Point de départ
 - `toPoint` (vec3) — Point de destination
 
@@ -403,11 +423,13 @@ veaf.logger:info("Cible au %d° pour %.0f mètres", bearing, range)
 Parse une latitude/longitude depuis une chaîne.
 
 **Paramètres :**
+
 - `value` (string) — Chaîne Lat/Lon (plusieurs formats supportés)
 
 **Retourne :** `table` — `{lat=number, lon=number}` ou nil
 
 **Formats supportés :**
+
 - DMS : `N 43°15'30" E 005°45'20"`
 - Décimal : `43.258333, 5.755556`
 - MGRS : (via conversion)
@@ -417,6 +439,7 @@ Parse une latitude/longitude depuis une chaîne.
 Calcule une position décalée par rapport à une route.
 
 **Paramètres :**
+
 - `startingPoint` (vec3) — Début de route
 - `destinationPoint` (vec3) — Fin de route
 - `distanceFromStartingPoint` (number) — Distance le long de la route (mètres)
@@ -431,6 +454,7 @@ Calcule une position décalée par rapport à une route.
 Ajoute une unité à une définition de groupe.
 
 **Paramètres :**
+
 - `group` (table) — Table de définition du groupe
 - `spawnSpot` (vec3) — Position de spawn
 - `dispersion` (number) — Rayon de dispersion (mètres)
@@ -445,6 +469,7 @@ Ajoute une unité à une définition de groupe.
 Obtient la position centrale du groupe.
 
 **Paramètres :**
+
 - `group` (table ou DCS Group) — Objet groupe ou table
 
 **Retourne :** `vec3` — Position moyenne
@@ -454,6 +479,7 @@ Obtient la position centrale du groupe.
 Obtient la position moyenne d'un groupe par son nom.
 
 **Paramètres :**
+
 - `groupName` (string) — Nom du groupe
 
 **Retourne :** `vec3` — Position moyenne ou nil
@@ -463,6 +489,7 @@ Obtient la position moyenne d'un groupe par son nom.
 Déplace un groupe dans une direction et à une vitesse spécifiques.
 
 **Paramètres :**
+
 - `groupName` (string) — Groupe à déplacer
 - `leadUnitName` (string) — Nom de l'unité leader
 - `heading` (number) — Direction en degrés
@@ -478,6 +505,7 @@ Déplace un groupe dans une direction et à une vitesse spécifiques.
 Déplace un groupe vers une position.
 
 **Paramètres :**
+
 - `groupName` (string) — Nom du groupe
 - `pos` (vec3) — Destination
 - `speed` (number, optionnel) — Vitesse en m/s (défaut : 30 kph)
@@ -490,6 +518,7 @@ Déplace un groupe vers une position.
 Prépare un groupe terrestre au combat.
 
 **Paramètres :**
+
 - `group` (DCS Group ou string) — Groupe ou nom de groupe
 - `alarm` (boolean, optionnel) — État d'alerte (défaut : false)
 - `disperseTime` (number, optionnel) — Temps de dispersion en secondes
@@ -503,6 +532,7 @@ Prépare un groupe terrestre au combat.
 Obtient tous les groupes d'une coalition.
 
 **Paramètres :**
+
 - `coa` (coalition, optionnel) — Filtre de coalition (défaut : tous)
 
 **Retourne :** `table` — Tableau d'objets DCS Group
@@ -512,6 +542,7 @@ Obtient tous les groupes d'une coalition.
 Obtient toutes les unités d'une coalition.
 
 **Paramètres :**
+
 - `includeStatics` (boolean) — Inclure les objets statiques
 - `coa` (coalition, optionnel) — Filtre de coalition
 
@@ -522,6 +553,7 @@ Obtient toutes les unités d'une coalition.
 Trouve les unités dans une zone circulaire.
 
 **Paramètres :**
+
 - `center` (vec3) — Centre du cercle
 - `radius` (number) — Rayon en mètres
 - `includeStatics` (boolean, optionnel) — Inclure les statiques
@@ -541,6 +573,7 @@ veaf.logger:info("Trouvé %d unités ennemies", #enemyUnits)
 Vérifie si une unité est dans une zone trigger.
 
 **Paramètres :**
+
 - `unitOrName` (DCS Unit ou string) — Unité ou nom d'unité
 - `zoneOrName` (DCS Zone ou string) — Zone ou nom de zone
 
@@ -551,6 +584,7 @@ Vérifie si une unité est dans une zone trigger.
 Vérifie si une unité est en vie.
 
 **Paramètres :**
+
 - `unit` (DCS Unit ou string) — Unité ou nom d'unité
 
 **Retourne :** `boolean` — True si en vie
@@ -560,6 +594,7 @@ Vérifie si une unité est en vie.
 Obtient la santé d'une unité en pourcentage.
 
 **Paramètres :**
+
 - `unit` (DCS Unit ou string) — Unité ou nom d'unité
 
 **Retourne :** `number` — Pourcentage de santé (0-100)
@@ -569,6 +604,7 @@ Obtient la santé d'une unité en pourcentage.
 Convertit les noms d'unités en objets unités.
 
 **Paramètres :**
+
 - `unitsOrNames` (table) — Tableau d'unités ou noms d'unités
 
 **Retourne :** `table` — Tableau d'objets unités
@@ -580,6 +616,7 @@ Convertit les noms d'unités en objets unités.
 Génère une route de déplacement véhicule.
 
 **Paramètres :**
+
 - `startPoint` (vec3) — Position de départ
 - `destination` (vec3) — Position de destination
 - `onRoad` (boolean) — Utiliser les routes si possible
@@ -607,6 +644,7 @@ Génère une route de déplacement véhicule.
 Surveille une route de patrouille et la répète.
 
 **Paramètres :**
+
 - `groupName` (string) — Nom du groupe
 - `patrolRoute` (table) — Table de route
 - `speed` (number) — Vitesse en m/s
@@ -621,6 +659,7 @@ Surveille une route de patrouille et la répète.
 Obtient les informations d'un ravitailleur.
 
 **Paramètres :**
+
 - `tankerGroupName` (string) — Nom du groupe ravitailleur
 
 **Retourne :** `table` — Structure de données ravitailleur
@@ -645,6 +684,7 @@ Obtient les informations d'un ravitailleur.
 Obtient les données ATC d'un porte-avions.
 
 **Paramètres :**
+
 - `carrierGroupName` (string) — Nom du groupe porte-avions
 - `carrierUnitName` (string, optionnel) — Nom d'unité spécifique
 
@@ -671,6 +711,7 @@ Obtient les données ATC d'un porte-avions.
 Obtient les données brutes DCS d'un groupe.
 
 **Paramètres :**
+
 - `groupIdent` (string ou number) — Nom ou ID du groupe
 
 **Retourne :** `table` — Table de données DCS du groupe
@@ -680,6 +721,7 @@ Obtient les données brutes DCS d'un groupe.
 Génère un rapport météo sous forme de texte.
 
 **Paramètres :**
+
 - `vec3` (vec3) — Position pour le rapport
 - `alt` (number, optionnel) — Altitude pour le rapport (défaut : 0)
 - `withLASTE` (boolean, optionnel) — Inclure les données LASTE
@@ -701,6 +743,7 @@ Wind: 270° at 10 kts
 Affiche un message texte à une unité.
 
 **Paramètres :**
+
 - `unitName` (string) — Nom de l'unité cible
 - `message` (string) — Texte du message
 - `duration` (number, optionnel) — Durée d'affichage en secondes (défaut : 5)
@@ -718,6 +761,7 @@ veaf.outTextForUnit("Viper 1-1", "Cible détruite !", 10, true)
 Affiche un texte à tout le groupe.
 
 **Paramètres :**
+
 - `unitName` (string) — N'importe quelle unité du groupe
 - `message` (string) — Texte du message
 - `duration` (number, optionnel) — Durée en secondes
@@ -731,6 +775,7 @@ Affiche un texte à tout le groupe.
 Convertit un nombre Mach en vitesse vraie (TAS).
 
 **Paramètres :**
+
 - `mach` (number) — Nombre Mach
 - `altitude` (number) — Altitude en mètres
 - `temperature` (number, optionnel) — Écart de température en °C
@@ -742,6 +787,7 @@ Convertit un nombre Mach en vitesse vraie (TAS).
 Convertit une vitesse vraie en Mach.
 
 **Paramètres :**
+
 - `ktas` (number) — Vitesse vraie en nœuds
 - `altitude` (number) — Altitude en mètres
 - `temperature` (number, optionnel) — Écart de température
@@ -753,6 +799,7 @@ Convertit une vitesse vraie en Mach.
 Convertit entre formats de vitesse.
 
 **Paramètres :**
+
 - `mach` (number, optionnel) — Nombre Mach
 - `kias` (number, optionnel) — Vitesse indiquée (nœuds)
 - `ktas` (number, optionnel) — Vitesse vraie (nœuds)
@@ -779,6 +826,7 @@ Obtient la déclinaison magnétique du théâtre actuel.
 Obtient le vent à une position.
 
 **Paramètres :**
+
 - `point` (vec3) — Position
 
 **Retourne :** `table` — `{direction=number, strength=number}`
@@ -790,6 +838,7 @@ Obtient le vent à une position.
 Arrondit un nombre à un nombre de décimales.
 
 **Paramètres :**
+
 - `num` (number) — Nombre à arrondir
 - `numDecimalPlaces` (number, optionnel) — Nombre de décimales (défaut : 0)
 
@@ -800,6 +849,7 @@ Arrondit un nombre à un nombre de décimales.
 Parse une valeur numérique randomisable.
 
 **Paramètres :**
+
 - `val` (string ou number) — Valeur comme "2-6" ou "5"
 
 **Retourne :** `number` — Valeur aléatoire dans la plage
@@ -815,6 +865,7 @@ local size = veaf.getRandomizableNumeric("3-7")
 Obtient le cap opposé.
 
 **Paramètres :**
+
 - `heading` (number) — Cap en degrés
 
 **Retourne :** `number` — Cap opposé (0-360)
@@ -824,6 +875,7 @@ Obtient le cap opposé.
 Convertit un code laser en chiffre.
 
 **Paramètres :**
+
 - `code` (number) — Code laser (ex : 1688)
 
 **Retourne :** `number` — Représentation en chiffre
@@ -835,6 +887,7 @@ Convertit un code laser en chiffre.
 Obtient l'ID pays DCS à partir du nom.
 
 **Paramètres :**
+
 - `countryName` (string) — Nom du pays (ex : "USA", "Russia")
 
 **Retourne :** `number` — ID du pays ou nil
@@ -844,6 +897,7 @@ Obtient l'ID pays DCS à partir du nom.
 Obtient le nom du pays à partir de l'ID.
 
 **Paramètres :**
+
 - `countryId` (number) — ID pays DCS
 
 **Retourne :** `string` — Nom du pays
@@ -853,11 +907,13 @@ Obtient le nom du pays à partir de l'ID.
 Obtient le pays par défaut pour une coalition.
 
 **Paramètres :**
+
 - `coalition` (coalition) — ID de coalition
 
 **Retourne :** `number` — ID du pays
 
 **Mapping par défaut :**
+
 - Bleu → USA (2)
 - Rouge → Russie (0)
 
@@ -866,6 +922,7 @@ Obtient le pays par défaut pour une coalition.
 Obtient la coalition pour un pays.
 
 **Paramètres :**
+
 - `countryName` (string) — Nom du pays
 - `asNumber` (boolean, optionnel) — Retourner comme nombre au lieu d'objet coalition
 
@@ -876,6 +933,7 @@ Obtient la coalition pour un pays.
 Obtient l'objet aérodrome pour une coalition.
 
 **Paramètres :**
+
 - `airbase_name` (string) — Nom de l'aérodrome
 - `coa` (coalition) — Coalition
 
@@ -888,6 +946,7 @@ Obtient l'objet aérodrome pour une coalition.
 Trouve un aérodrome DCS par nom (insensible à la casse).
 
 **Paramètres :**
+
 - `name` (string) — Nom de l'aérodrome
 
 **Retourne :** `DCS Airbase` — Objet aérodrome ou nil
@@ -913,6 +972,7 @@ Charge les données de santé initiale des aérodromes.
 Obtient la santé/dommages d'un aérodrome.
 
 **Paramètres :**
+
 - `airbase_name` (string) — Nom de l'aérodrome
 - `percentage` (boolean, optionnel) — Retourner en pourcentage
 - `loading` (boolean, optionnel) — Chargement des données initiales
@@ -924,6 +984,7 @@ Obtient la santé/dommages d'un aérodrome.
 Crée un polygone à partir des positions d'unités.
 
 **Paramètres :**
+
 - `unitNames` (table) — Tableau de noms d'unités
 
 **Retourne :** `table` — Tableau de positions vec3
@@ -935,6 +996,7 @@ Crée un polygone à partir des positions d'unités.
 Obtient une zone trigger par nom.
 
 **Paramètres :**
+
 - `zoneName` (string) — Nom de la zone
 
 **Retourne :** `DCS Zone` — Objet zone ou nil
@@ -946,6 +1008,7 @@ Obtient une zone trigger par nom.
 Planifie la fin de mission à une heure spécifique.
 
 **Paramètres :**
+
 - `endTimeHour` (number) — Heure (0-23)
 - `endTimeMinute` (number) — Minute (0-59)
 - `checkIntervalInSeconds` (number) — Fréquence de vérification
@@ -965,6 +1028,7 @@ veaf.endMissionAt(14, 30, 60, "La mission se termine à %s")
 Obtient le nom de type DCS d'un élément.
 
 **Paramètres :**
+
 - `dcsElementName` (string) — Nom de l'élément DCS
 
 **Retourne :** `string` — Nom de type
@@ -976,6 +1040,7 @@ Obtient le nom de type DCS d'un élément.
 Sérialise/affiche joliment un objet.
 
 **Paramètres :**
+
 - `o` (any) — Objet à sérialiser
 - `level` (number, optionnel) — Niveau d'indentation
 - `skip` (table, optionnel) — Clés à ignorer
@@ -1005,6 +1070,7 @@ print(str)
 Sérialise une valeur en code Lua.
 
 **Paramètres :**
+
 - `name` (string) — Nom de variable
 - `value` (any) — Valeur à sérialiser
 - `level` (number, optionnel) — Niveau d'indentation
@@ -1016,6 +1082,7 @@ Sérialise une valeur en code Lua.
 Exporte des données vers un fichier JSON.
 
 **Paramètres :**
+
 - `data` (any) — Données à exporter
 - `name` (string) — Nom de variable
 - `jsonify` (boolean) — Convertir en JSON (vs Lua)
@@ -1060,6 +1127,7 @@ Définit le nom du logger.
 Définit le niveau de logging.
 
 **Paramètres :**
+
 - `value` (string ou number) — Niveau : "error", "warning", "info", "debug", "trace"
 - `force` (boolean, optionnel) — Forcer le dépassement du niveau de base
 
@@ -1068,6 +1136,7 @@ Définit le niveau de logging.
 Logue un message d'erreur (niveau 1).
 
 **Paramètres :**
+
 - `text` (string) — Message avec marqueurs de format
 - `...` — Arguments de format
 
@@ -1119,6 +1188,7 @@ end
 Ajoute un marqueur carte pour le débogage.
 
 **Paramètres :**
+
 - `id` (number) — ID du marqueur
 - `header` (string) — Texte d'en-tête
 - `message` (string) — Message du marqueur
@@ -1134,6 +1204,7 @@ Ajoute un marqueur carte pour le débogage.
 Ajoute un marqueur flèche.
 
 **Paramètres :**
+
 - `id` (number) — ID du marqueur
 - `header` (string) — Texte d'en-tête
 - `message` (string) — Message
@@ -1148,6 +1219,7 @@ Ajoute un marqueur flèche.
 Ajoute un marqueur quadrilatère.
 
 **Paramètres :**
+
 - `id` (number) — ID du marqueur
 - `header` (string) — En-tête
 - `message` (string) — Message
@@ -1200,6 +1272,7 @@ veafEventHandler.CALLBACK_DELAY = 0.5  -- secondes
 Enregistre une fonction callback d'événement.
 
 **Paramètres :**
+
 - `name` (string) — Nom unique du callback
 - `events` (table ou nil) — Tableau d'ID/noms d'événements, ou nil pour tous
 - `callback` (function) — Fonction callback
@@ -1236,6 +1309,7 @@ veafEventHandler.addCallback("birthHandler",
 Obtient les informations complètes d'une unité DCS.
 
 **Paramètres :**
+
 - `unit` (DCS Unit) — Objet unité
 
 **Retourne :** `table` — Table d'info unité
@@ -1261,6 +1335,7 @@ Obtient les informations complètes d'une unité DCS.
 Obtient les informations d'unité à partir du nom.
 
 **Paramètres :**
+
 - `unitName` (string) — Nom de l'unité
 
 **Retourne :** `table` — Table d'info unité (même structure que completeUnit)
@@ -1270,6 +1345,7 @@ Obtient les informations d'unité à partir du nom.
 Active ou désactive le traitement d'un événement.
 
 **Paramètres :**
+
 - `eventNameOrId` (string ou number) — Événement à contrôler
 - `enabled` (boolean) — Indicateur d'activation
 
@@ -1287,6 +1363,7 @@ veafEventHandler.setEventEnabled("S_EVENT_SHOOTING_END", false)
 Vérifie si le traitement d'un événement est activé.
 
 **Paramètres :**
+
 - `eventNameOrId` (string ou number) — Événement à vérifier
 
 **Retourne :** `boolean` — True si activé
@@ -1344,11 +1421,13 @@ Les événements passés aux callbacks sont enrichis de champs supplémentaires 
 #### Bonnes pratiques de gestion des événements
 
 **Performance :**
+
 - Désactiver les événements inutilisés pour réduire la charge
 - Utiliser les callbacks différés pour les opérations coûteuses
 - Filtrer les événements par type lors de l'enregistrement des callbacks
 
 **Timing des événements :**
+
 - Les événements BIRTH se déclenchent avant que les unités soient complètement initialisées
 - Utiliser les callbacks différés pour BIRTH si vous accédez aux propriétés de l'unité
 - PLAYER_ENTER_UNIT se déclenche après le chargement complet du joueur
@@ -1377,6 +1456,7 @@ veafMarkers.DCSbugfixed = true  -- Statut du bug marqueur DCS
 Enregistre un handler pour les événements marqueur.
 
 **Paramètres :**
+
 - `eventType` (number) — Type d'événement : `MarkerAdd`, `MarkerChange` ou `MarkerRemove`
 - `eventHandler` (function) — Fonction handler
 
@@ -1409,6 +1489,7 @@ local handlerId = veafMarkers.registerEventHandler(
 Supprime un handler d'événement marqueur.
 
 **Paramètres :**
+
 - `id` (number) — ID du handler depuis registerEventHandler
 
 **Retourne :** `boolean` — True si désenregistré avec succès
@@ -1441,6 +1522,7 @@ veafCommands.PRIORITY_REMOTE       = 80
 Enregistre une fonction handler de commande. Les handlers sont appelés par ordre de priorité croissant.
 
 **Paramètres :**
+
 - `fn` (function) — Handler avec signature `(pos, event, bypass, fromMarker, groups, route) → boolean`
 - `priority` (number) — Ordre d'exécution (plus bas = plus tôt) ; utiliser les constantes `PRIORITY_*`
 
@@ -1449,6 +1531,7 @@ Enregistre une fonction handler de commande. Les handlers sont appelés par ordr
 Exécute une commande depuis le chemin interpréteur (noms d'unités). La coalition est utilisée telle quelle.
 
 **Paramètres :**
+
 - `pos` (vec3) — Position d'exécution
 - `text` (string) — Texte de commande
 - `coalition` (number) — Numéro de coalition
@@ -1462,6 +1545,7 @@ Exécute une commande depuis le chemin interpréteur (noms d'unités). La coalit
 Gère un événement de modification de marqueur. Inverse la coalition (les événements marqueur rapportent le côté du poseur, pas celui de la cible), appelle tous les handlers enregistrés par ordre de priorité, et supprime le marqueur en cas de succès.
 
 **Paramètres :**
+
 - `eventPos` (vec3) — Position du marqueur
 - `event` (table) — Objet événement marqueur
 
@@ -1488,6 +1572,7 @@ veafInterpreter.DelayForStartup = 1              -- Délai de démarrage (second
 Extrait la commande d'une chaîne de texte.
 
 **Paramètres :**
+
 - `text` (string) — Texte contenant la commande (nom d'unité ou texte de marqueur)
 
 **Retourne :** `string` — Commande extraite ou nil
@@ -1504,6 +1589,7 @@ local command = veafInterpreter.interpret(unitName)
 Exécute une commande VEAF. Délègue à `veafCommands.execute()` — tous les handlers enregistrés sont essayés par ordre de priorité.
 
 **Paramètres :**
+
 - `command` (string) — Chaîne de commande
 - `position` (vec3) — Position d'exécution de la commande
 - `coalition` (coalition, optionnel) — Coalition exécutant la commande
@@ -1526,12 +1612,14 @@ end
 Exécute une commande depuis la position d'une unité.
 
 **Paramètres :**
+
 - `unitName` (string) — Nom de l'unité ou statique
 - `command` (string) — Commande à exécuter
 
 **Retourne :** Rien
 
 **Description :**
+
 - Trouve l'unité ou l'objet statique par nom
 - Exécute la commande à la position de l'unité
 - Détruit l'unité/statique après exécution réussie
@@ -1551,6 +1639,7 @@ Initialise le module interpréteur.
 **Retourne :** Rien
 
 **Description :**
+
 - Appelé automatiquement lors de l'initialisation VEAF
 - Scanne les unités avec des commandes interpréteur dans les noms
 - Exécute les commandes après un délai
@@ -1589,6 +1678,7 @@ Nom d'unité : #veafInterpreter["_spawn, convoy, name convoy1, dest marker1, spe
 Parse le texte d'un marqueur pour les paramètres de spawn. Défini dans `veafSpawnParser.lua`, disponible sur la table `veafSpawn`.
 
 **Paramètres :**
+
 - `text` (string) — Texte du marqueur à parser
 
 **Retourne :** `table` — Table d'options avec les paires clé/valeur parsées
@@ -1598,6 +1688,7 @@ Parse le texte d'un marqueur pour les paramètres de spawn. Défini dans `veafSp
 Convertit un code laser en chaîne de fréquence TACAN/radio.
 
 **Paramètres :**
+
 - `laser` (number) — Code laser (1111–1788)
 
 **Retourne :** `string` — Label de fréquence, ou nil si non trouvé
@@ -1638,6 +1729,7 @@ veafSpawn.AFAC.maximumAmount = 8   -- max AFACs simultanés
 Exécute une commande spawn depuis un marqueur ou un script.
 
 **Paramètres :**
+
 - `eventPos` (vec3) — Position de spawn
 - `eventText` (string) — Texte de commande
 - `coalition` (coalition, optionnel) — Coalition
@@ -1664,6 +1756,7 @@ veafSpawn.executeCommand(pos, "_spawn, name F-16C, group 2, hdg 270", coalition.
 Spawne une unité individuelle.
 
 **Paramètres :**
+
 - `spawnPosition` (vec3) — Position de spawn
 - `radius` (number) — Rayon de dispersion (mètres)
 - `name` (string) — Nom de type d'unité (type DCS ou alias)
@@ -1700,6 +1793,7 @@ veafSpawn.spawnUnit(pos, 100, "KC-135", nil, nil, 25000, 270, "Texaco", nil, fal
 Spawne un groupe prédéfini.
 
 **Paramètres :**
+
 - `spawnSpot` (vec3) — Position de spawn
 - `radius` (number) — Rayon de dispersion
 - `name` (string) — Nom de template du groupe
@@ -1722,6 +1816,7 @@ Spawne un groupe prédéfini.
 Spawne un groupe d'infanterie avec paramètres.
 
 **Paramètres :**
+
 - `spawnSpot` (vec3) — Position de spawn
 - `radius` (number) — Rayon de dispersion
 - `czName` (string, optionnel) — Zone de combat
@@ -1772,6 +1867,7 @@ Spawne un groupe d'armes combinées (infanterie + blindés + transport).
 Spawne un convoi de véhicules avec waypoints.
 
 **Paramètres :**
+
 - `spawnSpot` (vec3) — Position de départ
 - `name` (string) — Nom du convoi
 - `czName` (string, optionnel) — Zone de combat
@@ -1807,6 +1903,7 @@ veafSpawn.spawnConvoy(start, "Convoy1", nil, 50, nil, coalition.side.RED,
 Spawne un vol CAP avec orbite de patrouille.
 
 **Paramètres :**
+
 - `spawnSpot` (vec3) — Position de spawn
 - `radius` (number) — Dispersion
 - `name` (string) — Type d'appareil
@@ -1824,6 +1921,7 @@ Spawne un vol CAP avec orbite de patrouille.
 **Retourne :** `table` — Info du vol CAP
 
 **Description :**
+
 - Spawne l'appareil à la position
 - Crée une orbite racetrack à l'emplacement spécifié
 - Démarre un watchdog pour surveiller et engager les cibles
@@ -1833,6 +1931,7 @@ Spawne un vol CAP avec orbite de patrouille.
 Spawne un contrôleur aérien avancé en vol (AFAC).
 
 **Paramètres :**
+
 - `spawnSpot` (vec3) — Position de spawn
 - `name` (string) — Type d'appareil
 - `country` (number, optionnel) — Pays
@@ -1855,6 +1954,7 @@ Spawne un contrôleur aérien avancé en vol (AFAC).
 Spawne un cargo CTLD.
 
 **Paramètres :**
+
 - `spawnSpot` (vec3) — Position de spawn
 - `radius` (number) — Dispersion
 - `cargoType` (string) — Type de cargo : "container", "barrels", "ammo", "fuel"
@@ -1874,6 +1974,7 @@ Spawne un cargo CTLD.
 Spawne un point d'armement et de ravitaillement avancé (FARP).
 
 **Paramètres :**
+
 - `spawnSpot` (vec3) — Position
 - `radius` (number) — Dispersion
 - `name` (string) — Nom du FARP
@@ -1905,6 +2006,7 @@ veafSpawn.spawnFarp(pos, 100, "FARP Alpha", nil, nil, coalition.side.BLUE,
 Crée un effet d'explosion.
 
 **Paramètres :**
+
 - `spawnSpot` (vec3) — Position de l'explosion
 - `radius` (number) — Dispersion
 - `shells` (number) — Nombre d'explosions
@@ -1920,6 +2022,7 @@ Crée un effet d'explosion.
 Ajoute des marqueurs fumée.
 
 **Paramètres :**
+
 - `spawnSpot` (vec3) — Position
 - `color` (string) — "Green", "Red", "White", "Orange", "Blue"
 - `radius` (number) — Dispersion
@@ -1932,6 +2035,7 @@ Ajoute des marqueurs fumée.
 Tire des fusées éclairantes de signalisation.
 
 **Paramètres :**
+
 - `spawnSpot` (vec3) — Position
 - `radius` (number) — Dispersion
 - `shells` (number) — Nombre de fusées
@@ -1944,6 +2048,7 @@ Tire des fusées éclairantes de signalisation.
 Crée un patron d'illumination par fusées éclairantes.
 
 **Paramètres :**
+
 - `spawnSpot` (vec3) — Position
 - `radius` (number) — Dispersion
 - `steps` (number) — Nombre de fusées en ligne
@@ -1962,6 +2067,7 @@ Crée un patron d'illumination par fusées éclairantes.
 Dessine un cercle sur la carte.
 
 **Paramètres :**
+
 - `point` (vec3) — Position du centre
 - `name` (string) — Nom du dessin
 - `radius` (number) — Rayon du cercle (mètres)
@@ -1976,6 +2082,7 @@ Dessine un cercle sur la carte.
 Dessine un carré sur la carte.
 
 **Paramètres :**
+
 - `point` (vec3) — Centre
 - `name` (string) — Nom du dessin
 - `side` (number) — Longueur du côté (mètres)
@@ -1990,6 +2097,7 @@ Dessine un carré sur la carte.
 Supprime un dessin de la carte.
 
 **Paramètres :**
+
 - `name` (string) — Nom du dessin
 
 **Retourne :** Rien
@@ -2001,6 +2109,7 @@ Supprime un dessin de la carte.
 Détruit les unités dans une zone ou une unité spécifique.
 
 **Paramètres :**
+
 - `spawnSpot` (vec3) — Position
 - `radius` (number) — Rayon de recherche (0 pour unité spécifique)
 - `unitName` (string, optionnel) — Nom d'unité spécifique
@@ -2021,6 +2130,7 @@ veafSpawn.destroy(pos, 0, "Tank-1")
 Téléporte un groupe à une position.
 
 **Paramètres :**
+
 - `spawnSpot` (vec3) — Destination
 - `name` (string) — Nom du groupe
 - `silent` (boolean, optionnel) — Supprimer les messages
@@ -2034,6 +2144,7 @@ Téléporte un groupe à une position.
 Configure un JTAC en auto-désignation laser.
 
 **Paramètres :**
+
 - `groupName` (string) — Nom du groupe JTAC
 - `laserCode` (number) — Code laser (ex : 1688)
 - `radioData` (table, optionnel) — Configuration radio
@@ -2060,6 +2171,7 @@ veafSpawn.JTACAutoLase("JTAC-1", 1688, {freq=133.0, mod="AM"})
 Trouve une unité DCS par nom de type (insensible à la casse).
 
 **Paramètres :**
+
 - `unitType` (string) — Type d'unité (ex : "F-16C", "M-1 Abrams")
 
 **Retourne :** `table` — Définition d'unité ou nil
@@ -2069,6 +2181,7 @@ Trouve une unité DCS par nom de type (insensible à la casse).
 Compte les unités d'infanterie et de véhicules dans un groupe.
 
 **Paramètres :**
+
 - `groupname` (string) — Nom du groupe
 
 **Retourne :** `number, number` — Nombre de véhicules, Nombre d'infanterie
@@ -2078,6 +2191,7 @@ Compte les unités d'infanterie et de véhicules dans un groupe.
 Traite et valide une définition de groupe.
 
 **Paramètres :**
+
 - `group` (table) — Table de définition du groupe
 
 **Retourne :** `table` — Groupe traité
@@ -2114,11 +2228,13 @@ Traite et valide une définition de groupe.
 Respawne un groupe d'asset.
 
 **Paramètres :**
+
 - `name` (string) — Nom de l'asset
 
 **Retourne :** Rien
 
 **Description :**
+
 - Respawne le groupe d'asset
 - Respawne tous les groupes liés
 - Démarre le JTAC si configuré
@@ -2128,6 +2244,7 @@ Respawne un groupe d'asset.
 Détruit un asset.
 
 **Paramètres :**
+
 - `name` (string) — Nom de l'asset
 
 **Retourne :** Rien
@@ -2137,6 +2254,7 @@ Détruit un asset.
 Obtient les informations d'un asset.
 
 **Paramètres :**
+
 - `parameters` (table) — `{name=string, unitName=string}`
 
 **Retourne :** `string` — Texte d'info de l'asset
@@ -2146,6 +2264,7 @@ Obtient les informations d'un asset.
 Obtient la définition d'un asset.
 
 **Paramètres :**
+
 - `assetName` (string) — Nom de l'asset
 
 **Retourne :** `table` — Définition de l'asset
@@ -2231,6 +2350,7 @@ mission:setSpawnRadius(value)
 Enregistre une mission.
 
 **Paramètres :**
+
 - `mission` (VeafCombatMission) — Objet mission
 
 **Retourne :** Rien
@@ -2240,6 +2360,7 @@ Enregistre une mission.
 Ajoute des variantes de mission avec différents niveaux de compétence/échelle.
 
 **Paramètres :**
+
 - `mission` (VeafCombatMission) — Mission de base
 - `includeOriginal` (boolean) — Inclure l'original
 - `skills` (table) — Niveaux de compétence : `{"Average", "Good", "High"}`
@@ -2254,6 +2375,7 @@ Ajoute des variantes de mission avec différents niveaux de compétence/échelle
 Obtient une mission par nom.
 
 **Paramètres :**
+
 - `name` (string) — Nom de la mission
 
 **Retourne :** `VeafCombatMission` — Objet mission ou nil
@@ -2263,6 +2385,7 @@ Obtient une mission par nom.
 Active une mission.
 
 **Paramètres :**
+
 - `name` (string) — Nom de la mission
 - `silent` (boolean, optionnel) — Supprimer les messages
 - `unitName` (string, optionnel) — Unité recevant les messages
@@ -2270,6 +2393,7 @@ Active une mission.
 **Retourne :** Rien
 
 **Description :**
+
 - Exécute toutes les fonctions de démarrage des objectifs
 - Spawne les éléments de mission
 - Démarre le timer watchdog
@@ -2280,6 +2404,7 @@ Active une mission.
 Désactive une mission.
 
 **Paramètres :**
+
 - `name` (string) — Nom de la mission
 - `silent` (boolean, optionnel) — Supprimer les messages
 - `unitName` (string, optionnel) — Unité recevant les messages
@@ -2287,6 +2412,7 @@ Désactive une mission.
 **Retourne :** Rien
 
 **Description :**
+
 - Arrête le watchdog de mission
 - Détruit les groupes spawnés
 - Réinitialise les objectifs
@@ -2296,6 +2422,7 @@ Désactive une mission.
 Vérifie l'état de complétion d'une mission.
 
 **Paramètres :**
+
 - `name` (string) — Nom de la mission
 
 **Retourne :** `number` — État : FAILED (-1), SUCCESS (1), NOTHING (0)
@@ -2331,6 +2458,7 @@ veafCasMission.RadioMenuName = "CAS MISSION"
 Exécute une commande de mission CAS.
 
 **Paramètres :**
+
 - `eventPos` (vec3) — Position de spawn
 - `eventText` (string) — Texte de commande
 - `coalition` (coalition, optionnel) — Coalition
@@ -2344,6 +2472,7 @@ Exécute une commande de mission CAS.
 Génère une mission CAS complète.
 
 **Paramètres :**
+
 - `spawnSpot` (vec3) — Position de spawn
 - `size` (number) — Taille 0-5
 - `defense` (number) — Défense 0-5
@@ -2355,6 +2484,7 @@ Génère une mission CAS complète.
 **Retourne :** `table` — Info du groupe généré
 
 **Description :**
+
 - Spawne de l'infanterie, des blindés, du transport et de la DCA
 - Les groupes réagissent aux attaques des joueurs
 - Fournit un marquage par fumée/fusée
@@ -2399,6 +2529,7 @@ Initialise le module CAS.
 ##### Airbase
 
 **Propriétés :**
+
 - `name` (string) — Nom de l'aérodrome
 - `position` (vec3) — Position de l'aérodrome
 - `coalition` (coalition) — Propriétaire actuel
@@ -2417,6 +2548,7 @@ airbase:getNearestRunway(position)  -- Piste la plus proche d'une position
 ##### Runway
 
 **Propriétés :**
+
 - `heading1` (number) — Premier cap (degrés)
 - `heading2` (number) — Cap opposé
 - `width` (number) — Largeur de piste (mètres)
@@ -2431,6 +2563,7 @@ airbase:getNearestRunway(position)  -- Piste la plus proche d'une position
 Initialise la base de données des aérodromes.
 
 **Paramètres :**
+
 - `bReset` (boolean, optionnel) — Forcer la reconstruction de la base
 
 **Retourne :** Rien
@@ -2440,6 +2573,7 @@ Initialise la base de données des aérodromes.
 Obtient un aérodrome par nom.
 
 **Paramètres :**
+
 - `sAirbaseName` (string) — Nom de l'aérodrome
 
 **Retourne :** `Airbase` — Objet Airbase ou nil
@@ -2449,6 +2583,7 @@ Obtient un aérodrome par nom.
 Obtient les aérodromes les plus proches d'une unité.
 
 **Paramètres :**
+
 - `dcsUnit` (DCS Unit) — Objet unité
 - `iCount` (number) — Nombre de résultats
 
@@ -2459,6 +2594,7 @@ Obtient les aérodromes les plus proches d'une unité.
 Obtient l'aérodrome le plus proche.
 
 **Paramètres :**
+
 - `dcsUnit` (DCS Unit) — Objet unité
 
 **Retourne :** `Airbase` — Aérodrome le plus proche
@@ -2478,11 +2614,13 @@ Obtient l'aérodrome le plus proche.
 Démarre les opérations de recovery du porte-avions.
 
 **Paramètres :**
+
 - `parameters` (table) — `{carrierGroupName=string, userUnitName=string}`
 
 **Retourne :** Rien
 
 **Description :**
+
 - Tourne le porte-avions face au vent
 - Maintient la position pour la recovery
 - Rapporte la direction du vent et les infos ATC
@@ -2492,6 +2630,7 @@ Démarre les opérations de recovery du porte-avions.
 Arrête les opérations du porte-avions.
 
 **Paramètres :**
+
 - `parameters` (table) — `{carrierGroupName=string}`
 
 **Retourne :** Rien
@@ -2503,6 +2642,7 @@ Arrête les opérations du porte-avions.
 Obtient les données ATC du porte-avions.
 
 **Paramètres :**
+
 - `groupName` (string) — Nom du groupe porte-avions
 - `skipNavigationData` (boolean, optionnel) — Ignorer les infos de navigation
 
@@ -2554,6 +2694,7 @@ veafRadio.USAGE_ForUnit = 2
 Ajoute un sous-menu au radio.
 
 **Paramètres :**
+
 - `title` (string) — Titre du sous-menu
 - `parentMenu` (menu, optionnel) — Menu parent (nil = menu VEAF racine)
 
@@ -2570,6 +2711,7 @@ local tankersMenu = veafRadio.addSubMenu("Ravitailleurs", assetsMenu)
 Ajoute une commande à un sous-menu.
 
 **Paramètres :**
+
 - `text` (string) — Texte de la commande
 - `menu` (menu) — Menu cible
 - `callback` (function) — Fonction callback
@@ -2601,6 +2743,7 @@ Ajoute une commande protégée par la sécurité.
 Transmet un message via SRS.
 
 **Paramètres :**
+
 - `message` (string) — Texte du message (TTS)
 - `frequencies` (table) — Tableau de fréquences
 - `modulations` (table) — Tableau de modulations
@@ -2629,6 +2772,7 @@ veafRadio.transmitMessage(
 Joue un fichier MP3 via SRS.
 
 **Paramètres :**
+
 - `path` (string) — Chemin du fichier MP3
 - Autres paramètres identiques à `transmitMessage`
 
@@ -2664,6 +2808,7 @@ Initialise le module radio.
 Définit la météo de mission.
 
 **Paramètres :**
+
 - `parameters` (table) — Paramètres météo
 
 **Paramètres météo :**
@@ -2696,6 +2841,7 @@ Définit la météo de mission.
 Obtient la météo actuelle à une position.
 
 **Paramètres :**
+
 - `position` (vec3) — Position
 
 **Retourne :** `table` — Données météo
@@ -2714,6 +2860,7 @@ Obtient la météo actuelle à une position.
 Définit l'heure de mission.
 
 **Paramètres :**
+
 - `hours` (number) — Heure (0-23)
 - `minutes` (number, optionnel) — Minute (0-59)
 
@@ -2730,6 +2877,7 @@ veafTime.setTime(14, 30)
 Définit la date de mission.
 
 **Paramètres :**
+
 - `year` (number) — Année
 - `month` (number) — Mois (1-12)
 - `day` (number) — Jour (1-31)
@@ -2787,6 +2935,7 @@ Chaque unité dans la base :
 Trouve une unité par nom de type.
 
 **Paramètres :**
+
 - `typeName` (string) — Type d'unité (insensible à la casse)
 
 **Retourne :** `table` — Définition d'unité ou nil
@@ -2796,6 +2945,7 @@ Trouve une unité par nom de type.
 Obtient toutes les unités d'une catégorie.
 
 **Paramètres :**
+
 - `category` (string) — Nom de la catégorie
 
 **Retourne :** `table` — Tableau de définitions d'unités
@@ -2805,6 +2955,7 @@ Obtient toutes les unités d'une catégorie.
 Obtient les unités d'un pays.
 
 **Paramètres :**
+
 - `country` (string) — Nom du pays
 
 **Retourne :** `table` — Tableau de définitions d'unités
@@ -2814,6 +2965,7 @@ Obtient les unités d'un pays.
 Obtient les unités capables d'une tâche.
 
 **Paramètres :**
+
 - `task` (string) — Nom de la tâche (ex : "CAP", "CAS", "SEAD")
 
 **Retourne :** `table` — Tableau de définitions d'unités
@@ -2832,6 +2984,7 @@ Obtient les unités capables d'une tâche.
 Exporte toutes les unités DCS vers un fichier.
 
 **Paramètres :**
+
 - `path` (string, optionnel) — Répertoire d'export
 
 **Retourne :** Rien
@@ -2841,6 +2994,7 @@ Exporte toutes les unités DCS vers un fichier.
 Exporte les données des aérodromes.
 
 **Paramètres :**
+
 - `path` (string, optionnel) — Répertoire d'export
 
 **Retourne :** Rien

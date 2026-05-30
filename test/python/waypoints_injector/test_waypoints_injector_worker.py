@@ -11,10 +11,9 @@ import unittest
 from pathlib import Path
 from unittest.mock import MagicMock
 
-from mission_tools import DcsMission
+from mission_tools import DcsMission, Group
 
 from waypoints_injector.waypoints_injector_worker import (
-    Group,
     WaypointsExtractorWorker,
     WaypointsInjectorWorker,
 )
@@ -68,55 +67,56 @@ class TestAddGroup(unittest.TestCase):
 
     def test_group_with_name_stored(self) -> None:
         worker = self._worker()
-        group_dict = {"name": "Hornet Lead"}
-        worker.add_group(group_dict, aircraft_type="plane", country="USA", coalition="blue", category="plane")
+        group = Group(group_dcs={"name": "Hornet Lead"}, aircraft_type="plane", country="USA", coalition="blue", name="Hornet Lead")
+        worker.add_group(group)
         self.assertIn("Hornet Lead", worker.groups)
 
     def test_group_without_name_not_stored(self) -> None:
         worker = self._worker()
-        worker.add_group({}, aircraft_type="plane", country="USA", coalition="blue", category="plane")
+        group = Group(group_dcs={}, aircraft_type="plane", country="USA", coalition="blue")
+        worker.add_group(group)
         self.assertEqual(len(worker.groups), 0)
 
     def test_client_pilot_detected(self) -> None:
         worker = self._worker()
-        group_dict = {
-            "name": "Client Group",
-            "units": [{"type": "FA-18C_hornet", "skill": "Client"}],
-        }
-        worker.add_group(group_dict, aircraft_type="plane", country="USA", coalition="blue", category="plane")
-        group = worker.groups["Client Group"]
-        self.assertTrue(group.human_pilot)
-        self.assertEqual(group.unit_type, "FA-18C_hornet")
+        group = Group(
+            group_dcs={"name": "Client Group"},
+            aircraft_type="plane", country="USA", coalition="blue",
+            name="Client Group", unit_type="FA-18C_hornet", human_pilot=True,
+        )
+        worker.add_group(group)
+        stored = worker.groups["Client Group"]
+        self.assertTrue(stored.human_pilot)
+        self.assertEqual(stored.unit_type, "FA-18C_hornet")
 
     def test_player_pilot_detected(self) -> None:
         worker = self._worker()
-        group_dict = {
-            "name": "Player Group",
-            "units": [{"type": "Su-27", "skill": "Player"}],
-        }
-        worker.add_group(group_dict, aircraft_type="plane", country="Russia", coalition="red", category="plane")
-        group = worker.groups["Player Group"]
-        self.assertTrue(group.human_pilot)
+        group = Group(
+            group_dcs={"name": "Player Group"},
+            aircraft_type="plane", country="Russia", coalition="red",
+            name="Player Group", human_pilot=True,
+        )
+        worker.add_group(group)
+        self.assertTrue(worker.groups["Player Group"].human_pilot)
 
     def test_ai_group_not_human(self) -> None:
         worker = self._worker()
-        group_dict = {
-            "name": "AI Patrol",
-            "units": [{"type": "F-16C_50", "skill": "Excellent"}],
-        }
-        worker.add_group(group_dict, aircraft_type="plane", country="USA", coalition="blue", category="plane")
+        group = Group(
+            group_dcs={"name": "AI Patrol"},
+            aircraft_type="plane", country="USA", coalition="blue",
+            name="AI Patrol", human_pilot=False,
+        )
+        worker.add_group(group)
         self.assertFalse(worker.groups["AI Patrol"].human_pilot)
 
     def test_multiple_units_first_human_breaks(self) -> None:
         worker = self._worker()
-        group_dict = {
-            "name": "Mixed",
-            "units": [
-                {"type": "F-16C_50", "skill": "Client"},
-                {"type": "F-16C_50", "skill": "Excellent"},
-            ],
-        }
-        worker.add_group(group_dict, aircraft_type="plane", country="USA", coalition="blue", category="plane")
+        group = Group(
+            group_dcs={"name": "Mixed"},
+            aircraft_type="plane", country="USA", coalition="blue",
+            name="Mixed", human_pilot=True,
+        )
+        worker.add_group(group)
         self.assertTrue(worker.groups["Mixed"].human_pilot)
 
 
@@ -128,7 +128,6 @@ class TestInjectWaypointsIntoGroup(unittest.TestCase):
             aircraft_type="plane",
             country="USA",
             coalition="blue",
-            category="plane",
             name="Alpha",
             unit_type="F-16C_50",
             human_pilot=True,
@@ -150,7 +149,6 @@ class TestInjectWaypointsIntoGroup(unittest.TestCase):
             aircraft_type="plane",
             country="USA",
             coalition="blue",
-            category="plane",
         )
         wp = WaypointDefinition(type="TakeOffGround", action="TakeOffGround", alt=0.0)
         worker._inject_waypoints_into_group(group, [wp])
@@ -165,7 +163,6 @@ class TestProcessGroups(unittest.TestCase):
             aircraft_type="plane",
             country="USA",
             coalition="blue",
-            category="plane",
             name="Human Pilot",
             unit_type="F-16C_50",
             human_pilot=True,
@@ -205,7 +202,6 @@ class TestProcessGroups(unittest.TestCase):
             aircraft_type="plane",
             country="USA",
             coalition="blue",
-            category="plane",
             name="AI Group",
             unit_type="F-16C_50",
             human_pilot=False,

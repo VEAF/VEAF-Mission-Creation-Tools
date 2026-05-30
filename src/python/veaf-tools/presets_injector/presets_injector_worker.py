@@ -2,142 +2,46 @@
 Worker module for the VEAF Presets Injector Package.
 """
 
-from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from mission_tools import DcsMission, read_miz, write_miz
-from veaf_libs.base_worker import BaseWorker
+from mission_tools import Group, write_miz
+from veaf_libs.group_injector_worker import GroupInjectorWorker
 from veaf_libs.logger import logger
 from veaf_libs.progress import spinner_context
 
 from .presets_manager import PresetDefinition, PresetsManager
 
 
-@dataclass
-class Group:
-    """Class for keeping track of DCS group."""
-
-    group_dcs: dict
-    aircraft_type: str
-    country: str
-    coalition: str
-    human_pilot: bool = False
-    name: str | None = None
-    unit_type: str | None = None
-
-
-class PresetsInjectorWorker(BaseWorker):
+class PresetsInjectorWorker(GroupInjectorWorker):
     """
     Worker class that provides presets injection features.
     """
 
     def __init__(self, presets_file: Path | None, input_mission: Path | None, output_mission: Path | None):
-        """
-        Initialize the worker with optional parameters for both use cases.
-
-        Args:
-            logger: Logger instance for logging messages
-            config_file: Path to the configuration file
-            input_mission: Path to the input mission file
-            output_mission: Path to the output mission file
-        """
         self.presets_file = presets_file
-        self.input_mission = input_mission
-        self.output_mission = output_mission
-        self.groups = {}
-        self.presets_manager: PresetsManager = self.load_config()
-        self.dcs_mission: DcsMission | None = None
+        self.groups: dict[str, Group] = {}
+        self.presets_manager: PresetsManager = PresetsManager()
+        super().__init__(config_file=presets_file, input_mission=input_mission, output_mission=output_mission)
 
     def load_config(self) -> Any:
-        """Load configuration from Lua file."""
+        """Load configuration from YAML file."""
         presets_manager = PresetsManager()
         try:
             if self.presets_file:
                 presets_manager.read_yaml(self.presets_file)
-            return presets_manager
         except Exception as e:
             logger.error(f"Failed to load config file {self.presets_file}: {str(e)}", exception_type=RuntimeError)
+        self.presets_manager = presets_manager
+        return presets_manager
 
-    def add_group(self, group_dict: dict, aircraft_type: str, country: str, coalition: str) -> None:
-        group: Group = Group(group_dcs=group_dict, aircraft_type=aircraft_type, country=country, coalition=coalition)
-        if name := group_dict.get("name"):
-            group.name = name
-            if units_list := group_dict.get("units"):
-                for unit in units_list:
-                    if unit_type := unit.get("type", ""):
-                        group.unit_type = unit_type
-                    unit_skill = unit.get("skill", "")
-                    if unit_skill in ["Client", "Player"]:
-                        group.human_pilot = True
-                        logger.debug(f"Adding group {group.name} to the list of presets injection targets")
-                        break
+    def add_group(self, group: Group) -> None:
+        if group.name:
+            self.groups[group.name] = group
 
-            self.groups[name] = group
-
-    def read_mission(self, silent: bool = False) -> None:
-        """Load the mission from the .miz file (unzip it) and process aircraft groups."""
-
-        if not silent:
-            logger.info(f"Reading mission file {self.input_mission}")
-        assert self.input_mission is not None
-        self.dcs_mission = read_miz(self.input_mission)
-
-        logger.debug("Searching for all aircraft groups")
-
-        coalitions_dict = (
-            self.dcs_mission.mission_content.get("coalition") if self.dcs_mission.mission_content else None
-        )
-        if not coalitions_dict:
-            logger.error("cannot find key 'coalition'", True)
-            return
-
-        for coalition_name in coalitions_dict.keys():
-            self._process_coalition(coalition_name, coalitions_dict[coalition_name])
-
-    def _process_coalition(self, coalition_name: str, coalition_data: dict) -> None:
-        """Process all countries in a coalition."""
-        logger.debug(f"Browsing countries in coalition {coalition_name}")
-
-        countries_list = coalition_data.get("country")
-        if not countries_list:
-            logger.debugwarn(f"no key 'country' in /coalition/{coalition_name}")
-            return
-
-        for country_dict in countries_list:
-            self._process_country(country_dict, coalition_name)
-
-    def _process_country(self, country_dict: dict, coalition_name: str) -> None:
-        """Process a country's aircraft groups."""
-        country_name = country_dict.get("name")
-        if not country_name:
-            logger.error(f"cannot find key 'name' in /coalition/{coalition_name}/country", True)
-            return
-
-        logger.debug(f"Browsing country {country_name}")
-
-        # Process both helicopter and plane groups
-        for aircraft_type in ["helicopter", "plane"]:
-            self._process_aircraft_type(country_dict, aircraft_type, country_name, coalition_name)
-
-    def _process_aircraft_type(
-        self, country_dict: dict, aircraft_type: str, country_name: str, coalition_name: str
-    ) -> None:
-        """Process groups for a specific aircraft type (helicopter or plane)."""
-        aircraft_data = country_dict.get(aircraft_type)
-        if not aircraft_data:
-            logger.debugwarn(f"no key '{aircraft_type}' in /coalition/{coalition_name}/country/{country_name}")
-            return
-
-        groups_list = aircraft_data.get("group")
-        if not groups_list:
-            logger.warning(
-                f"cannot find key 'group' in /coalition/{coalition_name}/country/{country_name}/{aircraft_type}"
-            )
-            return
-
-        for group in groups_list:
-            self.add_group(group, aircraft_type=aircraft_type, country=country_name, coalition=coalition_name)
+    def process_group(self, group: Group) -> None:
+        """Collect the group; actual preset injection happens in process_groups()."""
+        self.add_group(group)
 
     def process_units(self, group: Group, preset_definition: PresetDefinition) -> int:
         nb_units_processed = 0
@@ -153,14 +57,12 @@ class PresetsInjectorWorker(BaseWorker):
         return nb_units_processed
 
     def process_groups(self, silent: bool = False) -> None:
-        """Process all the aircraft groups."""
+        """Inject presets into all human-piloted groups."""
         if not silent:
             logger.info(f"Processing {len(self.groups)} aircraft group{'s' if len(self.groups) > 1 else ''}")
 
         nb_units_processed = 0
-        for group in [
-            g for g in self.groups.values() if g.human_pilot
-        ]:  # Inject radio presets in all aircraft groups with at least one human pilot
+        for group in [g for g in self.groups.values() if g.human_pilot]:
             if preset_definition := self.presets_manager.get_radios_for(
                 coalition=group.coalition, aircraft_type=group.aircraft_type, unit_type=group.unit_type
             ):
@@ -170,18 +72,16 @@ class PresetsInjectorWorker(BaseWorker):
                 )
                 group.group_dcs["radioSet"] = preset_definition != PresetDefinition.EMPTY
                 group.group_dcs["communication"] = False
-                nb_units_processed = nb_units_processed + self.process_units(group, preset_definition)
+                nb_units_processed += self.process_units(group, preset_definition)
 
         if not silent:
             logger.info(f"Injected presets into {nb_units_processed} aircraft{'s' if nb_units_processed > 1 else ''}")
 
     def write_mission(self, silent: bool = False) -> None:
-        """Write the mission file."""
-
+        """Write the mission file, including kneeboard pages if generated."""
         if not silent:
             logger.info("Writing mission file")
 
-        # Prepare saving kneeboard pages if generated
         additional_files = {}
         if self.presets_manager.presets_images:
             for preset_name, image in self.presets_manager.presets_images.items():
@@ -191,25 +91,23 @@ class PresetsInjectorWorker(BaseWorker):
                     f"Added {len(self.presets_manager.presets_images)} kneeboard page{'s' if len(self.presets_manager.presets_images) > 1 else ''} to mission"
                 )
 
-        # Save the mission
         assert self.dcs_mission is not None
         write_miz(mission=self.dcs_mission, miz_file_path=self.output_mission, additional_files=additional_files)
 
-    def work(self, silent: bool = False) -> None:
+    def work(self, silent: bool = False) -> None:  # type: ignore[override]
         """Main work function."""
-
-        # Load the mission from the .miz file (unzip it) and process aircraft groups
         with spinner_context(f"Reading {self.input_mission}...", silent=silent):
             self.read_mission(silent)
 
-        # Process all the aircraft groups
+        assert self.dcs_mission is not None
+        for group in self.dcs_mission.iter_groups():
+            self.process_group(group)
+
         with spinner_context("Processing groups...", silent=silent):
             self.process_groups(silent)
 
-        # Generate kneeboard pages if needed
         with spinner_context("Generating preset images...", silent=silent):
             self.presets_manager.generate_presets_images(width=1200, height=None)
 
-        # Write the mission file
         with spinner_context("Writing mission...", silent=silent):
             self.write_mission(silent)

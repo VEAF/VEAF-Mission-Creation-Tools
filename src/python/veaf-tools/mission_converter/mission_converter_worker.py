@@ -70,7 +70,7 @@ class MissionConverterWorker(BaseWorker):
                 mission_folder=self.mission_folder,
                 output_mission=self.output_mission,
                 dynamic_mode=self.dynamic_mode,
-                scripts_path=self.scripts_path,
+                scripts_path_override=self.scripts_path,
             )
             new_mission_path = builder.work(silent=True)
 

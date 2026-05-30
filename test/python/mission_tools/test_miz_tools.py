@@ -1,4 +1,4 @@
-"""Tests for mission_tools.miz_tools — read_miz / write_miz / create_miz."""
+"""Tests for mission_tools.miz_tools — read_miz / write_miz / create_miz / iter_groups."""
 
 import io
 import zipfile
@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from mission_tools.miz_tools import DcsMission, create_miz, read_miz, write_miz
+from mission_tools.miz_tools import DcsMission, Group, create_miz, read_miz, write_miz
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -156,3 +156,215 @@ class TestWriteMiz:
         write_miz(mission, None)
         # File should have been updated
         assert original.exists()
+
+
+# ---------------------------------------------------------------------------
+# iter_groups (DEEP-001)
+# ---------------------------------------------------------------------------
+
+def _make_mission_with_groups(tmp_path: Path) -> Path:
+    """Build a .miz with a realistic coalition/country/group structure."""
+    mission_lua = b"""mission = {
+  ["coalition"] = {
+    ["blue"] = {
+      ["country"] = {
+        [1] = {
+          ["name"] = "USA",
+          ["plane"] = {
+            ["group"] = {
+              [1] = {
+                ["name"] = "Enfield 1-1",
+                ["units"] = {
+                  [1] = {
+                    ["type"] = "F-16C_50",
+                    ["skill"] = "Client",
+                    ["name"] = "Enfield 1-1-1",
+                  },
+                },
+              },
+            },
+          },
+          ["helicopter"] = {
+            ["group"] = {
+              [1] = {
+                ["name"] = "Huey Flight",
+                ["units"] = {
+                  [1] = {
+                    ["type"] = "UH-1H",
+                    ["skill"] = "Average",
+                    ["name"] = "Huey 1",
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    ["red"] = {
+      ["country"] = {
+        [1] = {
+          ["name"] = "Russia",
+          ["plane"] = {
+            ["group"] = {
+              [1] = {
+                ["name"] = "Flanker 1",
+                ["units"] = {
+                  [1] = {
+                    ["type"] = "Su-27",
+                    ["skill"] = "High",
+                    ["name"] = "Flanker 1-1",
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  },
+}
+"""
+    miz_path = tmp_path / "groups.miz"
+    with zipfile.ZipFile(miz_path, "w") as zf:
+        zf.writestr("mission", mission_lua)
+        zf.writestr("options", b"options = {}\n")
+        zf.writestr("warehouses", b"warehouses = {}\n")
+        zf.writestr("theatre", b"Caucasus")
+        zf.writestr("l10n/DEFAULT/dictionary", b"dictionary = {}\n")
+        zf.writestr("l10n/DEFAULT/mapResource", b"mapResource = {}\n")
+    return miz_path
+
+
+_REAL_MIZ = Path(__file__).parents[2] / "veaf-tools" / "test.miz"
+
+
+class TestIterGroups:
+    def test_yields_group_instances(self, tmp_path: Path) -> None:
+        miz = _make_mission_with_groups(tmp_path)
+        mission = read_miz(miz)
+        groups = list(mission.iter_groups())
+        assert all(isinstance(g, Group) for g in groups)
+
+    def test_correct_total_count(self, tmp_path: Path) -> None:
+        miz = _make_mission_with_groups(tmp_path)
+        mission = read_miz(miz)
+        groups = list(mission.iter_groups())
+        # blue: 1 plane + 1 helo; red: 1 plane → 3 groups
+        assert len(groups) == 3
+
+    def test_human_pilot_detected(self, tmp_path: Path) -> None:
+        miz = _make_mission_with_groups(tmp_path)
+        mission = read_miz(miz)
+        groups = {g.name: g for g in mission.iter_groups()}
+        assert groups["Enfield 1-1"].human_pilot is True
+
+    def test_non_human_group(self, tmp_path: Path) -> None:
+        miz = _make_mission_with_groups(tmp_path)
+        mission = read_miz(miz)
+        groups = {g.name: g for g in mission.iter_groups()}
+        assert groups["Huey Flight"].human_pilot is False
+        assert groups["Flanker 1"].human_pilot is False
+
+    def test_aircraft_type_set(self, tmp_path: Path) -> None:
+        miz = _make_mission_with_groups(tmp_path)
+        mission = read_miz(miz)
+        groups = {g.name: g for g in mission.iter_groups()}
+        assert groups["Enfield 1-1"].aircraft_type == "plane"
+        assert groups["Huey Flight"].aircraft_type == "helicopter"
+
+    def test_coalition_set(self, tmp_path: Path) -> None:
+        miz = _make_mission_with_groups(tmp_path)
+        mission = read_miz(miz)
+        groups = {g.name: g for g in mission.iter_groups()}
+        assert groups["Enfield 1-1"].coalition == "blue"
+        assert groups["Flanker 1"].coalition == "red"
+
+    def test_country_set(self, tmp_path: Path) -> None:
+        miz = _make_mission_with_groups(tmp_path)
+        mission = read_miz(miz)
+        groups = {g.name: g for g in mission.iter_groups()}
+        assert groups["Enfield 1-1"].country == "USA"
+        assert groups["Flanker 1"].country == "Russia"
+
+    def test_unit_type_set(self, tmp_path: Path) -> None:
+        miz = _make_mission_with_groups(tmp_path)
+        mission = read_miz(miz)
+        groups = {g.name: g for g in mission.iter_groups()}
+        assert groups["Enfield 1-1"].unit_type == "F-16C_50"
+
+    def test_empty_mission_yields_nothing(self) -> None:
+        mission = DcsMission(file_path=Path("dummy.miz"))
+        assert list(mission.iter_groups()) == []
+
+    def test_no_coalition_key_yields_nothing(self) -> None:
+        mission = DcsMission(file_path=Path("dummy.miz"), mission_content={})
+        assert list(mission.iter_groups()) == []
+
+    @pytest.mark.skipif(not _REAL_MIZ.exists(), reason="test.miz fixture not available")
+    def test_real_miz_smoke(self) -> None:
+        mission = read_miz(_REAL_MIZ)
+        groups = list(mission.iter_groups())
+        assert len(groups) >= 1
+
+
+# ---------------------------------------------------------------------------
+# get/set_weather + get/set_options (DEEP-002)
+# ---------------------------------------------------------------------------
+
+
+class TestWeatherAccessors:
+    def test_get_weather_returns_none_when_no_content(self) -> None:
+        mission = DcsMission(file_path=Path("dummy.miz"))
+        assert mission.get_weather() is None
+
+    def test_get_weather_returns_none_when_key_absent(self) -> None:
+        mission = DcsMission(file_path=Path("dummy.miz"), mission_content={})
+        assert mission.get_weather() is None
+
+    def test_get_weather_returns_dict(self) -> None:
+        mission = DcsMission(
+            file_path=Path("dummy.miz"),
+            mission_content={"weather": {"temperature": 15}},
+        )
+        assert mission.get_weather() == {"temperature": 15}
+
+    def test_set_weather_stores_dict(self) -> None:
+        mission = DcsMission(file_path=Path("dummy.miz"), mission_content={})
+        mission.set_weather({"wind": {"speed_mps": 5}})
+        assert mission.mission_content is not None
+        assert mission.mission_content["weather"] == {"wind": {"speed_mps": 5}}
+
+    def test_set_weather_noop_when_no_content(self) -> None:
+        mission = DcsMission(file_path=Path("dummy.miz"))
+        mission.set_weather({"x": 1})  # must not raise
+        assert mission.mission_content is None
+
+    def test_set_weather_replaces_existing(self) -> None:
+        mission = DcsMission(
+            file_path=Path("dummy.miz"),
+            mission_content={"weather": {"old_key": True}},
+        )
+        mission.set_weather({"new_key": 42})
+        assert mission.get_weather() == {"new_key": 42}
+
+
+class TestOptionsAccessors:
+    def test_get_options_returns_none_by_default(self) -> None:
+        mission = DcsMission(file_path=Path("dummy.miz"))
+        assert mission.get_options() is None
+
+    def test_get_options_returns_stored_dict(self) -> None:
+        opts = {"graphics": {"resolution": "1920x1080"}}
+        mission = DcsMission(file_path=Path("dummy.miz"), options_content=opts)
+        assert mission.get_options() == opts
+
+    def test_set_options_stores_dict(self) -> None:
+        mission = DcsMission(file_path=Path("dummy.miz"))
+        mission.set_options({"key": "value"})
+        assert mission.get_options() == {"key": "value"}
+
+    def test_set_options_replaces_existing(self) -> None:
+        mission = DcsMission(file_path=Path("dummy.miz"), options_content={"old": 1})
+        mission.set_options({"new": 2})
+        assert mission.get_options() == {"new": 2}

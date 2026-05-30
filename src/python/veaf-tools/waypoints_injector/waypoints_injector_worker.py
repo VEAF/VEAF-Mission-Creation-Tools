@@ -5,18 +5,18 @@ Provides extraction and injection of waypoints from/to DCS missions.
 """
 
 import re
-from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 import luadata
 import yaml
-from mission_tools import DcsMission, read_miz, write_miz
+from mission_tools import DcsMission, Group, read_miz, write_miz
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
 from veaf_libs.base_worker import BaseWorker
+from veaf_libs.group_injector_worker import GroupInjectorWorker
 from veaf_libs.logger import logger
 from veaf_libs.progress import spinner_context
 
@@ -25,21 +25,7 @@ from .waypoints_manager import WaypointDefinition, WaypointsManager
 console = Console()
 
 
-@dataclass
-class Group:
-    """Class for keeping track of DCS group."""
-
-    group_dcs: dict
-    aircraft_type: str
-    country: str
-    coalition: str
-    category: str
-    human_pilot: bool = False
-    name: str | None = None
-    unit_type: str | None = None
-
-
-class WaypointsInjectorWorker(BaseWorker):
+class WaypointsInjectorWorker(GroupInjectorWorker):
     """
     Worker class that injects waypoints into aircraft groups from a YAML file.
     """
@@ -54,11 +40,9 @@ class WaypointsInjectorWorker(BaseWorker):
             output_mission: Path to the output .miz mission file
         """
         self.waypoints_file = waypoints_file
-        self.input_mission = input_mission
-        self.output_mission = output_mission
         self.groups: dict[str, Group] = {}
-        self.waypoints_manager: WaypointsManager | None = self.load_config()
-        self.dcs_mission: DcsMission | None = None
+        self.waypoints_manager: WaypointsManager | None = None
+        super().__init__(config_file=waypoints_file, input_mission=input_mission, output_mission=output_mission)
 
     def load_config(self) -> WaypointsManager | None:
         """Load waypoint configuration from YAML file."""
@@ -66,99 +50,31 @@ class WaypointsInjectorWorker(BaseWorker):
         try:
             if self.waypoints_file:
                 waypoints_manager.read_yaml(self.waypoints_file)
-            return waypoints_manager
         except Exception as e:
             logger.error(f"Failed to load waypoints file {self.waypoints_file}: {str(e)}", exception_type=RuntimeError)
+        self.waypoints_manager = waypoints_manager
+        return waypoints_manager
 
-    def add_group(self, group_dict: dict, aircraft_type: str, country: str, coalition: str, category: str) -> None:
+    def add_group(self, group: Group) -> None:
         """Add a group to the list of processing targets."""
-        group = Group(
-            group_dcs=group_dict, aircraft_type=aircraft_type, country=country, coalition=coalition, category=category
-        )
-        if name := group_dict.get("name"):
-            group.name = name
-            if units_list := group_dict.get("units"):
-                for unit in units_list:
-                    if unit_type := unit.get("type", ""):
-                        group.unit_type = unit_type
-                    unit_skill = unit.get("skill", "")
-                    if unit_skill in ["Client", "Player"]:
-                        group.human_pilot = True
-                        logger.debug(
-                            f"Adding group '{group.name}' to waypoint injection targets (human pilot detected)"
-                        )
-                        break
+        if group.name:
+            self.groups[group.name] = group
 
-            self.groups[name] = group
+    def process_group(self, group: Group) -> None:
+        """Collect the group for later processing in process_groups()."""
+        if group.human_pilot:
+            logger.debug(f"Adding group '{group.name}' to waypoint injection targets (human pilot detected)")
+        self.add_group(group)
 
     def read_mission(self, silent: bool = False) -> None:
-        """Load the mission from the .miz file and process aircraft groups."""
+        """Load the mission and collect all groups."""
         if not silent:
             logger.info(f"Reading mission file {self.input_mission}")
         assert self.input_mission is not None
         self.dcs_mission = read_miz(self.input_mission)
-
         logger.debug("Searching for all aircraft groups")
-
-        coalitions_dict = (
-            self.dcs_mission.mission_content.get("coalition") if self.dcs_mission.mission_content else None
-        )
-        if not coalitions_dict:
-            logger.error("Cannot find key 'coalition'", True)
-            return
-
-        for coalition_name in coalitions_dict.keys():
-            self._process_coalition(coalition_name, coalitions_dict[coalition_name])
-
-    def _process_coalition(self, coalition_name: str, coalition_data: dict) -> None:
-        """Process all countries in a coalition."""
-        logger.debug(f"Browsing countries in coalition {coalition_name}")
-
-        countries_list = coalition_data.get("country")
-        if not countries_list:
-            logger.debugwarn(f"No key 'country' in /coalition/{coalition_name}")
-            return
-
-        for country_dict in countries_list:
-            self._process_country(country_dict, coalition_name)
-
-    def _process_country(self, country_dict: dict, coalition_name: str) -> None:
-        """Process a country's aircraft groups."""
-        country_name = country_dict.get("name")
-        if not country_name:
-            logger.error(f"Cannot find key 'name' in /coalition/{coalition_name}/country", True)
-            return
-
-        logger.debug(f"Browsing country {country_name}")
-
-        # Process both helicopter and plane groups
-        for aircraft_type in ["helicopter", "plane"]:
-            self._process_aircraft_type(country_dict, aircraft_type, country_name, coalition_name)
-
-    def _process_aircraft_type(
-        self, country_dict: dict, aircraft_type: str, country_name: str, coalition_name: str
-    ) -> None:
-        """Process groups for a specific aircraft type (helicopter or plane)."""
-        aircraft_data = country_dict.get(aircraft_type)
-        if not aircraft_data:
-            logger.debugwarn(f"No key '{aircraft_type}' in /coalition/{coalition_name}/country/{country_name}")
-            return
-
-        groups_list = aircraft_data.get("group")
-        if not groups_list:
-            logger.warning(
-                f"Cannot find key 'group' in /coalition/{coalition_name}/country/{country_name}/{aircraft_type}"
-            )
-            return
-
-        for group in groups_list:
-            self.add_group(
-                group,
-                aircraft_type=aircraft_type,
-                country=country_name,
-                coalition=coalition_name,
-                category=aircraft_type,
-            )
+        for group in self.dcs_mission.iter_groups():
+            self.process_group(group)
 
     def process_groups(self, silent: bool = False) -> None:
         """Process all aircraft groups and inject waypoints."""
@@ -172,7 +88,10 @@ class WaypointsInjectorWorker(BaseWorker):
         for group in [g for g in self.groups.values() if g.human_pilot]:
             # Try to find a flight plan for this group
             flight_plan = self.waypoints_manager.get_flight_plan_for(
-                coalition=group.coalition, category=group.category, aircraft_type=group.unit_type, country=group.country
+                coalition=group.coalition,
+                category=group.aircraft_type,
+                aircraft_type=group.unit_type,
+                country=group.country,
             )
 
             if flight_plan and flight_plan.waypoints:
@@ -181,7 +100,7 @@ class WaypointsInjectorWorker(BaseWorker):
                 nb_groups_processed += 1
             else:
                 logger.debugwarn(
-                    f"No flight plan found for group '{group.name}' (coalition={group.coalition}, category={group.category}, type={group.unit_type}, country={group.country})"
+                    f"No flight plan found for group '{group.name}' (coalition={group.coalition}, category={group.aircraft_type}, type={group.unit_type}, country={group.country})"
                 )
 
         if not silent:

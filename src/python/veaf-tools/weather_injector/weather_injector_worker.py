@@ -301,14 +301,13 @@ class WeatherInjectorWorker(BaseWorker):
         if not self.mission_data:
             return
 
-        mission_content = self.mission_data.mission_content
-        if not mission_content:
-            return
-        if "weather" not in mission_content:
-            mission_content["weather"] = {}
+        if self.mission_data.get_weather() is None:
+            self.mission_data.set_weather({})
 
         # Merge weather data into mission
-        mission_content["weather"].update(weather)
+        current = self.mission_data.get_weather() or {}
+        current.update(weather)
+        self.mission_data.set_weather(current)
         logger.debug("Weather set in mission")
 
     @staticmethod

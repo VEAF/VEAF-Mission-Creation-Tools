@@ -14,7 +14,7 @@ from .mission_constants import (
     get_mission_script_files,
     get_veaf_script_files,
 )
-from .miz_tools import DcsMission, create_miz, extract_miz, read_miz, write_miz
+from .miz_tools import DcsMission, Group, create_miz, extract_miz, read_miz, write_miz
 
 __all__ = [
     "read_miz",
@@ -22,6 +22,7 @@ __all__ = [
     "create_miz",
     "extract_miz",
     "DcsMission",
+    "Group",
     "DEFAULT_SCRIPTS_LOCATION",
     "get_community_script_files",
     "get_mission_data_files",

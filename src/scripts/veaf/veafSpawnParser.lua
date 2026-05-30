@@ -31,170 +31,177 @@ function veafSpawn.markTextAnalysis(text)
 
   -- Option parameters extracted from the mark text.
   local options = {}
-  options.czName = nil -- name of the CZ to add to the group name, if any
-  options.unit = false
-  options.forceStatic = false -- if true, will force the spawned unit to be a static
-  options.group = false
-  options.cap = false
-  options.farp = false
-  options.noFarpMarkers = false
-  options.fob = false
-  options.type = nil
-  options.cargo = false
-  options.logistic = false
-  options.smoke = false
-  options.flare = false
-  options.signal = false
-  options.bomb = false
-  options.destroy = false
-  options.teleport = false
-  options.convoy = false
-  options.role = nil
-  options.laserCode = 1688
-  options.infantryGroup = false
-  options.armoredPlatoon = false
-  options.airDefenseBattery = false
-  options.transportCompany = false
-  options.fullCombatGroup = false
-  options.speed = nil
-  options.capradius = nil
-  options.shells = 1
-  options.multiplier = 1
-  options.skynet = false -- if true, add to skynet
-  options.forceEwr = false -- if true, unit will be added as an IADS EWR
-  options.pointDefense = false -- if true, unit will be added as point defense to the closest IADS SAM site
-  options.AlarmState = 2 -- Alarm state of the convoy to be spawned, 0 is AUTO, 1 is GREEN, 2 is RED. Note: This option is useful for some vehicules which behave badly in Alarm State RED when spawned such as the Scud or Sa-11 (they deploy and can't drive anywhere). Auto is better suited
-  options.disperse = 15 --disperse time of groups if under attack, by default is set to 20s
-  options.showMFD = false --option to enable groups to be seen on MFDs
-  options.addDrawing = false -- draw a polygon on the map
-  options.drawSquare = false -- draw a square on the map
-  options.drawCircle = false -- draw a circle on the map
-  options.eraseDrawing = false -- erase a polygon from the map
-  options.stopDrawing = false -- close a polygon started on the map
 
-  options.drawColor = nil
-  options.drawFillColor = nil
-  options.drawArrow = nil
-
-  -- spawned group/unit type/alias
+  -- common fields
+  options.czName = nil
   options.name = ""
-
-  -- spawned unit name
   options.unitName = nil
-
-  -- spawned group units spacing
-  options.spacing = 5
-
   options.country = nil
   options.side = nil
   options.altitude = 0
   options.altitudedelta = 0
   options.heading = 0
-  options.distance = nil
-  options.skill = nil
-
-  -- if true, group is part of a road convoy
-  options.isConvoy = false
-
-  -- if true, group is patroling between its spawn point and its destination named point
-  options.patrol = false
-
-  -- if true, group is set to not follow roads
-  options.offroad = false
-
-  -- if set and convoy is true, send the group to the named point
-  options.destination = nil
-
-  -- the size of the generated dynamic groups (platoons, convoys, etc.)
-  options.size = math.random(7) + 8
-
-  -- defenses force ; ranges from 1 to 5, 5 being the toughest.
-  options.defense = math.random(5)
-
-  -- armor force ; ranges from 1 to 5, 5 being the strongest and most modern.
-  options.armor = math.random(5)
-
-  -- bomb power
-  options.power = 100
-
-  -- smoke color
-  options.smokeColor = trigger.smokeColor.RED
-
-  -- optional cargo smoke
-  options.cargoSmoke = false
-
-  -- cargo type
-  options.cargoType = "container_cargo"
-  options.cargoWeightBias = 2 --weight bias of the cargo, if equal to 0, cargo will be very close to minimum weight, if equal to 5, cargo will be close to maximum
-
+  options.multiplier = 1
   options.password = nil
-
-  --AFAC spawn option
-  options.afac = false
-  options.immortal = false
-
-  -- JTAC radio comms
-  options.freq = veafSpawn.convertLaserToFreq(options.laserCode)
-  options.mod = "fm"
-
-  -- TACAN name and channel
-  options.tacanChannel = nil
-  options.tacanBand = nil
-
-  -- repeat options
   options.repeatCount = nil
   options.repeatDelay = nil
-
-  -- delayed start option
   options.delayedStart = 0
+  options.showMFD = false
+  options.AlarmState = 2
+  options.disperse = 15
+  options.shells = 1
+  options.power = 100
 
   -- Check for correct keywords.
   if text:lower():find(veafSpawn.SpawnKeyphrase .. " unit") then
+    -- ground
     options.unit = true
+    options.forceStatic = false
+    options.immortal = false
+    options.spacing = 5
   elseif text:lower():find(veafSpawn.SpawnKeyphrase .. " afac") then
+    -- air
     options.afac = true
+    options.laserCode = 1688
+    options.freq = veafSpawn.convertLaserToFreq(1688)
+    options.mod = "fm"
+    options.immortal = false
     --default country for the AFAC
     options.country = "USA"
     --default AFAC spawned
     options.name = "mq-9"
   elseif text:lower():find(veafSpawn.SpawnKeyphrase .. " cap") then
+    -- air
     options.cap = true
+    options.speed = nil
+    options.capradius = nil
   elseif text:lower():find(veafSpawn.SpawnKeyphrase .. " group") then
+    -- ground
     options.group = true
+    options.forceStatic = false
+    options.immortal = false
+    options.spacing = 5
+    options.size = math.random(7) + 8
+    options.defense = math.random(5)
+    options.armor = math.random(5)
+    options.skynet = false
+    options.forceEwr = false
+    options.pointDefense = false
+    options.isConvoy = false
+    options.patrol = false
+    options.offroad = false
   elseif text:lower():find(veafSpawn.SpawnKeyphrase .. " farp") then
+    -- ground
     options.farp = true
+    options.noFarpMarkers = false
+    options.type = nil
   elseif text:lower():find(veafSpawn.SpawnKeyphrase .. " fob") then
     options.fob = true
   elseif text:lower():find(veafSpawn.SpawnKeyphrase .. " convoy") then
+    -- ground
     options.convoy = true
-    options.size = 10 -- default the size parameter to 10
+    options.size = 10
+    options.defense = math.random(5)
+    options.armor = math.random(5)
+    options.spacing = 5
+    options.isConvoy = false
+    options.patrol = false
+    options.offroad = false
+    options.skynet = false
+    options.forceEwr = false
+    options.pointDefense = false
   elseif text:lower():find(veafSpawn.SpawnKeyphrase .. " infantrygroup") then
+    -- ground
     options.infantryGroup = true
+    options.size = math.random(7) + 8
+    options.defense = math.random(5)
+    options.armor = math.random(5)
+    options.spacing = 5
+    options.skynet = false
+    options.forceEwr = false
+    options.pointDefense = false
+    options.immortal = false
   elseif text:lower():find(veafSpawn.SpawnKeyphrase .. " armorgroup") then
+    -- ground
     options.armoredPlatoon = true
+    options.size = math.random(7) + 8
+    options.defense = math.random(5)
+    options.armor = math.random(5)
+    options.spacing = 5
+    options.skynet = false
+    options.forceEwr = false
+    options.pointDefense = false
+    options.immortal = false
   elseif text:lower():find(veafSpawn.SpawnKeyphrase .. " samgroup") then
+    -- ground
     options.airDefenseBattery = true
+    options.size = math.random(7) + 8
+    options.defense = math.random(5)
+    options.armor = math.random(5)
+    options.spacing = 5
+    options.skynet = false
+    options.forceEwr = false
+    options.pointDefense = false
+    options.immortal = false
   elseif text:lower():find(veafSpawn.SpawnKeyphrase .. " transportgroup") then
+    -- ground
     options.transportCompany = true
     options.size = math.random(2, 5)
+    options.defense = math.random(5)
+    options.armor = math.random(5)
+    options.spacing = 5
+    options.skynet = false
+    options.forceEwr = false
+    options.pointDefense = false
+    options.immortal = false
   elseif text:lower():find(veafSpawn.SpawnKeyphrase .. " combatgroup") then
+    -- ground
     options.fullCombatGroup = true
-    options.size = 1 -- default the size parameter to 1
+    options.size = 1
+    options.defense = math.random(5)
+    options.armor = math.random(5)
+    options.spacing = 5
+    options.skynet = false
+    options.forceEwr = false
+    options.pointDefense = false
+    options.immortal = false
   elseif text:lower():find(veafSpawn.SpawnKeyphrase .. " smoke") then
+    -- effects
     options.smoke = true
+    options.smokeColor = trigger.smokeColor.RED
   elseif text:lower():find(veafSpawn.SpawnKeyphrase .. " flare") then
+    -- effects
     options.flare = true
+    options.smokeColor = trigger.smokeColor.RED
   elseif text:lower():find(veafSpawn.SpawnKeyphrase .. " signal") then
+    -- effects
     options.signal = true
+    options.smokeColor = trigger.smokeColor.RED
   elseif text:lower():find(veafSpawn.SpawnKeyphrase .. " cargo") then
+    -- cargo
     options.cargo = true
+    options.cargoType = "container_cargo"
+    options.cargoWeightBias = 2
+    options.cargoSmoke = false
   elseif text:lower():find(veafSpawn.SpawnKeyphrase .. " logistic") then
+    -- cargo
     options.logistic = true
+    options.cargoType = "container_cargo"
+    options.cargoWeightBias = 2
+    options.cargoSmoke = false
   elseif text:lower():find(veafSpawn.SpawnKeyphrase .. " bomb") then
+    -- effects
     options.bomb = true
+    options.power = 100
+    options.shells = 1
   elseif text:lower():find(veafSpawn.SpawnKeyphrase .. " jtac") then
     options.role = "jtac"
     options.unit = true
+    options.laserCode = 1688
+    options.freq = veafSpawn.convertLaserToFreq(1688)
+    options.mod = "fm"
+    options.immortal = false
+    options.spacing = 5
     -- default country for friendly JTAC: USA
     options.country = "USA"
     -- default name for JTAC
@@ -202,8 +209,13 @@ function veafSpawn.markTextAnalysis(text)
     -- default JTAC name (will overwrite previous unit with same name)
     options.unitName = "JTAC1"
   elseif text:lower():find(veafSpawn.SpawnKeyphrase .. " tacan") then
+    -- air
     options.role = "tacan"
     options.unit = true
+    options.tacanChannel = nil
+    options.tacanBand = nil
+    options.immortal = false
+    options.spacing = 5
     -- default country for friendly tacan: USA
     options.country = "USA"
     -- default name for tacan
@@ -215,13 +227,26 @@ function veafSpawn.markTextAnalysis(text)
   elseif text:lower():find(veafSpawn.TeleportKeyphrase) then
     options.teleport = true
   elseif text:lower():find(veafSpawn.DrawingKeyphrase .. " add") then
+    -- drawing
     options.addDrawing = true
+    options.drawColor = nil
+    options.drawFillColor = nil
+    options.drawArrow = nil
   elseif text:lower():find(veafSpawn.DrawingKeyphrase .. " erase") then
+    -- drawing
     options.eraseDrawing = true
   elseif text:lower():find(veafSpawn.DrawingKeyphrase .. " square") then
+    -- drawing
     options.drawSquare = true
+    options.drawColor = nil
+    options.drawFillColor = nil
+    options.drawArrow = nil
   elseif text:lower():find(veafSpawn.DrawingKeyphrase .. " circle") then
+    -- drawing
     options.drawCircle = true
+    options.drawColor = nil
+    options.drawFillColor = nil
+    options.drawArrow = nil
   elseif text:lower():find(veafSpawn.MissionMasterKeyphrase .. " flagon") then
     options.mmFlagOn = true
   elseif text:lower():find(veafSpawn.MissionMasterKeyphrase .. " flagoff") then

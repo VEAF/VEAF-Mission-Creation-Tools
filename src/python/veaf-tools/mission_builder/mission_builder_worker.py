@@ -6,6 +6,7 @@ import re
 import shutil
 from pathlib import Path
 
+import yaml
 from mission_tools import (
     DEFAULT_SCRIPTS_LOCATION,
     DcsMission,
@@ -17,10 +18,13 @@ from mission_tools import (
     read_miz,
     write_miz,
 )
+from veaf_libs import user_config as _user_config
 from veaf_libs.base_worker import BaseWorker
 from veaf_libs.i18n import t
 from veaf_libs.logger import logger
 from veaf_libs.lua_config_generator import generate_config_lua
+from veaf_libs.lua_module_scanner import get_modules
+from veaf_libs.paths import resolve_path
 from veaf_libs.progress import spinner_context
 
 
@@ -34,28 +38,91 @@ class MissionBuilderWorker(BaseWorker):
         mission_folder: Path,
         output_mission: Path,
         dynamic_mode: bool | None,
-        scripts_path: Path | None,
+        dev_mode_override: bool | None = None,
+        scripts_path_override: str | Path | None = None,
+        log_modules_filter: str | None = None,
         migrate_from_v5: bool = True,
         no_veaf_triggers: bool = False,
-        lua_modules: dict | None = None,
-        global_log_level: str | None = None,
-        mission_yaml: dict | None = None,
-        dev_mode: bool = False,
     ):
         """
-        Initialize the worker with parameters for both use cases.
+        Initialize the worker.  Config resolution priority: CLI override > mission.yaml > user config > code defaults.
         """
 
         self.output_mission = output_mission
         self.mission_folder = mission_folder
         self.dynamic_mode = dynamic_mode
-        self.scripts_path = scripts_path
-        self.dev_mode = dev_mode
-        self.dcs_mission: DcsMission | None = None
         self.migrate_from_v5: bool = migrate_from_v5
         self.no_veaf_triggers: bool = no_veaf_triggers
-        self.lua_modules: dict | None = lua_modules
-        self.mission_yaml: dict | None = mission_yaml
+        self.dcs_mission: DcsMission | None = None
+        self.collected_community_script_files: dict[str, bytes] | None = None
+        self.collected_veaf_script_files: dict[str, bytes] | None = None
+        self.collected_mission_script_files: dict[str, bytes] | None = None
+        self.collected_mission_data_files: dict[str, bytes] | None = None
+
+        # Read mission.yaml
+        self.mission_yaml: dict = {}
+        self.pipeline_cfg: dict = {}
+        mission_yaml_path = mission_folder / "mission.yaml"
+        if mission_yaml_path.exists():
+            with mission_yaml_path.open("r", encoding="utf-8") as fh:
+                self.mission_yaml = yaml.safe_load(fh) or {}
+        build_cfg: dict = self.mission_yaml.get("build") or {}
+        self.pipeline_cfg = self.mission_yaml.get("pipeline") or {}
+
+        # Extract lua_modules and global_log_level from yaml
+        lua_modules: dict | None = self.mission_yaml.get("lua_modules") or None
+        if lua_modules:
+            logger.info(f"Found lua_modules section in {mission_yaml_path}; will generate veaf-config.lua")
+        global_log_level: str | None = self.mission_yaml.get("global_log_level") or None
+        if global_log_level:
+            logger.info(f"Found global_log_level={global_log_level!r} in {mission_yaml_path}")
+
+        # Resolve dev_mode: CLI override > mission.yaml > default
+        self.dev_mode: bool = (
+            dev_mode_override if dev_mode_override is not None else bool(build_cfg.get("dev_mode", False))
+        )
+        if self.dev_mode:
+            logger.info("Dev mode: VEAF scripts resolved from local dev repo (build/veaf-scripts.lua)")
+
+        # Resolve scripts_path: CLI override > mission.yaml > user config
+        _uc_sp = _user_config.get_scripts_path()
+        effective_scripts_path_str: str | Path | None = (
+            scripts_path_override or build_cfg.get("scripts_path") or (str(_uc_sp) if _uc_sp else None)
+        )
+        if not effective_scripts_path_str and dynamic_mode:
+            effective_scripts_path_str = mission_folder / "published"
+        if effective_scripts_path_str:
+            self.scripts_path: Path | None = resolve_path(path=effective_scripts_path_str, should_exist=True)
+            if not self.scripts_path.exists():
+                logger.error(f"Scripts folder {self.scripts_path} does not exist!", exception_type=FileNotFoundError)
+        else:
+            self.scripts_path = None
+
+        if self.dev_mode and not self.scripts_path:
+            logger.error(
+                "--dev-mode requires a scripts path. "
+                "Pass --scripts-path <repo_root> or set build.scripts_path in mission.yaml.",
+                exception_type=ValueError,
+            )
+
+        # Apply log_modules_filter: silence all modules not in the keep list
+        if log_modules_filter is not None:
+            keep_modules = {m.strip() for m in log_modules_filter.split(",") if m.strip()}
+            all_module_ids = {m["id"] for m in get_modules()}
+            if unknown := keep_modules - all_module_ids:
+                logger.warning(f"--log-modules: unknown module ID(s): {sorted(unknown)} — check spelling")
+            lua_modules = lua_modules or {}
+            for mod_id in all_module_ids:
+                if mod_id not in keep_modules:
+                    if mod_id not in lua_modules:
+                        lua_modules[mod_id] = {}
+                    lua_modules[mod_id].setdefault("logLevel", "error")
+            logger.info(
+                f"--log-modules: keeping full logging for {sorted(keep_modules) or 'none'}, "
+                f"silencing {len(all_module_ids) - len(keep_modules)} other module(s)"
+            )
+
+        # Normalize global_log_level
         _valid_levels = {"error", "warning", "info", "debug", "trace"}
         if global_log_level is not None:
             normalized = global_log_level.lower().strip()
@@ -69,10 +136,7 @@ class MissionBuilderWorker(BaseWorker):
                 normalized = "info"
             global_log_level = normalized
         self.global_log_level: str | None = global_log_level
-        self.collected_community_script_files: dict[str, bytes] | None = None
-        self.collected_veaf_script_files: dict[str, bytes] | None = None
-        self.collected_mission_script_files: dict[str, bytes] | None = None
-        self.collected_mission_data_files: dict[str, bytes] | None = None
+        self.lua_modules: dict | None = lua_modules
 
         if self.mission_folder and not self.mission_folder.is_dir():
             logger.error(

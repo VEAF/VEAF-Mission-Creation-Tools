@@ -11,9 +11,9 @@ The pipeline runs four optional steps, in this order:
 | Step | Config file | What it does |
 |------|-------------|--------------|
 | `presets` | `src/presets.yaml` | Injects radio frequency presets into human-piloted aircraft groups |
-| `waypoints` | `src/waypoints.yaml` | Injects waypoint templates into human-piloted aircraft groups |
-| `aircraft_groups` | `src/aircraft-templates.yaml` | Injects aircraft group definitions (slots/spawnable groups) |
-| `weather` | `src/versions.yaml` | Creates multiple mission variants with different weather and time |
+| `waypoints` | `src/waypoints.yaml` or `waypoints.yaml` | Injects waypoint templates into human-piloted aircraft groups |
+| `aircraft_groups` | `src/aircraft-templates.yaml`, `src/templates.yaml`, or `aircraft-templates.yaml` | Injects aircraft group definitions (slots/spawnable groups) |
+| `weather` | `src/missions.yaml` (legacy, first), `src/versions.yaml`, or `missions.yaml` | Creates multiple mission variants with different weather and time |
 
 Each step is **auto-detected**: it runs if its default config file exists. You can override this behaviour in `mission.yaml`.
 
@@ -24,7 +24,7 @@ Each step is **auto-detected**: it runs if its default config file exists. You c
 ```yaml
 pipeline:
   presets: false                        # skip even if src/presets.yaml exists
-  waypoints: true                       # always run (file must exist)
+  waypoints: true                       # auto-detect: runs only if the config file exists
   aircraft_groups:
     file: src/my-aircraft.yaml          # non-default file path
     mode: replace                       # add (default) | replace
@@ -35,10 +35,10 @@ pipeline:
 
 | Field | Type | Default | Required | Description |
 |-------|------|---------|----------|-------------|
-| `presets` | bool \| object | auto | No | `true` = run, `false` = skip, object = custom options |
-| `waypoints` | bool \| object | auto | No | `true` = run, `false` = skip, object = custom options |
-| `aircraft_groups` | bool \| object | auto | No | `true` = run, `false` = skip, object = custom options |
-| `weather` | bool \| object | auto | No | `true` = run, `false` = skip, object = custom options |
+| `presets` | bool \| object | auto | No | `true`/unset = auto-detect (run if file exists), `false` = always skip, object = custom options |
+| `waypoints` | bool \| object | auto | No | `true`/unset = auto-detect (run if file exists), `false` = always skip, object = custom options |
+| `aircraft_groups` | bool \| object | auto | No | `true`/unset = auto-detect (run if file exists), `false` = always skip, object = custom options |
+| `weather` | bool \| object | auto | No | `true`/unset = auto-detect (run if file exists), `false` = always skip, object = custom options |
 
 When set to an object, the following sub-fields apply:
 
@@ -147,6 +147,8 @@ Injects waypoint templates into human-piloted aircraft groups. Only groups with 
 
 ```
 <mission-folder>/src/waypoints.yaml
+
+Also accepted: waypoints.yaml  (mission root)
 ```
 
 ### Schema
@@ -219,9 +221,10 @@ Injects aircraft group definitions into the mission. Used for spawnable groups a
 ### Default file location
 
 ```
-<mission-folder>/src/aircraft-templates.yaml`
+<mission-folder>/src/aircraft-templates.yaml
 
-Also accepted: `src/templates.yaml`
+Also accepted: src/templates.yaml
+                aircraft-templates.yaml  (mission root)
 ```
 
 ### Injection modes
@@ -285,9 +288,10 @@ Creates multiple `.miz` variants from a single base mission, each with a differe
 ### Default file location
 
 ```
+<mission-folder>/src/missions.yaml  (legacy, checked first)
 <mission-folder>/src/versions.yaml
 
-Also accepted: src/missions.yaml  (legacy alias)
+Also accepted: missions.yaml  (mission root)
 ```
 
 ### Schema

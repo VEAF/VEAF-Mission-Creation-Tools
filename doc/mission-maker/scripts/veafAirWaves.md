@@ -47,7 +47,7 @@ lua_modules:
         description: "Eastern BVR arena"  # shown in messages (optional)
         start: true                       # true = start automatically at mission start
         player_coalitions: [BLUE]         # BLUE | RED — which coalition's players trigger waves
-        zone_center_coordinates: "N41\u00b000'00\" E044\u00b000'00\""  # use this OR trigger_zone_name
+        zone_center_coordinates: "N41°00'00\" E044°00'00\""  # use this OR trigger_zone_name
         trigger_zone_name: "ZONE-BVR-EAST"  # DCS trigger zone name (alternative to coordinates)
         zone_radius: 50000               # radius in metres (when using coordinates)
         draw_zone: true                  # draw zone boundary on the map

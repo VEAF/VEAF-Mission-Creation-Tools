@@ -39,7 +39,7 @@ lua_modules:
       - sort: 1                         # sort order in F10 menu (lower = first)
         name: "Texaco"                  # internal identifier
         description: "Texaco (KC-135)" # label shown in F10 menu
-        information: "Tacan 51Y\nU251.00 (21)"  # info text shown to players (\n for newline)
+        information: 'Tacan 51Y\nU251.00 (21)'  # single-quoted: \n is preserved as-is → valid Lua escape
         linked: null                    # linked asset name (optional)
         jtac: false                     # true = asset is a JTAC (optional)
         freq: null                      # override frequency for info display (optional)
@@ -54,7 +54,7 @@ lua_modules:
 | `assets[].sort` | integer | `0` | No | Sort order in the F10 menu (ascending) |
 | `assets[].name` | string | — | Yes | Internal identifier |
 | `assets[].description` | string | — | Yes | Label shown in the F10 menu |
-| `assets[].information` | string | — | No | Info text displayed to players (supports `\n` for line breaks) |
+| `assets[].information` | string | — | No | Info text displayed to players — use single-quoted YAML `'line1\nline2'` or `"line1\\nline2"` (double-quoted) to get a `\n` Lua escape |
 | `assets[].linked` | string | `null` | No | Name of a linked asset (e.g. a carrier linked to its escort) |
 | `assets[].jtac` | boolean | `false` | No | Marks this asset as a JTAC |
 | `assets[].freq` | number | `null` | No | Override frequency for the info display (MHz) |

@@ -11,9 +11,9 @@ Le pipeline exécute quatre étapes optionnelles, dans cet ordre :
 | Étape | Fichier config | Ce qu'elle fait |
 |-------|----------------|----------------|
 | `presets` | `src/presets.yaml` | Injecte les préréglages de fréquences radio dans les groupes d'avions pilotés par des humains |
-| `waypoints` | `src/waypoints.yaml` | Injecte des modèles de points de cheminement dans les groupes d'avions pilotés par des humains |
-| `aircraft_groups` | `src/aircraft-templates.yaml` | Injecte des définitions de groupes d'aéronefs (slots/groupes à spawner) |
-| `weather` | `src/versions.yaml` | Crée plusieurs variantes de mission avec différentes météos et heures |
+| `waypoints` | `src/waypoints.yaml` ou `waypoints.yaml` | Injecte des modèles de points de cheminement dans les groupes d'avions pilotés par des humains |
+| `aircraft_groups` | `src/aircraft-templates.yaml`, `src/templates.yaml` ou `aircraft-templates.yaml` | Injecte des définitions de groupes d'aéronefs (slots/groupes à spawner) |
+| `weather` | `src/missions.yaml` (legacy, prioritaire), `src/versions.yaml` ou `missions.yaml` | Crée plusieurs variantes de mission avec différentes météos et heures |
 
 Chaque étape est **auto-détectée** : elle s'exécute si son fichier de config par défaut existe. Vous pouvez modifier ce comportement dans `mission.yaml`.
 
@@ -24,7 +24,7 @@ Chaque étape est **auto-détectée** : elle s'exécute si son fichier de config
 ```yaml
 pipeline:
   presets: false                        # ignoré même si src/presets.yaml existe
-  waypoints: true                       # toujours exécuté (le fichier doit exister)
+  waypoints: true                       # auto-détection : exécuté seulement si le fichier existe
   aircraft_groups:
     file: src/my-aircraft.yaml          # chemin de fichier non-standard
     mode: replace                       # add (défaut) | replace
@@ -35,10 +35,10 @@ pipeline:
 
 | Champ | Type | Défaut | Requis | Description |
 |-------|------|--------|--------|-------------|
-| `presets` | bool \| objet | auto | Non | `true` = exécuter, `false` = ignorer, objet = options personnalisées |
-| `waypoints` | bool \| objet | auto | Non | `true` = exécuter, `false` = ignorer, objet = options personnalisées |
-| `aircraft_groups` | bool \| objet | auto | Non | `true` = exécuter, `false` = ignorer, objet = options personnalisées |
-| `weather` | bool \| objet | auto | Non | `true` = exécuter, `false` = ignorer, objet = options personnalisées |
+| `presets` | bool \| objet | auto | Non | `true`/non défini = auto-détection (exécuté si fichier trouvé), `false` = toujours ignorer, objet = options personnalisées |
+| `waypoints` | bool \| objet | auto | Non | `true`/non défini = auto-détection (exécuté si fichier trouvé), `false` = toujours ignorer, objet = options personnalisées |
+| `aircraft_groups` | bool \| objet | auto | Non | `true`/non défini = auto-détection (exécuté si fichier trouvé), `false` = toujours ignorer, objet = options personnalisées |
+| `weather` | bool \| objet | auto | Non | `true`/non défini = auto-détection (exécuté si fichier trouvé), `false` = toujours ignorer, objet = options personnalisées |
 
 Quand la valeur est un objet, les sous-champs suivants s'appliquent :
 
@@ -145,6 +145,8 @@ Injecte des modèles de points de cheminement dans les groupes d'aéronefs pilot
 
 ```
 <dossier-mission>/src/waypoints.yaml
+
+Aussi accepté : waypoints.yaml  (racine du dossier mission)
 ```
 
 ### Schéma
@@ -220,6 +222,7 @@ Injecte des définitions de groupes d'aéronefs dans la mission. Utilisé pour l
 <dossier-mission>/src/aircraft-templates.yaml
 
 Aussi accepté : src/templates.yaml
+                aircraft-templates.yaml  (racine du dossier mission)
 ```
 
 ### Modes d'injection
@@ -283,9 +286,10 @@ Crée plusieurs variantes `.miz` à partir d'une mission de base, chacune avec u
 ### Emplacement par défaut
 
 ```
+<dossier-mission>/src/missions.yaml  (legacy, vérifié en premier)
 <dossier-mission>/src/versions.yaml
 
-Aussi accepté : src/missions.yaml  (alias legacy)
+Aussi accepté : missions.yaml  (racine du dossier mission)
 ```
 
 ### Schéma

@@ -27,7 +27,7 @@ lua_modules:
       - sort: 1
         name: "Texaco"
         description: "Texaco (KC-135)"
-        information: "Tacan 51Y\nU251.00 (21)"
+        information: 'Tacan 51Y\nU251.00 (21)'
 ```
 
 ---

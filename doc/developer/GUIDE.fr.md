@@ -188,7 +188,7 @@ lua_modules:
     logLevel: trace
 ```
 
-Cela génère des appels `veaf.setConfig("MODULE_ID", "logLevel", "...")` dans `veaf-modules-config.lua`. Ou utiliser `--log-modules SPAWN,RADIO` sur la CLI pour réduire au silence tout le reste.
+Cela génère des appels `veaf.setConfig("MODULE_ID", "logLevel", "...")` dans `veaf-config.lua`. Ou utiliser `--log-modules SPAWN,RADIO` sur la CLI pour réduire au silence tout le reste.
 
 Pour le contrôle **par module au runtime** (sans rebuild), ajouter l'appel Lua directement dans `mission-script.lua` :
 

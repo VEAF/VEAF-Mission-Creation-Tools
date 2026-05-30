@@ -38,7 +38,7 @@ lua_modules:
       - sort: 1                         # ordre de tri dans le menu F10 (plus petit = premier)
         name: "Texaco"                  # identifiant interne
         description: "Texaco (KC-135)" # libellé affiché dans le menu F10
-        information: "Tacan 51Y\nU251.00 (21)"  # texte d'info affiché aux joueurs (\n pour saut de ligne)
+        information: 'Tacan 51Y\nU251.00 (21)'  # guillemets simples : \n est conservé tel quel → échappement Lua valide
         linked: null                    # nom d'une ressource liée (optionnel)
         jtac: false                     # true = la ressource est un JTAC (optionnel)
         freq: null                      # fréquence de remplacement pour l'affichage infos (optionnel)
@@ -53,7 +53,7 @@ lua_modules:
 | `assets[].sort` | entier | `0` | Non | Ordre de tri dans le menu F10 (croissant) |
 | `assets[].name` | string | — | Oui | Identifiant interne |
 | `assets[].description` | string | — | Oui | Libellé affiché dans le menu F10 |
-| `assets[].information` | string | — | Non | Texte d'info affiché aux joueurs (supporte `\n` pour les sauts de ligne) |
+| `assets[].information` | string | — | Non | Texte d'info affiché aux joueurs — utiliser du YAML entre guillemets simples `'ligne1\nligné2'` ou `"ligne1\\nligne2"` (double-quoté) pour obtenir un `\n` Lua valide |
 | `assets[].linked` | string | `null` | Non | Nom d'une ressource liée (ex : un porte-avions lié à son escorte) |
 | `assets[].jtac` | booléen | `false` | Non | Marque cette ressource comme JTAC |
 | `assets[].freq` | nombre | `null` | Non | Fréquence de remplacement pour l'affichage infos (MHz) |

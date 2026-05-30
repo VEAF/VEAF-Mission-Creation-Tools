@@ -162,7 +162,7 @@
 #   presets       → src/presets.yaml
 #   waypoints     → src/waypoints.yaml
 #   aircraft_groups → src/aircraft-templates.yaml  (also: src/templates.yaml)
-#   weather       → src/missions.yaml              (also: src/versions.yaml)
+#   weather       → src/versions.yaml              (also: src/missions.yaml  legacy)
 #
 # Set a step to false to disable it even when its file exists.
 # Use a `file:` key to point to a non-default location.

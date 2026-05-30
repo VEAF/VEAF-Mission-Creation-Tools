@@ -44,10 +44,13 @@ A VEAF mission is a standard DCS `.miz` file that loads the VEAF Lua framework a
 | Tool | Purpose | Required |
 |------|---------|----------|
 | DCS World | The simulator | Yes |
+| DCS Mission Editor | Create the base `.miz` (included with DCS) | Yes |
 | Git | Version control for your mission project | Recommended |
 | `veaf-tools-updater.exe` | Downloads and installs the latest VEAF MCT release | Yes |
 | `veaf-tools.exe` | Build-time `.miz` manipulation CLI | Yes (for build pipeline) |
-| VS Code or similar | Editing Lua/YAML config files | Recommended |
+| VS Code or Notepad++ | Editing Lua/YAML config files | Recommended |
+
+> **Base mission requirement**: The `.miz` you create in the DCS Mission Editor must contain **at least one blue ground group and one red ground group**. Without both, the Lua coalition tables are incomplete, which can cause the injection tools (`inject-presets`, `inject-waypoints`) to silently skip groups.
 
 ---
 
@@ -273,18 +276,29 @@ Full reference: [Tools Reference](../TOOLS_REFERENCE.md)
 ## Typical Build Workflow
 
 ```powershell
-# 1. Build the mission (reads src/ folder, injects VEAF triggers → output .miz)
-veaf-tools.exe build my-mission.miz
+# Build the mission — the integrated pipeline runs all enabled steps automatically
+veaf-tools.exe build .
+```
 
-# 2. Inject radio presets from YAML config (optional, operates on the built .miz)
+The `build` command reads `mission.yaml` and runs every enabled pipeline step (presets, waypoints, aircraft groups, weather) in a single pass. Configure which steps are active under the `pipeline:` key in `mission.yaml`.
+
+<details>
+<summary>Advanced: running pipeline steps individually</summary>
+
+If you need to run a single step in isolation (e.g. inject weather only, without a full rebuild):
+
+```powershell
+# Inject radio presets only
 veaf-tools.exe inject-presets my-mission.miz --presets-file src/presets.yaml
 
-# 3. Inject bullseye and nav waypoints (optional)
+# Inject bullseye and nav waypoints only
 veaf-tools.exe inject-waypoints my-mission.miz --waypoints-file src/waypoints.yaml
 
-# 4. Create weather/time variants (optional)
-veaf-tools.exe inject-weather my-mission.miz --config-file missions.yaml
+# Create weather/time variants only
+veaf-tools.exe inject-weather my-mission.miz --config-file versions.yaml
 ```
+
+</details>
 
 Commit the contents of `src/` to Git — not the built `.miz`. Use `extract` once to bootstrap the source folder from an existing mission:
 
@@ -356,6 +370,22 @@ local defenseZone = AirWaveZone:new()
 
 [CTLD](https://github.com/ciribob/DCS-CTLD) (Combat Troop Loading and Deployment) and [CSAR](https://github.com/ciribob/DCS-CSAR) (Combat Search and Rescue) are third-party scripts that VEAF supports natively. VEAF monkey-patches their `initialize()` functions at startup, so you do not need to load or initialise them separately — just call them from `mission-script.lua` using the standard VEAF pattern.
 
+### Configuring CTLD via mission.yaml (YAML-first)
+
+You can enable CTLD and set its properties directly in `mission.yaml`, without any Lua:
+
+```yaml
+external_modules:
+  ctld:
+    enabled: true
+    hoverPickup: false
+    slingLoad: true
+```
+
+VEAF generates the corresponding Lua configuration in `veaf-config.lua` at build time. Use `mission-script.lua` only for settings not yet supported by the YAML schema.
+
+> **CSAR**: CSAR YAML configuration is planned for a future release. In the meantime, configure CSAR in `mission-script.lua` as shown below.
+
 ### Loading order in the DCS trigger chain
 
 CTLD/CSAR scripts must be loaded before the VEAF scripts:
@@ -371,6 +401,8 @@ DO SCRIPT FILE → mission-script.lua (your custom code)
 When `veaf-scripts.lua` loads, it detects the presence of `ctld` and `csar` global tables and wraps their `initialize()` functions, applying VEAF defaults before calling the real initialiser.
 
 ### Enabling CTLD in mission-script.lua
+
+For settings not covered by `mission.yaml`, use the Lua callback pattern:
 
 ```lua
 if ctld then
@@ -417,7 +449,7 @@ end
 
 ### VEAF automatic defaults
 
-When VEAF wraps the initialisers it applies its own defaults: logging, a standard radio menu entry, and integration with `veafAssets` for auto-lasing JTACs that coordinate with CSAR helicopters. You do not need to configure any of this manually.
+When VEAF wraps the initialisers it applies its own defaults: logging and a standard radio menu entry. You do not need to configure any of this manually.
 
 ---
 

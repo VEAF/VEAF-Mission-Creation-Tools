@@ -836,7 +836,7 @@ def generate_mission_yaml_template(
         "#   presets: true             # src/presets.yaml",
         "#   waypoints: true           # src/waypoints.yaml",
         "#   aircraft_groups: true     # src/aircraft-templates.yaml",
-        "#   weather: true             # src/missions.yaml",
+        "#   weather: true             # src/versions.yaml",
     ]
 
     return "\n".join(lines) + "\n"

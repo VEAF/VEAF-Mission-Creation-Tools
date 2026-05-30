@@ -49,6 +49,7 @@ veafCommands.PRIORITY_NAMEDPOINTS = 30
 veafCommands.PRIORITY_CASMISSION = 40
 veafCommands.PRIORITY_SECURITY = 50
 veafCommands.PRIORITY_MOVE = 60
+veafCommands.PRIORITY_GROUNDAI = 62
 veafCommands.PRIORITY_RADIO = 70
 veafCommands.PRIORITY_REMOTE = 80
 

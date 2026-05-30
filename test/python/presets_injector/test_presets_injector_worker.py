@@ -7,7 +7,8 @@ import unittest
 from pathlib import Path
 from unittest.mock import MagicMock
 
-from presets_injector.presets_injector_worker import Group, PresetsInjectorWorker
+from mission_tools import Group
+from presets_injector.presets_injector_worker import PresetsInjectorWorker
 from presets_injector.presets_manager import PresetDefinition
 
 
@@ -46,51 +47,52 @@ class TestLoadConfig(unittest.TestCase):
 class TestAddGroup(unittest.TestCase):
     def test_add_group_with_name_stored(self) -> None:
         worker = _make_worker()
-        group_dict = {"name": "F-16 Alpha", "units": []}
-        worker.add_group(group_dict, aircraft_type="plane", country="USA", coalition="blue")
+        group = Group(group_dcs={"name": "F-16 Alpha"}, aircraft_type="plane", country="USA", coalition="blue", name="F-16 Alpha")
+        worker.add_group(group)
         self.assertIn("F-16 Alpha", worker.groups)
 
     def test_add_group_without_name_not_stored(self) -> None:
         worker = _make_worker()
-        group_dict = {"units": [{"type": "F-16C_50"}]}
-        worker.add_group(group_dict, aircraft_type="plane", country="USA", coalition="blue")
+        group = Group(group_dcs={}, aircraft_type="plane", country="USA", coalition="blue")
+        worker.add_group(group)
         self.assertEqual(len(worker.groups), 0)
 
     def test_add_group_human_pilot_detected(self) -> None:
         worker = _make_worker()
-        group_dict = {
-            "name": "Human Group",
-            "units": [{"type": "F-16C_50", "skill": "Client"}],
-        }
-        worker.add_group(group_dict, aircraft_type="plane", country="USA", coalition="blue")
-        group = worker.groups["Human Group"]
-        self.assertTrue(group.human_pilot)
-        self.assertEqual(group.unit_type, "F-16C_50")
+        group = Group(
+            group_dcs={"name": "Human Group"},
+            aircraft_type="plane", country="USA", coalition="blue",
+            name="Human Group", unit_type="F-16C_50", human_pilot=True,
+        )
+        worker.add_group(group)
+        stored = worker.groups["Human Group"]
+        self.assertTrue(stored.human_pilot)
+        self.assertEqual(stored.unit_type, "F-16C_50")
 
     def test_add_group_player_skill_detected(self) -> None:
         worker = _make_worker()
-        group_dict = {
-            "name": "Player Group",
-            "units": [{"type": "Su-27", "skill": "Player"}],
-        }
-        worker.add_group(group_dict, aircraft_type="plane", country="Russia", coalition="red")
-        group = worker.groups["Player Group"]
-        self.assertTrue(group.human_pilot)
+        group = Group(
+            group_dcs={"name": "Player Group"},
+            aircraft_type="plane", country="Russia", coalition="red",
+            name="Player Group", human_pilot=True,
+        )
+        worker.add_group(group)
+        self.assertTrue(worker.groups["Player Group"].human_pilot)
 
     def test_add_group_ai_pilot_not_human(self) -> None:
         worker = _make_worker()
-        group_dict = {
-            "name": "AI Group",
-            "units": [{"type": "F-16C_50", "skill": "Excellent"}],
-        }
-        worker.add_group(group_dict, aircraft_type="plane", country="USA", coalition="blue")
-        group = worker.groups["AI Group"]
-        self.assertFalse(group.human_pilot)
+        group = Group(
+            group_dcs={"name": "AI Group"},
+            aircraft_type="plane", country="USA", coalition="blue",
+            name="AI Group", human_pilot=False,
+        )
+        worker.add_group(group)
+        self.assertFalse(worker.groups["AI Group"].human_pilot)
 
     def test_add_group_no_units(self) -> None:
         worker = _make_worker()
-        group_dict = {"name": "No Units Group"}
-        worker.add_group(group_dict, aircraft_type="plane", country="USA", coalition="blue")
+        group = Group(group_dcs={"name": "No Units Group"}, aircraft_type="plane", country="USA", coalition="blue", name="No Units Group")
+        worker.add_group(group)
         self.assertIn("No Units Group", worker.groups)
         self.assertFalse(worker.groups["No Units Group"].human_pilot)
 

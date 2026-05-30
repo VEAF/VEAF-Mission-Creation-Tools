@@ -48,6 +48,16 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Changed (Shortcuts, Spawn, NamedPoints, CasMission, Security, Move, Radio, Remote) self-register via `veafCommands.registerCommandHandler()` — per-module `onEventMarkChange` functions removed
 - Developer Guide (`doc/developer/GUIDE.md` + `.fr.md`) — Mermaid architecture diagram and runtime logging section updated to reference `veaf-config.lua` and `mission-script.lua` (v6) instead of the v5 `missionconfig.lua` (DOC-008)
 - `veafInterpreter.execute()` delegates to `veafCommands.execute()` — hardcoded 8-branch if/elseif removed
+- `mission_tools.DcsMission` — added `Group` dataclass and `iter_groups()` iterator; all injectors now share a single traversal path (DEEP-001)
+- `mission_tools.DcsMission` — added `get_weather()` / `set_weather()` / `get_options()` / `set_options()` accessors; `WeatherInjectorWorker` updated to use them (DEEP-002)
+- `WaypointsInjectorWorker`, `PresetsInjectorWorker` — local group traversal removed; now delegated to `DcsMission.iter_groups()` (DEEP-003)
+- `veafCommands.lua` — added `PRIORITY_GROUNDAI = 62` constant (DEEP-005)
+- `veafGroundAI.initialize()` — migrated from `veafMarkers.registerEventHandler` to `veafCommands.registerCommandHandler` at `PRIORITY_GROUNDAI` (DEEP-005)
+- `veafSpawnParser.markTextAnalysis()` — common option defaults now in a single header block; type-specific defaults moved into their respective IF/ELSEIF branches (DEEP-006)
+- `MissionBuilderWorker.__init__()` — now reads `mission.yaml`, resolves `dev_mode` / `scripts_path` from priority chain (CLI override > YAML > user config), and applies `log_modules_filter`; `build.py` simplified from ~180 to ~110 lines (DEEP-007)
+
+### Added
+- `veaf_libs.GroupInjectorWorker` — abstract base class for group-iterating injectors; `PresetsInjectorWorker` and `WaypointsInjectorWorker` now inherit from it (DEEP-004)
 - `veafSpawnCore.lua` reduced from ~1834 to ~900 lines: parser extracted; 25-branch if/elseif replaced by handler dispatch loop
 - `veafSpawnGround`, `veafSpawnAircraft`, `veafSpawnEffects` sub-modules self-register their spawn handlers via `veafSpawn.registerCommandHandler()`
 - 7 remote modules self-register via `veafRemote.registerRemoteModule()` — hardcoded switch in `executeCommandFromRemote` removed

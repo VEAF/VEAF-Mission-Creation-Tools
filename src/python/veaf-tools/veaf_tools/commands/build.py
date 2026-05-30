@@ -8,8 +8,6 @@ from aircrafts_injector import AircraftGroupsInjectorWorker, AircraftGroupsYAMLV
 from mission_builder import MissionBuilderREADME, MissionBuilderWorker
 from presets_injector import PresetsInjectorWorker
 from rich.markdown import Markdown
-from veaf_libs import user_config as _user_config
-from veaf_libs.lua_module_scanner import get_modules
 from veaf_libs.paths import resolve_path
 from waypoints_injector import WaypointsInjectorWorker
 from weather_injector import WeatherInjectorWorker
@@ -75,112 +73,46 @@ def build(
     if not p_mission_folder.exists():
         logger.error(f"Mission folder {p_mission_folder} does not exist!", exception_type=FileNotFoundError)
 
-    # Resolve output mission
+    # Resolve output mission — peek mission.yaml for name only
     p_output_mission = resolve_path(path=mission_name_or_file)
     if p_output_mission.suffix.lower() != ".miz":
         p_output_mission = Path(f"{mission_name_or_file}_{datetime.now().strftime('%Y%m%d')}.miz")
 
-    # Read mission.yaml: lua_modules (LUA-005), global_log_level (LUA-007), pipeline (TOOL-pipeline), build
-    lua_modules: dict | None = None
-    global_log_level: str | None = None
-    pipeline_cfg: dict = {}
-    build_cfg: dict = {}
-    mission_yaml: dict = {}
     mission_yaml_path = p_mission_folder / "mission.yaml"
-    if mission_yaml_path.exists():
+    if mission_name_or_file == DEFAULT_MISSION_FILE and mission_yaml_path.exists():
         with mission_yaml_path.open("r", encoding="utf-8") as fh:
-            mission_yaml = yaml.safe_load(fh) or {}
-        lua_modules = mission_yaml.get("lua_modules") or None
-        if lua_modules:
-            logger.info(f"Found lua_modules section in {mission_yaml_path}; will generate veaf-config.lua")
-        global_log_level = mission_yaml.get("global_log_level") or None
-        if global_log_level:
-            logger.info(f"Found global_log_level={global_log_level!r} in {mission_yaml_path}")
-        pipeline_cfg = mission_yaml.get("pipeline") or {}
-        build_cfg = mission_yaml.get("build") or {}
+            _peek_yaml: dict = yaml.safe_load(fh) or {}
+        _yaml_mission_name: str | None = (_peek_yaml.get("mission") or {}).get("name")
+        if _yaml_mission_name:
+            _safe_name = re.sub(r'[\\/:*?"<>|\x00-\x1f]', "_", _yaml_mission_name).strip(" .")
+            if not _safe_name:
+                logger.warning(
+                    f"mission.name {_yaml_mission_name!r} contains only invalid filename characters; using 'mission'"
+                )
+                _safe_name = "mission"
+            p_output_mission = p_mission_folder / f"{_safe_name}_{datetime.now().strftime('%Y%m%d')}.miz"
 
-    # Derive mission base name; update output path when mission.yaml defines a name and the user
-    # did not explicitly provide a different mission name on the CLI.
-    _yaml_mission_name: str | None = (mission_yaml.get("mission") or {}).get("name") if mission_yaml else None
-    if mission_name_or_file == DEFAULT_MISSION_FILE and _yaml_mission_name:
-        _safe_name = re.sub(r'[\\/:*?"<>|\x00-\x1f]', "_", _yaml_mission_name).strip(" .")
-        if not _safe_name:
-            logger.warning(
-                f"mission.name {_yaml_mission_name!r} contains only invalid filename characters; using 'mission'"
-            )
-            _safe_name = "mission"
-        p_output_mission = p_mission_folder / f"{_safe_name}_{datetime.now().strftime('%Y%m%d')}.miz"
-        mission_base_name: str = _safe_name
-    else:
-        mission_base_name = p_output_mission.stem
-
-    # Resolve dev_mode and scripts_path: CLI flags > mission.yaml > ~/veafmct.yaml > code defaults
-    effective_dev_mode: bool = dev_mode if dev_mode is not None else bool(build_cfg.get("dev_mode", False))
-    if effective_dev_mode:
-        logger.info("Dev mode: VEAF scripts resolved from local dev repo (build/veaf-scripts.lua)")
-
-    _uc_sp = _user_config.get_scripts_path()
-    effective_scripts_path_str: str | None = (
-        scripts_path or build_cfg.get("scripts_path") or (str(_uc_sp) if _uc_sp else None)
+    # Build the mission
+    worker = MissionBuilderWorker(
+        dynamic_mode=dynamic_mode,
+        dev_mode_override=dev_mode,
+        scripts_path_override=scripts_path,
+        log_modules_filter=log_modules,
+        mission_folder=p_mission_folder,
+        output_mission=p_output_mission,
+        migrate_from_v5=migrate_from_v5,
+        no_veaf_triggers=no_veaf_triggers,
     )
-    effective_scripts_input: str | Path | None = effective_scripts_path_str
-    if not effective_scripts_input and dynamic_mode:
-        # default value is the "published" subfolder of the mission folder
-        effective_scripts_input = p_mission_folder / "published"
-    if effective_scripts_input:
-        p_scripts_path = resolve_path(path=effective_scripts_input, should_exist=True)
-        if not p_scripts_path.exists():
-            logger.error(f"Scripts folder {p_scripts_path} does not exist!", exception_type=FileNotFoundError)
-    else:
-        p_scripts_path = None
-
-    if effective_dev_mode and not p_scripts_path:
-        logger.error(
-            "--dev-mode requires a scripts path. "
-            "Pass --scripts-path <repo_root> or set build.scripts_path in mission.yaml.",
-            exception_type=ValueError,
-        )
+    worker.work()
 
     # Persist build settings to mission.yaml when relevant CLI flags were explicitly given
     if mission_yaml_path.exists() and (dev_mode is not None or scripts_path is not None):
         _update_build_config_in_yaml(
             mission_yaml_path,
-            dev_mode=effective_dev_mode,
-            scripts_path=p_scripts_path,
+            dev_mode=worker.dev_mode,
+            scripts_path=worker.scripts_path,
         )
         logger.info(f"Build settings persisted to {mission_yaml_path}")
-
-    # Apply --log-modules filter: silence all modules not in the keep list (LUA-006)
-    if log_modules is not None:
-        keep_modules = {m.strip() for m in log_modules.split(",") if m.strip()}
-        all_module_ids = {m["id"] for m in get_modules()}
-        if unknown := keep_modules - all_module_ids:
-            logger.warning(f"--log-modules: unknown module ID(s): {sorted(unknown)} — check spelling")
-        lua_modules = lua_modules or {}
-        for mod_id in all_module_ids:
-            if mod_id not in keep_modules:
-                if mod_id not in lua_modules:
-                    lua_modules[mod_id] = {}
-                lua_modules[mod_id].setdefault("logLevel", "error")
-        logger.info(
-            f"--log-modules: keeping full logging for {sorted(keep_modules) or 'none'}, "
-            f"silencing {len(all_module_ids) - len(keep_modules)} other module(s)"
-        )
-
-    # Call the worker class
-    worker = MissionBuilderWorker(
-        dynamic_mode=dynamic_mode,
-        scripts_path=p_scripts_path,
-        dev_mode=effective_dev_mode,
-        mission_folder=p_mission_folder,
-        output_mission=p_output_mission,
-        migrate_from_v5=migrate_from_v5,
-        no_veaf_triggers=no_veaf_triggers,
-        lua_modules=lua_modules,
-        global_log_level=global_log_level,
-        mission_yaml=mission_yaml if mission_yaml_path.exists() else None,
-    )
-    worker.work()
 
     # ── Auto-pipeline: run optional injection steps ───────────────────────────
     # Each step is auto-enabled when its config file is found in src/.
@@ -195,7 +127,7 @@ def build(
 
     def _step_file(key: str, *candidates: str) -> Path | None:
         """Return the resolved file for a pipeline step, or None to skip."""
-        step_cfg = pipeline_cfg.get(key)
+        step_cfg = worker.pipeline_cfg.get(key)
         if step_cfg is False or (isinstance(step_cfg, dict) and step_cfg.get("enabled") is False):
             return None
         if isinstance(step_cfg, dict) and "file" in step_cfg:
@@ -232,7 +164,7 @@ def build(
     )
     if aircraft_path:
         aircraft_mode = "add"
-        step_cfg = pipeline_cfg.get("aircraft_groups")
+        step_cfg = worker.pipeline_cfg.get("aircraft_groups")
         if isinstance(step_cfg, dict):
             aircraft_mode = step_cfg.get("mode", "add")
         validator = AircraftGroupsYAMLValidator(aircraft_path)
@@ -257,7 +189,7 @@ def build(
             config_file=weather_path,
             mission_file=p_output_mission,
             output_dir=p_mission_folder / "missions",
-            mission_base_name=mission_base_name,
+            mission_base_name=p_output_mission.stem,
         )
         if created_files := weather_worker.work():
             console.print(t("pipeline.console.weather_done", count=len(created_files)))

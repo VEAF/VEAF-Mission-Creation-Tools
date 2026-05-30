@@ -7,6 +7,7 @@ import io
 import os
 import tempfile
 import zipfile
+from collections.abc import Iterator
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import IO, Any
@@ -15,6 +16,19 @@ import luadata
 from veaf_libs.logger import logger
 
 from .mission_constants import DEFAULT_SCRIPTS_LOCATION
+
+
+@dataclass
+class Group:
+    """Canonical representation of a DCS aircraft/helicopter group."""
+
+    group_dcs: dict
+    aircraft_type: str  # "helicopter" | "plane"
+    country: str
+    coalition: str
+    human_pilot: bool = False
+    name: str | None = None
+    unit_type: str | None = None
 
 
 @dataclass
@@ -29,6 +43,64 @@ class DcsMission:
     dictionary_content: dict[str, str] | None = None
     map_resource_content: dict[str, str] | None = None
     missing_components: list = field(default_factory=list)
+
+    def iter_groups(self) -> Iterator[Group]:
+        """Iterate over all aircraft/helicopter groups in the mission.
+
+        Yields Group instances for every group found under
+        coalition → country → {helicopter,plane} → group.
+        """
+        if not self.mission_content:
+            return
+        coalitions = self.mission_content.get("coalition")
+        if not coalitions:
+            return
+        for coalition_name, coalition_data in coalitions.items():
+            countries = coalition_data.get("country") or []
+            for country_dict in countries:
+                country_name = country_dict.get("name", "")
+                for aircraft_type in ("helicopter", "plane"):
+                    aircraft_data = country_dict.get(aircraft_type)
+                    if not aircraft_data:
+                        continue
+                    groups_list = aircraft_data.get("group") or []
+                    for group_dict in groups_list:
+                        group = Group(
+                            group_dcs=group_dict,
+                            aircraft_type=aircraft_type,
+                            country=country_name,
+                            coalition=coalition_name,
+                        )
+                        group.name = group_dict.get("name")
+                        units_list = group_dict.get("units") or []
+                        for unit in units_list:
+                            if unit_type := unit.get("type", ""):
+                                group.unit_type = unit_type
+                            if unit.get("skill", "") in ("Client", "Player"):
+                                group.human_pilot = True
+                                break
+                        yield group
+
+    # ------------------------------------------------------------------
+    # Convenience accessors (DEEP-002)
+    # ------------------------------------------------------------------
+
+    def get_weather(self) -> dict | None:
+        """Return the weather dict from mission_content, or None."""
+        return self.mission_content.get("weather") if self.mission_content else None
+
+    def set_weather(self, data: dict) -> None:
+        """Replace the weather dict in mission_content."""
+        if self.mission_content is not None:
+            self.mission_content["weather"] = data
+
+    def get_options(self) -> dict | None:
+        """Return options_content."""
+        return self.options_content
+
+    def set_options(self, data: dict) -> None:
+        """Replace options_content."""
+        self.options_content = data
 
 
 def read_miz(miz_file_path: Path) -> DcsMission:

@@ -817,7 +817,12 @@ end
 function veafGroundAI.initialize()
   veaf.loggers.get(veafGroundAI.Id):info(veaf.loggers.get(veafGroundAI.Id):getVersionInfo(veafGroundAI.Version))
   veaf.loggers.get(veafGroundAI.Id):info("Initializing module")
-  veafMarkers.registerEventHandler(veafMarkers.MarkerChange, veafGroundAI.onEventMarkChange)
+  veafCommands.registerCommandHandler(function(pos, event, bypass, fromMarker, groups, route)
+    if not fromMarker then
+      return false
+    end
+    return veafGroundAI.onEventMarkChange(pos, event)
+  end, veafCommands.PRIORITY_GROUNDAI)
 end
 
 veaf.registerModule(veafGroundAI.Id, veafGroundAI.initialize, { enable = true }, 190)

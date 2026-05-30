@@ -44,7 +44,7 @@
 | Lot 17 — USER-CONFIG | ~3h | [archived](backlog-archive.md) |
 | Lot 18 — VERSIONING | ~1h45 | ✅ |
 | Lot 19 — MIGRATOR | ~2h30 | ✅ |
-| Lot 20 — DEEPENING | ~7h | ⬜ |
+| Lot 20 — DEEPENING | ~7h | ✅ |
 | Lot 21 — TYPING | ~20 min | ✅ |
 | Lot 22 — TEST-LAYOUT | ~55 min | ✅ |
 x| Lot 23 — DOC-YAML | ~8h20 | ✅ |
@@ -312,13 +312,13 @@ Direct commits on `develop-v6` (no feature branch needed — no code change).
 
 | # | Ticket | File(s) | Type | Effort | Depends on | Status |
 |---|--------|---------|------|--------|------------|--------|
-| DEEP-001 | `Group` dataclass + `DcsMission.iter_groups()` + tests (`TestIterGroups` synthétique + smoke test sur `test.miz`) | `miz_tools.py`, `__init__.py`, `test_miz_tools.py` | feat | 60 min | — | ⬜ |
-| DEEP-002 | `DcsMission.get/set_weather()` + `get/set_options()` + migrer `_set_mission_weather()` dans `WeatherInjectorWorker` | `miz_tools.py`, `weather_injector_worker.py` | feat | 30 min | — | ⬜ |
-| DEEP-003 | Supprimer le traversal dupliqué (coalition/country/group + `human_pilot`) des 3 injectors ; utiliser `mission.iter_groups()` | `presets_injector_worker.py`, `waypoints_injector_worker.py`, `aircrafts_injector_worker.py` | chore | 60 min | DEEP-001 | ⬜ |
-| DEEP-004 | `GroupInjectorWorker` base class + normaliser `AircraftGroupsInjectorWorker.inject(mode)` → `.work()` avec `mode` dans `__init__` | `veaf_libs/` (nouveau fichier), 3 injectors, `build.py` | feat | 60 min | DEEP-001, DEEP-003 | ⬜ |
-| DEEP-005 | Migrer `veafGroundAI.onEventMarkChange` vers `veafCommands.registerCommandHandler` ; supprimer `veafMarkers.registerEventHandler(MarkerChange, ...)` direct | `veafGroundAI.lua`, `veafCommands.lua` | chore | 30 min | — | ⬜ |
-| DEEP-006 | Refactor structure `veafSpawnParser.markTextAnalysis()` — defaults communs en tête, defaults spécifiques au type dans leur bloc IF/ELSEIF ; aucun changement comportemental | `veafSpawnParser.lua` | chore | 60 min | — | ⬜ |
-| DEEP-007 | Déplacer la résolution de config (`dev_mode`, `scripts_path`, `log_modules` → `lua_modules`) dans `MissionBuilderWorker.__init__()` ; `build.py` ne fait que parser les args CLI et appeler le worker | `mission_builder_worker.py`, `build.py` | chore | 60 min | — | ⬜ |
+| DEEP-001 | `Group` dataclass + `DcsMission.iter_groups()` + tests (`TestIterGroups` synthétique + smoke test sur `test.miz`) | `miz_tools.py`, `__init__.py`, `test_miz_tools.py` | feat | 60 min | — | ✅ |
+| DEEP-002 | `DcsMission.get/set_weather()` + `get/set_options()` + migrer `_set_mission_weather()` dans `WeatherInjectorWorker` | `miz_tools.py`, `weather_injector_worker.py` | feat | 30 min | — | ✅ |
+| DEEP-003 | Supprimer le traversal dupliqué (coalition/country/group + `human_pilot`) des 3 injectors ; utiliser `mission.iter_groups()` | `presets_injector_worker.py`, `waypoints_injector_worker.py`, `aircrafts_injector_worker.py` | chore | 60 min | DEEP-001 | ✅ |
+| DEEP-004 | `GroupInjectorWorker` base class + normaliser `AircraftGroupsInjectorWorker.inject(mode)` → `.work()` avec `mode` dans `__init__` | `veaf_libs/` (nouveau fichier), 3 injectors, `build.py` | feat | 60 min | DEEP-001, DEEP-003 | ✅ |
+| DEEP-005 | Migrer `veafGroundAI.onEventMarkChange` vers `veafCommands.registerCommandHandler` ; supprimer `veafMarkers.registerEventHandler(MarkerChange, ...)` direct | `veafGroundAI.lua`, `veafCommands.lua` | chore | 30 min | — | ✅ |
+| DEEP-006 | Refactor structure `veafSpawnParser.markTextAnalysis()` — defaults communs en tête, defaults spécifiques au type dans leur bloc IF/ELSEIF ; aucun changement comportemental | `veafSpawnParser.lua` | chore | 60 min | — | ✅ |
+| DEEP-007 | Déplacer la résolution de config (`dev_mode`, `scripts_path`, `log_modules` → `lua_modules`) dans `MissionBuilderWorker.__init__()` ; `build.py` ne fait que parser les args CLI et appeler le worker | `mission_builder_worker.py`, `build.py` | chore | 60 min | — | ✅ |
 
 **Raw total: 360 min → estimated (×1.15): ~414 min (~6h54)**
 

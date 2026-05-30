@@ -53,7 +53,6 @@ test/veaf-tools/weather-injector/*.miz
 
 # VEAF Tools configuration file - contains sensitive data (GitHub token)
 veaf-tools-config.yaml
-RELEASE_NOTES.md
 test/veaf-tools-updater/*
 published-metadata.json
 

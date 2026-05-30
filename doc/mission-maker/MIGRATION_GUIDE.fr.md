@@ -310,11 +310,34 @@ Alternativement, utilisez `--migrate-from-v5` sur le build pour que les anciens 
 
 ### Les menus radio n'apparaissent pas
 
-Confirmez que `veafRadio.initialize(true)` est dans `missionConfig.lua` et n'est pas commenté.
+Vérifiez que `RADIO` est activé dans `mission.yaml` :
+
+```yaml
+lua_modules:
+  RADIO:
+    enable: true
+```
+
+Reconstruisez avec `veaf-tools.exe build` après toute modification de `mission.yaml`.
 
 ### Les commandes de marqueurs ne fonctionnent pas
 
-Confirmez que `veafSpawn.initialize()` est appelé. Vérifiez le log DCS (Saved Games\DCS\Logs\dcs.log) pour les erreurs VEAF.
+Vérifiez que `SPAWN` est activé dans `mission.yaml` :
+
+```yaml
+lua_modules:
+  SPAWN:
+    enable: true
+```
+
+Ensuite, consultez le journal DCS (`Saved Games\DCS\Logs\dcs.log`) pour les erreurs VEAF — filtrez sur `VEAF` ou `ERROR`.
+
+### Lire les journaux
+
+Tous les messages VEAF sont écrits dans `Saved Games\DCS\Logs\dcs.log`. Pour les trouver rapidement :
+
+- **[Klogg](https://klogg.filimonov.dev/)** (recommandé) : ouvrez `dcs.log`, utilisez la barre de recherche pour filtrer sur `VEAF`. Un profil Klogg pour VEAF est prévu — une fois disponible, il sera commité dans le dépôt et annoncé sur le [Discord VEAF](https://www.veaf.org/discord).
+- **Notepad++** : ouvrez `dcs.log` → Recherche → Rechercher (`Ctrl+F`) → cherchez `VEAF`.
 
 ### Le build échoue avec "VEAF scripts file not found"
 

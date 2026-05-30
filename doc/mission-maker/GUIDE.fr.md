@@ -17,7 +17,9 @@ Ce guide s'adresse aux concepteurs de missions DCS World qui souhaitent intégre
 9. [Workflow de build typique](#workflow-de-build-typique)
 10. [Référence des scripts](#référence-des-scripts)
 11. [Exemples de configuration](#exemples-de-configuration)
-12. [Ressources](#ressources)
+12. [Intégration CTLD et CSAR](#intégration-ctld-et-csar)
+13. [Journalisation de débogage](#journalisation-de-débogage)
+14. [Ressources](#ressources)
 
 > **Migration d'une mission existante ?** Consultez le [Guide de migration](MIGRATION_GUIDE.md) — couvre à la fois VEAF MCT v5 → v6 et DCS vanilla → VEAF MCT.
 
@@ -41,10 +43,13 @@ Une mission VEAF est un fichier DCS `.miz` standard qui charge le framework Lua 
 | Outil | Rôle | Obligatoire |
 |-------|------|-------------|
 | DCS World | Le simulateur | Oui |
+| Éditeur de missions DCS | Créer le `.miz` de base (inclus avec DCS) | Oui |
 | Git | Contrôle de version pour votre projet de mission | Recommandé |
 | `veaf-tools-updater.exe` | Télécharge et installe la dernière release VEAF MCT | Oui |
 | `veaf-tools.exe` | CLI de manipulation de `.miz` au moment du build | Oui (pour le pipeline de build) |
-| VS Code ou similaire | Édition des fichiers Lua/YAML de configuration | Recommandé |
+| VS Code ou Notepad++ | Édition des fichiers Lua/YAML de configuration | Recommandé |
+
+> **Exigence pour la mission de base** : Le `.miz` créé dans l'éditeur DCS doit contenir **au moins un groupe terrestre bleu et un groupe terrestre rouge**. Sans les deux, les tables Lua de coalition sont incomplètes, ce qui peut amener les outils d'injection (`inject-presets`, `inject-waypoints`) à ignorer silencieusement des groupes.
 
 ---
 
@@ -270,18 +275,29 @@ Référence complète : [Référence des outils](../TOOLS_REFERENCE.md)
 ## Workflow de build typique
 
 ```powershell
-# 1. Construire la mission (lit src/, injecte les triggers VEAF → .miz de sortie)
-veaf-tools.exe build ma-mission.miz
+# Construire la mission — le pipeline intégré exécute toutes les étapes activées automatiquement
+veaf-tools.exe build
+```
 
-# 2. Injecter les préréglages radio depuis la config YAML (optionnel, opère sur le .miz construit)
+La commande `build` lit `mission.yaml` et exécute chaque étape activée du pipeline (presets, waypoints, groupes d'aéronefs, météo) en une seule passe. Configurez les étapes actives sous la clé `pipeline:` dans `mission.yaml`.
+
+<details>
+<summary>Avancé : exécuter les étapes du pipeline individuellement</summary>
+
+Si vous devez exécuter une seule étape en isolation (ex : injecter la météo uniquement, sans rebuild complet) :
+
+```powershell
+# Injecter les préréglages radio uniquement
 veaf-tools.exe inject-presets ma-mission.miz --presets-file src/presets.yaml
 
-# 3. Injecter les waypoints bullseye et de navigation (optionnel)
+# Injecter les waypoints bullseye et de navigation uniquement
 veaf-tools.exe inject-waypoints ma-mission.miz --waypoints-file src/waypoints.yaml
 
-# 4. Créer des variantes météo/heure (optionnel)
-veaf-tools.exe inject-weather ma-mission.miz --config-file missions.yaml
+# Créer des variantes météo/heure uniquement
+veaf-tools.exe inject-weather ma-mission.miz --config-file versions.yaml
 ```
+
+</details>
 
 Commitez le contenu de `src/` dans Git — pas le `.miz` construit. Utilisez `extract` une fois pour initialiser le dossier source depuis une mission existante :
 
@@ -346,6 +362,93 @@ local defenseZone = AirWaveZone:new()
   :setMinimumPlayersForWave(1)
   :initialize()
 ```
+
+---
+
+## Intégration CTLD et CSAR
+
+[CTLD](https://github.com/ciribob/DCS-CTLD) (Combat Troop Loading and Deployment) et [CSAR](https://github.com/ciribob/DCS-CSAR) (Combat Search and Rescue) sont des scripts tiers que VEAF supporte nativement. VEAF monkey-patche leurs fonctions `initialize()` au démarrage, donc vous n'avez pas besoin de les charger ou de les initialiser séparément — appelez-les simplement depuis `mission-script.lua` en suivant le pattern VEAF standard.
+
+### Configurer CTLD via mission.yaml (YAML-first)
+
+Vous pouvez activer CTLD et définir ses propriétés directement dans `mission.yaml`, sans Lua :
+
+```yaml
+external_modules:
+  ctld:
+    enabled: true
+    hoverPickup: false
+    slingLoad: true
+```
+
+VEAF génère la configuration Lua correspondante dans `veaf-config.lua` au moment du build. Utilisez `mission-script.lua` uniquement pour les paramètres pas encore supportés par le schéma YAML.
+
+> **CSAR** : La configuration YAML de CSAR est prévue pour une future version. En attendant, configurez CSAR dans `mission-script.lua` comme indiqué ci-dessous.
+
+### Ordre de chargement dans la chaîne de triggers DCS
+
+Les scripts CTLD/CSAR doivent être chargés avant les scripts VEAF :
+
+```
+DO SCRIPT FILE → ctld.lua           (tiers)
+DO SCRIPT FILE → csar.lua           (tiers)
+DO SCRIPT FILE → veaf-scripts.lua   (modules VEAF)
+DO SCRIPT FILE → veaf-config.lua    (généré depuis mission.yaml)
+DO SCRIPT FILE → mission-script.lua (votre code personnalisé)
+```
+
+Quand `veaf-scripts.lua` se charge, il détecte la présence des tables globales `ctld` et `csar` et enveloppe leurs fonctions `initialize()`, appliquant les valeurs par défaut VEAF avant d'appeler le vrai initialiseur.
+
+### Activer CTLD dans mission-script.lua
+
+Pour les paramètres non couverts par `mission.yaml`, utilisez le pattern callback Lua :
+
+```lua
+if ctld then
+    local initializeCTLD = true
+    if initializeCTLD then
+        veaf.loggers.get(veaf.Id):info("initialize CTLD")
+        local function configurationCallback()
+            -- Configurer les paramètres CTLD avant son initialisation
+            -- ctld.hoverPickup = false
+            -- ctld.slingLoad   = true
+        end
+        -- Appelle la version enveloppée par VEAF de ctld.initialize
+        ctld.initialize(configurationCallback)
+    else
+        -- Empêcher l'auto-scheduled ctld.initialize de tourner
+        ctld.alreadyInitialized = true
+    end
+end
+```
+
+Le `configurationCallback` est appelé immédiatement avant le vrai `ctld.initialize()` — définissez les propriétés CTLD là, pas avant.
+
+### Activer CSAR dans mission-script.lua
+
+```lua
+if csar then
+    local initializeCSAR = true
+    if initializeCSAR then
+        veaf.loggers.get(veaf.Id):info("initialize CSAR")
+        local function configurationCallback()
+            -- Configurer les paramètres CSAR avant son initialisation
+            csar.enableAllslots = true
+            csar.aircraftType["UH-1H"]  = 8
+            csar.aircraftType["Mi-8MT"] = 16
+            csar.useprefix  = true
+            csar.csarPrefix = { "MEDEVAC" }
+        end
+        csar.initialize(configurationCallback)
+    else
+        csar.alreadyInitialized = true
+    end
+end
+```
+
+### Valeurs par défaut automatiques VEAF
+
+Quand VEAF enveloppe les initialiseurs, il applique ses propres valeurs par défaut : journalisation et une entrée de menu radio standard. Vous n'avez pas besoin de configurer cela manuellement.
 
 ---
 

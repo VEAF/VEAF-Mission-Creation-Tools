@@ -47,8 +47,8 @@
 | Lot 20 — DEEPENING | ~7h | ⬜ |
 | Lot 21 — TYPING | ~20 min | ✅ |
 | Lot 22 — TEST-LAYOUT | ~55 min | ✅ |
-| Lot 23 — DOC-YAML | ~8h20 | ⬜ |
-| Lot 24 — DOC-REVIEW | ~2h45 | ⬜ |
+x| Lot 23 — DOC-YAML | ~8h20 | ✅ |
+| Lot 24 — DOC-REVIEW | ~2h45 | 🔄 (REV-002 différé) |
 | Lot 25 — EXT-YAML | ~2h | ⬜ |
 | **Total** | **~157h05** | |
 
@@ -472,13 +472,13 @@ Reste dans `build.py` (préoccupations CLI uniquement) :
 
 | # | Ticket | Fichiers touchés | Type | Effort | Status |
 |---|--------|-----------------|------|--------|--------|
-| REV-001 | Remplacer `missions.yaml` par `versions.yaml` partout dans la doc et dans le template `mission.yaml` commenté (`lua_config_generator.py` ligne ~839) | `doc/**/*.md`, `src/python/veaf-tools/veaf_libs/lua_config_generator.py`, `src/defaults/mission-folder/mission.yaml` | fix | 20 min | ⬜ |
+| REV-001 | Remplacer `missions.yaml` par `versions.yaml` partout dans la doc et dans le template `mission.yaml` commenté (`lua_config_generator.py` ligne ~839) | `doc/**/*.md`, `src/python/veaf-tools/veaf_libs/lua_config_generator.py`, `src/defaults/mission-folder/mission.yaml` | fix | 20 min | ✅ |
 | REV-002 | Committer le profil Klogg fourni par l'utilisateur dans `tools/klogg/veaf.conf` ; mettre à jour la section "Reading the log" dans `GUIDE.md` et `GUIDE.fr.md` pour pointer vers ce fichier | `tools/klogg/veaf.conf`, `doc/mission-maker/GUIDE.md`, `doc/mission-maker/GUIDE.fr.md` | chore | 20 min | ⬜ |
-| REV-004 | Corriger `MIGRATION_GUIDE.md` — section "Common Issues" : remplacer les références `missionConfig.lua` par `mission.yaml` + `mission-script.lua` selon le cas ; ajouter entrée "Reading the logs" (Klogg ou Notepad++, chemin `Saved Games\DCS\Logs\dcs.log`, filtre `VEAF`, lien vers profil Klogg committé en REV-002) | `doc/mission-maker/MIGRATION_GUIDE.md`, `doc/mission-maker/MIGRATION_GUIDE.fr.md` | fix | 20 min | ⬜ |
-| REV-006 | Corriger `GUIDE.md` — "Typical Build Workflow" : remplacer les 4 commandes séparées par `veaf-tools.exe build .` (le pipeline est intégré) ; déplacer les commandes `inject-*` dans une note collapsible "Advanced: running pipeline steps individually" | `doc/mission-maker/GUIDE.md`, `doc/mission-maker/GUIDE.fr.md` | fix | 20 min | ⬜ |
-| REV-007 | Corriger `doc/index.md` et `doc/index.fr.md` — phrase d'accroche (une ligne orientée nouveau venu avant le tableau role-based) ; passer le diagramme Mermaid de `flowchart LR` à `flowchart TD` | `doc/index.md`, `doc/index.fr.md` | fix | 15 min | ⬜ |
-| REV-008 | Ajouter prérequis dans `GUIDE.md` et `GUIDE.fr.md` section "Getting Started" : (1) le mission de base dans le DCS Editor **doit** contenir au moins un groupe terrestre bleu et un rouge (requis pour que les tables Lua de pays/coalitions soient complètes et que les outils d'injection fonctionnent) ; (2) éditeur texte recommandé : Notepad++ (YAML/Lua) | `doc/mission-maker/GUIDE.md`, `doc/mission-maker/GUIDE.fr.md` | fix | 20 min | ⬜ |
-| REV-010 | Corriger `GUIDE.md` — section "CTLD and CSAR Integration" : (1) supprimer la phrase inventée sur l'auto-lasing JTACs dans "VEAF automatic defaults" ; (2) documenter la double approche YAML-first (`external_modules.ctld`) + Lua callback ; (3) noter explicitement que CSAR n'est pas encore configurable via YAML (renvoi vers Lot 25 — EXT-YAML) | `doc/mission-maker/GUIDE.md`, `doc/mission-maker/GUIDE.fr.md` | fix | 30 min | ⬜ |
+| REV-004 | Corriger `MIGRATION_GUIDE.md` — section "Common Issues" : remplacer les références `missionConfig.lua` par `mission.yaml` + `mission-script.lua` selon le cas ; ajouter entrée "Reading the logs" (Klogg ou Notepad++, chemin `Saved Games\DCS\Logs\dcs.log`, filtre `VEAF`, lien vers profil Klogg committé en REV-002) | `doc/mission-maker/MIGRATION_GUIDE.md`, `doc/mission-maker/MIGRATION_GUIDE.fr.md` | fix | 20 min | ✅ |
+| REV-006 | Corriger `GUIDE.md` — "Typical Build Workflow" : remplacer les 4 commandes séparées par `veaf-tools.exe build .` (le pipeline est intégré) ; déplacer les commandes `inject-*` dans une note collapsible "Advanced: running pipeline steps individually" | `doc/mission-maker/GUIDE.md`, `doc/mission-maker/GUIDE.fr.md` | fix | 20 min | ✅ |
+| REV-007 | Corriger `doc/index.md` et `doc/index.fr.md` — phrase d'accroche (une ligne orientée nouveau venu avant le tableau role-based) ; passer le diagramme Mermaid de `flowchart LR` à `flowchart TD` | `doc/index.md`, `doc/index.fr.md` | fix | 15 min | ✅ |
+| REV-008 | Ajouter prérequis dans `GUIDE.md` et `GUIDE.fr.md` section "Getting Started" : (1) la mission de base dans le DCS Editor **doit** contenir au moins un groupe terrestre bleu et un rouge (requis pour que les tables Lua de pays/coalitions soient complètes et que les outils d'injection fonctionnent) ; (2) éditeur texte recommandé : Notepad++ (YAML/Lua) | `doc/mission-maker/GUIDE.md`, `doc/mission-maker/GUIDE.fr.md` | fix | 20 min | ✅ |
+| REV-010 | Corriger `GUIDE.md` — section "CTLD and CSAR Integration" : (1) supprimer la phrase inventée sur l'auto-lasing JTACs dans "VEAF automatic defaults" ; (2) documenter la double approche YAML-first (`external_modules.ctld`) + Lua callback ; (3) noter explicitement que CSAR n'est pas encore configurable via YAML (renvoi vers Lot 25 — EXT-YAML) | `doc/mission-maker/GUIDE.md`, `doc/mission-maker/GUIDE.fr.md` | fix | 30 min | ✅ |
 
 **Raw total: 145 min → estimated (×1.15): ~167 min (~2h45)**
 

@@ -318,7 +318,7 @@ lua_modules:
     enable: true
 ```
 
-Reconstruisez avec `veaf-tools.exe build .` après toute modification de `mission.yaml`.
+Reconstruisez avec `veaf-tools.exe build` après toute modification de `mission.yaml`.
 
 ### Les commandes de marqueurs ne fonctionnent pas
 
@@ -336,7 +336,7 @@ Ensuite, consultez le journal DCS (`Saved Games\DCS\Logs\dcs.log`) pour les erre
 
 Tous les messages VEAF sont écrits dans `Saved Games\DCS\Logs\dcs.log`. Pour les trouver rapidement :
 
-- **[Klogg](https://klogg.filimonov.dev/)** (recommandé) : ouvrez `dcs.log`, utilisez la barre de recherche pour filtrer sur `VEAF`. Un profil de surligneur pour les niveaux de log VEAF est disponible dans `tools/klogg/veaf.conf` dans ce dépôt.
+- **[Klogg](https://klogg.filimonov.dev/)** (recommandé) : ouvrez `dcs.log`, utilisez la barre de recherche pour filtrer sur `VEAF`. Un profil Klogg pour VEAF est prévu — une fois disponible, il sera commité dans le dépôt et annoncé sur le [Discord VEAF](https://www.veaf.org/discord).
 - **Notepad++** : ouvrez `dcs.log` → Recherche → Rechercher (`Ctrl+F`) → cherchez `VEAF`.
 
 ### Le build échoue avec "VEAF scripts file not found"

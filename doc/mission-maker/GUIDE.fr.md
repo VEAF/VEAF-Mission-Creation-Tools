@@ -276,7 +276,7 @@ Référence complète : [Référence des outils](../TOOLS_REFERENCE.md)
 
 ```powershell
 # Construire la mission — le pipeline intégré exécute toutes les étapes activées automatiquement
-veaf-tools.exe build .
+veaf-tools.exe build
 ```
 
 La commande `build` lit `mission.yaml` et exécute chaque étape activée du pipeline (presets, waypoints, groupes d'aéronefs, météo) en une seule passe. Configurez les étapes actives sous la clé `pipeline:` dans `mission.yaml`.

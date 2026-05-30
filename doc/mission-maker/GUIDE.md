@@ -277,7 +277,7 @@ Full reference: [Tools Reference](../TOOLS_REFERENCE.md)
 
 ```powershell
 # Build the mission — the integrated pipeline runs all enabled steps automatically
-veaf-tools.exe build .
+veaf-tools.exe build
 ```
 
 The `build` command reads `mission.yaml` and runs every enabled pipeline step (presets, waypoints, aircraft groups, weather) in a single pass. Configure which steps are active under the `pipeline:` key in `mission.yaml`.

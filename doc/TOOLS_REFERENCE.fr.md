@@ -264,6 +264,7 @@ veaf-tools-updater.exe publish 6.0.1 ./published.zip --token ghp_xxxxxxxxxxxx
 ```
 
 **Arguments :**
+
 - `6.0.1` — Numéro de version
 - `./published.zip` — Chemin vers votre fichier zip
 - Le token est lu depuis `veaf-tools-config.yaml` (s'il existe) ou le paramètre `--token`
@@ -453,6 +454,7 @@ Dépôt Git
 ```
 
 **Avantages :**
+
 - ✅ Historique de versions clair dans Git
 - ✅ Facile de revenir à n'importe quelle version précédente
 - ✅ `published-latest` toujours disponible pour les utilisateurs
@@ -475,6 +477,7 @@ Processus de mise à jour :
 ```
 
 **Protection contre :**
+
 - La corruption réseau
 - Les téléchargements incomplets
 - La falsification de fichiers

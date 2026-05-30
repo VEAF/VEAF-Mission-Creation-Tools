@@ -54,6 +54,7 @@ _spawn unit, name T-80, group 4, hdg 270, spacing 50
 ```
 
 **Options :**
+
 - `name` — type d'unité
 - `group` — nombre d'unités
 - `hdg` — cap (degrés)
@@ -80,6 +81,7 @@ _spawn cap, name Su-27, alt 25000, capradius 20000
 ```
 
 **Options :**
+
 - `name` — type d'avion
 - `alt` — altitude de patrouille (pieds)
 - `hdg` — cap initial
@@ -95,6 +97,7 @@ _spawn afac, name A-10C, freq 133.0, mod AM, code 1688, alt 15000
 ```
 
 **Options :**
+
 - `name` — type d'avion
 - `freq` — fréquence radio
 - `mod` — modulation (`AM` ou `FM`)
@@ -112,6 +115,7 @@ _spawn convoy, dest [NOM_MARQUEUR_DEST], speed 50, defense 2, armor 2, size 3
 ```
 
 **Options :**
+
 - `dest` — nom du marqueur de destination
 - `speed` — vitesse du convoi (km/h)
 - `defense [0-5]` — niveau de défense aérienne

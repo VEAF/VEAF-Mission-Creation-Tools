@@ -49,6 +49,8 @@ function veafSpawn.markTextAnalysis(text)
   options.showMFD = false
   options.AlarmState = 2
   options.disperse = 15
+  options.shells = 1
+  options.power = 100
 
   -- Check for correct keywords.
   if text:lower():find(veafSpawn.SpawnKeyphrase .. " unit") then

@@ -99,6 +99,10 @@ class PresetsInjectorWorker(GroupInjectorWorker):
         with spinner_context(f"Reading {self.input_mission}...", silent=silent):
             self.read_mission(silent)
 
+        assert self.dcs_mission is not None
+        for group in self.dcs_mission.iter_groups():
+            self.process_group(group)
+
         with spinner_context("Processing groups...", silent=silent):
             self.process_groups(silent)
 

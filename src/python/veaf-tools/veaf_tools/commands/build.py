@@ -77,6 +77,7 @@ def build(
     p_output_mission = resolve_path(path=mission_name_or_file)
     if p_output_mission.suffix.lower() != ".miz":
         p_output_mission = Path(f"{mission_name_or_file}_{datetime.now().strftime('%Y%m%d')}.miz")
+    mission_base_name: str = p_output_mission.stem
 
     mission_yaml_path = p_mission_folder / "mission.yaml"
     if mission_name_or_file == DEFAULT_MISSION_FILE and mission_yaml_path.exists():
@@ -91,6 +92,7 @@ def build(
                 )
                 _safe_name = "mission"
             p_output_mission = p_mission_folder / f"{_safe_name}_{datetime.now().strftime('%Y%m%d')}.miz"
+            mission_base_name = _safe_name
 
     # Build the mission
     worker = MissionBuilderWorker(
@@ -189,7 +191,7 @@ def build(
             config_file=weather_path,
             mission_file=p_output_mission,
             output_dir=p_mission_folder / "missions",
-            mission_base_name=p_output_mission.stem,
+            mission_base_name=mission_base_name,
         )
         if created_files := weather_worker.work():
             console.print(t("pipeline.console.weather_done", count=len(created_files)))

@@ -411,7 +411,7 @@ chore(deps): update luaunit to 3.4
 docs(api): document veafMove tanker helpers
 ```
 
-Types: `feat`, `fix`, `chore`, `docs`, `test`, `refactor`, `style`.
+**Types:** `feat`, `fix`, `chore`, `docs`, `test`, `refactor`, `style`
 
 ### Pull Request Checklist
 

@@ -176,7 +176,11 @@ _cas
 _cas, size 3, defense 2, armor 3
 ```
 
-Options: `size [0-5]`, `defense [0-5]`, `armor [0-5]`, `side [blue/red]`.
+**Options:**
+- `size [0-5]` — size of the enemy force
+- `defense [0-5]` — air defense level
+- `armor [0-5]` — armor level
+- `side [blue/red]` — coalition override
 
 ### Security Authentication
 

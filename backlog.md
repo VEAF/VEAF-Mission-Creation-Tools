@@ -64,9 +64,9 @@ x| Lot 23 — DOC-YAML | ~8h20 | ✅ |
 
 | # | Ticket | Fichiers touchés | Type | Effort | Status |
 |---|--------|-----------------|------|--------|--------|
-| MIG-001 | Test d'intégration end-to-end — faire tourner `ConfigMigrator.migrate()` sur les fixtures réelles (`test/veaf-tools/mission-builder/src/scripts/missionConfig.lua` et `test/veaf-tools/demo-mission/src/scripts/missionConfig.lua`) et vérifier qu'aucune exception n'est levée et que les modules attendus sont bien détectés | `mission_builder/test_config_migrator.py` | chore | 30 min | ⬜ |
-| MIG-002 | Ajouter des tests unitaires pour les 8 extracteurs non couverts : `_extract_identity_and_security`, `_extract_combat_missions`, `_extract_shortcuts`, `_extract_named_points`, `_extract_sanctuary_zones`, `_extract_combat_zone_settings`, `_extract_combat_zones`, `_extract_airwaves_zones`, `_extract_security_mm` | `mission_builder/test_config_migrator.py` | chore | 60 min | ⬜ |
-| MIG-003 | Corriger les bugs trouvés lors de MIG-001/MIG-002 (régressions, patterns non couverts) | `mission_builder/config_migrator.py` | fix | 60 min | ⬜ |
+| MIG-001 | Test d'intégration end-to-end — faire tourner `ConfigMigrator.migrate()` sur les fixtures réelles (`test/veaf-tools/mission-builder/src/scripts/missionConfig.lua` et `test/veaf-tools/demo-mission/src/scripts/missionConfig.lua`) et vérifier qu'aucune exception n'est levée et que les modules attendus sont bien détectés | `mission_builder/test_config_migrator.py` | chore | 30 min | ✅ |
+| MIG-002 | Ajouter des tests unitaires pour les 8 extracteurs non couverts : `_extract_identity_and_security`, `_extract_combat_missions`, `_extract_shortcuts`, `_extract_named_points`, `_extract_sanctuary_zones`, `_extract_combat_zone_settings`, `_extract_combat_zones`, `_extract_airwaves_zones`, `_extract_security_mm` | `mission_builder/test_config_migrator.py` | chore | 60 min | ✅ |
+| MIG-003 | Corriger les bugs trouvés lors de MIG-001/MIG-002 (régressions, patterns non couverts) | `mission_builder/config_migrator.py` | fix | 60 min | ✅ |
 
 **Raw total: 150 min → estimated (×1.15): ~175 min (~2h30)**
 

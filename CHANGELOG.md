@@ -24,12 +24,16 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `veaf_tools/_version.py` committed stub — version injected by `worker.py` at PyInstaller build time, restored to `"unknown"` after; `app.py` and `veaf-tools-updater.py` resolve `VERSION` via `importlib.metadata` then `_version.__version__` fallback (VER-001)
 - `about` command now prints `veaf-tools vX.Y.Z` before VEAF info (VER-003)
 - Windows PE version metadata (FILE_VERSION / PRODUCT_VERSION) embedded in `veaf-tools.exe` and `veaf-tools-updater.exe` via `VSVersionInfo` generated dynamically at build time (VER-002)
-- `ConfigMigrator` test coverage: integration tests on real fixtures (`mission-builder` and `demo-mission`) + unit tests for all 9 extractors previously untested (`_extract_identity_and_security`, `_extract_combat_missions`, `_extract_shortcuts`, `_extract_named_points`, `_extract_sanctuary_zones`, `_extract_combat_zone_settings`, `_extract_combat_zones`, `_extract_airwaves_zones`, `_extract_security_mm`) (MIG-001, MIG-002)
+- `ConfigMigrator` test coverage: integration tests on real fixtures (`mission-builder` and `demo-mission`) + unit tests for all 9 extractors previously untested (MIG-001, MIG-002)
 - `doc/PIPELINE_REFERENCE.md` (+ `.fr.md`) — full YAML reference for all 4 pipeline steps (presets, waypoints, aircraft groups, weather/time) (DOC-001)
 - `doc/MISSION_YAML_REFERENCE.md` (+ `.fr.md`) — hub page for `mission.yaml` top-level sections; category index and module index (DOC-002)
 - `## Configuration (mission.yaml)` sections added to: `veafRadio`, `veafShortcuts`, `veafNamedPoints`, `veafCarrierOperations`, `veafAssets`, `veafSanctuary`, `veafCombatZone`, `veafAirWaves`, `veafQraManager`, `veafCasMission` (DOC-003 to DOC-006)
 - `doc/mission-maker/scripts/veafRadio.fr.md` — created (was missing) (DOC-003)
 - Module index in `MISSION_YAML_REFERENCE.md` completed with direct anchored links to every module's YAML section (DOC-007)
+- `doc/index.md` (+ `.fr.md`) — hook sentence added before role table; `flowchart LR` → `flowchart TD` (REV-007)
+- `doc/mission-maker/GUIDE.md` (+ `.fr.md`) — DCS Mission Editor added to prerequisites; base mission requirement (blue + red ground group) documented; Notepad++ listed as recommended editor (REV-008)
+- `doc/mission-maker/GUIDE.md` (+ `.fr.md`) — CTLD/CSAR section: YAML-first approach via `external_modules.ctld` documented; CSAR YAML config noted as planned; `Intégration CTLD et CSAR` section added to French guide (was missing) (REV-010)
+- `doc/mission-maker/MIGRATION_GUIDE.md` (+ `.fr.md`) — "Common Issues": refs to `missionConfig.lua` replaced by `mission.yaml` YAML config; "Reading the logs" entry added (Klogg + Notepad++) (REV-004)
 
 ### Changed
 - `veaf_build/lua_tests.py`: `Optional[str]` migrated to `str | None` (UP007 now enforced)
@@ -37,6 +41,9 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `pyproject.toml`: `testpaths` changed to `["test/python"]` — test discovery now targets the new location
 - 28 `test_*.py` files moved from `src/python/veaf-tools/**` to `test/python/**` — mirrors `test/lua/` convention (TST-001)
 - `veaf_libs/paths.py`: `resolve_mission_file` glob branch now returns `.resolve()` path — fixes Windows short-path comparison
+- `src/defaults/mission-folder/mission.yaml`: `versions.yaml` is now the canonical filename for the weather pipeline step; `missions.yaml` noted as legacy alias (REV-001)
+- `src/python/veaf-tools/veaf_libs/lua_config_generator.py`: generated `mission.yaml` template comment updated to `versions.yaml` (REV-001)
+- `doc/mission-maker/GUIDE.md` (+ `.fr.md`) — "Typical Build Workflow" simplified to `veaf-tools.exe build`; individual inject-* commands moved to collapsible Advanced section (REV-006)
 
 ### Changed (Shortcuts, Spawn, NamedPoints, CasMission, Security, Move, Radio, Remote) self-register via `veafCommands.registerCommandHandler()` — per-module `onEventMarkChange` functions removed
 - Developer Guide (`doc/developer/GUIDE.md` + `.fr.md`) — Mermaid architecture diagram and runtime logging section updated to reference `veaf-config.lua` and `mission-script.lua` (v6) instead of the v5 `missionconfig.lua` (DOC-008)

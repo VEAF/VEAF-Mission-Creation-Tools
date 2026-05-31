@@ -256,6 +256,14 @@ class MissionBuilderWorker(BaseWorker):
                         step_cfg = self.pipeline_cfg.get(mapping["pipeline"])
                         if step_cfg is False or (isinstance(step_cfg, dict) and step_cfg.get("enabled") is False):
                             logger.debug(f"Skipping default '{f.name}': pipeline '{mapping['pipeline']}' is disabled")
+                            dest = self.mission_folder / f.relative_to(defaults_folder).parent.as_posix() / f.name
+                            if dest.exists():
+                                logger.warning(
+                                    f"Orphan file '{dest.relative_to(self.mission_folder)}': "
+                                    f"pipeline '{mapping['pipeline']}' is disabled in mission.yaml "
+                                    f"but the file still exists in your mission folder. "
+                                    f"You can safely delete it."
+                                )
                             continue
                     elif "lua_module" in mapping:
                         mod_cfg = (self.mission_yaml.get("lua_modules") or {}).get(mapping["lua_module"])
@@ -263,6 +271,14 @@ class MissionBuilderWorker(BaseWorker):
                             logger.debug(
                                 f"Skipping default '{f.name}': lua_module '{mapping['lua_module']}' is disabled"
                             )
+                            dest = self.mission_folder / f.relative_to(defaults_folder).parent.as_posix() / f.name
+                            if dest.exists():
+                                logger.warning(
+                                    f"Orphan file '{dest.relative_to(self.mission_folder)}': "
+                                    f"lua_module '{mapping['lua_module']}' is disabled in mission.yaml "
+                                    f"but the file still exists in your mission folder. "
+                                    f"You can safely delete it."
+                                )
                             continue
                 relative_path = f.relative_to(defaults_folder).parent.as_posix()
                 relative_path = self.mission_folder / relative_path / f.name

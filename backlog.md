@@ -50,8 +50,8 @@
 x| Lot 23 — DOC-YAML | ~8h20 | ✅ |
 | Lot 24 — DOC-REVIEW | ~2h45 | ✅ (REV-002 différé) |
 | Lot 25 — EXT-YAML | ~2h | ⬜ |
-| Lot FIX-SORT — LUADATA FIX | ~15 min | ⬜ |
-| Lot 26 — IMC-FEEDBACK | ~2h40 | ⬜ |
+| Lot FIX-SORT — LUADATA FIX | ~15 min | ✅ |
+| Lot 26 — IMC-FEEDBACK | ~2h40 | ✅ |
 | **Total** | **~160h00** | |
 
 *Initial calibration factor: 1.15 — recalculate after each completed lot.*
@@ -553,8 +553,8 @@ Les builder-chains Lua sont l'API bas niveau. En v6, QRA, CombatZone et AirWaves
 
 | # | Ticket | Fichiers touchés | Type | Effort | Status |
 |---|--------|-----------------|------|--------|--------|
-| SORT-001 | Convertir la clé en `str` dans `sort_key` de `_sort()` pour éviter la comparaison `int < str` lors du tri de tables Lua avec clés mixtes | `src/python/veaf-tools/luadata/serializer/serialize.py` | fix | 5 min | ⬜ |
-| SORT-002 | Ajouter un test unitaire : `_sort([1, "name", 2, "type"])` ne lève pas d'exception et retourne une liste triée | `test/python/` | test | 10 min | ⬜ |
+| SORT-001 | Convertir la clé en `str` dans `sort_key` de `_sort()` pour éviter la comparaison `int < str` lors du tri de tables Lua avec clés mixtes | `src/python/veaf-tools/luadata/serializer/serialize.py` | fix | 5 min | ✅ |
+| SORT-002 | Ajouter un test unitaire : `_sort([1, "name", 2, "type"])` ne lève pas d'exception et retourne une liste triée | `test/python/` | test | 10 min | ✅ |
 
 **Raw total: 15 min → estimated (×1.15): ~17 min (~15 min)**
 

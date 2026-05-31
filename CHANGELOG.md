@@ -12,11 +12,15 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Added
 - `veaf.initialize()`: nil-check for `veafCommands` with a clear error message if using outdated `veaf-scripts.lua` (IMC-010)
 - `doc/MISSION_YAML_REFERENCE.md`: new intro section distinguishing build-pipeline YAML files from runtime `mission.yaml` config, with an ASCII tree diagram (IMC-007)
+- Tests for `_is_double_clicked()` (IMC-001), annotated content in `ConversionReport.to_markdown()` (IMC-002), `complete_src_folder_with_defaults()` filtering and orphan warning (IMC-008), and `luadata._sort()` mixed-key crash (SORT-001)
+
+### Fixed
+- `luadata.serializer.serialize._sort()`: crash `TypeError: '<' not supported between instances of 'int' and 'str'` when sorting a Lua table with mixed integer and string keys (regression seen during v5 → v6 mission conversion) (SORT-001)
 
 ### Changed
 - `veaf-tools convert-v5`: annotated `missionConfig.lua` is now embedded as a code block in `convert-v5-report.md` instead of being written to `backup_v5/src/scripts/missionConfig.lua`; a `README.txt` is added to `backup_v5/` explaining its contents (IMC-002)
 - `veaf-tools build`: auto-pauses before exit when launched by double-click (Explorer.exe parent process) without an explicit `--pause`/`--no-pause` flag — no pause in CI or piped output (IMC-001)
-- `complete_src_folder_with_defaults()`: skips copying a default file when its associated pipeline step or Lua module is disabled in `mission.yaml` (IMC-008)
+- `complete_src_folder_with_defaults()`: skips copying a default file when its associated pipeline step or Lua module is disabled in `mission.yaml`; emits a warning if the now-orphan file already exists in the mission folder (IMC-008)
 
 ### Removed
 - `src/defaults/mission-folder/src/README-versions.md` — stray documentation file removed from the defaults folder (IMC-003)

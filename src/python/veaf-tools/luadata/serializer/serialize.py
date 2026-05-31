@@ -25,7 +25,10 @@ def _sort(list_to_sort: list[str]) -> list[str]:
         _item = item.lower() if isinstance(item, str) else item
 
         # If the element is in keys_sort_order, use its priority
-        return (0, PRIORITY[_item], _item) if _item in PRIORITY else (1, 0, _item)
+        # The 3rd tuple element is always converted to str so that mixed int/str keys
+        # (e.g. {1 = "a", name = "b"}) never trigger a TypeError when Python falls back
+        # to comparing the tiebreaker element.
+        return (0, PRIORITY[_item], str(_item)) if _item in PRIORITY else (1, 0, str(_item))
 
     # check that the parameter is indeed a list
     if not isinstance(list_to_sort, list): return list_to_sort

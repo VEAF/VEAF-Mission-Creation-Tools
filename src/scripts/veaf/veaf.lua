@@ -4746,6 +4746,18 @@ function veaf.initialize()
     veaf.loggers.get(veaf.Id):warn("veaf.initialize() called more than once - ignoring")
     return
   end
+
+  -- Detect an outdated veaf-scripts.lua (pre-Lot 14, before veafCommands.lua was added).
+  -- Without veafCommands, every module that calls veafCommands.registerCommandHandler() during
+  -- initialization will crash with a confusing nil error instead of a clear message.
+  if not veafCommands then
+    veaf.loggers.get(veaf.Id):error(
+      "veafCommands is nil — your veaf-scripts.lua is outdated. "
+        .. "Run veaf-tools-updater.exe to refresh the scripts package, then rebuild the mission."
+    )
+    return
+  end
+
   veaf._initialized = true
   veaf.loggers.get(veaf.Id):info("VEAF framework initialization starting")
 

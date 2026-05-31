@@ -50,7 +50,9 @@
 x| Lot 23 — DOC-YAML | ~8h20 | ✅ |
 | Lot 24 — DOC-REVIEW | ~2h45 | ✅ (REV-002 différé) |
 | Lot 25 — EXT-YAML | ~2h | ⬜ |
-| **Total** | **~157h05** | |
+| Lot FIX-SORT — LUADATA FIX | ~15 min | ✅ |
+| Lot 26 — IMC-FEEDBACK | ~2h40 | ✅ |
+| **Total** | **~160h00** | |
 
 *Initial calibration factor: 1.15 — recalculate after each completed lot.*
 
@@ -515,6 +517,46 @@ Sans groupe bleu et rouge dans le `.miz` de base, les tables `coalition.side.BLU
 Les builder-chains Lua sont l'API bas niveau. En v6, QRA, CombatZone et AirWaves se configurent via `mission.yaml` (`qra:`, `combat_zones:`, `airwave_zones:`). Montrer le YAML en premier ; garder le Lua en `<details>` pour les cas où `mission-script.lua` est préféré.
 
 </details>
+
+---
+
+## Lot 26 — IMC-FEEDBACK: Retours utilisateur tests IMC-Day (v6.2.0)
+
+**Goal**: Traiter les retours terrain remontés lors des tests de migration IMC-Day du 31/05/2026 : UX exe, clarté du dossier backup_v5, fichiers defaults superflus, documentation architecture YAML, filtrage smart des defaults, et investigation du crash `veafCommands nil`.
+
+**Context**: Tests effectués par un utilisateur externe sur v6.2.0 — 11 points remontés. Ce lot traite les 6 points confirmés (P0→P2).
+
+**Branch**: `fix/imc-feedback` → PR → `develop-v6`
+
+| # | Ticket | Fichiers touchés | Type | Effort | Status |
+|---|--------|-----------------|------|--------|--------|
+| IMC-001 | **Auto-pause smart** : détecter si le process tourne en double-clic (`sys.stdout.isatty()` + détection parent process `explorer.exe` sur Windows) — ne faire la pause qu'en cas de double-clic, pas en CLI/CI | `veaf_tools/commands/build.py`, `veaf_tools/app.py` | fix | 25 min | ✅ |
+| IMC-002 | **backup_v5 trompeur** : (B) intégrer le contenu annoté de `missionConfig.lua` directement dans le rapport `convert-v5-report.md` au lieu d'un fichier intermédiaire dans backup_v5 ; (C) créer un `backup_v5/README.txt` expliquant le rôle de chaque fichier présent | `mission_builder/v5_converter.py` | fix | 30 min | ✅ |
+| IMC-003 | **Supprimer le README des defaults copiés** : retirer tout fichier `README*` de `published/src/defaults/mission-folder/` — la doc en ligne suffit, les liens internes seraient cassés dans le contexte mission | `published/src/defaults/mission-folder/` | fix | 10 min | ✅ |
+| IMC-007 | **Doc architecture YAML** : ajouter dans `MISSION_YAML_REFERENCE.md` (+ `.fr.md`) une section d'introduction distinguant (1) les fichiers du pipeline de build (`waypoints.yaml`, `presets.yaml`, etc.) et (2) la configuration runtime des modules Lua dans `mission.yaml` (`assets`, `shortcuts`, `qra`…) — avec schéma visuel | `doc/MISSION_YAML_REFERENCE.md`, `doc/MISSION_YAML_REFERENCE.fr.md` | doc | 30 min | ✅ |
+| IMC-008 | **Filtrage smart des defaults** : dans `complete_src_folder_with_defaults()`, ne copier un fichier default que si le module associé est actif dans `mission.yaml` ; émettre un warning pour tout fichier déjà présent dans le projet dont le module est désactivé ("fichier orphelin") | `mission_builder/mission_builder_worker.py` | fix | 35 min | ✅ |
+| IMC-010 | **Investigate + validation version veafCommands** : (1) reproduire l'erreur `veafCommands nil` depuis `veaf-config.lua:19` — identifier mismatch de version ou dépendance manquante ; (2) ajouter dans `veaf.initialize()` une vérification de cohérence entre la version de `veaf-scripts.lua` et `veaf-config.lua` avec message d'erreur explicite | `src/scripts/veaf/veaf.lua`, `src/scripts/veaf/veafCommands.lua` | fix | 45 min | ✅ |
+
+**Raw total: 175 min → estimated (×1.15): ~200 min (~3h20)**
+
+> **Tickets non priorisés** (pour un lot ultérieur si besoin) : IMC-004 (nom mission depuis dossier courant), IMC-005 (profils de build prod/test/dev), IMC-006 (modules obligatoires + groupes + dépendances), IMC-009 (migration dynamic loading), IMC-011 (.gitignore template)
+
+---
+
+## Lot FIX-SORT — LUADATA FIX: Crash tri clés mixtes int/str
+
+**Goal**: Corriger le `TypeError: '<' not supported between instances of 'int' and 'str'` dans `luadata/serializer/serialize.py` lors de la sérialisation de missions DCS contenant des tables Lua avec des clés mixtes (entières et chaînes).
+
+**Context**: Remonté par un utilisateur convertissant une mission v5 avec les VMCT. La fonction `_sort` construisait des tuples de tri `(priority, order, clé)` où la clé pouvait être `int` ou `str`. Quand les deux premiers éléments du tuple sont identiques (cas fréquent : deux clés non-prioritaires → `(1, 0, ?)`), Python tente de comparer le 3ème — ce qui plante si l'un est `int` et l'autre `str`. Fix : convertir la clé en `str` avant de la placer dans le tuple.
+
+**Branch**: `fix/luadata-sort-mixed-keys` → PR → `develop-v6`
+
+| # | Ticket | Fichiers touchés | Type | Effort | Status |
+|---|--------|-----------------|------|--------|--------|
+| SORT-001 | Convertir la clé en `str` dans `sort_key` de `_sort()` pour éviter la comparaison `int < str` lors du tri de tables Lua avec clés mixtes | `src/python/veaf-tools/luadata/serializer/serialize.py` | fix | 5 min | ✅ |
+| SORT-002 | Ajouter un test unitaire : `_sort([1, "name", 2, "type"])` ne lève pas d'exception et retourne une liste triée | `test/python/` | test | 10 min | ✅ |
+
+**Raw total: 15 min → estimated (×1.15): ~17 min (~15 min)**
 
 ---
 

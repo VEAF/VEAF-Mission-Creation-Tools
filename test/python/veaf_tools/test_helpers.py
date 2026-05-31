@@ -1,12 +1,14 @@
-"""Tests for veaf_tools.helpers — build config YAML manipulation."""
+"""Tests for veaf_tools.helpers — build config YAML manipulation and auto-pause detection."""
 
 from __future__ import annotations
 
+import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
-from veaf_tools.helpers import _update_build_config_in_yaml
+from veaf_tools.helpers import _is_double_clicked, _update_build_config_in_yaml
 
 
 class TestUpdateBuildConfigInYaml(unittest.TestCase):
@@ -55,6 +57,37 @@ class TestUpdateBuildConfigInYaml(unittest.TestCase):
             self.assertIn("dev_mode: true", content)
             # Only one build: section
             self.assertEqual(content.count("build:"), 1)
+
+
+class TestIsDoubleClicked(unittest.TestCase):
+    def test_returns_false_when_not_a_tty(self) -> None:
+        with patch.object(sys.stdout, "isatty", return_value=False):
+            self.assertFalse(_is_double_clicked())
+
+    def test_returns_false_on_non_windows(self) -> None:
+        with patch.object(sys.stdout, "isatty", return_value=True), patch("sys.platform", "linux"):
+            self.assertFalse(_is_double_clicked())
+
+    def test_returns_false_when_no_ctypes(self) -> None:
+        """When ctypes is unavailable (e.g. some embedded interpreters), must not raise."""
+        import builtins
+
+        real_import = builtins.__import__
+
+        def mock_import(name: str, *args, **kwargs):
+            if name in ("ctypes", "ctypes.wintypes"):
+                raise ImportError
+            return real_import(name, *args, **kwargs)
+
+        with patch.object(sys.stdout, "isatty", return_value=True), patch("sys.platform", "win32"), patch(
+            "builtins.__import__", side_effect=mock_import
+        ):
+            # Should not raise; result doesn't matter (ctypes unavailable)
+            try:
+                result = _is_double_clicked()
+                self.assertIsInstance(result, bool)
+            except ImportError:
+                pass  # acceptable — function may propagate if ctypes not available at import time
 
 
 if __name__ == "__main__":

@@ -6,6 +6,46 @@ Cette page couvre les **sections de premier niveau** de `mission.yaml`. La confi
 
 ---
 
+## Comprendre le paysage des fichiers YAML
+
+Un dossier de mission VEAF utilise **deux catégories distinctes** de fichiers YAML. Comprendre cette distinction vous aide à savoir quel fichier modifier pour une tâche donnée.
+
+### Catégorie A — Fichiers de pipeline de build
+
+Ces fichiers pilotent les étapes **d'injection au moment du build** que `veaf-tools build` effectue avant d'écrire le `.miz` final. Chaque étape lit son propre fichier YAML et injecte des données dans la mission. Ils sont listés sous la section `pipeline:` de `mission.yaml`.
+
+| Fichier (dans `src/`) | Étape de pipeline | Rôle |
+|-----------------------|---------------|------|
+| `waypoints.yaml` | `waypoints` | Injecte les waypoints nommés dans la mission |
+| `presets.yaml` | `presets` | Configure les presets radio de chaque groupe d'avions |
+| `aircraft-templates.yaml` | `aircraft_groups` | Définit les templates de groupes d'avions |
+| `versions.yaml` | `weather` | Génère une variante `.miz` par preset météo |
+
+Ces fichiers **ne sont pas** chargés à l'exécution dans DCS — ils sont consommés par `veaf-tools build` puis compilés dans le `.miz`.
+
+### Catégorie B — Configuration des modules runtime (ce fichier)
+
+`mission.yaml` lui-même configure **le comportement des modules Lua VEAF lors de l'exécution dans DCS**. Il est traduit au moment du build en `veaf-config.lua`, injecté dans la mission et exécuté au chargement par DCS.
+
+Les sections `lua_modules:`, `qra:`, `assets:`, `shortcuts:` décrivent toutes le comportement des modules à l'exécution.
+
+```
+dossier mission/
+├── mission.yaml          ← config des modules runtime (CE FICHIER)
+│   └── pipeline:
+│       ├── waypoints: true  ──► src/waypoints.yaml       (injection build-time)
+│       ├── presets:  true   ──► src/presets.yaml          (injection build-time)
+│       ├── aircraft_groups: true  ──► src/aircraft-templates.yaml
+│       └── weather:  true   ──► src/versions.yaml
+└── src/
+    ├── waypoints.yaml
+    ├── presets.yaml
+    ├── aircraft-templates.yaml
+    └── versions.yaml
+```
+
+---
+
 ## Exemple minimal fonctionnel
 
 ```yaml

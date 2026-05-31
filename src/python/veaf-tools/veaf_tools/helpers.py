@@ -1,9 +1,75 @@
+import os
 import sys
 from pathlib import Path
 
 from veaf_libs.i18n import t
 
 _BUILD_CONFIG_MARKER = "# ── Build configuration"
+
+
+def _get_parent_process_name_windows() -> str | None:
+    """Return the lowercase name of the parent process on Windows using ctypes/Toolhelp32.
+
+    Returns ``None`` if the name cannot be determined (snapshot failure, any exception).
+    The Toolhelp32 API returns ANSI strings; decoded with ``mbcs`` to match the system locale.
+    """
+    try:
+        import ctypes
+        import ctypes.wintypes
+
+        TH32CS_SNAPPROCESS = 0x00000002
+
+        class PROCESSENTRY32(ctypes.Structure):
+            _fields_ = [
+                ("dwSize", ctypes.wintypes.DWORD),
+                ("cntUsage", ctypes.wintypes.DWORD),
+                ("th32ProcessID", ctypes.wintypes.DWORD),
+                ("th32DefaultHeapID", ctypes.POINTER(ctypes.c_ulong)),
+                ("th32ModuleID", ctypes.wintypes.DWORD),
+                ("cntThreads", ctypes.wintypes.DWORD),
+                ("th32ParentProcessID", ctypes.wintypes.DWORD),
+                ("pcPriClassBase", ctypes.c_long),
+                ("dwFlags", ctypes.wintypes.DWORD),
+                ("szExeFile", ctypes.c_char * 260),
+            ]
+
+        snapshot = ctypes.windll.kernel32.CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0)  # type: ignore[attr-defined]
+        if snapshot == ctypes.wintypes.HANDLE(-1).value:
+            return None
+        try:
+            entry = PROCESSENTRY32()
+            entry.dwSize = ctypes.sizeof(PROCESSENTRY32)
+            ppid = os.getppid()
+            if not ctypes.windll.kernel32.Process32First(snapshot, ctypes.byref(entry)):  # type: ignore[attr-defined]
+                return None
+            while True:
+                if entry.th32ProcessID == ppid:
+                    # Toolhelp32 returns ANSI strings — decode with the system ANSI code page
+                    return entry.szExeFile.decode("mbcs", errors="replace").lower()
+                if not ctypes.windll.kernel32.Process32Next(snapshot, ctypes.byref(entry)):  # type: ignore[attr-defined]
+                    break
+        finally:
+            ctypes.windll.kernel32.CloseHandle(snapshot)  # type: ignore[attr-defined]
+        return None
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def _is_double_clicked() -> bool:
+    """Return True if the process was launched by double-clicking (Explorer parent on Windows).
+
+    This is used to auto-pause at the end of the build so the user can read the output
+    when they run veaf-tools by double-clicking the .exe rather than from a terminal.
+    Returns False on non-Windows systems and when stdout is redirected (CI / pipe).
+    """
+    if not sys.stdout.isatty():
+        return False
+    if sys.platform != "win32":
+        return False
+    parent = _get_parent_process_name_windows()
+    if parent is None:
+        return False
+    return parent == "explorer.exe"
 
 
 def _read_single_char() -> str:

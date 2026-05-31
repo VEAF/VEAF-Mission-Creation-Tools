@@ -6,6 +6,46 @@ This page covers the **top-level sections** of `mission.yaml`. Configuration for
 
 ---
 
+## Understanding the YAML file landscape
+
+A VEAF mission folder uses **two distinct categories** of YAML files. Understanding the difference helps you know which file to edit for a given task.
+
+### Category A — Build pipeline files
+
+These files drive the **design-time injection** steps that `veaf-tools build` performs before writing the final `.miz`. Each step reads its own YAML file and injects data into the mission. They are listed under the `pipeline:` section of `mission.yaml`.
+
+| File (in `src/`) | Pipeline step | What it does |
+|------------------|--------------|--------------|
+| `waypoints.yaml` | `waypoints` | Injects named waypoints into the mission |
+| `presets.yaml` | `presets` | Configures radio presets for each aircraft group |
+| `aircraft-templates.yaml` | `aircraft_groups` | Defines aircraft group templates |
+| `versions.yaml` | `weather` | Generates one `.miz` variant per weather preset |
+
+These files are **not** loaded at DCS runtime — they are consumed by `veaf-tools build` and then compiled into the `.miz`.
+
+### Category B — Runtime module configuration (this file)
+
+`mission.yaml` itself configures **how VEAF Lua modules behave at DCS runtime**. It is translated at build time into `veaf-config.lua`, which is injected into the mission and executed when DCS loads the mission.
+
+Sections such as `lua_modules:`, `qra:`, `assets:`, and `shortcuts:` all describe runtime module behaviour.
+
+```
+mission folder/
+├── mission.yaml          ← runtime module config (THIS FILE)
+│   └── pipeline:
+│       ├── waypoints: true  ──► src/waypoints.yaml     (build-time injection)
+│       ├── presets:  true   ──► src/presets.yaml        (build-time injection)
+│       ├── aircraft_groups: true  ──► src/aircraft-templates.yaml
+│       └── weather:  true   ──► src/versions.yaml
+└── src/
+    ├── waypoints.yaml
+    ├── presets.yaml
+    ├── aircraft-templates.yaml
+    └── versions.yaml
+```
+
+---
+
 ## Minimal working example
 
 ```yaml

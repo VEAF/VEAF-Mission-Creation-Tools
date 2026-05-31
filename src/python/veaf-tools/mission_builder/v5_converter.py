@@ -169,6 +169,8 @@ class ConversionReport:
     """Items the user must review / clean up manually after testing."""
     backup_v5_sources: list[str] = field(default_factory=list)
     """Relative paths of v5 files/folders backed up under ``backup_v5/``."""
+    missionconfig_annotated_content: str = ""
+    """Annotated missionConfig.lua content (with [v6 ...] comments) — embedded in report."""
 
     # -----------------------------------------------------------------------
     # Report rendering
@@ -346,6 +348,21 @@ class ConversionReport:
             "---",
             "",
         ]
+
+        # ── Annotated missionConfig.lua ───────────────────────────────────────
+        if self.missionconfig_annotated_content:
+            lines += [
+                f"## {t('report.section.annotated_config')}",
+                "",
+                t("report.annotated_config.intro"),
+                "",
+                "~~~~lua",
+                self.missionconfig_annotated_content,
+                "~~~~",
+                "",
+                "---",
+                "",
+            ]
 
         # ── Manual review ─────────────────────────────────────────────────
         lines += [f"## {t('report.section.review')}", ""]
@@ -685,9 +702,36 @@ class V5Converter:
                 report.missionconfig_backup = bak_path
                 report.actions.append(t("convert_v5.action.missionconfig_bak", path=f"{rel.parent}/{src.stem}.lua.bak"))
 
-            annotated_path = backup_dir / src.name
-            annotated_path.write_text(annotated_content, encoding="utf-8")
-            report.actions.append(t("convert_v5.action.missionconfig_annotated", path=f"{rel.parent}/{src.name}"))
+            # Store the annotated content in the report (embedded in the Markdown).
+            # We do NOT write it as a separate file in backup_v5/ to avoid confusion
+            # with the .bak file that is the authoritative rollback reference.
+            report.missionconfig_annotated_content = annotated_content
+            report.actions.append(t("convert_v5.action.missionconfig_annotated"))
+
+            # Write a README.txt in backup_v5/ explaining its purpose
+            readme_path = mission_folder / "backup_v5" / "README.txt"
+            if not readme_path.exists():
+                readme_path.write_text(
+                    "backup_v5/ — v5 migration backup\n"
+                    "================================\n"
+                    "\n"
+                    "This folder contains a backup of your original v5 missionConfig.lua.\n"
+                    "It was created automatically by 'veaf-tools convert-v5'.\n"
+                    "\n"
+                    "Contents:\n"
+                    "  src/scripts/missionConfig.lua.bak  — original unmodified file (for rollback)\n"
+                    "\n"
+                    "The annotated version of missionConfig.lua (with [v6 ...] comments showing\n"
+                    "what each line was migrated into) is embedded in the conversion report:\n"
+                    "  convert-v5-report.md\n"
+                    "\n"
+                    "Once you have verified that the mission builds and runs correctly:\n"
+                    "  1. Delete this entire backup_v5/ folder.\n"
+                    "  2. Remove any old 'do file(...)' calls from your triggers (already commented out).\n"
+                    "\n"
+                    "Do NOT edit the .bak file — it is an exact copy of your original missionConfig.lua.\n",
+                    encoding="utf-8",
+                )
 
         # Generate clean mission-script.lua from scratch (only callback stubs — no old code)
         clean_content = _generate_mission_script(result, self._version)

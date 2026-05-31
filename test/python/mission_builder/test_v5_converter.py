@@ -402,5 +402,44 @@ class TestV5ConverterIntegration(unittest.TestCase):
             self.assertIn('name: "OpenTraining"', yaml_content)
 
 
+# ---------------------------------------------------------------------------
+# IMC-002 — annotated missionConfig.lua embedded in report
+# ---------------------------------------------------------------------------
+
+
+class TestConversionReportAnnotatedContent(unittest.TestCase):
+    """to_markdown() embeds annotated content as a Lua code block (IMC-002)."""
+
+    def setUp(self) -> None:
+        self._prev_lang = current_language()
+        set_language("en")
+
+    def tearDown(self) -> None:
+        set_language(self._prev_lang)
+
+    def test_annotated_section_present_when_content_set(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            report = ConversionReport(mission_folder=Path(td), timestamp="2024-01-01 12:00", version="1.0.0")
+            report.missionconfig_annotated_content = "-- [v6 migrated]\nlocal x = 1"
+            md = report.to_markdown()
+            self.assertIn("~~~~lua", md)
+            self.assertIn("-- [v6 migrated]", md)
+            self.assertIn("local x = 1", md)
+
+    def test_annotated_section_absent_when_empty(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            report = ConversionReport(mission_folder=Path(td), timestamp="2024-01-01 12:00", version="1.0.0")
+            md = report.to_markdown()
+            # No annotated content → no tilde fenced code block
+            self.assertNotIn("~~~~lua", md)
+
+    def test_annotated_section_title_in_report(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            report = ConversionReport(mission_folder=Path(td), timestamp="2024-01-01 12:00", version="1.0.0")
+            report.missionconfig_annotated_content = "-- [v6 foo]"
+            md = report.to_markdown()
+            self.assertIn(t("report.section.annotated_config"), md)
+
+
 if __name__ == "__main__":
     unittest.main()

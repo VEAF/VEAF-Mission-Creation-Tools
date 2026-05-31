@@ -422,7 +422,7 @@ class TestConversionReportAnnotatedContent(unittest.TestCase):
             report = ConversionReport(mission_folder=Path(td), timestamp="2024-01-01 12:00", version="1.0.0")
             report.missionconfig_annotated_content = "-- [v6 migrated]\nlocal x = 1"
             md = report.to_markdown()
-            self.assertIn("```lua", md)
+            self.assertIn("~~~~lua", md)
             self.assertIn("-- [v6 migrated]", md)
             self.assertIn("local x = 1", md)
 
@@ -430,8 +430,8 @@ class TestConversionReportAnnotatedContent(unittest.TestCase):
         with tempfile.TemporaryDirectory() as td:
             report = ConversionReport(mission_folder=Path(td), timestamp="2024-01-01 12:00", version="1.0.0")
             md = report.to_markdown()
-            # No annotated content → no Lua code block
-            self.assertNotIn("```lua", md)
+            # No annotated content → no tilde fenced code block
+            self.assertNotIn("~~~~lua", md)
 
     def test_annotated_section_title_in_report(self) -> None:
         with tempfile.TemporaryDirectory() as td:

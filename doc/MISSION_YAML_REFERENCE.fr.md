@@ -14,11 +14,11 @@ Un dossier de mission VEAF utilise **deux catégories distinctes** de fichiers Y
 
 Ces fichiers pilotent les étapes **d'injection au moment du build** que `veaf-tools build` effectue avant d'écrire le `.miz` final. Chaque étape lit son propre fichier YAML et injecte des données dans la mission. Ils sont listés sous la section `pipeline:` de `mission.yaml`.
 
-| Fichier (dans `src/`) | Étape pipeline | Rôle |
+| Fichier (dans `src/`) | Étape de pipeline | Rôle |
 |-----------------------|---------------|------|
 | `waypoints.yaml` | `waypoints` | Injecte les waypoints nommés dans la mission |
 | `presets.yaml` | `presets` | Configure les presets radio de chaque groupe d'avions |
-| `aircraft-templates.yaml` | `aircrafts` | Définit les templates de groupes d'avions |
+| `aircraft-templates.yaml` | `aircraft_groups` | Définit les templates de groupes d'avions |
 | `versions.yaml` | `weather` | Génère une variante `.miz` par preset météo |
 
 Ces fichiers **ne sont pas** chargés à l'exécution dans DCS — ils sont consommés par `veaf-tools build` puis compilés dans le `.miz`.
@@ -35,7 +35,7 @@ dossier mission/
 │   └── pipeline:
 │       ├── waypoints: true  ──► src/waypoints.yaml       (injection build-time)
 │       ├── presets:  true   ──► src/presets.yaml          (injection build-time)
-│       ├── aircrafts: true  ──► src/aircraft-templates.yaml
+│       ├── aircraft_groups: true  ──► src/aircraft-templates.yaml
 │       └── weather:  true   ──► src/versions.yaml
 └── src/
     ├── waypoints.yaml

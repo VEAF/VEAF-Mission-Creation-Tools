@@ -18,7 +18,7 @@ These files drive the **design-time injection** steps that `veaf-tools build` pe
 |------------------|--------------|--------------|
 | `waypoints.yaml` | `waypoints` | Injects named waypoints into the mission |
 | `presets.yaml` | `presets` | Configures radio presets for each aircraft group |
-| `aircraft-templates.yaml` | `aircrafts` | Defines aircraft group templates |
+| `aircraft-templates.yaml` | `aircraft_groups` | Defines aircraft group templates |
 | `versions.yaml` | `weather` | Generates one `.miz` variant per weather preset |
 
 These files are **not** loaded at DCS runtime — they are consumed by `veaf-tools build` and then compiled into the `.miz`.
@@ -35,7 +35,7 @@ mission folder/
 │   └── pipeline:
 │       ├── waypoints: true  ──► src/waypoints.yaml     (build-time injection)
 │       ├── presets:  true   ──► src/presets.yaml        (build-time injection)
-│       ├── aircrafts: true  ──► src/aircraft-templates.yaml
+│       ├── aircraft_groups: true  ──► src/aircraft-templates.yaml
 │       └── weather:  true   ──► src/versions.yaml
 └── src/
     ├── waypoints.yaml

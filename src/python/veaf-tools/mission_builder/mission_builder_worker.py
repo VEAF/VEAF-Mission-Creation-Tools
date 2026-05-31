@@ -235,8 +235,35 @@ class MissionBuilderWorker(BaseWorker):
         defaults_folder: Path = (
             (self.scripts_path or (self.mission_folder / "published" / "src")) / "defaults" / "mission-folder"
         )
+        # Map default filenames to the pipeline/module that owns them so that we
+        # skip copying when the user has explicitly disabled the corresponding step.
+        # Keys are bare filenames (no directory).  Values are dicts with either
+        # "pipeline" (key in self.pipeline_cfg) or "lua_module" (key in
+        # self.mission_yaml["lua_modules"]).
+        _DEFAULT_FILE_MODULE_MAP: dict[str, dict[str, str]] = {
+            "spawnables.yaml": {"lua_module": "SPAWN"},
+            "templates.yaml": {"lua_module": "SPAWN"},
+            "waypoints.yaml": {"pipeline": "waypoints"},
+            "presets.yaml": {"pipeline": "presets"},
+            "presets.md": {"pipeline": "presets"},
+            "versions.yaml": {"pipeline": "weather"},
+        }
         for f in defaults_folder.rglob("*"):
             if f.is_file():
+                mapping = _DEFAULT_FILE_MODULE_MAP.get(f.name)
+                if mapping is not None:
+                    if "pipeline" in mapping:
+                        step_cfg = self.pipeline_cfg.get(mapping["pipeline"])
+                        if step_cfg is False or (isinstance(step_cfg, dict) and step_cfg.get("enabled") is False):
+                            logger.debug(f"Skipping default '{f.name}': pipeline '{mapping['pipeline']}' is disabled")
+                            continue
+                    elif "lua_module" in mapping:
+                        mod_cfg = (self.mission_yaml.get("lua_modules") or {}).get(mapping["lua_module"])
+                        if isinstance(mod_cfg, dict) and mod_cfg.get("enable") is False:
+                            logger.debug(
+                                f"Skipping default '{f.name}': lua_module '{mapping['lua_module']}' is disabled"
+                            )
+                            continue
                 relative_path = f.relative_to(defaults_folder).parent.as_posix()
                 relative_path = self.mission_folder / relative_path / f.name
                 if not relative_path.exists():

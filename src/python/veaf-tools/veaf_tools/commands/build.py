@@ -23,7 +23,7 @@ from veaf_tools.app import (
     logger,
     t,
 )
-from veaf_tools.helpers import _update_build_config_in_yaml
+from veaf_tools.helpers import _is_double_clicked, _update_build_config_in_yaml
 
 
 @app.command(help=t("cmd.build.help"))
@@ -197,5 +197,5 @@ def build(
             console.print(t("pipeline.console.weather_done", count=len(created_files)))
 
     console.print(t("msg.work_done"))
-    if pause:
+    if pause or _is_double_clicked():
         input(t("help.pause_msg"))

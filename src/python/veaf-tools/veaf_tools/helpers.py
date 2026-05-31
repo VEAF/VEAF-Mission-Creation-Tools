@@ -1,9 +1,59 @@
+import os
 import sys
 from pathlib import Path
 
 from veaf_libs.i18n import t
 
 _BUILD_CONFIG_MARKER = "# ── Build configuration"
+
+
+def _is_double_clicked() -> bool:
+    """Return True if the process was launched by double-clicking (Explorer parent on Windows).
+
+    This is used to auto-pause at the end of the build so the user can read the output
+    when they run veaf-tools by double-clicking the .exe rather than from a terminal.
+    Returns False on non-Windows systems and when stdout is redirected (CI / pipe).
+    """
+    if not sys.stdout.isatty():
+        return False
+    if sys.platform != "win32":
+        return False
+    try:
+        import ctypes
+        import ctypes.wintypes
+
+        TH32CS_SNAPPROCESS = 0x00000002
+
+        class PROCESSENTRY32(ctypes.Structure):
+            _fields_ = [
+                ("dwSize", ctypes.wintypes.DWORD),
+                ("cntUsage", ctypes.wintypes.DWORD),
+                ("th32ProcessID", ctypes.wintypes.DWORD),
+                ("th32DefaultHeapID", ctypes.POINTER(ctypes.c_ulong)),
+                ("th32ModuleID", ctypes.wintypes.DWORD),
+                ("cntThreads", ctypes.wintypes.DWORD),
+                ("th32ParentProcessID", ctypes.wintypes.DWORD),
+                ("pcPriClassBase", ctypes.c_long),
+                ("dwFlags", ctypes.wintypes.DWORD),
+                ("szExeFile", ctypes.c_char * 260),
+            ]
+
+        snapshot = ctypes.windll.kernel32.CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0)  # type: ignore[attr-defined]
+        if snapshot == ctypes.wintypes.HANDLE(-1).value:
+            return False
+        entry = PROCESSENTRY32()
+        entry.dwSize = ctypes.sizeof(PROCESSENTRY32)
+        ppid = os.getppid()
+        processes: dict[int, str] = {}
+        if ctypes.windll.kernel32.Process32First(snapshot, ctypes.byref(entry)):  # type: ignore[attr-defined]
+            while True:
+                processes[entry.th32ProcessID] = entry.szExeFile.decode("utf-8", errors="replace").lower()
+                if not ctypes.windll.kernel32.Process32Next(snapshot, ctypes.byref(entry)):  # type: ignore[attr-defined]
+                    break
+        ctypes.windll.kernel32.CloseHandle(snapshot)  # type: ignore[attr-defined]
+        return "explorer.exe" in processes.get(ppid, "")
+    except Exception:  # noqa: BLE001
+        return False
 
 
 def _read_single_char() -> str:

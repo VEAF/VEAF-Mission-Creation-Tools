@@ -9,6 +9,18 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+- `veaf.initialize()`: nil-check for `veafCommands` with a clear error message if using outdated `veaf-scripts.lua` (IMC-010)
+- `doc/MISSION_YAML_REFERENCE.md`: new intro section distinguishing build-pipeline YAML files from runtime `mission.yaml` config, with an ASCII tree diagram (IMC-007)
+
+### Changed
+- `veaf-tools convert-v5`: annotated `missionConfig.lua` is now embedded as a code block in `convert-v5-report.md` instead of being written to `backup_v5/src/scripts/missionConfig.lua`; a `README.txt` is added to `backup_v5/` explaining its contents (IMC-002)
+- `veaf-tools build`: auto-pauses before exit when launched by double-click (Explorer.exe parent process) without an explicit `--pause`/`--no-pause` flag — no pause in CI or piped output (IMC-001)
+- `complete_src_folder_with_defaults()`: skips copying a default file when its associated pipeline step or Lua module is disabled in `mission.yaml` (IMC-008)
+
+### Removed
+- `src/defaults/mission-folder/src/README-versions.md` — stray documentation file removed from the defaults folder (IMC-003)
+
 ---
 
 ## [6.2.0] — 2026-05-30

@@ -7,7 +7,7 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
-## [Unreleased]
+## [6.3.0] — 2026-05-31
 
 ### Added
 - `veaf.initialize()`: nil-check for `veafCommands` with a clear error message if using outdated `veaf-scripts.lua` (IMC-010)

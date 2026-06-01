@@ -74,7 +74,7 @@ Mission makers can also add custom aliases in `mission-script.lua`:
 
 ## Custom Aliases
 
-Add mission-specific aliases in your `missionConfig.lua`:
+Add mission-specific aliases in your `mission-script.lua`:
 
 ```lua
 veafShortcuts.AddAlias(

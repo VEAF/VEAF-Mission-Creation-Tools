@@ -74,7 +74,7 @@ Les créateurs de missions peuvent également ajouter des aliases personnalisés
 
 ## Aliases personnalisés
 
-Ajoutez des aliases spécifiques à votre mission dans `missionConfig.lua` :
+Ajoutez des aliases spécifiques à votre mission dans `mission-script.lua` :
 
 ```lua
 veafShortcuts.AddAlias(

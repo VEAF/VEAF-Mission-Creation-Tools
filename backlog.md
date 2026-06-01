@@ -52,9 +52,25 @@ x| Lot 23 — DOC-YAML | ~8h20 | ✅ |
 | Lot 25 — EXT-YAML | ~2h | ⬜ |
 | Lot FIX-SORT — LUADATA FIX | ~15 min | ✅ |
 | Lot 26 — IMC-FEEDBACK | ~2h40 | ✅ |
-| **Total** | **~160h00** | |
+| Lot FIX-BUNDLE — VEAFCOMMANDS MISSING | ~10 min | ✅ |
+| **Total** | **~160h10** | |
 
 *Initial calibration factor: 1.15 — recalculate after each completed lot.*
+
+---
+
+## Lot FIX-BUNDLE — VEAFCOMMANDS MISSING: veafCommands.lua absent du bundle
+
+**Goal**: Corriger le crash `attempt to index global 'veafCommands' (a nil value)` au chargement de mission — `veafCommands.lua` était absent de la liste de concaténation dans `veaf_build/worker.py`.
+
+**Context**: `veafGroundAI.lua`, `veafCasMission.lua` et d'autres modules appellent `veafCommands.registerCommandHandler()` dans leur `initialize()`. Or `veafCommands.lua` n'était pas inclus dans `lua_scripts` → absent du bundle `veaf-scripts.lua` → nil au runtime. Le guard IMC-010 dans `veaf.initialize()` ne pouvait pas non plus aider car il est lui-même dans le bundle.
+**Branch**: `fix/veafcommands-missing-bundle` → PR → `develop-v6`
+
+| # | Ticket | Fichiers touchés | Type | Effort | Status |
+|---|--------|-----------------|------|--------|--------|
+| BUNDLE-001 | Ajouter `"veafCommands.lua"` dans `lua_scripts` après `"veafMarkers.lua"` dans `veaf_build/worker.py` | `veaf_build/worker.py` | fix | 5 min | ✅ |
+
+**Raw total: 5 min → estimated (×1.15): ~6 min (~10 min)**
 
 ---
 

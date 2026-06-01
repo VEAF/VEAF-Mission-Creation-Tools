@@ -102,7 +102,7 @@ The module knows the angled-deck offset for all stock DCS carriers:
 ## Example Configuration
 
 ```lua
--- In missionconfig.lua
+-- In mission-script.lua
 veafCarrierOperations.initialize()
 
 -- Carriers are registered via veafAssets:

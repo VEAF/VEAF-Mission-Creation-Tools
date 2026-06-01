@@ -26,7 +26,7 @@ The VEAF module (`veafSkynet`) handles the construction of the Skynet network fo
 veafSkynet.initialize()
 ```
 
-Call this from `missionConfig.lua` after your other module initialisations. Skynet networks for both coalitions are built automatically.
+Call this from `mission-script.lua` after your other module initialisations. Skynet networks for both coalitions are built automatically.
 
 ### Optional parameters
 

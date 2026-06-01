@@ -76,7 +76,7 @@ lua_modules:
 
 ---
 
-## Pre-defining Points in missionconfig.lua
+## Pre-defining Points in mission-script.lua
 
 Named points can be pre-defined programmatically:
 

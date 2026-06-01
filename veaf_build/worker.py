@@ -145,6 +145,7 @@ class BuildAndReleaseWorker:
                     "veafCacheManager.lua",
                     "veafEventHandler.lua",
                     "veafMarkers.lua",
+                    "veafCommands.lua",
                     "veafInterpreter.lua",
                     "veafRadio.lua",
                     "veafRemote.lua",

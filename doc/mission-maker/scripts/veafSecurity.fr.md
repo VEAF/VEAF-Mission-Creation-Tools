@@ -37,7 +37,7 @@ Le niveau de sécurité par défaut pour les commandes de spawn peut être défi
 Les mots de passe sont stockés sous forme de hachages SHA-1 pour la sécurité. Utiliser la fonction intégrée `sha1` :
 
 ```lua
--- Dans missionconfig.lua (après chargement de veafSecurity)
+-- Dans mission-script.lua (après chargement de veafSecurity)
 
 -- Effacer les mots de passe par défaut et définir les vôtres
 veafSecurity.password_L1 = {}

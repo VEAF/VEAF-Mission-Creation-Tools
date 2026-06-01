@@ -171,7 +171,7 @@ La commande `convert-mission` fait tout en une étape : extraction, injection de
 
 Cela :
 1. Extrait `vanilla.miz` dans `src/mission/`
-2. Copie le `src/scripts/missionConfig.lua` par défaut
+2. Crée `mission.yaml` et `src/scripts/mission-script.lua` par défaut
 3. Injecte le trigger chargeur VEAF MCT v6
 4. Reconstruit un nouveau `.miz` à côté du dossier
 
@@ -192,30 +192,27 @@ Puis copiez votre `.miz` sous `mission.miz` et exécutez :
 
 #### 5. Configurer les modules à activer
 
-Ouvrez `src/scripts/missionConfig.lua`. Par défaut, seuls les modules essentiels (marqueurs, spawn, radio) sont activés. Décommentez les modules que vous souhaitez :
+Éditez `mission.yaml` pour activer les modules souhaités. Par défaut, seuls les modules essentiels (marqueurs, spawn, radio) sont actifs :
 
-```lua
-veaf.config.MISSION_NAME = "Ma Mission Vanilla"
+```yaml
+name: Ma Mission Vanilla
 
-if veafRadio then
-    veafRadio.initialize(true)
-end
-if veafSpawn then
-    veafSpawn.initialize()
-end
-
--- Décommenter pour activer les missions CAS :
--- if veafCasMission then
---     veafCasMission.initialize()
--- end
-
--- Décommenter pour activer les opérations carrier :
--- if veafCarrierOperations then
---     veafCarrierOperations.initialize()
--- end
+lua_modules:
+  RADIO:
+    enable: true
+  SPAWN:
+    enable: true
+  # Décommenter pour activer les missions CAS :
+  # CASMISSION:
+  #   enable: true
+  # Décommenter pour activer les opérations carrier :
+  # CARRIER:
+  #   enable: true
 ```
 
-Consultez la [référence missionConfig.lua](#référence-missionconfiglua) ci-dessous et les guides de scripts individuels dans [scripts/](scripts/README.md) pour toutes les options.
+Pour du Lua personnalisé (appels de modules avancés, aliases, etc.), éditez `src/scripts/mission-script.lua`.
+
+Consultez la [référence YAML](../../MISSION_YAML_REFERENCE.md) et les guides de scripts individuels dans [scripts/](scripts/README.md) pour toutes les options.
 
 #### 6. Conserver votre contenu de mission existant
 
@@ -249,11 +246,12 @@ ma-mission/
 │   │   ├── options
 │   │   └── warehouses
 │   ├── scripts/
-│   │   ├── missionConfig.lua   ← votre config de modules (à commiter)
+│   │   ├── mission-script.lua  ← code Lua personnalisé (à commiter)
 │   │   └── veafDynamicConfig.lua   ← config de slots dynamiques (optionnel)
 │   ├── presets.yaml            ← config des préréglages radio (optionnel)
 │   ├── spawnables.yaml         ← groupes spawnable personnalisés (optionnel)
 │   └── waypoints.yaml          ← waypoints personnalisés (optionnel)
+├── mission.yaml                ← config des modules et du pipeline (à commiter)
 ├── published/                  ← installé par veaf-tools-updater (NE PAS commiter)
 │   ├── veaf-scripts.lua
 │   └── ...
@@ -273,30 +271,25 @@ __pycache__/
 
 ---
 
-## Référence missionConfig.lua
+## Référence mission-script.lua
 
-Le `missionConfig.lua` minimal fonctionnel :
+`mission-script.lua` est un fichier optionnel pour du code Lua personnalisé exécuté après l'initialisation de tous les modules VEAF. Utilisez-le pour la configuration avancée qui ne peut pas encore s'exprimer dans `mission.yaml` — aliases personnalisés, surcharges de paramètres de modules, assets, etc.
+
+Exemple minimal :
 
 ```lua
-veaf.config.MISSION_NAME = "Ma Mission"   -- affiché dans les logs
+-- Optionnel : surcharger un paramètre de module
+veafSpawn.SpawnKeyphrase = "_spawn"
 
--- Module radio (requis pour tous les menus F10)
-if veafRadio then
-    veafRadio.initialize(true)
-end
-
--- Module spawn (requis pour les commandes de marqueurs)
-if veafSpawn then
-    veafSpawn.initialize()
-end
-
--- Raccourcis (requis pour les alias)
-if veafShortcuts then
-    veafShortcuts.initialize()
-end
+-- Alias personnalisé
+veafShortcuts.AddAlias(
+  VeafAlias:new()
+    :setName("-monalias")
+    :setVeafCommand("_spawn group, name mon-template")
+)
 ```
 
-Pour chaque module supplémentaire, consultez le guide correspondant dans [scripts/](scripts/README.md).
+L'activation/désactivation des modules se configure dans `mission.yaml` → `lua_modules:` — pas dans ce fichier. Consultez la [référence YAML](../../MISSION_YAML_REFERENCE.md) pour la syntaxe complète de `mission.yaml`.
 
 ---
 

@@ -7,6 +7,13 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [Unreleased]
+
+### Fixed
+- `veaf_build/worker.py`: `veafCommands.lua` absent de la liste de concaténation → crash `attempt to index global 'veafCommands' (a nil value)` au chargement de mission (BUNDLE-001)
+
+---
+
 ## [6.3.0] — 2026-05-31
 
 ### Added

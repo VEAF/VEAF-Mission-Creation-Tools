@@ -20,7 +20,7 @@ Intègre les groupes de missions VEAF avec le script tiers [Skynet IADS](https:/
 ## Activation
 
 ```lua
--- Charger Skynet en premier (dans vos triggers DO SCRIPT FILE ou missionconfig.lua)
+-- Charger Skynet en premier (dans vos triggers DO SCRIPT FILE ou mission-script.lua)
 -- Puis :
 veafSkynetIadsHelper.initialize()
 ```

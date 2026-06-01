@@ -38,7 +38,7 @@ The default security level for spawn commands can be set per-module.
 Passwords are stored as SHA-1 hashes for security. Use the built-in `sha1` function:
 
 ```lua
--- In missionconfig.lua (after veafSecurity is loaded)
+-- In mission-script.lua (after veafSecurity is loaded)
 
 -- Clear default passwords and set your own
 veafSecurity.password_L1 = {}

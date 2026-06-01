@@ -120,7 +120,7 @@ This approach gives you full visual design in the editor while keeping the zone 
 1. **Create a trigger zone** — define the combat area. Name it, e.g. `ZONE-ALPHA`.
 2. **Place unit groups** inside the zone. Set them to any coalition — VEAF will handle their lifecycle.
 3. **Use unit name tags** (see below) to customise spawn behaviour per group.
-4. **Register the zone** in `missionConfig.lua`:
+4. **Register the zone** in `mission-script.lua`:
 
 ```lua
 VeafCombatZone:new()

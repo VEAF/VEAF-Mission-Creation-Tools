@@ -101,7 +101,7 @@ Le module connaît l'offset de pont incliné pour tous les porte-avions DCS stan
 ## Exemple de configuration
 
 ```lua
--- Dans missionconfig.lua
+-- Dans mission-script.lua
 veafCarrierOperations.initialize()
 
 -- Les porte-avions sont enregistrés via veafAssets :

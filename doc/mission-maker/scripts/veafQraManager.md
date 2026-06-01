@@ -240,7 +240,7 @@ Full states:
 
 1. **Create a trigger zone** — draw the airspace you want to protect. Name it something memorable, e.g. `ZONE-QRA-NORTH`.
 2. **Place the QRA group** — create the aircraft group that will scramble. Set it to **Late Activation** so it does not spawn at mission start (VEAF handles activation). Give the group a distinctive name, e.g. `MiG-29 QRA North`.
-3. **Wire it up in `missionConfig.lua`**:
+3. **Wire it up in `mission-script.lua`** (or via `mission.yaml` → `qra:` for the recommended YAML approach):
 
 ```lua
 VeafQRA:new()

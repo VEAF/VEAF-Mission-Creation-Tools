@@ -172,7 +172,7 @@ The `convert-mission` command does everything in one step: extract, inject VEAF 
 
 This:
 1. Extracts `vanilla.miz` into `src/mission/`
-2. Copies the default `src/scripts/missionConfig.lua`
+2. Creates default `mission.yaml` and `src/scripts/mission-script.lua`
 3. Injects the v6 VEAF loader trigger
 4. Rebuilds a new `.miz` next to the folder
 
@@ -193,30 +193,27 @@ Then copy your `.miz` as `mission.miz` and run:
 
 #### 5. Configure which modules to enable
 
-Open `src/scripts/missionConfig.lua`. By default, only the essential modules (markers, spawn, radio) are enabled. Uncomment the modules you want:
+Edit `mission.yaml` to enable the modules you want. By default, only the essential modules (markers, spawn, radio) are active:
 
-```lua
-veaf.config.MISSION_NAME = "My Vanilla Mission"
+```yaml
+name: My Vanilla Mission
 
-if veafRadio then
-    veafRadio.initialize(true)
-end
-if veafSpawn then
-    veafSpawn.initialize()
-end
-
--- Uncomment to enable CAS missions:
--- if veafCasMission then
---     veafCasMission.initialize()
--- end
-
--- Uncomment to enable carrier ops:
--- if veafCarrierOperations then
---     veafCarrierOperations.initialize()
--- end
+lua_modules:
+  RADIO:
+    enable: true
+  SPAWN:
+    enable: true
+  # Uncomment to enable CAS missions:
+  # CASMISSION:
+  #   enable: true
+  # Uncomment to enable carrier ops:
+  # CARRIER:
+  #   enable: true
 ```
 
-See [missionConfig.lua reference](#missionconfiglua-reference) below and the individual script guides in [scripts/](scripts/README.md) for all options.
+For custom Lua (advanced module calls, custom aliases, etc.), edit `src/scripts/mission-script.lua`.
+
+See the [YAML reference](../../MISSION_YAML_REFERENCE.md) and the individual script guides in [scripts/](scripts/README.md) for all options.
 
 #### 6. Keep your existing mission content
 
@@ -250,11 +247,12 @@ my-mission/
 │   │   ├── options
 │   │   └── warehouses
 │   ├── scripts/
-│   │   ├── missionConfig.lua   ← your module config (commit this)
+│   │   ├── mission-script.lua  ← custom Lua code (commit this)
 │   │   └── veafDynamicConfig.lua   ← optional dynamic slots config
 │   ├── presets.yaml            ← radio presets config (optional)
 │   ├── spawnables.yaml         ← custom spawnable groups (optional)
 │   └── waypoints.yaml          ← custom waypoints (optional)
+├── mission.yaml                ← module config and pipeline settings (commit this)
 ├── published/                  ← installed by veaf-tools-updater (do NOT commit)
 │   ├── veaf-scripts.lua
 │   └── ...
@@ -274,30 +272,25 @@ __pycache__/
 
 ---
 
-## missionConfig.lua Reference
+## mission-script.lua Reference
 
-The minimal working `missionConfig.lua`:
+`mission-script.lua` is an optional file for custom Lua code that runs after all VEAF modules are initialized. Use it for advanced configuration that cannot yet be expressed in `mission.yaml` — custom shortcuts, per-module parameter overrides, custom assets, etc.
+
+A minimal example:
 
 ```lua
-veaf.config.MISSION_NAME = "My Mission"   -- shown in logs
+-- Optional: override a module parameter
+veafSpawn.SpawnKeyphrase = "_spawn"
 
--- Radio module (required for all F10 menus)
-if veafRadio then
-    veafRadio.initialize(true)
-end
-
--- Spawn module (required for marker commands)
-if veafSpawn then
-    veafSpawn.initialize()
-end
-
--- Shortcuts (required for aliases)
-if veafShortcuts then
-    veafShortcuts.initialize()
-end
+-- Custom alias
+veafShortcuts.AddAlias(
+  VeafAlias:new()
+    :setName("-myalias")
+    :setVeafCommand("_spawn group, name my-template")
+)
 ```
 
-For each additional module, see the corresponding guide in [scripts/](scripts/README.md).
+Module enable/disable is configured in `mission.yaml` → `lua_modules:` — not in this file. See the [YAML reference](../../MISSION_YAML_REFERENCE.md) for the full `mission.yaml` syntax.
 
 ---
 

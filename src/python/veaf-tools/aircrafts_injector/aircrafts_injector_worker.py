@@ -571,13 +571,27 @@ class AircraftGroupsInjectorWorker(BaseWorker):
 
         countries = coalition["country"]
 
-        # Find existing country
+        # Find existing country — case-insensitive: YAML may use "france" while DCS template has "France"
+        country_name_lower = country_name.lower()
         for country in countries:
-            if country.get("name") == country_name:
+            if country.get("name", "").lower() == country_name_lower:
                 return country
 
-        # Create new country
-        new_country = {"name": country_name, "plane": {"group": []}, "helicopter": {"group": []}}
+        # Country not in this coalition — look it up in other coalitions to preserve its DCS numeric id.
+        # DCS ME (fixCountriesNames) requires country.id to be present; a missing id causes a nil-index crash.
+        dcs_id: int | None = None
+        if self.dcs_mission and self.dcs_mission.mission_content:
+            for other_coalition in self.dcs_mission.mission_content.get("coalition", {}).values():
+                for other_country in other_coalition.get("country", []):
+                    if other_country.get("name", "").lower() == country_name_lower:
+                        dcs_id = other_country.get("id")
+                        break
+                if dcs_id is not None:
+                    break
+
+        new_country: dict = {"name": country_name, "plane": {"group": []}, "helicopter": {"group": []}}
+        if dcs_id is not None:
+            new_country["id"] = dcs_id
         countries.append(new_country)
         return new_country
 

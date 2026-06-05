@@ -1,3 +1,4 @@
+import sys
 from importlib.metadata import PackageNotFoundError
 from importlib.metadata import version as _pkg_version
 
@@ -36,3 +37,33 @@ def main_callback(
 
     if get_check_updates():
         check_for_updates(VERSION, console)
+
+
+def main() -> None:
+    # Parse --lang early so --help is rendered in the right language.
+    for _i, _a in enumerate(sys.argv[1:]):
+        if _a == "--lang" and _i + 1 < len(sys.argv) - 1:
+            set_language(sys.argv[_i + 2])
+            break
+        if _a.startswith("--lang="):
+            set_language(_a.split("=", 1)[1])
+            break
+
+    from veaf_libs.tui import run_wizard
+
+    import veaf_tools.commands  # noqa: F401  — side effect: registers all commands
+    from veaf_tools.helpers import _is_double_clicked
+
+    console.print(f"[bold]veaf-tools[/bold] v{VERSION}")
+
+    # When launched with no arguments in an interactive terminal, run the wizard.
+    if len(sys.argv) == 1 and sys.stdout.isatty():
+        if wizard_args := run_wizard():
+            sys.argv = sys.argv[:1] + wizard_args
+
+    auto_pause = _is_double_clicked()
+    try:
+        app()
+    finally:
+        if auto_pause:
+            input(t("help.pause_msg"))

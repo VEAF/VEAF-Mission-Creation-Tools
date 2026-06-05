@@ -55,21 +55,84 @@ def _get_parent_process_name_windows() -> str | None:
         return None
 
 
+def _build_process_tree_windows() -> "tuple[dict[int,int], dict[int,str]]":
+    """Return (pid→ppid, pid→name) maps for all running processes on Windows."""
+    pid_to_ppid: dict[int, int] = {}
+    pid_to_name: dict[int, str] = {}
+    try:
+        import ctypes
+        import ctypes.wintypes
+
+        TH32CS_SNAPPROCESS = 0x00000002
+
+        class PROCESSENTRY32(ctypes.Structure):
+            _fields_ = [
+                ("dwSize", ctypes.wintypes.DWORD),
+                ("cntUsage", ctypes.wintypes.DWORD),
+                ("th32ProcessID", ctypes.wintypes.DWORD),
+                ("th32DefaultHeapID", ctypes.POINTER(ctypes.c_ulong)),
+                ("th32ModuleID", ctypes.wintypes.DWORD),
+                ("cntThreads", ctypes.wintypes.DWORD),
+                ("th32ParentProcessID", ctypes.wintypes.DWORD),
+                ("pcPriClassBase", ctypes.c_long),
+                ("dwFlags", ctypes.wintypes.DWORD),
+                ("szExeFile", ctypes.c_char * 260),
+            ]
+
+        snapshot = ctypes.windll.kernel32.CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0)  # type: ignore[attr-defined]
+        if snapshot == ctypes.wintypes.HANDLE(-1).value:
+            return pid_to_ppid, pid_to_name
+        try:
+            entry = PROCESSENTRY32()
+            entry.dwSize = ctypes.sizeof(PROCESSENTRY32)
+            if ctypes.windll.kernel32.Process32First(snapshot, ctypes.byref(entry)):  # type: ignore[attr-defined]
+                while True:
+                    name = entry.szExeFile.decode("mbcs", errors="replace").lower()
+                    pid_to_name[entry.th32ProcessID] = name
+                    pid_to_ppid[entry.th32ProcessID] = entry.th32ParentProcessID
+                    if not ctypes.windll.kernel32.Process32Next(snapshot, ctypes.byref(entry)):  # type: ignore[attr-defined]
+                        break
+        finally:
+            ctypes.windll.kernel32.CloseHandle(snapshot)  # type: ignore[attr-defined]
+    except Exception:  # noqa: BLE001
+        pass
+    return pid_to_ppid, pid_to_name
+
+
+_TERMINAL_PROCESSES = frozenset({
+    "cmd.exe", "powershell.exe", "pwsh.exe", "wt.exe",
+    "windowsterminal.exe", "mintty.exe", "conemu64.exe", "conemu.exe",
+})
+
+
 def _is_double_clicked() -> bool:
     """Return True if the process was launched by double-clicking (Explorer parent on Windows).
 
-    This is used to auto-pause at the end of the build so the user can read the output
-    when they run veaf-tools by double-clicking the .exe rather than from a terminal.
+    Walks up the process tree to handle PyInstaller one-file exes, where the
+    direct parent is the bootloader subprocess rather than explorer.exe.
     Returns False on non-Windows systems and when stdout is redirected (CI / pipe).
     """
     if not sys.stdout.isatty():
         return False
     if sys.platform != "win32":
         return False
-    parent = _get_parent_process_name_windows()
-    if parent is None:
+    pid_to_ppid, pid_to_name = _build_process_tree_windows()
+    if not pid_to_name:
         return False
-    return parent == "explorer.exe"
+    current = os.getpid()
+    seen: set[int] = set()
+    while current and current not in seen:
+        seen.add(current)
+        parent_pid = pid_to_ppid.get(current)
+        if parent_pid is None:
+            break
+        parent_name = pid_to_name.get(parent_pid, "")
+        if parent_name == "explorer.exe":
+            return True
+        if parent_name in _TERMINAL_PROCESSES:
+            return False
+        current = parent_pid
+    return False
 
 
 def _read_single_char() -> str:

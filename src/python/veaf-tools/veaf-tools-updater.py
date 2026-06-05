@@ -34,6 +34,7 @@ from veaf_libs.i18n import set_language, t
 from veaf_libs.logger import Logger, console
 from veaf_libs.paths import resolve_path
 from veaf_libs.progress import spinner_context
+from veaf_tools.helpers import _is_double_clicked
 
 # Parse --lang early from sys.argv so that --help is also rendered in the
 # requested language (Typer's --help is eager and fires before main_callback).
@@ -683,4 +684,9 @@ def main(
 main.__doc__ = t("updater.cmd_help")
 
 if __name__ == "__main__":
-    typer.run(main)
+    auto_pause = _is_double_clicked()
+    try:
+        typer.run(main)
+    finally:
+        if auto_pause:
+            input(PAUSE_MESSAGE)

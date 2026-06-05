@@ -9,8 +9,16 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+---
+
+## [6.3.2] — 2026-06-05
+
+### Added
+- `pyproject.toml` + `veaf_tools/app.py`: point d'entrée Poetry `veaf-tools` (équivalent à l'exe) avec affichage de la version au démarrage
+- `veaf-tools.py`, `veaf-tools-updater.py`: pause automatique en fin d'exécution quand lancé par double-clic (détection par remontée de l'arbre de processus Windows, compatible PyInstaller one-file)
+
 ### Fixed
-- `veaf_build/worker.py`: `veafCommands.lua` absent de la liste de concaténation → crash `attempt to index global 'veafCommands' (a nil value)` au chargement de mission (BUNDLE-001)
+- `aircrafts_injector_worker.py`: lookup de country case-insensitive + préservation du champ `id` DCS lors de la création d'une country → empêche le crash `attempt to index field '?' (a nil value)` dans `me_mission.lua:fixCountriesNames` au chargement de mission
 
 ---
 

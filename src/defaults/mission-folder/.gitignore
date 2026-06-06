@@ -1,0 +1,15 @@
+# VEAF Mission Creation Tools — generated/downloaded files (never commit these)
+
+# VEAF tools executables (downloaded by the updater)
+/veaf*.exe
+
+# Published VEAF scripts (downloaded by the build pipeline)
+/published/
+
+# Build artifacts
+/build/
+*.miz.bak
+
+# OS / editor noise
+.DS_Store
+Thumbs.db

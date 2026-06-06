@@ -10,6 +10,7 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- `prepare.py`: `.gitignore` template added to `src/defaults/mission-folder/` — copied on `veaf-tools prepare` when absent; never overwritten (even with `--force`) to preserve user customizations
 - `lua_config_generator.py`: `_MODULE_CATEGORIES` dict — groups modules into 4 tiers (Infrastructure, Core, Features, Combat) plus External; category comment headers (`-- ── Category ──`) are emitted in `veaf-config.lua` and (`# ── Category ──`) in the YAML template
 - `lua_config_generator.py`: `_MANDATORY_MODULES` frozenset — if a mandatory module (UNITS, TIME, CACHE, EVENTS, MARKERS, COMMANDS) has `enable: false`, a warning is logged and the flag is ignored (module still generated)
 - `lua_config_generator.py`: `_MODULE_DEPS` dict + `_resolve_deps()` — after building the effective module list, missing or disabled dependencies are auto-enabled in memory with a `logger.warning` per auto-added module; transitive chains are fully resolved; disk is never modified

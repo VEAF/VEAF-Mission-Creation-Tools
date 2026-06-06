@@ -60,8 +60,8 @@
 | Lot FIX-AIRCRAFT-ORPHAN — alerte fichier orphelin manquante pour aircraft-templates.yaml | ~15 min | ✅ |
 | Lot DOC-DEV-MODE — documenter dev_mode + scripts_path | ~30 min | ✅ |
 | Lot FEAT-PROFILES — profils de build dans mission.yaml | ~3h | ✅ |
-| Lot FEAT-MODULE-UX — Catégories, modules obligatoires, dépendances | ~2h | ⬜ |
-| Lot FEAT-GITIGNORE — Template `.gitignore` VEAF MCT dans les defaults | ~25 min | ⬜ |
+| Lot FEAT-MODULE-UX — Catégories, modules obligatoires, dépendances | ~2h | ✅ |
+| Lot FEAT-GITIGNORE — Template `.gitignore` VEAF MCT dans les defaults | ~25 min | ✅ |
 | **Total** | **~167h20** | |
 
 *Initial calibration factor: 1.15 — recalculate after each completed lot.*
@@ -85,11 +85,11 @@
 
 | # | Ticket | Files | Type | Effort | Status |
 |---|--------|-------|------|--------|--------|
-| MODUX-001 | Add `_MODULE_CATEGORIES` dict in `lua_config_generator.py` (4 tiers: Infrastructure, Core, Features, Combat + External). Insert `# ── Category ──` comment headers in the YAML template generator and in `veaf-modules-config.lua` output | `veaf_libs/lua_config_generator.py` | feat | 20 min | ⬜ |
-| MODUX-002 | Add `_MANDATORY_MODULES` frozenset (UNITS, TIME, CACHE, EVENTS, MARKERS, COMMANDS). In `lua_config_generator.py`, warn if a mandatory module has `enable: false` | `veaf_libs/lua_config_generator.py` | feat | 10 min | ⬜ |
-| MODUX-003 | Add `_MODULE_DEPS` dict (see details). In `lua_config_generator.py`, after building the effective module list: for each enabled module, recursively resolve missing deps → auto-add with `enable: true` in memory + `logger.warning` per auto-added module | `veaf_libs/lua_config_generator.py` | feat | 30 min | ⬜ |
-| MODUX-004 | Update `src/defaults/mission-folder/mission.yaml` — reorder `lua_modules:` comment block to match category grouping; add `# mandatory` annotation for infrastructure modules | `src/defaults/mission-folder/mission.yaml` | doc | 15 min | ⬜ |
-| MODUX-005 | Unit tests: (a) category headers present in generated Lua, (b) warning on mandatory module disabled, (c) dep auto-resolution with warning, (d) transitive dep chain (A→B→C all resolved) | `test/python/test_lua_config_generator.py` | chore | 30 min | ⬜ |
+| MODUX-001 | Add `_MODULE_CATEGORIES` dict in `lua_config_generator.py` (4 tiers: Infrastructure, Core, Features, Combat + External). Insert `# ── Category ──` comment headers in the YAML template generator and in `veaf-modules-config.lua` output | `veaf_libs/lua_config_generator.py` | feat | 20 min | ✅ |
+| MODUX-002 | Add `_MANDATORY_MODULES` frozenset (UNITS, TIME, CACHE, EVENTS, MARKERS, COMMANDS). In `lua_config_generator.py`, warn if a mandatory module has `enable: false` | `veaf_libs/lua_config_generator.py` | feat | 10 min | ✅ |
+| MODUX-003 | Add `_MODULE_DEPS` dict (see details). In `lua_config_generator.py`, after building the effective module list: for each enabled module, recursively resolve missing deps → auto-add with `enable: true` in memory + `logger.warning` per auto-added module | `veaf_libs/lua_config_generator.py` | feat | 30 min | ✅ |
+| MODUX-004 | Update `src/defaults/mission-folder/mission.yaml` — reorder `lua_modules:` comment block to match category grouping; add `# mandatory` annotation for infrastructure modules | `src/defaults/mission-folder/mission.yaml` | doc | 15 min | ✅ |
+| MODUX-005 | Unit tests: (a) category headers present in generated Lua, (b) warning on mandatory module disabled, (c) dep auto-resolution with warning, (d) transitive dep chain (A→B→C all resolved) | `test/python/test_lua_config_generator.py` | chore | 30 min | ✅ |
 
 **Raw total: 105 min → estimated (×1.15): ~120 min (~2h)**
 
@@ -1048,9 +1048,9 @@ Note : `_set_mission_time()` et `_set_mission_date()` gardent leurs accès direc
 
 | # | Ticket | Files | Type | Effort | Status |
 |---|--------|-------|------|--------|--------|
-| GITIGNORE-001 | Create `src/defaults/mission-folder/.gitignore` with standard VEAF MCT entries (see content below) | `src/defaults/mission-folder/.gitignore` | feat | 5 min | ⬜ |
-| GITIGNORE-002 | In `prepare.py`: add a `NEVER_OVERWRITE` frozenset `{".gitignore"}`. In the copy loop, skip these files if they already exist in the target (no prompt, no `--force` override). Log a `debug` message when skipped | `src/python/veaf-tools/veaf_tools/commands/prepare.py` | feat | 15 min | ⬜ |
-| GITIGNORE-003 | Unit test: `prepare` with `--force` does NOT overwrite an existing `.gitignore` in the mission folder | `test/python/test_prepare.py` | chore | 5 min | ⬜ |
+| GITIGNORE-001 | Create `src/defaults/mission-folder/.gitignore` with standard VEAF MCT entries (see content below) | `src/defaults/mission-folder/.gitignore` | feat | 5 min | ✅ |
+| GITIGNORE-002 | In `prepare.py`: add a `NEVER_OVERWRITE` frozenset `{".gitignore"}`. In the copy loop, skip these files if they already exist in the target (no prompt, no `--force` override). Log a `debug` message when skipped | `src/python/veaf-tools/veaf_tools/commands/prepare.py` | feat | 15 min | ✅ |
+| GITIGNORE-003 | Unit test: `prepare` with `--force` does NOT overwrite an existing `.gitignore` in the mission folder | `test/python/test_prepare.py` | chore | 5 min | ✅ |
 
 **Raw total: 25 min → estimated (×1.15): ~30 min**
 

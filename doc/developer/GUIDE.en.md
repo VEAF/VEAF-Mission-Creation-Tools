@@ -95,28 +95,116 @@ In both cases, `poetry install --without build --all-extras` runs automatically 
 
 ### Option B — Manual setup (Windows)
 
-### Prerequisites
+#### 1. Python 3.11+
 
-- Python 3.9+ (3.13 recommended)
-- Git
-- GitHub CLI (`gh`) — for publishing releases
-- Lua 5.1 — for running unit tests locally
-- StyLua 2.4.0 — for Lua formatting (installed at `~/.local/bin/stylua.exe`)
-
-### Setup
+Download the installer from [python.org](https://www.python.org/downloads/) (**3.13** recommended) or via winget:
 
 ```powershell
-# Clone
-git clone https://github.com/VEAF/VEAF-Mission-Creation-Tools.git
-cd VEAF-Mission-Creation-Tools
-
-# Install dependencies (Poetry manages its own virtual environment)
-poetry install              # quality gate + veaf-tools
-poetry install --with build # add PyInstaller (needed to compile .exe)
+winget install --id Python.Python.3.13
 ```
 
-> Use `poetry run <cmd>` to execute any Python command inside Poetry's environment,
-> or `poetry shell` to open an interactive session.
+> **Important:** during the graphical installer, check **"Add Python to PATH"**. Without it, `python` and `pip` will not be found in the terminal.
+
+Verify:
+
+```powershell
+python --version   # Python 3.11 or higher expected
+```
+
+#### 2. Poetry
+
+Poetry manages Python virtual environments and project dependencies. The recommended installation method is via `pipx`, which isolates Poetry in its own environment:
+
+```powershell
+python -m pip install pipx
+pipx ensurepath        # adds ~/.local/bin to PATH — restart the terminal afterwards
+pipx install poetry
+```
+
+Verify:
+
+```powershell
+poetry --version
+```
+
+> `poetry install` automatically creates an isolated virtualenv inside the project. All project commands are then run with the `poetry run <command>` prefix.
+
+#### 3. Git
+
+```powershell
+winget install --id Git.Git
+```
+
+Or download from [git-scm.com](https://git-scm.com/download/win).
+
+#### 4. Lua 5.1 (for unit tests)
+
+Lua 5.1 is required to run tests locally. Version **5.1** is mandatory — versions 5.2+ are not compatible with DCS World code.
+
+Via [Scoop](https://scoop.sh/) (recommended Windows package manager):
+
+```powershell
+# Install Scoop if not already present
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+Invoke-RestMethod -Uri https://get.scoop.sh | Invoke-Expression
+
+# Install Lua 5.1
+scoop install lua51
+```
+
+Alternatively, download a binary from [LuaBinaries](https://luabinaries.sourceforge.net/) (`lua-5.1.x_Win64_bin.zip`), extract it, and add the folder to the system PATH.
+
+Verify:
+
+```powershell
+lua -v   # Lua 5.1.x expected
+```
+
+#### 5. StyLua 2.4.0 (Lua code quality)
+
+StyLua formats Lua code. **Version 2.4.0 is enforced by CI** — any other version will fail the formatting job.
+
+Download `stylua-windows-x86_64.zip` from the [v2.4.0 release page](https://github.com/JohnnyMorganz/StyLua/releases/tag/v2.4.0), then install:
+
+```powershell
+# Create target folder
+New-Item -ItemType Directory -Force "$HOME\.local\bin"
+
+# Extract and place the executable (adjust path to where the zip was extracted)
+Copy-Item "path\to\stylua.exe" "$HOME\.local\bin\stylua.exe"
+
+# Verify
+~/.local/bin/stylua.exe --version   # stylua 2.4.0 expected
+```
+
+#### 6. GitHub CLI — optional, only needed to publish releases
+
+```powershell
+winget install --id GitHub.cli
+gh auth login
+```
+
+#### Clone and initialise the project
+
+Once all prerequisites are installed:
+
+```powershell
+git clone https://github.com/VEAF/VEAF-Mission-Creation-Tools.git
+cd VEAF-Mission-Creation-Tools
+git checkout develop-v6
+
+# Install all Python dependencies
+poetry install
+
+# Verify everything works
+poetry run test-lua   # Lua tests (requires Lua 5.1)
+poetry run pytest     # Python tests
+```
+
+> To compile the Windows executables (`veaf-tools.exe`, etc.), add the `build` group:
+> ```powershell
+> poetry install --with build
+> ```
 
 ### Python Dependencies
 

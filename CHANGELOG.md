@@ -10,6 +10,7 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Changed
+- `mkdocs.yml`, `docs.yml`: deploy documentation to `veaf.github.io/documentation/` (was `veaf.github.io/VEAF-Mission-Creation-Tools-v6/`)
 - Documentation: French is now the default language; English (`*.en.md`) is the secondary language — all 35 documentation page pairs renamed accordingly
 - `mkdocs.yml`: `fr` locale set as default, `en` as secondary
 - `doc/mission-maker/scripts/veafSkynetIadsHelper.md`: complete rewrite — corrected API names (`veafSkynet.*`), added point defence modes, group integration modes, dynamic spawn, command centers, network deactivation, and deferred network access pattern

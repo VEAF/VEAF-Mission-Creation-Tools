@@ -185,6 +185,10 @@ end
 -- initialisation
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
+function veafMarkers.initialize()
+  veaf.loggers.get(veafMarkers.Id):info("Initializing module")
+end
+
 --- Add event handler.
 world.addEventHandler(veafMarkers.eventHandler)
 

@@ -154,6 +154,7 @@ class TestWeatherAliasCoexistence(unittest.TestCase):
     def test_versions_not_copied_when_missions_exists(self) -> None:
         """versions.yaml is NOT copied if src/missions.yaml already exists in mission folder."""
         tmpdir = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, tmpdir)
         defaults_folder = tmpdir / "published" / "src" / "defaults" / "mission-folder"
         _seed_defaults(defaults_folder, "versions.yaml")
         (tmpdir / "src").mkdir(parents=True, exist_ok=True)
@@ -166,18 +167,17 @@ class TestWeatherAliasCoexistence(unittest.TestCase):
             any("missions.yaml" in w for w in warnings),
             f"Expected a warning mentioning missions.yaml; got: {warnings}",
         )
-        shutil.rmtree(tmpdir)
 
     def test_versions_copied_when_missions_absent(self) -> None:
         """versions.yaml IS copied normally when no legacy missions.yaml exists."""
         tmpdir = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, tmpdir)
         defaults_folder = tmpdir / "published" / "src" / "defaults" / "mission-folder"
         _seed_defaults(defaults_folder, "versions.yaml")
 
         self._run_with_warnings(tmpdir, defaults_folder, {})
 
         self.assertTrue((tmpdir / "src" / "versions.yaml").exists(), "versions.yaml must be copied")
-        shutil.rmtree(tmpdir)
 
 
 if __name__ == "__main__":

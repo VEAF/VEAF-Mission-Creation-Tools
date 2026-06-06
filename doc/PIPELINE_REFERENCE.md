@@ -1,109 +1,107 @@
-# Pipeline Reference
+# Référence Pipeline
 
-This page documents the optional **build pipeline** steps that `veaf-tools build` can run after generating `veaf-config.lua`. Each step injects data into the `.miz` file from a separate YAML configuration file.
-
----
-
-## Overview
-
-The pipeline runs four optional steps, in this order:
-
-| Step | Config file | What it does |
-|------|-------------|--------------|
-| `presets` | `src/presets.yaml` | Injects radio frequency presets into human-piloted aircraft groups |
-| `waypoints` | `src/waypoints.yaml` or `waypoints.yaml` | Injects waypoint templates into human-piloted aircraft groups |
-| `aircraft_groups` | `src/aircraft-templates.yaml`, `src/templates.yaml`, or `aircraft-templates.yaml` | Injects aircraft group definitions (slots/spawnable groups) |
-| `weather` | `src/missions.yaml` (legacy, first), `src/versions.yaml`, or `missions.yaml` | Creates multiple mission variants with different weather and time |
-
-Each step is **auto-detected**: it runs if its default config file exists. You can override this behaviour in `mission.yaml`.
+Cette page documente les étapes optionnelles du **pipeline de build** que `veaf-tools build` peut exécuter après la génération de `veaf-config.lua`. Chaque étape injecte des données dans le fichier `.miz` à partir d'un fichier de configuration YAML séparé.
 
 ---
 
-## Controlling the Pipeline (`mission.yaml`)
+## Vue d'ensemble
+
+Le pipeline exécute quatre étapes optionnelles, dans cet ordre :
+
+| Étape | Fichier config | Ce qu'elle fait |
+|-------|----------------|----------------|
+| `presets` | `src/presets.yaml` | Injecte les préréglages de fréquences radio dans les groupes d'avions pilotés par des humains |
+| `waypoints` | `src/waypoints.yaml` ou `waypoints.yaml` | Injecte des modèles de points de cheminement dans les groupes d'avions pilotés par des humains |
+| `aircraft_groups` | `src/aircraft-templates.yaml`, `src/templates.yaml` ou `aircraft-templates.yaml` | Injecte des définitions de groupes d'aéronefs (slots/groupes à spawner) |
+| `weather` | `src/missions.yaml` (legacy, prioritaire), `src/versions.yaml` ou `missions.yaml` | Crée plusieurs variantes de mission avec différentes météos et heures |
+
+Chaque étape est **auto-détectée** : elle s'exécute si son fichier de config par défaut existe. Vous pouvez modifier ce comportement dans `mission.yaml`.
+
+---
+
+## Contrôle du pipeline (`mission.yaml`)
 
 ```yaml
 pipeline:
-  presets: false                        # skip even if src/presets.yaml exists
-  waypoints: true                       # auto-detect: runs only if the config file exists
+  presets: false                        # ignoré même si src/presets.yaml existe
+  waypoints: true                       # auto-détection : exécuté seulement si le fichier existe
   aircraft_groups:
-    file: src/my-aircraft.yaml          # non-default file path
-    mode: replace                       # add (default) | replace
-  weather: false                        # skip weather variants
+    file: src/my-aircraft.yaml          # chemin de fichier non-standard
+    mode: replace                       # add (défaut) | replace
+  weather: false                        # ignorer les variantes météo
 ```
 
-### `pipeline:` fields
+### Champs de `pipeline:`
 
-| Field | Type | Default | Required | Description |
-|-------|------|---------|----------|-------------|
-| `presets` | bool \| object | auto | No | `true`/unset = auto-detect (run if file exists), `false` = always skip, object = custom options |
-| `waypoints` | bool \| object | auto | No | `true`/unset = auto-detect (run if file exists), `false` = always skip, object = custom options |
-| `aircraft_groups` | bool \| object | auto | No | `true`/unset = auto-detect (run if file exists), `false` = always skip, object = custom options |
-| `weather` | bool \| object | auto | No | `true`/unset = auto-detect (run if file exists), `false` = always skip, object = custom options |
+| Champ | Type | Défaut | Requis | Description |
+|-------|------|--------|--------|-------------|
+| `presets` | bool \| objet | auto | Non | `true`/non défini = auto-détection (exécuté si fichier trouvé), `false` = toujours ignorer, objet = options personnalisées |
+| `waypoints` | bool \| objet | auto | Non | `true`/non défini = auto-détection (exécuté si fichier trouvé), `false` = toujours ignorer, objet = options personnalisées |
+| `aircraft_groups` | bool \| objet | auto | Non | `true`/non défini = auto-détection (exécuté si fichier trouvé), `false` = toujours ignorer, objet = options personnalisées |
+| `weather` | bool \| objet | auto | Non | `true`/non défini = auto-détection (exécuté si fichier trouvé), `false` = toujours ignorer, objet = options personnalisées |
 
-When set to an object, the following sub-fields apply:
+Quand la valeur est un objet, les sous-champs suivants s'appliquent :
 
-| Sub-field | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `file` | string | *(see step defaults)* | Path to the config file, relative to the mission folder |
-| `mode` | `add` \| `replace` | `add` | *(aircraft_groups only)* `add` keeps existing groups; `replace` updates same-named groups |
+| Sous-champ | Type | Défaut | Description |
+|------------|------|--------|-------------|
+| `file` | string | *(voir défauts par étape)* | Chemin vers le fichier de config, relatif au dossier mission |
+| `mode` | `add` \| `replace` | `add` | *(aircraft_groups uniquement)* `add` conserve les groupes existants ; `replace` met à jour les groupes de même nom |
 
-**Auto-detection** (when not set or `true`): the step runs only if its default file is found. Absence of the file silently skips the step.
+**Auto-détection** (quand non défini ou `true`) : l'étape ne s'exécute que si son fichier par défaut est trouvé. L'absence du fichier ignore silencieusement l'étape.
 
 ---
 
-## Step 1 — Radio Presets (`presets.yaml`)
+## Étape 1 — Préréglages radio (`presets.yaml`)
 
-Injects radio frequency presets into every aircraft group that has at least one human pilot (Client/Player skill). Also generates kneeboard PNG images for each preset.
+Injecte des préréglages de fréquences radio dans chaque groupe d'aéronefs contenant au moins un pilote humain (compétence Client/Player). Génère également des images de kneeboard PNG pour chaque préréglage.
 
-### Default file location
+### Emplacement par défaut
 
 ```
-<mission-folder>/src/presets.yaml
+<dossier-mission>/src/presets.yaml
 ```
 
-### Schema
+### Schéma
 
 ```yaml
-# ── Channel definitions ────────────────────────────────────────────────────
+# ── Définitions de canaux ──────────────────────────────────────────────────
 channels_collection:
-  <set-name>:                           # logical group of channels (e.g. airports-caucasus)
-    <channel-name>:                     # individual channel identifier
-      title: "Batumi / 16X"            # human-readable label
+  <nom-ensemble>:                       # groupe logique de canaux (ex: airports-caucasus)
+    <nom-canal>:                        # identifiant du canal
+      title: "Batumi / 16X"            # libellé lisible par l'humain
       freqs:
-        uhf: 260                        # UHF frequency (MHz)
-        vhf: 131                        # VHF-AM frequency (MHz)
-        fm: 40.4                        # FM frequency (MHz)
+        uhf: 260                        # fréquence UHF (MHz)
+        vhf: 131                        # fréquence VHF-AM (MHz)
+        fm: 40.4                        # fréquence FM (MHz)
 
-# ── Radio definitions ──────────────────────────────────────────────────────
+# ── Définitions de radios ──────────────────────────────────────────────────
 radios_collection:
-  <set-name>:                           # logical group of radios (e.g. blue_radios)
-    <radio-name>:                       # identifier referenced in presets_collection
-      title: "UHF"                      # label shown on kneeboard
+  <nom-ensemble>:                       # groupe logique de radios (ex: blue_radios)
+    <nom-radio>:                        # identifiant référencé dans presets_collection
+      title: "UHF"                      # libellé affiché sur le kneeboard
       type: uhf                         # uhf | vhf | fm
       channels:
-        01: Guard                       # channel number → channel-name (from channels_collection)
+        01: Guard                       # numéro de canal → nom-canal (depuis channels_collection)
         02: Batumi
-        10: Stennis
 
-# ── Preset definitions ────────────────────────────────────────────────────
+# ── Définitions de préréglages ────────────────────────────────────────────
 presets_collection:
-  <set-name>:                           # logical group of presets (e.g. blue_presets)
-    <preset-name>:                      # identifier referenced in presets_assignments
-      title: "Blue coalition - UHF/VHF/FM"
+  <nom-ensemble>:                       # groupe logique de préréglages (ex: blue_presets)
+    <nom-preréglage>:                   # identifiant référencé dans presets_assignments
+      title: "Coalition bleue - UHF/VHF/FM"
       radios:
-        radio_1: <radio-name>           # slot → radio-name (from radios_collection)
-        radio_2: <radio-name>
-        radio_3: <radio-name>
+        radio_1: <nom-radio>            # slot → nom-radio (depuis radios_collection)
+        radio_2: <nom-radio>
 
-# ── Assignment rules ──────────────────────────────────────────────────────
+# ── Règles d'affectation ──────────────────────────────────────────────────
 presets_assignments:
   <coalition>:                          # blue | red
-    <category>:                         # plane | helicopter
-      all: <preset-name>               # default preset for all aircraft of this type
-      <aircraft-type>: <preset-name>   # override for a specific DCS aircraft type (e.g. A-10C_2)
+    <catégorie>:                        # plane | helicopter
+      all: <nom-préréglage>            # préréglage par défaut pour tous les aéronefs de ce type
+      <type-aéronef>: <nom-préréglage> # surcharge pour un type DCS spécifique (ex: A-10C_2)
 ```
 
-### Minimal example
+### Exemple minimal
 
 ```yaml
 channels_collection:
@@ -125,7 +123,7 @@ radios_collection:
 presets_collection:
   blue_presets:
     blue_default:
-      title: Blue Default
+      title: Bleu par défaut
       radios:
         radio_1: radio_uhf
 
@@ -139,57 +137,57 @@ presets_assignments:
 
 ---
 
-## Step 2 — Waypoints (`waypoints.yaml`)
+## Étape 2 — Points de cheminement (`waypoints.yaml`)
 
-Injects waypoint templates into human-piloted aircraft groups. Only groups with at least one Client/Player unit are modified.
+Injecte des modèles de points de cheminement dans les groupes d'aéronefs pilotés par des humains. Seuls les groupes avec au moins une unité Client/Player sont modifiés.
 
-### Default file location
+### Emplacement par défaut
 
 ```
-<mission-folder>/src/waypoints.yaml
+<dossier-mission>/src/waypoints.yaml
 
-Also accepted: waypoints.yaml  (mission root)
+Aussi accepté : waypoints.yaml  (racine du dossier mission)
 ```
 
-### Schema
+### Schéma
 
 ```yaml
-# ── Waypoint definitions ───────────────────────────────────────────────────
+# ── Définitions de waypoints ───────────────────────────────────────────────
 waypoints:
-  <WAYPOINT_NAME>:
-    type: "Turning Point"               # DCS waypoint type
-    action: "Turning Point"             # DCS waypoint action
-    alt: 6096                           # Altitude in metres
+  <NOM_WAYPOINT>:
+    type: "Turning Point"               # type de waypoint DCS
+    action: "Turning Point"             # action de waypoint DCS
+    alt: 6096                           # altitude en mètres
     alt_type: "BARO"                    # BARO | RADIO
-    speed: 200                          # Speed in m/s
+    speed: 200                          # vitesse en m/s
     speed_type: "TAS"                   # TAS | IAS
-    x: 75869                            # Mission X coordinate
-    y: 48674                            # Mission Y coordinate
-    name: "BULLSEYE"                    # Waypoint label (optional)
-    ETA: 364.89                         # Estimated time of arrival in seconds (optional)
-    ETA_locked: false                   # Lock ETA (optional)
+    x: 75869                            # coordonnée X mission
+    y: 48674                            # coordonnée Y mission
+    name: "BULLSEYE"                    # libellé du waypoint (optionnel)
+    ETA: 364.89                         # temps d'arrivée estimé en secondes (optionnel)
+    ETA_locked: false                   # verrouiller l'ETA (optionnel)
 
-# ── Flight plan assignments ────────────────────────────────────────────────
+# ── Affectations de plans de vol ───────────────────────────────────────────
 settings:
-  <PLAN_NAME>:
-    category: "plane"                   # plane | helicopter (optional filter)
-    coalition: "blue"                   # blue | red (optional filter)
-    type: "F-16C_50"                    # DCS aircraft type (optional filter)
-    country: "USA"                      # Country name (optional filter)
+  <NOM_PLAN>:
+    category: "plane"                   # plane | helicopter (filtre optionnel)
+    coalition: "blue"                   # blue | red (filtre optionnel)
+    type: "F-16C_50"                    # type d'aéronef DCS (filtre optionnel)
+    country: "USA"                      # nom du pays (filtre optionnel)
     waypoints:
-      <WAYPOINT_NAME>: "<WAYPOINT_NAME>"  # map waypoint definition to slot
+      <NOM_WAYPOINT>: "<NOM_WAYPOINT>"  # associer la définition du waypoint au slot
 ```
 
-### Matching priority
+### Priorité de correspondance
 
-Flight plans are matched to groups using this priority order:
-1. Aircraft type (`type`)
-2. Aircraft category (`category`)
+Les plans de vol sont associés aux groupes selon cet ordre de priorité :
+1. Type d'aéronef (`type`)
+2. Catégorie d'aéronef (`category`)
 3. Coalition (`coalition`)
-4. Country (`country`)
-5. All other groups (no filters = wildcard)
+4. Pays (`country`)
+5. Tous les autres groupes (sans filtre = joker)
 
-### Minimal example
+### Exemple minimal
 
 ```yaml
 waypoints:
@@ -205,7 +203,7 @@ waypoints:
     name: "BULLSEYE"
 
 settings:
-  BLUE_PLANES:
+  AVIONS_BLEUS:
     category: "plane"
     coalition: "blue"
     waypoints:
@@ -214,63 +212,63 @@ settings:
 
 ---
 
-## Step 3 — Aircraft Groups (`aircraft-templates.yaml`)
+## Étape 3 — Groupes d'aéronefs (`aircraft-templates.yaml`)
 
-Injects aircraft group definitions into the mission. Used for spawnable groups and player slot templates.
+Injecte des définitions de groupes d'aéronefs dans la mission. Utilisé pour les groupes à spawner et les modèles de slots joueurs.
 
-### Default file location
+### Emplacement par défaut
 
 ```
-<mission-folder>/src/aircraft-templates.yaml
+<dossier-mission>/src/aircraft-templates.yaml
 
-Also accepted: src/templates.yaml
-                aircraft-templates.yaml  (mission root)
+Aussi accepté : src/templates.yaml
+                aircraft-templates.yaml  (racine du dossier mission)
 ```
 
-### Injection modes
+### Modes d'injection
 
-| Mode | Behaviour |
-|------|-----------|
-| `add` *(default)* | Appends all groups from the file; existing groups are preserved |
-| `replace` | Groups with the same name in the mission are updated; others are preserved |
+| Mode | Comportement |
+|------|-------------|
+| `add` *(défaut)* | Ajoute tous les groupes du fichier ; les groupes existants sont conservés |
+| `replace` | Les groupes portant le même nom dans la mission sont mis à jour ; les autres sont conservés |
 
-### Schema
+### Schéma
 
 ```yaml
 airplanes:
   coalitions:
     <coalition>:                        # blue | red
-      <Country Name>:                   # DCS country name (e.g. "France", "USA")
-        <Group Name>:
-          name: "Group Name"            # REQUIRED — must match the key
-          type: "M-2000C"               # REQUIRED — primary DCS aircraft type
-          units:                        # REQUIRED — at least one unit
+      <Nom Pays>:                       # nom de pays DCS (ex: "France", "USA")
+        <Nom Groupe>:
+          name: "Nom Groupe"            # REQUIS — doit correspondre à la clé
+          type: "M-2000C"               # REQUIS — type d'aéronef DCS principal
+          units:                        # REQUIS — au moins une unité
             - type: "M-2000C"
-              name: "Pilot-1"
+              name: "Pilote-1"
             - type: "M-2000C"
-              name: "Pilot-2"
+              name: "Pilote-2"
 
 helicopters:
   coalitions:
     <coalition>:
-      <Country Name>:
-        <Group Name>:
-          name: "Group Name"
+      <Nom Pays>:
+        <Nom Groupe>:
+          name: "Nom Groupe"
           type: "UH-1H"
           units:
             - type: "UH-1H"
               name: "Helo-1"
 ```
 
-### Minimal example
+### Exemple minimal
 
 ```yaml
 airplanes:
   coalitions:
     blue:
       France:
-        Mirage-Flight:
-          name: "Mirage-Flight"
+        Vol-Mirage:
+          name: "Vol-Mirage"
           type: "M-2000C"
           units:
             - type: "M-2000C"
@@ -281,91 +279,91 @@ airplanes:
 
 ---
 
-## Step 4 — Weather & Time Versions (`versions.yaml`)
+## Étape 4 — Variantes météo & horaire (`versions.yaml`)
 
-Creates multiple `.miz` variants from a single base mission, each with a different time and/or weather configuration.
+Crée plusieurs variantes `.miz` à partir d'une mission de base, chacune avec une configuration de temps et/ou de météo différente.
 
-### Default file location
+### Emplacement par défaut
 
 ```
-<mission-folder>/src/missions.yaml  (legacy, checked first)
-<mission-folder>/src/versions.yaml
+<dossier-mission>/src/missions.yaml  (legacy, vérifié en premier)
+<dossier-mission>/src/versions.yaml
 
-Also accepted: missions.yaml  (mission root)
+Aussi accepté : missions.yaml  (racine du dossier mission)
 ```
 
-### Schema
+### Schéma
 
 ```yaml
-# ── Geographic position for solar calculations ─────────────────────────────
+# ── Position géographique pour les calculs solaires ────────────────────────
 position:
-  latitude: 33.5                        # Decimal degrees, -90 to 90
-  longitude: 35.5                       # Decimal degrees, -180 to 180
-  timezone: "Asia/Damascus"             # IANA timezone string
+  latitude: 33.5                        # degrés décimaux, -90 à 90
+  longitude: 35.5                       # degrés décimaux, -180 à 180
+  timezone: "Asia/Damascus"             # fuseau horaire IANA
 
-# ── Base date for all versions ─────────────────────────────────────────────
-base_date: "2024-03-15"                 # ISO 8601 (YYYY-MM-DD)
+# ── Date de base pour toutes les versions ─────────────────────────────────
+base_date: "2024-03-15"                 # ISO 8601 (AAAA-MM-JJ)
 
-# ── Mission variants ───────────────────────────────────────────────────────
+# ── Variantes de mission ───────────────────────────────────────────────────
 versions:
-  - name: dawn                          # REQUIRED — output filename (without .miz)
-    time: "sunrise+30*60"               # Time expression (see below)
-    date: "today"                       # Date expression (see below, optional)
-    metar: "METAR OSDI 151420Z 27015G25KT 9999 SKC 15/10 Q1018"  # optional
+  - name: aube                          # REQUIS — nom du fichier de sortie (sans .miz)
+    time: "sunrise+30*60"               # expression horaire (voir ci-dessous)
+    date: "today"                       # expression de date (voir ci-dessous, optionnel)
+    metar: "METAR OSDI 151420Z 27015G25KT 9999 SKC 15/10 Q1018"  # optionnel
 
-  - name: noon
+  - name: midi
     time: "12:00"
-    weather:                            # manual weather (alternative to metar)
-      temperature: 25.0                 # °C, range -50..50
+    weather:                            # météo manuelle (alternative au metar)
+      temperature: 25.0                 # °C, plage -50..50
       wind_speed: 8.0                   # m/s
-      wind_direction: 270.0             # degrees (0=North)
-      visibility: 9999                  # metres
+      wind_direction: 270.0             # degrés (0=Nord)
+      visibility: 9999                  # mètres
       cloud_type: "clear"               # clear | few | scattered | broken | overcast
-      cloud_height: 2000                # cloud base in metres
-      fog_enabled: false                # enable fog effect
+      cloud_height: 2000                # base des nuages en mètres
+      fog_enabled: false                # activer l'effet de brouillard
 ```
 
-### `versions[]` fields
+### Champs de `versions[]`
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `name` | string | Yes | Output filename (no `.miz`); e.g. `dawn` → `dawn.miz` |
-| `time` | string | No | Time expression — see below |
-| `date` | string | No | Date expression — see below |
-| `metar` | string | No | Full METAR string — parsed for weather data |
-| `weather` | object | No | Manual weather override (used when no `metar`) |
+| Champ | Type | Requis | Description |
+|-------|------|--------|-------------|
+| `name` | string | Oui | Nom du fichier de sortie (sans `.miz`) ; ex: `aube` → `aube.miz` |
+| `time` | string | Non | Expression horaire — voir ci-dessous |
+| `date` | string | Non | Expression de date — voir ci-dessous |
+| `metar` | string | Non | Chaîne METAR complète — analysée pour les données météo |
+| `weather` | objet | Non | Surcharge météo manuelle (utilisée sans `metar`) |
 
-### Time expressions
+### Expressions horaires
 
-| Format | Example | Meaning |
-|--------|---------|---------|
-| `HH:MM` | `14:30` | Absolute time (14:30 local) |
-| `sunrise` | `sunrise` | Sunrise time (requires `position:`) |
-| `sunset` | `sunset` | Sunset time (requires `position:`) |
-| Expression | `sunrise+30*60` | Arithmetic — seconds offset |
-| Seconds | `54000` | Raw seconds since midnight |
+| Format | Exemple | Signification |
+|--------|---------|--------------|
+| `HH:MM` | `14:30` | Heure absolue (14h30 heure locale) |
+| `sunrise` | `sunrise` | Heure du lever du soleil (nécessite `position:`) |
+| `sunset` | `sunset` | Heure du coucher du soleil (nécessite `position:`) |
+| Expression | `sunrise+30*60` | Arithmétique — décalage en secondes |
+| Secondes | `54000` | Secondes brutes depuis minuit |
 
-### Date expressions
+### Expressions de date
 
-| Format | Example | Meaning |
-|--------|---------|---------|
-| ISO 8601 | `2024-03-15` | Specific date |
-| Keyword | `today`, `tomorrow`, `yesterday` | Relative to run date |
-| Relative | `+1`, `-7` | Days from `base_date` |
+| Format | Exemple | Signification |
+|--------|---------|--------------|
+| ISO 8601 | `2024-03-15` | Date spécifique |
+| Mot-clé | `today`, `tomorrow`, `yesterday` | Relatif à la date d'exécution |
+| Relatif | `+1`, `-7` | Jours depuis `base_date` |
 
-### `weather` object fields
+### Champs de l'objet `weather`
 
-| Field | Type | Default | Description |
-|-------|------|---------|-------------|
-| `temperature` | number | — | Air temperature in °C |
-| `wind_speed` | number | — | Wind speed in m/s |
-| `wind_direction` | number | — | Wind direction in degrees (0 = North) |
-| `visibility` | number | — | Visibility in metres |
-| `cloud_type` | string | — | `clear` \| `few` \| `scattered` \| `broken` \| `overcast` |
-| `cloud_height` | number | — | Cloud base altitude in metres |
-| `fog_enabled` | boolean | `false` | Enable fog effect |
+| Champ | Type | Description |
+|-------|------|-------------|
+| `temperature` | nombre | Température de l'air en °C |
+| `wind_speed` | nombre | Vitesse du vent en m/s |
+| `wind_direction` | nombre | Direction du vent en degrés (0 = Nord) |
+| `visibility` | nombre | Visibilité en mètres |
+| `cloud_type` | string | `clear` \| `few` \| `scattered` \| `broken` \| `overcast` |
+| `cloud_height` | nombre | Altitude de la base des nuages en mètres |
+| `fog_enabled` | booléen | Activer l'effet de brouillard |
 
-### Minimal example
+### Exemple minimal
 
 ```yaml
 position:
@@ -376,11 +374,11 @@ position:
 base_date: "2024-06-01"
 
 versions:
-  - name: dawn
+  - name: aube
     time: "sunrise+20*60"
     metar: "METAR UGTB 010500Z 27010KT 9999 FEW030 18/10 Q1016"
 
-  - name: afternoon
+  - name: après-midi
     time: "15:00"
     weather:
       temperature: 28.0
@@ -392,7 +390,7 @@ versions:
 
 ---
 
-## See Also
+## Voir aussi
 
-- [mission.yaml Reference](MISSION_YAML_REFERENCE.md) — top-level mission configuration
-- [Mission Maker Guide](mission-maker/GUIDE.md) — complete workflow
+- [Référence mission.yaml](MISSION_YAML_REFERENCE.md) — configuration top-level de la mission
+- [Guide mission maker](mission-maker/GUIDE.md) — workflow complet

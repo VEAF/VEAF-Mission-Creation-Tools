@@ -1,31 +1,30 @@
-# veafCombatZone — Activatable Combat Zones
+# veafCombatZone — Zones de combat activables
 
-
-**Module ID:** `COMBATZONE` | **Version:** 1.22.x | **File:** `veafCombatZone.lua`
-
----
-
-## Purpose
-
-Defines named combat zones in the mission editor that players can activate and deactivate via the F10 radio menu. Each zone tracks enemy unit state, fires objective-completion events, supports scoring, and can contain multiple unit groups with spawning rules.
+**Module ID:** `COMBATZONE` | **Version:** 1.22.x | **Fichier:** `veafCombatZone.lua`
 
 ---
 
-## Dependencies
+## Objectif
 
-- `veafRadio` — F10 menu
-- `veafSpawn` — unit spawning backend
-- `veafMarkers` — optional marker commands
+Définit des zones de combat nommées dans l'éditeur de mission que les joueurs peuvent activer et désactiver via le menu radio F10. Chaque zone suit l'état des unités ennemies, déclenche des événements de completion d'objectif, supporte la notation et peut contenir plusieurs groupes d'unités avec des règles de spawn.
 
 ---
 
-## Enable
+## Dépendances
+
+- `veafRadio` — menu F10
+- `veafSpawn` — backend de spawn d'unités
+- `veafMarkers` — commandes de marqueur optionnelles
+
+---
+
+## Activation
 
 ```lua
 veafCombatZone.initialize()
 ```
 
-Individual zones are created and initialised separately (see below).
+Les zones individuelles sont créées et initialisées séparément (voir ci-dessous).
 
 ---
 
@@ -34,68 +33,68 @@ Individual zones are created and initialised separately (see below).
 ```yaml
 lua_modules:
   COMBATZONE:
-    enable: true          # default: true
-    logLevel: info        # optional log level override
-    combat_zone_settings: # optional global overrides
-      event_message_combatzonecomplete: "Zone objective complete!"  # null = suppress
-      watchdog_check_interval: 30          # seconds between zone watchdog polls (default: 60)
-      radio_menu_name: "Combat Zones"      # F10 menu label
-      combat_zone_menu_name: "Combat Zone Operations"
-      operation_menu_name: "Operations"
-    combat_zones:         # zone and operation definitions
+    enable: true          # défaut : true
+    logLevel: info        # surcharge optionnelle du niveau de log
+    combat_zone_settings: # surcharges globales optionnelles
+      event_message_combatzonecomplete: "Objectif de zone atteint !"  # null = supprimer
+      watchdog_check_interval: 30          # secondes entre les sondages du watchdog (défaut : 60)
+      radio_menu_name: "Zones de combat"   # libellé du menu F10
+      combat_zone_menu_name: "Opérations Zone de Combat"
+      operation_menu_name: "Opérations"
+    combat_zones:         # définitions de zones et d'opérations
       - type: zone                          # zone | operation
-        zone_name: "CZ-Alpha"              # DCS trigger zone name
-        friendly_name: "Alpha Zone"        # label in radio menu
-        briefing: "Destroy the armoured column."  # shown in mission info
-        training: false                     # true = no security, verbose status
-        chained_zones:                      # zones to trigger when this one completes
+        zone_name: "CZ-Alpha"              # nom de la zone de trigger DCS
+        friendly_name: "Zone Alpha"        # libellé dans le menu radio
+        briefing: "Détruire la colonne blindée."  # affiché dans les infos mission
+        training: false                     # true = pas de sécurité, statut verbeux
+        chained_zones:                      # zones à déclencher quand celle-ci se termine
           - "CZ-Bravo"
-        chained_delay: 60                   # seconds before chaining fires
+        chained_delay: 60                   # secondes avant le déclenchement des zones chaînées
       - type: operation
-        zone_name: "Op-Thunder"
-        friendly_name: "Operation Thunder"
+        zone_name: "Op-Tonnerre"
+        friendly_name: "Opération Tonnerre"
         tasking_orders:
-          - zone_name: "CZ-Alpha"           # first task (no dependencies)
+          - zone_name: "CZ-Alpha"           # première tâche (sans dépendances)
           - zone_name: "CZ-Bravo"
-            dependencies:                   # CZ-Bravo unlocks after CZ-Alpha
+            dependencies:                   # CZ-Bravo se débloque après CZ-Alpha
               - "CZ-Alpha"
 ```
 
-### `combat_zone_settings` fields
+### Champs de `combat_zone_settings`
 
-| Field | Type | Default | Description |
-|-------|------|---------|-------------|
-| `event_message_combatzonecomplete` | string \| null | *(module default)* | Message broadcast when a zone completes. `null` suppresses it. |
-| `watchdog_check_interval` | integer | `60` | Seconds between watchdog polls |
-| `radio_menu_name` | string | `"COMBAT ZONES"` | F10 top-level menu label |
-| `combat_zone_menu_name` | string | *(default)* | Sub-menu label for zone operations |
-| `operation_menu_name` | string | *(default)* | Sub-menu label for operations |
+| Champ | Type | Défaut | Description |
+|-------|------|--------|-------------|
+| `event_message_combatzonecomplete` | string \| null | *(défaut module)* | Message diffusé quand une zone se termine. `null` le supprime. |
+| `watchdog_check_interval` | entier | `60` | Secondes entre les sondages du watchdog |
+| `radio_menu_name` | string | `"COMBAT ZONES"` | Libellé du menu de premier niveau F10 |
+| `combat_zone_menu_name` | string | *(défaut)* | Libellé du sous-menu des opérations de zone |
+| `operation_menu_name` | string | *(défaut)* | Libellé du sous-menu des opérations |
 
-### `combat_zones[]` fields — type `zone`
+### Champs de `combat_zones[]` — type `zone`
 
-| Field | Type | Default | Required | Description |
-|-------|------|---------|----------|-------------|
-| `type` | string | `zone` | No | `zone` or `operation` |
-| `zone_name` | string | — | Yes | DCS trigger zone name |
-| `friendly_name` | string | — | No | Label shown in the F10 menu |
-| `briefing` | string | — | No | Briefing text shown to players |
-| `training` | boolean | `false` | No | Training mode: no security, verbose status |
-| `chained_zones` | string[] | `[]` | No | Zone names to trigger on completion |
-| `chained_delay` | integer | `0` | No | Seconds before chained zones fire |
+| Champ | Type | Défaut | Requis | Description |
+|-------|------|--------|--------|-------------|
+| `type` | string | `zone` | Non | `zone` ou `operation` |
+| `zone_name` | string | — | Oui | Nom de la zone de trigger DCS |
+| `friendly_name` | string | — | Non | Libellé affiché dans le menu F10 |
+| `briefing` | string | — | Non | Texte de briefing affiché aux joueurs |
+| `training` | booléen | `false` | Non | Mode entraînement : pas de sécurité, statut verbeux |
+| `chained_zones` | string[] | `[]` | Non | Noms des zones à déclencher à la completion |
+| `chained_delay` | entier | `0` | Non | Secondes avant le déclenchement des zones chaînées |
 
-### `combat_zones[]` fields — type `operation`
+### Champs de `combat_zones[]` — type `operation`
 
-| Field | Type | Default | Required | Description |
-|-------|------|---------|----------|-------------|
-| `type` | string | — | Yes | Must be `operation` |
-| `zone_name` | string | — | Yes | DCS trigger zone name |
-| `friendly_name` | string | — | No | Label in the radio menu |
-| `briefing` | string | — | No | Briefing text |
-| `tasking_orders` | object[] | `[]` | No | Ordered task list |
-| `tasking_orders[].zone_name` | string | — | Yes | Combat zone name for this task |
-| `tasking_orders[].dependencies` | string[] | `[]` | No | Zone names that must complete first |
+| Champ | Type | Défaut | Requis | Description |
+|-------|------|--------|--------|-------------|
+| `type` | string | — | Oui | Doit être `operation` |
+| `zone_name` | string | — | Oui | Nom de la zone de trigger DCS |
+| `friendly_name` | string | — | Non | Libellé dans le menu radio |
+| `briefing` | string | — | Non | Texte de briefing |
+| `tasking_orders` | objet[] | `[]` | Non | Liste de tâches ordonnées |
+| `tasking_orders[].zone_name` | string | — | Oui | Nom de la zone de combat pour cette tâche |
+| `tasking_orders[].dependencies` | string[] | `[]` | Non | Noms des zones devant se terminer en premier |
 
-### Minimal example
+### Exemple minimal
 
 ```yaml
 lua_modules:
@@ -109,89 +108,29 @@ lua_modules:
 
 ---
 
-## How it works
+## Constantes du module
 
-Place all the units that should appear in the zone directly in the DCS Mission Editor, inside the trigger zone. When the mission starts VEAF removes them all — the zone is empty. When a player activates the zone via the F10 menu, all units are respawned at randomised positions within the zone radius. When every enemy unit is destroyed, the zone is marked as completed (optional callback fires, optional chained zones activate).
-
-This approach gives you full visual design in the editor while keeping the zone inactive at mission start.
-
-### Setting up in the DCS Mission Editor
-
-1. **Create a trigger zone** — define the combat area. Name it, e.g. `ZONE-ALPHA`.
-2. **Place unit groups** inside the zone. Set them to any coalition — VEAF will handle their lifecycle.
-3. **Use unit name tags** (see below) to customise spawn behaviour per group.
-4. **Register the zone** in `mission-script.lua`:
-
-```lua
-VeafCombatZone:new()
-  :setName("Alpha")
-  :setZoneName("ZONE-ALPHA")
-  :setDescription("Strike Alpha — Armoured column")
-  :initialize()
-```
-
-`veafCombatZone.initialize()` must be called at the module level first.
+| Constante | Valeur par défaut | Description |
+|-----------|-------------------|-------------|
+| `veafCombatZone.SecondsBetweenWatchdogChecks` | `60` | Fréquence de vérification du watchdog de zone (s) |
+| `veafCombatZone.SecondsBetweenSmokeRequests` | `180` | Délai entre marquages fumée (s) |
+| `veafCombatZone.SecondsBetweenFlareRequests` | `120` | Délai entre marquages fusée (s) |
+| `veafCombatZone.RadioMenuName` | `"COMBAT ZONES"` | Libellé du sous-menu F10 |
+| `veafCombatZone.DefaultSpawnRadiusForUnits` | `50` | Rayon de dispersion par défaut (m) |
 
 ---
 
-## Unit Name Tags
-
-Unit and group names in the DCS Mission Editor can carry special tags that control how VEAF handles them when the zone activates. Tags are embedded in the name and do not affect DCS itself.
-
-| Tag | Example | Description |
-|-----|---------|-------------|
-| `#spawnradius=N` | `#spawnradius=200` | Scatter radius in metres around the zone centre for this group |
-| `#spawnchance=N` | `#spawnchance=50` | Percentage chance (0–100) this group will actually spawn |
-| `#spawncount=N` | `#spawncount=3` | Number of instances to spawn (can be >1 for repeated units) |
-| `#spawngroup="name"` | `#spawngroup="SAM"` | Override the spawn group name (useful to target a named template) |
-| `#spawndelay=N` | `#spawndelay=120` | Delay in seconds before this group spawns after zone activation |
-| `#command="cmd"` | `#command="-spawn sa-11"` | Execute a VEAF command instead of spawning this group; the unit acts as a trigger and is destroyed |
-
-### Practical example — MANPADS ambush
-
-You want four MANPADS positions in a zone, but only two should actually be occupied. Place four dummy infantry units named:
-
-```
-ALPHA-MANPAD-1 #spawnchance=50
-ALPHA-MANPAD-2 #spawnchance=50
-ALPHA-MANPAD-3 #spawnchance=50
-ALPHA-MANPAD-4 #spawnchance=50
-```
-
-Each position has a 50% chance of spawning — statistically, around two will be active each time the zone is triggered.
-
-### `#command` — spawning via VEAF marker syntax
-
-The `#command` tag turns a unit into a one-shot trigger. When the zone activates, VEAF executes the command at the unit's position and destroys the unit. This is equivalent to dropping a map marker at that location.
-
-```
-SPAWN-SA11 #command="-spawn sa-11, side red"
-CONVOY-TRIGGER #command="-convoy from ZONE-ALPHA to ZONE-BRAVO"
-```
-
-This lets you set up complex spawns (SA-11 battery, convoys with AI routes) without any Lua code.
-
----
-|----------|---------|-------------|
-| `veafCombatZone.SecondsBetweenWatchdogChecks` | `60` | How often the zone watchdog polls (s) |
-| `veafCombatZone.SecondsBetweenSmokeRequests` | `180` | Smoke mark cooldown (s) |
-| `veafCombatZone.SecondsBetweenFlareRequests` | `120` | Flare mark cooldown (s) |
-| `veafCombatZone.RadioMenuName` | `"COMBAT ZONES"` | F10 submenu label |
-| `veafCombatZone.DefaultSpawnRadiusForUnits` | `50` | Default unit scatter radius (m) |
-
----
-
-## Defining a Zone
+## Définir une zone
 
 ```lua
 local strikeZone = VeafCombatZone:new()
-  :setName("Strike Alpha")                   -- internal name
-  :setZoneName("ZONE-STRIKE-ALPHA")          -- DCS trigger zone name
-  :setDescription("Armoured column — Senaki")
-  :setBriefing("Destroy all vehicles. Expect AAA and MANPADS.")
+  :setName("Strike Alpha")                   -- nom interne
+  :setZoneName("ZONE-STRIKE-ALPHA")          -- nom de la zone de trigger DCS
+  :setDescription("Colonne blindée — Senaki")
+  :setBriefing("Détruire tous les véhicules. Prévoir de l'AAA et des MANPADS.")
   :addElement(
     VeafCombatZoneElement:new()
-      :setGroupName("STRIKE-ALPHA-ARMOR")    -- DCS group to spawn
+      :setGroupName("STRIKE-ALPHA-ARMOR")    -- groupe DCS à faire apparaître
       :setSpawnRadius(100)
   )
   :addElement(
@@ -201,100 +140,79 @@ local strikeZone = VeafCombatZone:new()
   :initialize()
 ```
 
-### VeafCombatZone Builder Methods
+### Méthodes du builder VeafCombatZone
 
-| Method | Description |
-|--------|-------------|
-| `:setName(name)` | Internal identifier |
-| `:setZoneName(zoneName)` | DCS trigger zone that defines the spawn area |
-| `:setDescription(text)` | Short name shown in radio menu |
-| `:setBriefing(text)` | Full briefing text |
-| `:addElement(element)` | Add a unit group to the zone |
-| `:setCoalition(side)` | Override spawn coalition |
-| `:setRadioGroup(name)` | Group zones under a common radio submenu |
-| `:setActivateAtStart(bool)` | Auto-activate when mission starts |
-| `:setSilent(bool)` | Suppress status messages |
-| `:setOnCompleted(fn)` | Callback when all enemies destroyed |
+| Méthode | Description |
+|---------|-------------|
+| `:setName(name)` | Identifiant interne |
+| `:setZoneName(zoneName)` | Zone de trigger DCS qui définit la zone de spawn |
+| `:setDescription(text)` | Nom court affiché dans le menu radio |
+| `:setBriefing(text)` | Texte complet du briefing |
+| `:addElement(element)` | Ajouter un groupe d'unités à la zone |
+| `:setCoalition(side)` | Forcer la coalition de spawn |
+| `:setRadioGroup(name)` | Regrouper des zones sous un sous-menu radio commun |
+| `:setActivateAtStart(bool)` | Activer automatiquement au démarrage de la mission |
+| `:setSilent(bool)` | Supprimer les messages de statut |
+| `:setOnCompleted(fn)` | Callback quand tous les ennemis sont détruits |
 
-### VeafCombatZoneElement Builder Methods
+### Méthodes du builder VeafCombatZoneElement
 
-| Method | Description |
-|--------|-------------|
-| `:setGroupName(name)` | DCS group to spawn (must exist in mission editor) |
-| `:setSpawnRadius(m)` | Scatter radius around zone centre |
-| `:setRespawn(bool)` | Whether to respawn when destroyed |
-| `:setRespawnDelay(s)` | Delay before respawn (seconds) |
-
----
-
-## F10 Radio Menu (per zone)
-
-- **Activate** — spawn the zone's unit groups
-- **Deactivate** — despawn units, reset the zone
-- **Info** — status, remaining unit count, briefing
-- **Smoke** — mark zone with smoke (cooldown applies)
-- **Flare** — mark zone with flares
+| Méthode | Description |
+|---------|-------------|
+| `:setGroupName(name)` | Groupe DCS à faire apparaître (doit exister dans l'éditeur) |
+| `:setSpawnRadius(m)` | Rayon de dispersion autour du centre de la zone |
+| `:setRespawn(bool)` | Réapparaître ou non après destruction |
+| `:setRespawnDelay(s)` | Délai avant réapparition (secondes) |
 
 ---
 
-## Operations (Grouped Zones)
+## Menu radio F10 (par zone)
 
-Multiple zones can be grouped into an **Operation** that completes when all child zones are done:
+- **Activer** — faire apparaître les groupes d'unités de la zone
+- **Désactiver** — faire disparaître les unités, réinitialiser la zone
+- **Infos** — statut, nombre d'unités restantes, briefing
+- **Fumée** — marquer la zone avec de la fumée (délai applicable)
+- **Fusée éclairante** — marquer la zone avec des fusées
+
+> **Sécurité :** par défaut, les commandes d'activation/désactivation nécessitent une connexion `/secu login`. Seul le [mode entraînement](#mode-entraînement) supprime cette restriction. Les demandes d'infos, fumée et fusée sont toujours accessibles sans login.
+
+### Options du menu radio
+
+| Méthode | Description |
+|---------|-------------|
+| `:disableRadioMenu()` | Désactiver complètement le menu radio pour cette zone |
+| `:setRadioMenuPrefix(text)` | Préfixe affiché devant le nom de la zone dans le menu |
+| `:setRadioGroup(name)` | Regrouper des zones sous un sous-menu commun |
+| `:setEnableSmokeAndFlare(bool)` | Activer/désactiver les demandes de fumée et fusée (défaut : `true`) |
+| `:setShowUnitsList(bool)` | Inclure la liste des unités restantes dans le message info (défaut : `true`) |
+| `:setShowZonePositionInfo(bool)` | Inclure les coordonnées et la météo dans le message info (défaut : `true`) |
+
+### Nettoyage des carcasses
+
+Par défaut, à la désactivation d'une zone, les carcasses et cadavres sont automatiquement supprimés. Pour les conserver :
+
+```lua
+:disableJunkCleanup()
+```
+
+---
+
+## Opérations (zones groupées)
+
+Plusieurs zones peuvent être regroupées dans une **Opération** qui se complète quand toutes les zones filles sont terminées :
 
 ```lua
 VeafCombatOperation:new()
   :setName("Operation Thunder")
   :addZone("Strike Alpha")
   :addZone("Strike Bravo")
-  :setBriefing("Destroy both armour columns before they reach Senaki.")
+  :setBriefing("Détruire les deux colonnes blindées avant qu'elles atteignent Senaki.")
   :initialize()
 ```
 
-`VeafCombatOperation` extends `VeafCombatZone` — all the builder methods above apply, and the operation itself appears in the radio menu as a single activatable entry.
-
 ---
 
-## Zone Chaining
+## Voir aussi
 
-A zone can automatically activate one or more follow-on zones when it is completed. This lets you build dynamic campaign progressions without manual scripting:
-
-```lua
-VeafCombatZone:new()
-  :setName("Strike Alpha")
-  :setZoneName("ZONE-ALPHA")
-  :addChainedCombatZone("Strike Bravo")     -- triggers when Alpha is done
-  :addChainedCombatZone("Strike Charlie")   -- one is chosen at random
-  :setChainedCombatZonesDelay(60)           -- wait 60 s before chaining
-  :initialize()
-```
-
-When multiple chained zones are defined, **one is picked at random** — useful for branching narratives or avoiding predictability.
-
-| Method | Description |
-|--------|-------------|
-| `:addChainedCombatZone(name)` | Add a zone to trigger after completion |
-| `:setChainedCombatZonesDelay(s)` | Seconds to wait before chaining (default: 0) |
-
----
-
-## Training Mode
-
-Setting a zone to training mode changes two things:
-
-- **No security**: any player can activate or deactivate the zone via the radio menu (normally the zone activation is logged and can be restricted by `/secu login`).
-- **Verbose status**: the zone info message lists remaining units and their approximate positions (using smoke or bearings), giving pilots a clear picture of what is left.
-
-```lua
-VeafCombatZone:new()
-  :setName("Training-A")
-  :setZoneName("ZONE-TRAINING-A")
-  :setTraining(true)
-  :initialize()
-```
-
-Training mode is ideal for BFM / CAS training scenarios where pilots need to know unit positions.
-
----
-
-- [veafCasMission](veafCasMission.md) — generated CAS zones (no pre-placed groups needed)
-- [Lua API Reference](../../LUA_API_REFERENCE.md) — full `veafCombatZone` API
+- [veafCasMission](veafCasMission.md) — zones CAS générées (sans groupes pré-placés)
+- [Référence API Lua](../../LUA_API_REFERENCE.md) — API complète de `veafCombatZone`

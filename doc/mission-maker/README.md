@@ -1,72 +1,71 @@
-# Mission Maker Guide
+# Guide du créateur de missions
 
-Integrate the VEAF Lua framework into your DCS World missions to give players dynamic spawning, combat zones, managed assets, and more — without placing hundreds of units in the editor.
+Intégrez le framework Lua VEAF dans vos missions DCS World pour offrir à vos joueurs du spawning dynamique, des zones de combat, des assets gérés, et plus — sans placer des centaines d'unités dans l'éditeur.
 
 ---
 
-## Quick Start — Your First VEAF Mission
+## Démarrage rapide — Votre première mission VEAF
 
-### 1. Install the tools
+### 1. Installer les outils
 
 ```powershell
-# Download veaf-tools-updater.exe from the latest GitHub release and place it in your mission project folder.
+# Téléchargez veaf-tools-updater.exe depuis la dernière release GitHub et placez-le dans le dossier de votre projet de mission.
 .\veaf-tools-updater.exe
 ```
 
-> **Windows security:** Windows may block `.exe` files downloaded from the internet. If the file doesn't run, right-click it → **Properties** → **General** tab → check **Unblock** at the bottom → **OK**.
+> **Sécurité Windows :** Windows peut bloquer les fichiers `.exe` téléchargés depuis Internet. Si le fichier ne s'exécute pas, cliquez droit dessus → **Propriétés** → onglet **Général** → cochez **Débloquer** en bas de la fenêtre → **OK**.
 
-This downloads `veaf-tools.exe` and the VEAF Lua scripts to your working directory.
+Ceci télécharge `veaf-tools.exe` et les scripts Lua VEAF dans votre répertoire de travail.
 
-> **Language:** Messages are displayed in your OS language automatically (English or French). To switch language: `veaf-tools.exe user-config --set lang=fr`. See [Language Configuration](GUIDE.md#global-user-configuration).
+> **Langue :** Les messages s'affichent dans la langue du système automatiquement (anglais ou français). Pour changer la langue : `veaf-tools.exe user-config --set lang=fr`. Voir [Configuration de la langue](GUIDE.fr.md#configuration-globale-utilisateur).
 
-### 2. Create a mission in DCS Editor
+### 2. Créer une mission dans l'éditeur DCS
 
-Create a standard `.miz` mission (place your own units, waypoints, weather, etc.). No need to add any VEAF trigger — the build tool handles that.
+Créez une mission `.miz` standard (placez vos unités, waypoints, météo, etc.). Pas besoin d'ajouter de trigger VEAF — l'outil de build s'en charge.
 
-### 3. Extract the mission
-
-```powershell
-veaf-tools.exe extract my-mission.miz
-```
-
-This extracts the `.miz` into a mission folder structure (current directory by default) that you can version-control and configure.
-
-### 4. Configure modules
-
-Edit `mission.yaml` at the root of your mission folder to declare which VEAF modules are active and configure assets, combat zones, shortcuts, security, etc.
-
-### 5. Build
+### 3. Extraire la mission
 
 ```powershell
-veaf-tools.exe build my-mission.miz
+veaf-tools.exe extract ma-mission.miz
 ```
 
-The build tool reads the mission folder, **automatically injects** the VEAF loader trigger, and produces a `.miz` ready to fly with full VEAF MCT functionality.
+Ceci extrait le `.miz` dans un dossier mission (répertoire courant par défaut) que vous pouvez versionner et configurer.
+
+### 4. Configurer les modules
+
+Éditez `mission.yaml` à la racine de votre dossier mission pour déclarer quels modules VEAF sont actifs et configurer les assets, zones de combat, raccourcis, sécurité, etc.
+
+### 5. Construire
+
+```powershell
+veaf-tools.exe build ma-mission.miz
+```
+
+L'outil de build lit le dossier mission, **injecte automatiquement** le trigger chargeur VEAF, et produit un `.miz` prêt à voler avec toutes les fonctionnalités VEAF MCT.
 
 ---
 
-## What You Can Offer Your Players
+## Ce que vous offrez à vos joueurs
 
-| Module | Player experience |
+| Module | Expérience joueur |
 |--------|-------------------|
-| [veafSpawn](scripts/veafSpawn.md) | Spawn any unit via F10 markers |
-| [veafCasMission](scripts/veafCasMission.md) | Procedural CAS training with difficulty levels |
-| [veafCombatZone](scripts/veafCombatZone.md) | Predefined combat areas, activatable on demand |
-| [veafAssets](scripts/veafAssets.md) | Managed tankers, AWACS, carriers with auto-respawn |
-| [veafCarrierOperations](scripts/veafCarrierOperations.md) | Full carrier recovery workflow |
-| [veafQraManager](scripts/veafQraManager.md) | Automatic QRA scramble on intrusion |
-| [veafAirWaves](scripts/veafAirWaves.md) | Wave-based air combat missions |
-| [veafSecurity](scripts/veafSecurity.md) | Password protection for multiplayer servers |
+| [veafSpawn](scripts/veafSpawn.md) | Spawner n'importe quelle unité via les marqueurs F10 |
+| [veafCasMission](scripts/veafCasMission.md) | Entraînement CAS procédural avec niveaux de difficulté |
+| [veafCombatZone](scripts/veafCombatZone.md) | Zones de combat prédéfinies, activables à la demande |
+| [veafAssets](scripts/veafAssets.md) | Ravitailleurs, AWACS, porte-avions gérés avec auto-respawn |
+| [veafCarrierOperations](scripts/veafCarrierOperations.md) | Workflow complet de recovery porte-avions |
+| [veafQraManager](scripts/veafQraManager.md) | Scramble QRA automatique en cas d'intrusion |
+| [veafAirWaves](scripts/veafAirWaves.md) | Missions de combat aérien par vagues |
+| [veafSecurity](scripts/veafSecurity.md) | Protection par mot de passe pour serveurs multijoueur |
 
-See the [full scripts catalog](scripts/README.md) for all 17+ modules.
+Voir le [catalogue complet des scripts](scripts/README.md) pour les 17+ modules.
 
 ---
 
-## Next Steps
+## Pour aller plus loin
 
-| Document | When to read |
-|----------|--------------|
-| [Full Guide](GUIDE.md) | Detailed setup, configuration, and build workflow |
-| [Migration Guide](MIGRATION_GUIDE.md) | Converting from VEAF MCT v5 or adding VEAF MCT to an existing mission |
-| [Scripts Reference](scripts/README.md) | Per-module documentation with commands and config examples |
-
+| Document | Quand le lire |
+|----------|---------------|
+| [Guide complet](GUIDE.md) | Setup détaillé, configuration, et workflow de build |
+| [Guide de migration](MIGRATION_GUIDE.md) | Conversion depuis VEAF MCT v5 ou ajout de VEAF MCT à une mission existante |
+| [Référence des scripts](scripts/README.md) | Documentation par module avec commandes et exemples de config |

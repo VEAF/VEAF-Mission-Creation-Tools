@@ -1,38 +1,38 @@
-# veafRadio — F10 Radio Menu Builder
+# veafRadio — Gestionnaire du menu radio F10
 
 
-**Module ID:** `RADIO` | **File:** `veafRadio.lua`
-
----
-
-## Purpose
-
-The F10 "Other" menu in DCS is the primary interface between players and VEAF scripts. `veafRadio` manages that entire menu tree: building it, refreshing it as human groups join and leave, and providing helpers that let other VEAF modules and mission makers add their own entries without worrying about DCS radio menu limits.
+**Module ID :** `RADIO` | **Fichier :** `veafRadio.lua`
 
 ---
 
-## Enable
+## Objectif
+
+Le menu "Autre" F10 de DCS est l'interface principale entre les joueurs et les scripts VEAF. `veafRadio` gère l'intégralité de cet arbre de menus : sa construction, son rafraîchissement à mesure que les groupes humains rejoignent et quittent la mission, et fournit des helpers qui permettent aux autres modules VEAF et aux créateurs de missions d'ajouter leurs propres entrées sans se soucier des limites du menu radio DCS.
+
+---
+
+## Activation
 
 ```lua
 veafRadio.initialize()
 ```
 
-Optional parameters:
+Paramètres optionnels :
 
 ```lua
 veafRadio.initialize(
-  skipHelpMenus,   -- bool: omit "Help" entries from built-in menus (default false)
-  dontCreateMenus  -- bool: suppress all DCS radio menu creation (default false)
+  skipHelpMenus,   -- bool : omettre les entrées "Aide" des menus intégrés (défaut false)
+  dontCreateMenus  -- bool : supprimer toute création de menu radio DCS (défaut false)
 )
 ```
 
-After all modules are initialised, call:
+Après l'initialisation de tous les modules, appeler :
 
 ```lua
 veafRadio.refreshRadioMenu()
 ```
 
-This rebuilds the entire F10 tree. It is safe to call multiple times — it debounces internally (1-second delay).
+Cela reconstruit l'intégralité de l'arbre F10. L'appel est idempotent — il gère en interne un délai anti-rebond de 1 seconde.
 
 ---
 
@@ -41,19 +41,19 @@ This rebuilds the entire F10 tree. It is safe to call multiple times — it debo
 ```yaml
 lua_modules:
   RADIO:
-    enable: true          # default: true
-    logLevel: info        # optional log level override
+    enable: true          # défaut : true
+    logLevel: info        # surcharge optionnelle du niveau de log
     init:
-      help_menus: true    # show built-in "Help" entries in radio menus (default: true)
+      help_menus: true    # afficher les entrées "Aide" intégrées dans les menus radio (défaut : true)
 ```
 
-| Field | Type | Default | Required | Description |
-|-------|------|---------|----------|-------------|
-| `enable` | boolean | `true` | No | Enable or disable the module |
-| `logLevel` | string | *(global)* | No | Per-module log level override |
-| `init.help_menus` | boolean | `true` | No | Show built-in "Help" entries in the generated radio menus |
+| Champ | Type | Défaut | Requis | Description |
+|-------|------|--------|--------|-------------|
+| `enable` | booléen | `true` | Non | Activer ou désactiver le module |
+| `logLevel` | string | *(global)* | Non | Surcharge du niveau de log par module |
+| `init.help_menus` | booléen | `true` | Non | Afficher les entrées "Aide" intégrées dans les menus radio générés |
 
-### Minimal example
+### Exemple minimal
 
 ```yaml
 lua_modules:
@@ -63,21 +63,21 @@ lua_modules:
 
 ---
 
-## Creating a custom menu
+## Créer un menu personnalisé
 
-Use `veafRadio.createUserMenu()` to build a structured menu tree from a simple Lua table, using three helpers:
+Utilisez `veafRadio.createUserMenu()` pour construire un arbre de menus structuré à partir d'une simple table Lua, en utilisant trois helpers :
 
 ```lua
 veafRadio.createUserMenu(
   veafRadio.mainmenu(
-    veafRadio.menu("QRA Management",
-      veafRadio.command("Start QRA North", veafQraManager.startQra, { name = "QRA-NORTH" }),
-      veafRadio.command("Stop QRA North",  veafQraManager.stopQra,  { name = "QRA-NORTH" }),
-      veafRadio.command("Status",          veafQraManager.getStatus,{ name = "QRA-NORTH" })
+    veafRadio.menu("Gestion QRA",
+      veafRadio.command("Démarrer QRA Nord", veafQraManager.startQra, { name = "QRA-NORD" }),
+      veafRadio.command("Arrêter QRA Nord",  veafQraManager.stopQra,  { name = "QRA-NORD" }),
+      veafRadio.command("Statut",            veafQraManager.getStatus,{ name = "QRA-NORD" })
     ),
     veafRadio.menu("Flags",
-      veafRadio.command("Set Flag 10",   trigger.action.setUserFlag, { "FLAG-10", true }),
-      veafRadio.command("Clear Flag 10", trigger.action.setUserFlag, { "FLAG-10", false })
+      veafRadio.command("Activer Flag 10",   trigger.action.setUserFlag, { "FLAG-10", true }),
+      veafRadio.command("Désactiver Flag 10", trigger.action.setUserFlag, { "FLAG-10", false })
     )
   )
 )
@@ -85,147 +85,150 @@ veafRadio.createUserMenu(
 
 ### Helpers
 
-| Helper | Signature | Returns |
+| Helper | Signature | Retourne |
 |--------|-----------|---------|
-| `mainmenu(...)` | Variable args of `menu()` or `command()` items | Flat array for `createUserMenu()` |
-| `menu(name, ...)` | Name + variable args of nested items | A submenu node |
-| `command(name, fn, params)` | Name + function + parameter table | A command node |
+| `mainmenu(...)` | Arguments variables de `menu()` ou `command()` | Tableau plat pour `createUserMenu()` |
+| `menu(name, ...)` | Nom + arguments variables d'éléments imbriqués | Nœud de sous-menu |
+| `command(name, fn, params)` | Nom + fonction + table de paramètres | Nœud de commande |
 
-### Group-specific menus
+### Menus spécifiques à un groupe
 
-Pass a `groupId` as the second argument to `createUserMenu()` — the menu will only appear for that group:
+Passer un `groupId` comme second argument de `createUserMenu()` — le menu n'apparaîtra que pour ce groupe :
 
 ```lua
-local playerGroupId = 101
+local groupIdJoueur = 101
 veafRadio.createUserMenu(
   veafRadio.mainmenu(
-    veafRadio.command("Request tanker", myMission.requestTanker, { groupId = playerGroupId })
+    veafRadio.command("Demander ravitailleur", maMission.demanderRavitailleur, { groupId = groupIdJoueur })
   ),
-  playerGroupId
+  groupIdJoueur
 )
 ```
 
 ---
 
-## Usage constants
+## Constantes d'utilisation
 
-When adding commands via the low-level API, the `usage` parameter controls who sees the entry:
+Lors de l'ajout de commandes via l'API bas niveau, le paramètre `usage` contrôle qui voit l'entrée :
 
-| Constant | Value | Behaviour |
-|----------|-------|-----------|
-| `veafRadio.USAGE_ForAll` | `0` | Single entry visible to all players |
-| `veafRadio.USAGE_ForGroup` | `1` | One entry per connected human group; the unit name is appended to params automatically |
-| `veafRadio.USAGE_ForUnit` | `2` | One entry per connected human pilot; entry title is prefixed with the pilot's callsign |
+| Constante | Valeur | Comportement |
+|-----------|--------|-------------|
+| `veafRadio.USAGE_ForAll` | `0` | Entrée unique visible pour tous les joueurs |
+| `veafRadio.USAGE_ForGroup` | `1` | Une entrée par groupe humain connecté ; le nom de l'unité est ajouté automatiquement aux paramètres |
+| `veafRadio.USAGE_ForUnit` | `2` | Une entrée par pilote humain connecté ; le titre est préfixé avec l'indicatif du pilote |
 
-`USAGE_ForGroup` is ideal for commands that should respond differently per flight (e.g. "Request support for my flight"). `USAGE_ForUnit` is for individual pilot interactions.
+`USAGE_ForGroup` est idéal pour les commandes qui doivent répondre différemment par vol (ex : "Demander appui pour mon vol"). `USAGE_ForUnit` est pour les interactions individuelles par pilote.
 
 ---
 
-## Low-level API
+## API bas niveau
 
-For finer control, build the menu tree directly:
+Pour un contrôle plus fin, construire l'arbre de menus directement :
 
 ```lua
--- Add a top-level submenu under the VEAF root
-local missionMenu = veafRadio.addMenu("Mission Control")
+-- Ajouter un sous-menu de premier niveau sous la racine VEAF
+local menuMission = veafRadio.addMenu("Contrôle Mission")
 
--- Add a submenu inside it
-local qraMenu = veafRadio.addSubMenu("QRA", missionMenu)
+-- Ajouter un sous-menu à l'intérieur
+local menuQra = veafRadio.addSubMenu("QRA", menuMission)
 
--- Add a command (ForAll)
+-- Ajouter une commande (ForAll)
 veafRadio.addCommandToSubmenu(
-  "Start QRA North",
-  qraMenu,
+  "Démarrer QRA Nord",
+  menuQra,
   veafQraManager.startQra,
-  { name = "QRA-NORTH" },
+  { name = "QRA-NORD" },
   veafRadio.USAGE_ForAll
 )
 
--- Add a secured command (requires /secu login)
+-- Ajouter une commande sécurisée (nécessite /secu login)
 veafRadio.addSecuredCommandToSubmenu(
-  "Emergency stop all QRA",
-  missionMenu,
+  "Arrêt d'urgence tous les QRA",
+  menuMission,
   veafQraManager.stopAll,
   {},
   veafRadio.USAGE_ForAll
 )
 
--- Trigger a rebuild
+-- Déclencher une reconstruction
 veafRadio.refreshRadioMenu()
 ```
-
-### Paginated menus
-
-When a submenu has more than ~9 entries (DCS limit), use paginated helpers:
-
-```lua
-veafRadio.addPaginatedRadioMenu(
-  "All Zones",          -- menu title
-  parentMenu,           -- parent menu node
-  veafRadio.addCommandToSubmenu,
-  myZonesList,          -- table of elements
-  "name",               -- attribute used as the entry title
-  "sortKey"             -- attribute used for sorting (optional)
-)
-```
-
-Pages of 10 are created automatically with a "Next page" submenu.
 
 ---
 
-## Examples
+## Exemples pratiques de fonctions de callback
 
-### QRA start/stop from a custom menu
+Les commandes d'un menu utilisateur appellent une fonction Lua. Voici des exemples courants :
+
+### Démarrer / arrêter une QRA
 
 ```lua
-local controlMenu = veafRadio.addMenu("Mission Control")
+local function _changeQra(parameters)
+    local name, action = veaf.safeUnpack(parameters)
+    local qra = veafQraManager.get(name)
+    if qra then
+        if action:upper() == "START" then
+            qra:start(false)
+        else
+            qra:stop(false)
+        end
+    end
+end
 
-local qraMenu = veafRadio.addSubMenu("Quick Reaction Alerts", controlMenu)
-
-veafRadio.addCommandToSubmenu("Start QRA North",
-  qraMenu, myNorthQRA.start, {}, veafRadio.USAGE_ForAll)
-veafRadio.addCommandToSubmenu("Stop QRA North",
-  qraMenu, myNorthQRA.stop,  {}, veafRadio.USAGE_ForAll)
-
-veafRadio.addCommandToSubmenu("Start QRA South",
-  qraMenu, mySouthQRA.start, {}, veafRadio.USAGE_ForAll)
-veafRadio.addCommandToSubmenu("Stop QRA South",
-  qraMenu, mySouthQRA.stop,  {}, veafRadio.USAGE_ForAll)
-
-veafRadio.refreshRadioMenu()
+veafRadio.createUserMenu(
+    veafRadio.mainmenu(
+        veafRadio.menu("Gestion QRA",
+            veafRadio.menu("QRA Maykop",
+                veafRadio.command("START", _changeQra, {"QRA-Maykop", "start"}),
+                veafRadio.command("STOP",  _changeQra, {"QRA-Maykop", "stop"})
+            )
+        )
+    )
+)
 ```
 
-### Flag-based mission triggers
+### Détruire un groupe par son nom
+
+```lua
+local function _destroyGroup(name)
+    local names = type(name) == "string" and {name} or name
+    for _, n in pairs(names) do
+        local g = Group.getByName(n)
+        if g then
+            g:destroy()
+            trigger.action.outText(string.format("Group %s destroyed", n), 10)
+        end
+    end
+end
+
+veafRadio.createUserMenu(
+    veafRadio.mainmenu(
+        veafRadio.menu("Adversaires",
+            veafRadio.command("CAP Maykop",  _destroyGroup, "CAP-Maykop"),
+            veafRadio.command("SA-6 Minvody", _destroyGroup, "SA6-Minvody")
+        )
+    )
+)
+```
+
+### Gérer des drapeaux DCS (pour déclencher des triggers)
 
 ```lua
 veafRadio.createUserMenu(
-  veafRadio.mainmenu(
-    veafRadio.menu("Phase control",
-      veafRadio.command("Begin Phase 2", trigger.action.setUserFlag, { "PHASE2", true }),
-      veafRadio.command("Begin Phase 3", trigger.action.setUserFlag, { "PHASE3", true }),
-      veafRadio.command("End mission",   trigger.action.setUserFlag, { "MISSIONEND", true })
+    veafRadio.mainmenu(
+        veafRadio.menu("Flags",
+            veafRadio.command("Flag ALPHA ON",  veafSpawn.missionMasterSetFlagFromTable,       {"alpha", 1}),
+            veafRadio.command("Flag ALPHA OFF", veafSpawn.missionMasterSetFlagFromTable,       {"alpha", 0}),
+            veafRadio.command("Incrémenter 127", veafSpawn.missionMasterIncrementFlagValue,   127),
+            veafRadio.command("Décrémenter 127", veafSpawn.missionMasterDecrementFlagValue,   127)
+        )
     )
-  )
-)
-```
-
-### Per-group command (ForGroup)
-
-A "Request close air support" entry that appears once per connected flight, automatically passing that group's unit name:
-
-```lua
-veafRadio.addCommandToSubmenu(
-  "Request CAS",
-  supportMenu,
-  myCasDispatch,      -- receives { originalParams, unitName } at runtime
-  {},
-  veafRadio.USAGE_ForGroup
 )
 ```
 
 ---
 
-## See Also
+## Voir aussi
 
-- [veafSecurity](veafSecurity.md) — securing commands with `/secu login`
-- [Lua API Reference](../../LUA_API_REFERENCE.md) — full `veafRadio` API
+- [veafSecurity](veafSecurity.md) — sécuriser les commandes avec `/secu login`
+- [Référence API Lua](../../LUA_API_REFERENCE.md) — API complète de `veafRadio`

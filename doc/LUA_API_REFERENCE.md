@@ -1,631 +1,631 @@
-# VEAF Lua Modules - Complete API Reference
+# Modules Lua VEAF — Référence API complète
 
-**Version:** 6.1.0
-**Last Updated:** May 2026
-**Project:** VEAF Mission Creation Tools
+**Version :** 6.1.0
+**Dernière mise à jour :** Mai 2026
+**Projet :** VEAF Mission Creation Tools
 
 ---
 
-## Table of Contents
+## Table des matières
 
 1. [Introduction](#introduction)
-2. [Module Architecture](#module-architecture)
-3. [Core Infrastructure](#core-infrastructure)
-   - [veaf.lua](#veaflua) - Core utilities and logger
-   - [veafEventHandler.lua](#veafeventhandlerlua) - Event management
-   - [veafMarkers.lua](#veafmarkerslua) - Map marker system
-   - [veafCommands.lua](#veafcommandslua) - Central command dispatcher
-   - [veafInterpreter.lua](#veafinterpreterlua) - Command parsing
-4. [Unit & Group Management](#unit--group-management)
-   - [veafSpawnParser.lua](#veafspawnparserlua) - Spawn command text parser
-   - [veafSpawn.lua](#veafspawnlua) - Dynamic spawning
-   - [veafUnits.lua](#veafunitslua) - Unit definitions
-   - [veafAssets.lua](#veafassetslua) - Asset tracking
-5. [Mission Systems](#mission-systems)
-   - [veafCombatMission.lua](#veafcombatmissionlua) - Combat missions
-   - [veafCasMission.lua](#veafcasmissionlua) - CAS missions
-6. [Infrastructure & Services](#infrastructure--services)
-   - [veafAirbases.lua](#veafairbaseslua) - Airbase data
-   - [veafCarrierOperations.lua](#veafcarrieroperationslua) - Carrier ops
-7. [Communication & Control](#communication--control)
-   - [veafRadio.lua](#veafradiolua) - Radio menus
-8. [Support Systems](#support-systems)
-   - [veafWeather.lua](#veafweatherlua) - Weather system
-   - [veafTime.lua](#veaftimelua) - Time management
-9. [Data & Database](#data--database)
-   - [dcsUnits.lua](#dcsunitslua) - DCS unit database
-   - [dcsDataExport.lua](#dcsdataexportlua) - Data export
-10. [Appendix](#appendix)
+2. [Architecture des modules](#architecture-des-modules)
+3. [Infrastructure de base](#infrastructure-de-base)
+   - [veaf.lua](#veaflua) — Utilitaires de base et logger
+   - [veafEventHandler.lua](#veafeventhandlerlua) — Gestion des événements
+   - [veafMarkers.lua](#veafmarkerslua) — Système de marqueurs carte
+   - [veafCommands.lua](#veafcommandslua) — Dispatching central des commandes
+   - [veafInterpreter.lua](#veafinterpreterlua) — Parsing de commandes
+4. [Gestion des unités et groupes](#gestion-des-unités-et-groupes)
+   - [veafSpawnParser.lua](#veafspawnparserlua) — Parseur de commandes spawn
+   - [veafSpawn.lua](#veafspawnlua) — Spawn dynamique
+   - [veafUnits.lua](#veafunitslua) — Définitions d'unités
+   - [veafAssets.lua](#veafassetslua) — Suivi des assets
+5. [Systèmes de mission](#systèmes-de-mission)
+   - [veafCombatMission.lua](#veafcombatmissionlua) — Missions de combat
+   - [veafCasMission.lua](#veafcasmissionlua) — Missions CAS
+6. [Infrastructure et services](#infrastructure-et-services)
+   - [veafAirbases.lua](#veafairbaseslua) — Données aérodromes
+   - [veafCarrierOperations.lua](#veafcarrieroperationslua) — Opérations porte-avions
+7. [Communication et contrôle](#communication-et-contrôle)
+   - [veafRadio.lua](#veafradiolua) — Menus radio
+8. [Systèmes de support](#systèmes-de-support)
+   - [veafWeather.lua](#veafweatherlua) — Système météo
+   - [veafTime.lua](#veaftimelua) — Gestion du temps
+9. [Données et base de données](#données-et-base-de-données)
+   - [dcsUnits.lua](#dcsunitslua) — Base de données d'unités DCS
+   - [dcsDataExport.lua](#dcsdataexportlua) — Export de données
+10. [Annexe](#annexe)
 
 ---
 
 ## Introduction
 
-The VEAF (Virtual European Air Force) Lua modules provide a comprehensive framework for creating dynamic DCS World missions. This API reference documents all public functions, classes, and constants available to mission creators.
+Les modules Lua VEAF (Virtual European Air Force) fournissent un framework complet pour créer des missions DCS World dynamiques. Cette référence API documente toutes les fonctions publiques, classes et constantes disponibles pour les créateurs de missions.
 
-### Key Features
+### Fonctionnalités clés
 
-- **33+ Lua modules** providing runtime functionality
-- **Event-driven architecture** using DCS World event system
-- **Modular design** allowing selective module usage
-- **Extensive logging** with configurable log levels
-- **Security system** for controlled access
-- **Radio menu integration** via F10 menu
-- **Marker-based commands** using map markers
+- **33+ modules Lua** fournissant des fonctionnalités runtime
+- **Architecture événementielle** utilisant le système d'événements DCS World
+- **Conception modulaire** permettant une utilisation sélective des modules
+- **Logging extensif** avec niveaux configurables
+- **Système de sécurité** pour un accès contrôlé
+- **Intégration menus radio** via le menu F10
+- **Commandes par marqueur** via les marqueurs carte
 
-### Module Loading Order
+### Ordre de chargement des modules
 
-Modules must be loaded in dependency order:
-1. `veaf.lua` (core - must be first)
+Les modules doivent être chargés dans l'ordre de dépendance :
+1. `veaf.lua` (core — doit être premier)
 2. `veafEventHandler.lua`
 3. `veafMarkers.lua`
-4. Other modules (any order)
+4. Autres modules (ordre libre)
 
-### Conventions Used
+### Conventions utilisées
 
-**Parameter Types:**
+**Types de paramètres :**
 
-- `string` - Text string
-- `number` - Numeric value
-- `boolean` - true/false
-- `table` - Lua table/array
-- `vec3` - 3D vector: `{x=number, y=number, z=number}`
-- `function` - Callback function
-- `coalition` - Coalition ID: 0=neutral, 1=blue, 2=red
+- `string` — Chaîne de texte
+- `number` — Valeur numérique
+- `boolean` — true/false
+- `table` — Table/tableau Lua
+- `vec3` — Vecteur 3D : `{x=number, y=number, z=number}`
+- `function` — Fonction callback
+- `coalition` — ID de coalition : 0=neutre, 1=bleu, 2=rouge
 
-**Return Values:**
+**Valeurs de retour :**
 
-- Functions return `nil` on failure unless otherwise specified
-- Boolean returns indicate success/failure
+- Les fonctions retournent `nil` en cas d'échec sauf mention contraire
+- Les retours booléens indiquent succès/échec
 
 ---
 
-## Module Architecture
+## Architecture des modules
 
-### Standard Module Structure
+### Structure standard d'un module
 
-All VEAF modules follow this pattern:
+Tous les modules VEAF suivent ce patron :
 
 ```lua
--- Module declaration
+-- Déclaration du module
 veafModuleName = veafModuleName or {}
 
--- Module metadata
+-- Métadonnées du module
 veafModuleName.Id = "MODULE_ID"
 veafModuleName.Version = "X.Y.Z"
-veafModuleName.LogLevel = "info"  -- or "debug", "trace"
+veafModuleName.LogLevel = "info"  -- ou "debug", "trace"
 
--- Logger initialization
+-- Initialisation du logger
 veafModuleName.logger = veaf.loggers.new(veafModuleName.Id, veafModuleName.LogLevel)
 
--- Initialization function
+-- Fonction d'initialisation
 function veafModuleName.initialize()
   veafModuleName.logger:info("Initializing module")
-  -- Initialization code
+  -- Code d'initialisation
 end
 
--- Start function (if applicable)
+-- Fonction de démarrage (si applicable)
 function veafModuleName.start()
   veafModuleName.logger:info("Starting module")
-  -- Start monitoring/services
+  -- Démarrage des services/monitoring
 end
 ```
 
-### Logging Levels
+### Niveaux de logging
 
-All modules use standardized logging:
+Tous les modules utilisent un logging standardisé :
 
-| Level | Value | Usage |
-|-------|-------|-------|
-| `error` | 1 | Critical errors only |
-| `warning` | 2 | Warnings and errors |
-| `info` | 3 | Normal operations (default) |
-| `debug` | 4 | Detailed debugging |
-| `trace` | 5 | Very verbose tracing |
+| Niveau | Valeur | Utilisation |
+|--------|--------|-------------|
+| `error` | 1 | Erreurs critiques uniquement |
+| `warning` | 2 | Avertissements et erreurs |
+| `info` | 3 | Opérations normales (défaut) |
+| `debug` | 4 | Débogage détaillé |
+| `trace` | 5 | Traçage très verbeux |
 
-**Setting Log Levels:**
+**Configurer les niveaux de log :**
 ```lua
 veafModuleName.LogLevel = "debug"
-veaf.loggers.setBaseLevel("info")  -- Global default
+veaf.loggers.setBaseLevel("info")  -- Défaut global
 ```
 
 ---
 
-## Core Infrastructure
+## Infrastructure de base
 
 ### veaf.lua
 
-**Module ID:** `VEAF`
-**Version:** 1.56.2
-**Purpose:** Root library providing core utilities, constants, and logger system
+**Module ID :** `VEAF`
+**Version :** 1.56.2
+**Objectif :** Bibliothèque racine fournissant les utilitaires de base, constantes et système de logger
 
-#### Constants
+#### Constantes
 
 ```lua
 veaf.Version = "1.56.2"
-veaf.Development = false  -- Enable development features
+veaf.Development = false  -- Activer les fonctionnalités de développement
 veaf.HideNamesFromSpawnedGroups = false
-veaf.BaseLogLevel = 3  -- Default log level (info); acts as a cap for module log levels
+veaf.BaseLogLevel = 3  -- Niveau de log par défaut (info) ; sert de plafond pour les modules
 veaf.DEFAULT_GROUND_SPEED_KPH = 30
 veaf.DEFAULT_GROUND_SPEED_KTS = 16.2
 veaf.DEFAULT_SPEED_KTS = 350
 veaf.MIST_MARKER_ID_INITIAL_VALUE = 50000
 ```
 
-#### JSON Functions
+#### Fonctions JSON
 
 ##### `veaf.json.stringify(obj, as_key)`
 
-Convert Lua object to JSON string.
+Convertit un objet Lua en chaîne JSON.
 
-**Parameters:**
+**Paramètres :**
 
-- `obj` (any) - Lua object to serialize
-- `as_key` (boolean, optional) - Format as JSON key
+- `obj` (any) — Objet Lua à sérialiser
+- `as_key` (boolean, optionnel) — Formater comme clé JSON
 
-**Returns:** `string` - JSON representation
+**Retourne :** `string` — Représentation JSON
 
-**Example:**
+**Exemple :**
 ```lua
 local data = {name = "Strike", type = "mission"}
 local json = veaf.json.stringify(data)
--- Result: '{"name":"Strike","type":"mission"}'
+-- Résultat : '{"name":"Strike","type":"mission"}'
 ```
 
 ##### `veaf.json.parse(str, pos, end_delim)`
 
-Parse JSON string to Lua object.
+Parse une chaîne JSON en objet Lua.
 
-**Parameters:**
+**Paramètres :**
 
-- `str` (string) - JSON string
-- `pos` (number, optional) - Starting position (default: 1)
-- `end_delim` (string, optional) - End delimiter
+- `str` (string) — Chaîne JSON
+- `pos` (number, optionnel) — Position de départ (défaut : 1)
+- `end_delim` (string, optionnel) — Délimiteur de fin
 
-**Returns:** `table` - Parsed Lua object
+**Retourne :** `table` — Objet Lua parsé
 
-**Example:**
+**Exemple :**
 ```lua
 local json = '{"name":"Strike","type":"mission"}'
 local data = veaf.json.parse(json)
--- Result: {name = "Strike", type = "mission"}
+-- Résultat : {name = "Strike", type = "mission"}
 ```
 
-#### String Utilities
+#### Utilitaires de chaînes
 
 ##### `veaf.trim(s)`
 
-Remove leading and trailing whitespace.
+Supprime les espaces en début et fin de chaîne.
 
-**Parameters:**
+**Paramètres :**
 
-- `s` (string) - String to trim
+- `s` (string) — Chaîne à nettoyer
 
-**Returns:** `string` - Trimmed string
+**Retourne :** `string` — Chaîne nettoyée
 
-**Example:**
+**Exemple :**
 ```lua
 local trimmed = veaf.trim("  hello  ")
--- Result: "hello"
+-- Résultat : "hello"
 ```
 
 ##### `veaf.split(str, sep)`
 
-Split string by separator into array.
+Découpe une chaîne par séparateur en tableau.
 
-**Parameters:**
+**Paramètres :**
 
-- `str` (string) - String to split
-- `sep` (string) - Separator character/string
+- `str` (string) — Chaîne à découper
+- `sep` (string) — Caractère/chaîne séparateur
 
-**Returns:** `table` - Array of substrings
+**Retourne :** `table` — Tableau de sous-chaînes
 
-**Example:**
+**Exemple :**
 ```lua
 local parts = veaf.split("red,blue,green", ",")
--- Result: {"red", "blue", "green"}
+-- Résultat : {"red", "blue", "green"}
 ```
 
 ##### `veaf.splitWithPattern(str, pat)`
 
-Split string using regex pattern.
+Découpe une chaîne en utilisant un pattern regex.
 
-**Parameters:**
+**Paramètres :**
 
-- `str` (string) - String to split
-- `pat` (string) - Lua pattern
+- `str` (string) — Chaîne à découper
+- `pat` (string) — Pattern Lua
 
-**Returns:** `table` - Array of substrings
+**Retourne :** `table` — Tableau de sous-chaînes
 
 ##### `veaf.breakString(str, sep)`
 
-Break string around separator (returns 2 parts).
+Coupe une chaîne autour d'un séparateur (retourne 2 parties).
 
-**Parameters:**
+**Paramètres :**
 
-- `str` (string) - String to break
-- `sep` (string) - Separator
+- `str` (string) — Chaîne à couper
+- `sep` (string) — Séparateur
 
-**Returns:** `string, string` - Two parts (before and after separator)
+**Retourne :** `string, string` — Deux parties (avant et après le séparateur)
 
-**Example:**
+**Exemple :**
 ```lua
 local before, after = veaf.breakString("key=value", "=")
--- Result: before="key", after="value"
+-- Résultat : before="key", after="value"
 ```
 
 ##### `veaf.escapeRegex(stringToEscape)`
 
-Escape special regex characters.
+Échappe les caractères spéciaux regex.
 
-**Parameters:**
+**Paramètres :**
 
-- `stringToEscape` (string) - String to escape
+- `stringToEscape` (string) — Chaîne à échapper
 
-**Returns:** `string` - Escaped string
+**Retourne :** `string` — Chaîne échappée
 
-#### Table/Array Utilities
+#### Utilitaires de tables/tableaux
 
 ##### `veaf.length(T)`
 
-Get table length (handles non-sequential keys).
+Obtient la longueur d'une table (gère les clés non-séquentielles).
 
-**Parameters:**
+**Paramètres :**
 
-- `T` (table) - Table to measure
+- `T` (table) — Table à mesurer
 
-**Returns:** `number` - Number of elements
+**Retourne :** `number` — Nombre d'éléments
 
-**Example:**
+**Exemple :**
 ```lua
 local t = {a=1, b=2, c=3}
 local len = veaf.length(t)
--- Result: 3
+-- Résultat : 3
 ```
 
 ##### `veaf.arrayRemoveWhen(t, fnKeep)`
 
-Remove elements from array based on condition.
+Supprime les éléments d'un tableau selon une condition.
 
-**Parameters:**
+**Paramètres :**
 
-- `t` (table) - Array to filter
-- `fnKeep` (function) - Keep function: `function(element) return boolean end`
+- `t` (table) — Tableau à filtrer
+- `fnKeep` (function) — Fonction de conservation : `function(element) return boolean end`
 
-**Returns:** `table` - Modified array
+**Retourne :** `table` — Tableau modifié
 
-**Example:**
+**Exemple :**
 ```lua
 local numbers = {1, 2, 3, 4, 5}
 veaf.arrayRemoveWhen(numbers, function(n) return n > 3 end)
--- Result: {1, 2, 3}
+-- Résultat : {1, 2, 3}
 ```
 
 ##### `veaf.shuffle(tbl)`
 
-Randomly shuffle array elements in place.
+Mélange aléatoirement les éléments d'un tableau en place.
 
-**Parameters:**
+**Paramètres :**
 
-- `tbl` (table) - Array to shuffle
+- `tbl` (table) — Tableau à mélanger
 
-**Returns:** `table` - Shuffled array (same reference)
+**Retourne :** `table` — Tableau mélangé (même référence)
 
 ##### `veaf.tableContains(table, element)`
 
-Check if table contains element.
+Vérifie si une table contient un élément.
 
-**Parameters:**
+**Paramètres :**
 
-- `table` (table) - Table to search
-- `element` (any) - Element to find
+- `table` (table) — Table à chercher
+- `element` (any) — Élément à trouver
 
-**Returns:** `boolean` - True if found
+**Retourne :** `boolean` — True si trouvé
 
 ##### `veaf.randomlyChooseFrom(aTable, bias)`
 
-Choose random element from table with optional bias.
+Choisit un élément aléatoire dans une table avec biais optionnel.
 
-**Parameters:**
+**Paramètres :**
 
-- `aTable` (table) - Table to choose from
-- `bias` (number, optional) - Bias factor (default: 1.0)
+- `aTable` (table) — Table source
+- `bias` (number, optionnel) — Facteur de biais (défaut : 1.0)
 
-**Returns:** `any` - Random element
+**Retourne :** `any` — Élément aléatoire
 
-**Example:**
+**Exemple :**
 ```lua
 local colors = {"red", "blue", "green"}
 local color = veaf.randomlyChooseFrom(colors)
 ```
 
-#### Vector & Coordinate Functions
+#### Fonctions de vecteurs et coordonnées
 
 ##### `veaf.vecToString(vec)`
 
-Convert 3D vector to human-readable string.
+Convertit un vecteur 3D en chaîne lisible.
 
-**Parameters:**
+**Paramètres :**
 
-- `vec` (vec3) - Vector `{x, y, z}`
+- `vec` (vec3) — Vecteur `{x, y, z}`
 
-**Returns:** `string` - Formatted string
+**Retourne :** `string` — Chaîne formatée
 
-**Example:**
+**Exemple :**
 ```lua
 local pos = {x=1000, y=50, z=2000}
 local str = veaf.vecToString(pos)
--- Result: "x=1000, y=50, z=2000"
+-- Résultat : "x=1000, y=50, z=2000"
 ```
 
 ##### `veaf.findPointInZone(spawnSpot, dispersion, isShip)`
 
-Find random spawn point within zone with dispersion.
+Trouve un point de spawn aléatoire dans une zone avec dispersion.
 
-**Parameters:**
+**Paramètres :**
 
-- `spawnSpot` (vec3) - Center position
-- `dispersion` (number) - Radius in meters
-- `isShip` (boolean, optional) - Find water location
+- `spawnSpot` (vec3) — Position centrale
+- `dispersion` (number) — Rayon en mètres
+- `isShip` (boolean, optionnel) — Trouver un emplacement en eau
 
-**Returns:** `vec3` - Random point within zone
+**Retourne :** `vec3` — Point aléatoire dans la zone
 
 ##### `veaf.placePointOnLand(vec3)`
 
-Place point on land surface (adjusts Y altitude).
+Place un point sur la surface terrestre (ajuste l'altitude Y).
 
-**Parameters:**
+**Paramètres :**
 
-- `vec3` (vec3) - Position to adjust
+- `vec3` (vec3) — Position à ajuster
 
-**Returns:** `vec3` - Position on land surface
+**Retourne :** `vec3` — Position sur la surface
 
 ##### `veaf.getLandHeight(vec3)`
 
-Get terrain height at coordinates.
+Obtient la hauteur du terrain aux coordonnées.
 
-**Parameters:**
+**Paramètres :**
 
-- `vec3` (vec3) - Position
+- `vec3` (vec3) — Position
 
-**Returns:** `number` - Terrain altitude in meters
+**Retourne :** `number` — Altitude du terrain en mètres
 
 ##### `veaf.headingBetweenPoints(point1, point2)`
 
-Calculate heading from point1 to point2.
+Calcule le cap de point1 vers point2.
 
-**Parameters:**
+**Paramètres :**
 
-- `point1` (vec3) - Starting point
-- `point2` (vec3) - Destination point
+- `point1` (vec3) — Point de départ
+- `point2` (vec3) — Point de destination
 
-**Returns:** `number` - Heading in degrees (0-360)
+**Retourne :** `number` — Cap en degrés (0-360)
 
 ##### `veaf.getBearingAndRangeFromTo(fromPoint, toPoint)`
 
-Calculate bearing and range between two points.
+Calcule le relèvement et la distance entre deux points.
 
-**Parameters:**
+**Paramètres :**
 
-- `fromPoint` (vec3) - Starting point
-- `toPoint` (vec3) - Destination point
+- `fromPoint` (vec3) — Point de départ
+- `toPoint` (vec3) — Point de destination
 
-**Returns:** `number, number` - Bearing (degrees), Range (meters)
+**Retourne :** `number, number` — Relèvement (degrés), Distance (mètres)
 
-**Example:**
+**Exemple :**
 ```lua
 local bearing, range = veaf.getBearingAndRangeFromTo(pos1, pos2)
-veaf.logger:info("Target at %d° for %.0f meters", bearing, range)
+veaf.logger:info("Cible au %d° pour %.0f mètres", bearing, range)
 ```
 
 ##### `veaf.computeLLFromString(value)`
 
-Parse latitude/longitude from string.
+Parse une latitude/longitude depuis une chaîne.
 
-**Parameters:**
+**Paramètres :**
 
-- `value` (string) - Lat/Lon string (various formats supported)
+- `value` (string) — Chaîne Lat/Lon (plusieurs formats supportés)
 
-**Returns:** `table` - `{lat=number, lon=number}` or nil
+**Retourne :** `table` — `{lat=number, lon=number}` ou nil
 
-**Supported Formats:**
+**Formats supportés :**
 
-- DMS: `N 43°15'30" E 005°45'20"`
-- Decimal: `43.258333, 5.755556`
-- MGRS: (via conversion)
+- DMS : `N 43°15'30" E 005°45'20"`
+- Décimal : `43.258333, 5.755556`
+- MGRS : (via conversion)
 
 ##### `veaf.computeCoordinatesOffsetFromRoute(startingPoint, destinationPoint, distanceFromStartingPoint, offset)`
 
-Calculate position offset from a route.
+Calcule une position décalée par rapport à une route.
 
-**Parameters:**
+**Paramètres :**
 
-- `startingPoint` (vec3) - Route start
-- `destinationPoint` (vec3) - Route end
-- `distanceFromStartingPoint` (number) - Distance along route (meters)
-- `offset` (number) - Perpendicular offset (meters, positive = right)
+- `startingPoint` (vec3) — Début de route
+- `destinationPoint` (vec3) — Fin de route
+- `distanceFromStartingPoint` (number) — Distance le long de la route (mètres)
+- `offset` (number) — Décalage perpendiculaire (mètres, positif = droite)
 
-**Returns:** `vec3` - Offset position
+**Retourne :** `vec3` — Position décalée
 
-#### Unit & Group Functions
+#### Fonctions d'unités et groupes
 
 ##### `veaf.addUnit(group, spawnSpot, dispersion, unitType, unitName, skill)`
 
-Add unit to group definition.
+Ajoute une unité à une définition de groupe.
 
-**Parameters:**
+**Paramètres :**
 
-- `group` (table) - Group definition table
-- `spawnSpot` (vec3) - Spawn position
-- `dispersion` (number) - Dispersion radius (meters)
-- `unitType` (string) - DCS unit type name
-- `unitName` (string) - Unit name
-- `skill` (string) - Skill level: "Average", "Good", "High", "Excellent", "Random"
+- `group` (table) — Table de définition du groupe
+- `spawnSpot` (vec3) — Position de spawn
+- `dispersion` (number) — Rayon de dispersion (mètres)
+- `unitType` (string) — Nom de type DCS de l'unité
+- `unitName` (string) — Nom de l'unité
+- `skill` (string) — Niveau de compétence : "Average", "Good", "High", "Excellent", "Random"
 
-**Returns:** `table` - Modified group table
+**Retourne :** `table` — Table de groupe modifiée
 
 ##### `veaf.getAveragePosition(group)`
 
-Get center position of group.
+Obtient la position centrale du groupe.
 
-**Parameters:**
+**Paramètres :**
 
-- `group` (table or DCS Group) - Group object or table
+- `group` (table ou DCS Group) — Objet groupe ou table
 
-**Returns:** `vec3` - Average position
+**Retourne :** `vec3` — Position moyenne
 
 ##### `veaf.getAvgGroupPos(groupName)`
 
-Get average position of group by name.
+Obtient la position moyenne d'un groupe par son nom.
 
-**Parameters:**
+**Paramètres :**
 
-- `groupName` (string) - Group name
+- `groupName` (string) — Nom du groupe
 
-**Returns:** `vec3` - Average position or nil
+**Retourne :** `vec3` — Position moyenne ou nil
 
 ##### `veaf.moveGroupAt(groupName, leadUnitName, heading, speed, timeInSeconds, endPosition, pMiddlePointDistance)`
 
-Move group in specific direction and speed.
+Déplace un groupe dans une direction et à une vitesse spécifiques.
 
-**Parameters:**
+**Paramètres :**
 
-- `groupName` (string) - Group to move
-- `leadUnitName` (string) - Lead unit name
-- `heading` (number) - Direction in degrees
-- `speed` (number) - Speed in m/s
-- `timeInSeconds` (number) - Duration of movement
-- `endPosition` (vec3, optional) - Final position
-- `pMiddlePointDistance` (number, optional) - Intermediate waypoint distance
+- `groupName` (string) — Groupe à déplacer
+- `leadUnitName` (string) — Nom de l'unité leader
+- `heading` (number) — Direction en degrés
+- `speed` (number) — Vitesse en m/s
+- `timeInSeconds` (number) — Durée du déplacement
+- `endPosition` (vec3, optionnel) — Position finale
+- `pMiddlePointDistance` (number, optionnel) — Distance du waypoint intermédiaire
 
-**Returns:** `boolean` - Success flag
+**Retourne :** `boolean` — Indicateur de succès
 
 ##### `veaf.moveGroupTo(groupName, pos, speed, altitude)`
 
-Move group to position.
+Déplace un groupe vers une position.
 
-**Parameters:**
+**Paramètres :**
 
-- `groupName` (string) - Group name
-- `pos` (vec3) - Destination
-- `speed` (number, optional) - Speed in m/s (default: 30 kph)
-- `altitude` (number, optional) - Altitude override
+- `groupName` (string) — Nom du groupe
+- `pos` (vec3) — Destination
+- `speed` (number, optionnel) — Vitesse en m/s (défaut : 30 kph)
+- `altitude` (number, optionnel) — Altitude forcée
 
-**Returns:** `boolean` - Success
+**Retourne :** `boolean` — Succès
 
 ##### `veaf.readyForCombat(group, alarm, disperseTime)`
 
-Prepare ground group for combat.
+Prépare un groupe terrestre au combat.
 
-**Parameters:**
+**Paramètres :**
 
-- `group` (DCS Group or string) - Group or group name
-- `alarm` (boolean, optional) - Alarm state (default: false)
-- `disperseTime` (number, optional) - Time to disperse in seconds
+- `group` (DCS Group ou string) — Groupe ou nom de groupe
+- `alarm` (boolean, optionnel) — État d'alerte (défaut : false)
+- `disperseTime` (number, optionnel) — Temps de dispersion en secondes
 
-**Returns:** None
+**Retourne :** Rien
 
-**Description:** Sets group to combat ready state, optionally disperses units.
+**Description :** Met le groupe en état prêt au combat, disperse optionnellement les unités.
 
 ##### `veaf.getGroupsOfCoalition(coa)`
 
-Get all groups of coalition.
+Obtient tous les groupes d'une coalition.
 
-**Parameters:**
+**Paramètres :**
 
-- `coa` (coalition, optional) - Coalition filter (default: all)
+- `coa` (coalition, optionnel) — Filtre de coalition (défaut : tous)
 
-**Returns:** `table` - Array of DCS Group objects
+**Retourne :** `table` — Tableau d'objets DCS Group
 
 ##### `veaf.getUnitsOfCoalition(includeStatics, coa)`
 
-Get all units of coalition.
+Obtient toutes les unités d'une coalition.
 
-**Parameters:**
+**Paramètres :**
 
-- `includeStatics` (boolean) - Include static objects
-- `coa` (coalition, optional) - Coalition filter
+- `includeStatics` (boolean) — Inclure les objets statiques
+- `coa` (coalition, optionnel) — Filtre de coalition
 
-**Returns:** `table` - Array of unit/static objects
+**Retourne :** `table` — Tableau d'objets unités/statiques
 
 ##### `veaf.findUnitsInCircle(center, radius, includeStatics, onlyTheseUnits)`
 
-Find units in circular area.
+Trouve les unités dans une zone circulaire.
 
-**Parameters:**
+**Paramètres :**
 
-- `center` (vec3) - Circle center
-- `radius` (number) - Radius in meters
-- `includeStatics` (boolean, optional) - Include statics
-- `onlyTheseUnits` (table, optional) - Filter to these units only
+- `center` (vec3) — Centre du cercle
+- `radius` (number) — Rayon en mètres
+- `includeStatics` (boolean, optionnel) — Inclure les statiques
+- `onlyTheseUnits` (table, optionnel) — Filtrer à ces unités uniquement
 
-**Returns:** `table` - Array of units/statics
+**Retourne :** `table` — Tableau d'unités/statiques
 
-**Example:**
+**Exemple :**
 ```lua
 local targetPos = {x=1000, y=0, z=2000}
 local enemyUnits = veaf.findUnitsInCircle(targetPos, 500, false)
-veaf.logger:info("Found %d enemy units", #enemyUnits)
+veaf.logger:info("Trouvé %d unités ennemies", #enemyUnits)
 ```
 
 ##### `veaf.isUnitInZone(unitOrName, zoneOrName)`
 
-Check if unit is inside trigger zone.
+Vérifie si une unité est dans une zone trigger.
 
-**Parameters:**
+**Paramètres :**
 
-- `unitOrName` (DCS Unit or string) - Unit or unit name
-- `zoneOrName` (DCS Zone or string) - Zone or zone name
+- `unitOrName` (DCS Unit ou string) — Unité ou nom d'unité
+- `zoneOrName` (DCS Zone ou string) — Zone ou nom de zone
 
-**Returns:** `boolean` - True if inside zone
+**Retourne :** `boolean` — True si dans la zone
 
 ##### `veaf.isUnitAlive(unit)`
 
-Check if unit is alive.
+Vérifie si une unité est en vie.
 
-**Parameters:**
+**Paramètres :**
 
-- `unit` (DCS Unit or string) - Unit or unit name
+- `unit` (DCS Unit ou string) — Unité ou nom d'unité
 
-**Returns:** `boolean` - True if alive
+**Retourne :** `boolean` — True si en vie
 
 ##### `veaf.getUnitLifeRelative(unit)`
 
-Get unit health as percentage.
+Obtient la santé d'une unité en pourcentage.
 
-**Parameters:**
+**Paramètres :**
 
-- `unit` (DCS Unit or string) - Unit or unit name
+- `unit` (DCS Unit ou string) — Unité ou nom d'unité
 
-**Returns:** `number` - Health percentage (0-100)
+**Retourne :** `number` — Pourcentage de santé (0-100)
 
 ##### `veaf.fixUnitsTable(unitsOrNames)`
 
-Convert unit names to unit objects.
+Convertit les noms d'unités en objets unités.
 
-**Parameters:**
+**Paramètres :**
 
-- `unitsOrNames` (table) - Array of units or unit names
+- `unitsOrNames` (table) — Tableau d'unités ou noms d'unités
 
-**Returns:** `table` - Array of unit objects
+**Retourne :** `table` — Tableau d'objets unités
 
-#### Route Generation
+#### Génération de routes
 
 ##### `veaf.generateVehiclesRoute(startPoint, destination, onRoad, speed, groupName)`
 
-Generate vehicle movement route.
+Génère une route de déplacement véhicule.
 
-**Parameters:**
+**Paramètres :**
 
-- `startPoint` (vec3) - Starting position
-- `destination` (vec3) - Destination position
-- `onRoad` (boolean) - Use roads when possible
-- `speed` (number) - Speed in m/s
-- `groupName` (string, optional) - Group name for logging
+- `startPoint` (vec3) — Position de départ
+- `destination` (vec3) — Position de destination
+- `onRoad` (boolean) — Utiliser les routes si possible
+- `speed` (number) — Vitesse en m/s
+- `groupName` (string, optionnel) — Nom du groupe pour le logging
 
-**Returns:** `table` - Route table
+**Retourne :** `table` — Table de route
 
-**Route Table Structure:**
+**Structure de la table de route :**
 ```lua
 {
   [1] = {
@@ -635,43 +635,43 @@ Generate vehicle movement route.
     speed = number,
     type = "Turning Point"
   },
-  -- ... more waypoints
+  -- ... plus de waypoints
 }
 ```
 
 ##### `veaf.PatrolWatchdog(groupName, patrolRoute, speed, firstPass)`
 
-Monitor patrol route and repeat.
+Surveille une route de patrouille et la répète.
 
-**Parameters:**
+**Paramètres :**
 
-- `groupName` (string) - Group name
-- `patrolRoute` (table) - Route table
-- `speed` (number) - Speed in m/s
-- `firstPass` (boolean) - Is first iteration
+- `groupName` (string) — Nom du groupe
+- `patrolRoute` (table) — Table de route
+- `speed` (number) — Vitesse en m/s
+- `firstPass` (boolean) — Est la première itération
 
-**Returns:** None (schedules itself)
+**Retourne :** Rien (se reprogramme automatiquement)
 
-#### Information Functions
+#### Fonctions d'information
 
 ##### `veaf.getTankerData(tankerGroupName)`
 
-Get tanker information.
+Obtient les informations d'un ravitailleur.
 
-**Parameters:**
+**Paramètres :**
 
-- `tankerGroupName` (string) - Tanker group name
+- `tankerGroupName` (string) — Nom du groupe ravitailleur
 
-**Returns:** `table` - Tanker data structure
+**Retourne :** `table` — Structure de données ravitailleur
 
-**Tanker Data Structure:**
+**Structure de données ravitailleur :**
 ```lua
 {
   name = "Texaco-1",
   type = "KC-135",
   TACANchannel = "61X",
   TACANfrequency = "1088 MHz",
-  TACANmorse = "\u2013\u2022 \u2022\u2022\u2022\u2022 \u2013\u2022\u2022",
+  TACANmorse = "...",
   RadioFrequency = "251.0 MHz",
   RadioModulation = "AM",
   callsign = "Texaco 1-1",
@@ -681,16 +681,16 @@ Get tanker information.
 
 ##### `veaf.getCarrierATCdata(carrierGroupName, carrierUnitName)`
 
-Get carrier ATC information.
+Obtient les données ATC d'un porte-avions.
 
-**Parameters:**
+**Paramètres :**
 
-- `carrierGroupName` (string) - Carrier group name
-- `carrierUnitName` (string, optional) - Specific unit name
+- `carrierGroupName` (string) — Nom du groupe porte-avions
+- `carrierUnitName` (string, optionnel) — Nom d'unité spécifique
 
-**Returns:** `table` - ATC data
+**Retourne :** `table` — Données ATC
 
-**ATC Data Structure:**
+**Structure de données ATC :**
 ```lua
 {
   name = "CVN-73",
@@ -699,7 +699,7 @@ Get carrier ATC information.
   RadioModulation = "AM",
   TACANchannel = "73X",
   TACANfrequency = "1205 MHz",
-  TACANmorse = "\u2013\u2022\u2022\u2022 \u2022\u2022\u2022\u2013 \u2013\u2022\u2022",
+  TACANmorse = "...",
   ICLS = "13",
   position = vec3,
   heading = number
@@ -708,27 +708,27 @@ Get carrier ATC information.
 
 ##### `veaf.getGroupData(groupIdent)`
 
-Get raw DCS group data.
+Obtient les données brutes DCS d'un groupe.
 
-**Parameters:**
+**Paramètres :**
 
-- `groupIdent` (string or number) - Group name or ID
+- `groupIdent` (string ou number) — Nom ou ID du groupe
 
-**Returns:** `table` - DCS group data table
+**Retourne :** `table` — Table de données DCS du groupe
 
 ##### `veaf.weatherReport(vec3, alt, withLASTE)`
 
-Generate weather report string.
+Génère un rapport météo sous forme de texte.
 
-**Parameters:**
+**Paramètres :**
 
-- `vec3` (vec3) - Position for report
-- `alt` (number, optional) - Altitude for report (default: 0)
-- `withLASTE` (boolean, optional) - Include LASTE data
+- `vec3` (vec3) — Position pour le rapport
+- `alt` (number, optionnel) — Altitude pour le rapport (défaut : 0)
+- `withLASTE` (boolean, optionnel) — Inclure les données LASTE
 
-**Returns:** `string` - Weather report text
+**Retourne :** `string` — Texte du rapport météo
 
-**Example Output:**
+**Exemple de sortie :**
 ```
 Weather at position:
 QNH: 29.92 inHg (1013 hPa)
@@ -736,325 +736,325 @@ Temperature: 15°C (59°F)
 Wind: 270° at 10 kts
 ```
 
-#### Output Functions
+#### Fonctions de sortie
 
 ##### `veaf.outTextForUnit(unitName, message, duration, forAllGroup)`
 
-Display text message to unit.
+Affiche un message texte à une unité.
 
-**Parameters:**
+**Paramètres :**
 
-- `unitName` (string) - Target unit name
-- `message` (string) - Message text
-- `duration` (number, optional) - Display duration in seconds (default: 5)
-- `forAllGroup` (boolean, optional) - Show to all group members
+- `unitName` (string) — Nom de l'unité cible
+- `message` (string) — Texte du message
+- `duration` (number, optionnel) — Durée d'affichage en secondes (défaut : 5)
+- `forAllGroup` (boolean, optionnel) — Afficher à tous les membres du groupe
 
-**Returns:** None
+**Retourne :** Rien
 
-**Example:**
+**Exemple :**
 ```lua
-veaf.outTextForUnit("Viper 1-1", "Target destroyed!", 10, true)
+veaf.outTextForUnit("Viper 1-1", "Cible détruite !", 10, true)
 ```
 
 ##### `veaf.outTextForGroup(unitName, message, duration)`
 
-Display text to entire group.
+Affiche un texte à tout le groupe.
 
-**Parameters:**
+**Paramètres :**
 
-- `unitName` (string) - Any unit in group
-- `message` (string) - Message text
-- `duration` (number, optional) - Duration in seconds
+- `unitName` (string) — N'importe quelle unité du groupe
+- `message` (string) — Texte du message
+- `duration` (number, optionnel) — Durée en secondes
 
-**Returns:** None
+**Retourne :** Rien
 
-#### Conversion Functions
+#### Fonctions de conversion
 
 ##### `veaf.convertMachSpeed(mach, altitude, temperature)`
 
-Convert Mach number to true airspeed.
+Convertit un nombre Mach en vitesse vraie (TAS).
 
-**Parameters:**
+**Paramètres :**
 
-- `mach` (number) - Mach number
-- `altitude` (number) - Altitude in meters
-- `temperature` (number, optional) - Temperature offset in °C
+- `mach` (number) — Nombre Mach
+- `altitude` (number) — Altitude en mètres
+- `temperature` (number, optionnel) — Écart de température en °C
 
-**Returns:** `number` - True airspeed in knots
+**Retourne :** `number` — Vitesse vraie en nœuds
 
 ##### `veaf.convertTrueAirSpeed(ktas, altitude, temperature)`
 
-Convert true airspeed to Mach.
+Convertit une vitesse vraie en Mach.
 
-**Parameters:**
+**Paramètres :**
 
-- `ktas` (number) - True airspeed in knots
-- `altitude` (number) - Altitude in meters
-- `temperature` (number, optional) - Temperature offset
+- `ktas` (number) — Vitesse vraie en nœuds
+- `altitude` (number) — Altitude en mètres
+- `temperature` (number, optionnel) — Écart de température
 
-**Returns:** `number` - Mach number
+**Retourne :** `number` — Nombre Mach
 
 ##### `veaf.convertSpeeds(mach, kias, ktas, altitude, temperature, pressure)`
 
-Convert between speed formats.
+Convertit entre formats de vitesse.
 
-**Parameters:**
+**Paramètres :**
 
-- `mach` (number, optional) - Mach number
-- `kias` (number, optional) - Indicated airspeed (knots)
-- `ktas` (number, optional) - True airspeed (knots)
-- `altitude` (number) - Altitude in meters
-- `temperature` (number, optional) - Temperature offset
-- `pressure` (number, optional) - Pressure in hPa
+- `mach` (number, optionnel) — Nombre Mach
+- `kias` (number, optionnel) — Vitesse indiquée (nœuds)
+- `ktas` (number, optionnel) — Vitesse vraie (nœuds)
+- `altitude` (number) — Altitude en mètres
+- `temperature` (number, optionnel) — Écart de température
+- `pressure` (number, optionnel) — Pression en hPa
 
-**Returns:** `table` - `{mach, kias, ktas}`
+**Retourne :** `table` — `{mach, kias, ktas}`
 
-**Example:**
+**Exemple :**
 ```lua
 local speeds = veaf.convertSpeeds(0.9, nil, nil, 10000)
--- Result: {mach=0.9, kias=calculated, ktas=calculated}
+-- Résultat : {mach=0.9, kias=calculé, ktas=calculé}
 ```
 
 ##### `veaf.getMagneticDeclination()`
 
-Get magnetic declination for current theater.
+Obtient la déclinaison magnétique du théâtre actuel.
 
-**Returns:** `number` - Declination in degrees
+**Retourne :** `number` — Déclinaison en degrés
 
 ##### `veaf.getWind(point)`
 
-Get wind at position.
+Obtient le vent à une position.
 
-**Parameters:**
+**Paramètres :**
 
-- `point` (vec3) - Position
+- `point` (vec3) — Position
 
-**Returns:** `table` - `{direction=number, strength=number}`
+**Retourne :** `table` — `{direction=number, strength=number}`
 
-#### Math & Utility Functions
+#### Fonctions mathématiques et utilitaires
 
 ##### `veaf.round(num, numDecimalPlaces)`
 
-Round number to decimal places.
+Arrondit un nombre à un nombre de décimales.
 
-**Parameters:**
+**Paramètres :**
 
-- `num` (number) - Number to round
-- `numDecimalPlaces` (number, optional) - Decimal places (default: 0)
+- `num` (number) — Nombre à arrondir
+- `numDecimalPlaces` (number, optionnel) — Nombre de décimales (défaut : 0)
 
-**Returns:** `number` - Rounded number
+**Retourne :** `number` — Nombre arrondi
 
 ##### `veaf.getRandomizableNumeric(val)`
 
-Parse randomizable numeric value.
+Parse une valeur numérique randomisable.
 
-**Parameters:**
+**Paramètres :**
 
-- `val` (string or number) - Value like "2-6" or "5"
+- `val` (string ou number) — Valeur comme "2-6" ou "5"
 
-**Returns:** `number` - Random value in range
+**Retourne :** `number` — Valeur aléatoire dans la plage
 
-**Example:**
+**Exemple :**
 ```lua
 local size = veaf.getRandomizableNumeric("3-7")
--- Result: Random number between 3 and 7
+-- Résultat : Nombre aléatoire entre 3 et 7
 ```
 
 ##### `veaf.invertHeading(heading)`
 
-Get opposite heading.
+Obtient le cap opposé.
 
-**Parameters:**
+**Paramètres :**
 
-- `heading` (number) - Heading in degrees
+- `heading` (number) — Cap en degrés
 
-**Returns:** `number` - Opposite heading (0-360)
+**Retourne :** `number` — Cap opposé (0-360)
 
 ##### `veaf.laserCodeToDigit(code)`
 
-Convert laser code to digit.
+Convertit un code laser en chiffre.
 
-**Parameters:**
+**Paramètres :**
 
-- `code` (number) - Laser code (e.g., 1688)
+- `code` (number) — Code laser (ex : 1688)
 
-**Returns:** `number` - Digit representation
+**Retourne :** `number` — Représentation en chiffre
 
-#### Country & Coalition Functions
+#### Fonctions pays et coalition
 
 ##### `veaf.getCountryId(countryName)`
 
-Get DCS country ID from name.
+Obtient l'ID pays DCS à partir du nom.
 
-**Parameters:**
+**Paramètres :**
 
-- `countryName` (string) - Country name (e.g., "USA", "Russia")
+- `countryName` (string) — Nom du pays (ex : "USA", "Russia")
 
-**Returns:** `number` - Country ID or nil
+**Retourne :** `number` — ID du pays ou nil
 
 ##### `veaf.getCountryName(countryId)`
 
-Get country name from ID.
+Obtient le nom du pays à partir de l'ID.
 
-**Parameters:**
+**Paramètres :**
 
-- `countryId` (number) - DCS country ID
+- `countryId` (number) — ID pays DCS
 
-**Returns:** `string` - Country name
+**Retourne :** `string` — Nom du pays
 
 ##### `veaf.getCountryForCoalition(coalition)`
 
-Get default country for coalition.
+Obtient le pays par défaut pour une coalition.
 
-**Parameters:**
+**Paramètres :**
 
-- `coalition` (coalition) - Coalition ID
+- `coalition` (coalition) — ID de coalition
 
-**Returns:** `number` - Country ID
+**Retourne :** `number` — ID du pays
 
-**Default Mapping:**
+**Mapping par défaut :**
 
-- Blue → USA (2)
-- Red → Russia (0)
+- Bleu → USA (2)
+- Rouge → Russie (0)
 
 ##### `veaf.getCoalitionForCountry(countryName, asNumber)`
 
-Get coalition for country.
+Obtient la coalition pour un pays.
 
-**Parameters:**
+**Paramètres :**
 
-- `countryName` (string) - Country name
-- `asNumber` (boolean, optional) - Return as number instead of coalition object
+- `countryName` (string) — Nom du pays
+- `asNumber` (boolean, optionnel) — Retourner comme nombre au lieu d'objet coalition
 
-**Returns:** `coalition` or `number` - Coalition
+**Retourne :** `coalition` ou `number` — Coalition
 
 ##### `veaf.getAirbaseForCoalition(airbase_name, coa)`
 
-Get airbase object for coalition.
+Obtient l'objet aérodrome pour une coalition.
 
-**Parameters:**
+**Paramètres :**
 
-- `airbase_name` (string) - Airbase name
-- `coa` (coalition) - Coalition
+- `airbase_name` (string) — Nom de l'aérodrome
+- `coa` (coalition) — Coalition
 
-**Returns:** `DCS Airbase` - Airbase object or nil
+**Retourne :** `DCS Airbase` — Objet aérodrome ou nil
 
-#### Airbase Functions
+#### Fonctions aérodromes
 
 ##### `veaf.findDcsAirbase(name)`
 
-Find DCS airbase by name (case-insensitive).
+Trouve un aérodrome DCS par nom (insensible à la casse).
 
-**Parameters:**
+**Paramètres :**
 
-- `name` (string) - Airbase name
+- `name` (string) — Nom de l'aérodrome
 
-**Returns:** `DCS Airbase` - Airbase object or nil
+**Retourne :** `DCS Airbase` — Objet aérodrome ou nil
 
 ##### `veaf.silenceAtcOnAllAirbases()`
 
-Disable ATC on all airbases.
+Désactive l'ATC sur tous les aérodromes.
 
-**Returns:** None
+**Retourne :** Rien
 
-**Description:** Useful for immersion or to prevent ATC conflicts.
+**Description :** Utile pour l'immersion ou pour éviter les conflits ATC.
 
 ##### `veaf.loadAirbasesLife0()`
 
-Load airbase initial health data.
+Charge les données de santé initiale des aérodromes.
 
-**Returns:** None
+**Retourne :** Rien
 
-**Description:** Must be called before using `veaf.getAirbaseLife()`.
+**Description :** Doit être appelé avant d'utiliser `veaf.getAirbaseLife()`.
 
 ##### `veaf.getAirbaseLife(airbase_name, percentage, loading)`
 
-Get airbase health/damage.
+Obtient la santé/dommages d'un aérodrome.
 
-**Parameters:**
+**Paramètres :**
 
-- `airbase_name` (string) - Airbase name
-- `percentage` (boolean, optional) - Return as percentage
-- `loading` (boolean, optional) - Loading initial data
+- `airbase_name` (string) — Nom de l'aérodrome
+- `percentage` (boolean, optionnel) — Retourner en pourcentage
+- `loading` (boolean, optionnel) — Chargement des données initiales
 
-**Returns:** `number` - Health value (0-1 or 0-100 if percentage)
+**Retourne :** `number` — Valeur de santé (0-1 ou 0-100 si pourcentage)
 
 ##### `veaf.getPolygonFromUnits(unitNames)`
 
-Create polygon from unit positions.
+Crée un polygone à partir des positions d'unités.
 
-**Parameters:**
+**Paramètres :**
 
-- `unitNames` (table) - Array of unit names
+- `unitNames` (table) — Tableau de noms d'unités
 
-**Returns:** `table` - Array of vec3 positions
+**Retourne :** `table` — Tableau de positions vec3
 
-#### Trigger Zone Functions
+#### Fonctions de zones trigger
 
 ##### `veaf.getTriggerZone(zoneName)`
 
-Get trigger zone by name.
+Obtient une zone trigger par nom.
 
-**Parameters:**
+**Paramètres :**
 
-- `zoneName` (string) - Zone name
+- `zoneName` (string) — Nom de la zone
 
-**Returns:** `DCS Zone` - Zone object or nil
+**Retourne :** `DCS Zone` — Objet zone ou nil
 
-#### Mission Control Functions
+#### Fonctions de contrôle de mission
 
 ##### `veaf.endMissionAt(endTimeHour, endTimeMinute, checkIntervalInSeconds, checkMessage, ...)`
 
-Schedule mission end at specific time.
+Planifie la fin de mission à une heure spécifique.
 
-**Parameters:**
+**Paramètres :**
 
-- `endTimeHour` (number) - Hour (0-23)
-- `endTimeMinute` (number) - Minute (0-59)
-- `checkIntervalInSeconds` (number) - Check frequency
-- `checkMessage` (string, optional) - Message to display
-- Additional parameters for message formatting
+- `endTimeHour` (number) — Heure (0-23)
+- `endTimeMinute` (number) — Minute (0-59)
+- `checkIntervalInSeconds` (number) — Fréquence de vérification
+- `checkMessage` (string, optionnel) — Message à afficher
+- Paramètres additionnels pour le formatage du message
 
-**Returns:** None
+**Retourne :** Rien
 
-**Example:**
+**Exemple :**
 ```lua
--- End mission at 14:30 (2:30 PM)
-veaf.endMissionAt(14, 30, 60, "Mission ends at %s")
+-- Fin de mission à 14:30
+veaf.endMissionAt(14, 30, 60, "La mission se termine à %s")
 ```
 
 ##### `veaf.getDcsTypeName(dcsElementName)`
 
-Get DCS type name from element name.
+Obtient le nom de type DCS d'un élément.
 
-**Parameters:**
+**Paramètres :**
 
-- `dcsElementName` (string) - DCS element name
+- `dcsElementName` (string) — Nom de l'élément DCS
 
-**Returns:** `string` - Type name
+**Retourne :** `string` — Nom de type
 
-#### Serialization Functions
+#### Fonctions de sérialisation
 
 ##### `veaf.p(o, level, skip, includeMeta, dontRecurse)`
 
-Pretty-print/serialize object.
+Sérialise/affiche joliment un objet.
 
-**Parameters:**
+**Paramètres :**
 
-- `o` (any) - Object to serialize
-- `level` (number, optional) - Indentation level
-- `skip` (table, optional) - Keys to skip
-- `includeMeta` (boolean, optional) - Include metatables
-- `dontRecurse` (table, optional) - Objects not to recurse
+- `o` (any) — Objet à sérialiser
+- `level` (number, optionnel) — Niveau d'indentation
+- `skip` (table, optionnel) — Clés à ignorer
+- `includeMeta` (boolean, optionnel) — Inclure les métatables
+- `dontRecurse` (table, optionnel) — Objets à ne pas parcourir récursivement
 
-**Returns:** `string` - Serialized representation
+**Retourne :** `string` — Représentation sérialisée
 
-**Example:**
+**Exemple :**
 ```lua
 local data = {name = "Strike", units = {1, 2, 3}}
 local str = veaf.p(data)
 print(str)
--- Output:
+-- Sortie :
 -- {
 --   name = "Strike",
 --   units = {
@@ -1067,31 +1067,31 @@ print(str)
 
 ##### `veaf.serialize(name, value, level)`
 
-Serialize value to Lua code string.
+Sérialise une valeur en code Lua.
 
-**Parameters:**
+**Paramètres :**
 
-- `name` (string) - Variable name
-- `value` (any) - Value to serialize
-- `level` (number, optional) - Indentation level
+- `name` (string) — Nom de variable
+- `value` (any) — Valeur à sérialiser
+- `level` (number, optionnel) — Niveau d'indentation
 
-**Returns:** `string` - Lua code string
+**Retourne :** `string` — Chaîne de code Lua
 
 ##### `veaf.exportAsJson(data, name, jsonify, filename, export_path)`
 
-Export data to JSON file.
+Exporte des données vers un fichier JSON.
 
-**Parameters:**
+**Paramètres :**
 
-- `data` (any) - Data to export
-- `name` (string) - Variable name
-- `jsonify` (boolean) - Convert to JSON (vs Lua)
-- `filename` (string, optional) - Output filename
-- `export_path` (string, optional) - Export directory path
+- `data` (any) — Données à exporter
+- `name` (string) — Nom de variable
+- `jsonify` (boolean) — Convertir en JSON (vs Lua)
+- `filename` (string, optionnel) — Nom du fichier de sortie
+- `export_path` (string, optionnel) — Répertoire d'export
 
-**Returns:** `boolean` - Success flag
+**Retourne :** `boolean` — Indicateur de succès
 
-**Example:**
+**Exemple :**
 ```lua
 local missions = {
   {name = "CAP Alpha", type = "air"},
@@ -1100,145 +1100,145 @@ local missions = {
 veaf.exportAsJson(missions, "missions", true, "missions.json")
 ```
 
-#### Logger Class
+#### Classe Logger
 
-The `veaf.Logger` class provides structured logging with levels.
+La classe `veaf.Logger` fournit un logging structuré avec des niveaux.
 
-##### Creating Loggers
+##### Créer des loggers
 
 ```lua
--- Global loggers
-veaf.loggers.setBaseLevel("info")  -- Set default level
-local logger = veaf.loggers.new("MYMODULE", "debug")  -- Create logger
-local existingLogger = veaf.loggers.get("MYMODULE")  -- Get existing
+-- Loggers globaux
+veaf.loggers.setBaseLevel("info")  -- Définir le niveau par défaut
+local logger = veaf.loggers.new("MYMODULE", "debug")  -- Créer un logger
+local existingLogger = veaf.loggers.get("MYMODULE")  -- Obtenir un existant
 
--- Instance loggers
+-- Loggers d'instance
 local myLogger = veaf.Logger:new("MYMODULE", "info")
 ```
 
-##### Logger Methods
+##### Méthodes du logger
 
 **`logger:setName(value)`**
 
-Set logger name.
+Définit le nom du logger.
 
 **`logger:setLevel(value, force)`**
 
-Set logging level.
+Définit le niveau de logging.
 
-**Parameters:**
+**Paramètres :**
 
-- `value` (string or number) - Level: "error", "warning", "info", "debug", "trace"
-- `force` (boolean, optional) - Force override base level
+- `value` (string ou number) — Niveau : "error", "warning", "info", "debug", "trace"
+- `force` (boolean, optionnel) — Forcer le dépassement du niveau de base
 
 **`logger:error(text, ...)`**
 
-Log error message (level 1).
+Logue un message d'erreur (niveau 1).
 
-**Parameters:**
+**Paramètres :**
 
-- `text` (string) - Message with format placeholders
-- `...` - Format arguments
+- `text` (string) — Message avec marqueurs de format
+- `...` — Arguments de format
 
-**Example:**
+**Exemple :**
 ```lua
-logger:error("Failed to spawn %s at position %s", groupName, veaf.vecToString(pos))
+logger:error("Échec du spawn %s à la position %s", groupName, veaf.vecToString(pos))
 ```
 
 **`logger:warn(text, ...)`**
 
-Log warning message (level 2).
+Logue un avertissement (niveau 2).
 
 **`logger:info(text, ...)`**
 
-Log info message (level 3).
+Logue un message d'info (niveau 3).
 
 **`logger:debug(text, ...)`**
 
-Log debug message (level 4).
+Logue un message de débogage (niveau 4).
 
 **`logger:trace(text, ...)`**
 
-Log trace message (level 5).
+Logue un message de trace (niveau 5).
 
 **`logger:wouldLogDebug()`**
 
-Check if debug logging enabled.
+Vérifie si le logging debug est activé.
 
-**Returns:** `boolean`
+**Retourne :** `boolean`
 
 **`logger:wouldLogTrace()`**
 
-Check if trace logging enabled.
+Vérifie si le logging trace est activé.
 
-**Returns:** `boolean`
+**Retourne :** `boolean`
 
-**Usage:**
+**Usage :**
 ```lua
 if logger:wouldLogTrace() then
-  -- Expensive trace logging
-  logger:trace("Complex data: %s", veaf.p(largeTable))
+  -- Logging trace coûteux
+  logger:trace("Données complexes : %s", veaf.p(largeTable))
 end
 ```
 
-##### Map Marker Logging
+##### Marqueurs carte pour le logging
 
 **`logger:marker(id, header, message, position, markersTable, radius, fillColor)`**
 
-Add map marker for debugging.
+Ajoute un marqueur carte pour le débogage.
 
-**Parameters:**
+**Paramètres :**
 
-- `id` (number) - Marker ID
-- `header` (string) - Marker header text
-- `message` (string) - Marker message
-- `position` (vec3) - Marker position
-- `markersTable` (table, optional) - Track markers in table
-- `radius` (number, optional) - Circle radius
-- `fillColor` (table, optional) - Fill color `{r, g, b, a}`
+- `id` (number) — ID du marqueur
+- `header` (string) — Texte d'en-tête
+- `message` (string) — Message du marqueur
+- `position` (vec3) — Position du marqueur
+- `markersTable` (table, optionnel) — Suivi des marqueurs dans une table
+- `radius` (number, optionnel) — Rayon du cercle
+- `fillColor` (table, optionnel) — Couleur de remplissage `{r, g, b, a}`
 
-**Returns:** None
+**Retourne :** Rien
 
 **`logger:markerArrow(id, header, message, positionStart, positionEnd, markersTable, lineType, fillColor)`**
 
-Add arrow marker.
+Ajoute un marqueur flèche.
 
-**Parameters:**
+**Paramètres :**
 
-- `id` (number) - Marker ID
-- `header` (string) - Header text
-- `message` (string) - Message
-- `positionStart` (vec3) - Arrow start
-- `positionEnd` (vec3) - Arrow end
-- `markersTable` (table, optional) - Track markers
-- `lineType` (number, optional) - Line type
-- `fillColor` (table, optional) - Color
+- `id` (number) — ID du marqueur
+- `header` (string) — Texte d'en-tête
+- `message` (string) — Message
+- `positionStart` (vec3) — Début de la flèche
+- `positionEnd` (vec3) — Fin de la flèche
+- `markersTable` (table, optionnel) — Suivi des marqueurs
+- `lineType` (number, optionnel) — Type de ligne
+- `fillColor` (table, optionnel) — Couleur
 
 **`logger:markerQuad(id, header, message, points, markersTable, lineType, fillColor)`**
 
-Add quadrilateral marker.
+Ajoute un marqueur quadrilatère.
 
-**Parameters:**
+**Paramètres :**
 
-- `id` (number) - Marker ID
-- `header` (string) - Header
-- `message` (string) - Message
-- `points` (table) - Array of 4 vec3 points
-- `markersTable` (table, optional) - Track markers
-- `lineType` (number, optional) - Line type
-- `fillColor` (table, optional) - Color
+- `id` (number) — ID du marqueur
+- `header` (string) — En-tête
+- `message` (string) — Message
+- `points` (table) — Tableau de 4 points vec3
+- `markersTable` (table, optionnel) — Suivi des marqueurs
+- `lineType` (number, optionnel) — Type de ligne
+- `fillColor` (table, optionnel) — Couleur
 
 ---
 
 ### veafEventHandler.lua
 
-**Module ID:** `EVENTS`
-**Version:** 1.5.3
-**Purpose:** DCS World event handling and callback management
+**Module ID :** `EVENTS`
+**Version :** 1.5.3
+**Objectif :** Gestion des événements DCS World et des callbacks
 
-#### Constants
+#### Constantes
 
-##### Event Types
+##### Types d'événements
 
 ```lua
 veafEventHandler.EVENTS = {
@@ -1255,94 +1255,66 @@ veafEventHandler.EVENTS = {
   [10] = "S_EVENT_BASE_CAPTURED",
   [11] = "S_EVENT_MISSION_START",
   [12] = "S_EVENT_MISSION_END",
-  [13] = "S_EVENT_TOOK_CONTROL",
-  [14] = "S_EVENT_REFUELING_STOP",
-  [15] = "S_EVENT_BIRTH",
-  [16] = "S_EVENT_HUMAN_FAILURE",
-  [17] = "S_EVENT_DETAILED_FAILURE",
-  [18] = "S_EVENT_ENGINE_STARTUP",
-  [19] = "S_EVENT_ENGINE_SHUTDOWN",
-  [20] = "S_EVENT_PLAYER_ENTER_UNIT",
-  [21] = "S_EVENT_PLAYER_LEAVE_UNIT",
-  [22] = "S_EVENT_PLAYER_COMMENT",
-  [23] = "S_EVENT_SHOOTING_START",
-  [24] = "S_EVENT_SHOOTING_END",
-  [25] = "S_EVENT_MARK_ADDED",
-  [26] = "S_EVENT_MARK_CHANGE",
-  [27] = "S_EVENT_MARK_REMOVED",
-  [28] = "S_EVENT_KILL",
-  [29] = "S_EVENT_SCORE",
-  [30] = "S_EVENT_UNIT_LOST",
-  [31] = "S_EVENT_LANDING_AFTER_EJECTION",
-  [32] = "S_EVENT_PARATROOPER_LENDING",
-  [33] = "S_EVENT_DISCARD_CHAIR_AFTER_EJECTION",
-  [34] = "S_EVENT_WEAPON_ADD",
-  [35] = "S_EVENT_TRIGGER_ZONE",
-  -- ... up to event 61
+  -- ... jusqu'à l'événement 61
 }
 ```
 
-##### Callback Delay
+##### Délai de callback
 
 ```lua
-veafEventHandler.CALLBACK_DELAY = 0.5  -- seconds
+veafEventHandler.CALLBACK_DELAY = 0.5  -- secondes
 ```
 
-#### Functions
+#### Fonctions
 
 ##### `veafEventHandler.addCallback(name, events, callback)`
 
-Register event callback function.
+Enregistre une fonction callback d'événement.
 
-**Parameters:**
+**Paramètres :**
 
-- `name` (string) - Unique callback name
-- `events` (table or nil) - Array of event IDs/names, or nil for all events
-- `callback` (function) - Callback function
+- `name` (string) — Nom unique du callback
+- `events` (table ou nil) — Tableau d'ID/noms d'événements, ou nil pour tous
+- `callback` (function) — Fonction callback
 
-**Callback Signature:**
+**Signature du callback :**
 ```lua
 function callback(transformedEvent)
-  -- transformedEvent is enhanced event table
+  -- transformedEvent est une table d'événement enrichie
 end
 ```
 
-**Returns:** `boolean` - True if registered successfully
+**Retourne :** `boolean` — True si enregistré avec succès
 
-**Example:**
+**Exemple :**
 ```lua
--- Listen to all events
+-- Écouter tous les événements
 veafEventHandler.addCallback("myHandler", nil, function(event)
-  veaf.logger:info("Event: %s", event.type.name)
+  veaf.logger:info("Événement : %s", event.type.name)
 end)
 
--- Listen to specific events
+-- Écouter des événements spécifiques
 veafEventHandler.addCallback("birthHandler",
   {"S_EVENT_BIRTH", "S_EVENT_PLAYER_ENTER_UNIT"},
   function(event)
     if event.initiator then
-      veaf.logger:info("Unit spawned: %s", event.initiator.unitName)
+      veaf.logger:info("Unité apparue : %s", event.initiator.unitName)
     end
   end
 )
-
--- Listen by event ID
-veafEventHandler.addCallback("shotHandler", {1, 23}, function(event)
-  -- Handle S_EVENT_SHOT and S_EVENT_SHOOTING_START
-end)
 ```
 
 ##### `veafEventHandler.completeUnit(unit)`
 
-Get complete unit information from DCS unit.
+Obtient les informations complètes d'une unité DCS.
 
-**Parameters:**
+**Paramètres :**
 
-- `unit` (DCS Unit) - Unit object
+- `unit` (DCS Unit) — Objet unité
 
-**Returns:** `table` - Unit info table
+**Retourne :** `table` — Table d'info unité
 
-**Unit Info Structure:**
+**Structure de l'info unité :**
 ```lua
 {
   unitName = "Viper 1-1",
@@ -1352,117 +1324,85 @@ Get complete unit information from DCS unit.
   unitGroupId = 123,
   unitCoalition = coalition.side.BLUE,
   unitCategory = Unit.Category.AIRPLANE,
-  unitPilotName = "Player Name",  -- if human
-  unitPilotUcid = "abc123...",    -- if human with SRS
+  unitPilotName = "Nom du joueur",  -- si humain
+  unitPilotUcid = "abc123...",       -- si humain avec SRS
   unitLifePercent = 100.0
 }
 ```
 
 ##### `veafEventHandler.completeUnitFromName(unitName)`
 
-Get unit information from unit name.
+Obtient les informations d'unité à partir du nom.
 
-**Parameters:**
+**Paramètres :**
 
-- `unitName` (string) - Unit name
+- `unitName` (string) — Nom de l'unité
 
-**Returns:** `table` - Unit info table (same as completeUnit)
-
-**Example:**
-```lua
-local unitInfo = veafEventHandler.completeUnitFromName("Viper 1-1")
-if unitInfo then
-  veaf.logger:info("Unit %s is at %.0f%% health",
-    unitInfo.unitName, unitInfo.unitLifePercent)
-end
-```
-
-##### `veafEventHandler.checkEventKnown(eventNameOrId, warnOnly)`
-
-Validate event is recognized by DCS.
-
-**Parameters:**
-
-- `eventNameOrId` (string or number) - Event name or ID
-- `warnOnly` (boolean, optional) - Only warn, don't error
-
-**Returns:** `boolean` - True if event is known
+**Retourne :** `table` — Table d'info unité (même structure que completeUnit)
 
 ##### `veafEventHandler.setEventEnabled(eventNameOrId, enabled)`
 
-Enable or disable event processing.
+Active ou désactive le traitement d'un événement.
 
-**Parameters:**
+**Paramètres :**
 
-- `eventNameOrId` (string or number) - Event to control
-- `enabled` (boolean) - Enable flag
+- `eventNameOrId` (string ou number) — Événement à contrôler
+- `enabled` (boolean) — Indicateur d'activation
 
-**Returns:** None
+**Retourne :** Rien
 
-**Example:**
+**Exemple :**
 ```lua
--- Disable shooting events for performance
+-- Désactiver les événements de tir pour les performances
 veafEventHandler.setEventEnabled("S_EVENT_SHOOTING_START", false)
 veafEventHandler.setEventEnabled("S_EVENT_SHOOTING_END", false)
 ```
 
 ##### `veafEventHandler.isEventEnabled(eventNameOrId)`
 
-Check if event processing is enabled.
+Vérifie si le traitement d'un événement est activé.
 
-**Parameters:**
+**Paramètres :**
 
-- `eventNameOrId` (string or number) - Event to check
+- `eventNameOrId` (string ou number) — Événement à vérifier
 
-**Returns:** `boolean` - True if enabled
-
-##### `veafEventHandler.isEventDelayedCallback(eventNameOrId)`
-
-Check if event uses delayed callback.
-
-**Parameters:**
-
-- `eventNameOrId` (string or number) - Event to check
-
-**Returns:** `boolean` - True if delayed
-
-**Description:** Some events like BIRTH need delayed callbacks to allow DCS to fully initialize objects.
+**Retourne :** `boolean` — True si activé
 
 ##### `veafEventHandler.initialize()`
 
-Initialize event handler system.
+Initialise le système de gestion des événements.
 
-**Returns:** None
+**Retourne :** Rien
 
-**Description:** Called automatically by VEAF initialization. Registers DCS world event handler.
+**Description :** Appelé automatiquement lors de l'initialisation VEAF. Enregistre le handler d'événements DCS world.
 
-#### Transformed Event Structure
+#### Structure d'événement enrichi
 
-Events passed to callbacks are enhanced with additional fields:
+Les événements passés aux callbacks sont enrichis de champs supplémentaires :
 
 ```lua
 {
-  -- Original DCS event fields
-  id = number,                    -- DCS event ID
-  time = number,                  -- Mission time
-  initiator = DCS_Unit,           -- Unit that triggered event
-  target = DCS_Unit,              -- Target unit (if applicable)
-  weapon = DCS_Weapon,            -- Weapon object (if applicable)
-  place = DCS_Airbase,            -- Airbase (for takeoff/land)
+  -- Champs d'événement DCS originaux
+  id = number,                    -- ID événement DCS
+  time = number,                  -- Temps mission
+  initiator = DCS_Unit,           -- Unité ayant déclenché l'événement
+  target = DCS_Unit,              -- Unité cible (si applicable)
+  weapon = DCS_Weapon,            -- Objet arme (si applicable)
+  place = DCS_Airbase,            -- Aérodrome (pour décollage/atterrissage)
 
-  -- VEAF enhancements
-  type = {                        -- Event type info
+  -- Enrichissements VEAF
+  type = {                        -- Info type d'événement
     id = number,
     name = "S_EVENT_XXX",
     definition = event_definition
   },
-  idx = number,                   -- Event index
-  coordinates = vec3,             -- Event position
-  text = string,                  -- Marker text (for marker events)
-  coalition = coalition,          -- Coalition ID
-  groupId = number,               -- Group ID
+  idx = number,                   -- Index de l'événement
+  coordinates = vec3,             -- Position de l'événement
+  text = string,                  -- Texte marqueur (pour événements marqueur)
+  coalition = coalition,          -- ID coalition
+  groupId = number,               -- ID du groupe
 
-  -- Enhanced unit info (if initiator exists)
+  -- Info unité enrichie (si initiator existe)
   initiator = {
     unitName = string,
     unitCallsign = string,
@@ -1471,112 +1411,74 @@ Events passed to callbacks are enhanced with additional fields:
     unitGroupId = number,
     unitCoalition = coalition,
     unitCategory = category,
-    unitPilotName = string,       -- if human
-    unitPilotUcid = string,       -- if human
+    unitPilotName = string,       -- si humain
+    unitPilotUcid = string,       -- si humain
     unitLifePercent = number
-  },
-
-  -- Enhanced target info (if target exists)
-  target = {
-    -- same structure as initiator
-  },
-
-  -- Weapon info (if weapon fired/hit)
-  weaponName = string,            -- Weapon type name
-
-  -- Marker event fields
-  comment = string                -- Marker comment text
+  }
 }
 ```
 
-#### Event Handling Best Practices
+#### Bonnes pratiques de gestion des événements
 
-**Performance:**
+**Performance :**
 
-- Disable unused events to reduce overhead
-- Use delayed callbacks for expensive operations
-- Filter events by type when registering callbacks
+- Désactiver les événements inutilisés pour réduire la charge
+- Utiliser les callbacks différés pour les opérations coûteuses
+- Filtrer les événements par type lors de l'enregistrement des callbacks
 
-**Event Timing:**
+**Timing des événements :**
 
-- BIRTH events fire before units fully initialized
-- Use delayed callbacks for BIRTH if accessing unit properties
-- PLAYER_ENTER_UNIT fires after player fully loaded
-
-**Example: Complete Event Handler:**
-```lua
--- Track player kills
-local playerKills = {}
-
-veafEventHandler.addCallback("killTracker", {"S_EVENT_KILL"}, function(event)
-  if event.initiator and event.initiator.unitPilotName then
-    -- Human player got a kill
-    local playerName = event.initiator.unitPilotName
-    playerKills[playerName] = (playerKills[playerName] or 0) + 1
-
-    local targetName = "unknown"
-    if event.target and event.target.unitName then
-      targetName = event.target.unitName
-    end
-
-    veaf.outTextForUnit(event.initiator.unitName,
-      string.format("Kill confirmed! Total: %d", playerKills[playerName]),
-      10, false)
-
-    veaf.logger:info("%s killed %s (total kills: %d)",
-      playerName, targetName, playerKills[playerName])
-  end
-end)
-```
+- Les événements BIRTH se déclenchent avant que les unités soient complètement initialisées
+- Utiliser les callbacks différés pour BIRTH si vous accédez aux propriétés de l'unité
+- PLAYER_ENTER_UNIT se déclenche après le chargement complet du joueur
 
 ---
 
 ### veafMarkers.lua
 
-**Module ID:** `MARKERS`
-**Version:** 1.1.1
-**Purpose:** Listen to map marker events and execute handlers
+**Module ID :** `MARKERS`
+**Version :** 1.1.1
+**Objectif :** Écouter les événements de marqueurs carte et exécuter des handlers
 
-#### Constants
+#### Constantes
 
 ```lua
-veafMarkers.MarkerAdd = 1       -- Marker added event
-veafMarkers.MarkerChange = 2    -- Marker changed event
-veafMarkers.MarkerRemove = 3    -- Marker removed event
-veafMarkers.DCSbugfixed = true  -- DCS marker bug status
+veafMarkers.MarkerAdd = 1       -- Événement ajout de marqueur
+veafMarkers.MarkerChange = 2    -- Événement modification de marqueur
+veafMarkers.MarkerRemove = 3    -- Événement suppression de marqueur
+veafMarkers.DCSbugfixed = true  -- Statut du bug marqueur DCS
 ```
 
-#### Functions
+#### Fonctions
 
 ##### `veafMarkers.registerEventHandler(eventType, eventHandler)`
 
-Register handler for marker events.
+Enregistre un handler pour les événements marqueur.
 
-**Parameters:**
+**Paramètres :**
 
-- `eventType` (number) - Event type: `MarkerAdd`, `MarkerChange`, or `MarkerRemove`
-- `eventHandler` (function) - Handler function
+- `eventType` (number) — Type d'événement : `MarkerAdd`, `MarkerChange` ou `MarkerRemove`
+- `eventHandler` (function) — Fonction handler
 
-**Handler Signature:**
+**Signature du handler :**
 ```lua
 function eventHandler(vec3_position, event)
-  -- vec3_position: marker position
-  -- event: DCS event table
+  -- vec3_position : position du marqueur
+  -- event : table d'événement DCS
 end
 ```
 
-**Returns:** `number` - Handler ID for unregistering
+**Retourne :** `number` — ID du handler pour désenregistrement
 
-**Example:**
+**Exemple :**
 ```lua
--- Listen for marker additions
+-- Écouter les ajouts de marqueurs
 local handlerId = veafMarkers.registerEventHandler(
   veafMarkers.MarkerAdd,
   function(pos, event)
     local text = event.text or ""
     if text:match("^_spawn") then
-      -- Handle spawn command
-      veaf.logger:info("Spawn marker at %s", veaf.vecToString(pos))
+      veaf.logger:info("Marqueur spawn à %s", veaf.vecToString(pos))
     end
   end
 )
@@ -1584,92 +1486,23 @@ local handlerId = veafMarkers.registerEventHandler(
 
 ##### `veafMarkers.unregisterEventHandler(id)`
 
-Remove marker event handler.
+Supprime un handler d'événement marqueur.
 
-**Parameters:**
+**Paramètres :**
 
-- `id` (number) - Handler ID from registerEventHandler
+- `id` (number) — ID du handler depuis registerEventHandler
 
-**Returns:** `boolean` - True if unregistered successfully
-
-**Example:**
-```lua
-local handlerId = veafMarkers.registerEventHandler(veafMarkers.MarkerAdd, myHandler)
--- Later...
-veafMarkers.unregisterEventHandler(handlerId)
-```
-
-#### Marker Event Structure
-
-Marker events received by handlers contain:
-
-```lua
-{
-  id = number,              -- Marker ID
-  time = number,            -- Mission time
-  initiator = DCS_Unit,     -- Unit that created marker (if applicable)
-  coalition = coalition,    -- Coalition (-1 for all, 0=neutral, 1=blue, 2=red)
-  groupID = number,         -- Group ID
-  text = string,            -- Marker text
-  pos = vec3                -- Marker position
-}
-```
-
-#### Usage Patterns
-
-**Command Pattern:**
-
-Modules register a handler with `veafCommands` which routes all F10 marker commands centrally:
-```lua
--- In a module's initialize() function:
-veafCommands.registerCommandHandler(function(pos, event, bypass, fromMarker, groups, route)
-  local text = event.text or ""
-  if not text:lower():match("^_mycommand") then
-    return false  -- not our command
-  end
-  -- handle the command...
-  return true   -- consumed
-end, veafCommands.PRIORITY_SPAWN)
-```
-
-All handlers are called in priority order until one returns `true`.
-The central dispatcher (`veafCommands.dispatchMarker`) handles the mark removal automatically.
-
-**Security Pattern:**
-
-Check coalition before executing:
-```lua
-veafMarkers.registerEventHandler(veafMarkers.MarkerAdd, function(pos, event)
-  -- Only allow blue coalition markers
-  if event.coalition == coalition.side.BLUE then
-    processCommand(pos, event.text)
-  else
-    veaf.logger:warn("Unauthorized marker from coalition %d", event.coalition)
-  end
-end)
-```
-
-**Cleanup Pattern:**
-
-Remove markers after processing:
-```lua
-veafMarkers.registerEventHandler(veafMarkers.MarkerChange, function(pos, event)
-  if processMarkerCommand(pos, event.text) then
-    -- Remove marker after successful processing
-    trigger.action.removeMark(event.id)
-  end
-end)
-```
+**Retourne :** `boolean` — True si désenregistré avec succès
 
 ---
 
 ### veafCommands.lua
 
-**Module ID:** `COMMANDS`
-**Init order:** 15 (after veafMarkers, before all command modules)
-**Purpose:** Central registry and dispatcher for all text commands (F10 markers and interpreter)
+**Module ID :** `COMMANDS`
+**Ordre d'init :** 15 (après veafMarkers, avant tous les modules de commande)
+**Objectif :** Registre central et dispatcher pour toutes les commandes texte (marqueurs F10 et interpréteur)
 
-#### Constants
+#### Constantes
 
 ```lua
 veafCommands.PRIORITY_SHORTCUTS    = 10
@@ -1682,218 +1515,195 @@ veafCommands.PRIORITY_RADIO        = 70
 veafCommands.PRIORITY_REMOTE       = 80
 ```
 
-#### Functions
+#### Fonctions
 
 ##### `veafCommands.registerCommandHandler(fn, priority)`
 
-Register a command handler function. Handlers are called in ascending priority order.
+Enregistre une fonction handler de commande. Les handlers sont appelés par ordre de priorité croissant.
 
-**Parameters:**
+**Paramètres :**
 
-- `fn` (function) - Handler with signature `(pos, event, bypass, fromMarker, groups, route) → boolean`
-- `priority` (number) - Execution order (lower = earlier); use the `PRIORITY_*` constants
+- `fn` (function) — Handler avec signature `(pos, event, bypass, fromMarker, groups, route) → boolean`
+- `priority` (number) — Ordre d'exécution (plus bas = plus tôt) ; utiliser les constantes `PRIORITY_*`
 
 ##### `veafCommands.execute(pos, text, coalition, groups, route)`
 
-Execute a command from the interpreter path (unit names). The coalition is used as-is.
+Exécute une commande depuis le chemin interpréteur (noms d'unités). La coalition est utilisée telle quelle.
 
-**Parameters:**
+**Paramètres :**
 
-- `pos` (vec3) - Execution position
-- `text` (string) - Command text
-- `coalition` (number) - Coalition number
-- `groups` (table, optional) - Table to receive spawned group names
-- `route` (table, optional) - Route definition
+- `pos` (vec3) — Position d'exécution
+- `text` (string) — Texte de commande
+- `coalition` (number) — Numéro de coalition
+- `groups` (table, optionnel) — Table pour recevoir les noms de groupes spawnés
+- `route` (table, optionnel) — Définition de route
 
-**Returns:** `boolean` — true if a handler consumed the command
+**Retourne :** `boolean` — true si un handler a consommé la commande
 
 ##### `veafCommands.dispatchMarker(eventPos, event)`
 
-Handle a marker change event. Inverts coalition (marker events report the placer's side, not the target's), calls all registered handlers in priority order, and removes the mark on success.
+Gère un événement de modification de marqueur. Inverse la coalition (les événements marqueur rapportent le côté du poseur, pas celui de la cible), appelle tous les handlers enregistrés par ordre de priorité, et supprime le marqueur en cas de succès.
 
-**Parameters:**
+**Paramètres :**
 
-- `eventPos` (vec3) - Marker position
-- `event` (table) - Marker event object
+- `eventPos` (vec3) — Position du marqueur
+- `event` (table) — Objet événement marqueur
 
 ---
 
 ### veafInterpreter.lua
 
-**Module ID:** `INTERPRETER`
-**Version:** 1.6.3
-**Purpose:** Interpret and execute commands from unit names and markers
+**Module ID :** `INTERPRETER`
+**Version :** 1.6.3
+**Objectif :** Interpréter et exécuter des commandes depuis les noms d'unités et marqueurs
 
-#### Constants
+#### Constantes
 
 ```lua
-veafInterpreter.Starter = "#veafInterpreter[\""  -- Unit name command prefix
-veafInterpreter.Trailer = "\"]"                   -- Unit name command suffix
-veafInterpreter.DelayForStartup = 1              -- Startup delay (seconds)
+veafInterpreter.Starter = "#veafInterpreter[\""  -- Préfixe de commande dans le nom d'unité
+veafInterpreter.Trailer = "\"]"                   -- Suffixe de commande
+veafInterpreter.DelayForStartup = 1              -- Délai de démarrage (secondes)
 ```
 
-#### Functions
+#### Fonctions
 
 ##### `veafInterpreter.interpret(text)`
 
-Extract command from text string.
+Extrait la commande d'une chaîne de texte.
 
-**Parameters:**
+**Paramètres :**
 
-- `text` (string) - Text containing command (unit name or marker text)
+- `text` (string) — Texte contenant la commande (nom d'unité ou texte de marqueur)
 
-**Returns:** `string` - Extracted command or nil
+**Retourne :** `string` — Commande extraite ou nil
 
-**Example:**
+**Exemple :**
 ```lua
 local unitName = "#veafInterpreter[\"_spawn, name F-16C, group 2\"]"
 local command = veafInterpreter.interpret(unitName)
--- Result: "_spawn, name F-16C, group 2"
+-- Résultat : "_spawn, name F-16C, group 2"
 ```
 
 ##### `veafInterpreter.execute(command, position, coalition, route, spawnedGroups)`
 
-Execute VEAF command. Delegates to `veafCommands.execute()` — all registered handlers are tried in priority order.
+Exécute une commande VEAF. Délègue à `veafCommands.execute()` — tous les handlers enregistrés sont essayés par ordre de priorité.
 
-**Parameters:**
+**Paramètres :**
 
-- `command` (string) - Command string
-- `position` (vec3) - Command execution position
-- `coalition` (coalition, optional) - Coalition executing command
-- `route` (table, optional) - Route definition for spawned groups
-- `spawnedGroups` (table, optional) - Table to receive spawned group names
+- `command` (string) — Chaîne de commande
+- `position` (vec3) — Position d'exécution de la commande
+- `coalition` (coalition, optionnel) — Coalition exécutant la commande
+- `route` (table, optionnel) — Définition de route pour les groupes spawnés
+- `spawnedGroups` (table, optionnel) — Table pour recevoir les noms des groupes spawnés
 
-**Returns:** `boolean` - True if command executed successfully
+**Retourne :** `boolean` — True si la commande a été exécutée avec succès
 
-**Note:** Command routing is handled by `veafCommands`. Modules register themselves via `veafCommands.registerCommandHandler()`.
-
-**Example:**
+**Exemple :**
 ```lua
 local pos = {x=1000, y=50, z=2000}
 local success = veafInterpreter.execute("_spawn, name F-16C, group 2", pos, coalition.side.BLUE)
 if success then
-  veaf.logger:info("Command executed successfully")
+  veaf.logger:info("Commande exécutée avec succès")
 end
 ```
 
 ##### `veafInterpreter.executeCommandOnUnit(unitName, command)`
 
-Execute command from unit's position.
+Exécute une commande depuis la position d'une unité.
 
-**Parameters:**
+**Paramètres :**
 
-- `unitName` (string) - Unit or static name
-- `command` (string) - Command to execute
+- `unitName` (string) — Nom de l'unité ou statique
+- `command` (string) — Commande à exécuter
 
-**Returns:** None
+**Retourne :** Rien
 
-**Description:**
+**Description :**
 
-- Finds unit or static object by name
-- Executes command at unit's position
-- Destroys unit/static after successful execution
-- Useful for pre-placed trigger units
+- Trouve l'unité ou l'objet statique par nom
+- Exécute la commande à la position de l'unité
+- Détruit l'unité/statique après exécution réussie
+- Utile pour les unités trigger pré-placées
 
-**Example:**
+**Exemple :**
 ```lua
--- In mission editor, create unit named: "#veafInterpreter[\"_spawn, name SA-6\"]"
--- Or execute via script:
+-- Dans l'éditeur de mission, créer une unité nommée : "#veafInterpreter[\"_spawn, name SA-6\"]"
+-- Ou exécuter par script :
 veafInterpreter.executeCommandOnUnit("TriggerUnit1", "_spawn, name SA-6")
 ```
 
 ##### `veafInterpreter.initialize()`
 
-Initialize interpreter module.
+Initialise le module interpréteur.
 
-**Returns:** None
+**Retourne :** Rien
 
-**Description:**
+**Description :**
 
-- Called automatically during VEAF initialization
-- Scans for units with interpreter commands in names
-- Executes commands after delay
+- Appelé automatiquement lors de l'initialisation VEAF
+- Scanne les unités avec des commandes interpréteur dans les noms
+- Exécute les commandes après un délai
 
-#### Command Execution Flow
+#### Patron d'utilisation des commandes dans les noms d'unités
 
-```
-1. Command received (unit name or marker)
-   ↓
-2. veafInterpreter.interpret() extracts command
-   ↓
-3. Check veafShortcuts for shorthand
-   ↓
-4. Try module-specific handlers in order:
-   - veafSpawn (spawn commands)
-   - veafNamedPoints (named locations)
-   - veafCasMission (CAS missions)
-   - veafSecurity (security commands)
-   - veafMove (movement)
-   - veafRadio (radio/comms)
-   - veafRemote (remote API)
-   ↓
-5. Return success/failure
-```
+**Usage dans l'éditeur de mission :**
+1. Créer une unité (n'importe quel type, même statique)
+2. Nommer l'unité : `#veafInterpreter["COMMANDE ICI"]`
+3. L'unité exécutera la commande au démarrage de la mission et s'autodétruira
 
-#### Unit Name Command Pattern
-
-**Mission Editor Usage:**
-1. Create unit (any type, even static)
-2. Name unit: `#veafInterpreter["COMMAND HERE"]`
-3. Unit will execute command on mission start and self-destruct
-
-**Example Use Cases:**
+**Exemples d'utilisation :**
 ```lua
--- Spawn CAP on mission start
-Unit name: #veafInterpreter["_spawn, name CAP-2, alt 25000, hdg 090, speed 450"]
+-- Spawner une CAP au démarrage
+Nom d'unité : #veafInterpreter["_spawn, name CAP-2, alt 25000, hdg 090, speed 450"]
 
--- Create CAS target area
-Unit name: #veafInterpreter["_cas, size 5, defense 3, armor 2"]
+-- Créer une zone cible CAS
+Nom d'unité : #veafInterpreter["_cas, size 5, defense 3, armor 2"]
 
--- Spawn convoy on road
-Unit name: #veafInterpreter["_spawn, convoy, name convoy1, dest marker1, speed 50"]
+-- Spawner un convoi sur route
+Nom d'unité : #veafInterpreter["_spawn, convoy, name convoy1, dest marker1, speed 50"]
 ```
 
 ---
 
-## Unit & Group Management
+## Gestion des unités et groupes
 
 ### veafSpawnParser.lua
 
-**Purpose:** Parse spawn command text into options tables. Extracted sub-module of `veafSpawn`.
+**Objectif :** Parser le texte des commandes spawn en tables d'options. Sous-module extrait de `veafSpawn`.
 
-#### Functions
+#### Fonctions
 
 ##### `veafSpawn.markTextAnalysis(text)`
 
-Parse marker text for spawn parameters. Defined in `veafSpawnParser.lua`, available on the `veafSpawn` table.
+Parse le texte d'un marqueur pour les paramètres de spawn. Défini dans `veafSpawnParser.lua`, disponible sur la table `veafSpawn`.
 
-**Parameters:**
+**Paramètres :**
 
-- `text` (string) - Marker text to parse
+- `text` (string) — Texte du marqueur à parser
 
-**Returns:** `table` — options table with parsed key/value pairs
+**Retourne :** `table` — Table d'options avec les paires clé/valeur parsées
 
 ##### `veafSpawn.convertLaserToFreq(laser)`
 
-Convert a laser code to a TACAN/radio frequency string.
+Convertit un code laser en chaîne de fréquence TACAN/radio.
 
-**Parameters:**
+**Paramètres :**
 
-- `laser` (number) - Laser code (1111–1788)
+- `laser` (number) — Code laser (1111–1788)
 
-**Returns:** `string` — frequency label, or nil if not found
+**Retourne :** `string` — Label de fréquence, ou nil si non trouvé
 
 ---
 
 ### veafSpawn.lua
 
-**Module ID:** `SPAWN`
-**Version:** 1.59.2
-**Purpose:** Dynamic spawning system for units, groups, convoys, and effects
+**Module ID :** `SPAWN`
+**Version :** 1.59.2
+**Objectif :** Système de spawn dynamique pour unités, groupes, convois et effets
 
-#### Constants
+#### Constantes
 
-##### Keyphrases
+##### Mots-clés
 
 ```lua
 veafSpawn.SpawnKeyphrase = "_spawn"
@@ -1906,277 +1716,179 @@ veafSpawn.MissionMasterKeyphrase = "_mm"
 ##### Configuration
 
 ```lua
-veafSpawn.IlluminationFlareAglAltitude = 1000  -- meters
+veafSpawn.IlluminationFlareAglAltitude = 1000  -- mètres
 veafSpawn.LogisticUnitType = "FARP Ammo Dump Coating"
-veafSpawn.CAP_WATCHDOG_DELAY = 10  -- seconds
-veafSpawn.AFAC.maximumAmount = 8   -- max simultaneous AFACs
+veafSpawn.CAP_WATCHDOG_DELAY = 10  -- secondes
+veafSpawn.AFAC.maximumAmount = 8   -- max AFACs simultanés
 ```
 
-#### Main Functions
+#### Fonctions principales
 
 ##### `veafSpawn.executeCommand(eventPos, eventText, coalition, markId, bypassSecurity, spawnedGroups, repeatCount, repeatDelay, route, allowStartDelay)`
 
-Execute spawn command from marker or script.
+Exécute une commande spawn depuis un marqueur ou un script.
 
-**Parameters:**
+**Paramètres :**
 
-- `eventPos` (vec3) - Spawn position
-- `eventText` (string) - Command text
-- `coalition` (coalition, optional) - Coalition
-- `markId` (number, optional) - Marker ID to remove
-- `bypassSecurity` (boolean, optional) - Skip security check
-- `spawnedGroups` (table, optional) - Receive spawned group names
-- `repeatCount` (number, optional) - Number of repetitions
-- `repeatDelay` (number, optional) - Delay between spawns (seconds)
-- `route` (table, optional) - Route for spawned groups
-- `allowStartDelay` (boolean, optional) - Allow delayed start
+- `eventPos` (vec3) — Position de spawn
+- `eventText` (string) — Texte de commande
+- `coalition` (coalition, optionnel) — Coalition
+- `markId` (number, optionnel) — ID de marqueur à supprimer
+- `bypassSecurity` (boolean, optionnel) — Ignorer la vérification de sécurité
+- `spawnedGroups` (table, optionnel) — Recevoir les noms des groupes spawnés
+- `repeatCount` (number, optionnel) — Nombre de répétitions
+- `repeatDelay` (number, optionnel) — Délai entre les spawns (secondes)
+- `route` (table, optionnel) — Route pour les groupes spawnés
+- `allowStartDelay` (boolean, optionnel) — Autoriser un démarrage différé
 
-**Returns:** `boolean` - Success flag
+**Retourne :** `boolean` — Indicateur de succès
 
-**Example:**
+**Exemple :**
 ```lua
 local pos = {x=1000, y=0, z=2000}
 veafSpawn.executeCommand(pos, "_spawn, name F-16C, group 2, hdg 270", coalition.side.BLUE)
 ```
 
-##### `veafSpawn.markTextAnalysis(text)`
-
-Parse marker text for spawn parameters.
-
-**Parameters:**
-
-- `text` (string) - Marker text
-
-**Returns:** `table` - Parsed options
-
-**Returned Table Fields:**
-```lua
-{
-  name = string,           -- Unit/group name
-  unitName = string,       -- Specific unit name
-  groupName = string,      -- Override group name
-  alias = string,          -- Name alias
-  group = number,          -- Group count
-  country = string,        -- Country name
-  alt = number,            -- Altitude (feet)
-  altitude = number,       -- Altitude (feet)
-  hdg = number,            -- Heading (degrees)
-  heading = number,        -- Heading (degrees)
-  speed = number,          -- Speed (knots)
-  dist = number,           -- Distance
-  spacing = number,        -- Unit spacing (meters)
-  side = coalition,        -- Coalition
-  defense = number,        -- Defense level (0-5)
-  armor = number,          -- Armor level (0-5)
-  size = number,           -- Size (0-5)
-  shells = number,         -- Shell count
-  power = number,          -- Explosion power
-  radius = number,         -- Dispersion radius
-  color = string,          -- Smoke color
-  smoke = boolean,         -- Add smoke
-  type = string,           -- Type specification
-  skill = string,          -- Skill level
-  password = string,       -- Security password
-  silent = boolean,        -- Suppress messages
-
-  -- Specific spawn types
-  convoy = boolean,
-  dest = vec3,             -- Destination
-  patrol = boolean,
-  offroad = boolean,
-
-  -- Air units
-  cap = boolean,           -- CAP mission
-  capRadius = number,      -- CAP radius
-  afac = boolean,          -- AFAC unit
-  immortal = boolean,      -- Invulnerable
-
-  -- Effects
-  bomb = boolean,
-  smoke = boolean,
-  flare = boolean,
-  illumination = boolean,
-
-  -- FARP/FOB
-  farp = boolean,
-  fob = boolean,
-  farptype = string,
-  fobtype = string,
-
-  -- Advanced
-  code = number,           -- Laser/TACAN code
-  freq = number,           -- Frequency
-  mod = string,            -- Modulation
-  role = string,           -- Unit role
-  static = boolean,        -- Spawn as static
-  hidden = boolean         -- Hide from MFD
-}
-```
-
-#### Unit Spawning Functions
+#### Fonctions de spawn d'unités
 
 ##### `veafSpawn.spawnUnit(spawnPosition, radius, name, czName, country, alt, hdg, unitName, role, static, code, freq, mod, silent, hiddenOnMFD)`
 
-Spawn single unit.
+Spawne une unité individuelle.
 
-**Parameters:**
+**Paramètres :**
 
-- `spawnPosition` (vec3) - Spawn position
-- `radius` (number) - Dispersion radius (meters)
-- `name` (string) - Unit type name (DCS type or alias)
-- `czName` (string, optional) - Combat zone name
-- `country` (number, optional) - Country ID
-- `alt` (number, optional) - Altitude (feet)
-- `hdg` (number, optional) - Heading (degrees)
-- `unitName` (string, optional) - Override unit name
-- `role` (string, optional) - Unit role
-- `static` (boolean, optional) - Spawn as static object
-- `code` (number, optional) - Laser/TACAN code
-- `freq` (number, optional) - Radio frequency
-- `mod` (string, optional) - Radio modulation
-- `silent` (boolean, optional) - Suppress messages
-- `hiddenOnMFD` (boolean, optional) - Hide from MFD
+- `spawnPosition` (vec3) — Position de spawn
+- `radius` (number) — Rayon de dispersion (mètres)
+- `name` (string) — Nom de type d'unité (type DCS ou alias)
+- `czName` (string, optionnel) — Nom de zone de combat
+- `country` (number, optionnel) — ID pays
+- `alt` (number, optionnel) — Altitude (pieds)
+- `hdg` (number, optionnel) — Cap (degrés)
+- `unitName` (string, optionnel) — Nom d'unité forcé
+- `role` (string, optionnel) — Rôle de l'unité
+- `static` (boolean, optionnel) — Spawner en tant qu'objet statique
+- `code` (number, optionnel) — Code laser/TACAN
+- `freq` (number, optionnel) — Fréquence radio
+- `mod` (string, optionnel) — Modulation radio
+- `silent` (boolean, optionnel) — Supprimer les messages
+- `hiddenOnMFD` (boolean, optionnel) — Masquer du MFD
 
-**Returns:** `table` - Spawned group info
+**Retourne :** `table` — Info du groupe spawné
 
-**Example:**
+**Exemple :**
 ```lua
--- Spawn F-16C at position
+-- Spawner un F-16C à une position
 local pos = {x=1000, y=0, z=2000}
 veafSpawn.spawnUnit(pos, 50, "F-16C", nil, nil, 5000, 270)
 
--- Spawn JTAC with laser code
+-- Spawner un JTAC avec code laser
 veafSpawn.spawnUnit(pos, 0, "JTAC", nil, nil, nil, nil, "JTAC-1", "forward_observer", false, 1688)
 
--- Spawn tanker with TACAN
+-- Spawner un ravitailleur avec TACAN
 veafSpawn.spawnUnit(pos, 100, "KC-135", nil, nil, 25000, 270, "Texaco", nil, false, 61, 251.0, "AM")
 ```
 
 ##### `veafSpawn.spawnGroup(spawnSpot, radius, name, czName, country, alt, hdg, spacing, groupName, silent, hasDest, hiddenOnMFD)`
 
-Spawn predefined group.
+Spawne un groupe prédéfini.
 
-**Parameters:**
+**Paramètres :**
 
-- `spawnSpot` (vec3) - Spawn position
-- `radius` (number) - Dispersion radius
-- `name` (string) - Group template name
-- `czName` (string, optional) - Combat zone
-- `country` (number, optional) - Country
-- `alt` (number, optional) - Altitude
-- `hdg` (number, optional) - Heading
-- `spacing` (number, optional) - Unit spacing
-- `groupName` (string, optional) - Override group name
-- `silent` (boolean, optional) - Suppress messages
-- `hasDest` (vec3, optional) - Destination for movement
-- `hiddenOnMFD` (boolean, optional) - Hide from MFD
+- `spawnSpot` (vec3) — Position de spawn
+- `radius` (number) — Rayon de dispersion
+- `name` (string) — Nom de template du groupe
+- `czName` (string, optionnel) — Zone de combat
+- `country` (number, optionnel) — Pays
+- `alt` (number, optionnel) — Altitude
+- `hdg` (number, optionnel) — Cap
+- `spacing` (number, optionnel) — Espacement des unités
+- `groupName` (string, optionnel) — Nom de groupe forcé
+- `silent` (boolean, optionnel) — Supprimer les messages
+- `hasDest` (vec3, optionnel) — Destination de déplacement
+- `hiddenOnMFD` (boolean, optionnel) — Masquer du MFD
 
-**Returns:** `table` - Group info
+**Retourne :** `table` — Info du groupe
 
-**Example:**
-```lua
--- Spawn armor platoon from template
-veafSpawn.spawnGroup(pos, 100, "Soviet Armor Platoon", nil, nil, nil, 180, 50)
-```
-
-#### Ground Force Spawning
+#### Spawn de forces terrestres
 
 ##### `veafSpawn.spawnInfantryGroup(spawnSpot, radius, czName, country, side, heading, spacing, defense, armor, size, silent, hiddenOnMFD)`
 
-Spawn infantry group with parameters.
+Spawne un groupe d'infanterie avec paramètres.
 
-**Parameters:**
+**Paramètres :**
 
-- `spawnSpot` (vec3) - Spawn position
-- `radius` (number) - Dispersion radius
-- `czName` (string, optional) - Combat zone
-- `country` (number, optional) - Country
-- `side` (coalition) - Coalition
-- `heading` (number, optional) - Formation heading
-- `spacing` (number) - Unit spacing (meters)
-- `defense` (number) - Defense level 0-5
-- `armor` (number) - Armor level 0-5
-- `size` (number) - Size 0-5 (affects unit count)
-- `silent` (boolean, optional) - Suppress messages
-- `hiddenOnMFD` (boolean, optional) - Hide from MFD
+- `spawnSpot` (vec3) — Position de spawn
+- `radius` (number) — Rayon de dispersion
+- `czName` (string, optionnel) — Zone de combat
+- `country` (number, optionnel) — Pays
+- `side` (coalition) — Coalition
+- `heading` (number, optionnel) — Cap de formation
+- `spacing` (number) — Espacement des unités (mètres)
+- `defense` (number) — Niveau de défense 0-5
+- `armor` (number) — Niveau de blindage 0-5
+- `size` (number) — Taille 0-5 (affecte le nombre d'unités)
+- `silent` (boolean, optionnel) — Supprimer les messages
+- `hiddenOnMFD` (boolean, optionnel) — Masquer du MFD
 
-**Returns:** `table` - Group info
-
-**Example:**
-```lua
--- Spawn small infantry squad
-veafSpawn.spawnInfantryGroup(pos, 50, nil, nil, coalition.side.RED, 0, 10, 0, 0, 1, false)
-```
+**Retourne :** `table` — Info du groupe
 
 ##### `veafSpawn.spawnArmoredPlatoon(spawnSpot, radius, czName, country, side, heading, spacing, defense, armor, size, silent, hasDest, hiddenOnMFD)`
 
-Spawn armored platoon.
+Spawne un peloton blindé.
 
-**Parameters:** Same as infantry + `hasDest` for movement
+**Paramètres :** Identiques à infantry + `hasDest` pour le déplacement
 
-**Returns:** `table` - Group info
-
-**Example:**
-```lua
--- Spawn medium tank platoon
-veafSpawn.spawnArmoredPlatoon(pos, 100, nil, nil, coalition.side.BLUE, 90, 50, 2, 3, 3, false)
-```
+**Retourne :** `table` — Info du groupe
 
 ##### `veafSpawn.spawnAirDefenseBattery(spawnSpot, radius, czName, country, side, heading, spacing, defense, silent, hasDest, hiddenOnMFD)`
 
-Spawn SAM/AAA battery.
+Spawne une batterie SAM/AAA.
 
-**Parameters:** Similar to armor platoon
+**Paramètres :** Similaires au peloton blindé
 
-**Returns:** `table` - Group info
-
-**Example:**
-```lua
--- Spawn SA-6 battery
-veafSpawn.spawnAirDefenseBattery(pos, 200, nil, nil, coalition.side.RED, 0, 75, 4, false)
-```
+**Retourne :** `table` — Info du groupe
 
 ##### `veafSpawn.spawnTransportCompany(spawnSpot, radius, czName, country, side, heading, spacing, defense, size, silent, hasDest, hiddenOnMFD)`
 
-Spawn transport company (trucks).
+Spawne une compagnie de transport (camions).
 
-**Returns:** `table` - Group info
+**Retourne :** `table` — Info du groupe
 
 ##### `veafSpawn.spawnFullCombatGroup(spawnSpot, radius, czName, country, side, heading, spacing, defense, armor, size, silent, hiddenOnMFD)`
 
-Spawn combined arms group (infantry + armor + transport).
+Spawne un groupe d'armes combinées (infanterie + blindés + transport).
 
-**Returns:** `table` - Multiple group info
+**Retourne :** `table` — Info de groupes multiples
 
-#### Convoy System
+#### Système de convois
 
 ##### `veafSpawn.spawnConvoy(spawnSpot, name, czName, radius, country, side, heading, spacing, speed, patrol, offroad, destination, defense, size, armor, silent, hiddenOnMFD)`
 
-Spawn vehicle convoy with waypoints.
+Spawne un convoi de véhicules avec waypoints.
 
-**Parameters:**
+**Paramètres :**
 
-- `spawnSpot` (vec3) - Starting position
-- `name` (string) - Convoy name
-- `czName` (string, optional) - Combat zone
-- `radius` (number) - Dispersion
-- `country` (number, optional) - Country
-- `side` (coalition) - Coalition
-- `heading` (number, optional) - Initial heading
-- `spacing` (number) - Vehicle spacing
-- `speed` (number) - Speed (km/h)
-- `patrol` (boolean) - Patrol mode (return to start)
-- `offroad` (boolean) - Allow offroad movement
-- `destination` (vec3) - Destination position
-- `defense` (number) - Defense level 0-5
-- `size` (number) - Size 0-5
-- `armor` (number) - Armor level 0-5
-- `silent` (boolean, optional) - Suppress messages
-- `hiddenOnMFD` (boolean, optional) - Hide from MFD
+- `spawnSpot` (vec3) — Position de départ
+- `name` (string) — Nom du convoi
+- `czName` (string, optionnel) — Zone de combat
+- `radius` (number) — Dispersion
+- `country` (number, optionnel) — Pays
+- `side` (coalition) — Coalition
+- `heading` (number, optionnel) — Cap initial
+- `spacing` (number) — Espacement entre véhicules
+- `speed` (number) — Vitesse (km/h)
+- `patrol` (boolean) — Mode patrouille (retour au point de départ)
+- `offroad` (boolean) — Autoriser le déplacement hors route
+- `destination` (vec3) — Position de destination
+- `defense` (number) — Niveau de défense 0-5
+- `size` (number) — Taille 0-5
+- `armor` (number) — Niveau de blindage 0-5
+- `silent` (boolean, optionnel) — Supprimer les messages
+- `hiddenOnMFD` (boolean, optionnel) — Masquer du MFD
 
-**Returns:** `table` - Convoy info
+**Retourne :** `table` — Info du convoi
 
-**Example:**
+**Exemple :**
 ```lua
 local start = {x=1000, y=0, z=2000}
 local dest = {x=5000, y=0, z=6000}
@@ -2184,742 +1896,429 @@ veafSpawn.spawnConvoy(start, "Convoy1", nil, 50, nil, coalition.side.RED,
   nil, 25, 40, false, false, dest, 2, 3, 2, false)
 ```
 
-##### Convoy Control Functions
-
-**`veafSpawn.stopClosestConvoy(unitName)`**
-
-Stop nearest convoy to unit.
-
-**`veafSpawn.moveClosestConvoy(unitName)`**
-
-Resume nearest convoy movement.
-
-**`veafSpawn.markClosestConvoyWithSmoke(unitName)`**
-
-Mark nearest convoy with smoke.
-
-**`veafSpawn.markClosestConvoyRouteWithSmoke(unitName)`**
-
-Mark convoy route with smoke markers.
-
-**`veafSpawn.infoOnAllConvoys(unitName)`**
-
-Display info on all active convoys.
-
-**`veafSpawn.cleanupAllConvoys()`**
-
-Destroy all active convoys.
-
-#### Aircraft Spawning
+#### Spawn aérien
 
 ##### `veafSpawn.spawnCombatAirPatrol(spawnSpot, radius, name, country, altitude, altitudeDelta, hdg, distance, speed, capRadius, skill, silent, hiddenOnMFD)`
 
-Spawn CAP flight with patrol orbit.
+Spawne un vol CAP avec orbite de patrouille.
 
-**Parameters:**
+**Paramètres :**
 
-- `spawnSpot` (vec3) - Spawn position
-- `radius` (number) - Dispersion
-- `name` (string) - Aircraft type
-- `country` (number, optional) - Country
-- `altitude` (number) - Patrol altitude (feet)
-- `altitudeDelta` (number, optional) - Altitude randomization
-- `hdg` (number) - Orbit heading
-- `distance` (number) - Distance to orbit (meters)
-- `speed` (number) - Speed (knots)
-- `capRadius` (number) - Orbit radius (meters)
-- `skill` (string) - Skill level
-- `silent` (boolean, optional) - Suppress messages
-- `hiddenOnMFD` (boolean, optional) - Hide from MFD
+- `spawnSpot` (vec3) — Position de spawn
+- `radius` (number) — Dispersion
+- `name` (string) — Type d'appareil
+- `country` (number, optionnel) — Pays
+- `altitude` (number) — Altitude de patrouille (pieds)
+- `altitudeDelta` (number, optionnel) — Randomisation d'altitude
+- `hdg` (number) — Cap de l'orbite
+- `distance` (number) — Distance à l'orbite (mètres)
+- `speed` (number) — Vitesse (nœuds)
+- `capRadius` (number) — Rayon de l'orbite (mètres)
+- `skill` (string) — Niveau de compétence
+- `silent` (boolean, optionnel) — Supprimer les messages
+- `hiddenOnMFD` (boolean, optionnel) — Masquer du MFD
 
-**Returns:** `table` - CAP flight info
+**Retourne :** `table` — Info du vol CAP
 
-**Description:**
+**Description :**
 
-- Spawns aircraft at position
-- Creates racetrack orbit at specified location
-- Starts watchdog to monitor and engage targets
-
-**Example:**
-```lua
--- Spawn F-15C CAP
-local pos = {x=0, y=0, z=0}
-veafSpawn.spawnCombatAirPatrol(pos, 100, "F-15C", nil, 25000, 2000,
-  90, 50000, 450, 20000, "Good", false)
-```
+- Spawne l'appareil à la position
+- Crée une orbite racetrack à l'emplacement spécifié
+- Démarre un watchdog pour surveiller et engager les cibles
 
 ##### `veafSpawn.spawnAFAC(spawnSpot, name, country, altitude, speed, hdg, frequency, mod, code, immortal, silent, hiddenOnMFD)`
 
-Spawn Airborne Forward Air Controller (AFAC).
+Spawne un contrôleur aérien avancé en vol (AFAC).
 
-**Parameters:**
+**Paramètres :**
 
-- `spawnSpot` (vec3) - Spawn position
-- `name` (string) - Aircraft type
-- `country` (number, optional) - Country
-- `altitude` (number) - Orbit altitude (feet)
-- `speed` (number) - Speed (knots)
-- `hdg` (number) - Orbit heading
-- `frequency` (number) - Radio frequency (MHz)
-- `mod` (string) - "AM" or "FM"
-- `code` (number) - Laser code (e.g., 1688)
-- `immortal` (boolean) - Invulnerable flag
-- `silent` (boolean, optional) - Suppress messages
-- `hiddenOnMFD` (boolean, optional) - Hide from MFD
+- `spawnSpot` (vec3) — Position de spawn
+- `name` (string) — Type d'appareil
+- `country` (number, optionnel) — Pays
+- `altitude` (number) — Altitude d'orbite (pieds)
+- `speed` (number) — Vitesse (nœuds)
+- `hdg` (number) — Cap d'orbite
+- `frequency` (number) — Fréquence radio (MHz)
+- `mod` (string) — "AM" ou "FM"
+- `code` (number) — Code laser (ex : 1688)
+- `immortal` (boolean) — Indicateur invulnérable
+- `silent` (boolean, optionnel) — Supprimer les messages
+- `hiddenOnMFD` (boolean, optionnel) — Masquer du MFD
 
-**Returns:** `table` - AFAC info
+**Retourne :** `table` — Info AFAC
 
-**Example:**
-```lua
--- Spawn A-10C AFAC
-veafSpawn.spawnAFAC(pos, "A-10C", nil, 15000, 250, 0, 133.0, "AM", 1688, true, false)
-```
-
-##### `veafSpawn.startCapWatchdog(capGroupName, capCoalition, capZone, pTargetsList, pNumberOfTasksAddedByWatchdog)`
-
-Start CAP engagement watchdog.
-
-**Parameters:**
-
-- `capGroupName` (string) - CAP group name
-- `capCoalition` (coalition) - Coalition
-- `capZone` (table) - Zone definition
-- `pTargetsList` (table, optional) - Specific targets
-- `pNumberOfTasksAddedByWatchdog` (number, optional) - Max tasks
-
-**Returns:** None
-
-**Description:** Monitors area and tasks CAP to engage enemy aircraft.
-
-#### Cargo & Logistics
+#### Cargo et logistique
 
 ##### `veafSpawn.spawnCargo(spawnSpot, radius, cargoType, country, weightBias, cargoSmoke, unitName, silent, hiddenOnMFD)`
 
-Spawn CTLD cargo.
+Spawne un cargo CTLD.
 
-**Parameters:**
+**Paramètres :**
 
-- `spawnSpot` (vec3) - Spawn position
-- `radius` (number) - Dispersion
-- `cargoType` (string) - Cargo type: "container", "barrels", "ammo", "fuel"
-- `country` (number, optional) - Country
-- `weightBias` (number, optional) - Weight preference (0-1)
-- `cargoSmoke` (boolean) - Add smoke marker
-- `unitName` (string, optional) - Cargo name
-- `silent` (boolean, optional) - Suppress messages
-- `hiddenOnMFD` (boolean, optional) - Hide from MFD
+- `spawnSpot` (vec3) — Position de spawn
+- `radius` (number) — Dispersion
+- `cargoType` (string) — Type de cargo : "container", "barrels", "ammo", "fuel"
+- `country` (number, optionnel) — Pays
+- `weightBias` (number, optionnel) — Préférence de poids (0-1)
+- `cargoSmoke` (boolean) — Ajouter un marqueur fumée
+- `unitName` (string, optionnel) — Nom du cargo
+- `silent` (boolean, optionnel) — Supprimer les messages
+- `hiddenOnMFD` (boolean, optionnel) — Masquer du MFD
 
-**Returns:** `table` - Cargo info
+**Retourne :** `table` — Info du cargo
 
-**Example:**
-```lua
--- Spawn fuel containers
-veafSpawn.spawnCargo(pos, 10, "fuel", nil, 0.5, true, "Fuel-1", false)
-```
-
-##### `veafSpawn.spawnLogistic(spawnSpot, radius, country, silent, hiddenOnMFD)`
-
-Spawn CTLD logistic unit.
-
-**Returns:** `table` - Logistic unit info
-
-#### FARP & FOB
+#### FARP et FOB
 
 ##### `veafSpawn.spawnFarp(spawnSpot, radius, name, country, farptype, side, hdg, spacing, silent, hiddenOnMFD, noFarpMarkers, code, freq, mod)`
 
-Spawn Forward Arming and Refueling Point (FARP).
+Spawne un point d'armement et de ravitaillement avancé (FARP).
 
-**Parameters:**
+**Paramètres :**
 
-- `spawnSpot` (vec3) - Position
-- `radius` (number) - Dispersion
-- `name` (string) - FARP name
-- `country` (number, optional) - Country
-- `farptype` (string, optional) - FARP configuration type
-- `side` (coalition) - Coalition
-- `hdg` (number, optional) - Heading
-- `spacing` (number) - Unit spacing
-- `silent` (boolean, optional) - Suppress messages
-- `hiddenOnMFD` (boolean, optional) - Hide from MFD
-- `noFarpMarkers` (boolean, optional) - Don't create markers
-- `code` (number, optional) - TACAN code
-- `freq` (number, optional) - Radio frequency
-- `mod` (string, optional) - Modulation
+- `spawnSpot` (vec3) — Position
+- `radius` (number) — Dispersion
+- `name` (string) — Nom du FARP
+- `country` (number, optionnel) — Pays
+- `farptype` (string, optionnel) — Type de configuration FARP
+- `side` (coalition) — Coalition
+- `hdg` (number, optionnel) — Cap
+- `spacing` (number) — Espacement des unités
+- `silent` (boolean, optionnel) — Supprimer les messages
+- `hiddenOnMFD` (boolean, optionnel) — Masquer du MFD
+- `noFarpMarkers` (boolean, optionnel) — Ne pas créer de marqueurs
+- `code` (number, optionnel) — Code TACAN
+- `freq` (number, optionnel) — Fréquence radio
+- `mod` (string, optionnel) — Modulation
 
-**Returns:** `table` - FARP info
+**Retourne :** `table` — Info du FARP
 
-**Example:**
+**Exemple :**
 ```lua
--- Spawn basic FARP
+-- Spawner un FARP basique
 veafSpawn.spawnFarp(pos, 100, "FARP Alpha", nil, nil, coalition.side.BLUE,
   0, 50, false, false, false, 71, 251.0, "AM")
 ```
 
-##### `veafSpawn.spawnFob(spawnSpot, radius, name, country, fobtype, side, hdg, spacing, silent, hiddenOnMFD)`
-
-Spawn Forward Operating Base (FOB).
-
-**Parameters:** Similar to FARP
-
-**Returns:** `table` - FOB info
-
-#### Effects & Markers
+#### Effets et marqueurs
 
 ##### `veafSpawn.spawnBomb(spawnSpot, radius, shells, power, altitude, altitudedelta, password)`
 
-Create explosion effect.
+Crée un effet d'explosion.
 
-**Parameters:**
+**Paramètres :**
 
-- `spawnSpot` (vec3) - Explosion position
-- `radius` (number) - Dispersion
-- `shells` (number) - Number of explosions
-- `power` (number) - Explosion power (kg TNT equivalent)
-- `altitude` (number, optional) - Altitude offset
-- `altitudedelta` (number, optional) - Altitude randomization
-- `password` (string, optional) - Security password
+- `spawnSpot` (vec3) — Position de l'explosion
+- `radius` (number) — Dispersion
+- `shells` (number) — Nombre d'explosions
+- `power` (number) — Puissance de l'explosion (kg équivalent TNT)
+- `altitude` (number, optionnel) — Décalage d'altitude
+- `altitudedelta` (number, optionnel) — Randomisation d'altitude
+- `password` (string, optionnel) — Mot de passe de sécurité
 
-**Returns:** None
-
-**Example:**
-```lua
--- Create 5x 500kg explosions
-veafSpawn.spawnBomb(pos, 50, 5, 500, 0, 0)
-```
+**Retourne :** Rien
 
 ##### `veafSpawn.spawnSmoke(spawnSpot, color, radius, shells)`
 
-Add smoke markers.
+Ajoute des marqueurs fumée.
 
-**Parameters:**
+**Paramètres :**
 
-- `spawnSpot` (vec3) - Position
-- `color` (string) - "Green", "Red", "White", "Orange", "Blue"
-- `radius` (number) - Dispersion
-- `shells` (number) - Number of smoke markers
+- `spawnSpot` (vec3) — Position
+- `color` (string) — "Green", "Red", "White", "Orange", "Blue"
+- `radius` (number) — Dispersion
+- `shells` (number) — Nombre de marqueurs fumée
 
-**Returns:** None
-
-**Example:**
-```lua
--- Mark position with red smoke
-veafSpawn.spawnSmoke(pos, "Red", 0, 1)
-```
+**Retourne :** Rien
 
 ##### `veafSpawn.spawnSignalFlare(spawnSpot, radius, shells, color)`
 
-Fire signal flare(s).
+Tire des fusées éclairantes de signalisation.
 
-**Parameters:**
+**Paramètres :**
 
-- `spawnSpot` (vec3) - Position
-- `radius` (number) - Dispersion
-- `shells` (number) - Number of flares
-- `color` (string) - Flare color
+- `spawnSpot` (vec3) — Position
+- `radius` (number) — Dispersion
+- `shells` (number) — Nombre de fusées
+- `color` (string) — Couleur de la fusée
 
-**Returns:** None
+**Retourne :** Rien
 
 ##### `veafSpawn.spawnIlluminationFlare(spawnSpot, radius, steps, power, height, heading, distance, speed)`
 
-Create illumination flare pattern.
+Crée un patron d'illumination par fusées éclairantes.
 
-**Parameters:**
+**Paramètres :**
 
-- `spawnSpot` (vec3) - Position
-- `radius` (number) - Dispersion
-- `steps` (number) - Number of flares in line
-- `power` (number) - Flare power
-- `height` (number, optional) - Altitude AGL
-- `heading` (number, optional) - Line heading
-- `distance` (number, optional) - Distance between flares
-- `speed` (number, optional) - Drop speed
+- `spawnSpot` (vec3) — Position
+- `radius` (number) — Dispersion
+- `steps` (number) — Nombre de fusées en ligne
+- `power` (number) — Puissance de la fusée
+- `height` (number, optionnel) — Altitude AGL
+- `heading` (number, optionnel) — Cap de la ligne
+- `distance` (number, optionnel) — Distance entre fusées
+- `speed` (number, optionnel) — Vitesse de largage
 
-**Returns:** None
+**Retourne :** Rien
 
-**Example:**
-```lua
--- Create illumination line
-veafSpawn.spawnIlluminationFlare(pos, 0, 5, 1000000, 1000, 90, 500, 0)
-```
-
-#### Drawing Functions
+#### Fonctions de dessin
 
 ##### `veafSpawn.drawCircle(point, name, radius, color, fillColor, lineType)`
 
-Draw circle on map.
+Dessine un cercle sur la carte.
 
-**Parameters:**
+**Paramètres :**
 
-- `point` (vec3) - Center position
-- `name` (string) - Drawing name
-- `radius` (number) - Circle radius (meters)
-- `color` (table, optional) - Line color `{r, g, b, a}` (0-1 range)
-- `fillColor` (table, optional) - Fill color
-- `lineType` (number, optional) - Line type
+- `point` (vec3) — Position du centre
+- `name` (string) — Nom du dessin
+- `radius` (number) — Rayon du cercle (mètres)
+- `color` (table, optionnel) — Couleur de ligne `{r, g, b, a}` (plage 0-1)
+- `fillColor` (table, optionnel) — Couleur de remplissage
+- `lineType` (number, optionnel) — Type de ligne
 
-**Returns:** None
-
-**Example:**
-```lua
--- Draw red circle
-veafSpawn.drawCircle(pos, "Zone1", 5000, {1, 0, 0, 1}, {1, 0, 0, 0.3})
-```
+**Retourne :** Rien
 
 ##### `veafSpawn.drawSquare(point, name, side, color, fillColor, lineType)`
 
-Draw square on map.
+Dessine un carré sur la carte.
 
-**Parameters:**
+**Paramètres :**
 
-- `point` (vec3) - Center
-- `name` (string) - Drawing name
-- `side` (number) - Side length (meters)
-- `color` (table, optional) - Line color
-- `fillColor` (table, optional) - Fill color
-- `lineType` (number, optional) - Line type
+- `point` (vec3) — Centre
+- `name` (string) — Nom du dessin
+- `side` (number) — Longueur du côté (mètres)
+- `color` (table, optionnel) — Couleur de ligne
+- `fillColor` (table, optionnel) — Couleur de remplissage
+- `lineType` (number, optionnel) — Type de ligne
 
-**Returns:** None
+**Retourne :** Rien
 
 ##### `veafSpawn.eraseDrawing(name)`
 
-Remove drawing from map.
+Supprime un dessin de la carte.
 
-**Parameters:**
+**Paramètres :**
 
-- `name` (string) - Drawing name
+- `name` (string) — Nom du dessin
 
-**Returns:** None
+**Retourne :** Rien
 
-#### Destruction & Teleport
+#### Destruction et téléportation
 
 ##### `veafSpawn.destroy(spawnSpot, radius, unitName)`
 
-Destroy units in area or specific unit.
+Détruit les unités dans une zone ou une unité spécifique.
 
-**Parameters:**
+**Paramètres :**
 
-- `spawnSpot` (vec3) - Position
-- `radius` (number) - Search radius (0 for specific unit)
-- `unitName` (string, optional) - Specific unit name
+- `spawnSpot` (vec3) — Position
+- `radius` (number) — Rayon de recherche (0 pour unité spécifique)
+- `unitName` (string, optionnel) — Nom d'unité spécifique
 
-**Returns:** None
+**Retourne :** Rien
 
-**Example:**
+**Exemple :**
 ```lua
--- Destroy all units in 500m radius
+-- Détruire toutes les unités dans un rayon de 500m
 veafSpawn.destroy(pos, 500)
 
--- Destroy specific unit
+-- Détruire une unité spécifique
 veafSpawn.destroy(pos, 0, "Tank-1")
 ```
 
 ##### `veafSpawn.teleport(spawnSpot, name, silent)`
 
-Teleport group to position.
+Téléporte un groupe à une position.
 
-**Parameters:**
+**Paramètres :**
 
-- `spawnSpot` (vec3) - Destination
-- `name` (string) - Group name
-- `silent` (boolean, optional) - Suppress messages
+- `spawnSpot` (vec3) — Destination
+- `name` (string) — Nom du groupe
+- `silent` (boolean, optionnel) — Supprimer les messages
 
-**Returns:** None
+**Retourne :** Rien
 
-**Example:**
-```lua
--- Teleport player group to position
-veafSpawn.teleport(newPos, "Viper Flight", false)
-```
-
-#### JTAC Functions
+#### Fonctions JTAC
 
 ##### `veafSpawn.JTACAutoLase(groupName, laserCode, radioData)`
 
-Setup auto-lasing JTAC.
+Configure un JTAC en auto-désignation laser.
 
-**Parameters:**
+**Paramètres :**
 
-- `groupName` (string) - JTAC group name
-- `laserCode` (number) - Laser code (e.g., 1688)
-- `radioData` (table, optional) - Radio configuration
+- `groupName` (string) — Nom du groupe JTAC
+- `laserCode` (number) — Code laser (ex : 1688)
+- `radioData` (table, optionnel) — Configuration radio
 
-**Returns:** None
+**Retourne :** Rien
 
-**Example:**
+**Exemple :**
 ```lua
 veafSpawn.JTACAutoLase("JTAC-1", 1688, {freq=133.0, mod="AM"})
 ```
-
-##### `veafSpawn.convertLaserToFreq(laser)`
-
-Convert laser code to radio frequency.
-
-**Parameters:**
-
-- `laser` (number) - Laser code
-
-**Returns:** `number` - Frequency in MHz
-
-#### Mission Master Functions
-
-Mission Master provides scriptable mission control.
-
-##### `veafSpawn.missionMasterSetMessagingMode(silent, toGroupId)`
-
-Set message output mode.
-
-**Parameters:**
-
-- `silent` (boolean) - Silent mode
-- `toGroupId` (number, optional) - Target group ID
-
-**Returns:** None
-
-##### `veafSpawn.missionMasterOutText(message)`
-
-Output Mission Master message.
-
-**Parameters:**
-
-- `message` (string) - Message text
-
-**Returns:** None
-
-##### `veafSpawn.missionMasterAddRunnable(name, code, parameters)`
-
-Add executable command.
-
-**Parameters:**
-
-- `name` (string) - Command name
-- `code` (string) - Lua code to execute
-- `parameters` (table, optional) - Parameters
-
-**Returns:** None
-
-##### `veafSpawn.missionMasterRun(name)`
-
-Run Mission Master command.
-
-**Parameters:**
-
-- `name` (string) - Command name
-
-**Returns:** None
-
-##### `veafSpawn.missionMasterSetFlag(name, value)`
-
-Set Mission Master flag.
-
-**Parameters:**
-
-- `name` (string) - Flag name
-- `value` (any) - Flag value
-
-**Returns:** None
-
-##### `veafSpawn.missionMasterGetFlag(name)`
-
-Get flag value.
-
-**Parameters:**
-
-- `name` (string) - Flag name
-
-**Returns:** `any` - Flag value
-
-##### `veafSpawn.missionMasterAddValueToFlag(name, increment)`
-
-Modify flag value.
-
-**Parameters:**
-
-- `name` (string) - Flag name
-- `increment` (number) - Value to add
-
-**Returns:** None
-
-#### Utility Functions
-
-##### `veafSpawn.listAllCAP(unitName)`
-
-Display list of all active CAP flights.
-
-**Parameters:**
-
-- `unitName` (string) - Requesting unit name
-
-**Returns:** None
-
-##### `veafSpawn.dumpSpawnablePlanesList(export_path)`
-
-Export spawnable aircraft list to file.
-
-**Parameters:**
-
-- `export_path` (string, optional) - Export directory
-
-**Returns:** None
-
-##### `veafSpawn.buildRadioMenu()`
-
-Build spawn radio menu.
-
-**Returns:** None
-
-##### `veafSpawn.initialize()`
-
-Initialize spawn module.
-
-**Returns:** None
 
 ---
 
 ### veafUnits.lua
 
-**Module ID:** `UNITS`
-**Version:** 1.15.0
-**Purpose:** Unit/group definitions and utilities
+**Module ID :** `UNITS`
+**Version :** 1.15.0
+**Objectif :** Définitions d'unités/groupes et utilitaires
 
-#### Constants
-
-```lua
-veafUnits.DefaultCellWidth = 10        -- meters
-veafUnits.DefaultCellHeight = 10       -- meters
-veafUnits.DefaultPathfindingUnitType = "TZ-22_KrAZ"
-veafUnits.delayBeforePathfindingFix = 5  -- seconds
-```
-
-#### Functions
+#### Fonctions
 
 ##### `veafUnits.findDcsUnit(unitType)`
 
-Find DCS unit by type name (case-insensitive).
+Trouve une unité DCS par nom de type (insensible à la casse).
 
-**Parameters:**
+**Paramètres :**
 
-- `unitType` (string) - Unit type (e.g., "F-16C", "M-1 Abrams")
+- `unitType` (string) — Type d'unité (ex : "F-16C", "M-1 Abrams")
 
-**Returns:** `table` - Unit definition or nil
-
-**Example:**
-```lua
-local f16 = veafUnits.findDcsUnit("F-16C_50")
-if f16 then
-  veaf.logger:info("Found: %s", f16.displayName)
-end
-```
+**Retourne :** `table` — Définition d'unité ou nil
 
 ##### `veafUnits.countInfantryAndVehicles(groupname)`
 
-Count infantry and vehicle units in group.
+Compte les unités d'infanterie et de véhicules dans un groupe.
 
-**Parameters:**
+**Paramètres :**
 
-- `groupname` (string) - Group name
+- `groupname` (string) — Nom du groupe
 
-**Returns:** `number, number` - Vehicle count, Infantry count
+**Retourne :** `number, number` — Nombre de véhicules, Nombre d'infanterie
 
 ##### `veafUnits.processGroup(group)`
 
-Process and validate group definition.
+Traite et valide une définition de groupe.
 
-**Parameters:**
+**Paramètres :**
 
-- `group` (table) - Group definition table
+- `group` (table) — Table de définition du groupe
 
-**Returns:** `table` - Processed group
+**Retourne :** `table` — Groupe traité
 
-**Description:** Handles unit positioning, spacing, formation.
+**Description :** Gère le positionnement des unités, l'espacement, la formation.
 
 ---
 
 ### veafAssets.lua
 
-**Module ID:** `ASSETS`
-**Version:** 1.8.3
-**Purpose:** Manage and track mission assets (tankers, AWACS, carriers)
+**Module ID :** `ASSETS`
+**Version :** 1.8.3
+**Objectif :** Gérer et suivre les assets de mission (ravitailleurs, AWACS, porte-avions)
 
-#### Data Structures
+#### Structures de données
 
-##### Asset Definition
+##### Définition d'asset
 
 ```lua
 {
-  name = "Tanker-1",              -- Group name
-  description = "KC-135 Texaco",  -- Display name
-  information = "TACAN 61X",      -- Optional info
-  disposable = false,             -- Can be destroyed
-  jtac = 1688,                    -- Optional JTAC laser code
-  linked = {"AWACS-1"}            -- Respawn these groups too
+  name = "Tanker-1",              -- Nom du groupe
+  description = "KC-135 Texaco",  -- Nom d'affichage
+  information = "TACAN 61X",      -- Info optionnelle
+  disposable = false,             -- Peut être détruit
+  jtac = 1688,                    -- Code laser JTAC optionnel
+  linked = {"AWACS-1"}            -- Respawner ces groupes aussi
 }
 ```
 
-#### Functions
+#### Fonctions
 
 ##### `veafAssets.respawn(name)`
 
-Respawn asset group.
+Respawne un groupe d'asset.
 
-**Parameters:**
+**Paramètres :**
 
-- `name` (string) - Asset name
+- `name` (string) — Nom de l'asset
 
-**Returns:** None
+**Retourne :** Rien
 
-**Description:**
+**Description :**
 
-- Respawns asset group
-- Respawns all linked groups
-- Starts JTAC if configured
-
-**Example:**
-```lua
-veafAssets.respawn("Tanker-1")
-```
+- Respawne le groupe d'asset
+- Respawne tous les groupes liés
+- Démarre le JTAC si configuré
 
 ##### `veafAssets.dispose(name)`
 
-Destroy asset.
+Détruit un asset.
 
-**Parameters:**
+**Paramètres :**
 
-- `name` (string) - Asset name
+- `name` (string) — Nom de l'asset
 
-**Returns:** None
-
-**Example:**
-```lua
-veafAssets.dispose("AWACS-1")
-```
+**Retourne :** Rien
 
 ##### `veafAssets.info(parameters)`
 
-Get asset information.
+Obtient les informations d'un asset.
 
-**Parameters:**
+**Paramètres :**
 
-- `parameters` (table) - `{name=string, unitName=string}`
+- `parameters` (table) — `{name=string, unitName=string}`
 
-**Returns:** `string` - Asset info text
-
-**Example:**
-```lua
-local info = veafAssets.info({name="Tanker-1", unitName="Viper 1-1"})
--- Displays tanker position, TACAN, frequency
-```
+**Retourne :** `string` — Texte d'info de l'asset
 
 ##### `veafAssets.get(assetName)`
 
-Get asset definition.
+Obtient la définition d'un asset.
 
-**Parameters:**
+**Paramètres :**
 
-- `assetName` (string) - Asset name
+- `assetName` (string) — Nom de l'asset
 
-**Returns:** `table` - Asset definition
-
-##### `veafAssets.help(unitName)`
-
-Display help text.
-
-**Parameters:**
-
-- `unitName` (string) - Unit to receive help
-
-**Returns:** None
-
-##### `veafAssets.buildRadioMenu()`
-
-Build assets radio menu.
-
-**Returns:** None
-
-##### `veafAssets.buildAssetsDatabase()`
-
-Build asset lookup tables.
-
-**Returns:** None
+**Retourne :** `table` — Définition de l'asset
 
 ##### `veafAssets.initialize()`
 
-Initialize assets module.
+Initialise le module assets.
 
-**Returns:** None
-
-**Description:**
-
-- Builds asset database
-- Creates radio menus
-- Must be called after assets defined
+**Retourne :** Rien
 
 ---
 
-## Mission Systems
+## Systèmes de mission
 
 ### veafCombatMission.lua
 
-**Module ID:** `COMBATMISSION`
-**Version:** 2.2.1
-**Purpose:** Create and manage combat missions with objectives
-
-#### Constants
-
-```lua
-veafCombatMission.SecondsBetweenWatchdogChecks = 30
-veafCombatMission.RadioMenuName = "MISSIONS"
-veafCombatMission.MinimumSpacingBetweenClones = 300  -- meters
-```
+**Module ID :** `COMBATMISSION`
+**Version :** 2.2.1
+**Objectif :** Créer et gérer des missions de combat avec objectifs
 
 #### Classes
 
 ##### VeafCombatMissionObjective
 
-Mission objective definition.
+Définition d'objectif de mission.
 
-**Fields:**
-
-- `name` (string) - Objective name
-- `description` (string) - Description text
-- `message` (string) - Completion message
-- `parameters` (table) - Objective parameters
-- `onStartupFunction` (function) - Called when mission starts
-- `onCheckFunction` (function) - Called periodically to check completion
-
-**States:**
+**États :**
 ```lua
 VeafCombatMissionObjective.FAILED = -1
 VeafCombatMissionObjective.SUCCESS = 1
 VeafCombatMissionObjective.NOTHING = 0
 ```
 
-**Methods:**
+**Méthodes :**
 ```lua
 obj = VeafCombatMissionObjective:new()
 obj:setName(value)
-obj:getName()
 obj:setDescription(value)
-obj:getDescription()
 obj:setMessage(value)
-obj:getMessage()
 obj:setParameters(value)
-obj:getParameters()
 obj:setOnStartupFunction(value)
-obj:getOnStartupFunction()
 obj:setOnCheckFunction(value)
-obj:getOnCheckFunction()
 ```
 
-**Example:**
+**Exemple :**
 ```lua
 local objective = VeafCombatMissionObjective:new()
-objective:setName("Destroy Armor")
-objective:setDescription("Destroy all enemy tanks")
+objective:setName("Détruire les blindés")
+objective:setDescription("Détruire tous les chars ennemis")
 objective:setOnStartupFunction(function(mission)
-  -- Spawn enemy tanks
+  -- Spawner les chars ennemis
 end)
 objective:setOnCheckFunction(function(mission)
-  -- Check if tanks destroyed
+  -- Vérifier si les chars sont détruits
   if allTanksDestroyed() then
     return VeafCombatMissionObjective.SUCCESS
   end
@@ -2929,648 +2328,327 @@ end)
 
 ##### VeafCombatMission
 
-Complete mission definition.
+Définition complète d'une mission.
 
-**Fields:**
-
-- `name` (string) - Mission name
-- `description` (string) - Brief description
-- `briefing` (string) - Full briefing text
-- `secured` (boolean) - Requires security clearance
-- `radioMenuEnabled` (boolean) - Show in F10 menu
-- `objectives` (table) - Array of objectives
-- `spawnPosition` (vec3) - Spawn location
-- `altitude` (number) - Spawn altitude
-- `spawnZone` (string) - Spawn zone name
-- `spawnRadius` (number) - Spawn dispersion
-- `activeSquads` (table) - Spawned groups
-- `skills` (table) - AI skill levels
-- `scales` (table) - Mission scale factors
-
-**Methods:**
+**Méthodes :**
 ```lua
 mission = VeafCombatMission:new()
 mission:setName(value)
-mission:getName()
 mission:setDescription(value)
-mission:getDescription()
 mission:setBriefing(value)
-mission:getBriefing()
 mission:setSecured(value)
-mission:getSecured()
 mission:setRadioMenuEnabled(value)
-mission:getRadioMenuEnabled()
-mission:setObjectives(value)
-mission:getObjectives()
 mission:addObjective(objective)
-mission:setSpawnPosition(value)
-mission:getSpawnPosition()
-mission:setAltitude(value)
-mission:getAltitude()
 mission:setSpawnZone(value)
-mission:getSpawnZone()
 mission:setSpawnRadius(value)
-mission:getSpawnRadius()
-mission:getActiveSquads()
 ```
 
-**Example:**
-```lua
-local mission = VeafCombatMission:new()
-mission:setName("Strike Alpha")
-mission:setDescription("Destroy enemy armor column")
-mission:setBriefing("Enemy armor advancing on friendly position. Destroy all tanks.")
-mission:setSpawnZone("SpawnZone1")
-mission:addObjective(destroyTanksObjective)
-mission:addObjective(rtbObjective)
-
-veafCombatMission.AddMission(mission)
-```
-
-#### Functions
+#### Fonctions
 
 ##### `veafCombatMission.AddMission(mission)`
 
-Register mission.
+Enregistre une mission.
 
-**Parameters:**
+**Paramètres :**
 
-- `mission` (VeafCombatMission) - Mission object
+- `mission` (VeafCombatMission) — Objet mission
 
-**Returns:** None
+**Retourne :** Rien
 
 ##### `veafCombatMission.AddMissionsWithSkillAndScale(mission, includeOriginal, skills, scales)`
 
-Add mission variants with different skill/scale.
+Ajoute des variantes de mission avec différents niveaux de compétence/échelle.
 
-**Parameters:**
+**Paramètres :**
 
-- `mission` (VeafCombatMission) - Base mission
-- `includeOriginal` (boolean) - Include original
-- `skills` (table) - Skill levels: `{"Average", "Good", "High"}`
-- `scales` (table) - Scale factors: `{0.5, 1.0, 1.5}`
+- `mission` (VeafCombatMission) — Mission de base
+- `includeOriginal` (boolean) — Inclure l'original
+- `skills` (table) — Niveaux de compétence : `{"Average", "Good", "High"}`
+- `scales` (table) — Facteurs d'échelle : `{0.5, 1.0, 1.5}`
 
-**Returns:** None
+**Retourne :** Rien
 
-**Description:** Creates multiple variants (e.g., "Strike Alpha - Good - 1.0x")
-
-**Example:**
-```lua
-veafCombatMission.AddMissionsWithSkillAndScale(
-  baseMission,
-  false,
-  {"Average", "Good", "High", "Excellent"},
-  {0.5, 1.0, 1.5, 2.0}
-)
--- Creates 16 mission variants (4 skills × 4 scales)
-```
+**Description :** Crée plusieurs variantes (ex : "Strike Alpha - Good - 1.0x")
 
 ##### `veafCombatMission.GetMission(name)`
 
-Get mission by name.
+Obtient une mission par nom.
 
-**Parameters:**
+**Paramètres :**
 
-- `name` (string) - Mission name
+- `name` (string) — Nom de la mission
 
-**Returns:** `VeafCombatMission` - Mission object or nil
-
-##### `veafCombatMission.GetMissionNumber(number)`
-
-Get mission by index.
-
-**Parameters:**
-
-- `number` (number) - Mission index (1-based)
-
-**Returns:** `VeafCombatMission` - Mission object
+**Retourne :** `VeafCombatMission` — Objet mission ou nil
 
 ##### `veafCombatMission.ActivateMission(name, silent, unitName)`
 
-Activate mission.
+Active une mission.
 
-**Parameters:**
+**Paramètres :**
 
-- `name` (string) - Mission name
-- `silent` (boolean, optional) - Suppress messages
-- `unitName` (string, optional) - Unit to receive messages
+- `name` (string) — Nom de la mission
+- `silent` (boolean, optionnel) — Supprimer les messages
+- `unitName` (string, optionnel) — Unité recevant les messages
 
-**Returns:** None
+**Retourne :** Rien
 
-**Description:**
+**Description :**
 
-- Executes all objective startup functions
-- Spawns mission elements
-- Starts watchdog timer
-- Displays briefing
-
-**Example:**
-```lua
-veafCombatMission.ActivateMission("Strike Alpha", false, "Viper 1-1")
-```
-
-##### `veafCombatMission.ActivateMissionNumber(number, silent)`
-
-Activate mission by index.
-
-**Parameters:**
-
-- `number` (number) - Mission index
-- `silent` (boolean, optional) - Suppress messages
-
-**Returns:** None
+- Exécute toutes les fonctions de démarrage des objectifs
+- Spawne les éléments de mission
+- Démarre le timer watchdog
+- Affiche le briefing
 
 ##### `veafCombatMission.DesactivateMission(name, silent, unitName)`
 
-Deactivate mission.
+Désactive une mission.
 
-**Parameters:**
+**Paramètres :**
 
-- `name` (string) - Mission name
-- `silent` (boolean, optional) - Suppress messages
-- `unitName` (string, optional) - Unit to receive messages
+- `name` (string) — Nom de la mission
+- `silent` (boolean, optionnel) — Supprimer les messages
+- `unitName` (string, optionnel) — Unité recevant les messages
 
-**Returns:** None
+**Retourne :** Rien
 
-**Description:**
+**Description :**
 
-- Stops mission watchdog
-- Destroys spawned groups
-- Clears objectives
-
-##### `veafCombatMission.DesactivateMissionNumber(number, silent)`
-
-Deactivate mission by index.
-
-**Returns:** None
-
-##### `veafCombatMission.GetInformationOnMission(parameters)`
-
-Get mission status.
-
-**Parameters:**
-
-- `parameters` (table) - `{name=string, unitName=string}`
-
-**Returns:** `string` - Mission status text
-
-**Example:**
-```lua
-local status = veafCombatMission.GetInformationOnMission({
-  name = "Strike Alpha",
-  unitName = "Viper 1-1"
-})
-```
+- Arrête le watchdog de mission
+- Détruit les groupes spawnés
+- Réinitialise les objectifs
 
 ##### `veafCombatMission.CompletionCheck(name)`
 
-Check mission completion status.
+Vérifie l'état de complétion d'une mission.
 
-**Parameters:**
+**Paramètres :**
 
-- `name` (string) - Mission name
+- `name` (string) — Nom de la mission
 
-**Returns:** `number` - Status: FAILED (-1), SUCCESS (1), NOTHING (0)
-
-**Description:** Calls all objective check functions and aggregates results.
-
-##### `veafCombatMission.addCapMission(missionName, missionDescription, missionBriefing, secured, radioMenuEnabled, skills, scales, spawnRadius)`
-
-Create CAP mission helper.
-
-**Parameters:**
-
-- `missionName` (string) - Mission name
-- `missionDescription` (string) - Description
-- `missionBriefing` (string) - Briefing
-- `secured` (boolean) - Security required
-- `radioMenuEnabled` (boolean) - Show in menu
-- `skills` (table) - Skill levels
-- `scales` (table) - Scale factors
-- `spawnRadius` (number) - Spawn dispersion
-
-**Returns:** `VeafCombatMission` - Mission object
-
-**Description:** Helper for creating CAP missions with standard objectives.
-
-##### `veafCombatMission.listAvailableMissions(unitName)`
-
-Display mission list to player.
-
-**Parameters:**
-
-- `unitName` (string) - Unit to receive list
-
-**Returns:** None
-
-##### `veafCombatMission.listActiveMissions()`
-
-Show active missions.
-
-**Returns:** None
-
-##### `veafCombatMission.help(unitName)`
-
-Display help text.
-
-**Parameters:**
-
-- `unitName` (string) - Unit to receive help
-
-**Returns:** None
-
-##### `veafCombatMission.buildRadioMenu()`
-
-Build missions radio menu.
-
-**Returns:** None
-
-##### `veafCombatMission.executeCommandFromRemote(parameters)`
-
-Execute command from remote API.
-
-**Parameters:**
-
-- `parameters` (table) - Remote command parameters
-
-**Returns:** None
-
-##### `veafCombatMission.dumpMissionsList(export_path)`
-
-Export missions to file.
-
-**Parameters:**
-
-- `export_path` (string, optional) - Export directory
-
-**Returns:** None
+**Retourne :** `number` — État : FAILED (-1), SUCCESS (1), NOTHING (0)
 
 ##### `veafCombatMission.initialize()`
 
-Initialize module.
+Initialise le module.
 
-**Returns:** None
+**Retourne :** Rien
 
 ---
 
 ### veafCasMission.lua
 
-**Module ID:** `CASMISSION`
-**Version:** 1.15.3
-**Purpose:** Create close air support training missions
+**Module ID :** `CASMISSION`
+**Version :** 1.15.3
+**Objectif :** Créer des missions d'entraînement Close Air Support
 
-#### Constants
+#### Constantes
 
 ```lua
 veafCasMission.Keyphrase = "_cas"
 veafCasMission.SecondsBetweenWatchdogChecks = 15
 veafCasMission.SecondsBetweenSmokeRequests = 180
 veafCasMission.SecondsBetweenFlareRequests = 120
-veafCasMission.RedCasGroupName = "Red CAS Group"
-veafCasMission.BlueCasGroupName = "Blue CAS Group"
 veafCasMission.RadioMenuName = "CAS MISSION"
 ```
 
-#### Unit Type Tables
-
-Units are categorized by coalition, era, and defense level:
-
-```lua
-TRANSPORT_TYPES[coalition][era][defense] = {unit_types}
-ARMOR_TYPES[coalition][era][defense] = {unit_types}
-DEFENSE_TYPES[coalition][era][defense] = {unit_types}
-```
-
-**Coalition:** `"blue"`, `"red"`
-**Era:** `"cold"`, `"modern"`
-**Defense:** `0-5` (0=none, 5=heavy)
-
-#### Functions
+#### Fonctions
 
 ##### `veafCasMission.executeCommand(eventPos, eventText, coalition, markId, bypassSecurity)`
 
-Execute CAS mission command.
+Exécute une commande de mission CAS.
 
-**Parameters:**
+**Paramètres :**
 
-- `eventPos` (vec3) - Spawn position
-- `eventText` (string) - Command text
-- `coalition` (coalition, optional) - Coalition
-- `markId` (number, optional) - Marker ID
-- `bypassSecurity` (boolean, optional) - Skip security
+- `eventPos` (vec3) — Position de spawn
+- `eventText` (string) — Texte de commande
+- `coalition` (coalition, optionnel) — Coalition
+- `markId` (number, optionnel) — ID du marqueur
+- `bypassSecurity` (boolean, optionnel) — Ignorer la sécurité
 
-**Returns:** `boolean` - Success flag
-
-##### `veafCasMission.markTextAnalysis(text)`
-
-Parse CAS marker text.
-
-**Parameters:**
-
-- `text` (string) - Marker text
-
-**Returns:** `table` - Parsed options
-
-**Options:**
-```lua
-{
-  size = 0-5,              -- Force size
-  defense = 0-5,           -- Defense level
-  armor = 0-5,             -- Armor level
-  spacing = number,        -- Unit spacing (meters)
-  disperseOnAttack = boolean,  -- Units disperse when attacked
-  side = coalition         -- Coalition
-}
-```
+**Retourne :** `boolean` — Indicateur de succès
 
 ##### `veafCasMission.generateCasMission(spawnSpot, size, defense, armor, spacing, disperseOnAttack, side)`
 
-Generate complete CAS mission.
+Génère une mission CAS complète.
 
-**Parameters:**
+**Paramètres :**
 
-- `spawnSpot` (vec3) - Spawn position
-- `size` (number) - Size 0-5
-- `defense` (number) - Defense 0-5
-- `armor` (number) - Armor 0-5
-- `spacing` (number) - Unit spacing (meters)
-- `disperseOnAttack` (boolean) - Disperse on attack
-- `side` (coalition) - Coalition
+- `spawnSpot` (vec3) — Position de spawn
+- `size` (number) — Taille 0-5
+- `defense` (number) — Défense 0-5
+- `armor` (number) — Blindage 0-5
+- `spacing` (number) — Espacement des unités (mètres)
+- `disperseOnAttack` (boolean) — Disperser lors d'une attaque
+- `side` (coalition) — Coalition
 
-**Returns:** `table` - Generated group info
+**Retourne :** `table` — Info du groupe généré
 
-**Description:**
+**Description :**
 
-- Spawns infantry, armor, transport, and air defense
-- Groups react to player attacks
-- Provides smoke/flare marking
+- Spawne de l'infanterie, des blindés, du transport et de la DCA
+- Les groupes réagissent aux attaques des joueurs
+- Fournit un marquage par fumée/fusée
 
-**Example:**
+**Exemple :**
 ```lua
--- Generate medium difficulty CAS mission
+-- Générer une mission CAS de difficulté moyenne
 local pos = {x=1000, y=0, z=2000}
 veafCasMission.generateCasMission(pos, 3, 3, 3, 50, true, coalition.side.RED)
 ```
 
 ##### `veafCasMission.smokeCasTargetGroup()`
 
-Add smoke to current CAS target.
+Ajoute de la fumée sur la cible CAS actuelle.
 
-**Returns:** None
-
-**Description:** Limited by `SecondsBetweenSmokeRequests` timer.
+**Retourne :** Rien
 
 ##### `veafCasMission.flareCasTargetGroup()`
 
-Add flare to current CAS target.
+Ajoute une fusée sur la cible CAS actuelle.
 
-**Returns:** None
-
-##### `veafCasMission.smokeReset()`
-
-Reset smoke request timer.
-
-**Returns:** None
-
-##### `veafCasMission.flareReset()`
-
-Reset flare request timer.
-
-**Returns:** None
-
-##### `veafCasMission.skipCasTarget()`
-
-Skip current target group (destroy without score).
-
-**Returns:** None
-
-##### `veafCasMission.reportTargetInformation(unitName)`
-
-Get CAS target info.
-
-**Parameters:**
-
-- `unitName` (string) - Unit to receive report
-
-**Returns:** None
-
-##### `veafCasMission.help(unitName)`
-
-Display CAS help text.
-
-**Parameters:**
-
-- `unitName` (string) - Unit to receive help
-
-**Returns:** None
-
-##### `veafCasMission.buildRadioMenu()`
-
-Build CAS radio menu.
-
-**Returns:** None
+**Retourne :** Rien
 
 ##### `veafCasMission.initialize()`
 
-Initialize CAS module.
+Initialise le module CAS.
 
-**Returns:** None
+**Retourne :** Rien
 
 ---
 
-## Infrastructure & Services
+## Infrastructure et services
 
 ### veafAirbases.lua
 
-**Module ID:** `AIRBASES`
-**Version:** 1.1.1
-**Purpose:** Normalized airbase and runway information
+**Module ID :** `AIRBASES`
+**Version :** 1.1.1
+**Objectif :** Informations normalisées sur les aérodromes et pistes
 
 #### Classes
 
 ##### Airbase
 
-**Properties:**
+**Propriétés :**
 
-- `name` (string) - Airbase name
-- `position` (vec3) - Airbase position
-- `coalition` (coalition) - Current owner
-- `runways` (table) - Array of Runway objects
-- `fuelCapacity` (number) - Fuel storage
-- `ammoBlueMissile` (number) - Blue missile ammo
-- `ammoBlueGun` (number) - Blue gun ammo
-- `ammoRedMissile` (number) - Red missile ammo
-- `ammoRedGun` (number) - Red gun ammo
+- `name` (string) — Nom de l'aérodrome
+- `position` (vec3) — Position de l'aérodrome
+- `coalition` (coalition) — Propriétaire actuel
+- `runways` (table) — Tableau d'objets Runway
 
-**Methods:**
+**Méthodes :**
 ```lua
 airbase:getName()
 airbase:getCoalition()
 airbase:getPosition()
 airbase:getRunways()
 airbase:getRunwayCount()
-airbase:getNearestRunway(position)  -- Get closest runway to position
+airbase:getNearestRunway(position)  -- Piste la plus proche d'une position
 ```
 
 ##### Runway
 
-**Properties:**
+**Propriétés :**
 
-- `heading1` (number) - First heading (degrees)
-- `heading2` (number) - Opposite heading
-- `width` (number) - Runway width (meters)
-- `length` (number) - Runway length (meters)
-- `surface` (string) - Surface type
-- `closed` (boolean) - Closed status
+- `heading1` (number) — Premier cap (degrés)
+- `heading2` (number) — Cap opposé
+- `width` (number) — Largeur de piste (mètres)
+- `length` (number) — Longueur de piste (mètres)
+- `surface` (string) — Type de surface
+- `closed` (boolean) — Statut fermé
 
-#### Functions
+#### Fonctions
 
 ##### `veafAirbases.initialize(bReset)`
 
-Initialize airbase database.
+Initialise la base de données des aérodromes.
 
-**Parameters:**
+**Paramètres :**
 
-- `bReset` (boolean, optional) - Force rebuild database
+- `bReset` (boolean, optionnel) — Forcer la reconstruction de la base
 
-**Returns:** None
+**Retourne :** Rien
 
 ##### `veafAirbases.getAirbaseByName(sAirbaseName)`
 
-Get airbase by name.
+Obtient un aérodrome par nom.
 
-**Parameters:**
+**Paramètres :**
 
-- `sAirbaseName` (string) - Airbase name
+- `sAirbaseName` (string) — Nom de l'aérodrome
 
-**Returns:** `Airbase` - Airbase object or nil
-
-**Example:**
-```lua
-local kutaisi = veafAirbases.getAirbaseByName("Kutaisi")
-if kutaisi then
-  veaf.logger:info("Kutaisi has %d runways", kutaisi:getRunwayCount())
-  veaf.logger:info("Position: %s", veaf.vecToString(kutaisi:getPosition()))
-end
-```
-
-##### `veafAirbases.getAirbaseFromDcsAirbase(dcsAirbase)`
-
-Convert DCS airbase to Airbase object.
-
-**Parameters:**
-
-- `dcsAirbase` (DCS Airbase) - DCS airbase object
-
-**Returns:** `Airbase` - VEAF airbase object
+**Retourne :** `Airbase` — Objet Airbase ou nil
 
 ##### `veafAirbases.getNearestAirbaseList(dcsUnit, iCount)`
 
-Get nearest airbases to unit.
+Obtient les aérodromes les plus proches d'une unité.
 
-**Parameters:**
+**Paramètres :**
 
-- `dcsUnit` (DCS Unit) - Unit object
-- `iCount` (number) - Number of results
+- `dcsUnit` (DCS Unit) — Objet unité
+- `iCount` (number) — Nombre de résultats
 
-**Returns:** `table` - Array of Airbase objects sorted by distance
-
-**Example:**
-```lua
-local unit = Unit.getByName("Viper 1-1")
-local nearestBases = veafAirbases.getNearestAirbaseList(unit, 3)
-for i, airbase in ipairs(nearestBases) then
-  veaf.logger:info("%d. %s", i, airbase:getName())
-end
-```
+**Retourne :** `table` — Tableau d'objets Airbase triés par distance
 
 ##### `veafAirbases.getNearestAirbase(dcsUnit)`
 
-Get single nearest airbase.
+Obtient l'aérodrome le plus proche.
 
-**Parameters:**
+**Paramètres :**
 
-- `dcsUnit` (DCS Unit) - Unit object
+- `dcsUnit` (DCS Unit) — Objet unité
 
-**Returns:** `Airbase` - Nearest airbase
-
-**Example:**
-```lua
-local unit = Unit.getByName("Viper 1-1")
-local nearest = veafAirbases.getNearestAirbase(unit)
-veaf.outTextForUnit("Viper 1-1",
-  string.format("Nearest airbase: %s", nearest:getName()), 10)
-```
+**Retourne :** `Airbase` — Aérodrome le plus proche
 
 ---
 
 ### veafCarrierOperations.lua
 
-**Module ID:** `CARRIER`
-**Version:** 1.12.3
-**Purpose:** Manage aircraft carrier operations
+**Module ID :** `CARRIER`
+**Version :** 1.12.3
+**Objectif :** Gérer les opérations de porte-avions
 
-#### Functions
+#### Fonctions
 
 ##### `veafCarrierOperations.startCarrierOperations(parameters)`
 
-Start carrier recovery operations.
+Démarre les opérations de recovery du porte-avions.
 
-**Parameters:**
+**Paramètres :**
 
-- `parameters` (table) - `{carrierGroupName=string, userUnitName=string}`
+- `parameters` (table) — `{carrierGroupName=string, userUnitName=string}`
 
-**Returns:** None
+**Retourne :** Rien
 
-**Description:**
+**Description :**
 
-- Turns carrier into wind
-- Maintains position for recovery
-- Reports wind direction and ATC info
-
-**Example:**
-```lua
-veafCarrierOperations.startCarrierOperations({
-  carrierGroupName = "CVN-73",
-  userUnitName = "Hornet 1-1"
-})
-```
-
-##### `veafCarrierOperations.continueCarrierOperations(groupName, userUnitName)`
-
-Continue carrier operations.
-
-**Parameters:**
-
-- `groupName` (string) - Carrier group name
-- `userUnitName` (string, optional) - User unit
-
-**Returns:** None
+- Tourne le porte-avions face au vent
+- Maintient la position pour la recovery
+- Rapporte la direction du vent et les infos ATC
 
 ##### `veafCarrierOperations.stopCarrierOperations(parameters)`
 
-Stop carrier operations.
+Arrête les opérations du porte-avions.
 
-**Parameters:**
+**Paramètres :**
 
-- `parameters` (table) - `{carrierGroupName=string}`
+- `parameters` (table) — `{carrierGroupName=string}`
 
-**Returns:** None
+**Retourne :** Rien
 
-**Description:** Returns carrier to normal navigation.
+**Description :** Ramène le porte-avions à la navigation normale.
 
 ##### `veafCarrierOperations.getAtcForCarrierOperations(groupName, skipNavigationData)`
 
-Get carrier ATC data.
+Obtient les données ATC du porte-avions.
 
-**Parameters:**
+**Paramètres :**
 
-- `groupName` (string) - Carrier group name
-- `skipNavigationData` (boolean, optional) - Skip nav info
+- `groupName` (string) — Nom du groupe porte-avions
+- `skipNavigationData` (boolean, optionnel) — Ignorer les infos de navigation
 
-**Returns:** `string` - ATC information text
+**Retourne :** `string` — Texte d'information ATC
 
-**Example Output:**
+**Exemple de sortie :**
 ```
 CVN-73 Washington
 Callsign: Mother
@@ -3582,198 +2660,107 @@ TACAN: 73X (1205 MHz)
 ICLS: 13
 ```
 
-##### `veafCarrierOperations.atcForCarrierOperations(parameters)`
-
-Get ATC for carrier (with output).
-
-**Parameters:**
-
-- `parameters` (table) - `{carrierGroupName=string, userUnitName=string}`
-
-**Returns:** None
-
-##### `veafCarrierOperations.listAvailableCarriers(forGroup)`
-
-Display available carriers.
-
-**Parameters:**
-
-- `forGroup` (string, optional) - Group name to receive list
-
-**Returns:** None
-
-##### `veafCarrierOperations.executeCommandFromRemote(parameters)`
-
-Execute from remote API.
-
-**Parameters:**
-
-- `parameters` (table) - Remote command parameters
-
-**Returns:** None
-
-##### `veafCarrierOperations.initializeCarrierGroups()`
-
-Initialize carrier groups.
-
-**Returns:** None
-
-##### `veafCarrierOperations.buildRadioMenu()`
-
-Build carrier radio menu.
-
-**Returns:** None
-
 ##### `veafCarrierOperations.initialize()`
 
-Initialize carrier operations module.
+Initialise le module opérations porte-avions.
 
-**Returns:** None
+**Retourne :** Rien
 
 ---
 
-## Communication & Control
+## Communication et contrôle
 
 ### veafRadio.lua
 
-**Module ID:** `RADIO`
-**Version:** 1.4.1
-**Purpose:** Manage F10 radio menus and communications
+**Module ID :** `RADIO`
+**Version :** 1.4.1
+**Objectif :** Gérer les menus radio F10 et les communications
 
-#### Constants
+#### Constantes
 
 ```lua
 veafRadio.RadioMenuName = "VEAF"
 veafRadio.Keyphrase = "_radio"
-veafRadio.BEACONS_SCHEDULE = 5  -- seconds
+veafRadio.BEACONS_SCHEDULE = 5  -- secondes
 veafRadio.USAGE_ForAll = 0
 veafRadio.USAGE_ForGroup = 1
 veafRadio.USAGE_ForUnit = 2
 ```
 
-#### Functions
+#### Fonctions
 
 ##### `veafRadio.addSubMenu(title, parentMenu)`
 
-Add submenu to radio.
+Ajoute un sous-menu au radio.
 
-**Parameters:**
+**Paramètres :**
 
-- `title` (string) - Submenu title
-- `parentMenu` (menu, optional) - Parent menu (nil = root VEAF menu)
+- `title` (string) — Titre du sous-menu
+- `parentMenu` (menu, optionnel) — Menu parent (nil = menu VEAF racine)
 
-**Returns:** `menu` - Submenu object
+**Retourne :** `menu` — Objet sous-menu
 
-**Example:**
+**Exemple :**
 ```lua
 local assetsMenu = veafRadio.addSubMenu("Assets")
-local tankersMenu = veafRadio.addSubMenu("Tankers", assetsMenu)
+local tankersMenu = veafRadio.addSubMenu("Ravitailleurs", assetsMenu)
 ```
 
 ##### `veafRadio.addCommandToSubmenu(text, menu, callback, parameters, usage)`
 
-Add command to submenu.
+Ajoute une commande à un sous-menu.
 
-**Parameters:**
+**Paramètres :**
 
-- `text` (string) - Command text
-- `menu` (menu) - Target menu
-- `callback` (function) - Callback function
-- `parameters` (any, optional) - Parameters passed to callback
-- `usage` (number, optional) - Usage type: `USAGE_ForAll`, `USAGE_ForGroup`, `USAGE_ForUnit`
+- `text` (string) — Texte de la commande
+- `menu` (menu) — Menu cible
+- `callback` (function) — Fonction callback
+- `parameters` (any, optionnel) — Paramètres passés au callback
+- `usage` (number, optionnel) — Type d'usage : `USAGE_ForAll`, `USAGE_ForGroup`, `USAGE_ForUnit`
 
-**Returns:** None
+**Retourne :** Rien
 
-**Callback Signature:**
-```lua
-function callback(parameters)
-  -- parameters: value passed to addCommandToSubmenu
-end
-```
-
-**Example:**
+**Exemple :**
 ```lua
 local menu = veafRadio.addSubMenu("Test")
-veafRadio.addCommandToSubmenu("Say Hello", menu, function(params)
-  veaf.logger:info("Hello from %s!", params.unitName)
+veafRadio.addCommandToSubmenu("Dire Bonjour", menu, function(params)
+  veaf.logger:info("Bonjour de %s !", params.unitName)
 end, {unitName = "Player"}, veafRadio.USAGE_ForAll)
 ```
 
 ##### `veafRadio.addSecuredCommandToSubmenu(text, menu, callback, parameters, usage)`
 
-Add security-protected command.
+Ajoute une commande protégée par la sécurité.
 
-**Parameters:** Same as `addCommandToSubmenu`
+**Paramètres :** Identiques à `addCommandToSubmenu`
 
-**Returns:** None
+**Retourne :** Rien
 
-**Description:** Command only appears if user has security clearance.
-
-##### `veafRadio.executeCommand(eventPos, eventText, eventCoalition, bypassSecurity)`
-
-Execute radio command from marker.
-
-**Parameters:**
-
-- `eventPos` (vec3) - Command position
-- `eventText` (string) - Command text
-- `eventCoalition` (coalition) - Coalition
-- `bypassSecurity` (boolean, optional) - Skip security check
-
-**Returns:** `boolean` - Success flag
-
-**Supported Commands:**
-
-- `transmit` - Transmit via SRS
-- `playmp3` - Play MP3 via SRS
-
-##### `veafRadio.markTextAnalysis(text)`
-
-Parse radio marker text.
-
-**Parameters:**
-
-- `text` (string) - Marker text
-
-**Returns:** `table` - Parsed options
-
-**Options:**
-```lua
-{
-  transmit = boolean,      -- Transmit message
-  playmp3 = boolean,       -- Play MP3 file
-  message = string,        -- Message text
-  frequencies = table,     -- Array of frequencies (MHz)
-  modulations = table,     -- Array of "AM"/"FM"
-  name = string,           -- Transmission name
-  path = string,           -- MP3 file path
-  quiet = boolean          -- Suppress confirmation
-}
-```
+**Description :** La commande n'apparaît que si l'utilisateur a l'habilitation de sécurité.
 
 ##### `veafRadio.transmitMessage(message, frequencies, modulations, name, coalition, position, quiet)`
 
-Transmit message via SRS.
+Transmet un message via SRS.
 
-**Parameters:**
+**Paramètres :**
 
-- `message` (string) - Message text (TTS)
-- `frequencies` (table) - Array of frequencies
-- `modulations` (table) - Array of modulations
-- `name` (string) - Transmission name/callsign
-- `coalition` (coalition, optional) - Coalition
-- `position` (vec3, optional) - Transmission origin
-- `quiet` (boolean, optional) - Suppress confirmation
+- `message` (string) — Texte du message (TTS)
+- `frequencies` (table) — Tableau de fréquences
+- `modulations` (table) — Tableau de modulations
+- `name` (string) — Nom/indicatif de la transmission
+- `coalition` (coalition, optionnel) — Coalition
+- `position` (vec3, optionnel) — Origine de la transmission
+- `quiet` (boolean, optionnel) — Supprimer la confirmation
 
-**Returns:** None
+**Retourne :** Rien
 
-**Example:**
+**Exemple :**
 ```lua
 veafRadio.transmitMessage(
-  "All aircraft, return to base",
+  "À tous les appareils, retour à la base",
   {251.0, 305.0},
   {"AM", "AM"},
-  "Tower",
+  "Tour",
   coalition.side.BLUE,
   airbasePos,
   false
@@ -3782,177 +2769,134 @@ veafRadio.transmitMessage(
 
 ##### `veafRadio.playToRadio(path, frequencies, modulations, name, coalition, position, quiet)`
 
-Play MP3 file via SRS.
+Joue un fichier MP3 via SRS.
 
-**Parameters:**
+**Paramètres :**
 
-- `path` (string) - MP3 file path
-- Other parameters same as `transmitMessage`
+- `path` (string) — Chemin du fichier MP3
+- Autres paramètres identiques à `transmitMessage`
 
-**Returns:** None
-
-**Example:**
-```lua
-veafRadio.playToRadio(
-  "D:\\Sounds\\airraid.mp3",
-  {305.0},
-  {"AM"},
-  "Alert",
-  coalition.side.BLUE,
-  nil,
-  false
-)
-```
+**Retourne :** Rien
 
 ##### `veafRadio.refreshRadioMenu()`
 
-Rebuild radio menu (delayed).
+Reconstruit le menu radio (différé).
 
-**Returns:** None
+**Retourne :** Rien
 
-**Description:** Schedules menu rebuild after delay to prevent conflicts.
-
-##### `veafRadio.addPaginatedRadioElements(menu, buildFunction, elements, sortKey, sortField)`
-
-Add paginated elements to menu.
-
-**Parameters:**
-
-- `menu` (menu) - Target menu
-- `buildFunction` (function) - Function to build each element
-- `elements` (table) - Array of elements
-- `sortKey` (string, optional) - Sort key
-- `sortField` (string, optional) - Sort field
-
-**Returns:** None
-
-**Description:** Creates pages of 10 items with next/previous navigation.
-
-##### `veafRadio.onBirthEvent(event)`
-
-Handle unit birth (add to radio menu).
-
-**Parameters:**
-
-- `event` (table) - Birth event
-
-**Returns:** None
-
-**Description:** Automatically adds human units to radio menu.
+**Description :** Planifie la reconstruction du menu après un délai pour éviter les conflits.
 
 ##### `veafRadio.initialize()`
 
-Initialize radio module.
+Initialise le module radio.
 
-**Returns:** None
+**Retourne :** Rien
 
 ---
 
-## Support Systems
+## Systèmes de support
 
 ### veafWeather.lua
 
-**Module ID:** `WEATHER`
-**Version:** (varies)
-**Purpose:** Dynamic weather system
+**Module ID :** `WEATHER`
+**Objectif :** Système météo dynamique
 
-#### Functions
+#### Fonctions
 
 ##### `veafWeather.setWeather(parameters)`
 
-Set mission weather.
+Définit la météo de mission.
 
-**Parameters:**
+**Paramètres :**
 
-- `parameters` (table) - Weather parameters
+- `parameters` (table) — Paramètres météo
 
-**Weather Parameters:**
+**Paramètres météo :**
 ```lua
 {
-  qnh = number,              -- Pressure (mmHg or inHg)
-  temperature = number,      -- Temperature (°C)
-  windDirection = number,    -- Wind direction (degrees)
-  windSpeed = number,        -- Wind speed (m/s or kts)
+  qnh = number,              -- Pression (mmHg ou inHg)
+  temperature = number,      -- Température (°C)
+  windDirection = number,    -- Direction du vent (degrés)
+  windSpeed = number,        -- Vitesse du vent (m/s ou nœuds)
   turbulence = number,       -- Turbulence (0-100)
-  clouds = {                 -- Cloud layers
+  clouds = {                 -- Couches nuageuses
     {
-      base = number,         -- Base altitude (meters)
-      thickness = number,    -- Thickness (meters)
-      density = number,      -- Density (0-10)
-      iprecptns = number     -- Precipitation
+      base = number,         -- Altitude de base (mètres)
+      thickness = number,    -- Épaisseur (mètres)
+      density = number,      -- Densité (0-10)
+      iprecptns = number     -- Précipitations
     }
   },
-  fog = {                    -- Fog settings
-    visibility = number,     -- Visibility (meters)
-    thickness = number       -- Thickness (meters)
+  fog = {                    -- Paramètres de brouillard
+    visibility = number,     -- Visibilité (mètres)
+    thickness = number       -- Épaisseur (mètres)
   }
 }
 ```
 
-**Returns:** None
+**Retourne :** Rien
 
 ##### `veafWeather.getWeather(position)`
 
-Get current weather at position.
+Obtient la météo actuelle à une position.
 
-**Parameters:**
+**Paramètres :**
 
-- `position` (vec3) - Position
+- `position` (vec3) — Position
 
-**Returns:** `table` - Weather data
+**Retourne :** `table` — Données météo
 
 ---
 
 ### veafTime.lua
 
-**Module ID:** `TIME`
-**Version:** (varies)
-**Purpose:** Mission time management
+**Module ID :** `TIME`
+**Objectif :** Gestion du temps de mission
 
-#### Functions
+#### Fonctions
 
 ##### `veafTime.setTime(hours, minutes)`
 
-Set mission time.
+Définit l'heure de mission.
 
-**Parameters:**
+**Paramètres :**
 
-- `hours` (number) - Hour (0-23)
-- `minutes` (number, optional) - Minute (0-59)
+- `hours` (number) — Heure (0-23)
+- `minutes` (number, optionnel) — Minute (0-59)
 
-**Returns:** None
+**Retourne :** Rien
 
-**Example:**
+**Exemple :**
 ```lua
--- Set time to 14:30
+-- Régler l'heure à 14:30
 veafTime.setTime(14, 30)
 ```
 
 ##### `veafTime.setDate(year, month, day)`
 
-Set mission date.
+Définit la date de mission.
 
-**Parameters:**
+**Paramètres :**
 
-- `year` (number) - Year
-- `month` (number) - Month (1-12)
-- `day` (number) - Day (1-31)
+- `year` (number) — Année
+- `month` (number) — Mois (1-12)
+- `day` (number) — Jour (1-31)
 
-**Returns:** None
+**Retourne :** Rien
 
 ---
 
-## Data & Database
+## Données et base de données
 
 ### dcsUnits.lua
 
-**Module ID:** `DCSUNITS`
-**Version:** 2025.11.17
-**Purpose:** Complete DCS unit database
+**Module ID :** `DCSUNITS`
+**Version :** 2025.11.17
+**Objectif :** Base de données complète des unités DCS
 
-#### Data Structures
+#### Structures de données
 
-##### Unit Categories
+##### Catégories d'unités
 
 ```lua
 dcsUnits.CATEGORY = {
@@ -3964,148 +2908,127 @@ dcsUnits.CATEGORY = {
 }
 ```
 
-##### Unit Definition
+##### Définition d'une unité
 
-Each unit in database:
+Chaque unité dans la base :
 ```lua
 {
-  type = "F-16C_50",           -- DCS type name
-  displayName = "F-16C Viper", -- Display name
-  category = "Airplane",       -- Category
-  year = 1984,                 -- Introduction year
-  country = {"USA"},           -- Countries
-  tasks = {                    -- Capable tasks
+  type = "F-16C_50",           -- Nom de type DCS
+  displayName = "F-16C Viper", -- Nom d'affichage
+  category = "Airplane",       -- Catégorie
+  year = 1984,                 -- Année d'introduction
+  country = {"USA"},           -- Pays
+  tasks = {                    -- Tâches possibles
     "CAP", "CAS", "SEAD", "Strike"
   },
   role = "Multirole Fighter",
-  weapons = {                  -- Weapon types
+  weapons = {                  -- Types d'armes
     "AIM-9", "AIM-120", "GBU-12"
   }
 }
 ```
 
-#### Functions
+#### Fonctions
 
 ##### `dcsUnits.findUnit(typeName)`
 
-Find unit by type name.
+Trouve une unité par nom de type.
 
-**Parameters:**
+**Paramètres :**
 
-- `typeName` (string) - Unit type (case-insensitive)
+- `typeName` (string) — Type d'unité (insensible à la casse)
 
-**Returns:** `table` - Unit definition or nil
-
-**Example:**
-```lua
-local f16 = dcsUnits.findUnit("F-16C_50")
-if f16 then
-  veaf.logger:info("Display: %s", f16.displayName)
-  veaf.logger:info("Role: %s", f16.role)
-  veaf.logger:info("Year: %d", f16.year)
-end
-```
+**Retourne :** `table` — Définition d'unité ou nil
 
 ##### `dcsUnits.getUnitsByCategory(category)`
 
-Get all units of category.
+Obtient toutes les unités d'une catégorie.
 
-**Parameters:**
+**Paramètres :**
 
-- `category` (string) - Category name
+- `category` (string) — Nom de la catégorie
 
-**Returns:** `table` - Array of unit definitions
-
-**Example:**
-```lua
-local aircraft = dcsUnits.getUnitsByCategory("Airplane")
-for _, unit in ipairs(aircraft) do
-  veaf.logger:info("%s (%s)", unit.displayName, unit.type)
-end
-```
+**Retourne :** `table` — Tableau de définitions d'unités
 
 ##### `dcsUnits.getUnitsByCountry(country)`
 
-Get units for country.
+Obtient les unités d'un pays.
 
-**Parameters:**
+**Paramètres :**
 
-- `country` (string) - Country name
+- `country` (string) — Nom du pays
 
-**Returns:** `table` - Array of unit definitions
+**Retourne :** `table` — Tableau de définitions d'unités
 
 ##### `dcsUnits.getUnitsByTask(task)`
 
-Get units capable of task.
+Obtient les unités capables d'une tâche.
 
-**Parameters:**
+**Paramètres :**
 
-- `task` (string) - Task name (e.g., "CAP", "CAS", "SEAD")
+- `task` (string) — Nom de la tâche (ex : "CAP", "CAS", "SEAD")
 
-**Returns:** `table` - Array of unit definitions
+**Retourne :** `table` — Tableau de définitions d'unités
 
 ---
 
 ### dcsDataExport.lua
 
-**Module ID:** `DCSDATAEXPORT`
-**Version:** (varies)
-**Purpose:** Export DCS data to files
+**Module ID :** `DCSDATAEXPORT`
+**Objectif :** Exporter les données DCS vers des fichiers
 
-#### Functions
+#### Fonctions
 
 ##### `dcsDataExport.exportAllUnits(path)`
 
-Export all DCS units to file.
+Exporte toutes les unités DCS vers un fichier.
 
-**Parameters:**
+**Paramètres :**
 
-- `path` (string, optional) - Export directory
+- `path` (string, optionnel) — Répertoire d'export
 
-**Returns:** None
-
-**Description:** Exports complete unit database to JSON/Lua file.
+**Retourne :** Rien
 
 ##### `dcsDataExport.exportAirbases(path)`
 
-Export airbase data.
+Exporte les données des aérodromes.
 
-**Parameters:**
+**Paramètres :**
 
-- `path` (string, optional) - Export directory
+- `path` (string, optionnel) — Répertoire d'export
 
-**Returns:** None
+**Retourne :** Rien
 
 ##### `dcsDataExport.exportWeapons(path)`
 
-Export weapons data.
+Exporte les données des armes.
 
-**Returns:** None
+**Retourne :** Rien
 
 ---
 
-## Appendix
+## Annexe
 
-### Common Patterns
+### Patrons courants
 
-#### Creating a Spawn Command
+#### Créer une commande de spawn
 
 ```lua
--- Via marker
+-- Via marqueur
 local pos = {x=1000, y=0, z=2000}
 veafSpawn.executeCommand(pos, "_spawn, name F-16C, group 2, hdg 270", coalition.side.BLUE)
 
--- Via interpreter (in unit name)
+-- Via interpréteur (dans le nom d'unité)
 veafInterpreter.executeCommandOnUnit("SpawnTrigger1", "_spawn, name F-16C, group 2")
 
--- Programmatically
+-- Programmatiquement
 veafSpawn.spawnUnit(pos, 50, "F-16C", nil, nil, 5000, 270)
 ```
 
-#### Listening to Events
+#### Écouter les événements
 
 ```lua
--- Register callback
+-- Enregistrer un callback
 veafEventHandler.addCallback("myHandler", {"S_EVENT_TAKEOFF", "S_EVENT_LAND"},
   function(event)
     if event.initiator then
@@ -4115,90 +3038,90 @@ veafEventHandler.addCallback("myHandler", {"S_EVENT_TAKEOFF", "S_EVENT_LAND"},
 )
 ```
 
-#### Creating a Mission
+#### Créer une mission
 
 ```lua
--- Define objective
+-- Définir un objectif
 local objective = VeafCombatMissionObjective:new()
-objective:setName("Destroy Tanks")
+objective:setName("Détruire les chars")
 objective:setOnStartupFunction(function(mission)
-  -- Spawn tanks
+  -- Spawner les chars
   veafSpawn.spawnArmoredPlatoon(mission:getSpawnPosition(), 100, nil, nil,
     coalition.side.RED, 0, 50, 2, 3, 3, true)
 end)
 objective:setOnCheckFunction(function(mission)
-  -- Check completion
+  -- Vérifier la complétion
   if allTanksDestroyed() then
     return VeafCombatMissionObjective.SUCCESS
   end
   return VeafCombatMissionObjective.NOTHING
 end)
 
--- Define mission
+-- Définir la mission
 local mission = VeafCombatMission:new()
-mission:setName("Tank Hunt")
-mission:setDescription("Destroy enemy armor")
+mission:setName("Chasse aux chars")
+mission:setDescription("Détruire les blindés ennemis")
 mission:setSpawnZone("TargetZone")
 mission:addObjective(objective)
 
--- Register
+-- Enregistrer
 veafCombatMission.AddMission(mission)
 ```
 
-#### Building Radio Menus
+#### Construire des menus radio
 
 ```lua
--- Create submenu
-local myMenu = veafRadio.addSubMenu("My Commands")
+-- Créer un sous-menu
+local myMenu = veafRadio.addSubMenu("Mes commandes")
 
--- Add command
-veafRadio.addCommandToSubmenu("Do Something", myMenu, function(params)
-  veaf.logger:info("Command executed!")
-  veaf.outTextForUnit(params.unitName, "Done!", 5)
+-- Ajouter une commande
+veafRadio.addCommandToSubmenu("Faire quelque chose", myMenu, function(params)
+  veaf.logger:info("Commande exécutée !")
+  veaf.outTextForUnit(params.unitName, "Fait !", 5)
 end, {unitName = "Viper 1-1"}, veafRadio.USAGE_ForAll)
 ```
 
-### Security Best Practices
+### Bonnes pratiques de sécurité
 
-1. **Use veafSecurity for sensitive commands**
-2. **Validate coalition before spawning**
-3. **Use bypassSecurity only when necessary**
-4. **Check user permissions via radio menus**
+1. **Utiliser veafSecurity pour les commandes sensibles**
+2. **Valider la coalition avant de spawner**
+3. **Utiliser bypassSecurity uniquement quand nécessaire**
+4. **Vérifier les permissions utilisateur via les menus radio**
 
-### Performance Optimization
+### Optimisation des performances
 
-1. **Disable unused events:** `veafEventHandler.setEventEnabled("S_EVENT_SHOOTING_START", false)`
-2. **Use delayed callbacks for expensive operations**
-3. **Limit spawn counts and areas**
-4. **Clean up inactive groups regularly**
+1. **Désactiver les événements inutilisés :** `veafEventHandler.setEventEnabled("S_EVENT_SHOOTING_START", false)`
+2. **Utiliser les callbacks différés pour les opérations coûteuses**
+3. **Limiter le nombre de spawns et les zones**
+4. **Nettoyer régulièrement les groupes inactifs**
 
-### Debugging Tips
+### Conseils de débogage
 
-1. **Enable trace logging:** `veafModuleName.LogLevel = "trace"`
-2. **Use logger markers:** `logger:marker(id, "Debug", "Position", pos)`
-3. **Export data for analysis:** `veaf.exportAsJson(data, "debug", true, "debug.json")`
-4. **Check event handlers:** Verify callbacks registered correctly
-
----
-
-## Version History
-
-- **v1.56.2** (veaf.lua) - Latest core utilities
-- **v1.59.2** (veafSpawn.lua) - Latest spawn system
-- **v2.2.1** (veafCombatMission.lua) - Latest mission system
-- **v1.15.3** (veafCasMission.lua) - Latest CAS system
+1. **Activer le logging trace :** `veafModuleName.LogLevel = "trace"`
+2. **Utiliser les marqueurs logger :** `logger:marker(id, "Debug", "Position", pos)`
+3. **Exporter les données pour analyse :** `veaf.exportAsJson(data, "debug", true, "debug.json")`
+4. **Vérifier les handlers d'événements :** Vérifier que les callbacks sont bien enregistrés
 
 ---
 
-## Credits
+## Historique des versions
 
-**VEAF Project:** https://www.veaf.org
-**Repository:** https://github.com/VEAF/VEAF-Mission-Creation-Tools
-**Documentation:** https://veaf.github.io/documentation/
-**Lead Developer:** Zip (davidp57)
+- **v1.56.2** (veaf.lua) — Derniers utilitaires de base
+- **v1.59.2** (veafSpawn.lua) — Dernier système de spawn
+- **v2.2.1** (veafCombatMission.lua) — Dernier système de mission
+- **v1.15.3** (veafCasMission.lua) — Dernier système CAS
 
 ---
 
-**Document Version:** 1.0
-**Last Updated:** May 2026
-**Generated for:** VEAF Mission Creation Tools v6.1.0
+## Crédits
+
+**Projet VEAF :** https://www.veaf.org
+**Dépôt :** https://github.com/VEAF/VEAF-Mission-Creation-Tools
+**Documentation :** https://veaf.github.io/documentation/
+**Développeur principal :** Zip (davidp57)
+
+---
+
+**Version du document :** 1.0
+**Dernière mise à jour :** Mai 2026
+**Généré pour :** VEAF Mission Creation Tools v6.1.0

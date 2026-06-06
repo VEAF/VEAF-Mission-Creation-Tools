@@ -1,81 +1,81 @@
 # VEAF Mission Creation Tools — Documentation
 
-VEAF MCT turns a standard DCS mission into a dynamic, player-driven sandbox — 34 Lua modules, a build pipeline, and a CLI tool that does the heavy lifting.
+VEAF MCT transforme une mission DCS standard en un bac à sable dynamique piloté par les joueurs — 34 modules Lua, un pipeline de build, et un outil CLI qui fait le gros du travail.
 
-Complete toolkit for creating dynamic [DCS World](https://www.digitalcombatsimulator.com/) missions using VEAF Lua scripts and automation tools.
-
----
-
-## Choose Your Guide
-
-| Role | Start Here | What You'll Find |
-|------|------------|-----------------|
-| **Player / Pilot** | [Pilot Guide](pilot/README.md) | F10 menus, marker commands, available assets and combat zones |
-| **Mission Maker** | [Mission Maker Guide](mission-maker/README.md) | Install, configure modules, build and deploy missions |
-| **Developer** | [Developer Guide](developer/README.md) | Architecture, build pipeline, quality gates, contributing |
+Ensemble complet d'outils pour créer des missions [DCS World](https://www.digitalcombatsimulator.com/) dynamiques avec les scripts Lua VEAF.
 
 ---
 
-## How It Works
+## Choisissez votre guide
+
+| Rôle | Par ici | Ce que vous trouverez |
+|------|---------|-----------------------|
+| **Joueur / Pilote** | [Guide du pilote](pilot/README.md) | Menus F10, commandes marqueurs, assets et zones de combat disponibles |
+| **Créateur de missions** | [Guide créateur de missions](mission-maker/README.md) | Installation, configuration des modules, build et déploiement |
+| **Développeur** | [Guide du développeur](developer/README.md) | Architecture, pipeline de build, qualité, contribution |
+
+---
+
+## Principe de fonctionnement
 
 ```mermaid
 flowchart TD
-    A["Base .miz\n(DCS Editor)"] -->|veaf-tools extract| B["Mission folder\n(src/ + mission.yaml)"]
-    B --- C["published/\n(VEAF scripts)"]
-    B -->|veaf-tools build| D[".miz ready to fly"]
-    D -->|DCS loads| E["34 Lua modules active"]
-    E -->|Players use| F["F10 markers · Radio menus"]
+    A[".miz de base\n(Éditeur DCS)"] -->|veaf-tools extract| B["Dossier mission\n(src/ + mission.yaml)"]
+    B --- C["published/\n(scripts VEAF)"]
+    B -->|veaf-tools build| D[".miz prêt à voler"]
+    D -->|DCS charge| E["34 modules Lua actifs"]
+    E -->|Les joueurs utilisent| F["Marqueurs F10 · Menus radio"]
 ```
 
-1. **Extract** — Create a base mission in DCS Editor and extract it into version-controllable source files
-2. **Configure** — `mission.yaml` declares active modules; `published/` provides the VEAF Lua scripts
-3. **Build** — `veaf-tools build` assembles everything into a final `.miz`
-4. **Runtime** — DCS loads the `.miz`; players interact via F10 markers and radio menus
+1. **Extract** — Créez une mission de base dans l'éditeur DCS et extrayez-la en fichiers source versionnables
+2. **Configure** — `mission.yaml` déclare les modules actifs ; `published/` fournit les scripts Lua VEAF
+3. **Build** — `veaf-tools build` assemble tout en un `.miz` final
+4. **Runtime** — DCS charge le `.miz` ; les joueurs interagissent via les marqueurs F10 et les menus radio
 
 ---
 
-## References
+## Références
 
-| Reference | Description |
+| Référence | Description |
 |-----------|-------------|
-| [Lua API Reference](LUA_API_REFERENCE.md) | Full API for all 34 Lua runtime modules |
-| [Tools CLI Reference](TOOLS_REFERENCE.md) | `veaf-tools.exe` — all commands and options |
-| [Testing Guide](TESTING.md) | Lua unit test suite and CI/CD pipeline |
-| [Roadmap](ROADMAP.md) | Planned features and known limitations |
+| [Référence API Lua](LUA_API_REFERENCE.md) | API complète des 34 modules Lua runtime |
+| [Référence CLI des outils](TOOLS_REFERENCE.md) | `veaf-tools.exe` — toutes les commandes et options |
+| [Guide de tests](TESTING.md) | Suite de tests Lua unitaires et pipeline CI/CD |
+| [Feuille de route](ROADMAP.md) | Fonctionnalités prévues et limitations connues |
 
 ---
 
-## Quick Start
+## Démarrage rapide
 
-### Players and Pilots
+### Joueurs et pilotes
 
-You are in a mission that uses VEAF scripts. Open the F10 map, place a marker, and type a command — for example `_spawn unit T-80` or `_cas`. See the [Pilot Guide](pilot/README.md) for all available commands.
+Vous êtes dans une mission utilisant les scripts VEAF. Ouvrez la carte F10, placez un marqueur et tapez une commande — par exemple `_spawn unit T-80` ou `_cas`. Voir le [Guide du pilote](pilot/README.md) pour toutes les commandes disponibles.
 
-### Mission Makers
+### Créateurs de missions
 
 ```powershell
-# 1. Download veaf-tools-updater.exe from the GitHub release page and run it:
+# 1. Téléchargez veaf-tools-updater.exe depuis la page de release GitHub et lancez-le :
 .\veaf-tools-updater.exe
-# → installs veaf-tools.exe and all VEAF scripts in the current folder
+# → installe veaf-tools.exe et tous les scripts VEAF dans le dossier courant
 ```
 
-Then, depending on your starting point:
+Ensuite, selon votre point de départ :
 
-**You already have a VEAF mission folder** (or forked the [Demo Mission](https://github.com/VEAF/VEAF-Demo-Mission)):
+**Vous avez déjà un dossier mission VEAF** (ou vous avez forké la [mission de démonstration](https://github.com/VEAF/VEAF-Demo-Mission)) :
 ```powershell
 veaf-tools.exe build
 ```
 
-**You only have a `.miz` file:**
+**Vous n'avez qu'un fichier `.miz` :**
 ```powershell
-veaf-tools.exe extract my-mission.miz
-# → edit mission.yaml to enable the modules you want
+veaf-tools.exe extract ma-mission.miz
+# → éditez mission.yaml pour activer les modules souhaités
 veaf-tools.exe build
 ```
 
-Full workflow: [Mission Maker Guide](mission-maker/README.md)
+Guide complet : [Guide créateur de missions](mission-maker/README.md)
 
-### Developers
+### Développeurs
 
 ```powershell
 poetry install --with build
@@ -84,12 +84,12 @@ poetry run test-lua
 poetry run veaf-build publish --version 6.0.5
 ```
 
-Full reference: [Developer Guide](developer/README.md)
+Référence complète : [Guide du développeur](developer/README.md)
 
 ---
 
-## Community & Support
+## Communauté & Support
 
-- [VEAF Discord](https://www.veaf.org/discord) — real-time help
-- [GitHub Issues](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues) — bug reports and feature requests
-- [VEAF Website](https://www.veaf.org)
+- [VEAF Discord](https://www.veaf.org/discord) — aide en temps réel
+- [Issues GitHub](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues) — signalement de bugs et demandes de fonctionnalités
+- [Site VEAF](https://www.veaf.org)

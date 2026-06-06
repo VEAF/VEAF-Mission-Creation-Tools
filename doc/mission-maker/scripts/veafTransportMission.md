@@ -1,25 +1,24 @@
-# veafTransportMission — Transport and Logistics Missions
+# veafTransportMission — Missions de transport et logistique
 
-
-**Module ID:** `TRANSPORT` | **Version:** — | **File:** `veafTransportMission.lua`
-
----
-
-## Purpose
-
-Creates helicopter/transport pickup-and-delivery missions. Defines cargo or troop pickup zones and drop-off zones. Integrates with CTLD (Combined Arms Transport and Logistics) when available.
+**Module ID:** `TRANSPORT` | **Version:** — | **Fichier:** `veafTransportMission.lua`
 
 ---
 
-## Dependencies
+## Objectif
 
-- `veafRadio` — F10 menu
-- `veafMarkers` — optional marker commands
-- CTLD script — optional third-party integration
+Crée des missions de transport en hélicoptère ou aéronef avec des zones de chargement et de livraison. Définit des zones de pickup et de dépôt pour du cargo ou des troupes. S'intègre avec CTLD (Combined Arms Transport and Logistics) quand il est disponible.
 
 ---
 
-## Enable
+## Dépendances
+
+- `veafRadio` — menu F10
+- `veafMarkers` — commandes de marqueur optionnelles
+- Script CTLD — intégration tierce optionnelle
+
+---
+
+## Activation
 
 ```lua
 veafTransportMission.initialize()
@@ -27,57 +26,57 @@ veafTransportMission.initialize()
 
 ---
 
-## Key Concepts
+## Concepts clés
 
-- **Loading zone** — where helicopters or transports pick up cargo/troops
-- **Delivery zone** — where cargo/troops must be dropped
-- Missions can have objectives (e.g., deliver N crates to win)
-- Supports both pre-placed and dynamically spawned cargo
+- **Zone de chargement** — là où les hélicoptères ou transports récupèrent le cargo/les troupes
+- **Zone de livraison** — là où le cargo/les troupes doivent être déposés
+- Les missions peuvent avoir des objectifs (ex : livrer N caisses pour gagner)
+- Supporte les cargos pré-placés et générés dynamiquement
 
 ---
 
-## Example Configuration
+## Exemple de configuration
 
 ```lua
--- Simple troop transport mission
+-- Mission de transport de troupes simple
 local transportMission = VeafTransportMission:new()
   :setName("Evac-Alpha")
-  :setDescription("Evacuate troops from Firebase Alpha")
+  :setDescription("Évacuer les troupes de la base avancée Alpha")
   :setPickupZoneName("ZONE-PICKUP-ALPHA")
   :setDeliveryZoneName("ZONE-DELIVERY-BASE")
   :setCargoType("Troops")
   :setCargoCount(8)
-  :setBriefing("8 soldiers are stranded at Firebase Alpha. Extract them to Senaki base.")
+  :setBriefing("8 soldats sont bloqués à la base Alpha. Extrayez-les vers Senaki.")
   :initialize()
 ```
 
 ---
 
-## Builder Methods
+## Méthodes du builder
 
-| Method | Description |
-|--------|-------------|
-| `:setName(name)` | Internal identifier |
-| `:setDescription(text)` | F10 menu label |
-| `:setPickupZoneName(zone)` | DCS trigger zone for pickup |
-| `:setDeliveryZoneName(zone)` | DCS trigger zone for delivery |
+| Méthode | Description |
+|---------|-------------|
+| `:setName(name)` | Identifiant interne |
+| `:setDescription(text)` | Libellé du menu F10 |
+| `:setPickupZoneName(zone)` | Zone de trigger DCS pour le pickup |
+| `:setDeliveryZoneName(zone)` | Zone de trigger DCS pour la livraison |
 | `:setCargoType(type)` | `"Troops"`, `"Crates"`, `"Vehicles"` |
-| `:setCargoCount(n)` | Number of cargo units |
-| `:setBriefing(text)` | Mission briefing text |
-| `:setCoalition(side)` | Mission coalition |
-| `:initialize()` | Register and activate |
+| `:setCargoCount(n)` | Nombre d'unités de cargo |
+| `:setBriefing(text)` | Texte du briefing de mission |
+| `:setCoalition(side)` | Coalition de la mission |
+| `:initialize()` | Enregistrer et activer |
 
 ---
 
-## F10 Radio Menu
+## Menu radio F10
 
-- **Info** — pickup zone position, cargo description, delivery zone
-- **Activate** — spawn pickup zone units
-- **Deactivate** — clean up mission
+- **Infos** — position de la zone de pickup, description du cargo, zone de livraison
+- **Activer** — faire apparaître les unités de la zone de pickup
+- **Désactiver** — nettoyer la mission
 
 ---
 
-## See Also
+## Voir aussi
 
-- [veafCombatZone](veafCombatZone.md) — for combat objective zones
-- [Lua API Reference](../../LUA_API_REFERENCE.md) — full `veafTransportMission` API
+- [veafCombatZone](veafCombatZone.md) — pour les zones d'objectif de combat
+- [Référence API Lua](../../LUA_API_REFERENCE.md) — API complète de `veafTransportMission`

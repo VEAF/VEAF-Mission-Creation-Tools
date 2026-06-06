@@ -65,7 +65,8 @@
 | Lot FIX-OLDSCRIPTS — Détection fichiers .lua résiduels dans src/scripts/ | ~45 min | ✅ |
 | Lot FIX-MARKERS-INIT — Ajout de `veafMarkers.initialize()` manquante | ~5 min | ✅ |
 | Lot FIX-MISSING-INIT — `initialize()` manquante sur 4 modules Lua | ~20 min | ✅ |
-| **Total** | **~167h45** | |
+| Lot 27 — DOC-FR-MERGE | ~6h | ✅ |
+| **Total** | **~173h45** | |
 
 *Initial calibration factor: 1.15 — recalculate after each completed lot.*
 
@@ -117,6 +118,26 @@
 | OLDSCRIPTS-002 | Ajouter un warning si des fichiers `.lua` inattendus sont présents dans `src/scripts/` (i.e. non listés explicitement dans `get_mission_script_files()`) | `mission_tools/mission_constants.py` ou `mission_builder_worker.py` | fix | 15 min | ✅ |
 
 **Raw total: ~45 min estimé (hors investigation)**
+
+---
+
+## Lot 27 — DOC-FR-MERGE: Français par défaut + merge contenu v5
+
+**Goal**: Passer le français en langue par défaut de la documentation MkDocs et enrichir les pages v6 avec le contenu conceptuel manquant issu de la documentation v5 (écrite manuellement).
+
+**Branch**: `feature/doc-fr-default-and-v5-merge` → PR → `develop-v6`
+
+| # | Ticket | Fichiers touchés | Type | Effort | Status |
+|---|--------|-----------------|------|--------|--------|
+| DOC-FR-001 | Renommer `*.md` → `*.en.md` et `*.fr.md` → `*.md` (35 paires) | `doc/**` | chore | 15 min | ✅ |
+| DOC-FR-002 | Mettre à jour `mkdocs.yml` : FR défaut, EN secondaire | `mkdocs.yml` | chore | 10 min | ✅ |
+| DOC-FR-003 | Merge contenu v5 → `veafQraManager.md` (FR + EN) | `doc/mission-maker/scripts/veafQraManager.*` | chore | 45 min | ✅ |
+| DOC-FR-004 | Merge contenu v5 → `veafCombatZone.md` (FR + EN) | `doc/mission-maker/scripts/veafCombatZone.*` | chore | 45 min | ✅ |
+| DOC-FR-005 | Merge contenu v5 → `veafAirWaves.md` (FR + EN) | `doc/mission-maker/scripts/veafAirWaves.*` | chore | 30 min | ✅ (v6 déjà complet) |
+| DOC-FR-006 | Merge contenu v5 → `veafRadio.md` (FR + EN) | `doc/mission-maker/scripts/veafRadio.*` | chore | 20 min | ✅ |
+| DOC-FR-007 | Merge contenu v5 → `veafSkynetIadsHelper.md` (FR + EN) | `doc/mission-maker/scripts/veafSkynetIadsHelper.*` | chore | 20 min | ✅ |
+| DOC-FR-008 | Merge contenu v5 → `veafWeather.md` (FR + EN) | `doc/mission-maker/scripts/veafWeather.*` | chore | 20 min | ✅ |
+| DOC-FR-009 | Vérifier `presets.md` v5 et identifier l'équivalent v6 | TBD | chore | 15 min | ✅ (déjà dans GUIDE.md) |
 
 ---
 

@@ -1,17 +1,16 @@
-# veafAirbases — Airbase Data and ATC
+# veafAirbases — Données de bases aériennes et ATC
 
-
-**Module ID:** — | **File:** `veafAirbases.lua`
-
----
-
-## Purpose
-
-Provides airbase data (position, elevation, runway headings) and configures ATC services for DCS airbases used in the mission. Feeds data to `veafNamedPoints` and the F10 radio menu.
+**Module ID:** — | **Fichier:** `veafAirbases.lua`
 
 ---
 
-## Enable
+## Objectif
+
+Fournit des données de bases aériennes (position, altitude, caps de piste) et configure les services ATC pour les bases DCS utilisées dans la mission. Alimente `veafNamedPoints` et le menu radio F10.
+
+---
+
+## Activation
 
 ```lua
 veafAirbases.initialize()
@@ -19,16 +18,16 @@ veafAirbases.initialize()
 
 ---
 
-## Usage
+## Utilisation
 
-Airbase data is read automatically from the DCS environment. Mission makers can override or supplement data:
+Les données de base aérienne sont lues automatiquement depuis l'environnement DCS. Les créateurs de missions peuvent surcharger ou compléter les données :
 
 ```lua
--- Register a custom airbase configuration
+-- Enregistrer une configuration de base aérienne personnalisée
 veafAirbases.setAirbaseData("Senaki-Kolkhi", {
   atcFrequency = 127500000,   -- Hz
   atcModulation = radio.modulation.AM,
-  elevation = 43,             -- metres
+  elevation = 43,             -- mètres
   runways = {
     { heading = 110, ils = { frequency = 109300000, course = 110 } },
     { heading = 290 },
@@ -40,14 +39,14 @@ veafAirbases.setAirbaseData("Senaki-Kolkhi", {
 
 ## Notes
 
-- Most DCS airbases are already known to the module
-- Override only when you need custom frequencies or corrections
-- TACAN/ILS data is used by `veafNamedPoints` and carrier operations
+- La plupart des bases DCS sont déjà connues du module
+- Ne surcharger que si des fréquences personnalisées ou des corrections sont nécessaires
+- Les données TACAN/ILS sont utilisées par `veafNamedPoints` et les opérations de porte-avions
 
 ---
 
-## See Also
+## Voir aussi
 
-- [veafNamedPoints](veafNamedPoints.md) — uses airbase data for named points
-- [veafCarrierOperations](veafCarrierOperations.md) — carrier-specific ATC
-- [Lua API Reference](../../LUA_API_REFERENCE.md) — full `veafAirbases` API
+- [veafNamedPoints](veafNamedPoints.md) — utilise les données de base pour les points nommés
+- [veafCarrierOperations](veafCarrierOperations.md) — ATC spécifique aux porte-avions
+- [Référence API Lua](../../LUA_API_REFERENCE.md) — API complète de `veafAirbases`

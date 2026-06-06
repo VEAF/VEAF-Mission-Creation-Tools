@@ -1,57 +1,51 @@
-# veafWeather — Dynamic Weather and ATC Conditions
+# veafWeather — Météo dynamique et conditions ATC
 
-
-**Module ID:** `WEATHER` | **Version:** — | **File:** `veafWeather.lua`
-
----
-
-## Purpose
-
-Two distinct roles:
-
-1. **Design-time**: inject real-world or configured weather into a `.miz` at build time, before players load the mission. Handled by `veaf-tools.exe weather-inject`.
-2. **Runtime**: players can request weather reports and ATC information via the F10 radio menu, and the mission maker can script dynamic fog changes.
+**Module ID:** `WEATHER` | **Version:** — | **Fichier:** `veafWeather.lua`
 
 ---
 
-## Dependencies
+## Objectif
 
-- `veafRadio` — optional weather menu
-- `veafNamedPoints` — for location-based weather reports
+Fournit des rapports météo et l'injection de météo dynamique pour les missions DCS. Génère des rapports lisibles au format METAR et s'intègre avec `veaf-tools.exe weather-inject` pour injecter de la météo réelle ou configurée au moment du build.
 
 ---
 
-## Enable
+## Dépendances
+
+- `veafRadio` — menu météo optionnel
+- `veafNamedPoints` — pour les rapports météo basés sur la localisation
+
+---
+
+## Activation
 
 ```lua
 veafWeather.initialize()
 ```
 
-No parameters required.
-
 ---
 
-## Design-Time Weather Injection
+## Injection de météo au moment du build
 
-Weather is injected at build time (before the mission is loaded) using `veaf-tools.exe`:
+La météo est injectée au moment du build (avant le chargement de la mission) avec `veaf-tools.exe` :
 
 ```powershell
 veaf-tools.exe weather-inject --mission mission.miz --config weather.yaml
 ```
 
-### weather.yaml Example
+### Exemple weather.yaml
 
 ```yaml
 weather:
-  source: metar          # "metar" (real-world) or "manual"
-  icao: UGSS             # ICAO airport code for METAR (Senaki)
-  # manual override (used when source: manual)
+  source: metar          # "metar" (temps réel) ou "manual"
+  icao: UGSS             # Code ICAO de l'aéroport pour le METAR (Senaki)
+  # override manuel (utilisé quand source: manual)
   wind:
-    speed: 10            # knots
-    direction: 270       # degrees
-  visibility: 8000       # metres
+    speed: 10            # nœuds
+    direction: 270       # degrés
+  visibility: 8000       # mètres
   clouds:
-    base: 2500           # feet
+    base: 2500           # pieds
     density: 5           # 0-10
   temperature: 18        # °C
   qnh: 1013              # hPa
@@ -59,22 +53,9 @@ weather:
 
 ---
 
-## F10 Radio Menu
+## Rapport météo au runtime
 
-When the `WEATHER` module is enabled, a **"WEATHER AND ATC"** submenu appears in the F10 menu:
-
-| Entry | Available to | What it shows |
-|-------|-------------|---------------|
-| Weather on closest point | Per group | Wind, visibility, QNH, temperature at nearest named point |
-| ATC on closest airbase | Per group | Runway in use, QFE/QNH, pattern info at nearest airbase |
-| ATC and weather in one go | Per group | Both reports combined |
-| Fog settings → ... | All (secured) | Change fog conditions (see below) |
-
----
-
-## Runtime Weather Reports
-
-Get a weather report programmatically:
+Obtenir un rapport météo pour une position :
 
 ```lua
 local report = veaf.weatherReport(position, altitude, withLASTE)
@@ -83,15 +64,27 @@ veaf.outTextForUnit(unitName, report, 30)
 
 ---
 
-## Fog Management
+## Menu radio F10
 
-The runtime fog system lets you change visibility conditions during a mission — useful for immersion, training scenarios, or scripted events.
+Le sous-menu **WEATHER AND ATC** du menu radio F10 permet aux joueurs d'obtenir des informations détaillées sur la météo et la base aérienne la plus proche.
 
-### Pre-defined fog constants
+- **Weather on closest point** — météo locale adaptée au type d'appareil (unités et format conformes à l'avion du joueur)
+- **ATC on closest airbase** — informations ATIS de la base la plus proche (piste en service, QFU, etc.)
+- **ATC and weather in one go** — les deux d'un coup
 
-Three fog families are available. Activate any constant with `:activate()`:
+Ces commandes sont aussi accessibles depuis le chat multijoueur (avec le hook serveur VEAF) : `atc`
 
-**Dynamic fog** — recalculates density periodically based on weather conditions:
+---
+
+## Gestion du brouillard
+
+Le brouillard peut être contrôlé en cours de mission — utile pour l'immersion, les scénarios d'entraînement ou les événements scriptés.
+
+### Constantes prédéfinies
+
+Trois familles de brouillard sont disponibles. S'active avec `:activate()` :
+
+**Brouillard dynamique** — recalcule la densité périodiquement selon les conditions météo :
 
 ```lua
 veafWeather.FOG_DYNAMIC_HEAVY:activate()
@@ -99,7 +92,7 @@ veafWeather.FOG_DYNAMIC_MEDIUM:activate()
 veafWeather.FOG_DYNAMIC_SPARSE:activate()
 ```
 
-**Static fog** — fixed visibility:
+**Brouillard statique** — visibilité fixe :
 
 ```lua
 veafWeather.FOG_STATIC_HEAVY:activate()
@@ -107,58 +100,45 @@ veafWeather.FOG_STATIC_MEDIUM:activate()
 veafWeather.FOG_STATIC_MEDIUM_LOW:activate()
 veafWeather.FOG_STATIC_SPARSE:activate()
 veafWeather.FOG_STATIC_SPARSE_LOW:activate()
-veafWeather.FOG_STATIC_NO:activate()    -- clears all fog
+veafWeather.FOG_STATIC_NO:activate()    -- supprime tout brouillard
 ```
 
-**Animated fog** — transitions smoothly to a target state over a set duration. The pattern is `FOG_ANIMATED_<DURATION>M_<DENSITY>`:
+**Brouillard animé** — transition progressive vers un état cible. Syntaxe : `FOG_ANIMATED_<DURÉE>M_<DENSITÉ>` :
 
-| Duration | Density variants |
-|----------|-----------------|
+| Durée | Variantes de densité |
+|-------|---------------------|
 | `1M`, `5M`, `10M`, `15M`, `30M`, `60M`, `90M` | `HEAVY`, `MEDIUM`, `MEDIUM_LOW`, `SPARSE`, `SPARSE_LOW`, `NO` |
 
-Examples:
+Exemples :
 
 ```lua
-veafWeather.FOG_ANIMATED_10M_MEDIUM:activate()   -- fade to medium fog over 10 minutes
-veafWeather.FOG_ANIMATED_30M_NO:activate()       -- clear fog over 30 minutes
-veafWeather.FOG_ANIMATED_5M_HEAVY:activate()     -- roll in heavy fog over 5 minutes
+veafWeather.FOG_ANIMATED_10M_MEDIUM:activate()   -- brouillard moyen en 10 minutes
+veafWeather.FOG_ANIMATED_30M_NO:activate()       -- dissipation en 30 minutes
+veafWeather.FOG_ANIMATED_5M_HEAVY:activate()     -- brouillard épais en 5 minutes
 ```
 
-### Activating a fog object directly
+### Déclencher un changement de brouillard depuis un trigger
 
 ```lua
-veafWeather.setAndActivateFog(veafWeather.FOG_STATIC_MEDIUM)
-```
-
-This is equivalent to calling `:activate()` on the constant. Any previously active fog is cancelled first.
-
-### Scripting fog changes on a trigger
-
-```lua
--- On a DCS trigger "Begin Night Phase", enable heavy fog
 mist.scheduleFunction(function()
-  veafWeather.FOG_ANIMATED_15M_HEAVY:activate()
+    veafWeather.FOG_ANIMATED_15M_HEAVY:activate()
 end, {}, timer.getTime() + 0)
 ```
 
----
+### Commandes chat (hook serveur VEAF)
 
-## Chat / Remote Commands
+| Commande | Effet |
+|----------|-------|
+| `_weather` | Rapport météo à la position courante |
+| `_atc` | ATIS de la base aérienne la plus proche |
+| `_weather fog FOG_STATIC_MEDIUM` | Activer une constante de brouillard |
+| `_weather fog FOG_ANIMATED_10M_NO` | Dissipation animée en 10 minutes |
 
-Players or administrators can change fog via the chat window (requires `veafRemote`):
-
-| Chat command | Effect |
-|-------------|--------|
-| `_weather` | Weather report at current position |
-| `_atc` | ATC report at nearest airbase |
-| `_weather fog FOG_STATIC_MEDIUM` | Activate a named fog constant |
-| `_weather fog FOG_ANIMATED_10M_NO` | Animated fog clear over 10 minutes |
-
-The fog name is case-insensitive. Use the exact constant names listed above (without the `veafWeather.` prefix).
+Le nom de la constante est insensible à la casse (sans le préfixe `veafWeather.`).
 
 ---
 
-## See Also
+## Voir aussi
 
-- [Tools Reference](../../TOOLS_REFERENCE.md) — `veaf-tools.exe weather-inject` full reference
-- [Lua API Reference](../../LUA_API_REFERENCE.md) — full `veafWeather` API
+- [Référence des outils](../../TOOLS_REFERENCE.md) — référence complète de `veaf-tools.exe weather-inject`
+- [Référence API Lua](../../LUA_API_REFERENCE.md) — API complète de `veafWeather`

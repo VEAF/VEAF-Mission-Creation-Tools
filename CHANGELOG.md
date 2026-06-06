@@ -7,6 +7,19 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [Unreleased]
+
+### Changed
+- Documentation: French is now the default language; English (`*.en.md`) is the secondary language — all 35 documentation page pairs renamed accordingly
+- `mkdocs.yml`: `fr` locale set as default, `en` as secondary
+- `doc/mission-maker/scripts/veafSkynetIadsHelper.md`: complete rewrite — corrected API names (`veafSkynet.*`), added point defence modes, group integration modes, dynamic spawn, command centers, network deactivation, and deferred network access pattern
+- `doc/mission-maker/scripts/veafQraManager.md`: added note on `veafQraManager.initialize()` requirement for dynamic slots
+- `doc/mission-maker/scripts/veafCombatZone.md`: added radio menu security note, cleanup options, and display options
+- `doc/mission-maker/scripts/veafRadio.md`: added practical callback examples (QRA start/stop, group destroy, DCS flag management)
+- `doc/mission-maker/scripts/veafWeather.md`: added fog management section (static/animated/dynamic constants, trigger usage, chat commands)
+
+---
+
 ## [6.3.3] — 2026-06-06
 
 ### Fixed

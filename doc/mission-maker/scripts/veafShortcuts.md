@@ -1,32 +1,32 @@
-# veafShortcuts — Marker Aliases
+# veafShortcuts — Aliases de marqueurs
 
-**Module ID:** `SHCUT` | **File:** `veafShortcuts.lua`
-
----
-
-## Purpose
-
-Provides short, easy-to-remember marker commands (aliases) that map to full `_spawn` or other VEAF commands. Players type `-aliasName` in a map marker instead of memorizing complex command syntax.
+**Module ID :** `SHCUT` | **Fichier :** `veafShortcuts.lua`
 
 ---
 
-## How It Works
+## Objectif
 
-1. Player places an F10 map marker with text starting with `-`
-2. `veafShortcuts` resolves the alias to the underlying VEAF command
-3. The resolved command is executed as if the player had typed it directly
-
-Aliases can include **randomized parameters** (e.g. `-sam` picks a random defense level each time).
+Fournit des commandes marqueur courtes et faciles à retenir (aliases) qui correspondent à des commandes `_spawn` ou autres commandes VEAF complètes. Les joueurs tapent `-nomAlias` dans un marqueur F10 au lieu de mémoriser la syntaxe complète des commandes.
 
 ---
 
-## Enable
+## Fonctionnement
+
+1. Le joueur place un marqueur F10 avec un texte commençant par `-`
+2. `veafShortcuts` résout l'alias vers la commande VEAF sous-jacente
+3. La commande résolue est exécutée comme si le joueur l'avait tapée directement
+
+Les aliases peuvent inclure des **paramètres aléatoires** (ex : `-sam` choisit un niveau de défense aléatoire à chaque fois).
+
+---
+
+## Activation
 
 ```lua
 veafShortcuts.initialize()
 ```
 
-This automatically registers the default alias list.
+Cela enregistre automatiquement la liste d'aliases par défaut.
 
 ---
 
@@ -35,26 +35,26 @@ This automatically registers the default alias list.
 ```yaml
 lua_modules:
   SHORTCUTS:
-    enable: true          # default: true
-    logLevel: info        # optional log level override
-    shortcuts:            # custom alias definitions
-      - name: "smoke"                 # alias name (used as -smoke in markers)
-        description: "Smoke shortcut" # shown in radio help
-        command: "/_smoke"            # VEAF command to execute
-        bypass_security: false        # true = always available, no /secu needed
+    enable: true          # défaut : true
+    logLevel: info        # surcharge optionnelle du niveau de log
+    shortcuts:            # définitions d'aliases personnalisés
+      - name: "smoke"                 # nom de l'alias (tapé en -smoke dans les marqueurs)
+        description: "Raccourci fumée" # affiché dans l'aide radio
+        command: "/_smoke"            # commande VEAF à exécuter
+        bypass_security: false        # true = toujours disponible, sans /secu
 ```
 
-| Field | Type | Default | Required | Description |
-|-------|------|---------|----------|-------------|
-| `enable` | boolean | `true` | No | Enable or disable the module |
-| `logLevel` | string | *(global)* | No | Per-module log level override |
-| `shortcuts` | object[] | `[]` | No | Additional custom aliases |
-| `shortcuts[].name` | string | — | Yes | Alias name — players type `-name` in a map marker |
-| `shortcuts[].description` | string | — | No | Description shown in radio help |
-| `shortcuts[].command` | string | — | Yes | Full VEAF command to execute (e.g. `/_smoke`) |
-| `shortcuts[].bypass_security` | boolean | `false` | No | If true, this alias ignores the security system |
+| Champ | Type | Défaut | Requis | Description |
+|-------|------|--------|--------|-------------|
+| `enable` | booléen | `true` | Non | Activer ou désactiver le module |
+| `logLevel` | string | *(global)* | Non | Surcharge du niveau de log par module |
+| `shortcuts` | objet[] | `[]` | Non | Aliases personnalisés supplémentaires |
+| `shortcuts[].name` | string | — | Oui | Nom de l'alias — les joueurs tapent `-nom` dans un marqueur |
+| `shortcuts[].description` | string | — | Non | Description affichée dans l'aide radio |
+| `shortcuts[].command` | string | — | Oui | Commande VEAF complète à exécuter (ex : `/_smoke`) |
+| `shortcuts[].bypass_security` | booléen | `false` | Non | Si true, cet alias ignore le système de sécurité |
 
-### Minimal example
+### Exemple minimal
 
 ```yaml
 lua_modules:
@@ -62,87 +62,46 @@ lua_modules:
     enable: true
     shortcuts:
       - name: "cas"
-        description: "Request CAS"
+        description: "Demander CAS"
         command: "/_spawn group, name CAS-Template"
 ```
 
 ---
 
-Mission makers can also add custom aliases in `mission-script.lua`:
+Les créateurs de missions peuvent également ajouter des aliases personnalisés dans `mission-script.lua` :
 
 ---
 
-## Custom Aliases
+## Aliases personnalisés
 
-Add mission-specific aliases in your `mission-script.lua`:
+Ajoutez des aliases spécifiques à votre mission dans `mission-script.lua` :
 
 ```lua
 veafShortcuts.AddAlias(
   VeafAlias:new()
-    :setName("-myalias")
-    :setDescription("My custom spawn")
-    :setVeafCommand("_spawn group, name my-custom-group")
+    :setName("-monalias")
+    :setDescription("Mon spawn personnalisé")
+    :setVeafCommand("_spawn group, name mon-groupe-custom")
 )
 ```
 
 ---
 
-## Default Aliases Reference
+## Référence des aliases par défaut
 
-See the **[Aliases Reference](../../ALIASES.md)** for the complete list of all built-in aliases.
-
----
-
-## See also
-
-- [Aliases Reference](../../ALIASES.md) — full list of all built-in aliases
-- [veafSpawn](veafSpawn.md) — the underlying spawn engine
-- [veafSecurity](veafSecurity.md) — permission system
-
-
-### Air Missions
-
-| Alias | Description |
-|-------|-------------|
-| `-cap` | Dynamic CAP (needs aircraft name) |
-| `-airstart` | Start a combat mission (needs name) |
-| `-airstop` | Stop a combat mission (needs name) |
-| `-zonestart` | Activate a combat zone (needs name) |
-| `-zonestop` | Deactivate a combat zone (needs name) |
-
-### Radio
-
-| Alias | Description |
-|-------|-------------|
-| `-send` | Send radio message (needs `"MESSAGE"`) |
-| `-play` | Play sound file (needs `"FILENAME"`) |
-
-### Mission Master
-
-| Alias | Description |
-|-------|-------------|
-| `-flag` | Get flag value (needs name) |
-| `-flagon` | Set flag to ON (needs name) |
-| `-flagoff` | Set flag to OFF (needs name) |
-| `-run` | Run a runnable (needs name) |
-
-### Utility Commands
-
-| Alias | Description |
-|-------|-------------|
-| `-destroy` | Destroy any unit within 100m of marker |
-| `-ai_set` | Set AI handler for a ground group |
+Voir la **[Référence des Alias](../../ALIASES.fr.md)** pour la liste complète de tous les alias intégrés.
 
 ---
 
-## Security
+## Sécurité
 
-Most aliases respect the security system (`veafSecurity`). Some utility aliases (like `-smoke`, `-signal`, `-light`, `-tacan`, `-jtac`, `-afac`) bypass security and are always available to all players.
+La plupart des aliases respectent le système de sécurité (`veafSecurity`). Certains aliases utilitaires (comme `-smoke`, `-signal`, `-light`, `-tacan`, `-jtac`, `-afac`) contournent la sécurité et sont toujours disponibles pour tous les joueurs.
 
 ---
 
-## See Also
+## Voir aussi
 
-- [Pilot Guide — Marker Commands](../../pilot/GUIDE.md#marker-commands) — player-facing usage instructions
-- [veafSpawn](veafSpawn.md) — the underlying spawn engine
-- [veafSecurity](veafSecurity.md) — permission system
+- [Référence des Alias](../../ALIASES.fr.md) — liste complète de tous les alias intégrés
+- [veafSpawn](veafSpawn.md) — le moteur de spawn sous-jacent
+- [veafSecurity](veafSecurity.md) — système de permissions
+

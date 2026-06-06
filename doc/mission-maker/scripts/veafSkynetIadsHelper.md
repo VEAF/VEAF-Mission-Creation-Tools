@@ -1,196 +1,195 @@
-# veafSkynet — Skynet IADS Integration
+# veafSkynetIadsHelper — Intégration Skynet IADS
 
-
-**Module ID:** `SKYNET` | **Version:** 3.1.x | **File:** `veafSkynetIadsHelper.lua`
-
----
-
-## Purpose
-
-Integrates the [Skynet IADS](https://github.com/walder/Skynet-IADS) third-party script with VEAF missions. Without Skynet, DCS SAM sites operate independently — each battery makes its own decisions, radars transmit continuously, and there is no coordination between EWR and SAM. Skynet turns all of that into a real IADS network: radars go silent when not needed, threats are passed between sensors, and point-defence is assigned automatically.
-
-The VEAF module (`veafSkynet`) handles the construction of the Skynet network for you: it scans all groups present in the mission, classifies them as SAM, EWR, or point-defence, and registers them with Skynet at mission start. Dynamic groups spawned during the mission are also handled automatically when `DynamicSpawn` is enabled.
+**Module ID :** `SKYNET` | **Fichier :** `veafSkynetIadsHelper.lua` | **Table Lua :** `veafSkynet`
 
 ---
 
-## Prerequisites
+## Objectif
 
-- Skynet IADS script must be loaded **before** `veafSkynetIadsHelper.lua` in the DCS trigger chain
-- Skynet must be available as a global table (`skynet`) at the time VEAF initialises
+[Skynet-IADS](https://github.com/walder/Skynet-IADS) est un script tiers qui pilote les systèmes radar antiaériens afin qu'ils optimisent leur survivabilité et leur léthalité en restant éteints le plus possible. Il simule un IADS (Integrated Air Defence System) dans lequel les EWR (Early Warning Radar) scannent le ciel et communiquent leurs détections aux sites SAM, permettant à ceux-ci de ne s'activer que lorsqu'ils sont en capacité d'engager un contact.
 
----
-
-## Enable
-
-```lua
-veafSkynet.initialize()
-```
-
-Call this from `mission-script.lua` after your other module initialisations. Skynet networks for both coalitions are built automatically.
-
-### Optional parameters
-
-```lua
-veafSkynet.initialize(
-  includeRedInRadio,   -- bool: add a "Red IADS" status entry to the F10 radio menu
-  debugRed,            -- bool: enable Skynet debug logging for the red network
-  includeBlueInRadio,  -- bool: add a "Blue IADS" status entry to the F10 radio menu
-  debugBlue            -- bool: enable Skynet debug logging for the blue network
-)
-```
-
-All four parameters are optional and default to `false`.
+`veafSkynetIadsHelper` automatise la construction de ces réseaux à partir des groupes présents dans la mission, et fournit des outils pour les surveiller, les contrôler et les lier à des objectifs de mission.
 
 ---
 
-## Configuration (set before `initialize()`)
+## Prérequis
 
-These properties control how the networks are built. Set them **before** calling `initialize()`:
+- Le script Skynet IADS doit être téléchargé séparément et chargé **avant** `veafSkynetIadsHelper`
+- Configurer via `mission.yaml` (recommandé) ou directement dans `missionConfig.lua`
 
-### Point defence
+---
 
-```lua
--- Disable point defence altogether (default)
-veafSkynet.PointDefenceMode = veafSkynet.PointDefenceModes.None
+## Configuration (`mission.yaml`)
 
--- Let Skynet assign point defences according to its own database logic
-veafSkynet.PointDefenceMode = veafSkynet.PointDefenceModes.Skynet
-
--- Assign point-defence groups to DCS AI control instead (not part of Skynet network)
-veafSkynet.PointDefenceMode = veafSkynet.PointDefenceModes.Dcs
+```yaml
+external_modules:
+  skynet:
+    enabled: true
+    include_red_in_radio: false   # afficher l'état du réseau rouge dans le menu F10
+    debug_red: false              # logs détaillés Skynet pour le réseau rouge
+    include_blue_in_radio: false  # afficher l'état du réseau bleu dans le menu F10
+    debug_blue: false             # logs détaillés Skynet pour le réseau bleu
 ```
 
-Skynet classifies groups as *single*, *complex*, or *EWR*. With `Skynet` mode: single units defend complex sites; complex sites defend EWR. With `Dcs` mode: groups that would have been assigned as point defence are left to vanilla DCS AI.
+| Champ | Type | Défaut | Description |
+|-------|------|--------|-------------|
+| `enabled` | booléen | `false` | Activer l'intégration Skynet |
+| `include_red_in_radio` | booléen | `false` | Ajouter l'état IADS rouge au menu radio F10 |
+| `debug_red` | booléen | `false` | Debug verbeux Skynet pour la coalition rouge |
+| `include_blue_in_radio` | booléen | `false` | Ajouter l'état IADS bleu au menu radio F10 |
+| `debug_blue` | booléen | `false` | Debug verbeux Skynet pour la coalition bleue |
 
-### Group integration mode
+---
 
-```lua
--- Only register groups where every unit is known to Skynet (strict)
-veafSkynet.GroupIntegrationMode = veafSkynet.GroupIntegrationModes.Strict
-
--- Register groups even if some units are unknown to Skynet (default, more permissive)
-veafSkynet.GroupIntegrationMode = veafSkynet.GroupIntegrationModes.Lenient
-```
-
-Use `Strict` if you want to prevent mixed groups (e.g. a transport truck alongside a radar) from accidentally entering the IADS network.
-
-### Dynamic spawn
+## Activation (via `missionConfig.lua`)
 
 ```lua
--- Register dynamically spawned groups with Skynet (useful for veafSpawn / veafCombatZone)
-veafSkynet.DynamicSpawn = true
-```
-
-When enabled, any group spawned by VEAF after mission start is automatically checked and added to the appropriate Skynet network.
-
-### Startup delay
-
-```lua
--- Seconds to wait before building the networks (default: 1)
-veafSkynet.DelayForStartup = 5
+if veafSkynet then
+    veafSkynet.PointDefenceMode = veafSkynet.PointDefenceModes.Skynet
+    veafSkynet.GroupIntegrationMode = veafSkynet.GroupIntegrationModes.Strict
+    veafSkynet.DynamicSpawn = false
+    veafSkynet.DelayForStartup = 5
+    veafSkynet.initialize(
+        false, -- includeRedInRadio
+        false, -- debugRed
+        false, -- includeBlueInRadio
+        false  -- debugBlue
+    )
+end
 ```
 
 ---
 
-## Full configuration example
+## Principes de fonctionnement
 
-```lua
--- Skynet IADS integration
-veafSkynet.PointDefenceMode     = veafSkynet.PointDefenceModes.Skynet
-veafSkynet.GroupIntegrationMode = veafSkynet.GroupIntegrationModes.Lenient
-veafSkynet.DynamicSpawn         = true
-veafSkynet.initialize(
-  false, false,   -- red:  no radio menu, no debug
-  false, false    -- blue: no radio menu, no debug
-)
-```
+Le module parcourt la liste de tous les groupes de la mission au démarrage, et ajoute ceux qui sont éligibles dans les réseaux IADS Skynet. Cette initialisation se fait avec un délai paramétrable (`DelayForStartup`) pour laisser les autres modules s'initialiser en premier. Les groupes en activation retardée sont intégrés au démarrage, mais pas les groupes générés dynamiquement (sauf si `DynamicSpawn = true`).
+
+Le module crée toujours deux réseaux Skynet : un pour la coalition **bleue**, un pour la coalition **rouge**.
 
 ---
 
-## Command Centers
+## Propriétés globales (à définir avant `initialize`)
 
-A command center is a special static object (building, vehicle, or FARP) that, when destroyed, causes all Skynet elements of that coalition to fall back to autonomous mode — radars start transmitting continuously, coordination is lost.
+### Mode Point Defence — `veafSkynet.PointDefenceMode`
+
+Identifie les sites SAM capables d'intercepter des missiles antiradar et les affecte en défense rapprochée d'autres éléments du réseau.
+
+| Valeur | Description |
+|--------|-------------|
+| `veafSkynet.PointDefenceModes.None` | Pas de défenses rapprochées (**défaut**) |
+| `veafSkynet.PointDefenceModes.Skynet` | Défenses rapprochées gérées par Skynet (recommandé si activé) |
+| `veafSkynet.PointDefenceModes.Dcs` | Exclut les défenses rapprochées du réseau IADS — laissées à l'IA DCS (toujours allumées, plus efficaces mais vulnérables) |
+
+### Mode d'intégration des groupes — `veafSkynet.GroupIntegrationMode`
+
+Détermine quels groupes DCS sont intégrés dans les réseaux Skynet.
+
+| Valeur | Description |
+|--------|-------------|
+| `veafSkynet.GroupIntegrationModes.Strict` | Seuls les groupes composés **uniquement** d'unités connues de Skynet sont intégrés |
+| `veafSkynet.GroupIntegrationModes.Lenient` | Les groupes contenant **au moins une** unité connue de Skynet sont intégrés (**défaut**) |
+
+Le mode `Lenient` intégrera un convoi composé de tanks, transports **et** d'une SA-19 d'escorte. Le mode `Strict` ne l'intégrera pas.
+
+### Spawn dynamique — `veafSkynet.DynamicSpawn`
+
+| Valeur | Description |
+|--------|-------------|
+| `false` | Seuls les groupes présents au démarrage sont intégrés (**défaut**) |
+| `true` | Les groupes générés en cours de mission sont également intégrés dans les réseaux existants |
+
+> `veafSpawn` ajoute automatiquement les unités SAM qu'il génère dans les réseaux Skynet, sauf si `DynamicSpawn = true` (dans ce cas `veafSkynet` gère lui-même cette surveillance).
+
+### Délai de démarrage — `veafSkynet.DelayForStartup`
+
+Nombre de secondes à attendre avant d'initialiser les réseaux (défaut : `1`). À augmenter si d'autres modules initialisent des groupes en retard.
+
+---
+
+## Centres de commandement
+
+Dans Skynet, un **Command Center** est une unité ou un statique dont dépend le fonctionnement d'un réseau. Si tous les Command Centers d'un réseau sont détruits, ce réseau bascule en mode autonome (tous les éléments restent allumés en permanence, mais bénéficient toujours des intelligences de Skynet, notamment l'évasion HARM).
+
+Cette mécanique permet de donner des objectifs de mission concrets : détruire le centre de commandement pour désorganiser la défense aérienne.
 
 ```lua
--- Register a command center for red coalition
-veafSkynet.addCommandCenterOfCoalition(
-  coalition.side.RED,
-  "RED-IADS-CMD-CENTER"    -- DCS static object name
-)
+-- Ajouter un Command Center à un réseau (peut être un groupe, une unité ou un statique)
+veafSkynet.addCommandCenterOfCoalition(coalition.side.RED, "CommandCenterRed")
 
--- Destroy all registered command centers of a coalition (e.g. on a trigger)
+-- Détruire (faire exploser) tous les Command Centers d'un réseau
 veafSkynet.destroyCommandCentersOfCoalition(coalition.side.RED)
 ```
 
-When a command center is destroyed, Skynet automatically switches the network to autonomous mode — equivalent to `deactivateNetworkOfCoalition` with `SkynetElementStates.Autonomous`.
-
 ---
 
-## Accessing the Generated Networks
+## Désactivation d'un réseau
 
-The networks are built asynchronously after `initialize()`. To access the Skynet IADS object (e.g. to add custom SAM sites not covered by the auto-scan), schedule a task after startup:
+Désactive un réseau Skynet et bascule tous ses éléments dans un état défini avant de les rendre à l'IA DCS.
 
 ```lua
-mist.scheduleFunction(function()
-  local redIADS = veafSkynet.getNetwork("red iads")
-  if redIADS then
-    -- add a group that was not auto-detected
-    redIADS.iads:addSAMSite(Group.getByName("Manual SA-10"))
-  end
-end, {}, timer.getTime() + veafSkynet.DelayForStartup + 5)
+veafSkynet.deactivateNetworkOfCoalition(coalition.side.RED)
+-- ou avec un état spécifique :
+veafSkynet.deactivateNetworkOfCoalition(coalition.side.RED, veafSkynet.SkynetElementStates.Dark)
 ```
 
-The default network names are `"red iads"` and `"blue iads"` (stored in `veafSkynet.defaultIADS`).
+| État | Description |
+|------|-------------|
+| `veafSkynet.SkynetElementStates.Autonomous` | Mode autonome selon la configuration de chaque élément |
+| `veafSkynet.SkynetElementStates.Live` | Tous les éléments allumés (**défaut**) |
+| `veafSkynet.SkynetElementStates.Dark` | Tous les éléments éteints |
 
 ---
 
-## Deactivating a Network at Runtime
+## Accéder aux réseaux générés
 
-You can switch all elements of a coalition's network to a specific mode — useful for scripted events (command center destroyed, ceasefire, etc.):
-
-```lua
--- Put all red elements in dark mode (radars off, effectively silent)
-veafSkynet.deactivateNetworkOfCoalition(
-  coalition.side.RED,
-  veafSkynet.SkynetElementStates.Dark
-)
-
--- Restore autonomous operation (radars on, no Skynet coordination)
-veafSkynet.deactivateNetworkOfCoalition(
-  coalition.side.RED,
-  veafSkynet.SkynetElementStates.Autonomous
-)
-```
-
-| Element State | Meaning |
-|---------------|---------|
-| `Autonomous` | Unit operates independently — radar always on, no Skynet coordination |
-| `Live` | Normal Skynet operation — radar managed by network |
-| `Dark` | Radar emissions off — unit is silent and cannot be targeted by HARM |
-
----
-
-## Skynet IADS Monitor
-
-`veafSkynetIadsMonitor.lua` is a companion module that monitors the state of the Skynet networks and can broadcast contact alerts on the radio. It requires no `initialize()` call — it activates on the first `AddMonitoringTask()`.
+Après l'initialisation (qui se fait en différé), on peut accéder aux objets réseaux Skynet via une tâche différée :
 
 ```lua
--- Monitor the red IADS and broadcast when new threats are detected
-veafSkynetMonitor.AddMonitoringTask({
-  iadsName   = "red iads",
-  coalition  = coalition.side.BLUE,           -- notify blue players
-  onDetected = function(contact)
-    trigger.action.outText("New radar contact: " .. contact:getName(), 15)
-  end,
-  onLost = function(contact)
-    trigger.action.outText("Contact lost: " .. contact:getName(), 15)
-  end,
-})
+local assignRedIadsTaskId = nil
+local myRedIads = nil
+
+local function AssignRedIadsTask()
+    if not veafSkynet then
+        mist.removeFunction(assignRedIadsTaskId)
+        return
+    end
+    if veafSkynet.initialized then
+        mist.removeFunction(assignRedIadsTaskId)
+        local veafSkynetNetwork = veafSkynet.getNetwork(veafSkynet.defaultIADS[tostring(coalition.side.RED)])
+        myRedIads = veafSkynetNetwork.iads
+    end
+end
+
+assignRedIadsTaskId = mist.scheduleFunction(AssignRedIadsTask, {}, timer.getTime() + veafSkynet.DelayForStartup + 1, 10)
 ```
 
 ---
 
-## See Also
+## Exemple — Bascule en autonome contrôlée par un objectif
 
-- [Skynet IADS repository](https://github.com/walder/Skynet-IADS) — third-party script documentation
-- [Lua API Reference](../../LUA_API_REFERENCE.md) — full `veafSkynet` API
+Cet exemple crée un Command Center depuis un template, puis expose des fonctions pour activer/désactiver le réseau selon l'évolution de la mission.
+
+```lua
+local function SkynetNetworkEnable(iCoalition)
+    local veafSkynetNetwork = veafSkynet.getNetwork(veafSkynet.defaultIADS[tostring(iCoalition)])
+    local iads = veafSkynetNetwork.iads
+    if #iads:getCommandCenters() > 0 and iads:isCommandCenterUsable() then
+        return -- déjà actif
+    end
+    -- Cloner un groupe template dans une zone dédiée
+    local sTemplateName = "SkynetCommandCenterRed"
+    local ccData = mist.cloneInZone(sTemplateName, "SkynetCommandCenterZone")
+    veafSkynet.addCommandCenterOfCoalition(iads:getCoalition(), ccData.name)
+end
+
+local function SkynetNetworkDisable(iCoalition)
+    veafSkynet.destroyCommandCentersOfCoalition(iCoalition)
+end
+```
+
+---
+
+## Voir aussi
+
+- [Documentation Skynet IADS](https://github.com/walder/Skynet-IADS) — script tiers (non inclus dans VEAF)
+- [Référence API Lua](../../LUA_API_REFERENCE.md) — API complète de `veafSkynet`

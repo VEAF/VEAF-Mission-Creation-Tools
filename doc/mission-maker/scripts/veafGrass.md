@@ -1,60 +1,59 @@
-# veafGrass — Grass Airstrip Configuration
+# veafGrass — Configuration de pistes en herbe
 
-
-**Module ID:** — | **File:** `veafGrass.lua`
-
----
-
-## Purpose
-
-Configures unprepared grass airstrips for use in DCS missions. Provides positioning data, radio frequencies, and landing aids for rough-field landing zones that are not standard DCS airbases.
+**Module ID:** — | **Fichier:** `veafGrass.lua`
 
 ---
 
-## Enable
+## Objectif
+
+Configure des pistes en herbe non préparées pour une utilisation dans les missions DCS. Fournit des données de positionnement, des fréquences radio et des aides à l'atterrissage pour les zones d'atterrissage en campagne qui ne sont pas des bases aériennes DCS standard.
+
+---
+
+## Activation
 
 ```lua
 veafGrass.initialize()
 ```
 
-Then define each grass strip:
+Puis définir chaque piste :
 
 ```lua
 VeafGrassRunway:new()
   :setName("FARP Whiskey")
-  :setGroupName("FARP-WHISKEY-GROUP")   -- static objects defining the strip
-  :setRunwayHeading(270)                -- runway heading in degrees
-  :setAtcFrequency(127500000)           -- Hz (127.5 MHz)
+  :setGroupName("FARP-WHISKEY-GROUP")   -- objets statiques définissant la piste
+  :setRunwayHeading(270)                -- cap de piste en degrés
+  :setAtcFrequency(127500000)           -- Hz (127,5 MHz)
   :setAtcModulation(radio.modulation.AM)
-  :setTacanChannel(74, "X", "WHK")     -- optional TACAN
+  :setTacanChannel(74, "X", "WHK")     -- TACAN optionnel
   :initialize()
 ```
 
 ---
 
-## Builder Methods
+## Méthodes du builder
 
-| Method | Description |
-|--------|-------------|
-| `:setName(name)` | Internal identifier and label |
-| `:setGroupName(name)` | DCS group of static objects forming the strip |
-| `:setRunwayHeading(deg)` | Primary runway magnetic heading |
-| `:setAtcFrequency(hz)` | ATC radio frequency in Hz |
-| `:setAtcModulation(mod)` | `radio.modulation.AM` or `FM` |
-| `:setTacanChannel(ch, band, morse)` | TACAN channel, band (X/Y), Morse ID |
-| `:initialize()` | Register the strip |
+| Méthode | Description |
+|---------|-------------|
+| `:setName(name)` | Identifiant interne et libellé |
+| `:setGroupName(name)` | Groupe DCS d'objets statiques formant la piste |
+| `:setRunwayHeading(deg)` | Cap magnétique principal de la piste |
+| `:setAtcFrequency(hz)` | Fréquence radio ATC en Hz |
+| `:setAtcModulation(mod)` | `radio.modulation.AM` ou `FM` |
+| `:setTacanChannel(ch, band, morse)` | Canal TACAN, bande (X/Y), identifiant Morse |
+| `:initialize()` | Enregistrer la piste |
 
 ---
 
 ## Notes
 
-- The "group" should contain the static objects (windsock, fuel trucks, etc.) that visually define the strip
-- Position and heading are read from the group's lead unit
-- ATC frequency is announced via the F10 menu and in radio messages
+- Le "groupe" doit contenir les objets statiques (manche à air, camions-citerne, etc.) qui définissent visuellement la piste
+- La position et le cap sont lus depuis l'unité de tête du groupe
+- La fréquence ATC est annoncée via le menu F10 et dans les messages radio
 
 ---
 
-## See Also
+## Voir aussi
 
-- [veafAssets](veafAssets.md) — for managed tankers and AWACS at regular airbases
-- [Lua API Reference](../../LUA_API_REFERENCE.md) — full `veafGrass` API
+- [veafAssets](veafAssets.md) — pour les ravitailleurs et AWACS gérés aux bases régulières
+- [Référence API Lua](../../LUA_API_REFERENCE.md) — API complète de `veafGrass`

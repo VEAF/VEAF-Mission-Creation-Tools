@@ -1,36 +1,33 @@
-# veafAirWaves — Wave-Based Air Attacks
+# veafAirWaves — Attaques aériennes par vagues
 
-
-**Module ID:** `AIRWAVES` | **Version:** 1.8.x | **File:** `veafAirWaves.lua`
-
----
-
-## Purpose
-
-Defines zones that spawn recurring waves of AI aircraft. When the required number of human players enters the zone, the first wave is launched. As each wave is destroyed, the next wave spawns (with optional delays). Supports player-count scaling, reset on player death, and custom radio messages.
+**Module ID:** `AIRWAVES` | **Version:** 1.8.x | **Fichier:** `veafAirWaves.lua`
 
 ---
 
-## Dependencies
+## Objectif
 
-- `veafSpawn` — AI aircraft spawning
-- `veafRadio` — status messages (optional)
+Définit des zones qui font apparaître des vagues récurrentes d'aéronefs IA. Quand le nombre requis de joueurs humains entre dans la zone, la première vague est lancée. À chaque vague détruite, la suivante apparaît (avec des délais optionnels). Supporte la mise à l'échelle selon le nombre de joueurs, la réinitialisation à la mort d'un joueur et des messages radio personnalisés.
 
 ---
 
-## Enable
+## Dépendances
 
-No global `initialize()`. Each zone is individually created:
+- `veafSpawn` — spawn d'aéronefs IA
+- `veafRadio` — messages de statut (optionnel)
+
+---
+
+## Activation
+
+Pas d'`initialize()` global. Chaque zone est créée individuellement :
 
 ```lua
 local defenseZone = AirWaveZone:new()
   :setName("AW-East")
   :setZoneName("ZONE-AIRWAVES-EAST")
-  :setDescription("Eastern intercept zone")
+  :setDescription("Zone d'interception est")
   :addWave({ "MiG-23 Wave 1a", "MiG-23 Wave 1b" })
   :addWave({ "MiG-29 Wave 2" })
-  :setMinimumPlayersForWave(1)
-  :initialize()
 ```
 
 ---
@@ -40,89 +37,89 @@ local defenseZone = AirWaveZone:new()
 ```yaml
 lua_modules:
   AIRWAVES:
-    enable: true          # default: true
-    logLevel: info        # optional log level override
+    enable: true          # défaut : true
+    logLevel: info        # surcharge optionnelle du niveau de log
     airwave_zones:
-      - name: "BVR Zone"                  # REQUIRED — internal identifier
-        description: "Eastern BVR arena"  # shown in messages (optional)
-        start: true                       # true = start automatically at mission start
-        player_coalitions: [BLUE]         # BLUE | RED — which coalition's players trigger waves
-        zone_center_coordinates: "N41°00'00\" E044°00'00\""  # use this OR trigger_zone_name
-        trigger_zone_name: "ZONE-BVR-EAST"  # DCS trigger zone name (alternative to coordinates)
-        zone_radius: 50000               # radius in metres (when using coordinates)
-        draw_zone: true                  # draw zone boundary on the map
-        respawn_default_offset: [0, 0]   # [lat_delta_m, lon_delta_m] spawn offset from zone centre
-        respawn_radius: 1000             # scatter radius around spawn offset (metres)
-        delay_before_activation: 60      # seconds to wait after players enter before first wave
-        delay_between_waves: 120         # fixed delay between waves (ignored if min/max set)
-        min_seconds_between_waves: 60    # minimum inter-wave delay (random range)
-        max_seconds_between_waves: 180   # maximum inter-wave delay (random range)
-        max_altitude_ft: 30000          # AI units above this altitude are removed
-        min_altitude_ft: 1000           # AI units below this altitude are removed
-        max_seconds_outside_ia: 300     # seconds before an AI group is considered lost outside zone
-        minimum_life_percent: 0.1       # AI unit removed when below this life fraction (0–1)
-        reset_when_dying: false         # reset all waves when a player dies
-        message_start: "Zone active!"   # custom zone-start message (optional)
-        message_wait_for_humans: "Waiting for players..."
-        message_wave_deployed: "Wave inbound!"
-        message_end_zone: "Zone cleared!"
-        message_end_all: "All zones cleared!"
+      - name: "Zone BVR"                  # REQUIS — identifiant interne
+        description: "Arène BVR Est"      # affiché dans les messages (optionnel)
+        start: true                       # true = démarrer automatiquement au lancement
+        player_coalitions: [BLUE]         # BLUE | RED — coalition dont les joueurs déclenchent les vagues
+        zone_center_coordinates: "N41°00'00\" E044°00'00\""  # ou trigger_zone_name
+        trigger_zone_name: "ZONE-BVR-EST"  # nom de la zone de trigger DCS (alternative aux coordonnées)
+        zone_radius: 50000               # rayon en mètres (avec les coordonnées)
+        draw_zone: true                  # dessiner le contour de la zone sur la carte
+        respawn_default_offset: [0, 0]   # [delta_lat_m, delta_lon_m] décalage depuis le centre
+        respawn_radius: 1000             # rayon de dispersion autour du point de spawn (mètres)
+        delay_before_activation: 60      # secondes avant la première vague après entrée des joueurs
+        delay_between_waves: 120         # délai fixe entre les vagues (ignoré si min/max définis)
+        min_seconds_between_waves: 60    # délai inter-vague aléatoire minimum
+        max_seconds_between_waves: 180   # délai inter-vague aléatoire maximum
+        max_altitude_ft: 30000          # altitude maximale en pieds — les unités IA au-dessus sont supprimées
+        min_altitude_ft: 1000           # altitude minimale en pieds
+        max_seconds_outside_ia: 300     # secondes avant de considérer une unité IA hors zone comme perdue
+        minimum_life_percent: 0.1       # supprimer l'unité IA en dessous de cette fraction de vie (0–1)
+        reset_when_dying: false         # réinitialiser toutes les vagues quand un joueur meurt
+        message_start: "Zone active !"  # message personnalisé de début de zone (optionnel)
+        message_wait_for_humans: "En attente des joueurs..."
+        message_wave_deployed: "Vague en approche !"
+        message_end_zone: "Zone libérée !"
+        message_end_all: "Toutes les zones libérées !"
         waves:
-          - groups: "su27-flight"       # DCS group name or space-separated list
-            delay: 0                    # seconds after this wave is cleared before the next; -1 = concurrent
-            number: "1-2"              # how many groups to pick: integer or "min-max" range
-            bias: 0                     # shift random selection towards harder groups
+          - groups: "su27-flight"       # nom de groupe DCS ou liste séparée par espaces
+            delay: 0                    # secondes après cette vague avant la suivante ; -1 = simultané
+            number: "1-2"              # groupes à choisir : entier ou plage "min-max"
+            bias: 0                     # décaler la sélection aléatoire vers les entrées plus difficiles
           - groups: "su30sm-flight"
             delay: 120
 ```
 
-### `airwave_zones[]` common fields
+### Champs communs de `airwave_zones[]`
 
-| Field | Type | Default | Required | Description |
-|-------|------|---------|----------|-------------|
-| `name` | string | — | Yes | Internal identifier |
-| `description` | string | — | No | Label shown in messages and logs |
-| `start` | boolean | `false` | No | Auto-start at mission launch |
-| `player_coalitions` | string[] | — | No | Coalitions whose players trigger waves (`BLUE`, `RED`) |
+| Champ | Type | Défaut | Requis | Description |
+|-------|------|--------|--------|-------------|
+| `name` | string | — | Oui | Identifiant interne |
+| `description` | string | — | Non | Libellé affiché dans les messages et les logs |
+| `start` | booléen | `false` | Non | Démarrage automatique au lancement de la mission |
+| `player_coalitions` | string[] | — | Non | Coalitions dont les joueurs déclenchent les vagues (`BLUE`, `RED`) |
 
-### Zone location (use one)
+### Localisation de la zone (utiliser l'une ou l'autre)
 
-| Field | Type | Description |
+| Champ | Type | Description |
 |-------|------|-------------|
-| `trigger_zone_name` | string | DCS trigger zone name (preferred) |
-| `zone_center_coordinates` | string | Coordinate string, e.g. `"N41°00'00\" E044°00'00\""` |
-| `zone_radius` | number | Zone radius in metres (required with coordinates) |
+| `trigger_zone_name` | string | Nom de la zone de trigger DCS (recommandé) |
+| `zone_center_coordinates` | string | Chaîne de coordonnées, ex : `"N41°00'00\" E044°00'00\""` |
+| `zone_radius` | nombre | Rayon de la zone en mètres (requis avec les coordonnées) |
 
-### Timing and limits
+### Timing et limites
 
-| Field | Type | Default | Description |
-|-------|------|---------|-------------|
-| `delay_before_activation` | integer | `0` | Seconds before first wave after players enter |
-| `delay_between_waves` | integer | `0` | Fixed inter-wave delay (overridden by min/max) |
-| `min_seconds_between_waves` | integer | — | Random minimum inter-wave delay |
-| `max_seconds_between_waves` | integer | — | Random maximum inter-wave delay |
-| `max_altitude_ft` | integer | — | Remove AI units above this altitude |
-| `min_altitude_ft` | integer | — | Remove AI units below this altitude |
-| `max_seconds_outside_ia` | integer | — | Seconds before off-zone AI group is discarded |
-| `minimum_life_percent` | number | — | Remove AI unit when life drops below this fraction |
+| Champ | Type | Défaut | Description |
+|-------|------|--------|-------------|
+| `delay_before_activation` | entier | `0` | Secondes avant la première vague après entrée des joueurs |
+| `delay_between_waves` | entier | `0` | Délai inter-vague fixe (surchargé par min/max) |
+| `min_seconds_between_waves` | entier | — | Délai inter-vague aléatoire minimum |
+| `max_seconds_between_waves` | entier | — | Délai inter-vague aléatoire maximum |
+| `max_altitude_ft` | entier | — | Supprimer les unités IA au-dessus de cette altitude |
+| `min_altitude_ft` | entier | — | Supprimer les unités IA en dessous de cette altitude |
+| `max_seconds_outside_ia` | entier | — | Secondes avant qu'un groupe IA hors zone soit éliminé |
+| `minimum_life_percent` | nombre | — | Supprimer l'unité IA quand sa vie passe sous cette fraction |
 
-### `waves[]` fields
+### Champs de `waves[]`
 
-| Field | Type | Default | Description |
-|-------|------|---------|-------------|
-| `groups` | string | — | DCS group name, space-separated list, or VEAF spawn command |
-| `delay` | integer | `0` | Seconds after wave cleared before next; `-1` = concurrent |
-| `number` | string \| integer | — | How many groups to pick: `2` or `"1-3"` range |
-| `bias` | integer | `0` | Shift random start index toward harder entries |
+| Champ | Type | Défaut | Description |
+|-------|------|--------|-------------|
+| `groups` | string | — | Nom de groupe DCS, liste séparée par espaces, ou commande spawn VEAF |
+| `delay` | entier | `0` | Secondes après la vague avant la suivante ; `-1` = simultané |
+| `number` | string \| entier | — | Groupes à choisir : `2` ou plage `"1-3"` |
+| `bias` | entier | `0` | Décaler l'index de début aléatoire vers les entrées plus difficiles |
 
-### Minimal example
+### Exemple minimal
 
 ```yaml
 lua_modules:
   AIRWAVES:
     enable: true
     airwave_zones:
-      - name: "BVR Arena"
+      - name: "Arène BVR"
         start: true
         player_coalitions: [BLUE]
         trigger_zone_name: "ZONE-BVR"
@@ -136,126 +133,58 @@ lua_modules:
 
 ---
 
-## AirWaveZone Builder Methods
-
-| Method | Description |
-|--------|-------------|
-| `:setName(name)` | Internal identifier |
-| `:setZoneName(zoneName)` | DCS trigger zone defining the interception area |
-| `:setDescription(text)` | Label for messages and logs |
-| `:addWave(...)` | Add a wave — see [Wave definition](#wave-definition) |
-| `:resetWaves()` | Clear all added waves (useful after `mist.utils.deepCopy`) |
-| `:setMinimumPlayersForWave(n)` | Minimum human players needed to trigger a wave |
-| `:setPlayerCoalitions(sides)` | Which coalitions to count as players |
-| `:setPlayerUnitsNames(names)` | Specific player unit names to track |
-| `:setRespawnRadius(m)` | Spawn scatter radius (default: 250 m) |
-| `:setRespawnDefaultOffset(lat, lon)` | Offset from zone centre for spawns (metres, lat/lon) |
-| `:setMaxSecondsOutsideOfZoneIA(n)` | Seconds before an AI wave group is considered lost if it leaves the zone |
-| `:setMaxSecondsOutsideOfZonePlayers(n)` | Seconds before the zone resets if all players leave |
-| `:setSilent(bool)` | Suppress all messages |
-| `:setDrawZone(bool)` | Draw zone outline on map |
-| `:setOnStart(fn)` | Callback `(zoneName, playerUnits)` when zone activates |
-| `:setOnWaitForHumans(fn)` | Callback `(zoneName, waveIndex, playerUnits)` while waiting for players |
-| `:setOnWaitToDeploy(fn)` | Callback `(zoneName, waveIndex, playerUnits)` while inter-wave timer runs |
-| `:setOnWaveDestroyed(fn)` | Callback `(zoneName, waveIndex, playerUnits)` when a wave is destroyed |
-| `:setOnCompleted(fn)` | Callback `(zoneName, playerUnits)` when all waves done |
-| `:setOnMissionOver(fn)` | Callback `(zoneName, playerUnits)` when the zone ends in a loss |
-| `:setMessageStart(text)` | Custom zone-start message |
-| `:setMessageWaitForHumans(text)` | Custom "waiting for players" message |
-| `:setMessageWaitToDeploy(text)` | Custom wave-incoming message |
-| `:setMessageDeploy(text)` | Custom wave-launched message |
-| `:setMessageWaveDestroyed(text)` | Custom wave-down message |
-| `:setMessageCompleted(text)` | Custom all-waves-done message |
-| `:setMessageMissionOver(text)` | Custom loss message |
+  :setMinimumPlayersForWave(1)
+  :initialize()
+```
 
 ---
 
-## Wave definition
+## Méthodes du builder AirWaveZone
 
-`addWave(...)` accepts several forms — from the simplest to the most powerful:
-
-```lua
--- A single group name
-:addWave("Bandits Alpha")
-
--- Several group names at once
-:addWave("Bandits Alpha", "Bandits Bravo")
-
--- A table of group names
-:addWave({ "Bandits Alpha", "Bandits Bravo", "Bandits Charlie" })
-
--- A parameter table with full control
-:addWave({
-  groups  = { "Fighter 1", "Fighter 2", "Fighter 3", "Fighter 4", "Fighter 5" },
-  number  = "1-3",   -- pick between 1 and 3 of these groups at random
-  bias    = 2,        -- start the random pick from the 3rd group (index 2+1)
-  delay   = 30,       -- wait 30 s before spawning the next wave after this one is cleared
-})
-```
-
-### `number` — controlling how many spawn
-
-`number` sets how many groups from the list are actually spawned. It can be:
-- An integer: `number = 2` always spawns exactly 2 groups
-- A range string: `number = "2-4"` randomly spawns 2, 3, or 4 groups
-
-If `number` exceeds the list length, the same group can be picked more than once — useful for spawning multiple instances of the same threat.
-
-### `bias` — skewing towards harder variants
-
-`bias` shifts the starting index of the random selection towards the end of the list. A `bias` of 0 (default) picks from the whole list uniformly. A `bias` of 3 on a 6-group list means the first 3 entries are less likely to be chosen.
-
-The typical pattern is to order groups from easiest to hardest — early in a campaign `bias` stays at 0, and you increase it over time to make the opposition progressively more dangerous:
-
-```lua
--- A wave pool ordered by difficulty. Adjust bias= dynamically in callbacks.
-:addWave({
-  groups = {
-    "Su-25 Flight",       -- 1: easy
-    "Su-25T Flight",      -- 2: medium
-    "Su-27 Flight",       -- 3: hard
-    "Su-30SM Flight",     -- 4: very hard
-  },
-  number = "1-2",
-  bias   = 0,   -- start easy; raise to 2 later in the mission
-})
-```
-
-### `delay` — simultaneous waves
-
-When `delay` is **negative**, the next wave spawns immediately after this one — without waiting for it to be destroyed. This lets you send multiple threat packages at once:
-
-```lua
-:addWave({ groups = { "Fighter Escort" }, delay = -1 })  -- launches together with...
-:addWave({ groups = { "Strike Package" } })              -- ...this wave
-```
-
-### VEAF commands as groups
-
-Instead of a DCS group name, you can use any VEAF spawn command (the same syntax as an F10 map marker). The command is executed at the spawn position, which can be adjusted with a `[latDelta,lonDelta]` prefix (in metres, relative to the zone centre):
-
-```lua
-:addWave({
-  groups = {
-    "[0,5000]-spawn su-27, country russia",           -- 5 km north of zone centre
-    "[-3000,0]-spawn su-25, alt 100, country russia", -- 3 km south, low level
-  }
-})
-```
-
-This makes it easy to set up layered threats from different directions without pre-placing groups in the DCS Mission Editor.
+| Méthode | Description |
+|---------|-------------|
+| `:setName(name)` | Identifiant interne |
+| `:setZoneName(zoneName)` | Zone de trigger DCS définissant la zone d'interception |
+| `:setDescription(text)` | Libellé pour les messages et les logs |
+| `:addWave(groupNames)` | Ajouter une vague (table de noms de groupes DCS) |
+| `:setMinimumPlayersForWave(n)` | Nombre minimum de joueurs humains pour déclencher une vague |
+| `:setPlayerCoalitions(sides)` | Quelles coalitions comptent comme joueurs |
+| `:setPlayerUnitsNames(names)` | Noms spécifiques d'unités joueur à suivre |
+| `:setRespawnRadius(m)` | Rayon de dispersion des spawns (défaut : 250 m) |
+| `:setRespawnDefaultOffset(lat, lon)` | Décalage par rapport au centre de zone pour les spawns |
+| `:setSilent(bool)` | Supprimer tous les messages |
+| `:setDrawZone(bool)` | Dessiner le contour de la zone sur la carte |
+| `:setOnStart(fn)` | Callback quand la zone s'active |
+| `:setOnWaveDestroyed(fn)` | Callback quand une vague est détruite |
+| `:setOnCompleted(fn)` | Callback quand toutes les vagues sont terminées |
+| `:setMessageStart(text)` | Message personnalisé de démarrage de zone |
+| `:setMessageWaitToDeploy(text)` | Message personnalisé d'arrivée de vague |
+| `:setMessageWaveDeployed(text)` | Message personnalisé de vague lancée |
+| `:setMessageWaveDestroyed(text)` | Message personnalisé de vague détruite |
+| `:setMessageCompleted(text)` | Message personnalisé de toutes vagues terminées |
 
 ---
 
-## Examples
+## Vagues
 
-### Basic three-wave intercept zone
+Chaque vague est une liste de noms de groupes DCS. Tous les groupes d'une vague apparaissent simultanément. La vague suivante se déclenche quand tous les groupes de la vague courante sont détruits.
 
 ```lua
+:addWave({ "BanditsA", "BanditsB" })   -- vague 1 : deux groupes apparaissent en même temps
+:addWave({ "BanditsC" })               -- vague 2 : un groupe
+:addWave({ "BanditsD", "BanditsE", "BanditsF" })  -- vague 3
+```
+
+---
+
+## Exemple
+
+```lua
+-- Zone nécessitant 2 joueurs humains avec 3 vagues
 AirWaveZone:new()
   :setName("Intercept-West")
   :setZoneName("ZONE-WEST-INTERCEPT")
-  :setDescription("Western threat axis")
+  :setDescription("Axe de menace ouest")
   :addWave({ "Su-25T Strike 1a", "Su-25T Strike 1b" })
   :addWave({ "Su-25T Strike 2a", "Su-25T Strike 2b", "Su-25T Strike 2c" })
   :addWave({ "Su-24M Deep Strike" })
@@ -267,108 +196,48 @@ AirWaveZone:new()
   :initialize()
 ```
 
-### Randomised waves with escalating difficulty
-
-```lua
-AirWaveZone:new()
-  :setName("Intercept-East")
-  :setZoneName("ZONE-EAST-INTERCEPT")
-  :setDescription("Eastern threat axis — progressive difficulty")
-  -- Wave 1: pick 1 or 2 light fighters from a pool
-  :addWave({
-    groups = { "MiG-21 Flight", "MiG-23 Flight", "MiG-29 Flight", "Su-27 Flight" },
-    number = "1-2",
-    bias   = 0,
-    delay  = 120,   -- 2-minute breather before wave 2
-  })
-  -- Wave 2: medium fighters, slightly harder pool
-  :addWave({
-    groups = { "MiG-29 Flight", "Su-27 Flight", "Su-30SM Flight" },
-    number = 2,
-    bias   = 1,
-    delay  = 60,
-  })
-  -- Wave 3: heavy escort + simultaneous ground attack (negative delay)
-  :addWave({ groups = { "Su-27 Escort" }, delay = -1 })
-  :addWave({ groups = { "Su-24M Strike" } })
-  :setMinimumPlayersForWave(2)
-  :setDrawZone(true)
-  :initialize()
-```
-
-### Reusing a template zone with deep copy
-
-When several sectors share the same wave structure, define a template zone and clone it. Use `:resetWaves()` to clear the template's waves before adding sector-specific ones:
-
-```lua
--- Define a shared template (NOT initialised yet)
-local zoneTemplate = AirWaveZone:new()
-  :setMinimumPlayersForWave(1)
-  :setDrawZone(true)
-  :addWave({ "MiG-29 Wave 1" })
-  :addWave({ "Su-27 Wave 2" })
-
--- Clone and customise for each sector
-local zoneNorth = mist.utils.deepCopy(zoneTemplate)
-zoneNorth
-  :setName("AW-North")
-  :setZoneName("ZONE-AW-NORTH")
-  :setDescription("Northern sector")
-  :initialize()
-
-local zoneSouth = mist.utils.deepCopy(zoneTemplate)
-zoneSouth
-  :setName("AW-South")
-  :setZoneName("ZONE-AW-SOUTH")
-  :setDescription("Southern sector")
-  :resetWaves()                          -- clear template waves
-  :addWave({ "Su-25T Wave 1" })          -- add sector-specific waves
-  :addWave({ "Su-24M Wave 2", "Su-24M Wave 2b" })
-  :initialize()
-```
-
 ---
 
-## Zone lifecycle (state machine)
+## Cycle de vie de la zone (machine d'états)
 
-Each `AirWaveZone` progresses through a set of named states. Understanding them helps when reading logs or writing callbacks.
+Chaque `AirWaveZone` progresse à travers un ensemble d'états nommés. Les connaître aide à lire les logs ou à écrire des callbacks.
 
 ```
 STOP ──start()──► READY
-                    │  player(s) enter zone
+                    │  joueur(s) entrent dans la zone
                     ▼
          WAITING_FOR_MORE_HUMANS
-                    │  activation delay elapsed
+                    │  délai d'activation écoulé
                     ▼
               ┌── NEXTWAVE ──┐
               │               │
-         last wave        more waves
+         dernière vague   autres vagues
               │               │
               ▼               ▼
             OVER    WAITING_FOR_NEXTWAVE
-                            │  inter-wave delay elapsed
+                            │  délai entre vagues écoulé
                             ▼
                           ACTIVE
-                            │  wave destroyed
-                            └──► NEXTWAVE  (loops until OVER)
+                            │  vague détruite
+                            └──► NEXTWAVE  (boucle jusqu'à OVER)
 ```
 
-| State | Meaning |
-|-------|---------|
-| `STOP` | Zone inactive — `stop()` was called or the zone has never been started. |
-| `READY` | Zone started, watching for players to enter. |
-| `WAITING_FOR_MORE_HUMANS` | At least one player is in the zone; the activation timer is running. |
-| `NEXTWAVE` | Transient routing state: immediately decides between `OVER` and `WAITING_FOR_NEXTWAVE`. |
-| `WAITING_FOR_NEXTWAVE` | Wave slot available; the inter-wave delay is counting down. |
-| `ACTIVE` | Current wave is spawned and alive. |
-| `OVER` | All waves have been destroyed — the zone is finished. |
+| État | Signification |
+|------|---------------|
+| `STOP` | Zone inactive — `stop()` a été appelé ou la zone n'a jamais démarré. |
+| `READY` | Zone démarrée, en attente de joueurs. |
+| `WAITING_FOR_MORE_HUMANS` | Au moins un joueur est dans la zone ; le minuteur d'activation tourne. |
+| `NEXTWAVE` | État de routage transitoire : décide immédiatement entre `OVER` et `WAITING_FOR_NEXTWAVE`. |
+| `WAITING_FOR_NEXTWAVE` | Prochain slot de vague disponible ; le délai entre vagues décompte. |
+| `ACTIVE` | La vague courante est spawnée et vivante. |
+| `OVER` | Toutes les vagues ont été détruites — la zone est terminée. |
 
-`NEXTWAVE` is a transient state that the zone crosses in a single `check()` cycle: it never lingers there. Callbacks such as `setOnWaveDestroyed` fire on the `ACTIVE → NEXTWAVE` exit, and `setOnCompleted` fires on the `NEXTWAVE → OVER` entry.
+`NEXTWAVE` est un état transitoire que la zone traverse en un seul cycle de `check()` : elle n'y reste jamais. Les callbacks comme `setOnWaveDestroyed` se déclenchent à la sortie de `ACTIVE → NEXTWAVE`, et `setOnCompleted` à l'entrée de `NEXTWAVE → OVER`.
 
 ---
 
-## See Also
+## Voir aussi
 
-- [veafQraManager](veafQraManager.md) — defensive scramble system
-- [veafCombatZone](veafCombatZone.md) — ground-based combat zones
-- [Lua API Reference](../../LUA_API_REFERENCE.md) — full `veafAirWaves` API
+- [veafQraManager](veafQraManager.md) — système de scramble défensif
+- [veafCombatZone](veafCombatZone.md) — zones de combat terrestres
+- [Référence API Lua](../../LUA_API_REFERENCE.md) — API complète de `veafAirWaves`

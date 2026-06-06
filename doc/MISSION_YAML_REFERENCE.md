@@ -284,6 +284,31 @@ pipeline:
 
 ---
 
+### `build:`
+
+Controls how `veaf-tools build` resolves the VEAF scripts bundle.
+These settings are normally set via the CLI (`--dev-mode`, `--scripts-path`) and then persisted here automatically.
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `dev_mode` | `bool` | `false` | When `true`, scripts are loaded from `<scripts_path>/build/veaf-scripts.lua` instead of the published copy |
+| `scripts_path` | `string` | *(user config)* | Path to a local VEAF-Mission-Creation-Tools clone; required when `dev_mode: true` |
+
+`scripts_path` resolution order (first match wins):
+1. `--scripts-path <path>` CLI option
+2. `mission.yaml build.scripts_path`
+3. `~/veafmct.yaml scripts_path`
+
+```yaml
+build:
+  dev_mode: true
+  scripts_path: C:/dev/VEAF-Mission-Creation-Tools
+```
+
+> See the [Developer Mode](developer/GUIDE.md#developer-mode) section of the Developer Guide for the full workflow.
+
+---
+
 ## Index by category
 
 ### Core
@@ -341,6 +366,9 @@ pipeline:
 | `pipeline.waypoints` | [waypoints.yaml schema](PIPELINE_REFERENCE.md#step-2--waypoints-waypointsyaml) |
 | `pipeline.aircraft_groups` | [aircraft-templates.yaml schema](PIPELINE_REFERENCE.md#step-3--aircraft-groups-aircraft-templatesyaml) |
 | `pipeline.weather` | [versions.yaml schema](PIPELINE_REFERENCE.md#step-4--weather--time-versions-versionsyaml) |
+| [`build:`](#build) | Developer mode and scripts path override |
+| `build.dev_mode` | Use local Lua bundle instead of published scripts |
+| `build.scripts_path` | Path to local VEAF-Mission-Creation-Tools clone |
 
 ---
 

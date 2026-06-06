@@ -1,8 +1,14 @@
 """Tests for veaf_libs.lua_config_generator."""
 
 import re
+import logging
 
-from veaf_libs.lua_config_generator import _emit_lua_string, generate_config_lua
+from veaf_libs.lua_config_generator import (
+    _emit_lua_string,
+    _resolve_deps,
+    generate_config_lua,
+    generate_mission_yaml_template,
+)
 
 _LONG_STRING_RE = re.compile(r"^\[=*\[")
 
@@ -207,3 +213,122 @@ def test_ctld_and_csar_both_enabled():
     assert "if csar then" in lua
     assert "ctld.initialize()" in lua
     assert "csar.initialize()" in lua
+
+
+# ---------------------------------------------------------------------------
+# MODUX-001 — Category headers in generated Lua
+# ---------------------------------------------------------------------------
+
+
+def test_category_headers_present_in_lua():
+    """Category comment headers must appear in the Lua output."""
+    yaml_data: dict = {
+        "lua_modules": {
+            "UNITS": {},
+            "SPAWN": {},
+            "ASSETS": {"assets": []},
+        }
+    }
+    lua = generate_config_lua(yaml_data)
+    assert "-- ── Infrastructure ──" in lua
+    assert "-- ── Core ──" in lua
+    assert "-- ── Features ──" in lua
+
+
+def test_category_headers_present_in_yaml_template():
+    """Category comment headers must appear in the YAML template."""
+    template = generate_mission_yaml_template()
+    assert "# ── Infrastructure (mandatory — cannot be disabled) ──" in template
+    assert "# ── Core ──" in template
+    assert "# ── Features ──" in template
+    assert "# ── Combat ──" in template
+
+
+# ---------------------------------------------------------------------------
+# MODUX-002 — Mandatory module warning
+# ---------------------------------------------------------------------------
+
+
+def test_mandatory_module_disabled_emits_warning(caplog):
+    """Disabling a mandatory module must produce a logger.warning."""
+    yaml_data: dict = {
+        "lua_modules": {
+            "UNITS": {"enable": False},
+        }
+    }
+    with caplog.at_level(logging.WARNING, logger="veaf-tools"):
+        lua = generate_config_lua(yaml_data)
+    assert any("UNITS" in msg and "mandatory" in msg for msg in caplog.messages)
+    # Despite enable: false, the module should NOT emit setConfig(enable=false)
+    assert 'veaf.setConfig("UNITS", "enable", false)' not in lua
+
+
+def test_non_mandatory_disabled_no_warning(caplog):
+    """Disabling a non-mandatory module must NOT produce a mandatory warning."""
+    yaml_data: dict = {
+        "lua_modules": {
+            "ASSETS": {"enable": False},
+        }
+    }
+    with caplog.at_level(logging.WARNING, logger="veaf-tools"):
+        generate_config_lua(yaml_data)
+    assert not any("mandatory" in msg for msg in caplog.messages)
+
+
+# ---------------------------------------------------------------------------
+# MODUX-003 — Dependency auto-resolution
+# ---------------------------------------------------------------------------
+
+
+def test_dep_auto_resolution_missing_dep(caplog):
+    """SPAWN enabled without UNITS → UNITS auto-enabled + warning."""
+    effective = {"SPAWN": {}}
+    with caplog.at_level(logging.WARNING, logger="veaf-tools"):
+        result = _resolve_deps(effective)
+    assert "UNITS" in result
+    assert result["UNITS"].get("enable") is True
+    assert any("UNITS" in msg for msg in caplog.messages)
+
+
+def test_dep_auto_resolution_disabled_dep(caplog):
+    """SPAWN enabled and UNITS explicitly disabled → UNITS auto-enabled + warning.
+    Other config keys on the dep must be preserved."""
+    effective = {"SPAWN": {}, "UNITS": {"enable": False, "logLevel": "debug"}}
+    with caplog.at_level(logging.WARNING, logger="veaf-tools"):
+        result = _resolve_deps(effective)
+    assert result["UNITS"].get("enable") is True
+    # Other config must be preserved (Sourcery fix)
+    assert result["UNITS"].get("logLevel") == "debug"
+    assert any("UNITS" in msg for msg in caplog.messages)
+
+
+def test_dep_no_warning_when_dep_present():
+    """No warning when dependency is already properly configured."""
+    effective = {"SPAWN": {}, "UNITS": {}}
+    # Should not raise and should return same dict with no auto-enable change
+    result = _resolve_deps(effective)
+    assert "UNITS" in result
+
+
+def test_transitive_dep_resolution(caplog):
+    """Transitive chain A→B→C: enabling A auto-enables B and C."""
+    # CASMISSION → SPAWN (→ UNITS) and GROUNDAI (→ COMMANDS → MARKERS)
+    effective = {"CASMISSION": {}}
+    with caplog.at_level(logging.WARNING, logger="veaf-tools"):
+        result = _resolve_deps(effective)
+    # Direct deps of CASMISSION
+    assert "SPAWN" in result
+    assert "GROUNDAI" in result
+    # Transitive: SPAWN → UNITS
+    assert "UNITS" in result
+    # Transitive: GROUNDAI → COMMANDS → MARKERS
+    assert "COMMANDS" in result
+    assert "MARKERS" in result
+
+
+def test_explicitly_disabled_module_skips_dep_check():
+    """If module itself is enable: false, its dependencies are not checked."""
+    effective = {"SPAWN": {"enable": False}}
+    result = _resolve_deps(effective)
+    # UNITS should NOT be auto-added since SPAWN is disabled
+    assert "UNITS" not in result

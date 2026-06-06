@@ -29,30 +29,22 @@
 # ── Per-module configuration ──────────────────────────────────────────────────
 # Enable, disable, or override the log level of individual VEAF Lua modules.
 # Modules not listed here are enabled with their default settings.
-# Module IDs: SECURITY, RADIO, SHORTCUTS, NAMEDPOINTS, SPAWN, CARRIER,
-#             CASMISSION, TRANSPORTMISSION, COMBATMISSION, COMBATZONE, QRA,
-#             GRASS, ASSETS, MOVE, SANCTUARY, WEATHER, REMOTE, INTERPRETER, …
 #
 # lua_modules:
+#   # ── Infrastructure (mandatory — cannot be disabled) ──────────────────────
+#   UNITS:    {}
+#   TIME:     {}
+#   CACHE:    {}
+#   EVENTS:   {}
+#   MARKERS:  {}
+#   COMMANDS: {}
+#   # ── Core ─────────────────────────────────────────────────────────────────
+#   SECURITY:    { enable: true }
 #   RADIO:
 #     enable: true
 #     init:
 #       help_menus: true
-#   SPAWN:
-#     logLevel: debug
-#   ASSETS:
-#     enable: true
-#     assets:
-#       - sort: 1
-#         name: "T1-Arco-1"
-#         description: "Arco-1 (KC-135)"
-#         information: "Tacan 64Y\nU290.50 (20)"
-#   NAMEDPOINTS:
-#     enable: true
-#     custom_points:
-#       # - name: "Battle Area Alpha"
-#       #   lat: "41.123456"
-#       #   lon: "44.987654"
+#   GROUNDAI:    { enable: true }
 #   SHORTCUTS:
 #     enable: true
 #     shortcuts:
@@ -60,6 +52,23 @@
 #         description: "Smoke command shortcut"
 #         command: "/_smoke"
 #         bypass_security: false
+#   NAMEDPOINTS:
+#     enable: true
+#     custom_points:
+#       # - name: "Battle Area Alpha"
+#       #   lat: "41.123456"
+#       #   lon: "44.987654"
+#   SPAWN:       { enable: true }
+#   # ── Features ─────────────────────────────────────────────────────────────
+#   ASSETS:
+#     enable: true
+#     assets:
+#       - sort: 1
+#         name: "T1-Arco-1"
+#         description: "Arco-1 (KC-135)"
+#         information: "Tacan 64Y\nU290.50 (20)"
+#   MOVE:        { enable: true }
+#   GRASS:       { enable: true }
 #   SANCTUARY:
 #     enable: true
 #     sanctuary_zones:
@@ -70,6 +79,15 @@
 #         coalition: BLUE
 #         delay_warning: 30
 #         delay_spawn: 60
+#   WEATHER:     { enable: true }
+#   REMOTE:      { enable: true }
+#   AIRBASES:    { enable: true }
+#   MISSILEGUARDIAN: { enable: true }
+#   INTERPRETER: { enable: true }
+#   # ── Combat ───────────────────────────────────────────────────────────────
+#   CASMISSION:       { enable: true }
+#   TRANSPORTMISSION: { enable: true }
+#   COMBATMISSION:    { enable: true }
 #   COMBATZONE:
 #     enable: true
 #     combat_zone_settings:
@@ -89,6 +107,7 @@
 #           - zone_name: "CZ-Alpha"
 #           - zone_name: "CZ-Bravo"
 #             dependencies: ["CZ-Alpha"]
+#   QRA:         { enable: true }
 #   AIRWAVES:
 #     enable: true
 #     airwave_zones:
@@ -101,6 +120,7 @@
 #         waves:
 #           - groups: "su27-2ship"
 #             delay: 0
+#   CARRIER: { enable: true }
 
 # ── External modules ─────────────────────────────────────────────────────────
 # external_modules:

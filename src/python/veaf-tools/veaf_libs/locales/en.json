@@ -91,7 +91,7 @@
   "report.section.actions": "Actions Taken",
   "report.section.review": "What Needs Manual Review",
   "report.section.annotated_config": "Annotated missionConfig.lua",
-  "report.annotated_config.intro": "Below is your original `missionConfig.lua` with `-- [v6 ...]` comments showing what each line was migrated into. The unmodified original is in `backup_v5/src/scripts/missionConfig.lua.bak`. Delete the `backup_v5/` folder once you have verified the migration.",
+  "report.annotated_config.intro": "Below is your original `missionConfig.lua` with `-- [v6 ...]` comments showing what each line was migrated into. The unmodified original is in `backup_v5/src/scripts/missionConfig.lua`. Delete the `backup_v5/` folder once you have verified the migration.",
   "report.section.next_steps": "Next Steps",
   "report.section.docs": "Documentation",
   "report.section.missionconfig": "missionConfig.lua / mission-script.lua",

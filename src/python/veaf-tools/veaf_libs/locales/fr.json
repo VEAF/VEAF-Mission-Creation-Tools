@@ -91,7 +91,7 @@
   "report.section.actions": "Actions effectuées",
   "report.section.review": "Points à vérifier manuellement",
   "report.section.annotated_config": "missionConfig.lua annoté",
-  "report.annotated_config.intro": "Ci-dessous votre `missionConfig.lua` original avec des commentaires `-- [v6 ...]` indiquant ce qui a été migré. L'original non modifié se trouve dans `backup_v5/src/scripts/missionConfig.lua.bak`. Supprimez le dossier `backup_v5/` une fois la migration vérifiée.",
+  "report.annotated_config.intro": "Ci-dessous votre `missionConfig.lua` original avec des commentaires `-- [v6 ...]` indiquant ce qui a été migré. L'original non modifié se trouve dans `backup_v5/src/scripts/missionConfig.lua`. Supprimez le dossier `backup_v5/` une fois la migration vérifiée.",
   "report.section.next_steps": "Prochaines étapes",
   "report.section.docs": "Documentation",
   "report.section.missionconfig": "missionConfig.lua / mission-script.lua",

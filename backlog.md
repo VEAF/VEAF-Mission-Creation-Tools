@@ -55,10 +55,10 @@
 | Lot FIX-BUNDLE — VEAFCOMMANDS MISSING | ~10 min | ✅ |
 | Lot FIX-ASSETS-NEWLINE — ASSETS newline in Lua string | ~20 min | ✅ |
 | Lot FIX-WEATHER-ALIAS — missions.yaml + versions.yaml coexistence | ~25 min | ✅ |
-| Lot FIX-MISSIONCONFIG-BAK — supprimer extension .bak inutile | ~20 min | ⬜ |
-| Lot FIX-README-COPY — ne plus copier presets.md dans src/ | ~10 min | ⬜ |
-| Lot FIX-AIRCRAFT-ORPHAN — alerte fichier orphelin manquante pour aircraft-templates.yaml | ~15 min | ⬜ |
-| Lot DOC-DEV-MODE — documenter dev_mode + scripts_path | ~30 min | ⬜ |
+| Lot FIX-MISSIONCONFIG-BAK — supprimer extension .bak inutile | ~20 min | ✅ |
+| Lot FIX-README-COPY — ne plus copier presets.md dans src/ | ~10 min | ✅ |
+| Lot FIX-AIRCRAFT-ORPHAN — alerte fichier orphelin manquante pour aircraft-templates.yaml | ~15 min | ✅ |
+| Lot DOC-DEV-MODE — documenter dev_mode + scripts_path | ~30 min | ✅ |
 | Lot FEAT-PROFILES — profils de build dans mission.yaml | ~3h | ⬜ |
 | Lot FEAT-MODULE-UX — Catégories, modules obligatoires, dépendances | ~2h | ⬜ |
 | Lot FEAT-GITIGNORE — Template `.gitignore` VEAF MCT dans les defaults | ~25 min | ⬜ |
@@ -386,8 +386,8 @@ No named profiles — `dev_mode: true` (local scripts) vs `dev_mode: false` (pub
 
 | # | Ticket | Files | Type | Effort | Status |
 |---|--------|-------|------|--------|--------|
-| DEVMODE-001 | Add "Developer Mode" section in `doc/developer/GUIDE.md` (+ `.fr.md`): concept, prerequisites, how to activate (CLI / mission.yaml / veafmct.yaml), priority chain, effect on `veaf-scripts.lua` | `doc/developer/GUIDE.md`, `doc/developer/GUIDE.fr.md` | doc | 20 min | ⬜ |
-| DEVMODE-002 | Document `build.dev_mode` and `build.scripts_path` in `doc/MISSION_YAML_REFERENCE.md` (+ `.fr.md`) under the `build:` section | `doc/MISSION_YAML_REFERENCE.md`, `doc/MISSION_YAML_REFERENCE.fr.md` | doc | 10 min | ⬜ |
+| DEVMODE-001 | Add "Developer Mode" section in `doc/developer/GUIDE.md` (+ `.fr.md`): concept, prerequisites, how to activate (CLI / mission.yaml / veafmct.yaml), priority chain, effect on `veaf-scripts.lua` | `doc/developer/GUIDE.md`, `doc/developer/GUIDE.fr.md` | doc | 20 min | ✅ |
+| DEVMODE-002 | Document `build.dev_mode` and `build.scripts_path` in `doc/MISSION_YAML_REFERENCE.md` (+ `.fr.md`) under the `build:` section | `doc/MISSION_YAML_REFERENCE.md`, `doc/MISSION_YAML_REFERENCE.fr.md` | doc | 10 min | ✅ |
 
 **Raw total: 30 min → estimated (×1.15): ~35 min**
 
@@ -440,9 +440,9 @@ When passed via CLI, `dev_mode` and `scripts_path` are persisted in `mission.yam
 
 | # | Ticket | Files | Type | Effort | Status |
 |---|--------|-------|------|--------|--------|
-| README-001 | Delete `src/defaults/mission-folder/src/presets.md` | `src/defaults/mission-folder/src/presets.md` | fix | 2 min | ⬜ |
-| README-002 | Remove `"presets.md": {"pipeline": "presets"}` from `_DEFAULT_FILE_MODULE_MAP` | `mission_builder/mission_builder_worker.py` | fix | 3 min | ⬜ |
-| README-003 | Audit: verify no other doc-only `.md` or `.txt` exists in `src/defaults/` (one-shot, no code change) | — | chore | 5 min | ⬜ |
+| README-001 | Delete `src/defaults/mission-folder/src/presets.md` | `src/defaults/mission-folder/src/presets.md` | fix | 2 min | ✅ |
+| README-002 | Remove `"presets.md": {"pipeline": "presets"}` from `_DEFAULT_FILE_MODULE_MAP` | `mission_builder/mission_builder_worker.py` | fix | 3 min | ✅ |
+| README-003 | Audit: verify no other doc-only `.md` or `.txt` exists in `src/defaults/` (one-shot, no code change) | — | chore | 5 min | ✅ |
 
 **Raw total: 10 min → estimated (×1.15): ~12 min (~15 min)**
 
@@ -477,8 +477,8 @@ Note: the `README.txt` generated in `backup_v5/` by the v5 conversion is intenti
 
 | # | Ticket | Files | Type | Effort | Status |
 |---|--------|-------|------|--------|--------|
-| AORPHAN-001 | In `build.py`, after `_step_file("aircraft_groups", …)` returns `None` (step skipped/disabled), check if `p_mission_folder / "src/aircraft-templates.yaml"` exists and warn | `veaf_tools/commands/build.py` | fix | 10 min | ⬜ |
-| AORPHAN-002 | Unit test: assert warning emitted when `aircraft_groups` disabled + `src/aircraft-templates.yaml` present; assert no warning when step enabled or file absent | `test/python/test_build_pipeline.py` | chore | 10 min | ⬜ |
+| AORPHAN-001 | In `build.py`, after `_step_file("aircraft_groups", …)` returns `None` (step skipped/disabled), check if `p_mission_folder / "src/aircraft-templates.yaml"` exists and warn | `veaf_tools/commands/build.py` | fix | 10 min | ✅ |
+| AORPHAN-002 | Unit test: assert warning emitted when `aircraft_groups` disabled + `src/aircraft-templates.yaml` present; assert no warning when step enabled or file absent | `test/python/test_build_pipeline.py` | chore | 10 min | ✅ |
 
 **Raw total: 20 min → estimated (×1.15): ~23 min (~25 min)**
 
@@ -536,10 +536,10 @@ The `.bak` is referenced in: `report.missionconfig_backup`, i18n keys `convert_v
 
 | # | Ticket | Files | Type | Effort | Status |
 |---|--------|-------|------|--------|--------|
-| BAK-001 | `_migrate_config()`: `bak_path = backup_dir / src.name` instead of `backup_dir / (src.stem + ".lua.bak")` | `mission_builder/v5_converter.py` | fix | 5 min | ⬜ |
-| BAK-002 | Update i18n strings `convert_v5.action.missionconfig_bak` (en + fr) and `report.cleanup.delete_bak` → remove all `.bak` references | `veaf_libs/locales/en.json`, `veaf_libs/locales/fr.json` | fix | 5 min | ⬜ |
-| BAK-003 | Update the `README.txt` generated in `backup_v5/` → replace `missionConfig.lua.bak` with `missionConfig.lua` | `mission_builder/v5_converter.py` | fix | 5 min | ⬜ |
-| BAK-004 | Unit test: `_migrate_config()` with `backup=True` → assert `backup_v5/.../missionConfig.lua` exists and `missionConfig.lua.bak` does **not** exist | `test/python/test_v5_converter.py` | chore | 5 min | ⬜ |
+| BAK-001 | `_migrate_config()`: `bak_path = backup_dir / src.name` instead of `backup_dir / (src.stem + ".lua.bak")` | `mission_builder/v5_converter.py` | fix | 5 min | ✅ |
+| BAK-002 | Update i18n strings `convert_v5.action.missionconfig_bak` (en + fr) and `report.cleanup.delete_bak` → remove all `.bak` references | `veaf_libs/locales/en.json`, `veaf_libs/locales/fr.json` | fix | 5 min | ✅ |
+| BAK-003 | Update the `README.txt` generated in `backup_v5/` → replace `missionConfig.lua.bak` with `missionConfig.lua` | `mission_builder/v5_converter.py` | fix | 5 min | ✅ |
+| BAK-004 | Unit test: `_migrate_config()` with `backup=True` → assert `backup_v5/.../missionConfig.lua` exists and `missionConfig.lua.bak` does **not** exist | `test/python/test_v5_converter.py` | chore | 5 min | ✅ |
 
 **Raw total: 20 min → estimated (×1.15): ~23 min (~25 min)**
 

@@ -13,9 +13,10 @@ This guide is for developers who want to contribute to the VEAF Mission Creation
 4. [Lua Runtime Scripts](#lua-runtime-scripts)
 5. [Python Tools](#python-tools)
 6. [Build and Release](#build-and-release)
-7. [Testing](#testing)
-8. [Quality Gates](#quality-gates)
-9. [Contributing](#contributing)
+7. [Developer Mode](#developer-mode)
+8. [Testing](#testing)
+9. [Quality Gates](#quality-gates)
+10. [Contributing](#contributing)
 
 ---
 
@@ -388,6 +389,58 @@ Push a `published-v*` tag — the `Release` CI workflow does everything automati
 ```bash
 git tag published-v6.1.0
 git push origin published-v6.1.0
+```
+
+---
+
+## Developer Mode
+
+Developer mode lets you test local changes to `veaf-scripts.lua` without publishing a release.
+When enabled, `veaf-tools build` reads scripts from a local VEAF-Mission-Creation-Tools clone
+instead of the `published/` folder shipped with veaf-tools.
+
+### Prerequisites
+
+1. Clone VEAF-Mission-Creation-Tools locally
+2. Build the Lua bundle: `poetry run veaf-build build` → produces `build/veaf-scripts.lua`
+
+### Activation (priority order — first match wins)
+
+| Priority | Method | Effect |
+|----------|--------|--------|
+| 1 | `veaf-tools build --dev-mode` | CLI flag — sets `dev_mode: true`, persisted to `mission.yaml` |
+| 2 | `mission.yaml build.dev_mode: true` | Persisted config — applies every build |
+| 3 | *(default)* | `false` — uses published scripts |
+
+`scripts_path` resolution order (where to find the local repo):
+
+| Priority | Source |
+|----------|--------|
+| 1 | `--scripts-path <path>` CLI option |
+| 2 | `mission.yaml build.scripts_path` |
+| 3 | `~/veafmct.yaml scripts_path` |
+
+When passed via CLI, both `dev_mode` and `scripts_path` are persisted in `mission.yaml`.
+
+### Effect on the build
+
+| Mode | Scripts source |
+|------|---------------|
+| `dev_mode: false` (default) | `published/src/scripts/veaf/veaf-scripts.lua` (released copy) |
+| `dev_mode: true` | `<scripts_path>/build/veaf-scripts.lua` (local build output) |
+
+### Example workflow
+
+```powershell
+# 1. Edit a Lua module
+code src/scripts/veaf/veafSpawn.lua
+
+# 2. Rebuild the Lua bundle
+poetry run veaf-build build
+
+# 3. Build a test mission using the local scripts
+cd path/to/my-mission
+veaf-tools build --dev-mode --scripts-path path/to/VEAF-Mission-Creation-Tools
 ```
 
 ---

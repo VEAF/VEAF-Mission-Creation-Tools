@@ -275,6 +275,7 @@
   "cmd.build.opt.dynamic_mode": "If set, the mission will dynamically load the scripts from the provided location (via --scripts-path or in the local published and src/scripts folders).",
   "cmd.build.opt.dev_mode": "Resolve VEAF scripts from a local dev repo (build/veaf-scripts.lua) instead of published/. Requires --scripts-path pointing to the VEAF-Mission-Creation-Tools repo root. This setting is persisted in mission.yaml (build.dev_mode).",
   "cmd.build.opt.scripts_path": "Path to the VEAF and community scripts. Persisted in mission.yaml (build.scripts_path).",
+  "cmd.build.opt.profile": "Apply a named build profile from mission.yaml (e.g. TEST or SERVER). Profile keys deep-merge onto the base config.",
   "cmd.build.opt.migrate_from_v5": "If set, the builder will parse the mission for old v5 triggers and remove them.",
   "cmd.build.opt.log_modules_detail": "Comma-separated list of module IDs to keep at full log level. All other modules are silenced to 'error' level. Example: --log-modules 'SPAWN,RADIO'",
   "cmd.build.opt.mission_name_or_file": "Mission name; will build the mission with this name and the current date; can be set to a .miz file.",

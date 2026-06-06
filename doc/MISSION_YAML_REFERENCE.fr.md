@@ -309,6 +309,44 @@ build:
 
 ---
 
+### `profiles:`
+
+Profils de build nommés. Chaque profil est un ensemble de surcharges qui fusionnent en profondeur sur la `mission.yaml` de base lorsque vous passez `--profile <nom>` à `veaf-tools build`. Les clés absentes du profil conservent leur valeur de base. Les listes sont remplacées intégralement, pas concaténées. La clé `profiles:` elle-même n'est jamais transmise au générateur Lua ni au pipeline.
+
+| Champ | Type | Description |
+|-------|------|-------------|
+| `profiles.<nom>` | `dict` | N'importe quelle clé de premier niveau de `mission.yaml` (ex : `global_log_level`, `security`, `pipeline`) |
+
+**Règles de fusion**
+- Les dicts imbriqués sont fusionnés récursivement (seules les clés spécifiées sont surchargées).
+- Les valeurs scalaires et les listes sont remplacées en totalité.
+- `profiles:` est retiré de la config effective — il n'est jamais passé au générateur Lua ni au pipeline.
+
+```yaml
+profiles:
+  TEST:
+    global_log_level: debug
+    security:
+      disabled: true
+    pipeline:
+      weather: false
+  SERVER:
+    global_log_level: info
+    pipeline:
+      weather: true
+```
+
+Usage :
+
+```powershell
+veaf-tools.exe build --profile TEST
+veaf-tools.exe build --profile SERVER
+```
+
+> Si le profil nommé n'existe pas dans `mission.yaml`, un avertissement est émis et la config de base est utilisée sans modification.
+
+---
+
 ## Index par catégorie
 
 ### Essentiel — toute mission
@@ -348,6 +386,7 @@ build:
 | [`build:`](#build) | Mode développeur et chemin des scripts |
 | `build.dev_mode` | Utiliser le bundle Lua local au lieu des scripts publiés |
 | `build.scripts_path` | Chemin vers un clone local de VEAF-Mission-Creation-Tools |
+| [`profiles:`](#profiles) | Profils de build nommés (surcharges deep-merge pour `--profile`) |
 
 ---
 

@@ -277,6 +277,7 @@
   "cmd.build.opt.dynamic_mode": "Si activé, la mission chargera les scripts dynamiquement depuis l'emplacement fourni (via --scripts-path ou les dossiers locaux published et src/scripts).",
   "cmd.build.opt.dev_mode": "Résout les scripts VEAF depuis un dépôt de développement local (build/veaf-scripts.lua) au lieu de published/. Nécessite --scripts-path pointant vers la racine du dépôt VEAF-Mission-Creation-Tools. Ce paramètre est persisté dans mission.yaml (build.dev_mode).",
   "cmd.build.opt.scripts_path": "Chemin vers les scripts VEAF et communautaires. Persisté dans mission.yaml (build.scripts_path).",
+  "cmd.build.opt.profile": "Applique un profil de build nommé depuis mission.yaml (ex : TEST ou SERVER). Les clés du profil fusionnent en profondeur sur la config de base.",
   "cmd.build.opt.migrate_from_v5": "Si activé, le builder analysera la mission pour supprimer les anciens triggers v5.",
   "cmd.build.opt.log_modules_detail": "Liste de modules séparés par des virgules à conserver au niveau de log complet. Tous les autres modules sont réduits au niveau 'error'. Exemple : --log-modules 'SPAWN,RADIO'",
   "cmd.build.opt.mission_name_or_file": "Nom de mission ; construira la mission avec ce nom et la date du jour ; peut être un fichier .miz.",

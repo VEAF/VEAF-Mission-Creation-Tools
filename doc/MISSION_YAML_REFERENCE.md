@@ -309,6 +309,44 @@ build:
 
 ---
 
+### `profiles:`
+
+Named build profiles. Each profile is a set of config overrides that deep-merge onto the base `mission.yaml` when you pass `--profile <name>` to `veaf-tools build`. Keys absent from the profile retain their base values. Lists are replaced, not concatenated. The `profiles:` key itself is never written to the built mission.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `profiles.<name>` | `dict` | Any top-level `mission.yaml` key (e.g. `global_log_level`, `security`, `pipeline`) |
+
+**Merge rules**
+- Nested dicts are merged recursively (only the keys you specify are overridden).
+- Scalar values and lists are replaced wholesale.
+- `profiles:` is stripped from the effective config — it is never passed to the Lua generator or the pipeline.
+
+```yaml
+profiles:
+  TEST:
+    global_log_level: debug
+    security:
+      disabled: true
+    pipeline:
+      weather: false
+  SERVER:
+    global_log_level: info
+    pipeline:
+      weather: true
+```
+
+Usage:
+
+```powershell
+veaf-tools.exe build --profile TEST
+veaf-tools.exe build --profile SERVER
+```
+
+> If the named profile does not exist in `mission.yaml`, a warning is emitted and the base config is used unchanged.
+
+---
+
 ## Index by category
 
 ### Core
@@ -369,6 +407,7 @@ build:
 | [`build:`](#build) | Developer mode and scripts path override |
 | `build.dev_mode` | Use local Lua bundle instead of published scripts |
 | `build.scripts_path` | Path to local VEAF-Mission-Creation-Tools clone |
+| [`profiles:`](#profiles) | Named build profiles (deep-merge overrides for `--profile`) |
 
 ---
 

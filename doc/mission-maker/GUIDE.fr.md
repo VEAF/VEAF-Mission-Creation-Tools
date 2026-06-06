@@ -307,6 +307,48 @@ veaf-tools.exe extract ma-mission.miz
 
 ---
 
+## Profils de build
+
+Les profils de build permettent de basculer entre différentes configurations nommées sans modifier `mission.yaml`. Définissez une section `profiles:` une seule fois, puis sélectionnez un profil au moment du build :
+
+```yaml
+# mission.yaml
+global_log_level: info
+security:
+  disabled: false
+pipeline:
+  weather: true
+
+profiles:
+  TEST:
+    global_log_level: debug
+    security:
+      disabled: true
+    pipeline:
+      weather: false   # pas de variantes météo pendant les builds de test
+  SERVER:
+    global_log_level: info
+    pipeline:
+      weather: true
+```
+
+```powershell
+# Build pour les tests (pas de météo, sécurité désactivée, logs verbose)
+veaf-tools.exe build --profile TEST
+
+# Build pour le déploiement serveur
+veaf-tools.exe build --profile SERVER
+
+# Build sans profil (config de base)
+veaf-tools.exe build
+```
+
+Les clés du profil **fusionnent en profondeur** sur la config de base : seules les clés que vous spécifiez sont surchargées, tout le reste reste tel que défini en haut de `mission.yaml`. Passer un nom de profil inconnu émet un avertissement et revient à la config de base.
+
+Voir [`profiles:` dans la référence YAML](../MISSION_YAML_REFERENCE.fr.md#profiles) pour la description complète.
+
+---
+
 ## Référence des scripts
 
 Tous les modules Lua VEAF sont disponibles une fois `veaf-scripts.lua` chargé. Voir [scripts/README.md](scripts/README.md) pour la liste complète avec les guides de configuration.

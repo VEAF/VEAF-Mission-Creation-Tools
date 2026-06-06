@@ -22,6 +22,7 @@ from __future__ import annotations
 import re
 
 from veaf_libs.i18n import t
+from veaf_libs.logger import logger
 from veaf_libs.lua_module_scanner import get_modules
 
 # ---------------------------------------------------------------------------
@@ -89,6 +90,67 @@ _SKIP_SETCONFIG_KEYS: frozenset[str] = frozenset(
 #: Module IDs that do NOT have a global ``initialize()`` function.
 #: Their data (zones, etc.) is emitted directly without an ``initialize()`` call.
 _NO_INIT_MODULES: frozenset[str] = frozenset({"AIRWAVES"})
+
+#: Cosmetic category groupings for YAML template and generated Lua output.
+_MODULE_CATEGORIES: dict[str, list[str]] = {
+    "Infrastructure": ["UNITS", "TIME", "CACHE", "EVENTS", "MARKERS", "COMMANDS"],
+    "Core": ["SECURITY", "RADIO", "GROUNDAI", "SHORTCUTS", "NAMEDPOINTS", "SPAWN"],
+    "Features": [
+        "ASSETS",
+        "MOVE",
+        "GRASS",
+        "SANCTUARY",
+        "WEATHER",
+        "REMOTE",
+        "AIRBASES",
+        "MISSILEGUARDIAN",
+        "INTERPRETER",
+    ],
+    "Combat": [
+        "CASMISSION",
+        "TRANSPORTMISSION",
+        "COMBATMISSION",
+        "COMBATZONE",
+        "QRA",
+        "AIRWAVES",
+        "CARRIER",
+    ],
+    "External": ["SKYNET", "SKYNET_MONITOR"],
+}
+
+#: Flat module→category reverse lookup (built once at module load time).
+_MODULE_TO_CATEGORY: dict[str, str] = {
+    mod_id: cat for cat, ids in _MODULE_CATEGORIES.items() for mod_id in ids
+}
+
+#: Modules that are mandatory (infrastructure tier).
+#: Emitting ``enable: false`` for these produces a warning; the module is still generated.
+_MANDATORY_MODULES: frozenset[str] = frozenset({"UNITS", "TIME", "CACHE", "EVENTS", "MARKERS", "COMMANDS"})
+
+#: Dependency graph: module_id → list of module IDs it requires.
+_MODULE_DEPS: dict[str, list[str]] = {
+    # Core
+    "COMMANDS": ["MARKERS"],
+    "GROUNDAI": ["COMMANDS"],
+    "SHORTCUTS": ["RADIO", "COMMANDS"],
+    "NAMEDPOINTS": ["COMMANDS"],
+    "SPAWN": ["UNITS"],
+    # Features
+    "ASSETS": ["RADIO", "SPAWN"],
+    "MOVE": ["SPAWN", "COMMANDS"],
+    "GRASS": ["SPAWN"],
+    "INTERPRETER": ["RADIO", "COMMANDS"],
+    # Combat
+    "CASMISSION": ["SPAWN", "GROUNDAI"],
+    "TRANSPORTMISSION": ["SPAWN"],
+    "COMBATMISSION": ["SPAWN"],
+    "COMBATZONE": ["SPAWN"],
+    "QRA": ["SPAWN", "RADIO"],
+    "AIRWAVES": ["SPAWN"],
+    "CARRIER": ["RADIO"],
+    # External
+    "SKYNET_MONITOR": ["SKYNET"],
+}
 
 
 # ---------------------------------------------------------------------------
@@ -520,6 +582,40 @@ def _emit_combat_mission(cm: dict, var_name: str, indent: str = "    ") -> list[
     return lines
 
 
+def _resolve_deps(effective: dict) -> dict:
+    """Auto-enable missing or disabled dependencies; return updated dict.
+
+    For each enabled module that declares dependencies in ``_MODULE_DEPS``,
+    any dependency that is absent or explicitly disabled is auto-added with
+    ``enable: true`` and a ``logger.warning`` is emitted.  The loop repeats
+    until no more changes are needed (handles transitive dependency chains).
+    """
+    changed = True
+    while changed:
+        changed = False
+        for mod_id, deps in _MODULE_DEPS.items():
+            cfg = effective.get(mod_id, {})
+            if isinstance(cfg, dict) and cfg.get("enable") is False:
+                continue  # explicitly disabled — skip dep check
+            if mod_id not in effective:
+                continue  # not requested — skip
+            for dep in deps:
+                dep_cfg = effective.get(dep, {})
+                if isinstance(dep_cfg, dict) and dep_cfg.get("enable") is False:
+                    logger.warning(
+                        f"Module '{mod_id}' requires '{dep}' but '{dep}' is disabled — auto-enabling '{dep}'"
+                    )
+                    effective[dep] = {"enable": True}
+                    changed = True
+                elif dep not in effective:
+                    logger.warning(
+                        f"Module '{mod_id}' requires '{dep}' which is not configured — auto-enabling '{dep}'"
+                    )
+                    effective[dep] = {"enable": True}
+                    changed = True
+    return effective
+
+
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
@@ -607,19 +703,43 @@ def generate_config_lua(
     ctld_cfg: dict = external_modules.get("ctld") or {}
 
     if lua_modules:
+        # ── MODUX-002: warn on mandatory modules with enable: false ───────
+        effective_modules: dict = dict(lua_modules)
+        for mandatory_id in _MANDATORY_MODULES:
+            mcfg = effective_modules.get(mandatory_id, {})
+            if isinstance(mcfg, dict) and mcfg.get("enable") is False:
+                logger.warning(
+                    f"Module '{mandatory_id}' is mandatory and cannot be disabled — ignoring enable: false"
+                )
+                mcfg.pop("enable", None)
+                effective_modules[mandatory_id] = mcfg
+
+        # ── MODUX-003: auto-resolve missing/disabled dependencies ─────────
+        effective_modules = _resolve_deps(effective_modules)
+
         lines.append("-- ── Module configuration + initialization ────────────────────────────────────")
         lines.append("")
 
         # Determine full ordered list: known order + unknown modules + INTERPRETER
         known_order_set = set(_MODULE_INIT_ORDER)
         all_module_ids = {m["id"] for m in get_modules()}
-        extra_ids = [mid for mid in lua_modules if mid not in known_order_set and mid in all_module_ids]
+        extra_ids = [mid for mid in effective_modules if mid not in known_order_set and mid in all_module_ids]
         ordered_ids = [mid for mid in _MODULE_INIT_ORDER if mid != "INTERPRETER"] + extra_ids + ["INTERPRETER"]
 
+        # ── MODUX-001: track category to emit comment headers ─────────────
+        current_category: str | None = None
+
         for mod_id in ordered_ids:
-            mod_cfg: dict | None = lua_modules.get(mod_id)
+            mod_cfg: dict | None = effective_modules.get(mod_id)
             if mod_cfg is None:
                 continue
+
+            # Emit category header when entering a new category
+            cat = _MODULE_TO_CATEGORY.get(mod_id)
+            if cat and cat != current_category:
+                current_category = cat
+                lines.append(f"-- ── {cat} ──")
+                lines.append("")
 
             enabled = mod_cfg.get("enable", True)
             log_level: str | None = mod_cfg.get("logLevel")
@@ -759,15 +879,20 @@ def generate_mission_yaml_template(
     ordered_ids = _MODULE_INIT_ORDER
     all_module_map = {m["id"]: m for m in modules}
 
-    # Emit enabled modules first (uncommented), then disabled (commented)
-    enabled_found = [mid for mid in ordered_ids if mid in enabled_set and mid in all_module_map]
-    disabled_found = [mid for mid in ordered_ids if mid not in enabled_set and mid in all_module_map]
+    # Emit all modules grouped by category, enabled ones uncommented, others commented
+    all_ordered = [mid for mid in ordered_ids if mid in all_module_map]
     remaining = [mid for mid in all_module_map if mid not in set(ordered_ids)]
 
-    if enabled_found:
-        lines.append(f"  # {t('generated.mission_yaml.modules.active')}")
-        for mid in enabled_found:
-            yaml_key = f'"{mid}"' if not re.match(r"^[A-Za-z_]\w*$", mid) else mid
+    current_category: str | None = None
+    for mid in all_ordered + remaining:
+        cat = _MODULE_TO_CATEGORY.get(mid)
+        if cat and cat != current_category:
+            current_category = cat
+            mandatory_note = " (mandatory — cannot be disabled)" if cat == "Infrastructure" else ""
+            lines.append(f"  # ── {cat}{mandatory_note} ──")
+        is_enabled = mid in enabled_set
+        yaml_key = f'"{mid}"' if not re.match(r"^[A-Za-z_]\w*$", mid) else mid
+        if is_enabled:
             lines.append(f"  {yaml_key}:")
             lines.append("    enable: true")
             # Show init params example for known modules
@@ -787,11 +912,7 @@ def generate_mission_yaml_template(
                 lines.append('    #   - name: "Battle Area Alpha"')
                 lines.append('    #     lat: "41.123456"')
                 lines.append('    #     lon: "44.987654"')
-
-    if disabled_found or remaining:
-        lines.append(f"  # {t('generated.mission_yaml.modules.other')}")
-        for mid in disabled_found + remaining:
-            yaml_key = f'"{mid}"' if not re.match(r"^[A-Za-z_]\w*$", mid) else mid
+        else:
             lines.append(f"  # {yaml_key}:")
             lines.append("  #   enable: false")
 

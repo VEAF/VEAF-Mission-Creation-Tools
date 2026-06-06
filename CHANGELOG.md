@@ -10,6 +10,10 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- `lua_config_generator.py`: `_MODULE_CATEGORIES` dict — groups modules into 4 tiers (Infrastructure, Core, Features, Combat) plus External; category comment headers (`-- ── Category ──`) are emitted in `veaf-config.lua` and (`# ── Category ──`) in the YAML template
+- `lua_config_generator.py`: `_MANDATORY_MODULES` frozenset — if a mandatory module (UNITS, TIME, CACHE, EVENTS, MARKERS, COMMANDS) has `enable: false`, a warning is logged and the flag is ignored (module still generated)
+- `lua_config_generator.py`: `_MODULE_DEPS` dict + `_resolve_deps()` — after building the effective module list, missing or disabled dependencies are auto-enabled in memory with a `logger.warning` per auto-added module; transitive chains are fully resolved; disk is never modified
+- `src/defaults/mission-folder/mission.yaml`: `lua_modules:` comment block reordered to match category grouping; Infrastructure modules annotated as mandatory
 - `veaf_libs/build_profiles.py`: new `resolve_profile(yaml_data, profile_name)` function — deep-merges a named profile from the `profiles:` section of `mission.yaml` onto the base config; lists are replaced, not concatenated; `profiles:` key is stripped from the effective config
 - `mission_builder_worker.py`: `MissionBuilderWorker.__init__` now accepts `profile_name: str | None`; calls `resolve_profile` immediately after loading `mission.yaml`, before any other config resolution
 - `veaf_tools/commands/build.py`: new `--profile` / `-p` option on `veaf-tools build` to select a named build profile at build time

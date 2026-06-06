@@ -36,8 +36,8 @@ La version 6.3.3 est une version de stabilisation et de correction de bugs. Aucu
 - **`presets.md` n'est plus créé silencieusement** — ce fichier a été retiré
   des defaults ; il était copié dans les dossiers mission sans utilité.
 
-- **Avertissement quand `aircraft-templates.yaml` existe mais que l'étape
-  pipeline est désactivée** — la commande build avertit désormais dans ce cas.
+- **Avertissement quand `aircraft-templates.yaml` existe mais que l'étape de
+-  pipeline est désactivée** — la commande build avertit désormais dans ce cas.
 
 ---
 

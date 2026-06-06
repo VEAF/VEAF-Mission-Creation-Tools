@@ -673,9 +673,11 @@ class V5Converter:
         """Run ConfigMigrator on missionConfig.lua and write the result.
 
         File layout after migration:
-        - ``backup_v5/src/scripts/missionConfig.lua``  — original unmodified copy
-        - ``backup_v5/src/scripts/missionConfig.lua``       — annotated (-- [v6 ...] comments)
-        - ``src/scripts/mission-script.lua``                — clean v6 file (callback stubs only)
+        - ``backup_v5/src/scripts/missionConfig.lua``  — original unmodified copy (for rollback)
+        - ``src/scripts/mission-script.lua``            — clean v6 file (callback stubs only)
+
+        The annotated version (with ``-- [v6 ...]`` comments) is embedded in
+        ``convert-v5-report.md``, not written as a separate file in ``backup_v5/``.
         """
         src = report.missionconfig_path
         assert src is not None

@@ -1,70 +1,98 @@
 # Developer Guide
 
-Contribute to the VEAF Mission Creation Tools — a hybrid Lua + Python project with 34 runtime modules and a CLI toolkit.
+This project delivers two things: **Lua scripts** that run inside DCS World missions, and **Python tools** that prepare those missions before launch. The two layers are independent — you can contribute to one without touching the other.
 
 ---
 
-## Quick Start — Clone to Tests in 5 Minutes
+## The two layers
+
+### Runtime layer — Lua inside DCS
+
+`src/scripts/veaf/` contains the Lua modules loaded inside DCS World missions while the mission is running. These scripts do not execute on your PC — they execute inside the simulator, on the server hosting the mission. They handle features such as QRAs, combat zones, dynamic weather, radio menus, and more.
+
+Lua 5.1 is the scripting language embedded in DCS World. There are no external libraries, no package manager — just plain `.lua` files.
+
+### Build layer — Python
+
+`src/python/veaf-tools/` is a CLI tool that manipulates `.miz` files (DCS missions, which are ZIP archives). It injects Lua scripts, configuration, and weather data into a mission *before* it is launched.
+
+`veaf_build/` is the orchestrator that concatenates the Lua modules into a single file, compiles Windows `.exe` files, and publishes GitHub releases.
+
+### How the two layers connect
+
+The Python tools produce a `published.zip`. That ZIP is consumed by mission makers to embed VEAF scripts into their own DCS missions.
+
+```mermaid
+flowchart LR
+    subgraph DT["On your PC — build"]
+        lua["src/scripts/veaf/*.lua<br/>(Lua modules)"]
+        py["veaf-tools.exe<br/>(Python CLI)"]
+    end
+    subgraph zip["published.zip"]
+        bundle["veaf-scripts.lua<br/>(concatenated modules)"]
+    end
+    subgraph RT["On the DCS server — runtime"]
+        mission[".miz\n(DCS mission)"]
+        dcs["DCS World"]
+    end
+    lua --> bundle
+    py -->|injects into| mission
+    bundle -->|copied into| mission
+    mission -->|loaded by| dcs
+```
+
+---
+
+## Where to start?
+
+**You want to modify a Lua script** (add a feature, fix a bug in a module):
+
+1. Read the [Lua Runtime Scripts](GUIDE.md#lua-runtime-scripts) section of the guide
+2. Edit the file in `src/scripts/veaf/`
+3. Run `poetry run test-lua` to check nothing is broken
+
+**You want to modify the Python tools** (`veaf-tools.exe` CLI, build pipeline):
+
+1. Read the [Python Tools](GUIDE.md#python-tools) section of the guide
+2. Edit the code in `src/python/veaf-tools/`
+3. Run `poetry run pytest` to check
+
+**You are starting from scratch and have nothing installed:**
+
+→ The [Development Environment](GUIDE.md#development-environment) section walks through every installation step (Python, Poetry, Lua, StyLua).
+
+---
+
+## Initial environment check
+
+Do this once after following the [setup guide](GUIDE.md#development-environment), to confirm everything is correctly installed:
 
 ```powershell
-# 1. Clone
 git clone https://github.com/VEAF/VEAF-Mission-Creation-Tools.git
 cd VEAF-Mission-Creation-Tools
 git checkout develop-v6
-
-# 2. Install Python dependencies (requires Poetry)
 poetry install
 
-# 3. Run Lua tests
-poetry run test-lua
-
-# 4. Run Python quality gate
-poetry run ruff check src/python
-poetry run mypy src/python
-poetry run pytest
+poetry run test-lua   # should show "OK" for every suite
+poetry run pytest     # should show "passed" with no failures
 ```
 
 ---
 
-## Architecture at a Glance
+## Quality Gates — before each commit
 
-```mermaid
-flowchart TD
-    subgraph RT["RUNTIME — Lua in DCS"]
-        scripts["34 Lua modules<br/>src/scripts/veaf/"]
-    end
-    subgraph DT["DESIGN-TIME — Python CLI"]
-        tools["veaf-tools.exe<br/>src/python/veaf-tools/"]
-        build["veaf-build<br/>veaf_build/"]
-    end
-    DT -->|produces| zip(["published.zip"])
-    zip -->|consumed by| RT
-```
+These commands must pass without errors before committing. CI also runs them automatically — a failing job blocks the merge.
 
-| Layer | Language | Location | Purpose |
-|-------|----------|----------|----------|
-| Runtime | Lua 5.1 | `src/scripts/veaf/` | Executes inside DCS missions |
-| CLI Tools | Python 3.11+ | `src/python/veaf-tools/` | `.miz` file manipulation |
-| Build | Python | `veaf_build/` | Build & release orchestrator |
-| Tests | Lua + Python | `test/` | Unit tests for both layers |
+| What was changed | Commands to run |
+|-----------------|----------------|
+| Lua files (`src/scripts/veaf/`) | `stylua --check src/scripts/veaf/` then `poetry run test-lua` |
+| Python code (`src/python/`) | `poetry run ruff check src/python` then `poetry run mypy src/python` then `poetry run pytest` |
+
+> On Windows, `stylua` is installed at `~/.local/bin/stylua.exe` by default (see [setup guide](GUIDE.md#5-stylua-240-lua-code-quality)).
 
 ---
 
-## Quality Gates
+## Full reference
 
-| Gate | Command | CI Job |
-|------|---------|--------|
-| Lua formatting | `stylua --check src/scripts/veaf/` | StyLua Formatting |
-| Lua lint | `luacheck src/scripts/veaf/ --config .luacheckrc` | Luacheck |
-| Lua tests | `poetry run test-lua` | Lua Tests |
-| Python lint + format | `poetry run ruff check` + `ruff format --check` | Python Quality |
-| Python types | `poetry run mypy src/python` | Python Quality |
-| Python tests | `poetry run pytest` | Python Quality |
-
----
-
-## Full Reference
-
-The [complete Developer Guide](GUIDE.md) covers repository layout, coding conventions, build pipeline, and contributing workflow.
-
-See also: [Testing Guide](../TESTING.md)
+- [Complete Developer Guide](GUIDE.md) — repository layout, coding conventions, build pipeline, contributing workflow
+- [Testing Guide](../TESTING.md) — Lua and Python test infrastructure in detail

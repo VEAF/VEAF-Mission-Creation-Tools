@@ -28,6 +28,16 @@ from veaf_libs.lua_module_scanner import get_modules
 from veaf_libs.paths import resolve_path
 from veaf_libs.progress import spinner_context
 
+# Lua files that are always expected in src/scripts/ of a VEAF v6 mission folder.
+# Any other .lua file found there is flagged as a potential v5 residue.
+_EXPECTED_SCRIPTS: frozenset[str] = frozenset(
+    {
+        "veaf-config.lua",
+        "mission-script.lua",
+        "veafDynamicConfig.lua",
+    }
+)
+
 
 class MissionBuilderWorker(BaseWorker):
     """
@@ -305,13 +315,6 @@ class MissionBuilderWorker(BaseWorker):
         # that folder, including potential v5 residues (e.g. veafSecurity.lua, veafCommands.lua).
         # Those would be loaded as individual DCS mission scripts and may conflict with the
         # bundled veaf-scripts.lua loaded by the VEAF triggers.
-        _EXPECTED_SCRIPTS: frozenset[str] = frozenset(
-            {
-                "veaf-config.lua",
-                "mission-script.lua",
-                "veafDynamicConfig.lua",
-            }
-        )
         scripts_dir = self.mission_folder / "src" / "scripts"
         if scripts_dir.is_dir():
             for lua_file in scripts_dir.glob("*.lua"):

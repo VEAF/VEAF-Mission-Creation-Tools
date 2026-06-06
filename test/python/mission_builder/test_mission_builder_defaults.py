@@ -197,7 +197,8 @@ class TestOldScriptsDetection(unittest.TestCase):
         orig_warning = logger.warning
 
         def capture_warning(msg, *args, **kwargs):
-            warnings.append(str(msg))
+            formatted = msg % args if args else str(msg)
+            warnings.append(formatted)
             return orig_warning(msg, *args, **kwargs)
 
         with patch.object(logger, "warning", side_effect=capture_warning):
@@ -232,6 +233,25 @@ class TestOldScriptsDetection(unittest.TestCase):
         unexpected = [w for w in warnings if "Unexpected Lua file" in w]
         self.assertTrue(unexpected, "Expected a warning for veafSecurity.lua")
         self.assertTrue(any("veafSecurity.lua" in w for w in unexpected))
+
+    def test_mixed_expected_and_unexpected_lua_files(self) -> None:
+        """Only unexpected files warn; expected files alongside them must not."""
+        tmpdir = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, tmpdir)
+        scripts_dir = tmpdir / "src" / "scripts"
+        scripts_dir.mkdir(parents=True)
+        for name in ("veaf-config.lua", "mission-script.lua", "veafDynamicConfig.lua"):
+            (scripts_dir / name).write_text("-- ok", encoding="utf-8")
+        (scripts_dir / "veafSecurity.lua").write_text("-- v5 residue", encoding="utf-8")
+
+        warnings = self._run_with_warnings(tmpdir)
+
+        unexpected = [w for w in warnings if "Unexpected Lua file" in w]
+        self.assertTrue(unexpected, "Expected a warning for veafSecurity.lua when mixed with valid files")
+        self.assertTrue(any("veafSecurity.lua" in w for w in unexpected))
+        self.assertFalse(any("veaf-config.lua" in w for w in unexpected))
+        self.assertFalse(any("mission-script.lua" in w for w in unexpected))
+        self.assertFalse(any("veafDynamicConfig.lua" in w for w in unexpected))
 
     def test_no_warning_when_scripts_dir_absent(self) -> None:
         """No error or warning when src/scripts/ does not exist."""

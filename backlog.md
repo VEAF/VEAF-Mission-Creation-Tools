@@ -47,7 +47,7 @@
 | Lot 20 — DEEPENING | ~7h | ✅ |
 | Lot 21 — TYPING | ~20 min | ✅ |
 | Lot 22 — TEST-LAYOUT | ~55 min | ✅ |
-x| Lot 23 — DOC-YAML | ~8h20 | ✅ |
+| Lot 23 — DOC-YAML | ~8h20 | ✅ |
 | Lot 24 — DOC-REVIEW | ~2h45 | ✅ (REV-002 différé) |
 | Lot 25 — EXT-YAML | ~2h | ✅ |
 | Lot FIX-SORT — LUADATA FIX | ~15 min | ✅ |

@@ -16,6 +16,8 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 - `lua_config_generator.py`: asset `description`, `name`, `information` fields containing `\n` or `"` now use Lua long-string syntax (`[[...]]`) instead of plain `"..."` — prevents Lua syntax error at mission load
+- `mission_builder_worker.py`: `complete_src_folder_with_defaults()` no longer copies the default `versions.yaml` when a legacy `missions.yaml` already exists in `src/`; emits a warning prompting to rename it
+- `mission_builder_worker.py`: added `missions.yaml` to `_DEFAULT_FILE_MODULE_MAP` (pipeline `weather`) — covers future orphan-warning cases
 
 ---
 

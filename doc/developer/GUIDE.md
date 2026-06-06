@@ -262,33 +262,34 @@ What it does:
 
 ### Publishing a Release
 
-#### Automated (recommended)
+Use the release assistant prompt at `.prompts/generate-release-notes.md` to run the full release preparation interactively. It guides you through:
+1. Extracting changes from `[Unreleased]` in `CHANGELOG.md`
+2. Consolidation interview (theme, breaking changes, highlights)
+3. Writing and validating `RELEASE_NOTES.md`
+4. Administrative closure (CHANGELOG version bump, `pyproject.toml`, ROADMAP)
+5. Git commands to copy-paste
 
-Push a versioned tag — GitHub Actions handles everything:
+#### Release flow (git flow)
+
+The AI assistant handles: creating `release/x.y.z` from `develop-v6`, committing all release files, and opening the PR.
+
+After the PR is merged, the developer runs:
 
 ```bash
-git tag published-v6.0.6
-git push origin published-v6.0.6
+git checkout develop-v6
+git pull origin develop-v6
+git tag published-vx.y.z
+git push origin published-vx.y.z
 ```
 
-The `release` CI workflow will:
-1. Generate release notes from conventional commits (git-cliff)
-2. Build `veaf-tools.exe`, `veaf-tools-updater.exe`, and `published.zip`
-3. Create the GitHub Release and upload all assets
-4. Move the `published-latest` floating tag
+> **Warning:** pushing the tag is irreversible — only run after the PR is merged.
 
-Release notes are auto-generated from commit messages. You can edit them on GitHub afterwards.
+Pushing the tag triggers the `release` CI workflow, which will:
+1. Build `veaf-tools.exe`, `veaf-tools-updater.exe`, and `published.zip`
+2. Create the GitHub Release using **`RELEASE_NOTES.md` as-is** from the tagged commit
+3. Upload all assets and move the `published-latest` floating tag
 
-#### Manual (local fallback)
-
-```powershell
-# Build first
-poetry run veaf-build build --version 6.1.0
-
-# Then publish (interactive — prompts for RELEASE_NOTES.md)
-# Requires GITHUB_TOKEN environment variable
-poetry run veaf-build publish --version 6.1.0
-```
+> **Important:** `RELEASE_NOTES.md` must be committed and up-to-date on the tagged commit — the CI takes it verbatim, without editing.
 
 ### Security Model
 

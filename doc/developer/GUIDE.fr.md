@@ -261,33 +261,34 @@ Ce que cela fait :
 
 ### Publier une version
 
-#### Automatisé (recommandé)
+Utiliser le prompt `.prompts/generate-release-notes.md` pour lancer la préparation de release de façon interactive. Il guide à travers :
+1. Extraction des changements depuis `[Unreleased]` dans `CHANGELOG.md`
+2. Interview de consolidation (thème, breaking changes, highlights)
+3. Rédaction et validation de `RELEASE_NOTES.md`
+4. Clôture administrative (version CHANGELOG, `pyproject.toml`, ROADMAP)
+5. Commandes git à copier-coller
 
-Pousser un tag versionné — GitHub Actions fait tout :
+#### Flow de release (git flow)
+
+L'assistant AI gère : créer `release/x.y.z` depuis `develop-v6`, commiter tous les fichiers de release, et ouvrir la PR.
+
+Après le merge de la PR, le développeur exécute :
 
 ```bash
-git tag published-v6.0.6
-git push origin published-v6.0.6
+git checkout develop-v6
+git pull origin develop-v6
+git tag published-vx.y.z
+git push origin published-vx.y.z
 ```
 
-Le workflow CI `release` va :
-1. Générer les notes de release depuis les commits conventionnels (git-cliff)
-2. Construire `veaf-tools.exe`, `veaf-tools-updater.exe` et `published.zip`
-3. Créer la GitHub Release et uploader tous les artefacts
-4. Déplacer le tag flottant `published-latest`
+> **Attention :** pousser le tag est irréversible — uniquement après le merge de la PR.
 
-Les notes de release sont auto-générées depuis les messages de commit. Elles sont éditables sur GitHub après la release.
+Pousser le tag déclenche le workflow CI `release`, qui va :
+1. Construire `veaf-tools.exe`, `veaf-tools-updater.exe` et `published.zip`
+2. Créer la GitHub Release en utilisant **`RELEASE_NOTES.md` tel quel** depuis le commit tagué
+3. Uploader tous les artefacts et déplacer le tag flottant `published-latest`
 
-#### Manuel (mode de secours)
-
-```powershell
-# Build d'abord
-poetry run veaf-build build --version 6.1.0
-
-# Puis publication (interactif — demande RELEASE_NOTES.md)
-# Nécessite la variable d'environnement GITHUB_TOKEN
-poetry run veaf-build publish --version 6.1.0
-```
+> **Important :** `RELEASE_NOTES.md` doit être commité et à jour sur le commit tagué — la CI le prend verbatim, sans modification.
 
 ### Modèle de sécurité
 

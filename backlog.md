@@ -53,9 +53,655 @@ x| Lot 23 — DOC-YAML | ~8h20 | ✅ |
 | Lot FIX-SORT — LUADATA FIX | ~15 min | ✅ |
 | Lot 26 — IMC-FEEDBACK | ~2h40 | ✅ |
 | Lot FIX-BUNDLE — VEAFCOMMANDS MISSING | ~10 min | ✅ |
-| **Total** | **~160h10** | |
+| Lot FIX-ASSETS-NEWLINE — ASSETS newline in Lua string | ~20 min | ⬜ |
+| Lot FIX-WEATHER-ALIAS — missions.yaml + versions.yaml coexistence | ~25 min | ⬜ |
+| Lot FIX-MISSIONCONFIG-BAK — supprimer extension .bak inutile | ~20 min | ⬜ |
+| Lot FIX-README-COPY — ne plus copier presets.md dans src/ | ~10 min | ⬜ |
+| Lot FIX-AIRCRAFT-ORPHAN — alerte fichier orphelin manquante pour aircraft-templates.yaml | ~15 min | ⬜ |
+| Lot DOC-DEV-MODE — documenter dev_mode + scripts_path | ~30 min | ⬜ |
+| Lot FEAT-PROFILES — profils de build dans mission.yaml | ~3h | ⬜ |
+| Lot FEAT-MODULE-UX — Catégories, modules obligatoires, dépendances | ~2h | ⬜ |
+| Lot FEAT-GITIGNORE — Template `.gitignore` VEAF MCT dans les defaults | ~25 min | ⬜ |
+| **Total** | **~167h20** | |
 
 *Initial calibration factor: 1.15 — recalculate after each completed lot.*
+
+---
+
+## Lot FEAT-MODULE-UX — Categories, mandatory modules, and dependency resolution
+
+**Goal**: Improve the `lua_modules:` section in three independent but cohesive ways:
+1. **Categories** (cosmetic) — group modules under comment headers in the `mission.yaml` template and in the generated `veaf-modules-config.lua`
+2. **Mandatory modules** — emit a warning if a mandatory module (infrastructure tier) has `enable: false`
+3. **Dependency resolution** — if module A is enabled and its dependency B is absent/disabled, auto-enable B in memory and emit a warning; the `mission.yaml` on disk is never modified
+
+**Design decisions**:
+- Categories: cosmetic only (no new YAML key, no behavioral change)
+- Mandatory module with `enable: false`: warning + generate anyway (never hard-block)
+- Dependency graph: hardcoded Python dict `_MODULE_DEPS` in `lua_config_generator.py`, maintained by AI when Lua source changes
+- Missing dependency: auto-activate in memory + `logger.warning` (no disk write)
+
+**Branch**: `feature/module-ux` → PR → `develop-v6`
+
+| # | Ticket | Files | Type | Effort | Status |
+|---|--------|-------|------|--------|--------|
+| MODUX-001 | Add `_MODULE_CATEGORIES` dict in `lua_config_generator.py` (4 tiers: Infrastructure, Core, Features, Combat + External). Insert `# ── Category ──` comment headers in the YAML template generator and in `veaf-modules-config.lua` output | `veaf_libs/lua_config_generator.py` | feat | 20 min | ⬜ |
+| MODUX-002 | Add `_MANDATORY_MODULES` frozenset (UNITS, TIME, CACHE, EVENTS, MARKERS, COMMANDS). In `lua_config_generator.py`, warn if a mandatory module has `enable: false` | `veaf_libs/lua_config_generator.py` | feat | 10 min | ⬜ |
+| MODUX-003 | Add `_MODULE_DEPS` dict (see details). In `lua_config_generator.py`, after building the effective module list: for each enabled module, recursively resolve missing deps → auto-add with `enable: true` in memory + `logger.warning` per auto-added module | `veaf_libs/lua_config_generator.py` | feat | 30 min | ⬜ |
+| MODUX-004 | Update `src/defaults/mission-folder/mission.yaml` — reorder `lua_modules:` comment block to match category grouping; add `# mandatory` annotation for infrastructure modules | `src/defaults/mission-folder/mission.yaml` | doc | 15 min | ⬜ |
+| MODUX-005 | Unit tests: (a) category headers present in generated Lua, (b) warning on mandatory module disabled, (c) dep auto-resolution with warning, (d) transitive dep chain (A→B→C all resolved) | `test/python/test_lua_config_generator.py` | chore | 30 min | ⬜ |
+
+**Raw total: 105 min → estimated (×1.15): ~120 min (~2h)**
+
+<details>
+<summary>Ticket details</summary>
+
+**MODUX-001 — Categories**
+
+```python
+_MODULE_CATEGORIES: dict[str, list[str]] = {
+    "Infrastructure": ["UNITS", "TIME", "CACHE", "EVENTS", "MARKERS", "COMMANDS"],
+    "Core":           ["SECURITY", "RADIO", "GROUNDAI", "SHORTCUTS", "NAMEDPOINTS", "SPAWN"],
+    "Features":       ["ASSETS", "MOVE", "GRASS", "SANCTUARY", "WEATHER", "REMOTE",
+                       "AIRBASES", "MISSILEGUARDIAN", "INTERPRETER"],
+    "Combat":         ["CASMISSION", "TRANSPORTMISSION", "COMBATMISSION", "COMBATZONE",
+                       "QRA", "AIRWAVES", "CARRIER"],
+    "External":       ["SKYNET", "SKYNET_MONITOR"],
+}
+```
+
+In the YAML template generator (`_build_yaml_template()`): insert a comment line `# ── <Category> ────` before each group. In `generate_veaf_modules_config_lua()`: insert a `-- ── <Category> ──` comment before each group's `if varName then … end` block.
+
+**MODUX-002 — Mandatory modules**
+
+```python
+_MANDATORY_MODULES: frozenset[str] = frozenset(
+    {"UNITS", "TIME", "CACHE", "EVENTS", "MARKERS", "COMMANDS"}
+)
+```
+
+Check point: in `generate_veaf_modules_config_lua()`, after resolving `lua_modules`:
+```python
+for mod_id in _MANDATORY_MODULES:
+    cfg = effective_modules.get(mod_id, {})
+    if isinstance(cfg, dict) and cfg.get("enable") is False:
+        logger.warning(
+            f"Module '{mod_id}' is mandatory and cannot be disabled — ignoring enable: false"
+        )
+        cfg.pop("enable", None)  # treat as enabled
+```
+
+**MODUX-003 — Dependency graph**
+
+Initial graph (to be refined at implementation by scanning Lua files):
+
+```python
+_MODULE_DEPS: dict[str, list[str]] = {
+    # Core
+    "COMMANDS":          ["MARKERS"],
+    "GROUNDAI":          ["COMMANDS"],
+    "SHORTCUTS":         ["RADIO", "COMMANDS"],
+    "NAMEDPOINTS":       ["COMMANDS"],
+    "SPAWN":             ["UNITS"],
+    # Features
+    "ASSETS":            ["RADIO", "SPAWN"],
+    "MOVE":              ["SPAWN", "COMMANDS"],
+    "GRASS":             ["SPAWN"],
+    "INTERPRETER":       ["RADIO", "COMMANDS"],
+    # Combat
+    "CASMISSION":        ["SPAWN", "GROUNDAI"],
+    "TRANSPORTMISSION":  ["SPAWN"],
+    "COMBATMISSION":     ["SPAWN"],
+    "COMBATZONE":        ["SPAWN"],
+    "QRA":               ["SPAWN", "RADIO"],
+    "AIRWAVES":          ["SPAWN"],
+    "CARRIER":           ["RADIO"],
+    # External
+    "SKYNET_MONITOR":    ["SKYNET"],
+}
+```
+
+Resolution algorithm (after building effective module list, before generation):
+```python
+def _resolve_deps(effective: dict) -> dict:
+    """Auto-enable missing dependencies, return updated dict."""
+    changed = True
+    while changed:  # iterate until stable (handles transitive deps)
+        changed = False
+        for mod_id, deps in _MODULE_DEPS.items():
+            cfg = effective.get(mod_id, {})
+            if isinstance(cfg, dict) and cfg.get("enable") is False:
+                continue  # explicitly disabled — skip dep check
+            if mod_id not in effective:
+                continue  # not requested — skip
+            for dep in deps:
+                dep_cfg = effective.get(dep, {})
+                if isinstance(dep_cfg, dict) and dep_cfg.get("enable") is False:
+                    logger.warning(
+                        f"Module '{mod_id}' requires '{dep}' "
+                        f"but '{dep}' is disabled — auto-enabling '{dep}'"
+                    )
+                    effective[dep] = {"enable": True}
+                    changed = True
+                elif dep not in effective:
+                    logger.warning(
+                        f"Module '{mod_id}' requires '{dep}' "
+                        f"which is not configured — auto-enabling '{dep}'"
+                    )
+                    effective[dep] = {"enable": True}
+                    changed = True
+    return effective
+```
+
+**MODUX-004 — mission.yaml template update**
+
+Reorder the commented `lua_modules:` block to match the category groups. Add `# mandatory — cannot be disabled` annotation next to infrastructure modules. Example:
+
+```yaml
+# lua_modules:
+#   # ── Infrastructure (mandatory) ──────────────────────────────────────────
+#   UNITS:    {}   # mandatory — cannot be disabled
+#   TIME:     {}   # mandatory — cannot be disabled
+#   MARKERS:  {}   # mandatory — cannot be disabled
+#   COMMANDS: {}   # mandatory — cannot be disabled
+#   # ── Core ────────────────────────────────────────────────────────────────
+#   SECURITY:     { enable: true }
+#   RADIO:        { enable: true }
+#   …
+```
+
+</details>
+
+---
+
+## Lot FEAT-PROFILES — Build profiles in mission.yaml
+
+**Goal**: Allow defining named build profiles in `mission.yaml` (e.g. `TEST`, `SERVER`) that override configuration sections at build time. `veaf-tools build --profile TEST` applies the profile overrides on top of the base config.
+
+**Context**: Typical use case — `TEST` profile: weather disabled, security disabled, log level debug; `SERVER` profile: all steps active, security enabled, log level info. Currently requires manual edits to `mission.yaml` between builds.
+
+**Proposed design**:
+
+```yaml
+# mission.yaml (base config — always applied)
+global_log_level: info
+security:
+  disabled: false
+pipeline:
+  weather: true
+
+# Profiles — named sections under the `profiles:` key
+profiles:
+  TEST:
+    global_log_level: debug
+    security:
+      disabled: true
+    pipeline:
+      weather: false
+  SERVER:
+    pipeline:
+      weather: true
+```
+
+Merge strategy: deep-merge of the profile onto the base config (keys absent from the profile keep the base value). CLI: `veaf-tools build --profile TEST`.
+
+**Branch**: `feature/build-profiles` → PR → `develop-v6`
+
+| # | Ticket | Files | Type | Effort | Status |
+|---|--------|-------|------|--------|--------|
+| PROF-001 | Parse `profiles:` in `mission.yaml` + `_resolve_profile(base_yaml, profile_name) → merged_yaml` (deep merge) | `veaf_libs/mission_yaml.py` (new) or `mission_builder_worker.py` | feat | 45 min | ⬜ |
+| PROF-002 | `--profile` option on `veaf-tools build`; pass name to `MissionBuilderWorker` which resolves the merged config before any other resolution | `veaf_tools/commands/build.py`, `mission_builder/mission_builder_worker.py` | feat | 30 min | ⬜ |
+| PROF-003 | Log the active profile at build time (`Building with profile: TEST`); warn if unknown profile | `mission_builder/mission_builder_worker.py` | feat | 10 min | ⬜ |
+| PROF-004 | Update `src/defaults/mission-folder/mission.yaml`: add commented `profiles:` section with `TEST` and `SERVER` examples | `src/defaults/mission-folder/mission.yaml` | doc | 15 min | ⬜ |
+| PROF-005 | Unit tests: basic merge, unknown profile (warning), empty profile, profile disabling pipeline step | `test/python/test_build_profiles.py` | chore | 30 min | ⬜ |
+| PROF-006 | Docs: "Build Profiles" section in `doc/MISSION_YAML_REFERENCE.md` (+ `.fr.md`) + mention in `doc/mission-maker/GUIDE.md` (+ `.fr.md`) | 4 doc files | doc | 30 min | ⬜ |
+
+**Raw total: 160 min → estimated (×1.15): ~185 min (~3h)**
+
+<details>
+<summary>Ticket details</summary>
+
+**PROF-001 — Deep merge**
+
+Merge rule: for each profile key, override the base value. For nested dicts, merge recursively. Lists are replaced (not concatenated). `profiles:` itself is excluded from the effective config.
+
+```python
+def _deep_merge(base: dict, override: dict) -> dict:
+    result = dict(base)
+    for k, v in override.items():
+        if k in result and isinstance(result[k], dict) and isinstance(v, dict):
+            result[k] = _deep_merge(result[k], v)
+        else:
+            result[k] = v
+    return result
+
+def resolve_profile(yaml_data: dict, profile_name: str | None) -> dict:
+    profiles = yaml_data.get("profiles") or {}
+    base = {k: v for k, v in yaml_data.items() if k != "profiles"}
+    if profile_name is None:
+        return base
+    if profile_name not in profiles:
+        logger.warning(f"Profile '{profile_name}' not found in mission.yaml — using base config")
+        return base
+    return _deep_merge(base, profiles[profile_name])
+```
+
+**PROF-002 — CLI**
+
+```python
+profile: str | None = typer.Option(None, "--profile", "-p", help=t("cmd.build.opt.profile"))
+```
+
+In `MissionBuilderWorker.__init__()`, after reading `mission.yaml`:
+```python
+effective_yaml = resolve_profile(raw_yaml, profile_name)
+```
+All subsequent resolution (pipeline, lua_modules, security, etc.) reads from `effective_yaml` instead of `raw_yaml`.
+
+**PROF-004 — Example in defaults/mission-folder/mission.yaml**
+
+```yaml
+# ── Build profiles ────────────────────────────────────────────────────────────
+# Named overrides applied when building with --profile <name>.
+# Keys in the profile deep-merge onto the base config above.
+#
+# profiles:
+#   TEST:
+#     global_log_level: debug
+#     security:
+#       disabled: true
+#     pipeline:
+#       weather: false
+#   SERVER:
+#     global_log_level: info
+#     pipeline:
+#       weather: true
+```
+
+</details>
+
+---
+
+## Lot FIX-OLDSCRIPTS — ~~veafCommands nil sur mission convertie v5→v6~~ (RÉSOLU — doublon de FIX-BUNDLE)
+
+**Résolu** : root cause identifiée post-analyse des numéros de ligne DCS.
+
+Comparaison log (01/06) vs build actuel :
+- `VEAF-MARKERS|I|22032` → ligne 22032 ✓
+- `VEAF-INTERPRETER|I|22182` → ligne **22325** aujourd'hui (+143 lignes)
+- crash `veaf-scripts.lua:28283` → ligne **28425** aujourd'hui (+142)
+
+Le `veaf-scripts.lua` utilisé le 01/06 manquait exactement le bloc `veafCommands.lua` (~143 lignes). Lot FIX-BUNDLE corrigeait précisément ce cas. **La mission doit simplement être rebuildée avec le package actuel.**
+
+**Pas de nouveau ticket à créer.**
+
+**Bug signalé** : en chargeant une mission convertie v5→v6 et buildée, DCS logue :
+```
+STATIC Mission scripts loading
+Mission script error: [string "l10n/DEFAULT/veaf-scripts.lua"]:28283:
+  attempt to index global 'veafCommands' (a nil value)
+    in function 'initialize'
+  [string "l10n/DEFAULT/veaf-config.lua"]:19: in main chunk
+```
+
+**Ce qu'on sait** :
+- `veafSecurity` est défini (la guard `if veafSecurity then` passe)
+- `veafSecurity.initialize()` est appelée → elle appelle `veafCommands.registerCommandHandler()` → crash nil
+- Dans `veaf-scripts.lua` (v6), `veafCommands` est défini à la ligne 22040, **avant** `veafSecurity` à la ligne 27764
+- Le log ne montre que "STATIC Mission scripts loading" (trigger 6) — le message "STATIC VEAF scripts loading" (trigger 4) est absent du log fourni
+
+**Hypothèses à investiguer** (besoin de logs DCS complets) :
+
+1. **Trigger 4 absent ou en erreur** : si `veaf-scripts.lua` ne s'est pas chargé (ou a crashé avant la ligne 22040), `veafCommands` serait nil. Mais `veafSecurity` (ligne 27764) serait aussi nil → la guard bloquerait. Sauf si `veafSecurity` vient d'une autre source.
+
+2. **Fichiers `.lua` résiduels v5 dans `src/scripts/`** : le glob `src/scripts/*.lua` dans `get_mission_script_files()` ramasse TOUS les fichiers `.lua` de `src/scripts/`. Si des fichiers VEAF individuels v5 (ex. `veafSecurity.lua`) traînent là après conversion, ils sont chargés en mission scripts (trigger 6). Si ces fichiers v5 contiennent une version de `veafSecurity.initialize` qui appelle `veafCommands` sans que `veafCommands` soit défini dans le contexte...
+
+3. **Double chargement** : `src/scripts/*.lua` matche aussi les fichiers déjà listés explicitement (`veaf-config.lua`, `mission-script.lua`). Ce double listing est probablement inoffensif (même contenu) mais vérifier.
+
+**Investigation requise** : fournir les logs DCS complets depuis le début du chargement de la mission pour confirmer si trigger 4 (VEAF scripts) s'est exécuté normalement. Lister les fichiers présents dans `src/scripts/` de la mission.
+
+**Fix envisagé** (à confirmer après investigation) : filtrer le glob `src/scripts/*.lua` pour exclure les fichiers déjà listés explicitement, ET/OU détecter les fichiers `.lua` inattendus dans `src/scripts/` et émettre un avertissement.
+
+**Branch**: `fix/oldscripts-detection` → PR → `develop-v6`
+
+| # | Ticket | Files | Type | Effort | Status |
+|---|--------|-------|------|--------|--------|
+| OLDSCRIPTS-000 | Investigation : reproduire le bug avec une vraie mission v5→v6 ; obtenir les logs DCS complets ; identifier le fichier responsable | — | chore | 15 min | ⬜ |
+| OLDSCRIPTS-001 | Fix : selon le résultat de l'investigation, corriger la cause racine identifiée | TBD | fix | TBD | ⬜ |
+| OLDSCRIPTS-002 | Ajouter un warning si des fichiers `.lua` inattendus sont présents dans `src/scripts/` (i.e. non listés explicitement dans `get_mission_script_files()`) | `src/python/veaf-tools/mission_tools/mission_constants.py` ou `mission_builder_worker.py` | fix | 15 min | ⬜ |
+
+**Raw total: ~45 min estimé (hors investigation)**
+
+---
+
+## Lot DOC-DEV-MODE — Document dev_mode and scripts_path
+
+**Goal**: `dev_mode` / `scripts_path` are nearly absent from the docs (1 mention as a YAML comment in GUIDE.md, no explanation of the concept, effects, or priority chain). Document for VEAF contributors who develop and test locally.
+
+**Context**: `dev_mode: true` → `veaf-tools build` resolves `veaf-scripts.lua` from `build/veaf-scripts.lua` in the local repo (instead of `published/src/scripts/veaf/veaf-scripts.lua`). Requires `scripts_path` pointing to the `VEAF-Mission-Creation-Tools` repo. Priority chain: `--dev-mode` CLI → `mission.yaml build.dev_mode` → default `false`. Persisted in `mission.yaml` when passed via CLI. Same applies to `scripts_path` (CLI → `mission.yaml build.scripts_path` → `~/veafmct.yaml scripts_path`).
+
+No named profiles — `dev_mode: true` (local scripts) vs `dev_mode: false` (published scripts). No distinct prod/staging concept.
+
+**Branch**: `doc/dev-mode` → PR → `develop-v6`
+
+| # | Ticket | Files | Type | Effort | Status |
+|---|--------|-------|------|--------|--------|
+| DEVMODE-001 | Add "Developer Mode" section in `doc/developer/GUIDE.md` (+ `.fr.md`): concept, prerequisites, how to activate (CLI / mission.yaml / veafmct.yaml), priority chain, effect on `veaf-scripts.lua` | `doc/developer/GUIDE.md`, `doc/developer/GUIDE.fr.md` | doc | 20 min | ⬜ |
+| DEVMODE-002 | Document `build.dev_mode` and `build.scripts_path` in `doc/MISSION_YAML_REFERENCE.md` (+ `.fr.md`) under the `build:` section | `doc/MISSION_YAML_REFERENCE.md`, `doc/MISSION_YAML_REFERENCE.fr.md` | doc | 10 min | ⬜ |
+
+**Raw total: 30 min → estimated (×1.15): ~35 min**
+
+<details>
+<summary>Expected content for DEVMODE-001</summary>
+
+```markdown
+## Developer Mode
+
+Developer mode lets you test local changes to `veaf-scripts.lua` without publishing a release.
+When enabled, `veaf-tools build` reads scripts from the local VEAF-Mission-Creation-Tools repo
+instead of the `published/` folder shipped with veaf-tools.
+
+### Prerequisites
+- Clone/checkout VEAF-Mission-Creation-Tools locally
+- Run `poetry run veaf-build build` to produce `build/veaf-scripts.lua`
+
+### Activation (priority order — first match wins)
+1. CLI flag: `veaf-tools build --dev-mode`
+2. `mission.yaml`: `build: { dev_mode: true, scripts_path: <repo_root> }`
+3. Default: `false`
+
+`scripts_path` resolution order:
+1. `--scripts-path <path>` CLI option
+2. `mission.yaml build.scripts_path`
+3. `~/veafmct.yaml scripts_path`
+
+When passed via CLI, `dev_mode` and `scripts_path` are persisted in `mission.yaml`.
+
+### Effect
+- `dev_mode: false` (default): reads `published/src/scripts/veaf/veaf-scripts.lua`
+- `dev_mode: true`: reads `<scripts_path>/build/veaf-scripts.lua`
+```
+
+</details>
+
+---
+
+## Lot FIX-README-COPY — Stop copying presets.md into src/
+
+**Goal**: `complete_src_folder_with_defaults()` copies `src/defaults/mission-folder/src/presets.md` into the mission's `src/` folder. This is noise: docs are online, and a user who already has a `presets.md` doesn't expect it to be silently created/overwritten by the build. Remove this behavior.
+
+**Context**: `_DEFAULT_FILE_MODULE_MAP` in `mission_builder_worker.py` lists `"presets.md": {"pipeline": "presets"}`. The file `src/defaults/mission-folder/src/presets.md` exists in the defaults. The `rglob("*")` loop detects it and copies it if absent (no overwrite thanks to `if not relative_path.exists()` — but silent creation is undesirable). No other `.md` file is in the defaults.
+
+**Fix**:
+1. Delete `src/defaults/mission-folder/src/presets.md` — root cause
+2. Remove `"presets.md"` from `_DEFAULT_FILE_MODULE_MAP` — now a dead reference
+
+**Branch**: `fix/no-readme-copy` → PR → `develop-v6`
+
+| # | Ticket | Files | Type | Effort | Status |
+|---|--------|-------|------|--------|--------|
+| README-001 | Delete `src/defaults/mission-folder/src/presets.md` | `src/defaults/mission-folder/src/presets.md` | fix | 2 min | ⬜ |
+| README-002 | Remove `"presets.md": {"pipeline": "presets"}` from `_DEFAULT_FILE_MODULE_MAP` | `mission_builder/mission_builder_worker.py` | fix | 3 min | ⬜ |
+| README-003 | Audit: verify no other doc-only `.md` or `.txt` exists in `src/defaults/` (one-shot, no code change) | — | chore | 5 min | ⬜ |
+
+**Raw total: 10 min → estimated (×1.15): ~12 min (~15 min)**
+
+<details>
+<summary>Ticket details</summary>
+
+**README-001**: `git rm src/defaults/mission-folder/src/presets.md`
+
+**README-002**: remove the line:
+```python
+"presets.md": {"pipeline": "presets"},
+```
+from `_DEFAULT_FILE_MODULE_MAP`.
+
+**README-003**: `git ls-files src/defaults/` — verify only functional files remain (`.yaml`, `.lua`). If other doc-only `.md` or `.txt` files exist → delete them in this same ticket.
+
+Note: the `README.txt` generated in `backup_v5/` by the v5 conversion is intentional (explains the backup folder contents) — do not touch here (see ticket BAK-003 if needed).
+
+</details>
+
+---
+
+## Lot FIX-AIRCRAFT-ORPHAN — Missing orphan-file warning for aircraft-templates.yaml
+
+**Goal**: When `aircraft_groups` pipeline step is disabled in `mission.yaml` but `src/aircraft-templates.yaml` still exists in the mission folder, no warning is emitted. The user gets no feedback that the file is being silently ignored.
+
+**Root cause**: The orphan-file mechanism in `complete_src_folder_with_defaults()` (`mission_builder_worker.py`) only covers files that physically exist in `src/defaults/mission-folder/` **and** are listed in `_DEFAULT_FILE_MODULE_MAP`. Since `aircraft-templates.yaml` is a user-generated file (not a default), it is never iterated → the guard is never reached.
+
+**Fix**: Add a dedicated post-pipeline check in `build.py` (after `_step_file()` returns `None` for `aircraft_groups`) that scans for `src/aircraft-templates.yaml` in the mission folder and emits `logger.warning` if found.
+
+**Branch**: `fix/aircraft-orphan-warn` → PR → `develop-v6`
+
+| # | Ticket | Files | Type | Effort | Status |
+|---|--------|-------|------|--------|--------|
+| AORPHAN-001 | In `build.py`, after `_step_file("aircraft_groups", …)` returns `None` (step skipped/disabled), check if `p_mission_folder / "src/aircraft-templates.yaml"` exists and warn | `veaf_tools/commands/build.py` | fix | 10 min | ⬜ |
+| AORPHAN-002 | Unit test: assert warning emitted when `aircraft_groups` disabled + `src/aircraft-templates.yaml` present; assert no warning when step enabled or file absent | `test/python/test_build_pipeline.py` | chore | 10 min | ⬜ |
+
+**Raw total: 20 min → estimated (×1.15): ~23 min (~25 min)**
+
+<details>
+<summary>Ticket details</summary>
+
+**AORPHAN-001 — Warning in build.py**
+
+Current code (around line 164):
+```python
+aircraft_path = _step_file(
+    "aircraft_groups", "src/aircraft-templates.yaml", "src/templates.yaml", "aircraft-templates.yaml"
+)
+if aircraft_path:
+    ...  # inject
+```
+
+Change: after the `if aircraft_path:` block, add:
+```python
+else:
+    # Step skipped: warn if the file is present (would be silently ignored)
+    _orphan = p_mission_folder / "src" / "aircraft-templates.yaml"
+    if _orphan.exists():
+        logger.warning(
+            f"Orphan file 'src/aircraft-templates.yaml': "
+            f"pipeline 'aircraft_groups' is disabled or skipped "
+            f"but the file still exists in your mission folder. "
+            f"You can safely delete it, or enable 'aircraft_groups' in mission.yaml."
+        )
+```
+
+**AORPHAN-002 — Unit test** 
+
+Mock `p_mission_folder` with a temporary directory containing `src/aircraft-templates.yaml`. Set `pipeline_cfg["aircraft_groups"] = False`. Assert `logger.warning` called with a message containing `"aircraft-templates.yaml"`.
+
+</details>
+
+---
+
+## Lot FIX-MISSIONCONFIG-BAK — Remove useless `.bak` extension on missionConfig.lua
+
+**Goal**: During v5→v6 conversion, `missionConfig.lua` is copied into `backup_v5/` with a `.lua.bak` extension. This is inconsistent: all other backed-up files keep their original name, and `.bak` adds nothing since the file is already isolated in `backup_v5/`. Remove the rename → `backup_v5/src/scripts/missionConfig.lua`.
+
+**Context**: `_migrate_config()` in `v5_converter.py`:
+1. Creates `backup_v5/src/scripts/missionConfig.lua.bak` (copy of original)
+2. Embeds annotated content in the Markdown report (no separate file)
+3. Writes `src/scripts/mission-script.lua` (clean v6 file)
+4. Deletes `src/scripts/missionConfig.lua`
+
+The `.bak` is referenced in: `report.missionconfig_backup`, i18n keys `convert_v5.action.missionconfig_bak`, `report.missionconfig.migrated`, `report.cleanup.delete_bak`, `_build_manual_review()`, and the `README.txt` in `backup_v5/`.
+
+**Fix**: replace `src.stem + ".lua.bak"` with `src.name` (= `"missionConfig.lua"`). Update all i18n strings and the generated `README.txt`.
+
+**Branch**: `fix/missionconfig-no-bak` → PR → `develop-v6`
+
+| # | Ticket | Files | Type | Effort | Status |
+|---|--------|-------|------|--------|--------|
+| BAK-001 | `_migrate_config()`: `bak_path = backup_dir / src.name` instead of `backup_dir / (src.stem + ".lua.bak")` | `mission_builder/v5_converter.py` | fix | 5 min | ⬜ |
+| BAK-002 | Update i18n strings `convert_v5.action.missionconfig_bak` (en + fr) and `report.cleanup.delete_bak` → remove all `.bak` references | `veaf_libs/locales/en.json`, `veaf_libs/locales/fr.json` | fix | 5 min | ⬜ |
+| BAK-003 | Update the `README.txt` generated in `backup_v5/` → replace `missionConfig.lua.bak` with `missionConfig.lua` | `mission_builder/v5_converter.py` | fix | 5 min | ⬜ |
+| BAK-004 | Unit test: `_migrate_config()` with `backup=True` → assert `backup_v5/.../missionConfig.lua` exists and `missionConfig.lua.bak` does **not** exist | `test/python/test_v5_converter.py` | chore | 5 min | ⬜ |
+
+**Raw total: 20 min → estimated (×1.15): ~23 min (~25 min)**
+
+<details>
+<summary>Ticket details</summary>
+
+**BAK-001 — Main fix**
+
+```python
+# Before
+bak_path = backup_dir / (src.stem + ".lua.bak")
+# After
+bak_path = backup_dir / src.name  # → missionConfig.lua
+```
+
+Also update the `t()` call that formats the path:
+```python
+report.actions.append(t("convert_v5.action.missionconfig_bak", path=f"{rel.parent}/{src.name}"))
+```
+
+**BAK-002 — i18n**
+
+`en.json` (no content change — `{path}` will now contain `.lua` without `.bak`):
+```json
+"convert_v5.action.missionconfig_bak": "missionConfig.lua: original backed up → backup_v5/{path}",
+```
+
+`report.cleanup.delete_bak` key → rename to `report.cleanup.delete_missionconfig_backup` for clarity, or simply update the text.
+
+**BAK-003 — README.txt**
+
+Line to update:
+```
+  src/scripts/missionConfig.lua.bak  — original unmodified file (for rollback)
+```
+→
+```
+  src/scripts/missionConfig.lua  — original unmodified file (for rollback)
+```
+
+**BAK-004 — Test**
+
+Assert:
+- `backup_v5/src/scripts/missionConfig.lua` exists
+- `backup_v5/src/scripts/missionConfig.lua.bak` does not exist
+
+</details>
+
+---
+
+## Lot FIX-WEATHER-ALIAS — missions.yaml and versions.yaml coexistence after v5→v6 conversion
+
+**Goal**: Prevent `src/missions.yaml` (legacy alias) and `src/versions.yaml` (canonical v6) from both being present in a converted mission folder, which causes the wrong file to be silently used at build time.
+
+**Context**: Before REV-001 (v6.2.0), the canonical weather file was called `missions.yaml`. After REV-001 it is `versions.yaml` — `missions.yaml` is now accepted as a legacy fallback. Regression scenario:
+1. Partially migrated mission already has `src/missions.yaml`
+2. `complete_src_folder_with_defaults()` only checks for the absence of `versions.yaml` → copies the default file from defaults
+3. Both files coexist
+4. `build.py:_step_file("weather", "src/missions.yaml", "src/versions.yaml", …)` picks `missions.yaml` first → the empty default `versions.yaml` is ignored, but having both creates confusion and can mask bugs if content diverges
+
+**Proposed fix**:
+- `complete_src_folder_with_defaults()`: before copying `versions.yaml`, check whether a legacy weather alias (`missions.yaml`) already exists in `src/`. If so, skip + warn: "legacy alias `missions.yaml` found, skipping copy of `versions.yaml`; consider renaming to `versions.yaml`"
+- Add `missions.yaml` to `_DEFAULT_FILE_MODULE_MAP` with `{"pipeline": "weather"}` so the orphan-file warning also fires if the weather step is disabled
+
+**Branch**: `fix/weather-alias-coexistence` → PR → `develop-v6`
+
+| # | Ticket | Files | Type | Effort | Status |
+|---|--------|-------|------|--------|--------|
+| WEATHER-001 | `complete_src_folder_with_defaults()`: skip copying `versions.yaml` if `missions.yaml` already exists in `src/`; emit `logger.warning` with migration message | `mission_builder/mission_builder_worker.py` | fix | 10 min | ⬜ |
+| WEATHER-002 | Add `"missions.yaml": {"pipeline": "weather"}` to `_DEFAULT_FILE_MODULE_MAP` for orphan-warning coverage | `mission_builder/mission_builder_worker.py` | fix | 5 min | ⬜ |
+| WEATHER-003 | Unit test: mission folder with existing `src/missions.yaml` → `complete_src_folder_with_defaults()` does not create `src/versions.yaml` + warning is emitted | `test/python/test_mission_builder_worker.py` | chore | 10 min | ⬜ |
+
+**Raw total: 25 min → estimated (×1.15): ~29 min (~30 min)**
+
+<details>
+<summary>Ticket details</summary>
+
+**WEATHER-001 — Conditional skip**
+
+In `complete_src_folder_with_defaults()`, the block that copies `versions.yaml` should first check:
+```python
+if f.name == "versions.yaml":
+    legacy = self.mission_folder / "src" / "missions.yaml"
+    if legacy.exists():
+        logger.warning(
+            f"Legacy weather config '{legacy.relative_to(self.mission_folder)}' found. "
+            f"Skipping copy of default 'src/versions.yaml'. "
+            f"Consider renaming 'missions.yaml' → 'versions.yaml'."
+        )
+        continue
+```
+
+**WEATHER-002 — `_DEFAULT_FILE_MODULE_MAP`**
+
+Add before the `for f in defaults_folder.rglob("*")` loop:
+```python
+"missions.yaml": {"pipeline": "weather"},
+```
+Note: `missions.yaml` is not in the defaults (only `versions.yaml` is), so this entry will only trigger the orphan-file warning code (file exists in mission but step is disabled).
+
+**WEATHER-003 — Test**
+
+Scenario: mock `defaults_folder` with `src/versions.yaml`, mock `mission_folder/src/missions.yaml` present. Assert `versions.yaml` is not created and logger receives the expected warning message.
+
+</details>
+
+---
+
+## Lot FIX-ASSETS-NEWLINE — ASSETS: newline inside generated Lua strings
+
+**Goal**: Fix the Lua syntax error produced when a `description` or `information` field of an asset (in `mission.yaml`) contains `\n`: the generator inserts a literal newline inside a `"..."` string, which is invalid in Lua 5.1.
+
+**Context**: `lua_config_generator.py` (~lines 174–178) generates the `name`, `description`, `information` fields as `f'field = "{value}"'`. If the YAML value contains `\n` (e.g. `"Tacan 64Y\nU290.50 (20)\nZone OUEST"`), Python decodes `\n` to a real newline → the generated Lua string is split across multiple lines → syntax error when loading the mission.
+
+**Proposed fix**: in `_emit_lua_string(value)`, use `[[value]]` (Lua long string) when the value contains `\n` or `"`, otherwise keep `"value"`.
+
+**Branch**: `fix/assets-newline-lua-string` → PR → `develop-v6`
+
+| # | Ticket | Files | Type | Effort | Status |
+|---|--------|-------|------|--------|--------|
+| ASSETS-001 | Add `_emit_lua_string(value: str) -> str` in `lua_config_generator.py`: returns `[[value]]` if value contains `\n` or `"`, otherwise `"value"`. Apply to `name`, `description`, `information` fields in the ASSETS block. | `veaf_libs/lua_config_generator.py` | fix | 10 min | ⬜ |
+| ASSETS-002 | Unit test: asset with multi-line `information` → generated Lua contains `[[...]]` and parses without error | `test/python/test_lua_config_generator.py` | chore | 10 min | ⬜ |
+
+**Raw total: 20 min → estimated (×1.15): ~23 min (~25 min)**
+
+<details>
+<summary>Ticket details</summary>
+
+**ASSETS-001 — Fix `_emit_lua_string`**
+
+Input YAML:
+```yaml
+assets:
+  - sort: 3
+    name: "T1-Arco-1"
+    description: "Arco-1 (KC-135)"
+    information: "Tacan 64Y\nU290.50 (20)\nZone OUEST"
+    linked: "T1-Arco-1 escort"
+```
+
+Expected Lua (currently broken):
+```lua
+{sort = 3, name = "T1-Arco-1", description = "Arco-1 (KC-135)", information = "Tacan 64Y
+U290.50 (20)
+Zone OUEST", linked = "T1-Arco-1 escort"},
+```
+
+Expected Lua (correct after fix):
+```lua
+{sort = 3, name = "T1-Arco-1", description = "Arco-1 (KC-135)", information = [[Tacan 64Y
+U290.50 (20)
+Zone OUEST]], linked = "T1-Arco-1 escort"},
+```
+
+Rule: use `[[...]]` whenever the value contains `\n` or `"`. Lua long strings natively support newlines and don't require quote escaping.
+
+**ASSETS-002 — Test**
+Assert that the Lua generated for an asset with a multi-line `information`:
+1. Contains `[[` and `]]`
+2. Does not contain `"Tacan 64Y\n` (newline inside a quoted string)
+
+</details>
 
 ---
 
@@ -389,6 +1035,63 @@ def set_options(self, data: dict) -> None:
 `WeatherInjectorWorker._set_mission_weather()` utilise `self.mission_data.set_weather(weather)` au lieu de l'accès direct au dict.
 
 Note : `_set_mission_time()` et `_set_mission_date()` gardent leurs accès directs (hors scope DEEP-002).
+
+---
+
+## Lot FEAT-GITIGNORE — Template `.gitignore` VEAF MCT dans les defaults
+
+**Goal**: Add a standard `.gitignore` file to `src/defaults/mission-folder/`, copied into the mission folder during `veaf-tools prepare`. This file is never overwritten even with `--force`, since users may have customized it.
+
+**Context**: `prepare.py` copies everything from `src/defaults/mission-folder/` to the target mission folder. New files are copied directly; existing files prompt the user (or are silently overwritten with `--force`). The `.gitignore` is a special case: it must never be overwritten (not even `--force`) to preserve user customizations.
+
+**Branch**: `feature/gitignore-default` → PR → `develop-v6`
+
+| # | Ticket | Files | Type | Effort | Status |
+|---|--------|-------|------|--------|--------|
+| GITIGNORE-001 | Create `src/defaults/mission-folder/.gitignore` with standard VEAF MCT entries (see content below) | `src/defaults/mission-folder/.gitignore` | feat | 5 min | ⬜ |
+| GITIGNORE-002 | In `prepare.py`: add a `NEVER_OVERWRITE` frozenset `{".gitignore"}`. In the copy loop, skip these files if they already exist in the target (no prompt, no `--force` override). Log a `debug` message when skipped | `src/python/veaf-tools/veaf_tools/commands/prepare.py` | feat | 15 min | ⬜ |
+| GITIGNORE-003 | Unit test: `prepare` with `--force` does NOT overwrite an existing `.gitignore` in the mission folder | `test/python/test_prepare.py` | chore | 5 min | ⬜ |
+
+**Raw total: 25 min → estimated (×1.15): ~30 min**
+
+<details>
+<summary>Ticket details</summary>
+
+**GITIGNORE-001 — `.gitignore` content**
+
+```gitignore
+# VEAF Mission Creation Tools — generated/downloaded files (never commit these)
+
+# VEAF tools executables (downloaded by the updater)
+/veaf*.exe
+
+# Published VEAF scripts (downloaded by the build pipeline)
+/published/
+
+# Build artifacts
+/build/
+*.miz.bak
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+```
+
+**GITIGNORE-002 — `prepare.py` change**
+
+```python
+NEVER_OVERWRITE: frozenset[str] = frozenset({".gitignore"})
+
+# Inside the copy loop, replace the `if dest_file.exists():` block:
+if dest_file.exists():
+    if str(relative_path) in NEVER_OVERWRITE:
+        logger.debug(f"Never-overwrite: {relative_path}")
+        files_skipped += 1
+        continue
+    # ... existing prompt / force logic unchanged
+```
+
+</details>
 
 ---
 

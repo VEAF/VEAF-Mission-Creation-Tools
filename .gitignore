@@ -175,3 +175,4 @@ site_test/pilot/GUIDE/index.html
 site_test/search/search_index.json
 .coverage
 coverage.xml
+temp/

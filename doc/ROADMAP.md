@@ -40,7 +40,8 @@ This document describes the intended direction for the project. Items are ordere
 
 ### Release
 - ✅ **v6.2.0 release** — squash merge `develop-v6` → `master`, published 2026-05-30
-- 🔄 **v6.3.0 release** — bug fixes and UX improvements (Lot 26 + FIX-SORT): convert-v5 crash fix, auto-pause on double-click, smart defaults filtering, veaf.initialize() nil-check
+- ✅ **v6.3.0 release** — bug fixes and UX improvements (Lot 26 + FIX-SORT): convert-v5 crash fix, auto-pause on double-click, smart defaults filtering, veaf.initialize() nil-check
+- ✅ **v6.3.3 release** — stabilization and bug fixes: Lua initialize() crashes, build pipeline fixes, build profiles, CSAR YAML-first, auto dependency resolution
 
 ---
 

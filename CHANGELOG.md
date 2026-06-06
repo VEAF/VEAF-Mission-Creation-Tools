@@ -7,7 +7,7 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
-## [Unreleased]
+## [6.3.3] — 2026-06-06
 
 ### Fixed
 - `veafCacheManager.lua`, `veafTime.lua`, `veafUnits.lua`, `veafSkynetIadsMonitor.lua`: added missing `initialize()` function — the generated `veaf-config.lua` calls `<module>.initialize()` on every listed module; absence caused a DCS runtime crash (`attempt to call field 'initialize' (a nil value)`)

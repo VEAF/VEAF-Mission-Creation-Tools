@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(New-Item -ItemType Directory -Force \"d:\\\\dev\\\\_VEAF\\\\VEAF-Mission-Creation-Tools\\\\.claude\\\\commands\")",
+      "Bash(Out-Null)",
+      "Bash(Write-Output \"ok\")",
+      "Bash(poetry run *)",
+      "Bash(luacheck --config .luacheckrc src/scripts/veaf/)",
+      "Bash(stylua --check src/scripts/veaf/)",
+      "PowerShell(luacheck --config .luacheckrc src/scripts/veaf/ 2>&1)"
+    ]
+  }
+}

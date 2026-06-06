@@ -441,5 +441,27 @@ class TestConversionReportAnnotatedContent(unittest.TestCase):
             self.assertIn(t("report.section.annotated_config"), md)
 
 
+# ---------------------------------------------------------------------------
+# BAK-004 — backup uses src.name (no .bak extension)
+# ---------------------------------------------------------------------------
+
+
+class TestMigrateConfigBackupNoBak(unittest.TestCase):
+    """_migrate_config() backup must create missionConfig.lua, not missionConfig.lua.bak."""
+
+    def test_backup_creates_lua_not_bak(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            folder = Path(td)
+            scripts_dir = folder / "src" / "scripts"
+            scripts_dir.mkdir(parents=True)
+            mc = scripts_dir / "missionConfig.lua"
+            mc.write_text("-- test\n", encoding="utf-8")
+            V5Converter().convert(folder, backup=True)
+            bak = folder / "backup_v5" / "src" / "scripts" / "missionConfig.lua"
+            bak_old = folder / "backup_v5" / "src" / "scripts" / "missionConfig.lua.bak"
+            self.assertTrue(bak.exists(), "backup_v5/.../missionConfig.lua should exist")
+            self.assertFalse(bak_old.exists(), "missionConfig.lua.bak must NOT exist")
+
+
 if __name__ == "__main__":
     unittest.main()

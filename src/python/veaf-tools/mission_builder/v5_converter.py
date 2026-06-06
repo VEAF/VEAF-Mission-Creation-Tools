@@ -673,7 +673,7 @@ class V5Converter:
         """Run ConfigMigrator on missionConfig.lua and write the result.
 
         File layout after migration:
-        - ``backup_v5/src/scripts/missionConfig.lua.bak``  — original unmodified copy
+        - ``backup_v5/src/scripts/missionConfig.lua``  — original unmodified copy
         - ``backup_v5/src/scripts/missionConfig.lua``       — annotated (-- [v6 ...] comments)
         - ``src/scripts/mission-script.lua``                — clean v6 file (callback stubs only)
         """
@@ -696,11 +696,11 @@ class V5Converter:
             backup_dir = mission_folder / "backup_v5" / rel.parent
             backup_dir.mkdir(parents=True, exist_ok=True)
 
-            bak_path = backup_dir / (src.stem + ".lua.bak")
+            bak_path = backup_dir / src.name
             if not bak_path.exists():
                 shutil.copy2(src, bak_path)
                 report.missionconfig_backup = bak_path
-                report.actions.append(t("convert_v5.action.missionconfig_bak", path=f"{rel.parent}/{src.stem}.lua.bak"))
+                report.actions.append(t("convert_v5.action.missionconfig_bak", path=f"{rel.parent}/{src.name}"))
 
             # Store the annotated content in the report (embedded in the Markdown).
             # We do NOT write it as a separate file in backup_v5/ to avoid confusion
@@ -719,7 +719,7 @@ class V5Converter:
                     "It was created automatically by 'veaf-tools convert-v5'.\n"
                     "\n"
                     "Contents:\n"
-                    "  src/scripts/missionConfig.lua.bak  — original unmodified file (for rollback)\n"
+                    "  src/scripts/missionConfig.lua  — original unmodified file (for rollback)\n"
                     "\n"
                     "The annotated version of missionConfig.lua (with [v6 ...] comments showing\n"
                     "what each line was migrated into) is embedded in the conversion report:\n"

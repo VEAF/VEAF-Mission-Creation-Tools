@@ -182,6 +182,15 @@ def build(
         else:
             logger.warning(f"Pipeline: aircraft groups YAML validation failed — skipping ({aircraft_path})")
             console.print(t("pipeline.console.aircraft_invalid"))
+    else:
+        _orphan = p_mission_folder / "src" / "aircraft-templates.yaml"
+        if _orphan.exists():
+            logger.warning(
+                "Orphan file 'src/aircraft-templates.yaml': "
+                "pipeline 'aircraft_groups' is disabled or skipped "
+                "but the file still exists in your mission folder. "
+                "You can safely delete it, or enable 'aircraft_groups' in mission.yaml."
+            )
 
     weather_path = _step_file("weather", "src/missions.yaml", "src/versions.yaml", "missions.yaml")
     if weather_path:

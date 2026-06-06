@@ -1,6 +1,15 @@
 """Tests for veaf_libs.lua_config_generator."""
 
+import re
+
 from veaf_libs.lua_config_generator import _emit_lua_string, generate_config_lua
+
+_LONG_STRING_RE = re.compile(r"^\[=*\[")
+
+
+def _is_long_string(s: str) -> bool:
+    """True if *s* is a Lua long-string literal."""
+    return bool(_LONG_STRING_RE.match(s))
 
 
 # ---------------------------------------------------------------------------
@@ -18,25 +27,45 @@ def test_emit_lua_string_empty():
 
 def test_emit_lua_string_with_newline():
     result = _emit_lua_string("line1\nline2")
-    assert result.startswith("[[")
-    assert result.endswith("]]")
+    assert _is_long_string(result)
     assert "line1\nline2" in result
-    # Must NOT be a plain quoted string with an embedded newline
-    assert result != '"line1\nline2"'
+    # Must NOT be a plain quoted string
+    assert not result.startswith('"')
 
 
 def test_emit_lua_string_with_double_quote():
     result = _emit_lua_string('say "hello"')
-    assert result.startswith("[[")
-    assert "say" in result
-    # No raw double-quote at the outer wrapping level
+    assert _is_long_string(result)
+    assert 'say "hello"' in result
     assert not result.startswith('"')
+
+
+def test_emit_lua_string_with_backslash():
+    # Backslash would be misinterpreted by Lua escape processing in plain strings
+    result = _emit_lua_string(r"C:\Users\foo")
+    assert _is_long_string(result)
+    assert r"C:\Users\foo" in result
 
 
 def test_emit_lua_string_multiline_no_closing_brackets():
     value = "Tacan 64Y\nU290.50 (20)\nZone OUEST"
     result = _emit_lua_string(value)
+    # Value has no ]] — expect simplest [[...]] form
     assert result == f"[[{value}]]"
+
+
+def test_emit_lua_string_value_with_closing_brackets():
+    # Value forces long-string (has \n) AND contains ]] — dynamic level must pick a safe delimiter
+    value = "line1\nclose]]here"
+    result = _emit_lua_string(value)
+    assert _is_long_string(result)
+    assert value in result
+    # The closing bracket sequence of the chosen level must NOT appear inside the value
+    m = _LONG_STRING_RE.match(result)
+    assert m is not None
+    level = len(m.group(0)) - 2  # number of = chars
+    closing = "]" + "=" * level + "]"
+    assert closing not in value
 
 
 # ---------------------------------------------------------------------------
@@ -63,12 +92,11 @@ _MINIMAL_YAML: dict = {
 
 def test_assets_multiline_information_uses_long_string():
     lua = generate_config_lua(_MINIMAL_YAML)
-    # Long-string opener present
-    assert "[[" in lua
+    # The specific ASSETS information field must use a long-string
+    assert "information = [[Tacan 64Y" in lua
     # Plain quoted newline must NOT appear
     assert '"Tacan 64Y\n' not in lua
     # Content present
-    assert "Tacan 64Y" in lua
     assert "U290.50 (20)" in lua
     assert "Zone OUEST" in lua
 

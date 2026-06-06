@@ -34,6 +34,12 @@ For each task or fix, rigorously apply these steps in order:
 4. Increment the PATCH version in `pyproject.toml`.
 5. Run the `poetry install` command to update the development environment.
 
+## PULL REQUEST PROCESS
+
+After pushing a branch and creating a PR:
+- **Do NOT request a Copilot review.** Sourcery reviews PRs automatically.
+- Request a Copilot review **only if** Sourcery posts a comment stating it cannot review the PR.
+
 ## PIPELINE COMMANDS
 
 - **Application Build**: `poetry run veaf-build build --version x.y.z`

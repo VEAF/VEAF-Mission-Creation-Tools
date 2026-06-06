@@ -108,20 +108,28 @@ def _to_lua_scalar(value: object) -> str:
 
 
 def _lua_long_string(text: str) -> str:
-    """Wrap *text* in Lua long-string brackets ``[[...]]`` or ``[==[...]==]``."""
-    if "]]" not in text:
-        return f"[[{text}]]"
-    return f"[==[{text}]==]"
+    """Wrap *text* in a Lua long-string with a dynamically chosen bracket level.
+
+    Chooses the minimum number of ``=`` characters such that the closing
+    bracket sequence does not appear anywhere in *text*, making the result
+    valid for any input.
+    """
+    level = 0
+    while f"]{('=' * level)}]" in text:
+        level += 1
+    eq = "=" * level
+    return f"[{eq}[{text}]{eq}]"
 
 
 def _emit_lua_string(value: str) -> str:
     """Return a valid Lua string literal for *value*.
 
-    Uses ``[[...]]`` long-string when the value contains a newline or a double-quote
-    (both are illegal inside a plain ``"..."`` Lua string without escaping).
-    Otherwise returns the value wrapped in double quotes.
+    Uses a Lua long-string (``[[...]]`` or equivalent) when the value contains
+    a newline, a double-quote, or a backslash — characters that either cannot
+    appear unescaped inside a plain ``"..."`` Lua string or would be silently
+    transformed by Lua's escape processing.  Otherwise wraps in double quotes.
     """
-    if "\n" in value or '"' in value:
+    if "\n" in value or '"' in value or "\\" in value:
         return _lua_long_string(value)
     return f'"{value}"'
 

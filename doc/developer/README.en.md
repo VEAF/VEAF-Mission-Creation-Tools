@@ -16,10 +16,7 @@ git checkout develop-v6
 poetry install
 
 # 3. Run Lua tests
-$FAILED=0
-Get-ChildItem test/lua/test_*.lua | Sort-Object Name | ForEach-Object {
-    lua $_.FullName; if ($LASTEXITCODE -ne 0) { $FAILED=1 }
-}
+poetry run test-lua
 
 # 4. Run Python quality gate
 poetry run ruff check src/python
@@ -59,7 +56,7 @@ flowchart TD
 |------|---------|--------|
 | Lua formatting | `stylua --check src/scripts/veaf/` | StyLua Formatting |
 | Lua lint | `luacheck src/scripts/veaf/ --config .luacheckrc` | Luacheck |
-| Lua tests | `lua test/lua/test_*.lua` | Lua Tests |
+| Lua tests | `poetry run test-lua` | Lua Tests |
 | Python lint + format | `poetry run ruff check` + `ruff format --check` | Python Quality |
 | Python types | `poetry run mypy src/python` | Python Quality |
 | Python tests | `poetry run pytest` | Python Quality |

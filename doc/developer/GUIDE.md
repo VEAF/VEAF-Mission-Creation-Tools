@@ -94,28 +94,116 @@ Dans les deux cas, `poetry install --without build --all-extras` s'exécute auto
 
 ### Option B — Setup manuel (Windows)
 
-### Prérequis
+#### 1. Python 3.11+
 
-- Python 3.9+ (3.13 recommandé)
-- Git
-- GitHub CLI (`gh`) — pour publier les versions
-- Lua 5.1 — pour lancer les tests unitaires en local
-- StyLua 2.4.0 — pour le formatage Lua (installé dans `~/.local/bin/stylua.exe`)
-
-### Installation
+Télécharger l'installateur depuis [python.org](https://www.python.org/downloads/) (version **3.13** recommandée) ou via winget :
 
 ```powershell
-# Cloner
-git clone https://github.com/VEAF/VEAF-Mission-Creation-Tools.git
-cd VEAF-Mission-Creation-Tools
-
-# Installer les dépendances (Poetry gère son propre environnement virtuel)
-poetry install              # quality gate + veaf-tools
-poetry install --with build # ajouter PyInstaller (nécessaire pour compiler les .exe)
+winget install --id Python.Python.3.13
 ```
 
-> Utiliser `poetry run <cmd>` pour exécuter n'importe quelle commande Python dans l'environnement Poetry,
-> ou `poetry shell` pour ouvrir une session interactive.
+> **Important :** pendant l'installation graphique, cocher **"Add Python to PATH"**. Sans cette case, `python` et `pip` ne seront pas trouvés dans le terminal.
+
+Vérification :
+
+```powershell
+python --version   # Python 3.11 ou supérieur attendu
+```
+
+#### 2. Poetry
+
+Poetry gère les environnements virtuels Python et les dépendances du projet. La méthode recommandée est via `pipx`, qui isole Poetry dans son propre environnement :
+
+```powershell
+pip install pipx
+pipx ensurepath        # ajoute ~/.local/bin au PATH — redémarrer le terminal ensuite
+pipx install poetry
+```
+
+Vérification :
+
+```powershell
+poetry --version
+```
+
+> `poetry install` crée automatiquement un virtualenv isolé dans le projet. Toutes les commandes du projet s'exécutent ensuite avec le préfixe `poetry run <commande>`.
+
+#### 3. Git
+
+```powershell
+winget install --id Git.Git
+```
+
+Ou télécharger depuis [git-scm.com](https://git-scm.com/download/win).
+
+#### 4. Lua 5.1 (pour les tests unitaires)
+
+Lua 5.1 est requis pour exécuter les tests localement. La version **5.1** est obligatoire — les versions 5.2+ ne sont pas compatibles avec le code DCS.
+
+Via [Scoop](https://scoop.sh/) (gestionnaire de paquets Windows recommandé) :
+
+```powershell
+# Installer Scoop si pas encore présent
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+Invoke-RestMethod -Uri https://get.scoop.sh | Invoke-Expression
+
+# Installer Lua 5.1
+scoop install lua51
+```
+
+Alternativement, télécharger un binaire depuis [LuaBinaries](https://luabinaries.sourceforge.net/) (`lua-5.1.x_Win64_bin.zip`), extraire et ajouter le dossier au PATH système.
+
+Vérification :
+
+```powershell
+lua -v   # Lua 5.1.x attendu
+```
+
+#### 5. StyLua 2.4.0 (qualité du code Lua)
+
+StyLua formate le code Lua. **La version 2.4.0 est imposée par la CI** — toute autre version fera échouer le job de formatage.
+
+Télécharger `stylua-windows-x86_64.zip` depuis la [page de release v2.4.0](https://github.com/JohnnyMorganz/StyLua/releases/tag/v2.4.0), puis installer :
+
+```powershell
+# Créer le dossier cible
+New-Item -ItemType Directory -Force "$HOME\.local\bin"
+
+# Extraire et placer l'exécutable (adapter le chemin selon où le zip a été extrait)
+Copy-Item "chemin\vers\stylua.exe" "$HOME\.local\bin\stylua.exe"
+
+# Vérifier
+~/.local/bin/stylua.exe --version   # stylua 2.4.0 attendu
+```
+
+#### 6. GitHub CLI — optionnel, uniquement pour publier des versions
+
+```powershell
+winget install --id GitHub.cli
+gh auth login
+```
+
+#### Cloner et initialiser le projet
+
+Une fois tous les prérequis installés :
+
+```powershell
+git clone https://github.com/VEAF/VEAF-Mission-Creation-Tools.git
+cd VEAF-Mission-Creation-Tools
+git checkout develop-v6
+
+# Installer toutes les dépendances Python
+poetry install
+
+# Vérifier que tout fonctionne
+poetry run test-lua   # tests Lua (requiert Lua 5.1)
+poetry run pytest     # tests Python
+```
+
+> Pour compiler les exécutables Windows (`veaf-tools.exe`, etc.), ajouter le groupe `build` :
+> ```powershell
+> poetry install --with build
+> ```
 
 ### Dépendances Python
 

@@ -1180,3 +1180,276 @@ Ajouter à `dcs_mocks.lua` :
 Cela débloque les tests unitaires des state machines (QRA, AirWaves).
 
 </details>
+
+---
+
+## Lot 18 — VERSIONING: Single source of truth pour la version ✅
+
+**Goal**: Centraliser la version dans `pyproject.toml` et la propager automatiquement partout.
+
+| # | Ticket | Fichiers touchés | Type | Effort | Status |
+|---|--------|-----------------|------|--------|--------|
+| VER-001 | Supprimer les fallbacks version hardcodés ; générer `_version.py` depuis `veaf_build/worker.py` | `veaf_tools/app.py`, `veaf-tools-updater.py`, `veaf_build/worker.py` | chore | 30 min | ✅ |
+| VER-002 | Métadonnées Windows EXE (FILE_VERSION/PRODUCT_VERSION) via PyInstaller `version_file.txt` | `veaf-tools.spec`, `veaf-tools-updater.spec`, `veaf_build/worker.py` | chore | 45 min | ✅ |
+| VER-003 | Afficher la version dans `about` (`veaf-tools vX.Y.Z`) | `veaf_tools/commands/about.py`, `locales/en.json`, `locales/fr.json` | feat | 15 min | ✅ |
+
+**Raw total: 90 min → ~105 min (~1h45)**
+
+---
+
+## Lot 19 — MIGRATOR: Audit et complétion de la conversion missionConfig.lua ✅
+
+**Goal**: Vérifier que `ConfigMigrator` gère correctement toutes les constructions Lua réelles d'un `missionConfig.lua` v5 ; combler les lacunes de tests ; corriger les régressions.
+
+| # | Ticket | Fichiers touchés | Type | Effort | Status |
+|---|--------|-----------------|------|--------|--------|
+| MIG-001 | Test d'intégration end-to-end sur fixtures réelles | `test_config_migrator.py` | chore | 30 min | ✅ |
+| MIG-002 | Tests unitaires pour les 8 extracteurs non couverts | `test_config_migrator.py` | chore | 60 min | ✅ |
+| MIG-003 | Corrections bugs trouvés lors de MIG-001/MIG-002 | `mission_builder/config_migrator.py` | fix | 60 min | ✅ |
+
+**Raw total: 150 min → ~175 min (~2h30)**
+
+---
+
+## Lot 20 — DEEPENING: Architecture deepening Python + Lua ✅
+
+**Goal**: `Group` dataclass + `iter_groups()`, `DcsMission` weather/options accessors, suppression du traversal dupliqué dans les injectors, base class `GroupInjectorWorker`, migration `veafGroundAI` → `veafCommands`, restructuration options spawn, config resolution dans `MissionBuilderWorker`.
+
+| # | Ticket | File(s) | Type | Effort | Status |
+|---|--------|---------|------|--------|--------|
+| DEEP-001 | `Group` dataclass + `DcsMission.iter_groups()` + tests | `miz_tools.py`, `__init__.py`, `test_miz_tools.py` | feat | 60 min | ✅ |
+| DEEP-002 | `DcsMission.get/set_weather()` + `get/set_options()` | `miz_tools.py`, `weather_injector_worker.py` | feat | 30 min | ✅ |
+| DEEP-003 | Supprimer traversal dupliqué des 3 injectors | `presets_injector_worker.py`, `waypoints_injector_worker.py` | chore | 60 min | ✅ |
+| DEEP-004 | `GroupInjectorWorker` base class | `veaf_libs/group_injector_worker.py`, injectors | feat | 60 min | ✅ |
+| DEEP-005 | `veafGroundAI` → `veafCommands.registerCommandHandler` | `veafGroundAI.lua`, `veafCommands.lua` | chore | 30 min | ✅ |
+| DEEP-006 | Restructuration table options spawn `markTextAnalysis()` | `veafSpawnParser.lua` | chore | 60 min | ✅ |
+| DEEP-007 | Config resolution dans `MissionBuilderWorker.__init__()` | `mission_builder_worker.py`, `build.py` | chore | 60 min | ✅ |
+
+**Raw total: 360 min → ~414 min (~7h)**
+
+---
+
+## Lot 21 — TYPING: Migrate `Optional[T]` to `X | Y` syntax ✅
+
+**Goal**: Enable ruff `UP007` + migrate `Optional[str]` → `str | None`.
+
+| # | Ticket | File(s) | Type | Effort | Status |
+|---|--------|---------|------|--------|--------|
+| TYP-001 | Remove UP007 from ruff ignore + fix `lua_tests.py` + update copilot-instructions | `pyproject.toml`, `lua_tests.py`, `.github/copilot-instructions.md` | chore | 15 min | ✅ |
+
+---
+
+## Lot 22 — TEST-LAYOUT: Move Python tests to `test/python/` ✅
+
+**Goal**: Déplacer les 28 `test_*.py` de `src/python/veaf-tools/` vers `test/python/`.
+
+| # | Ticket | File(s) | Type | Effort | Status |
+|---|--------|---------|------|--------|--------|
+| TST-001 | Déplacer 28 fichiers + update `pyproject.toml` | `test/python/**`, `pyproject.toml` | chore | 45 min | ✅ |
+
+---
+
+## Lot 23 — DOC-YAML: Référence YAML complète ✅
+
+**Goal**: Documenter exhaustivement toute la configuration YAML (pipeline + modules Lua) avec double index.
+
+| # | Ticket | Type | Effort | Status |
+|---|--------|------|--------|--------|
+| DOC-001 | `PIPELINE_REFERENCE.md` + `.fr.md` | doc | 60 min | ✅ |
+| DOC-002 | `MISSION_YAML_REFERENCE.md` + `.fr.md` (squelette) | doc | 45 min | ✅ |
+| DOC-003 | YAML sections dans docs modules simples (RADIO, SHORTCUTS, NAMEDPOINTS, CARRIER) | doc | 60 min | ✅ |
+| DOC-004 | YAML sections dans ASSETS + SANCTUARY | doc | 45 min | ✅ |
+| DOC-005 | YAML sections dans COMBATZONE + AIRWAVES | doc | 90 min | ✅ |
+| DOC-006 | YAML sections dans QRA + CASMISSION | doc | 60 min | ✅ |
+| DOC-007 | Double index final `MISSION_YAML_REFERENCE.md` | doc | 30 min | ✅ |
+| DOC-008 | Audit global missionConfig.lua dans tous les `.md` | doc | 45 min | ✅ |
+
+**Raw total: 435 min → ~500 min (~8h20)**
+
+---
+
+## Lot 24 — DOC-REVIEW: Corrections issues du doc-review ✅ (REV-002 différé)
+
+**Goal**: Corriger les inexactitudes et lacunes identifiées lors de la revue manuelle de la doc v6.
+
+| # | Ticket | Type | Effort | Status |
+|---|--------|------|--------|--------|
+| REV-001 | Remplacer `missions.yaml` → `versions.yaml` partout dans la doc | fix | 20 min | ✅ |
+| REV-002 | Committer profil Klogg → `tools/klogg/veaf.conf` | chore | 20 min | ⬜ (différé) |
+| REV-004 | Corriger `MIGRATION_GUIDE.md` — Common Issues + logs | fix | 20 min | ✅ |
+| REV-006 | Corriger `GUIDE.md` — Typical Build Workflow (pipeline intégré) | fix | 20 min | ✅ |
+| REV-007 | Corriger `doc/index.md` — phrase d'accroche + diagramme TD | fix | 15 min | ✅ |
+| REV-008 | Prérequis DCS Editor dans `GUIDE.md` (groupe bleu + rouge requis) | fix | 20 min | ✅ |
+| REV-010 | CTLD/CSAR Integration — corriger la section dans `GUIDE.md` | fix | 30 min | ✅ |
+
+**Raw total: 145 min → ~167 min (~2h45)**
+
+---
+
+## Lot 25 — EXT-YAML: Support YAML pour les modules externes (CTLD/CSAR) ✅
+
+**Goal**: Support `external_modules.csar` dans `lua_config_generator.py` + étendre CTLD + tests + doc.
+
+| # | Ticket | Type | Effort | Status |
+|---|--------|------|--------|--------|
+| EXT-001 | Support `external_modules.csar` | feat | 30 min | ✅ |
+| EXT-002 | Générer `ctld.initialize()` depuis YAML | feat | 20 min | ✅ |
+| EXT-003 | Tests unitaires CTLD/CSAR | test | 40 min | ✅ |
+| EXT-004 | Update `GUIDE.md` CTLD/CSAR section | doc | 30 min | ✅ |
+
+**Raw total: 120 min → ~140 min (~2h)**
+
+---
+
+## Lot FIX-SORT — LUADATA FIX: Crash tri clés mixtes int/str ✅
+
+**Goal**: Corriger le `TypeError: '<' not supported between instances of 'int' and 'str'` dans `luadata/serializer/serialize.py`.
+
+| # | Ticket | Type | Effort | Status |
+|---|--------|------|--------|--------|
+| SORT-001 | Convertir la clé en `str` dans `sort_key` de `_sort()` | fix | 5 min | ✅ |
+| SORT-002 | Test unitaire : `_sort` avec clés mixtes ne plante pas | test | 10 min | ✅ |
+
+---
+
+## Lot 26 — IMC-FEEDBACK: Retours utilisateur tests IMC-Day (v6.2.0) ✅
+
+**Goal**: Traiter les retours terrain remontés lors des tests de migration IMC-Day du 31/05/2026.
+
+| # | Ticket | Type | Effort | Status |
+|---|--------|------|--------|--------|
+| IMC-001 | Auto-pause smart (double-clic vs CLI) | fix | 25 min | ✅ |
+| IMC-002 | backup_v5 trompeur — rapport + README.txt | fix | 30 min | ✅ |
+| IMC-003 | Supprimer README des defaults copiés | fix | 10 min | ✅ |
+| IMC-007 | Doc architecture YAML dans `MISSION_YAML_REFERENCE.md` | doc | 30 min | ✅ |
+| IMC-008 | Filtrage smart des defaults + warnings orphelins | fix | 35 min | ✅ |
+| IMC-010 | Investigate + validation version veafCommands | fix | 45 min | ✅ |
+
+**Raw total: 175 min → ~200 min (~3h20)**
+
+---
+
+## Lot FIX-BUNDLE — VEAFCOMMANDS MISSING ✅
+
+**Goal**: Corriger le crash `attempt to index global 'veafCommands' (a nil value)` — `veafCommands.lua` était absent du bundle.
+
+| # | Ticket | Type | Effort | Status |
+|---|--------|------|--------|--------|
+| BUNDLE-001 | Ajouter `"veafCommands.lua"` dans `lua_scripts` après `"veafMarkers.lua"` | fix | 5 min | ✅ |
+
+---
+
+## Lot FIX-ASSETS-NEWLINE — ASSETS newline in Lua string ✅
+
+**Goal**: Corriger l'erreur Lua quand `description`/`information` contient `\n` → utiliser `[[...]]`.
+
+| # | Ticket | Type | Effort | Status |
+|---|--------|------|--------|--------|
+| ASSETS-001 | Ajouter `_emit_lua_string()` dans `lua_config_generator.py` | fix | 10 min | ✅ |
+| ASSETS-002 | Test unitaire | chore | 10 min | ✅ |
+
+---
+
+## Lot FIX-WEATHER-ALIAS — missions.yaml + versions.yaml coexistence ✅
+
+**Goal**: Éviter la coexistence de `missions.yaml` et `versions.yaml` dans un dossier mission converti.
+
+| # | Ticket | Type | Effort | Status |
+|---|--------|------|--------|--------|
+| WEATHER-001 | Skip copy `versions.yaml` si `missions.yaml` présent + warning | fix | 10 min | ✅ |
+| WEATHER-002 | Ajouter `missions.yaml` à `_DEFAULT_FILE_MODULE_MAP` | fix | 5 min | ✅ |
+| WEATHER-003 | Test unitaire | chore | 10 min | ✅ |
+
+---
+
+## Lot FIX-MISSIONCONFIG-BAK — supprimer extension .bak inutile ✅
+
+**Goal**: Supprimer l'extension `.lua.bak` du fichier backup dans `backup_v5/`.
+
+| # | Ticket | Type | Effort | Status |
+|---|--------|------|--------|--------|
+| BAK-001 | `bak_path = backup_dir / src.name` | fix | 5 min | ✅ |
+| BAK-002 | Update i18n strings | fix | 5 min | ✅ |
+| BAK-003 | Update `README.txt` généré | fix | 5 min | ✅ |
+| BAK-004 | Test unitaire | chore | 5 min | ✅ |
+
+---
+
+## Lot FIX-README-COPY — Stop copying presets.md into src/ ✅
+
+**Goal**: Supprimer la copie silencieuse de `presets.md` dans le dossier `src/` des missions au build.
+
+| # | Ticket | Type | Effort | Status |
+|---|--------|------|--------|--------|
+| README-001 | Supprimer `src/defaults/mission-folder/src/presets.md` | fix | 2 min | ✅ |
+| README-002 | Retirer `"presets.md"` de `_DEFAULT_FILE_MODULE_MAP` | fix | 3 min | ✅ |
+| README-003 | Audit defaults — vérifier aucun fichier doc-only résiduel | chore | 5 min | ✅ |
+
+---
+
+## Lot FIX-AIRCRAFT-ORPHAN — alerte fichier orphelin aircraft-templates.yaml ✅
+
+**Goal**: Émettre un warning si `src/aircraft-templates.yaml` est présent mais le step `aircraft_groups` est désactivé.
+
+| # | Ticket | Type | Effort | Status |
+|---|--------|------|--------|--------|
+| AORPHAN-001 | Warning dans `build.py` après step skipped | fix | 10 min | ✅ |
+| AORPHAN-002 | Test unitaire | chore | 10 min | ✅ |
+
+---
+
+## Lot DOC-DEV-MODE — documenter dev_mode + scripts_path ✅
+
+**Goal**: Documenter `dev_mode` / `scripts_path` pour les contributeurs VEAF développant localement.
+
+| # | Ticket | Type | Effort | Status |
+|---|--------|------|--------|--------|
+| DEVMODE-001 | Section "Developer Mode" dans `doc/developer/GUIDE.md` + `.fr.md` | doc | 20 min | ✅ |
+| DEVMODE-002 | Documenter `build.dev_mode` et `build.scripts_path` dans `MISSION_YAML_REFERENCE.md` + `.fr.md` | doc | 10 min | ✅ |
+
+---
+
+## Lot FEAT-PROFILES — profils de build dans mission.yaml ✅
+
+**Goal**: Permettre des profils nommés dans `mission.yaml` (`TEST`, `SERVER`) applicables via `veaf-tools build --profile TEST`.
+
+| # | Ticket | Type | Effort | Status |
+|---|--------|------|--------|--------|
+| PROF-001 | `resolve_profile()` + deep merge dans `veaf_libs/build_profiles.py` | feat | 45 min | ✅ |
+| PROF-002 | Option `--profile` / `-p` sur `veaf-tools build` | feat | 30 min | ✅ |
+| PROF-003 | Log du profil actif au build | feat | 10 min | ✅ |
+| PROF-004 | Exemple `profiles:` commenté dans `src/defaults/mission-folder/mission.yaml` | doc | 15 min | ✅ |
+| PROF-005 | Tests unitaires | chore | 30 min | ✅ |
+| PROF-006 | Doc "Build Profiles" dans `MISSION_YAML_REFERENCE.md` + `GUIDE.md` | doc | 30 min | ✅ |
+
+**Raw total: 160 min → ~185 min (~3h)**
+
+---
+
+## Lot FEAT-MODULE-UX — Catégories, modules obligatoires, dépendances ✅
+
+**Goal**: Améliorer la section `lua_modules:` : catégories cosmétiques, warning modules obligatoires, résolution automatique des dépendances.
+
+| # | Ticket | Type | Effort | Status |
+|---|--------|------|--------|--------|
+| MODUX-001 | `_MODULE_CATEGORIES` dict + headers dans YAML template et Lua output | feat | 20 min | ✅ |
+| MODUX-002 | `_MANDATORY_MODULES` frozenset + warning si `enable: false` | feat | 10 min | ✅ |
+| MODUX-003 | `_MODULE_DEPS` dict + `_resolve_deps()` — auto-enable en mémoire | feat | 30 min | ✅ |
+| MODUX-004 | Update `src/defaults/mission-folder/mission.yaml` — ordre catégories + annotations | doc | 15 min | ✅ |
+| MODUX-005 | Tests unitaires (catégories, mandatory warning, deps, transitive chain) | chore | 30 min | ✅ |
+
+**Raw total: 105 min → ~120 min (~2h)**
+
+---
+
+## Lot FEAT-GITIGNORE — Template `.gitignore` VEAF MCT dans les defaults ✅
+
+**Goal**: Ajouter un `.gitignore` standard dans `src/defaults/mission-folder/`, jamais écrasé même avec `--force`.
+
+| # | Ticket | Type | Effort | Status |
+|---|--------|------|--------|--------|
+| GITIGNORE-001 | Créer `src/defaults/mission-folder/.gitignore` | feat | 5 min | ✅ |
+| GITIGNORE-002 | `NEVER_OVERWRITE = frozenset({".gitignore"})` dans `prepare.py` | feat | 15 min | ✅ |
+| GITIGNORE-003 | Test unitaire : `--force` ne surécrit pas `.gitignore` | chore | 5 min | ✅ |
+
+**Raw total: 25 min → ~30 min**

@@ -60,6 +60,9 @@ def prepare(
         files_skipped = 0
         yes_to_all = force
 
+        # Files that must never be overwritten, even with --force, to preserve user customizations
+        NEVER_OVERWRITE: frozenset[str] = frozenset({".gitignore"})
+
         # Copy default files from defaults source
         logger.info(f"Copying default files from {defaults_source_path}")
         for source_file in defaults_source_path.rglob("*"):
@@ -72,6 +75,11 @@ def prepare(
 
                 # Check if file already exists
                 if dest_file.exists():
+                    if source_file.name in NEVER_OVERWRITE:
+                        logger.debug(f"Never-overwrite: {relative_path}")
+                        files_skipped += 1
+                        continue
+
                     if not yes_to_all:
                         should_replace, yes_to_all = _ask_replace(relative_path)
                     else:

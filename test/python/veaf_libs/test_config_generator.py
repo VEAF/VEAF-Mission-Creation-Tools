@@ -152,7 +152,8 @@ class TestLuaLongString(unittest.TestCase):
 
     def test_contains_close_brackets(self) -> None:
         result = self._f("text with ]] inside")
-        self.assertEqual(result, "[==[text with ]] inside]==]")
+        # Dynamic level: ]] → level 1 → [=[...]=]
+        self.assertEqual(result, "[=[text with ]] inside]=]")
 
 
 class TestExportPath(unittest.TestCase):

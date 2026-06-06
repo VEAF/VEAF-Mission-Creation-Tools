@@ -99,10 +99,18 @@ def _build_process_tree_windows() -> "tuple[dict[int,int], dict[int,str]]":
     return pid_to_ppid, pid_to_name
 
 
-_TERMINAL_PROCESSES = frozenset({
-    "cmd.exe", "powershell.exe", "pwsh.exe", "wt.exe",
-    "windowsterminal.exe", "mintty.exe", "conemu64.exe", "conemu.exe",
-})
+_TERMINAL_PROCESSES = frozenset(
+    {
+        "cmd.exe",
+        "powershell.exe",
+        "pwsh.exe",
+        "wt.exe",
+        "windowsterminal.exe",
+        "mintty.exe",
+        "conemu64.exe",
+        "conemu.exe",
+    }
+)
 
 
 def _is_double_clicked() -> bool:

@@ -108,10 +108,30 @@ def _to_lua_scalar(value: object) -> str:
 
 
 def _lua_long_string(text: str) -> str:
-    """Wrap *text* in Lua long-string brackets ``[[...]]`` or ``[==[...]==]``."""
-    if "]]" not in text:
-        return f"[[{text}]]"
-    return f"[==[{text}]==]"
+    """Wrap *text* in a Lua long-string with a dynamically chosen bracket level.
+
+    Chooses the minimum number of ``=`` characters such that the closing
+    bracket sequence does not appear anywhere in *text*, making the result
+    valid for any input.
+    """
+    level = 0
+    while f"]{('=' * level)}]" in text:
+        level += 1
+    eq = "=" * level
+    return f"[{eq}[{text}]{eq}]"
+
+
+def _emit_lua_string(value: str) -> str:
+    """Return a valid Lua string literal for *value*.
+
+    Uses a Lua long-string (``[[...]]`` or equivalent) when the value contains
+    a newline, a double-quote, or a backslash — characters that either cannot
+    appear unescaped inside a plain ``"..."`` Lua string or would be silently
+    transformed by Lua's escape processing.  Otherwise wraps in double quotes.
+    """
+    if "\n" in value or '"' in value or "\\" in value:
+        return _lua_long_string(value)
+    return f'"{value}"'
 
 
 def _yaml_comment(key: str) -> list[str]:
@@ -171,10 +191,10 @@ def _emit_module_body(
             for asset in assets:
                 parts: list[str] = []
                 parts.append(f"sort = {_to_lua_scalar(asset.get('sort', 0))}")
-                parts.append(f'name = "{asset.get("name", "")}"')
-                parts.append(f'description = "{asset.get("description", "")}"')
+                parts.append(f"name = {_emit_lua_string(str(asset.get('name', '')))}")
+                parts.append(f"description = {_emit_lua_string(str(asset.get('description', '')))}")
                 info = str(asset.get("information", ""))
-                parts.append(f'information = "{info}"')
+                parts.append(f"information = {_emit_lua_string(info)}")
                 for opt_key in ("linked", "jtac", "freq", "mod"):
                     if opt_key in asset and asset[opt_key] is not None:
                         parts.append(f"{opt_key} = {_to_lua_scalar(asset[opt_key])}")

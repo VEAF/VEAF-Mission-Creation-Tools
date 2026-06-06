@@ -137,7 +137,13 @@ def test_ctld_enabled_generates_guard_and_initialize():
     assert "ctld.hoverPickup = false" in lua
     assert "ctld.slingLoad = true" in lua
     assert "ctld.initialize()" in lua
-    assert "end" in lua
+    # Block structure: guard → props → initialize → end, in order
+    idx_guard = lua.index("if ctld then")
+    idx_init = lua.index("ctld.initialize()")
+    idx_end = lua.index("end", idx_init)
+    assert idx_guard < idx_init < idx_end
+    # initialize() appears exactly once
+    assert lua.count("ctld.initialize()") == 1
 
 
 def test_ctld_disabled_emits_nothing():
@@ -168,7 +174,13 @@ def test_csar_enabled_generates_guard_and_initialize():
     assert "csar.enableAllslots = true" in lua
     assert "csar.useprefix = true" in lua
     assert "csar.initialize()" in lua
-    assert "end" in lua
+    # Block structure: guard → props → initialize → end, in order
+    idx_guard = lua.index("if csar then")
+    idx_init = lua.index("csar.initialize()")
+    idx_end = lua.index("end", idx_init)
+    assert idx_guard < idx_init < idx_end
+    # initialize() appears exactly once
+    assert lua.count("csar.initialize()") == 1
 
 
 def test_csar_disabled_emits_nothing():

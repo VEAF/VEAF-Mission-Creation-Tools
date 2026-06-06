@@ -53,7 +53,7 @@ x| Lot 23 — DOC-YAML | ~8h20 | ✅ |
 | Lot FIX-SORT — LUADATA FIX | ~15 min | ✅ |
 | Lot 26 — IMC-FEEDBACK | ~2h40 | ✅ |
 | Lot FIX-BUNDLE — VEAFCOMMANDS MISSING | ~10 min | ✅ |
-| Lot FIX-ASSETS-NEWLINE — ASSETS newline in Lua string | ~20 min | ⬜ |
+| Lot FIX-ASSETS-NEWLINE — ASSETS newline in Lua string | ~20 min | ✅ |
 | Lot FIX-WEATHER-ALIAS — missions.yaml + versions.yaml coexistence | ~25 min | ⬜ |
 | Lot FIX-MISSIONCONFIG-BAK — supprimer extension .bak inutile | ~20 min | ⬜ |
 | Lot FIX-README-COPY — ne plus copier presets.md dans src/ | ~10 min | ⬜ |
@@ -660,8 +660,8 @@ Scenario: mock `defaults_folder` with `src/versions.yaml`, mock `mission_folder/
 
 | # | Ticket | Files | Type | Effort | Status |
 |---|--------|-------|------|--------|--------|
-| ASSETS-001 | Add `_emit_lua_string(value: str) -> str` in `lua_config_generator.py`: returns `[[value]]` if value contains `\n` or `"`, otherwise `"value"`. Apply to `name`, `description`, `information` fields in the ASSETS block. | `veaf_libs/lua_config_generator.py` | fix | 10 min | ⬜ |
-| ASSETS-002 | Unit test: asset with multi-line `information` → generated Lua contains `[[...]]` and parses without error | `test/python/test_lua_config_generator.py` | chore | 10 min | ⬜ |
+| ASSETS-001 | Add `_emit_lua_string(value: str) -> str` in `lua_config_generator.py`: returns `[[value]]` if value contains `\n` or `"`, otherwise `"value"`. Apply to `name`, `description`, `information` fields in the ASSETS block. | `veaf_libs/lua_config_generator.py` | fix | 10 min | ✅ |
+| ASSETS-002 | Unit test: asset with multi-line `information` → generated Lua contains `[[...]]` and parses without error | `test/python/test_lua_config_generator.py` | chore | 10 min | ✅ |
 
 **Raw total: 20 min → estimated (×1.15): ~23 min (~25 min)**
 

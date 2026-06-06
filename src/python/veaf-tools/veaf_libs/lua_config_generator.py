@@ -114,6 +114,18 @@ def _lua_long_string(text: str) -> str:
     return f"[==[{text}]==]"
 
 
+def _emit_lua_string(value: str) -> str:
+    """Return a valid Lua string literal for *value*.
+
+    Uses ``[[...]]`` long-string when the value contains a newline or a double-quote
+    (both are illegal inside a plain ``"..."`` Lua string without escaping).
+    Otherwise returns the value wrapped in double quotes.
+    """
+    if "\n" in value or '"' in value:
+        return _lua_long_string(value)
+    return f'"{value}"'
+
+
 def _yaml_comment(key: str) -> list[str]:
     """Convert a catalog entry to a list of YAML ``# ...`` comment lines.
 
@@ -171,10 +183,10 @@ def _emit_module_body(
             for asset in assets:
                 parts: list[str] = []
                 parts.append(f"sort = {_to_lua_scalar(asset.get('sort', 0))}")
-                parts.append(f'name = "{asset.get("name", "")}"')
-                parts.append(f'description = "{asset.get("description", "")}"')
+                parts.append(f"name = {_emit_lua_string(str(asset.get('name', '')))}")
+                parts.append(f"description = {_emit_lua_string(str(asset.get('description', '')))}")
                 info = str(asset.get("information", ""))
-                parts.append(f'information = "{info}"')
+                parts.append(f"information = {_emit_lua_string(info)}")
                 for opt_key in ("linked", "jtac", "freq", "mod"):
                     if opt_key in asset and asset[opt_key] is not None:
                         parts.append(f"{opt_key} = {_to_lua_scalar(asset[opt_key])}")

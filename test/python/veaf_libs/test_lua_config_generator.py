@@ -291,11 +291,14 @@ def test_dep_auto_resolution_missing_dep(caplog):
 
 
 def test_dep_auto_resolution_disabled_dep(caplog):
-    """SPAWN enabled and UNITS explicitly disabled → UNITS auto-enabled + warning."""
-    effective = {"SPAWN": {}, "UNITS": {"enable": False}}
+    """SPAWN enabled and UNITS explicitly disabled → UNITS auto-enabled + warning.
+    Other config keys on the dep must be preserved."""
+    effective = {"SPAWN": {}, "UNITS": {"enable": False, "logLevel": "debug"}}
     with caplog.at_level(logging.WARNING, logger="veaf-tools"):
         result = _resolve_deps(effective)
     assert result["UNITS"].get("enable") is True
+    # Other config must be preserved (Sourcery fix)
+    assert result["UNITS"].get("logLevel") == "debug"
     assert any("UNITS" in msg for msg in caplog.messages)
 
 

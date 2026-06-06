@@ -119,9 +119,7 @@ _MODULE_CATEGORIES: dict[str, list[str]] = {
 }
 
 #: Flat module→category reverse lookup (built once at module load time).
-_MODULE_TO_CATEGORY: dict[str, str] = {
-    mod_id: cat for cat, ids in _MODULE_CATEGORIES.items() for mod_id in ids
-}
+_MODULE_TO_CATEGORY: dict[str, str] = {mod_id: cat for cat, ids in _MODULE_CATEGORIES.items() for mod_id in ids}
 
 #: Modules that are mandatory (infrastructure tier).
 #: Emitting ``enable: false`` for these produces a warning; the module is still generated.
@@ -605,7 +603,8 @@ def _resolve_deps(effective: dict) -> dict:
                     logger.warning(
                         f"Module '{mod_id}' requires '{dep}' but '{dep}' is disabled — auto-enabling '{dep}'"
                     )
-                    effective[dep] = {"enable": True}
+                    dep_cfg["enable"] = True
+                    effective[dep] = dep_cfg
                     changed = True
                 elif dep not in effective:
                     logger.warning(
@@ -708,9 +707,7 @@ def generate_config_lua(
         for mandatory_id in _MANDATORY_MODULES:
             mcfg = effective_modules.get(mandatory_id, {})
             if isinstance(mcfg, dict) and mcfg.get("enable") is False:
-                logger.warning(
-                    f"Module '{mandatory_id}' is mandatory and cannot be disabled — ignoring enable: false"
-                )
+                logger.warning(f"Module '{mandatory_id}' is mandatory and cannot be disabled — ignoring enable: false")
                 mcfg.pop("enable", None)
                 effective_modules[mandatory_id] = mcfg
 

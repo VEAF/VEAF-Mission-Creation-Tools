@@ -116,6 +116,21 @@ class TestResolveProfile(unittest.TestCase):
             mock_logger.warning.assert_called_once()
         self.assertEqual(result["global_log_level"], "info")
 
+    def test_invalid_profiles_section_warns_and_ignores(self) -> None:
+        """profiles: set to a non-dict (e.g. list) must not raise TypeError."""
+        yaml_data = {"global_log_level": "info", "profiles": ["bad", "value"]}
+        with patch("veaf_libs.build_profiles.logger") as mock_logger:
+            result = resolve_profile(yaml_data, "TEST")
+            # At least one warning about the invalid profiles section
+            warning_calls = [str(call) for call in mock_logger.warning.call_args_list]
+            self.assertTrue(
+                any("invalid" in msg.lower() for msg in warning_calls),
+                f"Expected 'invalid' warning, got: {warning_calls}",
+            )
+        # Falls back to base config, profiles key stripped
+        self.assertEqual(result["global_log_level"], "info")
+        self.assertNotIn("profiles", result)
+
     def test_known_profile_logs_info(self) -> None:
         with patch("veaf_libs.build_profiles.logger") as mock_logger:
             resolve_profile(self._YAML, "TEST")

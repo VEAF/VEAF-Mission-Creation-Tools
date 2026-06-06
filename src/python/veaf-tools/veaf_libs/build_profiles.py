@@ -32,16 +32,19 @@ def resolve_profile(yaml_data: dict, profile_name: str | None) -> dict:
     returned as-is (minus ``profiles:``).  If the named profile is not found a
     warning is emitted and the base config is returned.
     """
-    profiles: dict = yaml_data.get("profiles") or {}
+    profiles_raw = yaml_data.get("profiles") or {}
+    if not isinstance(profiles_raw, dict):
+        logger.warning("Ignoring invalid 'profiles' section in mission.yaml (expected mapping)")
+        profiles: dict = {}
+    else:
+        profiles = profiles_raw
     base: dict = {k: v for k, v in yaml_data.items() if k != "profiles"}
 
     if profile_name is None:
         return base
 
     if profile_name not in profiles:
-        logger.warning(
-            f"Profile '{profile_name}' not found in mission.yaml — using base config"
-        )
+        logger.warning(f"Profile '{profile_name}' not found in mission.yaml — using base config")
         return base
 
     logger.info(f"Building with profile: {profile_name}")

@@ -333,7 +333,7 @@ profiles:
 ```
 
 ```powershell
-# Build pour les tests (pas de météo, sécurité désactivée, logs verbose)
+# Build pour les tests (pas de météo, sécurité désactivée, journalisation détaillée)
 veaf-tools.exe build --profile TEST
 
 # Build pour le déploiement serveur

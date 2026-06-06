@@ -1,65 +1,64 @@
-# veafMissileGuardian — Missile Interception
+# veafMissileGuardian — Interception de missiles
 
-
-**Module ID:** — | **File:** `veafMissileGuardian.lua`
-
----
-
-## Purpose
-
-Intercepts and destroys specific incoming missiles to protect designated assets or zones. Useful for protecting carriers, FARPs, or other high-value targets from ballistic threats in scenarios where realistic missile defense is desired.
+**Module ID:** — | **Fichier:** `veafMissileGuardian.lua`
 
 ---
 
-## Dependencies
+## Objectif
 
-- `veafEventHandler` — for missile-fired event monitoring
+Intercepte et détruit les missiles entrants spécifiques pour protéger des ressources ou zones désignées. Utile pour protéger les porte-avions, FARP ou autres cibles de haute valeur contre des menaces balistiques dans des scénarios où une défense antimissile réaliste est souhaitée.
 
 ---
 
-## Enable
+## Dépendances
+
+- `veafEventHandler` — pour la surveillance des événements de tir de missile
+
+---
+
+## Activation
 
 ```lua
 veafMissileGuardian.initialize()
 ```
 
-Then define protection zones:
+Puis définir les zones de protection :
 
 ```lua
 VeafMissileGuardian:new()
   :setName("Carrier Defense")
-  :setGroupName("CVN-73")           -- protect this group
-  :setRadius(30000)                 -- interception radius in metres
-  :setMissileTypes({ "P-700", "Kh-41" })  -- intercept these missile types
+  :setGroupName("CVN-73")           -- protéger ce groupe
+  :setRadius(30000)                 -- rayon d'interception en mètres
+  :setMissileTypes({ "P-700", "Kh-41" })  -- intercepter ces types de missiles
   :initialize()
 ```
 
 ---
 
-## Builder Methods
+## Méthodes du builder
 
-| Method | Description |
-|--------|-------------|
-| `:setName(name)` | Internal identifier |
-| `:setGroupName(name)` | DCS group to protect |
-| `:setZoneName(zone)` | Alternatively, protect a zone |
-| `:setRadius(m)` | Interception radius around the protected target |
-| `:setMissileTypes(list)` | List of DCS weapon type names to intercept |
-| `:setAllMissiles(bool)` | If true, intercept all missiles |
-| `:setSilent(bool)` | Suppress interception messages |
-| `:initialize()` | Activate the guardian |
+| Méthode | Description |
+|---------|-------------|
+| `:setName(name)` | Identifiant interne |
+| `:setGroupName(name)` | Groupe DCS à protéger |
+| `:setZoneName(zone)` | Alternativement, protéger une zone |
+| `:setRadius(m)` | Rayon d'interception autour de la cible protégée |
+| `:setMissileTypes(list)` | Liste des noms de types d'armes DCS à intercepter |
+| `:setAllMissiles(bool)` | Si vrai, intercepter tous les missiles |
+| `:setSilent(bool)` | Supprimer les messages d'interception |
+| `:initialize()` | Activer le gardien |
 
 ---
 
 ## Notes
 
-- Missiles are destroyed when they enter the protection radius
-- Use specific missile type lists to avoid intercepting friendly ordnance
-- Works for both anti-ship and surface-to-air missiles
+- Les missiles sont détruits quand ils entrent dans le rayon de protection
+- Utiliser des listes de types de missiles spécifiques pour éviter d'intercepter les munitions amies
+- Fonctionne pour les missiles anti-navires et sol-air
 
 ---
 
-## See Also
+## Voir aussi
 
-- [veafSanctuary](veafSanctuary.md) — unit entry protection
-- [Lua API Reference](../../LUA_API_REFERENCE.md) — full `veafMissileGuardian` API
+- [veafSanctuary](veafSanctuary.md) — protection contre les intrusions d'unités
+- [Référence API Lua](../../LUA_API_REFERENCE.md) — API complète de `veafMissileGuardian`

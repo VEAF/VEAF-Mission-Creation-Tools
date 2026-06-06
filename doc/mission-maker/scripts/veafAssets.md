@@ -1,30 +1,29 @@
-# veafAssets — Tankers, AWACS, and Carriers
+# veafAssets — Ravitailleurs, AWACS et porte-avions
 
-
-**Module ID:** `ASSETS` | **Version:** 1.8.x | **File:** `veafAssets.lua`
-
----
-
-## Purpose
-
-Manages the persistent assets in a mission — tankers, AWACS, and carriers. Provides F10 radio menu entries for each asset: information (position, TACAN, frequency), respawn after loss, and optional disposal.
+**Module ID:** `ASSETS` | **Version:** 1.8.x | **Fichier:** `veafAssets.lua`
 
 ---
 
-## Dependencies
+## Objectif
 
-- `veafRadio` — F10 menu
-- `veafCarrierOperations` — for carrier assets (optional, auto-integrated)
+Gère les ressources persistantes d'une mission — ravitailleurs, AWACS et porte-avions. Fournit des entrées dans le menu radio F10 pour chaque ressource : informations (position, TACAN, fréquence), réapparition après perte, et désactivation optionnelle.
 
 ---
 
-## Enable
+## Dépendances
+
+- `veafRadio` — menu F10
+- `veafCarrierOperations` — pour les porte-avions (optionnel, intégration automatique)
+
+---
+
+## Activation
 
 ```lua
 veafAssets.initialize()
 ```
 
-Must be called after defining `veafAssets.Assets`.
+Doit être appelé après avoir défini `veafAssets.Assets`.
 
 ---
 
@@ -33,36 +32,36 @@ Must be called after defining `veafAssets.Assets`.
 ```yaml
 lua_modules:
   ASSETS:
-    enable: true          # default: true
-    logLevel: info        # optional log level override
-    assets:               # list of persistent assets to manage
-      - sort: 1                         # sort order in F10 menu (lower = first)
-        name: "Texaco"                  # internal identifier
-        description: "Texaco (KC-135)" # label shown in F10 menu
-        information: 'Tacan 51Y\nU251.00 (21)'  # single-quoted: \n is preserved as-is → valid Lua escape
-        linked: null                    # linked asset name (optional)
-        jtac: false                     # true = asset is a JTAC (optional)
-        freq: null                      # override frequency for info display (optional)
-        mod: null                       # radio modulation (AM | FM, optional)
+    enable: true          # défaut : true
+    logLevel: info        # surcharge optionnelle du niveau de log
+    assets:               # liste des ressources persistantes à gérer
+      - sort: 1                         # ordre de tri dans le menu F10 (plus petit = premier)
+        name: "Texaco"                  # identifiant interne
+        description: "Texaco (KC-135)" # libellé affiché dans le menu F10
+        information: 'Tacan 51Y\nU251.00 (21)'  # guillemets simples : \n est conservé tel quel → échappement Lua valide
+        linked: null                    # nom d'une ressource liée (optionnel)
+        jtac: false                     # true = la ressource est un JTAC (optionnel)
+        freq: null                      # fréquence de remplacement pour l'affichage infos (optionnel)
+        mod: null                       # modulation radio (AM | FM, optionnel)
 ```
 
-| Field | Type | Default | Required | Description |
-|-------|------|---------|----------|-------------|
-| `enable` | boolean | `true` | No | Enable or disable the module |
-| `logLevel` | string | *(global)* | No | Per-module log level override |
-| `assets` | object[] | `[]` | No | List of assets to manage |
-| `assets[].sort` | integer | `0` | No | Sort order in the F10 menu (ascending) |
-| `assets[].name` | string | — | Yes | Internal identifier |
-| `assets[].description` | string | — | Yes | Label shown in the F10 menu |
-| `assets[].information` | string | — | No | Info text displayed to players — use single-quoted YAML `'line1\nline2'` or `"line1\\nline2"` (double-quoted) to get a `\n` Lua escape |
-| `assets[].linked` | string | `null` | No | Name of a linked asset (e.g. a carrier linked to its escort) |
-| `assets[].jtac` | boolean | `false` | No | Marks this asset as a JTAC |
-| `assets[].freq` | number | `null` | No | Override frequency for the info display (MHz) |
-| `assets[].mod` | string | `null` | No | Radio modulation override (`AM` or `FM`) |
+| Champ | Type | Défaut | Requis | Description |
+|-------|------|--------|--------|-------------|
+| `enable` | booléen | `true` | Non | Activer ou désactiver le module |
+| `logLevel` | string | *(global)* | Non | Surcharge du niveau de log par module |
+| `assets` | objet[] | `[]` | Non | Liste des ressources à gérer |
+| `assets[].sort` | entier | `0` | Non | Ordre de tri dans le menu F10 (croissant) |
+| `assets[].name` | string | — | Oui | Identifiant interne |
+| `assets[].description` | string | — | Oui | Libellé affiché dans le menu F10 |
+| `assets[].information` | string | — | Non | Texte d'info affiché aux joueurs — utiliser du YAML entre guillemets simples `'ligne1\nligné2'` ou `"ligne1\\nligne2"` (double-quoté) pour obtenir un `\n` Lua valide |
+| `assets[].linked` | string | `null` | Non | Nom d'une ressource liée (ex : un porte-avions lié à son escorte) |
+| `assets[].jtac` | booléen | `false` | Non | Marque cette ressource comme JTAC |
+| `assets[].freq` | nombre | `null` | Non | Fréquence de remplacement pour l'affichage infos (MHz) |
+| `assets[].mod` | string | `null` | Non | Modulation radio de remplacement (`AM` ou `FM`) |
 
-> The DCS group referenced by `name` must exist in the mission editor. Carrier assets also require `CARRIER` module enabled.
+> Le groupe DCS référencé par `name` doit exister dans l'éditeur de mission. Les ressources porte-avions nécessitent également le module `CARRIER` activé.
 
-### Minimal example
+### Exemple minimal
 
 ```yaml
 lua_modules:
@@ -81,9 +80,9 @@ lua_modules:
 
 ---
 
-## Defining Assets
+## Définir les ressources
 
-Populate `veafAssets.Assets` before calling `initialize()`:
+Remplir `veafAssets.Assets` avant d'appeler `initialize()` :
 
 ```lua
 veafAssets.Assets = {
@@ -91,8 +90,8 @@ veafAssets.Assets = {
     name        = "Texaco",
     description = "Texaco (KC-135)",
     groupName   = "KC-135 Texaco",
-    information = true,    -- show Info button in radio menu
-    disposable  = false,   -- allow players to despawn it
+    information = true,    -- afficher le bouton Infos dans le menu radio
+    disposable  = false,   -- permettre aux joueurs de le désactiver
   },
   {
     name        = "Arco",
@@ -113,44 +112,44 @@ veafAssets.Assets = {
     description = "CVN-73 Theodore Roosevelt",
     groupName   = "CVN-73",
     information = true,
-    carrier     = true,    -- enables carrier-specific info (BRC, TACAN, ICLS)
+    carrier     = true,    -- active les infos spécifiques aux porte-avions (BRC, TACAN, ICLS)
     disposable  = false,
   },
 }
 ```
 
-### Asset Table Fields
+### Champs de la table de ressource
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `name` | string | Yes | Internal identifier |
-| `description` | string | Yes | Label shown in F10 menu |
-| `groupName` | string | Yes | DCS group name in the mission |
-| `information` | boolean | No | Show Info button (position, TACAN, freq) |
-| `disposable` | boolean | No | Allow authorised players to despawn the asset |
-| `carrier` | boolean | No | Show carrier-specific info (BRC, TACAN, ICLS) |
+| Champ | Type | Requis | Description |
+|-------|------|--------|-------------|
+| `name` | string | Oui | Identifiant interne |
+| `description` | string | Oui | Libellé affiché dans le menu F10 |
+| `groupName` | string | Oui | Nom du groupe DCS dans la mission |
+| `information` | boolean | Non | Afficher le bouton Infos (position, TACAN, fréq) |
+| `disposable` | boolean | Non | Permettre aux joueurs autorisés de désactiver la ressource |
+| `carrier` | boolean | Non | Afficher les infos spécifiques aux porte-avions (BRC, TACAN, ICLS) |
 
 ---
 
-## F10 Radio Menu
+## Menu radio F10
 
-For each asset, a submenu is created under **F10 → Assets**:
+Pour chaque ressource, un sous-menu est créé sous **F10 → Ressources** :
 
-- **Respawn [name]** — respawns the group at its original position
-- **Get info on [name]** — displays position, TACAN channel, radio frequency (if `information = true`)
-- **Dispose of [name]** — despawns the asset (if `disposable = true`, secured command)
+- **Réapparition [nom]** — fait réapparaître le groupe à sa position d'origine
+- **Infos sur [nom]** — affiche la position, le canal TACAN, la fréquence radio (si `information = true`)
+- **Désactiver [nom]** — désactive la ressource (si `disposable = true`, commande sécurisée)
 
 ---
 
 ## Notes
 
-- The DCS group must exist in the mission editor with the exact name used in `groupName`
-- Tanker information (TACAN, frequency) is read from the DCS group's waypoint/route settings
-- Carrier information requires `veafCarrierOperations` to be initialised
+- Le groupe DCS doit exister dans l'éditeur de mission avec exactement le nom utilisé dans `groupName`
+- Les informations du ravitailleur (TACAN, fréquence) sont lues depuis les paramètres de route/waypoint du groupe DCS
+- Les informations du porte-avions nécessitent que `veafCarrierOperations` soit initialisé
 
 ---
 
-## See Also
+## Voir aussi
 
-- [veafCarrierOperations](veafCarrierOperations.md) — carrier recovery management
-- [Lua API Reference](../../LUA_API_REFERENCE.md) — full `veafAssets` API
+- [veafCarrierOperations](veafCarrierOperations.md) — gestion des récupérations sur porte-avions
+- [Référence API Lua](../../LUA_API_REFERENCE.md) — API complète de `veafAssets`

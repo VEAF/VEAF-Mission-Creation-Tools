@@ -1,168 +1,167 @@
-# Developer Guide — VEAF Mission Creation Tools
+# Guide du développeur — VEAF Mission Creation Tools
 
-
-This guide is for developers who want to contribute to the VEAF Mission Creation Tools source code, build new releases, or extend the framework.
-
----
-
-## Table of Contents
-
-1. [Architecture Overview](#architecture-overview)
-2. [Repository Layout](#repository-layout)
-3. [Development Environment](#development-environment)
-4. [Lua Runtime Scripts](#lua-runtime-scripts)
-5. [Python Tools](#python-tools)
-6. [Build and Release](#build-and-release)
-7. [Developer Mode](#developer-mode)
-8. [Testing](#testing)
-9. [Quality Gates](#quality-gates)
-10. [Contributing](#contributing)
+Ce guide s'adresse aux développeurs qui souhaitent contribuer au code source de VEAF Mission Creation Tools, créer de nouvelles versions ou étendre le framework.
 
 ---
 
-## Architecture Overview
+## Table des matières
 
-The project has two completely separate layers:
+1. [Vue d'ensemble de l'architecture](#vue-densemble-de-larchitecture)
+2. [Structure du dépôt](#structure-du-dépôt)
+3. [Environnement de développement](#environnement-de-développement)
+4. [Scripts Lua runtime](#scripts-lua-runtime)
+5. [Outils Python](#outils-python)
+6. [Build et publication](#build-et-publication)
+7. [Mode développeur](#mode-développeur)
+8. [Tests](#tests)
+9. [Portes de qualité](#portes-de-qualité)
+10. [Contribuer](#contribuer)
+
+---
+
+## Vue d'ensemble de l'architecture
+
+Le projet comporte deux couches complètement séparées :
 
 ```mermaid
 flowchart TD
     subgraph DT["DESIGN-TIME — Python"]
-        tools["veaf-tools.exe<br/>— .miz manipulation"]
-        updater["veaf-tools-updater.exe<br/>— release management"]
-        build["veaf-build<br/>— build pipeline"]
+        tools["veaf-tools.exe<br/>— manipulation des .miz"]
+        updater["veaf-tools-updater.exe<br/>— gestion des versions"]
+        build["veaf-build<br/>— pipeline de build"]
     end
-    DT -->|produces| zip(["published.zip"])
-    zip -->|consumed by| RT
-    subgraph RT["RUNTIME — Lua inside DCS World"]
-        scripts["veaf-scripts.lua<br/>— all 34 modules concatenated"]
-        config["veaf-config.lua<br/>— generated module config (from mission.yaml)"]
-        custom["mission-script.lua<br/>— mission-specific custom Lua code"]
+    DT -->|produit| zip(["published.zip"])
+    zip -->|consommé par| RT
+    subgraph RT["RUNTIME — Lua dans DCS World"]
+        scripts["veaf-scripts.lua<br/>— les 34 modules concaténés"]
+        config["veaf-config.lua<br/>— config générée des modules (depuis mission.yaml)"]
+        custom["mission-script.lua<br/>— code Lua custom spécifique à la mission"]
     end
 ```
 
-- **Runtime** (`src/scripts/veaf/`) — 34 Lua modules loaded inside DCS missions
-- **Design-time** (`src/python/veaf-tools/`) — Python CLI tools for `.miz` file manipulation
+- **Runtime** (`src/scripts/veaf/`) — 34 modules Lua chargés dans les missions DCS
+- **Design-time** (`src/python/veaf-tools/`) — outils CLI Python pour la manipulation des fichiers `.miz`
 
 ---
 
-## Repository Layout
+## Structure du dépôt
 
 ```
 VEAF-Mission-Creation-Tools/
-├── veaf_build/                   # veaf-build CLI (build & publish orchestrator)
-├── build-and-release.py          # Backward-compat shim (use veaf-build instead)
+├── veaf_build/                   # CLI veaf-build (orchestrateur build & publication)
+├── build-and-release.py          # Shim de rétrocompatibilité (utiliser veaf-build à la place)
 ├── src/
-│   ├── scripts/veaf/             # Lua runtime modules (34 files)
-│   └── python/veaf-tools/        # Python CLI source
-│       ├── veaf-tools.py         # Entry point
-│       ├── veaf_libs/            # Shared utilities (logger, progress, miz)
-│       ├── mission_tools/        # Core .miz read/write
-│       └── *_injector/           # One folder per CLI command
-├── published/                    # Compiled Lua output
-├── dist/                         # PyInstaller .exe output
-├── build/                        # Temporary build workspace
+│   ├── scripts/veaf/             # Modules Lua runtime (34 fichiers)
+│   └── python/veaf-tools/        # Code source Python CLI
+│       ├── veaf-tools.py         # Point d'entrée
+│       ├── veaf_libs/            # Utilitaires partagés (logger, progress, miz)
+│       ├── mission_tools/        # Lecture/écriture .miz
+│       └── *_injector/           # Un dossier par commande CLI
+├── published/                    # Sortie Lua compilée
+├── dist/                         # Sortie .exe PyInstaller
+├── build/                        # Espace de travail de build temporaire
 ├── test/
-│   └── lua/                      # Lua unit tests (31 suites)
+│   └── lua/                      # Tests unitaires Lua (31 suites)
 ├── doc/                          # Documentation
-├── openspec/                     # Change management (OpenSpec workflow)
+├── openspec/                     # Gestion des changements (workflow OpenSpec)
 └── .github/
     └── workflows/                # CI/CD GitHub Actions
 ```
 
 ---
 
-## Development Environment
+## Environnement de développement
 
-Two setup paths are available. The DevContainer is recommended for new contributors and ensures an environment identical to CI.
+Deux options de setup sont disponibles. Le DevContainer est recommandé pour les nouveaux contributeurs : il garantit un environnement identique à la CI.
 
-### Option A — DevContainer (recommended)
+### Option A — DevContainer (recommandé)
 
-The repository ships a `.devcontainer/` configuration that provides a pre-configured, zero-install environment with Python 3.13, Lua 5.1, StyLua 2.4.0, Poetry, and all VS Code extensions already installed.
+Le dépôt inclut une configuration `.devcontainer/` qui fournit un environnement pré-configuré, sans installation manuelle : Python 3.13, Lua 5.1, StyLua 2.4.0, Poetry et toutes les extensions VS Code sont déjà installées.
 
-**VS Code Dev Containers** (local Docker):
+**VS Code Dev Containers** (Docker local) :
 
-1. Install [Docker Desktop](https://www.docker.com/products/docker-desktop/) and the [Dev Containers](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers) extension
-2. Open the repository folder in VS Code
-3. Press `Ctrl+Shift+P` → *Dev Containers: Reopen in Container*
-4. Wait for the container to build and `poetry install` to complete — the environment is ready
+1. Installer [Docker Desktop](https://www.docker.com/products/docker-desktop/) et l'extension [Dev Containers](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers)
+2. Ouvrir le dossier du dépôt dans VS Code
+3. Appuyer sur `Ctrl+Shift+P` → *Dev Containers: Reopen in Container*
+4. Attendre la construction du conteneur et la fin de `poetry install` — l'environnement est prêt
 
-**GitHub Codespaces** (browser, no local install):
+**GitHub Codespaces** (navigateur, sans installation locale) :
 
-1. On the repository page, click **Code** → **Codespaces** → **New codespace**
-2. The environment builds automatically — open a terminal and start working
+1. Sur la page du dépôt, cliquer sur **Code** → **Codespaces** → **New codespace**
+2. L'environnement se construit automatiquement — ouvrir un terminal et commencer à travailler
 
-In both cases, `poetry install --without build --all-extras` runs automatically on first open.
+Dans les deux cas, `poetry install --without build --all-extras` s'exécute automatiquement à la première ouverture.
 
-### Option B — Manual setup (Windows)
+### Option B — Setup manuel (Windows)
 
-### Prerequisites
+### Prérequis
 
-- Python 3.9+ (3.13 recommended)
+- Python 3.9+ (3.13 recommandé)
 - Git
-- GitHub CLI (`gh`) — for publishing releases
-- Lua 5.1 — for running unit tests locally
-- StyLua 2.4.0 — for Lua formatting (installed at `~/.local/bin/stylua.exe`)
+- GitHub CLI (`gh`) — pour publier les versions
+- Lua 5.1 — pour lancer les tests unitaires en local
+- StyLua 2.4.0 — pour le formatage Lua (installé dans `~/.local/bin/stylua.exe`)
 
-### Setup
+### Installation
 
 ```powershell
-# Clone
+# Cloner
 git clone https://github.com/VEAF/VEAF-Mission-Creation-Tools.git
 cd VEAF-Mission-Creation-Tools
 
-# Install dependencies (Poetry manages its own virtual environment)
+# Installer les dépendances (Poetry gère son propre environnement virtuel)
 poetry install              # quality gate + veaf-tools
-poetry install --with build # add PyInstaller (needed to compile .exe)
+poetry install --with build # ajouter PyInstaller (nécessaire pour compiler les .exe)
 ```
 
-> Use `poetry run <cmd>` to execute any Python command inside Poetry's environment,
-> or `poetry shell` to open an interactive session.
+> Utiliser `poetry run <cmd>` pour exécuter n'importe quelle commande Python dans l'environnement Poetry,
+> ou `poetry shell` pour ouvrir une session interactive.
 
-### Python Dependencies
+### Dépendances Python
 
-| Package | Purpose |
+| Package | Utilité |
 |---------|---------|
-| `typer` | CLI framework |
-| `rich` | Terminal UI (progress bars, tables) |
-| `pyyaml` | Config file loading |
-| `luadata` | Lua serialisation/deserialisation |
-| `pyinstaller` | Build Windows executables |
-| `pillow` | Image processing (weather icons) |
+| `typer` | Framework CLI |
+| `rich` | Interface terminal (barres de progression, tableaux) |
+| `pyyaml` | Chargement des fichiers de config |
+| `luadata` | Sérialisation/désérialisation Lua |
+| `pyinstaller` | Compilation des exécutables Windows |
+| `pillow` | Traitement d'images (icônes météo) |
 
 ---
 
-## Lua Runtime Scripts
+## Scripts Lua runtime
 
-### Module Structure
+### Structure des modules
 
-Every Lua module follows this pattern:
+Chaque module Lua suit ce modèle :
 
 ```lua
 moduleName = {}
 
 moduleName.Id = "MODULE_ID"
 moduleName.Version = "1.x.y"
--- moduleName.LogLevel = "trace"  -- uncomment to increase verbosity
+-- moduleName.LogLevel = "trace"  -- décommenter pour augmenter la verbosité
 
 veaf.loggers.new(moduleName.Id, moduleName.LogLevel)
 
 function moduleName.initialize()
-  -- register with markers, radio, event handler
+  -- s'enregistrer auprès des marqueurs, radio, gestionnaire d'événements
 end
 
 function moduleName.start()
-  -- start watchdogs, scheduled tasks
+  -- démarrer les watchdogs, tâches planifiées
 end
 ```
 
-### Dependency Order
+### Ordre de chargement
 
-1. `veaf.lua` — must be first
+1. `veaf.lua` — doit être en premier
 2. `veafEventHandler.lua`
 3. `veafMarkers.lua`, `veafRadio.lua`, `veafSecurity.lua`
-4. All other modules (any order)
+4. Tous les autres modules (dans n'importe quel ordre)
 
-### Logging
+### Journalisation
 
 ```lua
 veaf.loggers.get(moduleName.Id):info("Message")
@@ -170,17 +169,17 @@ veaf.loggers.get(moduleName.Id):debug("Debug: %s", variable)
 veaf.loggers.get(moduleName.Id):trace("Trace: %s", veaf.lp(table))
 ```
 
-Log levels: `error` (1) → `warning` (2) → `info` (3) → `debug` (4) → `trace` (5). Default is `info` (3).
+Niveaux de log : `error` (1) → `warning` (2) → `info` (3) → `debug` (4) → `trace` (5). Par défaut : `info` (3).
 
-For expensive arguments, use `veaf.lp()` (lazy proxy — only stringified when the level is active).
+Pour les arguments coûteux à évaluer, utiliser `veaf.lp()` (proxy lazy — stringifié uniquement si le niveau est actif).
 
-To increase verbosity for a mission at **build time** (global, baked into the `.miz`), add `global_log_level` in `mission.yaml`:
+Pour augmenter la verbosité pour une mission au **moment du build** (global, intégré dans le `.miz`), ajouter `global_log_level` dans `mission.yaml` :
 
 ```yaml
 global_log_level: debug
 ```
 
-For **per-module build-time** control, use the `lua_modules` section:
+Pour le contrôle **par module au moment du build**, utiliser la section `lua_modules` :
 
 ```yaml
 lua_modules:
@@ -190,17 +189,17 @@ lua_modules:
     logLevel: trace
 ```
 
-This generates `veaf.setConfig("MODULE_ID", "logLevel", "...")` calls in `veaf-config.lua`. Or use `--log-modules SPAWN,RADIO` on the CLI to silence everything else.
+Cela génère des appels `veaf.setConfig("MODULE_ID", "logLevel", "...")` dans `veaf-config.lua`. Ou utiliser `--log-modules SPAWN,RADIO` sur la CLI pour réduire au silence tout le reste.
 
-For **per-module runtime** control (no rebuild), add the Lua call directly in `mission-script.lua`:
+Pour le contrôle **par module au runtime** (sans rebuild), ajouter l'appel Lua directement dans `mission-script.lua` :
 
 ```lua
-veaf.loggers.get("SPAWN"):setLevel("debug", true)  -- force=true bypasses BaseLogLevel cap
+veaf.loggers.get("SPAWN"):setLevel("debug", true)  -- force=true contourne le cap BaseLogLevel
 ```
 
-### mist.DBs Access
+### Accès mist.DBs
 
-Do not access `mist.DBs.*` directly. Use the `veaf.mist` wrapper:
+Ne pas accéder à `mist.DBs.*` directement. Utiliser l'interface `veaf.mist` :
 
 ```lua
 local unitData  = veaf.mist.getUnitData(unitName)
@@ -212,69 +211,69 @@ local groupById = veaf.mist.getGroupById(groupId)
 
 ---
 
-## Python Tools
+## Outils Python
 
-### CLI Architecture
+### Architecture CLI
 
-Each `veaf-tools.exe` subcommand is implemented as a `*_injector/` package:
+Chaque sous-commande de `veaf-tools.exe` est implémentée comme un package `*_injector/` :
 
 ```
 weather_injector/
-├── weather_worker.py    # Entry point (run() method)
-├── weather_manager.py   # Data transformation logic
-├── models.py            # Dataclass definitions
-└── weather_README.py    # Help/documentation strings
+├── weather_worker.py    # Point d'entrée (méthode run())
+├── weather_manager.py   # Logique de transformation des données
+├── models.py            # Définitions des dataclasses
+└── weather_README.py    # Chaînes d'aide/documentation
 ```
 
-### Logger Pattern
+### Pattern de journalisation
 
 ```python
 from veaf_libs.logger import logger, console
 
-logger.info("Processing mission...")
-logger.debug("Detailed info")
-logger.warning("Watch out")
-logger.error("Failed", raise_exception=True)
+logger.info("Traitement de la mission...")
+logger.debug("Informations détaillées")
+logger.warning("Attention")
+logger.error("Échec", raise_exception=True)
 ```
 
-### Adding a New Tool
+### Ajouter un nouvel outil
 
-1. Create `src/python/veaf-tools/new_feature_injector/`
-2. Implement `new_feature_worker.py` with a `run()` method
-3. Register the command in `veaf-tools.py` using `typer`
-4. Add YAML config schema in `models.py`
+1. Créer `src/python/veaf-tools/new_feature_injector/`
+2. Implémenter `new_feature_worker.py` avec une méthode `run()`
+3. Enregistrer la commande dans `veaf-tools.py` avec `typer`
+4. Ajouter le schéma de configuration YAML dans `models.py`
 
 ---
 
-## Build and Release
+## Build et publication
 
-### Local Build
+### Build local
 
 ```powershell
-# Build (compiles Lua + builds .exe)
+# Build (compile Lua + construit les .exe)
 poetry run veaf-build build --version 6.1.0
 ```
 
-What it does:
-1. Validates prerequisites (Git, Python, PyInstaller)
-2. Concatenates Lua modules → `published/veaf-scripts.lua`
-3. Builds `veaf-tools.exe` and `veaf-tools-updater.exe` via PyInstaller
-4. Creates `published.zip` with all artifacts + SHA256 checksum
+Ce que cela fait :
+1. Valide les prérequis (Git, Python, PyInstaller)
+2. Concatène les modules Lua → `published/veaf-scripts.lua`
+3. Construit `veaf-tools.exe` et `veaf-tools-updater.exe` via PyInstaller
+4. Crée `published.zip` avec tous les artefacts + somme SHA256
 
-### Publishing a Release
+### Publier une version
 
-Use the release assistant prompt at `.prompts/generate-release-notes.md` to run the full release preparation interactively. It guides you through:
-1. Extracting changes from `[Unreleased]` in `CHANGELOG.md`
-2. Consolidation interview (theme, breaking changes, highlights)
-3. Writing and validating `RELEASE_NOTES.md`
-4. Administrative closure (CHANGELOG version bump, `pyproject.toml`, ROADMAP)
-5. Git commands to copy-paste
+Utiliser le prompt `.prompts/generate-release-notes.md` pour lancer la préparation de release de façon interactive. Il guide à travers :
+1. Extraction des changements depuis `[Unreleased]` dans `CHANGELOG.md`
+2. Interview de consolidation (thème, breaking changes, highlights)
+3. Rédaction et validation de `RELEASE_NOTES.md`
+4. Clôture administrative (version CHANGELOG, `pyproject.toml`, ROADMAP)
+5. Commandes git à copier-coller
 
-#### Release flow (git flow)
+#### Flow de release (git flow)
 
-The AI assistant handles: creating `release/x.y.z` from `develop-v6`, committing all release files, and opening the PR.
+L'assistant AI gère : créer `release/x.y.z` depuis `develop-v6`, commiter tous les fichiers de release, et ouvrir la PR.
 
-After the PR is merged, the developer runs:
+Après le merge de la PR, le développeur exécute :
 
 ```bash
 git checkout develop-v6
@@ -283,59 +282,59 @@ git tag published-vx.y.z
 git push origin published-vx.y.z
 ```
 
-> **Warning:** pushing the tag is irreversible — only run after the PR is merged.
+> **Attention :** pousser le tag est irréversible — uniquement après le merge de la PR.
 
-Pushing the tag triggers the `release` CI workflow, which will:
-1. Build `veaf-tools.exe`, `veaf-tools-updater.exe`, and `published.zip`
-2. Create the GitHub Release using **`RELEASE_NOTES.md` as-is** from the tagged commit
-3. Upload all assets and move the `published-latest` floating tag
+Pousser le tag déclenche le workflow CI `release`, qui va :
+1. Construire `veaf-tools.exe`, `veaf-tools-updater.exe` et `published.zip`
+2. Créer la GitHub Release en utilisant **`RELEASE_NOTES.md` tel quel** depuis le commit tagué
+3. Uploader tous les artefacts et déplacer le tag flottant `published-latest`
 
-> **Important:** `RELEASE_NOTES.md` must be committed and up-to-date on the tagged commit — the CI takes it verbatim, without editing.
+> **Important :** `RELEASE_NOTES.md` doit être commité et à jour sur le commit tagué — la CI le prend verbatim, sans modification.
 
-### Security Model
+### Modèle de sécurité
 
 ```
-veaf-build computes SHA256 of published.zip
+veaf-build calcule le SHA256 de published.zip
     ↓
-SHA256 stored alongside ZIP in GitHub Release
+SHA256 stocké avec le ZIP dans la GitHub Release
     ↓
-veaf-tools-updater.exe downloads both files
+veaf-tools-updater.exe télécharge les deux fichiers
     ↓
-Checksum verified before extraction
+Somme de contrôle vérifiée avant extraction
     ↓
-✅ Integrity guaranteed
+✅ Intégrité garantie
 ```
 
 ---
 
-## Testing
+## Tests
 
-### Run All Tests
+### Lancer tous les tests
 
 ```shell
 poetry run test-lua
 ```
 
-Exit code `0` = all pass, `1` = failures.
+Code de sortie `0` = tous passent, `1` = échecs.
 
-Works on Windows, Linux, and inside the DevContainer (auto-detects `lua5.1` / `lua` / Windows fallback path).
+Fonctionne sur Windows, Linux et dans le DevContainer (détection automatique de `lua5.1` / `lua` / chemin Windows de secours).
 
-### Filtered Run
+### Exécution filtrée
 
 ```shell
 poetry run test-lua --filter spawn
 poetry run test-lua --filter combat
 ```
 
-### Coverage
+### Couverture
 
 ```shell
 poetry run test-lua --coverage
 ```
 
-Prints a per-file line coverage table. Requires `luarocks install luacov` (pre-installed in the DevContainer). See [TESTING.md](../TESTING.md#coverage) for details.
+Affiche un tableau de couverture ligne par ligne. Nécessite `luarocks install luacov` (pré-installé dans le DevContainer). Voir [TESTING.md](../TESTING.md#couverture) pour plus de détails.
 
-### Single Suite
+### Suite unique
 
 ```shell
 lua test/lua/test_veafSpawn.lua
@@ -343,48 +342,50 @@ lua test/lua/test_veafSpawn.lua
 
 ### Infrastructure
 
-- **Framework:** [luaunit](https://github.com/bluebird75/luaunit) (bundled in `test/lua/luaunit.lua`)
-- **DCS stubs:** `test/lua/dcs_mocks.lua` — stubs for all DCS API namespaces
-- **Module loader:** `test/lua/veaf_loader.lua`
-- No DCS installation required
+- **Framework :** [luaunit](https://github.com/bluebird75/luaunit) (intégré dans `test/lua/luaunit.lua`)
+- **Stubs DCS :** `test/lua/dcs_mocks.lua` — stubs pour tous les espaces de noms de l'API DCS
+- **Chargeur de modules :** `test/lua/veaf_loader.lua`
+- Aucune installation DCS requise
 
-Full testing reference: [Testing Guide](../TESTING.md)
+Référence complète des tests : [Guide de tests](../TESTING.md)
 
 ---
 
-## Quality Gates
+## Portes de qualité
 
-### Before Every Commit to Lua Files
+### Avant chaque commit sur des fichiers Lua
 
 ```powershell
-# Check formatting (same as CI)
+# Vérifier le formatage (équivalent CI)
 ~/.local/bin/stylua.exe --check src/scripts/veaf/
 
-# Auto-fix
+# Corriger automatiquement
 ~/.local/bin/stylua.exe src/scripts/veaf/
 
-# Static analysis
+# Analyse statique
 luacheck src/scripts/veaf/ --config .luacheckrc
 ```
 
-StyLua version: **2.4.0** (enforced by the `StyLua Formatting` CI job).
-Luacheck is enforced by the `Luacheck` CI job.
+Version StyLua : **2.4.0** (imposée par le job CI `StyLua Formatting`).
+Luacheck est imposé par le job CI `Luacheck`.
 
-### CI Jobs
+### Jobs CI
 
-| Job | What it checks |
-|-----|---------------|
-| `Lua Unit Tests` | All 31 test suites pass |
-| `Luacheck` | No undefined globals, unused vars, or shadowing in `src/scripts/veaf/` |
-| `StyLua Formatting` | No formatting violations in `src/scripts/veaf/` |
+| Job | Ce qu'il vérifie |
+|-----|-----------------|
+| `Lua Unit Tests` | Les 31 suites de tests passent |
+| `Luacheck` | Aucune variable globale non définie, variable inutilisée ni shadowing dans `src/scripts/veaf/` |
+| `StyLua Formatting` | Aucune violation de formatage dans `src/scripts/veaf/` |
 | `python-quality` | ruff lint + format, mypy types, pytest |
-| `Release` | Triggered on `published-v*` tag push — builds and publishes to GitHub |
+| `Release` | Déclenché sur push de tag `published-v*` — build et publication sur GitHub |
 
-All CI jobs must be green before a PR can be merged.
+Tous les jobs CI doivent être verts avant qu'une PR puisse être mergée.
 
-### Releasing a new version
+---
 
-Push a `published-v*` tag — the `Release` CI workflow does everything automatically:
+### Publier une nouvelle version
+
+Pousser un tag `published-v*` — le workflow CI `Release` fait tout automatiquement :
 
 ```bash
 git tag published-v6.1.0
@@ -393,93 +394,93 @@ git push origin published-v6.1.0
 
 ---
 
-## Developer Mode
+## Mode développeur
 
-Developer mode lets you test local changes to `veaf-scripts.lua` without publishing a release.
-When enabled, `veaf-tools build` reads scripts from a local VEAF-Mission-Creation-Tools clone
-instead of the `published/` folder shipped with veaf-tools.
+Le mode développeur permet de tester des modifications locales de `veaf-scripts.lua` sans publier de version.
+Lorsqu'il est activé, `veaf-tools build` lit les scripts depuis un clone local de VEAF-Mission-Creation-Tools
+plutôt que depuis le dossier `published/` livré avec veaf-tools.
 
-### Prerequisites
+### Prérequis
 
-1. Clone VEAF-Mission-Creation-Tools locally
-2. Build the Lua bundle: `poetry run veaf-build build` → produces `build/veaf-scripts.lua`
+1. Cloner VEAF-Mission-Creation-Tools en local
+2. Construire le bundle Lua : `poetry run veaf-build build` → produit `build/veaf-scripts.lua`
 
-### Activation (priority order — first match wins)
+### Activation (ordre de priorité — premier trouvé appliqué)
 
-| Priority | Method | Effect |
-|----------|--------|--------|
-| 1 | `veaf-tools build --dev-mode` | CLI flag — sets `dev_mode: true`, persisted to `mission.yaml` |
-| 2 | `mission.yaml build.dev_mode: true` | Persisted config — applies every build |
-| 3 | *(default)* | `false` — uses published scripts |
+| Priorité | Méthode | Effet |
+|----------|---------|-------|
+| 1 | `veaf-tools build --dev-mode` | Option CLI — définit `dev_mode: true`, persisté dans `mission.yaml` |
+| 2 | `mission.yaml build.dev_mode: true` | Config persistée — s'applique à chaque build |
+| 3 | *(défaut)* | `false` — utilise les scripts publiés |
 
-`scripts_path` resolution order (where to find the local repo):
+Ordre de résolution de `scripts_path` (emplacement du dépôt local) :
 
-| Priority | Source |
+| Priorité | Source |
 |----------|--------|
-| 1 | `--scripts-path <path>` CLI option |
+| 1 | Option CLI `--scripts-path <chemin>` |
 | 2 | `mission.yaml build.scripts_path` |
 | 3 | `~/veafmct.yaml scripts_path` |
 
-When passed via CLI, both `dev_mode` and `scripts_path` are persisted in `mission.yaml`.
+Lorsqu'ils sont passés via la CLI, `dev_mode` et `scripts_path` sont persistés dans `mission.yaml`.
 
-### Effect on the build
+### Effet sur le build
 
-| Mode | Scripts source |
-|------|---------------|
-| `dev_mode: false` (default) | `published/src/scripts/veaf/veaf-scripts.lua` (released copy) |
-| `dev_mode: true` | `<scripts_path>/build/veaf-scripts.lua` (local build output) |
+| Mode | Source des scripts |
+|------|-------------------|
+| `dev_mode: false` (défaut) | `published/src/scripts/veaf/veaf-scripts.lua` (copie publiée) |
+| `dev_mode: true` | `<scripts_path>/build/veaf-scripts.lua` (sortie du build local) |
 
-### Example workflow
+### Exemple de workflow
 
 ```powershell
-# 1. Edit a Lua module
+# 1. Modifier un module Lua
 code src/scripts/veaf/veafSpawn.lua
 
-# 2. Rebuild the Lua bundle
+# 2. Reconstruire le bundle Lua
 poetry run veaf-build build
 
-# 3. Build a test mission using the local scripts
-cd path/to/my-mission
-veaf-tools build --dev-mode --scripts-path path/to/VEAF-Mission-Creation-Tools
+# 3. Builder une mission de test avec les scripts locaux
+cd chemin/vers/ma-mission
+veaf-tools build --dev-mode --scripts-path chemin/vers/VEAF-Mission-Creation-Tools
 ```
 
 ---
 
-## Contributing
+## Contribuer
 
 ### Git Flow
 
-- **Feature work:** create `feature/xxx` from `develop-v6`, open PR → `develop-v6`
-- **Bug fixes:** create `fix/xxx` from `develop-v6`, open PR → `develop-v6`
-- **Hotfixes to production:** `fix/xxx` from `master`, PR → `master`
-- **Releases:** `release/vX.Y.Z` from `develop-v6`, PR → `master`
+- **Développement de fonctionnalité :** créer `feature/xxx` depuis `develop-v6`, ouvrir PR → `develop-v6`
+- **Corrections de bugs :** créer `fix/xxx` depuis `develop-v6`, ouvrir PR → `develop-v6`
+- **Hotfixes en production :** `fix/xxx` depuis `master`, PR → `master`
+- **Versions :** `release/vX.Y.Z` depuis `develop-v6`, PR → `master`
 
-### Commit Convention
+### Convention de commit
 
 ```
-type(scope): short description
+type(scope): courte description
 
-feat(spawn): add convoy patrol mode
-fix(qra): guard unit:isExist() before unit:inAir()
-chore(deps): update luaunit to 3.4
-docs(api): document veafMove tanker helpers
+feat(spawn): ajouter le mode patrouille convoy
+fix(qra): vérifier unit:isExist() avant unit:inAir()
+chore(deps): mettre à jour luaunit à 3.4
+docs(api): documenter les helpers tanker de veafMove
 ```
 
-**Types:** `feat`, `fix`, `chore`, `docs`, `test`, `refactor`, `style`
+**Types :** `feat`, `fix`, `chore`, `docs`, `test`, `refactor`, `style`
 
-### Pull Request Checklist
+### Checklist Pull Request
 
-- [ ] All Lua changes pass `stylua --check`
-- [ ] All unit tests pass (`poetry run test-lua`)
-- [ ] New functionality has tests in `test/lua/`
-- [ ] Public API changes documented in `doc/LUA_API_REFERENCE.md`
-- [ ] `CHANGELOG.md` updated for user-visible changes
+- [ ] Tous les changements Lua passent `stylua --check`
+- [ ] Tous les tests unitaires passent (`poetry run test-lua`)
+- [ ] Les nouvelles fonctionnalités ont des tests dans `test/lua/`
+- [ ] Les changements d'API publique sont documentés dans `doc/LUA_API_REFERENCE.md`
+- [ ] `CHANGELOG.md` mis à jour pour les changements visibles par les utilisateurs
 
 ---
 
-## Further Reading
+## Pour aller plus loin
 
-- [Lua API Reference](../LUA_API_REFERENCE.md) — full public API for all 34 modules
-- [Testing Guide](../TESTING.md) — test infrastructure details
-- [Tools Reference](../TOOLS_REFERENCE.md) — `veaf-tools.exe` CLI
-- [Roadmap](../ROADMAP.md) — planned work
+- [Référence API Lua](../LUA_API_REFERENCE.md) — API publique complète des 34 modules
+- [Guide de tests](../TESTING.md) — détails de l'infrastructure de test
+- [Référence des outils](../TOOLS_REFERENCE.md) — CLI `veaf-tools.exe`
+- [Feuille de route](../ROADMAP.md) — travaux planifiés

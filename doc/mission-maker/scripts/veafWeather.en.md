@@ -1,0 +1,164 @@
+# veafWeather — Dynamic Weather and ATC Conditions
+
+
+**Module ID:** `WEATHER` | **Version:** — | **File:** `veafWeather.lua`
+
+---
+
+## Purpose
+
+Two distinct roles:
+
+1. **Design-time**: inject real-world or configured weather into a `.miz` at build time, before players load the mission. Handled by `veaf-tools.exe weather-inject`.
+2. **Runtime**: players can request weather reports and ATC information via the F10 radio menu, and the mission maker can script dynamic fog changes.
+
+---
+
+## Dependencies
+
+- `veafRadio` — optional weather menu
+- `veafNamedPoints` — for location-based weather reports
+
+---
+
+## Enable
+
+```lua
+veafWeather.initialize()
+```
+
+No parameters required.
+
+---
+
+## Design-Time Weather Injection
+
+Weather is injected at build time (before the mission is loaded) using `veaf-tools.exe`:
+
+```powershell
+veaf-tools.exe weather-inject --mission mission.miz --config weather.yaml
+```
+
+### weather.yaml Example
+
+```yaml
+weather:
+  source: metar          # "metar" (real-world) or "manual"
+  icao: UGSS             # ICAO airport code for METAR (Senaki)
+  # manual override (used when source: manual)
+  wind:
+    speed: 10            # knots
+    direction: 270       # degrees
+  visibility: 8000       # metres
+  clouds:
+    base: 2500           # feet
+    density: 5           # 0-10
+  temperature: 18        # °C
+  qnh: 1013              # hPa
+```
+
+---
+
+## F10 Radio Menu
+
+When the `WEATHER` module is enabled, a **"WEATHER AND ATC"** submenu appears in the F10 menu:
+
+| Entry | Available to | What it shows |
+|-------|-------------|---------------|
+| Weather on closest point | Per group | Wind, visibility, QNH, temperature at nearest named point |
+| ATC on closest airbase | Per group | Runway in use, QFE/QNH, pattern info at nearest airbase |
+| ATC and weather in one go | Per group | Both reports combined |
+| Fog settings → ... | All (secured) | Change fog conditions (see below) |
+
+---
+
+## Runtime Weather Reports
+
+Get a weather report programmatically:
+
+```lua
+local report = veaf.weatherReport(position, altitude, withLASTE)
+veaf.outTextForUnit(unitName, report, 30)
+```
+
+---
+
+## Fog Management
+
+The runtime fog system lets you change visibility conditions during a mission — useful for immersion, training scenarios, or scripted events.
+
+### Pre-defined fog constants
+
+Three fog families are available. Activate any constant with `:activate()`:
+
+**Dynamic fog** — recalculates density periodically based on weather conditions:
+
+```lua
+veafWeather.FOG_DYNAMIC_HEAVY:activate()
+veafWeather.FOG_DYNAMIC_MEDIUM:activate()
+veafWeather.FOG_DYNAMIC_SPARSE:activate()
+```
+
+**Static fog** — fixed visibility:
+
+```lua
+veafWeather.FOG_STATIC_HEAVY:activate()
+veafWeather.FOG_STATIC_MEDIUM:activate()
+veafWeather.FOG_STATIC_MEDIUM_LOW:activate()
+veafWeather.FOG_STATIC_SPARSE:activate()
+veafWeather.FOG_STATIC_SPARSE_LOW:activate()
+veafWeather.FOG_STATIC_NO:activate()    -- clears all fog
+```
+
+**Animated fog** — transitions smoothly to a target state over a set duration. The pattern is `FOG_ANIMATED_<DURATION>M_<DENSITY>`:
+
+| Duration | Density variants |
+|----------|-----------------|
+| `1M`, `5M`, `10M`, `15M`, `30M`, `60M`, `90M` | `HEAVY`, `MEDIUM`, `MEDIUM_LOW`, `SPARSE`, `SPARSE_LOW`, `NO` |
+
+Examples:
+
+```lua
+veafWeather.FOG_ANIMATED_10M_MEDIUM:activate()   -- fade to medium fog over 10 minutes
+veafWeather.FOG_ANIMATED_30M_NO:activate()       -- clear fog over 30 minutes
+veafWeather.FOG_ANIMATED_5M_HEAVY:activate()     -- roll in heavy fog over 5 minutes
+```
+
+### Activating a fog object directly
+
+```lua
+veafWeather.setAndActivateFog(veafWeather.FOG_STATIC_MEDIUM)
+```
+
+This is equivalent to calling `:activate()` on the constant. Any previously active fog is cancelled first.
+
+### Scripting fog changes on a trigger
+
+```lua
+-- On a DCS trigger "Begin Night Phase", enable heavy fog
+mist.scheduleFunction(function()
+  veafWeather.FOG_ANIMATED_15M_HEAVY:activate()
+end, {}, timer.getTime() + 0)
+```
+
+---
+
+## Chat / Remote Commands
+
+Players or administrators can change fog via the chat window (requires `veafRemote`):
+
+| Chat command | Effect |
+|-------------|--------|
+| `_weather` | Weather report at current position |
+| `_atc` | ATC report at nearest airbase |
+| `_weather fog FOG_STATIC_MEDIUM` | Activate a named fog constant |
+| `_weather fog FOG_ANIMATED_10M_NO` | Animated fog clear over 10 minutes |
+
+The fog name is case-insensitive. Use the exact constant names listed above (without the `veafWeather.` prefix).
+
+---
+
+## See Also
+
+- [Tools Reference](../../TOOLS_REFERENCE.md) — `veaf-tools.exe weather-inject` full reference
+- [Lua API Reference](../../LUA_API_REFERENCE.md) — full `veafWeather` API

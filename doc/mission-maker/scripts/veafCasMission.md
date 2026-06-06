@@ -1,97 +1,96 @@
-# veafCasMission — CAS Training Generator
+# veafCasMission — Générateur d'entraînement CAS
 
-
-**Module ID:** `CASMISSION` | **Version:** 1.15.x | **File:** `veafCasMission.lua`
-
----
-
-## Purpose
-
-Generates on-demand Close Air Support training zones with configurable size, armour, and air defence threat packages. Players can create, mark, skip, and clean up CAS targets from the F10 menu or via map marker commands.
+**Module ID:** `CASMISSION` | **Version:** 1.15.x | **Fichier:** `veafCasMission.lua`
 
 ---
 
-## Dependencies
+## Objectif
 
-- `veafMarkers` — marker command handling
-- `veafRadio` — F10 menu
-- `veafSpawn` — unit spawning backend
+Génère à la demande des zones d'entraînement Close Air Support (CAS) avec des packages de taille, blindage et défense aérienne configurables. Les joueurs peuvent créer, marquer, passer et nettoyer les cibles CAS depuis le menu F10 ou via des commandes de marqueur.
 
 ---
 
-## Enable
+## Dépendances
+
+- `veafMarkers` — gestion des commandes de marqueur
+- `veafRadio` — menu F10
+- `veafSpawn` — backend de spawn d'unités
+
+---
+
+## Activation
 
 ```lua
 veafCasMission.initialize()
 veafCasMission.start()
 ```
 
-`start()` activates the watchdog that monitors the CAS group.
+`start()` active le watchdog qui surveille le groupe CAS.
 
 ---
 
 ## Configuration (`mission.yaml`)
 
-`veafCasMission` itself has no YAML-configurable fields. However, **CAP missions** and **Combat missions** (managed by the `COMBATMISSION` module) are declared in top-level `mission.yaml` sections.
+`veafCasMission` lui-même n'a pas de champs configurables en YAML. Cependant, les **missions CAP** et les **missions de combat** (gérées par le module `COMBATMISSION`) sont déclarées dans des sections de premier niveau de `mission.yaml`.
 
 ```yaml
 lua_modules:
   CASMISSION:
-    enable: true          # default: true
-    logLevel: info        # optional log level override
+    enable: true          # défaut : true
+    logLevel: info        # surcharge optionnelle du niveau de log
   COMBATMISSION:
-    enable: true          # required for cap_missions: and combat_missions:
+    enable: true          # requis pour cap_missions: et combat_missions:
 
-# ── CAP missions ──────────────────────────────────────────────────────────
+# ── Missions CAP ──────────────────────────────────────────────────────────────
 cap_missions:
-  - group_name: "CAP Group"       # REQUIRED — DCS group name to use for the CAP
-    menu_name: "CAP North"        # label in the F10 menu
-    briefing: "Patrol the northern sector and engage threats."
-    default: false                # true = starts active by default
-    activated: true               # true = immediately activated at mission start
+  - group_name: "Groupe CAP"      # REQUIS — nom de groupe DCS pour la patrouille
+    menu_name: "CAP Nord"          # libellé dans le menu F10
+    briefing: "Patrouiller le secteur nord et engager les menaces."
+    default: false                # true = actif par défaut
+    activated: true               # true = activé immédiatement au démarrage
 
-# ── Combat missions ───────────────────────────────────────────────────────
+# ── Missions de combat ───────────────────────────────────────────────────
 combat_missions:
-  - name: "Strike-Alpha"          # REQUIRED — internal identifier
-    friendly_name: "Strike Alpha" # label in the F10 menu
-    secured: false                # true = requires /secu to activate
-    radio_menu_enabled: true      # show in F10 menu
+  - name: "Frappe-Alpha"          # REQUIS — identifiant interne
+    friendly_name: "Frappe Alpha" # libellé dans le menu F10
+    secured: false                # true = nécessite /secu pour activer
+    radio_menu_enabled: true      # afficher dans le menu F10
     briefing: |
-      Destroy the armoured column in grid BQ-123.
-      Expect AAA and MANPADS.
+      Détruire la colonne blindée dans le carré BQ-123.
+      Prévoir de l'AAA et des MANPADS.
     elements:
-      - name: "Element Alpha 1"   # internal element name
-        groups:                   # DCS group names included in this element
+      - name: "Elément Alpha 1"   # nom interne de l'élément
+        groups:                   # noms de groupes DCS inclus dans cet élément
           - "STRIKE-GROUP-1"
           - "STRIKE-GROUP-2"
-        scalable: true            # true = group count scales with skill setting
+        scalable: true            # true = le nombre de groupes s'adapte au paramètre de compétence
 ```
 
-### `cap_missions[]` fields
+### Champs de `cap_missions[]`
 
-| Field | Type | Default | Required | Description |
-|-------|------|---------|----------|-------------|
-| `group_name` | string | — | Yes | DCS group name for the CAP flight |
-| `menu_name` | string | — | No | F10 menu label |
-| `briefing` | string | — | No | Briefing text shown to players |
-| `default` | boolean | `false` | No | Start as the default active mission |
-| `activated` | boolean | `true` | No | Immediately activate at mission start |
+| Champ | Type | Défaut | Requis | Description |
+|-------|------|--------|--------|-------------|
+| `group_name` | string | — | Oui | Nom du groupe DCS pour le vol CAP |
+| `menu_name` | string | — | Non | Libellé du menu F10 |
+| `briefing` | string | — | Non | Texte de briefing affiché aux joueurs |
+| `default` | booléen | `false` | Non | Démarrer comme mission active par défaut |
+| `activated` | booléen | `true` | Non | Activer immédiatement au démarrage de la mission |
 
-### `combat_missions[]` fields
+### Champs de `combat_missions[]`
 
-| Field | Type | Default | Required | Description |
-|-------|------|---------|----------|-------------|
-| `name` | string | — | Yes | Internal identifier |
-| `friendly_name` | string | — | No | F10 menu label |
-| `secured` | boolean | `false` | No | Requires `/secu` security token to activate |
-| `radio_menu_enabled` | boolean | `true` | No | Show this mission in the F10 menu |
-| `briefing` | string | — | No | Multi-line briefing text |
-| `elements` | object[] | `[]` | No | Mission element definitions |
-| `elements[].name` | string | — | No | Element internal name |
-| `elements[].groups` | string[] | — | No | DCS group names in this element |
-| `elements[].scalable` | boolean | `true` | No | Scale group count with difficulty |
+| Champ | Type | Défaut | Requis | Description |
+|-------|------|--------|--------|-------------|
+| `name` | string | — | Oui | Identifiant interne |
+| `friendly_name` | string | — | Non | Libellé du menu F10 |
+| `secured` | booléen | `false` | Non | Nécessite le token de sécurité `/secu` pour activer |
+| `radio_menu_enabled` | booléen | `true` | Non | Afficher dans le menu F10 |
+| `briefing` | string | — | Non | Texte de briefing multi-ligne |
+| `elements` | objet[] | `[]` | Non | Définitions des éléments de mission |
+| `elements[].name` | string | — | Non | Nom interne de l'élément |
+| `elements[].groups` | string[] | — | Non | Noms de groupes DCS dans cet élément |
+| `elements[].scalable` | booléen | `true` | Non | Adapter le nombre de groupes à la difficulté |
 
-### Minimal example
+### Exemple minimal
 
 ```yaml
 lua_modules:
@@ -103,29 +102,29 @@ cap_missions:
     menu_name: "CAP"
 
 combat_missions:
-  - name: "Strike-North"
-    briefing: "Destroy northern targets."
+  - name: "Frappe-Nord"
+    briefing: "Détruire les cibles nord."
     elements:
       - groups: ["Strike-Group-1"]
 ```
 
 ---
 
-## Key Configuration Constants
+## Constantes de configuration clés
 
-| Constant | Default | Description |
-|----------|---------|-------------|
-| `veafCasMission.Keyphrase` | `"_cas"` | Marker trigger text |
-| `veafCasMission.SecondsBetweenWatchdogChecks` | `15` | Watchdog interval (s) |
-| `veafCasMission.SecondsBetweenSmokeRequests` | `180` | Smoke cooldown (s) |
-| `veafCasMission.SecondsBetweenFlareRequests` | `120` | Flare cooldown (s) |
-| `veafCasMission.RedCasGroupName` | `"Red CAS Group"` | DCS group name for red CAS units |
-| `veafCasMission.BlueCasGroupName` | `"Blue CAS Group"` | DCS group name for blue CAS units |
-| `veafCasMission.RadioMenuName` | `"CAS MISSION"` | F10 submenu label |
+| Constante | Valeur par défaut | Description |
+|-----------|-------------------|-------------|
+| `veafCasMission.Keyphrase` | `"_cas"` | Texte déclencheur du marqueur |
+| `veafCasMission.SecondsBetweenWatchdogChecks` | `15` | Intervalle du watchdog (s) |
+| `veafCasMission.SecondsBetweenSmokeRequests` | `180` | Délai entre fumées (s) |
+| `veafCasMission.SecondsBetweenFlareRequests` | `120` | Délai entre fusées (s) |
+| `veafCasMission.RedCasGroupName` | `"Red CAS Group"` | Nom du groupe DCS pour les unités CAS rouges |
+| `veafCasMission.BlueCasGroupName` | `"Blue CAS Group"` | Nom du groupe DCS pour les unités CAS bleues |
+| `veafCasMission.RadioMenuName` | `"CAS MISSION"` | Libellé du sous-menu F10 |
 
 ---
 
-## Marker Commands (Player-Facing)
+## Commandes de marqueur (côté joueur)
 
 ```
 _cas
@@ -133,42 +132,42 @@ _cas, size 3, defense 2, armor 3
 _cas, side blue
 ```
 
-Options:
+Options :
 
-| Option | Range | Description |
+| Option | Plage | Description |
 |--------|-------|-------------|
-| `size` | 0–5 | Number of target units |
-| `defense` | 0–5 | AA defence level (0=none, 5=heavy SAM) |
-| `armor` | 0–5 | Armour level (0=infantry, 5=heavy MBT) |
-| `side` | blue/red | Coalition of targets |
+| `size` | 0–5 | Nombre d'unités cibles |
+| `defense` | 0–5 | Niveau de défense AA (0=aucune, 5=SAM lourd) |
+| `armor` | 0–5 | Niveau de blindage (0=infanterie, 5=MBT lourd) |
+| `side` | blue/red | Coalition des cibles |
 
 ---
 
-## F10 Radio Menu
+## Menu radio F10
 
-- **Generate** — create a new CAS zone at a random or specified location
-- **Smoke** — mark zone with coloured smoke (3-minute cooldown)
-- **Flare** — mark zone with illumination flares (2-minute cooldown)
-- **Info** — display zone position, composition, and status
-- **Skip** — abandon current zone and generate a new one
-- **Cleanup** — destroy all CAS units and reset
-
----
-
-## Difficulty Reference
-
-| Level | Typical units | AA defence |
-|-------|--------------|------------|
-| 0 | Infantry, jeeps | None |
-| 1 | APCs, trucks | MANPADS |
-| 2 | BMPs, BTRs | ZU-23 |
-| 3 | IFVs, light tanks | ZSU-23-4 + SA-9 |
-| 4 | MBTs | SA-13 + SA-15 |
-| 5 | Heavy MBT mix | SA-6 / SA-11 |
+- **Générer** — créer une nouvelle zone CAS à un emplacement aléatoire ou spécifié
+- **Fumée** — marquer la zone avec de la fumée colorée (délai de 3 minutes)
+- **Fusée éclairante** — marquer la zone avec des fusées d'illumination (délai de 2 minutes)
+- **Infos** — afficher la position, composition et statut de la zone
+- **Passer** — abandonner la zone courante et en générer une nouvelle
+- **Nettoyer** — détruire toutes les unités CAS et réinitialiser
 
 ---
 
-## See Also
+## Référence de difficulté
 
-- [veafCombatZone](veafCombatZone.md) — for persistent, replayable zones
-- [Lua API Reference](../../LUA_API_REFERENCE.md) — full `veafCasMission` API
+| Niveau | Unités typiques | Défense AA |
+|--------|-----------------|------------|
+| 0 | Infanterie, jeeps | Aucune |
+| 1 | APC, camions | MANPADS |
+| 2 | BMP, BTR | ZU-23 |
+| 3 | IFV, chars légers | ZSU-23-4 + SA-9 |
+| 4 | MBT | SA-13 + SA-15 |
+| 5 | Mix MBT lourds | SA-6 / SA-11 |
+
+---
+
+## Voir aussi
+
+- [veafCombatZone](veafCombatZone.md) — pour des zones persistantes et rejouables
+- [Référence API Lua](../../LUA_API_REFERENCE.md) — API complète de `veafCasMission`

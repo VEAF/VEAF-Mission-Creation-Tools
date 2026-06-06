@@ -1,32 +1,32 @@
-# Pilot Guide
+# Guide du pilote
 
-You're flying a DCS mission that uses VEAF scripts. This section covers everything you can do in-game.
-
----
-
-## Quick Start — 2 minutes
-
-1. **Press F10** → look for the **VEAF** submenu under **Other**
-2. **Explore submenus**: Assets (tankers, AWACS, carriers), Missions, CAS, Spawn
-3. **Place a marker** on the F10 map, type `-sa6` and confirm — a SAM battery appears
-
-That's it. You're using VEAF Mission Creation Tools.
+Vous volez dans une mission DCS qui utilise les scripts VEAF. Cette section couvre tout ce que vous pouvez faire en jeu.
 
 ---
 
-## What Can You Do?
+## Démarrage rapide — 2 minutes
 
-| Feature | How | Description |
-|---------|-----|-------------|
-| **Spawn units** | F10 marker: `-alias` (e.g. `-sa6`, `-armor`, `-farp`) | Create units at marker position — see [shortcuts list](../mission-maker/scripts/veafShortcuts.md) |
-| **CAS training** | F10 menu → CAS Mission → Generate | Random ground targets with configurable difficulty |
-| **Activate missions** | F10 menu → Missions → [Name] → Activate | Pre-built combat scenarios (CAP, strike, SEAD…) |
-| **Combat zones** | F10 menu → Combat Zones → [Zone] → Activate | Persistent combat areas with objectives |
-| **Manage assets** | F10 menu → Assets | Tanker/AWACS info, carrier recovery, respawn |
-| **Authenticate** | F10 marker: `_auth [PASSWORD]` | Unlock restricted commands on multiplayer servers |
+1. **Appuyez sur F10** → cherchez le sous-menu **VEAF** sous **Other**
+2. **Explorez les sous-menus** : Assets (ravitailleurs, AWACS, porte-avions), Missions, CAS, Spawn
+3. **Placez un marqueur** sur la carte F10, tapez `-sa6` et validez — une batterie SAM apparaît
+
+C'est tout. Vous utilisez les VEAF Mission Creation Tools.
 
 ---
 
-## Full Reference
+## Que pouvez-vous faire ?
 
-The [complete Pilot Guide](GUIDE.md) covers all commands, options, radio menus, and tips by aircraft role.
+| Fonctionnalité | Comment | Description |
+|----------------|---------|-------------|
+| **Spawner des unités** | Marqueur F10 : `-alias` (ex : `-sa6`, `-armor`, `-farp`) | Créer des unités à la position du marqueur — voir [liste des raccourcis](../mission-maker/scripts/veafShortcuts.md) |
+| **Entraînement CAS** | Menu F10 → CAS Mission → Generate | Cibles au sol aléatoires avec difficulté configurable |
+| **Activer des missions** | Menu F10 → Missions → [Nom] → Activate | Scénarios de combat pré-construits (CAP, strike, SEAD…) |
+| **Zones de combat** | Menu F10 → Combat Zones → [Zone] → Activate | Zones de combat persistantes avec objectifs |
+| **Gérer les assets** | Menu F10 → Assets | Info ravitailleur/AWACS, recovery porte-avions, respawn |
+| **S'authentifier** | Marqueur F10 : `_auth [MOT_DE_PASSE]` | Débloquer les commandes restreintes en multijoueur |
+
+---
+
+## Référence complète
+
+Le [guide pilote complet](GUIDE.md) couvre toutes les commandes, options, menus radio, et conseils par rôle d'appareil.

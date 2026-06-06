@@ -1,0 +1,485 @@
+# Developer Guide — VEAF Mission Creation Tools
+
+
+This guide is for developers who want to contribute to the VEAF Mission Creation Tools source code, build new releases, or extend the framework.
+
+---
+
+## Table of Contents
+
+1. [Architecture Overview](#architecture-overview)
+2. [Repository Layout](#repository-layout)
+3. [Development Environment](#development-environment)
+4. [Lua Runtime Scripts](#lua-runtime-scripts)
+5. [Python Tools](#python-tools)
+6. [Build and Release](#build-and-release)
+7. [Developer Mode](#developer-mode)
+8. [Testing](#testing)
+9. [Quality Gates](#quality-gates)
+10. [Contributing](#contributing)
+
+---
+
+## Architecture Overview
+
+The project has two completely separate layers:
+
+```mermaid
+flowchart TD
+    subgraph DT["DESIGN-TIME — Python"]
+        tools["veaf-tools.exe<br/>— .miz manipulation"]
+        updater["veaf-tools-updater.exe<br/>— release management"]
+        build["veaf-build<br/>— build pipeline"]
+    end
+    DT -->|produces| zip(["published.zip"])
+    zip -->|consumed by| RT
+    subgraph RT["RUNTIME — Lua inside DCS World"]
+        scripts["veaf-scripts.lua<br/>— all 34 modules concatenated"]
+        config["veaf-config.lua<br/>— generated module config (from mission.yaml)"]
+        custom["mission-script.lua<br/>— mission-specific custom Lua code"]
+    end
+```
+
+- **Runtime** (`src/scripts/veaf/`) — 34 Lua modules loaded inside DCS missions
+- **Design-time** (`src/python/veaf-tools/`) — Python CLI tools for `.miz` file manipulation
+
+---
+
+## Repository Layout
+
+```
+VEAF-Mission-Creation-Tools/
+├── veaf_build/                   # veaf-build CLI (build & publish orchestrator)
+├── build-and-release.py          # Backward-compat shim (use veaf-build instead)
+├── src/
+│   ├── scripts/veaf/             # Lua runtime modules (34 files)
+│   └── python/veaf-tools/        # Python CLI source
+│       ├── veaf-tools.py         # Entry point
+│       ├── veaf_libs/            # Shared utilities (logger, progress, miz)
+│       ├── mission_tools/        # Core .miz read/write
+│       └── *_injector/           # One folder per CLI command
+├── published/                    # Compiled Lua output
+├── dist/                         # PyInstaller .exe output
+├── build/                        # Temporary build workspace
+├── test/
+│   └── lua/                      # Lua unit tests (31 suites)
+├── doc/                          # Documentation
+├── openspec/                     # Change management (OpenSpec workflow)
+└── .github/
+    └── workflows/                # CI/CD GitHub Actions
+```
+
+---
+
+## Development Environment
+
+Two setup paths are available. The DevContainer is recommended for new contributors and ensures an environment identical to CI.
+
+### Option A — DevContainer (recommended)
+
+The repository ships a `.devcontainer/` configuration that provides a pre-configured, zero-install environment with Python 3.13, Lua 5.1, StyLua 2.4.0, Poetry, and all VS Code extensions already installed.
+
+**VS Code Dev Containers** (local Docker):
+
+1. Install [Docker Desktop](https://www.docker.com/products/docker-desktop/) and the [Dev Containers](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers) extension
+2. Open the repository folder in VS Code
+3. Press `Ctrl+Shift+P` → *Dev Containers: Reopen in Container*
+4. Wait for the container to build and `poetry install` to complete — the environment is ready
+
+**GitHub Codespaces** (browser, no local install):
+
+1. On the repository page, click **Code** → **Codespaces** → **New codespace**
+2. The environment builds automatically — open a terminal and start working
+
+In both cases, `poetry install --without build --all-extras` runs automatically on first open.
+
+### Option B — Manual setup (Windows)
+
+### Prerequisites
+
+- Python 3.9+ (3.13 recommended)
+- Git
+- GitHub CLI (`gh`) — for publishing releases
+- Lua 5.1 — for running unit tests locally
+- StyLua 2.4.0 — for Lua formatting (installed at `~/.local/bin/stylua.exe`)
+
+### Setup
+
+```powershell
+# Clone
+git clone https://github.com/VEAF/VEAF-Mission-Creation-Tools.git
+cd VEAF-Mission-Creation-Tools
+
+# Install dependencies (Poetry manages its own virtual environment)
+poetry install              # quality gate + veaf-tools
+poetry install --with build # add PyInstaller (needed to compile .exe)
+```
+
+> Use `poetry run <cmd>` to execute any Python command inside Poetry's environment,
+> or `poetry shell` to open an interactive session.
+
+### Python Dependencies
+
+| Package | Purpose |
+|---------|---------|
+| `typer` | CLI framework |
+| `rich` | Terminal UI (progress bars, tables) |
+| `pyyaml` | Config file loading |
+| `luadata` | Lua serialisation/deserialisation |
+| `pyinstaller` | Build Windows executables |
+| `pillow` | Image processing (weather icons) |
+
+---
+
+## Lua Runtime Scripts
+
+### Module Structure
+
+Every Lua module follows this pattern:
+
+```lua
+moduleName = {}
+
+moduleName.Id = "MODULE_ID"
+moduleName.Version = "1.x.y"
+-- moduleName.LogLevel = "trace"  -- uncomment to increase verbosity
+
+veaf.loggers.new(moduleName.Id, moduleName.LogLevel)
+
+function moduleName.initialize()
+  -- register with markers, radio, event handler
+end
+
+function moduleName.start()
+  -- start watchdogs, scheduled tasks
+end
+```
+
+### Dependency Order
+
+1. `veaf.lua` — must be first
+2. `veafEventHandler.lua`
+3. `veafMarkers.lua`, `veafRadio.lua`, `veafSecurity.lua`
+4. All other modules (any order)
+
+### Logging
+
+```lua
+veaf.loggers.get(moduleName.Id):info("Message")
+veaf.loggers.get(moduleName.Id):debug("Debug: %s", variable)
+veaf.loggers.get(moduleName.Id):trace("Trace: %s", veaf.lp(table))
+```
+
+Log levels: `error` (1) → `warning` (2) → `info` (3) → `debug` (4) → `trace` (5). Default is `info` (3).
+
+For expensive arguments, use `veaf.lp()` (lazy proxy — only stringified when the level is active).
+
+To increase verbosity for a mission at **build time** (global, baked into the `.miz`), add `global_log_level` in `mission.yaml`:
+
+```yaml
+global_log_level: debug
+```
+
+For **per-module build-time** control, use the `lua_modules` section:
+
+```yaml
+lua_modules:
+  SPAWN:
+    logLevel: debug
+  RADIO:
+    logLevel: trace
+```
+
+This generates `veaf.setConfig("MODULE_ID", "logLevel", "...")` calls in `veaf-config.lua`. Or use `--log-modules SPAWN,RADIO` on the CLI to silence everything else.
+
+For **per-module runtime** control (no rebuild), add the Lua call directly in `mission-script.lua`:
+
+```lua
+veaf.loggers.get("SPAWN"):setLevel("debug", true)  -- force=true bypasses BaseLogLevel cap
+```
+
+### mist.DBs Access
+
+Do not access `mist.DBs.*` directly. Use the `veaf.mist` wrapper:
+
+```lua
+local unitData  = veaf.mist.getUnitData(unitName)
+local groupData = veaf.mist.getGroupData(groupName)
+local isHuman   = veaf.mist.isHumanUnit(unitName)
+local allUnits  = veaf.mist.getAllUnitData()
+local groupById = veaf.mist.getGroupById(groupId)
+```
+
+---
+
+## Python Tools
+
+### CLI Architecture
+
+Each `veaf-tools.exe` subcommand is implemented as a `*_injector/` package:
+
+```
+weather_injector/
+├── weather_worker.py    # Entry point (run() method)
+├── weather_manager.py   # Data transformation logic
+├── models.py            # Dataclass definitions
+└── weather_README.py    # Help/documentation strings
+```
+
+### Logger Pattern
+
+```python
+from veaf_libs.logger import logger, console
+
+logger.info("Processing mission...")
+logger.debug("Detailed info")
+logger.warning("Watch out")
+logger.error("Failed", raise_exception=True)
+```
+
+### Adding a New Tool
+
+1. Create `src/python/veaf-tools/new_feature_injector/`
+2. Implement `new_feature_worker.py` with a `run()` method
+3. Register the command in `veaf-tools.py` using `typer`
+4. Add YAML config schema in `models.py`
+
+---
+
+## Build and Release
+
+### Local Build
+
+```powershell
+# Build (compiles Lua + builds .exe)
+poetry run veaf-build build --version 6.1.0
+```
+
+What it does:
+1. Validates prerequisites (Git, Python, PyInstaller)
+2. Concatenates Lua modules → `published/veaf-scripts.lua`
+3. Builds `veaf-tools.exe` and `veaf-tools-updater.exe` via PyInstaller
+4. Creates `published.zip` with all artifacts + SHA256 checksum
+
+### Publishing a Release
+
+Use the release assistant prompt at `.prompts/generate-release-notes.md` to run the full release preparation interactively. It guides you through:
+1. Extracting changes from `[Unreleased]` in `CHANGELOG.md`
+2. Consolidation interview (theme, breaking changes, highlights)
+3. Writing and validating `RELEASE_NOTES.md`
+4. Administrative closure (CHANGELOG version bump, `pyproject.toml`, ROADMAP)
+5. Git commands to copy-paste
+
+#### Release flow (git flow)
+
+The AI assistant handles: creating `release/x.y.z` from `develop-v6`, committing all release files, and opening the PR.
+
+After the PR is merged, the developer runs:
+
+```bash
+git checkout develop-v6
+git pull origin develop-v6
+git tag published-vx.y.z
+git push origin published-vx.y.z
+```
+
+> **Warning:** pushing the tag is irreversible — only run after the PR is merged.
+
+Pushing the tag triggers the `release` CI workflow, which will:
+1. Build `veaf-tools.exe`, `veaf-tools-updater.exe`, and `published.zip`
+2. Create the GitHub Release using **`RELEASE_NOTES.md` as-is** from the tagged commit
+3. Upload all assets and move the `published-latest` floating tag
+
+> **Important:** `RELEASE_NOTES.md` must be committed and up-to-date on the tagged commit — the CI takes it verbatim, without editing.
+
+### Security Model
+
+```
+veaf-build computes SHA256 of published.zip
+    ↓
+SHA256 stored alongside ZIP in GitHub Release
+    ↓
+veaf-tools-updater.exe downloads both files
+    ↓
+Checksum verified before extraction
+    ↓
+✅ Integrity guaranteed
+```
+
+---
+
+## Testing
+
+### Run All Tests
+
+```shell
+poetry run test-lua
+```
+
+Exit code `0` = all pass, `1` = failures.
+
+Works on Windows, Linux, and inside the DevContainer (auto-detects `lua5.1` / `lua` / Windows fallback path).
+
+### Filtered Run
+
+```shell
+poetry run test-lua --filter spawn
+poetry run test-lua --filter combat
+```
+
+### Coverage
+
+```shell
+poetry run test-lua --coverage
+```
+
+Prints a per-file line coverage table. Requires `luarocks install luacov` (pre-installed in the DevContainer). See [TESTING.md](../TESTING.md#coverage) for details.
+
+### Single Suite
+
+```shell
+lua test/lua/test_veafSpawn.lua
+```
+
+### Infrastructure
+
+- **Framework:** [luaunit](https://github.com/bluebird75/luaunit) (bundled in `test/lua/luaunit.lua`)
+- **DCS stubs:** `test/lua/dcs_mocks.lua` — stubs for all DCS API namespaces
+- **Module loader:** `test/lua/veaf_loader.lua`
+- No DCS installation required
+
+Full testing reference: [Testing Guide](../TESTING.md)
+
+---
+
+## Quality Gates
+
+### Before Every Commit to Lua Files
+
+```powershell
+# Check formatting (same as CI)
+~/.local/bin/stylua.exe --check src/scripts/veaf/
+
+# Auto-fix
+~/.local/bin/stylua.exe src/scripts/veaf/
+
+# Static analysis
+luacheck src/scripts/veaf/ --config .luacheckrc
+```
+
+StyLua version: **2.4.0** (enforced by the `StyLua Formatting` CI job).
+Luacheck is enforced by the `Luacheck` CI job.
+
+### CI Jobs
+
+| Job | What it checks |
+|-----|---------------|
+| `Lua Unit Tests` | All 31 test suites pass |
+| `Luacheck` | No undefined globals, unused vars, or shadowing in `src/scripts/veaf/` |
+| `StyLua Formatting` | No formatting violations in `src/scripts/veaf/` |
+| `python-quality` | ruff lint + format, mypy types, pytest |
+| `Release` | Triggered on `published-v*` tag push — builds and publishes to GitHub |
+
+All CI jobs must be green before a PR can be merged.
+
+### Releasing a new version
+
+Push a `published-v*` tag — the `Release` CI workflow does everything automatically:
+
+```bash
+git tag published-v6.1.0
+git push origin published-v6.1.0
+```
+
+---
+
+## Developer Mode
+
+Developer mode lets you test local changes to `veaf-scripts.lua` without publishing a release.
+When enabled, `veaf-tools build` reads scripts from a local VEAF-Mission-Creation-Tools clone
+instead of the `published/` folder shipped with veaf-tools.
+
+### Prerequisites
+
+1. Clone VEAF-Mission-Creation-Tools locally
+2. Build the Lua bundle: `poetry run veaf-build build` → produces `build/veaf-scripts.lua`
+
+### Activation (priority order — first match wins)
+
+| Priority | Method | Effect |
+|----------|--------|--------|
+| 1 | `veaf-tools build --dev-mode` | CLI flag — sets `dev_mode: true`, persisted to `mission.yaml` |
+| 2 | `mission.yaml build.dev_mode: true` | Persisted config — applies every build |
+| 3 | *(default)* | `false` — uses published scripts |
+
+`scripts_path` resolution order (where to find the local repo):
+
+| Priority | Source |
+|----------|--------|
+| 1 | `--scripts-path <path>` CLI option |
+| 2 | `mission.yaml build.scripts_path` |
+| 3 | `~/veafmct.yaml scripts_path` |
+
+When passed via CLI, both `dev_mode` and `scripts_path` are persisted in `mission.yaml`.
+
+### Effect on the build
+
+| Mode | Scripts source |
+|------|---------------|
+| `dev_mode: false` (default) | `published/src/scripts/veaf/veaf-scripts.lua` (released copy) |
+| `dev_mode: true` | `<scripts_path>/build/veaf-scripts.lua` (local build output) |
+
+### Example workflow
+
+```powershell
+# 1. Edit a Lua module
+code src/scripts/veaf/veafSpawn.lua
+
+# 2. Rebuild the Lua bundle
+poetry run veaf-build build
+
+# 3. Build a test mission using the local scripts
+cd path/to/my-mission
+veaf-tools build --dev-mode --scripts-path path/to/VEAF-Mission-Creation-Tools
+```
+
+---
+
+## Contributing
+
+### Git Flow
+
+- **Feature work:** create `feature/xxx` from `develop-v6`, open PR → `develop-v6`
+- **Bug fixes:** create `fix/xxx` from `develop-v6`, open PR → `develop-v6`
+- **Hotfixes to production:** `fix/xxx` from `master`, PR → `master`
+- **Releases:** `release/vX.Y.Z` from `develop-v6`, PR → `master`
+
+### Commit Convention
+
+```
+type(scope): short description
+
+feat(spawn): add convoy patrol mode
+fix(qra): guard unit:isExist() before unit:inAir()
+chore(deps): update luaunit to 3.4
+docs(api): document veafMove tanker helpers
+```
+
+**Types:** `feat`, `fix`, `chore`, `docs`, `test`, `refactor`, `style`
+
+### Pull Request Checklist
+
+- [ ] All Lua changes pass `stylua --check`
+- [ ] All unit tests pass (`poetry run test-lua`)
+- [ ] New functionality has tests in `test/lua/`
+- [ ] Public API changes documented in `doc/LUA_API_REFERENCE.md`
+- [ ] `CHANGELOG.md` updated for user-visible changes
+
+---
+
+## Further Reading
+
+- [Lua API Reference](../LUA_API_REFERENCE.md) — full public API for all 34 modules
+- [Testing Guide](../TESTING.md) — test infrastructure details
+- [Tools Reference](../TOOLS_REFERENCE.md) — `veaf-tools.exe` CLI
+- [Roadmap](../ROADMAP.md) — planned work

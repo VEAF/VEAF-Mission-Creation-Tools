@@ -1,52 +1,51 @@
-# veafSpawn — Dynamic Unit Spawning
+# veafSpawn — Apparition dynamique d'unités
 
-
-**Module ID:** `SPAWN` | **Version:** 1.59.x | **File:** `veafSpawn.lua`
-
----
-
-## Purpose
-
-Listens for F10 map marker text commands and spawns units, groups, convoys, FARPs, smoke, flares, cargo, and JTAC controllers on demand. This is the primary player-facing spawning interface.
+**Module ID:** `SPAWN` | **Version:** 1.59.x | **Fichier:** `veafSpawn.lua`
 
 ---
 
-## Dependencies
+## Objectif
 
-- `veafMarkers` — for marker event handling
-- `veafRadio` — for the radio menu
-- `veafSecurity` — for permission checks (optional)
+Écoute les commandes de marqueur de carte F10 et fait apparaître des unités, groupes, convois, FARP, fumées, fusées éclairantes, cargos et contrôleurs JTAC à la demande. Il s'agit de l'interface de spawn principale côté joueur.
 
 ---
 
-## Enable
+## Dépendances
+
+- `veafMarkers` — pour la gestion des événements de marqueur
+- `veafRadio` — pour le menu radio
+- `veafSecurity` — pour les vérifications de permissions (optionnel)
+
+---
+
+## Activation
 
 ```lua
 veafSpawn.initialize()
 ```
 
-Call after all other modules that veafSpawn depends on.
+À appeler après tous les autres modules dont veafSpawn dépend.
 
 ---
 
-## Key Configuration Constants
+## Constantes de configuration clés
 
-| Constant | Default | Description |
-|----------|---------|-------------|
-| `veafSpawn.SpawnKeyphrase` | `"_spawn"` | Marker prefix that triggers spawn |
-| `veafSpawn.DestroyKeyphrase` | `"_destroy"` | Marker prefix for destroy command |
-| `veafSpawn.TeleportKeyphrase` | `"_teleport"` | Marker prefix for teleport |
-| `veafSpawn.IlluminationFlareAglAltitude` | `1000` | Default flare altitude (m AGL) |
-| `veafSpawn.ShellingInterval` | `5` | Seconds between shelling rounds |
-| `veafSpawn.AFAC.maximumAmount` | `8` | Max simultaneous AFACs per coalition |
-| `veafSpawn.HideRadioMenu` | `false` | Hide the Spawn submenu in F10 |
-| `veafSpawn.LogisticUnitType` | `"FARP Ammo Dump Coating"` | Static object type for logistics |
+| Constante | Valeur par défaut | Description |
+|-----------|-------------------|-------------|
+| `veafSpawn.SpawnKeyphrase` | `"_spawn"` | Préfixe du marqueur déclencheur de spawn |
+| `veafSpawn.DestroyKeyphrase` | `"_destroy"` | Préfixe de la commande de destruction |
+| `veafSpawn.TeleportKeyphrase` | `"_teleport"` | Préfixe de la commande de téléportation |
+| `veafSpawn.IlluminationFlareAglAltitude` | `1000` | Altitude par défaut des fusées (m AGL) |
+| `veafSpawn.ShellingInterval` | `5` | Secondes entre les tirs |
+| `veafSpawn.AFAC.maximumAmount` | `8` | Nombre maximum d'AFAC simultanés par coalition |
+| `veafSpawn.HideRadioMenu` | `false` | Masquer le sous-menu Spawn dans le F10 |
+| `veafSpawn.LogisticUnitType` | `"FARP Ammo Dump Coating"` | Type d'objet statique pour la logistique |
 
 ---
 
-## Marker Commands (Player-Facing)
+## Commandes de marqueur (côté joueur)
 
-### Spawn a unit
+### Faire apparaître une unité
 
 ```
 _spawn unit, name [DCS_TYPE]
@@ -54,112 +53,112 @@ _spawn unit, name F-16C, group 2, hdg 180, alt 20000
 _spawn unit, name T-80, group 4, hdg 270, spacing 50
 ```
 
-**Options:**
+**Options :**
 
-- `name` — unit type
-- `group` — number of units
-- `hdg` — heading (degrees)
-- `alt` — altitude (feet)
-- `speed` — speed (knots)
-- `side` — coalition override
-- `country` — country override
-- `skill` — AI skill level
-- `spacing` — unit spacing (meters)
-- `immortal` — make units invulnerable
+- `name` — type d'unité
+- `group` — nombre d'unités
+- `hdg` — cap (degrés)
+- `alt` — altitude (pieds)
+- `speed` — vitesse (nœuds)
+- `side` — coalition
+- `country` — pays
+- `skill` — niveau de compétence IA
+- `spacing` — espacement entre unités (mètres)
+- `immortal` — unités invulnérables
 
-### Spawn a predefined group
+### Faire apparaître un groupe prédéfini
 
 ```
-_spawn group, name [GROUP_NAME]
+_spawn group, name [NOM_GROUPE]
 ```
 
-Group must be defined in `spawnables.yaml`.
+Le groupe doit être défini dans `spawnables.yaml`.
 
-### Spawn a CAP patrol
+### Faire apparaître une patrouille CAP
 
 ```
 _spawn cap, name Su-27, alt 25000, capradius 20000
 ```
 
-**Options:**
+**Options :**
 
-- `name` — aircraft type
-- `alt` — patrol altitude (feet)
-- `hdg` — initial heading
-- `speed` — patrol speed (knots)
-- `group` — number of aircraft
-- `capradius` — CAP orbit radius (meters)
-- `distance` — distance from marker
+- `name` — type d'avion
+- `alt` — altitude de patrouille (pieds)
+- `hdg` — cap initial
+- `speed` — vitesse de patrouille (nœuds)
+- `group` — nombre d'avions
+- `capradius` — rayon d'orbite CAP (mètres)
+- `distance` — distance depuis le marqueur
 
-### Spawn an AFAC/JTAC
+### Faire apparaître un AFAC/JTAC
 
 ```
 _spawn afac, name A-10C, freq 133.0, mod AM, code 1688, alt 15000
 ```
 
-**Options:**
+**Options :**
 
-- `name` — aircraft type
-- `freq` — radio frequency
-- `mod` — modulation (`AM` or `FM`)
-- `code` — laser code
-- `alt` — orbit altitude (feet)
-- `speed` — orbit speed (knots)
-- `immortal` — make unit invulnerable
+- `name` — type d'avion
+- `freq` — fréquence radio
+- `mod` — modulation (`AM` ou `FM`)
+- `code` — code laser
+- `alt` — altitude d'orbite (pieds)
+- `speed` — vitesse d'orbite (nœuds)
+- `immortal` — unité invulnérable
 
-### Spawn a convoy
+### Faire apparaître un convoi
 
-Place two markers: one with the command (start), one as the destination.
+Placer deux marqueurs : un avec la commande (départ), un comme destination.
 
 ```
-_spawn convoy, dest [DEST_MARKER_NAME], speed 50, defense 2, armor 2, size 3
+_spawn convoy, dest [NOM_MARQUEUR_DEST], speed 50, defense 2, armor 2, size 3
 ```
 
-**Options:**
+**Options :**
 
-- `dest` — destination marker name
-- `speed` — convoy speed (km/h)
-- `defense [0-5]` — air defense level
-- `armor [0-5]` — armor level
-- `size [0-5]` — number of vehicles
-- `patrol` — loop back to start
-- `offroad` — allow off-road movement
+- `dest` — nom du marqueur de destination
+- `speed` — vitesse du convoi (km/h)
+- `defense [0-5]` — niveau de défense aérienne
+- `armor [0-5]` — niveau de blindage
+- `size [0-5]` — nombre de véhicules
+- `patrol` — retour à la position de départ
+- `offroad` — autoriser le déplacement hors route
 
-### Spawn smoke
+### Faire apparaître de la fumée
 
 ```
 _spawn smoke, color red
 _spawn smoke, color green, shells 5
 ```
 
-**Colors:** `red`, `green`, `blue`, `white`, `orange`
+**Couleurs :** `red`, `green`, `blue`, `white`, `orange`
 
-### Spawn illumination flares
+### Faire apparaître des fusées éclairantes
 
 ```
 _spawn flare, power 1000000, shells 5, heading 90, distance 500
 ```
 
-### Spawn explosions
+### Faire apparaître des explosions
 
 ```
 _spawn bomb, power 500, shells 3
 ```
 
-### Spawn a FARP
+### Faire apparaître un FARP
 
 ```
 _spawn farp, name "FARP Alpha", side blue
 ```
 
-### Destroy units
+### Détruire des unités
 
 ```
 _destroy, radius 500
 _destroy, name Tank-1
 ```
 
-### Teleport a group
+### Téléporter un groupe
 
 ```
 _teleport, name "Viper Flight"
@@ -167,14 +166,14 @@ _teleport, name "Viper Flight"
 
 ---
 
-## Spawnable Groups (spawnables.yaml)
+## Groupes spawnables (spawnables.yaml)
 
-Define reusable group templates that players can spawn with `_spawn group`:
+Définir des modèles de groupes réutilisables que les joueurs peuvent faire apparaître avec `_spawn group` :
 
 ```yaml
 groups:
   - name: "RED-CAP"
-    description: "Red CAP (2 × MiG-29S)"
+    description: "CAP rouge (2 × MiG-29S)"
     coalition: red
     country: Russia
     units:
@@ -184,7 +183,7 @@ groups:
         skill: High
 
   - name: "ARMOR-PLATOON"
-    description: "Armoured platoon (4 × T-80)"
+    description: "Peloton blindé (4 × T-80)"
     coalition: red
     country: Russia
     units:
@@ -195,7 +194,7 @@ groups:
 
 ---
 
-## See Also
+## Voir aussi
 
-- [veafMove](veafMove.md) — moving existing groups
-- [Lua API Reference](../../LUA_API_REFERENCE.md) — full `veafSpawn` API
+- [veafMove](veafMove.md) — déplacer des groupes existants
+- [Référence API Lua](../../LUA_API_REFERENCE.md) — API complète de `veafSpawn`

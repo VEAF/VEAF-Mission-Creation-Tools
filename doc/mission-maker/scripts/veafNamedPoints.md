@@ -1,24 +1,23 @@
-# veafNamedPoints — Named Map Positions
+# veafNamedPoints — Points nommés sur la carte
 
-
-**Module ID:** `NAMED POINTS` | **Version:** 1.16.x | **File:** `veafNamedPoints.lua`
-
----
-
-## Purpose
-
-Allows mission makers (and players with appropriate permissions) to define named positions on the map. Named points can be referenced by other systems (convoys, missions, smoke commands) and can optionally expose an ATC frequency or TACAN channel.
+**Module ID:** `NAMED POINTS` | **Version:** 1.16.x | **Fichier:** `veafNamedPoints.lua`
 
 ---
 
-## Dependencies
+## Objectif
 
-- `veafMarkers` — for the `_name point` marker command
-- `veafRadio` — optional radio menu entry
+Permet aux créateurs de missions (et aux joueurs disposant des permissions appropriées) de définir des positions nommées sur la carte. Les points nommés peuvent être référencés par d'autres systèmes (convois, missions, commandes de fumée) et peuvent optionnellement exposer une fréquence ATC ou un canal TACAN.
 
 ---
 
-## Enable
+## Dépendances
+
+- `veafMarkers` — pour la commande de marqueur `_name point`
+- `veafRadio` — entrée optionnelle dans le menu radio
+
+---
+
+## Activation
 
 ```lua
 veafNamedPoints.initialize()
@@ -31,29 +30,29 @@ veafNamedPoints.initialize()
 ```yaml
 lua_modules:
   NAMEDPOINTS:
-    enable: true          # default: true
-    logLevel: info        # optional log level override
-    custom_points:        # pre-defined named points
-      - name: "Battle Area Alpha"    # point name (referenced in commands)
-        lat: "41.123456"             # latitude as string (decimal degrees)
-        lon: "44.987654"             # longitude as string (decimal degrees)
+    enable: true          # défaut : true
+    logLevel: info        # surcharge optionnelle du niveau de log
+    custom_points:        # points nommés prédéfinis
+      - name: "Zone de Combat Alpha"  # nom du point (référencé dans les commandes)
+        lat: "41.123456"               # latitude en string (degrés décimaux)
+        lon: "44.987654"               # longitude en string (degrés décimaux)
       - name: "FARP Bravo"
         lat: "41.200000"
         lon: "44.100000"
 ```
 
-| Field | Type | Default | Required | Description |
-|-------|------|---------|----------|-------------|
-| `enable` | boolean | `true` | No | Enable or disable the module |
-| `logLevel` | string | *(global)* | No | Per-module log level override |
-| `custom_points` | object[] | `[]` | No | Pre-defined named points |
-| `custom_points[].name` | string | — | Yes | Point name — referenced in spawn commands and radio menus |
-| `custom_points[].lat` | string | — | Yes | Latitude as a decimal string (e.g. `"41.123456"`) |
-| `custom_points[].lon` | string | — | Yes | Longitude as a decimal string (e.g. `"44.987654"`) |
+| Champ | Type | Défaut | Requis | Description |
+|-------|------|--------|--------|-------------|
+| `enable` | booléen | `true` | Non | Activer ou désactiver le module |
+| `logLevel` | string | *(global)* | Non | Surcharge du niveau de log par module |
+| `custom_points` | objet[] | `[]` | Non | Points nommés prédéfinis |
+| `custom_points[].name` | string | — | Oui | Nom du point — référencé dans les commandes de spawn et les menus radio |
+| `custom_points[].lat` | string | — | Oui | Latitude en string décimal (ex : `"41.123456"`) |
+| `custom_points[].lon` | string | — | Oui | Longitude en string décimal (ex : `"44.987654"`) |
 
-> Coordinates are geographic (WGS84). Use decimal degrees as strings.
+> Les coordonnées sont géographiques (WGS84). Utiliser les degrés décimaux sous forme de strings.
 
-### Minimal example
+### Exemple minimal
 
 ```yaml
 lua_modules:
@@ -67,51 +66,51 @@ lua_modules:
 
 ---
 
-## Key Constants
+## Constantes clés
 
-| Constant | Default | Description |
-|----------|---------|-------------|
-| `veafNamedPoints.Keyphrase` | `"_name point"` | Marker command prefix |
-| `veafNamedPoints.RadioMenuName` | `"NAMED POINTS"` | F10 submenu label |
+| Constante | Valeur par défaut | Description |
+|-----------|-------------------|-------------|
+| `veafNamedPoints.Keyphrase` | `"_name point"` | Préfixe de la commande de marqueur |
+| `veafNamedPoints.RadioMenuName` | `"NAMED POINTS"` | Libellé du sous-menu F10 |
 
 ---
 
-## Pre-defining Points in mission-script.lua
+## Prédéfinir des points dans mission-script.lua
 
-Named points can be pre-defined programmatically:
+Les points nommés peuvent être prédéfinis par programmation :
 
 ```lua
 veafNamedPoints.initialize()
 
--- Add a static named point
+-- Ajouter un point nommé statique
 veafNamedPoints.addNamedPoint({
   name      = "FARP Alpha",
-  position  = { x = 123456, y = 0, z = 654321 },  -- DCS vec3
+  position  = { x = 123456, y = 0, z = 654321 },  -- vec3 DCS
   atcFreq   = 127500000,  -- Hz
   atcMod    = radio.modulation.AM,
 })
 
--- Add a point at a known DCS airbase
+-- Ajouter un point à une base aérienne DCS connue
 veafNamedPoints.addNamedPointFromAirbase("Senaki-Kolkhi")
 ```
 
 ---
 
-## Player Marker Command
+## Commande de marqueur joueur
 
-Players can create named points via map markers (if allowed by security):
+Les joueurs peuvent créer des points nommés via des marqueurs de carte (si la sécurité le permet) :
 
 ```
 _name point Alpha
 ```
 
-Places a named point called "Alpha" at the marker position.
+Place un point nommé "Alpha" à la position du marqueur.
 
 ---
 
-## Referencing Named Points
+## Référencer les points nommés
 
-Named points can be used as destinations in spawn commands:
+Les points nommés peuvent être utilisés comme destinations dans les commandes de spawn :
 
 ```
 _spawn convoy, dest Alpha, speed 40
@@ -119,7 +118,7 @@ _spawn convoy, dest Alpha, speed 40
 
 ---
 
-## See Also
+## Voir aussi
 
-- [veafSpawn](veafSpawn.md) — uses named points for convoy destinations
-- [Lua API Reference](../../LUA_API_REFERENCE.md) — full `veafNamedPoints` API
+- [veafSpawn](veafSpawn.md) — utilise les points nommés pour les destinations de convois
+- [Référence API Lua](../../LUA_API_REFERENCE.md) — API complète de `veafNamedPoints`

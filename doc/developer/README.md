@@ -1,27 +1,27 @@
-# Developer Guide
+# Guide du développeur
 
-Contribute to the VEAF Mission Creation Tools — a hybrid Lua + Python project with 34 runtime modules and a CLI toolkit.
+Contribuez aux VEAF Mission Creation Tools — un projet hybride Lua + Python avec 34 modules runtime et un toolkit CLI.
 
 ---
 
-## Quick Start — Clone to Tests in 5 Minutes
+## Démarrage rapide — Du clone aux tests en 5 minutes
 
 ```powershell
-# 1. Clone
+# 1. Cloner
 git clone https://github.com/VEAF/VEAF-Mission-Creation-Tools.git
 cd VEAF-Mission-Creation-Tools
 git checkout develop-v6
 
-# 2. Install Python dependencies (requires Poetry)
+# 2. Installer les dépendances Python (nécessite Poetry)
 poetry install
 
-# 3. Run Lua tests
+# 3. Lancer les tests Lua
 $FAILED=0
 Get-ChildItem test/lua/test_*.lua | Sort-Object Name | ForEach-Object {
     lua $_.FullName; if ($LASTEXITCODE -ne 0) { $FAILED=1 }
 }
 
-# 4. Run Python quality gate
+# 4. Lancer la quality gate Python
 poetry run ruff check src/python
 poetry run mypy src/python
 poetry run pytest
@@ -29,45 +29,45 @@ poetry run pytest
 
 ---
 
-## Architecture at a Glance
+## Architecture en un coup d'œil
 
 ```mermaid
 flowchart TD
-    subgraph RT["RUNTIME — Lua in DCS"]
-        scripts["34 Lua modules<br/>src/scripts/veaf/"]
+    subgraph RT["RUNTIME — Lua dans DCS"]
+        scripts["34 modules Lua<br/>src/scripts/veaf/"]
     end
-    subgraph DT["DESIGN-TIME — Python CLI"]
+    subgraph DT["DESIGN-TIME — CLI Python"]
         tools["veaf-tools.exe<br/>src/python/veaf-tools/"]
         build["veaf-build<br/>veaf_build/"]
     end
-    DT -->|produces| zip(["published.zip"])
-    zip -->|consumed by| RT
+    DT -->|produit| zip(["published.zip"])
+    zip -->|consommé par| RT
 ```
 
-| Layer | Language | Location | Purpose |
-|-------|----------|----------|----------|
-| Runtime | Lua 5.1 | `src/scripts/veaf/` | Executes inside DCS missions |
-| CLI Tools | Python 3.11+ | `src/python/veaf-tools/` | `.miz` file manipulation |
-| Build | Python | `veaf_build/` | Build & release orchestrator |
-| Tests | Lua + Python | `test/` | Unit tests for both layers |
+| Couche | Langage | Emplacement | Rôle |
+|--------|---------|-------------|------|
+| Runtime | Lua 5.1 | `src/scripts/veaf/` | S'exécute dans les missions DCS |
+| Outils CLI | Python 3.11+ | `src/python/veaf-tools/` | Manipulation de fichiers `.miz` |
+| Build | Python | `veaf_build/` | Orchestrateur de build & release |
+| Tests | Lua + Python | `test/` | Tests unitaires des deux couches |
 
 ---
 
 ## Quality Gates
 
-| Gate | Command | CI Job |
-|------|---------|--------|
-| Lua formatting | `stylua --check src/scripts/veaf/` | StyLua Formatting |
-| Lua lint | `luacheck src/scripts/veaf/ --config .luacheckrc` | Luacheck |
-| Lua tests | `lua test/lua/test_*.lua` | Lua Tests |
-| Python lint + format | `poetry run ruff check` + `ruff format --check` | Python Quality |
-| Python types | `poetry run mypy src/python` | Python Quality |
-| Python tests | `poetry run pytest` | Python Quality |
+| Gate | Commande | Job CI |
+|------|----------|--------|
+| Formatage Lua | `stylua --check src/scripts/veaf/` | StyLua Formatting |
+| Lint Lua | `luacheck src/scripts/veaf/ --config .luacheckrc` | Luacheck |
+| Tests Lua | `lua test/lua/test_*.lua` | Lua Tests |
+| Lint + format Python | `poetry run ruff check` + `ruff format --check` | Python Quality |
+| Types Python | `poetry run mypy src/python` | Python Quality |
+| Tests Python | `poetry run pytest` | Python Quality |
 
 ---
 
-## Full Reference
+## Référence complète
 
-The [complete Developer Guide](GUIDE.md) covers repository layout, coding conventions, build pipeline, and contributing workflow.
+Le [guide développeur complet](GUIDE.md) couvre l'organisation du dépôt, les conventions de code, le pipeline de build, et le workflow de contribution.
 
-See also: [Testing Guide](../TESTING.md)
+Voir aussi : [Guide de test](../TESTING.md)

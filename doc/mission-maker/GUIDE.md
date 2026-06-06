@@ -1,143 +1,142 @@
-# Mission Maker Guide — VEAF Mission Creation Tools
+# Guide du créateur de missions — VEAF Mission Creation Tools
 
-
-This guide is for DCS World mission designers who want to integrate the VEAF framework into their missions.
-
----
-
-## Table of Contents
-
-1. [What You Get](#what-you-get)
-2. [Prerequisites](#prerequisites)
-3. [Installation and Updates](#installation-and-updates)
-4. [Global User Configuration](#global-user-configuration)
-5. [Creating a New Mission](#creating-a-new-mission)
-6. [How Scripts Are Loaded](#how-scripts-are-loaded)
-7. [Configuring Modules](#configuring-modules)
-8. [Design-Time Tools](#design-time-tools)
-9. [Typical Build Workflow](#typical-build-workflow)
-10. [Scripts Reference](#scripts-reference)
-11. [Configuration Examples](#configuration-examples)
-12. [CTLD and CSAR Integration](#ctld-and-csar-integration)
-13. [Debug Logging](#debug-logging)
-14. [Resources](#resources)
-
-> **Migrating an existing mission?** See the [Migration Guide](MIGRATION_GUIDE.md) — covers both VEAF MCT v5 → v6 and vanilla DCS → VEAF MCT.
+Ce guide s'adresse aux concepteurs de missions DCS World qui souhaitent intégrer le framework VEAF dans leurs missions.
 
 ---
 
-## What You Get
+## Table des matières
 
-A VEAF mission is a standard DCS `.miz` file that loads the VEAF Lua framework at startup. This gives players and controllers:
+1. [Ce que vous obtenez](#ce-que-vous-obtenez)
+2. [Prérequis](#prérequis)
+3. [Installation et mises à jour](#installation-et-mises-à-jour)
+4. [Configuration globale utilisateur](#configuration-globale-utilisateur)
+5. [Créer une nouvelle mission](#créer-une-nouvelle-mission)
+6. [Comment les scripts sont chargés](#comment-les-scripts-sont-chargés)
+7. [Configurer les modules](#configurer-les-modules)
+8. [Outils de conception](#outils-de-conception)
+9. [Workflow de build typique](#workflow-de-build-typique)
+10. [Référence des scripts](#référence-des-scripts)
+11. [Exemples de configuration](#exemples-de-configuration)
+12. [Intégration CTLD et CSAR](#intégration-ctld-et-csar)
+13. [Journalisation de débogage](#journalisation-de-débogage)
+14. [Ressources](#ressources)
 
-- **Marker commands** — players type commands on the F10 map (spawn units, generate CAS zones, move groups…)
-- **F10 radio menus** — dynamic menus for every enabled feature
-- **Pre-built mission types** — CAS, transport, carrier ops, QRA, air waves, combat zones
-- **Asset management** — tankers, AWACS, carriers with automatic state tracking and radio menus
-- **Named points** — reusable map positions with optional ATC/TACAN services
-- **Integrations** — Skynet IADS, CTLD/CSAR
-
----
-
-## Prerequisites
-
-| Tool | Purpose | Required |
-|------|---------|----------|
-| DCS World | The simulator | Yes |
-| DCS Mission Editor | Create the base `.miz` (included with DCS) | Yes |
-| Git | Version control for your mission project | Recommended |
-| `veaf-tools-updater.exe` | Downloads and installs the latest VEAF MCT release | Yes |
-| `veaf-tools.exe` | Build-time `.miz` manipulation CLI | Yes (for build pipeline) |
-| VS Code or Notepad++ | Editing Lua/YAML config files | Recommended |
-
-> **Base mission requirement**: The `.miz` you create in the DCS Mission Editor must contain **at least one blue ground group and one red ground group**. Without both, the Lua coalition tables are incomplete, which can cause the injection tools (`inject-presets`, `inject-waypoints`) to silently skip groups.
+> **Migration d'une mission existante ?** Consultez le [Guide de migration](MIGRATION_GUIDE.md) — couvre à la fois VEAF MCT v5 → v6 et DCS vanilla → VEAF MCT.
 
 ---
 
-## Installation and Updates
+## Ce que vous obtenez
 
-### First Installation
+Une mission VEAF est un fichier DCS `.miz` standard qui charge le framework Lua VEAF au démarrage. Cela offre aux joueurs et aux contrôleurs :
 
-Download `veaf-tools-updater.exe` from the [latest GitHub release](https://github.com/VEAF/VEAF-Mission-Creation-Tools/releases/tag/published-latest) and place it in your mission project folder.
+- **Commandes via marqueurs** — les joueurs tapent des commandes sur la carte F10 (faire apparaître des unités, créer des zones CAS, déplacer des groupes…)
+- **Menus radio F10** — menus dynamiques pour chaque fonctionnalité activée
+- **Types de missions préconstruits** — CAS, transport, opérations carrier, QRA, vagues aériennes, zones de combat
+- **Gestion des actifs** — tankers, AWACS, carriers avec suivi d'état automatique et menus radio
+- **Points nommés** — positions cartographiques réutilisables avec services ATC/TACAN optionnels
+- **Intégrations** — Skynet IADS, CTLD/CSAR
 
-> **Windows security:** Windows may block `.exe` files downloaded from the internet. If the file doesn't run, right-click it → **Properties** → **General** tab → check **Unblock** at the bottom → **OK**.
+---
 
-Then run:
+## Prérequis
+
+| Outil | Rôle | Obligatoire |
+|-------|------|-------------|
+| DCS World | Le simulateur | Oui |
+| Éditeur de missions DCS | Créer le `.miz` de base (inclus avec DCS) | Oui |
+| Git | Contrôle de version pour votre projet de mission | Recommandé |
+| `veaf-tools-updater.exe` | Télécharge et installe la dernière release VEAF MCT | Oui |
+| `veaf-tools.exe` | CLI de manipulation de `.miz` au moment du build | Oui (pour le pipeline de build) |
+| VS Code ou Notepad++ | Édition des fichiers Lua/YAML de configuration | Recommandé |
+
+> **Exigence pour la mission de base** : Le `.miz` créé dans l'éditeur DCS doit contenir **au moins un groupe terrestre bleu et un groupe terrestre rouge**. Sans les deux, les tables Lua de coalition sont incomplètes, ce qui peut amener les outils d'injection (`inject-presets`, `inject-waypoints`) à ignorer silencieusement des groupes.
+
+---
+
+## Installation et mises à jour
+
+### Première installation
+
+Téléchargez `veaf-tools-updater.exe` depuis la [dernière release GitHub](https://github.com/VEAF/VEAF-Mission-Creation-Tools/releases/tag/published-latest) et placez-le dans le dossier de votre projet de mission.
+
+> **Sécurité Windows :** Windows peut bloquer les fichiers `.exe` téléchargés depuis Internet. Si le fichier ne s'exécute pas, cliquez droit dessus → **Propriétés** → onglet **Général** → cochez **Débloquer** en bas de la fenêtre → **OK**.
+
+Puis exécutez :
 
 ```powershell
 .\veaf-tools-updater.exe
 ```
 
-This downloads `published.zip`, verifies the SHA256 checksum, and extracts all scripts and tools into your mission folder.
+Cela télécharge `published.zip`, vérifie le checksum SHA256 et extrait tous les scripts et outils dans votre dossier de mission.
 
-### Updating
+### Mises à jour
 
-Run the same command whenever a new release is available:
+Exécutez la même commande dès qu'une nouvelle release est disponible :
 
 ```powershell
 .\veaf-tools-updater.exe
 ```
 
-Only updates if the remote version is newer. To force a reinstall:
+La mise à jour n'est effectuée que si la version distante est plus récente. Pour forcer une réinstallation :
 
 ```powershell
 .\veaf-tools-updater.exe --force
 ```
 
-To pin to a specific version:
+Pour épingler une version spécifique :
 
 ```powershell
 .\veaf-tools-updater.exe --tag published-v6.1.0
 ```
 
-Full CLI reference: [Tools Reference](../TOOLS_REFERENCE.md)
+Référence CLI complète : [Référence des outils](../TOOLS_REFERENCE.md)
 
 ---
 
-## Global User Configuration
+## Configuration globale utilisateur
 
-Create `~/veafmct.yaml` (i.e. `C:\Users\YourName\veafmct.yaml` on Windows) to set persistent defaults that apply to **all** your VEAF projects on this machine:
+Créez `~/veafmct.yaml` (soit `C:\Users\VotreNom\veafmct.yaml` sous Windows) pour définir des valeurs par défaut persistantes applicables à **tous** vos projets VEAF sur cette machine :
 
 ```yaml
 # ~/veafmct.yaml
-lang: fr                 # Tool output language: "en" (default) or "fr"
-check_updates: true      # Check for new veaf-tools releases at startup
-scripts_path: D:/dev/_VEAF/VEAF-Mission-Creation-Tools   # Local repo path (for --dev-mode)
+lang: fr                 # Langue des outils : "en" (défaut) ou "fr"
+check_updates: true      # Vérifier les nouvelles versions de veaf-tools au démarrage
+scripts_path: D:/dev/_VEAF/VEAF-Mission-Creation-Tools   # Chemin local du dépôt (pour --dev-mode)
 ```
 
-All keys are optional. To initialise the file from the CLI:
+Toutes les clés sont optionnelles. Pour initialiser le fichier depuis la CLI :
 
 ```powershell
 veaf-tools.exe user-config --init
 ```
 
-Or inspect/edit values interactively:
+Ou inspecter/modifier les valeurs de manière interactive :
 
 ```powershell
-# Show effective configuration and its source
+# Afficher la configuration effective et sa source
 veaf-tools.exe user-config
 
-# Set a value
+# Définir une valeur
 veaf-tools.exe user-config --set lang=fr
 
-# Remove a value (revert to default)
+# Supprimer une valeur (revenir au défaut)
 veaf-tools.exe user-config --unset lang
 ```
 
-**Language detection order** (first match wins):
-1. `--lang` CLI option
-2. `VEAF_LANG` environment variable
-3. `~/veafmct.yaml` → `lang:` key
-4. OS locale (Windows registry / system locale on Linux–macOS)
-5. `en` (built-in fallback)
+**Ordre de détection de la langue** (le premier qui correspond gagne) :
+1. Option CLI `--lang`
+2. Variable d'environnement `VEAF_LANG`
+3. `~/veafmct.yaml` → clé `lang:`
+4. Locale du système (registre Windows / locale système sur Linux–macOS)
+5. `en` (fallback intégré)
 
 ---
 
-## Creating a New Mission
+## Créer une nouvelle mission
 
-### Recommended: Fork the Demo Mission
+### Recommandé : forker la mission de démonstration
 
-The fastest way to start is to fork [VEAF-Demo-Mission](https://github.com/VEAF/VEAF-Demo-Mission), which already has the correct folder structure, sample configurations, and build scripts.
+La façon la plus rapide de démarrer est de forker [VEAF-Demo-Mission](https://github.com/VEAF/VEAF-Demo-Mission), qui dispose déjà de la structure de dossiers correcte, de configurations d'exemple et de scripts de build.
 
 ```powershell
 git clone https://github.com/VEAF/VEAF-Demo-Mission.git my-mission
@@ -145,58 +144,58 @@ cd my-mission
 .\veaf-tools-updater.exe
 ```
 
-### From Scratch
+### Depuis zéro
 
-1. Create a folder for your mission project (this is your Git repository)
-2. Copy your existing `.miz` file there
-3. Run `veaf-tools-updater.exe` to fetch all VEAF scripts
-4. Extract your mission: `veaf-tools.exe extract my-mission.miz`
-5. Configure modules in `mission.yaml` and optionally `src/scripts/mission-script.lua`
+1. Créez un dossier pour votre projet de mission (c'est votre dépôt Git)
+2. Copiez votre fichier `.miz` existant dedans
+3. Exécutez `veaf-tools-updater.exe` pour récupérer tous les scripts VEAF
+4. Extrayez votre mission : `veaf-tools.exe extract ma-mission.miz`
+5. Configurez les modules dans `mission.yaml` et éventuellement `src/scripts/mission-script.lua`
 
-Recommended project layout:
+Structure de projet recommandée :
 
 ```
 MyMission/
 ├── src/
-│   ├── mission/                  # Extracted DCS mission data (from extract)
+│   ├── mission/                  # Données DCS extraites (via extract)
 │   ├── scripts/
-│   │   └── mission-script.lua    # Your custom Lua code (optional)
-│   ├── presets.yaml             # Radio frequency presets
-│   ├── spawnables.yaml          # Predefined spawnable groups
-│   └── waypoints.yaml           # Bullseye / navigation points
-├── published/                    # VEAF scripts & tools (auto-installed)
-├── mission.yaml                  # Build-time configuration
-├── veaf-tools.exe                # CLI tool (auto-installed)
+│   │   └── mission-script.lua    # Votre code Lua personnalisé (optionnel)
+│   ├── presets.yaml             # Préréglages de fréquences radio
+│   ├── spawnables.yaml          # Groupes spawnable prédéfinis
+│   └── waypoints.yaml           # Bullseye / points de navigation
+├── published/                    # Scripts & outils VEAF (auto-installés)
+├── mission.yaml                  # Configuration de build
+├── veaf-tools.exe                # Outil CLI (auto-installé)
 └── veaf-tools-updater.exe
 ```
 
 ---
 
-## How Scripts Are Loaded
+## Comment les scripts sont chargés
 
-The `build` command **automatically injects** a `DO SCRIPT FILE` trigger at mission start that loads all VEAF scripts. You do **not** need to manually add any trigger in the DCS Mission Editor.
+La commande `build` **injecte automatiquement** un trigger `DO SCRIPT FILE` au démarrage de la mission qui charge tous les scripts VEAF. Vous n'avez **pas** besoin d'ajouter manuellement un trigger dans l'éditeur de missions DCS.
 
-If you have a custom `src/scripts/mission-script.lua`, it is also injected automatically by the builder.
+Si vous avez un `src/scripts/mission-script.lua` personnalisé, il est aussi injecté automatiquement par le builder.
 
-### What the builder does
+### Ce que fait le builder
 
-1. Reads `src/mission/` (the extracted DCS data)
-2. Removes any existing VEAF triggers
-3. Injects fresh `DO SCRIPT FILE` triggers for all VEAF scripts + your custom scripts
-4. Writes the final `.miz`
+1. Lit `src/mission/` (les données DCS extraites)
+2. Supprime tous les triggers VEAF existants
+3. Injecte de nouveaux triggers `DO SCRIPT FILE` pour tous les scripts VEAF + vos scripts personnalisés
+4. Écrit le `.miz` final
 
 ---
 
-## Configuring Modules
+## Configurer les modules
 
-VEAF MCT has two configuration layers:
+VEAF MCT a deux niveaux de configuration :
 
-- **`mission.yaml`** (at the project root) — build-time configuration: which modules to enable/disable, log levels, security settings, asset declarations
-- **`src/scripts/mission-script.lua`** (optional) — custom Lua code that runs at mission start: aliases, helper functions, third-party script setup (CTLD, CSAR). Module initialization and configuration are generated automatically from `mission.yaml`.
+- **`mission.yaml`** (à la racine du projet) — configuration de build : quels modules activer/désactiver, niveaux de log, sécurité, déclarations d'assets
+- **`src/scripts/mission-script.lua`** (optionnel) — code Lua personnalisé exécuté au démarrage de la mission : alias, fonctions utilitaires, intégration de scripts tiers (CTLD, CSAR). L'initialisation et la configuration des modules sont générées automatiquement depuis `mission.yaml`.
 
-For most missions, `mission.yaml` is sufficient. Use `mission-script.lua` only for custom Lua code that cannot be expressed in YAML.
+Pour la plupart des missions, `mission.yaml` suffit. N'utilisez `mission-script.lua` que pour du code Lua personnalisé qui ne peut pas être exprimé en YAML.
 
-### mission.yaml Example
+### Exemple mission.yaml
 
 ```yaml
 mission:
@@ -216,101 +215,101 @@ lua_modules:
         information: "Tacan 64Y\nU290.50 (20)"
 ```
 
-### mission-script.lua Example
+### Exemple mission-script.lua
 
 ```lua
--- mission-script.lua — custom mission-level code
--- Module initialization is handled automatically by veaf-config.lua (generated from mission.yaml).
--- Put custom aliases, helper functions, and third-party script setup here.
+-- mission-script.lua — code Lua personnalisé au niveau mission
+-- L'initialisation des modules est gérée automatiquement par veaf-config.lua (généré depuis mission.yaml).
+-- Mettez ici vos alias, fonctions utilitaires et intégrations de scripts tiers.
 
--- Example: custom shortcut alias
+-- Exemple : alias de raccourci personnalisé
 -- VeafAlias:new():setName("cas1"):setCommand("/_cas_start"):register()
 
--- Example: CTLD third-party integration (see CTLD and CSAR Integration for full details)
+-- Exemple : intégration CTLD (voir la section Intégration CTLD et CSAR pour les détails)
 -- if ctld then ctld.initialize(function()
 --     -- ctld.hoverPickup = false
 -- end) end
 ```
 
-### Security Levels
+### Niveaux de sécurité
 
-| Level | Constant | Who can use |
-|-------|----------|-------------|
-| 0 (public) | `veafSecurity.LEVEL_L0` | All players |
-| 1 (pilots) | `veafSecurity.LEVEL_L1` | Non-spectator pilots |
-| 9 (admin) | `veafSecurity.LEVEL_L9` | Authenticated admins |
+| Niveau | Constante | Qui peut utiliser |
+|--------|-----------|-------------------|
+| 0 (public) | `veafSecurity.LEVEL_L0` | Tous les joueurs |
+| 1 (pilotes) | `veafSecurity.LEVEL_L1` | Pilotes non-spectateurs |
+| 9 (admin) | `veafSecurity.LEVEL_L9` | Admins authentifiés |
 
-Set passwords (SHA-256 hashes) in `mission.yaml`:
+Définissez les mots de passe (hachages SHA-256) dans `mission.yaml` :
 
 ```yaml
 security:
   disabled: false
   password_hashes:
-    - "<SHA-256 hash of your password>"
+    - "<hachage SHA-256 de votre mot de passe>"
 ```
 
 ---
 
-## Design-Time Tools
+## Outils de conception
 
-`veaf-tools.exe` manipulates `.miz` files at build time — before loading them in DCS.
+`veaf-tools.exe` manipule les fichiers `.miz` au moment du build — avant de les charger dans DCS.
 
-| Command | What it does |
-|---------|-------------|
-| `build` | Builds the mission from `src/` — injects VEAF triggers, outputs a `.miz` |
-| `extract` | Extracts a `.miz` to a source folder (run once to initialise your repo) |
-| `inject-presets` | Injects radio frequency plans for all human cockpits |
-| `inject-weather` | Creates weather/time variants from a YAML config |
-| `inject-aircraft-groups` | Injects aircraft group templates |
-| `extract-aircraft-groups` | Extracts aircraft groups from a mission |
-| `inject-waypoints` | Injects waypoints (bullseye, nav points) for human groups |
-| `extract-waypoints` | Extracts waypoints from a mission |
-| `convert` | Converts a vanilla mission to VEAF MCT format |
-| `convert-v5` | Migrates a v5 mission folder to v6 format |
-| `user-config` | Shows or edits the global user config (`~/veafmct.yaml`) |
+| Commande | Ce qu'elle fait |
+|----------|----------------|
+| `build` | Construit la mission depuis `src/` — injecte les triggers VEAF, produit un `.miz` |
+| `extract` | Extrait un `.miz` vers un dossier source (à exécuter une fois pour initialiser votre dépôt) |
+| `inject-presets` | Injecte des plans de fréquences radio pour tous les cockpits humains |
+| `inject-weather` | Crée des variantes météo/heure depuis une config YAML |
+| `inject-aircraft-groups` | Injecte des templates de groupes d'aéronefs |
+| `extract-aircraft-groups` | Extrait les groupes d'aéronefs d'une mission |
+| `inject-waypoints` | Injecte des waypoints (bullseye, points de navigation) pour les groupes humains |
+| `extract-waypoints` | Extrait les waypoints d'une mission |
+| `convert` | Convertit une mission vanilla au format VEAF MCT |
+| `convert-v5` | Migre un dossier mission v5 vers le format v6 |
+| `user-config` | Affiche ou modifie la configuration globale utilisateur (`~/veafmct.yaml`) |
 
-Full reference: [Tools Reference](../TOOLS_REFERENCE.md)
+Référence complète : [Référence des outils](../TOOLS_REFERENCE.md)
 
 ---
 
-## Typical Build Workflow
+## Workflow de build typique
 
 ```powershell
-# Build the mission — the integrated pipeline runs all enabled steps automatically
+# Construire la mission — le pipeline intégré exécute toutes les étapes activées automatiquement
 veaf-tools.exe build
 ```
 
-The `build` command reads `mission.yaml` and runs every enabled pipeline step (presets, waypoints, aircraft groups, weather) in a single pass. Configure which steps are active under the `pipeline:` key in `mission.yaml`.
+La commande `build` lit `mission.yaml` et exécute chaque étape activée du pipeline (presets, waypoints, groupes d'aéronefs, météo) en une seule passe. Configurez les étapes actives sous la clé `pipeline:` dans `mission.yaml`.
 
 <details>
-<summary>Advanced: running pipeline steps individually</summary>
+<summary>Avancé : exécuter les étapes du pipeline individuellement</summary>
 
-If you need to run a single step in isolation (e.g. inject weather only, without a full rebuild):
+Si vous devez exécuter une seule étape en isolation (ex : injecter la météo uniquement, sans rebuild complet) :
 
 ```powershell
-# Inject radio presets only
-veaf-tools.exe inject-presets my-mission.miz --presets-file src/presets.yaml
+# Injecter les préréglages radio uniquement
+veaf-tools.exe inject-presets ma-mission.miz --presets-file src/presets.yaml
 
-# Inject bullseye and nav waypoints only
-veaf-tools.exe inject-waypoints my-mission.miz --waypoints-file src/waypoints.yaml
+# Injecter les waypoints bullseye et de navigation uniquement
+veaf-tools.exe inject-waypoints ma-mission.miz --waypoints-file src/waypoints.yaml
 
-# Create weather/time variants only
-veaf-tools.exe inject-weather my-mission.miz --config-file versions.yaml
+# Créer des variantes météo/heure uniquement
+veaf-tools.exe inject-weather ma-mission.miz --config-file versions.yaml
 ```
 
 </details>
 
-Commit the contents of `src/` to Git — not the built `.miz`. Use `extract` once to bootstrap the source folder from an existing mission:
+Commitez le contenu de `src/` dans Git — pas le `.miz` construit. Utilisez `extract` une fois pour initialiser le dossier source depuis une mission existante :
 
 ```powershell
-veaf-tools.exe extract my-mission.miz
+veaf-tools.exe extract ma-mission.miz
 ```
 
 ---
 
-## Build Profiles
+## Profils de build
 
-Build profiles let you switch between different named configurations without editing `mission.yaml`. Define a `profiles:` section once, then select a profile at build time:
+Les profils de build permettent de basculer entre différentes configurations nommées sans modifier `mission.yaml`. Définissez une section `profiles:` une seule fois, puis sélectionnez un profil au moment du build :
 
 ```yaml
 # mission.yaml
@@ -326,7 +325,7 @@ profiles:
     security:
       disabled: true
     pipeline:
-      weather: false   # skip weather variants during test builds
+      weather: false   # pas de variantes météo pendant les builds de test
   SERVER:
     global_log_level: info
     pipeline:
@@ -334,41 +333,41 @@ profiles:
 ```
 
 ```powershell
-# Build for testing (no weather, security disabled, verbose logging)
+# Build pour les tests (pas de météo, sécurité désactivée, journalisation détaillée)
 veaf-tools.exe build --profile TEST
 
-# Build for server deployment
+# Build pour le déploiement serveur
 veaf-tools.exe build --profile SERVER
 
-# Build with no profile (base config)
+# Build sans profil (config de base)
 veaf-tools.exe build
 ```
 
-Profile keys **deep-merge** onto the base config: only the keys you specify are overridden, everything else stays as defined at the top of `mission.yaml`. Passing an unknown profile name emits a warning and falls back to the base config.
+Les clés du profil **fusionnent en profondeur** sur la config de base : seules les clés que vous spécifiez sont surchargées, tout le reste reste tel que défini en haut de `mission.yaml`. Passer un nom de profil inconnu émet un avertissement et revient à la config de base.
 
-See [`profiles:` in the YAML Reference](../MISSION_YAML_REFERENCE.md#profiles) for the full field description.
+Voir [`profiles:` dans la référence YAML](../MISSION_YAML_REFERENCE.fr.md#profiles) pour la description complète.
 
 ---
 
-## Scripts Reference
+## Référence des scripts
 
-All VEAF Lua modules are available once `veaf-scripts.lua` is loaded. See [scripts/README.md](scripts/README.md) for the complete list with configuration guides.
+Tous les modules Lua VEAF sont disponibles une fois `veaf-scripts.lua` chargé. Voir [scripts/README.md](scripts/README.md) pour la liste complète avec les guides de configuration.
 
-**Quick navigation by category:**
+**Navigation rapide par catégorie :**
 
-| Category | Modules |
-|----------|---------|
-| Core | [veafSpawn](scripts/veafSpawn.md), [veafMove](scripts/veafMove.md), [veafSecurity](scripts/veafSecurity.md), [veafNamedPoints](scripts/veafNamedPoints.md) |
-| Mission types | [veafCasMission](scripts/veafCasMission.md), [veafCombatZone](scripts/veafCombatZone.md), [veafTransportMission](scripts/veafTransportMission.md), [veafQraManager](scripts/veafQraManager.md), [veafAirWaves](scripts/veafAirWaves.md) |
-| Assets | [veafAssets](scripts/veafAssets.md), [veafCarrierOperations](scripts/veafCarrierOperations.md), [veafGrass](scripts/veafGrass.md), [veafWeather](scripts/veafWeather.md) |
+| Catégorie | Modules |
+|-----------|---------|
+| Cœur | [veafSpawn](scripts/veafSpawn.md), [veafMove](scripts/veafMove.md), [veafSecurity](scripts/veafSecurity.md), [veafNamedPoints](scripts/veafNamedPoints.md) |
+| Types de missions | [veafCasMission](scripts/veafCasMission.md), [veafCombatZone](scripts/veafCombatZone.md), [veafTransportMission](scripts/veafTransportMission.md), [veafQraManager](scripts/veafQraManager.md), [veafAirWaves](scripts/veafAirWaves.md) |
+| Actifs | [veafAssets](scripts/veafAssets.md), [veafCarrierOperations](scripts/veafCarrierOperations.md), [veafGrass](scripts/veafGrass.md), [veafWeather](scripts/veafWeather.md) |
 | Protection | [veafSanctuary](scripts/veafSanctuary.md), [veafMissileGuardian](scripts/veafMissileGuardian.md) |
-| Integrations | [veafSkynetIadsHelper](scripts/veafSkynetIadsHelper.md) |
+| Intégrations | [veafSkynetIadsHelper](scripts/veafSkynetIadsHelper.md) |
 
 ---
 
-## Configuration Examples
+## Exemples de configuration
 
-### QRA Zone
+### Zone QRA
 
 ```lua
 local northQra = VeafQRA:new()
@@ -380,26 +379,26 @@ local northQra = VeafQRA:new()
   :initialize()
 ```
 
-### Combat Zone
+### Zone de combat
 
 ```lua
 local strikeZone = VeafCombatZone:new()
   :setName("Strike Alpha")
   :setZoneName("ZONE-STRIKE-ALPHA")
-  :setDescription("Armoured column advancing on Senaki")
+  :setDescription("Colonne blindée avançant sur Senaki")
   :addElement(VeafCombatZoneElement:new():setGroupName("STRIKE-ALPHA-ARMOR"))
   :addElement(VeafCombatZoneElement:new():setGroupName("STRIKE-ALPHA-AAA"))
-  :setBriefing("Destroy all armoured vehicles. Expect AAA.")
+  :setBriefing("Détruisez tous les véhicules blindés. Attendez-vous à de la DCA.")
   :initialize()
 ```
 
-### Air Waves Zone
+### Zone Air Waves
 
 ```lua
 local defenseZone = AirWaveZone:new()
   :setName("AW-Defense")
   :setZoneName("ZONE-DEFENSE")
-  :setDescription("Intercept zone")
+  :setDescription("Zone d'interception")
   :addWave({ "MiG-23 Wave 1", "MiG-23 Wave 1b" })
   :addWave({ "MiG-29 Wave 2" })
   :setMinimumPlayersForWave(1)
@@ -408,13 +407,13 @@ local defenseZone = AirWaveZone:new()
 
 ---
 
-## CTLD and CSAR Integration
+## Intégration CTLD et CSAR
 
-[CTLD](https://github.com/ciribob/DCS-CTLD) (Combat Troop Loading and Deployment) and [CSAR](https://github.com/ciribob/DCS-CSAR) (Combat Search and Rescue) are third-party scripts that VEAF supports natively. VEAF monkey-patches their `initialize()` functions at startup, so you do not need to load or initialise them separately — just configure them via `mission.yaml` using the YAML-first approach below.
+[CTLD](https://github.com/ciribob/DCS-CTLD) (Combat Troop Loading and Deployment) et [CSAR](https://github.com/ciribob/DCS-CSAR) (Combat Search and Rescue) sont des scripts tiers que VEAF supporte nativement. VEAF monkey-patche leurs fonctions `initialize()` au démarrage, donc vous n'avez pas besoin de les charger ou de les initialiser séparément — configurez-les directement dans `mission.yaml` avec l'approche YAML-first ci-dessous.
 
-### Configuring CTLD via mission.yaml (YAML-first)
+### Configurer CTLD via mission.yaml (YAML-first)
 
-You can enable CTLD and set its properties directly in `mission.yaml`, without any Lua:
+Vous pouvez activer CTLD et définir ses propriétés directement dans `mission.yaml`, sans Lua :
 
 ```yaml
 external_modules:
@@ -424,11 +423,11 @@ external_modules:
     slingLoad: true
 ```
 
-VEAF generates the corresponding Lua configuration in `veaf-config.lua` at build time, including the `ctld.initialize()` call. Use `mission-script.lua` only for settings not yet supported by the YAML schema (e.g. `aircraftType` tables).
+VEAF génère la configuration Lua correspondante dans `veaf-config.lua` au moment du build, y compris l'appel `ctld.initialize()`. Utilisez `mission-script.lua` uniquement pour les paramètres pas encore supportés par le schéma YAML (ex. tables `aircraftType`).
 
-### Configuring CSAR via mission.yaml (YAML-first)
+### Configurer CSAR via mission.yaml (YAML-first)
 
-CSAR can be configured the same way:
+CSAR se configure de la même façon :
 
 ```yaml
 external_modules:
@@ -439,25 +438,25 @@ external_modules:
     csarPrefix: "MEDEVAC"
 ```
 
-VEAF generates the `csar.xxx = value` assignments and the `csar.initialize()` call in `veaf-config.lua`. For complex settings such as `aircraftType` (a per-aircraft table), continue using the Lua callback pattern in `mission-script.lua`.
+VEAF génère les assignations `csar.xxx = value` et l'appel `csar.initialize()` dans `veaf-config.lua`. Pour les paramètres complexes comme `aircraftType` (une table par appareil), continuez à utiliser le pattern callback Lua dans `mission-script.lua`.
 
-### Loading order in the DCS trigger chain
+### Ordre de chargement dans la chaîne de triggers DCS
 
-CTLD/CSAR scripts must be loaded before the VEAF scripts:
+Les scripts CTLD/CSAR doivent être chargés avant les scripts VEAF :
 
 ```
-DO SCRIPT FILE → ctld.lua          (third-party)
-DO SCRIPT FILE → csar.lua          (third-party)
-DO SCRIPT FILE → veaf-scripts.lua  (VEAF modules)
-DO SCRIPT FILE → veaf-config.lua   (generated from mission.yaml)
-DO SCRIPT FILE → mission-script.lua (your custom code)
+DO SCRIPT FILE → ctld.lua           (tiers)
+DO SCRIPT FILE → csar.lua           (tiers)
+DO SCRIPT FILE → veaf-scripts.lua   (modules VEAF)
+DO SCRIPT FILE → veaf-config.lua    (généré depuis mission.yaml)
+DO SCRIPT FILE → mission-script.lua (votre code personnalisé)
 ```
 
-When `veaf-scripts.lua` loads, it detects the presence of `ctld` and `csar` global tables and wraps their `initialize()` functions, applying VEAF defaults before calling the real initialiser.
+Quand `veaf-scripts.lua` se charge, il détecte la présence des tables globales `ctld` et `csar` et enveloppe leurs fonctions `initialize()`, appliquant les valeurs par défaut VEAF avant d'appeler le vrai initialiseur.
 
-### Lua fallback — CTLD in mission-script.lua
+### Fallback Lua — CTLD dans mission-script.lua
 
-For settings not covered by `mission.yaml`, use the Lua callback pattern:
+Pour les paramètres non couverts par `mission.yaml`, utilisez le pattern callback Lua :
 
 ```lua
 if ctld then
@@ -465,24 +464,24 @@ if ctld then
     if initializeCTLD then
         veaf.loggers.get(veaf.Id):info("initialize CTLD")
         local function configurationCallback()
-            -- Configure CTLD settings before it initialises
+            -- Configurer les paramètres CTLD avant son initialisation
             -- ctld.hoverPickup = false
             -- ctld.slingLoad   = true
         end
-        -- Calls the VEAF-wrapped version of ctld.initialize
+        -- Appelle la version enveloppée par VEAF de ctld.initialize
         ctld.initialize(configurationCallback)
     else
-        -- Prevent the auto-scheduled ctld.initialize from running
+        -- Empêcher l'auto-scheduled ctld.initialize de tourner
         ctld.alreadyInitialized = true
     end
 end
 ```
 
-The `configurationCallback` is called immediately before the real `ctld.initialize()` — set CTLD properties there, not before.
+Le `configurationCallback` est appelé immédiatement avant le vrai `ctld.initialize()` — définissez les propriétés CTLD là, pas avant.
 
-### Lua fallback — CSAR in mission-script.lua
+### Fallback Lua — CSAR dans mission-script.lua
 
-For per-aircraft type overrides or other complex settings not supported by YAML:
+Pour les surcharges par type d'appareil ou d'autres paramètres complexes non supportés par YAML :
 
 ```lua
 if csar then
@@ -490,7 +489,7 @@ if csar then
     if initializeCSAR then
         veaf.loggers.get(veaf.Id):info("initialize CSAR")
         local function configurationCallback()
-            -- Configure CSAR settings before it initialises
+            -- Configurer les paramètres CSAR avant son initialisation
             csar.enableAllslots = true
             csar.aircraftType["UH-1H"]  = 8
             csar.aircraftType["Mi-8MT"] = 16
@@ -504,25 +503,25 @@ if csar then
 end
 ```
 
-### VEAF automatic defaults
+### Valeurs par défaut automatiques VEAF
 
-When VEAF wraps the initialisers it applies its own defaults: logging and a standard radio menu entry. You do not need to configure any of this manually.
+Quand VEAF enveloppe les initialiseurs, il applique ses propres valeurs par défaut : journalisation et une entrée de menu radio standard. Vous n'avez pas besoin de configurer cela manuellement.
 
 ---
 
-## Debug Logging
+## Journalisation de débogage
 
-All VEAF scripts write to the DCS log file (`Saved Games\DCS\Logs\dcs.log`). Three log levels are available, each with its own loader script:
+Tous les scripts VEAF écrivent dans le journal DCS (`Saved Games\DCS\Logs\dcs.log`). Trois niveaux de journalisation sont disponibles, chacun avec son propre script de chargement :
 
-| Script | Level | Use |
-|--------|-------|-----|
-| `veaf-scripts.lua` | Normal (info + warnings) | Production missions |
-| `veaf-scripts-trace.lua` | Trace (all messages) | Deep debugging |
-| `veaf-scripts-trace-with-events.lua` | Trace + DCS events | Event handler debugging |
+| Script | Niveau | Usage |
+|--------|--------|-------|
+| `veaf-scripts.lua` | Normal (info + avertissements) | Missions en production |
+| `veaf-scripts-trace.lua` | Trace (tous les messages) | Débogage approfondi |
+| `veaf-scripts-trace-with-events.lua` | Trace + événements DCS | Débogage des handlers d'événements |
 
-### Switching log levels
+### Changer le niveau de log
 
-Set `logLevel` per module in `mission.yaml`, then rebuild:
+Définissez `logLevel` par module dans `mission.yaml`, puis reconstruisez :
 
 ```yaml
 lua_modules:
@@ -530,19 +529,18 @@ lua_modules:
     logLevel: debug   # trace | debug | info | warning | error
 ```
 
-`veaf-tools.exe build` regenerates `veaf-config.lua` from `mission.yaml`. For a quick change without rebuilding, edit `veaf-config.lua` directly — it is a generated file so your changes will be overwritten on the next build.
+`veaf-tools.exe build` régénère `veaf-config.lua` depuis `mission.yaml`. Pour un changement rapide sans reconstruire, éditez directement `veaf-config.lua` — c'est un fichier généré, donc vos modifications seront écrasées au prochain build.
 
-### Reading the log
+### Lire le journal
 
-We recommend [Klogg](https://klogg.filimonov.dev/) — a fast log viewer with regex highlighting. Load `dcs.log` and filter on `VEAF` to see only VEAF messages. The VEAF Discord shares a Klogg highlight profile that colour-codes log levels.
+Nous recommandons [Klogg](https://klogg.filimonov.dev/) — un visualiseur de logs rapide avec surligneur regex. Chargez `dcs.log` et filtrez sur `VEAF` pour ne voir que les messages VEAF. Le Discord VEAF partage un profil de surligneur Klogg qui code les niveaux de log par couleur.
 
 ---
 
-## Resources
+## Ressources
 
-- [Scripts Reference](scripts/README.md) — all scripts with configuration details
-- [Tools Reference](../TOOLS_REFERENCE.md) — `veaf-tools.exe` CLI full reference
-- [Lua API Reference](../LUA_API_REFERENCE.md) — complete Lua API documentation
-- [VEAF Demo Mission](https://github.com/VEAF/VEAF-Demo-Mission) — working example mission
-- [VEAF Discord](https://www.veaf.org/discord) — community help
-
+- [Référence des scripts](scripts/README.md) — tous les scripts avec les détails de configuration
+- [Référence des outils](../TOOLS_REFERENCE.md) — référence CLI complète de `veaf-tools.exe`
+- [Référence API Lua](../LUA_API_REFERENCE.md) — documentation complète de l'API Lua
+- [VEAF Demo Mission](https://github.com/VEAF/VEAF-Demo-Mission) — mission d'exemple fonctionnelle
+- [Discord VEAF](https://www.veaf.org/discord) — aide communautaire

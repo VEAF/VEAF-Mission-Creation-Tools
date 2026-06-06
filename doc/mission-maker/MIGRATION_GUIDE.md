@@ -1,267 +1,266 @@
-# Migrating a Mission to VEAF MCT v6
+# Migration d'une mission vers VEAF MCT v6
 
+Ce guide couvre deux scénarios :
 
-This guide covers two scenarios:
+1. **[Depuis VEAF MCT v5.xx](#migration-depuis-veaf-mct-v5xx)** — votre mission utilise déjà les scripts VEAF MCT mais est antérieure à la chaîne d'outils v6
+2. **[Depuis une mission DCS vanilla](#intégration-de-veaf-mct-dans-une-mission-dcs-vanilla)** — votre mission n'a aucun script VEAF MCT
 
-1. **[From VEAF MCT v5.xx](#migrating-from-veaf-mct-v5xx)** — your mission already uses VEAF MCT scripts but predates the v6 toolchain
-2. **[From a vanilla DCS mission](#integrating-veaf-mct-into-a-vanilla-dcs-mission)** — your mission has no VEAF MCT scripts at all
-
-In both cases the end result is a **VEAF MCT v6 mission folder** that you manage with `veaf-tools.exe`.
+Dans les deux cas, le résultat final est un **dossier de mission VEAF MCT v6** que vous gérez avec `veaf-tools.exe`.
 
 ---
 
-## Before You Start
+## Avant de commencer
 
-### Terminology
+### Terminologie
 
-| Term | Meaning |
-|------|---------|
-| **Mission folder** | The directory managed by `veaf-tools` — contains source files, config, and the `.miz` |
-| **`.miz` file** | The DCS mission file (a ZIP archive); the output of the build step |
-| **`published/`** | Where `veaf-tools-updater.exe` installs the VEAF scripts |
-| **`src/`** | Your mission-specific source files (scripts, data) |
+| Terme | Signification |
+|-------|--------------|
+| **Dossier de mission** | Le répertoire géré par `veaf-tools` — contient les fichiers source, la config et le `.miz` |
+| **Fichier `.miz`** | Le fichier de mission DCS (une archive ZIP) ; le résultat du build |
+| **`published/`** | Dossier où `veaf-tools-updater.exe` installe les scripts VEAF |
+| **`src/`** | Vos fichiers source spécifiques à la mission (scripts, données) |
 
-### Prerequisites
+### Prérequis
 
-1. Install `veaf-tools-updater.exe` — download from the [latest GitHub release](https://github.com/VEAF/VEAF-Mission-Creation-Tools/releases/tag/published-latest)
+1. Installez `veaf-tools-updater.exe` — téléchargez depuis la [dernière release GitHub](https://github.com/VEAF/VEAF-Mission-Creation-Tools/releases/tag/published-latest)
 
-   > **Windows security:** Windows may block `.exe` files downloaded from the internet. If the file doesn't run, right-click it → **Properties** → **General** tab → check **Unblock** at the bottom → **OK**.
+   > **Sécurité Windows :** Windows peut bloquer les fichiers `.exe` téléchargés depuis Internet. Si le fichier ne s'exécute pas, cliquez droit dessus → **Propriétés** → onglet **Général** → cochez **Débloquer** en bas de la fenêtre → **OK**.
 
-2. Run the updater once to install `veaf-tools.exe` and all VEAF scripts:
+2. Exécutez l'updater une fois pour installer `veaf-tools.exe` et tous les scripts VEAF :
 
 ```powershell
 .\veaf-tools-updater.exe
 ```
 
-3. Have your v5 mission folder on hand
+3. Ayez votre dossier de mission v5 sous la main
 
-> **Tip — Global User Configuration:** Before starting, create `~/veafmct.yaml` (i.e. `C:\Users\YourName\veafmct.yaml` on Windows) to set persistent defaults for all your VEAF projects on this machine — for example your language preference (`lang: fr`). See [Global User Configuration](GUIDE.md#global-user-configuration) for the full reference and CLI commands.
+> **Conseil — configuration globale utilisateur :** Avant de commencer, créez `~/veafmct.yaml` (soit `C:\Users\VotreNom\veafmct.yaml` sous Windows) pour définir des préférences persistantes sur cette machine — notamment la langue (`lang: fr`) afin que tous les outils s'affichent en français. Voir [Configuration globale utilisateur](GUIDE.md#configuration-globale-utilisateur) pour le détail et les commandes disponibles.
 
 ---
 
-## Migrating from VEAF MCT v5.xx
+## Migration depuis VEAF MCT v5.xx
 
-### What Changed in v6
+### Ce qui a changé en v6
 
-| Area | v5 | v6 |
-|------|----|----|
-| **DCS trigger** | Manual `DO SCRIPT FILE` triggers pointing at each `.lua` file | Single trigger injected automatically by `veaf-tools build`; no manual trigger work |
-| **Build toolchain** | No build step — scripts loaded directly from disk at mission start | `veaf-tools.exe build` assembles the `.miz` from `src/mission/` + `src/scripts/` |
-| **Build script** | Complex `build.cmd` with one line per inject command | No `build.cmd` — just run `veaf-tools-updater.exe` then `veaf-tools.exe build` |
-| **Auto-inject pipeline** | Each inject command (`inject-presets`, `inject-waypoints`, etc.) had to be added manually to `build.cmd` | `veaf-tools build` auto-detects and runs each step when the matching file is present in `src/` |
-| **Tool updates** | NPM (`npm install`) — scripts distributed as a versioned package | `veaf-tools-updater.exe` — downloads and verifies the latest release in one command |
-| **Build-time config** | No build-time config file | `mission.yaml` — controls log levels, module enable/disable, pipeline step overrides |
-| **Module enable/disable** | Edit `missionConfig.lua` (or simply omit the `initialize()` call) | `mission.yaml` → `lua_modules:` section; generates `veaf-config.lua` automatically |
-| **Module configuration** | Direct assignment: `veafSpawn.SpawnKeyphrase = "_spawn"` in `missionConfig.lua` | Same direct assignment still works in `mission-script.lua`; or `veaf.setConfig("MODULE_ID", "key", value)` for config-driven overrides |
-| **Module init pattern** | Bare `veafXxx.initialize()` calls | Auto-generated into `veaf-config.lua` by `veaf-tools build`; no manual `initialize()` calls needed |
-| **Config location** | Initialization scattered in DCS trigger scripts or a separate Lua file | `mission.yaml` generates `veaf-config.lua` at build time; optional custom Lua in `mission-script.lua` |
-| **Config migration** | Manual rewrite | `veaf-tools.exe convert-v5` — one command converts `missionConfig.lua`, pipeline files (presets, waypoints, weather, aircraft groups), and generates `mission.yaml` + `mission-script.lua`. Use `migrate-config` only to migrate `missionConfig.lua` alone. |
-| **Module log levels** | Set per-module by assigning `veafXxx.LogLevel` before init | `mission.yaml` → `lua_modules: → MODULE_ID: logLevel:` or `--log-modules` CLI flag |
+| Domaine | v5 | v6 |
+|---------|----|----|
+| **Trigger DCS** | Triggers `DO SCRIPT FILE` manuels pointant vers chaque fichier `.lua` | Trigger unique injecté automatiquement par `veaf-tools build` ; aucun travail de trigger manuel |
+| **Chaîne de build** | Pas d'étape de build — scripts chargés directement depuis le disque au démarrage de la mission | `veaf-tools.exe build` assemble le `.miz` depuis `src/mission/` + `src/scripts/` |
+| **Script de build** | `build.cmd` complexe avec une ligne par commande d'injection | Pas de `build.cmd` — lancez simplement `veaf-tools-updater.exe` puis `veaf-tools.exe build` |
+| **Pipeline d'auto-injection** | Chaque commande d'injection devait être ajoutée manuellement à `build.cmd` | `veaf-tools build` auto-détecte et exécute chaque étape quand le fichier correspondant est présent dans `src/` |
+| **Mises à jour des outils** | NPM (`npm install`) — scripts distribués sous forme de package versionné | `veaf-tools-updater.exe` — télécharge et vérifie la dernière release en une commande |
+| **Config au moment du build** | Pas de fichier de config au moment du build | `mission.yaml` — contrôle les niveaux de log, l'activation/désactivation des modules, les surcharges d'étapes du pipeline |
+| **Activation/désactivation de modules** | Éditer `missionConfig.lua` (ou simplement omettre l'appel à `initialize()`) | Section `lua_modules:` dans `mission.yaml` ; génère `veaf-config.lua` automatiquement |
+| **Configuration de modules** | Affectation directe : `veafSpawn.SpawnKeyphrase = "_spawn"` dans `missionConfig.lua` | La même affectation directe fonctionne toujours dans `mission-script.lua` ; ou `veaf.setConfig("MODULE_ID", "key", value)` pour les surcharges pilotées par config |
+| **Pattern d'init des modules** | Appels nus `veafXxx.initialize()` | Auto-généré dans `veaf-config.lua` par `veaf-tools build` ; aucun appel `initialize()` manuel nécessaire |
+| **Emplacement de la config** | Initialisation dispersée dans des scripts de trigger DCS ou un fichier Lua séparé | `mission.yaml` génère `veaf-config.lua` au moment du build ; code Lua personnalisé optionnel dans `mission-script.lua` |
+| **Migration de la config** | Réécriture manuelle | `veaf-tools.exe convert-v5` — une seule commande migre `missionConfig.lua`, convertit les fichiers pipeline (préréglages, waypoints, météo, groupes d'aéronefs) et génère `mission.yaml` + `mission-script.lua`. Utilisez `migrate-config` uniquement pour migrer `missionConfig.lua` seul. |
+| **Niveaux de log des modules** | Définis par module en assignant `veafXxx.LogLevel` avant l'init | Section `lua_modules: → MODULE_ID: logLevel:` dans `mission.yaml` ou option CLI `--log-modules` |
 
-### Step-by-step Migration
+### Migration étape par étape
 
-#### 1. Create a new mission folder and copy your v5 source files
+#### 1. Créer un nouveau dossier de mission et copier les fichiers source v5
 
-Create a new empty folder for your v6 mission project, then copy the `src/` folder from your v5 mission into it. Starting fresh prevents old v5 artefacts from interfering and gives you a single clean copy of your source files:
+Créez un nouveau dossier vide pour votre projet de mission v6, puis copiez le dossier `src/` de votre mission v5 dedans. Partir d'un dossier neuf évite les interférences avec les anciens fichiers v5 et conserve une seule copie propre de vos sources :
 
 ```powershell
-# Adapt these paths to your setup
-New-Item -ItemType Directory "C:\path\to\my-new-v6-mission"
-Copy-Item -Recurse "C:\path\to\your-v5-mission\src" "C:\path\to\my-new-v6-mission\"
-Set-Location "C:\path\to\my-new-v6-mission"
+# Adaptez ces chemins à votre configuration
+New-Item -ItemType Directory "C:\chemin\vers\ma-nouvelle-mission-v6"
+Copy-Item -Recurse "C:\chemin\vers\mission-v5\src" "C:\chemin\vers\ma-nouvelle-mission-v6\\"
+Set-Location "C:\chemin\vers\ma-nouvelle-mission-v6"
 ```
 
-> **Tip:** You can also do this in Windows Explorer — create a new folder, copy the `src/` folder from your v5 mission into it, then open a terminal there.
+> **Conseil :** Vous pouvez aussi le faire dans l'Explorateur Windows — créez un nouveau dossier, copiez-y le dossier `src/` de votre mission v5, puis ouvrez un terminal dans ce nouveau dossier.
 
-#### 2. Install VEAF MCT v6
+#### 2. Installer VEAF MCT v6
 
-Copy `veaf-tools-updater.exe` into the folder and run:
+Copiez `veaf-tools-updater.exe` dans le dossier et exécutez :
 
 ```powershell
 .\veaf-tools-updater.exe
 ```
 
-This creates the `published/` directory with all scripts and tools. Your existing `src/` files are not touched.
+Cela crée le répertoire `published/` avec tous les scripts et outils. Vos fichiers `src/` existants ne sont pas touchés.
 
-#### 3. Convert the mission folder to v6
+#### 3. Convertir le dossier de mission en v6
 
-Run the all-in-one converter:
+Exécutez le convertisseur tout-en-un :
 
 ```powershell
 .\veaf-tools.exe convert-v5 .
 ```
 
-This single command handles everything in one pass:
+Cette commande unique gère tout en une seule passe :
 
-- **`missionConfig.lua` migration** — comments out `doFile()` calls that load VEAF scripts (the builder injects them automatically), wraps bare `veafXxx.initialize()` calls in `if veafXxx then … end` guards.
-- **Pipeline config conversion** — converts v5 config files (radio presets, waypoints, weather, aircraft groups) from Lua to v6 YAML format.
-- **`mission.yaml` generation** — creates `mission.yaml` with the correct `lua_modules:` and `pipeline:` sections.
-- **Conversion report** — saves `convert-v5-report.md` with all actions taken and any items requiring manual review.
+- **Migration de `missionConfig.lua`** — commente les appels `doFile()` qui chargent les scripts VEAF (le builder les injecte automatiquement), enveloppe les appels nus `veafXxx.initialize()` dans des gardes `if veafXxx then … end`.
+- **Conversion des configs pipeline** — convertit les fichiers de config v5 (préréglages radio, waypoints, météo, groupes d'aéronefs) du format Lua vers le YAML v6.
+- **Génération de `mission.yaml`** — crée `mission.yaml` avec les sections `lua_modules:` et `pipeline:` correctes.
+- **Rapport de conversion** — sauvegarde `convert-v5-report.md` avec toutes les actions effectuées et les éléments nécessitant une révision manuelle.
 
-If your pipeline contains `realweather` weather versions, the tool will ask for the ICAO airport code to embed in the generated config. You can supply it upfront to avoid the interactive prompt:
+Si votre pipeline contient des versions météo `realweather`, l'outil demandera le code ICAO de l'aéroport à intégrer dans la config générée. Vous pouvez le fournir directement pour éviter le prompt interactif :
 
 ```powershell
 .\veaf-tools.exe convert-v5 . --icao UGGG
 ```
 
-Old DCS `DO SCRIPT FILE` triggers are removed automatically by `veaf-tools build` in the next step — no manual action needed.
+Les anciens triggers DCS `DO SCRIPT FILE` sont supprimés automatiquement par `veaf-tools build` à l'étape suivante — aucune action manuelle requise.
 
-> **If you only need to migrate `missionConfig.lua`** without converting pipeline files, use `veaf-tools.exe migrate-config src\scripts\missionConfig.lua` directly.
+> **Si vous n'avez besoin de migrer que `missionConfig.lua`** sans convertir les fichiers pipeline, utilisez `veaf-tools.exe migrate-config src\scripts\missionConfig.lua` directement.
 
-#### 4. Check removed v5 patterns
+#### 4. Vérifier les patterns v5 supprimés
 
-Some v5 constructs no longer exist or have been renamed:
+Certaines constructions v5 n'existent plus ou ont été renommées :
 
 | v5 | v6 |
 |----|-----|
 | `veaf.SecurityDisabled = true` | `veafSecurity.SecurityDisabled = true` |
-| `veafSpawn.Keyphrase` set at top-level | Still `veafSpawn.Keyphrase` — unchanged |
-| `veafAssets.Assets` inline table | Same table format — unchanged |
-| Loading individual `.lua` files via `DO SCRIPT FILE` | Automatic — do not add these triggers manually |
-| `IADS` scripts loaded manually | Load them via `src/scripts/` — they are picked up automatically |
+| `veafSpawn.Keyphrase` défini au niveau global | Toujours `veafSpawn.Keyphrase` — inchangé |
+| Table `veafAssets.Assets` inline | Même format de table — inchangé |
+| Chargement de fichiers `.lua` individuels via `DO SCRIPT FILE` | Automatique — ne pas ajouter ces triggers manuellement |
+| Scripts `IADS` chargés manuellement | Chargez-les via `src/scripts/` — ils sont pris en charge automatiquement |
 
-#### 5. Verify with a test build
+#### 5. Vérifier avec un build de test
 
 ```powershell
 .\veaf-tools.exe build
 ```
 
-Open the resulting `.miz` in DCS, load the mission, and confirm:
-- No duplicate `DO SCRIPT FILE` triggers in the trigger editor
-- The v6 VEAF MCT loader trigger is present (named something like `VEAF scripts loader`)
-- Radio menus and marker commands work as expected
+Ouvrez le `.miz` résultant dans DCS, chargez la mission et confirmez :
+- Pas de triggers `DO SCRIPT FILE` en double dans l'éditeur de triggers
+- Le trigger chargeur VEAF MCT v6 est présent (nommé quelque chose comme `VEAF scripts loader`)
+- Les menus radio et les commandes de marqueurs fonctionnent comme prévu
 
-#### 6. Set up version control
+#### 6. Configurer le contrôle de version
 
 ```powershell
 git init
 git add src/ .gitignore
-git commit -m "feat: migrate my-mission to VEAF MCT v6"
+git commit -m "feat: migration de ma-mission vers VEAF MCT v6"
 ```
 
-Add `published/` and `*.miz` to `.gitignore` — they are build artifacts.
+Ajoutez `published/` et `*.miz` à `.gitignore` — ce sont des artefacts de build.
 
 ---
 
-## Integrating VEAF MCT into a Vanilla DCS Mission
+## Intégration de VEAF MCT dans une mission DCS vanilla
 
-A **vanilla** mission has no VEAF MCT scripts, no special triggers, and was built entirely with the DCS Mission Editor.
+Une mission **vanilla** n'a pas de scripts VEAF MCT, pas de triggers spéciaux, et a été construite entièrement avec l'éditeur de missions DCS.
 
-### Step-by-step Integration
+### Intégration étape par étape
 
-#### 1. Create the mission folder
+#### 1. Créer le dossier de mission
 
 ```powershell
-mkdir my-mission
-cd my-mission
+mkdir ma-mission
+cd ma-mission
 ```
 
-#### 2. Install VEAF MCT v6
+#### 2. Installer VEAF MCT v6
 
 ```powershell
 .\veaf-tools-updater.exe
 ```
 
-#### 3. Convert the vanilla .miz
+#### 3. Convertir le .miz vanilla
 
-The `convert-mission` command does everything in one step: extract, inject VEAF scripts, rebuild.
+La commande `convert-mission` fait tout en une étape : extraction, injection des scripts VEAF MCT, rebuild.
 
 ```powershell
-.\veaf-tools.exe convert-mission "C:\path\to\vanilla.miz" .
+.\veaf-tools.exe convert-mission "C:\chemin\vers\vanilla.miz" .
 ```
 
-This:
-1. Extracts `vanilla.miz` into `src/mission/`
-2. Creates default `mission.yaml` and `src/scripts/mission-script.lua`
-3. Injects the v6 VEAF loader trigger
-4. Rebuilds a new `.miz` next to the folder
+Cela :
+1. Extrait `vanilla.miz` dans `src/mission/`
+2. Crée `mission.yaml` et `src/scripts/mission-script.lua` par défaut
+3. Injecte le trigger chargeur VEAF MCT v6
+4. Reconstruit un nouveau `.miz` à côté du dossier
 
-#### 4. Optionally: prepare the folder with defaults only
+#### 4. Optionnel : préparer le dossier avec les défauts seulement
 
-If you want to set up the folder structure without converting a mission yet, use `prepare`:
+Si vous souhaitez configurer la structure du dossier sans convertir de mission immédiatement, utilisez `prepare` :
 
 ```powershell
 .\veaf-tools.exe prepare .
 ```
 
-Then copy your `.miz` as `mission.miz` and run:
+Puis copiez votre `.miz` sous `mission.miz` et exécutez :
 
 ```powershell
 .\veaf-tools.exe extract mission.miz .
 .\veaf-tools.exe build mission .
 ```
 
-#### 5. Configure which modules to enable
+#### 5. Configurer les modules à activer
 
-Edit `mission.yaml` to enable the modules you want. By default, only the essential modules (markers, spawn, radio) are active:
+Éditez `mission.yaml` pour activer les modules souhaités. Par défaut, seuls les modules essentiels (marqueurs, spawn, radio) sont actifs :
 
 ```yaml
-name: My Vanilla Mission
+name: Ma Mission Vanilla
 
 lua_modules:
   RADIO:
     enable: true
   SPAWN:
     enable: true
-  # Uncomment to enable CAS missions:
+  # Décommenter pour activer les missions CAS :
   # CASMISSION:
   #   enable: true
-  # Uncomment to enable carrier ops:
+  # Décommenter pour activer les opérations carrier :
   # CARRIER:
   #   enable: true
 ```
 
-For custom Lua (advanced module calls, custom aliases, etc.), edit `src/scripts/mission-script.lua`.
+Pour du Lua personnalisé (appels de modules avancés, aliases, etc.), éditez `src/scripts/mission-script.lua`.
 
-See the [YAML reference](../../MISSION_YAML_REFERENCE.md) and the individual script guides in [scripts/](scripts/README.md) for all options.
+Consultez la [référence YAML](../../MISSION_YAML_REFERENCE.md) et les guides de scripts individuels dans [scripts/](scripts/README.md) pour toutes les options.
 
-#### 6. Keep your existing mission content
+#### 6. Conserver votre contenu de mission existant
 
-Everything you built in the DCS Mission Editor (units, triggers, waypoints, zones) is preserved. VEAF does not remove or overwrite mission content — it only:
-- Adds a single loader trigger at mission start
-- Adds F10 radio menu entries at runtime
-- Responds to F10 map marker commands
+Tout ce que vous avez construit dans l'éditeur de missions DCS (unités, triggers, waypoints, zones) est préservé. VEAF ne supprime ni n'écrase le contenu de la mission — il se contente de :
+- Ajouter un seul trigger de chargeur au démarrage de la mission
+- Ajouter des entrées de menu radio F10 au moment de l'exécution
+- Répondre aux commandes de marqueurs sur la carte F10
 
-Your custom triggers, statics, and groups are untouched.
+Vos triggers personnalisés, statiques et groupes sont intacts.
 
-#### 7. Test and iterate
+#### 7. Tester et itérer
 
 ```powershell
-# Rebuild after every config change
+# Rebuilder après chaque changement de config
 .\veaf-tools.exe build mission .
 ```
 
-Each build produces a dated `.miz` file (e.g. `mission_20260516.miz`). Open it in DCS and test.
+Chaque build produit un fichier `.miz` daté (ex. `mission_20260516.miz`). Ouvrez-le dans DCS et testez.
 
 ---
 
-## Mission Folder Reference
+## Référence du dossier de mission
 
-After migration, your folder should look like this:
+Après la migration, votre dossier devrait ressembler à ceci :
 
 ```
-my-mission/
+ma-mission/
 ├── src/
-│   ├── mission/                ← extracted DCS mission data (commit this)
-│   │   ├── mission             ← main mission Lua dictionary
+│   ├── mission/                ← données de mission DCS extraites (à commiter)
+│   │   ├── mission             ← dictionnaire Lua principal de la mission
 │   │   ├── options
 │   │   └── warehouses
 │   ├── scripts/
-│   │   ├── mission-script.lua  ← custom Lua code (commit this)
-│   │   └── veafDynamicConfig.lua   ← optional dynamic slots config
-│   ├── presets.yaml            ← radio presets config (optional)
-│   ├── spawnables.yaml         ← custom spawnable groups (optional)
-│   └── waypoints.yaml          ← custom waypoints (optional)
-├── mission.yaml                ← module config and pipeline settings (commit this)
-├── published/                  ← installed by veaf-tools-updater (do NOT commit)
+│   │   ├── mission-script.lua  ← code Lua personnalisé (à commiter)
+│   │   └── veafDynamicConfig.lua   ← config de slots dynamiques (optionnel)
+│   ├── presets.yaml            ← config des préréglages radio (optionnel)
+│   ├── spawnables.yaml         ← groupes spawnable personnalisés (optionnel)
+│   └── waypoints.yaml          ← waypoints personnalisés (optionnel)
+├── mission.yaml                ← config des modules et du pipeline (à commiter)
+├── published/                  ← installé par veaf-tools-updater (NE PAS commiter)
 │   ├── veaf-scripts.lua
 │   └── ...
-├── veaf-tools.exe              ← installed by veaf-tools-updater (do NOT commit)
-├── veaf-tools-updater.exe      ← commit this
-└── mission_20260516.miz        ← build output (do NOT commit)
+├── veaf-tools.exe              ← installé par veaf-tools-updater (NE PAS commiter)
+├── veaf-tools-updater.exe      ← à commiter
+└── mission_20260516.miz        ← sortie du build (NE PAS commiter)
 ```
 
-### Recommended .gitignore
+### .gitignore recommandé
 
 ```gitignore
 published/
@@ -272,39 +271,39 @@ __pycache__/
 
 ---
 
-## mission-script.lua Reference
+## Référence mission-script.lua
 
-`mission-script.lua` is an optional file for custom Lua code that runs after all VEAF modules are initialized. Use it for advanced configuration that cannot yet be expressed in `mission.yaml` — custom shortcuts, per-module parameter overrides, custom assets, etc.
+`mission-script.lua` est un fichier optionnel pour du code Lua personnalisé exécuté après l'initialisation de tous les modules VEAF. Utilisez-le pour la configuration avancée qui ne peut pas encore s'exprimer dans `mission.yaml` — aliases personnalisés, surcharges de paramètres de modules, assets, etc.
 
-A minimal example:
+Exemple minimal :
 
 ```lua
--- Optional: override a module parameter
+-- Optionnel : surcharger un paramètre de module
 veafSpawn.SpawnKeyphrase = "_spawn"
 
--- Custom alias
+-- Alias personnalisé
 veafShortcuts.AddAlias(
   VeafAlias:new()
-    :setName("-myalias")
-    :setVeafCommand("_spawn group, name my-template")
+    :setName("-monalias")
+    :setVeafCommand("_spawn group, name mon-template")
 )
 ```
 
-Module enable/disable is configured in `mission.yaml` → `lua_modules:` — not in this file. See the [YAML reference](../../MISSION_YAML_REFERENCE.md) for the full `mission.yaml` syntax.
+L'activation/désactivation des modules se configure dans `mission.yaml` → `lua_modules:` — pas dans ce fichier. Consultez la [référence YAML](../../MISSION_YAML_REFERENCE.md) pour la syntaxe complète de `mission.yaml`.
 
 ---
 
-## Common Issues
+## Problèmes courants
 
-### "VEAF scripts loader" trigger appears twice
+### Le trigger "VEAF scripts loader" apparaît deux fois
 
-You have both an old manual `DO SCRIPT FILE` trigger and the v6 auto-injected one. Remove the manual trigger from the DCS Mission Editor (open the `.miz`, edit triggers, delete the old one, save), then re-extract and rebuild.
+Vous avez à la fois un ancien trigger `DO SCRIPT FILE` manuel et le nouveau trigger auto-injecté v6. Supprimez le trigger manuel de l'éditeur de missions DCS (ouvrez le `.miz`, éditez les triggers, supprimez l'ancien, enregistrez), puis ré-extrayez et rebuildez.
 
-Alternatively, use `--migrate-from-v5` on the build to have the old triggers removed automatically (this is the default).
+Alternativement, utilisez `--migrate-from-v5` sur le build pour que les anciens triggers soient supprimés automatiquement (c'est le comportement par défaut).
 
-### Radio menus don't appear
+### Les menus radio n'apparaissent pas
 
-Confirm `RADIO` is enabled in `mission.yaml`:
+Vérifiez que `RADIO` est activé dans `mission.yaml` :
 
 ```yaml
 lua_modules:
@@ -312,11 +311,11 @@ lua_modules:
     enable: true
 ```
 
-Rebuild with `veaf-tools.exe build` after any `mission.yaml` change.
+Reconstruisez avec `veaf-tools.exe build` après toute modification de `mission.yaml`.
 
-### Marker commands don't work
+### Les commandes de marqueurs ne fonctionnent pas
 
-Confirm `SPAWN` is enabled in `mission.yaml`:
+Vérifiez que `SPAWN` est activé dans `mission.yaml` :
 
 ```yaml
 lua_modules:
@@ -324,23 +323,23 @@ lua_modules:
     enable: true
 ```
 
-Then check the DCS log (`Saved Games\DCS\Logs\dcs.log`) for VEAF errors — filter on `VEAF` or `ERROR`.
+Ensuite, consultez le journal DCS (`Saved Games\DCS\Logs\dcs.log`) pour les erreurs VEAF — filtrez sur `VEAF` ou `ERROR`.
 
-### Reading the logs
+### Lire les journaux
 
-All VEAF messages go to `Saved Games\DCS\Logs\dcs.log`. To find them quickly:
+Tous les messages VEAF sont écrits dans `Saved Games\DCS\Logs\dcs.log`. Pour les trouver rapidement :
 
-- **[Klogg](https://klogg.filimonov.dev/)** (recommended): open `dcs.log`, use the search bar to filter on `VEAF`. A VEAF highlight profile for Klogg is planned — once available it will be committed to the repository and announced on the [VEAF Discord](https://www.veaf.org/discord).
-- **Notepad++**: open `dcs.log` → Search → Find (`Ctrl+F`) → search for `VEAF`.
+- **[Klogg](https://klogg.filimonov.dev/)** (recommandé) : ouvrez `dcs.log`, utilisez la barre de recherche pour filtrer sur `VEAF`. Un profil Klogg pour VEAF est prévu — une fois disponible, il sera commité dans le dépôt et annoncé sur le [Discord VEAF](https://www.veaf.org/discord).
+- **Notepad++** : ouvrez `dcs.log` → Recherche → Rechercher (`Ctrl+F`) → cherchez `VEAF`.
 
-### Build fails with "VEAF scripts file not found"
+### Le build échoue avec "VEAF scripts file not found"
 
-Run `veaf-tools-updater.exe` first — the `published/` folder is missing or outdated.
+Exécutez `veaf-tools-updater.exe` d'abord — le dossier `published/` est manquant ou obsolète.
 
 ---
 
-## See Also
+## Voir aussi
 
-- [Mission Maker Guide](README.md) — general mission making workflow
-- [Scripts Reference](scripts/README.md) — all available modules
-- [Tools Reference](../TOOLS_REFERENCE.md) — full `veaf-tools.exe` CLI reference
+- [Guide du créateur de missions](GUIDE.md) — workflow général de création de missions
+- [Référence des scripts](scripts/README.md) — tous les modules disponibles
+- [Référence des outils](../TOOLS_REFERENCE.md) — référence CLI complète de `veaf-tools.exe`

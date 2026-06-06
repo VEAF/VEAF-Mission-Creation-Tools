@@ -1,212 +1,212 @@
-# Aliases Reference
+# Référence des Alias
 
-Quick-reference of all built-in marker aliases available in every VEAF MCT mission.
+Référence rapide de tous les alias de marqueur intégrés disponibles dans toute mission VEAF MCT.
 
-Place an F10 map marker with the alias text (e.g. `-sam`) to spawn the corresponding group or execute the command. See [veafShortcuts](mission-maker/scripts/veafShortcuts.md) for the module documentation and how to create custom aliases.
+Placez un marqueur F10 avec le texte de l'alias (ex : `-sam`) pour faire apparaître le groupe correspondant ou exécuter la commande. Voir [veafShortcuts](mission-maker/scripts/veafShortcuts.md) pour la documentation du module et la création d'alias personnalisés.
 
 ---
 
-## Generic SAM Groups
+## Groupes SAM génériques
 
 | Alias | Description | Notes |
 |-------|-------------|-------|
-| `-sam` | Random SAM battery | Defense level 1–5 (random) |
-| `-samLR` | Random long-range SAM battery | Defense level 4–5 (random) |
-| `-samSR` | Random short-range SAM battery | Defense level 2–3 (random) |
-| `-aaa` | Random AAA battery | Defense level 1–2 (random) |
+| `-sam` | Batterie SAM aléatoire | Niveau de défense 1–5 (aléatoire) |
+| `-samLR` | Batterie SAM longue portée aléatoire | Niveau de défense 4–5 (aléatoire) |
+| `-samSR` | Batterie SAM courte portée aléatoire | Niveau de défense 2–3 (aléatoire) |
+| `-aaa` | Batterie AAA aléatoire | Niveau de défense 1–2 (aléatoire) |
 
-## Red Air Defenses (specific systems)
-
-| Alias | Description |
-|-------|-------------|
-| `-hq7` | HQ-7 (Red Banner) battery |
-| `-hq7_single` | HQ-7 single launcher |
-| `-hq7noew` | HQ-7 battery without EWR |
-| `-hq7eo` | HQ-7EO battery |
-| `-hq7eo_single` | HQ-7EO single launcher |
-| `-hq7eo_noew` | HQ-7EO battery without EWR |
-| `-sa2` | SA-2 Guideline (S-75 Dvina) battery |
-| `-sa3` | SA-3 Goa (S-125 Neva/Pechora) battery |
-| `-sa5` | SA-5 Gammon (S-200 Dubna) battery |
-| `-sa6` | SA-6 Gainful (2K12 Kub) battery |
-| `-sa8` | SA-8 Osa (9K33) squad |
-| `-sa9` | SA-9 Strela-1 vehicle |
-| `-sa9_squad` | SA-9 Strela-1 with logistics |
-| `-sa10` | SA-10 Grumble (S-300) battery |
-| `-sa11` | SA-11 Gadfly (9K37 Buk) battery |
-| `-sa13` | SA-13 Strela-10M3 vehicle |
-| `-sa13_squad` | SA-13 with logistics |
-| `-sa15` | SA-15 Gauntlet (9K330 Tor) squad |
-| `-sa15m2` | SA-15M2 Gauntlet (Tor-M2) squad |
-| `-sa19` | SA-19 Tunguska (2K22) squad |
-| `-sa22` | SA-22 Greyhound (Pantsir-S1) squad |
-| `-sa18` | SA-18 MANPAD squad |
-| `-sa18s` | SA-18S MANPAD squad |
-| `-insurgent_manpad` | Insurgent SA-18 MANPAD squad |
-| `-manpads` | Multiple SA-18S scattered in wide radius (3–6 units) |
-| `-shilka` | ZSU-23-4 Shilka AAA |
-| `-zu23` | ZU-23 on Ural truck |
-
-## Blue Air Defenses
+## Défenses aériennes rouges (systèmes spécifiques)
 
 | Alias | Description |
 |-------|-------------|
-| `-rapier` | Rapier battery with radar (US) |
-| `-roland` | Roland battery with EWR (US) |
-| `-rolandnoew` | Roland battery without EWR (US) |
-| `-nasams` | NASAMS battery with AIM-120C (US) |
-| `-nasams_b` | NASAMS battery with AIM-120B (US) |
-| `-hawk` | Hawk battery (US) |
-| `-patriot` | Patriot battery (US) |
-| `-stinger` | Stinger MANPAD squad (US) |
-| `-avenger` | Avenger SAM vehicle (US) |
-| `-avenger_squad` | Avenger with logistics (US) |
+| `-hq7` | Batterie HQ-7 (Red Banner) |
+| `-hq7_single` | HQ-7 lanceur unique |
+| `-hq7noew` | Batterie HQ-7 sans EWR |
+| `-hq7eo` | Batterie HQ-7EO |
+| `-hq7eo_single` | HQ-7EO lanceur unique |
+| `-hq7eo_noew` | Batterie HQ-7EO sans EWR |
+| `-sa2` | Batterie SA-2 Guideline (S-75 Dvina) |
+| `-sa3` | Batterie SA-3 Goa (S-125 Neva/Pechora) |
+| `-sa5` | Batterie SA-5 Gammon (S-200 Dubna) |
+| `-sa6` | Batterie SA-6 Gainful (2K12 Kub) |
+| `-sa8` | Escouade SA-8 Osa (9K33) |
+| `-sa9` | Véhicule SA-9 Strela-1 |
+| `-sa9_squad` | SA-9 Strela-1 avec logistique |
+| `-sa10` | Batterie SA-10 Grumble (S-300) |
+| `-sa11` | Batterie SA-11 Gadfly (9K37 Buk) |
+| `-sa13` | Véhicule SA-13 Strela-10M3 |
+| `-sa13_squad` | SA-13 avec logistique |
+| `-sa15` | Escouade SA-15 Gauntlet (9K330 Tor) |
+| `-sa15m2` | Escouade SA-15M2 Gauntlet (Tor-M2) |
+| `-sa19` | Escouade SA-19 Tunguska (2K22) |
+| `-sa22` | Escouade SA-22 Greyhound (Pantsir-S1) |
+| `-sa18` | Escouade MANPAD SA-18 |
+| `-sa18s` | Escouade MANPAD SA-18S |
+| `-insurgent_manpad` | Escouade MANPAD SA-18 insurgée |
+| `-manpads` | Multiples SA-18S dispersés sur un large rayon (3–6 unités) |
+| `-shilka` | AAA ZSU-23-4 Shilka |
+| `-zu23` | ZU-23 sur camion Ural |
+
+## Défenses aériennes bleues
+
+| Alias | Description |
+|-------|-------------|
+| `-rapier` | Batterie Rapier avec radar (US) |
+| `-roland` | Batterie Roland avec EWR (US) |
+| `-rolandnoew` | Batterie Roland sans EWR (US) |
+| `-nasams` | Batterie NASAMS avec AIM-120C (US) |
+| `-nasams_b` | Batterie NASAMS avec AIM-120B (US) |
+| `-hawk` | Batterie Hawk (US) |
+| `-patriot` | Batterie Patriot (US) |
+| `-stinger` | Escouade MANPAD Stinger (US) |
+| `-avenger` | Véhicule SAM Avenger (US) |
+| `-avenger_squad` | Avenger avec logistique (US) |
 
 ## EWR / Radar
 
 | Alias | Description |
 |-------|-------------|
-| `-ewr` | 55G6 Mast EWR |
-| `-dogear` | Dog Ear radar |
-| `-blue_ewr` | F-117 Domed EWR (US) |
+| `-ewr` | EWR 55G6 Mast |
+| `-dogear` | Radar Dog Ear |
+| `-blue_ewr` | EWR F-117 Domed (US) |
 
 ## Naval
 
 | Alias | Description |
 |-------|-------------|
-| `-burke` | USS Arleigh Burke IIa destroyer (US) |
-| `-perry` | O.H. Perry frigate (US) |
-| `-ticonderoga` | Ticonderoga cruiser (US) |
-| `-rezky` | FF 1135M Rezky frigate (RU) |
+| `-burke` | Destroyer USS Arleigh Burke IIa (US) |
+| `-perry` | Frégate O.H. Perry (US) |
+| `-ticonderoga` | Croiseur Ticonderoga (US) |
+| `-rezky` | Frégate FF 1135M Rezky (RU) |
 | `-pyotr` | CGN 1144.2 Pyotr Velikiy (RU) |
-| `-cargoships` | Cargo ships (RU) |
-| `-escortedcargoships` | Cargo ships with escort (RU) |
-| `-combatships` | Combat ships (RU) |
+| `-cargoships` | Cargos (RU) |
+| `-escortedcargoships` | Cargos avec escorte (RU) |
+| `-combatships` | Navires de combat (RU) |
 
-## Dynamic Ground Groups
+## Groupes terrestres dynamiques
 
 | Alias | Description | Notes |
 |-------|-------------|-------|
-| `-armor` | Dynamic armor group | Random defense/armor/size |
-| `-infantry` | Dynamic infantry section | Random defense/armor/size |
-| `-transport` | Dynamic transport company | Random defense/size |
-| `-combat` | Dynamic combat group | Random defense/armor/size |
-| `-cas` | Random CAS training group | Dispersed |
+| `-armor` | Groupe blindé dynamique | Défense/blindage/taille aléatoires |
+| `-infantry` | Section d'infanterie dynamique | Défense/blindage/taille aléatoires |
+| `-transport` | Compagnie de transport dynamique | Défense/taille aléatoires |
+| `-combat` | Groupe de combat dynamique | Défense/blindage/taille aléatoires |
+| `-cas` | Groupe d'entraînement CAS aléatoire | Dispersé |
 
-## Convoys
-
-| Alias | Description |
-|-------|-------------|
-| `-convoy` | Dynamic convoy (needs `, dest POINTNAME`) |
-| `-hv_convoy_red` | Red high-value attack convoy (with Scud) |
-| `-attack_convoy_red` | Red attack convoy |
-| `-QRC_red` | Red Quick Reaction Convoy (fast) |
-| `-civilian_convoy_red` | Red civilian convoy |
-| `-QRC_blue` | Blue Quick Reaction Convoy (fast) |
-
-## Artillery
+## Convois
 
 | Alias | Description |
 |-------|-------------|
-| `-arty` | M-109 battery (US) |
-| `-mortar` | Mortar team (US) |
-| `-msta` | Msta battery (RU) |
-| `-plz05` | PLZ-05 battery (CN) |
-| `-mlrs` | MLRS battery (US) |
-| `-smerch_he` | Smerch HE battery (RU) |
-| `-smerch_cm` | Smerch CM battery (RU) |
-| `-uragan` | Uragan battery (RU) |
-| `-grad` | Grad battery (RU) |
-| `-arty1` | Spawn ARTY-1 with AI handler |
-| `-arty1_aim` | ARTY-1: fire for aim at marker |
-| `-arty1_fire` | ARTY-1: fire for effect at marker |
-| `-arty1_stop` | ARTY-1: stop listening |
-| `-arty1_start` | ARTY-1: start listening |
-| `-arty2` | Spawn ARTY-2 with AI handler |
-| `-arty2_aim` | ARTY-2: fire for aim at marker |
-| `-arty2_fire` | ARTY-2: fire for effect at marker |
-| `-arty2_stop` | ARTY-2: stop listening |
-| `-arty2_start` | ARTY-2: start listening |
-| `-arty3` | Spawn ARTY-3 with AI handler |
-| `-arty3_aim` | ARTY-3: fire for aim at marker |
-| `-arty3_fire` | ARTY-3: fire for effect at marker |
-| `-arty3_stop` | ARTY-3: stop listening |
-| `-arty3_start` | ARTY-3: start listening |
+| `-convoy` | Convoi dynamique (nécessite `, dest NOMPOINT`) |
+| `-hv_convoy_red` | Convoi d'attaque rouge haute valeur (avec Scud) |
+| `-attack_convoy_red` | Convoi d'attaque rouge |
+| `-QRC_red` | Convoi de Réaction Rapide rouge (rapide) |
+| `-civilian_convoy_red` | Convoi civil rouge |
+| `-QRC_blue` | Convoi de Réaction Rapide bleu (rapide) |
 
-## Support & Utility
+## Artillerie
+
+| Alias | Description |
+|-------|-------------|
+| `-arty` | Batterie M-109 (US) |
+| `-mortar` | Équipe de mortiers (US) |
+| `-msta` | Batterie Msta (RU) |
+| `-plz05` | Batterie PLZ-05 (CN) |
+| `-mlrs` | Batterie MLRS (US) |
+| `-smerch_he` | Batterie Smerch HE (RU) |
+| `-smerch_cm` | Batterie Smerch CM (RU) |
+| `-uragan` | Batterie Uragan (RU) |
+| `-grad` | Batterie Grad (RU) |
+| `-arty1` | Spawn ARTY-1 avec handler IA |
+| `-arty1_aim` | ARTY-1 : tir de réglage sur marqueur |
+| `-arty1_fire` | ARTY-1 : tir d'efficacité sur marqueur |
+| `-arty1_stop` | ARTY-1 : cesser l'écoute |
+| `-arty1_start` | ARTY-1 : reprendre l'écoute |
+| `-arty2` | Spawn ARTY-2 avec handler IA |
+| `-arty2_aim` | ARTY-2 : tir de réglage sur marqueur |
+| `-arty2_fire` | ARTY-2 : tir d'efficacité sur marqueur |
+| `-arty2_stop` | ARTY-2 : cesser l'écoute |
+| `-arty2_start` | ARTY-2 : reprendre l'écoute |
+| `-arty3` | Spawn ARTY-3 avec handler IA |
+| `-arty3_aim` | ARTY-3 : tir de réglage sur marqueur |
+| `-arty3_fire` | ARTY-3 : tir d'efficacité sur marqueur |
+| `-arty3_stop` | ARTY-3 : cesser l'écoute |
+| `-arty3_start` | ARTY-3 : reprendre l'écoute |
+
+## Support & Utilitaires
 
 | Alias | Description |
 |-------|-------------|
 | `-jtac` | JTAC humvee |
 | `-afac` | AFAC MQ-9 Reaper |
-| `-afachere` | Move AFAC to location (needs group name) |
-| `-cargo` | Cargo for sling loading (blue) |
-| `-refuel` | US refuel group |
-| `-tankerhere` | Move tanker to location (needs group name) |
-| `-tanker` | Alias for `-tankerhere` |
-| `-tankerlow` | Set closest tanker to FL120 / 200 KIAS |
-| `-tankerhigh` | Set closest tanker to FL220 / 300 KIAS |
-| `-tacan` | Portable TACAN beacon (X band, ch 99) |
-| `-farp` | Create a FARP (needs name) |
-| `-farpNoMarker` | Create invisible FARP (needs name) |
-| `-fob` | Create a FOB |
+| `-afachere` | Déplacer l'AFAC à la position (nécessite nom de groupe) |
+| `-cargo` | Cargo pour élingage (bleu) |
+| `-refuel` | Groupe ravitaillement US |
+| `-tankerhere` | Déplacer le ravitailleur à la position (nécessite nom de groupe) |
+| `-tanker` | Alias pour `-tankerhere` |
+| `-tankerlow` | Ravitailleur le plus proche à FL120 / 200 KIAS |
+| `-tankerhigh` | Ravitailleur le plus proche à FL220 / 300 KIAS |
+| `-tacan` | Balise TACAN portable (bande X, canal 99) |
+| `-farp` | Créer un FARP (nécessite un nom) |
+| `-farpNoMarker` | Créer un FARP invisible (nécessite un nom) |
+| `-fob` | Créer un FOB |
 
-## Effects
-
-| Alias | Description |
-|-------|-------------|
-| `-smoke` | Single white smoke |
-| `-longsmoke` | White smoke renewed every 5 min for 30 min |
-| `-signal` | Single green signal flare |
-| `-light` | Illumination flares above area |
-
-## Air Missions
+## Effets
 
 | Alias | Description |
 |-------|-------------|
-| `-cap` | Dynamic CAP (needs aircraft name) |
-| `-airstart` | Start a combat mission (needs name) |
-| `-airstop` | Stop a combat mission (needs name) |
-| `-zonestart` | Activate a combat zone (needs name) |
-| `-zonestop` | Deactivate a combat zone (needs name) |
+| `-smoke` | Fumée blanche unique |
+| `-longsmoke` | Fumée blanche renouvelée toutes les 5 min pendant 30 min |
+| `-signal` | Fusée éclairante verte unique |
+| `-light` | Fusées éclairantes au-dessus de la zone |
+
+## Missions aériennes
+
+| Alias | Description |
+|-------|-------------|
+| `-cap` | CAP dynamique (nécessite nom d'appareil) |
+| `-airstart` | Démarrer une mission de combat (nécessite un nom) |
+| `-airstop` | Arrêter une mission de combat (nécessite un nom) |
+| `-zonestart` | Activer une zone de combat (nécessite un nom) |
+| `-zonestop` | Désactiver une zone de combat (nécessite un nom) |
 
 ## Radio
 
 | Alias | Description |
 |-------|-------------|
-| `-send` | Send a radio message (needs `"MESSAGE"`) |
-| `-play` | Play a sound file (needs `"FILENAME"`) |
+| `-send` | Envoyer un message radio (nécessite `"MESSAGE"`) |
+| `-play` | Jouer un fichier son (nécessite `"NOMFICHIER"`) |
 
 ## Mission Master
 
 | Alias | Description |
 |-------|-------------|
-| `-flag` | Get flag value (needs name) |
-| `-flagon` | Set flag to ON (needs name) |
-| `-flagoff` | Set flag to OFF (needs name) |
-| `-run` | Execute a runnable (needs name) |
+| `-flag` | Obtenir la valeur d'un flag (nécessite un nom) |
+| `-flagon` | Mettre un flag à ON (nécessite un nom) |
+| `-flagoff` | Mettre un flag à OFF (nécessite un nom) |
+| `-run` | Exécuter un runnable (nécessite un nom) |
 
-## Utility Commands
-
-| Alias | Description |
-|-------|-------------|
-| `-destroy` | Destroy any unit within 100 m of marker |
-| `-ai_set` | Configure AI handler for a ground group |
-
-## Map Tools
+## Commandes utilitaires
 
 | Alias | Description |
 |-------|-------------|
-| `-point` | Name a point on the map |
-| `-draw` | Start/continue a drawing (needs name) |
-| `-arrow` | Start/continue an arrow drawing (needs name) |
-| `-square` | Draw a square (needs name) |
-| `-circle` | Draw a circle (needs name) |
-| `-erasedrawing` | Erase a drawing (needs name) |
+| `-destroy` | Détruire toute unité dans un rayon de 100 m du marqueur |
+| `-ai_set` | Configurer un handler IA pour un groupe terrestre |
+
+## Outils cartographiques
+
+| Alias | Description |
+|-------|-------------|
+| `-point` | Nommer un point sur la carte |
+| `-draw` | Démarrer/continuer un dessin (nécessite un nom) |
+| `-arrow` | Démarrer/continuer un dessin en flèche (nécessite un nom) |
+| `-square` | Dessiner un carré (nécessite un nom) |
+| `-circle` | Dessiner un cercle (nécessite un nom) |
+| `-erasedrawing` | Effacer un dessin (nécessite un nom) |
 
 ---
 
-## See also
+## Voir aussi
 
-- [veafShortcuts module](mission-maker/scripts/veafShortcuts.md) — module documentation, custom alias creation
-- [veafSpawn](mission-maker/scripts/veafSpawn.md) — the underlying spawn engine
+- [Module veafShortcuts](mission-maker/scripts/veafShortcuts.md) — documentation du module, création d'alias personnalisés
+- [veafSpawn](mission-maker/scripts/veafSpawn.md) — le moteur de spawn sous-jacent

@@ -51,11 +51,8 @@ plugins:
   - i18n:
       docs_structure: suffix
       languages:
-        - locale: en
-          default: true
-          name: English
-          build: true
         - locale: fr
+          default: true
           name: Français
           build: true
           nav_translations:
@@ -76,6 +73,9 @@ plugins:
             Aliases: Alias
             mission.yaml Reference: Référence mission.yaml
             Pipeline Reference: Référence Pipeline
+        - locale: en
+          name: English
+          build: true
 
 extra:
   version:

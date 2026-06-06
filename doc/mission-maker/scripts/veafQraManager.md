@@ -1,26 +1,39 @@
-# veafQraManager — Quick Reaction Alert
+# veafQraManager — Alerte de réaction rapide (QRA)
 
-
-**Module ID:** `QRA` | **Version:** 1.2.x | **File:** `veafQraManager.lua`
-
----
-
-## Purpose
-
-Defines protected airspace zones defended by AI interceptors. When a hostile aircraft enters the zone, a QRA flight is scrambled. Once the QRA is destroyed, the zone is undefended until it resets (when all intruders have left). Supports multiple groups, rearming, airbase dependency, radio status messages, and a logistics chain (limited aircraft count with optional resupply).
+**Module ID:** `QRA` | **Version:** 1.2.x | **Fichier:** `veafQraManager.lua`
 
 ---
 
-## Dependencies
+## Objectif
 
-- `veafRadio` — status messages (optional)
-- `veafSpawn` — AI group spawning
+Définit des zones d'espace aérien protégées défendues par des intercepteurs IA. Quand un aéronef hostile entre dans la zone, un vol QRA est scramblé. Une fois la QRA détruite, la zone n'est plus défendue jusqu'à la prochaine réinitialisation (quand tous les intrus ont quitté). Supporte plusieurs groupes, le réarmement, la dépendance à une base aérienne, les messages radio de statut, et une chaîne logistique (stock limité d'aéronefs avec ravitaillement optionnel).
 
 ---
 
-## Enable
+## Dépendances
 
-No global `initialize()` call needed. Each QRA zone is individually created and activated with `:start()`:
+- `veafRadio` — messages de statut (optionnel)
+- `veafSpawn` — spawn du groupe IA
+
+---
+
+## Activation
+
+### Via `mission.yaml` (recommandé)
+
+`veafQraManager.initialize()` est appelé automatiquement par le framework.
+
+### Via `missionConfig.lua`
+
+Appeler `veafQraManager.initialize()` **avant** de déclarer les zones :
+
+```lua
+veafQraManager.initialize()
+```
+
+> **Important :** sans cet appel, les événements `S_EVENT_BIRTH` et `S_EVENT_PLAYER_ENTER_UNIT` ne sont pas écoutés. Les pilotes qui rejoignent via un slot dynamique seront invisibles des QRA et ne déclencheront aucune interception.
+
+Chaque zone QRA est ensuite créée et activée individuellement avec `:start()` :
 
 ```lua
 local myQra = VeafQRA:new()
@@ -35,64 +48,64 @@ local myQra = VeafQRA:new()
 
 ## Configuration (`mission.yaml`)
 
-QRA definitions live in the **top-level `qra:` section** (not under `lua_modules:`). The `QRA` module must be enabled in `lua_modules:`.
+Les définitions QRA vivent dans la **section de premier niveau `qra:`** (pas sous `lua_modules:`). Le module `QRA` doit être activé dans `lua_modules:`.
 
 ```yaml
 lua_modules:
   QRA:
-    enable: true          # default: true
-    logLevel: info        # optional log level override
+    enable: true          # défaut : true
+    logLevel: info        # surcharge optionnelle du niveau de log
 
 qra:
-  silence_all: false      # true = suppress all QRA radio messages globally
+  silence_all: false      # true = supprimer tous les messages radio QRA globalement
   definitions:
-    - name: "QRA-North"                 # REQUIRED — identifier and radio prefix
-      coalition: RED                    # REQUIRED — RED | BLUE
-      enemy_coalitions: [BLUE]          # coalitions that trigger a scramble
-      trigger_zone: "ZONE-QRA-NORTH"   # DCS trigger zone defining the airspace
-      zone_radius: 30000               # radius in metres (alternative to trigger_zone)
-      simple_groups:                   # DCS group names to scramble (unconditional)
-        - "MiG-29 QRA Flight"
-      groups_by_enemy_count:           # scale response to intruder count
-        - enemy_count: 1               # scramble when 1 intruder detected
-          groups: ["Pair-1", "Pair-2"] # group pool
-          random_pick: 1               # how many groups to pick from the pool
+    - name: "QRA-Nord"                  # REQUIS — identifiant et préfixe radio
+      coalition: RED                    # REQUIS — RED | BLUE
+      enemy_coalitions: [BLUE]          # coalitions qui déclenchent le scramble
+      trigger_zone: "ZONE-QRA-NORD"    # zone de trigger DCS définissant l'espace aérien
+      zone_radius: 30000               # rayon en mètres (alternative à trigger_zone)
+      simple_groups:                   # noms de groupes DCS à scrambler (inconditionnels)
+        - "Vol QRA MiG-29"
+      groups_by_enemy_count:           # réponse proportionnelle au nombre d'intrus
+        - enemy_count: 1               # scramble quand 1 intrus détecté
+          groups: ["Duo-1", "Duo-2"]   # pool de groupes
+          random_pick: 1               # combien de groupes choisir dans le pool
         - enemy_count: 3
-          groups: ["Flight-1", "Flight-2"]
+          groups: ["Vol-1", "Vol-2"]
           random_pick: 2
-      delay_before_rearming: 30        # seconds before zone resets after intruders leave
-      delay_before_activating: 30      # seconds after :start() before QRA goes online
-      react_on_helicopters: false      # true = also trigger on enemy helicopters
-      airport_link: "Batumi"           # QRA goes offline if this airbase is destroyed
+      delay_before_rearming: 30        # secondes avant réinitialisation après départ des intrus
+      delay_before_activating: 30      # secondes après :start() avant mise en ligne de la QRA
+      react_on_helicopters: false      # true = déclencher aussi sur les hélicoptères ennemis
+      airport_link: "Batumi"           # la QRA se désactive si cette base est détruite
 ```
 
-### `qra:` top-level fields
+### Champs de premier niveau `qra:`
 
-| Field | Type | Default | Required | Description |
-|-------|------|---------|----------|-------------|
-| `silence_all` | boolean | `false` | No | Suppress all QRA radio messages globally |
-| `definitions` | object[] | `[]` | No | List of QRA zone definitions |
+| Champ | Type | Défaut | Requis | Description |
+|-------|------|--------|--------|-------------|
+| `silence_all` | booléen | `false` | Non | Supprimer tous les messages radio QRA globalement |
+| `definitions` | objet[] | `[]` | Non | Liste des définitions de zones QRA |
 
-### `definitions[]` fields
+### Champs de `definitions[]`
 
-| Field | Type | Default | Required | Description |
-|-------|------|---------|----------|-------------|
-| `name` | string | — | Yes | Internal identifier and radio prefix |
-| `coalition` | string | — | Yes | Defending coalition: `RED` or `BLUE` |
-| `enemy_coalitions` | string[] | *(opposite)* | No | Coalitions that trigger a scramble |
-| `trigger_zone` | string | — | No | DCS trigger zone name |
-| `zone_radius` | integer | — | No | Zone radius in metres (when no trigger zone) |
-| `simple_groups` | string[] | `[]` | No | DCS group names to always scramble |
-| `groups_by_enemy_count` | object[] | `[]` | No | Scaled scramble rules |
-| `groups_by_enemy_count[].enemy_count` | integer | — | Yes | Number of intruders that activates this rule |
-| `groups_by_enemy_count[].groups` | string[] | — | Yes | Group name pool |
-| `groups_by_enemy_count[].random_pick` | integer | `1` | No | How many groups to pick from the pool |
-| `delay_before_rearming` | integer | `0` | No | Seconds before zone resets after intruders leave |
-| `delay_before_activating` | integer | `0` | No | Seconds after start before QRA goes online |
-| `react_on_helicopters` | boolean | `false` | No | Also trigger on enemy helicopters |
-| `airport_link` | string | — | No | Linked DCS airbase name — QRA offline when destroyed |
+| Champ | Type | Défaut | Requis | Description |
+|-------|------|--------|--------|-------------|
+| `name` | string | — | Oui | Identifiant interne et préfixe radio |
+| `coalition` | string | — | Oui | Coalition défensive : `RED` ou `BLUE` |
+| `enemy_coalitions` | string[] | *(opposée)* | Non | Coalitions qui déclenchent un scramble |
+| `trigger_zone` | string | — | Non | Nom de la zone de trigger DCS |
+| `zone_radius` | entier | — | Non | Rayon de zone en mètres (sans zone de trigger) |
+| `simple_groups` | string[] | `[]` | Non | Noms de groupes DCS à toujours scrambler |
+| `groups_by_enemy_count` | objet[] | `[]` | Non | Règles de scramble proportionnel |
+| `groups_by_enemy_count[].enemy_count` | entier | — | Oui | Nombre d'intrus activant cette règle |
+| `groups_by_enemy_count[].groups` | string[] | — | Oui | Pool de noms de groupes |
+| `groups_by_enemy_count[].random_pick` | entier | `1` | Non | Combien de groupes choisir dans le pool |
+| `delay_before_rearming` | entier | `0` | Non | Secondes avant réinitialisation après départ des intrus |
+| `delay_before_activating` | entier | `0` | Non | Secondes après le démarrage avant mise en ligne |
+| `react_on_helicopters` | booléen | `false` | Non | Déclencher aussi sur les hélicoptères ennemis |
+| `airport_link` | string | — | Non | Nom de base aérienne DCS liée — QRA hors ligne si détruite |
 
-### Minimal example
+### Exemple minimal
 
 ```yaml
 lua_modules:
@@ -105,186 +118,137 @@ qra:
       coalition: RED
       trigger_zone: "ZONE-QRA-SUD"
       simple_groups:
-        - "Su-27 Intercept"
+        - "Interception Su-27"
 ```
 
 ---
 
-## VeafQRA Builder Methods
+## Méthodes du builder VeafQRA
 
-All setters return `self` and can be chained. Call `:start()` at the end to activate.
+Tous les setters retournent `self` et peuvent être chaînés. Appeler `:start()` en fin de chaîne pour activer.
 
 ### Identification
 
-| Method | Description |
-|--------|-------------|
-| `:setName(name)` | Internal identifier — also used as message prefix if no description is set |
-| `:setDescription(text)` | Human-readable label used in radio messages (defaults to name) |
+| Méthode | Description |
+|---------|-------------|
+| `:setName(name)` | Identifiant interne — utilisé comme préfixe des messages si aucune description n'est définie |
+| `:setDescription(text)` | Libellé lisible utilisé dans les messages radio (défaut : le nom) |
 
-### Zone Definition
+### Définition de la zone
 
-Use one of the following to define the protected airspace:
+Utiliser l'une des options suivantes :
 
-| Method | Description |
-|--------|-------------|
-| `:setTriggerZone(zoneName)` | DCS trigger zone name (preferred) |
-| `:setZoneCenter(vec3)` | Manual center point (DCS vec3) — use with `:setZoneRadius()` |
-| `:setZoneCenterFromCoordinates(coordStr)` | Center from a `"lat,lon"` string |
-| `:setZoneRadius(meters)` | Radius in meters when not using a trigger zone |
+| Méthode | Description |
+|---------|-------------|
+| `:setTriggerZone(zoneName)` | Nom de la zone trigger DCS (recommandé) |
+| `:setZoneCenter(vec3)` | Centre manuel (vec3 DCS) — à combiner avec `:setZoneRadius()` |
+| `:setZoneCenterFromCoordinates(coordStr)` | Centre depuis une chaîne `"lat,lon"` |
+| `:setZoneRadius(meters)` | Rayon en mètres (quand on n'utilise pas de zone trigger) |
 
-### Defenders
+### Défenseurs
 
-| Method | Description |
-|--------|-------------|
-| `:addGroup(name)` | Add a DCS group name to scramble (call multiple times for multiple groups) |
-| `:addRandomGroup(groups, number, bias)` | Randomly pick `number` groups from a list |
-| `:setGroupsToDeployByEnemyQuantity(n, groups)` | Scale response: deploy `groups` when `n` enemies are in zone |
-| `:setRandomGroupsToDeployByEnemyQuantity(n, groups, number, bias)` | Randomized scaling |
+| Méthode | Description |
+|---------|-------------|
+| `:addGroup(name)` | Ajouter un groupe DCS à scrambler (appeler plusieurs fois pour plusieurs groupes) |
+| `:addRandomGroup(groups, number, bias)` | Piocher aléatoirement `number` groupes dans une liste |
+| `:setGroupsToDeployByEnemyQuantity(n, groups)` | Adapter la réponse : déployer `groups` quand `n` ennemis sont dans la zone |
+| `:setRandomGroupsToDeployByEnemyQuantity(n, groups, number, bias)` | Adaptation aléatoire au nombre d'ennemis |
 
 ### Coalition
 
-| Method | Description |
-|--------|-------------|
-| `:setCoalition(side)` | Coalition that owns this QRA (e.g. `coalition.side.RED`) |
-| `:addEnnemyCoalition(side)` | Add an enemy coalition (defaults to the opposite of the defending coalition) |
+| Méthode | Description |
+|---------|-------------|
+| `:setCoalition(side)` | Coalition qui possède cette QRA (ex. `coalition.side.RED`) |
+| `:addEnnemyCoalition(side)` | Ajouter une coalition ennemie (défaut : opposée à la coalition défendante) |
 
-### Behavior
+### Comportement
 
-| Method | Description |
-|--------|-------------|
-| `:setSilent(bool)` | Suppress all radio status messages for this QRA |
-| `:setDrawZone(bool)` | Draw the protected zone on the map |
-| `:setReactOnHelicopters()` | Also trigger on enemy helicopters (planes only by default) |
-| `:setDelayBeforeRearming(seconds)` | Delay before the QRA resets after all intruders leave (`-1` = no delay) |
-| `:setNoNeedToLeaveZoneBeforeRearming()` | Allow rearming even if enemies are still in the zone |
-| `:setResetWhenLeavingZone()` | Reset immediately the moment all enemies leave (no wait) |
-| `:setDelayBeforeActivating(seconds)` | Delay before the QRA goes online after `:start()` |
-| `:setMinimumAltitudeInFeet(feet)` | Minimum enemy altitude to trigger a scramble |
-| `:setMaximumAltitudeInFeet(feet)` | Maximum enemy altitude to trigger a scramble |
-| `:setRespawnDefaultOffset(latDelta, lonDelta)` | Spawn offset from zone center (meters, lat/lon) |
-| `:setRespawnRadius(meters)` | Scatter radius around spawn point (minimum 250 m) |
+| Méthode | Description |
+|---------|-------------|
+| `:setSilent(bool)` | Supprimer tous les messages radio de cette QRA |
+| `:setDrawZone(bool)` | Afficher la zone protégée sur la carte |
+| `:setReactOnHelicopters()` | Déclencher aussi sur les hélicoptères ennemis (avions seulement par défaut) |
+| `:setDelayBeforeRearming(seconds)` | Délai avant réinitialisation après départ de tous les intrus (`-1` = pas de délai) |
+| `:setNoNeedToLeaveZoneBeforeRearming()` | Autoriser le réarmement même si des ennemis sont encore dans la zone |
+| `:setResetWhenLeavingZone()` | Réinitialiser immédiatement quand tous les ennemis quittent la zone |
+| `:setDelayBeforeActivating(seconds)` | Délai avant mise en ligne après `:start()` |
+| `:setMinimumAltitudeInFeet(feet)` | Altitude minimale de l'ennemi pour déclencher un scramble |
+| `:setMaximumAltitudeInFeet(feet)` | Altitude maximale de l'ennemi pour déclencher un scramble |
+| `:setRespawnDefaultOffset(latDelta, lonDelta)` | Décalage de spawn depuis le centre de la zone (mètres, lat/lon) |
+| `:setRespawnRadius(meters)` | Rayon de dispersion autour du point de spawn (minimum 250 m) |
 
-### Airbase Link
+### Lien à une base aérienne
 
-| Method | Description |
-|--------|-------------|
-| `:setAirportLink(name)` | Link to an airbase — QRA goes offline if the airbase is destroyed |
-| `:setAirportMinLifePercent(pct)` | Minimum airbase health for QRA to remain active (0–1, default `0.9`) |
+| Méthode | Description |
+|---------|-------------|
+| `:setAirportLink(name)` | Lier à une base — la QRA passe hors ligne si la base est détruite |
+| `:setAirportMinLifePercent(pct)` | Santé minimale de la base pour que la QRA reste active (0–1, défaut `0,9`) |
 
-### Messages and Callbacks
+### Messages et callbacks
 
-All message strings accept `%s` as a token for the QRA name/description. Callbacks receive the QRA instance as their first argument.
+Les chaînes de message acceptent `%s` comme token pour le nom/la description de la QRA. Les callbacks reçoivent l'instance QRA en premier argument.
 
-| Method | Triggered when |
-|--------|---------------|
-| `:setMessageStart(text)` / `:setOnStart(fn)` | QRA goes online |
-| `:setMessageDeploy(text)` / `:setOnDeploy(fn)` | QRA scrambles |
-| `:setMessageDestroyed(text)` / `:setOnDestroyed(fn)` | QRA shot down |
-| `:setMessageReady(text)` / `:setOnReady(fn)` | QRA ready after rearming |
-| `:setMessageOut(text)` / `:setOnOut(fn)` | No more aircraft available |
-| `:setMessageResupplied(text)` / `:setOnResupplied(fn)` | Logistics resupply complete |
-| `:setMessageAirbaseDown(text)` / `:setOnAirbaseDown(fn)` | Linked airbase destroyed |
-| `:setMessageAirbaseUp(text)` / `:setOnAirbaseUp(fn)` | Linked airbase restored |
-| `:setMessageStop(text)` / `:setOnStop(fn)` | QRA goes offline |
+| Méthode | Déclencheur |
+|---------|------------|
+| `:setMessageStart(text)` / `:setOnStart(fn)` | La QRA se met en ligne |
+| `:setMessageDeploy(text)` / `:setOnDeploy(fn)` | La QRA est scramblée |
+| `:setMessageDestroyed(text)` / `:setOnDestroyed(fn)` | La QRA est abattue |
+| `:setMessageReady(text)` / `:setOnReady(fn)` | La QRA est prête après réarmement |
+| `:setMessageOut(text)` / `:setOnOut(fn)` | Plus d'aéronefs disponibles |
+| `:setMessageResupplied(text)` / `:setOnResupplied(fn)` | Ravitaillement logistique terminé |
+| `:setMessageAirbaseDown(text)` / `:setOnAirbaseDown(fn)` | Base aérienne liée détruite |
+| `:setMessageAirbaseUp(text)` / `:setOnAirbaseUp(fn)` | Base aérienne liée restaurée |
+| `:setMessageStop(text)` / `:setOnStop(fn)` | La QRA passe hors ligne |
 
-### Warehousing / Logistics
+### Logistique / Stock d'aéronefs
 
-By default the QRA has unlimited aircraft. Use these to simulate a finite stock with optional resupply:
+Par défaut, la QRA dispose d'un nombre illimité d'aéronefs. Utiliser ces méthodes pour simuler un stock fini avec ravitaillement optionnel :
 
-| Method | Description |
-|--------|-------------|
-| `:setQRAcount(n)` | Total aircraft groups available (`-1` = infinite) |
-| `:setQRAmaxCount(n)` | Max groups active at once (`-1` = infinite) |
-| `:setQRAresupplyDelay(seconds)` | Seconds before a resupply cycle starts |
-| `:setQRAmaxResupplyCount(n)` | Maximum number of resupply cycles (`-1` = infinite) |
-| `:setQRAminCountforResupply(n)` | Remaining count that triggers a resupply |
-| `:setResupplyAmount(n)` | Groups added per resupply cycle (default `1`) |
+| Méthode | Description |
+|---------|-------------|
+| `:setQRAcount(n)` | Nombre total de groupes disponibles (`-1` = illimité) |
+| `:setQRAmaxCount(n)` | Nombre maximum de groupes actifs simultanément (`-1` = illimité) |
+| `:setQRAresupplyDelay(seconds)` | Secondes avant le déclenchement d'un cycle de ravitaillement |
+| `:setQRAmaxResupplyCount(n)` | Nombre maximum de cycles de ravitaillement (`-1` = illimité) |
+| `:setQRAminCountforResupply(n)` | Stock restant qui déclenche un ravitaillement |
+| `:setResupplyAmount(n)` | Groupes ajoutés par cycle de ravitaillement (défaut `1`) |
 
-### Lifecycle
+### Cycle de vie
 
-| Method | Description |
-|--------|-------------|
-| `:start()` | Activate the QRA — broadcasts `messageStart` and starts the watchdog |
-| `:stop(silent)` | Deactivate the QRA — broadcasts `messageStop` unless `silent` is `true` |
+| Méthode | Description |
+|---------|-------------|
+| `:start()` | Activer la QRA — diffuse `messageStart` et démarre le watchdog |
+| `:stop(silent)` | Désactiver la QRA — diffuse `messageStop` sauf si `silent` vaut `true` |
 
 ---
 
-## How it works
-
-A QRA zone monitors a volume of airspace defined by a DCS trigger zone. The moment a hostile aircraft enters that space, the QRA scrambles — provided it is ready. When the QRA is shot down, the zone enters a rearming state; it will become active again once the enemies leave and the rearm timer expires.
-
-### State machine
+## Machine à états QRA
 
 ```
-STOP ──start()──► READY ──(intruder enters)──► ACTIVE ──(QRA destroyed)──► DEAD
-  ▲                 ▲                                                          │
-  │                 └──────────(all intruders left + rearm delay)─────────────┘
-  │                                                     │
-  └──────────────────────────stop()────────────────────►┘
+PRÊTE ──(intrus entre)──> ACTIVE ──(QRA détruite)──> MORTE
+  ^                                                       |
+  └──────(tous les intrus partis + délai de réarmement)──┘
 ```
 
-Full states:
+États supplémentaires : `WILLREARM`, `OUT` (plus de groupes), `NOAIRBASE` (base aérienne détruite), `STOP` (désactivée manuellement).
 
-| State | Meaning |
-|-------|---------|
-| `STOP` | Inactive — `stop()` was called or the QRA was never started |
-| `READY` | Armed and watching for intruders |
-| `READY_WAITINGFORMORE` | QRA scrambled; additional intruders triggered deployment of more groups |
-| `ACTIVE` | QRA is airborne and intercepting |
-| `DEAD` | QRA was destroyed; waiting for conditions to rearm |
-| `WILLREARM` | Rearming timer is running |
-| `OUT` | No more aircraft available (stock exhausted) |
-| `NOAIRBASE` | The linked airbase was destroyed — QRA stands down |
+---
 
-### Setting up in the DCS Mission Editor
+## Configuration globale
 
-1. **Create a trigger zone** — draw the airspace you want to protect. Name it something memorable, e.g. `ZONE-QRA-NORTH`.
-2. **Place the QRA group** — create the aircraft group that will scramble. Set it to **Late Activation** so it does not spawn at mission start (VEAF handles activation). Give the group a distinctive name, e.g. `MiG-29 QRA North`.
-3. **Wire it up in `mission-script.lua`** (or via `mission.yaml` → `qra:` for the recommended YAML approach):
+| Constante | Valeur par défaut | Description |
+|-----------|-------------------|-------------|
+| `veafQraManager.WATCHDOG_DELAY` | `5` | Intervalle de vérification en secondes |
+| `veafQraManager.MINIMUM_LIFE_FOR_QRA_IN_PERCENT` | `10` | Vie minimale des unités QRA avant destruction |
+| `veafQraManager.DEFAULT_airbaseMinLifePercent` | `0,9` | Seuil de santé par défaut de la base |
+| `veafQraManager.AllSilence` | `false` | Supprimer globalement tous les messages QRA |
+
+---
+
+## Exemple : plusieurs zones QRA
 
 ```lua
-VeafQRA:new()
-  :setName("QRA-North")
-  :setTriggerZone("ZONE-QRA-NORTH")
-  :setCoalition(coalition.side.RED)
-  :addGroup("MiG-29 QRA North")
-  :start()
-```
-
-That is all — no trigger conditions, no scheduled functions. VEAF handles detection, scramble, and rearm automatically.
-
-### Logistics chain
-
-By default a QRA has unlimited aircraft. The logistics system lets you model a finite airfield stock with optional resupply — useful for long persistent missions:
-
-| Parameter | Role |
-|-----------|------|
-| `setQRAcount(n)` | Total aircraft groups available (acts as the current stock) |
-| `setQRAmaxCount(n)` | Hard cap on simultaneous active groups |
-| `setQRAresupplyDelay(s)` | Seconds to wait before a resupply starts |
-| `setQRAminCountforResupply(n)` | Stock level that triggers a resupply |
-| `setQRAmaxResupplyCount(n)` | Maximum number of resupply cycles (`-1` = unlimited) |
-| `setResupplyAmount(n)` | Groups added per resupply cycle (default `1`) |
-
-Think of it as a warehouse: `QRAcount` is what is on the shelf, `resupplyDelay` is the truck delivery time, and `minCountforResupply` is the reorder point.
-
----
-
-## Global Configuration
-
-| Constant | Default | Description |
-|----------|---------|-------------|
-| `veafQraManager.WATCHDOG_DELAY` | `5` | Check interval in seconds |
-| `veafQraManager.MINIMUM_LIFE_FOR_QRA_IN_PERCENT` | `10` | Minimum QRA unit life before considered destroyed |
-| `veafQraManager.DEFAULT_airbaseMinLifePercent` | `0.9` | Default airbase health threshold |
-| `veafQraManager.AllSilence` | `false` | Globally suppress all QRA messages |
-
----
-
-## Example: Multiple QRA Zones
-
-```lua
--- Northern zone defended by MiG-29s, tied to Beslan airbase
+-- Zone nord défendue par des MiG-29, liée à la base de Beslan
 VeafQRA:new()
   :setName("QRA-NORTH")
   :setTriggerZone("ZONE-NORTH-DEFENSE")
@@ -295,7 +259,7 @@ VeafQRA:new()
   :setDelayBeforeRearming(600)
   :start()
 
--- Southern zone, always active, silent
+-- Zone sud, toujours active, silencieuse
 VeafQRA:new()
   :setName("QRA-SOUTH")
   :setTriggerZone("ZONE-SOUTH-DEFENSE")
@@ -305,10 +269,10 @@ VeafQRA:new()
   :start()
 ```
 
-### Example: Finite stock with resupply
+### Exemple : stock limité avec ravitaillement
 
 ```lua
--- 4 groups total, max 2 active at once, resupply 1 group every 30 min
+-- 4 groupes au total, max 2 actifs simultanément, +1 groupe toutes les 30 min
 VeafQRA:new()
   :setName("QRA-LIMITED")
   :setTriggerZone("ZONE-LIMITED")
@@ -324,7 +288,7 @@ VeafQRA:new()
 
 ---
 
-## See Also
+## Voir aussi
 
-- [veafAirWaves](veafAirWaves.md) — wave-based AI attack system (vs QRA which is defensive)
-- [Lua API Reference](../../LUA_API_REFERENCE.md) — full `veafQraManager` API
+- [veafAirWaves](veafAirWaves.md) — système d'attaque IA par vagues (vs QRA qui est défensif)
+- [Référence API Lua](../../LUA_API_REFERENCE.md) — API complète de `veafQraManager`

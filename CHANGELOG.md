@@ -13,11 +13,16 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `lua_config_generator.py`: CSAR YAML support — `external_modules.csar` in `mission.yaml` generates `csar.xxx` property assignments and `csar.initialize()` in `veaf-config.lua`, symmetric to the existing CTLD support
 - `lua_config_generator.py`: CTLD block now wrapped in `if ctld then … end` guard and includes `ctld.initialize()` call — no more manual `ctld.initialize()` required in `mission-script.lua` when using YAML-first config
 - `doc/mission-maker/GUIDE.md` (+ `.fr.md`): CSAR YAML-first configuration documented; Lua fallback sections kept for complex settings (e.g. `aircraftType` tables)
+- `doc/developer/GUIDE.md` (+ `.fr.md`): new "Developer Mode" section documenting `dev_mode` / `scripts_path` — concept, activation priority chain, workflow
+- `doc/MISSION_YAML_REFERENCE.md` (+ `.fr.md`): new `build:` section documenting `dev_mode` and `scripts_path` fields
 
 ### Fixed
 - `lua_config_generator.py`: asset `description`, `name`, `information` fields containing `\n` or `"` now use Lua long-string syntax (`[[...]]`) instead of plain `"..."` — prevents Lua syntax error at mission load
 - `mission_builder_worker.py`: `complete_src_folder_with_defaults()` no longer copies the default `versions.yaml` when a legacy `missions.yaml` already exists in `src/`; emits a warning prompting to rename it
 - `mission_builder_worker.py`: added `missions.yaml` to `_DEFAULT_FILE_MODULE_MAP` (pipeline `weather`) — covers future orphan-warning cases
+- `v5_converter.py`: migration backup now uses the original filename `missionConfig.lua` instead of `missionConfig.lua.bak` — consistent with all other backup files in `backup_v5/`
+- `mission_builder_worker.py`: `_DEFAULT_FILE_MODULE_MAP` no longer includes `presets.md`; corresponding default file `src/defaults/mission-folder/src/presets.md` deleted — docs are online, silent file creation was undesirable
+- `build.py`: warn when `src/aircraft-templates.yaml` exists in the mission folder but the `aircraft_groups` pipeline step is disabled or skipped
 
 ---
 

@@ -130,5 +130,55 @@ class TestCompleteDefaultsOrphanWarning(unittest.TestCase):
         self.assertTrue(orphan_warnings, "Expected at least one orphan warning")
 
 
+class TestWeatherAliasCoexistence(unittest.TestCase):
+    """WEATHER-001/002: versions.yaml copy skipped when legacy missions.yaml is present (FIX-WEATHER-ALIAS)."""
+
+    def _run_with_warnings(self, mission_folder: Path, defaults_folder: Path, mission_yaml: dict) -> list[str]:
+        from unittest.mock import patch
+
+        from veaf_libs.logger import logger
+
+        worker = _make_worker(mission_folder, defaults_folder, mission_yaml)
+        warnings: list[str] = []
+        orig_warning = logger.warning
+
+        def capture_warning(msg, *args, **kwargs):
+            warnings.append(str(msg))
+            return orig_warning(msg, *args, **kwargs)
+
+        with patch.object(logger, "warning", side_effect=capture_warning):
+            worker.complete_src_folder_with_defaults()
+
+        return warnings
+
+    def test_versions_not_copied_when_missions_exists(self) -> None:
+        """versions.yaml is NOT copied if src/missions.yaml already exists in mission folder."""
+        tmpdir = Path(tempfile.mkdtemp())
+        defaults_folder = tmpdir / "published" / "src" / "defaults" / "mission-folder"
+        _seed_defaults(defaults_folder, "versions.yaml")
+        (tmpdir / "src").mkdir(parents=True, exist_ok=True)
+        (tmpdir / "src" / "missions.yaml").write_text("# legacy weather config", encoding="utf-8")
+
+        warnings = self._run_with_warnings(tmpdir, defaults_folder, {})
+
+        self.assertFalse((tmpdir / "src" / "versions.yaml").exists(), "versions.yaml must not be created")
+        self.assertTrue(
+            any("missions.yaml" in w for w in warnings),
+            f"Expected a warning mentioning missions.yaml; got: {warnings}",
+        )
+        shutil.rmtree(tmpdir)
+
+    def test_versions_copied_when_missions_absent(self) -> None:
+        """versions.yaml IS copied normally when no legacy missions.yaml exists."""
+        tmpdir = Path(tempfile.mkdtemp())
+        defaults_folder = tmpdir / "published" / "src" / "defaults" / "mission-folder"
+        _seed_defaults(defaults_folder, "versions.yaml")
+
+        self._run_with_warnings(tmpdir, defaults_folder, {})
+
+        self.assertTrue((tmpdir / "src" / "versions.yaml").exists(), "versions.yaml must be copied")
+        shutil.rmtree(tmpdir)
+
+
 if __name__ == "__main__":
     unittest.main()

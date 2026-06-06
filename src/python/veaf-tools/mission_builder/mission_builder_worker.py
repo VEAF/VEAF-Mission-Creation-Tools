@@ -245,7 +245,6 @@ class MissionBuilderWorker(BaseWorker):
             "templates.yaml": {"lua_module": "SPAWN"},
             "waypoints.yaml": {"pipeline": "waypoints"},
             "presets.yaml": {"pipeline": "presets"},
-            "presets.md": {"pipeline": "presets"},
             "versions.yaml": {"pipeline": "weather"},
             "missions.yaml": {"pipeline": "weather"},
         }

@@ -54,7 +54,7 @@
 | Lot 26 — IMC-FEEDBACK | ~2h40 | ✅ |
 | Lot FIX-BUNDLE — VEAFCOMMANDS MISSING | ~10 min | ✅ |
 | Lot FIX-ASSETS-NEWLINE — ASSETS newline in Lua string | ~20 min | ✅ |
-| Lot FIX-WEATHER-ALIAS — missions.yaml + versions.yaml coexistence | ~25 min | ⬜ |
+| Lot FIX-WEATHER-ALIAS — missions.yaml + versions.yaml coexistence | ~25 min | ✅ |
 | Lot FIX-MISSIONCONFIG-BAK — supprimer extension .bak inutile | ~20 min | ⬜ |
 | Lot FIX-README-COPY — ne plus copier presets.md dans src/ | ~10 min | ⬜ |
 | Lot FIX-AIRCRAFT-ORPHAN — alerte fichier orphelin manquante pour aircraft-templates.yaml | ~15 min | ⬜ |
@@ -608,9 +608,9 @@ Assert:
 
 | # | Ticket | Files | Type | Effort | Status |
 |---|--------|-------|------|--------|--------|
-| WEATHER-001 | `complete_src_folder_with_defaults()`: skip copying `versions.yaml` if `missions.yaml` already exists in `src/`; emit `logger.warning` with migration message | `mission_builder/mission_builder_worker.py` | fix | 10 min | ⬜ |
-| WEATHER-002 | Add `"missions.yaml": {"pipeline": "weather"}` to `_DEFAULT_FILE_MODULE_MAP` for orphan-warning coverage | `mission_builder/mission_builder_worker.py` | fix | 5 min | ⬜ |
-| WEATHER-003 | Unit test: mission folder with existing `src/missions.yaml` → `complete_src_folder_with_defaults()` does not create `src/versions.yaml` + warning is emitted | `test/python/test_mission_builder_worker.py` | chore | 10 min | ⬜ |
+| WEATHER-001 | `complete_src_folder_with_defaults()`: skip copying `versions.yaml` if `missions.yaml` already exists in `src/`; emit `logger.warning` with migration message | `mission_builder/mission_builder_worker.py` | fix | 10 min | ✅ |
+| WEATHER-002 | Add `"missions.yaml": {"pipeline": "weather"}` to `_DEFAULT_FILE_MODULE_MAP` for orphan-warning coverage | `mission_builder/mission_builder_worker.py` | fix | 5 min | ✅ |
+| WEATHER-003 | Unit test: mission folder with existing `src/missions.yaml` → `complete_src_folder_with_defaults()` does not create `src/versions.yaml` + warning is emitted | `test/python/test_mission_builder_worker.py` | chore | 10 min | ✅ |
 
 **Raw total: 25 min → estimated (×1.15): ~29 min (~30 min)**
 

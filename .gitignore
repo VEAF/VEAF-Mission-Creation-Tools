@@ -3,6 +3,9 @@ site/
 node_modules/
 cache/
 
+# Claude Code local settings (personal, not shared)
+.claude/settings.local.json
+
 # luacov coverage artefacts
 luacov.stats.out
 luacov.report.out

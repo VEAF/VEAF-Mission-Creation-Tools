@@ -116,7 +116,7 @@ python --version   # Python 3.11 or higher expected
 Poetry manages Python virtual environments and project dependencies. The recommended installation method is via `pipx`, which isolates Poetry in its own environment:
 
 ```powershell
-pip install pipx
+python -m pip install pipx
 pipx ensurepath        # adds ~/.local/bin to PATH — restart the terminal afterwards
 pipx install poetry
 ```

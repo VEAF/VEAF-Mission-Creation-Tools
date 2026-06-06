@@ -650,4 +650,8 @@ end
 ---------------------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------
 
+function veafSkynetMonitor.initialize()
+  veaf.loggers.get(veafSkynetMonitor.Id):info("Initializing module")
+end
+
 veaf.loggers.get(veafSkynetMonitor.Id):info(veaf.loggers.get(veafSkynetMonitor.Id):getVersionInfo(veafSkynetMonitor.Version))

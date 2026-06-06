@@ -63,9 +63,42 @@
 | Lot FEAT-MODULE-UX — Catégories, modules obligatoires, dépendances | ~2h | [archived](backlog-archive.md) |
 | Lot FEAT-GITIGNORE — Template `.gitignore` VEAF MCT dans les defaults | ~25 min | [archived](backlog-archive.md) |
 | Lot FIX-OLDSCRIPTS — Détection fichiers .lua résiduels dans src/scripts/ | ~45 min | ✅ |
-| **Total** | **~167h20** | |
+| Lot FIX-MARKERS-INIT — Ajout de `veafMarkers.initialize()` manquante | ~5 min | ✅ |
+| Lot FIX-MISSING-INIT — `initialize()` manquante sur 4 modules Lua | ~20 min | ✅ |
+| **Total** | **~167h45** | |
 
 *Initial calibration factor: 1.15 — recalculate after each completed lot.*
+
+---
+
+## Lot FIX-MISSING-INIT — `initialize()` manquante sur 4 modules Lua
+
+**Goal**: Corriger les crashes DCS runtime `attempt to call field 'initialize' (a nil value)` sur les modules non encore couverts.
+
+**Context**: Le build Python (`lua_config_generator.py`) génère un appel `<module>.initialize()` pour tous les modules listés dans `_MODULE_INIT_ORDER`. Audit complet révèle 4 modules sans cette fonction : `veafCacheManager`, `veafTime`, `veafUnits`, `veafSkynetIadsMonitor`.
+
+**Branch**: `fix/missing-initialize-fns` → PR → `develop-v6`
+
+| # | Ticket | Files | Type | Effort | Status |
+|---|--------|-------|------|--------|--------|
+| MISSING-INIT-001 | Ajouter `initialize()` dans `veafCacheManager.lua` | `src/scripts/veaf/veafCacheManager.lua` | fix | 5 min | ✅ |
+| MISSING-INIT-002 | Ajouter `initialize()` dans `veafTime.lua` | `src/scripts/veaf/veafTime.lua` | fix | 5 min | ✅ |
+| MISSING-INIT-003 | Ajouter `initialize()` dans `veafUnits.lua` | `src/scripts/veaf/veafUnits.lua` | fix | 5 min | ✅ |
+| MISSING-INIT-004 | Ajouter `initialize()` dans `veafSkynetIadsMonitor.lua` | `src/scripts/veaf/veafSkynetIadsMonitor.lua` | fix | 5 min | ✅ |
+
+---
+
+## Lot FIX-MARKERS-INIT — Ajout de `veafMarkers.initialize()` manquante
+
+**Goal**: Corriger l'erreur DCS runtime `attempt to call field 'initialize' (a nil value)` sur `veafMarkers`.
+
+**Context**: La fonction `initialize()` était absente de `veafMarkers.lua` alors que `veaf-config.lua` l'appelle systématiquement. Le module était déjà auto-initialisé au chargement ; la fonction ajoutée se contente de logger.
+
+**Branch**: commit direct sans branche (fix minimal, testé par l'utilisateur)
+
+| # | Ticket | Files | Type | Effort | Status |
+|---|--------|-------|------|--------|--------|
+| MARKERS-INIT-001 | Ajouter `veafMarkers.initialize()` dans `src/scripts/veaf/veafMarkers.lua` | `src/scripts/veaf/veafMarkers.lua` | fix | 5 min | ✅ |
 
 ---
 

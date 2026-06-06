@@ -125,4 +125,8 @@ function VeafCache:getCachedData(key)
   return nil
 end
 
+function veafCacheManager.initialize()
+  veaf.loggers.get(veafCacheManager.Id):info("Initializing module")
+end
+
 veaf.loggers.get(veafCacheManager.Id):info(veaf.loggers.get(veafCacheManager.Id):getVersionInfo(veafCacheManager.Version))

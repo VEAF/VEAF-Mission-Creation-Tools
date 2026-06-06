@@ -192,3 +192,19 @@
 #
 # veaf_tools:
 #   version: "6"         # accept any 6.x.x
+# ── Build profiles ────────────────────────────────────────────────────────────
+# Named overrides applied when building with: veaf-tools build --profile <name>
+# Keys in the profile deep-merge onto the base config above.
+# Lists are replaced, not concatenated.
+#
+# profiles:
+#   TEST:
+#     global_log_level: debug
+#     security:
+#       disabled: true
+#     pipeline:
+#       weather: false
+#   SERVER:
+#     global_log_level: info
+#     pipeline:
+#       weather: true

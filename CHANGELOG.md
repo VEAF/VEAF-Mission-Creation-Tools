@@ -10,6 +10,12 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- `veaf_libs/build_profiles.py`: new `resolve_profile(yaml_data, profile_name)` function — deep-merges a named profile from the `profiles:` section of `mission.yaml` onto the base config; lists are replaced, not concatenated; `profiles:` key is stripped from the effective config
+- `mission_builder_worker.py`: `MissionBuilderWorker.__init__` now accepts `profile_name: str | None`; calls `resolve_profile` immediately after loading `mission.yaml`, before any other config resolution
+- `veaf_tools/commands/build.py`: new `--profile` / `-p` option on `veaf-tools build` to select a named build profile at build time
+- `src/defaults/mission-folder/mission.yaml`: new commented `profiles:` section with `TEST` and `SERVER` examples
+- `doc/MISSION_YAML_REFERENCE.md` (+ `.fr.md`): new `profiles:` section; entry added to the Build Pipeline index
+- `doc/mission-maker/GUIDE.md` (+ `.fr.md`): new "Build Profiles" section explaining `--profile` usage with an example
 - `lua_config_generator.py`: CSAR YAML support — `external_modules.csar` in `mission.yaml` generates `csar.xxx` property assignments and `csar.initialize()` in `veaf-config.lua`, symmetric to the existing CTLD support
 - `lua_config_generator.py`: CTLD block now wrapped in `if ctld then … end` guard and includes `ctld.initialize()` call — no more manual `ctld.initialize()` required in `mission-script.lua` when using YAML-first config
 - `doc/mission-maker/GUIDE.md` (+ `.fr.md`): CSAR YAML-first configuration documented; Lua fallback sections kept for complex settings (e.g. `aircraftType` tables)

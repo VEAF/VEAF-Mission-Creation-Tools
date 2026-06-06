@@ -20,6 +20,7 @@ from mission_tools import (
 )
 from veaf_libs import user_config as _user_config
 from veaf_libs.base_worker import BaseWorker
+from veaf_libs.build_profiles import resolve_profile
 from veaf_libs.i18n import t
 from veaf_libs.logger import logger
 from veaf_libs.lua_config_generator import generate_config_lua
@@ -43,6 +44,7 @@ class MissionBuilderWorker(BaseWorker):
         log_modules_filter: str | None = None,
         migrate_from_v5: bool = True,
         no_veaf_triggers: bool = False,
+        profile_name: str | None = None,
     ):
         """
         Initialize the worker.  Config resolution priority: CLI override > mission.yaml > user config > code defaults.
@@ -59,13 +61,14 @@ class MissionBuilderWorker(BaseWorker):
         self.collected_mission_script_files: dict[str, bytes] | None = None
         self.collected_mission_data_files: dict[str, bytes] | None = None
 
-        # Read mission.yaml
+        # Read mission.yaml, then apply build profile (deep-merge)
         self.mission_yaml: dict = {}
         self.pipeline_cfg: dict = {}
         mission_yaml_path = mission_folder / "mission.yaml"
         if mission_yaml_path.exists():
             with mission_yaml_path.open("r", encoding="utf-8") as fh:
-                self.mission_yaml = yaml.safe_load(fh) or {}
+                raw_yaml: dict = yaml.safe_load(fh) or {}
+            self.mission_yaml = resolve_profile(raw_yaml, profile_name)
         build_cfg: dict = self.mission_yaml.get("build") or {}
         self.pipeline_cfg = self.mission_yaml.get("pipeline") or {}
 

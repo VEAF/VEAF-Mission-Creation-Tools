@@ -44,6 +44,12 @@ def build(
         None,
         help=t("cmd.build.opt.scripts_path"),
     ),
+    profile: str | None = typer.Option(
+        None,
+        "--profile",
+        "-p",
+        help=t("cmd.build.opt.profile"),
+    ),
     migrate_from_v5: bool = typer.Option(True, help=t("cmd.build.opt.migrate_from_v5")),
     log_modules: str | None = typer.Option(
         None,
@@ -104,6 +110,7 @@ def build(
         output_mission=p_output_mission,
         migrate_from_v5=migrate_from_v5,
         no_veaf_triggers=no_veaf_triggers,
+        profile_name=profile,
     )
     worker.work()
 

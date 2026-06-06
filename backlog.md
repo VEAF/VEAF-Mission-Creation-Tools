@@ -59,7 +59,7 @@
 | Lot FIX-README-COPY — ne plus copier presets.md dans src/ | ~10 min | ✅ |
 | Lot FIX-AIRCRAFT-ORPHAN — alerte fichier orphelin manquante pour aircraft-templates.yaml | ~15 min | ✅ |
 | Lot DOC-DEV-MODE — documenter dev_mode + scripts_path | ~30 min | ✅ |
-| Lot FEAT-PROFILES — profils de build dans mission.yaml | ~3h | ⬜ |
+| Lot FEAT-PROFILES — profils de build dans mission.yaml | ~3h | ✅ |
 | Lot FEAT-MODULE-UX — Catégories, modules obligatoires, dépendances | ~2h | ⬜ |
 | Lot FEAT-GITIGNORE — Template `.gitignore` VEAF MCT dans les defaults | ~25 min | ⬜ |
 | **Total** | **~167h20** | |

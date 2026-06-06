@@ -180,5 +180,89 @@ class TestWeatherAliasCoexistence(unittest.TestCase):
         self.assertTrue((tmpdir / "src" / "versions.yaml").exists(), "versions.yaml must be copied")
 
 
+class TestOldScriptsDetection(unittest.TestCase):
+    """OLDSCRIPTS-002: warn when unexpected .lua files are present in src/scripts/."""
+
+    def _run_with_warnings(self, mission_folder: Path) -> list[str]:
+        from unittest.mock import patch
+
+        from veaf_libs.logger import logger
+
+        # Minimal defaults folder (empty — we only care about the scripts/ check)
+        defaults_folder = mission_folder / "published" / "src" / "defaults" / "mission-folder"
+        defaults_folder.mkdir(parents=True, exist_ok=True)
+        worker = _make_worker(mission_folder, defaults_folder, {})
+
+        warnings: list[str] = []
+        orig_warning = logger.warning
+
+        def capture_warning(msg, *args, **kwargs):
+            formatted = msg % args if args else str(msg)
+            warnings.append(formatted)
+            return orig_warning(msg, *args, **kwargs)
+
+        with patch.object(logger, "warning", side_effect=capture_warning):
+            worker.complete_src_folder_with_defaults()
+
+        return warnings
+
+    def test_no_warning_for_expected_files(self) -> None:
+        """veaf-config.lua, mission-script.lua, veafDynamicConfig.lua must not trigger a warning."""
+        tmpdir = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, tmpdir)
+        scripts_dir = tmpdir / "src" / "scripts"
+        scripts_dir.mkdir(parents=True)
+        for name in ("veaf-config.lua", "mission-script.lua", "veafDynamicConfig.lua"):
+            (scripts_dir / name).write_text("-- ok", encoding="utf-8")
+
+        warnings = self._run_with_warnings(tmpdir)
+
+        unexpected = [w for w in warnings if "Unexpected Lua file" in w]
+        self.assertEqual(unexpected, [], f"Unexpected warnings: {unexpected}")
+
+    def test_warning_for_residual_v5_file(self) -> None:
+        """A leftover v5 file like veafSecurity.lua must trigger a warning."""
+        tmpdir = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, tmpdir)
+        scripts_dir = tmpdir / "src" / "scripts"
+        scripts_dir.mkdir(parents=True)
+        (scripts_dir / "veafSecurity.lua").write_text("-- v5 residue", encoding="utf-8")
+
+        warnings = self._run_with_warnings(tmpdir)
+
+        unexpected = [w for w in warnings if "Unexpected Lua file" in w]
+        self.assertTrue(unexpected, "Expected a warning for veafSecurity.lua")
+        self.assertTrue(any("veafSecurity.lua" in w for w in unexpected))
+
+    def test_mixed_expected_and_unexpected_lua_files(self) -> None:
+        """Only unexpected files warn; expected files alongside them must not."""
+        tmpdir = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, tmpdir)
+        scripts_dir = tmpdir / "src" / "scripts"
+        scripts_dir.mkdir(parents=True)
+        for name in ("veaf-config.lua", "mission-script.lua", "veafDynamicConfig.lua"):
+            (scripts_dir / name).write_text("-- ok", encoding="utf-8")
+        (scripts_dir / "veafSecurity.lua").write_text("-- v5 residue", encoding="utf-8")
+
+        warnings = self._run_with_warnings(tmpdir)
+
+        unexpected = [w for w in warnings if "Unexpected Lua file" in w]
+        self.assertTrue(unexpected, "Expected a warning for veafSecurity.lua when mixed with valid files")
+        self.assertTrue(any("veafSecurity.lua" in w for w in unexpected))
+        self.assertFalse(any("veaf-config.lua" in w for w in unexpected))
+        self.assertFalse(any("mission-script.lua" in w for w in unexpected))
+        self.assertFalse(any("veafDynamicConfig.lua" in w for w in unexpected))
+
+    def test_no_warning_when_scripts_dir_absent(self) -> None:
+        """No error or warning when src/scripts/ does not exist."""
+        tmpdir = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, tmpdir)
+
+        warnings = self._run_with_warnings(tmpdir)
+
+        unexpected = [w for w in warnings if "Unexpected Lua file" in w]
+        self.assertEqual(unexpected, [])
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -28,6 +28,16 @@ from veaf_libs.lua_module_scanner import get_modules
 from veaf_libs.paths import resolve_path
 from veaf_libs.progress import spinner_context
 
+# Lua files that are always expected in src/scripts/ of a VEAF v6 mission folder.
+# Any other .lua file found there is flagged as a potential v5 residue.
+_EXPECTED_SCRIPTS: frozenset[str] = frozenset(
+    {
+        "veaf-config.lua",
+        "mission-script.lua",
+        "veafDynamicConfig.lua",
+    }
+)
+
 
 class MissionBuilderWorker(BaseWorker):
     """
@@ -299,6 +309,22 @@ class MissionBuilderWorker(BaseWorker):
                     relative_path.parent.mkdir(parents=True, exist_ok=True)
                     logger.warning(f"Copied required file '{relative_path}' from default folder '{defaults_folder}'")
                     shutil.copy(f, relative_path)
+
+        # OLDSCRIPTS-002: warn about unexpected .lua files in src/scripts/
+        # The glob src/scripts/*.lua in get_mission_script_files() picks up ALL .lua files in
+        # that folder, including potential v5 residues (e.g. veafSecurity.lua, veafCommands.lua).
+        # Those would be loaded as individual DCS mission scripts and may conflict with the
+        # bundled veaf-scripts.lua loaded by the VEAF triggers.
+        scripts_dir = self.mission_folder / "src" / "scripts"
+        if scripts_dir.is_dir():
+            for lua_file in scripts_dir.glob("*.lua"):
+                if lua_file.name not in _EXPECTED_SCRIPTS:
+                    logger.warning(
+                        f"Unexpected Lua file 'src/scripts/{lua_file.name}' found in your mission folder. "
+                        f"This file will be loaded as a DCS mission script and may conflict with "
+                        f"the bundled veaf-scripts.lua. "
+                        f"If this is a leftover v5 VEAF script, delete it."
+                    )
 
     def create_mission(self) -> None:
         """Creates the initial mission file from the mission folder."""

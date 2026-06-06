@@ -62,7 +62,7 @@
 | Lot FEAT-PROFILES — profils de build dans mission.yaml | ~3h | [archived](backlog-archive.md) |
 | Lot FEAT-MODULE-UX — Catégories, modules obligatoires, dépendances | ~2h | [archived](backlog-archive.md) |
 | Lot FEAT-GITIGNORE — Template `.gitignore` VEAF MCT dans les defaults | ~25 min | [archived](backlog-archive.md) |
-| Lot FIX-OLDSCRIPTS — Détection fichiers .lua résiduels dans src/scripts/ | ~45 min | ⬜ |
+| Lot FIX-OLDSCRIPTS — Détection fichiers .lua résiduels dans src/scripts/ | ~45 min | ✅ |
 | **Total** | **~167h20** | |
 
 *Initial calibration factor: 1.15 — recalculate after each completed lot.*
@@ -79,9 +79,9 @@
 
 | # | Ticket | Files | Type | Effort | Status |
 |---|--------|-------|------|--------|--------|
-| OLDSCRIPTS-000 | Investigation : reproduire le bug avec une vraie mission v5→v6 ; obtenir les logs DCS complets ; identifier le fichier responsable | — | chore | 15 min | ⬜ |
-| OLDSCRIPTS-001 | Fix : selon le résultat de l'investigation, corriger la cause racine identifiée | TBD | fix | TBD | ⬜ |
-| OLDSCRIPTS-002 | Ajouter un warning si des fichiers `.lua` inattendus sont présents dans `src/scripts/` (i.e. non listés explicitement dans `get_mission_script_files()`) | `mission_tools/mission_constants.py` ou `mission_builder_worker.py` | fix | 15 min | ⬜ |
+| OLDSCRIPTS-000 | Investigation : reproduire le bug avec une vraie mission v5→v6 ; obtenir les logs DCS complets ; identifier le fichier responsable | — | chore | 15 min | ✅ (résolu — voir contexte) |
+| OLDSCRIPTS-001 | Fix : selon le résultat de l'investigation, corriger la cause racine identifiée | TBD | fix | TBD | ✅ (résolu par FIX-BUNDLE) |
+| OLDSCRIPTS-002 | Ajouter un warning si des fichiers `.lua` inattendus sont présents dans `src/scripts/` (i.e. non listés explicitement dans `get_mission_script_files()`) | `mission_tools/mission_constants.py` ou `mission_builder_worker.py` | fix | 15 min | ✅ |
 
 **Raw total: ~45 min estimé (hors investigation)**
 

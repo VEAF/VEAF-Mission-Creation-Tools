@@ -672,9 +672,24 @@ def generate_config_lua(
     if ctld_cfg.get("enabled"):
         lines.append("-- ── CTLD configuration ───────────────────────────────────────────────────────")
         lines.append("-- Note: CTLD.lua must be loaded by mission-script.lua before this block.")
+        lines.append("if ctld then")
         ctld_props = {k: v for k, v in ctld_cfg.items() if k != "enabled"}
         for key, value in ctld_props.items():
-            lines.append(f"ctld.{key} = {_to_lua_scalar(value)}")
+            lines.append(f"    ctld.{key} = {_to_lua_scalar(value)}")
+        lines.append("    ctld.initialize()")
+        lines.append("end")
+        lines.append("")
+
+    csar_cfg: dict = external_modules.get("csar") or {}
+    if csar_cfg.get("enabled"):
+        lines.append("-- ── CSAR configuration ───────────────────────────────────────────────────────")
+        lines.append("-- Note: CSAR.lua must be loaded by mission-script.lua before this block.")
+        lines.append("if csar then")
+        csar_props = {k: v for k, v in csar_cfg.items() if k != "enabled"}
+        for key, value in csar_props.items():
+            lines.append(f"    csar.{key} = {_to_lua_scalar(value)}")
+        lines.append("    csar.initialize()")
+        lines.append("end")
         lines.append("")
 
     return "\n".join(lines)
@@ -794,6 +809,9 @@ def generate_mission_yaml_template(
         "#   ctld:",
         "#     enabled: false",
         "#     # ctld.xxx = value  (e.g. hoverPickup: true)",
+        "#   csar:",
+        "#     enabled: false",
+        "#     # csar.xxx = value  (e.g. enableAllslots: true)",
     ]
 
     # ── QRA ───────────────────────────────────────────────────────────────

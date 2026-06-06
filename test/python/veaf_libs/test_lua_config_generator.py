@@ -119,3 +119,79 @@ def test_assets_plain_information_uses_quoted_string():
     }
     lua = generate_config_lua(yaml_data)
     assert 'information = "No newlines here"' in lua
+
+
+# ---------------------------------------------------------------------------
+# External modules — CTLD
+# ---------------------------------------------------------------------------
+
+
+def test_ctld_enabled_generates_guard_and_initialize():
+    yaml_data: dict = {
+        "external_modules": {
+            "ctld": {"enabled": True, "hoverPickup": False, "slingLoad": True}
+        }
+    }
+    lua = generate_config_lua(yaml_data)
+    assert "if ctld then" in lua
+    assert "ctld.hoverPickup = false" in lua
+    assert "ctld.slingLoad = true" in lua
+    assert "ctld.initialize()" in lua
+    assert "end" in lua
+
+
+def test_ctld_disabled_emits_nothing():
+    yaml_data: dict = {"external_modules": {"ctld": {"enabled": False}}}
+    lua = generate_config_lua(yaml_data)
+    assert "ctld" not in lua
+
+
+def test_ctld_missing_emits_nothing():
+    yaml_data: dict = {"external_modules": {}}
+    lua = generate_config_lua(yaml_data)
+    assert "ctld" not in lua
+
+
+# ---------------------------------------------------------------------------
+# External modules — CSAR
+# ---------------------------------------------------------------------------
+
+
+def test_csar_enabled_generates_guard_and_initialize():
+    yaml_data: dict = {
+        "external_modules": {
+            "csar": {"enabled": True, "enableAllslots": True, "useprefix": True}
+        }
+    }
+    lua = generate_config_lua(yaml_data)
+    assert "if csar then" in lua
+    assert "csar.enableAllslots = true" in lua
+    assert "csar.useprefix = true" in lua
+    assert "csar.initialize()" in lua
+    assert "end" in lua
+
+
+def test_csar_disabled_emits_nothing():
+    yaml_data: dict = {"external_modules": {"csar": {"enabled": False}}}
+    lua = generate_config_lua(yaml_data)
+    assert "csar" not in lua
+
+
+def test_csar_missing_emits_nothing():
+    yaml_data: dict = {"external_modules": {}}
+    lua = generate_config_lua(yaml_data)
+    assert "csar" not in lua
+
+
+def test_ctld_and_csar_both_enabled():
+    yaml_data: dict = {
+        "external_modules": {
+            "ctld": {"enabled": True, "hoverPickup": True},
+            "csar": {"enabled": True, "enableAllslots": False},
+        }
+    }
+    lua = generate_config_lua(yaml_data)
+    assert "if ctld then" in lua
+    assert "if csar then" in lua
+    assert "ctld.initialize()" in lua
+    assert "csar.initialize()" in lua

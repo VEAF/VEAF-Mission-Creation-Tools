@@ -113,6 +113,9 @@
 #   ctld:
 #     enabled: false
 #     # ctld.xxx = value pairs go here (e.g. hoverPickup: true)
+#   csar:
+#     enabled: false
+#     # csar.xxx = value pairs go here (e.g. enableAllslots: true)
 
 # ── QRA (Quick Reaction Alert) ────────────────────────────────────────────────
 # Requires QRA module enabled in lua_modules above.

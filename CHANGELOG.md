@@ -9,6 +9,11 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+- `lua_config_generator.py`: CSAR YAML support — `external_modules.csar` in `mission.yaml` generates `csar.xxx` property assignments and `csar.initialize()` in `veaf-config.lua`, symmetric to the existing CTLD support
+- `lua_config_generator.py`: CTLD block now wrapped in `if ctld then … end` guard and includes `ctld.initialize()` call — no more manual `ctld.initialize()` required in `mission-script.lua` when using YAML-first config
+- `doc/mission-maker/GUIDE.md` (+ `.fr.md`): CSAR YAML-first configuration documented; Lua fallback sections kept for complex settings (e.g. `aircraftType` tables)
+
 ### Fixed
 - `lua_config_generator.py`: asset `description`, `name`, `information` fields containing `\n` or `"` now use Lua long-string syntax (`[[...]]`) instead of plain `"..."` — prevents Lua syntax error at mission load
 

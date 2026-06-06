@@ -9,6 +9,9 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+- `veafCacheManager.lua`, `veafTime.lua`, `veafUnits.lua`, `veafSkynetIadsMonitor.lua`: added missing `initialize()` function — the generated `veaf-config.lua` calls `<module>.initialize()` on every listed module; absence caused a DCS runtime crash (`attempt to call field 'initialize' (a nil value)`)
+
 ### Added
 - `mission_builder_worker.py`: `complete_src_folder_with_defaults()` now warns when unexpected `.lua` files are found in `src/scripts/` (potential v5 residues that would be loaded as DCS mission scripts and may conflict with the bundled `veaf-scripts.lua`)
 - `prepare.py`: `.gitignore` template added to `src/defaults/mission-folder/` — copied on `veaf-tools prepare` when absent; never overwritten (even with `--force`) to preserve user customizations

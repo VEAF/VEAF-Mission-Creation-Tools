@@ -2274,6 +2274,10 @@ veafUnits.GroupsDatabase = {
   },
 }
 
+function veafUnits.initialize()
+  veaf.loggers.get(veafUnits.Id):info("Initializing module")
+end
+
 veaf.loggers.get(veafUnits.Id):info(string.format("Loading version %s", veafUnits.Version))
 
 if veafUnits.OutputListsForDocumentation then

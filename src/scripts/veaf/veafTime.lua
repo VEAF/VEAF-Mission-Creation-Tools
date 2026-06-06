@@ -723,4 +723,8 @@ elseif (sTheatre == "afghanistan") then
 end
 ]]
 
+function veafTime.initialize()
+  veaf.loggers.get(veafTime.Id):info("Initializing module")
+end
+
 veaf.loggers.get(veafTime.Id):info(veaf.loggers.get(veafTime.Id):getVersionInfo(veafTime.Version))

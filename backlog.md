@@ -49,7 +49,7 @@
 | Lot 22 — TEST-LAYOUT | ~55 min | ✅ |
 x| Lot 23 — DOC-YAML | ~8h20 | ✅ |
 | Lot 24 — DOC-REVIEW | ~2h45 | ✅ (REV-002 différé) |
-| Lot 25 — EXT-YAML | ~2h | ⬜ |
+| Lot 25 — EXT-YAML | ~2h | ✅ |
 | Lot FIX-SORT — LUADATA FIX | ~15 min | ✅ |
 | Lot 26 — IMC-FEEDBACK | ~2h40 | ✅ |
 | Lot FIX-BUNDLE — VEAFCOMMANDS MISSING | ~10 min | ✅ |
@@ -1289,10 +1289,10 @@ Les builder-chains Lua sont l'API bas niveau. En v6, QRA, CombatZone et AirWaves
 
 | # | Ticket | Fichiers touchés | Type | Effort | Status |
 |---|--------|-----------------|------|--------|--------|
-| EXT-001 | Ajouter support `external_modules.csar` dans `lua_config_generator.py` : générer `csar.xxx = value` + `csar.initialize()` depuis YAML, symétrique à l'implémentation CTLD existante | `veaf_libs/lua_config_generator.py`, `src/defaults/mission-folder/mission.yaml` | feature | 30 min | ⬜ |
-| EXT-002 | Étendre le support CTLD : générer l'appel `ctld.initialize()` depuis YAML (actuellement seules les propriétés sont générées, l'appel `initialize` lui-même reste en Lua) | `veaf_libs/lua_config_generator.py` | feature | 20 min | ⬜ |
-| EXT-003 | Tests unitaires pour EXT-001 et EXT-002 : vérifier la génération Lua correcte depuis des configs YAML CTLD/CSAR types (enabled/disabled, propriétés, initialize call) | `test/python/veaf_libs/test_lua_config_generator.py` | test | 40 min | ⬜ |
-| EXT-004 | Mettre à jour `GUIDE.md` (+ `.fr.md`) section "CTLD and CSAR Integration" : remplacer les exemples Lua callback par des exemples YAML-first, conserver Lua comme fallback | `doc/mission-maker/GUIDE.md`, `doc/mission-maker/GUIDE.fr.md` | doc | 30 min | ⬜ |
+| EXT-001 | Ajouter support `external_modules.csar` dans `lua_config_generator.py` : générer `csar.xxx = value` + `csar.initialize()` depuis YAML, symétrique à l'implémentation CTLD existante | `veaf_libs/lua_config_generator.py`, `src/defaults/mission-folder/mission.yaml` | feature | 30 min | ✅ |
+| EXT-002 | Étendre le support CTLD : générer l'appel `ctld.initialize()` depuis YAML (actuellement seules les propriétés sont générées, l'appel `initialize` lui-même reste en Lua) | `veaf_libs/lua_config_generator.py` | feature | 20 min | ✅ |
+| EXT-003 | Tests unitaires pour EXT-001 et EXT-002 : vérifier la génération Lua correcte depuis des configs YAML CTLD/CSAR types (enabled/disabled, propriétés, initialize call) | `test/python/veaf_libs/test_lua_config_generator.py` | test | 40 min | ✅ |
+| EXT-004 | Mettre à jour `GUIDE.md` (+ `.fr.md`) section "CTLD and CSAR Integration" : remplacer les exemples Lua callback par des exemples YAML-first, conserver Lua comme fallback | `doc/mission-maker/GUIDE.md`, `doc/mission-maker/GUIDE.fr.md` | doc | 30 min | ✅ |
 
 **Raw total: 120 min → estimated (×1.15): ~140 min (~2h20)**
 

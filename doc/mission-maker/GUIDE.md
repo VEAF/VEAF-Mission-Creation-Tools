@@ -368,7 +368,7 @@ local defenseZone = AirWaveZone:new()
 
 ## CTLD and CSAR Integration
 
-[CTLD](https://github.com/ciribob/DCS-CTLD) (Combat Troop Loading and Deployment) and [CSAR](https://github.com/ciribob/DCS-CSAR) (Combat Search and Rescue) are third-party scripts that VEAF supports natively. VEAF monkey-patches their `initialize()` functions at startup, so you do not need to load or initialise them separately — just call them from `mission-script.lua` using the standard VEAF pattern.
+[CTLD](https://github.com/ciribob/DCS-CTLD) (Combat Troop Loading and Deployment) and [CSAR](https://github.com/ciribob/DCS-CSAR) (Combat Search and Rescue) are third-party scripts that VEAF supports natively. VEAF monkey-patches their `initialize()` functions at startup, so you do not need to load or initialise them separately — just configure them via `mission.yaml` using the YAML-first approach below.
 
 ### Configuring CTLD via mission.yaml (YAML-first)
 
@@ -382,9 +382,22 @@ external_modules:
     slingLoad: true
 ```
 
-VEAF generates the corresponding Lua configuration in `veaf-config.lua` at build time. Use `mission-script.lua` only for settings not yet supported by the YAML schema.
+VEAF generates the corresponding Lua configuration in `veaf-config.lua` at build time, including the `ctld.initialize()` call. Use `mission-script.lua` only for settings not yet supported by the YAML schema (e.g. `aircraftType` tables).
 
-> **CSAR**: CSAR YAML configuration is planned for a future release. In the meantime, configure CSAR in `mission-script.lua` as shown below.
+### Configuring CSAR via mission.yaml (YAML-first)
+
+CSAR can be configured the same way:
+
+```yaml
+external_modules:
+  csar:
+    enabled: true
+    enableAllslots: true
+    useprefix: true
+    csarPrefix: "MEDEVAC"
+```
+
+VEAF generates the `csar.xxx = value` assignments and the `csar.initialize()` call in `veaf-config.lua`. For complex settings such as `aircraftType` (a per-aircraft table), continue using the Lua callback pattern in `mission-script.lua`.
 
 ### Loading order in the DCS trigger chain
 
@@ -400,7 +413,7 @@ DO SCRIPT FILE → mission-script.lua (your custom code)
 
 When `veaf-scripts.lua` loads, it detects the presence of `ctld` and `csar` global tables and wraps their `initialize()` functions, applying VEAF defaults before calling the real initialiser.
 
-### Enabling CTLD in mission-script.lua
+### Lua fallback — CTLD in mission-script.lua
 
 For settings not covered by `mission.yaml`, use the Lua callback pattern:
 
@@ -425,7 +438,9 @@ end
 
 The `configurationCallback` is called immediately before the real `ctld.initialize()` — set CTLD properties there, not before.
 
-### Enabling CSAR in mission-script.lua
+### Lua fallback — CSAR in mission-script.lua
+
+For per-aircraft type overrides or other complex settings not supported by YAML:
 
 ```lua
 if csar then

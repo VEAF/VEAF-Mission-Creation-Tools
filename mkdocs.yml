@@ -1,6 +1,6 @@
 site_name: VEAF Mission Creation Tools
 site_description: Tools and Lua scripts for dynamic DCS World missions
-site_url: https://veaf.github.io/VEAF-Mission-Creation-Tools-v6/
+site_url: https://veaf.github.io/documentation/
 repo_url: https://github.com/VEAF/VEAF-Mission-Creation-Tools
 repo_name: VEAF/VEAF-Mission-Creation-Tools
 docs_dir: doc

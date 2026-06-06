@@ -52,7 +52,7 @@ jobs:
           git config --local --unset-all \
             "http.https://github.com/.extraheader" || true
           git remote add ext-docs \
-            "https://x-access-token:${DOCS_DEPLOY_TOKEN}@github.com/VEAF/VEAF-Mission-Creation-Tools-v6.git"
+            "https://x-access-token:${DOCS_DEPLOY_TOKEN}@github.com/VEAF/documentation.git"
           git fetch ext-docs gh-pages --depth=1 || true
 
       - name: Deploy docs (develop-v6 → alias "dev")

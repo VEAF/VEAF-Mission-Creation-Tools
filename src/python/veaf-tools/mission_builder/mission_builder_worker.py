@@ -27,6 +27,7 @@ from veaf_libs.lua_config_generator import generate_config_lua
 from veaf_libs.lua_module_scanner import get_modules
 from veaf_libs.paths import resolve_path
 from veaf_libs.progress import spinner_context
+from veaf_libs.yaml_validator import validate_yaml_file
 
 # Lua files that are always expected in src/scripts/ of a VEAF v6 mission folder.
 # Any other .lua file found there is flagged as a potential v5 residue.
@@ -76,6 +77,7 @@ class MissionBuilderWorker(BaseWorker):
         self.pipeline_cfg: dict = {}
         mission_yaml_path = mission_folder / "mission.yaml"
         if mission_yaml_path.exists():
+            validate_yaml_file(mission_yaml_path)
             with mission_yaml_path.open("r", encoding="utf-8") as fh:
                 raw_yaml: dict = yaml.safe_load(fh) or {}
             self.mission_yaml = resolve_profile(raw_yaml, profile_name)

@@ -72,6 +72,30 @@ lua_modules:
 
 ---
 
+## Syntax errors
+
+If `mission.yaml` contains a YAML syntax error (wrong indentation, a missing colon, a tab character…), `veaf-tools build` stops immediately and displays a clear message indicating the file name, the line and column of the problem, and a plain-language hint on how to fix it:
+
+```
+Syntax error in mission.yaml, line 81, column 4.
+  The error starts near line 34, column 3.
+  → Check the indentation around these lines. YAML uses spaces only (never tabs).
+    All items in the same block must be aligned at the same column.
+```
+
+Common causes:
+
+| Symptom | Cause | Fix |
+|---------|-------|-----|
+| `indentation` hint | A block is indented differently from the rest | Align the key with its siblings |
+| `tab` hint | A tab character was used instead of spaces | Replace all tabs with spaces in your editor |
+| `colon` hint | A key is missing its `:` separator | Write `key: value`, not `key value` |
+
+!!! tip
+    Most text editors can visualise whitespace characters — enable this option to quickly spot tab/space mix-ups.
+
+---
+
 ## Top-level sections
 
 ### `global_log_level`

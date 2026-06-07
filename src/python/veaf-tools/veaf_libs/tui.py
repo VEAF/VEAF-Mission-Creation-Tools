@@ -139,14 +139,6 @@ COMMANDS: list[CommandSpec] = [
     ),
     # ── Rare: project setup / one-time migration ────────────────────────────
     CommandSpec(
-        cli_name="convert",
-        description=t("tui.cmd.convert.description"),
-        prompts=[
-            ArgPrompt("mission_name", t("tui.arg.mission_name_no_ext"), default="mission", is_option=False),
-            ArgPrompt("mission_folder", t("tui.arg.mission_folder"), default=".", is_option=False),
-        ],
-    ),
-    CommandSpec(
         cli_name="convert-v5",
         description=t("tui.cmd.convert_v5.description"),
         prompts=[

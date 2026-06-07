@@ -40,7 +40,6 @@ class TestCommandMap:
         [
             "build",
             "extract",
-            "convert",
             "inject-presets",
             "inject-weather",
             "inject-aircraft-groups",

@@ -3,7 +3,6 @@ from . import (  # noqa: F401
     aircraft_groups,
     build,
     config,
-    convert,
     convert_v5,
     extract,
     inject_presets,

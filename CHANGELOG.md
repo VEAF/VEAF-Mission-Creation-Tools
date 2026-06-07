@@ -9,6 +9,12 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+- `build.py`, `mission_builder_worker.py`: catch `yaml.YAMLError` when loading `mission.yaml` — display a clear, localised error message (file, line, column, plain-language hint) instead of crashing with a Python traceback
+
+### Documentation
+- `MISSION_YAML_REFERENCE.md`, `MISSION_YAML_REFERENCE.en.md`: added "Syntax errors" section explaining the new error messages and common causes
+
 ### Changed
 - `mkdocs.yml`, `docs.yml`: deploy documentation to `veaf.github.io/documentation/` (was `veaf.github.io/VEAF-Mission-Creation-Tools-v6/`)
 - Documentation: French is now the default language; English (`*.en.md`) is the secondary language — all 35 documentation page pairs renamed accordingly

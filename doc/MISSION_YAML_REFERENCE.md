@@ -72,6 +72,30 @@ lua_modules:
 
 ---
 
+## Erreurs de syntaxe
+
+Si `mission.yaml` contient une erreur de syntaxe YAML (mauvaise indentation, deux-points manquant, caractère de tabulation…), `veaf-tools build` s'arrête immédiatement et affiche un message clair indiquant le nom du fichier, la ligne et la colonne du problème, ainsi qu'une aide en langage courant pour corriger l'erreur :
+
+```
+Erreur de syntaxe dans mission.yaml, ligne 81, colonne 4.
+  L'erreur débute vers la ligne 34, colonne 3.
+  → Vérifiez l'indentation autour de ces lignes. YAML utilise uniquement des espaces (jamais de tabulations).
+    Tous les éléments d'un même bloc doivent être alignés à la même colonne.
+```
+
+Causes fréquentes :
+
+| Symptôme | Cause | Correction |
+|----------|-------|------------|
+| astuce `indentation` | Un bloc est indenté différemment du reste | Aligner la clé avec ses voisines |
+| astuce `tabulation` | Un caractère de tabulation a été utilisé à la place d'espaces | Remplacer toutes les tabulations par des espaces dans l'éditeur |
+| astuce `deux-points` | Il manque le séparateur `:` après une clé | Écrire `clé: valeur` et non `clé valeur` |
+
+!!! tip
+    La plupart des éditeurs de texte peuvent visualiser les caractères d'espacement — activez cette option pour repérer rapidement les mélanges tabulations/espaces.
+
+---
+
 ## Sections de premier niveau
 
 ### `global_log_level`

@@ -67,6 +67,14 @@
   "builder.missing_files": "Missing files from {folder}: {files}",
   "builder.update_hint": "Try updating the veaf-tools package using veaf-tools-updater.exe!",
 
+  "yaml.error.syntax": "Syntax error in [bold]{filename}[/bold], line {line}, column {col}.",
+  "yaml.error.syntax_unknown": "Syntax error in [bold]{filename}[/bold].",
+  "yaml.error.context": "  The error starts near line {line}, column {col}.",
+  "yaml.error.hint.indentation": "  → Check the indentation around these lines. YAML uses spaces only (never tabs).\n    All items in the same block must be aligned at the same column.",
+  "yaml.error.hint.tab": "  → YAML does not allow tab characters for indentation.\n    Replace all tabs with spaces in your text editor.",
+  "yaml.error.hint.colon": "  → A key is probably missing its colon ':' separator.\n    Every YAML key must be written as:  key: value",
+  "yaml.error.hint.generic": "  → Open the file in a text editor and check the structure near the indicated line.\n    Make sure all indentation uses spaces (not tabs).",
+
   "weather.loading_config": "Loading configuration from {path}",
   "weather.config_loaded": "Configuration loaded: {count} version(s) to create",
   "weather.creating_version": "[{index}/{total}] Creating version: {name}",

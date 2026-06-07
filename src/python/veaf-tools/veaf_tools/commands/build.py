@@ -9,6 +9,7 @@ from mission_builder import MissionBuilderREADME, MissionBuilderWorker
 from presets_injector import PresetsInjectorWorker
 from rich.markdown import Markdown
 from veaf_libs.paths import resolve_path
+from veaf_libs.yaml_validator import validate_yaml_file
 from waypoints_injector import WaypointsInjectorWorker
 from weather_injector import WeatherInjectorWorker
 
@@ -87,6 +88,7 @@ def build(
 
     mission_yaml_path = p_mission_folder / "mission.yaml"
     if mission_name_or_file == DEFAULT_MISSION_FILE and mission_yaml_path.exists():
+        validate_yaml_file(mission_yaml_path)
         with mission_yaml_path.open("r", encoding="utf-8") as fh:
             _peek_yaml: dict = yaml.safe_load(fh) or {}
         _yaml_mission_name: str | None = (_peek_yaml.get("mission") or {}).get("name")

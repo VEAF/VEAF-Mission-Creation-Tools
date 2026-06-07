@@ -66,7 +66,8 @@
 | Lot FIX-MARKERS-INIT — Ajout de `veafMarkers.initialize()` manquante | ~5 min | ✅ |
 | Lot FIX-MISSING-INIT — `initialize()` manquante sur 4 modules Lua | ~20 min | ✅ |
 | Lot 27 — DOC-FR-MERGE | ~6h | ✅ |
-| **Total** | **~173h45** | |
+| Lot FIX-YAML-SYNTAX — Erreur YAML non gérée dans build et mission_builder_worker | ~15 min | ✅ |
+| **Total** | **~173h60** | |
 
 *Initial calibration factor: 1.15 — recalculate after each completed lot.*
 
@@ -138,6 +139,21 @@
 | DOC-FR-007 | Merge contenu v5 → `veafSkynetIadsHelper.md` (FR + EN) | `doc/mission-maker/scripts/veafSkynetIadsHelper.*` | chore | 20 min | ✅ |
 | DOC-FR-008 | Merge contenu v5 → `veafWeather.md` (FR + EN) | `doc/mission-maker/scripts/veafWeather.*` | chore | 20 min | ✅ |
 | DOC-FR-009 | Vérifier `presets.md` v5 et identifier l'équivalent v6 | TBD | chore | 15 min | ✅ (déjà dans GUIDE.md) |
+
+---
+
+## Lot FIX-YAML-SYNTAX — Erreur YAML non gérée dans build et mission_builder_worker
+
+**Goal**: Intercepter les erreurs de syntaxe YAML dans `mission.yaml` pour afficher un message clair au lieu d'un traceback Python.
+
+**Context**: Un `yaml.YAMLError` non géré dans `build.py` (peek du nom) et `mission_builder_worker.py` (chargement complet) causait un crash avec traceback. Le message d'erreur natif de PyYAML (fichier, ligne, colonne, contexte) est propagé via `logger.error`.
+
+**Branch**: `fix/yaml-syntax-error` → PR → `develop-v6`
+
+| # | Ticket | Files | Type | Effort | Status |
+|---|--------|-------|------|--------|--------|
+| YAML-SYNTAX-001 | Gérer `yaml.YAMLError` dans `build.py` (peek mission name) | `src/python/veaf-tools/veaf_tools/commands/build.py` | fix | 5 min | ✅ |
+| YAML-SYNTAX-002 | Gérer `yaml.YAMLError` dans `mission_builder_worker.py` (chargement complet) | `src/python/veaf-tools/mission_builder/mission_builder_worker.py` | fix | 5 min | ✅ |
 
 ---
 

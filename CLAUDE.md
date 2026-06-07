@@ -75,30 +75,32 @@ Jointly analyze both the Python and Lua ecosystems. Explicitly distinguish betwe
 
 ## 8. Default Action Workflow (apply automatically unless told otherwise)
 
-For every action requested by the user, execute these steps in order **without waiting for confirmation between steps**:
+For every action requested by the user, execute these steps in order:
 
 1. **Analyze** the request and identify the impacted files and scope.
 2. **Create a ticket** in `BACKLOG.md`: add a new lot with a unique ID, description, estimated effort, and status `⬜`. Add it to the Summary table.
-3. **Create a branch** from `develop-v6` following the naming convention (`feature/<id>` or `fix/<id>`).
-4. **Implement** the change: code + unit tests (TDD rules apply).
+3. **Create a branch** from `develop-v6` following the naming convention (`feature/<id>` or `fix/<id>`). If a lot spans multiple tickets, use **one branch and one PR** for the entire lot — do not create a branch per ticket unless explicitly requested.
+4. **Implement** the change: code + unit tests (TDD rules apply) + update any relevant documentation in `doc/`.
 5. **Run tests** for the impacted language (`poetry run pytest` for Python, `poetry run test-lua` for Lua). Fix any failure before continuing.
 6. **Run quality gate** for the impacted language (`poetry run ruff check src/python/ --fix && poetry run mypy src/python/veaf-tools/` for Python; `stylua --check src/scripts/veaf/` for Lua — `luacheck` is not installed, skip it). Resolve all errors before continuing.
 7. **Update `CHANGELOG.md`** under `[Unreleased]` with one clear entry.
-8. **Commit** all changes (Conventional Commits format in English).
-9. **Push** the branch and **open a PR** targeting `develop-v6`.
-10. **Report** the PR URL to the user.
+8. **Stop and wait for explicit user approval** ("c'est bon", "go", or equivalent) before proceeding.
+9. **Commit** all changes (Conventional Commits format in English).
+10. **Push** the branch and **open a PR** targeting `develop-v6`.
+11. **Report** the PR URL to the user.
 
-> If the request is exploratory (question, analysis, no code change), skip steps 2–9.
+> If the request is exploratory (question, analysis, no code change), skip steps 2–11.
 
 ---
 
 ## 9. Single Change Checklist (detail of step 4–7 above)
 
 1. Make code changes and write associated unit tests according to TDD rules.
-2. Run all quality validation tools specific to the impacted language (Python or Lua).
-3. Update `CHANGELOG.md` under the `[Unreleased]` section (one clear entry per fix or feature).
-4. Increment the PATCH version in `pyproject.toml`.
-5. Run `poetry install` to update the development environment.
+2. Update relevant documentation pages in `doc/` if the change affects user-facing behaviour or configuration.
+3. Run all quality validation tools specific to the impacted language (Python or Lua).
+4. Update `CHANGELOG.md` under the `[Unreleased]` section (one clear entry per fix or feature).
+5. Increment the PATCH version in `pyproject.toml`.
+6. Run `poetry install` to update the development environment.
 
 ---
 

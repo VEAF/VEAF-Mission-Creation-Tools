@@ -707,7 +707,7 @@ def generate_config_lua(
         for mandatory_id in _MANDATORY_MODULES:
             mcfg = effective_modules.get(mandatory_id, {})
             if isinstance(mcfg, dict) and "enable" in mcfg:
-                logger.error(t("builder.mandatory_module_enable", module=mandatory_id))
+                logger.error(t("builder.mandatory_module_enable", module=mandatory_id, value=mcfg["enable"]))
 
         # ── MODUX-003: auto-resolve missing/disabled dependencies ─────────
         effective_modules = _resolve_deps(effective_modules)

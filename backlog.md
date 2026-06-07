@@ -68,7 +68,7 @@
 | Lot 27 — DOC-FR-MERGE | ~6h | ✅ |
 | Lot FIX-YAML-SYNTAX — Erreur YAML non gérée dans build et mission_builder_worker | ~15 min | ✅ |
 | Lot FIX-MANDATORY-ENABLE — Bloquer enable sur les modules obligatoires | ~20 min | ✅ |
-| Lot FEAT-CUSTOM-SCRIPTS — Section custom_scripts dans mission.yaml | ~45 min | 🔄 |
+| Lot FEAT-CUSTOM-SCRIPTS — Section custom_scripts dans mission.yaml | ~45 min | ✅ |
 | **Total** | **~174h45** | |
 
 *Initial calibration factor: 1.15 — recalculate after each completed lot.*

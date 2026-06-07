@@ -78,18 +78,18 @@ Jointly analyze both the Python and Lua ecosystems. Explicitly distinguish betwe
 For every action requested by the user, execute these steps in order:
 
 1. **Analyze** the request and identify the impacted files and scope.
-2. **Create a ticket** in `BACKLOG.md`: add a new lot with a unique ID, description, estimated effort, and status `⬜`. Add it to the Summary table.
+   - If the request is exploratory (question, analysis, no code change), stop here.
+2. **Create a lot** in `BACKLOG.md`: add a new lot with a unique ID, description, tickets, estimated effort, and status `⬜`. Add it to the Summary table.
 3. **Create a branch** from `develop-v6` following the naming convention (`feature/<id>` or `fix/<id>`). If a lot spans multiple tickets, use **one branch and one PR** for the entire lot — do not create a branch per ticket unless explicitly requested.
 4. **Implement** the change: code + unit tests (TDD rules apply) + update any relevant documentation in `doc/`.
 5. **Run tests** for the impacted language (`poetry run pytest` for Python, `poetry run test-lua` for Lua). Fix any failure before continuing.
 6. **Run quality gate** for the impacted language (`poetry run ruff check src/python/ --fix && poetry run mypy src/python/veaf-tools/` for Python; `stylua --check src/scripts/veaf/` for Lua — `luacheck` is not installed, skip it). Resolve all errors before continuing.
 7. **Update `CHANGELOG.md`** under `[Unreleased]` with one clear entry.
-8. **Stop and wait for explicit user approval** ("c'est bon", "go", or equivalent) before proceeding.
-9. **Commit** all changes (Conventional Commits format in English).
-10. **Push** the branch and **open a PR** targeting `develop-v6`.
-11. **Report** the PR URL to the user.
-
-> If the request is exploratory (question, analysis, no code change), skip steps 2–11.
+8. **If the user needs to test manually**: stop and wait for explicit approval ("c'est bon", "go", or equivalent) before continuing. Otherwise, proceed directly.
+9. **Commit** all changes (Conventional Commits format in English) and **push** the branch.
+10. **Open a PR** targeting `develop-v6` and report the PR URL to the user.
+11. **Monitor the PR**: wait for Sourcery review and CI. Address any feedback, then merge when approved.
+12. **After merge**: switch back to `develop-v6`, pull, and confirm to the user.
 
 ---
 

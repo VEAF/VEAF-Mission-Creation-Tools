@@ -3,7 +3,8 @@ site/
 node_modules/
 cache/
 
-# Claude Code local settings (personal, not shared)
+# Claude Code settings (personal, not shared)
+.claude/settings.json
 .claude/settings.local.json
 
 # luacov coverage artefacts

@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>VEAF MCT v6</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&family=Exo+2:wght@300;400;600;700&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#08090d;--bg2:#0f1117;--bg3:#14161e;--gold:#e8a020;--gold2:#f5c842;--navy:#0c1828;--navyb:#162540;--white:#eeeff2;--muted:#7a8fa8;--red:#c0392b;--green:#27ae60;--border:#1e2d42;--font:'Exo 2',sans-serif;--raj:'Rajdhani',sans-serif}
+body{background:var(--bg);color:var(--white);font-family:var(--font);height:100vh;overflow:hidden;display:flex;flex-direction:column}
+#topbar{background:var(--navy);border-bottom:2px solid var(--gold);padding:5px 18px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.brand{font-family:var(--raj);font-weight:700;font-size:17px;color:var(--gold);letter-spacing:3px}
+.tctrls{display:flex;gap:7px;align-items:center}
+.tctrls button{background:transparent;border:1px solid var(--border);color:var(--muted);padding:3px 11px;font-size:11px;font-family:var(--font);cursor:pointer;border-radius:2px;transition:all .15s}
+.tctrls button:hover{border-color:var(--gold);color:var(--gold)}
+#sctr{color:var(--muted);font-size:12px;font-family:var(--raj);letter-spacing:1px}
+#slide-area{flex:1;position:relative;overflow:hidden}
+#slide{position:absolute;inset:0;padding:36px 52px;display:flex;flex-direction:column;justify-content:center;overflow:hidden}
+#slide::before{content:'';position:absolute;top:0;left:0;width:5px;height:100%;background:linear-gradient(to bottom,var(--gold) 0%,transparent 100%)}
+#slide::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;background:linear-gradient(to right,var(--gold) 0%,transparent 55%)}
+#bottombar{background:var(--navy);border-top:1px solid var(--border);padding:5px 16px;display:flex;align-items:center;gap:8px;flex-shrink:0}
+#bottombar button{background:transparent;border:1px solid var(--border);color:var(--muted);width:28px;height:22px;cursor:pointer;font-size:13px;border-radius:2px;transition:all .15s}
+#bottombar button:hover:not(:disabled){border-color:var(--gold);color:var(--gold)}
+#bottombar button:disabled{opacity:.25;cursor:default}
+#dots{flex:1;display:flex;gap:3px;align-items:center;justify-content:center;flex-wrap:wrap}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--border);cursor:pointer;transition:all .15s;flex-shrink:0}
+.dot.active{background:var(--gold);transform:scale(1.4)}
+.dot.done{background:var(--navyb)}
+.lbl{font-family:var(--raj);font-size:11px;letter-spacing:3px;color:var(--gold);text-transform:uppercase;margin-bottom:8px}
+.stitle{font-family:var(--raj);font-weight:700;line-height:1.1;color:var(--white)}
+.ssub{color:var(--muted);line-height:1.5;margin-top:10px}
+.cover-wrap{display:flex;flex-direction:column;align-items:center;text-align:center;gap:14px}
+.cover-wrap img{max-height:45vh;width:100%;object-fit:contain}
+.ctitle{font-family:var(--raj);font-weight:700;font-size:54px;letter-spacing:4px}
+.ctitle span{color:var(--gold)}
+.csub{font-size:22px;color:var(--muted);font-weight:300}
+.cdate{font-family:var(--raj);font-size:12px;letter-spacing:2px;color:var(--gold);border:1px solid rgba(232,160,32,.5);padding:3px 16px}
+.sec-wrap{display:flex;flex-direction:column;align-items:center;text-align:center;gap:18px}
+.sec-num{font-family:var(--raj);font-size:12px;letter-spacing:3px;color:var(--gold);border:1px solid var(--gold);padding:3px 18px}
+.sec-title{font-family:var(--raj);font-weight:700;font-size:50px;letter-spacing:2px}
+.sec-sub{font-size:19px;color:var(--muted);max-width:580px}
+.ag-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:16px}
+.ag-item{background:var(--bg3);border:1px solid var(--border);border-left:3px solid var(--gold);padding:13px 16px;font-size:18px;font-weight:600;display:flex;align-items:center;gap:10px}
+.ag-num{font-family:var(--raj);color:var(--gold);font-size:22px;font-weight:700;min-width:26px}
+.cmp-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px}
+.cmp-col{background:var(--bg3);border:1px solid var(--border);padding:20px 24px;overflow:auto}
+.cmp-col.old{border-top:3px solid var(--red)}
+.cmp-col.nw{border-top:3px solid var(--green)}
+.cmp-col h3{font-family:var(--raj);font-size:clamp(16px,2.4vmin,30px);letter-spacing:2px;margin-bottom:14px}
+.cmp-col.old h3{color:var(--red)}
+.cmp-col.nw h3{color:var(--green)}
+.cmp-col ul{list-style:none;display:flex;flex-direction:column;gap:clamp(8px,1.2vmin,18px)}
+.cmp-col li{font-size:clamp(15px,2.2vmin,28px);line-height:1.5;padding-left:22px;position:relative}
+.cmp-col.old li::before{content:'–';position:absolute;left:0;color:var(--red)}
+.cmp-col.nw li::before{content:'+';position:absolute;left:0;color:var(--green)}
+.vtable{width:100%;border-collapse:collapse;margin-top:14px}
+.vtable th{background:var(--navy);color:var(--gold);font-family:var(--raj);font-size:clamp(12px,1.6vmin,20px);letter-spacing:2px;text-align:left;padding:clamp(8px,1vmin,14px) 16px;border-bottom:2px solid var(--gold)}
+.vtable td{padding:clamp(8px,1vmin,14px) 16px;border-bottom:1px solid var(--border);font-size:clamp(14px,2vmin,24px);vertical-align:middle}
+.vtable tr:hover td{background:rgba(255,255,255,.02)}
+.vtable td:first-child{color:var(--muted);white-space:nowrap}
+code,.mono{font-family:monospace;background:rgba(232,160,32,.11);color:var(--gold);padding:1px 5px;border-radius:2px;font-size:.88em}
+.feat-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}
+.feat-card{background:var(--bg3);border:1px solid var(--border);padding:18px 22px;display:flex;gap:16px;align-items:flex-start}
+.ficon{font-size:clamp(26px,3.2vmin,40px);flex-shrink:0;margin-top:2px}
+.ftitle{font-family:var(--raj);font-size:clamp(17px,2.3vmin,28px);font-weight:700;color:var(--gold);margin-bottom:6px}
+.fdesc{font-size:clamp(13px,1.8vmin,22px);color:var(--muted);line-height:1.6}
+.cmd-sec{font-family:var(--raj);font-size:clamp(12px,1.5vmin,18px);letter-spacing:2px;color:var(--gold);margin:14px 0 8px;text-transform:uppercase}
+.cmd-list{display:flex;flex-direction:column;gap:7px}
+.cmd-row{display:flex;align-items:baseline;gap:14px;padding:clamp(8px,1vmin,14px) 14px;background:var(--bg3);border-left:2px solid var(--border);transition:border-color .15s}
+.cmd-row:hover{border-left-color:var(--gold)}
+.cmd-name{font-family:monospace;font-size:clamp(14px,2vmin,24px);color:var(--gold);white-space:nowrap;min-width:clamp(220px,28vmin,360px)}
+.cmd-desc{font-size:clamp(13px,1.8vmin,22px);color:var(--muted)}
+.code-blk{background:#080a0e;border:1px solid var(--border);padding:16px 18px;font-family:'Courier New',monospace;font-size:14px;line-height:1.85;overflow:auto;flex:1;margin-top:10px;white-space:pre}
+.ck{color:#88c8f0}.cv{color:#f0c070}.cc{color:var(--muted)}.cs{color:#a8d5a8}
+.flow-row{display:flex;align-items:stretch;gap:0;margin-top:22px;justify-content:center}
+.flow-step{background:var(--bg3);border:1px solid var(--border);border-top:3px solid var(--gold);padding:20px 16px;text-align:center;flex:1}
+.fstep-icon{font-size:30px;margin-bottom:9px}
+.fstep-lbl{font-family:var(--raj);font-size:16px;font-weight:700}
+.fstep-sub{font-size:11px;color:var(--muted);margin-top:3px;line-height:1.4}
+.flow-arr{color:var(--gold);font-size:22px;padding:0 6px;display:flex;align-items:center;flex-shrink:0}
+.sum-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:14px}
+.sum-row{display:flex;gap:12px;align-items:center;background:var(--bg3);border:1px solid var(--border);padding:13px 16px}
+.link-list{display:flex;flex-direction:column;gap:10px;margin-top:14px}
+.link-row{display:flex;align-items:center;justify-content:space-between;background:var(--bg3);border:1px solid var(--border);padding:clamp(10px,1.2vmin,18px) 22px;gap:18px}
+.link-lbl{font-size:clamp(15px,2.2vmin,26px);font-weight:600}
+.link-url{font-family:monospace;font-size:clamp(11px,1.5vmin,18px);color:var(--gold);opacity:.8}
+.arch-box{background:var(--bg3);border:1px solid var(--border);padding:14px 16px;margin-top:10px}
+.arch-title{font-family:var(--raj);font-size:15px;letter-spacing:1px;color:var(--gold);margin-bottom:10px}
+.arch-modules{display:flex;flex-wrap:wrap;gap:7px}
+.arch-mod{background:var(--navyb);border:1px solid var(--border);padding:5px 12px;font-size:13px;font-family:monospace;color:var(--white)}
+.arch-mod.reg{border-color:var(--green);color:var(--green)}
+.arch-arrow{text-align:center;font-size:22px;color:var(--gold);margin:8px 0}
+</style>
+</head>
+<body>
+<div id="topbar">
+  <div class="brand">VEAF · MCT</div>
+  <div id="sctr">1 / 28</div>
+  <div class="tctrls">
+    <button onclick="openNotes()">📋 Notes</button>
+    <button onclick="document.documentElement.requestFullscreen&&document.documentElement.requestFullscreen()">⛶ Plein écran</button>
+  </div>
+</div>
+<div id="slide-area"><div id="slide"></div></div>
+<div id="bottombar">
+  <button onclick="go(-1)" id="bprev" disabled>◀</button>
+  <div id="dots"></div>
+  <button onclick="go(1)" id="bnext">▶</button>
+</div>
+<script>
+const LOGO="https://raw.githubusercontent.com/VEAF/VEAF-Mission-Creation-Tools/develop-v6/VEAF-CT-v6-logo.png";
+
+const SL=[
+{t:"cover"},
+{t:"agenda"},
+{t:"section",num:"1 — CLI",title:"Un nouvel outil CLI",sub:"veaf-tools.exe — un seul fichier, zéro installation"},
+{t:"big"},
+{t:"compare",title:"CLI : v5 vs v6",
+ old:{h:"v5 — Node.js",items:["Application Node.js installée via npm","Nombreux outils disparates, non unifiés","Dépendances : Node.js, npm, Lua, PowerShell, 7-zip…","Mise à jour : npm install -g (manuel)","Environnement difficile à configurer"]},
+ nw:{h:"v6 — Python · EXE autonome",items:["Un seul veaf-tools.exe — aucune dépendance","11 commandes unifiées dans un même outil","Zéro dépendance à installer sur la machine","Mise à jour : veaf-tools-updater.exe (auto-update)","TUI interactif avec mémoire des dernières valeurs"]}},
+{t:"commands"},
+{t:"section",num:"2 — YAML",title:"Configuration YAML-first",sub:"mission.yaml remplace missionConfig.lua"},
+{t:"compare",title:"Configuration : v5 vs v6",
+ old:{h:"v5 — missionConfig.lua",items:["Code Lua dans src/scripts/","Syntaxe fragile — oubli virgule = crash DCS","Erreur découverte au chargement DCS","Modules activés/désactivés dans le code","Dépendances de modules gérées manuellement","Aucun profil de build (debug, prod…)"]},
+ nw:{h:"v6 — mission.yaml",items:["YAML déclaratif, lisible, versionnable","Validé au build — erreur signalée avant DCS","enable: true/false par module","Dépendances auto-résolues au build","Profils de build : TEST, SERVER… (--profile)","Lua avancé toujours possible dans mission-script.lua"]}},
+{t:"code"},
+{t:"features",title:"Nouveautés YAML",items:[
+  {i:"🔒",h:"Modules obligatoires protégés",d:"UNITS, TIME, CACHE, EVENTS, MARKERS, COMMANDS — erreur levée au build si <code>enable: false</code> est spécifié. Le flag ne peut pas être forcé."},
+  {i:"🔗",h:"Dépendances auto-résolues",d:"Module désactivé requis ? Activé automatiquement avec un warning. Chaînes transitives résolues."},
+  {i:"🎛️",h:"Profils de build",d:"veaf-tools build --profile TEST — deep-merge sur la config de base. Listes remplacées."},
+  {i:"📦",h:"CTLD & CSAR YAML-first",d:"external_modules.ctld/.csar génèrent le bloc Lua + initialize() dans veaf-config.lua."},
+  {i:"📜",h:"Scripts custom déclarés",d:"Nouvelle section <code>custom_scripts:</code> — déclare des scripts Lua dans <code>src/scripts/</code> sans convention de nommage. Option <code>generate_load_trigger: false</code> pour opt-out du trigger DCS."}]},
+{t:"section",num:"3 — BUILD",title:"Pipeline de build",sub:"Même workflow, outillage entièrement repensé"},
+{t:"flow"},
+{t:"features",title:"Ce qui change sous le capot",items:[
+  {i:"✅",h:"Validation avant DCS",d:"Le build intercepte les erreurs avant le chargement. Erreur YAML : fichier, ligne, colonne et message en langage naturel — plus de traceback Python. Plus de crash DCS surprise."},
+  {i:"⚠️",h:"Warnings intelligents",d:"Fichiers .lua résiduels v5, modules orphelins, dépendances manquantes — signalés au build."},
+  {i:"📐",h:"Normalisation déterministe",d:"Sérialisation Lua stable. Les diff git sont lisibles — plus de bruit de format."},
+  {i:"📊",h:"Logging configurable à la volée",d:"global_log_level dans mission.yaml. Ou édition directe de veaf-config.lua dans le .miz sans rebuild."}]},
+{t:"section",num:"4 — LUA",title:"Architecture Lua",sub:"v5 → v6 : dispatcher centralisé, modules découplés"},
+{t:"lua_v5"},
+{t:"lua_v6"},
+{t:"lua_spawn"},
+{t:"lua_perf"},
+{t:"section",num:"5 — UPDATE",title:"Mise à jour automatique",sub:"veaf-tools-updater.exe — version épinglée par mission"},
+{t:"features",title:"Auto-update & gestion de version",items:[
+  {i:"⬇️",h:"Installation initiale",d:"Télécharger veaf-tools-updater.exe depuis GitHub Releases, le lancer dans le dossier mission."},
+  {i:"🔁",h:"Mise à jour",d:"Relancer l'updater — il vérifie GitHub, télécharge et s'auto-remplace (mécanisme différé pour éviter les locks Windows)."},
+  {i:"📌",h:"Épingler une version par mission",d:'Dans mission.yaml : veaf_tools: version: "^6.3" — l\'updater refuse de dépasser la contrainte. Utile pour les serveurs de prod.'},
+  {i:"⚙️",h:"Config utilisateur globale",d:"~/veafmct.yaml : langue, vérification auto des mises à jour, chemin scripts par défaut."}]},
+{t:"section",num:"6 — TESTS",title:"Qualité & Tests",sub:"915+ tests — ce que ça change pour vous"},
+{t:"tests"},
+{t:"section",num:"7 — DOC",title:"Documentation",sub:"Complète, bilingue, structurée par rôle"},
+{t:"compare",title:"Documentation : v5 vs v6",
+ old:{h:"v5",items:['🚧 "Travaux en cours" sur chaque page',"Structure par outil","Français uniquement","Paramètres des commandes F10 non documentés","Aucun exemple ni tutoriel pratique","Pas de guide de démarrage pour nouveaux créateurs"]},
+ nw:{h:"v6",items:["✅ Documentation complète et maintenue","Structure par rôle : Pilote / Créateur / Développeur","🇫🇷 FR (défaut) + 🇬🇧 EN","Référence mission.yaml complète","Guide de migration v5 → v6 dédié","Référence CLI, Pipeline, API Lua (34 modules)","Roadmap publique"]}},
+{t:"section",num:"8 — MIGRATION",title:"Migrer de v5 à v6",sub:"Une commande dédiée : veaf-tools convert-v5"},
+{t:"migration"},
+{t:"summary"},
+{t:"links"},
+];
+
+const NOTES=[
+"Slide d'introduction. v5 = branche master (dernière release v5.103.3). v6 = branche develop-v6, version actuelle 6.3.4.",
+"Tour d'horizon. La migration sera traitée en dernier — c'est ce qui intéresse le plus les utilisateurs existants.",
+"En v5, mettre en place l'environnement était un frein réel pour les nouveaux créateurs de mission. En v6 : zéro dépendance.",
+"Message clé de la slide. Insister sur le contraste avant/après.",
+"En v5, la liste des dépendances variait selon les outils et était source de problèmes fréquents. En v6 : un seul exe qui embarque tout.",
+"La commande centrale au quotidien c'est 'build'. Le TUI est lancé auto au double-clic depuis l'Explorateur. Les préférences (dernière commande + valeurs) sont sauvegardées dans VEAF_HOME. ~/veafmct.yaml est une config machine globale, distincte de mission.yaml.",
+"Changement le plus impactant pour les créateurs de mission. Les mission makers avancés gardent mission-script.lua pour le Lua arbitraire.",
+"Insister sur la validation : en v5, erreur de config = crash DCS. En v6, le build valide tout avant. La séparation YAML/Lua est intentionnelle.",
+"Montrer la lisibilité vs missionConfig.lua. La clé veaf_tools.version est lue par l'updater. Syntaxe semver : '6' = toute 6.x.x, '^6.3' = compatible, '~6.3.1' = patch only.",
+"Les profils de build : logs debug pour testeurs, logs warning pour serveur public — sans toucher au fichier de config.",
+"Le workflow est identique à la v5 côté utilisateur. Ce qui change : fiabilité, validation, warnings préventifs.",
+"Le pipeline vu user est le même qu'en v5. La vraie valeur : le build intercepte les problèmes avant DCS.",
+"Le warning sur les .lua résiduels v5 est critique lors de la migration. L'édition à la volée dans le .miz est utile pour debug sur serveur distant sans accès au build.",
+"Vue d'ensemble de l'architecture v5 : chaque module gère lui-même l'écoute des événements F10 — 8 handlers identiques câblés en dur.",
+"Vue d'ensemble de l'architecture v6 : un seul point d'entrée central (veafCommands), les modules s'enregistrent avec une priorité. Plus aucun câblage dans veafInterpreter.",
+"veafSpawn a été découpé en 5 sous-modules indépendants — chacun s'auto-enregistre. veafSpawnCore réduit de 54%.",
+"veaf.lp() : lazy proxy — sur serveur en prod avec log_level=info, les 1233 appels trace/debug n'ont AUCUN coût CPU. Les arguments ne sont pas stringifiés si le niveau ne le requiert pas.",
+"En v5, mise à jour = npm install. En v6, l'updater est intégré et se gère seul. L'épinglage de version permet de tester v6.4 en dev tout en gardant le serveur prod sur v6.3.",
+"L'updater supporte --tag pour pointer une release spécifique et --zip-file pour installer sans accès internet.",
+"La v5 n'avait aucun test. Présenter ça comme une garantie concrète pour les mission makers : une mise à jour ne cassera plus silencieusement votre mission.",
+"La suite dcs_mocks.lua simule timer, coalition, world… pour tester les scripts hors DCS. Chaque PR déclenche tous les tests avant le merge.",
+"La doc v6 est sur veaf.github.io/documentation/dev/. La v5 reste archivée sur veaf.github.io/documentation/v5/.",
+"Insister sur la structuration par rôle : chacun trouve ce qui le concerne directement.",
+"La migration est outillée et guidée. Compter ~1-2h pour une mission complexe.",
+"Point d'échec le plus fréquent : les .lua résiduels v5 dans src/scripts/. Vérifier ça en premier si le build réussit mais DCS crashe.",
+"Slide de conclusion. Version actuelle 6.3.4.",
+"Dernière slide — questions / discussion.",
+"",
+];
+
+let cur=0,notesWin=null;
+
+function render(){
+  const s=SL[cur];
+  document.getElementById('slide').innerHTML=rSlide(s);
+  document.getElementById('sctr').textContent=(cur+1)+' / '+SL.length;
+  document.getElementById('bprev').disabled=cur===0;
+  document.getElementById('bnext').disabled=cur===SL.length-1;
+  const dc=document.getElementById('dots');
+  dc.innerHTML='';
+  SL.forEach((_,i)=>{const d=document.createElement('div');d.className='dot'+(i===cur?' active':i<cur?' done':'');d.onclick=()=>{cur=i;render()};dc.appendChild(d)});
+  syncNotes();
+}
+function go(d){cur=Math.max(0,Math.min(SL.length-1,cur+d));render()}
+document.addEventListener('keydown',e=>{
+  if(['ArrowRight','ArrowDown',' '].includes(e.key)){e.preventDefault();go(1)}
+  if(['ArrowLeft','ArrowUp'].includes(e.key)){e.preventDefault();go(-1)}
+});
+function openNotes(){
+  if(notesWin&&!notesWin.closed){notesWin.focus();syncNotes();return}
+  notesWin=window.open('','_veafnotes','width=620,height=380,top=80,left=80,resizable=yes');
+  notesWin.document.open();
+  notesWin.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Notes — VEAF</title><style>*{margin:0;padding:0;box-sizing:border-box}body{background:#08090d;color:#eee;font-family:'Segoe UI',sans-serif;display:flex;flex-direction:column;height:100vh}#hd{background:#0c1828;border-bottom:2px solid #e8a020;padding:8px 14px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0}#hd .t{color:#e8a020;font-size:12px;letter-spacing:2px;font-weight:700}#sn{color:#7a8fa8;font-size:12px}#nb{flex:1;padding:18px 20px;font-size:15px;line-height:1.75;color:#c8d5e8;border-left:4px solid #e8a020;margin:16px;background:#0f1117;overflow:auto}#ft{padding:8px 14px;font-size:11px;color:#3a5070;text-align:center;border-top:1px solid #1e2d42;flex-shrink:0}</style></head><body><div id="hd"><span class="t">🎤 NOTES PRÉSENTATEUR</span><span id="sn">Slide 1</span></div><div id="nb">Chargement…</div><div id="ft">← → Naviguer dans la présentation · Fenêtre indépendante</div></body></html>`);
+  notesWin.document.close();
+  syncNotes();
+}
+function syncNotes(){
+  if(!notesWin||notesWin.closed)return;
+  try{
+    const nb=notesWin.document.getElementById('nb');
+    const sn=notesWin.document.getElementById('sn');
+    if(nb)nb.textContent=NOTES[cur]||'—';
+    if(sn)sn.textContent='Slide '+(cur+1)+' / '+SL.length;
+  }catch(e){}
+}
+
+function rSlide(s){
+  switch(s.t){
+    case'cover':return rCover();
+    case'agenda':return rAgenda();
+    case'section':return rSection(s);
+    case'big':return rBig();
+    case'compare':return rCompare(s);
+    case'commands':return rCommands();
+    case'code':return rCode();
+    case'features':return rFeatures(s);
+    case'flow':return rFlow();
+    case'lua_v5':return rLuaV5();
+    case'lua_v6':return rLuaV6();
+    case'lua_spawn':return rLuaSpawn();
+    case'lua_perf':return rLuaPerf();
+    case'tests':return rTests();
+    case'migration':return rMigration();
+    case'summary':return rSummary();
+    case'links':return rLinks();
+    default:return '';
+  }
+}
+
+function rCover(){
+  return `<div class="cover-wrap">
+    <img src="${LOGO}" onerror="this.outerHTML='<div style=\\'font-size:80px\\'>✈️</div>'" alt="VEAF MCT v6 Logo">
+    <div class="ctitle">VEAF <span>MCT</span> v6</div>
+    <div class="csub">Mission Creation Tools — Ce qui change</div>
+    <div class="cdate">Juin 2026</div>
+  </div>`;
+}
+
+function rAgenda(){
+  const it=[['1','Nouvel outil CLI — veaf-tools.exe'],['2','Configuration YAML — mission.yaml'],['3','Pipeline de build repensé'],['4','Architecture Lua refactorisée'],['5','Mise à jour automatique'],['6','Qualité & Tests'],['7','Documentation complète'],['8','Migrer de v5 à v6']];
+  return `<div class="lbl">Au programme</div><div class="ag-grid">${it.map(([n,t])=>`<div class="ag-item"><span class="ag-num">${n}</span>${t}</div>`).join('')}</div>`;
+}
+
+function rSection(s){
+  return `<div class="sec-wrap"><div class="sec-num">${s.num}</div><div class="sec-title">${s.title}</div><div class="sec-sub">${s.sub}</div></div>`;
+}
+
+function rBig(){
+  return `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:28px;text-align:center">
+    <div class="lbl">Avant vs Après</div>
+    <div style="display:grid;grid-template-columns:1fr 60px 1fr;gap:0;align-items:center;width:100%">
+      <div style="background:rgba(192,57,43,.1);border:1px solid rgba(192,57,43,.35);border-top:3px solid #c0392b;padding:30px 24px">
+        <div style="font-size:11px;letter-spacing:2px;color:#c0392b;margin-bottom:14px;font-family:var(--raj)">AVANT — v5</div>
+        <div style="font-family:var(--raj);font-size:26px;font-weight:700;line-height:1.5;color:#dde">Node.js · npm · Lua<br>PowerShell · 7-zip…</div>
+        <div style="margin-top:12px;font-size:15px;color:var(--muted)">Environnement complexe à mettre en place</div>
+      </div>
+      <div style="font-size:38px;color:var(--gold);text-align:center">→</div>
+      <div style="background:rgba(39,174,96,.1);border:1px solid rgba(39,174,96,.35);border-top:3px solid #27ae60;padding:30px 24px">
+        <div style="font-size:11px;letter-spacing:2px;color:#27ae60;margin-bottom:14px;font-family:var(--raj)">MAINTENANT — v6</div>
+        <div style="font-family:var(--raj);font-size:52px;font-weight:700;color:var(--gold2);line-height:1.1">Un seul .exe</div>
+        <div style="margin-top:12px;font-size:16px;color:var(--muted)">Double-clic et c'est parti</div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function rCompare(s){
+  return `<div class="lbl" style="margin-bottom:2px">${s.title}</div>
+  <div class="cmp-grid">
+    <div class="cmp-col old"><h3>${s.old.h}</h3><ul>${s.old.items.map(i=>`<li>${i}</li>`).join('')}</ul></div>
+    <div class="cmp-col nw"><h3>${s.nw.h}</h3><ul>${s.nw.items.map(i=>`<li>${i}</li>`).join('')}</ul></div>
+  </div>`;
+}
+
+function rCommands(){
+  const main=[['veaf-tools build','Assemble le .miz final depuis les sources'],['veaf-tools extract','Extrait un .miz en dossier source versionnable'],['veaf-tools inject-presets','Injecte les presets radio + génère kneeboard PNG'],['veaf-tools inject-weather','Injecte la météo (YAML-driven)']];
+  const adv=[['veaf-tools convert-v5','Convertit une mission v5 vers v6'],['veaf-tools prepare','Prépare un nouveau dossier mission'],['veaf-tools inject-aircraft-groups','Injecte les groupes avions depuis un template YAML'],['veaf-tools extract-waypoints / inject-waypoints','Gestion des waypoints']];
+  return `<div class="lbl">11 commandes unifiées</div>
+  <div class="cmd-sec">Quotidien</div>
+  <div class="cmd-list">${main.map(([c,d])=>`<div class="cmd-row"><span class="cmd-name">${c}</span><span class="cmd-desc">${d}</span></div>`).join('')}</div>
+  <div class="cmd-sec">Avancé</div>
+  <div class="cmd-list">${adv.map(([c,d])=>`<div class="cmd-row"><span class="cmd-name">${c}</span><span class="cmd-desc">${d}</span></div>`).join('')}</div>
+  <div style="margin-top:11px;background:rgba(232,160,32,.07);border:1px solid rgba(232,160,32,.25);padding:9px 13px;font-size:14px;color:#c8a855">
+    <span style="color:var(--gold);font-weight:700">TUI intégré :</span> lancer sans argument ouvre un menu interactif qui <span style="color:var(--gold);font-weight:700">mémorise les dernières valeurs</span> pour chaque commande.
+  </div>
+  <div style="margin-top:7px;background:rgba(192,57,43,.07);border:1px solid rgba(192,57,43,.25);padding:7px 13px;font-size:13px;color:#c8a855">
+    <span style="color:#c0392b;font-weight:700">⚠ Supprimé en 6.3.4 :</span> <code>veaf-tools convert</code> — remplacé par <code>extract</code> + <code>build</code> (crash sur missions v6).
+  </div>`;
+}
+
+function rCode(){
+  return `<div class="lbl">Exemple mission.yaml</div>
+<div class="code-blk"><span class="cc"># Modules Lua actifs</span>
+<span class="ck">lua_modules</span>:
+  - <span class="ck">name</span>: <span class="cv">UNITS</span>          <span class="cc"># obligatoire</span>
+    <span class="ck">enable</span>: <span class="cs">true</span>
+  - <span class="ck">name</span>: <span class="cv">QRA_MANAGER</span>
+    <span class="ck">enable</span>: <span class="cs">true</span>
+  - <span class="ck">name</span>: <span class="cv">AIR_WAVES</span>
+    <span class="ck">enable</span>: <span class="cs">false</span>       <span class="cc"># désactivé pour cette mission</span>
+
+<span class="ck">global_log_level</span>: <span class="cv">info</span>
+
+<span class="ck">profiles</span>:
+  <span class="ck">TEST</span>:
+    <span class="ck">global_log_level</span>: <span class="cv">debug</span>
+  <span class="ck">SERVER</span>:
+    <span class="ck">global_log_level</span>: <span class="cv">warning</span>
+
+<span class="ck">external_modules</span>:
+  <span class="ck">ctld</span>:
+    <span class="ck">enable</span>: <span class="cs">true</span>
+  <span class="ck">csar</span>:
+    <span class="ck">enable</span>: <span class="cs">true</span>
+
+<span class="cc"># Épingler la version veaf-tools pour cette mission</span>
+<span class="ck">veaf_tools</span>:
+  <span class="ck">version</span>: <span class="cv">"^6.3"</span></div>`;
+}
+
+function rFeatures(s){
+  return `<div class="lbl" style="margin-bottom:2px">${s.title}</div>
+  <div class="feat-grid">${s.items.map(i=>`<div class="feat-card"><div class="ficon">${i.i}</div><div><div class="ftitle">${i.h}</div><div class="fdesc">${i.d}</div></div></div>`).join('')}</div>`;
+}
+
+function rFlow(){
+  const steps=[{i:'✏️',l:'Éditeur DCS',s:'Mission de base .miz'},{i:'📤',l:'extract',s:'Dossier source'},{i:'⚙️',l:'Configurer',s:'mission.yaml + src/'},{i:'🔨',l:'build',s:'veaf-tools build'},{i:'✈️',l:'DCS charge',s:'34 modules Lua'}];
+  return `<div class="lbl">Pipeline — identique côté utilisateur depuis la v5</div>
+  <div class="flow-row">${steps.map((s,i)=>`<div class="flow-step"><div class="fstep-icon">${s.i}</div><div class="fstep-lbl">${s.l}</div><div class="fstep-sub">${s.s}</div></div>${i<steps.length-1?'<div class="flow-arr">→</div>':''}`).join('')}</div>
+  <div style="margin-top:18px;text-align:center;color:var(--muted);font-size:15px">Ce qui change : validation, warnings, robustesse — <span style="color:var(--gold)">entièrement transparent pour le créateur de mission</span></div>`;
+}
+
+function rLuaV5(){
+  return `<div class="lbl">Architecture Lua — v5 : couplage fort</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:12px;flex:1;min-height:0">
+    <div>
+      <div style="background:rgba(192,57,43,.08);border:1px solid rgba(192,57,43,.3);border-top:3px solid #c0392b;padding:14px 16px">
+        <div style="font-family:var(--raj);font-size:clamp(14px,2vmin,22px);letter-spacing:1px;color:#c0392b;margin-bottom:10px">8 handlers dupliqués</div>
+        <div style="font-size:clamp(13px,1.8vmin,21px);color:var(--muted);line-height:1.6">Chaque module (Shortcuts, Spawn, NamedPoints, CasMission, Security, Move, Radio, Remote) définit son propre <code>onEventMarkChange()</code>.<br><br>8 fois le même code d'écoute d'événement DCS, câblé dans chaque module.</div>
+      </div>
+      <div style="margin-top:10px;background:rgba(192,57,43,.08);border:1px solid rgba(192,57,43,.3);border-top:3px solid #c0392b;padding:14px 16px">
+        <div style="font-family:var(--raj);font-size:clamp(14px,2vmin,22px);letter-spacing:1px;color:#c0392b;margin-bottom:10px">veafInterpreter — 8 branches câblées</div>
+        <div class="code-blk" style="font-size:clamp(12px,1.5vmin,17px);margin:0;padding:10px">if text:find("_spawn") then
+  veafSpawn.execute(...)
+elseif text:find("_cas") then
+  veafCasMission.execute(...)
+elseif text:find("_named") then
+  veafNamedPoints.execute(...)
+<span style="color:var(--muted)">-- ... 5 branches de plus câblées en dur</span>
+end</div>
+      </div>
+    </div>
+    <div>
+      <div style="background:rgba(192,57,43,.08);border:1px solid rgba(192,57,43,.3);border-top:3px solid #c0392b;padding:14px 16px">
+        <div style="font-family:var(--raj);font-size:clamp(14px,2vmin,22px);letter-spacing:1px;color:#c0392b;margin-bottom:10px">veafSpawnCore — 25 branches · ~1834 lignes</div>
+        <div class="code-blk" style="font-size:clamp(12px,1.5vmin,17px);margin:0;padding:10px">function executeCommand(text)
+  if text:find("farp") then
+    spawnFarp(...)
+  elseif text:find("convoy") then
+    spawnConvoy(...)
+  elseif text:find("cargo") then
+    spawnCargo(...)
+  <span style="color:var(--muted)">-- ... 22 branches de plus</span>
+  end
+end</div>
+      </div>
+      <div style="margin-top:10px;background:rgba(192,57,43,.08);border:1px solid rgba(192,57,43,.3);padding:10px 14px">
+        <div style="font-size:clamp(13px,1.8vmin,21px);color:var(--muted)"><span style="color:#e8a020">Conséquence :</span> ajouter un module = modifier veafInterpreter. Ajouter une commande spawn = modifier veafSpawnCore. Tout est couplé.</div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function rLuaV6(){
+  return `<div class="lbl">Architecture Lua — v6 : dispatcher centralisé</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:12px;flex:1;min-height:0">
+    <div>
+      <div style="background:rgba(39,174,96,.08);border:1px solid rgba(39,174,96,.3);border-top:3px solid #27ae60;padding:14px 16px">
+        <div style="font-family:var(--raj);font-size:clamp(14px,2vmin,22px);letter-spacing:1px;color:#27ae60;margin-bottom:10px">veafCommands — dispatcher unique</div>
+        <div class="code-blk" style="font-size:clamp(12px,1.5vmin,17px);margin:0;padding:10px"><span class="cc">-- Chaque module s'enregistre :</span>
+veafCommands.registerCommandHandler(
+  myHandler,
+  veafCommands.PRIORITY_SPAWN  <span class="cc">-- = 20</span>
+)
+
+<span class="cc">-- Priorités définies :</span>
+PRIORITY_SHORTCUTS  = 10
+PRIORITY_SPAWN      = 20
+PRIORITY_NAMEDPOINTS= 30
+PRIORITY_CASMISSION = 40
+PRIORITY_SECURITY   = 50
+PRIORITY_MOVE       = 60
+PRIORITY_RADIO      = 70
+PRIORITY_REMOTE     = 80</div>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <div style="background:rgba(39,174,96,.08);border:1px solid rgba(39,174,96,.3);border-top:3px solid #27ae60;padding:14px 16px">
+        <div style="font-family:var(--raj);font-size:clamp(14px,2vmin,22px);letter-spacing:1px;color:#27ae60;margin-bottom:8px">Un seul handler d'événement DCS</div>
+        <div style="font-size:clamp(13px,1.8vmin,21px);color:var(--muted);line-height:1.6">Au lieu de 8 handlers identiques, veafCommands enregistre <strong style="color:var(--white)">un seul</strong> handler dans veafMarkers et dispatch vers les modules enregistrés selon leur priorité.</div>
+      </div>
+      <div style="background:rgba(39,174,96,.08);border:1px solid rgba(39,174,96,.3);border-top:3px solid #27ae60;padding:14px 16px">
+        <div style="font-family:var(--raj);font-size:clamp(14px,2vmin,22px);letter-spacing:1px;color:#27ae60;margin-bottom:8px">veafRemote — registre de modules</div>
+        <div class="code-blk" style="font-size:clamp(12px,1.5vmin,17px);margin:0;padding:10px"><span class="cc">-- Chaque module remote s'enregistre :</span>
+veafRemote.registerRemoteModule(
+  "spawn",
+  veafSpawn.executeFromRemote
+)
+<span class="cc">-- Plus de switch câblé en dur</span></div>
+      </div>
+      <div style="background:rgba(232,160,32,.07);border:1px solid rgba(232,160,32,.2);padding:10px 14px">
+        <div style="font-size:clamp(13px,1.8vmin,21px);color:var(--muted)"><span style="color:var(--gold)">Bénéfice :</span> ajouter un nouveau module = s'enregistrer dans initialize(). Aucune modification de veafInterpreter ou veafRemote.</div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function rLuaSpawn(){
+  return `<div class="lbl">Architecture Lua — veafSpawn découpé en sous-modules</div>
+  <div style="margin-top:14px;display:flex;flex-direction:column;gap:12px">
+    <div style="display:grid;grid-template-columns:1fr 60px 1fr;gap:0;align-items:center">
+      <div style="background:rgba(192,57,43,.08);border:1px solid rgba(192,57,43,.3);border-top:3px solid #c0392b;padding:14px 16px">
+        <div style="font-family:var(--raj);color:#c0392b;margin-bottom:8px;font-size:clamp(14px,2vmin,22px);letter-spacing:1px">v5 — veafSpawnCore.lua monolithique</div>
+        <div style="font-size:clamp(13px,1.8vmin,21px);color:var(--muted);line-height:1.6">~1834 lignes · 25 branches if/elseif · FARP, FOB, infanterie, blindés, DCA, convoi, avions, JTAC, cargo, fumigènes, fumées, destruction, téléport… tout dans un seul fichier.</div>
+      </div>
+      <div style="text-align:center;font-size:32px;color:var(--gold)">→</div>
+      <div style="background:rgba(39,174,96,.08);border:1px solid rgba(39,174,96,.3);border-top:3px solid #27ae60;padding:14px 16px">
+        <div style="font-family:var(--raj);color:#27ae60;margin-bottom:8px;font-size:clamp(14px,2vmin,22px);letter-spacing:1px">v6 — 5 sous-modules autonomes</div>
+        <div style="display:flex;flex-direction:column;gap:clamp(5px,0.8vmin,10px)">
+          ${[['veafSpawnCore.lua','~900 lignes (−54%) · event handling, groupe principal'],['veafSpawnParser.lua','Parseur de texte : convertLaserToFreq, markTextAnalysis'],['veafSpawnGround.lua','FARP, FOB, infanterie, blindés, DCA, convoi'],['veafSpawnAircraft.lua','Avions, CAP, AFAC, JTAC'],['veafSpawnEffects.lua','Cargo, fumigènes, fumées, destruction, téléport']].map(([n,d])=>`<div style="display:flex;gap:8px;align-items:baseline"><code style="font-size:clamp(12px,1.6vmin,18px);white-space:nowrap">${n}</code><span style="font-size:clamp(12px,1.6vmin,18px);color:var(--muted)">${d}</span></div>`).join('')}
+        </div>
+      </div>
+    </div>
+    <div style="background:rgba(39,174,96,.08);border:1px solid rgba(39,174,96,.3);padding:10px 14px">
+      <div class="code-blk" style="margin:0;padding:8px;font-size:clamp(12px,1.5vmin,17px)"><span class="cc">-- Chaque sous-module s'auto-enregistre dans son initialize() :</span>
+veafSpawn.registerCommandHandler("farp",  veafSpawnGround.spawnFarp)
+veafSpawn.registerCommandHandler("convoy",veafSpawnGround.spawnConvoy)
+veafSpawn.registerCommandHandler("cargo", veafSpawnEffects.spawnCargo)
+<span class="cc">-- Dispatch loop remplace les 25 branches if/elseif</span></div>
+    </div>
+  </div>`;
+}
+
+function rLuaPerf(){
+  return `<div class="lbl">Architecture Lua — logging lazy et config à la volée</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:12px;flex:1;min-height:0">
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <div style="background:rgba(39,174,96,.08);border:1px solid rgba(39,174,96,.3);border-top:3px solid #27ae60;padding:14px 16px">
+        <div style="font-family:var(--raj);color:#27ae60;margin-bottom:8px;font-size:clamp(16px,2.2vmin,26px)">veaf.lp() — logging lazy</div>
+        <div class="code-blk" style="font-size:clamp(12px,1.5vmin,17px);margin-bottom:8px;padding:10px"><span class="cc">-- v5 : stringify toujours</span>
+veaf.p(complexTable)  <span class="cc">-- coût même si log inactif</span>
+
+<span class="cc">-- v6 : lazy proxy</span>
+veaf.lp(complexTable)
+<span class="cc">-- arguments stringifiés UNIQUEMENT
+-- si le niveau de log l'exige</span></div>
+        <div style="font-size:clamp(13px,1.8vmin,21px);color:var(--muted);line-height:1.6"><span style="color:var(--gold)">1233 appels</span> migrés de veaf.p() vers veaf.lp() dans tous les scripts Lua.<br><br>En production avec <code>log_level=info</code> : les appels trace/debug ont un <strong style="color:var(--white)">coût CPU nul</strong>.</div>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <div style="background:rgba(232,160,32,.07);border:1px solid rgba(232,160,32,.25);border-top:3px solid var(--gold);padding:14px 16px">
+        <div style="font-family:var(--raj);color:var(--gold);margin-bottom:8px;font-size:clamp(16px,2.2vmin,26px)">Config log à la volée</div>
+        <div style="font-size:clamp(13px,1.8vmin,21px);color:var(--muted);line-height:1.6;margin-bottom:10px">Le fichier <code>veaf-config.lua</code> généré est intégré dans le <code>.miz</code>.<br><br>Sur un serveur sans accès au build :</div>
+        <div style="display:flex;flex-direction:column;gap:clamp(5px,0.8vmin,10px)">
+          <div style="background:var(--bg3);border-left:3px solid var(--gold);padding:clamp(8px,1vmin,14px) 12px;font-size:clamp(13px,1.8vmin,21px)">
+            <div style="color:var(--gold);font-weight:700;margin-bottom:3px">1. Ouvrir le .miz avec 7-zip</div>
+            <div style="color:var(--muted)">Le .miz est une archive ZIP standard</div>
+          </div>
+          <div style="background:var(--bg3);border-left:3px solid var(--gold);padding:clamp(8px,1vmin,14px) 12px;font-size:clamp(13px,1.8vmin,21px)">
+            <div style="color:var(--gold);font-weight:700;margin-bottom:3px">2. Éditer veaf-config.lua</div>
+            <div class="code-blk" style="margin:4px 0 0;padding:6px;font-size:clamp(12px,1.5vmin,17px)">veaf.ForcedLogLevel = "debug"</div>
+          </div>
+          <div style="background:var(--bg3);border-left:3px solid var(--gold);padding:clamp(8px,1vmin,14px) 12px;font-size:clamp(13px,1.8vmin,21px)">
+            <div style="color:var(--gold);font-weight:700;margin-bottom:3px">3. Charger la mission dans DCS</div>
+            <div style="color:var(--muted)">Niveau de log modifié — sans rebuild</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function rTests(){
+  return `<div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;height:100%">
+    <div>
+      <div class="lbl">Le problème en v5</div>
+      <div style="background:rgba(192,57,43,.1);border:1px solid rgba(192,57,43,.3);padding:20px;margin-top:10px;font-size:18px;line-height:1.75">
+        Une mise à jour pouvait <strong style="color:var(--gold)">casser silencieusement</strong> un comportement existant.<br><br>
+        Seul moyen de le savoir : charger la mission dans DCS et constater le problème en vol.
+      </div>
+    </div>
+    <div>
+      <div class="lbl">La garantie en v6</div>
+      <div style="display:flex;flex-direction:column;gap:10px;margin-top:10px">
+        <div style="background:var(--bg3);border-left:3px solid #27ae60;padding:16px 18px">
+          <div style="font-family:var(--raj);font-size:20px;color:#27ae60;margin-bottom:4px">915+ tests Lua</div>
+          <div style="font-size:14px;color:var(--muted)">31 suites simulant l'environnement DCS (timer, coalition, world…) hors DCS</div>
+        </div>
+        <div style="background:var(--bg3);border-left:3px solid #27ae60;padding:16px 18px">
+          <div style="font-family:var(--raj);font-size:20px;color:#27ae60;margin-bottom:4px">CI automatique sur chaque PR</div>
+          <div style="font-size:14px;color:var(--muted)">Rien ne peut être publié si un test échoue</div>
+        </div>
+        <div style="background:var(--bg3);border-left:3px solid #27ae60;padding:16px 18px">
+          <div style="font-family:var(--raj);font-size:20px;color:#27ae60;margin-bottom:4px">TDD — test d'abord, code ensuite</div>
+          <div style="font-size:14px;color:var(--muted)">Chaque fonctionnalité est couverte avant d'exister</div>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function rMigration(){
+  const steps=[{n:'1',l:'Installer',d:'veaf-tools-updater.exe'},{n:'2',l:'Convertir',d:'veaf-tools convert-v5'},{n:'3',l:'Lire',d:'convert-v5-report.md'},{n:'4',l:'Adapter',d:'mission.yaml'},{n:'5',l:'Vérifier',d:'veaf-tools build'}];
+  const warns=[['⚠️','Fichiers .lua résiduels v5','Supprimer de src/scripts/ — chargés en doublon sinon. build émet un warning.'],['🔧','veaf-config.lua est généré','Ne pas éditer — écrasé à chaque build. Lua avancé → mission-script.lua'],['🗑️','--scripts-variant supprimé','Remplacé par global_log_level dans mission.yaml ou --log-modules']];
+  return `<div class="lbl">Processus de migration</div>
+  <div style="display:flex;align-items:stretch;gap:0;margin:12px 0">
+    ${steps.map((s,i)=>`<div style="flex:1;background:var(--bg3);border:1px solid var(--border);border-top:3px solid ${i===0?'var(--gold)':'var(--border)'};padding:14px 10px;text-align:center">
+      <div style="font-family:var(--raj);font-size:30px;color:var(--gold)">${s.n}</div>
+      <div style="font-weight:700;font-size:15px;margin:4px 0">${s.l}</div>
+      <div style="font-size:11px;color:var(--muted);font-family:monospace">${s.d}</div>
+    </div>${i<steps.length-1?'<div style="color:var(--gold);font-size:18px;display:flex;align-items:center;padding:0 4px;flex-shrink:0">→</div>':''}`).join('')}
+  </div>
+  <div style="display:flex;flex-direction:column;gap:6px">
+    ${warns.map(([ic,t,d])=>`<div style="display:flex;gap:12px;background:rgba(232,160,32,.06);border:1px solid rgba(232,160,32,.18);padding:10px 14px;align-items:center">
+      <span style="font-size:20px">${ic}</span>
+      <div><strong style="color:var(--gold);font-size:14px">${t}</strong> <span style="font-size:13px;color:var(--muted)">— ${d}</span></div>
+    </div>`).join('')}
+  </div>`;
+}
+
+function rSummary(){
+  const rows=[['Installation','Node.js, npm, Lua, PowerShell…','Un seul .exe — zéro dépendance'],['Configuration','missionConfig.lua (Lua)','mission.yaml + mission-script.lua'],['Build','Scripts disparates','veaf-tools build unifié'],['Architecture Lua','Couplage fort, gros fichiers','Dispatcher + sous-modules découplés'],['Tests','Aucun','915+ tests automatisés'],['Documentation','Incomplète, FR only','Complète, FR+EN, par rôle'],['Mise à jour','npm install','updater.exe auto + épinglage'],['Migration','Manuelle','convert-v5 guidé']];
+  return `<div class="lbl">En résumé — v5 → v6</div>
+  <table class="vtable" style="margin-top:10px">
+    <thead><tr><th></th><th>v5</th><th style="color:#27ae60">v6</th></tr></thead>
+    <tbody>${rows.map(([k,o,n])=>`<tr><td>${k}</td><td style="color:var(--muted)">${o}</td><td>${n}</td></tr>`).join('')}</tbody>
+  </table>`;
+}
+
+function rLinks(){
+  const links=[['Documentation v6','veaf.github.io/documentation/dev/'],['GitHub — branche develop-v6','github.com/VEAF/VEAF-Mission-Creation-Tools'],['Guide de migration','…/mission-maker/MIGRATION_GUIDE/'],['Référence mission.yaml','…/MISSION_YAML_REFERENCE/'],['Discord VEAF','veaf.org/discord'],['Doc v5 (archive)','veaf.github.io/documentation/v5/']];
+  return `<div class="lbl">Ressources</div>
+  <div class="link-list">${links.map(([l,u])=>`<div class="link-row"><span class="link-lbl">${l}</span><span class="link-url">${u}</span></div>`).join('')}</div>
+  <div style="text-align:center;margin-top:18px;font-family:var(--raj);font-size:24px;color:var(--muted)">Questions ? → <span style="color:var(--gold)">Discord VEAF</span></div>`;
+}
+
+render();
+</script>
+</body>
+</html>

@@ -4360,7 +4360,7 @@ veaf.loadAirbasesLife0()
 -- changes to AIEN
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Our AIEN_xcl_tag (VEAF version) does not autoinitialize. It's also set to log messages using the VEAF logging functions
--- Instead, we count on the mission makers to call AIEN.performPhaseCycle() from the missionConfig.lua file (since v5.0)
+-- Instead, we count on the mission makers to call AIEN.performPhaseCycle() from mission-script.lua
 -- Here, we're upgrading the vanilla AIEN configuration to adapt it to our preferred defaults
 
 if AIEN then
@@ -4428,7 +4428,7 @@ end
 -- changes to CTLD
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Our CTLD (VEAF version) does not autoinitialize. It's also set to log messages using the VEAF logging functions
--- Instead, we count on the mission makers to call ctld.initialize from the missionConfig.lua file (since v5.0)
+-- Instead, we count on the mission makers to call ctld.initialize from mission-script.lua
 -- Here, we're upgrading the vanilla CTLD initialize function so it's smarter
 
 ---The VEAF replacement function that wraps up around ctld.initialize
@@ -4613,7 +4613,7 @@ end
 -- changes to CSAR
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Our CSAR (VEAF version) does not autoinitialize. It's also set to log messages using the VEAF logging functions
--- Instead, we count on the mission makers to call csar.initialize from the missionConfig.lua file (since v5.0)
+-- Instead, we count on the mission makers to call csar.initialize from mission-script.lua
 -- Here, we're upgrading the vanilla CSAR initialize function so it's smarter
 
 ---The VEAF replacement function that wraps up around ctld.initialize

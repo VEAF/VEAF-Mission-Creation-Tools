@@ -20,7 +20,6 @@
   "cmd.build.opt.log_level": "Niveau de log à appliquer aux modules --log-modules (trace, debug, info, warning, error).",
   "cmd.build.opt.migrate_v5": "Migration automatique des triggers DCS v5 vers le format v6.",
   "cmd.build.done": "Mission construite avec succès.",
-  "cmd.convert.help": "Convertit un fichier de mission .miz (extraction, transformation, repackage).",
   "cmd.extract.help": "Extrait un fichier de mission .miz dans un dossier.",
   "cmd.generate_config.help": "Génère un modèle mission.yaml documenté pour un dossier de mission.",
   "cmd.generate_config.done": "Modèle mission.yaml généré.",
@@ -298,11 +297,6 @@
   "cmd.migrate_config.opt.output_file": "Chemin du fichier migré. Par défaut : <entrée>_v6.lua à côté du fichier source.",
   "cmd.migrate_config.opt.yaml_output": "Écrire le fragment YAML lua_modules dans ce fichier plutôt que de l'afficher.",
 
-  "cmd.convert.opt.dynamic_mode": "Si activé, la mission chargera les scripts dynamiquement depuis l'emplacement fourni (via --scripts-path ou les dossiers locaux published et src/scripts).",
-  "cmd.convert.opt.scripts_path": "Chemin vers les scripts VEAF et communautaires.",
-  "cmd.convert.opt.mission": "Nom de mission ; extraira depuis la mission portant ce nom (fichier .miz le plus récent).",
-  "cmd.convert.opt.mission_folder": "Dossier contenant les fichiers de mission.",
-
   "cmd.extract.opt.mission": "Nom de mission ; extraira depuis la mission portant ce nom (fichier .miz le plus récent) ; peut être un fichier .miz.",
   "cmd.extract.opt.mission_folder": "Dossier où les fichiers de mission seront extraits.",
 
@@ -403,7 +397,6 @@
   "cmd.about.website": "Site web : {url}",
 
   "cmd.build.title": "[bold green]veaf-tools VEAF mission builder v{version}[/bold green]",
-  "cmd.convert.title": "[bold green]veaf-tools VEAF mission converter v{version}[/bold green]",
   "cmd.extract.title": "[bold green]veaf-tools VEAF mission extractor v{version}[/bold green]",
   "cmd.extract_aircraft.title": "[bold green]veaf-tools Aircraft Groups Extractor v{version}[/bold green]",
   "cmd.extract_waypoints.title": "[bold green]veaf-tools Waypoints Extractor v{version}[/bold green]",
@@ -461,7 +454,6 @@
   "tui.arg.template_file": "Fichier YAML des groupes aériens",
   "tui.cmd.about.description": "Afficher les informations sur veaf-tools",
   "tui.cmd.build.description": "Construire un fichier .miz de mission DCS depuis un dossier de mission VEAF",
-  "tui.cmd.convert.description": "Convertir une mission DCS existante en nouveau dossier de mission VEAF",
   "tui.cmd.extract.description": "Extraire un fichier .miz dans un dossier de mission VEAF",
   "tui.cmd.extract_aircraft.description": "Extraire des groupes aériens d'un fichier .miz vers un modèle YAML",
   "tui.cmd.extract_waypoints.description": "Extraire les waypoints d'un fichier .miz vers un fichier YAML",

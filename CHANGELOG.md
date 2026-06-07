@@ -13,6 +13,15 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `mission.yaml`: new `custom_scripts` section to declare custom Lua scripts in `src/scripts/` — declared scripts are included silently and can opt out of automatic DCS load-trigger generation with `generate_load_trigger: false` (global default or per-script override)
 
 ### Fixed
+- `veafQraManager.md/en.md`, `veafSkynetIadsHelper.md/en.md`: références à `missionConfig.lua` remplacées par `mission-script.lua`
+- `mission_builder_README.py`, `mission_extractor_README.py`: arborescences mises à jour (`missionConfig.lua` → `mission-script.lua`, ajout de `mission.yaml`)
+- `veaf.lua`: commentaires AIEN/CTLD/CSAR mis à jour (`missionConfig.lua` → `mission-script.lua`, suppression de `(since v5.0)`)
+- Fixtures de test (`veafDynamicConfig.lua`, `mapResource`): `missionConfig.lua` → `mission-script.lua`
+
+### Removed
+- `convert` command removed — it was broken on v6 missions (crash on missing `missionConfig.lua`) and its purpose is fully covered by `extract` followed by `build`
+
+### Fixed
 - `lua_config_generator.py`: specifying `enable` (true or false) on a mandatory Lua module in `mission.yaml` now raises an error instead of silently overriding — mandatory modules are always active and cannot be enabled or disabled
 
 

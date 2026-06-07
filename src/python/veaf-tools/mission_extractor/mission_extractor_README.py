@@ -66,14 +66,15 @@ After extraction, you'll have a folder structure like:
 
 ```
 mission_folder/
+├── mission.yaml             (modules, pipeline config)
 ├── src/
 │   ├── mission/
 │   │   ├── mission
 │   │   ├── options
 │   │   └── warehouses
 │   └── scripts/
-│       ├── missionConfig.lua
-│       └── [other mission scripts]
+│       ├── mission-script.lua   (custom user Lua code)
+│       └── [other custom scripts]
 └── [other extracted files]
 ```
 

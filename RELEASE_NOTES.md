@@ -1,99 +1,39 @@
-# VEAF Mission Creation Tools — Notes de version v6.3.3
+# VEAF Mission Creation Tools — v6.3.4
 
-> Date de publication : 2026-06-06
+**Version de consolidation** — corrections, clarté des erreurs, et enrichissement de la documentation.
 
-## Vue d'ensemble
-
-La version 6.3.3 est une version de stabilisation et de correction de bugs. Aucun changement incompatible.
+Un grand merci à **Flogas** pour ses tests approfondis et ses retours précieux qui ont contribué à la qualité de cette version.
 
 ---
 
-## Corrections de bugs
+## Nouveautés
 
-### Corrections runtime Lua
+### Scripts Lua personnalisés dans `mission.yaml`
 
-- **`initialize()` manquant sur plusieurs modules** — `veafCacheManager`, `veafTime`,
-  `veafUnits` et `veafSkynetIadsMonitor` ne disposaient pas de leur fonction
-  `initialize()`. Comme `veaf-config.lua` appelle `<module>.initialize()` sur
-  chaque module listé, leur absence provoquait un crash DCS au démarrage :
-  `attempt to call field 'initialize' (a nil value)`.
-
-### Corrections du pipeline de build
-
-- **Erreur de syntaxe Lua sur les champs d'assets avec caractères spéciaux** —
-  les champs `description`, `name` et `information` contenant des sauts de ligne
-  (`\n`) ou des guillemets (`"`) utilisent désormais la syntaxe Lua longue
-  (`[[...]]`), évitant une erreur de syntaxe au chargement de la mission.
-
-- **`versions.yaml` n'est plus écrasé quand `missions.yaml` existe** — le
-  builder ne copie plus le `versions.yaml` par défaut si un `missions.yaml`
-  legacy est déjà présent dans `src/` ; un avertissement est émis à la place.
-
-- **Nom du fichier de backup `v5_converter` corrigé** — la sauvegarde de
-  migration utilise désormais `missionConfig.lua` (cohérent avec tous les autres
-  fichiers de backup dans `backup_v5/`).
-
-- **`presets.md` n'est plus créé silencieusement** — ce fichier a été retiré
-  des defaults ; il était copié dans les dossiers mission sans utilité.
-
-- **Avertissement quand `aircraft-templates.yaml` existe mais que l'étape de
--  pipeline est désactivée** — la commande build avertit désormais dans ce cas.
+Il est désormais possible de déclarer des scripts Lua personnalisés situés dans `src/scripts/` via la nouvelle section `custom_scripts` de `mission.yaml`. Chaque script peut désactiver la génération automatique du trigger de chargement DCS avec `generate_load_trigger: false`.
 
 ---
 
-## Améliorations
+## Corrections
 
-### Pipeline de build
-
-- **Avertissement sur les fichiers `.lua` inattendus dans `src/scripts/`** — le
-  builder signale les fichiers `.lua` qui ressemblent à des résidus v5 ; ceux-ci
-  seraient chargés comme scripts de mission DCS et pourraient entrer en conflit
-  avec le `veaf-scripts.lua` fourni.
-
-- **Profils de build (`--profile`)** — nouvelle option `--profile` / `-p` sur
-  `veaf-tools build` permettant de sélectionner un profil nommé défini dans
-  `mission.yaml`. Les profils fusionnent en profondeur sur la config de base
-  (les listes sont remplacées, pas concaténées). Des exemples (`TEST`, `SERVER`)
-  sont inclus dans le template `mission.yaml` par défaut.
-
-- **`.gitignore` auto-généré** — `veaf-tools prepare` copie désormais un
-  template `.gitignore` dans le dossier mission s'il est absent ; il n'est
-  jamais écrasé (même avec `--force`) pour préserver les personnalisations.
-
-- **Configuration YAML-first pour CSAR** — `external_modules.csar` dans
-  `mission.yaml` génère désormais le bloc de configuration CSAR complet dans
-  `veaf-config.lua`, de façon symétrique au support CTLD existant.
-
-- **Bloc CTLD protégé et auto-initialisé** — le bloc CTLD dans `veaf-config.lua`
-  est maintenant encadré par `if ctld then … end` et inclut `ctld.initialize()`
-  automatiquement ; plus besoin d'appel manuel dans `mission-script.lua`.
-
-- **Modules obligatoires protégés** — les modules Infrastructure (UNITS, TIME,
-  CACHE, EVENTS, MARKERS, COMMANDS) sont désormais marqués obligatoires ; s'ils
-  sont désactivés dans `mission.yaml`, un avertissement est émis et le flag est
-  ignoré.
-
-- **Résolution automatique des dépendances** — les dépendances manquantes ou
-  désactivées sont auto-activées au moment du build avec un avertissement par
-  module ajouté ; les chaînes transitives sont entièrement résolues sans
-  modifier aucun fichier sur le disque.
-
-- **Catégories de modules dans `veaf-config.lua`** — les fichiers de config
-  générés incluent désormais des en-têtes de catégorie (Infrastructure, Core,
-  Features, Combat, External) pour une meilleure lisibilité.
-
-### Documentation
-
-- **Profils de build** documentés dans le Guide Mission Maker et
-  `MISSION_YAML_REFERENCE.md`.
-
-- **Mode développeur** (`dev_mode` / `scripts_path`) documenté dans le Guide
-  Développeur et `MISSION_YAML_REFERENCE.md`.
-
-- **Configuration YAML-first CSAR** documentée dans le Guide Mission Maker.
+- **Erreurs YAML** : si `mission.yaml` contient une erreur de syntaxe, l'outil affiche maintenant un message clair indiquant le fichier, la ligne, la colonne et une explication en langage naturel — plus de crash Python cryptique.
+- **Modules obligatoires** : spécifier `enable: true/false` sur un module Lua obligatoire (`UNITS`, `TIME`, `CACHE`…) lève désormais une erreur explicite au lieu d'être silencieusement ignoré.
 
 ---
 
-## Full Changelog
+## Documentation
 
-See [CHANGELOG.md](CHANGELOG.md) for the complete list of changes.
+- **Nouvelle URL** : la documentation est maintenant publiée sur [veaf.github.io/documentation/](https://veaf.github.io/documentation/). Mettez à jour vos favoris.
+- **Français par défaut** : le français est désormais la langue principale de la documentation ; l'anglais reste disponible en langue secondaire.
+- **Nouvelle section** dans la référence `MISSION_YAML_REFERENCE` : explication des erreurs de syntaxe YAML et leurs causes courantes.
+- **Pages enrichies** : Skynet IADS Helper, QRA Manager, Combat Zone, Radio, Weather — contenus corrigés et complétés.
+
+---
+
+## Retraits
+
+- La commande `convert` a été supprimée. Elle était non fonctionnelle sur les missions v6. Le flux `extract` suivi de `build` couvre entièrement son usage.
+
+---
+
+*VEAF Mission Creation Tools est un projet communautaire open-source. Contributions et retours bienvenus sur [GitHub](https://github.com/VEAF/VEAF-Mission-Creation-Tools).*

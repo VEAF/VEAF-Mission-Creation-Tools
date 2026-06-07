@@ -3,6 +3,9 @@
 import re
 import logging
 
+import pytest
+import typer
+
 from veaf_libs.lua_config_generator import (
     _emit_lua_string,
     _resolve_deps,
@@ -245,34 +248,42 @@ def test_category_headers_present_in_yaml_template():
 
 
 # ---------------------------------------------------------------------------
-# MODUX-002 — Mandatory module warning
+# MODUX-002 — Mandatory module enable/disable error
 # ---------------------------------------------------------------------------
 
 
-def test_mandatory_module_disabled_emits_warning(caplog):
-    """Disabling a mandatory module must produce a logger.warning."""
-    yaml_data: dict = {
-        "lua_modules": {
-            "UNITS": {"enable": False},
-        }
-    }
-    with caplog.at_level(logging.WARNING, logger="veaf-tools"):
-        lua = generate_config_lua(yaml_data)
-    assert any("UNITS" in msg and "mandatory" in msg for msg in caplog.messages)
-    # Despite enable: false, the module should NOT emit setConfig(enable=false)
-    assert 'veaf.setConfig("UNITS", "enable", false)' not in lua
+def test_mandatory_module_enable_false_raises(caplog):
+    """Setting enable: false on a mandatory module must raise typer.Abort."""
+    yaml_data: dict = {"lua_modules": {"UNITS": {"enable": False}}}
+    with caplog.at_level(logging.ERROR, logger="veaf-tools"):
+        with pytest.raises(typer.Abort):
+            generate_config_lua(yaml_data)
+    assert any("UNITS" in msg for msg in caplog.messages)
 
 
-def test_non_mandatory_disabled_no_warning(caplog):
-    """Disabling a non-mandatory module must NOT produce a mandatory warning."""
-    yaml_data: dict = {
-        "lua_modules": {
-            "ASSETS": {"enable": False},
-        }
-    }
-    with caplog.at_level(logging.WARNING, logger="veaf-tools"):
+def test_mandatory_module_enable_true_raises(caplog):
+    """Setting enable: true on a mandatory module must also raise typer.Abort."""
+    yaml_data: dict = {"lua_modules": {"UNITS": {"enable": True}}}
+    with caplog.at_level(logging.ERROR, logger="veaf-tools"):
+        with pytest.raises(typer.Abort):
+            generate_config_lua(yaml_data)
+    assert any("UNITS" in msg for msg in caplog.messages)
+
+
+def test_mandatory_module_config_only_passes(caplog):
+    """Configuring a mandatory module without enable key must not raise."""
+    yaml_data: dict = {"lua_modules": {"UNITS": {"logLevel": "debug"}}}
+    with caplog.at_level(logging.ERROR, logger="veaf-tools"):
         generate_config_lua(yaml_data)
-    assert not any("mandatory" in msg for msg in caplog.messages)
+    assert not any("UNITS" in msg for msg in caplog.messages)
+
+
+def test_non_mandatory_disabled_no_error(caplog):
+    """Disabling a non-mandatory module must NOT produce a mandatory error."""
+    yaml_data: dict = {"lua_modules": {"ASSETS": {"enable": False}}}
+    with caplog.at_level(logging.ERROR, logger="veaf-tools"):
+        generate_config_lua(yaml_data)
+    assert not any("always active" in msg for msg in caplog.messages)
 
 
 # ---------------------------------------------------------------------------

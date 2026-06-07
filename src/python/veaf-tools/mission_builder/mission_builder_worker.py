@@ -4,6 +4,7 @@ Worker module for the VEAF Mission Builder Package.
 
 import re
 import shutil
+from dataclasses import dataclass, field
 from pathlib import Path
 
 import yaml
@@ -38,6 +39,14 @@ _EXPECTED_SCRIPTS: frozenset[str] = frozenset(
         "veafDynamicConfig.lua",
     }
 )
+
+
+@dataclass
+class CustomScript:
+    """A custom Lua script declared in the custom_scripts section of mission.yaml."""
+
+    path: str
+    generate_load_trigger: bool | None = field(default=None)
 
 
 class MissionBuilderWorker(BaseWorker):
@@ -152,6 +161,27 @@ class MissionBuilderWorker(BaseWorker):
             global_log_level = normalized
         self.global_log_level: str | None = global_log_level
         self.lua_modules: dict | None = lua_modules
+
+        # Parse custom_scripts section from mission.yaml
+        self.custom_scripts: list[CustomScript] = []
+        self.custom_scripts_generate_load_trigger: bool = True
+        cs_raw = self.mission_yaml.get("custom_scripts")
+        if cs_raw is not None and not isinstance(cs_raw, dict):
+            logger.warning(
+                f"'custom_scripts' in mission.yaml must be a mapping (got {type(cs_raw).__name__}); ignoring."
+            )
+            cs_raw = None
+        cs_section: dict = cs_raw or {}
+        if cs_section:
+            self.custom_scripts_generate_load_trigger = bool(cs_section.get("generate_load_trigger", True))
+            for script_item in cs_section.get("scripts") or []:
+                if isinstance(script_item, dict):
+                    path = script_item.get("path", "")
+                    per_script_trigger: bool | None = script_item.get("generate_load_trigger")
+                else:
+                    path = str(script_item)
+                    per_script_trigger = None
+                self.custom_scripts.append(CustomScript(path=Path(path).name, generate_load_trigger=per_script_trigger))
 
         if self.mission_folder and not self.mission_folder.is_dir():
             logger.error(
@@ -318,15 +348,24 @@ class MissionBuilderWorker(BaseWorker):
         # Those would be loaded as individual DCS mission scripts and may conflict with the
         # bundled veaf-scripts.lua loaded by the VEAF triggers.
         scripts_dir = self.mission_folder / "src" / "scripts"
+        declared_custom_names = {cs.path for cs in self.custom_scripts}
         if scripts_dir.is_dir():
             for lua_file in scripts_dir.glob("*.lua"):
-                if lua_file.name not in _EXPECTED_SCRIPTS:
-                    logger.warning(
-                        f"Unexpected Lua file 'src/scripts/{lua_file.name}' found in your mission folder. "
-                        f"This file will be loaded as a DCS mission script and may conflict with "
-                        f"the bundled veaf-scripts.lua. "
-                        f"If this is a leftover v5 VEAF script, delete it."
+                if lua_file.name in _EXPECTED_SCRIPTS:
+                    continue
+                if lua_file.name in declared_custom_names:
+                    logger.info(
+                        f"Custom Lua file 'src/scripts/{lua_file.name}' declared in mission.yaml "
+                        f"and will be included in the mission."
                     )
+                    continue
+                logger.warning(
+                    f"Unexpected Lua file 'src/scripts/{lua_file.name}' found in your mission folder. "
+                    f"This file will be loaded as a DCS mission script and may conflict with "
+                    f"the bundled veaf-scripts.lua. "
+                    f"If this is a leftover v5 VEAF script, delete it. "
+                    f"If it is an intentional custom script, declare it in the 'custom_scripts' section of mission.yaml."
+                )
 
     def create_mission(self) -> None:
         """Creates the initial mission file from the mission folder."""
@@ -492,6 +531,24 @@ class MissionBuilderWorker(BaseWorker):
 
         return new_dictionary
 
+    def _resolves_load_trigger(self, filename: str) -> bool:
+        """Returns True if a DCS load trigger should be generated for this script file.
+
+        Args:
+            filename: The script filename (basename only).
+
+        Returns:
+            For declared scripts: the per-script override if set, otherwise the global default.
+            For undeclared scripts (not in custom_scripts): always True — standard and unknown
+            files are always loaded; the global default applies only to declared custom scripts.
+        """
+        for cs in self.custom_scripts:
+            if cs.path == filename:
+                if cs.generate_load_trigger is not None:
+                    return cs.generate_load_trigger
+                return self.custom_scripts_generate_load_trigger
+        return True
+
     def update_map_resource_with_veaf_entries(self) -> tuple[dict, dict, dict]:
         """
         Update the map resource for all the VEAF triggers in the mission.
@@ -507,8 +564,12 @@ class MissionBuilderWorker(BaseWorker):
             new_map_resource_script_files[map_resource_key] = Path(script_file_name).name
 
         new_map_resource_mission_script_files = {}
-        for map_resource_key_index, script_file_name in enumerate(self.get_collected_mission_script_files()):
-            map_resource_key = f"VEAF_MapKey_ActionText_11{map_resource_key_index:03}"
+        trigger_key_index = 0
+        for script_file_name in self.get_collected_mission_script_files():
+            if not self._resolves_load_trigger(Path(script_file_name).name):
+                continue
+            map_resource_key = f"VEAF_MapKey_ActionText_11{trigger_key_index:03}"
+            trigger_key_index += 1
             new_map_resource_key_by_file[script_file_name] = map_resource_key
             new_map_resource_mission_script_files[map_resource_key] = Path(script_file_name).name
 

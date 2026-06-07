@@ -15,7 +15,7 @@
 ## Requirements
 
 - The Skynet IADS script must be downloaded separately and loaded **before** `veafSkynetIadsHelper`
-- Configure via `mission.yaml` (recommended) or directly in `missionConfig.lua`
+- Configure via `mission.yaml` (recommended) or in `mission-script.lua` for advanced options not available in YAML
 
 ---
 
@@ -41,7 +41,7 @@ external_modules:
 
 ---
 
-## Activation (via `missionConfig.lua`)
+## Activation (via `mission-script.lua`)
 
 ```lua
 if veafSkynet then

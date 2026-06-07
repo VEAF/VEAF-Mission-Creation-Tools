@@ -8,7 +8,7 @@ mapResource =
   DictKey_ActionText_10207 = "Hercules_Cargo.lua",
   DictKey_ActionText_10208 = "HoundElint.lua",
   DictKey_ActionText_10308 = "veaf-scripts.lua",
-  DictKey_ActionText_10309 = "missionConfig.lua",
+  DictKey_ActionText_10309 = "mission-script.lua",
   ResKey_Action_796 = "beaconsilent.ogg",
   ResKey_Action_797 = "beacon.ogg",
   ResKey_Action_803 = "CSAR.ogg",
@@ -22,5 +22,5 @@ mapResource =
   VEAF_MapKey_ActionText_10007 = "skynet-iads-compiled.lua",
   VEAF_MapKey_ActionText_10008 = "TheUniversalMission.lua",
   VEAF_MapKey_ActionText_10009 = "veaf-scripts.lua",
-  VEAF_MapKey_ActionText_11000 = "missionConfig.lua",
+  VEAF_MapKey_ActionText_11000 = "mission-script.lua",
 }

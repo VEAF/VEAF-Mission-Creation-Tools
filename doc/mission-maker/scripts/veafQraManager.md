@@ -23,7 +23,7 @@ Définit des zones d'espace aérien protégées défendues par des intercepteurs
 
 `veafQraManager.initialize()` est appelé automatiquement par le framework.
 
-### Via `missionConfig.lua`
+### Via `mission-script.lua`
 
 Appeler `veafQraManager.initialize()` **avant** de déclarer les zones :
 

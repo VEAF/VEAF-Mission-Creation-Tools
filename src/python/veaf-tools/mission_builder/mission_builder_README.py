@@ -53,14 +53,15 @@ The mission folder should contain:
 
 ```
 mission_folder/
+├── mission.yaml             (modules, pipeline config)
 ├── src/
 │   ├── mission/
 │   │   ├── mission
 │   │   ├── options
 │   │   └── warehouses
 │   ├── scripts/
-│   │   ├── missionConfig.lua
-│   │   └── [custom scripts]
+│   │   ├── mission-script.lua   (custom user Lua code)
+│   │   └── [other custom scripts]
 │   └── [other files]
 └── published/ (automatically fetched with veaf-tools-updater)
 ```

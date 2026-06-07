@@ -24,7 +24,7 @@ Defines protected airspace zones defended by AI interceptors. When a hostile air
 
 `veafQraManager.initialize()` is called automatically by the framework.
 
-### Via `missionConfig.lua`
+### Via `mission-script.lua`
 
 Call `veafQraManager.initialize()` **before** declaring any QRA zone:
 

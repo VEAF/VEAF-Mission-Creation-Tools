@@ -74,7 +74,7 @@ lua_modules:
 
 ## Erreurs de syntaxe
 
-Si `mission.yaml` contient une erreur de syntaxe YAML (mauvaise indentation, deux-points manquant, caractère de tabulation…), `veaf-tools build` s'arrête immédiatement et affiche un message clair indiquant le nom du fichier, la ligne et la colonne du problème, ainsi qu'une aide en langage courant pour corriger l'erreur :
+Si `mission.yaml` contient une erreur de syntaxe YAML (mauvaise indentation, deux-points manquants, caractère de tabulation…), `veaf-tools build` s'arrête immédiatement et affiche un message clair indiquant le nom du fichier, la ligne et la colonne du problème, ainsi qu'une aide en langage courant pour corriger l'erreur :
 
 ```
 Erreur de syntaxe dans mission.yaml, ligne 81, colonne 4.

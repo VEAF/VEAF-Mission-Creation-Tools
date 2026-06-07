@@ -36,8 +36,16 @@ class TestHintKey(unittest.TestCase):
 
 
 class TestValidateYamlFile(unittest.TestCase):
+    def setUp(self) -> None:
+        self._tmp = tempfile.TemporaryDirectory()
+
+    def tearDown(self) -> None:
+        self._tmp.cleanup()
+
     def _write(self, content: str) -> Path:
-        f = tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False, encoding="utf-8")
+        f = tempfile.NamedTemporaryFile(
+            mode="w", suffix=".yaml", delete=False, encoding="utf-8", dir=self._tmp.name
+        )
         f.write(content)
         f.close()
         return Path(f.name)

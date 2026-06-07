@@ -53,9 +53,7 @@ def validate_yaml_file(path: Path) -> None:
         else:
             msg = t("yaml.error.syntax_unknown", filename=path.name)
 
-        if context_mark is not None and (
-            problem_mark is None or context_mark.line != problem_mark.line
-        ):
+        if context_mark is not None and (problem_mark is None or context_mark.line != problem_mark.line):
             msg += "\n" + t(
                 "yaml.error.context",
                 line=context_mark.line + 1,

@@ -165,7 +165,13 @@ class MissionBuilderWorker(BaseWorker):
         # Parse custom_scripts section from mission.yaml
         self.custom_scripts: list[CustomScript] = []
         self.custom_scripts_generate_load_trigger: bool = True
-        cs_section: dict = self.mission_yaml.get("custom_scripts") or {}
+        cs_raw = self.mission_yaml.get("custom_scripts")
+        if cs_raw is not None and not isinstance(cs_raw, dict):
+            logger.warning(
+                f"'custom_scripts' in mission.yaml must be a mapping (got {type(cs_raw).__name__}); ignoring."
+            )
+            cs_raw = None
+        cs_section: dict = cs_raw or {}
         if cs_section:
             self.custom_scripts_generate_load_trigger = bool(cs_section.get("generate_load_trigger", True))
             for script_item in cs_section.get("scripts") or []:
@@ -532,8 +538,9 @@ class MissionBuilderWorker(BaseWorker):
             filename: The script filename (basename only).
 
         Returns:
-            False only for custom scripts explicitly declared with generate_load_trigger: false.
-            All other files (undeclared or declared without override) follow the global default.
+            For declared scripts: the per-script override if set, otherwise the global default.
+            For undeclared scripts (not in custom_scripts): always True — standard and unknown
+            files are always loaded; the global default applies only to declared custom scripts.
         """
         for cs in self.custom_scripts:
             if cs.path == filename:

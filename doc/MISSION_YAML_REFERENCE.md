@@ -312,7 +312,7 @@ Un script déclaré ici est inclus dans le `.miz` **sans** déclencher de warnin
 
 **Comportement de chargement**
 
-- `generate_load_trigger: true` (défaut) → le script est injecté dans le `.miz` **et** un trigger DCS `a_do_script_file` est généré, il se charge au démarrage de la mission comme les autres scripts mission.
+- `generate_load_trigger: true` (défaut) → le script est injecté dans le `.miz` **et** un trigger DCS `a_do_script_file` est généré, il se charge au démarrage de la mission comme les autres scripts de mission.
 - `generate_load_trigger: false` → le script est injecté dans le `.miz` mais **aucun** trigger n'est généré ; c'est `mission-script.lua` (ou un autre script) qui doit le charger via `dofile`.
 
 ```yaml

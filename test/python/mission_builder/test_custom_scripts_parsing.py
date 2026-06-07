@@ -102,5 +102,47 @@ class TestCustomScriptsParsing(unittest.TestCase):
         self.assertTrue(worker.custom_scripts_generate_load_trigger)
 
 
+
+class TestCustomScriptsParsingIntegration(unittest.TestCase):
+    """Integration tests: parse custom_scripts via the real MissionBuilderWorker.__init__."""
+
+    def _make_real_worker(self, yaml_content: str) -> MissionBuilderWorker:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            mission_dir = Path(tmpdir)
+            output_mission = mission_dir / "out.miz"
+            (mission_dir / "mission.yaml").write_text(yaml_content, encoding="utf-8")
+            return MissionBuilderWorker(
+                mission_folder=mission_dir,
+                output_mission=output_mission,
+                dynamic_mode=None,
+            )
+
+    def test_init_parses_global_trigger_false(self) -> None:
+        """__init__ correctly sets custom_scripts_generate_load_trigger to False."""
+        worker = self._make_real_worker(
+            "custom_scripts:\n  generate_load_trigger: false\n  scripts: []\n"
+        )
+        self.assertFalse(worker.custom_scripts_generate_load_trigger)
+
+    def test_init_parses_scripts_basenames_and_per_script_override(self) -> None:
+        """__init__ stores basenames and per-script generate_load_trigger."""
+        worker = self._make_real_worker(
+            "custom_scripts:\n"
+            "  scripts:\n"
+            "    - path: src/scripts/FgMission.lua\n"
+            "    - path: src/scripts/FgTools.lua\n"
+            "      generate_load_trigger: false\n"
+        )
+        self.assertEqual(len(worker.custom_scripts), 2)
+        self.assertEqual(worker.custom_scripts[0], CustomScript(path="FgMission.lua"))
+        self.assertEqual(worker.custom_scripts[1], CustomScript(path="FgTools.lua", generate_load_trigger=False))
+        self.assertTrue(worker.custom_scripts_generate_load_trigger)
+
+    def test_init_non_dict_custom_scripts_ignored(self) -> None:
+        """__init__ ignores a non-dict custom_scripts value and produces empty list."""
+        worker = self._make_real_worker("custom_scripts: not-a-dict\n")
+        self.assertEqual(worker.custom_scripts, [])
+
+
 if __name__ == "__main__":
     unittest.main()

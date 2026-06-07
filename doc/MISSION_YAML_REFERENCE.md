@@ -299,6 +299,35 @@ Voir les pages respectives pour le schéma complet :
 
 ---
 
+### `custom_scripts:`
+
+Déclare les scripts Lua custom présents dans `src/scripts/` qui ne font pas partie du jeu standard VEAF v6.  
+Un script déclaré ici est inclus dans le `.miz` **sans** déclencher de warning. Par défaut, un trigger DCS de chargement est généré automatiquement pour lui ; positionner `generate_load_trigger: false` désactive ce trigger (utile quand le script est chargé manuellement depuis `mission-script.lua`).
+
+| Champ | Type | Défaut | Description |
+|-------|------|---------|-------------|
+| `generate_load_trigger` | `bool` | `true` | Défaut global : générer un trigger DCS pour tous les scripts de la liste |
+| `scripts[].path` | `string` | *(requis)* | Chemin vers le fichier, relatif au dossier de mission (ex : `src/scripts/FgMission.lua`) |
+| `scripts[].generate_load_trigger` | `bool` | *(défaut global)* | Override par script ; si absent, le défaut global s'applique |
+
+**Comportement de chargement**
+
+- `generate_load_trigger: true` (défaut) → le script est injecté dans le `.miz` **et** un trigger DCS `a_do_script_file` est généré, il se charge au démarrage de la mission comme les autres scripts mission.
+- `generate_load_trigger: false` → le script est injecté dans le `.miz` mais **aucun** trigger n'est généré ; c'est `mission-script.lua` (ou un autre script) qui doit le charger via `dofile`.
+
+```yaml
+custom_scripts:
+  generate_load_trigger: true       # défaut global pour tous les scripts ci-dessous
+  scripts:
+    - path: src/scripts/FgMission.lua
+    - path: src/scripts/FgTools.lua
+      generate_load_trigger: false  # chargé manuellement depuis mission-script.lua
+```
+
+> Tout fichier `.lua` présent dans `src/scripts/` mais **absent** de cette section (et ne faisant pas partie des fichiers standards) déclenche un warning au build avec un rappel pour le déclarer ici.
+
+---
+
 ### `pipeline:`
 
 Contrôle les étapes optionnelles du pipeline de build. Voir la [Référence Pipeline](PIPELINE_REFERENCE.md) pour le schéma complet des fichiers de configuration de chaque étape.
@@ -414,6 +443,7 @@ veaf-tools.exe build --profile SERVER
 | [`veaf_tools:`](#veaf_tools) | Contrainte de version |
 | `pipeline.aircraft_groups` | [schéma aircraft-templates.yaml](PIPELINE_REFERENCE.md#étape-3--groupes-daéronefs-aircraft-templatesyaml) |
 | `pipeline.weather` | [schéma versions.yaml](PIPELINE_REFERENCE.md#étape-4--variantes-météo--horaire-versionsyaml) |
+| [`custom_scripts:`](#custom_scripts) | Scripts Lua custom à inclure dans la mission |
 | [`build:`](#build) | Mode développeur et chemin des scripts |
 | `build.dev_mode` | Utiliser le bundle Lua local au lieu des scripts publiés |
 | `build.scripts_path` | Chemin vers un clone local de VEAF-Mission-Creation-Tools |

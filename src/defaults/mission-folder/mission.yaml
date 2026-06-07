@@ -177,6 +177,19 @@
 #         groups: ["Group1", "Group2"]
 #         scalable: true
 
+# ── Custom scripts ────────────────────────────────────────────────────────────
+# Declare Lua scripts in src/scripts/ that are not part of the standard VEAF v6 set.
+# Declared scripts are included in the mission without a warning.
+# By default each declared script gets a DCS load trigger (generate_load_trigger: true).
+# Set generate_load_trigger: false when the script is loaded manually (e.g. from mission-script.lua).
+#
+# custom_scripts:
+#   generate_load_trigger: true     # global default for all scripts below
+#   scripts:
+#     - path: src/scripts/FgMission.lua
+#     - path: src/scripts/FgTools.lua
+#       generate_load_trigger: false  # override: loaded manually from mission-script.lua
+
 # ── Build pipeline ────────────────────────────────────────────────────────────
 # Controls which optional injection steps run after the base build.
 # By default each step is auto-detected: it runs if its config file is found.

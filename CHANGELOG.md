@@ -9,6 +9,9 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+- `mission.yaml`: new `custom_scripts` section to declare custom Lua scripts in `src/scripts/` — declared scripts are included silently and can opt out of automatic DCS load-trigger generation with `generate_load_trigger: false` (global default or per-script override)
+
 ### Fixed
 - `lua_config_generator.py`: specifying `enable` (true or false) on a mandatory Lua module in `mission.yaml` now raises an error instead of silently overriding — mandatory modules are always active and cannot be enabled or disabled
 

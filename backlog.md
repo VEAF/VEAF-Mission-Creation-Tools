@@ -68,9 +68,26 @@
 | Lot 27 — DOC-FR-MERGE | ~6h | ✅ |
 | Lot FIX-YAML-SYNTAX — Erreur YAML non gérée dans build et mission_builder_worker | ~15 min | ✅ |
 | Lot FIX-MANDATORY-ENABLE — Bloquer enable sur les modules obligatoires | ~20 min | ✅ |
-| **Total** | **~173h60** | |
+| Lot FEAT-CUSTOM-SCRIPTS — Section custom_scripts dans mission.yaml | ~45 min | 🔄 |
+| **Total** | **~174h45** | |
 
 *Initial calibration factor: 1.15 — recalculate after each completed lot.*
+
+---
+
+## Lot FEAT-CUSTOM-SCRIPTS — Section custom_scripts dans mission.yaml
+
+**Goal**: Permettre de déclarer des scripts Lua custom dans `mission.yaml` pour supprimer les warnings et contrôler la génération du trigger DCS de chargement.
+
+**Branch**: `feature/custom-scripts` → PR → `develop-v6`
+
+| # | Ticket | Files | Type | Effort | Status |
+|---|--------|-------|------|--------|--------|
+| CUSTOM-001 | Ajouter `CustomScript` dataclass + parsing `custom_scripts` dans `__init__` | `mission_builder_worker.py` | feat | 10 min | 🔄 |
+| CUSTOM-002 | Mettre à jour la logique de warning (déclaré = info, inconnu = warning avec hint) | `mission_builder_worker.py` | feat | 10 min | 🔄 |
+| CUSTOM-003 | Filtrer les triggers de chargement selon `generate_load_trigger` | `mission_builder_worker.py` | feat | 10 min | 🔄 |
+| CUSTOM-004 | Tests TDD (warnings + trigger resolution) | `test_mission_builder_defaults.py` | test | 10 min | 🔄 |
+| CUSTOM-005 | Documenter la section dans `mission.yaml` par défaut | `src/defaults/mission-folder/mission.yaml` | doc | 5 min | 🔄 |
 
 ---
 

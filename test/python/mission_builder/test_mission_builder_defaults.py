@@ -7,10 +7,16 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from mission_builder.mission_builder_worker import MissionBuilderWorker
+from mission_builder.mission_builder_worker import CustomScript, MissionBuilderWorker
 
 
-def _make_worker(mission_folder: Path, defaults_folder: Path, mission_yaml: dict) -> MissionBuilderWorker:
+def _make_worker(
+    mission_folder: Path,
+    defaults_folder: Path,
+    mission_yaml: dict,
+    custom_scripts: list[CustomScript] | None = None,
+    custom_scripts_generate_load_trigger: bool = True,
+) -> MissionBuilderWorker:
     """Instantiate a MissionBuilderWorker without running __init__, injecting only the attributes
     needed by complete_src_folder_with_defaults()."""
     worker: MissionBuilderWorker = object.__new__(MissionBuilderWorker)
@@ -18,6 +24,8 @@ def _make_worker(mission_folder: Path, defaults_folder: Path, mission_yaml: dict
     worker.scripts_path = None  # forces defaults_folder resolution via mission_folder/published/src
     worker.mission_yaml = mission_yaml
     worker.pipeline_cfg = mission_yaml.get("pipeline") or {}
+    worker.custom_scripts = custom_scripts or []
+    worker.custom_scripts_generate_load_trigger = custom_scripts_generate_load_trigger
     return worker
 
 
@@ -183,7 +191,12 @@ class TestWeatherAliasCoexistence(unittest.TestCase):
 class TestOldScriptsDetection(unittest.TestCase):
     """OLDSCRIPTS-002: warn when unexpected .lua files are present in src/scripts/."""
 
-    def _run_with_warnings(self, mission_folder: Path) -> list[str]:
+    def _run_with_warnings(
+        self,
+        mission_folder: Path,
+        custom_scripts: list[CustomScript] | None = None,
+        custom_scripts_generate_load_trigger: bool = True,
+    ) -> list[str]:
         from unittest.mock import patch
 
         from veaf_libs.logger import logger
@@ -191,7 +204,13 @@ class TestOldScriptsDetection(unittest.TestCase):
         # Minimal defaults folder (empty — we only care about the scripts/ check)
         defaults_folder = mission_folder / "published" / "src" / "defaults" / "mission-folder"
         defaults_folder.mkdir(parents=True, exist_ok=True)
-        worker = _make_worker(mission_folder, defaults_folder, {})
+        worker = _make_worker(
+            mission_folder,
+            defaults_folder,
+            {},
+            custom_scripts=custom_scripts,
+            custom_scripts_generate_load_trigger=custom_scripts_generate_load_trigger,
+        )
 
         warnings: list[str] = []
         orig_warning = logger.warning
@@ -262,6 +281,118 @@ class TestOldScriptsDetection(unittest.TestCase):
 
         unexpected = [w for w in warnings if "Unexpected Lua file" in w]
         self.assertEqual(unexpected, [])
+
+    def test_no_warning_for_declared_custom_script(self) -> None:
+        """A script declared in custom_scripts must not trigger an 'Unexpected' warning."""
+        tmpdir = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, tmpdir)
+        scripts_dir = tmpdir / "src" / "scripts"
+        scripts_dir.mkdir(parents=True)
+        (scripts_dir / "FgMission.lua").write_text("-- custom script", encoding="utf-8")
+
+        warnings = self._run_with_warnings(
+            tmpdir,
+            custom_scripts=[CustomScript(path="FgMission.lua")],
+        )
+
+        unexpected = [w for w in warnings if "Unexpected Lua file" in w]
+        self.assertEqual(unexpected, [], f"No warning expected for declared custom script: {unexpected}")
+
+    def test_warning_mentions_custom_scripts_hint_for_undeclared_file(self) -> None:
+        """Warning for an undeclared file must mention the custom_scripts section."""
+        tmpdir = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, tmpdir)
+        scripts_dir = tmpdir / "src" / "scripts"
+        scripts_dir.mkdir(parents=True)
+        (scripts_dir / "MyScript.lua").write_text("-- unknown", encoding="utf-8")
+
+        warnings = self._run_with_warnings(tmpdir)
+
+        unexpected = [w for w in warnings if "Unexpected Lua file" in w and "MyScript.lua" in w]
+        self.assertTrue(unexpected, "Expected a warning for undeclared MyScript.lua")
+        self.assertTrue(any("custom_scripts" in w for w in unexpected), "Warning must hint at custom_scripts section")
+
+    def test_declared_script_no_warning_alongside_unexpected(self) -> None:
+        """Declared custom script is silent; undeclared one still warns."""
+        tmpdir = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, tmpdir)
+        scripts_dir = tmpdir / "src" / "scripts"
+        scripts_dir.mkdir(parents=True)
+        (scripts_dir / "FgMission.lua").write_text("-- declared", encoding="utf-8")
+        (scripts_dir / "Unknown.lua").write_text("-- undeclared", encoding="utf-8")
+
+        warnings = self._run_with_warnings(
+            tmpdir,
+            custom_scripts=[CustomScript(path="FgMission.lua")],
+        )
+
+        unexpected = [w for w in warnings if "Unexpected Lua file" in w]
+        self.assertFalse(any("FgMission.lua" in w for w in unexpected), "FgMission.lua must not warn")
+        self.assertTrue(any("Unknown.lua" in w for w in unexpected), "Unknown.lua must warn")
+
+
+class TestCustomScriptsLoadTrigger(unittest.TestCase):
+    """Tests for _resolves_load_trigger() — custom script trigger generation logic."""
+
+    def _make_worker_with_scripts(
+        self,
+        custom_scripts: list[CustomScript],
+        global_trigger: bool = True,
+    ) -> MissionBuilderWorker:
+        worker: MissionBuilderWorker = object.__new__(MissionBuilderWorker)
+        worker.custom_scripts = custom_scripts
+        worker.custom_scripts_generate_load_trigger = global_trigger
+        return worker
+
+    def test_undeclared_file_always_triggers(self) -> None:
+        """A file not in custom_scripts always gets a load trigger."""
+        worker = self._make_worker_with_scripts([])
+        self.assertTrue(worker._resolves_load_trigger("anything.lua"))
+
+    def test_declared_script_uses_global_default_when_no_override(self) -> None:
+        """Declared script with no per-script override follows the global default."""
+        worker = self._make_worker_with_scripts(
+            [CustomScript(path="FgMission.lua")],
+            global_trigger=False,
+        )
+        self.assertFalse(worker._resolves_load_trigger("FgMission.lua"))
+
+    def test_per_script_override_takes_precedence_over_global(self) -> None:
+        """Per-script generate_load_trigger overrides the global default."""
+        worker = self._make_worker_with_scripts(
+            [CustomScript(path="FgMission.lua", generate_load_trigger=False)],
+            global_trigger=True,
+        )
+        self.assertFalse(worker._resolves_load_trigger("FgMission.lua"))
+
+    def test_per_script_true_overrides_global_false(self) -> None:
+        """Per-script True overrides global False."""
+        worker = self._make_worker_with_scripts(
+            [CustomScript(path="FgMission.lua", generate_load_trigger=True)],
+            global_trigger=False,
+        )
+        self.assertTrue(worker._resolves_load_trigger("FgMission.lua"))
+
+    def test_global_default_true_applies_to_all_declared(self) -> None:
+        """With global default True and no per-script override, all declared scripts trigger."""
+        worker = self._make_worker_with_scripts(
+            [CustomScript(path="A.lua"), CustomScript(path="B.lua")],
+            global_trigger=True,
+        )
+        self.assertTrue(worker._resolves_load_trigger("A.lua"))
+        self.assertTrue(worker._resolves_load_trigger("B.lua"))
+
+    def test_global_default_false_with_one_override_true(self) -> None:
+        """Only the script with explicit True triggers when global is False."""
+        worker = self._make_worker_with_scripts(
+            [
+                CustomScript(path="A.lua"),
+                CustomScript(path="B.lua", generate_load_trigger=True),
+            ],
+            global_trigger=False,
+        )
+        self.assertFalse(worker._resolves_load_trigger("A.lua"))
+        self.assertTrue(worker._resolves_load_trigger("B.lua"))
 
 
 if __name__ == "__main__":

@@ -69,9 +69,41 @@
 | Lot FIX-YAML-SYNTAX — Erreur YAML non gérée dans build et mission_builder_worker | ~15 min | ✅ |
 | Lot FIX-MANDATORY-ENABLE — Bloquer enable sur les modules obligatoires | ~20 min | ✅ |
 | Lot FEAT-CUSTOM-SCRIPTS — Section custom_scripts dans mission.yaml | ~45 min | ✅ |
-| **Total** | **~174h45** | |
+| Lot FIX-REMOVE-CONVERT — Suppression de la commande `convert` | ~20 min | ✅ |
+| Lot FIX-MISSIONCONFIG-REFS — Références à `missionConfig.lua` dans doc et code | ~30 min | ✅ |
+| **Total** | **~175h35** | |
 
 *Initial calibration factor: 1.15 — recalculate after each completed lot.*
+
+---
+
+## Lot FIX-MISSIONCONFIG-REFS — Références à `missionConfig.lua` dans doc et code
+
+**Goal**: Remplacer toutes les références utilisateur à `missionConfig.lua` par le nom v6 correct (`mission-script.lua` pour le code custom, `mission.yaml` pour la config).
+
+**Branch**: `fix/remove-convert-command` → PR #371 → `develop-v6`
+
+| # | Ticket | Files | Type | Effort | Status |
+|---|--------|-------|------|--------|--------|
+| MCR-001 | Corriger `veafQraManager.md/en.md` : section "Via missionConfig.lua" | `doc/mission-maker/scripts/` | doc | 5 min | ✅ |
+| MCR-002 | Corriger `veafSkynetIadsHelper.md/en.md` : prérequis et titre de section | `doc/mission-maker/scripts/` | doc | 5 min | ✅ |
+| MCR-003 | Corriger arborescences dans `mission_builder_README.py` et `mission_extractor_README.py` | `src/python/veaf-tools/` | doc | 5 min | ✅ |
+| MCR-004 | Corriger commentaires AIEN/CTLD/CSAR dans `veaf.lua` | `src/scripts/veaf/veaf.lua` | chore | 5 min | ✅ |
+| MCR-005 | Corriger fixtures de test (`veafDynamicConfig.lua`, `mapResource`) | `test/veaf-tools/` | chore | 10 min | ✅ |
+
+---
+
+## Lot FIX-REMOVE-CONVERT — Suppression de la commande `convert`
+
+**Goal**: Retirer la commande `convert` qui est cassée sur les missions v6 (crash sur `missionConfig.lua` inexistant) et dont le rôle est couvert par `extract` + `build`.
+
+**Branch**: `fix/remove-convert-command` → PR #371 → `develop-v6`
+
+| # | Ticket | Files | Type | Effort | Status |
+|---|--------|-------|------|--------|--------|
+| RMC-001 | Supprimer `commands/convert.py` et le package `mission_converter/` | `src/python/veaf-tools/` | chore | 5 min | ✅ |
+| RMC-002 | Retirer l'entrée TUI et les clés de locale `cmd.convert.*` | `tui.py`, `en.json`, `fr.json` | chore | 10 min | ✅ |
+| RMC-003 | Retirer l'assertion de test correspondante | `test/python/veaf_libs/test_tui.py` | test | 5 min | ✅ |
 
 ---
 

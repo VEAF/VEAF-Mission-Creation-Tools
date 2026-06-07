@@ -237,8 +237,15 @@ veaf_tools:
 
 Activer, désactiver ou configurer les modules Lua VEAF individuels. Les modules non listés sont activés avec leurs paramètres par défaut.
 
+> **Les modules d'infrastructure sont toujours actifs.**
+> Les modules `UNITS`, `TIME`, `CACHE`, `EVENTS`, `MARKERS` et `COMMANDS` sont obligatoires et toujours chargés, quelle que soit la configuration. La clé `enable` ne doit **pas** être utilisée sur ces modules — c'est une erreur de build. Ils peuvent toutefois apparaître dans `lua_modules:` pour configurer d'autres champs comme `logLevel`.
+
 ```yaml
 lua_modules:
+  # Modules d'infrastructure : toujours actifs — configurer uniquement, ne pas utiliser 'enable'
+  UNITS:
+    logLevel: debug
+  # Modules optionnels : peuvent être activés ou désactivés
   RADIO:
     enable: true
     logLevel: info            # surcharge optionnelle du niveau de log par module
@@ -249,13 +256,13 @@ lua_modules:
     logLevel: debug
 ```
 
-Les champs `enable` et `logLevel` sont disponibles pour chaque module. Les champs supplémentaires `init:` ou de données sont spécifiques à chaque module — voir la page de documentation de chaque module.
+Le champ `logLevel` est disponible pour chaque module. Le champ `enable` s'applique **uniquement aux modules optionnels** — son utilisation sur les modules d'infrastructure est une erreur de build. Les champs supplémentaires `init:` ou de données sont spécifiques à chaque module — voir la page de documentation de chaque module.
 
 **Champs communs (tous les modules) :**
 
 | Champ | Type | Défaut | Description |
 |-------|------|--------|-------------|
-| `enable` | booléen | `true` | Activer ou désactiver ce module |
+| `enable` | booléen | `true` | Activer ou désactiver ce module *(modules optionnels uniquement — interdit sur les modules d'infrastructure)* |
 | `logLevel` | string | *(global)* | Surcharger le niveau de log pour ce module uniquement |
 
 **IDs de modules :**

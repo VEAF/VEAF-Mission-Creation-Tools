@@ -10,6 +10,9 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Fixed
+- `lua_config_generator.py`: specifying `enable` (true or false) on a mandatory Lua module in `mission.yaml` now raises an error instead of silently overriding — mandatory modules are always active and cannot be enabled or disabled
+
+
 - `build.py`, `mission_builder_worker.py`: catch `yaml.YAMLError` when loading `mission.yaml` — display a clear, localised error message (file, line, column, plain-language hint) instead of crashing with a Python traceback
 
 ### Documentation

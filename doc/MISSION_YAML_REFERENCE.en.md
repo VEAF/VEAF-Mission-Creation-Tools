@@ -237,8 +237,15 @@ veaf_tools:
 
 Enable, disable, or configure individual VEAF Lua modules. Modules not listed are enabled with their default settings.
 
+> **Infrastructure modules are always active.**
+> The modules `UNITS`, `TIME`, `CACHE`, `EVENTS`, `MARKERS`, and `COMMANDS` are mandatory and are always loaded regardless of configuration. The `enable` key must **not** be set for these modules — doing so is a build error. They can still appear under `lua_modules:` to configure other fields such as `logLevel`.
+
 ```yaml
 lua_modules:
+  # Infrastructure modules: always active — configure only, do not use 'enable'
+  UNITS:
+    logLevel: debug
+  # Optional modules: can be enabled or disabled
   RADIO:
     enable: true
     logLevel: info            # optional per-module log level override
@@ -249,13 +256,13 @@ lua_modules:
     logLevel: debug
 ```
 
-The `enable` and `logLevel` fields are available for every module. Additional `init:` or data fields are module-specific — see each module's documentation page.
+The `logLevel` field is available for every module. The `enable` field applies **only to optional modules** — it is a build error on Infrastructure modules. Additional `init:` or data fields are module-specific — see each module's documentation page.
 
 **Common fields (all modules):**
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `enable` | boolean | `true` | Enable or disable this module |
+| `enable` | boolean | `true` | Enable or disable this module *(optional modules only — not allowed on Infrastructure modules)* |
 | `logLevel` | string | *(global)* | Override log level for this module only |
 
 **Module IDs:**

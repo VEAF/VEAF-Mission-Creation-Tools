@@ -122,7 +122,7 @@ _MODULE_CATEGORIES: dict[str, list[str]] = {
 _MODULE_TO_CATEGORY: dict[str, str] = {mod_id: cat for cat, ids in _MODULE_CATEGORIES.items() for mod_id in ids}
 
 #: Modules that are mandatory (infrastructure tier).
-#: Emitting ``enable: false`` for these produces a warning; the module is still generated.
+#: These are always active; specifying ``enable`` (true or false) for them is an error.
 _MANDATORY_MODULES: frozenset[str] = frozenset({"UNITS", "TIME", "CACHE", "EVENTS", "MARKERS", "COMMANDS"})
 
 #: Dependency graph: module_id → list of module IDs it requires.
@@ -702,14 +702,12 @@ def generate_config_lua(
     ctld_cfg: dict = external_modules.get("ctld") or {}
 
     if lua_modules:
-        # ── MODUX-002: warn on mandatory modules with enable: false ───────
+        # ── MODUX-002: error on mandatory modules with any enable key ────
         effective_modules: dict = dict(lua_modules)
         for mandatory_id in _MANDATORY_MODULES:
             mcfg = effective_modules.get(mandatory_id, {})
-            if isinstance(mcfg, dict) and mcfg.get("enable") is False:
-                logger.warning(f"Module '{mandatory_id}' is mandatory and cannot be disabled — ignoring enable: false")
-                mcfg.pop("enable", None)
-                effective_modules[mandatory_id] = mcfg
+            if isinstance(mcfg, dict) and "enable" in mcfg:
+                logger.error(t("builder.mandatory_module_enable", module=mandatory_id, value=mcfg["enable"]))
 
         # ── MODUX-003: auto-resolve missing/disabled dependencies ─────────
         effective_modules = _resolve_deps(effective_modules)

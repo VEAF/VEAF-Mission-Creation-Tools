@@ -31,8 +31,8 @@
 # Modules not listed here are enabled with their default settings.
 #
 # lua_modules:
-#   # ── Infrastructure (mandatory — cannot be disabled) ──────────────────────
-#   UNITS:    {}
+#   # ── Infrastructure (always active — configurable but enable/disable not allowed) ──
+#   UNITS:    {}    # logLevel: debug
 #   TIME:     {}
 #   CACHE:    {}
 #   EVENTS:   {}

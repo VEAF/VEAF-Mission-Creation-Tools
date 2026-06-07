@@ -66,6 +66,7 @@
   "builder.scripts_not_found": "VEAF scripts file not found at {path}",
   "builder.missing_files": "Missing files from {folder}: {files}",
   "builder.update_hint": "Try updating the veaf-tools package using veaf-tools-updater.exe!",
+  "builder.mandatory_module_enable": "Module '{module}' is always active and cannot be enabled or disabled (enable: {value}) — remove the 'enable' key from its entry in mission.yaml.",
 
   "yaml.error.syntax": "Syntax error in [bold]{filename}[/bold], line {line}, column {col}.",
   "yaml.error.syntax_unknown": "Syntax error in [bold]{filename}[/bold].",

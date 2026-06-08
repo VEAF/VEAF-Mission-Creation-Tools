@@ -4,6 +4,9 @@ Worker module for the VEAF Mission Builder Package.
 
 import re
 import shutil
+import tempfile
+import urllib.error
+import urllib.request
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -29,6 +32,10 @@ from veaf_libs.lua_module_scanner import get_modules
 from veaf_libs.paths import resolve_path
 from veaf_libs.progress import spinner_context
 from veaf_libs.yaml_validator import validate_yaml_file
+
+_DCS_BRIDGE_DOWNLOAD_URL = (
+    "https://raw.githubusercontent.com/VEAF/VEAF-dcs-bridge/refs/heads/develop/src/lua/dcs-bridge.lua"
+)
 
 # Lua files that are always expected in src/scripts/ of a VEAF v6 mission folder.
 # Any other .lua file found there is flagged as a potential v5 residue.
@@ -183,6 +190,12 @@ class MissionBuilderWorker(BaseWorker):
                     per_script_trigger = None
                 self.custom_scripts.append(CustomScript(path=Path(path).name, generate_load_trigger=per_script_trigger))
 
+        # Parse dcs_bridge section from mission.yaml
+        dcsb_cfg: dict = self.mission_yaml.get("dcs_bridge") or {}
+        self.dcs_bridge_enabled: bool = bool(dcsb_cfg.get("enabled", False))
+        self.dcs_bridge_lua_path: str | None = dcsb_cfg.get("lua_path")
+        self.dcs_bridge_bytes: bytes | None = None
+
         if self.mission_folder and not self.mission_folder.is_dir():
             logger.error(
                 f"The input mission folder '{self.mission_folder}' does not exist or is not a folder",
@@ -275,6 +288,101 @@ class MissionBuilderWorker(BaseWorker):
             base_folder=self.mission_folder, file_patterns=get_mission_data_files(), alternative_folder=defaults_folder
         )
         return self.collected_mission_data_files
+
+    def resolve_dcs_bridge_file(self) -> Path | None:
+        """Resolve dcs-bridge.lua to a local Path, downloading it if no lua_path is configured.
+
+        Returns:
+            A Path to a temporary file containing the bridge Lua source, or None if
+            dcs-bridge injection is disabled.
+
+        Raises:
+            FileNotFoundError: When lua_path is set but points to a non-existent file.
+            RuntimeError: When auto-download from GitHub fails.
+        """
+        if not self.dcs_bridge_enabled:
+            return None
+
+        if self.dcs_bridge_lua_path:
+            p = Path(self.dcs_bridge_lua_path)
+            if not p.exists():
+                logger.error(
+                    f"dcs_bridge.lua_path '{p}' not found.",
+                    exception_type=FileNotFoundError,
+                )
+            return p
+
+        # Auto-download from GitHub
+        logger.info(f"dcs_bridge: downloading dcs-bridge.lua from {_DCS_BRIDGE_DOWNLOAD_URL}")
+        try:
+            with urllib.request.urlopen(_DCS_BRIDGE_DOWNLOAD_URL) as resp:
+                content: bytes = resp.read()
+        except urllib.error.URLError as exc:
+            logger.error(
+                f"dcs_bridge: failed to download dcs-bridge.lua: {exc}",
+                exception_type=RuntimeError,
+            )
+
+        tmp = tempfile.NamedTemporaryFile(suffix=".lua", delete=False)
+        tmp.write(content)
+        tmp.flush()
+        tmp.close()
+        return Path(tmp.name)
+
+    def inject_dcs_bridge_trigger(self, bridge_file: Path | None) -> None:
+        """Inject a DO SCRIPT FILE trigger for dcs-bridge.lua at position 1 in the mission.
+
+        The bridge is loaded before all other VEAF triggers so that it is available
+        at the earliest possible point in mission startup.
+
+        Also stores the bridge file bytes in self.dcs_bridge_bytes so that
+        write_mission() can pass them to write_miz() as additional_files.
+
+        Args:
+            bridge_file: Path to the dcs-bridge.lua file, or None (no-op).
+        """
+        if bridge_file is None:
+            return
+
+        assert self.dcs_mission is not None
+
+        bridge_bytes = bridge_file.read_bytes()
+        self.dcs_bridge_bytes = bridge_bytes
+
+        # Register in mapResource
+        map_resource_key = "VEAF_MapKey_DcsBridge"
+        self.dcs_mission.map_resource_content = self.dcs_mission.map_resource_content or {}
+        self.dcs_mission.map_resource_content[map_resource_key] = "dcs-bridge.lua"
+
+        # Build the new trigrule
+        bridge_trigrule = {
+            "comment": "dcs-bridge loading",
+            "predicate": "triggerStart",
+            "eventlist": "",
+            "rules": [],
+            "actions": [
+                {"predicate": "a_do_script_file", "file": map_resource_key},
+            ],
+            "colorItem": "0x00ffffff",
+        }
+
+        # Shift all existing trigrules up by 1
+        trigrules: dict = self.dcs_mission.mission_content["trigrules"]
+        shifted = {k + 1: v for k, v in trigrules.items()}
+        shifted[1] = bridge_trigrule
+        self.dcs_mission.mission_content["trigrules"] = shifted
+
+        # Shift all existing trig entries up by 1
+        trig: dict = self.dcs_mission.mission_content["trig"]
+        for category_name, category_data in trig.items():
+            if isinstance(category_data, dict):
+                trig[category_name] = {k + 1: v for k, v in category_data.items()}
+
+        # Insert the bridge trigger at position 1 in each trig category
+        trig["actions"][1] = f'a_do_script_file(getValueResourceByKey("{map_resource_key}"));'
+        trig["conditions"][1] = "return true"
+        trig["flag"][1] = True
+        trig["funcStartup"][1] = "if mission.trig.conditions[1]() then mission.trig.actions[1]() end"
 
     def complete_src_folder_with_defaults(self) -> None:
         defaults_folder: Path = (
@@ -933,7 +1041,12 @@ class MissionBuilderWorker(BaseWorker):
 
         logger.debug("Writing mission file")
         assert self.dcs_mission is not None
-        write_miz(mission=self.dcs_mission, miz_file_path=self.output_mission)
+        additional_files: dict[str, bytes] = {}
+        if self.dcs_bridge_bytes is not None:
+            from mission_tools import DEFAULT_SCRIPTS_LOCATION
+
+            additional_files[f"{DEFAULT_SCRIPTS_LOCATION}/dcs-bridge.lua"] = self.dcs_bridge_bytes
+        write_miz(mission=self.dcs_mission, miz_file_path=self.output_mission, additional_files=additional_files)
         logger.debug("Writing mission file done")
 
     def write_config_lua(self) -> None:
@@ -995,6 +1108,12 @@ class MissionBuilderWorker(BaseWorker):
                 self.insert_all_veaf_triggers()
         elif not silent:
             logger.info(t("builder.skip_veaf_triggers"))
+
+        # Optionally inject dcs-bridge.lua before all other triggers
+        if self.dcs_bridge_enabled:
+            with spinner_context("Injecting dcs-bridge.lua", silent=silent):
+                bridge_file = self.resolve_dcs_bridge_file()
+                self.inject_dcs_bridge_trigger(bridge_file)
 
         # Write the mission file
         with spinner_context(t("builder.writing_mission", output=self.output_mission), silent=silent):

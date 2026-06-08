@@ -177,6 +177,19 @@
 #         groups: ["Group1", "Group2"]
 #         scalable: true
 
+# ── DCS Bridge ───────────────────────────────────────────────────────────────
+# Optionally inject dcs-bridge.lua as the very first DO SCRIPT FILE trigger.
+# dcs-bridge provides a TCP socket link between DCS and an external server.
+# See: https://github.com/VEAF/VEAF-dcs-bridge
+#
+# When lua_path is absent, dcs-bridge.lua is downloaded automatically from GitHub.
+# When lua_path is set, the file is read from the given path (absolute or relative
+# to the mission folder).
+#
+# dcs_bridge:
+#   enabled: false
+#   lua_path: null      # optional — auto-download when absent
+
 # ── Custom scripts ────────────────────────────────────────────────────────────
 # Declare Lua scripts in src/scripts/ that are not part of the standard VEAF v6 set.
 # Declared scripts are included in the mission without a warning.

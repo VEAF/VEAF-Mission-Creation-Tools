@@ -4,7 +4,6 @@ import textwrap
 from pathlib import Path
 
 import pytest
-
 from veaf_libs.dcs_units_parser import (
     DcsUnit,
     _is_meaningful_attribute,

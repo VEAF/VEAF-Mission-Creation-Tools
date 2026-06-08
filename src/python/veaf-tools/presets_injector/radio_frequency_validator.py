@@ -72,6 +72,24 @@ def get_valid_ranges(unit_type: str) -> list[FrequencyRange] | None:
     return ranges
 
 
+def is_strict(unit_type: str) -> bool:
+    """Return True if out-of-range preset frequencies cause DCS to reject the mission at load.
+
+    Most aircraft silently store or ignore frequencies outside their hardware range. A few
+    (e.g. MiG-19P, SA342M) raise a hard error when loading the mission. Mark those with
+    ``dcs_rejects_on_load: true`` in dcs-radio-specs.yaml.
+
+    Args:
+        unit_type: DCS unit type string.
+
+    Returns:
+        True if the aircraft is known to crash DCS on invalid preset frequencies.
+    """
+    specs = _load_specs()
+    entry = specs.get(unit_type)
+    return bool(entry and entry.get("dcs_rejects_on_load", False))
+
+
 def validate_frequency(unit_type: str, freq_mhz: float) -> bool | None:
     """Check whether freq_mhz is valid for any radio on the given aircraft.
 
@@ -173,7 +191,11 @@ def warn_invalid_channel_frequencies(
         aircraft_category=aircraft_category,
         unit_type_key=unit_type_key,
     )
-    logger.warning(f"{groups_label}\n{channel_lines}\n{footer}")
+    message = f"{groups_label}\n{channel_lines}\n{footer}"
+    if is_strict(unit_type):
+        logger.warning(message)
+    else:
+        logger.debug(message)
     return True
 
 

@@ -4,7 +4,6 @@ import sys
 from unittest.mock import patch
 
 import pytest
-
 from veaf_libs.tui import _COMMAND_MAP, COMMANDS, ArgPrompt, CommandSpec, run_wizard
 
 

@@ -8,7 +8,6 @@ from pathlib import Path
 from unittest.mock import patch
 
 import typer
-
 from veaf_libs.yaml_validator import _hint_key, validate_yaml_file
 
 

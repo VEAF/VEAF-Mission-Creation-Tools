@@ -32,6 +32,7 @@ _MOCK_SPECS = {
     "MiG-19P": {
         "name": "MiG-19P",
         "category": "plane",
+        "dcs_rejects_on_load": True,
         "radios": [
             {
                 "name": "RSIU-4V Radio",

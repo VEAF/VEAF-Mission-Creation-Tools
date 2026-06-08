@@ -7,7 +7,6 @@ import unittest
 from pathlib import Path
 
 import typer
-
 from weather_injector.utils.lua_converter import LuaToYamlConverter
 
 

@@ -17,7 +17,6 @@ from pathlib import Path
 
 import luadata
 import yaml
-
 from mission_builder.v5_pipeline_converters import (
     _extract_lua_table_text,
     _normalize_date,

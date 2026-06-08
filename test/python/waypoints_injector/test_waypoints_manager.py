@@ -7,7 +7,6 @@ import unittest
 from pathlib import Path
 
 import yaml
-
 from waypoints_injector.waypoints_manager import FlightPlanDefinition, WaypointDefinition, WaypointsManager
 
 

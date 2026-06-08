@@ -13,7 +13,7 @@ from veaf_libs.logger import logger
 from veaf_libs.progress import spinner_context
 
 from .presets_manager import PresetDefinition, PresetsManager
-from .radio_frequency_validator import ChannelFrequency, warn_invalid_channel_frequencies
+from .radio_frequency_validator import ChannelFrequency, is_strict, warn_invalid_channel_frequencies
 
 
 @dataclass
@@ -125,14 +125,13 @@ class PresetsInjectorWorker(GroupInjectorWorker):
         if self._pending_freq_warnings:
             warned_unit_types: dict[str, _PendingFreqWarning] = {}
             for unit_type, entry in self._pending_freq_warnings.items():
-                emitted = warn_invalid_channel_frequencies(
+                if warn_invalid_channel_frequencies(
                     group_names=entry.group_names,
                     unit_type=unit_type,
                     channels=entry.channels,
                     coalition=entry.coalition,
                     aircraft_category=entry.aircraft_category,
-                )
-                if emitted:
+                ) and is_strict(unit_type):
                     warned_unit_types[unit_type] = entry
             if warned_unit_types:
                 yaml_lines = []

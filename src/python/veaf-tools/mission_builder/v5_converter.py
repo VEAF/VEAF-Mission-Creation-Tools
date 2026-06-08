@@ -26,6 +26,7 @@ from pathlib import Path
 from typing import Any
 
 import yaml  # type: ignore[import-untyped]
+from mission_tools.mission_constants import get_community_script_files
 from veaf_libs.i18n import t
 from veaf_libs.lua_config_generator import MANDATORY_MODULES, yaml_module_entry
 from veaf_libs.lua_module_scanner import get_modules
@@ -123,6 +124,8 @@ class ConversionReport:
     """``True`` if ``mission.yaml`` already existed before conversion."""
     pipeline_files: list[PipelineFile] = field(default_factory=list)
     """Pipeline config files detected under ``src/``."""
+    detected_community_script_ids: set[str] = field(default_factory=set)
+    """IDs of community scripts found in ``published/src/scripts/community/``."""
 
     # ── missionConfig.lua migration ────────────────────────────────────────
     migration_result: MigrationResult | None = None
@@ -623,6 +626,14 @@ class V5Converter:
 
         report.mission_yaml_existed = (folder / "mission.yaml").exists()
 
+        # Detect which community scripts are present in published/src/scripts/community/
+        community_folder = folder / "published" / "src" / "scripts" / "community"
+        if community_folder.is_dir():
+            present_filenames = {p.name for p in community_folder.iterdir() if p.is_file()}
+            for script in get_community_script_files():
+                if Path(script["path"]).name in present_filenames:
+                    report.detected_community_script_ids.add(script["id"])
+
         for step, v6_candidates in V6_PIPELINE_CANDIDATES.items():
             # Check v6-format files first (already converted or freshly created)
             for rel in v6_candidates:
@@ -1036,6 +1047,22 @@ class V5Converter:
             lines.extend(pipeline_lines)
         else:
             lines.append("# pipeline: {}  # no pipeline config files detected in src/")
+
+        # ── Community scripts ──────────────────────────────────────────────
+        all_community = get_community_script_files()
+        detected = report.detected_community_script_ids
+        lines += [
+            "",
+            "# ── Community scripts ────────────────────────────────────────────────────────",
+            "# Set enabled: false to exclude a community script from the built mission.",
+            "#",
+            "community_scripts:",
+        ]
+        for script in all_community:
+            sid = script["id"]
+            enabled_str = "true" if sid in detected else "false"
+            lines.append(f"  {sid}: {{enabled: {enabled_str}}}")
+        lines.append("")
 
         # ── Build configuration ────────────────────────────────────────────
         lines += [

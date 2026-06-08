@@ -79,6 +79,11 @@
 | Lot FIX-I18N-CONVERT-V5 — Hardcoded English messages in convert-v5 | ~30 min | ✅ |
 | Lot FIX-CONVERT-V5-PRESETS — Per-aircraft radio assignments in convert-v5 presets | ~45 min | ✅ |
 | Lot FEAT-COMMUNITY-TOGGLE — Enable/disable community scripts from mission.yaml | ~2h | ⬜ |
+| Lot FIX-CONVERT-V5-DEFAULT-CWD — `convert-v5` uses current directory by default | ~5 min | ⬜ |
+| Lot FIX-SRS-WARN — false warning when SRS config file is absent | ~10 min | ⬜ |
+| Lot FIX-CTLD-NIL — nil crash on ctld.builtFOBS / ctld.logisticUnits in scheduled fns | ~15 min | ⬜ |
+| Lot I18N-COVERAGE — i18n coverage tests + fix remaining hardcoded English strings | ~2h30 | ⬜ |
+| Lot FIX-CONVERT-V5-LOG-DEFAULT — convert-v5 defaults global_log_level to debug instead of info | ~5 min | ⬜ |
 | **Total** | **~182h** | |
 
 *Initial calibration factor: 1.15 — recalculate after each completed lot.*
@@ -215,6 +220,114 @@ Direct commits on `develop-v6` (no feature branch needed — no code change).
 | RADIO-006 | Unit tests for validator (valid/invalid frequency, unknown aircraft, partial ranges) | feat | 45 min | ⬜ |
 
 **Estimated total: ~3h**
+
+---
+
+## Lot FIX-CONVERT-V5-DEFAULT-CWD — `convert-v5` uses current directory by default
+
+**Goal**: Remove `no_args_is_help=True` from the `convert-v5` command so that invoking `veaf-tools convert-v5` with no arguments runs against the current working directory (the default `"."` already declared on `mission_folder`).
+
+**Root cause**: `convert_v5.py:19` — `@app.command(no_args_is_help=True, ...)` overrides the `"."` default and shows help instead.
+
+**Fix**: Change `no_args_is_help=True` → `no_args_is_help=False` (or remove the parameter entirely).
+
+**Branch**: `fix/convert-v5-default-cwd` → PR → `develop-v6`
+
+| # | Ticket | Files | Type | Effort | Status |
+|---|--------|-------|------|--------|--------|
+| CVCWD-001 | Remove `no_args_is_help=True` from `@app.command` decorator | `veaf_tools/commands/convert_v5.py` | fix | 5 min | ⬜ |
+
+---
+
+## Lot FIX-SRS-WARN — false warning when SRS config file is absent
+
+**Goal**: Suppress the spurious `W|initialize` warning emitted when SRS is not installed. SRS integration is optional; an absent config file is normal, not an error.
+
+**Root cause**: `veafRadio.lua:932-934` — `loadfile(srsConfigPath)` returns `nil` both when the file **does not exist** and when it exists but is invalid. The code logs a `warn` in both cases. Users without SRS see this warning on every mission start.
+
+**Fix**: Use `lfs.attributes(srsConfigPath)` (already available via `l_lfs`) to test for file existence before calling `loadfile`:
+- File absent → `debug` log ("SRS config not found, SRS integration disabled")
+- File present but `loadfile` returns `nil` → keep `warn` (actual corruption/syntax error)
+
+**File**: `src/scripts/veaf/veafRadio.lua`, around line 920–934.
+
+**Branch**: `fix/srs-warn` → PR → `develop-v6`
+
+| # | Ticket | Files | Type | Effort | Status |
+|---|--------|-------|------|--------|--------|
+| SRS-001 | Check `lfs.attributes` before `loadfile`; downgrade absent-file log to `debug` | `src/scripts/veaf/veafRadio.lua` | fix | 10 min | ⬜ |
+
+---
+
+## Lot FIX-CTLD-NIL — nil crash on ctld.builtFOBS / ctld.logisticUnits in scheduled fns
+
+**Goal**: Fix `bad argument #1 to 'insert' (table expected, got nil)` crash in MIST scheduled functions when CTLD module table exists but its internal lists haven't been initialized yet (race condition on mission start).
+
+**Root cause**: Three call sites guard only against `ctld` being falsy, but `ctld.builtFOBS` and `ctld.logisticUnits` are `nil` until `ctld.initialize()` runs. If a scheduled function fires before CTLD init completes, `table.insert` crashes.
+
+| Site | File | Issue |
+|------|------|-------|
+| `veafGrass.lua:1003` | `if ctld then` | `ctld.builtFOBS` / `ctld.logisticUnits` may be nil |
+| `veafSpawnGround.lua:182` | no guard | immediate crash if ctld not init |
+| `veafSpawnEffects.lua:32` | `if ctld then` | `ctld.logisticUnits` may be nil |
+
+**Fix**: extend all three guards to `if ctld and ctld.builtFOBS and ctld.logisticUnits then` (or equivalent per site).
+
+**Branch**: `fix/ctld-nil` → PR → `develop-v6`
+
+| # | Ticket | Files | Type | Effort | Status |
+|---|--------|-------|------|--------|--------|
+| CTLD-001 | Extend ctld guard in `veafGrass.lua` (~line 1003) | `src/scripts/veaf/veafGrass.lua` | fix | 5 min | ⬜ |
+| CTLD-002 | Add ctld guard in `veafSpawnGround.lua` (~line 182) | `src/scripts/veaf/veafSpawnGround.lua` | fix | 5 min | ⬜ |
+| CTLD-003 | Extend ctld guard in `veafSpawnEffects.lua` (~line 32) | `src/scripts/veaf/veafSpawnEffects.lua` | fix | 5 min | ⬜ |
+
+---
+
+## Lot I18N-COVERAGE — i18n coverage tests + fix remaining hardcoded English strings
+
+**Goal**: Add automated i18n coverage tests so hardcoded strings and missing translations are caught at CI. Then fix all currently identified violations.
+
+### Context
+
+`test_i18n.py` tests only the `t()` mechanics. No test currently verifies:
+- every `t("key")` call in code has a matching entry in `en.json`
+- every key in `en.json` has a translation in `fr.json`
+- no user-visible message is a raw English string literal instead of `t("key")`
+
+### Hardcoded strings identified (must fix)
+
+| File | Strings |
+|------|---------|
+| `mission_builder/mission_builder_worker.py` | `Found lua_modules section`, `Found global_log_level`, `Legacy weather config`, `Generated '...' from mission.yaml` (~line 106, 109, 438, 1074) |
+| `aircrafts_injector/aircrafts_injector_worker.py` | `No issues found`, `YAML validation successful`, `YAML validation failed`, `YAML file loaded successfully`, `Mission file loaded successfully`, `Mission written successfully`, etc. (~20 strings) |
+| `veaf_libs/lua_config_generator.py` | `Module '...' requires '...' which is not configured — auto-enabling '...'` (~line 628) |
+| `waypoints_injector/waypoints_manager.py` | `Loaded N waypoint(s) and N flight plan template(s)` (~line 142) |
+
+**Branch**: `fix/i18n-coverage` → PR → `develop-v6`
+
+| # | Ticket | Files | Type | Effort | Status |
+|---|--------|-------|------|--------|--------|
+| I18N-COV-001 | Add test: all `t("key")` calls in `src/python/` reference a key that exists in `en.json` | `test/python/veaf_libs/test_i18n.py` | test | 20 min | ⬜ |
+| I18N-COV-002 | Add test: every key in `en.json` has a non-empty entry in `fr.json` | `test/python/veaf_libs/test_i18n.py` | test | 10 min | ⬜ |
+| I18N-COV-003 | Add i18n keys for `mission_builder_worker.py` hardcoded strings and replace with `t()` | `mission_builder/mission_builder_worker.py`, `locales/en.json`, `locales/fr.json` | fix | 20 min | ⬜ |
+| I18N-COV-004 | Add i18n keys for `aircrafts_injector_worker.py` hardcoded strings and replace with `t()` | `aircrafts_injector/aircrafts_injector_worker.py`, `locales/en.json`, `locales/fr.json` | fix | 45 min | ⬜ |
+| I18N-COV-005 | Add i18n keys for `lua_config_generator.py` and `waypoints_manager.py` hardcoded strings | `veaf_libs/lua_config_generator.py`, `waypoints_injector/waypoints_manager.py`, `locales/*.json` | fix | 15 min | ⬜ |
+
+---
+
+## Lot FIX-CONVERT-V5-LOG-DEFAULT — convert-v5 defaults global_log_level to debug instead of info
+
+**Goal**: Change the fallback value for `global_log_level` in the generated `mission.yaml` from `debug` to `info`, so missions converted with no prior log level set are not silently deployed in debug mode.
+
+**Root cause**: `v5_converter.py:811` — `f"global_log_level: {extracted_ll or 'debug'}"`. When `missionConfig.lua` had no explicit log level, `extracted_ll` is `None` and the fallback is `'debug'`. The inline comment even warns *"Remove or set to 'info' before deploying to players"* — but the default does the opposite.
+
+**Fix**: Change `'debug'` → `'info'` in the fallback.
+
+**Branch**: `fix/convert-v5-log-default` → PR → `develop-v6`
+
+| # | Ticket | Files | Type | Effort | Status |
+|---|--------|-------|------|--------|--------|
+| CVLOG-001 | Change fallback `'debug'` → `'info'` in `_build_mission_yaml_lines` | `src/python/veaf-tools/mission_builder/v5_converter.py` | fix | 5 min | ⬜ |
 
 ---
 

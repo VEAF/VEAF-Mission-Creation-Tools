@@ -567,7 +567,9 @@ lua_modules:
 
 ### Reading the log
 
-We recommend [Klogg](https://klogg.filimonov.dev/) — a fast log viewer with regex highlighting. Load `dcs.log` and filter on `VEAF` to see only VEAF messages. The VEAF Discord shares a Klogg highlight profile that colour-codes log levels.
+We recommend [Klogg](https://klogg.filimonov.dev/) — a fast log viewer with regex highlighting. Load `dcs.log` and filter on `VEAF` to see only VEAF messages.
+
+A ready-to-use Klogg highlight profile is included in the repository at [`tools/klogg/veaf.conf`](../../tools/klogg/veaf.conf). It colour-codes log levels (errors in red, warnings in orange, VEAF info in green, debug in teal, trace in grey) and highlights MIST and CTLD entries. To install it: open Klogg → *File > Import highlights…* and select the file.
 
 ---
 

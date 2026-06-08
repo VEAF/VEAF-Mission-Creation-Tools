@@ -9,6 +9,9 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+- Klogg highlight profile for DCS logs added to `tools/klogg/veaf.conf`; GUIDE.md and GUIDE.en.md updated to reference it
+
 ### Fixed
 - `presets inject`: `presets_assignments` keys now support regex patterns (e.g. `A[-]10C.*`, `FW[-]190.*`) — exact match takes priority, then pattern, then `all` fallback
 - `convert-v5` presets: per-aircraft radio assignments are now extracted from `radioSettings` — warbird aircraft (e.g. Bf-109K-4) are auto-assigned to `{coalition}_warbird`, VHF-primary aircraft (e.g. I-16, Spitfire) get a new `{coalition}_vhf_primary` preset; hardcoded and typePattern entries emit explicit warnings listing the recommended preset

@@ -566,7 +566,9 @@ lua_modules:
 
 ### Lire le journal
 
-Nous recommandons [Klogg](https://klogg.filimonov.dev/) — un visualiseur de logs rapide avec surligneur regex. Chargez `dcs.log` et filtrez sur `VEAF` pour ne voir que les messages VEAF. Le Discord VEAF partage un profil de surligneur Klogg qui code les niveaux de log par couleur.
+Nous recommandons [Klogg](https://klogg.filimonov.dev/) — un visualiseur de logs rapide avec surligneur regex. Chargez `dcs.log` et filtrez sur `VEAF` pour ne voir que les messages VEAF.
+
+Un profil de surligneur Klogg prêt à l'emploi est inclus dans le dépôt : [`tools/klogg/veaf.conf`](../../tools/klogg/veaf.conf). Il code les niveaux de log par couleur (erreurs en rouge, avertissements en orange, info VEAF en vert, debug en bleu-vert, trace en gris) et met en évidence les entrées MIST et CTLD. Pour l'installer : Klogg → *Fichier > Importer les surligneurs…* et sélectionnez le fichier.
 
 ---
 

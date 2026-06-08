@@ -87,11 +87,17 @@ def validate_frequency(unit_type: str, freq_mhz: float) -> bool | None:
 
 @dataclass
 class ChannelFrequency:
-    """A frequency with its radio/channel context, used for actionable error messages."""
+    """A frequency with its radio/channel context, used for actionable error messages.
+
+    All name/title fields reflect the presets.yaml structure, not the DCS hardware names.
+    """
 
     freq_mhz: float
-    radio_name: str
-    channel: int
+    radio_key: str          # key in radios_collection (e.g. "radio_uhf_blue")
+    radio_collection: str   # parent collection name (e.g. "blue_radios")
+    radio_title: str        # human-readable radio title (e.g. "UHF")
+    channel: int            # channel number
+    channel_title: str      # channel title/label (e.g. "TACTICAL UNIFORM")
 
 
 def validate_frequencies(unit_type: str, freqs_mhz: list[float]) -> list[float]:
@@ -133,12 +139,17 @@ def warn_invalid_channel_frequencies(
     ranges_str = _format_ranges(valid_ranges)
     for ch in channels:
         if not any(r.contains(ch.freq_mhz) for r in valid_ranges):
+            yaml_path = (
+                f"radios_collection > {ch.radio_collection} > {ch.radio_key} > channels > {ch.channel}"
+            )
+            channel_label = f'"{ch.channel_title}" ' if ch.channel_title else ""
             logger.warning(
-                f"Group '{group_name}' ({unit_type}): radio '{ch.radio_name}', channel {ch.channel} "
+                f"Group '{group_name}' ({unit_type}): "
+                f"radio '{ch.radio_title}', channel {ch.channel} {channel_label}"
                 f"— {ch.freq_mhz} MHz is not valid for this aircraft.\n"
                 f"  Valid ranges: {ranges_str}\n"
-                f"  Fix: in presets.yaml, change the frequency for radio '{ch.radio_name}' "
-                f"channel {ch.channel} to a value within one of the ranges above."
+                f"  Fix in presets.yaml: {yaml_path}\n"
+                f"    change freq: {ch.freq_mhz} to a value within one of the ranges above."
             )
 
 

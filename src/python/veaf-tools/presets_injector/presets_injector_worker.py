@@ -58,7 +58,14 @@ class PresetsInjectorWorker(GroupInjectorWorker):
 
         if preset_definition != PresetDefinition.EMPTY and group.unit_type:
             channel_freqs = [
-                ChannelFrequency(freq_mhz=ch.freq, radio_name=radio.name, channel=ch.number)
+                ChannelFrequency(
+                    freq_mhz=ch.freq,
+                    radio_key=radio.name,
+                    radio_collection=radio.collection_name or "",
+                    radio_title=radio.title or radio.name,
+                    channel=ch.number,
+                    channel_title=ch.title or "",
+                )
                 for radio in preset_definition.radios.values()
                 for ch in radio.channels
             ]

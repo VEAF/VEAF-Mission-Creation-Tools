@@ -150,7 +150,7 @@ The check is **non-blocking**: the mission is still written, but the invalid fre
 
 Specs cover 85 player-flyable aircraft and are sourced from [dcs-lua-datamine](https://github.com/Quaggles/dcs-lua-datamine). If an aircraft is not in the database the check is silently skipped.
 
-> **See also**: [`doc/mission-maker/dcs-radio-specs.md`](dcs-radio-specs.md) — full reference table of valid frequency ranges per aircraft.  
+> **See also**: [`doc/mission-maker/dcs-radio-specs.md`](mission-maker/dcs-radio-specs.md) — full reference table of valid frequency ranges per aircraft.  
 > To regenerate after a DCS update: `poetry run update-radio-specs`
 
 ---

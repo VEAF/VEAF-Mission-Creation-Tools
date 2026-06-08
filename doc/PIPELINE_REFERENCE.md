@@ -148,7 +148,7 @@ La vérification est **non bloquante** : la mission est quand même écrite, mai
 
 Les specs couvrent 85 aéronefs pilotables et sont issues de [dcs-lua-datamine](https://github.com/Quaggles/dcs-lua-datamine). Si un aéronef n'est pas dans la base, la vérification est silencieusement ignorée.
 
-> **Voir aussi** : [`doc/mission-maker/dcs-radio-specs.md`](dcs-radio-specs.md) — table de référence complète des plages de fréquences valides par aéronef.  
+> **Voir aussi** : [`doc/mission-maker/dcs-radio-specs.md`](mission-maker/dcs-radio-specs.md) — table de référence complète des plages de fréquences valides par aéronef.  
 > Pour régénérer après une mise à jour DCS : `poetry run update-radio-specs`
 
 ---

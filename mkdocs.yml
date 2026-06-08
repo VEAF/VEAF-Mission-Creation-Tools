@@ -122,6 +122,7 @@ nav:
   - References:
     - mission.yaml Reference: MISSION_YAML_REFERENCE.md
     - Pipeline Reference: PIPELINE_REFERENCE.md
+    - DCS Radio Specs: mission-maker/dcs-radio-specs.md
     - Lua API Reference: LUA_API_REFERENCE.md
     - Tools CLI Reference: TOOLS_REFERENCE.md
     - Roadmap: ROADMAP.md

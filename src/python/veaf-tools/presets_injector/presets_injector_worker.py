@@ -23,6 +23,11 @@ class PresetsInjectorWorker(GroupInjectorWorker):
         self.presets_file = presets_file
         self.groups: dict[str, Group] = {}
         self.presets_manager: PresetsManager = PresetsManager()
+        # Pending frequency warnings keyed by unit_type; aggregated before emission.
+        self._pending_freq_warnings: dict[
+            str,
+            dict[str, list[str] | list[ChannelFrequency] | str],
+        ] = {}
         super().__init__(config_file=presets_file, input_mission=input_mission, output_mission=output_mission)
 
     def load_config(self) -> Any:
@@ -70,13 +75,16 @@ class PresetsInjectorWorker(GroupInjectorWorker):
                 for ch in radio.channels
                 if isinstance(ch.freq, (int, float))
             ]
-            warn_invalid_channel_frequencies(
-                group_name=group.name or "",
-                unit_type=group.unit_type,
-                channels=channel_freqs,
-                coalition=group.coalition or "blue",
-                aircraft_category=group.aircraft_type or "plane",
-            )
+            # Collect instead of warning immediately; emit aggregated per unit_type later.
+            key = group.unit_type
+            if key not in self._pending_freq_warnings:
+                self._pending_freq_warnings[key] = {
+                    "group_names": [],
+                    "channels": channel_freqs,
+                    "coalition": group.coalition or "blue",
+                    "aircraft_category": group.aircraft_type or "plane",
+                }
+            self._pending_freq_warnings[key]["group_names"].append(group.name or "")  # type: ignore[union-attr]
 
         return nb_units_processed
 
@@ -100,6 +108,17 @@ class PresetsInjectorWorker(GroupInjectorWorker):
 
         if not silent:
             logger.info(f"Injected presets into {nb_units_processed} aircraft{'s' if nb_units_processed > 1 else ''}")
+
+        # Emit one warning per unit_type, listing all affected groups together.
+        for unit_type, entry in self._pending_freq_warnings.items():
+            warn_invalid_channel_frequencies(
+                group_names=entry["group_names"],  # type: ignore[arg-type]
+                unit_type=unit_type,
+                channels=entry["channels"],  # type: ignore[arg-type]
+                coalition=entry["coalition"],  # type: ignore[arg-type]
+                aircraft_category=entry["aircraft_category"],  # type: ignore[arg-type]
+            )
+        self._pending_freq_warnings.clear()
 
     def write_mission(self, silent: bool = False) -> None:
         """Write the mission file, including kneeboard pages if generated."""

@@ -54,7 +54,10 @@ class PresetsInjectorWorker(GroupInjectorWorker):
             if self.presets_file:
                 presets_manager.read_yaml(self.presets_file)
         except Exception as e:
-            logger.error(t("presets_injector.error.load_config", path=self.presets_file, error=str(e)), exception_type=RuntimeError)
+            logger.error(
+                t("presets_injector.error.load_config", path=self.presets_file, error=str(e)),
+                exception_type=RuntimeError,
+            )
         self.presets_manager = presets_manager
         return presets_manager
 
@@ -144,11 +147,13 @@ class PresetsInjectorWorker(GroupInjectorWorker):
             if warned_unit_types:
                 yaml_lines = []
                 for unit_type, entry in warned_unit_types.items():
-                    yaml_lines.extend([
-                        f"      {entry.coalition}:",
-                        f"        {entry.aircraft_category}:",
-                        f"          {unit_type}: none",
-                    ])
+                    yaml_lines.extend(
+                        [
+                            f"      {entry.coalition}:",
+                            f"        {entry.aircraft_category}:",
+                            f"          {unit_type}: none",
+                        ]
+                    )
                 yaml_block = "\n".join(yaml_lines)
                 logger.warning(t("presets_injector.freq_warn.disable_tip", yaml_block=yaml_block))
             # Collect all issues (strict + non-strict) for the validation report before clearing.
@@ -156,13 +161,16 @@ class PresetsInjectorWorker(GroupInjectorWorker):
                 (
                     issue
                     for unit_type, entry in self._pending_freq_warnings.items()
-                    if (issue := collect_invalid_channel_frequencies(
-                        group_names=entry.group_names,
-                        unit_type=unit_type,
-                        channels=entry.channels,
-                        coalition=entry.coalition,
-                        aircraft_category=entry.aircraft_category,
-                    )) is not None
+                    if (
+                        issue := collect_invalid_channel_frequencies(
+                            group_names=entry.group_names,
+                            unit_type=unit_type,
+                            channels=entry.channels,
+                            coalition=entry.coalition,
+                            aircraft_category=entry.aircraft_category,
+                        )
+                    )
+                    is not None
                 ),
                 key=lambda i: (not i.strict, i.unit_type),
             )
@@ -219,7 +227,9 @@ class PresetsInjectorWorker(GroupInjectorWorker):
                 "|---------|-------|-----------------|------------|-------|",
             ]
             for ch in issue.invalid_channels:
-                block.append(f"| {ch.channel} | {ch.channel_title or '—'} | {ch.freq_mhz} | {ch.radio_collection} | {ch.radio_key} |")
+                block.append(
+                    f"| {ch.channel} | {ch.channel_title or '—'} | {ch.freq_mhz} | {ch.radio_collection} | {ch.radio_key} |"
+                )
             block += [
                 "",
                 t("presets_injector.report.silence_hint"),

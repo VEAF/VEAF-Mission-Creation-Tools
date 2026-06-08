@@ -177,9 +177,22 @@ def warn_invalid_channel_frequencies(
     # Emit one warning per aircraft type (not per group) to avoid flooding the log.
     # List all invalid channels and all affected groups in a single message.
     channel_lines = "\n".join(
-        t("radio_freq.warn.channel_line_titled", num=ch.channel, title=ch.channel_title, freq=ch.freq_mhz, collection=ch.radio_collection, radio_key=ch.radio_key)
+        t(
+            "radio_freq.warn.channel_line_titled",
+            num=ch.channel,
+            title=ch.channel_title,
+            freq=ch.freq_mhz,
+            collection=ch.radio_collection,
+            radio_key=ch.radio_key,
+        )
         if ch.channel_title
-        else t("radio_freq.warn.channel_line", num=ch.channel, freq=ch.freq_mhz, collection=ch.radio_collection, radio_key=ch.radio_key)
+        else t(
+            "radio_freq.warn.channel_line",
+            num=ch.channel,
+            freq=ch.freq_mhz,
+            collection=ch.radio_collection,
+            radio_key=ch.radio_key,
+        )
         for ch in invalid_channels
     )
     unit_type_key = unit_type.lower().replace(" ", "-")

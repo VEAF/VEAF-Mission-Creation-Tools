@@ -52,7 +52,10 @@ class WaypointsInjectorWorker(GroupInjectorWorker):
             if self.waypoints_file:
                 waypoints_manager.read_yaml(self.waypoints_file)
         except Exception as e:
-            logger.error(t("waypoints_injector.error.load_config", path=self.waypoints_file, error=str(e)), exception_type=RuntimeError)
+            logger.error(
+                t("waypoints_injector.error.load_config", path=self.waypoints_file, error=str(e)),
+                exception_type=RuntimeError,
+            )
         self.waypoints_manager = waypoints_manager
         return waypoints_manager
 

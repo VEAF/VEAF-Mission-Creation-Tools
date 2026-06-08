@@ -135,7 +135,8 @@ const SL=[
   {i:"📡",h:"Validation des fréquences radio",d:"inject-presets vérifie que chaque fréquence de preset est dans la plage valide pour l'avion concerné (données extraites de dcs-lua-datamine). Warning explicite avec la plage attendue."},
   {i:"✈️",h:"Presets per-aircraft & patterns regex",d:"convert-v5 extrait les assignments radio par type d'avion depuis radioSettings. Les clés <code>presets_assignments</code> supportent les regex (ex : <code>A[-]10C.*</code>) — exact > pattern > <code>all</code>."},
   {i:"🌉",h:"dcs-bridge — pont DCS optionnel",d:"Section <code>dcs_bridge:</code> dans mission.yaml — injecte dcs-bridge.lua dans le .miz pour exposer une API réseau DCS. Désactivé par défaut, zéro overhead si absent."},
-  {i:"🔄",h:"convert-v5 génère community_scripts",d:"La conversion v5→v6 détecte les scripts présents dans <code>published/src/scripts/community/</code> et pré-remplit la section <code>community_scripts:</code> avec les bons flags enabled."}]},
+  {i:"🔄",h:"convert-v5 génère community_scripts",d:"La conversion v5→v6 détecte les scripts présents dans <code>published/src/scripts/community/</code> et pré-remplit la section <code>community_scripts:</code> avec les bons flags enabled."}],
+note:"<span style='color:var(--gold);font-weight:700'>dcs-bridge</span> est un outil tiers (<a href='https://github.com/DCS-BR-Tools/dcs-bridge' style='color:#c8a855'>DCS-BR-Tools/dcs-bridge</a>) qui expose une API réseau depuis DCS — utilisé par des outils externes (SRS, bots Discord, tableaux de bord…). La section <code>dcs_bridge:</code> dans mission.yaml injecte et configure le script automatiquement."},
 {t:"section",num:"3 — BUILD",title:"Pipeline de build",sub:"Même workflow, outillage entièrement repensé"},
 {t:"flow"},
 {t:"features",title:"Ce qui change sous le capot",items:[
@@ -349,8 +350,9 @@ function rCode(){
 }
 
 function rFeatures(s){
+  const noteHtml=s.note?`<div style="margin-top:10px;background:rgba(232,160,32,.07);border:1px solid rgba(232,160,32,.25);padding:9px 13px;font-size:13px;color:#c8a855">${s.note}</div>`:'';
   return `<div class="lbl" style="margin-bottom:2px">${s.title}</div>
-  <div class="feat-grid">${s.items.map(i=>`<div class="feat-card"><div class="ficon">${i.i}</div><div><div class="ftitle">${i.h}</div><div class="fdesc">${i.d}</div></div></div>`).join('')}</div>`;
+  <div class="feat-grid">${s.items.map(i=>`<div class="feat-card"><div class="ficon">${i.i}</div><div><div class="ftitle">${i.h}</div><div class="fdesc">${i.d}</div></div></div>`).join('')}</div>${noteHtml}`;
 }
 
 function rFlow(){

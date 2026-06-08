@@ -195,7 +195,7 @@ class TestWarnInvalidChannelFrequencies(unittest.TestCase):
     def test_warns_with_presets_yaml_path(self):
         channels = [_make_ch(125.0, 1), _make_ch(284.0, 2, "TACTICAL UNIFORM")]
         with patch("presets_injector.radio_frequency_validator.logger") as mock_logger:
-            warn_invalid_channel_frequencies("Bassel MiG-19 #1", "MiG-19P", channels, "blue", "plane")
+            warn_invalid_channel_frequencies(["Bassel MiG-19 #1"], "MiG-19P", channels, "blue", "plane")
             mock_logger.warning.assert_called_once()
             msg = mock_logger.warning.call_args[0][0]
             self.assertIn("284.0 MHz", msg)
@@ -212,19 +212,19 @@ class TestWarnInvalidChannelFrequencies(unittest.TestCase):
 
     def test_no_warning_when_all_valid(self):
         with patch("presets_injector.radio_frequency_validator.logger") as mock_logger:
-            warn_invalid_channel_frequencies("Some Group", "MiG-19P", [_make_ch(120.0)])
+            warn_invalid_channel_frequencies(["Some Group"], "MiG-19P", [_make_ch(120.0)])
             mock_logger.warning.assert_not_called()
 
     def test_no_warning_for_unknown_aircraft(self):
         with patch("presets_injector.radio_frequency_validator.logger") as mock_logger:
-            warn_invalid_channel_frequencies("Some Group", "Unknown-Aircraft", [_make_ch(284.0)])
+            warn_invalid_channel_frequencies(["Some Group"], "Unknown-Aircraft", [_make_ch(284.0)])
             mock_logger.warning.assert_not_called()
 
     def test_multiple_invalid_channels_single_warning(self):
         # All invalid channels for the same group must be reported in one warning, not one per channel.
         channels = [_make_ch(284.0, 1), _make_ch(300.0, 2)]
         with patch("presets_injector.radio_frequency_validator.logger") as mock_logger:
-            warn_invalid_channel_frequencies("Some Group", "MiG-19P", channels)
+            warn_invalid_channel_frequencies(["Some Group"], "MiG-19P", channels)
             self.assertEqual(mock_logger.warning.call_count, 1)
             msg = mock_logger.warning.call_args[0][0]
             self.assertIn("284.0 MHz", msg)

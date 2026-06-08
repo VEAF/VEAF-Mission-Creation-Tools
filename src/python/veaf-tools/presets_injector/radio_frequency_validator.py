@@ -123,7 +123,7 @@ def _format_ranges(ranges: list[FrequencyRange]) -> str:
 
 
 def warn_invalid_channel_frequencies(
-    group_name: str,
+    group_names: list[str],
     unit_type: str,
     channels: list[ChannelFrequency],
     coalition: str = "blue",
@@ -131,11 +131,14 @@ def warn_invalid_channel_frequencies(
 ) -> None:
     """Log an actionable warning for each channel whose frequency is invalid for unit_type.
 
+    Emits a single warning per aircraft type, listing all affected groups together to avoid
+    repeating the same block for every group that uses the same preset.
+
     Args:
-        group_name: Name of the DCS group.
+        group_names: Names of the DCS groups using this unit type and preset.
         unit_type: DCS unit type string (e.g. "MiG-19P").
         channels: List of ChannelFrequency carrying radio name, channel number, and frequency.
-        coalition: Coalition of the group ("blue", "red", …).
+        coalition: Coalition of the groups ("blue", "red", …).
         aircraft_category: DCS aircraft category ("plane" or "helicopter").
     """
     valid_ranges = get_valid_ranges(unit_type)
@@ -147,15 +150,17 @@ def warn_invalid_channel_frequencies(
         return
 
     ranges_str = _format_ranges(valid_ranges)
-    # Emit one warning per group (not per channel) to avoid flooding the log.
-    # List all invalid channels in a single message.
+    groups_str = ", ".join(f"'{g}'" for g in group_names)
+    groups_label = f"Group {groups_str}" if len(group_names) == 1 else f"Groups {groups_str}"
+    # Emit one warning per aircraft type (not per group) to avoid flooding the log.
+    # List all invalid channels and all affected groups in a single message.
     channel_lines = "\n".join(
         f"    - channel {ch.channel}" + (f' "{ch.channel_title}"' if ch.channel_title else "") + f": {ch.freq_mhz} MHz"
         f"  (in radios_collection > {ch.radio_collection} > {ch.radio_key})"
         for ch in invalid_channels
     )
     logger.warning(
-        f"Group '{group_name}' ({unit_type}): the following preset frequencies are not valid"
+        f"{groups_label} ({unit_type}): the following preset frequencies are not valid"
         f" for this aircraft and will be rejected by DCS at mission load:\n"
         f"{channel_lines}\n"
         f"  Valid ranges for {unit_type}: {ranges_str}\n"

@@ -2,6 +2,7 @@
 Worker module for the VEAF Presets Injector Package.
 """
 
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -14,6 +15,16 @@ from .presets_manager import PresetDefinition, PresetsManager
 from .radio_frequency_validator import ChannelFrequency, warn_invalid_channel_frequencies
 
 
+@dataclass
+class _PendingFreqWarning:
+    """Aggregated data for a deferred radio-frequency warning keyed by unit_type."""
+
+    group_names: list[str] = field(default_factory=list)
+    channels: list[ChannelFrequency] = field(default_factory=list)
+    coalition: str = "blue"
+    aircraft_category: str = "plane"
+
+
 class PresetsInjectorWorker(GroupInjectorWorker):
     """
     Worker class that provides presets injection features.
@@ -23,6 +34,8 @@ class PresetsInjectorWorker(GroupInjectorWorker):
         self.presets_file = presets_file
         self.groups: dict[str, Group] = {}
         self.presets_manager: PresetsManager = PresetsManager()
+        # Pending frequency warnings keyed by unit_type; aggregated before emission.
+        self._pending_freq_warnings: dict[str, _PendingFreqWarning] = {}
         super().__init__(config_file=presets_file, input_mission=input_mission, output_mission=output_mission)
 
     def load_config(self) -> Any:
@@ -70,13 +83,19 @@ class PresetsInjectorWorker(GroupInjectorWorker):
                 for ch in radio.channels
                 if isinstance(ch.freq, (int, float))
             ]
-            warn_invalid_channel_frequencies(
-                group_name=group.name or "",
-                unit_type=group.unit_type,
-                channels=channel_freqs,
-                coalition=group.coalition or "blue",
-                aircraft_category=group.aircraft_type or "plane",
-            )
+            # Collect instead of warning immediately; emit aggregated per unit_type later.
+            # Merge channel_freqs so subsequent groups with the same unit_type don't lose their invalids.
+            key = group.unit_type
+            if key not in self._pending_freq_warnings:
+                self._pending_freq_warnings[key] = _PendingFreqWarning(
+                    coalition=group.coalition or "blue",
+                    aircraft_category=group.aircraft_type or "plane",
+                )
+            entry = self._pending_freq_warnings[key]
+            entry.group_names.append(group.name or "")
+            for ch in channel_freqs:
+                if ch not in entry.channels:
+                    entry.channels.append(ch)
 
         return nb_units_processed
 
@@ -100,6 +119,17 @@ class PresetsInjectorWorker(GroupInjectorWorker):
 
         if not silent:
             logger.info(f"Injected presets into {nb_units_processed} aircraft{'s' if nb_units_processed > 1 else ''}")
+
+        # Emit one warning per unit_type, listing all affected groups together.
+        for unit_type, entry in self._pending_freq_warnings.items():
+            warn_invalid_channel_frequencies(
+                group_names=entry.group_names,
+                unit_type=unit_type,
+                channels=entry.channels,
+                coalition=entry.coalition,
+                aircraft_category=entry.aircraft_category,
+            )
+        self._pending_freq_warnings.clear()
 
     def write_mission(self, silent: bool = False) -> None:
         """Write the mission file, including kneeboard pages if generated."""

@@ -98,7 +98,7 @@ presets_assignments:
   <coalition>:                          # blue | red
     <catégorie>:                        # plane | helicopter
       all: <nom-préréglage>            # préréglage par défaut pour tous les aéronefs de ce type
-      <type-aéronef>: <nom-préréglage> # surcharge pour un type DCS spécifique (ex: A-10C_2)
+      <type-aéronef>: <nom-préréglage> # surcharge pour un type DCS exact (ex: A-10C_2) ou un pattern regex (ex: A[-]10C.*)
 ```
 
 ### Exemple minimal

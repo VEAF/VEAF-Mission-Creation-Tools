@@ -79,7 +79,11 @@ class PresetsInjectorWorker(GroupInjectorWorker):
                     if "frequency" in group.group_dcs:
                         del group.group_dcs["frequency"]
                 elif first_freq := preset_definition.get_freq_of_first_channel_of_first_radio():
-                    group.group_dcs["frequency"] = first_freq
+                    # FM-primary radios (Gazelle, Ka-50…) have HumanRadio in VHF/UHF range:
+                    # injecting the FM channel freq would make the ME flag it as invalid.
+                    first_radio_type = next(iter(preset_definition.radios.values())).radio_type
+                    if first_radio_type != "fm":
+                        group.group_dcs["frequency"] = first_freq
 
         if preset_definition != PresetDefinition.EMPTY and group.unit_type:
             channel_freqs = [

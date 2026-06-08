@@ -100,7 +100,7 @@ presets_assignments:
   <coalition>:                          # blue | red
     <category>:                         # plane | helicopter
       all: <preset-name>               # default preset for all aircraft of this type
-      <aircraft-type>: <preset-name>   # override for a specific DCS aircraft type (e.g. A-10C_2)
+      <aircraft-type>: <preset-name>   # override for a specific DCS type (e.g. A-10C_2) or a regex pattern (e.g. A[-]10C.*)
 ```
 
 ### Minimal example

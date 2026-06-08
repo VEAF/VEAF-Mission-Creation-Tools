@@ -18,6 +18,7 @@ This module provides classes to manage radio presets.
 # TODO add modulation
 
 import io
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, ClassVar
@@ -452,17 +453,41 @@ class PresetAssignmentCollection:
                     preset_assignments_aircraft_type_dict[unit_type] = preset_assignment
         return result
 
+    @staticmethod
+    def _match_unit_type(d: dict[str, "PresetAssignment"], unit_type: str) -> "PresetAssignment | None":
+        """Look up *unit_type* in *d* with exact-match priority, then regex pattern fallback.
+
+        Args:
+            d: Mapping of unit_type key → PresetAssignment (may contain regex patterns).
+            unit_type: DCS aircraft type string to look up.
+
+        Returns:
+            The matching :class:`PresetAssignment`, or ``None`` if no key matches.
+            The ``"all"`` wildcard key is intentionally excluded — callers handle it separately.
+        """
+        if unit_type in d:
+            return d[unit_type]
+        for key, assignment in d.items():
+            if key == "all":
+                continue
+            try:
+                if re.fullmatch(key, unit_type):
+                    return assignment
+            except re.error:
+                pass
+        return None
+
     def get_preset_for(
         self, coalition: str = "all", aircraft_type: str = "all", unit_type: str = "all"
     ) -> PresetAssignment | None:
+        def _unit(d: dict[str, "PresetAssignment"]) -> "PresetAssignment | None":
+            return self._match_unit_type(d, unit_type) or d.get("all")
+
         return (
-            self.preset_assignments_dict.get(coalition, {}).get(aircraft_type, {}).get(unit_type)
-            or self.preset_assignments_dict.get(coalition, {}).get(aircraft_type, {}).get("all")
-            or self.preset_assignments_dict.get(coalition, {}).get("all", {}).get(unit_type)
-            or self.preset_assignments_dict.get("all", {}).get(aircraft_type, {}).get(unit_type)
-            or self.preset_assignments_dict.get("all", {}).get(aircraft_type, {}).get("all")
-            or self.preset_assignments_dict.get("all", {}).get("all", {}).get(unit_type)
-            or self.preset_assignments_dict.get("all", {}).get("all", {}).get("all")
+            _unit(self.preset_assignments_dict.get(coalition, {}).get(aircraft_type, {}))
+            or _unit(self.preset_assignments_dict.get(coalition, {}).get("all", {}))
+            or _unit(self.preset_assignments_dict.get("all", {}).get(aircraft_type, {}))
+            or _unit(self.preset_assignments_dict.get("all", {}).get("all", {}))
         )
 
 

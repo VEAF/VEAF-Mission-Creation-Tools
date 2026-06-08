@@ -426,5 +426,76 @@ class TestPresets(unittest.TestCase):
         self.assertFalse(yaml_path.exists())
 
 
+class TestPresetAssignmentCollectionPatternMatching(unittest.TestCase):
+    """get_preset_for must match unit_type keys that are regex patterns."""
+
+    def _make_collection(self, assignments: dict) -> PresetAssignmentCollection:
+        """Build a minimal PresetAssignmentCollection from a nested dict of preset names."""
+        preset_def = PresetDefinition(name="std", title="Standard")
+        preset_collection = PresetCollection(name="col")
+
+        result = PresetAssignmentCollection()
+        for coalition, ctypes in assignments.items():
+            result.preset_assignments_dict.setdefault(coalition, {})
+            for atype, units in ctypes.items():
+                result.preset_assignments_dict[coalition].setdefault(atype, {})
+                for unit_type, _ in units.items():
+                    pa = PresetAssignment(
+                        coalition=coalition,
+                        aircraft_type=atype,
+                        unit_type=unit_type,
+                        preset_definition=preset_def,
+                    )
+                    result.preset_assignments_dict[coalition][atype][unit_type] = pa
+        return result
+
+    def test_exact_match_still_works(self) -> None:
+        col = self._make_collection({"blue": {"plane": {"F-16C_50": "std"}}})
+        result = col.get_preset_for("blue", "plane", "F-16C_50")
+        self.assertIsNotNone(result)
+        self.assertEqual(result.unit_type, "F-16C_50")  # type: ignore[union-attr]
+
+    def test_pattern_match_fw190(self) -> None:
+        col = self._make_collection({"blue": {"plane": {"FW[-]190.*": "std"}}})
+        result = col.get_preset_for("blue", "plane", "FW-190A-8")
+        self.assertIsNotNone(result)
+        self.assertEqual(result.unit_type, "FW[-]190.*")  # type: ignore[union-attr]
+
+    def test_pattern_match_a10c(self) -> None:
+        col = self._make_collection({"blue": {"plane": {"A[-]10C.*": "std"}}})
+        self.assertIsNotNone(col.get_preset_for("blue", "plane", "A-10C"))
+        self.assertIsNotNone(col.get_preset_for("blue", "plane", "A-10CII"))
+
+    def test_exact_takes_priority_over_pattern(self) -> None:
+        exact_def = PresetDefinition(name="exact", title="Exact")
+        pattern_def = PresetDefinition(name="patt", title="Pattern")
+        col = PresetAssignmentCollection()
+        col.preset_assignments_dict["blue"] = {
+            "plane": {
+                "F-16C_50": PresetAssignment(coalition="blue", aircraft_type="plane", unit_type="F-16C_50", preset_definition=exact_def),
+                "F[-]16.*": PresetAssignment(coalition="blue", aircraft_type="plane", unit_type="F[-]16.*", preset_definition=pattern_def),
+            }
+        }
+        result = col.get_preset_for("blue", "plane", "F-16C_50")
+        self.assertIsNotNone(result)
+        self.assertEqual(result.preset_definition, exact_def)  # type: ignore[union-attr]
+
+    def test_all_fallback_when_no_pattern_matches(self) -> None:
+        col = self._make_collection({"blue": {"plane": {"all": "std"}}})
+        result = col.get_preset_for("blue", "plane", "SomeUnknownAircraft")
+        self.assertIsNotNone(result)
+
+    def test_no_match_returns_none(self) -> None:
+        col = self._make_collection({"blue": {"plane": {"F-16C_50": "std"}}})
+        result = col.get_preset_for("blue", "plane", "A-10C")
+        self.assertIsNone(result)
+
+    def test_pattern_not_matched_when_partial(self) -> None:
+        # Pattern must match the full string (fullmatch, not search)
+        col = self._make_collection({"blue": {"plane": {"F-16": "std"}}})
+        result = col.get_preset_for("blue", "plane", "F-16C_50")
+        self.assertIsNone(result)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -14,9 +14,12 @@ convert_pipeline_file(step, v5_path, v6_path, *, icao_callback=None)
 
 from __future__ import annotations
 
+import importlib.resources
 import json
 import re
+import sys
 from collections.abc import Callable
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -79,6 +82,148 @@ def _extract_lua_table_text(content: str, table_name: str) -> str | None:
                 if depth == 0:
                     return content[start : i + 1]
     return None
+
+
+def _extract_block_at(text: str, open_brace_pos: int) -> str | None:
+    """Return the brace-enclosed text starting at *open_brace_pos*.
+
+    Args:
+        text: Source text containing the block.
+        open_brace_pos: Index of the opening ``{`` character.
+
+    Returns:
+        Slice from the opening ``{`` to its matching ``}``, inclusive,
+        or ``None`` if the braces are unmatched.
+    """
+    depth = 0
+    in_str = False
+    sc: str | None = None
+    esc = False
+    for i in range(open_brace_pos, len(text)):
+        c = text[i]
+        if esc:
+            esc = False
+            continue
+        if c == "\\" and in_str:
+            esc = True
+            continue
+        if c in ('"', "'") and not in_str:
+            in_str, sc = True, c
+        elif in_str and c == sc:
+            in_str = False
+        elif not in_str:
+            if c == "{":
+                depth += 1
+            elif c == "}":
+                depth -= 1
+                if depth == 0:
+                    return text[open_brace_pos : i + 1]
+    return None
+
+
+@dataclass
+class _RadioEntry:
+    """Per-aircraft entry parsed from the v5 ``radioSettings`` table."""
+
+    entry_key: str
+    aircraft: str
+    is_pattern: bool
+    coalition: str
+    radio_sources: dict[int, str | None] = field(default_factory=dict)
+    """Maps DCS radio index (1-based) to source: ``"uhf"``, ``"vhf"``, ``"fm"``,
+    ``"warbird"``, or ``None`` for hardcoded frequencies."""
+
+
+#: Ordered checks to identify which standard preset table a radio block references.
+#: First match wins (warbird > fm > vhf > uhf).
+_RADIO_SOURCE_CHECKS: list[tuple[re.Pattern[str], str]] = [
+    (re.compile(r"radioPresetsWarbird(?:Blue|Red)\s*\["), "warbird"),
+    (re.compile(r'radioPresets(?:Blue|Red)\["##RADIO3_'), "fm"),
+    (re.compile(r'radioPresets(?:Blue|Red)\["##RADIO2_'), "vhf"),
+    (re.compile(r'radioPresets(?:Blue|Red)\["##RADIO1_'), "uhf"),
+]
+
+
+def _detect_radio_block_source(block_text: str) -> str | None:
+    """Return which standard preset source *block_text* references, or ``None``.
+
+    Args:
+        block_text: Raw Lua text of a single radio ``[N] = { … }`` block.
+
+    Returns:
+        One of ``"uhf"``, ``"vhf"``, ``"fm"``, ``"warbird"``, or ``None``
+        when the block uses only hardcoded frequency literals.
+    """
+    for pattern, source in _RADIO_SOURCE_CHECKS:
+        if pattern.search(block_text):
+            return source
+    return None
+
+
+def _parse_radio_settings_entries(content: str) -> list[_RadioEntry]:
+    """Parse all entries from the v5 ``radioSettings`` table.
+
+    Each entry describes one aircraft type / coalition combination and which
+    standard preset source each DCS radio slot references.
+
+    Args:
+        content: Full text of the v5 ``radioSettings.lua`` file.
+
+    Returns:
+        List of :class:`_RadioEntry` instances, one per entry found.
+        Entries without a ``type`` / ``typePattern`` field are skipped.
+    """
+    table_text = _extract_lua_table_text(content, "radioSettings")
+    if not table_text:
+        return []
+
+    entries: list[_RadioEntry] = []
+    entry_pattern = re.compile(r'\["([^"]+)"\]\s*=\s*\{')
+
+    for m in entry_pattern.finditer(table_text):
+        entry_key = m.group(1)
+        block_start = m.end() - 1
+        block_text = _extract_block_at(table_text, block_start)
+        if not block_text:
+            continue
+
+        # Skip nested sub-tables (["Radio"], ["channels"], etc.) which lack type info
+        m_type = re.search(r'\btype\s*=\s*[\'"]([^\'"]+)[\'"]', block_text)
+        m_typepattern = re.search(r'\btypePattern\s*=\s*[\'"]([^\'"]+)[\'"]', block_text)
+        if not m_type and not m_typepattern:
+            continue
+
+        aircraft = (m_type or m_typepattern).group(1)  # type: ignore[union-attr]
+        is_pattern = m_typepattern is not None
+
+        m_coal = re.search(r'\bcoalition\s*=\s*[\'"]([^\'"]+)[\'"]', block_text)
+        if not m_coal:
+            continue
+        coalition = m_coal.group(1).lower()
+
+        # Parse radio sources from ["Radio"] = { [N] = { … }, … }
+        radio_sources: dict[int, str | None] = {}
+        radio_section_m = re.search(r'\["Radio"\]\s*=\s*\{', block_text)
+        if radio_section_m:
+            radio_block = _extract_block_at(block_text, radio_section_m.end() - 1)
+            if radio_block:
+                for rm in re.finditer(r"\[(\d+)\]\s*=\s*\{", radio_block):
+                    idx = int(rm.group(1))
+                    sub_block = _extract_block_at(radio_block, rm.end() - 1)
+                    if sub_block:
+                        radio_sources[idx] = _detect_radio_block_source(sub_block)
+
+        entries.append(
+            _RadioEntry(
+                entry_key=entry_key,
+                aircraft=aircraft,
+                is_pattern=is_pattern,
+                coalition=coalition,
+                radio_sources=radio_sources,
+            )
+        )
+
+    return entries
 
 
 def _parse_lua_table(content: str, table_name: str) -> dict[str, Any] | None:
@@ -468,6 +613,47 @@ def _parse_custom_preset_table(content: str, table_name: str) -> list[float]:
     return [v for _, v in sorted(freq_by_key.items())]
 
 
+def _load_helicopter_types() -> set[str]:
+    """Return the set of DCS unit type names classified as helicopters in dcs-radio-specs.yaml."""
+    bundle_path = Path(getattr(sys, "_MEIPASS", "")) / "presets_injector" / "data" / "dcs-radio-specs.yaml"
+    if bundle_path.exists():
+        raw = bundle_path.read_text(encoding="utf-8")
+    else:
+        pkg = importlib.resources.files("presets_injector.data")
+        raw = (pkg / "dcs-radio-specs.yaml").read_text(encoding="utf-8")  # type: ignore[arg-type]
+    specs: dict[str, Any] = yaml.safe_load(raw) or {}
+    return {name for name, info in specs.items() if isinstance(info, dict) and info.get("category") == "helicopter"}
+
+
+def _detect_category(aircraft: str, is_pattern: bool, helicopter_types: set[str]) -> list[str]:
+    """Return the list of assignment categories for an aircraft entry.
+
+    Args:
+        aircraft: Exact DCS unit type name or regex pattern (when ``is_pattern`` is True).
+        is_pattern: Whether ``aircraft`` is a ``typePattern`` regex.
+        helicopter_types: Set of known DCS helicopter unit type names.
+
+    Returns:
+        A list containing ``"helicopter"``, ``"plane"``, or both.
+    """
+    if is_pattern:
+        helis_matched = any(_safe_fullmatch(aircraft, h) for h in helicopter_types)
+        # Since we cannot enumerate all plane types, conservatively assign to both
+        # categories when the pattern matches at least one helicopter.
+        if helis_matched:
+            return ["helicopter", "plane"]
+        return ["plane"]
+    return ["helicopter"] if aircraft in helicopter_types else ["plane"]
+
+
+def _safe_fullmatch(pattern: str, text: str) -> bool:
+    """Return True if ``pattern`` fully matches ``text``, False on error or no match."""
+    try:
+        return bool(re.fullmatch(pattern, text))
+    except re.error:
+        return False
+
+
 def convert_presets(v5_path: Path, v6_path: Path) -> list[str]:
     """Convert v5 ``radioSettings.lua`` → v6 ``presets.yaml``.
 
@@ -479,12 +665,17 @@ def convert_presets(v5_path: Path, v6_path: Path) -> list[str]:
     - ``presets_assignments:`` — ``all`` → standard preset for planes and
       helicopters of each coalition.
 
-    .. note::
-        Per-aircraft overrides (warbirds, historic aircraft) are not extracted
-        from ``radioSettings``.  A warning is emitted listing items to review.
+    Per-aircraft and per-pattern assignments are extracted from ``radioSettings``:
+
+    - Exact ``type`` entries and ``typePattern`` regex entries are both written
+      as keys in ``presets_assignments`` (the v6 injector supports regex keys).
+    - Warbird aircraft are assigned ``{coalition}_warbird``.
+    - VHF-primary aircraft get a new ``{coalition}_vhf_primary`` preset.
+    - Fully hardcoded entries (no preset table references) emit a warning.
     """
     warnings: list[str] = []
     content = v5_path.read_text(encoding="utf-8")
+    helicopter_types = _load_helicopter_types()
 
     radios_collection: dict[str, Any] = {}
     presets_collection: dict[str, Any] = {}
@@ -554,11 +745,67 @@ def convert_presets(v5_path: Path, v6_path: Path) -> list[str]:
                 "title": f"{cap} coalition - warbird",
                 "radios": {"radio_1": warbird_radio_name},
             }
-            warnings.append(t("convert_v5.warn.warbird_preset", preset=warbird_preset_name, coalition=coalition))
 
     if not radios_collection:
         warnings.append(t("convert_v5.warn.no_preset_tables", filename=v5_path.name))
         return warnings
+
+    # Per-aircraft assignments extracted from radioSettings
+    for entry in _parse_radio_settings_entries(content):
+        if not entry.radio_sources or entry.coalition not in presets_assignments:
+            continue
+
+        radio1_source = entry.radio_sources.get(1)
+
+        # Aircraft whose radio [1] is UHF are covered by the "all: standard" fallback
+        if radio1_source == "uhf":
+            continue
+
+        if radio1_source == "warbird":
+            target_preset = f"{entry.coalition}_warbird"
+            if target_preset not in presets_collection.get(f"{entry.coalition}_presets", {}):
+                continue
+        elif radio1_source == "vhf":
+            target_preset = f"{entry.coalition}_vhf_primary"
+            vhf_radio_name = f"radio_vhf_{entry.coalition}"
+            if vhf_radio_name not in radios_collection.get(f"{entry.coalition}_radios", {}):
+                continue
+            if target_preset not in presets_collection.get(f"{entry.coalition}_presets", {}):
+                presets_collection.setdefault(f"{entry.coalition}_presets", {})[target_preset] = {
+                    "title": f"{entry.coalition.capitalize()} coalition - VHF primary",
+                    "radios": {"radio_1": vhf_radio_name},
+                }
+        elif radio1_source == "fm":
+            target_preset = f"{entry.coalition}_fm_primary"
+            fm_radio_name = f"radio_fm_{entry.coalition}"
+            if fm_radio_name not in radios_collection.get(f"{entry.coalition}_radios", {}):
+                continue
+            if target_preset not in presets_collection.get(f"{entry.coalition}_presets", {}):
+                presets_collection.setdefault(f"{entry.coalition}_presets", {})[target_preset] = {
+                    "title": f"{entry.coalition.capitalize()} coalition - FM primary",
+                    "radios": {"radio_1": fm_radio_name},
+                }
+        elif radio1_source is None:
+            # Fully hardcoded frequencies — no preset mapping possible
+            warnings.append(
+                t(
+                    "convert_v5.warn.radio_hardcoded_skip",
+                    aircraft=entry.aircraft,
+                    coalition=entry.coalition,
+                )
+            )
+            continue
+        else:
+            continue
+
+        for cat in _detect_category(entry.aircraft, entry.is_pattern, helicopter_types):
+            presets_assignments[entry.coalition].setdefault(cat, {})[entry.aircraft] = target_preset
+
+    # Emit warbird warnings after processing all entries (so we know which were assigned)
+    for coalition in ("blue", "red"):
+        warbird_preset_name = f"{coalition}_warbird"
+        if warbird_preset_name in presets_collection.get(f"{coalition}_presets", {}):
+            warnings.append(t("convert_v5.warn.warbird_preset", preset=warbird_preset_name, coalition=coalition))
 
     output: dict[str, Any] = {
         "radios_collection": radios_collection,

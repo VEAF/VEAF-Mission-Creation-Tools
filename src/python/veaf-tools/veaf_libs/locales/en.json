@@ -224,7 +224,8 @@
 
   "convert_v5.warning.init_commented": "line {line}: {var}.initialize() commented out (veaf-config.lua handles init)",
   "convert_v5.warning.no_converter": "No converter implemented for pipeline step '{step}'",
-  "convert_v5.warn.warbird_preset": "Warbird preset '{preset}' created for coalition '{coalition}'. Add aircraft-type entries to presets_assignments manually (e.g. Bf-109K-4, FW-190A-8, …).",
+  "convert_v5.warn.warbird_preset": "Warbird preset '{preset}' created for coalition '{coalition}'. Aircraft assignments (exact types and typePattern regex) have been auto-generated in presets_assignments — review and adjust if needed.",
+  "convert_v5.warn.radio_hardcoded_skip": "'{aircraft}' ({coalition}): uses hardcoded frequencies — no preset assignment generated, review manually.",
   "convert_v5.warn.no_preset_tables": "No standard preset tables (radioPresetsBlue/Red) found in {filename}",
   "convert_v5.warn.review_presets": "Review {filename}: only standard UHF/VHF/FM presets generated. Warbirds and other special aircraft may need manual presets_assignments entries.",
   "convert_v5.warn.parse_failed": "Could not parse {filename}: {exc}",

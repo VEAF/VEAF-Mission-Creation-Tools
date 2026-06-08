@@ -819,7 +819,7 @@ class V5Converter:
             "# Remove or set to 'info' before deploying to players.",
             f"# Doc: {_DOC_BASE}#debug-logging",
             "#",
-            f"global_log_level: {extracted_ll or 'debug'}",
+            f"global_log_level: {extracted_ll or 'info'}",
             "",
         ]
 

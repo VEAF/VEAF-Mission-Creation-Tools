@@ -1001,8 +1001,12 @@ function veafGrass.buildFarpUnits(farp, grassRunwayUnits, groupName, hiddenOnMFD
     name = farp.groupName
   end
   if ctld then
-    table.insert(ctld.builtFOBS, name)
-    table.insert(ctld.logisticUnits, name)
+    if ctld.builtFOBS then
+      table.insert(ctld.builtFOBS, name)
+    end
+    if ctld.logisticUnits then
+      table.insert(ctld.logisticUnits, name)
+    end
   end
 
   local farpUnitNameCounter = 1

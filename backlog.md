@@ -74,7 +74,7 @@
 | Lot FEAT-DCS-BRIDGE — Optional dcs-bridge.lua injection | ~1h30 | ✅ |
 | Lot FIX-MANDATORY-YAML — Générateurs YAML : ne pas émettre `enable:` sur les modules obligatoires | ~35 min | ✅ |
 | Lot CMT-YAML-DOCS — Commentaires et liens de doc dans les `mission.yaml` générés | ~45 min | ✅ |
-| Lot FIX-AIRCRAFT-DUPLICATE — Doublons de groupes d'aéronefs lors de l'injection en mode "add" | ~20 min | ✅ |
+| Lot FIX-AIRCRAFT-DUPLICATE — Duplicate aircraft groups in "add" injection mode | ~20 min | ✅ |
 | **Total** | **~178h45** | |
 
 *Initial calibration factor: 1.15 — recalculate after each completed lot.*

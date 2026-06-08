@@ -935,7 +935,9 @@ function veafRadio.initialize(skipHelpMenus, dontCreateMenus)
           veaf.loggers.get(veafRadio.Id):warn(string.format("Error while loading SRS configuration file [%s]", srsConfigPath))
         end
       else
-        veaf.loggers.get(veafRadio.Id):debug(string.format("SRS configuration file not found [%s] - SRS integration disabled", srsConfigPath))
+        veaf.loggers
+          .get(veafRadio.Id)
+          :debug(string.format("SRS configuration file not found [%s] - SRS integration disabled", srsConfigPath))
       end
     end
   end

@@ -72,9 +72,43 @@
 | Lot FIX-REMOVE-CONVERT — Suppression de la commande `convert` | ~20 min | ✅ |
 | Lot FIX-MISSIONCONFIG-REFS — Références à `missionConfig.lua` dans doc et code | ~30 min | ✅ |
 | Lot FEAT-DCS-BRIDGE — Optional dcs-bridge.lua injection | ~1h30 | ✅ |
-| **Total** | **~177h05** | |
+| Lot FIX-MANDATORY-YAML — Générateurs YAML : ne pas émettre `enable:` sur les modules obligatoires | ~35 min | ✅ |
+| Lot CMT-YAML-DOCS — Commentaires et liens de doc dans les `mission.yaml` générés | ~45 min | ✅ |
+| Lot FIX-AIRCRAFT-DUPLICATE — Doublons de groupes aéronefs lors de l'injection en mode "add" | ~20 min | ✅ |
+| **Total** | **~178h45** | |
 
 *Initial calibration factor: 1.15 — recalculate after each completed lot.*
+
+---
+
+## Lot FIX-MANDATORY-YAML — Générateurs YAML : ne pas émettre `enable:` sur les modules obligatoires
+
+**Goal**: Les trois générateurs de YAML (`v5_converter.py`, `lua_config_generator.py`, `config_migrator.py`) émettent `enable: true` pour les modules obligatoires (UNITS, TIME, CACHE, EVENTS, MARKERS, COMMANDS). Le build bloque sur ces entrées avec une erreur critique. Il faut qu'ils émettent `{}` à la place (comme le fichier `src/defaults/mission-folder/mission.yaml`).
+
+**Branch**: `fix/mandatory-yaml-enable` → PR → `develop-v6`
+
+| # | Ticket | Files | Type | Effort | Status |
+|---|--------|-------|------|--------|--------|
+| FMY-001 | Exposer `_MANDATORY_MODULES` en public dans `lua_config_generator.py` et émettre `{}` pour les modules obligatoires dans `generate_mission_yaml_template` | `veaf_libs/lua_config_generator.py` | fix | 10 min | ✅ |
+| FMY-002 | Dans `v5_converter.py` : importer `MANDATORY_MODULES`, ajouter COMMANDS à `_BASE_ALWAYS_ON`, émettre `{}` au lieu de `enable: true` pour les modules obligatoires | `mission_builder/v5_converter.py` | fix | 10 min | ✅ |
+| FMY-003 | Dans `config_migrator.py` : importer `MANDATORY_MODULES`, émettre `{}` au lieu de `enable: true` pour les modules obligatoires | `mission_builder/config_migrator.py` | fix | 10 min | ✅ |
+| FMY-004 | Mettre à jour les tests impactés et ajouter les cas manquants | `test/python/` | test | 5 min | ✅ |
+
+---
+
+## Lot CMT-YAML-DOCS — Commentaires et liens de doc dans les `mission.yaml` générés
+
+**Goal**: Les fichiers `mission.yaml` générés (par `generate-config`, `convert-v5` et `prepare`) doivent contenir des commentaires explicatifs et un lien vers le bon chapitre de la doc pour chaque section. Les URL actuelles pointent vers un fichier inexistant.
+
+**Branch**: `fix/mandatory-yaml-enable` (amendé sur la branche courante)
+
+| # | Ticket | Files | Type | Effort | Status |
+|---|--------|-------|------|--------|--------|
+| CMT-001 | Corriger l'URL de doc et ajouter les liens par section dans `en.json` | `veaf_libs/locales/en.json` | chore | 10 min | ✅ |
+| CMT-002 | Même corrections dans `fr.json` | `veaf_libs/locales/fr.json` | chore | 10 min | ✅ |
+| CMT-003 | Corriger l'URL et ajouter les liens par section dans `v5_converter.py` | `mission_builder/v5_converter.py` | chore | 10 min | ✅ |
+| CMT-004 | Corriger l'URL dans `src/defaults/mission-folder/mission.yaml` | `src/defaults/mission-folder/mission.yaml` | chore | 5 min | ✅ |
+| CMT-005 | Tests : vérifier la présence des liens dans les YAML générés | `test/python/` | test | 10 min | ✅ |
 
 ---
 

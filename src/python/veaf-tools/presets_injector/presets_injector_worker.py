@@ -2,6 +2,7 @@
 Worker module for the VEAF Presets Injector Package.
 """
 
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -14,6 +15,16 @@ from .presets_manager import PresetDefinition, PresetsManager
 from .radio_frequency_validator import ChannelFrequency, warn_invalid_channel_frequencies
 
 
+@dataclass
+class _PendingFreqWarning:
+    """Aggregated data for a deferred radio-frequency warning keyed by unit_type."""
+
+    group_names: list[str] = field(default_factory=list)
+    channels: list[ChannelFrequency] = field(default_factory=list)
+    coalition: str = "blue"
+    aircraft_category: str = "plane"
+
+
 class PresetsInjectorWorker(GroupInjectorWorker):
     """
     Worker class that provides presets injection features.
@@ -24,10 +35,7 @@ class PresetsInjectorWorker(GroupInjectorWorker):
         self.groups: dict[str, Group] = {}
         self.presets_manager: PresetsManager = PresetsManager()
         # Pending frequency warnings keyed by unit_type; aggregated before emission.
-        self._pending_freq_warnings: dict[
-            str,
-            dict[str, list[str] | list[ChannelFrequency] | str],
-        ] = {}
+        self._pending_freq_warnings: dict[str, _PendingFreqWarning] = {}
         super().__init__(config_file=presets_file, input_mission=input_mission, output_mission=output_mission)
 
     def load_config(self) -> Any:
@@ -76,15 +84,18 @@ class PresetsInjectorWorker(GroupInjectorWorker):
                 if isinstance(ch.freq, (int, float))
             ]
             # Collect instead of warning immediately; emit aggregated per unit_type later.
+            # Merge channel_freqs so subsequent groups with the same unit_type don't lose their invalids.
             key = group.unit_type
             if key not in self._pending_freq_warnings:
-                self._pending_freq_warnings[key] = {
-                    "group_names": [],
-                    "channels": channel_freqs,
-                    "coalition": group.coalition or "blue",
-                    "aircraft_category": group.aircraft_type or "plane",
-                }
-            self._pending_freq_warnings[key]["group_names"].append(group.name or "")  # type: ignore[union-attr]
+                self._pending_freq_warnings[key] = _PendingFreqWarning(
+                    coalition=group.coalition or "blue",
+                    aircraft_category=group.aircraft_type or "plane",
+                )
+            entry = self._pending_freq_warnings[key]
+            entry.group_names.append(group.name or "")
+            for ch in channel_freqs:
+                if ch not in entry.channels:
+                    entry.channels.append(ch)
 
         return nb_units_processed
 
@@ -112,11 +123,11 @@ class PresetsInjectorWorker(GroupInjectorWorker):
         # Emit one warning per unit_type, listing all affected groups together.
         for unit_type, entry in self._pending_freq_warnings.items():
             warn_invalid_channel_frequencies(
-                group_names=entry["group_names"],  # type: ignore[arg-type]
+                group_names=entry.group_names,
                 unit_type=unit_type,
-                channels=entry["channels"],  # type: ignore[arg-type]
-                coalition=entry["coalition"],  # type: ignore[arg-type]
-                aircraft_category=entry["aircraft_category"],  # type: ignore[arg-type]
+                channels=entry.channels,
+                coalition=entry.coalition,
+                aircraft_category=entry.aircraft_category,
             )
         self._pending_freq_warnings.clear()
 

@@ -9,7 +9,6 @@ from .mission_builder_README import MissionBuilderREADME
 from .mission_builder_worker import MissionBuilderWorker
 from .v5_converter import (
     PIPELINE_CANDIDATES,
-    V5_MIGRATION_NOTES,
     V5_PIPELINE_CANDIDATES,
     V6_PIPELINE_CANDIDATES,
     ConversionReport,
@@ -29,6 +28,5 @@ __all__ = [
     "PIPELINE_CANDIDATES",
     "V5_PIPELINE_CANDIDATES",
     "V6_PIPELINE_CANDIDATES",
-    "V5_MIGRATION_NOTES",
     "convert_pipeline_file",
 ]

@@ -29,6 +29,7 @@ from mission_builder.v5_pipeline_converters import (
     convert_waypoints,
     convert_weather,
 )
+from veaf_libs.i18n import t
 
 
 class TestExtractLuaTableText(unittest.TestCase):
@@ -286,7 +287,7 @@ class TestConvertPresets(unittest.TestCase):
         v5 = self._write_lua("x = 1")
         v6 = self.tmp / "presets.yaml"
         warns = convert_presets(v5, v6)
-        self.assertTrue(any("No standard preset" in w for w in warns))
+        self.assertTrue(any(t("convert_v5.warn.no_preset_tables", filename=v5.name) in w for w in warns))
         self.assertFalse(v6.exists())
 
     def test_blue_preset_generated(self) -> None:
@@ -316,14 +317,14 @@ class TestConvertPresets(unittest.TestCase):
         v5 = self._write_lua(lua)
         v6 = self.tmp / "presets.yaml"
         warns = convert_presets(v5, v6)
-        self.assertTrue(any("Warbird" in w for w in warns))
+        self.assertTrue(any("blue_warbird" in w for w in warns))
 
     def test_review_warning_always_appended(self) -> None:
         lua = 'radioPresetsBlue = { ["##RADIO1_01##"] = 251.0 }'
         v5 = self._write_lua(lua)
         v6 = self.tmp / "presets.yaml"
         warns = convert_presets(v5, v6)
-        self.assertTrue(any("Review" in w for w in warns))
+        self.assertTrue(any(v6.name in w for w in warns))
 
 
 class TestConvertAircraftGroups(unittest.TestCase):
@@ -396,7 +397,7 @@ settings = {
         v5 = self._write_settings(self._SETTINGS_LUA)
         v6 = self.tmp / "templates.yaml"
         warns = convert_aircraft_groups(v5, v6)
-        self.assertTrue(any("groupId" in w or "Review" in w for w in warns))
+        self.assertTrue(any(v5.name in w for w in warns))
 
     def test_invalid_lua_returns_warning(self) -> None:
         p = self.tmp / "bad.lua"
@@ -431,7 +432,7 @@ class TestConvertPipelineFileDispatch(unittest.TestCase):
             v5.write_text("x = 1", encoding="utf-8")
             v6 = base / "presets.yaml"
             warns = convert_pipeline_file("presets", v5, v6)
-            self.assertTrue(any("No standard preset" in w for w in warns))
+            self.assertTrue(any(v5.name in w for w in warns))
 
 
 if __name__ == "__main__":

@@ -117,7 +117,7 @@ def convert_waypoints(v5_path: Path, v6_path: Path) -> list[str]:
     settings_data = _parse_lua_table(content, "settings")
 
     if waypoints_data is None and settings_data is None:
-        warnings.append(f"Could not parse {v5_path.name}: no 'waypoints' or 'settings' tables found")
+        warnings.append(t("convert_v5.warn.parse_failed", filename=v5_path.name, exc="no 'waypoints' or 'settings' tables found"))
         return warnings
 
     # ── Waypoints ─────────────────────────────────────────────────────────────
@@ -266,7 +266,7 @@ def _parse_dcs_weather_lua(lua_path: Path) -> tuple[dict[str, Any], list[str]]:
         wd: dict[str, Any] = _wd_raw if isinstance(_wd_raw, dict) else {}
 
     except Exception as exc:
-        warnings.append(f"Could not parse {lua_path.name}: {exc}")
+        warnings.append(t("convert_v5.warn.parse_failed", filename=lua_path.name, exc=exc))
         return {}, warnings
 
     params: dict[str, Any] = {}
@@ -323,7 +323,7 @@ def convert_weather(
         try:
             v5_data: dict[str, Any] = json.loads(v5_path.read_text(encoding="utf-8"))
         except Exception as exc:
-            warnings.append(f"Could not parse {v5_path.name}: {exc}")
+            warnings.append(t("convert_v5.warn.parse_failed", filename=v5_path.name, exc=exc))
             return warnings
     else:
         # .lua format (older v5 missions) — delegate to LuaToYamlConverter
@@ -332,7 +332,7 @@ def convert_weather(
         lua_content = v5_path.read_text(encoding="utf-8")
         v5_data = LuaToYamlConverter._parse_lua_config(lua_content) or {}
         if not v5_data:
-            warnings.append(f"Could not parse {v5_path.name} as Lua weather config")
+            warnings.append(t("convert_v5.warn.parse_failed", filename=v5_path.name, exc="not a valid Lua weather config"))
             return warnings
 
     output: dict[str, Any] = {}
@@ -550,14 +550,10 @@ def convert_presets(v5_path: Path, v6_path: Path) -> list[str]:
                 "title": f"{cap} coalition - warbird",
                 "radios": {"radio_1": warbird_radio_name},
             }
-            warnings.append(
-                f"Warbird preset '{warbird_preset_name}' created for coalition '{coalition}'. "
-                "Add aircraft-type entries to presets_assignments manually "
-                "(e.g. Bf-109K-4, FW-190A-8, …)."
-            )
+            warnings.append(t("convert_v5.warn.warbird_preset", preset=warbird_preset_name, coalition=coalition))
 
     if not radios_collection:
-        warnings.append(f"No standard preset tables (radioPresetsBlue/Red) found in {v5_path.name}")
+        warnings.append(t("convert_v5.warn.no_preset_tables", filename=v5_path.name))
         return warnings
 
     output: dict[str, Any] = {
@@ -567,10 +563,7 @@ def convert_presets(v5_path: Path, v6_path: Path) -> list[str]:
     }
     _yaml_dump(output, v6_path)
     logger.info(t("v5convert.presets_done", source=v5_path.name, target=v6_path.name))
-    warnings.append(
-        f"Review {v6_path.name}: only standard UHF/VHF/FM presets generated. "
-        "Warbirds and other special aircraft may need manual presets_assignments entries."
-    )
+    warnings.append(t("convert_v5.warn.review_presets", filename=v6_path.name))
     return warnings
 
 
@@ -602,11 +595,11 @@ def convert_aircraft_groups(v5_path: Path, v6_path: Path) -> list[str]:
         _raw = luadata.unserialize(content, all_is_dict=True) or {}
         raw: dict[str, Any] = _raw if isinstance(_raw, dict) else {}
     except Exception as exc:
-        warnings.append(f"Could not parse {v5_path.name}: {exc}")
+        warnings.append(t("convert_v5.warn.parse_failed", filename=v5_path.name, exc=exc))
         return warnings
 
     if not isinstance(raw, dict):
-        warnings.append(f"{v5_path.name}: unexpected parse result — no output written")
+        warnings.append(t("convert_v5.warn.unexpected_parse", filename=v5_path.name))
         return warnings
 
     # luadata.unserialize returns the inner value, so raw == contents of `settings`
@@ -637,11 +630,7 @@ def convert_aircraft_groups(v5_path: Path, v6_path: Path) -> list[str]:
 
     _yaml_dump(output, v6_path)
     logger.info(t("v5convert.aircraft_done", source=v5_path.name, target=v6_path.name))
-    warnings.append(
-        f"Aircraft groups structurally converted from {v5_path.name}. "
-        "Review the generated YAML: DCS group/unit IDs (groupId, unitId) "
-        "may conflict if injected into a different mission — update them as needed."
-    )
+    warnings.append(t("convert_v5.warn.aircraft_review", filename=v5_path.name))
     return warnings
 
 

@@ -622,9 +622,13 @@ def convert_presets(v5_path: Path, v6_path: Path) -> list[str]:
     - ``presets_assignments:`` — ``all`` → standard preset for planes and
       helicopters of each coalition.
 
-    .. note::
-        Per-aircraft overrides (warbirds, historic aircraft) are not extracted
-        from ``radioSettings``.  A warning is emitted listing items to review.
+    Per-aircraft and per-pattern assignments are extracted from ``radioSettings``:
+
+    - Exact ``type`` entries and ``typePattern`` regex entries are both written
+      as keys in ``presets_assignments`` (the v6 injector supports regex keys).
+    - Warbird aircraft are assigned ``{coalition}_warbird``.
+    - VHF-primary aircraft get a new ``{coalition}_vhf_primary`` preset.
+    - Fully hardcoded entries (no preset table references) emit a warning.
     """
     warnings: list[str] = []
     content = v5_path.read_text(encoding="utf-8")
@@ -711,24 +715,6 @@ def convert_presets(v5_path: Path, v6_path: Path) -> list[str]:
 
         # Aircraft whose radio [1] is UHF are covered by the "all: standard" fallback
         if radio1_source == "uhf":
-            continue
-
-        if entry.is_pattern:
-            # typePattern entries cannot be represented as exact keys in presets_assignments
-            if radio1_source in ("warbird", "vhf"):
-                recommended = (
-                    f"{entry.coalition}_warbird"
-                    if radio1_source == "warbird"
-                    else f"{entry.coalition}_vhf_primary"
-                )
-                warnings.append(
-                    t(
-                        "convert_v5.warn.radio_type_pattern_skip",
-                        aircraft=entry.aircraft,
-                        coalition=entry.coalition,
-                        preset=recommended,
-                    )
-                )
             continue
 
         if radio1_source == "warbird":

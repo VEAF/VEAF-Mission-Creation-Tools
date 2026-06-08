@@ -553,7 +553,7 @@ radioSettings = {
         # F-16C_50 starts with UHF radio → covered by "all", no explicit entry needed
         self.assertNotIn("F-16C_50", assignments)
 
-    def test_type_pattern_entry_emits_warning(self) -> None:
+    def test_type_pattern_entry_assigned(self) -> None:
         lua = self._lua("""
 radioSettings = {
     ["blue FW190s"] = { typePattern = "FW[-]190.*", coalition = "blue", country = nil,
@@ -563,8 +563,10 @@ radioSettings = {
 """)
         v5 = self._write_lua(lua)
         v6 = self.tmp / "presets.yaml"
-        warns = convert_presets(v5, v6)
-        self.assertTrue(any("FW[-]190.*" in w for w in warns))
+        convert_presets(v5, v6)
+        data = yaml.safe_load(v6.read_text())
+        assignments = data["presets_assignments"]["blue"]["plane"]
+        self.assertEqual(assignments.get("FW[-]190.*"), "blue_warbird")
 
     def test_hardcoded_entry_emits_warning(self) -> None:
         lua = self._lua("""

@@ -358,6 +358,11 @@ class BuildAndReleaseWorker:
                 extra: list[tuple[Path, str]] = [(locales_dir, "veaf_libs/locales")]
                 if modules_json_path:
                     extra.append((modules_json_path, "."))
+                radio_specs_yaml = (
+                    self.src_dir / "python" / "veaf-tools" / "presets_injector" / "data" / "dcs-radio-specs.yaml"
+                )
+                if radio_specs_yaml.exists():
+                    extra.append((radio_specs_yaml, "presets_injector/data"))
                 self._build_pyinstaller_executable(
                     "veaf-tools",
                     self.src_dir / "python" / "veaf-tools" / "veaf-tools.py",

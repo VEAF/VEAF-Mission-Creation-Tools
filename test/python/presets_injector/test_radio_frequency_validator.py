@@ -195,20 +195,20 @@ class TestWarnInvalidChannelFrequencies(unittest.TestCase):
     def test_warns_with_presets_yaml_path(self):
         channels = [_make_ch(125.0, 1), _make_ch(284.0, 2, "TACTICAL UNIFORM")]
         with patch("presets_injector.radio_frequency_validator.logger") as mock_logger:
-            warn_invalid_channel_frequencies("Bassel MiG-19 #1", "MiG-19P", channels)
+            warn_invalid_channel_frequencies("Bassel MiG-19 #1", "MiG-19P", channels, "blue", "plane")
             mock_logger.warning.assert_called_once()
             msg = mock_logger.warning.call_args[0][0]
-            # frequency and aircraft
             self.assertIn("284.0 MHz", msg)
             self.assertIn("MiG-19P", msg)
-            # presets.yaml navigation path (radio_key and collection, not DCS hardware name)
             self.assertIn("radio_uhf_blue", msg)
             self.assertIn("blue_radios", msg)
             self.assertIn("channel 2", msg)
             self.assertIn("TACTICAL UNIFORM", msg)
-            # valid ranges and fix hint
             self.assertIn("100.0–150.0 MHz", msg)
-            self.assertIn("presets.yaml", msg)
+            # suggests adding a specific preset, not changing the global frequency
+            self.assertIn("presets_assignments", msg)
+            self.assertIn("blue", msg)
+            self.assertIn("plane", msg)
 
     def test_no_warning_when_all_valid(self):
         with patch("presets_injector.radio_frequency_validator.logger") as mock_logger:
@@ -220,11 +220,15 @@ class TestWarnInvalidChannelFrequencies(unittest.TestCase):
             warn_invalid_channel_frequencies("Some Group", "Unknown-Aircraft", [_make_ch(284.0)])
             mock_logger.warning.assert_not_called()
 
-    def test_multiple_invalid_channels_each_warn(self):
+    def test_multiple_invalid_channels_single_warning(self):
+        # All invalid channels for the same group must be reported in one warning, not one per channel.
         channels = [_make_ch(284.0, 1), _make_ch(300.0, 2)]
         with patch("presets_injector.radio_frequency_validator.logger") as mock_logger:
             warn_invalid_channel_frequencies("Some Group", "MiG-19P", channels)
-            self.assertEqual(mock_logger.warning.call_count, 2)
+            self.assertEqual(mock_logger.warning.call_count, 1)
+            msg = mock_logger.warning.call_args[0][0]
+            self.assertIn("284.0 MHz", msg)
+            self.assertIn("300.0 MHz", msg)
 
 
 if __name__ == "__main__":

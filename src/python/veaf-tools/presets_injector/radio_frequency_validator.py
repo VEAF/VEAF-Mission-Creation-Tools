@@ -124,33 +124,49 @@ def warn_invalid_channel_frequencies(
     group_name: str,
     unit_type: str,
     channels: list[ChannelFrequency],
+    coalition: str = "blue",
+    aircraft_category: str = "plane",
 ) -> None:
     """Log an actionable warning for each channel whose frequency is invalid for unit_type.
 
     Args:
         group_name: Name of the DCS group.
-        unit_type: DCS unit type string.
+        unit_type: DCS unit type string (e.g. "MiG-19P").
         channels: List of ChannelFrequency carrying radio name, channel number, and frequency.
+        coalition: Coalition of the group ("blue", "red", …).
+        aircraft_category: DCS aircraft category ("plane" or "helicopter").
     """
     valid_ranges = get_valid_ranges(unit_type)
     if valid_ranges is None:
         return
 
+    invalid_channels = [ch for ch in channels if not any(r.contains(ch.freq_mhz) for r in valid_ranges)]
+    if not invalid_channels:
+        return
+
     ranges_str = _format_ranges(valid_ranges)
-    for ch in channels:
-        if not any(r.contains(ch.freq_mhz) for r in valid_ranges):
-            yaml_path = (
-                f"radios_collection > {ch.radio_collection} > {ch.radio_key} > channels > {ch.channel}"
-            )
-            channel_label = f'"{ch.channel_title}" ' if ch.channel_title else ""
-            logger.warning(
-                f"Group '{group_name}' ({unit_type}): "
-                f"radio '{ch.radio_title}', channel {ch.channel} {channel_label}"
-                f"— {ch.freq_mhz} MHz is not valid for this aircraft.\n"
-                f"  Valid ranges: {ranges_str}\n"
-                f"  Fix in presets.yaml: {yaml_path}\n"
-                f"    change freq: {ch.freq_mhz} to a value within one of the ranges above."
-            )
+    # Emit one warning per group (not per channel) to avoid flooding the log.
+    # List all invalid channels in a single message.
+    channel_lines = "\n".join(
+        f"    - channel {ch.channel}"
+        + (f' "{ch.channel_title}"' if ch.channel_title else "")
+        + f": {ch.freq_mhz} MHz"
+        f"  (in radios_collection > {ch.radio_collection} > {ch.radio_key})"
+        for ch in invalid_channels
+    )
+    logger.warning(
+        f"Group '{group_name}' ({unit_type}): the following preset frequencies are not valid"
+        f" for this aircraft and will be rejected by DCS at mission load:\n"
+        f"{channel_lines}\n"
+        f"  Valid ranges for {unit_type}: {ranges_str}\n"
+        f"  These frequencies are probably correct for other aircraft — do NOT change them globally.\n"
+        f"  Instead, add a specific preset for {unit_type} in presets.yaml:\n"
+        f"    presets_assignments:\n"
+        f"      {coalition}:\n"
+        f"        {aircraft_category}:\n"
+        f"          {unit_type}: <your-{unit_type.lower().replace(' ', '-')}-preset>\n"
+        f"  and define that preset with frequencies within: {ranges_str}"
+    )
 
 
 def warn_invalid_frequencies(group_name: str, unit_type: str, freqs_mhz: list[float]) -> None:

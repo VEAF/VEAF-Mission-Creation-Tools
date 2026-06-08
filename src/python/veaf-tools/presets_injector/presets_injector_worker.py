@@ -73,6 +73,8 @@ class PresetsInjectorWorker(GroupInjectorWorker):
                 group_name=group.name or "",
                 unit_type=group.unit_type,
                 channels=channel_freqs,
+                coalition=group.coalition or "blue",
+                aircraft_category=group.aircraft_type or "plane",
             )
 
         return nb_units_processed

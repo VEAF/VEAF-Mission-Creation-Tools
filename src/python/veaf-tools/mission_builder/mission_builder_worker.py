@@ -125,7 +125,9 @@ class MissionBuilderWorker(BaseWorker):
         if effective_scripts_path_str:
             self.scripts_path: Path | None = resolve_path(path=effective_scripts_path_str, should_exist=True)
             if not self.scripts_path.exists():
-                logger.error(t("builder.scripts_folder_missing", path=self.scripts_path), exception_type=FileNotFoundError)
+                logger.error(
+                    t("builder.scripts_folder_missing", path=self.scripts_path), exception_type=FileNotFoundError
+                )
         else:
             self.scripts_path = None
 

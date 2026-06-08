@@ -23,6 +23,7 @@
 |-----|----------|--------|
 | Phase 0 — Restart | ~3h | [archived](backlog-archive.md) |
 | Phase 0b — GitHub cleanup | ~25 min | ⬜ |
+| Lot RADIO-SPECS — DCS radio frequency validation | ~3h | ⬜ |
 | Lot 1 — INFRA | ~4h15 | [archived](backlog-archive.md) |
 | Lot 2 — CLI | ~2h35 | [archived](backlog-archive.md) |
 | Lot 3 — TUI | ~2h20 | [archived](backlog-archive.md) |
@@ -161,6 +162,24 @@ Direct commits on `develop-v6` (no feature branch needed — no code change).
 | REL-004 | Tag `v6.1.0` + publish GitHub (`veaf-build publish`) | chore | 30 min | REL-003 | ⬜ |
 
 **Estimated total: ~85 min (~1h30)**
+
+---
+
+## Lot RADIO-SPECS — DCS radio frequency validation in inject-presets
+
+**Goal**: Extract DCS aircraft radio frequency specs from `dcs-lua-datamine`, bundle them as a YAML data file, validate preset frequencies at inject time, and publish a human-readable reference doc.
+**Branch**: `feature/radio-specs-validation`
+
+| # | Ticket | Type | Effort | Status |
+|---|--------|------|--------|--------|
+| RADIO-001 | Extraction script: fetch `panelRadio` from dcs-lua-datamine and generate `dcs-radio-specs.yaml` | feat | 45 min | ⬜ |
+| RADIO-002 | Bundle `dcs-radio-specs.yaml` as package data; load via `importlib.resources` | feat | 15 min | ⬜ |
+| RADIO-003 | `RadioFrequencyValidator`: validate preset frequencies against aircraft specs, warn on mismatch | feat | 45 min | ⬜ |
+| RADIO-004 | Integrate validator into `PresetsInjectorWorker.process_groups()` | feat | 20 min | ⬜ |
+| RADIO-005 | Generate `doc/mission-maker/dcs-radio-specs.md` (human-readable Markdown table) from the YAML | feat | 30 min | ⬜ |
+| RADIO-006 | Unit tests for validator (valid/invalid frequency, unknown aircraft, partial ranges) | feat | 45 min | ⬜ |
+
+**Estimated total: ~3h**
 
 ---
 

@@ -19,6 +19,11 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `mission.yaml` (all generators): each section now includes a `# Doc:` link to the relevant chapter of the Mission Maker Guide; section headers and descriptions improved (security, external modules, mandatory modules explanation)
 
 ### Added
+- `inject-presets`: DCS aircraft radio frequency validation — preset frequencies are now checked against each aircraft's hardware specs at build time; invalid frequencies (e.g. 284 MHz on a MiG-19P or Gazelle M) emit a warning before DCS rejects them at mission load
+- `doc/mission-maker/dcs-radio-specs.md`: human-readable reference table of valid radio frequency ranges for all 85 DCS player-flyable aircraft, sourced from [dcs-lua-datamine](https://github.com/Quaggles/dcs-lua-datamine)
+- `scripts/extract_dcs_radio_specs.py`: standalone utility to regenerate `dcs-radio-specs.yaml` and the reference doc after a DCS patch
+
+### Added
 - `mission.yaml`: new `dcs_bridge` section to optionally inject `dcs-bridge.lua` as the first DO SCRIPT FILE trigger in the mission; `lua_path` is optional — when absent, the file is downloaded automatically from GitHub (`VEAF/VEAF-dcs-bridge`)
 
 ---

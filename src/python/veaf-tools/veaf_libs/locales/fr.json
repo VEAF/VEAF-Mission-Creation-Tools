@@ -321,6 +321,19 @@
   "cmd.inject_presets.opt.validate_report": "Enregistre un rapport Markdown de validation des fréquences dans ce fichier (signale TOUS les types d'appareils, pas seulement les critiques DCS).",
   "presets_injector.validation_report.written": "Rapport de validation écrit dans {path} ({count} problème(s) trouvé(s)).",
 
+  "presets_injector.report.title": "# Rapport de validation des fréquences radio",
+  "presets_injector.report.generated": "Généré le : {date}",
+  "presets_injector.report.presets_file": "Fichier presets : `{path}`",
+  "presets_injector.report.mission": "Mission : `{path}`",
+  "presets_injector.report.groups": "Groupes : {groups}",
+  "presets_injector.report.valid_ranges": "Plages valides : {ranges}",
+  "presets_injector.report.table_header": "| Canal | Titre | Fréquence (MHz) | Collection | Radio |",
+  "presets_injector.report.silence_hint": "**Pour masquer :** ajouter dans `presets.yaml` :",
+  "presets_injector.report.section_critical": "## \u26a0\ufe0f Critique \u2014 DCS rejettera ces fréquences au chargement de la mission",
+  "presets_injector.report.section_info": "## \u2139\ufe0f Informatif \u2014 DCS stocke ces fréquences mais les ignore",
+  "presets_injector.report.affected_count": "*{count} type(s) d'appareil concerné(s).*",
+  "presets_injector.report.all_valid": "## \u2705 Toutes les fréquences de préréglage sont valides pour chaque type d'appareil.",
+
   "cmd.prepare.opt.force": "Ne pas demander de confirmation avant de remplacer les fichiers existants (équivalent à appuyer sur A).",
 
   "cmd.extract_waypoints.opt.interactive": "Mode interactif : sélectionner les groupes à extraire.",

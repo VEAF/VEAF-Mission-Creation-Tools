@@ -199,11 +199,11 @@ class PresetsInjectorWorker(GroupInjectorWorker):
         info_issues = [i for i in issues if not i.strict]
 
         lines: list[str] = [
-            "# Radio Presets Frequency Validation Report",
+            t("presets_injector.report.title"),
             "",
-            f"Generated: {date.today().isoformat()}  ",
-            f"Presets file: `{self.presets_file}`  ",
-            f"Mission: `{self.input_mission}`",
+            f"{t('presets_injector.report.generated', date=date.today().isoformat())}  ",
+            f"{t('presets_injector.report.presets_file', path=self.presets_file)}  ",
+            t("presets_injector.report.mission", path=self.input_mission),
             "",
         ]
 
@@ -212,17 +212,17 @@ class PresetsInjectorWorker(GroupInjectorWorker):
             ranges_str = ", ".join(f"{r.min_mhz}–{r.max_mhz} MHz ({r.modulation})" for r in issue.valid_ranges)
             block = [
                 f"### {issue.unit_type}",
-                f"Groups: {groups_str}  ",
-                f"Valid ranges: {ranges_str}",
+                f"{t('presets_injector.report.groups', groups=groups_str)}  ",
+                t("presets_injector.report.valid_ranges", ranges=ranges_str),
                 "",
-                "| Channel | Title | Frequency (MHz) | Collection | Radio |",
+                t("presets_injector.report.table_header"),
                 "|---------|-------|-----------------|------------|-------|",
             ]
             for ch in issue.invalid_channels:
                 block.append(f"| {ch.channel} | {ch.channel_title or '—'} | {ch.freq_mhz} | {ch.radio_collection} | {ch.radio_key} |")
             block += [
                 "",
-                "**To silence:** add to `presets.yaml`:",
+                t("presets_injector.report.silence_hint"),
                 "```yaml",
                 "presets_assignments:",
                 f"  {issue.coalition}:",
@@ -235,9 +235,9 @@ class PresetsInjectorWorker(GroupInjectorWorker):
 
         if strict_issues:
             lines += [
-                "## ⚠️ Critical — DCS will reject these at mission load",
+                t("presets_injector.report.section_critical"),
                 "",
-                f"*{len(strict_issues)} aircraft type(s) affected.*",
+                t("presets_injector.report.affected_count", count=len(strict_issues)),
                 "",
             ]
             for issue in strict_issues:
@@ -245,16 +245,16 @@ class PresetsInjectorWorker(GroupInjectorWorker):
 
         if info_issues:
             lines += [
-                "## ℹ️ Informational — DCS stores but ignores these frequencies",
+                t("presets_injector.report.section_info"),
                 "",
-                f"*{len(info_issues)} aircraft type(s) affected.*",
+                t("presets_injector.report.affected_count", count=len(info_issues)),
                 "",
             ]
             for issue in info_issues:
                 lines += _render_issue(issue)
 
         if not issues:
-            lines += ["## ✅ All preset frequencies are valid for every aircraft type.", ""]
+            lines += [t("presets_injector.report.all_valid"), ""]
 
         output_path.write_text("\n".join(lines), encoding="utf-8")
         logger.info(t("presets_injector.validation_report.written", path=output_path, count=len(issues)))

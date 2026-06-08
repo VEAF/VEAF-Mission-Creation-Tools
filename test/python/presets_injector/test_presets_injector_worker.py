@@ -220,6 +220,10 @@ class TestProcessGroups(unittest.TestCase):
 class TestGenerateValidationReport(unittest.TestCase):
     """Tests for collect_freq_issues() and generate_validation_report()."""
 
+    def setUp(self) -> None:
+        from veaf_libs.i18n import set_language
+        set_language("en")
+
     def _make_worker_with_issues(self) -> PresetsInjectorWorker:
         """Return a worker with _freq_issues pre-loaded (one strict, one non-strict)."""
         from presets_injector.radio_frequency_validator import ChannelFrequency, FrequencyIssue, FrequencyRange

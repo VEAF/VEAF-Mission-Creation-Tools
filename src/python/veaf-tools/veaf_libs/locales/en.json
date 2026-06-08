@@ -319,6 +319,19 @@
   "cmd.inject_presets.opt.validate_report": "Write a Markdown validation report of all frequency issues to this file (reports ALL aircraft types, not only DCS-critical ones).",
   "presets_injector.validation_report.written": "Validation report written to {path} ({count} issue(s) found).",
 
+  "presets_injector.report.title": "# Radio Presets Frequency Validation Report",
+  "presets_injector.report.generated": "Generated: {date}",
+  "presets_injector.report.presets_file": "Presets file: `{path}`",
+  "presets_injector.report.mission": "Mission: `{path}`",
+  "presets_injector.report.groups": "Groups: {groups}",
+  "presets_injector.report.valid_ranges": "Valid ranges: {ranges}",
+  "presets_injector.report.table_header": "| Channel | Title | Frequency (MHz) | Collection | Radio |",
+  "presets_injector.report.silence_hint": "**To silence:** add to `presets.yaml`:",
+  "presets_injector.report.section_critical": "## \u26a0\ufe0f Critical \u2014 DCS will reject these at mission load",
+  "presets_injector.report.section_info": "## \u2139\ufe0f Informational \u2014 DCS stores but ignores these frequencies",
+  "presets_injector.report.affected_count": "*{count} aircraft type(s) affected.*",
+  "presets_injector.report.all_valid": "## \u2705 All preset frequencies are valid for every aircraft type.",
+
   "cmd.prepare.opt.force": "Do not ask before replacing existing files (same as pressing A).",
 
   "cmd.extract_waypoints.opt.interactive": "Interactive mode: select which groups to extract.",

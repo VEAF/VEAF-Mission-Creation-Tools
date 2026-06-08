@@ -122,15 +122,25 @@ class PresetsInjectorWorker(GroupInjectorWorker):
             logger.info(t("presets_injector.injected", count=nb_units_processed))
 
         # Emit one warning per unit_type, listing all affected groups together.
-        for unit_type, entry in self._pending_freq_warnings.items():
-            warn_invalid_channel_frequencies(
-                group_names=entry.group_names,
-                unit_type=unit_type,
-                channels=entry.channels,
-                coalition=entry.coalition,
-                aircraft_category=entry.aircraft_category,
-            )
-        self._pending_freq_warnings.clear()
+        if self._pending_freq_warnings:
+            for unit_type, entry in self._pending_freq_warnings.items():
+                warn_invalid_channel_frequencies(
+                    group_names=entry.group_names,
+                    unit_type=unit_type,
+                    channels=entry.channels,
+                    coalition=entry.coalition,
+                    aircraft_category=entry.aircraft_category,
+                )
+            yaml_lines = []
+            for unit_type, entry in self._pending_freq_warnings.items():
+                yaml_lines.extend([
+                    f"      {entry.coalition}:",
+                    f"        {entry.aircraft_category}:",
+                    f"          {unit_type}: none",
+                ])
+            yaml_block = "\n".join(yaml_lines)
+            logger.warning(t("presets_injector.freq_warn.disable_tip", yaml_block=yaml_block))
+            self._pending_freq_warnings.clear()
 
     def write_mission(self, silent: bool = False) -> None:
         """Write the mission file, including kneeboard pages if generated."""

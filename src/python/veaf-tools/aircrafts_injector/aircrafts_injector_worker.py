@@ -674,26 +674,28 @@ class AircraftGroupsInjectorWorker(BaseWorker):
                         # Process each group
                         for group_name, group_data in country_groups.items():
                             try:
-                                # Check if group already exists (for replace mode)
+                                # Check if group already exists
                                 existing_idx = None
-                                if mode == "replace":
-                                    for idx, existing_group in enumerate(groups_list):
-                                        if existing_group.get("name") == group_name:
-                                            existing_idx = idx
-                                            break
+                                for idx, existing_group in enumerate(groups_list):
+                                    if existing_group.get("name") == group_name:
+                                        existing_idx = idx
+                                        break
 
-                                # Make a deep copy to avoid modifying the original
-                                group_copy = copy.deepcopy(group_data)
-
-                                if existing_idx is not None:
+                                if existing_idx is not None and mode == "replace":
                                     # Replace existing group
-                                    groups_list[existing_idx] = group_copy
+                                    groups_list[existing_idx] = copy.deepcopy(group_data)
                                     log_msg = (
                                         f"Replaced group {group_name} in {coalition_name}/{country_name}/{category}"
                                     )
+                                elif existing_idx is not None:
+                                    # Skip: group already exists and mode is not replace
+                                    log_msg = f"Skipped group {group_name} (already exists in {coalition_name}/{country_name}/{category})"
+                                    self.injection_log.append(log_msg)
+                                    logger.debug(log_msg)
+                                    continue
                                 else:
                                     # Add new group
-                                    groups_list.append(group_copy)
+                                    groups_list.append(copy.deepcopy(group_data))
                                     log_msg = (
                                         f"Injected group {group_name} into {coalition_name}/{country_name}/{category}"
                                     )

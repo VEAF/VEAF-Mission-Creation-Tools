@@ -10,6 +10,7 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Fixed
+- `aircraft-groups inject` (mode `add`): skip groups whose name already exists in the mission instead of creating duplicates — prevents DCS crash on FA-18C/F-16C units missing `datalinks` after a v5→v6 conversion
 - `convert-v5`, `generate-config`, `migrate-config`: mandatory Lua modules (UNITS, TIME, CACHE, EVENTS, MARKERS, COMMANDS) are now emitted as `{}` in `mission.yaml` instead of `enable: true`, which would cause a build error
 - `convert-v5`: `_BASE_ALWAYS_ON` now includes COMMANDS (previously missing) and is derived from the canonical `MANDATORY_MODULES` set
 - `mission.yaml` (all generators and the default template): fixed broken doc URL (`doc/MISSION_MAKER_GUIDE.md` → `doc/mission-maker/GUIDE.en.md`)

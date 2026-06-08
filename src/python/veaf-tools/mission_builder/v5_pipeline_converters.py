@@ -14,8 +14,10 @@ convert_pipeline_file(step, v5_path, v6_path, *, icao_callback=None)
 
 from __future__ import annotations
 
+import importlib.resources
 import json
 import re
+import sys
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -611,6 +613,47 @@ def _parse_custom_preset_table(content: str, table_name: str) -> list[float]:
     return [v for _, v in sorted(freq_by_key.items())]
 
 
+def _load_helicopter_types() -> set[str]:
+    """Return the set of DCS unit type names classified as helicopters in dcs-radio-specs.yaml."""
+    bundle_path = Path(getattr(sys, "_MEIPASS", "")) / "presets_injector" / "data" / "dcs-radio-specs.yaml"
+    if bundle_path.exists():
+        raw = bundle_path.read_text(encoding="utf-8")
+    else:
+        pkg = importlib.resources.files("presets_injector.data")
+        raw = (pkg / "dcs-radio-specs.yaml").read_text(encoding="utf-8")  # type: ignore[arg-type]
+    specs: dict[str, Any] = yaml.safe_load(raw) or {}
+    return {name for name, info in specs.items() if isinstance(info, dict) and info.get("category") == "helicopter"}
+
+
+def _detect_category(aircraft: str, is_pattern: bool, helicopter_types: set[str]) -> list[str]:
+    """Return the list of assignment categories for an aircraft entry.
+
+    Args:
+        aircraft: Exact DCS unit type name or regex pattern (when ``is_pattern`` is True).
+        is_pattern: Whether ``aircraft`` is a ``typePattern`` regex.
+        helicopter_types: Set of known DCS helicopter unit type names.
+
+    Returns:
+        A list containing ``"helicopter"``, ``"plane"``, or both.
+    """
+    if is_pattern:
+        helis_matched = any(_safe_fullmatch(aircraft, h) for h in helicopter_types)
+        # Since we cannot enumerate all plane types, conservatively assign to both
+        # categories when the pattern matches at least one helicopter.
+        if helis_matched:
+            return ["helicopter", "plane"]
+        return ["plane"]
+    return ["helicopter"] if aircraft in helicopter_types else ["plane"]
+
+
+def _safe_fullmatch(pattern: str, text: str) -> bool:
+    """Return True if ``pattern`` fully matches ``text``, False on error or no match."""
+    try:
+        return bool(re.fullmatch(pattern, text))
+    except re.error:
+        return False
+
+
 def convert_presets(v5_path: Path, v6_path: Path) -> list[str]:
     """Convert v5 ``radioSettings.lua`` → v6 ``presets.yaml``.
 
@@ -632,6 +675,7 @@ def convert_presets(v5_path: Path, v6_path: Path) -> list[str]:
     """
     warnings: list[str] = []
     content = v5_path.read_text(encoding="utf-8")
+    helicopter_types = _load_helicopter_types()
 
     radios_collection: dict[str, Any] = {}
     presets_collection: dict[str, Any] = {}
@@ -745,9 +789,8 @@ def convert_presets(v5_path: Path, v6_path: Path) -> list[str]:
             # FM-only or other — leave under the "all" fallback
             continue
 
-        # radioSettings carries no plane/helicopter category — assign to both
-        for category in ("plane", "helicopter"):
-            presets_assignments[entry.coalition].setdefault(category, {})[entry.aircraft] = target_preset
+        for cat in _detect_category(entry.aircraft, entry.is_pattern, helicopter_types):
+            presets_assignments[entry.coalition].setdefault(cat, {})[entry.aircraft] = target_preset
 
     # Emit warbird warnings after processing all entries (so we know which were assigned)
     for coalition in ("blue", "red"):

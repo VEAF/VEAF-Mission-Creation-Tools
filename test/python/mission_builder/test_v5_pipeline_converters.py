@@ -499,9 +499,8 @@ radioSettings = {
         v6 = self.tmp / "presets.yaml"
         convert_presets(v5, v6)
         data = yaml.safe_load(v6.read_text())
-        # Assigned under both plane and helicopter (radioSettings carries no category info)
         self.assertEqual(data["presets_assignments"]["blue"]["plane"].get("Bf-109K-4"), "blue_warbird")
-        self.assertEqual(data["presets_assignments"]["blue"]["helicopter"].get("Bf-109K-4"), "blue_warbird")
+        self.assertNotIn("Bf-109K-4", data["presets_assignments"]["blue"]["helicopter"])
 
     def test_vhf_primary_aircraft_gets_vhf_primary_preset(self) -> None:
         lua = self._lua("""
@@ -568,7 +567,24 @@ radioSettings = {
         data = yaml.safe_load(v6.read_text())
         assignments = data["presets_assignments"]["blue"]["plane"]
         self.assertEqual(assignments.get("FW[-]190.*"), "blue_warbird")
-        self.assertEqual(data["presets_assignments"]["blue"]["helicopter"].get("FW[-]190.*"), "blue_warbird")
+        self.assertNotIn("FW[-]190.*", data["presets_assignments"]["blue"]["helicopter"])
+
+    def test_helicopter_aircraft_assigned_to_helicopter_category(self) -> None:
+        lua = self._lua("""
+radioSettings = {
+    ["blue Mi8"] = { type = "Mi-8MT", coalition = "blue", country = nil,
+        ["Radio"] = {
+            [1] = { ["channels"] = { [1] = radioPresetsBlue["##RADIO2_01##"] } },
+        }
+    },
+}
+""")
+        v5 = self._write_lua(lua)
+        v6 = self.tmp / "presets.yaml"
+        convert_presets(v5, v6)
+        data = yaml.safe_load(v6.read_text())
+        self.assertEqual(data["presets_assignments"]["blue"]["helicopter"].get("Mi-8MT"), "blue_vhf_primary")
+        self.assertNotIn("Mi-8MT", data["presets_assignments"]["blue"]["plane"])
 
     def test_hardcoded_entry_emits_warning(self) -> None:
         lua = self._lua("""

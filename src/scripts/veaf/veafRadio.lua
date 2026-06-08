@@ -918,19 +918,24 @@ function veafRadio.initialize(skipHelpMenus, dontCreateMenus)
     --local test = l_lfs.currentdir()
     --veaf.loggers.get(veafRadio.Id):debug(string.format("test = %s", tostring(test)))
     if srsConfigPath then
-      -- execute the script
-      local file = loadfile(srsConfigPath)
-      if file then
-        file()
-        veaf.loggers.get(veafRadio.Id):info("SRS configuration file loaded")
-        if STTS then
-          STTS.MP3_FOLDER = l_lfs.writedir() .. "\\..\\..\\Music"
-          veaf.loggers.get(veafRadio.Id):trace(string.format("STTS.SRS_PORT = %s", tostring(STTS.SRS_PORT)))
-          veaf.loggers.get(veafRadio.Id):trace(string.format("STTS.DIRECTORY = %s", tostring(STTS.DIRECTORY)))
-          veaf.loggers.get(veafRadio.Id):trace(string.format("STTS.EXECUTABLE = %s", tostring(STTS.EXECUTABLE)))
+      local fileAttrs = l_lfs.attributes(srsConfigPath)
+      if fileAttrs then
+        -- execute the script
+        local file = loadfile(srsConfigPath)
+        if file then
+          file()
+          veaf.loggers.get(veafRadio.Id):info("SRS configuration file loaded")
+          if STTS then
+            STTS.MP3_FOLDER = l_lfs.writedir() .. "\\..\\..\\Music"
+            veaf.loggers.get(veafRadio.Id):trace(string.format("STTS.SRS_PORT = %s", tostring(STTS.SRS_PORT)))
+            veaf.loggers.get(veafRadio.Id):trace(string.format("STTS.DIRECTORY = %s", tostring(STTS.DIRECTORY)))
+            veaf.loggers.get(veafRadio.Id):trace(string.format("STTS.EXECUTABLE = %s", tostring(STTS.EXECUTABLE)))
+          end
+        else
+          veaf.loggers.get(veafRadio.Id):warn(string.format("Error while loading SRS configuration file [%s]", srsConfigPath))
         end
       else
-        veaf.loggers.get(veafRadio.Id):warn(string.format("Error while loading SRS configuration file [%s]", srsConfigPath))
+        veaf.loggers.get(veafRadio.Id):debug(string.format("SRS configuration file not found [%s] - SRS integration disabled", srsConfigPath))
       end
     end
   end

@@ -178,33 +178,39 @@ function veafSpawn.spawnFob(spawnSpot, radius, name, country, fobtype, side, hdg
   }
   mist.dynAddStatic(_tower)
 
-  --make it able to deploy crates and pickup troops
-  table.insert(ctld.logisticUnits, _fobName)
-  table.insert(ctld.builtFOBS, _fobName)
-
   -- add the FOB to the named points
   local _namedPoint = _spawnPosition
   _namedPoint.atc = true
   _namedPoint.runways = {}
 
-  -- spawn a beacon
-  local _beaconPoint = {
-    z = _tower.y + BEACON_DISTANCE * math.sin(mist.utils.toRadian(_hdg)),
-    x = _tower.x + BEACON_DISTANCE * math.cos(mist.utils.toRadian(_hdg)),
-    y = _spawnPosition.y,
-  }
-  ctld.beaconCount = ctld.beaconCount + 1
-  local _radioBeaconName = "FOB Beacon #" .. ctld.beaconCount
-  local _radioBeaconDetails = ctld.createRadioBeacon(_beaconPoint, _side, _country, _radioBeaconName, nil, true)
-  ctld.fobBeacons[_fobName] = { vhf = _radioBeaconDetails.vhf, uhf = _radioBeaconDetails.uhf, fm = _radioBeaconDetails.fm }
-  if _radioBeaconDetails ~= nil then
-    _namedPoint.tacan = string.format(
-      "ADF : %.2f KHz - %.2f MHz - %.2f MHz FM",
-      _radioBeaconDetails.vhf / 1000,
-      _radioBeaconDetails.uhf / 1000000,
-      _radioBeaconDetails.fm / 1000000
-    )
-    veaf.loggers.get(veafSpawn.Id):trace("_namedPoint.tacan=%s", veaf.lp(_namedPoint.tacan))
+  if ctld then
+    --make it able to deploy crates and pickup troops
+    if ctld.logisticUnits then
+      table.insert(ctld.logisticUnits, _fobName)
+    end
+    if ctld.builtFOBS then
+      table.insert(ctld.builtFOBS, _fobName)
+    end
+
+    -- spawn a beacon
+    local _beaconPoint = {
+      z = _tower.y + BEACON_DISTANCE * math.sin(mist.utils.toRadian(_hdg)),
+      x = _tower.x + BEACON_DISTANCE * math.cos(mist.utils.toRadian(_hdg)),
+      y = _spawnPosition.y,
+    }
+    ctld.beaconCount = ctld.beaconCount + 1
+    local _radioBeaconName = "FOB Beacon #" .. ctld.beaconCount
+    local _radioBeaconDetails = ctld.createRadioBeacon(_beaconPoint, _side, _country, _radioBeaconName, nil, true)
+    ctld.fobBeacons[_fobName] = { vhf = _radioBeaconDetails.vhf, uhf = _radioBeaconDetails.uhf, fm = _radioBeaconDetails.fm }
+    if _radioBeaconDetails ~= nil then
+      _namedPoint.tacan = string.format(
+        "ADF : %.2f KHz - %.2f MHz - %.2f MHz FM",
+        _radioBeaconDetails.vhf / 1000,
+        _radioBeaconDetails.uhf / 1000000,
+        _radioBeaconDetails.fm / 1000000
+      )
+      veaf.loggers.get(veafSpawn.Id):trace("_namedPoint.tacan=%s", veaf.lp(_namedPoint.tacan))
+    end
   end
   trigger.action.outTextForCoalition(
     _side,

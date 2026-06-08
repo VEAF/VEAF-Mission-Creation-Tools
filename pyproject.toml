@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "veaf-tools"
-version = "6.3.4"
+version = "6.3.5"
 description = "A set of tools that help set up and run dynamic DCS World missions"
 authors = ["VEAF <https://www.veaf.org>"]
 license = "ISC"
@@ -30,6 +30,7 @@ requests = ">=2.28,<3"
 veaf-build = "veaf_build:main"
 veaf-tools = "veaf_tools.app:main"
 test-lua = "veaf_build.lua_tests:main"
+update-radio-specs = "veaf_build.radio_specs_updater:main"
 
 [tool.poetry.group.dev.dependencies]
 ruff = ">=0.4"

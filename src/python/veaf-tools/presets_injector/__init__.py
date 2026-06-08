@@ -18,6 +18,15 @@ from .presets_manager import (
     RadioCollection,
     RadioDefinition,
 )
+from .radio_frequency_validator import (
+    ChannelFrequency,
+    FrequencyRange,
+    get_valid_ranges,
+    validate_frequencies,
+    validate_frequency,
+    warn_invalid_channel_frequencies,
+    warn_invalid_frequencies,
+)
 
 __all__ = [
     "Channel",
@@ -32,4 +41,11 @@ __all__ = [
     "PresetsManager",
     "PresetsInjectorWorker",
     "PresetsInjectorREADME",
+    "ChannelFrequency",
+    "FrequencyRange",
+    "get_valid_ranges",
+    "validate_frequency",
+    "validate_frequencies",
+    "warn_invalid_channel_frequencies",
+    "warn_invalid_frequencies",
 ]

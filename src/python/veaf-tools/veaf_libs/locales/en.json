@@ -9,7 +9,6 @@
   "file.already_exists": "File already exists: {path}",
   "file.replace_prompt": "Replace it? [y/N/A] ",
   "file.replace_hint": "  y = yes, n = no (default), A = yes to all remaining",
-
   "cmd.prepare.help": "Initialize a VEAF mission folder with default templates.",
   "cmd.prepare.opt.mission_folder": "Folder to initialize as a VEAF mission folder.",
   "cmd.prepare.done": "Preparation completed!",
@@ -24,7 +23,7 @@
   "cmd.generate_config.help": "Generate a documented mission.yaml template for a mission folder.",
   "cmd.generate_config.done": "mission.yaml template generated.",
   "cmd.convert_v5.help": "Convert a v5-style VEAF mission folder to v6 format.",
-  "cmd.convert_v5.help.long": "Convert a v5-style VEAF mission folder to v6 format.\n\nRuns all migration steps in a single pass:\n\b\n1. Scans the mission folder for v5 artifacts (missionConfig.lua, pipeline config files such as presets.yaml, waypoints.yaml, \u2026).\n2. Migrates missionConfig.lua in-place: comments out doFile() calls that load VEAF scripts (the v6 builder injects them automatically), and wraps bare veafXxx.initialize() calls in ``if veafXxx then \u2026 end`` guards.\n3. Generates mission.yaml with the correct lua_modules: and pipeline: sections derived from the analysis in steps 1 and 2.\n4. Prints a detailed conversion report and optionally saves it as Markdown.\n\nDCS trigger conversion (v5 \u2192 v6) is handled automatically by ``veaf-tools build`` \u2014 no manual action is required for that part.",
+  "cmd.convert_v5.help.long": "Convert a v5-style VEAF mission folder to v6 format.\n\nRuns all migration steps in a single pass:\n\b\n1. Scans the mission folder for v5 artifacts (missionConfig.lua, pipeline config files such as presets.yaml, waypoints.yaml, …).\n2. Migrates missionConfig.lua in-place: comments out doFile() calls that load VEAF scripts (the v6 builder injects them automatically), and wraps bare veafXxx.initialize() calls in ``if veafXxx then … end`` guards.\n3. Generates mission.yaml with the correct lua_modules: and pipeline: sections derived from the analysis in steps 1 and 2.\n4. Prints a detailed conversion report and optionally saves it as Markdown.\n\nDCS trigger conversion (v5 → v6) is handled automatically by ``veaf-tools build`` — no manual action is required for that part.",
   "cmd.convert_v5.opt.folder": "Path to the VEAF mission folder to convert (where mission.yaml should be created).",
   "cmd.convert_v5.opt.force": "Overwrite existing mission.yaml without asking.",
   "cmd.convert_v5.opt.no_backup": "Do not create a .bak copy of missionConfig.lua before migrating it.",
@@ -45,13 +44,11 @@
   "cmd.about.help": "Show information about VEAF Mission Creation Tools.",
   "cmd.about.tool_version": "[bold cyan]veaf-tools v{version}[/bold cyan]",
   "cmd.wizard.help": "Launch the interactive setup wizard.",
-
   "pipeline.injecting_presets": "Pipeline: injecting radio presets from {path}",
   "pipeline.injecting_waypoints": "Pipeline: injecting waypoints from {path}",
   "pipeline.injecting_aircraft": "Pipeline: injecting aircraft templates from {path}",
   "pipeline.injecting_weather": "Pipeline: injecting weather variants from {path}",
   "pipeline.unknown_modules": "--log-modules: unknown module ID(s): {ids}",
-
   "builder.completing_defaults": "Completing folder {folder} with defaults...",
   "builder.generating_config": "Generating veaf-config.lua from mission.yaml...",
   "builder.creating_mission": "Creating mission {output}...",
@@ -66,7 +63,6 @@
   "builder.missing_files": "Missing files from {folder}: {files}",
   "builder.update_hint": "Try updating the veaf-tools package using veaf-tools-updater.exe!",
   "builder.mandatory_module_enable": "Module '{module}' is always active and cannot be enabled or disabled (enable: {value}) — remove the 'enable' key from its entry in mission.yaml.",
-
   "yaml.error.syntax": "Syntax error in [bold]{filename}[/bold], line {line}, column {col}.",
   "yaml.error.syntax_unknown": "Syntax error in [bold]{filename}[/bold].",
   "yaml.error.context": "  The error starts near line {line}, column {col}.",
@@ -74,7 +70,6 @@
   "yaml.error.hint.tab": "  → YAML does not allow tab characters for indentation.\n    Replace all tabs with spaces in your text editor.",
   "yaml.error.hint.colon": "  → A key is probably missing its colon ':' separator.\n    Every YAML key must be written as:  key: value",
   "yaml.error.hint.generic": "  → Open the file in a text editor and check the structure near the indicated line.\n    Make sure all indentation uses spaces (not tabs).",
-
   "weather.loading_config": "Loading configuration from {path}",
   "weather.config_loaded": "Configuration loaded: {count} version(s) to create",
   "weather.creating_version": "[{index}/{total}] Creating version: {name}",
@@ -85,14 +80,12 @@
   "weather.error.config_not_found": "Configuration file not found: {path}",
   "weather.error.invalid_yaml": "Invalid YAML in configuration file: {path}",
   "weather.error.version_failed": "Failed to create version '{name}': {error}",
-
   "v5convert.waypoints_done": "Waypoints: {source} → {target}",
   "v5convert.weather_done": "Weather: {source} → {target}",
   "v5convert.presets_done": "Presets: {source} → {target}",
   "v5convert.aircraft_done": "Aircraft groups: {source} → {target}",
   "v5convert.parse_error": "Could not parse {filename}: {reason}",
   "v5convert.realweather_icao_todo": "Version '{name}': realweather=true — replace 'TODO' with the actual ICAO code in {target}",
-
   "report.title": "VEAF Mission v5 → v6 Conversion Report",
   "report.generated_by": "Generated: {timestamp} by veaf-tools convert-v5 v{version}",
   "report.section.folder": "Mission Folder",
@@ -120,7 +113,9 @@
   "report.triggers.auto": "Removal of v5 DCS triggers and injection of v6 triggers happens automatically during `veaf-tools build` (`migrate_from_v5` is `True` by default). No action needed here.",
   "report.warnings.title": "Conversion Warnings",
   "report.warnings.none": "None — the migration completed without warnings.",
-  "report.cleanup.title": "v5 Leftovers to Clean Up After Testing",  "report.cleanup.intro": "Once the mission builds and runs correctly in DCS, you can:",  "report.cleanup.none": "Nothing to clean up — the migration left no v5 leftovers.",
+  "report.cleanup.title": "v5 Leftovers to Clean Up After Testing",
+  "report.cleanup.intro": "Once the mission builds and runs correctly in DCS, you can:",
+  "report.cleanup.none": "Nothing to clean up — the migration left no v5 leftovers.",
   "report.cleanup.delete_bak": "Delete the backup file `{path}` (once you've verified the migration).",
   "report.cleanup.remove_dofiles": "Remove the commented-out `doFile()` lines from `missionConfig.lua` (lines prefixed with `-- [v6 migration]`).",
   "report.cleanup.delete_backup_v5": "Delete the `backup_v5/` folder ({files}) once the mission is verified working in DCS.",
@@ -128,7 +123,6 @@
   "report.next_steps.build": "**Run `veaf-tools build`** — DCS trigger conversion (v5 → v6) runs automatically.",
   "report.next_steps.test": "**Test the mission in DCS** — verify all modules initialize correctly.",
   "report.next_steps.cleanup": "**Clean up** — remove the items listed in the section above once everything works.",
-
   "generated.config_lua.header": "Generated by veaf-tools build from mission.yaml\n-- Do not edit manually.\n-- Re-run 'veaf-tools build' or 'veaf-tools generate-config' to regenerate.",
   "generated.config_lua.module_skipped": "NOTE: no Lua variable found for module '{id}' — skipped",
   "generated.config_lua.ctld_note": "Note: CTLD.lua must be loaded via mission-script.lua before this block runs.",
@@ -146,12 +140,10 @@
   "generated.mission_yaml.section.cap": "── CAP missions ──────────────────────────────────────────────────────────────\nRequires COMBATMISSION module enabled above.\nDoc: https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/master/doc/mission-maker/GUIDE.en.md#configuration-examples",
   "generated.mission_yaml.section.combat": "── Combat missions ───────────────────────────────────────────────────────────\nRequires COMBATMISSION module enabled above.\nDoc: https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/master/doc/mission-maker/GUIDE.en.md#configuration-examples",
   "generated.mission_yaml.section.pipeline": "── Build pipeline ────────────────────────────────────────────────────────────\nControls which optional injection steps run after the base build.\nEach step auto-detects its config file; set to false to skip.\nDoc: https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/master/doc/mission-maker/GUIDE.en.md#build-profiles",
-
   "pipeline.label.presets": "Radio presets",
   "pipeline.label.waypoints": "Waypoints",
   "pipeline.label.aircraft_groups": "Aircraft groups",
   "pipeline.label.weather": "Weather variants",
-
   "report.section.scan": "Scan Results",
   "report.scan.col.item": "Item",
   "report.scan.col.status": "Status",
@@ -186,7 +178,6 @@
   "convert_v5.scan.pipeline.v5_format": "⚠ v5 format — needs conversion to {target}",
   "convert_v5.scan.pipeline.found": "✓ Found — added to pipeline: {step}",
   "convert_v5.scan.pipeline.not_found": "✗ Not found — {step} step will be skipped",
-
   "convert_v5.console.actions_taken": "Actions taken:",
   "convert_v5.console.dofiles_commented": "Commented out {n} doFile() call(s):",
   "convert_v5.console.init_wrapped": "Wrapped {n} bare initialize() call(s):",
@@ -200,7 +191,6 @@
   "convert_v5.console.next_steps.build": "Run [cyan]veaf-tools build[/cyan] — DCS trigger conversion runs automatically.",
   "convert_v5.console.next_steps.test": "Test the mission in DCS.",
   "convert_v5.console.next_steps.cleanup": "Clean up the items listed above once everything works.",
-
   "convert_v5.action.v5_backed_up": "v5 source backed up to backup_v5/{path} and deleted",
   "convert_v5.action.backup_path_error": "Could not resolve backup path for {source} — v5 source not cleaned up",
   "convert_v5.action.backup_error": "Could not back up/delete {rel}: {exc}",
@@ -221,7 +211,6 @@
   "convert_v5.action.yaml_generated": "mission.yaml: generated — {enabled}/{total} modules enabled, {pipeline}",
   "convert_v5.action.pipeline_steps_ready": "{n} pipeline step(s) ready",
   "convert_v5.action.pipeline_steps_v5": "{n} step(s) detected in v5 format (need conversion)",
-
   "convert_v5.warning.init_commented": "line {line}: {var}.initialize() commented out (veaf-config.lua handles init)",
   "convert_v5.warning.no_converter": "No converter implemented for pipeline step '{step}'",
   "convert_v5.warn.warbird_preset": "Warbird preset '{preset}' created for coalition '{coalition}'. Aircraft assignments (exact types and typePattern regex) have been auto-generated in presets_assignments — review and adjust if needed.",
@@ -255,7 +244,6 @@
   "convert_v5.report.unknown_reason": "Unknown reason.",
   "report.mission_yaml.created_with": "Created with:",
   "report.mission_yaml.modules_count": "{enabled} module(s) enabled, {disabled} disabled",
-
   "cmd.user_config.help": "Show and manage the global user configuration (~/veafmct.yaml).",
   "cmd.user_config.opt.set": "Set a configuration key (format: key=value, e.g. lang=fr).",
   "cmd.user_config.opt.unset": "Remove a configuration key.",
@@ -277,9 +265,7 @@
   "cmd.user_config.set_failed": "Failed to write '{name}' to the configuration file.",
   "cmd.user_config.state_on": "on",
   "cmd.user_config.state_off": "off",
-
   "cmd.about.opt.modules": "Show the list of embedded VEAF Lua modules.",
-
   "cmd.extract_aircraft.opt.interactive": "Interactive mode: select which groups to include.",
   "cmd.extract_aircraft.opt.mission": "Mission name; will extract from the mission with this name (most recent .miz file); can be set to a .miz file.",
   "cmd.extract_aircraft.opt.output_yaml": "Output YAML file path.",
@@ -288,13 +274,11 @@
   "cmd.extract_aircraft.opt.only_helicopters": "Extract only helicopters.",
   "cmd.extract_aircraft.opt.mission_folder": "Folder with the mission files.",
   "cmd.extract_aircraft.opt.lua_file": "Path to a Lua file (e.g., settings-templates.lua) to extract from instead of a .miz mission.",
-
   "cmd.inject_aircraft.opt.mode": "Injection mode: 'add' (add new groups) or 'replace' (replace existing groups).",
   "cmd.inject_aircraft.opt.yaml_file": "Path to the YAML file containing aircraft groups.",
   "cmd.inject_aircraft.opt.mission": "Mission name; will inject into the mission with this name (most recent .miz file); can be set to a .miz file.",
   "cmd.inject_aircraft.opt.output_mission": "Mission file to save; defaults to the same as input.",
   "cmd.inject_aircraft.opt.mission_folder": "Folder with the mission files.",
-
   "cmd.build.opt.no_veaf_triggers": "If set, the VEAF triggers will not be injected in the resulting mission.",
   "cmd.build.opt.dynamic_mode": "If set, the mission will dynamically load the scripts from the provided location (via --scripts-path or in the local published and src/scripts folders).",
   "cmd.build.opt.dev_mode": "Resolve VEAF scripts from a local dev repo (build/veaf-scripts.lua) instead of published/. Requires --scripts-path pointing to the VEAF-Mission-Creation-Tools repo root. This setting is persisted in mission.yaml (build.dev_mode).",
@@ -304,22 +288,17 @@
   "cmd.build.opt.log_modules_detail": "Comma-separated list of module IDs to keep at full log level. All other modules are silenced to 'error' level. Example: --log-modules 'SPAWN,RADIO'",
   "cmd.build.opt.mission_name_or_file": "Mission name; will build the mission with this name and the current date; can be set to a .miz file.",
   "cmd.build.opt.folder": "Folder with the mission files.",
-
   "cmd.generate_config.opt.output": "Output directory for the generated mission.yaml template.",
-
-  "cmd.migrate_config.opt.input": "Path to the missionConfig.lua to migrate (v5 \u2192 v6).",
+  "cmd.migrate_config.opt.input": "Path to the missionConfig.lua to migrate (v5 → v6).",
   "cmd.migrate_config.opt.output_file": "Output path for the migrated file. Defaults to <input>_v6.lua next to the input.",
   "cmd.migrate_config.opt.yaml_output": "Write the lua_modules YAML snippet to this file instead of printing it.",
-
   "cmd.extract.opt.mission": "Mission name; will extract from the mission with this name (most recent .miz file); can be set to a .miz file.",
   "cmd.extract.opt.mission_folder": "Folder where the mission files will be extracted.",
-
   "cmd.inject_presets.opt.mission": "Mission name; will inject in the mission with this name (most recent .miz file); can be set to a .miz file.",
   "cmd.inject_presets.opt.output_mission": "Mission file to save; defaults to the same as input.",
   "cmd.inject_presets.opt.presets_file": "Configuration file containing the presets.",
   "cmd.inject_presets.opt.validate_report": "Write a Markdown validation report of all frequency issues to this file (reports ALL aircraft types, not only DCS-critical ones).",
   "presets_injector.validation_report.written": "Validation report written to {path} ({count} issue(s) found).",
-
   "presets_injector.report.title": "# Radio Presets Frequency Validation Report",
   "presets_injector.report.generated": "Generated: {date}",
   "presets_injector.report.presets_file": "Presets file: `{path}`",
@@ -328,13 +307,11 @@
   "presets_injector.report.valid_ranges": "Valid ranges: {ranges}",
   "presets_injector.report.table_header": "| Channel | Title | Frequency (MHz) | Collection | Radio |",
   "presets_injector.report.silence_hint": "**To silence:** add to `presets.yaml`:",
-  "presets_injector.report.section_critical": "## \u26a0\ufe0f Critical \u2014 DCS will reject these at mission load",
-  "presets_injector.report.section_info": "## \u2139\ufe0f Informational \u2014 DCS stores but ignores these frequencies",
+  "presets_injector.report.section_critical": "## ⚠️ Critical — DCS will reject these at mission load",
+  "presets_injector.report.section_info": "## ℹ️ Informational — DCS stores but ignores these frequencies",
   "presets_injector.report.affected_count": "*{count} aircraft type(s) affected.*",
-  "presets_injector.report.all_valid": "## \u2705 All preset frequencies are valid for every aircraft type.",
-
+  "presets_injector.report.all_valid": "## ✅ All preset frequencies are valid for every aircraft type.",
   "cmd.prepare.opt.force": "Do not ask before replacing existing files (same as pressing A).",
-
   "cmd.extract_waypoints.opt.interactive": "Interactive mode: select which groups to extract.",
   "cmd.extract_waypoints.opt.mission": "Mission name; will extract from the mission with this name (most recent .miz file); can be set to a .miz file.",
   "cmd.extract_waypoints.opt.output_yaml": "Output YAML file path.",
@@ -343,16 +320,13 @@
   "cmd.extract_waypoints.opt.only_helicopters": "Extract only helicopters.",
   "cmd.extract_waypoints.opt.mission_folder": "Folder with the mission files.",
   "cmd.extract_waypoints.opt.lua_file": "Path to a Lua file (e.g., settings-waypoints.lua) to extract from instead of a .miz mission.",
-
   "cmd.inject_waypoints.opt.mission": "Mission name; will inject into the mission with this name (most recent .miz file); can be set to a .miz file.",
   "cmd.inject_waypoints.opt.output_mission": "Mission file to save; defaults to the same as input.",
   "cmd.inject_waypoints.opt.yaml_file": "Path to the YAML file containing waypoint definitions.",
   "cmd.inject_waypoints.opt.mission_folder": "Folder with the mission files.",
-
   "cmd.inject_weather.opt.mission": "Mission name or .miz file to use as base for creating weather/time variants.",
   "cmd.inject_weather.opt.config_file": "Path to YAML configuration file (or Lua file to convert).",
   "cmd.inject_weather.opt.convert_lua": "Convert legacy Lua configuration to YAML and exit.",
-
   "updater.header": "[bold green]VEAF Tools Updater v{version}[/bold green]",
   "updater.repository": "Repository: {owner}/{name}",
   "updater.local_zip": "[bold cyan]Using local ZIP file: {path}[/bold cyan]",
@@ -364,7 +338,6 @@
   "updater.installing": "Installing tools to current directory...",
   "updater.fetching_release": "Fetching release information for '{tag}'...",
   "updater.verifying": "Verifying file integrity...",
-
   "updater.cmd_help": "Downloads the latest VEAF Tools files from GitHub using Git tags.\n\nThis command fetches compiled tools and scripts from GitHub releases.\nBy default, it uses the 'published-latest' tag which always points to the most recent version.\n\nFor testing, use --zip-file to install from a local published.zip file instead of GitHub.",
   "updater.opt.force": "Ignore version check and install anyway.",
   "updater.opt.tag": "Tag name to fetch (default: published-latest).",
@@ -372,7 +345,6 @@
   "updater.opt.mission_folder": "Mission folder path (overrides config file).",
   "updater.opt.no_verify_checksum": "Skip checksum verification (not recommended).",
   "updater.opt.zip_file": "Path to local published.zip file (for testing, skips GitHub).",
-
   "updater.found_version": "Found release version: {version}",
   "updater.no_installed": "No installed version found",
   "updater.newer_available": "Newer version available: {installed} → {release}",
@@ -389,15 +361,12 @@
   "updater.success": "Successfully updated to version {version}",
   "updater.local_zip_loaded": "Loaded ZIP file with version label: {version}",
   "updater.local_zip_installed": "Successfully installed from local ZIP",
-
   "updater.action.get_release": "Fetching release for tag '{tag}' from GitHub",
   "updater.action.download": "Downloading {name}",
-
   "updater.warn.rate_limit": "GitHub API rate limit exceeded. Please wait about an hour and try again.",
   "updater.warn.metadata_parse": "Could not parse metadata file, skipping checksum verification",
   "updater.warn.no_metadata": "No metadata asset found, skipping checksum verification",
   "updater.warn.compare_versions": "Could not compare versions: {v1} vs {v2}",
-
   "updater.err.request_failed": "{action} failed: {reason} ({code})",
   "updater.err.no_release": "No release found for tag '{tag}'",
   "updater.err.checksum_mismatch": "Checksum mismatch for {name}",
@@ -416,15 +385,12 @@
   "updater.err.no_asset": "No '{name}' asset found in release",
   "updater.err.download_failed": "Failed to download published.zip",
   "updater.err.checksum_failed": "Checksum verification failed, aborting installation",
-
   "app.description": "VEAF Tools — DCS World mission management CLI.",
-
   "cmd.about.no_modules": "[yellow]No module information available (run from a full repo checkout or built exe).[/yellow]",
   "cmd.about.open_website": "Do you want to open the VEAF website in your browser?",
   "cmd.about.veaf": "[bold green]The VEAF - Virtual European Air Force[/bold green]",
   "cmd.about.veaf_desc": "The VEAF is a community of virtual pilots dedicated to creating and flying high-quality missions in DCS World.",
   "cmd.about.website": "Website: {url}",
-
   "cmd.build.title": "[bold green]veaf-tools VEAF mission builder v{version}[/bold green]",
   "cmd.extract.title": "[bold green]veaf-tools VEAF mission extractor v{version}[/bold green]",
   "cmd.extract_aircraft.title": "[bold green]veaf-tools Aircraft Groups Extractor v{version}[/bold green]",
@@ -436,18 +402,14 @@
   "cmd.generate_config.title": "[bold green]veaf-tools Generate Config v{version}[/bold green]",
   "cmd.migrate_config.title": "[bold green]veaf-tools Migrate Config v{version}[/bold green]",
   "cmd.prepare.title": "[bold green]veaf-tools Mission Folder Preparation v{version}[/bold green]",
-
   "cmd.generate_config.generated": "[bold green]Generated:[/bold green] {file}",
-
   "cmd.inject_aircraft.injected": "[bold green]✓ Successfully injected {count} group(s) into the mission![/bold green]",
   "cmd.inject_aircraft.partial": "[bold yellow]⚠ Injection completed: {message}[/bold yellow]",
   "cmd.inject_aircraft.validation_failed": "[bold red]✗ YAML validation failed. Please fix the errors before injection.[/bold red]",
   "cmd.inject_aircraft.validation_ok": "[bold green]✓ YAML validation successful![/bold green]",
-
   "cmd.inject_weather.confirm_create": "Do you want to create missions from this configuration?",
   "cmd.inject_weather.done": "[bold green]Created {count} mission file(s)[/bold green]",
   "cmd.inject_weather.lua_converted": "[bold green]Lua configuration converted to YAML:[/bold green]",
-
   "cmd.migrate_config.dofiles_count": "\n[yellow]Commented out {count} doFile() call(s):[/yellow]",
   "cmd.migrate_config.input": "Input : {path}",
   "cmd.migrate_config.modules_found": "\n[bold cyan]Modules found ({count}):[/bold cyan] {modules}",
@@ -457,20 +419,17 @@
   "cmd.migrate_config.wrapped_count": "\n[yellow]Wrapped {count} bare initialize() call(s):[/yellow]",
   "cmd.migrate_config.yaml_inline": "\n[bold cyan]lua_modules YAML snippet (paste into mission.yaml):[/bold cyan]",
   "cmd.migrate_config.yaml_written": "\n[bold cyan]lua_modules YAML snippet written to:[/bold cyan] {path}",
-
   "cmd.prepare.files_installed": "  Files installed: [cyan]{count}[/cyan]",
   "cmd.prepare.files_skipped": "  Files skipped: [yellow]{count}[/yellow]",
   "cmd.prepare.folder_ready": "\nMission folder ready at: [cyan]{path}[/cyan]",
   "cmd.prepare.readme.intro": "This command initializes a mission folder with default files.\n\nDefault files are copied from: published/src/defaults/mission-folder\n\nIf files already exist, you will be asked to confirm replacement (unless --force is used).\n\nFor v5 migrations, do NOT run prepare — use convert-v5 directly on your existing v5 folder.",
   "cmd.prepare.subtitle": "[bold cyan]Prepare Command[/bold cyan]",
-
   "pipeline.console.aircraft": "[bold blue]Pipeline: aircraft groups ({file}, mode={mode})[/bold blue]",
   "pipeline.console.aircraft_invalid": "[bold yellow]Pipeline: aircraft groups validation failed, skipping[/bold yellow]",
   "pipeline.console.presets": "[bold blue]Pipeline: radio presets ({file})[/bold blue]",
   "pipeline.console.waypoints": "[bold blue]Pipeline: waypoints ({file})[/bold blue]",
   "pipeline.console.weather": "[bold blue]Pipeline: weather variants ({file})[/bold blue]",
   "pipeline.console.weather_done": "[bold green]Pipeline: created {count} weather variant(s)[/bold green]",
-
   "tui.arg.convert_v5_force": "Overwrite existing mission.yaml without asking",
   "tui.arg.convert_v5_icao": "ICAO airport code for realweather steps (e.g. UGGG)",
   "tui.arg.mission_folder": "Mission folder",
@@ -494,33 +453,74 @@
   "tui.cmd.prepare.description": "Initialise a new VEAF mission folder with default files",
   "tui.instruction": "(↑↓ navigate, Enter confirm)",
   "tui.select_command": "Select a command",
-
   "update.new_version": "[yellow]⚠ A newer version of veaf-tools is available: [bold]{latest}[/bold] (you have {current})[/yellow]",
   "update.run_updater": "[yellow]  Run [bold]veaf-tools-updater[/bold] to update.[/yellow]",
-
   "group_injector.reading_mission": "Reading mission file {path}",
   "group_injector.writing_mission": "Writing mission file",
   "group_injector.spinner.reading": "Reading {path}...",
   "group_injector.spinner.writing": "Writing mission...",
-
   "presets_injector.error.load_config": "Failed to load config file {path}: {error}",
   "presets_injector.processing_groups": "Processing {count} aircraft group(s)",
   "presets_injector.injected": "Injected presets into {count} aircraft(s)",
   "presets_injector.kneeboard_pages": "Added {count} kneeboard page(s) to mission",
   "presets_injector.spinner.processing_groups": "Processing groups...",
   "presets_injector.spinner.generating_images": "Generating preset images...",
-
   "waypoints_injector.error.load_config": "Failed to load waypoints file {path}: {error}",
   "waypoints_injector.injected": "Injected waypoints into {count} aircraft group(s)",
   "waypoints_injector.spinner.processing_groups": "Processing groups and injecting waypoints...",
-
   "radio_freq.warn.header_single": "Group '{group}' ({unit_type}): the following preset frequencies are not valid for this aircraft and will be rejected by DCS at mission load:",
   "radio_freq.warn.header_plural": "Groups {groups} ({unit_type}): the following preset frequencies are not valid for this aircraft and will be rejected by DCS at mission load:",
   "radio_freq.warn.channel_line": "    - channel {num}: {freq} MHz  (in radios_collection > {collection} > {radio_key})",
   "radio_freq.warn.channel_line_titled": "    - channel {num} \"{title}\": {freq} MHz  (in radios_collection > {collection} > {radio_key})",
   "radio_freq.warn.footer": "  Valid ranges for {unit_type}: {ranges_str}\n  These frequencies are probably correct for other aircraft — do NOT change them globally.\n  Instead, add a specific preset for {unit_type} in presets.yaml:\n    presets_assignments:\n      {coalition}:\n        {aircraft_category}:\n          {unit_type}: <your-{unit_type_key}-preset>\n  and define that preset with frequencies within: {ranges_str}",
-
   "pipeline.injecting_aircraft_mode": "Pipeline: injecting aircraft groups from {path} (mode={mode})",
-
-  "presets_injector.freq_warn.disable_tip": "To silence these warnings temporarily while you fix the presets, add 'none' for these aircraft types in presets.yaml:\n  presets_assignments:\n{yaml_block}\n  Once the presets are corrected, remove those 'none' lines to re-enable injection."
+  "presets_injector.freq_warn.disable_tip": "To silence these warnings temporarily while you fix the presets, add 'none' for these aircraft types in presets.yaml:\n  presets_assignments:\n{yaml_block}\n  Once the presets are corrected, remove those 'none' lines to re-enable injection.",
+  "builder.lua_modules_found": "Found lua_modules section in {path}; will generate veaf-config.lua",
+  "builder.log_level_found": "Found global_log_level={level} in {path}",
+  "builder.dev_mode_active": "Dev mode: VEAF scripts resolved from local dev repo (build/veaf-scripts.lua)",
+  "builder.scripts_folder_missing": "Scripts folder {path} does not exist!",
+  "builder.unknown_module_ids": "--log-modules: unknown module ID(s): {ids} - check spelling",
+  "builder.unknown_community_script": "Unknown community script id {id} in 'community_scripts:'; ignoring.",
+  "builder.dcs_bridge_downloading": "dcs_bridge: downloading dcs-bridge.lua from {url}",
+  "builder.copied_from_defaults": "Copied required file '{file}' from default folder '{folder}'",
+  "builder.mission_read_error": "An error occurred while reading the {path} file; is this a valid DCS mission?",
+  "builder.veaf_config_generated": "Generated '{file}' from mission.yaml",
+  "aircraft_injector.validating_yaml": "Validating YAML file {path}",
+  "aircraft_injector.yaml_valid": "YAML validation successful",
+  "aircraft_injector.yaml_invalid": "YAML validation failed",
+  "aircraft_injector.loading_yaml": "Loading YAML file {path}",
+  "aircraft_injector.yaml_empty": "YAML file is empty",
+  "aircraft_injector.yaml_not_found": "YAML file not found: {path}",
+  "aircraft_injector.yaml_load_failed": "Failed to load YAML file: {error}",
+  "aircraft_injector.reading_mission": "Reading mission file {path}",
+  "aircraft_injector.mission_read_error": "Failed to read mission content",
+  "aircraft_injector.mission_loaded": "Mission file loaded successfully",
+  "aircraft_injector.mission_read_failed": "Failed to read mission file: {error}",
+  "aircraft_injector.no_mission_to_write": "No mission to write",
+  "aircraft_injector.writing_mission": "Writing modified mission to {path}",
+  "aircraft_injector.mission_written": "Mission written successfully",
+  "aircraft_injector.mission_write_failed": "Failed to write mission: {error}",
+  "aircraft_injector.no_lua_file": "No Lua file specified",
+  "aircraft_injector.reading_lua": "Reading Lua file {path}",
+  "aircraft_injector.lua_parse_failed": "Failed to parse Lua file content",
+  "aircraft_injector.lua_parsed": "Successfully parsed Lua file {path}",
+  "aircraft_injector.lua_read_failed": "Failed to read Lua file: {error}",
+  "aircraft_injector.no_lua_data": "No Lua data loaded",
+  "aircraft_injector.no_categories": "No 'categories' found in Lua data",
+  "aircraft_injector.mission_not_loaded": "Mission not loaded. Call read_mission() first.",
+  "aircraft_injector.no_mission_content": "No mission content loaded",
+  "aircraft_injector.no_coalitions": "No coalitions found in mission",
+  "aircraft_injector.groups_matched": "Found {count} matching group(s)",
+  "aircraft_injector.no_groups_to_select": "No groups found to select from",
+  "aircraft_injector.writing_templates": "Writing extracted templates to {path}",
+  "aircraft_injector.templates_written": "Successfully wrote templates to {path}",
+  "aircraft_injector.templates_write_failed": "Failed to write YAML file: {error}",
+  "aircraft_injector.no_groups_extracted": "No groups were extracted - file was not created",
+  "waypoints.yaml_not_found": "YAML file not found: {path}",
+  "waypoints.yaml_empty": "YAML file is empty: {path}",
+  "waypoints.yaml_load_failed": "Failed to load YAML file {path}: {error}",
+  "waypoints.waypoint_load_failed": "Failed to load waypoint {name}: {error}",
+  "waypoints.plan_waypoint_not_found": "Waypoint '{name}' referenced in plan '{plan}' not found",
+  "waypoints.plan_load_failed": "Failed to load flight plan {plan}: {error}",
+  "aircraft_injector.yaml_loaded": "YAML file loaded successfully"
 }

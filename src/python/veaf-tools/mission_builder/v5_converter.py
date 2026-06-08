@@ -27,7 +27,7 @@ from typing import Any
 
 import yaml  # type: ignore[import-untyped]
 from veaf_libs.i18n import t
-from veaf_libs.lua_config_generator import MANDATORY_MODULES
+from veaf_libs.lua_config_generator import MANDATORY_MODULES, yaml_module_entry
 from veaf_libs.lua_module_scanner import get_modules
 
 from mission_builder.config_migrator import ConfigMigrator, MigrationResult
@@ -887,11 +887,7 @@ class V5Converter:
             lines.append("  # ── Active modules ──────────────────────────────────────────────────────────")
             for mid in enabled_found:
                 yaml_key = f'"{mid}"' if not _re.match(r"^[A-Za-z_]\w*$", mid) else mid
-                if mid in MANDATORY_MODULES:
-                    lines.append(f"  {yaml_key}: {{}}")
-                else:
-                    lines.append(f"  {yaml_key}:")
-                    lines.append("    enable: true")
+                lines.extend(yaml_module_entry(yaml_key, mid))
                 # For ASSETS, inject the extracted asset list directly under the module entry
                 if mid == "ASSETS" and mr and mr.assets_extracted:
                     lines.append("    assets:")

@@ -125,6 +125,23 @@ _MODULE_TO_CATEGORY: dict[str, str] = {mod_id: cat for cat, ids in _MODULE_CATEG
 #: These are always active; specifying ``enable`` (true or false) for them is an error.
 MANDATORY_MODULES: frozenset[str] = frozenset({"UNITS", "TIME", "CACHE", "EVENTS", "MARKERS", "COMMANDS"})
 
+
+def yaml_module_entry(yaml_key: str, module_id: str) -> list[str]:
+    """Return the YAML lines for one enabled module entry in ``mission.yaml``.
+
+    Args:
+        yaml_key: The (possibly quoted) YAML key string, e.g. ``RADIO`` or ``"MY-MOD"``.
+        module_id: The canonical module ID used to look up mandatory status.
+
+    Returns:
+        One line ``["  key: {}"]`` for mandatory modules, or two lines
+        ``["  key:", "    enable: true"]`` for optional ones.
+    """
+    if module_id in MANDATORY_MODULES:
+        return [f"  {yaml_key}: {{}}"]
+    return [f"  {yaml_key}:", "    enable: true"]
+
+
 #: Dependency graph: module_id → list of module IDs it requires.
 _MODULE_DEPS: dict[str, list[str]] = {
     # Core
@@ -888,11 +905,7 @@ def generate_mission_yaml_template(
         is_enabled = mid in enabled_set
         yaml_key = f'"{mid}"' if not re.match(r"^[A-Za-z_]\w*$", mid) else mid
         if is_enabled:
-            if mid in MANDATORY_MODULES:
-                lines.append(f"  {yaml_key}: {{}}")
-            else:
-                lines.append(f"  {yaml_key}:")
-                lines.append("    enable: true")
+            lines.extend(yaml_module_entry(yaml_key, mid))
             # Show init params example for known modules
             if mid in _MODULE_INIT_PARAMS:
                 lines.append("    # init:")

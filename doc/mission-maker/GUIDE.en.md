@@ -510,6 +510,39 @@ When VEAF wraps the initialisers it applies its own defaults: logging and a stan
 
 ---
 
+## DCS Bridge
+
+[VEAF-dcs-bridge](https://github.com/VEAF/VEAF-dcs-bridge) is an optional Lua module that opens a TCP socket between DCS World and an external server, enabling external control of the mission (Discord bots, dashboards, automation tools).
+
+### Enabling dcs-bridge.lua injection
+
+Add the following section to your `mission.yaml`:
+
+```yaml
+dcs_bridge:
+  enabled: true
+```
+
+At build time, `veaf-tools` automatically downloads `dcs-bridge.lua` from GitHub and injects it as the very first DO SCRIPT FILE trigger in the mission (before all VEAF scripts).
+
+### Using a local file
+
+If you have a local clone of `VEAF-dcs-bridge`, point directly to the file:
+
+```yaml
+dcs_bridge:
+  enabled: true
+  lua_path: /path/to/VEAF-dcs-bridge/src/lua/dcs-bridge.lua
+```
+
+The path can be absolute or relative to the mission folder.
+
+### Load order
+
+When `dcs_bridge` is enabled, the trigger is inserted at **position 1**, before all other VEAF triggers. dcs-bridge is therefore available at the earliest possible point in mission startup, before `veaf-scripts.lua` is loaded.
+
+---
+
 ## Debug Logging
 
 All VEAF scripts write to the DCS log file (`Saved Games\DCS\Logs\dcs.log`). Three log levels are available, each with its own loader script:

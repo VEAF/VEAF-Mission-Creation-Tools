@@ -188,15 +188,15 @@ def _parse_radio_settings_entries(content: str) -> list[_RadioEntry]:
             continue
 
         # Skip nested sub-tables (["Radio"], ["channels"], etc.) which lack type info
-        m_type = re.search(r'\btype\s*=\s*"([^"]+)"', block_text)
-        m_typepattern = re.search(r'\btypePattern\s*=\s*"([^"]+)"', block_text)
+        m_type = re.search(r'\btype\s*=\s*[\'"]([^\'"]+)[\'"]', block_text)
+        m_typepattern = re.search(r'\btypePattern\s*=\s*[\'"]([^\'"]+)[\'"]', block_text)
         if not m_type and not m_typepattern:
             continue
 
         aircraft = (m_type or m_typepattern).group(1)  # type: ignore[union-attr]
         is_pattern = m_typepattern is not None
 
-        m_coal = re.search(r'\bcoalition\s*=\s*"([^"]+)"', block_text)
+        m_coal = re.search(r'\bcoalition\s*=\s*[\'"]([^\'"]+)[\'"]', block_text)
         if not m_coal:
             continue
         coalition = m_coal.group(1).lower()

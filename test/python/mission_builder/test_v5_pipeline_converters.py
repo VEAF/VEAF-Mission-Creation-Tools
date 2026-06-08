@@ -599,6 +599,60 @@ radioSettings = {
         warns = convert_presets(v5, v6)
         self.assertTrue(any("AJS37" in w for w in warns))
 
+    def test_type_pattern_vhf_primary_assigned(self) -> None:
+        lua = self._lua("""
+radioSettings = {
+    ["blue VHF types"] = { typePattern = "F16.*", coalition = "blue", country = nil,
+        ["Radio"] = { [1] = { ["channels"] = { [1] = radioPresetsBlue["##RADIO2_01##"] } } }
+    },
+}
+""")
+        v5 = self._write_lua(lua)
+        v6 = self.tmp / "presets.yaml"
+        convert_presets(v5, v6)
+        data = yaml.safe_load(v6.read_text())
+        self.assertEqual(data["presets_assignments"]["blue"]["plane"].get("F16.*"), "blue_vhf_primary")
+        self.assertIn("blue_vhf_primary", data["presets_collection"]["blue_presets"])
+
+    def test_fm_only_aircraft_produces_no_assignment(self) -> None:
+        lua = (
+            'radioPresetsBlue = { ["##RADIO1_01##"] = 284.0, ["##RADIO2_01##"] = 134.0, ["##RADIO3_01##"] = 30.5 }\n'
+            'radioPresetsWarbirdBlue = { ["##RADIO_FuG16_01##"] = 38.4 }\n'
+            """
+radioSettings = {
+    ["blue UH1"] = { type = "UH-1H", coalition = "blue", country = nil,
+        ["Radio"] = { [1] = { ["channels"] = { [1] = radioPresetsBlue["##RADIO3_01##"] } } }
+    },
+}
+"""
+        )
+        v5 = self._write_lua(lua)
+        v6 = self.tmp / "presets.yaml"
+        convert_presets(v5, v6)
+        data = yaml.safe_load(v6.read_text())
+        heli = data["presets_assignments"]["blue"]["helicopter"]
+        plane = data["presets_assignments"]["blue"]["plane"]
+        self.assertNotIn("UH-1H", heli)
+        self.assertNotIn("UH-1H", plane)
+
+    def test_red_coalition_warbird_assigned(self) -> None:
+        lua = (
+            'radioPresetsRed = { ["##RADIO1_01##"] = 251.0, ["##RADIO2_01##"] = 127.0 }\n'
+            'radioPresetsWarbirdRed = { ["##RADIO_FuG16_01##"] = 38.4 }\n'
+            """
+radioSettings = {
+    ["red Bf109"] = { type = "Bf-109K-4", coalition = "red", country = nil,
+        ["Radio"] = { [1] = { ["channels"] = { [1] = radioPresetsWarbirdRed["##RADIO_FuG16_01##"] } } }
+    },
+}
+"""
+        )
+        v5 = self._write_lua(lua)
+        v6 = self.tmp / "presets.yaml"
+        convert_presets(v5, v6)
+        data = yaml.safe_load(v6.read_text())
+        self.assertEqual(data["presets_assignments"]["red"]["plane"].get("Bf-109K-4"), "red_warbird")
+
 
 class TestConvertAircraftGroups(unittest.TestCase):
     def setUp(self) -> None:

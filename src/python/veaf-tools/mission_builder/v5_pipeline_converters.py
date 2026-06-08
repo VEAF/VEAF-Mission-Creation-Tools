@@ -745,7 +745,9 @@ def convert_presets(v5_path: Path, v6_path: Path) -> list[str]:
             # FM-only or other — leave under the "all" fallback
             continue
 
-        presets_assignments[entry.coalition].setdefault("plane", {})[entry.aircraft] = target_preset
+        # radioSettings carries no plane/helicopter category — assign to both
+        for category in ("plane", "helicopter"):
+            presets_assignments[entry.coalition].setdefault(category, {})[entry.aircraft] = target_preset
 
     # Emit warbird warnings after processing all entries (so we know which were assigned)
     for coalition in ("blue", "red"):

@@ -499,8 +499,9 @@ radioSettings = {
         v6 = self.tmp / "presets.yaml"
         convert_presets(v5, v6)
         data = yaml.safe_load(v6.read_text())
-        assignments = data["presets_assignments"]["blue"]["plane"]
-        self.assertEqual(assignments.get("Bf-109K-4"), "blue_warbird")
+        # Assigned under both plane and helicopter (radioSettings carries no category info)
+        self.assertEqual(data["presets_assignments"]["blue"]["plane"].get("Bf-109K-4"), "blue_warbird")
+        self.assertEqual(data["presets_assignments"]["blue"]["helicopter"].get("Bf-109K-4"), "blue_warbird")
 
     def test_vhf_primary_aircraft_gets_vhf_primary_preset(self) -> None:
         lua = self._lua("""
@@ -567,6 +568,7 @@ radioSettings = {
         data = yaml.safe_load(v6.read_text())
         assignments = data["presets_assignments"]["blue"]["plane"]
         self.assertEqual(assignments.get("FW[-]190.*"), "blue_warbird")
+        self.assertEqual(data["presets_assignments"]["blue"]["helicopter"].get("FW[-]190.*"), "blue_warbird")
 
     def test_hardcoded_entry_emits_warning(self) -> None:
         lua = self._lua("""

@@ -123,23 +123,27 @@ class PresetsInjectorWorker(GroupInjectorWorker):
 
         # Emit one warning per unit_type, listing all affected groups together.
         if self._pending_freq_warnings:
+            warned_unit_types: dict[str, _PendingFreqWarning] = {}
             for unit_type, entry in self._pending_freq_warnings.items():
-                warn_invalid_channel_frequencies(
+                emitted = warn_invalid_channel_frequencies(
                     group_names=entry.group_names,
                     unit_type=unit_type,
                     channels=entry.channels,
                     coalition=entry.coalition,
                     aircraft_category=entry.aircraft_category,
                 )
-            yaml_lines = []
-            for unit_type, entry in self._pending_freq_warnings.items():
-                yaml_lines.extend([
-                    f"      {entry.coalition}:",
-                    f"        {entry.aircraft_category}:",
-                    f"          {unit_type}: none",
-                ])
-            yaml_block = "\n".join(yaml_lines)
-            logger.warning(t("presets_injector.freq_warn.disable_tip", yaml_block=yaml_block))
+                if emitted:
+                    warned_unit_types[unit_type] = entry
+            if warned_unit_types:
+                yaml_lines = []
+                for unit_type, entry in warned_unit_types.items():
+                    yaml_lines.extend([
+                        f"      {entry.coalition}:",
+                        f"        {entry.aircraft_category}:",
+                        f"          {unit_type}: none",
+                    ])
+                yaml_block = "\n".join(yaml_lines)
+                logger.warning(t("presets_injector.freq_warn.disable_tip", yaml_block=yaml_block))
             self._pending_freq_warnings.clear()
 
     def write_mission(self, silent: bool = False) -> None:

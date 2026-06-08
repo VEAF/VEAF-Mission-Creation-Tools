@@ -129,7 +129,7 @@ def warn_invalid_channel_frequencies(
     channels: list[ChannelFrequency],
     coalition: str = "blue",
     aircraft_category: str = "plane",
-) -> None:
+) -> bool:
     """Log an actionable warning for each channel whose frequency is invalid for unit_type.
 
     Emits a single warning per aircraft type, listing all affected groups together to avoid
@@ -144,11 +144,11 @@ def warn_invalid_channel_frequencies(
     """
     valid_ranges = get_valid_ranges(unit_type)
     if valid_ranges is None:
-        return
+        return False
 
     invalid_channels = [ch for ch in channels if not any(r.contains(ch.freq_mhz) for r in valid_ranges)]
     if not invalid_channels:
-        return
+        return False
 
     ranges_str = _format_ranges(valid_ranges)
     if len(group_names) == 1:
@@ -174,6 +174,7 @@ def warn_invalid_channel_frequencies(
         unit_type_key=unit_type_key,
     )
     logger.warning(f"{groups_label}\n{channel_lines}\n{footer}")
+    return True
 
 
 def warn_invalid_frequencies(group_name: str, unit_type: str, freqs_mhz: list[float]) -> None:

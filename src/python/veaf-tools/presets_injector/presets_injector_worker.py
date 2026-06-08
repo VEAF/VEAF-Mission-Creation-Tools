@@ -13,7 +13,13 @@ from veaf_libs.logger import logger
 from veaf_libs.progress import spinner_context
 
 from .presets_manager import PresetDefinition, PresetsManager
-from .radio_frequency_validator import ChannelFrequency, is_strict, warn_invalid_channel_frequencies
+from .radio_frequency_validator import (
+    ChannelFrequency,
+    FrequencyIssue,
+    collect_invalid_channel_frequencies,
+    is_strict,
+    warn_invalid_channel_frequencies,
+)
 
 
 @dataclass
@@ -144,6 +150,110 @@ class PresetsInjectorWorker(GroupInjectorWorker):
                 yaml_block = "\n".join(yaml_lines)
                 logger.warning(t("presets_injector.freq_warn.disable_tip", yaml_block=yaml_block))
             self._pending_freq_warnings.clear()
+
+    def collect_freq_issues(self) -> list[FrequencyIssue]:
+        """Collect ALL radio frequency issues across every pending aircraft type.
+
+        Unlike the normal warning path (which filters by dcs_rejects_on_load), this method
+        returns issues for every aircraft type that has at least one out-of-range channel,
+        regardless of whether DCS would actually reject the mission.
+
+        Returns:
+            List of FrequencyIssue, strict types first, then informational, both sorted by unit_type.
+        """
+        issues: list[FrequencyIssue] = []
+        for unit_type, entry in self._pending_freq_warnings.items():
+            issue = collect_invalid_channel_frequencies(
+                group_names=entry.group_names,
+                unit_type=unit_type,
+                channels=entry.channels,
+                coalition=entry.coalition,
+                aircraft_category=entry.aircraft_category,
+            )
+            if issue:
+                issues.append(issue)
+        return sorted(issues, key=lambda i: (not i.strict, i.unit_type))
+
+    def generate_validation_report(self, output_path: Path) -> int:
+        """Write a Markdown validation report of all radio frequency issues to output_path.
+
+        Reports every aircraft type with out-of-range preset frequencies, split into two sections:
+        - Critical (dcs_rejects_on_load): DCS will reject the mission at load.
+        - Informational: DCS stores but ignores the frequencies.
+
+        Args:
+            output_path: Destination .md file.
+
+        Returns:
+            Total number of issues found (0 means all presets are valid).
+        """
+        from datetime import date
+
+        issues = self.collect_freq_issues()
+        strict_issues = [i for i in issues if i.strict]
+        info_issues = [i for i in issues if not i.strict]
+
+        lines: list[str] = [
+            "# Radio Presets Frequency Validation Report",
+            "",
+            f"Generated: {date.today().isoformat()}  ",
+            f"Presets file: `{self.presets_file}`  ",
+            f"Mission: `{self.input_mission}`",
+            "",
+        ]
+
+        def _render_issue(issue: FrequencyIssue) -> list[str]:
+            groups_str = ", ".join(f"`{g}`" for g in issue.group_names)
+            ranges_str = ", ".join(f"{r.min_mhz}–{r.max_mhz} MHz ({r.modulation})" for r in issue.valid_ranges)
+            block = [
+                f"### {issue.unit_type}",
+                f"Groups: {groups_str}  ",
+                f"Valid ranges: {ranges_str}",
+                "",
+                "| Channel | Title | Frequency (MHz) | Collection | Radio |",
+                "|---------|-------|-----------------|------------|-------|",
+            ]
+            for ch in issue.invalid_channels:
+                block.append(f"| {ch.channel} | {ch.channel_title or '—'} | {ch.freq_mhz} | {ch.radio_collection} | {ch.radio_key} |")
+            block += [
+                "",
+                "**To silence:** add to `presets.yaml`:",
+                "```yaml",
+                "presets_assignments:",
+                f"  {issue.coalition}:",
+                f"    {issue.aircraft_category}:",
+                f"      {issue.unit_type}: none",
+                "```",
+                "",
+            ]
+            return block
+
+        if strict_issues:
+            lines += [
+                "## ⚠️ Critical — DCS will reject these at mission load",
+                "",
+                f"*{len(strict_issues)} aircraft type(s) affected.*",
+                "",
+            ]
+            for issue in strict_issues:
+                lines += _render_issue(issue)
+
+        if info_issues:
+            lines += [
+                "## ℹ️ Informational — DCS stores but ignores these frequencies",
+                "",
+                f"*{len(info_issues)} aircraft type(s) affected.*",
+                "",
+            ]
+            for issue in info_issues:
+                lines += _render_issue(issue)
+
+        if not issues:
+            lines += ["## ✅ All preset frequencies are valid for every aircraft type.", ""]
+
+        output_path.write_text("\n".join(lines), encoding="utf-8")
+        logger.info(t("presets_injector.validation_report.written", path=output_path, count=len(issues)))
+        return len(issues)
 
     def write_mission(self, silent: bool = False) -> None:
         """Write the mission file, including kneeboard pages if generated."""

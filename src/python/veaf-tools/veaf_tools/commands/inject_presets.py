@@ -29,6 +29,7 @@ def inject_presets(
     ),
     output_mission: str | None = typer.Argument(None, help=t("cmd.inject_presets.opt.output_mission")),
     presets_file: str = typer.Option(DEFAULT_PRESETS_FILE, help=t("cmd.inject_presets.opt.presets_file")),
+    validate_report: str | None = typer.Option(None, help=t("cmd.inject_presets.opt.validate_report")),
     pause: bool = typer.Option(False, help=PAUSE_HELP),
 ) -> None:
 
@@ -64,6 +65,10 @@ def inject_presets(
         presets_file=p_presets_file, input_mission=p_input_mission, output_mission=p_output_mission
     )
     worker.work()
+
+    if validate_report is not None:
+        report_path = resolve_path(path=validate_report, default_path=Path("presets-validation-report.md"))
+        worker.generate_validation_report(report_path)
 
     console.print(t("msg.work_done"))
     if pause:

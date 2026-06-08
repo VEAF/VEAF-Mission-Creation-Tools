@@ -318,6 +318,8 @@
   "cmd.inject_presets.opt.mission": "Nom de mission ; injectera dans la mission portant ce nom (fichier .miz le plus récent) ; peut être un fichier .miz.",
   "cmd.inject_presets.opt.output_mission": "Fichier de mission de sortie ; par défaut identique au fichier d'entrée.",
   "cmd.inject_presets.opt.presets_file": "Fichier de configuration contenant les préréglages radio.",
+  "cmd.inject_presets.opt.validate_report": "Enregistre un rapport Markdown de validation des fréquences dans ce fichier (signale TOUS les types d'appareils, pas seulement les critiques DCS).",
+  "presets_injector.validation_report.written": "Rapport de validation écrit dans {path} ({count} problème(s) trouvé(s)).",
 
   "cmd.prepare.opt.force": "Ne pas demander de confirmation avant de remplacer les fichiers existants (équivalent à appuyer sur A).",
 

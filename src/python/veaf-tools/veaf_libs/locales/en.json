@@ -316,6 +316,8 @@
   "cmd.inject_presets.opt.mission": "Mission name; will inject in the mission with this name (most recent .miz file); can be set to a .miz file.",
   "cmd.inject_presets.opt.output_mission": "Mission file to save; defaults to the same as input.",
   "cmd.inject_presets.opt.presets_file": "Configuration file containing the presets.",
+  "cmd.inject_presets.opt.validate_report": "Write a Markdown validation report of all frequency issues to this file (reports ALL aircraft types, not only DCS-critical ones).",
+  "presets_injector.validation_report.written": "Validation report written to {path} ({count} issue(s) found).",
 
   "cmd.prepare.opt.force": "Do not ask before replacing existing files (same as pressing A).",
 

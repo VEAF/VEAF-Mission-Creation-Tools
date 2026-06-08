@@ -199,6 +199,68 @@ def warn_invalid_channel_frequencies(
     return True
 
 
+@dataclass
+class FrequencyIssue:
+    """A single aircraft type with its invalid channels, suitable for a validation report.
+
+    Attributes:
+        unit_type: DCS unit type string.
+        group_names: Names of the DCS groups using this unit type.
+        invalid_channels: Channels whose frequency falls outside the aircraft's valid ranges.
+        valid_ranges: All valid frequency ranges for this aircraft.
+        coalition: Coalition of the groups.
+        aircraft_category: DCS aircraft category ("plane" or "helicopter").
+        strict: True if DCS will reject the mission at load for this aircraft.
+    """
+
+    unit_type: str
+    group_names: list[str]
+    invalid_channels: list[ChannelFrequency]
+    valid_ranges: list[FrequencyRange]
+    coalition: str
+    aircraft_category: str
+    strict: bool
+
+
+def collect_invalid_channel_frequencies(
+    group_names: list[str],
+    unit_type: str,
+    channels: list[ChannelFrequency],
+    coalition: str = "blue",
+    aircraft_category: str = "plane",
+) -> FrequencyIssue | None:
+    """Return a FrequencyIssue for channels that are out-of-range for unit_type, or None if all valid.
+
+    Unlike warn_invalid_channel_frequencies, this function does not log anything — it returns
+    structured data for use in validation reports.
+
+    Args:
+        group_names: Names of the DCS groups using this unit type.
+        unit_type: DCS unit type string.
+        channels: All channel frequencies to check.
+        coalition: Coalition of the groups.
+        aircraft_category: DCS aircraft category.
+
+    Returns:
+        A FrequencyIssue if any channel is out-of-range, None otherwise (or if unit type unknown).
+    """
+    valid_ranges = get_valid_ranges(unit_type)
+    if valid_ranges is None:
+        return None
+    invalid_channels = [ch for ch in channels if not any(r.contains(ch.freq_mhz) for r in valid_ranges)]
+    if not invalid_channels:
+        return None
+    return FrequencyIssue(
+        unit_type=unit_type,
+        group_names=group_names,
+        invalid_channels=invalid_channels,
+        valid_ranges=valid_ranges,
+        coalition=coalition,
+        aircraft_category=aircraft_category,
+        strict=is_strict(unit_type),
+    )
+
+
 def warn_invalid_frequencies(group_name: str, unit_type: str, freqs_mhz: list[float]) -> None:
     """Log a warning for each frequency in freqs_mhz that is invalid for unit_type.
 

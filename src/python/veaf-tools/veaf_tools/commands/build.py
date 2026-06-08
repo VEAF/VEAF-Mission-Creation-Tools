@@ -154,11 +154,16 @@ def build(
     if presets_path:
         logger.info(t("pipeline.injecting_presets", path=presets_path))
         console.print(t("pipeline.console.presets", file=presets_path.name))
-        PresetsInjectorWorker(
+        presets_worker = PresetsInjectorWorker(
             presets_file=presets_path,
             input_mission=p_output_mission,
             output_mission=p_output_mission,
-        ).work()
+        )
+        presets_worker.work()
+        report_path = p_mission_folder / "presets-validation-report.md"
+        issue_count = presets_worker.generate_validation_report(report_path)
+        if issue_count == 0 and report_path.exists():
+            report_path.unlink()
 
     waypoints_path = _step_file("waypoints", "src/waypoints.yaml", "waypoints.yaml")
     if waypoints_path:

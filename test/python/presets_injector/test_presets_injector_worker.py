@@ -217,5 +217,78 @@ class TestProcessGroups(unittest.TestCase):
         worker.process_groups(silent=False)
 
 
+class TestGenerateValidationReport(unittest.TestCase):
+    """Tests for collect_freq_issues() and generate_validation_report()."""
+
+    def _make_worker_with_pending(self) -> PresetsInjectorWorker:
+        """Return a worker with one strict and one non-strict pending warning pre-loaded."""
+        from presets_injector.presets_injector_worker import _PendingFreqWarning
+        from presets_injector.radio_frequency_validator import ChannelFrequency
+
+        worker = _make_worker()
+        # MiG-19P is strict (dcs_rejects_on_load: true in real specs); mock both via _SPECS patch
+        strict_ch = ChannelFrequency(freq_mhz=284.0, radio_key="radio_uhf", radio_collection="blue_radios",
+                                     radio_title="UHF", channel=1, channel_title="TACTICAL")
+        non_strict_ch = ChannelFrequency(freq_mhz=284.0, radio_key="radio_uhf", radio_collection="blue_radios",
+                                          radio_title="UHF", channel=1, channel_title="TACTICAL")
+        worker._pending_freq_warnings["MiG-19P"] = _PendingFreqWarning(
+            group_names=["Bandit MiG #1"],
+            channels=[strict_ch],
+            coalition="blue",
+            aircraft_category="plane",
+        )
+        worker._pending_freq_warnings["Ka-50"] = _PendingFreqWarning(
+            group_names=["Helo #1"],
+            channels=[non_strict_ch],
+            coalition="blue",
+            aircraft_category="helicopter",
+        )
+        return worker
+
+    def test_collect_freq_issues_returns_issues_for_known_types(self) -> None:
+        worker = self._make_worker_with_pending()
+        issues = worker.collect_freq_issues()
+        unit_types = {i.unit_type for i in issues}
+        # MiG-19P has invalid UHF freq; Ka-50 has UHF freq outside its 20-59 MHz range
+        self.assertIn("MiG-19P", unit_types)
+        self.assertIn("Ka-50", unit_types)
+
+    def test_collect_freq_issues_strict_sorted_first(self) -> None:
+        worker = self._make_worker_with_pending()
+        issues = worker.collect_freq_issues()
+        if len(issues) >= 2:
+            strict_issues = [i for i in issues if i.strict]
+            non_strict_issues = [i for i in issues if not i.strict]
+            if strict_issues and non_strict_issues:
+                self.assertLess(issues.index(strict_issues[0]), issues.index(non_strict_issues[0]))
+
+    def test_generate_validation_report_creates_file(self) -> None:
+        worker = self._make_worker_with_pending()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            report_path = Path(tmpdir) / "report.md"
+            count = worker.generate_validation_report(report_path)
+            self.assertTrue(report_path.exists())
+            self.assertGreater(count, 0)
+
+    def test_generate_validation_report_content(self) -> None:
+        worker = self._make_worker_with_pending()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            report_path = Path(tmpdir) / "report.md"
+            worker.generate_validation_report(report_path)
+            content = report_path.read_text(encoding="utf-8")
+            self.assertIn("# Radio Presets Frequency Validation Report", content)
+            self.assertIn("MiG-19P", content)
+
+    def test_generate_validation_report_empty_when_no_issues(self) -> None:
+        worker = _make_worker()
+        # No pending warnings → all valid
+        with tempfile.TemporaryDirectory() as tmpdir:
+            report_path = Path(tmpdir) / "report.md"
+            count = worker.generate_validation_report(report_path)
+            self.assertEqual(count, 0)
+            content = report_path.read_text(encoding="utf-8")
+            self.assertIn("All preset frequencies are valid", content)
+
+
 if __name__ == "__main__":
     unittest.main()

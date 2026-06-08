@@ -16,6 +16,7 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.text import Text
 from veaf_libs.base_worker import BaseWorker
+from veaf_libs.i18n import t
 from veaf_libs.logger import logger
 from veaf_libs.progress import spinner_context
 
@@ -458,7 +459,7 @@ class AircraftGroupsInjectorWorker(BaseWorker):
             Tuple of (is_valid, report_text)
         """
         if not silent:
-            logger.info(f"Validating YAML file {self.input_yaml}")
+            logger.info(t("aircraft_injector.validating_yaml", path=self.input_yaml))
 
         self.validator = AircraftGroupsYAMLValidator(self.input_yaml)
         is_valid, errors = self.validator.validate()
@@ -466,9 +467,9 @@ class AircraftGroupsInjectorWorker(BaseWorker):
 
         if not silent:
             if is_valid:
-                logger.info("YAML validation successful")
+                logger.info(t("aircraft_injector.yaml_valid"))
             else:
-                logger.warning("YAML validation failed")
+                logger.warning(t("aircraft_injector.yaml_invalid"))
 
         return is_valid, report
 
@@ -484,24 +485,24 @@ class AircraftGroupsInjectorWorker(BaseWorker):
         """
         try:
             if not silent:
-                logger.info(f"Loading YAML file {self.input_yaml}")
+                logger.info(t("aircraft_injector.loading_yaml", path=self.input_yaml))
 
             with open(self.input_yaml, encoding="utf-8") as f:
                 self.yaml_data = yaml.safe_load(f)
 
             if self.yaml_data is None:
-                logger.error("YAML file is empty", exception_type=ValueError)
+                logger.error(t("aircraft_injector.yaml_empty"), exception_type=ValueError)
                 return False
 
             if not silent:
-                logger.info("YAML file loaded successfully")
+                logger.info(t("aircraft_injector.yaml_loaded"))
             return True
 
         except FileNotFoundError:
-            logger.error(f"YAML file not found: {self.input_yaml}", exception_type=FileNotFoundError)
+            logger.error(t("aircraft_injector.yaml_not_found", path=self.input_yaml), exception_type=FileNotFoundError)
             return False
         except Exception as e:
-            logger.error(f"Failed to load YAML file: {str(e)}", exception_type=type(e))
+            logger.error(t("aircraft_injector.yaml_load_failed", error=str(e)), exception_type=type(e))
             return False
 
     def read_mission(self, silent: bool = False) -> bool:
@@ -516,20 +517,20 @@ class AircraftGroupsInjectorWorker(BaseWorker):
         """
         try:
             if not silent:
-                logger.info(f"Reading mission file {self.target_mission}")
+                logger.info(t("aircraft_injector.reading_mission", path=self.target_mission))
 
             self.dcs_mission = read_miz(self.target_mission)
 
             if not self.dcs_mission.mission_content:
-                logger.error("Failed to read mission content", exception_type=ValueError)
+                logger.error(t("aircraft_injector.mission_read_error"), exception_type=ValueError)
                 return False
 
             if not silent:
-                logger.info("Mission file loaded successfully")
+                logger.info(t("aircraft_injector.mission_loaded"))
             return True
 
         except Exception as e:
-            logger.error(f"Failed to read mission file: {str(e)}", exception_type=type(e))
+            logger.error(t("aircraft_injector.mission_read_failed", error=str(e)), exception_type=type(e))
             return False
 
     def _get_or_create_coalition_structure(self, coalition_name: str) -> dict:
@@ -749,21 +750,21 @@ class AircraftGroupsInjectorWorker(BaseWorker):
             True if writing succeeded, False otherwise
         """
         if not self.dcs_mission:
-            logger.error("No mission to write", exception_type=ValueError)
+            logger.error(t("aircraft_injector.no_mission_to_write"), exception_type=ValueError)
             return False
 
         try:
             if not silent:
-                logger.info(f"Writing modified mission to {self.output_mission}")
+                logger.info(t("aircraft_injector.writing_mission", path=self.output_mission))
 
             write_miz(self.dcs_mission, Path(self.output_mission))
 
             if not silent:
-                logger.info("Mission written successfully")
+                logger.info(t("aircraft_injector.mission_written"))
             return True
 
         except Exception as e:
-            logger.error(f"Failed to write mission: {str(e)}", exception_type=type(e))
+            logger.error(t("aircraft_injector.mission_write_failed", error=str(e)), exception_type=type(e))
             return False
 
     def inject(self, mode: str = "add", silent: bool = False, interactive: bool = False) -> InjectionResult:
@@ -905,11 +906,11 @@ class AircraftGroupsExtractorWorker(BaseWorker):
     def read_lua_file(self, silent: bool = False) -> None:
         """Load and parse aircraft groups from a Lua settings file."""
         if not self.input_lua:
-            logger.error("No Lua file specified", exception_type=ValueError)
+            logger.error(t("aircraft_injector.no_lua_file"), exception_type=ValueError)
             return
 
         if not silent:
-            logger.info(f"Reading Lua file {self.input_lua}")
+            logger.info(t("aircraft_injector.reading_lua", path=self.input_lua))
 
         try:
             # Read and parse the Lua file
@@ -921,13 +922,13 @@ class AircraftGroupsExtractorWorker(BaseWorker):
             self.lua_data = result if isinstance(result, dict) else None
 
             if not self.lua_data:
-                logger.error("Failed to parse Lua file content", exception_type=ValueError)
+                logger.error(t("aircraft_injector.lua_parse_failed"), exception_type=ValueError)
                 return
 
             if not silent:
-                logger.info(f"Successfully parsed Lua file {self.input_lua}")
+                logger.info(t("aircraft_injector.lua_parsed", path=self.input_lua))
         except Exception as e:
-            logger.error(f"Failed to read Lua file: {str(e)}", exception_type=IOError)
+            logger.error(t("aircraft_injector.lua_read_failed", error=str(e)), exception_type=IOError)
 
     def _convert_lua_to_mission_structure(self) -> None:
         """
@@ -940,7 +941,7 @@ class AircraftGroupsExtractorWorker(BaseWorker):
         so lua_data already contains 'categories' at the top level.
         """
         if not self.lua_data:
-            logger.error("No Lua data loaded", exception_type=RuntimeError)
+            logger.error(t("aircraft_injector.no_lua_data"), exception_type=RuntimeError)
             return
 
         # Create a mock DCS mission structure from Lua data
@@ -951,7 +952,7 @@ class AircraftGroupsExtractorWorker(BaseWorker):
         # since luadata.unserialize() extracts the assigned value
         categories = self.lua_data.get("categories", {})
         if not categories:
-            logger.error("No 'categories' found in Lua data", exception_type=ValueError)
+            logger.error(t("aircraft_injector.no_categories"), exception_type=ValueError)
             return
 
         for category_type, category_data in categories.items():
@@ -1010,26 +1011,26 @@ class AircraftGroupsExtractorWorker(BaseWorker):
         else:
             # Original .miz file reading logic
             if not silent:
-                logger.info(f"Reading mission file {self.input_mission}")
+                logger.info(t("aircraft_injector.reading_mission", path=self.input_mission))
             assert self.input_mission is not None
             self.dcs_mission = read_miz(self.input_mission)
 
             if not self.dcs_mission.mission_content:
-                logger.error("Failed to read mission content", exception_type=ValueError)
+                logger.error(t("aircraft_injector.mission_read_error"), exception_type=ValueError)
 
     def find_matching_groups(self, silent: bool = False) -> None:
         """Find all plane groups matching the pattern and store them for selection."""
         if not self.dcs_mission:
-            logger.error("Mission not loaded. Call read_mission() first.", exception_type=RuntimeError)
+            logger.error(t("aircraft_injector.mission_not_loaded"), exception_type=RuntimeError)
             return
 
         if not self.dcs_mission.mission_content:
-            logger.warning("No mission content loaded")
+            logger.warning(t("aircraft_injector.no_mission_content"))
             return
 
         coalitions_dict = self.dcs_mission.mission_content.get("coalition")
         if not coalitions_dict:
-            logger.warning("No coalitions found in mission")
+            logger.warning(t("aircraft_injector.no_coalitions"))
             return
 
         matched_count = 0
@@ -1085,7 +1086,7 @@ class AircraftGroupsExtractorWorker(BaseWorker):
                             }
 
         if not silent:
-            logger.info(f"Found {matched_count} matching group(s)")
+            logger.info(t("aircraft_injector.groups_matched", count=matched_count))
 
     def select_groups_interactively(self) -> int:
         """
@@ -1095,7 +1096,7 @@ class AircraftGroupsExtractorWorker(BaseWorker):
             Number of groups selected
         """
         if not self.matched_groups:
-            logger.warning("No groups found to select from")
+            logger.warning(t("aircraft_injector.no_groups_to_select"))
             return 0
 
         # Display header with style
@@ -1186,7 +1187,7 @@ class AircraftGroupsExtractorWorker(BaseWorker):
     def extract_plane_groups(self, silent: bool = False) -> None:
         """Extract plane groups matching the pattern (non-interactive mode)."""
         if not self.dcs_mission:
-            logger.error("Mission not loaded. Call read_mission() first.", exception_type=RuntimeError)
+            logger.error(t("aircraft_injector.mission_not_loaded"), exception_type=RuntimeError)
             return
 
         self.find_matching_groups(silent)
@@ -1260,7 +1261,7 @@ class AircraftGroupsExtractorWorker(BaseWorker):
         """Write the extracted templates to a YAML file."""
         assert self.output_yaml is not None
         if not silent:
-            logger.info(f"Writing extracted templates to {self.output_yaml}")
+            logger.info(t("aircraft_injector.writing_templates", path=self.output_yaml))
 
         try:
             # Create output directory if it doesn't exist
@@ -1272,9 +1273,9 @@ class AircraftGroupsExtractorWorker(BaseWorker):
                 )
 
             if not silent:
-                logger.info(f"Successfully wrote templates to {self.output_yaml}")
+                logger.info(t("aircraft_injector.templates_written", path=self.output_yaml))
         except Exception as e:
-            logger.error(f"Failed to write YAML file: {str(e)}", exception_type=IOError)
+            logger.error(t("aircraft_injector.templates_write_failed", error=str(e)), exception_type=IOError)
 
     def extract(self, silent: bool = False, interactive: bool = False) -> None:
         """
@@ -1315,7 +1316,7 @@ class AircraftGroupsExtractorWorker(BaseWorker):
             warning_text = Text("[!] No Groups Extracted", style="bold bright_yellow")
             warning_text.append("\nNo groups were selected for extraction.", style="yellow")
             console.print(Panel(warning_text, border_style="yellow", padding=(1, 2)))
-            logger.warning("No groups were extracted - file was not created")
+            logger.warning(t("aircraft_injector.no_groups_extracted"))
             return
 
         with spinner_context("Writing templates...", silent=silent):

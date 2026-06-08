@@ -103,17 +103,17 @@ class MissionBuilderWorker(BaseWorker):
         # Extract lua_modules and global_log_level from yaml
         lua_modules: dict | None = self.mission_yaml.get("lua_modules") or None
         if lua_modules:
-            logger.info(f"Found lua_modules section in {mission_yaml_path}; will generate veaf-config.lua")
+            logger.info(t("builder.lua_modules_found", path=mission_yaml_path))
         global_log_level: str | None = self.mission_yaml.get("global_log_level") or None
         if global_log_level:
-            logger.info(f"Found global_log_level={global_log_level!r} in {mission_yaml_path}")
+            logger.info(t("builder.log_level_found", level=global_log_level, path=mission_yaml_path))
 
         # Resolve dev_mode: CLI override > mission.yaml > default
         self.dev_mode: bool = (
             dev_mode_override if dev_mode_override is not None else bool(build_cfg.get("dev_mode", False))
         )
         if self.dev_mode:
-            logger.info("Dev mode: VEAF scripts resolved from local dev repo (build/veaf-scripts.lua)")
+            logger.info(t("builder.dev_mode_active"))
 
         # Resolve scripts_path: CLI override > mission.yaml > user config
         _uc_sp = _user_config.get_scripts_path()
@@ -125,7 +125,9 @@ class MissionBuilderWorker(BaseWorker):
         if effective_scripts_path_str:
             self.scripts_path: Path | None = resolve_path(path=effective_scripts_path_str, should_exist=True)
             if not self.scripts_path.exists():
-                logger.error(f"Scripts folder {self.scripts_path} does not exist!", exception_type=FileNotFoundError)
+                logger.error(
+                    t("builder.scripts_folder_missing", path=self.scripts_path), exception_type=FileNotFoundError
+                )
         else:
             self.scripts_path = None
 
@@ -141,7 +143,7 @@ class MissionBuilderWorker(BaseWorker):
             keep_modules = {m.strip() for m in log_modules_filter.split(",") if m.strip()}
             all_module_ids = {m["id"] for m in get_modules()}
             if unknown := keep_modules - all_module_ids:
-                logger.warning(f"--log-modules: unknown module ID(s): {sorted(unknown)} — check spelling")
+                logger.warning(t("builder.unknown_module_ids", ids=sorted(unknown)))
             lua_modules = lua_modules or {}
             for mod_id in all_module_ids:
                 if mod_id not in keep_modules:
@@ -208,7 +210,7 @@ class MissionBuilderWorker(BaseWorker):
             self.enabled_community_script_ids = set(all_ids)
             for script_id, script_cfg in comm_raw.items():
                 if script_id not in all_ids:
-                    logger.warning(f"Unknown community script id {script_id!r} in 'community_scripts:'; ignoring.")
+                    logger.warning(t("builder.unknown_community_script", id=script_id))
                     continue
                 enabled = True
                 if isinstance(script_cfg, dict):
@@ -253,7 +255,7 @@ class MissionBuilderWorker(BaseWorker):
         )
 
         if len(self.collected_veaf_script_files) < 1:
-            logger.error(f"VEAF scripts file not found at {expected_path}")
+            logger.error(t("builder.scripts_not_found", path=expected_path))
 
         return self.collected_veaf_script_files
 
@@ -351,7 +353,7 @@ class MissionBuilderWorker(BaseWorker):
             return p
 
         # Auto-download from GitHub
-        logger.info(f"dcs_bridge: downloading dcs-bridge.lua from {_DCS_BRIDGE_DOWNLOAD_URL}")
+        logger.info(t("builder.dcs_bridge_downloading", url=_DCS_BRIDGE_DOWNLOAD_URL))
         try:
             with urllib.request.urlopen(_DCS_BRIDGE_DOWNLOAD_URL) as resp:
                 content: bytes = resp.read()
@@ -482,7 +484,7 @@ class MissionBuilderWorker(BaseWorker):
                 relative_path = self.mission_folder / relative_path / f.name
                 if not relative_path.exists():
                     relative_path.parent.mkdir(parents=True, exist_ok=True)
-                    logger.warning(f"Copied required file '{relative_path}' from default folder '{defaults_folder}'")
+                    logger.warning(t("builder.copied_from_defaults", file=relative_path, folder=defaults_folder))
                     shutil.copy(f, relative_path)
 
         # OLDSCRIPTS-002: warn about unexpected .lua files in src/scripts/
@@ -542,7 +544,7 @@ class MissionBuilderWorker(BaseWorker):
                 message = f"These components are missing from '{self.mission_folder / 'src'}': {', '.join([f"'{item}'" for item in self.dcs_mission.missing_components])}; they are mandatory in a DCS mission!"
                 logger.error(message=message, exception_type=RuntimeError)
         except KeyError:
-            logger.error(f"An error occured while reading the {self.output_mission} file; is this a valid DCS mission?")
+            logger.error(t("builder.mission_read_error", path=self.output_mission))
             raise
 
     def clear_veaf_triggers(self) -> None:
@@ -1109,7 +1111,7 @@ class MissionBuilderWorker(BaseWorker):
         config_file = scripts_dir / "veaf-config.lua"
         content = generate_config_lua(yaml_dict)
         config_file.write_text(content, encoding="utf-8")
-        logger.info(f"Generated '{config_file}' from mission.yaml")
+        logger.info(t("builder.veaf_config_generated", file=config_file))
 
     def work(self, silent: bool = False) -> Path:
         """Main work function."""

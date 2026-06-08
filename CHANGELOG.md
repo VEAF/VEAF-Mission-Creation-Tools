@@ -10,6 +10,7 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- i18n coverage: all log messages in `mission_builder_worker.py`, `aircrafts_injector_worker.py`, and `waypoints_manager.py` now use `t()` — no more hardcoded English strings; matching French translations added to `fr.json`; tests verify all `t()` keys exist in `en.json` and that `fr.json` covers every `en.json` key
 - Klogg highlight profile for DCS logs added to `tools/klogg/veaf.conf`; GUIDE.md and GUIDE.en.md updated to reference it
 - `community_scripts:` section in `mission.yaml`: individually enable/disable community Lua scripts (MIST, CTLD, CSAR, etc.) — absent section keeps all scripts active
 - `convert-v5`: generated `mission.yaml` now includes a `community_scripts:` section pre-populated from scripts detected in `published/src/scripts/community/`

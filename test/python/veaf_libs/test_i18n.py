@@ -266,5 +266,52 @@ class TestDetectLangLocaleRaises(unittest.TestCase):
         self.assertEqual(lang, "fr")
 
 
+class TestI18nKeyCoverage(unittest.TestCase):
+    """COV-001: every t("key") call in src/python references a key in en.json."""
+
+    def test_all_used_keys_exist_in_en(self) -> None:
+        import ast
+        import json
+        from pathlib import Path
+
+        src = Path(__file__).parents[3] / "src" / "python" / "veaf-tools"
+        en_path = src / "veaf_libs" / "locales" / "en.json"
+        en_keys = set(json.loads(en_path.read_text(encoding="utf-8")).keys())
+
+        used_keys: set[str] = set()
+        for f in src.rglob("*.py"):
+            try:
+                tree = ast.parse(f.read_text(encoding="utf-8"))
+            except SyntaxError:
+                continue
+            for node in ast.walk(tree):
+                if not isinstance(node, ast.Call):
+                    continue
+                func = node.func
+                is_t = (isinstance(func, ast.Name) and func.id == "t") or (
+                    isinstance(func, ast.Attribute) and func.attr == "t"
+                )
+                if is_t and node.args and isinstance(node.args[0], ast.Constant):
+                    used_keys.add(node.args[0].value)
+
+        missing = sorted(used_keys - en_keys)
+        self.assertEqual(missing, [], f"t() keys not in en.json: {missing}")
+
+
+class TestI18nFrenchCoverage(unittest.TestCase):
+    """COV-002: every key in en.json has a non-empty entry in fr.json."""
+
+    def test_all_en_keys_present_in_fr(self) -> None:
+        import json
+        from pathlib import Path
+
+        locales = Path(__file__).parents[3] / "src" / "python" / "veaf-tools" / "veaf_libs" / "locales"
+        en = json.loads((locales / "en.json").read_text(encoding="utf-8"))
+        fr = json.loads((locales / "fr.json").read_text(encoding="utf-8"))
+
+        missing = sorted(k for k in en if k not in fr or not fr[k])
+        self.assertEqual(missing, [], f"Keys missing or empty in fr.json: {missing}")
+
+
 if __name__ == "__main__":
     unittest.main()

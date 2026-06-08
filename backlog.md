@@ -76,7 +76,8 @@
 | Lot FIX-MANDATORY-YAML — YAML generators: emit `{}` for mandatory modules instead of `enable: true` | ~35 min | [archived](backlog-archive.md) |
 | Lot CMT-YAML-DOCS — doc comments and links in generated `mission.yaml` files | ~45 min | [archived](backlog-archive.md) |
 | Lot FIX-AIRCRAFT-DUPLICATE — Duplicate aircraft groups in "add" injection mode | ~20 min | [archived](backlog-archive.md) |
-| **Total** | **~178h45** | |
+| Lot FIX-I18N-CONVERT-V5 — Hardcoded English messages in convert-v5 | ~30 min | ✅ |
+| **Total** | **~179h15** | |
 
 *Initial calibration factor: 1.15 — recalculate after each completed lot.*
 

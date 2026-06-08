@@ -135,6 +135,22 @@ presets_assignments:
       all: blue_default
 ```
 
+### Validation des fréquences
+
+Lors de l'injection, chaque fréquence assignée à un aéronef est vérifiée par rapport aux spécifications matérielles de ses radios. Si une fréquence est hors de toutes les plages valides, un avertissement est émis :
+
+```
+WARNING: Group 'Bassel MiG-19 #1' (MiG-19P): frequency 284.0 MHz is outside all valid radio
+ranges for this aircraft — DCS will reject it at mission load.
+```
+
+La vérification est **non bloquante** : la mission est quand même écrite, mais la fréquence invalide provoquera une erreur DCS au chargement (typiquement `Invalid frequency X MHz`).
+
+Les specs couvrent 85 aéronefs pilotables et sont issues de [dcs-lua-datamine](https://github.com/Quaggles/dcs-lua-datamine). Si un aéronef n'est pas dans la base, la vérification est silencieusement ignorée.
+
+> **Voir aussi** : [`doc/mission-maker/dcs-radio-specs.md`](dcs-radio-specs.md) — table de référence complète des plages de fréquences valides par aéronef.  
+> Pour régénérer après une mise à jour DCS : `python scripts/extract_dcs_radio_specs.py`
+
 ---
 
 ## Étape 2 — Points de cheminement (`waypoints.yaml`)

@@ -137,6 +137,22 @@ presets_assignments:
       all: blue_default
 ```
 
+### Frequency validation
+
+At injection time, every frequency assigned to an aircraft is checked against the hardware specs of that aircraft's radios. If a frequency falls outside all valid ranges, a warning is emitted:
+
+```
+WARNING: Group 'Bassel MiG-19 #1' (MiG-19P): frequency 284.0 MHz is outside all valid radio
+ranges for this aircraft — DCS will reject it at mission load.
+```
+
+The check is **non-blocking**: the mission is still written, but the invalid frequency will cause a DCS error when the mission loads (typically `Invalid frequency X MHz`).
+
+Specs cover 85 player-flyable aircraft and are sourced from [dcs-lua-datamine](https://github.com/Quaggles/dcs-lua-datamine). If an aircraft is not in the database the check is silently skipped.
+
+> **See also**: [`doc/mission-maker/dcs-radio-specs.md`](dcs-radio-specs.md) — full reference table of valid frequency ranges per aircraft.  
+> To regenerate after a DCS update: `python scripts/extract_dcs_radio_specs.py`
+
 ---
 
 ## Step 2 — Waypoints (`waypoints.yaml`)

@@ -203,6 +203,21 @@
 #     - path: src/scripts/FgTools.lua
 #       generate_load_trigger: false  # override: loaded manually from mission-script.lua
 
+# ── Community scripts ─────────────────────────────────────────────────────────
+# Set enabled: false to exclude a community script from the built mission.
+# All scripts are enabled by default when this section is absent.
+#
+# community_scripts:
+#   mist:         { enabled: true }   # MIST (Mission Scripting Tools)
+#   stts:         { enabled: true }   # DCS-SimpleTextToSpeech
+#   weathermark:  { enabled: true }   # WeatherMark
+#   ctld:         { enabled: true }   # CTLD (Combined Arms Transport & Logistics Dispatcher)
+#   aien:         { enabled: true }   # AIEN (AI Enhancement)
+#   csar:         { enabled: true }   # CSAR (Combat Search and Rescue)
+#   hercules:     { enabled: true }   # Hercules Cargo
+#   skynet:       { enabled: true }   # Skynet IADS
+#   tum:          { enabled: true }   # The Universal Mission (TUM)
+
 # ── Build pipeline ────────────────────────────────────────────────────────────
 # Controls which optional injection steps run after the base build.
 # By default each step is auto-detected: it runs if its config file is found.

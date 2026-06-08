@@ -13,20 +13,28 @@ def get_legacy_script_files() -> list[tuple[str, str]]:
     ]
 
 
-def get_community_script_files() -> list[tuple[str, str]]:
-    """Get list of community LUA files. Those can be in published or in the scripts folder, depending on the --dynamic-mode option"""
+def get_community_script_files() -> list[dict[str, str]]:
+    """Get list of community LUA files.
+
+    Each entry is a dict with keys:
+        - ``id``: stable identifier used in ``community_scripts:`` section of ``mission.yaml``
+        - ``path``: source path relative to the scripts root
+        - ``dest``: destination location inside the ``.miz`` archive
+
+    Returns:
+        List of community script descriptors.
+    """
 
     return [
-        # The community scripts
-        ("src/scripts/community/mist.lua", DEFAULT_SCRIPTS_LOCATION),
-        ("src/scripts/community/DCS-SimpleTextToSpeech.lua", DEFAULT_SCRIPTS_LOCATION),
-        ("src/scripts/community/WeatherMark.lua", DEFAULT_SCRIPTS_LOCATION),
-        ("src/scripts/community/CTLD.lua", DEFAULT_SCRIPTS_LOCATION),
-        ("src/scripts/community/AIEN.lua", DEFAULT_SCRIPTS_LOCATION),
-        ("src/scripts/community/CSAR.lua", DEFAULT_SCRIPTS_LOCATION),
-        ("src/scripts/community/Hercules_Cargo.lua", DEFAULT_SCRIPTS_LOCATION),
-        ("src/scripts/community/skynet-iads-compiled.lua", DEFAULT_SCRIPTS_LOCATION),
-        ("src/scripts/community/TheUniversalMission.lua", DEFAULT_SCRIPTS_LOCATION),
+        {"id": "mist", "path": "src/scripts/community/mist.lua", "dest": DEFAULT_SCRIPTS_LOCATION},
+        {"id": "stts", "path": "src/scripts/community/DCS-SimpleTextToSpeech.lua", "dest": DEFAULT_SCRIPTS_LOCATION},
+        {"id": "weathermark", "path": "src/scripts/community/WeatherMark.lua", "dest": DEFAULT_SCRIPTS_LOCATION},
+        {"id": "ctld", "path": "src/scripts/community/CTLD.lua", "dest": DEFAULT_SCRIPTS_LOCATION},
+        {"id": "aien", "path": "src/scripts/community/AIEN.lua", "dest": DEFAULT_SCRIPTS_LOCATION},
+        {"id": "csar", "path": "src/scripts/community/CSAR.lua", "dest": DEFAULT_SCRIPTS_LOCATION},
+        {"id": "hercules", "path": "src/scripts/community/Hercules_Cargo.lua", "dest": DEFAULT_SCRIPTS_LOCATION},
+        {"id": "skynet", "path": "src/scripts/community/skynet-iads-compiled.lua", "dest": DEFAULT_SCRIPTS_LOCATION},
+        {"id": "tum", "path": "src/scripts/community/TheUniversalMission.lua", "dest": DEFAULT_SCRIPTS_LOCATION},
     ]
 
 

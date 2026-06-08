@@ -11,6 +11,7 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 - Klogg highlight profile for DCS logs added to `tools/klogg/veaf.conf`; GUIDE.md and GUIDE.en.md updated to reference it
+- `community_scripts:` section in `mission.yaml`: individually enable/disable community Lua scripts (MIST, CTLD, CSAR, etc.) — absent section keeps all scripts active
 
 ### Fixed
 - `presets inject`: `presets_assignments` keys now support regex patterns (e.g. `A[-]10C.*`, `FW[-]190.*`) — exact match takes priority, then pattern, then `all` fallback

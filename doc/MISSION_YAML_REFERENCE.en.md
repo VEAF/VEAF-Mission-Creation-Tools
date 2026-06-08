@@ -299,6 +299,39 @@ See the respective module pages for full schema:
 
 ---
 
+### `community_scripts:`
+
+Allows enabling or disabling individual community Lua scripts (MIST, CTLD, CSAR, etc.) injected into the mission. When this section is absent, **all** community scripts are included.
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `<id>.enabled` | `bool` | `true` | Enables (`true`) or disables (`false`) the script identified by `<id>` |
+
+**Available identifiers**
+
+| ID | Script |
+|----|--------|
+| `mist` | MIST (Mission Scripting Tools) |
+| `stts` | DCS-SimpleTextToSpeech |
+| `weathermark` | WeatherMark |
+| `ctld` | CTLD (Combat Transport & Logistics Dispatcher) |
+| `aien` | AIEN (AI Enhancement) |
+| `csar` | CSAR (Combat Search and Rescue) |
+| `hercules` | Hercules Cargo |
+| `skynet` | Skynet IADS |
+| `tum` | The Universal Mission (TUM) |
+
+```yaml
+community_scripts:
+  ctld:   { enabled: true }
+  csar:   { enabled: true }
+  skynet: { enabled: false }   # disabled for this mission
+```
+
+> An unknown identifier in this section triggers a build warning and is ignored.
+
+---
+
 ### `custom_scripts:`
 
 Declares custom Lua scripts present in `src/scripts/` that are not part of the standard VEAF v6 set.  

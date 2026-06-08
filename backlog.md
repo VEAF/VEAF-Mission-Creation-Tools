@@ -23,7 +23,7 @@
 |-----|----------|--------|
 | Phase 0 — Restart | ~3h | [archived](backlog-archive.md) |
 | Phase 0b — GitHub cleanup | ~25 min | ⬜ |
-| Lot RADIO-SPECS — DCS radio frequency validation | ~3h | ⬜ |
+| Lot RADIO-SPECS — DCS radio frequency validation | ~3h | ✅ |
 | Lot 1 — INFRA | ~4h15 | [archived](backlog-archive.md) |
 | Lot 2 — CLI | ~2h35 | [archived](backlog-archive.md) |
 | Lot 3 — TUI | ~2h20 | [archived](backlog-archive.md) |
@@ -49,7 +49,7 @@
 | Lot 21 — TYPING | ~20 min | [archived](backlog-archive.md) |
 | Lot 22 — TEST-LAYOUT | ~55 min | [archived](backlog-archive.md) |
 | Lot 23 — DOC-YAML | ~8h20 | [archived](backlog-archive.md) |
-| Lot 24 — DOC-REVIEW | ~2h45 | ⬜ (REV-002 pending) |
+| Lot 24 — DOC-REVIEW | ~2h45 | ✅ |
 | Lot 25 — EXT-YAML | ~2h | [archived](backlog-archive.md) |
 | Lot FIX-SORT — LUADATA FIX | ~15 min | [archived](backlog-archive.md) |
 | Lot 26 — IMC-FEEDBACK | ~2h40 | [archived](backlog-archive.md) |
@@ -78,7 +78,7 @@
 | Lot FIX-AIRCRAFT-DUPLICATE — Duplicate aircraft groups in "add" injection mode | ~20 min | [archived](backlog-archive.md) |
 | Lot FIX-I18N-CONVERT-V5 — Hardcoded English messages in convert-v5 | ~30 min | ✅ |
 | Lot FIX-CONVERT-V5-PRESETS — Per-aircraft radio assignments in convert-v5 presets | ~45 min | ✅ |
-| Lot FEAT-COMMUNITY-TOGGLE — Enable/disable community scripts from mission.yaml | ~2h | ⬜ |
+| Lot FEAT-COMMUNITY-TOGGLE — Enable/disable community scripts from mission.yaml | ~2h | ✅ |
 | Lot FIX-CONVERT-V5-DEFAULT-CWD — `convert-v5` uses current directory by default | ~5 min | ⬜ |
 | Lot FIX-SRS-WARN — false warning when SRS config file is absent | ~10 min | ⬜ |
 | Lot FIX-CTLD-NIL — nil crash on ctld.builtFOBS / ctld.logisticUnits in scheduled fns | ~15 min | ⬜ |
@@ -113,12 +113,13 @@
 
 | # | Ticket | Files | Type | Effort | Status |
 |---|--------|-------|------|--------|--------|
-| COMM-001 | Give each community script a stable ID (key) in `get_community_script_files()` — return `list[dict]` instead of `list[tuple]` | `mission_tools/mission_constants.py` | refactor | 15 min | ⬜ |
-| COMM-002 | Parse `community_scripts:` section in `MissionBuilderWorker.__init__`; filter the list of community scripts to inject based on `enabled:` flags | `mission_builder/mission_builder_worker.py` | feat | 30 min | ⬜ |
-| COMM-003 | Apply the filter in both static trigger (`insert_veaf_trigrules`) and dynamic trigger (`insert_veaf_triggers`) | `mission_builder/mission_builder_worker.py` | feat | 20 min | ⬜ |
-| COMM-004 | Add `community_scripts:` block to the default `mission.yaml` with all scripts listed and `enabled: true` by default, with comments | `src/defaults/mission-folder/mission.yaml` | doc | 15 min | ⬜ |
-| COMM-005 | Update YAML reference doc (`MISSION_YAML_REFERENCE.md` + `.en.md`) with the new section | `doc/MISSION_YAML_REFERENCE.md`, `doc/MISSION_YAML_REFERENCE.en.md` | doc | 20 min | ⬜ |
-| COMM-006 | TDD tests: verify that a script with `enabled: false` is absent from the injected triggers | `test/python/` | test | 20 min | ⬜ |
+| COMM-001 | Give each community script a stable ID (key) in `get_community_script_files()` — return `list[dict]` instead of `list[tuple]` | `mission_tools/mission_constants.py` | refactor | 15 min | ✅ |
+| COMM-002 | Parse `community_scripts:` section in `MissionBuilderWorker.__init__`; filter the list of community scripts to inject based on `enabled:` flags | `mission_builder/mission_builder_worker.py` | feat | 30 min | ✅ |
+| COMM-003 | Apply the filter in both static trigger (`insert_veaf_trigrules`) and dynamic trigger (`insert_veaf_triggers`) | `mission_builder/mission_builder_worker.py` | feat | 20 min | ✅ |
+| COMM-004 | Add `community_scripts:` block to the default `mission.yaml` with all scripts listed and `enabled: true` by default, with comments | `src/defaults/mission-folder/mission.yaml` | doc | 15 min | ✅ |
+| COMM-005 | Update YAML reference doc (`MISSION_YAML_REFERENCE.md` + `.en.md`) with the new section | `doc/MISSION_YAML_REFERENCE.md`, `doc/MISSION_YAML_REFERENCE.en.md` | doc | 20 min | ✅ |
+| COMM-006 | TDD tests: verify that a script with `enabled: false` is absent from the injected triggers | `test/python/` | test | 20 min | ✅ |
+| COMM-007 | `convert-v5`: detect community scripts present in `published/src/scripts/community/` and emit `community_scripts:` section in generated `mission.yaml` | `mission_builder/v5_converter.py`, `test_v5_converter.py` | feat | 20 min | ✅ |
 
 ---
 
@@ -130,11 +131,11 @@
 
 | # | Ticket | Files | Type | Effort | Status |
 |---|--------|-------|------|--------|--------|
-| CUSTOM-001 | Add `CustomScript` dataclass + parse `custom_scripts` in `__init__` | `mission_builder_worker.py` | feat | 10 min | 🔄 |
-| CUSTOM-002 | Update warning logic (declared = info, unknown = warning with hint) | `mission_builder_worker.py` | feat | 10 min | 🔄 |
-| CUSTOM-003 | Filter load triggers according to `generate_load_trigger` | `mission_builder_worker.py` | feat | 10 min | 🔄 |
-| CUSTOM-004 | TDD tests (warnings + trigger resolution) | `test_mission_builder_defaults.py` | test | 10 min | 🔄 |
-| CUSTOM-005 | Document the section in the default `mission.yaml` | `src/defaults/mission-folder/mission.yaml` | doc | 5 min | 🔄 |
+| CUSTOM-001 | Add `CustomScript` dataclass + parse `custom_scripts` in `__init__` | `mission_builder_worker.py` | feat | 10 min | ✅ |
+| CUSTOM-002 | Update warning logic (declared = info, unknown = warning with hint) | `mission_builder_worker.py` | feat | 10 min | ✅ |
+| CUSTOM-003 | Filter load triggers according to `generate_load_trigger` | `mission_builder_worker.py` | feat | 10 min | ✅ |
+| CUSTOM-004 | TDD tests (warnings + trigger resolution) | `test_mission_builder_defaults.py` | test | 10 min | ✅ |
+| CUSTOM-005 | Document the section in the default `mission.yaml` | `src/defaults/mission-folder/mission.yaml` | doc | 5 min | ✅ |
 
 ---
 
@@ -148,7 +149,7 @@
 
 | # | Ticket | Files | Type | Effort | Status |
 |---|--------|-------|------|--------|--------|
-| REV-002 | Commit the Klogg profile provided by the user to `tools/klogg/veaf.conf`; update the "Reading the log" section in `GUIDE.md` and `GUIDE.fr.md` to point to this file | `tools/klogg/veaf.conf`, `doc/mission-maker/GUIDE.md`, `doc/mission-maker/GUIDE.fr.md` | chore | 20 min | ⬜ |
+| REV-002 | Commit the Klogg profile provided by the user to `tools/klogg/veaf.conf`; update the "Reading the log" section in `GUIDE.md` and `GUIDE.fr.md` to point to this file | `tools/klogg/veaf.conf`, `doc/mission-maker/GUIDE.md`, `doc/mission-maker/GUIDE.fr.md` | chore | 20 min | ✅ |
 
 ---
 
@@ -212,12 +213,12 @@ Direct commits on `develop-v6` (no feature branch needed — no code change).
 
 | # | Ticket | Type | Effort | Status |
 |---|--------|------|--------|--------|
-| RADIO-001 | Extraction script: fetch `panelRadio` from dcs-lua-datamine and generate `dcs-radio-specs.yaml` | feat | 45 min | ⬜ |
-| RADIO-002 | Bundle `dcs-radio-specs.yaml` as package data; load via `importlib.resources` | feat | 15 min | ⬜ |
-| RADIO-003 | `RadioFrequencyValidator`: validate preset frequencies against aircraft specs, warn on mismatch | feat | 45 min | ⬜ |
-| RADIO-004 | Integrate validator into `PresetsInjectorWorker.process_groups()` | feat | 20 min | ⬜ |
-| RADIO-005 | Generate `doc/mission-maker/dcs-radio-specs.md` (human-readable Markdown table) from the YAML | feat | 30 min | ⬜ |
-| RADIO-006 | Unit tests for validator (valid/invalid frequency, unknown aircraft, partial ranges) | feat | 45 min | ⬜ |
+| RADIO-001 | Extraction script: fetch `panelRadio` from dcs-lua-datamine and generate `dcs-radio-specs.yaml` | feat | 45 min | ✅ |
+| RADIO-002 | Bundle `dcs-radio-specs.yaml` as package data; load via `importlib.resources` | feat | 15 min | ✅ |
+| RADIO-003 | `RadioFrequencyValidator`: validate preset frequencies against aircraft specs, warn on mismatch | feat | 45 min | ✅ |
+| RADIO-004 | Integrate validator into `PresetsInjectorWorker.process_groups()` | feat | 20 min | ✅ |
+| RADIO-005 | Generate `doc/mission-maker/dcs-radio-specs.md` (human-readable Markdown table) from the YAML | feat | 30 min | ✅ |
+| RADIO-006 | Unit tests for validator (valid/invalid frequency, unknown aircraft, partial ranges) | feat | 45 min | ✅ |
 
 **Estimated total: ~3h**
 

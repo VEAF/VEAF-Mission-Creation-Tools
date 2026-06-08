@@ -434,6 +434,50 @@ class TestV5ConverterIntegration(unittest.TestCase):
             yaml_content = (folder / "mission.yaml").read_text()
             self.assertIn('name: "OpenTraining"', yaml_content)
 
+    def _make_community_folder(self, folder: Path, filenames: list[str]) -> None:
+        comm_dir = folder / "published" / "src" / "scripts" / "community"
+        comm_dir.mkdir(parents=True)
+        for name in filenames:
+            (comm_dir / name).write_text("-- stub\n", encoding="utf-8")
+
+    def test_scan_detects_present_community_scripts(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            folder = Path(td)
+            self._make_missionconfig(folder, "-- test\n")
+            self._make_community_folder(folder, ["mist.lua", "CTLD.lua"])
+            report = V5Converter().convert(folder, backup=False)
+            self.assertIn("mist", report.detected_community_script_ids)
+            self.assertIn("ctld", report.detected_community_script_ids)
+            self.assertNotIn("skynet", report.detected_community_script_ids)
+
+    def test_scan_no_community_folder_yields_empty_set(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            folder = Path(td)
+            self._make_missionconfig(folder, "-- test\n")
+            report = V5Converter().convert(folder, backup=False)
+            self.assertEqual(report.detected_community_script_ids, set())
+
+    def test_mission_yaml_community_scripts_section_present(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            folder = Path(td)
+            self._make_missionconfig(folder, "-- test\n")
+            self._make_community_folder(folder, ["mist.lua", "CTLD.lua"])
+            V5Converter().convert(folder, backup=False)
+            yaml_content = (folder / "mission.yaml").read_text()
+            self.assertIn("community_scripts:", yaml_content)
+            self.assertIn("mist: {enabled: true}", yaml_content)
+            self.assertIn("ctld: {enabled: true}", yaml_content)
+            self.assertIn("skynet: {enabled: false}", yaml_content)
+
+    def test_mission_yaml_community_scripts_all_false_when_no_community_folder(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            folder = Path(td)
+            self._make_missionconfig(folder, "-- test\n")
+            V5Converter().convert(folder, backup=False)
+            yaml_content = (folder / "mission.yaml").read_text()
+            self.assertIn("community_scripts:", yaml_content)
+            self.assertNotIn("enabled: true", yaml_content.split("community_scripts:")[1].split("# ──")[0])
+
 
 # ---------------------------------------------------------------------------
 # IMC-002 — annotated missionConfig.lua embedded in report

@@ -190,6 +190,36 @@ class MissionBuilderWorker(BaseWorker):
                     per_script_trigger = None
                 self.custom_scripts.append(CustomScript(path=Path(path).name, generate_load_trigger=per_script_trigger))
 
+        # Parse community_scripts section from mission.yaml
+        # None means "all enabled" (no section present); a set means only those ids are enabled.
+        comm_raw = self.mission_yaml.get("community_scripts")
+        if comm_raw is not None and not isinstance(comm_raw, dict):
+            logger.warning(
+                f"'community_scripts' in mission.yaml must be a mapping (got {type(comm_raw).__name__}); ignoring."
+            )
+            comm_raw = None
+        # Empty dict {} is treated the same as absent: all scripts remain active.
+        if not comm_raw:
+            self.enabled_community_script_ids: set[str] | None = None
+        else:
+            # Opt-out semantics: start with all ids enabled, remove those explicitly disabled.
+            all_community_scripts = get_community_script_files()
+            all_ids = {s["id"] for s in all_community_scripts}
+            self.enabled_community_script_ids = set(all_ids)
+            for script_id, script_cfg in comm_raw.items():
+                if script_id not in all_ids:
+                    logger.warning(f"Unknown community script id {script_id!r} in 'community_scripts:'; ignoring.")
+                    continue
+                enabled = True
+                if isinstance(script_cfg, dict):
+                    enabled = bool(script_cfg.get("enabled", True))
+                elif script_cfg is None:
+                    enabled = False
+                else:
+                    enabled = bool(script_cfg)
+                if not enabled:
+                    self.enabled_community_script_ids.discard(script_id)
+
         # Parse dcs_bridge section from mission.yaml
         dcsb_cfg: dict = self.mission_yaml.get("dcs_bridge") or {}
         self.dcs_bridge_enabled: bool = bool(dcsb_cfg.get("enabled", False))
@@ -227,18 +257,26 @@ class MissionBuilderWorker(BaseWorker):
 
         return self.collected_veaf_script_files
 
+    def _active_community_scripts(self) -> list[dict[str, str]]:
+        """Return community script descriptors filtered by enabled_community_script_ids."""
+        all_scripts = get_community_script_files()
+        if self.enabled_community_script_ids is None:
+            return all_scripts
+        return [s for s in all_scripts if s["id"] in self.enabled_community_script_ids]
+
     def get_collected_community_script_files(self) -> dict[str, bytes]:
         if self.collected_community_script_files:
             return self.collected_community_script_files
 
-        # Preprocess the community script files
+        file_patterns: list[tuple[str, str]] = [(s["path"], s["dest"]) for s in self._active_community_scripts()]
+
         scripts_folder: Path = self.scripts_path or (self.mission_folder / "published")
         self.collected_community_script_files = collect_files_from_globs(
-            base_folder=scripts_folder, file_patterns=get_community_script_files()
+            base_folder=scripts_folder, file_patterns=file_patterns
         )
-        if len(self.collected_community_script_files) < len(get_community_script_files()):
+        if len(self.collected_community_script_files) < len(file_patterns):
             self.signal_missing_required_files_after_collection(
-                get_community_script_files(), self.collected_community_script_files, scripts_folder
+                file_patterns, self.collected_community_script_files, scripts_folder
             )
         return self.collected_community_script_files
 
@@ -750,9 +788,9 @@ class MissionBuilderWorker(BaseWorker):
         dynamic_script_loading_trigger = (
             'a_do_script("env.info(\\"DYNAMIC VEAF scripts loading from \\"..VEAF_DYNAMIC_SCRIPTSPATH)");'
         )
-        for file in get_community_script_files():
+        for file in self._active_community_scripts():
             dynamic_script_loading_trigger += (
-                f'a_do_script("assert(loadfile(VEAF_DYNAMIC_SCRIPTSPATH .. \\"{file[0]}\\"))()");'
+                f'a_do_script("assert(loadfile(VEAF_DYNAMIC_SCRIPTSPATH .. \\"{file["path"]}\\"))()");'
             )
         dynamic_script_loading_trigger += (
             'a_do_script("assert(loadfile(VEAF_DYNAMIC_SCRIPTSPATH .. \\"/src/scripts/VeafDynamicLoader.lua\\"))()");'
@@ -885,9 +923,9 @@ class MissionBuilderWorker(BaseWorker):
         dynamic_script_loading_actions.extend(
             {
                 "predicate": "a_do_script",
-                "text": f'assert(loadfile(VEAF_DYNAMIC_SCRIPTSPATH .. "{file[0]}"))()',
+                "text": f'assert(loadfile(VEAF_DYNAMIC_SCRIPTSPATH .. "{file["path"]}"))()',
             }
-            for file in get_community_script_files()
+            for file in self._active_community_scripts()
         )
         dynamic_script_loading_actions.append(
             {

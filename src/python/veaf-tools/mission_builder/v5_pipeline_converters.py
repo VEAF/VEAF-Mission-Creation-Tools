@@ -775,6 +775,16 @@ def convert_presets(v5_path: Path, v6_path: Path) -> list[str]:
                     "title": f"{entry.coalition.capitalize()} coalition - VHF primary",
                     "radios": {"radio_1": vhf_radio_name},
                 }
+        elif radio1_source == "fm":
+            target_preset = f"{entry.coalition}_fm_primary"
+            fm_radio_name = f"radio_fm_{entry.coalition}"
+            if fm_radio_name not in radios_collection.get(f"{entry.coalition}_radios", {}):
+                continue
+            if target_preset not in presets_collection.get(f"{entry.coalition}_presets", {}):
+                presets_collection.setdefault(f"{entry.coalition}_presets", {})[target_preset] = {
+                    "title": f"{entry.coalition.capitalize()} coalition - FM primary",
+                    "radios": {"radio_1": fm_radio_name},
+                }
         elif radio1_source is None:
             # Fully hardcoded frequencies — no preset mapping possible
             warnings.append(
@@ -786,7 +796,6 @@ def convert_presets(v5_path: Path, v6_path: Path) -> list[str]:
             )
             continue
         else:
-            # FM-only or other — leave under the "all" fallback
             continue
 
         for cat in _detect_category(entry.aircraft, entry.is_pattern, helicopter_types):

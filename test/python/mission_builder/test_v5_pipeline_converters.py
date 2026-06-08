@@ -614,13 +614,13 @@ radioSettings = {
         self.assertEqual(data["presets_assignments"]["blue"]["plane"].get("F16.*"), "blue_vhf_primary")
         self.assertIn("blue_vhf_primary", data["presets_collection"]["blue_presets"])
 
-    def test_fm_only_aircraft_produces_no_assignment(self) -> None:
+    def test_fm_primary_aircraft_assigned_fm_primary_preset(self) -> None:
         lua = (
             'radioPresetsBlue = { ["##RADIO1_01##"] = 284.0, ["##RADIO2_01##"] = 134.0, ["##RADIO3_01##"] = 30.5 }\n'
             'radioPresetsWarbirdBlue = { ["##RADIO_FuG16_01##"] = 38.4 }\n'
             """
 radioSettings = {
-    ["blue UH1"] = { type = "UH-1H", coalition = "blue", country = nil,
+    ["blue Gazelles"] = { typePattern = "SA342.+", coalition = "blue", country = nil,
         ["Radio"] = { [1] = { ["channels"] = { [1] = radioPresetsBlue["##RADIO3_01##"] } } }
     },
 }
@@ -631,9 +631,10 @@ radioSettings = {
         convert_presets(v5, v6)
         data = yaml.safe_load(v6.read_text())
         heli = data["presets_assignments"]["blue"]["helicopter"]
-        plane = data["presets_assignments"]["blue"]["plane"]
-        self.assertNotIn("UH-1H", heli)
-        self.assertNotIn("UH-1H", plane)
+        self.assertEqual(heli.get("SA342.+"), "blue_fm_primary")
+        self.assertIn("blue_fm_primary", data["presets_collection"]["blue_presets"])
+        preset = data["presets_collection"]["blue_presets"]["blue_fm_primary"]
+        self.assertEqual(preset["radios"]["radio_1"], "radio_fm_blue")
 
     def test_red_coalition_warbird_assigned(self) -> None:
         lua = (

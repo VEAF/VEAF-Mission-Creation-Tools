@@ -18,10 +18,12 @@ from pathlib import Path
 import luadata
 import yaml
 from mission_builder.v5_pipeline_converters import (
+    _detect_radio_block_source,
     _extract_lua_table_text,
     _normalize_date,
     _parse_custom_preset_table,
     _parse_preset_table,
+    _parse_radio_settings_entries,
     convert_aircraft_groups,
     convert_pipeline_file,
     convert_presets,
@@ -324,6 +326,258 @@ class TestConvertPresets(unittest.TestCase):
         v6 = self.tmp / "presets.yaml"
         warns = convert_presets(v5, v6)
         self.assertTrue(any(v6.name in w for w in warns))
+
+
+class TestDetectRadioBlockSource(unittest.TestCase):
+    def test_uhf_detected(self) -> None:
+        block = '{ ["channels"] = { [1] = radioPresetsBlue["##RADIO1_01##"] } }'
+        self.assertEqual(_detect_radio_block_source(block), "uhf")
+
+    def test_vhf_detected(self) -> None:
+        block = '{ ["channels"] = { [1] = radioPresetsBlue["##RADIO2_01##"] } }'
+        self.assertEqual(_detect_radio_block_source(block), "vhf")
+
+    def test_fm_detected(self) -> None:
+        block = '{ ["channels"] = { [1] = radioPresetsBlue["##RADIO3_01##"] } }'
+        self.assertEqual(_detect_radio_block_source(block), "fm")
+
+    def test_warbird_detected(self) -> None:
+        block = '{ ["channels"] = { [1] = radioPresetsWarbirdBlue["##RADIO_FuG16_01##"] } }'
+        self.assertEqual(_detect_radio_block_source(block), "warbird")
+
+    def test_hardcoded_returns_none(self) -> None:
+        block = '{ ["channels"] = { [1] = 284.000, [2] = 251.0 } }'
+        self.assertIsNone(_detect_radio_block_source(block))
+
+    def test_red_coalition_uhf_detected(self) -> None:
+        block = '{ ["channels"] = { [1] = radioPresetsRed["##RADIO1_01##"] } }'
+        self.assertEqual(_detect_radio_block_source(block), "uhf")
+
+
+class TestParseRadioSettingsEntries(unittest.TestCase):
+    _LUA_STANDARD = """
+radioSettings = {
+    ["blue F-16C"] = {
+        type = "F-16C_50",
+        coalition = "blue",
+        country = nil,
+        ["Radio"] = {
+            [1] = { ["channels"] = { [1] = radioPresetsBlue["##RADIO1_01##"] } },
+            [2] = { ["channels"] = { [1] = radioPresetsBlue["##RADIO2_01##"] } },
+            [3] = { ["channels"] = { [1] = radioPresetsBlue["##RADIO3_01##"] } },
+        },
+    },
+}
+"""
+
+    _LUA_WARBIRD = """
+radioSettings = {
+    ["blue Bf-109K-4"] = {
+        type = "Bf-109K-4",
+        coalition = "blue",
+        country = nil,
+        ["Radio"] = {
+            [1] = { ["channels"] = { [1] = radioPresetsWarbirdBlue["##RADIO_FuG16_01##"] } },
+        },
+    },
+}
+"""
+
+    _LUA_VHF_PRIMARY = """
+radioSettings = {
+    ["blue I-16"] = {
+        type = "I-16",
+        coalition = "blue",
+        country = nil,
+        ["Radio"] = {
+            [1] = { ["channels"] = { [1] = radioPresetsBlue["##RADIO2_01##"] } },
+        },
+    },
+}
+"""
+
+    _LUA_TYPE_PATTERN = """
+radioSettings = {
+    ["blue FW-190s"] = {
+        typePattern = "FW[-]190.*",
+        coalition = "blue",
+        country = nil,
+        ["Radio"] = {
+            [1] = { ["channels"] = { [1] = radioPresetsWarbirdBlue["##RADIO_FuG16_01##"] } },
+        },
+    },
+}
+"""
+
+    _LUA_HARDCODED = """
+radioSettings = {
+    ["blue AJS37"] = {
+        type = "AJS37",
+        coalition = "blue",
+        country = nil,
+        ["Radio"] = {
+            [1] = { ["channels"] = { [1] = 284.000, [2] = 271.500 } },
+        },
+    },
+}
+"""
+
+    def test_standard_entry_parsed(self) -> None:
+        entries = _parse_radio_settings_entries(self._LUA_STANDARD)
+        self.assertEqual(len(entries), 1)
+        e = entries[0]
+        self.assertEqual(e.aircraft, "F-16C_50")
+        self.assertFalse(e.is_pattern)
+        self.assertEqual(e.coalition, "blue")
+        self.assertEqual(e.radio_sources[1], "uhf")
+        self.assertEqual(e.radio_sources[2], "vhf")
+        self.assertEqual(e.radio_sources[3], "fm")
+
+    def test_warbird_entry_parsed(self) -> None:
+        entries = _parse_radio_settings_entries(self._LUA_WARBIRD)
+        self.assertEqual(len(entries), 1)
+        e = entries[0]
+        self.assertEqual(e.aircraft, "Bf-109K-4")
+        self.assertEqual(e.radio_sources[1], "warbird")
+
+    def test_vhf_primary_entry_parsed(self) -> None:
+        entries = _parse_radio_settings_entries(self._LUA_VHF_PRIMARY)
+        self.assertEqual(len(entries), 1)
+        e = entries[0]
+        self.assertEqual(e.aircraft, "I-16")
+        self.assertEqual(e.radio_sources[1], "vhf")
+
+    def test_type_pattern_entry_parsed(self) -> None:
+        entries = _parse_radio_settings_entries(self._LUA_TYPE_PATTERN)
+        self.assertEqual(len(entries), 1)
+        e = entries[0]
+        self.assertTrue(e.is_pattern)
+        self.assertEqual(e.aircraft, "FW[-]190.*")
+        self.assertEqual(e.radio_sources[1], "warbird")
+
+    def test_hardcoded_entry_radio_source_is_none(self) -> None:
+        entries = _parse_radio_settings_entries(self._LUA_HARDCODED)
+        self.assertEqual(len(entries), 1)
+        self.assertIsNone(entries[0].radio_sources.get(1))
+
+    def test_no_radio_settings_returns_empty(self) -> None:
+        entries = _parse_radio_settings_entries("x = 1")
+        self.assertEqual(entries, [])
+
+
+class TestConvertPresetsPerAircraftAssignments(unittest.TestCase):
+    """convert_presets must generate per-aircraft assignments for non-standard radio layouts."""
+
+    def setUp(self) -> None:
+        self._tmp_dir = tempfile.TemporaryDirectory()
+        self.tmp = Path(self._tmp_dir.name)
+
+    def tearDown(self) -> None:
+        self._tmp_dir.cleanup()
+
+    def _write_lua(self, content: str) -> Path:
+        p = self.tmp / "radioSettings.lua"
+        p.write_text(content, encoding="utf-8")
+        return p
+
+    def _lua(self, extra_settings: str = "") -> str:
+        return (
+            'radioPresetsBlue = { ["##RADIO1_01##"] = 284.0, ["##RADIO2_01##"] = 134.0 }\n'
+            'radioPresetsWarbirdBlue = { ["##RADIO_FuG16_01##"] = 38.4 }\n'
+            + extra_settings
+        )
+
+    def test_warbird_aircraft_assigned_warbird_preset(self) -> None:
+        lua = self._lua("""
+radioSettings = {
+    ["blue Bf109"] = { type = "Bf-109K-4", coalition = "blue", country = nil,
+        ["Radio"] = { [1] = { ["channels"] = { [1] = radioPresetsWarbirdBlue["##RADIO_FuG16_01##"] } } }
+    },
+}
+""")
+        v5 = self._write_lua(lua)
+        v6 = self.tmp / "presets.yaml"
+        convert_presets(v5, v6)
+        data = yaml.safe_load(v6.read_text())
+        assignments = data["presets_assignments"]["blue"]["plane"]
+        self.assertEqual(assignments.get("Bf-109K-4"), "blue_warbird")
+
+    def test_vhf_primary_aircraft_gets_vhf_primary_preset(self) -> None:
+        lua = self._lua("""
+radioSettings = {
+    ["blue I16"] = { type = "I-16", coalition = "blue", country = nil,
+        ["Radio"] = { [1] = { ["channels"] = { [1] = radioPresetsBlue["##RADIO2_01##"] } } }
+    },
+}
+""")
+        v5 = self._write_lua(lua)
+        v6 = self.tmp / "presets.yaml"
+        convert_presets(v5, v6)
+        data = yaml.safe_load(v6.read_text())
+        assignments = data["presets_assignments"]["blue"]["plane"]
+        self.assertEqual(assignments.get("I-16"), "blue_vhf_primary")
+        # Preset must also be created
+        self.assertIn("blue_vhf_primary", data["presets_collection"]["blue_presets"])
+
+    def test_vhf_primary_preset_uses_vhf_radio(self) -> None:
+        lua = self._lua("""
+radioSettings = {
+    ["blue I16"] = { type = "I-16", coalition = "blue", country = nil,
+        ["Radio"] = { [1] = { ["channels"] = { [1] = radioPresetsBlue["##RADIO2_01##"] } } }
+    },
+}
+""")
+        v5 = self._write_lua(lua)
+        v6 = self.tmp / "presets.yaml"
+        convert_presets(v5, v6)
+        data = yaml.safe_load(v6.read_text())
+        preset = data["presets_collection"]["blue_presets"]["blue_vhf_primary"]
+        self.assertEqual(preset["radios"]["radio_1"], "radio_vhf_blue")
+
+    def test_standard_aircraft_not_duplicated_in_assignments(self) -> None:
+        lua = self._lua("""
+radioSettings = {
+    ["blue F16"] = { type = "F-16C_50", coalition = "blue", country = nil,
+        ["Radio"] = {
+            [1] = { ["channels"] = { [1] = radioPresetsBlue["##RADIO1_01##"] } },
+            [2] = { ["channels"] = { [1] = radioPresetsBlue["##RADIO2_01##"] } },
+        }
+    },
+}
+""")
+        v5 = self._write_lua(lua)
+        v6 = self.tmp / "presets.yaml"
+        convert_presets(v5, v6)
+        data = yaml.safe_load(v6.read_text())
+        assignments = data["presets_assignments"]["blue"]["plane"]
+        # F-16C_50 starts with UHF radio → covered by "all", no explicit entry needed
+        self.assertNotIn("F-16C_50", assignments)
+
+    def test_type_pattern_entry_emits_warning(self) -> None:
+        lua = self._lua("""
+radioSettings = {
+    ["blue FW190s"] = { typePattern = "FW[-]190.*", coalition = "blue", country = nil,
+        ["Radio"] = { [1] = { ["channels"] = { [1] = radioPresetsWarbirdBlue["##RADIO_FuG16_01##"] } } }
+    },
+}
+""")
+        v5 = self._write_lua(lua)
+        v6 = self.tmp / "presets.yaml"
+        warns = convert_presets(v5, v6)
+        self.assertTrue(any("FW[-]190.*" in w for w in warns))
+
+    def test_hardcoded_entry_emits_warning(self) -> None:
+        lua = self._lua("""
+radioSettings = {
+    ["blue AJS37"] = { type = "AJS37", coalition = "blue", country = nil,
+        ["Radio"] = { [1] = { ["channels"] = { [1] = 284.000 } } }
+    },
+}
+""")
+        v5 = self._write_lua(lua)
+        v6 = self.tmp / "presets.yaml"
+        warns = convert_presets(v5, v6)
+        self.assertTrue(any("AJS37" in w for w in warns))
 
 
 class TestConvertAircraftGroups(unittest.TestCase):

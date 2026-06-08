@@ -10,6 +10,7 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Fixed
+- `convert-v5` presets: per-aircraft radio assignments are now extracted from `radioSettings` — warbird aircraft (e.g. Bf-109K-4) are auto-assigned to `{coalition}_warbird`, VHF-primary aircraft (e.g. I-16, Spitfire) get a new `{coalition}_vhf_primary` preset; hardcoded and typePattern entries emit explicit warnings listing the recommended preset
 - i18n : tous les messages des injectors (presets, waypoints) et du validateur de fréquences radio sont maintenant traduits en français — plus de messages en anglais dans le log de `veaf-tools build`
 - `presets inject`: radio frequency warnings are now deduplicated by aircraft type — instead of one warning block per group, a single block is emitted per unit type listing all affected groups in parentheses
 - `build`: bundle `presets_injector/data/dcs-radio-specs.yaml` into the PyInstaller executable — fixes `ModuleNotFoundError: No module named 'presets_injector.data'` at runtime

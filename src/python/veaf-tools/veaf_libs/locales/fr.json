@@ -228,7 +228,9 @@
 
   "convert_v5.warning.init_commented": "ligne {line} : {var}.initialize() mis en commentaire (veaf-config.lua gère l'initialisation)",
   "convert_v5.warning.no_converter": "Aucun convertisseur implémenté pour l'étape de pipeline '{step}'",
-  "convert_v5.warn.warbird_preset": "Préréglage warbird '{preset}' créé pour la coalition '{coalition}'. Ajoutez manuellement des entrées de type d'aéronef dans presets_assignments (ex. Bf-109K-4, FW-190A-8, …).",
+  "convert_v5.warn.warbird_preset": "Préréglage warbird '{preset}' créé pour la coalition '{coalition}'. Les entrées typePattern (ex. variantes FW-190) doivent être ajoutées manuellement dans presets_assignments.",
+  "convert_v5.warn.radio_type_pattern_skip": "'{aircraft}' ({coalition}) : entrée typePattern — ajoutez manuellement dans presets_assignments avec le préréglage '{preset}'.",
+  "convert_v5.warn.radio_hardcoded_skip": "'{aircraft}' ({coalition}) : fréquences codées en dur — aucune assignation de préréglage générée, à vérifier manuellement.",
   "convert_v5.warn.no_preset_tables": "Aucune table de préréglages standard (radioPresetsBlue/Red) trouvée dans {filename}",
   "convert_v5.warn.review_presets": "Vérifiez {filename} : seuls les préréglages UHF/VHF/FM standard ont été générés. Les warbirds et autres aéronefs spéciaux peuvent nécessiter des entrées manuelles dans presets_assignments.",
   "convert_v5.warn.parse_failed": "Impossible d'analyser {filename} : {exc}",

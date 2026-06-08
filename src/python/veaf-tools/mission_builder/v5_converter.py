@@ -66,31 +66,6 @@ V5_PIPELINE_CANDIDATES: dict[str, list[str]] = {
 }
 
 #: Per-step guidance on how to convert a v5 file to v6 format.
-V5_MIGRATION_NOTES: dict[str, str] = {
-    "presets": (
-        "Convert `{v5}` to v6 YAML (`src/presets.yaml`). "
-        "The v6 schema uses `radios_collection:` / `presets_collection:` / `presets_assignments:` "
-        "instead of the flat v5 `presets_definition:` / `coalitions:` structure."
-    ),
-    "waypoints": (
-        "Convert `{v5}` to v6 YAML (`src/waypoints.yaml`). "
-        "The overall structure (`waypoints:` + `settings:`) is similar but some field names changed."
-    ),
-    "aircraft_groups": (
-        "Convert `{v5}` to v6 YAML (`src/templates.yaml`). "
-        "The v6 schema uses `airplanes:` / `helicopters:` top-level keys with a flattened "
-        "`coalitions > country > group` structure instead of "
-        "`settings.categories.plane.coalitions.countries.groups`."
-    ),
-    "weather": (
-        "Convert `{v5}` to v6 YAML (`src/versions.yaml`). Key renames: "
-        "`lat/lon/tz` → `latitude/longitude/timezone`, "
-        "`targets` → `versions`, `version` → `name`, "
-        "`realweather: true` → `airport_icao: <ICAO>`, "
-        "`weatherfile: x.lua` → inline `weather:` block."
-    ),
-}
-
 #: Backward-compatible alias — exported public symbol.
 PIPELINE_CANDIDATES = V6_PIPELINE_CANDIDATES
 
@@ -615,7 +590,8 @@ class V5Converter:
             v5_abs_path = pf.path  # save before we overwrite pf.path below
             v6_path = report.mission_folder / pf.v6_target
             _lk = f"pipeline.label.{pf.step}"
-            label = t(_lk) if t(_lk) != _lk else pf.step
+            _lk_val = t(_lk)
+            label = _lk_val if _lk_val != _lk else pf.step
             try:
                 warnings = convert_pipeline_file(
                     pf.step,
@@ -1079,24 +1055,21 @@ class V5Converter:
         """Populate ``report.manual_review`` with actionable items."""
         if report.missionconfig_backup:
             rel = report.missionconfig_backup.relative_to(report.mission_folder)
-            report.manual_review.append(f"Delete `{rel}` once you have verified the migrated missionConfig.lua.")
+            report.manual_review.append(t("convert_v5.review.delete_backup", path=rel))
         if report.migration_result and report.migration_result.removed_dofiles:
-            report.manual_review.append(
-                "Remove the commented-out `doFile()` lines from `missionConfig.lua` "
-                "(search for `-- [v6 migration]` and delete those lines once verified)."
-            )
+            report.manual_review.append(t("convert_v5.review.remove_dofiles"))
         if report.migration_result and report.migration_result.warnings:
             for w in report.migration_result.warnings:
                 report.manual_review.append(f"missionConfig.lua — {w}")
         if report.mission_yaml_existed and not report.mission_yaml_generated:
-            report.manual_review.append(
-                "Your existing `mission.yaml` was NOT overwritten. "
-                "Manually add/merge the `lua_modules:` and `pipeline:` sections shown in the report."
-            )
+            report.manual_review.append(t("convert_v5.review.yaml_not_overwritten"))
         for pf in report.pipeline_files:
             if pf.needs_conversion:
-                note_template = V5_MIGRATION_NOTES.get(pf.step, "Convert `{v5}` to v6 format (see migration guide).")
-                note = note_template.format(v5=pf.relative)
+                _note_key = f"convert_v5.migration_note.{pf.step}"
+                _note_raw = t(_note_key)
+                if _note_raw == _note_key:
+                    _note_raw = t("convert_v5.review.convert_pipeline_default")
+                note = _note_raw.format(v5=pf.relative)
                 _lk = f"pipeline.label.{pf.step}"
                 label = t(_lk) if t(_lk) != _lk else pf.step
                 report.manual_review.append(f"**{label}**: {note}")

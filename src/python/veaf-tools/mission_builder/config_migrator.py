@@ -794,10 +794,7 @@ class ConfigMigrator:
             + "\n".join(f"-- [v6 migration] {line}" if line.strip() else line for line in chunk.splitlines())
             + ("\n" if chunk.endswith("\n") else "")
         )
-        result.warnings.append(
-            "veafNamedPoints block commented out: v5 API is obsolete in v6. "
-            "Custom named points can be added to mission.yaml under NAMEDPOINTS: custom_points:"
-        )
+        result.warnings.append(t("convert_v5.warn.named_points_commented"))
 
         return content[:block_start] + commented + content[block_end:]
 

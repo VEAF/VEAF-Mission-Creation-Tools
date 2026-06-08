@@ -484,12 +484,9 @@ class TestV5ConverterIntegration(unittest.TestCase):
             self._make_missionconfig(folder, "-- no log level here\n")
             V5Converter().convert(folder, backup=False)
             yaml_content = (folder / "mission.yaml").read_text()
-            # Should default to 'info', never 'debug'
             log_line = next((l for l in yaml_content.splitlines() if "global_log_level" in l and not l.strip().startswith("#")), None)
             self.assertIsNotNone(log_line)
-            assert log_line is not None
-            self.assertIn("info", log_line)
-            self.assertNotIn("debug", log_line)
+            self.assertEqual(log_line.strip(), "global_log_level: info")
 
 
 # ---------------------------------------------------------------------------

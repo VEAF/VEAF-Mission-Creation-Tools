@@ -193,23 +193,25 @@ function veafSpawn.spawnFob(spawnSpot, radius, name, country, fobtype, side, hdg
     end
 
     -- spawn a beacon
-    local _beaconPoint = {
-      z = _tower.y + BEACON_DISTANCE * math.sin(mist.utils.toRadian(_hdg)),
-      x = _tower.x + BEACON_DISTANCE * math.cos(mist.utils.toRadian(_hdg)),
-      y = _spawnPosition.y,
-    }
-    ctld.beaconCount = ctld.beaconCount + 1
-    local _radioBeaconName = "FOB Beacon #" .. ctld.beaconCount
-    local _radioBeaconDetails = ctld.createRadioBeacon(_beaconPoint, _side, _country, _radioBeaconName, nil, true)
-    ctld.fobBeacons[_fobName] = { vhf = _radioBeaconDetails.vhf, uhf = _radioBeaconDetails.uhf, fm = _radioBeaconDetails.fm }
-    if _radioBeaconDetails ~= nil then
-      _namedPoint.tacan = string.format(
-        "ADF : %.2f KHz - %.2f MHz - %.2f MHz FM",
-        _radioBeaconDetails.vhf / 1000,
-        _radioBeaconDetails.uhf / 1000000,
-        _radioBeaconDetails.fm / 1000000
-      )
-      veaf.loggers.get(veafSpawn.Id):trace("_namedPoint.tacan=%s", veaf.lp(_namedPoint.tacan))
+    if ctld.beaconCount and ctld.fobBeacons then
+      local _beaconPoint = {
+        z = _tower.y + BEACON_DISTANCE * math.sin(mist.utils.toRadian(_hdg)),
+        x = _tower.x + BEACON_DISTANCE * math.cos(mist.utils.toRadian(_hdg)),
+        y = _spawnPosition.y,
+      }
+      ctld.beaconCount = ctld.beaconCount + 1
+      local _radioBeaconName = "FOB Beacon #" .. ctld.beaconCount
+      local _radioBeaconDetails = ctld.createRadioBeacon(_beaconPoint, _side, _country, _radioBeaconName, nil, true)
+      if _radioBeaconDetails ~= nil then
+        ctld.fobBeacons[_fobName] = { vhf = _radioBeaconDetails.vhf, uhf = _radioBeaconDetails.uhf, fm = _radioBeaconDetails.fm }
+        _namedPoint.tacan = string.format(
+          "ADF : %.2f KHz - %.2f MHz - %.2f MHz FM",
+          _radioBeaconDetails.vhf / 1000,
+          _radioBeaconDetails.uhf / 1000000,
+          _radioBeaconDetails.fm / 1000000
+        )
+        veaf.loggers.get(veafSpawn.Id):trace("_namedPoint.tacan=%s", veaf.lp(_namedPoint.tacan))
+      end
     end
   end
   trigger.action.outTextForCoalition(

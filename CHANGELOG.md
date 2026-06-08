@@ -18,7 +18,7 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `convert-v5`: `global_log_level` now defaults to `info` instead of `debug` when no log level is found in `missionConfig.lua`
 - `convert-v5`: command now accepts being called without arguments (uses current directory by default); `no_args_is_help=True` removed
 - `veafRadio`: SRS config file absence no longer emits a warning — downgraded to `debug` when the file does not exist on disk
-- `veafGrass`, `veafSpawnGround`, `veafSpawnEffects`: nil-safe guards added around `ctld.builtFOBS`, `ctld.logisticUnits`, `ctld.beaconCount` — prevents crash when CTLD is not loaded or not yet initialized
+- `veafGrass`, `veafSpawnGround`, `veafSpawnEffects`: nil-safe guards added around `ctld.builtFOBS`, `ctld.logisticUnits`, `ctld.beaconCount` — prevent crashes when CTLD is not loaded or not yet initialized
 - `presets inject`: `presets_assignments` keys now support regex patterns (e.g. `A[-]10C.*`, `FW[-]190.*`) — exact match takes priority, then pattern, then `all` fallback
 - `convert-v5` presets: per-aircraft radio assignments are now extracted from `radioSettings` — warbird aircraft (e.g. Bf-109K-4) are auto-assigned to `{coalition}_warbird`, VHF-primary aircraft (e.g. I-16, Spitfire) get a new `{coalition}_vhf_primary` preset; hardcoded and typePattern entries emit explicit warnings listing the recommended preset
 - i18n : tous les messages des injectors (presets, waypoints) et du validateur de fréquences radio sont maintenant traduits en français — plus de messages en anglais dans le log de `veaf-tools build`

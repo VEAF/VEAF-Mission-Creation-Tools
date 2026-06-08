@@ -65,7 +65,9 @@ def get_valid_ranges(unit_type: str) -> list[FrequencyRange] | None:
     ranges: list[FrequencyRange] = []
     for radio in entry.get("radios", []):
         for r in radio.get("ranges", []):
-            ranges.append(FrequencyRange(min_mhz=r["min_mhz"], max_mhz=r["max_mhz"], modulation=r.get("modulation", "AM/FM")))
+            ranges.append(
+                FrequencyRange(min_mhz=r["min_mhz"], max_mhz=r["max_mhz"], modulation=r.get("modulation", "AM/FM"))
+            )
     return ranges
 
 
@@ -93,11 +95,11 @@ class ChannelFrequency:
     """
 
     freq_mhz: float
-    radio_key: str          # key in radios_collection (e.g. "radio_uhf_blue")
-    radio_collection: str   # parent collection name (e.g. "blue_radios")
-    radio_title: str        # human-readable radio title (e.g. "UHF")
-    channel: int            # channel number
-    channel_title: str      # channel title/label (e.g. "TACTICAL UNIFORM")
+    radio_key: str  # key in radios_collection (e.g. "radio_uhf_blue")
+    radio_collection: str  # parent collection name (e.g. "blue_radios")
+    radio_title: str  # human-readable radio title (e.g. "UHF")
+    channel: int  # channel number
+    channel_title: str  # channel title/label (e.g. "TACTICAL UNIFORM")
 
 
 def validate_frequencies(unit_type: str, freqs_mhz: list[float]) -> list[float]:
@@ -148,9 +150,7 @@ def warn_invalid_channel_frequencies(
     # Emit one warning per group (not per channel) to avoid flooding the log.
     # List all invalid channels in a single message.
     channel_lines = "\n".join(
-        f"    - channel {ch.channel}"
-        + (f' "{ch.channel_title}"' if ch.channel_title else "")
-        + f": {ch.freq_mhz} MHz"
+        f"    - channel {ch.channel}" + (f' "{ch.channel_title}"' if ch.channel_title else "") + f": {ch.freq_mhz} MHz"
         f"  (in radios_collection > {ch.radio_collection} > {ch.radio_key})"
         for ch in invalid_channels
     )

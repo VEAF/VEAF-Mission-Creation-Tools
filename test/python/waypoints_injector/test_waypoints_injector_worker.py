@@ -12,7 +12,6 @@ from pathlib import Path
 from unittest.mock import MagicMock
 
 from mission_tools import DcsMission, Group
-
 from waypoints_injector.waypoints_injector_worker import (
     WaypointsExtractorWorker,
     WaypointsInjectorWorker,

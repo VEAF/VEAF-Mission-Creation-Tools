@@ -9,6 +9,28 @@ compatible with the target aircraft's radio hardware.
 
 ---
 
+## Critical aircraft (`dcs_rejects_on_load`)
+
+Some aircraft raise a hard DCS error when the mission loads if any preset frequency is outside
+their valid radio range. These are flagged `dcs_rejects_on_load: true` in `dcs-radio-specs.yaml`
+and always emit a `WARNING` during `veaf-tools build`.
+
+Currently known critical aircraft:
+
+| Aircraft | DCS ID | Valid range |
+|----------|--------|-------------|
+| MiG-19P | `MiG-19P` | 100–150 MHz |
+| Gazelle SA342M | `SA342M` | 30–87.975 MHz (FM only) |
+
+For other aircraft, DCS stores the frequencies silently without crashing. Issues are still
+reported in the automatic `presets-validation-report.md` generated after each build.
+
+If you discover another aircraft that causes DCS to reject the mission, add
+`dcs_rejects_on_load: true` to its entry in `src/python/veaf-tools/presets_injector/data/dcs-radio-specs.yaml`
+and open a pull request.
+
+---
+
 ## Fixed-wing aircraft
 
 | Aircraft | DCS ID | Radio | Min (MHz) | Max (MHz) | Modulation |

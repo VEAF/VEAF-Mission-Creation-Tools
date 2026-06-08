@@ -6,10 +6,9 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from veaf_libs.i18n import current_language, set_language, t
-
 from mission_builder.config_migrator import MigrationResult
 from mission_builder.v5_converter import ConversionReport, PipelineFile, V5Converter
+from veaf_libs.i18n import current_language, set_language, t
 
 # ---------------------------------------------------------------------------
 # ConversionReport.to_markdown() — empty / minimal state

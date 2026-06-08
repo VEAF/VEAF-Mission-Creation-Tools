@@ -137,18 +137,37 @@ presets_assignments:
 
 ### Validation des fréquences
 
-Lors de l'injection, chaque fréquence assignée à un aéronef est vérifiée par rapport aux spécifications matérielles de ses radios. Si une fréquence est hors de toutes les plages valides, un avertissement est émis :
+Lors de l'injection, chaque fréquence assignée à un aéronef est vérifiée par rapport aux spécifications matérielles de ses radios.
+
+**Comportement par défaut (build normal) :**
+
+- **Appareils critiques** (`dcs_rejects_on_load: true` dans les specs) : si une fréquence est hors plage, un `WARNING` est émis dans le log. Ce sont les appareils pour lesquels DCS lance une erreur au chargement de la mission.
+- **Autres appareils** : la validation est silencieuse — DCS stocke les fréquences mais ne les utilise pas pour les radios hors plage, sans crasher.
+
+**Rapport automatique :**
+
+Après chaque injection de presets, un fichier `presets-validation-report.md` est automatiquement créé dans le dossier mission si au moins un appareil (critique ou non) présente des fréquences hors plage. Ce fichier liste tous les problèmes avec les valeurs invalides et un extrait YAML pour les désactiver temporairement. Si aucun problème n'est détecté, le fichier est supprimé.
 
 ```
-WARNING: Group 'Bassel MiG-19 #1' (MiG-19P): frequency 284.0 MHz is outside all valid radio
-ranges for this aircraft — DCS will reject it at mission load.
+<dossier-mission>/presets-validation-report.md
 ```
 
-La vérification est **non bloquante** : la mission est quand même écrite, mais la fréquence invalide provoquera une erreur DCS au chargement (typiquement `Invalid frequency X MHz`).
+**Désactiver temporairement l'injection pour un appareil :**
+
+Pendant que vous corrigez les presets, vous pouvez désactiver l'injection pour un type d'appareil en lui affectant la valeur `none` dans `presets_assignments` :
+
+```yaml
+presets_assignments:
+  blue:
+    plane:
+      MiG-19P: none   # DCS rejetera les fréquences standard — à corriger
+```
+
+Une fois les presets corrigés, supprimez la ligne `none` pour réactiver l'injection.
 
 Les specs couvrent 85 aéronefs pilotables et sont issues de [dcs-lua-datamine](https://github.com/Quaggles/dcs-lua-datamine). Si un aéronef n'est pas dans la base, la vérification est silencieusement ignorée.
 
-> **Voir aussi** : [`doc/mission-maker/dcs-radio-specs.md`](mission-maker/dcs-radio-specs.md) — table de référence complète des plages de fréquences valides par aéronef.  
+> **Voir aussi** : [`doc/mission-maker/dcs-radio-specs.md`](mission-maker/dcs-radio-specs.md) — table de référence complète des plages de fréquences valides et liste des appareils critiques.  
 > Pour régénérer après une mise à jour DCS : `poetry run update-radio-specs`
 
 ---

@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Any
 
 import yaml
+from veaf_libs.i18n import t
 from veaf_libs.logger import logger
 
 _SPECS: dict[str, Any] | None = None
@@ -69,6 +70,24 @@ def get_valid_ranges(unit_type: str) -> list[FrequencyRange] | None:
                 FrequencyRange(min_mhz=r["min_mhz"], max_mhz=r["max_mhz"], modulation=r.get("modulation", "AM/FM"))
             )
     return ranges
+
+
+def is_strict(unit_type: str) -> bool:
+    """Return True if out-of-range preset frequencies cause DCS to reject the mission at load.
+
+    Most aircraft silently store or ignore frequencies outside their hardware range. A few
+    (e.g. MiG-19P, SA342M) raise a hard error when loading the mission. Mark those with
+    ``dcs_rejects_on_load: true`` in dcs-radio-specs.yaml.
+
+    Args:
+        unit_type: DCS unit type string.
+
+    Returns:
+        True if the aircraft is known to crash DCS on invalid preset frequencies.
+    """
+    specs = _load_specs()
+    entry = specs.get(unit_type)
+    return bool(entry and entry.get("dcs_rejects_on_load", False))
 
 
 def validate_frequency(unit_type: str, freq_mhz: float) -> bool | None:
@@ -128,7 +147,7 @@ def warn_invalid_channel_frequencies(
     channels: list[ChannelFrequency],
     coalition: str = "blue",
     aircraft_category: str = "plane",
-) -> None:
+) -> bool:
     """Log an actionable warning for each channel whose frequency is invalid for unit_type.
 
     Emits a single warning per aircraft type, listing all affected groups together to avoid
@@ -143,34 +162,115 @@ def warn_invalid_channel_frequencies(
     """
     valid_ranges = get_valid_ranges(unit_type)
     if valid_ranges is None:
-        return
+        return False
 
     invalid_channels = [ch for ch in channels if not any(r.contains(ch.freq_mhz) for r in valid_ranges)]
     if not invalid_channels:
-        return
+        return False
 
     ranges_str = _format_ranges(valid_ranges)
-    groups_str = ", ".join(f"'{g}'" for g in group_names)
-    groups_label = f"Group {groups_str}" if len(group_names) == 1 else f"Groups {groups_str}"
+    if len(group_names) == 1:
+        groups_label = t("radio_freq.warn.header_single", group=group_names[0], unit_type=unit_type)
+    else:
+        groups_str = ", ".join(f"'{g}'" for g in group_names)
+        groups_label = t("radio_freq.warn.header_plural", groups=groups_str, unit_type=unit_type)
     # Emit one warning per aircraft type (not per group) to avoid flooding the log.
     # List all invalid channels and all affected groups in a single message.
     channel_lines = "\n".join(
-        f"    - channel {ch.channel}" + (f' "{ch.channel_title}"' if ch.channel_title else "") + f": {ch.freq_mhz} MHz"
-        f"  (in radios_collection > {ch.radio_collection} > {ch.radio_key})"
+        t(
+            "radio_freq.warn.channel_line_titled",
+            num=ch.channel,
+            title=ch.channel_title,
+            freq=ch.freq_mhz,
+            collection=ch.radio_collection,
+            radio_key=ch.radio_key,
+        )
+        if ch.channel_title
+        else t(
+            "radio_freq.warn.channel_line",
+            num=ch.channel,
+            freq=ch.freq_mhz,
+            collection=ch.radio_collection,
+            radio_key=ch.radio_key,
+        )
         for ch in invalid_channels
     )
-    logger.warning(
-        f"{groups_label} ({unit_type}): the following preset frequencies are not valid"
-        f" for this aircraft and will be rejected by DCS at mission load:\n"
-        f"{channel_lines}\n"
-        f"  Valid ranges for {unit_type}: {ranges_str}\n"
-        f"  These frequencies are probably correct for other aircraft — do NOT change them globally.\n"
-        f"  Instead, add a specific preset for {unit_type} in presets.yaml:\n"
-        f"    presets_assignments:\n"
-        f"      {coalition}:\n"
-        f"        {aircraft_category}:\n"
-        f"          {unit_type}: <your-{unit_type.lower().replace(' ', '-')}-preset>\n"
-        f"  and define that preset with frequencies within: {ranges_str}"
+    unit_type_key = unit_type.lower().replace(" ", "-")
+    footer = t(
+        "radio_freq.warn.footer",
+        unit_type=unit_type,
+        ranges_str=ranges_str,
+        coalition=coalition,
+        aircraft_category=aircraft_category,
+        unit_type_key=unit_type_key,
+    )
+    message = f"{groups_label}\n{channel_lines}\n{footer}"
+    if is_strict(unit_type):
+        logger.warning(message)
+    else:
+        logger.debug(message)
+    return True
+
+
+@dataclass
+class FrequencyIssue:
+    """A single aircraft type with its invalid channels, suitable for a validation report.
+
+    Attributes:
+        unit_type: DCS unit type string.
+        group_names: Names of the DCS groups using this unit type.
+        invalid_channels: Channels whose frequency falls outside the aircraft's valid ranges.
+        valid_ranges: All valid frequency ranges for this aircraft.
+        coalition: Coalition of the groups.
+        aircraft_category: DCS aircraft category ("plane" or "helicopter").
+        strict: True if DCS will reject the mission at load for this aircraft.
+    """
+
+    unit_type: str
+    group_names: list[str]
+    invalid_channels: list[ChannelFrequency]
+    valid_ranges: list[FrequencyRange]
+    coalition: str
+    aircraft_category: str
+    strict: bool
+
+
+def collect_invalid_channel_frequencies(
+    group_names: list[str],
+    unit_type: str,
+    channels: list[ChannelFrequency],
+    coalition: str = "blue",
+    aircraft_category: str = "plane",
+) -> FrequencyIssue | None:
+    """Return a FrequencyIssue for channels that are out-of-range for unit_type, or None if all valid.
+
+    Unlike warn_invalid_channel_frequencies, this function does not log anything — it returns
+    structured data for use in validation reports.
+
+    Args:
+        group_names: Names of the DCS groups using this unit type.
+        unit_type: DCS unit type string.
+        channels: All channel frequencies to check.
+        coalition: Coalition of the groups.
+        aircraft_category: DCS aircraft category.
+
+    Returns:
+        A FrequencyIssue if any channel is out-of-range, None otherwise (or if unit type unknown).
+    """
+    valid_ranges = get_valid_ranges(unit_type)
+    if valid_ranges is None:
+        return None
+    invalid_channels = [ch for ch in channels if not any(r.contains(ch.freq_mhz) for r in valid_ranges)]
+    if not invalid_channels:
+        return None
+    return FrequencyIssue(
+        unit_type=unit_type,
+        group_names=group_names,
+        invalid_channels=invalid_channels,
+        valid_ranges=valid_ranges,
+        coalition=coalition,
+        aircraft_category=aircraft_category,
+        strict=is_strict(unit_type),
     )
 
 

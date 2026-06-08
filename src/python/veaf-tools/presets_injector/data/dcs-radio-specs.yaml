@@ -669,6 +669,7 @@ Mi-8MT:
       modulation: AM/FM
 MiG-19P:
   category: plane
+  dcs_rejects_on_load: true
   name: MiG-19P
   radios:
   - name: RSIU-4V Radio
@@ -1198,6 +1199,7 @@ SA342L:
       modulation: AM/FM
 SA342M:
   category: helicopter
+  dcs_rejects_on_load: true
   name: SA342M
   radios:
   - name: FM Radio

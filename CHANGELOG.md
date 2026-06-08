@@ -10,6 +10,7 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Fixed
+- i18n : tous les messages des injectors (presets, waypoints) et du validateur de fréquences radio sont maintenant traduits en français — plus de messages en anglais dans le log de `veaf-tools build`
 - `presets inject`: radio frequency warnings are now deduplicated by aircraft type — instead of one warning block per group, a single block is emitted per unit type listing all affected groups in parentheses
 - `build`: bundle `presets_injector/data/dcs-radio-specs.yaml` into the PyInstaller executable — fixes `ModuleNotFoundError: No module named 'presets_injector.data'` at runtime
 - `aircraft-groups inject` (mode `add`): skip groups whose name already exists in the mission instead of creating duplicates — prevents DCS crash on FA-18C/F-16C units missing `datalinks` after a v5→v6 conversion

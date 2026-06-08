@@ -1,11 +1,10 @@
 """Tests for veaf_libs.lua_config_generator."""
 
-import re
 import logging
+import re
 
 import pytest
 import typer
-
 from veaf_libs.lua_config_generator import (
     MANDATORY_MODULES,
     _emit_lua_string,

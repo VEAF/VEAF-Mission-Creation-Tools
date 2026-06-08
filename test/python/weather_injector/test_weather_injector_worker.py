@@ -11,7 +11,6 @@ from typing import Any
 
 import typer
 import yaml
-
 from weather_injector.models import MissionConfig, Position, VersionConfig
 from weather_injector.weather_injector_worker import WeatherInjectorWorker
 

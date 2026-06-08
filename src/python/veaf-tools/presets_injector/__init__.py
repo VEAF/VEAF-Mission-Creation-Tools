@@ -18,9 +18,11 @@ from .presets_manager import (
     RadioCollection,
     RadioDefinition,
 )
-from .radio_frequency_validator import (
+from .radio_frequency_validator import (  # noqa: F401
     ChannelFrequency,
+    FrequencyIssue,
     FrequencyRange,
+    collect_invalid_channel_frequencies,
     get_valid_ranges,
     validate_frequencies,
     validate_frequency,

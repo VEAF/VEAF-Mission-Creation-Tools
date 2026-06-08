@@ -5,7 +5,6 @@ import zipfile
 from pathlib import Path
 
 import pytest
-
 from mission_tools.miz_tools import DcsMission, Group, create_miz, read_miz, write_miz
 
 # ---------------------------------------------------------------------------

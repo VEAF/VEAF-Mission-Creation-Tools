@@ -316,6 +316,21 @@
   "cmd.inject_presets.opt.mission": "Mission name; will inject in the mission with this name (most recent .miz file); can be set to a .miz file.",
   "cmd.inject_presets.opt.output_mission": "Mission file to save; defaults to the same as input.",
   "cmd.inject_presets.opt.presets_file": "Configuration file containing the presets.",
+  "cmd.inject_presets.opt.validate_report": "Write a Markdown validation report of all frequency issues to this file (reports ALL aircraft types, not only DCS-critical ones).",
+  "presets_injector.validation_report.written": "Validation report written to {path} ({count} issue(s) found).",
+
+  "presets_injector.report.title": "# Radio Presets Frequency Validation Report",
+  "presets_injector.report.generated": "Generated: {date}",
+  "presets_injector.report.presets_file": "Presets file: `{path}`",
+  "presets_injector.report.mission": "Mission: `{path}`",
+  "presets_injector.report.groups": "Groups: {groups}",
+  "presets_injector.report.valid_ranges": "Valid ranges: {ranges}",
+  "presets_injector.report.table_header": "| Channel | Title | Frequency (MHz) | Collection | Radio |",
+  "presets_injector.report.silence_hint": "**To silence:** add to `presets.yaml`:",
+  "presets_injector.report.section_critical": "## \u26a0\ufe0f Critical \u2014 DCS will reject these at mission load",
+  "presets_injector.report.section_info": "## \u2139\ufe0f Informational \u2014 DCS stores but ignores these frequencies",
+  "presets_injector.report.affected_count": "*{count} aircraft type(s) affected.*",
+  "presets_injector.report.all_valid": "## \u2705 All preset frequencies are valid for every aircraft type.",
 
   "cmd.prepare.opt.force": "Do not ask before replacing existing files (same as pressing A).",
 
@@ -480,5 +495,31 @@
   "tui.select_command": "Select a command",
 
   "update.new_version": "[yellow]⚠ A newer version of veaf-tools is available: [bold]{latest}[/bold] (you have {current})[/yellow]",
-  "update.run_updater": "[yellow]  Run [bold]veaf-tools-updater[/bold] to update.[/yellow]"
+  "update.run_updater": "[yellow]  Run [bold]veaf-tools-updater[/bold] to update.[/yellow]",
+
+  "group_injector.reading_mission": "Reading mission file {path}",
+  "group_injector.writing_mission": "Writing mission file",
+  "group_injector.spinner.reading": "Reading {path}...",
+  "group_injector.spinner.writing": "Writing mission...",
+
+  "presets_injector.error.load_config": "Failed to load config file {path}: {error}",
+  "presets_injector.processing_groups": "Processing {count} aircraft group(s)",
+  "presets_injector.injected": "Injected presets into {count} aircraft(s)",
+  "presets_injector.kneeboard_pages": "Added {count} kneeboard page(s) to mission",
+  "presets_injector.spinner.processing_groups": "Processing groups...",
+  "presets_injector.spinner.generating_images": "Generating preset images...",
+
+  "waypoints_injector.error.load_config": "Failed to load waypoints file {path}: {error}",
+  "waypoints_injector.injected": "Injected waypoints into {count} aircraft group(s)",
+  "waypoints_injector.spinner.processing_groups": "Processing groups and injecting waypoints...",
+
+  "radio_freq.warn.header_single": "Group '{group}' ({unit_type}): the following preset frequencies are not valid for this aircraft and will be rejected by DCS at mission load:",
+  "radio_freq.warn.header_plural": "Groups {groups} ({unit_type}): the following preset frequencies are not valid for this aircraft and will be rejected by DCS at mission load:",
+  "radio_freq.warn.channel_line": "    - channel {num}: {freq} MHz  (in radios_collection > {collection} > {radio_key})",
+  "radio_freq.warn.channel_line_titled": "    - channel {num} \"{title}\": {freq} MHz  (in radios_collection > {collection} > {radio_key})",
+  "radio_freq.warn.footer": "  Valid ranges for {unit_type}: {ranges_str}\n  These frequencies are probably correct for other aircraft — do NOT change them globally.\n  Instead, add a specific preset for {unit_type} in presets.yaml:\n    presets_assignments:\n      {coalition}:\n        {aircraft_category}:\n          {unit_type}: <your-{unit_type_key}-preset>\n  and define that preset with frequencies within: {ranges_str}",
+
+  "pipeline.injecting_aircraft_mode": "Pipeline: injecting aircraft groups from {path} (mode={mode})",
+
+  "presets_injector.freq_warn.disable_tip": "To silence these warnings temporarily while you fix the presets, add 'none' for these aircraft types in presets.yaml:\n  presets_assignments:\n{yaml_block}\n  Once the presets are corrected, remove those 'none' lines to re-enable injection."
 }

@@ -1,4 +1,4 @@
-﻿# Backlog — VEAF Mission Creation Tools v6
+# Backlog — VEAF Mission Creation Tools v6
 
 ## Calibration Table
 
@@ -48,32 +48,32 @@
 | Lot 21 — TYPING | ~20 min | [archived](backlog-archive.md) |
 | Lot 22 — TEST-LAYOUT | ~55 min | [archived](backlog-archive.md) |
 | Lot 23 — DOC-YAML | ~8h20 | [archived](backlog-archive.md) |
-| Lot 24 — DOC-REVIEW | ~2h45 | ⬜ (REV-002 en attente) |
+| Lot 24 — DOC-REVIEW | ~2h45 | ⬜ (REV-002 pending) |
 | Lot 25 — EXT-YAML | ~2h | [archived](backlog-archive.md) |
 | Lot FIX-SORT — LUADATA FIX | ~15 min | [archived](backlog-archive.md) |
 | Lot 26 — IMC-FEEDBACK | ~2h40 | [archived](backlog-archive.md) |
 | Lot FIX-BUNDLE — VEAFCOMMANDS MISSING | ~10 min | [archived](backlog-archive.md) |
 | Lot FIX-ASSETS-NEWLINE — ASSETS newline in Lua string | ~20 min | [archived](backlog-archive.md) |
 | Lot FIX-WEATHER-ALIAS — missions.yaml + versions.yaml coexistence | ~25 min | [archived](backlog-archive.md) |
-| Lot FIX-MISSIONCONFIG-BAK — supprimer extension .bak inutile | ~20 min | [archived](backlog-archive.md) |
-| Lot FIX-README-COPY — ne plus copier presets.md dans src/ | ~10 min | [archived](backlog-archive.md) |
-| Lot FIX-AIRCRAFT-ORPHAN — alerte fichier orphelin manquante pour aircraft-templates.yaml | ~15 min | [archived](backlog-archive.md) |
-| Lot DOC-DEV-MODE — documenter dev_mode + scripts_path | ~30 min | [archived](backlog-archive.md) |
-| Lot FEAT-PROFILES — profils de build dans mission.yaml | ~3h | [archived](backlog-archive.md) |
-| Lot FEAT-MODULE-UX — Catégories, modules obligatoires, dépendances | ~2h | [archived](backlog-archive.md) |
-| Lot FEAT-GITIGNORE — Template `.gitignore` VEAF MCT dans les defaults | ~25 min | [archived](backlog-archive.md) |
-| Lot FIX-OLDSCRIPTS — Détection fichiers .lua résiduels dans src/scripts/ | ~45 min | ✅ |
-| Lot FIX-MARKERS-INIT — Ajout de `veafMarkers.initialize()` manquante | ~5 min | ✅ |
-| Lot FIX-MISSING-INIT — `initialize()` manquante sur 4 modules Lua | ~20 min | ✅ |
+| Lot FIX-MISSIONCONFIG-BAK — remove unused .bak extension | ~20 min | [archived](backlog-archive.md) |
+| Lot FIX-README-COPY — stop copying presets.md into src/ | ~10 min | [archived](backlog-archive.md) |
+| Lot FIX-AIRCRAFT-ORPHAN — missing orphan-file warning for aircraft-templates.yaml | ~15 min | [archived](backlog-archive.md) |
+| Lot DOC-DEV-MODE — document dev_mode + scripts_path | ~30 min | [archived](backlog-archive.md) |
+| Lot FEAT-PROFILES — build profiles in mission.yaml | ~3h | [archived](backlog-archive.md) |
+| Lot FEAT-MODULE-UX — module categories, mandatory modules, dependencies | ~2h | [archived](backlog-archive.md) |
+| Lot FEAT-GITIGNORE — VEAF MCT .gitignore template in defaults | ~25 min | [archived](backlog-archive.md) |
+| Lot FIX-OLDSCRIPTS — detect residual .lua files in src/scripts/ | ~45 min | ✅ |
+| Lot FIX-MARKERS-INIT — add missing `veafMarkers.initialize()` | ~5 min | ✅ |
+| Lot FIX-MISSING-INIT — missing `initialize()` on 4 Lua modules | ~20 min | ✅ |
 | Lot 27 — DOC-FR-MERGE | ~6h | ✅ |
-| Lot FIX-YAML-SYNTAX — Erreur YAML non gérée dans build et mission_builder_worker | ~15 min | ✅ |
-| Lot FIX-MANDATORY-ENABLE — Bloquer enable sur les modules obligatoires | ~20 min | ✅ |
-| Lot FEAT-CUSTOM-SCRIPTS — Section custom_scripts dans mission.yaml | ~45 min | ✅ |
-| Lot FIX-REMOVE-CONVERT — Suppression de la commande `convert` | ~20 min | ✅ |
-| Lot FIX-MISSIONCONFIG-REFS — Références à `missionConfig.lua` dans doc et code | ~30 min | ✅ |
+| Lot FIX-YAML-SYNTAX — unhandled YAML error in build and mission_builder_worker | ~15 min | ✅ |
+| Lot FIX-MANDATORY-ENABLE — block enable on mandatory modules | ~20 min | ✅ |
+| Lot FEAT-CUSTOM-SCRIPTS — custom_scripts section in mission.yaml | ~45 min | ✅ |
+| Lot FIX-REMOVE-CONVERT — remove the `convert` command | ~20 min | ✅ |
+| Lot FIX-MISSIONCONFIG-REFS — references to `missionConfig.lua` in doc and code | ~30 min | ✅ |
 | Lot FEAT-DCS-BRIDGE — Optional dcs-bridge.lua injection | ~1h30 | ✅ |
-| Lot FIX-MANDATORY-YAML — Générateurs YAML : ne pas émettre `enable:` sur les modules obligatoires | ~35 min | ✅ |
-| Lot CMT-YAML-DOCS — Commentaires et liens de doc dans les `mission.yaml` générés | ~45 min | ✅ |
+| Lot FIX-MANDATORY-YAML — YAML generators: emit `{}` for mandatory modules instead of `enable: true` | ~35 min | ✅ |
+| Lot CMT-YAML-DOCS — doc comments and links in generated `mission.yaml` files | ~45 min | ✅ |
 | Lot FIX-AIRCRAFT-DUPLICATE — Duplicate aircraft groups in "add" injection mode | ~20 min | ✅ |
 | **Total** | **~178h45** | |
 
@@ -81,178 +81,178 @@
 
 ---
 
-## Lot FIX-MANDATORY-YAML — Générateurs YAML : ne pas émettre `enable:` sur les modules obligatoires
+## Lot FIX-MANDATORY-YAML — YAML generators: emit `{}` for mandatory modules instead of `enable: true`
 
-**Goal**: Les trois générateurs de YAML (`v5_converter.py`, `lua_config_generator.py`, `config_migrator.py`) émettent `enable: true` pour les modules obligatoires (UNITS, TIME, CACHE, EVENTS, MARKERS, COMMANDS). Le build bloque sur ces entrées avec une erreur critique. Il faut qu'ils émettent `{}` à la place (comme le fichier `src/defaults/mission-folder/mission.yaml`).
+**Goal**: The three YAML generators (`v5_converter.py`, `lua_config_generator.py`, `config_migrator.py`) emitted `enable: true` for mandatory modules (UNITS, TIME, CACHE, EVENTS, MARKERS, COMMANDS). The build blocked on these entries with a critical error. They must emit `{}` instead (matching the `src/defaults/mission-folder/mission.yaml` template).
 
 **Branch**: `fix/mandatory-yaml-enable` → PR → `develop-v6`
 
 | # | Ticket | Files | Type | Effort | Status |
 |---|--------|-------|------|--------|--------|
-| FMY-001 | Exposer `_MANDATORY_MODULES` en public dans `lua_config_generator.py` et émettre `{}` pour les modules obligatoires dans `generate_mission_yaml_template` | `veaf_libs/lua_config_generator.py` | fix | 10 min | ✅ |
-| FMY-002 | Dans `v5_converter.py` : importer `MANDATORY_MODULES`, ajouter COMMANDS à `_BASE_ALWAYS_ON`, émettre `{}` au lieu de `enable: true` pour les modules obligatoires | `mission_builder/v5_converter.py` | fix | 10 min | ✅ |
-| FMY-003 | Dans `config_migrator.py` : importer `MANDATORY_MODULES`, émettre `{}` au lieu de `enable: true` pour les modules obligatoires | `mission_builder/config_migrator.py` | fix | 10 min | ✅ |
-| FMY-004 | Mettre à jour les tests impactés et ajouter les cas manquants | `test/python/` | test | 5 min | ✅ |
+| FMY-001 | Expose `_MANDATORY_MODULES` as public in `lua_config_generator.py` and emit `{}` for mandatory modules in `generate_mission_yaml_template` | `veaf_libs/lua_config_generator.py` | fix | 10 min | ✅ |
+| FMY-002 | In `v5_converter.py`: import `MANDATORY_MODULES`, add COMMANDS to `_BASE_ALWAYS_ON`, emit `{}` instead of `enable: true` for mandatory modules | `mission_builder/v5_converter.py` | fix | 10 min | ✅ |
+| FMY-003 | In `config_migrator.py`: import `MANDATORY_MODULES`, emit `{}` instead of `enable: true` for mandatory modules | `mission_builder/config_migrator.py` | fix | 10 min | ✅ |
+| FMY-004 | Update impacted tests and add missing cases | `test/python/` | test | 5 min | ✅ |
 
 ---
 
-## Lot CMT-YAML-DOCS — Commentaires et liens de doc dans les `mission.yaml` générés
+## Lot CMT-YAML-DOCS — doc comments and links in generated `mission.yaml` files
 
-**Goal**: Les fichiers `mission.yaml` générés (par `generate-config`, `convert-v5` et `prepare`) doivent contenir des commentaires explicatifs et un lien vers le bon chapitre de la doc pour chaque section. Les URL actuelles pointent vers un fichier inexistant.
+**Goal**: Generated `mission.yaml` files (by `generate-config`, `convert-v5` and `prepare`) must contain explanatory comments and a link to the relevant documentation chapter for each section. The current URLs pointed to a non-existent file.
 
-**Branch**: `fix/mandatory-yaml-enable` (amendé sur la branche courante)
+**Branch**: `fix/mandatory-yaml-enable` (amended on current branch)
 
 | # | Ticket | Files | Type | Effort | Status |
 |---|--------|-------|------|--------|--------|
-| CMT-001 | Corriger l'URL de doc et ajouter les liens par section dans `en.json` | `veaf_libs/locales/en.json` | chore | 10 min | ✅ |
-| CMT-002 | Même corrections dans `fr.json` | `veaf_libs/locales/fr.json` | chore | 10 min | ✅ |
-| CMT-003 | Corriger l'URL et ajouter les liens par section dans `v5_converter.py` | `mission_builder/v5_converter.py` | chore | 10 min | ✅ |
-| CMT-004 | Corriger l'URL dans `src/defaults/mission-folder/mission.yaml` | `src/defaults/mission-folder/mission.yaml` | chore | 5 min | ✅ |
-| CMT-005 | Tests : vérifier la présence des liens dans les YAML générés | `test/python/` | test | 10 min | ✅ |
+| CMT-001 | Fix the doc URL and add per-section links in `en.json` | `veaf_libs/locales/en.json` | chore | 10 min | ✅ |
+| CMT-002 | Same fixes in `fr.json` | `veaf_libs/locales/fr.json` | chore | 10 min | ✅ |
+| CMT-003 | Fix the URL and add per-section links in `v5_converter.py` | `mission_builder/v5_converter.py` | chore | 10 min | ✅ |
+| CMT-004 | Fix the URL in `src/defaults/mission-folder/mission.yaml` | `src/defaults/mission-folder/mission.yaml` | chore | 5 min | ✅ |
+| CMT-005 | Tests: verify links are present in generated YAML files | `test/python/` | test | 10 min | ✅ |
 
 ---
 
-## Lot FIX-MISSIONCONFIG-REFS — Références à `missionConfig.lua` dans doc et code
+## Lot FIX-MISSIONCONFIG-REFS — references to `missionConfig.lua` in doc and code
 
-**Goal**: Remplacer toutes les références utilisateur à `missionConfig.lua` par le nom v6 correct (`mission-script.lua` pour le code custom, `mission.yaml` pour la config).
+**Goal**: Replace all user-facing references to `missionConfig.lua` with the correct v6 name (`mission-script.lua` for custom code, `mission.yaml` for configuration).
 
 **Branch**: `fix/remove-convert-command` → PR #371 → `develop-v6`
 
 | # | Ticket | Files | Type | Effort | Status |
 |---|--------|-------|------|--------|--------|
-| MCR-001 | Corriger `veafQraManager.md/en.md` : section "Via missionConfig.lua" | `doc/mission-maker/scripts/` | doc | 5 min | ✅ |
-| MCR-002 | Corriger `veafSkynetIadsHelper.md/en.md` : prérequis et titre de section | `doc/mission-maker/scripts/` | doc | 5 min | ✅ |
-| MCR-003 | Corriger arborescences dans `mission_builder_README.py` et `mission_extractor_README.py` | `src/python/veaf-tools/` | doc | 5 min | ✅ |
-| MCR-004 | Corriger commentaires AIEN/CTLD/CSAR dans `veaf.lua` | `src/scripts/veaf/veaf.lua` | chore | 5 min | ✅ |
-| MCR-005 | Corriger fixtures de test (`veafDynamicConfig.lua`, `mapResource`) | `test/veaf-tools/` | chore | 10 min | ✅ |
+| MCR-001 | Fix `veafQraManager.md/en.md`: "Via missionConfig.lua" section | `doc/mission-maker/scripts/` | doc | 5 min | ✅ |
+| MCR-002 | Fix `veafSkynetIadsHelper.md/en.md`: prerequisites and section title | `doc/mission-maker/scripts/` | doc | 5 min | ✅ |
+| MCR-003 | Fix directory trees in `mission_builder_README.py` and `mission_extractor_README.py` | `src/python/veaf-tools/` | doc | 5 min | ✅ |
+| MCR-004 | Fix AIEN/CTLD/CSAR comments in `veaf.lua` | `src/scripts/veaf/veaf.lua` | chore | 5 min | ✅ |
+| MCR-005 | Fix test fixtures (`veafDynamicConfig.lua`, `mapResource`) | `test/veaf-tools/` | chore | 10 min | ✅ |
 
 ---
 
-## Lot FIX-REMOVE-CONVERT — Suppression de la commande `convert`
+## Lot FIX-REMOVE-CONVERT — remove the `convert` command
 
-**Goal**: Retirer la commande `convert` qui est cassée sur les missions v6 (crash sur `missionConfig.lua` inexistant) et dont le rôle est couvert par `extract` + `build`.
+**Goal**: Remove the `convert` command which is broken on v6 missions (crashes on missing `missionConfig.lua`) and whose role is covered by `extract` + `build`.
 
 **Branch**: `fix/remove-convert-command` → PR #371 → `develop-v6`
 
 | # | Ticket | Files | Type | Effort | Status |
 |---|--------|-------|------|--------|--------|
-| RMC-001 | Supprimer `commands/convert.py` et le package `mission_converter/` | `src/python/veaf-tools/` | chore | 5 min | ✅ |
-| RMC-002 | Retirer l'entrée TUI et les clés de locale `cmd.convert.*` | `tui.py`, `en.json`, `fr.json` | chore | 10 min | ✅ |
-| RMC-003 | Retirer l'assertion de test correspondante | `test/python/veaf_libs/test_tui.py` | test | 5 min | ✅ |
+| RMC-001 | Delete `commands/convert.py` and the `mission_converter/` package | `src/python/veaf-tools/` | chore | 5 min | ✅ |
+| RMC-002 | Remove TUI entry and `cmd.convert.*` locale keys | `tui.py`, `en.json`, `fr.json` | chore | 10 min | ✅ |
+| RMC-003 | Remove the corresponding test assertion | `test/python/veaf_libs/test_tui.py` | test | 5 min | ✅ |
 
 ---
 
-## Lot FEAT-CUSTOM-SCRIPTS — Section custom_scripts dans mission.yaml
+## Lot FEAT-CUSTOM-SCRIPTS — custom_scripts section in mission.yaml
 
-**Goal**: Permettre de déclarer des scripts Lua custom dans `mission.yaml` pour supprimer les warnings et contrôler la génération du trigger DCS de chargement.
+**Goal**: Allow declaring custom Lua scripts in `mission.yaml` to suppress warnings and control the generation of the DCS load trigger.
 
 **Branch**: `feature/custom-scripts` → PR → `develop-v6`
 
 | # | Ticket | Files | Type | Effort | Status |
 |---|--------|-------|------|--------|--------|
-| CUSTOM-001 | Ajouter `CustomScript` dataclass + parsing `custom_scripts` dans `__init__` | `mission_builder_worker.py` | feat | 10 min | 🔄 |
-| CUSTOM-002 | Mettre à jour la logique de warning (déclaré = info, inconnu = warning avec hint) | `mission_builder_worker.py` | feat | 10 min | 🔄 |
-| CUSTOM-003 | Filtrer les triggers de chargement selon `generate_load_trigger` | `mission_builder_worker.py` | feat | 10 min | 🔄 |
-| CUSTOM-004 | Tests TDD (warnings + trigger resolution) | `test_mission_builder_defaults.py` | test | 10 min | 🔄 |
-| CUSTOM-005 | Documenter la section dans `mission.yaml` par défaut | `src/defaults/mission-folder/mission.yaml` | doc | 5 min | 🔄 |
+| CUSTOM-001 | Add `CustomScript` dataclass + parse `custom_scripts` in `__init__` | `mission_builder_worker.py` | feat | 10 min | 🔄 |
+| CUSTOM-002 | Update warning logic (declared = info, unknown = warning with hint) | `mission_builder_worker.py` | feat | 10 min | 🔄 |
+| CUSTOM-003 | Filter load triggers according to `generate_load_trigger` | `mission_builder_worker.py` | feat | 10 min | 🔄 |
+| CUSTOM-004 | TDD tests (warnings + trigger resolution) | `test_mission_builder_defaults.py` | test | 10 min | 🔄 |
+| CUSTOM-005 | Document the section in the default `mission.yaml` | `src/defaults/mission-folder/mission.yaml` | doc | 5 min | 🔄 |
 
 ---
 
-## Lot FIX-MISSING-INIT — `initialize()` manquante sur 4 modules Lua
+## Lot FIX-MISSING-INIT — missing `initialize()` on 4 Lua modules
 
-**Goal**: Corriger les crashes DCS runtime `attempt to call field 'initialize' (a nil value)` sur les modules non encore couverts.
+**Goal**: Fix DCS runtime crashes `attempt to call field 'initialize' (a nil value)` on modules not yet covered.
 
-**Context**: Le build Python (`lua_config_generator.py`) génère un appel `<module>.initialize()` pour tous les modules listés dans `_MODULE_INIT_ORDER`. Audit complet révèle 4 modules sans cette fonction : `veafCacheManager`, `veafTime`, `veafUnits`, `veafSkynetIadsMonitor`.
+**Context**: The Python build (`lua_config_generator.py`) generates an `<module>.initialize()` call for all modules listed in `_MODULE_INIT_ORDER`. A full audit revealed 4 modules missing this function: `veafCacheManager`, `veafTime`, `veafUnits`, `veafSkynetIadsMonitor`.
 
 **Branch**: `fix/missing-initialize-fns` → PR → `develop-v6`
 
 | # | Ticket | Files | Type | Effort | Status |
 |---|--------|-------|------|--------|--------|
-| MISSING-INIT-001 | Ajouter `initialize()` dans `veafCacheManager.lua` | `src/scripts/veaf/veafCacheManager.lua` | fix | 5 min | ✅ |
-| MISSING-INIT-002 | Ajouter `initialize()` dans `veafTime.lua` | `src/scripts/veaf/veafTime.lua` | fix | 5 min | ✅ |
-| MISSING-INIT-003 | Ajouter `initialize()` dans `veafUnits.lua` | `src/scripts/veaf/veafUnits.lua` | fix | 5 min | ✅ |
-| MISSING-INIT-004 | Ajouter `initialize()` dans `veafSkynetIadsMonitor.lua` | `src/scripts/veaf/veafSkynetIadsMonitor.lua` | fix | 5 min | ✅ |
+| MISSING-INIT-001 | Add `initialize()` to `veafCacheManager.lua` | `src/scripts/veaf/veafCacheManager.lua` | fix | 5 min | ✅ |
+| MISSING-INIT-002 | Add `initialize()` to `veafTime.lua` | `src/scripts/veaf/veafTime.lua` | fix | 5 min | ✅ |
+| MISSING-INIT-003 | Add `initialize()` to `veafUnits.lua` | `src/scripts/veaf/veafUnits.lua` | fix | 5 min | ✅ |
+| MISSING-INIT-004 | Add `initialize()` to `veafSkynetIadsMonitor.lua` | `src/scripts/veaf/veafSkynetIadsMonitor.lua` | fix | 5 min | ✅ |
 
 ---
 
-## Lot FIX-MARKERS-INIT — Ajout de `veafMarkers.initialize()` manquante
+## Lot FIX-MARKERS-INIT — add missing `veafMarkers.initialize()`
 
-**Goal**: Corriger l'erreur DCS runtime `attempt to call field 'initialize' (a nil value)` sur `veafMarkers`.
+**Goal**: Fix DCS runtime error `attempt to call field 'initialize' (a nil value)` on `veafMarkers`.
 
-**Context**: La fonction `initialize()` était absente de `veafMarkers.lua` alors que `veaf-config.lua` l'appelle systématiquement. Le module était déjà auto-initialisé au chargement ; la fonction ajoutée se contente de logger.
+**Context**: The `initialize()` function was missing from `veafMarkers.lua` even though `veaf-config.lua` always calls it. The module was already self-initializing on load; the added function simply logs.
 
-**Branch**: commit direct sans branche (fix minimal, testé par l'utilisateur)
+**Branch**: direct commit without branch (minimal fix, tested by user)
 
 | # | Ticket | Files | Type | Effort | Status |
 |---|--------|-------|------|--------|--------|
-| MARKERS-INIT-001 | Ajouter `veafMarkers.initialize()` dans `src/scripts/veaf/veafMarkers.lua` | `src/scripts/veaf/veafMarkers.lua` | fix | 5 min | ✅ |
+| MARKERS-INIT-001 | Add `veafMarkers.initialize()` to `src/scripts/veaf/veafMarkers.lua` | `src/scripts/veaf/veafMarkers.lua` | fix | 5 min | ✅ |
 
 ---
 
-## Lot FIX-OLDSCRIPTS — Détection fichiers .lua résiduels dans src/scripts/
+## Lot FIX-OLDSCRIPTS — detect residual .lua files in src/scripts/
 
-**Goal**: Détecter les fichiers `.lua` résiduels v5 dans `src/scripts/` d'une mission convertie et émettre un avertissement au build.
+**Goal**: Detect residual v5 `.lua` files in `src/scripts/` of a converted mission and emit a warning at build time.
 
-**Context**: Le bug original (`veafCommands nil`) a été résolu par Lot FIX-BUNDLE. Cause secondaire potentielle non traitée : des fichiers VEAF `.lua` v5 individuels encore présents dans `src/scripts/` pourraient être chargés via le glob `src/scripts/*.lua` et créer des conflits au runtime DCS. OLDSCRIPTS-002 peut être implémenté indépendamment de l'investigation.
+**Context**: The original bug (`veafCommands nil`) was resolved by Lot FIX-BUNDLE. Potential secondary cause not addressed: individual v5 VEAF `.lua` files still present in `src/scripts/` could be loaded via the `src/scripts/*.lua` glob and create DCS runtime conflicts. OLDSCRIPTS-002 can be implemented independently of the investigation.
 
 **Branch**: `fix/oldscripts-detection` → PR → `develop-v6`
 
 | # | Ticket | Files | Type | Effort | Status |
 |---|--------|-------|------|--------|--------|
-| OLDSCRIPTS-000 | Investigation : reproduire le bug avec une vraie mission v5→v6 ; obtenir les logs DCS complets ; identifier le fichier responsable | — | chore | 15 min | ✅ (résolu — voir contexte) |
-| OLDSCRIPTS-001 | Fix : selon le résultat de l'investigation, corriger la cause racine identifiée | TBD | fix | TBD | ✅ (résolu par FIX-BUNDLE) |
-| OLDSCRIPTS-002 | Ajouter un warning si des fichiers `.lua` inattendus sont présents dans `src/scripts/` (i.e. non listés explicitement dans `get_mission_script_files()`) | `mission_tools/mission_constants.py` ou `mission_builder_worker.py` | fix | 15 min | ✅ |
+| OLDSCRIPTS-000 | Investigation: reproduce the bug with a real v5→v6 mission; obtain full DCS logs; identify the responsible file | — | chore | 15 min | ✅ (resolved — see context) |
+| OLDSCRIPTS-001 | Fix: based on investigation result, fix the identified root cause | TBD | fix | TBD | ✅ (resolved by FIX-BUNDLE) |
+| OLDSCRIPTS-002 | Add a warning if unexpected `.lua` files are present in `src/scripts/` (i.e. not explicitly listed in `get_mission_script_files()`) | `mission_tools/mission_constants.py` or `mission_builder_worker.py` | fix | 15 min | ✅ |
 
-**Raw total: ~45 min estimé (hors investigation)**
+**Raw total: ~45 min estimated (excluding investigation)**
 
 ---
 
-## Lot 27 — DOC-FR-MERGE: Français par défaut + merge contenu v5
+## Lot 27 — DOC-FR-MERGE: French as default language + v5 content merge
 
-**Goal**: Passer le français en langue par défaut de la documentation MkDocs et enrichir les pages v6 avec le contenu conceptuel manquant issu de la documentation v5 (écrite manuellement).
+**Goal**: Switch French as the default MkDocs documentation language and enrich v6 pages with the missing conceptual content from the v5 documentation (written manually).
 
 **Branch**: `feature/doc-fr-default-and-v5-merge` → PR → `develop-v6`
 
-| # | Ticket | Fichiers touchés | Type | Effort | Status |
-|---|--------|-----------------|------|--------|--------|
-| DOC-FR-001 | Renommer `*.md` → `*.en.md` et `*.fr.md` → `*.md` (35 paires) | `doc/**` | chore | 15 min | ✅ |
-| DOC-FR-002 | Mettre à jour `mkdocs.yml` : FR défaut, EN secondaire | `mkdocs.yml` | chore | 10 min | ✅ |
-| DOC-FR-003 | Merge contenu v5 → `veafQraManager.md` (FR + EN) | `doc/mission-maker/scripts/veafQraManager.*` | chore | 45 min | ✅ |
-| DOC-FR-004 | Merge contenu v5 → `veafCombatZone.md` (FR + EN) | `doc/mission-maker/scripts/veafCombatZone.*` | chore | 45 min | ✅ |
-| DOC-FR-005 | Merge contenu v5 → `veafAirWaves.md` (FR + EN) | `doc/mission-maker/scripts/veafAirWaves.*` | chore | 30 min | ✅ (v6 déjà complet) |
-| DOC-FR-006 | Merge contenu v5 → `veafRadio.md` (FR + EN) | `doc/mission-maker/scripts/veafRadio.*` | chore | 20 min | ✅ |
-| DOC-FR-007 | Merge contenu v5 → `veafSkynetIadsHelper.md` (FR + EN) | `doc/mission-maker/scripts/veafSkynetIadsHelper.*` | chore | 20 min | ✅ |
-| DOC-FR-008 | Merge contenu v5 → `veafWeather.md` (FR + EN) | `doc/mission-maker/scripts/veafWeather.*` | chore | 20 min | ✅ |
-| DOC-FR-009 | Vérifier `presets.md` v5 et identifier l'équivalent v6 | TBD | chore | 15 min | ✅ (déjà dans GUIDE.md) |
+| # | Ticket | Files | Type | Effort | Status |
+|---|--------|-------|------|--------|--------|
+| DOC-FR-001 | Rename `*.md` → `*.en.md` and `*.fr.md` → `*.md` (35 pairs) | `doc/**` | chore | 15 min | ✅ |
+| DOC-FR-002 | Update `mkdocs.yml`: FR default, EN secondary | `mkdocs.yml` | chore | 10 min | ✅ |
+| DOC-FR-003 | Merge v5 content → `veafQraManager.md` (FR + EN) | `doc/mission-maker/scripts/veafQraManager.*` | chore | 45 min | ✅ |
+| DOC-FR-004 | Merge v5 content → `veafCombatZone.md` (FR + EN) | `doc/mission-maker/scripts/veafCombatZone.*` | chore | 45 min | ✅ |
+| DOC-FR-005 | Merge v5 content → `veafAirWaves.md` (FR + EN) | `doc/mission-maker/scripts/veafAirWaves.*` | chore | 30 min | ✅ (v6 already complete) |
+| DOC-FR-006 | Merge v5 content → `veafRadio.md` (FR + EN) | `doc/mission-maker/scripts/veafRadio.*` | chore | 20 min | ✅ |
+| DOC-FR-007 | Merge v5 content → `veafSkynetIadsHelper.md` (FR + EN) | `doc/mission-maker/scripts/veafSkynetIadsHelper.*` | chore | 20 min | ✅ |
+| DOC-FR-008 | Merge v5 content → `veafWeather.md` (FR + EN) | `doc/mission-maker/scripts/veafWeather.*` | chore | 20 min | ✅ |
+| DOC-FR-009 | Check `presets.md` v5 and identify the v6 equivalent | TBD | chore | 15 min | ✅ (already in GUIDE.md) |
 
 ---
 
-## Lot FIX-YAML-SYNTAX — Erreur YAML non gérée dans build et mission_builder_worker
+## Lot FIX-YAML-SYNTAX — unhandled YAML error in build and mission_builder_worker
 
-**Goal**: Intercepter les erreurs de syntaxe YAML dans `mission.yaml` pour afficher un message clair au lieu d'un traceback Python.
+**Goal**: Catch YAML syntax errors in `mission.yaml` to display a clear message instead of a Python traceback.
 
-**Context**: Un `yaml.YAMLError` non géré dans `build.py` (peek du nom) et `mission_builder_worker.py` (chargement complet) causait un crash avec traceback. Le message d'erreur natif de PyYAML (fichier, ligne, colonne, contexte) est propagé via `logger.error`.
+**Context**: An unhandled `yaml.YAMLError` in `build.py` (name peek) and `mission_builder_worker.py` (full load) caused a crash with traceback. PyYAML's native error message (file, line, column, context) is now propagated via `logger.error`.
 
 **Branch**: `fix/yaml-syntax-error` → PR → `develop-v6`
 
 | # | Ticket | Files | Type | Effort | Status |
 |---|--------|-------|------|--------|--------|
-| YAML-SYNTAX-001 | Gérer `yaml.YAMLError` dans `build.py` (peek mission name) | `src/python/veaf-tools/veaf_tools/commands/build.py` | fix | 5 min | ✅ |
-| YAML-SYNTAX-002 | Gérer `yaml.YAMLError` dans `mission_builder_worker.py` (chargement complet) | `src/python/veaf-tools/mission_builder/mission_builder_worker.py` | fix | 5 min | ✅ |
+| YAML-SYNTAX-001 | Handle `yaml.YAMLError` in `build.py` (peek mission name) | `src/python/veaf-tools/veaf_tools/commands/build.py` | fix | 5 min | ✅ |
+| YAML-SYNTAX-002 | Handle `yaml.YAMLError` in `mission_builder_worker.py` (full load) | `src/python/veaf-tools/mission_builder/mission_builder_worker.py` | fix | 5 min | ✅ |
 
 ---
 
 ## Lot 24 — DOC-REVIEW: Klogg profile (REV-002)
 
-**Goal**: Committer le profil Klogg VEAF dans le repo pour faciliter la lecture des logs DCS.
+**Goal**: Commit the VEAF Klogg profile to the repo to ease DCS log reading.
 
-**Context**: Tous les autres tickets REV-* du Lot 24 sont archivés. REV-002 attend que l'utilisateur fournisse le fichier `.conf` Klogg.
+**Context**: All other REV-* tickets from Lot 24 are archived. REV-002 is waiting for the user to provide the `.conf` file.
 
 **Branch**: `fix/doc-review-klogg` → PR → `develop-v6`
 
-| # | Ticket | Fichiers touchés | Type | Effort | Status |
-|---|--------|-----------------|------|--------|--------|
-| REV-002 | Committer le profil Klogg fourni par l'utilisateur dans `tools/klogg/veaf.conf` ; mettre à jour la section "Reading the log" dans `GUIDE.md` et `GUIDE.fr.md` pour pointer vers ce fichier | `tools/klogg/veaf.conf`, `doc/mission-maker/GUIDE.md`, `doc/mission-maker/GUIDE.fr.md` | chore | 20 min | ⬜ |
+| # | Ticket | Files | Type | Effort | Status |
+|---|--------|-------|------|--------|--------|
+| REV-002 | Commit the Klogg profile provided by the user to `tools/klogg/veaf.conf`; update the "Reading the log" section in `GUIDE.md` and `GUIDE.fr.md` to point to this file | `tools/klogg/veaf.conf`, `doc/mission-maker/GUIDE.md`, `doc/mission-maker/GUIDE.fr.md` | chore | 20 min | ⬜ |
 
 ---
 

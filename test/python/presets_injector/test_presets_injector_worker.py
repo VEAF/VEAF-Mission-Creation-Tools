@@ -220,30 +220,39 @@ class TestProcessGroups(unittest.TestCase):
 class TestGenerateValidationReport(unittest.TestCase):
     """Tests for collect_freq_issues() and generate_validation_report()."""
 
-    def _make_worker_with_pending(self) -> PresetsInjectorWorker:
-        """Return a worker with one strict and one non-strict pending warning pre-loaded."""
-        from presets_injector.presets_injector_worker import _PendingFreqWarning
-        from presets_injector.radio_frequency_validator import ChannelFrequency
+    def _make_worker_with_issues(self) -> PresetsInjectorWorker:
+        """Return a worker with _freq_issues pre-loaded (one strict, one non-strict)."""
+        from presets_injector.radio_frequency_validator import ChannelFrequency, FrequencyIssue, FrequencyRange
 
         worker = _make_worker()
-        # MiG-19P is strict (dcs_rejects_on_load: true in real specs); mock both via _SPECS patch
-        strict_ch = ChannelFrequency(freq_mhz=284.0, radio_key="radio_uhf", radio_collection="blue_radios",
-                                     radio_title="UHF", channel=1, channel_title="TACTICAL")
-        non_strict_ch = ChannelFrequency(freq_mhz=284.0, radio_key="radio_uhf", radio_collection="blue_radios",
-                                          radio_title="UHF", channel=1, channel_title="TACTICAL")
-        worker._pending_freq_warnings["MiG-19P"] = _PendingFreqWarning(
-            group_names=["Bandit MiG #1"],
-            channels=[strict_ch],
-            coalition="blue",
-            aircraft_category="plane",
-        )
-        worker._pending_freq_warnings["Ka-50"] = _PendingFreqWarning(
-            group_names=["Helo #1"],
-            channels=[non_strict_ch],
-            coalition="blue",
-            aircraft_category="helicopter",
-        )
+        strict_range = FrequencyRange(min_mhz=100.0, max_mhz=150.0, modulation="AM/FM")
+        non_strict_range = FrequencyRange(min_mhz=20.0, max_mhz=59.9, modulation="AM/FM")
+        ch = ChannelFrequency(freq_mhz=284.0, radio_key="radio_uhf", radio_collection="blue_radios",
+                              radio_title="UHF", channel=1, channel_title="TACTICAL")
+        worker._freq_issues = [
+            FrequencyIssue(
+                unit_type="MiG-19P",
+                group_names=["Bandit MiG #1"],
+                invalid_channels=[ch],
+                valid_ranges=[strict_range],
+                coalition="blue",
+                aircraft_category="plane",
+                strict=True,
+            ),
+            FrequencyIssue(
+                unit_type="Ka-50",
+                group_names=["Helo #1"],
+                invalid_channels=[ch],
+                valid_ranges=[non_strict_range],
+                coalition="blue",
+                aircraft_category="helicopter",
+                strict=False,
+            ),
+        ]
         return worker
+
+    # Keep old name as alias so test methods below still work
+    _make_worker_with_pending = _make_worker_with_issues
 
     def test_collect_freq_issues_returns_issues_for_known_types(self) -> None:
         worker = self._make_worker_with_pending()

@@ -43,6 +43,8 @@ class PresetsInjectorWorker(GroupInjectorWorker):
         self.presets_manager: PresetsManager = PresetsManager()
         # Pending frequency warnings keyed by unit_type; aggregated before emission.
         self._pending_freq_warnings: dict[str, _PendingFreqWarning] = {}
+        # Resolved frequency issues populated after process_groups(); used by generate_validation_report().
+        self._freq_issues: list[FrequencyIssue] = []
         super().__init__(config_file=presets_file, input_mission=input_mission, output_mission=output_mission)
 
     def load_config(self) -> Any:
@@ -149,30 +151,33 @@ class PresetsInjectorWorker(GroupInjectorWorker):
                     ])
                 yaml_block = "\n".join(yaml_lines)
                 logger.warning(t("presets_injector.freq_warn.disable_tip", yaml_block=yaml_block))
+            # Collect all issues (strict + non-strict) for the validation report before clearing.
+            self._freq_issues = sorted(
+                (
+                    issue
+                    for unit_type, entry in self._pending_freq_warnings.items()
+                    if (issue := collect_invalid_channel_frequencies(
+                        group_names=entry.group_names,
+                        unit_type=unit_type,
+                        channels=entry.channels,
+                        coalition=entry.coalition,
+                        aircraft_category=entry.aircraft_category,
+                    )) is not None
+                ),
+                key=lambda i: (not i.strict, i.unit_type),
+            )
             self._pending_freq_warnings.clear()
 
     def collect_freq_issues(self) -> list[FrequencyIssue]:
-        """Collect ALL radio frequency issues across every pending aircraft type.
+        """Return the resolved frequency issues collected during the last process_groups() call.
 
-        Unlike the normal warning path (which filters by dcs_rejects_on_load), this method
-        returns issues for every aircraft type that has at least one out-of-range channel,
-        regardless of whether DCS would actually reject the mission.
+        Issues are populated during process_groups() before the pending warnings are cleared,
+        so this method is safe to call after work() has completed.
 
         Returns:
             List of FrequencyIssue, strict types first, then informational, both sorted by unit_type.
         """
-        issues: list[FrequencyIssue] = []
-        for unit_type, entry in self._pending_freq_warnings.items():
-            issue = collect_invalid_channel_frequencies(
-                group_names=entry.group_names,
-                unit_type=unit_type,
-                channels=entry.channels,
-                coalition=entry.coalition,
-                aircraft_category=entry.aircraft_category,
-            )
-            if issue:
-                issues.append(issue)
-        return sorted(issues, key=lambda i: (not i.strict, i.unit_type))
+        return self._freq_issues
 
     def generate_validation_report(self, output_path: Path) -> int:
         """Write a Markdown validation report of all radio frequency issues to output_path.

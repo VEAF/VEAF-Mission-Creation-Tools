@@ -295,8 +295,6 @@ def write_markdown(specs: list[AircraftSpec], output: Path) -> None:
                 for rng in radio.ranges:
                     name_col = f"**{spec.display_name}**" if first else ""
                     id_col = f"`{spec.dcs_id}`" if first else ""
-                    radio_col = radio.name if first or radio != spec.radios[0] else ""
-                    # Only show radio name on its first range row
                     radio_name = radio.name if rng == radio.ranges[0] else ""
                     lines.append(
                         f"| {name_col} | {id_col} | {radio_name} "

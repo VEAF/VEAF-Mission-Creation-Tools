@@ -68,6 +68,7 @@ class PresetsInjectorWorker(GroupInjectorWorker):
                 )
                 for radio in preset_definition.radios.values()
                 for ch in radio.channels
+                if isinstance(ch.freq, (int, float))
             ]
             warn_invalid_channel_frequencies(
                 group_name=group.name or "",

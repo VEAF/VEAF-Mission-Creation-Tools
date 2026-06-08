@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any
 
 import yaml
+from veaf_libs.i18n import t
 from veaf_libs.logger import logger
 
 
@@ -119,7 +120,7 @@ class WaypointsManager:
             yaml_file: Path to the YAML file containing waypoints
         """
         if not yaml_file.exists():
-            logger.error(f"YAML file not found: {yaml_file}", exception_type=FileNotFoundError)
+            logger.error(t("waypoints.yaml_not_found", path=yaml_file), exception_type=FileNotFoundError)
             return
 
         try:
@@ -127,7 +128,7 @@ class WaypointsManager:
                 data = yaml.safe_load(f)
 
             if not data:
-                logger.warning(f"YAML file is empty: {yaml_file}")
+                logger.warning(t("waypoints.yaml_empty", path=yaml_file))
                 return
 
             # Load waypoints definitions
@@ -143,7 +144,7 @@ class WaypointsManager:
             )
 
         except Exception as e:
-            logger.error(f"Failed to load YAML file {yaml_file}: {str(e)}", exception_type=type(e))
+            logger.error(t("waypoints.yaml_load_failed", path=yaml_file, error=str(e)), exception_type=type(e))
 
     def _load_waypoints(self, waypoints_data: dict[str, Any]) -> None:
         """Load individual waypoint definitions."""
@@ -154,7 +155,7 @@ class WaypointsManager:
                 self.waypoints[name] = waypoint
                 logger.debug(f"Loaded waypoint: {name}")
             except Exception as e:
-                logger.warning(f"Failed to load waypoint {name}: {str(e)}")
+                logger.warning(t("waypoints.waypoint_load_failed", name=name, error=str(e)))
 
     def _load_flight_plan_settings(self, settings_data: dict[str, Any]) -> None:
         """Load flight plan settings that define which groups get which waypoints."""
@@ -174,12 +175,12 @@ class WaypointsManager:
                         if wp_name in self.waypoints:
                             plan.waypoints.append(self.waypoints[wp_name])
                         else:
-                            logger.warning(f"Waypoint '{wp_name}' referenced in plan '{plan_name}' not found")
+                            logger.warning(t("waypoints.plan_waypoint_not_found", name=wp_name, plan=plan_name))
 
                 self.flight_plans[plan_name] = plan
                 logger.debug(f"Loaded flight plan: {plan_name} with {len(plan.waypoints)} waypoint(s)")
             except Exception as e:
-                logger.warning(f"Failed to load flight plan {plan_name}: {str(e)}")
+                logger.warning(t("waypoints.plan_load_failed", plan=plan_name, error=str(e)))
 
     def get_flight_plan_for(
         self,

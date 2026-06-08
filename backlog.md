@@ -82,7 +82,7 @@
 | Lot FIX-CONVERT-V5-DEFAULT-CWD — `convert-v5` uses current directory by default | ~5 min | ✅ |
 | Lot FIX-SRS-WARN — false warning when SRS config file is absent | ~10 min | ✅ |
 | Lot FIX-CTLD-NIL — nil crash on ctld.builtFOBS / ctld.logisticUnits in scheduled fns | ~15 min | ✅ |
-| Lot I18N-COVERAGE — i18n coverage tests + fix remaining hardcoded English strings | ~2h30 | ⬜ |
+| Lot I18N-COVERAGE — i18n coverage tests + fix remaining hardcoded English strings | ~2h30 | ✅ |
 | Lot FIX-CONVERT-V5-LOG-DEFAULT — convert-v5 defaults global_log_level to debug instead of info | ~5 min | ✅ |
 | **Total** | **~182h** | |
 
@@ -308,11 +308,11 @@ Direct commits on `develop-v6` (no feature branch needed — no code change).
 
 | # | Ticket | Files | Type | Effort | Status |
 |---|--------|-------|------|--------|--------|
-| I18N-COV-001 | Add test: all `t("key")` calls in `src/python/` reference a key that exists in `en.json` | `test/python/veaf_libs/test_i18n.py` | test | 20 min | ⬜ |
-| I18N-COV-002 | Add test: every key in `en.json` has a non-empty entry in `fr.json` | `test/python/veaf_libs/test_i18n.py` | test | 10 min | ⬜ |
-| I18N-COV-003 | Add i18n keys for `mission_builder_worker.py` hardcoded strings and replace with `t()` | `mission_builder/mission_builder_worker.py`, `locales/en.json`, `locales/fr.json` | fix | 20 min | ⬜ |
-| I18N-COV-004 | Add i18n keys for `aircrafts_injector_worker.py` hardcoded strings and replace with `t()` | `aircrafts_injector/aircrafts_injector_worker.py`, `locales/en.json`, `locales/fr.json` | fix | 45 min | ⬜ |
-| I18N-COV-005 | Add i18n keys for `lua_config_generator.py` and `waypoints_manager.py` hardcoded strings | `veaf_libs/lua_config_generator.py`, `waypoints_injector/waypoints_manager.py`, `locales/*.json` | fix | 15 min | ⬜ |
+| I18N-COV-001 | Add test: all `t("key")` calls in `src/python/` reference a key that exists in `en.json` | `test/python/veaf_libs/test_i18n.py` | test | 20 min | ✅ |
+| I18N-COV-002 | Add test: every key in `en.json` has a non-empty entry in `fr.json` | `test/python/veaf_libs/test_i18n.py` | test | 10 min | ✅ |
+| I18N-COV-003 | Add i18n keys for `mission_builder_worker.py` hardcoded strings and replace with `t()` | `mission_builder/mission_builder_worker.py`, `locales/en.json`, `locales/fr.json` | fix | 20 min | ✅ |
+| I18N-COV-004 | Add i18n keys for `aircrafts_injector_worker.py` hardcoded strings and replace with `t()` | `aircrafts_injector/aircrafts_injector_worker.py`, `locales/en.json`, `locales/fr.json` | fix | 45 min | ✅ |
+| I18N-COV-005 | Add i18n keys for `lua_config_generator.py` and `waypoints_manager.py` hardcoded strings | `veaf_libs/lua_config_generator.py`, `waypoints_injector/waypoints_manager.py`, `locales/*.json` | fix | 15 min | ✅ |
 
 ---
 

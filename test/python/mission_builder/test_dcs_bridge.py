@@ -128,7 +128,7 @@ class TestInjectDcsBridgeTrigger(unittest.TestCase):
         bridge_file.write_bytes(bridge_content)
         return worker, bridge_file
 
-    def test_trigger_absent_when_disabled(self) -> None:
+    def test_inject_is_noop_when_bridge_file_is_none(self) -> None:
         worker = _make_worker({"dcs_bridge": {"enabled": False}})
         worker.dcs_mission = MagicMock()
         worker.inject_dcs_bridge_trigger(None)

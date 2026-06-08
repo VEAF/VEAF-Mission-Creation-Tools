@@ -318,10 +318,7 @@ class MissionBuilderWorker(BaseWorker):
             with urllib.request.urlopen(_DCS_BRIDGE_DOWNLOAD_URL) as resp:
                 content: bytes = resp.read()
         except urllib.error.URLError as exc:
-            logger.error(
-                f"dcs_bridge: failed to download dcs-bridge.lua: {exc}",
-                exception_type=RuntimeError,
-            )
+            raise RuntimeError(f"dcs_bridge: failed to download dcs-bridge.lua: {exc}") from exc
 
         tmp = tempfile.NamedTemporaryFile(suffix=".lua", delete=False)
         tmp.write(content)

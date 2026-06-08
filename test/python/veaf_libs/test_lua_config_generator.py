@@ -7,6 +7,7 @@ import pytest
 import typer
 
 from veaf_libs.lua_config_generator import (
+    MANDATORY_MODULES,
     _emit_lua_string,
     _resolve_deps,
     generate_config_lua,
@@ -276,6 +277,26 @@ def test_mandatory_module_config_only_passes(caplog):
     with caplog.at_level(logging.ERROR, logger="veaf-tools"):
         generate_config_lua(yaml_data)
     assert not any("UNITS" in msg for msg in caplog.messages)
+
+
+def test_mandatory_module_no_enable_in_yaml_template():
+    """generate_mission_yaml_template must emit 'key: {}' for mandatory modules, never 'enable:'."""
+    template = generate_mission_yaml_template(enabled_module_ids=MANDATORY_MODULES | {"RADIO"})
+    lines = template.splitlines()
+
+    for mandatory in MANDATORY_MODULES:
+        uncommented = [ln for ln in lines if mandatory in ln and not ln.lstrip().startswith("#")]
+        assert uncommented, f"{mandatory} must appear uncommented in the template"
+        assert not any("enable:" in ln for ln in uncommented), f"{mandatory} must not have 'enable:'"
+        assert any(
+            ln.strip().startswith(f"{mandatory}: {{}}") or ln.strip().startswith(f'"{mandatory}": {{}}')
+            for ln in uncommented
+        ), f"{mandatory} must be emitted as 'key: {{}}'"
+
+    # Non-mandatory enabled module must still use enable: true (on the indented sub-key line)
+    assert any(
+        ln.strip() == "enable: true" and not ln.startswith("#") for ln in lines
+    ), "RADIO (non-mandatory) must produce an 'enable: true' line"
 
 
 def test_non_mandatory_disabled_no_error(caplog):

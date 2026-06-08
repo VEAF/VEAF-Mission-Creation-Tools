@@ -457,6 +457,50 @@ class TestGenerateMissionYamlTemplate(unittest.TestCase):
         radio_lines = [line for line in lines if "RADIO" in line]
         self.assertTrue(all(line.lstrip().startswith("#") for line in radio_lines))
 
+    def test_header_contains_correct_doc_url(self) -> None:
+        from veaf_libs.i18n import current_language, set_language
+        from veaf_libs.lua_config_generator import generate_mission_yaml_template
+
+        prev = current_language()
+        set_language("en")
+        try:
+            result = generate_mission_yaml_template()
+            self.assertIn("doc/mission-maker/GUIDE.en.md", result)
+            self.assertNotIn("doc/MISSION_MAKER_GUIDE", result)
+            self.assertNotIn("doc/fr/MISSION_MAKER_GUIDE", result)
+        finally:
+            set_language(prev)
+
+    def test_section_doc_links_present_en(self) -> None:
+        from veaf_libs.i18n import current_language, set_language
+        from veaf_libs.lua_config_generator import generate_mission_yaml_template
+
+        prev = current_language()
+        set_language("en")
+        try:
+            result = generate_mission_yaml_template()
+            self.assertIn("#debug-logging", result)
+            self.assertIn("#configuring-modules", result)
+            self.assertIn("#build-profiles", result)
+            self.assertIn("#ctld-and-csar-integration", result)
+            self.assertIn("#configuration-examples", result)
+        finally:
+            set_language(prev)
+
+    def test_section_doc_links_present_fr(self) -> None:
+        from veaf_libs.i18n import current_language, set_language
+        from veaf_libs.lua_config_generator import generate_mission_yaml_template
+
+        prev = current_language()
+        set_language("fr")
+        try:
+            result = generate_mission_yaml_template()
+            self.assertIn("doc/mission-maker/GUIDE.md", result)
+            self.assertIn("#configurer-les-modules", result)
+            self.assertIn("#profils-de-build", result)
+        finally:
+            set_language(prev)
+
 
 class TestConfigMigrator(unittest.TestCase):
     """Tests for ConfigMigrator.pre_extract() and migrate()."""

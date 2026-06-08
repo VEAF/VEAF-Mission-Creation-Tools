@@ -9,7 +9,7 @@ from unittest.mock import MagicMock
 
 from mission_tools import Group
 from presets_injector.presets_injector_worker import PresetsInjectorWorker
-from presets_injector.presets_manager import PresetDefinition
+from presets_injector.presets_manager import Channel, PresetDefinition, RadioDefinition
 
 
 def _make_worker(presets_file: Path | None = None) -> PresetsInjectorWorker:
@@ -47,7 +47,9 @@ class TestLoadConfig(unittest.TestCase):
 class TestAddGroup(unittest.TestCase):
     def test_add_group_with_name_stored(self) -> None:
         worker = _make_worker()
-        group = Group(group_dcs={"name": "F-16 Alpha"}, aircraft_type="plane", country="USA", coalition="blue", name="F-16 Alpha")
+        group = Group(
+            group_dcs={"name": "F-16 Alpha"}, aircraft_type="plane", country="USA", coalition="blue", name="F-16 Alpha"
+        )
         worker.add_group(group)
         self.assertIn("F-16 Alpha", worker.groups)
 
@@ -61,8 +63,12 @@ class TestAddGroup(unittest.TestCase):
         worker = _make_worker()
         group = Group(
             group_dcs={"name": "Human Group"},
-            aircraft_type="plane", country="USA", coalition="blue",
-            name="Human Group", unit_type="F-16C_50", human_pilot=True,
+            aircraft_type="plane",
+            country="USA",
+            coalition="blue",
+            name="Human Group",
+            unit_type="F-16C_50",
+            human_pilot=True,
         )
         worker.add_group(group)
         stored = worker.groups["Human Group"]
@@ -73,8 +79,11 @@ class TestAddGroup(unittest.TestCase):
         worker = _make_worker()
         group = Group(
             group_dcs={"name": "Player Group"},
-            aircraft_type="plane", country="Russia", coalition="red",
-            name="Player Group", human_pilot=True,
+            aircraft_type="plane",
+            country="Russia",
+            coalition="red",
+            name="Player Group",
+            human_pilot=True,
         )
         worker.add_group(group)
         self.assertTrue(worker.groups["Player Group"].human_pilot)
@@ -83,15 +92,24 @@ class TestAddGroup(unittest.TestCase):
         worker = _make_worker()
         group = Group(
             group_dcs={"name": "AI Group"},
-            aircraft_type="plane", country="USA", coalition="blue",
-            name="AI Group", human_pilot=False,
+            aircraft_type="plane",
+            country="USA",
+            coalition="blue",
+            name="AI Group",
+            human_pilot=False,
         )
         worker.add_group(group)
         self.assertFalse(worker.groups["AI Group"].human_pilot)
 
     def test_add_group_no_units(self) -> None:
         worker = _make_worker()
-        group = Group(group_dcs={"name": "No Units Group"}, aircraft_type="plane", country="USA", coalition="blue", name="No Units Group")
+        group = Group(
+            group_dcs={"name": "No Units Group"},
+            aircraft_type="plane",
+            country="USA",
+            coalition="blue",
+            name="No Units Group",
+        )
         worker.add_group(group)
         self.assertIn("No Units Group", worker.groups)
         self.assertFalse(worker.groups["No Units Group"].human_pilot)
@@ -154,6 +172,28 @@ class TestProcessUnits(unittest.TestCase):
         )
         count = worker.process_units(group, PresetDefinition.EMPTY)
         self.assertEqual(count, 0)
+
+    def test_process_units_vhf_preset_updates_group_frequency(self) -> None:
+        worker = _make_worker()
+        group = self._make_group()
+        preset = PresetDefinition("vhf_preset")
+        radio = RadioDefinition("radio_vhf_blue", radio_type="vhf")
+        radio.channels = [Channel(1, freq=134.0)]
+        preset.add_radio(radio)
+        worker.process_units(group, preset)
+        self.assertAlmostEqual(group.group_dcs["frequency"], 134.0)
+
+    def test_process_units_fm_preset_does_not_update_group_frequency(self) -> None:
+        worker = _make_worker()
+        group = self._make_group()
+        original_freq = group.group_dcs["frequency"]
+        preset = PresetDefinition("fm_preset")
+        radio = RadioDefinition("radio_fm_blue", radio_type="fm")
+        radio.channels = [Channel(1, freq=31.0)]
+        preset.add_radio(radio)
+        worker.process_units(group, preset)
+        # FM frequency must not overwrite group.frequency (Gazelle/Ka-50 HumanRadio issue)
+        self.assertEqual(group.group_dcs["frequency"], original_freq)
 
 
 class TestProcessGroups(unittest.TestCase):
@@ -222,6 +262,7 @@ class TestGenerateValidationReport(unittest.TestCase):
 
     def setUp(self) -> None:
         from veaf_libs.i18n import set_language
+
         set_language("en")
 
     def _make_worker_with_issues(self) -> PresetsInjectorWorker:
@@ -231,8 +272,14 @@ class TestGenerateValidationReport(unittest.TestCase):
         worker = _make_worker()
         strict_range = FrequencyRange(min_mhz=100.0, max_mhz=150.0, modulation="AM/FM")
         non_strict_range = FrequencyRange(min_mhz=20.0, max_mhz=59.9, modulation="AM/FM")
-        ch = ChannelFrequency(freq_mhz=284.0, radio_key="radio_uhf", radio_collection="blue_radios",
-                              radio_title="UHF", channel=1, channel_title="TACTICAL")
+        ch = ChannelFrequency(
+            freq_mhz=284.0,
+            radio_key="radio_uhf",
+            radio_collection="blue_radios",
+            radio_title="UHF",
+            channel=1,
+            channel_title="TACTICAL",
+        )
         worker._freq_issues = [
             FrequencyIssue(
                 unit_type="MiG-19P",

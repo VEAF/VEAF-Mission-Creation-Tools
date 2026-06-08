@@ -301,7 +301,7 @@ Voir les pages respectives pour le schéma complet :
 
 ### `community_scripts:`
 
-Permet d'activer ou désactiver individuellement les scripts Lua communautaires (MIST, CTLD, CSAR, etc.) injectés dans la mission. Lorsque cette section est absente, **tous** les scripts communautaires sont inclus.
+Permet d'activer ou de désactiver individuellement les scripts Lua communautaires (MIST, CTLD, CSAR, etc.) injectés dans la mission. Lorsque cette section est absente, **tous** les scripts communautaires sont inclus.
 
 | Champ | Type | Défaut | Description |
 |-------|------|---------|-------------|

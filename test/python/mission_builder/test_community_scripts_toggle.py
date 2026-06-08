@@ -38,6 +38,14 @@ class TestCommunityScriptsToggleParsing(unittest.TestCase):
         worker = _make_worker(yaml)
         self.assertEqual(worker.enabled_community_script_ids, ALL_IDS)
 
+    def test_only_disabled_script_absent(self) -> None:
+        """Only listing one script as disabled leaves all others active (opt-out semantics)."""
+        worker = _make_worker("community_scripts:\n  skynet: {enabled: false}\n")
+        assert worker.enabled_community_script_ids is not None
+        self.assertNotIn("skynet", worker.enabled_community_script_ids)
+        self.assertIn("mist", worker.enabled_community_script_ids)
+        self.assertIn("ctld", worker.enabled_community_script_ids)
+
     def test_one_script_disabled(self) -> None:
         """A single script with enabled: false is absent from enabled_community_script_ids."""
         worker = _make_worker("community_scripts:\n  ctld: {enabled: false}\n")
@@ -57,17 +65,40 @@ class TestCommunityScriptsToggleParsing(unittest.TestCase):
         self.assertNotIn("csar", worker.enabled_community_script_ids)
         self.assertIn("mist", worker.enabled_community_script_ids)
 
-    def test_empty_section_enables_nothing(self) -> None:
-        """An empty community_scripts: section produces an empty enabled set."""
+    def test_empty_section_treated_as_absent(self) -> None:
+        """An empty community_scripts: {} section is treated as absent — all scripts active."""
         worker = _make_worker("community_scripts: {}\n")
-        self.assertIsNotNone(worker.enabled_community_script_ids)
-        self.assertEqual(worker.enabled_community_script_ids, set())
+        self.assertIsNone(worker.enabled_community_script_ids)
 
-    def test_unknown_id_is_ignored(self) -> None:
-        """An unknown script id in community_scripts: is silently ignored."""
+    def test_unknown_id_is_ignored_with_warning(self) -> None:
+        """An unknown script id in community_scripts: is ignored (a warning is emitted)."""
         worker = _make_worker("community_scripts:\n  unknown_tool: {enabled: true}\n")
         assert worker.enabled_community_script_ids is not None
         self.assertNotIn("unknown_tool", worker.enabled_community_script_ids)
+
+    def test_boolean_shorthand_true(self) -> None:
+        """ctld: true enables ctld (non-dict shorthand)."""
+        worker = _make_worker("community_scripts:\n  ctld: true\n")
+        assert worker.enabled_community_script_ids is not None
+        self.assertIn("ctld", worker.enabled_community_script_ids)
+
+    def test_boolean_shorthand_false(self) -> None:
+        """ctld: false disables ctld (non-dict shorthand)."""
+        worker = _make_worker("community_scripts:\n  ctld: false\n")
+        assert worker.enabled_community_script_ids is not None
+        self.assertNotIn("ctld", worker.enabled_community_script_ids)
+
+    def test_null_value_disables_script(self) -> None:
+        """ctld: null disables ctld (null is not truthy)."""
+        worker = _make_worker("community_scripts:\n  ctld: ~\n")
+        assert worker.enabled_community_script_ids is not None
+        self.assertNotIn("ctld", worker.enabled_community_script_ids)
+
+    def test_empty_dict_value_enables_script(self) -> None:
+        """ctld: {} enables ctld (empty dict → enabled defaults to true)."""
+        worker = _make_worker("community_scripts:\n  ctld: {}\n")
+        assert worker.enabled_community_script_ids is not None
+        self.assertIn("ctld", worker.enabled_community_script_ids)
 
     def test_non_dict_section_treated_as_absent(self) -> None:
         """A non-dict community_scripts value is ignored; all scripts remain active."""
@@ -98,6 +129,18 @@ class TestActiveCommunityScripts(unittest.TestCase):
         result = worker._active_community_scripts()
         result_ids = {s["id"] for s in result}
         self.assertEqual(result_ids, {"mist", "ctld"})
+
+    def test_disabled_script_absent_from_active_scripts_and_paths(self) -> None:
+        """A script disabled via YAML is absent from _active_community_scripts and its path is not present."""
+        worker = _make_worker("community_scripts:\n  skynet: {enabled: false}\n")
+        active = worker._active_community_scripts()
+        active_ids = {s["id"] for s in active}
+        active_paths = [s["path"] for s in active]
+        self.assertNotIn("skynet", active_ids)
+        self.assertFalse(any("skynet" in p for p in active_paths))
+        # All other community scripts remain active
+        self.assertIn("mist", active_ids)
+        self.assertIn("ctld", active_ids)
 
 
 if __name__ == "__main__":

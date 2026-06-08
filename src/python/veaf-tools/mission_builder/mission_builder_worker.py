@@ -198,22 +198,27 @@ class MissionBuilderWorker(BaseWorker):
                 f"'community_scripts' in mission.yaml must be a mapping (got {type(comm_raw).__name__}); ignoring."
             )
             comm_raw = None
-        if comm_raw is None:
+        # Empty dict {} is treated the same as absent: all scripts remain active.
+        if not comm_raw:
             self.enabled_community_script_ids: set[str] | None = None
         else:
-            all_ids = {s["id"] for s in get_community_script_files()}
-            self.enabled_community_script_ids = set()
-            for script_id, script_cfg in (comm_raw or {}).items():
+            # Opt-out semantics: start with all ids enabled, remove those explicitly disabled.
+            all_community_scripts = get_community_script_files()
+            all_ids = {s["id"] for s in all_community_scripts}
+            self.enabled_community_script_ids = set(all_ids)
+            for script_id, script_cfg in comm_raw.items():
                 if script_id not in all_ids:
                     logger.warning(f"Unknown community script id {script_id!r} in 'community_scripts:'; ignoring.")
                     continue
                 enabled = True
                 if isinstance(script_cfg, dict):
                     enabled = bool(script_cfg.get("enabled", True))
-                elif script_cfg is not None:
+                elif script_cfg is None:
+                    enabled = False
+                else:
                     enabled = bool(script_cfg)
-                if enabled:
-                    self.enabled_community_script_ids.add(script_id)
+                if not enabled:
+                    self.enabled_community_script_ids.discard(script_id)
 
         # Parse dcs_bridge section from mission.yaml
         dcsb_cfg: dict = self.mission_yaml.get("dcs_bridge") or {}

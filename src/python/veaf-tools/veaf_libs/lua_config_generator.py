@@ -123,7 +123,7 @@ _MODULE_TO_CATEGORY: dict[str, str] = {mod_id: cat for cat, ids in _MODULE_CATEG
 
 #: Modules that are mandatory (infrastructure tier).
 #: These are always active; specifying ``enable`` (true or false) for them is an error.
-_MANDATORY_MODULES: frozenset[str] = frozenset({"UNITS", "TIME", "CACHE", "EVENTS", "MARKERS", "COMMANDS"})
+MANDATORY_MODULES: frozenset[str] = frozenset({"UNITS", "TIME", "CACHE", "EVENTS", "MARKERS", "COMMANDS"})
 
 #: Dependency graph: module_id → list of module IDs it requires.
 _MODULE_DEPS: dict[str, list[str]] = {
@@ -704,7 +704,7 @@ def generate_config_lua(
     if lua_modules:
         # ── MODUX-002: error on mandatory modules with any enable key ────
         effective_modules: dict = dict(lua_modules)
-        for mandatory_id in _MANDATORY_MODULES:
+        for mandatory_id in MANDATORY_MODULES:
             mcfg = effective_modules.get(mandatory_id, {})
             if isinstance(mcfg, dict) and "enable" in mcfg:
                 logger.error(t("builder.mandatory_module_enable", module=mandatory_id, value=mcfg["enable"]))
@@ -888,8 +888,11 @@ def generate_mission_yaml_template(
         is_enabled = mid in enabled_set
         yaml_key = f'"{mid}"' if not re.match(r"^[A-Za-z_]\w*$", mid) else mid
         if is_enabled:
-            lines.append(f"  {yaml_key}:")
-            lines.append("    enable: true")
+            if mid in MANDATORY_MODULES:
+                lines.append(f"  {yaml_key}: {{}}")
+            else:
+                lines.append(f"  {yaml_key}:")
+                lines.append("    enable: true")
             # Show init params example for known modules
             if mid in _MODULE_INIT_PARAMS:
                 lines.append("    # init:")

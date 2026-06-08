@@ -27,6 +27,7 @@ from typing import Any
 
 import yaml  # type: ignore[import-untyped]
 from veaf_libs.i18n import t
+from veaf_libs.lua_config_generator import MANDATORY_MODULES
 from veaf_libs.lua_module_scanner import get_modules
 
 from mission_builder.config_migrator import ConfigMigrator, MigrationResult
@@ -860,7 +861,7 @@ class V5Converter:
         # ── Module configuration ───────────────────────────────────────────
         # Base infrastructure modules that must always be explicitly enabled.
         # Without them in lua_modules, their initialize() would not be called.
-        _BASE_ALWAYS_ON: frozenset[str] = frozenset({"AIRBASES", "MARKERS", "TIME", "UNITS", "EVENTS", "CACHE"})
+        _BASE_ALWAYS_ON: frozenset[str] = MANDATORY_MODULES | frozenset({"AIRBASES"})
 
         lines += [
             "# ── Module configuration ─────────────────────────────────────────────────────",
@@ -882,8 +883,11 @@ class V5Converter:
             lines.append("  # ── Active modules ──────────────────────────────────────────────────────────")
             for mid in enabled_found:
                 yaml_key = f'"{mid}"' if not _re.match(r"^[A-Za-z_]\w*$", mid) else mid
-                lines.append(f"  {yaml_key}:")
-                lines.append("    enable: true")
+                if mid in MANDATORY_MODULES:
+                    lines.append(f"  {yaml_key}: {{}}")
+                else:
+                    lines.append(f"  {yaml_key}:")
+                    lines.append("    enable: true")
                 # For ASSETS, inject the extracted asset list directly under the module entry
                 if mid == "ASSETS" and mr and mr.assets_extracted:
                     lines.append("    assets:")

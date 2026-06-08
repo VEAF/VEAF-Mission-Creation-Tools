@@ -278,6 +278,15 @@ def test_mandatory_module_config_only_passes(caplog):
     assert not any("UNITS" in msg for msg in caplog.messages)
 
 
+def test_mandatory_module_no_enable_in_yaml_template():
+    """generate_mission_yaml_template must not emit 'enable:' for mandatory modules."""
+    template = generate_mission_yaml_template(enabled_module_ids={"UNITS", "TIME", "RADIO"})
+    lines = template.splitlines()
+    for mandatory in ("UNITS", "TIME", "CACHE", "EVENTS", "MARKERS", "COMMANDS"):
+        enable_lines = [ln for ln in lines if mandatory in ln and "enable:" in ln and not ln.lstrip().startswith("#")]
+        assert enable_lines == [], f"{mandatory} must not have 'enable:' in the template"
+
+
 def test_non_mandatory_disabled_no_error(caplog):
     """Disabling a non-mandatory module must NOT produce a mandatory error."""
     yaml_data: dict = {"lua_modules": {"ASSETS": {"enable": False}}}

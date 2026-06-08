@@ -9,6 +9,10 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+- `convert-v5`, `generate-config`, `migrate-config`: mandatory Lua modules (UNITS, TIME, CACHE, EVENTS, MARKERS, COMMANDS) are now emitted as `{}` in `mission.yaml` instead of `enable: true`, which would cause a build error
+- `convert-v5`: `_BASE_ALWAYS_ON` now includes COMMANDS (previously missing) and is derived from the canonical `MANDATORY_MODULES` set
+
 ### Added
 - `mission.yaml`: new `dcs_bridge` section to optionally inject `dcs-bridge.lua` as the first DO SCRIPT FILE trigger in the mission; `lua_path` is optional — when absent, the file is downloaded automatically from GitHub (`VEAF/VEAF-dcs-bridge`)
 

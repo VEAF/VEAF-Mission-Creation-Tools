@@ -165,6 +165,14 @@ class TestYamlSnippet(unittest.TestCase):
         move_commented = any(ln.strip().startswith("#") and "MOVE" in ln for ln in lines)
         self.assertTrue(move_commented, "MOVE should appear commented out in the snippet")
 
+    def test_mandatory_module_no_enable_key(self) -> None:
+        """Mandatory modules must use {} syntax, never emit 'enable:' in the snippet."""
+        snippet = self._migrate("if veafUnits then\n  veafUnits.initialize()\nend\n")
+        lines = snippet.splitlines()
+        for mandatory in ("UNITS", "TIME", "CACHE", "EVENTS", "MARKERS", "COMMANDS"):
+            enable_lines = [ln for ln in lines if mandatory in ln and "enable:" in ln and not ln.lstrip().startswith("#")]
+            self.assertEqual(enable_lines, [], f"{mandatory} must not have 'enable:' in yaml snippet")
+
 
 class TestFindMatchingClose(unittest.TestCase):
     """_find_matching_close must match paired characters through nesting."""

@@ -7,6 +7,13 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [Unreleased]
+
+### Added
+- `mission.yaml`: new `dcs_bridge` section to optionally inject `dcs-bridge.lua` as the first DO SCRIPT FILE trigger in the mission; `lua_path` is optional — when absent, the file is downloaded automatically from GitHub (`VEAF/VEAF-dcs-bridge`)
+
+---
+
 ## [6.3.4] — 2026-06-07
 
 ### Added

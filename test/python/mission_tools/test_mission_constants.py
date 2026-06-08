@@ -26,13 +26,15 @@ class TestGetterFunctions(unittest.TestCase):
             self.assertIsInstance(item, tuple)
             self.assertEqual(len(item), 2)
 
-    def test_community_scripts_returns_list_of_tuples(self) -> None:
+    def test_community_scripts_returns_list_of_dicts(self) -> None:
         result = get_community_script_files()
         self.assertIsInstance(result, list)
         self.assertTrue(len(result) > 0)
         for item in result:
-            self.assertIsInstance(item, tuple)
-            self.assertEqual(len(item), 2)
+            self.assertIsInstance(item, dict)
+            self.assertIn("id", item)
+            self.assertIn("path", item)
+            self.assertIn("dest", item)
 
     def test_veaf_script_files_returns_nonempty(self) -> None:
         result = get_veaf_script_files()
@@ -62,7 +64,7 @@ class TestGetterFunctions(unittest.TestCase):
         self.assertTrue(any("veaf-scripts-debug" in p for p in paths))
 
     def test_community_scripts_include_mist(self) -> None:
-        paths = [item[0] for item in get_community_script_files()]
+        paths = [item["path"] for item in get_community_script_files()]
         self.assertTrue(any("mist.lua" in p for p in paths))
 
     def test_all_getter_return_types(self) -> None:

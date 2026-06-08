@@ -207,7 +207,7 @@ def _parse_radio_settings_entries(content: str) -> list[_RadioEntry]:
         if radio_section_m:
             radio_block = _extract_block_at(block_text, radio_section_m.end() - 1)
             if radio_block:
-                for rm in re.finditer(r'\[(\d+)\]\s*=\s*\{', radio_block):
+                for rm in re.finditer(r"\[(\d+)\]\s*=\s*\{", radio_block):
                     idx = int(rm.group(1))
                     sub_block = _extract_block_at(radio_block, rm.end() - 1)
                     if sub_block:
@@ -805,9 +805,7 @@ def convert_presets(v5_path: Path, v6_path: Path) -> list[str]:
     for coalition in ("blue", "red"):
         warbird_preset_name = f"{coalition}_warbird"
         if warbird_preset_name in presets_collection.get(f"{coalition}_presets", {}):
-            warnings.append(
-                t("convert_v5.warn.warbird_preset", preset=warbird_preset_name, coalition=coalition)
-            )
+            warnings.append(t("convert_v5.warn.warbird_preset", preset=warbird_preset_name, coalition=coalition))
 
     output: dict[str, Any] = {
         "radios_collection": radios_collection,

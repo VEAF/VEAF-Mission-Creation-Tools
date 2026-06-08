@@ -85,6 +85,15 @@ def validate_frequency(unit_type: str, freq_mhz: float) -> bool | None:
     return any(r.contains(freq_mhz) for r in ranges)
 
 
+@dataclass
+class ChannelFrequency:
+    """A frequency with its radio/channel context, used for actionable error messages."""
+
+    freq_mhz: float
+    radio_name: str
+    channel: int
+
+
 def validate_frequencies(unit_type: str, freqs_mhz: list[float]) -> list[float]:
     """Return the subset of frequencies that are invalid for the given aircraft.
 
@@ -101,6 +110,38 @@ def validate_frequencies(unit_type: str, freqs_mhz: list[float]) -> list[float]:
     return [f for f in freqs_mhz if not any(r.contains(f) for r in ranges)]
 
 
+def _format_ranges(ranges: list[FrequencyRange]) -> str:
+    return ", ".join(f"{r.min_mhz}–{r.max_mhz} MHz ({r.modulation})" for r in ranges)
+
+
+def warn_invalid_channel_frequencies(
+    group_name: str,
+    unit_type: str,
+    channels: list[ChannelFrequency],
+) -> None:
+    """Log an actionable warning for each channel whose frequency is invalid for unit_type.
+
+    Args:
+        group_name: Name of the DCS group.
+        unit_type: DCS unit type string.
+        channels: List of ChannelFrequency carrying radio name, channel number, and frequency.
+    """
+    valid_ranges = get_valid_ranges(unit_type)
+    if valid_ranges is None:
+        return
+
+    ranges_str = _format_ranges(valid_ranges)
+    for ch in channels:
+        if not any(r.contains(ch.freq_mhz) for r in valid_ranges):
+            logger.warning(
+                f"Group '{group_name}' ({unit_type}): radio '{ch.radio_name}', channel {ch.channel} "
+                f"— {ch.freq_mhz} MHz is not valid for this aircraft.\n"
+                f"  Valid ranges: {ranges_str}\n"
+                f"  Fix: in presets.yaml, change the frequency for radio '{ch.radio_name}' "
+                f"channel {ch.channel} to a value within one of the ranges above."
+            )
+
+
 def warn_invalid_frequencies(group_name: str, unit_type: str, freqs_mhz: list[float]) -> None:
     """Log a warning for each frequency in freqs_mhz that is invalid for unit_type.
 
@@ -109,9 +150,14 @@ def warn_invalid_frequencies(group_name: str, unit_type: str, freqs_mhz: list[fl
         unit_type: DCS unit type string.
         freqs_mhz: Frequencies to check, in MHz.
     """
-    invalid = validate_frequencies(unit_type, freqs_mhz)
-    for freq in invalid:
-        logger.warning(
-            f"Group '{group_name}' ({unit_type}): frequency {freq} MHz is outside all valid radio ranges "
-            f"for this aircraft — DCS will reject it at mission load."
-        )
+    valid_ranges = get_valid_ranges(unit_type)
+    if valid_ranges is None:
+        return
+    ranges_str = _format_ranges(valid_ranges)
+    for freq in freqs_mhz:
+        if not any(r.contains(freq) for r in valid_ranges):
+            logger.warning(
+                f"Group '{group_name}' ({unit_type}): {freq} MHz is not valid for this aircraft.\n"
+                f"  Valid ranges: {ranges_str}\n"
+                f"  Fix: in presets.yaml, change this frequency to a value within one of the ranges above."
+            )

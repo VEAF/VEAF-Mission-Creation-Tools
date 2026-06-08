@@ -11,7 +11,7 @@ from veaf_libs.logger import logger
 from veaf_libs.progress import spinner_context
 
 from .presets_manager import PresetDefinition, PresetsManager
-from .radio_frequency_validator import warn_invalid_frequencies
+from .radio_frequency_validator import ChannelFrequency, warn_invalid_channel_frequencies
 
 
 class PresetsInjectorWorker(GroupInjectorWorker):
@@ -57,15 +57,15 @@ class PresetsInjectorWorker(GroupInjectorWorker):
                     group.group_dcs["frequency"] = first_freq
 
         if preset_definition != PresetDefinition.EMPTY and group.unit_type:
-            all_freqs = [
-                ch.freq
+            channel_freqs = [
+                ChannelFrequency(freq_mhz=ch.freq, radio_name=radio.name, channel=ch.number)
                 for radio in preset_definition.radios.values()
                 for ch in radio.channels
             ]
-            warn_invalid_frequencies(
+            warn_invalid_channel_frequencies(
                 group_name=group.name or "",
                 unit_type=group.unit_type,
-                freqs_mhz=all_freqs,
+                channels=channel_freqs,
             )
 
         return nb_units_processed

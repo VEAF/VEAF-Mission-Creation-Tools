@@ -590,7 +590,8 @@ class V5Converter:
             v5_abs_path = pf.path  # save before we overwrite pf.path below
             v6_path = report.mission_folder / pf.v6_target
             _lk = f"pipeline.label.{pf.step}"
-            label = t(_lk) if t(_lk) != _lk else pf.step
+            _lk_val = t(_lk)
+            label = _lk_val if _lk_val != _lk else pf.step
             try:
                 warnings = convert_pipeline_file(
                     pf.step,

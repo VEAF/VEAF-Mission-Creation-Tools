@@ -117,7 +117,9 @@ def convert_waypoints(v5_path: Path, v6_path: Path) -> list[str]:
     settings_data = _parse_lua_table(content, "settings")
 
     if waypoints_data is None and settings_data is None:
-        warnings.append(t("convert_v5.warn.parse_failed", filename=v5_path.name, exc="no 'waypoints' or 'settings' tables found"))
+        warnings.append(
+            t("convert_v5.warn.parse_failed", filename=v5_path.name, exc="no 'waypoints' or 'settings' tables found")
+        )
         return warnings
 
     # ── Waypoints ─────────────────────────────────────────────────────────────
@@ -266,7 +268,7 @@ def _parse_dcs_weather_lua(lua_path: Path) -> tuple[dict[str, Any], list[str]]:
         wd: dict[str, Any] = _wd_raw if isinstance(_wd_raw, dict) else {}
 
     except Exception as exc:
-        warnings.append(t("convert_v5.warn.parse_failed", filename=lua_path.name, exc=exc))
+        warnings.append(t("convert_v5.warn.parse_failed", filename=lua_path.name, exc=str(exc)))
         return {}, warnings
 
     params: dict[str, Any] = {}
@@ -323,7 +325,7 @@ def convert_weather(
         try:
             v5_data: dict[str, Any] = json.loads(v5_path.read_text(encoding="utf-8"))
         except Exception as exc:
-            warnings.append(t("convert_v5.warn.parse_failed", filename=v5_path.name, exc=exc))
+            warnings.append(t("convert_v5.warn.parse_failed", filename=v5_path.name, exc=str(exc)))
             return warnings
     else:
         # .lua format (older v5 missions) — delegate to LuaToYamlConverter
@@ -332,7 +334,9 @@ def convert_weather(
         lua_content = v5_path.read_text(encoding="utf-8")
         v5_data = LuaToYamlConverter._parse_lua_config(lua_content) or {}
         if not v5_data:
-            warnings.append(t("convert_v5.warn.parse_failed", filename=v5_path.name, exc="not a valid Lua weather config"))
+            warnings.append(
+                t("convert_v5.warn.parse_failed", filename=v5_path.name, exc="not a valid Lua weather config")
+            )
             return warnings
 
     output: dict[str, Any] = {}
@@ -595,7 +599,7 @@ def convert_aircraft_groups(v5_path: Path, v6_path: Path) -> list[str]:
         _raw = luadata.unserialize(content, all_is_dict=True) or {}
         raw: dict[str, Any] = _raw if isinstance(_raw, dict) else {}
     except Exception as exc:
-        warnings.append(t("convert_v5.warn.parse_failed", filename=v5_path.name, exc=exc))
+        warnings.append(t("convert_v5.warn.parse_failed", filename=v5_path.name, exc=str(exc)))
         return warnings
 
     if not isinstance(raw, dict):

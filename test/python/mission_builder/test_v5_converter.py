@@ -235,6 +235,40 @@ class TestConversionReportToMarkdownWithMigration(unittest.TestCase):
 
 
 # ---------------------------------------------------------------------------
+# V5Converter._build_mission_yaml() — doc links and structure
+# ---------------------------------------------------------------------------
+
+
+class TestBuildMissionYamlDocLinks(unittest.TestCase):
+    """_build_mission_yaml must embed correct doc links in generated mission.yaml."""
+
+    def _build_yaml(self) -> str:
+        from mission_builder.v5_converter import V5Converter
+
+        with tempfile.TemporaryDirectory() as td:
+            folder = Path(td)
+            report = ConversionReport(mission_folder=folder, timestamp="2024-01-01 12:00", version="test")
+            return V5Converter(version="test")._build_mission_yaml(report)
+
+    def test_header_doc_url_is_correct(self) -> None:
+        yaml = self._build_yaml()
+        self.assertIn("doc/mission-maker/GUIDE.en.md", yaml)
+        self.assertNotIn("doc/MISSION_MAKER_GUIDE", yaml)
+
+    def test_module_section_has_doc_link(self) -> None:
+        yaml = self._build_yaml()
+        self.assertIn("#configuring-modules", yaml)
+
+    def test_pipeline_section_has_doc_link(self) -> None:
+        yaml = self._build_yaml()
+        self.assertIn("#build-profiles", yaml)
+
+    def test_mandatory_modules_explanation_present(self) -> None:
+        yaml = self._build_yaml()
+        self.assertIn("Mandatory modules", yaml)
+
+
+# ---------------------------------------------------------------------------
 # V5Converter.convert() — integration tests
 # ---------------------------------------------------------------------------
 

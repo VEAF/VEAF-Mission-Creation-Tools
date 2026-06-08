@@ -3,7 +3,7 @@
 # Place this file at the root of your mission folder (next to veaf-tools-updater.exe).
 # If absent, veaf-tools build works with default settings.
 #
-# See: https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/master/doc/MISSION_MAKER_GUIDE.md
+# Doc: https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/master/doc/mission-maker/GUIDE.en.md
 
 # ── Global log level ─────────────────────────────────────────────────────────
 # Forces veaf.ForcedLogLevel in the built mission. Applies to every module.

@@ -8,6 +8,7 @@ from typing import Any
 
 from mission_tools import Group, write_miz
 from veaf_libs.group_injector_worker import GroupInjectorWorker
+from veaf_libs.i18n import t
 from veaf_libs.logger import logger
 from veaf_libs.progress import spinner_context
 
@@ -45,7 +46,7 @@ class PresetsInjectorWorker(GroupInjectorWorker):
             if self.presets_file:
                 presets_manager.read_yaml(self.presets_file)
         except Exception as e:
-            logger.error(f"Failed to load config file {self.presets_file}: {str(e)}", exception_type=RuntimeError)
+            logger.error(t("presets_injector.error.load_config", path=self.presets_file, error=str(e)), exception_type=RuntimeError)
         self.presets_manager = presets_manager
         return presets_manager
 
@@ -102,7 +103,7 @@ class PresetsInjectorWorker(GroupInjectorWorker):
     def process_groups(self, silent: bool = False) -> None:
         """Inject presets into all human-piloted groups."""
         if not silent:
-            logger.info(f"Processing {len(self.groups)} aircraft group{'s' if len(self.groups) > 1 else ''}")
+            logger.info(t("presets_injector.processing_groups", count=len(self.groups)))
 
         nb_units_processed = 0
         for group in [g for g in self.groups.values() if g.human_pilot]:
@@ -118,7 +119,7 @@ class PresetsInjectorWorker(GroupInjectorWorker):
                 nb_units_processed += self.process_units(group, preset_definition)
 
         if not silent:
-            logger.info(f"Injected presets into {nb_units_processed} aircraft{'s' if nb_units_processed > 1 else ''}")
+            logger.info(t("presets_injector.injected", count=nb_units_processed))
 
         # Emit one warning per unit_type, listing all affected groups together.
         for unit_type, entry in self._pending_freq_warnings.items():
@@ -134,34 +135,32 @@ class PresetsInjectorWorker(GroupInjectorWorker):
     def write_mission(self, silent: bool = False) -> None:
         """Write the mission file, including kneeboard pages if generated."""
         if not silent:
-            logger.info("Writing mission file")
+            logger.info(t("group_injector.writing_mission"))
 
         additional_files = {}
         if self.presets_manager.presets_images:
             for preset_name, image in self.presets_manager.presets_images.items():
                 additional_files[f"KNEEBOARD/IMAGES/presets-{preset_name}.png"] = image.getvalue()
             if not silent:
-                logger.info(
-                    f"Added {len(self.presets_manager.presets_images)} kneeboard page{'s' if len(self.presets_manager.presets_images) > 1 else ''} to mission"
-                )
+                logger.info(t("presets_injector.kneeboard_pages", count=len(self.presets_manager.presets_images)))
 
         assert self.dcs_mission is not None
         write_miz(mission=self.dcs_mission, miz_file_path=self.output_mission, additional_files=additional_files)
 
     def work(self, silent: bool = False) -> None:  # type: ignore[override]
         """Main work function."""
-        with spinner_context(f"Reading {self.input_mission}...", silent=silent):
+        with spinner_context(t("group_injector.spinner.reading", path=self.input_mission), silent=silent):
             self.read_mission(silent)
 
         assert self.dcs_mission is not None
         for group in self.dcs_mission.iter_groups():
             self.process_group(group)
 
-        with spinner_context("Processing groups...", silent=silent):
+        with spinner_context(t("presets_injector.spinner.processing_groups"), silent=silent):
             self.process_groups(silent)
 
-        with spinner_context("Generating preset images...", silent=silent):
+        with spinner_context(t("presets_injector.spinner.generating_images"), silent=silent):
             self.presets_manager.generate_presets_images(width=1200, height=None)
 
-        with spinner_context("Writing mission...", silent=silent):
+        with spinner_context(t("group_injector.spinner.writing"), silent=silent):
             self.write_mission(silent)

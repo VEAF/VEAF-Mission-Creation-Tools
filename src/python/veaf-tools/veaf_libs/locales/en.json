@@ -480,5 +480,29 @@
   "tui.select_command": "Select a command",
 
   "update.new_version": "[yellow]⚠ A newer version of veaf-tools is available: [bold]{latest}[/bold] (you have {current})[/yellow]",
-  "update.run_updater": "[yellow]  Run [bold]veaf-tools-updater[/bold] to update.[/yellow]"
+  "update.run_updater": "[yellow]  Run [bold]veaf-tools-updater[/bold] to update.[/yellow]",
+
+  "group_injector.reading_mission": "Reading mission file {path}",
+  "group_injector.writing_mission": "Writing mission file",
+  "group_injector.spinner.reading": "Reading {path}...",
+  "group_injector.spinner.writing": "Writing mission...",
+
+  "presets_injector.error.load_config": "Failed to load config file {path}: {error}",
+  "presets_injector.processing_groups": "Processing {count} aircraft group(s)",
+  "presets_injector.injected": "Injected presets into {count} aircraft(s)",
+  "presets_injector.kneeboard_pages": "Added {count} kneeboard page(s) to mission",
+  "presets_injector.spinner.processing_groups": "Processing groups...",
+  "presets_injector.spinner.generating_images": "Generating preset images...",
+
+  "waypoints_injector.error.load_config": "Failed to load waypoints file {path}: {error}",
+  "waypoints_injector.injected": "Injected waypoints into {count} aircraft group(s)",
+  "waypoints_injector.spinner.processing_groups": "Processing groups and injecting waypoints...",
+
+  "radio_freq.warn.header_single": "Group '{group}' ({unit_type}): the following preset frequencies are not valid for this aircraft and will be rejected by DCS at mission load:",
+  "radio_freq.warn.header_plural": "Groups {groups} ({unit_type}): the following preset frequencies are not valid for this aircraft and will be rejected by DCS at mission load:",
+  "radio_freq.warn.channel_line": "    - channel {num}: {freq} MHz  (in radios_collection > {collection} > {radio_key})",
+  "radio_freq.warn.channel_line_titled": "    - channel {num} \"{title}\": {freq} MHz  (in radios_collection > {collection} > {radio_key})",
+  "radio_freq.warn.footer": "  Valid ranges for {unit_type}: {ranges_str}\n  These frequencies are probably correct for other aircraft — do NOT change them globally.\n  Instead, add a specific preset for {unit_type} in presets.yaml:\n    presets_assignments:\n      {coalition}:\n        {aircraft_category}:\n          {unit_type}: <your-{unit_type_key}-preset>\n  and define that preset with frequencies within: {ranges_str}",
+
+  "pipeline.injecting_aircraft_mode": "Pipeline: injecting aircraft groups from {path} (mode={mode})"
 }

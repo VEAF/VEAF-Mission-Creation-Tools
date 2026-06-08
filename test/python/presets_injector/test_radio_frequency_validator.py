@@ -12,6 +12,7 @@ from presets_injector.radio_frequency_validator import (
     warn_invalid_channel_frequencies,
     warn_invalid_frequencies,
 )
+from veaf_libs.i18n import set_language
 
 _MOCK_SPECS = {
     "FA-18C_hornet": {
@@ -186,6 +187,7 @@ def _make_ch(freq: float, channel: int = 1, channel_title: str = "TACTICAL UNIFO
 
 class TestWarnInvalidChannelFrequencies(unittest.TestCase):
     def setUp(self):
+        set_language("en")
         self._patcher = patch("presets_injector.radio_frequency_validator._SPECS", _MOCK_SPECS)
         self._patcher.start()
 

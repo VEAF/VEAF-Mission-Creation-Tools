@@ -152,7 +152,7 @@ def build(
 
     presets_path = _step_file("presets", "src/presets.yaml")
     if presets_path:
-        logger.info(f"Pipeline: injecting radio presets from {presets_path}")
+        logger.info(t("pipeline.injecting_presets", path=presets_path))
         console.print(t("pipeline.console.presets", file=presets_path.name))
         PresetsInjectorWorker(
             presets_file=presets_path,
@@ -162,7 +162,7 @@ def build(
 
     waypoints_path = _step_file("waypoints", "src/waypoints.yaml", "waypoints.yaml")
     if waypoints_path:
-        logger.info(f"Pipeline: injecting waypoints from {waypoints_path}")
+        logger.info(t("pipeline.injecting_waypoints", path=waypoints_path))
         console.print(t("pipeline.console.waypoints", file=waypoints_path.name))
         WaypointsInjectorWorker(
             waypoints_file=waypoints_path,
@@ -181,7 +181,7 @@ def build(
         validator = AircraftGroupsYAMLValidator(aircraft_path)
         is_valid, _ = validator.validate()
         if is_valid:
-            logger.info(f"Pipeline: injecting aircraft groups from {aircraft_path} (mode={aircraft_mode})")
+            logger.info(t("pipeline.injecting_aircraft_mode", path=aircraft_path, mode=aircraft_mode))
             console.print(t("pipeline.console.aircraft", file=aircraft_path.name, mode=aircraft_mode))
             AircraftGroupsInjectorWorker(
                 input_yaml=aircraft_path,
@@ -203,7 +203,7 @@ def build(
 
     weather_path = _step_file("weather", "src/missions.yaml", "src/versions.yaml", "missions.yaml")
     if weather_path:
-        logger.info(f"Pipeline: injecting weather variants from {weather_path}")
+        logger.info(t("pipeline.injecting_weather", path=weather_path))
         console.print(t("pipeline.console.weather", file=weather_path.name))
         weather_worker = WeatherInjectorWorker(
             config_file=weather_path,

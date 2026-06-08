@@ -7,6 +7,7 @@ from typing import Any
 from mission_tools import DcsMission, Group, read_miz, write_miz
 
 from veaf_libs.base_worker import BaseWorker
+from veaf_libs.i18n import t
 from veaf_libs.logger import logger
 from veaf_libs.progress import spinner_context
 
@@ -41,27 +42,27 @@ class GroupInjectorWorker(BaseWorker):
     def read_mission(self, silent: bool = False) -> None:
         """Load the mission from the .miz file."""
         if not silent:
-            logger.info(f"Reading mission file {self.input_mission}")
+            logger.info(t("group_injector.reading_mission", path=self.input_mission))
         assert self.input_mission is not None
         self.dcs_mission = read_miz(self.input_mission)
 
     def write_mission(self, silent: bool = False) -> None:
         """Write the modified mission to output_mission."""
         if not silent:
-            logger.info("Writing mission file")
+            logger.info(t("group_injector.writing_mission"))
         assert self.dcs_mission is not None
         write_miz(mission=self.dcs_mission, miz_file_path=self.output_mission)
 
     def work(self, silent: bool = False) -> Path | None:
         """Read mission, iterate groups, process each, write mission."""
-        with spinner_context(f"Reading {self.input_mission}...", silent=silent):
+        with spinner_context(t("group_injector.spinner.reading", path=self.input_mission), silent=silent):
             self.read_mission(silent)
 
         assert self.dcs_mission is not None
         for group in self.dcs_mission.iter_groups():
             self.process_group(group)
 
-        with spinner_context("Writing mission...", silent=silent):
+        with spinner_context(t("group_injector.spinner.writing"), silent=silent):
             self.write_mission(silent)
 
         return self.output_mission

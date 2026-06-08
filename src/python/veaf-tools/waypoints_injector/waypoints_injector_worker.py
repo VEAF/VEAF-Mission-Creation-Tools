@@ -17,6 +17,7 @@ from rich.table import Table
 from rich.text import Text
 from veaf_libs.base_worker import BaseWorker
 from veaf_libs.group_injector_worker import GroupInjectorWorker
+from veaf_libs.i18n import t
 from veaf_libs.logger import logger
 from veaf_libs.progress import spinner_context
 
@@ -51,7 +52,7 @@ class WaypointsInjectorWorker(GroupInjectorWorker):
             if self.waypoints_file:
                 waypoints_manager.read_yaml(self.waypoints_file)
         except Exception as e:
-            logger.error(f"Failed to load waypoints file {self.waypoints_file}: {str(e)}", exception_type=RuntimeError)
+            logger.error(t("waypoints_injector.error.load_config", path=self.waypoints_file, error=str(e)), exception_type=RuntimeError)
         self.waypoints_manager = waypoints_manager
         return waypoints_manager
 
@@ -69,7 +70,7 @@ class WaypointsInjectorWorker(GroupInjectorWorker):
     def read_mission(self, silent: bool = False) -> None:
         """Load the mission and collect all groups."""
         if not silent:
-            logger.info(f"Reading mission file {self.input_mission}")
+            logger.info(t("group_injector.reading_mission", path=self.input_mission))
         assert self.input_mission is not None
         self.dcs_mission = read_miz(self.input_mission)
         logger.debug("Searching for all aircraft groups")
@@ -79,7 +80,7 @@ class WaypointsInjectorWorker(GroupInjectorWorker):
     def process_groups(self, silent: bool = False) -> None:
         """Process all aircraft groups and inject waypoints."""
         if not silent:
-            logger.info(f"Processing {len(self.groups)} aircraft group{'s' if len(self.groups) > 1 else ''}")
+            logger.info(t("presets_injector.processing_groups", count=len(self.groups)))
 
         nb_groups_processed = 0
         if not self.waypoints_manager:
@@ -104,9 +105,7 @@ class WaypointsInjectorWorker(GroupInjectorWorker):
                 )
 
         if not silent:
-            logger.info(
-                f"Injected waypoints into {nb_groups_processed} aircraft group{'s' if nb_groups_processed > 1 else ''}"
-            )
+            logger.info(t("waypoints_injector.injected", count=nb_groups_processed))
 
     def _inject_waypoints_into_group(self, group: Group, waypoints: list[WaypointDefinition]) -> None:
         """Inject waypoints into a specific group."""
@@ -126,7 +125,7 @@ class WaypointsInjectorWorker(GroupInjectorWorker):
     def write_mission(self, silent: bool = False) -> None:
         """Write the mission file."""
         if not silent:
-            logger.info("Writing mission file")
+            logger.info(t("group_injector.writing_mission"))
 
         assert self.dcs_mission is not None
         write_miz(mission=self.dcs_mission, miz_file_path=self.output_mission)
@@ -134,15 +133,15 @@ class WaypointsInjectorWorker(GroupInjectorWorker):
     def work(self, silent: bool = False) -> None:
         """Main work function."""
         # Load the mission from the .miz file
-        with spinner_context(f"Reading {self.input_mission}...", silent=silent):
+        with spinner_context(t("group_injector.spinner.reading", path=self.input_mission), silent=silent):
             self.read_mission(silent)
 
         # Process all aircraft groups
-        with spinner_context("Processing groups and injecting waypoints...", silent=silent):
+        with spinner_context(t("waypoints_injector.spinner.processing_groups"), silent=silent):
             self.process_groups(silent)
 
         # Write the mission file
-        with spinner_context("Writing mission...", silent=silent):
+        with spinner_context(t("group_injector.spinner.writing"), silent=silent):
             self.write_mission(silent)
 
 

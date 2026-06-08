@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Any
 
 import yaml
+from veaf_libs.i18n import t
 from veaf_libs.logger import logger
 
 _SPECS: dict[str, Any] | None = None
@@ -150,28 +151,29 @@ def warn_invalid_channel_frequencies(
         return
 
     ranges_str = _format_ranges(valid_ranges)
-    groups_str = ", ".join(f"'{g}'" for g in group_names)
-    groups_label = f"Group {groups_str}" if len(group_names) == 1 else f"Groups {groups_str}"
+    if len(group_names) == 1:
+        groups_label = t("radio_freq.warn.header_single", group=group_names[0], unit_type=unit_type)
+    else:
+        groups_str = ", ".join(f"'{g}'" for g in group_names)
+        groups_label = t("radio_freq.warn.header_plural", groups=groups_str, unit_type=unit_type)
     # Emit one warning per aircraft type (not per group) to avoid flooding the log.
     # List all invalid channels and all affected groups in a single message.
     channel_lines = "\n".join(
-        f"    - channel {ch.channel}" + (f' "{ch.channel_title}"' if ch.channel_title else "") + f": {ch.freq_mhz} MHz"
-        f"  (in radios_collection > {ch.radio_collection} > {ch.radio_key})"
+        t("radio_freq.warn.channel_line_titled", num=ch.channel, title=ch.channel_title, freq=ch.freq_mhz, collection=ch.radio_collection, radio_key=ch.radio_key)
+        if ch.channel_title
+        else t("radio_freq.warn.channel_line", num=ch.channel, freq=ch.freq_mhz, collection=ch.radio_collection, radio_key=ch.radio_key)
         for ch in invalid_channels
     )
-    logger.warning(
-        f"{groups_label} ({unit_type}): the following preset frequencies are not valid"
-        f" for this aircraft and will be rejected by DCS at mission load:\n"
-        f"{channel_lines}\n"
-        f"  Valid ranges for {unit_type}: {ranges_str}\n"
-        f"  These frequencies are probably correct for other aircraft — do NOT change them globally.\n"
-        f"  Instead, add a specific preset for {unit_type} in presets.yaml:\n"
-        f"    presets_assignments:\n"
-        f"      {coalition}:\n"
-        f"        {aircraft_category}:\n"
-        f"          {unit_type}: <your-{unit_type.lower().replace(' ', '-')}-preset>\n"
-        f"  and define that preset with frequencies within: {ranges_str}"
+    unit_type_key = unit_type.lower().replace(" ", "-")
+    footer = t(
+        "radio_freq.warn.footer",
+        unit_type=unit_type,
+        ranges_str=ranges_str,
+        coalition=coalition,
+        aircraft_category=aircraft_category,
+        unit_type_key=unit_type_key,
     )
+    logger.warning(f"{groups_label}\n{channel_lines}\n{footer}")
 
 
 def warn_invalid_frequencies(group_name: str, unit_type: str, freqs_mhz: list[float]) -> None:

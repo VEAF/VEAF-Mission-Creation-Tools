@@ -16,6 +16,7 @@ import re
 from dataclasses import dataclass, field
 
 from veaf_libs.i18n import t
+from veaf_libs.lua_config_generator import yaml_module_entry
 from veaf_libs.lua_module_scanner import get_modules
 
 # ---------------------------------------------------------------------------
@@ -291,8 +292,7 @@ class ConfigMigrator:
             # Quote the key if it contains non-identifier characters (spaces, dashes, …).
             yaml_key = f'"{mid}"' if not re.match(r"^[A-Za-z_]\w*$", mid) else mid
             if mid in enabled_set:
-                lines.append(f"  {yaml_key}:")
-                lines.append("    enable: true")
+                lines.extend(yaml_module_entry(yaml_key, mid))
             else:
                 lines.append(f"  # {yaml_key}:")
                 lines.append("  #   enable: false  # not found in missionConfig.lua")

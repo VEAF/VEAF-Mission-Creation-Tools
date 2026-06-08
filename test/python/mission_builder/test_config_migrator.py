@@ -30,6 +30,7 @@ import unittest
 
 import yaml
 from mission_builder.config_migrator import ConfigMigrator, MigrationResult
+from veaf_libs.lua_config_generator import MANDATORY_MODULES
 
 # ---------------------------------------------------------------------------
 # Fixture paths (MIG-001)
@@ -164,6 +165,31 @@ class TestYamlSnippet(unittest.TestCase):
         lines = snippet.splitlines()
         move_commented = any(ln.strip().startswith("#") and "MOVE" in ln for ln in lines)
         self.assertTrue(move_commented, "MOVE should appear commented out in the snippet")
+
+    def test_mandatory_module_no_enable_key(self) -> None:
+        """Mandatory modules that are active must use {} syntax, never emit 'enable:'."""
+        snippet = self._migrate(
+            "if veafUnits then\n  veafUnits.initialize()\nend\n"
+            "if veafMarkers then\n  veafMarkers.initialize()\nend\n"
+            "if veafRadio then\n  veafRadio.initialize()\nend\n"
+        )
+        lines = snippet.splitlines()
+
+        # Any mandatory module that appears uncommented must use `key: {}`, not `enable:`
+        for mandatory in MANDATORY_MODULES:
+            uncommented = [ln for ln in lines if mandatory in ln and not ln.lstrip().startswith("#")]
+            if not uncommented:
+                continue  # module not in enabled_set for this input — skip
+            mandatory_lines = [ln for ln in uncommented if ln.strip() == f"{mandatory}: {{}}"]
+            self.assertNotEqual(mandatory_lines, [], f"{mandatory} must be emitted as '{mandatory}: {{}}'")
+            enable_lines = [ln for ln in uncommented if "enable:" in ln]
+            self.assertEqual(enable_lines, [], f"{mandatory} must not have 'enable:' in yaml snippet")
+
+        # Non-mandatory enabled module must still use enable: true
+        self.assertTrue(
+            any("enable: true" in ln and not ln.lstrip().startswith("#") for ln in lines),
+            "At least one non-mandatory module must be emitted with 'enable: true'",
+        )
 
 
 class TestFindMatchingClose(unittest.TestCase):

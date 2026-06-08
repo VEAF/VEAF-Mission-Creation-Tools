@@ -96,6 +96,7 @@
 | CVPRE-001 | Parse `radioSettings` table and detect per-aircraft radio layouts (warbird, VHF-primary, hardcoded) | `v5_pipeline_converters.py` | fix | 30 min | ✅ |
 | CVPRE-002 | Auto-assign warbird and VHF-primary aircraft in `presets_assignments`; emit warnings for typePattern and hardcoded entries | `v5_pipeline_converters.py` | fix | 10 min | ✅ |
 | CVPRE-003 | Add i18n messages for new warnings; add 28 unit tests | `locales/en.json`, `locales/fr.json`, `test_v5_pipeline_converters.py` | feat | 5 min | ✅ |
+| CVPRE-004 | Support regex patterns as `unit_type` keys in `presets_assignments` (exact > pattern > `all`) | `presets_manager.py`, `test_presets.py` | feat | 20 min | ✅ |
 
 ---
 

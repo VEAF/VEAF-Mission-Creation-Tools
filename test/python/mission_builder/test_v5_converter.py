@@ -477,6 +477,16 @@ class TestV5ConverterIntegration(unittest.TestCase):
             yaml_content = (folder / "mission.yaml").read_text()
             self.assertIn("community_scripts:", yaml_content)
             self.assertNotIn("enabled: true", yaml_content.split("community_scripts:")[1].split("# ──")[0])
+    def test_mission_yaml_global_log_level_defaults_to_info(self) -> None:
+        """When no global_log_level is found in missionConfig, generated yaml uses 'info' not 'debug'."""
+        with tempfile.TemporaryDirectory() as td:
+            folder = Path(td)
+            self._make_missionconfig(folder, "-- no log level here\n")
+            V5Converter().convert(folder, backup=False)
+            yaml_content = (folder / "mission.yaml").read_text()
+            log_line = next((l for l in yaml_content.splitlines() if "global_log_level" in l and not l.strip().startswith("#")), None)
+            self.assertIsNotNone(log_line)
+            self.assertEqual(log_line.strip(), "global_log_level: info")
 
 
 # ---------------------------------------------------------------------------

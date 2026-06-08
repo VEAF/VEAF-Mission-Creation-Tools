@@ -16,7 +16,7 @@ from veaf_tools.app import (
 )
 
 
-@app.command(no_args_is_help=True, help=t("cmd.convert_v5.help.long"))
+@app.command(help=t("cmd.convert_v5.help.long"))
 def convert_v5(
     mission_folder: str = typer.Argument(
         ".",

@@ -29,7 +29,7 @@ function veafSpawn.spawnLogistic(spawnSpot, radius, country, silent, hiddenOnMFD
 
   if unitName then
     veaf.loggers.get(veafSpawn.Id):debug(string.format("spawnLogistic: inserting %s into CTLD logistics list", unitName))
-    if ctld then
+    if ctld and ctld.logisticUnits then
       table.insert(ctld.logisticUnits, unitName)
     end
 

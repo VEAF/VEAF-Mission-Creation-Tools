@@ -79,11 +79,11 @@
 | Lot FIX-I18N-CONVERT-V5 — Hardcoded English messages in convert-v5 | ~30 min | ✅ |
 | Lot FIX-CONVERT-V5-PRESETS — Per-aircraft radio assignments in convert-v5 presets | ~45 min | ✅ |
 | Lot FEAT-COMMUNITY-TOGGLE — Enable/disable community scripts from mission.yaml | ~2h | ✅ |
-| Lot FIX-CONVERT-V5-DEFAULT-CWD — `convert-v5` uses current directory by default | ~5 min | ⬜ |
-| Lot FIX-SRS-WARN — false warning when SRS config file is absent | ~10 min | ⬜ |
-| Lot FIX-CTLD-NIL — nil crash on ctld.builtFOBS / ctld.logisticUnits in scheduled fns | ~15 min | ⬜ |
+| Lot FIX-CONVERT-V5-DEFAULT-CWD — `convert-v5` uses current directory by default | ~5 min | ✅ |
+| Lot FIX-SRS-WARN — false warning when SRS config file is absent | ~10 min | ✅ |
+| Lot FIX-CTLD-NIL — nil crash on ctld.builtFOBS / ctld.logisticUnits in scheduled fns | ~15 min | ✅ |
 | Lot I18N-COVERAGE — i18n coverage tests + fix remaining hardcoded English strings | ~2h30 | ⬜ |
-| Lot FIX-CONVERT-V5-LOG-DEFAULT — convert-v5 defaults global_log_level to debug instead of info | ~5 min | ⬜ |
+| Lot FIX-CONVERT-V5-LOG-DEFAULT — convert-v5 defaults global_log_level to debug instead of info | ~5 min | ✅ |
 | **Total** | **~182h** | |
 
 *Initial calibration factor: 1.15 — recalculate after each completed lot.*
@@ -236,7 +236,7 @@ Direct commits on `develop-v6` (no feature branch needed — no code change).
 
 | # | Ticket | Files | Type | Effort | Status |
 |---|--------|-------|------|--------|--------|
-| CVCWD-001 | Remove `no_args_is_help=True` from `@app.command` decorator | `veaf_tools/commands/convert_v5.py` | fix | 5 min | ⬜ |
+| CVCWD-001 | Remove `no_args_is_help=True` from `@app.command` decorator | `veaf_tools/commands/convert_v5.py` | fix | 5 min | ✅ |
 
 ---
 
@@ -256,7 +256,7 @@ Direct commits on `develop-v6` (no feature branch needed — no code change).
 
 | # | Ticket | Files | Type | Effort | Status |
 |---|--------|-------|------|--------|--------|
-| SRS-001 | Check `lfs.attributes` before `loadfile`; downgrade absent-file log to `debug` | `src/scripts/veaf/veafRadio.lua` | fix | 10 min | ⬜ |
+| SRS-001 | Check `lfs.attributes` before `loadfile`; downgrade absent-file log to `debug` | `src/scripts/veaf/veafRadio.lua` | fix | 10 min | ✅ |
 
 ---
 
@@ -278,9 +278,9 @@ Direct commits on `develop-v6` (no feature branch needed — no code change).
 
 | # | Ticket | Files | Type | Effort | Status |
 |---|--------|-------|------|--------|--------|
-| CTLD-001 | Extend ctld guard in `veafGrass.lua` (~line 1003) | `src/scripts/veaf/veafGrass.lua` | fix | 5 min | ⬜ |
-| CTLD-002 | Add ctld guard in `veafSpawnGround.lua` (~line 182) | `src/scripts/veaf/veafSpawnGround.lua` | fix | 5 min | ⬜ |
-| CTLD-003 | Extend ctld guard in `veafSpawnEffects.lua` (~line 32) | `src/scripts/veaf/veafSpawnEffects.lua` | fix | 5 min | ⬜ |
+| CTLD-001 | Extend ctld guard in `veafGrass.lua` (~line 1003) | `src/scripts/veaf/veafGrass.lua` | fix | 5 min | ✅ |
+| CTLD-002 | Add ctld guard in `veafSpawnGround.lua` (~line 182) | `src/scripts/veaf/veafSpawnGround.lua` | fix | 5 min | ✅ |
+| CTLD-003 | Extend ctld guard in `veafSpawnEffects.lua` (~line 32) | `src/scripts/veaf/veafSpawnEffects.lua` | fix | 5 min | ✅ |
 
 ---
 
@@ -328,7 +328,7 @@ Direct commits on `develop-v6` (no feature branch needed — no code change).
 
 | # | Ticket | Files | Type | Effort | Status |
 |---|--------|-------|------|--------|--------|
-| CVLOG-001 | Change fallback `'debug'` → `'info'` in `_build_mission_yaml_lines` | `src/python/veaf-tools/mission_builder/v5_converter.py` | fix | 5 min | ⬜ |
+| CVLOG-001 | Change fallback `'debug'` → `'info'` in `_build_mission_yaml_lines` | `src/python/veaf-tools/mission_builder/v5_converter.py` | fix | 5 min | ✅ |
 
 ---
 

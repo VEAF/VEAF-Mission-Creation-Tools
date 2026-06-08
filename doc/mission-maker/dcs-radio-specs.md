@@ -5,7 +5,7 @@ Used by `inject-presets` to validate that frequencies defined in `presets.yaml` 
 compatible with the target aircraft's radio hardware.
 
 > **Source**: [dcs-lua-datamine](https://github.com/Quaggles/dcs-lua-datamine)  
-> Re-generate with `python scripts/extract_dcs_radio_specs.py` after a DCS patch.
+> Re-generate with `poetry run update-radio-specs` after a DCS patch.
 
 ---
 

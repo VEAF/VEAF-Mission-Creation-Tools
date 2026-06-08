@@ -1,6 +1,6 @@
 # DCS aircraft radio frequency specifications
 # Generated from https://github.com/Quaggles/dcs-lua-datamine
-# Re-run scripts/extract_dcs_radio_specs.py to update after a DCS patch.
+# Re-run `poetry run update-radio-specs` to update after a DCS patch.
 #
 # Structure:
 #   <dcs_unit_type_id>:

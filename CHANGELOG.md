@@ -7,6 +7,13 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [Unreleased]
+
+### Fixed
+- `mission_extractor`: `extract` no longer crashes with `KeyError: 1` — the script-file cleanup loop now accepts both the `(path, dest)` tuples returned by `get_veaf_script_files()`/`get_legacy_script_files()` and the dict descriptors returned by `get_community_script_files()` (regression from the COMM-001 refactor)
+
+---
+
 ## [6.4.0] — 2026-06-09
 
 ### Fixed

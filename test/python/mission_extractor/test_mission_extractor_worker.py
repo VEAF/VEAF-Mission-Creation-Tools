@@ -4,7 +4,12 @@ from __future__ import annotations
 
 import tempfile
 import unittest
+import zipfile
 from pathlib import Path
+
+MINIMAL_MISSION_LUA = b'mission = {\n  ["name"] = "TestMission",\n}\n'
+MINIMAL_OPTIONS_LUA = b"options = {\n}\n"
+MINIMAL_WAREHOUSES_LUA = b"warehouses = {\n}\n"
 
 
 class TestMissionExtractorWorkerInit(unittest.TestCase):
@@ -38,6 +43,41 @@ class TestMissionExtractorWorkerInit(unittest.TestCase):
             nonexistent_folder = folder / "no_such_folder"
             with self.assertRaises((FileNotFoundError, SystemExit)):
                 MissionExtractorWorker(mission_folder=nonexistent_folder, input_mission_path=miz)
+
+
+class TestMissionExtractorWorkerExtract(unittest.TestCase):
+    def test_extract_handles_community_script_dicts(self) -> None:
+        """Regression: get_community_script_files() returns dicts, not tuples.
+
+        extract_mission used to index entries as f[0]/f[1], raising KeyError on
+        the dict entries. It must iterate them by their 'path'/'dest' keys and
+        remove the bundled community scripts from the extracted mission.
+        """
+        from mission_extractor.mission_extractor_worker import MissionExtractorWorker
+        from mission_tools import get_community_script_files
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            folder = Path(tmpdir)
+            miz = folder / "test.miz"
+
+            community = get_community_script_files()
+            with zipfile.ZipFile(miz, "w") as zf:
+                zf.writestr("mission", MINIMAL_MISSION_LUA)
+                zf.writestr("options", MINIMAL_OPTIONS_LUA)
+                zf.writestr("warehouses", MINIMAL_WAREHOUSES_LUA)
+                zf.writestr("theatre", b"Caucasus")
+                zf.writestr("l10n/DEFAULT/dictionary", b"dictionary = {\n}\n")
+                zf.writestr("l10n/DEFAULT/mapResource", b"mapResource = {\n}\n")
+                # Bundle one community script so the cleanup loop has something to remove.
+                first = community[0]
+                bundled_name = Path(first["path"]).name
+                zf.writestr(f"{first['dest']}/{bundled_name}", b"-- community script\n")
+
+            worker = MissionExtractorWorker(mission_folder=folder, input_mission_path=miz)
+            worker.extract_mission()  # must not raise KeyError
+
+            extracted = folder / "src" / "mission" / first["dest"] / bundled_name
+            self.assertFalse(extracted.exists(), "community script should have been removed on extract")
 
 
 if __name__ == "__main__":

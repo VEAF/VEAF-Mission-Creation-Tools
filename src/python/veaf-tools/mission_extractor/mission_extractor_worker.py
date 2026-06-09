@@ -94,10 +94,10 @@ class MissionExtractorWorker(BaseWorker):
             temp_mission_file.unlink()
 
             # Remove the VEAF, community, and legacy VEAF
-            for file_in_mission in [
-                Path(f[1]) / Path(f[0]).name
-                for f in get_veaf_script_files() + get_community_script_files() + get_legacy_script_files()
-            ]:
+            # VEAF and legacy entries are (path, dest) tuples; community entries are dicts.
+            script_files: list[tuple[str, str]] = list(get_veaf_script_files()) + list(get_legacy_script_files())
+            script_files += [(s["path"], s["dest"]) for s in get_community_script_files()]
+            for file_in_mission in [Path(dest) / Path(path).name for path, dest in script_files]:
                 file_in_temp: Path = temp_dir / file_in_mission
                 rm_file_or_dir(file_in_temp)
 

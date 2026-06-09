@@ -175,20 +175,20 @@ class TestYamlSnippet(unittest.TestCase):
         )
         lines = snippet.splitlines()
 
-        # Any mandatory module that appears uncommented must use `key: {}`, not `enable:`
+        # Any mandatory module that appears uncommented must use bare null `key:`, not `enable:`
         for mandatory in MANDATORY_MODULES:
             uncommented = [ln for ln in lines if mandatory in ln and not ln.lstrip().startswith("#")]
             if not uncommented:
                 continue  # module not in enabled_set for this input — skip
-            mandatory_lines = [ln for ln in uncommented if ln.strip() == f"{mandatory}: {{}}"]
-            self.assertNotEqual(mandatory_lines, [], f"{mandatory} must be emitted as '{mandatory}: {{}}'")
+            mandatory_lines = [ln for ln in uncommented if ln.strip() == f"{mandatory}:"]
+            self.assertNotEqual(mandatory_lines, [], f"{mandatory} must be emitted as bare null '{mandatory}:'")
             enable_lines = [ln for ln in uncommented if "enable:" in ln]
             self.assertEqual(enable_lines, [], f"{mandatory} must not have 'enable:' in yaml snippet")
 
-        # Non-mandatory enabled module must still use enable: true
+        # Non-mandatory enabled module must use enabled: true
         self.assertTrue(
-            any("enable: true" in ln and not ln.lstrip().startswith("#") for ln in lines),
-            "At least one non-mandatory module must be emitted with 'enable: true'",
+            any("enabled: true" in ln and not ln.lstrip().startswith("#") for ln in lines),
+            "At least one non-mandatory module must be emitted with 'enabled: true'",
         )
 
 
@@ -899,7 +899,7 @@ class _IntegrationMixin:
     def test_yaml_snippet_is_valid_yaml(self) -> None:
         loaded = yaml.safe_load(self._result.yaml_snippet)  # type: ignore[attr-defined]
         self.assertIsNotNone(loaded)  # type: ignore[attr-defined]
-        self.assertIn("lua_modules", loaded)  # type: ignore[attr-defined]
+        self.assertIn("modules", loaded)  # type: ignore[attr-defined]
 
     def test_no_uncommented_veaf_dofile_in_output(self) -> None:
         for line in self._result.new_content.splitlines():  # type: ignore[attr-defined]

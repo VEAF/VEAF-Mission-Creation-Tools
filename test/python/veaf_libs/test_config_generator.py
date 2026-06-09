@@ -436,7 +436,7 @@ class TestGenerateMissionYamlTemplate(unittest.TestCase):
 
         result = generate_mission_yaml_template()
         self.assertIsInstance(result, str)
-        self.assertIn("lua_modules:", result)
+        self.assertIn("modules:", result)
         self.assertIn("# qra:", result)
         self.assertIn("# cap_missions:", result)
         self.assertIn("# combat_missions:", result)

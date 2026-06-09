@@ -386,7 +386,7 @@ class TestV5ConverterIntegration(unittest.TestCase):
             self._make_missionconfig(folder, "veafRadio.initialize()\n")
             V5Converter().convert(folder, backup=False)
             yaml_content = (folder / "mission.yaml").read_text()
-            self.assertIn("lua_modules:", yaml_content)
+            self.assertIn("modules:", yaml_content)
 
     def test_mission_yaml_contains_pipeline_section(self) -> None:
         with tempfile.TemporaryDirectory() as td:
@@ -464,10 +464,10 @@ class TestV5ConverterIntegration(unittest.TestCase):
             self._make_community_folder(folder, ["mist.lua", "CTLD.lua"])
             V5Converter().convert(folder, backup=False)
             yaml_content = (folder / "mission.yaml").read_text()
-            self.assertIn("community_scripts:", yaml_content)
-            self.assertIn("mist: {enabled: true}", yaml_content)
-            self.assertIn("ctld: {enabled: true}", yaml_content)
-            self.assertIn("skynet: {enabled: false}", yaml_content)
+            self.assertIn("modules:", yaml_content)
+            self.assertIn("mist: true", yaml_content)
+            self.assertIn("ctld: true", yaml_content)
+            self.assertIn("skynet: false", yaml_content)
 
     def test_mission_yaml_community_scripts_all_false_when_no_community_folder(self) -> None:
         with tempfile.TemporaryDirectory() as td:
@@ -475,8 +475,13 @@ class TestV5ConverterIntegration(unittest.TestCase):
             self._make_missionconfig(folder, "-- test\n")
             V5Converter().convert(folder, backup=False)
             yaml_content = (folder / "mission.yaml").read_text()
-            self.assertIn("community_scripts:", yaml_content)
-            self.assertNotIn("enabled: true", yaml_content.split("community_scripts:")[1].split("# ──")[0])
+            self.assertIn("modules:", yaml_content)
+            # All community script IDs must appear with ": false" (no community folder → none detected)
+            from mission_tools.mission_constants import get_community_script_files
+            for script in get_community_script_files():
+                sid = script["id"]
+                self.assertIn(f"  {sid}: false", yaml_content)
+                self.assertNotIn(f"  {sid}: true", yaml_content)
     def test_mission_yaml_global_log_level_defaults_to_info(self) -> None:
         """When no global_log_level is found in missionConfig, generated yaml uses 'info' not 'debug'."""
         with tempfile.TemporaryDirectory() as td:

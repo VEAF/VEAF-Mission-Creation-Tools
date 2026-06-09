@@ -855,12 +855,15 @@ class V5Converter:
 
         lines += [
             "# ── Module configuration ─────────────────────────────────────────────────────",
-            "# Enable or disable individual VEAF Lua modules.",
-            "# Mandatory modules (marked with {}) are always active and cannot be disabled.",
-            "# To disable an optional module, set enable: false instead of removing it.",
+            "# Enable or disable VEAF modules and community scripts.",
+            "# Mandatory modules (bare MODULE: with no value) are always active.",
+            "# To disable an optional module: MODULE: false",
+            "# To enable with extra config: MODULE:",
+            "#   enabled: true",
+            "#   ...",
             f"# Doc: {_DOC_BASE}#configuring-modules",
             "#",
-            "lua_modules:",
+            "modules:",
         ]
 
         enabled_modules = mr.enabled_modules if mr else []
@@ -919,6 +922,16 @@ class V5Converter:
                     lines.append("    airwave_zones:")
                     lines.extend(_yaml_list_block(mr.airwave_zones_extracted, indent=4))
 
+        # Community scripts appended at end of modules: block
+        all_community = get_community_script_files()
+        detected_comm = report.detected_community_script_ids
+        if all_community:
+            lines.append("  # ── Community scripts ──────────────────────────────────────────────────────")
+            lines.append("  # Set to false to exclude a script from the built mission.")
+            for script in all_community:
+                sid = script["id"]
+                val = "true" if sid in detected_comm else "false"
+                lines.append(f"  {sid}: {val}")
         lines.append("")
 
         # ── External modules (Skynet) ──────────────────────────────────────
@@ -952,19 +965,26 @@ class V5Converter:
                 if coalition := qra.get("coalition"):
                     lines.append(f"      coalition: {coalition}")
                 if enemies := qra.get("enemy_coalitions"):
-                    lines.append(f"      enemy_coalitions: [{', '.join(enemies)}]")
+                    lines.append("      enemy_coalitions:")
+                    for e in enemies:
+                        lines.append(f"        - {e}")
                 if tz := qra.get("trigger_zone"):
-                    lines.append(f'      trigger_zone: "{tz}"')
+                    lines.append(f"      trigger_zone: {tz}")
                 if zr := qra.get("zone_radius"):
                     lines.append(f"      zone_radius: {zr}")
                 if sg := qra.get("simple_groups"):
-                    lines.append(f"      simple_groups: [{', '.join(repr(g) for g in sg)}]")
+                    lines.append("      simple_groups:")
+                    for g in sg:
+                        lines.append(f"        - {g}")
                 if gbc := qra.get("groups_by_enemy_count"):
                     lines.append("      groups_by_enemy_count:")
                     for entry in gbc:
                         lines.append(f"        - enemy_count: {entry['enemy_count']}")
-                        gs = ", ".join(f'"{g}"' for g in entry.get("groups", []))
-                        lines.append(f"          groups: [{gs}]")
+                        groups = entry.get("groups", [])
+                        if groups:
+                            lines.append("          groups:")
+                            for g in groups:
+                                lines.append(f"            - {g}")
                         lines.append(f"          random_pick: {entry.get('random_pick', 1)}")
                 if dbr := qra.get("delay_before_rearming"):
                     lines.append(f"      delay_before_rearming: {dbr}")
@@ -1013,8 +1033,9 @@ class V5Converter:
                     for elem in elems:
                         lines.append(f'      - name: "{elem.get("name", "")}"')
                         if gs := elem.get("groups"):
-                            gs_yaml = ", ".join(f'"{g}"' for g in gs)
-                            lines.append(f"        groups: [{gs_yaml}]")
+                            lines.append("        groups:")
+                            for g in gs:
+                                lines.append(f"          - {g}")
                         lines.append(f"        scalable: {'true' if elem.get('scalable', True) else 'false'}")
             lines.append("")
 
@@ -1048,21 +1069,6 @@ class V5Converter:
         else:
             lines.append("# pipeline: {}  # no pipeline config files detected in src/")
 
-        # ── Community scripts ──────────────────────────────────────────────
-        all_community = get_community_script_files()
-        detected = report.detected_community_script_ids
-        lines += [
-            "",
-            "# ── Community scripts ────────────────────────────────────────────────────────",
-            "# Set enabled: false to exclude a community script from the built mission.",
-            "#",
-            "community_scripts:",
-        ]
-        for script in all_community:
-            sid = script["id"]
-            enabled_str = "true" if sid in detected else "false"
-            lines.append(f"  {sid}: {{enabled: {enabled_str}}}")
-        lines.append("")
 
         # ── Build configuration ────────────────────────────────────────────
         lines += [

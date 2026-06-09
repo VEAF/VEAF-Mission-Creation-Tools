@@ -74,6 +74,7 @@ _MODULE_INIT_PARAMS: dict[str, list[tuple[str, object]]] = {
 _SKIP_SETCONFIG_KEYS: frozenset[str] = frozenset(
     {
         "enable",
+        "enabled",
         "logLevel",
         "init",
         "assets",
@@ -90,6 +91,22 @@ _SKIP_SETCONFIG_KEYS: frozenset[str] = frozenset(
 #: Module IDs that do NOT have a global ``initialize()`` function.
 #: Their data (zones, etc.) is emitted directly without an ``initialize()`` call.
 _NO_INIT_MODULES: frozenset[str] = frozenset({"AIRWAVES"})
+
+#: YAML syntax quick-reference block prepended to every generated mission.yaml.
+_YAML_SYNTAX_HEADER: list[str] = [
+    "# ── YAML syntax quick reference ─────────────────────────────────────────────",
+    "# Indentation: spaces only (never tabs). Each level = 2 spaces.",
+    "# Quotes: only needed when a value contains  :  #  {  [  or starts with a digit.",
+    "#   name: Mon-Vol-01            # OK — no quotes needed",
+    '#   name: "Vol: Aller-Retour"   # required — value contains :',
+    "# Lists: each item on its own line, preceded by  -",
+    "#   groups:",
+    "#     - MIG-29_SOLO",
+    "#     - MIG-21_SOLO",
+    "# Booleans: true / false  (without quotes)",
+    "# Empty value (mandatory modules): MODULE:   (nothing after the colon)",
+    "# ────────────────────────────────────────────────────────────────────────────",
+]
 
 #: Cosmetic category groupings for YAML template and generated Lua output.
 _MODULE_CATEGORIES: dict[str, list[str]] = {
@@ -134,12 +151,55 @@ def yaml_module_entry(yaml_key: str, module_id: str) -> list[str]:
         module_id: The canonical module ID used to look up mandatory status.
 
     Returns:
-        One line ``["  key: {}"]`` for mandatory modules, or two lines
-        ``["  key:", "    enable: true"]`` for optional ones.
+        One line ``["  key:"]`` for mandatory modules (null value = always active),
+        or two lines ``["  key:", "    enabled: true"]`` for optional ones.
     """
     if module_id in MANDATORY_MODULES:
-        return [f"  {yaml_key}: {{}}"]
-    return [f"  {yaml_key}:", "    enable: true"]
+        return [f"  {yaml_key}:"]
+    return [f"  {yaml_key}:", "    enabled: true"]
+
+
+def _get_module_enabled(cfg: dict, default: bool = True) -> bool:
+    """Read the enabled flag from a module config dict.
+
+    Accepts both ``enabled`` (preferred) and the deprecated ``enable`` key.
+
+    Args:
+        cfg: Module configuration dict.
+        default: Value returned when neither key is present.
+
+    Returns:
+        Boolean enabled state.
+    """
+    if "enabled" in cfg:
+        return bool(cfg["enabled"])
+    if "enable" in cfg:
+        return bool(cfg["enable"])
+    return default
+
+
+def _normalize_module_cfg(value: object) -> dict:
+    """Normalize a raw module config value to a dict.
+
+    Handles the three valid forms in ``modules:`` / ``lua_modules:``:
+
+    - ``None``  (bare ``MODULE:`` in YAML) → ``{}``  (mandatory: no config)
+    - ``True`` / ``False`` scalar → ``{"enabled": <bool>}``
+    - ``dict`` → returned as-is
+
+    Args:
+        value: Raw YAML value for the module key.
+
+    Returns:
+        Normalized dict suitable for further processing.
+    """
+    if value is None:
+        return {}
+    if isinstance(value, bool):
+        return {"enabled": value}
+    if isinstance(value, dict):
+        return value
+    return {}
 
 
 #: Dependency graph: module_id → list of module IDs it requires.
@@ -602,7 +662,7 @@ def _resolve_deps(effective: dict) -> dict:
 
     For each enabled module that declares dependencies in ``_MODULE_DEPS``,
     any dependency that is absent or explicitly disabled is auto-added with
-    ``enable: true`` and a ``logger.warning`` is emitted.  The loop repeats
+    ``enabled: true`` and a ``logger.warning`` is emitted.  The loop repeats
     until no more changes are needed (handles transitive dependency chains).
     """
     changed = True
@@ -610,24 +670,25 @@ def _resolve_deps(effective: dict) -> dict:
         changed = False
         for mod_id, deps in _MODULE_DEPS.items():
             cfg = effective.get(mod_id, {})
-            if isinstance(cfg, dict) and cfg.get("enable") is False:
+            if isinstance(cfg, dict) and not _get_module_enabled(cfg, True):
                 continue  # explicitly disabled — skip dep check
             if mod_id not in effective:
                 continue  # not requested — skip
             for dep in deps:
                 dep_cfg = effective.get(dep, {})
-                if isinstance(dep_cfg, dict) and dep_cfg.get("enable") is False:
+                if isinstance(dep_cfg, dict) and not _get_module_enabled(dep_cfg, True):
                     logger.warning(
                         f"Module '{mod_id}' requires '{dep}' but '{dep}' is disabled — auto-enabling '{dep}'"
                     )
-                    dep_cfg["enable"] = True
+                    dep_cfg["enabled"] = True
+                    dep_cfg.pop("enable", None)
                     effective[dep] = dep_cfg
                     changed = True
                 elif dep not in effective:
                     logger.warning(
                         f"Module '{mod_id}' requires '{dep}' which is not configured — auto-enabling '{dep}'"
                     )
-                    effective[dep] = {"enable": True}
+                    effective[dep] = {"enabled": True}
                     changed = True
     return effective
 
@@ -710,7 +771,9 @@ def generate_config_lua(
         lines.append("")
 
     # ── Module configuration + initialization ─────────────────────────────
-    lua_modules: dict = mission_yaml.get("lua_modules") or {}
+    # Accept both `modules:` (new) and `lua_modules:` (legacy) keys.
+    raw_lua_modules: dict = mission_yaml.get("lua_modules") or {}
+    lua_modules: dict = {k: _normalize_module_cfg(v) for k, v in raw_lua_modules.items()}
     qra_section: dict = mission_yaml.get("qra") or {}
     cap_missions: list = mission_yaml.get("cap_missions") or []
     combat_missions_data: list = mission_yaml.get("combat_missions") or []
@@ -719,12 +782,13 @@ def generate_config_lua(
     ctld_cfg: dict = external_modules.get("ctld") or {}
 
     if lua_modules:
-        # ── MODUX-002: error on mandatory modules with any enable key ────
+        # ── MODUX-002: error on mandatory modules with any enable/enabled key ──
         effective_modules: dict = dict(lua_modules)
         for mandatory_id in MANDATORY_MODULES:
             mcfg = effective_modules.get(mandatory_id, {})
-            if isinstance(mcfg, dict) and "enable" in mcfg:
-                logger.error(t("builder.mandatory_module_enable", module=mandatory_id, value=mcfg["enable"]))
+            if isinstance(mcfg, dict) and ("enable" in mcfg or "enabled" in mcfg):
+                bad_val = mcfg.get("enabled", mcfg.get("enable"))
+                logger.error(t("builder.mandatory_module_enable", module=mandatory_id, value=bad_val))
 
         # ── MODUX-003: auto-resolve missing/disabled dependencies ─────────
         effective_modules = _resolve_deps(effective_modules)
@@ -753,7 +817,7 @@ def generate_config_lua(
                 lines.append(f"-- ── {cat} ──")
                 lines.append("")
 
-            enabled = mod_cfg.get("enable", True)
+            enabled = _get_module_enabled(mod_cfg, True)
             log_level: str | None = mod_cfg.get("logLevel")
 
             if not enabled:
@@ -843,6 +907,8 @@ def generate_mission_yaml_template(
         All others are commented out.  If *None*, all modules appear
         as commented-out examples.
     """
+    from mission_tools.mission_constants import get_community_script_files
+
     if modules is None:
         modules = get_modules()
     enabled_set: set[str] = enabled_module_ids or set()
@@ -851,6 +917,10 @@ def generate_mission_yaml_template(
 
     # ── File header ───────────────────────────────────────────────────────
     lines.extend(_yaml_comment("generated.mission_yaml.header"))
+    lines.append("")
+
+    # ── YAML syntax quick reference (UX-005) ─────────────────────────────
+    lines.extend(_YAML_SYNTAX_HEADER)
     lines.append("")
 
     # ── Global log level ──────────────────────────────────────────────────
@@ -862,36 +932,34 @@ def generate_mission_yaml_template(
     # ── Mission identity ──────────────────────────────────────────────────
     lines.extend(_yaml_comment("generated.mission_yaml.section.mission"))
     lines.append("# mission:")
-    lines.append('#   name: "My Mission"          # shown in radio menus and log messages')
-    lines.append("#   export_path: null           # null = default DCS Saved Games path")
-    lines.append("#   era: MODERN                 # MODERN | COLD_WAR | WW2")
-    lines.append(f"#   language: en                # {t('generated.mission_yaml.field.language')}")
+    lines.append("#   name: My-Mission              # shown in radio menus and log messages")
+    lines.append("#   export_path: null             # null = default DCS Saved Games path")
+    lines.append("#   era: MODERN                   # MODERN | COLD_WAR | WW2")
+    lines.append(f"#   language: en                  # {t('generated.mission_yaml.field.language')}")
     lines.append("")
 
     # ── Security ──────────────────────────────────────────────────────────
     lines.extend(_yaml_comment("generated.mission_yaml.section.security"))
     lines.append("# security:")
-    lines.append("#   disabled: true              # true = no password required (default)")
-    lines.append("#   password_hashes:            # add SHA-256 hashes to restrict access")
+    lines.append("#   disabled: true                # true = no password required (default)")
+    lines.append("#   password_hashes:              # add SHA-256 hashes to restrict access")
     lines.append('#     - "<SHA-256 hash>"')
     lines.append("")
 
     # ── Generic settings ──────────────────────────────────────────────────
     lines.extend(_yaml_comment("generated.mission_yaml.section.settings"))
     lines.append("# settings:")
-    lines.append('#   MY_SETTING: "value"')
+    lines.append("#   MY_SETTING: my-value")
     lines.append("")
 
-    # ── Module configuration ──────────────────────────────────────────────
+    # ── Module configuration (UX-003: unified modules: block) ────────────
     lines.extend(_yaml_comment("generated.mission_yaml.section.modules"))
     lines.append("#")
-    lines.append("lua_modules:")
+    lines.append("modules:")
 
-    # Emit module entries in recommended order
+    # Emit VEAF module entries in recommended order
     ordered_ids = _MODULE_INIT_ORDER
     all_module_map = {m["id"]: m for m in modules}
-
-    # Emit all modules grouped by category, enabled ones uncommented, others commented
     all_ordered = [mid for mid in ordered_ids if mid in all_module_map]
     remaining = [mid for mid in all_module_map if mid not in set(ordered_ids)]
 
@@ -915,17 +983,23 @@ def generate_mission_yaml_template(
             if mid == "ASSETS":
                 lines.append("    # assets:  # list of asset entries")
                 lines.append("    #   - sort: 1")
-                lines.append('    #     name: "T1-Arco"')
-                lines.append('    #     description: "Arco (KC-135)"')
-                lines.append('    #     information: "Tacan 64Y\\nU290.50"')
+                lines.append("    #     name: T1-Arco")
+                lines.append('#     #     description: "Arco (KC-135)"')
+                lines.append('#     #     information: "Tacan 64Y\\nU290.50"')
             elif mid == "NAMEDPOINTS":
                 lines.append("    # custom_points:  # list of custom POIs")
-                lines.append('    #   - name: "Battle Area Alpha"')
+                lines.append("    #   - name: Battle Area Alpha")
                 lines.append('    #     lat: "41.123456"')
                 lines.append('    #     lon: "44.987654"')
         else:
             lines.append(f"  # {yaml_key}:")
-            lines.append("  #   enable: false")
+            lines.append("  #   enabled: false")
+
+    # Emit community script entries in the same modules: block (UX-003)
+    lines.append("  # ── Community scripts ──")
+    for script in get_community_script_files():
+        sid = script["id"]
+        lines.append(f"  # {sid}: true")
 
     # ── External modules ──────────────────────────────────────────────────
     lines.append("")
@@ -953,19 +1027,22 @@ def generate_mission_yaml_template(
         "# qra:",
         "#   silence_all: false",
         "#   definitions:",
-        '#     - name: "Base QRA"',
+        "#     - name: Base QRA",
         "#       coalition: RED           # RED | BLUE | NEUTRAL",
-        "#       enemy_coalitions: [BLUE]",
-        '#       trigger_zone: "QRA zone"',
+        "#       enemy_coalitions:",
+        "#         - BLUE",
+        "#       trigger_zone: QRA zone",
         "#       zone_radius: 30000",
         "#       groups_by_enemy_count:",
         "#         - enemy_count: 1",
-        '#           groups: ["Group1", "Group2"]',
+        "#           groups:",
+        "#             - Group1",
+        "#             - Group2",
         "#           random_pick: 1       # how many groups to pick randomly",
         "#       delay_before_rearming: 30",
         "#       delay_before_activating: 30",
         "#       # react_on_helicopters: true",
-        '#       # airport_link: "Kutaisi"',
+        "#       # airport_link: Kutaisi",
     ]
 
     # ── CAP missions ──────────────────────────────────────────────────────
@@ -973,9 +1050,9 @@ def generate_mission_yaml_template(
     lines.extend(_yaml_comment("generated.mission_yaml.section.cap"))
     lines += [
         "# cap_missions:",
-        '#   - group_name: "CAP Group"',
-        '#     menu_name: "CAP"',
-        '#     briefing: "CAP mission briefing"',
+        "#   - group_name: CAP Group",
+        "#     menu_name: CAP",
+        "#     briefing: CAP mission briefing",
         "#     default: false",
         "#     activated: true",
     ]
@@ -985,15 +1062,17 @@ def generate_mission_yaml_template(
     lines.extend(_yaml_comment("generated.mission_yaml.section.combat"))
     lines += [
         "# combat_missions:",
-        '#   - name: "Mission Name"',
-        '#     friendly_name: "Display Name"',
+        "#   - name: Mission Name",
+        "#     friendly_name: Display Name",
         "#     secured: false",
         "#     radio_menu_enabled: true",
         "#     briefing: |",
         "#       Multi-line briefing text here.",
         "#     elements:",
-        '#       - name: "Element Name"',
-        '#         groups: ["Group1", "Group2"]',
+        "#       - name: Element Name",
+        "#         groups:",
+        "#           - Group1",
+        "#           - Group2",
         "#         scalable: true",
     ]
 

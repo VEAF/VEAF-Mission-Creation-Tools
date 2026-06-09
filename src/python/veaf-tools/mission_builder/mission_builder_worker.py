@@ -56,6 +56,50 @@ class CustomScript:
     generate_load_trigger: bool | None = field(default=None)
 
 
+def _normalize_mission_yaml(yaml_data: dict) -> dict:
+    """Normalize legacy mission.yaml keys to the current unified format.
+
+    - ``modules:`` (new) is split into ``lua_modules`` + ``community_scripts``
+      for internal processing.  If both ``modules:`` and the legacy keys are
+      present, ``modules:`` takes precedence and a warning is emitted.
+    - Deprecated ``lua_modules:`` / ``community_scripts:`` keys are accepted
+      with a deprecation warning.
+
+    Args:
+        yaml_data: Parsed mission.yaml content dict.
+
+    Returns:
+        Normalized dict (shallow copy when changes are needed).
+    """
+    modules_raw = yaml_data.get("modules")
+    has_legacy = yaml_data.get("lua_modules") is not None or yaml_data.get("community_scripts") is not None
+
+    if modules_raw is not None:
+        if has_legacy:
+            logger.warning(
+                "'modules:' and 'lua_modules:'/'community_scripts:' both present — 'modules:' takes precedence"
+            )
+        if not isinstance(modules_raw, dict):
+            logger.warning(f"'modules' in mission.yaml must be a mapping (got {type(modules_raw).__name__}); ignoring.")
+            return yaml_data
+
+        all_community_ids = {s["id"] for s in get_community_script_files()}
+        lua_mods = {k: v for k, v in modules_raw.items() if k not in all_community_ids}
+        comm_scripts = {k: v for k, v in modules_raw.items() if k in all_community_ids}
+
+        result = dict(yaml_data)
+        result["lua_modules"] = lua_mods
+        result["community_scripts"] = comm_scripts
+        return result
+
+    if has_legacy:
+        logger.warning(
+            t("builder.modules_deprecated")
+        )
+
+    return yaml_data
+
+
 class MissionBuilderWorker(BaseWorker):
     """
     Worker class that builds a mission, based on a folder containing the mission files, and on the VEAF Mission Creation Tools package.
@@ -97,6 +141,7 @@ class MissionBuilderWorker(BaseWorker):
             with mission_yaml_path.open("r", encoding="utf-8") as fh:
                 raw_yaml: dict = yaml.safe_load(fh) or {}
             self.mission_yaml = resolve_profile(raw_yaml, profile_name)
+            self.mission_yaml = _normalize_mission_yaml(self.mission_yaml)
         build_cfg: dict = self.mission_yaml.get("build") or {}
         self.pipeline_cfg = self.mission_yaml.get("pipeline") or {}
 
@@ -456,7 +501,7 @@ class MissionBuilderWorker(BaseWorker):
                             continue
                     elif "lua_module" in mapping:
                         mod_cfg = (self.mission_yaml.get("lua_modules") or {}).get(mapping["lua_module"])
-                        if isinstance(mod_cfg, dict) and mod_cfg.get("enable") is False:
+                        if isinstance(mod_cfg, dict) and not mod_cfg.get("enabled", mod_cfg.get("enable", True)):
                             logger.debug(
                                 f"Skipping default '{f.name}': lua_module '{mapping['lua_module']}' is disabled"
                             )

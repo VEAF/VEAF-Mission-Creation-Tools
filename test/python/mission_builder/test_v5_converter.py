@@ -263,8 +263,12 @@ class TestBuildMissionYamlDocLinks(unittest.TestCase):
         self.assertIn("#build-profiles", yaml)
 
     def test_mandatory_modules_explanation_present(self) -> None:
+        """Mandatory module explanation must appear (text is localized)."""
+        from veaf_libs.i18n import t
+
         yaml = self._build_yaml()
-        self.assertIn("Mandatory modules", yaml)
+        # Use the i18n key — works in any locale
+        self.assertIn(t("converter.yaml.modules.desc2"), yaml)
 
 
 # ---------------------------------------------------------------------------
@@ -432,7 +436,7 @@ class TestV5ConverterIntegration(unittest.TestCase):
             self._make_missionconfig(folder, 'veaf.config.MISSION_NAME = "OpenTraining"\n')
             V5Converter().convert(folder, backup=False)
             yaml_content = (folder / "mission.yaml").read_text()
-            self.assertIn('name: "OpenTraining"', yaml_content)
+            self.assertIn("name: OpenTraining", yaml_content)
 
     def _make_community_folder(self, folder: Path, filenames: list[str]) -> None:
         comm_dir = folder / "published" / "src" / "scripts" / "community"

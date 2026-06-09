@@ -495,9 +495,9 @@ Direct commits on `develop-v6` (no feature branch needed — no code change).
 |---|--------|------|--------|--------|
 | DOC-001 | Create `veafInterpreter.md` (FR) — fixes broken FR nav. (`dcs-radio-specs` EN parity deferred to DOC-005: file is hand-maintained, not purely generated) | fix | 30 min | ✅ |
 | DOC-002 | Isolated content errors done: remove `convert`, CSAR note (FR+EN), dead updater URL, debug-logging section, CHANGELOG consolidation. (`enable:`→`enabled:` + `lua_modules:`→`modules:` across ~20 files folded into per-file DOC-005 passes) | fix | 45 min | ✅ |
-| DOC-003 | ELI5 rewrite pilot/README + pilot/GUIDE (FR+EN) + mermaid (F10 menu, marker flow) + screenshot placeholders | feat | 2h | ⬜ |
-| DOC-004 | ELI5 rewrite mission-maker/README + GUIDE intro (FR+EN) + mermaid (pipeline, mission.yaml, migration) + placeholders | feat | 2h | ⬜ |
-| DOC-005 | Bilingual reparity: bring FR to EN detail for LUA_API_REFERENCE, TOOLS_REFERENCE, script docs | feat | 5h | ⬜ |
+| DOC-003 | Pilot guide rewritten (FR+EN): deduplicated, accessible, `_auth` standardized, mermaid F10 menu, screenshot placeholders; READMEs reviewed (already clean) | feat | 2h | ✅ |
+| DOC-004 | Mission-maker GUIDE + MIGRATION_GUIDE (FR+EN): build-pipeline + v5→v6 mermaid diagrams, `modules:` block example, broken `GUIDE.fr.md` links fixed | feat | 2h | ✅ |
+| DOC-005 | Bilingual reparity + accessibility: LUA_API_REFERENCE (−1077 l.), TOOLS_REFERENCE (−346 l.), 20 script docs (`enable:`→`enabled:`, FR/EN parity), dcs-radio-specs FR, migration guide YAML examples | feat | 5h | ⬜ |
 | DOC-006 | Produce DCS screenshot capture list for the user | chore | 30 min | ⬜ |
 
 **Estimated total: ~12h**

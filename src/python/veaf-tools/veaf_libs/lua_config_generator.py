@@ -92,21 +92,28 @@ _SKIP_SETCONFIG_KEYS: frozenset[str] = frozenset(
 #: Their data (zones, etc.) is emitted directly without an ``initialize()`` call.
 _NO_INIT_MODULES: frozenset[str] = frozenset({"AIRWAVES"})
 
-#: YAML syntax quick-reference block prepended to every generated mission.yaml.
-_YAML_SYNTAX_HEADER: list[str] = [
-    "# ── YAML syntax quick reference ─────────────────────────────────────────────",
-    "# Indentation: spaces only (never tabs). Each level = 2 spaces.",
-    "# Quotes: only needed when a value contains  :  #  {  [  or starts with a digit.",
-    "#   name: Mon-Vol-01            # OK — no quotes needed",
-    '#   name: "Vol: Aller-Retour"   # required — value contains :',
-    "# Lists: each item on its own line, preceded by  -",
-    "#   groups:",
-    "#     - MIG-29_SOLO",
-    "#     - MIG-21_SOLO",
-    "# Booleans: true / false  (without quotes)",
-    "# Empty value (mandatory modules): MODULE:   (nothing after the colon)",
-    "# ────────────────────────────────────────────────────────────────────────────",
-]
+
+def _yaml_syntax_header() -> list[str]:
+    """Return the localized YAML syntax quick-reference block.
+
+    Returns:
+        List of comment lines to prepend to generated mission.yaml files.
+    """
+    return [
+        t("yaml.syntax.title"),
+        t("yaml.syntax.indentation"),
+        t("yaml.syntax.quotes"),
+        f"#   name: Mon-Vol-01            # OK — {t('yaml.syntax.quotes_ok')}",
+        f'#   name: "Vol: Aller-Retour"   # {t("yaml.syntax.quotes_required")}',
+        t("yaml.syntax.lists"),
+        "#   groups:",
+        "#     - MIG-29_SOLO",
+        "#     - MIG-21_SOLO",
+        t("yaml.syntax.booleans"),
+        t("yaml.syntax.empty_value"),
+        t("yaml.syntax.separator"),
+    ]
+
 
 #: Cosmetic category groupings for YAML template and generated Lua output.
 _MODULE_CATEGORIES: dict[str, list[str]] = {
@@ -920,7 +927,7 @@ def generate_mission_yaml_template(
     lines.append("")
 
     # ── YAML syntax quick reference (UX-005) ─────────────────────────────
-    lines.extend(_YAML_SYNTAX_HEADER)
+    lines.extend(_yaml_syntax_header())
     lines.append("")
 
     # ── Global log level ──────────────────────────────────────────────────

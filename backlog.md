@@ -14,6 +14,7 @@
 | Lot | Status |
 |-----|--------|
 | Phase 0b — GitHub cleanup | ⬜ |
+| Lot CI-NODE24 — Migrate GitHub Actions off deprecated Node.js 20 | ⬜ |
 | Lot 5 — RELEASE | ⬜ |
 | Lot FIX-I18N-CONVERT-V5 — Hardcoded English messages in convert-v5 | ✅ |
 | Lot PREREL-BUGS — pre-release code review findings (briefing over-capture, exit codes, i18n, error handling) | ✅ |
@@ -41,6 +42,21 @@
 | SECREV-010 | `veafMove.markTextAnalysis` mandatory-group guard never fires (`groupName` defaults to `""`, truthy). Reject empty group name (`veafMove.lua:240`). Fix + test. | `src/scripts/veaf/veafMove.lua`, `test/lua/` | fix | ⬜ |
 
 **Out of scope (need a design decision first, tracked separately)**: remote `login` trusting the server-supplied auth level without password validation (`veafSecurity.lua:427`), and potential shell injection via crafted SRS radio message text (`veafRadio.lua:759`). Both are gated behind L1/server trust; raise with the team before changing the auth model.
+
+---
+
+## Lot CI-NODE24 — Migrate GitHub Actions off deprecated Node.js 20
+
+**Goal**: GitHub Actions will force Node.js 20 actions to run on Node.js 24 starting June 16th, 2026, and remove Node.js 20 from runners on September 16th, 2026. Bump the affected actions to majors that ship a Node.js 24 runtime so the workflows keep working without the deprecation warning.
+
+**Branch**: `chore/ci-node24` → PR → `develop-v6`
+
+| # | Ticket | Files | Type | Status |
+|---|--------|-------|------|--------|
+| CI-NODE24-001 | Bump `actions/checkout@v4` → `@v5` in all workflows | `.github/workflows/docs.yml`, `python-quality.yml`, `release.yml`, `lua-ci.yml` (×2), `sbom.yml`, `secret-scanning.yml` | chore | ⬜ |
+| CI-NODE24-002 | Bump `actions/setup-python@v5` → `@v6` in all workflows | `.github/workflows/docs.yml`, `python-quality.yml`, `release.yml`, `sbom.yml` | chore | ⬜ |
+| CI-NODE24-003 | Verify `actions/upload-artifact@v4` runs on Node.js 24 (bump if a newer major exists); audit any third-party actions for the same deprecation | `.github/workflows/python-quality.yml`, `sbom.yml`, all workflows | chore | ⬜ |
+| CI-NODE24-004 | Trigger each workflow (or wait for natural runs) and confirm the Node.js 20 deprecation annotation no longer appears | CI runs | chore | ⬜ |
 
 ---
 

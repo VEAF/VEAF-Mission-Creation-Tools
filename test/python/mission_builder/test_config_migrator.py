@@ -783,6 +783,45 @@ class TestExtractCombatZones(unittest.TestCase):
         self.assertEqual(new_content, content)
 
 
+class TestCombatZoneBriefingMultiline(unittest.TestCase):
+    """setBriefing with Lua .. concatenation must produce a complete multiline string."""
+
+    def setUp(self) -> None:
+        self.m = ConfigMigrator()
+
+    def _extract_zone(self, briefing_call: str) -> dict:
+        content = (
+            "veafCombatZone.AddZone(\n"
+            "    VeafCombatZone:new()\n"
+            '        :setMissionEditorZoneName("testZone")\n'
+            f"        {briefing_call}\n"
+            "        :initialize()\n"
+            ")\n"
+        )
+        result = MigrationResult(new_content="")
+        self.m._extract_combat_zones(content, result)
+        return result.combat_zones_extracted[0]
+
+    def test_single_fragment_newline_decoded(self) -> None:
+        zone = self._extract_zone(':setBriefing("Hello\\nWorld")')
+        self.assertIn("\n", zone["briefing"])
+        self.assertIn("Hello", zone["briefing"])
+        self.assertIn("World", zone["briefing"])
+
+    def test_two_fragments_joined(self) -> None:
+        zone = self._extract_zone(':setBriefing("Line one\\n" ..\n            "Line two\\n")')
+        briefing = zone["briefing"]
+        self.assertIn("Line one", briefing)
+        self.assertIn("Line two", briefing)
+        self.assertNotIn("..", briefing)
+
+    def test_multiline_newlines_are_real(self) -> None:
+        """Decoded \\n must be a real newline char, not literal backslash-n."""
+        zone = self._extract_zone(':setBriefing("Part1\\nPart2")')
+        self.assertNotIn("\\n", zone["briefing"])
+        self.assertIn("\n", zone["briefing"])
+
+
 class TestExtractAirwavesZones(unittest.TestCase):
     """_extract_airwaves_zones must parse AirWaveZone builder chains."""
 

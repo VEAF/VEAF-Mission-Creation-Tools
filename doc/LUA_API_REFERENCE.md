@@ -3993,6 +3993,16 @@ Trouve une unité par nom de type.
 
 **Retourne :** `table` — Définition d'unité ou nil
 
+**Exemple :**
+```lua
+local f16 = dcsUnits.findUnit("F-16C_50")
+if f16 then
+  veaf.logger:info("Display: %s", f16.displayName)
+  veaf.logger:info("Role: %s", f16.role)
+  veaf.logger:info("Year: %d", f16.year)
+end
+```
+
 ##### `dcsUnits.getUnitsByCategory(category)`
 
 Obtient toutes les unités d'une catégorie.
@@ -4002,6 +4012,14 @@ Obtient toutes les unités d'une catégorie.
 - `category` (string) — Nom de la catégorie
 
 **Retourne :** `table` — Tableau de définitions d'unités
+
+**Exemple :**
+```lua
+local aircraft = dcsUnits.getUnitsByCategory("Airplane")
+for _, unit in ipairs(aircraft) do
+  veaf.logger:info("%s (%s)", unit.displayName, unit.type)
+end
+```
 
 ##### `dcsUnits.getUnitsByCountry(country)`
 

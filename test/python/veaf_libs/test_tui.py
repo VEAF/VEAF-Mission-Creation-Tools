@@ -1,10 +1,19 @@
 """Tests for veaf_libs.tui."""
 
 import sys
+from pathlib import Path
 from unittest.mock import patch
 
 import pytest
-from veaf_libs.tui import _COMMAND_MAP, COMMANDS, ArgPrompt, CommandSpec, run_wizard
+from veaf_libs.tui import (
+    _COMMAND_MAP,
+    COMMANDS,
+    ArgPrompt,
+    CommandSpec,
+    _mission_yaml_defaults,
+    _resolve_prompt_default,
+    run_wizard,
+)
 
 
 class TestArgPrompt:
@@ -53,6 +62,62 @@ class TestCommandMap:
         assert name in _COMMAND_MAP
 
 
+class TestMissionYamlDefaults:
+    def test_returns_empty_when_no_mission_yaml(self, tmp_path: Path) -> None:
+        assert _mission_yaml_defaults(tmp_path) == {}
+
+    def test_derives_mission_name_for_name_prompts(self, tmp_path: Path) -> None:
+        (tmp_path / "mission.yaml").write_text(
+            "mission:\n  name: Operation-Thunder\n", encoding="utf-8"
+        )
+        defaults = _mission_yaml_defaults(tmp_path)
+        assert defaults["mission_name_or_file"] == "Operation-Thunder"
+        assert defaults["input_mission_name_or_file"] == "Operation-Thunder"
+
+    def test_empty_when_mission_block_has_no_name(self, tmp_path: Path) -> None:
+        (tmp_path / "mission.yaml").write_text("mission:\n  era: MODERN\n", encoding="utf-8")
+        assert _mission_yaml_defaults(tmp_path) == {}
+
+    def test_returns_empty_on_malformed_yaml(self, tmp_path: Path) -> None:
+        (tmp_path / "mission.yaml").write_text("mission: [unclosed\n", encoding="utf-8")
+        assert _mission_yaml_defaults(tmp_path) == {}
+
+
+class TestResolvePromptDefault:
+    def _prompt(self) -> ArgPrompt:
+        return ArgPrompt("mission_name_or_file", "Mission", default="mission.miz", is_option=False)
+
+    def test_saved_preference_wins_over_yaml(self) -> None:
+        prompt = self._prompt()
+        result = _resolve_prompt_default(
+            prompt,
+            last_args={"mission_name_or_file": "saved.miz"},
+            yaml_defaults={"mission_name_or_file": "FromYaml"},
+        )
+        assert result == "saved.miz"
+
+    def test_yaml_used_when_no_saved_preference(self) -> None:
+        prompt = self._prompt()
+        result = _resolve_prompt_default(
+            prompt, last_args={}, yaml_defaults={"mission_name_or_file": "FromYaml"}
+        )
+        assert result == "FromYaml"
+
+    def test_static_default_when_no_saved_no_yaml(self) -> None:
+        prompt = self._prompt()
+        result = _resolve_prompt_default(prompt, last_args={}, yaml_defaults={})
+        assert result == "mission.miz"
+
+    def test_empty_saved_preference_falls_through_to_yaml(self) -> None:
+        prompt = self._prompt()
+        result = _resolve_prompt_default(
+            prompt,
+            last_args={"mission_name_or_file": ""},
+            yaml_defaults={"mission_name_or_file": "FromYaml"},
+        )
+        assert result == "FromYaml"
+
+
 class TestRunWizard:
     def test_returns_empty_list_when_not_tty(self) -> None:
         # run_wizard() checks isatty() itself — must return [] immediately
@@ -95,6 +160,31 @@ class TestRunWizard:
         assert "mission.miz" in result
         assert "." in result
         assert "--scripts-variant" not in result
+
+    def test_yaml_default_prefills_mission_name_prompt(self) -> None:
+        """With no saved arg, the mission.yaml name is offered as the prompt default."""
+        captured: dict[str, str] = {}
+
+        mock_select_instance = type("S", (), {"execute": lambda self: "extract"})()
+
+        def _fake_text(message: str, default: str):  # type: ignore[no-untyped-def]
+            captured.setdefault("first_default", default)
+            return type("T", (), {"execute": lambda self: default})()
+
+        with patch.object(sys.stdout, "isatty", return_value=True):
+            with patch("veaf_libs.preferences.get_last_command", return_value="extract"):
+                with patch("veaf_libs.preferences.get_last_args", return_value={}):
+                    with patch("veaf_libs.preferences.save_invocation"):
+                        with patch(
+                            "veaf_libs.tui._mission_yaml_defaults",
+                            return_value={"mission_name_or_file": "Op-Thunder"},
+                        ):
+                            with patch("InquirerPy.inquirer.select", return_value=mock_select_instance):
+                                with patch("InquirerPy.inquirer.text", side_effect=_fake_text):
+                                    result = run_wizard()
+
+        assert captured["first_default"] == "Op-Thunder"
+        assert "Op-Thunder" in result
 
     def test_about_command_returns_no_extra_args(self) -> None:
         """'about' has no prompts — result is just ['about']."""

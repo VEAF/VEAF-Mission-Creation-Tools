@@ -9,6 +9,9 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+- TUI wizard: when a `mission.yaml` is present in the working directory, the mission-name prompts (`build`, `extract`, `inject-presets`, …) now propose its `mission.name` field as the default instead of the static `mission.miz`. Resolution precedence is: last saved preference > value derived from `mission.yaml` > static fallback
+
 ### Fixed
 - `mission_extractor`: `extract` no longer crashes with `KeyError: 1` — the script-file cleanup loop now accepts both the `(path, dest)` tuples returned by `get_veaf_script_files()`/`get_legacy_script_files()` and the dict descriptors returned by `get_community_script_files()` (regression from the COMM-001 refactor)
 

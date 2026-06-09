@@ -11,6 +11,7 @@ wizard can pre-fill fields on the next run.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any
 
 from veaf_libs.i18n import t
@@ -163,6 +164,78 @@ COMMANDS: list[CommandSpec] = [
 
 _COMMAND_MAP: dict[str, CommandSpec] = {cmd.cli_name: cmd for cmd in COMMANDS}
 
+# Prompt keys that should default to the ``mission.name`` field of a detected
+# ``mission.yaml``.  Both the ``build``/``extract`` positional and the
+# ``inject-presets`` variant share the same mission identity.
+_MISSION_NAME_PROMPT_KEYS: tuple[str, ...] = ("mission_name_or_file", "input_mission_name_or_file")
+
+# ---------------------------------------------------------------------------
+# mission.yaml-aware defaults
+# ---------------------------------------------------------------------------
+
+
+def _mission_yaml_defaults(folder: Path | None = None) -> dict[str, str]:
+    """Derive prompt defaults from a ``mission.yaml`` in *folder*.
+
+    Reads the ``mission.name`` field and maps it to the mission-name prompts so
+    the wizard proposes the real mission name instead of the static
+    ``mission.miz`` fallback.
+
+    Args:
+        folder: Directory to look in. Defaults to the current working directory.
+
+    Returns:
+        Mapping of prompt key to derived default value. Empty when no
+        ``mission.yaml`` is present, it carries no ``mission.name``, or it
+        cannot be parsed.
+    """
+    folder = folder or Path.cwd()
+    mission_yaml_path = folder / "mission.yaml"
+    if not mission_yaml_path.exists():
+        return {}
+
+    try:
+        import yaml  # noqa: PLC0415
+
+        with mission_yaml_path.open("r", encoding="utf-8") as fh:
+            data: dict = yaml.safe_load(fh) or {}
+    except Exception:
+        # mission.yaml-aware defaults are a convenience — never break the wizard.
+        return {}
+
+    defaults: dict[str, str] = {}
+    mission_name = (data.get("mission") or {}).get("name")
+    if mission_name:
+        for key in _MISSION_NAME_PROMPT_KEYS:
+            defaults[key] = str(mission_name)
+    return defaults
+
+
+def _resolve_prompt_default(
+    prompt: ArgPrompt, last_args: dict[str, Any], yaml_defaults: dict[str, str]
+) -> str:
+    """Resolve the default value offered for *prompt*.
+
+    Precedence: last saved preference > value derived from ``mission.yaml`` >
+    the prompt's static fallback.
+
+    Args:
+        prompt: The prompt being resolved.
+        last_args: Saved argument values for the selected command.
+        yaml_defaults: Defaults derived from a detected ``mission.yaml``.
+
+    Returns:
+        The default string to pre-fill in the prompt.
+    """
+    saved = last_args.get(prompt.key)
+    if saved:
+        return str(saved)
+    yaml_value = yaml_defaults.get(prompt.key)
+    if yaml_value:
+        return str(yaml_value)
+    return prompt.default
+
+
 # ---------------------------------------------------------------------------
 # Wizard entry point
 # ---------------------------------------------------------------------------
@@ -211,24 +284,25 @@ def run_wizard() -> list[str]:
 
         # ── Step 2: prompt for arguments ────────────────────────────────────
         last_args = get_last_args(selected)
+        yaml_defaults = _mission_yaml_defaults()
         collected: dict[str, Any] = {}
 
         for prompt in spec.prompts:
-            saved = last_args.get(prompt.key, prompt.default)
             # Show the CLI flag/name with color prefix for options
             if prompt.is_option:
                 display_label = f"{prompt.cli_flag}  {prompt.label}"
             else:
                 display_label = prompt.label
             if prompt.is_flag:
+                # Flags are booleans — only the saved preference is relevant.
                 value: Any = inquirer.confirm(  # type: ignore[attr-defined]
                     message=display_label,
-                    default=bool(saved),
+                    default=bool(last_args.get(prompt.key, prompt.default)),
                 ).execute()
             else:
                 value = inquirer.text(  # type: ignore[attr-defined]
                     message=display_label,
-                    default=str(saved) if saved else prompt.default,
+                    default=_resolve_prompt_default(prompt, last_args, yaml_defaults),
                 ).execute()
             collected[prompt.key] = value
 

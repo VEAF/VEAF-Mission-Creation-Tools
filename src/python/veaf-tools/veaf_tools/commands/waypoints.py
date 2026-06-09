@@ -45,9 +45,7 @@ def extract_waypoints(
 
     # Validate exclusive options
     if only_airplanes and only_helicopters:
-        logger.error(
-            "Cannot use both --only-airplanes and --only-helicopters simultaneously.", exception_type=ValueError
-        )
+        logger.error(t("cmd.waypoints.exclusive_options"), exception_type=ValueError)
 
     # Convert boolean options to aircraft_type (using 'plane'/'helicopter' naming for waypoints)
     aircraft_type = "plane" if only_airplanes else ("helicopter" if only_helicopters else None)
@@ -80,7 +78,7 @@ def extract_waypoints(
     else:
         # Extract from mission file
         if not p_mission_folder.exists():
-            logger.error(f"Mission folder {p_mission_folder} does not exist!", exception_type=FileNotFoundError)
+            logger.error(t("cmd.waypoints.folder_not_found", path=p_mission_folder), exception_type=FileNotFoundError)
 
         # Resolve input mission
         assert mission_name_or_file is not None
@@ -133,7 +131,7 @@ def inject_waypoints(
     # Resolve mission folder
     p_mission_folder = resolve_path(path=mission_folder, default_path=Path.cwd(), should_exist=True)
     if not p_mission_folder.exists():
-        logger.error(f"Mission folder {p_mission_folder} does not exist!", exception_type=FileNotFoundError)
+        logger.error(t("cmd.waypoints.folder_not_found", path=p_mission_folder), exception_type=FileNotFoundError)
 
     # Resolve input mission
     assert mission_name_or_file is not None
@@ -149,7 +147,7 @@ def inject_waypoints(
     # Resolve waypoints YAML file
     p_waypoints_file = resolve_path(path=waypoints_file, should_exist=True)
     if not p_waypoints_file.exists():
-        logger.error(f"Waypoints file {p_waypoints_file} does not exist!", exception_type=FileNotFoundError)
+        logger.error(t("cmd.waypoints.waypoints_not_found", path=p_waypoints_file), exception_type=FileNotFoundError)
 
     # Call the worker class
     worker = WaypointsInjectorWorker(

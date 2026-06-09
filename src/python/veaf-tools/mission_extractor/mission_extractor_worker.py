@@ -16,6 +16,7 @@ from mission_tools import (
     write_miz,
 )
 from veaf_libs.base_worker import BaseWorker
+from veaf_libs.i18n import t
 from veaf_libs.logger import logger
 from veaf_libs.progress import spinner_context
 
@@ -35,13 +36,13 @@ class MissionExtractorWorker(BaseWorker):
 
         if not (self.input_mission_path and self.input_mission_path.is_file()):
             logger.error(
-                f"The input mission '{self.input_mission_path}' does not exist or is not a file",
+                t("extractor.mission_not_found", path=self.input_mission_path),
                 exception_type=FileNotFoundError,
             )
 
         if self.mission_folder and not self.mission_folder.is_dir():
             logger.error(
-                f"The output mission folder '{self.mission_folder}' does not exist or is not a folder",
+                t("extractor.output_folder_not_found", path=self.mission_folder),
                 exception_type=FileNotFoundError,
             )
 

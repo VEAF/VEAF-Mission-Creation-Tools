@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any
 
 import yaml
+from veaf_libs.i18n import t
 from veaf_libs.logger import logger
 
 
@@ -25,7 +26,7 @@ class LuaToYamlConverter:
         """
         try:
             if not lua_file.exists():
-                logger.error(f"Lua configuration file not found: {lua_file}")
+                logger.error(t("weather.lua_converter.file_not_found", path=lua_file))
                 return None
 
             # Read Lua file
@@ -36,7 +37,7 @@ class LuaToYamlConverter:
             config_dict = LuaToYamlConverter._parse_lua_config(lua_content)
 
             if not config_dict:
-                logger.error("Failed to parse Lua configuration")
+                logger.error(t("weather.lua_converter.parse_failed"))
                 return None
 
             # Determine output file
@@ -49,11 +50,11 @@ class LuaToYamlConverter:
             with open(output_file, "w") as f:
                 yaml.dump(config_dict, f, default_flow_style=False, sort_keys=False)
 
-            logger.info(f"Converted Lua configuration to YAML: {output_file}")
+            logger.info(t("weather.lua_converter.converted", path=output_file))
             return output_file
 
         except Exception as e:
-            logger.error(f"Failed to convert Lua configuration: {e}")
+            logger.error(t("weather.lua_converter.convert_failed", error=e))
             return None
 
     @staticmethod
@@ -133,7 +134,7 @@ class LuaToYamlConverter:
             return config if config else None
 
         except Exception as e:
-            logger.error(f"Error parsing Lua configuration: {e}")
+            logger.error(t("weather.lua_converter.error_parsing", error=e))
             return None
 
     @staticmethod

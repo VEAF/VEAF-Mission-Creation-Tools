@@ -10,6 +10,7 @@ Usage::
 
 from __future__ import annotations
 
+from veaf_libs.i18n import t
 from veaf_libs.logger import logger
 
 
@@ -34,7 +35,7 @@ def resolve_profile(yaml_data: dict, profile_name: str | None) -> dict:
     """
     profiles_raw = yaml_data.get("profiles") or {}
     if not isinstance(profiles_raw, dict):
-        logger.warning("Ignoring invalid 'profiles' section in mission.yaml (expected mapping)")
+        logger.warning(t("profiles.invalid_profiles_section"))
         profiles: dict = {}
     else:
         profiles = profiles_raw
@@ -44,8 +45,8 @@ def resolve_profile(yaml_data: dict, profile_name: str | None) -> dict:
         return base
 
     if profile_name not in profiles:
-        logger.warning(f"Profile '{profile_name}' not found in mission.yaml — using base config")
+        logger.warning(t("profiles.profile_not_found", name=profile_name))
         return base
 
-    logger.info(f"Building with profile: {profile_name}")
+    logger.info(t("profiles.building_with_profile", name=profile_name))
     return _deep_merge(base, profiles[profile_name])

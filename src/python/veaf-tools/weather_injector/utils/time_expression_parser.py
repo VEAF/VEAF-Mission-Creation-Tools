@@ -1,5 +1,6 @@
 """Time expression parser for moment definitions."""
 
+from veaf_libs.i18n import t
 from veaf_libs.logger import logger
 
 
@@ -44,7 +45,7 @@ class TimeExpressionParser:
                 logger.debug(f"Parsed time expression '{expr}' = {result}s")
                 return result
             except (ValueError, IndexError) as e:
-                logger.error(f"Failed to parse time expression '{expr}': {e}", exception_type=None)
+                logger.error(t("weather.time_parser.parse_failed", expr=expr, error=e), exception_type=None)
                 raise ValueError(f"Invalid time format '{expr}': {e}")
 
         # Replace solar references
@@ -74,5 +75,5 @@ class TimeExpressionParser:
             return result
 
         except Exception as e:
-            logger.error(f"Failed to evaluate time expression '{expression}': {e}", exception_type=None)
+            logger.error(t("weather.time_parser.eval_failed", expression=expression, error=e), exception_type=None)
             raise ValueError(f"Invalid time expression '{expression}': {e}")

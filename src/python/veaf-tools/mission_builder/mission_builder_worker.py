@@ -76,11 +76,9 @@ def _normalize_mission_yaml(yaml_data: dict) -> dict:
 
     if modules_raw is not None:
         if has_legacy:
-            logger.warning(
-                "'modules:' and 'lua_modules:'/'community_scripts:' both present — 'modules:' takes precedence"
-            )
+            logger.warning(t("builder.modules_conflict"))
         if not isinstance(modules_raw, dict):
-            logger.warning(f"'modules' in mission.yaml must be a mapping (got {type(modules_raw).__name__}); ignoring.")
+            logger.warning(t("builder.modules_not_mapping", type=type(modules_raw).__name__))
             return yaml_data
 
         # IDs are lowercase in code; YAML may use uppercase (e.g. MIST).
@@ -177,8 +175,7 @@ class MissionBuilderWorker(BaseWorker):
 
         if self.dev_mode and not self.scripts_path:
             logger.error(
-                "--dev-mode requires a scripts path. "
-                "Pass --scripts-path <repo_root> or set build.scripts_path in mission.yaml.",
+                t("builder.dev_mode_needs_scripts_path"),
                 exception_type=ValueError,
             )
 
@@ -195,8 +192,11 @@ class MissionBuilderWorker(BaseWorker):
                         lua_modules[mod_id] = {}
                     lua_modules[mod_id].setdefault("logLevel", "error")
             logger.info(
-                f"--log-modules: keeping full logging for {sorted(keep_modules) or 'none'}, "
-                f"silencing {len(all_module_ids) - len(keep_modules)} other module(s)"
+                t(
+                    "builder.log_modules_detail",
+                    module=sorted(keep_modules) or "none",
+                    count=len(all_module_ids) - len(keep_modules),
+                )
             )
 
         # Normalize global_log_level
@@ -206,10 +206,7 @@ class MissionBuilderWorker(BaseWorker):
             if normalized == "warn":
                 normalized = "warning"
             if normalized not in _valid_levels:
-                logger.warning(
-                    f"global_log_level={global_log_level!r} is not a valid Lua log level "
-                    f"(accepted: {sorted(_valid_levels)}); falling back to 'info'"
-                )
+                logger.warning(t("builder.invalid_log_level", level=global_log_level, valid=sorted(_valid_levels)))
                 normalized = "info"
             global_log_level = normalized
         self.global_log_level: str | None = global_log_level
@@ -220,9 +217,7 @@ class MissionBuilderWorker(BaseWorker):
         self.custom_scripts_generate_load_trigger: bool = True
         cs_raw = self.mission_yaml.get("custom_scripts")
         if cs_raw is not None and not isinstance(cs_raw, dict):
-            logger.warning(
-                f"'custom_scripts' in mission.yaml must be a mapping (got {type(cs_raw).__name__}); ignoring."
-            )
+            logger.warning(t("builder.custom_scripts_not_mapping", type=type(cs_raw).__name__))
             cs_raw = None
         cs_section: dict = cs_raw or {}
         if cs_section:
@@ -240,9 +235,7 @@ class MissionBuilderWorker(BaseWorker):
         # None means "all enabled" (no section present); a set means only those ids are enabled.
         comm_raw = self.mission_yaml.get("community_scripts")
         if comm_raw is not None and not isinstance(comm_raw, dict):
-            logger.warning(
-                f"'community_scripts' in mission.yaml must be a mapping (got {type(comm_raw).__name__}); ignoring."
-            )
+            logger.warning(t("builder.community_scripts_not_mapping", type=type(comm_raw).__name__))
             comm_raw = None
         # Empty dict {} is treated the same as absent: all scripts remain active.
         if not comm_raw:
@@ -274,7 +267,7 @@ class MissionBuilderWorker(BaseWorker):
 
         if self.mission_folder and not self.mission_folder.is_dir():
             logger.error(
-                f"The input mission folder '{self.mission_folder}' does not exist or is not a folder",
+                t("builder.folder_not_found", path=self.mission_folder),
                 exception_type=FileNotFoundError,
             )
 
@@ -391,7 +384,7 @@ class MissionBuilderWorker(BaseWorker):
             p = Path(self.dcs_bridge_lua_path)
             if not p.exists():
                 logger.error(
-                    f"dcs_bridge.lua_path '{p}' not found.",
+                    t("builder.dcs_bridge_not_found", path=p),
                     exception_type=FileNotFoundError,
                 )
             return p
@@ -492,10 +485,11 @@ class MissionBuilderWorker(BaseWorker):
                             dest = self.mission_folder / f.relative_to(defaults_folder).parent.as_posix() / f.name
                             if dest.exists():
                                 logger.warning(
-                                    f"Orphan file '{dest.relative_to(self.mission_folder)}': "
-                                    f"pipeline '{mapping['pipeline']}' is disabled in mission.yaml "
-                                    f"but the file still exists in your mission folder. "
-                                    f"You can safely delete it."
+                                    t(
+                                        "builder.orphan_pipeline_file",
+                                        file=dest.relative_to(self.mission_folder),
+                                        step=mapping["pipeline"],
+                                    )
                                 )
                             continue
                     elif "lua_module" in mapping:
@@ -507,10 +501,11 @@ class MissionBuilderWorker(BaseWorker):
                             dest = self.mission_folder / f.relative_to(defaults_folder).parent.as_posix() / f.name
                             if dest.exists():
                                 logger.warning(
-                                    f"Orphan file '{dest.relative_to(self.mission_folder)}': "
-                                    f"lua_module '{mapping['lua_module']}' is disabled in mission.yaml "
-                                    f"but the file still exists in your mission folder. "
-                                    f"You can safely delete it."
+                                    t(
+                                        "builder.orphan_lua_module",
+                                        file=dest.relative_to(self.mission_folder),
+                                        module=mapping["lua_module"],
+                                    )
                                 )
                             continue
                 relative_path = f.relative_to(defaults_folder).parent.as_posix()
@@ -532,18 +527,9 @@ class MissionBuilderWorker(BaseWorker):
                 if lua_file.name in _EXPECTED_SCRIPTS:
                     continue
                 if lua_file.name in declared_custom_names:
-                    logger.info(
-                        f"Custom Lua file 'src/scripts/{lua_file.name}' declared in mission.yaml "
-                        f"and will be included in the mission."
-                    )
+                    logger.info(t("builder.custom_lua_included", file=lua_file.name))
                     continue
-                logger.warning(
-                    f"Unexpected Lua file 'src/scripts/{lua_file.name}' found in your mission folder. "
-                    f"This file will be loaded as a DCS mission script and may conflict with "
-                    f"the bundled veaf-scripts.lua. "
-                    f"If this is a leftover v5 VEAF script, delete it. "
-                    f"If it is an intentional custom script, declare it in the 'custom_scripts' section of mission.yaml."
-                )
+                logger.warning(t("builder.unexpected_lua_file", file=lua_file.name))
 
     def create_mission(self) -> None:
         """Creates the initial mission file from the mission folder."""
@@ -569,9 +555,7 @@ class MissionBuilderWorker(BaseWorker):
         try:
             self.dcs_mission = read_miz(self.output_mission)
             if self.dcs_mission.missing_components and "options" in self.dcs_mission.missing_components:
-                logger.warning(
-                    f"The 'options' file is missing from {self.mission_folder / 'src'}; it's a useful item of your source tree!"
-                )
+                logger.warning(t("builder.options_missing", path=self.mission_folder / "src"))
                 self.dcs_mission.missing_components.remove("options")  # we've handled that one
             if self.dcs_mission.missing_components:
                 message = f"These components are missing from '{self.mission_folder / 'src'}': {', '.join([f"'{item}'" for item in self.dcs_mission.missing_components])}; they are mandatory in a DCS mission!"

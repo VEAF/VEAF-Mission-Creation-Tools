@@ -23,6 +23,7 @@ def resolve_path(
         The resolved, absolute :class:`~pathlib.Path`.
     """
     # Import here to avoid a circular dependency at module load time.
+    from veaf_libs.i18n import t  # noqa: PLC0415
     from veaf_libs.logger import logger  # noqa: PLC0415
 
     if not path and default_path:
@@ -30,7 +31,7 @@ def resolve_path(
     elif path:
         result = Path(path)
     else:
-        logger.error("Either path or default_path must be provided", exception_type=ValueError)
+        logger.error(t("paths.no_path_provided"), exception_type=ValueError)
         raise ValueError("unreachable")  # logger.error raises; this satisfies the type-checker
 
     result = result.resolve()
@@ -41,7 +42,7 @@ def resolve_path(
             result.mkdir(exist_ok=True)
 
     if should_exist and not result.exists():
-        logger.error(f"Path does not exist: {result}")
+        logger.error(t("paths.path_not_found", path=result))
         exit(-1)
 
     return result

@@ -139,9 +139,7 @@ class WaypointsManager:
             if "settings" in data:
                 self._load_flight_plan_settings(data["settings"])
 
-            logger.info(
-                f"Loaded {len(self.waypoints)} waypoint(s) and {len(self.flight_plans)} flight plan template(s)"
-            )
+            logger.info(t("waypoints_manager.loaded", count=len(self.waypoints), plans=len(self.flight_plans)))
 
         except Exception as e:
             logger.error(t("waypoints.yaml_load_failed", path=yaml_file, error=str(e)), exception_type=type(e))

@@ -130,7 +130,7 @@ class WeatherInjectorWorker(BaseWorker):
             self.solar_times = SolarCalculator.get_sun_times(self.config.position, target_date)
             logger.debug(f"Solar times calculated: {self.solar_times}")
         except Exception as e:
-            logger.error(f"Failed to calculate solar times: {e}")
+            logger.error(t("weather.injector.solar_times_failed", error=e))
             self.solar_times = {}
 
     def _create_mission_version(self, version: VersionConfig) -> Path:
@@ -197,7 +197,7 @@ class WeatherInjectorWorker(BaseWorker):
                 self._set_mission_date(mission_date)
 
         except Exception as e:
-            logger.error(f"Failed to update mission time/date: {e}")
+            logger.error(t("weather.injector.time_update_failed", error=e))
             raise
 
     def _inject_weather(self, version: VersionConfig) -> None:
@@ -250,7 +250,7 @@ class WeatherInjectorWorker(BaseWorker):
             logger.debug("Weather injected")
 
         except Exception as e:
-            logger.error(f"Failed to inject weather: {e}")
+            logger.error(t("weather.injector.weather_inject_failed", error=e))
             raise
 
     def _set_mission_time(self, seconds: int) -> None:

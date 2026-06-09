@@ -102,7 +102,7 @@ def load_config() -> dict[str, Any]:
             logger.debug(f"Loaded configuration from {config_path}")
             return config
     except Exception as e:
-        logger.warning(f"Failed to load configuration file: {e}")
+        logger.warning(t("updater.config_load_failed", error=e))
         return {}
 
 

@@ -4,6 +4,7 @@ import json
 import re
 from typing import Any
 
+from veaf_libs.i18n import t
 from veaf_libs.logger import logger
 
 try:
@@ -116,7 +117,7 @@ class DCSWeatherConverter:
             return dcs_weather
 
         except Exception as e:
-            logger.error(f"Failed to convert weather: {e}")
+            logger.error(t("weather.converter.convert_failed", error=e))
             raise
 
 
@@ -142,7 +143,7 @@ def _fetch_live_metar(airport_icao: str) -> dict[str, Any]:
 
     if not airport_icao or not AVWX_AVAILABLE:
         if not AVWX_AVAILABLE:
-            logger.warning("avwx-engine not available. Cannot fetch live METAR. Using defaults.")
+            logger.warning(t("weather.converter.avwx_unavailable"))
         return result
 
     try:
@@ -184,7 +185,7 @@ def _fetch_live_metar(airport_icao: str) -> dict[str, Any]:
 
         logger.debug(f"Successfully fetched METAR for {airport_icao}: {result}")
     except Exception as e:
-        logger.warning(f"Failed to fetch live METAR for {airport_icao}: {e}. Using defaults.")
+        logger.warning(t("weather.converter.metar_fetch_failed", icao=airport_icao, error=e))
 
     return result
 

@@ -78,7 +78,7 @@ def build(
     # Resolve input mission folder
     p_mission_folder = resolve_path(path=mission_folder, default_path=Path.cwd(), should_exist=True)
     if not p_mission_folder.exists():
-        logger.error(f"Mission folder {p_mission_folder} does not exist!", exception_type=FileNotFoundError)
+        logger.error(t("cmd.build.folder_not_found", path=p_mission_folder), exception_type=FileNotFoundError)
 
     # Resolve output mission — peek mission.yaml for name only
     p_output_mission = resolve_path(path=mission_name_or_file)
@@ -95,9 +95,7 @@ def build(
         if _yaml_mission_name:
             _safe_name = re.sub(r'[\\/:*?"<>|\x00-\x1f]', "_", _yaml_mission_name).strip(" .")
             if not _safe_name:
-                logger.warning(
-                    f"mission.name {_yaml_mission_name!r} contains only invalid filename characters; using 'mission'"
-                )
+                logger.warning(t("cmd.build.invalid_mission_name", name=repr(_yaml_mission_name)))
                 _safe_name = "mission"
             p_output_mission = p_mission_folder / f"{_safe_name}_{datetime.now().strftime('%Y%m%d')}.miz"
             mission_base_name = _safe_name
@@ -123,7 +121,7 @@ def build(
             dev_mode=worker.dev_mode,
             scripts_path=worker.scripts_path,
         )
-        logger.info(f"Build settings persisted to {mission_yaml_path}")
+        logger.info(t("cmd.build.settings_persisted", path=mission_yaml_path))
 
     # ── Auto-pipeline: run optional injection steps ───────────────────────────
     # Each step is auto-enabled when its config file is found in src/.
@@ -194,17 +192,12 @@ def build(
                 output_mission=p_output_mission,
             ).inject(mode=aircraft_mode, silent=True)
         else:
-            logger.warning(f"Pipeline: aircraft groups YAML validation failed — skipping ({aircraft_path})")
+            logger.warning(t("cmd.build.aircraft_validation_failed", path=aircraft_path))
             console.print(t("pipeline.console.aircraft_invalid"))
     else:
         _orphan = p_mission_folder / "src" / "aircraft-templates.yaml"
         if _orphan.exists():
-            logger.warning(
-                "Orphan file 'src/aircraft-templates.yaml': "
-                "pipeline 'aircraft_groups' is disabled or skipped "
-                "but the file still exists in your mission folder. "
-                "You can safely delete it, or enable 'aircraft_groups' in mission.yaml."
-            )
+            logger.warning(t("cmd.build.orphan_aircraft_file"))
 
     weather_path = _step_file("weather", "src/versions.yaml", "versions.yaml")
     if weather_path:

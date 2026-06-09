@@ -185,6 +185,31 @@ If you have a custom `src/scripts/mission-script.lua`, it is also injected autom
 3. Injects fresh `DO SCRIPT FILE` triggers for all VEAF scripts + your custom scripts
 4. Writes the final `.miz`
 
+The full build then runs any optional pipeline steps whose configuration files are present (presets, waypoints, aircraft groups, weather):
+
+```mermaid
+flowchart TD
+    subgraph Inputs
+        YAML[mission.yaml]
+        SRC[src/mission + src/scripts]
+        LUA[VEAF Lua scripts]
+    end
+    YAML --> BUILD[veaf-tools build]
+    SRC --> BUILD
+    LUA --> BUILD
+    BUILD --> GEN[Generate veaf-config.lua from mission.yaml]
+    GEN --> TRIG[Inject DO SCRIPT FILE triggers]
+    TRIG --> PIPE{Optional pipeline steps}
+    PIPE -->|presets.yaml| P1[inject-presets]
+    PIPE -->|waypoints.yaml| P2[inject-waypoints]
+    PIPE -->|aircraft-templates.yaml| P3[inject-aircraft-groups]
+    PIPE -->|versions.yaml| P4[inject-weather]
+    P1 --> OUT[Final .miz ready to fly]
+    P2 --> OUT
+    P3 --> OUT
+    P4 --> OUT
+```
+
 ---
 
 ## Configuring Modules
@@ -202,19 +227,20 @@ For most missions, `mission.yaml` is sufficient. Use `mission-script.lua` only f
 mission:
   name: "My-Mission"
 
-lua_modules:
-  SECURITY:
-    enable: true
+modules:
+  SECURITY: true        # shorthand: just enable the module
   SPAWN:
-    logLevel: debug
+    logLevel: debug     # a module with extra config uses a block
   ASSETS:
-    enable: true
+    enabled: true
     assets:
       - sort: 1
         name: "T1-Arco-1"
         description: "Arco-1 (KC-135)"
         information: "Tacan 64Y\nU290.50 (20)"
 ```
+
+> The unified `modules:` block replaces the older `lua_modules:` + `community_scripts:` keys, and `enabled:` replaces `enable:`. The legacy keys still work but emit a deprecation warning. See the [mission.yaml Reference](../MISSION_YAML_REFERENCE.en.md) for the full syntax.
 
 ### mission-script.lua Example
 

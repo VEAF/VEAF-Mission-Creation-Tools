@@ -405,7 +405,7 @@ build:
   scripts_path: C:/dev/VEAF-Mission-Creation-Tools
 ```
 
-> Voir la section [Mode développeur](developer/GUIDE.fr.md#mode-développeur) du Guide du développeur pour le workflow complet.
+> Voir la section [Mode développeur](developer/GUIDE.md#mode-développeur) du Guide du développeur pour le workflow complet.
 
 ---
 

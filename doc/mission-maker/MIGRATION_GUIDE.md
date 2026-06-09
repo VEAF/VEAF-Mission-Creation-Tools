@@ -7,6 +7,15 @@ Ce guide couvre deux scénarios :
 
 Dans les deux cas, le résultat final est un **dossier de mission VEAF MCT v6** que vous gérez avec `veaf-tools.exe`.
 
+```mermaid
+flowchart TD
+    V5[Mission VEAF MCT v5] -->|veaf-tools convert-v5| FOLDER[Dossier de mission v6]
+    VAN[Mission DCS vanilla .miz] -->|veaf-tools extract| FOLDER
+    FOLDER --> CFG[Éditer mission.yaml]
+    CFG --> BUILD[veaf-tools build]
+    BUILD --> MIZ[.miz v6 prêt à voler]
+```
+
 ---
 
 ## Avant de commencer
@@ -50,7 +59,7 @@ Dans les deux cas, le résultat final est un **dossier de mission VEAF MCT v6** 
 | **Pipeline d'auto-injection** | Chaque commande d'injection devait être ajoutée manuellement à `build.cmd` | `veaf-tools build` auto-détecte et exécute chaque étape quand le fichier correspondant est présent dans `src/` |
 | **Mises à jour des outils** | NPM (`npm install`) — scripts distribués sous forme de package versionné | `veaf-tools-updater.exe` — télécharge et vérifie la dernière release en une commande |
 | **Config au moment du build** | Pas de fichier de config au moment du build | `mission.yaml` — contrôle les niveaux de log, l'activation/désactivation des modules, les surcharges d'étapes du pipeline |
-| **Activation/désactivation de modules** | Éditer `missionConfig.lua` (ou simplement omettre l'appel à `initialize()`) | Section `lua_modules:` dans `mission.yaml` ; génère `veaf-config.lua` automatiquement |
+| **Activation/désactivation de modules** | Éditer `missionConfig.lua` (ou simplement omettre l'appel à `initialize()`) | Bloc `modules:` dans `mission.yaml` ; génère `veaf-config.lua` automatiquement |
 | **Configuration de modules** | Affectation directe : `veafSpawn.SpawnKeyphrase = "_spawn"` dans `missionConfig.lua` | La même affectation directe fonctionne toujours dans `mission-script.lua` ; ou `veaf.setConfig("MODULE_ID", "key", value)` pour les surcharges pilotées par config |
 | **Pattern d'init des modules** | Appels nus `veafXxx.initialize()` | Auto-généré dans `veaf-config.lua` par `veaf-tools build` ; aucun appel `initialize()` manuel nécessaire |
 | **Emplacement de la config** | Initialisation dispersée dans des scripts de trigger DCS ou un fichier Lua séparé | `mission.yaml` génère `veaf-config.lua` au moment du build ; code Lua personnalisé optionnel dans `mission-script.lua` |

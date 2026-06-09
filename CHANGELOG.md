@@ -10,6 +10,7 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- docs: documentation overhaul (bilingual FR/EN) — pilot guide rewritten (deduplicated, accessible, jargon explained, `_auth` standardized); mission.yaml example updated to the unified `modules:` block; mermaid diagrams added (F10 radio menu, build pipeline, v5→v6 migration flow); screenshot placeholders added under `doc/assets/img/`; created the missing French `veafInterpreter` page; fixed broken `GUIDE.fr.md` links
 - `mission.yaml`: new `dcs_bridge` section to optionally inject `dcs-bridge.lua` as the first DO SCRIPT FILE trigger in the mission; `lua_path` is optional — when absent, the file is downloaded automatically from GitHub (`VEAF/VEAF-dcs-bridge`)
 - `community_scripts:` section in `mission.yaml`: individually enable/disable community Lua scripts (MIST, CTLD, CSAR, etc.) — absent section keeps all scripts active
 - `convert-v5`: generated `mission.yaml` now includes a `community_scripts:` section pre-populated from scripts detected in `published/src/scripts/community/`

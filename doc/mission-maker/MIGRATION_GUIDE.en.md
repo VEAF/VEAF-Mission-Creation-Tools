@@ -8,6 +8,15 @@ This guide covers two scenarios:
 
 In both cases the end result is a **VEAF MCT v6 mission folder** that you manage with `veaf-tools.exe`.
 
+```mermaid
+flowchart TD
+    V5[VEAF MCT v5 mission] -->|veaf-tools convert-v5| FOLDER[v6 mission folder]
+    VAN[Vanilla DCS .miz] -->|veaf-tools extract| FOLDER
+    FOLDER --> CFG[Edit mission.yaml]
+    CFG --> BUILD[veaf-tools build]
+    BUILD --> MIZ[v6 .miz ready to fly]
+```
+
 ---
 
 ## Before You Start
@@ -51,7 +60,7 @@ In both cases the end result is a **VEAF MCT v6 mission folder** that you manage
 | **Auto-inject pipeline** | Each inject command (`inject-presets`, `inject-waypoints`, etc.) had to be added manually to `build.cmd` | `veaf-tools build` auto-detects and runs each step when the matching file is present in `src/` |
 | **Tool updates** | NPM (`npm install`) — scripts distributed as a versioned package | `veaf-tools-updater.exe` — downloads and verifies the latest release in one command |
 | **Build-time config** | No build-time config file | `mission.yaml` — controls log levels, module enable/disable, pipeline step overrides |
-| **Module enable/disable** | Edit `missionConfig.lua` (or simply omit the `initialize()` call) | `mission.yaml` → `lua_modules:` section; generates `veaf-config.lua` automatically |
+| **Module enable/disable** | Edit `missionConfig.lua` (or simply omit the `initialize()` call) | `mission.yaml` → `modules:` block; generates `veaf-config.lua` automatically |
 | **Module configuration** | Direct assignment: `veafSpawn.SpawnKeyphrase = "_spawn"` in `missionConfig.lua` | Same direct assignment still works in `mission-script.lua`; or `veaf.setConfig("MODULE_ID", "key", value)` for config-driven overrides |
 | **Module init pattern** | Bare `veafXxx.initialize()` calls | Auto-generated into `veaf-config.lua` by `veaf-tools build`; no manual `initialize()` calls needed |
 | **Config location** | Initialization scattered in DCS trigger scripts or a separate Lua file | `mission.yaml` generates `veaf-config.lua` at build time; optional custom Lua in `mission-script.lua` |

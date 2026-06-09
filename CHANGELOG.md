@@ -32,6 +32,7 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `mission.yaml` (all generators): each section now includes a `# Doc:` link to the relevant chapter of the Mission Maker Guide; section headers and descriptions improved (security, external modules, mandatory modules explanation)
 
 ### Fixed
+- `convert-v5`: the generated `mission.yaml` now pre-resolves module dependencies — enabling a module such as `CASMISSION` automatically enables the modules it requires (`GROUNDAI`, `SPAWN`, and their transitive dependencies). The build no longer needs to auto-enable them with a warning, and the generated file accurately reflects what will run. The conversion report lists the auto-enabled modules.
 - docs: removed the obsolete `convert` command from the Mission Maker Guide command tables (FR + EN); corrected the false "CSAR not available via mission.yaml" note in the mission.yaml reference (CSAR is supported via `external_modules.csar`); updated the Debug Logging section to reflect the single `veaf-scripts.lua` loader and `global_log_level`/`logLevel` control; created the missing French `veafInterpreter` page (fixes a broken FR nav link); consolidated duplicate `[Unreleased]` changelog sections and translated the stray French entry
 - `veaf-tools-updater`: fixed the dead documentation URL shown on first install (`VEAF-Mission-Creation-Tools-v6/…` → `documentation/dev/…`)
 - `convert-v5`: generated `mission.yaml` now includes the YAML syntax quick-reference header (was only present in `generate-config` output)

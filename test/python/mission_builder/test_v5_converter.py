@@ -561,3 +561,44 @@ class TestMigrateConfigBackupNoBak(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+# ---------------------------------------------------------------------------
+# V5Converter._build_mission_yaml() — module dependency pre-resolution
+# ---------------------------------------------------------------------------
+
+
+class TestBuildMissionYamlDependencyResolution(unittest.TestCase):
+    """convert-v5 must pre-resolve module dependencies in the generated mission.yaml."""
+
+    def _build(self, enabled_modules: list[str]) -> tuple[str, ConversionReport]:
+        with tempfile.TemporaryDirectory() as td:
+            folder = Path(td)
+            mr = MigrationResult(new_content="", enabled_modules=enabled_modules)
+            report = ConversionReport(mission_folder=folder, version="test", migration_result=mr)
+            yaml = V5Converter(version="test")._build_mission_yaml(report)
+            return yaml, report
+
+    def test_casmission_pulls_in_groundai_and_spawn(self) -> None:
+        yaml, report = self._build(["CASMISSION"])
+        self.assertIn("CASMISSION", yaml)
+        self.assertIn("GROUNDAI", yaml)
+        self.assertIn("SPAWN", yaml)
+        # Dependencies recorded so the conversion report can mention them
+        self.assertIn("GROUNDAI", report.auto_resolved_deps)
+        self.assertIn("SPAWN", report.auto_resolved_deps)
+
+    def test_no_deps_recorded_when_none_needed(self) -> None:
+        # RADIO has no dependencies; the always-on base set is self-consistent.
+        _, report = self._build(["RADIO"])
+        self.assertEqual(report.auto_resolved_deps, [])
+
+    def test_report_mentions_resolved_dependencies(self) -> None:
+        _, report = self._build(["CASMISSION"])
+        report.mission_yaml_generated = True
+        report.mission_yaml_path = report.mission_folder / "mission.yaml"
+        markdown = report.to_markdown()
+        note = t("report.mission_yaml.deps_resolved", list=", ".join(report.auto_resolved_deps))
+        self.assertIn(note, markdown)
+        # The auto-resolved module names appear in the rendered report
+        self.assertIn("GROUNDAI", markdown)

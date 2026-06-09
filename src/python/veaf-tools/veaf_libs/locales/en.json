@@ -245,6 +245,7 @@
   "convert_v5.report.unknown_reason": "Unknown reason.",
   "report.mission_yaml.created_with": "Created with:",
   "report.mission_yaml.modules_count": "{enabled} module(s) enabled, {disabled} disabled",
+  "report.mission_yaml.deps_resolved": "auto-enabled to satisfy dependencies: {list}",
   "cmd.user_config.help": "Show and manage the global user configuration (~/veafmct.yaml).",
   "cmd.user_config.opt.set": "Set a configuration key (format: key=value, e.g. lang=fr).",
   "cmd.user_config.opt.unset": "Remove a configuration key.",

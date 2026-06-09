@@ -674,5 +674,6 @@
   "weather.converter.metar_fetch_failed": "Échec de la récupération du METAR en direct pour {icao} : {error}. Utilisation des valeurs par défaut.",
   "weather.injector.solar_times_failed": "Échec du calcul des heures solaires : {error}",
   "weather.injector.time_update_failed": "Échec de la mise à jour de l'heure/date de la mission : {error}",
-  "weather.injector.weather_inject_failed": "Échec de l'injection météo : {error}"
+  "weather.injector.weather_inject_failed": "Échec de l'injection météo : {error}",
+  "progress.done": "✓ {msg} terminé !"
 }

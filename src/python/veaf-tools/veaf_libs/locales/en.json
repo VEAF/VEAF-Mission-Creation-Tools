@@ -674,5 +674,6 @@
   "weather.converter.metar_fetch_failed": "Failed to fetch live METAR for {icao}: {error}. Using defaults.",
   "weather.injector.solar_times_failed": "Failed to calculate solar times: {error}",
   "weather.injector.time_update_failed": "Failed to update mission time/date: {error}",
-  "weather.injector.weather_inject_failed": "Failed to inject weather: {error}"
+  "weather.injector.weather_inject_failed": "Failed to inject weather: {error}",
+  "progress.done": "✓ Done {msg}!"
 }

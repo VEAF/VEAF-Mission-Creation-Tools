@@ -79,7 +79,7 @@ For every action requested by the user, execute these steps in order:
 
 1. **Analyze** the request and identify the impacted files and scope.
    - If the request is exploratory (question, analysis, no code change), stop here.
-2. **Create a lot** in `BACKLOG.md`: add a new lot with a unique ID, description, tickets, estimated effort, and status `⬜`. Add it to the Summary table.
+2. **Create a lot** in `BACKLOG.md`: add a new lot with a unique ID, description, tickets, and status `⬜`. Add it to the Summary table.
 3. **Create a branch** from `develop-v6` following the naming convention (`feature/<id>` or `fix/<id>`). If a lot spans multiple tickets, use **one branch and one PR** for the entire lot — do not create a branch per ticket unless explicitly requested.
 4. **Implement** the change: code + unit tests (TDD rules apply) + update any relevant documentation in `doc/`.
 5. **Run tests** for the impacted language (`poetry run pytest` for Python, `poetry run test-lua` for Lua). Fix any failure before continuing.

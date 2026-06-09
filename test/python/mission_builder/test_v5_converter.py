@@ -469,9 +469,9 @@ class TestV5ConverterIntegration(unittest.TestCase):
             V5Converter().convert(folder, backup=False)
             yaml_content = (folder / "mission.yaml").read_text()
             self.assertIn("modules:", yaml_content)
-            self.assertIn("mist: true", yaml_content)
-            self.assertIn("ctld: true", yaml_content)
-            self.assertIn("skynet: false", yaml_content)
+            self.assertIn("MIST: true", yaml_content)
+            self.assertIn("CTLD: true", yaml_content)
+            self.assertIn("SKYNET: false", yaml_content)
 
     def test_mission_yaml_community_scripts_all_false_when_no_community_folder(self) -> None:
         with tempfile.TemporaryDirectory() as td:
@@ -483,7 +483,7 @@ class TestV5ConverterIntegration(unittest.TestCase):
             # All community script IDs must appear with ": false" (no community folder → none detected)
             from mission_tools.mission_constants import get_community_script_files
             for script in get_community_script_files():
-                sid = script["id"]
+                sid = script["id"].upper()
                 self.assertIn(f"  {sid}: false", yaml_content)
                 self.assertNotIn(f"  {sid}: true", yaml_content)
     def test_mission_yaml_global_log_level_defaults_to_info(self) -> None:

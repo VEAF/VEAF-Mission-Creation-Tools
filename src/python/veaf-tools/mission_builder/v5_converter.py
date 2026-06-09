@@ -29,7 +29,7 @@ from typing import Any
 import yaml  # type: ignore[import-untyped]
 from mission_tools.mission_constants import get_community_script_files
 from veaf_libs.i18n import t
-from veaf_libs.lua_config_generator import MANDATORY_MODULES, yaml_module_entry, yaml_syntax_header
+from veaf_libs.lua_config_generator import MANDATORY_MODULES, MODULE_CATEGORIES, yaml_module_entry, yaml_syntax_header
 from veaf_libs.lua_module_scanner import get_modules
 
 from mission_builder.config_migrator import ConfigMigrator, MigrationResult
@@ -902,25 +902,28 @@ class V5Converter:
         all_mods = get_modules()
 
         # Modules explicitly enabled (from missionConfig.lua or always-on base set)
-        enabled_found = [m["id"] for m in all_mods if m["id"] in enabled_set]
+        enabled_by_id = {m["id"] for m in all_mods if m["id"] in enabled_set}
 
-        if enabled_found:
-            lines.append(t("converter.yaml.modules.active"))
-            for mid in enabled_found:
+        # Emit modules grouped by category in declaration order
+        for category, cat_mods in MODULE_CATEGORIES.items():
+            cat_enabled = [mid for mid in cat_mods if mid in enabled_by_id]
+            if not cat_enabled:
+                continue
+            lines.append(f"  # {category}")
+            for mid in cat_enabled:
                 yaml_key = f'"{mid}"' if not _re.match(r"^[A-Za-z_]\w*$", mid) else mid
-                lines.extend(yaml_module_entry(yaml_key, mid))
-                # For ASSETS, inject the extracted asset list directly under the module entry
+                # Detect whether extra config will follow (block style needed)
+                has_config = bool(
+                    (mid == "ASSETS" and mr and mr.assets_extracted)
+                    or (mid == "SHORTCUTS" and mr and mr.shortcuts_extracted)
+                    or (mid == "SANCTUARY" and mr and mr.sanctuary_zones_extracted)
+                    or (mid == "COMBATZONE" and mr and (mr.combat_zone_settings_extracted or mr.combat_zones_extracted))
+                    or (mid == "AIRWAVES" and mr and mr.airwave_zones_extracted)
+                )
+                lines.extend(yaml_module_entry(yaml_key, mid, has_config=has_config))
+                # Inject extracted config under the module entry
                 if mid == "ASSETS" and mr and mr.assets_extracted:
                     lines.append("    assets:")
-                    _ASSET_STR_KEYS = (
-                        "name",
-                        "description",
-                        "information",
-                        "jtac",
-                        "freq",
-                        "linked",
-                        "mod",
-                    )
                     for asset in mr.assets_extracted:
                         first = True
                         for k, v in asset.items():
@@ -953,7 +956,15 @@ class V5Converter:
                     lines.append("    airwave_zones:")
                     lines.extend(_yaml_list_block(mr.airwave_zones_extracted, indent=4))
 
-        # Community scripts appended at end of modules: block
+        # Emit any enabled module not in any known category (safety net)
+        categorized = {mid for mods in MODULE_CATEGORIES.values() for mid in mods}
+        uncategorized = [mid for mid in enabled_by_id if mid not in categorized]
+        if uncategorized:
+            for mid in sorted(uncategorized):
+                yaml_key = f'"{mid}"' if not _re.match(r"^[A-Za-z_]\w*$", mid) else mid
+                lines.extend(yaml_module_entry(yaml_key, mid))
+
+        # Community scripts appended at end of modules: block (IDs in uppercase)
         all_community = get_community_script_files()
         detected_comm = report.detected_community_script_ids
         if all_community:
@@ -962,7 +973,7 @@ class V5Converter:
             for script in all_community:
                 sid = script["id"]
                 val = "true" if sid in detected_comm else "false"
-                lines.append(f"  {sid}: {val}")
+                lines.append(f"  {sid.upper()}: {val}")
         lines.append("")
 
         # ── External modules (Skynet) ──────────────────────────────────────

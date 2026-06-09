@@ -116,7 +116,7 @@ def yaml_syntax_header() -> list[str]:
 
 
 #: Cosmetic category groupings for YAML template and generated Lua output.
-_MODULE_CATEGORIES: dict[str, list[str]] = {
+MODULE_CATEGORIES: dict[str, list[str]] = {
     "Infrastructure": ["UNITS", "TIME", "CACHE", "EVENTS", "MARKERS", "COMMANDS"],
     "Core": ["SECURITY", "RADIO", "GROUNDAI", "SHORTCUTS", "NAMEDPOINTS", "SPAWN"],
     "Features": [
@@ -143,27 +143,33 @@ _MODULE_CATEGORIES: dict[str, list[str]] = {
 }
 
 #: Flat module→category reverse lookup (built once at module load time).
-_MODULE_TO_CATEGORY: dict[str, str] = {mod_id: cat for cat, ids in _MODULE_CATEGORIES.items() for mod_id in ids}
+_MODULE_TO_CATEGORY: dict[str, str] = {mod_id: cat for cat, ids in MODULE_CATEGORIES.items() for mod_id in ids}
 
 #: Modules that are mandatory (infrastructure tier).
 #: These are always active; specifying ``enable`` (true or false) for them is an error.
 MANDATORY_MODULES: frozenset[str] = frozenset({"UNITS", "TIME", "CACHE", "EVENTS", "MARKERS", "COMMANDS"})
 
 
-def yaml_module_entry(yaml_key: str, module_id: str) -> list[str]:
+def yaml_module_entry(yaml_key: str, module_id: str, has_config: bool = False) -> list[str]:
     """Return the YAML lines for one enabled module entry in ``mission.yaml``.
 
     Args:
         yaml_key: The (possibly quoted) YAML key string, e.g. ``RADIO`` or ``"MY-MOD"``.
         module_id: The canonical module ID used to look up mandatory status.
+        has_config: When ``True``, emit block style (``key:\\n  enabled: true``) so
+            callers can append extra config keys underneath. When ``False`` (default),
+            emit the compact shorthand ``key: true`` for optional modules.
 
     Returns:
         One line ``["  key:"]`` for mandatory modules (null value = always active),
-        or two lines ``["  key:", "    enabled: true"]`` for optional ones.
+        ``["  key: true"]`` for optional modules without extra config, or
+        ``["  key:", "    enabled: true"]`` for optional modules with extra config.
     """
     if module_id in MANDATORY_MODULES:
         return [f"  {yaml_key}:"]
-    return [f"  {yaml_key}:", "    enabled: true"]
+    if has_config:
+        return [f"  {yaml_key}:", "    enabled: true"]
+    return [f"  {yaml_key}: true"]
 
 
 def _get_module_enabled(cfg: dict, default: bool = True) -> bool:

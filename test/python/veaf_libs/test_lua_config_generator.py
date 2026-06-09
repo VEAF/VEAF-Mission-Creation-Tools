@@ -292,10 +292,10 @@ def test_mandatory_module_no_enable_in_yaml_template():
             ln.strip() == f"{mandatory}:" for ln in uncommented
         ), f"{mandatory} must be emitted as bare null 'key:'"
 
-    # Non-mandatory enabled module must use enabled: true (not enable:)
+    # Non-mandatory enabled module (no extra config) must use shorthand `: true`
     assert any(
-        ln.strip() == "enabled: true" and not ln.startswith("#") for ln in lines
-    ), "RADIO (non-mandatory) must produce an 'enabled: true' line"
+        ln.strip() == "RADIO: true" and not ln.startswith("#") for ln in lines
+    ), "RADIO (non-mandatory) must produce a 'RADIO: true' shorthand line"
 
 
 def test_non_mandatory_disabled_no_error(caplog):

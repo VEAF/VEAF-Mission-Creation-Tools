@@ -185,10 +185,10 @@ class TestYamlSnippet(unittest.TestCase):
             enable_lines = [ln for ln in uncommented if "enable:" in ln]
             self.assertEqual(enable_lines, [], f"{mandatory} must not have 'enable:' in yaml snippet")
 
-        # Non-mandatory enabled module must use enabled: true
+        # Non-mandatory enabled module must use shorthand `: true` (no extra config here)
         self.assertTrue(
-            any("enabled: true" in ln and not ln.lstrip().startswith("#") for ln in lines),
-            "At least one non-mandatory module must be emitted with 'enabled: true'",
+            any(": true" in ln and not ln.lstrip().startswith("#") for ln in lines),
+            "At least one non-mandatory module must be emitted with ': true'",
         )
 
 

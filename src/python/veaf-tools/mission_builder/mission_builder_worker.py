@@ -83,9 +83,10 @@ def _normalize_mission_yaml(yaml_data: dict) -> dict:
             logger.warning(f"'modules' in mission.yaml must be a mapping (got {type(modules_raw).__name__}); ignoring.")
             return yaml_data
 
-        all_community_ids = {s["id"] for s in get_community_script_files()}
-        lua_mods = {k: v for k, v in modules_raw.items() if k not in all_community_ids}
-        comm_scripts = {k: v for k, v in modules_raw.items() if k in all_community_ids}
+        # IDs are lowercase in code; YAML may use uppercase (e.g. MIST).
+        all_community_ids_lower = {s["id"].lower() for s in get_community_script_files()}
+        lua_mods = {k: v for k, v in modules_raw.items() if k.lower() not in all_community_ids_lower}
+        comm_scripts = {k.lower(): v for k, v in modules_raw.items() if k.lower() in all_community_ids_lower}
 
         result = dict(yaml_data)
         result["lua_modules"] = lua_mods

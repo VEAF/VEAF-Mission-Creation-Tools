@@ -93,9 +93,7 @@ def _normalize_mission_yaml(yaml_data: dict) -> dict:
         return result
 
     if has_legacy:
-        logger.warning(
-            t("builder.modules_deprecated")
-        )
+        logger.warning(t("builder.modules_deprecated"))
 
     return yaml_data
 

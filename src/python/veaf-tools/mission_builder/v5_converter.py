@@ -1069,7 +1069,6 @@ class V5Converter:
         else:
             lines.append("# pipeline: {}  # no pipeline config files detected in src/")
 
-
         # ── Build configuration ────────────────────────────────────────────
         lines += [
             "",

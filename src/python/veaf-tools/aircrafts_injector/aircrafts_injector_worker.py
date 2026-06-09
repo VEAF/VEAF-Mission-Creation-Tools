@@ -650,25 +650,39 @@ class AircraftGroupsInjectorWorker(BaseWorker):
 
         # Flatten the category → coalition → country → group hierarchy into a
         # single work list so the injection can be displayed as one progress bar.
+        # Malformed (non-dict) levels are skipped rather than aborting the whole
+        # injection, preserving the previous per-coalition fault tolerance.
         work_items: list[tuple[str, str, str, str, dict]] = []
         for category in ["airplanes", "helicopters"]:
             category_data = self.yaml_data.get(category)
-            if not category_data or "coalitions" not in category_data:
+            if not isinstance(category_data, dict) or not isinstance(category_data.get("coalitions"), dict):
                 continue
             for coalition_name, coalition_groups in category_data["coalitions"].items():
+                if not isinstance(coalition_groups, dict):
+                    continue
                 for country_name, country_groups in coalition_groups.items():
+                    if not isinstance(country_groups, dict):
+                        continue
                     for group_name, group_data in country_groups.items():
                         work_items.append((category, coalition_name, country_name, group_name, group_data))
 
         for category, coalition_name, country_name, group_name, group_data in work_items:
+            # Resolving the mission structure (coalition/country/category) is
+            # reported separately from per-group injection so structure/YAML
+            # problems stay distinguishable from group-level failures.
             try:
                 coalition = self._get_or_create_coalition_structure(coalition_name)
                 country = self._get_or_create_country(coalition, country_name)
-
-                # Convert category name for mission structure
                 mission_category = "plane" if category == "airplanes" else "helicopter"
                 groups_list = self._ensure_aircraft_category(country, mission_category)
+            except Exception as e:
+                error_msg = f"Failed to process coalition {coalition_name}/{country_name}/{category}: {str(e)}"
+                injection_errors.append(error_msg)
+                self.injection_log.append(error_msg)
+                logger.warning(error_msg)
+                continue
 
+            try:
                 # Check if group already exists
                 existing_idx = None
                 for idx, existing_group in enumerate(groups_list):

@@ -6,7 +6,6 @@ import unittest
 from unittest.mock import MagicMock, patch
 
 from rich.console import Console
-
 from veaf_libs.console_status import StatusLine
 
 

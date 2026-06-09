@@ -4,10 +4,9 @@ from __future__ import annotations
 
 import io
 import unittest
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 from rich.console import Console
-
 from veaf_libs.logger import Logger
 
 
@@ -82,34 +81,30 @@ class TestLoggerPermanentLines(unittest.TestCase):
 
 
 class TestLoggerVerboseConfiguresStatus(unittest.TestCase):
-    def _logger_with_mock_status(self, name: str) -> Logger:
-        log = Logger(logger_name=name, console=_recording_console())
+    def _logger_with_mock_status(self, name: str, *, terminal: bool) -> Logger:
+        # force_terminal drives Console.is_terminal, which set_verbose reads.
+        console = Console(file=io.StringIO(), force_terminal=terminal, width=200)
+        log = Logger(logger_name=name, console=console)
         log.status = MagicMock()
         return log
 
     def test_verbose_disables_transient(self) -> None:
-        log = self._logger_with_mock_status("test-logger-v1")
-        with patch("veaf_libs.logger.sys.stdout") as out:
-            out.isatty.return_value = True
-            log.set_verbose(True)
+        log = self._logger_with_mock_status("test-logger-v1", terminal=True)
+        log.set_verbose(True)
         log.status.configure.assert_called_once_with(enabled=False)
 
     def test_interactive_non_verbose_enables_transient(self) -> None:
-        log = self._logger_with_mock_status("test-logger-v2")
-        with patch("veaf_libs.logger.sys.stdout") as out:
-            out.isatty.return_value = True
-            log.set_verbose(False)
+        log = self._logger_with_mock_status("test-logger-v2", terminal=True)
+        log.set_verbose(False)
         log.status.configure.assert_called_once_with(enabled=True)
 
     def test_non_interactive_disables_transient(self) -> None:
-        log = self._logger_with_mock_status("test-logger-v3")
-        with patch("veaf_libs.logger.sys.stdout") as out:
-            out.isatty.return_value = False
-            log.set_verbose(False)
+        log = self._logger_with_mock_status("test-logger-v3", terminal=False)
+        log.set_verbose(False)
         log.status.configure.assert_called_once_with(enabled=False)
 
     def test_stop_status_stops_line(self) -> None:
-        log = self._logger_with_mock_status("test-logger-stop")
+        log = self._logger_with_mock_status("test-logger-stop", terminal=True)
         log.stop_status()
         log.status.stop.assert_called_once()
 

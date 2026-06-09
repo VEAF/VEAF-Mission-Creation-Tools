@@ -1,5 +1,4 @@
 import logging
-import sys
 from pathlib import Path
 from typing import Self
 
@@ -40,10 +39,13 @@ class Logger:
         self.verbose = verbose
         self.set_level(logging.DEBUG)
         # Transient single-line output only makes sense for an interactive,
-        # non-verbose run. Under --verbose or when piped/redirected, every
-        # message scrolls normally so nothing is lost.
+        # non-verbose run. Derive interactivity from the Rich console's own
+        # output stream (which may differ from sys.stdout, e.g. stderr or a
+        # redirected file) so status-line behaviour matches the real
+        # destination. Under --verbose or when piped, every message scrolls
+        # normally so nothing is lost.
         if self.status:
-            interactive = bool(getattr(sys.stdout, "isatty", lambda: False)())
+            interactive = bool(self.console and self.console.is_terminal)
             self.status.configure(enabled=not verbose and interactive)
         return self
 

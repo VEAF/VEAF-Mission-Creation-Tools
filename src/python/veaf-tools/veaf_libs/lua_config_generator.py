@@ -695,17 +695,13 @@ def _resolve_deps(effective: dict) -> dict:
             for dep in deps:
                 dep_cfg = effective.get(dep, {})
                 if isinstance(dep_cfg, dict) and not _get_module_enabled(dep_cfg, True):
-                    logger.warning(
-                        f"Module '{mod_id}' requires '{dep}' but '{dep}' is disabled — auto-enabling '{dep}'"
-                    )
+                    logger.warning(t("generator.dep_auto_resolution_disabled", mod_id=mod_id, dep=dep))
                     dep_cfg["enabled"] = True
                     dep_cfg.pop("enable", None)
                     effective[dep] = dep_cfg
                     changed = True
                 elif dep not in effective:
-                    logger.warning(
-                        f"Module '{mod_id}' requires '{dep}' which is not configured — auto-enabling '{dep}'"
-                    )
+                    logger.warning(t("generator.dep_auto_resolution_missing", mod_id=mod_id, dep=dep))
                     effective[dep] = {"enabled": True}
                     changed = True
     return effective

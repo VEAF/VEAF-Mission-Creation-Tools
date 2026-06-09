@@ -15,6 +15,7 @@
 |-----|--------|
 | Phase 0b — GitHub cleanup | ⬜ |
 | Lot CI-NODE24 — Migrate GitHub Actions off deprecated Node.js 20 | ⬜ |
+| Lot TUI-YAML-DEFAULTS — TUI defaults aware of an existing mission.yaml | ⬜ |
 | Lot 5 — RELEASE | ⬜ |
 | Lot FIX-I18N-CONVERT-V5 — Hardcoded English messages in convert-v5 | ✅ |
 | Lot PREREL-BUGS — pre-release code review findings (briefing over-capture, exit codes, i18n, error handling) | ✅ |
@@ -57,6 +58,22 @@
 | CI-NODE24-002 | Bump `actions/setup-python@v5` → `@v6` in all workflows | `.github/workflows/docs.yml`, `python-quality.yml`, `release.yml`, `sbom.yml` | chore | ⬜ |
 | CI-NODE24-003 | Verify `actions/upload-artifact@v4` runs on Node.js 24 (bump if a newer major exists); audit any third-party actions for the same deprecation | `.github/workflows/python-quality.yml`, `sbom.yml`, all workflows | chore | ⬜ |
 | CI-NODE24-004 | Trigger each workflow (or wait for natural runs) and confirm the Node.js 20 deprecation annotation no longer appears | CI runs | chore | ⬜ |
+
+---
+
+## Lot TUI-YAML-DEFAULTS — TUI defaults aware of an existing mission.yaml
+
+**Goal**: When `veaf-tools` is launched in TUI mode, the proposed argument defaults are currently static (`mission.miz`, `.`, …) or the last saved value. They ignore a `mission.yaml` present in the working directory. The wizard should detect an existing `mission.yaml` and derive smarter defaults from it — at least for the mission name prompt.
+
+**Branch**: `feat/tui-yaml-defaults` → PR → `develop-v6`
+
+| # | Ticket | Files | Type | Status |
+|---|--------|-------|------|--------|
+| TUI-YAML-DEFAULTS-001 | When a `mission.yaml` exists in the working directory, the TUI derives the default for the `mission_name_or_file` prompt from it instead of the static `mission.miz`. Define the source of truth for the mission name (dedicated key in `mission.yaml`, or the folder/`.miz` already referenced) and document it. | `veaf_libs/tui.py`, `test/python/` | feat | ⬜ |
+| TUI-YAML-DEFAULTS-002 | Establish the default-resolution precedence and make it explicit: last saved preference > value derived from `mission.yaml` > static fallback (decide whether a saved preference should override a detected `mission.yaml` or the reverse). Cover with unit tests. | `veaf_libs/tui.py`, `veaf_libs/preferences.py`, `test/python/` | feat | ⬜ |
+| TUI-YAML-DEFAULTS-003 | Extend the `mission.yaml`-aware defaults to the other relevant prompts where it makes sense (e.g. `mission_folder`, presets/template file paths) once the mechanism from -001/-002 is in place. | `veaf_libs/tui.py`, `test/python/` | feat | ⬜ |
+
+> Note: the canonical "mission name" is not yet a first-class field in `mission.yaml` — TUI-YAML-DEFAULTS-001 must first decide where it comes from (new key vs. inferred from existing references).
 
 ---
 

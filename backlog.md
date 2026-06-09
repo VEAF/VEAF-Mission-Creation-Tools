@@ -497,7 +497,9 @@ Direct commits on `develop-v6` (no feature branch needed — no code change).
 | DOC-002 | Isolated content errors done: remove `convert`, CSAR note (FR+EN), dead updater URL, debug-logging section, CHANGELOG consolidation. (`enable:`→`enabled:` + `lua_modules:`→`modules:` across ~20 files folded into per-file DOC-005 passes) | fix | 45 min | ✅ |
 | DOC-003 | Pilot guide rewritten (FR+EN): deduplicated, accessible, `_auth` standardized, mermaid F10 menu, screenshot placeholders; READMEs reviewed (already clean) | feat | 2h | ✅ |
 | DOC-004 | Mission-maker GUIDE + MIGRATION_GUIDE (FR+EN): build-pipeline + v5→v6 mermaid diagrams, `modules:` block example, broken `GUIDE.fr.md` links fixed | feat | 2h | ✅ |
-| DOC-005 | Bilingual reparity + accessibility: LUA_API_REFERENCE (−1077 l.), TOOLS_REFERENCE (−346 l.), 20 script docs (`enable:`→`enabled:`, FR/EN parity), dcs-radio-specs FR, migration guide YAML examples | feat | 5h | ⬜ |
+| DOC-005a | Mechanical syntax sweeps (`enable:`→`enabled:` ×62, `lua_modules:`→`modules:` ×56) + MISSION_YAML_REFERENCE unified `modules:` rewrite (FR+EN) | feat | 1h30 | ✅ |
+| DOC-005b | Script docs FR→EN parity: veafAirWaves, veafCombatZone, veafQraManager, veafShortcuts, veafWeather, veafRadio (all now delta ≤10) + broken `.fr.md` links fixed | feat | 2h30 | ✅ |
+| DOC-005c | Big references in-section depth parity: LUA_API_REFERENCE (~1050 l. across 5 API sections) + TOOLS_REFERENCE (~346 l.) + dcs-radio-specs FR prose | feat | 5h | ⬜ |
 | DOC-006 | Produce DCS screenshot capture list for the user | chore | 30 min | ⬜ |
 
 **Estimated total: ~12h**

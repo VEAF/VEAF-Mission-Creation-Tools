@@ -2862,11 +2862,28 @@ Initialise le module assets.
 **Version :** 2.2.1
 **Objectif :** Créer et gérer des missions de combat avec objectifs
 
+#### Constantes
+
+```lua
+veafCombatMission.SecondsBetweenWatchdogChecks = 30
+veafCombatMission.RadioMenuName = "MISSIONS"
+veafCombatMission.MinimumSpacingBetweenClones = 300  -- meters
+```
+
 #### Classes
 
 ##### VeafCombatMissionObjective
 
 Définition d'objectif de mission.
+
+**Champs :**
+
+- `name` (string) — Nom de l'objectif
+- `description` (string) — Texte de description
+- `message` (string) — Message de complétion
+- `parameters` (table) — Paramètres de l'objectif
+- `onStartupFunction` (function) — Appelée au démarrage de la mission
+- `onCheckFunction` (function) — Appelée périodiquement pour vérifier la complétion
 
 **États :**
 ```lua
@@ -2879,23 +2896,29 @@ VeafCombatMissionObjective.NOTHING = 0
 ```lua
 obj = VeafCombatMissionObjective:new()
 obj:setName(value)
+obj:getName()
 obj:setDescription(value)
+obj:getDescription()
 obj:setMessage(value)
+obj:getMessage()
 obj:setParameters(value)
+obj:getParameters()
 obj:setOnStartupFunction(value)
+obj:getOnStartupFunction()
 obj:setOnCheckFunction(value)
+obj:getOnCheckFunction()
 ```
 
 **Exemple :**
 ```lua
 local objective = VeafCombatMissionObjective:new()
-objective:setName("Détruire les blindés")
-objective:setDescription("Détruire tous les chars ennemis")
+objective:setName("Destroy Armor")
+objective:setDescription("Destroy all enemy tanks")
 objective:setOnStartupFunction(function(mission)
-  -- Spawner les chars ennemis
+  -- Spawn enemy tanks
 end)
 objective:setOnCheckFunction(function(mission)
-  -- Vérifier si les chars sont détruits
+  -- Check if tanks destroyed
   if allTanksDestroyed() then
     return VeafCombatMissionObjective.SUCCESS
   end
@@ -2907,17 +2930,60 @@ end)
 
 Définition complète d'une mission.
 
+**Champs :**
+
+- `name` (string) — Nom de la mission
+- `description` (string) — Description courte
+- `briefing` (string) — Texte de briefing complet
+- `secured` (boolean) — Nécessite une autorisation de sécurité
+- `radioMenuEnabled` (boolean) — Afficher dans le menu F10
+- `objectives` (table) — Tableau d'objectifs
+- `spawnPosition` (vec3) — Emplacement de spawn
+- `altitude` (number) — Altitude de spawn
+- `spawnZone` (string) — Nom de la zone de spawn
+- `spawnRadius` (number) — Dispersion de spawn
+- `activeSquads` (table) — Groupes spawnés
+- `skills` (table) — Niveaux de compétence de l'IA
+- `scales` (table) — Facteurs d'échelle de la mission
+
 **Méthodes :**
 ```lua
 mission = VeafCombatMission:new()
 mission:setName(value)
+mission:getName()
 mission:setDescription(value)
+mission:getDescription()
 mission:setBriefing(value)
+mission:getBriefing()
 mission:setSecured(value)
+mission:getSecured()
 mission:setRadioMenuEnabled(value)
+mission:getRadioMenuEnabled()
+mission:setObjectives(value)
+mission:getObjectives()
 mission:addObjective(objective)
+mission:setSpawnPosition(value)
+mission:getSpawnPosition()
+mission:setAltitude(value)
+mission:getAltitude()
 mission:setSpawnZone(value)
+mission:getSpawnZone()
 mission:setSpawnRadius(value)
+mission:getSpawnRadius()
+mission:getActiveSquads()
+```
+
+**Exemple :**
+```lua
+local mission = VeafCombatMission:new()
+mission:setName("Strike Alpha")
+mission:setDescription("Destroy enemy armor column")
+mission:setBriefing("Enemy armor advancing on friendly position. Destroy all tanks.")
+mission:setSpawnZone("SpawnZone1")
+mission:addObjective(destroyTanksObjective)
+mission:addObjective(rtbObjective)
+
+veafCombatMission.AddMission(mission)
 ```
 
 #### Fonctions
@@ -2947,6 +3013,17 @@ Ajoute des variantes de mission avec différents niveaux de compétence/échelle
 
 **Description :** Crée plusieurs variantes (ex : "Strike Alpha - Good - 1.0x")
 
+**Exemple :**
+```lua
+veafCombatMission.AddMissionsWithSkillAndScale(
+  baseMission,
+  false,
+  {"Average", "Good", "High", "Excellent"},
+  {0.5, 1.0, 1.5, 2.0}
+)
+-- Creates 16 mission variants (4 skills × 4 scales)
+```
+
 ##### `veafCombatMission.GetMission(name)`
 
 Obtient une mission par nom.
@@ -2956,6 +3033,16 @@ Obtient une mission par nom.
 - `name` (string) — Nom de la mission
 
 **Retourne :** `VeafCombatMission` — Objet mission ou nil
+
+##### `veafCombatMission.GetMissionNumber(number)`
+
+Obtient une mission par index.
+
+**Paramètres :**
+
+- `number` (number) — Index de la mission (à partir de 1)
+
+**Retourne :** `VeafCombatMission` — Objet mission
 
 ##### `veafCombatMission.ActivateMission(name, silent, unitName)`
 
@@ -2976,6 +3063,22 @@ Active une mission.
 - Démarre le timer watchdog
 - Affiche le briefing
 
+**Exemple :**
+```lua
+veafCombatMission.ActivateMission("Strike Alpha", false, "Viper 1-1")
+```
+
+##### `veafCombatMission.ActivateMissionNumber(number, silent)`
+
+Active une mission par index.
+
+**Paramètres :**
+
+- `number` (number) — Index de la mission
+- `silent` (boolean, optionnel) — Supprimer les messages
+
+**Retourne :** Rien
+
 ##### `veafCombatMission.DesactivateMission(name, silent, unitName)`
 
 Désactive une mission.
@@ -2994,6 +3097,30 @@ Désactive une mission.
 - Détruit les groupes spawnés
 - Réinitialise les objectifs
 
+##### `veafCombatMission.DesactivateMissionNumber(number, silent)`
+
+Désactive une mission par index.
+
+**Retourne :** Rien
+
+##### `veafCombatMission.GetInformationOnMission(parameters)`
+
+Obtient l'état d'une mission.
+
+**Paramètres :**
+
+- `parameters` (table) — `{name=string, unitName=string}`
+
+**Retourne :** `string` — Texte d'état de la mission
+
+**Exemple :**
+```lua
+local status = veafCombatMission.GetInformationOnMission({
+  name = "Strike Alpha",
+  unitName = "Viper 1-1"
+})
+```
+
 ##### `veafCombatMission.CompletionCheck(name)`
 
 Vérifie l'état de complétion d'une mission.
@@ -3003,6 +3130,79 @@ Vérifie l'état de complétion d'une mission.
 - `name` (string) — Nom de la mission
 
 **Retourne :** `number` — État : FAILED (-1), SUCCESS (1), NOTHING (0)
+
+**Description :** Appelle toutes les fonctions de vérification des objectifs et agrège les résultats.
+
+##### `veafCombatMission.addCapMission(missionName, missionDescription, missionBriefing, secured, radioMenuEnabled, skills, scales, spawnRadius)`
+
+Assistant de création de mission CAP.
+
+**Paramètres :**
+
+- `missionName` (string) — Nom de la mission
+- `missionDescription` (string) — Description
+- `missionBriefing` (string) — Briefing
+- `secured` (boolean) — Sécurité requise
+- `radioMenuEnabled` (boolean) — Afficher dans le menu
+- `skills` (table) — Niveaux de compétence
+- `scales` (table) — Facteurs d'échelle
+- `spawnRadius` (number) — Dispersion de spawn
+
+**Retourne :** `VeafCombatMission` — Objet mission
+
+**Description :** Assistant pour créer des missions CAP avec des objectifs standard.
+
+##### `veafCombatMission.listAvailableMissions(unitName)`
+
+Affiche la liste des missions au joueur.
+
+**Paramètres :**
+
+- `unitName` (string) — Unité recevant la liste
+
+**Retourne :** Rien
+
+##### `veafCombatMission.listActiveMissions()`
+
+Affiche les missions actives.
+
+**Retourne :** Rien
+
+##### `veafCombatMission.help(unitName)`
+
+Affiche le texte d'aide.
+
+**Paramètres :**
+
+- `unitName` (string) — Unité recevant l'aide
+
+**Retourne :** Rien
+
+##### `veafCombatMission.buildRadioMenu()`
+
+Construit le menu radio des missions.
+
+**Retourne :** Rien
+
+##### `veafCombatMission.executeCommandFromRemote(parameters)`
+
+Exécute une commande depuis l'API distante.
+
+**Paramètres :**
+
+- `parameters` (table) — Paramètres de commande distante
+
+**Retourne :** Rien
+
+##### `veafCombatMission.dumpMissionsList(export_path)`
+
+Exporte les missions vers un fichier.
+
+**Paramètres :**
+
+- `export_path` (string, optionnel) — Répertoire d'export
+
+**Retourne :** Rien
 
 ##### `veafCombatMission.initialize()`
 
@@ -3025,8 +3225,24 @@ veafCasMission.Keyphrase = "_cas"
 veafCasMission.SecondsBetweenWatchdogChecks = 15
 veafCasMission.SecondsBetweenSmokeRequests = 180
 veafCasMission.SecondsBetweenFlareRequests = 120
+veafCasMission.RedCasGroupName = "Red CAS Group"
+veafCasMission.BlueCasGroupName = "Blue CAS Group"
 veafCasMission.RadioMenuName = "CAS MISSION"
 ```
+
+#### Tables de types d'unités
+
+Les unités sont catégorisées par coalition, époque et niveau de défense :
+
+```lua
+TRANSPORT_TYPES[coalition][era][defense] = {unit_types}
+ARMOR_TYPES[coalition][era][defense] = {unit_types}
+DEFENSE_TYPES[coalition][era][defense] = {unit_types}
+```
+
+**Coalition :** `"blue"`, `"red"`
+**Époque :** `"cold"`, `"modern"`
+**Défense :** `0-5` (0=aucune, 5=lourde)
 
 #### Fonctions
 
@@ -3043,6 +3259,28 @@ Exécute une commande de mission CAS.
 - `bypassSecurity` (boolean, optionnel) — Ignorer la sécurité
 
 **Retourne :** `boolean` — Indicateur de succès
+
+##### `veafCasMission.markTextAnalysis(text)`
+
+Analyse le texte d'un marqueur CAS.
+
+**Paramètres :**
+
+- `text` (string) — Texte du marqueur
+
+**Retourne :** `table` — Options analysées
+
+**Options :**
+```lua
+{
+  size = 0-5,              -- Force size
+  defense = 0-5,           -- Defense level
+  armor = 0-5,             -- Armor level
+  spacing = number,        -- Unit spacing (meters)
+  disperseOnAttack = boolean,  -- Units disperse when attacked
+  side = coalition         -- Coalition
+}
+```
 
 ##### `veafCasMission.generateCasMission(spawnSpot, size, defense, armor, spacing, disperseOnAttack, side)`
 
@@ -3079,9 +3317,55 @@ Ajoute de la fumée sur la cible CAS actuelle.
 
 **Retourne :** Rien
 
+**Description :** Limité par le timer `SecondsBetweenSmokeRequests`.
+
 ##### `veafCasMission.flareCasTargetGroup()`
 
 Ajoute une fusée sur la cible CAS actuelle.
+
+**Retourne :** Rien
+
+##### `veafCasMission.smokeReset()`
+
+Réinitialise le timer des demandes de fumée.
+
+**Retourne :** Rien
+
+##### `veafCasMission.flareReset()`
+
+Réinitialise le timer des demandes de fusée.
+
+**Retourne :** Rien
+
+##### `veafCasMission.skipCasTarget()`
+
+Passe le groupe cible actuel (détruit sans score).
+
+**Retourne :** Rien
+
+##### `veafCasMission.reportTargetInformation(unitName)`
+
+Obtient les informations de la cible CAS.
+
+**Paramètres :**
+
+- `unitName` (string) — Unité recevant le rapport
+
+**Retourne :** Rien
+
+##### `veafCasMission.help(unitName)`
+
+Affiche le texte d'aide CAS.
+
+**Paramètres :**
+
+- `unitName` (string) — Unité recevant l'aide
+
+**Retourne :** Rien
+
+##### `veafCasMission.buildRadioMenu()`
+
+Construit le menu radio CAS.
 
 **Retourne :** Rien
 

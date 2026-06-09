@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import ast
 import os
 import unittest
+from pathlib import Path
 
 from veaf_libs import i18n
 from veaf_libs.i18n import _detect_lang, _load_catalog, current_language, set_language, t
@@ -311,6 +313,124 @@ class TestI18nFrenchCoverage(unittest.TestCase):
 
         missing = sorted(k for k in en if k not in fr or not fr[k])
         self.assertEqual(missing, [], f"Keys missing or empty in fr.json: {missing}")
+
+
+class TestI18nNoHardcodedStrings(unittest.TestCase):
+    """COV-003: no user-visible English prose should be hardcoded outside t() calls.
+
+    Scans all Python source files for string literals (plain or f-string) passed
+    directly to ``logger.*()`` or ``console.print()`` calls, or returned directly
+    from worker methods.  Any string longer than 15 characters containing a space
+    is considered "user-visible prose" and must go through ``t()``.
+
+    Files listed in ``_TODO_EXEMPTIONS`` are known to still have violations and
+    are excluded from this check until they are fixed.  Remove a file from the
+    list once it is clean — the test will then enforce it stays clean.
+    """
+
+    # TODO: fix hardcoded strings in these files and remove them from this list.
+    _TODO_EXEMPTIONS: frozenset[str] = frozenset(
+        {
+            "mission_builder/mission_builder_worker.py",
+            "mission_extractor/mission_extractor_worker.py",
+            "mission_tools/mission_constants.py",
+            "presets_injector/radio_frequency_validator.py",
+            "veaf-tools-updater.py",
+            "veaf_libs/build_profiles.py",
+            "veaf_libs/paths.py",
+            "veaf_libs/tui.py",
+            "veaf_tools/app.py",
+            "veaf_tools/commands/aircraft_groups.py",
+            "veaf_tools/commands/build.py",
+            "veaf_tools/commands/config.py",
+            "veaf_tools/commands/convert_v5.py",
+            "veaf_tools/commands/extract.py",
+            "veaf_tools/commands/inject_presets.py",
+            "veaf_tools/commands/prepare.py",
+            "veaf_tools/commands/user_config.py",
+            "veaf_tools/commands/waypoints.py",
+            "veaf_tools/commands/weather.py",
+            "waypoints_injector/waypoints_injector_worker.py",
+            "waypoints_injector/waypoints_manager.py",
+            "weather_injector/utils/lua_converter.py",
+            "weather_injector/utils/solar_calculator.py",
+            "weather_injector/utils/time_expression_parser.py",
+            "weather_injector/weather/dcs_weather_converter.py",
+            "weather_injector/weather_injector_worker.py",
+        }
+    )
+
+    def _has_prose(self, node: ast.expr) -> bool:
+        """Return True if *node* is a string/f-string literal that looks like English prose."""
+        if isinstance(node, ast.Constant) and isinstance(node.value, str):
+            return " " in node.value and len(node.value) > 15
+        if isinstance(node, ast.JoinedStr):
+            lit = "".join(
+                v.value
+                for v in node.values
+                if isinstance(v, ast.Constant) and isinstance(v.value, str)
+            )
+            return " " in lit and len(lit) > 15
+        return False
+
+    def _is_t_call(self, node: ast.expr) -> bool:
+        """Return True if *node* is a call to the ``t()`` i18n helper."""
+        return (
+            isinstance(node, ast.Call)
+            and isinstance(node.func, (ast.Name, ast.Attribute))
+            and (getattr(node.func, "id", None) == "t" or getattr(node.func, "attr", None) == "t")
+        )
+
+    def _violations_in_file(self, source: str) -> list[int]:
+        """Return line numbers with hardcoded prose in logger/console/return calls."""
+        try:
+            tree = ast.parse(source)
+        except SyntaxError:
+            return []
+
+        violations: list[int] = []
+        LOG_METHODS = {"warning", "info", "error", "critical"}
+
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Call):
+                continue
+            func = node.func
+            is_logger = (
+                isinstance(func, ast.Attribute)
+                and func.attr in LOG_METHODS
+                and "logger" in ast.dump(func.value)
+            )
+            is_console = isinstance(func, ast.Attribute) and func.attr == "print"
+            if (is_logger or is_console) and node.args and self._has_prose(node.args[0]):
+                if not self._is_t_call(node.args[0]):
+                    violations.append(node.lineno)
+
+        # Also catch bare `return "English prose"` statements
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Return) and node.value is not None and self._has_prose(node.value):
+                if not self._is_t_call(node.value):
+                    violations.append(node.lineno)
+
+        return sorted(set(violations))
+
+    def test_no_hardcoded_english_prose(self) -> None:
+        src = Path(__file__).parents[3] / "src" / "python" / "veaf-tools"
+        all_violations: dict[str, list[int]] = {}
+
+        for f in sorted(src.rglob("*.py")):
+            rel = f.relative_to(src).as_posix()
+            if rel in self._TODO_EXEMPTIONS:
+                continue
+            lines = self._violations_in_file(f.read_text(encoding="utf-8"))
+            if lines:
+                all_violations[rel] = lines
+
+        if all_violations:
+            details = "\n".join(f"  {path}: lines {lines}" for path, lines in sorted(all_violations.items()))
+            self.fail(
+                f"Hardcoded English prose found in {len(all_violations)} file(s)"
+                f" — use t() for all user-visible strings:\n{details}"
+            )
 
 
 if __name__ == "__main__":

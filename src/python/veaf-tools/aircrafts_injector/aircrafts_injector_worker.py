@@ -405,7 +405,7 @@ class AircraftGroupsYAMLValidator:
             Formatted report string
         """
         if not self.errors:
-            return "✓ No issues found. YAML file is valid."
+            return t("aircraft_injector.yaml_no_issues")
 
         report = self.get_summary() + "\n\n"
 
@@ -790,7 +790,7 @@ class AircraftGroupsInjectorWorker(BaseWorker):
 
         # If validation fails, stop here
         if not is_valid:
-            console.print("[bold red]✗ YAML validation failed. Please fix the errors before injection.[/bold red]")
+            console.print(t("aircraft_injector.validation_failed_console"))
             return InjectionResult(
                 success=False,
                 groups_injected=0,
@@ -798,7 +798,7 @@ class AircraftGroupsInjectorWorker(BaseWorker):
                 details={"validation_report": validation_report},
             )
 
-        console.print("[bold green]✓ YAML validation successful![/bold green]\n")
+        console.print(t("aircraft_injector.validation_ok_console"))
 
         # STEP 2: Load YAML
         with spinner_context(f"Loading {self.input_yaml}...", silent=silent):
@@ -839,18 +839,18 @@ class AircraftGroupsInjectorWorker(BaseWorker):
         console.print(Panel(header_text, border_style=status_color, padding=(1, 2)))
 
         # Display summary
-        console.print(f"[bold]Groups injected:[/bold] [bright_yellow]{result.groups_injected}[/bright_yellow]")
-        console.print(f"[bold]Message:[/bold] {result.message}")
+        console.print(t("aircraft_injector.groups_injected", n=result.groups_injected))
+        console.print(t("aircraft_injector.result_message", message=result.message))
 
         # Display errors if any
         if result.details and "errors" in result.details and result.details["errors"]:
-            console.print("\n[bold bright_red]Errors:[/bold bright_red]")
+            console.print(t("aircraft_injector.errors_header"))
             for error in result.details["errors"]:
                 console.print(f"  [red]✗[/red] {error}")
 
         # Display injection log if verbose
         if verbose and self.injection_log:
-            console.print("\n[bold]Injection Log:[/bold]")
+            console.print(t("aircraft_injector.injection_log_header"))
             for log_entry in self.injection_log:
                 console.print(f"  {log_entry}")
 
@@ -1120,21 +1120,30 @@ class AircraftGroupsExtractorWorker(BaseWorker):
             units_count = len(group_info["group"].get("units", []))
 
             # Display group number and name
-            console.print(
-                f"[bold bright_yellow]▶ [{idx}][/bold bright_yellow] [bold bright_green]{group_name}[/bold bright_green]"
-            )
+            console.print(t("aircraft_injector.selector_group_header", idx=idx, group_name=group_name))
 
             # Coalition with color coding
             coalition_color = "bright_blue" if coalition == "blue" else "bright_red"
             coalition_icon = "🔵" if coalition == "blue" else "🔴"
             console.print(
-                f"  {coalition_icon} [{coalition_color}]{coalition.upper()}[/{coalition_color}] | [white]{country}[/white]"
+                t(
+                    "aircraft_injector.selector_coalition",
+                    icon=coalition_icon,
+                    color=coalition_color,
+                    coalition=coalition.upper(),
+                    country=country,
+                )
             )
 
             # Aircraft type and units
             aircraft_emoji = "✈️ " if aircraft_type == "airplanes" else "🚁 "
             console.print(
-                f"  {aircraft_emoji}[bright_cyan]{aircraft_type}[/bright_cyan] | [bright_yellow]{units_count} unit(s)[/bright_yellow]"
+                t(
+                    "aircraft_injector.selector_type_units",
+                    emoji=aircraft_emoji,
+                    aircraft_type=aircraft_type,
+                    n=units_count,
+                )
             )
 
             # Get unit types info
@@ -1146,24 +1155,21 @@ class AircraftGroupsExtractorWorker(BaseWorker):
 
             if unit_types:
                 types_text = ", ".join(sorted(unit_types))
-                console.print(f"  [bright_magenta]📋 Types:[/bright_magenta] [white]{types_text}[/white]")
+                console.print(t("aircraft_injector.selector_unit_types", types=types_text))
 
             # Ask user for confirmation using standard input
-            console.print(
-                "  [bold bright_cyan]❓ Include this group?[/bold bright_cyan] (y/n/end) [[bright_yellow]n[/bright_yellow]]: ",
-                end="",
-            )
+            console.print(t("aircraft_injector.selector_prompt"), end="")
             response = input().strip().lower()
 
             if response in ("y", "yes"):
                 selected_groups[group_key] = group_info
-                console.print("  [bold bright_green]✅ Included[/bold bright_green]\n")
+                console.print(t("aircraft_injector.selector_included"))
             elif response in ("end",):
-                console.print("  [dim bright_black]⊘ Skipping all remaining[/dim bright_black]\n")
+                console.print(t("aircraft_injector.selector_skip_all"))
                 skip_all = True
             else:
                 # Default: skip (n, empty string, or any other input)
-                console.print("  [dim bright_black]⊘ Skipped[/dim bright_black]\n")
+                console.print(t("aircraft_injector.selector_skipped"))
 
         # Add selected groups to templates
         for group_info in selected_groups.values():

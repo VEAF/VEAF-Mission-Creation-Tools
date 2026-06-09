@@ -93,7 +93,7 @@
 | Lot FIX-I18N-DEBT — Fix remaining 107 hardcoded strings across 25 files, clear _TODO_EXEMPTIONS | ~4h | ✅ |
 | Lot DOC-OVERHAUL — Complete, detailed, bilingual, ELI5 documentation with diagrams + screenshots | ~12h | ✅ |
 | Lot PREREL-BUGS — pre-release code review findings (briefing over-capture, exit codes, i18n, error handling) | ~2h | ⬜ |
-| Lot UI-OUTPUT — Declutter CLI output (transient status line + chapter/technical tiers) | ~3h | 🔄 |
+| Lot UI-OUTPUT — Declutter CLI output (transient status line + chapter/technical tiers) | ~3h30 | ✅ |
 | Lot FIX-CONVERT-V5-DEPS — resolve module dependencies when generating mission.yaml | ~45 min | ⬜ |
 | **Total** | **~212h** | |
 
@@ -125,12 +125,12 @@
 
 | # | Ticket | Files | Type | Effort | Status |
 |---|--------|-------|------|--------|--------|
-| UIOUT-001 | `StatusLine` helper: single overwriting Rich `Live` line, enable/disable, suspend for nested `Live` | `veaf_libs/console_status.py` | feat | 40 min | 🔄 |
-| UIOUT-002 | Wire into `Logger`: `info()` transient by default, add `tech()`/`step()`, `set_verbose` gates transient on TTY, `stop_status()` | `veaf_libs/logger.py` | feat | 30 min | 🔄 |
-| UIOUT-003 | Make `spinner_context`/`progress_context` suspend the status line and render transiently when active | `veaf_libs/progress.py` | feat | 20 min | 🔄 |
-| UIOUT-004 | Pilot `build`: promote pipeline headers to `step()`, key results to `tech()`; stop status line at program end | `veaf_tools/commands/build.py`, `veaf_tools/app.py`, `mission_builder/mission_builder_worker.py` | feat | 20 min | 🔄 |
-| UIOUT-005 | Unit tests for `StatusLine` and `Logger` routing | `test/python/veaf_libs/test_console_status.py`, `test_logger.py` | test | 30 min | 🔄 |
-| UIOUT-006 | Phase 2 — reclassify remaining modules (presets, weather, waypoints, aircraft, updater) + update `doc/` | `src/python/**`, `doc/` | feat | ⬜ |
+| UIOUT-001 | `StatusLine` helper: single overwriting Rich `Live` line, enable/disable, suspend for nested `Live` | `veaf_libs/console_status.py` | feat | 40 min | ✅ |
+| UIOUT-002 | Wire into `Logger`: `info()` transient by default, add `tech()`/`step()`, `set_verbose` gates transient on TTY, `stop_status()` | `veaf_libs/logger.py` | feat | 30 min | ✅ |
+| UIOUT-003 | Make `spinner_context`/`progress_context` suspend the status line and render transiently when active | `veaf_libs/progress.py` | feat | 20 min | ✅ |
+| UIOUT-004 | Pilot `build`: promote pipeline headers to `step()`, key results to `tech()`; stop status line at program end | `veaf_tools/commands/build.py`, `veaf_tools/app.py`, `mission_builder/mission_builder_worker.py` | feat | 20 min | ✅ |
+| UIOUT-005 | Unit tests for `StatusLine` and `Logger` routing | `test/python/veaf_libs/test_console_status.py`, `test_logger.py` | test | 30 min | ✅ |
+| UIOUT-006 | Phase 2 — extend to `veaf-tools-updater` and `veaf-build`: `stop_status()` at program exit + promote outcome lines (`up_to_date`, `success`) to `tech()`. Standalone `veaf-tools` commands already inherit the model via `app.main()` + the shared logger/progress, so they needed no change. | `veaf-tools-updater.py`, `veaf_build/cli.py` | feat | 30 min | ✅ |
 
 ---
 

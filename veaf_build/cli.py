@@ -344,4 +344,7 @@ def about() -> None:
 
 def main() -> None:
     """Main entry point."""
-    app()
+    try:
+        app()
+    finally:
+        logger.stop_status()

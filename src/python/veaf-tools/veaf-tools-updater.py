@@ -289,7 +289,7 @@ class UpdateWorker:
                 logger.info(t("updater.newer_available", installed=installed_version, release=release_version))
                 return True
             else:
-                logger.info(t("updater.up_to_date", version=installed_version))
+                logger.tech(t("updater.up_to_date", version=installed_version))
                 return False
         except ValueError:
             logger.warning(t("updater.warn.compare_versions", v1=installed_version, v2=release_version))
@@ -621,7 +621,7 @@ exit /b 0
 
         # Extract and install
         if self.extract_and_install(zip_content, release_version, p_mission_folder):
-            logger.info(t("updater.success", version=release_version))
+            logger.tech(t("updater.success", version=release_version))
             console.print(WORK_DONE_MESSAGE)
             return True
         else:
@@ -688,5 +688,6 @@ if __name__ == "__main__":
     try:
         typer.run(main)
     finally:
+        logger.stop_status()
         if auto_pause:
             input(PAUSE_MESSAGE)

@@ -27,6 +27,57 @@ from veaf_tools.app import (
 from veaf_tools.helpers import _update_build_config_in_yaml
 
 
+def _resolve_output_mission(
+    mission_name_or_file: str | None,
+    p_mission_folder: Path,
+    default_mission_file: str,
+) -> tuple[Path, str]:
+    """Resolve the output ``.miz`` path and its base name for a build.
+
+    - An explicit ``*.miz`` argument is used as-is (absolute, or relative to the
+      current directory).
+    - A bare mission name yields ``<sanitized-name>_<date>.miz`` anchored in
+      *p_mission_folder* (absolute). When the argument is the default and a
+      ``mission.yaml`` is present, its ``mission.name`` field supplies the name.
+
+    Anchoring a bare-name output in the mission folder keeps the path absolute so
+    every pipeline step (build, presets, weather, …) agrees on its location.
+
+    Args:
+        mission_name_or_file: The CLI argument (mission name, ``.miz`` file, or
+            the default sentinel).
+        p_mission_folder: The resolved mission folder.
+        default_mission_file: The sentinel default value (e.g. ``mission.miz``).
+
+    Returns:
+        A tuple of (output mission path, mission base name).
+    """
+    name_source: str = mission_name_or_file or default_mission_file
+
+    # When the default is used, prefer the mission.yaml name if available.
+    if name_source == default_mission_file:
+        mission_yaml_path = p_mission_folder / "mission.yaml"
+        if mission_yaml_path.exists():
+            validate_yaml_file(mission_yaml_path)
+            with mission_yaml_path.open("r", encoding="utf-8") as fh:
+                peek_yaml: dict = yaml.safe_load(fh) or {}
+            if yaml_name := (peek_yaml.get("mission") or {}).get("name"):
+                name_source = str(yaml_name)
+
+    # An explicit .miz file is used directly; a bare name becomes
+    # "<name>_<date>.miz" inside the mission folder.
+    if name_source.lower().endswith(".miz"):
+        p_output_mission = resolve_path(path=name_source)
+        return p_output_mission, p_output_mission.stem
+
+    safe_name = re.sub(r'[\\/:*?"<>|\x00-\x1f]', "_", name_source).strip(" .")
+    if not safe_name:
+        logger.warning(t("cmd.build.invalid_mission_name", name=repr(name_source)))
+        safe_name = "mission"
+    p_output_mission = p_mission_folder / f"{safe_name}_{datetime.now().strftime('%Y%m%d')}.miz"
+    return p_output_mission, safe_name
+
+
 @app.command(help=t("cmd.build.help"))
 def build(
     readme: bool = typer.Option(False, help=README_HELP),
@@ -80,25 +131,12 @@ def build(
     if not p_mission_folder.exists():
         logger.error(t("cmd.build.folder_not_found", path=p_mission_folder), exception_type=FileNotFoundError)
 
-    # Resolve output mission — peek mission.yaml for name only
-    p_output_mission = resolve_path(path=mission_name_or_file)
-    if p_output_mission.suffix.lower() != ".miz":
-        p_output_mission = Path(f"{mission_name_or_file}_{datetime.now().strftime('%Y%m%d')}.miz")
-    mission_base_name: str = p_output_mission.stem
+    # Resolve the output mission path and base name (mission.yaml-aware).
+    p_output_mission, mission_base_name = _resolve_output_mission(
+        mission_name_or_file, p_mission_folder, DEFAULT_MISSION_FILE
+    )
 
     mission_yaml_path = p_mission_folder / "mission.yaml"
-    if mission_name_or_file == DEFAULT_MISSION_FILE and mission_yaml_path.exists():
-        validate_yaml_file(mission_yaml_path)
-        with mission_yaml_path.open("r", encoding="utf-8") as fh:
-            _peek_yaml: dict = yaml.safe_load(fh) or {}
-        _yaml_mission_name: str | None = (_peek_yaml.get("mission") or {}).get("name")
-        if _yaml_mission_name:
-            _safe_name = re.sub(r'[\\/:*?"<>|\x00-\x1f]', "_", _yaml_mission_name).strip(" .")
-            if not _safe_name:
-                logger.warning(t("cmd.build.invalid_mission_name", name=repr(_yaml_mission_name)))
-                _safe_name = "mission"
-            p_output_mission = p_mission_folder / f"{_safe_name}_{datetime.now().strftime('%Y%m%d')}.miz"
-            mission_base_name = _safe_name
 
     # Build the mission
     logger.step(t("pipeline.console.build"))

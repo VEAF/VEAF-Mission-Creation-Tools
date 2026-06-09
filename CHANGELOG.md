@@ -7,6 +7,13 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [Unreleased]
+
+### Fixed
+- `build`: a bare mission name (not a `.miz` file) now produces an **absolute** output path anchored in the mission folder. Previously the path stayed relative, so the weather step looked for the mission under `<folder>/src/` and aborted with `Base mission not found`. This surfaced through the TUI, whose mission.yaml-aware default now pre-fills the real mission name (regression from lot TUI-YAML-DEFAULTS)
+
+---
+
 ## [6.4.0] — 2026-06-09
 
 ### Fixed

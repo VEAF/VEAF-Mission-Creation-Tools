@@ -55,7 +55,7 @@ class TestResolvePath(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as tmpdir:
             missing = Path(tmpdir) / "does_not_exist.txt"
-            with self.assertRaises((typer.Abort, SystemExit)):
+            with self.assertRaises((typer.Abort, SystemExit, FileNotFoundError)):
                 resolve_path(path=str(missing), should_exist=True)
 
     def test_should_exist_passes_for_existing_path(self) -> None:

@@ -102,11 +102,52 @@ _LUA_ESCAPES: list[tuple[str, str]] = [
 ]
 
 
+def _find_matching_paren(text: str, start: int) -> int:
+    """Return the index of the ``')'`` that closes the ``'('`` just before *start*.
+
+    Skips quoted string content so parentheses inside strings are not counted.
+    *start* is the index immediately after the opening ``'('``.
+    Returns ``len(text)`` when no matching ``')'`` is found.
+
+    Args:
+        text: Source text to scan.
+        start: Index of the first character inside the open parenthesis.
+
+    Returns:
+        Index of the matching closing parenthesis, or ``len(text)`` if not found.
+    """
+    depth = 1
+    i = start
+    while i < len(text) and depth > 0:
+        c = text[i]
+        if c in ('"', "'"):
+            quote = c
+            i += 1
+            while i < len(text):
+                if text[i] == "\\":
+                    i += 2
+                    continue
+                if text[i] == quote:
+                    break
+                i += 1
+        elif c == "(":
+            depth += 1
+        elif c == ")":
+            depth -= 1
+            if depth == 0:
+                return i
+        i += 1
+    return len(text)
+
+
 def _lua_extract_string(text: str, call_name: str) -> str | None:
     """Extract and decode a Lua method argument that may be a ``[[...]]`` long string or ``"..."``-concat.
 
     Handles Lua ``..`` string concatenation — e.g.:
     ``:setBriefing("line1\\n" .. "line2\\n")`` → ``"line1\\nline2\\n"`` with ``\\n`` → real newlines.
+
+    Only the argument of the matched call is inspected; chained setters after the closing
+    ``')'`` are not included.
 
     Args:
         text: The source text containing the method call.
@@ -119,12 +160,14 @@ def _lua_extract_string(text: str, call_name: str) -> str | None:
     if not m:
         return None
     arg_start = m.end()
+    arg_end = _find_matching_paren(text, arg_start)
+    arg_text = text[arg_start:arg_end]
     # Long string [[...]] — no escape decoding needed
-    ls = re.match(r"\s*\[\[(.*?)\]\]", text[arg_start:], re.DOTALL)
+    ls = re.match(r"\s*\[\[(.*?)\]\]", arg_text, re.DOTALL)
     if ls:
         return ls.group(1).strip()
-    # Collect all "..." fragments (handles .. concatenation across lines)
-    fragments = _LUA_QUOTED_STR_RE.findall(text[arg_start:])
+    # Collect all "..." fragments within the argument (handles .. concatenation)
+    fragments = _LUA_QUOTED_STR_RE.findall(arg_text)
     if not fragments:
         return None
     joined = "".join(fragments)

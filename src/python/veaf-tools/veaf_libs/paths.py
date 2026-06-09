@@ -42,8 +42,7 @@ def resolve_path(
             result.mkdir(exist_ok=True)
 
     if should_exist and not result.exists():
-        logger.error(t("paths.path_not_found", path=result))
-        exit(-1)
+        logger.error(t("paths.path_not_found", path=result), exception_type=FileNotFoundError)
 
     return result
 

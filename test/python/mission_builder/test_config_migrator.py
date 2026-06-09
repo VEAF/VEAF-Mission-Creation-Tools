@@ -821,6 +821,18 @@ class TestCombatZoneBriefingMultiline(unittest.TestCase):
         self.assertNotIn("\\n", zone["briefing"])
         self.assertIn("\n", zone["briefing"])
 
+    def test_chained_setter_not_absorbed(self) -> None:
+        """Regression PREREL-001: setBriefing must not absorb quoted strings from chained setters."""
+        zone = self._extract_zone(':setBriefing("The briefing"):setName("Zone Alpha")')
+        self.assertEqual(zone["briefing"], "The briefing")
+
+    def test_chained_setter_multiline_not_absorbed(self) -> None:
+        """Regression PREREL-001: multiline briefing with chained setter must stop at closing paren."""
+        zone = self._extract_zone(':setBriefing("Line one\\n" .. "Line two\\n"):setName("Zone Alpha")')
+        self.assertIn("Line one", zone["briefing"])
+        self.assertIn("Line two", zone["briefing"])
+        self.assertNotIn("Zone Alpha", zone["briefing"])
+
 
 class TestExtractAirwavesZones(unittest.TestCase):
     """_extract_airwaves_zones must parse AirWaveZone builder chains."""

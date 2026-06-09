@@ -58,7 +58,7 @@ def inject_presets(
     # Resolve presets configuration file
     p_presets_file = resolve_path(path=presets_file, should_exist=True)
     if not p_presets_file.exists():
-        logger.error(f"Configuration file {p_presets_file} does not exist!", exception_type=FileNotFoundError)
+        logger.error(t("cmd.inject_presets.config_not_found", path=p_presets_file), exception_type=FileNotFoundError)
 
     # Call the worker class
     worker = PresetsInjectorWorker(

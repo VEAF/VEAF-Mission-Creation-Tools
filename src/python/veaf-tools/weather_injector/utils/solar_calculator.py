@@ -4,6 +4,7 @@ from datetime import date as dt_date
 
 from astral import LocationInfo
 from astral.sun import sun
+from veaf_libs.i18n import t
 from veaf_libs.logger import logger
 
 from ..models import Position
@@ -49,5 +50,5 @@ class SolarCalculator:
             return result
 
         except Exception as e:
-            logger.error(f"Failed to calculate solar times: {e}")
+            logger.error(t("weather.solar_calculator.failed", error=str(e)))
             raise

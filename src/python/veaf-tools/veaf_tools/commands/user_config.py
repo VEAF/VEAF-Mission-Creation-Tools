@@ -17,7 +17,7 @@ def user_config(
     pause: bool = typer.Option(False, help=PAUSE_HELP),
 ) -> None:
     logger.set_verbose(verbose)
-    console.print(f"[bold green]veaf-tools User Config v{VERSION}[/bold green]")
+    console.print(t("cmd.user_config.banner", version=VERSION))
 
     if init:
         path = cfg.default_config_path()

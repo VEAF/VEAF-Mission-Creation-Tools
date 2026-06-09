@@ -27,7 +27,7 @@ def generate_config(
 
     modules = get_modules()
     if not modules:
-        logger.error("No VEAF Lua module information available. Run from a full repo checkout.")
+        logger.error(t("cmd.config.no_module_info"))
         return
 
     from veaf_libs.lua_config_generator import generate_mission_yaml_template
@@ -62,7 +62,7 @@ def migrate_config(
 
     p_input = resolve_path(path=input_file, should_exist=True)
     if not p_input.exists():
-        logger.error(f"Input file not found: {p_input}", exception_type=FileNotFoundError)
+        logger.error(t("cmd.config.input_not_found", path=p_input), exception_type=FileNotFoundError)
         return
 
     # Default output path: <stem>_v6.lua in the same directory.

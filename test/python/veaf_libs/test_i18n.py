@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import ast
 import os
+import re
 import unittest
 from pathlib import Path
 
@@ -336,43 +337,19 @@ class TestI18nNoHardcodedStrings(unittest.TestCase):
     # Prose detection thresholds — tune here without touching AST logic.
     _PROSE_MIN_LEN: int = 15
     _PROSE_REQUIRES_SPACE: bool = True
+    _RICH_TAG_RE: re.Pattern[str] = re.compile(r'\[/?[a-zA-Z][^\]]*\]')
 
     # TODO: fix hardcoded strings in these files and remove them from this list.
-    _TODO_EXEMPTIONS: frozenset[str] = frozenset(
-        {
-            "mission_builder/mission_builder_worker.py",
-            "mission_extractor/mission_extractor_worker.py",
-            "mission_tools/mission_constants.py",
-            "presets_injector/radio_frequency_validator.py",
-            "veaf-tools-updater.py",
-            "veaf_libs/build_profiles.py",
-            "veaf_libs/paths.py",
-            "veaf_libs/tui.py",
-            "veaf_tools/app.py",
-            "veaf_tools/commands/aircraft_groups.py",
-            "veaf_tools/commands/build.py",
-            "veaf_tools/commands/config.py",
-            "veaf_tools/commands/convert_v5.py",
-            "veaf_tools/commands/extract.py",
-            "veaf_tools/commands/inject_presets.py",
-            "veaf_tools/commands/prepare.py",
-            "veaf_tools/commands/user_config.py",
-            "veaf_tools/commands/waypoints.py",
-            "veaf_tools/commands/weather.py",
-            "waypoints_injector/waypoints_injector_worker.py",
-            "waypoints_injector/waypoints_manager.py",
-            "weather_injector/utils/lua_converter.py",
-            "weather_injector/utils/solar_calculator.py",
-            "weather_injector/utils/time_expression_parser.py",
-            "weather_injector/weather/dcs_weather_converter.py",
-            "weather_injector/weather_injector_worker.py",
-        }
-    )
+    _TODO_EXEMPTIONS: frozenset[str] = frozenset()
 
     def _has_prose(self, node: ast.expr) -> bool:
-        """Return True if *node* is a string/f-string literal that looks like English prose."""
+        """Return True if *node* is a string/f-string literal that looks like English prose.
+
+        Rich markup tags (e.g. ``[bold green]``, ``[/yellow]``) are stripped before
+        applying the length and space heuristics so they are not mistakenly flagged.
+        """
         if isinstance(node, ast.Constant) and isinstance(node.value, str):
-            s = node.value
+            s = self._RICH_TAG_RE.sub("", node.value).strip()
             return len(s) > self._PROSE_MIN_LEN and (not self._PROSE_REQUIRES_SPACE or " " in s)
         if isinstance(node, ast.JoinedStr):
             lit = "".join(
@@ -380,7 +357,8 @@ class TestI18nNoHardcodedStrings(unittest.TestCase):
                 for v in node.values
                 if isinstance(v, ast.Constant) and isinstance(v.value, str)
             )
-            return len(lit) > self._PROSE_MIN_LEN and (not self._PROSE_REQUIRES_SPACE or " " in lit)
+            s = self._RICH_TAG_RE.sub("", lit).strip()
+            return len(s) > self._PROSE_MIN_LEN and (not self._PROSE_REQUIRES_SPACE or " " in s)
         return False
 
     def _is_t_call(self, node: ast.expr) -> bool:

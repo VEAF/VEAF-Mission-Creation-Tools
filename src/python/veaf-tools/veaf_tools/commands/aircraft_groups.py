@@ -45,9 +45,7 @@ def extract_aircraft_groups(
 
     # Validate exclusive options
     if only_airplanes and only_helicopters:
-        logger.error(
-            "Cannot use both --only-airplanes and --only-helicopters simultaneously.", exception_type=ValueError
-        )
+        logger.error(t("cmd.aircraft.exclusive_options"), exception_type=ValueError)
 
     # Convert boolean options to aircraft_type
     aircraft_type = "airplanes" if only_airplanes else ("helicopters" if only_helicopters else None)
@@ -80,7 +78,7 @@ def extract_aircraft_groups(
     else:
         # Extract from mission file (original behavior)
         if not p_mission_folder.exists():
-            logger.error(f"Mission folder {p_mission_folder} does not exist!", exception_type=FileNotFoundError)
+            logger.error(t("cmd.aircraft.folder_not_found", path=p_mission_folder), exception_type=FileNotFoundError)
 
         # Resolve input mission
         assert mission_name_or_file is not None
@@ -127,12 +125,12 @@ def inject_aircraft_groups(
 
     # Validate mode
     if mode not in ("add", "replace"):
-        logger.error(f"Invalid mode '{mode}'. Must be 'add' or 'replace'.", exception_type=ValueError)
+        logger.error(t("cmd.aircraft.invalid_mode", mode=mode), exception_type=ValueError)
 
     # Resolve mission folder
     p_mission_folder = resolve_path(path=mission_folder, default_path=Path.cwd(), should_exist=True)
     if not p_mission_folder.exists():
-        logger.error(f"Mission folder {p_mission_folder} does not exist!", exception_type=FileNotFoundError)
+        logger.error(t("cmd.aircraft.folder_not_found", path=p_mission_folder), exception_type=FileNotFoundError)
 
     # Resolve input mission
     assert mission_name_or_file is not None
@@ -148,10 +146,10 @@ def inject_aircraft_groups(
     # Resolve template YAML file
     p_template_file = resolve_path(path=template_file, should_exist=True)
     if not p_template_file.exists():
-        logger.error(f"Template file {p_template_file} does not exist!", exception_type=FileNotFoundError)
+        logger.error(t("cmd.aircraft.template_not_found", path=p_template_file), exception_type=FileNotFoundError)
 
     # STEP 1: Validate the YAML file (MANDATORY)
-    logger.info("Step 1: Validating YAML file...")
+    logger.info(t("cmd.aircraft.step1_validating"))
     validator = AircraftGroupsYAMLValidator(p_template_file)
     is_valid, _ = validator.validate()
 
@@ -168,7 +166,7 @@ def inject_aircraft_groups(
     console.print(t("cmd.inject_aircraft.validation_ok") + "\n")
 
     # STEP 2: Inject aircraft groups
-    logger.info(f"Step 2: Injecting aircraft groups using '{mode}' mode...")
+    logger.info(t("cmd.aircraft.step2_injecting", mode=mode))
     injector = AircraftGroupsInjectorWorker(
         input_yaml=p_template_file, target_mission=p_input_mission, output_mission=p_output_mission
     )

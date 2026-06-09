@@ -1,5 +1,7 @@
 from pathlib import Path
 
+from veaf_libs.i18n import t
+
 DEFAULT_SCRIPTS_LOCATION: str = "l10n/DEFAULT"
 
 
@@ -162,7 +164,7 @@ def collect_files_from_globs(
             matched_files = _search_pattern_in_folder(alternative_folder, pattern)
             if matched_files and logger:
                 logger.warning(
-                    f"Used alternative folder '{alternative_folder}' to get '{pattern}' because nothing was found in '{base_folder}'"
+                    t("mission_tools.alternative_folder", alt=alternative_folder, file=pattern, orig=base_folder)
                 )
 
         # Add matched files to result

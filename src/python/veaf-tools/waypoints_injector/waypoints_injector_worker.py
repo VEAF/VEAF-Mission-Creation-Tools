@@ -87,7 +87,7 @@ class WaypointsInjectorWorker(GroupInjectorWorker):
 
         nb_groups_processed = 0
         if not self.waypoints_manager:
-            logger.warning("No waypoints manager loaded; skipping group processing")
+            logger.warning(t("waypoints_injector.no_manager"))
             return
         for group in [g for g in self.groups.values() if g.human_pilot]:
             # Try to find a flight plan for this group
@@ -196,11 +196,11 @@ class WaypointsExtractorWorker(BaseWorker):
             True if loading succeeded, False otherwise
         """
         if not self.input_lua:
-            logger.error("No Lua file specified", exception_type=ValueError)
+            logger.error(t("waypoints_injector.no_lua_file"), exception_type=ValueError)
             return False
 
         if not silent:
-            logger.info(f"Reading Lua file {self.input_lua}")
+            logger.info(t("waypoints_injector.reading_lua", path=self.input_lua))
 
         try:
             content = self.input_lua.read_text(encoding="utf-8")
@@ -210,11 +210,11 @@ class WaypointsExtractorWorker(BaseWorker):
             self.lua_data = luadata.unserialize(content, keep_as_dict=["waypoints", "settings"])  # type: ignore[assignment]
 
             if not self.lua_data:
-                logger.warning("Parsed Lua file is empty")
+                logger.warning(t("waypoints_injector.lua_empty"))
                 return False
 
             if not silent:
-                logger.info(f"Successfully parsed Lua file {self.input_lua}")
+                logger.info(t("waypoints_injector.lua_parsed", path=self.input_lua))
                 logger.debug(
                     f"Found keys in Lua data: {list(self.lua_data.keys()) if isinstance(self.lua_data, dict) else 'Not a dict'}"
                 )
@@ -222,24 +222,24 @@ class WaypointsExtractorWorker(BaseWorker):
             return True
 
         except Exception as e:
-            logger.error(f"Failed to read Lua file: {str(e)}", exception_type=type(e))
+            logger.error(t("waypoints_injector.lua_read_failed", error=str(e)), exception_type=type(e))
             return False
 
     def read_mission(self, silent: bool = False) -> None:
         """Load the mission from the .miz file."""
         if not silent:
-            logger.info(f"Reading mission file {self.input_mission}")
+            logger.info(t("waypoints_injector.reading_mission", path=self.input_mission))
 
         assert self.input_mission is not None
         self.dcs_mission = read_miz(self.input_mission)
 
         if not silent:
-            logger.info("Mission file loaded successfully")
+            logger.info(t("waypoints_injector.mission_loaded"))
 
     def extract_from_mission(self) -> None:
         """Extract waypoints from all groups in the mission."""
         if not self.dcs_mission:
-            logger.error("Mission not loaded", exception_type=ValueError)
+            logger.error(t("waypoints_injector.mission_not_loaded"), exception_type=ValueError)
             return
 
         coalitions_dict = (
@@ -287,7 +287,7 @@ class WaypointsExtractorWorker(BaseWorker):
     def extract_from_lua(self) -> None:
         """Extract waypoints from a Lua settings file."""
         if not self.lua_data:
-            logger.error("Lua data not loaded", exception_type=ValueError)
+            logger.error(t("waypoints_injector.no_lua_data"), exception_type=ValueError)
             return
 
         # Look for waypoints table in the Lua data
@@ -305,7 +305,7 @@ class WaypointsExtractorWorker(BaseWorker):
     def save_extracted_waypoints(self, silent: bool = False) -> None:
         """Save extracted waypoints to YAML file."""
         if not silent:
-            logger.info(f"Saving extracted waypoints to {self.output_yaml}")
+            logger.info(t("waypoints_injector.saving_waypoints", path=self.output_yaml))
 
         output_data = {"waypoints": {}}
 
@@ -350,15 +350,15 @@ class WaypointsExtractorWorker(BaseWorker):
                 yaml.dump(output_data, f, default_flow_style=False, allow_unicode=True)
 
             if not silent:
-                logger.info(f"Successfully saved {len(output_data['waypoints'])} waypoint set(s)")
+                logger.info(t("waypoints_injector.waypoints_saved", count=len(output_data["waypoints"])))
 
         except Exception as e:
-            logger.error(f"Failed to save YAML file: {str(e)}", exception_type=type(e))
+            logger.error(t("waypoints_injector.save_failed", error=str(e)), exception_type=type(e))
 
     def display_matched_groups(self) -> None:
         """Display matched groups in a table format."""
         if not self.matched_groups:
-            console.print("[yellow]No groups matched the pattern[/yellow]")
+            console.print(t("waypoints_injector.no_groups_matched"))
             return
 
         table = Table(title="Matched Groups")
@@ -393,7 +393,7 @@ class WaypointsExtractorWorker(BaseWorker):
             Number of groups selected
         """
         if not self.matched_groups:
-            logger.warning("No groups found to select from")
+            logger.warning(t("waypoints_injector.no_groups_to_select"))
             return 0
 
         # Display header with style
@@ -445,11 +445,11 @@ class WaypointsExtractorWorker(BaseWorker):
                 console.print(
                     f"[bold bright_yellow]▶ [{idx}][/bold bright_yellow] [bold bright_green]{waypoint_name}[/bold bright_green]"
                 )
-                console.print("  [bright_magenta]📋 Source:[/bright_magenta] [white]Lua settings file[/white]")
+                console.print(t("waypoints_injector.source_lua"))
 
             # Ask user for confirmation using standard input
             console.print(
-                "  [bold bright_cyan]❓ Include this waypoint?[/bold bright_cyan] (y/n/end) [[bright_yellow]n[/bright_yellow]]: ",
+                t("waypoints_injector.include_prompt"),
                 end="",
             )
             response = input().strip().lower()
@@ -458,7 +458,7 @@ class WaypointsExtractorWorker(BaseWorker):
                 selected_groups[group_key] = group_info
                 console.print("  [bold bright_green]✅ Included[/bold bright_green]\n")
             elif response in ("end",):
-                console.print("  [dim bright_black]⊘ Skipping all remaining[/dim bright_black]\n")
+                console.print(t("waypoints_injector.skipping_remaining"))
                 skip_all = True
             else:
                 # Default: skip (n, empty string, or any other input)
@@ -487,14 +487,16 @@ class WaypointsExtractorWorker(BaseWorker):
         """
         # Load data
         if self.input_lua:
-            with spinner_context(f"Reading {self.input_lua}...", silent=silent):
+            with spinner_context(t("waypoints_injector.spinner.reading_lua", path=self.input_lua), silent=silent):
                 self.read_lua_file(silent)
-            with spinner_context("Extracting waypoints from Lua...", silent=silent):
+            with spinner_context(t("waypoints_injector.spinner.extracting_lua"), silent=silent):
                 self.extract_from_lua()
         else:
-            with spinner_context(f"Reading {self.input_mission}...", silent=silent):
+            with spinner_context(
+                t("waypoints_injector.spinner.reading_mission", path=self.input_mission), silent=silent
+            ):
                 self.read_mission(silent)
-            with spinner_context("Extracting waypoints from mission...", silent=silent):
+            with spinner_context(t("waypoints_injector.spinner.extracting_mission"), silent=silent):
                 self.extract_from_mission()
 
         # Interactive selection mode
@@ -503,9 +505,9 @@ class WaypointsExtractorWorker(BaseWorker):
             num_selected = self.select_groups_interactively()
 
             if num_selected == 0:
-                logger.info("No waypoints selected for extraction")
+                logger.info(t("waypoints_injector.none_selected"))
                 return
 
         # Save waypoints
-        with spinner_context("Saving waypoints to YAML...", silent=silent):
+        with spinner_context(t("waypoints_injector.spinner.saving"), silent=silent):
             self.save_extracted_waypoints(silent)

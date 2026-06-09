@@ -41,7 +41,7 @@ def inject_weather(
 
     # Handle Lua conversion
     if convert_lua or p_config_file.suffix.lower() == ".lua":
-        logger.info(f"Converting Lua configuration: {p_config_file}")
+        logger.info(t("cmd.weather.converting_lua", path=p_config_file))
         if yaml_file := LuaToYamlConverter.convert_file(p_config_file):
             console.print(t("cmd.inject_weather.lua_converted"))
             console.print(f"  {yaml_file}")
@@ -52,13 +52,13 @@ def inject_weather(
                     input(t("help.pause_msg"))
                 return
         else:
-            logger.error("Failed to convert Lua configuration")
+            logger.error(t("cmd.weather.convert_failed"))
             if pause:
                 input(t("help.pause_msg"))
             return
 
     if not p_config_file.exists():
-        logger.error(f"Configuration file {p_config_file} does not exist!", exception_type=FileNotFoundError)
+        logger.error(t("cmd.weather.config_not_found", path=p_config_file), exception_type=FileNotFoundError)
 
     # Resolve mission file path
     p_mission_file = resolve_path(path=mission_name_or_file, should_exist=True)

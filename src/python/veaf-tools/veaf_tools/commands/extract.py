@@ -44,7 +44,7 @@ def extract(
     # Resolve output mission folder
     p_mission_folder = resolve_path(path=mission_folder, default_path=Path.cwd(), create_if_not_exist=True)
     if not p_mission_folder.exists():
-        logger.error(f"Mission folder {p_mission_folder} does not exist!", exception_type=FileNotFoundError)
+        logger.error(t("cmd.extract.folder_not_found", path=p_mission_folder), exception_type=FileNotFoundError)
 
     # Resolve input mission
     assert mission_name_or_file is not None

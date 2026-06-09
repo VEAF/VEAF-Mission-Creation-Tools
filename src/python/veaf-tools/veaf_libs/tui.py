@@ -261,10 +261,10 @@ def run_wizard() -> list[str]:
     except (KeyboardInterrupt, EOFError):
         # User pressed Ctrl-C or Ctrl-D — normal cancellation, not an error
         return []
-    except Exception:
+    except Exception as e:
         # Unexpected error: log it so the user sees what went wrong, then
         # fall back gracefully to the Typer help screen.
-        from veaf_libs.logger import logger
+        from veaf_libs.logger import logger  # noqa: PLC0415
 
-        logger.warning("TUI wizard encountered an unexpected error")
+        logger.warning(t("tui.unexpected_error", error=str(e)))
         return []

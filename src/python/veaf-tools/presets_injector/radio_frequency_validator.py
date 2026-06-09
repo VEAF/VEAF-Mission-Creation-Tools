@@ -289,7 +289,5 @@ def warn_invalid_frequencies(group_name: str, unit_type: str, freqs_mhz: list[fl
     for freq in freqs_mhz:
         if not any(r.contains(freq) for r in valid_ranges):
             logger.warning(
-                f"Group '{group_name}' ({unit_type}): {freq} MHz is not valid for this aircraft.\n"
-                f"  Valid ranges: {ranges_str}\n"
-                f"  Fix: in presets.yaml, change this frequency to a value within one of the ranges above."
+                t("presets.radio_invalid_frequency", group=group_name, unit=unit_type, freq=freq, ranges=ranges_str)
             )

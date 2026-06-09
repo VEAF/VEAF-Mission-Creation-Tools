@@ -30,7 +30,7 @@ def prepare(
         # Resolve mission folder
         p_mission_folder = resolve_path(path=mission_folder, default_path=Path.cwd(), create_if_not_exist=True)
 
-        logger.info(f"Initializing mission folder: {p_mission_folder}")
+        logger.info(t("cmd.prepare.initializing", path=p_mission_folder))
 
         # Resolve the defaults source directory.
         # __file__ is either:
@@ -64,7 +64,7 @@ def prepare(
         NEVER_OVERWRITE: frozenset[str] = frozenset({".gitignore"})
 
         # Copy default files from defaults source
-        logger.info(f"Copying default files from {defaults_source_path}")
+        logger.info(t("cmd.prepare.copying_defaults", path=defaults_source_path))
         for source_file in defaults_source_path.rglob("*"):
             if source_file.is_file():
                 relative_path = source_file.relative_to(defaults_source_path)
@@ -105,5 +105,5 @@ def prepare(
         console.print(t("cmd.prepare.folder_ready", path=p_mission_folder.resolve()))
 
     except Exception as e:
-        logger.error(f"Preparation failed: {e}")
+        logger.error(t("cmd.prepare.failed", error=str(e)))
         exit(1)

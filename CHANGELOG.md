@@ -9,6 +9,12 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+- `config_migrator`: `_lua_extract_string()` no longer absorbs quoted strings from chained Lua setters after `:setBriefing(…)` — search is now bounded to the matching closing parenthesis (regression from PR #390)
+- `mission_builder_worker`: missing-files error now uses i18n keys (`builder.missing_files`, `builder.update_hint`) instead of hardcoded English; `spinner_context` for `dcs-bridge.lua` injection also uses `t("builder.inject_dcs_bridge")`; fatal error no longer calls `exit()` (raises via `logger.error` instead, giving a non-zero exit code)
+- `paths.py`: `resolve_path` now raises `FileNotFoundError` instead of calling `exit(-1)` when a required path does not exist — makes the function testable and avoids `SystemExit(0)` on error
+- `v5_converter`: removed dead `is None` branch inside `if mr.mission_export_path is not None:` (unreachable)
+
 ### Added
 - docs: documentation overhaul (bilingual FR/EN) — pilot guide rewritten (deduplicated, accessible, jargon explained, `_auth` standardized); mission.yaml example updated to the unified `modules:` block; mermaid diagrams added (F10 radio menu, build pipeline, v5→v6 migration flow); screenshot placeholders added under `doc/assets/img/`; created the missing French `veafInterpreter` page; fixed broken `GUIDE.fr.md` links
 - docs: French/English parity for the large reference docs — `LUA_API_REFERENCE.md` (all module sections brought to full depth: missing functions, parameters, and code examples translated), `TOOLS_REFERENCE.md` (troubleshooting, command reference, best practices, security, FAQ sections added), and `dcs-radio-specs.md` (header and critical-aircraft prose translated)

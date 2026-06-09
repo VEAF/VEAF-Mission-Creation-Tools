@@ -487,6 +487,7 @@
   "builder.unknown_module_ids": "--log-modules : ID(s) de module inconnu(s) : {ids} — vérifiez l'orthographe",
   "builder.unknown_community_script": "ID de script communautaire inconnu {id} dans 'community_scripts:' ; ignoré.",
   "builder.dcs_bridge_downloading": "dcs_bridge : téléchargement de dcs-bridge.lua depuis {url}",
+  "builder.inject_dcs_bridge": "Injection de dcs-bridge.lua",
   "builder.copied_from_defaults": "Fichier requis '{file}' copié depuis le dossier par défaut '{folder}'",
   "builder.mission_read_error": "Erreur lors de la lecture du fichier {path} ; est-ce une mission DCS valide ?",
   "builder.veaf_config_generated": "'{file}' généré depuis mission.yaml",

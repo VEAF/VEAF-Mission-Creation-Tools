@@ -330,13 +330,9 @@ class MissionBuilderWorker(BaseWorker):
             if Path(file_pattern[0]).name not in collected_file_paths
         ]
 
-        message = f"Error: missing files from {scripts_folder}:\n"
-        for missing_file in sorted(missing_files):
-            message += f"  - {missing_file}\n"
-        message = message.rstrip("\n")
-        message += "\nTry updating the veaf-tools package using veaf-tools-updater.exe!"
-        logger.error(message=message, raise_exception=False)
-        exit()
+        files_str = ", ".join(sorted(missing_files))
+        message = t("builder.missing_files", folder=scripts_folder, files=files_str) + "\n" + t("builder.update_hint")
+        logger.error(message=message)
 
     def get_collected_mission_script_files(self) -> dict[str, bytes]:
         if self.collected_mission_script_files:
@@ -1165,7 +1161,7 @@ class MissionBuilderWorker(BaseWorker):
 
         # Optionally inject dcs-bridge.lua before all other triggers
         if self.dcs_bridge_enabled:
-            with spinner_context("Injecting dcs-bridge.lua", silent=silent):
+            with spinner_context(t("builder.inject_dcs_bridge"), silent=silent):
                 bridge_file = self.resolve_dcs_bridge_file()
                 self.inject_dcs_bridge_trigger(bridge_file)
 

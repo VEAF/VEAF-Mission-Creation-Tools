@@ -893,7 +893,7 @@ class V5Converter:
             if mr.mission_era:
                 lines.append(f"  era: {mr.mission_era}")
             if mr.mission_export_path is not None:
-                ep_yaml = "null" if mr.mission_export_path is None else _yaml_str(str(mr.mission_export_path))
+                ep_yaml = _yaml_str(str(mr.mission_export_path))
                 lines.append(f"  export_path: {ep_yaml}")
             lines.append("")
 

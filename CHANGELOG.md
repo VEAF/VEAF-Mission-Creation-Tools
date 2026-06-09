@@ -9,6 +9,9 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+- CLI output is now decluttered: low-importance progress messages (`logger.info`) are shown on a single overwriting status line in interactive terminals instead of scrolling endlessly; permanent technical lines (`logger.tech`) and chapter headers (`logger.step`) stay on screen. Spinner/progress "done" lines no longer persist. `--verbose` (and non-interactive/piped output) restores the classic line-by-line display; the full log file is unaffected and still records every message. The `build` command adopts the new chapter/technical classification: each pipeline step shows an animated spinner during its slow operations (reading/writing the `.miz`, validating), the weather step shows a progress bar over the variants it creates, and the aircraft-groups injection is now visible during a build (was silent). Every pipeline step ends with a concise persistent result line (e.g. "injected presets into 127 aircraft", "injected waypoints into 0 aircraft groups", "injected N aircraft groups", "created 6 weather variants"), so a `0` count immediately flags a configuration problem.
+
 ### Fixed
 - `convert-v5`: generated `mission.yaml` now includes the YAML syntax quick-reference header (was only present in `generate-config` output)
 - `convert-v5`: all comment strings in generated `mission.yaml` are now localized via `t()` — French users see French comments

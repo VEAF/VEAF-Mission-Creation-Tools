@@ -65,5 +65,6 @@ def main() -> None:
     try:
         app()
     finally:
+        logger.stop_status()
         if auto_pause:
             input(t("help.pause_msg"))

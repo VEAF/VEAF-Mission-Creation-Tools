@@ -1174,6 +1174,6 @@ class MissionBuilderWorker(BaseWorker):
             self.write_mission()
 
         if not silent:
-            logger.info(t("builder.built", output=self.output_mission, folder=self.mission_folder))
+            logger.tech(t("builder.built", output=self.output_mission, folder=self.mission_folder))
 
         return self.output_mission

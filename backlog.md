@@ -91,9 +91,44 @@
 | Lot FIX-BRIEFING-MULTILINE — convert-v5 truncates multi-line Lua briefings | ~45 min | ✅ |
 | Lot FIX-I18N-HARDCODED — AST test + fix hardcoded strings in aircrafts_injector + lua_config_generator | ~1h | ✅ |
 | Lot FIX-I18N-DEBT — Fix remaining 107 hardcoded strings across 25 files, clear _TODO_EXEMPTIONS | ~4h | 🔄 |
-| **Total** | **~194h** | |
+| Lot UI-OUTPUT — Declutter CLI output (transient status line + chapter/technical tiers) | ~3h | 🔄 |
+| Lot FIX-CONVERT-V5-DEPS — resolve module dependencies when generating mission.yaml | ~45 min | ⬜ |
+| **Total** | **~198h** | |
 
 *Initial calibration factor: 1.15 — recalculate after each completed lot.*
+
+---
+
+## Lot FIX-CONVERT-V5-DEPS — resolve module dependencies when generating mission.yaml
+
+**Goal**: When `convert-v5` generates `mission.yaml`, it does not resolve module dependencies. As a result, `veaf-tools build` later auto-enables missing dependencies at config-generation time and prints a warning (e.g. *"Module 'CASMISSION' requires 'GROUNDAI' which is not configured — auto-enabling 'GROUNDAI'"*). Since the converter just produced the file, it should pre-resolve dependencies so required modules are already enabled in the generated `mission.yaml` — no build-time warning, and the file accurately reflects what will run.
+
+**Context**: The dependency graph `_MODULE_DEPS` and the resolver `_resolve_deps()` live in `veaf_libs/lua_config_generator.py` (e.g. `"CASMISSION": ["SPAWN", "GROUNDAI"]`). The converter writes the `modules:` section in `mission_builder/v5_converter.py` without consulting them.
+
+**Branch**: handled on `feature/UI-OUTPUT` (per user request) — no separate branch.
+
+| # | Ticket | Files | Type | Effort | Status |
+|---|--------|-------|------|--------|--------|
+| CVDEP-001 | Expose the dependency graph / resolver from `lua_config_generator.py` so the converter can reuse it (avoid duplicating `_MODULE_DEPS`) | `veaf_libs/lua_config_generator.py` | refactor | 15 min | ⬜ |
+| CVDEP-002 | In `convert-v5` module generation, auto-enable required dependencies (transitively) and emit them explicitly in the generated `mission.yaml`; add a one-line note in the conversion report listing dependencies that were auto-added | `mission_builder/v5_converter.py`, `locales/*.json` | feat | 20 min | ⬜ |
+| CVDEP-003 | TDD: a v5 folder enabling `CASMISSION` produces a `mission.yaml` with `GROUNDAI` (and `SPAWN`) enabled; `build` no longer prints the dependency auto-enable warning for it | `test/python/` | test | 10 min | ⬜ |
+
+---
+
+## Lot UI-OUTPUT — Declutter CLI output (transient status line + chapter/technical tiers)
+
+**Goal**: Make `veaf-tools` (and later `veaf-tools-updater`) output readable. Low-importance progress messages scroll endlessly today. Introduce three output tiers: permanent technical lines, permanent chapter headers, and a single overwriting transient line for everything else (warnings/errors stay permanent). The full log file keeps every message. `--verbose` and non-interactive output fall back to the classic line-by-line display.
+
+**Branch**: `feature/UI-OUTPUT` → PR → `develop-v6`
+
+| # | Ticket | Files | Type | Effort | Status |
+|---|--------|-------|------|--------|--------|
+| UIOUT-001 | `StatusLine` helper: single overwriting Rich `Live` line, enable/disable, suspend for nested `Live` | `veaf_libs/console_status.py` | feat | 40 min | 🔄 |
+| UIOUT-002 | Wire into `Logger`: `info()` transient by default, add `tech()`/`step()`, `set_verbose` gates transient on TTY, `stop_status()` | `veaf_libs/logger.py` | feat | 30 min | 🔄 |
+| UIOUT-003 | Make `spinner_context`/`progress_context` suspend the status line and render transiently when active | `veaf_libs/progress.py` | feat | 20 min | 🔄 |
+| UIOUT-004 | Pilot `build`: promote pipeline headers to `step()`, key results to `tech()`; stop status line at program end | `veaf_tools/commands/build.py`, `veaf_tools/app.py`, `mission_builder/mission_builder_worker.py` | feat | 20 min | 🔄 |
+| UIOUT-005 | Unit tests for `StatusLine` and `Logger` routing | `test/python/veaf_libs/test_console_status.py`, `test_logger.py` | test | 30 min | 🔄 |
+| UIOUT-006 | Phase 2 — reclassify remaining modules (presets, weather, waypoints, aircraft, updater) + update `doc/` | `src/python/**`, `doc/` | feat | ⬜ |
 
 ---
 

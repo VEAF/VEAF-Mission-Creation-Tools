@@ -3,7 +3,7 @@
 # Place this file at the root of your mission folder (next to veaf-tools-updater.exe).
 # If absent, veaf-tools build works with default settings.
 #
-# Doc: https://veaf.github.io/documentation/latest/mission-maker/GUIDE/
+# Doc: https://veaf.github.io/documentation/dev/mission-maker/GUIDE/
 
 # ── YAML syntax quick reference ─────────────────────────────────────────────
 # Indentation: spaces only (never tabs). Each level = 2 spaces.

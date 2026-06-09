@@ -122,21 +122,21 @@ const SL=[
 {t:"section",num:"2 — YAML",title:"Configuration YAML-first",sub:"mission.yaml remplace missionConfig.lua"},
 {t:"compare",title:"Configuration : v5 vs v6",
  old:{h:"v5 — missionConfig.lua",items:["Code Lua dans src/scripts/","Syntaxe fragile — oubli virgule = crash DCS","Erreur découverte au chargement DCS","Modules activés/désactivés dans le code","Dépendances de modules gérées manuellement","Aucun profil de build (debug, prod…)"]},
- nw:{h:"v6 — mission.yaml",items:["YAML déclaratif, lisible, versionnable","Validé au build — erreur signalée avant DCS","enable: true/false par module","Dépendances auto-résolues au build","Profils de build : TEST, SERVER… (--profile)","Lua avancé toujours possible dans mission-script.lua"]}},
+ nw:{h:"v6 — mission.yaml",items:["YAML déclaratif, lisible, versionnable","Validé au build — erreur signalée avant DCS","Bloc modules: unifié — enabled: true/false par module","Dépendances auto-résolues au build","Profils de build : TEST, SERVER… (--profile)","Lua avancé toujours possible dans mission-script.lua"]}},
 {t:"code"},
 {t:"features",title:"Nouveautés YAML",items:[
-  {i:"🔒",h:"Modules obligatoires protégés",d:"UNITS, TIME, CACHE, EVENTS, MARKERS, COMMANDS — erreur levée au build si <code>enable: false</code> est spécifié. Le flag ne peut pas être forcé."},
+  {i:"🔒",h:"Modules obligatoires protégés",d:"UNITS, TIME, CACHE, EVENTS, MARKERS, COMMANDS — déclarés en valeur nulle (<code>UNITS:</code>), toujours actifs. Spécifier <code>enabled: false</code> lève une erreur au build."},
   {i:"🔗",h:"Dépendances auto-résolues",d:"Module désactivé requis ? Activé automatiquement avec un warning. Chaînes transitives résolues."},
   {i:"🎛️",h:"Profils de build",d:"veaf-tools build --profile TEST — deep-merge sur la config de base. Listes remplacées."},
   {i:"📦",h:"CTLD & CSAR YAML-first",d:"external_modules.ctld/.csar génèrent le bloc Lua + initialize() dans veaf-config.lua."},
   {i:"📜",h:"Scripts custom déclarés",d:"Section <code>custom_scripts:</code> — déclare des scripts Lua dans <code>src/scripts/</code> sans convention de nommage. Option <code>generate_load_trigger: false</code> pour opt-out du trigger DCS."},
-  {i:"🔀",h:"Scripts communautaires toggleables",d:"Section <code>community_scripts:</code> — active ou désactive individuellement MIST, CTLD, CSAR, Skynet, TUM… Sémantique opt-out : seuls les scripts explicitement désactivés sont exclus du build."}]},
+  {i:"🔀",h:"Scripts communautaires toggleables",d:"Intégrés au bloc <code>modules:</code> unifié (v6.4) — active ou désactive individuellement MIST, CTLD, CSAR, SKYNET, TUM… Sémantique opt-out : seuls les scripts explicitement désactivés sont exclus du build."}]},
 {t:"features",title:"Nouveautés récentes",items:[
   {i:"📡",h:"Validation des fréquences radio",d:"inject-presets vérifie que chaque fréquence de preset est dans la plage valide pour l'avion concerné (données extraites de dcs-lua-datamine). Warning explicite avec la plage attendue."},
   {i:"✈️",h:"Presets per-aircraft & patterns regex",d:"convert-v5 extrait les assignments radio par type d'avion depuis radioSettings. Les clés <code>presets_assignments</code> supportent les regex (ex : <code>A[-]10C.*</code>) — exact > pattern > <code>all</code>."},
-  {i:"🌉",h:"dcs-bridge — pont DCS optionnel",d:"Section <code>dcs_bridge:</code> dans mission.yaml — injecte dcs-bridge.lua dans le .miz pour exposer une API réseau DCS. Désactivé par défaut, zéro overhead si absent."},
-  {i:"🔄",h:"convert-v5 génère community_scripts",d:"La conversion v5→v6 détecte les scripts présents dans <code>published/src/scripts/community/</code> et pré-remplit la section <code>community_scripts:</code> avec les bons flags enabled."}],
-note:"<span style='color:var(--gold);font-weight:700'>dcs-bridge</span> est un outil tiers (<a href='https://github.com/DCS-BR-Tools/dcs-bridge' style='color:#c8a855'>DCS-BR-Tools/dcs-bridge</a>) qui expose une API réseau depuis DCS — utilisé par des outils externes (SRS, bots Discord, tableaux de bord…). La section <code>dcs_bridge:</code> dans mission.yaml injecte et configure le script automatiquement."},
+  {i:"🌉",h:"dcs-bridge — pont DCS optionnel",d:"Section <code>dcs_bridge:</code> dans mission.yaml — injecte dcs-bridge.lua dans le .miz pour exposer une API réseau DCS. Si <code>lua_path</code> est absent, le fichier est téléchargé automatiquement depuis GitHub. Désactivé par défaut, zéro overhead si absent."},
+  {i:"🔄",h:"convert-v5 pré-remplit les communautaires",d:"La conversion v5→v6 détecte les scripts présents dans <code>published/src/scripts/community/</code> et pré-remplit le bloc <code>modules:</code> avec les bons flags <code>enabled</code> (IDs en majuscules : MIST, STTS…)."}],
+note:"<span style='color:var(--gold);font-weight:700'>dcs-bridge</span> expose une API réseau depuis DCS — utilisé par des outils externes (SRS, bots Discord, tableaux de bord…). Le script est récupéré depuis <a href='https://github.com/VEAF/VEAF-dcs-bridge' style='color:#c8a855'>VEAF/VEAF-dcs-bridge</a>. La section <code>dcs_bridge:</code> dans mission.yaml injecte et configure le script automatiquement."},
 {t:"section",num:"3 — BUILD",title:"Pipeline de build",sub:"Même workflow, outillage entièrement repensé"},
 {t:"flow"},
 {t:"features",title:"Ce qui change sous le capot",items:[
@@ -155,7 +155,7 @@ note:"<span style='color:var(--gold);font-weight:700'>dcs-bridge</span> est un o
   {i:"🔁",h:"Mise à jour",d:"Relancer l'updater — il vérifie GitHub, télécharge et s'auto-remplace (mécanisme différé pour éviter les locks Windows)."},
   {i:"📌",h:"Épingler une version par mission",d:'Dans mission.yaml : veaf_tools: version: "^6.3" — l\'updater refuse de dépasser la contrainte. Utile pour les serveurs de prod.'},
   {i:"⚙️",h:"Config utilisateur globale",d:"~/veafmct.yaml : langue, vérification auto des mises à jour, chemin scripts par défaut."}]},
-{t:"section",num:"6 — TESTS",title:"Qualité & Tests",sub:"915+ tests — ce que ça change pour vous"},
+{t:"section",num:"6 — TESTS",title:"Qualité & Tests",sub:"2 800+ tests — ce que ça change pour vous"},
 {t:"tests"},
 {t:"section",num:"7 — DOC",title:"Documentation",sub:"Complète, bilingue, structurée par rôle"},
 {t:"compare",title:"Documentation : v5 vs v6",
@@ -168,7 +168,7 @@ note:"<span style='color:var(--gold);font-weight:700'>dcs-bridge</span> est un o
 ];
 
 const NOTES=[
-"Slide d'introduction. v5 = branche master (dernière release v5.103.3). v6 = branche develop-v6, version actuelle 6.3.4.",
+"Slide d'introduction. v5 = branche master (dernière release v5.103.3). v6 = branche develop-v6, version actuelle 6.4.0.",
 "Tour d'horizon. La migration sera traitée en dernier — c'est ce qui intéresse le plus les utilisateurs existants.",
 "En v5, mettre en place l'environnement était un frein réel pour les nouveaux créateurs de mission. En v6 : zéro dépendance.",
 "Message clé de la slide. Insister sur le contraste avant/après.",
@@ -194,7 +194,7 @@ const NOTES=[
 "Insister sur la structuration par rôle : chacun trouve ce qui le concerne directement.",
 "La migration est outillée et guidée. Compter ~1-2h pour une mission complexe.",
 "Point d'échec le plus fréquent : les .lua résiduels v5 dans src/scripts/. Vérifier ça en premier si le build réussit mais DCS crashe.",
-"Slide de conclusion. Version actuelle 6.3.4.",
+"Slide de conclusion. Version actuelle 6.4.0.",
 "Dernière slide — questions / discussion.",
 "",
 ];
@@ -321,13 +321,16 @@ function rCommands(){
 
 function rCode(){
   return `<div class="lbl">Exemple mission.yaml</div>
-<div class="code-blk" style="font-size:13px"><span class="ck">lua_modules</span>:
-  - <span class="ck">name</span>: <span class="cv">UNITS</span>          <span class="cc"># obligatoire</span>
-    <span class="ck">enable</span>: <span class="cs">true</span>
-  - <span class="ck">name</span>: <span class="cv">QRA_MANAGER</span>
-    <span class="ck">enable</span>: <span class="cs">true</span>
-  - <span class="ck">name</span>: <span class="cv">AIR_WAVES</span>
-    <span class="ck">enable</span>: <span class="cs">false</span>       <span class="cc"># désactivé pour cette mission</span>
+<div class="code-blk" style="font-size:13px"><span class="cc"># Bloc modules unifié (Lua + communautaires) — syntaxe v6.4</span>
+<span class="ck">modules</span>:
+  <span class="ck">UNITS</span>:                 <span class="cc"># obligatoire — toujours actif (valeur nulle)</span>
+  <span class="ck">TIME</span>:                  <span class="cc"># obligatoire</span>
+  <span class="ck">QRA_MANAGER</span>: <span class="cs">true</span>      <span class="cc"># optionnel — raccourci d'activation</span>
+  <span class="ck">AIR_WAVES</span>:
+    <span class="ck">enabled</span>: <span class="cs">false</span>       <span class="cc"># désactivé pour cette mission</span>
+  <span class="ck">MIST</span>: <span class="cs">true</span>             <span class="cc"># script communautaire activé</span>
+  <span class="ck">SKYNET</span>:
+    <span class="ck">enabled</span>: <span class="cs">false</span>       <span class="cc"># opt-out : pas de Skynet ici</span>
 
 <span class="ck">global_log_level</span>: <span class="cv">info</span>
 
@@ -337,13 +340,8 @@ function rCode(){
   <span class="ck">SERVER</span>:
     <span class="ck">global_log_level</span>: <span class="cv">warning</span>
 
-<span class="ck">external_modules</span>:
-  <span class="ck">ctld</span>: { <span class="ck">enable</span>: <span class="cs">true</span> }
-  <span class="ck">csar</span>: { <span class="ck">enable</span>: <span class="cs">true</span> }
-
-<span class="cc"># Scripts communautaires — opt-out : ne lister que ce qu'on veut désactiver</span>
-<span class="ck">community_scripts</span>:
-  <span class="ck">skynet</span>: { <span class="ck">enabled</span>: <span class="cs">false</span> }   <span class="cc"># pas de Skynet pour cette mission</span>
+<span class="ck">dcs_bridge</span>:
+  <span class="ck">enabled</span>: <span class="cs">false</span>         <span class="cc"># pont réseau DCS optionnel</span>
 
 <span class="ck">veaf_tools</span>:
   <span class="ck">version</span>: <span class="cv">"^6.3"</span></div>`;
@@ -529,7 +527,7 @@ function rTests(){
           <div style="font-size:14px;color:var(--muted)">32 suites simulant l'environnement DCS (timer, coalition, world…) hors DCS</div>
         </div>
         <div style="background:var(--bg3);border-left:3px solid #27ae60;padding:16px 18px">
-          <div style="font-family:var(--raj);font-size:20px;color:#27ae60;margin-bottom:4px">1 026 tests Python</div>
+          <div style="font-family:var(--raj);font-size:20px;color:#27ae60;margin-bottom:4px">1 046 tests Python</div>
           <div style="font-size:14px;color:var(--muted)">Couverture du pipeline de build : YAML, presets, convert-v5, validation radio…</div>
         </div>
         <div style="background:var(--bg3);border-left:3px solid #27ae60;padding:16px 18px">
@@ -565,7 +563,7 @@ function rMigration(){
 }
 
 function rSummary(){
-  const rows=[['Installation','Node.js, npm, Lua, PowerShell…','Un seul .exe — zéro dépendance'],['Configuration','missionConfig.lua (Lua)','mission.yaml + mission-script.lua'],['Build','Scripts disparates','veaf-tools build unifié'],['Architecture Lua','Couplage fort, gros fichiers','Dispatcher + sous-modules découplés'],['Tests','Aucun','915+ tests automatisés'],['Documentation','Incomplète, FR only','Complète, FR+EN, par rôle'],['Mise à jour','npm install','updater.exe auto + épinglage'],['Migration','Manuelle','convert-v5 guidé']];
+  const rows=[['Installation','Node.js, npm, Lua, PowerShell…','Un seul .exe — zéro dépendance'],['Configuration','missionConfig.lua (Lua)','mission.yaml + mission-script.lua'],['Build','Scripts disparates','veaf-tools build unifié'],['Architecture Lua','Couplage fort, gros fichiers','Dispatcher + sous-modules découplés'],['Tests','Aucun','2 800+ tests automatisés'],['Documentation','Incomplète, FR only','Complète, FR+EN, par rôle'],['Mise à jour','npm install','updater.exe auto + épinglage'],['Migration','Manuelle','convert-v5 guidé']];
   return `<div class="lbl">En résumé — v5 → v6</div>
   <table class="vtable" style="margin-top:10px">
     <thead><tr><th></th><th>v5</th><th style="color:#27ae60">v6</th></tr></thead>

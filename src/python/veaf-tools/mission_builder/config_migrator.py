@@ -283,8 +283,8 @@ class ConfigMigrator:
         )
 
     def _build_yaml_snippet(self, enabled_modules: list[str]) -> str:
-        """Generate a ``lua_modules:`` YAML block for ``mission.yaml``."""
-        lines: list[str] = ["lua_modules:"]
+        """Generate a ``modules:`` YAML block for ``mission.yaml``."""
+        lines: list[str] = ["modules:"]
         enabled_set = set(enabled_modules)
 
         for mod in get_modules():
@@ -295,7 +295,7 @@ class ConfigMigrator:
                 lines.extend(yaml_module_entry(yaml_key, mid))
             else:
                 lines.append(f"  # {yaml_key}:")
-                lines.append("  #   enable: false  # not found in missionConfig.lua")
+                lines.append("  #   enabled: false  # not found in missionConfig.lua")
 
         return "\n".join(lines)
 

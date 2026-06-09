@@ -476,6 +476,7 @@
   "pipeline.injecting_aircraft_mode": "Pipeline: injecting aircraft groups from {path} (mode={mode})",
   "presets_injector.freq_warn.disable_tip": "To silence these warnings temporarily while you fix the presets, add 'none' for these aircraft types in presets.yaml:\n  presets_assignments:\n{yaml_block}\n  Once the presets are corrected, remove those 'none' lines to re-enable injection.",
   "builder.lua_modules_found": "Found lua_modules section in {path}; will generate veaf-config.lua",
+  "builder.modules_deprecated": "Deprecated: 'lua_modules:' and 'community_scripts:' are replaced by 'modules:' — please update your mission.yaml",
   "builder.log_level_found": "Found global_log_level={level} in {path}",
   "builder.dev_mode_active": "Dev mode: VEAF scripts resolved from local dev repo (build/veaf-scripts.lua)",
   "builder.scripts_folder_missing": "Scripts folder {path} does not exist!",

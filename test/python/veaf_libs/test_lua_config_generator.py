@@ -279,7 +279,7 @@ def test_mandatory_module_config_only_passes(caplog):
 
 
 def test_mandatory_module_no_enable_in_yaml_template():
-    """generate_mission_yaml_template must emit 'key: {}' for mandatory modules, never 'enable:'."""
+    """generate_mission_yaml_template must emit bare 'key:' (null) for mandatory modules, never 'enable:'."""
     template = generate_mission_yaml_template(enabled_module_ids=MANDATORY_MODULES | {"RADIO"})
     lines = template.splitlines()
 
@@ -287,15 +287,15 @@ def test_mandatory_module_no_enable_in_yaml_template():
         uncommented = [ln for ln in lines if mandatory in ln and not ln.lstrip().startswith("#")]
         assert uncommented, f"{mandatory} must appear uncommented in the template"
         assert not any("enable:" in ln for ln in uncommented), f"{mandatory} must not have 'enable:'"
+        # Mandatory modules must be emitted as bare null: "  KEY:" with nothing after the colon
         assert any(
-            ln.strip().startswith(f"{mandatory}: {{}}") or ln.strip().startswith(f'"{mandatory}": {{}}')
-            for ln in uncommented
-        ), f"{mandatory} must be emitted as 'key: {{}}'"
+            ln.strip() == f"{mandatory}:" for ln in uncommented
+        ), f"{mandatory} must be emitted as bare null 'key:'"
 
-    # Non-mandatory enabled module must still use enable: true (on the indented sub-key line)
+    # Non-mandatory enabled module must use enabled: true (not enable:)
     assert any(
-        ln.strip() == "enable: true" and not ln.startswith("#") for ln in lines
-    ), "RADIO (non-mandatory) must produce an 'enable: true' line"
+        ln.strip() == "enabled: true" and not ln.startswith("#") for ln in lines
+    ), "RADIO (non-mandatory) must produce an 'enabled: true' line"
 
 
 def test_non_mandatory_disabled_no_error(caplog):
@@ -317,7 +317,7 @@ def test_dep_auto_resolution_missing_dep(caplog):
     with caplog.at_level(logging.WARNING, logger="veaf-tools"):
         result = _resolve_deps(effective)
     assert "UNITS" in result
-    assert result["UNITS"].get("enable") is True
+    assert result["UNITS"].get("enabled") is True
     assert any("UNITS" in msg for msg in caplog.messages)
 
 
@@ -327,7 +327,7 @@ def test_dep_auto_resolution_disabled_dep(caplog):
     effective = {"SPAWN": {}, "UNITS": {"enable": False, "logLevel": "debug"}}
     with caplog.at_level(logging.WARNING, logger="veaf-tools"):
         result = _resolve_deps(effective)
-    assert result["UNITS"].get("enable") is True
+    assert result["UNITS"].get("enabled") is True
     # Other config must be preserved (Sourcery fix)
     assert result["UNITS"].get("logLevel") == "debug"
     assert any("UNITS" in msg for msg in caplog.messages)

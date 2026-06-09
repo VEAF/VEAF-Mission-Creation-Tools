@@ -5,16 +5,29 @@
 #
 # Doc: https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/master/doc/mission-maker/GUIDE.en.md
 
+# ── YAML syntax quick reference ─────────────────────────────────────────────
+# Indentation: spaces only (never tabs). Each level = 2 spaces.
+# Quotes: only needed when a value contains  :  #  {  [  or starts with a digit.
+#   name: Mon-Vol-01            # OK — no quotes needed
+#   name: "Vol: Aller-Retour"   # required — value contains :
+# Lists: each item on its own line, preceded by  -
+#   groups:
+#     - MIG-29_SOLO
+#     - MIG-21_SOLO
+# Booleans: true / false  (without quotes)
+# Empty value (mandatory modules): MODULE:   (nothing after the colon)
+# ────────────────────────────────────────────────────────────────────────────
+
 # ── Global log level ─────────────────────────────────────────────────────────
 # Forces veaf.ForcedLogLevel in the built mission. Applies to every module.
 # Values: error | warning | info | debug | trace
-# Remove or set to "info" before deploying to players.
+# Remove or set to info before deploying to players.
 #
 # global_log_level: debug
 
 # ── Mission identity ─────────────────────────────────────────────────────────
 # mission:
-#   name: "My-Mission"          # shown in radio menus and log messages
+#   name: My-Mission            # shown in radio menus and log messages
 #   export_path: null           # null = default DCS Saved Games path
 #   era: MODERN                 # MODERN | COLD_WAR | WW2
 
@@ -26,101 +39,110 @@
 #   password_mm_hashes:         # SHA-256 hashes to restrict Mission Master access
 #     - "<SHA-256 hash>"
 
-# ── Per-module configuration ──────────────────────────────────────────────────
-# Enable, disable, or override the log level of individual VEAF Lua modules.
-# Modules not listed here are enabled with their default settings.
+# ── Module configuration ──────────────────────────────────────────────────────
+# Enable or disable VEAF modules and community scripts in one unified block.
+# Mandatory modules (bare MODULE: with no value) are always active.
+# Optional module shorthand:  MODULE: true   or   MODULE: false
+# With extra config:
+#   MODULE:
+#     enabled: true
+#     logLevel: debug
 #
-# lua_modules:
-#   # ── Infrastructure (always active — configurable but enable/disable not allowed) ──
-#   UNITS:    {}    # logLevel: debug
-#   TIME:     {}
-#   CACHE:    {}
-#   EVENTS:   {}
-#   MARKERS:  {}
-#   COMMANDS: {}
+# modules:
+#   # ── Infrastructure (mandatory — always active) ────────────────────────────
+#   UNITS:
+#   TIME:
+#   CACHE:
+#   EVENTS:
+#   MARKERS:
+#   COMMANDS:
 #   # ── Core ─────────────────────────────────────────────────────────────────
-#   SECURITY:    { enable: true }
-#   RADIO:
-#     enable: true
-#     init:
-#       help_menus: true
-#   GROUNDAI:    { enable: true }
+#   SECURITY: true
+#   RADIO: true
+#   # RADIO:
+#   #   enabled: true
+#   #   init:
+#   #     help_menus: true
+#   GROUNDAI: true
 #   SHORTCUTS:
-#     enable: true
+#     enabled: true
 #     shortcuts:
-#       - name: "smoke"
-#         description: "Smoke command shortcut"
-#         command: "/_smoke"
+#       - name: smoke
+#         description: Smoke command shortcut
+#         command: /_smoke
 #         bypass_security: false
 #   NAMEDPOINTS:
-#     enable: true
+#     enabled: true
 #     custom_points:
-#       # - name: "Battle Area Alpha"
+#       # - name: Battle Area Alpha
 #       #   lat: "41.123456"
 #       #   lon: "44.987654"
-#   SPAWN:       { enable: true }
+#   SPAWN: true
 #   # ── Features ─────────────────────────────────────────────────────────────
 #   ASSETS:
-#     enable: true
+#     enabled: true
 #     assets:
 #       - sort: 1
-#         name: "T1-Arco-1"
-#         description: "Arco-1 (KC-135)"
+#         name: T1-Arco-1
+#         description: Arco-1 (KC-135)
 #         information: "Tacan 64Y\nU290.50 (20)"
-#   MOVE:        { enable: true }
-#   GRASS:       { enable: true }
+#   MOVE: true
+#   GRASS: true
 #   SANCTUARY:
-#     enable: true
+#     enabled: true
 #     sanctuary_zones:
-#       - name: "Base Alpha"
+#       - name: Base Alpha
 #         polygon_units:
-#           - "Sanctuary-Unit-1"
-#           - "Sanctuary-Unit-2"
+#           - Sanctuary-Unit-1
+#           - Sanctuary-Unit-2
 #         coalition: BLUE
 #         delay_warning: 30
 #         delay_spawn: 60
-#   WEATHER:     { enable: true }
-#   REMOTE:      { enable: true }
-#   AIRBASES:    { enable: true }
-#   MISSILEGUARDIAN: { enable: true }
-#   INTERPRETER: { enable: true }
+#   WEATHER: true
+#   REMOTE: true
+#   AIRBASES: true
+#   MISSILEGUARDIAN: true
+#   INTERPRETER: true
 #   # ── Combat ───────────────────────────────────────────────────────────────
-#   CASMISSION:       { enable: true }
-#   TRANSPORTMISSION: { enable: true }
-#   COMBATMISSION:    { enable: true }
+#   CASMISSION: true
+#   TRANSPORTMISSION: true
+#   COMBATMISSION: true
 #   COMBATZONE:
-#     enable: true
+#     enabled: true
 #     combat_zone_settings:
-#       event_message_combatzonecomplete: "Combat Zone complete!"
+#       event_message_combatzonecomplete: Combat Zone complete!
 #       watchdog_check_interval: 30
-#       radio_menu_name: "Combat Zones"
-#       combat_zone_menu_name: "Combat Zone Operations"
-#       operation_menu_name: "Operations"
+#       radio_menu_name: Combat Zones
 #     combat_zones:
 #       - type: zone
-#         zone_name: "CZ-Alpha"
-#         friendly_name: "Alpha Zone"
+#         zone_name: CZ-Alpha
+#         friendly_name: Alpha Zone
 #         training: false
-#       - type: operation
-#         zone_name: "CZ-Op-Alpha"
-#         tasking_orders:
-#           - zone_name: "CZ-Alpha"
-#           - zone_name: "CZ-Bravo"
-#             dependencies: ["CZ-Alpha"]
-#   QRA:         { enable: true }
+#   QRA: true
 #   AIRWAVES:
-#     enable: true
+#     enabled: true
 #     airwave_zones:
-#       - name: "BVR Zone"
+#       - name: BVR Zone
 #         start: true
-#         player_coalitions: [BLUE]
+#         player_coalitions:
+#           - BLUE
 #         zone_center_coordinates: "N41°00'00\" E044°00'00\""
 #         zone_radius: 50000
 #         delay_between_waves: 120
 #         waves:
-#           - groups: "su27-2ship"
+#           - groups: su27-2ship
 #             delay: 0
-#   CARRIER: { enable: true }
+#   CARRIER: true
+#   # ── Community scripts ─────────────────────────────────────────────────────
+#   mist: true
+#   stts: true
+#   weathermark: true
+#   ctld: true
+#   aien: true
+#   csar: true
+#   hercules: true
+#   skynet: true
+#   tum: true
 
 # ── External modules ─────────────────────────────────────────────────────────
 # external_modules:
@@ -138,126 +160,78 @@
 #     # csar.xxx = value pairs go here (e.g. enableAllslots: true)
 
 # ── QRA (Quick Reaction Alert) ────────────────────────────────────────────────
-# Requires QRA module enabled in lua_modules above.
+# Requires QRA module enabled in modules above.
 # qra:
 #   silence_all: false
 #   definitions:
-#     - name: "Base QRA"
+#     - name: Base QRA
 #       coalition: RED
-#       enemy_coalitions: [BLUE]
-#       trigger_zone: "QRA zone"
+#       enemy_coalitions:
+#         - BLUE
+#       trigger_zone: QRA zone
 #       zone_radius: 30000
 #       groups_by_enemy_count:
 #         - enemy_count: 1
-#           groups: ["Group1", "Group2"]
+#           groups:
+#             - Group1
+#             - Group2
 #           random_pick: 1
 #       delay_before_rearming: 30
 #       delay_before_activating: 30
 
 # ── CAP missions ──────────────────────────────────────────────────────────────
-# Requires COMBATMISSION module enabled in lua_modules above.
+# Requires COMBATMISSION module enabled in modules above.
 # cap_missions:
-#   - group_name: "CAP Group"
-#     menu_name: "CAP"
-#     briefing: "CAP mission briefing"
+#   - group_name: CAP Group
+#     menu_name: CAP
+#     briefing: CAP mission briefing
 #     default: false
 #     activated: true
 
 # ── Combat missions ───────────────────────────────────────────────────────────
-# Requires COMBATMISSION module enabled in lua_modules above.
+# Requires COMBATMISSION module enabled in modules above.
 # combat_missions:
-#   - name: "Mission Name"
-#     friendly_name: "Display Name"
+#   - name: Mission Name
+#     friendly_name: Display Name
 #     secured: false
 #     radio_menu_enabled: true
 #     briefing: |
 #       Multi-line briefing text here.
 #     elements:
-#       - name: "Element Name"
-#         groups: ["Group1", "Group2"]
+#       - name: Element Name
+#         groups:
+#           - Group1
+#           - Group2
 #         scalable: true
 
 # ── DCS Bridge ───────────────────────────────────────────────────────────────
 # Optionally inject dcs-bridge.lua as the very first DO SCRIPT FILE trigger.
-# dcs-bridge provides a TCP socket link between DCS and an external server.
-# See: https://github.com/VEAF/VEAF-dcs-bridge
-#
-# When lua_path is absent, dcs-bridge.lua is downloaded automatically from GitHub.
-# When lua_path is set, the file is read from the given path (absolute or relative
-# to the mission folder).
-#
 # dcs_bridge:
 #   enabled: false
 #   lua_path: null      # optional — auto-download when absent
 
 # ── Custom scripts ────────────────────────────────────────────────────────────
-# Declare Lua scripts in src/scripts/ that are not part of the standard VEAF v6 set.
-# Declared scripts are included in the mission without a warning.
-# By default each declared script gets a DCS load trigger (generate_load_trigger: true).
-# Set generate_load_trigger: false when the script is loaded manually (e.g. from mission-script.lua).
-#
 # custom_scripts:
-#   generate_load_trigger: true     # global default for all scripts below
+#   generate_load_trigger: true
 #   scripts:
 #     - path: src/scripts/FgMission.lua
 #     - path: src/scripts/FgTools.lua
-#       generate_load_trigger: false  # override: loaded manually from mission-script.lua
-
-# ── Community scripts ─────────────────────────────────────────────────────────
-# Set enabled: false to exclude a community script from the built mission.
-# All scripts are enabled by default when this section is absent.
-#
-# community_scripts:
-#   mist:         { enabled: true }   # MIST (Mission Scripting Tools)
-#   stts:         { enabled: true }   # DCS-SimpleTextToSpeech
-#   weathermark:  { enabled: true }   # WeatherMark
-#   ctld:         { enabled: true }   # CTLD (Combined Arms Transport & Logistics Dispatcher)
-#   aien:         { enabled: true }   # AIEN (AI Enhancement)
-#   csar:         { enabled: true }   # CSAR (Combat Search and Rescue)
-#   hercules:     { enabled: true }   # Hercules Cargo
-#   skynet:       { enabled: true }   # Skynet IADS
-#   tum:          { enabled: true }   # The Universal Mission (TUM)
+#       generate_load_trigger: false
 
 # ── Build pipeline ────────────────────────────────────────────────────────────
-# Controls which optional injection steps run after the base build.
-# By default each step is auto-detected: it runs if its config file is found.
-#
-# Default file locations checked automatically (relative to this folder):
-#   presets       → src/presets.yaml
-#   waypoints     → src/waypoints.yaml
-#   aircraft_groups → src/aircraft-templates.yaml  (also: src/templates.yaml)
-#   weather       → src/versions.yaml              (also: src/missions.yaml  legacy)
-#
-# Set a step to false to disable it even when its file exists.
-# Use a `file:` key to point to a non-default location.
-# For aircraft_groups, `mode` controls injection behaviour (add | replace).
-#
 # pipeline:
-#   presets: false                       # skip even if src/presets.yaml exists
-#   waypoints: true                      # always run (file must exist)
+#   presets: false
+#   waypoints: true
 #   aircraft_groups:
-#     file: src/my-aircraft.yaml        # non-default path
-#     mode: replace                     # add (default) or replace
-#   weather: false                       # skip weather variants
+#     file: src/my-aircraft.yaml
+#     mode: replace
+#   weather: false
 
 # ── Version pinning ──────────────────────────────────────────────────────────────────────────────
-# Declare the veaf-tools version this mission is compatible with.
-# veaf-tools-updater.exe skips releases that don’t match the constraint.
-#
-# Supported formats (NPM-style prefixes):
-#   version: "6"         # accept any 6.x.x
-#   version: "6.1"       # accept any 6.1.x
-#   version: "6.1.3"     # accept exactly 6.1.3
-#   version: "^6.1.3"    # compatible: >=6.1.3, <7.0.0 (same major)
-#   version: "~6.1.3"    # approximate: >=6.1.3, <6.2.0 (same major.minor)
-#
 # veaf_tools:
 #   version: "6"         # accept any 6.x.x
+
 # ── Build profiles ────────────────────────────────────────────────────────────
-# Named overrides applied when building with: veaf-tools build --profile <name>
-# Keys in the profile deep-merge onto the base config above.
-# Lists are replaced, not concatenated.
-#
 # profiles:
 #   TEST:
 #     global_log_level: debug

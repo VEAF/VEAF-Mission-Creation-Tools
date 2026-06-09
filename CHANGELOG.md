@@ -11,6 +11,7 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 - `weather` pipeline step now uses `versions.yaml` exclusively — `missions.yaml` is no longer recognised as an alias; rename any existing `src/missions.yaml` to `src/versions.yaml`
+- `mission.yaml` syntax simplified: `lua_modules:` + `community_scripts:` merged into a single `modules:` block; mandatory modules use bare null syntax (`MODULE:` with no value) instead of `MODULE: {}`; `enable:` replaced by `enabled:`; block-style lists replace inline `[...]`; generated files include a YAML syntax quick-reference header; legacy keys still accepted with a deprecation warning
 
 ### Added
 - i18n coverage: all log messages in `mission_builder_worker.py`, `aircrafts_injector_worker.py`, and `waypoints_manager.py` now use `t()` — no more hardcoded English strings; matching French translations added to `fr.json`; tests verify all `t()` keys exist in `en.json` and that `fr.json` covers every `en.json` key

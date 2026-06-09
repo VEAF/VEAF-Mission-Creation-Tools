@@ -7,7 +7,7 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
-## [Unreleased]
+## [6.4.0] — 2026-06-09
 
 ### Fixed
 - `config_migrator`: `_lua_extract_string()` no longer absorbs quoted strings from chained Lua setters after `:setBriefing(…)` — search is now bounded to the matching closing parenthesis (regression from PR #390)

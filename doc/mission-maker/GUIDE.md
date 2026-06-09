@@ -264,7 +264,6 @@ security:
 | `extract-aircraft-groups` | Extrait les groupes d'aéronefs d'une mission |
 | `inject-waypoints` | Injecte des waypoints (bullseye, points de navigation) pour les groupes humains |
 | `extract-waypoints` | Extrait les waypoints d'une mission |
-| `convert` | Convertit une mission vanilla au format VEAF MCT |
 | `convert-v5` | Migre un dossier mission v5 vers le format v6 |
 | `user-config` | Affiche ou modifie la configuration globale utilisateur (`~/veafmct.yaml`) |
 
@@ -544,22 +543,18 @@ Lorsque `dcs_bridge` est activé, le trigger est inséré en **position 1**, ava
 
 ## Journalisation de débogage
 
-Tous les scripts VEAF écrivent dans le journal DCS (`Saved Games\DCS\Logs\dcs.log`). Trois niveaux de journalisation sont disponibles, chacun avec son propre script de chargement :
-
-| Script | Niveau | Usage |
-|--------|--------|-------|
-| `veaf-scripts.lua` | Normal (info + avertissements) | Missions en production |
-| `veaf-scripts-trace.lua` | Trace (tous les messages) | Débogage approfondi |
-| `veaf-scripts-trace-with-events.lua` | Trace + événements DCS | Débogage des handlers d'événements |
+Tous les scripts VEAF écrivent dans le journal DCS (`Saved Games\DCS\Logs\dcs.log`). Le build produit désormais un **unique** chargeur `veaf-scripts.lua` ; la verbosité se contrôle via les niveaux de log dans `mission.yaml`, et non en chargeant un script différent.
 
 ### Changer le niveau de log
 
-Définissez `logLevel` par module dans `mission.yaml`, puis reconstruisez :
+Définissez un défaut global avec `global_log_level`, ou surchargez-le par module avec `logLevel`, puis reconstruisez :
 
 ```yaml
-lua_modules:
+global_log_level: info   # trace | debug | info | warning | error
+
+modules:
   SPAWN:
-    logLevel: debug   # trace | debug | info | warning | error
+    logLevel: debug   # surcharge le défaut global pour ce module uniquement
 ```
 
 `veaf-tools.exe build` régénère `veaf-config.lua` depuis `mission.yaml`. Pour un changement rapide sans reconstruire, éditez directement `veaf-config.lua` — c'est un fichier généré, donc vos modifications seront écrasées au prochain build.

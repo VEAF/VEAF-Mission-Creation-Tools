@@ -90,8 +90,9 @@
 | Lot FEAT-YAML-MODULE-UX — Module shorthand, uppercase community IDs, category sort | ~1h | ✅ |
 | Lot FIX-BRIEFING-MULTILINE — convert-v5 truncates multi-line Lua briefings | ~45 min | ✅ |
 | Lot FIX-I18N-HARDCODED — AST test + fix hardcoded strings in aircrafts_injector + lua_config_generator | ~1h | ✅ |
-| Lot FIX-I18N-DEBT — Fix remaining 107 hardcoded strings across 25 files, clear _TODO_EXEMPTIONS | ~4h | 🔄 |
-| **Total** | **~194h** | |
+| Lot FIX-I18N-DEBT — Fix remaining 107 hardcoded strings across 25 files, clear _TODO_EXEMPTIONS | ~4h | ✅ |
+| Lot DOC-OVERHAUL — Complete, detailed, bilingual, ELI5 documentation with diagrams + screenshots | ~12h | 🔄 |
+| **Total** | **~206h** | |
 
 *Initial calibration factor: 1.15 — recalculate after each completed lot.*
 
@@ -474,5 +475,31 @@ Direct commits on `develop-v6` (no feature branch needed — no code change).
 | DEBT-006 | Fix `weather_injector/utils/lua_converter.py` (5 violations) | util + locales | fix | 10 min | ⬜ |
 | DEBT-007 | Fix remaining small files (≤3 violations each): mission_extractor, mission_tools, presets_injector, veaf-tools-updater, veaf_libs/*, veaf_tools/commands (7 files), waypoints_manager, weather_injector/* | various + locales | fix | 45 min | ⬜ |
 | DEBT-008 | Remove all 25 files from `_TODO_EXEMPTIONS` in test_i18n.py | test | 5 min | ⬜ |
+
+---
+
+## Lot DOC-OVERHAUL — Complete, detailed, bilingual, ELI5 documentation
+
+**Goal**: Make the documentation complete, detailed, accessible, fully bilingual (FR/EN parity), with ELI5 explanations for non-dev audiences (pilots, mission makers), mermaid diagrams, and screenshot placeholders. Blocks the next develop-v6 release.
+
+**Branch**: `feature/doc-overhaul` → PR → `develop-v6`
+
+**Audit findings** (verified):
+- FR systematically lags EN: LUA_API_REFERENCE −1077 lines, TOOLS_REFERENCE −346, pilot/GUIDE −103, veafAirWaves −131, veafCombatZone −103, others −20…−50
+- Missing files: `veafInterpreter.md` (no FR → nav L105 404), `dcs-radio-specs.en.md` (no EN)
+- Zero images/screenshots in 40 docs; mermaid only in developer docs
+- Pilot guide not truly ELI5 (unexplained jargon: Lua framework, AWACS, IADS)
+- Content errors: deprecated `enable:` examples, removed `convert` command listed, CSAR "not available" (false), dead URL in updater
+
+| # | Ticket | Type | Effort | Status |
+|---|--------|------|--------|--------|
+| DOC-001 | Create `veafInterpreter.md` (FR) — fixes broken FR nav. (`dcs-radio-specs` EN parity deferred to DOC-005: file is hand-maintained, not purely generated) | fix | 30 min | ✅ |
+| DOC-002 | Isolated content errors done: remove `convert`, CSAR note (FR+EN), dead updater URL, debug-logging section, CHANGELOG consolidation. (`enable:`→`enabled:` + `lua_modules:`→`modules:` across ~20 files folded into per-file DOC-005 passes) | fix | 45 min | ✅ |
+| DOC-003 | ELI5 rewrite pilot/README + pilot/GUIDE (FR+EN) + mermaid (F10 menu, marker flow) + screenshot placeholders | feat | 2h | ⬜ |
+| DOC-004 | ELI5 rewrite mission-maker/README + GUIDE intro (FR+EN) + mermaid (pipeline, mission.yaml, migration) + placeholders | feat | 2h | ⬜ |
+| DOC-005 | Bilingual reparity: bring FR to EN detail for LUA_API_REFERENCE, TOOLS_REFERENCE, script docs | feat | 5h | ⬜ |
+| DOC-006 | Produce DCS screenshot capture list for the user | chore | 30 min | ⬜ |
+
+**Estimated total: ~12h**
 
 ---

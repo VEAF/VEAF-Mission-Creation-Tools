@@ -265,7 +265,6 @@ security:
 | `extract-aircraft-groups` | Extracts aircraft groups from a mission |
 | `inject-waypoints` | Injects waypoints (bullseye, nav points) for human groups |
 | `extract-waypoints` | Extracts waypoints from a mission |
-| `convert` | Converts a vanilla mission to VEAF MCT format |
 | `convert-v5` | Migrates a v5 mission folder to v6 format |
 | `user-config` | Shows or edits the global user config (`~/veafmct.yaml`) |
 
@@ -545,22 +544,18 @@ When `dcs_bridge` is enabled, the trigger is inserted at **position 1**, before 
 
 ## Debug Logging
 
-All VEAF scripts write to the DCS log file (`Saved Games\DCS\Logs\dcs.log`). Three log levels are available, each with its own loader script:
-
-| Script | Level | Use |
-|--------|-------|-----|
-| `veaf-scripts.lua` | Normal (info + warnings) | Production missions |
-| `veaf-scripts-trace.lua` | Trace (all messages) | Deep debugging |
-| `veaf-scripts-trace-with-events.lua` | Trace + DCS events | Event handler debugging |
+All VEAF scripts write to the DCS log file (`Saved Games\DCS\Logs\dcs.log`). The build now produces a **single** `veaf-scripts.lua` loader; verbosity is controlled by log levels in `mission.yaml`, not by loading a different script file.
 
 ### Switching log levels
 
-Set `logLevel` per module in `mission.yaml`, then rebuild:
+Set a global default with `global_log_level`, or override it per module with `logLevel`, then rebuild:
 
 ```yaml
-lua_modules:
+global_log_level: info   # trace | debug | info | warning | error
+
+modules:
   SPAWN:
-    logLevel: debug   # trace | debug | info | warning | error
+    logLevel: debug   # overrides the global default for this module only
 ```
 
 `veaf-tools.exe build` regenerates `veaf-config.lua` from `mission.yaml`. For a quick change without rebuilding, edit `veaf-config.lua` directly — it is a generated file so your changes will be overwritten on the next build.

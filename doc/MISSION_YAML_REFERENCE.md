@@ -210,7 +210,14 @@ external_modules:
 | `enabled` | booléen | `false` | Activer l'intégration CTLD |
 | *(toute propriété ctld)* | quelconque | — | Toute propriété `ctld.xxx` (ex: `hoverPickup: true`) |
 
-> La configuration CSAR n'est pas encore disponible via `mission.yaml` — configurez-la directement dans `mission-script.lua`.
+#### Champs de `external_modules.csar`
+
+| Champ | Type | Défaut | Description |
+|-------|------|--------|-------------|
+| `enabled` | booléen | `false` | Activer l'intégration CSAR |
+| *(toute propriété csar)* | quelconque | — | Toute propriété `csar.xxx` (ex: `enableAllslots: true`, `csarPrefix: "MEDEVAC"`) |
+
+VEAF génère les affectations `csar.xxx = value` et l'appel à `csar.initialize()` dans `veaf-config.lua`. Pour les réglages complexes comme `aircraftType` (table par appareil), continuez d'utiliser le motif de callback Lua dans `mission-script.lua`. Voir [Intégration CTLD et CSAR](mission-maker/GUIDE.md#ctld-and-csar-integration).
 
 ---
 

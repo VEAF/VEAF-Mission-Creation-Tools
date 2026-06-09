@@ -1938,6 +1938,80 @@ local pos = {x=1000, y=0, z=2000}
 veafSpawn.executeCommand(pos, "_spawn, name F-16C, group 2, hdg 270", coalition.side.BLUE)
 ```
 
+##### `veafSpawn.markTextAnalysis(text)`
+
+Analyse le texte d'un marqueur pour en extraire les paramètres de spawn.
+
+**Paramètres :**
+
+- `text` (string) — Texte du marqueur
+
+**Retourne :** `table` — Options analysées
+
+**Champs de la table retournée :**
+```lua
+{
+  name = string,           -- Unit/group name
+  unitName = string,       -- Specific unit name
+  groupName = string,      -- Override group name
+  alias = string,          -- Name alias
+  group = number,          -- Group count
+  country = string,        -- Country name
+  alt = number,            -- Altitude (feet)
+  altitude = number,       -- Altitude (feet)
+  hdg = number,            -- Heading (degrees)
+  heading = number,        -- Heading (degrees)
+  speed = number,          -- Speed (knots)
+  dist = number,           -- Distance
+  spacing = number,        -- Unit spacing (meters)
+  side = coalition,        -- Coalition
+  defense = number,        -- Defense level (0-5)
+  armor = number,          -- Armor level (0-5)
+  size = number,           -- Size (0-5)
+  shells = number,         -- Shell count
+  power = number,          -- Explosion power
+  radius = number,         -- Dispersion radius
+  color = string,          -- Smoke color
+  smoke = boolean,         -- Add smoke
+  type = string,           -- Type specification
+  skill = string,          -- Skill level
+  password = string,       -- Security password
+  silent = boolean,        -- Suppress messages
+
+  -- Specific spawn types
+  convoy = boolean,
+  dest = vec3,             -- Destination
+  patrol = boolean,
+  offroad = boolean,
+
+  -- Air units
+  cap = boolean,           -- CAP mission
+  capRadius = number,      -- CAP radius
+  afac = boolean,          -- AFAC unit
+  immortal = boolean,      -- Invulnerable
+
+  -- Effects
+  bomb = boolean,
+  smoke = boolean,
+  flare = boolean,
+  illumination = boolean,
+
+  -- FARP/FOB
+  farp = boolean,
+  fob = boolean,
+  farptype = string,
+  fobtype = string,
+
+  -- Advanced
+  code = number,           -- Laser/TACAN code
+  freq = number,           -- Frequency
+  mod = string,            -- Modulation
+  role = string,           -- Unit role
+  static = boolean,        -- Spawn as static
+  hidden = boolean         -- Hide from MFD
+}
+```
+
 #### Fonctions de spawn d'unités
 
 ##### `veafSpawn.spawnUnit(spawnPosition, radius, name, czName, country, alt, hdg, unitName, role, static, code, freq, mod, silent, hiddenOnMFD)`
@@ -1998,6 +2072,12 @@ Spawne un groupe prédéfini.
 
 **Retourne :** `table` — Info du groupe
 
+**Exemple :**
+```lua
+-- Spawner un peloton blindé depuis un template
+veafSpawn.spawnGroup(pos, 100, "Soviet Armor Platoon", nil, nil, nil, 180, 50)
+```
+
 #### Spawn de forces terrestres
 
 ##### `veafSpawn.spawnInfantryGroup(spawnSpot, radius, czName, country, side, heading, spacing, defense, armor, size, silent, hiddenOnMFD)`
@@ -2021,6 +2101,12 @@ Spawne un groupe d'infanterie avec paramètres.
 
 **Retourne :** `table` — Info du groupe
 
+**Exemple :**
+```lua
+-- Spawner une petite escouade d'infanterie
+veafSpawn.spawnInfantryGroup(pos, 50, nil, nil, coalition.side.RED, 0, 10, 0, 0, 1, false)
+```
+
 ##### `veafSpawn.spawnArmoredPlatoon(spawnSpot, radius, czName, country, side, heading, spacing, defense, armor, size, silent, hasDest, hiddenOnMFD)`
 
 Spawne un peloton blindé.
@@ -2029,6 +2115,12 @@ Spawne un peloton blindé.
 
 **Retourne :** `table` — Info du groupe
 
+**Exemple :**
+```lua
+-- Spawner un peloton de chars moyens
+veafSpawn.spawnArmoredPlatoon(pos, 100, nil, nil, coalition.side.BLUE, 90, 50, 2, 3, 3, false)
+```
+
 ##### `veafSpawn.spawnAirDefenseBattery(spawnSpot, radius, czName, country, side, heading, spacing, defense, silent, hasDest, hiddenOnMFD)`
 
 Spawne une batterie SAM/AAA.
@@ -2036,6 +2128,12 @@ Spawne une batterie SAM/AAA.
 **Paramètres :** Similaires au peloton blindé
 
 **Retourne :** `table` — Info du groupe
+
+**Exemple :**
+```lua
+-- Spawner une batterie SA-6
+veafSpawn.spawnAirDefenseBattery(pos, 200, nil, nil, coalition.side.RED, 0, 75, 4, false)
+```
 
 ##### `veafSpawn.spawnTransportCompany(spawnSpot, radius, czName, country, side, heading, spacing, defense, size, silent, hasDest, hiddenOnMFD)`
 
@@ -2085,6 +2183,32 @@ veafSpawn.spawnConvoy(start, "Convoy1", nil, 50, nil, coalition.side.RED,
   nil, 25, 40, false, false, dest, 2, 3, 2, false)
 ```
 
+##### Fonctions de contrôle des convois
+
+**`veafSpawn.stopClosestConvoy(unitName)`**
+
+Arrête le convoi le plus proche de l'unité.
+
+**`veafSpawn.moveClosestConvoy(unitName)`**
+
+Reprend le déplacement du convoi le plus proche.
+
+**`veafSpawn.markClosestConvoyWithSmoke(unitName)`**
+
+Marque le convoi le plus proche à la fumée.
+
+**`veafSpawn.markClosestConvoyRouteWithSmoke(unitName)`**
+
+Marque la route du convoi avec des marqueurs fumée.
+
+**`veafSpawn.infoOnAllConvoys(unitName)`**
+
+Affiche les informations de tous les convois actifs.
+
+**`veafSpawn.cleanupAllConvoys()`**
+
+Détruit tous les convois actifs.
+
 #### Spawn aérien
 
 ##### `veafSpawn.spawnCombatAirPatrol(spawnSpot, radius, name, country, altitude, altitudeDelta, hdg, distance, speed, capRadius, skill, silent, hiddenOnMFD)`
@@ -2115,6 +2239,14 @@ Spawne un vol CAP avec orbite de patrouille.
 - Crée une orbite racetrack à l'emplacement spécifié
 - Démarre un watchdog pour surveiller et engager les cibles
 
+**Exemple :**
+```lua
+-- Spawner une CAP de F-15C
+local pos = {x=0, y=0, z=0}
+veafSpawn.spawnCombatAirPatrol(pos, 100, "F-15C", nil, 25000, 2000,
+  90, 50000, 450, 20000, "Good", false)
+```
+
 ##### `veafSpawn.spawnAFAC(spawnSpot, name, country, altitude, speed, hdg, frequency, mod, code, immortal, silent, hiddenOnMFD)`
 
 Spawne un contrôleur aérien avancé en vol (AFAC).
@@ -2136,6 +2268,28 @@ Spawne un contrôleur aérien avancé en vol (AFAC).
 
 **Retourne :** `table` — Info AFAC
 
+**Exemple :**
+```lua
+-- Spawner un AFAC A-10C
+veafSpawn.spawnAFAC(pos, "A-10C", nil, 15000, 250, 0, 133.0, "AM", 1688, true, false)
+```
+
+##### `veafSpawn.startCapWatchdog(capGroupName, capCoalition, capZone, pTargetsList, pNumberOfTasksAddedByWatchdog)`
+
+Démarre le watchdog d'engagement de la CAP.
+
+**Paramètres :**
+
+- `capGroupName` (string) — Nom du groupe CAP
+- `capCoalition` (coalition) — Coalition
+- `capZone` (table) — Définition de la zone
+- `pTargetsList` (table, optionnel) — Cibles spécifiques
+- `pNumberOfTasksAddedByWatchdog` (number, optionnel) — Tâches maximum
+
+**Retourne :** Rien
+
+**Description :** Surveille la zone et missionne la CAP pour engager les appareils ennemis.
+
 #### Cargo et logistique
 
 ##### `veafSpawn.spawnCargo(spawnSpot, radius, cargoType, country, weightBias, cargoSmoke, unitName, silent, hiddenOnMFD)`
@@ -2155,6 +2309,18 @@ Spawne un cargo CTLD.
 - `hiddenOnMFD` (boolean, optionnel) — Masquer du MFD
 
 **Retourne :** `table` — Info du cargo
+
+**Exemple :**
+```lua
+-- Spawner des conteneurs de carburant
+veafSpawn.spawnCargo(pos, 10, "fuel", nil, 0.5, true, "Fuel-1", false)
+```
+
+##### `veafSpawn.spawnLogistic(spawnSpot, radius, country, silent, hiddenOnMFD)`
+
+Spawne une unité logistique CTLD.
+
+**Retourne :** `table` — Info de l'unité logistique
 
 #### FARP et FOB
 
@@ -2188,6 +2354,14 @@ veafSpawn.spawnFarp(pos, 100, "FARP Alpha", nil, nil, coalition.side.BLUE,
   0, 50, false, false, false, 71, 251.0, "AM")
 ```
 
+##### `veafSpawn.spawnFob(spawnSpot, radius, name, country, fobtype, side, hdg, spacing, silent, hiddenOnMFD)`
+
+Spawne une base d'opérations avancée (FOB).
+
+**Paramètres :** Similaires au FARP
+
+**Retourne :** `table` — Info du FOB
+
 #### Effets et marqueurs
 
 ##### `veafSpawn.spawnBomb(spawnSpot, radius, shells, power, altitude, altitudedelta, password)`
@@ -2206,6 +2380,12 @@ Crée un effet d'explosion.
 
 **Retourne :** Rien
 
+**Exemple :**
+```lua
+-- Créer 5 explosions de 500 kg
+veafSpawn.spawnBomb(pos, 50, 5, 500, 0, 0)
+```
+
 ##### `veafSpawn.spawnSmoke(spawnSpot, color, radius, shells)`
 
 Ajoute des marqueurs fumée.
@@ -2218,6 +2398,12 @@ Ajoute des marqueurs fumée.
 - `shells` (number) — Nombre de marqueurs fumée
 
 **Retourne :** Rien
+
+**Exemple :**
+```lua
+-- Marquer une position avec de la fumée rouge
+veafSpawn.spawnSmoke(pos, "Red", 0, 1)
+```
 
 ##### `veafSpawn.spawnSignalFlare(spawnSpot, radius, shells, color)`
 
@@ -2249,6 +2435,12 @@ Crée un patron d'illumination par fusées éclairantes.
 
 **Retourne :** Rien
 
+**Exemple :**
+```lua
+-- Créer une ligne d'illumination
+veafSpawn.spawnIlluminationFlare(pos, 0, 5, 1000000, 1000, 90, 500, 0)
+```
+
 #### Fonctions de dessin
 
 ##### `veafSpawn.drawCircle(point, name, radius, color, fillColor, lineType)`
@@ -2265,6 +2457,12 @@ Dessine un cercle sur la carte.
 - `lineType` (number, optionnel) — Type de ligne
 
 **Retourne :** Rien
+
+**Exemple :**
+```lua
+-- Dessiner un cercle rouge
+veafSpawn.drawCircle(pos, "Zone1", 5000, {1, 0, 0, 1}, {1, 0, 0, 0.3})
+```
 
 ##### `veafSpawn.drawSquare(point, name, side, color, fillColor, lineType)`
 
@@ -2326,6 +2524,12 @@ Téléporte un groupe à une position.
 
 **Retourne :** Rien
 
+**Exemple :**
+```lua
+-- Téléporter le groupe du joueur à une position
+veafSpawn.teleport(newPos, "Viper Flight", false)
+```
+
 #### Fonctions JTAC
 
 ##### `veafSpawn.JTACAutoLase(groupName, laserCode, radioData)`
@@ -2345,6 +2549,129 @@ Configure un JTAC en auto-désignation laser.
 veafSpawn.JTACAutoLase("JTAC-1", 1688, {freq=133.0, mod="AM"})
 ```
 
+##### `veafSpawn.convertLaserToFreq(laser)`
+
+Convertit un code laser en fréquence radio.
+
+**Paramètres :**
+
+- `laser` (number) — Code laser
+
+**Retourne :** `number` — Fréquence en MHz
+
+#### Fonctions Mission Master
+
+Mission Master fournit un contrôle de mission scriptable.
+
+##### `veafSpawn.missionMasterSetMessagingMode(silent, toGroupId)`
+
+Définit le mode de sortie des messages.
+
+**Paramètres :**
+
+- `silent` (boolean) — Mode silencieux
+- `toGroupId` (number, optionnel) — ID du groupe cible
+
+**Retourne :** Rien
+
+##### `veafSpawn.missionMasterOutText(message)`
+
+Affiche un message Mission Master.
+
+**Paramètres :**
+
+- `message` (string) — Texte du message
+
+**Retourne :** Rien
+
+##### `veafSpawn.missionMasterAddRunnable(name, code, parameters)`
+
+Ajoute une commande exécutable.
+
+**Paramètres :**
+
+- `name` (string) — Nom de la commande
+- `code` (string) — Code Lua à exécuter
+- `parameters` (table, optionnel) — Paramètres
+
+**Retourne :** Rien
+
+##### `veafSpawn.missionMasterRun(name)`
+
+Exécute une commande Mission Master.
+
+**Paramètres :**
+
+- `name` (string) — Nom de la commande
+
+**Retourne :** Rien
+
+##### `veafSpawn.missionMasterSetFlag(name, value)`
+
+Définit un flag Mission Master.
+
+**Paramètres :**
+
+- `name` (string) — Nom du flag
+- `value` (any) — Valeur du flag
+
+**Retourne :** Rien
+
+##### `veafSpawn.missionMasterGetFlag(name)`
+
+Récupère la valeur d'un flag.
+
+**Paramètres :**
+
+- `name` (string) — Nom du flag
+
+**Retourne :** `any` — Valeur du flag
+
+##### `veafSpawn.missionMasterAddValueToFlag(name, increment)`
+
+Modifie la valeur d'un flag.
+
+**Paramètres :**
+
+- `name` (string) — Nom du flag
+- `increment` (number) — Valeur à ajouter
+
+**Retourne :** Rien
+
+#### Fonctions utilitaires
+
+##### `veafSpawn.listAllCAP(unitName)`
+
+Affiche la liste de tous les vols CAP actifs.
+
+**Paramètres :**
+
+- `unitName` (string) — Nom de l'unité demandeuse
+
+**Retourne :** Rien
+
+##### `veafSpawn.dumpSpawnablePlanesList(export_path)`
+
+Exporte la liste des appareils spawnables vers un fichier.
+
+**Paramètres :**
+
+- `export_path` (string, optionnel) — Répertoire d'export
+
+**Retourne :** Rien
+
+##### `veafSpawn.buildRadioMenu()`
+
+Construit le menu radio de spawn.
+
+**Retourne :** Rien
+
+##### `veafSpawn.initialize()`
+
+Initialise le module de spawn.
+
+**Retourne :** Rien
+
 ---
 
 ### veafUnits.lua
@@ -2352,6 +2679,15 @@ veafSpawn.JTACAutoLase("JTAC-1", 1688, {freq=133.0, mod="AM"})
 **Module ID :** `UNITS`
 **Version :** 1.15.0
 **Objectif :** Définitions d'unités/groupes et utilitaires
+
+#### Constantes
+
+```lua
+veafUnits.DefaultCellWidth = 10        -- meters
+veafUnits.DefaultCellHeight = 10       -- meters
+veafUnits.DefaultPathfindingUnitType = "TZ-22_KrAZ"
+veafUnits.delayBeforePathfindingFix = 5  -- seconds
+```
 
 #### Fonctions
 
@@ -2364,6 +2700,14 @@ Trouve une unité DCS par nom de type (insensible à la casse).
 - `unitType` (string) — Type d'unité (ex : "F-16C", "M-1 Abrams")
 
 **Retourne :** `table` — Définition d'unité ou nil
+
+**Exemple :**
+```lua
+local f16 = veafUnits.findDcsUnit("F-16C_50")
+if f16 then
+  veaf.logger:info("Found: %s", f16.displayName)
+end
+```
 
 ##### `veafUnits.countInfantryAndVehicles(groupname)`
 
@@ -2428,6 +2772,11 @@ Respawne un groupe d'asset.
 - Respawne tous les groupes liés
 - Démarre le JTAC si configuré
 
+**Exemple :**
+```lua
+veafAssets.respawn("Tanker-1")
+```
+
 ##### `veafAssets.dispose(name)`
 
 Détruit un asset.
@@ -2437,6 +2786,11 @@ Détruit un asset.
 - `name` (string) — Nom de l'asset
 
 **Retourne :** Rien
+
+**Exemple :**
+```lua
+veafAssets.dispose("AWACS-1")
+```
 
 ##### `veafAssets.info(parameters)`
 
@@ -2448,6 +2802,12 @@ Obtient les informations d'un asset.
 
 **Retourne :** `string` — Texte d'info de l'asset
 
+**Exemple :**
+```lua
+local info = veafAssets.info({name="Tanker-1", unitName="Viper 1-1"})
+-- Displays tanker position, TACAN, frequency
+```
+
 ##### `veafAssets.get(assetName)`
 
 Obtient la définition d'un asset.
@@ -2458,11 +2818,39 @@ Obtient la définition d'un asset.
 
 **Retourne :** `table` — Définition de l'asset
 
+##### `veafAssets.help(unitName)`
+
+Affiche le texte d'aide.
+
+**Paramètres :**
+
+- `unitName` (string) — Unité destinataire de l'aide
+
+**Retourne :** Rien
+
+##### `veafAssets.buildRadioMenu()`
+
+Construit le menu radio des assets.
+
+**Retourne :** Rien
+
+##### `veafAssets.buildAssetsDatabase()`
+
+Construit les tables de recherche des assets.
+
+**Retourne :** Rien
+
 ##### `veafAssets.initialize()`
 
 Initialise le module assets.
 
 **Retourne :** Rien
+
+**Description :**
+
+- Construit la base de données des assets
+- Crée les menus radio
+- Doit être appelé après la définition des assets
 
 ---
 

@@ -500,8 +500,34 @@ Direct commits on `develop-v6` (no feature branch needed — no code change).
 | DOC-005a | Mechanical syntax sweeps (`enable:`→`enabled:` ×62, `lua_modules:`→`modules:` ×56) + MISSION_YAML_REFERENCE unified `modules:` rewrite (FR+EN) | feat | 1h30 | ✅ |
 | DOC-005b | Script docs FR→EN parity: veafAirWaves, veafCombatZone, veafQraManager, veafShortcuts, veafWeather, veafRadio (all now delta ≤10) + broken `.fr.md` links fixed | feat | 2h30 | ✅ |
 | DOC-005c | Big references in-section depth parity: LUA_API_REFERENCE (~1050 l. across 5 API sections) + TOOLS_REFERENCE (~346 l.) + dcs-radio-specs FR prose | feat | 5h | ⬜ |
-| DOC-006 | Produce DCS screenshot capture list for the user | chore | 30 min | ⬜ |
+| DOC-006 | Produce DCS screenshot capture list for the user | chore | 30 min | ✅ |
 
 **Estimated total: ~12h**
+
+### DOC-005c handoff brief (cold-start ready)
+
+The remaining work is **in-section depth parity** — same headings in FR and EN, but the
+FR has shorter descriptions / fewer code examples. Approach: for each section, read the
+EN version, then expand the FR to match (translate the missing prose, tables, and code
+blocks). Code blocks/identifiers stay identical; only prose is translated.
+
+**Files and gaps (FR lines behind EN):**
+
+| File | Gap | Where the gap is |
+|------|-----|------------------|
+| `doc/LUA_API_REFERENCE.md` | ~1050 | Core Infrastructure (−190), Unit & Group Management (−388), Mission Systems (−284), Infrastructure & Services (−102), Communication & Control (−90). Other sections already at parity. |
+| `doc/TOOLS_REFERENCE.md` | ~346 | All sections present (translated headings); depth is thinner throughout the updater/publish/architecture sections. |
+| `doc/mission-maker/dcs-radio-specs.md` | prose only | The frequency table is language-neutral and fine; only the header prose + the hand-written "Critical aircraft" section need a FR pass. NOTE: this file is **hand-maintained** beyond what `veaf_build/radio_specs_updater.py` generates — do not regenerate, edit by hand. |
+
+**Conventions already established this lot (keep consistent):**
+- Tone: sober, vouvoiement, jargon explained at first use (no childish analogies).
+- YAML syntax in examples: unified `modules:` block, `enabled:` (never `enable:`), community scripts as uppercase IDs inside `modules:`.
+- Auth command is `_auth [PASSWORD]` (canonical `veafSecurity.Keyphrase`); never `-login`.
+- Cross-doc links use `*.md` (NOT `*.fr.md` / `*.en.md`) — mkdocs-static-i18n resolves the language. Several `.fr.md` links were already fixed; watch for more.
+- Screenshot placeholders live under `doc/assets/img/<area>/`.
+- Per-doc commits, verify parity with `wc -l` after each file.
+
+**After DOC-005c:** update CHANGELOG, open PR `feature/doc-overhaul` → `develop-v6`,
+then the user captures the screenshots listed in DOC-006 to drop into `doc/assets/img/`.
 
 ---

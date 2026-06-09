@@ -206,7 +206,7 @@ def build(
                 "You can safely delete it, or enable 'aircraft_groups' in mission.yaml."
             )
 
-    weather_path = _step_file("weather", "src/missions.yaml", "src/versions.yaml", "missions.yaml")
+    weather_path = _step_file("weather", "src/versions.yaml", "versions.yaml")
     if weather_path:
         logger.info(t("pipeline.injecting_weather", path=weather_path))
         console.print(t("pipeline.console.weather", file=weather_path.name))

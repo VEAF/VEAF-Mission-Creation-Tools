@@ -18,7 +18,7 @@ Create multiple versions of a DCS mission with different weather conditions and 
 
 ### 1. Create Configuration File
 
-Create `missions.yaml`:
+Create `versions.yaml`:
 
 ```yaml
 # Geographic position for solar calculations
@@ -51,7 +51,7 @@ versions:
 ### 2. Run Weather and Time Versions
 
 ```bash
-veaf-tools weather-and-time base_mission.miz --config-file missions.yaml
+veaf-tools weather-and-time base_mission.miz --config-file versions.yaml
 ```
 
 This creates:
@@ -185,7 +185,7 @@ Without avwx-engine, basic pattern matching is used for common METAR elements.
 Mission files are created in the same directory as the configuration file, named after each version:
 
 ```
-missions.yaml          (configuration)
+versions.yaml          (configuration)
 dawn.miz               (created)
 noon.miz               (created)
 dusk.miz               (created)
@@ -196,7 +196,7 @@ dusk.miz               (created)
 ### Custom Output Directory
 
 ```bash
-veaf-tools weather-and-time missions.yaml --output-dir ./output_missions
+veaf-tools weather-and-time versions.yaml --output-dir ./output_missions
 ```
 
 ### Independent Versions

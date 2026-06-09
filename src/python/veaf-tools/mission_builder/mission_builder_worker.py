@@ -436,7 +436,6 @@ class MissionBuilderWorker(BaseWorker):
             "waypoints.yaml": {"pipeline": "waypoints"},
             "presets.yaml": {"pipeline": "presets"},
             "versions.yaml": {"pipeline": "weather"},
-            "missions.yaml": {"pipeline": "weather"},
         }
         for f in defaults_folder.rglob("*"):
             if f.is_file():
@@ -470,16 +469,6 @@ class MissionBuilderWorker(BaseWorker):
                                     f"You can safely delete it."
                                 )
                             continue
-                # WEATHER-001: skip copying versions.yaml if legacy missions.yaml already exists
-                if f.name == "versions.yaml":
-                    legacy_weather = self.mission_folder / "src" / "missions.yaml"
-                    if legacy_weather.exists():
-                        logger.warning(
-                            "Legacy weather config 'src/missions.yaml' found. "
-                            "Skipping copy of default 'src/versions.yaml'. "
-                            "Consider renaming 'missions.yaml' \u2192 'versions.yaml'."
-                        )
-                        continue
                 relative_path = f.relative_to(defaults_folder).parent.as_posix()
                 relative_path = self.mission_folder / relative_path / f.name
                 if not relative_path.exists():

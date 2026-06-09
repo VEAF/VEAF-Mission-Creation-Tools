@@ -13,7 +13,7 @@ The pipeline runs four optional steps, in this order:
 | `presets` | `src/presets.yaml` | Injects radio frequency presets into human-piloted aircraft groups |
 | `waypoints` | `src/waypoints.yaml` or `waypoints.yaml` | Injects waypoint templates into human-piloted aircraft groups |
 | `aircraft_groups` | `src/aircraft-templates.yaml`, `src/templates.yaml`, or `aircraft-templates.yaml` | Injects aircraft group definitions (slots/spawnable groups) |
-| `weather` | `src/missions.yaml` (legacy, first), `src/versions.yaml`, or `missions.yaml` | Creates multiple mission variants with different weather and time |
+| `weather` | `src/versions.yaml` or `versions.yaml` | Creates multiple mission variants with different weather and time |
 
 Each step is **auto-detected**: it runs if its default config file exists. You can override this behaviour in `mission.yaml`.
 
@@ -323,10 +323,9 @@ Creates multiple `.miz` variants from a single base mission, each with a differe
 ### Default file location
 
 ```
-<mission-folder>/src/missions.yaml  (legacy, checked first)
 <mission-folder>/src/versions.yaml
 
-Also accepted: missions.yaml  (mission root)
+Also accepted: versions.yaml  (mission root)
 ```
 
 ### Schema

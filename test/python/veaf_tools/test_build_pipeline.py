@@ -83,5 +83,58 @@ class TestAircraftOrphanWarning(unittest.TestCase):
         self.assertEqual(warnings, [])
 
 
+class TestResolveOutputMission(unittest.TestCase):
+    """Output-mission resolution — FIX-BUILD-BARE-NAME-PATH-001."""
+
+    DEFAULT = "mission.miz"
+
+    def _resolve(self, name: str | None, folder: Path) -> tuple[Path, str]:
+        from veaf_tools.commands.build import _resolve_output_mission
+
+        return _resolve_output_mission(name, folder, self.DEFAULT)
+
+    def test_default_without_yaml_uses_static_name(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            path, base = self._resolve(self.DEFAULT, Path(td))
+        self.assertEqual(path.name, "mission.miz")
+        self.assertEqual(base, "mission")
+
+    def test_default_with_yaml_derives_name_anchored_in_folder(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            folder = Path(td)
+            (folder / "mission.yaml").write_text("mission:\n  name: Training-Syrie\n", encoding="utf-8")
+            with patch("veaf_tools.commands.build.validate_yaml_file"):
+                path, base = self._resolve(self.DEFAULT, folder)
+        self.assertEqual(base, "Training-Syrie")
+        self.assertTrue(path.is_absolute())
+        self.assertEqual(path.parent, folder)
+        self.assertTrue(path.name.startswith("Training-Syrie_"))
+        self.assertTrue(path.name.endswith(".miz"))
+
+    def test_bare_name_is_anchored_in_folder(self) -> None:
+        """Regression: a bare name must yield an absolute path inside the folder."""
+        with tempfile.TemporaryDirectory() as td:
+            folder = Path(td)
+            path, base = self._resolve("Training-Syrie", folder)
+        self.assertEqual(base, "Training-Syrie")
+        self.assertTrue(path.is_absolute())
+        self.assertEqual(path.parent, folder)
+        self.assertTrue(path.name.startswith("Training-Syrie_"))
+        self.assertTrue(path.name.endswith(".miz"))
+
+    def test_explicit_miz_file_keeps_suffix_and_stem(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            path, base = self._resolve("custom.miz", Path(td))
+        self.assertEqual(path.name, "custom.miz")
+        self.assertEqual(base, "custom")
+
+    def test_unsafe_characters_are_sanitized(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            folder = Path(td)
+            path, base = self._resolve('Vol:Aller/Retour', folder)
+        self.assertEqual(base, "Vol_Aller_Retour")
+        self.assertEqual(path.parent, folder)
+
+
 if __name__ == "__main__":
     unittest.main()

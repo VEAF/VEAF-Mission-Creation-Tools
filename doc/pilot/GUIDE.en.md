@@ -1,7 +1,6 @@
 # Pilot Guide — VEAF Mission Creation Tools
 
-
-This guide is for players flying missions that use the VEAF script framework. No technical knowledge required.
+This guide is for players flying missions that use the VEAF framework. No technical knowledge is required: everything is done in-game, with the mouse and keyboard.
 
 ---
 
@@ -9,84 +8,88 @@ This guide is for players flying missions that use the VEAF script framework. No
 
 1. [What is VEAF MCT?](#what-is-veaf-mct)
 2. [Recognising a VEAF Mission](#recognising-a-veaf-mission)
-3. [F10 Radio Menu](#f10-radio-menu)
+3. [The F10 Radio Menu](#the-f10-radio-menu)
 4. [Marker Commands](#marker-commands)
-5. [Assets — Tankers, AWACS, Carriers](#assets)
-6. [Missions and Combat Zones](#missions-and-combat-zones)
+5. [Assets: Tankers, AWACS, Carriers](#assets)
+6. [Combat Zones and Missions](#combat-zones-and-missions)
 7. [CAS Training](#cas-training)
 8. [Security and Permissions](#security-and-permissions)
-9. [Tips by Aircraft Role](#tips-by-aircraft-role)
-10. [FAQ](#faq)
+9. [Tips for Your Aircraft](#tips-for-your-aircraft)
+10. [Frequently Asked Questions (FAQ)](#frequently-asked-questions-faq)
 11. [Community and Support](#community-and-support)
 
 ---
 
 ## What is VEAF MCT?
 
-VEAF Mission Creation Tools is a Lua script framework that makes DCS World missions dynamic and interactive. Instead of a static scenario, you can:
+VEAF Mission Creation Tools (VEAF MCT) makes DCS World missions alive and interactive. In a regular mission, everything is fixed in advance. With VEAF MCT, you can act while flying:
 
-- Spawn enemy units on demand via map markers or radio menu
-- Create CAS training zones with configurable difficulty
-- Activate predefined combat missions
-- Manage shared assets (tankers, AWACS, carriers) via F10 menu
-- Interact with the environment in real time
+- spawn enemy units on demand;
+- request a tanker, an AWACS or a carrier;
+- launch a Close Air Support (CAS) training session at the difficulty level of your choice;
+- activate combat missions prepared by the mission maker.
+
+These capabilities come from small programs — called **scripts** — that the mission maker has added. **You have nothing to install**: everything is already included in the mission. You give orders in two ways: through the **radio menu** (F10 key) or by **placing a marker** on the map.
 
 ---
 
 ## Recognising a VEAF Mission
 
-When a mission uses VEAF scripts you will see:
+Three signs tell you a mission uses VEAF:
 
-- Startup messages in the lower-right corner listing loaded VEAF modules
-- A **VEAF** submenu under **F10 → Other**
-- Map markers showing tanker tracks, AWACS orbits or combat zone positions
+1. **Startup messages** appear in the lower-right corner of the screen at launch, listing the loaded VEAF modules.
+2. **A "VEAF" submenu** appears under **F10 → Other**.
+3. **Map markers** show tanker tracks, AWACS orbits or combat zone positions.
+
+![VEAF startup messages in the lower-right corner](../assets/img/pilot/startup-messages.png)
 
 ---
 
-## F10 Radio Menu
+## The F10 Radio Menu
 
-All VEAF MCT features are accessible via **F10 → Other → VEAF**.
+All VEAF MCT features are available from **F10 → Other → VEAF**. (The radio menu is the list that opens with the F10 key; "Other" groups the commands added by the mission.)
 
-### Typical Menu Structure
-
-```
-F10 → Other → VEAF
-├── Assets
-│   ├── Tankers
-│   │   └── [Tanker name] → Info / Respawn
-│   ├── AWACS
-│   │   └── [AWACS name] → Info / Respawn
-│   └── Carriers
-│       └── [Carrier name] → Info / Start Recovery / Stop Recovery
-├── CAS Mission
-│   ├── Generate
-│   ├── Smoke
-│   ├── Flare
-│   ├── Skip
-│   ├── Info
-│   └── Cleanup
-├── Combat Zones
-│   └── [Zone name] → Activate / Deactivate / Info / Smoke / Flare
-├── Missions
-│   └── [Mission name] → Activate / Deactivate / Info
-└── Help
+```mermaid
+graph TD
+    F10[F10 Radio Menu] --> Other[Other] --> VEAF[VEAF]
+    VEAF --> Res[Assets]
+    VEAF --> CAS[CAS Mission]
+    VEAF --> CZ[Combat Zones]
+    VEAF --> Miss[Missions]
+    VEAF --> Help[Help]
+    Res --> Tank[Tankers]
+    Res --> AWACS[AWACS]
+    Res --> Carrier[Carriers]
 ```
 
-The exact structure depends on what the mission maker has enabled.
+![VEAF submenu in the F10 radio menu](../assets/img/pilot/f10-veaf-submenu.png)
+
+The exact contents depend on what the mission maker has enabled: some missions will not have every entry.
 
 ---
 
 ## Marker Commands
 
-Place a marker on the F10 map (right-click → Add marker), type a command in the text field, then confirm. VEAF MCT intercepts the marker, executes the command, and removes the marker.
+In addition to the radio menu, you can give orders by writing a **command in a marker** on the F10 map.
 
-> On multiplayer servers some commands require a password. See [Security](#security-and-permissions).
+**How to do it:**
 
-### Aliases (Shortcuts) — The Preferred Way
+1. Open the map (F10).
+2. Right-click → **Add marker**.
+3. Type the command in the marker's text field.
+4. Confirm.
 
-Aliases start with `-` and are the easiest way to spawn units. They are predefined by the mission maker and map to full spawn commands behind the scenes.
+VEAF detects the marker, runs the command at the marker's location, then removes it automatically.
 
-#### Common air-defense aliases
+![Typing a command into an F10 map marker](../assets/img/pilot/map-marker-add.png)
+
+> On multiplayer servers, some commands require a password. See [Security and Permissions](#security-and-permissions).
+
+### Aliases: the simplest method
+
+An **alias** is a shortcut prepared by the mission maker. It starts with a hyphen `-` and triggers a full command behind the scenes. It is the easiest way to spawn units: you only need to know the shortcut's name.
+
+**Common air-defence aliases:**
 
 | Alias | What spawns |
 |-------|-------------|
@@ -97,11 +100,11 @@ Aliases start with `-` and are the easiest way to spawn units. They are predefin
 | `-sa15` | SA-15 Gauntlet (Tor) vehicle |
 | `-sa22` | SA-22 Greyhound (Pantsir-S1) vehicle |
 | `-shilka` | ZSU-23-4 Shilka AAA |
-| `-manpads` | MANPAD squad |
+| `-manpads` | MANPADS squad (man-portable surface-to-air missiles) |
 | `-samLR` | Random long-range SAM battery |
 | `-samSR` | Random short-range SAM battery |
 
-#### Common vehicle/ship aliases
+**Common vehicle and ship aliases:**
 
 | Alias | What spawns |
 |-------|-------------|
@@ -112,22 +115,15 @@ Aliases start with `-` and are the easiest way to spawn units. They are predefin
 | `-mlrs` | MLRS rocket battery |
 | `-attack_convoy_red` | Red attack convoy |
 
-#### Utility aliases
+![Units spawned by an alias command, shown on the map](../assets/img/pilot/marker-units-spawned.png)
 
-| Alias | What it does |
-|-------|--------------|
-| `-point Name` | Names a map point |
-| `-destroy` | Destroys units within 100 m |
-| `-login PASSWORD` | Authenticates for restricted commands |
-| `-logout` | Locks the system again |
-
-> **Tip:** Mission makers can define custom aliases. Ask your server admin for the full list.
+> **Tip:** each mission can define its own aliases. Ask your server administrator for the full list.
 
 ### Raw Commands (Advanced)
 
-For anything not covered by an alias, you can use the full VEAF command syntax directly. These commands start with `_`.
+For anything not covered by an alias, you can write a full VEAF command directly. These commands start with an underscore `_`.
 
-#### Spawn a unit: `_spawn unit`
+**Spawn a unit — `_spawn unit`:**
 
 ```
 _spawn unit, name F-16C
@@ -144,24 +140,24 @@ Common options:
 | `hdg [DEG]` | Initial heading in degrees | `hdg 270` |
 | `alt [FT]` | Altitude in feet (aircraft) | `alt 15000` |
 | `speed [KT]` | Speed in knots | `speed 450` |
-| `side [blue/red]` | Coalition override | `side red` |
+| `side [blue/red]` | Force the coalition | `side red` |
 
-#### Spawn a predefined group: `_spawn group`
+**Spawn a predefined group — `_spawn group`:**
 
 ```
 _spawn group, name CAP-2
 _spawn group, name RED-SAM-SITE, hdg 180
 ```
 
-Groups must be defined in the mission's configuration by the mission maker.
+Groups must have been defined in the mission's configuration by the mission maker.
 
-#### Spawn a CAP patrol: `_spawn cap`
+**Spawn a combat air patrol (CAP) — `_spawn cap`:**
 
 ```
 _spawn cap, name Su-27, alt 25000, capradius 20000
 ```
 
-#### Spawn smoke / flares / explosions
+**Smoke, flares, explosions:**
 
 ```
 _spawn smoke, color red
@@ -169,289 +165,181 @@ _spawn flare, power 1000000, shells 5
 _spawn bomb, power 500, shells 3
 ```
 
-### CAS Command
-
-```
-_cas
-_cas, size 3, defense 2, armor 3
-```
-
-**Options:**
-- `size [0-5]` — size of the enemy force
-- `defense [0-5]` — air defense level
-- `armor [0-5]` — armor level
-- `side [blue/red]` — coalition override
-
-### Security Authentication
-
-```
--login [PASSWORD]
-```
-
-Grants temporary elevated permissions. Required on some servers before using advanced spawn commands. Use `-logout` to lock again.
-
 ---
 
 ## Assets
 
+**Assets** are the mission's shared support aircraft and vessels: tankers, AWACS and carriers. You find them under **F10 → VEAF → Assets**.
+
+![Tankers and AWACS submenus](../assets/img/pilot/tanker-awacs-menu.png)
+
 ### Tankers
 
-Find tanker information via **F10 → VEAF → Assets → Tankers → [Name] → Info**.
+**F10 → VEAF → Assets → Tankers → [Name] → Info**
 
-Displayed: position, TACAN channel, radio frequency, type.
+Shows: position, TACAN channel (navigation beacon), radio frequency and refuelling type.
 
-If the tanker has been destroyed, use **Respawn** to bring it back (if the mission maker has allowed it).
+If the tanker has been destroyed, the **Respawn** option brings it back (if the mission maker has allowed it).
 
 ### AWACS
 
-Find AWACS via **F10 → VEAF → Assets → AWACS → [Name] → Info**.
+**F10 → VEAF → Assets → AWACS → [Name] → Info**
 
-Displayed: callsign, frequency, position.
+Shows: callsign, frequency and position.
 
 ### Carriers
 
 | Action | Menu path |
 |--------|-----------|
 | Get info (BRC, TACAN, ICLS, radio) | Assets → Carriers → [Name] → Info |
-| Turn carrier into wind for recovery | Assets → Carriers → [Name] → Start Recovery |
+| Turn the carrier into the wind for recovery | Assets → Carriers → [Name] → Start Recovery |
 | Resume normal navigation | Assets → Carriers → [Name] → Stop Recovery |
 
-Operations automatically time out after 45 minutes.
+![Carrier recovery submenu](../assets/img/pilot/carrier-recovery-menu.png)
+
+**Recovery procedure:**
+
+1. **Request recovery** 10–15 minutes before your approach (*Start Recovery*). The carrier turns into the wind to provide about 30 knots of relative wind over the deck.
+2. **Check the info** (*Info*):
+   - **BRC** (*Base Recovery Course*): the deck heading for recovery;
+   - **TACAN channel** (e.g. 73X): for navigation to the carrier;
+   - **ICLS channel** (e.g. 13): for glideslope guidance (F/A-18C, F-14);
+   - **ATC frequency**.
+3. **Approach and land** following TACAN, then ICLS.
+4. **After landing**, choose *Stop Recovery* to return the carrier to its route.
+
+> Recovery times out automatically after 45 minutes.
 
 ---
 
-## Missions and Combat Zones
+## Combat Zones and Missions
 
 ### Combat Zones
 
-Pre-built areas the mission maker has defined. You activate them on demand.
+A **combat zone** is an area prepared by the mission maker that you activate on demand. On activation, enemy units spawn; once all are destroyed, the zone is complete and can be replayed.
 
 | Action | Menu path |
 |--------|-----------|
 | List available zones | Combat Zones |
 | Activate a zone | Combat Zones → [Zone] → Activate |
-| Get zone status | Combat Zones → [Zone] → Info |
-| Mark zone with smoke | Combat Zones → [Zone] → Smoke |
-| Deactivate / cleanup | Combat Zones → [Zone] → Deactivate |
+| Check zone status | Combat Zones → [Zone] → Info |
+| Mark the zone with smoke | Combat Zones → [Zone] → Smoke |
+| Deactivate / clean up | Combat Zones → [Zone] → Deactivate |
 
-When a zone is activated, enemy units spawn. When all enemies are destroyed, the zone completes and can be replayed.
+### Missions
 
----
-
-## CAS Training
-
-Generate procedural CAS targets via **F10 → VEAF → CAS Mission**.
-
-| Action | Menu |
-|--------|------|
-| Create a new target zone | CAS Mission → Generate |
-| Mark with smoke | CAS Mission → Smoke |
-| Mark with flares | CAS Mission → Flare |
-| Skip current target | CAS Mission → Skip |
-| Get target info | CAS Mission → Info |
-| Remove all units | CAS Mission → Cleanup |
-
-Smoke/flare has a 3-minute cooldown between uses.
-
-### Difficulty Levels
-
-| Level | Size | Defense | Armour | Description |
-|-------|------|---------|--------|-------------|
-| 0 | Very small | None | Infantry | Beginner |
-| 1 | Small | Light | Light vehicles | Easy |
-| 2 | Medium | Moderate | APCs | Intermediate |
-| 3 | Medium-Large | Medium AA | IFVs + light tanks | Advanced |
-| 4 | Large | Heavy AA | Medium tanks | Difficult |
-| 5 | Very large | SAM | Heavy tanks | Expert |
-
-Set difficulty via marker: `_cas, size 3, defense 2, armor 3`
-
----
-
-## Carrier Operations
-
-### Recovery Procedure
-
-1. **Request recovery** (10–15 min before approach):
-   F10 → VEAF → Assets → Carriers → [Name] → Start Recovery
-
-2. **Check info**:
-   F10 → VEAF → Assets → Carriers → [Name] → Info
-   - BRC (Base Recovery Course)
-   - TACAN channel (e.g. 73X)
-   - ICLS channel (e.g. 13)
-   - ATC frequency
-
-3. **Approach and land** using TACAN for navigation and ICLS for glideslope (F/A-18C, F-14).
-
-4. **After landing**:
-   F10 → VEAF → Assets → Carriers → [Name] → Stop Recovery
-
-Recovery automatically times out after 45 minutes. The carrier turns into the wind to provide ~30 kt relative wind over deck.
-
----
-
-## Security and Permissions
-
-On multiplayer servers, some commands are restricted. Authenticate with:
-
-```
-_auth [PASSWORD]
-```
-
-Ask the server administrator for the password. Authentication persists for your session.
-
-Permission levels:
-
-| Level | Typical access |
-|-------|----------------|
-| Guest | View info, basic spawning (if allowed) |
-| Authenticated | Full spawn commands, CAS, missions |
-| Admin | Server management commands |
-
----
-
-## FAQ
-
-**Q: How do I know if a mission uses VEAF?**
-A: Press F10 — if you see a "VEAF" submenu under "Other", it's a VEAF mission.
-
-**Q: My marker commands don't work?**
-A: Check syntax (starts with `_`), check you're authenticated on multiplayer, and verify the server allows marker commands.
-
-**Q: What unit names can I use with `_spawn unit`?**
-A: Use standard DCS type names: `F-16C`, `Su-27`, `T-80`, `SA-6`, `M1 Abrams`, etc.
-
-**Q: Spawned units disappear?**
-A: DCS AI units can be cleaned up if you fly too far away. Stay within ~40–50 NM.
-
-**Q: How to reset a CAS mission?**
-A: F10 → CAS Mission → Cleanup, then Generate again.
-
-**Q: Can I spawn friendly units?**
-A: Yes — add `side blue` to your spawn command.
-
----
-
-## Community and Support
-
-- **VEAF Discord**: [veaf.org/discord](https://www.veaf.org/discord) — #support channel for help
-- **GitHub**: [github.com/VEAF/VEAF-Mission-Creation-Tools](https://github.com/VEAF/VEAF-Mission-Creation-Tools)
-- **Website**: [veaf.org](https://www.veaf.org)
-
-### Scripted Missions
-
-More complex scenarios with objectives and tracking.
+**Missions** are more elaborate scenarios, with objectives and progress tracking.
 
 | Action | Menu path |
 |--------|-----------|
 | List missions | Missions |
 | Activate | Missions → [Mission] → Activate |
-| Read status / objectives | Missions → [Mission] → Info |
+| Read status and objectives | Missions → [Mission] → Info |
 | Abort | Missions → [Mission] → Deactivate |
 
 ---
 
 ## CAS Training
 
-The CAS generator creates a target area with configurable threat packages.
+The **CAS** generator (*Close Air Support*) creates a zone of ground targets with an adjustable threat level. Ideal for practising attacks on enemy positions.
 
 **Workflow:**
 
-1. **Generate** — F10 → CAS Mission → Generate (optionally with parameters via marker `_cas, size 3, defense 2`)
-2. **Mark the zone** — F10 → CAS Mission → Smoke or Flare (3-minute cooldown between marks)
-3. **Get info** — F10 → CAS Mission → Info (position, unit composition, status)
-4. **Engage** — Attack the marked targets
-5. **Advance** — Zone auto-advances when all units are destroyed, or use **Skip**
-6. **Cleanup** — F10 → CAS Mission → Cleanup removes all remaining units
+1. **Generate** — F10 → VEAF → CAS Mission → Generate (with optional parameters via marker, see below).
+2. **Mark the zone** — Smoke or Flare (3-minute cooldown between marks).
+3. **Get info** — position, unit composition, status.
+4. **Engage** — attack the marked targets.
+5. **Advance** — the zone moves to the next one automatically when all units are destroyed, or use **Skip**.
+6. **Clean up** — *Cleanup* removes all remaining units.
 
-**Difficulty guide:**
+![Smoke marking a CAS target](../assets/img/pilot/cas-smoke.png)
 
-| Level | Typical composition | For |
-|-------|---------------------|-----|
+**Set the difficulty** via marker: `_cas, size 3, defense 2, armor 3`
+
+| Level | Typical composition | For whom |
+|-------|---------------------|----------|
 | 0 | Infantry, jeeps, no AA | Beginners |
 | 1 | Light vehicles, MANPADS | Easy |
-| 2 | APCs, light AAA | Intermediate |
-| 3 | IFVs, medium AAA + SHORAD | Advanced |
-| 4 | MBTs, ZSU + SA-9 | Difficult |
-| 5 | Heavy armor, SAMS | Expert |
+| 2 | Armoured personnel carriers (APC), light AA | Intermediate |
+| 3 | Infantry fighting vehicles (IFV), medium AA + SHORAD | Advanced |
+| 4 | Main battle tanks (MBT), ZSU + SA-9 | Difficult |
+| 5 | Heavy armour, SAMs | Expert |
+
+Options for the `_cas` command: `size [0-5]` (force size), `defense [0-5]` (AA level), `armor [0-5]` (armour), `side [blue/red]` (coalition).
 
 ---
 
 ## Security and Permissions
 
-On multiplayer servers the mission maker may restrict certain commands:
+On multiplayer servers, the mission maker may restrict certain commands according to your permission level:
 
-| Level | Who can use |
-|-------|-------------|
-| Public | All players — asset info, combat zone activation, smoke/flare |
+| Level | Who can use it |
+|-------|----------------|
+| Public | All players — asset info, zone activation, smoke/flare |
 | Pilots | Non-spectator players |
 | Admin | Server administrators |
 
-To authenticate as admin:
+To authenticate, place a marker containing:
 
 ```
 _auth [PASSWORD]
 ```
 
-After authentication you have elevated rights for the configured duration (default: 10 minutes). The password is set by the mission maker or server admin.
+The password is set by the mission maker or server administrator. Authentication stays valid for a configured duration (10 minutes by default), after which your rights return automatically to the public level.
 
 ---
 
-## Tips by Aircraft Role
+## Tips for Your Aircraft
 
 ### Fighters (F-16C, F/A-18C, F-15C, Su-27…)
 
-- Use AWACS for threat vectors before engaging
-- Spawn an enemy CAP with `-cap Su-27` for a realistic intercept scenario
-- Activate a predefined intercept mission via the F10 menu
+- Use the AWACS for threat vectors before engaging.
+- Spawn an enemy CAP with `_spawn cap, name Su-27` for a realistic intercept scenario.
+- Activate a predefined intercept mission from the F10 menu.
 
-### Attack Aircraft (A-10C, Su-25, F/A-18C…)
+### Attack aircraft (A-10C, Su-25, F/A-18C…)
 
-- Start CAS training at difficulty 1–2
-- Use **Smoke** to mark the target before attacking
-- Increase difficulty gradually (level 3+ has SEAD-worthy threats)
+- Start CAS training at difficulty 1 or 2.
+- Use **Smoke** to mark the target before attacking.
+- Increase difficulty gradually (level 3 and up: SEAD-worthy threats).
 
 ### Helicopters (AH-64D, Ka-50, Mi-24…)
 
-- Keep difficulty at 0–2 (minimal AA)
-- Use `_spawn unit, name BTR-80, group 5` for dispersed APC targets
-- Exploit terrain masking to approach below AA radar
+- Keep difficulty between 0 and 2 (minimal AA).
+- Use `_spawn unit, name BTR-80, group 5` for dispersed APC targets.
+- Use terrain masking to approach below AA radar coverage.
 
 ### Transports (C-130, Mi-8, UH-1H…)
 
-- Spawn a FARP as a destination: `-farp FARP Alpha`
-- Use CTLD integration (if enabled) for troop/cargo missions
+- Spawn a FARP as a destination: `-farp FARP Alpha`.
+- Use CTLD integration (if enabled) for troop and cargo missions.
 
 ---
 
-## FAQ
+## Frequently Asked Questions (FAQ)
 
-**Q: How do I know a mission uses VEAF?**
-Look for the VEAF submenu under F10 → Other at mission start.
+**How do I know if a mission uses VEAF?**
+Press F10: if a "VEAF" submenu appears under "Other", it is a VEAF mission.
 
-**Q: Why don't my markers work?**
-Check the command syntax. On some servers you may need to authenticate first with `_auth [PASSWORD]`.
+**My marker commands don't work. Why?**
+Check the syntax (raw commands start with `_`, aliases with `-`). In multiplayer you may need to authenticate first with `_auth [PASSWORD]`. Also check that the server allows marker commands.
 
-**Q: What DCS unit type names can I use?**
-Standard DCS names: `F-16C`, `Su-27`, `T-80`, `M1 Abrams`, `SA-6`, etc. They are case-sensitive.
+**What unit names can I use with `_spawn unit`?**
+Standard DCS type names: `F-16C`, `Su-27`, `T-80`, `M1 Abrams`, `SA-6`, etc. Note that they are case-sensitive.
 
-**Q: Spawned units disappeared?**
-Some missions enforce a range limit (~40–50 NM). Normal behaviour.
+**The units I spawned disappeared. Is that normal?**
+Yes — some missions enforce a range limit (about 40–50 NM): AI is cleaned up if you fly too far away.
 
-**Q: How do I reset a CAS session?**
+**How do I reset a CAS session?**
 F10 → CAS Mission → Cleanup, then Generate again.
 
-**Q: Can I spawn friendly units?**
-Yes, add `side blue` to any spawn command.
+**Can I spawn friendly units?**
+Yes: add `side blue` to your command.
 
 ---
 
 ## Community and Support
 
-- [VEAF Discord](https://www.veaf.org/discord) — real-time help, `#support` channel
-- [VEAF Website](https://www.veaf.org)
-- [GitHub](https://github.com/VEAF/VEAF-Mission-Creation-Tools)
-
----
-
+- **VEAF Discord**: [veaf.org/discord](https://www.veaf.org/discord) — `#support` channel for real-time help.
+- **Website**: [veaf.org](https://www.veaf.org)
+- **GitHub**: [github.com/VEAF/VEAF-Mission-Creation-Tools](https://github.com/VEAF/VEAF-Mission-Creation-Tools)

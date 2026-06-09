@@ -28,7 +28,7 @@ from typing import Any
 import yaml  # type: ignore[import-untyped]
 from mission_tools.mission_constants import get_community_script_files
 from veaf_libs.i18n import t
-from veaf_libs.lua_config_generator import MANDATORY_MODULES, yaml_syntax_header, yaml_module_entry
+from veaf_libs.lua_config_generator import MANDATORY_MODULES, yaml_module_entry, yaml_syntax_header
 from veaf_libs.lua_module_scanner import get_modules
 
 from mission_builder.config_migrator import ConfigMigrator, MigrationResult

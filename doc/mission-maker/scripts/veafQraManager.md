@@ -222,15 +222,64 @@ Par défaut, la QRA dispose d'un nombre illimité d'aéronefs. Utiliser ces mét
 
 ---
 
-## Machine à états QRA
+## Fonctionnement
+
+Une zone QRA surveille un volume d'espace aérien défini par une trigger zone DCS. Dès qu'un aéronef hostile y pénètre, la QRA décolle — à condition d'être prête. Quand la QRA est abattue, la zone entre en état de réarmement ; elle redevient active une fois les ennemis partis et le minuteur de réarmement expiré.
+
+### Machine à états
 
 ```
-PRÊTE ──(intrus entre)──> ACTIVE ──(QRA détruite)──> MORTE
-  ^                                                       |
-  └──────(tous les intrus partis + délai de réarmement)──┘
+STOP ──start()──► READY ──(intrus entre)──► ACTIVE ──(QRA détruite)──► DEAD
+  ▲                 ▲                                                      │
+  │                 └──────────(tous les intrus partis + délai réarm.)─────┘
+  │                                                     │
+  └──────────────────────────stop()────────────────────►┘
 ```
 
-États supplémentaires : `WILLREARM`, `OUT` (plus de groupes), `NOAIRBASE` (base aérienne détruite), `STOP` (désactivée manuellement).
+États complets :
+
+| État | Signification |
+|------|---------------|
+| `STOP` | Inactive — `stop()` a été appelé ou la QRA n'a jamais démarré |
+| `READY` | Armée et en surveillance d'intrus |
+| `READY_WAITINGFORMORE` | QRA décollée ; des intrus supplémentaires ont déclenché le déploiement de groupes additionnels |
+| `ACTIVE` | La QRA est en vol et en interception |
+| `DEAD` | La QRA a été détruite ; en attente des conditions de réarmement |
+| `WILLREARM` | Le minuteur de réarmement est en cours |
+| `OUT` | Plus d'aéronefs disponibles (stock épuisé) |
+| `NOAIRBASE` | La base aérienne liée a été détruite — la QRA se met en retrait |
+
+### Mise en place dans l'éditeur de mission DCS
+
+1. **Créez une trigger zone** — dessinez l'espace aérien à protéger. Donnez-lui un nom mémorable, par exemple `ZONE-QRA-NORTH`.
+2. **Placez le groupe QRA** — créez le groupe d'aéronefs qui décollera. Mettez-le en **Activation différée** (*Late Activation*) pour qu'il n'apparaisse pas au démarrage (VEAF gère l'activation). Donnez au groupe un nom distinctif, par exemple `MiG-29 QRA North`.
+3. **Reliez le tout dans `mission-script.lua`** (ou via `mission.yaml` → `qra:` pour l'approche YAML recommandée) :
+
+```lua
+VeafQRA:new()
+  :setName("QRA-North")
+  :setTriggerZone("ZONE-QRA-NORTH")
+  :setCoalition(coalition.side.RED)
+  :addGroup("MiG-29 QRA North")
+  :start()
+```
+
+C'est tout — aucune condition de trigger, aucune fonction planifiée. VEAF gère la détection, le décollage et le réarmement automatiquement.
+
+### Chaîne logistique
+
+Par défaut, une QRA dispose d'aéronefs en nombre illimité. Le système de logistique permet de modéliser un stock d'aérodrome fini avec ravitaillement optionnel — utile pour les missions persistantes de longue durée :
+
+| Paramètre | Rôle |
+|-----------|------|
+| `setQRAcount(n)` | Nombre total de groupes disponibles (sert de stock courant) |
+| `setQRAmaxCount(n)` | Plafond strict de groupes actifs simultanément |
+| `setQRAresupplyDelay(s)` | Secondes à attendre avant le démarrage d'un ravitaillement |
+| `setQRAminCountforResupply(n)` | Niveau de stock qui déclenche un ravitaillement |
+| `setQRAmaxResupplyCount(n)` | Nombre maximum de cycles de ravitaillement (`-1` = illimité) |
+| `setResupplyAmount(n)` | Groupes ajoutés par cycle de ravitaillement (défaut `1`) |
+
+Voyez cela comme un entrepôt : `QRAcount` est ce qui est en rayon, `resupplyDelay` le délai de livraison du camion, et `minCountforResupply` le point de recommande.
 
 ---
 

@@ -3,13 +3,18 @@
 # Place this file at the root of your mission folder (next to veaf-tools-updater.exe).
 # If absent, veaf-tools build works with default settings.
 #
-# Doc: https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/master/doc/mission-maker/GUIDE.en.md
+# Doc: https://veaf.github.io/documentation/latest/mission-maker/GUIDE/
 
 # ── YAML syntax quick reference ─────────────────────────────────────────────
 # Indentation: spaces only (never tabs). Each level = 2 spaces.
 # Quotes: only needed when a value contains  :  #  {  [  or starts with a digit.
 #   name: Mon-Vol-01            # OK — no quotes needed
 #   name: "Vol: Aller-Retour"   # required — value contains :
+#   Also required when the value contains escape sequences such as  \n  \t
+#   briefing: "Intercept bandits\nRTB when done"  # required — contains \n
+# Multiline text: use  |  (literal block) — each continuation line indented by 2 extra spaces.
+#   briefing: |
+#     second line
 # Lists: each item on its own line, preceded by  -
 #   groups:
 #     - MIG-29_SOLO
@@ -134,15 +139,15 @@
 #             delay: 0
 #   CARRIER: true
 #   # ── Community scripts ─────────────────────────────────────────────────────
-#   mist: true
-#   stts: true
-#   weathermark: true
-#   ctld: true
-#   aien: true
-#   csar: true
-#   hercules: true
-#   skynet: true
-#   tum: true
+#   MIST: true
+#   STTS: true
+#   WEATHERMARK: true
+#   CTLD: true
+#   AIEN: true
+#   CSAR: true
+#   HERCULES: true
+#   SKYNET: true
+#   TUM: true
 
 # ── External modules ─────────────────────────────────────────────────────────
 # external_modules:

@@ -442,16 +442,32 @@ class ConversionReport:
 # ---------------------------------------------------------------------------
 
 
+class _LiteralDumper(yaml.Dumper):
+    """YAML Dumper that uses literal block style (``|``) for multiline strings."""
+
+
+def _literal_str(dumper: yaml.Dumper, data: str) -> yaml.ScalarNode:
+    style = "|" if "\n" in data else None
+    return dumper.represent_scalar("tag:yaml.org,2002:str", data, style=style)
+
+
+_LiteralDumper.add_representer(str, _literal_str)
+
+
 def _yaml_list_block(items: list[Any], indent: int = 4) -> list[str]:
     """Serialize a list of dicts to YAML lines at the given indent level."""
-    raw = yaml.dump(items, default_flow_style=False, allow_unicode=True, sort_keys=False, indent=2).rstrip("\n")
+    raw = yaml.dump(
+        items, Dumper=_LiteralDumper, default_flow_style=False, allow_unicode=True, sort_keys=False, indent=2
+    ).rstrip("\n")
     prefix = " " * indent
     return [f"{prefix}{line}" for line in raw.splitlines()]
 
 
 def _yaml_dict_block(data: dict, indent: int = 6) -> list[str]:
     """Serialize a flat dict to YAML key: value lines at the given indent level."""
-    raw = yaml.dump(data, default_flow_style=False, allow_unicode=True, sort_keys=False, indent=2).rstrip("\n")
+    raw = yaml.dump(
+        data, Dumper=_LiteralDumper, default_flow_style=False, allow_unicode=True, sort_keys=False, indent=2
+    ).rstrip("\n")
     prefix = " " * indent
     return [f"{prefix}{line}" for line in raw.splitlines()]
 

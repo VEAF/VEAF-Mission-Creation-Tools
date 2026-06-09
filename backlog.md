@@ -87,6 +87,8 @@
 | Lot FIX-VERSIONS-YAML-ONLY — drop missions.yaml alias, use versions.yaml exclusively for weather pipeline | ~15 min | ✅ |
 | Lot YAML-UX — Simplification syntaxe mission.yaml | ~8h | ✅ |
 | Lot FIX-CONVERTER-YAML-I18N — Syntax header + i18n comments in convert-v5 output | ~45 min | ✅ |
+| Lot FEAT-YAML-MODULE-UX — Module shorthand, uppercase community IDs, category sort | ~1h | ✅ |
+| Lot FIX-BRIEFING-MULTILINE — convert-v5 truncates multi-line Lua briefings | ~45 min | ✅ |
 | **Total** | **~190h** | |
 
 *Initial calibration factor: 1.15 — recalculate after each completed lot.*
@@ -204,6 +206,7 @@ Direct commits on `develop-v6` (no feature branch needed — no code change).
 | REL-002 | Write `RELEASE_NOTES.md` for v6.1.0 | chore | 20 min | REL-001 | ⬜ |
 | REL-003 | Squash merge `develop-v6` → `master` | chore | 15 min | REL-002 | ⬜ |
 | REL-004 | Tag `v6.1.0` + publish GitHub (`veaf-build publish`) | chore | 30 min | REL-003 | ⬜ |
+| REL-005 | Change doc URL prefix from `/dev/` to `/latest/` in `v5_converter.py` (`DOC_BASE`, `_DOC_BASE`) and `src/defaults/mission-folder/mission.yaml` | chore | 5 min | REL-003 | ⬜ |
 
 **Estimated total: ~85 min (~1h30)**
 
@@ -358,6 +361,44 @@ Direct commits on `develop-v6` (no feature branch needed — no code change).
 | YAML-UX-004 | Listes toujours en style bloc (`-`) dans fichiers générés et template | Supprimer `groups: ["A", "B"]` et `enemy_coalitions: [BLUE]` → style bloc dans tous les fichiers générés par `v5_converter.py` et `lua_config_generator.py` | `lua_config_generator.py`, `v5_converter.py`, template `mission.yaml` | feat | 30 min | ✅ |
 | YAML-UX-005 | En-tête syntaxe YAML dans `mission.yaml` généré + template + doc | Ajouter un bloc commentaire en tête expliquant : indentation espaces, règle des guillemets, style liste bloc, booléens — aussi dans `doc/` | `lua_config_generator.py`, `v5_converter.py`, template `mission.yaml`, `doc/GUIDE*.md` | doc | 30 min | ✅ |
 | YAML-UX-006 | `migrate-config` : migrer fichiers existants vers nouvelle syntaxe | Ajouter une migration dans `config_migrator.py` pour convertir `lua_modules`/`community_scripts` → `modules:`, `enable` → `enabled`, `{}` → null, listes inline → bloc | `config_migrator.py`, tests | feat | 1h | ✅ |
+
+---
+
+## Lot FEAT-YAML-MODULE-UX — Module shorthand, uppercase community IDs, category sort
+
+**Goal**: Improve readability of the generated `mission.yaml` from `convert-v5`:
+1. Simple enabled modules use `MODULE: true` shorthand instead of two-line `MODULE:\n  enabled: true`
+2. Community script IDs displayed in uppercase (`MIST`, `STTS`…) like VEAF modules
+3. Modules sorted by category (Infrastructure first, then Core / Features / Combat / External)
+
+**Branch**: `feature/yaml-module-ux` → PR → `develop-v6`
+
+| # | Ticket | Files | Type | Effort | Status |
+|---|--------|-------|------|--------|--------|
+| MUX-001 | `yaml_module_entry()`: add `has_config` param — emit `MODULE: true` when no extra config | `lua_config_generator.py` | feat | 10 min | ✅ |
+| MUX-002 | v5_converter: pass `has_config=True` for modules with extracted data; sort by category | `v5_converter.py` | feat | 25 min | ✅ |
+| MUX-003 | Community script keys uppercase in generated YAML; case-insensitive matching in parser | `v5_converter.py`, `mission_builder_worker.py` | feat | 15 min | ✅ |
+| MUX-004 | Update tests | `test_v5_converter.py`, `test_lua_config_generator.py` | test | 10 min | ✅ |
+
+---
+
+## Lot FIX-BRIEFING-MULTILINE — convert-v5 truncates multi-line Lua briefings
+
+**Goal**: `setBriefing("line1\n" .. "line2\n")` must produce a complete multiline string in `mission.yaml`; currently only the first fragment is captured and literal `\n` is not decoded to a real newline.
+
+**Root causes**:
+1. `config_migrator.py` regex `"([^"]*)"` stops at first `"..."` fragment — ignores Lua `..` concatenation.
+2. Lua escape `\n` is kept as literal `\n` instead of being decoded to a real newline.
+3. `_yaml_str()` in `v5_converter.py` does not handle strings containing real newlines.
+4. CAP mission briefings emitted inline via `_yaml_str()` instead of block scalar.
+
+**Branch**: `fix/briefing-multiline` → PR → `develop-v6`
+
+| # | Ticket | Files | Type | Effort | Status |
+|---|--------|-------|------|--------|--------|
+| BML-001 | Add `_lua_extract_string()` helper + apply to 3 `setBriefing` extraction sites | `config_migrator.py` | fix | 15 min | ✅ |
+| BML-002 | `_yaml_str()`: handle strings with real newlines; CAP mission briefing → block scalar | `v5_converter.py` | fix | 10 min | ✅ |
+| BML-003 | Tests | `test_config_migrator.py` | test | 20 min | ✅ |
 
 ---
 

@@ -93,7 +93,7 @@ _SKIP_SETCONFIG_KEYS: frozenset[str] = frozenset(
 _NO_INIT_MODULES: frozenset[str] = frozenset({"AIRWAVES"})
 
 
-def _yaml_syntax_header() -> list[str]:
+def yaml_syntax_header() -> list[str]:
     """Return the localized YAML syntax quick-reference block.
 
     Returns:
@@ -927,7 +927,7 @@ def generate_mission_yaml_template(
     lines.append("")
 
     # ── YAML syntax quick reference (UX-005) ─────────────────────────────
-    lines.extend(_yaml_syntax_header())
+    lines.extend(yaml_syntax_header())
     lines.append("")
 
     # ── Global log level ──────────────────────────────────────────────────

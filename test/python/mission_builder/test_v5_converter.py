@@ -251,8 +251,8 @@ class TestBuildMissionYamlDocLinks(unittest.TestCase):
 
     def test_header_doc_url_is_correct(self) -> None:
         yaml = self._build_yaml()
-        self.assertIn("doc/mission-maker/GUIDE.en.md", yaml)
-        self.assertNotIn("doc/MISSION_MAKER_GUIDE", yaml)
+        self.assertIn("veaf.github.io/documentation/mission-maker/GUIDE", yaml)
+        self.assertNotIn("blob/master/doc", yaml)
 
     def test_module_section_has_doc_link(self) -> None:
         yaml = self._build_yaml()

@@ -8,6 +8,7 @@ import unittest
 from pathlib import Path
 
 from mission_builder.mission_builder_worker import CustomScript, MissionBuilderWorker
+from veaf_libs.i18n import set_language
 
 
 def _make_worker(
@@ -107,6 +108,12 @@ class TestCompleteDefaultsFiltering(unittest.TestCase):
 class TestCompleteDefaultsOrphanWarning(unittest.TestCase):
     """An orphan warning is emitted when a file already exists but its module is disabled (IMC-008)."""
 
+    def setUp(self) -> None:
+        set_language("en")
+
+    def tearDown(self) -> None:
+        set_language("en")
+
     def test_orphan_warning_logged(self) -> None:
         """When SPAWN is disabled and spawnables.yaml already exists, a warning is emitted."""
         from unittest.mock import patch
@@ -173,6 +180,12 @@ class TestWeatherDefaultsCopy(unittest.TestCase):
 
 class TestOldScriptsDetection(unittest.TestCase):
     """OLDSCRIPTS-002: warn when unexpected .lua files are present in src/scripts/."""
+
+    def setUp(self) -> None:
+        set_language("en")
+
+    def tearDown(self) -> None:
+        set_language("en")
 
     def _run_with_warnings(
         self,

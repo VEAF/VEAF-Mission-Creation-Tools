@@ -154,6 +154,23 @@ veafRadio.addSecuredCommandToSubmenu(
 veafRadio.refreshRadioMenu()
 ```
 
+### Menus paginés
+
+Quand un sous-menu compte plus d'environ 9 entrées (limite DCS), utilisez les helpers paginés :
+
+```lua
+veafRadio.addPaginatedRadioMenu(
+  "All Zones",          -- titre du menu
+  parentMenu,           -- nœud du menu parent
+  veafRadio.addCommandToSubmenu,
+  myZonesList,          -- table d'éléments
+  "name",               -- attribut utilisé comme titre d'entrée
+  "sortKey"             -- attribut utilisé pour le tri (optionnel)
+)
+```
+
+Des pages de 10 sont créées automatiquement avec un sous-menu « Page suivante ».
+
 ---
 
 ## Exemples pratiques de fonctions de callback
@@ -223,6 +240,20 @@ veafRadio.createUserMenu(
             veafRadio.command("Décrémenter 127", veafSpawn.missionMasterDecrementFlagValue,   127)
         )
     )
+)
+```
+
+### Commande par groupe (ForGroup)
+
+Une entrée « Demander un appui aérien » qui apparaît une fois par patrouille connectée, en passant automatiquement le nom d'unité de ce groupe :
+
+```lua
+veafRadio.addCommandToSubmenu(
+  "Request CAS",
+  supportMenu,
+  myCasDispatch,      -- reçoit { originalParams, unitName } à l'exécution
+  {},
+  veafRadio.USAGE_ForGroup
 )
 ```
 

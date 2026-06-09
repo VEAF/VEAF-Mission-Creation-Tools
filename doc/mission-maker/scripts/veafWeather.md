@@ -117,15 +117,26 @@ veafWeather.FOG_ANIMATED_30M_NO:activate()       -- dissipation en 30 minutes
 veafWeather.FOG_ANIMATED_5M_HEAVY:activate()     -- brouillard épais en 5 minutes
 ```
 
+### Activer un objet brouillard directement
+
+```lua
+veafWeather.setAndActivateFog(veafWeather.FOG_STATIC_MEDIUM)
+```
+
+C'est équivalent à appeler `:activate()` sur la constante. Tout brouillard actif précédemment est d'abord annulé.
+
 ### Déclencher un changement de brouillard depuis un trigger
 
 ```lua
+-- Sur un trigger DCS « Début phase de nuit », activer un brouillard épais
 mist.scheduleFunction(function()
     veafWeather.FOG_ANIMATED_15M_HEAVY:activate()
 end, {}, timer.getTime() + 0)
 ```
 
-### Commandes chat (hook serveur VEAF)
+---
+
+## Commandes chat / à distance
 
 | Commande | Effet |
 |----------|-------|

@@ -13,7 +13,7 @@ Le pipeline exécute quatre étapes optionnelles, dans cet ordre :
 | `presets` | `src/presets.yaml` | Injecte les préréglages de fréquences radio dans les groupes d'avions pilotés par des humains |
 | `waypoints` | `src/waypoints.yaml` ou `waypoints.yaml` | Injecte des modèles de points de cheminement dans les groupes d'avions pilotés par des humains |
 | `aircraft_groups` | `src/aircraft-templates.yaml`, `src/templates.yaml` ou `aircraft-templates.yaml` | Injecte des définitions de groupes d'aéronefs (slots/groupes à spawner) |
-| `weather` | `src/missions.yaml` (legacy, prioritaire), `src/versions.yaml` ou `missions.yaml` | Crée plusieurs variantes de mission avec différentes météos et heures |
+| `weather` | `src/versions.yaml` ou `versions.yaml` | Crée plusieurs variantes de mission avec différentes météos et heures |
 
 Chaque étape est **auto-détectée** : elle s'exécute si son fichier de config par défaut existe. Vous pouvez modifier ce comportement dans `mission.yaml`.
 
@@ -321,10 +321,9 @@ Crée plusieurs variantes `.miz` à partir d'une mission de base, chacune avec u
 ### Emplacement par défaut
 
 ```
-<dossier-mission>/src/missions.yaml  (legacy, vérifié en premier)
 <dossier-mission>/src/versions.yaml
 
-Aussi accepté : missions.yaml  (racine du dossier mission)
+Aussi accepté : versions.yaml  (racine du dossier mission)
 ```
 
 ### Schéma

@@ -54,7 +54,7 @@ V6_PIPELINE_CANDIDATES: dict[str, list[str]] = {
     "presets": ["src/presets.yaml"],
     "waypoints": ["src/waypoints.yaml"],
     "aircraft_groups": ["src/aircraft-templates.yaml", "src/templates.yaml"],
-    "weather": ["src/missions.yaml", "src/versions.yaml"],
+    "weather": ["src/versions.yaml"],
 }
 
 #: v5 source file paths (what a v5 mission folder typically contains).

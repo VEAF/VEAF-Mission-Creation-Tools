@@ -21,7 +21,7 @@ def inject_weather(
     readme: bool = typer.Option(False, help=README_HELP),
     verbose: bool = typer.Option(False, help=VERBOSE_HELP),
     mission_name_or_file: str | None = typer.Argument(DEFAULT_MISSION_FILE, help=t("cmd.inject_weather.opt.mission")),
-    config_file: str = typer.Option("missions.yaml", help=t("cmd.inject_weather.opt.config_file")),
+    config_file: str = typer.Option("versions.yaml", help=t("cmd.inject_weather.opt.config_file")),
     convert_lua: bool = typer.Option(False, "--convert-lua", help=t("cmd.inject_weather.opt.convert_lua")),
     pause: bool = typer.Option(False, help=PAUSE_HELP),
 ) -> None:

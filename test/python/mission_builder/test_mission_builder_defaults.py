@@ -138,8 +138,8 @@ class TestCompleteDefaultsOrphanWarning(unittest.TestCase):
         self.assertTrue(orphan_warnings, "Expected at least one orphan warning")
 
 
-class TestWeatherAliasCoexistence(unittest.TestCase):
-    """WEATHER-001/002: versions.yaml copy skipped when legacy missions.yaml is present (FIX-WEATHER-ALIAS)."""
+class TestWeatherDefaultsCopy(unittest.TestCase):
+    """versions.yaml is copied from defaults when absent from the mission folder."""
 
     def _run_with_warnings(self, mission_folder: Path, defaults_folder: Path, mission_yaml: dict) -> list[str]:
         from unittest.mock import patch
@@ -159,25 +159,8 @@ class TestWeatherAliasCoexistence(unittest.TestCase):
 
         return warnings
 
-    def test_versions_not_copied_when_missions_exists(self) -> None:
-        """versions.yaml is NOT copied if src/missions.yaml already exists in mission folder."""
-        tmpdir = Path(tempfile.mkdtemp())
-        self.addCleanup(shutil.rmtree, tmpdir)
-        defaults_folder = tmpdir / "published" / "src" / "defaults" / "mission-folder"
-        _seed_defaults(defaults_folder, "versions.yaml")
-        (tmpdir / "src").mkdir(parents=True, exist_ok=True)
-        (tmpdir / "src" / "missions.yaml").write_text("# legacy weather config", encoding="utf-8")
-
-        warnings = self._run_with_warnings(tmpdir, defaults_folder, {})
-
-        self.assertFalse((tmpdir / "src" / "versions.yaml").exists(), "versions.yaml must not be created")
-        self.assertTrue(
-            any("missions.yaml" in w for w in warnings),
-            f"Expected a warning mentioning missions.yaml; got: {warnings}",
-        )
-
     def test_versions_copied_when_missions_absent(self) -> None:
-        """versions.yaml IS copied normally when no legacy missions.yaml exists."""
+        """versions.yaml IS copied normally when no versions.yaml exists yet."""
         tmpdir = Path(tempfile.mkdtemp())
         self.addCleanup(shutil.rmtree, tmpdir)
         defaults_folder = tmpdir / "published" / "src" / "defaults" / "mission-folder"

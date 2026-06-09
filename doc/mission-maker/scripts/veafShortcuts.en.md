@@ -89,16 +89,7 @@ veafShortcuts.AddAlias(
 
 ## Default Aliases Reference
 
-See the **[Aliases Reference](../../ALIASES.md)** for the complete list of all built-in aliases.
-
----
-
-## See also
-
-- [Aliases Reference](../../ALIASES.md) — full list of all built-in aliases
-- [veafSpawn](veafSpawn.md) — the underlying spawn engine
-- [veafSecurity](veafSecurity.md) — permission system
-
+The most common built-in aliases are grouped below. See the **[Aliases Reference](../../ALIASES.md)** for the complete list of all built-in aliases.
 
 ### Air Missions
 

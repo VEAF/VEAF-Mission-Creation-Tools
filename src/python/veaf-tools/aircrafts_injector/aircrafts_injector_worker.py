@@ -648,76 +648,76 @@ class AircraftGroupsInjectorWorker(BaseWorker):
         total_injected = 0
         injection_errors = []
 
-        # Process each aircraft category
+        # Flatten the category → coalition → country → group hierarchy into a
+        # single work list so the injection can be displayed as one progress bar.
+        # Malformed (non-dict) levels are skipped rather than aborting the whole
+        # injection, preserving the previous per-coalition fault tolerance.
+        work_items: list[tuple[str, str, str, str, dict]] = []
         for category in ["airplanes", "helicopters"]:
-            if category not in self.yaml_data:
+            category_data = self.yaml_data.get(category)
+            if not isinstance(category_data, dict) or not isinstance(category_data.get("coalitions"), dict):
+                continue
+            for coalition_name, coalition_groups in category_data["coalitions"].items():
+                if not isinstance(coalition_groups, dict):
+                    continue
+                for country_name, country_groups in coalition_groups.items():
+                    if not isinstance(country_groups, dict):
+                        continue
+                    for group_name, group_data in country_groups.items():
+                        work_items.append((category, coalition_name, country_name, group_name, group_data))
+
+        for category, coalition_name, country_name, group_name, group_data in work_items:
+            # Resolving the mission structure (coalition/country/category) is
+            # reported separately from per-group injection so structure/YAML
+            # problems stay distinguishable from group-level failures.
+            try:
+                coalition = self._get_or_create_coalition_structure(coalition_name)
+                country = self._get_or_create_country(coalition, country_name)
+                mission_category = "plane" if category == "airplanes" else "helicopter"
+                groups_list = self._ensure_aircraft_category(country, mission_category)
+            except Exception as e:
+                error_msg = f"Failed to process coalition {coalition_name}/{country_name}/{category}: {str(e)}"
+                injection_errors.append(error_msg)
+                self.injection_log.append(error_msg)
+                logger.warning(error_msg)
                 continue
 
-            category_data = self.yaml_data[category]
-            if "coalitions" not in category_data:
-                continue
+            try:
+                # Check if group already exists
+                existing_idx = None
+                for idx, existing_group in enumerate(groups_list):
+                    if existing_group.get("name") == group_name:
+                        existing_idx = idx
+                        break
 
-            coalitions = category_data["coalitions"]
+                if existing_idx is not None and mode == "replace":
+                    # Replace existing group
+                    groups_list[existing_idx] = copy.deepcopy(group_data)
+                    log_msg = f"Replaced group {group_name} in {coalition_name}/{country_name}/{category}"
+                elif existing_idx is not None:
+                    # Skip: group already exists and mode is not replace
+                    log_msg = (
+                        f"Skipped group {group_name} (already exists in {coalition_name}/{country_name}/{category})"
+                    )
+                    self.injection_log.append(log_msg)
+                    logger.debug(log_msg)
+                    continue
+                else:
+                    # Add new group
+                    groups_list.append(copy.deepcopy(group_data))
+                    log_msg = f"Injected group {group_name} into {coalition_name}/{country_name}/{category}"
 
-            # Process each coalition
-            for coalition_name, coalition_groups in coalitions.items():
-                try:
-                    coalition = self._get_or_create_coalition_structure(coalition_name)
+                self.injection_log.append(log_msg)
+                total_injected += 1
 
-                    # Process each country
-                    for country_name, country_groups in coalition_groups.items():
-                        country = self._get_or_create_country(coalition, country_name)
+                if not silent:
+                    logger.debug(log_msg)
 
-                        # Convert category name for mission structure
-                        mission_category = "plane" if category == "airplanes" else "helicopter"
-                        groups_list = self._ensure_aircraft_category(country, mission_category)
-
-                        # Process each group
-                        for group_name, group_data in country_groups.items():
-                            try:
-                                # Check if group already exists
-                                existing_idx = None
-                                for idx, existing_group in enumerate(groups_list):
-                                    if existing_group.get("name") == group_name:
-                                        existing_idx = idx
-                                        break
-
-                                if existing_idx is not None and mode == "replace":
-                                    # Replace existing group
-                                    groups_list[existing_idx] = copy.deepcopy(group_data)
-                                    log_msg = (
-                                        f"Replaced group {group_name} in {coalition_name}/{country_name}/{category}"
-                                    )
-                                elif existing_idx is not None:
-                                    # Skip: group already exists and mode is not replace
-                                    log_msg = f"Skipped group {group_name} (already exists in {coalition_name}/{country_name}/{category})"
-                                    self.injection_log.append(log_msg)
-                                    logger.debug(log_msg)
-                                    continue
-                                else:
-                                    # Add new group
-                                    groups_list.append(copy.deepcopy(group_data))
-                                    log_msg = (
-                                        f"Injected group {group_name} into {coalition_name}/{country_name}/{category}"
-                                    )
-
-                                self.injection_log.append(log_msg)
-                                total_injected += 1
-
-                                if not silent:
-                                    logger.debug(log_msg)
-
-                            except Exception as e:
-                                error_msg = f"Failed to inject group {group_name}: {str(e)}"
-                                injection_errors.append(error_msg)
-                                self.injection_log.append(error_msg)
-                                logger.warning(error_msg)
-
-                except Exception as e:
-                    error_msg = f"Failed to process coalition {coalition_name}: {str(e)}"
-                    injection_errors.append(error_msg)
-                    self.injection_log.append(error_msg)
-                    logger.warning(error_msg)
+            except Exception as e:
+                error_msg = f"Failed to inject group {group_name}: {str(e)}"
+                injection_errors.append(error_msg)
+                self.injection_log.append(error_msg)
+                logger.warning(error_msg)
 
         # Prepare result
         if total_injected > 0:
@@ -785,11 +785,11 @@ class AircraftGroupsInjectorWorker(BaseWorker):
         with spinner_context(f"Validating {self.input_yaml}...", silent=silent):
             is_valid, validation_report = self.validate_yaml(silent)
 
-        # Display validation report
-        console.print("\n" + validation_report)
-
-        # If validation fails, stop here
+        # If validation fails, show the detailed report then stop here. On a
+        # clean run the report only restates "no issues", so the success line
+        # below is enough — avoid the redundant second line.
         if not is_valid:
+            console.print("\n" + validation_report)
             console.print(t("aircraft_injector.validation_failed_console"))
             return InjectionResult(
                 success=False,
@@ -798,7 +798,7 @@ class AircraftGroupsInjectorWorker(BaseWorker):
                 details={"validation_report": validation_report},
             )
 
-        console.print(t("aircraft_injector.validation_ok_console"))
+        logger.info(t("aircraft_injector.validation_ok_console"))
 
         # STEP 2: Load YAML
         with spinner_context(f"Loading {self.input_yaml}...", silent=silent):

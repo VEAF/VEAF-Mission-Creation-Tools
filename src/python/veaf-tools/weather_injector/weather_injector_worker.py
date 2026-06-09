@@ -11,6 +11,7 @@ from mission_tools import DcsMission, read_miz, write_miz
 from veaf_libs.base_worker import BaseWorker
 from veaf_libs.i18n import t
 from veaf_libs.logger import logger
+from veaf_libs.progress import progress_context
 
 from .models import MissionConfig, VersionConfig
 from .utils import SolarCalculator, TimeExpressionParser
@@ -82,17 +83,21 @@ class WeatherInjectorWorker(BaseWorker):
         if self.config.position:
             self._calculate_solar_times()
 
-        # Process each version
+        # Process each version, showing a progress bar over the variants.
+        # The per-version messages still go to the log file; on the console the
+        # progress bar provides the live, transient feedback.
         created_files = []
-        for i, version in enumerate(self.config.versions, 1):
-            try:
-                logger.info(t("weather.creating_version", index=i, total=len(self.config.versions), name=version.name))
-                output_path = self._create_mission_version(version)
-                created_files.append(output_path)
-                logger.info(t("weather.created", path=output_path))
-            except Exception as e:
-                logger.error(t("weather.error.version_failed", name=version.name, error=str(e)))
-                continue
+        total = len(self.config.versions)
+        with progress_context(self.config.versions, t("weather.creating_variants")) as versions:
+            for i, version in enumerate(versions, 1):
+                try:
+                    logger.info(t("weather.creating_version", index=i, total=total, name=version.name))
+                    output_path = self._create_mission_version(version)
+                    created_files.append(output_path)
+                    logger.info(t("weather.created", path=output_path))
+                except Exception as e:
+                    logger.error(t("weather.error.version_failed", name=version.name, error=str(e)))
+                    continue
 
         logger.info(t("weather.done", count=len(created_files)))
         return created_files

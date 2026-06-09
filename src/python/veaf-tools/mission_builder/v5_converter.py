@@ -29,7 +29,13 @@ from typing import Any
 import yaml  # type: ignore[import-untyped]
 from mission_tools.mission_constants import get_community_script_files
 from veaf_libs.i18n import t
-from veaf_libs.lua_config_generator import MANDATORY_MODULES, MODULE_CATEGORIES, yaml_module_entry, yaml_syntax_header
+from veaf_libs.lua_config_generator import (
+    MANDATORY_MODULES,
+    MODULE_CATEGORIES,
+    resolve_module_dependencies,
+    yaml_module_entry,
+    yaml_syntax_header,
+)
 from veaf_libs.lua_module_scanner import get_modules
 
 from mission_builder.config_migrator import ConfigMigrator, MigrationResult
@@ -171,6 +177,8 @@ class ConversionReport:
     mission_yaml_generated: bool = False
     mission_yaml_path: Path | None = None
     mission_yaml_skipped_reason: str = ""
+    auto_resolved_deps: list[str] = field(default_factory=list)
+    """Module IDs auto-enabled to satisfy dependencies (e.g. CASMISSION → GROUNDAI)."""
 
     # ── Summary lists ──────────────────────────────────────────────────────
     actions: list[str] = field(default_factory=list)
@@ -322,6 +330,8 @@ class ConversionReport:
                 f"- `global_log_level: debug` \u2014 {t('report.mission_yaml.log_level_warn')}",
                 f"- `lua_modules:` \u2014 {t('report.mission_yaml.modules_count', enabled=enabled_count, disabled=disabled_count)}",
             ]
+            if self.auto_resolved_deps:
+                lines.append(f"- {t('report.mission_yaml.deps_resolved', list=', '.join(self.auto_resolved_deps))}")
             if self.pipeline_files:
                 ready = [pf for pf in self.pipeline_files if not pf.needs_conversion]
                 needs_conv = [pf for pf in self.pipeline_files if pf.needs_conversion]
@@ -919,6 +929,15 @@ class V5Converter:
 
         enabled_modules = mr.enabled_modules if mr else []
         enabled_set = set(enabled_modules) | _BASE_ALWAYS_ON
+        # Pre-resolve module dependencies (e.g. CASMISSION → GROUNDAI, SPAWN) so
+        # the generated mission.yaml is self-consistent and the build no longer
+        # needs to auto-enable them at config-generation time with a warning.
+        auto_deps = resolve_module_dependencies(enabled_set)
+        # Always assign (even when empty) so a report reused across calls never
+        # keeps stale auto-resolved dependencies.
+        report.auto_resolved_deps = auto_deps
+        if auto_deps:
+            enabled_set.update(auto_deps)
         all_mods = get_modules()
 
         # Modules explicitly enabled (from missionConfig.lua or always-on base set)

@@ -2025,3 +2025,34 @@ blocks). Code blocks/identifiers stay identical; only prose is translated.
 
 **After DOC-005c:** update CHANGELOG, open PR `feature/doc-overhaul` → `develop-v6`,
 then the user captures the screenshots listed in DOC-006 to drop into `doc/assets/img/`.
+
+---
+
+## Lot UI-OUTPUT — Declutter CLI output (transient status line + chapter/technical tiers)
+
+**Goal**: Make `veaf-tools` (and later `veaf-tools-updater`) output readable. Low-importance progress messages scroll endlessly today. Introduce three output tiers: permanent technical lines, permanent chapter headers, and a single overwriting transient line for everything else (warnings/errors stay permanent). The full log file keeps every message. `--verbose` and non-interactive output fall back to the classic line-by-line display.
+
+**Branch**: `feature/UI-OUTPUT` → PR → `develop-v6`
+
+| # | Ticket | Files | Type | Status |
+|---|--------|-------|------|--------|
+| UIOUT-001 | `StatusLine` helper: single overwriting Rich `Live` line, enable/disable, suspend for nested `Live` | `veaf_libs/console_status.py` | feat | ✅ |
+| UIOUT-002 | Wire into `Logger`: `info()` transient by default, add `tech()`/`step()`, `set_verbose` gates transient on TTY, `stop_status()` | `veaf_libs/logger.py` | feat | ✅ |
+| UIOUT-003 | Make `spinner_context`/`progress_context` suspend the status line and render transiently when active | `veaf_libs/progress.py` | feat | ✅ |
+| UIOUT-004 | Pilot `build`: promote pipeline headers to `step()`, key results to `tech()`; stop status line at program end | `veaf_tools/commands/build.py`, `veaf_tools/app.py`, `mission_builder/mission_builder_worker.py` | feat | ✅ |
+| UIOUT-005 | Unit tests for `StatusLine` and `Logger` routing | `test/python/veaf_libs/test_console_status.py`, `test_logger.py` | test | ✅ |
+| UIOUT-006 | Phase 2 — extend to `veaf-tools-updater` and `veaf-build`: `stop_status()` at program exit + promote outcome lines to `tech()` | `veaf-tools-updater.py`, `veaf_build/cli.py` | feat | ✅ |
+
+---
+
+## Lot FIX-CONVERT-V5-DEPS — Resolve module dependencies when generating mission.yaml
+
+**Goal**: When `convert-v5` generates `mission.yaml`, pre-resolve module dependencies so required modules are already enabled in the generated file — no build-time auto-enable warning.
+
+**Branch**: handled on `feature/UI-OUTPUT` (per user request) — no separate branch.
+
+| # | Ticket | Files | Type | Status |
+|---|--------|-------|------|--------|
+| CVDEP-001 | Expose the dependency graph / resolver from `lua_config_generator.py` so the converter can reuse it — added pure `resolve_module_dependencies()` helper | `veaf_libs/lua_config_generator.py` | refactor | ✅ |
+| CVDEP-002 | In `convert-v5` module generation, auto-enable required dependencies (transitively) and emit them explicitly in the generated `mission.yaml` | `mission_builder/v5_converter.py`, `locales/*.json` | feat | ✅ |
+| CVDEP-003 | TDD: a v5 folder enabling `CASMISSION` produces a `mission.yaml` with `GROUNDAI` (and `SPAWN`) enabled | `test/python/` | test | ✅ |

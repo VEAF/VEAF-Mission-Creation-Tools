@@ -7,6 +7,15 @@ Ce guide couvre deux scénarios :
 
 Dans les deux cas, le résultat final est un **dossier de mission VEAF MCT v6** que vous gérez avec `veaf-tools.exe`.
 
+```mermaid
+flowchart TD
+    V5[Mission VEAF MCT v5] -->|veaf-tools convert-v5| FOLDER[Dossier de mission v6]
+    VAN[Mission DCS vanilla .miz] -->|veaf-tools extract| FOLDER
+    FOLDER --> CFG[Éditer mission.yaml]
+    CFG --> BUILD[veaf-tools build]
+    BUILD --> MIZ[.miz v6 prêt à voler]
+```
+
 ---
 
 ## Avant de commencer
@@ -50,12 +59,12 @@ Dans les deux cas, le résultat final est un **dossier de mission VEAF MCT v6** 
 | **Pipeline d'auto-injection** | Chaque commande d'injection devait être ajoutée manuellement à `build.cmd` | `veaf-tools build` auto-détecte et exécute chaque étape quand le fichier correspondant est présent dans `src/` |
 | **Mises à jour des outils** | NPM (`npm install`) — scripts distribués sous forme de package versionné | `veaf-tools-updater.exe` — télécharge et vérifie la dernière release en une commande |
 | **Config au moment du build** | Pas de fichier de config au moment du build | `mission.yaml` — contrôle les niveaux de log, l'activation/désactivation des modules, les surcharges d'étapes du pipeline |
-| **Activation/désactivation de modules** | Éditer `missionConfig.lua` (ou simplement omettre l'appel à `initialize()`) | Section `lua_modules:` dans `mission.yaml` ; génère `veaf-config.lua` automatiquement |
+| **Activation/désactivation de modules** | Éditer `missionConfig.lua` (ou simplement omettre l'appel à `initialize()`) | Bloc `modules:` dans `mission.yaml` ; génère `veaf-config.lua` automatiquement |
 | **Configuration de modules** | Affectation directe : `veafSpawn.SpawnKeyphrase = "_spawn"` dans `missionConfig.lua` | La même affectation directe fonctionne toujours dans `mission-script.lua` ; ou `veaf.setConfig("MODULE_ID", "key", value)` pour les surcharges pilotées par config |
 | **Pattern d'init des modules** | Appels nus `veafXxx.initialize()` | Auto-généré dans `veaf-config.lua` par `veaf-tools build` ; aucun appel `initialize()` manuel nécessaire |
 | **Emplacement de la config** | Initialisation dispersée dans des scripts de trigger DCS ou un fichier Lua séparé | `mission.yaml` génère `veaf-config.lua` au moment du build ; code Lua personnalisé optionnel dans `mission-script.lua` |
 | **Migration de la config** | Réécriture manuelle | `veaf-tools.exe convert-v5` — une seule commande migre `missionConfig.lua`, convertit les fichiers pipeline (préréglages, waypoints, météo, groupes d'aéronefs) et génère `mission.yaml` + `mission-script.lua`. Utilisez `migrate-config` uniquement pour migrer `missionConfig.lua` seul. |
-| **Niveaux de log des modules** | Définis par module en assignant `veafXxx.LogLevel` avant l'init | Section `lua_modules: → MODULE_ID: logLevel:` dans `mission.yaml` ou option CLI `--log-modules` |
+| **Niveaux de log des modules** | Définis par module en assignant `veafXxx.LogLevel` avant l'init | Section `modules: → MODULE_ID: logLevel:` dans `mission.yaml` ou option CLI `--log-modules` |
 
 ### Migration étape par étape
 
@@ -94,7 +103,7 @@ Cette commande unique gère tout en une seule passe :
 
 - **Migration de `missionConfig.lua`** — commente les appels `doFile()` qui chargent les scripts VEAF (le builder les injecte automatiquement), enveloppe les appels nus `veafXxx.initialize()` dans des gardes `if veafXxx then … end`.
 - **Conversion des configs pipeline** — convertit les fichiers de config v5 (préréglages radio, waypoints, météo, groupes d'aéronefs) du format Lua vers le YAML v6.
-- **Génération de `mission.yaml`** — crée `mission.yaml` avec les sections `lua_modules:` et `pipeline:` correctes.
+- **Génération de `mission.yaml`** — crée `mission.yaml` avec les sections `modules:` et `pipeline:` correctes.
 - **Rapport de conversion** — sauvegarde `convert-v5-report.md` avec toutes les actions effectuées et les éléments nécessitant une révision manuelle.
 
 Si votre pipeline contient des versions météo `realweather`, l'outil demandera le code ICAO de l'aéroport à intégrer dans la config générée. Vous pouvez le fournir directement pour éviter le prompt interactif :
@@ -197,17 +206,17 @@ Puis copiez votre `.miz` sous `mission.miz` et exécutez :
 ```yaml
 name: Ma Mission Vanilla
 
-lua_modules:
+modules:
   RADIO:
-    enable: true
+    enabled: true
   SPAWN:
-    enable: true
+    enabled: true
   # Décommenter pour activer les missions CAS :
   # CASMISSION:
-  #   enable: true
+  #   enabled: true
   # Décommenter pour activer les opérations carrier :
   # CARRIER:
-  #   enable: true
+  #   enabled: true
 ```
 
 Pour du Lua personnalisé (appels de modules avancés, aliases, etc.), éditez `src/scripts/mission-script.lua`.
@@ -289,7 +298,7 @@ veafShortcuts.AddAlias(
 )
 ```
 
-L'activation/désactivation des modules se configure dans `mission.yaml` → `lua_modules:` — pas dans ce fichier. Consultez la [référence YAML](../../MISSION_YAML_REFERENCE.md) pour la syntaxe complète de `mission.yaml`.
+L'activation/désactivation des modules se configure dans `mission.yaml` → `modules:` — pas dans ce fichier. Consultez la [référence YAML](../../MISSION_YAML_REFERENCE.md) pour la syntaxe complète de `mission.yaml`.
 
 ---
 
@@ -306,9 +315,9 @@ Alternativement, utilisez `--migrate-from-v5` sur le build pour que les anciens 
 Vérifiez que `RADIO` est activé dans `mission.yaml` :
 
 ```yaml
-lua_modules:
+modules:
   RADIO:
-    enable: true
+    enabled: true
 ```
 
 Reconstruisez avec `veaf-tools.exe build` après toute modification de `mission.yaml`.
@@ -318,9 +327,9 @@ Reconstruisez avec `veaf-tools.exe build` après toute modification de `mission.
 Vérifiez que `SPAWN` est activé dans `mission.yaml` :
 
 ```yaml
-lua_modules:
+modules:
   SPAWN:
-    enable: true
+    enabled: true
 ```
 
 Ensuite, consultez le journal DCS (`Saved Games\DCS\Logs\dcs.log`) pour les erreurs VEAF — filtrez sur `VEAF` ou `ERROR`.

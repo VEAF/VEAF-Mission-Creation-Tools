@@ -39,9 +39,9 @@ This rebuilds the entire F10 tree. It is safe to call multiple times — it debo
 ## Configuration (`mission.yaml`)
 
 ```yaml
-lua_modules:
+modules:
   RADIO:
-    enable: true          # default: true
+    enabled: true          # default: true
     logLevel: info        # optional log level override
     init:
       help_menus: true    # show built-in "Help" entries in radio menus (default: true)
@@ -56,9 +56,9 @@ lua_modules:
 ### Minimal example
 
 ```yaml
-lua_modules:
+modules:
   RADIO:
-    enable: true
+    enabled: true
 ```
 
 ---

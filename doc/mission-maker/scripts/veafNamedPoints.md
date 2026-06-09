@@ -28,9 +28,9 @@ veafNamedPoints.initialize()
 ## Configuration (`mission.yaml`)
 
 ```yaml
-lua_modules:
+modules:
   NAMEDPOINTS:
-    enable: true          # défaut : true
+    enabled: true          # défaut : true
     logLevel: info        # surcharge optionnelle du niveau de log
     custom_points:        # points nommés prédéfinis
       - name: "Zone de Combat Alpha"  # nom du point (référencé dans les commandes)
@@ -55,9 +55,9 @@ lua_modules:
 ### Exemple minimal
 
 ```yaml
-lua_modules:
+modules:
   NAMEDPOINTS:
-    enable: true
+    enabled: true
     custom_points:
       - name: "BULLSEYE"
         lat: "41.100000"

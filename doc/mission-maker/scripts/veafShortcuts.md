@@ -33,9 +33,9 @@ Cela enregistre automatiquement la liste d'aliases par défaut.
 ## Configuration (`mission.yaml`)
 
 ```yaml
-lua_modules:
+modules:
   SHORTCUTS:
-    enable: true          # défaut : true
+    enabled: true          # défaut : true
     logLevel: info        # surcharge optionnelle du niveau de log
     shortcuts:            # définitions d'aliases personnalisés
       - name: "smoke"                 # nom de l'alias (tapé en -smoke dans les marqueurs)
@@ -57,9 +57,9 @@ lua_modules:
 ### Exemple minimal
 
 ```yaml
-lua_modules:
+modules:
   SHORTCUTS:
-    enable: true
+    enabled: true
     shortcuts:
       - name: "cas"
         description: "Demander CAS"
@@ -89,7 +89,40 @@ veafShortcuts.AddAlias(
 
 ## Référence des aliases par défaut
 
-Voir la **[Référence des Alias](../../ALIASES.fr.md)** pour la liste complète de tous les alias intégrés.
+Les aliases intégrés les plus courants sont regroupés ci-dessous. Voir la **[Référence des Alias](../../ALIASES.md)** pour la liste complète de tous les alias intégrés.
+
+### Missions aériennes
+
+| Alias | Description |
+|-------|-------------|
+| `-cap` | CAP dynamique (nécessite le nom de l'appareil) |
+| `-airstart` | Démarrer une mission de combat (nécessite un nom) |
+| `-airstop` | Arrêter une mission de combat (nécessite un nom) |
+| `-zonestart` | Activer une zone de combat (nécessite un nom) |
+| `-zonestop` | Désactiver une zone de combat (nécessite un nom) |
+
+### Radio
+
+| Alias | Description |
+|-------|-------------|
+| `-send` | Envoyer un message radio (nécessite `"MESSAGE"`) |
+| `-play` | Jouer un fichier son (nécessite `"NOMFICHIER"`) |
+
+### Mission Master
+
+| Alias | Description |
+|-------|-------------|
+| `-flag` | Lire la valeur d'un flag (nécessite un nom) |
+| `-flagon` | Mettre un flag à ON (nécessite un nom) |
+| `-flagoff` | Mettre un flag à OFF (nécessite un nom) |
+| `-run` | Exécuter un runnable (nécessite un nom) |
+
+### Commandes utilitaires
+
+| Alias | Description |
+|-------|-------------|
+| `-destroy` | Détruire toute unité dans un rayon de 100 m du marqueur |
+| `-ai_set` | Définir le handler IA d'un groupe terrestre |
 
 ---
 
@@ -101,7 +134,7 @@ La plupart des aliases respectent le système de sécurité (`veafSecurity`). Ce
 
 ## Voir aussi
 
-- [Référence des Alias](../../ALIASES.fr.md) — liste complète de tous les alias intégrés
+- [Référence des Alias](../../ALIASES.md) — liste complète de tous les alias intégrés
 - [veafSpawn](veafSpawn.md) — le moteur de spawn sous-jacent
 - [veafSecurity](veafSecurity.md) — système de permissions
 

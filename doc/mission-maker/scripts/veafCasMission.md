@@ -34,12 +34,12 @@ veafCasMission.start()
 `veafCasMission` lui-même n'a pas de champs configurables en YAML. Cependant, les **missions CAP** et les **missions de combat** (gérées par le module `COMBATMISSION`) sont déclarées dans des sections de premier niveau de `mission.yaml`.
 
 ```yaml
-lua_modules:
+modules:
   CASMISSION:
-    enable: true          # défaut : true
+    enabled: true          # défaut : true
     logLevel: info        # surcharge optionnelle du niveau de log
   COMBATMISSION:
-    enable: true          # requis pour cap_missions: et combat_missions:
+    enabled: true          # requis pour cap_missions: et combat_missions:
 
 # ── Missions CAP ──────────────────────────────────────────────────────────────
 cap_missions:
@@ -93,9 +93,9 @@ combat_missions:
 ### Exemple minimal
 
 ```yaml
-lua_modules:
+modules:
   COMBATMISSION:
-    enable: true
+    enabled: true
 
 cap_missions:
   - group_name: "CAP-Alpha"

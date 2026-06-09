@@ -134,7 +134,7 @@ class PresetsInjectorWorker(GroupInjectorWorker):
                 nb_units_processed += self.process_units(group, preset_definition)
 
         if not silent:
-            logger.info(t("presets_injector.injected", count=nb_units_processed))
+            logger.tech(t("presets_injector.injected", count=nb_units_processed))
 
         # Emit one warning per unit_type, listing all affected groups together.
         if self._pending_freq_warnings:

@@ -5,6 +5,8 @@ from typing import Self
 import typer
 from rich.console import Console
 
+from veaf_libs.console_status import StatusLine
+
 
 class Logger:
     """Logging and console print system."""
@@ -31,10 +33,26 @@ class Logger:
             self.logger.addHandler(file_handler)
 
         self.console = console
+        self.status: StatusLine | None = StatusLine(console) if console else None
 
     def set_verbose(self, verbose: bool) -> Self:
         self.verbose = verbose
         self.set_level(logging.DEBUG)
+        # Transient single-line output only makes sense for an interactive,
+        # non-verbose run. Derive interactivity from the Rich console's own
+        # output stream (which may differ from sys.stdout, e.g. stderr or a
+        # redirected file) so status-line behaviour matches the real
+        # destination. Under --verbose or when piped, every message scrolls
+        # normally so nothing is lost.
+        if self.status:
+            interactive = bool(self.console and self.console.is_terminal)
+            self.status.configure(enabled=not verbose and interactive)
+        return self
+
+    def stop_status(self) -> Self:
+        """Stop the transient status line (call once at program end)."""
+        if self.status:
+            self.status.stop()
         return self
 
     def set_level(self, level):
@@ -67,10 +85,40 @@ class Logger:
         return self
 
     def info(self, message: str, no_console: bool = False) -> Self:
-        """Log and display info message."""
+        """Log an info message; display it transiently when possible.
+
+        The message is always written to the log file. On the console it is
+        shown on the single overwriting status line when transient mode is
+        active, otherwise printed as a normal scrolling line.
+        """
+        self.logger.info(message)
+        if self.console and not no_console:
+            if not (self.status and self.status.update(message, style="cyan")):
+                self.console.print(message, style="cyan")
+        return self
+
+    def tech(self, message: str, no_console: bool = False) -> Self:
+        """Log and display a permanent technical line.
+
+        Use for output that must stay on screen: tool start-up, version,
+        generated file names, final totals.
+        """
         self.logger.info(message)
         if self.console and not no_console:
             self.console.print(message, style="cyan")
+        return self
+
+    def step(self, message: str, no_console: bool = False) -> Self:
+        """Log and display a permanent chapter header for a major stage.
+
+        The message carries its own Rich markup styling; it is rendered as a
+        permanent line above the transient status line.
+        """
+        self.logger.info(message)
+        if self.console and not no_console:
+            if self.status:
+                self.status.clear()
+            self.console.print(message, style="bold blue")
         return self
 
     def debug(self, message: str, no_console: bool = False) -> Self:

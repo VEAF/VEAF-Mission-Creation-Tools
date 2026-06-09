@@ -101,6 +101,7 @@ def build(
             mission_base_name = _safe_name
 
     # Build the mission
+    logger.step(t("pipeline.console.build"))
     worker = MissionBuilderWorker(
         dynamic_mode=dynamic_mode,
         dev_mode_override=dev_mode,
@@ -151,7 +152,7 @@ def build(
     presets_path = _step_file("presets", "src/presets.yaml")
     if presets_path:
         logger.info(t("pipeline.injecting_presets", path=presets_path))
-        console.print(t("pipeline.console.presets", file=presets_path.name))
+        logger.step(t("pipeline.console.presets", file=presets_path.name))
         presets_worker = PresetsInjectorWorker(
             presets_file=presets_path,
             input_mission=p_output_mission,
@@ -166,7 +167,7 @@ def build(
     waypoints_path = _step_file("waypoints", "src/waypoints.yaml", "waypoints.yaml")
     if waypoints_path:
         logger.info(t("pipeline.injecting_waypoints", path=waypoints_path))
-        console.print(t("pipeline.console.waypoints", file=waypoints_path.name))
+        logger.step(t("pipeline.console.waypoints", file=waypoints_path.name))
         WaypointsInjectorWorker(
             waypoints_file=waypoints_path,
             input_mission=p_output_mission,
@@ -185,12 +186,13 @@ def build(
         is_valid, _ = validator.validate()
         if is_valid:
             logger.info(t("pipeline.injecting_aircraft_mode", path=aircraft_path, mode=aircraft_mode))
-            console.print(t("pipeline.console.aircraft", file=aircraft_path.name, mode=aircraft_mode))
-            AircraftGroupsInjectorWorker(
+            logger.step(t("pipeline.console.aircraft", file=aircraft_path.name, mode=aircraft_mode))
+            aircraft_result = AircraftGroupsInjectorWorker(
                 input_yaml=aircraft_path,
                 target_mission=p_output_mission,
                 output_mission=p_output_mission,
-            ).inject(mode=aircraft_mode, silent=True)
+            ).inject(mode=aircraft_mode, silent=False)
+            logger.tech(t("pipeline.console.aircraft_done", count=aircraft_result.groups_injected))
         else:
             logger.warning(t("cmd.build.aircraft_validation_failed", path=aircraft_path))
             console.print(t("pipeline.console.aircraft_invalid"))
@@ -202,7 +204,7 @@ def build(
     weather_path = _step_file("weather", "src/versions.yaml", "versions.yaml")
     if weather_path:
         logger.info(t("pipeline.injecting_weather", path=weather_path))
-        console.print(t("pipeline.console.weather", file=weather_path.name))
+        logger.step(t("pipeline.console.weather", file=weather_path.name))
         weather_worker = WeatherInjectorWorker(
             config_file=weather_path,
             mission_file=p_output_mission,
@@ -210,8 +212,8 @@ def build(
             mission_base_name=mission_base_name,
         )
         if created_files := weather_worker.work():
-            console.print(t("pipeline.console.weather_done", count=len(created_files)))
+            logger.tech(t("pipeline.console.weather_done", count=len(created_files)))
 
-    console.print(t("msg.work_done"))
+    logger.tech(t("msg.work_done"))
     if pause:
         input(t("help.pause_msg"))

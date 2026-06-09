@@ -1,7 +1,7 @@
 import io
 import sys
 from collections.abc import Iterable, Sized
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 from dataclasses import dataclass
 from typing import Any
 
@@ -53,28 +53,41 @@ def spinner_context(
         styled_msg = Text(message, style=msg_color)
         highlighter.highlight(styled_msg)
 
-        live = Live(Spinner("dots", text=styled_msg, style=spinner_color), console=console, refresh_per_second=12.5)
-        live.start()
-        show_done = True
-        try:
-            yield control
-        except Exception:
-            show_done = False
-            raise
-        finally:
-            if show_done:
-                final_done_message = control.done_message or done_message
-                if not final_done_message:
-                    final_done_message = t(
-                        "progress.done", msg=message.removesuffix("...")[0].lower() + message.removesuffix("...")[1:]
-                    )
-                    if logger:
-                        logger.info(message, no_console=True)
+        # Cooperate with the global transient status line: suspend it (Rich
+        # allows a single Live at a time) and, when it is active, render this
+        # spinner transiently too so its done message does not clutter output.
+        status = logger.status if logger else None
+        transient = bool(status and status.enabled)
 
-                styled_done = Text(final_done_message, style=done_color)
-                highlighter.highlight(styled_done)
+        with status.suspend() if status else nullcontext():
+            live = Live(
+                Spinner("dots", text=styled_msg, style=spinner_color),
+                console=console,
+                refresh_per_second=12.5,
+                transient=transient,
+            )
+            live.start()
+            show_done = True
+            try:
+                yield control
+            except Exception:
+                show_done = False
+                raise
+            finally:
+                if show_done:
+                    final_done_message = control.done_message or done_message
+                    if not final_done_message:
+                        final_done_message = t(
+                            "progress.done",
+                            msg=message.removesuffix("...")[0].lower() + message.removesuffix("...")[1:],
+                        )
+                        if logger:
+                            logger.info(message, no_console=True)
 
-                live.update(styled_done)
+                    styled_done = Text(final_done_message, style=done_color)
+                    highlighter.highlight(styled_done)
+
+                    live.update(styled_done)
                 live.stop()
 
 
@@ -103,44 +116,50 @@ def progress_context(
         styled_msg = Text(message, style=msg_color)
         highlighter.highlight(styled_msg)
 
-        progress = Progress(
-            SpinnerColumn(),
-            TextColumn("[progress.description]{task.description}"),
-            BarColumn(complete_style=bar_color, finished_style=bar_color),
-            TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
-            TimeRemainingColumn(),
-            console=console,
-            refresh_per_second=12.5,
-        )
+        # Cooperate with the global transient status line (see spinner_context).
+        status = logger.status if logger else None
+        transient = bool(status and status.enabled)
 
-        task = progress.add_task(str(styled_msg), total=total)
+        with status.suspend() if status else nullcontext():
+            progress = Progress(
+                SpinnerColumn(),
+                TextColumn("[progress.description]{task.description}"),
+                BarColumn(complete_style=bar_color, finished_style=bar_color),
+                TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
+                TimeRemainingColumn(),
+                console=console,
+                refresh_per_second=12.5,
+            )
 
-        live = Live(progress, console=console, refresh_per_second=12.5)
-        live.start()
+            task = progress.add_task(str(styled_msg), total=total)
 
-        show_done = True
-        try:
+            live = Live(progress, console=console, refresh_per_second=12.5, transient=transient)
+            live.start()
 
-            def generator():
-                for item in collection:
-                    yield item
-                    progress.update(task, advance=1)
+            show_done = True
+            try:
 
-            yield generator()
+                def generator():
+                    for item in collection:
+                        yield item
+                        progress.update(task, advance=1)
 
-        except Exception:
-            show_done = False
-            raise
-        finally:
-            if show_done:
-                if not done_message:
-                    done_message = t(
-                        "progress.done", msg=message.removesuffix("...")[0].lower() + message.removesuffix("...")[1:]
-                    )
+                yield generator()
 
-                styled_done = Text(done_message, style=done_color)
-                highlighter.highlight(styled_done)
+            except Exception:
+                show_done = False
+                raise
+            finally:
+                if show_done:
+                    if not done_message:
+                        done_message = t(
+                            "progress.done",
+                            msg=message.removesuffix("...")[0].lower() + message.removesuffix("...")[1:],
+                        )
 
-                live.update(styled_done)
+                    styled_done = Text(done_message, style=done_color)
+                    highlighter.highlight(styled_done)
 
-            live.stop()
+                    live.update(styled_done)
+
+                live.stop()

@@ -108,7 +108,7 @@ class WaypointsInjectorWorker(GroupInjectorWorker):
                 )
 
         if not silent:
-            logger.info(t("waypoints_injector.injected", count=nb_groups_processed))
+            logger.tech(t("waypoints_injector.injected", count=nb_groups_processed))
 
     def _inject_waypoints_into_group(self, group: Group, waypoints: list[WaypointDefinition]) -> None:
         """Inject waypoints into a specific group."""

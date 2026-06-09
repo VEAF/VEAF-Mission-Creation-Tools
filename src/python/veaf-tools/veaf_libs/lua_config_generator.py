@@ -246,6 +246,35 @@ _MODULE_DEPS: dict[str, list[str]] = {
 }
 
 
+def resolve_module_dependencies(enabled_ids: set[str]) -> list[str]:
+    """Return module IDs required (transitively) by *enabled_ids* but absent from it.
+
+    Walks the :data:`_MODULE_DEPS` graph so that, for example, enabling
+    ``CASMISSION`` pulls in ``GROUNDAI`` and ``SPAWN`` (and their own
+    dependencies). Pure and side-effect free — unlike :func:`_resolve_deps`,
+    it neither mutates input nor logs — so callers such as ``convert-v5`` can
+    pre-resolve dependencies when generating ``mission.yaml``.
+
+    Args:
+        enabled_ids: The module IDs that are explicitly enabled.
+
+    Returns:
+        Sorted list of additional module IDs that must be enabled to satisfy
+        every declared dependency. Never contains an ID already in
+        *enabled_ids*.
+    """
+    enabled = set(enabled_ids)
+    added: set[str] = set()
+    queue: list[str] = list(enabled)
+    while queue:
+        mod_id = queue.pop()
+        for dep in _MODULE_DEPS.get(mod_id, []):
+            if dep not in enabled and dep not in added:
+                added.add(dep)
+                queue.append(dep)
+    return sorted(added)
+
+
 # ---------------------------------------------------------------------------
 # Internal helpers
 # ---------------------------------------------------------------------------

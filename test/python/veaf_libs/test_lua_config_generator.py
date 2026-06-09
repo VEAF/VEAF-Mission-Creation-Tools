@@ -11,6 +11,7 @@ from veaf_libs.lua_config_generator import (
     _resolve_deps,
     generate_config_lua,
     generate_mission_yaml_template,
+    resolve_module_dependencies,
 )
 
 _LONG_STRING_RE = re.compile(r"^\[=*\[")
@@ -363,3 +364,31 @@ def test_explicitly_disabled_module_skips_dep_check():
     result = _resolve_deps(effective)
     # UNITS should NOT be auto-added since SPAWN is disabled
     assert "UNITS" not in result
+
+
+# ---------------------------------------------------------------------------
+# resolve_module_dependencies() — pure transitive dependency resolution
+# ---------------------------------------------------------------------------
+
+
+def test_resolve_module_dependencies_transitive():
+    """CASMISSION must pull in its full transitive dependency closure."""
+    added = resolve_module_dependencies({"CASMISSION"})
+    # CASMISSION -> SPAWN, GROUNDAI; SPAWN -> UNITS; GROUNDAI -> COMMANDS; COMMANDS -> MARKERS
+    for dep in ("SPAWN", "GROUNDAI", "COMMANDS", "MARKERS", "UNITS"):
+        assert dep in added, f"{dep} should be auto-resolved"
+    assert "CASMISSION" not in added  # never returns the input itself
+
+
+def test_resolve_module_dependencies_skips_already_enabled():
+    """Dependencies already in the enabled set are not returned again."""
+    added = resolve_module_dependencies({"CASMISSION", "GROUNDAI", "SPAWN"})
+    assert "GROUNDAI" not in added
+    assert "SPAWN" not in added
+    assert "COMMANDS" in added  # transitive deps still pulled in
+
+
+def test_resolve_module_dependencies_leaf_and_empty():
+    """A module with no dependencies (or an empty set) resolves to nothing."""
+    assert resolve_module_dependencies({"MARKERS"}) == []
+    assert resolve_module_dependencies(set()) == []

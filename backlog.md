@@ -94,7 +94,7 @@
 | Lot DOC-OVERHAUL — Complete, detailed, bilingual, ELI5 documentation with diagrams + screenshots | ~12h | ✅ |
 | Lot PREREL-BUGS — pre-release code review findings (briefing over-capture, exit codes, i18n, error handling) | ~2h | ⬜ |
 | Lot UI-OUTPUT — Declutter CLI output (transient status line + chapter/technical tiers) | ~3h30 | ✅ |
-| Lot FIX-CONVERT-V5-DEPS — resolve module dependencies when generating mission.yaml | ~45 min | ⬜ |
+| Lot FIX-CONVERT-V5-DEPS — resolve module dependencies when generating mission.yaml | ~45 min | ✅ |
 | **Total** | **~212h** | |
 
 *Initial calibration factor: 1.15 — recalculate after each completed lot.*
@@ -111,9 +111,9 @@
 
 | # | Ticket | Files | Type | Effort | Status |
 |---|--------|-------|------|--------|--------|
-| CVDEP-001 | Expose the dependency graph / resolver from `lua_config_generator.py` so the converter can reuse it (avoid duplicating `_MODULE_DEPS`) | `veaf_libs/lua_config_generator.py` | refactor | 15 min | ⬜ |
-| CVDEP-002 | In `convert-v5` module generation, auto-enable required dependencies (transitively) and emit them explicitly in the generated `mission.yaml`; add a one-line note in the conversion report listing dependencies that were auto-added | `mission_builder/v5_converter.py`, `locales/*.json` | feat | 20 min | ⬜ |
-| CVDEP-003 | TDD: a v5 folder enabling `CASMISSION` produces a `mission.yaml` with `GROUNDAI` (and `SPAWN`) enabled; `build` no longer prints the dependency auto-enable warning for it | `test/python/` | test | 10 min | ⬜ |
+| CVDEP-001 | Expose the dependency graph / resolver from `lua_config_generator.py` so the converter can reuse it (avoid duplicating `_MODULE_DEPS`) — added pure `resolve_module_dependencies()` helper | `veaf_libs/lua_config_generator.py` | refactor | 15 min | ✅ |
+| CVDEP-002 | In `convert-v5` module generation, auto-enable required dependencies (transitively) and emit them explicitly in the generated `mission.yaml`; add a one-line note in the conversion report listing dependencies that were auto-added | `mission_builder/v5_converter.py`, `locales/*.json` | feat | 20 min | ✅ |
+| CVDEP-003 | TDD: a v5 folder enabling `CASMISSION` produces a `mission.yaml` with `GROUNDAI` (and `SPAWN`) enabled; `build` no longer prints the dependency auto-enable warning for it | `test/python/` | test | 10 min | ✅ |
 
 ---
 

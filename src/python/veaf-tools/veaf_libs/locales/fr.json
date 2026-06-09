@@ -110,6 +110,7 @@
   "report.mission_yaml.not_generated": "Non généré",
   "report.mission_yaml.created_with": "Le fichier a été créé avec :",
   "report.mission_yaml.modules_count": "{enabled} module(s) activé(s), {disabled} désactivé(s)",
+  "report.mission_yaml.deps_resolved": "activé(s) automatiquement pour satisfaire les dépendances : {list}",
   "report.mission_yaml.log_level_warn": "changez en `info` ou supprimez avant le déploiement en production",
   "report.mission_yaml.pipeline_none": "aucun fichier v6 détecté",
   "report.mission_yaml.pipeline_v5_warn": "Étapes avec fichiers v5 (à convertir) : {steps}",

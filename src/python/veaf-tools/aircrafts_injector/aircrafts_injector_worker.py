@@ -696,7 +696,9 @@ class AircraftGroupsInjectorWorker(BaseWorker):
                     log_msg = f"Replaced group {group_name} in {coalition_name}/{country_name}/{category}"
                 elif existing_idx is not None:
                     # Skip: group already exists and mode is not replace
-                    log_msg = f"Skipped group {group_name} (already exists in {coalition_name}/{country_name}/{category})"
+                    log_msg = (
+                        f"Skipped group {group_name} (already exists in {coalition_name}/{country_name}/{category})"
+                    )
                     self.injection_log.append(log_msg)
                     logger.debug(log_msg)
                     continue
